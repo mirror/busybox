@@ -508,15 +508,13 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			   if ((slash = strchr(handle, '/')) != NULL)
 				   *slash = '\0';
 			 */
-			if (get_u32(&msg.tcm_handle, *argv, 0))
-				invarg(*argv, "handle");
-			/* if (slash) {if (get_u32(__u32 &mask, slash+1,0)) inv mask;addattr32(n, MAX_MSG, TCA_FW_MASK, mask); */
+			msg.tcm_handle = get_u32(*argv, "handle");
+			/* if (slash) {if (get_u32(__u32 &mask, slash+1, NULL)) inv mask; addattr32(n, MAX_MSG, TCA_FW_MASK, mask); */
 		} else if (arg == ARG_classid && obj == OBJ_class && cmd == CMD_change){
 		} else if (arg == ARG_pref || arg == ARG_prio) { /* filter::list */
 			if (filter_prio)
 				duparg(*argv, "priority");
-			if (get_u32(&filter_prio, *argv, 0))
-				invarg(*argv, "priority");
+			filter_prio = get_u32(*argv, "priority");
 		} else if (arg == ARG_proto) { /* filter::list */
 			__u16 tmp;
 			if (filter_proto)

@@ -202,7 +202,6 @@ static int print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_DST]) {
 		if (r->rtm_dst_len != host_len) {
 			printf("%s/%u ", rt_addr_n2a(r->rtm_family,
-						RTA_PAYLOAD(tb[RTA_DST]),
 						RTA_DATA(tb[RTA_DST]),
 						abuf, sizeof(abuf)),
 					r->rtm_dst_len
@@ -222,7 +221,6 @@ static int print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_SRC]) {
 		if (r->rtm_src_len != host_len) {
 			printf("from %s/%u ", rt_addr_n2a(r->rtm_family,
-						RTA_PAYLOAD(tb[RTA_SRC]),
 						RTA_DATA(tb[RTA_SRC]),
 						abuf, sizeof(abuf)),
 					r->rtm_src_len
@@ -252,7 +250,6 @@ static int print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		   and symbolic name will not be useful.
 		 */
 		printf(" src %s ", rt_addr_n2a(r->rtm_family,
-					RTA_PAYLOAD(tb[RTA_PREFSRC]),
 					RTA_DATA(tb[RTA_PREFSRC]),
 					abuf, sizeof(abuf)));
 	}
@@ -367,8 +364,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 				mxlock |= (1 << RTAX_MTU);
 				NEXT_ARG();
 			}
-			if (get_unsigned(&mtu, *argv, 0))
-				invarg(*argv, "mtu");
+			mtu = get_unsigned(*argv, "mtu");
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
 		} else if (arg == ARG_protocol) {
 			uint32_t prot;
@@ -391,8 +387,7 @@ USE_FEATURE_IP_RULE(ARG_table,)
 		} else if (arg == ARG_metric) {
 			uint32_t metric;
 			NEXT_ARG();
-			if (get_u32(&metric, *argv, 0))
-				invarg(*argv, "metric");
+			metric = get_u32(*argv, "metric");
 			addattr32(&req.n, sizeof(req), RTA_PRIORITY, metric);
 		} else {
 			int type;

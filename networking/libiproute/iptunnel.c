@@ -232,9 +232,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->i_key = p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0) < 0) {
-					invarg(*argv, "key");
-				}
+				uval = get_unsigned(*argv, "key");
 				p->i_key = p->o_key = htonl(uval);
 			}
 		} else if (key == ARG_ikey) {
@@ -244,9 +242,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0) < 0) {
-					invarg(*argv, "ikey");
-				}
+				uval = get_unsigned(*argv, "ikey");
 				p->i_key = htonl(uval);
 			}
 		} else if (key == ARG_okey) {
@@ -256,9 +252,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (strchr(*argv, '.'))
 				p->o_key = get_addr32(*argv);
 			else {
-				if (get_unsigned(&uval, *argv, 0) < 0) {
-					invarg(*argv, "okey");
-				}
+				uval = get_unsigned(*argv, "okey");
 				p->o_key = htonl(uval);
 			}
 		} else if (key == ARG_seq) {
@@ -297,8 +291,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			NEXT_ARG();
 			key = index_in_strings(keywords, *argv);
 			if (key != ARG_inherit) {
-				if (get_unsigned(&uval, *argv, 0))
-					invarg(*argv, "TTL");
+				uval = get_unsigned(*argv, "TTL");
 				if (uval > 255)
 					invarg(*argv, "TTL must be <=255");
 				p->iph.ttl = uval;

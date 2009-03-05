@@ -64,19 +64,17 @@ extern int get_addr_1(inet_prefix *dst, char *arg, int family);
 extern int get_addr(inet_prefix *dst, char *arg, int family);
 extern int get_prefix(inet_prefix *dst, char *arg, int family);
 
-extern int get_integer(int *val, char *arg, int base);
-extern int get_unsigned(unsigned *val, char *arg, int base);
-#define get_byte get_u8
-#define get_ushort get_u16
-#define get_short get_s16
-extern int get_u32(uint32_t *val, char *arg, int base);
-extern int get_u16(uint16_t *val, char *arg, int base);
-extern int get_s16(int16_t *val, char *arg, int base);
-extern int get_u8(uint8_t *val, char *arg, int base);
-extern int get_s8(int8_t *val, char *arg, int base);
+extern unsigned get_unsigned(char *arg, const char *errmsg);
+extern uint32_t get_u32(char *arg, const char *errmsg);
+extern uint16_t get_u16(char *arg, const char *errmsg);
 
+extern const char *rt_addr_n2a(int af, void *addr, char *buf, int buflen);
+#ifdef RESOLVE_HOSTNAMES
 extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
-extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen);
+#else
+#define format_host(af, len, addr, buf, buflen) \
+	rt_addr_n2a(af, addr, buf, buflen)
+#endif
 
 void invarg(const char *, const char *) NORETURN;
 void duparg(const char *, const char *) NORETURN;

@@ -78,7 +78,6 @@ static int print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_SRC]) {
 		if (r->rtm_src_len != host_len) {
 			printf("%s/%u", rt_addr_n2a(r->rtm_family,
-							 RTA_PAYLOAD(tb[RTA_SRC]),
 							 RTA_DATA(tb[RTA_SRC]),
 							 abuf, sizeof(abuf)),
 				r->rtm_src_len
@@ -99,7 +98,6 @@ static int print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_DST]) {
 		if (r->rtm_dst_len != host_len) {
 			printf("to %s/%u ", rt_addr_n2a(r->rtm_family,
-							 RTA_PAYLOAD(tb[RTA_DST]),
 							 RTA_DATA(tb[RTA_DST]),
 							 abuf, sizeof(abuf)),
 				r->rtm_dst_len
@@ -238,8 +236,7 @@ static int iprule_modify(int cmd, char **argv)
 			   key == ARG_priority) {
 			uint32_t pref;
 			NEXT_ARG();
-			if (get_u32(&pref, *argv, 0))
-				invarg(*argv, "preference");
+			pref = get_u32(*argv, "preference");
 			addattr32(&req.n, sizeof(req), RTA_PRIORITY, pref);
 		} else if (key == ARG_tos) {
 			uint32_t tos;
@@ -250,8 +247,7 @@ static int iprule_modify(int cmd, char **argv)
 		} else if (key == ARG_fwmark) {
 			uint32_t fwmark;
 			NEXT_ARG();
-			if (get_u32(&fwmark, *argv, 0))
-				invarg(*argv, "fwmark");
+			fwmark = get_u32(*argv, "fwmark");
 			addattr32(&req.n, sizeof(req), RTA_PROTOINFO, fwmark);
 		} else if (key == ARG_realms) {
 			uint32_t realm;

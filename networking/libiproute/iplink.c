@@ -202,8 +202,7 @@ static int do_set(char **argv)
 			NEXT_ARG();
 			if (mtu != -1)
 				duparg("mtu", *argv);
-			if (get_integer(&mtu, *argv, 0))
-				invarg(*argv, "mtu");
+			mtu = get_unsigned(*argv, "mtu");
 		}
 		if (key == ARG_multicast) {
 			int param;
