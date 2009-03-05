@@ -17,8 +17,6 @@ extern int delete_module(const char *module, unsigned int flags);
 # define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #endif
 
-USE_FEATURE_2_4_MODULES(char *insmod_outputname);
-
 /*
  a libbb candidate from ice age!
 */

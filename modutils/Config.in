@@ -44,7 +44,6 @@ config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 	depends on MODPROBE_SMALL
 	help
 	  Allow insmod and modprobe take module options from command line.
-	  N.B. Very bloaty.
 
 config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 	bool "Skip loading of already loaded modules"
@@ -52,7 +51,6 @@ config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 	depends on MODPROBE_SMALL
 	help
 	  Check if the module is already loaded.
-	  N.B. It's racy.
 
 config INSMOD
 	bool "insmod"
@@ -91,9 +89,6 @@ config MODPROBE
 	help
 	  Handle the loading of modules, and their dependencies on a high
 	  level.
-
-	  Note that in the state, modprobe does not understand multiple
-	  module options from the configuration file. See option below.
 
 config FEATURE_MODPROBE_BLACKLIST
 	bool
@@ -143,7 +138,7 @@ config FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	  By adding module symbols to the kernel symbol table, Oops messages
 	  occuring within kernel modules can be properly debugged. By enabling
 	  this feature, module symbols will always be added to the kernel symbol
-	  table for properly debugging support. If you are not interested in
+	  table for proper debugging support. If you are not interested in
 	  Oops messages from kernel modules, say N.
 
 config FEATURE_INSMOD_LOADINKMEM

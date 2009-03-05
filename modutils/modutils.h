@@ -27,9 +27,12 @@ int string_to_llist(char *string, llist_t **llist, const char *delim) FAST_FUNC;
 char *filename2modname(const char *filename, char *modname) FAST_FUNC;
 char *parse_cmdline_module_options(char **argv) FAST_FUNC;
 
-#define INSMOD_OPTS "vq" USE_FEATURE_2_4_MODULES("sLo:fkx") \
+#define INSMOD_OPTS \
+	"vq" \
+	USE_FEATURE_2_4_MODULES("sLo:fkx") \
 	USE_FEATURE_INSMOD_LOAD_MAP("m")
-#define INSMOD_ARGS USE_FEATURE_2_4_MODULES(, &insmod_outputname)
+
+#define INSMOD_ARGS USE_FEATURE_2_4_MODULES(, NULL)
 
 enum {
 	INSMOD_OPT_VERBOSE	= 0x0001,
@@ -42,13 +45,13 @@ enum {
 	INSMOD_OPT_NO_EXPORT	= 0x0080 * ENABLE_FEATURE_2_4_MODULES,
 	INSMOD_OPT_PRINT_MAP	= 0x0100 * ENABLE_FEATURE_INSMOD_LOAD_MAP,
 #if ENABLE_FEATURE_2_4_MODULES
-#if ENABLE_FEATURE_INSMOD_LOAD_MAP
+# if ENABLE_FEATURE_INSMOD_LOAD_MAP
 	INSMOD_OPT_UNUSED	= 0x0200,
-#else /* ENABLE_FEATURE_INSMOD_LOAD_MAP */
-	INSMOD_OPT_UNUSED	= 0x0100
-#endif
-#else /* ENABLE_FEATURE_2_4_MODULES */
-	INSMOD_OPT_UNUSED	= 0x0004
+# else
+	INSMOD_OPT_UNUSED	= 0x0100,
+# endif
+#else
+	INSMOD_OPT_UNUSED	= 0x0004,
 #endif
 };
 
@@ -56,8 +59,6 @@ int FAST_FUNC bb_init_module(const char *module, const char *options);
 int FAST_FUNC bb_delete_module(const char *module, unsigned int flags);
 
 #if ENABLE_FEATURE_2_4_MODULES
-extern char *insmod_outputname;
-
 int FAST_FUNC bb_init_module_24(const char *module, const char *options);
 #endif
 
