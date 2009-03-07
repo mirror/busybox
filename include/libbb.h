@@ -887,7 +887,7 @@ extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, f
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 extern void bb_simple_perror_msg(const char *s) FAST_FUNC;
 extern void bb_perror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
-extern void bb_simple_perror_msg_and_die(const char *s) __attribute__ ((noreturn)) FAST_FUNC;
+extern void bb_simple_perror_msg_and_die(const char *s) NORETURN FAST_FUNC;
 extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
 extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2))) FAST_FUNC;
 extern void bb_perror_nomsg_and_die(void) NORETURN FAST_FUNC;

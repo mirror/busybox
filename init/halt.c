@@ -95,6 +95,6 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 		rc = reboot(magic[which]);
 
 	if (rc)
-		bb_error_msg("no");
+		bb_perror_nomsg_and_die();
 	return rc;
 }
