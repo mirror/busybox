@@ -93,6 +93,19 @@ config FAKEIDENTD
 	  fakeidentd listens on the ident port and returns a predefined
 	  fake value on any query.
 
+config FTPD
+	bool "ftpd"
+	default n
+	help
+	  simple FTP daemon. You have to run it via inetd.
+
+config FEATURE_FTP_WRITE
+	bool "enable write"
+	default y
+	depends on FTPD
+	help
+	  Enable all kinds of FTP write commands (you have to add -w parameter)
+
 config FTPGET
 	bool "ftpget"
 	default n

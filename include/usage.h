@@ -1280,6 +1280,20 @@
      "\n	-m	Show \"mode not cleared\" warnings" \
      "\n	-f	Force file system check" \
 
+#define ftpd_trivial_usage \
+       "[-w] [DIR]"
+#define ftpd_full_usage "\n\n" \
+       "FTP server\n" \
+       "\n" \
+       "ftpd should be used as an inetd service.\n" \
+       "ftpd's line for inetd.conf:\n" \
+       "	21 stream tcp nowait root ftpd ftpd /files/to/serve\n" \
+       "It also can be ran from tcpsvd:\n" \
+       "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve\n" \
+     "\nOptions:" \
+     "\n	-w	Allow upload" \
+     "\n	DIR	Change root to ths directory" \
+
 #define ftpget_trivial_usage \
        "[options] remote-host local-file remote-file"
 #define ftpget_full_usage "\n\n" \
