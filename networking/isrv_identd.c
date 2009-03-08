@@ -122,7 +122,7 @@ int fakeidentd_main(int argc UNUSED_PARAM, char **argv)
 	 * log to stderr. I like daemontools more. Go their way.
 	 * (Or maybe we need yet another option "log to syslog") */
 	if (!(opt & OPT_fiw) /* || (opt & OPT_syslog) */) {
-		openlog(applet_name, 0, LOG_DAEMON);
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
 

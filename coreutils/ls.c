@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/*
+/* [date unknown. Perhaps before year 2000]
  * To achieve a small memory footprint, this version of 'ls' doesn't do any
  * file sorting, and only has the most essential command line switches
  * (i.e., the ones I couldn't live without :-) All features which involve
@@ -18,8 +18,7 @@
  *
  * KNOWN BUGS:
  * 1. ls -l of a directory doesn't give "total <blocks>" header
- * 2. ls of a symlink to a directory doesn't list directory contents
- * 3. hidden files can make column width too large
+ * 2. hidden files can make column width too large
  *
  * NON-OPTIMAL BEHAVIOUR:
  * 1. autowidth reads directories twice
@@ -27,6 +26,9 @@
  *    appended, there's no need to stat each one
  * PORTABILITY:
  * 1. requires lstat (BSD) - how do you do it without?
+ *
+ * [2009-03]
+ * ls sorts listing now, and supports almost all options.
  */
 
 #include "libbb.h"

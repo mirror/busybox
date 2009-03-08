@@ -53,7 +53,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt & 2) { /* -S */
-		openlog(applet_name, LOG_PID, LOG_LOCAL0);
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
 	}
 #if ENABLE_FEATURE_UDHCP_PORT

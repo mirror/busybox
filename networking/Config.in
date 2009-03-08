@@ -100,11 +100,11 @@ config FTPD
 	  simple FTP daemon. You have to run it via inetd.
 
 config FEATURE_FTP_WRITE
-	bool "enable write"
+	bool "Enable upload commands"
 	default y
 	depends on FTPD
 	help
-	  Enable all kinds of FTP write commands (you have to add -w parameter)
+	  Enable all kinds of FTP upload commands (-w option)
 
 config FTPGET
 	bool "ftpget"
