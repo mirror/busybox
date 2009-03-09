@@ -934,7 +934,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
 
-	cmdio_write_raw(STR(FTP_GREET)" Welcome\r\n");
+	cmdio_write_ok(FTP_GREET);
 
 #ifdef IF_WE_WANT_TO_REQUIRE_LOGIN
 	{
