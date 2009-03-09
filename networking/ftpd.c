@@ -954,7 +954,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 					break;
 				cmdio_write_raw(STR(FTP_NEEDUSER)" Login with USER\r\n");
 			} else if (cmdval == const_QUIT) {
-				cmdio_write_raw(STR(FTP_GOODBYE)" Goodbye\r\n");
+				cmdio_write_ok(FTP_GOODBYE);
 				return 0;
 			} else {
 				cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
@@ -986,7 +986,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	 * HELP, NOOP, QUIT.
 	 */
 	/* ACCOUNT (ACCT)
-	 * The argument field is a Telnet string identifying the user's account.
+	 * "The argument field is a Telnet string identifying the user's account.
 	 * The command is not necessarily related to the USER command, as some
 	 * sites may require an account for login and others only for specific
 	 * access, such as storing files. In the latter case the command may
@@ -999,14 +999,14 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	 * is needed for a command issued later in the dialogue, the server
 	 * should return a 332 or 532 reply depending on whether it stores
 	 * (pending receipt of the ACCounT command) or discards the command,
-	 * respectively.
+	 * respectively."
 	 */
 
 	while (1) {
 		uint32_t cmdval = cmdio_get_cmd_and_arg();
 
 		if (cmdval == const_QUIT) {
-			cmdio_write_raw(STR(FTP_GOODBYE)" Goodbye\r\n");
+			cmdio_write_ok(FTP_GOODBYE);
 			return 0;
 		}
 		if (cmdval == const_PWD)
