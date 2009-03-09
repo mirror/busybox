@@ -203,6 +203,8 @@ cmdio_write_raw(const char *p_text)
 	xwrite_str(STDIN_FILENO, p_text);
 }
 
+/* Simple commands */
+
 static void
 handle_pwd(void)
 {
@@ -254,6 +256,14 @@ handle_type(void)
 }
 
 static void
+handle_stat(void)
+{
+	cmdio_write_hyphen(FTP_STATOK, "FTP server status:");
+	cmdio_write_raw(" TYPE: BINARY\r\n");
+	cmdio_write_ok(FTP_STATOK);
+}
+
+static void
 handle_help(void)
 {
 	cmdio_write_hyphen(FTP_HELP, "Recognized commands:");
@@ -266,6 +276,8 @@ handle_help(void)
 	);
 	cmdio_write(FTP_HELP, "Help OK");
 }
+
+/* Download commands */
 
 static void
 init_data_sock_params(int sock_fd)
@@ -530,6 +542,8 @@ handle_retr(void)
 	close(opened_file);
 }
 
+/* List commands */
+
 static char *
 statbuf_getperms(const struct stat *statbuf)
 {
@@ -714,13 +728,7 @@ handle_stat_file(void)
 	handle_dir_common(1, 1);
 }
 
-static void
-handle_stat(void)
-{
-	cmdio_write_hyphen(FTP_STATOK, "FTP server status:");
-	cmdio_write_raw(" TYPE: BINARY\r\n");
-	cmdio_write_ok(FTP_STATOK);
-}
+/* Upload commands */
 
 #if ENABLE_FEATURE_FTP_WRITE
 static void
