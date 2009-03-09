@@ -917,6 +917,8 @@ int test_main(int argc, char **argv) USE_TEST(MAIN_EXTERNALLY_VISIBLE);
 int kill_main(int argc, char **argv) USE_KILL(MAIN_EXTERNALLY_VISIBLE);
 /* Similar, but used by chgrp, not shell */
 int chown_main(int argc, char **argv) USE_CHOWN(MAIN_EXTERNALLY_VISIBLE);
+/* Used by ftpd */
+int ls_main(int argc, char **argv) USE_LS(MAIN_EXTERNALLY_VISIBLE);
 /* Don't need USE_xxx() guard for these */
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

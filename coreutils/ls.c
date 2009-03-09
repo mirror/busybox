@@ -864,7 +864,6 @@ static const char ls_color_opt[] ALIGN1 =
 #endif
 
 
-int ls_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ls_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct dnode **dnd;

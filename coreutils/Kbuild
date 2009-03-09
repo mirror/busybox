@@ -44,6 +44,7 @@ lib-$(CONFIG_LENGTH)    += length.o
 lib-$(CONFIG_LN)        += ln.o
 lib-$(CONFIG_LOGNAME)   += logname.o
 lib-$(CONFIG_LS)        += ls.o
+lib-$(CONFIG_FTPD)      += ls.o
 lib-$(CONFIG_MD5SUM)    += md5_sha1_sum.o
 lib-$(CONFIG_MKDIR)     += mkdir.o
 lib-$(CONFIG_MKFIFO)    += mkfifo.o

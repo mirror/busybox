@@ -63,9 +63,24 @@
 #define STR1(s) #s
 #define STR(s) STR1(s)
 
+/* Convert a constant to 3-digit string, packed into uint32_t */
 enum {
-	OPT_v = (1 << 0),
-	OPT_w = (1 << 1),
+	/* Shift for Nth decimal digit */
+	SHIFT0 = 16 * BB_LITTLE_ENDIAN + 8 * BB_BIG_ENDIAN,
+	SHIFT1 =  8 * BB_LITTLE_ENDIAN + 16 * BB_BIG_ENDIAN,
+	SHIFT2 =  0 * BB_LITTLE_ENDIAN + 24 * BB_BIG_ENDIAN,
+};
+#define STRNUM32(s) (uint32_t)(0 \
+	| (('0' + ((s) / 1 % 10)) << SHIFT0) \
+	| (('0' + ((s) / 10 % 10)) << SHIFT1) \
+	| (('0' + ((s) / 100 % 10)) << SHIFT2) \
+)
+
+enum {
+	OPT_l = (1 << 0),
+	OPT_1 = (1 << 1),
+	OPT_v = (1 << 2),
+	OPT_w = (1 << 3),
 
 #define mk_const4(a,b,c,d) (((a * 0x100 + b) * 0x100 + c) * 0x100 + d)
 #define mk_const3(a,b,c)    ((a * 0x100 + b) * 0x100 + c)
@@ -106,78 +121,84 @@ struct globals {
 	len_and_sockaddr *local_addr;
 	len_and_sockaddr *port_addr;
 	int pasv_listen_fd;
-	int data_fd;
+	int proc_self_fd;
 	off_t restart_pos;
 	char *ftp_cmd;
 	char *ftp_arg;
 #if ENABLE_FEATURE_FTP_WRITE
 	char *rnfr_filename;
 #endif
-	smallint opts;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 
 static char *
-escape_text(const char *prepend, const char *str, char from, const char *to, char append)
+escape_text(const char *prepend, const char *str, unsigned escapee)
 {
-	size_t retlen, remainlen, chunklen, tolen;
-	const char *remain;
+	unsigned retlen, remainlen, chunklen;
 	char *ret, *found;
+	char append;
 
-	remain = str;
+	append = (char)escapee;
+	escapee >>= 8;
+
 	remainlen = strlen(str);
-	tolen = strlen(to);
-
-	/* Simply alloc strlen(str)*strlen(to). "to" is max 2 so it's ok */
 	retlen = strlen(prepend);
-	ret = xmalloc(retlen + remainlen * tolen + 1 + 1);
+	ret = xmalloc(retlen + remainlen * 2 + 1 + 1);
 	strcpy(ret, prepend);
 
 	for (;;) {
-		found = strchrnul(remain, from);
-		chunklen = found - remain;
+		found = strchrnul(str, escapee);
+		chunklen = found - str + 1;
 
-		/* Copy chunk which doesn't contain 'from' to ret */
-		memcpy(&ret[retlen], remain, chunklen);
+		/* Copy chunk up to and including escapee (or NUL) to ret */
+		memcpy(ret + retlen, str, chunklen);
 		retlen += chunklen;
 
-		if (*found != '\0') {
-			/* Now copy 'to' instead of 'from' */
-			memcpy(&ret[retlen], to, tolen);
-			retlen += tolen;
-
-			remain = found + 1;
-		} else {
-			ret[retlen] = append;
-			ret[retlen+1] = '\0';
+		if (*found == '\0') {
+			/* It wasn't escapee, it was NUL! */
+			ret[retlen - 1] = append; /* replace NUL */
+			ret[retlen] = '\0'; /* add NUL */
 			break;
 		}
+		ret[retlen++] = escapee; /* duplicate escapee */
+		str = found + 1;
 	}
 	return ret;
 }
 
-static void
+/* Returns strlen as a bonus */
+static unsigned
 replace_char(char *str, char from, char to)
 {
-	while ((str = strchr(str, from)) != NULL)
-		*str++ = to;
+	char *p = str;
+	while (*p) {
+		if (*p == from)
+			*p = to;
+		p++;
+	}
+	return p - str;
 }
 
 static void
-cmdio_write(unsigned status, const char *str)
+cmdio_write(uint32_t status_str, const char *str)
 {
+	union {
+		char buf[4];
+		uint32_t v32;
+	} u;
 	char *response;
 	int len;
 
+	u.v32 = status_str;
+
 	/* FTP allegedly uses telnet protocol for command link.
 	 * In telnet, 0xff is an escape char, and needs to be escaped: */
-	response = escape_text(utoa(status), str, '\xff', "\xff\xff", '\r');
+	response = escape_text(u.buf, str, (0xff << 8) + '\r');
 
 	/* ?! does FTP send embedded LFs as NULs? wow */
-	len = strlen(response);
-	replace_char(response, '\n', '\0');
+	len = replace_char(response, '\n', '\0');
 
 	response[len++] = '\n'; /* tack on trailing '\n' */
 	xwrite(STDOUT_FILENO, response, len);
@@ -215,9 +236,9 @@ handle_pwd(void)
 		cwd = xstrdup("");
 
 	/* We have to promote each " to "" */
-	response = escape_text(" \"", cwd, '\"', "\"\"", '\"');
+	response = escape_text(" \"", cwd, ('"' << 8) + '"');
 	free(cwd);
-	cmdio_write(FTP_PWDOK, response);
+	cmdio_write(STRNUM32(FTP_PWDOK), response);
 	free(response);
 }
 
@@ -261,21 +282,6 @@ handle_help(void)
 
 /* Download commands */
 
-static void
-init_data_sock_params(int sock_fd)
-{
-	struct linger linger;
-
-	G.data_fd = sock_fd;
-
-	memset(&linger, 0, sizeof(linger));
-	linger.l_onoff = 1;
-	linger.l_linger = 32767;
-
-	setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
-	setsockopt(sock_fd, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger));
-}
-
 static int
 ftpdataio_get_pasv_fd(void)
 {
@@ -288,37 +294,8 @@ ftpdataio_get_pasv_fd(void)
 		return remote_fd;
 	}
 
-	init_data_sock_params(remote_fd);
+	setsockopt(remote_fd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	return remote_fd;
-}
-
-static int
-ftpdataio_get_port_fd(void)
-{
-	int remote_fd;
-
-	/* Do we want to die or print error to client? */
-	remote_fd = xconnect_stream(G.port_addr);
-
-	init_data_sock_params(remote_fd);
-	return remote_fd;
-}
-
-static void
-ftpdataio_dispose_transfer_fd(void)
-{
-	/* This close() blocks because we set SO_LINGER */
-	if (G.data_fd > STDOUT_FILENO) {
-		if (close(G.data_fd) < 0) {
-			/* Do it again without blocking. */
-			struct linger linger;
-
-			memset(&linger, 0, sizeof(linger));
-			setsockopt(G.data_fd, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger));
-			close(G.data_fd);
-		}
-	}
-	G.data_fd = -1;
 }
 
 static inline int
@@ -341,12 +318,12 @@ get_remote_transfer_fd(const char *p_status_msg)
 	if (pasv_active())
 		remote_fd = ftpdataio_get_pasv_fd();
 	else
-		remote_fd = ftpdataio_get_port_fd();
+		remote_fd = xconnect_stream(G.port_addr);
 
 	if (remote_fd < 0)
 		return remote_fd;
 
-	cmdio_write(FTP_DATACONN, p_status_msg);
+	cmdio_write(STRNUM32(FTP_DATACONN), p_status_msg);
 	return remote_fd;
 }
 
@@ -374,21 +351,21 @@ port_pasv_cleanup(void)
 static unsigned
 bind_for_passive_mode(void)
 {
+	int fd;
 	unsigned port;
 
 	port_pasv_cleanup();
 
-	G.pasv_listen_fd = xsocket(G.local_addr->u.sa.sa_family, SOCK_STREAM, 0);
-	setsockopt_reuseaddr(G.pasv_listen_fd);
+	G.pasv_listen_fd = fd = xsocket(G.local_addr->u.sa.sa_family, SOCK_STREAM, 0);
+	setsockopt_reuseaddr(fd);
 
 	set_nport(G.local_addr, 0);
-	xbind(G.pasv_listen_fd, &G.local_addr->u.sa, G.local_addr->len);
-	xlisten(G.pasv_listen_fd, 1);
-	getsockname(G.pasv_listen_fd, &G.local_addr->u.sa, &G.local_addr->len);
+	xbind(fd, &G.local_addr->u.sa, G.local_addr->len);
+	xlisten(fd, 1);
+	getsockname(fd, &G.local_addr->u.sa, &G.local_addr->len);
 
 	port = get_nport(&G.local_addr->u.sa);
 	port = ntohs(port);
-
 	return port;
 }
 
@@ -487,7 +464,7 @@ handle_retr(void)
 	G.restart_pos = 0;
 
 	if (!data_transfer_checks_ok())
-		return;
+		return; /* data_transfer_checks_ok emitted error response */
 
 	/* O_NONBLOCK is useful if file happens to be a device node */
 	opened_file = G.ftp_arg ? open(G.ftp_arg, O_RDONLY | O_NONBLOCK) : -1;
@@ -520,7 +497,7 @@ handle_retr(void)
 		goto port_pasv_cleanup_out;
 
 	trans_ret = bb_copyfd_eof(opened_file, remote_fd);
-	ftpdataio_dispose_transfer_fd();
+	close(remote_fd);
 	if (trans_ret < 0)
 		cmdio_write_error(FTP_BADSENDFILE);
 	else
@@ -535,185 +512,105 @@ handle_retr(void)
 
 /* List commands */
 
-static char *
-statbuf_getperms(const struct stat *statbuf)
+static int
+popen_ls(const char *opt)
 {
-	char *perms;
-	enum { r = 'r', w = 'w', x = 'x', s = 's', S = 'S' };
+	char *cwd;
+	const char *argv[5] = { "ftpd", opt, NULL, G.ftp_arg, NULL };
+	struct fd_pair outfd;
+	pid_t pid;
 
-	perms = xmalloc(11);
-	memset(perms, '-', 10);
+	cwd = xrealloc_getcwd_or_warn(NULL);
 
-  	perms[0] = '?';
-	switch (statbuf->st_mode & S_IFMT) {
-	case S_IFREG: perms[0] = '-'; break;
-	case S_IFDIR: perms[0] = 'd'; break;
-	case S_IFLNK: perms[0] = 'l'; break;
-	case S_IFIFO: perms[0] = 'p'; break;
-	case S_IFSOCK: perms[0] = s; break;
-	case S_IFCHR: perms[0] = 'c'; break;
-	case S_IFBLK: perms[0] = 'b'; break;
-	}
+	xpiped_pair(outfd);
 
-	if (statbuf->st_mode & S_IRUSR) perms[1] = r;
-	if (statbuf->st_mode & S_IWUSR) perms[2] = w;
-	if (statbuf->st_mode & S_IXUSR) perms[3] = x;
-	if (statbuf->st_mode & S_IRGRP) perms[4] = r;
-	if (statbuf->st_mode & S_IWGRP) perms[5] = w;
-	if (statbuf->st_mode & S_IXGRP) perms[6] = x;
-	if (statbuf->st_mode & S_IROTH) perms[7] = r;
-	if (statbuf->st_mode & S_IWOTH) perms[8] = w;
-	if (statbuf->st_mode & S_IXOTH) perms[9] = x;
-	if (statbuf->st_mode & S_ISUID) perms[3] = (perms[3] == x) ? s : S;
-	if (statbuf->st_mode & S_ISGID) perms[6] = (perms[6] == x) ? s : S;
-	if (statbuf->st_mode & S_ISVTX) perms[9] = (perms[9] == x) ? 't' : 'T';
+	fflush(NULL);
+	pid = vfork();
 
-	perms[10] = '\0';
-
-	return perms;
-}
-
-static void
-write_filestats(int fd, const char *filename,
-				const struct stat *statbuf)
-{
-	off_t size;
-	char *stats, *lnkname = NULL, *perms;
-	const char *name;
-	char timestr[32];
-	struct tm *tm;
-
-	name = bb_get_last_path_component_nostrip(filename);
-
-	if (statbuf != NULL) {
-		size = statbuf->st_size;
-
-		if (S_ISLNK(statbuf->st_mode))
-			/* Damn symlink... */
-			lnkname = xmalloc_readlink(filename);
-
-		tm = gmtime(&statbuf->st_mtime);
-		if (strftime(timestr, sizeof(timestr), "%b %d %H:%M", tm) == 0)
-			bb_error_msg_and_die("strftime");
-
-		timestr[sizeof(timestr) - 1] = '\0';
-
-		perms = statbuf_getperms(statbuf);
-
-		stats = xasprintf("%s %u\tftp ftp %"OFF_FMT"u\t%s %s",
-				perms, (int) statbuf->st_nlink,
-				size, timestr, name);
-
-		free(perms);
-	} else
-		stats = xstrdup(name);
-
-	xwrite_str(fd, stats);
-	free(stats);
-	if (lnkname != NULL) {
-		xwrite_str(fd, " -> ");
-		xwrite_str(fd, lnkname);
-		free(lnkname);
-	}
-	xwrite_str(fd, "\r\n");
-}
-
-static void
-write_dirstats(int fd, const char *dname, int details)
-{
-	DIR *dir;
-	struct dirent *dirent;
-	struct stat statbuf;
-	char *filename;
-
-	dir = xopendir(dname);
-
-	for (;;) {
-		dirent = readdir(dir);
-		if (dirent == NULL)
-			break;
-
-		/* Ignore . and .. */
-		if (dirent->d_name[0] == '.') {
-			if (dirent->d_name[1] == '\0'
-			 || (dirent->d_name[1] == '.' && dirent->d_name[2] == '\0')
-			) {
-				continue;
-			}
+	switch (pid) {
+	case -1:  /* failure */
+		bb_perror_msg_and_die("vfork");
+	case 0:  /* child */
+		/* NB: close _first_, then move fds! */
+		close(outfd.rd);
+		xmove_fd(outfd.wr, STDOUT_FILENO);
+		close(STDIN_FILENO);
+		/* xopen("/dev/null", O_RDONLY); - chroot may lack it! */
+		if (fchdir(G.proc_self_fd) == 0) {
+			close(G.proc_self_fd);
+			argv[2] = cwd;
+			/* ftpd ls helper chdirs to argv[2],
+			 * preventing peer from seeing /proc/self
+			 */
+			execv("exe", (char**) argv);
 		}
-
-		if (details) {
-			filename = xasprintf("%s/%s", dname, dirent->d_name);
-			if (lstat(filename, &statbuf) != 0) {
-				free(filename);
-				break;
-			}
-		} else
-			filename = xstrdup(dirent->d_name);
-
-		write_filestats(fd, filename, details ? &statbuf : NULL);
-		free(filename);
+		_exit(127);
 	}
-
-	closedir(dir);
+	/* parent */
+	close(outfd.wr);
+	free(cwd);
+	return outfd.rd;
 }
 
 static void
-handle_dir_common(int full_details, int stat_cmd)
+handle_dir_common(int opts)
 {
-	int fd;
-	struct stat statbuf;
+	FILE *ls_fp;
+	char *line;
+	int ls_fd;
 
-	if (!stat_cmd && !data_transfer_checks_ok())
-		return;
+	if (!(opts & 1) && !data_transfer_checks_ok())
+		return; /* data_transfer_checks_ok emitted error response */
 
-	if (stat_cmd) {
-		fd = STDIN_FILENO;
+	ls_fd = popen_ls((opts & 2) ? "-l" : "-1");
+	ls_fp = fdopen(ls_fd, "r");
+	if (!ls_fp) /* never happens. paranoia */
+		bb_perror_msg_and_die("fdopen");
+
+	if (opts & 1) {
+		/* STAT <filename> */
 		cmdio_write_raw(STR(FTP_STATFILE_OK)"-Status follows:\r\n");
-	} else {
-		fd = get_remote_transfer_fd(" Here comes the directory listing");
-		if (fd < 0)
-			goto bail;
-	}
-
-	if (G.ftp_arg) {
-		if (lstat(G.ftp_arg, &statbuf) != 0) {
-			/* Dir doesn't exist => return ok to client */
-			goto bail;
+		while (1) {
+    			line = xmalloc_fgetline(ls_fp);
+			if (!line)
+				break;
+			cmdio_write(0, line); /* hack: 0 results in no status at all */
+			free(line);
 		}
-		if (S_ISREG(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
-			write_filestats(fd, G.ftp_arg, &statbuf);
-		else if (S_ISDIR(statbuf.st_mode))
-			write_dirstats(fd, G.ftp_arg, full_details);
-	} else
-		write_dirstats(fd, ".", full_details);
-
- bail:
-	/* Well, if we can't open directory/file it doesn't matter */
-	if (!stat_cmd) {
-		ftpdataio_dispose_transfer_fd();
+		cmdio_write_ok(FTP_STATFILE_OK);
+	} else {
+		/* LIST/NLST [<filename>] */
+		int remote_fd = get_remote_transfer_fd(" Here comes the directory listing");
+		if (remote_fd >= 0) {
+			while (1) {
+    				line = xmalloc_fgetline(ls_fp);
+				if (!line)
+					break;
+				xwrite_str(remote_fd, line);
+				xwrite(remote_fd, "\r\n", 2);
+				free(line);
+			}
+		}
+		close(remote_fd);
 		port_pasv_cleanup();
 		cmdio_write_ok(FTP_TRANSFEROK);
-	} else
-		cmdio_write_ok(FTP_STATFILE_OK);
+	}
+	fclose(ls_fp); /* closes ls_fd too */
 }
-
 static void
 handle_list(void)
 {
-	handle_dir_common(1, 0);
+	handle_dir_common(2);
 }
-
 static void
 handle_nlst(void)
 {
-	handle_dir_common(0, 0);
+	handle_dir_common(0);
 }
-
 static void
 handle_stat_file(void)
 {
-	handle_dir_common(1, 1);
+	handle_dir_common(3);
 }
 
 static void
@@ -840,7 +737,7 @@ handle_upload_common(int is_append, int is_unique)
 		goto bail;
 
 	trans_ret = bb_copyfd_eof(remote_fd, local_file_fd);
-	ftpdataio_dispose_transfer_fd();
+	close(remote_fd);
 
 	if (trans_ret < 0)
 		cmdio_write_error(FTP_BADSENDFILE);
@@ -905,8 +802,19 @@ cmdio_get_cmd_and_arg(void)
 }
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ftpd_main(int argc UNUSED_PARAM, char **argv)
+int ftpd_main(int argc, char **argv)
 {
+	smallint opts;
+
+	opts = getopt32(argv, "l1v" USE_FEATURE_FTP_WRITE("w"));
+
+	if (opts & (OPT_l|OPT_1)) {
+		/* Our secret backdoor to ls */
+		xchdir(argv[2]);
+		argv[2] = (char*)"--";
+		return ls_main(argc, argv);
+	}
+
 	INIT_G();
 
 	G.local_addr = get_sock_lsa(STDIN_FILENO);
@@ -920,12 +828,12 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		 * failure */
 	}
 
-	G.opts = getopt32(argv, "v" USE_FEATURE_FTP_WRITE("w"));
-
 	openlog(applet_name, LOG_PID, LOG_DAEMON);
 	logmode |= LOGMODE_SYSLOG;
-	if (!(G.opts & OPT_v))
+	if (!(opts & OPT_v))
 		logmode = LOGMODE_SYSLOG;
+
+	G.proc_self_fd = xopen("/proc/self", O_RDONLY | O_DIRECTORY);
 
 	if (argv[optind]) {
 		xchdir(argv[optind]);
@@ -1064,7 +972,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		else if (cmdval == const_REST)
 			handle_rest();
 #if ENABLE_FEATURE_FTP_WRITE
-		else if (G.opts & OPT_w) {
+		else if (opts & OPT_w) {
 			if (cmdval == const_STOR)
 				handle_stor();
 			else if (cmdval == const_MKD)
