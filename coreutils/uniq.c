@@ -45,7 +45,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 	skip_fields = skip_chars = 0;
-	max_chars = -1;
+	max_chars = INT_MAX;
 
 	opt_complementary = "f+:s+:w+";
 	opt = getopt32(argv, "cduf:s:w:", &skip_fields, &skip_chars, &max_chars);
