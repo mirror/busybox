@@ -4,6 +4,8 @@
  *
  * Author: Adam Tkac <vonsch@gmail.com>
  *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ *
  * Only subset of FTP protocol is implemented but vast majority of clients
  * should not have any problem. You have to run this daemon via inetd.
  *
@@ -32,6 +34,8 @@
 #define FTP_GOODBYE             221
 #define FTP_TRANSFEROK          226
 #define FTP_PASVOK              227
+/*#define FTP_EPRTOK              228*/
+#define FTP_EPSVOK              229
 #define FTP_LOGINOK             230
 #define FTP_CWDOK               250
 #define FTP_RMDIROK             250
@@ -70,6 +74,7 @@ enum {
 	const_CDUP = mk_const4('C', 'D', 'U', 'P'),
 	const_CWD  = mk_const3('C', 'W', 'D'),
 	const_DELE = mk_const4('D', 'E', 'L', 'E'),
+	const_EPSV = mk_const4('E', 'P', 'S', 'V'),
 	const_HELP = mk_const4('H', 'E', 'L', 'P'),
 	const_LIST = mk_const4('L', 'I', 'S', 'T'),
 	const_MKD  = mk_const3('M', 'K', 'D'),
@@ -86,6 +91,7 @@ enum {
 	const_RMD  = mk_const3('R', 'M', 'D'),
 	const_RNFR = mk_const4('R', 'N', 'F', 'R'),
 	const_RNTO = mk_const4('R', 'N', 'T', 'O'),
+	const_SIZE = mk_const4('S', 'I', 'Z', 'E'),
 	const_STAT = mk_const4('S', 'T', 'A', 'T'),
 	const_STOR = mk_const4('S', 'T', 'O', 'R'),
 	const_STOU = mk_const4('S', 'T', 'O', 'U'),
@@ -232,26 +238,11 @@ handle_cdup(void)
 	handle_cwd();
 }
 
-//static void
-//handle_type(void)
-//{
-//	if (G.ftp_arg
-//	 && (  ((G.ftp_arg[0] | 0x20) == 'i' && G.ftp_arg[1] == '\0')
-//	    || !strcasecmp(G.ftp_arg, "L8")
-//	    || !strcasecmp(G.ftp_arg, "L 8")
-//	    )
-//	) {
-//		cmdio_write_ok(FTP_TYPEOK);
-//	} else {
-//		cmdio_write_error(FTP_BADCMD);
-//	}
-//}
-
 static void
 handle_stat(void)
 {
 	cmdio_write_raw(STR(FTP_STATOK)"-FTP server status:\r\n"
-			"TYPE: BINARY\r\n"
+			" TYPE: BINARY\r\n"
 			STR(FTP_STATOK)" Ok\r\n");
 }
 
@@ -259,11 +250,11 @@ static void
 handle_help(void)
 {
 	cmdio_write_raw(STR(FTP_HELP)"-Commands:\r\n"
-			"ALLO CDUP CWD HELP LIST\r\n"
-			"MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
-			"REST RETR STAT STRU SYST TYPE USER\r\n"
+			" ALLO CDUP CWD EPSV HELP LIST\r\n"
+			" MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
+			" REST RETR SIZE STAT STRU SYST TYPE USER\r\n"
 #if ENABLE_FEATURE_FTP_WRITE
-			"APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
+			" APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
 #endif
 			STR(FTP_HELP)" Ok\r\n");
 }
@@ -380,47 +371,57 @@ port_pasv_cleanup(void)
 	G.pasv_listen_fd = -1;
 }
 
-static void
-handle_pasv(void)
+static unsigned
+bind_for_passive_mode(void)
 {
-	int bind_retries = 10;
-	unsigned short port;
-	enum { min_port = 1024, max_port = 65535 };
-	char *addr, *response;
+	unsigned port;
 
 	port_pasv_cleanup();
 
 	G.pasv_listen_fd = xsocket(G.local_addr->u.sa.sa_family, SOCK_STREAM, 0);
 	setsockopt_reuseaddr(G.pasv_listen_fd);
 
-	/* TODO bind() with port == 0 and then call getsockname */
-	while (--bind_retries) {
-		port = rand() % max_port;
-		if (port < min_port) {
-			port += min_port;
-		}
+	set_nport(G.local_addr, 0);
+	xbind(G.pasv_listen_fd, &G.local_addr->u.sa, G.local_addr->len);
+	xlisten(G.pasv_listen_fd, 1);
+	getsockname(G.pasv_listen_fd, &G.local_addr->u.sa, &G.local_addr->len);
 
-		set_nport(G.local_addr, htons(port));
-		/* We don't want to use xbind, it'll die if port is in use */
-		if (bind(G.pasv_listen_fd, &G.local_addr->u.sa,	G.local_addr->len) != 0) {
-			/* do we want check if errno == EADDRINUSE ? */
-			continue;
-		}
-		xlisten(G.pasv_listen_fd, 1);
-		break;
-	}
+	port = get_nport(&G.local_addr->u.sa);
+	port = ntohs(port);
 
-	if (!bind_retries)
-		bb_error_msg_and_die("can't create pasv socket");
+	return port;
+}
 
-	addr = xmalloc_sockaddr2dotted_noport(&G.local_addr->u.sa);
+static void
+handle_pasv(void)
+{
+	unsigned port;
+	char *addr, *response;
+
+	port = bind_for_passive_mode();
+
+	if (G.local_addr->u.sa.sa_family == AF_INET)
+		addr = xmalloc_sockaddr2dotted_noport(&G.local_addr->u.sa);
+	else /* seen this in the wild done by other ftp servers: */
+		addr = xstrdup("0.0.0.0");
 	replace_char(addr, '.', ',');
 
-	response = xasprintf(" Entering Passive Mode (%s,%u,%u)",
+	response = xasprintf(STR(FTP_PASVOK)" Entering Passive Mode (%s,%u,%u)\r\n",
 			addr, (int)(port >> 8), (int)(port & 255));
 	free(addr);
+	cmdio_write_raw(response);
+	free(response);
+}
 
-	cmdio_write(FTP_PASVOK, response);
+static void
+handle_epsv(void)
+{
+	unsigned port;
+	char *response;
+
+	port = bind_for_passive_mode();
+	response = xasprintf(STR(FTP_EPSVOK)" EPSV Ok (|||%u|)\r\n", port);
+	cmdio_write_raw(response);
 	free(response);
 }
 
@@ -477,7 +478,7 @@ static void
 handle_retr(void)
 {
 	struct stat statbuf;
-	int trans_ret, retval;
+	int trans_ret;
 	int remote_fd;
 	int opened_file;
 	off_t offset = G.restart_pos;
@@ -495,8 +496,7 @@ handle_retr(void)
 		return;
 	}
 
-	retval = fstat(opened_file, &statbuf);
-	if (retval < 0 || !S_ISREG(statbuf.st_mode)) {
+	if (fstat(opened_file, &statbuf) != 0 || !S_ISREG(statbuf.st_mode)) {
 		/* Note - pretend open failed */
 		cmdio_write_error(FTP_FILEFAIL);
 		goto file_close_out;
@@ -580,10 +580,8 @@ write_filestats(int fd, const char *filename,
 	off_t size;
 	char *stats, *lnkname = NULL, *perms;
 	const char *name;
-	int retval;
 	char timestr[32];
 	struct tm *tm;
-	const char *format = "%b %d %H:%M";
 
 	name = bb_get_last_path_component_nostrip(filename);
 
@@ -595,8 +593,7 @@ write_filestats(int fd, const char *filename,
 			lnkname = xmalloc_readlink(filename);
 
 		tm = gmtime(&statbuf->st_mtime);
-		retval = strftime(timestr, sizeof(timestr), format, tm);
-		if (retval == 0)
+		if (strftime(timestr, sizeof(timestr), "%b %d %H:%M", tm) == 0)
 			bb_error_msg_and_die("strftime");
 
 		timestr[sizeof(timestr) - 1] = '\0';
@@ -717,6 +714,23 @@ static void
 handle_stat_file(void)
 {
 	handle_dir_common(1, 1);
+}
+
+static void
+handle_size(void)
+{
+	struct stat statbuf;
+	char buf[sizeof(STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n") + sizeof(off_t)*3];
+
+	if (!G.ftp_arg
+	 || stat(G.ftp_arg, &statbuf) != 0
+	 || !S_ISREG(statbuf.st_mode)
+	) {
+		cmdio_write_error(FTP_FILEFAIL);
+		return;
+	}
+	sprintf(buf, STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n", statbuf.st_size);
+	cmdio_write_raw(buf);
 }
 
 /* Upload commands */
@@ -1003,63 +1017,52 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 			cmdio_write_ok(FTP_GOODBYE);
 			return 0;
 		}
-		if (cmdval == const_PWD)
+		else if (cmdval == const_USER)
+			cmdio_write_ok(FTP_GIVEPWORD);
+		else if (cmdval == const_PASS)
+			cmdio_write_ok(FTP_LOGINOK);
+		else if (cmdval == const_NOOP)
+			cmdio_write_ok(FTP_NOOPOK);
+		else if (cmdval == const_TYPE)
+			cmdio_write_ok(FTP_TYPEOK);
+		else if (cmdval == const_STRU)
+			cmdio_write_ok(FTP_STRUOK);
+		else if (cmdval == const_MODE)
+			cmdio_write_ok(FTP_MODEOK);
+		else if (cmdval == const_ALLO)
+			cmdio_write_ok(FTP_ALLOOK);
+		else if (cmdval == const_SYST)
+			cmdio_write_raw(STR(FTP_SYSTOK)" UNIX Type: L8\r\n");
+		else if (cmdval == const_PWD)
 			handle_pwd();
 		else if (cmdval == const_CWD)
 			handle_cwd();
 		else if (cmdval == const_CDUP) /* cd .. */
 			handle_cdup();
-		else if (cmdval == const_PASV)
-			handle_pasv();
-		else if (cmdval == const_RETR)
-			handle_retr();
-		else if (cmdval == const_NOOP)
-			cmdio_write_ok(FTP_NOOPOK);
-		else if (cmdval == const_SYST)
-			cmdio_write_raw(STR(FTP_SYSTOK)" UNIX Type: L8\r\n");
 		else if (cmdval == const_HELP)
 			handle_help();
 		else if (cmdval == const_LIST) /* ls -l */
 			handle_list();
-		else if (cmdval == const_TYPE)
-			//handle_type();
-			cmdio_write_ok(FTP_TYPEOK);
-		else if (cmdval == const_PORT)
-			handle_port();
-		else if (cmdval == const_REST)
-			handle_rest();
 		else if (cmdval == const_NLST) /* "name list", bare ls */
 			handle_nlst();
-		else if (cmdval == const_STRU) {
-			//if (G.ftp_arg
-			// && (G.ftp_arg[0] | 0x20) == 'f'
-			// && G.ftp_arg[1] == '\0'
-			//) {
-				cmdio_write_ok(FTP_STRUOK);
-			//} else
-			//	cmdio_write_raw(STR(FTP_BADSTRU)" Bad STRU command\r\n");
-		} else if (cmdval == const_MODE) {
-			//if (G.ftp_arg
-			// && (G.ftp_arg[0] | 0x20) == 's'
-			// && G.ftp_arg[1] == '\0'
-			//) {
-				cmdio_write_ok(FTP_MODEOK);
-			//} else
-			//	cmdio_write_raw(STR(FTP_BADMODE)" Bad MODE command\r\n");
-		}
-		else if (cmdval == const_ALLO)
-			cmdio_write_ok(FTP_ALLOOK);
+		else if (cmdval == const_SIZE)
+			handle_size();
 		else if (cmdval == const_STAT) {
 			if (G.ftp_arg == NULL)
 				handle_stat();
 			else
 				handle_stat_file();
-		} else if (cmdval == const_USER) {
-			/* FTP_LOGINERR confuses clients: */
-			/* cmdio_write_raw(STR(FTP_LOGINERR)" Can't change to another user\r\n"); */
-			cmdio_write_ok(FTP_GIVEPWORD);
-		} else if (cmdval == const_PASS)
-			cmdio_write_ok(FTP_LOGINOK);
+		}
+		else if (cmdval == const_PASV)
+			handle_pasv();
+		else if (cmdval == const_EPSV)
+			handle_epsv();
+		else if (cmdval == const_RETR)
+			handle_retr();
+		else if (cmdval == const_PORT)
+			handle_port();
+		else if (cmdval == const_REST)
+			handle_rest();
 #if ENABLE_FEATURE_FTP_WRITE
 		else if (G.opts & OPT_w) {
 			if (cmdval == const_STOR)
@@ -1096,10 +1099,8 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		else {
 			/* Which unsupported commands were seen in the wild?
 			 * (doesn't necessarily mean "we must support them")
-			 * wget 1.11.4: SIZE - todo
 			 * lftp 3.6.3: FEAT - is it useful?
 			 *             MDTM - works fine without it anyway
-			 * IPv6-style PASV: "EPSV 2" - todo
 			 */
 			cmdio_write_raw(STR(FTP_BADCMD)" Unknown command\r\n");
 		}

@@ -167,7 +167,8 @@ USE_FEATURE_IPV6(sa_family_t af,)
 		/* Even uglier parsing of [xx]:nn */
 		host++;
 		cp = strchr(host, ']');
-		if (!cp || cp[1] != ':') { /* Malformed: must have [xx]:nn */
+		if (!cp || (cp[1] != ':' && cp[1] != '\0')) {
+			/* Malformed: must be [xx]:nn or [xx] */
 			bb_error_msg("bad address '%s'", org_host);
 			if (ai_flags & DIE_ON_ERROR)
 				xfunc_die();
@@ -183,8 +184,11 @@ USE_FEATURE_IPV6(sa_family_t af,)
 	if (cp) { /* points to ":" or "]:" */
 		int sz = cp - host + 1;
 		host = safe_strncpy(alloca(sz), host, sz);
-		if (ENABLE_FEATURE_IPV6 && *cp != ':')
+		if (ENABLE_FEATURE_IPV6 && *cp != ':') {
 			cp++; /* skip ']' */
+			if (*cp == '\0') /* [xx] without port */
+				goto skip;
+		}
 		cp++; /* skip ':' */
 		port = bb_strtou(cp, NULL, 10);
 		if (errno || (unsigned)port > 0xffff) {
@@ -193,6 +197,7 @@ USE_FEATURE_IPV6(sa_family_t af,)
 				xfunc_die();
 			return NULL;
 		}
+ skip: ;
 	}
 
 	memset(&hint, 0 , sizeof(hint));
