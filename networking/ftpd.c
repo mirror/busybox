@@ -1106,10 +1106,11 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
 		else {
-			/* Which unsupported commands were seen in the wild
+			/* Which unsupported commands were seen in the wild?
 			 * (doesn't necessarily mean "we must support them")
 			 * wget 1.11.4: SIZE - todo.
 			 * lftp 3.6.3: MDTM - works fine without it anyway.
+			 * IPv6-style PASV: "EPSV 2"
 			 */
 			cmdio_write(FTP_BADCMD, "Unknown command");
 		}
