@@ -1293,7 +1293,7 @@
      "\nOptions:" \
      "\n	-v	Log also to stderr" \
      "\n	-w	Allow upload" \
-     "\n	DIR	Change root to ths directory" \
+     "\n	DIR	Change root to this directory" \
 
 #define ftpget_trivial_usage \
        "[options] remote-host local-file remote-file"
