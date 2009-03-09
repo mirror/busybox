@@ -99,7 +99,7 @@ static const char *unpack_usage_messages(void)
 
 static void full_write2_str(const char *str)
 {
-	full_write(STDERR_FILENO, str, strlen(str));
+	xwrite_str(STDERR_FILENO, str);
 }
 
 void FAST_FUNC bb_show_usage(void)

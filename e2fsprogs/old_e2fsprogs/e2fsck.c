@@ -12892,7 +12892,7 @@ static int e2fsck_update_progress(e2fsck_t ctx, int pass,
 
 	if (ctx->progress_fd) {
 		sprintf(buf, "%d %lu %lu\n", pass, cur, max);
-		write(ctx->progress_fd, buf, strlen(buf));
+		xwrite_str(ctx->progress_fd, buf);
 	} else {
 		percent = calc_percent(&e2fsck_tbl, pass, cur, max);
 		e2fsck_simple_progress(ctx, ctx->device_name,

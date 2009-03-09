@@ -21,11 +21,6 @@ static int sysctl_display_all(const char *path);
 static int sysctl_handle_preload_file(const char *filename);
 static void sysctl_dots_to_slashes(char *name);
 
-static void dwrite_str(int fd, const char *buf)
-{
-	write(fd, buf, strlen(buf));
-}
-
 enum {
 	FLAG_SHOW_KEYS       = 1 << 0,
 	FLAG_SHOW_KEY_ERRORS = 1 << 1,
@@ -147,7 +142,7 @@ static int sysctl_act_on_setting(char *setting)
 	}
 
 	if (option_mask32 & FLAG_WRITE) {
-		dwrite_str(fd, value);
+		xwrite_str(fd, value);
 		close(fd);
 		if (option_mask32 & FLAG_SHOW_KEYS)
 			printf("%s = ", outname);

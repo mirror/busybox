@@ -3513,7 +3513,7 @@ static void set_tainted(int fd, const char *m_name,
 		buf[sizeof(buf)-1] = '\0';
 		oldval = strtoul(buf, NULL, 10);
 		sprintf(buf, "%d\n", oldval | taint);
-		write(fd, buf, strlen(buf));
+		xwrite_str(fd, buf);
 	}
 }
 

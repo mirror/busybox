@@ -489,6 +489,8 @@ int create_and_bind_dgram_or_die(const char *bindaddr, int port) FAST_FUNC;
 int create_and_connect_stream_or_die(const char *peer, int port) FAST_FUNC;
 /* Connect to peer identified by lsa */
 int xconnect_stream(const len_and_sockaddr *lsa) FAST_FUNC;
+/* Get local address of bound or accepted socket */
+len_and_sockaddr *get_sock_lsa(int fd) FAST_FUNC;
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.
@@ -607,6 +609,7 @@ extern ssize_t safe_write(int fd, const void *buf, size_t count) FAST_FUNC;
 // if some data was written before error occurred
 extern ssize_t full_write(int fd, const void *buf, size_t count) FAST_FUNC;
 extern void xwrite(int fd, const void *buf, size_t count) FAST_FUNC;
+extern void xwrite_str(int fd, const char *str) FAST_FUNC;
 extern void xopen_xwrite_close(const char* file, const char *str) FAST_FUNC;
 
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */

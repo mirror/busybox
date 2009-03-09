@@ -145,7 +145,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 				/*99999,*/              /* sp->sp_max */
 				/*7*/                   /* sp->sp_warn */
 		);
-		xwrite(fd, s, strlen(s));
+		xwrite_str(fd, s);
 		close(fd);
 	}
 #endif

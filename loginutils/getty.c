@@ -713,6 +713,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	/* Write the modem init string and DON'T flush the buffers */
 	if (options.flags & F_INITSTRING) {
 		debug("writing init string\n");
+		/* todo: use xwrite_str? */
 		full_write(STDOUT_FILENO, options.initstring, strlen(options.initstring));
 	}
 

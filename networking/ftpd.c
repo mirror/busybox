@@ -107,14 +107,6 @@ struct globals {
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
-
-// libbb candidate?
-static void
-xwrite_str(int fd, const char *str)
-{
-	xwrite(fd, str, strlen(str));
-}
-
 static char *
 replace_text(const char *str, const char from, const char *to)
 {
@@ -917,20 +909,6 @@ handle_stou(void)
 	handle_upload_common(0, 1);
 }
 #endif /* ENABLE_FEATURE_FTP_WRITE */
-
-/* TODO: libbb candidate (tftp has another copy) */
-static len_and_sockaddr *get_sock_lsa(int s)
-{
-	len_and_sockaddr *lsa;
-	socklen_t len = 0;
-
-	if (getsockname(s, NULL, &len) != 0)
-		return NULL;
-	lsa = xzalloc(LSA_LEN_SIZE + len);
-	lsa->len = len;
-	getsockname(s, &lsa->u.sa, &lsa->len);
-	return lsa;
-}
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpd_main(int argc UNUSED_PARAM, char **argv)

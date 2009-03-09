@@ -208,6 +208,10 @@ void FAST_FUNC xwrite(int fd, const void *buf, size_t count)
 			bb_error_msg_and_die("short write");
 	}
 }
+void FAST_FUNC xwrite_str(int fd, const char *str)
+{
+	xwrite(fd, str, strlen(str));
+}
 
 // Die with an error message if we can't lseek to the right spot.
 off_t FAST_FUNC xlseek(int fd, off_t offset, int whence)
