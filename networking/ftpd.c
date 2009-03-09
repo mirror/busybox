@@ -17,48 +17,51 @@
 #include <syslog.h>
 #include <netinet/tcp.h>
 
+#define FTP_DATACONN            150
+#define FTP_NOOPOK              200
+#define FTP_TYPEOK              200
+#define FTP_PORTOK              200
+#define FTP_STRUOK              200
+#define FTP_MODEOK              200
+#define FTP_ALLOOK              202
+#define FTP_STATOK              211
+#define FTP_STATFILE_OK         213
+#define FTP_HELP                214
+#define FTP_SYSTOK              215
+#define FTP_GREET               220
+#define FTP_GOODBYE             221
+#define FTP_TRANSFEROK          226
+#define FTP_PASVOK              227
+#define FTP_LOGINOK             230
+#define FTP_CWDOK               250
+#define FTP_RMDIROK             250
+#define FTP_DELEOK              250
+#define FTP_RENAMEOK            250
+#define FTP_PWDOK               257
+#define FTP_MKDIROK             257
+#define FTP_GIVEPWORD           331
+#define FTP_RESTOK              350
+#define FTP_RNFROK              350
+#define FTP_BADSENDCONN         425
+#define FTP_BADSENDNET          426
+#define FTP_BADSENDFILE         451
+#define FTP_BADCMD              500
+#define FTP_COMMANDNOTIMPL      502
+#define FTP_NEEDUSER            503
+#define FTP_NEEDRNFR            503
+#define FTP_BADSTRU             504
+#define FTP_BADMODE             504
+#define FTP_LOGINERR            530
+#define FTP_FILEFAIL            550
+#define FTP_NOPERM              550
+#define FTP_UPLOADFAIL          553
+
+#define STR1(s) #s
+#define STR(s) STR1(s)
+
 enum {
 	OPT_v = (1 << 0),
 	OPT_w = (1 << 1),
-
-	FTP_DATACONN		= 150,
-	FTP_NOOPOK		= 200,
-	FTP_TYPEOK		= 200,
-	FTP_PORTOK		= 200,
-	FTP_STRUOK		= 200,
-	FTP_MODEOK		= 200,
-	FTP_ALLOOK		= 202,
-	FTP_STATOK		= 211,
-	FTP_STATFILE_OK		= 213,
-	FTP_HELP		= 214,
-	FTP_SYSTOK		= 215,
-	FTP_GREET		= 220,
-	FTP_GOODBYE		= 221,
-	FTP_TRANSFEROK		= 226,
-	FTP_PASVOK		= 227,
-	FTP_LOGINOK		= 230,
-	FTP_CWDOK		= 250,
-	FTP_RMDIROK		= 250,
-	FTP_DELEOK		= 250,
-	FTP_RENAMEOK		= 250,
-	FTP_PWDOK		= 257,
-	FTP_MKDIROK		= 257,
-	FTP_GIVEPWORD		= 331,
-	FTP_RESTOK		= 350,
-	FTP_RNFROK		= 350,
-	FTP_BADSENDCONN		= 425,
-	FTP_BADSENDNET		= 426,
-	FTP_BADSENDFILE		= 451,
-	FTP_BADCMD		= 500,
-	FTP_COMMANDNOTIMPL	= 502,
-	FTP_NEEDUSER		= 503,
-	FTP_NEEDRNFR		= 503,
-	FTP_BADSTRU		= 504,
-	FTP_BADMODE		= 504,
-	FTP_LOGINERR		= 530,
-	FTP_FILEFAIL		= 550,
-	FTP_NOPERM		= 550,
-	FTP_UPLOADFAIL		= 553,
 
 #define mk_const4(a,b,c,d) (((a * 0x100 + b) * 0x100 + c) * 0x100 + d)
 #define mk_const3(a,b,c)    ((a * 0x100 + b) * 0x100 + c)
@@ -158,7 +161,7 @@ replace_char(char *str, char from, char to)
 }
 
 static void
-ftp_write_str_common(unsigned status, const char *str, char sep)
+cmdio_write(unsigned status, const char *str)
 {
 	char *escaped_str, *response;
 	int len;
@@ -167,7 +170,7 @@ ftp_write_str_common(unsigned status, const char *str, char sep)
 	 * In telnet, 0xff is an escape char, and needs to be escaped: */
 	escaped_str = replace_text(str, '\xff', "\xff\xff");
 
-	response = xasprintf("%u%c%s\r", status, sep, escaped_str);
+	response = xasprintf("%u%s\r", status, escaped_str);
 	free(escaped_str);
 
 	/* ?! does FTP send embedded LFs as NULs? wow */
@@ -175,32 +178,27 @@ ftp_write_str_common(unsigned status, const char *str, char sep)
 	replace_char(response, '\n', '\0');
 
 	response[len++] = '\n'; /* tack on trailing '\n' */
-	xwrite(STDIN_FILENO, response, len);
+	xwrite(STDOUT_FILENO, response, len);
 	free(response);
-}
-
-static void
-cmdio_write(int status, const char *p_text)
-{
-	ftp_write_str_common(status, p_text, ' ');
 }
 
 static void
 cmdio_write_ok(int status)
 {
-	ftp_write_str_common(status, "Operation successful", ' ');
+	fdprintf(STDOUT_FILENO, "%u Operation successful\r\n", status);
 }
 
+/* TODO: output strerr(errno) if errno != 0? */
 static void
-cmdio_write_hyphen(int status, const char *p_text)
+cmdio_write_error(int status)
 {
-	ftp_write_str_common(status, p_text, '-');
+	fdprintf(STDOUT_FILENO, "%u Error\r\n", status);
 }
 
 static void
 cmdio_write_raw(const char *p_text)
 {
-	xwrite_str(STDIN_FILENO, p_text);
+	xwrite_str(STDOUT_FILENO, p_text);
 }
 
 /* Simple commands */
@@ -217,7 +215,7 @@ handle_pwd(void)
 	/* We have to promote each " to "" */
 	promoted_cwd = replace_text(cwd, '\"', "\"\"");
 	free(cwd);
-	response = xasprintf("\"%s\"", promoted_cwd);
+	response = xasprintf(" \"%s\"", promoted_cwd);
 	free(promoted_cwd);
 	cmdio_write(FTP_PWDOK, response);
 	free(response);
@@ -227,7 +225,7 @@ static void
 handle_cwd(void)
 {
 	if (!G.ftp_arg || chdir(G.ftp_arg) != 0) {
-		cmdio_write(FTP_FILEFAIL, "Can't change directory");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 	cmdio_write_ok(FTP_CWDOK);
@@ -240,41 +238,40 @@ handle_cdup(void)
 	handle_cwd();
 }
 
-static void
-handle_type(void)
-{
-	if (G.ftp_arg
-	 && (  ((G.ftp_arg[0] | 0x20) == 'i' && G.ftp_arg[1] == '\0')
-	    || !strcasecmp(G.ftp_arg, "L8")
-	    || !strcasecmp(G.ftp_arg, "L 8")
-	    )
-	) {
-		cmdio_write_ok(FTP_TYPEOK);
-	} else {
-		cmdio_write(FTP_BADCMD, "Unrecognised TYPE command");
-	}
-}
+//static void
+//handle_type(void)
+//{
+//	if (G.ftp_arg
+//	 && (  ((G.ftp_arg[0] | 0x20) == 'i' && G.ftp_arg[1] == '\0')
+//	    || !strcasecmp(G.ftp_arg, "L8")
+//	    || !strcasecmp(G.ftp_arg, "L 8")
+//	    )
+//	) {
+//		cmdio_write_ok(FTP_TYPEOK);
+//	} else {
+//		cmdio_write_error(FTP_BADCMD);
+//	}
+//}
 
 static void
 handle_stat(void)
 {
-	cmdio_write_hyphen(FTP_STATOK, "FTP server status:");
-	cmdio_write_raw(" TYPE: BINARY\r\n");
-	cmdio_write_ok(FTP_STATOK);
+	cmdio_write_raw(STR(FTP_STATOK)"-FTP server status:\r\n"
+			"TYPE: BINARY\r\n"
+			STR(FTP_STATOK)" Ok\r\n");
 }
 
 static void
 handle_help(void)
 {
-	cmdio_write_hyphen(FTP_HELP, "Recognized commands:");
-	cmdio_write_raw(" ALLO CDUP CWD HELP LIST\r\n"
-			" MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
-			" REST RETR STAT STRU SYST TYPE USER\r\n"
+	cmdio_write_raw(STR(FTP_HELP)"-Commands:\r\n"
+			"ALLO CDUP CWD HELP LIST\r\n"
+			"MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
+			"REST RETR STAT STRU SYST TYPE USER\r\n"
 #if ENABLE_FEATURE_FTP_WRITE
-			" APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
+			"APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
 #endif
-	);
-	cmdio_write(FTP_HELP, "Help OK");
+			STR(FTP_HELP)" Ok\r\n");
 }
 
 /* Download commands */
@@ -302,7 +299,7 @@ ftpdataio_get_pasv_fd(void)
 	remote_fd = accept(G.pasv_listen_fd, NULL, 0);
 
 	if (remote_fd < 0) {
-		cmdio_write(FTP_BADSENDCONN, "Can't establish connection");
+		cmdio_write_error(FTP_BADSENDCONN);
 		return remote_fd;
 	}
 
@@ -372,7 +369,7 @@ static int
 data_transfer_checks_ok(void)
 {
 	if (!pasv_active() && !port_active()) {
-		cmdio_write(FTP_BADSENDCONN, "Use PORT or PASV first");
+		cmdio_write_raw(STR(FTP_BADSENDCONN)" Use PORT or PASV first\r\n");
 		return 0;
 	}
 
@@ -425,7 +422,7 @@ handle_pasv(void)
 	addr = xmalloc_sockaddr2dotted_noport(&G.local_addr->u.sa);
 	replace_char(addr, '.', ',');
 
-	response = xasprintf("Entering Passive Mode (%s,%u,%u)",
+	response = xasprintf(" Entering Passive Mode (%s,%u,%u)",
 			addr, (int)(port >> 8), (int)(port & 255));
 	free(addr);
 
@@ -466,7 +463,7 @@ handle_port(void)
 
 	if (lsa == NULL) {
  bail:
-		cmdio_write(FTP_BADCMD, "Illegal PORT command");
+		cmdio_write_error(FTP_BADCMD);
 		return;
 	}
 
@@ -500,14 +497,14 @@ handle_retr(void)
 	/* O_NONBLOCK is useful if file happens to be a device node */
 	opened_file = G.ftp_arg ? open(G.ftp_arg, O_RDONLY | O_NONBLOCK) : -1;
 	if (opened_file < 0) {
-		cmdio_write(FTP_FILEFAIL, "Can't open file");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 
 	retval = fstat(opened_file, &statbuf);
 	if (retval < 0 || !S_ISREG(statbuf.st_mode)) {
 		/* Note - pretend open failed */
-		cmdio_write(FTP_FILEFAIL, "Can't open file");
+		cmdio_write_error(FTP_FILEFAIL);
 		goto file_close_out;
 	}
 
@@ -521,7 +518,7 @@ handle_retr(void)
 		xlseek(opened_file, offset, SEEK_SET);
 
 	response = xasprintf(
-		"Opening BINARY mode data connection for %s (%"OFF_FMT"u bytes)",
+		" Opening BINARY mode data connection for %s (%"OFF_FMT"u bytes)",
 		G.ftp_arg, statbuf.st_size);
 	remote_fd = get_remote_transfer_fd(response);
 	free(response);
@@ -531,7 +528,7 @@ handle_retr(void)
 	trans_ret = bb_copyfd_eof(opened_file, remote_fd);
 	ftpdataio_dispose_transfer_fd();
 	if (trans_ret < 0)
-		cmdio_write(FTP_BADSENDFILE, "Error sending local file");
+		cmdio_write_error(FTP_BADSENDFILE);
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
 
@@ -681,9 +678,9 @@ handle_dir_common(int full_details, int stat_cmd)
 
 	if (stat_cmd) {
 		fd = STDIN_FILENO;
-		cmdio_write_hyphen(FTP_STATFILE_OK, "Status follows:");
+		cmdio_write_raw(STR(FTP_STATFILE_OK)"-Status follows:\r\n");
 	} else {
-		fd = get_remote_transfer_fd("Here comes the directory listing");
+		fd = get_remote_transfer_fd(" Here comes the directory listing");
 		if (fd < 0)
 			goto bail;
 	}
@@ -735,7 +732,7 @@ static void
 handle_mkd(void)
 {
 	if (!G.ftp_arg || mkdir(G.ftp_arg, 0777) != 0) {
-		cmdio_write(FTP_FILEFAIL, "Create directory operation failed");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 	cmdio_write_ok(FTP_MKDIROK);
@@ -745,7 +742,7 @@ static void
 handle_rmd(void)
 {
 	if (!G.ftp_arg || rmdir(G.ftp_arg) != 0) {
-		cmdio_write(FTP_FILEFAIL, "Deletion failed");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 	cmdio_write_ok(FTP_RMDIROK);
@@ -755,7 +752,7 @@ static void
 handle_dele(void)
 {
 	if (!G.ftp_arg || unlink(G.ftp_arg) != 0) {
-		cmdio_write(FTP_FILEFAIL, "Deletion failed");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 	cmdio_write_ok(FTP_DELEOK);
@@ -764,19 +761,7 @@ handle_dele(void)
 static void
 handle_rnfr(void)
 {
-	struct stat statbuf;
-
-	/* Clear old value */
 	free(G.rnfr_filename);
-	G.rnfr_filename = NULL;
-
-	if (!G.ftp_arg
-	 || stat(G.ftp_arg, &statbuf) != 0
-	/* || it isn't a regular file or a directory? */
-	) {
-		cmdio_write(FTP_FILEFAIL, "RNFR command failed");
-		return;
-	}
 	G.rnfr_filename = xstrdup(G.ftp_arg);
 	cmdio_write_ok(FTP_RNFROK);
 }
@@ -788,7 +773,7 @@ handle_rnto(void)
 
 	/* If we didn't get a RNFR, throw a wobbly */
 	if (G.rnfr_filename == NULL || G.ftp_arg == NULL) {
-		cmdio_write(FTP_NEEDRNFR, "RNFR required first");
+		cmdio_write_raw(STR(FTP_NEEDRNFR)" RNFR required first\r\n");
 		return;
 	}
 
@@ -797,7 +782,7 @@ handle_rnto(void)
 	G.rnfr_filename = NULL;
 
 	if (retval) {
-		cmdio_write(FTP_FILEFAIL, "Rename failed");
+		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 	cmdio_write_ok(FTP_RENAMEOK);
@@ -820,8 +805,8 @@ handle_upload_common(int is_append, int is_unique)
 
 	local_file_fd = -1;
 	if (is_unique) {
-		tempname = xstrdup("FILE: uniq.XXXXXX");
-		local_file_fd = mkstemp(tempname + 6);
+		tempname = xstrdup(" FILE: uniq.XXXXXX");
+		local_file_fd = mkstemp(tempname + 7);
 	} else if (G.ftp_arg) {
 		int flags = O_WRONLY | O_CREAT | O_TRUNC;
 		if (is_append)
@@ -831,7 +816,7 @@ handle_upload_common(int is_append, int is_unique)
 		local_file_fd = open(G.ftp_arg, flags, 0666);
 	}
 	if (local_file_fd < 0) {
-		cmdio_write(FTP_UPLOADFAIL, "Can't create file");
+		cmdio_write_error(FTP_UPLOADFAIL);
 		return;
 	}
 
@@ -840,7 +825,7 @@ handle_upload_common(int is_append, int is_unique)
 	if (offset)
 		xlseek(local_file_fd, offset, SEEK_SET);
 
-	remote_fd = get_remote_transfer_fd(tempname ? tempname : "Ok to send data");
+	remote_fd = get_remote_transfer_fd(tempname ? tempname : " Ok to send data");
 	free(tempname);
 
 	if (remote_fd < 0)
@@ -850,7 +835,7 @@ handle_upload_common(int is_append, int is_unique)
 	ftpdataio_dispose_transfer_fd();
 
 	if (trans_ret < 0)
-		cmdio_write(FTP_BADSENDFILE, "Failure writing to local file");
+		cmdio_write_error(FTP_BADSENDFILE);
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
 
@@ -949,7 +934,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
 
-	cmdio_write(FTP_GREET, "Welcome");
+	cmdio_write_raw(STR(FTP_GREET)" Welcome\r\n");
 
 #ifdef IF_WE_WANT_TO_REQUIRE_LOGIN
 	{
@@ -959,20 +944,20 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 
 			if (cmdval == const_USER) {
 				if (G.ftp_arg == NULL || strcasecmp(G.ftp_arg, "anonymous") != 0)
-					cmdio_write(FTP_LOGINERR, "Server is anonymous only");
+					cmdio_write_raw(STR(FTP_LOGINERR)" Server is anonymous only\r\n");
 				else {
 					user_was_specified = 1;
-					cmdio_write(FTP_GIVEPWORD, "Please specify the password");
+					cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify the password\r\n");
 				}
 			} else if (cmdval == const_PASS) {
 				if (user_was_specified)
 					break;
-				cmdio_write(FTP_NEEDUSER, "Login with USER");
+				cmdio_write_raw(STR(FTP_NEEDUSER)" Login with USER\r\n");
 			} else if (cmdval == const_QUIT) {
-				cmdio_write(FTP_GOODBYE, "Goodbye");
+				cmdio_write_raw(STR(FTP_GOODBYE)" Goodbye\r\n");
 				return 0;
 			} else {
-				cmdio_write(FTP_LOGINERR, "Login with USER and PASS");
+				cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
 			}
 		}
 	}
@@ -1021,7 +1006,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		uint32_t cmdval = cmdio_get_cmd_and_arg();
 
 		if (cmdval == const_QUIT) {
-			cmdio_write(FTP_GOODBYE, "Goodbye");
+			cmdio_write_raw(STR(FTP_GOODBYE)" Goodbye\r\n");
 			return 0;
 		}
 		if (cmdval == const_PWD)
@@ -1037,13 +1022,14 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		else if (cmdval == const_NOOP)
 			cmdio_write_ok(FTP_NOOPOK);
 		else if (cmdval == const_SYST)
-			cmdio_write(FTP_SYSTOK, "UNIX Type: L8");
+			cmdio_write_raw(STR(FTP_SYSTOK)" UNIX Type: L8\r\n");
 		else if (cmdval == const_HELP)
 			handle_help();
 		else if (cmdval == const_LIST) /* ls -l */
 			handle_list();
 		else if (cmdval == const_TYPE)
-			handle_type();
+			//handle_type();
+			cmdio_write_ok(FTP_TYPEOK);
 		else if (cmdval == const_PORT)
 			handle_port();
 		else if (cmdval == const_REST)
@@ -1055,20 +1041,20 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 			// && (G.ftp_arg[0] | 0x20) == 'f'
 			// && G.ftp_arg[1] == '\0'
 			//) {
-				cmdio_write(FTP_STRUOK, "Command ignored");
+				cmdio_write_ok(FTP_STRUOK);
 			//} else
-			//	cmdio_write(FTP_BADSTRU, "Bad STRU command");
+			//	cmdio_write_raw(STR(FTP_BADSTRU)" Bad STRU command\r\n");
 		} else if (cmdval == const_MODE) {
 			//if (G.ftp_arg
 			// && (G.ftp_arg[0] | 0x20) == 's'
 			// && G.ftp_arg[1] == '\0'
 			//) {
-				cmdio_write(FTP_MODEOK, "Command ignored");
+				cmdio_write_ok(FTP_MODEOK);
 			//} else
-			//	cmdio_write(FTP_BADMODE, "Bad MODE command");
+			//	cmdio_write_raw(STR(FTP_BADMODE)" Bad MODE command\r\n");
 		}
 		else if (cmdval == const_ALLO)
-			cmdio_write(FTP_ALLOOK, "Command ignored");
+			cmdio_write_ok(FTP_ALLOOK);
 		else if (cmdval == const_STAT) {
 			if (G.ftp_arg == NULL)
 				handle_stat();
@@ -1076,10 +1062,10 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 				handle_stat_file();
 		} else if (cmdval == const_USER) {
 			/* FTP_LOGINERR confuses clients: */
-			/* cmdio_write(FTP_LOGINERR, "Can't change to another user"); */
-			cmdio_write(FTP_GIVEPWORD, "Command ignored");
+			/* cmdio_write_raw(STR(FTP_LOGINERR)" Can't change to another user\r\n"); */
+			cmdio_write_ok(FTP_GIVEPWORD);
 		} else if (cmdval == const_PASS)
-			cmdio_write(FTP_LOGINOK, "Command ignored");
+			cmdio_write_ok(FTP_LOGINOK);
 #if ENABLE_FEATURE_FTP_WRITE
 		else if (G.opts & OPT_w) {
 			if (cmdval == const_STOR)
@@ -1110,17 +1096,18 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		 || cmdval == const_APPE
 		 || cmdval == const_STOU
 		) {
-			cmdio_write(FTP_NOPERM, "Permission denied");
+			cmdio_write_raw(STR(FTP_NOPERM)" Permission denied\r\n");
 		}
 #endif
 		else {
 			/* Which unsupported commands were seen in the wild?
 			 * (doesn't necessarily mean "we must support them")
-			 * wget 1.11.4: SIZE - todo.
-			 * lftp 3.6.3: MDTM - works fine without it anyway.
-			 * IPv6-style PASV: "EPSV 2"
+			 * wget 1.11.4: SIZE - todo
+			 * lftp 3.6.3: FEAT - is it useful?
+			 *             MDTM - works fine without it anyway
+			 * IPv6-style PASV: "EPSV 2" - todo
 			 */
-			cmdio_write(FTP_BADCMD, "Unknown command");
+			cmdio_write_raw(STR(FTP_BADCMD)" Unknown command\r\n");
 		}
 	}
 }
