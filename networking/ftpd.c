@@ -102,7 +102,7 @@ struct globals {
 	int pasv_listen_fd;
 	int data_fd;
 	off_t restart_pos;
-	char *ftp_cmp;
+	char *ftp_cmd;
 	char *ftp_arg;
 #if ENABLE_FEATURE_FTP_WRITE
 	char *rnfr_filename;
@@ -112,8 +112,9 @@ struct globals {
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
+
 static char *
-replace_text(const char *str, const char from, const char *to)
+escape_text(const char *prepend, const char *str, char from, const char *to, char append)
 {
 	size_t retlen, remainlen, chunklen, tolen;
 	const char *remain;
@@ -124,29 +125,27 @@ replace_text(const char *str, const char from, const char *to)
 	tolen = strlen(to);
 
 	/* Simply alloc strlen(str)*strlen(to). "to" is max 2 so it's ok */
-	ret = xmalloc(remainlen * tolen + 1);
-	retlen = 0;
+	retlen = strlen(prepend);
+	ret = xmalloc(retlen + remainlen * tolen + 1 + 1);
+	strcpy(ret, prepend);
 
 	for (;;) {
-		found = strchr(remain, from);
-		if (found != NULL) {
-			chunklen = found - remain;
+		found = strchrnul(remain, from);
+		chunklen = found - remain;
 
-			/* Copy chunk which doesn't contain 'from' to ret */
-			memcpy(&ret[retlen], remain, chunklen);
-			retlen += chunklen;
+		/* Copy chunk which doesn't contain 'from' to ret */
+		memcpy(&ret[retlen], remain, chunklen);
+		retlen += chunklen;
 
+		if (*found != '\0') {
 			/* Now copy 'to' instead of 'from' */
 			memcpy(&ret[retlen], to, tolen);
 			retlen += tolen;
 
 			remain = found + 1;
 		} else {
-			/*
-			 * The last chunk. We are already sure that we have enough space
-			 * so we can use strcpy.
-			 */
-			strcpy(&ret[retlen], remain);
+			ret[retlen] = append;
+			ret[retlen+1] = '\0';
 			break;
 		}
 	}
@@ -163,15 +162,12 @@ replace_char(char *str, char from, char to)
 static void
 cmdio_write(unsigned status, const char *str)
 {
-	char *escaped_str, *response;
+	char *response;
 	int len;
 
 	/* FTP allegedly uses telnet protocol for command link.
 	 * In telnet, 0xff is an escape char, and needs to be escaped: */
-	escaped_str = replace_text(str, '\xff', "\xff\xff");
-
-	response = xasprintf("%u%s\r", status, escaped_str);
-	free(escaped_str);
+	response = escape_text(utoa(status), str, '\xff', "\xff\xff", '\r');
 
 	/* ?! does FTP send embedded LFs as NULs? wow */
 	len = strlen(response);
@@ -206,17 +202,15 @@ cmdio_write_raw(const char *p_text)
 static void
 handle_pwd(void)
 {
-	char *cwd, *promoted_cwd, *response;
+	char *cwd, *response;
 
 	cwd = xrealloc_getcwd_or_warn(NULL);
 	if (cwd == NULL)
 		cwd = xstrdup("");
 
 	/* We have to promote each " to "" */
-	promoted_cwd = replace_text(cwd, '\"', "\"\"");
+	response = escape_text(" \"", cwd, '\"', "\"\"", '\"');
 	free(cwd);
-	response = xasprintf(" \"%s\"", promoted_cwd);
-	free(promoted_cwd);
 	cmdio_write(FTP_PWDOK, response);
 	free(response);
 }
@@ -872,9 +866,9 @@ cmdio_get_cmd_and_arg(void)
 	uint32_t cmdval;
 	char *cmd;
 
-	free(G.ftp_cmp);
+	free(G.ftp_cmd);
 	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
-	G.ftp_cmp = cmd = xmalloc_reads(STDIN_FILENO, NULL, &len);
+	G.ftp_cmd = cmd = xmalloc_reads(STDIN_FILENO, NULL, &len);
 	if (!cmd)
 		exit(0);
 
