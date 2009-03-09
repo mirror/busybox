@@ -9,6 +9,8 @@
  *
  * Options:
  * -w	- enable FTP write commands
+ *
+ * TODO: implement "421 Timeout" thingy (alarm(60) while waiting for a cmd).
  */
 
 #include "libbb.h"
@@ -98,7 +100,7 @@ struct globals {
 	int data_fd;
 	off_t restart_pos;
 	char *ftp_cmp;
-	const char *ftp_arg;
+	char *ftp_arg;
 #if ENABLE_FEATURE_FTP_WRITE
 	char *rnfr_filename;
 #endif
@@ -156,22 +158,25 @@ replace_char(char *str, char from, char to)
 }
 
 static void
-ftp_write_str_common(unsigned int status, const char *str, char sep)
+ftp_write_str_common(unsigned status, const char *str, char sep)
 {
 	char *escaped_str, *response;
-	size_t len;
+	int len;
 
-	escaped_str = replace_text(str, '\377', "\377\377");
+	/* FTP allegedly uses telnet protocol for command link.
+	 * In telnet, 0xff is an escape char, and needs to be escaped: */
+	escaped_str = replace_text(str, '\xff', "\xff\xff");
 
-	response = xasprintf("%u%c%s\r\n", status, sep, escaped_str);
+	response = xasprintf("%u%c%s\r", status, sep, escaped_str);
 	free(escaped_str);
 
+	/* ?! does FTP send embedded LFs as NULs? wow */
 	len = strlen(response);
 	replace_char(response, '\n', '\0');
 
-	/* Change trailing '\0' back to '\n' */
-	response[len - 1] = '\n';
+	response[len++] = '\n'; /* tack on trailing '\n' */
 	xwrite(STDIN_FILENO, response, len);
+	free(response);
 }
 
 static void
@@ -198,35 +203,68 @@ cmdio_write_raw(const char *p_text)
 	xwrite_str(STDIN_FILENO, p_text);
 }
 
-static uint32_t
-cmdio_get_cmd_and_arg(void)
+static void
+handle_pwd(void)
 {
-	size_t len;
-	uint32_t cmdval;
-	char *cmd;
+	char *cwd, *promoted_cwd, *response;
 
-	free(G.ftp_cmp);
-	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
-	G.ftp_cmp = cmd = xmalloc_reads(STDIN_FILENO, NULL, &len);
-	if (!cmd)
-		exit(0);
+	cwd = xrealloc_getcwd_or_warn(NULL);
+	if (cwd == NULL)
+		cwd = xstrdup("");
 
-	len = strlen(cmd) - 1;
-	while (len >= 0 && cmd[len] == '\r') {
-		cmd[len] = '\0';
-		len--;
+	/* We have to promote each " to "" */
+	promoted_cwd = replace_text(cwd, '\"', "\"\"");
+	free(cwd);
+	response = xasprintf("\"%s\"", promoted_cwd);
+	free(promoted_cwd);
+	cmdio_write(FTP_PWDOK, response);
+	free(response);
+}
+
+static void
+handle_cwd(void)
+{
+	if (!G.ftp_arg || chdir(G.ftp_arg) != 0) {
+		cmdio_write(FTP_FILEFAIL, "Can't change directory");
+		return;
 	}
+	cmdio_write_ok(FTP_CWDOK);
+}
 
-	G.ftp_arg = strchr(cmd, ' ');
-	if (G.ftp_arg != NULL) {
-		*(char *)G.ftp_arg = '\0';
-		G.ftp_arg++;
+static void
+handle_cdup(void)
+{
+	G.ftp_arg = (char*)"..";
+	handle_cwd();
+}
+
+static void
+handle_type(void)
+{
+	if (G.ftp_arg
+	 && (  ((G.ftp_arg[0] | 0x20) == 'i' && G.ftp_arg[1] == '\0')
+	    || !strcasecmp(G.ftp_arg, "L8")
+	    || !strcasecmp(G.ftp_arg, "L 8")
+	    )
+	) {
+		cmdio_write_ok(FTP_TYPEOK);
+	} else {
+		cmdio_write(FTP_BADCMD, "Unrecognised TYPE command");
 	}
-	cmdval = 0;
-	while (*cmd)
-		cmdval = (cmdval << 8) + ((unsigned char)*cmd++ & (unsigned char)~0x20);
+}
 
-	return cmdval;
+static void
+handle_help(void)
+{
+	cmdio_write_hyphen(FTP_HELP, "Recognized commands:");
+	cmdio_write_raw(" ALLO CDUP CWD HELP LIST\r\n"
+			" MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
+			" REST RETR STAT STRU SYST TYPE USER\r\n"
+#if ENABLE_FEATURE_FTP_WRITE
+			" APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
+#endif
+	);
+	cmdio_write(FTP_HELP, "Help OK");
 }
 
 static void
@@ -265,7 +303,7 @@ ftpdataio_get_port_fd(void)
 {
 	int remote_fd;
 
-	/* Do we want die or print error to client? */
+	/* Do we want to die or print error to client? */
 	remote_fd = xconnect_stream(G.port_addr);
 
 	init_data_sock_params(remote_fd);
@@ -289,16 +327,16 @@ ftpdataio_dispose_transfer_fd(void)
 	G.data_fd = -1;
 }
 
-static int
+static inline int
 port_active(void)
 {
-	return (G.port_addr != NULL) ? 1: 0;
+	return (G.port_addr != NULL);
 }
 
-static int
+static inline int
 pasv_active(void)
 {
-	return (G.pasv_listen_fd != -1) ? 1 : 0;
+	return (G.pasv_listen_fd > STDOUT_FILENO);
 }
 
 static int
@@ -318,41 +356,6 @@ get_remote_transfer_fd(const char *p_status_msg)
 	return remote_fd;
 }
 
-static void
-handle_pwd(void)
-{
-	char *cwd, *promoted_cwd, *response;
-
-	cwd = xrealloc_getcwd_or_warn(NULL);
-	if (cwd == NULL)
-		cwd = xstrdup("");
-
-	/* We have to promote each " to "" */
-	promoted_cwd = replace_text(cwd, '\"', "\"\"");
-	free(cwd);
-	response = xasprintf("\"%s\"", promoted_cwd);
-	free(promoted_cwd);
-	cmdio_write(FTP_PWDOK, response);
-	free(response);
-}
-
-static void
-handle_cwd(void)
-{
-	if (!G.ftp_arg || chdir(G.ftp_arg) != 0) {
-		cmdio_write(FTP_FILEFAIL, "Can't change directory");
-		return;
-	}
-	cmdio_write_ok(FTP_CWDOK);
-}
-
-static void
-handle_cdup(void)
-{
-	G.ftp_arg = "..";
-	handle_cwd();
-}
-
 static int
 data_transfer_checks_ok(void)
 {
@@ -365,15 +368,10 @@ data_transfer_checks_ok(void)
 }
 
 static void
-port_cleanup(void)
+port_pasv_cleanup(void)
 {
 	free(G.port_addr);
 	G.port_addr = NULL;
-}
-
-static void
-pasv_cleanup(void)
-{
 	if (G.pasv_listen_fd > STDOUT_FILENO)
 		close(G.pasv_listen_fd);
 	G.pasv_listen_fd = -1;
@@ -385,10 +383,10 @@ handle_pasv(void)
 	int bind_retries = 10;
 	unsigned short port;
 	enum { min_port = 1024, max_port = 65535 };
-	char *addr, *wire_addr, *response;
+	char *addr, *response;
 
-	pasv_cleanup();
-	port_cleanup();
+	port_pasv_cleanup();
+
 	G.pasv_listen_fd = xsocket(G.local_addr->u.sa.sa_family, SOCK_STREAM, 0);
 	setsockopt_reuseaddr(G.pasv_listen_fd);
 
@@ -413,14 +411,13 @@ handle_pasv(void)
 		bb_error_msg_and_die("can't create pasv socket");
 
 	addr = xmalloc_sockaddr2dotted_noport(&G.local_addr->u.sa);
-	wire_addr = replace_text(addr, '.', ",");
-	free(addr);
+	replace_char(addr, '.', ',');
 
 	response = xasprintf("Entering Passive Mode (%s,%u,%u)",
-			wire_addr, (int)(port >> 8), (int)(port & 255));
+			addr, (int)(port >> 8), (int)(port & 255));
+	free(addr);
 
 	cmdio_write(FTP_PASVOK, response);
-	free(wire_addr);
 	free(response);
 }
 
@@ -428,37 +425,35 @@ static void
 handle_port(void)
 {
 	unsigned short port;
-	char *raw = NULL, *port_part;
+	char *raw, *port_part;
 	len_and_sockaddr *lsa = NULL;
 
-	pasv_cleanup();
-	port_cleanup();
+	port_pasv_cleanup();
 
-	if (G.ftp_arg == NULL)
-		goto bail;
+	raw = G.ftp_arg;
 
-	raw = replace_text(G.ftp_arg, ',', ".");
+	/* buglets:
+	 * xatou16 will accept wrong input,
+	 * xatou16 will exit instead of generating error to peer
+	 */
 
-	port_part = strrchr(raw, '.');
+	port_part = strrchr(raw, ',');
 	if (port_part == NULL)
 		goto bail;
-
 	port = xatou16(&port_part[1]);
 	*port_part = '\0';
 
-	port_part = strrchr(raw, '.');
+	port_part = strrchr(raw, ',');
 	if (port_part == NULL)
 		goto bail;
-
 	port |= xatou16(&port_part[1]) << 8;
 	*port_part = '\0';
 
+	replace_char(raw, ',', '.');
 	lsa = xdotted2sockaddr(raw, port);
 
-bail:
-	free(raw);
-
 	if (lsa == NULL) {
+ bail:
 		cmdio_write(FTP_BADCMD, "Illegal PORT command");
 		return;
 	}
@@ -528,10 +523,10 @@ handle_retr(void)
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
 
-port_pasv_cleanup_out:
-	port_cleanup();
-	pasv_cleanup();
-file_close_out:
+ port_pasv_cleanup_out:
+	port_pasv_cleanup();
+
+ file_close_out:
 	close(opened_file);
 }
 
@@ -691,12 +686,11 @@ handle_dir_common(int full_details, int stat_cmd)
 	} else
 		write_dirstats(fd, ".", full_details);
 
-bail:
+ bail:
 	/* Well, if we can't open directory/file it doesn't matter */
 	if (!stat_cmd) {
 		ftpdataio_dispose_transfer_fd();
-		pasv_cleanup();
-		port_cleanup();
+		port_pasv_cleanup();
 		cmdio_write_ok(FTP_TRANSFEROK);
 	} else
 		cmdio_write_ok(FTP_STATFILE_OK);
@@ -728,97 +722,7 @@ handle_stat(void)
 	cmdio_write_ok(FTP_STATOK);
 }
 
-static void
-handle_type(void)
-{
-	if (G.ftp_arg
-	 && (  ((G.ftp_arg[0] | 0x20) == 'i' && G.ftp_arg[1] == '\0')
-	    || !strcasecmp(G.ftp_arg, "L8")
-	    || !strcasecmp(G.ftp_arg, "L 8")
-	    )
-	) {
-		cmdio_write_ok(FTP_TYPEOK);
-	} else {
-		cmdio_write(FTP_BADCMD, "Unrecognised TYPE command");
-	}
-}
-
-static void
-handle_help(void)
-{
-	cmdio_write_hyphen(FTP_HELP, "Recognized commands:");
-	cmdio_write_raw(" ALLO CDUP CWD HELP LIST\r\n"
-			" MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
-			" REST RETR STAT STRU SYST TYPE USER\r\n"
 #if ENABLE_FEATURE_FTP_WRITE
-			" APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
-#endif
-	);
-	cmdio_write(FTP_HELP, "Help OK");
-}
-
-#if ENABLE_FEATURE_FTP_WRITE
-static void
-handle_upload_common(int is_append, int is_unique)
-{
-	char *tempname = NULL;
-	int trans_ret;
-	int new_file_fd;
-	int remote_fd;
-	off_t offset = G.restart_pos;
-
-	G.restart_pos = 0;
-	if (!G.ftp_arg || !data_transfer_checks_ok())
-		return;
-
-	if (is_unique) {
-		tempname = xstrdup("FILE: uniq.XXXXXX");
-		/*
-		 * XXX Use mkostemp here? vsftpd opens file with O_CREAT, O_WRONLY, 
-		 * O_APPEND and O_EXCL flags...
-		 */
-		new_file_fd = mkstemp(tempname + 6);
-	} else {
-		/* XXX Do we need check if ftp_arg != NULL? */
-		if (!is_append && offset == 0)
-			new_file_fd = open(G.ftp_arg, O_CREAT | O_WRONLY | O_APPEND | O_NONBLOCK | O_TRUNC, 0666);
-		else
-			new_file_fd = open(G.ftp_arg, O_CREAT | O_WRONLY | O_APPEND | O_NONBLOCK, 0666);
-	}
-
-	if (new_file_fd < 0) {
-		cmdio_write(FTP_UPLOADFAIL, "Can't create file");
-		return;
-	}
-
-	if (!is_append && offset != 0) {
-		/* warning, allows seek past end of file! Check for seek > size? */
-		xlseek(new_file_fd, offset, SEEK_SET);
-	}
-
-	if (tempname) {
-		remote_fd = get_remote_transfer_fd(tempname);
-		free(tempname);
-	} else
-		remote_fd = get_remote_transfer_fd("Ok to send data");
-
-	if (remote_fd < 0)
-		goto bail;
-
-	trans_ret = bb_copyfd_eof(remote_fd, new_file_fd);
-	ftpdataio_dispose_transfer_fd();
-
-	if (trans_ret < 0)
-		cmdio_write(FTP_BADSENDFILE, "Failure writing to local file");
-	else
-		cmdio_write_ok(FTP_TRANSFEROK);
-
-bail:
-	port_cleanup();
-	pasv_cleanup();
-	close(new_file_fd);
-}
-
 static void
 handle_mkd(void)
 {
@@ -892,6 +796,62 @@ handle_rnto(void)
 }
 
 static void
+handle_upload_common(int is_append, int is_unique)
+{
+	char *tempname = NULL;
+	int trans_ret;
+	int local_file_fd;
+	int remote_fd;
+	off_t offset;
+
+	offset = G.restart_pos;
+	G.restart_pos = 0;
+
+	if (!data_transfer_checks_ok())
+		return;
+
+	local_file_fd = -1;
+	if (is_unique) {
+		tempname = xstrdup("FILE: uniq.XXXXXX");
+		local_file_fd = mkstemp(tempname + 6);
+	} else if (G.ftp_arg) {
+		int flags = O_WRONLY | O_CREAT | O_TRUNC;
+		if (is_append)
+			flags = O_WRONLY | O_CREAT | O_APPEND;
+		if (offset)
+			flags = O_WRONLY | O_CREAT;
+		local_file_fd = open(G.ftp_arg, flags, 0666);
+	}
+	if (local_file_fd < 0) {
+		cmdio_write(FTP_UPLOADFAIL, "Can't create file");
+		return;
+	}
+
+	/* TODO: paranoia: fstat it, refuse to do anything if it's not a regular file */
+
+	if (offset)
+		xlseek(local_file_fd, offset, SEEK_SET);
+
+	remote_fd = get_remote_transfer_fd(tempname ? tempname : "Ok to send data");
+	free(tempname);
+
+	if (remote_fd < 0)
+		goto bail;
+
+	trans_ret = bb_copyfd_eof(remote_fd, local_file_fd);
+	ftpdataio_dispose_transfer_fd();
+
+	if (trans_ret < 0)
+		cmdio_write(FTP_BADSENDFILE, "Failure writing to local file");
+	else
+		cmdio_write_ok(FTP_TRANSFEROK);
+
+ bail:
+	port_pasv_cleanup();
+	close(local_file_fd);
+}
+
+static void
 handle_stor(void)
 {
 	handle_upload_common(0, 0);
@@ -900,15 +860,48 @@ handle_stor(void)
 static void
 handle_appe(void)
 {
+	G.restart_pos = 0;
 	handle_upload_common(1, 0);
 }
 
 static void
 handle_stou(void)
 {
+	G.restart_pos = 0;
 	handle_upload_common(0, 1);
 }
 #endif /* ENABLE_FEATURE_FTP_WRITE */
+
+static uint32_t
+cmdio_get_cmd_and_arg(void)
+{
+	size_t len;
+	uint32_t cmdval;
+	char *cmd;
+
+	free(G.ftp_cmp);
+	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
+	G.ftp_cmp = cmd = xmalloc_reads(STDIN_FILENO, NULL, &len);
+	if (!cmd)
+		exit(0);
+
+	len = strlen(cmd) - 1;
+	while (len >= 0 && cmd[len] == '\r') {
+		cmd[len] = '\0';
+		len--;
+	}
+
+	G.ftp_arg = strchr(cmd, ' ');
+	if (G.ftp_arg != NULL) {
+		*G.ftp_arg = '\0';
+		G.ftp_arg++;
+	}
+	cmdval = 0;
+	while (*cmd)
+		cmdval = (cmdval << 8) + ((unsigned char)*cmd++ & (unsigned char)~0x20);
+
+	return cmdval;
+}
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpd_main(int argc UNUSED_PARAM, char **argv)
