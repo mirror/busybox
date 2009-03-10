@@ -336,20 +336,22 @@ static pid_t run(const struct init_action *a)
 {
 	pid_t pid;
 
+	/* Careful: don't be affected by a signal in vforked child */
+	sigprocmask_allsigs(SIG_BLOCK);
 	if (BB_MMU && (a->action_type & ASKFIRST))
 		pid = fork();
 	else
 		pid = vfork();
 	if (pid < 0)
 		message(L_LOG | L_CONSOLE, "can't fork");
-	if (pid)
+	if (pid) {
+		sigprocmask_allsigs(SIG_UNBLOCK);
 		return pid; /* Parent or error */
+	}
 
 	/* Child */
 
 	/* Reset signal handlers that were set by the parent process */
-//TODO: block signals across fork(), prevent them to affect child before
-//signals are reset?
 	bb_signals(0
 		+ (1 << SIGUSR1)
 		+ (1 << SIGUSR2)
@@ -359,6 +361,7 @@ static pid_t run(const struct init_action *a)
 		+ (1 << SIGHUP)
 		+ (1 << SIGTSTP)
 		, SIG_DFL);
+	sigprocmask_allsigs(SIG_UNBLOCK);
 
 	/* Create a new session and make ourself the process group leader */
 	setsid();
@@ -982,40 +985,42 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	 * NB: if delayed signal happened, avoid blocking in wait().
 	 */
 	while (1) {
-		pid_t wpid;
-		int got_sigs;
+		int maybe_WNOHANG;
 
-		got_sigs = check_delayed_sigs();
+		maybe_WNOHANG = check_delayed_sigs();
 
 		/* (Re)run the respawn/askfirst stuff */
 		run_actions(RESPAWN | ASKFIRST);
-
-		got_sigs |= check_delayed_sigs();
+		maybe_WNOHANG |= check_delayed_sigs();
 
 		/* Don't consume all CPU time - sleep a bit */
 		sleep(1);
+		maybe_WNOHANG |= check_delayed_sigs();
 
-		got_sigs |= check_delayed_sigs();
-
-		if (got_sigs)
-			goto dont_block;
-		/* Wait for any child process to exit.
+		/* Wait for any child process(es) to exit.
 		 * NB: "delayed" signals will also interrupt this wait(),
 		 * bb_signals_recursive_norestart() set them up for that.
 		 * This guarantees we won't be stuck here
 		 * till next orphan dies.
 		 */
-		wpid = wait(NULL);
-		while (wpid > 0) {
-			struct init_action *a = mark_terminated(wpid);
+		if (maybe_WNOHANG)
+			maybe_WNOHANG = WNOHANG;
+		while (1) {
+			pid_t wpid;
+			struct init_action *a;
+
+			wpid = waitpid(-1, NULL, maybe_WNOHANG);
+			if (wpid <= 0)
+				break;
+
+			a = mark_terminated(wpid);
 			if (a) {
 				message(L_LOG, "process '%s' (pid %d) exited. "
 						"Scheduling for restart.",
 						a->command, wpid);
 			}
 			/* See if anyone else is waiting to be reaped */
- dont_block:
-			wpid = wait_any_nohang(NULL);
+			maybe_WNOHANG = WNOHANG;
 		}
 	} /* while (1) */
 }

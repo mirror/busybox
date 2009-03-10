@@ -48,6 +48,12 @@ void FAST_FUNC launch_helper(const char **argv)
 	xpipe(pipes);
 	xpipe(pipes + 2);
 
+	// NB: handler must be installed before vfork
+	bb_signals(0
+		+ (1 << SIGCHLD)
+		+ (1 << SIGALRM)
+		, signal_handler);
+
 	G.helper_pid = vfork();
 	if (G.helper_pid < 0)
 		bb_perror_msg_and_die("vfork");
@@ -60,15 +66,12 @@ void FAST_FUNC launch_helper(const char **argv)
 
 	if (!G.helper_pid) {
 		// child: try to execute connection helper
+		// NB: SIGCHLD & SIGALRM revert to SIG_DFL on exec
 		BB_EXECVP(*argv, (char **)argv);
 		_exit(127);
 	}
 
 	// parent
-	bb_signals(0
-		+ (1 << SIGCHLD)
-		+ (1 << SIGALRM)
-		, signal_handler);
 	// check whether child is alive
 	//redundant:signal_handler(SIGCHLD);
 	// child seems OK -> parent goes on
