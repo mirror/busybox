@@ -1299,7 +1299,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			if (sep->se_builtin) {
 				if (pid) { /* "pid" is -1: we did vfork */
 					close(sep->se_fd); /* listening socket */
-					logmode = 0; /* make xwrite etc silent */
+					logmode = LOGMODE_NONE; /* make xwrite etc silent */
 				}
 				restore_sigmask(&omask);
 				if (sep->se_socktype == SOCK_STREAM)

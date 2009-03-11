@@ -46,12 +46,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	opt = getopt32(argv, "fS" USE_FEATURE_UDHCP_PORT("P:", &str_P));
 	argv += optind;
-
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
-		logmode &= ~LOGMODE_STDIO;
+		logmode = LOGMODE_NONE;
 	}
-
 	if (opt & 2) { /* -S */
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;

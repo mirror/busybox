@@ -63,14 +63,7 @@ struct dns_entry {		// element of known name, ip address and reversed ip address
 	char name[MAX_HOST_LEN];
 };
 
-static struct dns_entry *dnsentry;
-static uint32_t ttl = DEFAULT_TTL;
-
-static const char *fileconf = "/etc/dnsd.conf";
-
-// Must match getopt32 call
-#define OPT_daemon  (option_mask32 & 0x10)
-#define OPT_verbose (option_mask32 & 0x20)
+#define OPT_verbose (option_mask32)
 
 
 /*
@@ -88,7 +81,7 @@ static void convname(char *a, uint8_t *q)
 /*
  * Insert length of substrings instead of dots
  */
-static void undot(uint8_t * rip)
+static void undot(uint8_t *rip)
 {
 	int i = 0, s = 0;
 	while (rip[i])
@@ -104,13 +97,13 @@ static void undot(uint8_t * rip)
 /*
  * Read hostname/IP records from file
  */
-static void dnsentryinit(void)
+static struct dns_entry *parse_conf_file(const char *fileconf)
 {
 	char *token[2];
 	parser_t *parser;
-	struct dns_entry *m, *prev;
+	struct dns_entry *m, *prev, *conf_data;
 
-	prev = dnsentry = NULL;
+	prev = conf_data = NULL;
 	parser = config_open(fileconf);
 	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
 		unsigned a, b, c, d;
@@ -132,50 +125,54 @@ static void dnsentryinit(void)
 		convname(m->name, (uint8_t*)token[0]);
 
 		if (OPT_verbose)
-			fprintf(stderr, "\tname:%s, ip:%s\n", &(m->name[1]), m->ip);
+			bb_error_msg("name:%s, ip:%s", &(m->name[1]), m->ip);
 
 		if (prev == NULL)
-			dnsentry = m;
+			conf_data = m;
 		else
 			prev->next = m;
 		prev = m;
 	}
 	config_close(parser);
+	return conf_data;
 }
 
 /*
  * Look query up in dns records and return answer if found
  * qs is the query string, first byte the string length
  */
-static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
+static int table_lookup(struct dns_entry *d, uint16_t type, uint8_t *as, uint8_t *qs)
 {
 	int i;
-	struct dns_entry *d = dnsentry;
 
 	do {
 #if DEBUG
-		char *p,*q;
+		char *p, *q;
 		q = (char *)&(qs[1]);
 		p = &(d->name[1]);
 		fprintf(stderr, "\n%s: %d/%d p:%s q:%s %d",
 			__FUNCTION__, (int)strlen(p), (int)(d->name[0]),
 			p, q, (int)strlen(q));
 #endif
-		if (type == REQ_A) { /* search by host name */
+		if (type == REQ_A) {
+			/* search by host name */
 			for (i = 1; i <= (int)(d->name[0]); i++)
 				if (tolower(qs[i]) != d->name[i])
 					break;
-			if (i > (int)(d->name[0]) ||
-			    (d->name[0] == 1 && d->name[1] == '*')) {
+			if (i > (int)(d->name[0])
+			 || (d->name[0] == 1 && d->name[1] == '*')
+			) {
 				strcpy((char *)as, d->ip);
 #if DEBUG
 				fprintf(stderr, " OK as:%s\n", as);
 #endif
 				return 0;
 			}
-		} else if (type == REQ_PTR) { /* search by IP-address */
-			if ((d->name[0] != 1 || d->name[1] != '*') &&
-			    !strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
+		} else if (type == REQ_PTR) {
+			/* search by IP-address */
+			if ((d->name[0] != 1 || d->name[1] != '*')
+			 && !strncmp(d->rip + 1, (char*)qs + 1, strlen(d->rip)-1)
+			) {
 				strcpy((char *)as, d->name);
 				return 0;
 			}
@@ -188,7 +185,7 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 /*
  * Decode message and generate answer
  */
-static int process_packet(uint8_t *buf)
+static int process_packet(struct dns_entry *conf_data, uint32_t conf_ttl, uint8_t *buf)
 {
 	uint8_t answstr[MAX_NAME_LEN + 1];
 	struct dns_head *head;
@@ -240,7 +237,7 @@ static int process_packet(uint8_t *buf)
 
 	// We have a standard query
 	bb_info_msg("%s", (char *)from);
-	lookup_result = table_lookup(type, answstr, from);
+	lookup_result = table_lookup(conf_data, type, answstr, from);
 	if (lookup_result != 0) {
 		outr_flags = 3 | 0x0400;	// name do not exist and auth
 		goto empty_packet;
@@ -267,7 +264,7 @@ static int process_packet(uint8_t *buf)
 
 	// and append answer rr
 // FIXME: unaligned accesses??
-	*(uint32_t *) answb = htonl(ttl);
+	*(uint32_t *) answb = htonl(conf_ttl);
 	answb += 4;
 	*(uint16_t *) answb = htons(outr_rlen);
 	answb += 2;
@@ -290,49 +287,48 @@ static int process_packet(uint8_t *buf)
 /*
  * Exit on signal
  */
-static void interrupt(int sig)
-{
-	/* unlink("/var/run/dnsd.lock"); */
-	bb_error_msg("interrupt, exiting\n");
-	kill_myself_with_sig(sig);
-}
+//static void interrupt(int sig)
+//{
+//	/* unlink("/var/run/dnsd.lock"); */
+//	bb_error_msg("interrupt, exiting\n");
+//	kill_myself_with_sig(sig);
+//}
 
 int dnsd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dnsd_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *listen_interface = "0.0.0.0";
+	const char *fileconf = "/etc/dnsd.conf";
+	struct dns_entry *conf_data;
+	uint32_t conf_ttl = DEFAULT_TTL;
 	char *sttl, *sport;
 	len_and_sockaddr *lsa, *from, *to;
 	unsigned lsa_size;
-	int udps;
+	int udps, opts;
 	uint16_t port = 53;
 	/* Paranoid sizing: querystring x2 + ttl + outr_rlen + answstr */
 	/* I'd rather see process_packet() fixed instead... */
 	uint8_t buf[MAX_PACK_LEN * 2 + 4 + 2 + (MAX_NAME_LEN+1)];
 
-	getopt32(argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
-	//if (option_mask32 & 0x1) // -i
-	//if (option_mask32 & 0x2) // -c
-	if (option_mask32 & 0x4) // -t
-		ttl = xatou_range(sttl, 1, 0xffffffff);
-	if (option_mask32 & 0x8) // -p
+	opts = getopt32(argv, "vi:c:t:p:d", &listen_interface, &fileconf, &sttl, &sport);
+	//if (opts & 0x1) // -v
+	//if (opts & 0x2) // -i
+	//if (opts & 0x4) // -c
+	if (opts & 0x8) // -t
+		conf_ttl = xatou_range(sttl, 1, 0xffffffff);
+	if (opts & 0x10) // -p
 		port = xatou_range(sport, 1, 0xffff);
-
-	if (OPT_verbose) {
-		bb_info_msg("listen_interface: %s", listen_interface);
-		bb_info_msg("ttl: %d, port: %d", ttl, port);
-		bb_info_msg("fileconf: %s", fileconf);
-	}
-
-	if (OPT_daemon) {
+	if (opts & 0x20) { // -d
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
+	/* Clear all except "verbose" bit */
+	option_mask32 &= 1;
 
-	dnsentryinit();
+	conf_data = parse_conf_file(fileconf);
 
-	signal(SIGINT, interrupt);
+//	signal(SIGINT, interrupt); - just for one message?
 	bb_signals(0
 		/* why? + (1 << SIGPIPE) */
 		+ (1 << SIGHUP)
@@ -371,7 +367,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 		if (OPT_verbose)
 			bb_info_msg("Got UDP packet");
 		buf[r] = '\0'; /* paranoia */
-		r = process_packet(buf);
+		r = process_packet(conf_data, conf_ttl, buf);
 		if (r <= 0)
 			continue;
 		send_to_from(udps, buf, r, 0, &from->u.sa, &to->u.sa, lsa->len);

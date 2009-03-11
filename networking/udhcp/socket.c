@@ -57,7 +57,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 		}
 		our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
 		*addr = our_ip->sin_addr.s_addr;
-		DEBUG("%s (our ip) = %s", ifr.ifr_name, inet_ntoa(our_ip->sin_addr));
+		DEBUG("ip of %s = %s", interface, inet_ntoa(our_ip->sin_addr));
 	}
 
 	if (ifindex) {

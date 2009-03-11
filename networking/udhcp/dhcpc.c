@@ -280,7 +280,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	/* on NOMMU reexec (i.e., background) early */
 	if (!(opt & OPT_f)) {
 		bb_daemonize_or_rexec(0 /* flags */, argv);
-		logmode = 0;
+		logmode = LOGMODE_NONE;
 	}
 #endif
 	if (opt & OPT_S) {

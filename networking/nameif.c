@@ -144,7 +144,9 @@ int nameif_main(int argc, char **argv)
 
 	if (1 & getopt32(argv, "sc:", &fname)) {
 		openlog(applet_name, 0, LOG_LOCAL0);
-		logmode = LOGMODE_SYSLOG;
+		/* Why not just "="? I assume logging to stderr
+		 * can't hurt. 2>/dev/null if you don't like it: */
+		logmode |= LOGMODE_SYSLOG;
 	}
 	argc -= optind;
 	argv += optind;
