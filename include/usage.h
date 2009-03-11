@@ -1281,7 +1281,7 @@
      "\n	-f	Force file system check" \
 
 #define ftpd_trivial_usage \
-       "[-vw] [DIR]"
+       "[-wvS] [DIR]"
 #define ftpd_full_usage "\n\n" \
        "FTP server\n" \
        "\n" \
@@ -1291,8 +1291,9 @@
        "It also can be ran from tcpsvd:\n" \
        "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve\n" \
      "\nOptions:" \
-     "\n	-v	Log also to stderr" \
      "\n	-w	Allow upload" \
+     "\n	-v	Log to stderr" \
+     "\n	-S	Log to syslog" \
      "\n	DIR	Change root to this directory" \
 
 #define ftpget_trivial_usage \

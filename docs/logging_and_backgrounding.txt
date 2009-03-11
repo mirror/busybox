@@ -27,18 +27,16 @@ acpid - auto-backgrounds unless -d
 crond - auto-backgrounds unless -f, logs to syslog unless -d or -L.
     option -d logs to stderr, -L FILE logs to FILE
 devfsd - (obsolete)
-dnsd - option -d makes it auto-background and log to syslog
+dnsd - option -d makes it background and log to syslog
 fakeidentd - inetd service. Auto-backgrounds and logs to syslog
     if no -f and no -i and no -w (-i is "inetd service" flag,
     -w is "inetd-wait service" flag)
-ftpd - inetd service. Logs to syslog always, with -v logs to strerr too
-httpd - auto-backgrounds unless -f or -i
-    (-i is "inetd service" flag)
+ftpd - inetd service. Logs to syslog with -S, with -v logs to strerr too
+httpd - auto-backgrounds unless -f or -i (-i is "inetd service" flag)
 inetd - auto-backgrounds unless -f, logs to syslog unless -e
 klogd - auto-backgrounds unless -n
 syslogd - auto-backgrounds unless -n
-telnetd - auto-backgrounds unless -f or -i
-    (-i is "inetd service" flag)
+telnetd - auto-backgrounds unless -f or -i (-i is "inetd service" flag)
 udhcpc - auto-backgrounds unless -f after lease is obtained,
     option -b makes it background sooner (when lease attempt
     fails and retries start),
@@ -48,9 +46,18 @@ udhcpd - auto-backgrounds and do not log to stderr unless -f,
     otherwise logs to stderr, but option -S makes it log *also* to syslog
 zcip - auto-backgrounds and logs *also* to syslog unless -f
 
+Total: 13 applets (+1 obsolete),
+ 4 log to syslog by default (crond fakeidentd inetd zcip),
+ 5 never log to syslog (acpid httpd telnetd klogd syslogd, last two
+ - for obviously correct reasons),
+ there are no daemons which always log to syslog,
+ 12 auto-background if not run as inetd servies (all except dnsd.
+ Note that there is no "standard" dnsd AFAIKS). But see below
+ for daemons (tcpsvd etc) which don't auto-background.
+
 miscutils/crond.c:            logmode = LOGMODE_SYSLOG;
 networking/dnsd.c:            logmode = LOGMODE_SYSLOG;
-networking/ftpd.c:            logmode = LOGMODE_SYSLOG;
+networking/ftpd.c:            logmode = LOGMODE_NONE;
 networking/ftpd.c:            logmode |= LOGMODE_SYSLOG;
 networking/inetd.c:           logmode = LOGMODE_SYSLOG;
 networking/isrv_identd.c:     logmode = LOGMODE_SYSLOG;
@@ -63,7 +70,7 @@ networking/udhcp/dhcpd.c:     logmode |= LOGMODE_SYSLOG;
 networking/zcip.c:            logmode |= LOGMODE_SYSLOG;
 
 
-These daemons seem to never auto-background/log to syslog:
+These daemons never auto-background and never log to syslog:
 
 lpd - inetd service. Has nothing to log so far, though
 dhcprelay - standard behavior

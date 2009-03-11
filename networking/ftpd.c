@@ -80,7 +80,8 @@ enum {
 	OPT_l = (1 << 0),
 	OPT_1 = (1 << 1),
 	OPT_v = (1 << 2),
-	OPT_w = (1 << 3),
+	OPT_S = (1 << 3),
+	OPT_w = (1 << 4),
 
 #define mk_const4(a,b,c,d) (((a * 0x100 + b) * 0x100 + c) * 0x100 + d)
 #define mk_const3(a,b,c)    ((a * 0x100 + b) * 0x100 + c)
@@ -806,7 +807,7 @@ int ftpd_main(int argc, char **argv)
 {
 	smallint opts;
 
-	opts = getopt32(argv, "l1v" USE_FEATURE_FTP_WRITE("w"));
+	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w"));
 
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
@@ -828,11 +829,13 @@ int ftpd_main(int argc, char **argv)
 		 * failure */
 	}
 
-	/* LOG_NDELAY is needed since we may chroot later */
-	openlog(applet_name, LOG_PID | LOG_NDELAY, LOG_DAEMON);
-	logmode |= LOGMODE_SYSLOG;
 	if (!(opts & OPT_v))
-		logmode = LOGMODE_SYSLOG;
+		logmode = LOGMODE_NONE;
+	if (opts & OPT_S) {
+		/* LOG_NDELAY is needed since we may chroot later */
+		openlog(applet_name, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+		logmode |= LOGMODE_SYSLOG;
+	}
 
 	G.proc_self_fd = xopen("/proc/self", O_RDONLY | O_DIRECTORY);
 
