@@ -1119,7 +1119,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	else
 		bb_sanitize_stdio();
 	if (!(opt & 4)) {
-		openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
 

@@ -100,7 +100,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	logmode = LOGMODE_BOTH;
-	openlog(applet_name, LOG_NOWAIT, LOG_AUTH);
+	openlog(applet_name, 0, LOG_AUTH);
 	opt = getopt32(argv, "a:lud", &opt_a);
 	//argc -= optind;
 	argv += optind;

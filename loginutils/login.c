@@ -342,7 +342,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	/* Was breaking "login <username>" from shell command line: */
 	/*bb_setpgrp();*/
 
-	openlog(applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
+	openlog(applet_name, LOG_PID | LOG_CONS, LOG_AUTH);
 
 	while (1) {
 		/* flush away any type-ahead (as getty does) */
