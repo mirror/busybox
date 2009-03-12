@@ -54,13 +54,12 @@ static inline uint64_t hton64(uint64_t v)
 
 
 #define SHA1_BLOCK_SIZE  64
-#define SHA1_DIGEST_SIZE 20
-#define SHA1_HASH_SIZE   SHA1_DIGEST_SIZE
 #define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
 
 static void sha1_process_block64(sha1_ctx_t *ctx)
 {
-	uint32_t w[80], i, a, b, c, d, e, t;
+	unsigned i;
+	uint32_t w[80], a, b, c, d, e, t;
 
 	/* note that words are compiled from the buffer into 32-bit */
 	/* words in big-endian order so an order reversal is needed */
@@ -94,13 +93,13 @@ static void sha1_process_block64(sha1_ctx_t *ctx)
 	for (i = 0; i < 20; ++i)
 		rnd(ch, 0x5a827999);
 
-	for (i = 20; i < 40; ++i)
+	for (/*i = 20*/; i < 40; ++i)
 		rnd(parity, 0x6ed9eba1);
 
-	for (i = 40; i < 60; ++i)
+	for (/*i = 40*/; i < 60; ++i)
 		rnd(maj, 0x8f1bbcdc);
 
-	for (i = 60; i < 80; ++i)
+	for (/*i = 60*/; i < 80; ++i)
 		rnd(parity, 0xca62c1d6);
 #undef ch
 #undef parity
@@ -392,8 +391,6 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 }
 
 
-/* SHA1 hash data in an array of bytes into hash buffer and call the        */
-/* hash_compile function as required.                                       */
 void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 {
 	unsigned in_buf = ctx->total64 & SHA1_MASK;
