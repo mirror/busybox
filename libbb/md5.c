@@ -416,15 +416,14 @@ void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 		md5_hash_block(ctx->buffer, ctx);
 	md5_hash_block(buf, ctx);
 
-	/* Put result from CTX in first 16 bytes following RESBUF.  The result is
-	 * always in little endian byte order, so that a byte-wise output yields
-	 * to the wanted ASCII representation of the message digest.
-	 *
-	 * IMPORTANT: On some systems it is required that RESBUF is correctly
-	 * aligned for a 32 bits value.
+	/* The MD5 result is in little endian byte order.
+	 * We (ab)use the fact that A-D are consecutive in memory.
 	 */
-	((uint32_t *) resbuf)[0] = SWAP_LE32(ctx->A);
-	((uint32_t *) resbuf)[1] = SWAP_LE32(ctx->B);
-	((uint32_t *) resbuf)[2] = SWAP_LE32(ctx->C);
-	((uint32_t *) resbuf)[3] = SWAP_LE32(ctx->D);
+#if BB_BIG_ENDIAN
+	ctx->A = SWAP_LE32(ctx->A);
+	ctx->B = SWAP_LE32(ctx->B);
+	ctx->C = SWAP_LE32(ctx->C);
+	ctx->D = SWAP_LE32(ctx->D);
+#endif
+	memcpy(resbuf, &ctx->A, sizeof(ctx->A) * 4);
 }

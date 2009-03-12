@@ -200,20 +200,14 @@ static const uint32_t K512_lo[80] = {
 static void sha256_process_block64(const void *buffer, size_t len, sha256_ctx_t *ctx)
 {
 	const uint32_t *words = buffer;
-	uint32_t a = ctx->H[0];
-	uint32_t b = ctx->H[1];
-	uint32_t c = ctx->H[2];
-	uint32_t d = ctx->H[3];
-	uint32_t e = ctx->H[4];
-	uint32_t f = ctx->H[5];
-	uint32_t g = ctx->H[6];
-	uint32_t h = ctx->H[7];
-
-	/* First increment the byte count.  FIPS 180-2 specifies the possible
-	   length of the file up to 2^64 _bits_.
-	   We compute the number of _bytes_ and convert to bits later.  */
-	len &= ~(size_t)(sizeof(uint32_t) * 16 - 1);
-	ctx->total64 += len;
+	uint32_t a = ctx->hash[0];
+	uint32_t b = ctx->hash[1];
+	uint32_t c = ctx->hash[2];
+	uint32_t d = ctx->hash[3];
+	uint32_t e = ctx->hash[4];
+	uint32_t f = ctx->hash[5];
+	uint32_t g = ctx->hash[6];
+	uint32_t h = ctx->hash[7];
 
 	/* Process all bytes in the buffer with 64 bytes in each round of
 	   the loop.  */
@@ -260,14 +254,14 @@ static void sha256_process_block64(const void *buffer, size_t len, sha256_ctx_t 
 #undef R1
 		/* Add the starting values of the context according to FIPS 180-2:6.2.2
 		   step 4.  */
-		ctx->H[0] = a += ctx->H[0];
-		ctx->H[1] = b += ctx->H[1];
-		ctx->H[2] = c += ctx->H[2];
-		ctx->H[3] = d += ctx->H[3];
-		ctx->H[4] = e += ctx->H[4];
-		ctx->H[5] = f += ctx->H[5];
-		ctx->H[6] = g += ctx->H[6];
-		ctx->H[7] = h += ctx->H[7];
+		ctx->hash[0] = a += ctx->hash[0];
+		ctx->hash[1] = b += ctx->hash[1];
+		ctx->hash[2] = c += ctx->hash[2];
+		ctx->hash[3] = d += ctx->hash[3];
+		ctx->hash[4] = e += ctx->hash[4];
+		ctx->hash[5] = f += ctx->hash[5];
+		ctx->hash[6] = g += ctx->hash[6];
+		ctx->hash[7] = h += ctx->hash[7];
 
 		/* Prepare for the next round.  */
 		len--;
@@ -278,22 +272,14 @@ static void sha256_process_block64(const void *buffer, size_t len, sha256_ctx_t 
 static void sha512_process_block128(const void *buffer, size_t len, sha512_ctx_t *ctx)
 {
 	const uint64_t *words = buffer;
-	uint64_t a = ctx->H[0];
-	uint64_t b = ctx->H[1];
-	uint64_t c = ctx->H[2];
-	uint64_t d = ctx->H[3];
-	uint64_t e = ctx->H[4];
-	uint64_t f = ctx->H[5];
-	uint64_t g = ctx->H[6];
-	uint64_t h = ctx->H[7];
-
-	/* First increment the byte count.  FIPS 180-2 specifies the possible
-	   length of the file up to 2^128 _bits_.
-	   We compute the number of _bytes_ and convert to bits later.  */
-	len &= ~(size_t)(sizeof(uint64_t) * 16 - 1);
-	ctx->total64[0] += len;
-	if (ctx->total64[0] < len)
-		ctx->total64[1]++;
+	uint64_t a = ctx->hash[0];
+	uint64_t b = ctx->hash[1];
+	uint64_t c = ctx->hash[2];
+	uint64_t d = ctx->hash[3];
+	uint64_t e = ctx->hash[4];
+	uint64_t f = ctx->hash[5];
+	uint64_t g = ctx->hash[6];
+	uint64_t h = ctx->hash[7];
 
 	len /= (sizeof(uint64_t) * 16);
 	while (len) {
@@ -338,14 +324,14 @@ static void sha512_process_block128(const void *buffer, size_t len, sha512_ctx_t
 #undef R1
 		/* Add the starting values of the context according to FIPS 180-2:6.3.2
 		   step 4.  */
-		ctx->H[0] = a += ctx->H[0];
-		ctx->H[1] = b += ctx->H[1];
-		ctx->H[2] = c += ctx->H[2];
-		ctx->H[3] = d += ctx->H[3];
-		ctx->H[4] = e += ctx->H[4];
-		ctx->H[5] = f += ctx->H[5];
-		ctx->H[6] = g += ctx->H[6];
-		ctx->H[7] = h += ctx->H[7];
+		ctx->hash[0] = a += ctx->hash[0];
+		ctx->hash[1] = b += ctx->hash[1];
+		ctx->hash[2] = c += ctx->hash[2];
+		ctx->hash[3] = d += ctx->hash[3];
+		ctx->hash[4] = e += ctx->hash[4];
+		ctx->hash[5] = f += ctx->hash[5];
+		ctx->hash[6] = g += ctx->hash[6];
+		ctx->hash[7] = h += ctx->hash[7];
 
 		len--;
 	}
@@ -386,9 +372,8 @@ static const uint32_t init512_lo[] = {
    (FIPS 180-2:5.3.2)  */
 void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 {
-	memcpy(ctx->H, init256, sizeof(init256));
+	memcpy(ctx->hash, init256, sizeof(init256));
 	ctx->total64 = 0;
-	ctx->wbuflen = 0;
 }
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.3)  */
@@ -396,9 +381,8 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 {
 	int i;
 	for (i = 0; i < 8; i++)
-		ctx->H[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
+		ctx->hash[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
 	ctx->total64[0] = ctx->total64[1] = 0;
-	ctx->wbuflen = 0;
 }
 
 
@@ -406,28 +390,35 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 /* hash_compile function as required.                                       */
 void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 {
-	unsigned wbuflen = ctx->total64 & SHA1_MASK;
-	unsigned add = SHA1_BLOCK_SIZE - wbuflen;
+	unsigned in_buf = ctx->total64 & SHA1_MASK;
+	unsigned add = SHA1_BLOCK_SIZE - in_buf;
 
 	ctx->total64 += len;
 
 	while (len >= add) {	/* transfer whole blocks while possible  */
-		memcpy(((unsigned char *) ctx->wbuffer) + wbuflen, buffer, add);
+		memcpy(((unsigned char *) ctx->wbuffer) + in_buf, buffer, add);
 		buffer = (const char *)buffer + add;
 		len -= add;
 		add = SHA1_BLOCK_SIZE;
-		wbuflen = 0;
+		in_buf = 0;
 		sha1_process_block64(ctx);
 	}
 
-	memcpy(((unsigned char *) ctx->wbuffer) + wbuflen, buffer, len);
+	memcpy(((unsigned char *) ctx->wbuffer) + in_buf, buffer, len);
 }
 
 void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 {
+	unsigned in_buf = ctx->total64 & 63;
+
+	/* First increment the byte count.  FIPS 180-2 specifies the possible
+	   length of the file up to 2^64 _bits_.
+	   We compute the number of _bytes_ and convert to bits later.  */
+	ctx->total64 += len;
+
 	/* When we already have some bits in our internal buffer concatenate
 	   both inputs first.  */
-	if (ctx->wbuflen != 0) {
+	if (in_buf != 0) {
 		unsigned add;
 
 		/* NB: 1/2 of wbuffer is used only in sha256_end
@@ -435,18 +426,17 @@ void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 		 * With buffer twice as small, it may happen that
 		 * we have it almost full and can't add length field.  */
 
-		add = sizeof(ctx->wbuffer)/2 - ctx->wbuflen;
+		add = sizeof(ctx->wbuffer)/2 - in_buf;
 		if (add > len)
 			add = len;
-		memcpy(&ctx->wbuffer[ctx->wbuflen], buffer, add);
-		ctx->wbuflen += add;
+		memcpy(&ctx->wbuffer[in_buf], buffer, add);
+		in_buf += add;
 
 		/* If we still didn't collect full wbuffer, bail out */
-		if (ctx->wbuflen < sizeof(ctx->wbuffer)/2)
+		if (in_buf < sizeof(ctx->wbuffer)/2)
 			return;
 
 		sha256_process_block64(ctx->wbuffer, 64, ctx);
-		ctx->wbuflen = 0;
 		buffer = (const char *)buffer + add;
 		len -= add;
 	}
@@ -454,7 +444,7 @@ void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 	/* Process available complete blocks.  */
 	if (len >= 64) {
 		if (UNALIGNED_P(buffer, uint32_t)) {
-			while (len > 64) {
+			while (len >= 64) {
 				sha256_process_block64(memcpy(ctx->wbuffer, buffer, 64), 64, ctx);
 				buffer = (const char *)buffer + 64;
 				len -= 64;
@@ -469,33 +459,40 @@ void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 	/* Move remaining bytes into internal buffer.  */
 	if (len > 0) {
 		memcpy(ctx->wbuffer, buffer, len);
-		ctx->wbuflen = len;
 	}
 }
 
 void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 {
-	if (ctx->wbuflen != 0) {
+	unsigned in_buf = ctx->total64[0] & 127;
+
+	/* First increment the byte count.  FIPS 180-2 specifies the possible
+	   length of the file up to 2^128 _bits_.
+	   We compute the number of _bytes_ and convert to bits later.  */
+	ctx->total64[0] += len;
+	if (ctx->total64[0] < len)
+		ctx->total64[1]++;
+
+	if (in_buf != 0) {
 		unsigned add;
 
-		add = sizeof(ctx->wbuffer)/2 - ctx->wbuflen;
+		add = sizeof(ctx->wbuffer)/2 - in_buf;
 		if (add > len)
 			add = len;
-		memcpy(&ctx->wbuffer[ctx->wbuflen], buffer, add);
-		ctx->wbuflen += add;
+		memcpy(&ctx->wbuffer[in_buf], buffer, add);
+		in_buf += add;
 
-		if (ctx->wbuflen < sizeof(ctx->wbuffer)/2)
+		if (in_buf < sizeof(ctx->wbuffer)/2)
 			return;
 
 		sha512_process_block128(ctx->wbuffer, 128, ctx);
-		ctx->wbuflen = 0;
 		buffer = (const char *)buffer + add;
 		len -= add;
 	}
 
 	if (len >= 128) {
 		if (UNALIGNED_P(buffer, uint64_t)) {
-			while (len > 128) {
+			while (len >= 128) {
 				sha512_process_block128(memcpy(ctx->wbuffer, buffer, 128), 128, ctx);
 				buffer = (const char *)buffer + 128;
 				len -= 128;
@@ -509,20 +506,19 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 
 	if (len > 0) {
 		memcpy(ctx->wbuffer, buffer, len);
-		ctx->wbuflen = len;
 	}
 }
 
 
 void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
-	unsigned i, wbuflen, pad;
+	unsigned i, pad, in_buf;
 
 	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
-	wbuflen = ctx->total64 & SHA1_MASK;
-	((uint8_t *)ctx->wbuffer)[wbuflen++] = 0x80;
-	pad = SHA1_BLOCK_SIZE - wbuflen;
-	memset(((uint8_t *)ctx->wbuffer) + wbuflen, 0, pad);
+	in_buf = ctx->total64 & SHA1_MASK;
+	((uint8_t *)ctx->wbuffer)[in_buf++] = 0x80;
+	pad = SHA1_BLOCK_SIZE - in_buf;
+	memset(((uint8_t *)ctx->wbuffer) + in_buf, 0, pad);
 
 	/* We need 1+8 or more empty positions, one for the padding byte
 	 * (above) and eight for the length count.
@@ -543,77 +539,61 @@ void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
 	sha1_process_block64(ctx);
 
-	/* Extract the hash value as bytes in case resbuf is
-	 * misaligned for 32-bit words */
-	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i) {
-		uint32_t t = ctx->hash[i];
-		t = ntohl(t); /* paranoia. this can be a macro */
-		move_to_unaligned32(resbuf, t); /* ditto */
-		resbuf = (char*)resbuf + 4;
-	}
+#if BB_LITTLE_ENDIAN
+	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
+		ctx->hash[i] = htonl(ctx->hash[i]);
+#endif
+	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
 }
 
-
-/* Process the remaining bytes in the internal buffer and the usual
-   prolog according to the standard and write the result to RESBUF.
-
-   IMPORTANT: On some systems it is required that RESBUF is correctly
-   aligned for a 32 bits value.  */
 void FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
 {
-	/* Take yet unprocessed bytes into account.  */
-	unsigned bytes = ctx->wbuflen;
-	unsigned pad;
-
-	/* Now count remaining bytes.  */
-	ctx->total64 += bytes;
+	unsigned i, pad, in_buf;
 
 	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0...
 	   (FIPS 180-2:5.1.1)  */
-	pad = (bytes >= 56 ? 64 + 56 - bytes : 56 - bytes);
-	memset(&ctx->wbuffer[bytes], 0, pad);
-	ctx->wbuffer[bytes] = 0x80;
+	in_buf = ctx->total64 & 63;
+	pad = (in_buf >= 56 ? 64 + 56 - in_buf : 56 - in_buf);
+	memset(&ctx->wbuffer[in_buf], 0, pad);
+	ctx->wbuffer[in_buf] = 0x80;
 
 	/* Put the 64-bit file length in *bits* at the end of the buffer.  */
 	{
 		uint64_t t = ctx->total64 << 3;
 		t = hton64(t);
 		/* wbuffer is suitably aligned for this */
-		*(uint64_t *) &ctx->wbuffer[bytes + pad] = t;
+		*(uint64_t *) &ctx->wbuffer[in_buf + pad] = t;
 	}
 
 	/* Process last bytes.  */
-	sha256_process_block64(ctx->wbuffer, bytes + pad + 8, ctx);
+	sha256_process_block64(ctx->wbuffer, in_buf + pad + 8, ctx);
 
-	for (unsigned i = 0; i < 8; ++i)
-		((uint32_t *) resbuf)[i] = ntohl(ctx->H[i]);
+#if BB_LITTLE_ENDIAN
+	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
+		ctx->hash[i] = htonl(ctx->hash[i]);
+#endif
+	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
 }
 
-/* Process the remaining bytes in the internal buffer and the usual
-   prolog according to the standard and write the result to RESBUF.
-
-   IMPORTANT: On some systems it is required that RESBUF is correctly
-   aligned for a 64 bits value.  */
 void FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
 {
-	unsigned bytes = ctx->wbuflen;
-	unsigned pad;
-
-	ctx->total64[0] += bytes;
-	if (ctx->total64[0] < bytes)
-		ctx->total64[1]++;
+	unsigned i, pad, in_buf;
 
 	/* Pad the buffer to the next 128-byte boundary with 0x80,0,0,0...
 	   (FIPS 180-2:5.1.2)  */
-	pad = bytes >= 112 ? 128 + 112 - bytes : 112 - bytes;
-	memset(&ctx->wbuffer[bytes], 0, pad);
-	ctx->wbuffer[bytes] = 0x80;
+	in_buf = ctx->total64[0] & 127;
+	pad = in_buf >= 112 ? 128 + 112 - in_buf : 112 - in_buf;
+	memset(&ctx->wbuffer[in_buf], 0, pad);
+	ctx->wbuffer[in_buf] = 0x80;
 
-	*(uint64_t *) &ctx->wbuffer[bytes + pad + 8] = hton64(ctx->total64[0] << 3);
-	*(uint64_t *) &ctx->wbuffer[bytes + pad] = hton64((ctx->total64[1] << 3) | (ctx->total64[0] >> 61));
+	*(uint64_t *) &ctx->wbuffer[in_buf + pad + 8] = hton64(ctx->total64[0] << 3);
+	*(uint64_t *) &ctx->wbuffer[in_buf + pad] = hton64((ctx->total64[1] << 3) | (ctx->total64[0] >> 61));
 
-	sha512_process_block128(ctx->wbuffer, bytes + pad + 16, ctx);
+	sha512_process_block128(ctx->wbuffer, in_buf + pad + 16, ctx);
 
-	for (unsigned i = 0; i < 8; ++i)
-		((uint64_t *) resbuf)[i] = hton64(ctx->H[i]);
+#if BB_LITTLE_ENDIAN
+	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
+		ctx->hash[i] = hton64(ctx->hash[i]);
+#endif
+	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
 }

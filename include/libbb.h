@@ -1329,18 +1329,16 @@ void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
 void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx) FAST_FUNC;
 void sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
 typedef struct sha256_ctx_t {
-	unsigned wbuflen;
-	uint32_t H[8];
 	uint64_t total64;
+	uint32_t hash[8];
 	char wbuffer[64*2]; /* NB: always correctly aligned for uint64_t */
 } sha256_ctx_t;
 void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 void sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx) FAST_FUNC;
 void sha256_end(void *resbuf, sha256_ctx_t *ctx) FAST_FUNC;
 typedef struct sha512_ctx_t {
-	unsigned wbuflen;
-	uint64_t H[8];
 	uint64_t total64[2];
+	uint64_t hash[8];
 	char wbuffer[128*2]; /* NB: always correctly aligned for uint64_t */
 } sha512_ctx_t;
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
