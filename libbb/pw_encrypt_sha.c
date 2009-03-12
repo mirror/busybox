@@ -20,7 +20,7 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 {
 	void (*sha_begin)(void *ctx) FAST_FUNC;
 	void (*sha_hash)(const void *buffer, size_t len, void *ctx) FAST_FUNC;
-	void* (*sha_end)(void *resbuf, void *ctx) FAST_FUNC;
+	void (*sha_end)(void *resbuf, void *ctx) FAST_FUNC;
 	int _32or64;
 
 	char *result, *resptr;

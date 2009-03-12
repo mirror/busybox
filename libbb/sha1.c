@@ -406,22 +406,21 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 /* hash_compile function as required.                                       */
 void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 {
-	uint32_t pos = (uint32_t) (ctx->total64 & SHA1_MASK);
-	uint32_t freeb = SHA1_BLOCK_SIZE - pos;
-	const unsigned char *sp = buffer;
+	unsigned wbuflen = ctx->total64 & SHA1_MASK;
+	unsigned add = SHA1_BLOCK_SIZE - wbuflen;
 
 	ctx->total64 += len;
 
-	while (len >= freeb) {	/* transfer whole blocks while possible  */
-		memcpy(((unsigned char *) ctx->wbuffer) + pos, sp, freeb);
-		sp += freeb;
-		len -= freeb;
-		freeb = SHA1_BLOCK_SIZE;
-		pos = 0;
+	while (len >= add) {	/* transfer whole blocks while possible  */
+		memcpy(((unsigned char *) ctx->wbuffer) + wbuflen, buffer, add);
+		buffer = (const char *)buffer + add;
+		len -= add;
+		add = SHA1_BLOCK_SIZE;
+		wbuflen = 0;
 		sha1_process_block64(ctx);
 	}
 
-	memcpy(((unsigned char *) ctx->wbuffer) + pos, sp, len);
+	memcpy(((unsigned char *) ctx->wbuffer) + wbuflen, buffer, len);
 }
 
 void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
@@ -517,42 +516,24 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 
 void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
-	/* SHA1 Final padding and digest calculation  */
-#if BB_BIG_ENDIAN
-	static const uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
-	static const uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
-#else
-	static const uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
-	static const uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
-#endif
+	unsigned i, wbuflen, pad;
 
-	uint8_t *hval = resbuf;
-	uint32_t i, cnt = (uint32_t) (ctx->total64 & SHA1_MASK);
+	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
+	wbuflen = ctx->total64 & SHA1_MASK;
+	((uint8_t *)ctx->wbuffer)[wbuflen++] = 0x80;
+	pad = SHA1_BLOCK_SIZE - wbuflen;
+	memset(((uint8_t *)ctx->wbuffer) + wbuflen, 0, pad);
 
-	/* mask out the rest of any partial 32-bit word and then set    */
-	/* the next byte to 0x80. On big-endian machines any bytes in   */
-	/* the buffer will be at the top end of 32 bit words, on little */
-	/* endian machines they will be at the bottom. Hence the AND    */
-	/* and OR masks above are reversed for little endian systems    */
-	ctx->wbuffer[cnt >> 2] =
-		(ctx->wbuffer[cnt >> 2] & mask[cnt & 3]) | bits[cnt & 3];
-
-	/* we need 9 or more empty positions, one for the padding byte  */
-	/* (above) and eight for the length count.  If there is not     */
-	/* enough space pad and empty the buffer                        */
-	if (cnt > SHA1_BLOCK_SIZE - 9) {
-		if (cnt < 60)
-			ctx->wbuffer[15] = 0;
+	/* We need 1+8 or more empty positions, one for the padding byte
+	 * (above) and eight for the length count.
+	 * If there is not enough space, empty the buffer. */
+	if (pad < 8) {
 		sha1_process_block64(ctx);
-		cnt = 0;
-	} else  /* compute a word index for the empty buffer positions */
-		cnt = (cnt >> 2) + 1;
+		memset(ctx->wbuffer, 0, SHA1_BLOCK_SIZE - 8);
+		((uint8_t *)ctx->wbuffer)[0] = 0x80;
+	}
 
-	while (cnt < 14)  /* and zero pad all but last two positions */
-		ctx->wbuffer[cnt++] = 0;
-
-	/* assemble the 64-bit counter of bits in the buffer in BE      */
-	/* format					                */
+	/* Store the 64-bit counter of bits in the buffer in BE format */
 	{
 		uint64_t t = ctx->total64 << 3;
 		t = hton64(t);
@@ -562,10 +543,14 @@ void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
 	sha1_process_block64(ctx);
 
-	/* extract the hash value as bytes in case the hash buffer is   */
-	/* misaligned for 32-bit words                                  */
-	for (i = 0; i < SHA1_DIGEST_SIZE; ++i)
-		hval[i] = (unsigned char) (ctx->hash[i >> 2] >> 8 * (~i & 3));
+	/* Extract the hash value as bytes in case resbuf is
+	 * misaligned for 32-bit words */
+	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i) {
+		uint32_t t = ctx->hash[i];
+		t = ntohl(t); /* paranoia. this can be a macro */
+		move_to_unaligned32(resbuf, t); /* ditto */
+		resbuf = (char*)resbuf + 4;
+	}
 }
 
 
