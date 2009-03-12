@@ -1322,7 +1322,7 @@ void bb_uuencode(char *store, const void *s, int length, const char *tbl) FAST_F
 
 typedef struct sha1_ctx_t {
 	uint64_t total64;
-	uint32_t wbuffer[16]; /* NB: always correctly aligned for uint64_t */
+	uint8_t wbuffer[64]; /* NB: always correctly aligned for uint64_t */
 	uint32_t hash[5];
 } sha1_ctx_t;
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
@@ -1331,7 +1331,7 @@ void sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
 typedef struct sha256_ctx_t {
 	uint64_t total64;
 	uint32_t hash[8];
-	char wbuffer[64*2]; /* NB: always correctly aligned for uint64_t */
+	uint8_t wbuffer[64]; /* NB: always correctly aligned for uint64_t */
 } sha256_ctx_t;
 void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 void sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx) FAST_FUNC;
@@ -1339,7 +1339,7 @@ void sha256_end(void *resbuf, sha256_ctx_t *ctx) FAST_FUNC;
 typedef struct sha512_ctx_t {
 	uint64_t total64[2];
 	uint64_t hash[8];
-	char wbuffer[128*2]; /* NB: always correctly aligned for uint64_t */
+	uint8_t wbuffer[128]; /* NB: always correctly aligned for uint64_t */
 } sha512_ctx_t;
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
 void sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx) FAST_FUNC;

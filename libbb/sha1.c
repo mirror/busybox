@@ -60,12 +60,13 @@ static void sha1_process_block64(sha1_ctx_t *ctx)
 {
 	unsigned i;
 	uint32_t w[80], a, b, c, d, e, t;
+	uint32_t *words;
 
-	/* note that words are compiled from the buffer into 32-bit */
-	/* words in big-endian order so an order reversal is needed */
-	/* here on little endian machines                           */
-	for (i = 0; i < SHA1_BLOCK_SIZE / 4; ++i)
-		w[i] = ntohl(ctx->wbuffer[i]);
+	words = (uint32_t*) ctx->wbuffer;
+	for (i = 0; i < SHA1_BLOCK_SIZE / 4; ++i) {
+		w[i] = ntohl(*words);
+		words++;
+	}
 
 	for (/*i = SHA1_BLOCK_SIZE / 4*/; i < 80; ++i) {
 		t = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
@@ -232,7 +233,7 @@ static void sha256_process_block64(const void *buffer, size_t len, sha256_ctx_t 
 		/* Compute the message schedule according to FIPS 180-2:6.2.2 step 2.  */
 		for (t = 0; t < 16; ++t) {
 			W[t] = ntohl(*words);
-			++words;
+			words++;
 		}
 
 		for (/*t = 16*/; t < 64; ++t)
@@ -302,7 +303,7 @@ static void sha512_process_block128(const void *buffer, size_t len, sha512_ctx_t
 		/* Compute the message schedule according to FIPS 180-2:6.3.2 step 2.  */
 		for (t = 0; t < 16; ++t) {
 			W[t] = ntoh64(*words);
-			++words;
+			words++;
 		}
 		for (/*t = 16*/; t < 80; ++t)
 			W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
@@ -399,7 +400,7 @@ void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 	ctx->total64 += len;
 
 	while (len >= add) {	/* transfer whole blocks while possible  */
-		memcpy(((unsigned char *) ctx->wbuffer) + in_buf, buffer, add);
+		memcpy(ctx->wbuffer + in_buf, buffer, add);
 		buffer = (const char *)buffer + add;
 		len -= add;
 		add = SHA1_BLOCK_SIZE;
@@ -407,7 +408,7 @@ void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 		sha1_process_block64(ctx);
 	}
 
-	memcpy(((unsigned char *) ctx->wbuffer) + in_buf, buffer, len);
+	memcpy(ctx->wbuffer + in_buf, buffer, len);
 }
 
 void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
@@ -424,19 +425,14 @@ void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 	if (in_buf != 0) {
 		unsigned add;
 
-		/* NB: 1/2 of wbuffer is used only in sha256_end
-		 * when length field is added and hashed.
-		 * With buffer twice as small, it may happen that
-		 * we have it almost full and can't add length field.  */
-
-		add = sizeof(ctx->wbuffer)/2 - in_buf;
+		add = sizeof(ctx->wbuffer) - in_buf;
 		if (add > len)
 			add = len;
-		memcpy(&ctx->wbuffer[in_buf], buffer, add);
+		memcpy(ctx->wbuffer + in_buf, buffer, add);
 		in_buf += add;
 
 		/* If we still didn't collect full wbuffer, bail out */
-		if (in_buf < sizeof(ctx->wbuffer)/2)
+		if (in_buf < sizeof(ctx->wbuffer))
 			return;
 
 		sha256_process_block64(ctx->wbuffer, 64, ctx);
@@ -460,9 +456,8 @@ void FAST_FUNC sha256_hash(const void *buffer, size_t len, sha256_ctx_t *ctx)
 	}
 
 	/* Move remaining bytes into internal buffer.  */
-	if (len > 0) {
+	if (len > 0)
 		memcpy(ctx->wbuffer, buffer, len);
-	}
 }
 
 void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
@@ -479,13 +474,13 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 	if (in_buf != 0) {
 		unsigned add;
 
-		add = sizeof(ctx->wbuffer)/2 - in_buf;
+		add = sizeof(ctx->wbuffer) - in_buf;
 		if (add > len)
 			add = len;
-		memcpy(&ctx->wbuffer[in_buf], buffer, add);
+		memcpy(ctx->wbuffer + in_buf, buffer, add);
 		in_buf += add;
 
-		if (in_buf < sizeof(ctx->wbuffer)/2)
+		if (in_buf < sizeof(ctx->wbuffer))
 			return;
 
 		sha512_process_block128(ctx->wbuffer, 128, ctx);
@@ -507,9 +502,8 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 		}
 	}
 
-	if (len > 0) {
+	if (len > 0)
 		memcpy(ctx->wbuffer, buffer, len);
-	}
 }
 
 
@@ -517,31 +511,29 @@ void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	unsigned i, pad, in_buf;
 
-	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
 	in_buf = ctx->total64 & SHA1_MASK;
-	((uint8_t *)ctx->wbuffer)[in_buf++] = 0x80;
-	pad = SHA1_BLOCK_SIZE - in_buf;
-	memset(((uint8_t *)ctx->wbuffer) + in_buf, 0, pad);
+	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
+	ctx->wbuffer[in_buf++] = 0x80;
 
-	/* We need 1+8 or more empty positions, one for the padding byte
-	 * (above) and eight for the length count.
-	 * If there is not enough space, empty the buffer. */
-	if (pad < 8) {
+	/* This loop iterates either once or twice, no more, no less */
+	while (1) {
+		pad = SHA1_BLOCK_SIZE - in_buf;
+		memset(ctx->wbuffer + in_buf, 0, pad);
+		in_buf = 0;
+		/* Do we have enough space for the length count? */
+		if (pad >= 8) {
+			/* Store the 64-bit counter of bits in the buffer in BE format */
+			uint64_t t = ctx->total64 << 3;
+			t = hton64(t);
+			/* wbuffer is suitably aligned for this */
+			*(uint64_t *) (&ctx->wbuffer[SHA1_BLOCK_SIZE - 8]) = t;
+		}
 		sha1_process_block64(ctx);
-		memset(ctx->wbuffer, 0, SHA1_BLOCK_SIZE - 8);
-		((uint8_t *)ctx->wbuffer)[0] = 0x80;
+		if (pad >= 8)
+			break;
 	}
 
-	/* Store the 64-bit counter of bits in the buffer in BE format */
-	{
-		uint64_t t = ctx->total64 << 3;
-		t = hton64(t);
-		/* wbuffer is suitably aligned for this */
-		*(uint64_t *) &ctx->wbuffer[14] = t;
-	}
-
-	sha1_process_block64(ctx);
-
+	/* This way we do not impose alignment constraints on resbuf: */
 #if BB_LITTLE_ENDIAN
 	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
 		ctx->hash[i] = htonl(ctx->hash[i]);
@@ -553,23 +545,25 @@ void FAST_FUNC sha256_end(void *resbuf, sha256_ctx_t *ctx)
 {
 	unsigned i, pad, in_buf;
 
-	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0...
-	   (FIPS 180-2:5.1.1)  */
 	in_buf = ctx->total64 & 63;
-	pad = (in_buf >= 56 ? 64 + 56 - in_buf : 56 - in_buf);
-	memset(&ctx->wbuffer[in_buf], 0, pad);
-	ctx->wbuffer[in_buf] = 0x80;
+	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0...
+	 * (FIPS 180-2:5.1.1)
+	 */
+	ctx->wbuffer[in_buf++] = 0x80;
 
-	/* Put the 64-bit file length in *bits* at the end of the buffer.  */
-	{
-		uint64_t t = ctx->total64 << 3;
-		t = hton64(t);
-		/* wbuffer is suitably aligned for this */
-		*(uint64_t *) &ctx->wbuffer[in_buf + pad] = t;
+	while (1) {
+		pad = 64 - in_buf;
+		memset(ctx->wbuffer + in_buf, 0, pad);
+		in_buf = 0;
+		if (pad >= 8) {
+			uint64_t t = ctx->total64 << 3;
+			t = hton64(t);
+			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
+		}
+		sha256_process_block64(ctx->wbuffer, 64, ctx);
+		if (pad >= 8)
+			break;
 	}
-
-	/* Process last bytes.  */
-	sha256_process_block64(ctx->wbuffer, in_buf + pad + 8, ctx);
 
 #if BB_LITTLE_ENDIAN
 	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
@@ -582,17 +576,30 @@ void FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
 {
 	unsigned i, pad, in_buf;
 
-	/* Pad the buffer to the next 128-byte boundary with 0x80,0,0,0...
-	   (FIPS 180-2:5.1.2)  */
 	in_buf = ctx->total64[0] & 127;
-	pad = in_buf >= 112 ? 128 + 112 - in_buf : 112 - in_buf;
-	memset(&ctx->wbuffer[in_buf], 0, pad);
-	ctx->wbuffer[in_buf] = 0x80;
+	/* Pad the buffer to the next 128-byte boundary with 0x80,0,0,0...
+	 * (FIPS 180-2:5.1.2)
+	 */
+	ctx->wbuffer[in_buf++] = 0x80;
 
-	*(uint64_t *) &ctx->wbuffer[in_buf + pad + 8] = hton64(ctx->total64[0] << 3);
-	*(uint64_t *) &ctx->wbuffer[in_buf + pad] = hton64((ctx->total64[1] << 3) | (ctx->total64[0] >> 61));
-
-	sha512_process_block128(ctx->wbuffer, in_buf + pad + 16, ctx);
+	while (1) {
+		pad = 128 - in_buf;
+		memset(ctx->wbuffer + in_buf, 0, pad);
+		in_buf = 0;
+		if (pad >= 16) {
+			/* Store the 128-bit counter of bits in the buffer in BE format */
+			uint64_t t;
+			t = ctx->total64[0] << 3;
+			t = hton64(t);
+			*(uint64_t *) (&ctx->wbuffer[128 - 8]) = t;
+			t = (ctx->total64[1] << 3) | (ctx->total64[0] >> 61);
+			t = hton64(t);
+			*(uint64_t *) (&ctx->wbuffer[128 - 16]) = t;
+		}
+		sha512_process_block128(ctx->wbuffer, 128, ctx);
+		if (pad >= 16)
+			break;
+	}
 
 #if BB_LITTLE_ENDIAN
 	for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
