@@ -16,12 +16,14 @@ static void pop3_checkr(const char *fmt, const char *param, char **ret)
 {
 	const char *msg = command(fmt, param);
 	char *answer = xmalloc_fgetline(stdin);
-	if (answer && '+' == *answer) {
+	if (answer && '+' == answer[0]) {
 		if (timeout)
 			alarm(0);
-		if (ret)
-			*ret = answer+4; // skip "+OK "
-		else if (ENABLE_FEATURE_CLEAN_UP)
+		if (ret) {
+			// skip "+OK "
+			memmove(answer, answer + 4, strlen(answer) - 4);
+			*ret = answer;
+		} else
 			free(answer);
 		return;
 	}
@@ -94,31 +96,28 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 
 	// authenticate (if no -s given)
 	if (!(opts & OPT_s)) {
-		// server supports APOP and we want it? -> use it
-		if ('<' == *buf && (opts & OPT_a)) {
-			md5_ctx_t md5;
-			// yes! compose <stamp><password>
+		// server supports APOP and we want it?
+		if ('<' == buf[0] && (opts & OPT_a)) {
+			union { // save a bit of stack
+				md5_ctx_t ctx;
+				char hex[16 * 2 + 1];
+			} md5;
+			uint32_t res[16 / 4];
+
 			char *s = strchr(buf, '>');
 			if (s)
-				strcpy(s+1, G.pass);
-			s = buf;
-			// get md5 sum of <stamp><password>
-			md5_begin(&md5);
-			md5_hash(s, strlen(s), &md5);
-			md5_end(s, &md5);
-			// NOTE: md5 struct contains enough space
-			// so we reuse md5 space instead of xzalloc(16*2+1)
-#define md5_hex ((uint8_t *)&md5)
-//			uint8_t *md5_hex = (uint8_t *)&md5;
-			*bin2hex((char *)md5_hex, s, 16) = '\0';
+				s[1] = '\0';
+			// get md5 sum of "<stamp>password" string
+			md5_begin(&md5.ctx);
+			md5_hash(buf, strlen(buf), &md5.ctx);
+			md5_hash(G.pass, strlen(G.pass), &md5.ctx);
+			md5_end(res, &md5.ctx);
+			*bin2hex(md5.hex, (char*)res, 16) = '\0';
 			// APOP
-			s = xasprintf("%s %s", G.user, md5_hex);
-#undef md5_hex
+			s = xasprintf("%s %s", G.user, md5.hex);
 			pop3_check("APOP %s", s);
-			if (ENABLE_FEATURE_CLEAN_UP) {
-				free(s);
-				free(buf-4); // buf is "+OK " away from malloc'ed string
-			}
+			free(s);
+			free(buf);
 		// server ignores APOP -> use simple text authentication
 		} else {
 			// USER
@@ -141,8 +140,7 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 	// if atoi fails to convert buf into number it returns 0
 	// in this case the following loop simply will not be executed
 	nmsg = atoi(buf);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(buf-4); // buf is "+OK " away from malloc'ed string
+	free(buf);
 
 	// loop through messages
 	retr = (opts & OPT_T) ? xasprintf("TOP %%u %u", opt_nlines) : "RETR %u";
