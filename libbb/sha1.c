@@ -19,7 +19,13 @@
  *
  * SHA256 and SHA512 parts are:
  * Released into the Public Domain by Ulrich Drepper <drepper@redhat.com>.
- * TODO: shrink them.
+ * Shrank by Denys Vlasenko.
+ *
+ * ---------------------------------------------------------------------------
+ *
+ * The best way to test random blocksizes is to go to coreutils/md5_sha1_sum.c
+ * and replace "4096" with something like "2000 + time(NULL) % 2097",
+ * then rebuild and compare "shaNNNsum bigfile" results.
  */
 
 #include "libbb.h"
