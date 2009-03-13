@@ -115,6 +115,9 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	char *image;
 	int rc = ENOENT;
 
+	if (!options)
+		options = "";
+
 #if ENABLE_FEATURE_2_4_MODULES
 	if (get_linux_version_code() < KERNEL_VERSION(2,6,0))
 		return bb_init_module_24(filename, options);
@@ -123,10 +126,9 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	/* Use the 2.6 way */
 	image = xmalloc_open_zipped_read_close(filename, &len);
 	if (image) {
+		rc = 0;
 		if (init_module(image, len, options) != 0)
 			rc = errno;
-		else
-			rc = 0;
 		free(image);
 	}
 
