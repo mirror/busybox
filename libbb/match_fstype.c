@@ -5,40 +5,38 @@
  * This allows us to match fstypes that start with no like so
  *   mount -at ,noddy
  *
- * Returns 0 for a match, otherwise -1
+ * Returns 1 for a match, otherwise 0
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"
 
-int FAST_FUNC match_fstype(const struct mntent *mt, const char *fstype)
+int FAST_FUNC match_fstype(const struct mntent *mt, const char *t_fstype)
 {
-	int no = 0;
+	int match = 1;
 	int len;
 
-	if (!mt)
-		return -1;
+	if (!t_fstype)
+		return match;
 
-	if (!fstype)
-		return 0;
-
-	if (fstype[0] == 'n' && fstype[1] == 'o') {
-		no = -1;
-		fstype += 2;
+	if (t_fstype[0] == 'n' && t_fstype[1] == 'o') {
+		match--;
+		t_fstype += 2;
 	}
 
 	len = strlen(mt->mnt_type);
-	while (fstype) {
-		if (!strncmp(mt->mnt_type, fstype, len)
-		 && (!fstype[len] || fstype[len] == ',')
+	while (1) {
+		if (strncmp(mt->mnt_type, t_fstype, len) == 0
+		 && (t_fstype[len] == '\0' || t_fstype[len] == ',')
 		) {
-			return no;
+			return match;
 		}
-		fstype = strchr(fstype, ',');
-		if (fstype)
-			fstype++;
+		t_fstype = strchr(t_fstype, ',');
+		if (!t_fstype)
+			break;
+		t_fstype++;
 	}
 
-	return -(no + 1);
+	return !match;
 }

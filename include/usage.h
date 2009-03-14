@@ -2796,45 +2796,50 @@
        "$ dmesg | more\n"
 
 #define mount_trivial_usage \
-       "[flags] DEVICE NODE [-o options,more-options]"
+       "[flags] DEVICE NODE [-o OPT,OPT]"
 #define mount_full_usage "\n\n" \
        "Mount a filesystem. Filesystem autodetection requires /proc be mounted.\n" \
      "\nOptions:" \
      "\n	-a		Mount all filesystems in fstab" \
 	USE_FEATURE_MOUNT_FAKE( \
-     "\n	-f		"USE_FEATURE_MTAB_SUPPORT("Update /etc/mtab, but ")"don't mount" \
+	USE_FEATURE_MTAB_SUPPORT( \
+     "\n	-f		Update /etc/mtab, but don't mount" \
+	) \
+	SKIP_FEATURE_MTAB_SUPPORT( \
+     "\n	-f		Dry run" \
+	) \
 	) \
 	USE_FEATURE_MTAB_SUPPORT( \
      "\n	-n		Don't update /etc/mtab" \
 	) \
      "\n	-r		Read-only mount" \
-     "\n	-t fs-type	Filesystem type" \
      "\n	-w		Read-write mount (default)" \
-       "\n" \
-       "-o option:\n" \
+     "\n	-t FSTYPE	Filesystem type" \
+     "\n	-O OPT		Mount only filesystems with option OPT (-a only)" \
+     "\n-o OPT:" \
 	USE_FEATURE_MOUNT_LOOP( \
-       "	loop		Ignored (loop devices are autodetected)\n" \
+     "\n	loop		Ignored (loop devices are autodetected)" \
 	) \
 	USE_FEATURE_MOUNT_FLAGS( \
-       "	[a]sync		Writes are asynchronous / synchronous\n" \
-       "	[no]atime	Disable / enable updates to inode access times\n" \
-       "	[no]diratime	Disable / enable atime updates to directories\n" \
-       "	[no]relatime	Disable / enable atime updates relative to modification time\n" \
-       "	[no]dev		Allow use of special device files / disallow them\n" \
-       "	[no]exec	Allow use of executable files / disallow them\n" \
-       "	[no]suid	Allow set-user-id-root programs / disallow them\n" \
-       "	[r]shared	Convert [recursively] to a shared subtree\n" \
-       "	[r]slave	Convert [recursively] to a slave subtree\n" \
-       "	[r]private	Convert [recursively] to a private subtree\n" \
-       "	[un]bindable	Make mount point [un]able to be bind mounted\n" \
-       "	bind		Bind a directory to an additional location\n" \
-       "	move		Relocate an existing mount point\n" \
+     "\n	[a]sync		Writes are [a]synchronous" \
+     "\n	[no]atime	Disable/enable updates to inode access times" \
+     "\n	[no]diratime	Disable/enable atime updates to directories" \
+     "\n	[no]relatime	Disable/enable atime updates relative to modification time" \
+     "\n	[no]dev		(Dis)allow use of special device files" \
+     "\n	[no]exec	(Dis)allow use of executable files" \
+     "\n	[no]suid	(Dis)allow set-user-id-root programs" \
+     "\n	[r]shared	Convert [recursively] to a shared subtree" \
+     "\n	[r]slave	Convert [recursively] to a slave subtree" \
+     "\n	[r]private	Convert [recursively] to a private subtree" \
+     "\n	[un]bindable	Make mount point [un]able to be bind mounted" \
+     "\n	bind		Bind a directory to an additional location" \
+     "\n	move		Relocate an existing mount point" \
 	) \
-       "	remount		Remount a mounted filesystem, changing its flags\n" \
-       "	ro/rw		Mount for read-only / read-write\n" \
-       "\n" \
-       "There are EVEN MORE flags that are specific to each filesystem\n" \
-       "You'll have to see the written documentation for those filesystems" \
+     "\n	remount		Remount a mounted filesystem, changing its flags" \
+     "\n	ro/rw		Read-only/read-write mount" \
+     "\n" \
+     "\nThere are EVEN MORE flags that are specific to each filesystem" \
+     "\nYou'll have to see the written documentation for those filesystems" \
 
 #define mount_example_usage \
        "$ mount\n" \

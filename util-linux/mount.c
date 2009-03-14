@@ -63,7 +63,7 @@ enum {
 };
 
 
-#define OPTION_STR "o:t:rwanfvsi"
+#define OPTION_STR "o:t:rwanfvsiO:"
 enum {
 	OPT_o = (1 << 0),
 	OPT_t = (1 << 1),
@@ -75,6 +75,7 @@ enum {
 	OPT_v = (1 << 7),
 	OPT_s = (1 << 8),
 	OPT_i = (1 << 9),
+	OPT_O = (1 << 10),
 };
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
@@ -1721,6 +1722,45 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	return rc;
 }
 
+/* -O support
+ * Unlike -t, -O should interpret "no" prefix differently:
+ * -t noa,b,c = -t no(a,b,c) = mount all except fs'es with types a,b, and c
+ * -O noa,b,c = -O noa,b,c = mount all with without option a,
+ * or with option b or c.
+ * But for now we do not support -O a,b,c at all (only -O a).
+ *
+ * Another difference from -t support (match_fstype) is that
+ * we need to examine the _list_ of options in fsopt, not just a string.
+ */
+static int match_opt(const char *fs_opt, const char *O_opt)
+{
+	int match = 1;
+	int len;
+
+	if (!O_opt)
+		return match;
+
+	if (O_opt[0] == 'n' && O_opt[1] == 'o') {
+		match--;
+		O_opt += 2;
+	}
+
+	len = strlen(O_opt);
+	while (1) {
+		if (strncmp(fs_opt, O_opt, len) == 0
+		 && (fs_opt[len] == '\0' || fs_opt[len] == ',')
+		) {
+			return match;
+		}
+		fs_opt = strchr(fs_opt, ',');
+		if (!fs_opt)
+			break;
+		fs_opt++;
+	}
+
+	return !match;
+}
+
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
 static const char must_be_root[] ALIGN1 = "you must be root";
@@ -1728,8 +1768,9 @@ static const char must_be_root[] ALIGN1 = "you must be root";
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mount_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *cmdopts = xstrdup("");
+	char *cmdopts = xzalloc(1);
 	char *fstype = NULL;
+	char *O_optmatch = NULL;
 	char *storage_path;
 	llist_t *lst_o = NULL;
 	const char *fstabname;
@@ -1752,9 +1793,9 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	argv[j] = NULL;
 
 	// Parse remaining options
-	// Max 2 params; -v is a counter
-	opt_complementary = "?2o::" USE_FEATURE_MOUNT_VERBOSE(":vv");
-	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype
+	// Max 2 params; -o is a list, -v is a counter
+	opt_complementary = "?2o::" USE_FEATURE_MOUNT_VERBOSE("vv");
+	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype, &O_optmatch
 			USE_FEATURE_MOUNT_VERBOSE(, &verbose));
 	while (lst_o) append_mount_options(&cmdopts, llist_pop(&lst_o)); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
@@ -1807,7 +1848,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	// Past this point, we are handling either "mount -a [opts]"
 	// or "mount [opts] single_param"
 
-	i = parse_mount_options(cmdopts, 0); // FIXME: should be "long", not "int"
+	i = parse_mount_options(cmdopts, NULL); // FIXME: should be "long", not "int"
 	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
 		bb_error_msg_and_die(must_be_root);
 
@@ -1865,20 +1906,29 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 		// If we're mounting all
 		} else {
-			// Do we need to match a filesystem type?
-			if (fstype && match_fstype(mtcur, fstype))
-				continue;
-
-			// Skip noauto and swap anyway.
-			if (parse_mount_options(mtcur->mnt_opts, 0) & (MOUNT_NOAUTO | MOUNT_SWAP))
-				continue;
-
 			// No, mount -a won't mount anything,
 			// even user mounts, for mere humans
 			if (nonroot)
 				bb_error_msg_and_die(must_be_root);
 
-			resolve_mount_spec(&mtpair->mnt_fsname);
+			// Does type match? (NULL matches always)
+			if (!match_fstype(mtcur, fstype))
+				continue;
+
+			// Skip noauto and swap anyway.
+			if ((parse_mount_options(mtcur->mnt_opts, NULL) & (MOUNT_NOAUTO | MOUNT_SWAP))
+			// swap is bogus "fstype", parse_mount_options can't check fstypes
+			 || strcasecmp(mtcur->mnt_type, "swap") == 0
+			) {
+				continue;
+			}
+
+			// Does (at least one) option match?
+			// (NULL matches always)
+			if (!match_opt(mtcur->mnt_opts, O_optmatch))
+				continue;
+
+			resolve_mount_spec(&mtcur->mnt_fsname);
 
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
@@ -1895,13 +1945,35 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	// End of fstab/mtab is reached.
 	// Were we looking for something specific?
 	if (argv[0]) {
+		long l;
+
 		// If we didn't find anything, complain
 		if (!mtcur->mnt_fsname)
 			bb_error_msg_and_die("can't find %s in %s",
 				argv[0], fstabname);
+
+		// What happens when we try to "mount swap_partition"?
+		// (fstab containts "swap_partition swap swap defaults 0 0")
+		// util-linux-ng 2.13.1 does this:
+		// stat("/sbin/mount.swap", 0x7fff62a3a350) = -1 ENOENT (No such file or directory)
+		// mount("swap_partition", "swap", "swap", MS_MGC_VAL, NULL) = -1 ENOENT (No such file or directory)
+		// lstat("swap", 0x7fff62a3a640)           = -1 ENOENT (No such file or directory)
+		// write(2, "mount: mount point swap does not exist\n", 39) = 39
+		// exit_group(32)                          = ?
+#if 0
+		// In case we want to simply skip swap partitions:
+		l = parse_mount_options(mtcur->mnt_opts, NULL);
+		if ((l & MOUNT_SWAP)
+		// swap is bogus "fstype", parse_mount_options can't check fstypes
+		 || strcasecmp(mtcur->mnt_type, "swap") == 0
+		) {
+			goto ret;
+		}
+#endif
 		if (nonroot) {
 			// fstab must have "users" or "user"
-			if (!(parse_mount_options(mtcur->mnt_opts, 0) & MOUNT_USERS))
+			l = parse_mount_options(mtcur->mnt_opts, NULL);
+			if (!(l & MOUNT_USERS))
 				bb_error_msg_and_die(must_be_root);
 		}
 
@@ -1914,6 +1986,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			free(mtcur->mnt_opts);
 	}
 
+ //ret:
 	if (ENABLE_FEATURE_CLEAN_UP)
 		endmntent(fstab);
 	if (ENABLE_FEATURE_CLEAN_UP) {
