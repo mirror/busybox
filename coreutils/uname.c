@@ -73,6 +73,21 @@ static const unsigned short utsname_offset[] = {
 int uname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uname_main(int argc UNUSED_PARAM, char **argv)
 {
+#if ENABLE_FEATURE_UNEXPAND_LONG_OPTIONS
+	static const char longopts[] ALIGN1 =
+		/* name, has_arg, val */
+		"all\0"               No_argument       "a"
+		"kernel-name\0"       No_argument       "s"
+		"nodename\0"          No_argument       "n"
+		"kernel-release\0"    No_argument       "r"
+		"release\0"           No_argument       "r"
+		"kernel-version\0"    No_argument       "v"
+		"machine\0"           No_argument       "m"
+		"processor\0"         No_argument       "p"
+		"hardware-platform\0" No_argument       "i"
+		"operating-system\0"  No_argument       "o"
+	;
+#endif
 	uname_info_t uname_info;
 #if defined(__sparc__) && defined(__linux__)
 	char *fake_sparc = getenv("FAKE_SPARC");
@@ -82,6 +97,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv)
 	const unsigned short *delta;
 	unsigned toprint;
 
+	USE_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = longopts);
 	toprint = getopt32(argv, options);
 
 	if (argv[optind]) { /* coreutils-6.9 compat */
