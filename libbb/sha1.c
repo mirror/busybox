@@ -53,24 +53,20 @@ static inline uint64_t hton64(uint64_t v)
 #endif
 
 
-#define SHA1_BLOCK_SIZE  64
-#define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
-
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
-	unsigned i;
-	uint32_t w[80], a, b, c, d, e, t;
-	uint32_t *words;
+	unsigned t;
+	uint32_t W[80], a, b, c, d, e;
+	const uint32_t *words = (uint32_t*) ctx->wbuffer;
 
-	words = (uint32_t*) ctx->wbuffer;
-	for (i = 0; i < SHA1_BLOCK_SIZE / 4; ++i) {
-		w[i] = ntohl(*words);
+	for (t = 0; t < 16; ++t) {
+		W[t] = ntohl(*words);
 		words++;
 	}
 
-	for (/*i = SHA1_BLOCK_SIZE / 4*/; i < 80; ++i) {
-		t = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
-		w[i] = rotl32(t, 1);
+	for (/*t = 16*/; t < 80; ++t) {
+		uint32_t T = W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16];
+		W[t] = rotl32(T, 1);
 	}
 
 	a = ctx->hash[0];
@@ -87,20 +83,24 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 /* partial loop unrolling and is optimised for the Pentium 4    */
 #define rnd(f,k) \
 	do { \
-		t = a; a = rotl32(a,5) + f(b,c,d) + e + k + w[i]; \
-		e = d; d = c; c = rotl32(b, 30); b = t; \
+		uint32_t T = a; \
+		a = rotl32(a, 5) + f(b, c, d) + e + k + W[t]; \
+		e = d; \
+		d = c; \
+		c = rotl32(b, 30); \
+		b = T; \
 	} while (0)
 
-	for (i = 0; i < 20; ++i)
+	for (t = 0; t < 20; ++t)
 		rnd(ch, 0x5a827999);
 
-	for (/*i = 20*/; i < 40; ++i)
+	for (/*t = 20*/; t < 40; ++t)
 		rnd(parity, 0x6ed9eba1);
 
-	for (/*i = 40*/; i < 60; ++i)
+	for (/*t = 40*/; t < 60; ++t)
 		rnd(maj, 0x8f1bbcdc);
 
-	for (/*i = 60*/; i < 80; ++i)
+	for (/*t = 60*/; t < 80; ++t)
 		rnd(parity, 0xca62c1d6);
 #undef ch
 #undef parity
@@ -114,107 +114,58 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	ctx->hash[4] += e;
 }
 
-/* Constants for SHA256 from FIPS 180-2:4.2.2.  */
-static const uint32_t K256[80] = {
-	0x428a2f98, 0x71374491,
-	0xb5c0fbcf, 0xe9b5dba5,
-	0x3956c25b, 0x59f111f1,
-	0x923f82a4, 0xab1c5ed5,
-	0xd807aa98, 0x12835b01,
-	0x243185be, 0x550c7dc3,
-	0x72be5d74, 0x80deb1fe,
-	0x9bdc06a7, 0xc19bf174,
-	0xe49b69c1, 0xefbe4786,
-	0x0fc19dc6, 0x240ca1cc,
-	0x2de92c6f, 0x4a7484aa,
-	0x5cb0a9dc, 0x76f988da,
-	0x983e5152, 0xa831c66d,
-	0xb00327c8, 0xbf597fc7,
-	0xc6e00bf3, 0xd5a79147,
-	0x06ca6351, 0x14292967,
-	0x27b70a85, 0x2e1b2138,
-	0x4d2c6dfc, 0x53380d13,
-	0x650a7354, 0x766a0abb,
-	0x81c2c92e, 0x92722c85,
-	0xa2bfe8a1, 0xa81a664b,
-	0xc24b8b70, 0xc76c51a3,
-	0xd192e819, 0xd6990624,
-	0xf40e3585, 0x106aa070,
-	0x19a4c116, 0x1e376c08,
-	0x2748774c, 0x34b0bcb5,
-	0x391c0cb3, 0x4ed8aa4a,
-	0x5b9cca4f, 0x682e6ff3,
-	0x748f82ee, 0x78a5636f,
-	0x84c87814, 0x8cc70208,
-	0x90befffa, 0xa4506ceb,
-	0xbef9a3f7, 0xc67178f2,
-	0xca273ece, 0xd186b8c7, /* [64]+ are used for sha512 only */
-	0xeada7dd6, 0xf57d4f7f,
-	0x06f067aa, 0x0a637dc5,
-	0x113f9804, 0x1b710b35,
-	0x28db77f5, 0x32caab7b,
-	0x3c9ebe0a, 0x431d67c4,
-	0x4cc5d4be, 0x597f299c,
-	0x5fcb6fab, 0x6c44198c
-};
-/* Constants for SHA512 from FIPS 180-2:4.2.3.  */
-static const uint32_t K512_lo[80] = {
-	0xd728ae22, 0x23ef65cd,
-	0xec4d3b2f, 0x8189dbbc,
-	0xf348b538, 0xb605d019,
-	0xaf194f9b, 0xda6d8118,
-	0xa3030242, 0x45706fbe,
-	0x4ee4b28c, 0xd5ffb4e2,
-	0xf27b896f, 0x3b1696b1,
-	0x25c71235, 0xcf692694,
-	0x9ef14ad2, 0x384f25e3,
-	0x8b8cd5b5, 0x77ac9c65,
-	0x592b0275, 0x6ea6e483,
-	0xbd41fbd4, 0x831153b5,
-	0xee66dfab, 0x2db43210,
-	0x98fb213f, 0xbeef0ee4,
-	0x3da88fc2, 0x930aa725,
-	0xe003826f, 0x0a0e6e70,
-	0x46d22ffc, 0x5c26c926,
-	0x5ac42aed, 0x9d95b3df,
-	0x8baf63de, 0x3c77b2a8,
-	0x47edaee6, 0x1482353b,
-	0x4cf10364, 0xbc423001,
-	0xd0f89791, 0x0654be30,
-	0xd6ef5218, 0x5565a910,
-	0x5771202a, 0x32bbd1b8,
-	0xb8d2d0c8, 0x5141ab53,
-	0xdf8eeb99, 0xe19b48a8,
-	0xc5c95a63, 0xe3418acb,
-	0x7763e373, 0xd6b2b8a3,
-	0x5defb2fc, 0x43172f60,
-	0xa1f0ab72, 0x1a6439ec,
-	0x23631e28, 0xde82bde9,
-	0xb2c67915, 0xe372532b,
-	0xea26619c, 0x21c0c207,
-	0xcde0eb1e, 0xee6ed178,
-	0x72176fba, 0xa2c898a6,
-	0xbef90dae, 0x131c471b,
-	0x23047d84, 0x40c72493,
-	0x15c9bebc, 0x9c100d4c,
-	0xcb3e42b6, 0xfc657e2a,
-	0x3ad6faec, 0x4a475817
+/* Constants for SHA512 from FIPS 180-2:4.2.3.
+ * SHA256 constants from FIPS 180-2:4.2.2
+ * are the most significant half of first 64 elements
+ * of the same array.
+ */
+static const uint64_t sha_K[80] = {
+	0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL,
+	0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
+	0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL,
+	0x923f82a4af194f9bULL, 0xab1c5ed5da6d8118ULL,
+	0xd807aa98a3030242ULL, 0x12835b0145706fbeULL,
+	0x243185be4ee4b28cULL, 0x550c7dc3d5ffb4e2ULL,
+	0x72be5d74f27b896fULL, 0x80deb1fe3b1696b1ULL,
+	0x9bdc06a725c71235ULL, 0xc19bf174cf692694ULL,
+	0xe49b69c19ef14ad2ULL, 0xefbe4786384f25e3ULL,
+	0x0fc19dc68b8cd5b5ULL, 0x240ca1cc77ac9c65ULL,
+	0x2de92c6f592b0275ULL, 0x4a7484aa6ea6e483ULL,
+	0x5cb0a9dcbd41fbd4ULL, 0x76f988da831153b5ULL,
+	0x983e5152ee66dfabULL, 0xa831c66d2db43210ULL,
+	0xb00327c898fb213fULL, 0xbf597fc7beef0ee4ULL,
+	0xc6e00bf33da88fc2ULL, 0xd5a79147930aa725ULL,
+	0x06ca6351e003826fULL, 0x142929670a0e6e70ULL,
+	0x27b70a8546d22ffcULL, 0x2e1b21385c26c926ULL,
+	0x4d2c6dfc5ac42aedULL, 0x53380d139d95b3dfULL,
+	0x650a73548baf63deULL, 0x766a0abb3c77b2a8ULL,
+	0x81c2c92e47edaee6ULL, 0x92722c851482353bULL,
+	0xa2bfe8a14cf10364ULL, 0xa81a664bbc423001ULL,
+	0xc24b8b70d0f89791ULL, 0xc76c51a30654be30ULL,
+	0xd192e819d6ef5218ULL, 0xd69906245565a910ULL,
+	0xf40e35855771202aULL, 0x106aa07032bbd1b8ULL,
+	0x19a4c116b8d2d0c8ULL, 0x1e376c085141ab53ULL,
+	0x2748774cdf8eeb99ULL, 0x34b0bcb5e19b48a8ULL,
+	0x391c0cb3c5c95a63ULL, 0x4ed8aa4ae3418acbULL,
+	0x5b9cca4f7763e373ULL, 0x682e6ff3d6b2b8a3ULL,
+	0x748f82ee5defb2fcULL, 0x78a5636f43172f60ULL,
+	0x84c87814a1f0ab72ULL, 0x8cc702081a6439ecULL,
+	0x90befffa23631e28ULL, 0xa4506cebde82bde9ULL,
+	0xbef9a3f7b2c67915ULL, 0xc67178f2e372532bULL,
+	0xca273eceea26619cULL, 0xd186b8c721c0c207ULL, /* [64]+ are used for sha512 only */
+	0xeada7dd6cde0eb1eULL, 0xf57d4f7fee6ed178ULL,
+	0x06f067aa72176fbaULL, 0x0a637dc5a2c898a6ULL,
+	0x113f9804bef90daeULL, 0x1b710b35131c471bULL,
+	0x28db77f523047d84ULL, 0x32caab7b40c72493ULL,
+	0x3c9ebe0a15c9bebcULL, 0x431d67c49c100d4cULL,
+	0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL,
+	0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL
 };
 
-/* Process LEN bytes of BUFFER, accumulating context into CTX.
-   LEN is rounded _down_ to 64.  */
 static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 {
 	unsigned t;
-	uint32_t W[64];
-	uint32_t a = ctx->hash[0];
-	uint32_t b = ctx->hash[1];
-	uint32_t c = ctx->hash[2];
-	uint32_t d = ctx->hash[3];
-	uint32_t e = ctx->hash[4];
-	uint32_t f = ctx->hash[5];
-	uint32_t g = ctx->hash[6];
-	uint32_t h = ctx->hash[7];
+	uint32_t W[64], a, b, c, d, e, f, g, h;
 	const uint32_t *words = (uint32_t*) ctx->wbuffer;
 
 	/* Operators defined in FIPS 180-2:4.1.2.  */
@@ -234,9 +185,24 @@ static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 	for (/*t = 16*/; t < 64; ++t)
 		W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
 
+	a = ctx->hash[0];
+	b = ctx->hash[1];
+	c = ctx->hash[2];
+	d = ctx->hash[3];
+	e = ctx->hash[4];
+	f = ctx->hash[5];
+	g = ctx->hash[6];
+	h = ctx->hash[7];
+
 	/* The actual computation according to FIPS 180-2:6.2.2 step 3.  */
 	for (t = 0; t < 64; ++t) {
-		uint32_t T1 = h + S1(e) + Ch(e, f, g) + K256[t] + W[t];
+		/* Need to fetch upper half of sha_K[t] */
+#if BB_BIG_ENDIAN
+		uint32_t K_t = ((uint32_t*)(sha_K + t))[0];
+#else
+		uint32_t K_t = ((uint32_t*)(sha_K + t))[1];
+#endif
+		uint32_t T1 = h + S1(e) + Ch(e, f, g) + K_t + W[t];
 		uint32_t T2 = S0(a) + Maj(a, b, c);
 		h = g;
 		g = f;
@@ -264,12 +230,14 @@ static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 	ctx->hash[6] += g;
 	ctx->hash[7] += h;
 }
-/* Process LEN bytes of BUFFER, accumulating context into CTX.
-   LEN is rounded _down_ to 128.  */
+
 static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 {
 	unsigned t;
 	uint64_t W[80];
+	/* On i386, having assignments here (not later as sha256 does)
+	 * produces 99 bytes smaller code with gcc 4.3.1
+	 */
 	uint64_t a = ctx->hash[0];
 	uint64_t b = ctx->hash[1];
 	uint64_t c = ctx->hash[2];
@@ -298,8 +266,7 @@ static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 
 	/* The actual computation according to FIPS 180-2:6.3.2 step 3.  */
 	for (t = 0; t < 80; ++t) {
-		uint64_t K512_t = ((uint64_t)(K256[t]) << 32) + K512_lo[t];
-		uint64_t T1 = h + S1(e) + Ch(e, f, g) + K512_t + W[t];
+		uint64_t T1 = h + S1(e) + Ch(e, f, g) + sha_K[t] + W[t];
 		uint64_t T2 = S0(a) + Maj(a, b, c);
 		h = g;
 		g = f;
@@ -360,6 +327,7 @@ static const uint32_t init512_lo[] = {
 	0xfb41bd6b,
 	0x137e2179
 };
+
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.2)  */
 void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
@@ -368,6 +336,7 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 	ctx->total64 = 0;
 	ctx->process_block = sha256_process_block64;
 }
+
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.3)  */
 void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
@@ -379,10 +348,11 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 }
 
 
+/* Used also for sha256 */
 void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 {
-	unsigned in_buf = ctx->total64 & SHA1_MASK;
-	unsigned add = SHA1_BLOCK_SIZE - in_buf;
+	unsigned in_buf = ctx->total64 & 63;
+	unsigned add = 64 - in_buf;
 
 	ctx->total64 += len;
 
@@ -390,7 +360,7 @@ void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 		memcpy(ctx->wbuffer + in_buf, buffer, add);
 		buffer = (const char *)buffer + add;
 		len -= add;
-		add = SHA1_BLOCK_SIZE;
+		add = 64;
 		in_buf = 0;
 		ctx->process_block(ctx);
 	}
@@ -423,17 +393,18 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 }
 
 
+/* Used also for sha256 */
 void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	unsigned i, pad, in_buf;
 
-	in_buf = ctx->total64 & SHA1_MASK;
+	in_buf = ctx->total64 & 63;
 	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
 	ctx->wbuffer[in_buf++] = 0x80;
 
 	/* This loop iterates either once or twice, no more, no less */
 	while (1) {
-		pad = SHA1_BLOCK_SIZE - in_buf;
+		pad = 64 - in_buf;
 		memset(ctx->wbuffer + in_buf, 0, pad);
 		in_buf = 0;
 		/* Do we have enough space for the length count? */
@@ -442,7 +413,7 @@ void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 			uint64_t t = ctx->total64 << 3;
 			t = hton64(t);
 			/* wbuffer is suitably aligned for this */
-			*(uint64_t *) (&ctx->wbuffer[SHA1_BLOCK_SIZE - 8]) = t;
+			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
 		}
 		ctx->process_block(ctx);
 		if (pad >= 8)
