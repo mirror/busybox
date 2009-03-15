@@ -56,7 +56,7 @@ static inline uint64_t hton64(uint64_t v)
 #define SHA1_BLOCK_SIZE  64
 #define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
 
-static void sha1_process_block64(sha1_ctx_t *ctx)
+static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
 	unsigned i;
 	uint32_t w[80], a, b, c, d, e, t;
@@ -203,7 +203,7 @@ static const uint32_t K512_lo[80] = {
 
 /* Process LEN bytes of BUFFER, accumulating context into CTX.
    LEN is rounded _down_ to 64.  */
-static void sha256_process_block64(sha256_ctx_t *ctx)
+static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 {
 	unsigned t;
 	uint32_t W[64];
@@ -266,7 +266,7 @@ static void sha256_process_block64(sha256_ctx_t *ctx)
 }
 /* Process LEN bytes of BUFFER, accumulating context into CTX.
    LEN is rounded _down_ to 128.  */
-static void sha512_process_block128(sha512_ctx_t *ctx)
+static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 {
 	unsigned t;
 	uint64_t W[80];
@@ -278,7 +278,7 @@ static void sha512_process_block128(sha512_ctx_t *ctx)
 	uint64_t f = ctx->hash[5];
 	uint64_t g = ctx->hash[6];
 	uint64_t h = ctx->hash[7];
-	const uint32_t *words = (uint32_t*) ctx->wbuffer;
+	const uint64_t *words = (uint64_t*) ctx->wbuffer;
 
 	/* Operators defined in FIPS 180-2:4.1.2.  */
 #define Ch(x, y, z) ((x & y) ^ (~x & z))
