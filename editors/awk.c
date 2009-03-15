@@ -604,8 +604,8 @@ static void *hash_find(xhash *hash, const char *name)
 			hash_rebuild(hash);
 
 		l = strlen(name) + 1;
-		hi = xzalloc(sizeof(hash_item) + l);
-		memcpy(hi->name, name, l);
+		hi = xzalloc(sizeof(*hi) + l);
+		strcpy(hi->name, name);
 
 		idx = hashidx(name) % hash->csize;
 		hi->next = hash->items[idx];
@@ -1482,6 +1482,7 @@ static node *mk_splitter(const char *s, tsplitter *spl)
  */
 static regex_t *as_regex(node *op, regex_t *preg)
 {
+	int cflags;
 	var *v;
 	const char *s;
 
@@ -1490,7 +1491,17 @@ static regex_t *as_regex(node *op, regex_t *preg)
 	}
 	v = nvalloc(1);
 	s = getvar_s(evaluate(op, v));
-	xregcomp(preg, s, icase ? REG_EXTENDED | REG_ICASE : REG_EXTENDED);
+
+	cflags = icase ? REG_EXTENDED | REG_ICASE : REG_EXTENDED;
+	/* Testcase where REG_EXTENDED fails (unpaired '{'):
+	 * echo Hi | awk 'gsub("@(samp|code|file)\{","");'
+	 * gawk 3.1.5 eats this. We revert to ~REG_EXTENDED
+	 * (maybe gsub is not supposed to use REG_EXTENDED?).
+	 */
+	if (regcomp(preg, s, cflags)) {
+		cflags &= ~REG_EXTENDED;
+		xregcomp(preg, s, cflags);
+	}
 	nvfree(v);
 	return preg;
 }
