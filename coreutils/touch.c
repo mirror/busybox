@@ -41,6 +41,13 @@ int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc UNUSED_PARAM, char **argv)
 {
 #if ENABLE_DESKTOP
+#if ENABLE_GETOPT_LONG
+	static const char longopts[] ALIGN1 =
+		/* name, has_arg, val */
+		"no-create\0"         No_argument       "c"
+		"reference\0"         Required_argument "r"
+	;
+#endif
 	struct utimbuf timebuf;
 	char *reference_file = NULL;
 #else
@@ -49,11 +56,18 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	int fd;
 	int status = EXIT_SUCCESS;
-	int flags = getopt32(argv, "c" USE_DESKTOP("r:")
+	int opts;
+
+#if ENABLE_DESKTOP
+#if ENABLE_GETOPT_LONG
+	applet_long_options = longopts;
+#endif
+#endif
+	opts = getopt32(argv, "c" USE_DESKTOP("r:")
 				/*ignored:*/ "fma"
 				USE_DESKTOP(, &reference_file));
 
-	flags &= 1; /* only -c bit is left */
+	opts &= 1; /* only -c bit is left */
 	argv += optind;
 	if (!*argv) {
 		bb_show_usage();
@@ -69,7 +83,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		if (utime(*argv, reference_file ? &timebuf : NULL)) {
 			if (errno == ENOENT) { /* no such file */
-				if (flags) { /* creation is disabled, so ignore */
+				if (opts) { /* creation is disabled, so ignore */
 					continue;
 				}
 				/* Try to create the file. */
