@@ -49,6 +49,14 @@ static void map(char *pvector,
  *   Escapes, e.g.,  \a    ==>  Control-G
  *   Character classes, e.g. [:upper:] ==> A...Z
  *   Equiv classess, e.g. [=A=] ==> A   (hmmmmmmm?)
+ * not supported:
+ *   \ooo-\ooo - octal ranges
+ *   [x*N] - repeat char x N times
+ *   [x*] - repeat char x until it fills STRING2:
+ * # echo qwe123 | /usr/bin/tr 123456789 '[d]'
+ * qwe[d]
+ * # echo qwe123 | /usr/bin/tr 123456789 '[d*]'
+ * qweddd
  */
 static unsigned expand(const char *arg, char **buffer_p)
 {
@@ -208,7 +216,7 @@ int tr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tr_main(int argc UNUSED_PARAM, char **argv)
 {
 	int i;
-	smalluint flags;
+	smalluint opts;
 	ssize_t read_chars;
 	size_t in_index, out_index;
 	unsigned last = UCHAR_MAX + 1; /* not equal to any char */
@@ -221,22 +229,27 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 	char *invec  = vector + ASCII;
 	char *outvec = vector + ASCII * 2;
 
-#define TR_OPT_complement	(1 << 0)
-#define TR_OPT_delete		(1 << 1)
-#define TR_OPT_squeeze_reps	(1 << 2)
+#define TR_OPT_complement	(3 << 0)
+#define TR_OPT_delete		(1 << 2)
+#define TR_OPT_squeeze_reps	(1 << 3)
 
 	for (i = 0; i < ASCII; i++) {
 		vector[i] = i;
 		/*invec[i] = outvec[i] = FALSE; - done by xzalloc */
 	}
 
+	/* -C/-c difference is that -C complements "characters",
+	 * and -c complements "values" (binary bytes I guess).
+	 * In POSIX locale, these are the same.
+	 */
+
 	opt_complementary = "-1";
-	flags = getopt32(argv, "+cds"); /* '+': stop at first non-option */
+	opts = getopt32(argv, "+Ccds"); /* '+': stop at first non-option */
 	argv += optind;
 
 	str1_length = expand(*argv++, &str1);
 	str2_length = 0;
-	if (flags & TR_OPT_complement)
+	if (opts & TR_OPT_complement)
 		str1_length = complement(str1, str1_length);
 	if (*argv) {
 		if (argv[0][0] == '\0')
@@ -271,10 +284,10 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 			in_index = 0;
 		}
 		c = str1[in_index++];
-		if ((flags & TR_OPT_delete) && invec[c])
+		if ((opts & TR_OPT_delete) && invec[c])
 			continue;
 		coded = vector[c];
-		if ((flags & TR_OPT_squeeze_reps) && last == coded
+		if ((opts & TR_OPT_squeeze_reps) && last == coded
 		 && (invec[c] || outvec[coded])
 		) {
 			continue;
