@@ -268,6 +268,29 @@ handle_stat(void)
 			STR(FTP_STATOK)" Ok\r\n");
 }
 
+/* TODO: implement FEAT. Example:
+# nc -vvv ftp.kernel.org 21
+ftp.kernel.org (130.239.17.4:21) open
+220 Welcome to ftp.kernel.org.
+FEAT
+211-Features:
+ EPRT
+ EPSV
+ MDTM
+ PASV
+ REST STREAM
+ SIZE
+ TVFS
+ UTF8
+211 End
+HELP
+214-The following commands are recognized.
+ ABOR ACCT ALLO APPE CDUP CWD  DELE EPRT EPSV FEAT HELP LIST MDTM MKD
+ MODE NLST NOOP OPTS PASS PASV PORT PWD  QUIT REIN REST RETR RMD  RNFR
+ RNTO SITE SIZE SMNT STAT STOR STOU STRU SYST TYPE USER XCUP XCWD XMKD
+ XPWD XRMD
+214 Help OK.
+*/
 static void
 handle_help(void)
 {
@@ -283,6 +306,29 @@ handle_help(void)
 
 /* Download commands */
 
+static inline int
+port_active(void)
+{
+	return (G.port_addr != NULL);
+}
+
+static inline int
+pasv_active(void)
+{
+	return (G.pasv_listen_fd > STDOUT_FILENO);
+}
+
+static void
+port_pasv_cleanup(void)
+{
+	free(G.port_addr);
+	G.port_addr = NULL;
+	if (G.pasv_listen_fd > STDOUT_FILENO)
+		close(G.pasv_listen_fd);
+	G.pasv_listen_fd = -1;
+}
+
+/* On error, emits error code to the peer */
 static int
 ftpdataio_get_pasv_fd(void)
 {
@@ -299,27 +345,25 @@ ftpdataio_get_pasv_fd(void)
 	return remote_fd;
 }
 
-static inline int
-port_active(void)
-{
-	return (G.port_addr != NULL);
-}
-
-static inline int
-pasv_active(void)
-{
-	return (G.pasv_listen_fd > STDOUT_FILENO);
-}
-
+/* Clears port/pasv data.
+ * This means we dont waste resources, for example, keeping
+ * PASV listening socket open when it is no longer needed.
+ * On error, emits error code to the peer (or exits).
+ * On success, emits p_status_msg to the peer.
+ */
 static int
 get_remote_transfer_fd(const char *p_status_msg)
 {
 	int remote_fd;
 
 	if (pasv_active())
+		/* On error, emits error code to the peer */
 		remote_fd = ftpdataio_get_pasv_fd();
 	else
+		/* Exits on error */
 		remote_fd = xconnect_stream(G.port_addr);
+
+	port_pasv_cleanup();
 
 	if (remote_fd < 0)
 		return remote_fd;
@@ -328,8 +372,9 @@ get_remote_transfer_fd(const char *p_status_msg)
 	return remote_fd;
 }
 
+/* If there were neither PASV nor PORT, emits error code to the peer */
 static int
-data_transfer_checks_ok(void)
+port_or_pasv_was_seen(void)
 {
 	if (!pasv_active() && !port_active()) {
 		cmdio_write_raw(STR(FTP_BADSENDCONN)" Use PORT or PASV first\r\n");
@@ -339,16 +384,7 @@ data_transfer_checks_ok(void)
 	return 1;
 }
 
-static void
-port_pasv_cleanup(void)
-{
-	free(G.port_addr);
-	G.port_addr = NULL;
-	if (G.pasv_listen_fd > STDOUT_FILENO)
-		close(G.pasv_listen_fd);
-	G.pasv_listen_fd = -1;
-}
-
+/* Exits on error */
 static unsigned
 bind_for_passive_mode(void)
 {
@@ -370,6 +406,7 @@ bind_for_passive_mode(void)
 	return port;
 }
 
+/* Exits on error */
 static void
 handle_pasv(void)
 {
@@ -391,6 +428,7 @@ handle_pasv(void)
 	free(response);
 }
 
+/* Exits on error */
 static void
 handle_epsv(void)
 {
@@ -408,16 +446,16 @@ handle_port(void)
 {
 	unsigned short port;
 	char *raw, *port_part;
-	len_and_sockaddr *lsa = NULL;
+	len_and_sockaddr *lsa;
 
 	port_pasv_cleanup();
 
 	raw = G.ftp_arg;
 
-	/* buglets:
-	 * xatou16 will accept wrong input,
-	 * xatou16 will exit instead of generating error to peer
-	 */
+/* Buglets:
+ * xatou16 will accept wrong input,
+ * xatou16 will exit instead of generating error to peer
+ */
 
 	port_part = strrchr(raw, ',');
 	if (port_part == NULL)
@@ -440,6 +478,11 @@ handle_port(void)
 		return;
 	}
 
+/* Should we verify that lsa matches getpeername(STDIN)?
+ * Otherwise peer can make us open data connections
+ * to other hosts (security problem!)
+ */
+
 	G.port_addr = lsa;
 	cmdio_write_ok(FTP_PORTOK);
 }
@@ -456,38 +499,38 @@ static void
 handle_retr(void)
 {
 	struct stat statbuf;
-	int trans_ret;
+	off_t bytes_transferred;
 	int remote_fd;
-	int opened_file;
+	int local_file_fd;
 	off_t offset = G.restart_pos;
 	char *response;
 
 	G.restart_pos = 0;
 
-	if (!data_transfer_checks_ok())
-		return; /* data_transfer_checks_ok emitted error response */
+	if (!port_or_pasv_was_seen())
+		return; /* port_or_pasv_was_seen emitted error response */
 
 	/* O_NONBLOCK is useful if file happens to be a device node */
-	opened_file = G.ftp_arg ? open(G.ftp_arg, O_RDONLY | O_NONBLOCK) : -1;
-	if (opened_file < 0) {
+	local_file_fd = G.ftp_arg ? open(G.ftp_arg, O_RDONLY | O_NONBLOCK) : -1;
+	if (local_file_fd < 0) {
 		cmdio_write_error(FTP_FILEFAIL);
 		return;
 	}
 
-	if (fstat(opened_file, &statbuf) != 0 || !S_ISREG(statbuf.st_mode)) {
+	if (fstat(local_file_fd, &statbuf) != 0 || !S_ISREG(statbuf.st_mode)) {
 		/* Note - pretend open failed */
 		cmdio_write_error(FTP_FILEFAIL);
 		goto file_close_out;
 	}
 
-	/* Now deactive O_NONBLOCK, otherwise we have a problem on DMAPI filesystems
-	 * such as XFS DMAPI.
+	/* Now deactive O_NONBLOCK, otherwise we have a problem
+	 * on DMAPI filesystems such as XFS DMAPI.
 	 */
-	ndelay_off(opened_file);
+	ndelay_off(local_file_fd);
 
 	/* Set the download offset (from REST) if any */
 	if (offset != 0)
-		xlseek(opened_file, offset, SEEK_SET);
+		xlseek(local_file_fd, offset, SEEK_SET);
 
 	response = xasprintf(
 		" Opening BINARY mode data connection for %s (%"OFF_FMT"u bytes)",
@@ -495,20 +538,22 @@ handle_retr(void)
 	remote_fd = get_remote_transfer_fd(response);
 	free(response);
 	if (remote_fd < 0)
-		goto port_pasv_cleanup_out;
+		goto file_close_out;
 
-	trans_ret = bb_copyfd_eof(opened_file, remote_fd);
+/* TODO: if we'll implement timeout, this will need more clever handling.
+ * Perhaps alarm(N) + checking that current position on local_file_fd
+ * is advancing. As of now, peer may stall us indefinitely.
+ */
+
+	bytes_transferred = bb_copyfd_eof(local_file_fd, remote_fd);
 	close(remote_fd);
-	if (trans_ret < 0)
+	if (bytes_transferred < 0)
 		cmdio_write_error(FTP_BADSENDFILE);
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
 
- port_pasv_cleanup_out:
-	port_pasv_cleanup();
-
  file_close_out:
-	close(opened_file);
+	close(local_file_fd);
 }
 
 /* List commands */
@@ -522,12 +567,10 @@ popen_ls(const char *opt)
 	pid_t pid;
 
 	cwd = xrealloc_getcwd_or_warn(NULL);
-
 	xpiped_pair(outfd);
 
-	fflush(NULL);
+	/*fflush(NULL); - so far we dont use stdio on output */
 	pid = vfork();
-
 	switch (pid) {
 	case -1:  /* failure */
 		bb_perror_msg_and_die("vfork");
@@ -547,11 +590,17 @@ popen_ls(const char *opt)
 		}
 		_exit(127);
 	}
+
 	/* parent */
 	close(outfd.wr);
 	free(cwd);
 	return outfd.rd;
 }
+
+enum {
+	USE_CTRL_CONN = 1,
+	LONG_LISTING = 2,
+};
 
 static void
 handle_dir_common(int opts)
@@ -560,15 +609,15 @@ handle_dir_common(int opts)
 	char *line;
 	int ls_fd;
 
-	if (!(opts & 1) && !data_transfer_checks_ok())
-		return; /* data_transfer_checks_ok emitted error response */
+	if (!(opts & USE_CTRL_CONN) && !port_or_pasv_was_seen())
+		return; /* port_or_pasv_was_seen emitted error response */
 
-	ls_fd = popen_ls((opts & 2) ? "-l" : "-1");
+	ls_fd = popen_ls((opts & LONG_LISTING) ? "-l" : "-1");
 	ls_fp = fdopen(ls_fd, "r");
 	if (!ls_fp) /* never happens. paranoia */
 		bb_perror_msg_and_die("fdopen");
 
-	if (opts & 1) {
+	if (opts & USE_CTRL_CONN) {
 		/* STAT <filename> */
 		cmdio_write_raw(STR(FTP_STATFILE_OK)"-Status follows:\r\n");
 		while (1) {
@@ -587,13 +636,16 @@ handle_dir_common(int opts)
     				line = xmalloc_fgetline(ls_fp);
 				if (!line)
 					break;
+				/* I've seen clients complaining when they
+				 * are fed with ls output with bare '\n'.
+				 * Pity... that would be much simpler.
+				 */
 				xwrite_str(remote_fd, line);
 				xwrite(remote_fd, "\r\n", 2);
 				free(line);
 			}
 		}
 		close(remote_fd);
-		port_pasv_cleanup();
 		cmdio_write_ok(FTP_TRANSFEROK);
 	}
 	fclose(ls_fp); /* closes ls_fd too */
@@ -601,7 +653,7 @@ handle_dir_common(int opts)
 static void
 handle_list(void)
 {
-	handle_dir_common(2);
+	handle_dir_common(LONG_LISTING);
 }
 static void
 handle_nlst(void)
@@ -611,7 +663,7 @@ handle_nlst(void)
 static void
 handle_stat_file(void)
 {
-	handle_dir_common(3);
+	handle_dir_common(LONG_LISTING + USE_CTRL_CONN);
 }
 
 static void
@@ -698,7 +750,7 @@ static void
 handle_upload_common(int is_append, int is_unique)
 {
 	char *tempname = NULL;
-	int trans_ret;
+	off_t bytes_transferred;
 	int local_file_fd;
 	int remote_fd;
 	off_t offset;
@@ -706,8 +758,8 @@ handle_upload_common(int is_append, int is_unique)
 	offset = G.restart_pos;
 	G.restart_pos = 0;
 
-	if (!data_transfer_checks_ok())
-		return;
+	if (!port_or_pasv_was_seen())
+		return; /* port_or_pasv_was_seen emitted error response */
 
 	local_file_fd = -1;
 	if (is_unique) {
@@ -726,7 +778,7 @@ handle_upload_common(int is_append, int is_unique)
 		return;
 	}
 
-	/* TODO: paranoia: fstat it, refuse to do anything if it's not a regular file */
+/* TODO: paranoia: fstat it, refuse to do anything if it's not a regular file */
 
 	if (offset)
 		xlseek(local_file_fd, offset, SEEK_SET);
@@ -737,16 +789,18 @@ handle_upload_common(int is_append, int is_unique)
 	if (remote_fd < 0)
 		goto bail;
 
-	trans_ret = bb_copyfd_eof(remote_fd, local_file_fd);
-	close(remote_fd);
+/* TODO: if we'll implement timeout, this will need more clever handling.
+ * Perhaps alarm(N) + checking that current position on local_file_fd
+ * is advancing. As of now, peer may stall us indefinitely.
+ */
 
-	if (trans_ret < 0)
+	bytes_transferred = bb_copyfd_eof(remote_fd, local_file_fd);
+	close(remote_fd);
+	if (bytes_transferred < 0)
 		cmdio_write_error(FTP_BADSENDFILE);
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
-
  bail:
-	port_pasv_cleanup();
 	close(local_file_fd);
 }
 
