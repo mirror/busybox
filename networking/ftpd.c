@@ -62,15 +62,26 @@
 /* Convert a constant to 3-digit string, packed into uint32_t */
 enum {
 	/* Shift for Nth decimal digit */
-	SHIFT2 =  0 * BB_LITTLE_ENDIAN + 24 * BB_BIG_ENDIAN,
-	SHIFT1 =  8 * BB_LITTLE_ENDIAN + 16 * BB_BIG_ENDIAN,
-	SHIFT0 = 16 * BB_LITTLE_ENDIAN + 8 * BB_BIG_ENDIAN,
+	SHIFT2  =  0 * BB_LITTLE_ENDIAN + 24 * BB_BIG_ENDIAN,
+	SHIFT1  =  8 * BB_LITTLE_ENDIAN + 16 * BB_BIG_ENDIAN,
+	SHIFT0  = 16 * BB_LITTLE_ENDIAN + 8 * BB_BIG_ENDIAN,
+	/* And for 4th position (space) */
+	SHIFTsp = 24 * BB_LITTLE_ENDIAN + 0 * BB_BIG_ENDIAN,
 };
 #define STRNUM32(s) (uint32_t)(0 \
 	| (('0' + ((s) / 1 % 10)) << SHIFT0) \
 	| (('0' + ((s) / 10 % 10)) << SHIFT1) \
 	| (('0' + ((s) / 100 % 10)) << SHIFT2) \
 )
+#define STRNUM32sp(s) (uint32_t)(0 \
+	| (' ' << SHIFTsp) \
+	| (('0' + ((s) / 1 % 10)) << SHIFT0) \
+	| (('0' + ((s) / 10 % 10)) << SHIFT1) \
+	| (('0' + ((s) / 100 % 10)) << SHIFT2) \
+)
+
+#define MSG_OK "Operation successful\r\n"
+#define MSG_ERR "Error\r\n"
 
 struct globals {
 	int pasv_listen_fd;
@@ -88,9 +99,15 @@ struct globals {
 #if ENABLE_FEATURE_FTP_WRITE
 	char *rnfr_filename;
 #endif
+	/* We need these aligned to uint32_t */
+	char msg_ok [(sizeof("NNN " MSG_OK ) + 3) & 0xfffc];
+	char msg_err[(sizeof("NNN " MSG_ERR) + 3) & 0xfffc];
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	strcpy(G.msg_ok  + 4, MSG_OK ); \
+	strcpy(G.msg_err + 4, MSG_ERR); \
+} while (0)
 
 
 static char *
@@ -161,17 +178,21 @@ cmdio_write(uint32_t status_str, const char *str)
 }
 
 static void
-cmdio_write_ok(int status)
+cmdio_write_ok(unsigned status)
 {
-	fdprintf(STDOUT_FILENO, "%u Operation successful\r\n", status);
+	*(uint32_t *) G.msg_ok = status;
+	xwrite(STDOUT_FILENO, G.msg_ok, sizeof("NNN " MSG_OK) - 1);
 }
+#define WRITE_OK(a) cmdio_write_ok(STRNUM32sp(a))
 
 /* TODO: output strerr(errno) if errno != 0? */
 static void
-cmdio_write_error(int status)
+cmdio_write_error(unsigned status)
 {
-	fdprintf(STDOUT_FILENO, "%u Error\r\n", status);
+	*(uint32_t *) G.msg_err = status;
+	xwrite(STDOUT_FILENO, G.msg_err, sizeof("NNN " MSG_ERR) - 1);
 }
+#define WRITE_ERR(a) cmdio_write_error(STRNUM32sp(a))
 
 static void
 cmdio_write_raw(const char *p_text)
@@ -228,10 +249,10 @@ static void
 handle_cwd(void)
 {
 	if (!G.ftp_arg || chdir(G.ftp_arg) != 0) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	cmdio_write_ok(FTP_CWDOK);
+	WRITE_OK(FTP_CWDOK);
 }
 
 static void
@@ -318,7 +339,7 @@ ftpdataio_get_pasv_fd(void)
 	remote_fd = accept(G.pasv_listen_fd, NULL, 0);
 
 	if (remote_fd < 0) {
-		cmdio_write_error(FTP_BADSENDCONN);
+		WRITE_ERR(FTP_BADSENDCONN);
 		return remote_fd;
 	}
 
@@ -459,7 +480,7 @@ handle_port(void)
 #endif
 	) {
  bail:
-		cmdio_write_error(FTP_BADCMD);
+		WRITE_ERR(FTP_BADCMD);
 		return;
 	}
 
@@ -503,7 +524,7 @@ handle_port(void)
 	G.port_addr = get_peer_lsa(STDIN_FILENO);
 	set_nport(G.port_addr, port);
 #endif
-	cmdio_write_ok(FTP_PORTOK);
+	WRITE_OK(FTP_PORTOK);
 }
 
 static void
@@ -511,7 +532,7 @@ handle_rest(void)
 {
 	/* When ftp_arg == NULL simply restart from beginning */
 	G.restart_pos = G.ftp_arg ? xatoi_u(G.ftp_arg) : 0;
-	cmdio_write_ok(FTP_RESTOK);
+	WRITE_OK(FTP_RESTOK);
 }
 
 static void
@@ -532,13 +553,13 @@ handle_retr(void)
 	/* O_NONBLOCK is useful if file happens to be a device node */
 	local_file_fd = G.ftp_arg ? open(G.ftp_arg, O_RDONLY | O_NONBLOCK) : -1;
 	if (local_file_fd < 0) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
 
 	if (fstat(local_file_fd, &statbuf) != 0 || !S_ISREG(statbuf.st_mode)) {
 		/* Note - pretend open failed */
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		goto file_close_out;
 	}
 	G.local_file_fd = local_file_fd;
@@ -563,9 +584,9 @@ handle_retr(void)
 	bytes_transferred = bb_copyfd_eof(local_file_fd, remote_fd);
 	close(remote_fd);
 	if (bytes_transferred < 0)
-		cmdio_write_error(FTP_BADSENDFILE);
+		WRITE_ERR(FTP_BADSENDFILE);
 	else
-		cmdio_write_ok(FTP_TRANSFEROK);
+		WRITE_OK(FTP_TRANSFEROK);
 
  file_close_out:
 	close(local_file_fd);
@@ -645,7 +666,7 @@ handle_dir_common(int opts)
 			cmdio_write(0, line); /* hack: 0 results in no status at all */
 			free(line);
 		}
-		cmdio_write_ok(FTP_STATFILE_OK);
+		WRITE_OK(FTP_STATFILE_OK);
 	} else {
 		/* LIST/NLST [<filename>] */
 		int remote_fd = get_remote_transfer_fd(" Here comes the directory listing");
@@ -664,7 +685,7 @@ handle_dir_common(int opts)
 			}
 		}
 		close(remote_fd);
-		cmdio_write_ok(FTP_TRANSFEROK);
+		WRITE_OK(FTP_TRANSFEROK);
 	}
 	fclose(ls_fp); /* closes ls_fd too */
 }
@@ -694,7 +715,7 @@ handle_size(void)
 	 || stat(G.ftp_arg, &statbuf) != 0
 	 || !S_ISREG(statbuf.st_mode)
 	) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
 	sprintf(buf, STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n", statbuf.st_size);
@@ -708,30 +729,30 @@ static void
 handle_mkd(void)
 {
 	if (!G.ftp_arg || mkdir(G.ftp_arg, 0777) != 0) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	cmdio_write_ok(FTP_MKDIROK);
+	WRITE_OK(FTP_MKDIROK);
 }
 
 static void
 handle_rmd(void)
 {
 	if (!G.ftp_arg || rmdir(G.ftp_arg) != 0) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	cmdio_write_ok(FTP_RMDIROK);
+	WRITE_OK(FTP_RMDIROK);
 }
 
 static void
 handle_dele(void)
 {
 	if (!G.ftp_arg || unlink(G.ftp_arg) != 0) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	cmdio_write_ok(FTP_DELEOK);
+	WRITE_OK(FTP_DELEOK);
 }
 
 static void
@@ -739,7 +760,7 @@ handle_rnfr(void)
 {
 	free(G.rnfr_filename);
 	G.rnfr_filename = xstrdup(G.ftp_arg);
-	cmdio_write_ok(FTP_RNFROK);
+	WRITE_OK(FTP_RNFROK);
 }
 
 static void
@@ -758,10 +779,10 @@ handle_rnto(void)
 	G.rnfr_filename = NULL;
 
 	if (retval) {
-		cmdio_write_error(FTP_FILEFAIL);
+		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	cmdio_write_ok(FTP_RENAMEOK);
+	WRITE_OK(FTP_RENAMEOK);
 }
 
 static void
@@ -798,7 +819,7 @@ handle_upload_common(int is_append, int is_unique)
 	 || fstat(local_file_fd, &statbuf) != 0
 	 || !S_ISREG(statbuf.st_mode)
 	) {
-		cmdio_write_error(FTP_UPLOADFAIL);
+		WRITE_ERR(FTP_UPLOADFAIL);
 		if (local_file_fd >= 0)
 			goto close_local_and_bail;
 		return;
@@ -817,9 +838,9 @@ handle_upload_common(int is_append, int is_unique)
 	bytes_transferred = bb_copyfd_eof(remote_fd, local_file_fd);
 	close(remote_fd);
 	if (bytes_transferred < 0)
-		cmdio_write_error(FTP_BADSENDFILE);
+		WRITE_ERR(FTP_BADSENDFILE);
 	else
-		cmdio_write_ok(FTP_TRANSFEROK);
+		WRITE_OK(FTP_TRANSFEROK);
 
  close_local_and_bail:
 	close(local_file_fd);
@@ -981,7 +1002,7 @@ int ftpd_main(int argc, char **argv)
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
 
-	cmdio_write_ok(FTP_GREET);
+	WRITE_OK(FTP_GREET);
 	signal(SIGALRM, timeout_handler);
 
 #ifdef IF_WE_WANT_TO_REQUIRE_LOGIN
@@ -1002,14 +1023,14 @@ int ftpd_main(int argc, char **argv)
 					break;
 				cmdio_write_raw(STR(FTP_NEEDUSER)" Login with USER\r\n");
 			} else if (cmdval == const_QUIT) {
-				cmdio_write_ok(FTP_GOODBYE);
+				WRITE_OK(FTP_GOODBYE);
 				return 0;
 			} else {
 				cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
 			}
 		}
 	}
-	cmdio_write_ok(FTP_LOGINOK);
+	WRITE_OK(FTP_LOGINOK);
 #endif
 
 	/* RFC-959 Section 5.1
@@ -1054,23 +1075,23 @@ int ftpd_main(int argc, char **argv)
 		uint32_t cmdval = cmdio_get_cmd_and_arg();
 
 		if (cmdval == const_QUIT) {
-			cmdio_write_ok(FTP_GOODBYE);
+			WRITE_OK(FTP_GOODBYE);
 			return 0;
 		}
 		else if (cmdval == const_USER)
-			cmdio_write_ok(FTP_GIVEPWORD);
+			WRITE_OK(FTP_GIVEPWORD);
 		else if (cmdval == const_PASS)
-			cmdio_write_ok(FTP_LOGINOK);
+			WRITE_OK(FTP_LOGINOK);
 		else if (cmdval == const_NOOP)
-			cmdio_write_ok(FTP_NOOPOK);
+			WRITE_OK(FTP_NOOPOK);
 		else if (cmdval == const_TYPE)
-			cmdio_write_ok(FTP_TYPEOK);
+			WRITE_OK(FTP_TYPEOK);
 		else if (cmdval == const_STRU)
-			cmdio_write_ok(FTP_STRUOK);
+			WRITE_OK(FTP_STRUOK);
 		else if (cmdval == const_MODE)
-			cmdio_write_ok(FTP_MODEOK);
+			WRITE_OK(FTP_MODEOK);
 		else if (cmdval == const_ALLO)
-			cmdio_write_ok(FTP_ALLOOK);
+			WRITE_OK(FTP_ALLOOK);
 		else if (cmdval == const_SYST)
 			cmdio_write_raw(STR(FTP_SYSTOK)" UNIX Type: L8\r\n");
 		else if (cmdval == const_PWD)
