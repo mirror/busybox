@@ -66,56 +66,15 @@
 /* Convert a constant to 3-digit string, packed into uint32_t */
 enum {
 	/* Shift for Nth decimal digit */
-	SHIFT0 = 16 * BB_LITTLE_ENDIAN + 8 * BB_BIG_ENDIAN,
-	SHIFT1 =  8 * BB_LITTLE_ENDIAN + 16 * BB_BIG_ENDIAN,
 	SHIFT2 =  0 * BB_LITTLE_ENDIAN + 24 * BB_BIG_ENDIAN,
+	SHIFT1 =  8 * BB_LITTLE_ENDIAN + 16 * BB_BIG_ENDIAN,
+	SHIFT0 = 16 * BB_LITTLE_ENDIAN + 8 * BB_BIG_ENDIAN,
 };
 #define STRNUM32(s) (uint32_t)(0 \
 	| (('0' + ((s) / 1 % 10)) << SHIFT0) \
 	| (('0' + ((s) / 10 % 10)) << SHIFT1) \
 	| (('0' + ((s) / 100 % 10)) << SHIFT2) \
 )
-
-enum {
-	OPT_l = (1 << 0),
-	OPT_1 = (1 << 1),
-	OPT_v = (1 << 2),
-	OPT_S = (1 << 3),
-	OPT_w = (1 << 4),
-
-#define mk_const4(a,b,c,d) (((a * 0x100 + b) * 0x100 + c) * 0x100 + d)
-#define mk_const3(a,b,c)    ((a * 0x100 + b) * 0x100 + c)
-	const_ALLO = mk_const4('A', 'L', 'L', 'O'),
-	const_APPE = mk_const4('A', 'P', 'P', 'E'),
-	const_CDUP = mk_const4('C', 'D', 'U', 'P'),
-	const_CWD  = mk_const3('C', 'W', 'D'),
-	const_DELE = mk_const4('D', 'E', 'L', 'E'),
-	const_EPSV = mk_const4('E', 'P', 'S', 'V'),
-	const_HELP = mk_const4('H', 'E', 'L', 'P'),
-	const_LIST = mk_const4('L', 'I', 'S', 'T'),
-	const_MKD  = mk_const3('M', 'K', 'D'),
-	const_MODE = mk_const4('M', 'O', 'D', 'E'),
-	const_NLST = mk_const4('N', 'L', 'S', 'T'),
-	const_NOOP = mk_const4('N', 'O', 'O', 'P'),
-	const_PASS = mk_const4('P', 'A', 'S', 'S'),
-	const_PASV = mk_const4('P', 'A', 'S', 'V'),
-	const_PORT = mk_const4('P', 'O', 'R', 'T'),
-	const_PWD  = mk_const3('P', 'W', 'D'),
-	const_QUIT = mk_const4('Q', 'U', 'I', 'T'),
-	const_REST = mk_const4('R', 'E', 'S', 'T'),
-	const_RETR = mk_const4('R', 'E', 'T', 'R'),
-	const_RMD  = mk_const3('R', 'M', 'D'),
-	const_RNFR = mk_const4('R', 'N', 'F', 'R'),
-	const_RNTO = mk_const4('R', 'N', 'T', 'O'),
-	const_SIZE = mk_const4('S', 'I', 'Z', 'E'),
-	const_STAT = mk_const4('S', 'T', 'A', 'T'),
-	const_STOR = mk_const4('S', 'T', 'O', 'R'),
-	const_STOU = mk_const4('S', 'T', 'O', 'U'),
-	const_STRU = mk_const4('S', 'T', 'R', 'U'),
-	const_SYST = mk_const4('S', 'Y', 'S', 'T'),
-	const_TYPE = mk_const4('T', 'Y', 'P', 'E'),
-	const_USER = mk_const4('U', 'S', 'E', 'R'),
-};
 
 struct globals {
 	char *p_control_line_buf;
@@ -182,21 +141,16 @@ replace_char(char *str, char from, char to)
 	return p - str;
 }
 
+/* NB: status_str is char[4] packed into uint32_t */
 static void
 cmdio_write(uint32_t status_str, const char *str)
 {
-	union {
-		char buf[4];
-		uint32_t v32;
-	} u;
 	char *response;
 	int len;
 
-	u.v32 = status_str;
-
 	/* FTP allegedly uses telnet protocol for command link.
 	 * In telnet, 0xff is an escape char, and needs to be escaped: */
-	response = escape_text(u.buf, str, (0xff << 8) + '\r');
+	response = escape_text((char *) &status_str, str, (0xff << 8) + '\r');
 
 	/* ?! does FTP send embedded LFs as NULs? wow */
 	len = replace_char(response, '\n', '\0');
@@ -444,46 +398,58 @@ handle_epsv(void)
 static void
 handle_port(void)
 {
-	unsigned short port;
-	char *raw, *port_part;
-	len_and_sockaddr *lsa;
+	unsigned port, port_hi;
+	char *raw, *comma;
+	socklen_t peer_ipv4_len;
+	struct sockaddr_in peer_ipv4;
+	struct in_addr port_ipv4_sin_addr;
 
 	port_pasv_cleanup();
 
 	raw = G.ftp_arg;
 
-/* Buglets:
- * xatou16 will accept wrong input,
- * xatou16 will exit instead of generating error to peer
- */
-
-	port_part = strrchr(raw, ',');
-	if (port_part == NULL)
-		goto bail;
-	port = xatou16(&port_part[1]);
-	*port_part = '\0';
-
-	port_part = strrchr(raw, ',');
-	if (port_part == NULL)
-		goto bail;
-	port |= xatou16(&port_part[1]) << 8;
-	*port_part = '\0';
-
-	replace_char(raw, ',', '.');
-	lsa = xdotted2sockaddr(raw, port);
-
-	if (lsa == NULL) {
+	/* PORT command format makes sense only over IPv4 */
+	if (!raw || G.local_addr->u.sa.sa_family != AF_INET) {
  bail:
 		cmdio_write_error(FTP_BADCMD);
 		return;
 	}
 
-/* Should we verify that lsa matches getpeername(STDIN)?
- * Otherwise peer can make us open data connections
- * to other hosts (security problem!)
- */
+	comma = strrchr(raw, ',');
+	if (comma == NULL)
+		goto bail;
+	*comma = '\0';
+	port = bb_strtou(&comma[1], NULL, 10);
+	if (errno || port > 0xff)
+		goto bail;
 
-	G.port_addr = lsa;
+	comma = strrchr(raw, ',');
+	if (comma == NULL)
+		goto bail;
+	*comma = '\0';
+	port_hi = bb_strtou(&comma[1], NULL, 10);
+	if (errno || port_hi > 0xff)
+		goto bail;
+	port |= port_hi << 8;
+
+	replace_char(raw, ',', '.');
+
+	/* We are verifying that PORT's IP matches getpeername().
+	 * Otherwise peer can make us open data connections
+	 * to other hosts (security problem!)
+	 * This code would be too simplistic:
+	 * lsa = xdotted2sockaddr(raw, port);
+	 * if (lsa == NULL) goto bail;
+	 */
+	if (!inet_aton(raw, &port_ipv4_sin_addr))
+		goto bail;
+	peer_ipv4_len = sizeof(peer_ipv4);
+	if (getpeername(STDIN_FILENO, &peer_ipv4, &peer_ipv4_len) != 0)
+		goto bail;
+	if (memcmp(&port_ipv4_sin_addr, &peer_ipv4.sin_addr, sizeof(struct in_addr)) != 0)
+		goto bail;
+
+	G.port_addr = xdotted2sockaddr(raw, port);
 	cmdio_write_ok(FTP_PORTOK);
 }
 
@@ -612,6 +578,8 @@ handle_dir_common(int opts)
 	if (!(opts & USE_CTRL_CONN) && !port_or_pasv_was_seen())
 		return; /* port_or_pasv_was_seen emitted error response */
 
+	/* -n prevents user/groupname display,
+	 * which can be problematic in chroot */
 	ls_fd = popen_ls((opts & LONG_LISTING) ? "-l" : "-1");
 	ls_fp = fdopen(ls_fd, "r");
 	if (!ls_fp) /* never happens. paranoia */
@@ -749,11 +717,12 @@ handle_rnto(void)
 static void
 handle_upload_common(int is_append, int is_unique)
 {
-	char *tempname = NULL;
+	struct stat statbuf;
+	char *tempname;
 	off_t bytes_transferred;
+	off_t offset;
 	int local_file_fd;
 	int remote_fd;
-	off_t offset;
 
 	offset = G.restart_pos;
 	G.restart_pos = 0;
@@ -761,6 +730,7 @@ handle_upload_common(int is_append, int is_unique)
 	if (!port_or_pasv_was_seen())
 		return; /* port_or_pasv_was_seen emitted error response */
 
+	tempname = NULL;
 	local_file_fd = -1;
 	if (is_unique) {
 		tempname = xstrdup(" FILE: uniq.XXXXXX");
@@ -773,12 +743,16 @@ handle_upload_common(int is_append, int is_unique)
 			flags = O_WRONLY | O_CREAT;
 		local_file_fd = open(G.ftp_arg, flags, 0666);
 	}
-	if (local_file_fd < 0) {
+
+	if (local_file_fd < 0
+	 || fstat(local_file_fd, &statbuf) != 0
+	 || !S_ISREG(statbuf.st_mode)
+	) {
 		cmdio_write_error(FTP_UPLOADFAIL);
+		if (local_file_fd >= 0)
+			goto close_local_and_bail;
 		return;
 	}
-
-/* TODO: paranoia: fstat it, refuse to do anything if it's not a regular file */
 
 	if (offset)
 		xlseek(local_file_fd, offset, SEEK_SET);
@@ -787,7 +761,7 @@ handle_upload_common(int is_append, int is_unique)
 	free(tempname);
 
 	if (remote_fd < 0)
-		goto bail;
+		goto close_local_and_bail;
 
 /* TODO: if we'll implement timeout, this will need more clever handling.
  * Perhaps alarm(N) + checking that current position on local_file_fd
@@ -800,7 +774,8 @@ handle_upload_common(int is_append, int is_unique)
 		cmdio_write_error(FTP_BADSENDFILE);
 	else
 		cmdio_write_ok(FTP_TRANSFEROK);
- bail:
+
+ close_local_and_bail:
 	close(local_file_fd);
 }
 
@@ -838,23 +813,65 @@ cmdio_get_cmd_and_arg(void)
 	if (!cmd)
 		exit(0);
 
+	/* Trailing '\n' is already stripped, strip '\r' */
 	len = strlen(cmd) - 1;
-	while (len >= 0 && cmd[len] == '\r') {
+	while ((ssize_t)len >= 0 && cmd[len] == '\r') {
 		cmd[len] = '\0';
 		len--;
 	}
 
 	G.ftp_arg = strchr(cmd, ' ');
-	if (G.ftp_arg != NULL) {
-		*G.ftp_arg = '\0';
-		G.ftp_arg++;
-	}
+	if (G.ftp_arg != NULL)
+		*G.ftp_arg++ = '\0';
+
+	/* Uppercase and pack into uint32_t first word of the command */
 	cmdval = 0;
 	while (*cmd)
 		cmdval = (cmdval << 8) + ((unsigned char)*cmd++ & (unsigned char)~0x20);
 
 	return cmdval;
 }
+
+#define mk_const4(a,b,c,d) (((a * 0x100 + b) * 0x100 + c) * 0x100 + d)
+#define mk_const3(a,b,c)    ((a * 0x100 + b) * 0x100 + c)
+enum {
+	const_ALLO = mk_const4('A', 'L', 'L', 'O'),
+	const_APPE = mk_const4('A', 'P', 'P', 'E'),
+	const_CDUP = mk_const4('C', 'D', 'U', 'P'),
+	const_CWD  = mk_const3('C', 'W', 'D'),
+	const_DELE = mk_const4('D', 'E', 'L', 'E'),
+	const_EPSV = mk_const4('E', 'P', 'S', 'V'),
+	const_HELP = mk_const4('H', 'E', 'L', 'P'),
+	const_LIST = mk_const4('L', 'I', 'S', 'T'),
+	const_MKD  = mk_const3('M', 'K', 'D'),
+	const_MODE = mk_const4('M', 'O', 'D', 'E'),
+	const_NLST = mk_const4('N', 'L', 'S', 'T'),
+	const_NOOP = mk_const4('N', 'O', 'O', 'P'),
+	const_PASS = mk_const4('P', 'A', 'S', 'S'),
+	const_PASV = mk_const4('P', 'A', 'S', 'V'),
+	const_PORT = mk_const4('P', 'O', 'R', 'T'),
+	const_PWD  = mk_const3('P', 'W', 'D'),
+	const_QUIT = mk_const4('Q', 'U', 'I', 'T'),
+	const_REST = mk_const4('R', 'E', 'S', 'T'),
+	const_RETR = mk_const4('R', 'E', 'T', 'R'),
+	const_RMD  = mk_const3('R', 'M', 'D'),
+	const_RNFR = mk_const4('R', 'N', 'F', 'R'),
+	const_RNTO = mk_const4('R', 'N', 'T', 'O'),
+	const_SIZE = mk_const4('S', 'I', 'Z', 'E'),
+	const_STAT = mk_const4('S', 'T', 'A', 'T'),
+	const_STOR = mk_const4('S', 'T', 'O', 'R'),
+	const_STOU = mk_const4('S', 'T', 'O', 'U'),
+	const_STRU = mk_const4('S', 'T', 'R', 'U'),
+	const_SYST = mk_const4('S', 'Y', 'S', 'T'),
+	const_TYPE = mk_const4('T', 'Y', 'P', 'E'),
+	const_USER = mk_const4('U', 'S', 'E', 'R'),
+
+	OPT_l = (1 << 0),
+	OPT_1 = (1 << 1),
+	OPT_v = (1 << 2),
+	OPT_S = (1 << 3),
+	OPT_w = (1 << 4),
+};
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpd_main(int argc, char **argv)
@@ -865,6 +882,7 @@ int ftpd_main(int argc, char **argv)
 
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
+/* TODO: pass -n too? */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
 		return ls_main(argc, argv);
