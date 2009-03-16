@@ -522,7 +522,7 @@ handle_port(void)
 	G.port_addr = xdotted2sockaddr(raw, port);
 #else
 	G.port_addr = get_peer_lsa(STDIN_FILENO);
-	set_nport(G.port_addr, port);
+	set_nport(G.port_addr, htons(port));
 #endif
 	WRITE_OK(FTP_PORTOK);
 }
