@@ -422,21 +422,42 @@ handle_epsv(void)
 	free(response);
 }
 
+/* libbb candidate */
+static
+len_and_sockaddr* get_peer_lsa(int fd)
+{
+	len_and_sockaddr *lsa;
+	socklen_t len = 0;
+
+	if (getpeername(fd, NULL, &len) != 0)
+		return NULL;
+	lsa = xzalloc(LSA_LEN_SIZE + len);
+	lsa->len = len;
+	getpeername(fd, &lsa->u.sa, &lsa->len);
+	return lsa;
+}
+
 static void
 handle_port(void)
 {
 	unsigned port, port_hi;
 	char *raw, *comma;
+#ifdef WHY_BOTHER_WE_CAN_ASSUME_IP_MATCHES
 	socklen_t peer_ipv4_len;
 	struct sockaddr_in peer_ipv4;
 	struct in_addr port_ipv4_sin_addr;
+#endif
 
 	port_pasv_cleanup();
 
 	raw = G.ftp_arg;
 
 	/* PORT command format makes sense only over IPv4 */
-	if (!raw || G.local_addr->u.sa.sa_family != AF_INET) {
+	if (!raw
+#ifdef WHY_BOTHER_WE_CAN_ASSUME_IP_MATCHES
+	 || G.local_addr->u.sa.sa_family != AF_INET
+#endif
+	) {
  bail:
 		cmdio_write_error(FTP_BADCMD);
 		return;
@@ -459,6 +480,7 @@ handle_port(void)
 		goto bail;
 	port |= port_hi << 8;
 
+#ifdef WHY_BOTHER_WE_CAN_ASSUME_IP_MATCHES
 	replace_char(raw, ',', '.');
 
 	/* We are verifying that PORT's IP matches getpeername().
@@ -477,6 +499,10 @@ handle_port(void)
 		goto bail;
 
 	G.port_addr = xdotted2sockaddr(raw, port);
+#else
+	G.port_addr = get_peer_lsa(STDIN_FILENO);
+	set_nport(G.port_addr, port);
+#endif
 	cmdio_write_ok(FTP_PORTOK);
 }
 
