@@ -1281,7 +1281,7 @@
      "\n	-f	Force file system check" \
 
 #define ftpd_trivial_usage \
-       "[-wvS] [DIR]"
+       "[-wvS] [-t N] [-T N] [DIR]"
 #define ftpd_full_usage "\n\n" \
        "FTP server\n" \
        "\n" \
@@ -1294,6 +1294,7 @@
      "\n	-w	Allow upload" \
      "\n	-v	Log to stderr" \
      "\n	-S	Log to syslog" \
+     "\n	-t,-T	Idle and absolute timeouts" \
      "\n	DIR	Change root to this directory" \
 
 #define ftpget_trivial_usage \

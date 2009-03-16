@@ -8,11 +8,6 @@
  *
  * Only subset of FTP protocol is implemented but vast majority of clients
  * should not have any problem. You have to run this daemon via inetd.
- *
- * Options:
- * -w	- enable FTP write commands
- *
- * TODO: implement "421 Timeout" thingy (alarm(60) while waiting for a cmd).
  */
 
 #include "libbb.h"
@@ -46,6 +41,7 @@
 #define FTP_GIVEPWORD           331
 #define FTP_RESTOK              350
 #define FTP_RNFROK              350
+#define FTP_TIMEOUT             421
 #define FTP_BADSENDCONN         425
 #define FTP_BADSENDNET          426
 #define FTP_BADSENDFILE         451
@@ -77,12 +73,16 @@ enum {
 )
 
 struct globals {
-	char *p_control_line_buf;
-	len_and_sockaddr *local_addr;
-	len_and_sockaddr *port_addr;
 	int pasv_listen_fd;
 	int proc_self_fd;
+	int local_file_fd;
+	int start_time;
+	int abs_timeout;
+	int timeout;
+	off_t local_file_pos;
 	off_t restart_pos;
+	len_and_sockaddr *local_addr;
+	len_and_sockaddr *port_addr;
 	char *ftp_cmd;
 	char *ftp_arg;
 #if ENABLE_FEATURE_FTP_WRITE
@@ -177,6 +177,33 @@ static void
 cmdio_write_raw(const char *p_text)
 {
 	xwrite_str(STDOUT_FILENO, p_text);
+}
+
+static void
+timeout_handler(int sig UNUSED_PARAM)
+{
+	off_t pos;
+	int sv_errno = errno;
+
+	if (monotonic_sec() - G.start_time > G.abs_timeout)
+		goto timed_out;
+
+	if (!G.local_file_fd)
+		goto timed_out;
+
+	pos = xlseek(G.local_file_fd, 0, SEEK_CUR);
+	if (pos == G.local_file_pos)
+		goto timed_out;
+	G.local_file_pos = pos;
+
+	alarm(G.timeout);
+	errno = sv_errno;
+	return;
+
+ timed_out:
+	cmdio_write_raw(STR(FTP_TIMEOUT)" Timeout\r\n");
+/* TODO: do we need to abort (as opposed to usual shutdown) data transfer? */
+	exit(1);
 }
 
 /* Simple commands */
@@ -488,6 +515,7 @@ handle_retr(void)
 		cmdio_write_error(FTP_FILEFAIL);
 		goto file_close_out;
 	}
+	G.local_file_fd = local_file_fd;
 
 	/* Now deactive O_NONBLOCK, otherwise we have a problem
 	 * on DMAPI filesystems such as XFS DMAPI.
@@ -506,11 +534,6 @@ handle_retr(void)
 	if (remote_fd < 0)
 		goto file_close_out;
 
-/* TODO: if we'll implement timeout, this will need more clever handling.
- * Perhaps alarm(N) + checking that current position on local_file_fd
- * is advancing. As of now, peer may stall us indefinitely.
- */
-
 	bytes_transferred = bb_copyfd_eof(local_file_fd, remote_fd);
 	close(remote_fd);
 	if (bytes_transferred < 0)
@@ -520,6 +543,7 @@ handle_retr(void)
 
  file_close_out:
 	close(local_file_fd);
+	G.local_file_fd = 0;
 }
 
 /* List commands */
@@ -753,6 +777,7 @@ handle_upload_common(int is_append, int is_unique)
 			goto close_local_and_bail;
 		return;
 	}
+	G.local_file_fd = local_file_fd;
 
 	if (offset)
 		xlseek(local_file_fd, offset, SEEK_SET);
@@ -763,11 +788,6 @@ handle_upload_common(int is_append, int is_unique)
 	if (remote_fd < 0)
 		goto close_local_and_bail;
 
-/* TODO: if we'll implement timeout, this will need more clever handling.
- * Perhaps alarm(N) + checking that current position on local_file_fd
- * is advancing. As of now, peer may stall us indefinitely.
- */
-
 	bytes_transferred = bb_copyfd_eof(remote_fd, local_file_fd);
 	close(remote_fd);
 	if (bytes_transferred < 0)
@@ -777,6 +797,7 @@ handle_upload_common(int is_append, int is_unique)
 
  close_local_and_bail:
 	close(local_file_fd);
+	G.local_file_fd = 0;
 }
 
 static void
@@ -806,6 +827,8 @@ cmdio_get_cmd_and_arg(void)
 	size_t len;
 	uint32_t cmdval;
 	char *cmd;
+
+	alarm(G.timeout);
 
 	free(G.ftp_cmd);
 	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
@@ -878,17 +901,23 @@ int ftpd_main(int argc, char **argv)
 {
 	smallint opts;
 
-	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w"));
+	INIT_G();
+
+	G.start_time = monotonic_sec();
+	G.abs_timeout = 1 * 60 * 60;
+	G.timeout = 2 * 60;
+	opt_complementary = "t+:T+";
+	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &G.abs_timeout);
 
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
+		memset(&G, 0, sizeof(G));
 /* TODO: pass -n too? */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
 		return ls_main(argc, argv);
 	}
 
-	INIT_G();
 
 	G.local_addr = get_sock_lsa(STDIN_FILENO);
 	if (!G.local_addr) {
@@ -927,6 +956,7 @@ int ftpd_main(int argc, char **argv)
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
 
 	cmdio_write_ok(FTP_GREET);
+	signal(SIGALRM, timeout_handler);
 
 #ifdef IF_WE_WANT_TO_REQUIRE_LOGIN
 	{
