@@ -87,9 +87,8 @@ struct globals {
 	int pasv_listen_fd;
 	int proc_self_fd;
 	int local_file_fd;
-	int start_time;
-	int abs_timeout;
-	int timeout;
+	unsigned end_time;
+	unsigned timeout;
 	off_t local_file_pos;
 	off_t restart_pos;
 	len_and_sockaddr *local_addr;
@@ -105,8 +104,9 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
-	strcpy(G.msg_ok  + 4, MSG_OK ); \
-	strcpy(G.msg_err + 4, MSG_ERR); \
+	/* Moved to main */ \
+	/*strcpy(G.msg_ok  + 4, MSG_OK );*/ \
+	/*strcpy(G.msg_err + 4, MSG_ERR);*/ \
 } while (0)
 
 
@@ -206,7 +206,7 @@ timeout_handler(int sig UNUSED_PARAM)
 	off_t pos;
 	int sv_errno = errno;
 
-	if (monotonic_sec() - G.start_time > G.abs_timeout)
+	if ((int)(monotonic_sec() - G.end_time) >= 0)
 		goto timed_out;
 
 	if (!G.local_file_fd)
@@ -946,25 +946,29 @@ enum {
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpd_main(int argc, char **argv)
 {
+	unsigned abs_timeout;
 	smallint opts;
 
 	INIT_G();
 
-	G.start_time = monotonic_sec();
-	G.abs_timeout = 1 * 60 * 60;
+	abs_timeout = 1 * 60 * 60;
 	G.timeout = 2 * 60;
 	opt_complementary = "t+:T+";
-	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &G.abs_timeout);
-
+	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 		memset(&G, 0, sizeof(G));
 /* TODO: pass -n too? */
+/* --group-directories-first would be nice, but ls don't do that yet */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
 		return ls_main(argc, argv);
 	}
-
+	G.end_time = monotonic_sec() + abs_timeout;
+	if (G.timeout > abs_timeout)
+		G.timeout = abs_timeout + 1;
+	strcpy(G.msg_ok  + 4, MSG_OK );
+	strcpy(G.msg_err + 4, MSG_ERR);
 
 	G.local_addr = get_sock_lsa(STDIN_FILENO);
 	if (!G.local_addr) {
