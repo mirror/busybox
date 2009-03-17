@@ -89,6 +89,7 @@ struct globals {
 	int local_file_fd;
 	unsigned end_time;
 	unsigned timeout;
+	unsigned verbose;
 	off_t local_file_pos;
 	off_t restart_pos;
 	len_and_sockaddr *local_addr;
@@ -158,6 +159,12 @@ replace_char(char *str, char from, char to)
 	return p - str;
 }
 
+static void
+verbose_log(const char *str)
+{
+	bb_error_msg("%.*s", (int)strcspn(str, "\r\n"), str);
+}
+
 /* NB: status_str is char[4] packed into uint32_t */
 static void
 cmdio_write(uint32_t status_str, const char *str)
@@ -174,6 +181,8 @@ cmdio_write(uint32_t status_str, const char *str)
 
 	response[len++] = '\n'; /* tack on trailing '\n' */
 	xwrite(STDOUT_FILENO, response, len);
+	if (G.verbose > 1)
+		verbose_log(response);
 	free(response);
 }
 
@@ -182,6 +191,8 @@ cmdio_write_ok(unsigned status)
 {
 	*(uint32_t *) G.msg_ok = status;
 	xwrite(STDOUT_FILENO, G.msg_ok, sizeof("NNN " MSG_OK) - 1);
+	if (G.verbose > 1)
+		verbose_log(G.msg_ok);
 }
 #define WRITE_OK(a) cmdio_write_ok(STRNUM32sp(a))
 
@@ -191,6 +202,8 @@ cmdio_write_error(unsigned status)
 {
 	*(uint32_t *) G.msg_err = status;
 	xwrite(STDOUT_FILENO, G.msg_err, sizeof("NNN " MSG_ERR) - 1);
+	if (G.verbose > 1)
+		verbose_log(G.msg_err);
 }
 #define WRITE_ERR(a) cmdio_write_error(STRNUM32sp(a))
 
@@ -198,6 +211,8 @@ static void
 cmdio_write_raw(const char *p_text)
 {
 	xwrite_str(STDOUT_FILENO, p_text);
+	if (G.verbose > 1)
+		verbose_log(p_text);
 }
 
 static void
@@ -885,10 +900,11 @@ cmdio_get_cmd_and_arg(void)
 
 	/* Trailing '\n' is already stripped, strip '\r' */
 	len = strlen(cmd) - 1;
-	while ((ssize_t)len >= 0 && cmd[len] == '\r') {
-		cmd[len] = '\0';
-		len--;
-	}
+	if ((ssize_t)len >= 0 && cmd[len] == '\r')
+		cmd[len--] = '\0';
+
+	if (G.verbose > 1)
+		bb_error_msg("%s", cmd);
 
 	G.ftp_arg = strchr(cmd, ' ');
 	if (G.ftp_arg != NULL)
@@ -953,8 +969,8 @@ int ftpd_main(int argc, char **argv)
 
 	abs_timeout = 1 * 60 * 60;
 	G.timeout = 2 * 60;
-	opt_complementary = "t+:T+";
-	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout);
+	opt_complementary = "t+:T+:vv";
+	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 		memset(&G, 0, sizeof(G));
@@ -964,9 +980,13 @@ int ftpd_main(int argc, char **argv)
 		argv[2] = (char*)"--";
 		return ls_main(argc, argv);
 	}
-	G.end_time = monotonic_sec() + abs_timeout;
-	if (G.timeout > abs_timeout)
-		G.timeout = abs_timeout + 1;
+	if (abs_timeout | G.timeout) {
+		if (abs_timeout == 0)
+			abs_timeout = INT_MAX;
+		G.end_time = monotonic_sec() + abs_timeout;
+		if (G.timeout > abs_timeout)
+			G.timeout = abs_timeout;
+	}
 	strcpy(G.msg_ok  + 4, MSG_OK );
 	strcpy(G.msg_err + 4, MSG_ERR);
 
@@ -988,6 +1008,8 @@ int ftpd_main(int argc, char **argv)
 		openlog(applet_name, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
 	}
+	if (logmode)
+		applet_name = xasprintf("%s[%u]", applet_name, (int)getpid());
 
 	G.proc_self_fd = xopen("/proc/self", O_RDONLY | O_DIRECTORY);
 
