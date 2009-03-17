@@ -692,6 +692,7 @@ handle_dir_common(int opts)
 				 * are fed with ls output with bare '\n'.
 				 * Pity... that would be much simpler.
 				 */
+/* TODO: need to s/LF/NUL/g here */
 				xwrite_str(remote_fd, line);
 				xwrite(remote_fd, "\r\n", 2);
 				free(line);
@@ -710,6 +711,13 @@ handle_list(void)
 static void
 handle_nlst(void)
 {
+	/* NLST returns list of names, "\r\n" terminated without regard
+	 * to the current binary flag. Names may start with "/",
+	 * then they represent full names (we don't produce such names),
+	 * otherwise names are relative to current directory.
+	 * Embedded "\n" are replaced by NULs. This is safe since names
+	 * can never contain NUL.
+	 */
 	handle_dir_common(0);
 }
 static void
