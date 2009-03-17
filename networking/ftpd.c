@@ -285,7 +285,7 @@ handle_stat(void)
 			STR(FTP_STATOK)" Ok\r\n");
 }
 
-/* TODO: implement FEAT. Example:
+/* Examples of HELP and FEAT:
 # nc -vvv ftp.kernel.org 21
 ftp.kernel.org (130.239.17.4:21) open
 220 Welcome to ftp.kernel.org.
@@ -309,16 +309,14 @@ HELP
 214 Help OK.
 */
 static void
-handle_help(void)
+handle_feat(unsigned status)
 {
-	cmdio_write_raw(STR(FTP_HELP)"-Commands:\r\n"
-			" ALLO CDUP CWD EPSV HELP LIST\r\n"
-			" MODE NLST NOOP PASS PASV PORT PWD QUIT\r\n"
-			" REST RETR SIZE STAT STRU SYST TYPE USER\r\n"
-#if ENABLE_FEATURE_FTP_WRITE
-			" APPE DELE MKD RMD RNFR RNTO STOR STOU\r\n"
-#endif
-			STR(FTP_HELP)" Ok\r\n");
+	cmdio_write(status, "-Features:");
+	cmdio_write_raw(" EPSV\r\n"
+			" PASV\r\n"
+			" REST STREAM\r\n"
+			" SIZE\r\n");
+	cmdio_write(status, " Ok");
 }
 
 /* Download commands */
@@ -904,7 +902,7 @@ cmdio_get_cmd_and_arg(void)
 		cmd[len--] = '\0';
 
 	if (G.verbose > 1)
-		bb_error_msg("%s", cmd);
+		verbose_log(cmd);
 
 	G.ftp_arg = strchr(cmd, ' ');
 	if (G.ftp_arg != NULL)
@@ -927,6 +925,7 @@ enum {
 	const_CWD  = mk_const3('C', 'W', 'D'),
 	const_DELE = mk_const4('D', 'E', 'L', 'E'),
 	const_EPSV = mk_const4('E', 'P', 'S', 'V'),
+	const_FEAT = mk_const4('F', 'E', 'A', 'T'),
 	const_HELP = mk_const4('H', 'E', 'L', 'P'),
 	const_LIST = mk_const4('L', 'I', 'S', 'T'),
 	const_MKD  = mk_const3('M', 'K', 'D'),
@@ -1126,8 +1125,9 @@ int ftpd_main(int argc, char **argv)
 			handle_cwd();
 		else if (cmdval == const_CDUP) /* cd .. */
 			handle_cdup();
-		else if (cmdval == const_HELP)
-			handle_help();
+		/* HELP is nearly useless, but we can reuse FEAT for it */
+		else if (cmdval == const_HELP || cmdval == const_FEAT)
+			handle_feat(cmdval == const_HELP ? STRNUM32(FTP_HELP) : STRNUM32(FTP_STATOK));
 		else if (cmdval == const_LIST) /* ls -l */
 			handle_list();
 		else if (cmdval == const_NLST) /* "name list", bare ls */
@@ -1186,8 +1186,7 @@ int ftpd_main(int argc, char **argv)
 		else {
 			/* Which unsupported commands were seen in the wild?
 			 * (doesn't necessarily mean "we must support them")
-			 * lftp 3.6.3: FEAT - is it useful?
-			 *             MDTM - works fine without it anyway
+			 * lftp 3.6.3: MDTM - works fine without it anyway
 			 */
 			cmdio_write_raw(STR(FTP_BADCMD)" Unknown command\r\n");
 		}
