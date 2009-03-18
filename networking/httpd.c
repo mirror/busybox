@@ -1386,6 +1386,8 @@ static void send_cgi_and_exit(
 	if (referer)
 		setenv1("HTTP_REFERER", referer);
 	setenv1("HTTP_HOST", host); /* set to "" if NULL */
+	/* setenv1("SERVER_NAME", safe_gethostname()); - don't do this,
+	 * just run "env SERVER_NAME=xyz httpd ..." instead */
 
 	xpiped_pair(fromCgi);
 	xpiped_pair(toCgi);
