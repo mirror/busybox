@@ -87,7 +87,9 @@ enum {
 
 struct globals {
 	int pasv_listen_fd;
-	int proc_self_fd;
+#if !BB_MMU
+	int root_fd;
+#endif
 	int local_file_fd;
 	unsigned end_time;
 	unsigned timeout;
@@ -615,7 +617,13 @@ static int
 popen_ls(const char *opt)
 {
 	char *cwd;
-	const char *argv[5] = { "ftpd", opt, NULL, G.ftp_arg, NULL };
+	const char *argv[] = {
+			"ftpd",
+			opt,
+			BB_MMU ? "--" : NULL,
+			G.ftp_arg,
+			NULL
+	};
 	struct fd_pair outfd;
 	pid_t pid;
 
@@ -623,25 +631,40 @@ popen_ls(const char *opt)
 	xpiped_pair(outfd);
 
 	/*fflush(NULL); - so far we dont use stdio on output */
-	pid = vfork();
-	switch (pid) {
-	case -1:  /* failure */
-		bb_perror_msg_and_die("vfork");
-	case 0:  /* child */
-		/* NB: close _first_, then move fds! */
+	pid = BB_MMU ? fork() : vfork();
+	if (pid < 0)
+		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
+
+	if (pid == 0) {
+		/* child */
+#if !BB_MMU
+		if (fchdir(G.root_fd) != 0)
+			_exit(127);
+		close(G.root_fd);
+#endif
+		/* NB: close _first_, then move fd! */
 		close(outfd.rd);
 		xmove_fd(outfd.wr, STDOUT_FILENO);
+		/* Opening /dev/null in chroot is hard.
+		 * Just making sure STDIN_FILENO is opened
+		 * to something harmless. Paranoia,
+		 * ls won't read it anyway */
 		close(STDIN_FILENO);
-		/* xopen("/dev/null", O_RDONLY); - chroot may lack it! */
-		if (fchdir(G.proc_self_fd) == 0) {
-			close(G.proc_self_fd);
-			argv[2] = cwd;
-			/* ftpd ls helper chdirs to argv[2],
-			 * preventing peer from seeing /proc/self
-			 */
-			execv("exe", (char**) argv);
-		}
+		dup(STDOUT_FILENO); /* copy will become STDIN_FILENO */
+#if !BB_MMU
+		/* ftpd ls helper chdirs to argv[2],
+		 * preventing peer from seeing real root we are in now
+		 */
+		argv[2] = cwd;
+		/* + 1: we must use relative path here if in chroot.
+		 * For example, execv("/proc/self/exe") will fail, since
+		 * it looks for "/proc/self/exe" _relative to chroot!_ */
+		execv(CONFIG_BUSYBOX_EXEC_PATH + 1, (char**) argv);
 		_exit(127);
+#else
+		memset(&G, 0, sizeof(G));
+		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
+#endif
 	}
 
 	/* parent */
@@ -1006,15 +1029,21 @@ enum {
 	const_TYPE = mk_const4('T', 'Y', 'P', 'E'),
 	const_USER = mk_const4('U', 'S', 'E', 'R'),
 
+#if !BB_MMU
 	OPT_l = (1 << 0),
 	OPT_1 = (1 << 1),
-	OPT_v = (1 << 2),
-	OPT_S = (1 << 3),
-	OPT_w = (1 << 4),
+#endif
+	OPT_v = (1 << ((!BB_MMU) * 2 + 0)),
+	OPT_S = (1 << ((!BB_MMU) * 2 + 1)),
+	OPT_w = (1 << ((!BB_MMU) * 2 + 2)) * ENABLE_FEATURE_FTP_WRITE,
 };
 
 int ftpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+#if !BB_MMU
 int ftpd_main(int argc, char **argv)
+#else
+int ftpd_main(int argc UNUSED_PARAM, char **argv)
+#endif
 {
 	unsigned abs_timeout;
 	smallint opts;
@@ -1024,16 +1053,20 @@ int ftpd_main(int argc, char **argv)
 	abs_timeout = 1 * 60 * 60;
 	G.timeout = 2 * 60;
 	opt_complementary = "t+:T+:vv";
+#if BB_MMU
+	opts = getopt32(argv,   "vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
+#else
 	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-		memset(&G, 0, sizeof(G));
 /* TODO: pass -n too? */
 /* --group-directories-first would be nice, but ls don't do that yet */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
+		memset(&G, 0, sizeof(G));
 		return ls_main(argc, argv);
 	}
+#endif
 	if (abs_timeout | G.timeout) {
 		if (abs_timeout == 0)
 			abs_timeout = INT_MAX;
@@ -1065,7 +1098,9 @@ int ftpd_main(int argc, char **argv)
 	if (logmode)
 		applet_name = xasprintf("%s[%u]", applet_name, (int)getpid());
 
-	G.proc_self_fd = xopen("/proc/self", O_RDONLY | O_DIRECTORY);
+#if !BB_MMU
+	G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
+#endif
 
 	if (argv[optind]) {
 		xchdir(argv[optind]);
