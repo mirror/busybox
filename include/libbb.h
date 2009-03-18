@@ -594,9 +594,9 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FA
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
 extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
-/* Reads block up to *maxsz_p (default: MAX_INT(ssize_t)) */
+/* Reads block up to *maxsz_p (default: INT_MAX - 4095) */
 extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC;
-/* Returns NULL if file can't be opened */
+/* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
 /* Autodetects .gz etc */
 extern int open_zipped(const char *fname) FAST_FUNC;
@@ -619,6 +619,8 @@ extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
 extern char *bb_get_chunk_with_continuation(FILE *file, int *end, int *lineno) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC;
+/* Same, with limited max size, and returns the length (excluding NUL): */
+extern char *xmalloc_fgets_str_len(FILE *file, const char *terminating_string, size_t *maxsz_p) FAST_FUNC;
 /* Chops off TERMINATING_STRING from the end: */
 extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string) FAST_FUNC;
 /* Reads up to (and including) "\n" or NUL byte: */

@@ -972,23 +972,60 @@ cmdio_get_cmd_and_arg(void)
 
 	free(G.ftp_cmd);
 	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
-	G.ftp_cmd = cmd = xmalloc_reads(STDIN_FILENO, NULL, &len);
+	G.ftp_cmd = cmd = xmalloc_fgets_str_len(stdin, "\r\n", &len);
 	if (!cmd)
 		exit(0);
 
-/* TODO: de-escape telnet here: 0xff,0xff => 0xff */
-/* RFC959 says that ABOR, STAT, QUIT may be sent even during
- * data transfer, and may be preceded by telnet's "Interrupt Process"
- * code (two-byte sequence 255,244) and then by telnet "Synch" code
- * 255,242 (byte 242 is sent with TCP URG bit using send(MSG_OOB)
- * and may generate SIGURG on our side. See RFC854).
- * So far we don't support that (may install SIGURG handler if we'd want to),
- * but we need to at least remove 255,xxx pairs. lftp sends those. */
+	/* De-escape telnet: 0xff,0xff => 0xff */
+	/* RFC959 says that ABOR, STAT, QUIT may be sent even during
+	 * data transfer, and may be preceded by telnet's "Interrupt Process"
+	 * code (two-byte sequence 255,244) and then by telnet "Synch" code
+	 * 255,242 (byte 242 is sent with TCP URG bit using send(MSG_OOB)
+	 * and may generate SIGURG on our side. See RFC854).
+	 * So far we don't support that (may install SIGURG handler if we'd want to),
+	 * but we need to at least remove 255,xxx pairs. lftp sends those. */
+	/* Then de-escape FTP: NUL => '\n' */
+	/* Testing for \xff:
+	 * Create file named '\xff': echo Hello >`echo -ne "\xff"`
+	 * Try to get it:            ftpget -v 127.0.0.1 Eff `echo -ne "\xff\xff"`
+	 * (need "\xff\xff" until ftpget applet is fixed to do escaping :)
+	 * Testing for embedded LF:
+	 * LF_HERE=`echo -ne "LF\nHERE"`
+	 * echo Hello >"$LF_HERE"
+	 * ftpget -v 127.0.0.1 LF_HERE "$LF_HERE"
+	 */
+	{
+		int dst, src;
 
-	/* Trailing '\n' is already stripped, strip '\r' */
-	len = strlen(cmd) - 1;
-	if ((ssize_t)len >= 0 && cmd[len] == '\r')
-		cmd[len--] = '\0';
+		/* Strip "\r\n" if it is there */
+		if (len != 0 && cmd[len - 1] == '\n') {
+			len--;
+			if (len != 0 && cmd[len - 1] == '\r')
+				len--;
+			cmd[len] = '\0';
+		}
+		src = strchrnul(cmd, 0xff) - cmd;
+		/* 99,99% there are neither NULs nor 255s and src == len */
+		if (src < len) {
+			dst = src;
+			do {
+				if ((unsigned char)(cmd[src]) == 255) {
+					src++;
+					/* 255,xxx - skip 255 */
+					if ((unsigned char)(cmd[src]) != 255) {
+						/* 255,!255 - skip both */
+						src++;
+						continue;
+					}
+					/* 255,255 - retain one 255 */
+				}
+				/* NUL => '\n' */
+				cmd[dst++] = cmd[src] ? cmd[src] : '\n';
+				src++;
+			} while (src < len);
+			cmd[dst] = '\0';
+		}
+	}
 
 	if (G.verbose > 1)
 		verbose_log(cmd);

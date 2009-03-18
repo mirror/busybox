@@ -141,7 +141,7 @@ char* FAST_FUNC xmalloc_reads(int fd, char *buf, size_t *maxsz_p)
 {
 	char *p;
 	size_t sz = buf ? strlen(buf) : 0;
-	size_t maxsz = maxsz_p ? *maxsz_p : MAXINT(size_t);
+	size_t maxsz = maxsz_p ? *maxsz_p : (INT_MAX - 4095);
 
 	goto jump_in;
 	while (sz < maxsz) {
@@ -198,7 +198,7 @@ void* FAST_FUNC xmalloc_read(int fd, size_t *maxsz_p)
 	size_t to_read;
 	struct stat st;
 
-	to_read = maxsz_p ? *maxsz_p : MAXINT(ssize_t); /* max to read */
+	to_read = maxsz_p ? *maxsz_p : (INT_MAX - 4095); /* max to read */
 
 	/* Estimate file size */
 	st.st_size = 0; /* in case fstat fails, assume 0 */
@@ -262,7 +262,7 @@ void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *maxsz_p)
 	len = lseek(fd, 0, SEEK_END) | 0x3ff; /* + up to 1k */
 	if (len != (off_t)-1) {
 		xlseek(fd, 0, SEEK_SET);
-		size = maxsz_p ? *maxsz_p : INT_MAX;
+		size = maxsz_p ? *maxsz_p : (INT_MAX - 4095);
 		if (len < size)
 			size = len;
 	}
