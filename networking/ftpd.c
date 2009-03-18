@@ -7,7 +7,9 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  *
  * Only subset of FTP protocol is implemented but vast majority of clients
- * should not have any problem. You have to run this daemon via inetd.
+ * should not have any problem.
+ *
+ * You have to run this daemon via inetd.
  */
 
 #include "libbb.h"
@@ -172,11 +174,11 @@ cmdio_write(uint32_t status_str, const char *str)
 	char *response;
 	int len;
 
-	/* FTP allegedly uses telnet protocol for command link.
+	/* FTP uses telnet protocol for command link.
 	 * In telnet, 0xff is an escape char, and needs to be escaped: */
 	response = escape_text((char *) &status_str, str, (0xff << 8) + '\r');
 
-	/* ?! does FTP send embedded LFs as NULs? wow */
+	/* FTP sends embedded LFs as NULs */
 	len = replace_char(response, '\n', '\0');
 
 	response[len++] = '\n'; /* tack on trailing '\n' */
@@ -315,6 +317,7 @@ handle_feat(unsigned status)
 	cmdio_write_raw(" EPSV\r\n"
 			" PASV\r\n"
 			" REST STREAM\r\n"
+			" MDTM\r\n"
 			" SIZE\r\n");
 	cmdio_write(status, " Ok");
 }
@@ -726,11 +729,43 @@ handle_stat_file(void)
 	handle_dir_common(LONG_LISTING + USE_CTRL_CONN);
 }
 
+/* This can be extended to handle MLST, as all info is available
+ * in struct stat for that:
+ * MLST file_name
+ * 250-Listing file_name
+ *  type=file;size=4161;modify=19970214165800; /dir/dir/file_name
+ * 250 End
+ * Nano-doc:
+ * MLST [<file or dir name, "." assumed if not given>]
+ * Returned name should be either the same as requested, or fully qualified.
+ * If there was no parameter, return "" or (preferred) fully-qualified name.
+ * Returned "facts" (case is not important):
+ *  size    - size in octets
+ *  modify  - last modification time
+ *  type    - entry type (file,dir,OS.unix=block)
+ *            (+ cdir and pdir types for MLSD)
+ *  unique  - unique id of file/directory (inode#)
+ *  perm    -
+ *      a: can be appended to (APPE)
+ *      d: can be deleted (RMD/DELE)
+ *      f: can be renamed (RNFR)
+ *      r: can be read (RETR)
+ *      w: can be written (STOR)
+ *      e: can CWD into this dir
+ *      l: this dir can be listed (dir only!)
+ *      c: can create files in this dir
+ *      m: can create dirs in this dir (MKD)
+ *      p: can delete files in this dir
+ *  UNIX.mode - unix file mode
+ */
 static void
-handle_size(void)
+handle_size_or_mdtm(int need_size)
 {
 	struct stat statbuf;
-	char buf[sizeof(STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n") + sizeof(off_t)*3];
+	struct tm broken_out;
+	char buf[(sizeof("NNN %"OFF_FMT"u\r\n") + sizeof(off_t) * 3)
+		| sizeof("NNN YYYYMMDDhhmmss\r\n")
+	];
 
 	if (!G.ftp_arg
 	 || stat(G.ftp_arg, &statbuf) != 0
@@ -739,7 +774,18 @@ handle_size(void)
 		WRITE_ERR(FTP_FILEFAIL);
 		return;
 	}
-	sprintf(buf, STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n", statbuf.st_size);
+	if (need_size) {
+		sprintf(buf, STR(FTP_STATFILE_OK)" %"OFF_FMT"u\r\n", statbuf.st_size);
+	} else {
+		gmtime_r(&statbuf.st_mtime, &broken_out);
+		sprintf(buf, STR(FTP_STATFILE_OK)" %04u%02u%02u%02u%02u%02u\r\n",
+			broken_out.tm_year + 1900,
+			broken_out.tm_mon,
+			broken_out.tm_mday,
+			broken_out.tm_hour,
+			broken_out.tm_min,
+			broken_out.tm_sec);
+	}
 	cmdio_write_raw(buf);
 }
 
@@ -936,6 +982,7 @@ enum {
 	const_FEAT = mk_const4('F', 'E', 'A', 'T'),
 	const_HELP = mk_const4('H', 'E', 'L', 'P'),
 	const_LIST = mk_const4('L', 'I', 'S', 'T'),
+	const_MDTM = mk_const4('M', 'D', 'T', 'M'),
 	const_MKD  = mk_const3('M', 'K', 'D'),
 	const_MODE = mk_const4('M', 'O', 'D', 'E'),
 	const_NLST = mk_const4('N', 'L', 'S', 'T'),
@@ -1112,7 +1159,12 @@ int ftpd_main(int argc, char **argv)
 			return 0;
 		}
 		else if (cmdval == const_USER)
-			WRITE_OK(FTP_GIVEPWORD);
+			/* This would mean "ok, now give me PASS". */
+			/*WRITE_OK(FTP_GIVEPWORD);*/
+			/* vsftpd can be configured to not require that,
+			 * and this also saves one roundtrip:
+			 */
+			WRITE_OK(FTP_LOGINOK);
 		else if (cmdval == const_PASS)
 			WRITE_OK(FTP_LOGINOK);
 		else if (cmdval == const_NOOP)
@@ -1134,14 +1186,20 @@ int ftpd_main(int argc, char **argv)
 		else if (cmdval == const_CDUP) /* cd .. */
 			handle_cdup();
 		/* HELP is nearly useless, but we can reuse FEAT for it */
+		/* lftp uses FEAT */
 		else if (cmdval == const_HELP || cmdval == const_FEAT)
-			handle_feat(cmdval == const_HELP ? STRNUM32(FTP_HELP) : STRNUM32(FTP_STATOK));
+			handle_feat(cmdval == const_HELP
+					? STRNUM32(FTP_HELP)
+					: STRNUM32(FTP_STATOK)
+			);
 		else if (cmdval == const_LIST) /* ls -l */
 			handle_list();
 		else if (cmdval == const_NLST) /* "name list", bare ls */
 			handle_nlst();
-		else if (cmdval == const_SIZE)
-			handle_size();
+		/* SIZE is crucial for wget's download indicator etc */
+		/* Mozilla, lftp use MDTM (presumably for caching) */
+		else if (cmdval == const_SIZE || cmdval == const_MDTM)
+			handle_size_or_mdtm(cmdval == const_SIZE);
 		else if (cmdval == const_STAT) {
 			if (G.ftp_arg == NULL)
 				handle_stat();
@@ -1194,7 +1252,7 @@ int ftpd_main(int argc, char **argv)
 		else {
 			/* Which unsupported commands were seen in the wild?
 			 * (doesn't necessarily mean "we must support them")
-			 * lftp 3.6.3: MDTM - works fine without it anyway
+			 * foo 1.2.3: XXXX - comment
 			 */
 			cmdio_write_raw(STR(FTP_BADCMD)" Unknown command\r\n");
 		}
