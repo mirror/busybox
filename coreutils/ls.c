@@ -127,14 +127,6 @@ SPLIT_SUBDIR    = 2,
 
 };
 
-#define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
-#define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-#define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
-#define COLOR(mode)	("\000\043\043\043\042\000\043\043"\
-			 "\000\000\044\000\043\000\000\040" [TYPEINDEX(mode)])
-#define ATTR(mode)	("\00\00\01\00\01\00\01\00"\
-			 "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
-
 /* "[-]Cadil1", POSIX mandated options, busybox always supports */
 /* "[-]gnsx", POSIX non-mandated options, busybox always supports */
 /* "[-]Q" GNU option? busybox always supports */
@@ -344,18 +336,46 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 	return cur;
 }
 
+
+/* FYI type values: 1:fifo 2:char 4:dir 6:blk 8:file 10:link 12:socket
+ * (various wacky OSes: 13:Sun door 14:BSD whiteout 5:XENIX named file
+ *  3/7:multiplexed char/block device)
+ * and we use 0 for unknown and 15 for executables (see below) */
+#define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
+#define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
+#define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
+/* 036 black foreground              050 black background
+   037 red foreground                051 red background
+   040 green foreground              052 green background
+   041 brown foreground              053 brown background
+   042 blue foreground               054 blue background
+   043 magenta (purple) foreground   055 magenta background
+   044 cyan (light blue) foreground  056 cyan background
+   045 gray foreground               057 white background
+*/
+#define COLOR(mode) ( \
+	/*un  fi  chr     dir     blk     file    link    sock        exe */ \
+	"\037\043\043\045\042\045\043\043\000\045\044\045\043\045\045\040" \
+	[TYPEINDEX(mode)])
+/* Select normal (0) [actually "reset all"] or bold (1)
+ * (other attributes are 2:dim 4:underline 5:blink 7:reverse,
+ *  let's use 7 for "impossible" types, just for fun)
+ * Note: coreutils 6.9 uses inverted red for setuid binaries.
+ */
+#define ATTR(mode) ( \
+	/*un fi chr   dir   blk   file  link  sock     exe */ \
+	"\01\00\01\07\01\07\01\07\00\07\01\07\01\07\07\01" \
+	[TYPEINDEX(mode)])
+
 #if ENABLE_FEATURE_LS_COLOR
+/* mode of zero is interpreted as "unknown" (stat failed) */
 static char fgcolor(mode_t mode)
 {
-	/* Check wheter the file is existing (if so, color it red!) */
-	if (errno == ENOENT)
-		return '\037';
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return COLOR(0xF000);	/* File is executable ... */
 	return COLOR(mode);
 }
-
-static char bgcolor(mode_t mode)
+static char bold(mode_t mode)
 {
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return ATTR(0xF000);	/* File is executable ... */
@@ -377,6 +397,7 @@ static char append_char(mode_t mode)
 	return APPCHAR(mode);
 }
 #endif
+
 
 #define countdirs(A, B) count_dirs((A), (B), 1)
 #define countsubdirs(A, B) count_dirs((A), (B), 0)
@@ -818,10 +839,11 @@ static int list_single(const struct dnode *dn)
 			break;
 #endif
 		case LIST_FILENAME:
-			errno = 0;
 #if ENABLE_FEATURE_LS_COLOR
-			if (show_color && !lstat(dn->fullname, &info)) {
-				printf("\033[%u;%um", bgcolor(info.st_mode),
+			if (show_color) {
+				info.st_mode = 0; /* for fgcolor() */
+				lstat(dn->fullname, &info);
+				printf("\033[%u;%um", bold(info.st_mode),
 						fgcolor(info.st_mode));
 			}
 #endif
@@ -836,14 +858,16 @@ static int list_single(const struct dnode *dn)
 				if (!lpath) break;
 				printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-				if (!stat(dn->fullname, &info)) {
+#if ENABLE_FEATURE_LS_COLOR
+				info.st_mode = 0; /* for fgcolor() */
+#endif
+				if (stat(dn->fullname, &info) == 0) {
 					append = append_char(info.st_mode);
 				}
 #endif
 #if ENABLE_FEATURE_LS_COLOR
 				if (show_color) {
-					errno = 0;
-					printf("\033[%u;%um", bgcolor(info.st_mode),
+					printf("\033[%u;%um", bold(info.st_mode),
 						   fgcolor(info.st_mode));
 				}
 #endif
