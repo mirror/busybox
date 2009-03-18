@@ -284,7 +284,7 @@ handle_cdup(void)
 static void
 handle_stat(void)
 {
-	cmdio_write_raw(STR(FTP_STATOK)"-FTP server status:\r\n"
+	cmdio_write_raw(STR(FTP_STATOK)"-Server status:\r\n"
 			" TYPE: BINARY\r\n"
 			STR(FTP_STATOK)" Ok\r\n");
 }
@@ -397,7 +397,7 @@ static int
 port_or_pasv_was_seen(void)
 {
 	if (!pasv_active() && !port_active()) {
-		cmdio_write_raw(STR(FTP_BADSENDCONN)" Use PORT or PASV first\r\n");
+		cmdio_write_raw(STR(FTP_BADSENDCONN)" Use PORT/PASV first\r\n");
 		return 0;
 	}
 
@@ -441,7 +441,7 @@ handle_pasv(void)
 		addr = xstrdup("0.0.0.0");
 	replace_char(addr, '.', ',');
 
-	response = xasprintf(STR(FTP_PASVOK)" Entering Passive Mode (%s,%u,%u)\r\n",
+	response = xasprintf(STR(FTP_PASVOK)" PASV ok (%s,%u,%u)\r\n",
 			addr, (int)(port >> 8), (int)(port & 255));
 	free(addr);
 	cmdio_write_raw(response);
@@ -456,7 +456,7 @@ handle_epsv(void)
 	char *response;
 
 	port = bind_for_passive_mode();
-	response = xasprintf(STR(FTP_EPSVOK)" EPSV Ok (|||%u|)\r\n", port);
+	response = xasprintf(STR(FTP_EPSVOK)" EPSV ok (|||%u|)\r\n", port);
 	cmdio_write_raw(response);
 	free(response);
 }
@@ -592,7 +592,7 @@ handle_retr(void)
 		xlseek(local_file_fd, offset, SEEK_SET);
 
 	response = xasprintf(
-		" Opening BINARY mode data connection for %s (%"OFF_FMT"u bytes)",
+		" Opening BINARY connection for %s (%"OFF_FMT"u bytes)",
 		G.ftp_arg, statbuf.st_size);
 	remote_fd = get_remote_transfer_fd(response);
 	free(response);
@@ -697,7 +697,7 @@ handle_dir_common(int opts)
 
 	if (opts & USE_CTRL_CONN) {
 		/* STAT <filename> */
-		cmdio_write_raw(STR(FTP_STATFILE_OK)"-Status follows:\r\n");
+		cmdio_write_raw(STR(FTP_STATFILE_OK)"-File status:\r\n");
 		while (1) {
     			line = xmalloc_fgetline(ls_fp);
 			if (!line)
@@ -708,7 +708,7 @@ handle_dir_common(int opts)
 		WRITE_OK(FTP_STATFILE_OK);
 	} else {
 		/* LIST/NLST [<filename>] */
-		int remote_fd = get_remote_transfer_fd(" Here comes the directory listing");
+		int remote_fd = get_remote_transfer_fd(" Directory listing");
 		if (remote_fd >= 0) {
 			while (1) {
     				line = xmalloc_fgetline(ls_fp);
@@ -860,7 +860,7 @@ handle_rnto(void)
 
 	/* If we didn't get a RNFR, throw a wobbly */
 	if (G.rnfr_filename == NULL || G.ftp_arg == NULL) {
-		cmdio_write_raw(STR(FTP_NEEDRNFR)" RNFR required first\r\n");
+		cmdio_write_raw(STR(FTP_NEEDRNFR)" Use RNFR first\r\n");
 		return;
 	}
 
