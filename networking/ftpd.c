@@ -702,7 +702,10 @@ handle_dir_common(int opts)
     			line = xmalloc_fgetline(ls_fp);
 			if (!line)
 				break;
-			cmdio_write(0, line); /* hack: 0 results in no status at all */
+			/* Hack: 0 results in no status at all */
+			/* Note: it's ok that we don't prepend space,
+			 * ftp.kernel.org doesn't do that too */
+			cmdio_write(0, line);
 			free(line);
 		}
 		WRITE_OK(FTP_STATFILE_OK);
@@ -973,6 +976,15 @@ cmdio_get_cmd_and_arg(void)
 	if (!cmd)
 		exit(0);
 
+/* TODO: de-escape telnet here: 0xff,0xff => 0xff */
+/* RFC959 says that ABOR, STAT, QUIT may be sent even during
+ * data transfer, and may be preceded by telnet's "Interrupt Process"
+ * code (two-byte sequence 255,244) and then by telnet "Synch" code
+ * 255,242 (byte 242 is sent with TCP URG bit using send(MSG_OOB)
+ * and may generate SIGURG on our side. See RFC854).
+ * So far we don't support that (may install SIGURG handler if we'd want to),
+ * but we need to at least remove 255,xxx pairs. lftp sends those. */
+
 	/* Trailing '\n' is already stripped, strip '\r' */
 	len = strlen(cmd) - 1;
 	if ((ssize_t)len >= 0 && cmd[len] == '\r')
@@ -1115,6 +1127,8 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	/* Set up options on the command socket (do we need these all? why?) */
 	setsockopt(STDIN_FILENO, IPPROTO_TCP, TCP_NODELAY, &const_int_1, sizeof(const_int_1));
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+	/* Telnet protocol over command link may send "urgent" data,
+	 * we prefer it to be received in the "normal" data stream: */
 	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
 
 	WRITE_OK(FTP_GREET);
