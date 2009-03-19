@@ -39,7 +39,7 @@
  * When debugging is on, debugging info will be written to ./trace and
  * a quit signal will generate a core dump.
  */
-#define DEBUG 0
+#define DEBUG 2
 /* Tweak debug output verbosity here */
 #define DEBUG_TIME 0
 #define DEBUG_PID 1
@@ -3834,7 +3834,8 @@ dowait(int wait_flags, struct job *job)
 	 * NB: _not_ safe_waitpid, we need to detect EINTR */
 	pid = waitpid(-1, &status,
 			(doing_jobctl ? (wait_flags | WUNTRACED) : wait_flags));
-	TRACE(("wait returns pid=%d, status=0x%x\n", pid, status));
+	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
+				pid, status, errno, strerror(errno)));
 	if (pid <= 0)
 		return pid;
 
@@ -8003,7 +8004,7 @@ dotrap(void)
 		want_exexit = evalstring(t, SKIPEVAL);
 		exitstatus = savestatus;
 		if (want_exexit) {
-			TRACE(("dotrap returns %d\n", skip));
+			TRACE(("dotrap returns %d\n", want_exexit));
 			return want_exexit;
 		}
 	}
@@ -8051,11 +8052,13 @@ evaltree(union node *n, int flags)
 		if (err) {
 			/* if it was a signal, check for trap handlers */
 			if (exception_type == EXSIG) {
-				TRACE(("exception %d (EXSIG) in evaltree, err=%d\n", exception, err));
+				TRACE(("exception %d (EXSIG) in evaltree, err=%d\n",
+						exception_type, err));
 				goto out;
 			}
 			/* continue on the way out */
-			TRACE(("exception %d in evaltree, propagating err=%d\n", exception, err));
+			TRACE(("exception %d in evaltree, propagating err=%d\n",
+					exception_type, err));
 			exception_handler = savehandler;
 			longjmp(exception_handler->loc, err);
 		}
