@@ -14,6 +14,7 @@ $ wait
 ^C
 ...
 
+
 Bug 1984 (http://busybox.net/bugs/view.php?id=1984):
 traps were not triggering:
 
@@ -29,3 +30,24 @@ sleep 3600 &
 echo "Please do: kill -USR1 $$"
 echo "or: kill -INT $$"
 while true; do wait; echo wait interrupted; done
+
+
+Bug 189 (https://bugs.busybox.net/show_bug.cgi?id=189)
+
+func() {
+    sleep 1
+}
+while (true); do
+    func
+    echo Looping
+done
+
+^C was observed to make ash processes geometrically multiply (!) instead
+of exiting. (true) in subshell does not seem to matter, as another user
+reports the same with:
+
+while true
+do
+  echo Kill me
+  sleep 1
+done
