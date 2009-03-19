@@ -11684,7 +11684,8 @@ expandstr(const char *ps)
 {
 	union node n;
 
-	/* XXX Fix (char *) cast. */
+	/* XXX Fix (char *) cast. It _is_ a bug. ps is variable's value,
+	 * and token processing _can_ alter it (delete NULs etc). */
 	setinputstring((char *)ps);
 	readtoken1(pgetc(), PSSYNTAX, nullstr, 0);
 	popfile();
@@ -13802,15 +13803,20 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	}
  state3:
 	state = 4;
-	if (minusc)
+	if (minusc) {
+		/* evalstring pushes parsefile stack.
+		 * Ensure we don't falsely claim that 0 (stdin)
+		 * is one of stacked source fds */
+		if (!sflag)
+			g_parsefile->fd = -1;
 		evalstring(minusc, 0);
+	}
 
 	if (sflag || minusc == NULL) {
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
 		if (iflag) {
 			const char *hp = lookupvar("HISTFILE");
-
-			if (hp != NULL)
+			if (hp)
 				line_input_state->hist_file = hp;
 		}
 #endif
