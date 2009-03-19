@@ -162,6 +162,9 @@ struct globals_misc {
 //	/* do we generate EXSIG events */
 //	int exsig; /* counter */
 	volatile int suppressint; /* counter */
+// TODO: rename
+// pendingsig -> pending_sig
+// intpending -> pending_int
 	volatile /*sig_atomic_t*/ smallint intpending; /* 1 = got SIGINT */
 	/* last pending signal */
 	volatile /*sig_atomic_t*/ smallint pendingsig;
@@ -210,7 +213,7 @@ struct globals_misc {
 #define S_HARD_IGN 4            /* signal is ignored permenantly */
 
 	/* indicates specified signal received */
-	char gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
+	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
 	char *trap[NSIG];
 
 	/* Rarely referenced stuff */
@@ -279,7 +282,7 @@ static int isdigit_str9(const char *str)
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
  * just do a longjmp to the exception handler.  The type of exception is
- * stored in the global variable "exception".
+ * stored in the global variable "exception_type".
  */
 static void raise_exception(int) NORETURN;
 static void
@@ -305,7 +308,7 @@ static void raise_interrupt(void) NORETURN;
 static void
 raise_interrupt(void)
 {
-	int i;
+	int ex_type;
 
 	intpending = 0;
 	/* Signal is not automatically unmasked after it is raised,
@@ -313,16 +316,16 @@ raise_interrupt(void)
 	sigprocmask_allsigs(SIG_UNBLOCK);
 	/* pendingsig = 0; - now done in onsig() */
 
-	i = EXSIG;
+	ex_type = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
 		if (!(rootshell && iflag)) {
 			/* Kill ourself with SIGINT */
 			signal(SIGINT, SIG_DFL);
 			raise(SIGINT);
 		}
-		i = EXINT;
+		ex_type = EXINT;
 	}
-	raise_exception(i);
+	raise_exception(ex_type);
 	/* NOTREACHED */
 }
 
@@ -365,37 +368,6 @@ force_int_on(void)
 	if (suppressint == 0 && intpending) \
 		raise_interrupt(); \
 } while (0)
-
-/*
- * Ignore a signal. Avoids unnecessary system calls.
- */
-static void
-ignoresig(int signo)
-{
-	if (sigmode[signo - 1] != S_IGN && sigmode[signo - 1] != S_HARD_IGN) {
-		signal(signo, SIG_IGN);
-	}
-	sigmode[signo - 1] = S_HARD_IGN;
-}
-
-/*
- * Signal handler. Only one usage site - in setsignal()
- */
-static void
-onsig(int signo)
-{
-	gotsig[signo - 1] = 1;
-
-	if (/* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
-		if (!suppressint) {
-			pendingsig = 0;
-			raise_interrupt(); /* does not return */
-		}
-		intpending = 1;
-	} else {
-		pendingsig = signo;
-	}
-}
 
 
 /* ============ Stdout/stderr output */
@@ -3286,6 +3258,39 @@ enum { doing_jobctl = 0 };
 static smallint doing_jobctl; //references:8
 static void setjobctl(int);
 #endif
+
+/*
+ * Ignore a signal.
+ */
+static void
+ignoresig(int signo)
+{
+	/* Avoid unnecessary system calls. Is it already SIG_IGNed? */
+	if (sigmode[signo - 1] != S_IGN && sigmode[signo - 1] != S_HARD_IGN) {
+		/* No, need to do it */
+		signal(signo, SIG_IGN);
+	}
+	sigmode[signo - 1] = S_HARD_IGN;
+}
+
+/*
+ * Signal handler. Only one usage site - in setsignal()
+ */
+static void
+onsig(int signo)
+{
+	gotsig[signo - 1] = 1;
+
+	if (/* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
+		if (!suppressint) {
+			pendingsig = 0;
+			raise_interrupt(); /* does not return */
+		}
+		intpending = 1;
+	} else {
+		pendingsig = signo;
+	}
+}
 
 /*
  * Set the signal handler for the specified signal.  The routine figures
@@ -7914,49 +7919,56 @@ defun(char *name, union node *func)
 	INT_ON;
 }
 
-static int evalskip;            /* set if we are skipping commands */
-/* reasons for skipping commands (see comment on breakcmd routine) */
+/* Reasons for skipping commands (see comment on breakcmd routine) */
 #define SKIPBREAK      (1 << 0)
 #define SKIPCONT       (1 << 1)
 #define SKIPFUNC       (1 << 2)
 #define SKIPFILE       (1 << 3)
 #define SKIPEVAL       (1 << 4)
+static smallint evalskip;       /* set to SKIPxxx if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
 static int funcnest;            /* depth of function calls */
 static int loopnest;            /* current loop nesting level */
 
-/* forward decl way out to parsing code - dotrap needs it */
+/* Forward decl way out to parsing code - dotrap needs it */
 static int evalstring(char *s, int mask);
 
-/*
- * Called to execute a trap.  Perhaps we should avoid entering new trap
- * handlers while we are executing a trap handler.
+/* Called to execute a trap.
+ * Single callsite - at the end of evaltree().
+ * If we return non-zero, exaltree raises EXEXIT exception.
+ *
+ * Perhaps we should avoid entering new trap handlers
+ * while we are executing a trap handler. [is it a TODO?]
  */
 static int
 dotrap(void)
 {
-	char *p;
-	char *q;
-	int i;
-	int savestatus;
-	int skip;
+	uint8_t *g;
+	int sig;
+	uint8_t savestatus;
 
 	savestatus = exitstatus;
 	pendingsig = 0;
 	xbarrier();
 
-	for (i = 1, q = gotsig; i < NSIG; i++, q++) {
-		if (!*q)
-			continue;
-		*q = '\0';
+	for (sig = 1, g = gotsig; sig < NSIG; sig++, g++) {
+		int want_exexit;
+		char *t;
 
-		p = trap[i];
-		if (!p)
+		if (*g == 0)
 			continue;
-		skip = evalstring(p, SKIPEVAL);
+		t = trap[sig];
+		/* non-trapped SIGINT is handled separately by raise_interrupt,
+		 * don't upset it by resetting gotsig[SIGINT-1] */
+		if (sig == SIGINT && !t)
+			continue;
+		*g = 0;
+		if (!t)
+			continue;
+		want_exexit = evalstring(t, SKIPEVAL);
 		exitstatus = savestatus;
-		if (skip)
-			return skip;
+		if (want_exexit)
+			return want_exexit;
 	}
 
 	return 0;
