@@ -14,6 +14,7 @@
 #include <paths.h>
 #include <sys/reboot.h>
 #include <sys/resource.h>
+#include <linux/vt.h>
 
 
 /* Was a CONFIG_xxx option. A lot of people were building
@@ -161,33 +162,9 @@ static void message(int where, const char *fmt, ...)
 	}
 }
 
-/* From <linux/serial.h> */
-struct serial_struct {
-	int	type;
-	int	line;
-	unsigned int	port;
-	int	irq;
-	int	flags;
-	int	xmit_fifo_size;
-	int	custom_divisor;
-	int	baud_base;
-	unsigned short	close_delay;
-	char	io_type;
-	char	reserved_char[1];
-	int	hub6;
-	unsigned short	closing_wait; /* time to wait before closing */
-	unsigned short	closing_wait2; /* no longer used... */
-	unsigned char	*iomem_base;
-	unsigned short	iomem_reg_shift;
-	unsigned int	port_high;
-	unsigned long	iomap_base;	/* cookie passed into ioremap */
-	int	reserved[1];
-	/* Paranoia (imagine 64bit kernel overwriting 32bit userspace stack) */
-	uint32_t bbox_reserved[16];
-};
 static void console_init(void)
 {
-	struct serial_struct sr;
+	int vtno;
 	char *s;
 
 	s = getenv("CONSOLE");
@@ -211,8 +188,9 @@ static void console_init(void)
 	}
 
 	s = getenv("TERM");
-	if (ioctl(STDIN_FILENO, TIOCGSERIAL, &sr) == 0) {
-		/* Force the TERM setting to vt102 for serial console
+	if (ioctl(STDIN_FILENO, VT_OPENQRY, &vtno) != 0) {
+		/* Not a linux terminal, probably serial console.
+		 * Force the TERM setting to vt102
 		 * if TERM is set to linux (the default) */
 		if (!s || strcmp(s, "linux") == 0)
 			putenv((char*)"TERM=vt102");
