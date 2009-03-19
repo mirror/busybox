@@ -165,7 +165,7 @@ struct globals_misc {
 	volatile /*sig_atomic_t*/ smallint intpending; /* 1 = got SIGINT */
 	/* last pending signal */
 	volatile /*sig_atomic_t*/ smallint pendingsig;
-	smallint exception; /* kind of exception (0..5) */
+	smallint exception_type; /* kind of exception (0..5) */
 	/* exceptions */
 #define EXINT 0         /* SIGINT received */
 #define EXERROR 1       /* a generic error */
@@ -231,7 +231,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define physdir     (G_misc.physdir    )
 #define arg0        (G_misc.arg0       )
 #define exception_handler (G_misc.exception_handler)
-#define exception         (G_misc.exception        )
+#define exception_type    (G_misc.exception_type   )
 #define suppressint       (G_misc.suppressint      )
 #define intpending        (G_misc.intpending       )
 //#define exsig             (G_misc.exsig            )
@@ -290,7 +290,7 @@ raise_exception(int e)
 		abort();
 #endif
 	INT_OFF;
-	exception = e;
+	exception_type = e;
 	longjmp(exception_handler->loc, 1);
 }
 
@@ -385,7 +385,6 @@ static void
 onsig(int signo)
 {
 	gotsig[signo - 1] = 1;
-	pendingsig = signo;
 
 	if (/* exsig || */ (signo == SIGINT && !trap[SIGINT])) {
 		if (!suppressint) {
@@ -393,6 +392,8 @@ onsig(int signo)
 			raise_interrupt(); /* does not return */
 		}
 		intpending = 1;
+	} else {
+		pendingsig = signo;
 	}
 }
 
@@ -5199,7 +5200,7 @@ redirectsafe(union node *redir, int flags)
 		redirect(redir, flags);
 	}
 	exception_handler = savehandler;
-	if (err && exception != EXERROR)
+	if (err && exception_type != EXERROR)
 		longjmp(exception_handler->loc, 1);
 	RESTORE_INT(saveint);
 	return err;
@@ -7979,7 +7980,6 @@ static void prehash(union node *);
 static void
 evaltree(union node *n, int flags)
 {
-
 	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 	int checkexit = 0;
@@ -7998,7 +7998,7 @@ evaltree(union node *n, int flags)
 		int err = setjmp(jmploc.loc);
 		if (err) {
 			/* if it was a signal, check for trap handlers */
-			if (exception == EXSIG)
+			if (exception_type == EXSIG)
 				goto out;
 			/* continue on the way out */
 			exception_handler = savehandler;
@@ -9014,7 +9014,7 @@ evalcommand(union node *cmd, int flags)
 
 		if (evalbltin(cmdentry.u.cmd, argc, argv)) {
 			int exit_status;
-			int i = exception;
+			int i = exception_type;
 			if (i == EXEXIT)
 				goto raise;
 			exit_status = 2;
@@ -13529,7 +13529,7 @@ exitshell(void)
 	status = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
 	if (setjmp(loc.loc)) {
-		if (exception == EXEXIT)
+		if (exception_type == EXEXIT)
 /* dash bug: it just does _exit(exitstatus) here
  * but we have to do setjobctl(0) first!
  * (bug is still not fixed in dash-0.5.3 - if you run dash
@@ -13723,21 +13723,20 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	state = 0;
 	if (setjmp(jmploc.loc)) {
-		int e;
+		smallint e;
 		smallint s;
 
 		reset();
 
-		e = exception;
+		e = exception_type;
 		if (e == EXERROR)
 			exitstatus = 2;
 		s = state;
 		if (e == EXEXIT || s == 0 || iflag == 0 || shlvl)
 			exitshell();
-
-		if (e == EXINT) {
+		if (e == EXINT)
 			outcslow('\n', stderr);
-		}
+
 		popstackmark(&smark);
 		FORCE_INT_ON; /* enable interrupts */
 		if (s == 1)
