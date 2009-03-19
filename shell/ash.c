@@ -39,7 +39,7 @@
  * When debugging is on, debugging info will be written to ./trace and
  * a quit signal will generate a core dump.
  */
-#define DEBUG 2
+#define DEBUG 0
 /* Tweak debug output verbosity here */
 #define DEBUG_TIME 0
 #define DEBUG_PID 1
@@ -129,7 +129,7 @@ static const char illnum[] ALIGN1 = "Illegal number: %s";
 /*
  * We enclose jmp_buf in a structure so that we can declare pointers to
  * jump locations.  The global variable handler contains the location to
- * jump to when an exception occurs, and the global variable exception
+ * jump to when an exception occurs, and the global variable exception_type
  * contains a code identifying the exception.  To implement nested
  * exception handlers, the user should save the value of handler on entry
  * to an inner scope, set handler to point to a jmploc structure for the
