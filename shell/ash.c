@@ -30,7 +30,7 @@
  */
 
 /*
- * The follow should be set to reflect the type of system you have:
+ * The following should be set to reflect the type of system you have:
  *      JOBS -> 1 if you have Berkeley job control, 0 otherwise.
  *      define SYSV if you are running under System V.
  *      define DEBUG=1 to compile in debugging ('set -o debug' to turn on)
@@ -40,6 +40,11 @@
  * a quit signal will generate a core dump.
  */
 #define DEBUG 0
+/* Tweak debug output verbosity here */
+#define DEBUG_TIME 0
+#define DEBUG_PID 1
+#define DEBUG_SIG 1
+
 #define PROFILE 0
 
 #define IFS_BROKEN
@@ -47,9 +52,9 @@
 #define JOBS ENABLE_ASH_JOB_CONTROL
 
 #if DEBUG
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
+# ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+# endif
 #endif
 
 #include "busybox.h" /* for applet_names */
@@ -71,11 +76,11 @@
 #endif
 
 #ifndef PIPE_BUF
-#define PIPE_BUF 4096           /* amount of buffering in a pipe */
+# define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
 
 #if defined(__uClinux__)
-#error "Do not even bother, ash will not run on NOMMU machine"
+# error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
 
@@ -84,14 +89,6 @@
 #define VTABSIZE 39
 #define ATABSIZE 39
 #define CMDTABLESIZE 31         /* should be prime */
-
-
-/* ============ Misc helpers */
-
-#define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
-
-/* C99 says: "char" declaration may be signed or unsigned by default */
-#define signed_char2int(sc) ((int)((signed char)sc))
 
 
 /* ============ Shell options */
@@ -257,7 +254,24 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 } while (0)
 
 
+/* ============ DEBUG */
+#if DEBUG
+static void trace_printf(const char *fmt, ...);
+static void trace_vprintf(const char *fmt, va_list va);
+# define TRACE(param)    trace_printf param
+# define TRACEV(param)   trace_vprintf param
+#else
+# define TRACE(param)
+# define TRACEV(param)
+#endif
+
+
 /* ============ Utility functions */
+#define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
+
+/* C99 say: "char" declaration may be signed or unsigned by default */
+#define signed_char2int(sc) ((int)(signed char)(sc))
+
 static int isdigit_str9(const char *str)
 {
 	int maxlen = 9 + 1; /* max 9 digits: 999999999 */
@@ -296,6 +310,12 @@ raise_exception(int e)
 	exception_type = e;
 	longjmp(exception_handler->loc, 1);
 }
+#if DEBUG
+#define raise_exception(e) do { \
+	TRACE(("raising exception %d on line %d\n", (e), __LINE__)); \
+	raise_exception(e); \
+} while (0)
+#endif
 
 /*
  * Called from trap.c when a SIGINT is received.  (If the user specifies
@@ -328,6 +348,12 @@ raise_interrupt(void)
 	raise_exception(ex_type);
 	/* NOTREACHED */
 }
+#if DEBUG
+#define raise_interrupt() do { \
+	TRACE(("raising interrupt on line %d\n", __LINE__)); \
+	raise_interrupt(); \
+} while (0)
+#endif
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
 static void
@@ -346,7 +372,9 @@ force_int_on(void)
 		raise_interrupt();
 }
 #define FORCE_INT_ON force_int_on()
-#else
+
+#else /* !ASH_OPTIMIZE_FOR_SIZE */
+
 #define INT_ON do { \
 	xbarrier(); \
 	if (--suppressint == 0 && intpending) \
@@ -358,7 +386,7 @@ force_int_on(void)
 	if (intpending) \
 		raise_interrupt(); \
 } while (0)
-#endif /* ASH_OPTIMIZE_FOR_SIZE */
+#endif /* !ASH_OPTIMIZE_FOR_SIZE */
 
 #define SAVE_INT(v) ((v) = suppressint)
 
@@ -666,6 +694,12 @@ trace_printf(const char *fmt, ...)
 
 	if (debug != 1)
 		return;
+	if (DEBUG_TIME)
+		fprintf(tracefile, "%u ", (int) time(NULL));
+	if (DEBUG_PID)
+		fprintf(tracefile, "[%u] ", (int) getpid());
+	if (DEBUG_SIG)
+		fprintf(tracefile, "pending s:%d i:%d(supp:%d) ", pendingsig, intpending, suppressint);
 	va_start(va, fmt);
 	vfprintf(tracefile, fmt, va);
 	va_end(va);
@@ -676,6 +710,12 @@ trace_vprintf(const char *fmt, va_list va)
 {
 	if (debug != 1)
 		return;
+	if (DEBUG_TIME)
+		fprintf(tracefile, "%u ", (int) time(NULL));
+	if (DEBUG_PID)
+		fprintf(tracefile, "[%u] ", (int) getpid());
+	if (DEBUG_SIG)
+		fprintf(tracefile, "pending s:%d i:%d(supp:%d) ", pendingsig, intpending, suppressint);
 	vfprintf(tracefile, fmt, va);
 }
 
@@ -979,14 +1019,6 @@ showtree(union node *n)
 	trace_puts("showtree called\n");
 	shtree(n, 1, NULL, stdout);
 }
-
-#define TRACE(param)    trace_printf param
-#define TRACEV(param)   trace_vprintf param
-
-#else
-
-#define TRACE(param)
-#define TRACEV(param)
 
 #endif /* DEBUG */
 
@@ -7951,6 +7983,7 @@ dotrap(void)
 	pendingsig = 0;
 	xbarrier();
 
+	TRACE(("dotrap entered\n"));
 	for (sig = 1, g = gotsig; sig < NSIG; sig++, g++) {
 		int want_exexit;
 		char *t;
@@ -7962,15 +7995,20 @@ dotrap(void)
 		 * don't upset it by resetting gotsig[SIGINT-1] */
 		if (sig == SIGINT && !t)
 			continue;
+
+		TRACE(("sig %d is active, will run handler '%s'\n", sig, t));
 		*g = 0;
 		if (!t)
 			continue;
 		want_exexit = evalstring(t, SKIPEVAL);
 		exitstatus = savestatus;
-		if (want_exexit)
+		if (want_exexit) {
+			TRACE(("dotrap returns %d\n", skip));
 			return want_exexit;
+		}
 	}
 
+	TRACE(("dotrap returns 0\n"));
 	return 0;
 }
 
@@ -7997,22 +8035,27 @@ evaltree(union node *n, int flags)
 	int checkexit = 0;
 	void (*evalfn)(union node *, int);
 	int status;
+	int int_level;
+
+	SAVE_INT(int_level);
 
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
 		goto out1;
 	}
-	TRACE(("pid %d, evaltree(%p: %d, %d) called\n",
-			getpid(), n, n->type, flags));
+	TRACE(("evaltree(%p: %d, %d) called\n", n, n->type, flags));
 
 	exception_handler = &jmploc;
 	{
 		int err = setjmp(jmploc.loc);
 		if (err) {
 			/* if it was a signal, check for trap handlers */
-			if (exception_type == EXSIG)
+			if (exception_type == EXSIG) {
+				TRACE(("exception %d (EXSIG) in evaltree, err=%d\n", exception, err));
 				goto out;
+			}
 			/* continue on the way out */
+			TRACE(("exception %d in evaltree, propagating err=%d\n", exception, err));
 			exception_handler = savehandler;
 			longjmp(exception_handler->loc, err);
 		}
@@ -8095,7 +8138,8 @@ evaltree(union node *n, int flags)
 		if (exitstatus == 0) {
 			n = n->nif.ifpart;
 			goto evaln;
-		} else if (n->nif.elsepart) {
+		}
+		if (n->nif.elsepart) {
 			n = n->nif.elsepart;
 			goto evaln;
 		}
@@ -8121,6 +8165,9 @@ evaltree(union node *n, int flags)
  exexit:
 		raise_exception(EXEXIT);
 	}
+
+	RESTORE_INT(int_level);
+	TRACE(("leaving evaltree (no interrupts)\n"));
 }
 
 #if !defined(__alpha__) || (defined(__GNUC__) && __GNUC__ >= 3)
@@ -8998,6 +9045,7 @@ evalcommand(union node *cmd, int flags)
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				exitstatus = waitforjob(jp);
 				INT_ON;
+				TRACE(("forked child exited with %d\n", exitstatus));
 				break;
 			}
 			FORCE_INT_ON;
@@ -13762,7 +13810,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	exception_handler = &jmploc;
 #if DEBUG
 	opentrace();
-	trace_puts("Shell args: ");
+	TRACE(("Shell args: "));
 	trace_puts_args(argv);
 #endif
 	rootpid = getpid();
@@ -13846,14 +13894,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	exitshell();
 	/* NOTREACHED */
 }
-
-#if DEBUG
-const char *applet_name = "debug stuff usage";
-int main(int argc, char **argv)
-{
-	return ash_main(argc, argv);
-}
-#endif
 
 
 /*-
