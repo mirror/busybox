@@ -260,6 +260,12 @@ static void trace_printf(const char *fmt, ...);
 static void trace_vprintf(const char *fmt, va_list va);
 # define TRACE(param)    trace_printf param
 # define TRACEV(param)   trace_vprintf param
+# define close(f) do { \
+	int dfd = (f); \
+	if (close(dfd) < 0) \
+		bb_error_msg("bug on %d: closing %d(%x)", \
+			__LINE__, dfd dfd); \
+} while (0)
 #else
 # define TRACE(param)
 # define TRACEV(param)
@@ -5142,7 +5148,9 @@ redirect(union node *redir, int flags)
 		if (newfd < 0) {
 			/* NTOFD/NFROMFD: copy redir->ndup.dupfd to fd */
 			if (redir->ndup.dupfd < 0) { /* "fd>&-" */
-				close(fd);
+				/* Don't want to trigger debugging */
+				if (fd != -1)
+					close(fd);
 			} else {
 				copyfd(redir->ndup.dupfd, fd | COPYFD_EXACT);
 			}
@@ -5195,7 +5203,7 @@ popredir(int drop, int restore)
 				/*close(fd);*/
 				copyfd(copy, fd | COPYFD_EXACT);
 			}
-			close(copy);
+			close(copy & ~COPYFD_RESTORE);
 		}
 	}
 	redirlist = rp->next;
@@ -8416,7 +8424,9 @@ evalpipe(union node *n, int flags)
 		if (prevfd >= 0)
 			close(prevfd);
 		prevfd = pip[0];
-		close(pip[1]);
+		/* Don't want to trigger debugging */
+		if (pip[1] != -1)
+			close(pip[1]);
 	}
 	if (n->npipe.pipe_backgnd == 0) {
 		exitstatus = waitforjob(jp);
