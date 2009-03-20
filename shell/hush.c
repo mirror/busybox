@@ -471,8 +471,9 @@ struct globals {
 	smallint fake_mode;
 	/* these three support $?, $#, and $1 */
 	smalluint last_return_code;
+	smalluint global_args_malloced;
+	int global_argc; /* NB: $# + 1 */
 	char **global_argv;
-	int global_argc;
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
 	unsigned depth_of_loop;
@@ -646,7 +647,7 @@ static char *unbackslash(char *src)
 	return dst;
 }
 
-static char **add_strings_to_strings(char **strings, char **add)
+static char **add_strings_to_strings(char **strings, char **add, int need_to_dup)
 {
 	int i;
 	unsigned count1;
@@ -671,7 +672,7 @@ static char **add_strings_to_strings(char **strings, char **add)
 	v[count1 + count2] = NULL;
 	i = count2;
 	while (--i >= 0)
-		v[count1 + i] = add[i];
+		v[count1 + i] = (need_to_dup ? xstrdup(add[i]) : add[i]);
 	return v;
 }
 
@@ -680,7 +681,7 @@ static char **add_string_to_strings(char **strings, char *add)
 	char *v[2];
 	v[0] = add;
 	v[1] = NULL;
-	return add_strings_to_strings(strings, v);
+	return add_strings_to_strings(strings, v, /*dup:*/ 0);
 }
 
 static void putenv_all(char **strings)
@@ -4644,17 +4645,68 @@ static int builtin_read(char **argv)
 	return set_local_var(string, 0);
 }
 
-/* built-in 'set [VAR=value]' handler */
+/* built-in 'set' handler
+ * SUSv3 says:
+ * set [-abCefmnuvx] [-h] [-o option] [argument...]
+ * set [+abCefmnuvx] [+h] [+o option] [argument...]
+ * set -- [argument...]
+ * set -o
+ * set +o
+ * Implementations shall support the options in both their hyphen and
+ * plus-sign forms. These options can also be specified as options to sh.
+ * Examples:
+ * Write out all variables and their values: set
+ * Set $1, $2, and $3 and set "$#" to 3: set c a b
+ * Turn on the -x and -v options: set -xv
+ * Unset all positional parameters: set --
+ * Set $1 to the value of x, even if it begins with '-' or '+': set -- "$x"
+ * Set the positional parameters to the expansion of x, even if x expands
+ * with a leading '-' or '+': set -- $x
+ *
+ * So far, we only support "set -- [argument...]" by ignoring all options
+ * (also, "-o option" will be mishandled by taking "option" as parameter #1).
+ */
 static int builtin_set(char **argv)
 {
-	char *temp = argv[1];
 	struct variable *e;
+	char **pp;
+	char *arg = *++argv;
 
-	if (temp == NULL)
+	if (arg == NULL) {
 		for (e = G.top_var; e; e = e->next)
 			puts(e->varstr);
-	else
-		set_local_var(xstrdup(temp), 0);
+	} else {
+		/* NB: G.global_argv[0] ($0) is never freed/changed */
+
+		if (G.global_args_malloced) {
+			pp = G.global_argv;
+			while (*++pp)
+				free(*pp);
+			G.global_argv[1] = NULL;
+		} else {
+			G.global_args_malloced = 1;
+			pp = xzalloc(sizeof(pp[0]) * 2);
+			pp[0] = G.global_argv[0]; /* retain $0 */
+			G.global_argv = pp;
+		}
+		do  {
+			if (arg[0] == '+')
+				continue;
+			if (arg[0] != '-')
+				break;
+			if (arg[1] == '-' && arg[2] == '\0') {
+				argv++;
+				break;
+			}
+		} while ((arg = *++argv) != NULL);
+		/* Now argv[0] is 1st argument */
+
+		/* This realloc's G.global_argv */
+		G.global_argv = pp = add_strings_to_strings(G.global_argv, argv, /*dup:*/ 1);
+		G.global_argc = 1;
+		while (*++pp)
+			G.global_argc++;
+	}
 
 	return EXIT_SUCCESS;
 }
