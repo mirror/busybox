@@ -46,7 +46,55 @@ int cp_main(int argc, char **argv)
 	// -R (and therefore -r) turns on -d (coreutils does this)
 	// -a = -pdR
 	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR:HL";
-	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPH");
+	// -v (--verbose) is ignored
+	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPHv");
+	/* Options of cp from GNU coreutils 6.10:
+	 * -a, --archive
+	 * -f, --force
+	 * -i, --interactive
+	 * -l, --link
+	 * -L, --dereference
+	 * -P, --no-dereference
+	 * -R, -r, --recursive
+	 * -s, --symbolic-link
+	 * -v, --verbose
+	 * -H	follow command-line symbolic links in SOURCE
+	 * -d	same as --no-dereference --preserve=links
+	 * -p	same as --preserve=mode,ownership,timestamps
+	 * -c	same as --preserve=context
+	 * NOT SUPPORTED IN BBOX:
+	 * long options are not supported (even those above).
+	 * --backup[=CONTROL]
+	 *	make a backup of each existing destination file
+	 * -b	like --backup but does not accept an argument
+	 * --copy-contents
+	 *	copy contents of special files when recursive
+	 * --preserve[=ATTR_LIST]
+	 *	preserve attributes (default: mode,ownership,timestamps),
+	 *	if possible additional attributes: security context,links,all
+	 * --no-preserve=ATTR_LIST
+	 * --parents
+	 *	use full source file name under DIRECTORY
+	 * --remove-destination
+	 *	remove  each existing destination file before attempting to open
+	 * --sparse=WHEN
+	 *	control creation of sparse files
+	 * --strip-trailing-slashes
+	 *	remove any trailing slashes from each SOURCE argument
+	 * -S, --suffix=SUFFIX
+	 *	override the usual backup suffix
+	 * -t, --target-directory=DIRECTORY
+	 *	copy all SOURCE arguments into DIRECTORY
+	 * -T, --no-target-directory
+	 *	treat DEST as a normal file
+	 * -u, --update
+	 *	copy only when the SOURCE file is newer than the destination
+	 *	file or when the destination file is missing
+	 * -x, --one-file-system
+	 *	stay on this file system
+	 * -Z, --context=CONTEXT
+	 *	(SELinux) set SELinux security context of copy to CONTEXT
+	 */
 	argc -= optind;
 	argv += optind;
 	flags ^= FILEUTILS_DEREFERENCE; /* the sense of this flag was reversed */
