@@ -13878,7 +13878,8 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	if (minusc) {
 		/* evalstring pushes parsefile stack.
 		 * Ensure we don't falsely claim that 0 (stdin)
-		 * is one of stacked source fds */
+		 * is one of stacked source fds.
+		 * Testcase: ash -c 'exec 1>&0' must not complain. */
 		if (!sflag)
 			g_parsefile->fd = -1;
 		evalstring(minusc, 0);
