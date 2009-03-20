@@ -14,6 +14,87 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+/* GNU cpio 2.9 --help (abridged):
+
+ Modes:
+  -t, --list                 List the archive
+  -i, --extract              Extract files from an archive
+  -o, --create               Create the archive
+  -p, --pass-through         Copy-pass mode [was ist das?!]
+
+ Options valid in any mode:
+      --block-size=SIZE      I/O block size = SIZE * 512 bytes
+  -B                         I/O block size = 5120 bytes
+  -c                         Use the old portable (ASCII) archive format
+  -C, --io-size=NUMBER       I/O block size in bytes
+  -f, --nonmatching          Only copy files that do not match given pattern
+  -F, --file=FILE            Use FILE instead of standard input or output
+  -H, --format=FORMAT        Use given archive FORMAT
+  -M, --message=STRING       Print STRING when the end of a volume of the
+                             backup media is reached
+  -n, --numeric-uid-gid      If -v, show numeric UID and GID
+      --quiet                Do not print the number of blocks copied
+      --rsh-command=COMMAND  Use remote COMMAND instead of rsh
+  -v, --verbose              Verbosely list the files processed
+  -V, --dot                  Print a "." for each file processed
+  -W, --warning=FLAG         Control warning display: 'none','truncate','all';
+                             multiple options accumulate
+
+ Options valid only in --extract mode:
+  -b, --swap                 Swap both halfwords of words and bytes of
+                             halfwords in the data (equivalent to -sS)
+  -r, --rename               Interactively rename files
+  -s, --swap-bytes           Swap the bytes of each halfword in the files
+  -S, --swap-halfwords       Swap the halfwords of each word (4 bytes)
+      --to-stdout            Extract files to standard output
+  -E, --pattern-file=FILE    Read additional patterns specifying filenames to
+                             extract or list from FILE
+      --only-verify-crc      Verify CRC's, don't actually extract the files
+
+ Options valid only in --create mode:
+  -A, --append               Append to an existing archive
+  -O FILE                    File to use instead of standard output
+
+ Options valid only in --pass-through mode:
+  -l, --link                 Link files instead of copying them, when possible
+
+ Options valid in --extract and --create modes:
+      --absolute-filenames   Do not strip file system prefix components from
+                             the file names
+      --no-absolute-filenames Create all files relative to the current dir
+
+ Options valid in --create and --pass-through modes:
+  -0, --null                 A list of filenames is terminated by a NUL
+  -a, --reset-access-time    Reset the access times of files after reading them
+  -I FILE                    File to use instead of standard input
+  -L, --dereference          Dereference symbolic links (copy the files
+                             that they point to instead of copying the links)
+  -R, --owner=[USER][:.][GROUP] Set owner of created files
+
+ Options valid in --extract and --pass-through modes:
+  -d, --make-directories     Create leading directories where needed
+  -m, --preserve-modification-time  Retain mtime when creating files
+      --no-preserve-owner    Do not change the ownership of the files
+      --sparse               Write files with blocks of zeros as sparse files
+  -u, --unconditional        Replace all files unconditionally
+ */
+enum {
+	CPIO_OPT_EXTRACT            = (1 << 0),
+	CPIO_OPT_TEST               = (1 << 1),
+	CPIO_OPT_NUL_TERMINATED     = (1 << 2),
+	CPIO_OPT_UNCONDITIONAL      = (1 << 3),
+	CPIO_OPT_VERBOSE            = (1 << 4),
+	CPIO_OPT_CREATE_LEADING_DIR = (1 << 5),
+	CPIO_OPT_PRESERVE_MTIME     = (1 << 6),
+	CPIO_OPT_DEREF              = (1 << 7),
+	CPIO_OPT_FILE               = (1 << 8),
+	CPIO_OPT_CREATE             = (1 << 9) * ENABLE_FEATURE_CPIO_O,
+	CPIO_OPT_FORMAT             = (1 << 10) * ENABLE_FEATURE_CPIO_O,
+	CPIO_OPT_PASSTHROUGH        = (1 << 11) * ENABLE_FEATURE_CPIO_P,
+};
+
+#define OPTION_STR "it0uvdmLF:"
+
 #if ENABLE_FEATURE_CPIO_O
 static off_t cpio_pad4(off_t size)
 {
@@ -49,7 +130,9 @@ static int cpio_o(void)
 		char *line;
 		struct stat st;
 
-		line = xmalloc_fgetline(stdin);
+		line = (option_mask32 & CPIO_OPT_NUL_TERMINATED)
+				? bb_get_chunk_from_file(stdin, NULL)
+				: xmalloc_fgetline(stdin);
 
 		if (line) {
 			/* Strip leading "./[./]..." from the filename */
@@ -62,7 +145,10 @@ static int cpio_o(void)
 				free(line);
 				continue;
 			}
-			if (lstat(name, &st)) {
+			if ((option_mask32 & CPIO_OPT_DEREF)
+					? stat(name, &st)
+					: lstat(name, &st)
+			) {
  abort_cpio_o:
 				bb_simple_perror_msg_and_die(name);
 			}
@@ -179,71 +265,6 @@ static int cpio_o(void)
 }
 #endif
 
-/* GNU cpio 2.9 --help (abridged):
-
- Modes:
-  -i, --extract              Extract files from an archive
-  -o, --create               Create the archive
-  -p, --pass-through         Copy-pass mode [was ist das?!]
-  -t, --list                 List the archive
-
- Options valid in any mode:
-      --block-size=SIZE      I/O block size = SIZE * 512 bytes
-  -B                         I/O block size = 5120 bytes
-  -c                         Use the old portable (ASCII) archive format
-  -C, --io-size=NUMBER       I/O block size in bytes
-  -f, --nonmatching          Only copy files that do not match given pattern
-  -F, --file=FILE            Use FILE instead of standard input or output
-  -H, --format=FORMAT        Use given archive FORMAT
-  -M, --message=STRING       Print STRING when the end of a volume of the
-                             backup media is reached
-  -n, --numeric-uid-gid      If -v, show numeric UID and GID
-      --quiet                Do not print the number of blocks copied
-      --rsh-command=COMMAND  Use remote COMMAND instead of rsh
-  -v, --verbose              Verbosely list the files processed
-  -V, --dot                  Print a "." for each file processed
-  -W, --warning=FLAG         Control warning display: 'none','truncate','all';
-                             multiple options accumulate
-
- Options valid only in --extract mode:
-  -b, --swap                 Swap both halfwords of words and bytes of
-                             halfwords in the data (equivalent to -sS)
-  -r, --rename               Interactively rename files
-  -s, --swap-bytes           Swap the bytes of each halfword in the files
-  -S, --swap-halfwords       Swap the halfwords of each word (4 bytes)
-      --to-stdout            Extract files to standard output
-  -E, --pattern-file=FILE    Read additional patterns specifying filenames to
-                             extract or list from FILE
-      --only-verify-crc      Verify CRC's, don't actually extract the files
-
- Options valid only in --create mode:
-  -A, --append               Append to an existing archive
-  -O FILE                    File to use instead of standard output
-
- Options valid only in --pass-through mode:
-  -l, --link                 Link files instead of copying them, when possible
-
- Options valid in --extract and --create modes:
-      --absolute-filenames   Do not strip file system prefix components from
-                             the file names
-      --no-absolute-filenames Create all files relative to the current dir
-
- Options valid in --create and --pass-through modes:
-  -0, --null                 A list of filenames is terminated by a NUL
-  -a, --reset-access-time    Reset the access times of files after reading them
-  -I FILE                    File to use instead of standard input
-  -L, --dereference          Dereference symbolic links (copy the files
-                             that they point to instead of copying the links)
-  -R, --owner=[USER][:.][GROUP] Set owner of created files
-
- Options valid in --extract and --pass-through modes:
-  -d, --make-directories     Create leading directories where needed
-  -m, --preserve-modification-time  Retain mtime when creating files
-      --no-preserve-owner    Do not change the ownership of the files
-      --sparse               Write files with blocks of zeros as sparse files
-  -u, --unconditional        Replace all files unconditionally
- */
-
 int cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cpio_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -251,18 +272,6 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	char *cpio_filename;
 	USE_FEATURE_CPIO_O(const char *cpio_fmt = "";)
 	unsigned opt;
-	enum {
-		CPIO_OPT_EXTRACT            = (1 << 0),
-		CPIO_OPT_TEST               = (1 << 1),
-		CPIO_OPT_UNCONDITIONAL      = (1 << 2),
-		CPIO_OPT_VERBOSE            = (1 << 3),
-		CPIO_OPT_FILE               = (1 << 4),
-		CPIO_OPT_CREATE_LEADING_DIR = (1 << 5),
-		CPIO_OPT_PRESERVE_MTIME     = (1 << 6),
-		CPIO_OPT_CREATE             = (1 << 7) * ENABLE_FEATURE_CPIO_O,
-		CPIO_OPT_FORMAT             = (1 << 8) * ENABLE_FEATURE_CPIO_O,
-		CPIO_OPT_PASSTHROUGH        = (1 << 9) * ENABLE_FEATURE_CPIO_P,
-	};
 
 #if ENABLE_GETOPT_LONG
 	applet_long_options =
@@ -281,11 +290,12 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* As of now we do not enforce this: */
 	/* -i,-t,-o,-p are mutually exclusive */
 	/* -u,-d,-m make sense only with -i or -p */
-	/* -F makes sense only with -o */
+	/* -L makes sense only with -o or -p */
+
 #if !ENABLE_FEATURE_CPIO_O
-	opt = getopt32(argv, "ituvF:dm", &cpio_filename);
+	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 #else
-	opt = getopt32(argv, "ituvF:dmoH:" USE_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
+	opt = getopt32(argv, OPTION_STR "oH:" USE_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
 	if (opt & CPIO_OPT_PASSTHROUGH) {
 		pid_t pid;
 		struct fd_pair pp;
