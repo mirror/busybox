@@ -260,11 +260,11 @@ static void trace_printf(const char *fmt, ...);
 static void trace_vprintf(const char *fmt, va_list va);
 # define TRACE(param)    trace_printf param
 # define TRACEV(param)   trace_vprintf param
-# define close(f) do { \
-	int dfd = (f); \
+# define close(fd) do { \
+	int dfd = (fd); \
 	if (close(dfd) < 0) \
 		bb_error_msg("bug on %d: closing %d(%x)", \
-			__LINE__, dfd dfd); \
+			__LINE__, dfd, dfd); \
 } while (0)
 #else
 # define TRACE(param)
