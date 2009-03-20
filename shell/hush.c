@@ -1219,8 +1219,13 @@ static int o_glob(o_string *o, int n)
  * Otherwise, just finish current list[] and start new */
 static int o_save_ptr(o_string *o, int n)
 {
-	if (o->o_glob)
-		return o_glob(o, n); /* o_save_ptr_helper is inside */
+	if (o->o_glob) { /* if globbing is requested */
+		/* If o->has_empty_slot, list[n] was already globbed
+		 * (if it was requested back then when it was filled)
+		 * so don't do that again! */
+		if (!o->has_empty_slot)
+			return o_glob(o, n); /* o_save_ptr_helper is inside */
+	}
 	return o_save_ptr_helper(o, n);
 }
 
@@ -4285,6 +4290,11 @@ int hush_main(int argc, char **argv)
 		switch (opt) {
 		case 'c':
 			G.global_argv = argv + optind;
+			if (!argv[optind]) {
+				/* -c 'script' (no params): prevent empty $0 */
+				*--G.global_argv = argv[0];
+				optind--;
+			} /* else -c 'script' PAR0 PAR1: $0 is PAR0 */
 			G.global_argc = argc - optind;
 			opt = parse_and_run_string(optarg, 0 /* parse_flag */);
 			goto final_return;

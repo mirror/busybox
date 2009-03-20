@@ -12,3 +12,6 @@ for a in "$@"""; do echo Should not be printed; done
 for a in """$@"; do echo Should not be printed; done
 for a in """$@"''"$@"''; do echo Should not be printed; done
 for a in ""; do echo Should be printed; done
+
+# Bug 207: "$@" expands to nothing, and we erroneously glob "%s\\n" twice:
+printf "Empty:%s\\n" "$@"
