@@ -28,7 +28,9 @@
 	USE_FEATURE_GREP_CONTEXT("A:B:C:") \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_DESKTOP("w") \
+	USE_EXTRA_COMPAT("z") \
 	"aI"
+	
 /* ignored: -a "assume all files to be text" */
 /* ignored: -I "assume binary files have no matches" */
 
@@ -54,6 +56,7 @@ enum {
 	USE_FEATURE_GREP_CONTEXT(    OPTBIT_C ,) /* -C NUM: -A and -B combined */
 	USE_FEATURE_GREP_EGREP_ALIAS(OPTBIT_E ,) /* extended regexp */
 	USE_DESKTOP(                 OPTBIT_w ,) /* whole word match */
+	USE_EXTRA_COMPAT(            OPTBIT_z ,) /* input is NUL terminated */
 	OPT_l = 1 << OPTBIT_l,
 	OPT_n = 1 << OPTBIT_n,
 	OPT_q = 1 << OPTBIT_q,
@@ -75,6 +78,7 @@ enum {
 	OPT_C = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_C)) + 0,
 	OPT_E = USE_FEATURE_GREP_EGREP_ALIAS((1 << OPTBIT_E)) + 0,
 	OPT_w = USE_DESKTOP(                 (1 << OPTBIT_w)) + 0,
+	OPT_z = USE_EXTRA_COMPAT(            (1 << OPTBIT_z)) + 0,
 };
 
 #define PRINT_FILES_WITH_MATCHES    (option_mask32 & OPT_l)
@@ -84,6 +88,7 @@ enum {
 #define PRINT_MATCH_COUNTS          (option_mask32 & OPT_c)
 #define FGREP_FLAG                  (option_mask32 & OPT_F)
 #define PRINT_FILES_WITHOUT_MATCHES (option_mask32 & OPT_L)
+#define NUL_DELIMITED               (option_mask32 & OPT_z)
 
 struct globals {
 	int max_matches;
@@ -186,7 +191,7 @@ static void print_line(const char *line, size_t line_len, int linenum, char deco
 		puts(line);
 #else
 		fwrite(line, 1, line_len, stdout);
-		putchar('\n');
+		putchar(NUL_DELIMITED ? '\0' : '\n');
 #endif
 	}
 }
@@ -197,12 +202,13 @@ static ssize_t FAST_FUNC bb_getline(char **line_ptr, size_t *line_alloc_len, FIL
 {
 	ssize_t res_sz;
 	char *line;
+	int delim = (NUL_DELIMITED ? '\0' : '\n');
 
-	res_sz = getline(line_ptr, line_alloc_len, file);
+	res_sz = getdelim(line_ptr, line_alloc_len, delim, file);
 	line = *line_ptr;
 
 	if (res_sz > 0) {
-		if (line[res_sz - 1] == '\n')
+		if (line[res_sz - 1] == delim)
 			line[--res_sz] = '\0';
 	} else {
 		free(line); /* uclibc allocates a buffer even on EOF. WTF? */
@@ -407,8 +413,11 @@ static int grep_file(FILE *file)
 #endif
 		/* Did we print all context after last requested match? */
 		if ((option_mask32 & OPT_m)
-		 && !print_n_lines_after && nmatches == max_matches)
+		 && !print_n_lines_after
+		 && nmatches == max_matches
+		) {
 			break;
+		}
 	} /* while (read line) */
 
 	/* special-case file post-processing for options where we don't print line

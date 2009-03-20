@@ -26,7 +26,8 @@ int setsid_main(int argc UNUSED_PARAM, char **argv)
 	 * Otherwise our PID serves as PGID of some existing process group
 	 * and cannot be used as PGID of a new process group. */
 	if (getpgrp() == getpid())
-		forkexit_or_rexec(argv);
+		if (fork_or_rexec(argv))
+			exit(EXIT_SUCCESS); /* parent */
 
 	setsid();  /* no error possible */
 

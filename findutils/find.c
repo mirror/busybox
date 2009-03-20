@@ -381,9 +381,11 @@ static int FAST_FUNC fileAction(const char *fileName,
 {
 	int i;
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-	int maxdepth = (int)(ptrdiff_t)userData;
+#define minmaxdepth ((int*)userData)
 
-	if (depth > maxdepth) return SKIP;
+	if (depth < minmaxdepth[0]) return TRUE;
+	if (depth > minmaxdepth[1]) return SKIP;
+#undef minmaxdepth
 #endif
 
 #if ENABLE_FEATURE_FIND_XDEV
@@ -812,19 +814,21 @@ int find_main(int argc, char **argv)
 	static const char options[] ALIGN1 =
 	                  "-follow\0"
 USE_FEATURE_FIND_XDEV(    "-xdev\0"    )
-USE_FEATURE_FIND_MAXDEPTH("-maxdepth\0")
+USE_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
 	                  ;
 	enum {
 	                  OPT_FOLLOW,
 USE_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
-USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
+USE_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 	};
 
 	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-	int maxdepth = INT_MAX;
+	int minmaxdepth[2] = { 0, INT_MAX };
+#else
+#define minmaxdepth NULL
 #endif
 
 	for (firstopt = 1; firstopt < argc; firstopt++) {
@@ -875,10 +879,10 @@ USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-		if (opt == OPT_MAXDEPTH) {
+		if (opt == OPT_MINDEPTH || opt == OPT_MINDEPTH + 1) {
 			if (!argp[1])
 				bb_show_usage();
-			maxdepth = xatoi_u(argp[1]);
+			minmaxdepth[opt - OPT_MINDEPTH] = xatoi_u(argp[1]);
 			argp[0] = (char*)"-a";
 			argp[1] = (char*)"-a";
 			argp++;
@@ -895,9 +899,7 @@ USE_FEATURE_FIND_MAXDEPTH(OPT_MAXDEPTH,)
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-				/* double cast suppresses
-				 * "cast to ptr from int of different size" */
-				(void*)(ptrdiff_t)maxdepth,/* user data */
+				minmaxdepth,    /* user data */
 #else
 				NULL,           /* user data */
 #endif

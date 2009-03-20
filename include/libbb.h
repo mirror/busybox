@@ -797,9 +797,9 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
  * Both of the above will redirect fd 0,1,2 to /dev/null and drop ctty
  * (will do setsid()).
  *
- * forkexit_or_rexec(argv) = bare-bones "fork + parent exits" on MMU,
+ * fork_or_rexec(argv) = bare-bones "fork" on MMU,
  *      "vfork + re-exec ourself" on NOMMU. No fd redirection, no setsid().
- *      Currently used for setsid only. On MMU ignores argv.
+ *      On MMU ignores argv.
  *
  * Helper for network daemons in foreground mode:
  *
@@ -813,14 +813,14 @@ enum {
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
 };
 #if BB_MMU
-  void forkexit_or_rexec(void) FAST_FUNC;
+  pid_t fork_or_rexec(void) FAST_FUNC;
   enum { re_execed = 0 };
-# define forkexit_or_rexec(argv)            forkexit_or_rexec()
+# define fork_or_rexec(argv)                fork_or_rexec()
 # define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
   void re_exec(char **argv) NORETURN FAST_FUNC;
-  void forkexit_or_rexec(char **argv) FAST_FUNC;
+  pid_t fork_or_rexec(char **argv) FAST_FUNC;
   extern bool re_execed;
   int  BUG_fork_is_unavailable_on_nommu(void) FAST_FUNC;
   int  BUG_daemon_is_unavailable_on_nommu(void) FAST_FUNC;

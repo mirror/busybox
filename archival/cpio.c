@@ -259,8 +259,9 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		CPIO_OPT_FILE               = (1 << 4),
 		CPIO_OPT_CREATE_LEADING_DIR = (1 << 5),
 		CPIO_OPT_PRESERVE_MTIME     = (1 << 6),
-		CPIO_OPT_CREATE             = (1 << 7),
-		CPIO_OPT_FORMAT             = (1 << 8),
+		CPIO_OPT_CREATE             = (1 << 7) * ENABLE_FEATURE_CPIO_O,
+		CPIO_OPT_FORMAT             = (1 << 8) * ENABLE_FEATURE_CPIO_O,
+		CPIO_OPT_PASSTHROUGH        = (1 << 9) * ENABLE_FEATURE_CPIO_P,
 	};
 
 #if ENABLE_GETOPT_LONG
@@ -270,21 +271,66 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_CPIO_O
 		"create\0"       No_argument       "o"
 		"format\0"       Required_argument "H"
+#if ENABLE_FEATURE_CPIO_P
+		"pass-through\0" No_argument       "p"
+#endif
 #endif
 		;
 #endif
 
-	/* Initialize */
-	archive_handle = init_handle();
-	archive_handle->src_fd = STDIN_FILENO;
-	archive_handle->seek = seek_by_read;
-	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
+	/* As of now we do not enforce this: */
+	/* -i,-t,-o,-p are mutually exclusive */
+	/* -u,-d,-m make sense only with -i or -p */
+	/* -F makes sense only with -o */
+#if !ENABLE_FEATURE_CPIO_O
+	opt = getopt32(argv, "ituvF:dm", &cpio_filename);
+#else
+	opt = getopt32(argv, "ituvF:dmoH:" USE_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
+	if (opt & CPIO_OPT_PASSTHROUGH) {
+		pid_t pid;
+		struct fd_pair pp;
 
-#if ENABLE_FEATURE_CPIO_O
-	opt = getopt32(argv, "ituvF:dmoH:", &cpio_filename, &cpio_fmt);
-
+		if (argv[optind] == NULL)
+			bb_show_usage();
+		if (opt & CPIO_OPT_CREATE_LEADING_DIR)
+			mkdir(argv[optind], 0777);
+		/* Crude existence check:
+		 * close(xopen(argv[optind], O_RDONLY | O_DIRECTORY));
+		 * We can also xopen, fstat, IS_DIR, later fchdir.
+		 * This would check for existence earlier and cleaner.
+		 * As it stands now, if we fail xchdir later,
+		 * child dies on EPIPE, unless it caught
+		 * a diffrerent problem earlier.
+		 * This is good enough for now.
+		 */
+#if !BB_MMU
+		pp.rd = 3;
+		pp.wr = 4;
+		if (!re_execed) {
+			close(3);
+			close(4);
+			xpiped_pair(pp);
+		}
+#else
+		xpiped_pair(pp);
+#endif
+		pid = fork_or_rexec(argv);
+		if (pid == 0) { /* child */
+			close(pp.rd);
+			xmove_fd(pp.wr, STDOUT_FILENO);
+			goto dump;
+		}
+		/* parent */
+		xchdir(argv[optind++]);
+		close(pp.wr);
+		xmove_fd(pp.rd, STDIN_FILENO);
+		opt &= ~CPIO_OPT_PASSTHROUGH;
+		opt |= CPIO_OPT_EXTRACT;
+		goto skip;
+	}
+	/* -o */
 	if (opt & CPIO_OPT_CREATE) {
-		if (*cpio_fmt != 'n')
+		if (*cpio_fmt != 'n') /* we _require_ "-H newc" */
 			bb_show_usage();
 		if (opt & CPIO_OPT_FILE) {
 			fclose(stdout);
@@ -292,12 +338,17 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 			/* Paranoia: I don't trust libc that much */
 			xdup2(fileno(stdout), STDOUT_FILENO);
 		}
+ dump:
 		return cpio_o();
 	}
-#else
-	opt = getopt32(argv, "ituvF:dm", &cpio_filename);
+ skip:
 #endif
 	argv += optind;
+
+	archive_handle = init_handle();
+	archive_handle->src_fd = STDIN_FILENO;
+	archive_handle->seek = seek_by_read;
+	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
 
 	/* One of either extract or test options must be given */
 	if ((opt & (CPIO_OPT_TEST | CPIO_OPT_EXTRACT)) == 0) {
@@ -306,9 +357,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & CPIO_OPT_TEST) {
 		/* if both extract and test options are given, ignore extract option */
-		if (opt & CPIO_OPT_EXTRACT) {
-			opt &= ~CPIO_OPT_EXTRACT;
-		}
+		opt &= ~CPIO_OPT_EXTRACT;
 		archive_handle->action_header = header_list;
 	}
 	if (opt & CPIO_OPT_EXTRACT) {

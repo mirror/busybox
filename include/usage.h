@@ -531,24 +531,29 @@
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
-       "-[dim" USE_FEATURE_CPIO_O("o") "tuv][F cpiofile]" \
-       USE_FEATURE_CPIO_O( "[H newc]" )
+       "-[ti" USE_FEATURE_CPIO_O("o") USE_FEATURE_CPIO_P("p") "dmvu] [-F FILE]" \
+       USE_FEATURE_CPIO_O( " [-H newc]" )
 #define cpio_full_usage "\n\n" \
        "Extract or list files from a cpio archive" \
 	USE_FEATURE_CPIO_O( ", or create a cpio archive" ) \
-     "\n" \
-       "Main operation mode:" \
-     "\n	d	Make leading directories" \
-     "\n	i	Extract" \
-     "\n	m	Preserve mtime" \
+     "\nMain operation mode:" \
+     "\n	-t	List" \
+     "\n	-i	Extract" \
 	USE_FEATURE_CPIO_O( \
-     "\n	o	Create" \
-     "\n	H newc	Define format" \
+     "\n	-o	Create" \
 	) \
-     "\n	t	List" \
-     "\n	v	Verbose" \
-     "\n	u	Unconditional overwrite" \
-     "\n	F	Input from file" \
+	USE_FEATURE_CPIO_P( \
+     "\n	-p	Passthrough" \
+	) \
+     "\nOptions:" \
+     "\n	-d	Make leading directories" \
+     "\n	-m	Preserve mtime" \
+     "\n	-v	Verbose" \
+     "\n	-u	Overwrite" \
+     "\n	-F	Input file" \
+	USE_FEATURE_CPIO_O( \
+     "\n	-H	Define format" \
+	) \
 
 #define crond_trivial_usage \
        "-fbS -l N " USE_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
@@ -1167,6 +1172,7 @@
 	USE_FEATURE_FIND_MAXDEPTH( \
      "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies" \
      "\n			tests/actions to command line arguments only") \
+     "\n	-mindepth N	Do not act on first N levels" \
      "\n	-name PATTERN	File name (w/o directory name) matches PATTERN" \
      "\n	-iname PATTERN	Case insensitive -name" \
 	USE_FEATURE_FIND_PATH( \
@@ -1425,6 +1431,7 @@
        "eF" \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_FEATURE_GREP_CONTEXT("ABC") \
+	USE_EXTRA_COMPAT("z") \
        "] PATTERN [FILEs...]"
 #define grep_full_usage "\n\n" \
        "Search for PATTERN in each FILE or standard input\n" \
@@ -1453,6 +1460,8 @@
      "\n	-A	Print NUM lines of trailing context" \
      "\n	-B	Print NUM lines of leading context" \
      "\n	-C	Print NUM lines of output context") \
+	USE_EXTRA_COMPAT( \
+     "\n	-z	Input is NUL terminated") \
 
 #define grep_example_usage \
        "$ grep root /etc/passwd\n" \
