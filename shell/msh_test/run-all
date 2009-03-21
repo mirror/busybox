@@ -1,8 +1,8 @@
 #!/bin/sh
 
 test -x msh || {
-    echo "No ./msh?! Perhaps you want to run 'ln -s ../../busybox msh'"
-    exit
+    echo "No ./msh - creating a link to ../../busybox"
+    ln -s ../../busybox msh
 }
 
 PATH="$PWD:$PATH" # for msh
