@@ -2801,7 +2801,7 @@ static char *expand_string_to_string(const char *str)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
 	/* actually, just move string 2*sizeof(char*) bytes back */
-	strcpy((char*)list, list[0]);
+	overlapping_strcpy((char*)list, list[0]);
 	debug_printf_expand("string_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
@@ -2823,7 +2823,7 @@ static char* expand_strvec_to_string(char **argv)
 			n++;
 		}
 	}
-	strcpy((char*)list, list[0]);
+	overlapping_strcpy((char*)list, list[0]);
 	debug_printf_expand("strvec_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
