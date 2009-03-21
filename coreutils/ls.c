@@ -76,7 +76,7 @@ LIST_ID_NAME    = 1 << 4,
 LIST_ID_NUMERIC = 1 << 5,
 LIST_CONTEXT    = 1 << 6,
 LIST_SIZE       = 1 << 7,
-LIST_DEV        = 1 << 8,
+//LIST_DEV        = 1 << 8, - unused, synonym to LIST_SIZE
 LIST_DATE_TIME  = 1 << 9,
 LIST_FULLTIME   = 1 << 10,
 LIST_FILENAME   = 1 << 11,
@@ -741,8 +741,8 @@ static int print_name(const char *name)
 
 static int list_single(const struct dnode *dn)
 {
-	int i, column = 0;
-
+	int column = 0;
+	char *lpath;
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	char *filetime;
 	time_t ttime, age;
@@ -767,127 +767,123 @@ static int list_single(const struct dnode *dn)
 	append = append_char(dn->dstat.st_mode);
 #endif
 
-	for (i = 0; i <= 31; i++) {
-		switch (all_fmt & (1 << i)) {
-		case LIST_INO:
-			column += printf("%7lu ", (long) dn->dstat.st_ino);
-			break;
-		case LIST_BLOCKS:
-			column += printf("%4"OFF_FMT"u ", (off_t) dn->dstat.st_blocks >> 1);
-			break;
-		case LIST_MODEBITS:
-			column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
-			break;
-		case LIST_NLINKS:
-			column += printf("%4lu ", (long) dn->dstat.st_nlink);
-			break;
-		case LIST_ID_NAME:
+	/* Do readlink early, so that if it fails, error message
+	 * does not appear *inside* of the "ls -l" line */
+	if (all_fmt & LIST_SYMLINK)
+		if (S_ISLNK(dn->dstat.st_mode))
+			lpath = xmalloc_readlink_or_warn(dn->fullname);
+
+	if (all_fmt & LIST_INO)
+		column += printf("%7lu ", (long) dn->dstat.st_ino);
+	if (all_fmt & LIST_BLOCKS)
+		column += printf("%4"OFF_FMT"u ", (off_t) dn->dstat.st_blocks >> 1);
+	if (all_fmt & LIST_MODEBITS)
+		column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
+	if (all_fmt & LIST_NLINKS)
+		column += printf("%4lu ", (long) dn->dstat.st_nlink);
 #if ENABLE_FEATURE_LS_USERNAME
-			if (option_mask32 & OPT_g) {
-				printf("%-8.8s",
-					get_cached_username(dn->dstat.st_uid));
-				column += 9;
-				break;
-			}
-			printf("%-8.8s %-8.8s",
+	if (all_fmt & LIST_ID_NAME) {
+		if (option_mask32 & OPT_g) {
+			column += printf("%-8.8s",
+				get_cached_username(dn->dstat.st_uid));
+		} else {
+			column += printf("%-8.8s %-8.8s",
 				get_cached_username(dn->dstat.st_uid),
 				get_cached_groupname(dn->dstat.st_gid));
-			column += 17;
-			break;
+		}
+	}
 #endif
-		case LIST_ID_NUMERIC:
-			column += printf("%-8u %-8u", dn->dstat.st_uid, dn->dstat.st_gid);
-			break;
-		case LIST_SIZE:
-		case LIST_DEV:
-			if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
-				column += printf("%4u, %3u ", (int) major(dn->dstat.st_rdev),
-					   (int) minor(dn->dstat.st_rdev));
+	if (all_fmt & LIST_ID_NUMERIC) {
+		if (option_mask32 & OPT_g)
+			column += printf("%-8u", (int) dn->dstat.st_uid);
+		else
+			column += printf("%-8u %-8u",
+					(int) dn->dstat.st_uid,
+					(int) dn->dstat.st_gid);
+	}
+	if (all_fmt & (LIST_SIZE /*|LIST_DEV*/ )) {
+		if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
+			column += printf("%4u, %3u ",
+					(int) major(dn->dstat.st_rdev),
+					(int) minor(dn->dstat.st_rdev));
+		} else {
+			if (all_fmt & LS_DISP_HR) {
+				column += printf("%9s ",
+					make_human_readable_str(dn->dstat.st_size, 1, 0));
 			} else {
-				if (all_fmt & LS_DISP_HR) {
-					column += printf("%9s ",
-						make_human_readable_str(dn->dstat.st_size, 1, 0));
-				} else {
-					column += printf("%9"OFF_FMT"u ", (off_t) dn->dstat.st_size);
-				}
+				column += printf("%9"OFF_FMT"u ", (off_t) dn->dstat.st_size);
 			}
-			break;
+		}
+	}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
-		case LIST_FULLTIME:
-			printf("%24.24s ", filetime);
-			column += 25;
-			break;
-		case LIST_DATE_TIME:
-			if ((all_fmt & LIST_FULLTIME) == 0) {
-				/* current_time_t ~== time(NULL) */
-				age = current_time_t - ttime;
-				printf("%6.6s ", filetime + 4);
-				if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
-					/* hh:mm if less than 6 months old */
-					printf("%5.5s ", filetime + 11);
-				} else {
-					printf(" %4.4s ", filetime + 20);
-				}
-				column += 13;
+	if (all_fmt & LIST_FULLTIME)
+		column += printf("%24.24s ", filetime);
+	if (all_fmt & LIST_DATE_TIME)
+		if ((all_fmt & LIST_FULLTIME) == 0) {
+			/* current_time_t ~== time(NULL) */
+			age = current_time_t - ttime;
+			printf("%6.6s ", filetime + 4);
+			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
+				/* hh:mm if less than 6 months old */
+				printf("%5.5s ", filetime + 11);
+			} else {
+				printf(" %4.4s ", filetime + 20);
 			}
-			break;
+			column += 13;
+		}
 #endif
 #if ENABLE_SELINUX
-		case LIST_CONTEXT:
-			column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
-			freecon(dn->sid);
-			break;
+	if (all_fmt & LIST_CONTEXT) {
+		column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
+		freecon(dn->sid);
+	}
 #endif
-		case LIST_FILENAME:
+	if (all_fmt & LIST_FILENAME) {
 #if ENABLE_FEATURE_LS_COLOR
-			if (show_color) {
-				info.st_mode = 0; /* for fgcolor() */
-				lstat(dn->fullname, &info);
-				printf("\033[%u;%um", bold(info.st_mode),
-						fgcolor(info.st_mode));
+		if (show_color) {
+			info.st_mode = 0; /* for fgcolor() */
+			lstat(dn->fullname, &info);
+			printf("\033[%u;%um", bold(info.st_mode),
+					fgcolor(info.st_mode));
+		}
+#endif
+		column += print_name(dn->name);
+		if (show_color) {
+			printf("\033[0m");
+		}
+	}
+	if (all_fmt & LIST_SYMLINK) {
+		if (S_ISLNK(dn->dstat.st_mode) && lpath) {
+			printf(" -> ");
+#if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
+#if ENABLE_FEATURE_LS_COLOR
+			info.st_mode = 0; /* for fgcolor() */
+#endif
+			if (stat(dn->fullname, &info) == 0) {
+				append = append_char(info.st_mode);
 			}
 #endif
-			column += print_name(dn->name);
+#if ENABLE_FEATURE_LS_COLOR
+			if (show_color) {
+				printf("\033[%u;%um", bold(info.st_mode),
+					   fgcolor(info.st_mode));
+			}
+#endif
+			column += print_name(lpath) + 4;
 			if (show_color) {
 				printf("\033[0m");
 			}
-			break;
-		case LIST_SYMLINK:
-			if (S_ISLNK(dn->dstat.st_mode)) {
-				char *lpath = xmalloc_readlink_or_warn(dn->fullname);
-				if (!lpath) break;
-				printf(" -> ");
-#if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-#if ENABLE_FEATURE_LS_COLOR
-				info.st_mode = 0; /* for fgcolor() */
-#endif
-				if (stat(dn->fullname, &info) == 0) {
-					append = append_char(info.st_mode);
-				}
-#endif
-#if ENABLE_FEATURE_LS_COLOR
-				if (show_color) {
-					printf("\033[%u;%um", bold(info.st_mode),
-						   fgcolor(info.st_mode));
-				}
-#endif
-				column += print_name(lpath) + 4;
-				if (show_color) {
-					printf("\033[0m");
-				}
-				free(lpath);
-			}
-			break;
-#if ENABLE_FEATURE_LS_FILETYPES
-		case LIST_FILETYPE:
-			if (append) {
-				putchar(append);
-				column++;
-			}
-			break;
-#endif
+			free(lpath);
 		}
 	}
+#if ENABLE_FEATURE_LS_FILETYPES
+	if (all_fmt & LIST_FILETYPE) {
+		if (append) {
+			putchar(append);
+			column++;
+		}
+	}
+#endif
 
 	return column;
 }
