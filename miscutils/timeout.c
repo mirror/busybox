@@ -48,7 +48,7 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	/* -t SECONDS; -p PARENT_PID */
 	opt_complementary = "t+" USE_FOR_NOMMU(":p+");
 	/* '+': stop at first non-option */
-	getopt32(argv, "+s:t" USE_FOR_NOMMU(":p:"), &opt_s, &timeout, &parent);
+	getopt32(argv, "+s:t:" USE_FOR_NOMMU("p:"), &opt_s, &timeout, &parent);
 	/*argv += optind; - no, wait for bb_daemonize_or_rexec! */
 	signo = get_signum(opt_s);
 	if (signo < 0)
