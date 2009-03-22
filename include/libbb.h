@@ -1187,9 +1187,9 @@ unsigned long long bb_makedev(unsigned int major, unsigned int minor) FAST_FUNC;
 #if ENABLE_FEATURE_EDITING
 /* It's NOT just ENABLEd or disabled. It's a number: */
 #ifdef CONFIG_FEATURE_EDITING_HISTORY
-#define MAX_HISTORY (CONFIG_FEATURE_EDITING_HISTORY + 0)
+# define MAX_HISTORY (CONFIG_FEATURE_EDITING_HISTORY + 0)
 #else
-#define MAX_HISTORY 0
+# define MAX_HISTORY 0
 #endif
 typedef struct line_input_t {
 	int flags;
@@ -1197,7 +1197,11 @@ typedef struct line_input_t {
 #if MAX_HISTORY
 	int cnt_history;
 	int cur_history;
-	USE_FEATURE_EDITING_SAVEHISTORY(const char *hist_file;)
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
+	unsigned cnt_history_in_file;
+	off_t last_history_end;
+	const char *hist_file;
+#endif
 	char *history[MAX_HISTORY + 1];
 #endif
 } line_input_t;
