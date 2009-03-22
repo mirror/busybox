@@ -471,8 +471,10 @@ struct globals {
 	smallint fake_mode;
 	/* these three support $?, $#, and $1 */
 	smalluint last_return_code;
+	/* is global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
-	int global_argc; /* NB: $# + 1 */
+	/* how many non-NULL argv's we have. NB: $# + 1 */
+	int global_argc;
 	char **global_argv;
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
@@ -4728,9 +4730,14 @@ static int builtin_shift(char **argv)
 		n = atoi(argv[1]);
 	}
 	if (n >= 0 && n < G.global_argc) {
-		G.global_argv[n] = G.global_argv[0];
+		if (G.global_args_malloced) {
+			int m = 1;
+			while (m <= n)
+				free(G.global_argv[m++]);
+		}
 		G.global_argc -= n;
-		G.global_argv += n;
+		memmove(&G.global_argv[1], &G.global_argv[n+1],
+				G.global_argc * sizeof(G.global_argv[0]));
 		return EXIT_SUCCESS;
 	}
 	return EXIT_FAILURE;
