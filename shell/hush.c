@@ -3363,6 +3363,9 @@ static int redirect_opt_num(o_string *o)
 	return num;
 }
 
+static int parse_stream(o_string *dest, struct parse_context *ctx,
+		struct in_str *input0, const char *end_trigger);
+
 #if ENABLE_HUSH_TICK
 static FILE *generate_stream_from_list(struct pipe *head)
 {
@@ -3406,9 +3409,6 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	return pf;
 	/* 'head' is freed by the caller */
 }
-
-static int parse_stream(o_string *dest, struct parse_context *ctx,
-		struct in_str *input0, const char *end_trigger);
 
 /* Return code is exit status of the process that is run. */
 static int process_command_subs(o_string *dest,
