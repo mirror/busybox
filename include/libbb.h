@@ -1199,7 +1199,6 @@ typedef struct line_input_t {
 	int cur_history;
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	unsigned cnt_history_in_file;
-	off_t last_history_end;
 	const char *hist_file;
 #endif
 	char *history[MAX_HISTORY + 1];
@@ -1215,6 +1214,7 @@ enum {
 	FOR_SHELL = DO_HISTORY | SAVE_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
 };
 line_input_t *new_line_input_t(int flags) FAST_FUNC;
+/* so far static: void free_line_input_t(line_input_t *n) FAST_FUNC; */
 /* Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
  * 0  on ctrl-C (the line entered is still returned in 'command'),
