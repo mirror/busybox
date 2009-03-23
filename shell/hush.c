@@ -4313,10 +4313,6 @@ int hush_main(int argc, char **argv)
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);
 		}
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
-		printf("Enter 'help' for a list of built-in commands.\n\n");
-#endif
 	}
 #elif ENABLE_HUSH_INTERACTIVE
 /* no job control compiled, only prompt/line editing */
@@ -4337,6 +4333,11 @@ int hush_main(int argc, char **argv)
 		}
 	}
 #endif
+
+	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G.interactive_fd) {
+		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
+		printf("Enter 'help' for a list of built-in commands.\n\n");
+	}
 
 	if (argv[optind] == NULL) {
 		opt = parse_and_run_file(stdin);
