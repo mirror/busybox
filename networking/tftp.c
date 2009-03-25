@@ -589,10 +589,15 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (!local_file)
-		local_file = remote_file;
-	if (!remote_file)
+	if (remote_file) {
+		if (!local_file) {
+			const char *slash = strrchr(remote_file, '/');
+			local_file = slash ? slash + 1 : remote_file;
+		}
+	} else {
 		remote_file = local_file;
+	}
+
 	/* Error if filename or host is not known */
 	if (!remote_file || !argv[0])
 		bb_show_usage();
