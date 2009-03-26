@@ -94,11 +94,6 @@
 #warning For more info see shell/hush.c, generate_stream_from_list().
 #endif
 
-#if !BB_MMU && ENABLE_HUSH_JOB
-#undef ENABLE_HUSH_JOB
-#define ENABLE_HUSH_JOB 0
-#endif
-
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
 #define ENABLE_FEATURE_EDITING 0
@@ -810,6 +805,12 @@ static void handler_ctrl_z(int sig UNUSED_PARAM)
 	pid_t pid;
 
 	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
+
+	if (!BB_MMU) {
+		fputs("Sorry, backgrounding (CTRL+Z) of foreground scripts not supported on nommu\n", stderr);
+		return;
+	}
+
 	pid = fork();
 	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
 		return;
