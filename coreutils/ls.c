@@ -742,7 +742,7 @@ static int print_name(const char *name)
 static int list_single(const struct dnode *dn)
 {
 	int column = 0;
-	char *lpath;
+	char *lpath = lpath; /* for compiler */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	char *filetime;
 	time_t ttime, age;

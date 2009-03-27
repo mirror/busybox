@@ -27,13 +27,14 @@ int rm_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 
 	opt_complementary = "f-i:i-f";
-	opt = getopt32(argv, "fiRr");
+	/* -v (verbose) is ignored */
+	opt = getopt32(argv, "fiRrv");
 	argv += optind;
 	if (opt & 1)
 		flags |= FILEUTILS_FORCE;
 	if (opt & 2)
 		flags |= FILEUTILS_INTERACTIVE;
-	if (opt & 12)
+	if (opt & (8|4))
 		flags |= FILEUTILS_RECUR;
 
 	if (*argv != NULL) {
