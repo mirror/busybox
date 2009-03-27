@@ -104,7 +104,7 @@ int tail_main(int argc, char **argv)
 	if (argv[1] && (argv[1][0] == '+' || argv[1][0] == '-')
 	 && isdigit(argv[1][1])
 	) {
-		count = eat_num(&argv[1][1]);
+		count = eat_num(argv[1]);
 		argv++;
 		argc--;
 	}
