@@ -327,6 +327,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 					volume_size_bytes >= ((off_t)8)*1024*1024*1024 ? 16 :
 					volume_size_bytes >=        260*1024*1024 ? 8 : 1;
 		} else {
+			// floppy, loop, or regular file
 			int not_floppy = ioctl(dev, FDGETPRM, &param);
 			if (not_floppy == 0) {
 				// floppy disk
@@ -367,12 +368,14 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// Calculate number of clusters, sectors/cluster, sectors/FAT
 	// (an initial guess for sect_per_clust should already be set)
 	//
-	if ((off_t)(volume_size_sect - reserved_sect) < 16) // arbitrary limit
+	// "mkdosfs -v -F 32 image5k 5" is the minimum:
+	// 2 sectors for FATs and 2 data sectors
+	if ((off_t)(volume_size_sect - reserved_sect) < 4)
 		bb_error_msg_and_die("the image is too small for FAT32");
 	sect_per_fat = 1;
 	while (1) {
 		while (1) {
-			unsigned spf;
+			int spf_adj;
 			off_t tcl = (volume_size_sect - reserved_sect - NUM_FATS * sect_per_fat) / sect_per_clust;
 			// tcl may be > MAX_CLUST_32 here, but it may be
 			// because sect_per_fat is underestimated,
@@ -382,8 +385,13 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			if (tcl > 0x7fffffff)
 				goto next;
 			total_clust = tcl; // fits in uint32_t
-			spf = ((total_clust + 2) * 4 + bytes_per_sect - 1) / bytes_per_sect;
-			if (spf <= sect_per_fat) {
+			spf_adj = ((total_clust + 2) * 4 + bytes_per_sect - 1) / bytes_per_sect - sect_per_fat;
+#if 0
+			bb_error_msg("sect_per_clust:%u sect_per_fat:%u total_clust:%u",
+					sect_per_clust, sect_per_fat, (int)tcl);
+			bb_error_msg("adjust to sect_per_fat:%d", spf_adj);
+#endif
+			if (spf_adj <= 0) {
 				// do not need to adjust sect_per_fat.
 				// so, was total_clust too big after all?
 				if (total_clust <= MAX_CLUST_32)
@@ -392,7 +400,8 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 				goto next;
 			}
 			// adjust sect_per_fat, go back and recalc total_clust
-			sect_per_fat = spf;
+			// (note: just "sect_per_fat += spf_adj" isn't ok)
+			sect_per_fat += ((unsigned)spf_adj / 2) | 1;
 		}
  next:
 		if (sect_per_clust == 128)
@@ -409,7 +418,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		fprintf(stderr,
 			"Device '%s':\n"
 			"heads:%u, sectors/track:%u, bytes/sector:%u\n"
-			"media descriptor:0x%02x\n"
+			"media descriptor:%02x\n"
 			"total sectors:%"OFF_FMT"u, clusters:%u, sectors/cluster:%u\n"
 			"FATs:2, sectors/FAT:%u\n"
 			"volumeID:%08x, label:'%s'\n",
