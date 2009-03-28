@@ -198,7 +198,6 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	char *buf;
 	char *device_name;
 	uoff_t volume_size_bytes;
-	uoff_t volume_size_blocks;
 	uoff_t volume_size_sect;
 	uint32_t total_clust;
 	uint32_t volume_id;
@@ -293,7 +292,6 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg_and_die("image size is too big");
 		volume_size_bytes *= 1024;
 	}
-	volume_size_blocks = (volume_size_bytes >> BLOCK_SIZE_BITS);
 	volume_size_sect = volume_size_bytes / bytes_per_sect;
 
 	//
@@ -325,9 +323,9 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			 * fs size <=  16G: 8k clusters
 			 * fs size >   16G: 16k clusters
 			 */
-			sect_per_clust = volume_size_bytes > ((off_t)16)*1024*1024*1024 ? 32 :
-					volume_size_bytes > ((off_t)8)*1024*1024*1024 ? 16 :
-					volume_size_bytes >        260*1024*1024 ? 8 : 1;
+			sect_per_clust = volume_size_bytes >= ((off_t)16)*1024*1024*1024 ? 32 :
+					volume_size_bytes >= ((off_t)8)*1024*1024*1024 ? 16 :
+					volume_size_bytes >=        260*1024*1024 ? 8 : 1;
 		} else {
 			int not_floppy = ioctl(dev, FDGETPRM, &param);
 			if (not_floppy == 0) {
@@ -531,6 +529,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 
 #if 0
 	if (opts & OPT_c) {
+		uoff_t volume_size_blocks;
 		unsigned start_data_sector;
 		unsigned start_data_block;
 		unsigned badblocks = 0;
@@ -538,6 +537,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		off_t currently_testing;
 		char *blkbuf = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
 
+		volume_size_blocks = (volume_size_bytes >> BLOCK_SIZE_BITS);
 		// N.B. the two following vars are in hard sectors, i.e. SECTOR_SIZE byte sectors!
 		start_data_sector = (reserved_sect + NUM_FATS * sect_per_fat) * (bytes_per_sect / SECTOR_SIZE);
 		start_data_block = (start_data_sector + SECTORS_PER_BLOCK - 1) / SECTORS_PER_BLOCK;
