@@ -89,7 +89,9 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd pw;
 	const char *usegroup = NULL;
 	FILE *file;
+#if ENABLE_FEATURE_SHADOWPASSWDS
 	int fd;
+#endif
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
 	applet_long_options = adduser_longopts;

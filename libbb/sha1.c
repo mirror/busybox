@@ -196,12 +196,11 @@ static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 
 	/* The actual computation according to FIPS 180-2:6.2.2 step 3.  */
 	for (t = 0; t < 64; ++t) {
-		/* Need to fetch upper half of sha_K[t] */
-#if BB_BIG_ENDIAN
-		uint32_t K_t = ((uint32_t*)(sha_K + t))[0];
-#else
-		uint32_t K_t = ((uint32_t*)(sha_K + t))[1];
-#endif
+		/* Need to fetch upper half of sha_K[t]
+		 * (I hope compiler is clever enough to just fetch
+		 * upper half)
+		 */
+		uint32_t K_t = sha_K[t] >> 32;
 		uint32_t T1 = h + S1(e) + Ch(e, f, g) + K_t + W[t];
 		uint32_t T2 = S0(a) + Maj(a, b, c);
 		h = g;

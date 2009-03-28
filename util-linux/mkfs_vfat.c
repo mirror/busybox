@@ -323,9 +323,20 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			 * fs size <=  16G: 8k clusters
 			 * fs size >   16G: 16k clusters
 			 */
-			sect_per_clust = volume_size_bytes >= ((off_t)16)*1024*1024*1024 ? 32 :
-					volume_size_bytes >= ((off_t)8)*1024*1024*1024 ? 16 :
-					volume_size_bytes >=        260*1024*1024 ? 8 : 1;
+			sect_per_clust = 1;
+			if (volume_size_bytes >= 260*1024*1024) {
+				sect_per_clust = 8;
+				/* fight gcc: */
+				/* "error: integer overflow in expression" */
+				/* "error: right shift count >= width of type" */
+				if (sizeof(off_t) > 4) {
+					unsigned t = (volume_size_bytes >> 31 >> 1);
+					if (t >= 8/4)
+						sect_per_clust = 16;
+					if (t >= 16/4)
+						sect_per_clust = 32;
+				}
+			}
 		} else {
 			// floppy, loop, or regular file
 			int not_floppy = ioctl(dev, FDGETPRM, &param);
