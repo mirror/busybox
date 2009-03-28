@@ -4448,10 +4448,12 @@ int hush_main(int argc, char **argv)
 	}
 #endif
 
-	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G.interactive_fd) {
+#if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_SH_EXTRA_QUIET
+	if (G.interactive_fd) {
 		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 	}
+#endif
 
 	if (argv[optind] == NULL) {
 		opt = parse_and_run_file(stdin);
