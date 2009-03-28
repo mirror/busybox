@@ -244,7 +244,7 @@ config HUSH_CASE
 	  Enable case ... esac statement in hush. +400 bytes.
 
 config LASH
-	bool "lash"
+	bool "lash (deprecated: aliased to hush)"
 	default n
 	select HUSH
 	help
