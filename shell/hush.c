@@ -4238,7 +4238,8 @@ int hush_main(int argc, char **argv)
 	}
 	input = stdin;
 
-	while ((opt = getopt(argc, argv, "c:xin")) > 0) {
+	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
+	while ((opt = getopt(argc, argv, "c:xins")) > 0) {
 		switch (opt) {
 		case 'c':
 			G.global_argv = argv + optind;
@@ -4257,6 +4258,10 @@ int hush_main(int argc, char **argv)
 			break;
 		case 'n':
 			G.fake_mode = 1;
+			break;
+		case 's':
+			/* "-s" means "read from stdin", but this is how we always
+			 * operate, so simply do nothing here. */
 			break;
 		default:
 #ifndef BB_VER
