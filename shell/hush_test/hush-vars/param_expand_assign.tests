@@ -1,0 +1,38 @@
+# first try some invalid patterns (do in subshell due to parsing error)
+hush -c 'echo ${=}'
+hush -c 'echo ${:=}'
+
+# now some funky ones
+hush -c 'echo ${#=}'
+hush -c 'echo ${#:=}'
+
+# should error out
+hush -c 'set --; echo _${1=}'
+hush -c 'set --; echo _${1:=}'
+hush -c 'set --; echo _${1=word}'
+hush -c 'set --; echo _${1:=word}'
+
+# should not error
+hush -c 'set aa; echo _${1=}'
+hush -c 'set aa; echo _${1:=}'
+hush -c 'set aa; echo _${1=word}'
+hush -c 'set aa; echo _${1:=word}'
+
+# should work fine
+unset f; echo _$f
+unset f; echo _${f=}
+unset f; echo _${f:=}
+unset f; echo _${f=word}
+unset f; echo _${f:=word}
+
+f=; echo _$f
+f=; echo _${f=}
+f=; echo _${f:=}
+f=; echo _${f=word}
+f=; echo _${f:=word}
+
+f=fff; echo _$f
+f=fff; echo _${f=}
+f=fff; echo _${f:=}
+f=fff; echo _${f=word}
+f=fff; echo _${f:=word}

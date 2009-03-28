@@ -1,0 +1,29 @@
+hush: syntax error: unterminated ${name}
+hush: syntax error: unterminated ${name}
+0
+0
+_
+hush: 1: parameter null or not set
+hush: 1: parameter null or not set
+hush: 1: word
+hush: 1: word
+_aaaa
+_aaaa
+_aaaa
+_aaaa
+_aaaa
+_
+hush: f: parameter null or not set
+hush: f: parameter null or not set
+hush: f: word
+hush: f: word
+_
+_
+hush: f: parameter null or not set
+_
+hush: f: word
+_fff
+_fff
+_fff
+_fff
+_fff
