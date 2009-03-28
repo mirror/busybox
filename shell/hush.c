@@ -36,18 +36,20 @@
  * handle the recursion implicit in the various substitutions, especially
  * across continuation lines.
  *
- * Bash grammar not implemented: (how many of these were in original sh?)
- *      $_
- *      &> and >& redirection of stdout+stderr
- *      Brace Expansion
- *      Tilde Expansion
- *      fancy forms of Parameter Expansion
+ * POSIX syntax not implemented:
  *      aliases
  *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
- *      reserved words: select, function
  *      Here Documents ( << word )
  *      Functions
+ *      Tilde Expansion
+ *      fancy forms of Parameter Expansion: ${var:-val}
+ *
+ * Bash stuff maybe optional enable:
+ *      &> and >& redirection of stdout+stderr
+ *      Brace expansion
+ *      reserved words: [[ ]] function select
+ *
  * Major bugs:
  *      job handling woefully incomplete and buggy (improved --vda)
  * to-do:
