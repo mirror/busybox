@@ -1647,6 +1647,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 
 			/* lookup the variable in question */
 			if (isdigit(var[0])) {
+				/* handle_dollar() should have vetted var for us */
 				i = xatoi_u(var);
 				if (i < G.global_argc)
 					val = G.global_argv[i];
@@ -3726,22 +3727,33 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		case '@': /* args */
 			goto make_one_char_var;
 		case '{': {
-			bool first_char;
+			bool first_char, all_digits;
 
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			i_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
 			expansion = 0;
 			first_char = true;
+			all_digits = false;
 			while (1) {
 				ch = i_getch(input);
 				if (ch == '}')
 					break;
 
-				if (ch == '#' && first_char)
-					/* ${#var}: length of var contents */;
+				if (first_char) {
+					if (ch == '#')
+						/* ${#var}: length of var contents */
+						goto char_ok;
+					else if (isdigit(ch)) {
+						all_digits = true;
+						goto char_ok;
+					}
+				}
 
-				else if (expansion < 2 && !isalnum(ch) && ch != '_') {
+				if (expansion < 2 &&
+				    ((all_digits && !isdigit(ch)) ||
+				     (!all_digits && !isalnum(ch) && ch != '_')))
+				{
 					/* handle parameter expansions
 					 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 					 */
@@ -3782,6 +3794,8 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 							return 1;
 						}
 				}
+
+ char_ok:
 				debug_printf_parse(": '%c'\n", ch);
 				o_addchr(dest, ch | quote_mask);
 				quote_mask = 0;
