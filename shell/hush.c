@@ -43,12 +43,13 @@
  *      Here Documents ( << word )
  *      Functions
  *      Tilde Expansion
- *      fancy forms of Parameter Expansion: ${var:-val}
+ *      Parameter Expansion for substring processing ${var#word} ${var%word}
  *
  * Bash stuff maybe optional enable:
  *      &> and >& redirection of stdout+stderr
  *      Brace expansion
  *      reserved words: [[ ]] function select
+ *      substrings ${var:1:5}
  *
  * Major bugs:
  *      job handling woefully incomplete and buggy (improved --vda)
@@ -589,18 +590,20 @@ static const struct built_in_command bltins[] = {
 
 #if 1
 /* Normal */
-static void syntax(const char *msg)
+static void maybe_die(const char *notice, const char *msg)
 {
-#if ENABLE_HUSH_INTERACTIVE
 	/* Was using fancy stuff:
 	 * (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
 	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
-	void FAST_FUNC (*fp)(const char *s, ...);
+	void FAST_FUNC (*fp)(const char *s, ...) = bb_error_msg_and_die;
+#if ENABLE_HUSH_INTERACTIVE
 	fp = (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die);
-	fp(msg ? "%s: %s" : "syntax error", "syntax error", msg);
-#else
-	bb_error_msg_and_die(msg ? "%s: %s" : "syntax error", "syntax error", msg);
 #endif
+	fp(msg ? "%s: %s" : notice, notice, msg);
+}
+static void syntax(const char *msg)
+{
+	maybe_die("syntax error", msg);
 }
 #else
 /* Debug */
@@ -920,7 +923,13 @@ static const char *lookup_param(const char *src)
 }
 
 /* str holds "NAME=VAL" and is expected to be malloced.
- * We take ownership of it. */
+ * We take ownership of it.
+ * flg_export is used by:
+ *  0: do not export
+ *  1: export
+ * -1: if NAME is set, leave export status alone
+ *     if NAME is not set, do not export
+ */
 static int set_local_var(char *str, int flg_export)
 {
 	struct variable *cur;
@@ -980,7 +989,7 @@ static int set_local_var(char *str, int flg_export)
  set_str_and_exp:
 	cur->varstr = str;
  exp:
-	if (flg_export)
+	if (flg_export == 1)
 		cur->flg_export = 1;
 	if (cur->flg_export) {
 		debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
@@ -1548,6 +1557,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			val = utoa(G.last_return_code);
 			break;
 		case '#': /* argc */
+			if (arg[1] != SPECIAL_VAR_SYMBOL)
+				/* actually, it's a ${#var} */
+				goto case_default;
 			val = utoa(G.global_argc ? G.global_argc-1 : 0);
 			break;
 		case '*':
@@ -1615,20 +1627,79 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		}
 #endif
 		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
+		case_default: {
+			bool exp_len = false, exp_null = false;
+			char *var = arg, exp_save, exp_op, *exp_word;
+			size_t exp_off = 0;
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
-			if (isdigit(arg[0])) {
-				i = xatoi_u(arg);
+
+			/* prepare for expansions */
+			if (var[0] == '#') {
+				/* handle length expansion ${#var} */
+				exp_len = true;
+				++var;
+			} else {
+				/* maybe handle parameter expansion */
+				exp_off = strcspn(var, ":-=+?");
+				if (!var[exp_off])
+					exp_off = 0;
+				if (exp_off) {
+					exp_save = var[exp_off];
+					exp_null = exp_save == ':';
+					exp_word = var + exp_off;
+					if (exp_null) ++exp_word;
+					exp_op = *exp_word++;
+					var[exp_off] = '\0';
+				}
+			}
+
+			/* lookup the variable in question */
+			if (isdigit(var[0])) {
+				i = xatoi_u(var);
 				if (i < G.global_argc)
 					val = G.global_argv[i];
 				/* else val remains NULL: $N with too big N */
 			} else
-				val = lookup_param(arg);
+				val = lookup_param(var);
+
+			/* handle any expansions */
+			if (exp_len) {
+				debug_printf_expand("expand: length of '%s' = ", val);
+				val = utoa(val ? strlen(val) : 0);
+				debug_printf_expand("%s\n", val);
+			} else if (exp_off) {
+				/* we need to do an expansion */
+				int exp_test = (!val || (exp_null && !val[0]));
+				if (exp_op == '+')
+					exp_test = !exp_test;
+				debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
+					exp_null ? "true" : "false", exp_test);
+				if (exp_test) {
+					if (exp_op == '?')
+						maybe_die(var, *exp_word ? exp_word : "parameter null or not set");
+					else
+						val = exp_word;
+
+					if (exp_op == '=') {
+						if (isdigit(var[0]) || var[0] == '#') {
+							maybe_die(var, "special vars cannot assign in this way");
+							val = NULL;
+						} else {
+							char *new_var = xmalloc(strlen(var) + strlen(val) + 2);
+							sprintf(new_var, "%s=%s", var, val);
+							set_local_var(new_var, -1);
+						}
+					}
+				}
+				var[exp_off] = exp_save;
+			}
+
 			arg[0] = first_ch;
+
 #if ENABLE_HUSH_TICK
  store_val:
 #endif
-			*p = SPECIAL_VAR_SYMBOL;
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				debug_printf_expand("unquoted '%s', output->o_quote:%d\n", val, output->o_quote);
 				if (val) {
@@ -1643,9 +1714,13 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				debug_printf_expand("quoted '%s', output->o_quote:%d\n", val, output->o_quote);
 			}
 		}
+		}
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
+		/* Do the check to avoid writing to a const string */
+		if (p && *p != SPECIAL_VAR_SYMBOL)
+			*p = SPECIAL_VAR_SYMBOL;
 
 #if ENABLE_HUSH_TICK
 		o_free(&subst_result);
@@ -3625,6 +3700,7 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 /* Return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct in_str *input)
 {
+	int expansion;
 	int ch = i_peek(input);  /* first character after the $ */
 	unsigned char quote_mask = dest->o_quote ? 0x80 : 0;
 
@@ -3658,25 +3734,71 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		case '*': /* args */
 		case '@': /* args */
 			goto make_one_char_var;
-		case '{':
+		case '{': {
+			bool first_char;
+
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			i_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
+			expansion = 0;
+			first_char = true;
 			while (1) {
 				ch = i_getch(input);
 				if (ch == '}')
 					break;
-				if (!isalnum(ch) && ch != '_') {
-					syntax("unterminated ${name}");
-					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
-					return 1;
+
+				if (ch == '#' && first_char)
+					/* ${#var}: length of var contents */;
+
+				else if (expansion < 2 && !isalnum(ch) && ch != '_') {
+					/* handle parameter expansions
+					 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
+					 */
+					if (first_char)
+						goto case_default;
+					switch (ch) {
+						case ':': /* null modifier */
+							if (expansion == 0) {
+								debug_printf_parse(": null modifier\n");
+								++expansion;
+								break;
+							}
+							goto case_default;
+
+#if 0 /* not implemented yet :( */
+						case '#': /* remove prefix */
+						case '%': /* remove suffix */
+							if (expansion == 0) {
+								debug_printf_parse(": remove suffix/prefix\n");
+								expansion = 2;
+								break;
+							}
+							goto case_default;
+#endif
+
+						case '-': /* default value */
+						case '=': /* assign default */
+						case '+': /* alternative */
+						case '?': /* error indicate */
+							debug_printf_parse(": parameter expansion\n");
+							expansion = 2;
+							break;
+
+						default:
+						case_default:
+							syntax("unterminated ${name}");
+							debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
+							return 1;
+						}
 				}
 				debug_printf_parse(": '%c'\n", ch);
 				o_addchr(dest, ch | quote_mask);
 				quote_mask = 0;
+				first_char = false;
 			}
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
+		}
 #if ENABLE_HUSH_TICK
 		case '(': {
 			//int pos = dest->length;
