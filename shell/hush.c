@@ -1322,7 +1322,7 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	}
 	if (n) {
 		const char *p = o->data + (int)list[n - 1] + string_start;
-		fprintf(stderr, " total_sz:%d\n", (p + strlen(p) + 1) - o->data);
+		fprintf(stderr, " total_sz:%ld\n", (p + strlen(p) + 1) - o->data);
 	}
 }
 #else
