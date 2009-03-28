@@ -1035,35 +1035,30 @@ static int static_peek(struct in_str *i)
 
 #if ENABLE_HUSH_INTERACTIVE
 
-#if ENABLE_FEATURE_EDITING
 static void cmdedit_set_initial_prompt(void)
 {
-#if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	G.PS1 = NULL;
-#else
-	G.PS1 = getenv("PS1");
-	if (G.PS1 == NULL)
-		G.PS1 = "\\w \\$ ";
-#endif
+	if (ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
+		G.PS1 = getenv("PS1");
+		if (G.PS1 == NULL)
+			G.PS1 = "\\w \\$ ";
+	} else
+		G.PS1 = NULL;
 }
-#endif /* EDITING */
 
 static const char* setup_prompt_string(int promptmode)
 {
 	const char *prompt_str;
 	debug_printf("setup_prompt_string %d ", promptmode);
-#if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	/* Set up the prompt */
-	if (promptmode == 0) { /* PS1 */
-		free((char*)G.PS1);
-		G.PS1 = xasprintf("%s %c ", G.cwd, (geteuid() != 0) ? '$' : '#');
-		prompt_str = G.PS1;
-	} else {
-		prompt_str = G.PS2;
-	}
-#else
-	prompt_str = (promptmode == 0) ? G.PS1 : G.PS2;
-#endif
+	if (!ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
+		/* Set up the prompt */
+		if (promptmode == 0) { /* PS1 */
+			free((char*)G.PS1);
+			G.PS1 = xasprintf("%s %c ", G.cwd, (geteuid() != 0) ? '$' : '#');
+			prompt_str = G.PS1;
+		} else
+			prompt_str = G.PS2;
+	} else
+		prompt_str = (promptmode == 0) ? G.PS1 : G.PS2;
 	debug_printf("result '%s'\n", prompt_str);
 	return prompt_str;
 }
@@ -4224,9 +4219,8 @@ int hush_main(int argc, char **argv)
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
 #if ENABLE_HUSH_INTERACTIVE
-#if ENABLE_FEATURE_EDITING
-	cmdedit_set_initial_prompt();
-#endif
+	if (ENABLE_FEATURE_EDITING)
+		cmdedit_set_initial_prompt();
 	G.PS2 = "> ";
 #endif
 
