@@ -1,0 +1,4 @@
+# reject invalid vars
+hush -c 'echo ${1q}'
+hush -c 'echo ${&}'
+hush -c 'echo ${$}'
