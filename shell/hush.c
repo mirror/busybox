@@ -588,7 +588,6 @@ static const struct built_in_command bltins[] = {
 };
 
 
-#if 1
 /* Normal */
 static void maybe_die(const char *notice, const char *msg)
 {
@@ -601,23 +600,13 @@ static void maybe_die(const char *notice, const char *msg)
 #endif
 	fp(msg ? "%s: %s" : notice, notice, msg);
 }
-static void syntax(const char *msg)
-{
-	maybe_die("syntax error", msg);
-}
+#if 1
+#define syntax(msg) maybe_die("syntax error", msg);
 #else
-/* Debug */
-static void syntax_lineno(int line)
-{
-#if ENABLE_HUSH_INTERACTIVE
-	void FAST_FUNC (*fp)(const char *s, ...);
-	fp = (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die);
-	fp("syntax error hush.c:%d", line);
-#else
-	bb_error_msg_and_die("syntax error hush.c:%d", line);
-#endif
-}
-#define syntax(str) syntax_lineno(__LINE__)
+/* Debug -- trick gcc to expand __LINE__ and convert to string */
+#define __syntax(msg, line) maybe_die("syntax error hush.c:" # line, msg)
+#define _syntax(msg, line) __syntax(msg, line)
+#define syntax(msg) _syntax(msg, __LINE__)
 #endif
 
 static int glob_needed(const char *s)
