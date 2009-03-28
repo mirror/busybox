@@ -150,6 +150,7 @@ int sysinfo(struct sysinfo* info);
 /* CONFIG_LFS is on */
 # if ULONG_MAX > 0xffffffff
 /* "long" is long enough on this system */
+typedef unsigned long uoff_t;
 #  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
 /* usage: sz = BB_STRTOOFF(s, NULL, 10); if (errno || sz < 0) die(); */
 #  define BB_STRTOOFF bb_strtoul
@@ -158,6 +159,7 @@ int sysinfo(struct sysinfo* info);
 #  define OFF_FMT "l"
 # else
 /* "long" is too short, need "long long" */
+typedef unsigned long long uoff_t;
 #  define XATOOFF(a) xatoull_range(a, 0, LLONG_MAX)
 #  define BB_STRTOOFF bb_strtoull
 #  define STRTOOFF strtoull
@@ -168,11 +170,13 @@ int sysinfo(struct sysinfo* info);
 # if UINT_MAX == 0xffffffff
 /* While sizeof(off_t) == sizeof(int), off_t is typedef'ed to long anyway.
  * gcc will throw warnings on printf("%d", off_t). Crap... */
+typedef unsigned long uoff_t;
 #  define XATOOFF(a) xatoi_u(a)
 #  define BB_STRTOOFF bb_strtou
 #  define STRTOOFF strtol
 #  define OFF_FMT "l"
 # else
+typedef unsigned long uoff_t;
 #  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
 #  define BB_STRTOOFF bb_strtoul
 #  define STRTOOFF strtol

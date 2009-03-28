@@ -23,6 +23,7 @@ lib-$(CONFIG_IPCS)              += ipcs.o
 lib-$(CONFIG_LOSETUP)           += losetup.o
 lib-$(CONFIG_MDEV)              += mdev.o
 lib-$(CONFIG_MKFS_MINIX)        += mkfs_minix.o
+lib-$(CONFIG_MKFS_VFAT)         += mkfs_vfat.o
 lib-$(CONFIG_MKSWAP)            += mkswap.o
 lib-$(CONFIG_MORE)              += more.o
 lib-$(CONFIG_MOUNT)             += mount.o

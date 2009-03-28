@@ -2670,6 +2670,22 @@
      "\n	-l FILENAME	Read bad blocks list from FILENAME" \
      "\n	-v		Make version 2 filesystem" \
 
+#define mkfs_vfat_trivial_usage \
+       "[-v] [-n LABEL] FILE_OR_DEVICE [SIZE_IN_KB]"
+/* Accepted but ignored:
+       "[-c] [-C] [-I] [-l bad-block-file] [-b backup-boot-sector] "
+       "[-m boot-msg-file] [-i volume-id] "
+       "[-s sectors-per-cluster] [-S logical-sector-size] [-f number-of-FATs] "
+       "[-h hidden-sectors] [-F fat-size] [-r root-dir-entries] [-R reserved-sectors] "
+*/
+#define mkfs_vfat_full_usage "\n\n" \
+       "Make a FAT32 filesystem\n" \
+     "\nOptions:" \
+/*   "\n	-c	Check device for bad blocks" */ \
+     "\n	-v	Verbose" \
+/*   "\n	-I	Allow to use entire disk device (e.g. /dev/hda)" */ \
+     "\n	-n LBL	Volume label" \
+
 #define mknod_trivial_usage \
        "[OPTIONS] NAME TYPE MAJOR MINOR"
 #define mknod_full_usage "\n\n" \

@@ -233,6 +233,12 @@ config FEATURE_MINIX2
 	  this. If you enabled 'mkfs_minix' then you almost certainly want to
 	  be using the version 2 filesystem support.
 
+config MKFS_VFAT
+	bool "mkfs_vfat"
+	default n
+	help
+	  Utility to create FAT32 filesystems.
+
 config GETOPT
 	bool "getopt"
 	default n
