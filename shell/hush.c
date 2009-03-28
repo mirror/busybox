@@ -4238,7 +4238,7 @@ int hush_main(int argc, char **argv)
 	}
 	input = stdin;
 
-	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
+	while ((opt = getopt(argc, argv, "c:xin")) > 0) {
 		switch (opt) {
 		case 'c':
 			G.global_argv = argv + optind;
@@ -4255,7 +4255,7 @@ int hush_main(int argc, char **argv)
 			 * we have to have some stuff (ctty, etc) */
 			/* G.interactive_fd++; */
 			break;
-		case 'f':
+		case 'n':
 			G.fake_mode = 1;
 			break;
 		default:
