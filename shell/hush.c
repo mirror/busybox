@@ -524,6 +524,7 @@ static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
+static int builtin_wait(char **argv);
 #if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv);
 static int builtin_continue(char **argv);
@@ -582,6 +583,7 @@ static const struct built_in_command bltins[] = {
 //	BLTIN("ulimit", builtin_not_written, "Control resource limits"),
 	BLTIN("umask" , builtin_umask, "Set file creation mask"),
 	BLTIN("unset" , builtin_unset, "Unset environment variable"),
+	BLTIN("wait"  , builtin_wait, "Wait for process"),
 #if ENABLE_HUSH_HELP
 	BLTIN("help"  , builtin_help, "List shell built-in commands"),
 #endif
@@ -4893,6 +4895,39 @@ static int builtin_unset(char **argv)
 	/* bash always returns true */
 	unset_local_var(argv[1]);
 	return EXIT_SUCCESS;
+}
+
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
+static int builtin_wait(char **argv)
+{
+	int ret = EXIT_SUCCESS;
+	int status;
+
+	if (argv[1] == NULL)
+		/* don't care about exit status */
+		wait(&status);
+
+	while (argv[1]) {
+		char *endp;
+		pid_t pid = bb_strtou(argv[1], &endp, 10);
+		if (*endp) {
+			bb_perror_msg("wait %s", argv[1]);
+			return EXIT_FAILURE;
+		} else if (waitpid(pid, &status, 0) == pid) {
+			if (WIFSIGNALED(status))
+				ret = 128 + WTERMSIG(status);
+			else if (WIFEXITED(status))
+				ret = WEXITSTATUS(status);
+			else
+				ret = EXIT_FAILURE;
+		} else {
+			bb_perror_msg("wait %s", argv[1]);
+			ret = 127;
+		}
+		++argv;
+	}
+
+	return ret;
 }
 
 #if ENABLE_HUSH_LOOPS
