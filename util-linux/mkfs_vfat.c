@@ -163,8 +163,7 @@ static const char boot_code[] ALIGN1 =
 	"This is not a bootable disk\r\n";
 
 
-// mark specified cluster as having a particular value
-#define	mark_cluster(cluster, value) \
+#define MARK_CLUSTER(cluster, value) \
 	((uint32_t *)fat)[cluster] = cpu_to_le32(value)
 
 void BUG_unsupported_field_size(void);
@@ -437,7 +436,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		buf = xzalloc(bufsize * bytes_per_sect);
 	}
 
-	{ // boot, fsinfo sectors and their copies
+	{ // boot and fsinfo sectors, and their copies
 		struct msdos_boot_sector *boot_blk = (void*)buf;
 		struct fat32_fsinfo *info = (void*)(buf + bytes_per_sect);
 
@@ -492,10 +491,10 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 
 		memset(buf, 0, bytes_per_sect * 2);
 		// initial FAT entries
-		mark_cluster(0, 0x0fffff00 | media_byte);
-		mark_cluster(1, 0xffffffff);
+		MARK_CLUSTER(0, 0x0fffff00 | media_byte);
+		MARK_CLUSTER(1, 0xffffffff);
 		// mark cluster 2 as EOF (used for root dir)
-		mark_cluster(2, EOF_FAT32);
+		MARK_CLUSTER(2, EOF_FAT32);
 		for (i = 0; i < NUM_FATS; i++) {
 			xwrite(dev, buf, bytes_per_sect);
 			for (j = 1; j < sect_per_fat; j++)
@@ -574,7 +573,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 				int cluster = (currently_testing * SECTORS_PER_BLOCK + i - start_data_sector) / (int) (sect_per_clust) / (bytes_per_sect / SECTOR_SIZE);
 				if (cluster < 0)
 					bb_error_msg_and_die("Invalid cluster number in mark_sector: probably bug!");
-				mark_cluster(cluster, BAD_FAT32);
+				MARK_CLUSTER(cluster, BAD_FAT32);
 			}
 			badblocks++;
 			currently_testing++;
