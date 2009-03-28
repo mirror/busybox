@@ -549,7 +549,6 @@ static const struct built_in_command bltins[] = {
 	BLTIN("."     , builtin_source, "Run commands in a file"),
 	BLTIN(":"     , builtin_true, "No-op"),
 	BLTIN("["     , builtin_test, "Test condition"),
-	BLTIN("[["    , builtin_test, "Test condition"),
 #if ENABLE_HUSH_JOB
 	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
 #endif
