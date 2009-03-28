@@ -49,7 +49,7 @@ do_test()
 	{
 	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
 	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
-	} && echo "$1/$x: ok" || { echo "$1/$x: fail"; ((tret+=1)); }
+	} && echo "$1/$x: ok" || { echo "$1/$x: fail"; tret=1; }
     done
     exit ${tret}
     )
