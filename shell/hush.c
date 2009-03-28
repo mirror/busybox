@@ -516,6 +516,7 @@ static int builtin_read(char **argv);
 static int builtin_test(char **argv);
 static int builtin_true(char **argv);
 static int builtin_set(char **argv);
+static int builtin_set_mode(const char, const char);
 static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
@@ -4256,13 +4257,14 @@ int hush_main(int argc, char **argv)
 			 * we have to have some stuff (ctty, etc) */
 			/* G.interactive_fd++; */
 			break;
-		case 'n':
-			G.fake_mode = 1;
-			break;
 		case 's':
 			/* "-s" means "read from stdin", but this is how we always
 			 * operate, so simply do nothing here. */
 			break;
+		case 'n':
+		case 'x':
+			if (!builtin_set_mode('-', opt))
+				break;
 		default:
 #ifndef BB_VER
 			fprintf(stderr, "Usage: sh [FILE]...\n"
@@ -4613,10 +4615,11 @@ static int builtin_read(char **argv)
 	return set_local_var(string, 0);
 }
 
-/* built-in 'set' handler
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
+ * built-in 'set' handler
  * SUSv3 says:
- * set [-abCefmnuvx] [-h] [-o option] [argument...]
- * set [+abCefmnuvx] [+h] [+o option] [argument...]
+ * set [-abCefhmnuvx] [-o option] [argument...]
+ * set [+abCefhmnuvx] [+o option] [argument...]
  * set -- [argument...]
  * set -o
  * set +o
@@ -4631,9 +4634,18 @@ static int builtin_read(char **argv)
  * Set the positional parameters to the expansion of x, even if x expands
  * with a leading '-' or '+': set -- $x
  *
- * So far, we only support "set -- [argument...]" by ignoring all options
- * (also, "-o option" will be mishandled by taking "option" as parameter #1).
+ * So far, we only support "set -- [argument...]" and some of the short names.
  */
+static int builtin_set_mode(const char cstate, const char mode)
+{
+	int state = (cstate == '-' ? 1 : 0);
+	switch (mode) {
+		case 'n': G.fake_mode = state; break;
+		case 'x': /*G.debug_mode = state;*/ break;
+		default:  return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
 static int builtin_set(char **argv)
 {
 	int n;
@@ -4647,17 +4659,27 @@ static int builtin_set(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	do  {
-		if (arg[0] == '+')
-			continue;
-		if (arg[0] != '-')
-			break;
-		if (arg[1] == '-' && arg[2] == '\0') {
-			argv++;
-			break;
+	do {
+		if (!strcmp(arg, "--")) {
+			++argv;
+			goto set_argv;
 		}
+
+		if (arg[0] == '+' || arg[0] == '-') {
+			for (n = 1; arg[n]; ++n)
+				if (builtin_set_mode(arg[0], arg[n]))
+					goto error;
+			continue;
+		}
+
+		break;
 	} while ((arg = *++argv) != NULL);
 	/* Now argv[0] is 1st argument */
+
+	/* Only reset global_argv if we didn't process anything */
+	if (arg == NULL)
+		return EXIT_SUCCESS;
+ set_argv:
 
 	/* NB: G.global_argv[0] ($0) is never freed/changed */
 	g_argv = G.global_argv;
@@ -4681,6 +4703,11 @@ static int builtin_set(char **argv)
 	G.global_argc = n;
 
 	return EXIT_SUCCESS;
+
+	/* Nothing known, so abort */
+ error:
+	bb_error_msg("set: %s: invalid option", arg);
+	return EXIT_FAILURE;
 }
 
 static int builtin_shift(char **argv)
