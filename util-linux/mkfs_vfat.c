@@ -429,6 +429,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// Write filesystem image sequentially (no seeking)
 	//
 	{
+		// (a | b) is poor man's max(a, b)
 		unsigned bufsize = reserved_sect;
 		//bufsize |= sect_per_fat; // can be quite large
 		bufsize |= 2; // use this instead
@@ -449,9 +450,10 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		if (volume_size_sect <= 0xffff)
 			STORE_LE(boot_blk->volume_size_sect, volume_size_sect);
 		STORE_LE(boot_blk->media_byte, media_byte);
-		// Bad: this would make Linux to think that it's fat12/16
+		// wrong: this would make Linux think that it's fat12/16:
 		//if (sect_per_fat <= 0xffff)
 		//	STORE_LE(boot_blk->sect_per_fat, sect_per_fat);
+		// works:
 		//STORE_LE(boot_blk->sect_per_fat, 0);
 		STORE_LE(boot_blk->sect_per_track, sect_per_track);
 		STORE_LE(boot_blk->heads, heads);
