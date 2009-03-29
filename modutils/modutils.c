@@ -127,7 +127,7 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	image = xmalloc_open_zipped_read_close(filename, &len);
 	if (image) {
 		rc = 0;
-		if (init_module(image, len, options) != 0)
+		if (init_module(image, len, options ? options : "") != 0)
 			rc = errno;
 		free(image);
 	}
