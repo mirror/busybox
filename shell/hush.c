@@ -4892,12 +4892,10 @@ static int builtin_umask(char **argv)
 {
 	mode_t new_umask;
 	const char *arg = argv[1];
-	char *end;
 	if (arg) {
-		new_umask = strtoul(arg, &end, 8);
-		if (*end != '\0' || end == arg) {
+		new_umask = bb_strtou(arg, NULL, 8);
+		if (errno)
 			return EXIT_FAILURE;
-		}
 	} else {
 		new_umask = umask(0);
 		printf("%.3o\n", (unsigned) new_umask);
@@ -4924,9 +4922,8 @@ static int builtin_wait(char **argv)
 		wait(&status);
 
 	while (argv[1]) {
-		char *endp;
-		pid_t pid = bb_strtou(argv[1], &endp, 10);
-		if (*endp) {
+		pid_t pid = bb_strtou(argv[1], NULL, 10);
+		if (errno) {
 			bb_perror_msg("wait %s", argv[1]);
 			return EXIT_FAILURE;
 		} else if (waitpid(pid, &status, 0) == pid) {
