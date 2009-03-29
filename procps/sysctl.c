@@ -7,19 +7,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Changelog:
- *	v1.01:
- *		- added -p <preload> to preload values from a file
- *	v1.01.1
- *		- busybox applet aware by <solar@gentoo.org>
- *
+ * v1.01   - added -p <preload> to preload values from a file
+ * v1.01.1 - busybox applet aware by <solar@gentoo.org>
  */
 
 #include "libbb.h"
-
-static int sysctl_act_on_setting(char *setting);
-static int sysctl_display_all(const char *path);
-static int sysctl_handle_preload_file(const char *filename);
-static void sysctl_dots_to_slashes(char *name);
 
 enum {
 	FLAG_SHOW_KEYS       = 1 << 0,
@@ -29,67 +21,52 @@ enum {
 	FLAG_PRELOAD_FILE    = 1 << 4,
 	FLAG_WRITE           = 1 << 5,
 };
+#define OPTION_STR "neAapw"
 
-int sysctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sysctl_main(int argc UNUSED_PARAM, char **argv)
+static void sysctl_dots_to_slashes(char *name)
 {
-	int retval;
-	int opt;
+	char *cptr, *last_good, *end;
 
-	opt = getopt32(argv, "+neAapw"); /* '+' - stop on first non-option */
-	argv += optind;
-	opt ^= (FLAG_SHOW_KEYS | FLAG_SHOW_KEY_ERRORS);
-	option_mask32 = opt;
+	/* Convert minimum number of '.' to '/' so that
+	 * we end up with existing file's name.
+	 *
+	 * Example from bug 3894:
+	 * net.ipv4.conf.eth0.100.mc_forwarding ->
+	 * net/ipv4/conf/eth0.100/mc_forwarding
+	 * NB: net/ipv4/conf/eth0/mc_forwarding *also exists*,
+	 * therefore we must start from the end, and if
+	 * we replaced even one . -> /, start over again,
+	 * but never replace dots before the position
+	 * where last replacement occurred.
+	 *
+	 * Another bug we later had is that
+	 * net.ipv4.conf.eth0.100
+	 * (without .mc_forwarding) was mishandled.
+	 *
+	 * To set up testing: modprobe 8021q; vconfig add eth0 100
+	 */
+	end = name + strlen(name);
+	last_good = name - 1;
+	*end = '.'; /* trick the loop into trying full name too */
 
-	if (opt & FLAG_PRELOAD_FILE) {
-		option_mask32 |= FLAG_WRITE;
-		/* xchdir("/proc/sys") is inside */
-		return sysctl_handle_preload_file(*argv ? *argv : "/etc/sysctl.conf");
+ again:
+	cptr = end;
+	while (cptr > last_good) {
+		if (*cptr == '.') {
+			*cptr = '\0';
+			//bb_error_msg("trying:'%s'", name);
+			if (access(name, F_OK) == 0) {
+				if (cptr != end) /* prevent trailing '/' */
+					*cptr = '/';
+				//bb_error_msg("replaced:'%s'", name);
+				last_good = cptr;
+				goto again;
+			}
+			*cptr = '.';
+		}
+		cptr--;
 	}
-	xchdir("/proc/sys");
-	/* xchroot(".") - if you are paranoid */
-	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
-		return sysctl_display_all(".");
-	}
-
-	retval = 0;
-	while (*argv) {
-		sysctl_dots_to_slashes(*argv);
-		retval |= sysctl_display_all(*argv);
-		argv++;
-	}
-
-	return retval;
-}
-
-/* Set sysctl's from a conf file. Format example:
- * # Controls IP packet forwarding
- * net.ipv4.ip_forward = 0
- */
-static int sysctl_handle_preload_file(const char *filename)
-{
-	char *token[2];
-	parser_t *parser;
-
-	parser = config_open(filename);
-	/* Must do it _after_ config_open(): */
-	xchdir("/proc/sys");
-	/* xchroot(".") - if you are paranoid */
-
-//TODO: ';' is comment char too
-//TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
-// (but _whitespace_ from ends should be trimmed first (and we do it right))
-//TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
-	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
-		sysctl_dots_to_slashes(token[0]);
-		/* Save ~4 bytes by using parser internals */
-		/* parser->line is big enough for sprintf */
-		sprintf(parser->line, "%s=%s", token[0], token[1]);
-		sysctl_display_all(parser->line);
-	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		config_close(parser);
-	return 0;
+	*end = '\0';
 }
 
 static int sysctl_act_on_setting(char *setting)
@@ -186,7 +163,7 @@ static int sysctl_act_on_setting(char *setting)
 	return retval;
 }
 
-static int sysctl_display_all(const char *path)
+static int sysctl_act_recursive(const char *path)
 {
 	DIR *dirp;
 	struct stat buf;
@@ -204,7 +181,7 @@ static int sysctl_display_all(const char *path)
 			if (next == NULL)
 				continue; /* d_name is "." or ".." */
 			/* if path was ".", drop "./" prefix: */
-			retval |= sysctl_display_all((next[0] == '.' && next[1] == '/') ?
+			retval |= sysctl_act_recursive((next[0] == '.' && next[1] == '/') ?
 					    next + 2 : next);
 			free(next);
 		}
@@ -218,48 +195,64 @@ static int sysctl_display_all(const char *path)
 	return retval;
 }
 
-static void sysctl_dots_to_slashes(char *name)
+/* Set sysctl's from a conf file. Format example:
+ * # Controls IP packet forwarding
+ * net.ipv4.ip_forward = 0
+ */
+static int sysctl_handle_preload_file(const char *filename)
 {
-	char *cptr, *last_good, *end;
+	char *token[2];
+	parser_t *parser;
 
-	/* Convert minimum number of '.' to '/' so that
-	 * we end up with existing file's name.
-	 *
-	 * Example from bug 3894:
-	 * net.ipv4.conf.eth0.100.mc_forwarding ->
-	 * net/ipv4/conf/eth0.100/mc_forwarding
-	 * NB: net/ipv4/conf/eth0/mc_forwarding *also exists*,
-	 * therefore we must start from the end, and if
-	 * we replaced even one . -> /, start over again,
-	 * but never replace dots before the position
-	 * where last replacement occurred.
-	 *
-	 * Another bug we later had is that
-	 * net.ipv4.conf.eth0.100
-	 * (without .mc_forwarding) was mishandled.
-	 *
-	 * To set up testing: modprobe 8021q; vconfig add eth0 100
-	 */
-	end = name + strlen(name);
-	last_good = name - 1;
-	*end = '.'; /* trick the loop into trying full name too */
+	parser = config_open(filename);
+	/* Must do it _after_ config_open(): */
+	xchdir("/proc/sys");
+	/* xchroot(".") - if you are paranoid */
 
- again:
-	cptr = end;
-	while (cptr > last_good) {
-		if (*cptr == '.') {
-			*cptr = '\0';
-			//bb_error_msg("trying:'%s'", name);
-			if (access(name, F_OK) == 0) {
-				if (cptr != end) /* prevent trailing '/' */
-					*cptr = '/';
-				//bb_error_msg("replaced:'%s'", name);
-				last_good = cptr;
-				goto again;
-			}
-			*cptr = '.';
-		}
-		cptr--;
+//TODO: ';' is comment char too
+//TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
+// (but _whitespace_ from ends should be trimmed first (and we do it right))
+//TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
+	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
+		sysctl_dots_to_slashes(token[0]);
+		/* Save ~4 bytes by using parser internals */
+		/* parser->line is big enough for sprintf */
+		sprintf(parser->line, "%s=%s", token[0], token[1]);
+		sysctl_act_recursive(parser->line);
 	}
-	*end = '\0';
+	if (ENABLE_FEATURE_CLEAN_UP)
+		config_close(parser);
+	return 0;
+}
+
+int sysctl_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int sysctl_main(int argc UNUSED_PARAM, char **argv)
+{
+	int retval;
+	int opt;
+
+	opt = getopt32(argv, "+" OPTION_STR); /* '+' - stop on first non-option */
+	argv += optind;
+	opt ^= (FLAG_SHOW_KEYS | FLAG_SHOW_KEY_ERRORS);
+	option_mask32 = opt;
+
+	if (opt & FLAG_PRELOAD_FILE) {
+		option_mask32 |= FLAG_WRITE;
+		/* xchdir("/proc/sys") is inside */
+		return sysctl_handle_preload_file(*argv ? *argv : "/etc/sysctl.conf");
+	}
+	xchdir("/proc/sys");
+	/* xchroot(".") - if you are paranoid */
+	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
+		return sysctl_act_recursive(".");
+	}
+
+	retval = 0;
+	while (*argv) {
+		sysctl_dots_to_slashes(*argv);
+		retval |= sysctl_act_recursive(*argv);
+		argv++;
+	}
+
+	return retval;
 }
