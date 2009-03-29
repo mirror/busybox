@@ -76,12 +76,15 @@ static int sysctl_handle_preload_file(const char *filename)
 	xchdir("/proc/sys");
 	/* xchroot(".") - if you are paranoid */
 
-// TODO: ';' is comment char too
+//TODO: ';' is comment char too
+//TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
+// (but _whitespace_ from ends should be trimmed first (and we do it right))
+//TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
 	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
+		sysctl_dots_to_slashes(token[0]);
 		/* Save ~4 bytes by using parser internals */
 		/* parser->line is big enough for sprintf */
 		sprintf(parser->line, "%s=%s", token[0], token[1]);
-		sysctl_dots_to_slashes(parser->line);
 		sysctl_display_all(parser->line);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
@@ -119,6 +122,8 @@ static int sysctl_act_on_setting(char *setting)
 			goto end;
 		}
 		*cptr = '\0';
+		outname[cptr - setting] = '\0';
+		/* procps 3.2.7 actually uses these flags */
 		fd = open(setting, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	} else {
 		fd = open(setting, O_RDONLY);
@@ -142,6 +147,7 @@ static int sysctl_act_on_setting(char *setting)
 	}
 
 	if (option_mask32 & FLAG_WRITE) {
+//TODO: procps 3.2.7 writes "value\n", note trailing "\n"
 		xwrite_str(fd, value);
 		close(fd);
 		if (option_mask32 & FLAG_SHOW_KEYS)
@@ -194,8 +200,7 @@ static int sysctl_display_all(const char *path)
 		if (dirp == NULL)
 			return -1;
 		while ((entry = readdir(dirp)) != NULL) {
-			next = concat_subpath_file(
-				path, entry->d_name);
+			next = concat_subpath_file(path, entry->d_name);
 			if (next == NULL)
 				continue; /* d_name is "." or ".." */
 			/* if path was ".", drop "./" prefix: */
