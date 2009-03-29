@@ -3552,17 +3552,17 @@
        "Output a cpio archive of the rpm file"
 
 #define rtcwake_trivial_usage \
-       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SECS | -t TIME]"
+       "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 #define rtcwake_full_usage "\n\n" \
        "Enter a system sleep state until specified wakeup time\n" \
 	USE_GETOPT_LONG( \
-     "\n	-a,--auto	 Read clock mode from adjtime" \
-     "\n	-l,--local	 Clock is set to local time" \
-     "\n	-u,--utc	 Clock is set to UTC time" \
-     "\n	-d,--device=DEV	 Specify the RTC device" \
-     "\n	-m,--mode=MODE	 Set the sleep state (default: standby)" \
+     "\n	-a,--auto	Read clock mode from adjtime" \
+     "\n	-l,--local	Clock is set to local time" \
+     "\n	-u,--utc	Clock is set to UTC time" \
+     "\n	-d,--device=DEV	Specify the RTC device" \
+     "\n	-m,--mode=MODE	Set the sleep state (default: standby)" \
      "\n	-s,--seconds=SEC Set the timeout in SEC seconds from now" \
-     "\n	-t,--time=TIME	 Set the timeout to TIME seconds from epoch" \
+     "\n	-t,--time=TIME	Set the timeout to TIME seconds from epoch" \
 	) \
 	SKIP_GETOPT_LONG( \
      "\n	-a	Read clock mode from adjtime" \
@@ -3695,16 +3695,20 @@
      "\n	-s subject	Subject" \
      "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_MIME_CHARSET ")" \
      "\n	-a file		File to attach. May be repeated" \
-     "\n	-H 'prog args'	Run connection helper. E.g. openssl for encryption:" \
+     "\n	-H 'prog args'	Run connection helper" \
+     "\n			Examples:" \
      "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp" \
-     "\n					-connect smtp.gmail.com:25' <email.txt" \
-     "\n					[4<username_and_passwd.txt]" \
+     "\n				-connect smtp.gmail.com:25' <email.txt" \
+     "\n				[4<username_and_passwd.txt]" \
+     "\n			-H 'exec openssl s_client -quiet -tls1" \
+     "\n				-connect smtp.gmail.com:465' <email.txt" \
+     "\n				[4<username_and_passwd.txt]" \
      "\n	-S server[:port] Server" \
-     	) \
+	) \
 	USE_FEATURE_SENDMAIL_MAILXX( \
      "\n	-c rcpt		Cc: recipient. May be repeated" \
      "\n	-e rcpt		Errors-To: recipient" \
-       	) \
+	) \
      "\n	-t		Read recipients and subject from body" \
      "\n" \
      "\nOther options are silently ignored; -oi is implied" \
