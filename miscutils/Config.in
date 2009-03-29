@@ -414,12 +414,11 @@ config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	  stuff, so you should probably say N.
 
 config FEATURE_HDPARM_HDIO_GETSET_DMA
-	bool "Get/set using_dma flag (DANGEROUS)"
+	bool "Get/set using_dma flag"
 	default n
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -d' option to get/set using_dma flag.
-	  This is dangerous stuff, so you should probably say N.
 
 config MAKEDEVS
 	bool "makedevs"
