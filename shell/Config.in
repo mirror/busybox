@@ -180,7 +180,7 @@ config HUSH
 	  options such as if/then/elif/else/fi, for/in/do/done, while loops,
 	  case/esac.
 
-	  It uses only vfork, so it can be used on uClinux systems.
+	  It uses only vfork, so it can be used on no-mmu systems.
 
 	  It does not handle select, functions, here documents ( <<
 	  word ), arithmetic expansion, aliases, brace expansion, tilde
@@ -251,7 +251,7 @@ config LASH
 	  lash is deprecated and will be removed, please migrate to hush.
 
 config MSH
-	bool "msh"
+	bool "msh (deprecated: please use hush)"
 	default n
 	help
 	  The minix shell (adds just 30k) is quite complete and handles things
@@ -260,6 +260,9 @@ config MSH
 	  shell grammar (try running the shell testscript "tests/sh.testcases"
 	  on it and compare vs bash) but for most things it works quite well.
 	  It uses only vfork, so it can be used on uClinux systems.
+
+	  msh is deprecated and will be removed, please migrate to hush.
+	  If there is a feature msh has but hush does not, please let us know.
 
 comment "Bourne Shell Options"
 	depends on MSH || LASH || HUSH || ASH
