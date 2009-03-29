@@ -2841,7 +2841,7 @@ static int run_list(struct pipe *pi)
 		}
 #endif
 		if (pi->num_cmds == 0)
-			continue;
+			goto check_jobs_and_continue;
 
 		/* After analyzing all keywords and conditions, we decided
 		 * to execute this pipe. NB: has to do checkjobs(NULL)
@@ -2928,6 +2928,8 @@ static int run_list(struct pipe *pi)
 		) {
 			skip_more_for_this_rword = rword;
 		}
+
+ check_jobs_and_continue:
 		checkjobs(NULL);
 	} /* for (pi) */
 
