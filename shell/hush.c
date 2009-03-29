@@ -489,6 +489,10 @@ struct globals {
 #endif
 	unsigned char charmap[256];
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
+	struct {
+		char *cmd;
+		struct sigaction oact;
+	} *traps;
 };
 
 #define G (*ptr_to_globals)
@@ -517,6 +521,8 @@ static int builtin_help(char **argv);
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
 static int builtin_test(char **argv);
+static void handle_trap(int sig);
+static int builtin_trap(char **argv);
 static int builtin_true(char **argv);
 static int builtin_set(char **argv);
 static int builtin_set_mode(const char, const char);
@@ -578,8 +584,8 @@ static const struct built_in_command bltins[] = {
 //	BLTIN("return", builtin_not_written, "Return from a function"),
 	BLTIN("set"   , builtin_set, "Set/unset shell local variables"),
 	BLTIN("shift" , builtin_shift, "Shift positional parameters"),
-//	BLTIN("trap"  , builtin_not_written, "Trap signals"),
 	BLTIN("test"  , builtin_test, "Test condition"),
+	BLTIN("trap"  , builtin_trap, "Trap signals"),
 //	BLTIN("ulimit", builtin_not_written, "Control resource limits"),
 	BLTIN("umask" , builtin_umask, "Set file creation mask"),
 	BLTIN("unset" , builtin_unset, "Unset environment variable"),
@@ -857,21 +863,26 @@ static void sigexit(int sig)
 	kill_myself_with_sig(sig); /* does not return */
 }
 
-/* Restores tty foreground process group, and exits. */
-static void hush_exit(int exitcode) NORETURN;
-static void hush_exit(int exitcode)
-{
-	fflush(NULL); /* flush all streams */
-	sigexit(- (exitcode & 0xff));
-}
-
 #else /* !JOB */
 
 #define set_fatal_sighandler(handler)   ((void)0)
 #define set_jobctrl_sighandler(handler) ((void)0)
-#define hush_exit(e)                    exit(e)
 
 #endif /* JOB */
+
+/* Restores tty foreground process group, and exits. */
+static void hush_exit(int exitcode) NORETURN;
+static void hush_exit(int exitcode)
+{
+	if (G.traps && G.traps[0].cmd)
+		handle_trap(0);
+
+	if (ENABLE_HUSH_JOB) {
+		fflush(NULL); /* flush all streams */
+		sigexit(- (exitcode & 0xff));
+	} else
+		exit(exitcode);
+}
 
 
 static const char *set_cwd(void)
@@ -4516,6 +4527,114 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_28
+ *
+ * Traps are also evaluated immediately instead of being delayed properly:
+ * http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_11
+ * Example: hush -c 'trap "echo hi" 31; sleep 10; echo moo' & sleep 1; kill -31 $!
+ *          "hi" should not be displayed until the sleep finishes
+ * This will have to get fixed ...
+ */
+static void handle_trap(int sig)
+{
+	int save_errno, save_rcode;
+	char *argv[] = { NULL, G.traps[sig].cmd, NULL };
+	/* Race!  We transitioned from handled to ignore/default, but
+	 * the signal came in after updating .cmd but before we could
+	 * register the new signal handler.
+	 */
+	if (!argv[1] || argv[1][0] == '\0')
+		return;
+	/* need to save/restore errno/$? across traps */
+	save_errno = errno;
+	save_rcode = G.last_return_code;
+	builtin_eval(argv);
+	errno = save_errno;
+	G.last_return_code = save_rcode;
+}
+static int builtin_trap(char **argv)
+{
+	size_t i;
+	int sig;
+	bool ign = false;
+	char *new_cmd = NULL;
+
+	if (!G.traps)
+		G.traps = xzalloc(sizeof(*G.traps) * NSIG);
+
+	if (!argv[1]) {
+		/* No args: print all trapped.  This isn't 100% correct as we should
+		 * be escaping the cmd so that it can be pasted back in ...
+		 */
+		for (i = 0; i < NSIG; ++i)
+			if (G.traps[i].cmd)
+				printf("trap -- '%s' %s\n", G.traps[i].cmd, get_signame(i));
+		return EXIT_SUCCESS;
+	}
+
+	/* first arg is decimal: reset all specified */
+	sig = bb_strtou(argv[1], NULL, 10);
+	if (errno == 0) {
+		int ret;
+		i = 0;
+ set_all:
+		ret = EXIT_SUCCESS;
+		while (argv[++i]) {
+			char *old_cmd;
+
+			sig = get_signum(argv[i]);
+			if (sig < 0 || sig >= NSIG) {
+				ret = EXIT_FAILURE;
+				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
+				continue;
+			}
+
+			/* Make sure .cmd is always a valid command list since
+			 * signals can occur at any time ...
+			 */
+			old_cmd = G.traps[sig].cmd;
+			G.traps[sig].cmd = xstrdup(new_cmd);
+			free(old_cmd);
+
+			debug_printf("trap: setting SIG%s (%i) to: %s",
+				get_signame(sig), sig, G.traps[sig].cmd);
+
+			/* There is no signal for 0 (EXIT) */
+			if (sig == 0)
+				continue;
+
+			if (new_cmd) {
+				/* add/update a handler */
+				struct sigaction act = {
+					.sa_handler = ign ? SIG_IGN : handle_trap,
+					.sa_flags = SA_RESTART,
+				};
+				sigemptyset(&act.sa_mask);
+				sigaction(sig, &act, old_cmd ? NULL : &G.traps[sig].oact);
+			} else if (old_cmd && !new_cmd)
+				/* there was a handler, and we are removing it */
+				sigaction_set(sig, &G.traps[sig].oact);
+		}
+		return ret;
+	}
+
+	/* first arg is "-": reset all specified to default */
+	/* first arg is "": ignore all specified */
+	/* everything else: execute first arg upon signal */
+	if (!argv[2]) {
+		bb_error_msg("trap: invalid arguments");
+		return EXIT_FAILURE;
+	}
+	if (LONE_DASH(argv[1]))
+		/* nothing! */;
+	else
+		new_cmd = argv[1];
+	if (argv[1][0] == '\0')
+		ign = true;
+	i = 1;
+	goto set_all;
+}
+
 static int builtin_true(char **argv UNUSED_PARAM)
 {
 	return 0;
