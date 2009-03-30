@@ -1000,21 +1000,21 @@ static int set_local_var(char *str, int flg_export)
 	return 0;
 }
 
-static void unset_local_var(const char *name)
+static int unset_local_var(const char *name)
 {
 	struct variable *cur;
 	struct variable *prev = prev; /* for gcc */
 	int name_len;
 
 	if (!name)
-		return;
+		return EXIT_SUCCESS;
 	name_len = strlen(name);
 	cur = G.top_var;
 	while (cur) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
-				return;
+				return EXIT_FAILURE;
 			}
 			/* prev is ok to use here because 1st variable, HUSH_VERSION,
 			 * is ro, and we cannot reach this code on the 1st pass */
@@ -1024,11 +1024,12 @@ static void unset_local_var(const char *name)
 			if (!cur->max_len)
 				free(cur->varstr);
 			free(cur);
-			return;
+			return EXIT_SUCCESS;
 		}
 		prev = cur;
 		cur = cur->next;
 	}
+	return EXIT_SUCCESS;
 }
 
 
@@ -5025,11 +5026,40 @@ static int builtin_umask(char **argv)
 	return EXIT_SUCCESS;
 }
 
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
 static int builtin_unset(char **argv)
 {
-	/* bash always returns true */
-	unset_local_var(argv[1]);
-	return EXIT_SUCCESS;
+	size_t i;
+	int ret;
+	bool var = true;
+
+	if (!argv[1])
+		return EXIT_SUCCESS;
+
+	i = 0;
+	if (argv[1][0] == '-') {
+		switch (argv[1][1]) {
+		case 'v': break;
+		case 'f': if (ENABLE_HUSH_FUNCTIONS) { var = false; break; }
+		default:
+			bb_error_msg("unset: %s: invalid option", argv[1]);
+			return EXIT_FAILURE;
+		}
+		++i;
+	}
+
+	ret = EXIT_SUCCESS;
+	while (argv[++i]) {
+		if (var) {
+			if (unset_local_var(argv[i]))
+				ret = EXIT_FAILURE;
+		}
+#if ENABLE_HUSH_FUNCTIONS
+		else
+			unset_local_func(argv[i]);
+#endif
+	}
+	return ret;
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
