@@ -4529,7 +4529,7 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_28
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#trap
  *
  * Traps are also evaluated immediately instead of being delayed properly:
  * http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_11
