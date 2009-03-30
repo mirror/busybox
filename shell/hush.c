@@ -2153,7 +2153,8 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* We don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
-	printf("[%d] %d %s\n", thejob->jobid, thejob->cmds[0].pid, thejob->cmdtext);
+	if (G.interactive_fd)
+		printf("[%d] %d %s\n", thejob->jobid, thejob->cmds[0].pid, thejob->cmdtext);
 	G.last_bg_pid = thejob->cmds[0].pid;
 	G.last_jobid = thejob->jobid;
 }
@@ -2284,8 +2285,9 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->cmds[i].pid = 0;
 			pi->alive_cmds--;
 			if (!pi->alive_cmds) {
-				printf(JOB_STATUS_FORMAT, pi->jobid,
-						"Done", pi->cmdtext);
+				if (G.interactive_fd)
+					printf(JOB_STATUS_FORMAT, pi->jobid,
+							"Done", pi->cmdtext);
 				delete_finished_bg_job(pi);
 			}
 		} else {
