@@ -106,8 +106,10 @@ bigdata: busybox_unstripped
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
 # FIXME: Doesn't belong here
-disp_doc = \
-  @$(if $(quiet),echo "  DOC     $(@F)")
+       cmd_doc =
+ quiet_cmd_doc = $(Q)echo "  DOC     $(@F)"
+silent_cmd_doc =
+disp_doc       = $($(quiet)cmd_doc)
 
 docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
 		$(srctree)/include/usage.h \
