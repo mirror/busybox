@@ -3686,32 +3686,27 @@
        "[OPTIONS] [rcpt]..."
 #define sendmail_full_usage "\n\n" \
        "Send an email\n" \
-     "\nOptions:" \
-     "\n	-w timeout	Network timeout" \
-     "\n	-N type		Request delivery notification. Type is ignored" \
-     "\n	-f sender	Sender" \
-     "\n	-F fullname	Sender full name. Overrides $NAME" \
-	USE_FEATURE_SENDMAIL_MAILX( \
-     "\n	-s subject	Subject" \
-     "\n	-j charset	Assume charset for body and subject (" CONFIG_FEATURE_MIME_CHARSET ")" \
-     "\n	-a file		File to attach. May be repeated" \
+     "\nStandard options:" \
+     "\n	-t		Read recipients from message body, add them to those on cmdline" \
+     "\n	-f sender	Sender. REQUIRED!" \
+     "\n	-o options	various options. -oi IMPLIED! others are IGNORED!" \
+     "\n" \
+     "\nBusybox specific options:" \
+     "\n	-w seconds	Network timeout" \
      "\n	-H 'prog args'	Run connection helper" \
      "\n			Examples:" \
      "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp" \
      "\n				-connect smtp.gmail.com:25' <email.txt" \
-     "\n				[4<username_and_passwd.txt]" \
+     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]" \
      "\n			-H 'exec openssl s_client -quiet -tls1" \
      "\n				-connect smtp.gmail.com:465' <email.txt" \
-     "\n				[4<username_and_passwd.txt]" \
+     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]" \
      "\n	-S server[:port] Server" \
-	) \
-	USE_FEATURE_SENDMAIL_MAILXX( \
-     "\n	-c rcpt		Cc: recipient. May be repeated" \
-     "\n	-e rcpt		Errors-To: recipient" \
-	) \
-     "\n	-t		Read recipients and subject from body" \
+     "\n	-au<username>	Username for AUTH LOGIN" \
+     "\n	-ap<password>	Password for AUTH LOGIN" \
+     "\n	-am<method>	Authentication method. Ignored. login is implied." \
      "\n" \
-     "\nOther options are silently ignored; -oi is implied" \
+     "\nOther options are silently ignored; -oi -t is implied" \
 
 #define seq_trivial_usage \
        "[-w] [-s SEP] [FIRST [INC]] LAST"

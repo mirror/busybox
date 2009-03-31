@@ -61,35 +61,23 @@ static void rcptto(const char *s)
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendmail_main(int argc UNUSED_PARAM, char **argv)
 {
-#if ENABLE_FEATURE_SENDMAIL_MAILX
-	llist_t *opt_attachments = NULL;
-	const char *opt_subject;
-#if ENABLE_FEATURE_SENDMAIL_MAILXX
-	llist_t *opt_carboncopies = NULL;
-	char *opt_errors_to;
-#endif
-#endif
 	char *opt_connect = opt_connect;
-	char *opt_from, *opt_fullname;
-	char *boundary;
-	llist_t *l;
-	llist_t *headers = NULL;
+	char *opt_from;
+	char *s;
+	llist_t *list = NULL;
 	char *domain = sane_address(safe_getdomainname());
 	int code;
 
 	enum {
-		OPT_w = 1 << 0,         // network timeout
-		OPT_t = 1 << 1,         // read message for recipients
-		OPT_N = 1 << 2,         // request notification
-		OPT_f = 1 << 3,         // sender address
-		OPT_F = 1 << 4,         // sender name, overrides $NAME
-		OPT_s = 1 << 5,         // subject
-		OPT_j = 1 << 6,         // assumed charset
-		OPT_a = 1 << 7,         // attachment(s)
-		OPT_H = 1 << 8,         // use external connection helper
-		OPT_S = 1 << 9,         // specify connection string
-		OPT_c = 1 << 10,        // carbon copy
-		OPT_e = 1 << 11,        // errors-to address
+	//--- standard options
+		OPT_t = 1 << 0,         // read message for recipients, append them to those on cmdline
+		OPT_f = 1 << 1,         // sender address
+		OPT_o = 1 << 2,         // various options. -oi IMPLIED! others are IGNORED!
+	//--- BB specific options
+		OPT_w = 1 << 3,         // network timeout
+		OPT_H = 1 << 4,         // use external connection helper
+		OPT_S = 1 << 5,         // specify connection string
+		OPT_a = 1 << 6,         // authentication tokens
 	};
 
 	// init global variables
@@ -100,35 +88,42 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	G.fp0 = fdopen(3, "r");
 
 	// parse options
-	opt_complementary = "w+" USE_FEATURE_SENDMAIL_MAILX(":a::H--S:S--H") USE_FEATURE_SENDMAIL_MAILXX(":c::");
-	opts = getopt32(argv,
-		"w:t" "N:f:F:" USE_FEATURE_SENDMAIL_MAILX("s:j:a:H:S:") USE_FEATURE_SENDMAIL_MAILXX("c:e:")
-		"X:V:vq:R:O:o:nmL:Iih:GC:B:b:A:" // postfix compat only, ignored
-		// r:Q:p:M:Dd are candidates from another man page. TODO?
-		"46E", // ssmtp introduces another quirks. TODO?: -a[upm] (user, pass, method) to be supported
-		&timeout /* -w */, NULL, &opt_from, &opt_fullname,
-		USE_FEATURE_SENDMAIL_MAILX(&opt_subject, &G.opt_charset, &opt_attachments, &opt_connect, &opt_connect,)
-		USE_FEATURE_SENDMAIL_MAILXX(&opt_carboncopies, &opt_errors_to,)
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	);
+	// -f is required. -H and -S are mutually exclusive
+	opt_complementary = "f:w+:H--S:S--H:a::";
+	// N.B. since -H and -S are mutually exclusive they do not interfere in opt_connect
+	// -a is for ssmtp (http://downloads.openwrt.org/people/nico/man/man8/ssmtp.8.html) compatibility,
+	// it is still under development.
+	opts = getopt32(argv, "tf:o:w:H:S:a::", &opt_from, NULL, &timeout, &opt_connect, &opt_connect, &list);
 	//argc -= optind;
 	argv += optind;
 
+	// process -a[upm]<token> options
+	if ((opts & OPT_a) && !list)
+		bb_show_usage();
+	while (list) {
+		char *a = (char *) llist_pop(&list);
+		if ('u' == a[0])
+			G.user = xstrdup(a+1);
+		if ('p' == a[0])
+			G.pass = xstrdup(a+1);
+		// N.B. we support only AUTH LOGIN so far
+		//if ('m' == a[0])
+		//	G.method = xstrdup(a+1);
+	}
+	// N.B. list == NULL here
+	//bb_info_msg("OPT[%x] AU[%s], AP[%s], AM[%s], ARGV[%s]", opts, au, ap, am, *argv);
+
 	// connect to server
 
-#if ENABLE_FEATURE_SENDMAIL_MAILX
-	// N.B. -H and -S are mutually exclusive so they do not spoil opt_connect
 	// connection helper ordered? ->
 	if (opts & OPT_H) {
 		const char *args[] = { "sh", "-c", opt_connect, NULL };
 		// plug it in
 		launch_helper(args);
 	// vanilla connection
-	} else
-#endif
-	{
+	} else {
 		int fd;
-		// host[:port] not explicitly specified ? -> use $SMTPHOST
+		// host[:port] not explicitly specified? -> use $SMTPHOST
 		// no $SMTPHOST ? -> use localhost
 		if (!(opts & OPT_S)) {
 			opt_connect = getenv("SMTPHOST");
@@ -145,7 +140,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// wait for initial server OK
 	// N.B. if we used openssl the initial 220 answer is already swallowed during openssl TLS init procedure
-	// so we need to push the server to see whether we are ok
+	// so we need to kick the server to see whether we are ok
 	code = smtp_check("NOOP", -1);
 	// 220 on plain connection, 250 on openssl-helped TLS session
 	if (220 == code)
@@ -156,6 +151,20 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// we should start with modern EHLO
 	if (250 != smtp_checkp("EHLO %s", domain, -1)) {
 		smtp_checkp("HELO %s", domain, 250);
+	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(domain);
+
+	// perform authentication
+	if (opts & OPT_a) {
+		smtp_check("AUTH LOGIN", 334);
+		// we must read credentials unless they are given via -a[up] options
+		if (!G.user || !G.pass)
+			get_cred_or_die(4);
+		encode_base64(NULL, G.user, NULL);
+		smtp_check("", 334);
+		encode_base64(NULL, G.pass, NULL);
+		smtp_check("", 235);
 	}
 
 	// set sender
@@ -170,201 +179,25 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	//	file descriptor (e.g. 4), or again from a secured file.
 
 	// got no sender address? -> use system username as a resort
-	if (!(opts & OPT_f)) {
-		// N.B. IMHO getenv("USER") can be way easily spoofed!
-		G.user = xuid2uname(getuid());
-		opt_from = xasprintf("%s@%s", G.user, domain);
-	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(domain);
+	// N.B. we marked -f as required option!
+	//if (!G.user) {
+	//	// N.B. IMHO getenv("USER") can be way easily spoofed!
+	//	G.user = xuid2uname(getuid());
+	//	opt_from = xasprintf("%s@%s", G.user, domain);
+	//}
+	//if (ENABLE_FEATURE_CLEAN_UP)
+	//	free(domain);
+	smtp_checkp("MAIL FROM:<%s>", opt_from, 250);
 
-	code = -1; // first try softly without authentication
-	while (250 != smtp_checkp("MAIL FROM:<%s>", opt_from, code)) {
-		// MAIL FROM failed -> authentication needed
-		if (334 == smtp_check("AUTH LOGIN", -1)) {
-			// we must read credentials
-			get_cred_or_die(4);
-			encode_base64(NULL, G.user, NULL);
-			smtp_check("", 334);
-			encode_base64(NULL, G.pass, NULL);
-			smtp_check("", 235);
-		}
-		// authenticated OK? -> retry to set sender
-		// but this time die on failure!
-		code = 250;
-	}
+	// process message
 
-	// recipients specified as arguments
-	while (*argv) {
-		char *s = sane_address(*argv);
-		// loose test on email address validity
-//		if (strchr(s, '@')) {
-			rcptto(s);
-			llist_add_to_end(&headers, xasprintf("To: %s", s));
-//		}
-		argv++;
-	}
-
-#if ENABLE_FEATURE_SENDMAIL_MAILXX
-	// carbon copies recipients specified as -c options
-	for (l = opt_carboncopies; l; l = l->link) {
-		char *s = sane_address(l->data);
-		// loose test on email address validity
-//		if (strchr(s, '@')) {
-			rcptto(s);
-			// TODO: do we ever need to mangle the message?
-			//llist_add_to_end(&headers, xasprintf("Cc: %s", s));
-//		}
-	}
-#endif
-
-	// if -t specified or no recipients specified -> read recipients from message
-	// i.e. scan stdin for To:, Cc:, Bcc: lines ...
-	// ... and then use the rest of stdin as message body
-	// N.B. subject read from body can be further overrided with one specified on command line.
-	// recipients are merged. Bcc: lines are deleted
-	// N.B. other headers are collected and will be dumped verbatim
-	if (opts & OPT_t || !headers) {
-		// fetch recipients and (optionally) subject
-		char *s;
-		while ((s = xmalloc_fgetline(G.fp0)) != NULL) {
-			if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Cc: ", s, 4)) {
-				rcptto(sane_address(s+4));
-				llist_add_to_end(&headers, s);
-			} else if (0 == strncasecmp("Bcc: ", s, 5)) {
-				rcptto(sane_address(s+5));
-				free(s);
-				// N.B. Bcc vanishes from headers!
-			} else if (0 == strncmp("Subject: ", s, 9)) {
-				// we read subject -> use it verbatim unless it is specified
-				// on command line
-				if (!(opts & OPT_s))
-					llist_add_to_end(&headers, s);
-				else
-					free(s);
-			} else if (s[0]) {
-				// misc header
-				llist_add_to_end(&headers, s);
-			} else {
-				free(s);
-				break; // stop on the first empty line
-			}
-		}
-	}
-
-	// enter "put message" mode
-	smtp_check("DATA", 354);
-
-	// put headers we could have preread with -t
-	for (l = headers; l; l = l->link) {
-		printf("%s\r\n", l->data);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(l->data);
-	}
-
-	// put (possibly encoded) subject
-#if ENABLE_FEATURE_SENDMAIL_MAILX
-	if (opts & OPT_s) {
-		printf("Subject: ");
-		if (opts & OPT_j) {
-			printf("=?%s?B?", G.opt_charset);
-			encode_base64(NULL, opt_subject, NULL);
-			printf("?=");
-		} else {
-			printf("%s", opt_subject);
-		}
-		printf("\r\n");
-	}
-#endif
-
-	// put sender name, $NAME is the default
-	if (!(opts & OPT_F))
-		opt_fullname = getenv("NAME");
-	if (opt_fullname)
-		printf("From: \"%s\" <%s>\r\n", opt_fullname, opt_from);
-
-	// put notification
-	if (opts & OPT_N)
-		printf("Disposition-Notification-To: %s\r\n", opt_from);
-
-#if ENABLE_FEATURE_SENDMAIL_MAILXX
-	// put errors recipient
-	if (opts & OPT_e)
-		printf("Errors-To: %s\r\n", opt_errors_to);
-#endif
-
-	// make a random string -- it will delimit message parts
-	srand(monotonic_us());
-	boundary = xasprintf("%d=_%d-%d", rand(), rand(), rand());
-
-	// put common headers
-	// TODO: do we really need this?
-//	printf("Message-ID: <%s>\r\n", boundary);
-
-#if ENABLE_FEATURE_SENDMAIL_MAILX
-	// have attachments? -> compose multipart MIME
-	if (opt_attachments) {
-		const char *fmt;
-		const char *p;
-		char *q;
-
-		printf(
-			"Mime-Version: 1.0\r\n"
-			"%smultipart/mixed; boundary=\"%s\"\r\n"
-			, "Content-Type: "
-			, boundary
-		);
-
-		// body is pseudo attachment read from stdin in first turn
-		llist_add_to(&opt_attachments, (char *)"-");
-
-		// put body + attachment(s)
-		// N.B. all these weird things just to be tiny
-		// by reusing string patterns!
-		fmt =
-			"\r\n--%s\r\n"
-			"%stext/plain; charset=%s\r\n"
-			"%s%s\r\n"
-			"%s"
-		;
-		p = G.opt_charset;
-		q = (char *)"";
-		l = opt_attachments;
-		while (l) {
-			printf(
-				fmt
-				, boundary
-				, "Content-Type: "
-				, p
-				, "Content-Disposition: inline"
-				, q
-				, "Content-Transfer-Encoding: base64\r\n"
-			);
-			p = "";
-			fmt =
-				"\r\n--%s\r\n"
-				"%sapplication/octet-stream%s\r\n"
-				"%s; filename=\"%s\"\r\n"
-				"%s"
-			;
-			encode_base64(l->data, (const char *)G.fp0, "\r");
-			l = l->link;
-			if (l)
-				q = bb_get_last_path_component_strip(l->data);
-		}
-
-		// put message terminator
-		printf("\r\n--%s--\r\n" "\r\n", boundary);
-
-	// no attachments? -> just dump message
-	} else
-#endif
-	{
-		char *s;
-		// terminate headers
-		printf("\r\n");
-		// put plain text respecting leading dots
-		while ((s = xmalloc_fgetline(G.fp0)) != NULL) {
+	// read recipients from message and add them to those given on cmdline.
+	// this means we scan stdin for To:, Cc:, Bcc: lines until an empty line
+	// and then use the rest of stdin as message body
+	code = 0; // set "analyze headers" mode
+	while ((s = xmalloc_fgetline(G.fp0)) != NULL) {
+		// put message lines doubling leading dots
+		if (code) {
 			// escape leading dots
 			// N.B. this feature is implied even if no -i (-oi) switch given
 			// N.B. we need to escape the leading dot regardless of
@@ -373,10 +206,48 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 				printf(".");
 			// dump read line
 			printf("%s\r\n", s);
+			free(s);
+			continue;
+		}
+
+		// analyze headers
+		// To: or Cc: headers add recipients
+		if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Bcc: " + 1, s, 4)) {
+			rcptto(sane_address(s+4));
+//			goto addh;
+			llist_add_to_end(&list, s);
+		// Bcc: header adds blind copy (hidden) recipient
+		} else if (0 == strncasecmp("Bcc: ", s, 5)) {
+			rcptto(sane_address(s+5));
+			free(s);
+			// N.B. Bcc: vanishes from headers!
+		// other headers go verbatim
+		} else if (s[0]) {
+// addh:
+			llist_add_to_end(&list, s);
+		// the empty line stops analyzing headers
+		} else {
+			free(s);
+			// put recipients specified on cmdline
+			while (*argv) {
+				s = sane_address(*argv);
+				rcptto(s);
+				llist_add_to_end(&list, xasprintf("To: %s", s));
+				argv++;
+			}
+			// enter "put message" mode
+			smtp_check("DATA", 354);
+			// dump the headers
+			while (list) {
+				printf("%s\r\n", (char *) llist_pop(&list));
+			}
+			printf("%s\r\n" + 2); // quirk for format string to be reused
+			// stop analyzing headers
+			code++;
 		}
 	}
 
-	// leave "put message" mode
+	// finalize the message
 	smtp_check(".", 250);
 	// ... and say goodbye
 	smtp_check("QUIT", 221);

@@ -50,20 +50,4 @@ config SENDMAIL
 	help
 	  Barebones sendmail.
 
-config FEATURE_SENDMAIL_MAILX
-	bool "Allow to specify subject, attachments, their charset etc"
-	default y
-	depends on SENDMAIL
-	help
-	  Allow to specify subject, attachments and their charset.
-	  Allow to use custom connection helper.
-
-config FEATURE_SENDMAIL_MAILXX
-	bool "Allow to specify Cc: addresses and some additional headers"
-	default n
-	depends on FEATURE_SENDMAIL_MAILX
-	help
-	  Allow to specify Cc: addresses and some additional headers:
-	  Errors-To:
-
 endmenu
