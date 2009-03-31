@@ -12618,14 +12618,16 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 		if (c == '\n')
 			break;
+		/* $IFS splitting */
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05	*/
 		is_ifs = strchr(ifs, c);
 		if (startword && is_ifs) {
 			if (isspace(c))
 				continue;
-			/* non-space ifs char */
+			/* it is a non-space ifs char */
 			startword--;
 			if (startword == 1) /* first one? */
-				continue;
+				continue; /* yes, it is not next word yet */
 		}
 		startword = 0;
 		if (ap[1] != NULL && is_ifs) {
@@ -12634,7 +12636,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			beg = stackblock();
 			setvar(*ap, beg, 0);
 			ap++;
-			/* can we skip one non-space ifs? (2: yes) */
+			/* can we skip one non-space ifs char? (2: yes) */
 			startword = isspace(c) ? 2 : 1;
 			STARTSTACKSTR(p);
 			continue;
