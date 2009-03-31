@@ -1,7 +1,7 @@
 # avoid ugly warnings about signals not being caught
 trap ":" USR1 USR2
 
-hush -c '
+"$THIS_SH" -c '
 trap "echo caught" USR2
 echo "sending USR2"
 kill -USR2 $$

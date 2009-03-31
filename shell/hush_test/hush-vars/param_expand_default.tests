@@ -1,6 +1,6 @@
 # first try some invalid patterns (do in subshell due to parsing error)
-hush -c 'echo ${-}'
-hush -c 'echo ${:-}'
+"$THIS_SH" -c 'echo ${-}'
+"$THIS_SH" -c 'echo ${:-}'
 
 # now some funky ones
 echo _${#-} _${#:-}

@@ -1,3 +1,3 @@
-hush -c 'trap "echo cow" 0'
-hush -c 'trap "echo moo" EXIT'
-hush -c 'trap "echo no" 0; trap 0'
+"$THIS_SH" -c 'trap "echo cow" 0'
+"$THIS_SH" -c 'trap "echo moo" EXIT'
+"$THIS_SH" -c 'trap "echo no" 0; trap 0'

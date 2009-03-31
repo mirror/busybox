@@ -1,22 +1,22 @@
 # first try some invalid patterns (do in subshell due to parsing error)
-hush -c 'echo ${=}'
-hush -c 'echo ${:=}'
+"$THIS_SH" -c 'echo ${=}'
+"$THIS_SH" -c 'echo ${:=}'
 
 # now some funky ones
-hush -c 'echo ${#=}'
-hush -c 'echo ${#:=}'
+"$THIS_SH" -c 'echo ${#=}'
+"$THIS_SH" -c 'echo ${#:=}'
 
 # should error out
-hush -c 'set --; echo _${1=}'
-hush -c 'set --; echo _${1:=}'
-hush -c 'set --; echo _${1=word}'
-hush -c 'set --; echo _${1:=word}'
+"$THIS_SH" -c 'set --; echo _${1=}'
+"$THIS_SH" -c 'set --; echo _${1:=}'
+"$THIS_SH" -c 'set --; echo _${1=word}'
+"$THIS_SH" -c 'set --; echo _${1:=word}'
 
 # should not error
-hush -c 'set aa; echo _${1=}'
-hush -c 'set aa; echo _${1:=}'
-hush -c 'set aa; echo _${1=word}'
-hush -c 'set aa; echo _${1:=word}'
+"$THIS_SH" -c 'set aa; echo _${1=}'
+"$THIS_SH" -c 'set aa; echo _${1:=}'
+"$THIS_SH" -c 'set aa; echo _${1=word}'
+"$THIS_SH" -c 'set aa; echo _${1:=word}'
 
 # should work fine
 unset f; echo _$f

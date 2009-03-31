@@ -1,4 +1,4 @@
 # reject invalid vars
-hush -c 'echo ${1q}'
-hush -c 'echo ${&}'
-hush -c 'echo ${$}'
+"$THIS_SH" -c 'echo ${1q}'
+"$THIS_SH" -c 'echo ${&}'
+"$THIS_SH" -c 'echo ${$}'

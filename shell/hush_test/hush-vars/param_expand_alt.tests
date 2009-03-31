@@ -1,6 +1,6 @@
 # first try some invalid patterns (do in subshell due to parsing error)
-hush -c 'echo ${+}  ; echo moo'
-hush -c 'echo ${:+} ; echo moo'
+"$THIS_SH" -c 'echo ${+}  ; echo moo'
+"$THIS_SH" -c 'echo ${:+} ; echo moo'
 
 # now some funky ones
 echo _${#+} _${#:+}
