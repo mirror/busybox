@@ -753,14 +753,14 @@ static void free_strings(char **strings)
 
 /* Basic theory of signal handling in shell
  * ========================================
- * This does not describe what hush does, rahter, it is current understanding
- * what it _should_ do.
+ * This does not describe what hush does, rather, it is current understanding
+ * what it _should_ do. If it doesn't, it's a bug.
  * http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#trap
  *
  * Signals are handled only after each pipe ("cmd | cmd | cmd" thing)
  * is finished or backgrounded. It is the same in interactive and
  * non-interactive shells, and is the same regardless of whether
- * a user trap handler is installed or a default one is in effect.
+ * a user trap handler is installed or a shell special one is in effect.
  * ^C or ^Z from keyboard seem to execute "at once" because it usually
  * backgrounds (i.e. stops) or kills all members of currently running
  * pipe.
@@ -770,33 +770,38 @@ static void free_strings(char **strings)
  *
  * Trap handlers will execute even within trap handlers. (right?)
  *
- * User trap handlers are forgotten when subshell is entered.
+ * User trap handlers are forgotten when subshell ("(cmd)") is entered. [TODO]
  *
  * If job control is off, backgrounded commands ("cmd &")
- *  have SIGINT, SIGQUIT set to SIG_IGN.
+ * have SIGINT, SIGQUIT set to SIG_IGN.
  *
  * Commands run in command substitution ("`cmd`")
- *  have SIGTTIN, SIGTTOU, SIGTSTP set to SIG_IGN.
+ * have SIGTTIN, SIGTTOU, SIGTSTP set to SIG_IGN.
  *
- * Ordinary commands have IGN/DFL set as inherited by the shell
- * from its parent.
+ * Ordinary commands have signals set to SIG_IGN/DFL set as inherited
+ * by the shell from its parent.
  *
- * Default handlers which differ from DFL action
- * (note: subshell is not an interactive shell):
+ * Siganls which differ from SIG_DFL action
+ * (note: child (i.e., [v]forked) shell is not an interactive shell):
  *
  * SIGQUIT: ignore
  * SIGTERM (interactive): ignore
- * SUGHUP (interactive): send SIGCONT to stopped jobs,
- *  send SIGHUP to all jobs and exit
+ * SIGHUP (interactive):
+ *    send SIGCONT to stopped jobs, send SIGHUP to all jobs and exit
  * SIGTTIN, SIGTTOU, SIGTSTP (if job control is on): ignore
- *  (note that ^Z is handled not by trapping SIGTSTP, but by seeing
- *  that all pipe members are stopped) (right?)
+ *    (note that ^Z is handled not by trapping SIGTSTP, but by seeing
+ *    that all pipe members are stopped) (right?)
  * SIGINT (interactive): wait for last pipe, ignore the rest
- *  of the command line, show prompt. (check/expand this)
- *  Example 1: this waits 5 sec, but does not execute ls:
- *  "echo $$; sleep 5; ls -l" + "kill -INT <pid>"
- *  Example 2: this does not wait and does not execute ls:
- *  "echo $$; sleep 5 & wait; ls -l" + "kill -INT <pid>"
+ *    of the command line, show prompt. NB: ^C does not send SIGINT
+ *    to interactive shell while shell is waiting for a pipe,
+ *    since shell is bg'ed (is not in foreground process group).
+ *    (check/expand this)
+ *    Example 1: this waits 5 sec, but does not execute ls:
+ *    "echo $$; sleep 5; ls -l" + "kill -INT <pid>"
+ *    Example 2: this does not wait and does not execute ls:
+ *    "echo $$; sleep 5 & wait; ls -l" + "kill -INT <pid>"
+ *    Example 3: this does not wait 5 sec, but executes ls:
+ *    "sleep 5; ls -l" + press ^C
  *
  * (What happens to signals which are IGN on shell start?)
  * (What happens with signal mask on shell start?)
@@ -813,14 +818,16 @@ static void free_strings(char **strings)
  * unsigned non_DFL_mask: a mask of such "special" signals
  * sigset_t blocked_set:  current blocked signal set
  *
- * "trap - SIGxxx":     clear bit in blocked_set unless it is also in non_DFL
- * "trap 'cmd' SIGxxx": set bit in blocked_set (even if 'cmd' is '')
+ * "trap - SIGxxx":
+ *    clear bit in blocked_set unless it is also in non_DFL
+ * "trap 'cmd' SIGxxx":
+ *    set bit in blocked_set (even if 'cmd' is '')
  * after [v]fork, if we plan to be a shell:
- *   nothing for {} subshell (say, "true | { true; true; } | true")
- *   unset all traps if () shell. [TODO]
+ *    nothing for {} child shell (say, "true | { true; true; } | true")
+ *    unset all traps if () shell. [TODO]
  * after [v]fork, if we plan to exec:
- *   POSIX says pending signal mask is cleared in child - no need to clear it.
- *   restore blocked signal set to one inherited by shell just prior to exec.
+ *    POSIX says pending signal mask is cleared in child - no need to clear it.
+ *    Restore blocked signal set to one inherited by shell just prior to exec.
  *
  * Note: as a result, we do not use signal handlers much. The only use
  * is to restore terminal pgrp on exit.
@@ -848,7 +855,6 @@ static void init_signal_mask(void)
 #endif
 	G.non_DFL_mask = mask;
 
-	/*sigemptyset(&G.blocked_set); - already is */
 	sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
 	sig = 0;
 	while (mask) {
@@ -859,6 +865,7 @@ static void init_signal_mask(void)
 	}
 	sigprocmask(SIG_SETMASK, &G.blocked_set, &G.inherited_set);
 }
+
 static void check_and_run_traps(void)
 {
 	static const struct timespec zero_ts = { 0, 0 };
@@ -910,7 +917,7 @@ static void sigexit(int sig)
 
 #if ENABLE_HUSH_INTERACTIVE
 	/* Careful: we can end up here after [v]fork. Do not restore
-	 * tty pgrp, only top-level shell process does that */
+	 * tty pgrp then, only top-level shell process does that */
 	if (G.interactive_fd && getpid() == G.root_pid)
 		tcsetpgrp(G.interactive_fd, G.saved_tty_pgrp);
 #endif
@@ -931,11 +938,11 @@ static void maybe_set_sighandler(int sig)
 	 */
 	if (!((G.non_DFL_mask >> sig) & 1)) {
 		handler = signal(sig, sigexit);
-		if (handler == SIG_IGN) /* restore back to IGN! */
+		if (handler == SIG_IGN) /* oops... restore back to IGN! */
 			signal(sig, handler);
 	}
 }
-/* Used only to set handler to restore pgrp on exit, and to reset it to DFL */
+/* Used only to set handler to restore pgrp on exit */
 static void set_fatal_signals_to_sigexit(void)
 {
 	if (HUSH_DEBUG) {
