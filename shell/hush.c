@@ -493,8 +493,6 @@ struct globals {
 	char **traps; /* char *traps[NSIG] */
 	/* which signals have non-DFL handler (even with no traps set)? */
 	unsigned non_DFL_mask;
-	/* which signals are known to be IGNed on entry to shell? */
-	unsigned IGN_mask;
 	sigset_t blocked_set;
 	sigset_t inherited_set;
 };
@@ -895,127 +893,7 @@ static void check_and_run_traps(void)
 	}
 }
 
-/* The stuff below needs to be migrated to "Special action" above */
-
-/////* Signals are grouped, we handle them in batches */
-////static void set_misc_sighandler(void (*handler)(int))
-////{
-////	bb_signals(0
-////		+ (1 << SIGINT)
-////		+ (1 << SIGQUIT)
-////		+ (1 << SIGTERM)
-////		, handler);
-////}
-
 #if ENABLE_HUSH_JOB
-
-/* helper */
-static unsigned maybe_set_sighandler(int sig, void (*handler)(int))
-{
-	/* non_DFL_mask'ed signals are, well, masked,
-	 * no need to set handler for them.
-	 * IGN_mask'ed signals were found to be IGN on entry,
-	 * do not change that -> no need to set handler for them either
-	 */
-	unsigned ign = ((G.IGN_mask|G.non_DFL_mask) >> sig) & 1;
-	if (!ign) {
-		handler = signal(sig, handler);
-		ign = (handler == SIG_IGN);
-		if (ign) /* restore back to IGN! */
-			signal(sig, handler);
-	}
-	return ign << sig; /* pass back knowledge about SIG_IGN */
-}
-/* Used only to set handler to restore pgrp on exit, and to reset it to DFL */
-static void set_fatal_sighandler(void (*handler)(int))
-{
-	unsigned mask = 0;
-
-	if (HUSH_DEBUG) {
-		mask |= maybe_set_sighandler(SIGILL , handler);
-		mask |= maybe_set_sighandler(SIGFPE , handler);
-		mask |= maybe_set_sighandler(SIGBUS , handler);
-		mask |= maybe_set_sighandler(SIGSEGV, handler);
-		mask |= maybe_set_sighandler(SIGTRAP, handler);
-	} /* else: hush is perfect. what SEGV? */
-
-	mask |= maybe_set_sighandler(SIGABRT, handler);
-
-	/* bash 3.2 seems to handle these just like 'fatal' ones */
-	mask |= maybe_set_sighandler(SIGPIPE, handler);
-	mask |= maybe_set_sighandler(SIGALRM, handler);
-	mask |= maybe_set_sighandler(SIGHUP , handler);
-
-	/* if we aren't interactive... but in this case
-	 * we never want to restore pgrp on exit, and this fn is not called */
-	/*mask |= maybe_set_sighandler(SIGTERM, handler); */
-	/*mask |= maybe_set_sighandler(SIGINT , handler); */
-
-	G.IGN_mask = mask;
-}
-/* Used only to suppress ^Z in `cmd` */
-static void IGN_jobctrl_signals(void)
-{
-	bb_signals(0
-		+ (1 << SIGTSTP)
-		+ (1 << SIGTTIN)
-		+ (1 << SIGTTOU)
-		, SIG_IGN);
-}
-/* SIGCHLD is special and handled separately */
-
-////static void set_every_sighandler(void (*handler)(int))
-////{
-////	set_fatal_sighandler(handler);
-////	set_jobctrl_sighandler(handler);
-////	set_misc_sighandler(handler);
-////	signal(SIGCHLD, handler);
-////}
-
-////static void handler_ctrl_c(int sig UNUSED_PARAM)
-////{
-////	debug_printf_jobs("got sig %d\n", sig);
-////// as usual we can have all kinds of nasty problems with leaked malloc data here
-////	siglongjmp(G.toplevel_jb, 1);
-////}
-
-////static void handler_ctrl_z(int sig UNUSED_PARAM)
-////{
-////	pid_t pid;
-////
-////	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
-////
-////	if (!BB_MMU) {
-////		fputs("Sorry, backgrounding (CTRL+Z) of foreground scripts not supported on nommu\n", stderr);
-////		return;
-////	}
-////
-////	pid = fork();
-////	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
-////		return;
-////	G.ctrl_z_flag = 1;
-////	if (!pid) { /* child */
-////		if (ENABLE_HUSH_JOB)
-////			die_sleep = 0; /* let nofork's xfuncs die */
-////		bb_setpgrp();
-////		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
-////////		set_every_sighandler(SIG_DFL);
-////		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
-////		debug_printf_jobs("returning in child\n");
-////		/* return to nofork, it will eventually exit now,
-////		 * not return back to shell */
-////		return;
-////	}
-////	/* parent */
-////	/* finish filling up pipe info */
-////	G.toplevel_list->pgrp = pid; /* child is in its own pgrp */
-////	G.toplevel_list->cmds[0].pid = pid;
-////	/* parent needs to longjmp out of running nofork.
-////	 * we will "return" exitcode 0, with child put in background */
-////// as usual we can have all kinds of nasty problems with leaked malloc data here
-////	debug_printf_jobs("siglongjmp in parent\n");
-////	siglongjmp(G.toplevel_jb, 1);
-////}
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
@@ -1029,7 +907,9 @@ static void sigexit(int sig)
 	sigprocmask_allsigs(SIG_BLOCK);
 
 #if ENABLE_HUSH_INTERACTIVE
-	if (G.interactive_fd)
+	/* Careful: we can end up here after [v]fork. Do not restore
+	 * tty pgrp, only top-level shell process does that */
+	if (G.interactive_fd && getpid() == G.root_pid)
 		tcsetpgrp(G.interactive_fd, G.saved_tty_pgrp);
 #endif
 
@@ -1040,10 +920,56 @@ static void sigexit(int sig)
 	kill_myself_with_sig(sig); /* does not return */
 }
 
+/* helper */
+static void maybe_set_sighandler(int sig)
+{
+	void (*handler)(int);
+	/* non_DFL_mask'ed signals are, well, masked,
+	 * no need to set handler for them.
+	 */
+	if (!((G.non_DFL_mask >> sig) & 1)) {
+		handler = signal(sig, sigexit);
+		if (handler == SIG_IGN) /* restore back to IGN! */
+			signal(sig, handler);
+	}
+}
+/* Used only to set handler to restore pgrp on exit, and to reset it to DFL */
+static void set_fatal_signals_to_sigexit(void)
+{
+	if (HUSH_DEBUG) {
+		maybe_set_sighandler(SIGILL );
+		maybe_set_sighandler(SIGFPE );
+		maybe_set_sighandler(SIGBUS );
+		maybe_set_sighandler(SIGSEGV);
+		maybe_set_sighandler(SIGTRAP);
+	} /* else: hush is perfect. what SEGV? */
+
+	maybe_set_sighandler(SIGABRT);
+
+	/* bash 3.2 seems to handle these just like 'fatal' ones */
+	maybe_set_sighandler(SIGPIPE);
+	maybe_set_sighandler(SIGALRM);
+	maybe_set_sighandler(SIGHUP );
+
+	/* if we aren't interactive... but in this case
+	 * we never want to restore pgrp on exit, and this fn is not called */
+	/*maybe_set_sighandler(SIGTERM);*/
+	/*maybe_set_sighandler(SIGINT );*/
+}
+/* Used only to suppress ^Z in `cmd` */
+static void set_jobctrl_signals_to_IGN(void)
+{
+	bb_signals(0
+		+ (1 << SIGTSTP)
+		+ (1 << SIGTTIN)
+		+ (1 << SIGTTOU)
+		, SIG_IGN);
+}
+
 #else /* !JOB */
 
-#define set_fatal_sighandler(handler) ((void)0)
-#define IGN_jobctrl_signals(handler)  ((void)0)
+#define set_fatal_signals_to_sigexit(handler) ((void)0)
+#define set_jobctrl_signals_to_IGN(handler)  ((void)0)
 
 #endif /* JOB */
 
@@ -1057,11 +983,12 @@ static void hush_exit(int exitcode)
 		free(argv[1]);
 	}
 
-	if (ENABLE_HUSH_JOB) {
-		fflush(NULL); /* flush all streams */
-		sigexit(- (exitcode & 0xff));
-	} else
-		exit(exitcode);
+#if ENABLE_HUSH_JOB
+	fflush(NULL); /* flush all streams */
+	sigexit(- (exitcode & 0xff));
+#else
+	exit(exitcode);
+#endif
 }
 
 
@@ -2641,10 +2568,6 @@ static int run_pipe(struct pipe *pi)
 	 * might include `cmd` runs! Do not rerun it! We *must*
 	 * use argv_expanded if it's non-NULL */
 
-	/* Disable job control signals for shell (parent) and
-	 * for initial child code after fork */
-////	set_jobctrl_sighandler(SIG_IGN);
-
 	/* Going to fork a child per each pipe member */
 	pi->alive_cmds = 0;
 	nextin = 0;
@@ -2677,8 +2600,6 @@ static int run_pipe(struct pipe *pi)
 			 * with pgid == pid_of_first_child_in_pipe */
 			if (G.run_list_level == 1 && G.interactive_fd) {
 				pid_t pgrp;
-				/* Don't do pgrp restore anymore on fatal signals */
-				set_fatal_sighandler(SIG_DFL);
 				pgrp = pi->pgrp;
 				if (pgrp < 0) /* true for 1st process only */
 					pgrp = getpid();
@@ -2698,9 +2619,8 @@ static int run_pipe(struct pipe *pi)
 			setup_redirects(command, NULL);
 
 			/* Restore default handlers just prior to exec */
-////			set_jobctrl_sighandler(SIG_DFL);
-////			set_misc_sighandler(SIG_DFL);
-////			signal(SIGCHLD, SIG_DFL);
+			/*signal(SIGCHLD, SIG_DFL); - so far we don't have any handlers */
+
 			/* Stores to nommu_save list of env vars putenv'ed
 			 * (NOMMU, on MMU we don't need that) */
 			/* cast away volatility... */
@@ -2877,7 +2797,7 @@ static int run_list(struct pipe *pi)
 	 * in order to return, no direct "return" statements please.
 	 * This helps to ensure that no memory is leaked. */
 
-//TODO: needs re-thinking
+////TODO: ctrl-Z handling needs re-thinking and re-testing
 
 #if ENABLE_HUSH_JOB
 	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
@@ -3674,12 +3594,11 @@ static FILE *generate_stream_from_list(struct pipe *head)
 #endif
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
-		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not. */
-////		/* Not needed, we are relying on it being disabled
-////		 * everywhere outside actual command execution. */
-		IGN_jobctrl_signals();
-////		set_misc_sighandler(SIG_DFL);
-		/* Freeing 'head' here would break NOMMU. */
+		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not.
+		 */
+		set_jobctrl_signals_to_IGN();
+
+		/* Note: freeing 'head' here would break NOMMU. */
 		_exit(run_list(head));
 	}
 	close(channel[1]);
@@ -4493,13 +4412,8 @@ static void setup_job_control(void)
 		shell_pgrp = getpgrp();
 	}
 
-	/* Ignore job-control and misc signals.  */
-////	set_jobctrl_sighandler(SIG_IGN);
-////	set_misc_sighandler(SIG_IGN);
-//huh?	signal(SIGCHLD, SIG_IGN);
-
 	/* We _must_ restore tty pgrp on fatal signals */
-	set_fatal_sighandler(sigexit);
+	set_fatal_signals_to_sigexit();
 
 	/* Put ourselves in our own process group.  */
 	bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
@@ -4682,7 +4596,6 @@ int hush_main(int argc, char **argv)
 		}
 		if (G.interactive_fd) {
 			fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
-////			set_misc_sighandler(SIG_IGN);
 		}
 	}
 	init_signal_mask();
