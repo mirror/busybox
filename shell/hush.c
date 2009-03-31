@@ -462,6 +462,7 @@ struct globals {
 	struct pipe *toplevel_list;
 ////	smallint ctrl_z_flag;
 #endif
+	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
 #endif
@@ -881,15 +882,16 @@ static void check_and_run_traps(void)
 			continue;
 		}
 		/* not a trap: special action */
-#if 0 //TODO
 		switch (sig) {
-		case SIGHUP: ...
+		case SIGINT:
+			G.flag_SIGINT = 1;
 			break;
-		case SIGINT: ...
-			break;
+//TODO
+//		case SIGHUP: ...
+//			break;
 		default: /* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
+			break;
 		}
-#endif
 	}
 }
 
@@ -1195,18 +1197,27 @@ static void get_user_input(struct in_str *i)
 	/* Enable command line editing only while a command line
 	 * is actually being read */
 	do {
+		G.flag_SIGINT = 0;
+		/* buglet: SIGINT will not make new prompt to appear _at once_,
+		 * only after <Enter>. (^C will work) */
 		r = read_line_input(prompt_str, G.user_input_buf, BUFSIZ-1, G.line_input_state);
-	} while (r == 0); /* repeat if Ctrl-C */
+		/* catch *SIGINT* etc (^C is handled by read_line_input) */
+		check_and_run_traps();
+	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
 		G.user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
 		G.user_input_buf[1] = '\0';
 	}
 #else
-	fputs(prompt_str, stdout);
-	fflush(stdout);
-	G.user_input_buf[0] = r = fgetc(i->file);
-	/*G.user_input_buf[1] = '\0'; - already is and never changed */
+	do {
+		G.flag_SIGINT = 0;
+		fputs(prompt_str, stdout);
+		fflush(stdout);
+		G.user_input_buf[0] = r = fgetc(i->file);
+		/*G.user_input_buf[1] = '\0'; - already is and never changed */
+//do we need check_and_run_traps()? (maybe only if stdin)
+	} while (G.flag_SIGINT);
 	i->eof_flag = (r == EOF);
 #endif
 	i->p = G.user_input_buf;
@@ -2845,6 +2856,9 @@ static int run_list(struct pipe *pi)
 
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
+		if (G.flag_SIGINT)
+			break;
+
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
 		debug_printf_exec(": rword=%d cond_code=%d skip_more=%d\n",
