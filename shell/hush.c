@@ -460,13 +460,13 @@ struct globals {
 	int last_jobid;
 	struct pipe *job_list;
 	struct pipe *toplevel_list;
-	smallint ctrl_z_flag;
+////	smallint ctrl_z_flag;
 #endif
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
 #endif
 	smallint fake_mode;
-	/* these three support $?, $#, and $1 */
+	/* These four support $?, $#, and $1 */
 	smalluint last_return_code;
 	/* is global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
@@ -489,10 +489,14 @@ struct globals {
 #endif
 	unsigned char charmap[256];
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
-	struct {
-		char *cmd;
-		struct sigaction oact;
-	} *traps;
+	/* Signal and trap handling */
+	char **traps; /* char *traps[NSIG] */
+	/* which signals have non-DFL handler (even with no traps set)? */
+	unsigned non_DFL_mask;
+	/* which signals are known to be IGNed on entry to shell? */
+	unsigned IGN_mask;
+	sigset_t blocked_set;
+	sigset_t inherited_set;
 };
 
 #define G (*ptr_to_globals)
@@ -521,11 +525,9 @@ static int builtin_help(char **argv);
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
 static int builtin_test(char **argv);
-static void handle_trap(int sig);
 static int builtin_trap(char **argv);
 static int builtin_true(char **argv);
 static int builtin_set(char **argv);
-static int builtin_set_mode(const char, const char);
 static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_umask(char **argv);
@@ -750,95 +752,270 @@ static void free_strings(char **strings)
 }
 
 
-/* Signals are grouped, we handle them in batches */
-static void set_misc_sighandler(void (*handler)(int))
+/* Basic theory of signal handling in shell
+ * ========================================
+ * This does not describe what hush does, rahter, it is current understanding
+ * what it _should_ do.
+ * http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#trap
+ *
+ * Signals are handled only after each pipe ("cmd | cmd | cmd" thing)
+ * is finished or backgrounded. It is the same in interactive and
+ * non-interactive shells, and is the same regardless of whether
+ * a user trap handler is installed or a default one is in effect.
+ * ^C or ^Z from keyboard seem to execute "at once" because it usually
+ * backgrounds (i.e. stops) or kills all members of currently running
+ * pipe.
+ *
+ * Wait builtin in interruptible by signals for which user trap is set
+ * or by SIGINT in interactive shell.
+ *
+ * Trap handlers will execute even within trap handlers. (right?)
+ *
+ * User trap handlers are forgotten when subshell is entered.
+ *
+ * If job control is off, backgrounded commands ("cmd &")
+ *  have SIGINT, SIGQUIT set to SIG_IGN.
+ *
+ * Commands run in command substitution ("`cmd`")
+ *  have SIGTTIN, SIGTTOU, SIGTSTP set to SIG_IGN.
+ *
+ * Ordinary commands have IGN/DFL set as inherited by the shell
+ * from its parent.
+ *
+ * Default handlers which differ from DFL action
+ * (note: subshell is not an interactive shell):
+ *
+ * SIGQUIT: ignore
+ * SIGTERM (interactive): ignore
+ * SUGHUP (interactive): send SIGCONT to stopped jobs,
+ *  send SIGHUP to all jobs and exit
+ * SIGTTIN, SIGTTOU, SIGTSTP (if job control is on): ignore
+ *  (note that ^Z is handled not by trapping SIGTSTP, but by seeing
+ *  that all pipe members are stopped) (right?)
+ * SIGINT (interactive): wait for last pipe, ignore the rest
+ *  of the command line, show prompt. (check/expand this)
+ *  Example 1: this waits 5 sec, but does not execute ls:
+ *  "echo $$; sleep 5; ls -l" + "kill -INT <pid>"
+ *  Example 2: this does not wait and does not execute ls:
+ *  "echo $$; sleep 5 & wait; ls -l" + "kill -INT <pid>"
+ *
+ * (What happens to signals which are IGN on shell start?)
+ * (What happens with signal mask on shell start?)
+ *
+ * Implementation in hush
+ * ======================
+ * We use in-kernel pending signal mask to determine which signals were sent.
+ * We block all signals which we don't want to take action immediately,
+ * i.e. we block all signals which need to have special handling as described
+ * above, and all signals which have traps set.
+ * After each pipe execution, we extract any pending signals via sigtimedwait()
+ * and act on them.
+ *
+ * unsigned non_DFL_mask: a mask of such "special" signals
+ * sigset_t blocked_set:  current blocked signal set
+ *
+ * "trap - SIGxxx":     clear bit in blocked_set unless it is also in non_DFL
+ * "trap 'cmd' SIGxxx": set bit in blocked_set (even if 'cmd' is '')
+ * after [v]fork, if we plan to be a shell:
+ *   nothing for {} subshell (say, "true | { true; true; } | true")
+ *   unset all traps if () shell. [TODO]
+ * after [v]fork, if we plan to exec:
+ *   POSIX says pending signal mask is cleared in child - no need to clear it.
+ *   restore blocked signal set to one inherited by shell just prior to exec.
+ *
+ * Note: as a result, we do not use signal handlers much. The only use
+ * is to restore terminal pgrp on exit.
+ *
+ * TODO: check/fix wait builtin to be interruptible.
+ */
+
+/* called once at shell init */
+static void init_signal_mask(void)
 {
-	bb_signals(0
-		+ (1 << SIGINT)
-		+ (1 << SIGQUIT)
-		+ (1 << SIGTERM)
-		, handler);
+	unsigned sig;
+	unsigned mask = (1 << SIGQUIT);
+#if ENABLE_HUSH_INTERACTIVE
+	if (G.interactive_fd) {
+		mask = 0
+			| (1 << SIGQUIT)
+			| (1 << SIGTERM)
+			| (1 << SIGHUP)
+#if ENABLE_HUSH_JOB
+			| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
+#endif
+			| (1 << SIGINT)
+		;
+	}
+#endif
+	G.non_DFL_mask = mask;
+
+	/*sigemptyset(&G.blocked_set); - already is */
+	sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
+	sig = 0;
+	while (mask) {
+		if (mask & 1)
+			sigaddset(&G.blocked_set, sig);
+		mask >>= 1;
+		sig++;
+	}
+	sigprocmask(SIG_SETMASK, &G.blocked_set, &G.inherited_set);
 }
+static void check_and_run_traps(void)
+{
+	static const struct timespec zero_ts = { 0, 0 };
+	smalluint save_rcode;
+	int sig;
+
+	while (1) {
+		sig = sigtimedwait(&G.blocked_set, NULL, &zero_ts);
+		if (sig <= 0)
+			break;
+
+		if (G.traps && G.traps[sig]) {
+			if (G.traps[sig][0]) {
+				/* We have user-defined handler */
+				char *argv[] = { NULL, xstrdup(G.traps[sig]), NULL };
+				save_rcode = G.last_return_code;
+				builtin_eval(argv);
+				free(argv[1]);
+				G.last_return_code = save_rcode;
+			} /* else: "" trap, ignoring signal */
+			continue;
+		}
+		/* not a trap: special action */
+#if 0 //TODO
+		switch (sig) {
+		case SIGHUP: ...
+			break;
+		case SIGINT: ...
+			break;
+		default: /* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
+		}
+#endif
+	}
+}
+
+/* The stuff below needs to be migrated to "Special action" above */
+
+/////* Signals are grouped, we handle them in batches */
+////static void set_misc_sighandler(void (*handler)(int))
+////{
+////	bb_signals(0
+////		+ (1 << SIGINT)
+////		+ (1 << SIGQUIT)
+////		+ (1 << SIGTERM)
+////		, handler);
+////}
 
 #if ENABLE_HUSH_JOB
 
+/* helper */
+static unsigned maybe_set_sighandler(int sig, void (*handler)(int))
+{
+	/* non_DFL_mask'ed signals are, well, masked,
+	 * no need to set handler for them.
+	 * IGN_mask'ed signals were found to be IGN on entry,
+	 * do not change that -> no need to set handler for them either
+	 */
+	unsigned ign = ((G.IGN_mask|G.non_DFL_mask) >> sig) & 1;
+	if (!ign) {
+		handler = signal(sig, handler);
+		ign = (handler == SIG_IGN);
+		if (ign) /* restore back to IGN! */
+			signal(sig, handler);
+	}
+	return ign << sig; /* pass back knowledge about SIG_IGN */
+}
+/* Used only to set handler to restore pgrp on exit, and to reset it to DFL */
 static void set_fatal_sighandler(void (*handler)(int))
 {
-	bb_signals(0
-		+ (1 << SIGILL)
-		+ (1 << SIGTRAP)
-		+ (1 << SIGABRT)
-		+ (1 << SIGFPE)
-		+ (1 << SIGBUS)
-		+ (1 << SIGSEGV)
+	unsigned mask = 0;
+
+	if (HUSH_DEBUG) {
+		mask |= maybe_set_sighandler(SIGILL , handler);
+		mask |= maybe_set_sighandler(SIGFPE , handler);
+		mask |= maybe_set_sighandler(SIGBUS , handler);
+		mask |= maybe_set_sighandler(SIGSEGV, handler);
+		mask |= maybe_set_sighandler(SIGTRAP, handler);
+	} /* else: hush is perfect. what SEGV? */
+
+	mask |= maybe_set_sighandler(SIGABRT, handler);
+
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
-		+ (1 << SIGHUP)
-		+ (1 << SIGPIPE)
-		+ (1 << SIGALRM)
-		, handler);
+	mask |= maybe_set_sighandler(SIGPIPE, handler);
+	mask |= maybe_set_sighandler(SIGALRM, handler);
+	mask |= maybe_set_sighandler(SIGHUP , handler);
+
+	/* if we aren't interactive... but in this case
+	 * we never want to restore pgrp on exit, and this fn is not called */
+	/*mask |= maybe_set_sighandler(SIGTERM, handler); */
+	/*mask |= maybe_set_sighandler(SIGINT , handler); */
+
+	G.IGN_mask = mask;
 }
-static void set_jobctrl_sighandler(void (*handler)(int))
+/* Used only to suppress ^Z in `cmd` */
+static void IGN_jobctrl_signals(void)
 {
 	bb_signals(0
 		+ (1 << SIGTSTP)
 		+ (1 << SIGTTIN)
 		+ (1 << SIGTTOU)
-		, handler);
+		, SIG_IGN);
 }
 /* SIGCHLD is special and handled separately */
 
-static void set_every_sighandler(void (*handler)(int))
-{
-	set_fatal_sighandler(handler);
-	set_jobctrl_sighandler(handler);
-	set_misc_sighandler(handler);
-	signal(SIGCHLD, handler);
-}
+////static void set_every_sighandler(void (*handler)(int))
+////{
+////	set_fatal_sighandler(handler);
+////	set_jobctrl_sighandler(handler);
+////	set_misc_sighandler(handler);
+////	signal(SIGCHLD, handler);
+////}
 
-static void handler_ctrl_c(int sig UNUSED_PARAM)
-{
-	debug_printf_jobs("got sig %d\n", sig);
-// as usual we can have all kinds of nasty problems with leaked malloc data here
-	siglongjmp(G.toplevel_jb, 1);
-}
+////static void handler_ctrl_c(int sig UNUSED_PARAM)
+////{
+////	debug_printf_jobs("got sig %d\n", sig);
+////// as usual we can have all kinds of nasty problems with leaked malloc data here
+////	siglongjmp(G.toplevel_jb, 1);
+////}
 
-static void handler_ctrl_z(int sig UNUSED_PARAM)
-{
-	pid_t pid;
-
-	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
-
-	if (!BB_MMU) {
-		fputs("Sorry, backgrounding (CTRL+Z) of foreground scripts not supported on nommu\n", stderr);
-		return;
-	}
-
-	pid = fork();
-	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
-		return;
-	G.ctrl_z_flag = 1;
-	if (!pid) { /* child */
-		if (ENABLE_HUSH_JOB)
-			die_sleep = 0; /* let nofork's xfuncs die */
-		bb_setpgrp();
-		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
-		set_every_sighandler(SIG_DFL);
-		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
-		debug_printf_jobs("returning in child\n");
-		/* return to nofork, it will eventually exit now,
-		 * not return back to shell */
-		return;
-	}
-	/* parent */
-	/* finish filling up pipe info */
-	G.toplevel_list->pgrp = pid; /* child is in its own pgrp */
-	G.toplevel_list->cmds[0].pid = pid;
-	/* parent needs to longjmp out of running nofork.
-	 * we will "return" exitcode 0, with child put in background */
-// as usual we can have all kinds of nasty problems with leaked malloc data here
-	debug_printf_jobs("siglongjmp in parent\n");
-	siglongjmp(G.toplevel_jb, 1);
-}
+////static void handler_ctrl_z(int sig UNUSED_PARAM)
+////{
+////	pid_t pid;
+////
+////	debug_printf_jobs("got tty sig %d in pid %d\n", sig, getpid());
+////
+////	if (!BB_MMU) {
+////		fputs("Sorry, backgrounding (CTRL+Z) of foreground scripts not supported on nommu\n", stderr);
+////		return;
+////	}
+////
+////	pid = fork();
+////	if (pid < 0) /* can't fork. Pretend there was no ctrl-Z */
+////		return;
+////	G.ctrl_z_flag = 1;
+////	if (!pid) { /* child */
+////		if (ENABLE_HUSH_JOB)
+////			die_sleep = 0; /* let nofork's xfuncs die */
+////		bb_setpgrp();
+////		debug_printf_jobs("set pgrp for child %d ok\n", getpid());
+////////		set_every_sighandler(SIG_DFL);
+////		raise(SIGTSTP); /* resend TSTP so that child will be stopped */
+////		debug_printf_jobs("returning in child\n");
+////		/* return to nofork, it will eventually exit now,
+////		 * not return back to shell */
+////		return;
+////	}
+////	/* parent */
+////	/* finish filling up pipe info */
+////	G.toplevel_list->pgrp = pid; /* child is in its own pgrp */
+////	G.toplevel_list->cmds[0].pid = pid;
+////	/* parent needs to longjmp out of running nofork.
+////	 * we will "return" exitcode 0, with child put in background */
+////// as usual we can have all kinds of nasty problems with leaked malloc data here
+////	debug_printf_jobs("siglongjmp in parent\n");
+////	siglongjmp(G.toplevel_jb, 1);
+////}
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
@@ -865,8 +1042,8 @@ static void sigexit(int sig)
 
 #else /* !JOB */
 
-#define set_fatal_sighandler(handler)   ((void)0)
-#define set_jobctrl_sighandler(handler) ((void)0)
+#define set_fatal_sighandler(handler) ((void)0)
+#define IGN_jobctrl_signals(handler)  ((void)0)
 
 #endif /* JOB */
 
@@ -874,8 +1051,11 @@ static void sigexit(int sig)
 static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
-	if (G.traps && G.traps[0].cmd)
-		handle_trap(0);
+	if (G.traps && G.traps[0] && G.traps[0][0]) {
+		char *argv[] = { NULL, xstrdup(G.traps[0]), NULL };
+		builtin_eval(argv);
+		free(argv[1]);
+	}
 
 	if (ENABLE_HUSH_JOB) {
 		fflush(NULL); /* flush all streams */
@@ -2052,6 +2232,8 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignme
 	}
 #endif
 
+	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't exec '%s'", argv[0]);
@@ -2199,6 +2381,8 @@ static int checkjobs(struct pipe* fg_pipe)
 #endif
 	pid_t childpid;
 	int rcode = 0;
+
+	debug_printf_jobs("checkjobs %p\n", fg_pipe);
 
 	attributes = WUNTRACED;
 	if (fg_pipe == NULL)
@@ -2459,7 +2643,7 @@ static int run_pipe(struct pipe *pi)
 
 	/* Disable job control signals for shell (parent) and
 	 * for initial child code after fork */
-	set_jobctrl_sighandler(SIG_IGN);
+////	set_jobctrl_sighandler(SIG_IGN);
 
 	/* Going to fork a child per each pipe member */
 	pi->alive_cmds = 0;
@@ -2486,9 +2670,9 @@ static int run_pipe(struct pipe *pi)
 
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
-			if (ENABLE_HUSH_JOB)
-				die_sleep = 0; /* let nofork's xfuncs die */
 #if ENABLE_HUSH_JOB
+			die_sleep = 0; /* let nofork's xfuncs die */
+
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
 			if (G.run_list_level == 1 && G.interactive_fd) {
@@ -2514,9 +2698,9 @@ static int run_pipe(struct pipe *pi)
 			setup_redirects(command, NULL);
 
 			/* Restore default handlers just prior to exec */
-			set_jobctrl_sighandler(SIG_DFL);
-			set_misc_sighandler(SIG_DFL);
-			signal(SIGCHLD, SIG_DFL);
+////			set_jobctrl_sighandler(SIG_DFL);
+////			set_misc_sighandler(SIG_DFL);
+////			signal(SIGCHLD, SIG_DFL);
 			/* Stores to nommu_save list of env vars putenv'ed
 			 * (NOMMU, on MMU we don't need that) */
 			/* cast away volatility... */
@@ -2693,6 +2877,8 @@ static int run_list(struct pipe *pi)
 	 * in order to return, no direct "return" statements please.
 	 * This helps to ensure that no memory is leaked. */
 
+//TODO: needs re-thinking
+
 #if ENABLE_HUSH_JOB
 	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
 	 * We are saving state before entering outermost list ("while...done")
@@ -2713,27 +2899,27 @@ static int run_list(struct pipe *pi)
 				restore_nofork_data(&G.nofork_save);
 			}
 #endif
-			if (G.ctrl_z_flag) {
-				/* ctrl-Z has forked and stored pid of the child in pi->pid.
-				 * Remember this child as background job */
-				insert_bg_job(pi);
-			} else {
+////			if (G.ctrl_z_flag) {
+////				/* ctrl-Z has forked and stored pid of the child in pi->pid.
+////				 * Remember this child as background job */
+////				insert_bg_job(pi);
+////			} else {
 				/* ctrl-C. We just stop doing whatever we were doing */
 				bb_putchar('\n');
-			}
+////			}
 			USE_HUSH_LOOPS(loop_top = NULL;)
 			USE_HUSH_LOOPS(G.depth_of_loop = 0;)
 			rcode = 0;
 			goto ret;
 		}
-		/* ctrl-Z handler will store pid etc in pi */
-		G.toplevel_list = pi;
-		G.ctrl_z_flag = 0;
-#if ENABLE_FEATURE_SH_STANDALONE
-		G.nofork_save.saved = 0; /* in case we will run a nofork later */
-#endif
-		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
-		signal(SIGINT, handler_ctrl_c);
+////		/* ctrl-Z handler will store pid etc in pi */
+////		G.toplevel_list = pi;
+////		G.ctrl_z_flag = 0;
+////#if ENABLE_FEATURE_SH_STANDALONE
+////		G.nofork_save.saved = 0; /* in case we will run a nofork later */
+////#endif
+////		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
+////		signal(SIGINT, handler_ctrl_c);
 	}
 #endif /* JOB */
 
@@ -2854,11 +3040,17 @@ static int run_list(struct pipe *pi)
 				continue; /* not matched yet, skip this pipe */
 		}
 #endif
-		if (pi->num_cmds == 0)
-			goto check_jobs_and_continue;
+		/* Just pressing <enter> in shell should check for jobs.
+		 * OTOH, in non-interactive shell this is useless
+		 * and only leads to extra job checks */
+		if (pi->num_cmds == 0) {
+			if (G.interactive_fd)
+				goto check_jobs_and_continue;
+			continue;
+		}
 
 		/* After analyzing all keywords and conditions, we decided
-		 * to execute this pipe. NB: has to do checkjobs(NULL)
+		 * to execute this pipe. NB: have to do checkjobs(NULL)
 		 * after run_pipe() to collect any background children,
 		 * even if list execution is to be stopped. */
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_cmds);
@@ -2871,6 +3063,7 @@ static int run_list(struct pipe *pi)
 			if (r != -1) {
 				/* we only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
+				check_and_run_traps();
 #if ENABLE_HUSH_LOOPS
 				/* was it "break" or "continue"? */
 				if (G.flag_break_continue) {
@@ -2895,6 +3088,7 @@ static int run_list(struct pipe *pi)
 				/* even bash 3.2 doesn't do that well with nested bg:
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
+				check_and_run_traps();
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
@@ -2905,11 +3099,13 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1 && G.interactive_fd) {
 					/* waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
+					check_and_run_traps();
 					debug_printf_exec(": checkjobs_and_fg_shell returned %d\n", rcode);
 				} else
 #endif
 				{ /* this one just waits for completion */
 					rcode = checkjobs(pi);
+					check_and_run_traps();
 					debug_printf_exec(": checkjobs returned %d\n", rcode);
 				}
 			}
@@ -2948,17 +3144,18 @@ static int run_list(struct pipe *pi)
 	} /* for (pi) */
 
 #if ENABLE_HUSH_JOB
-	if (G.ctrl_z_flag) {
-		/* ctrl-Z forked somewhere in the past, we are the child,
-		 * and now we completed running the list. Exit. */
-//TODO: _exit?
-		exit(rcode);
-	}
+////	if (G.ctrl_z_flag) {
+////		/* ctrl-Z forked somewhere in the past, we are the child,
+////		 * and now we completed running the list. Exit. */
+//////TODO: _exit?
+////		exit(rcode);
+////	}
  ret:
-	if (!--G.run_list_level && G.interactive_fd) {
-		signal(SIGTSTP, SIG_IGN);
-		signal(SIGINT, SIG_IGN);
-	}
+	G.run_list_level--;
+////	if (!G.run_list_level && G.interactive_fd) {
+////		signal(SIGTSTP, SIG_IGN);
+////		signal(SIGINT, SIG_IGN);
+////	}
 #endif
 	debug_printf_exec("run_list lvl %d return %d\n", G.run_list_level + 1, rcode);
 #if ENABLE_HUSH_LOOPS
@@ -3478,10 +3675,10 @@ static FILE *generate_stream_from_list(struct pipe *head)
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not. */
-		/* Not needed, we are relying on it being disabled
-		 * everywhere outside actual command execution. */
-		/*set_jobctrl_sighandler(SIG_IGN);*/
-		set_misc_sighandler(SIG_DFL);
+////		/* Not needed, we are relying on it being disabled
+////		 * everywhere outside actual command execution. */
+		IGN_jobctrl_signals();
+////		set_misc_sighandler(SIG_DFL);
 		/* Freeing 'head' here would break NOMMU. */
 		_exit(run_list(head));
 	}
@@ -4287,7 +4484,6 @@ static void setup_job_control(void)
 	pid_t shell_pgrp;
 
 	shell_pgrp = getpgrp();
-	close_on_exec_on(G.interactive_fd);
 
 	/* If we were ran as 'hush &',
 	 * sleep until we are in the foreground.  */
@@ -4298,8 +4494,8 @@ static void setup_job_control(void)
 	}
 
 	/* Ignore job-control and misc signals.  */
-	set_jobctrl_sighandler(SIG_IGN);
-	set_misc_sighandler(SIG_IGN);
+////	set_jobctrl_sighandler(SIG_IGN);
+////	set_misc_sighandler(SIG_IGN);
 //huh?	signal(SIGCHLD, SIG_IGN);
 
 	/* We _must_ restore tty pgrp on fatal signals */
@@ -4312,6 +4508,16 @@ static void setup_job_control(void)
 }
 #endif
 
+static int set_mode(const char cstate, const char mode)
+{
+	int state = (cstate == '-' ? 1 : 0);
+	switch (mode) {
+		case 'n': G.fake_mode = state; break;
+		case 'x': /*G.debug_mode = state;*/ break;
+		default:  return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
 
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
@@ -4408,7 +4614,7 @@ int hush_main(int argc, char **argv)
 			break;
 		case 'n':
 		case 'x':
-			if (!builtin_set_mode('-', opt))
+			if (!set_mode('-', opt))
 				break;
 		default:
 #ifndef BB_VER
@@ -4447,6 +4653,7 @@ int hush_main(int argc, char **argv)
 			// to (inadvertently) close/redirect it
 		}
 	}
+	init_signal_mask();
 	debug_printf("G.interactive_fd=%d\n", G.interactive_fd);
 	if (G.interactive_fd) {
 		fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
@@ -4475,9 +4682,10 @@ int hush_main(int argc, char **argv)
 		}
 		if (G.interactive_fd) {
 			fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
-			set_misc_sighandler(SIG_IGN);
+////			set_misc_sighandler(SIG_IGN);
 		}
 	}
+	init_signal_mask();
 #endif
 
 #if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_SH_EXTRA_QUIET
@@ -4530,93 +4738,63 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#trap
- *
- * Traps are also evaluated immediately instead of being delayed properly:
- * http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_11
- * Example: hush -c 'trap "echo hi" 31; sleep 10; echo moo' & sleep 1; kill -31 $!
- *          "hi" should not be displayed until the sleep finishes
- * This will have to get fixed ...
- */
-static void handle_trap(int sig)
-{
-	int save_errno, save_rcode;
-	char *argv[] = { NULL, G.traps[sig].cmd, NULL };
-	/* Race!  We transitioned from handled to ignore/default, but
-	 * the signal came in after updating .cmd but before we could
-	 * register the new signal handler.
-	 */
-	if (!argv[1] || argv[1][0] == '\0')
-		return;
-	/* need to save/restore errno/$? across traps */
-	save_errno = errno;
-	save_rcode = G.last_return_code;
-	builtin_eval(argv);
-	errno = save_errno;
-	G.last_return_code = save_rcode;
-}
 static int builtin_trap(char **argv)
 {
-	size_t i;
+	int i;
 	int sig;
-	bool ign = false;
-	char *new_cmd = NULL;
+	char *new_cmd;
 
 	if (!G.traps)
-		G.traps = xzalloc(sizeof(*G.traps) * NSIG);
+		G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
 
 	if (!argv[1]) {
 		/* No args: print all trapped.  This isn't 100% correct as we should
 		 * be escaping the cmd so that it can be pasted back in ...
 		 */
 		for (i = 0; i < NSIG; ++i)
-			if (G.traps[i].cmd)
-				printf("trap -- '%s' %s\n", G.traps[i].cmd, get_signame(i));
+			if (G.traps[i])
+				printf("trap -- '%s' %s\n", G.traps[i], get_signame(i));
 		return EXIT_SUCCESS;
 	}
 
-	/* first arg is decimal: reset all specified */
-	sig = bb_strtou(argv[1], NULL, 10);
+	new_cmd = NULL;
+	i = 0;
+	/* if first arg is decimal: reset all specified */
+	sig = bb_strtou(*++argv, NULL, 10);
 	if (errno == 0) {
 		int ret;
-		i = 0;
  set_all:
 		ret = EXIT_SUCCESS;
-		while (argv[++i]) {
-			char *old_cmd;
-
-			sig = get_signum(argv[i]);
+		while (*argv) {
+			sig = get_signum(*argv++);
 			if (sig < 0 || sig >= NSIG) {
 				ret = EXIT_FAILURE;
+				/* mimic bash message exactly */
 				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
 				continue;
 			}
 
-			/* Make sure .cmd is always a valid command list since
-			 * signals can occur at any time ...
-			 */
-			old_cmd = G.traps[sig].cmd;
-			G.traps[sig].cmd = xstrdup(new_cmd);
-			free(old_cmd);
+			free(G.traps[sig]);
+			G.traps[sig] = xstrdup(new_cmd);
 
-			debug_printf("trap: setting SIG%s (%i) to: %s",
-				get_signame(sig), sig, G.traps[sig].cmd);
+			debug_printf("trap: setting SIG%s (%i) to '%s'",
+				get_signame(sig), sig, G.traps[sig]);
 
 			/* There is no signal for 0 (EXIT) */
 			if (sig == 0)
 				continue;
 
 			if (new_cmd) {
-				/* add/update a handler */
-				struct sigaction act = {
-					.sa_handler = ign ? SIG_IGN : handle_trap,
-					.sa_flags = SA_RESTART,
-				};
-				sigemptyset(&act.sa_mask);
-				sigaction(sig, &act, old_cmd ? NULL : &G.traps[sig].oact);
-			} else if (old_cmd && !new_cmd)
-				/* there was a handler, and we are removing it */
-				sigaction_set(sig, &G.traps[sig].oact);
+				sigaddset(&G.blocked_set, sig);
+			} else {
+				/* there was a trap handler, we are removing it
+				 * (if sig has non-DFL handling,
+				 * we don't need to do anything) */
+				if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+					continue;
+				sigdelset(&G.blocked_set, sig);
+			}
+			sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
 		}
 		return ret;
 	}
@@ -4624,17 +4802,15 @@ static int builtin_trap(char **argv)
 	/* first arg is "-": reset all specified to default */
 	/* first arg is "": ignore all specified */
 	/* everything else: execute first arg upon signal */
-	if (!argv[2]) {
+	if (!argv[1]) {
 		bb_error_msg("trap: invalid arguments");
 		return EXIT_FAILURE;
 	}
-	if (LONE_DASH(argv[1]))
+	if (LONE_DASH(*argv))
 		/* nothing! */;
 	else
-		new_cmd = argv[1];
-	if (argv[1][0] == '\0')
-		ign = true;
-	i = 1;
+		new_cmd = *argv;
+	argv++;
 	goto set_all;
 }
 
@@ -4891,16 +5067,6 @@ static int builtin_read(char **argv)
  *
  * So far, we only support "set -- [argument...]" and some of the short names.
  */
-static int builtin_set_mode(const char cstate, const char mode)
-{
-	int state = (cstate == '-' ? 1 : 0);
-	switch (mode) {
-		case 'n': G.fake_mode = state; break;
-		case 'x': /*G.debug_mode = state;*/ break;
-		default:  return EXIT_FAILURE;
-	}
-	return EXIT_SUCCESS;
-}
 static int builtin_set(char **argv)
 {
 	int n;
@@ -4922,7 +5088,7 @@ static int builtin_set(char **argv)
 
 		if (arg[0] == '+' || arg[0] == '-') {
 			for (n = 1; arg[n]; ++n)
-				if (builtin_set_mode(arg[0], arg[n]))
+				if (set_mode(arg[0], arg[n]))
 					goto error;
 			continue;
 		}
@@ -5068,27 +5234,29 @@ static int builtin_wait(char **argv)
 	int ret = EXIT_SUCCESS;
 	int status;
 
-	if (argv[1] == NULL)
+	if (*++argv == NULL)
 		/* don't care about exit status */
-		wait(&status);
+		wait(NULL);
 
-	while (argv[1]) {
-		pid_t pid = bb_strtou(argv[1], NULL, 10);
+	while (*argv) {
+		pid_t pid = bb_strtou(*argv, NULL, 10);
 		if (errno) {
-			bb_perror_msg("wait %s", argv[1]);
+			/* mimic bash message */
+			bb_error_msg("wait: '%s': not a pid or valid job spec", *argv);
 			return EXIT_FAILURE;
-		} else if (waitpid(pid, &status, 0) == pid) {
+		}
+		if (waitpid(pid, &status, 0) == pid) {
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
 			else if (WIFEXITED(status))
 				ret = WEXITSTATUS(status);
-			else
+			else /* wtf? */
 				ret = EXIT_FAILURE;
 		} else {
-			bb_perror_msg("wait %s", argv[1]);
+			bb_perror_msg("wait %s", *argv);
 			ret = 127;
 		}
-		++argv;
+		argv++;
 	}
 
 	return ret;
