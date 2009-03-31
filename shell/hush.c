@@ -491,13 +491,14 @@ struct globals {
 	unsigned char charmap[256];
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
 	/* Signal and trap handling */
-	char **traps; /* char *traps[NSIG] */
+//	unsigned count_SIGCHLD;
+//	unsigned handled_SIGCHLD;
 	/* which signals have non-DFL handler (even with no traps set)? */
 	unsigned non_DFL_mask;
+	char **traps; /* char *traps[NSIG] */
 	sigset_t blocked_set;
 	sigset_t inherited_set;
 };
-
 #define G (*ptr_to_globals)
 /* Not #defining name to G.name - this quickly gets unwieldy
  * (too many defines). Also, I actually prefer to see when a variable
@@ -829,11 +830,17 @@ static void free_strings(char **strings)
  *    POSIX says pending signal mask is cleared in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
  *
- * Note: as a result, we do not use signal handlers much. The only use
- * is to restore terminal pgrp on exit.
+ * Note: as a result, we do not use signal handlers much. The only uses
+ * are to count SIGCHLDs [disabled - bug somewhere, + bloat]
+ * and to restore tty pgrp on signal-induced exit.
  *
  * TODO: check/fix wait builtin to be interruptible.
  */
+
+//static void SIGCHLD_handler(int sig UNUSED_PARAM)
+//{
+//	G.count_SIGCHLD++;
+//}
 
 /* called once at shell init */
 static void init_signal_mask(void)
@@ -863,20 +870,24 @@ static void init_signal_mask(void)
 		mask >>= 1;
 		sig++;
 	}
+	sigdelset(&G.blocked_set, SIGCHLD);
 	sigprocmask(SIG_SETMASK, &G.blocked_set, &G.inherited_set);
 }
 
-static void check_and_run_traps(void)
+static int check_and_run_traps(int sig)
 {
-	static const struct timespec zero_ts = { 0, 0 };
+	static const struct timespec zero_timespec = { 0, 0 };
 	smalluint save_rcode;
-	int sig;
+	int last_sig = 0;
 
+	if (sig)
+		goto jump_in;
 	while (1) {
-		sig = sigtimedwait(&G.blocked_set, NULL, &zero_ts);
+		sig = sigtimedwait(&G.blocked_set, NULL, &zero_timespec);
 		if (sig <= 0)
 			break;
-
+ jump_in:
+		last_sig = sig;
 		if (G.traps && G.traps[sig]) {
 			if (G.traps[sig][0]) {
 				/* We have user-defined handler */
@@ -890,7 +901,11 @@ static void check_and_run_traps(void)
 		}
 		/* not a trap: special action */
 		switch (sig) {
+//		case SIGCHLD:
+//			G.count_SIGCHLD++;
+//			break;
 		case SIGINT:
+			bb_putchar('\n');
 			G.flag_SIGINT = 1;
 			break;
 //TODO
@@ -900,6 +915,7 @@ static void check_and_run_traps(void)
 			break;
 		}
 	}
+	return last_sig;
 }
 
 #if ENABLE_HUSH_JOB
@@ -1209,7 +1225,7 @@ static void get_user_input(struct in_str *i)
 		 * only after <Enter>. (^C will work) */
 		r = read_line_input(prompt_str, G.user_input_buf, BUFSIZ-1, G.line_input_state);
 		/* catch *SIGINT* etc (^C is handled by read_line_input) */
-		check_and_run_traps();
+		check_and_run_traps(0);
 	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
 	i->eof_flag = (r < 0);
 	if (i->eof_flag) { /* EOF/error detected */
@@ -1223,7 +1239,7 @@ static void get_user_input(struct in_str *i)
 		fflush(stdout);
 		G.user_input_buf[0] = r = fgetc(i->file);
 		/*G.user_input_buf[1] = '\0'; - already is and never changed */
-//do we need check_and_run_traps()? (maybe only if stdin)
+//do we need check_and_run_traps(0)? (maybe only if stdin)
 	} while (G.flag_SIGINT);
 	i->eof_flag = (r == EOF);
 #endif
@@ -2329,6 +2345,11 @@ static int checkjobs(struct pipe* fg_pipe)
 
 	debug_printf_jobs("checkjobs %p\n", fg_pipe);
 
+	errno = 0;
+//	if (G.handled_SIGCHLD == G.count_SIGCHLD)
+//		/* avoid doing syscall, nothing there anyway */
+//		return rcode;
+
 	attributes = WUNTRACED;
 	if (fg_pipe == NULL)
 		attributes |= WNOHANG;
@@ -2346,10 +2367,21 @@ static int checkjobs(struct pipe* fg_pipe)
 // + killall -STOP cat
 
  wait_more:
-// TODO: safe_waitpid?
-	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
+	while (1) {
 		int i;
-		const int dead = WIFEXITED(status) || WIFSIGNALED(status);
+		int dead;
+
+//		i = G.count_SIGCHLD;
+		childpid = waitpid(-1, &status, attributes);
+		if (childpid <= 0) {
+			if (childpid && errno != ECHILD)
+				bb_perror_msg("waitpid");
+//			else /* Until next SIGCHLD, waitpid's are useless */
+//				G.handled_SIGCHLD = i;
+			break;
+		}
+		dead = WIFEXITED(status) || WIFSIGNALED(status);
+
 #if DEBUG_JOBS
 		if (WIFSTOPPED(status))
 			debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
@@ -2428,10 +2460,6 @@ static int checkjobs(struct pipe* fg_pipe)
 #endif
 	} /* while (waitpid succeeds)... */
 
-	/* wait found no children or failed */
-
-	if (childpid && errno != ECHILD)
-		bb_perror_msg("waitpid");
 	return rcode;
 }
 
@@ -3004,7 +3032,7 @@ static int run_list(struct pipe *pi)
 			if (r != -1) {
 				/* we only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
-				check_and_run_traps();
+				check_and_run_traps(0);
 #if ENABLE_HUSH_LOOPS
 				/* was it "break" or "continue"? */
 				if (G.flag_break_continue) {
@@ -3029,7 +3057,7 @@ static int run_list(struct pipe *pi)
 				/* even bash 3.2 doesn't do that well with nested bg:
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
-				check_and_run_traps();
+				check_and_run_traps(0);
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
@@ -3040,13 +3068,13 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1 && G.interactive_fd) {
 					/* waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
-					check_and_run_traps();
+					check_and_run_traps(0);
 					debug_printf_exec(": checkjobs_and_fg_shell returned %d\n", rcode);
 				} else
 #endif
 				{ /* this one just waits for completion */
 					rcode = checkjobs(pi);
-					check_and_run_traps();
+					check_and_run_traps(0);
 					debug_printf_exec(": checkjobs returned %d\n", rcode);
 				}
 			}
@@ -3668,9 +3696,9 @@ static int process_command_subs(o_string *dest,
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
-	/* This is the step that wait()s for the child.  Should be pretty
+	/* This is the step that waits for the child.  Should be pretty
 	 * safe, since we just read an EOF from its stdout.  We could try
-	 * to do better, by using wait(), and keeping track of background jobs
+	 * to do better, by using waitpid, and keeping track of background jobs
 	 * at the same time.  That would be a lot of work, and contrary
 	 * to the KISS philosophy of this program. */
 	retcode = fclose(p);
@@ -4586,7 +4614,7 @@ int hush_main(int argc, char **argv)
 			// to (inadvertently) close/redirect it
 		}
 	}
-	init_signal_mask();
+	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
 	debug_printf("G.interactive_fd=%d\n", G.interactive_fd);
 	if (G.interactive_fd) {
 		fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
@@ -4617,8 +4645,12 @@ int hush_main(int argc, char **argv)
 			fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
 		}
 	}
-	init_signal_mask();
+	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
 #endif
+	/* POSIX allows shell to re-enable SIGCHLD
+	 * even if it was SIG_IGN on entry */
+//	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
+	signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
 
 #if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_SH_EXTRA_QUIET
 	if (G.interactive_fd) {
@@ -5164,12 +5196,48 @@ static int builtin_unset(char **argv)
 static int builtin_wait(char **argv)
 {
 	int ret = EXIT_SUCCESS;
-	int status;
+	int status, sig;
 
-	if (*++argv == NULL)
-		/* don't care about exit status */
-		wait(NULL);
+	if (*++argv == NULL) {
+		/* Don't care about wait results */
+		/* Note 1: must wait until there are no more children */
+		/* Note 2: must be interruptible */
+		/* Examples:
+		 * $ sleep 3 & sleep 6 & wait
+		 * [1] 30934 sleep 3
+		 * [2] 30935 sleep 6
+		 * [1] Done                   sleep 3
+		 * [2] Done                   sleep 6
+		 * $ sleep 3 & sleep 6 & wait
+		 * [1] 30936 sleep 3
+		 * [2] 30937 sleep 6
+		 * [1] Done                   sleep 3
+		 * ^C <-- after ~4 sec from keyboard
+		 * $
+		 */
+		sigaddset(&G.blocked_set, SIGCHLD);
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		while (1) {
+			checkjobs(NULL);
+			if (errno == ECHILD)
+				break;
+			/* Wait for SIGCHLD or any other signal of interest */
+			/* sigtimedwait with infinite timeout: */
+			sig = sigwaitinfo(&G.blocked_set, NULL);
+			if (sig > 0) {
+				sig = check_and_run_traps(sig);
+				if (sig && sig != SIGCHLD) { /* see note 2 */
+					ret = 128 + sig;
+					break;
+				}
+			}
+		}
+		sigdelset(&G.blocked_set, SIGCHLD);
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		return ret;
+	}
 
+	/* This is probably buggy wrt interruptible-ness */
 	while (*argv) {
 		pid_t pid = bb_strtou(*argv, NULL, 10);
 		if (errno) {
