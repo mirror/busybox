@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Ckeck user and group names for illegal characters
+ * Check user and group names for illegal characters
  *
  * Copyright (C) 2008 Tito Ragusa <farmatito@tiscali.it>
  *
