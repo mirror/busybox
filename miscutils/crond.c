@@ -55,7 +55,7 @@ typedef struct CronLine {
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 	int cl_MailPos;         /* 'empty file' size                    */
 	smallint cl_MailFlag;   /* running pid is for mail              */
-	char *cl_MailTo;	/* whom to mail results			*/
+	char *cl_MailTo;	/* whom to mail results                 */
 #endif
 	/* ordered by size, not in natural order. makes code smaller: */
 	char cl_Dow[7];         /* 0-6, beginning sunday                */

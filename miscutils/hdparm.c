@@ -59,7 +59,7 @@
 #define ADV_PIO_MODES		64  /* advanced PIO modes supported */
 				    /* multiword DMA xfer cycle time: */
 #define DMA_TIME_MIN		65  /*   - minimum */
-#define DMA_TIME_NORM		66  /*   - manufacturer's recommended	*/
+#define DMA_TIME_NORM		66  /*   - manufacturer's recommended */
 				    /* minimum PIO xfer cycle time: */
 #define PIO_NO_FLOW		67  /*   - without flow control */
 #define PIO_FLOW		68  /*   - with IORDY flow control */
@@ -82,7 +82,7 @@
 #define ENH_ERASE_TIME		90  /*   - enhanced */
 #define ADV_PWR			91  /* current advanced power management level
 				       in low byte, 0x40 in high byte. */
-#define PSWD_CODE		92  /* master password revision code	*/
+#define PSWD_CODE		92  /* master password revision code */
 #define HWRST_RSLT		93  /* hardware reset result */
 #define ACOUSTIC		94  /* acoustic mgmt values ( >= ATA-6) */
 #define LBA_LSB			100 /* LBA: maximum.  Currently only 48 */

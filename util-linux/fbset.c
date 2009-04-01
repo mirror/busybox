@@ -91,7 +91,7 @@ struct fb_var_screeninfo {
 	uint32_t height;                /* height of picture in mm */
 	uint32_t width;                 /* width of picture in mm */
 
-	uint32_t accel_flags;		/* acceleration flags (hints)	*/
+	uint32_t accel_flags;		/* acceleration flags (hints) */
 
 	/* Timing: All values in pixclocks, except pixclock (of course) */
 	uint32_t pixclock;              /* pixel clock in ps (pico seconds) */

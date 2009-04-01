@@ -371,4 +371,4 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #endif
 #endif
 
-#endif	/* platform.h	*/
+#endif	/* platform.h */

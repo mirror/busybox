@@ -308,9 +308,9 @@ _INLINE_ __u32 blkid_swab32(__u32 val)
 #ifdef EXT2FS_REQUIRE_486
 	__asm__("bswap %0" : "=r" (val) : "0" (val));
 #else
-	__asm__("xchgb %b0,%h0\n\t"	/* swap lower bytes	*/
-		"rorl $16,%0\n\t"	/* swap words		*/
-		"xchgb %b0,%h0"		/* swap higher bytes	*/
+	__asm__("xchgb %b0,%h0\n\t"	/* swap lower bytes  */
+		"rorl $16,%0\n\t"	/* swap words        */
+		"xchgb %b0,%h0"		/* swap higher bytes */
 		:"=q" (val)
 		: "0" (val));
 #endif
@@ -319,9 +319,9 @@ _INLINE_ __u32 blkid_swab32(__u32 val)
 
 _INLINE_ __u16 blkid_swab16(__u16 val)
 {
-	__asm__("xchgb %b0,%h0"		/* swap bytes		*/ \
-		: "=q" (val) \
-		:  "0" (val)); \
+	__asm__("xchgb %b0,%h0"		/* swap bytes */
+		: "=q" (val)
+		:  "0" (val));
 		return val;
 }
 

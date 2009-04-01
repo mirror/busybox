@@ -12619,7 +12619,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		if (c == '\n')
 			break;
 		/* $IFS splitting */
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05	*/
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05 */
 		is_ifs = strchr(ifs, c);
 		if (startword && is_ifs) {
 			if (isspace(c))
