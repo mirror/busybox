@@ -57,7 +57,7 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 	/* '+': stop at first non-option */
 	opt = getopt32(argv, "+n:c:p:", &pri, &ioclass, &pid);
 	argv += optind;
-	
+
 	if (opt & OPT_c) {
 		if (ioclass > 3)
 			bb_error_msg_and_die("bad class %d", ioclass);
@@ -70,7 +70,7 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 //			pri = 7;
 //		}
 	}
-	
+
 	if (!(opt & (OPT_n|OPT_c))) {
 		if (!(opt & OPT_p) && *argv)
 			pid = xatoi_u(*argv);

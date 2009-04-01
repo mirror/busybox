@@ -25,9 +25,9 @@
         <div class="header" style="font-family: lucida, helvetica; font-size: 248%">
             <xsl:text>BUSYBOX</xsl:text>
         </div>
-        <div class="header"> 
-          <a href="http://www.busybox.net"><img src="/images/busybox1.png" border="0" /></a> 
-        </div> 
+        <div class="header">
+          <a href="http://www.busybox.net"><img src="/images/busybox1.png" border="0" /></a>
+        </div>
         <div class="svn">
           <xsl:apply-templates/>
         </div>

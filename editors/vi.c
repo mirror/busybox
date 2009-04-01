@@ -1677,12 +1677,12 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 			q = prev_line(p);	// use prev line as template
 			len = strspn(q, " \t"); // space or tab
 			if (len) {
-				uintptr_t bias;			    
+				uintptr_t bias;
 				bias = text_hole_make(p, len);
 				p += bias;
 				q += bias;
 				memcpy(p, q, len);
-				p += len;			
+				p += len;
 			}
 		}
 #endif

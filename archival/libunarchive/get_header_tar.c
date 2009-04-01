@@ -48,7 +48,7 @@ static off_t getBase256_len12(const char *str)
 	while (1) {
 		if (c)
 			bb_error_msg_and_die("overflow in base-256 encoded file size");
-		if (--len == sizeof(off_t)) 
+		if (--len == sizeof(off_t))
 			break;
 		c = *str++;
 	}

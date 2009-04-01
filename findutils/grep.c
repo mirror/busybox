@@ -30,7 +30,7 @@
 	USE_DESKTOP("w") \
 	USE_EXTRA_COMPAT("z") \
 	"aI"
-	
+
 /* ignored: -a "assume all files to be text" */
 /* ignored: -I "assume binary files have no matches" */
 

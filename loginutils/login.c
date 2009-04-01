@@ -465,7 +465,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	fchmod(0, 0600);
 
 	/* We trust environment only if we run by root */
-	if (ENABLE_LOGIN_SCRIPTS && run_by_root) 
+	if (ENABLE_LOGIN_SCRIPTS && run_by_root)
 		run_login_script(pw, full_tty);
 
 	change_identity(pw);
