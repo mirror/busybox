@@ -119,58 +119,61 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 };
 
 
-/* get an option with bounds checking (warning, not aligned). */
+/* get an option with bounds checking (warning, result is not aligned). */
 uint8_t* FAST_FUNC get_option(struct dhcpMessage *packet, int code)
 {
-	int i, length;
 	uint8_t *optionptr;
-	int over = 0;
-	int curr = OPTION_FIELD;
+	int len;
+	int rem;
+	int overload = 0;
+	enum {
+		FILE_FIELD101  = FILE_FIELD  * 0x101,
+		SNAME_FIELD101 = SNAME_FIELD * 0x101,
+	};
 
+	/* option bytes: [code][len][data1][data2]..[dataLEN] */
 	optionptr = packet->options;
-	i = 0;
-	length = sizeof(packet->options);
+	rem = sizeof(packet->options);
 	while (1) {
-		if (i >= length) {
-			bb_error_msg("bogus packet, option fields too long");
+		if (rem <= 0) {
+			bb_error_msg("bogus packet, malformed option field");
 			return NULL;
 		}
-		if (optionptr[i + OPT_CODE] == code) {
-			if (i + 1 + optionptr[i + OPT_LEN] >= length) {
-				bb_error_msg("bogus packet, option fields too long");
-				return NULL;
-			}
-			return optionptr + i + 2;
+		if (optionptr[OPT_CODE] == DHCP_PADDING) {
+			rem--;
+			optionptr++;
+			continue;
 		}
-		switch (optionptr[i + OPT_CODE]) {
-		case DHCP_PADDING:
-			i++;
-			break;
-		case DHCP_OPTION_OVER:
-			if (i + 1 + optionptr[i + OPT_LEN] >= length) {
-				bb_error_msg("bogus packet, option fields too long");
-				return NULL;
-			}
-			over = optionptr[i + 3];
-			i += optionptr[OPT_LEN] + 2;
-			break;
-		case DHCP_END:
-			if (curr == OPTION_FIELD && (over & FILE_FIELD)) {
+		if (optionptr[OPT_CODE] == DHCP_END) {
+			if ((overload & FILE_FIELD101) == FILE_FIELD) {
+				/* can use packet->file, and didn't look at it yet */
+				overload |= FILE_FIELD101; /* "we looked at it" */
 				optionptr = packet->file;
-				i = 0;
-				length = sizeof(packet->file);
-				curr = FILE_FIELD;
-			} else if (curr == FILE_FIELD && (over & SNAME_FIELD)) {
+				rem = sizeof(packet->file);
+				continue;
+			}
+			if ((overload & SNAME_FIELD101) == SNAME_FIELD) {
+				/* can use packet->sname, and didn't look at it yet */
+				overload |= SNAME_FIELD101; /* "we looked at it" */
 				optionptr = packet->sname;
-				i = 0;
-				length = sizeof(packet->sname);
-				curr = SNAME_FIELD;
-			} else
-				return NULL;
-			break;
-		default:
-			i += optionptr[OPT_LEN + i] + 2;
+				rem = sizeof(packet->sname);
+				continue;
+			}
+			return NULL;
 		}
+		len = 2 + optionptr[OPT_LEN];
+		rem -= len;
+		if (rem < 0)
+			continue; /* complain and return NULL */
+
+		if (optionptr[OPT_CODE] == code)
+			return optionptr + OPT_DATA;
+
+		if (optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
+			overload |= optionptr[OPT_DATA];
+			/* fall through */
+		}
+		optionptr += len;
 	}
 	return NULL;
 }
@@ -182,17 +185,16 @@ int FAST_FUNC end_option(uint8_t *optionptr)
 	int i = 0;
 
 	while (optionptr[i] != DHCP_END) {
-		if (optionptr[i] == DHCP_PADDING)
-			i++;
-		else
-			i += optionptr[i + OPT_LEN] + 2;
+		if (optionptr[i] != DHCP_PADDING)
+			i += optionptr[i + OPT_LEN] + 1;
+		i++;
 	}
 	return i;
 }
 
 
-/* add an option string to the options (an option string contains an option code,
- * length, then data) */
+/* add an option string to the options */
+/* option bytes: [code][len][data1][data2]..[dataLEN] */
 int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 {
 	int end = end_option(optionptr);

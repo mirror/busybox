@@ -135,7 +135,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 	char **envp, **curr;
 	const char *opt_name;
 	uint8_t *temp;
-	char over = 0;
+	uint8_t over = 0;
 
 	if (packet) {
 		for (i = 0; dhcp_options[i].code; i++) {
@@ -147,7 +147,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		}
 		if (packet->siaddr)
 			num_options++;
-		temp = get_option(packet, DHCP_OPTION_OVER);
+		temp = get_option(packet, DHCP_OPTION_OVERLOAD);
 		if (temp)
 			over = *temp;
 		if (!(over & FILE_FIELD) && packet->file[0])

@@ -48,9 +48,12 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 
 
 /* Add a lease into the table, clearing out any old ones */
-struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiaddr, leasetime_t leasetime)
+struct dhcpOfferedAddr* FAST_FUNC add_lease(
+		const uint8_t *chaddr, uint32_t yiaddr,
+		leasetime_t leasetime, uint8_t *hostname)
 {
 	struct dhcpOfferedAddr *oldest;
+	uint8_t hostname_length;
 
 	/* clean out any old ones */
 	clear_lease(chaddr, yiaddr);
@@ -58,6 +61,19 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(const uint8_t *chaddr, uint32_t yiad
 	oldest = oldest_expired_lease();
 
 	if (oldest) {
+		oldest->hostname[0] = '\0';
+		if (hostname) {
+        		hostname_length = hostname[-1]; /* look at option size byte */
+			if (hostname_length > sizeof(oldest->hostname))
+				hostname_length = sizeof(oldest->hostname);
+            		hostname = (uint8_t*) safe_strncpy((char*)oldest->hostname, (char*)hostname, hostname_length);
+			/* sanitization (s/non-ACSII/^/g) */
+			while (*hostname) {
+				if (*hostname < ' ' || *hostname > 126)
+					*hostname = '^';
+				hostname++;
+			}
+		}
 		memcpy(oldest->chaddr, chaddr, 16);
 		oldest->yiaddr = yiaddr;
 		oldest->expires = time(NULL) + leasetime;
@@ -117,7 +133,7 @@ static int nobody_responds_to_arp(uint32_t addr)
 	temp.s_addr = addr;
 	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
 		inet_ntoa(temp), (unsigned)server_config.conflict_time);
-	add_lease(blank_chaddr, addr, server_config.conflict_time);
+	add_lease(blank_chaddr, addr, server_config.conflict_time, NULL);
 	return 0;
 }
 

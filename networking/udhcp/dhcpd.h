@@ -74,8 +74,6 @@ struct server_config_t {
 #define SERVER_PORT 67
 #endif
 
-extern struct dhcpOfferedAddr *leases;
-
 
 /*** leases.h ***/
 
@@ -92,9 +90,15 @@ struct dhcpOfferedAddr {
 	 * and optionally adjusted (current time subtracted)
 	 * if server_config.remaining = 1 */
 	leasetime_t expires;
+	uint8_t hostname[20]; /* (size is a multiply of 4) */
 };
 
-struct dhcpOfferedAddr *add_lease(const uint8_t *chaddr, uint32_t yiaddr, leasetime_t leasetime) FAST_FUNC;
+extern struct dhcpOfferedAddr *leases;
+
+struct dhcpOfferedAddr *add_lease(
+		const uint8_t *chaddr, uint32_t yiaddr,
+		leasetime_t leasetime, uint8_t *hostname
+		) FAST_FUNC;
 int lease_expired(struct dhcpOfferedAddr *lease) FAST_FUNC;
 struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
 struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;

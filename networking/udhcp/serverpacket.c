@@ -105,7 +105,7 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 	uint32_t req_align;
 	uint32_t lease_time_aligned = server_config.lease;
 	uint32_t static_lease_ip;
-	uint8_t *req, *lease_time;
+	uint8_t *req, *lease_time, *p_host_name;
 	struct option_set *curr;
 	struct in_addr addr;
 
@@ -146,7 +146,8 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 			bb_error_msg("no IP addresses to give - OFFER abandoned");
 			return -1;
 		}
-		if (!add_lease(packet.chaddr, packet.yiaddr, server_config.offer_time)) {
+		p_host_name = get_option(oldpacket, DHCP_HOST_NAME);
+		if (!add_lease(packet.chaddr, packet.yiaddr, server_config.offer_time, p_host_name)) {
 			bb_error_msg("lease pool is full - OFFER abandoned");
 			return -1;
 		}
@@ -201,6 +202,7 @@ int FAST_FUNC send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 	uint8_t *lease_time;
 	uint32_t lease_time_aligned = server_config.lease;
 	struct in_addr addr;
+	uint8_t *p_host_name;
 
 	init_packet(&packet, oldpacket, DHCPACK);
 	packet.yiaddr = yiaddr;
@@ -232,7 +234,8 @@ int FAST_FUNC send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 	if (send_packet(&packet, 0) < 0)
 		return -1;
 
-	add_lease(packet.chaddr, packet.yiaddr, lease_time_aligned);
+	p_host_name = get_option(oldpacket, DHCP_HOST_NAME);
+	add_lease(packet.chaddr, packet.yiaddr, lease_time_aligned, p_host_name);
 	if (ENABLE_FEATURE_UDHCPD_WRITE_LEASES_EARLY) {
 		/* rewrite the file with leases at every new acceptance */
 		write_leases();

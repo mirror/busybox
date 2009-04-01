@@ -47,8 +47,9 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 
 	fd = xopen(file, O_RDONLY);
 
-	printf("Mac Address       IP-Address      Expires %s\n", (opt & OPT_a) ? "at" : "in");
-	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */
+	printf("Mac Address       IP Address      Host Name           Expires %s\n", (opt & OPT_a) ? "at" : "in");
+	/*     "00:00:00:00:00:00 255.255.255.255 ABCDEFGHIJKLMNOPQRS Wed Jun 30 21:49:08 1993" */
+	/*     "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 */
 
 	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
 		return 0;
@@ -64,7 +65,9 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 			fmt = ":%02x";
 		}
 		addr.s_addr = lease.yiaddr;
-		printf(" %-15s ", inet_ntoa(addr));
+		/* actually, 15+1 and 19+1, +1 is a space between columns */
+		/* lease.hostname is char[20] and is always NUL terminated */
+		printf(" %-16s%-20s", inet_ntoa(addr), lease.hostname);
 		expires_abs = ntohl(lease.expires) + written_at;
 		if (expires_abs <= curr) {
 			puts("expired");
