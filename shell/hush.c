@@ -392,9 +392,9 @@ typedef struct o_string {
 	char *data;
 	int length; /* position where data is appended */
 	int maxlen;
-	/* Misnomer! it's not "quoting", it's "protection against globbing"!
-	 * (by prepending \ to *, ?, [ and to \ too) */
-	smallint o_quote;
+	/* Protect newly added chars against globbing
+	 * (by prepending \ to *, ?, [, \) */
+	smallint o_escape;
 	smallint o_glob;
 	smallint nonnull;
 	smallint has_empty_slot;
@@ -1440,7 +1440,7 @@ static void o_addqchr(o_string *o, int ch)
 static void o_addQchr(o_string *o, int ch)
 {
 	int sz = 1;
-	if (o->o_quote && strchr("*?[\\", ch)) {
+	if (o->o_escape && strchr("*?[\\", ch)) {
 		sz++;
 		o->data[o->length] = '\\';
 		o->length++;
@@ -1453,7 +1453,7 @@ static void o_addQchr(o_string *o, int ch)
 
 static void o_addQstr(o_string *o, const char *str, int len)
 {
-	if (!o->o_quote) {
+	if (!o->o_escape) {
 		o_addstr(o, str, len);
 		return;
 	}
@@ -1668,7 +1668,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
-			if (output->o_quote || !output->o_glob)
+			if (output->o_escape || !output->o_glob)
 				o_addQstr(output, str, word_len);
 			else /* protect backslashes against globbing up :) */
 				o_addstr_duplicate_backslash(output, str, word_len);
@@ -1751,9 +1751,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				break;
 			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
-				smallint sv = output->o_quote;
-				/* unquoted var's contents should be globbed, so don't quote */
-				output->o_quote = 0;
+				smallint sv = output->o_escape;
+				/* unquoted var's contents should be globbed, so don't escape */
+				output->o_escape = 0;
 				while (G.global_argv[i]) {
 					n = expand_on_ifs(output, n, G.global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
@@ -1766,7 +1766,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 						debug_print_list("expand_vars_to_list[3]", output, n);
 					}
 				}
-				output->o_quote = sv;
+				output->o_escape = sv;
 			} else
 			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
@@ -1945,17 +1945,17 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
  store_val:
 #endif
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
-				debug_printf_expand("unquoted '%s', output->o_quote:%d\n", val, output->o_quote);
+				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val, output->o_escape);
 				if (val) {
-					/* unquoted var's contents should be globbed, so don't quote */
-					smallint sv = output->o_quote;
-					output->o_quote = 0;
+					/* unquoted var's contents should be globbed, so don't escape */
+					smallint sv = output->o_escape;
+					output->o_escape = 0;
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
-					output->o_quote = sv;
+					output->o_escape = sv;
 				}
 			} else { /* quoted $VAR, val will be appended below */
-				debug_printf_expand("quoted '%s', output->o_quote:%d\n", val, output->o_quote);
+				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val, output->o_escape);
 			}
 		} /* default: */
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
@@ -1999,7 +1999,7 @@ static char **expand_variables(char **argv, int or_mask)
 	o_string output = NULL_O_STRING;
 
 	if (or_mask & 0x100) {
-		output.o_quote = 1; /* protect against globbing for "$var" */
+		output.o_escape = 1; /* protect against globbing for "$var" */
 		/* (unquoted $var will temporarily switch it off) */
 		output.o_glob = 1;
 	}
@@ -3979,7 +3979,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 {
 	int expansion;
 	int ch = i_peek(input);  /* first character after the $ */
-	unsigned char quote_mask = dest->o_quote ? 0x80 : 0;
+	unsigned char quote_mask = dest->o_escape ? 0x80 : 0;
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
@@ -4143,7 +4143,7 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		dest->nonnull = 1;
 		if (dest->o_assignment == NOT_ASSIGNMENT)
-			dest->o_quote ^= 1;
+			dest->o_escape ^= 1;
 		debug_printf_parse("parse_stream_dquoted return 0\n");
 		return 0;
 	}
@@ -4157,8 +4157,8 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	if (ch != '\n') {
 		next = i_peek(input);
 	}
-	debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
-					ch, ch, m, dest->o_quote);
+	debug_printf_parse(": ch=%c (%d) m=%d escape=%d\n",
+					ch, ch, m, dest->o_escape);
 	/* Basically, checking every CHAR_SPECIAL char except '"' */
 	if (ch == '\\') {
 		if (next == EOF) {
@@ -4225,13 +4225,13 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	int is_in_dquote;
 	int next;
 
-	/* Only double-quote state is handled in the state variable dest->o_quote.
+	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
-	 * found.  When recursing, quote state is passed in via dest->o_quote. */
+	 * found.  When recursing, quote state is passed in via dest->o_escape. */
 
 	debug_printf_parse("parse_stream entered, end_trigger='%s' dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
 
-	is_in_dquote = dest->o_quote;
+	is_in_dquote = dest->o_escape;
 	while (1) {
 		if (is_in_dquote) {
 			if (parse_stream_dquoted(dest, input, '"'))
@@ -4248,8 +4248,8 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				next = i_peek(input);
 			}
 		}
-		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
-						ch, ch, m, dest->o_quote);
+		debug_printf_parse(": ch=%c (%d) m=%d escape=%d\n",
+						ch, ch, m, dest->o_escape);
 		if (m == CHAR_ORDINARY) {
 			o_addQchr(dest, ch);
 			if ((dest->o_assignment == MAYBE_ASSIGNMENT
@@ -4365,7 +4365,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			dest->nonnull = 1;
 			is_in_dquote ^= 1; /* invert */
 			if (dest->o_assignment == NOT_ASSIGNMENT)
-				dest->o_quote ^= 1;
+				dest->o_escape ^= 1;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
@@ -4594,7 +4594,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 			}
 #endif
 			/*temp.nonnull = 0; - o_free does it below */
-			/*temp.o_quote = 0; - o_free does it below */
+			/*temp.o_escape = 0; - o_free does it below */
 			free_pipe_list(ctx.list_head, /* indent: */ 0);
 			/* Discard all unprocessed line input, force prompt on */
 			inp->p = NULL;
