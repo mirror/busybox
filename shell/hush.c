@@ -1510,7 +1510,7 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	}
 	if (n) {
 		const char *p = o->data + (int)list[n - 1] + string_start;
-		fprintf(stderr, " total_sz:%ld\n", (p + strlen(p) + 1) - o->data);
+		fprintf(stderr, " total_sz:%ld\n", (long)((p + strlen(p) + 1) - o->data));
 	}
 }
 #else
@@ -1644,6 +1644,14 @@ static char **o_finalize_list(o_string *o, int n)
 }
 
 
+/* Expansion can recurse */
+#if ENABLE_HUSH_TICK
+static int process_command_subs(o_string *dest,
+		struct in_str *input, const char *subst_end);
+#endif
+static char *expand_string_to_string(const char *str);
+static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end);
+
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
  * a list of expanded strings, possibly with larger number
@@ -1678,11 +1686,6 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	return n;
 }
 
-#if ENABLE_HUSH_TICK
-static int process_command_subs(o_string *dest,
-		struct in_str *input, const char *subst_end);
-#endif
-
 /* Expand all variable references in given string, adding words to list[]
  * at n, n+1,... positions. Return updated n (so that list[n] is next one
  * to be filled). This routine is extremely tricky: has to deal with
@@ -1710,6 +1713,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
 #endif
+#if ENABLE_SH_MATH_SUPPORT
+		char arith_buf[sizeof(arith_t)*3 + 2];
+#endif
 		o_addstr(output, arg, p - arg);
 		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
@@ -1720,6 +1726,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		 * expand to nothing (not even an empty string) */
 		if ((first_ch & 0x7f) != '@')
 			ored_ch |= first_ch;
+
 		val = NULL;
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
@@ -1803,19 +1810,52 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		}
 #endif
 #if ENABLE_SH_MATH_SUPPORT
-		case '+': { /* <SPECIAL_VAR_SYMBOL>(cmd<SPECIAL_VAR_SYMBOL> */
+		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
 			arith_eval_hooks_t hooks;
 			arith_t res;
-			char buf[30];
 			int errcode;
+			char *exp_str;
 
-			*p = '\0';
-			++arg;
+			arg++; /* skip '+' */
+			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
+
+			/* Optional: skip expansion if expr is simple ("a + 3", "i++" etc) */
+			exp_str = arg;
+			while (1) {
+				unsigned char c = *exp_str++;
+				if (c == '\0') {
+					exp_str = NULL;
+					goto skip_expand;
+				}
+				if (isdigit(c))
+					continue;
+				if (strchr(" \t+-*/%_", c) != NULL)
+					continue;
+				c |= 0x20; /* tolower */
+				if (c >= 'a' && c <= 'z')
+					continue;
+				break;
+			}
+			/* We need to expand. Example: "echo $(($a + 1)) $((1 + $((2)) ))" */
+			{
+				struct in_str input;
+				o_string dest = NULL_O_STRING;
+
+				setup_string_in_str(&input, arg);
+				parse_stream_dquoted(&dest, &input, EOF);
+				//bb_error_msg("'%s' -> '%s'", arg, dest.data);
+				exp_str = expand_string_to_string(dest.data);
+				//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
+				o_free(&dest);
+			}
+ skip_expand:
 			hooks.lookupvar = lookup_param;
 			hooks.setvar = arith_set_local_var;
 			hooks.endofname = endofname;
-			res = arith(arg, &errcode, &hooks);
+			res = arith(exp_str ? exp_str : arg, &errcode, &hooks);
+			free(exp_str);
+
 			if (errcode < 0) {
 				switch (errcode) {
 				case -3: maybe_die("arith", "exponent less than 0"); break;
@@ -1824,9 +1864,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				default: maybe_die("arith", "syntax error"); break;
 				}
 			}
-			sprintf(buf, arith_t_fmt, res);
-			o_addstrauto(output, buf);
 			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
+			sprintf(arith_buf, arith_t_fmt, res);
+			val = arith_buf;
 			break;
 		}
 #endif
@@ -1918,13 +1958,14 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			} else { /* quoted $VAR, val will be appended below */
 				debug_printf_expand("quoted '%s', output->o_quote:%d\n", val, output->o_quote);
 			}
-		}
-		}
+		} /* default: */
+		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
+
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
 		/* Do the check to avoid writing to a const string */
-		if (p && *p != SPECIAL_VAR_SYMBOL)
+		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
 
 #if ENABLE_HUSH_TICK
@@ -3756,11 +3797,11 @@ static int process_command_subs(o_string *dest,
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
-	/* This is the step that waits for the child.  Should be pretty
-	 * safe, since we just read an EOF from its stdout.  We could try
-	 * to do better, by using waitpid, and keeping track of background jobs
-	 * at the same time.  That would be a lot of work, and contrary
-	 * to the KISS philosophy of this program. */
+	/* Note: we got EOF, and we just close the read end of the pipe.
+	 * We do not wait for the `cmd` child to terminate. bash and ash do.
+	 * Try this:
+	 * echo `echo Hi; exec 1>&-; sleep 2`
+	 */
 	retcode = fclose(p);
 	free_pipe_list(inner.list_head, /* indent: */ 0);
 	debug_printf("closed FILE from child, retcode=%d\n", retcode);
@@ -4056,7 +4097,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			if (i_peek(input) == '(') {
 				i_getch(input);
 				o_addchr(dest, SPECIAL_VAR_SYMBOL);
-				o_addchr(dest, quote_mask | '+');
+				o_addchr(dest, /*quote_mask |*/ '+');
 				add_till_closing_paren(dest, input, true);
 				o_addchr(dest, SPECIAL_VAR_SYMBOL);
 				break;
@@ -4093,6 +4134,86 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 	return 0;
 }
 
+static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end)
+{
+	int ch, m;
+	int next;
+
+ again:
+	ch = i_getch(input);
+	if (ch == dquote_end) { /* may be only '"' or EOF */
+		dest->nonnull = 1;
+		if (dest->o_assignment == NOT_ASSIGNMENT)
+			dest->o_quote ^= 1;
+		debug_printf_parse("parse_stream_dquoted return 0\n");
+		return 0;
+	}
+	if (ch == EOF) {
+		syntax("unterminated \"");
+		debug_printf_parse("parse_stream_dquoted return 1: unterminated \"\n");
+		return 1;
+	}
+	next = '\0';
+	m = G.charmap[ch];
+	if (ch != '\n') {
+		next = i_peek(input);
+	}
+	debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
+					ch, ch, m, dest->o_quote);
+	if (m != CHAR_SPECIAL) {
+		o_addQchr(dest, ch);
+		if ((dest->o_assignment == MAYBE_ASSIGNMENT
+		    || dest->o_assignment == WORD_IS_KEYWORD)
+		 && ch == '='
+		 && is_assignment(dest->data)
+		) {
+			dest->o_assignment = DEFINITELY_ASSIGNMENT;
+		}
+		goto again;
+	}
+	if (ch == '\\') {
+		if (next == EOF) {
+			syntax("\\<eof>");
+			debug_printf_parse("parse_stream_dquoted return 1: \\<eof>\n");
+			return 1;
+		}
+		/* bash:
+		 * "The backslash retains its special meaning [in "..."]
+		 * only when followed by one of the following characters:
+		 * $, `, ", \, or <newline>.  A double quote may be quoted
+		 * within double quotes by preceding it with a backslash.
+		 * If enabled, history expansion will be performed unless
+		 * an ! appearing in double quotes is escaped using
+		 * a backslash. The backslash preceding the ! is not removed."
+		 */
+		if (strchr("$`\"\\", next) != NULL) {
+			o_addqchr(dest, i_getch(input));
+		} else {
+			o_addqchr(dest, '\\');
+		}
+		goto again;
+	}
+	if (ch == '$') {
+		if (handle_dollar(dest, input) != 0) {
+			debug_printf_parse("parse_stream_dquoted return 1: handle_dollar returned non-0\n");
+			return 1;
+		}
+		goto again;
+	}
+#if ENABLE_HUSH_TICK
+	if (ch == '`') {
+		//int pos = dest->length;
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		o_addchr(dest, 0x80 | '`');
+		add_till_backquote(dest, input);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
+		/* fall through */
+	}
+#endif
+	goto again;
+}
+
 /* Scan input, call done_word() whenever full IFS delimited word was seen.
  * Call done_pipe if '\n' was seen (and end_trigger != NULL).
  * Return code is 0 if end_trigger char is met,
@@ -4104,7 +4225,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	int ch, m;
 	int redir_fd;
 	redir_type redir_style;
-	int shadow_quote = dest->o_quote;
+	int is_in_dquote;
 	int next;
 
 	/* Only double-quote state is handled in the state variable dest->o_quote.
@@ -4113,7 +4234,14 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 
 	debug_printf_parse("parse_stream entered, end_trigger='%s' dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
 
+	is_in_dquote = dest->o_quote;
 	while (1) {
+		if (is_in_dquote) {
+			if (parse_stream_dquoted(dest, input, '"'))
+				return 1; /* propagate parse error */
+			/* If we're here, we reached closing '"' */
+			is_in_dquote = 0;
+		}
 		m = CHAR_IFS;
 		next = '\0';
 		ch = i_getch(input);
@@ -4125,14 +4253,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 		}
 		debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 						ch, ch, m, dest->o_quote);
-		if (m == CHAR_ORDINARY
-		 || (m != CHAR_SPECIAL && shadow_quote)
-		) {
-			if (ch == EOF) {
-				syntax("unterminated \"");
-				debug_printf_parse("parse_stream return 1: unterminated \"\n");
-				return 1;
-			}
+		if (m == CHAR_ORDINARY) {
 			o_addQchr(dest, ch);
 			if ((dest->o_assignment == MAYBE_ASSIGNMENT
 			    || dest->o_assignment == WORD_IS_KEYWORD)
@@ -4143,6 +4264,8 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			}
 			continue;
 		}
+		/* m is SPECIAL ($,`), IFS, or ORDINARY_IF_QUOTED (*,#)
+		 */
 		if (m == CHAR_IFS) {
 			if (done_word(dest, ctx)) {
 				debug_printf_parse("parse_stream return 1: done_word!=0\n");
@@ -4152,7 +4275,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				break;
 			/* If we aren't performing a substitution, treat
 			 * a newline as a command separator.
-			 * [why we don't handle it exactly like ';'? --vda] */
+			 * [why don't we handle it exactly like ';'? --vda] */
 			if (end_trigger && ch == '\n') {
 #if ENABLE_HUSH_CASE
 				/* "case ... in <newline> word) ..." -
@@ -4168,7 +4291,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			}
 		}
 		if (end_trigger) {
-			if (!shadow_quote && strchr(end_trigger, ch)) {
+			if (strchr(end_trigger, ch)) {
 				/* Special case: (...word) makes last word terminate,
 				 * as if ';' is seen */
 				if (ch == ')') {
@@ -4188,15 +4311,17 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 		if (m == CHAR_IFS)
 			continue;
 
+		/* m is SPECIAL (e.g. $,`) or ORDINARY_IF_QUOTED (*,#) */
+
 		if (dest->o_assignment == MAYBE_ASSIGNMENT) {
 			/* ch is a special char and thus this word
-			 * cannot be an assignment: */
+			 * cannot be an assignment */
 			dest->o_assignment = NOT_ASSIGNMENT;
 		}
 
 		switch (ch) {
 		case '#':
-			if (dest->length == 0 && !shadow_quote) {
+			if (dest->length == 0) {
 				while (1) {
 					ch = i_peek(input);
 					if (ch == EOF || ch == '\n')
@@ -4213,25 +4338,8 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				debug_printf_parse("parse_stream return 1: \\<eof>\n");
 				return 1;
 			}
-			/* bash:
-			 * "The backslash retains its special meaning [in "..."]
-			 * only when followed by one of the following characters:
-			 * $, `, ", \, or <newline>.  A double quote may be quoted
-			 * within double quotes by preceding it with a  backslash.
-			 * If enabled, history expansion will be performed unless
-			 * an ! appearing in double quotes is escaped using
-			 * a backslash. The backslash preceding the ! is not removed."
-			 */
-			if (shadow_quote) { //NOT SURE   dest->o_quote) {
-				if (strchr("$`\"\\", next) != NULL) {
-					o_addqchr(dest, i_getch(input));
-				} else {
-					o_addqchr(dest, '\\');
-				}
-			} else {
-				o_addchr(dest, '\\');
-				o_addchr(dest, i_getch(input));
-			}
+			o_addchr(dest, '\\');
+			o_addchr(dest, i_getch(input));
 			break;
 		case '$':
 			if (handle_dollar(dest, input) != 0) {
@@ -4258,7 +4366,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			break;
 		case '"':
 			dest->nonnull = 1;
-			shadow_quote ^= 1; /* invert */
+			is_in_dquote ^= 1; /* invert */
 			if (dest->o_assignment == NOT_ASSIGNMENT)
 				dest->o_quote ^= 1;
 			break;
@@ -4266,7 +4374,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 		case '`': {
 			//int pos = dest->length;
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			o_addchr(dest, shadow_quote /*or dest->o_quote??*/ ? 0x80 | '`' : '`');
+			o_addchr(dest, '`');
 			add_till_backquote(dest, input);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
