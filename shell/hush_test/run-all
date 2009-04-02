@@ -23,6 +23,7 @@ export THIS_SH
 do_test()
 {
     test -d "$1" || return 0
+    d=${d%/}
 #   echo Running tests in directory "$1"
     (
     tret=0
