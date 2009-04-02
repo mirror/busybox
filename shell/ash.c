@@ -354,38 +354,24 @@ raise_interrupt(void)
 } while (0)
 #endif
 
-#if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-static void
+static USE_ASH_OPTIMIZE_FOR_SIZE(inline) void
 int_on(void)
 {
+	xbarrier();
 	if (--suppressint == 0 && intpending) {
 		raise_interrupt();
 	}
 }
 #define INT_ON int_on()
-static void
+static USE_ASH_OPTIMIZE_FOR_SIZE(inline) void
 force_int_on(void)
 {
+	xbarrier();
 	suppressint = 0;
 	if (intpending)
 		raise_interrupt();
 }
 #define FORCE_INT_ON force_int_on()
-
-#else /* !ASH_OPTIMIZE_FOR_SIZE */
-
-#define INT_ON do { \
-	xbarrier(); \
-	if (--suppressint == 0 && intpending) \
-		raise_interrupt(); \
-} while (0)
-#define FORCE_INT_ON do { \
-	xbarrier(); \
-	suppressint = 0; \
-	if (intpending) \
-		raise_interrupt(); \
-} while (0)
-#endif /* !ASH_OPTIMIZE_FOR_SIZE */
 
 #define SAVE_INT(v) ((v) = suppressint)
 
@@ -2700,23 +2686,26 @@ SIT(int c, int syntax)
 	const char *s;
 	int indx;
 
-	if (c == PEOF)          /* 2^8+2 */
+	if (c == PEOF) {         /* 2^8+2 */
 		return CENDFILE;
-#if ENABLE_ASH_ALIAS
-	if (c == PEOA)          /* 2^8+1 */
-		indx = 0;
-	else
-#endif
-
-	if ((unsigned char)c >= (unsigned char)(CTLESC)
-	 && (unsigned char)c <= (unsigned char)(CTLQUOTEMARK)
-	) {
-		return CCTL;
 	}
-	s = strchrnul(spec_symbls, c);
-	if (*s == '\0')
-		return CWORD;
-	indx = syntax_index_table[s - spec_symbls];
+#if ENABLE_ASH_ALIAS
+	if (c == PEOA) {         /* 2^8+1 */
+		indx = 0;
+	} else
+#endif
+	{
+		if ((unsigned char)c >= (unsigned char)(CTLESC)
+		 && (unsigned char)c <= (unsigned char)(CTLQUOTEMARK)
+		) {
+			return CCTL;
+		}
+		s = strchrnul(spec_symbls, c);
+		if (*s == '\0') {
+			return CWORD;
+		}
+		indx = syntax_index_table[s - spec_symbls];
+	}
 	return S_I_T[indx][syntax];
 }
 
@@ -3019,7 +3008,7 @@ static const char syntax_index_table[258] = {
 	/* 257   127      */ CWORD_CWORD_CWORD_CWORD,
 };
 
-#define SIT(c, syntax) (S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax])
+#define SIT(c, syntax) (S_I_T[(int)syntax_index_table[(int)(c) + SYNBASE]][syntax])
 
 #endif  /* USE_SIT_FUNCTION */
 
