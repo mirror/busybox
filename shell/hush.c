@@ -432,7 +432,7 @@ enum {
 	CHAR_ORDINARY           = 0,
 	CHAR_ORDINARY_IF_QUOTED = 1, /* example: *, # */
 	CHAR_IFS                = 2, /* treated as ordinary if quoted */
-	CHAR_SPECIAL            = 3, /* example: $ */
+	CHAR_SPECIAL            = 3, /* \, $, ", maybe ` */
 };
 
 enum {
@@ -4160,17 +4160,7 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	}
 	debug_printf_parse(": ch=%c (%d) m=%d quote=%d\n",
 					ch, ch, m, dest->o_quote);
-	if (m != CHAR_SPECIAL) {
-		o_addQchr(dest, ch);
-		if ((dest->o_assignment == MAYBE_ASSIGNMENT
-		    || dest->o_assignment == WORD_IS_KEYWORD)
-		 && ch == '='
-		 && is_assignment(dest->data)
-		) {
-			dest->o_assignment = DEFINITELY_ASSIGNMENT;
-		}
-		goto again;
-	}
+	/* Basically, checking every CHAR_SPECIAL char except '"' */
 	if (ch == '\\') {
 		if (next == EOF) {
 			syntax("\\<eof>");
@@ -4208,9 +4198,17 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 		add_till_backquote(dest, input);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
-		/* fall through */
+		goto again;
 	}
 #endif
+	o_addQchr(dest, ch);
+	if (ch == '='
+	 && (dest->o_assignment == MAYBE_ASSIGNMENT
+	    || dest->o_assignment == WORD_IS_KEYWORD)
+	 && is_assignment(dest->data)
+	) {
+		dest->o_assignment = DEFINITELY_ASSIGNMENT;
+	}
 	goto again;
 }
 
