@@ -38,7 +38,6 @@
  *
  * POSIX syntax not implemented:
  *      aliases
- *      Arithmetic Expansion
  *      <(list) and >(list) Process Substitution
  *      Here Documents ( << word )
  *      Functions
