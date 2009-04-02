@@ -3765,14 +3765,10 @@ static int process_command_subs(o_string *dest,
 	FILE *p;
 	struct in_str pipe_str;
 
-	initialize_context(&inner);
-
 	/* Recursion to generate command */
 	retcode = parse_stream(&result, &inner, input, subst_end);
 	if (retcode != 0)
 		return retcode;  /* syntax error or EOF */
-	done_word(&result, &inner);
-	done_pipe(&inner, PIPE_SEQ);
 	o_free(&result);
 
 	p = generate_stream_from_list(inner.list_head);
@@ -3812,10 +3808,10 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, int ch)
 {
 	/* dest contains characters seen prior to ( or {.
-	 * Typically it's empty, but for functions defs,
+	 * Typically it's empty, but for function defs,
 	 * it contains function name (without '()'). */
 	int rcode;
-	const char *endch = NULL;
+	const char *endch;
 	struct parse_context sub;
 	struct command *command = ctx->command;
 
@@ -3837,7 +3833,6 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
-	initialize_context(&sub);
 	endch = "}";
 	if (ch == '(') {
 		endch = ")";
@@ -3845,8 +3840,6 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
 	if (rcode == 0) {
-		done_word(dest, &sub); /* finish off the final word in the subcontext */
-		done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
 		command->group = sub.list_head;
 	}
 	debug_printf_parse("parse_group return %d\n", rcode);
@@ -4211,11 +4204,14 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	goto again;
 }
 
-/* Scan input, call done_word() whenever full IFS delimited word was seen.
+/* Initalize ctx (i.e. caller does not need to do that).
+ * Scan input, call done_word() whenever full IFS delimited word was seen.
  * Call done_pipe if '\n' was seen (and end_trigger != NULL).
  * Return code is 0 if end_trigger char is met,
  * -1 on EOF (but if end_trigger == NULL then return 0),
- * 1 for syntax error */
+ * 1 for syntax error
+ * Net result is a list of pipes in ctx->list_head.
+ */
 static int parse_stream(o_string *dest, struct parse_context *ctx,
 		struct in_str *input, const char *end_trigger)
 {
@@ -4230,6 +4226,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	 * found.  When recursing, quote state is passed in via dest->o_escape. */
 
 	debug_printf_parse("parse_stream entered, end_trigger='%s' dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
+	initialize_context(ctx);
 
 	is_in_dquote = dest->o_escape;
 	while (1) {
@@ -4269,7 +4266,7 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				return 1;
 			}
 			if (ch == EOF)
-				break;
+				goto ret_EOF;
 			/* If we aren't performing a substitution, treat
 			 * a newline as a command separator.
 			 * [why don't we handle it exactly like ';'? --vda] */
@@ -4297,11 +4294,14 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 					done_pipe(ctx, PIPE_SEQ);
 					dest->o_assignment = MAYBE_ASSIGNMENT;
 				}
+				/* What do we check here? */
 				if (!HAS_KEYWORDS
 				 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
 				) {
 					debug_printf_parse("parse_stream return 0: end_trigger char found\n");
-					return 0;
+					/* this makes us return 0, not -1 */
+					end_trigger = NULL;
+					goto ret;
 				}
 			}
 		}
@@ -4522,9 +4522,16 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 				bb_error_msg_and_die("BUG: unexpected %c\n", ch);
 		}
 	} /* while (1) */
+
+	/* Non-error returns */
+ ret_EOF:
 	debug_printf_parse("parse_stream return %d\n", -(end_trigger != NULL));
-	if (end_trigger)
-		return -1;
+ ret:
+	done_word(dest, ctx);
+	done_pipe(ctx, PIPE_SEQ);
+	if (end_trigger) {
+		return -1; /* EOF found while expecting end_trigger */
+	}
 	return 0;
 }
 
@@ -4564,7 +4571,6 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 	int rcode;
 
 	do {
-		initialize_context(&ctx);
 		update_charmap();
 #if ENABLE_HUSH_INTERACTIVE
 		inp->promptmode = 0; /* PS1 */
@@ -4574,16 +4580,15 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		 * TEST should be printed */
 		temp.o_assignment = MAYBE_ASSIGNMENT;
 		rcode = parse_stream(&temp, &ctx, inp, ";\n");
+		debug_printf_parse("rcode %d ctx.old_flag %x\n", rcode, ctx.old_flag);
 #if HAS_KEYWORDS
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax(NULL);
 		}
 #endif
 		if (rcode != 1 IF_HAS_KEYWORDS(&& ctx.old_flag == 0)) {
-			done_word(&temp, &ctx);
-			done_pipe(&ctx, PIPE_SEQ);
 			debug_print_tree(ctx.list_head, 0);
-			debug_printf_exec("parse_stream_outer: run_and_free_list\n");
+			debug_printf_exec("parse_and_run_stream: run_and_free_list\n");
 			run_and_free_list(ctx.list_head);
 		} else {
 			/* We arrive here also if rcode == 1 (error in parse_stream) */
