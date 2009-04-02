@@ -454,9 +454,6 @@ struct globals {
 #if ENABLE_FEATURE_EDITING
 	line_input_t *line_input_state;
 #endif
-#if ENABLE_SH_MATH_SUPPORT
-	arith_eval_hooks_t hooks;
-#endif
 	pid_t root_pid;
 	pid_t last_bg_pid;
 #if ENABLE_HUSH_JOB
@@ -1189,11 +1186,11 @@ static char *endofname(const char *name)
 static void arith_set_local_var(const char *name, const char *val, int flags)
 {
 	/* arith code doesnt malloc space, so do it for it */
-	char *var = xmalloc(strlen(name) + 1 + strlen(val) + 1);
-	sprintf(var, "%s=%s", name, val);
+	char *var = xasprintf("%s=%s", name, val);
 	set_local_var(var, flags);
 }
 #endif
+
 
 /*
  * in_str support
@@ -1807,20 +1804,26 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #endif
 #if ENABLE_SH_MATH_SUPPORT
 		case '+': { /* <SPECIAL_VAR_SYMBOL>(cmd<SPECIAL_VAR_SYMBOL> */
+			arith_eval_hooks_t hooks;
 			arith_t res;
 			char buf[30];
 			int errcode;
+
 			*p = '\0';
 			++arg;
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
-			res = arith(arg, &errcode, &G.hooks);
-			if (errcode < 0)
+			hooks.lookupvar = lookup_param;
+			hooks.setvar = arith_set_local_var;
+			hooks.endofname = endofname;
+			res = arith(arg, &errcode, &hooks);
+			if (errcode < 0) {
 				switch (errcode) {
 				case -3: maybe_die("arith", "exponent less than 0"); break;
 				case -2: maybe_die("arith", "divide by zero"); break;
 				case -5: maybe_die("arith", "expression recursion loop detected"); break;
-				default: maybe_die("arith", "syntax error");
+				default: maybe_die("arith", "syntax error"); break;
 				}
+			}
 			sprintf(buf, arith_t_fmt, res);
 			o_addstrauto(output, buf);
 			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
@@ -4600,11 +4603,6 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
-#endif
-#if ENABLE_SH_MATH_SUPPORT
-	G.hooks.lookupvar = lookup_param;
-	G.hooks.setvar = arith_set_local_var;
-	G.hooks.endofname = endofname;
 #endif
 	/* XXX what should these be while sourcing /etc/profile? */
 	G.global_argc = argc;

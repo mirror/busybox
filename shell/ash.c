@@ -185,10 +185,6 @@ struct globals_misc {
 #define debug optlist[15]
 #endif
 
-#if ENABLE_SH_MATH_SUPPORT
-	arith_eval_hooks_t math_hooks;
-#endif
-
 	/* trap handler commands */
 	/*
 	 * Sigmode records the current value of the signal handlers for the various
@@ -238,7 +234,6 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define random_LCG         (G_misc.random_LCG        )
 #define backgndpid  (G_misc.backgndpid )
 #define job_warning (G_misc.job_warning)
-#define math_hooks  (G_misc.math_hooks )
 #define INIT_G_misc() do { \
 	(*(struct globals_misc**)&ash_ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
 	barrier(); \
@@ -1101,6 +1096,14 @@ ash_msg_and_raise_error(const char *msg, ...)
 	ash_vmsg_and_raise(EXERROR, msg, ap);
 	/* NOTREACHED */
 	va_end(ap);
+}
+
+static void raise_error_syntax(const char *) NORETURN;
+static void
+raise_error_syntax(const char *msg)
+{
+	ash_msg_and_raise_error("syntax error: %s", msg);
+	/* NOTREACHED */
 }
 
 static void ash_msg_and_raise(int, const char *, ...) NORETURN;
@@ -5241,7 +5244,32 @@ redirectsafe(union node *redir, int flags)
  */
 
 #if ENABLE_SH_MATH_SUPPORT
-static arith_t dash_arith(const char *);
+static arith_t
+ash_arith(const char *s)
+{
+	arith_eval_hooks_t math_hooks;
+	arith_t result;
+	int errcode = 0;
+
+	math_hooks.lookupvar = lookupvar;
+	math_hooks.setvar = setvar;
+	math_hooks.endofname = endofname;
+
+	INT_OFF;
+	result = arith(s, &errcode, &math_hooks);
+	if (errcode < 0) {
+		if (errcode == -3)
+			ash_msg_and_raise_error("exponent less than 0");
+		if (errcode == -2)
+			ash_msg_and_raise_error("divide by zero");
+		if (errcode == -5)
+			ash_msg_and_raise_error("expression recursion loop detected");
+		raise_error_syntax(s);
+	}
+	INT_ON;
+
+	return result;
+}
 #endif
 
 /*
@@ -5720,7 +5748,7 @@ expari(int quotes)
 	if (quotes)
 		rmescapes(p + 2);
 
-	len = cvtnum(dash_arith(p + 2));
+	len = cvtnum(ash_arith(p + 2));
 
 	if (flag != '"')
 		recordregion(begoff, begoff + len, 0);
@@ -10127,14 +10155,6 @@ static struct heredoc *heredoc;
  */
 #define NEOF ((union node *)&tokpushback)
 
-static void raise_error_syntax(const char *) NORETURN;
-static void
-raise_error_syntax(const char *msg)
-{
-	ash_msg_and_raise_error("syntax error: %s", msg);
-	/* NOTREACHED */
-}
-
 /*
  * Called when an unexpected token is read during the parse.  The argument
  * is the token that is expected, or -1 if more than one type of token can
@@ -12353,33 +12373,11 @@ timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 }
 
 #if ENABLE_SH_MATH_SUPPORT
-static arith_t
-dash_arith(const char *s)
-{
-	arith_t result;
-	int errcode = 0;
-
-	INT_OFF;
-	result = arith(s, &errcode, &math_hooks);
-	if (errcode < 0) {
-		if (errcode == -3)
-			ash_msg_and_raise_error("exponent less than 0");
-		if (errcode == -2)
-			ash_msg_and_raise_error("divide by zero");
-		if (errcode == -5)
-			ash_msg_and_raise_error("expression recursion loop detected");
-		raise_error_syntax(s);
-	}
-	INT_ON;
-
-	return result;
-}
-
 /*
- *  The let builtin. partial stolen from GNU Bash, the Bourne Again SHell.
- *  Copyright (C) 1987, 1989, 1991 Free Software Foundation, Inc.
+ * The let builtin. partial stolen from GNU Bash, the Bourne Again SHell.
+ * Copyright (C) 1987, 1989, 1991 Free Software Foundation, Inc.
  *
- *  Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
+ * Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
 static int
 letcmd(int argc UNUSED_PARAM, char **argv)
@@ -12390,7 +12388,7 @@ letcmd(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		ash_msg_and_raise_error("expression expected");
 	do {
-		i = dash_arith(*argv);
+		i = ash_arith(*argv);
 	} while (*++argv);
 
 	return !i;
@@ -13119,11 +13117,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G_alias();
 #endif
 	INIT_G_cmdtable();
-#if ENABLE_SH_MATH_SUPPORT
-	math_hooks.lookupvar = lookupvar;
-	math_hooks.setvar = setvar;
-	math_hooks.endofname = endofname;
-#endif
 
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof(profile_buf), 50);
