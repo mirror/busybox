@@ -76,6 +76,8 @@
 #include <fnmatch.h>
 #endif
 
+#include "math.h"
+
 #define HUSH_VER_STR "0.92"
 
 #if defined SINGLE_APPLET_MAIN
@@ -451,6 +453,9 @@ struct globals {
 #endif
 #if ENABLE_FEATURE_EDITING
 	line_input_t *line_input_state;
+#endif
+#if ENABLE_SH_MATH_SUPPORT
+	arith_eval_hooks_t hooks;
 #endif
 	pid_t root_pid;
 	pid_t last_bg_pid;
@@ -1164,6 +1169,31 @@ static int unset_local_var(const char *name)
 	return EXIT_SUCCESS;
 }
 
+#if ENABLE_SH_MATH_SUPPORT
+#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+static char *endofname(const char *name)
+{
+	char *p;
+
+	p = (char *) name;
+	if (!is_name(*p))
+		return p;
+	while (*++p) {
+		if (!is_in_name(*p))
+			break;
+	}
+	return p;
+}
+
+static void arith_set_local_var(const char *name, const char *val, int flags)
+{
+	/* arith code doesnt malloc space, so do it for it */
+	char *var = xmalloc(strlen(name) + 1 + strlen(val) + 1);
+	sprintf(var, "%s=%s", name, val);
+	set_local_var(var, flags);
+}
+#endif
 
 /*
  * in_str support
@@ -1374,6 +1404,11 @@ static void o_addstr(o_string *o, const char *str, int len)
 	o->data[o->length] = '\0';
 }
 
+static void o_addstrauto(o_string *o, const char *str)
+{
+	o_addstr(o, str, strlen(str) + 1);
+}
+
 static void o_addstr_duplicate_backslash(o_string *o, const char *str, int len)
 {
 	while (len) {
@@ -1564,7 +1599,7 @@ static int o_glob(o_string *o, int n)
 		char **argv = globdata.gl_pathv;
 		o->length = pattern - o->data; /* "forget" pattern */
 		while (1) {
-			o_addstr(o, *argv, strlen(*argv) + 1);
+			o_addstrauto(o, *argv);
 			n = o_save_ptr_helper(o, n);
 			argv++;
 			if (!*argv)
@@ -1770,6 +1805,28 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			goto store_val;
 		}
 #endif
+#if ENABLE_SH_MATH_SUPPORT
+		case '+': { /* <SPECIAL_VAR_SYMBOL>(cmd<SPECIAL_VAR_SYMBOL> */
+			arith_t res;
+			char buf[30];
+			int errcode;
+			*p = '\0';
+			++arg;
+			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
+			res = arith(arg, &errcode, &G.hooks);
+			if (errcode < 0)
+				switch (errcode) {
+				case -3: maybe_die("arith", "exponent less than 0"); break;
+				case -2: maybe_die("arith", "divide by zero"); break;
+				case -5: maybe_die("arith", "expression recursion loop detected"); break;
+				default: maybe_die("arith", "syntax error");
+				}
+			sprintf(buf, arith_t_fmt, res);
+			o_addstrauto(output, buf);
+			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
+			break;
+		}
+#endif
 		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
 		case_default: {
 			bool exp_len = false, exp_null = false;
@@ -1877,7 +1934,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		debug_print_list("expand_vars_to_list[a]", output, n);
 		/* this part is literal, and it was already pre-quoted
 		 * if needed (much earlier), do not use o_addQstr here! */
-		o_addstr(output, arg, strlen(arg) + 1);
+		o_addstrauto(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
@@ -3754,7 +3811,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* command remains "open", available for possible redirects */
 }
 
-#if ENABLE_HUSH_TICK
+#if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT
 /* Subroutines for copying $(...) and `...` things */
 static void add_till_backquote(o_string *dest, struct in_str *input);
 /* '...' */
@@ -3834,7 +3891,7 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  * echo $(echo 'TEST)' BEST)            TEST) BEST
  * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
  */
-static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
+static void add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl)
 {
 	int count = 0;
 	while (1) {
@@ -3844,8 +3901,14 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		if (ch == '(')
 			count++;
 		if (ch == ')')
-			if (--count < 0)
-				break;
+			if (--count < 0) {
+				if (!dbl)
+					break;
+				if (i_peek(input) == ')') {
+					i_getch(input);
+					break;
+				}
+			}
 		o_addchr(dest, ch);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
@@ -3866,7 +3929,7 @@ static void add_till_closing_curly_brace(o_string *dest, struct in_str *input)
 		}
 	}
 }
-#endif /* ENABLE_HUSH_TICK */
+#endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT */
 
 /* Return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct in_str *input)
@@ -3983,18 +4046,30 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
-#if ENABLE_HUSH_TICK
 		case '(': {
-			//int pos = dest->length;
 			i_getch(input);
+
+#if ENABLE_SH_MATH_SUPPORT
+			if (i_peek(input) == '(') {
+				i_getch(input);
+				o_addchr(dest, SPECIAL_VAR_SYMBOL);
+				o_addchr(dest, quote_mask | '+');
+				add_till_closing_paren(dest, input, true);
+				o_addchr(dest, SPECIAL_VAR_SYMBOL);
+				break;
+			}
+#endif
+
+#if ENABLE_HUSH_TICK
+			//int pos = dest->length;
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, quote_mask | '`');
-			add_till_closing_curly_brace(dest, input);
+			add_till_closing_paren(dest, input, false);
 			//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+#endif
 			break;
 		}
-#endif
 		case '_':
 			i_getch(input);
 			ch = i_peek(input);
@@ -4525,6 +4600,11 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
+#endif
+#if ENABLE_SH_MATH_SUPPORT
+	G.hooks.lookupvar = lookup_param;
+	G.hooks.setvar = arith_set_local_var;
+	G.hooks.endofname = endofname;
 #endif
 	/* XXX what should these be while sourcing /etc/profile? */
 	G.global_argc = argc;

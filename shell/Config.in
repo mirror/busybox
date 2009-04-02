@@ -84,22 +84,6 @@ config ASH_ALIAS
 	help
 	  Enable alias support in the ash shell.
 
-config ASH_MATH_SUPPORT
-	bool "Posix math support"
-	default y
-	depends on ASH
-	help
-	  Enable math support in the ash shell.
-
-config ASH_MATH_SUPPORT_64
-	bool "Extend Posix math support to 64 bit"
-	default n
-	depends on ASH_MATH_SUPPORT
-	help
-	  Enable 64-bit math support in the ash shell. This will make
-	  the shell slightly larger, but will allow computation with very
-	  large numbers.
-
 config ASH_GETOPTS
 	bool "Builtin getopt to parse positional parameters"
 	default n
@@ -266,6 +250,22 @@ config MSH
 
 comment "Bourne Shell Options"
 	depends on MSH || LASH || HUSH || ASH
+
+config SH_MATH_SUPPORT
+	bool "POSIX math support"
+	default y
+	depends on ASH || HUSH
+	help
+	  Enable math support in the shell via $((...)) syntax.
+
+config SH_MATH_SUPPORT_64
+	bool "Extend POSIX math support to 64 bit"
+	default n
+	depends on SH_MATH_SUPPORT
+	help
+	  Enable 64-bit math support in the shell. This will make the shell
+	  slightly larger, but will allow computation with very large numbers.
+	  This is not in POSIX, so do not rely on this in portable code.
 
 config FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
