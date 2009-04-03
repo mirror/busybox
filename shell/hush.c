@@ -462,6 +462,9 @@ struct globals {
 	int interactive_fd;
 	const char *PS1;
 	const char *PS2;
+#define G_interactive_fd (G.interactive_fd)
+#else
+#define G_interactive_fd 0
 #endif
 #if ENABLE_FEATURE_EDITING
 	line_input_t *line_input_state;
@@ -616,11 +619,11 @@ static const struct built_in_command bltins[] = {
 static void maybe_die(const char *notice, const char *msg)
 {
 	/* Was using fancy stuff:
-	 * (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
+	 * (G_interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
 	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
 	void FAST_FUNC (*fp)(const char *s, ...) = bb_error_msg_and_die;
 #if ENABLE_HUSH_INTERACTIVE
-	fp = (G.interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	fp = (G_interactive_fd ? bb_error_msg : bb_error_msg_and_die);
 #endif
 	fp(msg ? "%s: %s" : notice, notice, msg);
 }
@@ -861,8 +864,7 @@ static void init_signal_mask(void)
 {
 	unsigned sig;
 	unsigned mask = (1 << SIGQUIT);
-#if ENABLE_HUSH_INTERACTIVE
-	if (G.interactive_fd) {
+	if (G_interactive_fd) {
 		mask = 0
 			| (1 << SIGQUIT)
 			| (1 << SIGTERM)
@@ -873,7 +875,6 @@ static void init_signal_mask(void)
 			| (1 << SIGINT)
 		;
 	}
-#endif
 	G.non_DFL_mask = mask;
 
 	sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
@@ -945,12 +946,10 @@ static void sigexit(int sig)
 	/* Disable all signals: job control, SIGPIPE, etc. */
 	sigprocmask_allsigs(SIG_BLOCK);
 
-#if ENABLE_HUSH_INTERACTIVE
 	/* Careful: we can end up here after [v]fork. Do not restore
 	 * tty pgrp then, only top-level shell process does that */
-	if (G.interactive_fd && getpid() == G.root_pid)
-		tcsetpgrp(G.interactive_fd, G.saved_tty_pgrp);
-#endif
+	if (G_interactive_fd && getpid() == G.root_pid)
+		tcsetpgrp(G_interactive_fd, G.saved_tty_pgrp);
 
 	/* Not a signal, just exit */
 	if (sig <= 0)
@@ -1307,7 +1306,7 @@ static int file_get(struct in_str *i)
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 #if ENABLE_HUSH_INTERACTIVE
-		if (G.interactive_fd && i->promptme && i->file == stdin) {
+		if (G_interactive_fd && i->promptme && i->file == stdin) {
 			do {
 				get_user_input(i);
 			} while (!*i->p); /* need non-empty line */
@@ -2408,7 +2407,7 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* We don't wait for background thejobs to return -- append it
 	   to the list of backgrounded thejobs and leave it alone */
-	if (G.interactive_fd)
+	if (G_interactive_fd)
 		printf("[%d] %d %s\n", thejob->jobid, thejob->cmds[0].pid, thejob->cmdtext);
 	G.last_bg_pid = thejob->cmds[0].pid;
 	G.last_jobid = thejob->jobid;
@@ -2558,7 +2557,7 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->cmds[i].pid = 0;
 			pi->alive_cmds--;
 			if (!pi->alive_cmds) {
-				if (G.interactive_fd)
+				if (G_interactive_fd)
 					printf(JOB_STATUS_FORMAT, pi->jobid,
 							"Done", pi->cmdtext);
 				delete_finished_bg_job(pi);
@@ -2582,7 +2581,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 	/* Job finished, move the shell to the foreground */
 	p = getpgid(0); /* pgid of our process */
 	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
-	tcsetpgrp(G.interactive_fd, p);
+	tcsetpgrp(G_interactive_fd, p);
 	return rcode;
 }
 #endif
@@ -2755,7 +2754,7 @@ static int run_pipe(struct pipe *pi)
 
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
-			if (G.run_list_level == 1 && G.interactive_fd) {
+			if (G.run_list_level == 1 && G_interactive_fd) {
 				pid_t pgrp;
 				pgrp = pi->pgrp;
 				if (pgrp < 0) /* true for 1st process only */
@@ -2763,7 +2762,7 @@ static int run_pipe(struct pipe *pi)
 				if (setpgid(0, pgrp) == 0 && pi->followup != PIPE_BG) {
 					/* We do it in *every* child, not just first,
 					 * to avoid races */
-					tcsetpgrp(G.interactive_fd, pgrp);
+					tcsetpgrp(G_interactive_fd, pgrp);
 				}
 			}
 #endif
@@ -2961,7 +2960,7 @@ static int run_list(struct pipe *pi)
 	 * We are saving state before entering outermost list ("while...done")
 	 * so that ctrl-Z will correctly background _entire_ outermost list,
 	 * not just a part of it (like "sleep 1 | exit 2") */
-	if (++G.run_list_level == 1 && G.interactive_fd) {
+	if (++G.run_list_level == 1 && G_interactive_fd) {
 		if (sigsetjmp(G.toplevel_jb, 1)) {
 			/* ctrl-Z forked and we are parent; or ctrl-C.
 			 * Sighandler has longjmped us here */
@@ -3124,7 +3123,7 @@ static int run_list(struct pipe *pi)
 		 * OTOH, in non-interactive shell this is useless
 		 * and only leads to extra job checks */
 		if (pi->num_cmds == 0) {
-			if (G.interactive_fd)
+			if (G_interactive_fd)
 				goto check_jobs_and_continue;
 			continue;
 		}
@@ -3176,7 +3175,7 @@ static int run_list(struct pipe *pi)
 				rcode = 0; /* EXIT_SUCCESS */
 			} else {
 #if ENABLE_HUSH_JOB
-				if (G.run_list_level == 1 && G.interactive_fd) {
+				if (G.run_list_level == 1 && G_interactive_fd) {
 					/* waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
 					check_and_run_traps(0);
@@ -3232,7 +3231,7 @@ static int run_list(struct pipe *pi)
 ////	}
  ret:
 	G.run_list_level--;
-////	if (!G.run_list_level && G.interactive_fd) {
+////	if (!G.run_list_level && G_interactive_fd) {
 ////		signal(SIGTSTP, SIG_IGN);
 ////		signal(SIGINT, SIG_IGN);
 ////	}
@@ -4294,7 +4293,7 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 				/* If we got nothing... */
 				pi = ctx.list_head;
 				if (pi->num_cmds == 0
-				 && pi->res_word == RES_NONE
+				    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
 				) {
 					free_pipe_list(pi, 0);
 					pi = NULL;
@@ -4564,7 +4563,8 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 
  parse_error:
 	{
-		struct parse_context *pctx, *p2;
+		struct parse_context *pctx;
+		IF_HAS_KEYWORDS(struct parse_context *p2;)
 
 		/* Clean up allocated tree.
 		 * Samples for finding leaks on syntax error recovery path.
@@ -4582,12 +4582,12 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			debug_print_tree(pctx->list_head, 0);
 			free_pipe_list(pctx->list_head, 0);
 			debug_printf_clean("freed list %p\n", pctx->list_head);
-			p2 = pctx->stack;
+			IF_HAS_KEYWORDS(p2 = pctx->stack;)
 			if (pctx != &ctx) {
 				free(pctx);
 			}
-			pctx = p2;
-		} while (pctx);
+			IF_HAS_KEYWORDS(pctx = p2;)
+		} while (HAS_KEYWORDS && pctx);
 		/* Free text, clear all dest fields */
 		o_free(&dest);
 		/* If we are not in top-level parse, we return,
@@ -4597,7 +4597,7 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			return ERR_PTR;
 		/* Discard cached input, force prompt */
 		input->p = NULL;
-		input->promptme = 1;
+		USE_HUSH_INTERACTIVE(input->promptme = 1;)
 		goto reset;
 	}
 }
@@ -4678,7 +4678,7 @@ static void setup_job_control(void)
 
 	/* If we were ran as 'hush &',
 	 * sleep until we are in the foreground.  */
-	while (tcgetpgrp(G.interactive_fd) != shell_pgrp) {
+	while (tcgetpgrp(G_interactive_fd) != shell_pgrp) {
 		/* Send TTIN to ourself (should stop us) */
 		kill(- shell_pgrp, SIGTTIN);
 		shell_pgrp = getpgrp();
@@ -4690,7 +4690,7 @@ static void setup_job_control(void)
 	/* Put ourselves in our own process group.  */
 	bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
 	/* Grab control of the terminal.  */
-	tcsetpgrp(G.interactive_fd, getpid());
+	tcsetpgrp(G_interactive_fd, getpid());
 }
 #endif
 
@@ -4792,7 +4792,7 @@ int hush_main(int argc, char **argv)
 		case 'i':
 			/* Well, we cannot just declare interactiveness,
 			 * we have to have some stuff (ctty, etc) */
-			/* G.interactive_fd++; */
+			/* G_interactive_fd++; */
 			break;
 		case 's':
 			/* "-s" means "read from stdin", but this is how we always
@@ -4827,22 +4827,22 @@ int hush_main(int argc, char **argv)
 		debug_printf("saved_tty_pgrp=%d\n", G.saved_tty_pgrp);
 		if (G.saved_tty_pgrp >= 0) {
 			/* try to dup to high fd#, >= 255 */
-			G.interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
-			if (G.interactive_fd < 0) {
+			G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+			if (G_interactive_fd < 0) {
 				/* try to dup to any fd */
-				G.interactive_fd = dup(STDIN_FILENO);
-				if (G.interactive_fd < 0)
+				G_interactive_fd = dup(STDIN_FILENO);
+				if (G_interactive_fd < 0)
 					/* give up */
-					G.interactive_fd = 0;
+					G_interactive_fd = 0;
 			}
 			// TODO: track & disallow any attempts of user
 			// to (inadvertently) close/redirect it
 		}
 	}
 	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
-	debug_printf("G.interactive_fd=%d\n", G.interactive_fd);
-	if (G.interactive_fd) {
-		fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
+	debug_printf("interactive_fd=%d\n", G_interactive_fd);
+	if (G_interactive_fd) {
+		fcntl(G_interactive_fd, F_SETFD, FD_CLOEXEC);
 		/* Looks like they want an interactive shell */
 		setup_job_control();
 		/* -1 is special - makes xfuncs longjmp, not exit
@@ -4858,19 +4858,21 @@ int hush_main(int argc, char **argv)
 	if (argv[optind] == NULL && input == stdin
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
-		G.interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
-		if (G.interactive_fd < 0) {
+		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
-			G.interactive_fd = dup(STDIN_FILENO);
-			if (G.interactive_fd < 0)
+			G_interactive_fd = dup(STDIN_FILENO);
+			if (G_interactive_fd < 0)
 				/* give up */
-				G.interactive_fd = 0;
+				G_interactive_fd = 0;
 		}
-		if (G.interactive_fd) {
-			fcntl(G.interactive_fd, F_SETFD, FD_CLOEXEC);
+		if (G_interactive_fd) {
+			fcntl(G_interactive_fd, F_SETFD, FD_CLOEXEC);
 		}
 	}
 	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
+#else
+	init_signal_mask();
 #endif
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
@@ -4878,7 +4880,7 @@ int hush_main(int argc, char **argv)
 	signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
 
 #if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_SH_EXTRA_QUIET
-	if (G.interactive_fd) {
+	if (G_interactive_fd) {
 		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 	}
@@ -5135,7 +5137,7 @@ static int builtin_fg_bg(char **argv)
 	int i, jobnum;
 	struct pipe *pi;
 
-	if (!G.interactive_fd)
+	if (!G_interactive_fd)
 		return EXIT_FAILURE;
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!argv[1]) {
@@ -5163,7 +5165,7 @@ static int builtin_fg_bg(char **argv)
 	// of job being foregrounded (like "sleep 1 | cat")
 	if (*argv[0] == 'f') {
 		/* Put the job into the foreground.  */
-		tcsetpgrp(G.interactive_fd, pi->pgrp);
+		tcsetpgrp(G_interactive_fd, pi->pgrp);
 	}
 
 	/* Restart the processes in the job */
