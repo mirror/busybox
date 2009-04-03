@@ -1657,8 +1657,7 @@ static char **o_finalize_list(o_string *o, int n)
 
 /* Expansion can recurse */
 #if ENABLE_HUSH_TICK
-static int process_command_subs(o_string *dest,
-		struct in_str *input, const char *subst_end);
+static int process_command_subs(o_string *dest, struct in_str *input);
 #endif
 static char *expand_string_to_string(const char *str);
 static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end);
@@ -1814,7 +1813,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 //TODO: can we just stuff it into "output" directly?
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			setup_string_in_str(&input, arg);
-			process_command_subs(&subst_result, &input, NULL);
+			process_command_subs(&subst_result, &input);
 			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
 			val = subst_result.data;
 			goto store_val;
@@ -1971,7 +1970,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			}
 		} /* default: */
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
-
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
@@ -2265,7 +2263,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignme
 	if (argv_expanded) {
 		argv = argv_expanded;
 	} else {
-		argv = expand_strvec_to_strvec(argv);
+		argv = expand_strvec_to_strvec(argv + assignment_cnt);
 #if !BB_MMU
 		nommu_save->argv = argv;
 #endif
@@ -3628,7 +3626,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			ctx->ctx_dsemicolon = 0;
 		} else
 #endif
-
 		if (!command->argv /* if it's the first word... */
 #if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
@@ -3767,8 +3764,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 
 /* Return code is exit status of the process that is run. */
 static int process_command_subs(o_string *dest,
-		struct in_str *input,
-		const char *subst_end)
+		struct in_str *input)
 {
 	int retcode, ch, eol_cnt;
 	o_string result = NULL_O_STRING;
@@ -3777,7 +3773,7 @@ static int process_command_subs(o_string *dest,
 	struct in_str pipe_str;
 
 	/* Recursion to generate command */
-	retcode = parse_stream(&result, &inner, input, subst_end);
+	retcode = parse_stream(&result, &inner, input, NULL);
 	if (retcode != 0)
 		return retcode;  /* syntax error or EOF */
 	o_free(&result);
@@ -4236,9 +4232,11 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	 * A single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->o_escape. */
 
-	debug_printf_parse("parse_stream entered, end_trigger='%s' dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
-	initialize_context(ctx);
+	debug_printf_parse("parse_stream entered, end_trigger='%s' "
+		"dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
 
+	dest->o_assignment = MAYBE_ASSIGNMENT;
+	initialize_context(ctx);
 	is_in_dquote = dest->o_escape;
 	while (1) {
 		if (is_in_dquote) {
@@ -4269,51 +4267,47 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			}
 			continue;
 		}
-		/* m is SPECIAL ($,`), IFS, or ORDINARY_IF_QUOTED (*,#)
-		 */
+		/* m is SPECIAL ($,`), IFS, or ORDINARY_IF_QUOTED (*,#) */
 		if (m == CHAR_IFS) {
+			if (ch == EOF)
+				goto ret_EOF;
 			if (done_word(dest, ctx)) {
 				debug_printf_parse("parse_stream return 1: done_word!=0\n");
 				return 1;
 			}
-			if (ch == EOF)
-				goto ret_EOF;
-			/* If we aren't performing a substitution, treat
-			 * a newline as a command separator.
-			 * [why don't we handle it exactly like ';'? --vda] */
-			if (end_trigger && ch == '\n') {
+			if (ch == '\n') {
 #if ENABLE_HUSH_CASE
 				/* "case ... in <newline> word) ..." -
 				 * newlines are ignored (but ';' wouldn't be) */
-				if (dest->length == 0 // && argv[0] == NULL
+				if (ctx->command->argv == NULL
 				 && ctx->ctx_res_w == RES_MATCH
 				) {
 					continue;
 				}
 #endif
+				/* Treat newline as a command separator.
+				 * [why don't we handle it exactly like ';'? --vda] */
 				done_pipe(ctx, PIPE_SEQ);
 				dest->o_assignment = MAYBE_ASSIGNMENT;
 			}
 		}
-		if (end_trigger) {
-			if (strchr(end_trigger, ch)) {
-				/* Special case: (...word) makes last word terminate,
-				 * as if ';' is seen */
-				if (ch == ')') {
-					done_word(dest, ctx);
+		if (end_trigger && strchr(end_trigger, ch)) {
+			/* Special case: (...word) makes last word terminate,
+			 * as if ';' is seen */
+			if (ch == ')') {
+				done_word(dest, ctx);
 //err chk?
-					done_pipe(ctx, PIPE_SEQ);
-					dest->o_assignment = MAYBE_ASSIGNMENT;
-				}
-				/* What do we check here? */
-				if (!HAS_KEYWORDS
-				 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
-				) {
-					debug_printf_parse("parse_stream return 0: end_trigger char found\n");
-					/* this makes us return 0, not -1 */
-					end_trigger = NULL;
-					goto ret;
-				}
+				done_pipe(ctx, PIPE_SEQ);
+				dest->o_assignment = MAYBE_ASSIGNMENT;
+			}
+			/* What do we check here? */
+			if (!HAS_KEYWORDS
+			 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
+			) {
+				debug_printf_parse("parse_stream return 0: end_trigger char found\n");
+				/* this makes us return 0, not -1 */
+				end_trigger = NULL;
+				goto ret;
 			}
 		}
 		if (m == CHAR_IFS)
