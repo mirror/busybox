@@ -414,14 +414,14 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hoo
 			rez %= numptr_val;
 	}
 	if (tok_have_assign(op)) {
-		char buf[sizeof(arith_t_type)*3 + 2];
+		char buf[sizeof(arith_t)*3 + 2];
 
 		if (numptr_m1->var == NULL) {
 			/* Hmm, 1=2 ? */
 			goto err;
 		}
 		/* save to shell variable */
-		snprintf(buf, sizeof(buf), arith_t_fmt, (arith_t_type) rez);
+		sprintf(buf, arith_t_fmt, rez);
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
 		if (op == TOK_POST_INC)
@@ -668,7 +668,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 	} /* while */
 }
 
-/*-
+/*
  * Copyright (c) 1989, 1991, 1993, 1994
  *      The Regents of the University of California.  All rights reserved.
  *

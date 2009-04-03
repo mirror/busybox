@@ -76,13 +76,11 @@
 #define _SHELL_MATH_
 
 #if ENABLE_SH_MATH_SUPPORT_64
-typedef int64_t arith_t;
-#define arith_t_type long long
+typedef long long arith_t;
 #define arith_t_fmt "%lld"
 #define strto_arith_t strtoll
 #else
 typedef long arith_t;
-#define arith_t_type long
 #define arith_t_fmt "%ld"
 #define strto_arith_t strtol
 #endif
