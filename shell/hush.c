@@ -994,22 +994,12 @@ static void set_fatal_signals_to_sigexit(void)
 	/*maybe_set_sighandler(SIGTERM);*/
 	/*maybe_set_sighandler(SIGINT );*/
 }
-/* Used only to suppress ^Z in `cmd` */
-static void set_jobctrl_signals_to_IGN(void)
-{
-	bb_signals(0
-		+ (1 << SIGTSTP)
-		+ (1 << SIGTTIN)
-		+ (1 << SIGTTOU)
-		, SIG_IGN);
-}
 
 #else /* !JOB */
 
 #define set_fatal_signals_to_sigexit(handler) ((void)0)
-#define set_jobctrl_signals_to_IGN(handler)  ((void)0)
 
-#endif /* JOB */
+#endif
 
 /* Restores tty foreground process group, and exits. */
 static void hush_exit(int exitcode) NORETURN;
@@ -3754,7 +3744,11 @@ static FILE *generate_stream_from_list(struct pipe *head)
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not.
 		 */
-		set_jobctrl_signals_to_IGN();
+		bb_signals(0
+			+ (1 << SIGTSTP)
+			+ (1 << SIGTTIN)
+			+ (1 << SIGTTOU)
+			, SIG_IGN);
 
 		/* Note: freeing 'head' here would break NOMMU. */
 		_exit(run_list(head));
