@@ -90,14 +90,6 @@
 #define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
-#if !BB_MMU && ENABLE_HUSH_TICK
-//#undef ENABLE_HUSH_TICK
-//#define ENABLE_HUSH_TICK 0
-#warning On NOMMU, hush command substitution is dangerous.
-#warning Dont use it for commands which produce lots of output.
-#warning For more info see shell/hush.c, generate_stream_from_list().
-#endif
-
 #if !ENABLE_HUSH_INTERACTIVE
 #undef ENABLE_FEATURE_EDITING
 #define ENABLE_FEATURE_EDITING 0
@@ -1649,7 +1641,7 @@ static char **o_finalize_list(o_string *o, int n)
 
 /* Expansion can recurse */
 #if ENABLE_HUSH_TICK
-static int process_command_subs(o_string *dest, struct in_str *input);
+static int process_command_subs(o_string *dest, const char *s);
 #endif
 static char *expand_string_to_string(const char *str);
 static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end);
@@ -1798,18 +1790,15 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			ored_ch = 0x80;
 			break;
 #if ENABLE_HUSH_TICK
-		case '`': { /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
-			struct in_str input;
+		case '`': /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
 			*p = '\0';
 			arg++;
 //TODO: can we just stuff it into "output" directly?
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
-			setup_string_in_str(&input, arg);
-			process_command_subs(&subst_result, &input);
+			process_command_subs(&subst_result, arg);
 			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
 			val = subst_result.data;
 			goto store_val;
-		}
 #endif
 #if ENABLE_SH_MATH_SUPPORT
 		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
@@ -3711,35 +3700,20 @@ static int redirect_opt_num(o_string *o)
 }
 
 static struct pipe *parse_stream(struct in_str *input, int end_trigger);
+static void parse_and_run_string(const char *s);
 
 #if ENABLE_HUSH_TICK
-static FILE *generate_stream_from_list(struct pipe *head)
+static FILE *generate_stream_from_string(const char *s)
 {
 	FILE *pf;
 	int pid, channel[2];
 
 	xpipe(channel);
-/* *** NOMMU WARNING *** */
-/* By using vfork here, we suspend parent till child exits or execs.
- * If child will not do it before it fills the pipe, it can block forever
- * in write(STDOUT_FILENO), and parent (shell) will be also stuck.
- * Try this script:
- * yes "0123456789012345678901234567890" | dd bs=32 count=64k >TESTFILE
- * huge=`cat TESTFILE` # will block here forever
- * echo OK
- */
 	pid = BB_MMU ? fork() : vfork();
 	if (pid < 0)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
+
 	if (pid == 0) { /* child */
-		if (ENABLE_HUSH_JOB)
-			die_sleep = 0; /* let nofork's xfuncs die */
-		close(channel[0]); /* NB: close _first_, then move fd! */
-		xmove_fd(channel[1], 1);
-		/* Prevent it from trying to handle ctrl-z etc */
-#if ENABLE_HUSH_JOB
-		G.run_list_level = 1;
-#endif
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not.
@@ -3749,40 +3723,47 @@ static FILE *generate_stream_from_list(struct pipe *head)
 			+ (1 << SIGTTIN)
 			+ (1 << SIGTTOU)
 			, SIG_IGN);
-
-		/* Note: freeing 'head' here would break NOMMU. */
-		_exit(run_list(head));
+		if (ENABLE_HUSH_JOB)
+			die_sleep = 0; /* let nofork's xfuncs die */
+		close(channel[0]); /* NB: close _first_, then move fd! */
+		xmove_fd(channel[1], 1);
+		/* Prevent it from trying to handle ctrl-z etc */
+		USE_HUSH_JOB(G.run_list_level = 1;)
+#if BB_MMU
+		parse_and_run_string(s);
+		_exit(G.last_return_code);
+#else
+	/* We re-execute after vfork on NOMMU. This makes this script safe:
+	 * yes "0123456789012345678901234567890" | dd bs=32 count=64k >TESTFILE
+	 * huge=`cat TESTFILE` # was blocking here forever
+	 * echo OK
+	 */
+//TODO: pass non-exported variables, traps, and functions
+		execl(CONFIG_BUSYBOX_EXEC_PATH, "hush", "-c", s, NULL);
+		_exit(127);
+#endif
 	}
+
+	/* parent */
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
 	return pf;
-	/* 'head' is freed by the caller */
 }
 
 /* Return code is exit status of the process that is run. */
-static int process_command_subs(o_string *dest,
-		struct in_str *input)
+static int process_command_subs(o_string *dest, const char *s)
 {
-	int retcode, ch, eol_cnt;
-	struct pipe *pipe_list;
-	FILE *p;
+	FILE *pf;
 	struct in_str pipe_str;
+	int ch, eol_cnt;
 
-	/* Recursion to generate command */
-	pipe_list = parse_stream(input, '\0');
-	if (pipe_list == NULL)
-		return 0;  /* EOF: empty `cmd`: ``, `  ` etc */
-	if (pipe_list == ERR_PTR)
-		return 1;  /* parse error. can this really happen? */
-
-	p = generate_stream_from_list(pipe_list);
-	free_pipe_list(pipe_list, /* indent: */ 0);
-	if (p == NULL)
+	pf = generate_stream_from_string(s);
+	if (pf == NULL)
 		return 1;
-	close_on_exec_on(fileno(p));
+	close_on_exec_on(fileno(pf));
 
 	/* Now send results of command back into original context */
-	setup_file_in_str(&pipe_str, p);
+	setup_file_in_str(&pipe_str, pf);
 	eol_cnt = 0;
 	while ((ch = i_getch(&pipe_str)) != EOF) {
 		if (ch == '\n') {
@@ -3799,12 +3780,13 @@ static int process_command_subs(o_string *dest,
 	debug_printf("done reading from pipe, pclose()ing\n");
 	/* Note: we got EOF, and we just close the read end of the pipe.
 	 * We do not wait for the `cmd` child to terminate. bash and ash do.
-	 * Try this:
-	 * echo `echo Hi; exec 1>&-; sleep 2`
+	 * Try these:
+	 * echo `echo Hi; exec 1>&-; sleep 2` - bash waits 2 sec
+	 * `false`; echo $? - bash outputs "1"
 	 */
-	retcode = fclose(p);
-	debug_printf("closed FILE from child, retcode=%d\n", retcode);
-	return retcode;
+	fclose(pf);
+	debug_printf("closed FILE from child. return 0\n");
+	return 0;
 }
 #endif
 
