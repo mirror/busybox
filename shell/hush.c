@@ -615,7 +615,8 @@ static void maybe_die(const char *notice, const char *msg)
 	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
 	void FAST_FUNC (*fp)(const char *s, ...) = bb_error_msg_and_die;
 #if ENABLE_HUSH_INTERACTIVE
-	fp = (G_interactive_fd ? bb_error_msg : bb_error_msg_and_die);
+	if (G_interactive_fd)
+		fp = bb_error_msg;
 #endif
 	fp(msg ? "%s: %s" : notice, notice, msg);
 }
