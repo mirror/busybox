@@ -3717,7 +3717,7 @@ static int redirect_opt_num(o_string *o)
 }
 
 static int parse_stream(o_string *dest, struct parse_context *ctx,
-		struct in_str *input0, const char *end_trigger);
+		struct in_str *input0, int end_trigger);
 
 #if ENABLE_HUSH_TICK
 static FILE *generate_stream_from_list(struct pipe *head)
@@ -3773,7 +3773,7 @@ static int process_command_subs(o_string *dest,
 	struct in_str pipe_str;
 
 	/* Recursion to generate command */
-	retcode = parse_stream(&result, &inner, input, NULL);
+	retcode = parse_stream(&result, &inner, input, '\0');
 	if (retcode != 0)
 		return retcode;  /* syntax error or EOF */
 	o_free(&result);
@@ -3818,7 +3818,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	 * Typically it's empty, but for function defs,
 	 * it contains function name (without '()'). */
 	int rcode;
-	const char *endch;
+	int endch;
 	struct parse_context sub;
 	struct command *command = ctx->command;
 
@@ -3840,9 +3840,9 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
-	endch = "}";
+	endch = '}';
 	if (ch == '(') {
-		endch = ")";
+		endch = ')';
 		command->grp_type = GRP_SUBSHELL;
 	}
 	rcode = parse_stream(dest, &sub, input, endch);
@@ -4220,7 +4220,7 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
  * Net result is a list of pipes in ctx->list_head.
  */
 static int parse_stream(o_string *dest, struct parse_context *ctx,
-		struct in_str *input, const char *end_trigger)
+		struct in_str *input, int end_trigger)
 {
 	int ch, m;
 	int redir_fd;
@@ -4232,8 +4232,9 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	 * A single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->o_escape. */
 
-	debug_printf_parse("parse_stream entered, end_trigger='%s' "
-		"dest->o_assignment:%d\n", end_trigger, dest->o_assignment);
+	debug_printf_parse("parse_stream entered, end_trigger='%c' "
+		"dest->o_assignment:%d\n", end_trigger ? : 'X'
+		, dest->o_assignment);
 
 	dest->o_assignment = MAYBE_ASSIGNMENT;
 	initialize_context(ctx);
@@ -4267,7 +4268,9 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 			}
 			continue;
 		}
+
 		/* m is SPECIAL ($,`), IFS, or ORDINARY_IF_QUOTED (*,#) */
+
 		if (m == CHAR_IFS) {
 			if (ch == EOF)
 				goto ret_EOF;
@@ -4285,29 +4288,25 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 					continue;
 				}
 #endif
-				/* Treat newline as a command separator.
-				 * [why don't we handle it exactly like ';'? --vda] */
+				/* Treat newline as a command separator. */
 				done_pipe(ctx, PIPE_SEQ);
 				dest->o_assignment = MAYBE_ASSIGNMENT;
+				ch = ';';
+				/* note: if (m == CHAR_IFS) continue;
+				 * will still trigger for us */
 			}
 		}
-		if (end_trigger && strchr(end_trigger, ch)) {
-			/* Special case: (...word) makes last word terminate,
-			 * as if ';' is seen */
-			if (ch == ')') {
-				done_word(dest, ctx);
-//err chk?
-				done_pipe(ctx, PIPE_SEQ);
-				dest->o_assignment = MAYBE_ASSIGNMENT;
-			}
-			/* What do we check here? */
+		if (end_trigger && end_trigger == ch) {
+//TODO: disallow "{ cmd }" without semicolon
+			done_word(dest, ctx);
+			done_pipe(ctx, PIPE_SEQ);
+			dest->o_assignment = MAYBE_ASSIGNMENT;
+			/* Do we sit outside of any if's, loops or case's? */
 			if (!HAS_KEYWORDS
 			 IF_HAS_KEYWORDS(|| (ctx->ctx_res_w == RES_NONE && ctx->old_flag == 0))
 			) {
 				debug_printf_parse("parse_stream return 0: end_trigger char found\n");
-				/* this makes us return 0, not -1 */
-				end_trigger = NULL;
-				goto ret;
+				return 0;
 			}
 		}
 		if (m == CHAR_IFS)
@@ -4531,7 +4530,6 @@ static int parse_stream(o_string *dest, struct parse_context *ctx,
 	/* Non-error returns */
  ret_EOF:
 	debug_printf_parse("parse_stream return %d\n", -(end_trigger != NULL));
- ret:
 	done_word(dest, ctx);
 	done_pipe(ctx, PIPE_SEQ);
 	if (end_trigger) {
@@ -4584,7 +4582,7 @@ static int parse_and_run_stream(struct in_str *inp, int parse_flag)
 		 * Example: "sleep 9999; echo TEST" + ctrl-C:
 		 * TEST should be printed */
 		temp.o_assignment = MAYBE_ASSIGNMENT;
-		rcode = parse_stream(&temp, &ctx, inp, ";\n");
+		rcode = parse_stream(&temp, &ctx, inp, ';');
 		debug_printf_parse("rcode %d ctx.old_flag %x\n", rcode, ctx.old_flag);
 #if HAS_KEYWORDS
 		if (rcode != 1 && ctx.old_flag != 0) {
