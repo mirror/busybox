@@ -359,9 +359,13 @@ struct pipe {
 
 /* This holds pointers to the various results of parsing */
 struct parse_context {
-	struct command *command;
+	/* linked list of pipes */
 	struct pipe *list_head;
+	/* last pipe (being constructed right now) */
 	struct pipe *pipe;
+	/* last command in pipe (being constructed right now) */
+	struct command *command;
+	/* last redirect in command->redirects list */
 	struct redir_struct *pending_redirect;
 #if HAS_KEYWORDS
 	smallint ctx_res_w;
@@ -369,7 +373,15 @@ struct parse_context {
 #if ENABLE_HUSH_CASE
 	smallint ctx_dsemicolon; /* ";;" seen */
 #endif
-	int old_flag; /* bitmask of FLAG_xxx, for figuring out valid reserved words */
+	/* bitmask of FLAG_xxx, for figuring out valid reserved words */
+	int old_flag;
+	/* group we are enclosed in:
+	 * example 1: "{ { false; ..."
+	 * example 2: "if true; then { false; ..."
+	 * example 3: "if true; then if false; ..."
+	 * when we find closing "}" / "fi" / whatever, we move list_head
+	 * into stack->command->group and delete ourself.
+	 */
 	struct parse_context *stack;
 #endif
 };
@@ -3288,37 +3300,36 @@ static int redirect_dup_num(struct in_str *input)
  * for file descriptor duplication, e.g., "2>&1".
  * Return code is 0 normally, 1 if a syntax error is detected in src.
  * Resource errors (in xmalloc) cause the process to exit */
-static int setup_redirect(struct parse_context *ctx, int fd, redir_type style,
-	struct in_str *input)
+static int setup_redirect(struct parse_context *ctx,
+		int fd,
+		redir_type style,
+		struct in_str *input)
 {
 	struct command *command = ctx->command;
-	struct redir_struct *redir = command->redirects;
-	struct redir_struct *last_redir = NULL;
+	struct redir_struct *redir;
+	struct redir_struct **redirp;
+	int dup_num;
+
+	/* Check for a '2>&1' type redirect */
+	dup_num = redirect_dup_num(input);
+	if (dup_num == -2)
+		return 1;  /* syntax error */
 
 	/* Create a new redir_struct and drop it onto the end of the linked list */
-	while (redir) {
-		last_redir = redir;
-		redir = redir->next;
+	redirp = &command->redirects;
+	while ((redir = *redirp) != NULL) {
+		redirp = &(redir->next);
 	}
-	redir = xzalloc(sizeof(struct redir_struct));
+	*redirp = redir = xzalloc(sizeof(*redir));
 	/* redir->next = NULL; */
 	/* redir->rd_filename = NULL; */
-	if (last_redir) {
-		last_redir->next = redir;
-	} else {
-		command->redirects = redir;
-	}
-
 	redir->rd_type = style;
 	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
 
 	debug_printf("Redirect type %d%s\n", redir->fd, redir_table[style].descrip);
 
-	/* Check for a '2>&1' type redirect */
-	redir->dup = redirect_dup_num(input);
-	if (redir->dup == -2)
-		return 1;  /* syntax error */
-	if (redir->dup != -1) {
+	redir->dup = dup_num;
+	if (dup_num != -1) {
 		/* Erik had a check here that the file descriptor in question
 		 * is legit; I postpone that to "run time"
 		 * A "-" representation of "close me" shows up as a -3 here */
