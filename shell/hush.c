@@ -2329,6 +2329,16 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	_exit(EXIT_FAILURE);
 }
 
+static void re_execute_shell(const char *s) NORETURN;
+static void re_execute_shell(const char *s)
+{
+//TODO: pass non-exported variables, traps, and functions
+	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'", getpid(), s);
+	execl(bb_busybox_exec_path, "hush", "-c", s, NULL);
+//TODO: fallback for init=/bin/hush?
+	_exit(127);
+}
+
 static int run_list(struct pipe *pi);
 
 /* Called after [v]fork() in run_pipe()
@@ -2360,8 +2370,7 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		 * since this process is about to exit */
 		_exit(rcode);
 #else
-		bb_error_msg_and_die("NOMMU TODO: re-exec '%s'",
-				command->group_as_string);
+		re_execute_shell(command->group_as_string);
 #endif
 	}
 
@@ -3831,9 +3840,7 @@ static FILE *generate_stream_from_string(const char *s)
 	 * huge=`cat TESTFILE` # was blocking here forever
 	 * echo OK
 	 */
-//TODO: pass non-exported variables, traps, and functions
-		execl(bb_busybox_exec_path, "hush", "-c", s, NULL);
-		_exit(127);
+		re_execute_shell(s);
 #endif
 	}
 
@@ -4071,7 +4078,13 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, bool db
 #endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT */
 
 /* Return code: 0 for OK, 1 for syntax error */
-static int handle_dollar(o_string *dest, struct in_str *input)
+#if BB_MMU
+#define handle_dollar(ctx, dest, input) \
+	handle_dollar(dest, input)
+#endif
+static int handle_dollar(struct parse_context *ctx,
+		o_string *dest,
+		struct in_str *input)
 {
 	int expansion;
 	int ch = i_peek(input);  /* first character after the $ */
@@ -4079,7 +4092,10 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
-		i_getch(input);
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(&ctx->as_string, ch);
+#endif
  make_var:
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		while (1) {
@@ -4089,12 +4105,18 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 			ch = i_peek(input);
 			if (!isalnum(ch) && ch != '_')
 				break;
-			i_getch(input);
+			ch = i_getch(input);
+#if !BB_MMU
+			o_addchr(&ctx->as_string, ch);
+#endif
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
  make_one_char_var:
-		i_getch(input);
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(&ctx->as_string, ch);
+#endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
 		o_addchr(dest, ch | quote_mask);
@@ -4111,13 +4133,19 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		bool first_char, all_digits;
 
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
-		i_getch(input);
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(&ctx->as_string, ch);
+#endif
 		/* XXX maybe someone will try to escape the '}' */
 		expansion = 0;
 		first_char = true;
 		all_digits = false;
 		while (1) {
 			ch = i_getch(input);
+#if !BB_MMU
+			o_addchr(&ctx->as_string, ch);
+#endif
 			if (ch == '}')
 				break;
 
@@ -4183,10 +4211,16 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		break;
 	}
 	case '(': {
-		i_getch(input);
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(&ctx->as_string, ch);
+#endif
 #if ENABLE_SH_MATH_SUPPORT
 		if (i_peek(input) == '(') {
-			i_getch(input);
+			ch = i_getch(input);
+#if !BB_MMU
+			o_addchr(&ctx->as_string, ch);
+#endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
 			add_till_closing_paren(dest, input, true);
@@ -4205,7 +4239,10 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		break;
 	}
 	case '_':
-		i_getch(input);
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(&ctx->as_string, ch);
+#endif
 		ch = i_peek(input);
 		if (isalnum(ch)) { /* it's $_name or $_123 */
 			ch = '_';
@@ -4281,7 +4318,7 @@ static int parse_stream_dquoted(struct parse_context *ctx,
 		goto again;
 	}
 	if (ch == '$') {
-		if (handle_dollar(dest, input) != 0) {
+		if (handle_dollar(ctx, dest, input) != 0) {
 			debug_printf_parse("parse_stream_dquoted return 1: "
 					"handle_dollar returned non-0\n");
 			return 1;
@@ -4477,7 +4514,12 @@ static struct pipe *parse_stream(char **pstring,
 					if (ch == EOF || ch == '\n')
 						break;
 					i_getch(input);
+					/* note: we do not add it to &ctx.as_string */
 				}
+#if !BB_MMU
+//TODO: go back one char?
+				o_addchr(&ctx.as_string, '\n');
+#endif
 			} else {
 				o_addQchr(&dest, ch);
 			}
@@ -4488,10 +4530,15 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			o_addchr(&dest, '\\');
-			o_addchr(&dest, i_getch(input));
+			ch = i_getch(input);
+			o_addchr(&dest, ch);
+#if !BB_MMU
+			o_addchr(&ctx.as_string, ch);
+#endif
 			break;
 		case '$':
-			if (handle_dollar(&dest, input) != 0) {
+//NOMMU TODO!
+			if (handle_dollar(&ctx, &dest, input) != 0) {
 				debug_printf_parse("parse_stream parse error: "
 					"handle_dollar returned non-0\n");
 				goto parse_error;
@@ -4505,6 +4552,9 @@ static struct pipe *parse_stream(char **pstring,
 					syntax("unterminated '");
 					goto parse_error;
 				}
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 				if (ch == '\'')
 					break;
 				if (dest.o_assignment == NOT_ASSIGNMENT)
@@ -4538,7 +4588,10 @@ static struct pipe *parse_stream(char **pstring,
 			redir_style = REDIRECT_OVERWRITE;
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 			}
 #if 0
 			else if (next == '(') {
@@ -4556,10 +4609,16 @@ static struct pipe *parse_stream(char **pstring,
 			redir_style = REDIRECT_INPUT;
 			if (next == '<') {
 				redir_style = REDIRECT_HEREIS;
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 			} else if (next == '>') {
 				redir_style = REDIRECT_IO;
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 			}
 #if 0
 			else if (next == '(') {
@@ -4584,7 +4643,10 @@ static struct pipe *parse_stream(char **pstring,
 				ch = i_peek(input);
 				if (ch != ';')
 					break;
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 				if (ctx.ctx_res_w == RES_CASEI) {
 					ctx.ctx_dsemicolon = 1;
 					ctx.ctx_res_w = RES_MATCH;
@@ -4602,7 +4664,10 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			if (next == '&') {
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 				done_pipe(&ctx, PIPE_AND);
 			} else {
 				done_pipe(&ctx, PIPE_BG);
@@ -4617,7 +4682,10 @@ static struct pipe *parse_stream(char **pstring,
 				break; /* we are in case's "word | word)" */
 #endif
 			if (next == '|') { /* || */
-				i_getch(input);
+				ch = i_getch(input);
+#if !BB_MMU
+				o_addchr(&ctx.as_string, ch);
+#endif
 				done_pipe(&ctx, PIPE_OR);
 			} else {
 				/* we could pick up a file descriptor choice here
@@ -4647,6 +4715,7 @@ static struct pipe *parse_stream(char **pstring,
 			) {
 				bb_error_msg("seems like a function definition");
 				i_getch(input);
+//if !BB_MMU o_addchr(&ctx.as_string...
 				do {
 //TODO: do it properly.
 					ch = i_getch(input);
