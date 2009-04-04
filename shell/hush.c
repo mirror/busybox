@@ -427,13 +427,6 @@ typedef struct in_str {
 #define i_peek(input) ((input)->peek(input))
 
 enum {
-	CHAR_ORDINARY           = 0,
-	CHAR_ORDINARY_IF_QUOTED = 1, /* example: *, # */
-	CHAR_IFS                = 2, /* treated as ordinary if quoted */
-	CHAR_SPECIAL            = 3, /* \, $, ", maybe ` */
-};
-
-enum {
 	BC_BREAK = 1,
 	BC_CONTINUE = 2,
 };
@@ -4132,7 +4125,6 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	}
 	debug_printf_parse(": ch=%c (%d) m=%d escape=%d\n",
 					ch, ch, m, dest->o_escape);
-	/* Basically, checking every CHAR_SPECIAL char except '"' */
 	if (ch == '\\') {
 		if (next == EOF) {
 			syntax("\\<eof>");
@@ -4292,7 +4284,7 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 				done_pipe(&ctx, PIPE_SEQ);
 				dest.o_assignment = MAYBE_ASSIGNMENT;
 				ch = ';';
-				/* note: if (m == CHAR_IFS) continue;
+				/* note: if (is_ifs) continue;
 				 * will still trigger for us */
 			}
 		}
