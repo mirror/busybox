@@ -1517,13 +1517,16 @@ static int o_save_ptr_helper(o_string *o, int n)
 			list = (char**)o->data;
 			memmove(list + n + 0x10, list + n, string_len);
 			o->length += 0x10 * sizeof(list[0]);
-		} else
-			debug_printf_list("list[%d]=%d string_start=%d\n", n, string_len, string_start);
+		} else {
+			debug_printf_list("list[%d]=%d string_start=%d\n",
+					n, string_len, string_start);
+		}
 	} else {
 		/* We have empty slot at list[n], reuse without growth */
 		string_start = ((n+1 + 0xf) & ~0xf) * sizeof(list[0]); /* NB: n+1! */
 		string_len = o->length - string_start;
-		debug_printf_list("list[%d]=%d string_start=%d (empty slot)\n", n, string_len, string_start);
+		debug_printf_list("list[%d]=%d string_start=%d (empty slot)\n",
+				n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
 	list[n] = (char*)(ptrdiff_t)string_len;
@@ -1917,7 +1920,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			}
 
 			arg[0] = first_ch;
-
 #if ENABLE_HUSH_TICK
  store_val:
 #endif
@@ -2203,8 +2205,12 @@ typedef struct nommu_save_t {
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
-static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignment_cnt, char **argv_expanded) NORETURN;
-static void pseudo_exec_argv(nommu_save_t *nommu_save, char **argv, int assignment_cnt, char **argv_expanded)
+static void pseudo_exec_argv(nommu_save_t *nommu_save,
+		char **argv, int assignment_cnt,
+		char **argv_expanded) NORETURN;
+static void pseudo_exec_argv(nommu_save_t *nommu_save,
+		char **argv, int assignment_cnt,
+		char **argv_expanded)
 {
 	int rcode;
 	char **new_env;
@@ -2279,8 +2285,12 @@ static int run_list(struct pipe *pi);
 
 /* Called after [v]fork() in run_pipe()
  */
-static void pseudo_exec(nommu_save_t *nommu_save, struct command *command, char **argv_expanded) NORETURN;
-static void pseudo_exec(nommu_save_t *nommu_save, struct command *command, char **argv_expanded)
+static void pseudo_exec(nommu_save_t *nommu_save,
+		struct command *command,
+		char **argv_expanded) NORETURN;
+static void pseudo_exec(nommu_save_t *nommu_save,
+		struct command *command,
+		char **argv_expanded)
 {
 	if (command->argv)
 		pseudo_exec_argv(nommu_save, command->argv, command->assignment_cnt, argv_expanded);
@@ -2655,7 +2665,8 @@ static int run_pipe(struct pipe *pi)
 			setup_redirects(command, squirrel);
 			new_env = expand_assignments(argv, command->assignment_cnt);
 			old_env = putenv_all_and_save_old(new_env);
-			debug_printf_exec(": builtin '%s' '%s'...\n", x->cmd, argv_expanded[1]);
+			debug_printf_exec(": builtin '%s' '%s'...\n",
+				    x->cmd, argv_expanded[1]);
 			rcode = x->function(argv_expanded) & 0xff;
 #if ENABLE_FEATURE_SH_STANDALONE
  clean_up_and_ret:
@@ -2677,7 +2688,8 @@ static int run_pipe(struct pipe *pi)
 			save_nofork_data(&G.nofork_save);
 			new_env = expand_assignments(argv, command->assignment_cnt);
 			old_env = putenv_all_and_save_old(new_env);
-			debug_printf_exec(": run_nofork_applet '%s' '%s'...\n", argv_expanded[0], argv_expanded[1]);
+			debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
+					argv_expanded[0], argv_expanded[1]);
 			rcode = run_nofork_applet_prime(&G.nofork_save, i, argv_expanded);
 			goto clean_up_and_ret;
 		}
@@ -2701,7 +2713,8 @@ static int run_pipe(struct pipe *pi)
 #endif
 		command = &(pi->cmds[i]);
 		if (command->argv) {
-			debug_printf_exec(": pipe member '%s' '%s'...\n", command->argv[0], command->argv[1]);
+			debug_printf_exec(": pipe member '%s' '%s'...\n",
+					command->argv[0], command->argv[1]);
 		} else
 			debug_printf_exec(": pipe member with no argv\n");
 
@@ -2841,7 +2854,9 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			struct command *command = &pi->cmds[prn];
 			char **argv = command->argv;
 
-			fprintf(stderr, "%*s prog %d assignment_cnt:%d", lvl*2, "", prn, command->assignment_cnt);
+			fprintf(stderr, "%*s prog %d assignment_cnt:%d",
+					lvl*2, "", prn,
+					command->assignment_cnt);
 			if (command->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
 						GRPTYPE[command->grp_type],
@@ -3046,8 +3061,9 @@ static int run_list(struct pipe *pi)
 			pi->cmds[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->cmds[0].assignment_cnt = 1;
 		}
-		if (rword == RES_IN) /* "for v IN list;..." - "in" has no cmds anyway */
-			continue;
+		if (rword == RES_IN) {
+			continue; /* "for v IN list;..." - "in" has no cmds anyway */
+		}
 		if (rword == RES_DONE) {
 			continue; /* "done" has no cmds too */
 		}
@@ -3603,7 +3619,8 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset(word);
-				debug_printf_parse("done_word return %d\n", (ctx->ctx_res_w == RES_SNTX));
+				debug_printf_parse("done_word return %d\n",
+						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
 		}
@@ -3800,7 +3817,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	 || dest->nonnull /* ""(... */
 	) {
 		syntax(NULL);
-		debug_printf_parse("parse_group return 1: syntax error, groups and arglists don't mix\n");
+		debug_printf_parse("parse_group return 1: "
+			"syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
 	endch = '}';
@@ -3812,7 +3830,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* empty ()/{} or parse error? */
 	if (!pipe_list || pipe_list == ERR_PTR) {
 		syntax(NULL);
-		debug_printf_parse("parse_group return 1: parse_stream returned %p\n", pipe_list);
+		debug_printf_parse("parse_group return 1: "
+			"parse_stream returned %p\n", pipe_list);
 		return 1;
 	}
 	command->group = pipe_list;
@@ -3910,7 +3929,7 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, bool db
 			break;
 		if (ch == '(')
 			count++;
-		if (ch == ')')
+		if (ch == ')') {
 			if (--count < 0) {
 				if (!dbl)
 					break;
@@ -3919,6 +3938,7 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, bool db
 					break;
 				}
 			}
+		}
 		o_addchr(dest, ch);
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
@@ -3971,136 +3991,130 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 		o_addchr(dest, ch | quote_mask);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else switch (ch) {
-		case '$': /* pid */
-		case '!': /* last bg pid */
-		case '?': /* last exit code */
-		case '#': /* number of args */
-		case '*': /* args */
-		case '@': /* args */
-			goto make_one_char_var;
-		case '{': {
-			bool first_char, all_digits;
+	case '$': /* pid */
+	case '!': /* last bg pid */
+	case '?': /* last exit code */
+	case '#': /* number of args */
+	case '*': /* args */
+	case '@': /* args */
+		goto make_one_char_var;
+	case '{': {
+		bool first_char, all_digits;
 
-			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			i_getch(input);
-			/* XXX maybe someone will try to escape the '}' */
-			expansion = 0;
-			first_char = true;
-			all_digits = false;
-			while (1) {
-				ch = i_getch(input);
-				if (ch == '}')
-					break;
-
-				if (first_char) {
-					if (ch == '#')
-						/* ${#var}: length of var contents */
-						goto char_ok;
-					else if (isdigit(ch)) {
-						all_digits = true;
-						goto char_ok;
-					}
-				}
-
-				if (expansion < 2 &&
-				    ((all_digits && !isdigit(ch)) ||
-				     (!all_digits && !isalnum(ch) && ch != '_')))
-				{
-					/* handle parameter expansions
-					 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
-					 */
-					if (first_char)
-						goto case_default;
-					switch (ch) {
-						case ':': /* null modifier */
-							if (expansion == 0) {
-								debug_printf_parse(": null modifier\n");
-								++expansion;
-								break;
-							}
-							goto case_default;
-
-#if 0 /* not implemented yet :( */
-						case '#': /* remove prefix */
-						case '%': /* remove suffix */
-							if (expansion == 0) {
-								debug_printf_parse(": remove suffix/prefix\n");
-								expansion = 2;
-								break;
-							}
-							goto case_default;
-#endif
-
-						case '-': /* default value */
-						case '=': /* assign default */
-						case '+': /* alternative */
-						case '?': /* error indicate */
-							debug_printf_parse(": parameter expansion\n");
-							expansion = 2;
-							break;
-
-						default:
-						case_default:
-							syntax("unterminated ${name}");
-							debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
-							return 1;
-						}
-				}
-
- char_ok:
-				debug_printf_parse(": '%c'\n", ch);
-				o_addchr(dest, ch | quote_mask);
-				quote_mask = 0;
-				first_char = false;
-			}
-			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			break;
-		}
-		case '(': {
-			i_getch(input);
-
-#if ENABLE_SH_MATH_SUPPORT
-			if (i_peek(input) == '(') {
-				i_getch(input);
-				o_addchr(dest, SPECIAL_VAR_SYMBOL);
-				o_addchr(dest, /*quote_mask |*/ '+');
-				add_till_closing_paren(dest, input, true);
-				o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		i_getch(input);
+		/* XXX maybe someone will try to escape the '}' */
+		expansion = 0;
+		first_char = true;
+		all_digits = false;
+		while (1) {
+			ch = i_getch(input);
+			if (ch == '}')
 				break;
-			}
-#endif
 
-#if ENABLE_HUSH_TICK
-			//int pos = dest->length;
-			o_addchr(dest, SPECIAL_VAR_SYMBOL);
-			o_addchr(dest, quote_mask | '`');
-			add_till_closing_paren(dest, input, false);
-			//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
-			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			if (first_char) {
+				if (ch == '#')
+					/* ${#var}: length of var contents */
+					goto char_ok;
+				else if (isdigit(ch)) {
+					all_digits = true;
+					goto char_ok;
+				}
+			}
+
+			if (expansion < 2
+			 && (  (all_digits && !isdigit(ch))
+			    || (!all_digits && !isalnum(ch) && ch != '_')
+			    )
+			) {
+				/* handle parameter expansions
+				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
+				 */
+				if (first_char)
+					goto case_default;
+				switch (ch) {
+				case ':': /* null modifier */
+					if (expansion == 0) {
+						debug_printf_parse(": null modifier\n");
+						++expansion;
+						break;
+					}
+					goto case_default;
+#if 0 /* not implemented yet :( */
+				case '#': /* remove prefix */
+				case '%': /* remove suffix */
+					if (expansion == 0) {
+						debug_printf_parse(": remove suffix/prefix\n");
+						expansion = 2;
+						break;
+					}
+					goto case_default;
 #endif
+				case '-': /* default value */
+				case '=': /* assign default */
+				case '+': /* alternative */
+				case '?': /* error indicate */
+					debug_printf_parse(": parameter expansion\n");
+					expansion = 2;
+					break;
+				default:
+				case_default:
+					syntax("unterminated ${name}");
+					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
+					return 1;
+				}
+			}
+ char_ok:
+			debug_printf_parse(": '%c'\n", ch);
+			o_addchr(dest, ch | quote_mask);
+			quote_mask = 0;
+			first_char = false;
+		}
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		break;
+	}
+	case '(': {
+		i_getch(input);
+#if ENABLE_SH_MATH_SUPPORT
+		if (i_peek(input) == '(') {
+			i_getch(input);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
+			o_addchr(dest, /*quote_mask |*/ '+');
+			add_till_closing_paren(dest, input, true);
+			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
-		case '_':
-			i_getch(input);
-			ch = i_peek(input);
-			if (isalnum(ch)) { /* it's $_name or $_123 */
-				ch = '_';
-				goto make_var;
-			}
-			/* else: it's $_ */
-		case '-':
-			/* still unhandled, but should be eventually */
-			bb_error_msg("unhandled syntax: $%c", ch);
-			return 1;
-			break;
-		default:
-			o_addQchr(dest, '$');
+#endif
+#if ENABLE_HUSH_TICK
+		//int pos = dest->length;
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+		o_addchr(dest, quote_mask | '`');
+		add_till_closing_paren(dest, input, false);
+		//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+#endif
+		break;
+	}
+	case '_':
+		i_getch(input);
+		ch = i_peek(input);
+		if (isalnum(ch)) { /* it's $_name or $_123 */
+			ch = '_';
+			goto make_var;
+		}
+		/* else: it's $_ */
+	/* TODO: */
+	/* $_ Shell or shell script name; or last cmd name */
+	/* $- Option flags set by set builtin or shell options (-i etc) */
+	default:
+		o_addQchr(dest, '$');
 	}
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
 }
 
-static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end)
+static int parse_stream_dquoted(o_string *dest,
+		struct in_str *input, int dquote_end)
 {
 	int ch;
 	int next;
@@ -4149,7 +4163,8 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 	}
 	if (ch == '$') {
 		if (handle_dollar(dest, input) != 0) {
-			debug_printf_parse("parse_stream_dquoted return 1: handle_dollar returned non-0\n");
+			debug_printf_parse("parse_stream_dquoted return 1: "
+					"handle_dollar returned non-0\n");
 			return 1;
 		}
 		goto again;
@@ -4196,8 +4211,8 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 
 	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
-	 * found.  When recursing, quote state is passed in via dest->o_escape. */
-
+	 * found.  When recursing, quote state is passed in via dest->o_escape.
+	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
 			end_trigger ? : 'X');
 
@@ -4338,7 +4353,8 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			break;
 		case '$':
 			if (handle_dollar(&dest, input) != 0) {
-				debug_printf_parse("parse_stream parse error: handle_dollar returned non-0\n");
+				debug_printf_parse("parse_stream parse error: "
+					"handle_dollar returned non-0\n");
 				goto parse_error;
 			}
 			break;
@@ -4532,8 +4548,9 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 
 		/* Clean up allocated tree.
 		 * Samples for finding leaks on syntax error recovery path.
-		 * Execute them from interactive shell and watch pmap `pidof hush`.
-		 * while if false; then false; fi do break; done (bash accepts it)
+		 * Run them from interactive shell, watch pmap `pidof hush`.
+		 * while if false; then false; fi do break; done
+		 * (bash accepts it)
 		 * while if false; then false; fi; do break; fi
 		 */
 		pctx = &ctx;
