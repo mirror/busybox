@@ -1,0 +1,32 @@
+rm shell_test_$$ 2>/dev/null
+var=bad
+var=ok >shell_test_$$
+echo "Test 1:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null
+var=ok
+true | var=bad >shell_test_$$
+echo "Test 2:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null
+var=bad
+{ var=ok >shell_test_$$; }
+echo "Test 3:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null
+var=ok
+{ var=bad >shell_test_$$; } &
+usleep 100000
+echo "Test 4:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null
+var=ok
+( var=bad >shell_test_$$ )
+echo "Test 5:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null

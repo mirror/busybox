@@ -593,7 +593,6 @@ static const struct built_in_command bltins[] = {
 };
 
 
-/* Normal */
 static void maybe_die(const char *notice, const char *msg)
 {
 	/* Was using fancy stuff:
@@ -614,6 +613,7 @@ static void maybe_die(const char *notice, const char *msg)
 #define _syntax(msg, line) __syntax(msg, line)
 #define syntax(msg) _syntax(msg, __LINE__)
 #endif
+
 
 static int glob_needed(const char *s)
 {
@@ -816,7 +816,7 @@ static void free_strings(char **strings)
  * sigset_t blocked_set:  current blocked signal set
  *
  * "trap - SIGxxx":
- *    clear bit in blocked_set unless it is also in non_DFL
+ *    clear bit in blocked_set unless it is also in non_DFL_mask
  * "trap 'cmd' SIGxxx":
  *    set bit in blocked_set (even if 'cmd' is '')
  * after [v]fork, if we plan to be a shell:
@@ -2292,24 +2292,33 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		struct command *command,
 		char **argv_expanded)
 {
-	if (command->argv)
-		pseudo_exec_argv(nommu_save, command->argv, command->assignment_cnt, argv_expanded);
+	if (command->argv) {
+		pseudo_exec_argv(nommu_save, command->argv,
+				command->assignment_cnt, argv_expanded);
+	}
 
 	if (command->group) {
-#if !BB_MMU
-		bb_error_msg_and_die("nested lists are not supported on NOMMU");
-#else
+		/* Cases when we are here:
+		 * ( list )
+		 * { list } &
+		 * ... | ( list ) | ...
+		 * ... | { list } | ...
+		 */
+#if BB_MMU
 		int rcode;
 		debug_printf_exec("pseudo_exec: run_list\n");
 		rcode = run_list(command->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
 		_exit(rcode);
+#else
+//TODO: re-exec "hush -c command->group_as_a_string"
+		bb_error_msg_and_die("nested lists are not supported on NOMMU");
 #endif
 	}
 
 	/* Can happen.  See what bash does with ">foo" by itself. */
-	debug_printf("trying to pseudo_exec null command\n");
+	debug_printf("pseudo_exec'ed null command\n");
 	_exit(EXIT_SUCCESS);
 }
 
@@ -2563,61 +2572,72 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 /* run_pipe() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
  *
- * return code is normally -1, when the caller has to wait for children
+ * Return code is normally -1, when the caller has to wait for children
  * to finish to determine the exit status of the pipe.  If the pipe
  * is a simple builtin command, however, the action is done by the
  * time run_pipe returns, and the exit code is provided as the
  * return value.
  *
- * The input of the pipe is always stdin, the output is always
- * stdout.  The outpipe[] mechanism in BusyBox-0.48 lash is bogus,
- * because it tries to avoid running the command substitution in
- * subshell, when that is in fact necessary.  The subshell process
- * now has its stdout directed to the input of the appropriate pipe,
- * so this routine is noticeably simpler.
- *
  * Returns -1 only if started some children. IOW: we have to
  * mask out retvals of builtins etc with 0xff!
+ *
+ * The only case when we do not need to [v]fork is when the pipe
+ * is single, non-backgrounded, non-subshell command. Examples:
+ * cmd ; ...   { list } ; ...
+ * cmd && ...  { list } && ...
+ * cmd || ...  { list } || ...
+ * If it is, then we can run cmd as a builtin, NOFORK [do we do this?],
+ * or (if SH_STANDALONE) an applet, and we can run the { list }
+ * with run_list(). Otherwise, we fork and exec cmd.
+ *
+ * Cases when we must fork:
+ * non-single:   cmd | cmd
+ * backgrounded: cmd &     { list } &
+ * subshell:     ( list ) [&]
  */
 static int run_pipe(struct pipe *pi)
 {
+	static const char *const null_ptr = NULL;
 	int i;
 	int nextin;
 	int pipefds[2];		/* pipefds[0] is for reading */
 	struct command *command;
 	char **argv_expanded;
 	char **argv;
-	const struct built_in_command *x;
 	char *p;
 	/* it is not always needed, but we aim to smaller code */
 	int squirrel[] = { -1, -1, -1 };
 	int rcode;
-	const int single_and_fg = (pi->num_cmds == 1 && pi->followup != PIPE_BG);
 
-	debug_printf_exec("run_pipe start: single_and_fg=%d\n", single_and_fg);
+	debug_printf_exec("run_pipe start: members:%d\n", pi->num_cmds);
 
-#if ENABLE_HUSH_JOB
-	pi->pgrp = -1;
-#endif
-	pi->alive_cmds = 1;
+	USE_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
-
-	/* Check if this is a simple builtin (not part of a pipe).
-	 * Builtins within pipes have to fork anyway, and are handled in
-	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
-	 */
 	command = &(pi->cmds[0]);
+	argv_expanded = NULL;
 
-#if ENABLE_HUSH_FUNCTIONS
-	if (single_and_fg && command->group && command->grp_type == GRP_FUNCTION) {
-		/* We "execute" function definition */
-		bb_error_msg("here we ought to remember function definition, and go on");
-		return EXIT_SUCCESS;
+	if (pi->num_cmds != 1
+	 || pi->followup == PIPE_BG
+	 || command->grp_type == GRP_SUBSHELL
+	) {
+		goto must_fork;
 	}
-#endif
 
-	if (single_and_fg && command->group && command->grp_type == GRP_NORMAL) {
-		debug_printf("non-subshell grouping\n");
+	pi->alive_cmds = 1;
+
+	debug_printf_exec(": group:%p argv:'%s'\n",
+		command->group, command->argv ? command->argv[0] : "NONE");
+
+	if (command->group) {
+#if ENABLE_HUSH_FUNCTIONS
+		if (command->grp_type == GRP_FUNCTION) {
+			/* func () { list } */
+			bb_error_msg("here we ought to remember function definition, and go on");
+			return EXIT_SUCCESS;
+		}
+#endif
+		/* { list } */
+		debug_printf("non-subshell group\n");
 		setup_redirects(command, squirrel);
 		debug_printf_exec(": run_list\n");
 		rcode = run_list(command->group) & 0xff;
@@ -2627,26 +2647,33 @@ static int run_pipe(struct pipe *pi)
 		return rcode;
 	}
 
-	argv = command->argv;
-	argv_expanded = NULL;
-
-	if (single_and_fg && argv != NULL) {
+	argv = command->argv ? command->argv : (char **) &null_ptr;
+	{
+		const struct built_in_command *x;
 		char **new_env = NULL;
 		char **old_env = NULL;
 
-		i = command->assignment_cnt;
-		if (i != 0 && argv[i] == NULL) {
-			/* assignments, but no command: set local environment */
-			for (i = 0; argv[i] != NULL; i++) {
-				debug_printf("local environment set: %s\n", argv[i]);
-				p = expand_string_to_string(argv[i]);
+		if (argv[command->assignment_cnt] == NULL) {
+			/* Assignments, but no command */
+			/* Ensure redirects take effect. Try "a=t >file" */
+			setup_redirects(command, squirrel);
+			restore_redirects(squirrel);
+			/* Set shell variables */
+			while (*argv) {
+				p = expand_string_to_string(*argv);
+				debug_printf_exec("set shell var:'%s'->'%s'\n",
+						*argv, p);
 				set_local_var(p, 0);
+				argv++;
 			}
-			return EXIT_SUCCESS; /* don't worry about errors in set_local_var() yet */
+			/* Do we need to flag set_local_var() errors?
+			 * "assignment to readonly var" and "putenv error"
+			 */
+			return EXIT_SUCCESS;
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-		argv_expanded = expand_strvec_to_strvec(argv + i);
+		argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 
 		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 			if (strcmp(argv_expanded[0], x->cmd) != 0)
@@ -2694,8 +2721,10 @@ static int run_pipe(struct pipe *pi)
 			goto clean_up_and_ret;
 		}
 #endif
+		/* It is neither builtin nor applet. We must fork. */
 	}
 
+ must_fork:
 	/* NB: argv_expanded may already be created, and that
 	 * might include `cmd` runs! Do not rerun it! We *must*
 	 * use argv_expanded if it's non-NULL */
@@ -2715,8 +2744,9 @@ static int run_pipe(struct pipe *pi)
 		if (command->argv) {
 			debug_printf_exec(": pipe member '%s' '%s'...\n",
 					command->argv[0], command->argv[1]);
-		} else
+		} else {
 			debug_printf_exec(": pipe member with no argv\n");
+		}
 
 		/* pipes are inserted between pairs of commands */
 		pipefds[0] = 0;
