@@ -312,8 +312,9 @@ static int builtin_help(struct child_prog UNUSED_PARAM *dummy)
 {
 	const struct built_in_command *x;
 
-	printf("\nBuilt-in commands:\n"
-	       "-------------------\n");
+	printf("\n"
+		"Built-in commands:\n"
+		"------------------\n");
 	for (x = bltins; x <= &VEC_LAST(bltins); x++) {
 		if (x->descr == NULL)
 			continue;

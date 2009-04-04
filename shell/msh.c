@@ -35,7 +35,6 @@
 # include <assert.h>
 # define bb_dev_null "/dev/null"
 # define DEFAULT_SHELL "/proc/self/exe"
-# define CONFIG_BUSYBOX_EXEC_PATH "/proc/self/exe"
 # define bb_banner "busybox standalone"
 # define ENABLE_FEATURE_SH_STANDALONE 0
 # define bb_msg_memory_exhausted "memory exhausted"
@@ -3176,8 +3175,9 @@ static int dohelp(struct op *t UNUSED_PARAM, char **args UNUSED_PARAM)
 	int col;
 	const struct builtincmd *x;
 
-	puts("\nBuilt-in commands:\n"
-	     "-------------------");
+	printf("\n"
+		"Built-in commands:\n"
+		"------------------\n");
 
 	col = 0;
 	x = builtincmds;

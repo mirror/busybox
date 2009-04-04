@@ -363,11 +363,13 @@ struct parse_context {
 	/* bitmask of FLAG_xxx, for figuring out valid reserved words */
 	int old_flag;
 	/* group we are enclosed in:
-	 * example 1: "{ { false; ..."
-	 * example 2: "if true; then { false; ..."
-	 * example 3: "if true; then if false; ..."
-	 * when we find closing "}" / "fi" / whatever, we move list_head
-	 * into stack->command->group and delete ourself.
+	 * example: "if pipe1; pipe2; then pipe3; fi"
+	 * when we see "if" or "then", we malloc and copy current context,
+	 * and make ->stack point to it. then we parse pipeN.
+	 * when closing "then" / fi" / whatever is found,
+	 * we move list_head into ->stack->command->group,
+	 * copy ->stack into current context, and delete ->stack.
+	 * (parsing of { list } and ( list ) doesn't use this method)
 	 */
 	struct parse_context *stack;
 #endif
@@ -532,7 +534,6 @@ static int builtin_wait(char **argv);
 static int builtin_break(char **argv);
 static int builtin_continue(char **argv);
 #endif
-//static int builtin_not_written(char **argv);
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -554,42 +555,44 @@ struct built_in_command {
 /* For now, echo and test are unconditionally enabled.
  * Maybe make it configurable? */
 static const struct built_in_command bltins[] = {
-	BLTIN("."     , builtin_source, "Run commands in a file"),
-	BLTIN(":"     , builtin_true, "No-op"),
-	BLTIN("["     , builtin_test, "Test condition"),
+	BLTIN("."       , builtin_source  , "Run commands in a file"),
+	BLTIN(":"       , builtin_true    , "No-op"),
+	BLTIN("["       , builtin_test    , "Test condition"),
 #if ENABLE_HUSH_JOB
-	BLTIN("bg"    , builtin_fg_bg, "Resume a job in the background"),
+	BLTIN("bg"      , builtin_fg_bg   , "Resume a job in the background"),
 #endif
 #if ENABLE_HUSH_LOOPS
-	BLTIN("break" , builtin_break, "Exit from a loop"),
+	BLTIN("break"   , builtin_break   , "Exit from a loop"),
 #endif
-	BLTIN("cd"    , builtin_cd, "Change directory"),
+	BLTIN("cd"      , builtin_cd      , "Change directory"),
 #if ENABLE_HUSH_LOOPS
 	BLTIN("continue", builtin_continue, "Start new loop iteration"),
 #endif
-	BLTIN("echo"  , builtin_echo, "Write to stdout"),
-	BLTIN("eval"  , builtin_eval, "Construct and run shell command"),
-	BLTIN("exec"  , builtin_exec, "Execute command, don't return to shell"),
-	BLTIN("exit"  , builtin_exit, "Exit"),
-	BLTIN("export", builtin_export, "Set environment variable"),
+	BLTIN("echo"    , builtin_echo    , "Write to stdout"),
+	BLTIN("eval"    , builtin_eval    , "Construct and run shell command"),
+	BLTIN("exec"    , builtin_exec    , "Execute command, don't return to shell"),
+	BLTIN("exit"    , builtin_exit    , "Exit"),
+	BLTIN("export"  , builtin_export  , "Set environment variable"),
 #if ENABLE_HUSH_JOB
-	BLTIN("fg"    , builtin_fg_bg, "Bring job into the foreground"),
-	BLTIN("jobs"  , builtin_jobs, "List active jobs"),
+	BLTIN("fg"      , builtin_fg_bg   , "Bring job into the foreground"),
 #endif
-	BLTIN("pwd"   , builtin_pwd, "Print current directory"),
-	BLTIN("read"  , builtin_read, "Input environment variable"),
-//	BLTIN("return", builtin_not_written, "Return from a function"),
-	BLTIN("set"   , builtin_set, "Set/unset shell local variables"),
-	BLTIN("shift" , builtin_shift, "Shift positional parameters"),
-	BLTIN("test"  , builtin_test, "Test condition"),
-	BLTIN("trap"  , builtin_trap, "Trap signals"),
-//	BLTIN("ulimit", builtin_not_written, "Control resource limits"),
-	BLTIN("umask" , builtin_umask, "Set file creation mask"),
-	BLTIN("unset" , builtin_unset, "Unset environment variable"),
-	BLTIN("wait"  , builtin_wait, "Wait for process"),
 #if ENABLE_HUSH_HELP
-	BLTIN("help"  , builtin_help, "List shell built-in commands"),
+	BLTIN("help"    , builtin_help    , "List shell built-in commands"),
 #endif
+#if ENABLE_HUSH_JOB
+	BLTIN("jobs"    , builtin_jobs    , "List active jobs"),
+#endif
+	BLTIN("pwd"     , builtin_pwd     , "Print current directory"),
+	BLTIN("read"    , builtin_read    , "Input environment variable"),
+//	BLTIN("return"  , builtin_return  , "Return from a function"),
+	BLTIN("set"     , builtin_set     , "Set/unset shell local variables"),
+	BLTIN("shift"   , builtin_shift   , "Shift positional parameters"),
+	BLTIN("test"    , builtin_test    , "Test condition"),
+	BLTIN("trap"    , builtin_trap    , "Trap signals"),
+//	BLTIN("ulimit"  , builtin_return  , "Control resource limits"),
+	BLTIN("umask"   , builtin_umask   , "Set file creation mask"),
+	BLTIN("unset"   , builtin_unset   , "Unset environment variable"),
+	BLTIN("wait"    , builtin_wait    , "Wait for process"),
 };
 
 
@@ -2117,7 +2120,7 @@ static void restore_redirects(int squirrel[])
 #endif
 static void free_pipe_list(struct pipe *head, int indent);
 
-/* return code is the exit status of the pipe */
+/* Return code is the exit status of the pipe */
 static void free_pipe(struct pipe *pi, int indent)
 {
 	char **p;
@@ -2125,7 +2128,7 @@ static void free_pipe(struct pipe *pi, int indent)
 	struct redir_struct *r, *rnext;
 	int a, i;
 
-	if (pi->stopped_cmds > 0)
+	if (pi->stopped_cmds > 0) /* why? */
 		return;
 	debug_printf_clean("%s run pipe: (pid %d)\n", indenter(indent), getpid());
 	for (i = 0; i < pi->num_cmds; i++) {
@@ -2216,9 +2219,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	char **new_env;
 	const struct built_in_command *x;
 
-	/* If a variable is assigned in a forest, and nobody listens,
-	 * was it ever really set?
-	 */
+	/* Case when we are here: ... | var=val | ... */
 	if (!argv[assignment_cnt])
 		_exit(EXIT_SUCCESS);
 
@@ -2239,8 +2240,13 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 #endif
 	}
 
-	/*
-	 * Check if the command matches any of the builtins.
+	/* On NOMMU, we must never block!
+	 * Example: { sleep 99999 | read line } & echo Ok
+	 * read builtin will block on read syscall, leaving parent blocked
+	 * in vfork. Therefore we can't do this:
+	 */
+#if BB_MMU
+	/* Check if the command matches any of the builtins.
 	 * Depending on context, this might be redundant.  But it's
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
@@ -2249,33 +2255,35 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		if (strcmp(argv[0], x->cmd) == 0) {
 			debug_printf_exec("running builtin '%s'\n", argv[0]);
 			rcode = x->function(argv);
-			fflush(stdout);
+			fflush(NULL);
 			_exit(rcode);
 		}
 	}
+#endif
 
-	/* Check if the command matches any busybox applets */
 #if ENABLE_FEATURE_SH_STANDALONE
+	/* Check if the command matches any busybox applets */
 	if (strchr(argv[0], '/') == NULL) {
 		int a = find_applet_by_name(argv[0]);
 		if (a >= 0) {
+#if BB_MMU /* see above why on NOMMU it is not allowed */
 			if (APPLET_IS_NOEXEC(a)) {
 				debug_printf_exec("running applet '%s'\n", argv[0]);
-// is it ok that run_applet_no_and_exit() does exit(), not _exit()?
 				run_applet_no_and_exit(a, argv);
 			}
-			/* re-exec ourselves with the new arguments */
+#endif
+			/* Re-exec ourselves */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
-			execvp(bb_busybox_exec_path, argv);
+			sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+			execv(bb_busybox_exec_path, argv);
 			/* If they called chroot or otherwise made the binary no longer
 			 * executable, fall through */
 		}
 	}
 #endif
 
-	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-
 	debug_printf_exec("execing '%s'\n", argv[0]);
+	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't exec '%s'", argv[0]);
 	_exit(EXIT_FAILURE);
@@ -2317,8 +2325,8 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 #endif
 	}
 
-	/* Can happen.  See what bash does with ">foo" by itself. */
-	debug_printf("pseudo_exec'ed null command\n");
+	/* Case when we are here: ... | >file */
+	debug_printf_exec("pseudo_exec'ed null command\n");
 	_exit(EXIT_SUCCESS);
 }
 
@@ -2569,8 +2577,8 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 }
 #endif
 
-/* run_pipe() starts all the jobs, but doesn't wait for anything
- * to finish.  See checkjobs().
+/* Start all the jobs, but don't wait for anything to finish.
+ * See checkjobs().
  *
  * Return code is normally -1, when the caller has to wait for children
  * to finish to determine the exit status of the pipe.  If the pipe
@@ -2588,7 +2596,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * cmd || ...  { list } || ...
  * If it is, then we can run cmd as a builtin, NOFORK [do we do this?],
  * or (if SH_STANDALONE) an applet, and we can run the { list }
- * with run_list(). Otherwise, we fork and exec cmd.
+ * with run_list(). If it isn't one of these, we fork and exec cmd.
  *
  * Cases when we must fork:
  * non-single:   cmd | cmd
@@ -3771,7 +3779,7 @@ static FILE *generate_stream_from_string(const char *s)
 	 * echo OK
 	 */
 //TODO: pass non-exported variables, traps, and functions
-		execl(CONFIG_BUSYBOX_EXEC_PATH, "hush", "-c", s, NULL);
+		execl(bb_busybox_exec_path, "hush", "-c", s, NULL);
 		_exit(127);
 #endif
 	}
@@ -5144,7 +5152,7 @@ static int builtin_fg_bg(char **argv)
  found:
 	// TODO: bash prints a string representation
 	// of job being foregrounded (like "sleep 1 | cat")
-	if (*argv[0] == 'f') {
+	if (argv[0][0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(G_interactive_fd, pi->pgrp);
 	}
@@ -5162,12 +5170,11 @@ static int builtin_fg_bg(char **argv)
 		if (errno == ESRCH) {
 			delete_finished_bg_job(pi);
 			return EXIT_SUCCESS;
-		} else {
-			bb_perror_msg("kill (SIGCONT)");
 		}
+		bb_perror_msg("kill (SIGCONT)");
 	}
 
-	if (*argv[0] == 'f') {
+	if (argv[0][0] == 'f') {
 		remove_bg_job(pi);
 		return checkjobs_and_fg_shell(pi);
 	}
@@ -5180,8 +5187,9 @@ static int builtin_help(char **argv UNUSED_PARAM)
 {
 	const struct built_in_command *x;
 
-	printf("\nBuilt-in commands:\n");
-	printf("-------------------\n");
+	printf("\n"
+		"Built-in commands:\n"
+		"------------------\n");
 	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}

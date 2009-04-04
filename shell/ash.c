@@ -12230,7 +12230,9 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	unsigned col;
 	unsigned i;
 
-	out1fmt("\nBuilt-in commands:\n-------------------\n");
+	out1fmt("\n"
+		"Built-in commands:\n"
+		"------------------\n");
 	for (col = 0, i = 0; i < ARRAY_SIZE(builtintab); i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '),
 					builtintab[i].name + 1);
