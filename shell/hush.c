@@ -73,10 +73,18 @@
 #if ENABLE_HUSH_CASE
 #include <fnmatch.h>
 #endif
-
 #include "math.h"
 
-#define HUSH_VER_STR "0.92"
+#ifdef WANT_TO_TEST_NOMMU
+# undef BB_MMU
+# undef USE_FOR_NOMMU
+# undef USE_FOR_MMU
+# define BB_MMU 0
+# define USE_FOR_NOMMU(...) __VA_ARGS__
+# define USE_FOR_MMU(...)
+#endif
+
+#define HUSH_VER_STR "0.93"
 
 #if defined SINGLE_APPLET_MAIN
 /* STANDALONE does not make sense, and won't compile */
@@ -298,6 +306,45 @@ typedef enum reserved_style {
 	RES_SNTX
 } reserved_style;
 
+typedef struct o_string {
+	char *data;
+	int length; /* position where data is appended */
+	int maxlen;
+	/* Protect newly added chars against globbing
+	 * (by prepending \ to *, ?, [, \) */
+	smallint o_escape;
+	smallint o_glob;
+	smallint nonnull;
+	smallint has_empty_slot;
+	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
+} o_string;
+enum {
+	MAYBE_ASSIGNMENT = 0,
+	DEFINITELY_ASSIGNMENT = 1,
+	NOT_ASSIGNMENT = 2,
+	WORD_IS_KEYWORD = 3, /* not assigment, but next word may be: "if v=xyz cmd;" */
+};
+/* Used for initialization: o_string foo = NULL_O_STRING; */
+#define NULL_O_STRING { NULL }
+
+/* I can almost use ordinary FILE*.  Is open_memstream() universally
+ * available?  Where is it documented? */
+typedef struct in_str {
+	const char *p;
+	/* eof_flag=1: last char in ->p is really an EOF */
+	char eof_flag; /* meaningless if ->p == NULL */
+	char peek_buf[2];
+#if ENABLE_HUSH_INTERACTIVE
+	smallint promptme;
+	smallint promptmode; /* 0: PS1, 1: PS2 */
+#endif
+	FILE *file;
+	int (*get) (struct in_str *);
+	int (*peek) (struct in_str *);
+} in_str;
+#define i_getch(input) ((input)->get(input))
+#define i_peek(input) ((input)->peek(input))
+
 struct redir_struct {
 	struct redir_struct *next;
 	char *rd_filename;          /* filename */
@@ -311,8 +358,11 @@ struct command {
 	int assignment_cnt;         /* how many argv[i] are assignments? */
 	smallint is_stopped;        /* is the command currently running? */
 	smallint grp_type;          /* GRP_xxx */
-	struct pipe *group;         /* if non-NULL, this "prog" is {} group,
-	                             * subshell, or a compound statement */
+	struct pipe *group;         /* if non-NULL, this "command" is { list },
+	                             * ( list ), or a compound statement */
+#if !BB_MMU
+	char *group_as_string;
+#endif
 	char **argv;                /* command name and arguments */
 	struct redir_struct *redirects; /* I/O redirections */
 };
@@ -354,6 +404,9 @@ struct parse_context {
 	struct command *command;
 	/* last redirect in command->redirects list */
 	struct redir_struct *pending_redirect;
+#if !BB_MMU
+	o_string as_string;
+#endif
 #if HAS_KEYWORDS
 	smallint ctx_res_w;
 	smallint ctx_inverted; /* "! cmd | cmd" */
@@ -388,45 +441,6 @@ struct variable {
 	smallint flg_export; /* putenv should be done on this var */
 	smallint flg_read_only;
 };
-
-typedef struct o_string {
-	char *data;
-	int length; /* position where data is appended */
-	int maxlen;
-	/* Protect newly added chars against globbing
-	 * (by prepending \ to *, ?, [, \) */
-	smallint o_escape;
-	smallint o_glob;
-	smallint nonnull;
-	smallint has_empty_slot;
-	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
-} o_string;
-enum {
-	MAYBE_ASSIGNMENT = 0,
-	DEFINITELY_ASSIGNMENT = 1,
-	NOT_ASSIGNMENT = 2,
-	WORD_IS_KEYWORD = 3, /* not assigment, but next word may be: "if v=xyz cmd;" */
-};
-/* Used for initialization: o_string foo = NULL_O_STRING; */
-#define NULL_O_STRING { NULL }
-
-/* I can almost use ordinary FILE*.  Is open_memstream() universally
- * available?  Where is it documented? */
-typedef struct in_str {
-	const char *p;
-	/* eof_flag=1: last char in ->p is really an EOF */
-	char eof_flag; /* meaningless if ->p == NULL */
-	char peek_buf[2];
-#if ENABLE_HUSH_INTERACTIVE
-	smallint promptme;
-	smallint promptmode; /* 0: PS1, 1: PS2 */
-#endif
-	FILE *file;
-	int (*get) (struct in_str *);
-	int (*peek) (struct in_str *);
-} in_str;
-#define i_getch(input) ((input)->get(input))
-#define i_peek(input) ((input)->peek(input))
 
 enum {
 	BC_BREAK = 1,
@@ -1359,6 +1373,11 @@ static void o_free(o_string *o)
 	memset(o, 0, sizeof(*o));
 }
 
+static ALWAYS_INLINE void o_free_unsafe(o_string *o)
+{
+	free(o->data);
+}
+
 static void o_grow_by(o_string *o, int len)
 {
 	if (o->length + len > o->maxlen) {
@@ -1376,7 +1395,7 @@ static void o_addchr(o_string *o, int ch)
 	o->data[o->length] = '\0';
 }
 
-static void o_addstr(o_string *o, const char *str, int len)
+static void o_addblock(o_string *o, const char *str, int len)
 {
 	o_grow_by(o, len);
 	memcpy(&o->data[o->length], str, len);
@@ -1384,12 +1403,19 @@ static void o_addstr(o_string *o, const char *str, int len)
 	o->data[o->length] = '\0';
 }
 
-static void o_addstrauto(o_string *o, const char *str)
+#if !BB_MMU
+static void o_addstr(o_string *o, const char *str)
 {
-	o_addstr(o, str, strlen(str) + 1);
+	o_addblock(o, str, strlen(str));
+}
+#endif
+
+static void o_addstr_with_NUL(o_string *o, const char *str)
+{
+	o_addblock(o, str, strlen(str) + 1);
 }
 
-static void o_addstr_duplicate_backslash(o_string *o, const char *str, int len)
+static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len)
 {
 	while (len) {
 		o_addchr(o, *str);
@@ -1438,7 +1464,7 @@ static void o_addQchr(o_string *o, int ch)
 static void o_addQstr(o_string *o, const char *str, int len)
 {
 	if (!o->o_escape) {
-		o_addstr(o, str, len);
+		o_addblock(o, str, len);
 		return;
 	}
 	while (len) {
@@ -1447,7 +1473,7 @@ static void o_addQstr(o_string *o, const char *str, int len)
 		int ordinary_cnt = strcspn(str, "*?[\\");
 		if (ordinary_cnt > len) /* paranoia */
 			ordinary_cnt = len;
-		o_addstr(o, str, ordinary_cnt);
+		o_addblock(o, str, ordinary_cnt);
 		if (ordinary_cnt == len)
 			return;
 		str += ordinary_cnt;
@@ -1582,7 +1608,7 @@ static int o_glob(o_string *o, int n)
 		char **argv = globdata.gl_pathv;
 		o->length = pattern - o->data; /* "forget" pattern */
 		while (1) {
-			o_addstrauto(o, *argv);
+			o_addstr_with_NUL(o, *argv);
 			n = o_save_ptr_helper(o, n);
 			argv++;
 			if (!*argv)
@@ -1635,7 +1661,14 @@ static char **o_finalize_list(o_string *o, int n)
 static int process_command_subs(o_string *dest, const char *s);
 #endif
 static char *expand_string_to_string(const char *str);
-static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end);
+#if BB_MMU
+#define parse_stream_dquoted(ctx, dest, input, dquote_end) \
+	parse_stream_dquoted(dest, input, dquote_end)
+#endif
+static int parse_stream_dquoted(struct parse_context *ctx,
+		o_string *dest,
+		struct in_str *input,
+		int dquote_end);
 
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
@@ -1657,7 +1690,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 			if (output->o_escape || !output->o_glob)
 				o_addQstr(output, str, word_len);
 			else /* protect backslashes against globbing up :) */
-				o_addstr_duplicate_backslash(output, str, word_len);
+				o_addblock_duplicate_backslash(output, str, word_len);
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -1701,7 +1734,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #if ENABLE_SH_MATH_SUPPORT
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
-		o_addstr(output, arg, p - arg);
+		o_addblock(output, arg, p - arg);
 		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
@@ -1825,7 +1858,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				o_string dest = NULL_O_STRING;
 
 				setup_string_in_str(&input, arg);
-				parse_stream_dquoted(&dest, &input, EOF);
+				parse_stream_dquoted(NULL, &dest, &input, EOF);
 				//bb_error_msg("'%s' -> '%s'", arg, dest.data);
 				exp_str = expand_string_to_string(dest.data);
 				//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
@@ -1958,7 +1991,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		debug_print_list("expand_vars_to_list[a]", output, n);
 		/* this part is literal, and it was already pre-quoted
 		 * if needed (much earlier), do not use o_addQstr here! */
-		o_addstrauto(output, arg);
+		o_addstr_with_NUL(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
 	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
@@ -2148,6 +2181,10 @@ static void free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   end group\n", indenter(indent));
 			command->group = NULL;
 		}
+#if !BB_MMU
+		free(command->group_as_string);
+		command->group_as_string = NULL;
+#endif
 		for (r = command->redirects; r; r = rnext) {
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->rd_type].descrip);
 			if (r->dup == -1) {
@@ -2215,9 +2252,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded)
 {
-	int rcode;
 	char **new_env;
-	const struct built_in_command *x;
 
 	/* Case when we are here: ... | var=val | ... */
 	if (!argv[assignment_cnt])
@@ -2251,12 +2286,17 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
 	 */
-	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-		if (strcmp(argv[0], x->cmd) == 0) {
-			debug_printf_exec("running builtin '%s'\n", argv[0]);
-			rcode = x->function(argv);
-			fflush(NULL);
-			_exit(rcode);
+	{
+		int rcode;
+		const struct built_in_command *x;
+		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
+			if (strcmp(argv[0], x->cmd) == 0) {
+				debug_printf_exec("running builtin '%s'\n",
+						argv[0]);
+				rcode = x->function(argv);
+				fflush(NULL);
+				_exit(rcode);
+			}
 		}
 	}
 #endif
@@ -2320,8 +2360,8 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		 * since this process is about to exit */
 		_exit(rcode);
 #else
-//TODO: re-exec "hush -c command->group_as_a_string"
-		bb_error_msg_and_die("nested lists are not supported on NOMMU");
+		bb_error_msg_and_die("NOMMU TODO: re-exec '%s'",
+				command->group_as_string);
 #endif
 	}
 
@@ -3587,6 +3627,13 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		old = ctx->stack;
 		old->command->group = ctx->list_head;
 		old->command->grp_type = GRP_NORMAL;
+#if !BB_MMU
+		o_addstr(&old->as_string, ctx->as_string.data);
+		o_free_unsafe(&ctx->as_string);
+		old->command->group_as_string = xstrdup(old->as_string.data);
+		debug_printf_parse("pop, remembering as:'%s'\n",
+				old->command->group_as_string);
+#endif
 		*ctx = *old;   /* physical copy */
 		free(old);
 	}
@@ -3739,7 +3786,13 @@ static int redirect_opt_num(o_string *o)
 	return num;
 }
 
-static struct pipe *parse_stream(struct in_str *input, int end_trigger);
+#if BB_MMU
+#define parse_stream(pstring, input, end_trigger) \
+	parse_stream(input, end_trigger)
+#endif
+static struct pipe *parse_stream(char **pstring,
+		struct in_str *input,
+		int end_trigger);
 static void parse_and_run_string(const char *s);
 
 #if ENABLE_HUSH_TICK
@@ -3864,15 +3917,33 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		endch = ')';
 		command->grp_type = GRP_SUBSHELL;
 	}
-	pipe_list = parse_stream(input, endch);
-	/* empty ()/{} or parse error? */
-	if (!pipe_list || pipe_list == ERR_PTR) {
-		syntax(NULL);
-		debug_printf_parse("parse_group return 1: "
-			"parse_stream returned %p\n", pipe_list);
-		return 1;
+	{
+#if !BB_MMU
+		char *as_string = NULL;
+#endif
+		pipe_list = parse_stream(&as_string, input, endch);
+#if !BB_MMU
+		if (as_string)
+			o_addstr(&ctx->as_string, as_string);
+#endif
+		/* empty ()/{} or parse error? */
+		if (!pipe_list || pipe_list == ERR_PTR) {
+#if !BB_MMU
+			free(as_string);
+#endif
+			syntax(NULL);
+			debug_printf_parse("parse_group return 1: "
+				"parse_stream returned %p\n", pipe_list);
+			return 1;
+		}
+		command->group = pipe_list;
+#if !BB_MMU
+		as_string[strlen(as_string) - 1] = '\0'; /* plink ')' or '}' */
+		command->group_as_string = as_string;
+		debug_printf_parse("end of group, remembering as:'%s'\n",
+				command->group_as_string);
+#endif
 	}
-	command->group = pipe_list;
 	debug_printf_parse("parse_group return 0\n");
 	return 0;
 	/* command remains "open", available for possible redirects */
@@ -4151,14 +4222,24 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 	return 0;
 }
 
-static int parse_stream_dquoted(o_string *dest,
-		struct in_str *input, int dquote_end)
+#if BB_MMU
+#define parse_stream_dquoted(ctx, dest, input, dquote_end) \
+	parse_stream_dquoted(dest, input, dquote_end)
+#endif
+static int parse_stream_dquoted(struct parse_context *ctx,
+		o_string *dest,
+		struct in_str *input,
+		int dquote_end)
 {
 	int ch;
 	int next;
 
  again:
 	ch = i_getch(input);
+#if !BB_MMU
+	if (ctx && ch != EOF)
+		o_addchr(&ctx->as_string, ch);
+#endif
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		dest->nonnull = 1;
 		if (dest->o_assignment == NOT_ASSIGNMENT)
@@ -4237,15 +4318,13 @@ static int parse_stream_dquoted(o_string *dest,
  * reset parsing machinery and start parsing anew,
  * or return ERR_PTR.
  */
-static struct pipe *parse_stream(struct in_str *input, int end_trigger)
+static struct pipe *parse_stream(char **pstring,
+		struct in_str *input,
+		int end_trigger)
 {
 	struct parse_context ctx;
 	o_string dest = NULL_O_STRING;
-	int redir_fd;
-	int next;
 	int is_in_dquote;
-	int ch;
-	redir_type redir_style;
 
 	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
@@ -4268,15 +4347,18 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 	while (1) {
 		const char *is_ifs;
 		const char *is_special;
+		int ch;
+		int next;
+		int redir_fd;
+		redir_type redir_style;
 
 		if (is_in_dquote) {
-			if (parse_stream_dquoted(&dest, input, '"')) {
+			if (parse_stream_dquoted(&ctx, &dest, input, '"')) {
 				goto parse_error;
 			}
 			/* We reached closing '"' */
 			is_in_dquote = 0;
 		}
-		next = '\0';
 		ch = i_getch(input);
 		debug_printf_parse(": ch=%c (%d) escape=%d\n",
 						ch, ch, dest.o_escape);
@@ -4287,8 +4369,9 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			}
 			o_free(&dest);
 			done_pipe(&ctx, PIPE_SEQ);
-			/* If we got nothing... */
 			pi = ctx.list_head;
+			/* If we got nothing... */
+// TODO: test script consisting of just "&"
 			if (pi->num_cmds == 0
 			    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
 			) {
@@ -4296,12 +4379,18 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 				pi = NULL;
 			}
 			debug_printf_parse("parse_stream return %p\n", pi);
+#if !BB_MMU
+			debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
+			if (pstring)
+				*pstring = ctx.as_string.data;
+			else
+				o_free_unsafe(&ctx.as_string);
+#endif
 			return pi;
 		}
-		if (ch != '\n') {
-			next = i_peek(input);
-		}
-
+#if !BB_MMU
+		o_addchr(&ctx.as_string, ch);
+#endif
 		is_ifs = strchr(G.ifs, ch);
 		is_special = strchr("<>;&|(){}#'" /* special outside of "str" */
 				"\\$\"" USE_HUSH_TICK("`") /* always special */
@@ -4356,6 +4445,13 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 						"end_trigger char found\n",
 						ctx.list_head);
 				o_free(&dest);
+#if !BB_MMU
+				debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
+				if (pstring)
+					*pstring = ctx.as_string.data;
+				else
+					o_free_unsafe(&ctx.as_string);
+#endif
 				return ctx.list_head;
 			}
 		}
@@ -4366,6 +4462,11 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			/* ch is a special char and thus this word
 			 * cannot be an assignment */
 			dest.o_assignment = NOT_ASSIGNMENT;
+		}
+
+		next = '\0';
+		if (ch != '\n') {
+			next = i_peek(input);
 		}
 
 		switch (ch) {
@@ -4601,6 +4702,9 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			debug_print_tree(pctx->list_head, 0);
 			free_pipe_list(pctx->list_head, 0);
 			debug_printf_clean("freed list %p\n", pctx->list_head);
+#if !BB_MMU
+			o_free_unsafe(&pctx->as_string);
+#endif
 			IF_HAS_KEYWORDS(p2 = pctx->stack;)
 			if (pctx != &ctx) {
 				free(pctx);
@@ -4612,8 +4716,13 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 		/* If we are not in top-level parse, we return,
 		 * our caller will propagate error.
 		 */
-		if (end_trigger != ';')
+		if (end_trigger != ';') {
+#if !BB_MMU
+			if (pstring)
+				*pstring = NULL;
+#endif
 			return ERR_PTR;
+		}
 		/* Discard cached input, force prompt */
 		input->p = NULL;
 		USE_HUSH_INTERACTIVE(input->promptme = 1;)
@@ -4621,7 +4730,7 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 	}
 }
 
-/* Execiting from string: eval, sh -c '...'
+/* Executing from string: eval, sh -c '...'
  *          or from file: /etc/profile, . file, sh <script>, sh (intereactive)
  * end_trigger controls how often we stop parsing
  * NUL: parse all, execute, return
@@ -4632,7 +4741,7 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 	while (1) {
 		struct pipe *pipe_list;
 
-		pipe_list = parse_stream(inp, end_trigger);
+		pipe_list = parse_stream(NULL, inp, end_trigger);
 		if (!pipe_list) /* EOF */
 			break;
 		debug_print_tree(pipe_list, 0);
