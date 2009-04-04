@@ -659,7 +659,7 @@ popen_ls(const char *opt)
 		/* + 1: we must use relative path here if in chroot.
 		 * For example, execv("/proc/self/exe") will fail, since
 		 * it looks for "/proc/self/exe" _relative to chroot!_ */
-		execv(CONFIG_BUSYBOX_EXEC_PATH + 1, (char**) argv);
+		execv(bb_busybox_exec_path + 1, (char**) argv);
 		_exit(127);
 #else
 		memset(&G, 0, sizeof(G));
