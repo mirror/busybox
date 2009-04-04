@@ -61,7 +61,6 @@
  *      figure out what to do with backslash-newline
  *      propagate syntax errors, die on resource errors?
  *      continuation lines, both explicit and implicit - done?
- *      maybe change charmap[] to use 2-bit entries
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -201,30 +200,25 @@ static void debug_print_strings(const char *prefix, char **vv)
  * Leak hunting. Use hush_leaktool.sh for post-processing.
  */
 #ifdef FOR_HUSH_LEAKTOOL
-/* suppress "warning: no previous prototype..." */
-void *xxmalloc(int lineno, size_t size);
-void *xxrealloc(int lineno, void *ptr, size_t size);
-char *xxstrdup(int lineno, const char *str);
-void xxfree(void *ptr);
-void *xxmalloc(int lineno, size_t size)
+static void *xxmalloc(int lineno, size_t size)
 {
 	void *ptr = xmalloc((size + 0xff) & ~0xff);
 	fdprintf(2, "line %d: malloc %p\n", lineno, ptr);
 	return ptr;
 }
-void *xxrealloc(int lineno, void *ptr, size_t size)
+static void *xxrealloc(int lineno, void *ptr, size_t size)
 {
 	ptr = xrealloc(ptr, (size + 0xff) & ~0xff);
 	fdprintf(2, "line %d: realloc %p\n", lineno, ptr);
 	return ptr;
 }
-char *xxstrdup(int lineno, const char *str)
+static char *xxstrdup(int lineno, const char *str)
 {
 	char *ptr = xstrdup(str);
 	fdprintf(2, "line %d: strdup %p\n", lineno, ptr);
 	return ptr;
 }
-void xxfree(void *ptr)
+static void xxfree(void *ptr)
 {
 	fdprintf(2, "free %p\n", ptr);
 	free(ptr);
@@ -491,14 +485,6 @@ struct globals {
 	const char *cwd;
 	struct variable *top_var; /* = &G.shell_ver (set in main()) */
 	struct variable shell_ver;
-#if ENABLE_FEATURE_SH_STANDALONE
-	struct nofork_save_area nofork_save;
-#endif
-#if ENABLE_HUSH_JOB
-	sigjmp_buf toplevel_jb;
-#endif
-	unsigned char charmap[256];
-	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
 	/* Signal and trap handling */
 //	unsigned count_SIGCHLD;
 //	unsigned handled_SIGCHLD;
@@ -507,6 +493,13 @@ struct globals {
 	char **traps; /* char *traps[NSIG] */
 	sigset_t blocked_set;
 	sigset_t inherited_set;
+	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
+#if ENABLE_FEATURE_SH_STANDALONE
+	struct nofork_save_area nofork_save;
+#endif
+#if ENABLE_HUSH_JOB
+	sigjmp_buf toplevel_jb;
+#endif
 };
 #define G (*ptr_to_globals)
 /* Not #defining name to G.name - this quickly gets unwieldy
@@ -1042,9 +1035,7 @@ static struct variable *get_local_var(const char *name)
 	return NULL;
 }
 
-/* Basically useful version until someone wants to get fancier,
- * see the bash man page under "Parameter Expansion" */
-static const char *lookup_param(const char *src)
+static const char *get_local_var_value(const char *src)
 {
 	struct variable *var = get_local_var(src);
 	if (var)
@@ -1842,7 +1833,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				o_free(&dest);
 			}
  skip_expand:
-			hooks.lookupvar = lookup_param;
+			hooks.lookupvar = get_local_var_value;
 			hooks.setvar = arith_set_local_var;
 			hooks.endofname = endofname;
 			res = arith(exp_str ? exp_str : arg, &errcode, &hooks);
@@ -1898,7 +1889,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					val = G.global_argv[i];
 				/* else val remains NULL: $N with too big N */
 			} else
-				val = lookup_param(var);
+				val = get_local_var_value(var);
 
 			/* handle any expansions */
 			if (exp_len) {
@@ -4118,7 +4109,7 @@ static int handle_dollar(o_string *dest, struct in_str *input)
 
 static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote_end)
 {
-	int ch, m;
+	int ch;
 	int next;
 
  again:
@@ -4136,7 +4127,6 @@ static int parse_stream_dquoted(o_string *dest, struct in_str *input, int dquote
 		return 1;
 	}
 	next = '\0';
-	m = G.charmap[ch];
 	if (ch != '\n') {
 		next = i_peek(input);
 	}
@@ -4206,11 +4196,11 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 {
 	struct parse_context ctx;
 	o_string dest = NULL_O_STRING;
-	int ch, m;
 	int redir_fd;
-	redir_type redir_style;
-	int is_in_dquote;
 	int next;
+	int is_in_dquote;
+	int ch;
+	redir_type redir_style;
 
 	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
@@ -4218,6 +4208,10 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
 			end_trigger ? : 'X');
+
+	G.ifs = get_local_var_value("IFS");
+	if (G.ifs == NULL)
+		G.ifs = " \t\n";
 
  reset:
 #if ENABLE_HUSH_INTERACTIVE
@@ -4227,6 +4221,9 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 	initialize_context(&ctx);
 	is_in_dquote = 0;
 	while (1) {
+		const char *is_ifs;
+		const char *is_special;
+
 		if (is_in_dquote) {
 			if (parse_stream_dquoted(&dest, input, '"')) {
 				goto parse_error;
@@ -4234,18 +4231,38 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			/* We reached closing '"' */
 			is_in_dquote = 0;
 		}
-		m = CHAR_IFS;
 		next = '\0';
 		ch = i_getch(input);
-		if (ch != EOF) {
-			m = G.charmap[ch];
-			if (ch != '\n') {
-				next = i_peek(input);
+		debug_printf_parse(": ch=%c (%d) escape=%d\n",
+						ch, ch, dest.o_escape);
+		if (ch == EOF) {
+			struct pipe *pi;
+			if (done_word(&dest, &ctx)) {
+				goto parse_error;
 			}
+			o_free(&dest);
+			done_pipe(&ctx, PIPE_SEQ);
+			/* If we got nothing... */
+			pi = ctx.list_head;
+			if (pi->num_cmds == 0
+			    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
+			) {
+				free_pipe_list(pi, 0);
+				pi = NULL;
+			}
+			debug_printf_parse("parse_stream return %p\n", pi);
+			return pi;
 		}
-		debug_printf_parse(": ch=%c (%d) m=%d escape=%d\n",
-						ch, ch, m, dest.o_escape);
-		if (m == CHAR_ORDINARY) {
+		if (ch != '\n') {
+			next = i_peek(input);
+		}
+
+		is_ifs = strchr(G.ifs, ch);
+		is_special = strchr("<>;&|(){}#'" /* special outside of "str" */
+				"\\$\"" USE_HUSH_TICK("`") /* always special */
+				, ch);
+
+		if (!is_special && !is_ifs) { /* ordinary char */
 			o_addQchr(&dest, ch);
 			if ((dest.o_assignment == MAYBE_ASSIGNMENT
 			    || dest.o_assignment == WORD_IS_KEYWORD)
@@ -4257,27 +4274,7 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 			continue;
 		}
 
-		/* m is SPECIAL ($,`), IFS, or ORDINARY_IF_QUOTED (*,#) */
-
-		if (m == CHAR_IFS) {
-			if (ch == EOF) {
-				struct pipe *pi;
-				if (done_word(&dest, &ctx)) {
-					goto parse_error;
-				}
-				o_free(&dest);
-				done_pipe(&ctx, PIPE_SEQ);
-				/* If we got nothing... */
-				pi = ctx.list_head;
-				if (pi->num_cmds == 0
-				    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
-				) {
-					free_pipe_list(pi, 0);
-					pi = NULL;
-				}
-				debug_printf_parse("parse_stream return %p\n", pi);
-				return pi;
-			}
+		if (is_ifs) {
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
@@ -4317,10 +4314,8 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 				return ctx.list_head;
 			}
 		}
-		if (m == CHAR_IFS)
+		if (is_ifs)
 			continue;
-
-		/* m is SPECIAL (e.g. $,`) or ORDINARY_IF_QUOTED (*,#) */
 
 		if (dest.o_assignment == MAYBE_ASSIGNMENT) {
 			/* ch is a special char and thus this word
@@ -4579,33 +4574,6 @@ static struct pipe *parse_stream(struct in_str *input, int end_trigger)
 	}
 }
 
-static void set_in_charmap(const char *set, int code)
-{
-	while (*set)
-		G.charmap[(unsigned char)*set++] = code;
-}
-
-static void update_charmap(void)
-{
-	G.ifs = getenv("IFS");
-	if (G.ifs == NULL)
-		G.ifs = " \t\n";
-	/* Precompute a list of 'flow through' behavior so it can be treated
-	 * quickly up front.  Computation is necessary because of IFS.
-	 * Special case handling of IFS == " \t\n" is not implemented.
-	 * The charmap[] array only really needs two bits each,
-	 * and on most machines that would be faster (reduced L1 cache use).
-	 */
-	memset(G.charmap, CHAR_ORDINARY, sizeof(G.charmap));
-#if ENABLE_HUSH_TICK
-	set_in_charmap("\\$\"`", CHAR_SPECIAL);
-#else
-	set_in_charmap("\\$\"", CHAR_SPECIAL);
-#endif
-	set_in_charmap("<>;&|(){}#'", CHAR_ORDINARY_IF_QUOTED);
-	set_in_charmap(G.ifs, CHAR_IFS);  /* are ordinary if quoted */
-}
-
 /* Execiting from string: eval, sh -c '...'
  *          or from file: /etc/profile, . file, sh <script>, sh (intereactive)
  * end_trigger controls how often we stop parsing
@@ -4617,15 +4585,12 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 	while (1) {
 		struct pipe *pipe_list;
 
-		update_charmap();
-
 		pipe_list = parse_stream(inp, end_trigger);
 		if (!pipe_list) /* EOF */
 			break;
 		debug_print_tree(pipe_list, 0);
 		debug_printf_exec("parse_and_run_stream: run_and_free_list\n");
 		run_and_free_list(pipe_list);
-		/* Loop on syntax errors, return on EOF: */
 	}
 }
 
