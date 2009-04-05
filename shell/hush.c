@@ -1901,9 +1901,14 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 #endif
 		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
 		case_default: {
-			bool exp_len = false, exp_null = false;
-			char *var = arg, exp_save, exp_op, *exp_word;
+			bool exp_len = false;
+			bool exp_null = false;
+			char *var = arg;
+			char exp_save = exp_save; /* for compiler */
+			char exp_op = exp_op; /* for compiler */
+			char *exp_word = exp_word; /* for compiler */
 			size_t exp_off = 0;
+
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
 
