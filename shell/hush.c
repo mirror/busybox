@@ -189,6 +189,8 @@ static const char *indenter(int i)
 }
 #define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
 #define DEBUG_CLEAN 1
+#else
+#define DEBUG_CLEAN 0
 #endif
 
 #if DEBUG_EXPAND
@@ -2093,7 +2095,7 @@ static void restore_redirects(int squirrel[])
 }
 
 
-#if !defined(DEBUG_CLEAN)
+#if !DEBUG_CLEAN
 #define free_pipe_list(head, indent) free_pipe_list(head)
 #define free_pipe(pi, indent)        free_pipe(pi)
 #endif
@@ -5637,6 +5639,7 @@ static int builtin_read(char **argv)
 {
 	char *string;
 	const char *name = argv[1] ? argv[1] : "REPLY";
+//TODO: check that argv[1] is a valid variable name
 
 	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
 	return set_local_var(string, 0, 0);
