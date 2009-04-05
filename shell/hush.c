@@ -487,7 +487,8 @@ struct globals {
 	int global_argc;
 	char **global_argv;
 #if !BB_MMU
-	char **argv_for_re_execing;
+	char *argv0_for_re_execing;
+	char **argv_from_re_execing;
 #endif
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
@@ -2356,18 +2357,19 @@ static void re_execute_shell(const char *s)
 	char **argv, **pp, **pp2;
 	unsigned cnt;
 
-	/* 1:hush 2:-$<pid> 3:-?<exitcode> 4:-D<depth> <vars...>
-	 * 5:-c 6:<cmd> <argN...> 7:NULL
+	/* 1:hush 2:-$<pid> 3:-!<pid> 4:-?<exitcode> 5:-D<depth> <vars...>
+	 * 6:-c 7:<cmd> <argN...> 8:NULL
 	 */
-	cnt = 7 + G.global_argc;
+	cnt = 8 + G.global_argc;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
-	G.argv_for_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
-	*pp++ = (char *) applet_name;
-	*pp++ = xasprintf("-$%u", G.root_pid);
-	*pp++ = xasprintf("-?%u", G.last_return_code);
+	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
+	*pp++ = (char *) G.argv0_for_re_execing;
+	*pp++ = xasprintf("-$%u", (unsigned) G.root_pid);
+	*pp++ = xasprintf("-!%u", (unsigned) G.last_bg_pid);
+	*pp++ = xasprintf("-?%u", (unsigned) G.last_return_code);
 #if ENABLE_HUSH_LOOPS
 	*pp++ = xasprintf("-D%u", G.depth_of_loop);
 #endif
@@ -2392,23 +2394,27 @@ static void re_execute_shell(const char *s)
 
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-	execv(bb_busybox_exec_path, G.argv_for_re_execing);
-//TODO: fallback for init=/bin/hush?
-	_exit(127);
+	execv(bb_busybox_exec_path, G.argv_from_re_execing);
+	/* Fallback. Useful for init=/bin/hush usage etc */
+	if (G.argv0_for_re_execing[0] == '/')
+		execv(G.argv0_for_re_execing, G.argv_from_re_execing);
+	xfunc_error_retval = 127;
+	bb_error_msg_and_die("can't re-execute the shell");
 }
 
 static void clean_up_after_re_execute(void)
 {
-	char **pp = G.argv_for_re_execing;
+	char **pp = G.argv_from_re_execing;
 	if (pp) {
 		/* Must match re_execute_shell's allocations */
 		free(pp[1]);
 		free(pp[2]);
-#if ENABLE_HUSH_LOOPS
 		free(pp[3]);
+#if ENABLE_HUSH_LOOPS
+		free(pp[4]);
 #endif
 		free(pp);
-		G.argv_for_re_execing = NULL;
+		G.argv_from_re_execing = NULL;
 	}
 }
 #else
@@ -3001,8 +3007,8 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_SNTX ] = "SNTX" ,
 	};
 	static const char *const GRPTYPE[] = {
-		"()",
 		"{}",
+		"()",
 #if ENABLE_HUSH_FUNCTIONS
 		"func()",
 #endif
@@ -4990,14 +4996,15 @@ int hush_main(int argc, char **argv)
 	};
 
 	int opt;
-	FILE *input;
 	char **e;
 	struct variable *cur_var;
 
 	INIT_G();
-
-	G.root_pid = getpid();
-
+	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, is already done */
+		G.last_return_code = EXIT_SUCCESS;
+#if !BB_MMU
+	G.argv0_for_re_execing = argv[0];
+#endif
 	/* Deal with HUSH_VERSION */
 	G.shell_ver = const_shell_ver; /* copying struct here */
 	G.top_var = &G.shell_ver;
@@ -5020,11 +5027,9 @@ int hush_main(int argc, char **argv)
 	}
 	debug_printf_env("putenv '%s'\n", hush_version_str);
 	putenv((char *)hush_version_str); /* reinstate HUSH_VERSION */
-
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
 #endif
-	/* XXX what should these be while sourcing /etc/profile? */
 	G.global_argc = argc;
 	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
@@ -5035,31 +5040,19 @@ int hush_main(int argc, char **argv)
 	G.PS2 = "> ";
 #endif
 
-	if (EXIT_SUCCESS) /* otherwise is already done */
-		G.last_return_code = EXIT_SUCCESS;
-
-	if (argv[0] && argv[0][0] == '-') {
-		debug_printf("sourcing /etc/profile\n");
-		input = fopen_for_read("/etc/profile");
-		if (input != NULL) {
-			close_on_exec_on(fileno(input));
-			parse_and_run_file(input);
-			fclose(input);
-		}
-	}
-	input = stdin;
-
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
 #if !BB_MMU
-				"$:?:D:R:V:"
+				"$:!:?:D:R:V:"
 #endif
 		);
 		if (opt <= 0)
 			break;
 		switch (opt) {
 		case 'c':
+			if (!G.root_pid)
+				G.root_pid = getpid();
 			G.global_argv = argv + optind;
 			if (!argv[optind]) {
 				/* -c 'script' (no params): prevent empty $0 */
@@ -5081,6 +5074,9 @@ int hush_main(int argc, char **argv)
 #if !BB_MMU
 		case '$':
 			G.root_pid = xatoi_u(optarg);
+			break;
+		case '!':
+			G.last_bg_pid = xatoi_u(optarg);
 			break;
 		case '?':
 			G.last_return_code = xatoi_u(optarg);
@@ -5109,6 +5105,21 @@ int hush_main(int argc, char **argv)
 #endif
 		}
 	}
+
+	if (!G.root_pid)
+		G.root_pid = getpid();
+	if (argv[0] && argv[0][0] == '-') {
+		FILE *input;
+		/* XXX what should argv be while sourcing /etc/profile? */
+		debug_printf("sourcing /etc/profile\n");
+		input = fopen_for_read("/etc/profile");
+		if (input != NULL) {
+			close_on_exec_on(fileno(input));
+			parse_and_run_file(input);
+			fclose(input);
+		}
+	}
+
 #if ENABLE_HUSH_JOB
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
@@ -5117,7 +5128,7 @@ int hush_main(int argc, char **argv)
 	 *    standard input is a terminal
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the 'sh' utility. */
-	if (argv[optind] == NULL && input == stdin
+	if (argv[optind] == NULL
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
 		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
@@ -5132,8 +5143,8 @@ int hush_main(int argc, char **argv)
 					/* give up */
 					G_interactive_fd = 0;
 			}
-			// TODO: track & disallow any attempts of user
-			// to (inadvertently) close/redirect it
+// TODO: track & disallow any attempts of user
+// to (inadvertently) close/redirect it
 		}
 	}
 	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
@@ -5152,7 +5163,7 @@ int hush_main(int argc, char **argv)
 	}
 #elif ENABLE_HUSH_INTERACTIVE
 /* no job control compiled, only prompt/line editing */
-	if (argv[optind] == NULL && input == stdin
+	if (argv[optind] == NULL
 	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
 	) {
 		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
@@ -5169,10 +5180,12 @@ int hush_main(int argc, char **argv)
 	}
 	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
 #else
+//TODO: we didn't do it for -c or /etc/profile! Shouldn't we?
 	init_signal_mask();
 #endif
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
+//TODO: we didn't do it for -c or /etc/profile! Shouldn't we?
 //	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
 	signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
 
@@ -5186,18 +5199,21 @@ int hush_main(int argc, char **argv)
 	if (argv[optind] == NULL) {
 		parse_and_run_file(stdin);
 	} else {
+		FILE *input;
 		debug_printf("\nrunning script '%s'\n", argv[optind]);
 		G.global_argv = argv + optind;
 		G.global_argc = argc - optind;
 		input = xfopen_for_read(argv[optind]);
 		fcntl(fileno(input), F_SETFD, FD_CLOEXEC);
 		parse_and_run_file(input);
+#if ENABLE_FEATURE_CLEAN_UP
+		fclose(input);
+#endif
 	}
 
  final_return:
 
 #if ENABLE_FEATURE_CLEAN_UP
-	fclose(input);
 	if (G.cwd != bb_msg_unknown)
 		free((char*)G.cwd);
 	cur_var = G.top_var->next;
