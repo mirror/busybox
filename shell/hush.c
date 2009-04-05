@@ -850,44 +850,12 @@ static void free_strings(char **strings)
  * Note: as a result, we do not use signal handlers much. The only uses
  * are to count SIGCHLDs [disabled - bug somewhere, + bloat]
  * and to restore tty pgrp on signal-induced exit.
- *
- * TODO: check/fix wait builtin to be interruptible.
  */
 
 //static void SIGCHLD_handler(int sig UNUSED_PARAM)
 //{
 //	G.count_SIGCHLD++;
 //}
-
-/* called once at shell init */
-static void init_signal_mask(void)
-{
-	unsigned sig;
-	unsigned mask = (1 << SIGQUIT);
-	if (G_interactive_fd) {
-		mask = 0
-			| (1 << SIGQUIT)
-			| (1 << SIGTERM)
-			| (1 << SIGHUP)
-#if ENABLE_HUSH_JOB
-			| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
-#endif
-			| (1 << SIGINT)
-		;
-	}
-	G.non_DFL_mask = mask;
-
-	sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
-	sig = 0;
-	while (mask) {
-		if (mask & 1)
-			sigaddset(&G.blocked_set, sig);
-		mask >>= 1;
-		sig++;
-	}
-	sigdelset(&G.blocked_set, SIGCHLD);
-	sigprocmask(SIG_SETMASK, &G.blocked_set, &G.inherited_set);
-}
 
 static int check_and_run_traps(int sig)
 {
@@ -934,7 +902,6 @@ static int check_and_run_traps(int sig)
 }
 
 #if ENABLE_HUSH_JOB
-
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
  * (will faithfully resend signal to itself, producing correct exit state)
@@ -957,48 +924,6 @@ static void sigexit(int sig)
 
 	kill_myself_with_sig(sig); /* does not return */
 }
-
-/* helper */
-static void maybe_set_sighandler(int sig)
-{
-	void (*handler)(int);
-	/* non_DFL_mask'ed signals are, well, masked,
-	 * no need to set handler for them.
-	 */
-	if (!((G.non_DFL_mask >> sig) & 1)) {
-		handler = signal(sig, sigexit);
-		if (handler == SIG_IGN) /* oops... restore back to IGN! */
-			signal(sig, handler);
-	}
-}
-/* Used only to set handler to restore pgrp on exit */
-static void set_fatal_signals_to_sigexit(void)
-{
-	if (HUSH_DEBUG) {
-		maybe_set_sighandler(SIGILL );
-		maybe_set_sighandler(SIGFPE );
-		maybe_set_sighandler(SIGBUS );
-		maybe_set_sighandler(SIGSEGV);
-		maybe_set_sighandler(SIGTRAP);
-	} /* else: hush is perfect. what SEGV? */
-
-	maybe_set_sighandler(SIGABRT);
-
-	/* bash 3.2 seems to handle these just like 'fatal' ones */
-	maybe_set_sighandler(SIGPIPE);
-	maybe_set_sighandler(SIGALRM);
-	maybe_set_sighandler(SIGHUP );
-
-	/* if we aren't interactive... but in this case
-	 * we never want to restore pgrp on exit, and this fn is not called */
-	/*maybe_set_sighandler(SIGTERM);*/
-	/*maybe_set_sighandler(SIGINT );*/
-}
-
-#else /* !JOB */
-
-#define set_fatal_signals_to_sigexit(handler) ((void)0)
-
 #endif
 
 /* Restores tty foreground process group, and exits. */
@@ -1007,6 +932,7 @@ static void hush_exit(int exitcode)
 {
 	if (G.traps && G.traps[0] && G.traps[0][0]) {
 		char *argv[] = { NULL, xstrdup(G.traps[0]), NULL };
+//TODO: do we need to prevent recursion?
 		builtin_eval(argv);
 		free(argv[1]);
 	}
@@ -2896,7 +2822,7 @@ static int run_pipe(struct pipe *pi)
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
 #if ENABLE_HUSH_JOB
-			die_sleep = 0; /* let nofork's xfuncs die */
+			die_sleep = 0; /* do not restore tty pgrp on xfunc death */
 
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
@@ -2930,7 +2856,10 @@ static int run_pipe(struct pipe *pi)
 			/* pseudo_exec() does not return */
 		}
 
-		/* parent */
+		/* parent or error */
+#if ENABLE_HUSH_JOB
+		die_sleep = -1; /* restore tty pgrp on xfunc death */
+#endif
 #if !BB_MMU
 		/* Clean up after vforked child */
 		clean_up_after_re_execute();
@@ -3900,6 +3829,9 @@ static FILE *generate_stream_from_string(const char *s)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
 
 	if (pid == 0) { /* child */
+#if ENABLE_HUSH_JOB
+		die_sleep = 0; /* do not restore tty pgrp on xfunc death */
+#endif
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not.
@@ -3909,8 +3841,6 @@ static FILE *generate_stream_from_string(const char *s)
 			+ (1 << SIGTTIN)
 			+ (1 << SIGTTOU)
 			, SIG_IGN);
-		if (ENABLE_HUSH_JOB)
-			die_sleep = 0; /* let nofork's xfuncs die */
 		close(channel[0]); /* NB: close _first_, then move fd! */
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
@@ -3920,8 +3850,8 @@ static FILE *generate_stream_from_string(const char *s)
 		_exit(G.last_return_code);
 #else
 	/* We re-execute after vfork on NOMMU. This makes this script safe:
-	 * yes "0123456789012345678901234567890" | dd bs=32 count=64k >TESTFILE
-	 * huge=`cat TESTFILE` # was blocking here forever
+	 * yes "0123456789012345678901234567890" | dd bs=32 count=64k >BIG
+	 * huge=`cat BIG` # was blocking here forever
 	 * echo OK
 	 */
 		re_execute_shell(s);
@@ -3929,6 +3859,9 @@ static FILE *generate_stream_from_string(const char *s)
 	}
 
 	/* parent */
+#if ENABLE_HUSH_JOB
+	die_sleep = -1; /* restore tty pgrp on xfunc death */
+#endif
 	clean_up_after_re_execute();
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
@@ -4945,31 +4878,81 @@ static void parse_and_run_file(FILE *f)
 	parse_and_run_stream(&input, ';');
 }
 
-#if ENABLE_HUSH_JOB
-/* Make sure we have a controlling tty.  If we get started under a job
- * aware app (like bash for example), make sure we are now in charge so
- * we don't fight over who gets the foreground */
-static void setup_job_control(void)
+/* Called a few times only (or even once if "sh -c") */
+static void block_signals(int second_time)
 {
-	pid_t shell_pgrp;
+	unsigned sig;
+	unsigned mask;
 
-	shell_pgrp = getpgrp();
-
-	/* If we were ran as 'hush &',
-	 * sleep until we are in the foreground.  */
-	while (tcgetpgrp(G_interactive_fd) != shell_pgrp) {
-		/* Send TTIN to ourself (should stop us) */
-		kill(- shell_pgrp, SIGTTIN);
-		shell_pgrp = getpgrp();
+	mask = (1 << SIGQUIT);
+	if (G_interactive_fd) {
+		mask = 0
+			| (1 << SIGQUIT)
+			| (1 << SIGTERM)
+			| (1 << SIGHUP)
+#if ENABLE_HUSH_JOB
+			| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
+#endif
+			| (1 << SIGINT)
+		;
 	}
+	G.non_DFL_mask = mask;
 
+	if (!second_time)
+		sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
+	sig = 0;
+	while (mask) {
+		if (mask & 1)
+			sigaddset(&G.blocked_set, sig);
+		mask >>= 1;
+		sig++;
+	}
+	sigdelset(&G.blocked_set, SIGCHLD);
+
+	sigprocmask(SIG_SETMASK, &G.blocked_set,
+			second_time ? NULL : &G.inherited_set);
+	/* POSIX allows shell to re-enable SIGCHLD
+	 * even if it was SIG_IGN on entry */
+//	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
+	if (!second_time)
+		signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
+}
+
+#if ENABLE_HUSH_JOB
+/* helper */
+static void maybe_set_to_sigexit(int sig)
+{
+	void (*handler)(int);
+	/* non_DFL_mask'ed signals are, well, masked,
+	 * no need to set handler for them.
+	 */
+	if (!((G.non_DFL_mask >> sig) & 1)) {
+		handler = signal(sig, sigexit);
+		if (handler == SIG_IGN) /* oops... restore back to IGN! */
+			signal(sig, handler);
+	}
+}
+/* Set handlers to restore tty pgrm and exit */
+static void set_fatal_handlers(void)
+{
 	/* We _must_ restore tty pgrp on fatal signals */
-	set_fatal_signals_to_sigexit();
-
-	/* Put ourselves in our own process group.  */
-	bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
-	/* Grab control of the terminal.  */
-	tcsetpgrp(G_interactive_fd, getpid());
+	if (HUSH_DEBUG) {
+		maybe_set_to_sigexit(SIGILL );
+		maybe_set_to_sigexit(SIGFPE );
+		maybe_set_to_sigexit(SIGBUS );
+		maybe_set_to_sigexit(SIGSEGV);
+		maybe_set_to_sigexit(SIGTRAP);
+	} /* else: hush is perfect. what SEGV? */
+	maybe_set_to_sigexit(SIGABRT);
+	/* bash 3.2 seems to handle these just like 'fatal' ones */
+	maybe_set_to_sigexit(SIGPIPE);
+	maybe_set_to_sigexit(SIGALRM);
+	maybe_set_to_sigexit(SIGHUP );
+	/* if we are interactive, SIGTERM and SIGINT are masked.
+	 * if we aren't interactive... but in this case
+	 * we never want to restore pgrp on exit, and this fn is not called */
+	/*maybe_set_to_sigexit(SIGTERM);*/
+	/*maybe_set_to_sigexit(SIGINT );*/
 }
 #endif
 
@@ -4994,7 +4977,7 @@ int hush_main(int argc, char **argv)
 		.flg_export = 1,
 		.flg_read_only = 1,
 	};
-
+	int signal_mask_is_inited = 0;
 	int opt;
 	char **e;
 	struct variable *cur_var;
@@ -5060,6 +5043,7 @@ int hush_main(int argc, char **argv)
 				optind--;
 			} /* else -c 'script' PAR0 PAR1: $0 is PAR0 */
 			G.global_argc = argc - optind;
+			block_signals(0); /* 0: called 1st time */
 			parse_and_run_string(optarg);
 			goto final_return;
 		case 'i':
@@ -5104,10 +5088,12 @@ int hush_main(int argc, char **argv)
 			bb_show_usage();
 #endif
 		}
-	}
+	} /* option parsing loop */
 
 	if (!G.root_pid)
 		G.root_pid = getpid();
+
+	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *input;
 		/* XXX what should argv be while sourcing /etc/profile? */
@@ -5115,26 +5101,57 @@ int hush_main(int argc, char **argv)
 		input = fopen_for_read("/etc/profile");
 		if (input != NULL) {
 			close_on_exec_on(fileno(input));
+			block_signals(0); /* 0: called 1st time */
+			signal_mask_is_inited = 1;
 			parse_and_run_file(input);
 			fclose(input);
 		}
+		/* bash: after sourcing /etc/profile,
+		 * tries to source (in the given order):
+		 * ~/.bash_profile, ~/.bash_login, ~/.profile,
+		 * stopping of first found. --noprofile turns this off.
+		 * bash also sources ~/.bash_logout on exit.
+		 * If called as sh, skips .bash_XXX files.
+		 */
 	}
 
-#if ENABLE_HUSH_JOB
+	if (argv[optind]) {
+		FILE *input;
+		/*
+		 * Non-interactive "bash <script>" sources $BASH_ENV here
+		 * (without scanning $PATH).
+		 * If called as sh, does the same but with $ENV.
+		 */
+		debug_printf("running script '%s'\n", argv[optind]);
+		G.global_argv = argv + optind;
+		G.global_argc = argc - optind;
+		input = xfopen_for_read(argv[optind]);
+		close_on_exec_on(fileno(input));
+		if (!signal_mask_is_inited)
+			block_signals(0); /* 0: called 1st time */
+		parse_and_run_file(input);
+#if ENABLE_FEATURE_CLEAN_UP
+		fclose(input);
+#endif
+		goto final_return;
+	}
+
+	/* Up to here, shell was non-interactive. Now it may become one. */
+
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
 	 *    no -c command
 	 *    no arguments remaining or the -s flag given
 	 *    standard input is a terminal
 	 *    standard output is a terminal
-	 *    Refer to Posix.2, the description of the 'sh' utility. */
-	if (argv[optind] == NULL
-	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
-	) {
+	 * Refer to Posix.2, the description of the 'sh' utility.
+	 */
+#if ENABLE_HUSH_JOB
+	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
-		debug_printf("saved_tty_pgrp=%d\n", G.saved_tty_pgrp);
+		debug_printf("saved_tty_pgrp:%d\n", G.saved_tty_pgrp);
 		if (G.saved_tty_pgrp >= 0) {
-			/* try to dup to high fd#, >= 255 */
+			/* try to dup stdin to high fd#, >= 255 */
 			G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
 			if (G_interactive_fd < 0) {
 				/* try to dup to any fd */
@@ -5147,12 +5164,35 @@ int hush_main(int argc, char **argv)
 // to (inadvertently) close/redirect it
 		}
 	}
-	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
-	debug_printf("interactive_fd=%d\n", G_interactive_fd);
+	debug_printf("interactive_fd:%d\n", G_interactive_fd);
 	if (G_interactive_fd) {
-		fcntl(G_interactive_fd, F_SETFD, FD_CLOEXEC);
-		/* Looks like they want an interactive shell */
-		setup_job_control();
+		pid_t shell_pgrp;
+
+		/* We are indeed interactive shell, and we will perform
+		 * job control. Setting up for that. */
+
+		close_on_exec_on(G_interactive_fd);
+		/* If we were run as 'hush &', sleep until we are
+		 * in the foreground (tty pgrp == our pgrp).
+		 * If we get started under a job aware app (like bash),
+		 * make sure we are now in charge so we don't fight over
+		 * who gets the foreground */
+		while (1) {
+			shell_pgrp = getpgrp();
+			G.saved_tty_pgrp = tcgetpgrp(G_interactive_fd);
+			if (G.saved_tty_pgrp == shell_pgrp)
+				break;
+			/* send TTIN to ourself (should stop us) */
+			kill(- shell_pgrp, SIGTTIN);
+		}
+		/* Block some signals */
+		block_signals(signal_mask_is_inited);
+		/* Set other signals to restore saved_tty_pgrp */
+		set_fatal_handlers();
+		/* Put ourselves in our own process group */
+		bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
+		/* Grab control of the terminal */
+		tcsetpgrp(G_interactive_fd, getpid());
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		die_sleep = -1;
@@ -5160,12 +5200,12 @@ int hush_main(int argc, char **argv)
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);
 		}
-	}
+	} else if (!signal_mask_is_inited) {
+		block_signals(0); /* 0: called 1st time */
+	} /* else: block_signals(0) was done before */
 #elif ENABLE_HUSH_INTERACTIVE
-/* no job control compiled, only prompt/line editing */
-	if (argv[optind] == NULL
-	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
-	) {
+	/* No job control compiled in, only prompt/line editing */
+	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
 		if (G_interactive_fd < 0) {
 			/* try to dup to any fd */
@@ -5174,45 +5214,32 @@ int hush_main(int argc, char **argv)
 				/* give up */
 				G_interactive_fd = 0;
 		}
-		if (G_interactive_fd) {
-			fcntl(G_interactive_fd, F_SETFD, FD_CLOEXEC);
-		}
 	}
-	init_signal_mask(); /* note: ensures SIGCHLD is not masked */
-#else
-//TODO: we didn't do it for -c or /etc/profile! Shouldn't we?
-	init_signal_mask();
-#endif
-	/* POSIX allows shell to re-enable SIGCHLD
-	 * even if it was SIG_IGN on entry */
-//TODO: we didn't do it for -c or /etc/profile! Shouldn't we?
-//	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
-	signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
-
-#if ENABLE_HUSH_INTERACTIVE && !ENABLE_FEATURE_SH_EXTRA_QUIET
 	if (G_interactive_fd) {
+		close_on_exec_on(G_interactive_fd);
+		block_signals(signal_mask_is_inited);
+	} else if (!signal_mask_is_inited) {
+		block_signals(0);
+	}
+#else
+	/* We have interactiveness code disabled */
+	if (!signal_mask_is_inited) {
+		block_signals(0);
+	}
+#endif
+	/* bash:
+	 * if interactive but not a login shell, sources ~/.bashrc
+	 * (--norc turns this off, --rcfile <file> overrides)
+	 */
+
+	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G_interactive_fd) {
 		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 	}
-#endif
 
-	if (argv[optind] == NULL) {
-		parse_and_run_file(stdin);
-	} else {
-		FILE *input;
-		debug_printf("\nrunning script '%s'\n", argv[optind]);
-		G.global_argv = argv + optind;
-		G.global_argc = argc - optind;
-		input = xfopen_for_read(argv[optind]);
-		fcntl(fileno(input), F_SETFD, FD_CLOEXEC);
-		parse_and_run_file(input);
-#if ENABLE_FEATURE_CLEAN_UP
-		fclose(input);
-#endif
-	}
+	parse_and_run_file(stdin);
 
  final_return:
-
 #if ENABLE_FEATURE_CLEAN_UP
 	if (G.cwd != bb_msg_unknown)
 		free((char*)G.cwd);
