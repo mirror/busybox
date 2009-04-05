@@ -2359,12 +2359,13 @@ static void re_execute_shell(const char *s)
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
-//TODO: need to free these strings in parent!
-	G.argv_for_re_execing = pp = xmalloc(sizeof(argv[0]) * cnt);
+	G.argv_for_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) applet_name;
 	*pp++ = xasprintf("-$%u", G.root_pid);
 	*pp++ = xasprintf("-?%u", G.last_return_code);
+#if ENABLE_HUSH_LOOPS
 	*pp++ = xasprintf("-D%u", G.depth_of_loop);
+#endif
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (cur->varstr == hush_version_str)
 			continue;
@@ -2381,7 +2382,7 @@ static void re_execute_shell(const char *s)
 	pp2 = G.global_argv;
 	while (*pp2)
 		*pp++ = *pp2++;
-	*pp = NULL;
+	/* *pp = NULL; - is already there */
 //TODO: pass traps and functions
 
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
@@ -2398,7 +2399,9 @@ static void clean_up_after_re_execute(void)
 		/* Must match re_execute_shell's allocations */
 		free(pp[1]);
 		free(pp[2]);
+#if ENABLE_HUSH_LOOPS
 		free(pp[3]);
+#endif
 		free(pp);
 		G.argv_for_re_execing = NULL;
 	}
@@ -4281,56 +4284,58 @@ static int handle_dollar(struct parse_context *ctx,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
 	}
+#if (ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_TICK)
 	case '(': {
-#if !BB_MMU
+# if !BB_MMU
 		int pos;
-#endif
+# endif
 		ch = i_getch(input);
-#if !BB_MMU
+# if !BB_MMU
 		if (ctx) o_addchr(&ctx->as_string, ch);
-#endif
-#if ENABLE_SH_MATH_SUPPORT
+# endif
+# if ENABLE_SH_MATH_SUPPORT
 		if (i_peek(input) == '(') {
 			ch = i_getch(input);
-#if !BB_MMU
+#  if !BB_MMU
 			if (ctx) o_addchr(&ctx->as_string, ch);
-#endif
+#  endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
-#if !BB_MMU
+#  if !BB_MMU
 			pos = dest->length;
-#endif
+#  endif
 			add_till_closing_paren(dest, input, true);
-#if !BB_MMU
+#  if !BB_MMU
 			if (ctx) {
 				o_addstr(&ctx->as_string, dest->data + pos);
 				o_addchr(&ctx->as_string, ')');
 				o_addchr(&ctx->as_string, ')');
 			}
-#endif
+#  endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
-#endif
-#if ENABLE_HUSH_TICK
+# endif
+# if ENABLE_HUSH_TICK
 		//int pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, quote_mask | '`');
-#if !BB_MMU
+#  if !BB_MMU
 		pos = dest->length;
-#endif
+#  endif
 		add_till_closing_paren(dest, input, false);
-#if !BB_MMU
+#  if !BB_MMU
 		if (ctx) {
 			o_addstr(&ctx->as_string, dest->data + pos);
 			o_addchr(&ctx->as_string, '`');
 		}
-#endif
+#  endif
 		//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
-#endif
+# endif
 		break;
 	}
+#endif
 	case '_':
 		ch = i_getch(input);
 #if !BB_MMU
@@ -5075,9 +5080,11 @@ int hush_main(int argc, char **argv)
 		case '?':
 			G.last_return_code = xatoi_u(optarg);
 			break;
+#if ENABLE_HUSH_LOOPS
 		case 'D':
 			G.depth_of_loop = xatoi_u(optarg);
 			break;
+#endif
 		case 'R':
 		case 'V':
 			set_local_var(xstrdup(optarg), 0, opt == 'R');
