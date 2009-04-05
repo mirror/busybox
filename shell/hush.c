@@ -2345,8 +2345,8 @@ static void re_execute_shell(const char *s)
 	char **argv, **pp;
 	unsigned cnt;
 
-	/* hush -$<pid> -?<exitcode> ... -c <cmd> NULL */
-	cnt = 6;
+	/* hush -$<pid> -?<exitcode> -D<depth> ... -c <cmd> NULL */
+	cnt = 7;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
@@ -2356,6 +2356,7 @@ static void re_execute_shell(const char *s)
 	*pp++ = (char *) applet_name;
 	*pp++ = xasprintf("-$%u", G.root_pid);
 	*pp++ = xasprintf("-?%u", G.last_return_code);
+	*pp++ = xasprintf("-D%u", G.depth_of_loop);
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (cur->varstr == hush_version_str)
 			continue;
@@ -5009,7 +5010,7 @@ int hush_main(int argc, char **argv)
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
 #if !BB_MMU
-				"$:?:R:V:"
+				"$:?:D:R:V:"
 #endif
 		);
 		if (opt <= 0)
@@ -5040,6 +5041,9 @@ int hush_main(int argc, char **argv)
 			break;
 		case '?':
 			G.last_return_code = xatoi_u(optarg);
+			break;
+		case 'D':
+			G.depth_of_loop = xatoi_u(optarg);
 			break;
 		case 'R':
 		case 'V':
