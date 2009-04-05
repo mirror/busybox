@@ -84,8 +84,6 @@
 # define USE_FOR_MMU(...)
 #endif
 
-#define HUSH_VER_STR "0.93"
-
 #if defined SINGLE_APPLET_MAIN
 /* STANDALONE does not make sense, and won't compile */
 #undef CONFIG_FEATURE_SH_STANDALONE
@@ -240,7 +238,7 @@ static void xxfree(void *ptr)
 
 #define ERR_PTR ((void*)(long)1)
 
-static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="HUSH_VER_STR;
+static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
 
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
@@ -5293,7 +5291,7 @@ int hush_main(int argc, char **argv)
 	 */
 
 	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G_interactive_fd) {
-		printf("\n\n%s hush - the humble shell v"HUSH_VER_STR"\n", bb_banner);
+		printf("\n\n%s hush - the humble shell\n", bb_banner);
 		printf("Enter 'help' for a list of built-in commands.\n\n");
 	}
 
