@@ -625,7 +625,11 @@ static unsigned long obj_load_size(struct obj_file *f);
 
 static int obj_relocate(struct obj_file *f, ElfW(Addr) base);
 
-static struct obj_file *obj_load(int fd, int loadprogbits);
+#if !LOADBITS
+#define obj_load(image, image_size, loadprogbits) \
+	obj_load(image, image_size)
+#endif
+static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbits);
 
 static int obj_create_image(struct obj_file *f, char *image);
 
@@ -3191,7 +3195,7 @@ static int obj_create_image(struct obj_file *f, char *image)
 
 /*======================================================================*/
 
-static struct obj_file *obj_load(int fd, int loadprogbits UNUSED_PARAM)
+static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbits)
 {
 #if BB_LITTLE_ENDIAN
 # define ELFMAG_U32 ((uint32_t)(ELFMAG0 + 0x100 * (ELFMAG1 + (0x100 * (ELFMAG2 + 0x100 * ELFMAG3)))))
@@ -3210,8 +3214,9 @@ static struct obj_file *obj_load(int fd, int loadprogbits UNUSED_PARAM)
 	f->symbol_hash = obj_elf_hash;
 	f->load_order_search_start = &f->load_order;
 
-	xlseek(fd, 0, SEEK_SET);
-	xread(fd, &f->header, sizeof(f->header));
+	if (image_size < sizeof(f->header))
+		bb_error_msg_and_die("error while loading ELF header");
+	memcpy(&f->header, image, sizeof(f->header));
 
 	if (*(uint32_t*)(&f->header.e_ident) != ELFMAG_U32) {
 		bb_error_msg_and_die("not an ELF file");
@@ -3242,8 +3247,9 @@ static struct obj_file *obj_load(int fd, int loadprogbits UNUSED_PARAM)
 	f->sections = xzalloc(sizeof(f->sections[0]) * (shnum + 4));
 
 	section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
-	xlseek(fd, f->header.e_shoff, SEEK_SET);
-	xread(fd, section_headers, sizeof(ElfW(Shdr)) * shnum);
+	if (image_size < f->header.e_shoff + sizeof(ElfW(Shdr)) * shnum)
+		bb_error_msg_and_die("error while loading section headers");
+	memcpy(section_headers, image + f->header.e_shoff, sizeof(ElfW(Shdr)) * shnum);
 
 	/* Read the section data.  */
 
@@ -3275,8 +3281,9 @@ static struct obj_file *obj_load(int fd, int loadprogbits UNUSED_PARAM)
 				sec->contents = NULL;
 				if (sec->header.sh_size > 0) {
 					sec->contents = xmalloc(sec->header.sh_size);
-					xlseek(fd, sec->header.sh_offset, SEEK_SET);
-					xread(fd, sec->contents, sec->header.sh_size);
+					if (image_size < (sec->header.sh_offset + sec->header.sh_size))
+						bb_error_msg_and_die("error while loading section data");
+					memcpy(sec->contents, image + sec->header.sh_offset, sec->header.sh_size);
 				}
 				break;
 #if SHT_RELM == SHT_REL
@@ -3392,7 +3399,7 @@ static struct obj_file *obj_load(int fd, int loadprogbits UNUSED_PARAM)
  * kernel for the module
  */
 
-static int obj_load_progbits(int fd, struct obj_file *f, char *imagebase)
+static int obj_load_progbits(char *image, size_t image_size, struct obj_file *f, char *imagebase)
 {
 	ElfW(Addr) base = f->baseaddr;
 	struct obj_section* sec;
@@ -3404,12 +3411,11 @@ static int obj_load_progbits(int fd, struct obj_file *f, char *imagebase)
 		if (sec->header.sh_size == 0)
 			continue;
 		sec->contents = imagebase + (sec->header.sh_addr - base);
-		xlseek(fd, sec->header.sh_offset, SEEK_SET);
-		errno = 0; /* read may be short without errno being set */
-		if (full_read(fd, sec->contents, sec->header.sh_size) != sec->header.sh_size) {
-			bb_perror_msg("error reading ELF section data");
-			return 0;
+		if (image_size < (sec->header.sh_offset + sec->header.sh_size)) {
+			bb_error_msg("error reading ELF section data");
+			return 0; /* need to delete half-loaded module! */
 		}
+		memcpy(sec->contents, image + sec->header.sh_offset, sec->header.sh_size);
 	}
 	return 1;
 }
@@ -3771,23 +3777,26 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	struct utsname uts;
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
-	char *m_name, *p;
+	char *m_name;
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	char m_strversion[STRVERSIONLEN];
 	int m_version, m_crcs;
 #endif
-	int fd;
+	char *image;
+	size_t image_size = 64 * 1024 * 1024;
 
 	uname(&uts);
-	fd = open_or_warn(m_filename, O_RDONLY);
-	if (fd < 0)
+
+	/* Load module into memory and unzip if compressed */
+	image = xmalloc_open_zipped_read_close(m_filename, &image_size);
+	if (!image)
 		return EXIT_FAILURE;
 
 	m_name = xstrdup(bb_basename(m_filename));
-	p = strrchr(m_name, '.');
-	if (p) *p = '\0';
+	/* "module.o[.gz]" -> "module" */
+	*strchrnul(m_name, '.') = '\0';
 
-	f = obj_load(fd, LOADBITS);
+	f = obj_load(image, image_size, LOADBITS);
 
 	m_has_modinfo = (get_modinfo_value(f, "kernel_version") != NULL);
 
@@ -3816,7 +3825,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 #endif
 
 	if (query_module(NULL, 0, NULL, 0, NULL))
-		bb_error_msg_and_die("not configured to support old kernels");
+		bb_error_msg_and_die("old (unsupported) kernel");
 	new_get_kernel_symbols();
 	k_crcs = new_is_kernel_checksummed();
 
@@ -3869,7 +3878,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	 * the PROGBITS section was not loaded by the obj_load
 	 * now we can load them directly into the kernel memory
 	 */
-	if (!obj_load_progbits(fd, f, (char*)m_addr)) {
+	if (!obj_load_progbits(image, image_size, f, (char*)m_addr)) {
 		delete_module(m_name, 0);
 		goto out;
 	}
@@ -3891,7 +3900,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	exit_status = EXIT_SUCCESS;
 
  out:
-	close(fd);
+	free(image);
 	free(m_name);
 
 	return exit_status;
