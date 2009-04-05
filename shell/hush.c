@@ -1225,6 +1225,7 @@ static int file_get(struct in_str *i)
 		ch = *i->p++;
 		if (i->eof_flag && !*i->p)
 			ch = EOF;
+		/* note: ch is never NUL */
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
@@ -1238,9 +1239,9 @@ static int file_get(struct in_str *i)
 			goto take_cached;
 		}
 #endif
-		ch = fgetc(i->file);
+		do ch = fgetc(i->file); while (ch == '\0');
 	}
-	debug_printf("file_get: got a '%c' %d\n", ch, ch);
+	debug_printf("file_get: got '%c' %d\n", ch, ch);
 #if ENABLE_HUSH_INTERACTIVE
 	if (ch == '\n')
 		i->promptme = 1;
@@ -1248,8 +1249,8 @@ static int file_get(struct in_str *i)
 	return ch;
 }
 
-/* All the callers guarantee this routine will never be
- * used right after a newline, so prompting is not needed.
+/* All callers guarantee this routine will never
+ * be used right after a newline, so prompting is not needed.
  */
 static int file_peek(struct in_str *i)
 {
@@ -1258,13 +1259,14 @@ static int file_peek(struct in_str *i)
 		if (i->eof_flag && !i->p[1])
 			return EOF;
 		return *i->p;
+		/* note: ch is never NUL */
 	}
-	ch = fgetc(i->file);
+	do ch = fgetc(i->file); while (ch == '\0');
 	i->eof_flag = (ch == EOF);
 	i->peek_buf[0] = ch;
 	i->peek_buf[1] = '\0';
 	i->p = i->peek_buf;
-	debug_printf("file_peek: got a '%c' %d\n", *i->p, *i->p);
+	debug_printf("file_peek: got '%c' %d\n", ch, ch);
 	return ch;
 }
 
