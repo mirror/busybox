@@ -1603,10 +1603,10 @@ static int process_command_subs(o_string *dest, const char *s);
 #endif
 static char *expand_string_to_string(const char *str);
 #if BB_MMU
-#define parse_stream_dquoted(ctx, dest, input, dquote_end) \
+#define parse_stream_dquoted(as_string, dest, input, dquote_end) \
 	parse_stream_dquoted(dest, input, dquote_end)
 #endif
-static int parse_stream_dquoted(struct parse_context *ctx,
+static int parse_stream_dquoted(o_string *as_string,
 		o_string *dest,
 		struct in_str *input,
 		int dquote_end);
@@ -2275,7 +2275,38 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	_exit(EXIT_FAILURE);
 }
 
-#if !BB_MMU
+#if BB_MMU
+static void reset_traps_to_defaults(void)
+{
+	unsigned sig;
+	int dirty;
+
+	if (!G.traps)
+		return;
+	dirty = 0;
+	for (sig = 0; sig < NSIG; sig++) {
+		if (!G.traps[sig])
+			continue;
+		free(G.traps[sig]);
+		G.traps[sig] = NULL;
+		/* There is no signal for 0 (EXIT) */
+		if (sig == 0)
+			continue;
+		/* there was a trap handler, we are removing it
+		 * (if sig has non-DFL handling,
+		 * we don't need to do anything) */
+		if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+			continue;
+		sigdelset(&G.blocked_set, sig);
+		dirty = 1;
+	}
+	if (dirty)
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+}
+#define clean_up_after_re_execute() ((void)0)
+
+#else /* !BB_MMU */
+
 static void re_execute_shell(const char *s) NORETURN;
 static void re_execute_shell(const char *s)
 {
@@ -2310,13 +2341,32 @@ static void re_execute_shell(const char *s)
 			*pp++ = cur->varstr;
 		}
 	}
+//TODO: pass functions
+	/* We can pass activated traps here. Say, -Tnn:trap_string
+	 *
+	 * However, POSIX says that subshells reset signals with traps
+	 * to SIG_DFL.
+	 * I tested bash-3.2 and it not only does that with true subshells
+	 * of the form ( list ), but with any forked children shells.
+	 * I set trap "echo W" WINCH; and then tried:
+	 *
+	 * { echo 1; sleep 20; echo 2; } &
+	 * while true; do echo 1; sleep 20; echo 2; break; done &
+	 * true | { echo 1; sleep 20; echo 2; } | cat
+	 *
+	 * In all these cases sending SIGWINCH to the child shell
+	 * did not run the trap. If I add trap "echo V" WINCH;
+	 * _inside_ group (just before echo 1), it works.
+	 *
+	 * I conclude it means we don't need to pass active traps here.
+	 * exec syscall below resets them to SIG_DFL for us.
+	 */
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
 	pp2 = G.global_argv;
 	while (*pp2)
 		*pp++ = *pp2++;
 	/* *pp = NULL; - is already there */
-//TODO: pass traps and functions
 
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
@@ -2343,8 +2393,6 @@ static void clean_up_after_re_execute(void)
 		G.argv_from_re_execing = NULL;
 	}
 }
-#else
-#define clean_up_after_re_execute() ((void)0)
 #endif
 
 static int run_list(struct pipe *pi);
@@ -2373,6 +2421,7 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 #if BB_MMU
 		int rcode;
 		debug_printf_exec("pseudo_exec: run_list\n");
+		reset_traps_to_defaults();
 		rcode = run_list(command->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -3846,6 +3895,7 @@ static FILE *generate_stream_from_string(const char *s)
 		/* Prevent it from trying to handle ctrl-z etc */
 		USE_HUSH_JOB(G.run_list_level = 1;)
 #if BB_MMU
+		reset_traps_to_defaults();
 		parse_and_run_string(s);
 		_exit(G.last_return_code);
 #else
@@ -4097,10 +4147,10 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, bool db
 
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
-#define handle_dollar(ctx, dest, input) \
+#define handle_dollar(as_string, dest, input) \
 	handle_dollar(dest, input)
 #endif
-static int handle_dollar(struct parse_context *ctx,
+static int handle_dollar(o_string *as_string,
 		o_string *dest,
 		struct in_str *input)
 {
@@ -4112,7 +4162,7 @@ static int handle_dollar(struct parse_context *ctx,
 	if (isalpha(ch)) {
 		ch = i_getch(input);
 #if !BB_MMU
-		if (ctx) o_addchr(&ctx->as_string, ch);
+		if (as_string) o_addchr(as_string, ch);
 #endif
  make_var:
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4125,7 +4175,7 @@ static int handle_dollar(struct parse_context *ctx,
 				break;
 			ch = i_getch(input);
 #if !BB_MMU
-			if (ctx) o_addchr(&ctx->as_string, ch);
+			if (as_string) o_addchr(as_string, ch);
 #endif
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4133,7 +4183,7 @@ static int handle_dollar(struct parse_context *ctx,
  make_one_char_var:
 		ch = i_getch(input);
 #if !BB_MMU
-		if (ctx) o_addchr(&ctx->as_string, ch);
+		if (as_string) o_addchr(as_string, ch);
 #endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
@@ -4153,7 +4203,7 @@ static int handle_dollar(struct parse_context *ctx,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ch = i_getch(input);
 #if !BB_MMU
-		if (ctx) o_addchr(&ctx->as_string, ch);
+		if (as_string) o_addchr(as_string, ch);
 #endif
 		/* XXX maybe someone will try to escape the '}' */
 		expansion = 0;
@@ -4162,7 +4212,7 @@ static int handle_dollar(struct parse_context *ctx,
 		while (1) {
 			ch = i_getch(input);
 #if !BB_MMU
-			if (ctx) o_addchr(&ctx->as_string, ch);
+			if (as_string) o_addchr(as_string, ch);
 #endif
 			if (ch == '}')
 				break;
@@ -4235,13 +4285,13 @@ static int handle_dollar(struct parse_context *ctx,
 # endif
 		ch = i_getch(input);
 # if !BB_MMU
-		if (ctx) o_addchr(&ctx->as_string, ch);
+		if (as_string) o_addchr(as_string, ch);
 # endif
 # if ENABLE_SH_MATH_SUPPORT
 		if (i_peek(input) == '(') {
 			ch = i_getch(input);
 #  if !BB_MMU
-			if (ctx) o_addchr(&ctx->as_string, ch);
+			if (as_string) o_addchr(as_string, ch);
 #  endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
@@ -4250,10 +4300,10 @@ static int handle_dollar(struct parse_context *ctx,
 #  endif
 			add_till_closing_paren(dest, input, true);
 #  if !BB_MMU
-			if (ctx) {
-				o_addstr(&ctx->as_string, dest->data + pos);
-				o_addchr(&ctx->as_string, ')');
-				o_addchr(&ctx->as_string, ')');
+			if (as_string) {
+				o_addstr(as_string, dest->data + pos);
+				o_addchr(as_string, ')');
+				o_addchr(as_string, ')');
 			}
 #  endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4269,9 +4319,9 @@ static int handle_dollar(struct parse_context *ctx,
 #  endif
 		add_till_closing_paren(dest, input, false);
 #  if !BB_MMU
-		if (ctx) {
-			o_addstr(&ctx->as_string, dest->data + pos);
-			o_addchr(&ctx->as_string, '`');
+		if (as_string) {
+			o_addstr(as_string, dest->data + pos);
+			o_addchr(as_string, '`');
 		}
 #  endif
 		//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
@@ -4283,7 +4333,7 @@ static int handle_dollar(struct parse_context *ctx,
 	case '_':
 		ch = i_getch(input);
 #if !BB_MMU
-		if (ctx) o_addchr(&ctx->as_string, ch);
+		if (as_string) o_addchr(as_string, ch);
 #endif
 		ch = i_peek(input);
 		if (isalnum(ch)) { /* it's $_name or $_123 */
@@ -4302,10 +4352,10 @@ static int handle_dollar(struct parse_context *ctx,
 }
 
 #if BB_MMU
-#define parse_stream_dquoted(ctx, dest, input, dquote_end) \
+#define parse_stream_dquoted(as_string, dest, input, dquote_end) \
 	parse_stream_dquoted(dest, input, dquote_end)
 #endif
-static int parse_stream_dquoted(struct parse_context *ctx,
+static int parse_stream_dquoted(o_string *as_string,
 		o_string *dest,
 		struct in_str *input,
 		int dquote_end)
@@ -4316,8 +4366,8 @@ static int parse_stream_dquoted(struct parse_context *ctx,
  again:
 	ch = i_getch(input);
 #if !BB_MMU
-	if (ctx && ch != EOF)
-		o_addchr(&ctx->as_string, ch);
+	if (as_string && ch != EOF)
+		o_addchr(as_string, ch);
 #endif
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		dest->nonnull = 1;
@@ -4360,7 +4410,7 @@ static int parse_stream_dquoted(struct parse_context *ctx,
 		goto again;
 	}
 	if (ch == '$') {
-		if (handle_dollar(ctx, dest, input) != 0) {
+		if (handle_dollar(as_string, dest, input) != 0) {
 			debug_printf_parse("parse_stream_dquoted return 1: "
 					"handle_dollar returned non-0\n");
 			return 1;
@@ -4432,7 +4482,7 @@ static struct pipe *parse_stream(char **pstring,
 		redir_type redir_style;
 
 		if (is_in_dquote) {
-			if (parse_stream_dquoted(&ctx, &dest, input, '"')) {
+			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"')) {
 				goto parse_error;
 			}
 			/* We reached closing '"' */
@@ -4579,8 +4629,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			break;
 		case '$':
-//NOMMU TODO!
-			if (handle_dollar(&ctx, &dest, input) != 0) {
+			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
 				debug_printf_parse("parse_stream parse error: "
 					"handle_dollar returned non-0\n");
 				goto parse_error;
@@ -5023,6 +5072,15 @@ int hush_main(int argc, char **argv)
 	G.PS2 = "> ";
 #endif
 
+	/* Shell is non-interactive at first. We need to call
+	 * block_signals(0) if we are going to execute "sh script",
+	 * "sh -c cmds" or login shell's /etc/profile and friends.
+	 * If we later decide that we are interactive, we run block_signals(0)
+	 * (or re-run block_signals(1) if we ran block_signals(0) before)
+	 * in order to intercept (more) signals.
+	 */
+
+	/* Parse options */
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
@@ -5136,7 +5194,9 @@ int hush_main(int argc, char **argv)
 		goto final_return;
 	}
 
-	/* Up to here, shell was non-interactive. Now it may become one. */
+	/* Up to here, shell was non-interactive. Now it may become one.
+	 * NB: don't forget to (re)run block_signals(0/1) as needed.
+	 */
 
 	/* A shell is interactive if the '-i' flag was given, or if all of
 	 * the following conditions are met:
