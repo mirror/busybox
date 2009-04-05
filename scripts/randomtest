@@ -76,17 +76,6 @@ cat .config \
 mv .config.new .config
 }
 
-# CONFIG_NOMMU + CONFIG_HUSH + CONFIG_WERROR don't mix
-# (produces warning)
-grep -q ^CONFIG_NOMMU= .config && \
-grep -q ^CONFIG_HUSH= .config && \
-{
-cat .config \
-| grep -v ^CONFIG_WERROR= \
-| cat >.config.new
-mv .config.new .config
-}
-
 # Regenerate .config with default answers for yanked-off options
 { yes "" | make oldconfig >/dev/null; } || exit 1
 
