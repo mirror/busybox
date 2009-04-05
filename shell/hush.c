@@ -1055,13 +1055,18 @@ static const char *get_local_var_value(const char *src)
 
 /* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it.
- * flg_export is used by:
+ * flg_export:
  *  0: do not export
  *  1: export
  * -1: if NAME is set, leave export status alone
  *     if NAME is not set, do not export
+ * flg_read_only is set only when we handle -R var=val
  */
-static int set_local_var(char *str, int flg_export)
+#if BB_MMU
+#define set_local_var(str, flg_export, flg_read_only) \
+	set_local_var(str, flg_export)
+#endif
+static int set_local_var(char *str, int flg_export, int flg_read_only)
 {
 	struct variable *cur;
 	char *value;
@@ -1088,7 +1093,10 @@ static int set_local_var(char *str, int flg_export)
 		/* We found an existing var with this name */
 		*value = '\0';
 		if (cur->flg_read_only) {
-			bb_error_msg("%s: readonly variable", str);
+#if !BB_MMU
+			if (!flg_read_only)
+#endif
+				bb_error_msg("%s: readonly variable", str);
 			free(str);
 			return -1;
 		}
@@ -1119,6 +1127,7 @@ static int set_local_var(char *str, int flg_export)
 
  set_str_and_exp:
 	cur->varstr = str;
+	cur->flg_read_only = flg_read_only;
  exp:
 	if (flg_export == 1)
 		cur->flg_export = 1;
@@ -1182,7 +1191,7 @@ static void arith_set_local_var(const char *name, const char *val, int flags)
 {
 	/* arith code doesnt malloc space, so do it for it */
 	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, flags);
+	set_local_var(var, flags, 0);
 }
 #endif
 
@@ -1948,7 +1957,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 						} else {
 							char *new_var = xmalloc(strlen(var) + strlen(val) + 2);
 							sprintf(new_var, "%s=%s", var, val);
-							set_local_var(new_var, -1);
+							set_local_var(new_var, -1, 0);
 						}
 					}
 				}
@@ -2332,9 +2341,40 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 static void re_execute_shell(const char *s) NORETURN;
 static void re_execute_shell(const char *s)
 {
-//TODO: pass non-exported variables, traps, and functions
-	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'", getpid(), s);
-	execl(bb_busybox_exec_path, "hush", "-c", s, NULL);
+	struct variable *cur;
+	char **argv, **pp;
+	unsigned cnt;
+
+	/* hush -$<pid> -?<exitcode> ... -c <cmd> NULL */
+	cnt = 6;
+	for (cur = G.top_var; cur; cur = cur->next) {
+		if (!cur->flg_export || cur->flg_read_only)
+			cnt += 2;
+	}
+//TODO: need to free these strings in parent!
+	argv = pp = xmalloc(sizeof(argv[0]) * cnt);
+	*pp++ = (char *) applet_name;
+	*pp++ = xasprintf("-$%u", G.root_pid);
+	*pp++ = xasprintf("-?%u", G.last_return_code);
+	for (cur = G.top_var; cur; cur = cur->next) {
+		if (cur->varstr == hush_version_str)
+			continue;
+		if (cur->flg_read_only) {
+			*pp++ = (char *) "-R";
+			*pp++ = cur->varstr;
+		} else if (!cur->flg_export) {
+			*pp++ = (char *) "-V";
+			*pp++ = cur->varstr;
+		}
+	}
+	*pp++ = (char *) "-c";
+	*pp++ = (char *) s;
+//TODO: pass $N
+	*pp = NULL;
+//TODO: pass traps and functions
+
+	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
+	execv(bb_busybox_exec_path, argv);
 //TODO: fallback for init=/bin/hush?
 	_exit(127);
 }
@@ -2720,7 +2760,7 @@ static int run_pipe(struct pipe *pi)
 				p = expand_string_to_string(*argv);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
-				set_local_var(p, 0);
+				set_local_var(p, 0, 0);
 				argv++;
 			}
 			/* Do we need to flag set_local_var() errors?
@@ -4094,7 +4134,7 @@ static int handle_dollar(struct parse_context *ctx,
 	if (isalpha(ch)) {
 		ch = i_getch(input);
 #if !BB_MMU
-		o_addchr(&ctx->as_string, ch);
+		if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
  make_var:
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4107,7 +4147,7 @@ static int handle_dollar(struct parse_context *ctx,
 				break;
 			ch = i_getch(input);
 #if !BB_MMU
-			o_addchr(&ctx->as_string, ch);
+			if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4115,7 +4155,7 @@ static int handle_dollar(struct parse_context *ctx,
  make_one_char_var:
 		ch = i_getch(input);
 #if !BB_MMU
-		o_addchr(&ctx->as_string, ch);
+		if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
@@ -4135,7 +4175,7 @@ static int handle_dollar(struct parse_context *ctx,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ch = i_getch(input);
 #if !BB_MMU
-		o_addchr(&ctx->as_string, ch);
+		if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 		/* XXX maybe someone will try to escape the '}' */
 		expansion = 0;
@@ -4144,7 +4184,7 @@ static int handle_dollar(struct parse_context *ctx,
 		while (1) {
 			ch = i_getch(input);
 #if !BB_MMU
-			o_addchr(&ctx->as_string, ch);
+			if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 			if (ch == '}')
 				break;
@@ -4211,19 +4251,32 @@ static int handle_dollar(struct parse_context *ctx,
 		break;
 	}
 	case '(': {
+#if !BB_MMU
+		int pos;
+#endif
 		ch = i_getch(input);
 #if !BB_MMU
-		o_addchr(&ctx->as_string, ch);
+		if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 #if ENABLE_SH_MATH_SUPPORT
 		if (i_peek(input) == '(') {
 			ch = i_getch(input);
 #if !BB_MMU
-			o_addchr(&ctx->as_string, ch);
+			if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
+#if !BB_MMU
+			pos = dest->length;
+#endif
 			add_till_closing_paren(dest, input, true);
+#if !BB_MMU
+			if (ctx) {
+				o_addstr(&ctx->as_string, dest->data + pos);
+				o_addchr(&ctx->as_string, ')');
+				o_addchr(&ctx->as_string, ')');
+			}
+#endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
@@ -4232,7 +4285,16 @@ static int handle_dollar(struct parse_context *ctx,
 		//int pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, quote_mask | '`');
+#if !BB_MMU
+		pos = dest->length;
+#endif
 		add_till_closing_paren(dest, input, false);
+#if !BB_MMU
+		if (ctx) {
+			o_addstr(&ctx->as_string, dest->data + pos);
+			o_addchr(&ctx->as_string, '`');
+		}
+#endif
 		//debug_printf_subst("SUBST RES2 '%s'\n", dest->data + pos);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 #endif
@@ -4241,7 +4303,7 @@ static int handle_dollar(struct parse_context *ctx,
 	case '_':
 		ch = i_getch(input);
 #if !BB_MMU
-		o_addchr(&ctx->as_string, ch);
+		if (ctx) o_addchr(&ctx->as_string, ch);
 #endif
 		ch = i_peek(input);
 		if (isalnum(ch)) { /* it's $_name or $_123 */
@@ -4293,8 +4355,8 @@ static int parse_stream_dquoted(struct parse_context *ctx,
 	if (ch != '\n') {
 		next = i_peek(input);
 	}
-	debug_printf_parse(": ch=%c (%d) m=%d escape=%d\n",
-					ch, ch, m, dest->o_escape);
+	debug_printf_parse(": ch=%c (%d) escape=%d\n",
+					ch, ch, dest->o_escape);
 	if (ch == '\\') {
 		if (next == EOF) {
 			syntax("\\<eof>");
@@ -4944,7 +5006,14 @@ int hush_main(int argc, char **argv)
 	input = stdin;
 
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
-	while ((opt = getopt(argc, argv, "c:xins")) > 0) {
+	while (1) {
+		opt = getopt(argc, argv, "c:xins"
+#if !BB_MMU
+				"$:?:R:V:"
+#endif
+		);
+		if (opt <= 0)
+			break;
 		switch (opt) {
 		case 'c':
 			G.global_argv = argv + optind;
@@ -4965,6 +5034,18 @@ int hush_main(int argc, char **argv)
 			/* "-s" means "read from stdin", but this is how we always
 			 * operate, so simply do nothing here. */
 			break;
+#if !BB_MMU
+		case '$':
+			G.root_pid = xatoi_u(optarg);
+			break;
+		case '?':
+			G.last_return_code = xatoi_u(optarg);
+			break;
+		case 'R':
+		case 'V':
+			set_local_var(xstrdup(optarg), 0, opt == 'R');
+			break;
+#endif
 		case 'n':
 		case 'x':
 			if (!set_mode('-', opt))
@@ -5293,7 +5374,7 @@ static int builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	set_local_var(xstrdup(name), 1);
+	set_local_var(xstrdup(name), 1, 0);
 	return EXIT_SUCCESS;
 }
 
@@ -5406,7 +5487,7 @@ static int builtin_read(char **argv)
 	const char *name = argv[1] ? argv[1] : "REPLY";
 
 	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
-	return set_local_var(string, 0);
+	return set_local_var(string, 0, 0);
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
