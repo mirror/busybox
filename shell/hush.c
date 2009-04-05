@@ -481,11 +481,14 @@ struct globals {
 	smallint fake_mode;
 	/* These four support $?, $#, and $1 */
 	smalluint last_return_code;
-	/* is global_argv and global_argv[1..n] malloced? (note: not [0]) */
+	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
 	/* how many non-NULL argv's we have. NB: $# + 1 */
 	int global_argc;
 	char **global_argv;
+#if !BB_MMU
+	char **argv_for_re_execing;
+#endif
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
 	unsigned depth_of_loop;
@@ -1127,7 +1130,9 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 
  set_str_and_exp:
 	cur->varstr = str;
+#if !BB_MMU
 	cur->flg_read_only = flg_read_only;
+#endif
  exp:
 	if (flg_export == 1)
 		cur->flg_export = 1;
@@ -2338,6 +2343,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	_exit(EXIT_FAILURE);
 }
 
+#if !BB_MMU
 static void re_execute_shell(const char *s) NORETURN;
 static void re_execute_shell(const char *s)
 {
@@ -2354,7 +2360,7 @@ static void re_execute_shell(const char *s)
 			cnt += 2;
 	}
 //TODO: need to free these strings in parent!
-	argv = pp = xmalloc(sizeof(argv[0]) * cnt);
+	G.argv_for_re_execing = pp = xmalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) applet_name;
 	*pp++ = xasprintf("-$%u", G.root_pid);
 	*pp++ = xasprintf("-?%u", G.last_return_code);
@@ -2379,10 +2385,27 @@ static void re_execute_shell(const char *s)
 //TODO: pass traps and functions
 
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
-	execv(bb_busybox_exec_path, argv);
+	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+	execv(bb_busybox_exec_path, G.argv_for_re_execing);
 //TODO: fallback for init=/bin/hush?
 	_exit(127);
 }
+
+static void clean_up_after_re_execute(void)
+{
+	char **pp = G.argv_for_re_execing;
+	if (pp) {
+		/* Must match re_execute_shell's allocations */
+		free(pp[1]);
+		free(pp[2]);
+		free(pp[3]);
+		free(pp);
+		G.argv_for_re_execing = NULL;
+	}
+}
+#else
+#define clean_up_after_re_execute() ((void)0)
+#endif
 
 static int run_list(struct pipe *pi);
 
@@ -2892,9 +2915,11 @@ static int run_pipe(struct pipe *pi)
 			pseudo_exec((nommu_save_t*) &nommu_save, command, argv_expanded);
 			/* pseudo_exec() does not return */
 		}
+
 		/* parent */
 #if !BB_MMU
 		/* Clean up after vforked child */
+		clean_up_after_re_execute();
 		free(nommu_save.argv);
 		free_strings_and_unsetenv(nommu_save.new_env, 1);
 		putenv_all(nommu_save.old_env);
@@ -3890,6 +3915,7 @@ static FILE *generate_stream_from_string(const char *s)
 	}
 
 	/* parent */
+	clean_up_after_re_execute();
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
 	return pf;
@@ -4827,6 +4853,9 @@ static struct pipe *parse_stream(char **pstring,
 		 * while if false; then false; fi do break; done
 		 * (bash accepts it)
 		 * while if false; then false; fi; do break; fi
+		 * Samples to catch leaks at execution:
+		 * while if (true | {true;}); then echo ok; fi; do break; done
+		 * while if (true | {true;}); then echo ok; fi; do (if echo ok; break; then :; fi) | cat; break; done
 		 */
 		pctx = &ctx;
 		do {
