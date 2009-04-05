@@ -2342,11 +2342,13 @@ static void re_execute_shell(const char *s) NORETURN;
 static void re_execute_shell(const char *s)
 {
 	struct variable *cur;
-	char **argv, **pp;
+	char **argv, **pp, **pp2;
 	unsigned cnt;
 
-	/* hush -$<pid> -?<exitcode> -D<depth> ... -c <cmd> NULL */
-	cnt = 7;
+	/* 1:hush 2:-$<pid> 3:-?<exitcode> 4:-D<depth> <vars...>
+	 * 5:-c 6:<cmd> <argN...> 7:NULL
+	 */
+	cnt = 7 + G.global_argc;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
@@ -2370,7 +2372,9 @@ static void re_execute_shell(const char *s)
 	}
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
-//TODO: pass $N
+	pp2 = G.global_argv;
+	while (*pp2)
+		*pp++ = *pp2++;
 	*pp = NULL;
 //TODO: pass traps and functions
 

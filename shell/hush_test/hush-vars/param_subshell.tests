@@ -1,0 +1,13 @@
+if test $# = 0; then
+    "$THIS_SH" "$0" 1 2 3 4 5 6 7 8 9
+    exit
+fi
+echo 1=$1
+{ echo 2=$2; }
+{ echo 3=$3; } &
+usleep 100000
+( echo 4=$4 )
+( echo 5=$5 ) &
+usleep 100000
+true | echo 6=$6 | cat
+true | { echo 7=$7; } | cat
