@@ -2306,26 +2306,28 @@ static void reset_traps_to_defaults(void)
 static void re_execute_shell(const char *s) NORETURN;
 static void re_execute_shell(const char *s)
 {
+	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
 	struct variable *cur;
 	char **argv, **pp, **pp2;
 	unsigned cnt;
 
-	/* 1:hush 2:-$<pid> 3:-!<pid> 4:-?<exitcode> 5:-D<depth> <vars...>
-	 * 6:-c 7:<cmd> <argN...> 8:NULL
+	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
+	 * 3:-c 4:<cmd> <argN...> 5:NULL
 	 */
-	cnt = 8 + G.global_argc;
+	cnt = 5 + G.global_argc;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
 	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) G.argv0_for_re_execing;
-	*pp++ = xasprintf("-$%u", (unsigned) G.root_pid);
-	*pp++ = xasprintf("-!%u", (unsigned) G.last_bg_pid);
-	*pp++ = xasprintf("-?%u", (unsigned) G.last_return_code);
-#if ENABLE_HUSH_LOOPS
-	*pp++ = xasprintf("-D%u", G.depth_of_loop);
-#endif
+	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
+			, (unsigned) G.root_pid
+			, (unsigned) G.last_bg_pid
+			, (unsigned) G.last_return_code
+			USE_HUSH_LOOPS(, G.depth_of_loop)
+			);
+	*pp++ = param_buf;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (cur->varstr == hush_version_str)
 			continue;
@@ -2378,13 +2380,7 @@ static void clean_up_after_re_execute(void)
 {
 	char **pp = G.argv_from_re_execing;
 	if (pp) {
-		/* Must match re_execute_shell's allocations */
-		free(pp[1]);
-		free(pp[2]);
-		free(pp[3]);
-#if ENABLE_HUSH_LOOPS
-		free(pp[4]);
-#endif
+		/* Must match re_execute_shell's allocations (if any) */
 		free(pp);
 		G.argv_from_re_execing = NULL;
 	}
@@ -5112,19 +5108,16 @@ int hush_main(int argc, char **argv)
 			break;
 #if !BB_MMU
 		case '$':
-			G.root_pid = xatoi_u(optarg);
-			break;
-		case '!':
-			G.last_bg_pid = xatoi_u(optarg);
-			break;
-		case '?':
-			G.last_return_code = xatoi_u(optarg);
-			break;
+			G.root_pid = bb_strtou(optarg, &optarg, 16);
+			optarg++;
+			G.last_bg_pid = bb_strtou(optarg, &optarg, 16);
+			optarg++;
+			G.last_return_code = bb_strtou(optarg, &optarg, 16);
 # if ENABLE_HUSH_LOOPS
-		case 'D':
-			G.depth_of_loop = xatoi_u(optarg);
-			break;
+			optarg++;
+			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
 # endif
+			break;
 		case 'R':
 		case 'V':
 			set_local_var(xstrdup(optarg), 0, opt == 'R');
