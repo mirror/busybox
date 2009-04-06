@@ -1791,7 +1791,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				}
 				if (isdigit(c))
 					continue;
-				if (strchr(" \t+-*/%_", c) != NULL)
+				if (strchr(" \t+-*/%<>()_", c) != NULL)
 					continue;
 				c |= 0x20; /* tolower */
 				if (c >= 'a' && c <= 'z')
