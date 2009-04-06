@@ -2994,7 +2994,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 			struct command *command = &pi->cmds[prn];
 			char **argv = command->argv;
 
-			fprintf(stderr, "%*s prog %d assignment_cnt:%d",
+			fprintf(stderr, "%*s cmd %d assignment_cnt:%d",
 					lvl*2, "", prn,
 					command->assignment_cnt);
 			if (command->group) {
@@ -3038,8 +3038,8 @@ static int run_list(struct pipe *pi)
 #else
 	enum { cond_code = 0 };
 #endif
-	/*enum reserved_style*/ smallint rword;
-	/*enum reserved_style*/ smallint last_rword;
+	smallint rword; /* enum reserved_style */
+	smallint last_rword; /* ditto */
 
 	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
 
@@ -3307,8 +3307,7 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
-				rcode = EXIT_SUCCESS;
-				G.last_return_code = EXIT_SUCCESS;
+				G.last_return_code = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 			} else {
 #if ENABLE_HUSH_JOB
@@ -3334,17 +3333,23 @@ static int run_list(struct pipe *pi)
 			cond_code = rcode;
 #endif
 #if ENABLE_HUSH_LOOPS
-		if (rword == RES_WHILE) {
-			if (rcode) {
-				rcode = 0; /* "while false; do...done" - exitcode 0 */
-				goto check_jobs_and_break;
+		/* Beware of "while false; true; do ..."! */
+		if (pi->next && pi->next->res_word == RES_DO) {
+			if (rword == RES_WHILE) {
+				if (rcode) {
+					/* "while false; do...done" - exitcode 0 */
+					G.last_return_code = rcode = EXIT_SUCCESS;
+					debug_printf_exec(": while expr is false: breaking (exitcode:EXIT_SUCCESS)\n");
+					goto check_jobs_and_break;
+				}
 			}
-		}
-		if (rword == RES_UNTIL) {
-			if (!rcode) {
+			if (rword == RES_UNTIL) {
+				if (!rcode) {
+					debug_printf_exec(": until expr is true: breaking\n");
  check_jobs_and_break:
-				checkjobs(NULL);
-				break;
+					checkjobs(NULL);
+					break;
+				}
 			}
 		}
 #endif
@@ -3498,10 +3503,12 @@ static int done_command(struct parse_context *ctx)
 		 && command->redirects == NULL
 		) {
 			debug_printf_parse("done_command: skipping null cmd, num_cmds=%d\n", pi->num_cmds);
+			memset(command, 0, sizeof(*command)); /* paranoia */
 			return pi->num_cmds;
 		}
 		pi->num_cmds++;
 		debug_printf_parse("done_command: ++num_cmds=%d\n", pi->num_cmds);
+		//debug_print_tree(ctx->list_head, 20);
 	} else {
 		debug_printf_parse("done_command: initializing, num_cmds=%d\n", pi->num_cmds);
 	}
@@ -3526,16 +3533,26 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 	/* Close previous command */
 	not_null = done_command(ctx);
 	ctx->pipe->followup = type;
-	IF_HAS_KEYWORDS(ctx->pipe->pi_inverted = ctx->ctx_inverted;)
-	IF_HAS_KEYWORDS(ctx->ctx_inverted = 0;)
-	IF_HAS_KEYWORDS(ctx->pipe->res_word = ctx->ctx_res_w;)
+#if HAS_KEYWORDS
+	ctx->pipe->pi_inverted = ctx->ctx_inverted;
+	ctx->ctx_inverted = 0;
+	ctx->pipe->res_word = ctx->ctx_res_w;
+#endif
 
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
 	 * IOW: it is safe to do it unconditionally.
 	 * RES_NONE case is for "for a in; do ..." (empty IN set)
-	 * to work, possibly other cases too. */
-	if (not_null IF_HAS_KEYWORDS(|| ctx->ctx_res_w != RES_NONE)) {
+	 * and other cases to work. */
+	if (not_null
+#if HAS_KEYWORDS
+	 || ctx->ctx_res_w == RES_FI
+	 || ctx->ctx_res_w == RES_DONE
+	 || ctx->ctx_res_w == RES_FOR
+	 || ctx->ctx_res_w == RES_IN
+	 || ctx->ctx_res_w == RES_ESAC
+#endif
+	) {
 		struct pipe *new_p;
 		debug_printf_parse("done_pipe: adding new pipe: "
 				"not_null:%d ctx->ctx_res_w:%d\n",
@@ -3564,6 +3581,7 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 		 * ctx->command = &ctx->pipe->cmds[0];
 		 */
 		done_command(ctx);
+		//debug_print_tree(ctx->list_head, 10);
 	}
 	debug_printf_parse("done_pipe return\n");
 }
@@ -5483,6 +5501,7 @@ static int builtin_exec(char **argv)
 
 static int builtin_exit(char **argv)
 {
+	debug_printf_exec("%s()\n", __func__);
 // TODO: bash does it ONLY on top-level sh exit (+interacive only?)
 	//puts("exit"); /* bash does it */
 // TODO: warn if we have background jobs: "There are stopped jobs"
