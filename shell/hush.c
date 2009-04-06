@@ -1782,24 +1782,15 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
 
 			/* Optional: skip expansion if expr is simple ("a + 3", "i++" etc) */
-			exp_str = arg;
-			while (1) {
-				unsigned char c = *exp_str++;
-				if (c == '\0') {
-					exp_str = NULL;
-					goto skip_expand;
-				}
-				if (isdigit(c))
-					continue;
-				if (strchr(" \t+-*/%<>()_", c) != NULL)
-					continue;
-				c |= 0x20; /* tolower */
-				if (c >= 'a' && c <= 'z')
-					continue;
-				break;
-			}
-			/* We need to expand. Example: "echo $(($a + 1)) $((1 + $((2)) ))" */
-			{
+			exp_str = NULL;
+			if (strchr(arg, '$') != NULL
+#if ENABLE_HUSH_TICK
+			 || strchr(arg, '`') != NULL
+#endif
+			) {
+				/* We need to expand. Example:
+				 * echo $(($a + `echo 1`)) $((1 + $((2)) ))
+				 */
 				struct in_str input;
 				o_string dest = NULL_O_STRING;
 
@@ -1810,7 +1801,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
 				o_free(&dest);
 			}
- skip_expand:
 			hooks.lookupvar = get_local_var_value;
 			hooks.setvar = arith_set_local_var;
 			hooks.endofname = endofname;
