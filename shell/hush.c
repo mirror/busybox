@@ -2311,6 +2311,12 @@ static void re_execute_shell(const char *s)
 	char **argv, **pp, **pp2;
 	unsigned cnt;
 
+	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
+			, (unsigned) G.root_pid
+			, (unsigned) G.last_bg_pid
+			, (unsigned) G.last_return_code
+			USE_HUSH_LOOPS(, G.depth_of_loop)
+			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
 	 * 3:-c 4:<cmd> <argN...> 5:NULL
 	 */
@@ -2321,12 +2327,6 @@ static void re_execute_shell(const char *s)
 	}
 	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) G.argv0_for_re_execing;
-	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
-			, (unsigned) G.root_pid
-			, (unsigned) G.last_bg_pid
-			, (unsigned) G.last_return_code
-			USE_HUSH_LOOPS(, G.depth_of_loop)
-			);
 	*pp++ = param_buf;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (cur->varstr == hush_version_str)
