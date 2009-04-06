@@ -894,7 +894,8 @@ static int check_and_run_traps(int sig)
 //TODO
 //		case SIGHUP: ...
 //			break;
-		default: /* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
+		default: /* ignored: */
+			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
 			break;
 		}
 	}
@@ -4940,7 +4941,7 @@ static void block_signals(int second_time)
 		mask = 0
 			| (1 << SIGQUIT)
 			| (1 << SIGTERM)
-			| (1 << SIGHUP)
+//TODO			| (1 << SIGHUP)
 #if ENABLE_HUSH_JOB
 			| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
 #endif
@@ -4983,7 +4984,7 @@ static void maybe_set_to_sigexit(int sig)
 			signal(sig, handler);
 	}
 }
-/* Set handlers to restore tty pgrm and exit */
+/* Set handlers to restore tty pgrp and exit */
 static void set_fatal_handlers(void)
 {
 	/* We _must_ restore tty pgrp on fatal signals */
@@ -4998,8 +4999,9 @@ static void set_fatal_handlers(void)
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
 	maybe_set_to_sigexit(SIGPIPE);
 	maybe_set_to_sigexit(SIGALRM);
+//TODO: disable and move down when proper SIGHUP handling is added
 	maybe_set_to_sigexit(SIGHUP );
-	/* if we are interactive, SIGTERM and SIGINT are masked.
+	/* if we are interactive, [SIGHUP,] SIGTERM and SIGINT are masked.
 	 * if we aren't interactive... but in this case
 	 * we never want to restore pgrp on exit, and this fn is not called */
 	/*maybe_set_to_sigexit(SIGTERM);*/
@@ -5075,8 +5077,8 @@ int hush_main(int argc, char **argv)
 #endif
 
 	/* Shell is non-interactive at first. We need to call
-	 * block_signals(0) if we are going to execute "sh script",
-	 * "sh -c cmds" or login shell's /etc/profile and friends.
+	 * block_signals(0) if we are going to execute "sh <script>",
+	 * "sh -c <cmds>" or login shell's /etc/profile and friends.
 	 * If we later decide that we are interactive, we run block_signals(0)
 	 * (or re-run block_signals(1) if we ran block_signals(0) before)
 	 * in order to intercept (more) signals.
@@ -5125,11 +5127,11 @@ int hush_main(int argc, char **argv)
 		case '?':
 			G.last_return_code = xatoi_u(optarg);
 			break;
-#if ENABLE_HUSH_LOOPS
+# if ENABLE_HUSH_LOOPS
 		case 'D':
 			G.depth_of_loop = xatoi_u(optarg);
 			break;
-#endif
+# endif
 		case 'R':
 		case 'V':
 			set_local_var(xstrdup(optarg), 0, opt == 'R');
@@ -5178,8 +5180,8 @@ int hush_main(int argc, char **argv)
 	if (argv[optind]) {
 		FILE *input;
 		/*
-		 * Non-interactive "bash <script>" sources $BASH_ENV here
-		 * (without scanning $PATH).
+		 * "bash <script>" (which is never interactive (unless -i?))
+		 * sources $BASH_ENV here (without scanning $PATH).
 		 * If called as sh, does the same but with $ENV.
 		 */
 		debug_printf("running script '%s'\n", argv[optind]);
@@ -5212,6 +5214,9 @@ int hush_main(int argc, char **argv)
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
 		debug_printf("saved_tty_pgrp:%d\n", G.saved_tty_pgrp);
+//TODO: "interactive" and "have job control" are two different things.
+//If tcgetpgrp fails here, "have job control" is false, but "interactive"
+//should stay on! Currently, we mix these into one.
 		if (G.saved_tty_pgrp >= 0) {
 			/* try to dup stdin to high fd#, >= 255 */
 			G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
