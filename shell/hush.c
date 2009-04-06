@@ -3038,8 +3038,10 @@ static int run_list(struct pipe *pi)
 #else
 	enum { cond_code = 0 };
 #endif
+#if HAS_KEYWORDS
 	smallint rword; /* enum reserved_style */
 	smallint last_rword; /* ditto */
+#endif
 
 	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
 
@@ -3118,10 +3120,12 @@ static int run_list(struct pipe *pi)
 	}
 #endif /* JOB */
 
-	rcode = G.last_return_code;
+#if HAS_KEYWORDS
 	rword = RES_NONE;
 	last_rword = RES_XXXX;
+#endif
 	last_followup = PIPE_SEQ;
+	rcode = G.last_return_code;
 
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
@@ -3129,7 +3133,6 @@ static int run_list(struct pipe *pi)
 			break;
 
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
-		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
 		debug_printf_exec(": rword=%d cond_code=%d last_rword=%d\n",
 				rword, cond_code, last_rword);
 #if ENABLE_HUSH_LOOPS
@@ -3142,7 +3145,7 @@ static int run_list(struct pipe *pi)
 		}
 #endif
 		/* Still in the same "if...", "then..." or "do..." branch? */
-		if (rword == last_rword) {
+		if (IF_HAS_KEYWORDS(rword == last_rword &&) 1) {
 			if ((rcode == 0 && last_followup == PIPE_OR)
 			 || (rcode != 0 && last_followup == PIPE_AND)
 			) {
@@ -3154,10 +3157,12 @@ static int run_list(struct pipe *pi)
 			}
 		}
 		last_followup = pi->followup;
-		last_rword = rword;
+		IF_HAS_KEYWORDS(last_rword = rword;)
 #if ENABLE_HUSH_IF
 		if (cond_code) {
 			if (rword == RES_THEN) {
+				/* if false; then ... fi has exitcode 0! */
+				G.last_return_code = rcode = EXIT_SUCCESS;
 				/* "if <false> THEN cmd": skip cmd */
 				continue;
 			}
