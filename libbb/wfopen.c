@@ -14,7 +14,7 @@ FILE* FAST_FUNC fopen_or_warn(const char *path, const char *mode)
 	FILE *fp = fopen(path, mode);
 	if (!fp) {
 		bb_simple_perror_msg(path);
-		errno = 0;
+		//errno = 0; /* why? */
 	}
 	return fp;
 }

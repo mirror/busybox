@@ -5457,17 +5457,16 @@ static int builtin_eval(char **argv)
 
 static int builtin_cd(char **argv)
 {
-	const char *newdir;
-	if (*++argv == NULL) {
+	const char *newdir = argv[1];
+	if (newdir == NULL) {
 		/* bash does nothing (exitcode 0) if HOME is ""; if it's unset,
 		 * bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
 		 */
 		newdir = getenv("HOME") ? : "/";
-	} else {
-		newdir = *argv;
 	}
 	if (chdir(newdir)) {
-		printf("cd: %s: %s\n", newdir, strerror(errno));
+		/* Mimic bash message exactly */
+		bb_perror_msg("cd: %s", newdir);
 		return EXIT_FAILURE;
 	}
 	set_cwd();
@@ -5763,18 +5762,19 @@ static int builtin_source(char **argv)
 {
 	FILE *input;
 
-	if (argv[1] == NULL)
+	if (*++argv == NULL)
 		return EXIT_FAILURE;
 
 	/* XXX search through $PATH is missing */
-	input = fopen_for_read(argv[1]);
+	input = fopen_or_warn(*argv, "r");
 	if (!input) {
-		bb_error_msg("can't open '%s'", argv[1]);
+		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
 		return EXIT_FAILURE;
 	}
 	close_on_exec_on(fileno(input));
 
 	/* Now run the file */
+//TODO:
 	/* XXX argv and argc are broken; need to save old G.global_argv
 	 * (pointer only is OK!) on this stack frame,
 	 * set G.global_argv=argv+1, recurse, and restore. */
@@ -5788,12 +5788,18 @@ static int builtin_umask(char **argv)
 	mode_t new_umask;
 	const char *arg = argv[1];
 	if (arg) {
+//TODO: umask may take chmod-like symbolic masks
 		new_umask = bb_strtou(arg, NULL, 8);
-		if (errno)
+		if (errno) {
+			//Message? bash examples:
+			//bash: umask: 'q': invalid symbolic mode operator
+			//bash: umask: 999: octal number out of range
 			return EXIT_FAILURE;
+		}
 	} else {
 		new_umask = umask(0);
 		printf("%.3o\n", (unsigned) new_umask);
+		/* fall through and restore new_umask which we set to 0 */
 	}
 	umask(new_umask);
 	return EXIT_SUCCESS;
@@ -5802,35 +5808,43 @@ static int builtin_umask(char **argv)
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
 static int builtin_unset(char **argv)
 {
-	size_t i;
 	int ret;
-	bool var = true;
+	char var;
 
-	if (!argv[1])
+	if (!*++argv)
 		return EXIT_SUCCESS;
 
-	i = 0;
-	if (argv[1][0] == '-') {
-		switch (argv[1][1]) {
-		case 'v': break;
-		case 'f': if (ENABLE_HUSH_FUNCTIONS) { var = false; break; }
+	var = 'v';
+	if (argv[0][0] == '-') {
+		switch (argv[0][1]) {
+		case 'v':
+		case 'f':
+			var = argv[0][1];
+			break;
 		default:
-			bb_error_msg("unset: %s: invalid option", argv[1]);
+			bb_error_msg("unset: %s: invalid option", *argv);
 			return EXIT_FAILURE;
 		}
-		++i;
+//TODO: disallow "unset -vf ..." too
+		argv++;
 	}
 
 	ret = EXIT_SUCCESS;
-	while (argv[++i]) {
-		if (var) {
-			if (unset_local_var(argv[i]))
+	while (*argv) {
+		if (var == 'v') {
+			if (unset_local_var(*argv)) {
+				/* unset <nonexistent_var> doesn't fail.
+				 * Error is when one tries to unset RO var.
+				 * Message was printed by unset_local_var. */
 				ret = EXIT_FAILURE;
+			}
 		}
 #if ENABLE_HUSH_FUNCTIONS
-		else
-			unset_local_func(argv[i]);
+		else {
+			unset_local_func(*argv);
+		}
 #endif
+		argv++;
 	}
 	return ret;
 }
