@@ -5442,8 +5442,8 @@ static int builtin_eval(char **argv)
 {
 	int rcode = EXIT_SUCCESS;
 
-	if (argv[1]) {
-		char *str = expand_strvec_to_string(argv + 1);
+	if (*++argv) {
+		char *str = expand_strvec_to_string(argv);
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
 		 * "echo Hi" will not execute too.
@@ -5458,13 +5458,14 @@ static int builtin_eval(char **argv)
 static int builtin_cd(char **argv)
 {
 	const char *newdir;
-	if (argv[1] == NULL) {
+	if (*++argv == NULL) {
 		/* bash does nothing (exitcode 0) if HOME is ""; if it's unset,
 		 * bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
 		 */
 		newdir = getenv("HOME") ? : "/";
-	} else
-		newdir = argv[1];
+	} else {
+		newdir = *argv;
+	}
 	if (chdir(newdir)) {
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
@@ -5475,14 +5476,14 @@ static int builtin_cd(char **argv)
 
 static int builtin_exec(char **argv)
 {
-	if (argv[1] == NULL)
+	if (*++argv == NULL)
 		return EXIT_SUCCESS; /* bash does this */
 	{
 #if !BB_MMU
 		nommu_save_t dummy;
 #endif
 // FIXME: if exec fails, bash does NOT exit! We do...
-		pseudo_exec_argv(&dummy, argv + 1, 0, NULL);
+		pseudo_exec_argv(&dummy, argv, 0, NULL);
 		/* never returns */
 	}
 }
@@ -5493,20 +5494,17 @@ static int builtin_exit(char **argv)
 	//puts("exit"); /* bash does it */
 // TODO: warn if we have background jobs: "There are stopped jobs"
 // On second consecutive 'exit', exit anyway.
-	if (argv[1] == NULL)
+	if (*++argv == NULL)
 		hush_exit(G.last_return_code);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
-	hush_exit(xatoi(argv[1]) & 0xff);
+	hush_exit(xatoi(*argv) & 0xff);
 }
 
 static int builtin_export(char **argv)
 {
-	const char *value;
-	char *name = argv[1];
-
-	if (name == NULL) {
+	if (*++argv == NULL) {
 		// TODO:
 		// ash emits: export VAR='VAL'
 		// bash: declare -x VAR="VAL"
@@ -5518,23 +5516,28 @@ static int builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	value = strchr(name, '=');
-	if (!value) {
-		/* They are exporting something without a =VALUE */
-		struct variable *var;
+	do {
+		const char *value;
+		char *name = *argv;
 
-		var = get_local_var(name);
-		if (var) {
-			var->flg_export = 1;
-			debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
-			putenv(var->varstr);
+		value = strchr(name, '=');
+		if (!value) {
+			/* They are exporting something without a =VALUE */
+			struct variable *var;
+
+			var = get_local_var(name);
+			if (var) {
+				var->flg_export = 1;
+				debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
+				putenv(var->varstr);
+			}
+			/* bash does not return an error when trying to export
+			 * an undefined variable.  Do likewise. */
+			continue;
 		}
-		/* bash does not return an error when trying to export
-		 * an undefined variable.  Do likewise. */
-		return EXIT_SUCCESS;
-	}
+		set_local_var(xstrdup(name), 1, 0);
+	} while (*++argv);
 
-	set_local_var(xstrdup(name), 1, 0);
 	return EXIT_SUCCESS;
 }
 
