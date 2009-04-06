@@ -271,13 +271,6 @@ static const struct {
 	{ O_RDWR,                    1, "<>" }
 };
 
-typedef enum pipe_style {
-	PIPE_SEQ = 1,
-	PIPE_AND = 2,
-	PIPE_OR  = 3,
-	PIPE_BG  = 4,
-} pipe_style;
-
 typedef enum reserved_style {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
@@ -395,6 +388,12 @@ struct pipe {
 	IF_HAS_KEYWORDS(smallint pi_inverted;) /* "! cmd | cmd" */
 	IF_HAS_KEYWORDS(smallint res_word;) /* needed for if, for, while, until... */
 };
+typedef enum pipe_style {
+	PIPE_SEQ = 1,
+	PIPE_AND = 2,
+	PIPE_OR  = 3,
+	PIPE_BG  = 4,
+} pipe_style;
 
 /* This holds pointers to the various results of parsing */
 struct parse_context {
@@ -2158,7 +2157,7 @@ static void free_pipe_list(struct pipe *head, int indent)
 
 	for (pi = head; pi; pi = next) {
 #if HAS_KEYWORDS
-		debug_printf_clean("%s pipe reserved mode %d\n", indenter(indent), pi->res_word);
+		debug_printf_clean("%s pipe reserved word %d\n", indenter(indent), pi->res_word);
 #endif
 		free_pipe(pi, indent);
 		debug_printf_clean("%s pipe followup code %d\n", indenter(indent), pi->followup);
@@ -2182,7 +2181,7 @@ typedef struct nommu_save_t {
 	pseudo_exec(command, argv_expanded)
 #endif
 
-/* Called after [v]fork() in run_pipe(), or from builtin_exec().
+/* Called after [v]fork() in run_pipe, or from builtin_exec.
  * Never returns.
  * XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
@@ -2389,7 +2388,7 @@ static void clean_up_after_re_execute(void)
 
 static int run_list(struct pipe *pi);
 
-/* Called after [v]fork() in run_pipe()
+/* Called after [v]fork() in run_pipe
  */
 static void pseudo_exec(nommu_save_t *nommu_save,
 		struct command *command,
@@ -3032,15 +3031,15 @@ static int run_list(struct pipe *pi)
 	char **for_lcur = NULL;
 	char **for_list = NULL;
 #endif
-	smallint flag_skip = 1;
-	smalluint rcode = 0; /* probably just for compiler */
+	smallint last_followup;
+	smalluint rcode;
 #if ENABLE_HUSH_IF || ENABLE_HUSH_CASE
 	smalluint cond_code = 0;
 #else
-	enum { cond_code = 0, };
+	enum { cond_code = 0 };
 #endif
-	/*enum reserved_style*/ smallint rword = RES_NONE;
-	/*enum reserved_style*/ smallint skip_more_for_this_rword = RES_XXXX;
+	/*enum reserved_style*/ smallint rword;
+	/*enum reserved_style*/ smallint last_rword;
 
 	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
 
@@ -3119,6 +3118,11 @@ static int run_list(struct pipe *pi)
 	}
 #endif /* JOB */
 
+	rcode = G.last_return_code;
+	rword = RES_NONE;
+	last_rword = RES_XXXX;
+	last_followup = PIPE_SEQ;
+
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
 		if (G.flag_SIGINT)
@@ -3126,8 +3130,8 @@ static int run_list(struct pipe *pi)
 
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		IF_HAS_NO_KEYWORDS(rword = RES_NONE;)
-		debug_printf_exec(": rword=%d cond_code=%d skip_more=%d\n",
-				rword, cond_code, skip_more_for_this_rword);
+		debug_printf_exec(": rword=%d cond_code=%d last_rword=%d\n",
+				rword, cond_code, last_rword);
 #if ENABLE_HUSH_LOOPS
 		if ((rword == RES_WHILE || rword == RES_UNTIL || rword == RES_FOR)
 		 && loop_top == NULL /* avoid bumping G.depth_of_loop twice */
@@ -3137,15 +3141,20 @@ static int run_list(struct pipe *pi)
 			G.depth_of_loop++;
 		}
 #endif
-		if (rword == skip_more_for_this_rword && flag_skip) {
-			if (pi->followup == PIPE_SEQ)
-				flag_skip = 0;
-			/* it is "<false> && CMD" or "<true> || CMD"
-			 * and we should not execute CMD */
-			continue;
+		/* Still in the same "if...", "then..." or "do..." branch? */
+		if (rword == last_rword) {
+			if ((rcode == 0 && last_followup == PIPE_OR)
+			 || (rcode != 0 && last_followup == PIPE_AND)
+			) {
+				/* It is "<true> || CMD" or "<false> && CMD"
+				 * and we should not execute CMD */
+				debug_printf_exec("skipped cmd because of || or &&\n");
+				last_followup = pi->followup;
+				continue;
+			}
 		}
-		flag_skip = 1;
-		skip_more_for_this_rword = RES_XXXX;
+		last_followup = pi->followup;
+		last_rword = rword;
 #if ENABLE_HUSH_IF
 		if (cond_code) {
 			if (rword == RES_THEN) {
@@ -3176,8 +3185,11 @@ static int run_list(struct pipe *pi)
 				vals = (char**)encoded_dollar_at_argv;
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
-					if (!pi->next->cmds[0].argv)
+					if (!pi->next->cmds[0].argv) {
+						G.last_return_code = rcode = EXIT_SUCCESS;
+						debug_printf_exec(": null FOR: exitcode EXIT_SUCCESS\n");
 						break;
+					}
 					vals = pi->next->cmds[0].argv;
 				} /* else: "for var; do..." -> assume "$@" list */
 				/* create list of variable values */
@@ -3197,7 +3209,7 @@ static int run_list(struct pipe *pi)
 				pi->cmds[0].argv[0] = for_varname;
 				break;
 			}
-			/* insert next value from for_lcur */
+			/* Insert next value from for_lcur */
 //TODO: does it need escaping?
 			pi->cmds[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->cmds[0].assignment_cnt = 1;
@@ -3251,7 +3263,7 @@ static int run_list(struct pipe *pi)
 
 		/* After analyzing all keywords and conditions, we decided
 		 * to execute this pipe. NB: have to do checkjobs(NULL)
-		 * after run_pipe() to collect any background children,
+		 * after run_pipe to collect any background children,
 		 * even if list execution is to be stopped. */
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_cmds);
 		{
@@ -3261,14 +3273,16 @@ static int run_list(struct pipe *pi)
 #endif
 			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
 			if (r != -1) {
-				/* we only ran a builtin: rcode is already known
+				/* We only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
+				G.last_return_code = rcode;
+				debug_printf_exec(": builtin exitcode %d\n", rcode);
 				check_and_run_traps(0);
 #if ENABLE_HUSH_LOOPS
-				/* was it "break" or "continue"? */
+				/* Was it "break" or "continue"? */
 				if (G.flag_break_continue) {
 					smallint fbc = G.flag_break_continue;
-					/* we might fall into outer *loop*,
+					/* We might fall into outer *loop*,
 					 * don't want to break it too */
 					if (loop_top) {
 						G.depth_break_continue--;
@@ -3284,7 +3298,7 @@ static int run_list(struct pipe *pi)
 				}
 #endif
 			} else if (pi->followup == PIPE_BG) {
-				/* what does bash do with attempts to background builtins? */
+				/* What does bash do with attempts to background builtins? */
 				/* even bash 3.2 doesn't do that well with nested bg:
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
@@ -3293,25 +3307,26 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
-				rcode = 0; /* EXIT_SUCCESS */
+				rcode = EXIT_SUCCESS;
+				G.last_return_code = EXIT_SUCCESS;
+				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 			} else {
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1 && G_interactive_fd) {
-					/* waits for completion, then fg's main shell */
+					/* Waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
+					debug_printf_exec(": checkjobs_and_fg_shell exitcode %d\n", rcode);
 					check_and_run_traps(0);
-					debug_printf_exec(": checkjobs_and_fg_shell returned %d\n", rcode);
 				} else
 #endif
-				{ /* this one just waits for completion */
+				{ /* This one just waits for completion */
 					rcode = checkjobs(pi);
+					debug_printf_exec(": checkjobs exitcode %d\n", rcode);
 					check_and_run_traps(0);
-					debug_printf_exec(": checkjobs returned %d\n", rcode);
 				}
+				G.last_return_code = rcode;
 			}
 		}
-		debug_printf_exec(": setting last_return_code=%d\n", rcode);
-		G.last_return_code = rcode;
 
 		/* Analyze how result affects subsequent commands */
 #if ENABLE_HUSH_IF
@@ -3333,11 +3348,6 @@ static int run_list(struct pipe *pi)
 			}
 		}
 #endif
-		if ((rcode == 0 && pi->followup == PIPE_OR)
-		 || (rcode != 0 && pi->followup == PIPE_AND)
-		) {
-			skip_more_for_this_rword = rword;
-		}
 
  check_jobs_and_continue:
 		checkjobs(NULL);
@@ -3375,7 +3385,7 @@ static int run_and_free_list(struct pipe *pi)
 	int rcode = 0;
 	debug_printf_exec("run_and_free_list entered\n");
 	if (!G.fake_mode) {
-		debug_printf_exec(": run_list with %d members\n", pi->num_cmds);
+		debug_printf_exec(": run_list: 1st pipe with %d cmds\n", pi->num_cmds);
 		rcode = run_list(pi);
 	}
 	/* free_pipe_list has the side effect of clearing memory.
