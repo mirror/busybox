@@ -481,7 +481,7 @@ struct globals {
 #endif
 	smallint fake_mode;
 	/* These four support $?, $#, and $1 */
-	smalluint last_return_code;
+	smalluint last_exitcode;
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
 	/* how many non-NULL argv's we have. NB: $# + 1 */
@@ -876,10 +876,10 @@ static int check_and_run_traps(int sig)
 			if (G.traps[sig][0]) {
 				/* We have user-defined handler */
 				char *argv[] = { NULL, xstrdup(G.traps[sig]), NULL };
-				save_rcode = G.last_return_code;
+				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
 				free(argv[1]);
-				G.last_return_code = save_rcode;
+				G.last_exitcode = save_rcode;
 			} /* else: "" trap, ignoring signal */
 			continue;
 		}
@@ -1700,7 +1700,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			val = G.last_bg_pid ? utoa(G.last_bg_pid) : (char*)"";
 			break;
 		case '?': /* exitcode */
-			val = utoa(G.last_return_code);
+			val = utoa(G.last_exitcode);
 			break;
 		case '#': /* argc */
 			if (arg[1] != SPECIAL_VAR_SYMBOL)
@@ -2313,7 +2313,7 @@ static void re_execute_shell(const char *s)
 	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
 			, (unsigned) G.last_bg_pid
-			, (unsigned) G.last_return_code
+			, (unsigned) G.last_exitcode
 			USE_HUSH_LOOPS(, G.depth_of_loop)
 			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
@@ -3125,7 +3125,7 @@ static int run_list(struct pipe *pi)
 	last_rword = RES_XXXX;
 #endif
 	last_followup = PIPE_SEQ;
-	rcode = G.last_return_code;
+	rcode = G.last_exitcode;
 
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
@@ -3162,7 +3162,7 @@ static int run_list(struct pipe *pi)
 		if (cond_code) {
 			if (rword == RES_THEN) {
 				/* if false; then ... fi has exitcode 0! */
-				G.last_return_code = rcode = EXIT_SUCCESS;
+				G.last_exitcode = rcode = EXIT_SUCCESS;
 				/* "if <false> THEN cmd": skip cmd */
 				continue;
 			}
@@ -3191,7 +3191,7 @@ static int run_list(struct pipe *pi)
 				if (pi->next->res_word == RES_IN) {
 					/* if no variable values after "in" we skip "for" */
 					if (!pi->next->cmds[0].argv) {
-						G.last_return_code = rcode = EXIT_SUCCESS;
+						G.last_exitcode = rcode = EXIT_SUCCESS;
 						debug_printf_exec(": null FOR: exitcode EXIT_SUCCESS\n");
 						break;
 					}
@@ -3280,7 +3280,7 @@ static int run_list(struct pipe *pi)
 			if (r != -1) {
 				/* We only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
-				G.last_return_code = rcode;
+				G.last_exitcode = rcode;
 				debug_printf_exec(": builtin exitcode %d\n", rcode);
 				check_and_run_traps(0);
 #if ENABLE_HUSH_LOOPS
@@ -3312,7 +3312,7 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
-				G.last_return_code = rcode = EXIT_SUCCESS;
+				G.last_exitcode = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 			} else {
 #if ENABLE_HUSH_JOB
@@ -3328,7 +3328,7 @@ static int run_list(struct pipe *pi)
 					debug_printf_exec(": checkjobs exitcode %d\n", rcode);
 					check_and_run_traps(0);
 				}
-				G.last_return_code = rcode;
+				G.last_exitcode = rcode;
 			}
 		}
 
@@ -3343,7 +3343,7 @@ static int run_list(struct pipe *pi)
 			if (rword == RES_WHILE) {
 				if (rcode) {
 					/* "while false; do...done" - exitcode 0 */
-					G.last_return_code = rcode = EXIT_SUCCESS;
+					G.last_exitcode = rcode = EXIT_SUCCESS;
 					debug_printf_exec(": while expr is false: breaking (exitcode:EXIT_SUCCESS)\n");
 					goto check_jobs_and_break;
 				}
@@ -3922,7 +3922,7 @@ static FILE *generate_stream_from_string(const char *s)
 #if BB_MMU
 		reset_traps_to_defaults();
 		parse_and_run_string(s);
-		_exit(G.last_return_code);
+		_exit(G.last_exitcode);
 #else
 	/* We re-execute after vfork on NOMMU. This makes this script safe:
 	 * yes "0123456789012345678901234567890" | dd bs=32 count=64k >BIG
@@ -5059,7 +5059,7 @@ int hush_main(int argc, char **argv)
 
 	INIT_G();
 	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, is already done */
-		G.last_return_code = EXIT_SUCCESS;
+		G.last_exitcode = EXIT_SUCCESS;
 #if !BB_MMU
 	G.argv0_for_re_execing = argv[0];
 #endif
@@ -5145,7 +5145,7 @@ int hush_main(int argc, char **argv)
 			optarg++;
 			G.last_bg_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
-			G.last_return_code = bb_strtou(optarg, &optarg, 16);
+			G.last_exitcode = bb_strtou(optarg, &optarg, 16);
 # if ENABLE_HUSH_LOOPS
 			optarg++;
 			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
@@ -5338,7 +5338,7 @@ int hush_main(int argc, char **argv)
 		free(tmp);
 	}
 #endif
-	hush_exit(G.last_return_code);
+	hush_exit(G.last_exitcode);
 }
 
 
@@ -5467,7 +5467,7 @@ static int builtin_eval(char **argv)
 		 */
 		parse_and_run_string(str);
 		free(str);
-		rcode = G.last_return_code;
+		rcode = G.last_exitcode;
 	}
 	return rcode;
 }
@@ -5512,7 +5512,7 @@ static int builtin_exit(char **argv)
 // TODO: warn if we have background jobs: "There are stopped jobs"
 // On second consecutive 'exit', exit anyway.
 	if (*++argv == NULL)
-		hush_exit(G.last_return_code);
+		hush_exit(G.last_exitcode);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
@@ -5798,7 +5798,7 @@ static int builtin_source(char **argv)
 	 * set G.global_argv=argv+1, recurse, and restore. */
 	parse_and_run_file(input);
 	fclose(input);
-	return G.last_return_code;
+	return G.last_exitcode;
 }
 
 static int builtin_umask(char **argv)
