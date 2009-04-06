@@ -1799,7 +1799,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				//bb_error_msg("'%s' -> '%s'", arg, dest.data);
 				exp_str = expand_string_to_string(dest.data);
 				//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
-				o_free(&dest);
+				o_free_unsafe(&dest);
 			}
 			hooks.lookupvar = get_local_var_value;
 			hooks.setvar = arith_set_local_var;
