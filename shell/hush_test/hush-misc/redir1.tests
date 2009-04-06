@@ -19,7 +19,9 @@ test -f shell_test_$$ && echo "File created:ok"
 rm shell_test_$$ 2>/dev/null
 var=ok
 { var=bad >shell_test_$$; } &
-usleep 100000
+# cant use usleep as it isnt standard in $PATH --
+# we fail when testing busybox compiled solely as "hush"
+sleep 1
 echo "Test 4:  var:$var"
 test -f shell_test_$$ && echo "File created:ok"
 
