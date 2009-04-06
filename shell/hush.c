@@ -2064,7 +2064,8 @@ static int setup_redirects(struct command *prog, int squirrel[])
 				squirrel[redir->fd] = dup(redir->fd);
 			}
 			if (openfd == -3) {
-				//close(openfd); // close(-3) ??!
+				/* "-" means "close me" and we use -3 for that */
+				close(redir->fd);
 			} else {
 				dup2(openfd, redir->fd);
 				if (redir->dup == -1)
