@@ -6,6 +6,7 @@
  * incidentally is a good match to today's BusyBox.
  *
  * Copyright (C) 2000,2001  Larry Doolittle  <larry@doolittle.boa.org>
+ * Copyright (C) 2008,2009  Denys Vlasenko <vda.linux@googlemail.com>
  *
  * Credits:
  *      The parser routines proper are all original material, first
@@ -44,23 +45,24 @@
  *      Tilde Expansion
  *      Parameter Expansion for substring processing ${var#word} ${var%word}
  *
- * Bash stuff maybe optional enable:
+ * Bash stuff (maybe optionally enable?):
  *      &> and >& redirection of stdout+stderr
  *      Brace expansion
  *      reserved words: [[ ]] function select
  *      substrings ${var:1:5}
  *
- * Major bugs:
- *      job handling woefully incomplete and buggy (improved --vda)
- * to-do:
- *      port selected bugfixes from post-0.49 busybox lash - done?
+ * TODOs:
+ *      grep for "TODO" and fix (some of them are easy)
  *      change { and } from special chars to reserved words
- *      builtins: return, trap, ulimit
- *      test magic exec with redirection only
+ *      builtins: return, ulimit
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
- *      propagate syntax errors, die on resource errors?
  *      continuation lines, both explicit and implicit - done?
+ *      SIGHUP handling
+ *      ^Z handling (and explain it in comments for mere humans)
+ *      separate job control from interactiveness
+ *      (testcase: booting with init=/bin/hush does not show prompt (2009-04))
+ *      functions
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -5345,9 +5347,10 @@ static int builtin_trap(char **argv)
 	if (!G.traps)
 		G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
 
-	if (!argv[1]) {
-		/* No args: print all trapped.  This isn't 100% correct as we should
-		 * be escaping the cmd so that it can be pasted back in ...
+	argv++;
+	if (!*argv) {
+		/* No args: print all trapped. This isn't 100% correct as we
+		 * should be escaping the cmd so that it can be pasted back in
 		 */
 		for (i = 0; i < NSIG; ++i)
 			if (G.traps[i])
@@ -5357,8 +5360,8 @@ static int builtin_trap(char **argv)
 
 	new_cmd = NULL;
 	i = 0;
-	/* if first arg is decimal: reset all specified */
-	sig = bb_strtou(*++argv, NULL, 10);
+	/* If first arg is decimal: reset all specified signals */
+	sig = bb_strtou(*argv, NULL, 10);
 	if (errno == 0) {
 		int ret;
  set_all:
@@ -5367,7 +5370,7 @@ static int builtin_trap(char **argv)
 			sig = get_signum(*argv++);
 			if (sig < 0 || sig >= NSIG) {
 				ret = EXIT_FAILURE;
-				/* mimic bash message exactly */
+				/* Mimic bash message exactly */
 				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
 				continue;
 			}
@@ -5385,7 +5388,7 @@ static int builtin_trap(char **argv)
 			if (new_cmd) {
 				sigaddset(&G.blocked_set, sig);
 			} else {
-				/* there was a trap handler, we are removing it
+				/* There was a trap handler, we are removing it
 				 * (if sig has non-DFL handling,
 				 * we don't need to do anything) */
 				if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
@@ -5397,16 +5400,14 @@ static int builtin_trap(char **argv)
 		return ret;
 	}
 
-	/* first arg is "-": reset all specified to default */
-	/* first arg is "": ignore all specified */
-	/* everything else: execute first arg upon signal */
+	/* First arg is "-": reset all specified to default */
+	/* First arg is "": ignore all specified */
+	/* Everything else: execute first arg upon signal */
 	if (!argv[1]) {
 		bb_error_msg("trap: invalid arguments");
 		return EXIT_FAILURE;
 	}
-	if (LONE_DASH(*argv))
-		/* nothing! */;
-	else
+	if (NOT_LONE_DASH(*argv))
 		new_cmd = *argv;
 	argv++;
 	goto set_all;
