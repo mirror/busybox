@@ -914,9 +914,10 @@ static int check_and_run_traps(int sig)
 }
 
 #if ENABLE_HUSH_JOB
+
 /* After [v]fork, in child: do not restore tty pgrp on xfunc death */
 #define disable_restore_tty_pgrp_on_exit() (die_sleep = 0)
-/* After [v]fork, in parent: do not restore tty pgrp on xfunc death */
+/* After [v]fork, in parent: restore tty pgrp on xfunc death */
 #define enable_restore_tty_pgrp_on_exit()  (die_sleep = -1)
 
 /* Restores tty foreground process group, and exits.
