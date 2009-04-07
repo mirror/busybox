@@ -250,16 +250,6 @@ static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
 
 #define SPECIAL_VAR_SYMBOL 3
 
-typedef enum redir_type {
-	REDIRECT_INVALID   = 0,
-	REDIRECT_INPUT     = 1,
-	REDIRECT_OVERWRITE = 2,
-	REDIRECT_APPEND    = 3,
-	REDIRECT_HEREDOC   = 4,
-	REDIRECT_IO        = 5,
-	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc load */
-} redir_type;
-
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
 static const struct {
@@ -349,10 +339,24 @@ typedef struct in_str {
 struct redir_struct {
 	struct redir_struct *next;
 	char *rd_filename;          /* filename */
-	int fd;                     /* file descriptor being redirected */
-	int dup;                    /* -1, or file descriptor being duplicated */
-	smallint /*enum redir_type*/ rd_type;
+	int rd_fd;                  /* file descriptor being redirected */
+	int rd_dup;                 /* -1, or file descriptor being duplicated */
+	smallint rd_type;           /* (enum redir_type) */
+	/* note: for heredocs, rd_filename contains heredoc delimiter,
+	 * and subsequently heredoc itself; and rd_dup is
+	 * "do we need to trim leading tabs?" bool flag
+	 */
 };
+typedef enum redir_type {
+	REDIRECT_INVALID   = 0,
+	REDIRECT_INPUT     = 1,
+	REDIRECT_OVERWRITE = 2,
+	REDIRECT_APPEND    = 3,
+	REDIRECT_HEREDOC   = 4,
+	REDIRECT_IO        = 5,
+	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc is loaded */
+} redir_type;
+
 
 struct command {
 	pid_t pid;                  /* 0 if exited */
@@ -910,6 +914,11 @@ static int check_and_run_traps(int sig)
 }
 
 #if ENABLE_HUSH_JOB
+/* After [v]fork, in child: do not restore tty pgrp on xfunc death */
+#define disable_restore_tty_pgrp_on_exit() (die_sleep = 0)
+/* After [v]fork, in parent: do not restore tty pgrp on xfunc death */
+#define enable_restore_tty_pgrp_on_exit()  (die_sleep = -1)
+
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
  * (will faithfully resend signal to itself, producing correct exit state)
@@ -932,6 +941,11 @@ static void sigexit(int sig)
 
 	kill_myself_with_sig(sig); /* does not return */
 }
+#else
+
+#define disable_restore_tty_pgrp_on_exit() ((void)0)
+#define enable_restore_tty_pgrp_on_exit()  ((void)0)
+
 #endif
 
 /* Restores tty foreground process group, and exits. */
@@ -1359,6 +1373,13 @@ static void o_addstr(o_string *o, const char *str)
 {
 	o_addblock(o, str, strlen(str));
 }
+static void nommu_addchr(o_string *o, int ch)
+{
+	if (o)
+		o_addchr(o, ch);
+}
+#else
+#define nommu_addchr(o, str) ((void)0)
 #endif
 
 static void o_addstr_with_NUL(o_string *o, const char *str)
@@ -2201,8 +2222,8 @@ static void setup_heredoc(int fd, const char *heredoc)
 
 	/* Okay, pipe buffer was not big enough */
 	/* Note: we must not create a stray child (bastard? :)
-	 * for the unsuspecting parent process. We create a grandchild
-	 * and exit before we exec the process which consumes heredoc
+	 * for the unsuspecting parent process. Child creates a grandchild
+	 * and exits before parent execs the process which consumes heredoc
 	 * (that exec happens after we return from this function) */
 	pid = vfork();
 	if (pid < 0)
@@ -2217,24 +2238,20 @@ static void setup_heredoc(int fd, const char *heredoc)
 		/* grandchild */
 		close(fd); /* read side of the pipe */
 #if BB_MMU
-		full_write(pair.wr, heredoc, len);
+		full_write(pair.wr, heredoc, len); /* may loop or block */
 		_exit(0);
 #else
 		/* Delegate blocking writes to another process */
-# if ENABLE_HUSH_JOB
-		die_sleep = 0; /* do not restore tty pgrp on xfunc death */
-# endif
+		disable_restore_tty_pgrp_on_exit();
 		xmove_fd(pair.wr, STDOUT_FILENO);
 		re_execute_shell(heredoc, 1);
 #endif
 	}
 	/* parent */
-#if ENABLE_HUSH_JOB
-	die_sleep = -1; /* restore tty pgrp on xfunc death */
-#endif
+	enable_restore_tty_pgrp_on_exit();
 	clean_up_after_re_execute();
 	close(pair.wr);
-	wait(NULL); /* wiat till child has died */
+	wait(NULL); /* wait till child has died */
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -2247,18 +2264,18 @@ static int setup_redirects(struct command *prog, int squirrel[])
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
-			if (squirrel && redir->fd < 3) {
-				squirrel[redir->fd] = dup(redir->fd);
+			if (squirrel && redir->rd_fd < 3) {
+				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
 			debug_printf_parse("set heredoc '%s'\n",
 					redir->rd_filename);
-			setup_heredoc(redir->fd, redir->rd_filename);
+			setup_heredoc(redir->rd_fd, redir->rd_filename);
 			continue;
 		}
 
-		if (redir->dup == -1) {
+		if (redir->rd_dup == -1) {
 			char *p;
 			if (redir->rd_filename == NULL) {
 				/* Something went wrong in the parse.
@@ -2277,19 +2294,19 @@ static int setup_redirects(struct command *prog, int squirrel[])
 				return 1;
 			}
 		} else {
-			openfd = redir->dup;
+			openfd = redir->rd_dup;
 		}
 
-		if (openfd != redir->fd) {
-			if (squirrel && redir->fd < 3) {
-				squirrel[redir->fd] = dup(redir->fd);
+		if (openfd != redir->rd_fd) {
+			if (squirrel && redir->rd_fd < 3) {
+				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			if (openfd == -3) {
 				/* "-" means "close me" and we use -3 for that */
-				close(redir->fd);
+				close(redir->rd_fd);
 			} else {
-				dup2(openfd, redir->fd);
-				if (redir->dup == -1)
+				dup2(openfd, redir->rd_fd);
+				if (redir->rd_dup == -1)
 					close(openfd);
 			}
 		}
@@ -2350,7 +2367,7 @@ static void free_pipe(struct pipe *pi, int indent)
 #endif
 		for (r = command->redirects; r; r = rnext) {
 			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->rd_type].descrip);
-			if (r->dup == -1) {
+			if (r->rd_dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
 				if (r->rd_filename) {
 					debug_printf_clean(" %s\n", r->rd_filename);
@@ -2358,7 +2375,7 @@ static void free_pipe(struct pipe *pi, int indent)
 					r->rd_filename = NULL;
 				}
 			} else {
-				debug_printf_clean("&%d\n", r->dup);
+				debug_printf_clean("&%d\n", r->rd_dup);
 			}
 			rnext = r->next;
 			free(r);
@@ -2968,7 +2985,7 @@ static int run_pipe(struct pipe *pi)
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
 #if ENABLE_HUSH_JOB
-			die_sleep = 0; /* do not restore tty pgrp on xfunc death */
+			disable_restore_tty_pgrp_on_exit();
 
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
@@ -3003,9 +3020,7 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* parent or error */
-#if ENABLE_HUSH_JOB
-		die_sleep = -1; /* restore tty pgrp on xfunc death */
-#endif
+		enable_restore_tty_pgrp_on_exit();
 #if !BB_MMU
 		/* Clean up after vforked child */
 		clean_up_after_re_execute();
@@ -3914,15 +3929,11 @@ static int redirect_dup_num(o_string *as_string, struct in_str *input)
 		return -1;
 
 	ch = i_getch(input);  /* get the & */
-#if !BB_MMU
-	o_addchr(as_string, ch);
-#endif
+	nommu_addchr(as_string, ch);
 	ch = i_peek(input);
 	if (ch == '-') {
 		ch = i_getch(input);
-#if !BB_MMU
-		o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
 		return -3;  /* "-" represents "close me" */
 	}
 	d = 0;
@@ -3931,9 +3942,7 @@ static int redirect_dup_num(o_string *as_string, struct in_str *input)
 		d = d*10 + (ch-'0');
 		ok = 1;
 		ch = i_getch(input);
-#if !BB_MMU
-		o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
 		ch = i_peek(input);
 	}
 	if (ok) return d;
@@ -3962,8 +3971,21 @@ static int parse_redirect(struct parse_context *ctx,
 		dup_num = redirect_dup_num(&ctx->as_string, input);
 		if (dup_num == -2)
 			return 1;  /* syntax error */
+	} else {
+		int ch = i_peek(input);
+		dup_num = (ch == '-');
+		if (dup_num) { /* <<-... */
+			ch = i_getch(input);
+			nommu_addchr(&ctx->as_string, ch);
+			ch = i_peek(input);
+		}
+		/* <<[-] word is the same as <<[-]word */
+		while (ch == ' ' || ch == '\t') {
+			ch = i_getch(input);
+			nommu_addchr(&ctx->as_string, ch);
+			ch = i_peek(input);
+		}
 	}
-//TODO: else { check for <<-word }
 
 	if (style == REDIRECT_OVERWRITE && dup_num == -1) {
 		int ch = i_peek(input);
@@ -3973,9 +3995,7 @@ static int parse_redirect(struct parse_context *ctx,
 			 * >| and > are the same for now. Just eat |.
 			 */
 			ch = i_getch(input);
-#if !BB_MMU
-			o_addchr(&ctx->as_string, ch);
-#endif
+			nommu_addchr(&ctx->as_string, ch);
 		}
 	}
 
@@ -3988,16 +4008,16 @@ static int parse_redirect(struct parse_context *ctx,
 	/* redir->next = NULL; */
 	/* redir->rd_filename = NULL; */
 	redir->rd_type = style;
-	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
+	redir->rd_fd = (fd == -1) ? redir_table[style].default_fd : fd;
 
-	debug_printf_parse("redirect type %d %s\n", redir->fd, redir_table[style].descrip);
+	debug_printf_parse("redirect type %d %s\n", redir->rd_fd, redir_table[style].descrip);
 
-	redir->dup = dup_num;
-	if (dup_num != -1) {
+	redir->rd_dup = dup_num;
+	if (style != REDIRECT_HEREDOC && dup_num != -1) {
 		/* Erik had a check here that the file descriptor in question
 		 * is legit; I postpone that to "run time"
 		 * A "-" representation of "close me" shows up as a -3 here */
-		debug_printf_parse("duplicating redirect '%d>&%d'\n", redir->fd, redir->dup);
+		debug_printf_parse("duplicating redirect '%d>&%d'\n", redir->rd_fd, redir->rd_dup);
 	} else {
 		/* Set ctx->pending_redirect, so we know what to do at the
 		 * end of the next parsed word. */
@@ -4039,28 +4059,45 @@ static int redirect_opt_num(o_string *o)
 	return num;
 }
 
-//TODO: add NOMMU as_string fill
-static char *fetch_till_str(struct in_str *input, const char *word)
+#if BB_MMU
+#define fetch_till_str(as_string, input, word, skip_tabs) \
+	fetch_till_str(input, word, skip_tabs)
+#endif
+static char *fetch_till_str(o_string *as_string,
+		struct in_str *input,
+		const char *word,
+		int skip_tabs)
 {
 	o_string heredoc = NULL_O_STRING;
 	int past_EOL = 0;
 	int ch;
 
+	goto jump_in;
 	while (1) {
 		ch = i_getch(input);
-		if (ch == EOF) {
-			o_free_unsafe(&heredoc);
-			return NULL;
-		}
+		nommu_addchr(as_string, ch);
 		if (ch == '\n') {
 			if (strcmp(heredoc.data + past_EOL, word) == 0) {
 				heredoc.data[past_EOL] = '\0';
 				debug_printf_parse("parsed heredoc '%s'\n", heredoc.data);
 				return heredoc.data;
 			}
-			past_EOL = heredoc.length + 1;
+			do {
+				o_addchr(&heredoc, ch);
+				past_EOL = heredoc.length;
+ jump_in:
+				do {
+					ch = i_getch(input);
+					nommu_addchr(as_string, ch);
+				} while (skip_tabs && ch == '\t');
+			} while (ch == '\n');
+		}
+		if (ch == EOF) {
+			o_free_unsafe(&heredoc);
+			return NULL;
 		}
 		o_addchr(&heredoc, ch);
+		nommu_addchr(as_string, ch);
 	}
 }
 
@@ -4076,25 +4113,27 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 				pi->num_cmds,
 				cmd->argv ? cmd->argv[0] : "NONE");
 		for (i = 0; i < pi->num_cmds; i++) {
-			struct redir_struct *redirect = cmd->redirects;
+			struct redir_struct *redir = cmd->redirects;
 
 			debug_printf_parse("fetch_heredocs: %d cmd argv0:'%s'\n",
 					i, cmd->argv ? cmd->argv[0] : "NONE");
-			while (redirect) {
-				if (redirect->rd_type == REDIRECT_HEREDOC) {
+			while (redir) {
+				if (redir->rd_type == REDIRECT_HEREDOC) {
 					char *p;
 
 					if (heredoc_cnt <= 0)
 						return 1; /* error */
-					redirect->rd_type = REDIRECT_HEREDOC2;
-					p = fetch_till_str(input, redirect->rd_filename);
+					redir->rd_type = REDIRECT_HEREDOC2;
+					/* redir->dup is (ab)used to indicate <<- */
+					p = fetch_till_str(&ctx->as_string, input,
+						redir->rd_filename, redir->rd_dup);
 					if (!p)
 						return 1; /* unexpected EOF */
-					free(redirect->rd_filename);
-					redirect->rd_filename = p;
+					free(redir->rd_filename);
+					redir->rd_filename = p;
 					heredoc_cnt--;
 				}
-				redirect = redirect->next;
+				redir = redir->next;
 			}
 			cmd++;
 		}
@@ -4126,9 +4165,7 @@ static FILE *generate_stream_from_string(const char *s)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
 
 	if (pid == 0) { /* child */
-#if ENABLE_HUSH_JOB
-		die_sleep = 0; /* do not restore tty pgrp on xfunc death */
-#endif
+		disable_restore_tty_pgrp_on_exit();
 		/* Process substitution is not considered to be usual
 		 * 'command execution'.
 		 * SUSv3 says ctrl-Z should be ignored, ctrl-C should not.
@@ -4157,9 +4194,7 @@ static FILE *generate_stream_from_string(const char *s)
 	}
 
 	/* parent */
-#if ENABLE_HUSH_JOB
-	die_sleep = -1; /* restore tty pgrp on xfunc death */
-#endif
+	enable_restore_tty_pgrp_on_exit();
 	clean_up_after_re_execute();
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
@@ -4409,9 +4444,7 @@ static int handle_dollar(o_string *as_string,
 	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
 		ch = i_getch(input);
-#if !BB_MMU
-		if (as_string) o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
  make_var:
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		while (1) {
@@ -4422,17 +4455,13 @@ static int handle_dollar(o_string *as_string,
 			if (!isalnum(ch) && ch != '_')
 				break;
 			ch = i_getch(input);
-#if !BB_MMU
-			if (as_string) o_addchr(as_string, ch);
-#endif
+			nommu_addchr(as_string, ch);
 		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
  make_one_char_var:
 		ch = i_getch(input);
-#if !BB_MMU
-		if (as_string) o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		debug_printf_parse(": '%c'\n", ch);
 		o_addchr(dest, ch | quote_mask);
@@ -4450,18 +4479,14 @@ static int handle_dollar(o_string *as_string,
 
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ch = i_getch(input);
-#if !BB_MMU
-		if (as_string) o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
 		/* XXX maybe someone will try to escape the '}' */
 		expansion = 0;
 		first_char = true;
 		all_digits = false;
 		while (1) {
 			ch = i_getch(input);
-#if !BB_MMU
-			if (as_string) o_addchr(as_string, ch);
-#endif
+			nommu_addchr(as_string, ch);
 			if (ch == '}')
 				break;
 
@@ -4530,15 +4555,11 @@ static int handle_dollar(o_string *as_string,
 		int pos;
 # endif
 		ch = i_getch(input);
-# if !BB_MMU
-		if (as_string) o_addchr(as_string, ch);
-# endif
+		nommu_addchr(as_string, ch);
 # if ENABLE_SH_MATH_SUPPORT
 		if (i_peek(input) == '(') {
 			ch = i_getch(input);
-#  if !BB_MMU
-			if (as_string) o_addchr(as_string, ch);
-#  endif
+			nommu_addchr(as_string, ch);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
 #  if !BB_MMU
@@ -4578,9 +4599,7 @@ static int handle_dollar(o_string *as_string,
 #endif
 	case '_':
 		ch = i_getch(input);
-#if !BB_MMU
-		if (as_string) o_addchr(as_string, ch);
-#endif
+		nommu_addchr(as_string, ch);
 		ch = i_peek(input);
 		if (isalnum(ch)) { /* it's $_name or $_123 */
 			ch = '_';
@@ -4611,9 +4630,8 @@ static int parse_stream_dquoted(o_string *as_string,
 
  again:
 	ch = i_getch(input);
-#if !BB_MMU
-	if (as_string && ch != EOF) o_addchr(as_string, ch);
-#endif
+	if (ch != EOF)
+		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		dest->nonnull = 1;
 		if (dest->o_assignment == NOT_ASSIGNMENT)
@@ -4769,9 +4787,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			return pi;
 		}
-#if !BB_MMU
-		o_addchr(&ctx.as_string, ch);
-#endif
+		nommu_addchr(&ctx.as_string, ch);
 		is_ifs = strchr(G.ifs, ch);
 		is_special = strchr("<>;&|(){}#'" /* special outside of "str" */
 				"\\$\"" USE_HUSH_TICK("`") /* always special */
@@ -4882,10 +4898,8 @@ static struct pipe *parse_stream(char **pstring,
 					i_getch(input);
 					/* note: we do not add it to &ctx.as_string */
 				}
-#if !BB_MMU
 //TODO: go back one char?
-				o_addchr(&ctx.as_string, '\n');
-#endif
+				nommu_addchr(&ctx.as_string, '\n');
 			} else {
 				o_addQchr(&dest, ch);
 			}
@@ -4898,9 +4912,7 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&dest, '\\');
 			ch = i_getch(input);
 			o_addchr(&dest, ch);
-#if !BB_MMU
-			o_addchr(&ctx.as_string, ch);
-#endif
+			nommu_addchr(&ctx.as_string, ch);
 			break;
 		case '$':
 			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
@@ -4917,9 +4929,7 @@ static struct pipe *parse_stream(char **pstring,
 					syntax("unterminated '");
 					goto parse_error;
 				}
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 				if (ch == '\'')
 					break;
 				if (dest.o_assignment == NOT_ASSIGNMENT)
@@ -4954,9 +4964,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (next == '>') {
 				redir_style = REDIRECT_APPEND;
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 			}
 #if 0
 			else if (next == '(') {
@@ -4978,15 +4986,11 @@ static struct pipe *parse_stream(char **pstring,
 				heredoc_cnt++;
 				debug_printf_parse("++heredoc_cnt=%d\n", heredoc_cnt);
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 			} else if (next == '>') {
 				redir_style = REDIRECT_IO;
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 			}
 #if 0
 			else if (next == '(') {
@@ -5013,9 +5017,7 @@ static struct pipe *parse_stream(char **pstring,
 				if (ch != ';')
 					break;
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 				if (ctx.ctx_res_w == RES_CASEI) {
 					ctx.ctx_dsemicolon = 1;
 					ctx.ctx_res_w = RES_MATCH;
@@ -5034,9 +5036,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			if (next == '&') {
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 				done_pipe(&ctx, PIPE_AND);
 			} else {
 				done_pipe(&ctx, PIPE_BG);
@@ -5052,9 +5052,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			if (next == '|') { /* || */
 				ch = i_getch(input);
-#if !BB_MMU
-				o_addchr(&ctx.as_string, ch);
-#endif
+				nommu_addchr(&ctx.as_string, ch);
 				done_pipe(&ctx, PIPE_OR);
 			} else {
 				/* we could pick up a file descriptor choice here
@@ -5537,7 +5535,7 @@ int hush_main(int argc, char **argv)
 		tcsetpgrp(G_interactive_fd, getpid());
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
-		die_sleep = -1;
+		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
 		if (setjmp(die_jmp)) {
 			/* xfunc has failed! die die die */
 			hush_exit(xfunc_error_retval);
