@@ -1,0 +1,10 @@
+f=1
+  cat <<- EOF-f
+		exit EOF-f
+"
+echo $f
+		moo	 
+ EOF-f
+EOF-f   f
+EOF-f 
+EOF-f
