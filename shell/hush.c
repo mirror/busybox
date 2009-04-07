@@ -40,7 +40,6 @@
  * POSIX syntax not implemented:
  *      aliases
  *      <(list) and >(list) Process Substitution
- *      Here Documents ( << word )
  *      Functions
  *      Tilde Expansion
  *
