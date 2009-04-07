@@ -22,7 +22,7 @@
  *
  * Other credits:
  *      o_addchr derived from similar w_addchar function in glibc-2.2.
- *      setup_redirect, redirect_opt_num, and big chunks of main
+ *      parse_redirect, redirect_opt_num, and big chunks of main
  *      and many builtins derived from contributions by Erik Andersen.
  *      Miscellaneous bugfixes from Matt Kraai.
  *
@@ -75,6 +75,9 @@
 #endif
 #include "math.h"
 #include "match.h"
+#ifndef PIPE_BUF
+# define PIPE_BUF 4096           /* amount of buffering in a pipe */
+#endif
 
 #ifdef WANT_TO_TEST_NOMMU
 # undef BB_MMU
@@ -2052,26 +2055,186 @@ static char **expand_assignments(char **argv, int count)
 }
 
 
-//TODO: fix big string case!
+#if BB_MMU
+void re_execute_shell(const char *s, int is_heredoc); /* never called */
+#define clean_up_after_re_execute() ((void)0)
+static void reset_traps_to_defaults(void)
+{
+	unsigned sig;
+	int dirty;
+
+	if (!G.traps)
+		return;
+	dirty = 0;
+	for (sig = 0; sig < NSIG; sig++) {
+		if (!G.traps[sig])
+			continue;
+		free(G.traps[sig]);
+		G.traps[sig] = NULL;
+		/* There is no signal for 0 (EXIT) */
+		if (sig == 0)
+			continue;
+		/* there was a trap handler, we are removing it
+		 * (if sig has non-DFL handling,
+		 * we don't need to do anything) */
+		if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+			continue;
+		sigdelset(&G.blocked_set, sig);
+		dirty = 1;
+	}
+	if (dirty)
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+}
+
+#else /* !BB_MMU */
+
+static void re_execute_shell(const char *s, int is_heredoc) NORETURN;
+static void re_execute_shell(const char *s, int is_heredoc)
+{
+	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
+	struct variable *cur;
+	char **argv, **pp, **pp2;
+	unsigned cnt;
+
+	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
+			, (unsigned) G.root_pid
+			, (unsigned) G.last_bg_pid
+			, (unsigned) G.last_exitcode
+			USE_HUSH_LOOPS(, G.depth_of_loop)
+			);
+	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
+	 * 3:-c 4:<cmd> <argN...> 5:NULL
+	 */
+	cnt = 5 + G.global_argc;
+	for (cur = G.top_var; cur; cur = cur->next) {
+		if (!cur->flg_export || cur->flg_read_only)
+			cnt += 2;
+	}
+	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
+	*pp++ = (char *) G.argv0_for_re_execing;
+	*pp++ = param_buf;
+	for (cur = G.top_var; cur; cur = cur->next) {
+		if (cur->varstr == hush_version_str)
+			continue;
+		if (cur->flg_read_only) {
+			*pp++ = (char *) "-R";
+			*pp++ = cur->varstr;
+		} else if (!cur->flg_export) {
+			*pp++ = (char *) "-V";
+			*pp++ = cur->varstr;
+		}
+	}
+//TODO: pass functions
+	/* We can pass activated traps here. Say, -Tnn:trap_string
+	 *
+	 * However, POSIX says that subshells reset signals with traps
+	 * to SIG_DFL.
+	 * I tested bash-3.2 and it not only does that with true subshells
+	 * of the form ( list ), but with any forked children shells.
+	 * I set trap "echo W" WINCH; and then tried:
+	 *
+	 * { echo 1; sleep 20; echo 2; } &
+	 * while true; do echo 1; sleep 20; echo 2; break; done &
+	 * true | { echo 1; sleep 20; echo 2; } | cat
+	 *
+	 * In all these cases sending SIGWINCH to the child shell
+	 * did not run the trap. If I add trap "echo V" WINCH;
+	 * _inside_ group (just before echo 1), it works.
+	 *
+	 * I conclude it means we don't need to pass active traps here.
+	 * exec syscall below resets them to SIG_DFL for us.
+	 */
+	*pp++ = (char *) (is_heredoc ? "-<" : "-c");
+	*pp++ = (char *) s;
+	pp2 = G.global_argv;
+	while (*pp2)
+		*pp++ = *pp2++;
+	/* *pp = NULL; - is already there */
+
+	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
+	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+	execv(bb_busybox_exec_path, G.argv_from_re_execing);
+	/* Fallback. Useful for init=/bin/hush usage etc */
+	if (G.argv0_for_re_execing[0] == '/')
+		execv(G.argv0_for_re_execing, G.argv_from_re_execing);
+	xfunc_error_retval = 127;
+	bb_error_msg_and_die("can't re-execute the shell");
+}
+
+static void clean_up_after_re_execute(void)
+{
+	char **pp = G.argv_from_re_execing;
+	if (pp) {
+		/* Must match re_execute_shell's allocations (if any) */
+		free(pp);
+		G.argv_from_re_execing = NULL;
+	}
+}
+#endif  /* !BB_MMU */
+
+
 static void setup_heredoc(int fd, const char *heredoc)
 {
 	struct fd_pair pair;
 	pid_t pid;
+	int len, written;
 
 	xpiped_pair(pair);
+	xmove_fd(pair.rd, fd);
+
+	len = strlen(heredoc);
+	/* Try writing without forking. Newer kernels have
+	 * dynamically growing pipes. Must use non-blocking write! */
+	ndelay_on(pair.wr);
+	while (1) {
+		written = write(pair.wr, heredoc, len);
+		if (written <= 0)
+			break;
+		len -= written;
+		if (len == 0) {
+			close(pair.wr);
+			return;
+		}
+		heredoc += written;
+	}
+	ndelay_off(pair.wr);
+
+	/* Okay, pipe buffer was not big enough */
+	/* Note: we must not create a stray child (bastard? :)
+	 * for the unsuspecting parent process. We create a grandchild
+	 * and exit before we exec the process which consumes heredoc
+	 * (that exec happens after we return from this function) */
 	pid = vfork();
 	if (pid < 0)
 		bb_perror_msg_and_die("vfork");
-	if (pid == 0) { /* child */
-		die_sleep = 0;
-		close(pair.rd);
-		xwrite_str(pair.wr, heredoc);
+	if (pid == 0) {
+		/* child */
+		pid = BB_MMU ? fork() : vfork();
+		if (pid < 0)
+			bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
+		if (pid != 0)
+			_exit(0);
+		/* grandchild */
+		close(fd); /* read side of the pipe */
+#if BB_MMU
+		full_write(pair.wr, heredoc, len);
 		_exit(0);
+#else
+		/* Delegate blocking writes to another process */
+# if ENABLE_HUSH_JOB
+		die_sleep = 0; /* do not restore tty pgrp on xfunc death */
+# endif
+		xmove_fd(pair.wr, STDOUT_FILENO);
+		re_execute_shell(heredoc, 1);
+#endif
 	}
 	/* parent */
-	die_sleep = -1;
+#if ENABLE_HUSH_JOB
+	die_sleep = -1; /* restore tty pgrp on xfunc death */
+#endif
+	clean_up_after_re_execute();
 	close(pair.wr);
-	xmove_fd(pair.rd, fd);
+	wait(NULL); /* wiat till child has died */
 }
 
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
@@ -2329,122 +2492,6 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	_exit(EXIT_FAILURE);
 }
 
-#if BB_MMU
-static void reset_traps_to_defaults(void)
-{
-	unsigned sig;
-	int dirty;
-
-	if (!G.traps)
-		return;
-	dirty = 0;
-	for (sig = 0; sig < NSIG; sig++) {
-		if (!G.traps[sig])
-			continue;
-		free(G.traps[sig]);
-		G.traps[sig] = NULL;
-		/* There is no signal for 0 (EXIT) */
-		if (sig == 0)
-			continue;
-		/* there was a trap handler, we are removing it
-		 * (if sig has non-DFL handling,
-		 * we don't need to do anything) */
-		if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
-			continue;
-		sigdelset(&G.blocked_set, sig);
-		dirty = 1;
-	}
-	if (dirty)
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
-}
-#define clean_up_after_re_execute() ((void)0)
-
-#else /* !BB_MMU */
-
-static void re_execute_shell(const char *s) NORETURN;
-static void re_execute_shell(const char *s)
-{
-	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
-	struct variable *cur;
-	char **argv, **pp, **pp2;
-	unsigned cnt;
-
-	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
-			, (unsigned) G.root_pid
-			, (unsigned) G.last_bg_pid
-			, (unsigned) G.last_exitcode
-			USE_HUSH_LOOPS(, G.depth_of_loop)
-			);
-	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
-	 * 3:-c 4:<cmd> <argN...> 5:NULL
-	 */
-	cnt = 5 + G.global_argc;
-	for (cur = G.top_var; cur; cur = cur->next) {
-		if (!cur->flg_export || cur->flg_read_only)
-			cnt += 2;
-	}
-	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
-	*pp++ = (char *) G.argv0_for_re_execing;
-	*pp++ = param_buf;
-	for (cur = G.top_var; cur; cur = cur->next) {
-		if (cur->varstr == hush_version_str)
-			continue;
-		if (cur->flg_read_only) {
-			*pp++ = (char *) "-R";
-			*pp++ = cur->varstr;
-		} else if (!cur->flg_export) {
-			*pp++ = (char *) "-V";
-			*pp++ = cur->varstr;
-		}
-	}
-//TODO: pass functions
-	/* We can pass activated traps here. Say, -Tnn:trap_string
-	 *
-	 * However, POSIX says that subshells reset signals with traps
-	 * to SIG_DFL.
-	 * I tested bash-3.2 and it not only does that with true subshells
-	 * of the form ( list ), but with any forked children shells.
-	 * I set trap "echo W" WINCH; and then tried:
-	 *
-	 * { echo 1; sleep 20; echo 2; } &
-	 * while true; do echo 1; sleep 20; echo 2; break; done &
-	 * true | { echo 1; sleep 20; echo 2; } | cat
-	 *
-	 * In all these cases sending SIGWINCH to the child shell
-	 * did not run the trap. If I add trap "echo V" WINCH;
-	 * _inside_ group (just before echo 1), it works.
-	 *
-	 * I conclude it means we don't need to pass active traps here.
-	 * exec syscall below resets them to SIG_DFL for us.
-	 */
-	*pp++ = (char *) "-c";
-	*pp++ = (char *) s;
-	pp2 = G.global_argv;
-	while (*pp2)
-		*pp++ = *pp2++;
-	/* *pp = NULL; - is already there */
-
-	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
-	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-	execv(bb_busybox_exec_path, G.argv_from_re_execing);
-	/* Fallback. Useful for init=/bin/hush usage etc */
-	if (G.argv0_for_re_execing[0] == '/')
-		execv(G.argv0_for_re_execing, G.argv_from_re_execing);
-	xfunc_error_retval = 127;
-	bb_error_msg_and_die("can't re-execute the shell");
-}
-
-static void clean_up_after_re_execute(void)
-{
-	char **pp = G.argv_from_re_execing;
-	if (pp) {
-		/* Must match re_execute_shell's allocations (if any) */
-		free(pp);
-		G.argv_from_re_execing = NULL;
-	}
-}
-#endif
-
 static int run_list(struct pipe *pi);
 
 /* Called after [v]fork() in run_pipe
@@ -2477,7 +2524,7 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		 * since this process is about to exit */
 		_exit(rcode);
 #else
-		re_execute_shell(command->group_as_string);
+		re_execute_shell(command->group_as_string, 0);
 #endif
 	}
 
@@ -4105,7 +4152,7 @@ static FILE *generate_stream_from_string(const char *s)
 	 * huge=`cat BIG` # was blocking here forever
 	 * echo OK
 	 */
-		re_execute_shell(s);
+		re_execute_shell(s, 0);
 #endif
 	}
 
@@ -5317,7 +5364,7 @@ int hush_main(int argc, char **argv)
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
 #if !BB_MMU
-				"$:!:?:D:R:V:"
+				"<:$:!:?:D:R:V:"
 #endif
 		);
 		if (opt <= 0)
@@ -5346,6 +5393,9 @@ int hush_main(int argc, char **argv)
 			 * operate, so simply do nothing here. */
 			break;
 #if !BB_MMU
+		case '<': /* "big heredoc" support */
+			full_write(STDOUT_FILENO, optarg, strlen(optarg));
+			_exit(0);
 		case '$':
 			G.root_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
