@@ -21,8 +21,8 @@
  *      rewrites.
  *
  * Other credits:
- *      o_addchr() derived from similar w_addchar function in glibc-2.2.
- *      setup_redirect(), redirect_opt_num(), and big chunks of main()
+ *      o_addchr derived from similar w_addchar function in glibc-2.2.
+ *      setup_redirect, redirect_opt_num, and big chunks of main
  *      and many builtins derived from contributions by Erik Andersen.
  *      Miscellaneous bugfixes from Matt Kraai.
  *
@@ -249,11 +249,13 @@ static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
 #define SPECIAL_VAR_SYMBOL 3
 
 typedef enum redir_type {
+	REDIRECT_INVALID   = 0,
 	REDIRECT_INPUT     = 1,
 	REDIRECT_OVERWRITE = 2,
 	REDIRECT_APPEND    = 3,
-	REDIRECT_HEREIS    = 4,
-	REDIRECT_IO        = 5
+	REDIRECT_HEREDOC   = 4,
+	REDIRECT_IO        = 5,
+	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc load */
 } redir_type;
 
 /* The descrip member of this structure is only used to make
@@ -263,12 +265,14 @@ static const struct {
 	signed char default_fd;
 	char descrip[3];
 } redir_table[] = {
-	{ 0,                         0, "()" },
+	{ 0,                         0, "??" },
 	{ O_RDONLY,                  0, "<"  },
 	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
 	{ O_CREAT|O_APPEND|O_WRONLY, 1, ">>" },
-	{ O_RDONLY,                 -1, "<<" },
-	{ O_RDWR,                    1, "<>" }
+	{ O_RDONLY,                  0, "<<" },
+	{ O_CREAT|O_RDWR,            1, "<>" },
+/* Should not be needed. Bogus default_fd helps in debugging */
+/*	{ O_RDONLY,                 77, "<<" }, */
 };
 
 typedef enum reserved_style {
@@ -2030,20 +2034,56 @@ static char **expand_assignments(char **argv, int count)
 }
 
 
+//TODO: fix big string case!
+static void setup_heredoc(int fd, const char *heredoc)
+{
+	struct fd_pair pair;
+	pid_t pid;
+
+	xpiped_pair(pair);
+	pid = vfork();
+	if (pid < 0)
+		bb_perror_msg_and_die("vfork");
+	if (pid == 0) { /* child */
+		die_sleep = 0;
+		close(pair.rd);
+		xwrite_str(pair.wr, heredoc);
+		_exit(0);
+	}
+	/* parent */
+	die_sleep = -1;
+	close(pair.wr);
+	xmove_fd(pair.rd, fd);
+}
+
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
 static int setup_redirects(struct command *prog, int squirrel[])
 {
+//TODO: no callers ever check return value - ?!
 	int openfd, mode;
 	struct redir_struct *redir;
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
-		if (redir->dup == -1 && redir->rd_filename == NULL) {
-			/* something went wrong in the parse.  Pretend it didn't happen */
+		if (redir->rd_type == REDIRECT_HEREDOC2) {
+			if (squirrel && redir->fd < 3) {
+				squirrel[redir->fd] = dup(redir->fd);
+			}
+			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
+			 * of the heredoc */
+			debug_printf_parse("set heredoc '%s'\n",
+					redir->rd_filename);
+			setup_heredoc(redir->fd, redir->rd_filename);
 			continue;
 		}
+
 		if (redir->dup == -1) {
 			char *p;
+			if (redir->rd_filename == NULL) {
+				/* Something went wrong in the parse.
+				 * Pretend it didn't happen */
+				continue;
+			}
 			mode = redir_table[redir->rd_type].mode;
 //TODO: check redir for names like '\\'
 			p = expand_string_to_string(redir->rd_filename);
@@ -2051,7 +2091,8 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			free(p);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
-			   bash and ash both lose it as well (though zsh doesn't!) */
+			 * bash and ash both lose it as well (though zsh doesn't!) */
+//what the above comment tries to say?
 				return 1;
 			}
 		} else {
@@ -3407,83 +3448,6 @@ static int run_and_free_list(struct pipe *pi)
 }
 
 
-/* Peek ahead in the in_str to find out if we have a "&n" construct,
- * as in "2>&1", that represents duplicating a file descriptor.
- * Return either -2 (syntax error), -1 (no &), or the number found.
- */
-static int redirect_dup_num(struct in_str *input)
-{
-	int ch, d = 0, ok = 0;
-	ch = i_peek(input);
-	if (ch != '&') return -1;
-
-	i_getch(input);  /* get the & */
-	ch = i_peek(input);
-	if (ch == '-') {
-		i_getch(input);
-		return -3;  /* "-" represents "close me" */
-	}
-	while (isdigit(ch)) {
-		d = d*10 + (ch-'0');
-		ok = 1;
-		i_getch(input);
-		ch = i_peek(input);
-	}
-	if (ok) return d;
-
-	bb_error_msg("ambiguous redirect");
-	return -2;
-}
-
-/* The src parameter allows us to peek forward to a possible &n syntax
- * for file descriptor duplication, e.g., "2>&1".
- * Return code is 0 normally, 1 if a syntax error is detected in src.
- * Resource errors (in xmalloc) cause the process to exit */
-static int setup_redirect(struct parse_context *ctx,
-		int fd,
-		redir_type style,
-		struct in_str *input)
-{
-	struct command *command = ctx->command;
-	struct redir_struct *redir;
-	struct redir_struct **redirp;
-	int dup_num;
-
-	/* Check for a '2>&1' type redirect */
-	dup_num = redirect_dup_num(input);
-	if (dup_num == -2)
-		return 1;  /* syntax error */
-
-	/* Create a new redir_struct and drop it onto the end of the linked list */
-	redirp = &command->redirects;
-	while ((redir = *redirp) != NULL) {
-		redirp = &(redir->next);
-	}
-	*redirp = redir = xzalloc(sizeof(*redir));
-	/* redir->next = NULL; */
-	/* redir->rd_filename = NULL; */
-	redir->rd_type = style;
-	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
-
-	debug_printf("Redirect type %d%s\n", redir->fd, redir_table[style].descrip);
-
-	redir->dup = dup_num;
-	if (dup_num != -1) {
-		/* Erik had a check here that the file descriptor in question
-		 * is legit; I postpone that to "run time"
-		 * A "-" representation of "close me" shows up as a -3 here */
-		debug_printf("Duplicating redirect '%d>&%d'\n", redir->fd, redir->dup);
-	} else {
-		/* We do _not_ try to open the file that src points to,
-		 * since we need to return and let src be expanded first.
-		 * Set ctx->pending_redirect, so we know what to do at the
-		 * end of the next parsed word. */
-		ctx->pending_redirect = redir;
-	}
-	return 0;
-}
-
-
 static struct pipe *new_pipe(void)
 {
 	struct pipe *pi;
@@ -3601,7 +3565,6 @@ static void initialize_context(struct parse_context *ctx)
 	 */
 	done_command(ctx);
 }
-
 
 /* If a reserved word is found and processed, parse context is modified
  * and 1 is returned.
@@ -3766,14 +3729,26 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	if (ctx->pending_redirect) {
 		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
 		 * only if run as "bash", not "sh" */
+		/* http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html
+		 * "2.7 Redirection
+		 * ...the word that follows the redirection operator
+		 * shall be subjected to tilde expansion, parameter expansion,
+		 * command substitution, arithmetic expansion, and quote
+		 * removal. Pathname expansion shall not be performed
+		 * on the word by a non-interactive shell; an interactive
+		 * shell may perform it, but shall do so only when
+		 * the expansion would result in one word."
+		 */
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
 		word->o_assignment = NOT_ASSIGNMENT;
-		debug_printf("word stored in rd_filename: '%s'\n", word->data);
+		debug_printf_parse("word stored in rd_filename: '%s'\n", word->data);
 	} else {
 		/* "{ echo foo; } echo bar" - bad */
 		/* NB: bash allows e.g.:
 		 * if true; then { echo foo; } fi
 		 * while if false; then false; fi do break; done
+		 * and disallows:
+		 * while if false; then false; fi; do; break; done
 		 * TODO? */
 		if (command->group) {
 			syntax(word->data);
@@ -3855,6 +3830,117 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	return 0;
 }
 
+
+/* Peek ahead in the input to find out if we have a "&n" construct,
+ * as in "2>&1", that represents duplicating a file descriptor.
+ * Return: -3 if >&- "close fd" construct is seen,
+ * -2 (syntax error), -1 if no & was seen, or the number found.
+ */
+#if BB_MMU
+#define redirect_dup_num(as_string, input) \
+	redirect_dup_num(input)
+#endif
+static int redirect_dup_num(o_string *as_string, struct in_str *input)
+{
+	int ch, d, ok;
+
+	ch = i_peek(input);
+	if (ch != '&')
+		return -1;
+
+	ch = i_getch(input);  /* get the & */
+#if !BB_MMU
+	o_addchr(as_string, ch);
+#endif
+	ch = i_peek(input);
+	if (ch == '-') {
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(as_string, ch);
+#endif
+		return -3;  /* "-" represents "close me" */
+	}
+	d = 0;
+	ok = 0;
+	while (ch != EOF && isdigit(ch)) {
+		d = d*10 + (ch-'0');
+		ok = 1;
+		ch = i_getch(input);
+#if !BB_MMU
+		o_addchr(as_string, ch);
+#endif
+		ch = i_peek(input);
+	}
+	if (ok) return d;
+
+//TODO: this is the place to catch ">&file" bashism (redirect both fd 1 and 2)
+
+	bb_error_msg("ambiguous redirect");
+	return -2;
+}
+
+/* Return code is 0 normally, 1 if a syntax error is detected
+ */
+static int parse_redirect(struct parse_context *ctx,
+		int fd,
+		redir_type style,
+		struct in_str *input)
+{
+	struct command *command = ctx->command;
+	struct redir_struct *redir;
+	struct redir_struct **redirp;
+	int dup_num;
+
+	dup_num = -1;
+	if (style != REDIRECT_HEREDOC) {
+		/* Check for a '2>&1' type redirect */
+		dup_num = redirect_dup_num(&ctx->as_string, input);
+		if (dup_num == -2)
+			return 1;  /* syntax error */
+	}
+//TODO: else { check for <<-word }
+
+	if (style == REDIRECT_OVERWRITE && dup_num == -1) {
+		int ch = i_peek(input);
+		if (ch == '|') {
+			/* >|FILE redirect ("clobbering" >).
+			 * Since we do not support "set -o noclobber" yet,
+			 * >| and > are the same for now. Just eat |.
+			 */
+			ch = i_getch(input);
+#if !BB_MMU
+			o_addchr(&ctx->as_string, ch);
+#endif
+		}
+	}
+
+	/* Create a new redir_struct and append it to the linked list */
+	redirp = &command->redirects;
+	while ((redir = *redirp) != NULL) {
+		redirp = &(redir->next);
+	}
+	*redirp = redir = xzalloc(sizeof(*redir));
+	/* redir->next = NULL; */
+	/* redir->rd_filename = NULL; */
+	redir->rd_type = style;
+	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
+
+	debug_printf_parse("redirect type %d %s\n", redir->fd, redir_table[style].descrip);
+
+	redir->dup = dup_num;
+	if (dup_num != -1) {
+		/* Erik had a check here that the file descriptor in question
+		 * is legit; I postpone that to "run time"
+		 * A "-" representation of "close me" shows up as a -3 here */
+		debug_printf_parse("duplicating redirect '%d>&%d'\n", redir->fd, redir->dup);
+	} else {
+		/* Set ctx->pending_redirect, so we know what to do at the
+		 * end of the next parsed word. */
+		ctx->pending_redirect = redir;
+	}
+	return 0;
+}
+
 /* If a redirect is immediately preceded by a number, that number is
  * supposed to tell which file descriptor to redirect.  This routine
  * looks for such preceding numbers.  In an ideal world this routine
@@ -3863,24 +3949,96 @@ static int done_word(o_string *word, struct parse_context *ctx)
  *     echo 49>foo    # redirects fd 49 to file "foo", nothing passed to echo
  *     echo -2>foo    # redirects fd  1 to file "foo",    "-2" passed to echo
  *     echo 49x>foo   # redirects fd  1 to file "foo",   "49x" passed to echo
- * A -1 output from this program means no valid number was found, so the
- * caller should use the appropriate default for this redirection.
+ *
+ * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html
+ * "2.7 Redirection
+ * ... If n is quoted, the number shall not be recognized as part of
+ * the redirection expression. For example:
+ * echo \2>a
+ * writes the character 2 into file a"
+ * I am not sure we do it right (and not sure we care)
+ *
+ * A -1 return means no valid number was found,
+ * the caller should use the appropriate default for this redirection.
  */
 static int redirect_opt_num(o_string *o)
 {
 	int num;
 
-	if (o->length == 0)
+	if (o->data == NULL)
 		return -1;
-	for (num = 0; num < o->length; num++) {
-		if (!isdigit(o->data[num])) {
-			return -1;
-		}
-	}
-	num = atoi(o->data);
+	num = bb_strtou(o->data, NULL, 10);
+	if (errno || num < 0)
+		return -1;
 	o_reset(o);
 	return num;
 }
+
+//TODO: add NOMMU as_string fill
+static char *fetch_till_str(struct in_str *input, const char *word)
+{
+	o_string heredoc = NULL_O_STRING;
+	int past_EOL = 0;
+	int ch;
+
+	while (1) {
+		ch = i_getch(input);
+		if (ch == EOF) {
+			o_free_unsafe(&heredoc);
+			return NULL;
+		}
+		if (ch == '\n') {
+			if (strcmp(heredoc.data + past_EOL, word) == 0) {
+				heredoc.data[past_EOL] = '\0';
+				debug_printf_parse("parsed heredoc '%s'\n", heredoc.data);
+				return heredoc.data;
+			}
+			past_EOL = heredoc.length + 1;
+		}
+		o_addchr(&heredoc, ch);
+	}
+}
+
+static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_str *input)
+{
+	struct pipe *pi = ctx->list_head;
+
+	while (pi) {
+		int i;
+		struct command *cmd = pi->cmds;
+
+		debug_printf_parse("fetch_heredocs: num_cmds:%d cmd argv0:'%s'\n",
+				pi->num_cmds,
+				cmd->argv ? cmd->argv[0] : "NONE");
+		for (i = 0; i < pi->num_cmds; i++) {
+			struct redir_struct *redirect = cmd->redirects;
+
+			debug_printf_parse("fetch_heredocs: %d cmd argv0:'%s'\n",
+					i, cmd->argv ? cmd->argv[0] : "NONE");
+			while (redirect) {
+				if (redirect->rd_type == REDIRECT_HEREDOC) {
+					char *p;
+
+					if (heredoc_cnt <= 0)
+						return 1; /* error */
+					redirect->rd_type = REDIRECT_HEREDOC2;
+					p = fetch_till_str(input, redirect->rd_filename);
+					if (!p)
+						return 1; /* unexpected EOF */
+					free(redirect->rd_filename);
+					redirect->rd_filename = p;
+					heredoc_cnt--;
+				}
+				redirect = redirect->next;
+			}
+			cmd++;
+		}
+		pi = pi->next;
+	}
+	/* Should be 0. If it isn't, it's a parse error */
+	return heredoc_cnt;
+}
+
 
 #if BB_MMU
 #define parse_stream(pstring, input, end_trigger) \
@@ -4391,8 +4549,7 @@ static int parse_stream_dquoted(o_string *as_string,
  again:
 	ch = i_getch(input);
 #if !BB_MMU
-	if (as_string && ch != EOF)
-		o_addchr(as_string, ch);
+	if (as_string && ch != EOF) o_addchr(as_string, ch);
 #endif
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		dest->nonnull = 1;
@@ -4479,6 +4636,7 @@ static struct pipe *parse_stream(char **pstring,
 	struct parse_context ctx;
 	o_string dest = NULL_O_STRING;
 	int is_in_dquote;
+	int heredoc_cnt;
 
 	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
@@ -4498,6 +4656,7 @@ static struct pipe *parse_stream(char **pstring,
 	/* dest.o_assignment = MAYBE_ASSIGNMENT; - already is */
 	initialize_context(&ctx);
 	is_in_dquote = 0;
+	heredoc_cnt = 0;
 	while (1) {
 		const char *is_ifs;
 		const char *is_special;
@@ -4518,6 +4677,11 @@ static struct pipe *parse_stream(char **pstring,
 						ch, ch, dest.o_escape);
 		if (ch == EOF) {
 			struct pipe *pi;
+
+			if (heredoc_cnt) {
+				syntax("unterminated here document");
+				goto parse_error;
+			}
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
@@ -4578,14 +4742,36 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 				/* Treat newline as a command separator. */
 				done_pipe(&ctx, PIPE_SEQ);
+				debug_printf_parse("heredoc_cnt:%d\n", heredoc_cnt);
+				if (heredoc_cnt) {
+					if (fetch_heredocs(heredoc_cnt, &ctx, input))
+						goto parse_error;
+					heredoc_cnt = 0;
+				}
 				dest.o_assignment = MAYBE_ASSIGNMENT;
 				ch = ';';
 				/* note: if (is_ifs) continue;
 				 * will still trigger for us */
 			}
 		}
-		if (end_trigger && end_trigger == ch) {
+		if (end_trigger && end_trigger == ch
+		 && (heredoc_cnt == 0 || end_trigger != ';')
+		) {
 //TODO: disallow "{ cmd }" without semicolon
+			if (heredoc_cnt) {
+				/* This is technically valid:
+				 * { cat <<HERE; }; echo Ok
+				 * heredoc
+				 * heredoc
+				 * heredoc
+				 * HERE
+				 * but we don't support this.
+				 * We require heredoc to be in enclosing {}/(),
+				 * if any.
+				 */
+				syntax("unterminated here document");
+				goto parse_error;
+			}
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
@@ -4715,7 +4901,8 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 #endif
-			setup_redirect(&ctx, redir_fd, redir_style, input);
+			if (parse_redirect(&ctx, redir_fd, redir_style, input))
+				goto parse_error;
 			break;
 		case '<':
 			redir_fd = redirect_opt_num(&dest);
@@ -4724,7 +4911,9 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			redir_style = REDIRECT_INPUT;
 			if (next == '<') {
-				redir_style = REDIRECT_HEREIS;
+				redir_style = REDIRECT_HEREDOC;
+				heredoc_cnt++;
+				debug_printf_parse("++heredoc_cnt=%d\n", heredoc_cnt);
 				ch = i_getch(input);
 #if !BB_MMU
 				o_addchr(&ctx.as_string, ch);
@@ -4742,7 +4931,8 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 #endif
-			setup_redirect(&ctx, redir_fd, redir_style, input);
+			if (parse_redirect(&ctx, redir_fd, redir_style, input))
+				goto parse_error;
 			break;
 		case ';':
 #if ENABLE_HUSH_CASE
