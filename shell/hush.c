@@ -43,7 +43,6 @@
  *      Here Documents ( << word )
  *      Functions
  *      Tilde Expansion
- *      Parameter Expansion for substring processing ${var#word} ${var%word}
  *
  * Bash stuff (maybe optionally enable?):
  *      &> and >& redirection of stdout+stderr
@@ -76,6 +75,7 @@
 #include <fnmatch.h>
 #endif
 #include "math.h"
+#include "match.h"
 
 #ifdef WANT_TO_TEST_NOMMU
 # undef BB_MMU
@@ -1667,8 +1667,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	char first_ch, ored_ch;
 	int i;
 	const char *val;
-	char *p;
+	char *dyn_val, *p;
 
+	dyn_val = NULL;
 	ored_ch = 0;
 
 	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
@@ -1844,7 +1845,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				++var;
 			} else {
 				/* maybe handle parameter expansion */
-				exp_off = strcspn(var, ":-=+?");
+				exp_off = strcspn(var, ":-=+?%#");
 				if (!var[exp_off])
 					exp_off = 0;
 				if (exp_off) {
@@ -1873,29 +1874,45 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				val = utoa(val ? strlen(val) : 0);
 				debug_printf_expand("%s\n", val);
 			} else if (exp_off) {
-				/* we need to do an expansion */
-				int exp_test = (!val || (exp_null && !val[0]));
-				if (exp_op == '+')
-					exp_test = !exp_test;
-				debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
-					exp_null ? "true" : "false", exp_test);
-				if (exp_test) {
-					if (exp_op == '?')
-						maybe_die(var, *exp_word ? exp_word : "parameter null or not set");
+				if (exp_op == '%' || exp_op == '#') {
+					/* we need to do a pattern match */
+					bool zero;
+					char *loc;
+					scan_t scan = pick_scan(exp_op, *exp_word, &zero);
+					if (exp_op == *exp_word)	/* ## or %% */
+						++exp_word;
+					val = dyn_val = xstrdup(val);
+					loc = scan(dyn_val, exp_word, zero);
+					if (zero)
+						val = loc;
 					else
-						val = exp_word;
+						*loc = '\0';
+				} else {
+					/* we need to do an expansion */
+					int exp_test = (!val || (exp_null && !val[0]));
+					if (exp_op == '+')
+						exp_test = !exp_test;
+					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
+						exp_null ? "true" : "false", exp_test);
+					if (exp_test) {
+						if (exp_op == '?')
+							maybe_die(var, *exp_word ? exp_word : "parameter null or not set");
+						else
+							val = exp_word;
 
-					if (exp_op == '=') {
-						if (isdigit(var[0]) || var[0] == '#') {
-							maybe_die(var, "special vars cannot assign in this way");
-							val = NULL;
-						} else {
-							char *new_var = xmalloc(strlen(var) + strlen(val) + 2);
-							sprintf(new_var, "%s=%s", var, val);
-							set_local_var(new_var, -1, 0);
+						if (exp_op == '=') {
+							if (isdigit(var[0]) || var[0] == '#') {
+								maybe_die(var, "special vars cannot assign in this way");
+								val = NULL;
+							} else {
+								char *new_var = xmalloc(strlen(var) + strlen(val) + 2);
+								sprintf(new_var, "%s=%s", var, val);
+								set_local_var(new_var, -1, 0);
+							}
 						}
 					}
 				}
+
 				var[exp_off] = exp_save;
 			}
 
@@ -1921,6 +1938,8 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
+		free(dyn_val);
+		dyn_val = NULL;
 		/* Do the check to avoid writing to a const string */
 		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
@@ -4428,7 +4447,6 @@ static int handle_dollar(o_string *as_string,
 						break;
 					}
 					goto case_default;
-#if 0 /* not implemented yet :( */
 				case '#': /* remove prefix */
 				case '%': /* remove suffix */
 					if (expansion == 0) {
@@ -4437,7 +4455,6 @@ static int handle_dollar(o_string *as_string,
 						break;
 					}
 					goto case_default;
-#endif
 				case '-': /* default value */
 				case '=': /* assign default */
 				case '+': /* alternative */
