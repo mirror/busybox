@@ -1,5 +1,5 @@
 f=1
-  cat <<- EOF-f
+  cat <<- EOF-f""
 		exit EOF-f
 "
 echo $f

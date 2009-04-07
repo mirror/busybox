@@ -305,7 +305,9 @@ typedef struct o_string {
 	 * (by prepending \ to *, ?, [, \) */
 	smallint o_escape;
 	smallint o_glob;
-	smallint nonnull;
+	/* At least some part of the string was inside '' or "",
+	 * possibly empty one: word"", wo''rd etc. */
+	smallint o_quoted;
 	smallint has_empty_slot;
 	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
 } o_string;
@@ -339,12 +341,14 @@ typedef struct in_str {
 struct redir_struct {
 	struct redir_struct *next;
 	char *rd_filename;          /* filename */
-	int rd_fd;                  /* file descriptor being redirected */
-	int rd_dup;                 /* -1, or file descriptor being duplicated */
+	int rd_fd;                  /* fd to redirect */
+	/* fd to redirect to, or -3 if rd_fd is to be closed (n>&-) */
+	int rd_dup;
 	smallint rd_type;           /* (enum redir_type) */
 	/* note: for heredocs, rd_filename contains heredoc delimiter,
-	 * and subsequently heredoc itself; and rd_dup is
-	 * "do we need to trim leading tabs?" bool flag
+	 * and subsequently heredoc itself; and rd_dup is a bitmask:
+	 * 1: do we need to trim leading tabs?
+	 * 2: is heredoc quoted (<<'dleim' syntax) ?
 	 */
 };
 typedef enum redir_type {
@@ -355,6 +359,9 @@ typedef enum redir_type {
 	REDIRECT_HEREDOC   = 4,
 	REDIRECT_IO        = 5,
 	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc is loaded */
+	REDIRFD_CLOSE = -3,
+	HEREDOC_SKIPTABS = 1,
+	HEREDOC_QUOTED   = 2,
 } redir_type;
 
 
@@ -1328,7 +1335,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 static void o_reset(o_string *o)
 {
 	o->length = 0;
-	o->nonnull = 0;
+	o->o_quoted = 0;
 	if (o->data)
 		o->data[0] = '\0';
 }
@@ -1677,6 +1684,39 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	return n;
 }
 
+/* Helper to expand $((...)) and heredoc body. These act as if
+ * they are in double quotes, with the exception that they are not :).
+ * Just the rules are similar: "expand only $var and `cmd`"
+ *
+ * Returns malloced string.
+ * As an optimization, we return NULL if expansion is not needed.
+ */
+static char *expand_pseudo_dquoted(const char *str)
+{
+	char *exp_str;
+	struct in_str input;
+	o_string dest = NULL_O_STRING;
+
+	if (strchr(str, '$') == NULL
+#if ENABLE_HUSH_TICK
+	 && strchr(str, '`') == NULL
+#endif
+	) {
+		return NULL;
+	}
+
+	/* We need to expand. Example:
+	 * echo $(($a + `echo 1`)) $((1 + $((2)) ))
+	 */
+	setup_string_in_str(&input, str);
+	parse_stream_dquoted(NULL, &dest, &input, EOF);
+	//bb_error_msg("'%s' -> '%s'", str, dest.data);
+	exp_str = expand_string_to_string(dest.data);
+	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
+	o_free_unsafe(&dest);
+	return exp_str;
+}
+
 /* Expand all variable references in given string, adding words to list[]
  * at n, n+1,... positions. Return updated n (so that list[n] is next one
  * to be filled). This routine is extremely tricky: has to deal with
@@ -1809,26 +1849,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
 
-			/* Optional: skip expansion if expr is simple ("a + 3", "i++" etc) */
-			exp_str = NULL;
-			if (strchr(arg, '$') != NULL
-#if ENABLE_HUSH_TICK
-			 || strchr(arg, '`') != NULL
-#endif
-			) {
-				/* We need to expand. Example:
-				 * echo $(($a + `echo 1`)) $((1 + $((2)) ))
-				 */
-				struct in_str input;
-				o_string dest = NULL_O_STRING;
-
-				setup_string_in_str(&input, arg);
-				parse_stream_dquoted(NULL, &dest, &input, EOF);
-				//bb_error_msg("'%s' -> '%s'", arg, dest.data);
-				exp_str = expand_string_to_string(dest.data);
-				//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
-				o_free_unsafe(&dest);
-			}
+			exp_str = expand_pseudo_dquoted(arg);
 			hooks.lookupvar = get_local_var_value;
 			hooks.setvar = arith_set_local_var;
 			hooks.endofname = endofname;
@@ -2195,16 +2216,26 @@ static void clean_up_after_re_execute(void)
 #endif  /* !BB_MMU */
 
 
-static void setup_heredoc(int fd, const char *heredoc)
+static void setup_heredoc(struct redir_struct *redir)
 {
 	struct fd_pair pair;
 	pid_t pid;
 	int len, written;
+	/* the _body_ of heredoc (misleading field name) */
+	const char *heredoc = redir->rd_filename;
+	char *expanded;
+
+	expanded = NULL;
+	if (!(redir->rd_dup & HEREDOC_QUOTED)) {
+		expanded = expand_pseudo_dquoted(heredoc);
+		if (expanded)
+			heredoc = expanded;
+	}
+	len = strlen(heredoc);
 
 	xpiped_pair(pair);
-	xmove_fd(pair.rd, fd);
+	xmove_fd(pair.rd, redir->rd_fd);
 
-	len = strlen(heredoc);
 	/* Try writing without forking. Newer kernels have
 	 * dynamically growing pipes. Must use non-blocking write! */
 	ndelay_on(pair.wr);
@@ -2237,7 +2268,7 @@ static void setup_heredoc(int fd, const char *heredoc)
 		if (pid != 0)
 			_exit(0);
 		/* grandchild */
-		close(fd); /* read side of the pipe */
+		close(redir->rd_fd); /* read side of the pipe */
 #if BB_MMU
 		full_write(pair.wr, heredoc, len); /* may loop or block */
 		_exit(0);
@@ -2252,6 +2283,7 @@ static void setup_heredoc(int fd, const char *heredoc)
 	enable_restore_tty_pgrp_on_exit();
 	clean_up_after_re_execute();
 	close(pair.wr);
+	free(expanded);
 	wait(NULL); /* wait till child has died */
 }
 
@@ -2272,7 +2304,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			 * of the heredoc */
 			debug_printf_parse("set heredoc '%s'\n",
 					redir->rd_filename);
-			setup_heredoc(redir->rd_fd, redir->rd_filename);
+			setup_heredoc(redir);
 			continue;
 		}
 
@@ -2302,11 +2334,11 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			if (squirrel && redir->rd_fd < 3) {
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
-			if (openfd == -3) {
-				/* "-" means "close me" and we use -3 for that */
+			if (openfd == REDIRFD_CLOSE) {
+				/* "n>-" means "close me" */
 				close(redir->rd_fd);
 			} else {
-				dup2(openfd, redir->rd_fd);
+				xdup2(openfd, redir->rd_fd);
 				if (redir->rd_dup == -1)
 					close(openfd);
 			}
@@ -2350,14 +2382,16 @@ static void free_pipe(struct pipe *pi, int indent)
 		debug_printf_clean("%s  command %d:\n", indenter(indent), i);
 		if (command->argv) {
 			for (a = 0, p = command->argv; *p; a++, p++) {
-				debug_printf_clean("%s   argv[%d] = %s\n", indenter(indent), a, *p);
+				debug_printf_clean("%s   argv[%d] = %s\n",
+						indenter(indent), a, *p);
 			}
 			free_strings(command->argv);
 			command->argv = NULL;
 		}
 		/* not "else if": on syntax error, we may have both! */
 		if (command->group) {
-			debug_printf_clean("%s   begin group (grp_type:%d)\n", indenter(indent), command->grp_type);
+			debug_printf_clean("%s   begin group (grp_type:%d)\n",
+					indenter(indent), command->grp_type);
 			free_pipe_list(command->group, indent+3);
 			debug_printf_clean("%s   end group\n", indenter(indent));
 			command->group = NULL;
@@ -2367,17 +2401,15 @@ static void free_pipe(struct pipe *pi, int indent)
 		command->group_as_string = NULL;
 #endif
 		for (r = command->redirects; r; r = rnext) {
-			debug_printf_clean("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->rd_type].descrip);
-			if (r->rd_dup == -1) {
-				/* guard against the case >$FOO, where foo is unset or blank */
-				if (r->rd_filename) {
-					debug_printf_clean(" %s\n", r->rd_filename);
-					free(r->rd_filename);
-					r->rd_filename = NULL;
-				}
-			} else {
-				debug_printf_clean("&%d\n", r->rd_dup);
+			debug_printf_clean("%s   redirect %d%s", indenter(indent),
+					r->fd, redir_table[r->rd_type].descrip);
+			/* guard against the case >$FOO, where foo is unset or blank */
+			if (r->rd_filename) {
+				debug_printf_clean(" fname:'%s'\n", r->rd_filename);
+				free(r->rd_filename);
+				r->rd_filename = NULL;
 			}
+			debug_printf_clean(" rd_dup:%d\n", r->rd_dup);
 			rnext = r->next;
 			free(r);
 		}
@@ -3791,7 +3823,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	struct command *command = ctx->command;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, command);
-	if (word->length == 0 && word->nonnull == 0) {
+	if (word->length == 0 && word->o_quoted == 0) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
@@ -3821,6 +3853,11 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 * the expansion would result in one word."
 		 */
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
+		if (ctx->pending_redirect->rd_type == REDIRECT_HEREDOC
+		 && word->o_quoted
+		) {
+			ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
+		}
 		word->o_assignment = NOT_ASSIGNMENT;
 		debug_printf_parse("word stored in rd_filename: '%s'\n", word->data);
 	} else {
@@ -3862,7 +3899,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			}
 		}
 #endif
-		if (word->nonnull /* word had "xx" or 'xx' at least as part of it. */
+		if (word->o_quoted /* word had "xx" or 'xx' at least as part of it. */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
 		 /* (otherwise it's known to be not empty and is already safe) */
@@ -3914,7 +3951,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 
 /* Peek ahead in the input to find out if we have a "&n" construct,
  * as in "2>&1", that represents duplicating a file descriptor.
- * Return: -3 if >&- "close fd" construct is seen,
+ * Return: REDIRFD_CLOSE (-3) if >&- "close fd" construct is seen,
  * -2 (syntax error), -1 if no & was seen, or the number found.
  */
 #if BB_MMU
@@ -3935,7 +3972,7 @@ static int redirect_dup_num(o_string *as_string, struct in_str *input)
 	if (ch == '-') {
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
-		return -3;  /* "-" represents "close me" */
+		return REDIRFD_CLOSE;
 	}
 	d = 0;
 	ok = 0;
@@ -3974,7 +4011,7 @@ static int parse_redirect(struct parse_context *ctx,
 			return 1;  /* syntax error */
 	} else {
 		int ch = i_peek(input);
-		dup_num = (ch == '-');
+		dup_num = (ch == '-'); /* HEREDOC_SKIPTABS bit is 1 */
 		if (dup_num) { /* <<-... */
 			ch = i_getch(input);
 			nommu_addchr(&ctx->as_string, ch);
@@ -4011,14 +4048,16 @@ static int parse_redirect(struct parse_context *ctx,
 	redir->rd_type = style;
 	redir->rd_fd = (fd == -1) ? redir_table[style].default_fd : fd;
 
-	debug_printf_parse("redirect type %d %s\n", redir->rd_fd, redir_table[style].descrip);
+	debug_printf_parse("redirect type %d %s\n", redir->rd_fd,
+				redir_table[style].descrip);
 
 	redir->rd_dup = dup_num;
 	if (style != REDIRECT_HEREDOC && dup_num != -1) {
 		/* Erik had a check here that the file descriptor in question
 		 * is legit; I postpone that to "run time"
 		 * A "-" representation of "close me" shows up as a -3 here */
-		debug_printf_parse("duplicating redirect '%d>&%d'\n", redir->rd_fd, redir->rd_dup);
+		debug_printf_parse("duplicating redirect '%d>&%d'\n",
+				redir->rd_fd, redir->rd_dup);
 	} else {
 		/* Set ctx->pending_redirect, so we know what to do at the
 		 * end of the next parsed word. */
@@ -4127,7 +4166,7 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->dup is (ab)used to indicate <<- */
 					p = fetch_till_str(&ctx->as_string, input,
-						redir->rd_filename, redir->rd_dup);
+						redir->rd_filename, redir->rd_dup & HEREDOC_SKIPTABS);
 					if (!p)
 						return 1; /* unexpected EOF */
 					free(redir->rd_filename);
@@ -4264,7 +4303,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 #endif
 	if (command->argv /* word [word](... */
 	 || dest->length /* word(... */
-	 || dest->nonnull /* ""(... */
+	 || dest->o_quoted /* ""(... */
 	) {
 		syntax(NULL);
 		debug_printf_parse("parse_group return 1: "
@@ -4634,7 +4673,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	if (ch != EOF)
 		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
-		dest->nonnull = 1;
+		dest->o_quoted = 1;
 		if (dest->o_assignment == NOT_ASSIGNMENT)
 			dest->o_escape ^= 1;
 		debug_printf_parse("parse_stream_dquoted return 0\n");
@@ -4923,7 +4962,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			break;
 		case '\'':
-			dest.nonnull = 1;
+			dest.o_quoted = 1;
 			while (1) {
 				ch = i_getch(input);
 				if (ch == EOF) {
@@ -4940,7 +4979,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			break;
 		case '"':
-			dest.nonnull = 1;
+			dest.o_quoted = 1;
 			is_in_dquote ^= 1; /* invert */
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_escape ^= 1;
@@ -5068,14 +5107,14 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.ctx_res_w == RES_MATCH
 			 && ctx.command->argv == NULL /* not (word|(... */
 			 && dest.length == 0 /* not word(... */
-			 && dest.nonnull == 0 /* not ""(... */
+			 && dest.o_quoted == 0 /* not ""(... */
 			) {
 				continue;
 			}
 #endif
 #if ENABLE_HUSH_FUNCTIONS
 			if (dest.length != 0 /* not just () but word() */
-			 && dest.nonnull == 0 /* not a"b"c() */
+			 && dest.o_quoted == 0 /* not a"b"c() */
 			 && ctx.command->argv == NULL /* it's the first word */
 //TODO: "func ( ) {...}" - note spaces - is valid format too in bash
 			 && i_peek(input) == ')'
