@@ -17,13 +17,16 @@ while test $i != 99; do
 	: << HERE >/dev/null; true <<HERE
 Hello builtin :
 HERE
-Hello true
+Hello $i true
 HERE
     elif false; then
 	true; echo Doesnt run
     else
 	{ true; }; echo Doesnt run too >>/foo/bar
     fi
+    { : /bin/*; }
+    set -- par1_$i par2_$i par3_$i par4_$i
+    trap "echo trap$i" WINCH
     : $((i++))
 done
 
@@ -42,13 +45,16 @@ while test $i != 99; do
 	: << HERE >/dev/null; true <<HERE
 Hello builtin :
 HERE
-Hello true
+Hello $i true
 HERE
     elif false; then
 	true; echo Doesnt run
     else
 	{ true; }; echo Doesnt run too >>/foo/bar
     fi
+    { : /bin/*; }
+    set -- par1_$i par2_$i par3_$i par4_$i
+    trap "echo trap$i" WINCH
     : $((i++))
 done
 
