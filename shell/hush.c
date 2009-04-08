@@ -214,6 +214,7 @@ static void debug_print_strings(const char *prefix, char **vv)
 /*
  * Leak hunting. Use hush_leaktool.sh for post-processing.
  */
+//#define FOR_HUSH_LEAKTOOL
 #ifdef FOR_HUSH_LEAKTOOL
 static void *xxmalloc(int lineno, size_t size)
 {
@@ -247,11 +248,23 @@ static void xxfree(void *ptr)
 
 #define ERR_PTR ((void*)(long)1)
 
-static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
-
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 #define SPECIAL_VAR_SYMBOL 3
+
+static const char hush_version_str[] ALIGN1 = "HUSH_VERSION="BB_VER;
+
+/* This supports saving pointers malloced in vfork child,
+ * to be freed in the parent. One pointer is saved in
+ * G.argv_from_re_execing global var instead. TODO: unify.
+ */
+#if !BB_MMU
+typedef struct nommu_save_t {
+	char **new_env;
+	char **old_env;
+	char **argv;
+} nommu_save_t;
+#endif
 
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
@@ -729,6 +742,16 @@ static char **add_strings_to_strings(char **strings, char **add, int need_to_dup
 		v[count1 + i] = (need_to_dup ? xstrdup(add[i]) : add[i]);
 	return v;
 }
+#ifdef FOR_HUSH_LEAKTOOL
+static char **xx_add_strings_to_strings(int lineno, char **strings, char **add, int need_to_dup)
+{
+	char **ptr = add_strings_to_strings(strings, add, need_to_dup);
+	fdprintf(2, "line %d: add_strings_to_strings %p\n", lineno, ptr);
+	return ptr;
+}
+#define add_strings_to_strings(strings, add, need_to_dup) \
+	xx_add_strings_to_strings(__LINE__, strings, add, need_to_dup)
+#endif
 
 static char **add_string_to_strings(char **strings, char *add)
 {
@@ -737,6 +760,16 @@ static char **add_string_to_strings(char **strings, char *add)
 	v[1] = NULL;
 	return add_strings_to_strings(strings, v, /*dup:*/ 0);
 }
+#ifdef FOR_HUSH_LEAKTOOL
+static char **xx_add_string_to_strings(int lineno, char **strings, char *add)
+{
+	char **ptr = add_string_to_strings(strings, add);
+	fdprintf(2, "line %d: add_string_to_strings %p\n", lineno, ptr);
+	return ptr;
+}
+#define add_string_to_strings(strings, add) \
+	xx_add_string_to_strings(__LINE__, strings, add)
+#endif
 
 static void putenv_all(char **strings)
 {
@@ -2452,13 +2485,7 @@ static void free_pipe_list(struct pipe *head, int indent)
 }
 
 
-#if !BB_MMU
-typedef struct nommu_save_t {
-	char **new_env;
-	char **old_env;
-	char **argv;
-} nommu_save_t;
-#else
+#if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
 #define pseudo_exec(nommu_save, command, argv_expanded) \
@@ -2974,7 +3001,9 @@ static int run_pipe(struct pipe *pi)
 			restore_redirects(squirrel);
 			free_strings_and_unsetenv(new_env, 1);
 			putenv_all(old_env);
-			free(old_env); /* not free_strings()! */
+			/* Free the pointers, but the strings themselves
+			 * are in environ now, don't use free_strings! */
+			free(old_env);
  clean_up_and_ret1:
 			free(argv_expanded);
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
@@ -3072,6 +3101,9 @@ static int run_pipe(struct pipe *pi)
 		free(nommu_save.argv);
 		free_strings_and_unsetenv(nommu_save.new_env, 1);
 		putenv_all(nommu_save.old_env);
+		/* Free the pointers, but the strings themselves
+		 * are in environ now, don't use free_strings! */
+		free(nommu_save.old_env);
 #endif
 		free(argv_expanded);
 		argv_expanded = NULL;
