@@ -4081,7 +4081,7 @@ static int parse_redirect(struct parse_context *ctx,
  * the redirection expression. For example:
  * echo \2>a
  * writes the character 2 into file a"
- * I am not sure we do it right (and not sure we care)
+ * We are getting it right by setting ->o_quoted on any \<char>
  *
  * A -1 return means no valid number was found,
  * the caller should use the appropriate default for this redirection.
@@ -4141,6 +4141,9 @@ static char *fetch_till_str(o_string *as_string,
 	}
 }
 
+/* Look at entire parse tree for not-yet-loaded REDIRECT_HEREDOCs
+ * and load them all. There should be exactly heredoc_cnt of them.
+ */
 static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_str *input)
 {
 	struct pipe *pi = ctx->list_head;
@@ -4161,14 +4164,18 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 				if (redir->rd_type == REDIRECT_HEREDOC) {
 					char *p;
 
-					if (heredoc_cnt <= 0)
+					if (heredoc_cnt <= 0) {
+						syntax("heredoc BUG 1");
 						return 1; /* error */
+					}
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->dup is (ab)used to indicate <<- */
 					p = fetch_till_str(&ctx->as_string, input,
 						redir->rd_filename, redir->rd_dup & HEREDOC_SKIPTABS);
-					if (!p)
-						return 1; /* unexpected EOF */
+					if (!p) {
+						syntax("unexpected EOF in here document");
+						return 1;
+					}
 					free(redir->rd_filename);
 					redir->rd_filename = p;
 					heredoc_cnt--;
@@ -4180,6 +4187,8 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 		pi = pi->next;
 	}
 	/* Should be 0. If it isn't, it's a parse error */
+	if (heredoc_cnt)
+		syntax("heredoc BUG 2");
 	return heredoc_cnt;
 }
 
@@ -4673,12 +4682,12 @@ static int parse_stream_dquoted(o_string *as_string,
 	if (ch != EOF)
 		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
-		dest->o_quoted = 1;
 		if (dest->o_assignment == NOT_ASSIGNMENT)
 			dest->o_escape ^= 1;
 		debug_printf_parse("parse_stream_dquoted return 0\n");
 		return 0;
 	}
+	/* note: can't move it above ch == dquote_end check! */
 	if (ch == EOF) {
 		syntax("unterminated \"");
 		debug_printf_parse("parse_stream_dquoted return 1: unterminated \"\n");
@@ -4787,6 +4796,7 @@ static struct pipe *parse_stream(char **pstring,
 		redir_type redir_style;
 
 		if (is_in_dquote) {
+			/* dest.o_quoted = 1; - already is (see below) */
 			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"')) {
 				goto parse_error;
 			}
@@ -4863,8 +4873,9 @@ static struct pipe *parse_stream(char **pstring,
 				done_pipe(&ctx, PIPE_SEQ);
 				debug_printf_parse("heredoc_cnt:%d\n", heredoc_cnt);
 				if (heredoc_cnt) {
-					if (fetch_heredocs(heredoc_cnt, &ctx, input))
+					if (fetch_heredocs(heredoc_cnt, &ctx, input)) {
 						goto parse_error;
+					}
 					heredoc_cnt = 0;
 				}
 				dest.o_assignment = MAYBE_ASSIGNMENT;
@@ -4938,7 +4949,6 @@ static struct pipe *parse_stream(char **pstring,
 					i_getch(input);
 					/* note: we do not add it to &ctx.as_string */
 				}
-//TODO: go back one char?
 				nommu_addchr(&ctx.as_string, '\n');
 			} else {
 				o_addQchr(&dest, ch);
@@ -4951,8 +4961,11 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			o_addchr(&dest, '\\');
 			ch = i_getch(input);
-			o_addchr(&dest, ch);
 			nommu_addchr(&ctx.as_string, ch);
+			o_addchr(&dest, ch);
+			/* Example: echo Hello \2>file
+			 * we need to know that word 2 is quoted */
+			dest.o_quoted = 1;
 			break;
 		case '$':
 			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
