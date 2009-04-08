@@ -117,7 +117,10 @@
 #define IF_HAS_NO_KEYWORDS(...) __VA_ARGS__
 #endif
 
-/* Keep unconditionally on for now */
+/* Enable/disable sanity checks. Ok to enable in production,
+ * only adds a bit of bloat.
+ * Keeping unconditionally on for now.
+ */
 #define HUSH_DEBUG 1
 /* In progress... */
 #define ENABLE_HUSH_FUNCTIONS 0
@@ -524,6 +527,9 @@ struct globals {
 	char **traps; /* char *traps[NSIG] */
 	sigset_t blocked_set;
 	sigset_t inherited_set;
+#if HUSH_DEBUG
+	unsigned long memleak_value;
+#endif
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
 #if ENABLE_FEATURE_SH_STANDALONE
 	struct nofork_save_area nofork_save;
@@ -555,14 +561,17 @@ static int builtin_jobs(char **argv);
 #if ENABLE_HUSH_HELP
 static int builtin_help(char **argv);
 #endif
+#if HUSH_DEBUG
+static int builtin_memleak(char **argv);
+#endif
 static int builtin_pwd(char **argv);
 static int builtin_read(char **argv);
-static int builtin_test(char **argv);
-static int builtin_trap(char **argv);
-static int builtin_true(char **argv);
 static int builtin_set(char **argv);
 static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
+static int builtin_test(char **argv);
+static int builtin_trap(char **argv);
+static int builtin_true(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
 static int builtin_wait(char **argv);
@@ -617,6 +626,9 @@ static const struct built_in_command bltins[] = {
 #endif
 #if ENABLE_HUSH_JOB
 	BLTIN("jobs"    , builtin_jobs    , "List active jobs"),
+#endif
+#if HUSH_DEBUG
+	BLTIN("memleak" , builtin_memleak , "Debug tool"),
 #endif
 	BLTIN("pwd"     , builtin_pwd     , "Print current directory"),
 	BLTIN("read"    , builtin_read    , "Input environment variable"),
@@ -5959,6 +5971,36 @@ static int builtin_jobs(char **argv UNUSED_PARAM)
 		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->cmdtext);
 	}
 	return EXIT_SUCCESS;
+}
+#endif
+
+#if HUSH_DEBUG
+static int builtin_memleak(char **argv UNUSED_PARAM)
+{
+	void *p;
+	unsigned long l;
+
+	/* Crude attempt to find where "free memory" starts,
+	 * sans fragmentation. */
+	p = malloc(240);
+	l = (unsigned long)p;
+	free(p);
+	p = malloc(3400);
+	if (l < (unsigned long)p) l = (unsigned long)p;
+	free(p);
+
+	if (!G.memleak_value)
+		G.memleak_value = l;
+	
+	l -= G.memleak_value;
+	if ((long)l < 0)
+		l = 0;
+	l /= 1024;
+	if (l > 127)
+		l = 127;
+
+	/* Exitcode is "how many kilobytes we leaked since 1st call" */
+	return l;
 }
 #endif
 

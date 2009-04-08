@@ -1,0 +1,61 @@
+# "Check many leaks" test #1
+# Cramming all kinds of weird commands in here.
+# As you find leaks, please create separate, small test
+# for each leak.
+# Narrowing down the leak using this large test may be difficult.
+# It is intended to be a blanket "is everything ok?" test
+
+echo "Warm up"
+i=1
+l=1
+t=1
+export t
+while test $i != 99; do
+    t=value1_$i; t=value2_$i true; t=value3_$i /bin/true; t=value4_$i exec 1>&1
+    { t=value3_$i /bin/true; } </dev/null
+    if true; t=valueA_$i false >>/dev/null; true; then
+	: << HERE >/dev/null; true <<HERE
+Hello builtin :
+HERE
+Hello true
+HERE
+    elif false; then
+	true; echo Doesnt run
+    else
+	{ true; }; echo Doesnt run too >>/foo/bar
+    fi
+    : $((i++))
+done
+
+memleak
+
+echo "Measuring memory leak..."
+# Please copy the entire block from above verbatim
+i=1
+l=1
+t=1
+export t
+while test $i != 99; do
+    t=value1_$i; t=value2_$i true; t=value3_$i /bin/true; t=value4_$i exec 1>&1
+    { t=value3_$i /bin/true; } </dev/null
+    if true; t=valueA_$i false >>/dev/null; true; then
+	: << HERE >/dev/null; true <<HERE
+Hello builtin :
+HERE
+Hello true
+HERE
+    elif false; then
+	true; echo Doesnt run
+    else
+	{ true; }; echo Doesnt run too >>/foo/bar
+    fi
+    : $((i++))
+done
+
+memleak
+kb=$?
+if test $kb -le 4; then
+    echo Ok #$kb
+else
+    echo "Bad: $kb kb (or more) leaked"
+fi
