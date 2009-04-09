@@ -513,6 +513,7 @@ struct globals {
 	smallint flag_break_continue;
 #endif
 	smallint fake_mode;
+	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
 	smalluint last_exitcode;
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
@@ -851,7 +852,7 @@ static void free_strings(char **strings)
  *
  * Trap handlers will execute even within trap handlers. (right?)
  *
- * User trap handlers are forgotten when subshell ("(cmd)") is entered. [TODO]
+ * User trap handlers are forgotten when subshell ("(cmd)") is entered.
  *
  * If job control is off, backgrounded commands ("cmd &")
  * have SIGINT, SIGQUIT set to SIG_IGN.
@@ -905,7 +906,7 @@ static void free_strings(char **strings)
  *    set bit in blocked_set (even if 'cmd' is '')
  * after [v]fork, if we plan to be a shell:
  *    nothing for {} child shell (say, "true | { true; true; } | true")
- *    unset all traps if () shell. [TODO]
+ *    unset all traps if () shell.
  * after [v]fork, if we plan to exec:
  *    POSIX says pending signal mask is cleared in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
@@ -1005,9 +1006,13 @@ static void sigexit(int sig)
 static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
-	if (G.traps && G.traps[0] && G.traps[0][0]) {
-		char *argv[] = { NULL, xstrdup(G.traps[0]), NULL };
-//TODO: do we need to prevent recursion?
+	if (G.exiting <= 0 && G.traps && G.traps[0] && G.traps[0][0]) {
+		/* Prevent recursion:
+		 * trap "echo Hi; exit" EXIT; exit
+		 */
+		char *argv[] = { NULL, G.traps[0], NULL };
+		G.traps[0] = NULL;
+		G.exiting = 1;
 		builtin_eval(argv);
 		free(argv[1]);
 	}
@@ -2350,7 +2355,6 @@ static void setup_heredoc(struct redir_struct *redir)
  * and stderr if they are redirected. */
 static int setup_redirects(struct command *prog, int squirrel[])
 {
-//TODO: no callers ever check return value - ?!
 	int openfd, mode;
 	struct redir_struct *redir;
 
@@ -2952,11 +2956,13 @@ static int run_pipe(struct pipe *pi)
 #endif
 		/* { list } */
 		debug_printf("non-subshell group\n");
-		setup_redirects(command, squirrel);
-		debug_printf_exec(": run_list\n");
-		rcode = run_list(command->group) & 0xff;
+		rcode = 1; /* exitcode if redir failed */
+		if (setup_redirects(command, squirrel) == 0) {
+			debug_printf_exec(": run_list\n");
+			rcode = run_list(command->group) & 0xff;
+			debug_printf_exec("run_pipe return %d\n", rcode);
+		}
 		restore_redirects(squirrel);
-		debug_printf_exec("run_pipe return %d\n", rcode);
 		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 		return rcode;
 	}
@@ -2970,7 +2976,7 @@ static int run_pipe(struct pipe *pi)
 		if (argv[command->assignment_cnt] == NULL) {
 			/* Assignments, but no command */
 			/* Ensure redirects take effect. Try "a=t >file" */
-			setup_redirects(command, squirrel);
+			rcode = setup_redirects(command, squirrel);
 			restore_redirects(squirrel);
 			/* Set shell variables */
 			while (*argv) {
@@ -2983,7 +2989,8 @@ static int run_pipe(struct pipe *pi)
 			/* Do we need to flag set_local_var() errors?
 			 * "assignment to readonly var" and "putenv error"
 			 */
-			return EXIT_SUCCESS;
+			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+			return rcode;
 		}
 
 		/* Expand the rest into (possibly) many strings each */
@@ -2994,8 +3001,7 @@ static int run_pipe(struct pipe *pi)
 				continue;
 			if (x->function == builtin_exec && argv_expanded[1] == NULL) {
 				debug_printf("exec with redirects only\n");
-				setup_redirects(command, NULL);
-				rcode = EXIT_SUCCESS;
+				rcode = setup_redirects(command, NULL);
 				goto clean_up_and_ret1;
 			}
 			debug_printf("builtin inline %s\n", argv_expanded[0]);
@@ -3003,12 +3009,14 @@ static int run_pipe(struct pipe *pi)
 			 * This is perfect for work that comes after exec().
 			 * Is it really safe for inline use?  Experimentally,
 			 * things seem to work with glibc. */
-			setup_redirects(command, squirrel);
-			new_env = expand_assignments(argv, command->assignment_cnt);
-			old_env = putenv_all_and_save_old(new_env);
-			debug_printf_exec(": builtin '%s' '%s'...\n",
-				    x->cmd, argv_expanded[1]);
-			rcode = x->function(argv_expanded) & 0xff;
+			rcode = setup_redirects(command, squirrel);
+			if (rcode == 0) {
+				new_env = expand_assignments(argv, command->assignment_cnt);
+				old_env = putenv_all_and_save_old(new_env);
+				debug_printf_exec(": builtin '%s' '%s'...\n",
+						x->cmd, argv_expanded[1]);
+				rcode = x->function(argv_expanded) & 0xff;
+			}
 #if ENABLE_FEATURE_SH_STANDALONE
  clean_up_and_ret:
 #endif
@@ -3027,13 +3035,15 @@ static int run_pipe(struct pipe *pi)
 #if ENABLE_FEATURE_SH_STANDALONE
 		i = find_applet_by_name(argv_expanded[0]);
 		if (i >= 0 && APPLET_IS_NOFORK(i)) {
-			setup_redirects(command, squirrel);
-			save_nofork_data(&G.nofork_save);
-			new_env = expand_assignments(argv, command->assignment_cnt);
-			old_env = putenv_all_and_save_old(new_env);
-			debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
+			rcode = setup_redirects(command, squirrel);
+			if (rcode == 0) {
+				save_nofork_data(&G.nofork_save);
+				new_env = expand_assignments(argv, command->assignment_cnt);
+				old_env = putenv_all_and_save_old(new_env);
+				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 					argv_expanded[0], argv_expanded[1]);
-			rcode = run_nofork_applet_prime(&G.nofork_save, i, argv_expanded);
+				rcode = run_nofork_applet_prime(&G.nofork_save, i, argv_expanded);
+			}
 			goto clean_up_and_ret;
 		}
 #endif
@@ -3095,7 +3105,8 @@ static int run_pipe(struct pipe *pi)
 				close(pipefds[0]); /* read end */
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
-			setup_redirects(command, NULL);
+			if (setup_redirects(command, NULL))
+				_exit(1);
 
 			/* Restore default handlers just prior to exec */
 			/*signal(SIGCHLD, SIG_DFL); - so far we don't have any handlers */
@@ -3324,9 +3335,9 @@ static int run_list(struct pipe *pi)
 ////		/* ctrl-Z handler will store pid etc in pi */
 ////		G.toplevel_list = pi;
 ////		G.ctrl_z_flag = 0;
-////#if ENABLE_FEATURE_SH_STANDALONE
-////		G.nofork_save.saved = 0; /* in case we will run a nofork later */
-////#endif
+#if ENABLE_FEATURE_SH_STANDALONE
+		G.nofork_save.saved = 0; /* in case we will run a nofork later */
+#endif
 ////		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
 ////		signal(SIGINT, handler_ctrl_c);
 	}
@@ -5680,6 +5691,8 @@ int hush_main(int argc, char **argv)
 		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
 		if (setjmp(die_jmp)) {
 			/* xfunc has failed! die die die */
+			/* no EXIT traps, this is an escape hatch! */
+			G.exiting = 1;
 			hush_exit(xfunc_error_retval);
 		}
 	} else if (!signal_mask_is_inited) {
@@ -5907,6 +5920,9 @@ static int builtin_exit(char **argv)
 	//puts("exit"); /* bash does it */
 // TODO: warn if we have background jobs: "There are stopped jobs"
 // On second consecutive 'exit', exit anyway.
+// perhaps use G.exiting = -1 as indicator "last cmd was exit"
+
+	/* note: EXIT trap is run by hush_exit */
 	if (*++argv == NULL)
 		hush_exit(G.last_exitcode);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
