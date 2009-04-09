@@ -12,8 +12,8 @@
 "$THIS_SH" -c 'set --; echo _$1'
 "$THIS_SH" -c 'set --; echo _${1?}'
 "$THIS_SH" -c 'set --; echo _${1:?}'
-"$THIS_SH" -c 'set --; echo _${1?word}'
-"$THIS_SH" -c 'set --; echo _${1:?word}'
+"$THIS_SH" -c 'set --; echo _${1?message1}'
+"$THIS_SH" -c 'set --; echo _${1:?message1}'
 
 "$THIS_SH" -c 'set -- aaaa; echo _$1'
 "$THIS_SH" -c 'set -- aaaa; echo _${1?}'
@@ -24,14 +24,14 @@
 "$THIS_SH" -c 'unset f; echo _$f'
 "$THIS_SH" -c 'unset f; echo _${f?}'
 "$THIS_SH" -c 'unset f; echo _${f:?}'
-"$THIS_SH" -c 'unset f; echo _${f?word}'
-"$THIS_SH" -c 'unset f; echo _${f:?word}'
+"$THIS_SH" -c 'unset f; echo _${f?message3}'
+"$THIS_SH" -c 'unset f; echo _${f:?message3}'
 
 "$THIS_SH" -c 'f=; echo _$f'
 "$THIS_SH" -c 'f=; echo _${f?}'
 "$THIS_SH" -c 'f=; echo _${f:?}'
 "$THIS_SH" -c 'f=; echo _${f?word}'
-"$THIS_SH" -c 'f=; echo _${f:?word}'
+"$THIS_SH" -c 'f=; echo _${f:?message4}'
 
 "$THIS_SH" -c 'f=fff; echo _$f'
 "$THIS_SH" -c 'f=fff; echo _${f?}'

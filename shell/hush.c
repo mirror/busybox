@@ -65,8 +65,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
-//TODO: pull in some .h and find out whether we have SINGLE_APPLET_MAIN?
-//#include "applet_tables.h" doesn't work
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE
@@ -80,11 +78,18 @@
 
 
 /* Debug build knobs */
-//#define LEAK_HUNTING 1
-//#define WANT_TO_TEST_NOMMU 1
+#define LEAK_HUNTING 0
+#define BUILD_AS_NOMMU 0
+/* Enable/disable sanity checks. Ok to enable in production,
+ * only adds a bit of bloat. Set to >1 to get non-production level verbosity.
+ * Keeping 1 for now even in released versions.
+ */
+#define HUSH_DEBUG 1
+/* In progress... */
+#define ENABLE_HUSH_FUNCTIONS 0
 
 
-#ifdef WANT_TO_TEST_NOMMU
+#if BUILD_AS_NOMMU
 # undef BB_MMU
 # undef USE_FOR_NOMMU
 # undef USE_FOR_MMU
@@ -121,15 +126,6 @@
 #define IF_HAS_KEYWORDS(...)
 #define IF_HAS_NO_KEYWORDS(...) __VA_ARGS__
 #endif
-
-/* Enable/disable sanity checks. Ok to enable in production,
- * only adds a bit of bloat.
- * Keeping unconditionally on for now.
- */
-#define HUSH_DEBUG 1
-/* In progress... */
-#define ENABLE_HUSH_FUNCTIONS 0
-
 
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
@@ -215,40 +211,6 @@ static void debug_print_strings(const char *prefix, char **vv)
 #else
 #define debug_print_strings(prefix, vv) ((void)0)
 #endif
-
-/*
- * Leak hunting. Use hush_leaktool.sh for post-processing.
- */
-#ifdef LEAK_HUNTING
-static void *xxmalloc(int lineno, size_t size)
-{
-	void *ptr = xmalloc((size + 0xff) & ~0xff);
-	fdprintf(2, "line %d: malloc %p\n", lineno, ptr);
-	return ptr;
-}
-static void *xxrealloc(int lineno, void *ptr, size_t size)
-{
-	ptr = xrealloc(ptr, (size + 0xff) & ~0xff);
-	fdprintf(2, "line %d: realloc %p\n", lineno, ptr);
-	return ptr;
-}
-static char *xxstrdup(int lineno, const char *str)
-{
-	char *ptr = xstrdup(str);
-	fdprintf(2, "line %d: strdup %p\n", lineno, ptr);
-	return ptr;
-}
-static void xxfree(void *ptr)
-{
-	fdprintf(2, "free %p\n", ptr);
-	free(ptr);
-}
-#define xmalloc(s)     xxmalloc(__LINE__, s)
-#define xrealloc(p, s) xxrealloc(__LINE__, p, s)
-#define xstrdup(s)     xxstrdup(__LINE__, s)
-#define free(p)        xxfree(p)
-#endif
-
 
 #define ERR_PTR ((void*)(long)1)
 
@@ -662,28 +624,100 @@ static const struct built_in_command bltins[] = {
 };
 
 
-static void maybe_die(const char *notice, const char *msg)
+/* Leak hunting. Use hush_leaktool.sh for post-processing.
+ */
+#if LEAK_HUNTING
+static void *xxmalloc(int lineno, size_t size)
 {
-	/* Was using fancy stuff:
-	 * (G_interactive_fd ? bb_error_msg : bb_error_msg_and_die)(...params...)
-	 * but it SEGVs. ?! Oh well... explicit temp ptr works around that */
+	void *ptr = xmalloc((size + 0xff) & ~0xff);
+	fdprintf(2, "line %d: malloc %p\n", lineno, ptr);
+	return ptr;
+}
+static void *xxrealloc(int lineno, void *ptr, size_t size)
+{
+	ptr = xrealloc(ptr, (size + 0xff) & ~0xff);
+	fdprintf(2, "line %d: realloc %p\n", lineno, ptr);
+	return ptr;
+}
+static char *xxstrdup(int lineno, const char *str)
+{
+	char *ptr = xstrdup(str);
+	fdprintf(2, "line %d: strdup %p\n", lineno, ptr);
+	return ptr;
+}
+static void xxfree(void *ptr)
+{
+	fdprintf(2, "free %p\n", ptr);
+	free(ptr);
+}
+#define xmalloc(s)     xxmalloc(__LINE__, s)
+#define xrealloc(p, s) xxrealloc(__LINE__, p, s)
+#define xstrdup(s)     xxstrdup(__LINE__, s)
+#define free(p)        xxfree(p)
+#endif
+
+
+/* Syntax and runtime errors. They always abort scripts.
+ * In interactive use they usually discard unparsed and/or unexecuted commands
+ * and return to the prompt.
+ * HUSH_DEBUG >= 2 prints line number in this file where it was detected.
+ */
+#if HUSH_DEBUG < 2
+# define die_if_script(lineno, fmt, msg)       die_if_script(fmt, msg)
+# define syntax_error(lineno, msg)             syntax_error(msg)
+# define syntax_error_at(lineno, msg)          syntax_error_at(msg)
+# define syntax_error_unterminated(lineno, ch) syntax_error_unterminated(ch)
+#endif
+
+static void die_if_script(unsigned lineno, const char *fmt, const char *msg)
+{
 	void FAST_FUNC (*fp)(const char *s, ...) = bb_error_msg_and_die;
 #if ENABLE_HUSH_INTERACTIVE
 	if (G_interactive_fd)
 		fp = bb_error_msg;
 #endif
-	fp(msg ? "%s: %s" : notice, notice, msg);
+#if HUSH_DEBUG >= 2
+	bb_error_msg("hush.c:%u", lineno);
+#endif
+	fp(fmt, msg);
 }
-#if 1
-#define syntax(msg) maybe_die("syntax error", msg);
+
+static void syntax_error(unsigned lineno, const char *msg)
+{
+	if (msg)
+		die_if_script(lineno, "syntax error: %s", msg);
+	else
+		die_if_script(lineno, "syntax error", NULL);
+}
+
+static void syntax_error_at(unsigned lineno, const char *msg)
+{
+	die_if_script(lineno, "syntax error at '%s'", msg);
+}
+
+static void syntax_error_unterminated(unsigned lineno, char ch)
+{
+	char msg[2];
+	msg[0] = ch;
+	msg[1] = '\0';
+	die_if_script(lineno, "syntax error: unterminated %s", msg);
+}
+
+#if HUSH_DEBUG < 2
+# undef die_if_script
+# undef syntax_error
+# undef syntax_error_at
+# undef syntax_error_unterminated
 #else
-/* Debug -- trick gcc to expand __LINE__ and convert to string */
-#define __syntax(msg, line) maybe_die("syntax error hush.c:" # line, msg)
-#define _syntax(msg, line) __syntax(msg, line)
-#define syntax(msg) _syntax(msg, __LINE__)
+# define die_if_script(fmt, msg)       die_if_script(__LINE__, fmt, msg)
+# define syntax_error(msg)             syntax_error(__LINE__, msg)
+# define syntax_error_at(msg)          syntax_error_at(__LINE__, msg)
+# define syntax_error_unterminated(ch) syntax_error_unterminated(__LINE__, ch)
 #endif
 
 
+/* Utility functions
+ */
 static int glob_needed(const char *s)
 {
 	while (*s) {
@@ -696,14 +730,14 @@ static int glob_needed(const char *s)
 	return 0;
 }
 
-static int is_assignment(const char *s)
+static int is_well_formed_var_name(const char *s, char terminator)
 {
 	if (!s || !(isalpha(*s) || *s == '_'))
 		return 0;
 	s++;
 	while (isalnum(*s) || *s == '_')
 		s++;
-	return *s == '=';
+	return *s == terminator;
 }
 
 /* Replace each \x with x in place, return ptr past NUL. */
@@ -747,7 +781,7 @@ static char **add_strings_to_strings(char **strings, char **add, int need_to_dup
 		v[count1 + i] = (need_to_dup ? xstrdup(add[i]) : add[i]);
 	return v;
 }
-#ifdef LEAK_HUNTING
+#if LEAK_HUNTING
 static char **xx_add_strings_to_strings(int lineno, char **strings, char **add, int need_to_dup)
 {
 	char **ptr = add_strings_to_strings(strings, add, need_to_dup);
@@ -765,7 +799,7 @@ static char **add_string_to_strings(char **strings, char *add)
 	v[1] = NULL;
 	return add_strings_to_strings(strings, v, /*dup:*/ 0);
 }
-#ifdef LEAK_HUNTING
+#if LEAK_HUNTING
 static char **xx_add_string_to_strings(int lineno, char **strings, char *add)
 {
 	char **ptr = add_string_to_strings(strings, add);
@@ -1911,12 +1945,19 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			free(exp_str);
 
 			if (errcode < 0) {
+				const char *msg = "error in arithmetic";
 				switch (errcode) {
-				case -3: maybe_die("arith", "exponent less than 0"); break;
-				case -2: maybe_die("arith", "divide by zero"); break;
-				case -5: maybe_die("arith", "expression recursion loop detected"); break;
-				default: maybe_die("arith", "syntax error"); break;
+				case -3:
+					msg = "exponent less than 0";
+					break;
+				case -2:
+					msg = "divide by 0";
+					break;
+				case -5:
+					msg = "expression recursion loop detected";
+					break;
 				}
+				die_if_script(msg, NULL);
 			}
 			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
 			sprintf(arith_buf, arith_t_fmt, res);
@@ -1951,7 +1992,8 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					exp_save = var[exp_off];
 					exp_null = exp_save == ':';
 					exp_word = var + exp_off;
-					if (exp_null) ++exp_word;
+					if (exp_null)
+						++exp_word;
 					exp_op = *exp_word++;
 					var[exp_off] = '\0';
 				}
@@ -1995,17 +2037,28 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 						exp_null ? "true" : "false", exp_test);
 					if (exp_test) {
 						if (exp_op == '?')
-							maybe_die(var, *exp_word ? exp_word : "parameter null or not set");
+//TODO: what does interactive bash
+							/* ${var?[error_msg_if_unset]} */
+							/* ${var:?[error_msg_if_unset_or_null]} */
+							/* mimic bash message */
+							if (*exp_word) {
+								char *msg = xasprintf("%s: %s", var, exp_word);
+								die_if_script("%s", msg);
+								free(msg);
+							} else {
+								die_if_script("%s: parameter null or not set", var);
+							}
 						else
 							val = exp_word;
 
 						if (exp_op == '=') {
+							/* ${var=[word]} or ${var:=[word]} */
 							if (isdigit(var[0]) || var[0] == '#') {
-								maybe_die(var, "special vars cannot assign in this way");
+								/* mimic bash message */
+								die_if_script("$%s: cannot assign in this way", var);
 								val = NULL;
 							} else {
-								char *new_var = xmalloc(strlen(var) + strlen(val) + 2);
-								sprintf(new_var, "%s=%s", var, val);
+								char *new_var = xasprintf("%s=%s", var, val);
 								set_local_var(new_var, -1, 0);
 							}
 						}
@@ -3280,7 +3333,7 @@ static int run_list(struct pipe *pi)
 			continue;
 		/* current word is FOR or IN (BOLD in comments below) */
 		if (cpipe->next == NULL) {
-			syntax("malformed for");
+			syntax_error("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
@@ -3291,7 +3344,7 @@ static int run_list(struct pipe *pi)
 		if (cpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
 		 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
-			syntax("malformed for");
+			syntax_error("malformed for");
 			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
@@ -3443,7 +3496,7 @@ static int run_list(struct pipe *pi)
 				break;
 			}
 			/* Insert next value from for_lcur */
-//TODO: does it need escaping?
+			/* note: *for_lcur already has quotes removed, $var expanded, etc */
 			pi->cmds[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
 			pi->cmds[0].assignment_cnt = 1;
 		}
@@ -3846,7 +3899,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 #endif
 	if (r->flag == 0) { /* '!' */
 		if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
-			syntax("! ! command");
+			syntax_error("! ! command");
 			IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
 		}
 		ctx->ctx_inverted = 1;
@@ -3860,7 +3913,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		initialize_context(ctx);
 		ctx->stack = old;
 	} else if (/*ctx->ctx_res_w == RES_NONE ||*/ !(ctx->old_flag & (1 << r->res))) {
-		syntax(word->data);
+		syntax_error_at(word->data);
 		ctx->ctx_res_w = RES_SNTX;
 		return 1;
 	}
@@ -3943,7 +3996,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 * while if false; then false; fi; do; break; done
 		 * TODO? */
 		if (command->group) {
-			syntax(word->data);
+			syntax_error_at(word->data);
 			debug_printf_parse("done_word return 1: syntax error, "
 					"groups and arglists don't mix\n");
 			return 1;
@@ -4008,7 +4061,10 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	 * as it is "for v; in ...". FOR and IN become two pipe structs
 	 * in parse tree. */
 	if (ctx->ctx_res_w == RES_FOR) {
-//TODO: check that command->argv[0] is a valid variable name!
+		if (!is_well_formed_var_name(command->argv[0], '\0')) {
+			syntax_error("malformed variable name in for");
+			return 1;
+		}
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
@@ -4087,12 +4143,6 @@ static int parse_redirect(struct parse_context *ctx,
 		int ch = i_peek(input);
 		dup_num = (ch == '-'); /* HEREDOC_SKIPTABS bit is 1 */
 		if (dup_num) { /* <<-... */
-			ch = i_getch(input);
-			nommu_addchr(&ctx->as_string, ch);
-			ch = i_peek(input);
-		}
-		/* <<[-] word is the same as <<[-]word */
-		while (ch == ' ' || ch == '\t') {
 			ch = i_getch(input);
 			nommu_addchr(&ctx->as_string, ch);
 			ch = i_peek(input);
@@ -4222,7 +4272,7 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 {
 	struct pipe *pi = ctx->list_head;
 
-	while (pi) {
+	while (pi && heredoc_cnt) {
 		int i;
 		struct command *cmd = pi->cmds;
 
@@ -4238,16 +4288,12 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 				if (redir->rd_type == REDIRECT_HEREDOC) {
 					char *p;
 
-					if (heredoc_cnt <= 0) {
-						syntax("heredoc BUG 1");
-						return 1; /* error */
-					}
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->dup is (ab)used to indicate <<- */
 					p = fetch_till_str(&ctx->as_string, input,
 						redir->rd_filename, redir->rd_dup & HEREDOC_SKIPTABS);
 					if (!p) {
-						syntax("unexpected EOF in here document");
+						syntax_error("unexpected EOF in here document");
 						return 1;
 					}
 					free(redir->rd_filename);
@@ -4260,10 +4306,12 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 		}
 		pi = pi->next;
 	}
+#if 0
 	/* Should be 0. If it isn't, it's a parse error */
 	if (heredoc_cnt)
-		syntax("heredoc BUG 2");
-	return heredoc_cnt;
+		bb_error_msg_and_die("heredoc BUG 2");
+#endif
+	return 0;
 }
 
 
@@ -4388,7 +4436,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	 || dest->length /* word(... */
 	 || dest->o_quoted /* ""(... */
 	) {
-		syntax(NULL);
+		syntax_error(NULL);
 		debug_printf_parse("parse_group return 1: "
 			"syntax error, groups and arglists don't mix\n");
 		return 1;
@@ -4412,7 +4460,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 #if !BB_MMU
 			free(as_string);
 #endif
-			syntax(NULL);
+			syntax_error(NULL);
 			debug_printf_parse("parse_group return 1: "
 				"parse_stream returned %p\n", pipe_list);
 			return 1;
@@ -4439,7 +4487,7 @@ static int add_till_single_quote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax("unterminated '");
+			syntax_error_unterminated('\'');
 			return 1;
 		}
 		if (ch == '\'')
@@ -4453,7 +4501,7 @@ static int add_till_double_quote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax("unterminated \"");
+			syntax_error_unterminated('"');
 			return 1;
 		}
 		if (ch == '"')
@@ -4491,7 +4539,7 @@ static int add_till_backquote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax("unterminated `");
+			syntax_error_unterminated('`');
 			return 1;
 		}
 		if (ch == '`')
@@ -4500,7 +4548,7 @@ static int add_till_backquote(o_string *dest, struct in_str *input)
 			/* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 == EOF) {
-				syntax("unterminated `");
+				syntax_error_unterminated('`');
 				return 1;
 			}
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
@@ -4528,7 +4576,7 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax("unterminated )");
+			syntax_error_unterminated(')');
 			return 1;
 		}
 		if (ch == '(')
@@ -4560,7 +4608,7 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 			/* \x. Copy verbatim. Important for  \(, \) */
 			ch = i_getch(input);
 			if (ch == EOF) {
-				syntax("unterminated )");
+				syntax_error_unterminated(')');
 				return 1;
 			}
 			o_addchr(dest, ch);
@@ -4678,7 +4726,7 @@ static int handle_dollar(o_string *as_string,
 					break;
 				default:
 				case_default:
-					syntax("unterminated ${name}");
+					syntax_error("unterminated ${name}");
 					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
 					return 1;
 				}
@@ -4783,7 +4831,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	}
 	/* note: can't move it above ch == dquote_end check! */
 	if (ch == EOF) {
-		syntax("unterminated \"");
+		syntax_error_unterminated('"');
 		debug_printf_parse("parse_stream_dquoted return 1: unterminated \"\n");
 		return 1;
 	}
@@ -4794,8 +4842,9 @@ static int parse_stream_dquoted(o_string *as_string,
 	debug_printf_parse(": ch=%c (%d) escape=%d\n",
 					ch, ch, dest->o_escape);
 	if (ch == '\\') {
+//TODO: check interactive behavior
 		if (next == EOF) {
-			syntax("\\<eof>");
+			syntax_error("\\<eof>");
 			debug_printf_parse("parse_stream_dquoted return 1: \\<eof>\n");
 			return 1;
 		}
@@ -4839,7 +4888,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	if (ch == '='
 	 && (dest->o_assignment == MAYBE_ASSIGNMENT
 	    || dest->o_assignment == WORD_IS_KEYWORD)
-	 && is_assignment(dest->data)
+	 && is_well_formed_var_name(dest->data, '=')
 	) {
 		dest->o_assignment = DEFINITELY_ASSIGNMENT;
 	}
@@ -4905,7 +4954,7 @@ static struct pipe *parse_stream(char **pstring,
 			struct pipe *pi;
 
 			if (heredoc_cnt) {
-				syntax("unterminated here document");
+				syntax_error("unterminated here document");
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
@@ -4943,7 +4992,7 @@ static struct pipe *parse_stream(char **pstring,
 			if ((dest.o_assignment == MAYBE_ASSIGNMENT
 			    || dest.o_assignment == WORD_IS_KEYWORD)
 			 && ch == '='
-			 && is_assignment(dest.data)
+			 && is_well_formed_var_name(dest.data, '=')
 			) {
 				dest.o_assignment = DEFINITELY_ASSIGNMENT;
 			}
@@ -4994,7 +5043,7 @@ static struct pipe *parse_stream(char **pstring,
 				 * We require heredoc to be in enclosing {}/(),
 				 * if any.
 				 */
-				syntax("unterminated here document");
+				syntax_error("unterminated here document");
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
@@ -5051,7 +5100,7 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 		case '\\':
 			if (next == EOF) {
-				syntax("\\<eof>");
+				syntax_error("\\<eof>");
 				goto parse_error;
 			}
 			o_addchr(&dest, '\\');
@@ -5074,7 +5123,7 @@ static struct pipe *parse_stream(char **pstring,
 			while (1) {
 				ch = i_getch(input);
 				if (ch == EOF) {
-					syntax("unterminated '");
+					syntax_error_unterminated('\'');
 					goto parse_error;
 				}
 				nommu_addchr(&ctx.as_string, ch);
@@ -5126,7 +5175,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 #if 0
 			else if (next == '(') {
-				syntax(">(process) not supported");
+				syntax_error(">(process) not supported");
 				goto parse_error;
 			}
 #endif
@@ -5152,7 +5201,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 #if 0
 			else if (next == '(') {
-				syntax("<(process) not supported");
+				syntax_error("<(process) not supported");
 				goto parse_error;
 			}
 #endif
@@ -5246,7 +5295,7 @@ static struct pipe *parse_stream(char **pstring,
 					ch = i_getch(input);
 				} while (ch == ' ' || ch == '\n');
 				if (ch != '{') {
-					syntax("was expecting {");
+					syntax_error("was expecting {");
 					goto parse_error;
 				}
 				ch = 'F'; /* magic value */
@@ -5266,7 +5315,7 @@ static struct pipe *parse_stream(char **pstring,
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
-			syntax("unexpected } or )");
+			syntax_error("unexpected } or )");
 			goto parse_error;
 		default:
 			if (HUSH_DEBUG)
@@ -6111,8 +6160,16 @@ static int builtin_pwd(char **argv UNUSED_PARAM)
 static int builtin_read(char **argv)
 {
 	char *string;
-	const char *name = argv[1] ? argv[1] : "REPLY";
-//TODO: check that argv[1] is a valid variable name
+	const char *name = "REPLY";
+
+	if (argv[1]) {
+		name = argv[1];
+		if (!is_well_formed_var_name(name, '\0')) {
+			/* Mimic bash message */
+			bb_error_msg("read: '%s': not a valid identifier", name);
+			return 1;
+		}
+	}
 
 	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
 	return set_local_var(string, 0, 0);

@@ -55,28 +55,28 @@ Format: 'expected actual'
 30 30
 20 20
 30 30
-hush: arith: syntax error
+hush: error in arithmetic
 6 6
 6,5,3 6,5,3
 263 263
 255 255
 40 40
-hush: arith: syntax error
-hush: arith: divide by zero
+hush: error in arithmetic
+hush: divide by 0
 hush: can't exec 'let': No such file or directory
-hush: arith: syntax error
+hush: error in arithmetic
 hush: can't exec 'let': No such file or directory
 abc
 def
 ghi
-hush: arith: syntax error
+hush: error in arithmetic
 16 16
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
 9 9
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
 9 9
 9 9
 9 9
@@ -97,18 +97,18 @@ hush: arith: syntax error
 3 3
 4 4
 4 4
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
 4 4
 7 7
 -7 -7
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
 6 6
 3 3
 7 7
@@ -119,19 +119,19 @@ hush: arith: syntax error
 2 2
 -2 -2
 1 1
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
+hush: error in arithmetic
 5 5
 1 1
 4 4
 0 0
-hush: arith: syntax error
-hush: arith: syntax error
+hush: error in arithmetic
+hush: error in arithmetic
 8 12
-hush: arith: syntax error
+hush: error in arithmetic
 42
 42
 42

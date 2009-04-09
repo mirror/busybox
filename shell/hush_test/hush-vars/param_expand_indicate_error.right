@@ -5,8 +5,8 @@ hush: syntax error: unterminated ${name}
 _
 hush: 1: parameter null or not set
 hush: 1: parameter null or not set
-hush: 1: word
-hush: 1: word
+hush: 1: message1
+hush: 1: message1
 _aaaa
 _aaaa
 _aaaa
@@ -15,13 +15,13 @@ _aaaa
 _
 hush: f: parameter null or not set
 hush: f: parameter null or not set
-hush: f: word
-hush: f: word
+hush: f: message3
+hush: f: message3
 _
 _
 hush: f: parameter null or not set
 _
-hush: f: word
+hush: f: message4
 _fff
 _fff
 _fff
