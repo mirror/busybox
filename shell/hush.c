@@ -2025,18 +2025,20 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				debug_printf_expand("%s\n", val);
 			} else if (exp_off) {
 				if (exp_op == '%' || exp_op == '#') {
-					/* we need to do a pattern match */
-					bool zero;
-					char *loc;
-					scan_t scan = pick_scan(exp_op, *exp_word, &zero);
-					if (exp_op == *exp_word)	/* ## or %% */
-						++exp_word;
-					val = dyn_val = xstrdup(val);
-					loc = scan(dyn_val, exp_word, zero);
-					if (zero)
-						val = loc;
-					else
-						*loc = '\0';
+					if (val) {
+						/* we need to do a pattern match */
+						bool zero;
+						char *loc;
+						scan_t scan = pick_scan(exp_op, *exp_word, &zero);
+						if (exp_op == *exp_word)	/* ## or %% */
+							++exp_word;
+						val = dyn_val = xstrdup(val);
+						loc = scan(dyn_val, exp_word, zero);
+						if (zero)
+							val = loc;
+						else
+							*loc = '\0';
+					}
 				} else {
 					/* we need to do an expansion */
 					int exp_test = (!val || (exp_null && !val[0]));
