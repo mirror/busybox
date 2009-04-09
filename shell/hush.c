@@ -2180,9 +2180,20 @@ static void re_execute_shell(const char *s, int is_heredoc) NORETURN;
 static void re_execute_shell(const char *s, int is_heredoc)
 {
 	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
+	char *heredoc_argv[4];
 	struct variable *cur;
 	char **argv, **pp, **pp2;
 	unsigned cnt;
+
+	if (is_heredoc) {
+		argv = heredoc_argv;
+		argv[0] = (char *) G.argv0_for_re_execing;
+		argv[1] = (char *) "-<";
+		argv[2] = (char *) s;
+		argv[3] = NULL;
+		pp = &argv[3]; /* used as pointer to empty environmaent */
+		goto do_exec;
+	}
 
 	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
@@ -2198,7 +2209,7 @@ static void re_execute_shell(const char *s, int is_heredoc)
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
-	G.argv_from_re_execing = pp = xzalloc(sizeof(argv[0]) * cnt);
+	G.argv_from_re_execing = argv = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) G.argv0_for_re_execing;
 	*pp++ = param_buf;
 	for (cur = G.top_var; cur; cur = cur->next) {
@@ -2232,22 +2243,21 @@ static void re_execute_shell(const char *s, int is_heredoc)
 	 * I conclude it means we don't need to pass active traps here.
 	 * exec syscall below resets them to SIG_DFL for us.
 	 */
-	*pp++ = (char *) (is_heredoc ? "-<" : "-c");
+	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
 	pp2 = G.global_argv;
 	while (*pp2)
 		*pp++ = *pp2++;
 	/* *pp = NULL; - is already there */
+	pp = environ;
 
+ do_exec:
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-	execve(bb_busybox_exec_path,
-		G.argv_from_re_execing,
-		(is_heredoc ? pp /* points to NULL ptr */ : environ)
-		);
+	execve(bb_busybox_exec_path, argv, pp);
 	/* Fallback. Useful for init=/bin/hush usage etc */
-	if (G.argv0_for_re_execing[0] == '/')
-		execv(G.argv0_for_re_execing, G.argv_from_re_execing);
+	if (argv[0][0] == '/')
+		execve(argv[0], argv, pp);
 	xfunc_error_retval = 127;
 	bb_error_msg_and_die("can't re-execute the shell");
 }
@@ -2281,6 +2291,7 @@ static void setup_heredoc(struct redir_struct *redir)
 	}
 	len = strlen(heredoc);
 
+	close(redir->rd_fd); /* often saves dup2+close in xmove_fd */
 	xpiped_pair(pair);
 	xmove_fd(pair.rd, redir->rd_fd);
 
