@@ -13,6 +13,9 @@ test -x hush || {
     echo "No ./hush - creating a link to ../../busybox"
     ln -s ../../busybox hush
 }
+if test -e ../../.config ; then
+	eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' ../../.config)
+fi
 
 PATH="$PWD:$PATH" # for hush and recho/zecho/printenv
 export PATH
@@ -47,10 +50,16 @@ do_test()
 	name="${x%%.tests}"
 	test -f "$name.right" || continue
 #	echo Running test: "$x"
-	{
+	(
 	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
+	    test $? -eq 77 && rm -f "../$1-$x.fail" && exit 77
 	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
-	} && echo "$1/$x: ok" || { echo "$1/$x: fail"; tret=1; }
+	)
+	case $? in
+		0)  echo "$1/$x: ok";;
+		77) echo "$1/$x: skip (feature disabled)";;
+		*)  echo "$1/$x: fail"; tret=1;;
+	esac
     done
     exit ${tret}
     )
