@@ -663,23 +663,25 @@ static void xxfree(void *ptr)
  * HUSH_DEBUG >= 2 prints line number in this file where it was detected.
  */
 #if HUSH_DEBUG < 2
-# define die_if_script(lineno, fmt, msg)       die_if_script(fmt, msg)
-# define syntax_error(lineno, msg)             syntax_error(msg)
-# define syntax_error_at(lineno, msg)          syntax_error_at(msg)
-# define syntax_error_unterminated(lineno, ch) syntax_error_unterminated(ch)
+# define die_if_script(lineno, fmt...)      die_if_script(fmt)
+# define syntax_error(lineno, msg)          syntax_error(msg)
+# define syntax_error_at(lineno, msg)       syntax_error_at(msg)
+# define syntax_error_unterm_ch(lineno, ch) syntax_error_unterm_ch(ch)
+# define syntax_error_unterm_str(lineno, s) syntax_error_unterm_str(s)
 #endif
 
-static void die_if_script(unsigned lineno, const char *fmt, const char *msg)
+static void die_if_script(unsigned lineno, const char *fmt, ...)
 {
-	void FAST_FUNC (*fp)(const char *s, ...) = bb_error_msg_and_die;
-#if ENABLE_HUSH_INTERACTIVE
-	if (G_interactive_fd)
-		fp = bb_error_msg;
-#endif
+	va_list p;
+
 #if HUSH_DEBUG >= 2
 	bb_error_msg("hush.c:%u", lineno);
 #endif
-	fp(fmt, msg);
+	va_start(p, fmt);
+	bb_verror_msg(fmt, p, NULL);
+	va_end(p);
+	if (!G_interactive_fd)
+		xfunc_die();
 }
 
 static void syntax_error(unsigned lineno, const char *msg)
@@ -695,7 +697,7 @@ static void syntax_error_at(unsigned lineno, const char *msg)
 	die_if_script(lineno, "syntax error at '%s'", msg);
 }
 
-static void syntax_error_unterminated(unsigned lineno, char ch)
+static void syntax_error_unterm_ch(unsigned lineno, char ch)
 {
 	char msg[2];
 	msg[0] = ch;
@@ -703,16 +705,23 @@ static void syntax_error_unterminated(unsigned lineno, char ch)
 	die_if_script(lineno, "syntax error: unterminated %s", msg);
 }
 
+static void syntax_error_unterm_str(unsigned lineno, const char *s)
+{
+	die_if_script(lineno, "syntax error: unterminated %s", s);
+}
+
 #if HUSH_DEBUG < 2
 # undef die_if_script
 # undef syntax_error
 # undef syntax_error_at
-# undef syntax_error_unterminated
+# undef syntax_error_unterm_ch
+# undef syntax_error_unterm_str
 #else
-# define die_if_script(fmt, msg)       die_if_script(__LINE__, fmt, msg)
-# define syntax_error(msg)             syntax_error(__LINE__, msg)
-# define syntax_error_at(msg)          syntax_error_at(__LINE__, msg)
-# define syntax_error_unterminated(ch) syntax_error_unterminated(__LINE__, ch)
+# define die_if_script(fmt...)      die_if_script(__LINE__, fmt)
+# define syntax_error(msg)          syntax_error(__LINE__, msg)
+# define syntax_error_at(msg)       syntax_error_at(__LINE__, msg)
+# define syntax_error_unterm_ch(ch) syntax_error_unterm_ch(__LINE__, ch)
+# define syntax_error_unterm_str(s) syntax_error_unterm_str(__LINE__, s)
 #endif
 
 
@@ -1957,7 +1966,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					msg = "expression recursion loop detected";
 					break;
 				}
-				die_if_script(msg, NULL);
+				die_if_script(msg);
 			}
 			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
 			sprintf(arith_buf, arith_t_fmt, res);
@@ -2036,20 +2045,18 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 						exp_null ? "true" : "false", exp_test);
 					if (exp_test) {
-						if (exp_op == '?')
-//TODO: what does interactive bash
+						if (exp_op == '?') {
+//TODO: how interactive bash aborts expansion mid-command?
 							/* ${var?[error_msg_if_unset]} */
 							/* ${var:?[error_msg_if_unset_or_null]} */
 							/* mimic bash message */
-							if (*exp_word) {
-								char *msg = xasprintf("%s: %s", var, exp_word);
-								die_if_script("%s", msg);
-								free(msg);
-							} else {
-								die_if_script("%s: parameter null or not set", var);
-							}
-						else
+							die_if_script("%s: %s",
+								var,
+								exp_word[0] ? exp_word : "parameter null or not set"
+							);
+						} else {
 							val = exp_word;
+						}
 
 						if (exp_op == '=') {
 							/* ${var=[word]} or ${var:=[word]} */
@@ -4487,7 +4494,7 @@ static int add_till_single_quote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax_error_unterminated('\'');
+			syntax_error_unterm_ch('\'');
 			return 1;
 		}
 		if (ch == '\'')
@@ -4501,7 +4508,7 @@ static int add_till_double_quote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax_error_unterminated('"');
+			syntax_error_unterm_ch('"');
 			return 1;
 		}
 		if (ch == '"')
@@ -4539,7 +4546,7 @@ static int add_till_backquote(o_string *dest, struct in_str *input)
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax_error_unterminated('`');
+			syntax_error_unterm_ch('`');
 			return 1;
 		}
 		if (ch == '`')
@@ -4548,7 +4555,7 @@ static int add_till_backquote(o_string *dest, struct in_str *input)
 			/* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 == EOF) {
-				syntax_error_unterminated('`');
+				syntax_error_unterm_ch('`');
 				return 1;
 			}
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
@@ -4576,7 +4583,7 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax_error_unterminated(')');
+			syntax_error_unterm_ch(')');
 			return 1;
 		}
 		if (ch == '(')
@@ -4608,7 +4615,7 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 			/* \x. Copy verbatim. Important for  \(, \) */
 			ch = i_getch(input);
 			if (ch == EOF) {
-				syntax_error_unterminated(')');
+				syntax_error_unterm_ch(')');
 				return 1;
 			}
 			o_addchr(dest, ch);
@@ -4726,7 +4733,7 @@ static int handle_dollar(o_string *as_string,
 					break;
 				default:
 				case_default:
-					syntax_error("unterminated ${name}");
+					syntax_error_unterm_str("${name}");
 					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
 					return 1;
 				}
@@ -4831,7 +4838,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	}
 	/* note: can't move it above ch == dquote_end check! */
 	if (ch == EOF) {
-		syntax_error_unterminated('"');
+		syntax_error_unterm_ch('"');
 		debug_printf_parse("parse_stream_dquoted return 1: unterminated \"\n");
 		return 1;
 	}
@@ -4954,7 +4961,7 @@ static struct pipe *parse_stream(char **pstring,
 			struct pipe *pi;
 
 			if (heredoc_cnt) {
-				syntax_error("unterminated here document");
+				syntax_error_unterm_str("here document");
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
@@ -5043,7 +5050,7 @@ static struct pipe *parse_stream(char **pstring,
 				 * We require heredoc to be in enclosing {}/(),
 				 * if any.
 				 */
-				syntax_error("unterminated here document");
+				syntax_error_unterm_str("here document");
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
@@ -5123,7 +5130,7 @@ static struct pipe *parse_stream(char **pstring,
 			while (1) {
 				ch = i_getch(input);
 				if (ch == EOF) {
-					syntax_error_unterminated('\'');
+					syntax_error_unterm_ch('\'');
 					goto parse_error;
 				}
 				nommu_addchr(&ctx.as_string, ch);
