@@ -1,3 +1,25 @@
+unset var
+
+echo ${var#}
+echo ${var##}
+echo ${var#*}
+echo ${var##*}
+echo ${var%}
+echo ${var%%}
+echo ${var%*}
+echo ${var%%*}
+
+var=
+
+echo ${var#}
+echo ${var##}
+echo ${var#*}
+echo ${var##*}
+echo ${var%}
+echo ${var%%}
+echo ${var%*}
+echo ${var%%*}
+
 var=ababcdcd
 
 echo ${var#ab}
