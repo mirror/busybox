@@ -2191,7 +2191,7 @@ static void re_execute_shell(const char *s, int is_heredoc)
 		argv[1] = (char *) "-<";
 		argv[2] = (char *) s;
 		argv[3] = NULL;
-		pp = &argv[3]; /* used as pointer to empty environmaent */
+		pp = &argv[3]; /* used as pointer to empty environment */
 		goto do_exec;
 	}
 
