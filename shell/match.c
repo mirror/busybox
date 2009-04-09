@@ -14,7 +14,6 @@
  *
  * Original BSD copyright notice is retained at the end of this file.
  */
-
 #ifdef STANDALONE
 # include <stdbool.h>
 # include <stdio.h>
@@ -22,7 +21,7 @@
 # include <string.h>
 # include <unistd.h>
 #else
-# include "busybox.h"
+# include "libbb.h"
 #endif
 #include <fnmatch.h>
 #include "match.h"

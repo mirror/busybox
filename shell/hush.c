@@ -64,7 +64,6 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-
 #include "busybox.h" /* for APPLET_IS_NOFORK/NOEXEC */
 //TODO: pull in some .h and find out whether we have SINGLE_APPLET_MAIN?
 //#include "applet_tables.h" doesn't work
@@ -78,6 +77,12 @@
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
+
+
+/* Debug build knobs */
+//#define LEAK_HUNTING 1
+//#define WANT_TO_TEST_NOMMU 1
+
 
 #ifdef WANT_TO_TEST_NOMMU
 # undef BB_MMU
@@ -214,8 +219,7 @@ static void debug_print_strings(const char *prefix, char **vv)
 /*
  * Leak hunting. Use hush_leaktool.sh for post-processing.
  */
-//#define FOR_HUSH_LEAKTOOL
-#ifdef FOR_HUSH_LEAKTOOL
+#ifdef LEAK_HUNTING
 static void *xxmalloc(int lineno, size_t size)
 {
 	void *ptr = xmalloc((size + 0xff) & ~0xff);
@@ -743,7 +747,7 @@ static char **add_strings_to_strings(char **strings, char **add, int need_to_dup
 		v[count1 + i] = (need_to_dup ? xstrdup(add[i]) : add[i]);
 	return v;
 }
-#ifdef FOR_HUSH_LEAKTOOL
+#ifdef LEAK_HUNTING
 static char **xx_add_strings_to_strings(int lineno, char **strings, char **add, int need_to_dup)
 {
 	char **ptr = add_strings_to_strings(strings, add, need_to_dup);
@@ -761,7 +765,7 @@ static char **add_string_to_strings(char **strings, char *add)
 	v[1] = NULL;
 	return add_strings_to_strings(strings, v, /*dup:*/ 0);
 }
-#ifdef FOR_HUSH_LEAKTOOL
+#ifdef LEAK_HUNTING
 static char **xx_add_string_to_strings(int lineno, char **strings, char *add)
 {
 	char **ptr = add_string_to_strings(strings, add);
@@ -2310,6 +2314,7 @@ static void setup_heredoc(struct redir_struct *redir)
 		len -= written;
 		if (len == 0) {
 			close(pair.wr);
+			free(expanded);
 			return;
 		}
 		heredoc += written;

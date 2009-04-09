@@ -26,8 +26,7 @@
  * rewrote arith (see notes to this), added locale support,
  * rewrote dynamic variables.
  */
-
-#include "busybox.h"
+#include "libbb.h"
 #include "math.h"
 
 #define a_e_h_t arith_eval_hooks_t
