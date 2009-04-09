@@ -1,14 +1,12 @@
 /* vi: set sw=4 ts=4: */
-#ifndef __UTILS_H__
-#define __UTILS_H__ 1
+#ifndef UTILS_H
+#define UTILS_H 1
 
 #include "libnetlink.h"
 #include "ll_map.h"
 #include "rtm_map.h"
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 extern family_t preferred_family;
 extern smallint show_stats;    /* UNUSED */
@@ -87,8 +85,6 @@ int dnet_pton(int af, const char *src, void *addr);
 const char *ipx_ntop(int af, const void *addr, char *str, size_t len);
 int ipx_pton(int af, const char *src, void *addr);
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
-#endif /* __UTILS_H__ */
+#endif

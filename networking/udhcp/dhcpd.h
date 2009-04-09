@@ -1,12 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /* dhcpd.h */
+#ifndef UDHCP_DHCPD_H
+#define UDHCP_DHCPD_H 1
 
-#ifndef _DHCPD_H
-#define _DHCPD_H
-
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /************************************/
 /* Defaults _you_ may want to tweak */
@@ -134,8 +131,6 @@ void read_leases(const char *file) FAST_FUNC;
 struct option_set *find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

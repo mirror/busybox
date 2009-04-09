@@ -4,14 +4,12 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-#ifndef	_BB_INTERNAL_H_
-#define	_BB_INTERNAL_H_    1
+#ifndef BUSYBOX_H
+#define BUSYBOX_H 1
 
 #include "libbb.h"
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* order matters: used as index into "install_dir[]" in appletlib.c */
 typedef enum bb_install_loc_t {
@@ -71,8 +69,6 @@ int lbb_main(char **argv);
 #endif
 #endif
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
-#endif	/* _BB_INTERNAL_H_ */
+#endif

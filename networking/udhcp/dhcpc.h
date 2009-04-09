@@ -1,12 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /* dhcpc.h */
+#ifndef UDHCP_DHCPC_H
+#define UDHCP_DHCPC_H 1
 
-#ifndef _DHCPC_H
-#define _DHCPC_H
-
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct client_config_t {
 	uint8_t arp[6];                 /* Our arp address */
@@ -49,8 +46,6 @@ int send_release(uint32_t server, uint32_t ciaddr) FAST_FUNC;
 
 int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd) FAST_FUNC;
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

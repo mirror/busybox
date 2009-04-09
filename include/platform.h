@@ -4,8 +4,8 @@
 
    Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */
-#ifndef	__PLATFORM_H
-#define __PLATFORM_H	1
+#ifndef	BB_PLATFORM_H
+#define BB_PLATFORM_H 1
 
 /* Convenience macros to test the version of gcc. */
 #undef __GNUC_PREREQ
@@ -108,6 +108,16 @@
 /* #elif ... - add your favorite arch today! */
 #else
 # define FAST_FUNC
+#endif
+
+/* Make all declarations hidden (-fvisibility flag only affects definitions) */
+/* (don't include system headers after this until corresponding pop!) */
+#if __GNUC_PREREQ(4,1)
+# define PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN _Pragma("GCC visibility push(hidden)")
+# define POP_SAVED_FUNCTION_VISIBILITY              _Pragma("GCC visibility pop")
+#else
+# define PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
+# define POP_SAVED_FUNCTION_VISIBILITY
 #endif
 
 /* ---- Endian Detection ------------------------------------ */
@@ -371,4 +381,4 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #endif
 #endif
 
-#endif	/* platform.h */
+#endif

@@ -9,9 +9,8 @@
  * License.
  * %End-Header%
  */
-
-#ifndef _EXT2FS_EXT2FS_H
-#define _EXT2FS_EXT2FS_H
+#ifndef EXT2FS_EXT2FS_H
+#define EXT2FS_EXT2FS_H 1
 
 
 #define EXT2FS_ATTR(x)
@@ -920,4 +919,4 @@ extern blk_t ext2fs_inode_data_blocks(ext2_filsys fs,
 }
 #endif
 
-#endif /* _EXT2FS_EXT2FS_H */
+#endif

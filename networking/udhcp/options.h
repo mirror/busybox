@@ -1,11 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /* options.h */
-#ifndef _OPTIONS_H
-#define _OPTIONS_H
+#ifndef UDHCP_OPTIONS_H
+#define UDHCP_OPTIONS_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #define TYPE_MASK       0x0F
 
@@ -111,8 +109,6 @@ char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

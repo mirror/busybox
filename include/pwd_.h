@@ -21,12 +21,10 @@
  *	POSIX Standard: 9.2.2 User Database Access	<pwd.h>
  */
 
-#ifndef	BB_PWD_H
-#define	BB_PWD_H 1
+#ifndef BB_PWD_H
+#define BB_PWD_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* This file is #included after #include <pwd.h>
  * We will use libc-defined structures, but will #define function names
@@ -107,8 +105,6 @@ extern int fgetpwent_r(FILE *__restrict __stream,
    will expect, but this need not be the format of the password file.  */
 /* UNUSED extern int getpw(uid_t __uid, char *__buffer); */
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif /* pwd.h  */

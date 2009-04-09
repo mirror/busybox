@@ -6,14 +6,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#ifndef __MODUTILS_H__
-#define __MODUTILS_H__
+#ifndef MODUTILS_H
+#define MODUTILS_H 1
 
 #include "libbb.h"
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* linux/include/linux/module.h has 64, but this is also used
  * internally for the maximum alias name length, which can be quite long */
@@ -62,8 +60,6 @@ int FAST_FUNC bb_delete_module(const char *module, unsigned int flags);
 int FAST_FUNC bb_init_module_24(const char *module, const char *options);
 #endif
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

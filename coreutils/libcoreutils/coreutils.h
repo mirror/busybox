@@ -4,11 +4,9 @@
  */
 
 #ifndef COREUTILS_H
-#define COREUTILS_H		1
+#define COREUTILS_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 typedef int (*stat_func)(const char *fn, struct stat *ps);
 
@@ -17,8 +15,6 @@ int cp_mv_stat(const char *fn, struct stat *fn_stat) FAST_FUNC;
 
 mode_t getopt_mk_fifo_nod(char **argv) FAST_FUNC;
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

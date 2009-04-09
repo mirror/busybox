@@ -6,17 +6,14 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
-#ifndef _COMMON_H
-#define _COMMON_H
+#ifndef UDHCP_COMMON_H
+#define UDHCP_COMMON_H 1
 
 #include "libbb.h"
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #define DEFAULT_SCRIPT   CONFIG_UDHCPC_DEFAULT_SCRIPT
 
@@ -103,8 +100,6 @@ int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *i
 # define DEBUG(str, args...) do {;} while (0)
 #endif
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

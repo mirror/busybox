@@ -1,10 +1,8 @@
 /* vi: set sw=4 ts=4: */
-#ifndef	__UNARCHIVE_H__
-#define	__UNARCHIVE_H__
+#ifndef UNARCHIVE_H
+#define UNARCHIVE_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #define ARCHIVE_PRESERVE_DATE           1
 #define ARCHIVE_CREATE_LEADING_DIRS     2
@@ -150,8 +148,6 @@ void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transform_prog)
 #endif
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

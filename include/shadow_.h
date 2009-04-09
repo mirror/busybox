@@ -22,9 +22,7 @@
 #ifndef BB_SHADOW_H
 #define BB_SHADOW_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* This file is #included after #include <shadow.h>
  * We will use libc-defined structures, but will #define function names
@@ -97,8 +95,6 @@ extern int lckpwdf(void);
 /* Unlock password file */
 extern int ulckpwdf(void);
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif /* shadow.h */

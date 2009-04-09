@@ -15,18 +15,15 @@
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, write to the Free
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-   02111-1307 USA.  */
-
+   02111-1307 USA.
+ */
 /*
  *	POSIX Standard: 9.2.1 Group Database Access	<grp.h>
  */
+#ifndef BB_GRP_H
+#define BB_GRP_H 1
 
-#ifndef	BB_GRP_H
-#define	BB_GRP_H 1
-
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* This file is #included after #include <grp.h>
  * We will use libc-defined structures, but will #define function names
@@ -115,8 +112,6 @@ extern int getgrouplist(const char *__user, gid_t __group,
    of which USER is a member.  Also include GROUP.  */
 extern int initgroups(const char *__user, gid_t __group);
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

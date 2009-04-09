@@ -1,18 +1,14 @@
 /* vi: set sw=4 ts=4: */
-#ifndef __RTM_MAP_H__
-#define __RTM_MAP_H__ 1
+#ifndef RTM_MAP_H
+#define RTM_MAP_H 1
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 const char *rtnl_rtntype_n2a(int id, char *buf, int len);
 int rtnl_rtntype_a2n(int *id, char *arg);
 
 int get_rt_realms(uint32_t *realms, char *arg);
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
-#endif /* __RTM_MAP_H__ */
+#endif

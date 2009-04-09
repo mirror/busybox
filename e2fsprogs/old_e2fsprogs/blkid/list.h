@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 #if !defined(_BLKID_LIST_H) && !defined(LIST_HEAD)
-#define _BLKID_LIST_H
+#define BLKID_LIST_H 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,4 +70,4 @@ void list_splice(struct list_head *list, struct list_head *head);
 }
 #endif
 
-#endif /* _BLKID_LIST_H */
+#endif

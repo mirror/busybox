@@ -72,8 +72,10 @@
  * below for the exact things that are available.
  */
 
-#ifndef _SHELL_MATH_
-#define _SHELL_MATH_
+#ifndef SHELL_MATH_H
+#define SHELL_MATH_H 1
+
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #if ENABLE_SH_MATH_SUPPORT_64
 typedef long long arith_t;
@@ -95,5 +97,7 @@ typedef struct arith_eval_hooks {
 } arith_eval_hooks_t;
 
 arith_t arith(const char *expr, int *perrcode, arith_eval_hooks_t*);
+
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

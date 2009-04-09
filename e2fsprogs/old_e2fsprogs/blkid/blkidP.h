@@ -10,9 +10,8 @@
  * GNU Lesser General Public License.
  * %End-Header%
  */
-
-#ifndef _BLKID_BLKIDP_H
-#define _BLKID_BLKIDP_H
+#ifndef BLKID_BLKIDP_H
+#define BLKID_BLKIDP_H 1
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -184,4 +183,4 @@ extern void blkid_free_dev(blkid_dev dev);
 }
 #endif
 
-#endif /* _BLKID_BLKIDP_H */
+#endif

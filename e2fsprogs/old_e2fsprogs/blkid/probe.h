@@ -11,9 +11,8 @@
  * GNU Lesser General Public License.
  * %End-Header%
  */
-
-#ifndef _BLKID_PROBE_H
-#define _BLKID_PROBE_H
+#ifndef BLKID_PROBE_H
+#define BLKID_PROBE_H 1
 
 #include <linux/types.h>
 

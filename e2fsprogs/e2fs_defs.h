@@ -10,8 +10,8 @@
  * Copyright (C) 1991, 1992  Linus Torvalds
  */
 
-#ifndef _LINUX_EXT2_FS_H
-#define _LINUX_EXT2_FS_H
+#ifndef LINUX_EXT2_FS_H
+#define LINUX_EXT2_FS_H 1
 
 /*
  * Special inode numbers
@@ -558,4 +558,4 @@ struct ext2_dir_entry_2 {
 #define EXT2_DIR_REC_LEN(name_len)	(((name_len) + 8 + EXT2_DIR_ROUND) & \
 					 ~EXT2_DIR_ROUND)
 
-#endif	/* _LINUX_EXT2_FS_H */
+#endif

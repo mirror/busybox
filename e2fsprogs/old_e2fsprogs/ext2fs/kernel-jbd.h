@@ -13,9 +13,8 @@
  * Definitions for transaction data structures for the buffer cache
  * filesystem journaling support.
  */
-
-#ifndef _LINUX_JBD_H
-#define _LINUX_JBD_H
+#ifndef LINUX_JBD_H
+#define LINUX_JBD_H 1
 
 #include <sys/types.h>
 #include <linux/types.h>
@@ -233,4 +232,4 @@ extern void	   journal_brelse_array(struct buffer_head *b[], int n);
 extern void	   journal_destroy_revoke(journal_t *);
 
 
-#endif	/* _LINUX_JBD_H */
+#endif

@@ -10,9 +10,8 @@
  * GNU Lesser General Public License.
  * %End-Header%
  */
-
-#ifndef _BLKID_BLKID_H
-#define _BLKID_BLKID_H
+#ifndef BLKID_BLKID_H
+#define BLKID_BLKID_H 1
 
 #include <sys/types.h>
 #include <linux/types.h>
@@ -102,4 +101,4 @@ extern int blkid_parse_tag_string(const char *token, char **ret_type,
 }
 #endif
 
-#endif /* _BLKID_BLKID_H */
+#endif

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
-#ifndef __LIBNETLINK_H__
-#define __LIBNETLINK_H__ 1
+#ifndef LIBNETLINK_H
+#define LIBNETLINK_H 1
 
 #include <linux/types.h>
 /* We need linux/types.h because older kernels use __u32 etc
@@ -8,10 +8,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
-
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct rtnl_handle
 {
@@ -48,8 +45,6 @@ extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, i
 
 extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len) FAST_FUNC;
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
-#endif
+POP_SAVED_FUNCTION_VISIBILITY
 
-#endif /* __LIBNETLINK_H__ */
+#endif

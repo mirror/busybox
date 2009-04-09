@@ -7,8 +7,8 @@
  *
  * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
-#ifndef	__LIBBUSYBOX_H__
-#define	__LIBBUSYBOX_H__    1
+#ifndef LIBBB_H
+#define LIBBB_H 1
 
 #include "platform.h"
 
@@ -110,9 +110,7 @@ int sysinfo(struct sysinfo* info);
 
 /* Make all declarations hidden (-fvisibility flag only affects definitions) */
 /* (don't include system headers after this until corresponding pop!) */
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility push(hidden)
-#endif
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 
 #if ENABLE_USE_BB_PWD_GRP
@@ -1532,9 +1530,6 @@ extern const char bb_default_login_shell[];
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
 
-#if __GNUC_PREREQ(4,1)
-# pragma GCC visibility pop
+POP_SAVED_FUNCTION_VISIBILITY
+
 #endif
-
-
-#endif /* __LIBBUSYBOX_H__ */

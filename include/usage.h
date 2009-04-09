@@ -9,9 +9,8 @@
  * or
  *    |<5 spaces>"\ntext with tabs"....
  */
-
-#ifndef __BB_USAGE_H__
-#define __BB_USAGE_H__
+#ifndef BB_USAGE_H
+#define BB_USAGE_H 1
 
 
 #define NOUSAGE_STR "\b"
@@ -4921,4 +4920,5 @@ USE_FEATURE_TUNCTL_UG( \
      "\nWith no -q, runs continuously monitoring for ARP conflicts," \
      "\nexits only on I/O errors (link down etc)" \
 
-#endif /* __BB_USAGE_H__ */
+
+#endif
