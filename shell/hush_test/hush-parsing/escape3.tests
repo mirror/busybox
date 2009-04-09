@@ -1,3 +1,5 @@
+test "$CONFIG_FEATURE_FANCY_ECHO" = "y" || exit 77
+
 v='a \ b \\ c \\\ d \\\\ e'
 echo v: $v
 echo v: "$v"
