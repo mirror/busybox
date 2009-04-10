@@ -344,8 +344,7 @@ typedef enum redir_type {
 
 	REDIRFD_CLOSE      = -3,
 	REDIRFD_SYNTAX_ERR = -2,
-	REDIRFD_TO_FILE    = -1,
-	/* otherwise, rd_fd is redirected to rd_dup */
+	REDIRFD_TO_FILE    = -1, /* otherwise, rd_fd if redirected to rd_dup */
 
 	HEREDOC_SKIPTABS = 1,
 	HEREDOC_QUOTED   = 2,
@@ -3999,6 +3998,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
 		}
 		debug_printf_parse("word stored in rd_filename: '%s'\n", word->data);
+		ctx->pending_redirect = NULL;
 	} else {
 		/* If this word wasn't an assignment, next ones definitely
 		 * can't be assignments. Even if they look like ones. */
@@ -4076,19 +4076,19 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		debug_print_strings("word appended to argv", command->argv);
 	}
 
-	o_reset(word);
-	ctx->pending_redirect = NULL;
-
 #if ENABLE_HUSH_LOOPS
-	/* Force FOR to have just one word (variable name) */
-	/* NB: basically, this makes hush see "for v in ..." syntax as if
-	 * as it is "for v; in ...". FOR and IN become two pipe structs
-	 * in parse tree. */
 	if (ctx->ctx_res_w == RES_FOR) {
-		if (!is_well_formed_var_name(command->argv[0], '\0')) {
-			syntax_error("malformed variable name in for");
+		if (word->o_quoted
+		 || !is_well_formed_var_name(command->argv[0], '\0')
+		) {
+			/* bash says "not a valid identifier" */
+			syntax_error("not a valid identifier in for");
 			return 1;
 		}
+		/* Force FOR to have just one word (variable name) */
+		/* NB: basically, this makes hush see "for v in ..."
+		 * syntax as if it is "for v; in ...". FOR and IN become
+		 * two pipe structs in parse tree. */
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
@@ -4098,6 +4098,9 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		done_pipe(ctx, PIPE_SEQ);
 	}
 #endif
+
+	o_reset(word);
+
 	debug_printf_parse("done_word return 0\n");
 	return 0;
 }
@@ -6197,12 +6200,16 @@ static int builtin_read(char **argv)
 
 	if (argv[1]) {
 		name = argv[1];
+		/* bash (3.2.33(1)) bug: "read 0abcd" will execute,
+		 * and _after_ that_ it will complain */
 		if (!is_well_formed_var_name(name, '\0')) {
 			/* Mimic bash message */
 			bb_error_msg("read: '%s': not a valid identifier", name);
 			return 1;
 		}
 	}
+
+//TODO: bash unbackslashes input, splits words and puts them in argv[i]
 
 	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
 	return set_local_var(string, 0, 0);
