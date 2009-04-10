@@ -344,7 +344,8 @@ typedef enum redir_type {
 
 	REDIRFD_CLOSE      = -3,
 	REDIRFD_SYNTAX_ERR = -2,
-	REDIRFD_TO_FILE    = -1, /* otherwise, rd_fd if redirected to rd_dup */
+	REDIRFD_TO_FILE    = -1,
+	/* otherwise, rd_fd is redirected to rd_dup */
 
 	HEREDOC_SKIPTABS = 1,
 	HEREDOC_QUOTED   = 2,
