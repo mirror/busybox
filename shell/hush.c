@@ -701,12 +701,19 @@ static void syntax_error_at(unsigned lineno, const char *msg)
 	die_if_script(lineno, "syntax error at '%s'", msg);
 }
 
+/* It so happens that all such cases are totally fatal
+ * even if shell is interactive: EOF while looking for closing
+ * delimiter. There is nowhere to read stuff from after that,
+ * it's EOF! The only choice is to terminate.
+ */
+static void syntax_error_unterm_ch(unsigned lineno, char ch) NORETURN;
 static void syntax_error_unterm_ch(unsigned lineno, char ch)
 {
 	char msg[2];
 	msg[0] = ch;
 	msg[1] = '\0';
 	die_if_script(lineno, "syntax error: unterminated %s", msg);
+	xfunc_die();
 }
 
 static void syntax_error_unterm_str(unsigned lineno, const char *s)
@@ -1433,7 +1440,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
  */
 #define B_CHUNK  (32 * sizeof(char*))
 
-static void o_reset(o_string *o)
+static void o_reset_to_empty_unquoted(o_string *o)
 {
 	o->length = 0;
 	o->o_quoted = 0;
@@ -4043,7 +4050,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
-				o_reset(word);
+				o_reset_to_empty_unquoted(word);
 				debug_printf_parse("done_word return %d\n",
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
@@ -4099,7 +4106,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	}
 #endif
 
-	o_reset(word);
+	o_reset_to_empty_unquoted(word);
 
 	debug_printf_parse("done_word return 0\n");
 	return 0;
@@ -4249,7 +4256,7 @@ static int redirect_opt_num(o_string *o)
 	num = bb_strtou(o->data, NULL, 10);
 	if (errno || num < 0)
 		return -1;
-	o_reset(o);
+	o_reset_to_empty_unquoted(o);
 	return num;
 }
 
@@ -4458,7 +4465,6 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		bb_error_msg("aha '%s' is a function, parsing it...", dest->data);
 		//command->fname = dest->data;
 		command->grp_type = GRP_FUNCTION;
-//TODO: review every o_reset() location... do they handle all o_string fields correctly?
 		memset(dest, 0, sizeof(*dest));
 	}
 #endif
@@ -4510,40 +4516,39 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 #if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT
 /* Subroutines for copying $(...) and `...` things */
-static int add_till_backquote(o_string *dest, struct in_str *input);
+static void add_till_backquote(o_string *dest, struct in_str *input);
 /* '...' */
-static int add_till_single_quote(o_string *dest, struct in_str *input)
+static void add_till_single_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch('\'');
-			return 1;
+			/*xfunc_die(); - redundant */
 		}
 		if (ch == '\'')
-			return 0;
+			return;
 		o_addchr(dest, ch);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
-static int add_till_double_quote(o_string *dest, struct in_str *input)
+static void add_till_double_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch('"');
-			return 1;
+			/*xfunc_die(); - redundant */
 		}
 		if (ch == '"')
-			return 0;
+			return;
 		if (ch == '\\') {  /* \x. Copy both chars. */
 			o_addchr(dest, ch);
 			ch = i_getch(input);
 		}
 		o_addchr(dest, ch);
 		if (ch == '`') {
-			if (add_till_backquote(dest, input))
-				return 1;
+			add_till_backquote(dest, input);
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -4564,22 +4569,22 @@ static int add_till_double_quote(o_string *dest, struct in_str *input)
  * Example                               Output
  * echo `echo '\'TEST\`echo ZZ\`BEST`    \TESTZZBEST
  */
-static int add_till_backquote(o_string *dest, struct in_str *input)
+static void add_till_backquote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch('`');
-			return 1;
+			/*xfunc_die(); - redundant */
 		}
 		if (ch == '`')
-			return 0;
+			return;
 		if (ch == '\\') {
 			/* \x. Copy both chars unless it is \` */
 			int ch2 = i_getch(input);
 			if (ch2 == EOF) {
 				syntax_error_unterm_ch('`');
-				return 1;
+				/*xfunc_die(); - redundant */
 			}
 			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
 				o_addchr(dest, ch);
@@ -4600,14 +4605,14 @@ static int add_till_backquote(o_string *dest, struct in_str *input)
  * echo $(echo 'TEST)' BEST)            TEST) BEST
  * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
  */
-static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl)
+static void add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl)
 {
 	int count = 0;
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch(')');
-			return 1;
+			/*xfunc_die(); - redundant */
 		}
 		if (ch == '(')
 			count++;
@@ -4623,14 +4628,12 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 		}
 		o_addchr(dest, ch);
 		if (ch == '\'') {
-			if (add_till_single_quote(dest, input))
-				return 1;
+			add_till_single_quote(dest, input);
 			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '"') {
-			if (add_till_double_quote(dest, input))
-				return 1;
+			add_till_double_quote(dest, input);
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -4639,13 +4642,12 @@ static int add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl
 			ch = i_getch(input);
 			if (ch == EOF) {
 				syntax_error_unterm_ch(')');
-				return 1;
+				/*xfunc_die(); - redundant */
 			}
 			o_addchr(dest, ch);
 			continue;
 		}
 	}
-	return 0;
 }
 #endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT */
 
@@ -4786,8 +4788,7 @@ static int handle_dollar(o_string *as_string,
 #  if !BB_MMU
 			pos = dest->length;
 #  endif
-			if (add_till_closing_paren(dest, input, true))
-				return 1;
+			add_till_closing_paren(dest, input, true);
 #  if !BB_MMU
 			if (as_string) {
 				o_addstr(as_string, dest->data + pos);
@@ -4805,8 +4806,7 @@ static int handle_dollar(o_string *as_string,
 #  if !BB_MMU
 		pos = dest->length;
 #  endif
-		if (add_till_closing_paren(dest, input, false))
-			return 1;
+		add_till_closing_paren(dest, input, false);
 #  if !BB_MMU
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
@@ -4862,8 +4862,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	/* note: can't move it above ch == dquote_end check! */
 	if (ch == EOF) {
 		syntax_error_unterm_ch('"');
-		debug_printf_parse("parse_stream_dquoted return 1: unterminated \"\n");
-		return 1;
+		/*xfunc_die(); - redundant */
 	}
 	next = '\0';
 	if (ch != '\n') {
@@ -4872,11 +4871,9 @@ static int parse_stream_dquoted(o_string *as_string,
 	debug_printf_parse(": ch=%c (%d) escape=%d\n",
 					ch, ch, dest->o_escape);
 	if (ch == '\\') {
-//TODO: check interactive behavior
 		if (next == EOF) {
 			syntax_error("\\<eof>");
-			debug_printf_parse("parse_stream_dquoted return 1: \\<eof>\n");
-			return 1;
+			xfunc_die();
 		}
 		/* bash:
 		 * "The backslash retains its special meaning [in "..."]
@@ -4904,8 +4901,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		//int pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, 0x80 | '`');
-		if (add_till_backquote(dest, input))
-			return 1;
+		add_till_backquote(dest, input);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
 		goto again;
@@ -4982,16 +4978,17 @@ static struct pipe *parse_stream(char **pstring,
 
 			if (heredoc_cnt) {
 				syntax_error_unterm_str("here document");
-				goto parse_error;
+				xfunc_die();
 			}
 			if (done_word(&dest, &ctx)) {
-				goto parse_error;
+				xfunc_die();
 			}
 			o_free(&dest);
 			done_pipe(&ctx, PIPE_SEQ);
 			pi = ctx.list_head;
 			/* If we got nothing... */
-// TODO: test script consisting of just "&"
+			/* (this makes bare "&" cmd a no-op.
+			 * bash says: "syntax error near unexpected token '&'") */
 			if (pi->num_cmds == 0
 			    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
 			) {
@@ -5182,7 +5179,7 @@ static struct pipe *parse_stream(char **pstring,
 		case '\\':
 			if (next == EOF) {
 				syntax_error("\\<eof>");
-				goto parse_error;
+				xfunc_die();
 			}
 			o_addchr(&dest, '\\');
 			ch = i_getch(input);
@@ -5205,7 +5202,7 @@ static struct pipe *parse_stream(char **pstring,
 				ch = i_getch(input);
 				if (ch == EOF) {
 					syntax_error_unterm_ch('\'');
-					goto parse_error;
+					/*xfunc_die(); - redundant */
 				}
 				nommu_addchr(&ctx.as_string, ch);
 				if (ch == '\'')
@@ -5232,8 +5229,7 @@ static struct pipe *parse_stream(char **pstring,
 #if !BB_MMU
 			pos = dest.length;
 #endif
-			if (add_till_backquote(&dest, input))
-				goto parse_error;
+			add_till_backquote(&dest, input);
 #if !BB_MMU
 			o_addstr(&ctx.as_string, dest.data + pos);
 			o_addchr(&ctx.as_string, '`');
@@ -5976,7 +5972,8 @@ static int builtin_cd(char **argv)
 	const char *newdir = argv[1];
 	if (newdir == NULL) {
 		/* bash does nothing (exitcode 0) if HOME is ""; if it's unset,
-		 * bash says "bash: cd: HOME not set" and does nothing (exitcode 1)
+		 * bash says "bash: cd: HOME not set" and does nothing
+		 * (exitcode 1)
 		 */
 		newdir = getenv("HOME") ? : "/";
 	}
@@ -6024,14 +6021,42 @@ static int builtin_exit(char **argv)
 static int builtin_export(char **argv)
 {
 	if (*++argv == NULL) {
-		// TODO:
-		// ash emits: export VAR='VAL'
-		// bash: declare -x VAR="VAL"
-		// (both also escape as needed (quotes, $, etc))
 		char **e = environ;
-		if (e)
-			while (*e)
+		if (e) {
+			while (*e) {
+#if 0
 				puts(*e++);
+#else
+				/* ash emits: export VAR='VAL'
+				 * bash: declare -x VAR="VAL"
+				 * we follow ash example */
+				const char *s = *e++;
+				const char *p = strchr(s, '=');
+
+				if (!p) /* wtf? take next variable */
+					continue;
+				/* export var= */
+				printf("export %.*s", (int)(p - s) + 1, s);
+				s = p + 1;
+				while (*s) {
+					if (*s != '\'') {
+						p = strchrnul(s, '\'');
+						/* print 'xxxx' */
+						printf("'%.*s'", (int)(p - s), s);
+						if (*p == '\0')
+							break;
+						s = p;
+					}
+					/* s points to '; print ''...'''" */
+					putchar('"');
+					do putchar('\''); while (*++s == '\'');
+					putchar('"');
+				}
+				putchar('\n');
+#endif
+			}
+			fflush(stdout);
+		}
 		return EXIT_SUCCESS;
 	}
 
