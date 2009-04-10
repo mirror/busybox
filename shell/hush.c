@@ -5587,6 +5587,13 @@ int hush_main(int argc, char **argv)
 	G.PS2 = "> ";
 #endif
 
+	if (setjmp(die_jmp)) {
+		/* xfunc has failed! die die die */
+		/* no EXIT traps, this is an escape hatch! */
+		G.exiting = 1;
+		hush_exit(xfunc_error_retval);
+	}
+
 	/* Shell is non-interactive at first. We need to call
 	 * block_signals(0) if we are going to execute "sh <script>",
 	 * "sh -c <cmds>" or login shell's /etc/profile and friends.
@@ -5774,12 +5781,6 @@ int hush_main(int argc, char **argv)
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
-		if (setjmp(die_jmp)) {
-			/* xfunc has failed! die die die */
-			/* no EXIT traps, this is an escape hatch! */
-			G.exiting = 1;
-			hush_exit(xfunc_error_retval);
-		}
 	} else if (!signal_mask_is_inited) {
 		block_signals(0); /* 0: called 1st time */
 	} /* else: block_signals(0) was done before */
