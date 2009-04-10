@@ -2644,6 +2644,7 @@ static const struct function *find_function(const char *name)
 	debug_printf_exec("found function '%s'\n", name);
 	return funcp;
 }
+
 static void exec_function(const struct function *funcp, char **argv) NORETURN;
 static void exec_function(const struct function *funcp, char **argv)
 {
@@ -2660,7 +2661,49 @@ static void exec_function(const struct function *funcp, char **argv)
 	_exit(n);
 # else
 	re_execute_shell(funcp->body_as_string, G.global_argv[0], argv + 1);
-#endif
+# endif
+}
+
+static int run_function(const struct function *funcp, char **argv)
+{
+	int n;
+	char **pp;
+	char *sv_argv0;
+	smallint sv_g_malloced;
+	int sv_g_argc;
+	char **sv_g_argv;
+
+	sv_argv0 = argv[0];
+	sv_g_malloced = G.global_args_malloced;
+	sv_g_argc = G.global_argc;
+	sv_g_argv = G.global_argv;
+
+	pp = argv;
+	n = 1;
+	while (*++pp)
+		n++;
+
+	argv[0] = G.global_argv[0]; /* retain $0 */
+	G.global_args_malloced = 0;
+	G.global_argc = n;
+	G.global_argv = argv;
+
+	n = run_list(funcp->body);
+
+	if (G.global_args_malloced) {
+		/* function ran "set -- arg1 arg2 ..." */
+		pp = G.global_argv;
+		while (*++pp)
+			free(*pp);
+		free(G.global_argv);
+	}
+
+	argv[0] = sv_argv0;
+	G.global_args_malloced = sv_g_malloced;
+	G.global_argc = sv_g_argc;
+	G.global_argv = sv_g_argv;
+
+	return n;
 }
 #endif
 
@@ -3238,7 +3281,7 @@ static int run_pipe(struct pipe *pi)
 				else {
 					debug_printf_exec(": function '%s' '%s'...\n",
 						funcp->name, argv_expanded[1]);
-					rcode = run_list(funcp->body) & 0xff;
+					rcode = run_function(funcp, argv_expanded) & 0xff;
 				}
 #endif
 			}
@@ -6436,19 +6479,14 @@ static int builtin_set(char **argv)
 			++argv;
 			goto set_argv;
 		}
-
-		if (arg[0] == '+' || arg[0] == '-') {
-			for (n = 1; arg[n]; ++n)
-				if (set_mode(arg[0], arg[n]))
-					goto error;
-			continue;
-		}
-
-		break;
+		if (arg[0] != '+' && arg[0] != '-')
+			break;
+		for (n = 1; arg[n]; ++n)
+			if (set_mode(arg[0], arg[n]))
+				goto error;
 	} while ((arg = *++argv) != NULL);
 	/* Now argv[0] is 1st argument */
 
-	/* Only reset global_argv if we didn't process anything */
 	if (arg == NULL)
 		return EXIT_SUCCESS;
  set_argv:
