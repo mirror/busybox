@@ -27,6 +27,8 @@ HERE
     { : /bin/*; }
     set -- par1_$i par2_$i par3_$i par4_$i
     trap "echo trap$i" WINCH
+    f() { echo $1; }
+    f >/dev/null
     : $((i++))
 done
 
@@ -55,6 +57,8 @@ HERE
     { : /bin/*; }
     set -- par1_$i par2_$i par3_$i par4_$i
     trap "echo trap$i" WINCH
+    f() { echo $1; }
+    f >/dev/null
     : $((i++))
 done
 

@@ -5,7 +5,7 @@
  * "small and simple is beautiful" philosophy, which
  * incidentally is a good match to today's BusyBox.
  *
- * Copyright (C) 2000,2001  Larry Doolittle  <larry@doolittle.boa.org>
+ * Copyright (C) 2000,2001  Larry Doolittle <larry@doolittle.boa.org>
  * Copyright (C) 2008,2009  Denys Vlasenko <vda.linux@googlemail.com>
  *
  * Credits:
@@ -68,7 +68,7 @@
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE
-#include <fnmatch.h>
+# include <fnmatch.h>
 #endif
 #include "math.h"
 #include "match.h"
@@ -100,31 +100,31 @@
 
 #if defined SINGLE_APPLET_MAIN
 /* STANDALONE does not make sense, and won't compile */
-#undef CONFIG_FEATURE_SH_STANDALONE
-#undef ENABLE_FEATURE_SH_STANDALONE
-#undef USE_FEATURE_SH_STANDALONE
-#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
-#define ENABLE_FEATURE_SH_STANDALONE 0
-#define USE_FEATURE_SH_STANDALONE(...)
-#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+# undef CONFIG_FEATURE_SH_STANDALONE
+# undef ENABLE_FEATURE_SH_STANDALONE
+# undef USE_FEATURE_SH_STANDALONE
+# define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+# define ENABLE_FEATURE_SH_STANDALONE 0
+# define USE_FEATURE_SH_STANDALONE(...)
+# define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
 #if !ENABLE_HUSH_INTERACTIVE
-#undef ENABLE_FEATURE_EDITING
-#define ENABLE_FEATURE_EDITING 0
-#undef ENABLE_FEATURE_EDITING_FANCY_PROMPT
-#define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
+# undef ENABLE_FEATURE_EDITING
+# define ENABLE_FEATURE_EDITING 0
+# undef ENABLE_FEATURE_EDITING_FANCY_PROMPT
+# define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
 #endif
 
 /* Do we support ANY keywords? */
 #if ENABLE_HUSH_IF || ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
-#define HAS_KEYWORDS 1
-#define IF_HAS_KEYWORDS(...) __VA_ARGS__
-#define IF_HAS_NO_KEYWORDS(...)
+# define HAS_KEYWORDS 1
+# define IF_HAS_KEYWORDS(...) __VA_ARGS__
+# define IF_HAS_NO_KEYWORDS(...)
 #else
-#define HAS_KEYWORDS 0
-#define IF_HAS_KEYWORDS(...)
-#define IF_HAS_NO_KEYWORDS(...) __VA_ARGS__
+# define HAS_KEYWORDS 0
+# define IF_HAS_KEYWORDS(...)
+# define IF_HAS_NO_KEYWORDS(...) __VA_ARGS__
 #endif
 
 /* If you comment out one of these below, it will be #defined later

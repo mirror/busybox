@@ -27,6 +27,8 @@ HERE
 } 1<>/dev/null
 while { echo $dev_null >>$dev_null; }; do cat <"$dev_null"; break; done
 ( until { echo $dev_null >>$dev_null | false; }; do cat <"$dev_null"; break; done ) <$dev_null
+f() { echo $1; }
+f >/dev/null
 
 memleak
 
@@ -53,6 +55,8 @@ HERE
 } 1<>/dev/null
 while { echo $dev_null >>$dev_null; }; do cat <"$dev_null"; break; done
 ( until { echo $dev_null >>$dev_null | false; }; do cat <"$dev_null"; break; done ) <$dev_null
+f() { echo $1; }
+f >/dev/null
 
 # And same again
 
@@ -77,6 +81,8 @@ HERE
 } 1<>/dev/null
 while { echo $dev_null >>$dev_null; }; do cat <"$dev_null"; break; done
 ( until { echo $dev_null >>$dev_null | false; }; do cat <"$dev_null"; break; done ) <$dev_null
+f() { echo $1; }
+f >/dev/null
 
 memleak
 kb=$?
