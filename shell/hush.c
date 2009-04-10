@@ -452,11 +452,16 @@ enum {
 	BC_CONTINUE = 2,
 };
 
+#if ENABLE_HUSH_FUNCTIONS
 struct function {
 	struct function *next;
 	char *name;
 	struct pipe *body;
+#if !BB_MMU
+	char *body_as_string;
+#endif
 };
+#endif
 
 
 /* "Globals" within this file */
@@ -510,7 +515,9 @@ struct globals {
 	const char *cwd;
 	struct variable *top_var; /* = &G.shell_ver (set in main()) */
 	struct variable shell_ver;
+#if ENABLE_HUSH_FUNCTIONS
 	struct function *top_func;
+#endif
 	/* Signal and trap handling */
 //	unsigned count_SIGCHLD;
 //	unsigned handled_SIGCHLD;
@@ -675,11 +682,12 @@ static void xxfree(void *ptr)
  * HUSH_DEBUG >= 2 prints line number in this file where it was detected.
  */
 #if HUSH_DEBUG < 2
-# define die_if_script(lineno, fmt...)      die_if_script(fmt)
-# define syntax_error(lineno, msg)          syntax_error(msg)
-# define syntax_error_at(lineno, msg)       syntax_error_at(msg)
-# define syntax_error_unterm_ch(lineno, ch) syntax_error_unterm_ch(ch)
-# define syntax_error_unterm_str(lineno, s) syntax_error_unterm_str(s)
+# define die_if_script(lineno, fmt...)          die_if_script(fmt)
+# define syntax_error(lineno, msg)              syntax_error(msg)
+# define syntax_error_at(lineno, msg)           syntax_error_at(msg)
+# define syntax_error_unterm_ch(lineno, ch)     syntax_error_unterm_ch(ch)
+# define syntax_error_unterm_str(lineno, s)     syntax_error_unterm_str(s)
+# define syntax_error_unexpected_ch(lineno, ch) syntax_error_unexpected_ch(ch)
 #endif
 
 static void die_if_script(unsigned lineno, const char *fmt, ...)
@@ -729,18 +737,29 @@ static void syntax_error_unterm_str(unsigned lineno, const char *s)
 	die_if_script(lineno, "syntax error: unterminated %s", s);
 }
 
+static void syntax_error_unexpected_ch(unsigned lineno, char ch)
+{
+	char msg[2];
+	msg[0] = ch;
+	msg[1] = '\0';
+	die_if_script(lineno, "syntax error: unexpected %s", msg);
+	xfunc_die();
+}
+
 #if HUSH_DEBUG < 2
 # undef die_if_script
 # undef syntax_error
 # undef syntax_error_at
 # undef syntax_error_unterm_ch
 # undef syntax_error_unterm_str
+# undef syntax_error_unexpected_ch
 #else
-# define die_if_script(fmt...)      die_if_script(__LINE__, fmt)
-# define syntax_error(msg)          syntax_error(__LINE__, msg)
-# define syntax_error_at(msg)       syntax_error_at(__LINE__, msg)
-# define syntax_error_unterm_ch(ch) syntax_error_unterm_ch(__LINE__, ch)
-# define syntax_error_unterm_str(s) syntax_error_unterm_str(__LINE__, s)
+# define die_if_script(fmt...)          die_if_script(__LINE__, fmt)
+# define syntax_error(msg)              syntax_error(__LINE__, msg)
+# define syntax_error_at(msg)           syntax_error_at(__LINE__, msg)
+# define syntax_error_unterm_ch(ch)     syntax_error_unterm_ch(__LINE__, ch)
+# define syntax_error_unterm_str(s)     syntax_error_unterm_str(__LINE__, s)
+# define syntax_error_unexpected_ch(ch) syntax_error_unexpected_ch(__LINE__, ch)
 #endif
 
 
@@ -2234,8 +2253,11 @@ static char **expand_assignments(char **argv, int count)
 
 
 #if BB_MMU
-void re_execute_shell(const char *s, int is_heredoc); /* never called */
+/* never called */
+void re_execute_shell(const char *s, char *argv0, char **argv);
+
 #define clean_up_after_re_execute() ((void)0)
+
 static void reset_traps_to_defaults(void)
 {
 	unsigned sig;
@@ -2266,16 +2288,16 @@ static void reset_traps_to_defaults(void)
 
 #else /* !BB_MMU */
 
-static void re_execute_shell(const char *s, int is_heredoc) NORETURN;
-static void re_execute_shell(const char *s, int is_heredoc)
+static void re_execute_shell(const char *s, char *g_argv0, char **g_argv) NORETURN;
+static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 {
 	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
 	char *heredoc_argv[4];
 	struct variable *cur;
-	char **argv, **pp, **pp2;
+	char **argv, **pp;
 	unsigned cnt;
 
-	if (is_heredoc) {
+	if (!g_argv0) { /* heredoc */
 		argv = heredoc_argv;
 		argv[0] = (char *) G.argv0_for_re_execing;
 		argv[1] = (char *) "-<";
@@ -2292,13 +2314,16 @@ static void re_execute_shell(const char *s, int is_heredoc)
 			USE_HUSH_LOOPS(, G.depth_of_loop)
 			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
-	 * 3:-c 4:<cmd> <argN...> 5:NULL
+	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
 	 */
-	cnt = 5 + G.global_argc;
+	cnt = 6;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
+	pp = g_argv;
+	while (*pp++)
+		cnt++;
 	G.argv_from_re_execing = argv = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) G.argv0_for_re_execing;
 	*pp++ = param_buf;
@@ -2335,9 +2360,9 @@ static void re_execute_shell(const char *s, int is_heredoc)
 	 */
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
-	pp2 = G.global_argv;
-	while (*pp2)
-		*pp++ = *pp2++;
+	*pp++ = g_argv0;
+	while (*g_argv)
+		*pp++ = *g_argv++;
 	/* *pp = NULL; - is already there */
 	pp = environ;
 
@@ -2426,7 +2451,7 @@ static void setup_heredoc(struct redir_struct *redir)
 		/* Delegate blocking writes to another process */
 		disable_restore_tty_pgrp_on_exit();
 		xmove_fd(pair.wr, STDOUT_FILENO);
-		re_execute_shell(heredoc, 1);
+		re_execute_shell(heredoc, NULL, NULL);
 #endif
 	}
 	/* parent */
@@ -2592,6 +2617,8 @@ static void free_pipe_list(struct pipe *head, int indent)
 }
 
 
+static int run_list(struct pipe *pi);
+
 static const struct built_in_command* find_builtin(const char *name)
 {
 	const struct built_in_command *x;
@@ -2604,22 +2631,39 @@ static const struct built_in_command* find_builtin(const char *name)
 	return NULL;
 }
 
-# if ENABLE_HUSH_FUNCTIONS
+#if ENABLE_HUSH_FUNCTIONS
 static const struct function *find_function(const char *name)
 {
 	const struct function *funcp = G.top_func;
 	while (funcp) {
-		if (strcmp(name, funcp->name) != 0)
-			continue;
-		return funcp;
-		debug_printf_exec("found function '%s'\n", name);
+		if (strcmp(name, funcp->name) == 0) {
+			break;
+		}
+		funcp = funcp->next;
 	}
-	return NULL;
+	debug_printf_exec("found function '%s'\n", name);
+	return funcp;
+}
+static void exec_function(const struct function *funcp, char **argv) NORETURN;
+static void exec_function(const struct function *funcp, char **argv)
+{
+# if BB_MMU
+	int n = 1;
+
+	argv[0] = G.global_argv[0];
+	G.global_argv = argv;
+	while (*++argv)
+		n++;
+	G.global_argc = n;
+	n = run_list(funcp->body);
+	fflush(NULL);
+	_exit(n);
+# else
+	re_execute_shell(funcp->body_as_string, G.global_argv[0], argv + 1);
+#endif
 }
 #endif
 
-
-static int run_list(struct pipe *pi);
 
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
@@ -2688,18 +2732,15 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 			_exit(rcode);
 		}
 	}
-# if ENABLE_HUSH_FUNCTIONS
+#endif
+#if ENABLE_HUSH_FUNCTIONS
 	/* Check if the command matches any functions */
 	{
-		int rcode;
 		const struct function *funcp = find_function(argv[0]);
 		if (funcp) {
-			rcode = run_list(funcp->body);
-			fflush(NULL);
-			_exit(rcode);
+			exec_function(funcp, argv);
 		}
 	}
-# endif
 #endif
 
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -2723,7 +2764,9 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	}
 #endif
 
+#if ENABLE_FEATURE_SH_STANDALONE || BB_MMU
  skip:
+#endif
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
 	execvp(argv[0], argv);
@@ -2761,7 +2804,9 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		 * since this process is about to exit */
 		_exit(rcode);
 #else
-		re_execute_shell(command->group_as_string, 0);
+		re_execute_shell(command->group_as_string,
+				G.global_argv[0],
+				G.global_argv + 1);
 #endif
 	}
 
@@ -3085,19 +3130,23 @@ static int run_pipe(struct pipe *pi)
 
 			while ((funcp = *funcpp) != NULL) {
 				if (strcmp(funcp->name, command->argv[0]) == 0) {
-					debug_printf_exec("replacing function '%s'", funcp->name);
+					debug_printf_exec("replacing function '%s'\n", funcp->name);
 					free(funcp->name);
 					free_pipe_list(funcp->body, /* indent: */ 0);
 					goto skip;
 				}
 				funcpp = &funcp->next;
 			}
-			debug_printf_exec("remembering new function '%s'", funcp->name);
+			debug_printf_exec("remembering new function '%s'\n", command->argv[0]);
 			funcp = *funcpp = xzalloc(sizeof(*funcp));
 			/*funcp->next = NULL;*/
  skip:
 			funcp->name = command->argv[0];
 			funcp->body = command->group;
+#if !BB_MMU
+			funcp->body_as_string = command->group_as_string;
+			command->group_as_string = NULL;
+#endif
 			command->group = NULL;
 			command->argv[0] = NULL;
 			free_strings(command->argv);
@@ -3160,6 +3209,7 @@ static int run_pipe(struct pipe *pi)
 
 		x = find_builtin(argv_expanded[0]);
 #if ENABLE_HUSH_FUNCTIONS
+		funcp = NULL;
 		if (!x)
 			funcp = find_function(argv_expanded[0]);
 #endif
@@ -3171,7 +3221,6 @@ static int run_pipe(struct pipe *pi)
 					goto clean_up_and_ret1;
 				}
 			}
-			debug_printf("builtin inline %s\n", argv_expanded[0]);
 			/* XXX setup_redirects acts on file descriptors, not FILEs.
 			 * This is perfect for work that comes after exec().
 			 * Is it really safe for inline use?  Experimentally,
@@ -3681,7 +3730,7 @@ static int run_list(struct pipe *pi)
 				/* We only ran a builtin: rcode is already known
 				 * and we don't need to wait for anything. */
 				G.last_exitcode = rcode;
-				debug_printf_exec(": builtin exitcode %d\n", rcode);
+				debug_printf_exec(": builtin/func exitcode %d\n", rcode);
 				check_and_run_traps(0);
 #if ENABLE_HUSH_LOOPS
 				/* Was it "break" or "continue"? */
@@ -4497,7 +4546,9 @@ static FILE *generate_stream_from_string(const char *s)
 	 * huge=`cat BIG` # was blocking here forever
 	 * echo OK
 	 */
-		re_execute_shell(s, 0);
+		re_execute_shell(s,
+				G.global_argv[0],
+				G.global_argv + 1);
 #endif
 	}
 
@@ -4561,34 +4612,34 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 	debug_printf_parse("parse_group entered\n");
 #if ENABLE_HUSH_FUNCTIONS
-	if (ch == '(') {
-		if (!dest->o_quoted) {
-			if (dest->length)
-				done_word(dest, ctx);
-			if (!command->argv)
-				goto skip; /* (... */
-			if (command->argv[1]) { /* word word ... (... */
-				syntax_error("unexpected character (");
-				return 1;
-			}
-			/* it is "word(..." or "word (..." */
-			do
-				ch = i_getch(input);
-			while (ch == ' ' || ch == '\t');
-			if (ch != ')') {
-				syntax_error("unexpected character X");
-				return 1;
-			}
-			do
-				ch = i_getch(input);
-			while (ch == ' ' || ch == '\t' || ch == '\n');
-			if (ch != '{') {
-				syntax_error("unexpected character X");
-				return 1;
-			}
-			command->grp_type = GRP_FUNCTION;
-			goto skip;
+	if (ch == '(' && !dest->o_quoted) {
+		if (dest->length)
+			done_word(dest, ctx);
+		if (!command->argv)
+			goto skip; /* (... */
+		if (command->argv[1]) { /* word word ... (... */
+			syntax_error_unexpected_ch('(');
+			return 1;
 		}
+		/* it is "word(..." or "word (..." */
+		do
+			ch = i_getch(input);
+		while (ch == ' ' || ch == '\t');
+		if (ch != ')') {
+			syntax_error_unexpected_ch(ch);
+			return 1;
+		}
+		nommu_addchr(&ctx->as_string, ch);
+		do
+			ch = i_getch(input);
+		while (ch == ' ' || ch == '\t' || ch == '\n');
+		if (ch != '{') {
+			syntax_error_unexpected_ch(ch);
+			return 1;
+		}
+		nommu_addchr(&ctx->as_string, ch);
+		command->grp_type = GRP_FUNCTION;
+		goto skip;
 	}
 #endif
 	if (command->argv /* word [word]{... */
@@ -5452,7 +5503,7 @@ static struct pipe *parse_stream(char **pstring,
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
-			syntax_error("unexpected } or )");
+			syntax_error_unexpected_ch(ch);
 			goto parse_error;
 		default:
 			if (HUSH_DEBUG)
