@@ -86,7 +86,7 @@
  */
 #define HUSH_DEBUG 1
 /* In progress... */
-#define ENABLE_HUSH_FUNCTIONS 0
+#define ENABLE_HUSH_FUNCTIONS 1
 
 
 #if BUILD_AS_NOMMU
@@ -374,12 +374,12 @@ struct command {
 #define GRP_NORMAL   0
 #define GRP_SUBSHELL 1
 #if ENABLE_HUSH_FUNCTIONS
-#define GRP_FUNCTION 2
+# define GRP_FUNCTION 2
 #endif
 
 struct pipe {
 	struct pipe *next;
-	int num_cmds;               /* total number of commands in job */
+	int num_cmds;               /* total number of commands in pipe */
 	int alive_cmds;             /* number of commands running (not exited) */
 	int stopped_cmds;           /* number of commands alive, but stopped */
 #if ENABLE_HUSH_JOB
@@ -452,6 +452,12 @@ enum {
 	BC_CONTINUE = 2,
 };
 
+struct function {
+	struct function *next;
+	char *name;
+	struct pipe *body;
+};
+
 
 /* "Globals" within this file */
 /* Sorted roughly by size (smaller offsets == smaller code) */
@@ -504,6 +510,7 @@ struct globals {
 	const char *cwd;
 	struct variable *top_var; /* = &G.shell_ver (set in main()) */
 	struct variable shell_ver;
+	struct function *top_func;
 	/* Signal and trap handling */
 //	unsigned count_SIGCHLD;
 //	unsigned handled_SIGCHLD;
@@ -2585,6 +2592,35 @@ static void free_pipe_list(struct pipe *head, int indent)
 }
 
 
+static const struct built_in_command* find_builtin(const char *name)
+{
+	const struct built_in_command *x;
+	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
+		if (strcmp(name, x->cmd) != 0)
+			continue;
+		debug_printf_exec("found builtin '%s'\n", name);
+		return x;
+	}
+	return NULL;
+}
+
+# if ENABLE_HUSH_FUNCTIONS
+static const struct function *find_function(const char *name)
+{
+	const struct function *funcp = G.top_func;
+	while (funcp) {
+		if (strcmp(name, funcp->name) != 0)
+			continue;
+		return funcp;
+		debug_printf_exec("found function '%s'\n", name);
+	}
+	return NULL;
+}
+#endif
+
+
+static int run_list(struct pipe *pi);
+
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
@@ -2627,6 +2663,11 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 #endif
 	}
 
+#if ENABLE_FEATURE_SH_STANDALONE || BB_MMU
+	if (strchr(argv[0], '/') != NULL)
+		goto skip;
+#endif
+
 	/* On NOMMU, we must never block!
 	 * Example: { sleep 99999 | read line } & echo Ok
 	 * read builtin will block on read syscall, leaving parent blocked
@@ -2640,30 +2681,38 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	 */
 	{
 		int rcode;
-		const struct built_in_command *x;
-		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-			if (strcmp(argv[0], x->cmd) == 0) {
-				debug_printf_exec("running builtin '%s'\n",
-						argv[0]);
-				rcode = x->function(argv);
-				fflush(NULL);
-				_exit(rcode);
-			}
+		const struct built_in_command *x = find_builtin(argv[0]);
+		if (x) {
+			rcode = x->function(argv);
+			fflush(NULL);
+			_exit(rcode);
 		}
 	}
+# if ENABLE_HUSH_FUNCTIONS
+	/* Check if the command matches any functions */
+	{
+		int rcode;
+		const struct function *funcp = find_function(argv[0]);
+		if (funcp) {
+			rcode = run_list(funcp->body);
+			fflush(NULL);
+			_exit(rcode);
+		}
+	}
+# endif
 #endif
 
 #if ENABLE_FEATURE_SH_STANDALONE
 	/* Check if the command matches any busybox applets */
-	if (strchr(argv[0], '/') == NULL) {
+	{
 		int a = find_applet_by_name(argv[0]);
 		if (a >= 0) {
-#if BB_MMU /* see above why on NOMMU it is not allowed */
+# if BB_MMU /* see above why on NOMMU it is not allowed */
 			if (APPLET_IS_NOEXEC(a)) {
 				debug_printf_exec("running applet '%s'\n", argv[0]);
 				run_applet_no_and_exit(a, argv);
 			}
-#endif
+# endif
 			/* Re-exec ourselves */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
 			sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
@@ -2674,14 +2723,13 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	}
 #endif
 
+ skip:
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't exec '%s'", argv[0]);
 	_exit(EXIT_FAILURE);
 }
-
-static int run_list(struct pipe *pi);
 
 /* Called after [v]fork() in run_pipe
  */
@@ -3031,8 +3079,35 @@ static int run_pipe(struct pipe *pi)
 	if (command->group) {
 #if ENABLE_HUSH_FUNCTIONS
 		if (command->grp_type == GRP_FUNCTION) {
-			/* func () { list } */
-			bb_error_msg("here we ought to remember function definition, and go on");
+			/* "executing" func () { list } */
+			struct function *funcp;
+			struct function **funcpp = &G.top_func;
+
+			while ((funcp = *funcpp) != NULL) {
+				if (strcmp(funcp->name, command->argv[0]) == 0) {
+					debug_printf_exec("replacing function '%s'", funcp->name);
+					free(funcp->name);
+					free_pipe_list(funcp->body, /* indent: */ 0);
+					goto skip;
+				}
+				funcpp = &funcp->next;
+			}
+			debug_printf_exec("remembering new function '%s'", funcp->name);
+			funcp = *funcpp = xzalloc(sizeof(*funcp));
+			/*funcp->next = NULL;*/
+ skip:
+			funcp->name = command->argv[0];
+			funcp->body = command->group;
+			command->group = NULL;
+			command->argv[0] = NULL;
+			free_strings(command->argv);
+			command->argv = NULL;
+			/* note: if we are in a loop, future "executions"
+			 * of func def will see it as null command since
+			 * command->group == NULL and command->argv == NULL */
+//this isn't exactly right: while...do f1() {a;}; f1; f1 {b;}; done
+//second loop will execute b!
+
 			return EXIT_SUCCESS;
 		}
 #endif
@@ -3052,6 +3127,11 @@ static int run_pipe(struct pipe *pi)
 	argv = command->argv ? command->argv : (char **) &null_ptr;
 	{
 		const struct built_in_command *x;
+#if ENABLE_HUSH_FUNCTIONS
+		const struct function *funcp;
+#else
+		enum { funcp = 0 };
+#endif
 		char **new_env = NULL;
 		char **old_env = NULL;
 
@@ -3078,13 +3158,18 @@ static int run_pipe(struct pipe *pi)
 		/* Expand the rest into (possibly) many strings each */
 		argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 
-		for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-			if (strcmp(argv_expanded[0], x->cmd) != 0)
-				continue;
-			if (x->function == builtin_exec && argv_expanded[1] == NULL) {
-				debug_printf("exec with redirects only\n");
-				rcode = setup_redirects(command, NULL);
-				goto clean_up_and_ret1;
+		x = find_builtin(argv_expanded[0]);
+#if ENABLE_HUSH_FUNCTIONS
+		if (!x)
+			funcp = find_function(argv_expanded[0]);
+#endif
+		if (x || funcp) {
+			if (!funcp) {
+				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
+					debug_printf("exec with redirects only\n");
+					rcode = setup_redirects(command, NULL);
+					goto clean_up_and_ret1;
+				}
 			}
 			debug_printf("builtin inline %s\n", argv_expanded[0]);
 			/* XXX setup_redirects acts on file descriptors, not FILEs.
@@ -3095,9 +3180,18 @@ static int run_pipe(struct pipe *pi)
 			if (rcode == 0) {
 				new_env = expand_assignments(argv, command->assignment_cnt);
 				old_env = putenv_all_and_save_old(new_env);
-				debug_printf_exec(": builtin '%s' '%s'...\n",
+				if (!funcp) {
+					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->cmd, argv_expanded[1]);
-				rcode = x->function(argv_expanded) & 0xff;
+					rcode = x->function(argv_expanded) & 0xff;
+				}
+#if ENABLE_HUSH_FUNCTIONS
+				else {
+					debug_printf_exec(": function '%s' '%s'...\n",
+						funcp->name, argv_expanded[1]);
+					rcode = run_list(funcp->body) & 0xff;
+				}
+#endif
 			}
 #if ENABLE_FEATURE_SH_STANDALONE
  clean_up_and_ret:
@@ -3114,6 +3208,7 @@ static int run_pipe(struct pipe *pi)
 			debug_printf_exec("run_pipe return %d\n", rcode);
 			return rcode;
 		}
+
 #if ENABLE_FEATURE_SH_STANDALONE
 		i = find_applet_by_name(argv_expanded[0]);
 		if (i >= 0 && APPLET_IS_NOFORK(i)) {
@@ -4081,6 +4176,10 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			}
 		}
 		command->argv = add_string_to_strings(command->argv, xstrdup(word->data));
+//SEGV, but good idea.
+//		command->argv = add_string_to_strings(command->argv, word->data);
+//		word->data = NULL;
+//		word->length = 0;
 		debug_print_strings("word appended to argv", command->argv);
 	}
 
@@ -4089,7 +4188,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		if (word->o_quoted
 		 || !is_well_formed_var_name(command->argv[0], '\0')
 		) {
-			/* bash says "not a valid identifier" */
+			/* bash says just "not a valid identifier" */
 			syntax_error("not a valid identifier in for");
 			return 1;
 		}
@@ -4462,27 +4561,55 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 	debug_printf_parse("parse_group entered\n");
 #if ENABLE_HUSH_FUNCTIONS
-	if (ch == 'F') { /* function definition? */
-		bb_error_msg("aha '%s' is a function, parsing it...", dest->data);
-		//command->fname = dest->data;
-		command->grp_type = GRP_FUNCTION;
-		memset(dest, 0, sizeof(*dest));
+	if (ch == '(') {
+		if (!dest->o_quoted) {
+			if (dest->length)
+				done_word(dest, ctx);
+			if (!command->argv)
+				goto skip; /* (... */
+			if (command->argv[1]) { /* word word ... (... */
+				syntax_error("unexpected character (");
+				return 1;
+			}
+			/* it is "word(..." or "word (..." */
+			do
+				ch = i_getch(input);
+			while (ch == ' ' || ch == '\t');
+			if (ch != ')') {
+				syntax_error("unexpected character X");
+				return 1;
+			}
+			do
+				ch = i_getch(input);
+			while (ch == ' ' || ch == '\t' || ch == '\n');
+			if (ch != '{') {
+				syntax_error("unexpected character X");
+				return 1;
+			}
+			command->grp_type = GRP_FUNCTION;
+			goto skip;
+		}
 	}
 #endif
-	if (command->argv /* word [word](... */
-	 || dest->length /* word(... */
-	 || dest->o_quoted /* ""(... */
+	if (command->argv /* word [word]{... */
+	 || dest->length /* word{... */
+	 || dest->o_quoted /* ""{... */
 	) {
 		syntax_error(NULL);
 		debug_printf_parse("parse_group return 1: "
 			"syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
+
+#if ENABLE_HUSH_FUNCTIONS
+ skip:
+#endif
 	endch = '}';
 	if (ch == '(') {
 		endch = ')';
 		command->grp_type = GRP_SUBSHELL;
 	}
+
 	{
 #if !BB_MMU
 		char *as_string = NULL;
@@ -5309,28 +5436,6 @@ static struct pipe *parse_stream(char **pstring,
 			 && dest.o_quoted == 0 /* not ""(... */
 			) {
 				continue;
-			}
-#endif
-#if ENABLE_HUSH_FUNCTIONS
-			if (dest.length != 0 /* not just () but word() */
-			 && dest.o_quoted == 0 /* not a"b"c() */
-			 && ctx.command->argv == NULL /* it's the first word */
-//TODO: "func ( ) {...}" - note spaces - is valid format too in bash
-			 && i_peek(input) == ')'
-			 && !match_reserved_word(&dest)
-			) {
-				bb_error_msg("seems like a function definition");
-				i_getch(input);
-//if !BB_MMU o_addchr(&ctx.as_string...
-				do {
-//TODO: do it properly.
-					ch = i_getch(input);
-				} while (ch == ' ' || ch == '\n');
-				if (ch != '{') {
-					syntax_error("was expecting {");
-					goto parse_error;
-				}
-				ch = 'F'; /* magic value */
 			}
 #endif
 		case '{':
@@ -6427,11 +6532,11 @@ static int builtin_unset(char **argv)
 				ret = EXIT_FAILURE;
 			}
 		}
-#if ENABLE_HUSH_FUNCTIONS
-		else {
-			unset_local_func(*argv);
-		}
-#endif
+//#if ENABLE_HUSH_FUNCTIONS
+//		else {
+//			unset_local_func(*argv);
+//		}
+//#endif
 		argv++;
 	}
 	return ret;
