@@ -1,24 +1,24 @@
 unset var
 
-echo ${var#}
-echo ${var##}
-echo ${var#*}
-echo ${var##*}
-echo ${var%}
-echo ${var%%}
-echo ${var%*}
-echo ${var%%*}
+echo Empty:${var#}
+echo Empty:${var##}
+echo Empty:${var#*}
+echo Empty:${var##*}
+echo Empty:${var%}
+echo Empty:${var%%}
+echo Empty:${var%*}
+echo Empty:${var%%*}
 
 var=
 
-echo ${var#}
-echo ${var##}
-echo ${var#*}
-echo ${var##*}
-echo ${var%}
-echo ${var%%}
-echo ${var%*}
-echo ${var%%*}
+echo Empty:${var#}
+echo Empty:${var##}
+echo Empty:${var#*}
+echo Empty:${var##*}
+echo Empty:${var%}
+echo Empty:${var%%}
+echo Empty:${var%*}
+echo Empty:${var%%*}
 
 var=ababcdcd
 
@@ -29,7 +29,7 @@ echo ${var##a*b}
 echo ${var#?}
 echo ${var##?}
 echo ${var#*}
-echo ${var##*}
+echo Empty:${var##*}
 
 echo ${var%cd}
 echo ${var%%cd}
@@ -38,6 +38,6 @@ echo ${var%%c*d}
 echo ${var%?}
 echo ${var%%?}
 echo ${var%*}
-echo ${var%%*}
+echo Empty:${var%%*}
 
 echo end
