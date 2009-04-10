@@ -341,7 +341,11 @@ typedef enum redir_type {
 	REDIRECT_HEREDOC   = 4,
 	REDIRECT_IO        = 5,
 	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc is loaded */
-	REDIRFD_CLOSE = -3,
+
+	REDIRFD_CLOSE      = -3,
+	REDIRFD_SYNTAX_ERR = -2,
+	REDIRFD_TO_FILE    = -1, /* otherwise, rd_fd if redirected to rd_dup */
+
 	HEREDOC_SKIPTABS = 1,
 	HEREDOC_QUOTED   = 2,
 } redir_type;
@@ -2427,6 +2431,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
+			/* rd_fd<<HERE case */
 			if (squirrel && redir->rd_fd < 3) {
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
@@ -2438,15 +2443,16 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			continue;
 		}
 
-		if (redir->rd_dup == -1) {
+		if (redir->rd_dup == REDIRFD_TO_FILE) {
+			/* rd_fd<*>file case (<*> is <,>,>>,<>) */
 			char *p;
 			if (redir->rd_filename == NULL) {
 				/* Something went wrong in the parse.
 				 * Pretend it didn't happen */
+				bb_error_msg("bug in redirect parse");
 				continue;
 			}
 			mode = redir_table[redir->rd_type].mode;
-//TODO: check redir for names like '\\'
 			p = expand_string_to_string(redir->rd_filename);
 			openfd = open_or_warn(p, mode);
 			free(p);
@@ -2457,6 +2463,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 				return 1;
 			}
 		} else {
+			/* rd_fd<*>rd_dup or rd_fd<*>- cases */
 			openfd = redir->rd_dup;
 		}
 
@@ -2469,7 +2476,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 				close(redir->rd_fd);
 			} else {
 				xdup2(openfd, redir->rd_fd);
-				if (redir->rd_dup == -1)
+				if (redir->rd_dup == REDIRFD_TO_FILE)
 					close(openfd);
 			}
 		}
@@ -3963,17 +3970,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
-	/* If this word wasn't an assignment, next ones definitely
-	 * can't be assignments. Even if they look like ones. */
-	if (word->o_assignment != DEFINITELY_ASSIGNMENT
-	 && word->o_assignment != WORD_IS_KEYWORD
-	) {
-		word->o_assignment = NOT_ASSIGNMENT;
-	} else {
-		if (word->o_assignment == DEFINITELY_ASSIGNMENT)
-			command->assignment_cnt++;
-		word->o_assignment = MAYBE_ASSIGNMENT;
-	}
 
 	if (ctx->pending_redirect) {
 		/* We do not glob in e.g. >*.tmp case. bash seems to glob here
@@ -3989,29 +3985,47 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 * the expansion would result in one word."
 		 */
 		ctx->pending_redirect->rd_filename = xstrdup(word->data);
+		/* Cater for >\file case:
+		 * >\a creates file a; >\\a, >"\a", >"\\a" create file \a
+		 * Same with heredocs:
+		 * for <<\H delim is H; <<\\H, <<"\H", <<"\\H" - \H
+		 */
+		unbackslash(ctx->pending_redirect->rd_filename);
+		/* Is it <<"HEREDOC"? */
 		if (ctx->pending_redirect->rd_type == REDIRECT_HEREDOC
 		 && word->o_quoted
 		) {
 			ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
 		}
-		word->o_assignment = NOT_ASSIGNMENT;
 		debug_printf_parse("word stored in rd_filename: '%s'\n", word->data);
 	} else {
-		/* "{ echo foo; } echo bar" - bad */
-		/* NB: bash allows e.g.:
-		 * if true; then { echo foo; } fi
-		 * while if false; then false; fi do break; done
-		 * and disallows:
-		 * while if false; then false; fi; do; break; done
-		 * TODO? */
+		/* If this word wasn't an assignment, next ones definitely
+		 * can't be assignments. Even if they look like ones. */
+		if (word->o_assignment != DEFINITELY_ASSIGNMENT
+		 && word->o_assignment != WORD_IS_KEYWORD
+		) {
+			word->o_assignment = NOT_ASSIGNMENT;
+		} else {
+			if (word->o_assignment == DEFINITELY_ASSIGNMENT)
+				command->assignment_cnt++;
+			word->o_assignment = MAYBE_ASSIGNMENT;
+		}
+
 		if (command->group) {
+			/* "{ echo foo; } echo bar" - bad */
+			/* NB: bash allows e.g.:
+			 * if true; then { echo foo; } fi
+			 * while if false; then false; fi do break; done
+			 * and disallows:
+			 * while if false; then false; fi; do; break; done
+			 * TODO? */
 			syntax_error_at(word->data);
 			debug_printf_parse("done_word return 1: syntax error, "
 					"groups and arglists don't mix\n");
 			return 1;
 		}
 #if HAS_KEYWORDS
-#if ENABLE_HUSH_CASE
+# if ENABLE_HUSH_CASE
 		if (ctx->ctx_dsemicolon
 		 && strcmp(word->data, "esac") != 0 /* not "... pattern) cmd;; esac" */
 		) {
@@ -4019,12 +4033,12 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			/* ctx->ctx_res_w = RES_MATCH; */
 			ctx->ctx_dsemicolon = 0;
 		} else
-#endif
+# endif
 		if (!command->argv /* if it's the first word... */
-#if ENABLE_HUSH_LOOPS
+# if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
 		 && ctx->ctx_res_w != RES_IN
-#endif
+# endif
 		) {
 			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
@@ -4090,20 +4104,23 @@ static int done_word(o_string *word, struct parse_context *ctx)
 
 /* Peek ahead in the input to find out if we have a "&n" construct,
  * as in "2>&1", that represents duplicating a file descriptor.
- * Return: REDIRFD_CLOSE (-3) if >&- "close fd" construct is seen,
- * -2 (syntax error), -1 if no & was seen, or the number found.
+ * Return:
+ * REDIRFD_CLOSE if >&- "close fd" construct is seen,
+ * REDIRFD_SYNTAX_ERR if syntax error,
+ * REDIRFD_TO_FILE if no & was seen,
+ * or the number found.
  */
 #if BB_MMU
-#define redirect_dup_num(as_string, input) \
-	redirect_dup_num(input)
+#define parse_redir_right_fd(as_string, input) \
+	parse_redir_right_fd(input)
 #endif
-static int redirect_dup_num(o_string *as_string, struct in_str *input)
+static int parse_redir_right_fd(o_string *as_string, struct in_str *input)
 {
 	int ch, d, ok;
 
 	ch = i_peek(input);
 	if (ch != '&')
-		return -1;
+		return REDIRFD_TO_FILE;
 
 	ch = i_getch(input);  /* get the & */
 	nommu_addchr(as_string, ch);
@@ -4127,10 +4144,10 @@ static int redirect_dup_num(o_string *as_string, struct in_str *input)
 //TODO: this is the place to catch ">&file" bashism (redirect both fd 1 and 2)
 
 	bb_error_msg("ambiguous redirect");
-	return -2;
+	return REDIRFD_SYNTAX_ERR;
 }
 
-/* Return code is 0 normally, 1 if a syntax error is detected
+/* Return code is 0 normal, 1 if a syntax error is detected
  */
 static int parse_redirect(struct parse_context *ctx,
 		int fd,
@@ -4142,12 +4159,12 @@ static int parse_redirect(struct parse_context *ctx,
 	struct redir_struct **redirp;
 	int dup_num;
 
-	dup_num = -1;
+	dup_num = REDIRFD_TO_FILE;
 	if (style != REDIRECT_HEREDOC) {
-		/* Check for a '2>&1' type redirect */
-		dup_num = redirect_dup_num(&ctx->as_string, input);
-		if (dup_num == -2)
-			return 1;  /* syntax error */
+		/* Check for a '>&1' type redirect */
+		dup_num = parse_redir_right_fd(&ctx->as_string, input);
+		if (dup_num == REDIRFD_SYNTAX_ERR)
+			return 1;
 	} else {
 		int ch = i_peek(input);
 		dup_num = (ch == '-'); /* HEREDOC_SKIPTABS bit is 1 */
@@ -4158,7 +4175,7 @@ static int parse_redirect(struct parse_context *ctx,
 		}
 	}
 
-	if (style == REDIRECT_OVERWRITE && dup_num == -1) {
+	if (style == REDIRECT_OVERWRITE && dup_num == REDIRFD_TO_FILE) {
 		int ch = i_peek(input);
 		if (ch == '|') {
 			/* >|FILE redirect ("clobbering" >).
@@ -4185,7 +4202,7 @@ static int parse_redirect(struct parse_context *ctx,
 				redir_table[style].descrip);
 
 	redir->rd_dup = dup_num;
-	if (style != REDIRECT_HEREDOC && dup_num != -1) {
+	if (style != REDIRECT_HEREDOC && dup_num != REDIRFD_TO_FILE) {
 		/* Erik had a check here that the file descriptor in question
 		 * is legit; I postpone that to "run time"
 		 * A "-" representation of "close me" shows up as a -3 here */
@@ -4862,9 +4879,6 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * only when followed by one of the following characters:
 		 * $, `, ", \, or <newline>.  A double quote may be quoted
 		 * within double quotes by preceding it with a backslash.
-		 * If enabled, history expansion will be performed unless
-		 * an ! appearing in double quotes is escaped using
-		 * a backslash. The backslash preceding the ! is not removed."
 		 */
 		if (strchr("$`\"\\", next) != NULL) {
 			o_addqchr(dest, i_getch(input));
@@ -5081,15 +5095,69 @@ static struct pipe *parse_stream(char **pstring,
 		if (is_ifs)
 			continue;
 
-		if (dest.o_assignment == MAYBE_ASSIGNMENT) {
-			/* ch is a special char and thus this word
-			 * cannot be an assignment */
-			dest.o_assignment = NOT_ASSIGNMENT;
-		}
-
 		next = '\0';
 		if (ch != '\n') {
 			next = i_peek(input);
+		}
+
+		/* Catch <, > before deciding whether this word is
+		 * an assignment. a=1 2>z b=2: b=2 is still assignment */
+		switch (ch) {
+		case '>':
+			redir_fd = redirect_opt_num(&dest);
+			if (done_word(&dest, &ctx)) {
+				goto parse_error;
+			}
+			redir_style = REDIRECT_OVERWRITE;
+			if (next == '>') {
+				redir_style = REDIRECT_APPEND;
+				ch = i_getch(input);
+				nommu_addchr(&ctx.as_string, ch);
+			}
+#if 0
+			else if (next == '(') {
+				syntax_error(">(process) not supported");
+				goto parse_error;
+			}
+#endif
+			if (parse_redirect(&ctx, redir_fd, redir_style, input))
+				goto parse_error;
+			continue; /* back to top of while (1) */
+		case '<':
+			redir_fd = redirect_opt_num(&dest);
+			if (done_word(&dest, &ctx)) {
+				goto parse_error;
+			}
+			redir_style = REDIRECT_INPUT;
+			if (next == '<') {
+				redir_style = REDIRECT_HEREDOC;
+				heredoc_cnt++;
+				debug_printf_parse("++heredoc_cnt=%d\n", heredoc_cnt);
+				ch = i_getch(input);
+				nommu_addchr(&ctx.as_string, ch);
+			} else if (next == '>') {
+				redir_style = REDIRECT_IO;
+				ch = i_getch(input);
+				nommu_addchr(&ctx.as_string, ch);
+			}
+#if 0
+			else if (next == '(') {
+				syntax_error("<(process) not supported");
+				goto parse_error;
+			}
+#endif
+			if (parse_redirect(&ctx, redir_fd, redir_style, input))
+				goto parse_error;
+			continue; /* back to top of while (1) */
+		}
+
+		if (dest.o_assignment == MAYBE_ASSIGNMENT
+		 /* check that we are not in word in "a=1 2>word b=1": */
+		 && !ctx.pending_redirect
+		) {
+			/* ch is a special char and thus this word
+			 * cannot be an assignment */
+			dest.o_assignment = NOT_ASSIGNMENT;
 		}
 
 		switch (ch) {
@@ -5171,52 +5239,6 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 		}
 #endif
-		case '>':
-			redir_fd = redirect_opt_num(&dest);
-			if (done_word(&dest, &ctx)) {
-				goto parse_error;
-			}
-			redir_style = REDIRECT_OVERWRITE;
-			if (next == '>') {
-				redir_style = REDIRECT_APPEND;
-				ch = i_getch(input);
-				nommu_addchr(&ctx.as_string, ch);
-			}
-#if 0
-			else if (next == '(') {
-				syntax_error(">(process) not supported");
-				goto parse_error;
-			}
-#endif
-			if (parse_redirect(&ctx, redir_fd, redir_style, input))
-				goto parse_error;
-			break;
-		case '<':
-			redir_fd = redirect_opt_num(&dest);
-			if (done_word(&dest, &ctx)) {
-				goto parse_error;
-			}
-			redir_style = REDIRECT_INPUT;
-			if (next == '<') {
-				redir_style = REDIRECT_HEREDOC;
-				heredoc_cnt++;
-				debug_printf_parse("++heredoc_cnt=%d\n", heredoc_cnt);
-				ch = i_getch(input);
-				nommu_addchr(&ctx.as_string, ch);
-			} else if (next == '>') {
-				redir_style = REDIRECT_IO;
-				ch = i_getch(input);
-				nommu_addchr(&ctx.as_string, ch);
-			}
-#if 0
-			else if (next == '(') {
-				syntax_error("<(process) not supported");
-				goto parse_error;
-			}
-#endif
-			if (parse_redirect(&ctx, redir_fd, redir_style, input))
-				goto parse_error;
-			break;
 		case ';':
 #if ENABLE_HUSH_CASE
  case_semi:

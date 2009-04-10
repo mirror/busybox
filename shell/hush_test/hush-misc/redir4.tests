@@ -1,0 +1,80 @@
+rm *shell_test* 2>/dev/null
+
+>\shell_test
+echo *shell_test*
+rm *shell_test*
+
+>\\shell_test
+echo *shell_test*
+rm *shell_test*
+
+>"\shell_test"
+echo *shell_test*
+rm *shell_test*
+
+>"\\shell_test"
+echo *shell_test*
+rm *shell_test*
+
+
+cat <<\shell_test
+Here1
+shell_test
+echo Ok1
+
+cat <<\\shell_test
+Here2
+\shell_test
+echo Ok2
+
+cat <<"\shell_test"
+Here3
+\shell_test
+echo Ok3
+
+cat <<"\\shell_test"
+Here4
+\shell_test
+echo Ok4
+
+
+echo How with variable refs
+i=1
+
+
+>\shell_test_$i
+echo *shell_test*
+rm *shell_test*
+
+>\\shell_test_$i
+echo *shell_test*
+rm *shell_test*
+
+>"\shell_test_$i"
+echo *shell_test*
+rm *shell_test*
+
+>"\\shell_test_$i"
+echo *shell_test*
+rm *shell_test*
+
+
+cat <<\shell_test_$i
+Here1
+shell_test_$i
+echo Ok1
+
+cat <<\\shell_test_$i
+Here2
+\shell_test_$i
+echo Ok2
+
+cat <<"\shell_test_$i"
+Here3
+\shell_test_$i
+echo Ok3
+
+cat <<"\\shell_test_$i"
+Here4
+\shell_test_$i
+echo Ok4

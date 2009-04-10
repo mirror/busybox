@@ -1,5 +1,11 @@
 rm shell_test_$$ 2>/dev/null
 var=bad
+>shell_test_$$ var=ok
+echo "Test 0:  var:$var"
+test -f shell_test_$$ && echo "File created:ok"
+
+rm shell_test_$$ 2>/dev/null
+var=bad
 var=ok >shell_test_$$
 echo "Test 1:  var:$var"
 test -f shell_test_$$ && echo "File created:ok"
