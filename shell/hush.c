@@ -40,7 +40,6 @@
  * POSIX syntax not implemented:
  *      aliases
  *      <(list) and >(list) Process Substitution
- *      Functions
  *      Tilde Expansion
  *
  * Bash stuff (maybe optionally enable?):
@@ -60,7 +59,6 @@
  *      ^Z handling (and explain it in comments for mere humans)
  *      separate job control from interactiveness
  *      (testcase: booting with init=/bin/hush does not show prompt (2009-04))
- *      functions
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
