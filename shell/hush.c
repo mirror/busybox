@@ -330,7 +330,7 @@ struct redir_struct {
 	/* note: for heredocs, rd_filename contains heredoc delimiter,
 	 * and subsequently heredoc itself; and rd_dup is a bitmask:
 	 * 1: do we need to trim leading tabs?
-	 * 2: is heredoc quoted (<<'dleim' syntax) ?
+	 * 2: is heredoc quoted (<<'delim' syntax) ?
 	 */
 };
 typedef enum redir_type {
@@ -357,25 +357,42 @@ struct command {
 	int assignment_cnt;         /* how many argv[i] are assignments? */
 	smallint is_stopped;        /* is the command currently running? */
 	smallint grp_type;          /* GRP_xxx */
+#define GRP_NORMAL   0
+#define GRP_SUBSHELL 1
+#if ENABLE_HUSH_FUNCTIONS
+# define GRP_FUNCTION 2
+#endif
 	struct pipe *group;         /* if non-NULL, this "command" is { list },
 	                             * ( list ), or a compound statement */
 #if !BB_MMU
 	char *group_as_string;
 #endif
+#if ENABLE_HUSH_FUNCTIONS
+	struct function *child_func;
+/* This field is used to prevent a bug here:
+ * while...do f1() {a;}; f1; f1 {b;}; f1; done
+ * When we execute "f1() {a;}" cmd, we create new function and clear
+ * cmd->group, cmd->group_as_string, cmd->argv[0].
+ * when we execute "f1 {b;}", we notice that f1 exists,
+ * and that it's "parent cmd" struct is still "alive",
+ * we put those fields back into cmd->xxx
+ * (struct function has ->parent_cmd ptr to facilitate that).
+ * When we loop back, we can execute "f1() {a;}" again and set f1 correctly.
+ * Without this trick, loop would execute a;b;b;b;...
+ * instead of correct sequence a;b;a;b;...
+ * When command is freed, it severs the link
+ * (sets ->child_func->parent_cmd to NULL).
+ */
+#endif
 	char **argv;                /* command name and arguments */
-	struct redir_struct *redirects; /* I/O redirections */
-};
 /* argv vector may contain variable references (^Cvar^C, ^C0^C etc)
  * and on execution these are substituted with their values.
  * Substitution can make _several_ words out of one argv[n]!
  * Example: argv[0]=='.^C*^C.' here: echo .$*.
  * References of the form ^C`cmd arg^C are `cmd arg` substitutions.
  */
-#define GRP_NORMAL   0
-#define GRP_SUBSHELL 1
-#if ENABLE_HUSH_FUNCTIONS
-# define GRP_FUNCTION 2
-#endif
+	struct redir_struct *redirects; /* I/O redirections */
+};
 
 struct pipe {
 	struct pipe *next;
@@ -456,6 +473,7 @@ enum {
 struct function {
 	struct function *next;
 	char *name;
+	struct command *parent_cmd;
 	struct pipe *body;
 #if !BB_MMU
 	char *body_as_string;
@@ -743,7 +761,6 @@ static void syntax_error_unexpected_ch(unsigned lineno, char ch)
 	msg[0] = ch;
 	msg[1] = '\0';
 	die_if_script(lineno, "syntax error: unexpected %s", msg);
-	xfunc_die();
 }
 
 #if HUSH_DEBUG < 2
@@ -2573,6 +2590,14 @@ static void free_pipe(struct pipe *pi, int indent)
 			debug_printf_clean("%s   end group\n", indenter(indent));
 			command->group = NULL;
 		}
+		/* else is crucial here.
+		 * If group != NULL, child_func is meaningless */
+#if ENABLE_HUSH_FUNCTIONS
+		else if (command->child_func) {
+			debug_printf_exec("cmd %p releases child func at %p\n", command, command->child_func);
+			command->child_func->parent_cmd = NULL;
+		}
+#endif
 #if !BB_MMU
 		free(command->group_as_string);
 		command->group_as_string = NULL;
@@ -3173,9 +3198,24 @@ static int run_pipe(struct pipe *pi)
 
 			while ((funcp = *funcpp) != NULL) {
 				if (strcmp(funcp->name, command->argv[0]) == 0) {
-					debug_printf_exec("replacing function '%s'\n", funcp->name);
-					free(funcp->name);
-					free_pipe_list(funcp->body, /* indent: */ 0);
+					struct command *cmd = funcp->parent_cmd;
+
+					debug_printf_exec("func %p parent_cmd %p\n", funcp, cmd);
+					if (!cmd) {
+						debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
+						free(funcp->name);
+						free_pipe_list(funcp->body, /* indent: */ 0);
+#if !BB_MMU
+						free(funcp->body_as_string);
+#endif
+					} else {
+						debug_printf_exec("reinserting in tree & replacing function '%s'\n", funcp->name);
+						cmd->argv[0] = funcp->name;
+						cmd->group = funcp->body;
+#if !BB_MMU
+						cmd->group_as_string = funcp->body_as_string;
+#endif
+					}
 					goto skip;
 				}
 				funcpp = &funcp->next;
@@ -3192,13 +3232,9 @@ static int run_pipe(struct pipe *pi)
 #endif
 			command->group = NULL;
 			command->argv[0] = NULL;
-			free_strings(command->argv);
-			command->argv = NULL;
-			/* note: if we are in a loop, future "executions"
-			 * of func def will see it as null command since
-			 * command->group == NULL and command->argv == NULL */
-//this isn't exactly right: while...do f1() {a;}; f1; f1 {b;}; done
-//second loop will execute b!
+			debug_printf_exec("cmd %p has child func at %p\n", command, funcp);
+			funcp->parent_cmd = command;
+			command->child_func = funcp;
 
 			return EXIT_SUCCESS;
 		}
