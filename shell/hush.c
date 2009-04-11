@@ -142,76 +142,6 @@
 #define debug_printf_subst(...)  do {} while (0)
 #define debug_printf_clean(...)  do {} while (0)
 
-#ifndef debug_printf
-#define debug_printf(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_parse
-#define debug_printf_parse(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_exec
-#define debug_printf_exec(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_env
-#define debug_printf_env(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_jobs
-#define debug_printf_jobs(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_JOBS 1
-#else
-#define DEBUG_JOBS 0
-#endif
-
-#ifndef debug_printf_expand
-#define debug_printf_expand(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_EXPAND 1
-#else
-#define DEBUG_EXPAND 0
-#endif
-
-#ifndef debug_printf_glob
-#define debug_printf_glob(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_GLOB 1
-#else
-#define DEBUG_GLOB 0
-#endif
-
-#ifndef debug_printf_list
-#define debug_printf_list(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_subst
-#define debug_printf_subst(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
-#ifndef debug_printf_clean
-/* broken, of course, but OK for testing */
-static const char *indenter(int i)
-{
-	static const char blanks[] ALIGN1 =
-		"                                    ";
-	return &blanks[sizeof(blanks) - i - 1];
-}
-#define debug_printf_clean(...) fprintf(stderr, __VA_ARGS__)
-#define DEBUG_CLEAN 1
-#else
-#define DEBUG_CLEAN 0
-#endif
-
-#if DEBUG_EXPAND
-static void debug_print_strings(const char *prefix, char **vv)
-{
-	fprintf(stderr, "%s:\n", prefix);
-	while (*vv)
-		fprintf(stderr, " '%s'\n", *vv++);
-}
-#else
-#define debug_print_strings(prefix, vv) ((void)0)
-#endif
-
 #define ERR_PTR ((void*)(long)1)
 
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
@@ -546,6 +476,7 @@ struct globals {
 	sigset_t inherited_set;
 #if HUSH_DEBUG
 	unsigned long memleak_value;
+	int debug_indent;
 #endif
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -659,6 +590,84 @@ static const struct built_in_command bltins[] = {
 	BLTIN("unset"   , builtin_unset   , "Unset environment variable"),
 	BLTIN("wait"    , builtin_wait    , "Wait for process"),
 };
+
+
+/* Debug printouts.
+ */
+#if HUSH_DEBUG
+/* prevent disasters with G.debug_indent < 0 */
+# define indent() fprintf(stderr, "%*s", (G.debug_indent * 2) & 0xff, "")
+# define debug_enter() (G.debug_indent++)
+# define debug_leave() (G.debug_indent--)
+#else
+# define indent()    ((void)0)
+# define debug_enter() ((void)0)
+# define debug_leave() ((void)0)
+#endif
+
+#ifndef debug_printf
+# define debug_printf(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_parse
+# define debug_printf_parse(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_exec
+#define debug_printf_exec(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_env
+# define debug_printf_env(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_jobs
+# define debug_printf_jobs(...) (indent(), fprintf(stderr, __VA_ARGS__))
+# define DEBUG_JOBS 1
+#else
+# define DEBUG_JOBS 0
+#endif
+
+#ifndef debug_printf_expand
+# define debug_printf_expand(...) (indent(), fprintf(stderr, __VA_ARGS__))
+# define DEBUG_EXPAND 1
+#else
+# define DEBUG_EXPAND 0
+#endif
+
+#ifndef debug_printf_glob
+# define debug_printf_glob(...) (indent(), fprintf(stderr, __VA_ARGS__))
+# define DEBUG_GLOB 1
+#else
+# define DEBUG_GLOB 0
+#endif
+
+#ifndef debug_printf_list
+# define debug_printf_list(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_subst
+# define debug_printf_subst(...) (indent(), fprintf(stderr, __VA_ARGS__))
+#endif
+
+#ifndef debug_printf_clean
+# define debug_printf_clean(...) (indent(), fprintf(stderr, __VA_ARGS__))
+# define DEBUG_CLEAN 1
+#else
+# define DEBUG_CLEAN 0
+#endif
+
+#if DEBUG_EXPAND
+static void debug_print_strings(const char *prefix, char **vv)
+{
+	indent();
+	fprintf(stderr, "%s:\n", prefix);
+	while (*vv)
+		fprintf(stderr, " '%s'\n", *vv++);
+}
+#else
+#define debug_print_strings(prefix, vv) ((void)0)
+#endif
 
 
 /* Leak hunting. Use hush_leaktool.sh for post-processing.
@@ -1641,9 +1650,12 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 	int i = 0;
+
+	indent();
 	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d\n",
 			prefix, list, n, string_start, o->length, o->maxlen);
 	while (i < n) {
+		indent();
 		fprintf(stderr, " list[%d]=%d '%s' %p\n", i, (int)list[i],
 				o->data + (int)list[i] + string_start,
 				o->data + (int)list[i] + string_start);
@@ -1651,6 +1663,7 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	}
 	if (n) {
 		const char *p = o->data + (int)list[n - 1] + string_start;
+		indent();
 		fprintf(stderr, " total_sz:%ld\n", (long)((p + strlen(p) + 1) - o->data));
 	}
 }
@@ -2554,14 +2567,10 @@ static void restore_redirects(int squirrel[])
 }
 
 
-#if !DEBUG_CLEAN
-#define free_pipe_list(head, indent) free_pipe_list(head)
-#define free_pipe(pi, indent)        free_pipe(pi)
-#endif
-static void free_pipe_list(struct pipe *head, int indent);
+static void free_pipe_list(struct pipe *head);
 
 /* Return code is the exit status of the pipe */
-static void free_pipe(struct pipe *pi, int indent)
+static void free_pipe(struct pipe *pi)
 {
 	char **p;
 	struct command *command;
@@ -2570,24 +2579,23 @@ static void free_pipe(struct pipe *pi, int indent)
 
 	if (pi->stopped_cmds > 0) /* why? */
 		return;
-	debug_printf_clean("%s run pipe: (pid %d)\n", indenter(indent), getpid());
+	debug_printf_clean("run pipe: (pid %d)\n", getpid());
 	for (i = 0; i < pi->num_cmds; i++) {
 		command = &pi->cmds[i];
-		debug_printf_clean("%s  command %d:\n", indenter(indent), i);
+		debug_printf_clean("  command %d:\n", i);
 		if (command->argv) {
 			for (a = 0, p = command->argv; *p; a++, p++) {
-				debug_printf_clean("%s   argv[%d] = %s\n",
-						indenter(indent), a, *p);
+				debug_printf_clean("   argv[%d] = %s\n", a, *p);
 			}
 			free_strings(command->argv);
 			command->argv = NULL;
 		}
 		/* not "else if": on syntax error, we may have both! */
 		if (command->group) {
-			debug_printf_clean("%s   begin group (grp_type:%d)\n",
-					indenter(indent), command->grp_type);
-			free_pipe_list(command->group, indent+3);
-			debug_printf_clean("%s   end group\n", indenter(indent));
+			debug_printf_clean("   begin group (grp_type:%d)\n",
+					command->grp_type);
+			free_pipe_list(command->group);
+			debug_printf_clean("   end group\n");
 			command->group = NULL;
 		}
 		/* else is crucial here.
@@ -2603,8 +2611,8 @@ static void free_pipe(struct pipe *pi, int indent)
 		command->group_as_string = NULL;
 #endif
 		for (r = command->redirects; r; r = rnext) {
-			debug_printf_clean("%s   redirect %d%s", indenter(indent),
-					r->fd, redir_table[r->rd_type].descrip);
+			debug_printf_clean("   redirect %d%s",
+					r->rd_fd, redir_table[r->rd_type].descrip);
 			/* guard against the case >$FOO, where foo is unset or blank */
 			if (r->rd_filename) {
 				debug_printf_clean(" fname:'%s'\n", r->rd_filename);
@@ -2625,16 +2633,16 @@ static void free_pipe(struct pipe *pi, int indent)
 #endif
 }
 
-static void free_pipe_list(struct pipe *head, int indent)
+static void free_pipe_list(struct pipe *head)
 {
 	struct pipe *pi, *next;
 
 	for (pi = head; pi; pi = next) {
 #if HAS_KEYWORDS
-		debug_printf_clean("%s pipe reserved word %d\n", indenter(indent), pi->res_word);
+		debug_printf_clean(" pipe reserved word %d\n", pi->res_word);
 #endif
-		free_pipe(pi, indent);
-		debug_printf_clean("%s pipe followup code %d\n", indenter(indent), pi->followup);
+		free_pipe(pi);
+		debug_printf_clean("pipe followup code %d\n", pi->followup);
 		next = pi->next;
 		/*pi->next = NULL;*/
 		free(pi);
@@ -2980,7 +2988,7 @@ static void delete_finished_bg_job(struct pipe *pi)
 {
 	remove_bg_job(pi);
 	pi->stopped_cmds = 0;
-	free_pipe(pi, 0);
+	free_pipe(pi);
 	free(pi);
 }
 #endif /* JOB */
@@ -3171,6 +3179,7 @@ static int run_pipe(struct pipe *pi)
 	int rcode;
 
 	debug_printf_exec("run_pipe start: members:%d\n", pi->num_cmds);
+	debug_enter();
 
 	USE_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
@@ -3204,7 +3213,7 @@ static int run_pipe(struct pipe *pi)
 					if (!cmd) {
 						debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
 						free(funcp->name);
-						free_pipe_list(funcp->body, /* indent: */ 0);
+						free_pipe_list(funcp->body);
 #if !BB_MMU
 						free(funcp->body_as_string);
 #endif
@@ -3236,6 +3245,8 @@ static int run_pipe(struct pipe *pi)
 			funcp->parent_cmd = command;
 			command->child_func = funcp;
 
+			debug_printf_exec("run_pipe: return EXIT_SUCCESS\n");
+			debug_leave();
 			return EXIT_SUCCESS;
 		}
 #endif
@@ -3245,10 +3256,11 @@ static int run_pipe(struct pipe *pi)
 		if (setup_redirects(command, squirrel) == 0) {
 			debug_printf_exec(": run_list\n");
 			rcode = run_list(command->group) & 0xff;
-			debug_printf_exec("run_pipe return %d\n", rcode);
 		}
 		restore_redirects(squirrel);
 		IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+		debug_leave();
+		debug_printf_exec("run_pipe: return %d\n", rcode);
 		return rcode;
 	}
 
@@ -3280,6 +3292,8 @@ static int run_pipe(struct pipe *pi)
 			 * "assignment to readonly var" and "putenv error"
 			 */
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+			debug_leave();
+			debug_printf_exec("run_pipe: return %d\n", rcode);
 			return rcode;
 		}
 
@@ -3333,6 +3347,7 @@ static int run_pipe(struct pipe *pi)
  clean_up_and_ret1:
 			free(argv_expanded);
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+			debug_leave();
 			debug_printf_exec("run_pipe return %d\n", rcode);
 			return rcode;
 		}
@@ -3458,10 +3473,12 @@ static int run_pipe(struct pipe *pi)
 	}
 
 	if (!pi->alive_cmds) {
+		debug_leave();
 		debug_printf_exec("run_pipe return 1 (all forks failed, no children)\n");
 		return 1;
 	}
 
+	debug_leave();
 	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->alive_cmds);
 	return -1;
 }
@@ -3572,6 +3589,7 @@ static int run_list(struct pipe *pi)
 #endif
 
 	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
+	debug_enter();
 
 #if ENABLE_HUSH_LOOPS
 	/* Check syntax for "for" */
@@ -3581,6 +3599,7 @@ static int run_list(struct pipe *pi)
 		/* current word is FOR or IN (BOLD in comments below) */
 		if (cpipe->next == NULL) {
 			syntax_error("malformed for");
+			debug_leave();
 			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
@@ -3592,6 +3611,7 @@ static int run_list(struct pipe *pi)
 		 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
 		) {
 			syntax_error("malformed for");
+			debug_leave();
 			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
 			return 1;
 		}
@@ -3905,7 +3925,6 @@ static int run_list(struct pipe *pi)
 ////		signal(SIGINT, SIG_IGN);
 ////	}
 #endif
-	debug_printf_exec("run_list lvl %d return %d\n", G.run_list_level + 1, rcode);
 #if ENABLE_HUSH_LOOPS
 	if (loop_top)
 		G.depth_of_loop--;
@@ -3914,6 +3933,8 @@ static int run_list(struct pipe *pi)
 #if ENABLE_HUSH_CASE
 	free(case_word);
 #endif
+	debug_leave();
+	debug_printf_exec("run_list lvl %d return %d\n", G.run_list_level + 1, rcode);
 	return rcode;
 }
 
@@ -3929,7 +3950,7 @@ static int run_and_free_list(struct pipe *pi)
 	/* free_pipe_list has the side effect of clearing memory.
 	 * In the long run that function can be merged with run_list,
 	 * but doing that now would hobble the debugging effort. */
-	free_pipe_list(pi, /* indent: */ 0);
+	free_pipe_list(pi);
 	debug_printf_exec("run_and_free_list return %d\n", rcode);
 	return rcode;
 }
@@ -5199,6 +5220,7 @@ static struct pipe *parse_stream(char **pstring,
 	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
 			end_trigger ? : 'X');
+	debug_enter();
 
 	G.ifs = get_local_var_value("IFS");
 	if (G.ifs == NULL)
@@ -5250,10 +5272,9 @@ static struct pipe *parse_stream(char **pstring,
 			if (pi->num_cmds == 0
 			    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
 			) {
-				free_pipe_list(pi, 0);
+				free_pipe_list(pi);
 				pi = NULL;
 			}
-			debug_printf_parse("parse_stream return %p\n", pi);
 #if !BB_MMU
 			debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
 			if (pstring)
@@ -5261,6 +5282,8 @@ static struct pipe *parse_stream(char **pstring,
 			else
 				o_free_unsafe(&ctx.as_string);
 #endif
+			debug_leave();
+			debug_printf_parse("parse_stream return %p\n", pi);
 			return pi;
 		}
 		nommu_addchr(&ctx.as_string, ch);
@@ -5337,9 +5360,6 @@ static struct pipe *parse_stream(char **pstring,
 			if (!HAS_KEYWORDS
 			 IF_HAS_KEYWORDS(|| (ctx.ctx_res_w == RES_NONE && ctx.old_flag == 0))
 			) {
-				debug_printf_parse("parse_stream return %p: "
-						"end_trigger char found\n",
-						ctx.list_head);
 				o_free(&dest);
 #if !BB_MMU
 				debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
@@ -5348,6 +5368,10 @@ static struct pipe *parse_stream(char **pstring,
 				else
 					o_free_unsafe(&ctx.as_string);
 #endif
+				debug_leave();
+				debug_printf_parse("parse_stream return %p: "
+						"end_trigger char found\n",
+						ctx.list_head);
 				return ctx.list_head;
 			}
 		}
@@ -5613,7 +5637,7 @@ static struct pipe *parse_stream(char **pstring,
 			debug_printf_clean("freeing list %p from ctx %p\n",
 					pctx->list_head, pctx);
 			debug_print_tree(pctx->list_head, 0);
-			free_pipe_list(pctx->list_head, 0);
+			free_pipe_list(pctx->list_head);
 			debug_printf_clean("freed list %p\n", pctx->list_head);
 #if !BB_MMU
 			o_free_unsafe(&pctx->as_string);
@@ -5634,6 +5658,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (pstring)
 				*pstring = NULL;
 #endif
+			debug_leave();
 			return ERR_PTR;
 		}
 		/* Discard cached input, force prompt */
