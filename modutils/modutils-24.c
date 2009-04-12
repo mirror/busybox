@@ -3774,18 +3774,13 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	unsigned long m_size;
 	ElfW(Addr) m_addr;
 	struct obj_file *f;
-	struct utsname uts;
 	int exit_status = EXIT_FAILURE;
-	int m_has_modinfo;
 	char *m_name;
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
-	char m_strversion[STRVERSIONLEN];
-	int m_version, m_crcs;
+	int m_has_modinfo;
 #endif
 	char *image;
 	size_t image_size = 64 * 1024 * 1024;
-
-	uname(&uts);
 
 	/* Load module into memory and unzip if compressed */
 	image = xmalloc_open_zipped_read_close(m_filename, &image_size);
@@ -3798,19 +3793,22 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 
 	f = obj_load(image, image_size, LOADBITS);
 
-	m_has_modinfo = (get_modinfo_value(f, "kernel_version") != NULL);
-
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
+	m_has_modinfo = (get_modinfo_value(f, "kernel_version") != NULL);
 	if (!flag_quiet) {
+		char m_strversion[STRVERSIONLEN];
+		struct utsname uts;
+
 		if (m_has_modinfo) {
-			m_version = new_get_module_version(f, m_strversion);
+			int m_version = new_get_module_version(f, m_strversion);
 			if (m_version == -1) {
-				bb_error_msg_and_die("cannot find the kernel version the module was "
-						"compiled for");
+				bb_error_msg_and_die("cannot find the kernel version "
+					"the module was compiled for");
 			}
 		}
 
+		uname(&uts);
 		if (strncmp(uts.release, m_strversion, STRVERSIONLEN) != 0) {
 			bb_error_msg("%skernel-module version mismatch\n"
 				"\t%s was compiled for kernel version %s\n"
@@ -3821,7 +3819,6 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 				goto out;
 		}
 	}
-	k_crcs = 0;
 #endif
 
 	if (query_module(NULL, 0, NULL, 0, NULL))
@@ -3830,12 +3827,13 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	k_crcs = new_is_kernel_checksummed();
 
 #if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
-	m_crcs = 0;
-	if (m_has_modinfo)
-		m_crcs = new_is_module_checksummed(f);
-
-	if (m_crcs != k_crcs)
-		obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
+	{
+		int m_crcs = 0;
+		if (m_has_modinfo)
+			m_crcs = new_is_module_checksummed(f);
+		if (m_crcs != k_crcs)
+			obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
+	}
 #endif
 
 	/* Let the module know about the kernel symbols.  */
