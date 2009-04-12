@@ -11848,7 +11848,9 @@ cmdloop(int top)
 #endif
 		}
 		n = parsecmd(inter);
-		/* showtree(n); DEBUG */
+#if DEBUG
+		showtree(n);
+#endif
 		if (n == NEOF) {
 			if (!top || numeof >= 50)
 				break;
