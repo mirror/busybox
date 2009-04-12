@@ -136,17 +136,18 @@ static struct dns_entry *parse_conf_file(const char *fileconf)
 
 /*
  * Look query up in dns records and return answer if found.
- * qs is the query string.
  */
-static int table_lookup(uint8_t *as, struct dns_entry *d, uint16_t type, uint8_t *qs)
+static char *table_lookup(struct dns_entry *d,
+		uint16_t type,
+		char* query_string)
 {
 	while (d) {
 		unsigned len = d->name[0];
 		/* d->name[len] is the last (non NUL) char */
 #if DEBUG
 		char *p, *q;
-		q = (char *)&(qs[1]);
-		p = &(d->name[1]);
+		q = query_string + 1;
+		p = d->name + 1;
 		fprintf(stderr, "%d/%d p:%s q:%s %d\n",
 			(int)strlen(p), len,
 			p, q, (int)strlen(q)
@@ -155,31 +156,40 @@ static int table_lookup(uint8_t *as, struct dns_entry *d, uint16_t type, uint8_t
 		if (type == htons(REQ_A)) {
 			/* search by host name */
 			if (len != 1 || d->name[1] != '*') {
-				if (strcasecmp(d->name, (char*)qs) != 0)
+/* we are lax, hope no name component is ever >64 so that length
+ * (which will be represented as 'A','B'...) matches a lowercase letter.
+ * Actually, I think false matches are hard to construct.
+ * Example.
+ * [31] len is represented as '1', [65] as 'A', [65+32] as 'a'.
+ * [65]   <65 same chars>[31]<31 same chars>NUL
+ * [65+32]<65 same chars>1   <31 same chars>NUL
+ * This example seems to be the minimal case when false match occurs.
+ */
+				if (strcasecmp(d->name, query_string) != 0)
 					goto next;
 			}
-			move_to_unaligned32((uint32_t *)as, d->ip);
+			return (char *)&d->ip;
 #if DEBUG
-			fprintf(stderr, "OK as:%x\n", (int)d->ip);
+			fprintf(stderr, "Found IP:%x\n", (int)d->ip);
 #endif
 			return 0;
 		}
 		/* search by IP-address */
 		if ((len != 1 || d->name[1] != '*')
-		/* assume (do not check) that qs ends in ".in-addr.arpa" */
-		 && strncmp(d->rip, (char*)qs, strlen(d->rip)) == 0
+		/* we assume (do not check) that query_string
+		 * ends in ".in-addr.arpa" */
+		 && strncmp(d->rip, query_string, strlen(d->rip)) == 0
 		) {
-			strcpy((char *)as, d->name);
 #if DEBUG
-			fprintf(stderr, "OK as:%s\n", as);
+			fprintf(stderr, "Found name:%s\n", d->name);
 #endif
-			return 0;
+			return d->name;
 		}
  next:
 		d = d->next;
 	}
 
-	return -1;
+	return NULL;
 }
 
 /*
@@ -193,12 +203,11 @@ That is, the bit labeled 0 is the most significant bit.
 ...
 
 4.1.1. Header section format
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                      ID                       |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |QR|   OPCODE  |AA|TC|RD|RA|   Z    |   RCODE   |
+    |QR|   OPCODE  |AA|TC|RD|RA| 0  0  0|   RCODE   |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                    QDCOUNT                    |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -208,20 +217,18 @@ That is, the bit labeled 0 is the most significant bit.
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                    ARCOUNT                    |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-ID      16 bit random identifier assigned by query.
+ID      16 bit random identifier assigned by querying peer.
         Used to match query/response.
 QR      message is a query (0), or a response (1).
 OPCODE  0   standard query (QUERY)
         1   inverse query (IQUERY)
         2   server status request (STATUS)
-AA      Authoritative Answer - this bit is valid in responses,
-        and specifies that the responding name server is an
-        authority for the domain name in question section.
-        Note that the contents of the answer section may have
-        multiple owner names because of aliases.  The AA bit
-        corresponds to the name which matches the query name, or
-        the first owner name in the answer section.
-TC      TrunCation - specifies that this message was truncated.
+AA      Authoritative Answer - this bit is valid in responses.
+        Responding name server is an authority for the domain name
+	in question section. Answer section may have multiple owner names
+	because of aliases.  The AA bit corresponds to the name which matches
+	the query name, or the first owner name in the answer section.
+TC      TrunCation - this message was truncated.
 RD      Recursion Desired - this bit may be set in a query and
         is copied into the response.  If RD is set, it directs
         the name server to pursue the query recursively.
@@ -229,30 +236,25 @@ RD      Recursion Desired - this bit may be set in a query and
 RA      Recursion Available - this be is set or cleared in a
         response, and denotes whether recursive query support is
         available in the name server.
-Z       Reserved for future use.  Must be zero.
 RCODE   Response code.
         0   No error condition
         1   Format error
-        2   Server failure - The name server was
-            unable to process this query due to a
-            problem with the name server.
-        3   Name Error - Meaningful only for
-            responses from an authoritative name
-            server, this code signifies that the
-            domain name referenced in the query does
-            not exist.
+        2   Server failure - server was unable to process the query
+	    due to a problem with the name server.
+        3   Name Error - meaningful only for responses from
+	    an authoritative name server. The referenced domain name
+	    does  not exist.
         4   Not Implemented.
         5   Refused.
 QDCOUNT number of entries in the question section.
-ANCOUNT number of resource records in the answer section.
-NSCOUNT number of name server resource records in the authority records section.
-ARCOUNT number of resource records in the additional records section.
+ANCOUNT number of records in the answer section.
+NSCOUNT number of records in the authority records section.
+ARCOUNT number of records in the additional records section.
 
 4.1.2. Question section format
 
-The section contains QDCOUNT (usually 1) entries, each of the following format:
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+The section contains QDCOUNT (usually 1) entries, each of this format:
+      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                     QNAME                     /
     /                                               /
@@ -296,12 +298,11 @@ QCLASS  a two octet code that specifies the class of the query.
 
 4.1.3. Resource record format
 
-The answer, authority, and additional sections all share the same
-format: a variable number of resource records, where the number of
-records is specified in the corresponding count field in the header.
-Each resource record has the following format:
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+The answer, authority, and additional sections all share the same format:
+a variable number of resource records, where the number of records
+is specified in the corresponding count field in the header.
+Each resource record has this format:
+      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                                               /
     /                      NAME                     /
@@ -320,30 +321,21 @@ Each resource record has the following format:
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 NAME    a domain name to which this resource record pertains.
 TYPE    two octets containing one of the RR type codes.  This
-        field specifies the meaning of the data in the RDATA
-        field.
-CLASS   two octets which specify the class of the data in the
-        RDATA field.
-TTL     a 32 bit unsigned integer that specifies the time
-        interval (in seconds) that the resource record may be
-        cached before it should be discarded.  Zero values are
-        interpreted to mean that the RR can only be used for the
-        transaction in progress, and should not be cached.
-RDLENGTH an unsigned 16 bit integer that specifies the length in
-        octets of the RDATA field.
-RDATA   a variable length string of octets that describes the
-        resource.  The format of this information varies
-        according to the TYPE and CLASS of the resource record.
-        For example, if the TYPE is A and the CLASS is IN,
-        the RDATA field is a 4 octet ARPA Internet address.
+        field specifies the meaning of the data in the RDATA field.
+CLASS   two octets which specify the class of the data in the RDATA field.
+TTL     a 32 bit unsigned integer that specifies the time interval
+        (in seconds) that the record may be cached.
+RDLENGTH a 16 bit integer, length in octets of the RDATA field.
+RDATA   a variable length string of octets that describes the resource.
+        The format of this information varies according to the TYPE
+        and CLASS of the resource record.
+        If the TYPE is A and the CLASS is IN, it's a 4 octet IP address.
 
 4.1.4. Message compression
 
-In order to reduce the size of messages, the domain system utilizes a
-compression scheme which eliminates the repetition of domain names in a
-message.  In this scheme, an entire domain name or a list of labels at
-the end of a domain name is replaced with a pointer to a prior occurance
-of the same name.
+In order to reduce the size of messages, domain names coan be compressed.
+An entire domain name or a list of labels at the end of a domain name
+is replaced with a pointer to a prior occurance of the same name.
 
 The pointer takes the form of a two octet sequence:
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -355,26 +347,25 @@ labels are restricted to 63 octets or less.  The OFFSET field specifies
 an offset from the start of the message (i.e., the first octet
 of the ID field in the domain header).
 A zero offset specifies the first byte of the ID field, etc.
-
-The compression scheme allows a domain name in a message to be
-represented as either:
+Domain name in a message can be represented as either:
    - a sequence of labels ending in a zero octet
    - a pointer
    - a sequence of labels ending with a pointer
  */
-static int process_packet(struct dns_entry *conf_data, uint32_t conf_ttl, uint8_t *buf)
+static int process_packet(struct dns_entry *conf_data,
+		uint32_t conf_ttl,
+		uint8_t *buf)
 {
-	uint8_t answstr[MAX_NAME_LEN + 1];
+	char *answstr;
 	struct dns_head *head;
 	struct dns_prop *unaligned_qprop;
-	uint8_t *from, *answb;
+	char *query_string;
+	uint8_t *answb;
 	uint16_t outr_rlen;
 	uint16_t outr_flags;
 	uint16_t type;
 	uint16_t class;
 	int querystr_len;
-
-	answstr[0] = '\0';
 
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0) {
@@ -388,15 +379,15 @@ static int process_packet(struct dns_entry *conf_data, uint32_t conf_ttl, uint8_
 	}
 
 	/* start of query string */
-	from = (void *)(head + 1);
+	query_string = (void *)(head + 1);
 	/* caller guarantees strlen is <= MAX_PACK_LEN */
-	querystr_len = strlen((char *)from) + 1;
+	querystr_len = strlen(query_string) + 1;
 	/* may be unaligned! */
-	unaligned_qprop = (void *)(from + querystr_len);
+	unaligned_qprop = (void *)(query_string + querystr_len);
+	querystr_len += sizeof(unaligned_qprop);
 	/* where to append answer block */
 	answb = (void *)(unaligned_qprop + 1);
 
-	outr_rlen = 0;
 	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
 	outr_flags = htons(0x8000 | 4);
 
@@ -414,29 +405,29 @@ static int process_packet(struct dns_entry *conf_data, uint32_t conf_ttl, uint8_
 		goto empty_packet;
 	}
 
-	bb_info_msg("%s", (char *)from);
-	if (table_lookup(answstr, conf_data, type, from) != 0) {
+	/* look up the name */
+#if DEBUG
+	/* need to convert lengths to dots before we can use it in non-debug */
+	bb_info_msg("%s", query_string);
+#endif
+	answstr = table_lookup(conf_data, type, query_string);
+	outr_rlen = 4;
+	if (answstr && type == htons(REQ_PTR)) {
+		/* return a host name */
+		outr_rlen = strlen(answstr) + 1;
+	}
+	if (!answstr
+	 || (unsigned)(answb - buf) + querystr_len + 4 + 2 + outr_rlen > MAX_PACK_LEN
+	) {
 		/* QR = 1 "response"
 		 * AA = 1 "Authoritative Answer"
 		 * RCODE = 3 "Name Error" */
 		outr_flags = htons(0x8000 | 0x0400 | 3);
 		goto empty_packet;
 	}
-	/* return an address */
-	outr_rlen = 4;
-	if (type == htons(REQ_PTR)) {
-		/* return a host name */
-		outr_rlen = strlen((char *)answstr) + 1;
-	}
-	/* QR = 1 "response",
-	 * AA = 1 "Authoritative Answer",
-	 * RCODE = 0 "success" */
-	outr_flags = htons(0x8000 | 0x0400 | 0);
-	/* we have one answer */
-	head->nansw = htons(1);
+
 	/* copy query block to answer block */
-	querystr_len += sizeof(unaligned_qprop);
-	memcpy(answb, from, querystr_len);
+	memcpy(answb, query_string, querystr_len);
 	answb += querystr_len;
 	/* append answer Resource Record */
 	move_to_unaligned32((uint32_t *)answb, htonl(conf_ttl));
@@ -445,6 +436,13 @@ static int process_packet(struct dns_entry *conf_data, uint32_t conf_ttl, uint8_
 	answb += 2;
 	memcpy(answb, answstr, outr_rlen);
 	answb += outr_rlen;
+
+	/* QR = 1 "response",
+	 * AA = 1 "Authoritative Answer",
+	 * RCODE = 0 "success" */
+	outr_flags = htons(0x8000 | 0x0400 | 0);
+	/* we have one answer */
+	head->nansw = htons(1);
 
  empty_packet:
 	head->flags |= outr_flags;

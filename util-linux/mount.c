@@ -419,12 +419,12 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 			int errno_save = errno;
 			args[0] = xasprintf("mount.%s", mp->mnt_type);
 			rc = 1;
+			args[rc++] = mp->mnt_fsname;
+			args[rc++] = mp->mnt_dir;
 			if (filteropts) {
 				args[rc++] = (char *)"-o";
 				args[rc++] = filteropts;
 			}
-			args[rc++] = mp->mnt_fsname;
-			args[rc++] = mp->mnt_dir;
 			args[rc] = NULL;
 			rc = wait4pid(spawn(args));
 			free(args[0]);
@@ -1605,22 +1605,24 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	 && (mp->mnt_fsname[0] == '/' || mp->mnt_fsname[0] == '\\')
 	 && mp->mnt_fsname[0] == mp->mnt_fsname[1]
 	) {
+#if 0 /* reported to break things */
 		len_and_sockaddr *lsa;
 		char *ip, *dotted;
 		char *s;
 
-		rc = 1;
 		// Replace '/' with '\' and verify that unc points to "//server/share".
 		for (s = mp->mnt_fsname; *s; ++s)
 			if (*s == '/') *s = '\\';
 
 		// Get server IP
 		s = strrchr(mp->mnt_fsname, '\\');
-		if (s <= mp->mnt_fsname+1) goto report_error;
+		if (s <= mp->mnt_fsname+1)
+			goto report_error;
 		*s = '\0';
 		lsa = host2sockaddr(mp->mnt_fsname+2, 0);
 		*s = '\\';
-		if (!lsa) goto report_error;
+		if (!lsa)
+			goto report_error;
 
 		// Insert ip=... option into string flags.
 		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
@@ -1630,18 +1632,19 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		// Compose new unc '\\server-ip\share'
 		// (s => slash after hostname)
 		mp->mnt_fsname = xasprintf("\\\\%s%s", dotted, s);
-
-		// Lock is required
+#endif
+		// Lock is required [why?]
 		vfsflags |= MS_MANDLOCK;
-
 		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
+#if 0
 		if (ENABLE_FEATURE_CLEAN_UP) {
 			free(mp->mnt_fsname);
 			free(ip);
 			free(dotted);
 			free(lsa);
 		}
+#endif
 		goto report_error;
 	}
 
