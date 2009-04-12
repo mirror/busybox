@@ -165,12 +165,7 @@ static void parse_speeds(struct options *op, char *arg)
 		op->speeds[op->numspeed] = bcode(cp);
 		if (op->speeds[op->numspeed] < 0)
 			bb_error_msg_and_die("bad speed: %s", cp);
-		else if (op->speeds[op->numspeed] == 0) {
-			struct termios tio;
-			if (tcgetattr(1, &tio) != 0)
-				bb_error_msg_and_die("auto baudrate detection failed");
-			op->speeds[op->numspeed] = cfgetospeed(&tio);
-		}
+		/* note: arg "0" turns into speed B0 */
 		op->numspeed++;
 		if (op->numspeed > MAX_SPEED)
 			bb_error_msg_and_die("too many alternate speeds");
@@ -276,6 +271,7 @@ static void open_tty(const char *tty)
 /* termios_init - initialize termios settings */
 static void termios_init(struct termios *tp, int speed, struct options *op)
 {
+	speed_t ispeed, ospeed;
 	/*
 	 * Initial termios settings: 8-bit characters, raw-mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
@@ -286,10 +282,18 @@ static void termios_init(struct termios *tp, int speed, struct options *op)
 	/* flush input and output queues, important for modems! */
 	ioctl(0, TCFLSH, TCIOFLUSH); /* tcflush(0, TCIOFLUSH)? - same */
 #endif
-
-	tp->c_cflag = CS8 | HUPCL | CREAD | speed;
+	ispeed = ospeed = speed;
+	if (speed == B0) {
+		/* Speed was specified as "0" on command line.
+		 * Just leave it unchanged */
+		ispeed = cfgetispeed(tp);
+		ospeed = cfgetospeed(tp);
+	}
+	tp->c_cflag = CS8 | HUPCL | CREAD;
 	if (op->flags & F_LOCAL)
 		tp->c_cflag |= CLOCAL;
+	cfsetispeed(tp, ispeed);
+	cfsetospeed(tp, ospeed);
 
 	tp->c_iflag = tp->c_lflag = tp->c_line = 0;
 	tp->c_oflag = OPOST | ONLCR;
@@ -759,8 +763,8 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			/* we are here only if options.numspeed > 1 */
 			baud_index = (baud_index + 1) % options.numspeed;
-			termios.c_cflag &= ~CBAUD;
-			termios.c_cflag |= options.speeds[baud_index];
+			cfsetispeed(&termios, options.speeds[baud_index]);
+			cfsetospeed(&termios, options.speeds[baud_index]);
 			tcsetattr_stdin_TCSANOW(&termios);
 		}
 	}
