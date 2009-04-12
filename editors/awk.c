@@ -1574,7 +1574,10 @@ static int awk_split(const char *s, node *spl, char **slist)
 				if (s[l]) pmatch[0].rm_eo++;
 			}
 			memcpy(s1, s, l);
-			s1[l] = '\0';
+			/* make sure we remove *all* of the separator chars */
+			while (l < pmatch[0].rm_eo) {
+				s1[l++] = '\0';
+			}
 			nextword(&s1);
 			s += pmatch[0].rm_eo;
 		} while (*s);
