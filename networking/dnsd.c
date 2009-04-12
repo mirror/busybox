@@ -488,17 +488,6 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 
 	conf_data = parse_conf_file(fileconf);
 
-	bb_signals(0
-		/* why? + (1 << SIGPIPE) */
-		+ (1 << SIGHUP)
-#ifdef SIGTSTP
-		+ (1 << SIGTSTP)
-#endif
-#ifdef SIGURG
-		+ (1 << SIGURG)
-#endif
-		, SIG_IGN);
-
 	lsa = xdotted2sockaddr(listen_interface, port);
 	udps = xsocket(lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	xbind(udps, &lsa->u.sa, lsa->len);
