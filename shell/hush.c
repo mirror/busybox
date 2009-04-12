@@ -2322,6 +2322,9 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
 	char *heredoc_argv[4];
 	struct variable *cur;
+#if ENABLE_HUSH_FUNCTIONS
+	struct function *funcp;
+#endif
 	char **argv, **pp;
 	unsigned cnt;
 
@@ -2341,7 +2344,7 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 			, (unsigned) G.last_exitcode
 			USE_HUSH_LOOPS(, G.depth_of_loop)
 			);
-	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...>
+	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...> <funcs...>
 	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
 	 */
 	cnt = 6;
@@ -2349,6 +2352,10 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
+#if ENABLE_HUSH_FUNCTIONS
+	for (funcp = G.top_func; funcp; funcp = funcp->next)
+		cnt += 3;
+#endif
 	pp = g_argv;
 	while (*pp++)
 		cnt++;
@@ -2366,7 +2373,13 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 			*pp++ = cur->varstr;
 		}
 	}
-//TODO: pass functions
+#if ENABLE_HUSH_FUNCTIONS
+	for (funcp = G.top_func; funcp; funcp = funcp->next) {
+		*pp++ = (char *) "-F";
+		*pp++ = funcp->name;
+		*pp++ = funcp->body_as_string;
+	}
+#endif
 	/* We can pass activated traps here. Say, -Tnn:trap_string
 	 *
 	 * However, POSIX says that subshells reset signals with traps
@@ -2649,6 +2662,15 @@ static void free_pipe_list(struct pipe *head)
 
 
 static int run_list(struct pipe *pi);
+#if BB_MMU
+#define parse_stream(pstring, input, end_trigger) \
+	parse_stream(input, end_trigger)
+#endif
+static struct pipe *parse_stream(char **pstring,
+		struct in_str *input,
+		int end_trigger);
+static void parse_and_run_string(const char *s);
+
 
 static const struct built_in_command* find_builtin(const char *name)
 {
@@ -2676,6 +2698,52 @@ static const struct function *find_function(const char *name)
 	return funcp;
 }
 
+/* Note: takes ownership on name ptr */
+static struct function *new_function(char *name)
+{
+	struct function *funcp;
+	struct function **funcpp = &G.top_func;
+
+	while ((funcp = *funcpp) != NULL) {
+		struct command *cmd;
+
+		if (strcmp(funcp->name, name) != 0) {
+			funcpp = &funcp->next;
+			continue;
+		}
+
+		cmd = funcp->parent_cmd;
+		debug_printf_exec("func %p parent_cmd %p\n", funcp, cmd);
+		if (!cmd) {
+			debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
+			free(funcp->name);
+			/* Note: if !funcp->body, do not free body_as_string!
+			 * This is a special case of "-F name body" function:
+			 * body_as_string was not malloced! */
+			if (funcp->body) {
+				free_pipe_list(funcp->body);
+#if !BB_MMU
+				free(funcp->body_as_string);
+#endif
+			}
+		} else {
+			debug_printf_exec("reinserting in tree & replacing function '%s'\n", funcp->name);
+			cmd->argv[0] = funcp->name;
+			cmd->group = funcp->body;
+#if !BB_MMU
+			cmd->group_as_string = funcp->body_as_string;
+#endif
+		}
+		goto skip;
+	}
+	debug_printf_exec("remembering new function '%s'\n", command->argv[0]);
+	funcp = *funcpp = xzalloc(sizeof(*funcp));
+	/*funcp->next = NULL;*/
+ skip:
+	funcp->name = name;
+	return funcp;
+}
+
 static void exec_function(const struct function *funcp, char **argv) NORETURN;
 static void exec_function(const struct function *funcp, char **argv)
 {
@@ -2687,6 +2755,7 @@ static void exec_function(const struct function *funcp, char **argv)
 	while (*++argv)
 		n++;
 	G.global_argc = n;
+	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
 	fflush(NULL);
 	_exit(n);
@@ -2719,7 +2788,17 @@ static int run_function(const struct function *funcp, char **argv)
 	G.global_argc = n;
 	G.global_argv = argv;
 
-	n = run_list(funcp->body);
+	/* On MMU, funcp->body is always non-NULL */
+#if !BB_MMU
+	if (!funcp->body) {
+		/* Function defined by -F */
+		parse_and_run_string(funcp->body_as_string);
+		n = G.last_exitcode;
+	} else
+#endif
+	{
+		n = run_list(funcp->body);
+	}
 
 	if (G.global_args_malloced) {
 		/* function ran "set -- arg1 arg2 ..." */
@@ -3201,37 +3280,9 @@ static int run_pipe(struct pipe *pi)
 		if (command->grp_type == GRP_FUNCTION) {
 			/* "executing" func () { list } */
 			struct function *funcp;
-			struct function **funcpp = &G.top_func;
 
-			while ((funcp = *funcpp) != NULL) {
-				if (strcmp(funcp->name, command->argv[0]) == 0) {
-					struct command *cmd = funcp->parent_cmd;
-
-					debug_printf_exec("func %p parent_cmd %p\n", funcp, cmd);
-					if (!cmd) {
-						debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
-						free(funcp->name);
-						free_pipe_list(funcp->body);
-#if !BB_MMU
-						free(funcp->body_as_string);
-#endif
-					} else {
-						debug_printf_exec("reinserting in tree & replacing function '%s'\n", funcp->name);
-						cmd->argv[0] = funcp->name;
-						cmd->group = funcp->body;
-#if !BB_MMU
-						cmd->group_as_string = funcp->body_as_string;
-#endif
-					}
-					goto skip;
-				}
-				funcpp = &funcp->next;
-			}
-			debug_printf_exec("remembering new function '%s'\n", command->argv[0]);
-			funcp = *funcpp = xzalloc(sizeof(*funcp));
-			/*funcp->next = NULL;*/
- skip:
-			funcp->name = command->argv[0];
+			funcp = new_function(command->argv[0]);
+			/* funcp->name is already set to argv[0] */
 			funcp->body = command->group;
 #if !BB_MMU
 			funcp->body_as_string = command->group_as_string;
@@ -4599,15 +4650,6 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 }
 
 
-#if BB_MMU
-#define parse_stream(pstring, input, end_trigger) \
-	parse_stream(input, end_trigger)
-#endif
-static struct pipe *parse_stream(char **pstring,
-		struct in_str *input,
-		int end_trigger);
-static void parse_and_run_string(const char *s);
-
 #if ENABLE_HUSH_TICK
 static FILE *generate_stream_from_string(const char *s)
 {
@@ -5866,7 +5908,10 @@ int hush_main(int argc, char **argv)
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
 #if !BB_MMU
-				"<:$:!:?:D:R:V:"
+				"<:$:R:V:"
+# if ENABLE_HUSH_FUNCTIONS
+				"F:"
+# endif
 #endif
 		);
 		if (opt <= 0)
@@ -5913,6 +5958,16 @@ int hush_main(int argc, char **argv)
 		case 'V':
 			set_local_var(xstrdup(optarg), 0, opt == 'R');
 			break;
+# if ENABLE_HUSH_FUNCTIONS
+		case 'F': {
+			struct function *funcp = new_function(optarg);
+			/* funcp->name is already set to optarg */
+			/* funcp->body is set to NULL. It's a special case. */
+			funcp->body_as_string = argv[optind];
+			optind++;
+			break;
+		}
+# endif
 #endif
 		case 'n':
 		case 'x':
