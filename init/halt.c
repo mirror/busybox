@@ -63,9 +63,11 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Parse and handle arguments */
 	opt_complementary = "d+"; /* -d N */
-	/* We support -w even if !ENABLE_FEATURE_WTMP, in order
-	 * to not break scripts */
-	flags = getopt32(argv, "d:nfw", &delay);
+	/* We support -w even if !ENABLE_FEATURE_WTMP,
+	 * in order to not break scripts.
+	 * -i (shut down network interfaces) is ignored.
+	 */
+	flags = getopt32(argv, "d:nfwi", &delay);
 
 	sleep(delay);
 
@@ -89,10 +91,12 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(pidlist);
 		}
-		if (rc)
+		if (rc) {
 			rc = kill(1, signals[which]);
-	} else
+		}
+	} else {
 		rc = reboot(magic[which]);
+	}
 
 	if (rc)
 		bb_perror_nomsg_and_die();
