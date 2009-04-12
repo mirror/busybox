@@ -24,15 +24,10 @@
 #define DEBUG 0
 
 enum {
-	/* Can tweak this */
+	/* can tweak this */
 	DEFAULT_TTL = 120,
 
-/* Cannot get bigger packets than 512 per RFC1035.
- * In practice this can be set considerably smaller:
- * Length of response packet is header (12B) + 2*type(4B) + 2*class(4B) +
- * ttl(4B) + rlen(2B) + r (MAX_NAME_LEN = 21B) +
- * 2*querystring (2 MAX_NAME_LEN = 42B), all together 90 Bytes
- */
+	/* cannot get bigger packets than 512 per RFC1035. */
 	MAX_PACK_LEN = 512,
 	IP_STRING_LEN = sizeof(".xxx.xxx.xxx.xxx"),
 	MAX_NAME_LEN = IP_STRING_LEN - 1 + sizeof(".in-addr.arpa"),
@@ -225,9 +220,9 @@ OPCODE  0   standard query (QUERY)
         2   server status request (STATUS)
 AA      Authoritative Answer - this bit is valid in responses.
         Responding name server is an authority for the domain name
-	in question section. Answer section may have multiple owner names
-	because of aliases.  The AA bit corresponds to the name which matches
-	the query name, or the first owner name in the answer section.
+        in question section. Answer section may have multiple owner names
+        because of aliases.  The AA bit corresponds to the name which matches
+        the query name, or the first owner name in the answer section.
 TC      TrunCation - this message was truncated.
 RD      Recursion Desired - this bit may be set in a query and
         is copied into the response.  If RD is set, it directs
@@ -240,10 +235,10 @@ RCODE   Response code.
         0   No error condition
         1   Format error
         2   Server failure - server was unable to process the query
-	    due to a problem with the name server.
+            due to a problem with the name server.
         3   Name Error - meaningful only for responses from
-	    an authoritative name server. The referenced domain name
-	    does  not exist.
+            an authoritative name server. The referenced domain name
+            does not exist.
         4   Not Implemented.
         5   Refused.
 QDCOUNT number of entries in the question section.
@@ -293,7 +288,7 @@ QTYPE   a two octet type of the query.
         255 a request for all records
 QCLASS  a two octet code that specifies the class of the query.
           1 the Internet
-	(others are historic only)
+        (others are historic only)
         255 any class
 
 4.1.3. Resource record format
@@ -464,9 +459,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned lsa_size;
 	int udps, opts;
 	uint16_t port = 53;
-	/* Paranoid sizing: querystring x2 + ttl + outr_rlen + answstr */
-	/* I'd rather see process_packet() fixed instead... */
-	uint8_t buf[MAX_PACK_LEN * 2 + 4 + 2 + (MAX_NAME_LEN+1)];
+	uint8_t buf[MAX_PACK_LEN + 1];
 
 	opts = getopt32(argv, "vi:c:t:p:d", &listen_interface, &fileconf, &sttl, &sport);
 	//if (opts & 0x1) // -v
