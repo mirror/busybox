@@ -425,10 +425,11 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		if (access("/sys/class/block", F_OK) != 0) {
 			/* Scan obsolete /sys/block only if /sys/class/block
 			 * doesn't exist. Otherwise we'll have dupes.
+			 * Also, do not complain if it doesn't exist.
+			 * Some people configure kernel to have no blockdevs.
 			 */
 			recursive_action("/sys/block",
-				ACTION_RECURSE | ACTION_FOLLOWLINKS,
-				// not needed now? | ACTION_QUIET
+				ACTION_RECURSE | ACTION_FOLLOWLINKS | ACTION_QUIET,
 				fileAction, dirAction, temp, 0);
 		}
 		recursive_action("/sys/class",
