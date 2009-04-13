@@ -13,7 +13,6 @@
 #include "common.h"
 #include "options.h"
 
-/* constants */
 #define SERVER_PORT      67
 #define SELECT_TIMEOUT    5 /* select timeout in sec. */
 #define MAX_LIFETIME   2*60 /* lifetime of an xid entry in sec. */
@@ -149,19 +148,21 @@ static char **get_client_devices(char *dev_list, int *client_number)
 }
 
 
-/* Creates listen sockets (in fds) and returns numerically max fd. */
-static int init_sockets(char **client, int num_clients,
-			char *server, int *fds)
+/* Creates listen sockets (in fds) bound to client and server ifaces,
+ * and returns numerically max fd.
+ */
+static int init_sockets(char **client_ifaces, int num_clients,
+			char *server_iface, int *fds)
 {
 	int i, n;
 
 	/* talk to real server on bootps */
-	fds[0] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, server);
+	fds[0] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, server_iface);
 	n = fds[0];
 
 	for (i = 1; i < num_clients; i++) {
 		/* listen for clients on bootps */
-		fds[i] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, client[i-1]);
+		fds[i] = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT, client_ifaces[i-1]);
 		if (fds[i] > n)
 			n = fds[i];
 	}
@@ -170,11 +171,11 @@ static int init_sockets(char **client, int num_clients,
 
 
 /**
- * pass_on() - forwards dhcp packets from client to server
+ * pass_to_server() - forwards dhcp packets from client to server
  * p - packet to send
  * client - number of the client
  */
-static void pass_on(struct dhcpMessage *p, int packet_len, int client, int *fds,
+static void pass_to_server(struct dhcpMessage *p, int packet_len, int client, int *fds,
 			struct sockaddr_in *client_addr, struct sockaddr_in *server_addr)
 {
 	int res, type;
@@ -193,19 +194,19 @@ static void pass_on(struct dhcpMessage *p, int packet_len, int client, int *fds,
 	item = xid_add(p->xid, client_addr, client);
 
 	/* forward request to LAN (server) */
+	errno = 0;
 	res = sendto(fds[0], p, packet_len, 0, (struct sockaddr*)server_addr,
 			sizeof(struct sockaddr_in));
 	if (res != packet_len) {
-		bb_perror_msg("pass_on");
-		return;
+		bb_perror_msg("sendto");
 	}
 }
 
 /**
- * pass_back() - forwards dhcp packets from server to client
+ * pass_to_client() - forwards dhcp packets from server to client
  * p - packet to send
  */
-static void pass_back(struct dhcpMessage *p, int packet_len, int *fds)
+static void pass_to_client(struct dhcpMessage *p, int packet_len, int *fds)
 {
 	int res, type;
 	struct xid_item *item;
@@ -224,10 +225,11 @@ static void pass_back(struct dhcpMessage *p, int packet_len, int *fds)
 
 	if (item->ip.sin_addr.s_addr == htonl(INADDR_ANY))
 		item->ip.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-	res = sendto(fds[item->client], p, packet_len, 0, (struct sockaddr*)(&item->ip),
-				sizeof(item->ip));
+	errno = 0;
+	res = sendto(fds[item->client], p, packet_len, 0, (struct sockaddr*) &(item->ip),
+			sizeof(item->ip));
 	if (res != packet_len) {
-		bb_perror_msg("pass_back");
+		bb_perror_msg("sendto");
 		return;
 	}
 
@@ -235,20 +237,53 @@ static void pass_back(struct dhcpMessage *p, int packet_len, int *fds)
 	xid_del(p->xid);
 }
 
-static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **clients,
-		struct sockaddr_in *server_addr, uint32_t gw_ip) NORETURN;
-static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **clients,
-		struct sockaddr_in *server_addr, uint32_t gw_ip)
+int dhcprelay_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int dhcprelay_main(int argc, char **argv)
 {
 	struct dhcpMessage dhcp_msg;
-	fd_set rfds;
-	size_t packlen;
-	socklen_t addr_size;
+	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-	struct timeval tv;
-	int i;
+	fd_set rfds;
+	char **client_ifaces;
+	int *fds;
+	int num_sockets, max_socket;
+	uint32_t our_ip;
 
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(SERVER_PORT);
+
+	/* dhcprelay client_iface1,client_iface2,... server_iface [server_IP] */
+	if (argc == 4) {
+		if (!inet_aton(argv[3], &server_addr.sin_addr))
+			bb_perror_msg_and_die("bad server IP");
+	} else if (argc == 3) {
+		server_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+	} else {
+		bb_show_usage();
+	}
+
+	/* Produce list of client ifaces */
+	client_ifaces = get_client_devices(argv[1], &num_sockets);
+
+	num_sockets++; /* for server socket at fds[0] */
+	fds = xmalloc(num_sockets * sizeof(fds[0]));
+
+	/* Create sockets and bind one to every iface */
+	max_socket = init_sockets(client_ifaces, num_sockets, argv[2], fds);
+
+	/* Get our IP on server_iface */
+	if (udhcp_read_interface(argv[2], NULL, &our_ip, NULL))
+		return 1;
+
+	/* Main loop */
 	while (1) {
+//reinit stuff from time to time? go back to get_client_devices
+//every N minutes?
+		struct timeval tv;
+		size_t packlen;
+		socklen_t addr_size;
+		int i;
+
 		FD_ZERO(&rfds);
 		for (i = 0; i < num_sockets; i++)
 			FD_SET(fds[i], &rfds);
@@ -259,56 +294,32 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 			if (FD_ISSET(fds[0], &rfds)) {
 				packlen = udhcp_recv_kernel_packet(&dhcp_msg, fds[0]);
 				if (packlen > 0) {
-					pass_back(&dhcp_msg, packlen, fds);
+					pass_to_client(&dhcp_msg, packlen, fds);
 				}
 			}
+			/* clients */
 			for (i = 1; i < num_sockets; i++) {
-				/* clients */
 				if (!FD_ISSET(fds[i], &rfds))
 					continue;
 				addr_size = sizeof(struct sockaddr_in);
 				packlen = recvfrom(fds[i], &dhcp_msg, sizeof(dhcp_msg), 0,
-							(struct sockaddr *)(&client_addr), &addr_size);
+						(struct sockaddr *)(&client_addr), &addr_size);
 				if (packlen <= 0)
 					continue;
-				if (udhcp_read_interface(clients[i-1], NULL, &dhcp_msg.giaddr, NULL))
-					dhcp_msg.giaddr = gw_ip;
-				pass_on(&dhcp_msg, packlen, i, fds, &client_addr, server_addr);
+
+				/* Get our IP on corresponding client_iface */
+//why? what if server can't route such IP?
+				if (udhcp_read_interface(client_ifaces[i-1], NULL, &dhcp_msg.giaddr, NULL)) {
+					/* Fall back to our server_iface's IP */
+//this makes more sense!
+					dhcp_msg.giaddr = our_ip;
+				}
+//maybe set dhcp_msg.flags |= BROADCAST_FLAG too?
+				pass_to_server(&dhcp_msg, packlen, i, fds, &client_addr, &server_addr);
 			}
 		}
 		xid_expire();
-	}
-}
+	} /* while (1) */
 
-int dhcprelay_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dhcprelay_main(int argc, char **argv)
-{
-	int num_sockets, max_socket;
-	int *fds;
-	uint32_t gw_ip;
-	char **clients;
-	struct sockaddr_in server_addr;
-
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(SERVER_PORT);
-	if (argc == 4) {
-		if (!inet_aton(argv[3], &server_addr.sin_addr))
-			bb_perror_msg_and_die("didn't grok server");
-	} else if (argc == 3) {
-		server_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-	} else {
-		bb_show_usage();
-	}
-
-	clients = get_client_devices(argv[1], &num_sockets);
-	num_sockets++; /* for server socket at fds[0] */
-	fds = xmalloc(num_sockets * sizeof(fds[0]));
-	max_socket = init_sockets(clients, num_sockets, argv[2], fds);
-
-	if (udhcp_read_interface(argv[2], NULL, &gw_ip, NULL))
-		return 1;
-
-	/* doesn't return */
-	dhcprelay_loop(fds, num_sockets, max_socket, clients, &server_addr, gw_ip);
 	/* return 0; - not reached */
 }
