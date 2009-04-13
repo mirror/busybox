@@ -776,7 +776,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			USE_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(options ? options : "")
 			SKIP_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE("")
 				) != 0)
-			bb_error_msg_and_die("cannot insert '%s': %s",
+			bb_error_msg_and_die("can't insert '%s': %s",
 					*argv, moderror(errno));
 		return 0;
 	}

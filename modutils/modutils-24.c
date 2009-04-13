@@ -3803,7 +3803,7 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 		if (m_has_modinfo) {
 			int m_version = new_get_module_version(f, m_strversion);
 			if (m_version == -1) {
-				bb_error_msg_and_die("cannot find the kernel version "
+				bb_error_msg_and_die("can't find the kernel version "
 					"the module was compiled for");
 			}
 		}

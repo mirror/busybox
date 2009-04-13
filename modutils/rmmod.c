@@ -15,12 +15,11 @@ int rmmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rmmod_main(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
-	unsigned int flags = O_NONBLOCK|O_EXCL;
+	unsigned flags = O_NONBLOCK | O_EXCL;
 
 	/* Parse command line. */
 	n = getopt32(argv, "wfas"); // -s ignored
 	argv += optind;
-
 	if (n & 1)	// --wait
 		flags &= ~O_NONBLOCK;
 	if (n & 2)	// --force
@@ -35,11 +34,18 @@ int rmmod_main(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		bb_show_usage();
 
+	n = ENABLE_FEATURE_2_4_MODULES && get_linux_version_code() < KERNEL_VERSION(2,6,0);
 	while (*argv) {
 		char modname[MODULE_NAME_LEN];
-		filename2modname(bb_basename(*argv++), modname);
+		const char *bname;
+
+		bname = bb_basename(*argv++);
+		if (n)
+			safe_strncpy(modname, bname, MODULE_NAME_LEN);
+		else
+			filename2modname(bname, modname);
 		if (bb_delete_module(modname, flags))
-			bb_error_msg_and_die("cannot unload '%s': %s",
+			bb_error_msg_and_die("can't unload '%s': %s",
 					     modname, moderror(errno));
 	}
 
