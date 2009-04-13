@@ -57,21 +57,12 @@ static char *build_alias(char *alias, const char *device_name)
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
 {
+#if ENABLE_FEATURE_MDEV_CONF
+	parser_t *parser;
+#endif
 	const char *device_name;
 	int major, minor, type, len;
-	int mode = 0660;
-#if ENABLE_FEATURE_MDEV_CONF
-	struct bb_uidgid_t ugid = { 0, 0 };
-	parser_t *parser;
-	char *tokens[5];
-# if ENABLE_FEATURE_MDEV_EXEC
-	char *command = NULL;
-# endif
-# if ENABLE_FEATURE_MDEV_RENAME
-	char *alias = NULL;
-	char aliaslink = aliaslink; /* for compiler */
-# endif
-#endif
+	int mode;
 	char *dev_maj_min = path + strlen(path);
 
 	/* Force the configuration file settings exactly. */
@@ -111,14 +102,37 @@ static void make_device(char *path, int delete)
 	parser = config_open2("/etc/mdev.conf", fopen_for_read);
 
 	/* If we have config file, look up user settings */
-	while (config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)) {
+	while (1) {
 		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
-		char *val = tokens[0];
+		int keep_matching;
+		char *val;
+		struct bb_uidgid_t ugid;
+		char *tokens[4];
+# if ENABLE_FEATURE_MDEV_EXEC
+		char *command = NULL;
+# endif
+# if ENABLE_FEATURE_MDEV_RENAME
+		char *alias = NULL;
+		char aliaslink = aliaslink; /* for compiler */
+# endif
+		/* Defaults in case we won't match any line */
+		ugid.uid = ugid.gid = 0;
+		keep_matching = 0;
+		mode = 0660;
+
+		if (!config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)) {
+			/* End of file, create dev node with default params */
+			goto line_matches;
+		}
+
+		val = tokens[0];
+		keep_matching = ('-' == val[0]);
+		val += keep_matching; /* swallow leading dash */
 
 		/* Fields: regex uid:gid mode [alias] [cmd] */
 
 		/* 1st field: @<numeric maj,min>... */
-		if (tokens[0][0] == '@') {
+		if (val[0] == '@') {
 			/* @major,minor[-last] */
 			/* (useful when name is ambiguous:
 			 * "/sys/class/usb/lp0" and
@@ -126,12 +140,12 @@ static void make_device(char *path, int delete)
 			int cmaj, cmin0, cmin1, sc;
 			if (major < 0)
 				continue; /* no dev, no match */
-			sc = sscanf(tokens[0], "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
+			sc = sscanf(val, "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
 			if (sc < 1 || major != cmaj
 			 || (sc == 2 && minor != cmin0)
 			 || (sc == 3 && (minor < cmin0 || minor > cmin1))
 			) {
-				continue; /* no match */
+				continue; /* this line doesn't match */
 			}
 		} else { /* ... or regex to match device name */
 			regex_t match;
@@ -160,12 +174,12 @@ static void make_device(char *path, int delete)
 			if (result || off[0].rm_so
 			 || ((int)off[0].rm_eo != (int)strlen(dev_name_or_subsystem))
 			) {
-				continue;
+				continue; /* this line doesn't match */
 			}
 		}
 
-		/* This line matches: stop parsing the file
-		 * after parsing the rest of fields */
+		/* This line matches: stop parsing the file after parsing
+		 * the rest of fields unless keep_matching == 1 */
 
 		/* 2nd field: uid:gid - device ownership */
 		parse_chown_usergroup_or_die(&ugid, tokens[1]);
@@ -174,24 +188,25 @@ static void make_device(char *path, int delete)
 		mode = strtoul(tokens[2], NULL, 8);
 
 		val = tokens[3];
-		/* 4th field (opt): >alias */
+		/* 4th field (opt): >|=alias */
 # if ENABLE_FEATURE_MDEV_RENAME
 		if (!val)
-			break;
-		aliaslink = *val;
+			goto line_matches;
+		aliaslink = val[0];
 		if (aliaslink == '>' || aliaslink == '=') {
-			char *s, *st;
+			char *a, *s, *st;
 #  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 			char *p;
 			unsigned i, n;
 #  endif
-			char *a = val;
+			a = val;
 			s = strchrnul(val, ' ');
 			st = strchrnul(val, '\t');
 			if (st < s)
 				s = st;
 			val = (s[0] && s[1]) ? s+1 : NULL;
 			s[0] = '\0';
+
 #  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 			/* substitute %1..9 with off[1..9], if any */
 			n = 0;
@@ -223,12 +238,12 @@ static void make_device(char *path, int delete)
 # endif /* ENABLE_FEATURE_MDEV_RENAME */
 
 # if ENABLE_FEATURE_MDEV_EXEC
-		/* The rest (opt): command to run */
+		/* The rest (opt): @|$|*command */
 		if (!val)
-			break;
+			goto line_matches;
 		{
 			const char *s = "@$*";
-			const char *s2 = strchr(s, *val);
+			const char *s2 = strchr(s, val[0]);
 
 			if (!s2)
 				bb_error_msg_and_die("bad line %u", parser->lineno);
@@ -244,71 +259,71 @@ static void make_device(char *path, int delete)
 			}
 		}
 # endif
-		/* end of field parsing */
-		break; /* we found matching line, stop */
+		/* End of field parsing */
+ line_matches:
+#endif /* ENABLE_FEATURE_MDEV_CONF */
+
+		/* "Execute" the line we found */
+
+		if (!delete && major >= 0) {
+			if (ENABLE_FEATURE_MDEV_RENAME)
+				unlink(device_name);
+			if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
+				bb_perror_msg_and_die("mknod %s", device_name);
+			if (major == root_major && minor == root_minor)
+				symlink(device_name, "root");
+#if ENABLE_FEATURE_MDEV_CONF
+			chown(device_name, ugid.uid, ugid.gid);
+# if ENABLE_FEATURE_MDEV_RENAME
+			if (alias) {
+				alias = build_alias(alias, device_name);
+				/* move the device, and optionally
+				 * make a symlink to moved device node */
+				if (rename(device_name, alias) == 0 && aliaslink == '>')
+					symlink(alias, device_name);
+				free(alias);
+			}
+# endif
+#endif
+		}
+#if ENABLE_FEATURE_MDEV_EXEC
+		if (command) {
+			/* setenv will leak memory, use putenv/unsetenv/free */
+			char *s = xasprintf("%s=%s", "MDEV", device_name);
+			char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
+			putenv(s);
+			putenv(s1);
+			if (system(command) == -1)
+				bb_perror_msg_and_die("can't run '%s'", command);
+			unsetenv("SUBSYSTEM");
+			free(s1);
+			unsetenv("MDEV");
+			free(s);
+			free(command);
+		}
+#endif
+		if (delete) {
+			unlink(device_name);
+			/* At creation time, device might have been moved
+			 * and a symlink might have been created. Undo that. */
+#if ENABLE_FEATURE_MDEV_RENAME
+			if (alias) {
+				alias = build_alias(alias, device_name);
+				unlink(alias);
+				free(alias);
+			}
+#endif
+		}
+
+#if ENABLE_FEATURE_MDEV_CONF
+		/* We found matching line.
+		 * Stop unless it was prefixed with '-' */
+		if (!keep_matching)
+			break;
 	} /* end of "while line is read from /etc/mdev.conf" */
 
 	config_close(parser);
 #endif /* ENABLE_FEATURE_MDEV_CONF */
-
-	if (!delete && major >= 0) {
-
-		if (ENABLE_FEATURE_MDEV_RENAME)
-			unlink(device_name);
-
-		if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
-			bb_perror_msg_and_die("mknod %s", device_name);
-
-		if (major == root_major && minor == root_minor)
-			symlink(device_name, "root");
-
-#if ENABLE_FEATURE_MDEV_CONF
-		chown(device_name, ugid.uid, ugid.gid);
-
-# if ENABLE_FEATURE_MDEV_RENAME
-		if (alias) {
-			alias = build_alias(alias, device_name);
-
-			/* move the device, and optionally
-			 * make a symlink to moved device node */
-			if (rename(device_name, alias) == 0 && aliaslink == '>')
-				symlink(alias, device_name);
-
-			free(alias);
-		}
-# endif
-#endif
-	}
-
-#if ENABLE_FEATURE_MDEV_EXEC
-	if (command) {
-		/* setenv will leak memory, use putenv/unsetenv/free */
-		char *s = xasprintf("%s=%s", "MDEV", device_name);
-		char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
-		putenv(s);
-		putenv(s1);
-		if (system(command) == -1)
-			bb_perror_msg_and_die("can't run '%s'", command);
-		unsetenv("SUBSYSTEM");
-		free(s1);
-		unsetenv("MDEV");
-		free(s);
-		free(command);
-	}
-#endif
-
-	if (delete) {
-		unlink(device_name);
-		/* At creation time, device might have been moved
-		 * and a symlink might have been created. Undo that. */
-#if ENABLE_FEATURE_MDEV_RENAME
-		if (alias) {
-			alias = build_alias(alias, device_name);
-			unlink(alias);
-			free(alias);
-		}
-#endif
-	}
 }
 
 /* File callback for /sys/ traversal */

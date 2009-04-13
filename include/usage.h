@@ -2560,7 +2560,7 @@
        " echo /bin/mdev >/proc/sys/kernel/hotplug\n" \
 	USE_FEATURE_MDEV_CONF( \
        "It uses /etc/mdev.conf with lines\n" \
-       "DEVNAME UID:GID PERM" \
+       "[-]DEVNAME UID:GID PERM" \
 			USE_FEATURE_MDEV_RENAME(" [>|=PATH]") \
 			USE_FEATURE_MDEV_EXEC(" [@|$|*COMMAND]") \
 	) \
