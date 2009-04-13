@@ -159,16 +159,15 @@ config HUSH
 	bool "hush"
 	default n
 	help
-	  hush is a very small shell (just 18k) and it has fairly complete
-	  Bourne shell grammar. It even handles all the normal flow control
-	  options such as if/then/elif/else/fi, for/in/do/done, while loops,
-	  case/esac.
+	  hush is a small shell (22k). It handles the normal flow control
+	  constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
+	  case/esac. Redirections, here documents, $((arithmetic))
+	  and functions are supported.
 
 	  It will compile and work on no-mmu systems.
 
-	  It does not handle select, functions, here documents ( <<
-	  word ), aliases, brace expansion, tilde expansion,
-	  &> and >& redirection of stdout+stderr, etc.
+	  It does not handle select, aliases, brace expansion,
+	  tilde expansion, &>file and >&file redirection of stdout+stderr.
 
 config HUSH_HELP
 	bool "help builtin"
@@ -226,6 +225,13 @@ config HUSH_CASE
 	help
 	  Enable case ... esac statement in hush. +400 bytes.
 
+config HUSH_FUNCTIONS
+	bool "Support funcname() { commands; } syntax"
+	default n
+	depends on HUSH
+	help
+	  Enable support for shell functions in hush. +800 bytes.
+
 config LASH
 	bool "lash (deprecated: aliased to hush)"
 	default n
@@ -237,15 +243,16 @@ config MSH
 	bool "msh (deprecated: please use hush)"
 	default n
 	help
-	  The minix shell (adds just 30k) is quite complete and handles things
-	  like for/do/done, case/esac and all the things you expect a Bourne
-	  shell to do. It is not always pedantically correct about Bourne
-	  shell grammar (try running the shell testscript "tests/sh.testcases"
-	  on it and compare vs bash) but for most things it works quite well.
-	  It uses only vfork, so it can be used on uClinux systems.
-
 	  msh is deprecated and will be removed, please migrate to hush.
 	  If there is a feature msh has but hush does not, please let us know.
+
+#	  The minix shell (adds just 30k) is quite complete and handles things
+#	  like for/do/done, case/esac and all the things you expect a Bourne
+#	  shell to do. It is not always pedantically correct about Bourne
+#	  shell grammar (try running the shell testscript "tests/sh.testcases"
+#	  on it and compare vs bash) but for most things it works quite well.
+#	  It uses only vfork, so it can be used on uClinux systems.
+
 
 comment "Bourne Shell Options"
 	depends on MSH || LASH || HUSH || ASH

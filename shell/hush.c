@@ -83,8 +83,6 @@
  * Keeping 1 for now even in released versions.
  */
 #define HUSH_DEBUG 1
-/* In progress... */
-#define ENABLE_HUSH_FUNCTIONS 1
 
 
 #if BUILD_AS_NOMMU
