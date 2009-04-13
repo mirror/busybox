@@ -35,12 +35,12 @@ int pidof_main(int argc UNUSED_PARAM, char **argv)
 	/* fill omit list.  */
 	{
 		llist_t *omits_p = omits;
-		while (omits_p) {
+		while (1) {
+			omits_p = llist_find_str(omits_p, "%PPID");
+			if (!omits_p)
+				break;
 			/* are we asked to exclude the parent's process ID?  */
-			if (strcmp(omits_p->data, "%PPID") == 0) {
-				omits_p->data = utoa((unsigned)getppid());
-			}
-			omits_p = omits_p->link;
+			omits_p->data = utoa((unsigned)getppid());
 		}
 	}
 #endif

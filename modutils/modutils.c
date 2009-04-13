@@ -16,19 +16,6 @@ extern int delete_module(const char *module, unsigned int flags);
 # define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #endif
 
-/*
- a libbb candidate from ice age!
-*/
-llist_t FAST_FUNC *llist_find(llist_t *first, const char *str)
-{
-	while (first != NULL) {
-		if (strcmp(first->data, str) == 0)
-			return first;
-		first = first->link;
-	}
-	return NULL;
-}
-
 void FAST_FUNC replace(char *s, char what, char with)
 {
 	while (*s) {

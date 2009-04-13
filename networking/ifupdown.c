@@ -692,20 +692,6 @@ static const struct method_t *get_method(const struct address_family_t *af, char
 	return NULL;
 }
 
-static const llist_t *find_list_string(const llist_t *list, const char *string)
-{
-	if (string == NULL)
-		return NULL;
-
-	while (list) {
-		if (strcmp(list->data, string) == 0) {
-			return list;
-		}
-		list = list->link;
-	}
-	return NULL;
-}
-
 static struct interfaces_file_t *read_interfaces(const char *filename)
 {
 	/* Let's try to be compatible.
@@ -836,7 +822,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			while ((first_word = next_word(&rest_of_line)) != NULL) {
 
 				/* Check the interface isnt already listed */
-				if (find_list_string(defn->autointerfaces, first_word)) {
+				if (llist_find_str(defn->autointerfaces, first_word)) {
 					bb_perror_msg_and_die("interface declared auto twice \"%s\"", buf);
 				}
 

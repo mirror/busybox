@@ -86,3 +86,13 @@ llist_t* FAST_FUNC llist_rev(llist_t *list)
 	}
 	return rev;
 }
+
+llist_t* FAST_FUNC llist_find_str(llist_t *list, const char *str)
+{
+	while (list) {
+		if (strcmp(list->data, str) == 0)
+			break;
+		list = list->link;
+	}
+	return list;
+}
