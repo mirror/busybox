@@ -14,10 +14,12 @@
 
 struct globals {
 	int root_major, root_minor;
+	char *subsystem;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define root_major (G.root_major)
 #define root_minor (G.root_minor)
+#define subsystem (G.subsystem)
 
 /* Prevent infinite loops in /sys symlinks */
 #define MAX_SYSFS_DEPTH 3
@@ -111,7 +113,7 @@ static void make_device(char *path, int delete)
 	/* If we have config file, look up user settings */
 	while (config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)) {
 		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
-		char *val;
+		char *val = tokens[0];
 
 		/* Fields: regex uid:gid mode [alias] [cmd] */
 
@@ -134,10 +136,15 @@ static void make_device(char *path, int delete)
 		} else { /* ... or regex to match device name */
 			regex_t match;
 			int result;
+			const char *dev_name_or_subsystem = device_name;
+			if ('/' == val[0] && subsystem) {
+				dev_name_or_subsystem = subsystem;
+				val++;
+			}
 
 			/* Is this it? */
-			xregcomp(&match, tokens[0], REG_EXTENDED);
-			result = regexec(&match, device_name, ARRAY_SIZE(off), off, 0);
+			xregcomp(&match, val, REG_EXTENDED);
+			result = regexec(&match, dev_name_or_subsystem, ARRAY_SIZE(off), off, 0);
 			regfree(&match);
 
 			//bb_error_msg("matches:");
@@ -151,7 +158,7 @@ static void make_device(char *path, int delete)
 			/* If not this device, skip rest of line */
 			/* (regexec returns whole pattern as "range" 0) */
 			if (result || off[0].rm_so
-			 || ((int)off[0].rm_eo != (int)strlen(device_name))
+			 || ((int)off[0].rm_eo != (int)strlen(dev_name_or_subsystem))
 			) {
 				continue;
 			}
@@ -276,10 +283,14 @@ static void make_device(char *path, int delete)
 #if ENABLE_FEATURE_MDEV_EXEC
 	if (command) {
 		/* setenv will leak memory, use putenv/unsetenv/free */
-		char *s = xasprintf("MDEV=%s", device_name);
+		char *s = xasprintf("%s=%s", "MDEV", device_name);
+		char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
 		putenv(s);
+		putenv(s1);
 		if (system(command) == -1)
 			bb_perror_msg_and_die("can't run '%s'", command);
+		unsetenv("SUBSYSTEM");
+		free(s1);
 		unsetenv("MDEV");
 		free(s);
 		free(command);
@@ -326,6 +337,13 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
 		void *userData UNUSED_PARAM,
 		int depth)
 {
+	/* Extract device subsystem -- the name of the directory under /sys/class/ */
+	if (1 == depth) {
+		subsystem = strrchr(fileName, '/');
+		if (subsystem)
+			subsystem++;
+	}
+
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
 }
 
@@ -445,13 +463,14 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		char *env_path;
 
 		/* Hotplug:
-		 * env ACTION=... DEVPATH=... [SEQNUM=...] mdev
+		 * env ACTION=... DEVPATH=... SUBSYSTEM=... [SEQNUM=...] mdev
 		 * ACTION can be "add" or "remove"
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
-		if (!action || !env_path)
+		subsystem = getenv("SUBSYSTEM");
+		if (!action || !env_path /*|| !subsystem*/)
 			bb_show_usage();
 		fw = getenv("FIRMWARE");
 
