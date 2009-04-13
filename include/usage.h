@@ -2556,8 +2556,14 @@
 #define mdev_full_usage "\n\n" \
        "	-s	Scan /sys and populate /dev during system boot\n" \
        "\n" \
-       "Called with no options (via hotplug) it uses environment variables\n" \
-       "to determine which device to add/remove."
+       "It can be run by kernel as a hotplug helper. To activate it:\n" \
+       " echo /bin/mdev >/proc/sys/kernel/hotplug\n" \
+	USE_FEATURE_MDEV_CONF( \
+       "It uses /etc/mdev.conf with lines\n" \
+       "DEVNAME UID:GID PERM" \
+			USE_FEATURE_MDEV_RENAME(" [>|=PATH]") \
+			USE_FEATURE_MDEV_EXEC(" [@|$|*COMMAND]") \
+	) \
 
 #define mdev_notes_usage "" \
 	USE_FEATURE_MDEV_CONFIG( \

@@ -62,13 +62,13 @@ static void make_device(char *path, int delete)
 	struct bb_uidgid_t ugid = { 0, 0 };
 	parser_t *parser;
 	char *tokens[5];
-#endif
-#if ENABLE_FEATURE_MDEV_EXEC
+# if ENABLE_FEATURE_MDEV_EXEC
 	char *command = NULL;
-#endif
-#if ENABLE_FEATURE_MDEV_RENAME
+# endif
+# if ENABLE_FEATURE_MDEV_RENAME
 	char *alias = NULL;
 	char aliaslink = aliaslink; /* for compiler */
+# endif
 #endif
 	char *dev_maj_min = path + strlen(path);
 
@@ -168,21 +168,21 @@ static void make_device(char *path, int delete)
 
 		val = tokens[3];
 		/* 4th field (opt): >alias */
-#if ENABLE_FEATURE_MDEV_RENAME
+# if ENABLE_FEATURE_MDEV_RENAME
 		if (!val)
 			break;
 		aliaslink = *val;
 		if (aliaslink == '>' || aliaslink == '=') {
 			char *s;
-#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+#  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 			char *p;
 			unsigned i, n;
-#endif
+#  endif
 			char *a = val;
 			s = strchrnul(val, ' ');
 			val = (s[0] && s[1]) ? s+1 : NULL;
 			s[0] = '\0';
-#if ENABLE_FEATURE_MDEV_RENAME_REGEXP
+#  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
 			/* substitute %1..9 with off[1..9], if any */
 			n = 0;
 			s = a;
@@ -206,13 +206,13 @@ static void make_device(char *path, int delete)
 				p++;
 				s++;
 			}
-#else
+#  else
 			alias = xstrdup(a + 1);
-#endif
+#  endif
 		}
-#endif /* ENABLE_FEATURE_MDEV_RENAME */
+# endif /* ENABLE_FEATURE_MDEV_RENAME */
 
-#if ENABLE_FEATURE_MDEV_EXEC
+# if ENABLE_FEATURE_MDEV_EXEC
 		/* The rest (opt): command to run */
 		if (!val)
 			break;
@@ -233,7 +233,7 @@ static void make_device(char *path, int delete)
 				command = xstrdup(val + 1);
 			}
 		}
-#endif
+# endif
 		/* end of field parsing */
 		break; /* we found matching line, stop */
 	} /* end of "while line is read from /etc/mdev.conf" */
@@ -255,7 +255,7 @@ static void make_device(char *path, int delete)
 #if ENABLE_FEATURE_MDEV_CONF
 		chown(device_name, ugid.uid, ugid.gid);
 
-#if ENABLE_FEATURE_MDEV_RENAME
+# if ENABLE_FEATURE_MDEV_RENAME
 		if (alias) {
 			alias = build_alias(alias, device_name);
 
@@ -266,7 +266,7 @@ static void make_device(char *path, int delete)
 
 			free(alias);
 		}
-#endif
+# endif
 #endif
 	}
 
@@ -406,7 +406,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir("/dev");
 
-	if (argv[1] && !strcmp(argv[1], "-s")) {
+	if (argv[1] && strcmp(argv[1], "-s") == 0) {
 		/* Scan:
 		 * mdev -s
 		 */
@@ -501,5 +501,5 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		RELEASE_CONFIG_BUFFER(temp);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
