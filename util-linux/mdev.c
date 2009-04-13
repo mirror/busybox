@@ -436,11 +436,10 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			ACTION_RECURSE | ACTION_FOLLOWLINKS,
 			fileAction, dirAction, temp, 0);
 	} else {
+		char *fw;
 		char *seq;
 		char *action;
 		char *env_path;
-		char seqbuf[sizeof(int)*3 + 2];
-		int seqlen = seqlen; /* for compiler */
 
 		/* Hotplug:
 		 * env ACTION=... DEVPATH=... [SEQNUM=...] mdev
@@ -451,14 +450,23 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		env_path = getenv("DEVPATH");
 		if (!action || !env_path)
 			bb_show_usage();
+		fw = getenv("FIRMWARE");
 
+		/* If it exists, does /dev/mdev.seq match $SEQNUM?
+		 * If it does not match, earlier mdev is running
+		 * in parallel, and we need to wait */
 		seq = getenv("SEQNUM");
 		if (seq) {
-			int timeout = 2000 / 32;
+			int timeout = 2000 / 32; /* 2000 msec */
 			do {
+				int seqlen;
+				char seqbuf[sizeof(int)*3 + 2];
+
 				seqlen = open_read_close("mdev.seq", seqbuf, sizeof(seqbuf-1));
-				if (seqlen < 0)
+				if (seqlen < 0) {
+					seq = NULL;
 					break;
+				}
 				seqbuf[seqlen] = '\0';
 				if (seqbuf[0] == '\n' /* seed file? */
 				 || strcmp(seq, seqbuf) == 0 /* correct idx? */
@@ -470,19 +478,22 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		snprintf(temp, PATH_MAX, "/sys%s", env_path);
-		if (!strcmp(action, "remove"))
-			make_device(temp, 1);
-		else if (!strcmp(action, "add")) {
+		if (strcmp(action, "remove") == 0) {
+			/* Ignoring "remove firmware". It was reported
+			 * to happen and to cause erroneous deletion
+			 * of device nodes. */
+			if (!fw)
+				make_device(temp, 1);
+		}
+		else if (strcmp(action, "add") == 0) {
 			make_device(temp, 0);
-
 			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
-				char *fw = getenv("FIRMWARE");
 				if (fw)
 					load_firmware(fw, temp);
 			}
 		}
 
-		if (seq && seqlen >= 0) {
+		if (seq) {
 			xopen_xwrite_close("mdev.seq", utoa(xatou(seq) + 1));
 		}
 	}
