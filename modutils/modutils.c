@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "modutils.h"
 
 #ifdef __UCLIBC__
@@ -111,9 +110,9 @@ char * FAST_FUNC parse_cmdline_module_options(char **argv)
 
 int FAST_FUNC bb_init_module(const char *filename, const char *options)
 {
-	size_t len = MAXINT(ssize_t);
+	size_t len;
 	char *image;
-	int rc = ENOENT;
+	int rc;
 
 	if (!options)
 		options = "";
@@ -124,10 +123,12 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 #endif
 
 	/* Use the 2.6 way */
+	len = INT_MAX - 4095;
+	rc = ENOENT;
 	image = xmalloc_open_zipped_read_close(filename, &len);
 	if (image) {
 		rc = 0;
-		if (init_module(image, len, options ? options : "") != 0)
+		if (init_module(image, len, options) != 0)
 			rc = errno;
 		free(image);
 	}
