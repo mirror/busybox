@@ -127,8 +127,8 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		free(p);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	p = xasprintf("!:%u:0:99999:7:::",  (unsigned)(time(NULL) / 86400)); /* sp->sp_lstchg */
-	/* Ignore errors: if file is missing we suppose admin doesn't want it */
+	p = xasprintf("!:%u:0:99999:7:::", (unsigned)(time(NULL) / 86400)); /* sp->sp_lstchg */
+	/* ignore errors: if file is missing we suppose admin doesn't want it */
 	update_passwd(bb_path_shadow_file, pw.pw_name, p, NULL);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(p);
@@ -140,7 +140,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	if (!usegroup)
 		addgroup_wrapper(&pw);
 
-	/* Clear the umask for this process so it doesn't
+	/* clear the umask for this process so it doesn't
 	 * screw up the permissions on the mkdir and chown. */
 	umask(0);
 	if (!(option_mask32 & OPT_DONT_MAKE_HOME)) {
