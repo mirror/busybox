@@ -5,7 +5,6 @@
  * Written for SLIND (from passwd.c) by Alexander Shishkin <virtuoso@slind.org>
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 #if ENABLE_GETOPT_LONG
@@ -53,10 +52,10 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		/* This is rather complex: if user is not found in /etc/shadow,
 		 * we try to find & change his passwd in /etc/passwd */
 #if ENABLE_FEATURE_SHADOWPASSWDS
-		rc = update_passwd(bb_path_shadow_file, name, pass);
+		rc = update_passwd(bb_path_shadow_file, name, pass, NULL);
 		if (rc == 0) /* no lines updated, no errors detected */
 #endif
-			rc = update_passwd(bb_path_passwd_file, name, pass);
+			rc = update_passwd(bb_path_passwd_file, name, pass, NULL);
 		/* LOGMODE_BOTH logs to syslog also */
 		logmode = LOGMODE_BOTH;
 		if (rc < 0)

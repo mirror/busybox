@@ -8,9 +8,11 @@
  *
  * Moved from loginutils/passwd.c by Alexander Shishkin <virtuoso@slind.org>
  *
+ * Modified to be able to add or delete users, groups and users to/from groups
+ * by Tito Ragusa <farmatito@tiscali.it>
+ *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 #if ENABLE_SELINUX
@@ -35,12 +37,44 @@ static void check_selinux_update_passwd(const char *username)
 		freecon(context);
 }
 #else
-#define check_selinux_update_passwd(username) ((void)0)
+# define check_selinux_update_passwd(username) ((void)0)
 #endif
 
-int FAST_FUNC update_passwd(const char *filename, const char *username,
-			const char *new_pw)
+/*
+ 1) add a user: update_passwd(FILE, USER, REMAINING_PWLINE, NULL)
+    only if CONFIG_ADDUSER=y and applet_name[0] == 'a' like in adduser
+
+ 2) add a group: update_passwd(FILE, GROUP, REMAINING_GRLINE, NULL)
+    only if CONFIG_ADDGROUP=y and applet_name[0] == 'a' like in addgroup
+
+ 3) add a user to a group: update_passwd(FILE, GROUP, NULL, MEMBER)
+    only if CONFIG_FEATURE_ADDUSER_TO_GROUP=y, applet_name[0] == 'a'
+    like in addgroup and member != NULL
+
+ 4) delete a user: update_passwd(FILE, USER, NULL, NULL)
+
+ 5) delete a group: update_passwd(FILE, GROUP, NULL, NULL)
+
+ 6) delete a user from a group: update_passwd(FILE, GROUP, NULL, MEMBER)
+    only if CONFIG_FEATURE_DEL_USER_FROM_GROUP=y and member != NULL
+
+ 7) change user's passord: update_passwd(FILE, USER, NEW_PASSWD, NULL)
+    only if CONFIG_PASSWD=y and applet_name[0] == 'p' like in passwd
+    or if CONFIG_CHPASSWD=y and applet_name[0] == 'c' like in chpasswd
+
+ This function does not validate the arguments fed to it
+ so the calling program should take care of that.
+
+ Returns number of lines changed, or -1 on error.
+*/
+int FAST_FUNC update_passwd(const char *filename,
+		const char *name,
+		const char *new_passwd,
+		const char *member)
 {
+#if !(ENABLE_FEATURE_ADDUSER_TO_GROUP || ENABLE_FEATURE_DEL_USER_FROM_GROUP)
+#define member NULL
+#endif
 	struct stat sb;
 	struct flock lock;
 	FILE *old_fp;
@@ -51,22 +85,25 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
 	int old_fd;
 	int new_fd;
 	int i;
-	int cnt = 0;
+	int changed_lines;
 	int ret = -1; /* failure */
 
 	filename = xmalloc_follow_symlinks(filename);
 	if (filename == NULL)
-		return -1;
+		return ret;
 
-	check_selinux_update_passwd(username);
+	check_selinux_update_passwd(name);
 
 	/* New passwd file, "/etc/passwd+" for now */
 	fnamesfx = xasprintf("%s+", filename);
 	sfx_char = &fnamesfx[strlen(fnamesfx)-1];
-	username = xasprintf("%s:", username);
-	user_len = strlen(username);
+	name = xasprintf("%s:", name);
+	user_len = strlen(name);
 
-	old_fp = fopen(filename, "r+");
+	if (strstr(filename, "shadow"))
+		old_fp = fopen(filename, "r+");
+	else
+		old_fp = fopen_or_warn(filename, "r+");
 	if (!old_fp)
 		goto free_mem;
 	old_fd = fileno(old_fp);
@@ -82,7 +119,7 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
 		if (errno != EEXIST) break;
 		usleep(100000); /* 0.1 sec */
 	} while (--i);
-	bb_perror_msg("cannot create '%s'", fnamesfx);
+	bb_perror_msg("can't create '%s'", fnamesfx);
 	goto close_old_fp;
 
  created:
@@ -90,8 +127,10 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
 		fchmod(new_fd, sb.st_mode & 0777); /* ignore errors */
 		fchown(new_fd, sb.st_uid, sb.st_gid);
 	}
+	errno = 0;
 	new_fp = fdopen(new_fd, "w");
 	if (!new_fp) {
+		bb_perror_nomsg();
 		close(new_fd);
 		goto unlink_new;
 	}
@@ -102,7 +141,8 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
 	i = (unlink(fnamesfx) && errno != ENOENT);
 	/* Create backup as a hardlink to current */
 	if (i || link(filename, fnamesfx))
-		bb_perror_msg("warning: cannot create backup copy '%s'", fnamesfx);
+		bb_perror_msg("warning: can't create backup copy '%s'",
+				fnamesfx);
 	*sfx_char = '+';
 
 	/* Lock the password file before updating */
@@ -111,38 +151,107 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
 	lock.l_start = 0;
 	lock.l_len = 0;
 	if (fcntl(old_fd, F_SETLK, &lock) < 0)
-		bb_perror_msg("warning: cannot lock '%s'", filename);
+		bb_perror_msg("warning: can't lock '%s'", filename);
 	lock.l_type = F_UNLCK;
 
 	/* Read current password file, write updated /etc/passwd+ */
+	changed_lines = 0;
 	while (1) {
-		char *line = xmalloc_fgets(old_fp);
-		if (!line) break; /* EOF/error */
-		if (strncmp(username, line, user_len) == 0) {
-			/* we have a match with "username:"... */
-			const char *cp = line + user_len;
-			/* now cp -> old passwd, skip it: */
-			cp = strchrnul(cp, ':');
-			/* now cp -> ':' after old passwd or -> "" */
-			fprintf(new_fp, "%s%s%s", username, new_pw, cp);
-			cnt++;
+		char *cp, *line;
+
+		line = xmalloc_fgetline(old_fp);
+		if (!line) /* EOF/error */
+			break;
+		if (strncmp(name, line, user_len) != 0) {
+			fprintf(new_fp, "%s\n", line);
+			goto next;
+		}
+
+		/* We have a match with "name:"... */
+		cp = line + user_len; /* move past name: */
+
+#if ENABLE_FEATURE_ADDUSER_TO_GROUP || ENABLE_FEATURE_DEL_USER_FROM_GROUP
+		if (member) {
+			/* It's actually /etc/group+, not /etc/passwd+ */
+			if (ENABLE_FEATURE_ADDUSER_TO_GROUP
+			 && applet_name[0] == 'a'
+			) {
+				/* Add user to group */
+				fprintf(new_fp, "%s%s%s\n", line,
+					last_char_is(line, ':') ? "" : ",",
+					member);
+				changed_lines++;
+			} else if (ENABLE_FEATURE_DEL_USER_FROM_GROUP
+			/* && applet_name[0] == 'd' */
+			) {
+				/* Delete user from group */
+				char *tmp;
+				const char *fmt = "%s";
+
+				/* find the start of the member list: last ':' */
+				cp = strrchr(line, ':');
+				/* cut it */
+				*cp++ = '\0';
+				/* write the cut line name:passwd:gid:
+				 * or name:!:: */
+				fprintf(new_fp, "%s:", line);
+				/* parse the tokens of the member list */
+				tmp = cp;
+				while ((cp = strsep(&tmp, ",")) != NULL) {
+					if (strcmp(member, cp) != 0) {
+						fprintf(new_fp, fmt, cp);
+						fmt = ",%s";
+					} else {
+						/* found member, skip it */
+						changed_lines++;
+					}
+				}
+				fprintf(new_fp, "\n");
+			}
 		} else
-			fputs(line, new_fp);
+#endif
+		if ((ENABLE_PASSWD && applet_name[0] == 'p')
+		 || (ENABLE_CHPASSWD && applet_name[0] == 'c')
+		) {
+			/* Change passwd */
+			cp = strchrnul(cp, ':'); /* move past old passwd */
+			/* name: + new_passwd + :rest of line */
+			fprintf(new_fp, "%s%s%s\n", name, new_passwd, cp);
+			changed_lines++;
+		} /* else delete user or group: skip the line */
+ next:
 		free(line);
 	}
+
+	if (changed_lines == 0) {
+		if (ENABLE_FEATURE_DEL_USER_FROM_GROUP && member)
+			bb_error_msg("can't find %s in %s", member, filename);
+		if ((ENABLE_ADDUSER || ENABLE_ADDGROUP)
+		 && applet_name[0] == 'a' && !member
+		) {
+			/* add user or group */
+			fprintf(new_fp, "%s%s\n", name, new_passwd);
+			changed_lines++;
+		}
+	}
+
 	fcntl(old_fd, F_SETLK, &lock);
 
 	/* We do want all of them to execute, thus | instead of || */
+	errno = 0;
 	if ((ferror(old_fp) | fflush(new_fp) | fsync(new_fd) | fclose(new_fp))
 	 || rename(fnamesfx, filename)
 	) {
 		/* At least one of those failed */
+		bb_perror_nomsg();
 		goto unlink_new;
 	}
-	ret = cnt; /* whee, success! */
+	/* Success: ret >= 0 */
+	ret = changed_lines;
 
  unlink_new:
-	if (ret < 0) unlink(fnamesfx);
+	if (ret < 0)
+		unlink(fnamesfx);
 
  close_old_fp:
 	fclose(old_fp);
@@ -150,6 +259,6 @@ int FAST_FUNC update_passwd(const char *filename, const char *username,
  free_mem:
 	free(fnamesfx);
 	free((char *)filename);
-	free((char *)username);
+	free((char *)name);
 	return ret;
 }

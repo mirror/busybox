@@ -7,13 +7,11 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-
 #include "libbb.h"
 
 #define OPT_DONT_SET_PASS  (1 << 4)
 #define OPT_SYSTEM_ACCOUNT (1 << 5)
 #define OPT_DONT_MAKE_HOME (1 << 6)
-
 
 /* remix */
 /* recoded such that the uid may be passed in *p */
@@ -88,10 +86,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct passwd pw;
 	const char *usegroup = NULL;
-	FILE *file;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	int fd;
-#endif
+	char *p;
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
 	applet_long_options = adduser_longopts;
@@ -124,32 +119,19 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	/* make sure everything is kosher and setup uid && maybe gid */
 	passwd_study(&pw);
 
-	/* add to passwd */
-	file = xfopen(bb_path_passwd_file, "a");
-	//fseek(file, 0, SEEK_END); /* paranoia, "a" should ensure that anyway */
-	if (putpwent(&pw, file) != 0) {
-		bb_perror_nomsg_and_die();
+	p = xasprintf("x:%u:%u:%s:%s:%s", pw.pw_uid, pw.pw_gid, pw.pw_gecos, pw.pw_dir, pw.pw_shell);
+	if (update_passwd(bb_path_passwd_file, pw.pw_name, p, NULL) < 0) {
+		return EXIT_FAILURE;
 	}
-	/* do fclose even if !ENABLE_FEATURE_CLEAN_UP.
-	 * We will exec passwd, files must be flushed & closed before that! */
-	fclose(file);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(p);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	/* add to shadow if necessary */
-	/* fopen(..., "a"); would create shadow file, which is wrong.
-	 * If shadow file doesn't exist, admin probably does not want it */
-	fd = open_or_warn(bb_path_shadow_file, O_WRONLY | O_APPEND);
-	if (fd >= 0) {
-		char *s = xasprintf("%s:!:%u:0:99999:7:::\n",
-				pw.pw_name,             /* username */
-				(unsigned)(time(NULL) / 86400) /* sp->sp_lstchg */
-				/*0,*/                  /* sp->sp_min */
-				/*99999,*/              /* sp->sp_max */
-				/*7*/                   /* sp->sp_warn */
-		);
-		xwrite_str(fd, s);
-		close(fd);
-	}
+	p = xasprintf("!:%u:0:99999:7:::",  (unsigned)(time(NULL) / 86400)); /* sp->sp_lstchg */
+	/* Ignore errors: if file is missing we suppose admin doesn't want it */
+	update_passwd(bb_path_shadow_file, pw.pw_name, p, NULL);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(p);
 #endif
 
 	/* add to group */

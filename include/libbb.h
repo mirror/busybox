@@ -1142,9 +1142,16 @@ extern int obscure(const char *old, const char *newval, const struct passwd *pwd
  * (otherwise we risk having same salt generated)
  */
 extern int crypt_make_salt(char *p, int cnt, int rnd) FAST_FUNC;
+
 /* Returns number of lines changed, or -1 on error */
-extern int update_passwd(const char *filename, const char *username,
-			const char *new_pw) FAST_FUNC;
+#if !(ENABLE_FEATURE_ADDUSER_TO_GROUP || ENABLE_FEATURE_DEL_USER_FROM_GROUP)
+#define update_passwd(filename, username, data, member) \
+	update_passwd(filename, username, data)
+#endif
+extern int update_passwd(const char *filename,
+		const char *username,
+		const char *data,
+		const char *member) FAST_FUNC;
 
 int index_in_str_array(const char *const string_array[], const char *key) FAST_FUNC;
 int index_in_strings(const char *strings, const char *key) FAST_FUNC;

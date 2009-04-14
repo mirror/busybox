@@ -9,7 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
-
 #include "libbb.h"
 
 static void xgroup_study(struct group *g)
@@ -45,8 +44,8 @@ static void xgroup_study(struct group *g)
 /* append a new user to the passwd file */
 static void new_group(char *group, gid_t gid)
 {
-	FILE *file;
 	struct group gr;
+	char *p;
 
 	/* make sure gid and group haven't already been allocated */
 	gr.gr_gid = gid;
@@ -54,66 +53,16 @@ static void new_group(char *group, gid_t gid)
 	xgroup_study(&gr);
 
 	/* add entry to group */
-	file = xfopen(bb_path_group_file, "a");
-	/* group:passwd:gid:userlist */
-	fprintf(file, "%s:x:%u:\n", group, (unsigned)gr.gr_gid);
+	p = xasprintf("x:%u:", gr.gr_gid);
+	if (update_passwd(bb_path_group_file, group, p, NULL) < 0)
+		exit(EXIT_FAILURE);
 	if (ENABLE_FEATURE_CLEAN_UP)
-		fclose(file);
+		free(p);
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	file = fopen_or_warn(bb_path_gshadow_file, "a");
-	if (file) {
-		fprintf(file, "%s:!::\n", group);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			fclose(file);
-	}
+	/* Ignore errors: if file is missing we suppose admin doesn't want it */
+	update_passwd(bb_path_gshadow_file, group, "!::", NULL);
 #endif
 }
-
-#if ENABLE_FEATURE_ADDUSER_TO_GROUP
-static void add_user_to_group(char **args,
-		const char *path,
-		FILE* FAST_FUNC (*fopen_func)(const char *fileName, const char *mode))
-{
-	char *line;
-	int len = strlen(args[1]);
-	llist_t *plist = NULL;
-	FILE *group_file;
-
-	group_file = fopen_func(path, "r");
-
-	if (!group_file) return;
-
-	while ((line = xmalloc_fgetline(group_file)) != NULL) {
-		/* Find the group */
-		if (!strncmp(line, args[1], len)
-		 && line[len] == ':'
-		) {
-			/* Add the new user */
-			line = xasprintf("%s%s%s", line,
-						last_char_is(line, ':') ? "" : ",",
-						args[0]);
-		}
-		llist_add_to_end(&plist, line);
-	}
-
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		fclose(group_file);
-		group_file = fopen_func(path, "w");
-		while ((line = llist_pop(&plist))) {
-			if (group_file)
-				fprintf(group_file, "%s\n", line);
-			free(line);
-		}
-		if (group_file)
-			fclose(group_file);
-	} else {
-		group_file = fopen_func(path, "w");
-		if (group_file)
-			while ((line = llist_pop(&plist)))
-				fprintf(group_file, "%s\n", line);
-	}
-}
-#endif
 
 /*
  * addgroup will take a login_name as its first parameter.
@@ -166,10 +115,12 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 				return EXIT_SUCCESS;
 			}
 		}
-		add_user_to_group(argv, bb_path_group_file, xfopen);
-#if ENABLE_FEATURE_SHADOWPASSWDS
-		add_user_to_group(argv, bb_path_gshadow_file, fopen_or_warn);
-#endif
+		if (update_passwd(bb_path_group_file, argv[1], NULL, argv[0]) < 0) {
+			return EXIT_FAILURE;
+		}
+# if ENABLE_FEATURE_SHADOWPASSWDS
+		update_passwd(bb_path_gshadow_file, argv[1], NULL, argv[0]);
+# endif
 	} else
 #endif /* ENABLE_FEATURE_ADDUSER_TO_GROUP */
 	{

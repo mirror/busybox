@@ -2,7 +2,6 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 #include <syslog.h>
 
@@ -181,12 +180,12 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	filename = bb_path_shadow_file;
-	rc = update_passwd(bb_path_shadow_file, name, newp);
+	rc = update_passwd(bb_path_shadow_file, name, newp, NULL);
 	if (rc == 0) /* no lines updated, no errors detected */
 #endif
 	{
 		filename = bb_path_passwd_file;
-		rc = update_passwd(bb_path_passwd_file, name, newp);
+		rc = update_passwd(bb_path_passwd_file, name, newp, NULL);
 	}
 	/* LOGMODE_BOTH */
 	if (rc < 0)
