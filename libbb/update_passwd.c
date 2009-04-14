@@ -224,8 +224,10 @@ int FAST_FUNC update_passwd(const char *filename,
 	}
 
 	if (changed_lines == 0) {
-		if (ENABLE_FEATURE_DEL_USER_FROM_GROUP && member)
+#if ENABLE_FEATURE_DEL_USER_FROM_GROUP
+		if (member)
 			bb_error_msg("can't find %s in %s", member, filename);
+#endif
 		if ((ENABLE_ADDUSER || ENABLE_ADDGROUP)
 		 && applet_name[0] == 'a' && !member
 		) {

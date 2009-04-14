@@ -4069,11 +4069,15 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 	 * RES_NONE case is for "for a in; do ..." (empty IN set)
 	 * and other cases to work. */
 	if (not_null
-#if HAS_KEYWORDS
+#if ENABLE_HUSH_IF
 	 || ctx->ctx_res_w == RES_FI
+#endif
+#if ENABLE_HUSH_LOOPS
 	 || ctx->ctx_res_w == RES_DONE
 	 || ctx->ctx_res_w == RES_FOR
 	 || ctx->ctx_res_w == RES_IN
+#endif
+#if ENABLE_HUSH_CASE
 	 || ctx->ctx_res_w == RES_ESAC
 #endif
 	) {

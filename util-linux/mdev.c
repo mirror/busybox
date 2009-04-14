@@ -98,10 +98,11 @@ static void make_device(char *path, int delete)
 	if (strstr(path, "/block/"))
 		type = S_IFBLK;
 
-#if ENABLE_FEATURE_MDEV_CONF
-	parser = config_open2("/etc/mdev.conf", fopen_for_read);
-
+#if !ENABLE_FEATURE_MDEV_CONF
+	mode = 0660;
+#else
 	/* If we have config file, look up user settings */
+	parser = config_open2("/etc/mdev.conf", fopen_for_read);
 	while (1) {
 		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 		int keep_matching;
