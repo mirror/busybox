@@ -1,6 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- *
  * mdev - Mini udev for busybox
  *
  * Copyright 2005 Rob Landley <rob@landley.net>
@@ -8,7 +7,6 @@
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 #include "xregex.h"
 
@@ -353,11 +351,13 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
 		void *userData UNUSED_PARAM,
 		int depth)
 {
-	/* Extract device subsystem -- the name of the directory under /sys/class/ */
+	/* Extract device subsystem -- the name of the directory
+	 * under /sys/class/ */
 	if (1 == depth) {
+		free(subsystem);
 		subsystem = strrchr(fileName, '/');
 		if (subsystem)
-			subsystem++;
+			subsystem = xstrdup(subsystem + 1);
 	}
 
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
@@ -397,17 +397,17 @@ static void load_firmware(const char *const firmware, const char *const sysfs_pa
 	goto out;
 
  loading:
-	/* tell kernel we're loading by `echo 1 > /sys/$DEVPATH/loading` */
+	/* tell kernel we're loading by "echo 1 > /sys/$DEVPATH/loading" */
 	if (full_write(loading_fd, "1", 1) != 1)
 		goto out;
 
-	/* load firmware by `cat /lib/firmware/$FIRMWARE > /sys/$DEVPATH/data */
+	/* load firmware into /sys/$DEVPATH/data */
 	data_fd = open("data", O_WRONLY);
 	if (data_fd == -1)
 		goto out;
 	cnt = bb_copyfd_eof(firmware_fd, data_fd);
 
-	/* tell kernel result by `echo [0|-1] > /sys/$DEVPATH/loading` */
+	/* tell kernel result by "echo [0|-1] > /sys/$DEVPATH/loading" */
 	if (cnt > 0)
 		full_write(loading_fd, "0", 1);
 	else
