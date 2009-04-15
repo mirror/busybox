@@ -155,6 +155,7 @@ typedef struct nommu_save_t {
 	char **new_env;
 	char **old_env;
 	char **argv;
+	char **argv_from_re_execing;
 } nommu_save_t;
 #endif
 
@@ -449,7 +450,6 @@ struct globals {
 	char **global_argv;
 #if !BB_MMU
 	char *argv0_for_re_execing;
-	char **argv_from_re_execing;
 #endif
 #if ENABLE_HUSH_LOOPS
 	unsigned depth_break_continue;
@@ -2280,9 +2280,7 @@ static char **expand_assignments(char **argv, int count)
 
 #if BB_MMU
 /* never called */
-void re_execute_shell(const char *s, char *argv0, char **argv);
-
-#define clean_up_after_re_execute() ((void)0)
+void re_execute_shell(char ***to_free, const char *s, char *argv0, char **argv);
 
 static void reset_traps_to_defaults(void)
 {
@@ -2314,8 +2312,8 @@ static void reset_traps_to_defaults(void)
 
 #else /* !BB_MMU */
 
-static void re_execute_shell(const char *s, char *g_argv0, char **g_argv) NORETURN;
-static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
+static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char **g_argv) NORETURN;
+static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char **g_argv)
 {
 	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
 	char *heredoc_argv[4];
@@ -2357,7 +2355,7 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 	pp = g_argv;
 	while (*pp++)
 		cnt++;
-	G.argv_from_re_execing = argv = pp = xzalloc(sizeof(argv[0]) * cnt);
+	*to_free = argv = pp = xzalloc(sizeof(argv[0]) * cnt);
 	*pp++ = (char *) G.argv0_for_re_execing;
 	*pp++ = param_buf;
 	for (cur = G.top_var; cur; cur = cur->next) {
@@ -2415,16 +2413,6 @@ static void re_execute_shell(const char *s, char *g_argv0, char **g_argv)
 	xfunc_error_retval = 127;
 	bb_error_msg_and_die("can't re-execute the shell");
 }
-
-static void clean_up_after_re_execute(void)
-{
-	char **pp = G.argv_from_re_execing;
-	if (pp) {
-		/* Must match re_execute_shell's allocations (if any) */
-		free(pp);
-		G.argv_from_re_execing = NULL;
-	}
-}
 #endif  /* !BB_MMU */
 
 
@@ -2436,6 +2424,9 @@ static void setup_heredoc(struct redir_struct *redir)
 	/* the _body_ of heredoc (misleading field name) */
 	const char *heredoc = redir->rd_filename;
 	char *expanded;
+#if !BB_MMU
+	char **to_free;
+#endif
 
 	expanded = NULL;
 	if (!(redir->rd_dup & HEREDOC_QUOTED)) {
@@ -2490,12 +2481,14 @@ static void setup_heredoc(struct redir_struct *redir)
 		/* Delegate blocking writes to another process */
 		disable_restore_tty_pgrp_on_exit();
 		xmove_fd(pair.wr, STDOUT_FILENO);
-		re_execute_shell(heredoc, NULL, NULL);
+		re_execute_shell(&to_free, heredoc, NULL, NULL);
 #endif
 	}
 	/* parent */
 	enable_restore_tty_pgrp_on_exit();
-	clean_up_after_re_execute();
+#if !BB_MMU
+	free(to_free);
+#endif
 	close(pair.wr);
 	free(expanded);
 	wait(NULL); /* wait till child has died */
@@ -2742,8 +2735,16 @@ static struct function *new_function(char *name)
 	return funcp;
 }
 
-static void exec_function(const struct function *funcp, char **argv) NORETURN;
-static void exec_function(const struct function *funcp, char **argv)
+#if BB_MMU
+#define exec_function(nommu_save, funcp, argv) \
+	exec_function(funcp, argv)
+#endif
+static void exec_function(nommu_save_t *nommu_save,
+		const struct function *funcp,
+		char **argv) NORETURN;
+static void exec_function(nommu_save_t *nommu_save,
+		const struct function *funcp,
+		char **argv)
 {
 # if BB_MMU
 	int n = 1;
@@ -2758,7 +2759,10 @@ static void exec_function(const struct function *funcp, char **argv)
 	fflush(NULL);
 	_exit(n);
 # else
-	re_execute_shell(funcp->body_as_string, G.global_argv[0], argv + 1);
+	re_execute_shell(&nommu_save->argv_from_re_execing,
+			funcp->body_as_string,
+			G.global_argv[0],
+			argv + 1);
 # endif
 }
 
@@ -2889,7 +2893,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	{
 		const struct function *funcp = find_function(argv[0]);
 		if (funcp) {
-			exec_function(funcp, argv);
+			exec_function(nommu_save, funcp, argv);
 		}
 	}
 #endif
@@ -2955,7 +2959,8 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		 * since this process is about to exit */
 		_exit(rcode);
 #else
-		re_execute_shell(command->group_as_string,
+		re_execute_shell(&nommu_save->argv_from_re_execing,
+				command->group_as_string,
 				G.global_argv[0],
 				G.global_argv + 1);
 #endif
@@ -3432,6 +3437,7 @@ static int run_pipe(struct pipe *pi)
 		nommu_save.new_env = NULL;
 		nommu_save.old_env = NULL;
 		nommu_save.argv = NULL;
+		nommu_save.argv_from_re_execing = NULL;
 #endif
 		command = &(pi->cmds[i]);
 		if (command->argv) {
@@ -3489,8 +3495,8 @@ static int run_pipe(struct pipe *pi)
 		enable_restore_tty_pgrp_on_exit();
 #if !BB_MMU
 		/* Clean up after vforked child */
-		clean_up_after_re_execute();
 		free(nommu_save.argv);
+		free(nommu_save.argv_from_re_execing);
 		free_strings_and_unsetenv(nommu_save.new_env, 1);
 		putenv_all(nommu_save.old_env);
 		/* Free the pointers, but the strings themselves
@@ -4657,6 +4663,9 @@ static FILE *generate_stream_from_string(const char *s)
 {
 	FILE *pf;
 	int pid, channel[2];
+#if !BB_MMU
+	char **to_free;
+#endif
 
 	xpipe(channel);
 	pid = BB_MMU ? fork() : vfork();
@@ -4688,7 +4697,8 @@ static FILE *generate_stream_from_string(const char *s)
 	 * huge=`cat BIG` # was blocking here forever
 	 * echo OK
 	 */
-		re_execute_shell(s,
+		re_execute_shell(&to_free,
+				s,
 				G.global_argv[0],
 				G.global_argv + 1);
 #endif
@@ -4696,7 +4706,9 @@ static FILE *generate_stream_from_string(const char *s)
 
 	/* parent */
 	enable_restore_tty_pgrp_on_exit();
-	clean_up_after_re_execute();
+#if !BB_MMU
+	free(to_free);
+#endif
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
 	return pf;
