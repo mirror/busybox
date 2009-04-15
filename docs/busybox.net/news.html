@@ -68,14 +68,13 @@
 	<li>util-linux/volumeid: abort early on read failures. Should help with probing missing fdd's</li>
 	<li>util-linux/volumeid: fix bug 249 "findfs finds the wrong partition"</li>
 	<li>adduser: allow adding to group 0; don't _create_ /etc/shadow, only append data if it exists</li>
-	<li>ash: fix mishandled ^C</li>
+	<li>ash: fix mishandled ^C and SIGINT (several cases)</li>
 	<li>ash: fix "ash -c 'exec 1&gt;&amp;0'" complaining that fd 0 is busy</li>
 	<li>ash: fix $IFS handling in read. Closes bug 235</li>
-	<li>ash: fix a case where we close wrong descriptor</li>
+	<li>ash: fix a case where we were closing wrong descriptor</li>
 	<li>ash: fix bad interaction between ash -c '....&amp;' and bash compat</li>
 	<li>ash: fix miscalculation of memory needed for eval tree. Found by Timo Teras (timo.teras AT iki.fi)</li>
 	<li>ash: make dot command search current directory first, as bash does</li>
-	<li>ash: make evaltree save/restore int suppression depth. Hopefully this fixes bug 189</li>
 	<li>ash: printf builtin with no arguments should not exit</li>
 	<li>awk: fix long field separators case. By Ian Wienand (ianw AT vmware.com)</li>
 	<li>awk: in BEGIN section $0 should be "", not "0"</li>
