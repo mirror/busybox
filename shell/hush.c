@@ -2276,15 +2276,28 @@ void re_execute_shell(char ***to_free, const char *s, char *argv0, char **argv);
 
 static void reset_traps_to_defaults(void)
 {
+	enum {
+		JOBSIGS = (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
+	};
 	unsigned sig;
-	int dirty;
 
-	if (!G.traps)
+	if (!G.traps && !(G.non_DFL_mask & JOBSIGS))
 		return;
-	dirty = 0;
-	for (sig = 0; sig < NSIG; sig++) {
-		if (!G.traps[sig])
+
+	/* This function is always called in a child shell.
+	 * Child shells are not interactive.
+	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
+	 * Testcase: (while :; do :; done) + ^Z should background.
+	 */
+	G.non_DFL_mask &= ~JOBSIGS;
+	sigdelset(&G.blocked_set, SIGTTIN);
+	sigdelset(&G.blocked_set, SIGTTOU);
+	sigdelset(&G.blocked_set, SIGTSTP);
+
+	if (G.traps) for (sig = 0; sig < NSIG; sig++) {
+		if (!G.traps[sig]) {
 			continue;
+		}
 		free(G.traps[sig]);
 		G.traps[sig] = NULL;
 		/* There is no signal for 0 (EXIT) */
@@ -2296,10 +2309,8 @@ static void reset_traps_to_defaults(void)
 		if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
 			continue;
 		sigdelset(&G.blocked_set, sig);
-		dirty = 1;
 	}
-	if (dirty)
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+	sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
 }
 
 #else /* !BB_MMU */
