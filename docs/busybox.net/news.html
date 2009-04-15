@@ -22,6 +22,166 @@
     </p>
   </li>
 
+  <li><b>15 April 2009 -- BusyBox 1.14.0 (unstable), BusyBox 1.13.4 (stable)</b>
+    <p><a href="http://busybox.net/downloads/busybox-1.14.0.tar.bz2">BusyBox 1.14.0</a>.
+    (<a href="http://sources.busybox.net/index.py/branches/busybox_1_14_stable/">svn</a>,
+    <a href="http://busybox.net/downloads/fixes-1.14.0/">patches</a>,
+    <a href="http://busybox.net/fix.html">how to add a patch</a>)</p>
+    <p><a href="http://busybox.net/downloads/busybox-1.13.4.tar.bz2">BusyBox 1.13.4</a>.
+    (<a href="http://sources.busybox.net/index.py/branches/busybox_1_13_stable/">svn</a>,
+    <a href="http://busybox.net/downloads/fixes-1.13.4/">patches</a>,
+    <a href="http://busybox.net/fix.html">how to add a patch</a>)</p>
+
+    <p>Sizes of busybox-1.13.4 and busybox-1.14.0 (with equivalent config, static uclibc build):<pre>
+   text    data     bss     dec     hex filename
+ 785501     483    7036  793020   c19bc busybox.1.13.4/busybox
+ 788380     467    6960  795807   c249f busybox.1.14.0/busybox
+  15361       0       0   15361    3c01 busybox.1.13.4/shell/hush.o
+  20724       0       0   20724    50f4 busybox.1.14.0/shell/hush.o
+</pre>
+    <p>Most of growth is in hush. The rest shrank a bit.
+
+    <p>New applets:
+      <ul>
+	<li>flash_eraseall: by Sebastian Andrzej Siewior (bigeasy AT linutronix.de)</li>
+	<li>acpid,mkdosfs (aka mkfs.vfat),tunctl: by Vladimir</li>
+	<li>ftpd: by Adam Tkac</li>
+	<li>timeout: by Roberto Foglietta</li>
+	<li>ionice: adapted from Linux kernel' example by Walter Harms</li>
+	<li>mkpasswd: synonym to cryptpw. mkpasswd is in Debian, OTOH cryptpw was added to busybox earlier. Trying to make both camps happy by making those two applets just aliases. They are command-line compatible</li>
+      </ul>
+
+    <p>Changes since previous release:
+
+    <p>lash and msh are deprecated, please migrate to hush.
+
+    <p>hush had many, many fixes and features added: here documents, arithmetic evaluation, function support, and all this works on NOMMU too, safely: 100kb-sized `command` and heredocs. Here document support, arithmetic evaluation, improved ${var} ops, other fixes are by Mike Frysinger (vapier AT gentoo.org).
+
+    <p>Other changes:
+      <ul>
+	<li>libbb: unify concurrent-safe update of /etc/{passwd,group,[g]shadow}. By Tito (farmatito AT tiscali.it)</li>
+	<li>libbb/sha1/256/512: major code shrink</li>
+	<li>libbb/lineedit: make history saving/loading concurrent-safe</li>
+	<li>libbb: shrink linked list ops. By xmaks AT email.cz</li>
+	<li>libbb: str2sockaddr shuld accept [IPv6] addr without port - wget 'ftp://[::1]/file' needs that to work</li>
+	<li>libbb: make bb_info_msg do atomic, unbuffered writes</li>
+	<li>adduser: allow adding to group 0; don't _create_ /etc/shadow, only append data if it exists</li>
+	<li>ash: fix mishandled ^C</li>
+	<li>ash: fix "ash -c 'exec 1&gt;&amp;0'" complaining that fd 0 is busy</li>
+	<li>ash: fix $IFS handling in read. Closes bug 235</li>
+	<li>ash: fix a case where we close wrong descriptor</li>
+	<li>ash: fix bad interaction between ash -c '....&amp;' and bash compat</li>
+	<li>ash: fix miscalculation of memory needed for eval tree. Found by Timo Teras (timo.teras AT iki.fi)</li>
+	<li>ash: in dotrap(), do not clear gotsig[] for SIGINT if there is no handler for it, otherwise raise interrupt gets confused later</li>
+	<li>ash: make dot command search current directory first, as bash does</li>
+	<li>ash: make evaltree save/restore int suppression depth. Hopefully this fixes bug 189</li>
+	<li>ash: printf builtin with no arguments should not exit</li>
+	<li>awk: fix long field separators case. By Ian Wienand (ianw AT vmware.com)</li>
+	<li>awk: in BEGIN section $0 should be "", not "0"</li>
+	<li>awk: make "struct global" hack more robust wrt alignment. Closes bug 131</li>
+	<li>brctl: fix compilation on 2.4.x kernels</li>
+	<li>chat: treat timeout more correctly</li>
+	<li>chat: recognize RECORD directive</li>
+	<li>cksum, printenv: report errors via exitcode</li>
+	<li>cpio: add -p, -0 and -L options</li>
+	<li>crond,crontab: make cron directory location configurable</li>
+	<li>crond: correct more of logfile to 0666 (as usual, umask allows user to remove unwanted bits)</li>
+	<li>crond: put tasks in separate process groups</li>
+	<li>dc: fix the "base 2" patch omission of base not being set</li>
+	<li>depmod: accept and ignore -r. Linux kernel build needs this</li>
+	<li>depmod: fix -b option. By timo.teras AT iki.fi</li>
+	<li>udhcpd,dumpleases: write and use 64-bit current time in lease file. without it, determination of remaining lease time is unreliable</li>
+	<li>udhcpd: remember and record hostnames</li>
+	<li>dhcprelay: fix usage text. Simplify and make code more readable</li>
+	<li>dumpleases: fix -a option; show hostnames</li>
+	<li>udhcpc: fix a problem where we don't open listening socket fast enough</li>
+	<li>udhcpc: stop filtering environment passed to the script</li>
+	<li>udhcpd: add code which rejects lease files with suspicious or old timestamp</li>
+	<li>udhcpd: disable opton to have absolute lease times in lease file (that does not work with dumpleases)</li>
+	<li>dnsd: fix a number of bugs. Ideas by Ming-Ching Tiew (mctiew AT yahoo.com)</li>
+	<li>dpkg: better and shorter code to compare versions. Taken from "official" dpkg by Eugene T. Bordenkircher (eugebo AT gmail.com)</li>
+	<li>du: fix "du /dir /dir" case</li>
+	<li>env: support -uVAR=VAL</li>
+	<li>expand: fix incorrect expansion exactly on tab boundary; shrink the code</li>
+	<li>expr: a bit more robust handling of regexps with groups. Closes bug 87</li>
+	<li>find: support --mindepth</li>
+	<li>getty: fix handling of speed 0; stop using non-portable way of setting speeds</li>
+	<li>grep: support -z</li>
+	<li>gzip: fix gzip -dc bug caused by using stale getopt state</li>
+	<li>head: report file open errors with exitcode 1 (was happily returning 0)</li>
+	<li>httpd: set $HOST to Host: header value. By Tobias Poschwatta (tp AT fonz.de)</li>
+	<li>ifupdown: allow options to udhcpc to be configurable from .config</li>
+	<li>init: do not eat last char in messages; do not print duplicate "init:" prefix to syslog</li>
+	<li>init: fix a bug where on reload order of entries might be wrong</li>
+	<li>init: major improvement in documentation and signal handling. Lots of nasty, but hard to trip, races are fixed</li>
+	<li>init: reinstate proper handling of !ENABLE_FEATURE_USE_INITTAB</li>
+	<li>init: remove wait loop on restart, it may be dangerous</li>
+	<li>init: test for vt terminal with VT_OPENQRY, assume that anything else is TERM=vt102, not TERM=linux. Closes bug 195</li>
+	<li>inotifyd: add x, o, and u events</li>
+	<li>inotifyd: fix buffer overflow and "unreaped zombies" problem</li>
+	<li>inotifyd: exit if x event happened for all files</li>
+	<li>inotifyd: conserve resourses by closing unused inotify descriptors</li>
+	<li>insmod/modprobe: do not pass NULL to kernel as module parameter</li>
+	<li>ip: in "ip rule add from all table 1", "all" is taken as 0.0.0.0/32, whereas "any" and "default" would be 0.0.0.0/0. They must be all 0.0.0.0/0. Closes bug 57</li>
+	<li>iproute: fix ipXXX utilities trying to parse their applet name as their 1st parameter</li>
+	<li>klogctl: fix a problem where we don't terminate read data with '\0' and then misinterpret it</li>
+	<li>ls: do not follow links with -s. Closes bug 33</li>
+	<li>ls: implement -Q and -g (-g was accepted but ignored)</li>
+	<li>ls: make readlink error to not disrupt output (try ls -l /proc/self/fd)</li>
+	<li>man: better check for duplicated MANPATH</li>
+	<li>mdev: add support for - ("dont stop here") char</li>
+	<li>mdev: if /sys/class/block exists, don't scan /sys/block</li>
+	<li>mdev: ignore events with "$SUBSYSTEM" == "firmware" &amp;&amp; "$ACTION" == "remove"</li>
+	<li>mdev: provide $SUBSYSTEM. By Vladimir</li>
+	<li>modprobe/insmod for 2.4: support compressed modules. By Guenter (lists AT gknw.net)</li>
+	<li>modprobe: emit "can't open 'modules.dep': (errno)" instead of "module not found"</li>
+	<li>modprobe: rework/speedup by Timo Teras (timo.teras AT iki.fi)</li>
+	<li>modutils-24: fix bad interaction of xzalloc with xrealloc_vector</li>
+	<li>mount: support "-O option"</li>
+	<li>mount: stop trying to mount swap partitions</li>
+	<li>mount: fix CIFS support</li>
+	<li>mountpoint: add -n option. By Vladimir</li>
+	<li>nslookup: allow usage of IPv6 addresses or hostnames for DNS server name; allow for port specification. Tested to work: "nslookup google.com [::1]:5353". glibc + IPv6 address of DNS server still does not work</li>
+	<li>popmaildir: fix several grave bugs with using memory past end of malloc block</li>
+	<li>printf: fix 1.12.0 breakage (from %*d fix), it was misinterpreting "*"</li>
+	<li>printf: make integer format strings print long long-sized values</li>
+	<li>rmmod: fix bug 263 "modutils/rmmod can't remove modules with dash in name on 2.4 kernels"</li>
+	<li>sendmail: document and fix usage of fd #4, fix check for helper failure</li>
+	<li>sendmail: update by Vladimir</li>
+	<li>seq: add -w support. By Natanael Copa</li>
+	<li>seq: add support for "-s separator"</li>
+	<li>stat: make stat -f show filesystem "ID:" as coreutils does</li>
+	<li>sysctl: fix another corner case with "dots and slashes"</li>
+	<li>sysctl: fix broken -p [file]. Closes bug 231</li>
+	<li>sysctl: support recursing if name is a directory: "sysctl net.ipv4.conf". Patch by xmaks AT email.cz</li>
+	<li>syslogd: comment out file locking; make signal handling syncronous</li>
+	<li>syslogd: create logfile with 0666 (affected by umask as usual), not 0600</li>
+	<li>tail: fix tail +N syntax not working. Closes bug 221</li>
+	<li>tar: do not change new tarfile's mode, GNU tar doesn't do it</li>
+	<li>tar: support GNU tar's "base256" encoding</li>
+	<li>telnetd: correctly output 0xff char</li>
+	<li>telnetd: do not advertise TELNET_LFLOW, we do not support it properly</li>
+	<li>tftp: when we infer local name from remote (-r [/]path/path/file), strip path. This mimics wget and is generally more intuitive</li>
+	<li>timeout: fix parsing of -t NUM on MMU</li>
+	<li>top: make it work again on 2.4 kernels. Closes bug 125</li>
+	<li>tr: fix overflow in expand and complement, fix stop after [:class:]</li>
+	<li>tr: support -C as synonym to -c</li>
+	<li>tr: support [:xdigit:], fix handling of ranges and [x]'s</li>
+	<li>traceroute: rewrite. Do not emit raw IP packets, instead send UDP or ICMP packets and rely on the kernel to form IP headers, select source IP and interface</li>
+	<li>uname: add support for -i and -o, fix printing of unknown -p value with -a option</li>
+	<li>uname: support long options</li>
+	<li>unexpand: fix incorrect expansion</li>
+	<li>unzip: fix thinko with le/be conv and size. Closes bug 129</li>
+	<li>vi: fix several instances of major goof: when text grows, text[] might get reallocated! We were keeping around pointers to old place</li>
+	<li>vi: speedup and code shrink. By Walter Harms</li>
+	<li>volume_id: abort early on read failures. Should help with probing missing fdd's</li>
+	<li>volumeid: fix bug 249 "findfs finds the wrong partition"</li>
+	<li>wget: --post-data support. By Harald Kuthe (harald-tuxbox AT arcor.de)</li>
+	<li>wget: fix --header handling</li>
+	<li>wget: more robust EINTR detection</li>
+      </ul>
+    </p>
+
   <li><b>8 March 2009 -- BusyBox 1.13.3 (stable)</b>
     <p><a href="http://busybox.net/downloads/busybox-1.13.3.tar.bz2">BusyBox 1.13.3</a>.
     (<a href="http://sources.busybox.net/index.py/branches/busybox_1_13_stable/">svn</a>,

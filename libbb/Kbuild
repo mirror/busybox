@@ -122,6 +122,7 @@ lib-$(CONFIG_LOSETUP) += loop.o
 lib-$(CONFIG_FEATURE_MTAB_SUPPORT) += mtab.o
 lib-$(CONFIG_ADDGROUP) += update_passwd.o
 lib-$(CONFIG_ADDUSER) += update_passwd.o
+lib-$(CONFIG_DELGROUP) += update_passwd.o
 lib-$(CONFIG_DELUSER) += update_passwd.o
 lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CHPASSWD) += pw_encrypt.o update_passwd.o
