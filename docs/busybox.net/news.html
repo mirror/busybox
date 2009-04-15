@@ -82,7 +82,7 @@
 	<li>brctl: fix compilation on 2.4.x kernels</li>
 	<li>chat: treat timeout more correctly</li>
 	<li>chat: recognize RECORD directive</li>
-	<li>cksum, printenv: report errors via exitcode</li>
+	<li>cksum, head, printenv: report errors via exitcode</li>
 	<li>cpio: add -p, -0 and -L options</li>
 	<li>crond, crontab: make cron directory location configurable</li>
 	<li>crond: correct more of logfile to 0666 (as usual, umask allows user to remove unwanted bits)</li>
@@ -90,14 +90,12 @@
 	<li>dc: fix the "base 2" patch omission of base not being set</li>
 	<li>depmod: accept and ignore -r. Linux kernel build needs this</li>
 	<li>depmod: fix -b option. By timo.teras AT iki.fi</li>
-	<li>udhcpd, dumpleases: write and use 64-bit current time in lease file. Without it, determination of remaining lease time is unreliable</li>
-	<li>udhcpd: remember hostnames of clients</li>
-	<li>dumpleases: fix -a option</li>
-	<li>dumpleases: show hostnames</li>
 	<li>udhcpc: fix a problem where we don't open listening socket fast enough</li>
 	<li>udhcpc: stop filtering environment passed to the script</li>
-	<li>udhcpd: add code which rejects lease files with suspicious or old timestamp</li>
-	<li>udhcpd: disable opton to have absolute lease times in lease file (that does not work with dumpleases)</li>
+	<li>udhcpd: disable option to have absolute lease times in lease file (that does not work with dumpleases)</li>
+	<li>udhcpd: write 64-bit current time in lease file. Without it, determination of remaining lease time is unreliable</li>
+	<li>udhcpd: remember hostnames of clients</li>
+	<li>dumpleases: fix -a option, use recorded current time in lease file, show hostnames</li>
 	<li>dnsd: fix a number of bugs. Ideas by Ming-Ching Tiew (mctiew AT yahoo.com)</li>
 	<li>dpkg: better and shorter code to compare versions. Taken from "official" dpkg by Eugene T. Bordenkircher (eugebo AT gmail.com)</li>
 	<li>du: fix "du /dir /dir" case</li>
@@ -108,7 +106,6 @@
 	<li>getty: make speed 0 mean "don't change speed", stop using non-portable way of setting speeds</li>
 	<li>grep: support -z</li>
 	<li>gzip: fix gzip -dc bug caused by using stale getopt state</li>
-	<li>head: report file open errors with exitcode 1 (was happily returning 0)</li>
 	<li>httpd: set $HOST to Host: header value. By Tobias Poschwatta (tp AT fonz.de)</li>
 	<li>ifupdown: allow options to udhcpc to be configurable from .config</li>
 	<li>init: do not eat last char in messages; do not print duplicate "init:" prefix to syslog</li>
