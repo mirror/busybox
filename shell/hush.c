@@ -2461,11 +2461,15 @@ static void setup_heredoc(struct redir_struct *redir)
 	 * for the unsuspecting parent process. Child creates a grandchild
 	 * and exits before parent execs the process which consumes heredoc
 	 * (that exec happens after we return from this function) */
+#if !BB_MMU
+	to_free = NULL;
+#endif
 	pid = vfork();
 	if (pid < 0)
 		bb_perror_msg_and_die("vfork");
 	if (pid == 0) {
 		/* child */
+		disable_restore_tty_pgrp_on_exit();
 		pid = BB_MMU ? fork() : vfork();
 		if (pid < 0)
 			bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
@@ -2478,7 +2482,6 @@ static void setup_heredoc(struct redir_struct *redir)
 		_exit(0);
 #else
 		/* Delegate blocking writes to another process */
-		disable_restore_tty_pgrp_on_exit();
 		xmove_fd(pair.wr, STDOUT_FILENO);
 		re_execute_shell(&to_free, heredoc, NULL, NULL);
 #endif
