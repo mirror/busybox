@@ -56,7 +56,6 @@
  *      figure out what to do with backslash-newline
  *      continuation lines, both explicit and implicit - done?
  *      SIGHUP handling
- *      ^Z handling (and explain it in comments for mere humans)
  *      separate job control from interactiveness
  *      (testcase: booting with init=/bin/hush does not show prompt (2009-04))
  *
@@ -432,7 +431,6 @@ struct globals {
 	int last_jobid;
 	struct pipe *job_list;
 	struct pipe *toplevel_list;
-////	smallint ctrl_z_flag;
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -474,12 +472,6 @@ struct globals {
 	int debug_indent;
 #endif
 	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
-#if ENABLE_FEATURE_SH_STANDALONE
-	struct nofork_save_area nofork_save;
-#endif
-#if ENABLE_HUSH_JOB
-	sigjmp_buf toplevel_jb;
-#endif
 };
 #define G (*ptr_to_globals)
 /* Not #defining name to G.name - this quickly gets unwieldy
@@ -977,13 +969,14 @@ static void free_strings(char **strings)
  * SIGHUP (interactive):
  *    send SIGCONT to stopped jobs, send SIGHUP to all jobs and exit
  * SIGTTIN, SIGTTOU, SIGTSTP (if job control is on): ignore
- *    (note that ^Z is handled not by trapping SIGTSTP, but by seeing
- *    that all pipe members are stopped) (right?)
+ *    Note that ^Z is handled not by trapping SIGTSTP, but by seeing
+ *    that all pipe members are stopped. Try this in bash:
+ *    while :; do :; done - ^Z does not background it
+ *    (while :; do :; done) - ^Z backgrounds it
  * SIGINT (interactive): wait for last pipe, ignore the rest
  *    of the command line, show prompt. NB: ^C does not send SIGINT
  *    to interactive shell while shell is waiting for a pipe,
  *    since shell is bg'ed (is not in foreground process group).
- *    (check/expand this)
  *    Example 1: this waits 5 sec, but does not execute ls:
  *    "echo $$; sleep 5; ls -l" + "kill -INT <pid>"
  *    Example 2: this does not wait and does not execute ls:
@@ -3411,12 +3404,11 @@ static int run_pipe(struct pipe *pi)
 		if (i >= 0 && APPLET_IS_NOFORK(i)) {
 			rcode = setup_redirects(command, squirrel);
 			if (rcode == 0) {
-				save_nofork_data(&G.nofork_save);
 				new_env = expand_assignments(argv, command->assignment_cnt);
 				old_env = putenv_all_and_save_old(new_env);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 					argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet_prime(&G.nofork_save, i, argv_expanded);
+				rcode = run_nofork_applet(i, argv_expanded);
 			}
 			goto clean_up_and_ret;
 		}
@@ -3643,7 +3635,7 @@ static int run_list(struct pipe *pi)
 	smallint last_rword; /* ditto */
 #endif
 
-	debug_printf_exec("run_list start lvl %d\n", G.run_list_level + 1);
+	debug_printf_exec("run_list start lvl %d\n", G.run_list_level);
 	debug_enter();
 
 #if ENABLE_HUSH_LOOPS
@@ -3677,51 +3669,9 @@ static int run_list(struct pipe *pi)
 	 * in order to return, no direct "return" statements please.
 	 * This helps to ensure that no memory is leaked. */
 
-////TODO: ctrl-Z handling needs re-thinking and re-testing
-
 #if ENABLE_HUSH_JOB
-	/* Example of nested list: "while true; do { sleep 1 | exit 2; } done".
-	 * We are saving state before entering outermost list ("while...done")
-	 * so that ctrl-Z will correctly background _entire_ outermost list,
-	 * not just a part of it (like "sleep 1 | exit 2") */
-	if (++G.run_list_level == 1 && G_interactive_fd) {
-		if (sigsetjmp(G.toplevel_jb, 1)) {
-			/* ctrl-Z forked and we are parent; or ctrl-C.
-			 * Sighandler has longjmped us here */
-			signal(SIGINT, SIG_IGN);
-			signal(SIGTSTP, SIG_IGN);
-			/* Restore level (we can be coming from deep inside
-			 * nested levels) */
-			G.run_list_level = 1;
-#if ENABLE_FEATURE_SH_STANDALONE
-			if (G.nofork_save.saved) { /* if save area is valid */
-				debug_printf_jobs("exiting nofork early\n");
-				restore_nofork_data(&G.nofork_save);
-			}
+	G.run_list_level++;
 #endif
-////			if (G.ctrl_z_flag) {
-////				/* ctrl-Z has forked and stored pid of the child in pi->pid.
-////				 * Remember this child as background job */
-////				insert_bg_job(pi);
-////			} else {
-				/* ctrl-C. We just stop doing whatever we were doing */
-				bb_putchar('\n');
-////			}
-			USE_HUSH_LOOPS(loop_top = NULL;)
-			USE_HUSH_LOOPS(G.depth_of_loop = 0;)
-			rcode = 0;
-			goto ret;
-		}
-////		/* ctrl-Z handler will store pid etc in pi */
-////		G.toplevel_list = pi;
-////		G.ctrl_z_flag = 0;
-#if ENABLE_FEATURE_SH_STANDALONE
-		G.nofork_save.saved = 0; /* in case we will run a nofork later */
-#endif
-////		signal_SA_RESTART_empty_mask(SIGTSTP, handler_ctrl_z);
-////		signal(SIGINT, handler_ctrl_c);
-	}
-#endif /* JOB */
 
 #if HAS_KEYWORDS
 	rword = RES_NONE;
@@ -3967,18 +3917,7 @@ static int run_list(struct pipe *pi)
 	} /* for (pi) */
 
 #if ENABLE_HUSH_JOB
-////	if (G.ctrl_z_flag) {
-////		/* ctrl-Z forked somewhere in the past, we are the child,
-////		 * and now we completed running the list. Exit. */
-//////TODO: _exit?
-////		exit(rcode);
-////	}
- ret:
 	G.run_list_level--;
-////	if (!G.run_list_level && G_interactive_fd) {
-////		signal(SIGTSTP, SIG_IGN);
-////		signal(SIGINT, SIG_IGN);
-////	}
 #endif
 #if ENABLE_HUSH_LOOPS
 	if (loop_top)
