@@ -91,7 +91,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
  again_after_align:
 
-#if ENABLE_DESKTOP
+#if ENABLE_DESKTOP || ENABLE_FEATURE_TAR_AUTODETECT
 	/* to prevent misdetection of bz2 sig */
 	*(uint32_t*)(&tar) = 0;
 	i = full_read(archive_handle->src_fd, &tar, 512);
@@ -142,7 +142,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #if ENABLE_FEATURE_TAR_AUTODETECT
 		char FAST_FUNC (*get_header_ptr)(archive_handle_t *);
 
- USE_DESKTOP(autodetect:)
+ autodetect:
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If we see the magic, and it is the very first block,
 		 * we can switch to get_header_tar_gz/bz2/lzma().

@@ -223,13 +223,11 @@ void display_uuid_cache(void)
 char *get_devname_from_label(const char *spec)
 {
 	struct uuidCache_s *uc;
-	int spec_len = strlen(spec);
 
 	uuidcache_init();
 	uc = uuidCache;
 	while (uc) {
-// FIXME: empty label ("LABEL=") matches anything??!
-		if (uc->label[0] && strncmp(spec, uc->label, spec_len) == 0) {
+		if (uc->label[0] && strcmp(spec, uc->label) == 0) {
 			return xstrdup(uc->device);
 		}
 		uc = uc->next;

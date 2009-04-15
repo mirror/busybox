@@ -934,8 +934,10 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_read;
 		} else {
-			if (ENABLE_FEATURE_TAR_AUTODETECT && flags == O_RDONLY) {
-				get_header_ptr = get_header_tar;
+			if (ENABLE_FEATURE_TAR_AUTODETECT
+			 && get_header_ptr == get_header_tar
+			 && flags == O_RDONLY
+			) {
 				tar_handle->src_fd = open_zipped(tar_filename);
 				if (tar_handle->src_fd < 0)
 					bb_perror_msg_and_die("can't open '%s'", tar_filename);
