@@ -274,6 +274,7 @@ static void make_device(char *path, int delete)
 			if (major == root_major && minor == root_minor)
 				symlink(device_name, "root");
 #if ENABLE_FEATURE_MDEV_CONF
+			chmod(device_name, mode);
 			chown(device_name, ugid.uid, ugid.gid);
 # if ENABLE_FEATURE_MDEV_RENAME
 			if (alias) {

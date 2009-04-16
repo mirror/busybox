@@ -49,6 +49,18 @@ brw-rw-rw- 1 1 1 8,0 sda
 
 # continuing to use directory structure from prev test
 rm -rf mdev.testdir/dev/*
+echo "-.* 1:1 666" >mdev.testdir/etc/mdev.conf
+echo "sda 2:2 444" >>mdev.testdir/etc/mdev.conf
+testing "mdev does not stop on dash-rule" \
+	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -ln mdev.testdir/dev | $FILTER_LS" \
+"\
+br--r--r-- 1 2 2 8,0 sda
+" \
+	"" ""
+
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
 echo "sda 0:0 444 >disk/scsiA" >mdev.testdir/etc/mdev.conf
 testing "mdev move/symlink rule '>bar/baz'" \
 	"env - PATH=$PATH ACTION=add DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
