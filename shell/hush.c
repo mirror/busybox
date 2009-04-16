@@ -51,6 +51,7 @@
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
  *      change { and } from special chars to reserved words
+ *      $var refs in function do not pick up values set by "var=val func"
  *      builtins: return, ulimit
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
