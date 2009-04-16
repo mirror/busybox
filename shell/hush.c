@@ -4154,6 +4154,8 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
 	}
 	return NULL;
 }
+/* Return 0: not a keyword, 1: keyword
+ */
 static int reserved_word(o_string *word, struct parse_context *ctx)
 {
 #if ENABLE_HUSH_CASE
@@ -4163,6 +4165,8 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 #endif
 	const struct reserved_combo *r;
 
+	if (word->o_quoted)
+		return 0;
 	r = match_reserved_word(word);
 	if (!r)
 		return 0;
@@ -4177,13 +4181,14 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 	if (r->flag == 0) { /* '!' */
 		if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
 			syntax_error("! ! command");
-			IF_HAS_KEYWORDS(ctx->ctx_res_w = RES_SNTX;)
+			ctx->ctx_res_w = RES_SNTX;
 		}
 		ctx->ctx_inverted = 1;
 		return 1;
 	}
 	if (r->flag & FLAG_START) {
 		struct parse_context *old;
+
 		old = xmalloc(sizeof(*old));
 		debug_printf_parse("push stack %p\n", old);
 		*old = *ctx;   /* physical copy */
@@ -4193,11 +4198,21 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		syntax_error_at(word->data);
 		ctx->ctx_res_w = RES_SNTX;
 		return 1;
+	} else {
+		/* "{...} fi" is ok. "{...} if" is not
+		 * Example:
+		 * if { echo foo; } then { echo bar; } fi */
+		if (ctx->command->group)
+			done_pipe(ctx, PIPE_SEQ);
 	}
+
 	ctx->ctx_res_w = r->res;
 	ctx->old_flag = r->flag;
+	word->o_assignment = r->assignment_flag;
+
 	if (ctx->old_flag & FLAG_END) {
 		struct parse_context *old;
+
 		done_pipe(ctx, PIPE_SEQ);
 		debug_printf_parse("pop stack %p\n", ctx->stack);
 		old = ctx->stack;
@@ -4213,7 +4228,6 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		*ctx = *old;   /* physical copy */
 		free(old);
 	}
-	word->o_assignment = r->assignment_flag;
 	return 1;
 }
 #endif
@@ -4273,19 +4287,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			word->o_assignment = MAYBE_ASSIGNMENT;
 		}
 
-		if (command->group) {
-			/* "{ echo foo; } echo bar" - bad */
-			/* NB: bash allows e.g.:
-			 * if true; then { echo foo; } fi
-			 * while if false; then false; fi do break; done
-			 * and disallows:
-			 * while if false; then false; fi; do; break; done
-			 * TODO? */
-			syntax_error_at(word->data);
-			debug_printf_parse("done_word return 1: syntax error, "
-					"groups and arglists don't mix\n");
-			return 1;
-		}
 #if HAS_KEYWORDS
 # if ENABLE_HUSH_CASE
 		if (ctx->ctx_dsemicolon
@@ -4311,6 +4312,13 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			}
 		}
 #endif
+		if (command->group) {
+			/* "{ echo foo; } echo bar" - bad */
+			syntax_error_at(word->data);
+			debug_printf_parse("done_word return 1: syntax error, "
+					"groups and arglists don't mix\n");
+			return 1;
+		}
 		if (word->o_quoted /* word had "xx" or 'xx' at least as part of it. */
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
@@ -4720,7 +4728,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 #if ENABLE_HUSH_FUNCTIONS
 	if (ch == '(' && !dest->o_quoted) {
 		if (dest->length)
-			done_word(dest, ctx);
+			if (done_word(dest, ctx))
+				return 1;
 		if (!command->argv)
 			goto skip; /* (... */
 		if (command->argv[1]) { /* word word ... (... */
@@ -4778,10 +4787,10 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 #endif
 		/* empty ()/{} or parse error? */
 		if (!pipe_list || pipe_list == ERR_PTR) {
+			/* parse_stream already emitted error msg */
 #if !BB_MMU
 			free(as_string);
 #endif
-			syntax_error(NULL);
 			debug_printf_parse("parse_group return 1: "
 				"parse_stream returned %p\n", pipe_list);
 			return 1;

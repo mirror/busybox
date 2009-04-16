@@ -1,5 +1,5 @@
 if test $# = 0; then
-    #BUG in builtin_exec! will glob param!
+    # UNFIXED BUG in builtin_exec! will glob param!
     #exec "$THIS_SH" "$0" 'param_glob.t*'
     "$THIS_SH" "$0" 'param_glob.t*'
     exit
