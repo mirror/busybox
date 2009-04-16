@@ -90,11 +90,14 @@ static void make_device(char *path, int delete)
 	device_name = bb_basename(path);
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
-	 * But since 2.6.25 block devices are also in /sys/class/block.
-	 * We use strstr("/block/") to forestall future surprises. */
+	 * But since 2.6.25 block devices are also in /sys/class/block,
+	 * we use strstr("/block/") to forestall future surprises. */
 	type = S_IFCHR;
 	if (strstr(path, "/block/"))
 		type = S_IFBLK;
+
+	/* Make path point to subsystem/device_name */
+	path += sizeof("/sys/class/") - 1;
 
 #if !ENABLE_FEATURE_MDEV_CONF
 	mode = 0660;
@@ -102,9 +105,9 @@ static void make_device(char *path, int delete)
 	/* If we have config file, look up user settings */
 	parser = config_open2("/etc/mdev.conf", fopen_for_read);
 	while (1) {
-		regmatch_t off[1 + 9*ENABLE_FEATURE_MDEV_RENAME_REGEXP];
+		regmatch_t off[1 + 9 * ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 		int keep_matching;
-		char *val;
+		char *val, *name;
 		struct bb_uidgid_t ugid;
 		char *tokens[4];
 # if ENABLE_FEATURE_MDEV_EXEC
@@ -128,6 +131,10 @@ static void make_device(char *path, int delete)
 		keep_matching = ('-' == val[0]);
 		val += keep_matching; /* swallow leading dash */
 
+		/* Match against either subsystem/device_name
+		 * or device_name alone */
+		name = strchr(val, '/') ? path : (char *) device_name;
+
 		/* Fields: regex uid:gid mode [alias] [cmd] */
 
 		/* 1st field: @<numeric maj,min>... */
@@ -149,15 +156,10 @@ static void make_device(char *path, int delete)
 		} else { /* ... or regex to match device name */
 			regex_t match;
 			int result;
-			const char *dev_name_or_subsystem = device_name;
-			if ('/' == val[0] && subsystem) {
-				dev_name_or_subsystem = subsystem;
-				val++;
-			}
 
 			/* Is this it? */
 			xregcomp(&match, val, REG_EXTENDED);
-			result = regexec(&match, dev_name_or_subsystem, ARRAY_SIZE(off), off, 0);
+			result = regexec(&match, name, ARRAY_SIZE(off), off, 0);
 			regfree(&match);
 
 			//bb_error_msg("matches:");
@@ -171,7 +173,7 @@ static void make_device(char *path, int delete)
 			/* If not this device, skip rest of line */
 			/* (regexec returns whole pattern as "range" 0) */
 			if (result || off[0].rm_so
-			 || ((int)off[0].rm_eo != (int)strlen(dev_name_or_subsystem))
+			 || ((int)off[0].rm_eo != (int)strlen(name))
 			) {
 				continue; /* this line doesn't match */
 			}
@@ -214,7 +216,7 @@ static void make_device(char *path, int delete)
 				if (*s++ == '%')
 					n++;
 
-			p = alias = xzalloc(strlen(a) + n * strlen(device_name));
+			p = alias = xzalloc(strlen(a) + n * strlen(name));
 			s = a + 1;
 			while (*s) {
 				*p = *s;
@@ -222,7 +224,7 @@ static void make_device(char *path, int delete)
 					i = (s[1] - '0');
 					if (i <= 9 && off[i].rm_so >= 0) {
 						n = off[i].rm_eo - off[i].rm_so;
-						strncpy(p, device_name + off[i].rm_so, n);
+						strncpy(p, name + off[i].rm_so, n);
 						p += n - 1;
 						s++;
 					}
