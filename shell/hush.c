@@ -319,6 +319,10 @@ struct command {
  */
 	struct redir_struct *redirects; /* I/O redirections */
 };
+/* Is there anything in this command at all? */
+#define IS_NULL_CMD(cmd) \
+	(!(cmd)->group && !(cmd)->argv && !(cmd)->redirects)
+
 
 struct pipe {
 	struct pipe *next;
@@ -341,6 +345,9 @@ typedef enum pipe_style {
 	PIPE_OR  = 3,
 	PIPE_BG  = 4,
 } pipe_style;
+/* Is there anything in this pipe at all? */
+#define IS_NULL_PIPE(pi) \
+	((pi)->num_cmds == 0 IF_HAS_KEYWORDS( && (pi)->res_word == RES_NONE))
 
 /* This holds pointers to the various results of parsing */
 struct parse_context {
@@ -3971,8 +3978,10 @@ static struct pipe *new_pipe(void)
 	return pi;
 }
 
-/* Command (member of a pipe) is complete. The only possible error here
- * is out of memory, in which case xmalloc exits. */
+/* Command (member of a pipe) is complete, or we start a new pipe
+ * if ctx->command is NULL.
+ * No errors possible here.
+ */
 static int done_command(struct parse_context *ctx)
 {
 	/* The command is really already in the pipe structure, so
@@ -3981,13 +3990,9 @@ static int done_command(struct parse_context *ctx)
 	struct command *command = ctx->command;
 
 	if (command) {
-		if (command->group == NULL
-		 && command->argv == NULL
-		 && command->redirects == NULL
-		) {
+		if (IS_NULL_CMD(command)) {
 			debug_printf_parse("done_command: skipping null cmd, num_cmds=%d\n", pi->num_cmds);
-			memset(command, 0, sizeof(*command)); /* paranoia */
-			return pi->num_cmds;
+			goto clear_and_ret;
 		}
 		pi->num_cmds++;
 		debug_printf_parse("done_command: ++num_cmds=%d\n", pi->num_cmds);
@@ -3999,12 +4004,9 @@ static int done_command(struct parse_context *ctx)
 	/* Only real trickiness here is that the uncommitted
 	 * command structure is not counted in pi->num_cmds. */
 	pi->cmds = xrealloc(pi->cmds, sizeof(*pi->cmds) * (pi->num_cmds+1));
-	command = &pi->cmds[pi->num_cmds];
+	ctx->command = command = &pi->cmds[pi->num_cmds];
+ clear_and_ret:
 	memset(command, 0, sizeof(*command));
-
-	ctx->command = command;
-	/* but ctx->pipe and ctx->list_head remain unchanged */
-
 	return pi->num_cmds; /* used only for 0/nonzero check */
 }
 
@@ -4024,9 +4026,7 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 
 	/* Without this check, even just <enter> on command line generates
 	 * tree of three NOPs (!). Which is harmless but annoying.
-	 * IOW: it is safe to do it unconditionally.
-	 * RES_NONE case is for "for a in; do ..." (empty IN set)
-	 * and other cases to work. */
+	 * IOW: it is safe to do it unconditionally. */
 	if (not_null
 #if ENABLE_HUSH_IF
 	 || ctx->ctx_res_w == RES_FI
@@ -4048,7 +4048,7 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 		ctx->pipe->next = new_p;
 		ctx->pipe = new_p;
 		/* RES_THEN, RES_DO etc are "sticky" -
-		 * they remain set for commands inside if/while.
+		 * they remain set for pipes inside if/while.
 		 * This is used to control execution.
 		 * RES_FOR and RES_IN are NOT sticky (needed to support
 		 * cases where variable or value happens to match a keyword):
@@ -4304,7 +4304,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 && ctx->ctx_res_w != RES_IN
 # endif
 		) {
-			debug_printf_parse(": checking '%s' for reserved-ness\n", word->data);
+			debug_printf_parse("checking '%s' for reserved-ness\n", word->data);
 			if (reserved_word(word, ctx)) {
 				o_reset_to_empty_unquoted(word);
 				debug_printf_parse("done_word return %d\n",
@@ -4775,6 +4775,14 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	if (ch == '(') {
 		endch = ')';
 		command->grp_type = GRP_SUBSHELL;
+	} else {
+		/* bash does not allow "{echo...", requires whitespace */
+		ch = i_getch(input);
+		if (ch != ' ' && ch != '\t' && ch != '\n') {
+			syntax_error_unexpected_ch(ch);
+			return 1;
+		}
+		nommu_addchr(&ctx->as_string, ch);
 	}
 
 	{
@@ -5352,11 +5360,9 @@ static struct pipe *parse_stream(char **pstring,
 		if (end_trigger && end_trigger == ch
 		 && (heredoc_cnt == 0 || end_trigger != ';')
 		) {
-//TODO: disallow "{ cmd }" without semicolon
 			if (heredoc_cnt) {
 				/* This is technically valid:
 				 * { cat <<HERE; }; echo Ok
-				 * heredoc
 				 * heredoc
 				 * heredoc
 				 * HERE
@@ -5368,6 +5374,15 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
+				goto parse_error;
+			}
+			/* Disallow "{ cmd }" without semicolon or & */
+			//debug_printf_parse("null pi %d\n", IS_NULL_PIPE(ctx.pipe))
+			//debug_printf_parse("null cmd %d\n", IS_NULL_CMD(ctx.command))
+			if (ch == '}'
+			 && !(IS_NULL_PIPE(ctx.pipe) && IS_NULL_CMD(ctx.command))
+			) {
+				syntax_error_unexpected_ch(ch);
 				goto parse_error;
 			}
 			done_pipe(&ctx, PIPE_SEQ);
