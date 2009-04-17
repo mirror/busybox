@@ -444,6 +444,13 @@ struct globals {
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
 #endif
+#if ENABLE_HUSH_FUNCTIONS
+	/* 0: outside of a function (or sourced file)
+	 * -1: inside of a function, ok to use return builtin
+	 * 1: return is invoked, skip all till end of func.
+	 */
+	smallint flag_return_in_progress;
+#endif
 	smallint fake_mode;
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
@@ -522,6 +529,9 @@ static int builtin_wait(char **argv);
 static int builtin_break(char **argv);
 static int builtin_continue(char **argv);
 #endif
+#if ENABLE_HUSH_FUNCTIONS
+static int builtin_return(char **argv);
+#endif
 
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
@@ -575,7 +585,9 @@ static const struct built_in_command bltins[] = {
 #endif
 	BLTIN("pwd"     , builtin_pwd     , "Print current directory"),
 	BLTIN("read"    , builtin_read    , "Input environment variable"),
-//	BLTIN("return"  , builtin_return  , "Return from a function"),
+#if ENABLE_HUSH_FUNCTIONS
+	BLTIN("return"  , builtin_return  , "Return from a function"),
+#endif
 	BLTIN("set"     , builtin_set     , "Set/unset shell local variables"),
 	BLTIN("shift"   , builtin_shift   , "Shift positional parameters"),
 	BLTIN("test"    , builtin_test    , "Test condition"),
@@ -2849,9 +2861,14 @@ static void exec_function(nommu_save_t *nommu_save,
 static int run_function(const struct function *funcp, char **argv)
 {
 	int rc;
+	smallint sv_flg;
 	save_arg_t sv;
 
 	save_and_replace_G_args(&sv, argv);
+	/* "we are in function, ok to use return" */
+	sv_flg = G.flag_return_in_progress;
+	G.flag_return_in_progress = -1;
+
 	/* On MMU, funcp->body is always non-NULL */
 #if !BB_MMU
 	if (!funcp->body) {
@@ -2863,6 +2880,8 @@ static int run_function(const struct function *funcp, char **argv)
 	{
 		rc = run_list(funcp->body);
 	}
+
+	G.flag_return_in_progress = sv_flg;
 	restore_G_args(&sv, argv);
 
 	return rc;
@@ -3886,7 +3905,8 @@ static int run_list(struct pipe *pi)
 #endif
 			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
 			if (r != -1) {
-				/* We only ran a builtin: rcode is already known
+				/* We ran a builtin, function, or group.
+				 * rcode is already known
 				 * and we don't need to wait for anything. */
 				G.last_exitcode = rcode;
 				debug_printf_exec(": builtin/func exitcode %d\n", rcode);
@@ -3909,6 +3929,10 @@ static int run_list(struct pipe *pi)
 					rword = RES_DONE;
 					continue;
 				}
+#endif
+#if ENABLE_HUSH_FUNCTIONS
+				if (G.flag_return_in_progress == 1)
+					goto check_jobs_and_break;
 #endif
 			} else if (pi->followup == PIPE_BG) {
 				/* What does bash do with attempts to background builtins? */
@@ -6675,6 +6699,7 @@ static int builtin_shift(char **argv)
 static int builtin_source(char **argv)
 {
 	FILE *input;
+	smallint sv_flg;
 	save_arg_t sv;
 
 	if (*++argv == NULL)
@@ -6688,11 +6713,16 @@ static int builtin_source(char **argv)
 	}
 	close_on_exec_on(fileno(input));
 
-	/* Now run the file */
+	sv_flg = G.flag_return_in_progress;
+	/* "we are inside sourced file, ok to use return" */
+	G.flag_return_in_progress = -1;
 	save_and_replace_G_args(&sv, argv);
+
 	parse_and_run_file(input);
-	restore_G_args(&sv, argv);
 	fclose(input);
+
+	restore_G_args(&sv, argv);
+	G.flag_return_in_progress = sv_flg;
 
 	return G.last_exitcode;
 }
@@ -6833,25 +6863,36 @@ static int builtin_wait(char **argv)
 	return ret;
 }
 
+#if ENABLE_HUSH_LOOPS || ENABLE_HUSH_FUNCTIONS
+static unsigned parse_numeric_argv1(char **argv, unsigned def, unsigned def_min)
+{
+	if (argv[1]) {
+		def = bb_strtou(argv[1], NULL, 10);
+		if (errno || def < def_min || argv[2]) {
+			bb_error_msg("%s: bad arguments", argv[0]);
+			def = UINT_MAX;
+		}
+	}
+	return def;
+}
+#endif
+
 #if ENABLE_HUSH_LOOPS
 static int builtin_break(char **argv)
 {
+	unsigned depth;
 	if (G.depth_of_loop == 0) {
 		bb_error_msg("%s: only meaningful in a loop", argv[0]);
 		return EXIT_SUCCESS; /* bash compat */
 	}
 	G.flag_break_continue++; /* BC_BREAK = 1 */
-	G.depth_break_continue = 1;
-	if (argv[1]) {
-		G.depth_break_continue = bb_strtou(argv[1], NULL, 10);
-		if (errno || !G.depth_break_continue || argv[2]) {
-			bb_error_msg("%s: bad arguments", argv[0]);
-			G.flag_break_continue = BC_BREAK;
-			G.depth_break_continue = UINT_MAX;
-		}
-	}
-	if (G.depth_of_loop < G.depth_break_continue)
+
+	G.depth_break_continue = depth = parse_numeric_argv1(argv, 1, 1);
+	if (depth == UINT_MAX)
+		G.flag_break_continue = BC_BREAK;
+	if (G.depth_of_loop < depth)
 		G.depth_break_continue = G.depth_of_loop;
+
 	return EXIT_SUCCESS;
 }
 
@@ -6859,5 +6900,29 @@ static int builtin_continue(char **argv)
 {
 	G.flag_break_continue = 1; /* BC_CONTINUE = 2 = 1+1 */
 	return builtin_break(argv);
+}
+#endif
+
+#if ENABLE_HUSH_FUNCTIONS
+static int builtin_return(char **argv UNUSED_PARAM)
+{
+	int rc;
+
+	if (G.flag_return_in_progress != -1) {
+		bb_error_msg("%s: not in a function or sourced script", argv[0]);
+		return EXIT_FAILURE; /* bash compat */
+	}
+
+	G.flag_return_in_progress = 1;
+
+	/* bash:
+	 * out of range: wraps around at 256, does not error out
+	 * non-numeric param:
+	 * f() { false; return qwe; }; f; echo $?
+	 * bash: return: qwe: numeric argument required  <== we do this
+	 * 255  <== we also do this
+	 */
+	rc = parse_numeric_argv1(argv, G.last_exitcode, 0);
+	return rc;
 }
 #endif
