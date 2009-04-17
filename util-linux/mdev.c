@@ -10,6 +10,41 @@
 #include "libbb.h"
 #include "xregex.h"
 
+/* "mdev -s" scans /sys/class/xxx, looking for directories which have dev
+ * file (it is of the form "M:m\n"). Example: /sys/class/tty/tty0/dev
+ * contains "4:0\n". Directory name is taken as device name, path component
+ * directly after /sys/class/ as subsystem. In this example, "tty0" and "tty".
+ * Then mdev creates the /dev/device_name node.
+ *
+ * mdev w/o parameters is called as hotplug helper. It takes device
+ * and subsystem names from $DEVPATH and $SUBSYSTEM, extracts
+ * maj,min from "/sys/$DEVPATH/dev" and also examines
+ * $ACTION ("add"/"delete") and $FIRMWARE.
+ *
+ * If action is "add", mdev creates /dev/device_name similarly to mdev -s.
+ * (todo: explain "delete" and $FIRMWARE)
+ *
+ * If /etc/mdev.conf exists, it may modify /dev/device_name's properties.
+ * /etc/mdev.conf file format:
+ *
+ * [-][subsystem/]device  user:grp  mode  [>|=path] [@|$|*command args...]
+ * [-]@maj,min[-min2]     user:grp  mode  [>|=path] [@|$|*command args...]
+ *
+ * The device name or "subsystem/device" combo is matched against 1st field
+ * (which is a regex), or maj,min is matched against 1st field.
+ *
+ * Leading minus in 1st field means "don't stop on this line", otherwise
+ * search is stopped after the matching line is encountered.
+ *
+ * When line matches, the device node is created, chmod'ed and chown'ed.
+ * Then it moved to path, and if >path, a symlink to moved node is created
+ *    Examples:
+ *    =loop/      - moves to /dev/loop
+ *    >disk/sda%1 - moves to /dev/disk/sdaN, makes /dev/sdaN a symlink
+ * Then "command args" is executed (via sh -c 'command args').
+ * @:execute on creation, $:on deletion, *:on both.
+ */
+
 struct globals {
 	int root_major, root_minor;
 	char *subsystem;
@@ -96,8 +131,11 @@ static void make_device(char *path, int delete)
 	if (strstr(path, "/block/"))
 		type = S_IFBLK;
 
-	/* Make path point to subsystem/device_name */
-	path += sizeof("/sys/class/") - 1;
+	/* Make path point to "subsystem/device_name" */
+	if (path[5] == 'b') /* legacy /sys/block? */
+		path += sizeof("/sys/") - 1;
+	else
+		path += sizeof("/sys/class/") - 1;
 
 #if !ENABLE_FEATURE_MDEV_CONF
 	mode = 0660;
@@ -131,8 +169,8 @@ static void make_device(char *path, int delete)
 		keep_matching = ('-' == val[0]);
 		val += keep_matching; /* swallow leading dash */
 
-		/* Match against either subsystem/device_name
-		 * or device_name alone */
+		/* Match against either "subsystem/device_name"
+		 * or "device_name" alone */
 		name = strchr(val, '/') ? path : (char *) device_name;
 
 		/* Fields: regex uid:gid mode [alias] [cmd] */
