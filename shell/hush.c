@@ -1022,6 +1022,15 @@ static void free_strings(char **strings)
  * are to count SIGCHLDs [disabled - bug somewhere, + bloat]
  * and to restore tty pgrp on signal-induced exit.
  */
+enum {
+	SPECIAL_INTERACTIVE_SIGS = 0
+#if ENABLE_HUSH_JOB
+		| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
+#endif
+		| (1 << SIGTERM)
+//TODO		| (1 << SIGHUP)
+		| (1 << SIGINT)
+};
 
 //static void SIGCHLD_handler(int sig UNUSED_PARAM)
 //{
@@ -1059,6 +1068,8 @@ static int check_and_run_traps(int sig)
 //			G.count_SIGCHLD++;
 //			break;
 		case SIGINT:
+//TODO: add putchar('\n') also when we detect that child was killed (sleep 5 + ^C)
+			/* Builtin was ^C'ed, make it look prettier: */
 			bb_putchar('\n');
 			G.flag_SIGINT = 1;
 			break;
@@ -2284,37 +2295,46 @@ void re_execute_shell(char ***to_free, const char *s, char *argv0, char **argv);
 
 static void reset_traps_to_defaults(void)
 {
-	enum {
-		JOBSIGS = (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
-	};
-	unsigned sig;
-
-	if (!G.traps && !(G.non_DFL_mask & JOBSIGS))
-		return;
-
-	/* This function is always called in a child shell.
+	/* This function is always called in a child shell
+	 * after fork (not vfork, NOMMU doesn't use this function).
 	 * Child shells are not interactive.
 	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
 	 * Testcase: (while :; do :; done) + ^Z should background.
+	 * Same goes for SIGTERM, SIGHUP, SIGINT.
 	 */
-	G.non_DFL_mask &= ~JOBSIGS;
-	sigdelset(&G.blocked_set, SIGTTIN);
-	sigdelset(&G.blocked_set, SIGTTOU);
-	sigdelset(&G.blocked_set, SIGTSTP);
+	unsigned sig;
+	unsigned mask;
 
-	if (G.traps) for (sig = 0; sig < NSIG; sig++) {
-		if (!G.traps[sig]) {
+	if (!G.traps && !(G.non_DFL_mask & SPECIAL_INTERACTIVE_SIGS))
+		return;
+
+	/* Stupid. It can be done with *single* &= op, but we can't use
+	 * the fact that G.blocked_set is implemented as a bitmask... */
+	mask = (SPECIAL_INTERACTIVE_SIGS >> 1);
+	sig = 1;
+	while (1) {
+		if (mask & 1)
+			sigdelset(&G.blocked_set, sig);
+		mask >>= 1;
+		if (!mask)
+			break;
+		sig++;
+	}
+
+	G.non_DFL_mask &= ~SPECIAL_INTERACTIVE_SIGS;
+	mask = G.non_DFL_mask;
+	if (G.traps) for (sig = 0; sig < NSIG; sig++, mask >>= 1) {
+		if (!G.traps[sig])
 			continue;
-		}
 		free(G.traps[sig]);
 		G.traps[sig] = NULL;
 		/* There is no signal for 0 (EXIT) */
 		if (sig == 0)
 			continue;
-		/* there was a trap handler, we are removing it
-		 * (if sig has non-DFL handling,
-		 * we don't need to do anything) */
-		if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+		/* There was a trap handler, we are removing it.
+		 * But if sig still has non-DFL handling,
+		 * we should not unblock it. */
+		if (mask & 1)
 			continue;
 		sigdelset(&G.blocked_set, sig);
 	}
@@ -5740,17 +5760,8 @@ static void block_signals(int second_time)
 	unsigned mask;
 
 	mask = (1 << SIGQUIT);
-	if (G_interactive_fd) {
-		mask = 0
-			| (1 << SIGQUIT)
-			| (1 << SIGTERM)
-//TODO			| (1 << SIGHUP)
-#if ENABLE_HUSH_JOB
-			| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
-#endif
-			| (1 << SIGINT)
-		;
-	}
+	if (G_interactive_fd)
+		mask = (1 << SIGQUIT) | SPECIAL_INTERACTIVE_SIGS;
 	G.non_DFL_mask = mask;
 
 	if (!second_time)
