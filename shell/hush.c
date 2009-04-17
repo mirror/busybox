@@ -6904,7 +6904,7 @@ static int builtin_continue(char **argv)
 #endif
 
 #if ENABLE_HUSH_FUNCTIONS
-static int builtin_return(char **argv UNUSED_PARAM)
+static int builtin_return(char **argv)
 {
 	int rc;
 
