@@ -939,6 +939,52 @@ static void free_strings(char **strings)
 }
 
 
+/* Helpers for setting new $n and restoring them back
+ */
+typedef struct save_arg_t {
+	char *sv_argv0;
+	char **sv_g_argv;
+	int sv_g_argc;
+	smallint sv_g_malloced;
+} save_arg_t;
+
+static void save_and_replace_G_args(save_arg_t *sv, char **argv)
+{
+	int n;
+
+	sv->sv_argv0 = argv[0];
+	sv->sv_g_argv = G.global_argv;
+	sv->sv_g_argc = G.global_argc;
+	sv->sv_g_malloced = G.global_args_malloced;
+
+	argv[0] = G.global_argv[0]; /* retain $0 */
+	G.global_argv = argv;
+	G.global_args_malloced = 0;
+
+	n = 1;
+	while (*++argv)
+		n++;
+	G.global_argc = n;
+}
+
+static void restore_G_args(save_arg_t *sv, char **argv)
+{
+	char **pp;
+
+	if (G.global_args_malloced) {
+		/* someone ran "set -- arg1 arg2 ...", undo */
+		pp = G.global_argv;
+		while (*++pp) /* note: does not free $0 */
+			free(*pp);
+		free(G.global_argv);
+	}
+	argv[0] = sv->sv_argv0;
+	G.global_argv = sv->sv_g_argv;
+	G.global_argc = sv->sv_g_argc;
+	G.global_args_malloced = sv->sv_g_malloced;
+}
+
+
 /* Basic theory of signal handling in shell
  * ========================================
  * This does not describe what hush does, rather, it is current understanding
@@ -2802,54 +2848,24 @@ static void exec_function(nommu_save_t *nommu_save,
 
 static int run_function(const struct function *funcp, char **argv)
 {
-	int n;
-	char **pp;
-	char *sv_argv0;
-	smallint sv_g_malloced;
-	int sv_g_argc;
-	char **sv_g_argv;
+	int rc;
+	save_arg_t sv;
 
-	sv_argv0 = argv[0];
-	sv_g_malloced = G.global_args_malloced;
-	sv_g_argc = G.global_argc;
-	sv_g_argv = G.global_argv;
-
-	pp = argv;
-	n = 1;
-	while (*++pp)
-		n++;
-
-	argv[0] = G.global_argv[0]; /* retain $0 */
-	G.global_args_malloced = 0;
-	G.global_argc = n;
-	G.global_argv = argv;
-
+	save_and_replace_G_args(&sv, argv);
 	/* On MMU, funcp->body is always non-NULL */
 #if !BB_MMU
 	if (!funcp->body) {
 		/* Function defined by -F */
 		parse_and_run_string(funcp->body_as_string);
-		n = G.last_exitcode;
+		rc = G.last_exitcode;
 	} else
 #endif
 	{
-		n = run_list(funcp->body);
+		rc = run_list(funcp->body);
 	}
+	restore_G_args(&sv, argv);
 
-	if (G.global_args_malloced) {
-		/* function ran "set -- arg1 arg2 ..." */
-		pp = G.global_argv;
-		while (*++pp)
-			free(*pp);
-		free(G.global_argv);
-	}
-
-	argv[0] = sv_argv0;
-	G.global_args_malloced = sv_g_malloced;
-	G.global_argc = sv_g_argc;
-	G.global_argv = sv_g_argv;
-
-	return n;
+	return rc;
 }
 #endif
 
@@ -6659,6 +6675,7 @@ static int builtin_shift(char **argv)
 static int builtin_source(char **argv)
 {
 	FILE *input;
+	save_arg_t sv;
 
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
@@ -6672,11 +6689,11 @@ static int builtin_source(char **argv)
 	close_on_exec_on(fileno(input));
 
 	/* Now run the file */
-	/* TODO: argv and argc are broken; need to save old G.global_argv
-	 * (pointer only is OK!) on this stack frame,
-	 * set G.global_argv=argv+1, recurse, and restore. */
+	save_and_replace_G_args(&sv, argv);
 	parse_and_run_file(input);
+	restore_G_args(&sv, argv);
 	fclose(input);
+
 	return G.last_exitcode;
 }
 
