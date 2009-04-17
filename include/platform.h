@@ -173,7 +173,10 @@
 /* performs reasonably well (gcc usually inlines memcpy here) */
 #define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
 #define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
-#define move_to_unaligned32(u32p, v)   (memcpy((u32p), &(v), 4))
+#define move_to_unaligned32(u32p, v) do { \
+	uint32_t __t = (v); \
+	memcpy((u32p), &__t, 4); \
+} while (0)
 #endif
 
 /* ---- Networking ------------------------------------------ */
