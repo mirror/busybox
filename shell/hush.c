@@ -2863,7 +2863,7 @@ static int run_function(const struct function *funcp, char **argv)
 
 /* Called after [v]fork() in run_pipe, or from builtin_exec.
  * Never returns.
- * XXX no exit() here.  If you don't exec, use _exit instead.
+ * Don't exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
  * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
 static void pseudo_exec_argv(nommu_save_t *nommu_save,
@@ -3136,12 +3136,8 @@ static int checkjobs(struct pipe* fg_pipe)
  * [3]+  Stopped          sleep 20 | false
  * bash-3.00# echo $?
  * 1   <========== bg pipe is not fully done, but exitcode is already known!
+ * [hush 1.14.0: yes we do it right]
  */
-
-//FIXME: non-interactive bash does not continue even if all processes in fg pipe
-//are stopped. Testcase: "cat | cat" in a script (not on command line)
-// + killall -STOP cat
-
  wait_more:
 	while (1) {
 		int i;
@@ -3175,7 +3171,6 @@ static int checkjobs(struct pipe* fg_pipe)
 				debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
 				if (fg_pipe->cmds[i].pid != childpid)
 					continue;
-				/* printf("process %d exit %d\n", i, WEXITSTATUS(status)); */
 				if (dead) {
 					fg_pipe->cmds[i].pid = 0;
 					fg_pipe->alive_cmds--;
@@ -3191,12 +3186,17 @@ static int checkjobs(struct pipe* fg_pipe)
 				debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
 						fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
 				if (fg_pipe->alive_cmds - fg_pipe->stopped_cmds <= 0) {
-					/* All processes in fg pipe have exited/stopped */
+					/* All processes in fg pipe have exited or stopped */
+/* Note: *non-interactive* bash does not continue if all processes in fg pipe
+ * are stopped. Testcase: "cat | cat" in a script (not on command line!)
+ * and "killall -STOP cat" */
+					if (G_interactive_fd) {
 #if ENABLE_HUSH_JOB
-					if (fg_pipe->alive_cmds)
-						insert_bg_job(fg_pipe);
+						if (fg_pipe->alive_cmds)
+							insert_bg_job(fg_pipe);
 #endif
-					return rcode;
+						return rcode;
+					}
 				}
 				/* There are still running processes in the fg pipe */
 				goto wait_more; /* do waitpid again */
@@ -3400,10 +3400,10 @@ static int run_pipe(struct pipe *pi)
 					goto clean_up_and_ret1;
 				}
 			}
-			/* XXX setup_redirects acts on file descriptors, not FILEs.
+			/* setup_redirects acts on file descriptors, not FILEs.
 			 * This is perfect for work that comes after exec().
 			 * Is it really safe for inline use?  Experimentally,
-			 * things seem to work with glibc. */
+			 * things seem to work. */
 			rcode = setup_redirects(command, squirrel);
 			if (rcode == 0) {
 				new_env = expand_assignments(argv, command->assignment_cnt);
@@ -5026,7 +5026,7 @@ static int handle_dollar(o_string *as_string,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
-		/* XXX maybe someone will try to escape the '}' */
+		/* TODO: maybe someone will try to escape the '}' */
 		expansion = 0;
 		first_char = true;
 		all_digits = false;
@@ -5992,7 +5992,7 @@ int hush_main(int argc, char **argv)
 	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *input;
-		/* XXX what should argv be while sourcing /etc/profile? */
+		/* TODO: what should argv be while sourcing /etc/profile? */
 		debug_printf("sourcing /etc/profile\n");
 		input = fopen_for_read("/etc/profile");
 		if (input != NULL) {
@@ -6310,7 +6310,7 @@ static int builtin_exec(char **argv)
 #if !BB_MMU
 		nommu_save_t dummy;
 #endif
-// FIXME: if exec fails, bash does NOT exit! We do...
+// TODO: if exec fails, bash does NOT exit! We do...
 		pseudo_exec_argv(&dummy, argv, 0, NULL);
 		/* never returns */
 	}
@@ -6663,7 +6663,7 @@ static int builtin_source(char **argv)
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
 
-	/* XXX search through $PATH is missing */
+	/* TODO: search through $PATH is missing */
 	input = fopen_or_warn(*argv, "r");
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
@@ -6672,8 +6672,7 @@ static int builtin_source(char **argv)
 	close_on_exec_on(fileno(input));
 
 	/* Now run the file */
-//TODO:
-	/* XXX argv and argc are broken; need to save old G.global_argv
+	/* TODO: argv and argc are broken; need to save old G.global_argv
 	 * (pointer only is OK!) on this stack frame,
 	 * set G.global_argv=argv+1, recurse, and restore. */
 	parse_and_run_file(input);
