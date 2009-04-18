@@ -12646,6 +12646,8 @@ umaskcmd(int argc UNUSED_PARAM, char **argv)
 		S_IROTH, S_IWOTH, S_IXOTH
 	};
 
+	/* TODO: use bb_parse_mode() instead */
+
 	char *ap;
 	mode_t mask;
 	int i;
@@ -12712,7 +12714,6 @@ umaskcmd(int argc UNUSED_PARAM, char **argv)
  *
  * Public domain.
  */
-
 struct limits {
 	uint8_t cmd;          /* RLIMIT_xxx fit into it */
 	uint8_t factor_shift; /* shift by to get rlim_{cur,max} values */

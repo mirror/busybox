@@ -6742,24 +6742,33 @@ static int builtin_source(char **argv)
 
 static int builtin_umask(char **argv)
 {
-	mode_t new_umask;
-	const char *arg = argv[1];
-	if (arg) {
-//TODO: umask may take chmod-like symbolic masks
-		new_umask = bb_strtou(arg, NULL, 8);
-		if (errno) {
-			//Message? bash examples:
-			//bash: umask: 'q': invalid symbolic mode operator
-			//bash: umask: 999: octal number out of range
-			return EXIT_FAILURE;
+	int rc;
+	mode_t mask;
+
+	mask = umask(0);
+	if (argv[1]) {
+		mode_t old_mask = mask;
+
+		mask ^= 0777;
+		rc = bb_parse_mode(argv[1], &mask);
+		mask ^= 0777;
+		if (rc == 0) {
+			mask = old_mask;
+			/* bash messages:
+			 * bash: umask: 'q': invalid symbolic mode operator
+			 * bash: umask: 999: octal number out of range
+			 */
+			bb_error_msg("%s: '%s' invalid mode", argv[0], argv[1]);
 		}
 	} else {
-		new_umask = umask(0);
-		printf("%.3o\n", (unsigned) new_umask);
-		/* fall through and restore new_umask which we set to 0 */
+		rc = 1;
+		/* Mimic bash */
+		printf("%04o\n", (unsigned) mask);
+		/* fall through and restore mask which we set to 0 */
 	}
-	umask(new_umask);
-	return EXIT_SUCCESS;
+	umask(mask);
+
+	return !rc; /* rc != 0 - success */
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
