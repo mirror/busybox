@@ -1185,7 +1185,6 @@ static int check_and_run_traps(int sig)
 //			G.count_SIGCHLD++;
 //			break;
 		case SIGINT:
-//TODO: add putchar('\n') also when we detect that child was killed (sleep 5 + ^C)
 			/* Builtin was ^C'ed, make it look prettier: */
 			bb_putchar('\n');
 			G.flag_SIGINT = 1;
@@ -2842,6 +2841,31 @@ static struct function *new_function(char *name)
 	return funcp;
 }
 
+static void unset_func(const char *name)
+{
+	struct function *funcp;
+	struct function **funcpp = &G.top_func;
+
+	while ((funcp = *funcpp) != NULL) {
+		if (strcmp(funcp->name, name) == 0) {
+			*funcpp = funcp->next;
+			/* funcp is unlinked now, deleting it */
+			free(funcp->name);
+			/* Note: if !funcp->body, do not free body_as_string!
+			 * This is a special case of "-F name body" function:
+			 * body_as_string was not malloced! */
+			if (funcp->body) {
+				free_pipe_list(funcp->body);
+#if !BB_MMU
+				free(funcp->body_as_string);
+#endif
+			}
+			free(funcp);
+			break;
+		}
+	}
+}
+
 #if BB_MMU
 #define exec_function(nommu_save, funcp, argv) \
 	exec_function(funcp, argv)
@@ -3223,6 +3247,13 @@ static int checkjobs(struct pipe* fg_pipe)
 						/* last process gives overall exitstatus */
 						rcode = WEXITSTATUS(status);
 						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
+						/* bash prints killing signal's name for *last*
+						 * process in pipe (prints just newline for SIGINT).
+						 * we just print newline for any sig:
+						 */
+						if (WIFSIGNALED(status)) {
+							bb_putchar('\n');
+						}
 					}
 				} else {
 					fg_pipe->cmds[i].is_stopped = 1;
@@ -6372,11 +6403,19 @@ static int builtin_exec(char **argv)
 static int builtin_exit(char **argv)
 {
 	debug_printf_exec("%s()\n", __func__);
-// TODO: bash does it ONLY on top-level sh exit (+interacive only?)
-	//puts("exit"); /* bash does it */
-// TODO: warn if we have background jobs: "There are stopped jobs"
-// On second consecutive 'exit', exit anyway.
-// perhaps use G.exiting = -1 as indicator "last cmd was exit"
+
+	/* interactive bash:
+	 * # trap "echo EEE" EXIT
+	 * # exit
+	 * exit
+	 * There are stopped jobs.
+	 * (if there are _stopped_ jobs, running ones don't count)
+	 * # exit
+	 * exit
+	 # EEE (then bash exits)
+	 *
+	 * we can use G.exiting = -1 as indicator "last cmd was exit"
+	 */
 
 	/* note: EXIT trap is run by hush_exit */
 	if (*++argv == NULL)
@@ -6776,28 +6815,34 @@ static int builtin_unset(char **argv)
 {
 	int ret;
 	char var;
+	char *arg;
 
 	if (!*++argv)
 		return EXIT_SUCCESS;
 
-	var = 'v';
-	if (argv[0][0] == '-') {
-		switch (argv[0][1]) {
-		case 'v':
-		case 'f':
-			var = argv[0][1];
-			break;
-		default:
-			bb_error_msg("unset: %s: invalid option", *argv);
-			return EXIT_FAILURE;
+	var = 0;
+	while ((arg = *argv) != NULL && arg[0] == '-') {
+		while (*++arg) {
+			switch (*arg) {
+			case 'v':
+			case 'f':
+				if (var == 0 || var == *arg) {
+					var = *arg;
+					break;
+				}
+				/* else: unset -vf, which is illegal.
+				 * fall through */
+			default:
+				bb_error_msg("unset: %s: invalid option", *argv);
+				return EXIT_FAILURE;
+			}
 		}
-//TODO: disallow "unset -vf ..." too
 		argv++;
 	}
 
 	ret = EXIT_SUCCESS;
 	while (*argv) {
-		if (var == 'v') {
+		if (var != 'f') {
 			if (unset_local_var(*argv)) {
 				/* unset <nonexistent_var> doesn't fail.
 				 * Error is when one tries to unset RO var.
@@ -6805,11 +6850,11 @@ static int builtin_unset(char **argv)
 				ret = EXIT_FAILURE;
 			}
 		}
-//#if ENABLE_HUSH_FUNCTIONS
-//		else {
-//			unset_local_func(*argv);
-//		}
-//#endif
+#if ENABLE_HUSH_FUNCTIONS
+		else {
+			unset_func(*argv);
+		}
+#endif
 		argv++;
 	}
 	return ret;
