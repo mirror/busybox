@@ -6430,7 +6430,6 @@ static int builtin_export(char **argv)
 
 static int builtin_trap(char **argv)
 {
-	int i;
 	int sig;
 	char *new_cmd;
 
@@ -6439,6 +6438,7 @@ static int builtin_trap(char **argv)
 
 	argv++;
 	if (!*argv) {
+		int i;
 		/* No args: print all trapped */
 		for (i = 0; i < NSIG; ++i) {
 			if (G.traps[i]) {
@@ -6452,7 +6452,6 @@ static int builtin_trap(char **argv)
 	}
 
 	new_cmd = NULL;
-	i = 0;
 	/* If first arg is a number: reset all specified signals */
 	sig = bb_strtou(*argv, NULL, 10);
 	if (errno == 0) {
@@ -6464,7 +6463,7 @@ static int builtin_trap(char **argv)
 			if (sig < 0 || sig >= NSIG) {
 				ret = EXIT_FAILURE;
 				/* Mimic bash message exactly */
-				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
+				bb_perror_msg("trap: %s: invalid signal specification", argv[-1]);
 				continue;
 			}
 
@@ -6488,8 +6487,8 @@ static int builtin_trap(char **argv)
 					continue;
 				sigdelset(&G.blocked_set, sig);
 			}
-			sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
 		}
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
 		return ret;
 	}
 
