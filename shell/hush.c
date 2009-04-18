@@ -3246,14 +3246,16 @@ static int checkjobs(struct pipe* fg_pipe)
 					fg_pipe->alive_cmds--;
 					if (i == fg_pipe->num_cmds - 1) {
 						/* last process gives overall exitstatus */
+						/* Note: is WIFSIGNALED, WEXITSTATUS = sig + 128 */
 						rcode = WEXITSTATUS(status);
 						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 						/* bash prints killing signal's name for *last*
 						 * process in pipe (prints just newline for SIGINT).
-						 * we just print newline for any sig:
+						 * Mimic this. Example: "sleep 5" + ^\
 						 */
 						if (WIFSIGNALED(status)) {
-							bb_putchar('\n');
+							int sig = WTERMSIG(status);
+							printf("%s\n", sig == SIGINT ? "" : get_signame(sig));
 						}
 					}
 				} else {
@@ -3489,6 +3491,7 @@ static int run_pipe(struct pipe *pi)
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->cmd, argv_expanded[1]);
 					rcode = x->function(argv_expanded) & 0xff;
+					fflush(NULL);
 				}
 #if ENABLE_HUSH_FUNCTIONS
 				else {
@@ -6251,81 +6254,6 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
-static int builtin_trap(char **argv)
-{
-	int i;
-	int sig;
-	char *new_cmd;
-
-	if (!G.traps)
-		G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
-
-	argv++;
-	if (!*argv) {
-		/* No args: print all trapped. This isn't 100% correct as we
-		 * should be escaping the cmd so that it can be pasted back in
-		 */
-		for (i = 0; i < NSIG; ++i)
-			if (G.traps[i])
-				printf("trap -- '%s' %s\n", G.traps[i], get_signame(i));
-		return EXIT_SUCCESS;
-	}
-
-	new_cmd = NULL;
-	i = 0;
-	/* If first arg is decimal: reset all specified signals */
-	sig = bb_strtou(*argv, NULL, 10);
-	if (errno == 0) {
-		int ret;
- set_all:
-		ret = EXIT_SUCCESS;
-		while (*argv) {
-			sig = get_signum(*argv++);
-			if (sig < 0 || sig >= NSIG) {
-				ret = EXIT_FAILURE;
-				/* Mimic bash message exactly */
-				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
-				continue;
-			}
-
-			free(G.traps[sig]);
-			G.traps[sig] = xstrdup(new_cmd);
-
-			debug_printf("trap: setting SIG%s (%i) to '%s'",
-				get_signame(sig), sig, G.traps[sig]);
-
-			/* There is no signal for 0 (EXIT) */
-			if (sig == 0)
-				continue;
-
-			if (new_cmd) {
-				sigaddset(&G.blocked_set, sig);
-			} else {
-				/* There was a trap handler, we are removing it
-				 * (if sig has non-DFL handling,
-				 * we don't need to do anything) */
-				if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
-					continue;
-				sigdelset(&G.blocked_set, sig);
-			}
-			sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
-		}
-		return ret;
-	}
-
-	/* First arg is "-": reset all specified to default */
-	/* First arg is "": ignore all specified */
-	/* Everything else: execute first arg upon signal */
-	if (!argv[1]) {
-		bb_error_msg("trap: invalid arguments");
-		return EXIT_FAILURE;
-	}
-	if (NOT_LONE_DASH(*argv))
-		new_cmd = *argv;
-	argv++;
-	goto set_all;
-}
-
 static int builtin_true(char **argv UNUSED_PARAM)
 {
 	return 0;
@@ -6427,6 +6355,26 @@ static int builtin_exit(char **argv)
 	hush_exit(xatoi(*argv) & 0xff);
 }
 
+static void print_escaped(const char *s)
+{
+	do {
+		if (*s != '\'') {
+			const char *p;
+
+			p = strchrnul(s, '\'');
+			/* print 'xxxx', possibly just '' */
+			printf("'%.*s'", (int)(p - s), s);
+			if (*p == '\0')
+				break;
+			s = p;
+		}
+		/* s points to '; print "'''...'''" */
+		putchar('"');
+		do putchar('\''); while (*++s == '\'');
+		putchar('"');
+	} while (*s);
+}
+
 static int builtin_export(char **argv)
 {
 	if (*++argv == NULL) {
@@ -6446,25 +6394,11 @@ static int builtin_export(char **argv)
 					continue;
 				/* export var= */
 				printf("export %.*s", (int)(p - s) + 1, s);
-				s = p + 1;
-				while (*s) {
-					if (*s != '\'') {
-						p = strchrnul(s, '\'');
-						/* print 'xxxx' */
-						printf("'%.*s'", (int)(p - s), s);
-						if (*p == '\0')
-							break;
-						s = p;
-					}
-					/* s points to '; print ''...'''" */
-					putchar('"');
-					do putchar('\''); while (*++s == '\'');
-					putchar('"');
-				}
+				print_escaped(p + 1);
 				putchar('\n');
 #endif
 			}
-			fflush(stdout);
+			/*fflush(stdout); - done after each builtin anyway */
 		}
 		return EXIT_SUCCESS;
 	}
@@ -6492,6 +6426,96 @@ static int builtin_export(char **argv)
 	} while (*++argv);
 
 	return EXIT_SUCCESS;
+}
+
+static int builtin_trap(char **argv)
+{
+	int i;
+	int sig;
+	char *new_cmd;
+
+	if (!G.traps)
+		G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
+
+	argv++;
+	if (!*argv) {
+		/* No args: print all trapped */
+		for (i = 0; i < NSIG; ++i) {
+			if (G.traps[i]) {
+				printf("trap -- ");
+				print_escaped(G.traps[i]);
+				printf(" %s\n", get_signame(i));
+			}
+		}
+		/*fflush(stdout); - done after each builtin anyway */
+		return EXIT_SUCCESS;
+	}
+
+	new_cmd = NULL;
+	i = 0;
+	/* If first arg is a number: reset all specified signals */
+	sig = bb_strtou(*argv, NULL, 10);
+	if (errno == 0) {
+		int ret;
+ process_sig_list:
+		ret = EXIT_SUCCESS;
+		while (*argv) {
+			sig = get_signum(*argv++);
+			if (sig < 0 || sig >= NSIG) {
+				ret = EXIT_FAILURE;
+				/* Mimic bash message exactly */
+				bb_perror_msg("trap: %s: invalid signal specification", argv[i]);
+				continue;
+			}
+
+			free(G.traps[sig]);
+			G.traps[sig] = xstrdup(new_cmd);
+
+			debug_printf("trap: setting SIG%s (%i) to '%s'",
+				get_signame(sig), sig, G.traps[sig]);
+
+			/* There is no signal for 0 (EXIT) */
+			if (sig == 0)
+				continue;
+
+			if (new_cmd) {
+				sigaddset(&G.blocked_set, sig);
+			} else {
+				/* There was a trap handler, we are removing it
+				 * (if sig has non-DFL handling,
+				 * we don't need to do anything) */
+				if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+					continue;
+				sigdelset(&G.blocked_set, sig);
+			}
+			sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		}
+		return ret;
+	}
+
+	if (!argv[1]) { /* no second arg */
+		bb_error_msg("trap: invalid arguments");
+		return EXIT_FAILURE;
+	}
+
+	/* First arg is "-": reset all specified to default */
+	/* First arg is "--": skip it, the rest is "handler SIGs..." */
+	/* Everything else: set arg as signal handler
+	 * (includes "" case, which ignores signal) */
+	if (argv[0][0] == '-') {
+		if (argv[0][1] == '\0') { /* "-" */
+			/* new_cmd remains NULL: "reset these sigs" */
+			goto reset_traps;
+		}
+		if (argv[0][1] == '-' && argv[0][2] == '\0') { /* "--" */
+			argv++;
+		}
+		/* else: "-something", no special meaning */
+	}
+	new_cmd = *argv;
+ reset_traps:
+	argv++;
+	goto process_sig_list;
 }
 
 #if ENABLE_HUSH_JOB
