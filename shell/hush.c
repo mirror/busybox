@@ -2863,6 +2863,7 @@ static void unset_func(const char *name)
 			free(funcp);
 			break;
 		}
+		funcpp = &funcp->next;
 	}
 }
 
