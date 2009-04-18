@@ -78,8 +78,8 @@ int acpid_main(int argc, char **argv)
 	// goto configuration directory
 	xchdir(opt_conf);
 
-//	// setup signals
-//	bb_signals(BB_FATAL_SIGS, record_signo);
+	// prevent zombies
+	signal(SIGCHLD, SIG_IGN);
 
 	// no explicit evdev files given? -> use proc event interface
 	if (!*argv) {
