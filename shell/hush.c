@@ -52,11 +52,10 @@
  *      grep for "TODO" and fix (some of them are easy)
  *      change { and } from special chars to reserved words
  *      $var refs in function do not pick up values set by "var=val func"
- *      builtins: return, ulimit
+ *      builtins: ulimit
  *      follow IFS rules more precisely, including update semantics
  *      figure out what to do with backslash-newline
  *      continuation lines, both explicit and implicit - done?
- *      SIGHUP handling
  *      separate job control from interactiveness
  *      (testcase: booting with init=/bin/hush does not show prompt (2009-04))
  *
@@ -1070,8 +1069,9 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * "trap 'cmd' SIGxxx":
  *    set bit in blocked_set (even if 'cmd' is '')
  * after [v]fork, if we plan to be a shell:
- *    nothing for {} child shell (say, "true | { true; true; } | true")
- *    unset all traps if () shell.
+ *    unblock signals with special interactive handling
+ *    (child shell is not interactive),
+ *    unset all traps (note: regardless of child shell's type - {}, (), etc)
  * after [v]fork, if we plan to exec:
  *    POSIX says pending signal mask is cleared in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
@@ -1084,9 +1084,9 @@ enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
 #if ENABLE_HUSH_JOB
 		| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
+		| (1 << SIGHUP)
 #endif
 		| (1 << SIGTERM)
-//TODO		| (1 << SIGHUP)
 		| (1 << SIGINT)
 };
 
@@ -1094,53 +1094,6 @@ enum {
 //{
 //	G.count_SIGCHLD++;
 //}
-
-static int check_and_run_traps(int sig)
-{
-	static const struct timespec zero_timespec = { 0, 0 };
-	smalluint save_rcode;
-	int last_sig = 0;
-
-	if (sig)
-		goto jump_in;
-	while (1) {
-		sig = sigtimedwait(&G.blocked_set, NULL, &zero_timespec);
-		if (sig <= 0)
-			break;
- jump_in:
-		last_sig = sig;
-		if (G.traps && G.traps[sig]) {
-			if (G.traps[sig][0]) {
-				/* We have user-defined handler */
-				char *argv[] = { NULL, xstrdup(G.traps[sig]), NULL };
-				save_rcode = G.last_exitcode;
-				builtin_eval(argv);
-				free(argv[1]);
-				G.last_exitcode = save_rcode;
-			} /* else: "" trap, ignoring signal */
-			continue;
-		}
-		/* not a trap: special action */
-		switch (sig) {
-//		case SIGCHLD:
-//			G.count_SIGCHLD++;
-//			break;
-		case SIGINT:
-//TODO: add putchar('\n') also when we detect that child was killed (sleep 5 + ^C)
-			/* Builtin was ^C'ed, make it look prettier: */
-			bb_putchar('\n');
-			G.flag_SIGINT = 1;
-			break;
-//TODO
-//		case SIGHUP: ...
-//			break;
-		default: /* ignored: */
-			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
-			break;
-		}
-	}
-	return last_sig;
-}
 
 #if ENABLE_HUSH_JOB
 
@@ -1151,7 +1104,7 @@ static int check_and_run_traps(int sig)
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
- * (will faithfully resend signal to itself, producing correct exit state)
+ * (will resend signal to itself, producing correct exit state)
  * or called directly with -EXITCODE.
  * We also call it if xfunc is exiting. */
 static void sigexit(int sig) NORETURN;
@@ -1199,6 +1152,65 @@ static void hush_exit(int exitcode)
 #else
 	exit(exitcode);
 #endif
+}
+
+static int check_and_run_traps(int sig)
+{
+	static const struct timespec zero_timespec = { 0, 0 };
+	smalluint save_rcode;
+	int last_sig = 0;
+
+	if (sig)
+		goto jump_in;
+	while (1) {
+		sig = sigtimedwait(&G.blocked_set, NULL, &zero_timespec);
+		if (sig <= 0)
+			break;
+ jump_in:
+		last_sig = sig;
+		if (G.traps && G.traps[sig]) {
+			if (G.traps[sig][0]) {
+				/* We have user-defined handler */
+				char *argv[] = { NULL, xstrdup(G.traps[sig]), NULL };
+				save_rcode = G.last_exitcode;
+				builtin_eval(argv);
+				free(argv[1]);
+				G.last_exitcode = save_rcode;
+			} /* else: "" trap, ignoring signal */
+			continue;
+		}
+		/* not a trap: special action */
+		switch (sig) {
+//		case SIGCHLD:
+//			G.count_SIGCHLD++;
+//			break;
+		case SIGINT:
+//TODO: add putchar('\n') also when we detect that child was killed (sleep 5 + ^C)
+			/* Builtin was ^C'ed, make it look prettier: */
+			bb_putchar('\n');
+			G.flag_SIGINT = 1;
+			break;
+#if ENABLE_HUSH_JOB
+		case SIGHUP: {
+			struct pipe *job;
+			/* bash is observed to signal whole process groups,
+			 * not individual processes */
+			for (job = G.job_list; job; job = job->next) {
+				if (job->pgrp <= 0)
+					continue;
+				debug_printf_exec("HUPing pgrp %d\n", job->pgrp);
+				if (kill(- job->pgrp, SIGHUP) == 0)
+					kill(- job->pgrp, SIGCONT);
+			}
+			sigexit(SIGHUP);
+		}
+#endif
+		default: /* ignored: */
+			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
+			break;
+		}
+	}
+	return last_sig;
 }
 
 
@@ -2061,7 +2073,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		case '`': /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
 			*p = '\0';
 			arg++;
-//TODO: can we just stuff it into "output" directly?
+			/* Can't just stuff it into output o_string,
+			 * expanded result may need to be globbed
+			 * and $IFS-splitted */
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			process_command_subs(&subst_result, arg);
 			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
@@ -2777,7 +2791,8 @@ static const struct function *find_function(const char *name)
 		}
 		funcp = funcp->next;
 	}
-	debug_printf_exec("found function '%s'\n", name);
+	if (funcp)
+		debug_printf_exec("found function '%s'\n", name);
 	return funcp;
 }
 
@@ -2819,7 +2834,7 @@ static struct function *new_function(char *name)
 		}
 		goto skip;
 	}
-	debug_printf_exec("remembering new function '%s'\n", command->argv[0]);
+	debug_printf_exec("remembering new function '%s'\n", name);
 	funcp = *funcpp = xzalloc(sizeof(*funcp));
 	/*funcp->next = NULL;*/
  skip:
@@ -3059,8 +3074,11 @@ static const char *get_cmdtext(struct pipe *pi)
 	}
 
 	len = 0;
-	do len += strlen(*argv) + 1; while (*++argv);
-	pi->cmdtext = p = xmalloc(len);
+	do {
+		len += strlen(*argv) + 1;
+	} while (*++argv);
+	p = xmalloc(len);
+	pi->cmdtext = p;// = xmalloc(len);
 	argv = pi->cmds[0].argv;
 	do {
 		len = strlen(*argv);
@@ -3074,44 +3092,36 @@ static const char *get_cmdtext(struct pipe *pi)
 
 static void insert_bg_job(struct pipe *pi)
 {
-	struct pipe *thejob;
+	struct pipe *job, **jobp;
 	int i;
 
 	/* Linear search for the ID of the job to use */
 	pi->jobid = 1;
-	for (thejob = G.job_list; thejob; thejob = thejob->next)
-		if (thejob->jobid >= pi->jobid)
-			pi->jobid = thejob->jobid + 1;
+	for (job = G.job_list; job; job = job->next)
+		if (job->jobid >= pi->jobid)
+			pi->jobid = job->jobid + 1;
 
-	/* Add thejob to the list of running jobs */
-	if (!G.job_list) {
-		thejob = G.job_list = xmalloc(sizeof(*thejob));
-	} else {
-		for (thejob = G.job_list; thejob->next; thejob = thejob->next)
-			continue;
-		thejob->next = xmalloc(sizeof(*thejob));
-		thejob = thejob->next;
-	}
+	/* Add job to the list of running jobs */
+	jobp = &G.job_list;
+	while ((job = *jobp) != NULL)
+		jobp = &job->next;
+	job = *jobp = xmalloc(sizeof(*job));
 
-	/* Physically copy the struct job */
-	memcpy(thejob, pi, sizeof(struct pipe));
-	thejob->cmds = xzalloc(sizeof(pi->cmds[0]) * pi->num_cmds);
-	/* We cannot copy entire pi->cmds[] vector! Double free()s will happen */
+	*job = *pi; /* physical copy */
+	job->next = NULL;
+	job->cmds = xzalloc(sizeof(pi->cmds[0]) * pi->num_cmds);
+	/* Cannot copy entire pi->cmds[] vector! This causes double frees */
 	for (i = 0; i < pi->num_cmds; i++) {
-// TODO: do we really need to have so many fields which are just dead weight
-// at execution stage?
-		thejob->cmds[i].pid = pi->cmds[i].pid;
+		job->cmds[i].pid = pi->cmds[i].pid;
 		/* all other fields are not used and stay zero */
 	}
-	thejob->next = NULL;
-	thejob->cmdtext = xstrdup(get_cmdtext(pi));
+	job->cmdtext = xstrdup(get_cmdtext(pi));
 
-	/* We don't wait for background thejobs to return -- append it
-	   to the list of backgrounded thejobs and leave it alone */
 	if (G_interactive_fd)
-		printf("[%d] %d %s\n", thejob->jobid, thejob->cmds[0].pid, thejob->cmdtext);
-	G.last_bg_pid = thejob->cmds[0].pid;
-	G.last_jobid = thejob->jobid;
+		printf("[%d] %d %s\n", job->jobid, job->cmds[0].pid, job->cmdtext);
+	/* Last command's pid goes to $! */
+	G.last_bg_pid = job->cmds[job->num_cmds - 1].pid;
+	G.last_jobid = job->jobid;
 }
 
 static void remove_bg_job(struct pipe *pi)
@@ -3306,7 +3316,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * cmd || ...  { list } || ...
  * If it is, then we can run cmd as a builtin, NOFORK [do we do this?],
  * or (if SH_STANDALONE) an applet, and we can run the { list }
- * with run_list(). If it isn't one of these, we fork and exec cmd.
+ * with run_list. If it isn't one of these, we fork and exec cmd.
  *
  * Cases when we must fork:
  * non-single:   cmd | cmd
@@ -3942,7 +3952,11 @@ static int run_list(struct pipe *pi)
 				check_and_run_traps(0);
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1)
+{
+debug_printf_exec("insert_bg_job1\n");
 					insert_bg_job(pi);
+debug_printf_exec("insert_bg_job2\n");
+}
 #endif
 				G.last_exitcode = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
@@ -5853,11 +5867,10 @@ static void set_fatal_handlers(void)
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
 	maybe_set_to_sigexit(SIGPIPE);
 	maybe_set_to_sigexit(SIGALRM);
-//TODO: disable and move down when proper SIGHUP handling is added
-	maybe_set_to_sigexit(SIGHUP );
-	/* if we are interactive, [SIGHUP,] SIGTERM and SIGINT are masked.
+	/* if we are interactive, SIGHUP, SIGTERM and SIGINT are masked.
 	 * if we aren't interactive... but in this case
 	 * we never want to restore pgrp on exit, and this fn is not called */
+	/*maybe_set_to_sigexit(SIGHUP );*/
 	/*maybe_set_to_sigexit(SIGTERM);*/
 	/*maybe_set_to_sigexit(SIGINT );*/
 }
@@ -6350,7 +6363,7 @@ static int builtin_exec(char **argv)
 #if !BB_MMU
 		nommu_save_t dummy;
 #endif
-// TODO: if exec fails, bash does NOT exit! We do...
+		/* TODO: if exec fails, bash does NOT exit! We do... */
 		pseudo_exec_argv(&dummy, argv, 0, NULL);
 		/* never returns */
 	}
@@ -6472,8 +6485,8 @@ static int builtin_fg_bg(char **argv)
 	bb_error_msg("%s: %d: no such job", argv[0], jobnum);
 	return EXIT_FAILURE;
  found:
-	// TODO: bash prints a string representation
-	// of job being foregrounded (like "sleep 1 | cat")
+	/* TODO: bash prints a string representation
+	 * of job being foregrounded (like "sleep 1 | cat") */
 	if (argv[0][0] == 'f') {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(G_interactive_fd, pi->pgrp);
@@ -6705,7 +6718,7 @@ static int builtin_source(char **argv)
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
 
-	/* TODO: search through $PATH is missing */
+// TODO: search through $PATH is missing
 	input = fopen_or_warn(*argv, "r");
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
