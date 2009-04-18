@@ -2901,13 +2901,17 @@ static void exec_function(nommu_save_t *nommu_save,
 static int run_function(const struct function *funcp, char **argv)
 {
 	int rc;
-	smallint sv_flg;
 	save_arg_t sv;
+#if ENABLE_HUSH_FUNCTIONS
+	smallint sv_flg;
+#endif
 
 	save_and_replace_G_args(&sv, argv);
+#if ENABLE_HUSH_FUNCTIONS
 	/* "we are in function, ok to use return" */
 	sv_flg = G.flag_return_in_progress;
 	G.flag_return_in_progress = -1;
+#endif
 
 	/* On MMU, funcp->body is always non-NULL */
 #if !BB_MMU
@@ -2921,7 +2925,9 @@ static int run_function(const struct function *funcp, char **argv)
 		rc = run_list(funcp->body);
 	}
 
+#if ENABLE_HUSH_FUNCTIONS
 	G.flag_return_in_progress = sv_flg;
+#endif
 	restore_G_args(&sv, argv);
 
 	return rc;
@@ -6775,8 +6781,10 @@ static int builtin_shift(char **argv)
 static int builtin_source(char **argv)
 {
 	FILE *input;
-	smallint sv_flg;
 	save_arg_t sv;
+#if ENABLE_HUSH_FUNCTIONS
+	smallint sv_flg;
+#endif
 
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
@@ -6789,16 +6797,20 @@ static int builtin_source(char **argv)
 	}
 	close_on_exec_on(fileno(input));
 
+#if ENABLE_HUSH_FUNCTIONS
 	sv_flg = G.flag_return_in_progress;
 	/* "we are inside sourced file, ok to use return" */
 	G.flag_return_in_progress = -1;
+#endif
 	save_and_replace_G_args(&sv, argv);
 
 	parse_and_run_file(input);
 	fclose(input);
 
 	restore_G_args(&sv, argv);
+#if ENABLE_HUSH_FUNCTIONS
 	G.flag_return_in_progress = sv_flg;
+#endif
 
 	return G.last_exitcode;
 }
