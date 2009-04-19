@@ -1822,7 +1822,7 @@ static int o_glob(o_string *o, int n)
 		goto literal;
 	}
 	if (gr != 0) { /* GLOB_ABORTED ? */
-//TODO: testcase for bad glob pattern behavior
+		/* TODO: testcase for bad glob pattern behavior */
 		bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
 	}
 	if (globdata.gl_pathv && globdata.gl_pathv[0]) {
@@ -2339,7 +2339,8 @@ static char* expand_strvec_to_string(char **argv)
 			if (HUSH_DEBUG)
 				if (list[n-1] + strlen(list[n-1]) + 1 != list[n])
 					bb_error_msg_and_die("BUG in varexp3");
-			list[n][-1] = ' '; /* TODO: or to G.ifs[0]? */
+			/* bash uses ' ' regardless of $IFS contents */
+			list[n][-1] = ' ';
 			n++;
 		}
 	}
@@ -5128,14 +5129,16 @@ static int handle_dollar(o_string *as_string,
 		while (1) {
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
-			if (ch == '}')
+			if (ch == '}') {
 				break;
+			}
 
 			if (first_char) {
-				if (ch == '#')
+				if (ch == '#') {
 					/* ${#var}: length of var contents */
 					goto char_ok;
-				else if (isdigit(ch)) {
+				}
+				if (isdigit(ch)) {
 					all_digits = true;
 					goto char_ok;
 				}
@@ -5186,7 +5189,7 @@ static int handle_dollar(o_string *as_string,
 			o_addchr(dest, ch | quote_mask);
 			quote_mask = 0;
 			first_char = false;
-		}
+		} /* while (1) */
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
 	}
@@ -5432,6 +5435,7 @@ static struct pipe *parse_stream(char **pstring,
 				, ch);
 
 		if (!is_special && !is_ifs) { /* ordinary char */
+ ordinary_char:
 			o_addQchr(&dest, ch);
 			if ((dest.o_assignment == MAYBE_ASSIGNMENT
 			    || dest.o_assignment == WORD_IS_KEYWORD)
@@ -5475,6 +5479,19 @@ static struct pipe *parse_stream(char **pstring,
 		if (end_trigger && end_trigger == ch
 		 && (heredoc_cnt == 0 || end_trigger != ';')
 		) {
+			/* "{ cmd}" or "{ cmd }..." without semicolon or &:
+			 * } is an ordinary char in this case.
+			 * Pathological example: { ""}; } should exec "}" cmd
+			 */
+			if (ch == '}'
+			 && !(IS_NULL_PIPE(ctx.pipe)
+			     && IS_NULL_CMD(ctx.command)
+			     && dest.length == 0
+			     && !dest.o_quoted
+			    )
+			) {
+				goto ordinary_char;
+			}
 			if (heredoc_cnt) {
 				/* This is technically valid:
 				 * { cat <<HERE; }; echo Ok
@@ -5489,15 +5506,6 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			if (done_word(&dest, &ctx)) {
-				goto parse_error;
-			}
-			/* Disallow "{ cmd }" without semicolon or & */
-			//debug_printf_parse("null pi %d\n", IS_NULL_PIPE(ctx.pipe))
-			//debug_printf_parse("null cmd %d\n", IS_NULL_CMD(ctx.command))
-			if (ch == '}'
-			 && !(IS_NULL_PIPE(ctx.pipe) && IS_NULL_CMD(ctx.command))
-			) {
-				syntax_error_unexpected_ch(ch);
 				goto parse_error;
 			}
 			done_pipe(&ctx, PIPE_SEQ);
@@ -5749,6 +5757,16 @@ static struct pipe *parse_stream(char **pstring,
 				goto case_semi;
 #endif
 		case '}':
+			if (!(IS_NULL_PIPE(ctx.pipe)
+			     && IS_NULL_CMD(ctx.command)
+			     && dest.length == 0
+			     && !dest.o_quoted
+			    )
+			) {
+				/* } not preceded by ; or & is an ordinary
+				 * char, example: "echo }" */
+				goto ordinary_char;
+			}
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
@@ -6858,7 +6876,8 @@ static int builtin_unset(char **argv)
 
 	var = 0;
 	while ((arg = *argv) != NULL && arg[0] == '-') {
-		while (*++arg) {
+		arg++;
+		do {
 			switch (*arg) {
 			case 'v':
 			case 'f':
@@ -6872,7 +6891,7 @@ static int builtin_unset(char **argv)
 				bb_error_msg("unset: %s: invalid option", *argv);
 				return EXIT_FAILURE;
 			}
-		}
+		} while (*++arg);
 		argv++;
 	}
 
