@@ -89,14 +89,10 @@ static char *build_alias(char *alias, const char *device_name)
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
 {
-	const char *device_name;
+	char *device_name;
 	int major, minor, type, len;
 	int mode;
-	char *dev_maj_min = path + strlen(path);
 	parser_t *parser;
-
-	/* Force the configuration file settings exactly. */
-	umask(0);
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
@@ -105,21 +101,23 @@ static void make_device(char *path, int delete)
 	 */
 	major = -1;
 	if (!delete) {
+		char *dev_maj_min = path + strlen(path);
+
 		strcpy(dev_maj_min, "/dev");
 		len = open_read_close(path, dev_maj_min + 1, 64);
-		*dev_maj_min++ = '\0';
+		*dev_maj_min = '\0';
 		if (len < 1) {
 			if (!ENABLE_FEATURE_MDEV_EXEC)
 				return;
-			/* no "dev" file, so just try to run script */
-			*dev_maj_min = '\0';
-		} else if (sscanf(dev_maj_min, "%u:%u", &major, &minor) != 2) {
+			/* no "dev" file, but we can still run scripts
+			 * based on device name */
+		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) != 2) {
 			major = -1;
 		}
 	}
 
 	/* Determine device name, type, major and minor */
-	device_name = bb_basename(path);
+	device_name = (char*) bb_basename(path);
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
 	 * But since 2.6.25 block devices are also in /sys/class/block,
@@ -139,9 +137,7 @@ static void make_device(char *path, int delete)
 		parser = config_open2("/etc/mdev.conf", fopen_for_read);
 
 	do {
-		regmatch_t off[1 + 9 * ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 		int keep_matching;
-		char *val, *name;
 		struct bb_uidgid_t ugid;
 		char *tokens[4];
 		char *command = NULL;
@@ -156,19 +152,22 @@ static void make_device(char *path, int delete)
 		if (ENABLE_FEATURE_MDEV_CONF
 		 && config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)
 		) {
+			char *val;
+			char *str_to_match;
+			regmatch_t off[1 + 9 * ENABLE_FEATURE_MDEV_RENAME_REGEXP];
+
 			val = tokens[0];
 			keep_matching = ('-' == val[0]);
 			val += keep_matching; /* swallow leading dash */
 
 			/* Match against either "subsystem/device_name"
 			 * or "device_name" alone */
-			name = strchr(val, '/') ? path : (char *) device_name;
+			str_to_match = strchr(val, '/') ? path : device_name;
 
 			/* Fields: regex uid:gid mode [alias] [cmd] */
 
-			/* 1st field: @<numeric maj,min>... */
 			if (val[0] == '@') {
-				/* @major,minor[-last] */
+				/* @major,minor[-minor2] */
 				/* (useful when name is ambiguous:
 				 * "/sys/class/usb/lp0" and
 				 * "/sys/class/printer/lp0") */
@@ -182,15 +181,29 @@ static void make_device(char *path, int delete)
 				) {
 					continue; /* this line doesn't match */
 				}
-			} else { /* ... or regex to match device name */
+				goto line_matches;
+			}
+			if (val[0] == '$') {
+				/* regex to match an environment variable */
+				char *eq = strchr(++val, '=');
+				if (!eq)
+					continue;
+				*eq = '\0';
+				str_to_match = getenv(val);
+				if (!str_to_match)
+					continue;
+				str_to_match -= strlen(val) + 1;
+				*eq = '=';
+			}
+			/* else: regex to match [subsystem/]device_name */
+
+			{
 				regex_t match;
 				int result;
 
-				/* Is this it? */
 				xregcomp(&match, val, REG_EXTENDED);
-				result = regexec(&match, name, ARRAY_SIZE(off), off, 0);
+				result = regexec(&match, str_to_match, ARRAY_SIZE(off), off, 0);
 				regfree(&match);
-
 				//bb_error_msg("matches:");
 				//for (int i = 0; i < ARRAY_SIZE(off); i++) {
 				//	if (off[i].rm_so < 0) continue;
@@ -199,17 +212,17 @@ static void make_device(char *path, int delete)
 				//		device_name + off[i].rm_so);
 				//}
 
-				/* If not this device, skip rest of line */
+				/* If no match, skip rest of line */
 				/* (regexec returns whole pattern as "range" 0) */
 				if (result || off[0].rm_so
-				 || ((int)off[0].rm_eo != (int)strlen(name))
+				 || ((int)off[0].rm_eo != (int)strlen(str_to_match))
 				) {
 					continue; /* this line doesn't match */
 				}
 			}
-
-			/* This line matches: stop parsing the file after parsing
-			 * the rest of fields unless keep_matching == 1 */
+ line_matches:
+			/* This line matches. Stop parsing after parsing
+			 * the rest the line unless keep_matching == 1 */
 
 			/* 2nd field: uid:gid - device ownership */
 			parse_chown_usergroup_or_die(&ugid, tokens[1]);
@@ -243,7 +256,7 @@ static void make_device(char *path, int delete)
 							if (*s++ == '%')
 								n++;
 
-						p = alias = xzalloc(strlen(a) + n * strlen(name));
+						p = alias = xzalloc(strlen(a) + n * strlen(str_to_match));
 						s = a + 1;
 						while (*s) {
 							*p = *s;
@@ -251,7 +264,7 @@ static void make_device(char *path, int delete)
 								i = (s[1] - '0');
 								if (i <= 9 && off[i].rm_so >= 0) {
 									n = off[i].rm_eo - off[i].rm_so;
-									strncpy(p, name + off[i].rm_so, n);
+									strncpy(p, str_to_match + off[i].rm_so, n);
 									p += n - 1;
 									s++;
 								}
@@ -447,8 +460,10 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	/* We can be called as hotplug helper */
 	/* Kernel cannot provide suitable stdio fds for us, do it ourself */
-
 	bb_sanitize_stdio();
+
+	/* Force the configuration file settings exactly */
+	umask(0);
 
 	xchdir("/dev");
 
