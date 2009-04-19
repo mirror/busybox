@@ -16,7 +16,7 @@ always:= $(hostprogs-y)
 
 # This trick decreases amount of rebuilds
 # if tree is merely renamed/copied
-ifeq ($(src),$(obj))
+ifeq ($(srctree),$(objtree))
 srctree_slash =
 else
 srctree_slash = $(srctree)/
