@@ -5476,22 +5476,24 @@ static struct pipe *parse_stream(char **pstring,
 				 * will still trigger for us */
 			}
 		}
+
+		/* "cmd}" or "cmd }..." without semicolon or &:
+		 * } is an ordinary char in this case, even inside { cmd; }
+		 * Pathological example: { ""}; } should exec "}" cmd
+		 */
+		if (ch == '}'
+		 && !(IS_NULL_PIPE(ctx.pipe)
+		     && IS_NULL_CMD(ctx.command)
+		     && dest.length == 0
+		     && !dest.o_quoted
+		    )
+		) {
+			goto ordinary_char;
+		}
+
 		if (end_trigger && end_trigger == ch
 		 && (heredoc_cnt == 0 || end_trigger != ';')
 		) {
-			/* "{ cmd}" or "{ cmd }..." without semicolon or &:
-			 * } is an ordinary char in this case.
-			 * Pathological example: { ""}; } should exec "}" cmd
-			 */
-			if (ch == '}'
-			 && !(IS_NULL_PIPE(ctx.pipe)
-			     && IS_NULL_CMD(ctx.command)
-			     && dest.length == 0
-			     && !dest.o_quoted
-			    )
-			) {
-				goto ordinary_char;
-			}
 			if (heredoc_cnt) {
 				/* This is technically valid:
 				 * { cat <<HERE; }; echo Ok
@@ -5757,16 +5759,6 @@ static struct pipe *parse_stream(char **pstring,
 				goto case_semi;
 #endif
 		case '}':
-			if (!(IS_NULL_PIPE(ctx.pipe)
-			     && IS_NULL_CMD(ctx.command)
-			     && dest.length == 0
-			     && !dest.o_quoted
-			    )
-			) {
-				/* } not preceded by ; or & is an ordinary
-				 * char, example: "echo }" */
-				goto ordinary_char;
-			}
 			/* proper use of this character is caught by end_trigger:
 			 * if we see {, we call parse_group(..., end_trigger='}')
 			 * and it will match } earlier (not here). */
