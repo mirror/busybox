@@ -112,7 +112,7 @@ static void inc_err(void)
 	}
 }
 
-static void add_exclude(const char *const directory)
+static void add_exclude(const char *directory)
 {
 	struct stat sb;
 	size_t len;

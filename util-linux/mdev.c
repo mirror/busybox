@@ -52,7 +52,7 @@ struct globals {
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define root_major (G.root_major)
 #define root_minor (G.root_minor)
-#define subsystem (G.subsystem)
+#define subsystem  (G.subsystem )
 
 /* Prevent infinite loops in /sys symlinks */
 #define MAX_SYSFS_DEPTH 3
@@ -60,9 +60,9 @@ struct globals {
 /* We use additional 64+ bytes in make_device() */
 #define SCRATCH_SIZE 80
 
-#if ENABLE_FEATURE_MDEV_RENAME
 /* Builds an alias path.
  * This function potentionally reallocates the alias parameter.
+ * Only used for ENABLE_FEATURE_MDEV_RENAME
  */
 static char *build_alias(char *alias, const char *device_name)
 {
@@ -84,19 +84,16 @@ static char *build_alias(char *alias, const char *device_name)
 
 	return alias;
 }
-#endif
 
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 /* NB: "mdev -s" may call us many times, do not leak memory/fds! */
 static void make_device(char *path, int delete)
 {
-#if ENABLE_FEATURE_MDEV_CONF
-	parser_t *parser;
-#endif
 	const char *device_name;
 	int major, minor, type, len;
 	int mode;
 	char *dev_maj_min = path + strlen(path);
+	parser_t *parser;
 
 	/* Force the configuration file settings exactly. */
 	umask(0);
@@ -137,170 +134,153 @@ static void make_device(char *path, int delete)
 	else
 		path += sizeof("/sys/class/") - 1;
 
-#if !ENABLE_FEATURE_MDEV_CONF
-	mode = 0660;
-#else
 	/* If we have config file, look up user settings */
-	parser = config_open2("/etc/mdev.conf", fopen_for_read);
-	while (1) {
+	if (ENABLE_FEATURE_MDEV_CONF)
+		parser = config_open2("/etc/mdev.conf", fopen_for_read);
+
+	do {
 		regmatch_t off[1 + 9 * ENABLE_FEATURE_MDEV_RENAME_REGEXP];
 		int keep_matching;
 		char *val, *name;
 		struct bb_uidgid_t ugid;
 		char *tokens[4];
-# if ENABLE_FEATURE_MDEV_EXEC
 		char *command = NULL;
-# endif
-# if ENABLE_FEATURE_MDEV_RENAME
 		char *alias = NULL;
 		char aliaslink = aliaslink; /* for compiler */
-# endif
+
 		/* Defaults in case we won't match any line */
 		ugid.uid = ugid.gid = 0;
 		keep_matching = 0;
 		mode = 0660;
 
-		if (!config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)) {
-			/* End of file, create dev node with default params */
-			goto line_matches;
-		}
+		if (ENABLE_FEATURE_MDEV_CONF
+		 && config_read(parser, tokens, 4, 3, "# \t", PARSE_NORMAL)
+		) {
+			val = tokens[0];
+			keep_matching = ('-' == val[0]);
+			val += keep_matching; /* swallow leading dash */
 
-		val = tokens[0];
-		keep_matching = ('-' == val[0]);
-		val += keep_matching; /* swallow leading dash */
+			/* Match against either "subsystem/device_name"
+			 * or "device_name" alone */
+			name = strchr(val, '/') ? path : (char *) device_name;
 
-		/* Match against either "subsystem/device_name"
-		 * or "device_name" alone */
-		name = strchr(val, '/') ? path : (char *) device_name;
+			/* Fields: regex uid:gid mode [alias] [cmd] */
 
-		/* Fields: regex uid:gid mode [alias] [cmd] */
+			/* 1st field: @<numeric maj,min>... */
+			if (val[0] == '@') {
+				/* @major,minor[-last] */
+				/* (useful when name is ambiguous:
+				 * "/sys/class/usb/lp0" and
+				 * "/sys/class/printer/lp0") */
+				int cmaj, cmin0, cmin1, sc;
+				if (major < 0)
+					continue; /* no dev, no match */
+				sc = sscanf(val, "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
+				if (sc < 1 || major != cmaj
+				 || (sc == 2 && minor != cmin0)
+				 || (sc == 3 && (minor < cmin0 || minor > cmin1))
+				) {
+					continue; /* this line doesn't match */
+				}
+			} else { /* ... or regex to match device name */
+				regex_t match;
+				int result;
 
-		/* 1st field: @<numeric maj,min>... */
-		if (val[0] == '@') {
-			/* @major,minor[-last] */
-			/* (useful when name is ambiguous:
-			 * "/sys/class/usb/lp0" and
-			 * "/sys/class/printer/lp0") */
-			int cmaj, cmin0, cmin1, sc;
-			if (major < 0)
-				continue; /* no dev, no match */
-			sc = sscanf(val, "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
-			if (sc < 1 || major != cmaj
-			 || (sc == 2 && minor != cmin0)
-			 || (sc == 3 && (minor < cmin0 || minor > cmin1))
-			) {
-				continue; /* this line doesn't match */
+				/* Is this it? */
+				xregcomp(&match, val, REG_EXTENDED);
+				result = regexec(&match, name, ARRAY_SIZE(off), off, 0);
+				regfree(&match);
+
+				//bb_error_msg("matches:");
+				//for (int i = 0; i < ARRAY_SIZE(off); i++) {
+				//	if (off[i].rm_so < 0) continue;
+				//	bb_error_msg("match %d: '%.*s'\n", i,
+				//		(int)(off[i].rm_eo - off[i].rm_so),
+				//		device_name + off[i].rm_so);
+				//}
+
+				/* If not this device, skip rest of line */
+				/* (regexec returns whole pattern as "range" 0) */
+				if (result || off[0].rm_so
+				 || ((int)off[0].rm_eo != (int)strlen(name))
+				) {
+					continue; /* this line doesn't match */
+				}
 			}
-		} else { /* ... or regex to match device name */
-			regex_t match;
-			int result;
 
-			/* Is this it? */
-			xregcomp(&match, val, REG_EXTENDED);
-			result = regexec(&match, name, ARRAY_SIZE(off), off, 0);
-			regfree(&match);
+			/* This line matches: stop parsing the file after parsing
+			 * the rest of fields unless keep_matching == 1 */
 
-			//bb_error_msg("matches:");
-			//for (int i = 0; i < ARRAY_SIZE(off); i++) {
-			//	if (off[i].rm_so < 0) continue;
-			//	bb_error_msg("match %d: '%.*s'\n", i,
-			//		(int)(off[i].rm_eo - off[i].rm_so),
-			//		device_name + off[i].rm_so);
-			//}
+			/* 2nd field: uid:gid - device ownership */
+			parse_chown_usergroup_or_die(&ugid, tokens[1]);
 
-			/* If not this device, skip rest of line */
-			/* (regexec returns whole pattern as "range" 0) */
-			if (result || off[0].rm_so
-			 || ((int)off[0].rm_eo != (int)strlen(name))
-			) {
-				continue; /* this line doesn't match */
-			}
-		}
+			/* 3rd field: mode - device permissions */
+			mode = strtoul(tokens[2], NULL, 8);
 
-		/* This line matches: stop parsing the file after parsing
-		 * the rest of fields unless keep_matching == 1 */
+			val = tokens[3];
+			/* 4th field (opt): >|=alias */
 
-		/* 2nd field: uid:gid - device ownership */
-		parse_chown_usergroup_or_die(&ugid, tokens[1]);
+			if (ENABLE_FEATURE_MDEV_RENAME && val) {
+				aliaslink = val[0];
+				if (aliaslink == '>' || aliaslink == '=') {
+					char *a, *s, *st;
+					char *p;
+					unsigned i, n;
 
-		/* 3rd field: mode - device permissions */
-		mode = strtoul(tokens[2], NULL, 8);
+					a = val;
+					s = strchrnul(val, ' ');
+					st = strchrnul(val, '\t');
+					if (st < s)
+						s = st;
+					val = (s[0] && s[1]) ? s+1 : NULL;
+					s[0] = '\0';
 
-		val = tokens[3];
-		/* 4th field (opt): >|=alias */
-# if ENABLE_FEATURE_MDEV_RENAME
-		if (!val)
-			goto line_matches;
-		aliaslink = val[0];
-		if (aliaslink == '>' || aliaslink == '=') {
-			char *a, *s, *st;
-#  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
-			char *p;
-			unsigned i, n;
-#  endif
-			a = val;
-			s = strchrnul(val, ' ');
-			st = strchrnul(val, '\t');
-			if (st < s)
-				s = st;
-			val = (s[0] && s[1]) ? s+1 : NULL;
-			s[0] = '\0';
+					if (ENABLE_FEATURE_MDEV_RENAME_REGEXP) {
+						/* substitute %1..9 with off[1..9], if any */
+						n = 0;
+						s = a;
+						while (*s)
+							if (*s++ == '%')
+								n++;
 
-#  if ENABLE_FEATURE_MDEV_RENAME_REGEXP
-			/* substitute %1..9 with off[1..9], if any */
-			n = 0;
-			s = a;
-			while (*s)
-				if (*s++ == '%')
-					n++;
-
-			p = alias = xzalloc(strlen(a) + n * strlen(name));
-			s = a + 1;
-			while (*s) {
-				*p = *s;
-				if ('%' == *s) {
-					i = (s[1] - '0');
-					if (i <= 9 && off[i].rm_so >= 0) {
-						n = off[i].rm_eo - off[i].rm_so;
-						strncpy(p, name + off[i].rm_so, n);
-						p += n - 1;
-						s++;
+						p = alias = xzalloc(strlen(a) + n * strlen(name));
+						s = a + 1;
+						while (*s) {
+							*p = *s;
+							if ('%' == *s) {
+								i = (s[1] - '0');
+								if (i <= 9 && off[i].rm_so >= 0) {
+									n = off[i].rm_eo - off[i].rm_so;
+									strncpy(p, name + off[i].rm_so, n);
+									p += n - 1;
+									s++;
+								}
+							}
+							p++;
+							s++;
+						}
+					} else {
+						alias = xstrdup(a + 1);
 					}
 				}
-				p++;
-				s++;
 			}
-#  else
-			alias = xstrdup(a + 1);
-#  endif
-		}
-# endif /* ENABLE_FEATURE_MDEV_RENAME */
 
-# if ENABLE_FEATURE_MDEV_EXEC
-		/* The rest (opt): @|$|*command */
-		if (!val)
-			goto line_matches;
-		{
-			const char *s = "@$*";
-			const char *s2 = strchr(s, val[0]);
+			if (ENABLE_FEATURE_MDEV_EXEC && val) {
+				const char *s = "$@*";
+				const char *s2 = strchr(s, val[0]);
 
-			if (!s2)
-				bb_error_msg_and_die("bad line %u", parser->lineno);
+				if (!s2)
+					bb_error_msg_and_die("bad line %u", parser->lineno);
 
-			/* Correlate the position in the "@$*" with the delete
-			 * step so that we get the proper behavior:
-			 * @cmd: run on create
-			 * $cmd: run on delete
-			 * *cmd: run on both
-			 */
-			if ((s2 - s + 1) /*1/2/3*/ & /*1/2*/ (1 + delete)) {
-				command = xstrdup(val + 1);
+				/* Are we running this command now?
+				 * Run $cmd on delete, @cmd on create, *cmd on both
+				 */
+				if (s2-s != delete)
+					command = xstrdup(val + 1);
 			}
 		}
-# endif
+
 		/* End of field parsing */
- line_matches:
-#endif /* ENABLE_FEATURE_MDEV_CONF */
 
 		/* "Execute" the line we found */
 
@@ -311,11 +291,11 @@ static void make_device(char *path, int delete)
 				bb_perror_msg_and_die("mknod %s", device_name);
 			if (major == root_major && minor == root_minor)
 				symlink(device_name, "root");
-#if ENABLE_FEATURE_MDEV_CONF
-			chmod(device_name, mode);
-			chown(device_name, ugid.uid, ugid.gid);
-# if ENABLE_FEATURE_MDEV_RENAME
-			if (alias) {
+			if (ENABLE_FEATURE_MDEV_CONF) {
+				chmod(device_name, mode);
+				chown(device_name, ugid.uid, ugid.gid);
+			}
+			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				alias = build_alias(alias, device_name);
 				/* move the device, and optionally
 				 * make a symlink to moved device node */
@@ -323,11 +303,9 @@ static void make_device(char *path, int delete)
 					symlink(alias, device_name);
 				free(alias);
 			}
-# endif
-#endif
 		}
-#if ENABLE_FEATURE_MDEV_EXEC
-		if (command) {
+
+		if (ENABLE_FEATURE_MDEV_EXEC && command) {
 			/* setenv will leak memory, use putenv/unsetenv/free */
 			char *s = xasprintf("%s=%s", "MDEV", device_name);
 			char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
@@ -341,29 +319,29 @@ static void make_device(char *path, int delete)
 			free(s);
 			free(command);
 		}
-#endif
+
 		if (delete) {
 			unlink(device_name);
 			/* At creation time, device might have been moved
 			 * and a symlink might have been created. Undo that. */
-#if ENABLE_FEATURE_MDEV_RENAME
-			if (alias) {
+
+			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				alias = build_alias(alias, device_name);
 				unlink(alias);
 				free(alias);
 			}
-#endif
 		}
 
-#if ENABLE_FEATURE_MDEV_CONF
 		/* We found matching line.
 		 * Stop unless it was prefixed with '-' */
-		if (!keep_matching)
+		if (ENABLE_FEATURE_MDEV_CONF && !keep_matching)
 			break;
-	} /* end of "while line is read from /etc/mdev.conf" */
 
-	config_close(parser);
-#endif /* ENABLE_FEATURE_MDEV_CONF */
+	/* end of "while line is read from /etc/mdev.conf" */
+	} while (ENABLE_FEATURE_MDEV_CONF);
+
+	if (ENABLE_FEATURE_MDEV_CONF)
+		config_close(parser);
 }
 
 /* File callback for /sys/ traversal */
@@ -415,7 +393,7 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
  * - userspace writes "0" (worked) or "-1" (failed) to /sys/$DEVPATH/loading
  * - kernel loads firmware into device
  */
-static void load_firmware(const char *const firmware, const char *const sysfs_path)
+static void load_firmware(const char *firmware, const char *sysfs_path)
 {
 	int cnt;
 	int firmware_fd, loading_fd, data_fd;
@@ -469,18 +447,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 
 	/* We can be called as hotplug helper */
 	/* Kernel cannot provide suitable stdio fds for us, do it ourself */
-#if 1
+
 	bb_sanitize_stdio();
-#else
-	/* Debug code */
-	/* Replace LOGFILE by other file or device name if you need */
-#define LOGFILE "/dev/console"
-	/* Just making sure fd 0 is not closed,
-	 * we don't really intend to read from it */
-	xmove_fd(xopen("/", O_RDONLY), STDIN_FILENO);
-	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDOUT_FILENO);
-	xmove_fd(xopen(LOGFILE, O_WRONLY|O_APPEND), STDERR_FILENO);
-#endif
 
 	xchdir("/dev");
 

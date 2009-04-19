@@ -677,8 +677,8 @@ static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 	return NULL;
 }
 
-static void set_speed_or_die(enum speed_setting type, const char *const arg,
-					struct termios * const mode)
+static void set_speed_or_die(enum speed_setting type, const char *arg,
+					struct termios *mode)
 {
 	speed_t baud;
 
@@ -801,7 +801,7 @@ enum {
 	param_ospeed  = 8 | 0x80,
 };
 
-static int find_param(const char *const name)
+static int find_param(const char *name)
 {
 	static const char params[] ALIGN1 =
 		"line\0"    /* 1 */

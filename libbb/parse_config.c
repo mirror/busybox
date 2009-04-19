@@ -79,7 +79,7 @@ parser_t* FAST_FUNC config_open(const char *filename)
 	return config_open2(filename, fopen_or_warn_stdin);
 }
 
-static void config_free_data(parser_t *const parser)
+static void config_free_data(parser_t *parser)
 {
 	free(parser->line);
 	parser->line = NULL;

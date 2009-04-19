@@ -521,8 +521,8 @@ static void zero_out_var(var * vp)
 	memset(vp, 0, sizeof(*vp));
 }
 
-static void syntax_error(const char *const message) NORETURN;
-static void syntax_error(const char *const message)
+static void syntax_error(const char *message) NORETURN;
+static void syntax_error(const char *message)
 {
 	bb_error_msg_and_die("%s:%i: %s", g_progname, g_lineno, message);
 }
