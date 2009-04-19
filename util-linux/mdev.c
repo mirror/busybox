@@ -15,6 +15,8 @@
  * contains "4:0\n". Directory name is taken as device name, path component
  * directly after /sys/class/ as subsystem. In this example, "tty0" and "tty".
  * Then mdev creates the /dev/device_name node.
+ * If /sys/class/.../dev file does not exist, mdev still may act
+ * on this device: see "@|$|*command args..." parameter in config file.
  *
  * mdev w/o parameters is called as hotplug helper. It takes device
  * and subsystem names from $DEVPATH and $SUBSYSTEM, extracts
@@ -29,20 +31,34 @@
  *
  * [-][subsystem/]device  user:grp  mode  [>|=path] [@|$|*command args...]
  * [-]@maj,min[-min2]     user:grp  mode  [>|=path] [@|$|*command args...]
- *
- * The device name or "subsystem/device" combo is matched against 1st field
- * (which is a regex), or maj,min is matched against 1st field.
+ * [-]$envvar=val         user:grp  mode  [>|=path] [@|$|*command args...]
  *
  * Leading minus in 1st field means "don't stop on this line", otherwise
  * search is stopped after the matching line is encountered.
  *
- * When line matches, the device node is created, chmod'ed and chown'ed.
- * Then it moved to path, and if >path, a symlink to moved node is created
+ * The device name or "subsystem/device" combo is matched against 1st field
+ * (which is a regex), or maj,min is matched against 1st field,
+ * or specified environment variable (as regex) is matched against 1st field.
+ *
+ * $envvar=val format is useful for loading modules for hot-plugged devices
+ * which do not have driver loaded yet. In this case /sys/class/.../dev
+ * does not exist, but $MODALIAS is set to needed module's name
+ * (actually, an alias to it) by kernel. This rule instructs mdev
+ * to load the module and exit:
+ *    $MODALIAS=.* 0:0 660 @modprobe "$MODALIAS"
+ * The kernel will generate another hotplug event when /sys/class/.../dev
+ * file appears.
+ *
+ * When line matches, the device node is created, chmod'ed and chown'ed,
+ * moved to path, and if >path, a symlink to moved node is created,
+ * all this if /sys/class/.../dev exists.
  *    Examples:
  *    =loop/      - moves to /dev/loop
  *    >disk/sda%1 - moves to /dev/disk/sdaN, makes /dev/sdaN a symlink
- * Then "command args" is executed (via sh -c 'command args').
+ *
+ * Then "command args..." is executed (via sh -c 'command args...').
  * @:execute on creation, $:on deletion, *:on both.
+ * This happens regardless of /sys/class/.../dev existence.
  */
 
 struct globals {
