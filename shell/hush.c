@@ -3369,7 +3369,6 @@ static int run_pipe(struct pipe *pi)
 	static const char *const null_ptr = NULL;
 	int i;
 	int nextin;
-	int pipefds[2];		/* pipefds[0] is for reading */
 	struct command *command;
 	char **argv_expanded;
 	char **argv;
@@ -3552,6 +3551,7 @@ static int run_pipe(struct pipe *pi)
 	nextin = 0;
 
 	for (i = 0; i < pi->num_cmds; i++) {
+		struct fd_pair pipefds;
 #if !BB_MMU
 		volatile nommu_save_t nommu_save;
 		nommu_save.new_env = NULL;
@@ -3568,10 +3568,10 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* pipes are inserted between pairs of commands */
-		pipefds[0] = 0;
-		pipefds[1] = 1;
+		pipefds.rd = 0;
+		pipefds.wr = 1;
 		if ((i + 1) < pi->num_cmds)
-			xpipe(pipefds);
+			xpiped_pair(pipefds);
 
 		command->pid = BB_MMU ? fork() : vfork();
 		if (!command->pid) { /* child */
@@ -3592,10 +3592,18 @@ static int run_pipe(struct pipe *pi)
 				}
 			}
 #endif
-			xmove_fd(nextin, 0);
-			xmove_fd(pipefds[1], 1); /* write end */
-			if (pipefds[0] > 1)
-				close(pipefds[0]); /* read end */
+			if (pi->alive_cmds == 0 && pi->followup == PIPE_BG) {
+				/* 1st cmd in backgrounded pipe
+				 * should have its stdin /dev/null'ed */
+				close(0);
+				if (open(bb_dev_null, O_RDONLY))
+					xopen("/", O_RDONLY);
+			} else {
+				xmove_fd(nextin, 0);
+			}
+			xmove_fd(pipefds.wr, 1);
+			if (pipefds.rd > 1)
+				close(pipefds.rd);
 			/* Like bash, explicit redirects override pipes,
 			 * and the pipe fd is available for dup'ing. */
 			if (setup_redirects(command, NULL))
@@ -3640,9 +3648,9 @@ static int run_pipe(struct pipe *pi)
 		if (i)
 			close(nextin);
 		if ((i + 1) < pi->num_cmds)
-			close(pipefds[1]); /* write end */
+			close(pipefds.wr);
 		/* Pass read (output) pipe end to next iteration */
-		nextin = pipefds[0];
+		nextin = pipefds.rd;
 	}
 
 	if (!pi->alive_cmds) {
