@@ -232,6 +232,13 @@ config HUSH_FUNCTIONS
 	help
 	  Enable support for shell functions in hush. +800 bytes.
 
+config HUSH_EXPORT_N
+	bool "Support export '-n' option"
+	default n
+	depends on HUSH
+	help
+	  Enable support for export '-n' option in hush. It is a bash extension.
+
 config LASH
 	bool "lash (deprecated: aliased to hush)"
 	default n

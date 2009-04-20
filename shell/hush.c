@@ -1253,10 +1253,10 @@ static const char *get_local_var_value(const char *src)
 /* str holds "NAME=VAL" and is expected to be malloced.
  * We take ownership of it.
  * flg_export:
- *  0: do not export
- *  1: export
- * -1: if NAME is set, leave export status alone
- *     if NAME is not set, do not export
+ *  0: do not change export flag
+ *     (if creating new variable, flag will be 0)
+ *  1: set export flag and putenv the variable
+ * -1: clear export flag and unsetenv the variable
  * flg_read_only is set only when we handle -R var=val
  */
 #if BB_MMU
@@ -1297,6 +1297,7 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 			free(str);
 			return -1;
 		}
+//TODO: optimize out redundant unsetenv/putenv's?
 		debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
 		unsetenv(str); /* just in case */
 		*value = '=';
@@ -1331,8 +1332,13 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 	if (flg_export == 1)
 		cur->flg_export = 1;
 	if (cur->flg_export) {
-		debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
-		return putenv(cur->varstr);
+		if (flg_export == -1) {
+			cur->flg_export = 0;
+			/* unsetenv was already done */
+		} else {
+			debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
+			return putenv(cur->varstr);
+		}
 	}
 	return 0;
 }
@@ -2214,7 +2220,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 								val = NULL;
 							} else {
 								char *new_var = xasprintf("%s=%s", var, val);
-								set_local_var(new_var, -1, 0);
+								set_local_var(new_var, 0, 0);
 							}
 						}
 					}
@@ -6400,7 +6406,9 @@ static void print_escaped(const char *s)
 
 static int builtin_export(char **argv)
 {
-	if (*++argv == NULL) {
+	unsigned opt_unexport;
+
+	if (argv[1] == NULL) {
 		char **e = environ;
 		if (e) {
 			while (*e) {
@@ -6426,15 +6434,33 @@ static int builtin_export(char **argv)
 		return EXIT_SUCCESS;
 	}
 
+#if ENABLE_HUSH_EXPORT_N
+	opt_unexport = getopt32(argv, "+n"); /* "+": stop at 1st non-option */
+	argv += optind;
+#else
+	opt_unexport = 0;
+	argv++;
+#endif
+
 	do {
 		char *name = *argv;
 
-		/* So far we do not check that name is valid */
+		/* So far we do not check that name is valid (TODO?) */
+
 		if (strchr(name, '=') == NULL) {
-			/* Exporting a name without a =VALUE */
 			struct variable *var;
 
 			var = get_local_var(name);
+			if (opt_unexport) {
+				/* export -n NAME (without =VALUE) */
+				if (var) {
+					var->flg_export = 0;
+					debug_printf_env("%s: unsetenv '%s'\n", __func__, name);
+					unsetenv(name);
+				} /* else: export -n NOT_EXISTING_VAR: no-op */
+				continue;
+			}
+			/* export NAME (without =VALUE) */
 			if (var) {
 				var->flg_export = 1;
 				debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
@@ -6448,10 +6474,13 @@ static int builtin_export(char **argv)
 			 * We just set it to "" and export. */
 			name = xasprintf("%s=", name);
 		} else {
-			/* Exporting VAR=VALUE */
+			/* (Un)exporting NAME=VALUE */
 			name = xstrdup(name);
 		}
-		set_local_var(name, 1, 0);
+		set_local_var(name,
+			/*export:*/ (opt_unexport ? -1 : 1),
+			/*readonly:*/ 0
+		);
 	} while (*++argv);
 
 	return EXIT_SUCCESS;
