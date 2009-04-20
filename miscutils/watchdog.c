@@ -59,13 +59,20 @@ int watchdog_main(int argc, char **argv)
 	/* WDIOC_SETTIMEOUT takes seconds, not milliseconds */
 	htimer_duration = htimer_duration / 1000;
 #ifndef WDIOC_SETTIMEOUT
-#error WDIOC_SETTIMEOUT is not defined, cannot compile watchdog applet
+# error WDIOC_SETTIMEOUT is not defined, cannot compile watchdog applet
 #else
+# if defined WDIOC_SETOPTIONS && defined WDIOS_ENABLECARD
+	{
+		static const int enable = WDIOS_ENABLECARD;
+		ioctl_or_warn(3, WDIOC_SETOPTIONS, (void*) &enable);
+	}
+# endif
 	ioctl_or_warn(3, WDIOC_SETTIMEOUT, &htimer_duration);
 #endif
+
 #if 0
 	ioctl_or_warn(3, WDIOC_GETTIMEOUT, &htimer_duration);
-	printf("watchdog: SW timer is %dms, HW timer is %dms\n",
+	printf("watchdog: SW timer is %dms, HW timer is %ds\n",
 		stimer_duration, htimer_duration * 1000);
 #endif
 
