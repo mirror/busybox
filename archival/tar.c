@@ -738,6 +738,7 @@ enum {
 	USE_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
 	OPTBIT_NOPRESERVE_OWN,
 	OPTBIT_NOPRESERVE_PERM,
+	OPTBIT_NUMERIC_OWNER,
 	OPT_TEST         = 1 << 0, // t
 	OPT_EXTRACT      = 1 << 1, // x
 	OPT_BASEDIR      = 1 << 2, // C
@@ -756,6 +757,7 @@ enum {
 	OPT_COMPRESS     = USE_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NOPRESERVE_OWN  = 1 << OPTBIT_NOPRESERVE_OWN , // no-same-owner
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
+	OPT_NUMERIC_OWNER = 1 << OPTBIT_NUMERIC_OWNER,
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -787,6 +789,7 @@ static const char tar_longopts[] ALIGN1 =
 # if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
 # endif
+	"numeric-owner\0"       No_argument       "\xfc"
 	"no-same-owner\0"       No_argument       "\xfd"
 	"no-same-permissions\0" No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
@@ -872,6 +875,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & OPT_NOPRESERVE_PERM)
 		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_PERM;
+
+	if (opt & OPT_NUMERIC_OWNER)
+		tar_handle->ah_flags |= ARCHIVE_NUMERIC_OWNER;
 
 	if (opt & OPT_GZIP)
 		get_header_ptr = get_header_tar_gz;

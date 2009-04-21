@@ -11,6 +11,7 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 #define ARCHIVE_EXTRACT_NEWER           16
 #define ARCHIVE_NOPRESERVE_OWN          32
 #define ARCHIVE_NOPRESERVE_PERM         64
+#define ARCHIVE_NUMERIC_OWNER           128
 
 typedef struct file_header_t {
 	char *name;
