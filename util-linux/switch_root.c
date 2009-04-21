@@ -103,8 +103,8 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 		// For example, fails when newroot is not a mountpoint
 		bb_perror_msg_and_die("error moving root");
 	}
-	// The chdir is needed to recalculate "." and ".." links
 	xchroot(".");
+	// The chdir is needed to recalculate "." and ".." links
 	xchdir("/");
 
 	// If a new console specified, redirect stdin/stdout/stderr to it
