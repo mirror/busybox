@@ -97,7 +97,7 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	// Overmount / with newdir and chroot into it.  The chdir is needed to
 	// recalculate "." and ".." links.
 	if (mount(".", "/", NULL, MS_MOVE, NULL))
-		bb_error_msg_and_die("error moving root");
+		bb_perror_msg_and_die("error moving root");
 	xchroot(".");
 	xchdir("/");
 
