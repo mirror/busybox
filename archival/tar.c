@@ -728,14 +728,14 @@ static void handle_SIGCHLD(int status)
 
 enum {
 	OPTBIT_KEEP_OLD = 7,
-	USE_FEATURE_TAR_CREATE(   OPTBIT_CREATE      ,)
-	USE_FEATURE_TAR_CREATE(   OPTBIT_DEREFERENCE ,)
-	USE_FEATURE_SEAMLESS_BZ2( OPTBIT_BZIP2       ,)
-	USE_FEATURE_SEAMLESS_LZMA(OPTBIT_LZMA        ,)
-	USE_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
-	USE_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
-	USE_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
-	USE_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
+	IF_FEATURE_TAR_CREATE(   OPTBIT_CREATE      ,)
+	IF_FEATURE_TAR_CREATE(   OPTBIT_DEREFERENCE ,)
+	IF_FEATURE_SEAMLESS_BZ2( OPTBIT_BZIP2       ,)
+	IF_FEATURE_SEAMLESS_LZMA(OPTBIT_LZMA        ,)
+	IF_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
+	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
+	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
+	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
 	OPTBIT_NOPRESERVE_OWN,
 	OPTBIT_NOPRESERVE_PERM,
 	OPTBIT_NUMERIC_OWNER,
@@ -747,14 +747,14 @@ enum {
 	OPT_P            = 1 << 5, // p
 	OPT_VERBOSE      = 1 << 6, // v
 	OPT_KEEP_OLD     = 1 << 7, // k
-	OPT_CREATE       = USE_FEATURE_TAR_CREATE(   (1 << OPTBIT_CREATE      )) + 0, // c
-	OPT_DEREFERENCE  = USE_FEATURE_TAR_CREATE(   (1 << OPTBIT_DEREFERENCE )) + 0, // h
-	OPT_BZIP2        = USE_FEATURE_SEAMLESS_BZ2( (1 << OPTBIT_BZIP2       )) + 0, // j
-	OPT_LZMA         = USE_FEATURE_SEAMLESS_LZMA((1 << OPTBIT_LZMA        )) + 0, // a
-	OPT_INCLUDE_FROM = USE_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
-	OPT_EXCLUDE_FROM = USE_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
-	OPT_GZIP         = USE_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
-	OPT_COMPRESS     = USE_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
+	OPT_CREATE       = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_CREATE      )) + 0, // c
+	OPT_DEREFERENCE  = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_DEREFERENCE )) + 0, // h
+	OPT_BZIP2        = IF_FEATURE_SEAMLESS_BZ2( (1 << OPTBIT_BZIP2       )) + 0, // j
+	OPT_LZMA         = IF_FEATURE_SEAMLESS_LZMA((1 << OPTBIT_LZMA        )) + 0, // a
+	OPT_INCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
+	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
+	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
+	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NOPRESERVE_OWN  = 1 << OPTBIT_NOPRESERVE_OWN , // no-same-owner
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 	OPT_NUMERIC_OWNER = 1 << OPTBIT_NUMERIC_OWNER,
@@ -832,24 +832,24 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		"\xff::" // cumulative lists for --exclude
 #endif
-		USE_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
-		USE_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
-		SKIP_FEATURE_TAR_CREATE("t--x:x--t"); // mutually exclusive
+		IF_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
+		IF_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
+		IF_NOT_FEATURE_TAR_CREATE("t--x:x--t"); // mutually exclusive
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	applet_long_options = tar_longopts;
 #endif
 	opt = getopt32(argv,
 		"txC:f:Opvk"
-		USE_FEATURE_TAR_CREATE(   "ch"  )
-		USE_FEATURE_SEAMLESS_BZ2( "j"   )
-		USE_FEATURE_SEAMLESS_LZMA("a"   )
-		USE_FEATURE_TAR_FROM(     "T:X:")
-		USE_FEATURE_SEAMLESS_GZ(  "z"   )
-		USE_FEATURE_SEAMLESS_Z(   "Z"   )
+		IF_FEATURE_TAR_CREATE(   "ch"  )
+		IF_FEATURE_SEAMLESS_BZ2( "j"   )
+		IF_FEATURE_SEAMLESS_LZMA("a"   )
+		IF_FEATURE_TAR_FROM(     "T:X:")
+		IF_FEATURE_SEAMLESS_GZ(  "z"   )
+		IF_FEATURE_SEAMLESS_Z(   "Z"   )
 		, &base_dir // -C dir
 		, &tar_filename // -f filename
-		USE_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T
-		USE_FEATURE_TAR_FROM(, &(tar_handle->reject)) // X
+		IF_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T
+		IF_FEATURE_TAR_FROM(, &(tar_handle->reject)) // X
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		, &excludes // --exclude
 #endif

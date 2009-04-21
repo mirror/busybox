@@ -89,7 +89,7 @@ int eject_main(int argc UNUSED_PARAM, char **argv)
 	const char *device;
 
 	opt_complementary = "?1:t--T:T--t";
-	flags = getopt32(argv, "tT" USE_FEATURE_EJECT_SCSI("s"));
+	flags = getopt32(argv, "tT" IF_FEATURE_EJECT_SCSI("s"));
 	device = argv[optind] ? argv[optind] : "/dev/cdrom";
 
 	/* We used to do "umount <device>" here, but it was buggy

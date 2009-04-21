@@ -104,7 +104,7 @@ exceptional conditions.
 +#endif
  	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
  	 * don't need to guess whether it's ok to pass -i to us */
- 	opt = getopt32(argv, "f:l:Ki" USE_FEATURE_TELNETD_STANDALONE("p:b:F"),
+ 	opt = getopt32(argv, "f:l:Ki" IF_FEATURE_TELNETD_STANDALONE("p:b:F"),
 @@ -475,7 +495,7 @@
  				FD_SET(ts->sockfd_read, &rdfdset);
  			if (ts->size2 > 0)       /* can write to socket */

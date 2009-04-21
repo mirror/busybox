@@ -287,14 +287,14 @@ static int print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 static int iproute_modify(int cmd, unsigned flags, char **argv)
 {
 	static const char keywords[] ALIGN1 =
-		"src\0""via\0""mtu\0""lock\0""protocol\0"USE_FEATURE_IP_RULE("table\0")
+		"src\0""via\0""mtu\0""lock\0""protocol\0"IF_FEATURE_IP_RULE("table\0")
 		"dev\0""oif\0""to\0""metric\0";
 	enum {
 		ARG_src,
 		ARG_via,
 		ARG_mtu, PARM_lock,
 		ARG_protocol,
-USE_FEATURE_IP_RULE(ARG_table,)
+IF_FEATURE_IP_RULE(ARG_table,)
 		ARG_dev,
 		ARG_oif,
 		ARG_to,

@@ -24,7 +24,7 @@ int insmod_main(int argc UNUSED_PARAM, char **argv)
 	 * or in $MODPATH.
 	 */
 
-	USE_FEATURE_2_4_MODULES(
+	IF_FEATURE_2_4_MODULES(
 		getopt32(argv, INSMOD_OPTS INSMOD_ARGS);
 		argv += optind - 1;
 	);

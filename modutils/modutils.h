@@ -26,10 +26,10 @@ char *parse_cmdline_module_options(char **argv) FAST_FUNC;
 
 #define INSMOD_OPTS \
 	"vq" \
-	USE_FEATURE_2_4_MODULES("sLo:fkx") \
-	USE_FEATURE_INSMOD_LOAD_MAP("m")
+	IF_FEATURE_2_4_MODULES("sLo:fkx") \
+	IF_FEATURE_INSMOD_LOAD_MAP("m")
 
-#define INSMOD_ARGS USE_FEATURE_2_4_MODULES(, NULL)
+#define INSMOD_ARGS IF_FEATURE_2_4_MODULES(, NULL)
 
 enum {
 	INSMOD_OPT_VERBOSE	= 0x0001,

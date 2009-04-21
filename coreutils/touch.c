@@ -63,9 +63,9 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = longopts;
 #endif
 #endif
-	opts = getopt32(argv, "c" USE_DESKTOP("r:")
+	opts = getopt32(argv, "c" IF_DESKTOP("r:")
 				/*ignored:*/ "fma"
-				USE_DESKTOP(, &reference_file));
+				IF_DESKTOP(, &reference_file));
 
 	opts &= 1; /* only -c bit is left */
 	argv += optind;

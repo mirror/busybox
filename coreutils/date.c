@@ -52,11 +52,11 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	char *isofmt_arg = NULL;
 
 	opt_complementary = "d--s:s--d"
-		USE_FEATURE_DATE_ISOFMT(":R--I:I--R");
+		IF_FEATURE_DATE_ISOFMT(":R--I:I--R");
 	opt = getopt32(argv, "Rs:ud:r:"
-			USE_FEATURE_DATE_ISOFMT("I::D:"),
+			IF_FEATURE_DATE_ISOFMT("I::D:"),
 			&date_str, &date_str, &filename
-			USE_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt));
+			IF_FEATURE_DATE_ISOFMT(, &isofmt_arg, &fmt_str2dt));
 	argv += optind;
 	maybe_set_utc(opt);
 

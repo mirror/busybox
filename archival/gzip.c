@@ -2015,7 +2015,7 @@ char* make_new_name_gzip(char *filename)
 }
 
 static
-USE_DESKTOP(long long) int pack_gzip(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int pack_gzip(unpack_info_t *info UNUSED_PARAM)
 {
 	struct stat s;
 
@@ -2050,7 +2050,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" USE_GUNZIP("dt") "q123456789n");
+	opt = getopt32(argv, "cfv" IF_GUNZIP("dt") "q123456789n");
 #if ENABLE_GUNZIP /* gunzip_main may not be visible... */
 	if (opt & 0x18) // -d and/or -t
 		return gunzip_main(argc, argv);

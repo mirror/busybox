@@ -18,15 +18,15 @@
 #include "inet_common.h"
 
 #define NETSTAT_OPTS "laentuwx" \
-	USE_ROUTE(               "r") \
-	USE_FEATURE_NETSTAT_WIDE("W") \
-	USE_FEATURE_NETSTAT_PRG( "p")
+	IF_ROUTE(               "r") \
+	IF_FEATURE_NETSTAT_WIDE("W") \
+	IF_FEATURE_NETSTAT_PRG( "p")
 
 enum {
 	OPTBIT_KEEP_OLD = 7,
-	USE_ROUTE(               OPTBIT_ROUTE,)
-	USE_FEATURE_NETSTAT_WIDE(OPTBIT_WIDE ,)
-	USE_FEATURE_NETSTAT_PRG( OPTBIT_PRG  ,)
+	IF_ROUTE(               OPTBIT_ROUTE,)
+	IF_FEATURE_NETSTAT_WIDE(OPTBIT_WIDE ,)
+	IF_FEATURE_NETSTAT_PRG( OPTBIT_PRG  ,)
 	OPT_sock_listen = 1 << 0, // l
 	OPT_sock_all    = 1 << 1, // a
 	OPT_extended    = 1 << 2, // e
@@ -35,9 +35,9 @@ enum {
 	OPT_sock_udp    = 1 << 5, // u
 	OPT_sock_raw    = 1 << 6, // w
 	OPT_sock_unix   = 1 << 7, // x
-	OPT_route       = USE_ROUTE(               (1 << OPTBIT_ROUTE)) + 0, // r
-	OPT_wide        = USE_FEATURE_NETSTAT_WIDE((1 << OPTBIT_WIDE )) + 0, // W
-	OPT_prg         = USE_FEATURE_NETSTAT_PRG( (1 << OPTBIT_PRG  )) + 0, // p
+	OPT_route       = IF_ROUTE(               (1 << OPTBIT_ROUTE)) + 0, // r
+	OPT_wide        = IF_FEATURE_NETSTAT_WIDE((1 << OPTBIT_WIDE )) + 0, // W
+	OPT_prg         = IF_FEATURE_NETSTAT_PRG( (1 << OPTBIT_PRG  )) + 0, // p
 };
 
 #define NETSTAT_CONNECTED 0x01

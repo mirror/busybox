@@ -224,7 +224,7 @@ int ping_main(int argc UNUSED_PARAM, char **argv)
 
 /* full(er) version */
 
-#define OPT_STRING ("qvc:s:w:W:I:4" USE_PING6("6"))
+#define OPT_STRING ("qvc:s:w:W:I:4" IF_PING6("6"))
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,

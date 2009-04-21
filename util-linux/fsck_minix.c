@@ -151,7 +151,7 @@ struct globals {
 	char superblock_buffer[BLOCK_SIZE];
 	char add_zone_ind_blk[BLOCK_SIZE];
 	char add_zone_dind_blk[BLOCK_SIZE];
-	USE_FEATURE_MINIX2(char add_zone_tind_blk[BLOCK_SIZE];)
+	IF_FEATURE_MINIX2(char add_zone_tind_blk[BLOCK_SIZE];)
 	char check_file_blk[BLOCK_SIZE];
 
 	/* File-name data */

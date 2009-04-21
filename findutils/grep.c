@@ -25,10 +25,10 @@
 /* options */
 #define OPTSTR_GREP \
 	"lnqvscFiHhe:f:Lorm:" \
-	USE_FEATURE_GREP_CONTEXT("A:B:C:") \
-	USE_FEATURE_GREP_EGREP_ALIAS("E") \
-	USE_DESKTOP("w") \
-	USE_EXTRA_COMPAT("z") \
+	IF_FEATURE_GREP_CONTEXT("A:B:C:") \
+	IF_FEATURE_GREP_EGREP_ALIAS("E") \
+	IF_DESKTOP("w") \
+	IF_EXTRA_COMPAT("z") \
 	"aI"
 
 /* ignored: -a "assume all files to be text" */
@@ -51,12 +51,12 @@ enum {
 	OPTBIT_o, /* show only matching parts of lines */
 	OPTBIT_r, /* recurse dirs */
 	OPTBIT_m, /* -m MAX_MATCHES */
-	USE_FEATURE_GREP_CONTEXT(    OPTBIT_A ,) /* -A NUM: after-match context */
-	USE_FEATURE_GREP_CONTEXT(    OPTBIT_B ,) /* -B NUM: before-match context */
-	USE_FEATURE_GREP_CONTEXT(    OPTBIT_C ,) /* -C NUM: -A and -B combined */
-	USE_FEATURE_GREP_EGREP_ALIAS(OPTBIT_E ,) /* extended regexp */
-	USE_DESKTOP(                 OPTBIT_w ,) /* whole word match */
-	USE_EXTRA_COMPAT(            OPTBIT_z ,) /* input is NUL terminated */
+	IF_FEATURE_GREP_CONTEXT(    OPTBIT_A ,) /* -A NUM: after-match context */
+	IF_FEATURE_GREP_CONTEXT(    OPTBIT_B ,) /* -B NUM: before-match context */
+	IF_FEATURE_GREP_CONTEXT(    OPTBIT_C ,) /* -C NUM: -A and -B combined */
+	IF_FEATURE_GREP_EGREP_ALIAS(OPTBIT_E ,) /* extended regexp */
+	IF_DESKTOP(                 OPTBIT_w ,) /* whole word match */
+	IF_EXTRA_COMPAT(            OPTBIT_z ,) /* input is NUL terminated */
 	OPT_l = 1 << OPTBIT_l,
 	OPT_n = 1 << OPTBIT_n,
 	OPT_q = 1 << OPTBIT_q,
@@ -73,12 +73,12 @@ enum {
 	OPT_o = 1 << OPTBIT_o,
 	OPT_r = 1 << OPTBIT_r,
 	OPT_m = 1 << OPTBIT_m,
-	OPT_A = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_A)) + 0,
-	OPT_B = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_B)) + 0,
-	OPT_C = USE_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_C)) + 0,
-	OPT_E = USE_FEATURE_GREP_EGREP_ALIAS((1 << OPTBIT_E)) + 0,
-	OPT_w = USE_DESKTOP(                 (1 << OPTBIT_w)) + 0,
-	OPT_z = USE_EXTRA_COMPAT(            (1 << OPTBIT_z)) + 0,
+	OPT_A = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_A)) + 0,
+	OPT_B = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_B)) + 0,
+	OPT_C = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_C)) + 0,
+	OPT_E = IF_FEATURE_GREP_EGREP_ALIAS((1 << OPTBIT_E)) + 0,
+	OPT_w = IF_DESKTOP(                 (1 << OPTBIT_w)) + 0,
+	OPT_z = IF_EXTRA_COMPAT(            (1 << OPTBIT_z)) + 0,
 };
 
 #define PRINT_FILES_WITH_MATCHES    (option_mask32 & OPT_l)
@@ -105,7 +105,7 @@ struct globals {
 	int lines_before;
 	int lines_after;
 	char **before_buf;
-	USE_EXTRA_COMPAT(size_t *before_buf_size;)
+	IF_EXTRA_COMPAT(size_t *before_buf_size;)
 	int last_line_printed;
 #endif
 	/* globals used internally */
@@ -400,7 +400,7 @@ static int grep_file(FILE *file)
 				/* Add the line to the circular 'before' buffer */
 				free(before_buf[curpos]);
 				before_buf[curpos] = line;
-				USE_EXTRA_COMPAT(before_buf_size[curpos] = line_len;)
+				IF_EXTRA_COMPAT(before_buf_size[curpos] = line_len;)
 				curpos = (curpos + 1) % lines_before;
 				/* avoid free(line) - we took the line */
 				line = NULL;
@@ -544,7 +544,7 @@ int grep_main(int argc, char **argv)
 		lines_after = 0;
 	} else if (lines_before > 0) {
 		before_buf = xzalloc(lines_before * sizeof(before_buf[0]));
-		USE_EXTRA_COMPAT(before_buf_size = xzalloc(lines_before * sizeof(before_buf_size[0]));)
+		IF_EXTRA_COMPAT(before_buf_size = xzalloc(lines_before * sizeof(before_buf_size[0]));)
 	}
 #else
 	/* with auto sanity checks */

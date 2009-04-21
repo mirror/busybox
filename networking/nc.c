@@ -29,11 +29,11 @@ int nc_main(int argc, char **argv)
 	int sfd = sfd; /* for gcc */
 	int cfd = 0;
 	unsigned lport = 0;
-	SKIP_NC_SERVER(const) unsigned do_listen = 0;
-	SKIP_NC_EXTRA (const) unsigned wsecs = 0;
-	SKIP_NC_EXTRA (const) unsigned delay = 0;
-	SKIP_NC_EXTRA (const int execparam = 0;)
-	USE_NC_EXTRA  (char **execparam = NULL;)
+	IF_NOT_NC_SERVER(const) unsigned do_listen = 0;
+	IF_NOT_NC_EXTRA (const) unsigned wsecs = 0;
+	IF_NOT_NC_EXTRA (const) unsigned delay = 0;
+	IF_NOT_NC_EXTRA (const int execparam = 0;)
+	IF_NC_EXTRA     (char **execparam = NULL;)
 	len_and_sockaddr *lsa;
 	fd_set readfds, testfds;
 	int opt; /* must be signed (getopt returns -1) */
@@ -42,24 +42,24 @@ int nc_main(int argc, char **argv)
 		/* getopt32 is _almost_ usable:
 		** it cannot handle "... -e prog -prog-opt" */
 		while ((opt = getopt(argc, argv,
-		        "" USE_NC_SERVER("lp:") USE_NC_EXTRA("w:i:f:e:") )) > 0
+		        "" IF_NC_SERVER("lp:") IF_NC_EXTRA("w:i:f:e:") )) > 0
 		) {
 			if (ENABLE_NC_SERVER && opt=='l')
-				USE_NC_SERVER(do_listen++);
+				IF_NC_SERVER(do_listen++);
 			else if (ENABLE_NC_SERVER && opt=='p')
-				USE_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
+				IF_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
 			else if (ENABLE_NC_EXTRA && opt=='w')
-				USE_NC_EXTRA( wsecs = xatou(optarg));
+				IF_NC_EXTRA( wsecs = xatou(optarg));
 			else if (ENABLE_NC_EXTRA && opt=='i')
-				USE_NC_EXTRA( delay = xatou(optarg));
+				IF_NC_EXTRA( delay = xatou(optarg));
 			else if (ENABLE_NC_EXTRA && opt=='f')
-				USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
+				IF_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
 			else if (ENABLE_NC_EXTRA && opt=='e' && optind <= argc) {
 				/* We cannot just 'break'. We should let getopt finish.
 				** Or else we won't be able to find where
 				** 'host' and 'port' params are
 				** (think "nc -w 60 host port -e prog"). */
-				USE_NC_EXTRA(
+				IF_NC_EXTRA(
 					char **p;
 					// +2: one for progname (optarg) and one for NULL
 					execparam = xzalloc(sizeof(char*) * (argc - optind + 2));
@@ -154,7 +154,7 @@ int nc_main(int argc, char **argv)
 		xmove_fd(cfd, 0);
 		xdup2(0, 1);
 		xdup2(0, 2);
-		USE_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
+		IF_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
 		/* Don't print stuff or it will go over the wire.... */
 		_exit(127);
 	}

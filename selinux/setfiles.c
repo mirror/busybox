@@ -544,9 +544,9 @@ int setfiles_main(int argc, char **argv)
 			&exclude_dir, &input_filename, &out_filename, &verbose);
 	} else { /* setfiles */
 		flags = getopt32(argv, "de:f:ilnpqr:svo:FW"
-				USE_FEATURE_SETFILES_CHECK_OPTION("c:"),
+				IF_FEATURE_SETFILES_CHECK_OPTION("c:"),
 			&exclude_dir, &input_filename, &rootpath, &out_filename,
-				 USE_FEATURE_SETFILES_CHECK_OPTION(&policyfile,)
+				 IF_FEATURE_SETFILES_CHECK_OPTION(&policyfile,)
 			&verbose);
 	}
 

@@ -56,11 +56,11 @@
 /* STANDALONE does not make sense, and won't compile */
 #undef CONFIG_FEATURE_SH_STANDALONE
 #undef ENABLE_FEATURE_SH_STANDALONE
-#undef USE_FEATURE_SH_STANDALONE
-#undef SKIP_FEATURE_SH_STANDALONE(...)
+#undef IF_FEATURE_SH_STANDALONE
+#undef IF_NOT_FEATURE_SH_STANDALONE(...)
 #define ENABLE_FEATURE_SH_STANDALONE 0
-#define USE_FEATURE_SH_STANDALONE(...)
-#define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+#define IF_FEATURE_SH_STANDALONE(...)
+#define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
 #ifndef PIPE_BUF
@@ -349,7 +349,7 @@ raise_interrupt(void)
 } while (0)
 #endif
 
-static USE_ASH_OPTIMIZE_FOR_SIZE(inline) void
+static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
 int_on(void)
 {
 	xbarrier();
@@ -358,7 +358,7 @@ int_on(void)
 	}
 }
 #define INT_ON int_on()
-static USE_ASH_OPTIMIZE_FOR_SIZE(inline) void
+static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
 force_int_on(void)
 {
 	xbarrier();
@@ -4219,7 +4219,7 @@ cmdputs(const char *s)
 	static const char vstype[VSTYPE + 1][3] = {
 		"", "}", "-", "+", "?", "=",
 		"%", "%%", "#", "##"
-		USE_ASH_BASH_COMPAT(, ":", "/", "//")
+		IF_ASH_BASH_COMPAT(, ":", "/", "//")
 	};
 
 	const char *p, *str;
@@ -6069,9 +6069,9 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	char *startp;
 	char *loc;
 	char *rmesc, *rmescend;
-	USE_ASH_BASH_COMPAT(char *repl = NULL;)
-	USE_ASH_BASH_COMPAT(char null = '\0';)
-	USE_ASH_BASH_COMPAT(int pos, len, orig_len;)
+	IF_ASH_BASH_COMPAT(char *repl = NULL;)
+	IF_ASH_BASH_COMPAT(char null = '\0';)
+	IF_ASH_BASH_COMPAT(int pos, len, orig_len;)
 	int saveherefd = herefd;
 	int amount, workloc, resetloc;
 	int zero;
@@ -6157,7 +6157,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	 * stack will need rebasing, and we'll need to remove our work
 	 * areas each time
 	 */
- USE_ASH_BASH_COMPAT(restart:)
+ IF_ASH_BASH_COMPAT(restart:)
 
 	amount = expdest - ((char *)stackblock() + resetloc);
 	STADJUST(-amount, expdest);
@@ -7083,7 +7083,7 @@ static int builtinloc = -1;     /* index in path of %builtin, or -1 */
 
 
 static void
-tryexec(USE_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **envp)
+tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
 
@@ -7155,13 +7155,13 @@ shellexec(char **argv, const char *path, int idx)
 	 || (applet_no = find_applet_by_name(argv[0])) >= 0
 #endif
 	) {
-		tryexec(USE_FEATURE_SH_STANDALONE(applet_no,) argv[0], argv, envp);
+		tryexec(IF_FEATURE_SH_STANDALONE(applet_no,) argv[0], argv, envp);
 		e = errno;
 	} else {
 		e = ENOENT;
 		while ((cmdname = padvance(&path, argv[0])) != NULL) {
 			if (--idx < 0 && pathopt == NULL) {
-				tryexec(USE_FEATURE_SH_STANDALONE(-1,) cmdname, argv, envp);
+				tryexec(IF_FEATURE_SH_STANDALONE(-1,) cmdname, argv, envp);
 				if (errno != ENOENT && errno != ENOTDIR)
 					e = errno;
 			}
@@ -10789,7 +10789,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	int parenlevel;      /* levels of parens in arithmetic */
 	int dqvarnest;       /* levels of variables expansion within double quotes */
 
-	USE_ASH_BASH_COMPAT(smallint bash_dollar_squote = 0;)
+	IF_ASH_BASH_COMPAT(smallint bash_dollar_squote = 0;)
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
@@ -10895,7 +10895,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 				dblquote = 1;
 				goto quotemark;
 			case CENDQUOTE:
-				USE_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
+				IF_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
 				if (eofmark != NULL && arinest == 0
 				 && varnest == 0
 				) {
@@ -10994,7 +10994,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	len = out - (char *)stackblock();
 	out = stackblock();
 	if (eofmark == NULL) {
-		if ((c == '>' || c == '<' USE_ASH_BASH_COMPAT( || c == 0x100 + '>'))
+		if ((c == '>' || c == '<' IF_ASH_BASH_COMPAT( || c == 0x100 + '>'))
 		 && quotef == 0
 		) {
 			if (isdigit_str9(out)) {
@@ -11488,7 +11488,7 @@ xxreadtoken(void)
 	startlinno = g_parsefile->linno;
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc_fast();
-		if (c == ' ' || c == '\t' USE_ASH_ALIAS( || c == PEOA))
+		if (c == ' ' || c == '\t' IF_ASH_ALIAS( || c == PEOA))
 			continue;
 
 		if (c == '#') {
@@ -12454,8 +12454,8 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	rflag = 0;
 	prompt = NULL;
 	while ((i = nextopt("p:u:r"
-		USE_ASH_READ_TIMEOUT("t:")
-		USE_ASH_READ_NCHARS("n:s")
+		IF_ASH_READ_TIMEOUT("t:")
+		IF_ASH_READ_NCHARS("n:s")
 	)) != '\0') {
 		switch (i) {
 		case 'p':

@@ -315,7 +315,7 @@ int FAST_FUNC open_zipped(const char *fname)
 	char *sfx;
 	int fd;
 #if BB_MMU
-	USE_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
+	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
 	enum { xformer_prog = 0 };
 #else
 	enum { xformer = 0 };
@@ -352,7 +352,7 @@ int FAST_FUNC open_zipped(const char *fname)
 				 || magic[0] != 'B' || magic[1] != 'Z'
 				) {
 					bb_error_msg_and_die("no gzip"
-						USE_FEATURE_SEAMLESS_BZ2("/bzip2")
+						IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 						" magic");
 				}
 #if BB_MMU

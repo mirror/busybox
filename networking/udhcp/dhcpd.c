@@ -37,14 +37,14 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	struct option_set *option;
 	struct dhcpOfferedAddr *lease, static_lease;
-	USE_FEATURE_UDHCP_PORT(char *str_P;)
+	IF_FEATURE_UDHCP_PORT(char *str_P;)
 
 #if ENABLE_FEATURE_UDHCP_PORT
 	SERVER_PORT = 67;
 	CLIENT_PORT = 68;
 #endif
 
-	opt = getopt32(argv, "fS" USE_FEATURE_UDHCP_PORT("P:", &str_P));
+	opt = getopt32(argv, "fS" IF_FEATURE_UDHCP_PORT("P:", &str_P));
 	argv += optind;
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);

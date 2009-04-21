@@ -103,8 +103,8 @@ struct globals {
 	smallint exit_status;
 	int opt_U_context;
 	size_t max_context;     /* size of context_vec_start */
-	USE_FEATURE_DIFF_DIR(int dl_count;)
-	USE_FEATURE_DIFF_DIR(char **dl;)
+	IF_FEATURE_DIFF_DIR(int dl_count;)
+	IF_FEATURE_DIFF_DIR(char **dl;)
 	char *opt_S_start;
 	const char *label1;
 	const char *label2;

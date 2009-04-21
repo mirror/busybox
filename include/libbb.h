@@ -260,7 +260,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 	FILEUTILS_SET_SECURITY_CONTEXT = 0x200
 #endif
 };
-#define FILEUTILS_CP_OPTSTR "pdRfilsL" USE_SELINUX("c")
+#define FILEUTILS_CP_OPTSTR "pdRfilsL" IF_SELINUX("c")
 extern int remove_file(const char *path, int flags) FAST_FUNC;
 /* NB: without FILEUTILS_RECUR in flags, it will basically "cat"
  * the source, not copy (unless "source" is a directory).
@@ -916,15 +916,15 @@ extern void bb_verror_msg(const char *s, va_list p, const char *strerr) FAST_FUN
 /* Applets which are useful from another applets */
 int bb_cat(char** argv);
 /* If shell needs them, they exist even if not enabled as applets */
-int echo_main(int argc, char** argv) USE_ECHO(MAIN_EXTERNALLY_VISIBLE);
-int printf_main(int argc, char **argv) USE_PRINTF(MAIN_EXTERNALLY_VISIBLE);
-int test_main(int argc, char **argv) USE_TEST(MAIN_EXTERNALLY_VISIBLE);
-int kill_main(int argc, char **argv) USE_KILL(MAIN_EXTERNALLY_VISIBLE);
+int echo_main(int argc, char** argv) IF_ECHO(MAIN_EXTERNALLY_VISIBLE);
+int printf_main(int argc, char **argv) IF_PRINTF(MAIN_EXTERNALLY_VISIBLE);
+int test_main(int argc, char **argv) IF_TEST(MAIN_EXTERNALLY_VISIBLE);
+int kill_main(int argc, char **argv) IF_KILL(MAIN_EXTERNALLY_VISIBLE);
 /* Similar, but used by chgrp, not shell */
-int chown_main(int argc, char **argv) USE_CHOWN(MAIN_EXTERNALLY_VISIBLE);
+int chown_main(int argc, char **argv) IF_CHOWN(MAIN_EXTERNALLY_VISIBLE);
 /* Used by ftpd */
-int ls_main(int argc, char **argv) USE_LS(MAIN_EXTERNALLY_VISIBLE);
-/* Don't need USE_xxx() guard for these */
+int ls_main(int argc, char **argv) IF_LS(MAIN_EXTERNALLY_VISIBLE);
+/* Don't need IF_xxx() guard for these */
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 
@@ -1253,7 +1253,7 @@ typedef struct procps_status_t {
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
 	uint16_t argv_len;
 	char *argv0;
-	USE_SELINUX(char *context;)
+	IF_SELINUX(char *context;)
 	/* Everything below must contain no ptrs to malloc'ed data:
 	 * it is memset(0) for each process in procps_scan() */
 	unsigned long vsz, rss; /* we round it to kbytes */
@@ -1309,7 +1309,7 @@ enum {
 				|| ENABLE_PIDOF
 				|| ENABLE_SESTATUS
 				),
-	USE_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
+	IF_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	PSSCAN_START_TIME = 1 << 18,
 	PSSCAN_CPU      = 1 << 19,
 	/* These are all retrieved from proc/NN/stat in one go: */

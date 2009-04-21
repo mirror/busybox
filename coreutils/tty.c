@@ -13,17 +13,17 @@
 #include "libbb.h"
 
 int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(UNUSED_PARAM))
+int tty_main(int argc, char **argv IF_NOT_INCLUDE_SUSv2(UNUSED_PARAM))
 {
 	const char *s;
-	USE_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
+	IF_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
 	int retval;
 
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
-	USE_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
-	USE_INCLUDE_SUSv2(argc -= optind;)
-	SKIP_INCLUDE_SUSv2(argc -= 1;)
+	IF_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
+	IF_INCLUDE_SUSv2(argc -= optind;)
+	IF_NOT_INCLUDE_SUSv2(argc -= 1;)
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
 	bb_warn_ignoring_args(argc);
@@ -37,8 +37,8 @@ int tty_main(int argc, char **argv SKIP_INCLUDE_SUSv2(UNUSED_PARAM))
 		s = "not a tty";
 		retval = 1;
 	}
-	USE_INCLUDE_SUSv2(if (!silent) puts(s);)
-	SKIP_INCLUDE_SUSv2(puts(s);)
+	IF_INCLUDE_SUSv2(if (!silent) puts(s);)
+	IF_NOT_INCLUDE_SUSv2(puts(s);)
 
 	fflush_stdout_and_exit(retval);
 }

@@ -1103,9 +1103,9 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	G.timeout = 2 * 60;
 	opt_complementary = "t+:T+:vv";
 #if BB_MMU
-	opts = getopt32(argv,   "vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
+	opts = getopt32(argv,   "vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
 #else
-	opts = getopt32(argv, "l1vS" USE_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
+	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 /* TODO: pass -n too? */

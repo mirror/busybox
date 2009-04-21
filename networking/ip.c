@@ -76,18 +76,18 @@ int ip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ip_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char keywords[] ALIGN1 =
-		USE_FEATURE_IP_ADDRESS("address\0")
-		USE_FEATURE_IP_ROUTE("route\0")
-		USE_FEATURE_IP_LINK("link\0")
-		USE_FEATURE_IP_TUNNEL("tunnel\0" "tunl\0")
-		USE_FEATURE_IP_RULE("rule\0")
+		IF_FEATURE_IP_ADDRESS("address\0")
+		IF_FEATURE_IP_ROUTE("route\0")
+		IF_FEATURE_IP_LINK("link\0")
+		IF_FEATURE_IP_TUNNEL("tunnel\0" "tunl\0")
+		IF_FEATURE_IP_RULE("rule\0")
 		;
 	enum {
-		USE_FEATURE_IP_ADDRESS(IP_addr,)
-		USE_FEATURE_IP_ROUTE(IP_route,)
-		USE_FEATURE_IP_LINK(IP_link,)
-		USE_FEATURE_IP_TUNNEL(IP_tunnel, IP_tunl,)
-		USE_FEATURE_IP_RULE(IP_rule,)
+		IF_FEATURE_IP_ADDRESS(IP_addr,)
+		IF_FEATURE_IP_ROUTE(IP_route,)
+		IF_FEATURE_IP_LINK(IP_link,)
+		IF_FEATURE_IP_TUNNEL(IP_tunnel, IP_tunl,)
+		IF_FEATURE_IP_RULE(IP_rule,)
 		IP_none
 	};
 	int (*ip_func)(char**) = ip_print_help;

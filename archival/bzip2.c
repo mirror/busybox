@@ -64,7 +64,7 @@ static uint8_t level;
  * total written bytes so far otherwise
  */
 static
-USE_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, void *wbuf)
+IF_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, void *wbuf)
 {
 	int n, n2, ret;
 
@@ -98,13 +98,13 @@ USE_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, v
 		if (rlen && strm->avail_in == 0)
 			break;
 	}
-	return 0 USE_DESKTOP( + strm->total_out );
+	return 0 IF_DESKTOP( + strm->total_out );
 }
 
 static
-USE_DESKTOP(long long) int compressStream(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int compressStream(unpack_info_t *info UNUSED_PARAM)
 {
-	USE_DESKTOP(long long) int total;
+	IF_DESKTOP(long long) int total;
 	ssize_t count;
 	bz_stream bzs; /* it's small */
 #define strm (&bzs)
@@ -163,7 +163,7 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "s2"; /* -s means -2 (compatibility) */
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" USE_BUNZIP2("dt") "123456789qzs");
+	opt = getopt32(argv, "cfv" IF_BUNZIP2("dt") "123456789qzs");
 #if ENABLE_BUNZIP2 /* bunzip2_main may not be visible... */
 	if (opt & 0x18) // -d and/or -t
 		return bunzip2_main(argc, argv);

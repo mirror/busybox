@@ -394,7 +394,7 @@ void FAST_FUNC read_leases(const char *file)
 	struct dhcpOfferedAddr lease;
 	int64_t written_at, time_passed;
 	int fd;
-	USE_UDHCP_DEBUG(unsigned i;)
+	IF_UDHCP_DEBUG(unsigned i;)
 
 	fd = open_or_warn(file, O_RDONLY);
 	if (fd < 0)
@@ -410,7 +410,7 @@ void FAST_FUNC read_leases(const char *file)
 	if ((uint64_t)time_passed > 12 * 60 * 60)
 		goto ret;
 
-	USE_UDHCP_DEBUG(i = 0;)
+	IF_UDHCP_DEBUG(i = 0;)
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		/* ADDME: what if it matches some static lease? */
 		uint32_t y = ntohl(lease.yiaddr);
@@ -424,7 +424,7 @@ void FAST_FUNC read_leases(const char *file)
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
-			USE_UDHCP_DEBUG(i++;)
+			IF_UDHCP_DEBUG(i++;)
 		}
 	}
 	DEBUG("Read %d leases", i);

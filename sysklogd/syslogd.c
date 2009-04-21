@@ -66,7 +66,7 @@ struct shbuf_ds {
 	/*int markInterval;*/                   \
 	/* level of messages to be logged */    \
 	int logLevel;                           \
-USE_FEATURE_ROTATE_LOGFILE( \
+IF_FEATURE_ROTATE_LOGFILE( \
 	/* max size of file before rotation */  \
 	unsigned logFileSize;                   \
 	/* number of rotated message files */   \
@@ -74,12 +74,12 @@ USE_FEATURE_ROTATE_LOGFILE( \
 	unsigned curFileSize;                   \
 	smallint isRegular;                     \
 ) \
-USE_FEATURE_REMOTE_LOG( \
+IF_FEATURE_REMOTE_LOG( \
 	/* udp socket for remote logging */     \
 	int remoteFD;                           \
 	len_and_sockaddr* remoteAddr;           \
 ) \
-USE_FEATURE_IPC_SYSLOG( \
+IF_FEATURE_IPC_SYSLOG( \
 	int shmid; /* ipc shared memory id */   \
 	int s_semid; /* ipc semaphore id */     \
 	int shm_size;                           \
@@ -153,41 +153,41 @@ enum {
 	OPTBIT_outfile, // -O
 	OPTBIT_loglevel, // -l
 	OPTBIT_small, // -S
-	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_filesize   ,)	// -s
-	USE_FEATURE_ROTATE_LOGFILE(OPTBIT_rotatecnt  ,)	// -b
-	USE_FEATURE_REMOTE_LOG(    OPTBIT_remotelog  ,)	// -R
-	USE_FEATURE_REMOTE_LOG(    OPTBIT_locallog   ,)	// -L
-	USE_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
-	USE_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
+	IF_FEATURE_ROTATE_LOGFILE(OPTBIT_filesize   ,)	// -s
+	IF_FEATURE_ROTATE_LOGFILE(OPTBIT_rotatecnt  ,)	// -b
+	IF_FEATURE_REMOTE_LOG(    OPTBIT_remotelog  ,)	// -R
+	IF_FEATURE_REMOTE_LOG(    OPTBIT_locallog   ,)	// -L
+	IF_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
+	IF_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
 
 	OPT_mark        = 1 << OPTBIT_mark    ,
 	OPT_nofork      = 1 << OPTBIT_nofork  ,
 	OPT_outfile     = 1 << OPTBIT_outfile ,
 	OPT_loglevel    = 1 << OPTBIT_loglevel,
 	OPT_small       = 1 << OPTBIT_small   ,
-	OPT_filesize    = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_filesize   )) + 0,
-	OPT_rotatecnt   = USE_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_rotatecnt  )) + 0,
-	OPT_remotelog   = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remotelog  )) + 0,
-	OPT_locallog    = USE_FEATURE_REMOTE_LOG(    (1 << OPTBIT_locallog   )) + 0,
-	OPT_circularlog = USE_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
-	OPT_dup         = USE_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
+	OPT_filesize    = IF_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_filesize   )) + 0,
+	OPT_rotatecnt   = IF_FEATURE_ROTATE_LOGFILE((1 << OPTBIT_rotatecnt  )) + 0,
+	OPT_remotelog   = IF_FEATURE_REMOTE_LOG(    (1 << OPTBIT_remotelog  )) + 0,
+	OPT_locallog    = IF_FEATURE_REMOTE_LOG(    (1 << OPTBIT_locallog   )) + 0,
+	OPT_circularlog = IF_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
+	OPT_dup         = IF_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
 };
 #define OPTION_STR "m:nO:l:S" \
-	USE_FEATURE_ROTATE_LOGFILE("s:" ) \
-	USE_FEATURE_ROTATE_LOGFILE("b:" ) \
-	USE_FEATURE_REMOTE_LOG(    "R:" ) \
-	USE_FEATURE_REMOTE_LOG(    "L"  ) \
-	USE_FEATURE_IPC_SYSLOG(    "C::") \
-	USE_FEATURE_SYSLOGD_DUP(   "D"  )
+	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
+	IF_FEATURE_ROTATE_LOGFILE("b:" ) \
+	IF_FEATURE_REMOTE_LOG(    "R:" ) \
+	IF_FEATURE_REMOTE_LOG(    "L"  ) \
+	IF_FEATURE_IPC_SYSLOG(    "C::") \
+	IF_FEATURE_SYSLOGD_DUP(   "D"  )
 #define OPTION_DECL *opt_m, *opt_l \
-	USE_FEATURE_ROTATE_LOGFILE(,*opt_s) \
-	USE_FEATURE_ROTATE_LOGFILE(,*opt_b) \
-	USE_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL)
+	IF_FEATURE_ROTATE_LOGFILE(,*opt_s) \
+	IF_FEATURE_ROTATE_LOGFILE(,*opt_b) \
+	IF_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL)
 #define OPTION_PARAM &opt_m, &G.logFilePath, &opt_l \
-	USE_FEATURE_ROTATE_LOGFILE(,&opt_s) \
-	USE_FEATURE_ROTATE_LOGFILE(,&opt_b) \
-	USE_FEATURE_REMOTE_LOG(    ,&G.remoteAddrStr) \
-	USE_FEATURE_IPC_SYSLOG(    ,&opt_C)
+	IF_FEATURE_ROTATE_LOGFILE(,&opt_s) \
+	IF_FEATURE_ROTATE_LOGFILE(,&opt_b) \
+	IF_FEATURE_REMOTE_LOG(    ,&G.remoteAddrStr) \
+	IF_FEATURE_IPC_SYSLOG(    ,&opt_C)
 
 
 /* circular buffer variables/structures */

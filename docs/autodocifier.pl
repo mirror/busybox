@@ -24,8 +24,8 @@ sub beautify {
 	my $text = shift;
 	for (;;) {
 		my $text2 = $text;
-		$text =~ s/SKIP_\w+\(.*?"\s*\)//sxg;
-		$text =~ s/USE_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
+		$text =~ s/IF_NOT_\w+\(.*?"\s*\)//sxg;
+		$text =~ s/IF_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
 		$text =~ s/USAGE_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
 		last if ( $text2 eq $text );
 	}

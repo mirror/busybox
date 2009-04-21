@@ -190,7 +190,7 @@ static void extract_cpio_gz(int fd)
 	archive_handle_t *archive_handle;
 	unsigned char magic[2];
 #if BB_MMU
-	USE_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
+	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
 	enum { xformer_prog = 0 };
 #else
 	enum { xformer = 0 };
@@ -224,7 +224,7 @@ static void extract_cpio_gz(int fd)
 		 || magic[0] != 'B' || magic[1] != 'Z'
 		) {
 			bb_error_msg_and_die("no gzip"
-				USE_FEATURE_SEAMLESS_BZ2("/bzip2")
+				IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 				" magic");
 		}
 #if BB_MMU

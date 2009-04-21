@@ -101,12 +101,12 @@ int install_main(int argc, char **argv)
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 	applet_long_options = install_longopts;
 #endif
-	opt_complementary = "s--d:d--s" USE_SELINUX(":Z--\xff:\xff--Z");
+	opt_complementary = "s--d:d--s" IF_SELINUX(":Z--\xff:\xff--Z");
 	/* -c exists for backwards compatibility, it's needed */
 	/* -v is ignored ("print name of each created directory") */
 	/* -b is ignored ("make a backup of each existing destination file") */
-	opts = getopt32(argv, "cvb" "Ddpsg:m:o:" USE_SELINUX("Z:"),
-			&gid_str, &mode_str, &uid_str USE_SELINUX(, &scontext));
+	opts = getopt32(argv, "cvb" "Ddpsg:m:o:" IF_SELINUX("Z:"),
+			&gid_str, &mode_str, &uid_str IF_SELINUX(, &scontext));
 	argc -= optind;
 	argv += optind;
 

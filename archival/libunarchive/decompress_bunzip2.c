@@ -648,10 +648,10 @@ void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
 
 
 /* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream(int src_fd, int dst_fd)
 {
-	USE_DESKTOP(long long total_written = 0;)
+	IF_DESKTOP(long long total_written = 0;)
 	char *outbuf;
 	bunzip_data *bd;
 	int i;
@@ -666,7 +666,7 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 				i = RETVAL_SHORT_WRITE;
 				break;
 			}
-			USE_DESKTOP(total_written += i;)
+			IF_DESKTOP(total_written += i;)
 		}
 	}
 
@@ -686,10 +686,10 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 	dealloc_bunzip(bd);
 	free(outbuf);
 
-	return i ? i : USE_DESKTOP(total_written) + 0;
+	return i ? i : IF_DESKTOP(total_written) + 0;
 }
 
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream_prime(int src_fd, int dst_fd)
 {
 	unsigned char magic[2];

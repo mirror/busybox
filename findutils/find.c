@@ -62,8 +62,8 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
-USE_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
-USE_FEATURE_FIND_XDEV(static int xdev_count;)
+IF_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
+IF_FEATURE_FIND_XDEV(static int xdev_count;)
 
 typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *);
 
@@ -79,23 +79,23 @@ typedef struct {
                                                   action_##name* ap UNUSED_PARAM)
                          ACTS(print)
                          ACTS(name,  const char *pattern; bool iname;)
-USE_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))
-USE_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
-USE_FEATURE_FIND_PRINT0( ACTS(print0))
-USE_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
-USE_FEATURE_FIND_PERM(   ACTS(perm,  char perm_char; mode_t perm_mask;))
-USE_FEATURE_FIND_MTIME(  ACTS(mtime, char mtime_char; unsigned mtime_days;))
-USE_FEATURE_FIND_MMIN(   ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
-USE_FEATURE_FIND_NEWER(  ACTS(newer, time_t newer_mtime;))
-USE_FEATURE_FIND_INUM(   ACTS(inum,  ino_t inode_num;))
-USE_FEATURE_FIND_USER(   ACTS(user,  uid_t uid;))
-USE_FEATURE_FIND_SIZE(   ACTS(size,  char size_char; off_t size;))
-USE_FEATURE_FIND_CONTEXT(ACTS(context, security_context_t context;))
-USE_FEATURE_FIND_PAREN(  ACTS(paren, action ***subexpr;))
-USE_FEATURE_FIND_PRUNE(  ACTS(prune))
-USE_FEATURE_FIND_DELETE( ACTS(delete))
-USE_FEATURE_FIND_EXEC(   ACTS(exec,  char **exec_argv; unsigned *subst_count; int exec_argc;))
-USE_FEATURE_FIND_GROUP(  ACTS(group, gid_t gid;))
+IF_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))
+IF_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
+IF_FEATURE_FIND_PRINT0( ACTS(print0))
+IF_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
+IF_FEATURE_FIND_PERM(   ACTS(perm,  char perm_char; mode_t perm_mask;))
+IF_FEATURE_FIND_MTIME(  ACTS(mtime, char mtime_char; unsigned mtime_days;))
+IF_FEATURE_FIND_MMIN(   ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
+IF_FEATURE_FIND_NEWER(  ACTS(newer, time_t newer_mtime;))
+IF_FEATURE_FIND_INUM(   ACTS(inum,  ino_t inode_num;))
+IF_FEATURE_FIND_USER(   ACTS(user,  uid_t uid;))
+IF_FEATURE_FIND_SIZE(   ACTS(size,  char size_char; off_t size;))
+IF_FEATURE_FIND_CONTEXT(ACTS(context, security_context_t context;))
+IF_FEATURE_FIND_PAREN(  ACTS(paren, action ***subexpr;))
+IF_FEATURE_FIND_PRUNE(  ACTS(prune))
+IF_FEATURE_FIND_DELETE( ACTS(delete))
+IF_FEATURE_FIND_EXEC(   ACTS(exec,  char **exec_argv; unsigned *subst_count; int exec_argc;))
+IF_FEATURE_FIND_GROUP(  ACTS(group, gid_t gid;))
 
 static action ***actions;
 static bool need_print = 1;
@@ -376,8 +376,8 @@ ACTF(context)
 
 static int FAST_FUNC fileAction(const char *fileName,
 		struct stat *statbuf,
-		void *userData SKIP_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM),
-		int depth SKIP_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
+		void *userData IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM),
+		int depth IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
 {
 	int i;
 #if ENABLE_FEATURE_FIND_MAXDEPTH
@@ -451,73 +451,73 @@ static action*** parse_params(char **argv)
 	enum {
 	                         PARM_a         ,
 	                         PARM_o         ,
-	USE_FEATURE_FIND_NOT(	 PARM_char_not  ,)
+	IF_FEATURE_FIND_NOT(	 PARM_char_not  ,)
 #if ENABLE_DESKTOP
 	                         PARM_and       ,
 	                         PARM_or        ,
-	USE_FEATURE_FIND_NOT(    PARM_not       ,)
+	IF_FEATURE_FIND_NOT(    PARM_not       ,)
 #endif
 	                         PARM_print     ,
-	USE_FEATURE_FIND_PRINT0( PARM_print0    ,)
-	USE_FEATURE_FIND_DEPTH(  PARM_depth     ,)
-	USE_FEATURE_FIND_PRUNE(  PARM_prune     ,)
-	USE_FEATURE_FIND_DELETE( PARM_delete    ,)
-	USE_FEATURE_FIND_EXEC(   PARM_exec      ,)
-	USE_FEATURE_FIND_PAREN(  PARM_char_brace,)
+	IF_FEATURE_FIND_PRINT0( PARM_print0    ,)
+	IF_FEATURE_FIND_DEPTH(  PARM_depth     ,)
+	IF_FEATURE_FIND_PRUNE(  PARM_prune     ,)
+	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
+	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
+	IF_FEATURE_FIND_PAREN(  PARM_char_brace,)
 	/* All options starting from here require argument */
 	                         PARM_name      ,
 	                         PARM_iname     ,
-	USE_FEATURE_FIND_PATH(   PARM_path      ,)
-	USE_FEATURE_FIND_REGEX(  PARM_regex     ,)
-	USE_FEATURE_FIND_TYPE(   PARM_type      ,)
-	USE_FEATURE_FIND_PERM(   PARM_perm      ,)
-	USE_FEATURE_FIND_MTIME(  PARM_mtime     ,)
-	USE_FEATURE_FIND_MMIN(   PARM_mmin      ,)
-	USE_FEATURE_FIND_NEWER(  PARM_newer     ,)
-	USE_FEATURE_FIND_INUM(   PARM_inum      ,)
-	USE_FEATURE_FIND_USER(   PARM_user      ,)
-	USE_FEATURE_FIND_GROUP(  PARM_group     ,)
-	USE_FEATURE_FIND_SIZE(   PARM_size      ,)
-	USE_FEATURE_FIND_CONTEXT(PARM_context   ,)
+	IF_FEATURE_FIND_PATH(   PARM_path      ,)
+	IF_FEATURE_FIND_REGEX(  PARM_regex     ,)
+	IF_FEATURE_FIND_TYPE(   PARM_type      ,)
+	IF_FEATURE_FIND_PERM(   PARM_perm      ,)
+	IF_FEATURE_FIND_MTIME(  PARM_mtime     ,)
+	IF_FEATURE_FIND_MMIN(   PARM_mmin      ,)
+	IF_FEATURE_FIND_NEWER(  PARM_newer     ,)
+	IF_FEATURE_FIND_INUM(   PARM_inum      ,)
+	IF_FEATURE_FIND_USER(   PARM_user      ,)
+	IF_FEATURE_FIND_GROUP(  PARM_group     ,)
+	IF_FEATURE_FIND_SIZE(   PARM_size      ,)
+	IF_FEATURE_FIND_CONTEXT(PARM_context   ,)
 	};
 
 	static const char params[] ALIGN1 =
 	                         "-a\0"
 	                         "-o\0"
-	USE_FEATURE_FIND_NOT(    "!\0"       )
+	IF_FEATURE_FIND_NOT(    "!\0"       )
 #if ENABLE_DESKTOP
 	                         "-and\0"
 	                         "-or\0"
-	USE_FEATURE_FIND_NOT(	 "-not\0"    )
+	IF_FEATURE_FIND_NOT(	 "-not\0"    )
 #endif
 	                         "-print\0"
-	USE_FEATURE_FIND_PRINT0( "-print0\0" )
-	USE_FEATURE_FIND_DEPTH(  "-depth\0"  )
-	USE_FEATURE_FIND_PRUNE(  "-prune\0"  )
-	USE_FEATURE_FIND_DELETE( "-delete\0" )
-	USE_FEATURE_FIND_EXEC(   "-exec\0"   )
-	USE_FEATURE_FIND_PAREN(  "(\0"       )
+	IF_FEATURE_FIND_PRINT0( "-print0\0" )
+	IF_FEATURE_FIND_DEPTH(  "-depth\0"  )
+	IF_FEATURE_FIND_PRUNE(  "-prune\0"  )
+	IF_FEATURE_FIND_DELETE( "-delete\0" )
+	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
+	IF_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options starting from here require argument */
 	                         "-name\0"
 	                         "-iname\0"
-	USE_FEATURE_FIND_PATH(   "-path\0"   )
-	USE_FEATURE_FIND_REGEX(  "-regex\0"  )
-	USE_FEATURE_FIND_TYPE(   "-type\0"   )
-	USE_FEATURE_FIND_PERM(   "-perm\0"   )
-	USE_FEATURE_FIND_MTIME(  "-mtime\0"  )
-	USE_FEATURE_FIND_MMIN(   "-mmin\0"   )
-	USE_FEATURE_FIND_NEWER(  "-newer\0"  )
-	USE_FEATURE_FIND_INUM(   "-inum\0"   )
-	USE_FEATURE_FIND_USER(   "-user\0"   )
-	USE_FEATURE_FIND_GROUP(  "-group\0"  )
-	USE_FEATURE_FIND_SIZE(   "-size\0"   )
-	USE_FEATURE_FIND_CONTEXT("-context\0")
+	IF_FEATURE_FIND_PATH(   "-path\0"   )
+	IF_FEATURE_FIND_REGEX(  "-regex\0"  )
+	IF_FEATURE_FIND_TYPE(   "-type\0"   )
+	IF_FEATURE_FIND_PERM(   "-perm\0"   )
+	IF_FEATURE_FIND_MTIME(  "-mtime\0"  )
+	IF_FEATURE_FIND_MMIN(   "-mmin\0"   )
+	IF_FEATURE_FIND_NEWER(  "-newer\0"  )
+	IF_FEATURE_FIND_INUM(   "-inum\0"   )
+	IF_FEATURE_FIND_USER(   "-user\0"   )
+	IF_FEATURE_FIND_GROUP(  "-group\0"  )
+	IF_FEATURE_FIND_SIZE(   "-size\0"   )
+	IF_FEATURE_FIND_CONTEXT("-context\0")
 	                         ;
 
 	action*** appp;
 	unsigned cur_group = 0;
 	unsigned cur_action = 0;
-	USE_FEATURE_FIND_NOT( bool invert_flag = 0; )
+	IF_FEATURE_FIND_NOT( bool invert_flag = 0; )
 
 	/* This is the only place in busybox where we use nested function.
 	 * So far more standard alternatives were bigger. */
@@ -530,8 +530,8 @@ static action*** parse_params(char **argv)
 		appp[cur_group][cur_action++] = ap = xmalloc(sizeof_struct);
 		appp[cur_group][cur_action] = NULL;
 		ap->f = f;
-		USE_FEATURE_FIND_NOT( ap->invert = invert_flag; )
-		USE_FEATURE_FIND_NOT( invert_flag = 0; )
+		IF_FEATURE_FIND_NOT( ap->invert = invert_flag; )
+		IF_FEATURE_FIND_NOT( invert_flag = 0; )
 		return ap;
 	}
 
@@ -569,10 +569,10 @@ static action*** parse_params(char **argv)
 		 * it doesn't give smaller code. Other arches? */
 
 	/* --- Operators --- */
-		if (parm == PARM_a USE_DESKTOP(|| parm == PARM_and)) {
+		if (parm == PARM_a IF_DESKTOP(|| parm == PARM_and)) {
 			/* no further special handling required */
 		}
-		else if (parm == PARM_o USE_DESKTOP(|| parm == PARM_or)) {
+		else if (parm == PARM_o IF_DESKTOP(|| parm == PARM_or)) {
 			/* start new OR group */
 			cur_group++;
 			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
@@ -581,7 +581,7 @@ static action*** parse_params(char **argv)
 			cur_action = 0;
 		}
 #if ENABLE_FEATURE_FIND_NOT
-		else if (parm == PARM_char_not USE_DESKTOP(|| parm == PARM_not)) {
+		else if (parm == PARM_char_not IF_DESKTOP(|| parm == PARM_not)) {
 			/* also handles "find ! ! -name 'foo*'" */
 			invert_flag ^= 1;
 		}
@@ -591,13 +591,13 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_print) {
 			need_print = 0;
 			/* GNU find ignores '!' here: "find ! -print" */
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
+			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (parm == PARM_print0) {
 			need_print = 0;
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
+			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
@@ -608,7 +608,7 @@ static action*** parse_params(char **argv)
 #endif
 #if ENABLE_FEATURE_FIND_PRUNE
 		else if (parm == PARM_prune) {
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
+			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(prune);
 		}
 #endif
@@ -624,7 +624,7 @@ static action*** parse_params(char **argv)
 			int i;
 			action_exec *ap;
 			need_print = 0;
-			USE_FEATURE_FIND_NOT( invert_flag = 0; )
+			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
@@ -813,13 +813,13 @@ int find_main(int argc, char **argv)
 {
 	static const char options[] ALIGN1 =
 	                  "-follow\0"
-USE_FEATURE_FIND_XDEV(    "-xdev\0"    )
-USE_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
+IF_FEATURE_FIND_XDEV(    "-xdev\0"    )
+IF_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
 	                  ;
 	enum {
 	                  OPT_FOLLOW,
-USE_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
-USE_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
+IF_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
+IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 	};
 
 	char *arg;

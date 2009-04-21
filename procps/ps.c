@@ -25,9 +25,9 @@ enum { MAX_WIDTH = 2*1024 };
 
 #if ENABLE_SELINUX
 #define SELINUX_O_PREFIX "label,"
-#define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" USE_FEATURE_PS_TIME(",time") ",args")
+#define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" IF_FEATURE_PS_TIME(",time") ",args")
 #else
-#define DEFAULT_O_STR    ("pid,user" USE_FEATURE_PS_TIME(",time") ",args")
+#define DEFAULT_O_STR    ("pid,user" IF_FEATURE_PS_TIME(",time") ",args")
 #endif
 
 typedef struct {
@@ -425,7 +425,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
-	USE_SELINUX(int opt;)
+	IF_SELINUX(int opt;)
 
 	// POSIX:
 	// -a  Write information for all processes associated with terminals
@@ -439,7 +439,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	//     Select which columns to display
 	/* We allow (and ignore) most of the above. FIXME */
 	opt_complementary = "o::";
-	USE_SELINUX(opt =) getopt32(argv, "Zo:aAdefl", &opt_o);
+	IF_SELINUX(opt =) getopt32(argv, "Zo:aAdefl", &opt_o);
 	if (opt_o) {
 		do {
 			parse_o(llist_pop(&opt_o));
@@ -486,8 +486,8 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	procps_status_t *p = NULL;
 	int len;
-	SKIP_SELINUX(const) int use_selinux = 0;
-	USE_SELINUX(int i;)
+	IF_NOT_SELINUX(const) int use_selinux = 0;
+	IF_SELINUX(int i;)
 #if !ENABLE_FEATURE_PS_WIDE
 	enum { terminal_width = 79 };
 #else
@@ -498,7 +498,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 #if ENABLE_FEATURE_PS_WIDE
 	opt_complementary = "-:ww";
-	USE_SELINUX(i =) getopt32(argv, USE_SELINUX("Z") "w", &w_count);
+	IF_SELINUX(i =) getopt32(argv, IF_SELINUX("Z") "w", &w_count);
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */

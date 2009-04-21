@@ -64,15 +64,15 @@ enum {
 };
 
 #if ENABLE_FEATURE_TFTP_GET && !ENABLE_FEATURE_TFTP_PUT
-#define USE_GETPUT(...)
+#define IF_GETPUT(...)
 #define CMD_GET(cmd) 1
 #define CMD_PUT(cmd) 0
 #elif !ENABLE_FEATURE_TFTP_GET && ENABLE_FEATURE_TFTP_PUT
-#define USE_GETPUT(...)
+#define IF_GETPUT(...)
 #define CMD_GET(cmd) 0
 #define CMD_PUT(cmd) 1
 #else
-#define USE_GETPUT(...) __VA_ARGS__
+#define IF_GETPUT(...) __VA_ARGS__
 #define CMD_GET(cmd) ((cmd) & TFTP_OPT_GET)
 #define CMD_PUT(cmd) ((cmd) & TFTP_OPT_PUT)
 #endif
@@ -160,9 +160,9 @@ static int tftp_protocol(
 		len_and_sockaddr *our_lsa,
 		len_and_sockaddr *peer_lsa,
 		const char *local_file
-		USE_TFTP(, const char *remote_file)
-		USE_FEATURE_TFTP_BLOCKSIZE(USE_TFTPD(, void *tsize))
-		USE_FEATURE_TFTP_BLOCKSIZE(, int blksize))
+		IF_TFTP(, const char *remote_file)
+		IF_FEATURE_TFTP_BLOCKSIZE(IF_TFTPD(, void *tsize))
+		IF_FEATURE_TFTP_BLOCKSIZE(, int blksize))
 {
 #if !ENABLE_TFTP
 #define remote_file NULL
@@ -178,7 +178,7 @@ static int tftp_protocol(
 #define socket_fd (pfd[0].fd)
 	int len;
 	int send_len;
-	USE_FEATURE_TFTP_BLOCKSIZE(smallint want_option_ack = 0;)
+	IF_FEATURE_TFTP_BLOCKSIZE(smallint want_option_ack = 0;)
 	smallint finished = 0;
 	uint16_t opcode;
 	uint16_t block_nr;
@@ -564,19 +564,19 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	int result;
 	int port;
-	USE_GETPUT(int opt;)
+	IF_GETPUT(int opt;)
 
 	INIT_G();
 
 	/* -p or -g is mandatory, and they are mutually exclusive */
-	opt_complementary = "" USE_FEATURE_TFTP_GET("g:") USE_FEATURE_TFTP_PUT("p:")
-			USE_GETPUT("g--p:p--g:");
+	opt_complementary = "" IF_FEATURE_TFTP_GET("g:") IF_FEATURE_TFTP_PUT("p:")
+			IF_GETPUT("g--p:p--g:");
 
-	USE_GETPUT(opt =) getopt32(argv,
-			USE_FEATURE_TFTP_GET("g") USE_FEATURE_TFTP_PUT("p")
-				"l:r:" USE_FEATURE_TFTP_BLOCKSIZE("b:"),
+	IF_GETPUT(opt =) getopt32(argv,
+			IF_FEATURE_TFTP_GET("g") IF_FEATURE_TFTP_PUT("p")
+				"l:r:" IF_FEATURE_TFTP_BLOCKSIZE("b:"),
 			&local_file, &remote_file
-			USE_FEATURE_TFTP_BLOCKSIZE(, &blksize_str));
+			IF_FEATURE_TFTP_BLOCKSIZE(, &blksize_str));
 	argv += optind;
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
@@ -614,8 +614,8 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 	result = tftp_protocol(
 		NULL /*our_lsa*/, peer_lsa,
 		local_file, remote_file
-		USE_FEATURE_TFTP_BLOCKSIZE(USE_TFTPD(, NULL /*tsize*/))
-		USE_FEATURE_TFTP_BLOCKSIZE(, blksize)
+		IF_FEATURE_TFTP_BLOCKSIZE(IF_TFTPD(, NULL /*tsize*/))
+		IF_FEATURE_TFTP_BLOCKSIZE(, blksize)
 	);
 
 	if (result != EXIT_SUCCESS && NOT_LONE_DASH(local_file) && CMD_GET(opt)) {
@@ -635,8 +635,8 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	char *local_file, *mode;
 	const char *error_msg;
 	int opt, result, opcode;
-	USE_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)
-	USE_FEATURE_TFTP_BLOCKSIZE(char *tsize = NULL;)
+	IF_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)
+	IF_FEATURE_TFTP_BLOCKSIZE(char *tsize = NULL;)
 
 	INIT_G();
 
@@ -667,9 +667,9 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	opcode = ntohs(*(uint16_t*)block_buf);
 	if (result < 4 || result >= sizeof(block_buf)
 	 || block_buf[result-1] != '\0'
-	 || (USE_FEATURE_TFTP_PUT(opcode != TFTP_RRQ) /* not download */
-	     USE_GETPUT(&&)
-	     USE_FEATURE_TFTP_GET(opcode != TFTP_WRQ) /* not upload */
+	 || (IF_FEATURE_TFTP_PUT(opcode != TFTP_RRQ) /* not download */
+	     IF_GETPUT(&&)
+	     IF_FEATURE_TFTP_GET(opcode != TFTP_WRQ) /* not upload */
 	    )
 	) {
 		goto err;
@@ -711,9 +711,9 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 			error_msg = bb_msg_write_error;
 			goto err;
 		}
-		USE_GETPUT(option_mask32 |= TFTP_OPT_GET;) /* will receive file's data */
+		IF_GETPUT(option_mask32 |= TFTP_OPT_GET;) /* will receive file's data */
 	} else {
-		USE_GETPUT(option_mask32 |= TFTP_OPT_PUT;) /* will send file's data */
+		IF_GETPUT(option_mask32 |= TFTP_OPT_PUT;) /* will send file's data */
 	}
 
 	/* NB: if error_pkt_str or error_pkt_reason is set up,
@@ -724,9 +724,9 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	/* tftp_protocol() will create new one, bound to particular local IP */
 	result = tftp_protocol(
 		our_lsa, peer_lsa,
-		local_file USE_TFTP(, NULL /*remote_file*/)
-		USE_FEATURE_TFTP_BLOCKSIZE(, tsize)
-		USE_FEATURE_TFTP_BLOCKSIZE(, blksize)
+		local_file IF_TFTP(, NULL /*remote_file*/)
+		IF_FEATURE_TFTP_BLOCKSIZE(, tsize)
+		IF_FEATURE_TFTP_BLOCKSIZE(, blksize)
 	);
 
 	return result;

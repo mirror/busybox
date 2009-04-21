@@ -200,11 +200,11 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 		// if yes -> getopt converts strings to numbers for us
 		opt_complementary = "-1:a+:c+:d+:f+:l+:m+:o+:p+:r+:s+:t+";
 		opt = getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:u:U:e:"
-			USE_CHPST("/:n:vP012"),
+			IF_CHPST("/:n:vP012"),
 			&limita, &limitc, &limitd, &limitf, &limitl,
 			&limitm, &limito, &limitp, &limitr, &limits, &limitt,
 			&set_user, &env_user, &env_dir
-			USE_CHPST(, &root, &nicestr));
+			IF_CHPST(, &root, &nicestr));
 		argv += optind;
 		if (opt & OPT_m) { // -m means -asld
 			limita = limits = limitl = limitd = limitm;

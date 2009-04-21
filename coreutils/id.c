@@ -119,8 +119,8 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug -uZ -gZ -GZ*/
 	/* Don't allow more than one username */
 	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG"
-			 USE_SELINUX(":u--Z:Z--u:g--Z:Z--g:G--Z:Z--G");
-	opt = getopt32(argv, "rnugG" USE_SELINUX("Z"));
+			 IF_SELINUX(":u--Z:Z--u:g--Z:Z--g:G--Z:Z--G");
+	opt = getopt32(argv, "rnugG" IF_SELINUX("Z"));
 
 	username = argv[optind];
 	if (username) {

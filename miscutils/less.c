@@ -145,7 +145,7 @@ struct globals {
 	current_file = 1; \
 	eof_error = 1; \
 	terminated = 1; \
-	USE_FEATURE_LESS_REGEXP(wanted_match = -1;) \
+	IF_FEATURE_LESS_REGEXP(wanted_match = -1;) \
 } while (0)
 
 /* flines[] are lines read from stdin, each in malloc'ed buffer.
@@ -326,7 +326,7 @@ static void read_lines(void)
 	if (option_mask32 & FLAG_N)
 		w -= 8;
 
- USE_FEATURE_LESS_REGEXP(again0:)
+ IF_FEATURE_LESS_REGEXP(again0:)
 
 	p = current_line = ((char*)xmalloc(w + 4)) + 4;
 	max_fline += last_terminated;
@@ -1509,7 +1509,7 @@ int less_main(int argc, char **argv)
 	/* TODO: -x: do not interpret backspace, -xx: tab also */
 	/* -xxx: newline also */
 	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
-	getopt32(argv, "EMmN~I" USE_FEATURE_LESS_DASHCMD("S"));
+	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_DASHCMD("S"));
 	argc -= optind;
 	argv += optind;
 	num_files = argc;

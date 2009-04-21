@@ -111,7 +111,7 @@ void FAST_FUNC free_procps_scan(procps_status_t* sp)
 {
 	closedir(sp->dir);
 	free(sp->argv0);
-	USE_SELINUX(free(sp->context);)
+	IF_SELINUX(free(sp->context);)
 	free(sp);
 }
 

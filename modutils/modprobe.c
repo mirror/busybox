@@ -33,7 +33,7 @@ struct module_entry { /* I'll call it ME. */
 	llist_t *deps; /* strings. modules we depend on */
 };
 
-#define MODPROBE_OPTS  "acdlnrt:VC:" USE_FEATURE_MODPROBE_BLACKLIST("b")
+#define MODPROBE_OPTS  "acdlnrt:VC:" IF_FEATURE_MODPROBE_BLACKLIST("b")
 enum {
 	MODPROBE_OPT_INSERT_ALL	= (INSMOD_OPT_UNUSED << 0), /* a */
 	MODPROBE_OPT_DUMP_ONLY	= (INSMOD_OPT_UNUSED << 1), /* c */

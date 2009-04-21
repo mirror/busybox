@@ -133,7 +133,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 {
 	uint8_t *temp, *message;
 	char *str_c, *str_V, *str_h, *str_F, *str_r;
-	USE_FEATURE_UDHCP_PORT(char *str_P;)
+	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
 	int tryagain_timeout = 20;
 	int discover_timeout = 3;
@@ -175,8 +175,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		"no-default-options\0" No_argument   "o"
 		"foreground\0"     No_argument       "f"
 		"background\0"     No_argument       "b"
-		USE_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
-		USE_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
+		IF_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
+		IF_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
 		;
 #endif
 	enum {
@@ -204,33 +204,33 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 /* The rest has variable bit positions, need to be clever */
 		OPTBIT_f = 20,
 		USE_FOR_MMU(              OPTBIT_b,)
-		USE_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
-		USE_FEATURE_UDHCP_PORT(   OPTBIT_P,)
+		IF_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
+		IF_FEATURE_UDHCP_PORT(   OPTBIT_P,)
 		USE_FOR_MMU(              OPT_b = 1 << OPTBIT_b,)
-		USE_FEATURE_UDHCPC_ARPING(OPT_a = 1 << OPTBIT_a,)
-		USE_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
+		IF_FEATURE_UDHCPC_ARPING(OPT_a = 1 << OPTBIT_a,)
+		IF_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
 	};
 
 	/* Default options. */
-	USE_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
-	USE_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
+	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
+	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
 	client_config.script = DEFAULT_SCRIPT;
 
 	/* Parse command line */
 	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
 	opt_complementary = "c--C:C--c:O::T+:t+:A+";
-	USE_GETOPT_LONG(applet_long_options = udhcpc_longopts;)
+	IF_GETOPT_LONG(applet_long_options = udhcpc_longopts;)
 	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:vSA:O:of"
 		USE_FOR_MMU("b")
-		USE_FEATURE_UDHCPC_ARPING("a")
-		USE_FEATURE_UDHCP_PORT("P:")
+		IF_FEATURE_UDHCPC_ARPING("a")
+		IF_FEATURE_UDHCP_PORT("P:")
 		, &str_c, &str_V, &str_h, &str_h, &str_F
 		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
 		, &client_config.script /* s */
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
 		, &list_O
-		USE_FEATURE_UDHCP_PORT(, &str_P)
+		IF_FEATURE_UDHCP_PORT(, &str_P)
 		);
 	if (opt & OPT_c)
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);

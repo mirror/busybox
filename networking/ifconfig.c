@@ -424,7 +424,7 @@ int ifconfig_main(int argc, char **argv)
 					} else {	/* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
 						smalluint hw_class= index_in_substrings("ether\0"
-								USE_FEATURE_HWIB("infiniband\0"), *argv) + 1;
+								IF_FEATURE_HWIB("infiniband\0"), *argv) + 1;
 						if (!hw_class || !*++argv)
 							bb_show_usage();
 						/*safe_strncpy(host, *argv, sizeof(host));*/

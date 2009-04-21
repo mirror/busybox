@@ -62,10 +62,10 @@
 
 #define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
 	(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
-#define USE_FEATURE_GETUSERNAME_AND_HOMEDIR(...)
+#define IF_FEATURE_GETUSERNAME_AND_HOMEDIR(...)
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-#undef USE_FEATURE_GETUSERNAME_AND_HOMEDIR
-#define USE_FEATURE_GETUSERNAME_AND_HOMEDIR(...) __VA_ARGS__
+#undef IF_FEATURE_GETUSERNAME_AND_HOMEDIR
+#define IF_FEATURE_GETUSERNAME_AND_HOMEDIR(...) __VA_ARGS__
 #endif
 
 enum {
@@ -152,8 +152,8 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 	(*(struct lineedit_statics**)&lineedit_ptr_to_statics) = xzalloc(sizeof(S)); \
 	barrier(); \
 	cmdedit_termw = 80; \
-	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
-	USE_FEATURE_GETUSERNAME_AND_HOMEDIR(home_pwd_buf = (char*)null_str;) \
+	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
+	IF_FEATURE_GETUSERNAME_AND_HOMEDIR(home_pwd_buf = (char*)null_str;) \
 } while (0)
 static void deinit_S(void)
 {
@@ -1160,7 +1160,7 @@ static void remember_in_history(char *str)
 	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		save_history(str);
 #endif
-	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
+	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
 }
 
 #else /* MAX_HISTORY == 0 */
@@ -1442,7 +1442,7 @@ static void win_changed(int nsig)
 
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
-#define vi_case(caselabel) USE_FEATURE_EDITING(case caselabel)
+#define vi_case(caselabel) IF_FEATURE_EDITING(case caselabel)
 
 /* convert uppercase ascii to equivalent control char, for readability */
 #undef CTRL

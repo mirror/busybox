@@ -41,7 +41,7 @@ static const char *const add_strings[] = {
 
 static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
 
-static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v" USE_FEATURE_HEXDUMP_REVERSE("R");
+static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v" IF_FEATURE_HEXDUMP_REVERSE("R");
 
 static const struct suffix_mult suffixes[] = {
 	{ "b", 512 },

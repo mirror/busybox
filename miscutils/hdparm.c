@@ -293,15 +293,15 @@ struct globals {
 	unsigned long doorlock;
 	unsigned long apmmode;
 #endif
-	USE_FEATURE_HDPARM_GET_IDENTITY(        smallint get_IDentity;)
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint set_busstate, get_busstate;)
-	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET(    smallint perform_reset;)
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint perform_tristate;)
-	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(smallint unregister_hwif;)
-	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF(      smallint scan_hwif;)
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long busstate;)
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long tristate;)
-	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(unsigned long hwif;)
+	IF_FEATURE_HDPARM_GET_IDENTITY(        smallint get_IDentity;)
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint set_busstate, get_busstate;)
+	IF_FEATURE_HDPARM_HDIO_DRIVE_RESET(    smallint perform_reset;)
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  smallint perform_tristate;)
+	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(smallint unregister_hwif;)
+	IF_FEATURE_HDPARM_HDIO_SCAN_HWIF(      smallint scan_hwif;)
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long busstate;)
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(  unsigned long tristate;)
+	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(unsigned long hwif;)
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	unsigned long hwif_data;
 	unsigned long hwif_ctrl;
@@ -1960,12 +1960,12 @@ static void parse_xfermode(int flag, smallint *get, smallint *set, int *value)
 /*------- getopt short options --------*/
 static const char hdparm_options[] ALIGN1 =
 	"gfu::n::p:r::m::c::k::a::B:tT"
-	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
-	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
+	IF_FEATURE_HDPARM_GET_IDENTITY("iI")
+	IF_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD
 	"S:D:P:X:K:A:L:W:CyYzZ"
 #endif
-	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("U:")
+	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("U:")
 #ifdef HDIO_GET_QDMA
 #ifdef HDIO_SET_QDMA
 	"Q:"
@@ -1973,9 +1973,9 @@ static const char hdparm_options[] ALIGN1 =
 	"Q"
 #endif
 #endif
-	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET("w")
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF("x::b:")
-	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF("R:");
+	IF_FEATURE_HDPARM_HDIO_DRIVE_RESET("w")
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF("x::b:")
+	IF_FEATURE_HDPARM_HDIO_SCAN_HWIF("R:");
 /*-------------------------------------*/
 
 /* our main() routine: */
@@ -1987,12 +1987,12 @@ int hdparm_main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, hdparm_options)) >= 0) {
 		flagcount++;
-		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity |= (c == 'I'));
-		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity |= (c == 'i'));
+		IF_FEATURE_HDPARM_GET_IDENTITY(get_IDentity |= (c == 'I'));
+		IF_FEATURE_HDPARM_GET_IDENTITY(get_identity |= (c == 'i'));
 		get_geom |= (c == 'g');
 		do_flush |= (c == 'f');
 		if (c == 'u') parse_opts(&get_unmask, &set_unmask, &unmask, 0, 1);
-		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(if (c == 'd') parse_opts(&get_dma, &set_dma, &dma, 0, 9));
+		IF_FEATURE_HDPARM_HDIO_GETSET_DMA(if (c == 'd') parse_opts(&get_dma, &set_dma, &dma, 0, 9));
 		if (c == 'n') parse_opts(&get_nowerr, &set_nowerr, &nowerr, 0, 1);
 		parse_xfermode((c == 'p'), &noisy_piomode, &set_piomode, &piomode);
 		if (c == 'r') parse_opts(&get_readonly, &set_readonly, &readonly, 0, 1);
@@ -2018,7 +2018,7 @@ int hdparm_main(int argc, char **argv)
 		reread_partn |= (c == 'z');
 		get_seagate = set_seagate |= (c == 'Z');
 #endif
-		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(if (c == 'U') parse_opts(NULL, &unregister_hwif, &hwif, 0, INT_MAX));
+		IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(if (c == 'U') parse_opts(NULL, &unregister_hwif, &hwif, 0, INT_MAX));
 #ifdef HDIO_GET_QDMA
 		if (c == 'Q') {
 #ifdef HDIO_SET_QDMA
@@ -2028,9 +2028,9 @@ int hdparm_main(int argc, char **argv)
 #endif
 		}
 #endif
-		USE_FEATURE_HDPARM_HDIO_DRIVE_RESET(perform_reset = (c == 'r'));
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'x') parse_opts(NULL, &perform_tristate, &tristate, 0, 1));
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'b') parse_opts(&get_busstate, &set_busstate, &busstate, 0, 2));
+		IF_FEATURE_HDPARM_HDIO_DRIVE_RESET(perform_reset = (c == 'r'));
+		IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'x') parse_opts(NULL, &perform_tristate, &tristate, 0, 1));
+		IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'b') parse_opts(&get_busstate, &set_busstate, &busstate, 0, 2));
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
 			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);
@@ -2045,7 +2045,7 @@ int hdparm_main(int argc, char **argv)
 	/* When no flags are given (flagcount = 0), -acdgkmnru is assumed. */
 	if (!flagcount) {
 		get_mult = get_io32bit = get_unmask = get_keep = get_readonly = get_readahead = get_geom = 1;
-		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(get_dma = 1);
+		IF_FEATURE_HDPARM_HDIO_GETSET_DMA(get_dma = 1);
 	}
 	argv += optind;
 

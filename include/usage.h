@@ -25,7 +25,7 @@
      "\n	-c DIR	Config directory [/etc/acpi]" \
      "\n	-e FILE	/proc event file [/proc/acpi/event]" \
      "\n	-l FILE	Log file [/var/log/acpid]" \
-	USE_FEATURE_ACPID_COMPAT( \
+	IF_FEATURE_ACPID_COMPAT( \
      "\n\nAccept and ignore compatibility options -g -m -s -S -v" \
 	)
 
@@ -34,9 +34,9 @@
        "# acpid -d /dev/input/event*\n"
 
 #define addgroup_trivial_usage \
-       "[-g GID] " USE_FEATURE_ADDUSER_TO_GROUP("[user_name] ") "group_name"
+       "[-g GID] " IF_FEATURE_ADDUSER_TO_GROUP("[user_name] ") "group_name"
 #define addgroup_full_usage "\n\n" \
-       "Add a group " USE_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n" \
+       "Add a group " IF_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n" \
      "\nOptions:" \
      "\n	-g GID	Group id" \
 
@@ -160,14 +160,14 @@
 #define brctl_full_usage "\n\n" \
        "Manage ethernet bridges.\n" \
      "\nCommands:" \
-	USE_FEATURE_BRCTL_SHOW( \
+	IF_FEATURE_BRCTL_SHOW( \
      "\n	show			Show a list of bridges" \
 	) \
      "\n	addbr BRIDGE		Create BRIDGE" \
      "\n	delbr BRIDGE		Delete BRIDGE" \
      "\n	addif BRIDGE IFACE	Add IFACE to BRIDGE" \
      "\n	delif BRIDGE IFACE	Delete IFACE from BRIDGE" \
-	USE_FEATURE_BRCTL_FANCY( \
+	IF_FEATURE_BRCTL_FANCY( \
      "\n	setageing BRIDGE TIME		Set ageing time" \
      "\n	setfd BRIDGE TIME		Set bridge forward delay" \
      "\n	sethello BRIDGE TIME		Set hello time" \
@@ -281,12 +281,12 @@
 #define chcon_trivial_usage \
        "[OPTIONS] CONTEXT FILE..." \
        "\n	chcon [OPTIONS] [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE..." \
-	USE_FEATURE_CHCON_LONG_OPTIONS( \
+	IF_FEATURE_CHCON_LONG_OPTIONS( \
        "\n	chcon [OPTIONS] --reference=RFILE FILE..." \
 	)
 #define chcon_full_usage "\n\n" \
        "Change the security context of each FILE to CONTEXT\n" \
-	USE_FEATURE_CHCON_LONG_OPTIONS( \
+	IF_FEATURE_CHCON_LONG_OPTIONS( \
      "\n	-v,--verbose		Verbose" \
      "\n	-c,--changes		Report changes made" \
      "\n	-h,--no-dereference	Affect symlinks instead of their targets" \
@@ -298,7 +298,7 @@
      "\n	-l,--range=RANGE" \
      "\n	-R,--recursive		Recurse subdirectories" \
 	) \
-	SKIP_FEATURE_CHCON_LONG_OPTIONS( \
+	IF_NOT_FEATURE_CHCON_LONG_OPTIONS( \
      "\n	-v	Verbose" \
      "\n	-c	Report changes made" \
      "\n	-h	Affect symlinks instead of their targets" \
@@ -311,13 +311,13 @@
 	)
 
 #define chmod_trivial_usage \
-       "[-R"USE_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
+       "[-R"IF_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
 #define chmod_full_usage "\n\n" \
        "Each MODE is one or more of the letters ugoa, one of the\n" \
        "symbols +-= and one or more of the letters rwxst\n" \
      "\nOptions:" \
      "\n	-R	Recurse directories" \
-	USE_DESKTOP( \
+	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	List all files" \
      "\n	-f	Hide errors" \
@@ -333,7 +333,7 @@
        "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
 
 #define chgrp_trivial_usage \
-       "[-RhLHP"USE_DESKTOP("cvf")"]... GROUP FILE..."
+       "[-RhLHP"IF_DESKTOP("cvf")"]... GROUP FILE..."
 #define chgrp_full_usage "\n\n" \
        "Change the group membership of each FILE to GROUP\n" \
      "\nOptions:" \
@@ -342,7 +342,7 @@
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
      "\n	-P	Do not traverse symlinks (default)" \
-	USE_DESKTOP( \
+	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	Verbose" \
      "\n	-f	Hide errors" \
@@ -355,7 +355,7 @@
        "-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo\n"
 
 #define chown_trivial_usage \
-       "[-RhLHP"USE_DESKTOP("cvf")"]... OWNER[<.|:>[GROUP]] FILE..."
+       "[-RhLHP"IF_DESKTOP("cvf")"]... OWNER[<.|:>[GROUP]] FILE..."
 #define chown_full_usage "\n\n" \
        "Change the owner and/or group of each FILE to OWNER and/or GROUP\n" \
      "\nOptions:" \
@@ -364,7 +364,7 @@
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
      "\n	-P	Do not traverse symlinks (default)" \
-	USE_DESKTOP( \
+	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	List all files" \
      "\n	-f	Hide errors" \
@@ -468,7 +468,7 @@
        "Clear screen"
 
 #define cmp_trivial_usage \
-       "[-l] [-s] FILE1 [FILE2" USE_DESKTOP(" [SKIP1 [SKIP2]") "]]"
+       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]") "]]"
 #define cmp_full_usage "\n\n" \
        "Compares FILE1 vs stdin if FILE2 is not specified\n" \
      "\nOptions:" \
@@ -518,7 +518,7 @@
        "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY\n" \
      "\nOptions:" \
      "\n	-a	Same as -dpR" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-c	Preserve security context" \
 	) \
      "\n	-d,-P	Preserve links" \
@@ -530,18 +530,18 @@
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
-       "-[ti" USE_FEATURE_CPIO_O("o") USE_FEATURE_CPIO_P("p") "dmvu] [-F FILE]" \
-       USE_FEATURE_CPIO_O( " [-H newc]" )
+       "-[ti" IF_FEATURE_CPIO_O("o") IF_FEATURE_CPIO_P("p") "dmvu] [-F FILE]" \
+       IF_FEATURE_CPIO_O( " [-H newc]" )
 #define cpio_full_usage "\n\n" \
        "Extract or list files from a cpio archive" \
-	USE_FEATURE_CPIO_O( ", or create a cpio archive" ) \
+	IF_FEATURE_CPIO_O( ", or create a cpio archive" ) \
      "\nMain operation mode:" \
      "\n	-t	List" \
      "\n	-i	Extract" \
-	USE_FEATURE_CPIO_O( \
+	IF_FEATURE_CPIO_O( \
      "\n	-o	Create" \
 	) \
-	USE_FEATURE_CPIO_P( \
+	IF_FEATURE_CPIO_P( \
      "\n	-p	Passthrough" \
 	) \
      "\nOptions:" \
@@ -550,18 +550,18 @@
      "\n	-v	Verbose" \
      "\n	-u	Overwrite" \
      "\n	-F	Input file" \
-	USE_FEATURE_CPIO_O( \
+	IF_FEATURE_CPIO_O( \
      "\n	-H	Define format" \
 	) \
 
 #define crond_trivial_usage \
-       "-fbS -l N " USE_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
+       "-fbS -l N " IF_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
 #define crond_full_usage "\n\n" \
        "	-f	Foreground" \
      "\n	-b	Background (default)" \
      "\n	-S	Log to syslog (default)" \
      "\n	-l	Set log level. 0 is the most verbose, default 8" \
-	USE_FEATURE_CROND_D( \
+	IF_FEATURE_CROND_D( \
      "\n	-d	Set log level, log to stderr" \
 	) \
      "\n	-L	Log to file" \
@@ -583,13 +583,13 @@
 #define cryptpw_full_usage "\n\n" \
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-P,--password-fd=NUM	Read password from fd NUM" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-P NUM	Read password from fd NUM" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
@@ -604,13 +604,13 @@
 #define mkpasswd_full_usage "\n\n" \
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-P,--password-fd=NUM	Read password from fd NUM" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-P NUM	Read password from fd NUM" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
@@ -645,7 +645,7 @@
      "\nOptions:" \
      "\n	-u		Work in UTC (don't convert to local time)" \
      "\n	-R		Output RFC-822 compliant date string" \
-	USE_FEATURE_DATE_ISOFMT( \
+	IF_FEATURE_DATE_ISOFMT( \
      "\n	-I[SPEC]	Output ISO-8601 compliant date string" \
      "\n			SPEC='date' (default) for date only," \
      "\n			'hours', 'minutes', or 'seconds' for date and" \
@@ -654,7 +654,7 @@
      "\n	-d TIME		Display TIME, not 'now'" \
      "\n	-r FILE		Display last modification time of FILE" \
      "\n	[-s] TIME	Set time to TIME" \
-	USE_FEATURE_DATE_ISOFMT( \
+	IF_FEATURE_DATE_ISOFMT( \
      "\n	-D FMT		Use FMT for str->date conversion" \
 	) \
      "\n" \
@@ -691,24 +691,24 @@
        "64\n"
 
 #define dd_trivial_usage \
-       "[if=FILE] [of=FILE] " USE_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
-       "	[seek=N]" USE_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
+       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
+       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
 #define dd_full_usage "\n\n" \
        "Copy a file with converting and formatting\n" \
      "\nOptions:" \
      "\n	if=FILE		Read from FILE instead of stdin" \
      "\n	of=FILE		Write to FILE instead of stdout" \
      "\n	bs=N		Read and write N bytes at a time" \
-	USE_FEATURE_DD_IBS_OBS( \
+	IF_FEATURE_DD_IBS_OBS( \
      "\n	ibs=N		Read N bytes at a time" \
 	) \
-	USE_FEATURE_DD_IBS_OBS( \
+	IF_FEATURE_DD_IBS_OBS( \
      "\n	obs=N		Write N bytes at a time" \
 	) \
      "\n	count=N		Copy only N input blocks" \
      "\n	skip=N		Skip N input blocks" \
      "\n	seek=N		Skip N output blocks" \
-	USE_FEATURE_DD_IBS_OBS( \
+	IF_FEATURE_DD_IBS_OBS( \
      "\n	conv=notrunc	Don't truncate output file" \
      "\n	conv=noerror	Continue after read errors" \
      "\n	conv=sync	Pad blocks with zeros" \
@@ -729,10 +729,10 @@
        "Deallocate unused virtual terminal /dev/ttyN"
 
 #define delgroup_trivial_usage \
-	USE_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
+	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
 #define delgroup_full_usage "\n\n" \
        "Delete group GROUP from the system" \
-	USE_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
+	IF_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
 
 #define deluser_trivial_usage \
        "USER"
@@ -752,14 +752,14 @@
      "\n	VALUE	Data to be written" \
 
 #define devfsd_trivial_usage \
-       "mntpnt [-v]" USE_DEVFSD_FG_NP("[-fg][-np]")
+       "mntpnt [-v]" IF_DEVFSD_FG_NP("[-fg][-np]")
 #define devfsd_full_usage "\n\n" \
        "Manage devfs permissions and old device name symlinks\n" \
      "\nOptions:" \
      "\n	mntpnt	The mount point where devfs is mounted" \
      "\n	-v	Print the protocol version numbers for devfsd" \
      "\n		and the kernel-side protocol version and exit" \
-	USE_DEVFSD_FG_NP( \
+	IF_DEVFSD_FG_NP( \
      "\n	-fg	Run in foreground" \
      "\n	-np	Exit after parsing the configuration file" \
      "\n		and processing synthetic REGISTER events," \
@@ -768,19 +768,19 @@
 
 #define df_trivial_usage \
 	"[-Pk" \
-	USE_FEATURE_HUMAN_READABLE("mh") \
-	USE_FEATURE_DF_FANCY("ai] [-B SIZE") \
+	IF_FEATURE_HUMAN_READABLE("mh") \
+	IF_FEATURE_DF_FANCY("ai] [-B SIZE") \
 	"] [FILESYSTEM...]"
 #define df_full_usage "\n\n" \
        "Print filesystem usage statistics\n" \
      "\nOptions:" \
      "\n	-P	POSIX output format" \
      "\n	-k	1024-byte blocks (default)" \
-	USE_FEATURE_HUMAN_READABLE( \
+	IF_FEATURE_HUMAN_READABLE( \
      "\n	-m	1M-byte blocks" \
      "\n	-h	Human readable (e.g. 1K 243M 2G)" \
 	) \
-	USE_FEATURE_DF_FANCY( \
+	IF_FEATURE_DF_FANCY( \
      "\n	-a	Show all filesystems" \
      "\n	-i	Inodes" \
      "\n	-B SIZE	Blocksize" \
@@ -894,12 +894,12 @@
        "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
 #define du_trivial_usage \
-       "[-aHLdclsx" USE_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
+       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
 #define du_full_usage "\n\n" \
        "Summarize disk space used for each FILE and/or directory.\n" \
        "Disk space is printed in units of " \
-	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024") \
-	SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512") \
+	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024") \
+	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512") \
        " bytes.\n" \
      "\nOptions:" \
      "\n	-a	Show file sizes too" \
@@ -910,12 +910,12 @@
      "\n	-l	Count sizes many times if hard linked" \
      "\n	-s	Display only a total for each argument" \
      "\n	-x	Skip directories on different filesystems" \
-	USE_FEATURE_HUMAN_READABLE( \
+	IF_FEATURE_HUMAN_READABLE( \
      "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G )" \
      "\n	-m	Sizes in megabytes" \
 	) \
      "\n	-k	Sizes in kilobytes" \
-			USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)") \
+			IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)") \
 
 #define du_example_usage \
        "$ du\n" \
@@ -942,12 +942,12 @@
 #define dumpleases_full_usage "\n\n" \
        "Display DHCP leases granted by udhcpd\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-f,--file=FILE	Leases file to load" \
      "\n	-r,--remaining	Interpret lease times as time remaining" \
      "\n	-a,--absolute	Interpret lease times as expire time" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-f FILE	Leases file to load" \
      "\n	-r	Interpret lease times as time remaining" \
      "\n	-a	Interpret lease times as expire time" \
@@ -974,10 +974,10 @@
      "\n	-L file		Set badblocks list" \
 
 #define echo_trivial_usage \
-	USE_FEATURE_FANCY_ECHO("[-neE] ") "[ARG...]"
+	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG...]"
 #define echo_full_usage "\n\n" \
        "Print the specified ARGs to stdout" \
-	USE_FEATURE_FANCY_ECHO( "\n" \
+	IF_FEATURE_FANCY_ECHO( "\n" \
      "\nOptions:" \
      "\n	-n	Suppress trailing newline" \
      "\n	-e	Interpret backslash-escaped characters (i.e., \\t=tab)" \
@@ -986,7 +986,7 @@
 #define echo_example_usage \
        "$ echo \"Erik is cool\"\n" \
        "Erik is cool\n" \
-	USE_FEATURE_FANCY_ECHO("$ echo -e \"Erik\\nis\\ncool\"\n" \
+	IF_FEATURE_FANCY_ECHO("$ echo -e \"Erik\\nis\\ncool\"\n" \
        "Erik\n" \
        "is\n" \
        "cool\n" \
@@ -998,7 +998,7 @@
 #define eject_full_usage "\n\n" \
        "Eject specified DEVICE (or default /dev/cdrom)\n" \
      "\nOptions:" \
-	USE_FEATURE_EJECT_SCSI( \
+	IF_FEATURE_EJECT_SCSI( \
      "\n	-s	SCSI device" \
 	) \
      "\n	-t	Close tray" \
@@ -1032,11 +1032,11 @@
 #define expand_full_usage "\n\n" \
        "Convert tabs to spaces, writing to standard output.\n" \
      "\nOptions:" \
-	USE_FEATURE_EXPAND_LONG_OPTIONS( \
+	IF_FEATURE_EXPAND_LONG_OPTIONS( \
      "\n	-i,--initial	Do not convert tabs after non blanks" \
      "\n	-t,--tabs=N	Tabstops every N chars" \
 	) \
-	SKIP_FEATURE_EXPAND_LONG_OPTIONS( \
+	IF_NOT_FEATURE_EXPAND_LONG_OPTIONS( \
      "\n	-i	Do not convert tabs after non blanks" \
      "\n	-t	Tabstops every N chars" \
 	)
@@ -1127,18 +1127,18 @@
 /* Looks like someone forgot to add this to config system */
 #ifndef ENABLE_FEATURE_FDISK_BLKSIZE
 # define ENABLE_FEATURE_FDISK_BLKSIZE 0
-# define USE_FEATURE_FDISK_BLKSIZE(a)
+# define IF_FEATURE_FDISK_BLKSIZE(a)
 #endif
 
 #define fdisk_trivial_usage \
-       "[-ul" USE_FEATURE_FDISK_BLKSIZE("s") "] " \
+       "[-ul" IF_FEATURE_FDISK_BLKSIZE("s") "] " \
        "[-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
 #define fdisk_full_usage "\n\n" \
        "Change partition table\n" \
      "\nOptions:" \
      "\n	-u		Start and End are in sectors (instead of cylinders)" \
      "\n	-l		Show partition table for each DISK, then exit" \
-	USE_FEATURE_FDISK_BLKSIZE( \
+	IF_FEATURE_FDISK_BLKSIZE( \
      "\n	-s		Show partition sizes in kb for each DISK, then exit" \
 	) \
      "\n	-b 2048		(for certain MO disks) use 2048-byte sectors" \
@@ -1165,56 +1165,56 @@
        "default EXPRESSION is '-print'\n" \
      "\nEXPRESSION may consist of:" \
      "\n	-follow		Dereference symlinks" \
-	USE_FEATURE_FIND_XDEV( \
+	IF_FEATURE_FIND_XDEV( \
      "\n	-xdev		Don't descend directories on other filesystems") \
-	USE_FEATURE_FIND_MAXDEPTH( \
+	IF_FEATURE_FIND_MAXDEPTH( \
      "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies" \
      "\n			tests/actions to command line arguments only") \
      "\n	-mindepth N	Do not act on first N levels" \
      "\n	-name PATTERN	File name (w/o directory name) matches PATTERN" \
      "\n	-iname PATTERN	Case insensitive -name" \
-	USE_FEATURE_FIND_PATH( \
+	IF_FEATURE_FIND_PATH( \
      "\n	-path PATTERN	Path matches PATTERN") \
-	USE_FEATURE_FIND_REGEX( \
+	IF_FEATURE_FIND_REGEX( \
      "\n	-regex PATTERN	Path matches regex PATTERN") \
-	USE_FEATURE_FIND_TYPE( \
+	IF_FEATURE_FIND_TYPE( \
      "\n	-type X		File type is X (X is one of: f,d,l,b,c,...)") \
-	USE_FEATURE_FIND_PERM( \
+	IF_FEATURE_FIND_PERM( \
      "\n	-perm NNN	Permissions match any of (+NNN), all of (-NNN)," \
      "\n			or exactly (NNN)") \
-	USE_FEATURE_FIND_MTIME( \
+	IF_FEATURE_FIND_MTIME( \
      "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N)," \
      "\n			or exactly (N) days") \
-	USE_FEATURE_FIND_MMIN( \
+	IF_FEATURE_FIND_MMIN( \
      "\n	-mmin MINS	Modified time is greater than (+N), less than (-N)," \
      "\n			or exactly (N) minutes") \
-	USE_FEATURE_FIND_NEWER( \
+	IF_FEATURE_FIND_NEWER( \
      "\n	-newer FILE	Modified time is more recent than FILE's") \
-	USE_FEATURE_FIND_INUM( \
+	IF_FEATURE_FIND_INUM( \
      "\n	-inum N		File has inode number N") \
-	USE_FEATURE_FIND_USER( \
+	IF_FEATURE_FIND_USER( \
      "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)") \
-	USE_FEATURE_FIND_GROUP( \
+	IF_FEATURE_FIND_GROUP( \
      "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)") \
-	USE_FEATURE_FIND_DEPTH( \
+	IF_FEATURE_FIND_DEPTH( \
      "\n	-depth		Process directory name after traversing it") \
-	USE_FEATURE_FIND_SIZE( \
+	IF_FEATURE_FIND_SIZE( \
      "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))." \
      "\n			+/-N: file size is bigger/smaller than N") \
      "\n	-print		Print (default and assumed)" \
-	USE_FEATURE_FIND_PRINT0( \
+	IF_FEATURE_FIND_PRINT0( \
      "\n	-print0		Delimit output with null characters rather than" \
      "\n			newlines") \
-	USE_FEATURE_FIND_CONTEXT ( \
+	IF_FEATURE_FIND_CONTEXT ( \
      "\n	-context	File has specified security context") \
-	USE_FEATURE_FIND_EXEC( \
+	IF_FEATURE_FIND_EXEC( \
      "\n	-exec CMD ARG ;	Execute CMD with all instances of {} replaced by the" \
      "\n			matching files") \
-	USE_FEATURE_FIND_PRUNE( \
+	IF_FEATURE_FIND_PRUNE( \
      "\n	-prune		Stop traversing current subtree") \
-	USE_FEATURE_FIND_DELETE( \
+	IF_FEATURE_FIND_DELETE( \
      "\n	-delete		Delete files, turns on -depth option") \
-	USE_FEATURE_FIND_PAREN( \
+	IF_FEATURE_FIND_PAREN( \
      "\n	(EXPR)		Group an expression") \
 
 #define find_example_usage \
@@ -1306,14 +1306,14 @@
 #define ftpget_full_usage "\n\n" \
        "Retrieve a remote file via FTP\n" \
      "\nOptions:" \
-	USE_FEATURE_FTPGETPUT_LONG_OPTIONS( \
+	IF_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-c,--continue	Continue previous transfer" \
      "\n	-v,--verbose	Verbose" \
      "\n	-u,--username	Username" \
      "\n	-p,--password	Password" \
      "\n	-P,--port	Port number" \
 	) \
-	SKIP_FEATURE_FTPGETPUT_LONG_OPTIONS( \
+	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-c	Continue previous transfer" \
      "\n	-v	Verbose" \
      "\n	-u	Username" \
@@ -1326,13 +1326,13 @@
 #define ftpput_full_usage "\n\n" \
        "Store a local file on a remote machine via FTP\n" \
      "\nOptions:" \
-	USE_FEATURE_FTPGETPUT_LONG_OPTIONS( \
+	IF_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-v,--verbose	Verbose" \
      "\n	-u,--username	Username" \
      "\n	-p,--password	Password" \
      "\n	-P,--port	Port number" \
 	) \
-	SKIP_FEATURE_FTPGETPUT_LONG_OPTIONS( \
+	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS( \
      "\n	-v	Verbose" \
      "\n	-u	Username" \
      "\n	-p	Password" \
@@ -1358,7 +1358,7 @@
        "[OPTIONS]..."
 #define getopt_full_usage "\n\n" \
        "Parse command options\n" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-a,--alternative		Allow long options starting with single -" \
      "\n	-l,--longoptions=longopts	Long options to be recognized" \
      "\n	-n,--name=progname		The name under which errors are reported" \
@@ -1369,7 +1369,7 @@
      "\n	-T,--test			Test for getopt(1) version" \
      "\n	-u,--unquoted			Don't quote the output" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-a		Allow long options starting with single -" \
      "\n	-l longopts	Long options to be recognized" \
      "\n	-n progname	The name under which errors are reported" \
@@ -1425,11 +1425,11 @@
 
 #define grep_trivial_usage \
        "[-HhrilLnqvso" \
-	USE_DESKTOP("w") \
+	IF_DESKTOP("w") \
        "eF" \
-	USE_FEATURE_GREP_EGREP_ALIAS("E") \
-	USE_FEATURE_GREP_CONTEXT("ABC") \
-	USE_EXTRA_COMPAT("z") \
+	IF_FEATURE_GREP_EGREP_ALIAS("E") \
+	IF_FEATURE_GREP_CONTEXT("ABC") \
+	IF_EXTRA_COMPAT("z") \
        "] PATTERN [FILEs...]"
 #define grep_full_usage "\n\n" \
        "Search for PATTERN in each FILE or standard input\n" \
@@ -1447,18 +1447,18 @@
      "\n	-c	Only print count of matching lines" \
      "\n	-o	Show only the part of a line that matches PATTERN" \
      "\n	-m MAX	Match up to MAX times per file" \
-	USE_DESKTOP( \
+	IF_DESKTOP( \
      "\n	-w	Match whole words only") \
      "\n	-F	PATTERN is a set of newline-separated strings" \
-	USE_FEATURE_GREP_EGREP_ALIAS( \
+	IF_FEATURE_GREP_EGREP_ALIAS( \
      "\n	-E	PATTERN is an extended regular expression") \
      "\n	-e PTRN	Pattern to match" \
      "\n	-f FILE	Read pattern from file" \
-	USE_FEATURE_GREP_CONTEXT( \
+	IF_FEATURE_GREP_CONTEXT( \
      "\n	-A	Print NUM lines of trailing context" \
      "\n	-B	Print NUM lines of leading context" \
      "\n	-C	Print NUM lines of output context") \
-	USE_EXTRA_COMPAT( \
+	IF_EXTRA_COMPAT( \
      "\n	-z	Input is NUL terminated") \
 
 #define grep_example_usage \
@@ -1506,14 +1506,14 @@
        "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-       "[-d delay] [-n] [-f]" USE_FEATURE_WTMP(" [-w]")
+       "[-d delay] [-n] [-f]" IF_FEATURE_WTMP(" [-w]")
 #define halt_full_usage "\n\n" \
        "Halt the system\n" \
      "\nOptions:" \
      "\n	-d	Delay interval for halting" \
      "\n	-n	No call to sync()" \
      "\n	-f	Force halt (don't go through init)" \
-	USE_FEATURE_WTMP( \
+	IF_FEATURE_WTMP( \
      "\n	-w	Only write a wtmp record" \
 	)
 
@@ -1527,15 +1527,15 @@
      "\n	-B	Set Advanced Power Management setting (1-255)" \
      "\n	-c	Get/set IDE 32-bit IO setting" \
      "\n	-C	Check IDE power mode status" \
-	USE_FEATURE_HDPARM_HDIO_GETSET_DMA( \
+	IF_FEATURE_HDPARM_HDIO_GETSET_DMA( \
      "\n	-d	Get/set using_dma flag") \
      "\n	-D	Enable/disable drive defect-mgmt" \
      "\n	-f	Flush buffer cache for device on exit" \
      "\n	-g	Display drive geometry" \
      "\n	-h	Display terse usage information" \
-	USE_FEATURE_HDPARM_GET_IDENTITY( \
+	IF_FEATURE_HDPARM_GET_IDENTITY( \
      "\n	-i	Display drive identification") \
-	USE_FEATURE_HDPARM_GET_IDENTITY( \
+	IF_FEATURE_HDPARM_GET_IDENTITY( \
      "\n	-I	Detailed/current information directly from drive") \
      "\n	-k	Get/set keep_settings_over_reset flag (0/1)" \
      "\n	-K	Set drive keep_features_over_reset flag (0/1)" \
@@ -1547,20 +1547,20 @@
 /*   "\n	-q	Change next setting quietly" - not supported ib bbox */ \
      "\n	-Q	Get/set DMA tagged-queuing depth (if supported)" \
      "\n	-r	Get/set readonly flag (DANGEROUS to set)" \
-	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF( \
+	IF_FEATURE_HDPARM_HDIO_SCAN_HWIF( \
      "\n	-R	Register an IDE interface (DANGEROUS)") \
      "\n	-S	Set standby (spindown) timeout" \
      "\n	-t	Perform device read timings" \
      "\n	-T	Perform cache read timings" \
      "\n	-u	Get/set unmaskirq flag (0/1)" \
-	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF( \
+	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF( \
      "\n	-U	Un-register an IDE interface (DANGEROUS)") \
      "\n	-v	Defaults; same as -mcudkrag for IDE drives" \
      "\n	-V	Display program version and exit immediately" \
-	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET( \
+	IF_FEATURE_HDPARM_HDIO_DRIVE_RESET( \
      "\n	-w	Perform device reset (DANGEROUS)") \
      "\n	-W	Set drive write-caching flag (0/1) (DANGEROUS)" \
-	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF( \
+	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF( \
      "\n	-x	Tristate device for hotswap (0/1) (DANGEROUS)") \
      "\n	-X	Set IDE xfer mode (DANGEROUS)" \
      "\n	-y	Put IDE drive in standby mode" \
@@ -1576,7 +1576,7 @@
        "file name. With no FILE, or when FILE is -, read standard input.\n" \
      "\nOptions:" \
      "\n	-n NUM	Print first NUM lines instead of first 10" \
-	USE_FEATURE_FANCY_HEAD( \
+	IF_FEATURE_FANCY_HEAD( \
      "\n	-c NUM	Output the first NUM bytes" \
      "\n	-q	Never output headers giving file names" \
      "\n	-v	Always output headers giving file names") \
@@ -1587,7 +1587,7 @@
        "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #define hexdump_trivial_usage \
-       "[-bcCdefnosvx" USE_FEATURE_HEXDUMP_REVERSE("R") "] FILE..."
+       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] FILE..."
 #define hexdump_full_usage "\n\n" \
        "Display file(s) or standard input in a user specified format\n" \
      "\nOptions:" \
@@ -1602,7 +1602,7 @@
      "\n	-s OFFSET	Skip OFFSET bytes" \
      "\n	-v		Display all input data" \
      "\n	-x		Two-byte hexadecimal display" \
-	USE_FEATURE_HEXDUMP_REVERSE( \
+	IF_FEATURE_HEXDUMP_REVERSE( \
      "\n	-R		Reverse of 'hexdump -Cv'") \
 
 #define hd_trivial_usage \
@@ -1634,9 +1634,9 @@
        "[-c conffile]" \
        " [-p [ip:]port]" \
        " [-i] [-f] [-v[v]]" \
-	USE_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
-	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r realm]") \
-	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
+	IF_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
+	IF_FEATURE_HTTPD_BASIC_AUTH(" [-r realm]") \
+	IF_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
        " [-h home]" \
        " [-d/-e string]"
 #define httpd_full_usage "\n\n" \
@@ -1647,23 +1647,23 @@
      "\n	-i		Inetd mode" \
      "\n	-f		Do not daemonize" \
      "\n	-v[v]		Verbose" \
-	USE_FEATURE_HTTPD_SETUID( \
+	IF_FEATURE_HTTPD_SETUID( \
      "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
-	USE_FEATURE_HTTPD_BASIC_AUTH( \
+	IF_FEATURE_HTTPD_BASIC_AUTH( \
      "\n	-r REALM	Authentication Realm for Basic Authentication") \
-	USE_FEATURE_HTTPD_AUTH_MD5( \
+	IF_FEATURE_HTTPD_AUTH_MD5( \
      "\n	-m PASS		Crypt PASS with md5 algorithm") \
      "\n	-h HOME		Home directory (default .)" \
      "\n	-e STRING	HTML encode STRING" \
      "\n	-d STRING	URL decode STRING" \
 
 #define hwclock_trivial_usage \
-	USE_FEATURE_HWCLOCK_LONG_OPTIONS( \
+	IF_FEATURE_HWCLOCK_LONG_OPTIONS( \
        "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
        " [-l|--localtime] [-u|--utc]" \
        " [-f FILE]" \
 	) \
-	SKIP_FEATURE_HWCLOCK_LONG_OPTIONS( \
+	IF_NOT_FEATURE_HWCLOCK_LONG_OPTIONS( \
        "[-r] [-s] [-w] [-l] [-u] [-f FILE]" \
 	)
 #define hwclock_full_usage "\n\n" \
@@ -1681,7 +1681,7 @@
 #define id_full_usage "\n\n" \
        "Print information about USER or the current user\n" \
      "\nOptions:" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Print the security context" \
 	) \
      "\n	-u	Print user ID" \
@@ -1695,23 +1695,23 @@
        "uid=1000(andersen) gid=1000(andersen)\n"
 
 #define ifconfig_trivial_usage \
-	USE_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
+	IF_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
 #define ifconfig_full_usage "\n\n" \
        "Configure a network interface\n" \
      "\nOptions:" \
      "\n" \
-	USE_FEATURE_IPV6( \
+	IF_FEATURE_IPV6( \
        "	[add ADDRESS[/PREFIXLEN]]\n") \
-	USE_FEATURE_IPV6( \
+	IF_FEATURE_IPV6( \
        "	[del ADDRESS[/PREFIXLEN]]\n") \
        "	[[-]broadcast [ADDRESS]] [[-]pointopoint [ADDRESS]]\n" \
        "	[netmask ADDRESS] [dstaddr ADDRESS]\n" \
-	USE_FEATURE_IFCONFIG_SLIP( \
+	IF_FEATURE_IFCONFIG_SLIP( \
        "	[outfill NN] [keepalive NN]\n") \
-       "	" USE_FEATURE_IFCONFIG_HW("[hw ether" USE_FEATURE_HWIB("|infiniband")" ADDRESS] ") "[metric NN] [mtu NN]\n" \
+       "	" IF_FEATURE_IFCONFIG_HW("[hw ether" IF_FEATURE_HWIB("|infiniband")" ADDRESS] ") "[metric NN] [mtu NN]\n" \
        "	[[-]trailers] [[-]arp] [[-]allmulti]\n" \
        "	[multicast] [[-]promisc] [txqueuelen NN] [[-]dynamic]\n" \
-	USE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ( \
+	IF_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ( \
        "	[mem_start NN] [io_addr NN] [irq NN]\n") \
        "	[up|down] ..."
 
@@ -1743,13 +1743,13 @@
        "   # ifenslave -c bond0 eth0\n" \
 
 #define ifup_trivial_usage \
-       "[-ain"USE_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
+       "[-ain"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
 #define ifup_full_usage "\n\n" \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
      "\n	-i FILE	Use FILE for interface definitions" \
      "\n	-n	Print out what would happen, but don't do it" \
-	USE_FEATURE_IFUPDOWN_MAPPING( \
+	IF_FEATURE_IFUPDOWN_MAPPING( \
      "\n		(note: doesn't disable mappings)" \
      "\n	-m	Don't run any mappings" \
 	) \
@@ -1757,13 +1757,13 @@
      "\n	-f	Force de/configuration" \
 
 #define ifdown_trivial_usage \
-       "[-ain"USE_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
+       "[-ain"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
 #define ifdown_full_usage "\n\n" \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
      "\n	-i FILE	Use FILE for interface definitions" \
      "\n	-n	Print out what would happen, but don't do it" \
-	USE_FEATURE_IFUPDOWN_MAPPING( \
+	IF_FEATURE_IFUPDOWN_MAPPING( \
      "\n		(note: doesn't disable mappings)" \
      "\n	-m	Don't run any mappings" \
 	) \
@@ -1943,19 +1943,19 @@
 /* 2.6 style insmod has no options and required filename
  * (not module name - .ko can't be omitted) */
 #define insmod_trivial_usage \
-	USE_FEATURE_2_4_MODULES("[OPTION]... MODULE ") \
-	SKIP_FEATURE_2_4_MODULES("FILE ") \
+	IF_FEATURE_2_4_MODULES("[OPTION]... MODULE ") \
+	IF_NOT_FEATURE_2_4_MODULES("FILE ") \
 	"[symbol=value]..."
 #define insmod_full_usage "\n\n" \
        "Load the specified kernel modules into the kernel" \
-	USE_FEATURE_2_4_MODULES( "\n" \
+	IF_FEATURE_2_4_MODULES( "\n" \
      "\nOptions:" \
      "\n	-f	Force module to load into the wrong kernel version" \
      "\n	-k	Make module autoclean-able" \
      "\n	-v	Verbose" \
      "\n	-q	Quiet" \
      "\n	-L	Lock to prevent simultaneous loads of a module" \
-	USE_FEATURE_INSMOD_LOAD_MAP( \
+	IF_FEATURE_INSMOD_LOAD_MAP( \
      "\n	-m	Output load map to stdout" \
 	) \
      "\n	-o NAME	Set internal module name to NAME" \
@@ -1976,7 +1976,7 @@
      "\n	-o USER	Set ownership" \
      "\n	-g GRP	Set group ownership" \
      "\n	-m MODE	Set permissions" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
 
@@ -1991,20 +1991,20 @@
 /* would need to make the " | " optional depending on more than one selected: */
 #define ip_trivial_usage \
        "[OPTIONS] {" \
-	USE_FEATURE_IP_ADDRESS("address | ") \
-	USE_FEATURE_IP_ROUTE("route | ") \
-	USE_FEATURE_IP_LINK("link | ") \
-	USE_FEATURE_IP_TUNNEL("tunnel | ") \
-	USE_FEATURE_IP_RULE("rule") \
+	IF_FEATURE_IP_ADDRESS("address | ") \
+	IF_FEATURE_IP_ROUTE("route | ") \
+	IF_FEATURE_IP_LINK("link | ") \
+	IF_FEATURE_IP_TUNNEL("tunnel | ") \
+	IF_FEATURE_IP_RULE("rule") \
        "} {COMMAND}"
 #define ip_full_usage "\n\n" \
        "ip [OPTIONS] OBJECT {COMMAND}\n" \
        "where OBJECT := {" \
-	USE_FEATURE_IP_ADDRESS("address | ") \
-	USE_FEATURE_IP_ROUTE("route | ") \
-	USE_FEATURE_IP_LINK("link | ") \
-	USE_FEATURE_IP_TUNNEL("tunnel | ") \
-	USE_FEATURE_IP_RULE("rule") \
+	IF_FEATURE_IP_ADDRESS("address | ") \
+	IF_FEATURE_IP_ROUTE("route | ") \
+	IF_FEATURE_IP_LINK("link | ") \
+	IF_FEATURE_IP_TUNNEL("tunnel | ") \
+	IF_FEATURE_IP_RULE("rule") \
        "}\n" \
        "OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }" \
 
@@ -2025,21 +2025,21 @@
 #define ipcalc_full_usage "\n\n" \
        "Calculate IP network settings from a IP address\n" \
      "\nOptions:" \
-	USE_FEATURE_IPCALC_LONG_OPTIONS( \
+	IF_FEATURE_IPCALC_LONG_OPTIONS( \
      "\n	-b,--broadcast	Display calculated broadcast address" \
      "\n	-n,--network	Display calculated network address" \
      "\n	-m,--netmask	Display default netmask for IP" \
-	USE_FEATURE_IPCALC_FANCY( \
+	IF_FEATURE_IPCALC_FANCY( \
      "\n	-p,--prefix	Display the prefix for IP/NETMASK" \
      "\n	-h,--hostname	Display first resolved host name" \
      "\n	-s,--silent	Don't ever display error messages" \
 	) \
 	) \
-	SKIP_FEATURE_IPCALC_LONG_OPTIONS( \
+	IF_NOT_FEATURE_IPCALC_LONG_OPTIONS( \
      "\n	-b	Display calculated broadcast address" \
      "\n	-n	Display calculated network address" \
      "\n	-m	Display default netmask for IP" \
-	USE_FEATURE_IPCALC_FANCY( \
+	IF_FEATURE_IPCALC_FANCY( \
      "\n	-p	Display the prefix for IP/NETMASK" \
      "\n	-h	Display first resolved host name" \
      "\n	-s	Don't ever display error messages" \
@@ -2332,14 +2332,14 @@
      "\n	-V	Verbose" \
 
 #define ls_trivial_usage \
-       "[-1Aa" USE_FEATURE_LS_TIMESTAMPS("c") "Cd" \
-	USE_FEATURE_LS_TIMESTAMPS("e") USE_FEATURE_LS_FILETYPES("F") "iln" \
-	USE_FEATURE_LS_FILETYPES("p") USE_FEATURE_LS_FOLLOWLINKS("L") \
-	USE_FEATURE_LS_RECURSIVE("R") USE_FEATURE_LS_SORTFILES("rS") "s" \
-	USE_FEATURE_AUTOWIDTH("T") USE_FEATURE_LS_TIMESTAMPS("tu") \
-	USE_FEATURE_LS_SORTFILES("v") USE_FEATURE_AUTOWIDTH("w") "x" \
-	USE_FEATURE_LS_SORTFILES("X") USE_FEATURE_HUMAN_READABLE("h") "k" \
-	USE_SELINUX("K") "] [filenames...]"
+       "[-1Aa" IF_FEATURE_LS_TIMESTAMPS("c") "Cd" \
+	IF_FEATURE_LS_TIMESTAMPS("e") IF_FEATURE_LS_FILETYPES("F") "iln" \
+	IF_FEATURE_LS_FILETYPES("p") IF_FEATURE_LS_FOLLOWLINKS("L") \
+	IF_FEATURE_LS_RECURSIVE("R") IF_FEATURE_LS_SORTFILES("rS") "s" \
+	IF_FEATURE_AUTOWIDTH("T") IF_FEATURE_LS_TIMESTAMPS("tu") \
+	IF_FEATURE_LS_SORTFILES("v") IF_FEATURE_AUTOWIDTH("w") "x" \
+	IF_FEATURE_LS_SORTFILES("X") IF_FEATURE_HUMAN_READABLE("h") "k" \
+	IF_SELINUX("K") "] [filenames...]"
 #define ls_full_usage "\n\n" \
        "List directory contents\n" \
      "\nOptions:" \
@@ -2347,49 +2347,49 @@
      "\n	-A	Don't list . and .." \
      "\n	-a	Don't hide entries starting with ." \
      "\n	-C	List by columns" \
-	USE_FEATURE_LS_TIMESTAMPS( \
+	IF_FEATURE_LS_TIMESTAMPS( \
      "\n	-c	With -l: sort by ctime") \
-	USE_FEATURE_LS_COLOR( \
+	IF_FEATURE_LS_COLOR( \
      "\n	--color[={always,never,auto}]	Control coloring") \
      "\n	-d	List directory entries instead of contents" \
-	USE_FEATURE_LS_TIMESTAMPS( \
+	IF_FEATURE_LS_TIMESTAMPS( \
      "\n	-e	List full date and time") \
-	USE_FEATURE_LS_FILETYPES( \
+	IF_FEATURE_LS_FILETYPES( \
      "\n	-F	Append indicator (one of */=@|) to entries") \
      "\n	-i	List inode numbers" \
      "\n	-l	Long listing format" \
      "\n	-n	List numeric UIDs and GIDs instead of names" \
-	USE_FEATURE_LS_FILETYPES( \
+	IF_FEATURE_LS_FILETYPES( \
      "\n	-p	Append indicator (one of /=@|) to entries") \
-	USE_FEATURE_LS_FOLLOWLINKS( \
+	IF_FEATURE_LS_FOLLOWLINKS( \
      "\n	-L	List entries pointed to by symlinks") \
-	USE_FEATURE_LS_RECURSIVE( \
+	IF_FEATURE_LS_RECURSIVE( \
      "\n	-R	List subdirectories recursively") \
-	USE_FEATURE_LS_SORTFILES( \
+	IF_FEATURE_LS_SORTFILES( \
      "\n	-r	Sort in reverse order") \
-	USE_FEATURE_LS_SORTFILES( \
+	IF_FEATURE_LS_SORTFILES( \
      "\n	-S	Sort by file size") \
      "\n	-s	List the size of each file, in blocks" \
-	USE_FEATURE_AUTOWIDTH( \
+	IF_FEATURE_AUTOWIDTH( \
      "\n	-T NUM	Assume tabstop every NUM columns") \
-	USE_FEATURE_LS_TIMESTAMPS( \
+	IF_FEATURE_LS_TIMESTAMPS( \
      "\n	-t	With -l: sort by modification time") \
-	USE_FEATURE_LS_TIMESTAMPS( \
+	IF_FEATURE_LS_TIMESTAMPS( \
      "\n	-u	With -l: sort by access time") \
-	USE_FEATURE_LS_SORTFILES( \
+	IF_FEATURE_LS_SORTFILES( \
      "\n	-v	Sort by version") \
-	USE_FEATURE_AUTOWIDTH( \
+	IF_FEATURE_AUTOWIDTH( \
      "\n	-w NUM	Assume the terminal is NUM columns wide") \
      "\n	-x	List by lines" \
-	USE_FEATURE_LS_SORTFILES( \
+	IF_FEATURE_LS_SORTFILES( \
      "\n	-X	Sort by extension") \
-	USE_FEATURE_HUMAN_READABLE( \
+	IF_FEATURE_HUMAN_READABLE( \
      "\n	-h	List sizes in human readable format (1K 243M 2G)") \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-k	List security context") \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-K	List security context in long format") \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	List security context and permission") \
 
 #define lsattr_trivial_usage \
@@ -2495,10 +2495,10 @@
 
 #define md5sum_trivial_usage \
        "[OPTION] [FILEs...]" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
 #define md5sum_full_usage "\n\n" \
-       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums" \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
      "\n	-s	Don't output anything, status code shows success" \
@@ -2517,10 +2517,10 @@
 
 #define sha1sum_trivial_usage \
        "[OPTION] [FILEs...]" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
 #define sha1sum_full_usage "\n\n" \
-       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
      "\n	-s	Don't output anything, status code shows success" \
@@ -2529,10 +2529,10 @@
 
 #define sha256sum_trivial_usage \
        "[OPTION] [FILEs...]" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum [OPTION] -c [FILE]")
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum [OPTION] -c [FILE]")
 #define sha256sum_full_usage "\n\n" \
-       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
      "\n	-s	Don't output anything, status code shows success" \
@@ -2541,10 +2541,10 @@
 
 #define sha512sum_trivial_usage \
        "[OPTION] [FILEs...]" \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum [OPTION] -c [FILE]")
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum [OPTION] -c [FILE]")
 #define sha512sum_full_usage "\n\n" \
-       "Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
-	USE_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
      "\n	-s	Don't output anything, status code shows success" \
@@ -2558,19 +2558,19 @@
        "\n" \
        "It can be run by kernel as a hotplug helper. To activate it:\n" \
        " echo /bin/mdev >/proc/sys/kernel/hotplug\n" \
-	USE_FEATURE_MDEV_CONF( \
+	IF_FEATURE_MDEV_CONF( \
        "It uses /etc/mdev.conf with lines\n" \
        "[-]DEVNAME UID:GID PERM" \
-			USE_FEATURE_MDEV_RENAME(" [>|=PATH]") \
-			USE_FEATURE_MDEV_EXEC(" [@|$|*COMMAND]") \
+			IF_FEATURE_MDEV_RENAME(" [>|=PATH]") \
+			IF_FEATURE_MDEV_EXEC(" [@|$|*COMMAND]") \
 	) \
 
 #define mdev_notes_usage "" \
-	USE_FEATURE_MDEV_CONFIG( \
+	IF_FEATURE_MDEV_CONFIG( \
        "The mdev config file contains lines that look like:\n" \
        "  hd[a-z][0-9]* 0:3 660\n\n" \
        "That's device name (with regex match), uid:gid, and permissions.\n\n" \
-	USE_FEATURE_MDEV_EXEC( \
+	IF_FEATURE_MDEV_EXEC( \
        "Optionally, that can be followed (on the same line) by a special character\n" \
        "and a command line to run after creating/before deleting the corresponding\n" \
        "device(s). The environment variable $MDEV indicates the active device node\n" \
@@ -2610,7 +2610,7 @@
      "\nOptions:" \
      "\n	-m	Set permission mode (as in chmod), not rwxrwxrwx - umask" \
      "\n	-p	No error if existing, make parent directories as needed" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
 
@@ -2659,7 +2659,7 @@
        "Create named pipe (identical to 'mknod name p')\n" \
      "\nOptions:" \
      "\n	-m MODE	Mode (default a=rw)" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
 
@@ -2700,7 +2700,7 @@
      "\n	b:	Make a block device" \
      "\n	c or u:	Make a character device" \
      "\n	p:	Make a named pipe (MAJOR and MINOR are ignored)" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
 
@@ -2745,7 +2745,7 @@
        "[-knqrsv] MODULE [symbol=value...]"
 #define modprobe_full_usage "\n\n" \
        "Options:" \
-	USE_FEATURE_2_4_MODULES( \
+	IF_FEATURE_2_4_MODULES( \
      "\n	-k	Make module autoclean-able" \
 	) \
      "\n	-n	Dry run" \
@@ -2753,7 +2753,7 @@
      "\n	-r	Remove module (stacks) or do autoclean" \
      "\n	-s	Report via syslog instead of stderr" \
      "\n	-v	Verbose" \
-	USE_FEATURE_MODPROBE_BLACKLIST( \
+	IF_FEATURE_MODPROBE_BLACKLIST( \
      "\n	-b	Apply blacklist to module names too" \
         )
 
@@ -2831,15 +2831,15 @@
        "Mount a filesystem. Filesystem autodetection requires /proc be mounted.\n" \
      "\nOptions:" \
      "\n	-a		Mount all filesystems in fstab" \
-	USE_FEATURE_MOUNT_FAKE( \
-	USE_FEATURE_MTAB_SUPPORT( \
+	IF_FEATURE_MOUNT_FAKE( \
+	IF_FEATURE_MTAB_SUPPORT( \
      "\n	-f		Update /etc/mtab, but don't mount" \
 	) \
-	SKIP_FEATURE_MTAB_SUPPORT( \
+	IF_NOT_FEATURE_MTAB_SUPPORT( \
      "\n	-f		Dry run" \
 	) \
 	) \
-	USE_FEATURE_MTAB_SUPPORT( \
+	IF_FEATURE_MTAB_SUPPORT( \
      "\n	-n		Don't update /etc/mtab" \
 	) \
      "\n	-r		Read-only mount" \
@@ -2847,10 +2847,10 @@
      "\n	-t FSTYPE	Filesystem type" \
      "\n	-O OPT		Mount only filesystems with option OPT (-a only)" \
      "\n-o OPT:" \
-	USE_FEATURE_MOUNT_LOOP( \
+	IF_FEATURE_MOUNT_LOOP( \
      "\n	loop		Ignored (loop devices are autodetected)" \
 	) \
-	USE_FEATURE_MOUNT_FLAGS( \
+	IF_FEATURE_MOUNT_FLAGS( \
      "\n	[a]sync		Writes are [a]synchronous" \
      "\n	[no]atime	Disable/enable updates to inode access times" \
      "\n	[no]diratime	Disable/enable atime updates to directories" \
@@ -2945,26 +2945,26 @@
 #endif
 
 #define nc_trivial_usage \
-	USE_NC_EXTRA("[-iN] [-wN] ")USE_NC_SERVER("[-l] [-p PORT] ") \
-       "["USE_NC_EXTRA("-f FILENAME|")"IPADDR PORTNUM]"USE_NC_EXTRA(" [-e COMMAND]")
+	IF_NC_EXTRA("[-iN] [-wN] ")IF_NC_SERVER("[-l] [-p PORT] ") \
+       "["IF_NC_EXTRA("-f FILENAME|")"IPADDR PORTNUM]"IF_NC_EXTRA(" [-e COMMAND]")
 #define nc_full_usage "\n\n" \
-       "Open a pipe to IP:port" USE_NC_EXTRA(" or file") \
+       "Open a pipe to IP:port" IF_NC_EXTRA(" or file") \
 	NC_OPTIONS_STR \
-	USE_NC_EXTRA( \
+	IF_NC_EXTRA( \
      "\n	-e	Exec rest of command line after connect" \
      "\n	-i SECS	Delay interval for lines sent" \
      "\n	-w SECS	Timeout for connect" \
      "\n	-f FILE	Use file (ala /dev/ttyS0) instead of network" \
 	) \
-	USE_NC_SERVER( \
+	IF_NC_SERVER( \
      "\n	-l	Listen mode, for inbound connects" \
-	USE_NC_EXTRA( \
+	IF_NC_EXTRA( \
      "\n		(use -l twice with -e for persistent server)") \
      "\n	-p PORT	Local port number" \
 	)
 
 #define nc_notes_usage "" \
-	USE_NC_EXTRA( \
+	IF_NC_EXTRA( \
        "To use netcat as a terminal emulator on a serial port:\n\n" \
        "$ stty 115200 -F /dev/ttyS0\n" \
        "$ stty raw -echo -ctlecho && nc -f /dev/ttyS0\n" \
@@ -2984,12 +2984,12 @@
 
 #define nc_trivial_usage \
        "[-options] hostname port  - connect" \
-	USE_NC_SERVER("\n" \
+	IF_NC_SERVER("\n" \
        "nc [-options] -l -p port [hostname] [port]  - listen")
 #define nc_full_usage "\n\n" \
        "Options:" \
      "\n	-e prog [args]	Program to exec after connect (must be last)" \
-	USE_NC_SERVER( \
+	IF_NC_SERVER( \
      "\n	-l		Listen mode, for inbound connects" \
 	) \
      "\n	-n		Don't do DNS resolution" \
@@ -2998,7 +2998,7 @@
      "\n	-u		UDP mode" \
      "\n	-v		Verbose (cumulative: -vv)" \
      "\n	-w secs		Timeout for connects and final net reads" \
-	USE_NC_EXTRA( \
+	IF_NC_EXTRA( \
      "\n	-i sec		Delay interval for lines sent" /* ", ports scanned" */ \
      "\n	-o file		Hex dump of traffic" \
      "\n	-z		Zero-I/O mode (scanning)" \
@@ -3011,7 +3011,7 @@
 #endif
 
 #define netstat_trivial_usage \
-       "[-laentuwxr"USE_FEATURE_NETSTAT_WIDE("W")USE_FEATURE_NETSTAT_PRG("p")"]"
+       "[-laentuwxr"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
 #define netstat_full_usage "\n\n" \
        "Display networking information\n" \
      "\nOptions:" \
@@ -3024,10 +3024,10 @@
      "\n	-w	Raw sockets" \
      "\n	-x	Unix sockets" \
      "\n	-r	Display routing table" \
-	USE_FEATURE_NETSTAT_WIDE( \
+	IF_FEATURE_NETSTAT_WIDE( \
      "\n	-W	Display with no column truncation" \
 	) \
-	USE_FEATURE_NETSTAT_PRG( \
+	IF_FEATURE_NETSTAT_PRG( \
      "\n	-p	Display PID/Program name for sockets" \
 	)
 
@@ -3084,7 +3084,7 @@
        "Address:    127.0.0.1\n"
 
 #define od_trivial_usage \
-       "[-aBbcDdeFfHhIiLlOovXx] " USE_DESKTOP("[-t TYPE] ") "[FILE]"
+       "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
 #define od_full_usage "\n\n" \
        "Write an unambiguous representation, octal bytes by default, of FILE\n" \
        "to standard output. With no FILE or when FILE is -, read standard input."
@@ -3119,16 +3119,16 @@
      "\n	-u	Unlock (re-enable) account" \
 
 #define chpasswd_trivial_usage \
-	USE_GETOPT_LONG("[--md5|--encrypted]") SKIP_GETOPT_LONG("[-m|-e]")
+	IF_GETOPT_LONG("[--md5|--encrypted]") IF_NOT_GETOPT_LONG("[-m|-e]")
 #define chpasswd_full_usage "\n\n" \
        "Read user:password information from stdin " \
        "and update /etc/passwd accordingly.\n" \
      "\nOptions:" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-e,--encrypted	Supplied passwords are in encrypted form" \
      "\n	-m,--md5	Use MD5 encryption instead of DES" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-e	Supplied passwords are in encrypted form" \
      "\n	-m	Use MD5 encryption instead of DES" \
 	)
@@ -3168,18 +3168,18 @@
 #define pidof_full_usage "\n\n" \
        "List PIDs of all processes with names that match NAMEs" \
 	USAGE_PIDOF \
-	USE_FEATURE_PIDOF_SINGLE( \
+	IF_FEATURE_PIDOF_SINGLE( \
      "\n	-s	Show only one PID") \
-	USE_FEATURE_PIDOF_OMIT( \
+	IF_FEATURE_PIDOF_OMIT( \
      "\n	-o PID	Omit given pid" \
      "\n		Use %PPID to omit pid of pidof's parent") \
 
 #define pidof_example_usage \
        "$ pidof init\n" \
        "1\n" \
-	USE_FEATURE_PIDOF_OMIT( \
+	IF_FEATURE_PIDOF_OMIT( \
        "$ pidof /bin/sh\n20351 5973 5950\n") \
-	USE_FEATURE_PIDOF_OMIT( \
+	IF_FEATURE_PIDOF_OMIT( \
        "$ pidof /bin/sh -o %PPID\n20351 5950")
 
 #if !ENABLE_FEATURE_FANCY_PING
@@ -3273,7 +3273,7 @@
      "\n	-T		Get messages with TOP instead with RETR" \
      "\n	-k		Keep retrieved messages on the server" \
      "\n	-t timeout	Set network timeout" \
-     USE_FEATURE_POPMAILDIR_DELIVERY( \
+     IF_FEATURE_POPMAILDIR_DELIVERY( \
      "\n	-F \"program arg1 arg2 ...\"	Filter by program. May be multiple" \
      "\n	-M \"program arg1 arg2 ...\"	Deliver by program" \
      ) \
@@ -3332,10 +3332,10 @@
 #define ps_full_usage "\n\n" \
        "Report process status\n" \
 	USAGE_PS \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Show SE Linux context" \
 	) \
-	USE_FEATURE_PS_WIDE( \
+	IF_FEATURE_PS_WIDE( \
      "\n	w	Wide output" \
 	)
 
@@ -3404,10 +3404,10 @@
        "files do not block on disk I/O"
 
 #define readlink_trivial_usage \
-	USE_FEATURE_READLINK_FOLLOW("[-f] ") "FILE"
+	IF_FEATURE_READLINK_FOLLOW("[-f] ") "FILE"
 #define readlink_full_usage "\n\n" \
        "Display the value of a symlink" \
-	USE_FEATURE_READLINK_FOLLOW( "\n" \
+	IF_FEATURE_READLINK_FOLLOW( "\n" \
      "\nOptions:" \
      "\n	-f	Canonicalize by following all symlinks") \
 
@@ -3505,11 +3505,11 @@
 #define rmdir_full_usage "\n\n" \
        "Remove the DIRECTORY, if it is empty.\n" \
      "\nOptions:" \
-     USE_FEATURE_RMDIR_LONG_OPTIONS( \
+     IF_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p|--parents	Include parents" \
      "\n	-ignore-fail-on-non-empty" \
      ) \
-     SKIP_FEATURE_RMDIR_LONG_OPTIONS( \
+     IF_NOT_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p	Include parents" \
      )
 
@@ -3535,7 +3535,7 @@
      "\nOptions:" \
      "\n	-n	Don't resolve names" \
      "\n	-e	Display other/more information" \
-     "\n	-A inet" USE_FEATURE_IPV6("{6}") "	Select address family" \
+     "\n	-A inet" IF_FEATURE_IPV6("{6}") "	Select address family" \
 
 #define rpm_trivial_usage \
        "-i -q[ildc]p package.rpm"
@@ -3559,7 +3559,7 @@
        "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 #define rtcwake_full_usage "\n\n" \
        "Enter a system sleep state until specified wakeup time\n" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
      "\n	-a,--auto	Read clock mode from adjtime" \
      "\n	-l,--local	Clock is set to local time" \
      "\n	-u,--utc	Clock is set to UTC time" \
@@ -3568,7 +3568,7 @@
      "\n	-s,--seconds=SEC Set the timeout in SEC seconds from now" \
      "\n	-t,--time=TIME	Set the timeout to TIME seconds from epoch" \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
      "\n	-a	Read clock mode from adjtime" \
      "\n	-l	Clock is set to local time" \
      "\n	-u	Clock is set to UTC time" \
@@ -3584,14 +3584,14 @@
 #define runcon_full_usage "\n\n" \
        "Run a program in a different security context\n" \
      "\n	CONTEXT		Complete security context\n" \
-	USE_FEATURE_RUNCON_LONG_OPTIONS( \
+	IF_FEATURE_RUNCON_LONG_OPTIONS( \
      "\n	-c,--compute	Compute process transition context before modifying" \
      "\n	-t,--type=TYPE	Type (for same role as parent)" \
      "\n	-u,--user=USER	User identity" \
      "\n	-r,--role=ROLE	Role" \
      "\n	-l,--range=RNG	Levelrange" \
 	) \
-	SKIP_FEATURE_RUNCON_LONG_OPTIONS( \
+	IF_NOT_FEATURE_RUNCON_LONG_OPTIONS( \
      "\n	-c	Compute process transition context before modifying" \
      "\n	-t TYPE	Type (for same role as parent)" \
      "\n	-u USER	User identity" \
@@ -3600,14 +3600,14 @@
 	)
 
 #define run_parts_trivial_usage \
-       "[-t] "USE_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
+       "[-t] "IF_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
 #define run_parts_full_usage "\n\n" \
        "Run a bunch of scripts in a directory\n" \
      "\nOptions:" \
      "\n	-t	Print what would be run, but don't actually run anything" \
      "\n	-a ARG	Pass ARG as argument for every program" \
      "\n	-u MASK	Set the umask to MASK before running every program" \
-	USE_FEATURE_RUN_PARTS_FANCY( \
+	IF_FEATURE_RUN_PARTS_FANCY( \
      "\n	-l	Print names of all matching files even if they are not executable" \
 	)
 
@@ -3728,7 +3728,7 @@
      "\n	-b	Display current state of booleans" \
 
 #define setconsole_trivial_usage \
-       "[-r" USE_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
+       "[-r" IF_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
 #define setconsole_full_usage "\n\n" \
        "Redirect system console output to DEVICE (default: /dev/tty)\n" \
      "\nOptions:" \
@@ -3740,13 +3740,13 @@
 
 #define setfiles_trivial_usage \
        "[-dnpqsvW] [-e dir]... [-o file] [-r alt_root_path]" \
-	USE_FEATURE_SETFILES_CHECK_OPTION( \
+	IF_FEATURE_SETFILES_CHECK_OPTION( \
        " [-c policyfile] spec_file" \
 	) \
        " pathname"
 #define setfiles_full_usage "\n\n" \
        "Reset file contexts under pathname according to spec_file\n" \
-	USE_FEATURE_SETFILES_CHECK_OPTION( \
+	IF_FEATURE_SETFILES_CHECK_OPTION( \
      "\n	-c file	Check the validity of the contexts against the specified binary policy" \
 	) \
      "\n	-d	Show which specification matched each file" \
@@ -3809,10 +3809,10 @@
        "lash is deprecated, please use hush"
 
 #define last_trivial_usage \
-       ""USE_FEATURE_LAST_FANCY("[-HW] [-f file]")
+       ""IF_FEATURE_LAST_FANCY("[-HW] [-f file]")
 #define last_full_usage "\n\n" \
        "Show listing of the last users that logged into the system" \
-	USE_FEATURE_LAST_FANCY( "\n" \
+	IF_FEATURE_LAST_FANCY( "\n" \
      "\nOptions:" \
 /*   "\n	-H	Show header line" */ \
      "\n	-W	Display with no host column truncation" \
@@ -3843,27 +3843,27 @@
      "\n	-F	Disable RTS/CTS flow control" \
 
 #define sleep_trivial_usage \
-	USE_FEATURE_FANCY_SLEEP("[") "N" USE_FEATURE_FANCY_SLEEP("]...")
+	IF_FEATURE_FANCY_SLEEP("[") "N" IF_FEATURE_FANCY_SLEEP("]...")
 #define sleep_full_usage "\n\n" \
-	SKIP_FEATURE_FANCY_SLEEP("Pause for N seconds") \
-	USE_FEATURE_FANCY_SLEEP( \
+	IF_NOT_FEATURE_FANCY_SLEEP("Pause for N seconds") \
+	IF_FEATURE_FANCY_SLEEP( \
        "Pause for a time equal to the total of the args given, where each arg can\n" \
        "have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays")
 #define sleep_example_usage \
        "$ sleep 2\n" \
        "[2 second delay results]\n" \
-	USE_FEATURE_FANCY_SLEEP( \
+	IF_FEATURE_FANCY_SLEEP( \
        "$ sleep 1d 3h 22m 8s\n" \
        "[98528 second delay results]\n")
 
 #define sort_trivial_usage \
        "[-nru" \
-	USE_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR") \
+	IF_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR") \
        "] [FILE]..."
 #define sort_full_usage "\n\n" \
        "Sort lines of text\n" \
      "\nOptions:" \
-	USE_FEATURE_SORT_BIG( \
+	IF_FEATURE_SORT_BIG( \
      "\n	-b	Ignore leading blanks" \
      "\n	-c	Check whether input is sorted" \
      "\n	-d	Dictionary order (blank or alphanumeric only)" \
@@ -3874,17 +3874,17 @@
      "\n	-M	Sort month" \
 	) \
      "\n	-n	Sort numbers" \
-	USE_FEATURE_SORT_BIG( \
+	IF_FEATURE_SORT_BIG( \
      "\n	-o	Output to file" \
      "\n	-k	Sort by key" \
      "\n	-t CHAR	Key separator" \
 	) \
      "\n	-r	Reverse sort order" \
-	USE_FEATURE_SORT_BIG( \
+	IF_FEATURE_SORT_BIG( \
      "\n	-s	Stable (don't sort ties alphabetically)" \
 	) \
      "\n	-u	Suppress duplicate lines" \
-	USE_FEATURE_SORT_BIG( \
+	IF_FEATURE_SORT_BIG( \
      "\n	-z	Lines are terminated by NUL, not newline" \
      "\n	-mST	Ignored for GNU compatibility") \
 
@@ -3896,7 +3896,7 @@
        "d\n" \
        "e\n" \
        "f\n" \
-	USE_FEATURE_SORT_BIG( \
+	IF_FEATURE_SORT_BIG( \
 		"$ echo -e \"c 3\\nb 2\\nd 2\" | $SORT -k 2,2n -k 1,1r\n" \
 		"d 2\n" \
 		"b 2\n" \
@@ -3922,7 +3922,7 @@
        "Search for matching processes, and then\n" \
        "-K: stop all matching processes.\n" \
        "-S: start a process unless a matching process is found.\n" \
-	USE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
+	IF_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
      "\nProcess matching:" \
      "\n	-u,--user USERNAME|UID	Match only this user's processes" \
      "\n	-n,--name NAME		Match processes with NAME" \
@@ -3935,7 +3935,7 @@
      "\n	-x,--exec EXECUTABLE	Program to run" \
      "\n	-a,--startas NAME	Zeroth argument" \
      "\n	-b,--background		Background" \
-	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+	IF_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-N,--nicelevel N	Change nice level" \
 	) \
      "\n	-c,--chuid USER[:[GRP]]	Change to user/group" \
@@ -3944,13 +3944,13 @@
      "\n	-s,--signal SIG		Signal to send" \
      "\n	-t,--test		Match only, exit with 0 if a process is found" \
      "\nOther:" \
-	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+	IF_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-o,--oknodo		Exit with status 0 if nothing is done" \
      "\n	-v,--verbose		Verbose" \
 	) \
      "\n	-q,--quiet		Quiet" \
 	) \
-	SKIP_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
+	IF_NOT_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
      "\nProcess matching:" \
      "\n	-u USERNAME|UID	Match only this user's processes" \
      "\n	-n NAME		Match processes with NAME" \
@@ -3963,7 +3963,7 @@
      "\n	-x EXECUTABLE	Program to run" \
      "\n	-a NAME		Zeroth argument" \
      "\n	-b		Background" \
-	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+	IF_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-N N		Change nice level" \
 	) \
      "\n	-c USER[:[GRP]]	Change to user/group" \
@@ -3972,7 +3972,7 @@
      "\n	-s SIG		Signal to send" \
      "\n	-t		Match only, exit with 0 if a process is found" \
      "\nOther:" \
-	USE_FEATURE_START_STOP_DAEMON_FANCY( \
+	IF_FEATURE_START_STOP_DAEMON_FANCY( \
      "\n	-o		Exit with status 0 if nothing is done" \
      "\n	-v		Verbose" \
 	) \
@@ -3984,16 +3984,16 @@
 #define stat_full_usage "\n\n" \
        "Display file (default) or filesystem status\n" \
      "\nOptions:" \
-	USE_FEATURE_STAT_FORMAT( \
+	IF_FEATURE_STAT_FORMAT( \
      "\n	-c fmt	Use the specified format" \
 	) \
      "\n	-f	Display filesystem status" \
      "\n	-L	Dereference links" \
      "\n	-t	Display info in terse form" \
-	USE_SELINUX( \
+	IF_SELINUX( \
      "\n	-Z	Print security context" \
 	) \
-	USE_FEATURE_STAT_FORMAT( \
+	IF_FEATURE_STAT_FORMAT( \
        "\n\nValid format sequences for files:\n" \
        " %a	Access rights in octal\n" \
        " %A	Access rights in human readable form\n" \
@@ -4027,7 +4027,7 @@
        " %c	Total file nodes in file system\n" \
        " %d	Free file nodes in file system\n" \
        " %f	Free blocks in file system\n" \
-	USE_SELINUX( \
+	IF_SELINUX( \
        " %C	Security context in SELinux\n" \
 	) \
        " %i	File System ID in hex\n" \
@@ -4115,12 +4115,12 @@
      "\n	-a	Stop swapping on all swap devices" \
 
 #define swapon_trivial_usage \
-       "[-a]" USE_FEATURE_SWAPON_PRI(" [-p pri]") " [DEVICE]"
+       "[-a]" IF_FEATURE_SWAPON_PRI(" [-p pri]") " [DEVICE]"
 #define swapon_full_usage "\n\n" \
        "Start swapping on DEVICE\n" \
      "\nOptions:" \
      "\n	-a	Start swapping on all swap devices" \
-	USE_FEATURE_SWAPON_PRI( \
+	IF_FEATURE_SWAPON_PRI( \
      "\n	-p pri	Set swap device priority" \
 	) \
 
@@ -4166,15 +4166,15 @@
      "\n	-O FILE		Log to given file (default=/var/log/messages)" \
      "\n	-l n		Set local log level" \
      "\n	-S		Smaller logging output" \
-	USE_FEATURE_ROTATE_LOGFILE( \
+	IF_FEATURE_ROTATE_LOGFILE( \
      "\n	-s SIZE		Max size (KB) before rotate (default=200KB, 0=off)" \
      "\n	-b NUM		Number of rotated logs to keep (default=1, max=99, 0=purge)") \
-	USE_FEATURE_REMOTE_LOG( \
+	IF_FEATURE_REMOTE_LOG( \
      "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
      "\n	-L		Log locally and via network (default is network only if -R)") \
-	USE_FEATURE_SYSLOGD_DUP( \
+	IF_FEATURE_SYSLOGD_DUP( \
      "\n	-D		Drop duplicates") \
-	USE_FEATURE_IPC_SYSLOG( \
+	IF_FEATURE_IPC_SYSLOG( \
      "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)") \
 	/* NB: -Csize shouldn't have space (because size is optional) */
 /*   "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" */
@@ -4195,11 +4195,11 @@
        "With more than one FILE, precede each with a header giving the\n" \
        "file name. With no FILE, or when FILE is -, read standard input.\n" \
      "\nOptions:" \
-	USE_FEATURE_FANCY_TAIL( \
+	IF_FEATURE_FANCY_TAIL( \
      "\n	-c N[kbm]	Output the last N bytes") \
      "\n	-n N[kbm]	Print last N lines instead of last 10" \
      "\n	-f		Output data as the file grows" \
-	USE_FEATURE_FANCY_TAIL( \
+	IF_FEATURE_FANCY_TAIL( \
      "\n	-q		Never output headers giving file names" \
      "\n	-s SEC		Wait SEC seconds between reads with -f" \
      "\n	-v		Always output headers giving file names" \
@@ -4213,35 +4213,35 @@
        "nameserver 10.0.0.1\n"
 
 #define tar_trivial_usage \
-       "-[" USE_FEATURE_TAR_CREATE("c") USE_FEATURE_SEAMLESS_GZ("z") \
-	USE_FEATURE_SEAMLESS_BZ2("j") USE_FEATURE_SEAMLESS_LZMA("a") \
-	USE_FEATURE_SEAMLESS_Z("Z") "xtvO] " \
-	USE_FEATURE_TAR_FROM("[-X FILE] ") \
+       "-[" IF_FEATURE_TAR_CREATE("c") IF_FEATURE_SEAMLESS_GZ("z") \
+	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a") \
+	IF_FEATURE_SEAMLESS_Z("Z") "xtvO] " \
+	IF_FEATURE_TAR_FROM("[-X FILE] ") \
        "[-f TARFILE] [-C DIR] [FILE(s)]..."
 #define tar_full_usage "\n\n" \
        "Create, extract, or list files from a tar file\n" \
      "\nOptions:" \
-	USE_FEATURE_TAR_CREATE( \
+	IF_FEATURE_TAR_CREATE( \
      "\n	c	Create") \
      "\n	x	Extract" \
      "\n	t	List" \
      "\nArchive format selection:" \
-	USE_FEATURE_SEAMLESS_GZ( \
+	IF_FEATURE_SEAMLESS_GZ( \
      "\n	z	Filter the archive through gzip" \
 	) \
-	USE_FEATURE_SEAMLESS_BZ2( \
+	IF_FEATURE_SEAMLESS_BZ2( \
      "\n	j	Filter the archive through bzip2" \
 	) \
-	USE_FEATURE_SEAMLESS_LZMA( \
+	IF_FEATURE_SEAMLESS_LZMA( \
      "\n	a	Filter the archive through lzma" \
 	) \
-	USE_FEATURE_SEAMLESS_Z( \
+	IF_FEATURE_SEAMLESS_Z( \
      "\n	Z	Filter the archive through compress" \
 	) \
      "\nFile selection:" \
      "\n	f	Name of TARFILE or \"-\" for stdin" \
      "\n	O	Extract to stdout" \
-	USE_FEATURE_TAR_FROM( \
+	IF_FEATURE_TAR_FROM( \
      "\n	exclude	File to exclude" \
      "\n	X	File with names to exclude" \
 	) \
@@ -4303,13 +4303,13 @@
        "[OPTION]"
 #define telnetd_full_usage "\n\n" \
        "Handle incoming telnet connections" \
-	SKIP_FEATURE_TELNETD_STANDALONE(" via inetd") "\n" \
+	IF_NOT_FEATURE_TELNETD_STANDALONE(" via inetd") "\n" \
      "\nOptions:" \
      "\n	-l LOGIN	Exec LOGIN on connect" \
      "\n	-f issue_file	Display issue_file instead of /etc/issue" \
      "\n	-K		Close connection as soon as login exits" \
      "\n			(normally wait until all programs close slave pty)" \
-	USE_FEATURE_TELNETD_STANDALONE( \
+	IF_FEATURE_TELNETD_STANDALONE( \
      "\n	-p PORT		Port to listen on" \
      "\n	-b ADDR		Address to bind to" \
      "\n	-F		Run in foreground" \
@@ -4343,11 +4343,11 @@
 	"OBJECT: {qdisc|class|filter}\n" \
 	"CMD: {add|del|change|replace|show}\n" \
 	"\n" \
-	"qdisc [ handle QHANDLE ] [ root |"USE_FEATURE_TC_INGRESS(" ingress |")" parent CLASSID ]\n" \
+	"qdisc [ handle QHANDLE ] [ root |"IF_FEATURE_TC_INGRESS(" ingress |")" parent CLASSID ]\n" \
 	/* "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
 	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
 	"\tQDISC_KIND := { [p|b]fifo | tbf | prio | cbq | red | etc. }\n" \
-	"qdisc show [ dev STRING ]"USE_FEATURE_TC_INGRESS(" [ingress]")"\n" \
+	"qdisc show [ dev STRING ]"IF_FEATURE_TC_INGRESS(" [ingress]")"\n" \
 	"class [ classid CLASSID ] [ root | parent CLASSID ]\n" \
 	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
 	"class show [ dev STRING ] [ root | parent CLASSID ]\n" \
@@ -4401,13 +4401,13 @@
      "\nOptions:" \
      "\n	-l FILE	Local FILE" \
      "\n	-r FILE	Remote FILE" \
-	USE_FEATURE_TFTP_GET( \
+	IF_FEATURE_TFTP_GET( \
      "\n	-g	Get file" \
 	) \
-	USE_FEATURE_TFTP_PUT( \
+	IF_FEATURE_TFTP_PUT( \
      "\n	-p	Put file" \
 	) \
-	USE_FEATURE_TFTP_BLOCKSIZE( \
+	IF_FEATURE_TFTP_BLOCKSIZE( \
      "\n	-b SIZE	Transfer blocks of SIZE octets" \
 	)
 
@@ -4512,7 +4512,7 @@
        ""
 #define tty_full_usage "\n\n" \
        "Print file name of standard input's terminal" \
-	USE_INCLUDE_SUSv2( "\n" \
+	IF_INCLUDE_SUSv2( "\n" \
      "\nOptions:" \
      "\n	-s	Print nothing, only return exit status" \
 	)
@@ -4526,14 +4526,14 @@
        "Print dimension(s) of standard input's terminal, on error return 80x25"
 
 #define tunctl_trivial_usage \
-       "[-f device] ([-t name] | -d name)" USE_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
+       "[-f device] ([-t name] | -d name)" IF_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
 #define tunctl_full_usage "\n\n" \
        "Create or delete tun interfaces" \
      "\nOptions:" \
      "\n	-f name		tun device (/dev/net/tun)" \
      "\n	-t name		Create iface 'name'" \
      "\n	-d name		Delete iface 'name'" \
-USE_FEATURE_TUNCTL_UG( \
+IF_FEATURE_TUNCTL_UG( \
      "\n	-u owner	Set iface owner" \
      "\n	-g group	Set iface group" \
      "\n	-b		Brief output" \
@@ -4554,9 +4554,9 @@ USE_FEATURE_TUNCTL_UG( \
 
 #define udhcpc_trivial_usage \
        "[-Cfbnqtvo] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
-       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." USE_FEATURE_UDHCP_PORT(" [-P N]")
+       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 #define udhcpc_full_usage "\n\n" \
-	USE_GETOPT_LONG( \
+	IF_GETOPT_LONG( \
        "	-V,--vendorclass=CLASSID	Vendor class identifier" \
      "\n	-i,--interface=INTERFACE	Interface to use (default eth0)" \
      "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
@@ -4578,14 +4578,14 @@ USE_FEATURE_TUNCTL_UG( \
      "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
      "\n	-q,--quit	Quit after obtaining lease" \
      "\n	-R,--release	Release IP on quit" \
-	USE_FEATURE_UDHCP_PORT( \
+	IF_FEATURE_UDHCP_PORT( \
      "\n	-P,--client-port N  Use port N instead of default 68" \
 	) \
-	USE_FEATURE_UDHCPC_ARPING( \
+	IF_FEATURE_UDHCPC_ARPING( \
      "\n	-a,--arping	Use arping to validate offered address" \
 	) \
 	) \
-	SKIP_GETOPT_LONG( \
+	IF_NOT_GETOPT_LONG( \
        "	-V CLASSID	Vendor class identifier" \
      "\n	-i INTERFACE	Interface to use (default: eth0)" \
      "\n	-H,-h HOSTNAME	Client hostname" \
@@ -4607,22 +4607,22 @@ USE_FEATURE_TUNCTL_UG( \
      "\n	-n		Exit with failure if lease is not immediately obtained" \
      "\n	-q		Quit after obtaining lease" \
      "\n	-R		Release IP on quit" \
-	USE_FEATURE_UDHCP_PORT( \
+	IF_FEATURE_UDHCP_PORT( \
      "\n	-P N		Use port N instead of default 68" \
 	) \
-	USE_FEATURE_UDHCPC_ARPING( \
+	IF_FEATURE_UDHCPC_ARPING( \
      "\n	-a		Use arping to validate offered address" \
 	) \
 	)
 
 #define udhcpd_trivial_usage \
-       "[-fS]" USE_FEATURE_UDHCP_PORT(" [-P N]") " [configfile]" \
+       "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [configfile]" \
 
 #define udhcpd_full_usage "\n\n" \
        "DHCP server\n" \
      "\n	-f	Run in foreground" \
      "\n	-S	Log to syslog too" \
-	USE_FEATURE_UDHCP_PORT( \
+	IF_FEATURE_UDHCP_PORT( \
      "\n	-P N	Use port N instead of default 67" \
 	)
 
@@ -4631,16 +4631,16 @@ USE_FEATURE_TUNCTL_UG( \
 #define umount_full_usage "\n\n" \
        "Unmount file systems\n" \
      "\nOptions:" \
-	USE_FEATURE_UMOUNT_ALL( \
-     "\n	-a	Unmount all file systems" USE_FEATURE_MTAB_SUPPORT(" in /etc/mtab") \
+	IF_FEATURE_UMOUNT_ALL( \
+     "\n	-a	Unmount all file systems" IF_FEATURE_MTAB_SUPPORT(" in /etc/mtab") \
 	) \
-	USE_FEATURE_MTAB_SUPPORT( \
+	IF_FEATURE_MTAB_SUPPORT( \
      "\n	-n	Don't erase /etc/mtab entries" \
 	) \
      "\n	-r	Try to remount devices as read-only if mount is busy" \
      "\n	-l	Lazy umount (detach filesystem)" \
      "\n	-f	Force umount (i.e., unreachable NFS server)" \
-	USE_FEATURE_MOUNT_LOOP( \
+	IF_FEATURE_MOUNT_LOOP( \
      "\n	-d	Free loop device if it has been used" \
 	)
 
@@ -4677,12 +4677,12 @@ USE_FEATURE_TUNCTL_UG( \
 #define unexpand_full_usage "\n\n" \
        "Convert spaces to tabs, writing to standard output.\n" \
      "\nOptions:" \
-	USE_FEATURE_UNEXPAND_LONG_OPTIONS( \
+	IF_FEATURE_UNEXPAND_LONG_OPTIONS( \
      "\n	-a,--all	Convert all blanks" \
      "\n	-f,--first-only	Convert only leading blanks" \
      "\n	-t,--tabs=N	Tabstops every N chars" \
 	) \
-	SKIP_FEATURE_UNEXPAND_LONG_OPTIONS( \
+	IF_NOT_FEATURE_UNEXPAND_LONG_OPTIONS( \
      "\n	-a	Convert all blanks" \
      "\n	-f	Convert only leading blanks" \
      "\n	-t N	Tabstops every N chars" \
@@ -4788,9 +4788,9 @@ USE_FEATURE_TUNCTL_UG( \
 #define vi_full_usage "\n\n" \
        "Edit FILE\n" \
      "\nOptions:" \
-	USE_FEATURE_VI_COLON( \
+	IF_FEATURE_VI_COLON( \
      "\n	-c	Initial command to run ($EXINIT also available)") \
-	USE_FEATURE_VI_READONLY( \
+	IF_FEATURE_VI_READONLY( \
      "\n	-R	Read-only - do not write to the file") \
      "\n	-H	Short help regarding available features" \
 
@@ -4842,12 +4842,12 @@ USE_FEATURE_TUNCTL_UG( \
        "     31      46    1365 /etc/passwd\n"
 
 #define wget_trivial_usage \
-	USE_FEATURE_WGET_LONG_OPTIONS( \
+	IF_FEATURE_WGET_LONG_OPTIONS( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
        "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
        "	[-U|--user-agent agent] url" \
 	) \
-	SKIP_FEATURE_WGET_LONG_OPTIONS( \
+	IF_NOT_FEATURE_WGET_LONG_OPTIONS( \
        "[-csq] [-O file] [-Y on/off] [-P DIR] [-U agent] url" \
 	)
 #define wget_full_usage "\n\n" \
@@ -4886,16 +4886,16 @@ USE_FEATURE_TUNCTL_UG( \
 #define xargs_full_usage "\n\n" \
        "Execute COMMAND on every item given by standard input\n" \
      "\nOptions:" \
-	USE_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
+	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
      "\n	-p	Ask user whether to run each command") \
      "\n	-r	Do not run command if input is empty" \
-	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
+	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
      "\n	-0	Input is separated by NUL characters") \
      "\n	-t	Print the command on stderr before execution" \
      "\n	-e[STR]	STR stops input processing" \
      "\n	-n N	Pass no more than N args to COMMAND" \
      "\n	-s N	Pass command line of no more than N bytes" \
-	USE_FEATURE_XARGS_SUPPORT_TERMOPT( \
+	IF_FEATURE_XARGS_SUPPORT_TERMOPT( \
      "\n	-x	Exit if size is exceeded") \
 
 #define xargs_example_usage \

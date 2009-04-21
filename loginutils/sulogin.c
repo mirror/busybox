@@ -99,7 +99,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 
 	bb_info_msg("System Maintenance Mode");
 
-	USE_SELINUX(renew_current_security_context());
+	IF_SELINUX(renew_current_security_context());
 
 	shell = getenv("SUSHELL");
 	if (!shell)

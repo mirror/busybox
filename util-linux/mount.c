@@ -105,22 +105,22 @@ enum {
 static const int32_t mount_options[] = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
-	USE_FEATURE_MOUNT_LOOP(
+	IF_FEATURE_MOUNT_LOOP(
 		/* "loop" */ 0,
 	)
 
-	USE_FEATURE_MOUNT_FSTAB(
+	IF_FEATURE_MOUNT_FSTAB(
 		/* "defaults" */ 0,
 		/* "quiet" 0 - do not filter out, vfat wants to see it */
 		/* "noauto" */ MOUNT_NOAUTO,
 		/* "sw"     */ MOUNT_SWAP,
 		/* "swap"   */ MOUNT_SWAP,
-		USE_DESKTOP(/* "user"  */ MOUNT_USERS,)
-		USE_DESKTOP(/* "users" */ MOUNT_USERS,)
+		IF_DESKTOP(/* "user"  */ MOUNT_USERS,)
+		IF_DESKTOP(/* "users" */ MOUNT_USERS,)
 		/* "_netdev" */ 0,
 	)
 
-	USE_FEATURE_MOUNT_FLAGS(
+	IF_FEATURE_MOUNT_FLAGS(
 		// vfs flags
 		/* "nosuid"      */ MS_NOSUID,
 		/* "suid"        */ ~MS_NOSUID,
@@ -161,20 +161,20 @@ static const int32_t mount_options[] = {
 };
 
 static const char mount_option_str[] =
-	USE_FEATURE_MOUNT_LOOP(
+	IF_FEATURE_MOUNT_LOOP(
 		"loop\0"
 	)
-	USE_FEATURE_MOUNT_FSTAB(
+	IF_FEATURE_MOUNT_FSTAB(
 		"defaults\0"
 		// "quiet\0" - do not filter out, vfat wants to see it
 		"noauto\0"
 		"sw\0"
 		"swap\0"
-		USE_DESKTOP("user\0")
-		USE_DESKTOP("users\0")
+		IF_DESKTOP("user\0")
+		IF_DESKTOP("users\0")
 		"_netdev\0"
 	)
-	USE_FEATURE_MOUNT_FLAGS(
+	IF_FEATURE_MOUNT_FLAGS(
 		// vfs flags
 		"nosuid\0"
 		"suid\0"
@@ -1781,9 +1781,9 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	int i, j, rc = 0;
 	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
-	SKIP_DESKTOP(const int nonroot = 0;)
+	IF_NOT_DESKTOP(const int nonroot = 0;)
 
-	USE_DESKTOP(int nonroot = ) sanitize_env_if_suid();
+	IF_DESKTOP(int nonroot = ) sanitize_env_if_suid();
 
 	// Parse long options, like --bind and --move.  Note that -o option
 	// and --option are synonymous.  Yes, this means --remount,rw works.
@@ -1797,9 +1797,9 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	// Parse remaining options
 	// Max 2 params; -o is a list, -v is a counter
-	opt_complementary = "?2o::" USE_FEATURE_MOUNT_VERBOSE("vv");
+	opt_complementary = "?2o::" IF_FEATURE_MOUNT_VERBOSE("vv");
 	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype, &O_optmatch
-			USE_FEATURE_MOUNT_VERBOSE(, &verbose));
+			IF_FEATURE_MOUNT_VERBOSE(, &verbose));
 	while (lst_o) append_mount_options(&cmdopts, llist_pop(&lst_o)); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & OPT_w) append_mount_options(&cmdopts, "rw"); // -w

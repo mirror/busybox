@@ -10,10 +10,10 @@
 #include "libbb.h"
 
 enum {
-	USE_FEATURE_PIDOF_SINGLE(OPTBIT_SINGLE,)
-	USE_FEATURE_PIDOF_OMIT(  OPTBIT_OMIT  ,)
-	OPT_SINGLE = USE_FEATURE_PIDOF_SINGLE((1<<OPTBIT_SINGLE)) + 0,
-	OPT_OMIT   = USE_FEATURE_PIDOF_OMIT(  (1<<OPTBIT_OMIT  )) + 0,
+	IF_FEATURE_PIDOF_SINGLE(OPTBIT_SINGLE,)
+	IF_FEATURE_PIDOF_OMIT(  OPTBIT_OMIT  ,)
+	OPT_SINGLE = IF_FEATURE_PIDOF_SINGLE((1<<OPTBIT_SINGLE)) + 0,
+	OPT_OMIT   = IF_FEATURE_PIDOF_OMIT(  (1<<OPTBIT_OMIT  )) + 0,
 };
 
 int pidof_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -28,8 +28,8 @@ int pidof_main(int argc UNUSED_PARAM, char **argv)
 
 	/* do unconditional option parsing */
 	opt = getopt32(argv, ""
-			USE_FEATURE_PIDOF_SINGLE ("s")
-			USE_FEATURE_PIDOF_OMIT("o:", &omits));
+			IF_FEATURE_PIDOF_SINGLE ("s")
+			IF_FEATURE_PIDOF_OMIT("o:", &omits));
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	/* fill omit list.  */

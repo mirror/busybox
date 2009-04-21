@@ -271,7 +271,7 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	last_file_modified = -1; \
 	/* "" but has space for 2 chars: */ \
-	USE_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
+	IF_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
 } while (0)
 
 
@@ -426,7 +426,7 @@ int vi_main(int argc, char **argv)
 			initial_cmds[0] = xstrndup(p, MAX_INPUT_LEN);
 	}
 #endif
-	while ((c = getopt(argc, argv, "hCRH" USE_FEATURE_VI_COLON("c:"))) != -1) {
+	while ((c = getopt(argc, argv, "hCRH" IF_FEATURE_VI_COLON("c:"))) != -1) {
 		switch (c) {
 #if ENABLE_FEATURE_VI_CRASHME
 		case 'C':
@@ -643,8 +643,8 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 {
 	int st;
 	char *q;
-	USE_FEATURE_VI_YANKMARK(char c;)
-	USE_FEATURE_VI_SEARCH(char *pat;)
+	IF_FEATURE_VI_YANKMARK(char c;)
+	IF_FEATURE_VI_SEARCH(char *pat;)
 
 	*addr = -1;			// assume no addr
 	if (*p == '.') {	// the current line
@@ -883,10 +883,10 @@ static void colon(char *buf)
 		// how many lines in text[]?
 		li = count_lines(text, end - 1);
 		status_line("\"%s\"%s"
-			USE_FEATURE_VI_READONLY("%s")
+			IF_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", current_filename,
 			(file_size(fn) < 0 ? " [New file]" : ""),
-			USE_FEATURE_VI_READONLY(
+			IF_FEATURE_VI_READONLY(
 				((readonly_mode) ? " [Readonly]" : ""),
 			)
 			li, ch);
@@ -992,9 +992,9 @@ static void colon(char *buf)
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
 		status_line("\"%s\""
-			USE_FEATURE_VI_READONLY("%s")
+			IF_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", fn,
-			USE_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
+			IF_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
 			li, ch);
 		if (ch > 0) {
 			// if the insert is before "dot" then we need to update

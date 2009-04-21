@@ -132,10 +132,10 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
-		USE_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
+		IF_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
 		opt = getopt32(argv, "it:", &opt_t);
 	} else {
-		USE_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = unexpand_longopts);
+		IF_FEATURE_UNEXPAND_LONG_OPTIONS(applet_long_options = unexpand_longopts);
 		/* -t NUM sets also -a */
 		opt_complementary = "ta";
 		opt = getopt32(argv, "ft:a", &opt_t);
@@ -157,9 +157,9 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e'))
-			USE_EXPAND(expand(file, tab_size, opt));
+			IF_EXPAND(expand(file, tab_size, opt));
 		else
-			USE_UNEXPAND(unexpand(file, tab_size, opt));
+			IF_UNEXPAND(unexpand(file, tab_size, opt));
 
 		/* Check and close the file */
 		if (fclose_if_not_stdin(file)) {

@@ -55,8 +55,8 @@ static const char usage_messages[] ALIGN1 = ""
 #ifdef SINGLE_APPLET_MAIN
 #undef ENABLE_FEATURE_INDIVIDUAL
 #define ENABLE_FEATURE_INDIVIDUAL 1
-#undef USE_FEATURE_INDIVIDUAL
-#define USE_FEATURE_INDIVIDUAL(...) __VA_ARGS__
+#undef IF_FEATURE_INDIVIDUAL
+#define IF_FEATURE_INDIVIDUAL(...) __VA_ARGS__
 #endif
 
 
@@ -179,10 +179,10 @@ int FAST_FUNC find_applet_by_name(const char *name)
 
 
 void lbb_prepare(const char *applet
-		USE_FEATURE_INDIVIDUAL(, char **argv))
+		IF_FEATURE_INDIVIDUAL(, char **argv))
 				MAIN_EXTERNALLY_VISIBLE;
 void lbb_prepare(const char *applet
-		USE_FEATURE_INDIVIDUAL(, char **argv))
+		IF_FEATURE_INDIVIDUAL(, char **argv))
 {
 #ifdef __GLIBC__
 	(*(int **)&bb_errno) = __errno_location();
@@ -224,7 +224,7 @@ bool re_execed;
 /* If not built as a single-applet executable... */
 #if !defined(SINGLE_APPLET_MAIN)
 
-USE_FEATURE_SUID(static uid_t ruid;)  /* real uid */
+IF_FEATURE_SUID(static uid_t ruid;)  /* real uid */
 
 #if ENABLE_FEATURE_SUID_CONFIG
 
@@ -500,7 +500,7 @@ static void parse_config_file(void)
 #else
 static inline void parse_config_file(void)
 {
-	USE_FEATURE_SUID(ruid = getuid();)
+	IF_FEATURE_SUID(ruid = getuid();)
 }
 #endif /* FEATURE_SUID_CONFIG */
 
@@ -754,10 +754,10 @@ int main(int argc UNUSED_PARAM, char **argv)
 #if defined(SINGLE_APPLET_MAIN)
 	/* Only one applet is selected by the user! */
 	/* applet_names in this case is just "applet\0\0" */
-	lbb_prepare(applet_names USE_FEATURE_INDIVIDUAL(, argv));
+	lbb_prepare(applet_names IF_FEATURE_INDIVIDUAL(, argv));
 	return SINGLE_APPLET_MAIN(argc, argv);
 #else
-	lbb_prepare("busybox" USE_FEATURE_INDIVIDUAL(, argv));
+	lbb_prepare("busybox" IF_FEATURE_INDIVIDUAL(, argv));
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */

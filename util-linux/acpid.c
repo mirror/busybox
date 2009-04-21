@@ -61,9 +61,9 @@ int acpid_main(int argc, char **argv)
 	const char *opt_logfile = "/var/log/acpid.log";
 
 	getopt32(argv, "c:e:l:d"
-		USE_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
+		IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
 		&opt_conf, &opt_input, &opt_logfile
-		USE_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL, NULL)
+		IF_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL, NULL)
 	);
 
 	// daemonize unless -d given

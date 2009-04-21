@@ -155,13 +155,13 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 
 #if ENABLE_FEATURE_HUMAN_READABLE
-	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_hr = 1024;)
-	SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_hr = 512;)
+	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_hr = 1024;)
+	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_hr = 512;)
 	if (getenv("POSIXLY_CORRECT"))  /* TODO - a new libbb function? */
 		G.disp_hr = 512;
 #else
-	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_k = 1;)
-	/* SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_k = 0;) - G is pre-zeroed */
+	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_k = 1;)
+	/* IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_k = 0;) - G is pre-zeroed */
 #endif
 	G.max_print_depth = INT_MAX;
 

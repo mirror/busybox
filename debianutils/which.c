@@ -15,13 +15,13 @@
 int which_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int which_main(int argc UNUSED_PARAM, char **argv)
 {
-	USE_DESKTOP(int opt;)
+	IF_DESKTOP(int opt;)
 	int status = EXIT_SUCCESS;
 	char *path;
 	char *p;
 
 	opt_complementary = "-1"; /* at least one argument */
-	USE_DESKTOP(opt =) getopt32(argv, "a");
+	IF_DESKTOP(opt =) getopt32(argv, "a");
 	argv += optind;
 
 	/* This matches what is seen on e.g. ubuntu.

@@ -29,7 +29,7 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
 	opt_complementary = "m--e:e--m";
-	USE_GETOPT_LONG(applet_long_options = chpasswd_longopts;)
+	IF_GETOPT_LONG(applet_long_options = chpasswd_longopts;)
 	opt = getopt32(argv, "em");
 
 	while ((name = xmalloc_fgetline(stdin)) != NULL) {

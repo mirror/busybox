@@ -201,8 +201,8 @@ static size_t iac_safe_write(int fd, const char *buf, size_t count)
 
 static struct tsession *
 make_new_session(
-		USE_FEATURE_TELNETD_STANDALONE(int sock)
-		SKIP_FEATURE_TELNETD_STANDALONE(void)
+		IF_FEATURE_TELNETD_STANDALONE(int sock)
+		IF_NOT_FEATURE_TELNETD_STANDALONE(void)
 ) {
 	const char *login_argv[2];
 	struct termios termbuf;
@@ -437,9 +437,9 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
 	 * don't need to guess whether it's ok to pass -i to us */
-	opt = getopt32(argv, "f:l:Ki" USE_FEATURE_TELNETD_STANDALONE("p:b:F"),
+	opt = getopt32(argv, "f:l:Ki" IF_FEATURE_TELNETD_STANDALONE("p:b:F"),
 			&issuefile, &loginpath
-			USE_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr));
+			IF_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr));
 	if (!IS_INETD /*&& !re_execed*/) {
 		/* inform that we start in standalone mode?
 		 * May be useful when people forget to give -i */
@@ -455,7 +455,7 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
-	USE_FEATURE_TELNETD_STANDALONE(
+	IF_FEATURE_TELNETD_STANDALONE(
 		if (opt & OPT_PORT)
 			portnbr = xatou16(opt_portnbr);
 	);

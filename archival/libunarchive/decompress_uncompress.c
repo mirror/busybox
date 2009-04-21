@@ -72,11 +72,11 @@
  * be stored in the compressed file.
  */
 
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 unpack_Z_stream(int fd_in, int fd_out)
 {
-	USE_DESKTOP(long long total_written = 0;)
-	USE_DESKTOP(long long) int retval = -1;
+	IF_DESKTOP(long long total_written = 0;)
+	IF_DESKTOP(long long) int retval = -1;
 	unsigned char *stackp;
 	long code;
 	int finchar;
@@ -265,7 +265,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 						if (outpos >= OBUFSIZ) {
 							full_write(fd_out, outbuf, outpos);
 //error check??
-							USE_DESKTOP(total_written += outpos;)
+							IF_DESKTOP(total_written += outpos;)
 							outpos = 0;
 						}
 						stackp += i;
@@ -294,10 +294,10 @@ unpack_Z_stream(int fd_in, int fd_out)
 	if (outpos > 0) {
 		full_write(fd_out, outbuf, outpos);
 //error check??
-		USE_DESKTOP(total_written += outpos;)
+		IF_DESKTOP(total_written += outpos;)
 	}
 
-	retval = USE_DESKTOP(total_written) + 0;
+	retval = IF_DESKTOP(total_written) + 0;
  err:
 	free(inbuf);
 	free(outbuf);

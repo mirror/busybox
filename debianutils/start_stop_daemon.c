@@ -347,13 +347,13 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	/* -xa (at least one) is required if -S is given */
 	/* -q turns off -v */
 	opt_complementary = "K:S:K--S:S--K:m?p:K?xpun:S?xa"
-		USE_FEATURE_START_STOP_DAEMON_FANCY("q-v");
+		IF_FEATURE_START_STOP_DAEMON_FANCY("q-v");
 	opt = getopt32(argv, "KSbqtma:n:s:u:c:x:p:"
-		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
+		IF_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:"),
 		&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile
-		USE_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
+		IF_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 		/* We accept and ignore -R <param> / --retry <param> */
-		USE_FEATURE_START_STOP_DAEMON_FANCY(,NULL)
+		IF_FEATURE_START_STOP_DAEMON_FANCY(,NULL)
 	);
 
 	if (opt & OPT_s) {
@@ -366,7 +366,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	if (!execname) /* in case -a is given and -x is not */
 		execname = startas;
 
-//	USE_FEATURE_START_STOP_DAEMON_FANCY(
+//	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
 //			retries = xatoi_u(retry_arg);
 //	)

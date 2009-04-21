@@ -250,13 +250,13 @@ struct globals {
 	const char *found_moved_temporarily;
 	Htaccess_IP *ip_a_d;    /* config allow/deny lines */
 
-	USE_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
-	USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
-	USE_FEATURE_HTTPD_CGI(char *referer;)
-	USE_FEATURE_HTTPD_CGI(char *user_agent;)
-	USE_FEATURE_HTTPD_CGI(char *host;)
-	USE_FEATURE_HTTPD_CGI(char *http_accept;)
-	USE_FEATURE_HTTPD_CGI(char *http_accept_language;)
+	IF_FEATURE_HTTPD_BASIC_AUTH(const char *g_realm;)
+	IF_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
+	IF_FEATURE_HTTPD_CGI(char *referer;)
+	IF_FEATURE_HTTPD_CGI(char *user_agent;)
+	IF_FEATURE_HTTPD_CGI(char *host;)
+	IF_FEATURE_HTTPD_CGI(char *http_accept;)
+	IF_FEATURE_HTTPD_CGI(char *http_accept_language;)
 
 	off_t file_size;        /* -1 - unknown */
 #if ENABLE_FEATURE_HTTPD_RANGES
@@ -326,7 +326,7 @@ enum {
 #define proxy             (G.proxy            )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	USE_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
+	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	bind_addr_or_port = "80"; \
 	index_page = "index.html"; \
 	file_size = -1; \
@@ -1587,14 +1587,14 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		while (1) {
 			/* sz is rounded down to 64k */
 			ssize_t sz = MAXINT(ssize_t) - 0xffff;
-			USE_FEATURE_HTTPD_RANGES(if (sz > range_len) sz = range_len;)
+			IF_FEATURE_HTTPD_RANGES(if (sz > range_len) sz = range_len;)
 			count = sendfile(STDOUT_FILENO, fd, &offset, sz);
 			if (count < 0) {
 				if (offset == range_start)
 					break; /* fall back to read/write loop */
 				goto fin;
 			}
-			USE_FEATURE_HTTPD_RANGES(range_len -= sz;)
+			IF_FEATURE_HTTPD_RANGES(range_len -= sz;)
 			if (count == 0 || range_len == 0)
 				log_and_exit();
 		}
@@ -1602,16 +1602,16 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 #endif
 	while ((count = safe_read(fd, iobuf, IOBUF_SIZE)) > 0) {
 		ssize_t n;
-		USE_FEATURE_HTTPD_RANGES(if (count > range_len) count = range_len;)
+		IF_FEATURE_HTTPD_RANGES(if (count > range_len) count = range_len;)
 		n = full_write(STDOUT_FILENO, iobuf, count);
 		if (count != n)
 			break;
-		USE_FEATURE_HTTPD_RANGES(range_len -= count;)
+		IF_FEATURE_HTTPD_RANGES(range_len -= count;)
 		if (range_len == 0)
 			break;
 	}
 	if (count < 0) {
- USE_FEATURE_HTTPD_USE_SENDFILE(fin:)
+ IF_FEATURE_HTTPD_USE_SENDFILE(fin:)
 		if (verbose > 1)
 			bb_perror_msg("error");
 	}
@@ -1839,12 +1839,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 	/* Find end of URL and parse HTTP version, if any */
 	http_major_version = '0';
-	USE_FEATURE_HTTPD_PROXY(http_minor_version = '0';)
+	IF_FEATURE_HTTPD_PROXY(http_minor_version = '0';)
 	tptr = strchrnul(urlp, ' ');
 	/* Is it " HTTP/"? */
 	if (tptr[0] && strncmp(tptr + 1, HTTP_200, 5) == 0) {
 		http_major_version = tptr[6];
-		USE_FEATURE_HTTPD_PROXY(http_minor_version = tptr[8];)
+		IF_FEATURE_HTTPD_PROXY(http_minor_version = tptr[8];)
 	}
 	*tptr = '\0';
 
@@ -2252,10 +2252,10 @@ enum {
 	c_opt_config_file = 0,
 	d_opt_decode_url,
 	h_opt_home_httpd,
-	USE_FEATURE_HTTPD_ENCODE_URL_STR(e_opt_encode_url,)
-	USE_FEATURE_HTTPD_BASIC_AUTH(    r_opt_realm     ,)
-	USE_FEATURE_HTTPD_AUTH_MD5(      m_opt_md5       ,)
-	USE_FEATURE_HTTPD_SETUID(        u_opt_setuid    ,)
+	IF_FEATURE_HTTPD_ENCODE_URL_STR(e_opt_encode_url,)
+	IF_FEATURE_HTTPD_BASIC_AUTH(    r_opt_realm     ,)
+	IF_FEATURE_HTTPD_AUTH_MD5(      m_opt_md5       ,)
+	IF_FEATURE_HTTPD_SETUID(        u_opt_setuid    ,)
 	p_opt_port      ,
 	p_opt_inetd     ,
 	p_opt_foreground,
@@ -2263,10 +2263,10 @@ enum {
 	OPT_CONFIG_FILE = 1 << c_opt_config_file,
 	OPT_DECODE_URL  = 1 << d_opt_decode_url,
 	OPT_HOME_HTTPD  = 1 << h_opt_home_httpd,
-	OPT_ENCODE_URL  = USE_FEATURE_HTTPD_ENCODE_URL_STR((1 << e_opt_encode_url)) + 0,
-	OPT_REALM       = USE_FEATURE_HTTPD_BASIC_AUTH(    (1 << r_opt_realm     )) + 0,
-	OPT_MD5         = USE_FEATURE_HTTPD_AUTH_MD5(      (1 << m_opt_md5       )) + 0,
-	OPT_SETUID      = USE_FEATURE_HTTPD_SETUID(        (1 << u_opt_setuid    )) + 0,
+	OPT_ENCODE_URL  = IF_FEATURE_HTTPD_ENCODE_URL_STR((1 << e_opt_encode_url)) + 0,
+	OPT_REALM       = IF_FEATURE_HTTPD_BASIC_AUTH(    (1 << r_opt_realm     )) + 0,
+	OPT_MD5         = IF_FEATURE_HTTPD_AUTH_MD5(      (1 << m_opt_md5       )) + 0,
+	OPT_SETUID      = IF_FEATURE_HTTPD_SETUID(        (1 << u_opt_setuid    )) + 0,
 	OPT_PORT        = 1 << p_opt_port,
 	OPT_INETD       = 1 << p_opt_inetd,
 	OPT_FOREGROUND  = 1 << p_opt_foreground,
@@ -2280,10 +2280,10 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 	int server_socket = server_socket; /* for gcc */
 	unsigned opt;
 	char *url_for_decode;
-	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
-	USE_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
-	USE_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
-	USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
+	IF_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
+	IF_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
+	IF_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
+	IF_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
 
 	INIT_G();
 
@@ -2299,16 +2299,16 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 	 * If user gives relative path in -h,
 	 * $SCRIPT_FILENAME will not be set. */
 	opt = getopt32(argv, "c:d:h:"
-			USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
-			USE_FEATURE_HTTPD_BASIC_AUTH("r:")
-			USE_FEATURE_HTTPD_AUTH_MD5("m:")
-			USE_FEATURE_HTTPD_SETUID("u:")
+			IF_FEATURE_HTTPD_ENCODE_URL_STR("e:")
+			IF_FEATURE_HTTPD_BASIC_AUTH("r:")
+			IF_FEATURE_HTTPD_AUTH_MD5("m:")
+			IF_FEATURE_HTTPD_SETUID("u:")
 			"p:ifv",
 			&configFile, &url_for_decode, &home_httpd
-			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
-			USE_FEATURE_HTTPD_BASIC_AUTH(, &g_realm)
-			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
-			USE_FEATURE_HTTPD_SETUID(, &s_ugid)
+			IF_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
+			IF_FEATURE_HTTPD_BASIC_AUTH(, &g_realm)
+			IF_FEATURE_HTTPD_AUTH_MD5(, &pass)
+			IF_FEATURE_HTTPD_SETUID(, &s_ugid)
 			, &bind_addr_or_port
 			, &verbose
 		);

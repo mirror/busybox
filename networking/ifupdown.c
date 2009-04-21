@@ -87,7 +87,7 @@ struct interfaces_file_t {
 	struct mapping_defn_t *mappings;
 };
 
-#define OPTION_STR "anvf" USE_FEATURE_IFUPDOWN_MAPPING("m") "i:"
+#define OPTION_STR "anvf" IF_FEATURE_IFUPDOWN_MAPPING("m") "i:"
 enum {
 	OPT_do_all = 0x1,
 	OPT_no_act = 0x2,

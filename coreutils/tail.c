@@ -110,9 +110,9 @@ int tail_main(int argc, char **argv)
 	}
 #endif
 
-	USE_FEATURE_FANCY_TAIL(opt_complementary = "s+";) /* -s N */
-	opt = getopt32(argv, "fc:n:" USE_FEATURE_FANCY_TAIL("qs:v"),
-			&str_c, &str_n USE_FEATURE_FANCY_TAIL(,&sleep_period));
+	IF_FEATURE_FANCY_TAIL(opt_complementary = "s+";) /* -s N */
+	opt = getopt32(argv, "fc:n:" IF_FEATURE_FANCY_TAIL("qs:v"),
+			&str_c, &str_n IF_FEATURE_FANCY_TAIL(,&sleep_period));
 #define FOLLOW (opt & 0x1)
 #define COUNT_BYTES (opt & 0x2)
 	//if (opt & 0x1) // -f

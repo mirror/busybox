@@ -270,7 +270,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 {
 	archive_handle_t *archive_handle;
 	char *cpio_filename;
-	USE_FEATURE_CPIO_O(const char *cpio_fmt = "";)
+	IF_FEATURE_CPIO_O(const char *cpio_fmt = "";)
 	unsigned opt;
 
 #if ENABLE_GETOPT_LONG
@@ -295,7 +295,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 #if !ENABLE_FEATURE_CPIO_O
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 #else
-	opt = getopt32(argv, OPTION_STR "oH:" USE_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
+	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
 	if (opt & CPIO_OPT_PASSTHROUGH) {
 		pid_t pid;
 		struct fd_pair pp;

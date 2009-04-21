@@ -125,24 +125,24 @@ typedef struct inflate_unzip_result {
 	uint32_t crc;
 } inflate_unzip_result;
 
-USE_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
 /* lzma unpacker takes .lzma stream from offset 0 */
-USE_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
 /* the rest wants 2 first bytes already skipped by the caller */
-USE_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
-USE_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
-USE_DESKTOP(long long) int unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info) FAST_FUNC;
-USE_DESKTOP(long long) int unpack_Z_stream(int fd_in, int fd_out) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_Z_stream(int fd_in, int fd_out) FAST_FUNC;
 /* wrapper which checks first two bytes to be "BZ" */
-USE_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
 
 int bbunpack(char **argv,
 	     char* (*make_new_name)(char *filename),
-	     USE_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)) FAST_FUNC;
+	     IF_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)) FAST_FUNC;
 
 #if BB_MMU
 void open_transformer(int fd,
-	USE_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
 #define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transformer)
 #else
 void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;

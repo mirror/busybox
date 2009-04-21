@@ -97,7 +97,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv)
 	const unsigned short *delta;
 	unsigned toprint;
 
-	USE_GETOPT_LONG(applet_long_options = longopts);
+	IF_GETOPT_LONG(applet_long_options = longopts);
 	toprint = getopt32(argv, options);
 
 	if (argv[optind]) { /* coreutils-6.9 compat */

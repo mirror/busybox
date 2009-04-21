@@ -99,20 +99,20 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"addbr\0" "delbr\0" "addif\0" "delif\0"
-	USE_FEATURE_BRCTL_FANCY(
+	IF_FEATURE_BRCTL_FANCY(
 		"stp\0"
 		"setageing\0" "setfd\0" "sethello\0" "setmaxage\0"
 		"setpathcost\0" "setportprio\0" "setbridgeprio\0"
 	)
-	USE_FEATURE_BRCTL_SHOW("showmacs\0" "show\0");
+	IF_FEATURE_BRCTL_SHOW("showmacs\0" "show\0");
 
 	enum { ARG_addbr = 0, ARG_delbr, ARG_addif, ARG_delif
-		USE_FEATURE_BRCTL_FANCY(,
+		IF_FEATURE_BRCTL_FANCY(,
 		   ARG_stp,
 		   ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
 		   ARG_setpathcost, ARG_setportprio, ARG_setbridgeprio
 		)
-		USE_FEATURE_BRCTL_SHOW(, ARG_showmacs, ARG_show)
+		IF_FEATURE_BRCTL_SHOW(, ARG_showmacs, ARG_show)
 	};
 
 	int fd;

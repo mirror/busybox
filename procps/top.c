@@ -889,7 +889,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	int lines_rem;
 	unsigned interval;
 	char *str_interval, *str_iterations;
-	SKIP_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
+	IF_NOT_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
 	struct pollfd pfd[1];
@@ -1054,11 +1054,11 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			if (c == 'q')
 				break;
 			if (c == 'n') {
-				USE_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
+				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 				sort_function[0] = pid_sort;
 			}
 			if (c == 'm') {
-				USE_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
+				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 				sort_function[0] = mem_sort;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 				sort_function[1] = pcpu_sort;
@@ -1067,13 +1067,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			}
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			if (c == 'p') {
-				USE_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
+				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 				sort_function[0] = pcpu_sort;
 				sort_function[1] = mem_sort;
 				sort_function[2] = time_sort;
 			}
 			if (c == 't') {
-				USE_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
+				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 				sort_function[0] = time_sort;
 				sort_function[1] = mem_sort;
 				sort_function[2] = pcpu_sort;

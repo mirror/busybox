@@ -43,7 +43,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		the user, especially if someone su's from a su-shell.
 		But getlogin can fail -- usually due to lack of utmp entry.
 		in this case resort to getpwuid.  */
-		old_user = xstrdup(USE_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
+		old_user = xstrdup(IF_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
 		tty = xmalloc_ttyname(2) ? : "none";
 		openlog(applet_name, 0, LOG_AUTH);
 	}
@@ -91,7 +91,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	change_identity(pw);
 	/* setup_environment params: shell, clear_env, change_env, pw */
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);
-	USE_SELINUX(set_current_security_context(NULL);)
+	IF_SELINUX(set_current_security_context(NULL);)
 
 	/* Never returns */
 	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)argv);

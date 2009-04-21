@@ -97,11 +97,11 @@
 /* STANDALONE does not make sense, and won't compile */
 # undef CONFIG_FEATURE_SH_STANDALONE
 # undef ENABLE_FEATURE_SH_STANDALONE
-# undef USE_FEATURE_SH_STANDALONE
-# define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+# undef IF_FEATURE_SH_STANDALONE
+# define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 # define ENABLE_FEATURE_SH_STANDALONE 0
-# define USE_FEATURE_SH_STANDALONE(...)
-# define SKIP_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+# define IF_FEATURE_SH_STANDALONE(...)
+# define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
 #if !ENABLE_HUSH_INTERACTIVE
@@ -2443,11 +2443,11 @@ static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char
 		goto do_exec;
 	}
 
-	sprintf(param_buf, "-$%x:%x:%x" USE_HUSH_LOOPS(":%x")
+	sprintf(param_buf, "-$%x:%x:%x" IF_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
 			, (unsigned) G.last_bg_pid
 			, (unsigned) G.last_exitcode
-			USE_HUSH_LOOPS(, G.depth_of_loop)
+			IF_HUSH_LOOPS(, G.depth_of_loop)
 			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...> <funcs...>
 	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
@@ -3386,7 +3386,7 @@ static int run_pipe(struct pipe *pi)
 	debug_printf_exec("run_pipe start: members:%d\n", pi->num_cmds);
 	debug_enter();
 
-	USE_HUSH_JOB(pi->pgrp = -1;)
+	IF_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
 	command = &(pi->cmds[0]);
 	argv_expanded = NULL;
@@ -3821,7 +3821,7 @@ static int run_list(struct pipe *pi)
 	rcode = G.last_exitcode;
 
 	/* Go through list of pipes, (maybe) executing them. */
-	for (; pi; pi = USE_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
+	for (; pi; pi = IF_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
 		if (G.flag_SIGINT)
 			break;
 
@@ -4773,7 +4773,7 @@ static FILE *generate_stream_from_string(const char *s)
 		close(channel[0]); /* NB: close _first_, then move fd! */
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
-		USE_HUSH_JOB(G.run_list_level = 1;)
+		IF_HUSH_JOB(G.run_list_level = 1;)
 #if BB_MMU
 		reset_traps_to_defaults();
 		parse_and_run_string(s);
@@ -5441,7 +5441,7 @@ static struct pipe *parse_stream(char **pstring,
 		nommu_addchr(&ctx.as_string, ch);
 		is_ifs = strchr(G.ifs, ch);
 		is_special = strchr("<>;&|(){}#'" /* special outside of "str" */
-				"\\$\"" USE_HUSH_TICK("`") /* always special */
+				"\\$\"" IF_HUSH_TICK("`") /* always special */
 				, ch);
 
 		if (!is_special && !is_ifs) { /* ordinary char */
@@ -5832,7 +5832,7 @@ static struct pipe *parse_stream(char **pstring,
 		}
 		/* Discard cached input, force prompt */
 		input->p = NULL;
-		USE_HUSH_INTERACTIVE(input->promptme = 1;)
+		IF_HUSH_INTERACTIVE(input->promptme = 1;)
 		goto reset;
 	}
 }

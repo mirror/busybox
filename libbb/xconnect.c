@@ -151,7 +151,7 @@ void FAST_FUNC set_nport(len_and_sockaddr *lsa, unsigned port)
  * port: if neither of above specifies port # */
 static len_and_sockaddr* str2sockaddr(
 		const char *host, int port,
-USE_FEATURE_IPV6(sa_family_t af,)
+IF_FEATURE_IPV6(sa_family_t af,)
 		int ai_flags)
 {
 	int rc;
@@ -269,9 +269,9 @@ len_and_sockaddr* FAST_FUNC xdotted2sockaddr(const char *host, int port)
 }
 
 #undef xsocket_type
-int FAST_FUNC xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,) int sock_type)
+int FAST_FUNC xsocket_type(len_and_sockaddr **lsap, IF_FEATURE_IPV6(int family,) int sock_type)
 {
-	SKIP_FEATURE_IPV6(enum { family = AF_INET };)
+	IF_NOT_FEATURE_IPV6(enum { family = AF_INET };)
 	len_and_sockaddr *lsa;
 	int fd;
 	int len;
@@ -303,7 +303,7 @@ int FAST_FUNC xsocket_type(len_and_sockaddr **lsap, USE_FEATURE_IPV6(int family,
 
 int FAST_FUNC xsocket_stream(len_and_sockaddr **lsap)
 {
-	return xsocket_type(lsap, USE_FEATURE_IPV6(AF_UNSPEC,) SOCK_STREAM);
+	return xsocket_type(lsap, IF_FEATURE_IPV6(AF_UNSPEC,) SOCK_STREAM);
 }
 
 static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
@@ -316,7 +316,7 @@ static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
 		/* user specified bind addr dictates family */
 		fd = xsocket(lsa->u.sa.sa_family, sock_type, 0);
 	} else {
-		fd = xsocket_type(&lsa, USE_FEATURE_IPV6(AF_UNSPEC,) sock_type);
+		fd = xsocket_type(&lsa, IF_FEATURE_IPV6(AF_UNSPEC,) sock_type);
 		set_nport(lsa, htons(port));
 	}
 	setsockopt_reuseaddr(fd);

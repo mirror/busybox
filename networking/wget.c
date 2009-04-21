@@ -497,14 +497,14 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = wget_longopts;
 #endif
 	/* server.allocated = target.allocated = NULL; */
-	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
+	opt_complementary = "-1" IF_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
 	opt = getopt32(argv, "csqO:P:Y:U:" /*ignored:*/ "t:T:",
 				&fname_out, &dir_prefix,
 				&proxy_flag, &user_agent,
 				NULL, /* -t RETRIES */
 				NULL /* -T NETWORK_READ_TIMEOUT */
-				USE_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
-				USE_FEATURE_WGET_LONG_OPTIONS(, &post_data)
+				IF_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
+				IF_FEATURE_WGET_LONG_OPTIONS(, &post_data)
 				);
 	if (strcmp(proxy_flag, "off") == 0) {
 		/* Use the proxy if necessary */

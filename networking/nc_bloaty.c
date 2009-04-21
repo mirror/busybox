@@ -675,7 +675,7 @@ int nc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nc_main(int argc, char **argv)
 {
 	char *str_p, *str_s;
-	USE_NC_EXTRA(char *str_i, *str_o;)
+	IF_NC_EXTRA(char *str_i, *str_o;)
 	char *themdotted = themdotted; /* gcc */
 	char **proggie;
 	int x;
@@ -711,10 +711,10 @@ int nc_main(int argc, char **argv)
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
 	opt_complementary = "?2:vv:w+"; /* max 2 params; -v is a counter; -w N */
-	getopt32(argv, "hnp:s:uvw:" USE_NC_SERVER("l")
-			USE_NC_EXTRA("i:o:z"),
+	getopt32(argv, "hnp:s:uvw:" IF_NC_SERVER("l")
+			IF_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &o_wait
-			USE_NC_EXTRA(, &str_i, &str_o, &o_verbose));
+			IF_NC_EXTRA(, &str_i, &str_o, &o_verbose));
 	argv += optind;
 #if ENABLE_NC_EXTRA
 	if (option_mask32 & OPT_i) /* line-interval time */

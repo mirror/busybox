@@ -970,10 +970,10 @@ static int inflate_get_next_window(STATE_PARAM_ONLY)
 
 
 /* Called from unpack_gz_stream() and inflate_unzip() */
-static USE_DESKTOP(long long) int
+static IF_DESKTOP(long long) int
 inflate_unzip_internal(STATE_PARAM int in, int out)
 {
-	USE_DESKTOP(long long) int n = 0;
+	IF_DESKTOP(long long) int n = 0;
 	ssize_t nwrote;
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
@@ -1008,7 +1008,7 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 			n = -1;
 			goto ret;
 		}
-		USE_DESKTOP(n += nwrote;)
+		IF_DESKTOP(n += nwrote;)
 		if (r == 0) break;
 	}
 
@@ -1033,10 +1033,10 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 
 /* For unzip */
 
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 inflate_unzip(inflate_unzip_result *res, off_t compr_size, int in, int out)
 {
-	USE_DESKTOP(long long) int n;
+	IF_DESKTOP(long long) int n;
 	DECLARE_STATE;
 
 	ALLOC_STATE;
@@ -1181,11 +1181,11 @@ static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 	return 1;
 }
 
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
 {
 	uint32_t v32;
-	USE_DESKTOP(long long) int n;
+	IF_DESKTOP(long long) int n;
 	DECLARE_STATE;
 
 	n = 0;
@@ -1245,7 +1245,7 @@ unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
 	return n;
 }
 
-USE_DESKTOP(long long) int FAST_FUNC
+IF_DESKTOP(long long) int FAST_FUNC
 unpack_gz_stream(int in, int out)
 {
 	return unpack_gz_stream_with_info(in, out, NULL);

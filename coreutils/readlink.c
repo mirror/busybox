@@ -16,14 +16,14 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 	char *fname;
 	char pathbuf[PATH_MAX];
 
-	USE_FEATURE_READLINK_FOLLOW(
+	IF_FEATURE_READLINK_FOLLOW(
 		unsigned opt;
 		/* We need exactly one non-option argument.  */
 		opt_complementary = "=1";
 		opt = getopt32(argv, "f");
 		fname = argv[optind];
 	)
-	SKIP_FEATURE_READLINK_FOLLOW(
+	IF_NOT_FEATURE_READLINK_FOLLOW(
 		const unsigned opt = 0;
 		if (argc != 2) bb_show_usage();
 		fname = argv[1];

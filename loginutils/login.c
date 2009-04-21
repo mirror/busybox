@@ -285,8 +285,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	char *opt_host = opt_host; /* for compiler */
 	char *opt_user = opt_user; /* for compiler */
 	char *full_tty;
-	USE_SELINUX(security_context_t user_sid = NULL;)
-	USE_FEATURE_UTMP(struct utmp utent;)
+	IF_SELINUX(security_context_t user_sid = NULL;)
+	IF_FEATURE_UTMP(struct utmp utent;)
 #if ENABLE_PAM
 	int pamret;
 	pam_handle_t *pamh;
@@ -333,7 +333,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	read_or_build_utent(&utent, run_by_root);
 
 	if (opt & LOGIN_OPT_h) {
-		USE_FEATURE_UTMP(safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));)
+		IF_FEATURE_UTMP(safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));)
 		fromhost = xasprintf(" on '%s' from '%s'", short_tty, opt_host);
 	} else {
 		fromhost = xasprintf(" on '%s'", short_tty);
@@ -457,7 +457,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	write_utent(&utent, username);
 
-	USE_SELINUX(initselinux(username, full_tty, &user_sid));
+	IF_SELINUX(initselinux(username, full_tty, &user_sid));
 
 	/* Try these, but don't complain if they fail.
 	 * _f_chown is safe wrt race t=ttyname(0);...;chown(t); */
@@ -482,7 +482,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
-	USE_SELINUX(set_current_security_context(user_sid);)
+	IF_SELINUX(set_current_security_context(user_sid);)
 
 	// util-linux login also does:
 	// /* start new session */

@@ -162,11 +162,11 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* "-b after -f is ignored", and so on for every pair a-b */
-	opt_complementary = "f-b:b-f:S-L:L-S" USE_FEATURE_CROND_D(":d-l")
+	opt_complementary = "f-b:b-f:S-L:L-S" IF_FEATURE_CROND_D(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
-	opt = getopt32(argv, "l:L:fbSc:" USE_FEATURE_CROND_D("d:"),
+	opt = getopt32(argv, "l:L:fbSc:" IF_FEATURE_CROND_D("d:"),
 			&LogLevel, &LogFile, &CDir
-			USE_FEATURE_CROND_D(,&LogLevel));
+			IF_FEATURE_CROND_D(,&LogLevel));
 	/* both -d N and -l N set the same variable: LogLevel */
 
 	if (!(opt & OPT_f)) {

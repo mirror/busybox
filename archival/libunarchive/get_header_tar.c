@@ -144,8 +144,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 //	if (!archive_handle->ah_priv_inited) {
 //		archive_handle->ah_priv_inited = 1;
 //		p_end = 0;
-//		USE_FEATURE_TAR_GNU_EXTENSIONS(p_longname = NULL;)
-//		USE_FEATURE_TAR_GNU_EXTENSIONS(p_linkname = NULL;)
+//		IF_FEATURE_TAR_GNU_EXTENSIONS(p_longname = NULL;)
+//		IF_FEATURE_TAR_GNU_EXTENSIONS(p_linkname = NULL;)
 //	}
 
 	if (sizeof(tar) != 512)
@@ -176,7 +176,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("short read");
 	}
 	if (i != 512) {
-		USE_FEATURE_TAR_AUTODETECT(goto autodetect;)
+		IF_FEATURE_TAR_AUTODETECT(goto autodetect;)
 		goto short_read;
 	}
 
@@ -265,14 +265,14 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 	sum = strtoul(tar.chksum, &cp, 8);
 	if ((*cp && *cp != ' ')
-	 || (sum_u != sum USE_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum))
+	 || (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum))
 	) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 #else
 	/* This field does not need special treatment (getOctal) */
 	sum = xstrtoul(tar.chksum, 8);
-	if (sum_u != sum USE_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)) {
+	if (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 #endif
@@ -356,7 +356,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFBLK;
 		goto size0;
 	case '5':
- USE_FEATURE_TAR_OLDGNU_COMPATIBILITY(set_dir:)
+ IF_FEATURE_TAR_OLDGNU_COMPATIBILITY(set_dir:)
 		file_header->mode |= S_IFDIR;
 		goto size0;
 	case '6':
