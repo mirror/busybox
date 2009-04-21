@@ -111,12 +111,12 @@ int nc_main(int argc, char **argv)
 			/* If we didn't specify a port number,
 			 * query and print it after listen() */
 			if (!lport) {
-				socklen_t addrlen = lsa->len;
-				getsockname(sfd, &lsa->u.sa, &addrlen);
+				getsockname(sfd, &lsa->u.sa, &lsa->len);
 				lport = get_nport(&lsa->u.sa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
 			close_on_exec_on(sfd);
+			free(lsa);
  accept_again:
 			cfd = accept(sfd, NULL, 0);
 			if (cfd < 0)
