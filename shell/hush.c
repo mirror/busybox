@@ -1266,16 +1266,16 @@ static const char *get_local_var_value(const char *src)
 static int set_local_var(char *str, int flg_export, int flg_read_only)
 {
 	struct variable *cur;
-	char *value;
+	char *eq_sign;
 	int name_len;
 
-	value = strchr(str, '=');
-	if (!value) { /* not expected to ever happen? */
+	eq_sign = strchr(str, '=');
+	if (!eq_sign) { /* not expected to ever happen? */
 		free(str);
 		return -1;
 	}
 
-	name_len = value - str + 1; /* including '=' */
+	name_len = eq_sign - str + 1; /* including '=' */
 	cur = G.top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
 	while (1) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
@@ -1288,7 +1288,6 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 			continue;
 		}
 		/* We found an existing var with this name */
-		*value = '\0';
 		if (cur->flg_read_only) {
 #if !BB_MMU
 			if (!flg_read_only)
@@ -1297,11 +1296,13 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 			free(str);
 			return -1;
 		}
-//TODO: optimize out redundant unsetenv/putenv's?
-		debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
-		unsetenv(str); /* just in case */
-		*value = '=';
-		if (strcmp(cur->varstr, str) == 0) {
+		if (flg_export == -1) {
+			debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
+			*eq_sign = '\0';
+			unsetenv(str);
+			*eq_sign = '=';
+		}
+		if (strcmp(cur->varstr + name_len, eq_sign + 1) == 0) {
  free_and_exp:
 			free(str);
 			goto exp;
