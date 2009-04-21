@@ -37,16 +37,21 @@ int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
 
 len_and_sockaddr* FAST_FUNC get_sock_lsa(int fd)
 {
-	len_and_sockaddr *lsa;
-	socklen_t len = 0;
+	len_and_sockaddr lsa;
+	len_and_sockaddr *lsa_ptr;
 
-	/* Can be optimized to do only one getsockname() */
-	if (getsockname(fd, NULL, &len) != 0)
+	lsa.len = LSA_SIZEOF_SA;
+	if (getsockname(fd, &lsa.u.sa, &lsa.len) != 0)
 		return NULL;
-	lsa = xzalloc(LSA_LEN_SIZE + len);
-	lsa->len = len;
-	getsockname(fd, &lsa->u.sa, &lsa->len);
-	return lsa;
+
+	lsa_ptr = xzalloc(LSA_LEN_SIZE + lsa.len);
+	if (lsa.len > LSA_SIZEOF_SA) { /* rarely (if ever) happens */
+		lsa_ptr->len = lsa.len;
+		getsockname(fd, &lsa_ptr->u.sa, &lsa_ptr->len);
+	} else {
+		memcpy(lsa_ptr, &lsa, LSA_LEN_SIZE + lsa.len);
+	}
+	return lsa_ptr;
 }
 
 void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)

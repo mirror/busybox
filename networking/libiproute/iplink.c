@@ -112,11 +112,11 @@ static int get_address(char *dev, int *htype)
 	me.sll_ifindex = ifr.ifr_ifindex;
 	me.sll_protocol = htons(ETH_P_LOOP);
 	xbind(s, (struct sockaddr*)&me, sizeof(me));
-
 	alen = sizeof(me);
-	if (getsockname(s, (struct sockaddr*)&me, &alen) == -1) {
-		bb_perror_msg_and_die("getsockname");
-	}
+	getsockname(s, (struct sockaddr*)&me, &alen);
+	//never happens:
+	//if (getsockname(s, (struct sockaddr*)&me, &alen) == -1)
+	//	bb_perror_msg_and_die("getsockname");
 	close(s);
 	*htype = me.sll_hatype;
 	return me.sll_halen;

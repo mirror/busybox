@@ -278,9 +278,9 @@ static void dolisten(void)
 	 random unknown port is probably not very useful without "netstat". */
 	if (o_verbose) {
 		char *addr;
-		rr = getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
-		if (rr < 0)
-			bb_perror_msg_and_die("getsockname after bind");
+		getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
+		//if (rr < 0)
+		//	bb_perror_msg_and_die("getsockname after bind");
 		addr = xmalloc_sockaddr2dotted(&ouraddr->u.sa);
 		fprintf(stderr, "listening on %s ...\n", addr);
 		free(addr);
@@ -359,9 +359,9 @@ create new one, and bind() it. TODO */
 		 doing a listen-on-any on a multihomed machine.  This allows one to
 		 offer different services via different alias addresses, such as the
 		 "virtual web site" hack. */
-		rr = getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
-		if (rr < 0)
-			bb_perror_msg_and_die("getsockname after accept");
+		getsockname(netfd, &ouraddr->u.sa, &ouraddr->len);
+		//if (rr < 0)
+		//	bb_perror_msg_and_die("getsockname after accept");
 	}
 
 	if (o_verbose) {

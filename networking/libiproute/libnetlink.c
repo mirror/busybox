@@ -26,22 +26,23 @@ int FAST_FUNC xrtnl_open(struct rtnl_handle *rth/*, unsigned subscriptions*/)
 {
 	socklen_t addr_len;
 
-	memset(rth, 0, sizeof(rth));
-
+	memset(rth, 0, sizeof(*rth));
 	rth->fd = xsocket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-
-	memset(&rth->local, 0, sizeof(rth->local));
 	rth->local.nl_family = AF_NETLINK;
 	/*rth->local.nl_groups = subscriptions;*/
 
 	xbind(rth->fd, (struct sockaddr*)&rth->local, sizeof(rth->local));
 	addr_len = sizeof(rth->local);
+	getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len);
+
+/* too much paranoia
 	if (getsockname(rth->fd, (struct sockaddr*)&rth->local, &addr_len) < 0)
 		bb_perror_msg_and_die("getsockname");
 	if (addr_len != sizeof(rth->local))
 		bb_error_msg_and_die("wrong address length %d", addr_len);
 	if (rth->local.nl_family != AF_NETLINK)
 		bb_error_msg_and_die("wrong address family %d", rth->local.nl_family);
+*/
 	rth->seq = time(NULL);
 	return 0;
 }
