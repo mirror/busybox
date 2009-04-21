@@ -4125,12 +4125,13 @@
 	) \
 
 #define switch_root_trivial_usage \
-       "[-c /dev/console] NEW_ROOT NEW_INIT [ARGUMENTS_TO_INIT]"
+       "[-c /dev/console] NEW_ROOT NEW_INIT [ARG...]"
 #define switch_root_full_usage "\n\n" \
-       "Use from PID 1 under initramfs to free initramfs, chroot to NEW_ROOT,\n" \
-       "and exec NEW_INIT\n" \
+       "Free initramfs and switch to another root fs:\n" \
+       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n" \
+       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n" \
      "\nOptions:" \
-     "\n	-c	Redirect console to device on new root" \
+     "\n	-c DEV	Reopen stdio to DEV after switch" \
 
 #define sync_trivial_usage \
        ""
@@ -4142,7 +4143,7 @@
 #define sysctl_full_usage "\n\n" \
        "Configure kernel parameters at runtime\n" \
      "\nOptions:" \
-     "\n	-n	Disable printing of key names" \
+     "\n	-n	Don't print key names" \
      "\n	-e	Don't warn about unknown keys" \
      "\n	-w	Change sysctl setting" \
      "\n	-p FILE	Load sysctl settings from FILE (default /etc/sysctl.conf)" \

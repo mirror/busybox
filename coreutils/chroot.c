@@ -33,5 +33,5 @@ int chroot_main(int argc, char **argv)
 	}
 
 	BB_EXECVP(*argv, argv);
-	bb_perror_msg_and_die("cannot execute %s", *argv);
+	bb_perror_msg_and_die("can't execute '%s'", *argv);
 }

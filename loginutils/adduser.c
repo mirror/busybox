@@ -60,7 +60,7 @@ static void passwd_wrapper(const char *login)
 	static const char prog[] ALIGN1 = "passwd";
 
 	BB_EXECLP(prog, prog, login, NULL);
-	bb_error_msg_and_die("cannot execute %s, you must set password manually", prog);
+	bb_error_msg_and_die("can't execute %s, you must set password manually", prog);
 }
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS

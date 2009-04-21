@@ -3048,7 +3048,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
 	execvp(argv[0], argv);
-	bb_perror_msg("can't exec '%s'", argv[0]);
+	bb_perror_msg("can't execute '%s'", argv[0]);
 	_exit(EXIT_FAILURE);
 }
 

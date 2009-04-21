@@ -164,7 +164,7 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		n = 1;
 		if (ret < 0)
-			bb_perror_msg("can't exec %s", name);
+			bb_perror_msg("can't execute '%s'", name);
 		else /* ret > 0 */
 			bb_error_msg("%s exited with code %d", name, ret);
 	}

@@ -577,7 +577,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 #endif
 	if (vfork_exec_errno) {
 		errno = vfork_exec_errno;
-		bb_perror_msg_and_die("cannot exec %s", zip_exec);
+		bb_perror_msg_and_die("can't execute '%s'", zip_exec);
 	}
 }
 #endif /* ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2 */
