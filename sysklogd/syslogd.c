@@ -423,6 +423,8 @@ static void timestamp_and_log(int pri, char *msg, int len)
 	char *timestamp;
 	time_t now;
 
+	/* Jan 18 00:11:22 msg... */
+	/* 01234567890123456 */
 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
 	) {
