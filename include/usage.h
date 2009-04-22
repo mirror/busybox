@@ -1631,29 +1631,28 @@
        "sage\n"
 
 #define httpd_trivial_usage \
-       "[-c conffile]" \
-       " [-p [ip:]port]" \
-       " [-i] [-f] [-v[v]]" \
-	IF_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
-	IF_FEATURE_HTTPD_BASIC_AUTH(" [-r realm]") \
-	IF_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
-       " [-h home]" \
-       " [-d/-e string]"
+       "[-ifv[v]]" \
+       " [-c CONFFILE]" \
+       " [-p [IP:]PORT]" \
+	IF_FEATURE_HTTPD_SETUID(" [-u USER[:GRP]]") \
+	IF_FEATURE_HTTPD_BASIC_AUTH(" [-r REALM]") \
+       " [-h HOME]\n" \
+       "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING"
 #define httpd_full_usage "\n\n" \
        "Listen for incoming HTTP requests\n" \
      "\nOptions:" \
-     "\n	-c FILE		Configuration file (default httpd.conf)" \
-     "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
      "\n	-i		Inetd mode" \
      "\n	-f		Do not daemonize" \
      "\n	-v[v]		Verbose" \
+     "\n	-c FILE		Configuration file (default httpd.conf)" \
+     "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
 	IF_FEATURE_HTTPD_SETUID( \
      "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
 	IF_FEATURE_HTTPD_BASIC_AUTH( \
      "\n	-r REALM	Authentication Realm for Basic Authentication") \
-	IF_FEATURE_HTTPD_AUTH_MD5( \
-     "\n	-m PASS		Crypt PASS with md5 algorithm") \
      "\n	-h HOME		Home directory (default .)" \
+	IF_FEATURE_HTTPD_AUTH_MD5( \
+     "\n	-m STRING	MD5 crypt STRING") \
      "\n	-e STRING	HTML encode STRING" \
      "\n	-d STRING	URL decode STRING" \
 
