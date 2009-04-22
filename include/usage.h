@@ -39,6 +39,7 @@
        "Add a group " IF_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n" \
      "\nOptions:" \
      "\n	-g GID	Group id" \
+     "\n	-S	Create a system group" \
 
 #define adduser_trivial_usage \
        "[OPTIONS] user_name"
@@ -52,6 +53,7 @@
      "\n	-S		Create a system user" \
      "\n	-D		Do not assign a password" \
      "\n	-H		Do not create home directory" \
+     "\n	-u UID		User id" \
 
 #define adjtimex_trivial_usage \
        "[-q] [-o offset] [-f frequency] [-p timeconstant] [-t tick]"

@@ -97,6 +97,13 @@ config ADDGROUP
 	help
 	  Utility for creating a new group account.
 
+config FEATURE_ADDGROUP_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on ADDGROUP && GETOPT_LONG
+	help
+	  Support long options for the addgroup applet.
+
 config FEATURE_ADDUSER_TO_GROUP
 	bool "Support for adding users to groups"
 	default n

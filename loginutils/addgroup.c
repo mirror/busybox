@@ -11,34 +11,50 @@
  */
 #include "libbb.h"
 
+#define OPT_GID                       (1 << 0)
+#define OPT_SYSTEM_ACCOUNT            (1 << 1)
+
+/* We assume GID_T_MAX == INT_MAX */
 static void xgroup_study(struct group *g)
 {
+	unsigned max = INT_MAX;
+
 	/* Make sure gr_name is unused */
 	if (getgrnam(g->gr_name)) {
-		goto error;
+		bb_error_msg_and_die("%s '%s' in use", "group", g->gr_name);
+		/* these format strings are reused in adduser and addgroup */
 	}
 
+	/* if a specific gid is requested, the --system switch and */
+	/* min and max values are overriden, and the range of valid */
+	/* gid values is set to [0, INT_MAX] */
+	if (!(option_mask32 & OPT_GID)) {
+		if (option_mask32 & OPT_SYSTEM_ACCOUNT) {
+			g->gr_gid = 100; /* FIRST_SYSTEM_GID */
+			max = 999;       /* LAST_SYSTEM_GID */
+		} else {
+			g->gr_gid = 1000; /* FIRST_GID */
+			max = 64999;      /* LAST_GID */
+		}
+	}
 	/* Check if the desired gid is free
 	 * or find the first free one */
 	while (1) {
 		if (!getgrgid(g->gr_gid)) {
 			return; /* found free group: return */
 		}
-		if (option_mask32) {
+		if (option_mask32 & OPT_GID) {
 			/* -g N, cannot pick gid other than N: error */
-			g->gr_name = itoa(g->gr_gid);
-			goto error;
+			bb_error_msg_and_die("%s '%s' in use", "gid", itoa(g->gr_gid));
+			/* this format strings is reused in adduser and addgroup */
+		}
+		if (g->gr_gid == max) {
+			/* overflowed: error */
+			bb_error_msg_and_die("no %cids left", 'g');
+			/* this format string is reused in adduser and addgroup */
 		}
 		g->gr_gid++;
-		if (g->gr_gid <= 0) {
-			/* overflowed: error */
-			bb_error_msg_and_die("no gids left");
-		}
 	}
-
- error:
-	/* exit */
-	bb_error_msg_and_die("group %s already exists", g->gr_name);
 }
 
 /* append a new user to the passwd file */
@@ -53,7 +69,7 @@ static void new_group(char *group, gid_t gid)
 	xgroup_study(&gr);
 
 	/* add entry to group */
-	p = xasprintf("x:%u:", gr.gr_gid);
+	p = xasprintf("x:%u:", (unsigned) gr.gr_gid);
 	if (update_passwd(bb_path_group_file, group, p, NULL) < 0)
 		exit(EXIT_FAILURE);
 	if (ENABLE_FEATURE_CLEAN_UP)
@@ -63,6 +79,13 @@ static void new_group(char *group, gid_t gid)
 	update_passwd(bb_path_gshadow_file, group, "!::", NULL);
 #endif
 }
+
+#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS
+static const char addgroup_longopts[] ALIGN1 =
+		"gid\0"                 Required_argument "g"
+		"system\0"              No_argument       "S"
+		;
+#endif
 
 /*
  * addgroup will take a login_name as its first parameter.
@@ -74,23 +97,23 @@ static void new_group(char *group, gid_t gid)
 int addgroup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int addgroup_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *group;
-	gid_t gid = 0;
+	unsigned opts;
+	unsigned gid = 0;
 
 	/* need to be root */
 	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
-
+#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS
+	applet_long_options = addgroup_longopts;
+#endif
 	/* Syntax:
 	 *  addgroup group
 	 *  addgroup -g num group
 	 *  addgroup user group
 	 * Check for min, max and missing args */
-	opt_complementary = "-1:?2";
-	if (getopt32(argv, "g:", &group)) {
-		gid = xatoul_range(group, 0, ((unsigned long)(gid_t)ULONG_MAX) >> 1);
-	}
+	opt_complementary = "-1:?2:g+";
+	opts = getopt32(argv, "g:S", &gid);
 	/* move past the commandline options */
 	argv += optind;
 	//argc -= optind;
@@ -99,7 +122,7 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1]) {
 		struct group *gr;
 
-		if (option_mask32) {
+		if (opts & OPT_GID) {
 			/* -g was there, but "addgroup -g num user group"
 			 * is a no-no */
 			bb_show_usage();
