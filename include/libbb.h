@@ -1093,6 +1093,8 @@ const char *get_signame(int number) FAST_FUNC;
 void print_signames(void) FAST_FUNC;
 
 char *bb_simplify_path(const char *path) FAST_FUNC;
+/* Returns ptr to NUL */
+char *bb_simplify_abs_path_inplace(char *path) FAST_FUNC;
 
 #define FAIL_DELAY 3
 extern void bb_do_delay(int seconds) FAST_FUNC;
