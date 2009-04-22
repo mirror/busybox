@@ -658,7 +658,7 @@ static servtab_t *parse_one_line(void)
 	}
 
 	{
-		static int8_t SOCK_xxx[] ALIGN1 = {
+		static const int8_t SOCK_xxx[] ALIGN1 = {
 			-1,
 			SOCK_STREAM, SOCK_DGRAM, SOCK_RDM,
 			SOCK_SEQPACKET, SOCK_RAW
