@@ -546,9 +546,11 @@ static void parse_conf(const char *path, int flag)
 			}
 			*p = '\0';
 			strlen_buf = p - buf;
+			if (strlen_buf == 0)
+				continue;
 		}
 
-		/* empty or strange line? */
+		/* strange line? */
 		if (after_colon == NULL || *after_colon == '\0')
 			goto config_error;
 
