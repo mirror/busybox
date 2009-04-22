@@ -100,7 +100,6 @@
 # include <sys/sendfile.h>
 #endif
 
-//#define DEBUG 1
 #define DEBUG 0
 
 #define IOBUF_SIZE 8192    /* IO buffer */
@@ -698,13 +697,13 @@ static void parse_conf(const char *path, int flag)
 			unsigned file_len;
 
 			/* note: path is "" unless we are in SUBDIR parse,
-			 * otherwise it always starts with "/" */
+			 * otherwise it does NOT start with "/" */
 			cur = xzalloc(sizeof(*cur) /* includes space for NUL */
-				+ strlen(path)
+				+ 1 + strlen(path)
 				+ strlen_buf
 				);
 			/* form "/path/file" */
-			sprintf(cur->before_colon, "%s%.*s",
+			sprintf(cur->before_colon, "/%s%.*s",
 				path,
 				after_colon - buf - 1, /* includes "/", but not ":" */
 				buf);
