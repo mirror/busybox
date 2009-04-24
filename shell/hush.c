@@ -795,6 +795,13 @@ static void syntax_error_unexpected_ch(unsigned lineno, char ch)
 #endif
 
 
+#if ENABLE_HUSH_INTERACTIVE
+static void cmdedit_update_prompt(void);
+#else
+# define cmdedit_update_prompt()
+#endif
+
+
 /* Utility functions
  */
 static int glob_needed(const char *s)
@@ -1332,6 +1339,8 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
  exp:
 	if (flg_export == 1)
 		cur->flg_export = 1;
+	if (name_len == 4 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
+		cmdedit_update_prompt();
 	if (cur->flg_export) {
 		if (flg_export == -1) {
 			cur->flg_export = 0;
@@ -1365,6 +1374,8 @@ static int unset_local_var(const char *name)
 			prev->next = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			bb_unsetenv(cur->varstr);
+			if (name_len == 3 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
+				cmdedit_update_prompt();
 			if (!cur->max_len)
 				free(cur->varstr);
 			free(cur);
@@ -1421,14 +1432,17 @@ static int static_peek(struct in_str *i)
 
 #if ENABLE_HUSH_INTERACTIVE
 
-static void cmdedit_set_initial_prompt(void)
+static void cmdedit_update_prompt(void)
 {
 	if (ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
-		G.PS1 = getenv("PS1");
+		G.PS1 = get_local_var_value("PS1");
 		if (G.PS1 == NULL)
 			G.PS1 = "\\w \\$ ";
+		G.PS2 = get_local_var_value("PS2");
 	} else
 		G.PS1 = NULL;
+	if (G.PS2 == NULL)
+		G.PS2 = "> ";
 }
 
 static const char* setup_prompt_string(int promptmode)
@@ -6002,11 +6016,7 @@ int hush_main(int argc, char **argv)
 	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-#if ENABLE_HUSH_INTERACTIVE
-	if (ENABLE_FEATURE_EDITING)
-		cmdedit_set_initial_prompt();
-	G.PS2 = "> ";
-#endif
+	cmdedit_update_prompt();
 
 	if (setjmp(die_jmp)) {
 		/* xfunc has failed! die die die */
@@ -6334,7 +6344,7 @@ static int builtin_cd(char **argv)
 		 * bash says "bash: cd: HOME not set" and does nothing
 		 * (exitcode 1)
 		 */
-		newdir = getenv("HOME") ? : "/";
+		newdir = get_local_var_value("HOME") ? : "/";
 	}
 	if (chdir(newdir)) {
 		/* Mimic bash message exactly */
