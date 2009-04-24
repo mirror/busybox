@@ -6259,7 +6259,9 @@ int hush_main(int argc, char **argv)
 
 	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G_interactive_fd) {
 		printf("\n\n%s hush - the humble shell\n", bb_banner);
-		printf("Enter 'help' for a list of built-in commands.\n\n");
+		if (ENABLE_HUSH_HELP)
+			puts("Enter 'help' for a list of built-in commands.");
+		puts("");
 	}
 
 	parse_and_run_file(stdin);
