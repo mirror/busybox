@@ -100,7 +100,7 @@ int FAST_FUNC update_passwd(const char *filename,
 	name = xasprintf("%s:", name);
 	user_len = strlen(name);
 
-	if (strstr(filename, "shadow"))
+	if (ENABLE_FEATURE_SHADOWPASSWDS && strstr(filename, "shadow"))
 		old_fp = fopen(filename, "r+");
 	else
 		old_fp = fopen_or_warn(filename, "r+");
