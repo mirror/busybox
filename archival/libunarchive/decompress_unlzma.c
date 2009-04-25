@@ -8,14 +8,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 #include "unarchive.h"
 
 #if ENABLE_FEATURE_LZMA_FAST
 #  define speed_inline ALWAYS_INLINE
+#  define size_inline
 #else
 #  define speed_inline
+#  define size_inline ALWAYS_INLINE
 #endif
 
 
@@ -44,8 +45,8 @@ typedef struct {
 #define RC_MODEL_TOTAL_BITS 11
 
 
-/* Called twice: once at startup and once in rc_normalize() */
-static void rc_read(rc_t *rc)
+/* Called twice: once at startup (LZMA_FAST only) and once in rc_normalize() */
+static size_inline void rc_read(rc_t *rc)
 {
 	int buffer_size = safe_read(rc->fd, RC_BUFFER, RC_BUFFER_SIZE);
 	if (buffer_size <= 0)
@@ -54,8 +55,17 @@ static void rc_read(rc_t *rc)
 	rc->buffer_end = RC_BUFFER + buffer_size;
 }
 
+/* Called twice, but one callsite is in speed_inline'd rc_is_bit_1() */
+static void rc_do_normalize(rc_t *rc)
+{
+	if (rc->ptr >= rc->buffer_end)
+		rc_read(rc);
+	rc->range <<= 8;
+	rc->code = (rc->code << 8) | *rc->ptr++;
+}
+
 /* Called once */
-static rc_t* rc_init(int fd) /*, int buffer_size) */
+static ALWAYS_INLINE rc_t* rc_init(int fd) /*, int buffer_size) */
 {
 	int i;
 	rc_t *rc;
@@ -63,17 +73,18 @@ static rc_t* rc_init(int fd) /*, int buffer_size) */
 	rc = xmalloc(sizeof(*rc) + RC_BUFFER_SIZE);
 
 	rc->fd = fd;
-	/* rc->buffer_size = buffer_size; */
-	rc->buffer_end = RC_BUFFER + RC_BUFFER_SIZE;
 	rc->ptr = rc->buffer_end;
 
-	rc->code = 0;
-	rc->range = 0xFFFFFFFF;
 	for (i = 0; i < 5; i++) {
+#if ENABLE_FEATURE_LZMA_FAST
 		if (rc->ptr >= rc->buffer_end)
 			rc_read(rc);
 		rc->code = (rc->code << 8) | *rc->ptr++;
+#else
+		rc_do_normalize(rc);
+#endif
 	}
+	rc->range = 0xFFFFFFFF;
 	return rc;
 }
 
@@ -83,14 +94,6 @@ static ALWAYS_INLINE void rc_free(rc_t *rc)
 	free(rc);
 }
 
-/* Called twice, but one callsite is in speed_inline'd rc_is_bit_0_helper() */
-static void rc_do_normalize(rc_t *rc)
-{
-	if (rc->ptr >= rc->buffer_end)
-		rc_read(rc);
-	rc->range <<= 8;
-	rc->code = (rc->code << 8) | *rc->ptr++;
-}
 static ALWAYS_INLINE void rc_normalize(rc_t *rc)
 {
 	if (rc->range < (1 << RC_TOP_BITS)) {
@@ -98,49 +101,28 @@ static ALWAYS_INLINE void rc_normalize(rc_t *rc)
 	}
 }
 
-/* rc_is_bit_0 is called 9 times */
-/* Why rc_is_bit_0_helper exists?
- * Because we want to always expose (rc->code < rc->bound) to optimizer.
- * Thus rc_is_bit_0 is always inlined, and rc_is_bit_0_helper is inlined
- * only if we compile for speed.
- */
-static speed_inline uint32_t rc_is_bit_0_helper(rc_t *rc, uint16_t *p)
+/* rc_is_bit_1 is called 9 times */
+static speed_inline int rc_is_bit_1(rc_t *rc, uint16_t *p)
 {
 	rc_normalize(rc);
 	rc->bound = *p * (rc->range >> RC_MODEL_TOTAL_BITS);
-	return rc->bound;
-}
-static ALWAYS_INLINE int rc_is_bit_0(rc_t *rc, uint16_t *p)
-{
-	uint32_t t = rc_is_bit_0_helper(rc, p);
-	return rc->code < t;
-}
-
-/* Called ~10 times, but very small, thus inlined */
-static speed_inline void rc_update_bit_0(rc_t *rc, uint16_t *p)
-{
-	rc->range = rc->bound;
-	*p += ((1 << RC_MODEL_TOTAL_BITS) - *p) >> RC_MOVE_BITS;
-}
-static speed_inline void rc_update_bit_1(rc_t *rc, uint16_t *p)
-{
+	if (rc->code < rc->bound) {
+		rc->range = rc->bound;
+		*p += ((1 << RC_MODEL_TOTAL_BITS) - *p) >> RC_MOVE_BITS;
+		return 0;
+	}
 	rc->range -= rc->bound;
 	rc->code -= rc->bound;
 	*p -= *p >> RC_MOVE_BITS;
+	return 1;
 }
 
 /* Called 4 times in unlzma loop */
-static int rc_get_bit(rc_t *rc, uint16_t *p, int *symbol)
+static speed_inline int rc_get_bit(rc_t *rc, uint16_t *p, int *symbol)
 {
-	if (rc_is_bit_0(rc, p)) {
-		rc_update_bit_0(rc, p);
-		*symbol *= 2;
-		return 0;
-	} else {
-		rc_update_bit_1(rc, p);
-		*symbol = *symbol * 2 + 1;
-		return 1;
-	}
+	int ret = rc_is_bit_1(rc, p);
+	*symbol = *symbol * 2 + ret;
+	return ret;
 }
 
 /* Called once */
@@ -266,13 +248,13 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 	header.dst_size = SWAP_LE64(header.dst_size);
 
 	if (header.dict_size == 0)
-		header.dict_size = 1;
+		header.dict_size++;
 
 	buffer = xmalloc(MIN(header.dst_size, header.dict_size));
 
 	num_probs = LZMA_BASE_SIZE + (LZMA_LIT_SIZE << (lc + lp));
 	p = xmalloc(num_probs * sizeof(*p));
-	num_probs = LZMA_LITERAL + (LZMA_LIT_SIZE << (lc + lp));
+	num_probs += LZMA_LITERAL - LZMA_BASE_SIZE;
 	for (i = 0; i < num_probs; i++)
 		p[i] = (1 << RC_MODEL_TOTAL_BITS) >> 1;
 
@@ -282,9 +264,8 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 		int pos_state = (buffer_pos + global_pos) & pos_state_mask;
 
 		prob = p + LZMA_IS_MATCH + (state << LZMA_NUM_POS_BITS_MAX) + pos_state;
-		if (rc_is_bit_0(rc, prob)) {
+		if (!rc_is_bit_1(rc, prob)) {
 			mi = 1;
-			rc_update_bit_0(rc, prob);
 			prob = (p + LZMA_LITERAL
 			        + (LZMA_LIT_SIZE * ((((buffer_pos + global_pos) & literal_pos_mask) << lc)
 			                            + (previous_byte >> (8 - lc))
@@ -340,27 +321,21 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			int offset;
 			uint16_t *prob_len;
 
-			rc_update_bit_1(rc, prob);
 			prob = p + LZMA_IS_REP + state;
-			if (rc_is_bit_0(rc, prob)) {
-				rc_update_bit_0(rc, prob);
+			if (!rc_is_bit_1(rc, prob)) {
 				rep3 = rep2;
 				rep2 = rep1;
 				rep1 = rep0;
 				state = state < LZMA_NUM_LIT_STATES ? 0 : 3;
 				prob = p + LZMA_LEN_CODER;
 			} else {
-				rc_update_bit_1(rc, prob);
-				prob = p + LZMA_IS_REP_G0 + state;
-				if (rc_is_bit_0(rc, prob)) {
-					rc_update_bit_0(rc, prob);
+				prob += LZMA_IS_REP_G0 - LZMA_IS_REP;
+				if (!rc_is_bit_1(rc, prob)) {
 					prob = (p + LZMA_IS_REP_0_LONG
 					        + (state << LZMA_NUM_POS_BITS_MAX)
 					        + pos_state
 					);
-					if (rc_is_bit_0(rc, prob)) {
-						rc_update_bit_0(rc, prob);
-
+					if (!rc_is_bit_1(rc, prob)) {
 						state = state < LZMA_NUM_LIT_STATES ? 9 : 11;
 #if ENABLE_FEATURE_LZMA_FAST
 						pos = buffer_pos - rep0;
@@ -372,25 +347,16 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 						len = 1;
 						goto string;
 #endif
-					} else {
-						rc_update_bit_1(rc, prob);
 					}
 				} else {
 					uint32_t distance;
 
-					rc_update_bit_1(rc, prob);
-					prob = p + LZMA_IS_REP_G1 + state;
-					if (rc_is_bit_0(rc, prob)) {
-						rc_update_bit_0(rc, prob);
-						distance = rep1;
-					} else {
-						rc_update_bit_1(rc, prob);
-						prob = p + LZMA_IS_REP_G2 + state;
-						if (rc_is_bit_0(rc, prob)) {
-							rc_update_bit_0(rc, prob);
-							distance = rep2;
-						} else {
-							rc_update_bit_1(rc, prob);
+					prob += LZMA_IS_REP_G1 - LZMA_IS_REP_G0;
+					distance = rep1;
+					if (rc_is_bit_1(rc, prob)) {
+						prob += LZMA_IS_REP_G2 - LZMA_IS_REP_G1;
+						distance = rep2;
+						if (rc_is_bit_1(rc, prob)) {
 							distance = rep3;
 							rep3 = rep2;
 						}
@@ -404,24 +370,20 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 			}
 
 			prob_len = prob + LZMA_LEN_CHOICE;
-			if (rc_is_bit_0(rc, prob_len)) {
-				rc_update_bit_0(rc, prob_len);
-				prob_len = (prob + LZMA_LEN_LOW
-				            + (pos_state << LZMA_LEN_NUM_LOW_BITS));
+			if (!rc_is_bit_1(rc, prob_len)) {
+				prob_len += LZMA_LEN_LOW - LZMA_LEN_CHOICE
+				            + (pos_state << LZMA_LEN_NUM_LOW_BITS);
 				offset = 0;
 				num_bits = LZMA_LEN_NUM_LOW_BITS;
 			} else {
-				rc_update_bit_1(rc, prob_len);
-				prob_len = prob + LZMA_LEN_CHOICE_2;
-				if (rc_is_bit_0(rc, prob_len)) {
-					rc_update_bit_0(rc, prob_len);
-					prob_len = (prob + LZMA_LEN_MID
-					            + (pos_state << LZMA_LEN_NUM_MID_BITS));
+				prob_len += LZMA_LEN_CHOICE_2 - LZMA_LEN_CHOICE;
+				if (!rc_is_bit_1(rc, prob_len)) {
+					prob_len += LZMA_LEN_MID - LZMA_LEN_CHOICE_2
+					            + (pos_state << LZMA_LEN_NUM_MID_BITS);
 					offset = 1 << LZMA_LEN_NUM_LOW_BITS;
 					num_bits = LZMA_LEN_NUM_MID_BITS;
 				} else {
-					rc_update_bit_1(rc, prob_len);
-					prob_len = prob + LZMA_LEN_HIGH;
+					prob_len += LZMA_LEN_HIGH - LZMA_LEN_CHOICE_2;
 					offset = ((1 << LZMA_LEN_NUM_LOW_BITS)
 					          + (1 << LZMA_LEN_NUM_MID_BITS));
 					num_bits = LZMA_LEN_NUM_HIGH_BITS;
@@ -438,19 +400,20 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 				       ((len < LZMA_NUM_LEN_TO_POS_STATES ? len :
 				         LZMA_NUM_LEN_TO_POS_STATES - 1)
 				         << LZMA_NUM_POS_SLOT_BITS);
-				rc_bit_tree_decode(rc, prob, LZMA_NUM_POS_SLOT_BITS,
-								   &pos_slot);
+				rc_bit_tree_decode(rc, prob,
+					LZMA_NUM_POS_SLOT_BITS, &pos_slot);
+				rep0 = pos_slot;
 				if (pos_slot >= LZMA_START_POS_MODEL_INDEX) {
 					num_bits = (pos_slot >> 1) - 1;
 					rep0 = 2 | (pos_slot & 1);
+					prob = p + LZMA_ALIGN;
 					if (pos_slot < LZMA_END_POS_MODEL_INDEX) {
 						rep0 <<= num_bits;
-						prob = p + LZMA_SPEC_POS + rep0 - pos_slot - 1;
+						prob += LZMA_SPEC_POS - LZMA_ALIGN - 1 + rep0 - pos_slot;
 					} else {
 						num_bits -= LZMA_NUM_ALIGN_BITS;
 						while (num_bits--)
 							rep0 = (rep0 << 1) | rc_direct_bit(rc);
-						prob = p + LZMA_ALIGN;
 						rep0 <<= LZMA_NUM_ALIGN_BITS;
 						num_bits = LZMA_NUM_ALIGN_BITS;
 					}
@@ -461,8 +424,7 @@ unpack_lzma_stream(int src_fd, int dst_fd)
 							rep0 |= i;
 						i <<= 1;
 					}
-				} else
-					rep0 = pos_slot;
+				}
 				if (++rep0 == 0)
 					break;
 			}
