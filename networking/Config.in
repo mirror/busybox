@@ -12,6 +12,13 @@ config FEATURE_IPV6
 	  Enable IPv6 support in busybox.
 	  This adds IPv6 support in the networking applets.
 
+config FEATURE_UNIX_LOCAL
+	bool "Enable Unix domain socket support"
+	default n
+	help
+	  Enable Unix domain socket support in all busybox networking
+	  applets.
+
 config FEATURE_PREFER_IPV4_ADDRESS
 	bool "Prefer IPv4 addresses from DNS queries"
 	default y

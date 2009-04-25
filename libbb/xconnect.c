@@ -9,6 +9,7 @@
 
 #include <netinet/in.h>
 #include <net/if.h>
+#include <sys/un.h>
 #include "libbb.h"
 
 void FAST_FUNC setsockopt_reuseaddr(int fd)
@@ -160,12 +161,25 @@ IF_FEATURE_IPV6(sa_family_t af,)
 		int ai_flags)
 {
 	int rc;
-	len_and_sockaddr *r = NULL;
+	len_and_sockaddr *r;
 	struct addrinfo *result = NULL;
 	struct addrinfo *used_res;
 	const char *org_host = host; /* only for error msg */
 	const char *cp;
 	struct addrinfo hint;
+
+	if (ENABLE_FEATURE_UNIX_LOCAL && strncmp(host, "local:", 6) == 0) {
+		struct sockaddr_un *sun;
+
+		r = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_un));
+		r->len = sizeof(struct sockaddr_un);
+		r->u.sa.sa_family = AF_UNIX;
+		sun = (struct sockaddr_un *)&r->u.sa;
+		safe_strncpy(sun->sun_path, host + 6, sizeof(sun->sun_path));
+		return r;
+	}
+
+	r = NULL;
 
 	/* Ugly parsing of host:addr */
 	if (ENABLE_FEATURE_IPV6 && host[0] == '[') {
@@ -188,6 +202,7 @@ IF_FEATURE_IPV6(sa_family_t af,)
 	}
 	if (cp) { /* points to ":" or "]:" */
 		int sz = cp - host + 1;
+
 		host = safe_strncpy(alloca(sz), host, sz);
 		if (ENABLE_FEATURE_IPV6 && *cp != ':') {
 			cp++; /* skip ']' */
@@ -370,6 +385,13 @@ static char* FAST_FUNC sockaddr2str(const struct sockaddr *sa, int flags)
 	char serv[16];
 	int rc;
 	socklen_t salen;
+
+	if (ENABLE_FEATURE_UNIX_LOCAL && sa->sa_family == AF_UNIX) {
+		struct sockaddr_un *sun = (struct sockaddr_un *)sa;
+		return xasprintf("local:%.*s",
+				(int) sizeof(sun->sun_path),
+				sun->sun_path);
+	}
 
 	salen = LSA_SIZEOF_SA;
 #if ENABLE_FEATURE_IPV6

@@ -34,7 +34,6 @@ int nc_main(int argc, char **argv)
 	IF_NOT_NC_EXTRA (const) unsigned delay = 0;
 	IF_NOT_NC_EXTRA (const int execparam = 0;)
 	IF_NC_EXTRA     (char **execparam = NULL;)
-	len_and_sockaddr *lsa;
 	fd_set readfds, testfds;
 	int opt; /* must be signed (getopt returns -1) */
 
@@ -44,17 +43,17 @@ int nc_main(int argc, char **argv)
 		while ((opt = getopt(argc, argv,
 		        "" IF_NC_SERVER("lp:") IF_NC_EXTRA("w:i:f:e:") )) > 0
 		) {
-			if (ENABLE_NC_SERVER && opt=='l')
+			if (ENABLE_NC_SERVER && opt == 'l')
 				IF_NC_SERVER(do_listen++);
-			else if (ENABLE_NC_SERVER && opt=='p')
+			else if (ENABLE_NC_SERVER && opt == 'p')
 				IF_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
-			else if (ENABLE_NC_EXTRA && opt=='w')
+			else if (ENABLE_NC_EXTRA && opt == 'w')
 				IF_NC_EXTRA( wsecs = xatou(optarg));
-			else if (ENABLE_NC_EXTRA && opt=='i')
+			else if (ENABLE_NC_EXTRA && opt == 'i')
 				IF_NC_EXTRA( delay = xatou(optarg));
-			else if (ENABLE_NC_EXTRA && opt=='f')
+			else if (ENABLE_NC_EXTRA && opt == 'f')
 				IF_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
-			else if (ENABLE_NC_EXTRA && opt=='e' && optind <= argc) {
+			else if (ENABLE_NC_EXTRA && opt == 'e' && optind <= argc) {
 				/* We cannot just 'break'. We should let getopt finish.
 				** Or else we won't be able to find where
 				** 'host' and 'port' params are
@@ -80,9 +79,12 @@ int nc_main(int argc, char **argv)
 		argc -= optind;
 		// -l and -f don't mix
 		if (do_listen && cfd) bb_show_usage();
-		// Listen or file modes need zero arguments, client mode needs 2
-		if (do_listen || cfd) {
+		// File mode needs need zero arguments, listen mode needs zero or one,
+		// client mode needs one or two
+		if (cfd) {
 			if (argc) bb_show_usage();
+		} else if (do_listen) {
+			if (argc > 1) bb_show_usage();
 		} else {
 			if (!argc || argc > 2) bb_show_usage();
 		}
@@ -99,24 +101,20 @@ int nc_main(int argc, char **argv)
 
 	if (!cfd) {
 		if (do_listen) {
-			/* create_and_bind_stream_or_die(NULL, lport)
-			 * would've work wonderfully, but we need
-			 * to know lsa */
-			sfd = xsocket_stream(&lsa);
-			if (lport)
-				set_nport(lsa, htons(lport));
-			setsockopt_reuseaddr(sfd);
-			xbind(sfd, &lsa->u.sa, lsa->len);
+			sfd = create_and_bind_stream_or_die(argv[0], lport);
 			xlisten(sfd, do_listen); /* can be > 1 */
+#if 0  /* nc-1.10 does not do this (without -v) */
 			/* If we didn't specify a port number,
 			 * query and print it after listen() */
 			if (!lport) {
-				getsockname(sfd, &lsa->u.sa, &lsa->len);
-				lport = get_nport(&lsa->u.sa);
+				len_and_sockaddr lsa;
+				lsa.len = LSA_SIZEOF_SA;
+				getsockname(sfd, &lsa.u.sa, &lsa.len);
+				lport = get_nport(&lsa.u.sa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
+#endif
 			close_on_exec_on(sfd);
-			free(lsa);
  accept_again:
 			cfd = accept(sfd, NULL, 0);
 			if (cfd < 0)

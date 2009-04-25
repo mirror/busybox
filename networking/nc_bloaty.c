@@ -377,9 +377,7 @@ create new one, and bind() it. TODO */
 		socklen_t x = sizeof(optbuf);
 
 		rr = getsockopt(netfd, IPPROTO_IP, IP_OPTIONS, optbuf, &x);
-		if (rr < 0)
-			bb_perror_msg("getsockopt failed");
-		else if (x) {    /* we've got options, lessee em... */
+		if (rr >= 0 && x) {    /* we've got options, lessee em... */
 			bin2hex(bigbuf_net, optbuf, x);
 			bigbuf_net[2*x] = '\0';
 			fprintf(stderr, "IP options: %s\n", bigbuf_net);
@@ -603,7 +601,10 @@ Debug("got %d from the net, errno %d", rr, errno);
 	 mobygrams are kinda fun and exercise the reassembler. */
 			if (rr <= 0) {                        /* at end, or fukt, or ... */
 				FD_CLR(STDIN_FILENO, &ding1);                /* disable and close stdin */
-				close(0);
+				close(STDIN_FILENO);
+// Does it make sense to shutdown(net_fd, SHUT_WR)
+// to let other side know that we won't write anything anymore?
+// (and what about keeping compat if we do that?)
 			} else {
 				rzleft = rr;
 				zp = bigbuf_in;
@@ -768,7 +769,12 @@ int nc_main(int argc, char **argv)
 	setsockopt_reuseaddr(netfd);
 	if (o_udpmode)
 		socket_want_pktinfo(netfd);
-	xbind(netfd, &ouraddr->u.sa, ouraddr->len);
+	if (!ENABLE_FEATURE_UNIX_LOCAL
+	 || o_listen
+	 || ouraddr->u.sa.sa_family != AF_UNIX
+	) {
+		xbind(netfd, &ouraddr->u.sa, ouraddr->len);
+	}
 #if 0
 	setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, &o_rcvbuf, sizeof o_rcvbuf);
 	setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, &o_sndbuf, sizeof o_sndbuf);
