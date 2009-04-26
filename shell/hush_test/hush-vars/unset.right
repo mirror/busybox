@@ -1,6 +1,5 @@
-hush: unset: -: invalid option
-1
-hush: unset: -m: invalid option
+0
+unset: invalid option -- m
 1
 0
 ___

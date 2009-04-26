@@ -6451,7 +6451,11 @@ static int builtin_export(char **argv)
 	}
 
 #if ENABLE_HUSH_EXPORT_N
-	opt_unexport = getopt32(argv, "+n"); /* "+": stop at 1st non-option */
+	/* "!": do not abort on errors */
+	/* "+": stop at 1st non-option */
+	opt_unexport = getopt32(argv, "!+n");
+	if (opt_unexport == (unsigned)-1)
+		return EXIT_FAILURE;
 	argv += optind;
 #else
 	opt_unexport = 0;
@@ -6918,36 +6922,22 @@ static int builtin_umask(char **argv)
 static int builtin_unset(char **argv)
 {
 	int ret;
-	char var;
-	char *arg;
+	unsigned opts;
 
-	if (!*++argv)
-		return EXIT_SUCCESS;
-
-	var = 0;
-	while ((arg = *argv) != NULL && arg[0] == '-') {
-		arg++;
-		do {
-			switch (*arg) {
-			case 'v':
-			case 'f':
-				if (var == 0 || var == *arg) {
-					var = *arg;
-					break;
-				}
-				/* else: unset -vf, which is illegal.
-				 * fall through */
-			default:
-				bb_error_msg("unset: %s: invalid option", *argv);
-				return EXIT_FAILURE;
-			}
-		} while (*++arg);
-		argv++;
+	/* "!": do not abort on errors */
+	/* "+": stop at 1st non-option */
+	opts = getopt32(argv, "!+vf");
+	if (opts == (unsigned)-1)
+		return EXIT_FAILURE;
+	if (opts == 3) {
+		bb_error_msg("unset: -v and -f are exclusive");
+		return EXIT_FAILURE;
 	}
+	argv += optind;
 
 	ret = EXIT_SUCCESS;
 	while (*argv) {
-		if (var != 'f') {
+		if (!(opts & 2)) { /* not -f */
 			if (unset_local_var(*argv)) {
 				/* unset <nonexistent_var> doesn't fail.
 				 * Error is when one tries to unset RO var.
