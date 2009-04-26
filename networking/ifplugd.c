@@ -222,7 +222,7 @@ static int network_ioctl(int request, void* data)
 static void set_ifreq_to_ifname(struct ifreq *ifreq)
 {
 	memset(ifreq, 0, sizeof(struct ifreq));
-	strncpy(ifreq->ifr_name, G.iface, IFNAMSIZ);
+	strncpy_IFNAMSIZ(ifreq->ifr_name, G.iface);
 }
 
 static const char *strstatus(int status)
@@ -389,7 +389,7 @@ static smallint detect_link_wlan(void)
 	uint8_t mac[ETH_ALEN];
 
 	memset(&iwrequest, 0, sizeof(struct iwreq));
-	strncpy(iwrequest.ifr_ifrn.ifrn_name, G.iface, IFNAMSIZ);
+	strncpy_IFNAMSIZ(iwrequest.ifr_ifrn.ifrn_name, G.iface);
 
 	if (network_ioctl(SIOCGIWAP, &iwrequest) < 0) {
 		bb_perror_msg("SIOCGIWAP failed");
