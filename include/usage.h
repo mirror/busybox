@@ -1727,21 +1727,46 @@
 /*   "\n	-r, --receive-slave	Create a receive-only slave" */
 
 #define ifenslave_example_usage \
-       "To create a bond device, simply follow these three steps :\n" \
-       "- ensure that the required drivers are properly loaded :\n" \
+       "To create a bond device, simply follow these three steps:\n" \
+       "- ensure that the required drivers are properly loaded:\n" \
        "  # modprobe bonding ; modprobe <3c59x|eepro100|pcnet32|tulip|...>\n" \
-       "- assign an IP address to the bond device :\n" \
+       "- assign an IP address to the bond device:\n" \
        "  # ifconfig bond0 <addr> netmask <mask> broadcast <bcast>\n" \
-       "- attach all the interfaces you need to the bond device :\n" \
+       "- attach all the interfaces you need to the bond device:\n" \
        "  # ifenslave bond0 eth0 eth1 eth2\n" \
        "  If bond0 didn't have a MAC address, it will take eth0's. Then, all\n" \
        "  interfaces attached AFTER this assignment will get the same MAC addr.\n\n" \
-       "  To detach a dead interface without setting the bond device down :\n" \
-       "   # ifenslave -d bond0 eth1\n\n" \
-       "  To set the bond device down and automatically release all the slaves :\n" \
-       "   # ifconfig bond0 down\n\n" \
-       "  To change active slave :\n" \
-       "   # ifenslave -c bond0 eth0\n" \
+       "  To detach a dead interface without setting the bond device down:\n" \
+       "  # ifenslave -d bond0 eth1\n\n" \
+       "  To set the bond device down and automatically release all the slaves:\n" \
+       "  # ifconfig bond0 down\n\n" \
+       "  To change active slave:\n" \
+       "  # ifenslave -c bond0 eth0\n" \
+
+#define ifplugd_trivial_usage \
+       "[options]"
+#define ifplugd_full_usage "\n\n" \
+       "Network interface plug detection daemon.\n\n" \
+       "Options:\n" \
+     "\n	-n		Do not daemonize" \
+     "\n	-s		Do not log to syslog" \
+     "\n	-i IFACE	Interface" \
+     "\n	-f/-F		Treat link detection error as link down/link up" \
+     "\n			(otherwise exit on error)" \
+     "\n	-a		Do not up interface automatically" \
+     "\n	-M		Monitor creation/destruction of interface" \
+     "\n			(otherwise it must exist)" \
+     "\n	-r PROG		Script to run" \
+     "\n	-x ARG		Extra argument for script" \
+     "\n	-I		Don't exit on nonzero exit code from script" \
+     "\n	-p		Don't run script on daemon startup" \
+     "\n	-q		Don't run script on daemon quit" \
+     "\n	-l		Run script on startup even if no cable is detected" \
+     "\n	-t SECS		Poll time in seconds" \
+     "\n	-u SECS		Delay before running script after link up" \
+     "\n	-d SECS		Delay after link down" \
+     "\n	-m MODE		API mode (mii, priv, ethtool, wlan, auto)" \
+     "\n	-k		Kill running daemon" \
 
 #define ifup_trivial_usage \
        "[-ain"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
@@ -4346,17 +4371,17 @@
 	"CMD: {add|del|change|replace|show}\n" \
 	"\n" \
 	"qdisc [ handle QHANDLE ] [ root |"IF_FEATURE_TC_INGRESS(" ingress |")" parent CLASSID ]\n" \
-	/* "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
-	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
-	"\tQDISC_KIND := { [p|b]fifo | tbf | prio | cbq | red | etc. }\n" \
+	/* "[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
+	"	[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
+	"	QDISC_KIND := { [p|b]fifo | tbf | prio | cbq | red | etc. }\n" \
 	"qdisc show [ dev STRING ]"IF_FEATURE_TC_INGRESS(" [ingress]")"\n" \
 	"class [ classid CLASSID ] [ root | parent CLASSID ]\n" \
-	"\t[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
+	"	[ [ QDISC_KIND ] [ help | OPTIONS ] ]\n" \
 	"class show [ dev STRING ] [ root | parent CLASSID ]\n" \
 	"filter [ pref PRIO ] [ protocol PROTO ]\n" \
 	/* "\t[ estimator INTERVAL TIME_CONSTANT ]\n" */ \
-	"\t[ root | classid CLASSID ] [ handle FILTERID ]\n" \
-	"\t[ [ FILTER_TYPE ] [ help | OPTIONS ] ]\n" \
+	"	[ root | classid CLASSID ] [ handle FILTERID ]\n" \
+	"	[ [ FILTER_TYPE ] [ help | OPTIONS ] ]\n" \
 	"filter show [ dev STRING ] [ root | parent CLASSID ]"
 
 #define tcpsvd_trivial_usage \

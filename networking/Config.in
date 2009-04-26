@@ -303,6 +303,12 @@ config IFENSLAVE
 	  Userspace application to bind several interfaces
 	  to a logical interface (use with kernel bonding driver).
 
+config IFPLUGD
+	bool "ifplugd"
+	default n
+	help
+	  Network interface plug detection daemon.
+
 config IFUPDOWN
 	bool "ifupdown"
 	default n
