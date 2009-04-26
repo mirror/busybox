@@ -2,12 +2,12 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-typedef char *(*scan_t)(char *string, char *match, bool zero);
+typedef char *(*scan_t)(char *string, char *match, bool match_at_left);
 
-char *scanleft(char *string, char *match, bool zero);
-char *scanright(char *string, char *match, bool zero);
+char *scanleft(char *string, char *match, bool match_at_left);
+char *scanright(char *string, char *match, bool match_at_left);
 
-static inline scan_t pick_scan(char op1, char op2, bool *zero)
+static inline scan_t pick_scan(char op1, char op2, bool *match_at_left)
 {
 	/* #  - scanleft
 	 * ## - scanright
@@ -15,10 +15,10 @@ static inline scan_t pick_scan(char op1, char op2, bool *zero)
 	 * %% - scanleft
 	 */
 	if (op1 == '#') {
-		*zero = true;
+		*match_at_left = true;
 		return op1 == op2 ? scanright : scanleft;
 	} else {
-		*zero = false;
+		*match_at_left = false;
 		return op1 == op2 ? scanleft : scanright;
 	}
 }

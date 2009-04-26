@@ -63,9 +63,9 @@ hush: error in arithmetic
 40 40
 hush: error in arithmetic
 hush: divide by 0
-hush: can't exec 'let': No such file or directory
+hush: can't execute 'let': No such file or directory
 hush: error in arithmetic
-hush: can't exec 'let': No such file or directory
+hush: can't execute 'let': No such file or directory
 abc
 def
 ghi
@@ -135,4 +135,4 @@ hush: error in arithmetic
 42
 42
 42
-hush: can't exec 'a[b[c]d]=e': No such file or directory
+hush: can't execute 'a[b[c]d]=e': No such file or directory

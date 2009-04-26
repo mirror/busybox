@@ -43,5 +43,6 @@ echo ${var%*}
 echo Empty:${var%%*}
 echo ${var#}}_tail
 # UNFIXED BUG: echo ${var#\}}_tail
+echo ${var%\\*}
 
 echo end

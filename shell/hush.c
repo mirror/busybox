@@ -1990,12 +1990,9 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	 * (expansion of right-hand side of assignment == 1-element expand.
 	 * It will also do no globbing, and thus we must not backslash-quote!) */
 
-	char first_ch, ored_ch;
-	int i;
-	const char *val;
-	char *dyn_val, *p;
+	char ored_ch;
+	char *p;
 
-	dyn_val = NULL;
 	ored_ch = 0;
 
 	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
@@ -2004,6 +2001,10 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 	debug_print_list("expand_vars_to_list[0]", output, n);
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
+		char first_ch;
+		int i;
+		char *dyn_val = NULL;
+		const char *val = NULL;
 #if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
 #endif
@@ -2021,7 +2022,6 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 		if ((first_ch & 0x7f) != '@')
 			ored_ch |= first_ch;
 
-		val = NULL;
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '$': /* pid */
@@ -2194,16 +2194,16 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 				if (exp_op == '%' || exp_op == '#') {
 					if (val) {
 						/* we need to do a pattern match */
-						bool zero;
+						bool match_at_left;
 						char *loc;
-						scan_t scan = pick_scan(exp_op, *exp_word, &zero);
+						scan_t scan = pick_scan(exp_op, *exp_word, &match_at_left);
 						if (exp_op == *exp_word)	/* ## or %% */
 							++exp_word;
 						val = dyn_val = xstrdup(val);
-						loc = scan(dyn_val, exp_word, zero);
-						if (zero)
+						loc = scan(dyn_val, exp_word, match_at_left);
+						if (match_at_left) /* # or ## */
 							val = loc;
-						else
+						else if (loc) /* % or %% and match was found */
 							*loc = '\0';
 					}
 				} else {
@@ -2263,11 +2263,11 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 			}
 		} /* default: */
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
+
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
 		free(dyn_val);
-		dyn_val = NULL;
 		/* Do the check to avoid writing to a const string */
 		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
