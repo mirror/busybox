@@ -1,7 +1,6 @@
+echo "Warm up"
 t=1
 export t
-
-echo "Warm up"
 i=1
 while test $i != X; do
     t=111111111111111111111111111111111111111111111111111111111111111111111110$i
@@ -14,10 +13,13 @@ while test $i != X; do
     if test $i = 1111111111111111111111111111111111111111111113; then i=4; fi
     if test $i = 1111111111111111111111111111111111111111111114; then i=X; fi
 done
+unset t i
 
 memleak
 
 echo "Measuring memory leak..."
+t=1
+export t
 i=1
 while test $i != X; do
     t=111111111111111111111111111111111111111111111111111111111111111111111110$i
@@ -30,6 +32,7 @@ while test $i != X; do
     if test $i = 1111111111111111111111111111111111111111111113; then i=4; fi
     if test $i = 1111111111111111111111111111111111111111111114; then i=X; fi
 done
+unset t i
 
 memleak
 kb=$?
