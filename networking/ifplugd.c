@@ -2,7 +2,7 @@
 /*
  * ifplugd for busybox
  *
- * Copyright (C) 2009
+ * Copyright (C) 2009 Maksym Kryzhanovskyy <xmaks@email.cz>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -18,6 +18,21 @@
 
 #define __user
 #include <linux/wireless.h>
+
+/*
+TODO: describe compat status here.
+
+One questionable point of the design is netlink usage:
+
+We have 1 second timeout by default to poll the link status,
+it is short enough so that there are no real benefits in
+using netlink to get "instantaneous" interface creation/deletion
+notifications. We can check for interface existence by just
+doing some fast ioctl using its name.
+
+Netlink code then can be just dropped (1k or more?)
+*/
+
 
 #define IFPLUGD_ENV_PREVIOUS "IFPLUGD_PREVIOUS"
 #define IFPLUGD_ENV_CURRENT "IFPLUGD_CURRENT"
