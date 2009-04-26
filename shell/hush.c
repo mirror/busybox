@@ -5328,9 +5328,12 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * within double quotes by preceding it with a backslash.
 		 */
 		if (strchr("$`\"\\", next) != NULL) {
-			o_addqchr(dest, i_getch(input));
+			ch = i_getch(input);
+			o_addqchr(dest, ch);
+			nommu_addchr(as_string, ch);
 		} else {
 			o_addqchr(dest, '\\');
+			nommu_addchr(as_string, '\\');
 		}
 		goto again;
 	}

@@ -67,6 +67,7 @@ HERE
     f >/dev/null
     : $((i++))
 done
+unset i l t
 unset -f f
 
 memleak
@@ -134,6 +135,7 @@ HERE
     f >/dev/null
     : $((i++))
 done
+unset i l t
 unset -f f
 
 
