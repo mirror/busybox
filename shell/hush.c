@@ -417,15 +417,26 @@ struct function {
 /* "Globals" within this file */
 /* Sorted roughly by size (smaller offsets == smaller code) */
 struct globals {
+	/* interactive_fd != 0 means we are an interactive shell.
+	 * If we are, then saved_tty_pgrp can also be != 0, meaning
+	 * that controlling tty is available. With saved_tty_pgrp == 0,
+	 * job control still works, but terminal signals
+	 * (^C, ^Z, ^Y, ^\) won't work at all, and background
+	 * process groups can only be created with "cmd &".
+	 * With saved_tty_pgrp != 0, hush will use tcsetpgrp()
+	 * to give tty to the foreground process group,
+	 * and will take it back when the group is stopped (^Z)
+	 * or killed (^C).
+	 */
 #if ENABLE_HUSH_INTERACTIVE
 	/* 'interactive_fd' is a fd# open to ctty, if we have one
 	 * _AND_ if we decided to act interactively */
 	int interactive_fd;
 	const char *PS1;
 	const char *PS2;
-#define G_interactive_fd (G.interactive_fd)
+# define G_interactive_fd (G.interactive_fd)
 #else
-#define G_interactive_fd 0
+# define G_interactive_fd 0
 #endif
 #if ENABLE_FEATURE_EDITING
 	line_input_t *line_input_state;
@@ -434,10 +445,9 @@ struct globals {
 	pid_t last_bg_pid;
 #if ENABLE_HUSH_JOB
 	int run_list_level;
-	pid_t saved_tty_pgrp;
 	int last_jobid;
+	pid_t saved_tty_pgrp;
 	struct pipe *job_list;
-	struct pipe *toplevel_list;
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -446,7 +456,7 @@ struct globals {
 #if ENABLE_HUSH_FUNCTIONS
 	/* 0: outside of a function (or sourced file)
 	 * -1: inside of a function, ok to use return builtin
-	 * 1: return is invoked, skip all till end of func.
+	 * 1: return is invoked, skip all till end of func
 	 */
 	smallint flag_return_in_progress;
 #endif
@@ -1089,12 +1099,16 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
-#if ENABLE_HUSH_JOB
-		| (1 << SIGTTIN) | (1 << SIGTTOU) | (1 << SIGTSTP)
-		| (1 << SIGHUP)
-#endif
 		| (1 << SIGTERM)
 		| (1 << SIGINT)
+		| (1 << SIGHUP)
+		,
+#if ENABLE_HUSH_JOB
+	SPECIAL_JOB_SIGS = 0
+		| (1 << SIGTTIN)
+		| (1 << SIGTTOU)
+		| (1 << SIGTSTP)
+#endif
 };
 
 //static void SIGCHLD_handler(int sig UNUSED_PARAM)
@@ -1122,7 +1136,7 @@ static void sigexit(int sig)
 
 	/* Careful: we can end up here after [v]fork. Do not restore
 	 * tty pgrp then, only top-level shell process does that */
-	if (G_interactive_fd && getpid() == G.root_pid)
+	if (G.saved_tty_pgrp && getpid() == G.root_pid)
 		tcsetpgrp(G_interactive_fd, G.saved_tty_pgrp);
 
 	/* Not a signal, just exit */
@@ -3131,7 +3145,7 @@ static const char *get_cmdtext(struct pipe *pi)
 		len += strlen(*argv) + 1;
 	} while (*++argv);
 	p = xmalloc(len);
-	pi->cmdtext = p;// = xmalloc(len);
+	pi->cmdtext = p;
 	argv = pi->cmds[0].argv;
 	do {
 		len = strlen(*argv);
@@ -3351,10 +3365,12 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 {
 	pid_t p;
 	int rcode = checkjobs(fg_pipe);
-	/* Job finished, move the shell to the foreground */
-	p = getpgid(0); /* pgid of our process */
-	debug_printf_jobs("fg'ing ourself: getpgid(0)=%d\n", (int)p);
-	tcsetpgrp(G_interactive_fd, p);
+	if (G.saved_tty_pgrp) {
+		/* Job finished, move the shell to the foreground */
+		p = getpgrp(); /* our process group id */
+		debug_printf_jobs("fg'ing ourself: getpgrp()=%d\n", (int)p);
+		tcsetpgrp(G_interactive_fd, p);
+	}
 	return rcode;
 }
 #endif
@@ -3606,7 +3622,10 @@ static int run_pipe(struct pipe *pi)
 				pgrp = pi->pgrp;
 				if (pgrp < 0) /* true for 1st process only */
 					pgrp = getpid();
-				if (setpgid(0, pgrp) == 0 && pi->followup != PIPE_BG) {
+				if (setpgid(0, pgrp) == 0
+				 && pi->followup != PIPE_BG
+				 && G.saved_tty_pgrp /* we have ctty */
+				) {
 					/* We do it in *every* child, not just first,
 					 * to avoid races */
 					tcsetpgrp(G_interactive_fd, pgrp);
@@ -4023,11 +4042,7 @@ static int run_list(struct pipe *pi)
 				check_and_run_traps(0);
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1)
-{
-debug_printf_exec("insert_bg_job1\n");
 					insert_bg_job(pi);
-debug_printf_exec("insert_bg_job2\n");
-}
 #endif
 				G.last_exitcode = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
@@ -5896,8 +5911,11 @@ static void block_signals(int second_time)
 	unsigned mask;
 
 	mask = (1 << SIGQUIT);
-	if (G_interactive_fd)
+	if (G_interactive_fd) {
 		mask = (1 << SIGQUIT) | SPECIAL_INTERACTIVE_SIGS;
+		if (G.saved_tty_pgrp) /* we have ctty, job control sigs work */
+			mask |= SPECIAL_JOB_SIGS;
+	}
 	G.non_DFL_mask = mask;
 
 	if (!second_time)
@@ -6179,52 +6197,55 @@ int hush_main(int argc, char **argv)
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
 		debug_printf("saved_tty_pgrp:%d\n", G.saved_tty_pgrp);
-//TODO: "interactive" and "have job control" are two different things.
-//If tcgetpgrp fails here, "have job control" is false, but "interactive"
-//should stay on! Currently, we mix these into one.
-		if (G.saved_tty_pgrp >= 0) {
-			/* try to dup stdin to high fd#, >= 255 */
-			G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		if (G.saved_tty_pgrp < 0)
+			G.saved_tty_pgrp = 0;
+
+		/* try to dup stdin to high fd#, >= 255 */
+		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
+		if (G_interactive_fd < 0) {
+			/* try to dup to any fd */
+			G_interactive_fd = dup(STDIN_FILENO);
 			if (G_interactive_fd < 0) {
-				/* try to dup to any fd */
-				G_interactive_fd = dup(STDIN_FILENO);
-				if (G_interactive_fd < 0)
-					/* give up */
-					G_interactive_fd = 0;
+				/* give up */
+				G_interactive_fd = 0;
+				G.saved_tty_pgrp = 0;
 			}
-// TODO: track & disallow any attempts of user
-// to (inadvertently) close/redirect it
 		}
+// TODO: track & disallow any attempts of user
+// to (inadvertently) close/redirect G_interactive_fd
 	}
 	debug_printf("interactive_fd:%d\n", G_interactive_fd);
 	if (G_interactive_fd) {
-		pid_t shell_pgrp;
-
-		/* We are indeed interactive shell, and we will perform
-		 * job control. Setting up for that. */
-
 		close_on_exec_on(G_interactive_fd);
-		/* If we were run as 'hush &', sleep until we are
-		 * in the foreground (tty pgrp == our pgrp).
-		 * If we get started under a job aware app (like bash),
-		 * make sure we are now in charge so we don't fight over
-		 * who gets the foreground */
-		while (1) {
-			shell_pgrp = getpgrp();
-			G.saved_tty_pgrp = tcgetpgrp(G_interactive_fd);
-			if (G.saved_tty_pgrp == shell_pgrp)
-				break;
-			/* send TTIN to ourself (should stop us) */
-			kill(- shell_pgrp, SIGTTIN);
+
+		if (G.saved_tty_pgrp) {
+			/* If we were run as 'hush &', sleep until we are
+			 * in the foreground (tty pgrp == our pgrp).
+			 * If we get started under a job aware app (like bash),
+			 * make sure we are now in charge so we don't fight over
+			 * who gets the foreground */
+			while (1) {
+				pid_t shell_pgrp = getpgrp();
+				G.saved_tty_pgrp = tcgetpgrp(G_interactive_fd);
+				if (G.saved_tty_pgrp == shell_pgrp)
+					break;
+				/* send TTIN to ourself (should stop us) */
+				kill(- shell_pgrp, SIGTTIN);
+			}
 		}
+
 		/* Block some signals */
 		block_signals(signal_mask_is_inited);
-		/* Set other signals to restore saved_tty_pgrp */
-		set_fatal_handlers();
-		/* Put ourselves in our own process group */
-		bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
-		/* Grab control of the terminal */
-		tcsetpgrp(G_interactive_fd, getpid());
+
+		if (G.saved_tty_pgrp) {
+			/* Set other signals to restore saved_tty_pgrp */
+			set_fatal_handlers();
+			/* Put ourselves in our own process group
+			 * (bash, too, does this only if ctty is available) */
+			bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
+			/* Grab control of the terminal */
+			tcsetpgrp(G_interactive_fd, getpid());
+		}
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
@@ -6604,6 +6625,7 @@ static int builtin_fg_bg(char **argv)
 
 	if (!G_interactive_fd)
 		return EXIT_FAILURE;
+
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!argv[1]) {
 		for (pi = G.job_list; pi; pi = pi->next) {
@@ -6628,7 +6650,7 @@ static int builtin_fg_bg(char **argv)
  found:
 	/* TODO: bash prints a string representation
 	 * of job being foregrounded (like "sleep 1 | cat") */
-	if (argv[0][0] == 'f') {
+	if (argv[0][0] == 'f' && G.saved_tty_pgrp) {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(G_interactive_fd, pi->pgrp);
 	}
