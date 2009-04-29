@@ -202,6 +202,31 @@
 #define busybox_notes_usage \
        "Hello world!\n"
 
+#define lzop_trivial_usage \
+       "[-cfvd123456789CF] [file..]"
+#define lzop_full_usage "\n\n" \
+       "	-c	Write to standard output" \
+     "\n	-f	Force" \
+     "\n	-v	Verbose" \
+     "\n	-d	Decompress" \
+     "\n	-F	Don't store or verify checksum" \
+     "\n	-C	Also write checksum of compressed block" \
+     "\n	-1..9	Compression level" \
+
+#define lzopcat_trivial_usage \
+       "[-vCF] [file..]"
+#define lzopcat_full_usage "\n\n" \
+       "	-v	Verbose" \
+     "\n	-F	Don't store or verify checksum" \
+
+#define unlzop_trivial_usage \
+       "[-cfvCF] [file..]"
+#define unlzop_full_usage "\n\n" \
+       "	-c	Write to standard output" \
+     "\n	-f	Force" \
+     "\n	-v	Verbose" \
+     "\n	-F	Don't store or verify checksum" \
+
 #define bzcat_trivial_usage \
        "FILE"
 #define bzcat_full_usage "\n\n" \

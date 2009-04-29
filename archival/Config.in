@@ -165,6 +165,21 @@ config GZIP
 	  gzip is used to compress files.
 	  It's probably the most widely used UNIX compression program.
 
+config LZOP
+	bool "lzop"
+	default n
+	help
+	  Lzop compression/decompresion.
+
+config LZOP_COMPR_HIGH
+	bool "lzop complession levels 7,8,9 (not very useful)"
+	default n
+	depends on LZOP
+	help
+	  High levels (7,8,9) of lzop compression. These levels
+	  are actually slower than gzip at equivalent compression ratios
+	  and take up 3.2K of code.
+
 config RPM2CPIO
 	bool "rpm2cpio"
 	default n
