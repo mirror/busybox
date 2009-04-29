@@ -258,7 +258,7 @@ static void up_iface(void)
 	if (network_ioctl(SIOCGIFADDR, &ifrequest) < 0) {
 		bb_error_msg("can't get interface address");
 	} else if (ifrequest.ifr_addr.sa_family != AF_INET) {
-		bb_perror_msg("The interface is not IP-based");
+		bb_perror_msg("the interface is not IP-based");
 	} else {
 		((struct sockaddr_in*)(&ifrequest.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
 		if (network_ioctl(SIOCSIFADDR, &ifrequest) < 0)
@@ -299,7 +299,7 @@ static void maybe_up_new_iface(void)
 				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[5]));
 		}
 
-		bb_error_msg("Using interface %s%s with driver<%s> (version: %s)",
+		bb_error_msg("using interface %s%s with driver<%s> (version: %s)",
 			G.iface, buf, driver_info.driver, driver_info.version);
 	}
 #endif

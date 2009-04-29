@@ -284,12 +284,12 @@ static int print_qdisc(const struct sockaddr_nl *who UNUSED_PARAM,
 	char *name;
 
 	if (hdr->nlmsg_type != RTM_NEWQDISC && hdr->nlmsg_type != RTM_DELQDISC) {
-		/* bb_error_msg("Not a qdisc"); */
+		/* bb_error_msg("not a qdisc"); */
 		return 0; /* ??? mimic upstream; should perhaps return -1 */
 	}
 	len -= NLMSG_LENGTH(sizeof(*msg));
 	if (len < 0) {
-		/* bb_error_msg("Wrong len %d", len); */
+		/* bb_error_msg("wrong len %d", len); */
 		return -1;
 	}
 	/* not the desired interface? */
@@ -342,12 +342,12 @@ static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
 	/*XXX Eventually factor out common code */
 
 	if (hdr->nlmsg_type != RTM_NEWTCLASS && hdr->nlmsg_type != RTM_DELTCLASS) {
-		/* bb_error_msg("Not a class"); */
+		/* bb_error_msg("not a class"); */
 		return 0; /* ??? mimic upstream; should perhaps return -1 */
 	}
 	len -= NLMSG_LENGTH(sizeof(*msg));
 	if (len < 0) {
-		/* bb_error_msg("Wrong len %d", len); */
+		/* bb_error_msg("wrong len %d", len); */
 		return -1;
 	}
 	/* not the desired interface? */
