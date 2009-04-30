@@ -1453,8 +1453,9 @@ static void cmdedit_update_prompt(void)
 		if (G.PS1 == NULL)
 			G.PS1 = "\\w \\$ ";
 		G.PS2 = get_local_var_value("PS2");
-	} else
+	} else {
 		G.PS1 = NULL;
+	}
 	if (G.PS2 == NULL)
 		G.PS2 = "> ";
 }
