@@ -530,27 +530,39 @@ static void parse_conf(const char *path, int flag)
 	while (fgets(buf, sizeof(buf), f) != NULL) {
 		unsigned strlen_buf;
 		unsigned char ch;
-		char *after_colon = NULL;
+		char *after_colon;
 
 		{ /* remove all whitespace, and # comments */
 			char *p, *p0;
 
-			p = p0 = buf;
-			while ((ch = *p0++) != '\0' && ch != '#') {
-				if (!isspace(ch)) {
+			p0 = buf;
+			/* skip non-whitespace beginning. Often the whole line
+			 * is non-whitespace. We want this case to work fast,
+			 * without needless copying, therefore we don't merge
+			 * this operation into next while loop. */
+			while ((ch = *p0) != '\0' && ch != '\n' && ch != '#'
+			 && ch != ' ' && ch != '\t'
+			) {
+				p0++;
+			}
+			p = p0;
+			/* if we enter this loop, we have some whitespace.
+			 * discard it */
+			while (ch != '\0' && ch != '\n' && ch != '#') {
+				if (ch != ' ' && ch != '\t') {
 					*p++ = ch;
-					if (ch == ':' && after_colon == NULL)
-						after_colon = p;
 				}
+				ch = *++p0;
 			}
 			*p = '\0';
 			strlen_buf = p - buf;
 			if (strlen_buf == 0)
-				continue;
+				continue; /* empty line */
 		}
 
+		after_colon = strchr(buf, ':');
 		/* strange line? */
-		if (after_colon == NULL || *after_colon == '\0')
+		if (after_colon == NULL || *++after_colon == '\0')
 			goto config_error;
 
 		ch = (buf[0] & ~0x20); /* toupper if it's a letter */
