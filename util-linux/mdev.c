@@ -564,7 +564,10 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 				make_device(temp, 1);
 		}
 		else if (strcmp(action, "add") == 0) {
-			make_device(temp, 0);
+			/* make_device mangles its parameter, use a copy */
+			char *s = xstrdup(temp);
+			make_device(s, 0);
+			free(s);
 			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
 				if (fw)
 					load_firmware(fw, temp);
