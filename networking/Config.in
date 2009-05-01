@@ -13,7 +13,7 @@ config FEATURE_IPV6
 	  This adds IPv6 support in the networking applets.
 
 config FEATURE_UNIX_LOCAL
-	bool "Enable Unix domain socket support"
+	bool "Enable Unix domain socket support (usually not needed)"
 	default n
 	help
 	  Enable Unix domain socket support in all busybox networking
