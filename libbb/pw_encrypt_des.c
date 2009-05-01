@@ -778,8 +778,10 @@ des_crypt(struct des_ctx *ctx, char output[DES_OUT_BUFSIZE],
 	to64_msb_first(output + 2, (r0 >> 8));
 	/* bits 7..0 of r0 and 31..16 of r1 */
 	to64_msb_first(output + 6, (r0 << 16) | (r1 >> 16));
-	/* (bits 15..0 of r1 + 00) and NUL byte */
+	/* bits 15..0 of r1 and two zero bits (plus extra zero byte) */
 	to64_msb_first(output + 10, (r1 << 8));
+	/* extra zero byte is encoded as '.', fixing it */
+	output[13] = '\0';
 #endif
 
 	return output;
