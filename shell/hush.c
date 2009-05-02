@@ -2646,7 +2646,9 @@ static int setup_redirects(struct command *prog, int squirrel[])
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
 			/* rd_fd<<HERE case */
-			if (squirrel && redir->rd_fd < 3) {
+			if (squirrel && redir->rd_fd < 3
+			 && squirrel[redir->rd_fd] < 0
+			) {
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
@@ -2682,7 +2684,9 @@ static int setup_redirects(struct command *prog, int squirrel[])
 		}
 
 		if (openfd != redir->rd_fd) {
-			if (squirrel && redir->rd_fd < 3) {
+			if (squirrel && redir->rd_fd < 3
+			 && squirrel[redir->rd_fd] < 0
+			) {
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			if (openfd == REDIRFD_CLOSE) {
