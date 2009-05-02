@@ -6142,7 +6142,6 @@ int hush_main(int argc, char **argv)
 	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
 		FILE *input;
-		/* TODO: what should argv be while sourcing /etc/profile? */
 		debug_printf("sourcing /etc/profile\n");
 		input = fopen_for_read("/etc/profile");
 		if (input != NULL) {
@@ -6875,6 +6874,7 @@ static int builtin_shift(char **argv)
 
 static int builtin_source(char **argv)
 {
+	const char *PATH;
 	FILE *input;
 	save_arg_t sv;
 #if ENABLE_HUSH_FUNCTIONS
@@ -6884,12 +6884,36 @@ static int builtin_source(char **argv)
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
 
-// TODO: search through $PATH is missing
+	if (strchr(*argv, '/') == NULL
+	 && (PATH = get_local_var_value("PATH")) != NULL
+	) {
+		/* Search through $PATH */
+		while (1) {
+			const char *end = strchrnul(PATH, ':');
+			int sz = end - PATH; /* must be int! */
+
+			if (sz != 0) {
+				char *tmp = xasprintf("%.*s/%s", sz, PATH, *argv);
+				input = fopen_for_read(tmp);
+				free(tmp);
+			} else {
+				/* We have xxx::yyyy in $PATH,
+				 * it means "use current dir" */
+				input = fopen_for_read(*argv);
+			}
+			if (input)
+				goto opened_ok;
+			if (*end == '\0')
+				break;
+			PATH = end + 1;
+		}
+	}
 	input = fopen_or_warn(*argv, "r");
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
 		return EXIT_FAILURE;
 	}
+ opened_ok:
 	close_on_exec_on(fileno(input));
 
 #if ENABLE_HUSH_FUNCTIONS
