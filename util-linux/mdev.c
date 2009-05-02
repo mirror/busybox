@@ -241,7 +241,8 @@ static void make_device(char *path, int delete)
 			 * the rest the line unless keep_matching == 1 */
 
 			/* 2nd field: uid:gid - device ownership */
-			parse_chown_usergroup_or_die(&ugid, tokens[1]);
+			if (get_uidgid(&ugid, tokens[1], 1) == 0)
+				bb_error_msg("unknown user/group %s", tokens[1]);
 
 			/* 3rd field: mode - device permissions */
 			mode = strtoul(tokens[2], NULL, 8);
