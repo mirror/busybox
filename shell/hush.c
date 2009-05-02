@@ -780,12 +780,12 @@ static void syntax_error_unterm_str(unsigned lineno, const char *s)
 	die_if_script(lineno, "syntax error: unterminated %s", s);
 }
 
-static void syntax_error_unexpected_ch(unsigned lineno, char ch)
+static void syntax_error_unexpected_ch(unsigned lineno, int ch)
 {
 	char msg[2];
 	msg[0] = ch;
 	msg[1] = '\0';
-	die_if_script(lineno, "syntax error: unexpected %s", msg);
+	die_if_script(lineno, "syntax error: unexpected %s", ch == EOF ? "EOF" : msg);
 }
 
 #if HUSH_DEBUG < 2
@@ -5448,10 +5448,17 @@ static struct pipe *parse_stream(char **pstring,
 
 			if (heredoc_cnt) {
 				syntax_error_unterm_str("here document");
-				xfunc_die();
+				goto parse_error;
 			}
+			/* end_trigger == '}' case errors out earlier,
+			 * checking only ')' */
+			if (end_trigger == ')') {
+				syntax_error_unterm_ch('('); /* exits */
+				/* goto parse_error; */
+			}
+
 			if (done_word(&dest, &ctx)) {
-				xfunc_die();
+				goto parse_error;
 			}
 			o_free(&dest);
 			done_pipe(&ctx, PIPE_SEQ);
