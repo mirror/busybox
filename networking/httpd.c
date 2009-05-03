@@ -32,7 +32,7 @@
  *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
  *  bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
  * Note that url encoding for arguments is not the same as html encoding for
- * presentation.  -d decodes a url-encoded argument while -e encodes in html
+ * presentation.  -d decodes an url-encoded argument while -e encodes in html
  * for page display.
  *
  * httpd.conf has the following format:
@@ -94,6 +94,7 @@
  * server exits with an error.
  *
  */
+ /* TODO: use TCP_CORK, parse_config() */
 
 #include "libbb.h"
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
@@ -1538,11 +1539,6 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			send_headers_and_exit(HTTP_NOT_FOUND);
 		log_and_exit();
 	}
-
-	if (DEBUG)
-		bb_error_msg("sending file '%s' content-type: %s",
-			url, found_mime_type);
-
 	/* If you want to know about EPIPE below
 	 * (happens if you abort downloads from local httpd): */
 	signal(SIGPIPE, SIG_IGN);
@@ -1570,6 +1566,11 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			}
 		}
 	}
+
+	if (DEBUG)
+		bb_error_msg("sending file '%s' content-type: %s",
+			url, found_mime_type);
+
 #if ENABLE_FEATURE_HTTPD_RANGES
 	if (what == SEND_BODY)
 		range_start = 0; /* err pages and ranges don't mix */
@@ -2085,7 +2086,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		header_ptr += 2;
 		write(proxy_fd, header_buf, header_ptr - header_buf);
 		free(header_buf); /* on the order of 8k, free it */
-		/* cgi_io_loop_and_exit needs to have two disctinct fds */
+		/* cgi_io_loop_and_exit needs to have two distinct fds */
 		cgi_io_loop_and_exit(proxy_fd, dup(proxy_fd), length);
 	}
 #endif
