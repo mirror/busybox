@@ -50,14 +50,9 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      change { and } from special chars to reserved words
  *      $var refs in function do not pick up values set by "var=val func"
  *      builtins: ulimit
  *      follow IFS rules more precisely, including update semantics
- *      figure out what to do with backslash-newline
- *      continuation lines, both explicit and implicit - done?
- *      separate job control from interactiveness
- *      (testcase: booting with init=/bin/hush does not show prompt (2009-04))
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -5347,10 +5342,12 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * $, `, ", \, or <newline>.  A double quote may be quoted
 		 * within double quotes by preceding it with a backslash.
 		 */
-		if (strchr("$`\"\\", next) != NULL) {
+		if (strchr("$`\"\\\n", next) != NULL) {
 			ch = i_getch(input);
-			o_addqchr(dest, ch);
-			nommu_addchr(as_string, ch);
+			if (ch != '\n') {
+				o_addqchr(dest, ch);
+				nommu_addchr(as_string, ch);
+			}
 		} else {
 			o_addqchr(dest, '\\');
 			nommu_addchr(as_string, '\\');
@@ -5677,13 +5674,16 @@ static struct pipe *parse_stream(char **pstring,
 				syntax_error("\\<eof>");
 				xfunc_die();
 			}
-			o_addchr(&dest, '\\');
 			ch = i_getch(input);
-			nommu_addchr(&ctx.as_string, ch);
-			o_addchr(&dest, ch);
-			/* Example: echo Hello \2>file
-			 * we need to know that word 2 is quoted */
-			dest.o_quoted = 1;
+			if (ch != '\n') {
+				o_addchr(&dest, '\\');
+				nommu_addchr(&ctx.as_string, '\\');
+				o_addchr(&dest, ch);
+				nommu_addchr(&ctx.as_string, ch);
+				/* Example: echo Hello \2>file
+				 * we need to know that word 2 is quoted */
+				dest.o_quoted = 1;
+			}
 			break;
 		case '$':
 			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
