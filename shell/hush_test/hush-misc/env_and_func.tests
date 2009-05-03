@@ -1,5 +1,3 @@
-# UNFIXED BUG
-
 var=old
 f() { echo "var=$var"; }
 var=val f
