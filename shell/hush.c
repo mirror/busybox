@@ -904,28 +904,18 @@ static char **xx_add_string_to_strings(int lineno, char **strings, char *add)
 	xx_add_string_to_strings(__LINE__, strings, add)
 #endif
 
-static int unset_local_var(const char *name);
-
-static void free_strings_and_unset(char **strings, int unset)
+static void free_strings(char **strings)
 {
 	char **v;
 
 	if (!strings)
 		return;
-
 	v = strings;
 	while (*v) {
-		if (unset) {
-			unset_local_var(*v);
-		}
-		free(*v++);
+		free(*v);
+		v++;
 	}
 	free(strings);
-}
-
-static void free_strings(char **strings)
-{
-	free_strings_and_unset(strings, 0);
 }
 
 
@@ -1340,25 +1330,21 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 	return 0;
 }
 
-static int unset_local_var(const char *name)
+static int unset_local_var_len(const char *name, int name_len)
 {
 	struct variable *cur;
-	struct variable *prev = prev; /* for gcc */
-	int name_len;
+	struct variable **var_pp;
 
 	if (!name)
 		return EXIT_SUCCESS;
-	name_len = strlen(name);
-	cur = G.top_var;
-	while (cur) {
+	var_pp = &G.top_var;
+	while ((cur = *var_pp) != NULL) {
 		if (strncmp(cur->varstr, name, name_len) == 0 && cur->varstr[name_len] == '=') {
 			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return EXIT_FAILURE;
 			}
-			/* prev is ok to use here because 1st variable, HUSH_VERSION,
-			 * is ro, and we cannot reach this code on the 1st pass */
-			prev->next = cur->next;
+			*var_pp = cur->next;
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, cur->varstr);
 			bb_unsetenv(cur->varstr);
 			if (name_len == 3 && cur->varstr[0] == 'P' && cur->varstr[1] == 'S')
@@ -1368,10 +1354,29 @@ static int unset_local_var(const char *name)
 			free(cur);
 			return EXIT_SUCCESS;
 		}
-		prev = cur;
-		cur = cur->next;
+		var_pp = &cur->next;
 	}
 	return EXIT_SUCCESS;
+}
+
+static int unset_local_var(const char *name)
+{
+	return unset_local_var_len(name, strlen(name));
+}
+
+static void unset_vars(char **strings)
+{
+	char **v;
+
+	if (!strings)
+		return;
+	v = strings;
+	while (*v) {
+		const char *eq = strchrnul(*v, '=');
+		unset_local_var_len(*v, (int)(eq - *v));
+		v++;
+	}
+	free(strings);
 }
 
 #if ENABLE_SH_MATH_SUPPORT
@@ -1411,13 +1416,17 @@ static void add_vars(struct variable *var)
 		next = var->next;
 		var->next = G.top_var;
 		G.top_var = var;
-		if (var->flg_export)
+		if (var->flg_export) {
+			debug_printf_env("%s: restoring exported '%s'\n", __func__, var->varstr);
 			putenv(var->varstr);
+		} else {
+			debug_printf_env("%s: restoring local '%s'\n", __func__, var->varstr);
+		}
 		var = next;
 	}
 }
 
-static struct variable *set_vars_all_and_save_old(char **strings)
+static struct variable *set_vars_and_save_old(char **strings)
 {
 	char **s;
 	struct variable *old = NULL;
@@ -1438,6 +1447,7 @@ static struct variable *set_vars_all_and_save_old(char **strings)
 			if (var_pp) {
 				/* Remove variable from global linked list */
 				var_p = *var_pp;
+				debug_printf_env("%s: removing '%s'\n", __func__, var_p->varstr);
 				*var_pp = var_p->next;
 				/* Add it to returned list */
 				var_p->next = old;
@@ -3021,13 +3031,13 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 
 	new_env = expand_assignments(argv, assignment_cnt);
 #if BB_MMU
-	set_vars_all_and_save_old(new_env);
+	set_vars_and_save_old(new_env);
 	free(new_env); /* optional */
-	/* we can also destroy set_vars_all_and_save_old's return value,
+	/* we can also destroy set_vars_and_save_old's return value,
 	 * to save memory */
 #else
 	nommu_save->new_env = new_env;
-	nommu_save->old_vars = set_vars_all_and_save_old(new_env);
+	nommu_save->old_vars = set_vars_and_save_old(new_env);
 #endif
 	if (argv_expanded) {
 		argv = argv_expanded;
@@ -3554,7 +3564,7 @@ static int run_pipe(struct pipe *pi)
 			rcode = setup_redirects(command, squirrel);
 			if (rcode == 0) {
 				new_env = expand_assignments(argv, command->assignment_cnt);
-				old_vars = set_vars_all_and_save_old(new_env);
+				old_vars = set_vars_and_save_old(new_env);
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->cmd, argv_expanded[1]);
@@ -3573,7 +3583,7 @@ static int run_pipe(struct pipe *pi)
  clean_up_and_ret:
 #endif
 			restore_redirects(squirrel);
-			free_strings_and_unset(new_env, 1);
+			unset_vars(new_env);
 			add_vars(old_vars);
  clean_up_and_ret1:
 			free(argv_expanded);
@@ -3589,7 +3599,7 @@ static int run_pipe(struct pipe *pi)
 			rcode = setup_redirects(command, squirrel);
 			if (rcode == 0) {
 				new_env = expand_assignments(argv, command->assignment_cnt);
-				old_vars = set_vars_all_and_save_old(new_env);
+				old_vars = set_vars_and_save_old(new_env);
 				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 					argv_expanded[0], argv_expanded[1]);
 				rcode = run_nofork_applet(i, argv_expanded);
@@ -3687,7 +3697,7 @@ static int run_pipe(struct pipe *pi)
 		/* Clean up after vforked child */
 		free(nommu_save.argv);
 		free(nommu_save.argv_from_re_execing);
-		free_strings_and_unset(nommu_save.new_env, 1);
+		unset_vars(nommu_save.new_env);
 		add_vars(nommu_save.old_vars);
 #endif
 		free(argv_expanded);
