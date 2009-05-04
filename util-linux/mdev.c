@@ -101,8 +101,12 @@ static char *build_alias(char *alias, const char *device_name)
 	return alias;
 }
 
-/* mknod in /dev based on a path like "/sys/block/hda/hda1" */
-/* NB: "mdev -s" may call us many times, do not leak memory/fds! */
+/* mknod in /dev based on a path like "/sys/block/hda/hda1"
+ * NB1: path parameter needs to have SCRATCH_SIZE scratch bytes
+ * after NUL, but we promise to not mangle (IOW: to restore if needed)
+ * path string.
+ * NB2: "mdev -s" may call us many times, do not leak memory/fds!
+ */
 static void make_device(char *path, int delete)
 {
 	char *device_name;
@@ -565,10 +569,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 				make_device(temp, 1);
 		}
 		else if (strcmp(action, "add") == 0) {
-			/* make_device mangles its parameter, use a copy */
-			char *s = xstrdup(temp);
-			make_device(s, 0);
-			free(s);
+			make_device(temp, 0);
 			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
 				if (fw)
 					load_firmware(fw, temp);
