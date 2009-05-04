@@ -2924,13 +2924,13 @@ static void unset_func(const char *name)
 	while ((funcp = *funcpp) != NULL) {
 		if (strcmp(funcp->name, name) == 0) {
 			*funcpp = funcp->next;
-			/* funcp is unlinked now, deleting it */
-			free(funcp->name);
-			/* Note: if !funcp->body, do not free body_as_string!
-			 * This is a special case of "-F name body" function:
-			 * body_as_string was not malloced! */
+			/* funcp is unlinked now, deleting it.
+			 * Note: if !funcp->body, the function was created by
+			 * "-F name body", do not free ->body_as_string
+			 * and ->name as they were not malloced. */
 			if (funcp->body) {
 				free_pipe_list(funcp->body);
+				free(funcp->name);
 # if !BB_MMU
 				free(funcp->body_as_string);
 # endif
