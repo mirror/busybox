@@ -114,9 +114,8 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 
 	if (!(archive_handle->ah_flags & ARCHIVE_NOPRESERVE_OWN)) {
-		if (ENABLE_FEATURE_TAR_UNAME_GNAME
-		 && !(archive_handle->ah_flags & ARCHIVE_NUMERIC_OWNER)
-		) {
+#if ENABLE_FEATURE_TAR_UNAME_GNAME
+		if (!(archive_handle->ah_flags & ARCHIVE_NUMERIC_OWNER)) {
 			uid_t uid = file_header->uid;
 			gid_t gid = file_header->gid;
 
@@ -129,9 +128,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				if (grp) gid = grp->gr_gid;
 			}
 			lchown(file_header->name, uid, gid);
-		} else {
+		} else
+#endif
 			lchown(file_header->name, file_header->uid, file_header->gid);
-		}
 	}
 	if ((file_header->mode & S_IFMT) != S_IFLNK) {
 		/* uclibc has no lchmod, glibc is even stranger -
