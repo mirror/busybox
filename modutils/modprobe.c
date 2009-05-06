@@ -8,6 +8,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+/* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
+ * we expect the full dependency list to be specified in modules.dep.  Older
+ * versions would only export the direct dependency list.
+ */
+
 #include "libbb.h"
 #include "modutils.h"
 #include <sys/utsname.h>
