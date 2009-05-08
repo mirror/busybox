@@ -251,6 +251,7 @@ FEATURE_CLEAN_UP
   For right now, exit() handles it just fine.
 
 
+
 Minor stuff:
   watchdog.c could autodetect the timer duration via:
     if(!ioctl (fd, WDIOC_GETTIMEOUT, &tmo)) timer_duration = 1 + (tmo / 2);
