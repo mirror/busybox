@@ -3,7 +3,7 @@
 
 RESOLV_CONF="/etc/resolv.conf"
 
-[ -n "$1" ] || echo "Error: should be called from udhcpc" && exit 1
+[ -n "$1" ] || { echo "Error: should be called from udhcpc"; exit 1; }
 
 NETMASK=""
 [ -n "$subnet" ] && NETMASK="netmask $subnet"

@@ -501,11 +501,14 @@ static int tftp_protocol(
 				}
 				continue; /* send ACK */
 			}
+/* Disabled to cope with servers with Sorcerer's Apprentice Syndrome */
+#if 0
 			if (recv_blk == (block_nr - 1)) {
 				/* Server lost our TFTP_ACK.  Resend it */
 				block_nr = recv_blk;
 				continue;
 			}
+#endif
 		}
 
 		if (CMD_PUT(option_mask32) && (opcode == TFTP_ACK)) {
