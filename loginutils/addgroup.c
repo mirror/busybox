@@ -11,6 +11,10 @@
  */
 #include "libbb.h"
 
+#if CONFIG_LAST_SYSTEM_ID < CONFIG_FIRST_SYSTEM_ID
+#error Bad LAST_SYSTEM_ID or FIRST_SYSTEM_ID in .config
+#endif
+
 #define OPT_GID                       (1 << 0)
 #define OPT_SYSTEM_ACCOUNT            (1 << 1)
 
@@ -30,11 +34,11 @@ static void xgroup_study(struct group *g)
 	/* gid values is set to [0, INT_MAX] */
 	if (!(option_mask32 & OPT_GID)) {
 		if (option_mask32 & OPT_SYSTEM_ACCOUNT) {
-			g->gr_gid = 100; /* FIRST_SYSTEM_GID */
-			max = 999;       /* LAST_SYSTEM_GID */
+			g->gr_gid = CONFIG_FIRST_SYSTEM_ID;
+			max = CONFIG_LAST_SYSTEM_ID;
 		} else {
-			g->gr_gid = 1000; /* FIRST_GID */
-			max = 64999;      /* LAST_GID */
+			g->gr_gid = CONFIG_LAST_SYSTEM_ID + 1;
+			max = 64999;
 		}
 	}
 	/* Check if the desired gid is free

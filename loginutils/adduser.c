@@ -9,6 +9,10 @@
  */
 #include "libbb.h"
 
+#if CONFIG_LAST_SYSTEM_ID < CONFIG_FIRST_SYSTEM_ID
+#error Bad LAST_SYSTEM_ID or FIRST_SYSTEM_ID in .config
+#endif
+
 /* #define OPT_HOME           (1 << 0) */ /* unused */
 /* #define OPT_GECOS          (1 << 1) */ /* unused */
 #define OPT_SHELL          (1 << 2)
@@ -32,11 +36,11 @@ static void passwd_study(struct passwd *p)
 
 	if (!(option_mask32 & OPT_UID)) {
 		if (option_mask32 & OPT_SYSTEM_ACCOUNT) {
-			p->pw_uid = 100; /* FIRST_SYSTEM_UID */
-			max = 999;       /* LAST_SYSTEM_UID */
+			p->pw_uid = CONFIG_FIRST_SYSTEM_ID;
+			max = CONFIG_LAST_SYSTEM_ID;
 		} else {
-			p->pw_uid = 1000; /* FIRST_UID */
-			max = 64999;      /* LAST_UID */
+			p->pw_uid = CONFIG_LAST_SYSTEM_ID + 1;
+			max = 64999;
 		}
 	}
 	/* check for a free uid (and maybe gid) */
