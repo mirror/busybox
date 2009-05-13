@@ -783,7 +783,7 @@ static bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
 	if (!xdr_fhandle3(xdrs, &objp->fhandle))
 		return FALSE;
 	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
-				sizeof (int), (xdrproc_t) xdr_int))
+				sizeof(int), (xdrproc_t) xdr_int))
 		return FALSE;
 	return TRUE;
 }
@@ -936,7 +936,7 @@ static void error_msg_rpc(const char *msg)
 }
 
 /* NB: mp->xxx fields may be trashed on exit */
-static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 {
 	CLIENT *mclient;
 	char *hostname;
