@@ -1,5 +1,5 @@
-func() { 
-	eval "echo \"\${val_${1}}\"" 
+func() {
+	eval "echo \"\${val_${1}}\""
 }
 
 val_x=24 

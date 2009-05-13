@@ -282,3 +282,39 @@ Replace deprecated functions.
 ---
 vdprintf() -> similar sized functionality
 ---
+
+(TODO list after discussion 11.05.2009)
+
+* shrink tc/brctl/ip
+  tc/brctl seem like fairly large things to try and tackle in your timeframe,
+  and i think people have posted attempts in the past. adding additional
+  options to ip though seems reasonable.
+
+* add tests for some applets
+
+* implement POSIX utilities and audit them for POSIX conformance. then
+  audit them for GNU conformance. then document all your findings in a new
+  doc/conformance.txt file while perhaps implementing some of the missing
+  features.
+  you can find the latest POSIX documentation (1003.1-2008) here:
+  http://www.opengroup.org/onlinepubs/9699919799/
+  and the complete list of all utilities that POSIX covers:
+  http://www.opengroup.org/onlinepubs/9699919799/idx/utilities.html
+  The first step would to generate a file/matrix what is already archived
+  (also IPV6)
+
+* ntpdate/ntpd (see ntpclient and openntp for examples)
+
+* implement 'at'
+
+* rpcbind (former portmap) or equivalent
+  so that we don't have to use -o nolock on nfs mounts
+
+* check IPV6 compliance
+
+* generate a mini example using kernel+busybox only (+libc) for example
+
+* more support for advanced linux 2.6.x features, see: iotop
+  most likely there is more
+
+* even more support for statistics: mpstat, iostat, powertop....
