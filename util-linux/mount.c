@@ -942,6 +942,9 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	char *hostname;
 	char *pathname;
 	char *mounthost;
+	/* prior to 2.6.23, kernel took NFS options in a form of this struct
+	 * only. 2.6.23+ looks at data->version, and if it's not 1..6,
+	 * then data pointer is interpreted as a string. */
 	struct nfs_mount_data data;
 	char *opt;
 	struct hostent *hp;
@@ -968,7 +971,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	int nfsprog;
 	int nfsvers;
 	int retval;
-	/* these all are one-bit really. 4.3.1 likes this combination: */
+	/* these all are one-bit really. gcc 4.3.1 likes this combination: */
 	smallint tcp;
 	smallint soft;
 	int intr;
