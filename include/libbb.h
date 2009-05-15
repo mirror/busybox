@@ -965,6 +965,12 @@ enum {
 	/* How long the longest ESC sequence we know? */
 	KEYCODE_BUFFER_SIZE = 4
 };
+/* Note: fd may be in blocking or non-blocking mode, both make sense.
+ * For one, less uses non-blocking mode.
+ * Only the first read syscall inside read_key may block indefinitely
+ * (unless fd is in non-blocking mode),
+ * subsequent reads will time out after a few milliseconds.
+ */
 int read_key(int fd, smalluint *nbuffered, char *buffer) FAST_FUNC;
 
 
