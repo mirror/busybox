@@ -1430,6 +1430,22 @@ static void win_changed(int nsig)
 		signal(SIGWINCH, win_changed); /* rearm ourself */
 }
 
+static int lineedit_read_key(smalluint *read_key_bufsize, char *read_key_buffer)
+{
+	int ic;
+	struct pollfd pfd;
+	pfd.fd = STDIN_FILENO;
+	pfd.events = POLLIN;
+	do {
+		/* Wait for input. Can't just call read_key, it will return
+		 * at once if stdin is in non-blocking mode. */
+		safe_poll(&pfd, 1, -1);
+		/* note: read_key sets errno to 0 on success: */
+		ic = read_key(STDIN_FILENO, read_key_bufsize, read_key_buffer);
+	} while (errno == EAGAIN);
+	return ic;
+}
+
 /*
  * The emacs and vi modes share much of the code in the big
  * command loop.  Commands entered when in vi's command mode (aka
@@ -1438,7 +1454,7 @@ static void win_changed(int nsig)
  * big switch a bit, but keeps all the code in one place.
  */
 
-#define vbit 0x100
+#define VI_CMDMODE_BIT 0x100
 
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
@@ -1459,15 +1475,15 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = FALSE;
 #endif
-	unsigned ic;
-	unsigned char c;
+	int ic;
 	smallint break_out = 0;
 #if ENABLE_FEATURE_EDITING_VI
 	smallint vi_cmdmode = 0;
-	smalluint prevc;
 #endif
 	struct termios initial_settings;
 	struct termios new_settings;
+	smalluint read_key_bufsize;
+	char read_key_buffer[KEYCODE_BUFFER_SIZE];
 
 	INIT_S();
 
@@ -1545,42 +1561,40 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 
 	while (1) {
 		fflush(NULL);
-
-		if (nonblock_safe_read(STDIN_FILENO, &c, 1) < 1) {
-			/* if we can't read input then exit */
-			goto prepare_to_die;
-		}
-
-		ic = c;
+		ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
 
 #if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
-		if (vi_cmdmode)
-			ic |= vbit;
+		if (vi_cmdmode) {
+			/* btw, since KEYCODE_xxx are all < 0, this doesn't
+			 * change ic if it contains one of them: */
+			ic |= VI_CMDMODE_BIT;
+		}
 #endif
+
 		switch (ic) {
 		case '\n':
 		case '\r':
-		vi_case('\n'|vbit:)
-		vi_case('\r'|vbit:)
+		vi_case('\n'|VI_CMDMODE_BIT:)
+		vi_case('\r'|VI_CMDMODE_BIT:)
 			/* Enter */
 			goto_new_line();
 			break_out = 1;
 			break;
 		case CTRL('A'):
-		vi_case('0'|vbit:)
+		vi_case('0'|VI_CMDMODE_BIT:)
 			/* Control-a -- Beginning of line */
 			input_backward(cursor);
 			break;
 		case CTRL('B'):
-		vi_case('h'|vbit:)
-		vi_case('\b'|vbit:)
-		vi_case('\x7f'|vbit:) /* DEL */
+		vi_case('h'|VI_CMDMODE_BIT:)
+		vi_case('\b'|VI_CMDMODE_BIT:)
+		vi_case('\x7f'|VI_CMDMODE_BIT:) /* DEL */
 			/* Control-b -- Move back one character */
 			input_backward(1);
 			break;
 		case CTRL('C'):
-		vi_case(CTRL('C')|vbit:)
+		vi_case(CTRL('C')|VI_CMDMODE_BIT:)
 			/* Control-c -- stop gathering input */
 			goto_new_line();
 			command_len = 0;
@@ -1598,31 +1612,27 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			}
 			input_delete(0);
 			break;
-
 		case CTRL('E'):
-		vi_case('$'|vbit:)
+		vi_case('$'|VI_CMDMODE_BIT:)
 			/* Control-e -- End of line */
 			input_end();
 			break;
 		case CTRL('F'):
-		vi_case('l'|vbit:)
-		vi_case(' '|vbit:)
+		vi_case('l'|VI_CMDMODE_BIT:)
+		vi_case(' '|VI_CMDMODE_BIT:)
 			/* Control-f -- Move forward one character */
 			input_forward();
 			break;
-
 		case '\b':
 		case '\x7f': /* DEL */
 			/* Control-h and DEL */
 			input_backspace();
 			break;
-
 #if ENABLE_FEATURE_TAB_COMPLETION
 		case '\t':
 			input_tab(&lastWasTab);
 			break;
 #endif
-
 		case CTRL('K'):
 			/* Control-k -- clear to end of line */
 			command[cursor] = 0;
@@ -1630,31 +1640,29 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			printf("\033[J");
 			break;
 		case CTRL('L'):
-		vi_case(CTRL('L')|vbit:)
+		vi_case(CTRL('L')|VI_CMDMODE_BIT:)
 			/* Control-l -- clear screen */
 			printf("\033[H");
 			redraw(0, command_len - cursor);
 			break;
-
 #if MAX_HISTORY > 0
 		case CTRL('N'):
-		vi_case(CTRL('N')|vbit:)
-		vi_case('j'|vbit:)
+		vi_case(CTRL('N')|VI_CMDMODE_BIT:)
+		vi_case('j'|VI_CMDMODE_BIT:)
 			/* Control-n -- Get next command in history */
 			if (get_next_history())
 				goto rewrite_line;
 			break;
 		case CTRL('P'):
-		vi_case(CTRL('P')|vbit:)
-		vi_case('k'|vbit:)
+		vi_case(CTRL('P')|VI_CMDMODE_BIT:)
+		vi_case('k'|VI_CMDMODE_BIT:)
 			/* Control-p -- Get previous command from history */
 			if (get_previous_history())
 				goto rewrite_line;
 			break;
 #endif
-
 		case CTRL('U'):
-		vi_case(CTRL('U')|vbit:)
+		vi_case(CTRL('U')|VI_CMDMODE_BIT:)
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
 				overlapping_strcpy(command, command + cursor);
@@ -1663,7 +1671,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			}
 			break;
 		case CTRL('W'):
-		vi_case(CTRL('W')|vbit:)
+		vi_case(CTRL('W')|VI_CMDMODE_BIT:)
 			/* Control-W -- Remove the last word */
 			while (cursor > 0 && isspace(command[cursor-1]))
 				input_backspace();
@@ -1672,75 +1680,80 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			break;
 
 #if ENABLE_FEATURE_EDITING_VI
-		case 'i'|vbit:
+		case 'i'|VI_CMDMODE_BIT:
 			vi_cmdmode = 0;
 			break;
-		case 'I'|vbit:
+		case 'I'|VI_CMDMODE_BIT:
 			input_backward(cursor);
 			vi_cmdmode = 0;
 			break;
-		case 'a'|vbit:
+		case 'a'|VI_CMDMODE_BIT:
 			input_forward();
 			vi_cmdmode = 0;
 			break;
-		case 'A'|vbit:
+		case 'A'|VI_CMDMODE_BIT:
 			input_end();
 			vi_cmdmode = 0;
 			break;
-		case 'x'|vbit:
+		case 'x'|VI_CMDMODE_BIT:
 			input_delete(1);
 			break;
-		case 'X'|vbit:
+		case 'X'|VI_CMDMODE_BIT:
 			if (cursor > 0) {
 				input_backward(1);
 				input_delete(1);
 			}
 			break;
-		case 'W'|vbit:
+		case 'W'|VI_CMDMODE_BIT:
 			vi_Word_motion(command, 1);
 			break;
-		case 'w'|vbit:
+		case 'w'|VI_CMDMODE_BIT:
 			vi_word_motion(command, 1);
 			break;
-		case 'E'|vbit:
+		case 'E'|VI_CMDMODE_BIT:
 			vi_End_motion(command);
 			break;
-		case 'e'|vbit:
+		case 'e'|VI_CMDMODE_BIT:
 			vi_end_motion(command);
 			break;
-		case 'B'|vbit:
+		case 'B'|VI_CMDMODE_BIT:
 			vi_Back_motion(command);
 			break;
-		case 'b'|vbit:
+		case 'b'|VI_CMDMODE_BIT:
 			vi_back_motion(command);
 			break;
-		case 'C'|vbit:
+		case 'C'|VI_CMDMODE_BIT:
 			vi_cmdmode = 0;
 			/* fall through */
-		case 'D'|vbit:
+		case 'D'|VI_CMDMODE_BIT:
 			goto clear_to_eol;
 
-		case 'c'|vbit:
+		case 'c'|VI_CMDMODE_BIT:
 			vi_cmdmode = 0;
 			/* fall through */
-		case 'd'|vbit: {
+		case 'd'|VI_CMDMODE_BIT: {
 			int nc, sc;
+			int prev_ic;
+
 			sc = cursor;
-			prevc = ic;
-			if (safe_read(STDIN_FILENO, &c, 1) < 1)
+			prev_ic = ic;
+
+			ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
+			if (errno) /* error */
 				goto prepare_to_die;
-			if (c == (prevc & 0xff)) {
+
+			if ((ic | VI_CMDMODE_BIT) == prev_ic) {
 				/* "cc", "dd" */
 				input_backward(cursor);
 				goto clear_to_eol;
 				break;
 			}
-			switch (c) {
+			switch (ic) {
 			case 'w':
 			case 'W':
 			case 'e':
 			case 'E':
-				switch (c) {
+				switch (ic) {
 				case 'w':   /* "dw", "cw" */
 					vi_word_motion(command, vi_cmdmode);
 					break;
@@ -1763,7 +1776,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				break;
 			case 'b':  /* "db", "cb" */
 			case 'B':  /* implemented as B */
-				if (c == 'b')
+				if (ic == 'b')
 					vi_back_motion(command);
 				else
 					vi_Back_motion(command);
@@ -1774,143 +1787,109 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				input_delete(1);
 				break;
 			case '$':  /* "d$", "c$" */
-			clear_to_eol:
+ clear_to_eol:
 				while (cursor < command_len)
 					input_delete(1);
 				break;
 			}
 			break;
 		}
-		case 'p'|vbit:
+		case 'p'|VI_CMDMODE_BIT:
 			input_forward();
 			/* fallthrough */
-		case 'P'|vbit:
+		case 'P'|VI_CMDMODE_BIT:
 			put();
 			break;
-		case 'r'|vbit:
-			if (safe_read(STDIN_FILENO, &c, 1) < 1)
+		case 'r'|VI_CMDMODE_BIT:
+			ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
+			if (errno) /* error */
 				goto prepare_to_die;
-			if (c == 0)
+			if (ic < ' ' || ic > 255) {
 				beep();
-			else {
-				*(command + cursor) = c;
-				bb_putchar(c);
+			} else {
+				command[cursor] = ic;
+				bb_putchar(ic);
 				bb_putchar('\b');
+			}
+			break;
+		case '\x1b': /* ESC */
+			if (state->flags & VI_MODE) {
+				/* insert mode --> command mode */
+				vi_cmdmode = 1;
+				input_backward(1);
 			}
 			break;
 #endif /* FEATURE_COMMAND_EDITING_VI */
 
-		case '\x1b': /* ESC */
-
-#if ENABLE_FEATURE_EDITING_VI
-			if (state->flags & VI_MODE) {
-				/* ESC: insert mode --> command mode */
-				vi_cmdmode = 1;
-				input_backward(1);
-				break;
-			}
-#endif
-			/* escape sequence follows */
-			if (safe_read(STDIN_FILENO, &c, 1) < 1)
-				goto prepare_to_die;
-			/* different vt100 emulations */
-			if (c == '[' || c == 'O') {
-		vi_case('['|vbit:)
-		vi_case('O'|vbit:)
-				if (safe_read(STDIN_FILENO, &c, 1) < 1)
-					goto prepare_to_die;
-			}
-			if (c >= '1' && c <= '9') {
-				unsigned char dummy;
-
-				if (safe_read(STDIN_FILENO, &dummy, 1) < 1)
-					goto prepare_to_die;
-				if (dummy != '~')
-					c = '\0';
-			}
-
-			switch (c) {
-#if ENABLE_FEATURE_TAB_COMPLETION
-			case '\t':                      /* Alt-Tab */
-				input_tab(&lastWasTab);
-				break;
-#endif
 #if MAX_HISTORY > 0
-			case 'A':
-				/* Up Arrow -- Get previous command from history */
-				if (get_previous_history())
-					goto rewrite_line;
-				beep();
+		case KEYCODE_UP:
+			if (get_previous_history())
+				goto rewrite_line;
+			beep();
+			break;
+		case KEYCODE_DOWN:
+			if (!get_next_history())
 				break;
-			case 'B':
-				/* Down Arrow -- Get next command in history */
-				if (!get_next_history())
-					break;
  rewrite_line:
-				/* Rewrite the line with the selected history item */
-				/* change command */
-				command_len = strlen(strcpy(command, state->history[state->cur_history] ? : ""));
-				/* redraw and go to eol (bol, in vi */
-				redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
-				break;
+			/* Rewrite the line with the selected history item */
+			/* change command */
+			command_len = strlen(strcpy(command, state->history[state->cur_history] ? : ""));
+			/* redraw and go to eol (bol, in vi) */
+			redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
+			break;
 #endif
-			case 'C':
-				/* Right Arrow -- Move forward one character */
-				input_forward();
-				break;
-			case 'D':
-				/* Left Arrow -- Move back one character */
-				input_backward(1);
-				break;
-			case '3':
-				/* Delete */
-				input_delete(0);
-				break;
-			case '1': // vt100? linux vt? or what?
-			case '7': // vt100? linux vt? or what?
-			case 'H': /* xterm's <Home> */
-				input_backward(cursor);
-				break;
-			case '4': // vt100? linux vt? or what?
-			case '8': // vt100? linux vt? or what?
-			case 'F': /* xterm's <End> */
-				input_end();
-				break;
-			default:
-				c = '\0';
-				beep();
-			}
+		case KEYCODE_RIGHT:
+			input_forward();
+			break;
+		case KEYCODE_LEFT:
+			input_backward(1);
+			break;
+		case KEYCODE_DELETE:
+			input_delete(0);
+			break;
+		case KEYCODE_HOME:
+			input_backward(cursor);
+			break;
+		case KEYCODE_END:
+			input_end();
 			break;
 
-		default:        /* If it's regular input, do the normal thing */
-
-			/* Control-V -- force insert of next char */
-			if (c == CTRL('V')) {
-				if (safe_read(STDIN_FILENO, &c, 1) < 1)
-					goto prepare_to_die;
-				if (c == 0) {
-					beep();
-					break;
-				}
+		default:
+//			/* Control-V -- force insert of next char */
+//			if (c == CTRL('V')) {
+//				if (safe_read(STDIN_FILENO, &c, 1) < 1)
+//					goto prepare_to_die;
+//				if (c == 0) {
+//					beep();
+//					break;
+//				}
+//			}
+			if (ic < ' ' || ic > 255) {
+				/* If VI_CMDMODE_BIT is set, ic is >= 256
+				 * and command mode ignores unexpected chars.
+				 * Otherwise, we are here if ic is a
+				 * control char or an unhandled ESC sequence,
+				 * which is also ignored.
+				 */
+				break;
+			}
+			if ((int)command_len >= (maxsize - 2)) {
+				/* Not enough space for the char and EOL */
+				break;
 			}
 
-#if ENABLE_FEATURE_EDITING_VI
-			if (vi_cmdmode)  /* Don't self-insert */
-				break;
-#endif
-			if ((int)command_len >= (maxsize - 2))        /* Need to leave space for enter */
-				break;
-
 			command_len++;
-			if (cursor == (command_len - 1)) {      /* Append if at the end of the line */
-				command[cursor] = c;
-				command[cursor+1] = '\0';
+			if (cursor == (command_len - 1)) {
+				/* We are at the end, append */
+				command[cursor] = ic;
+				command[cursor + 1] = '\0';
 				cmdedit_set_out_char(' ');
-			} else {                        /* Insert otherwise */
+			} else {
+				/* In the middle, insert */
 				int sc = cursor;
 
 				memmove(command + sc + 1, command + sc, command_len - sc);
-				command[sc] = c;
+				command[sc] = ic;
 				sc++;
 				/* rewrite from cursor */
 				input_end();
@@ -1918,15 +1897,17 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				input_backward(cursor - sc);
 			}
 			break;
-		}
-		if (break_out)                  /* Enter is the command terminator, no more input. */
+		} /* switch (input_key) */
+
+		if (break_out)
 			break;
 
 #if ENABLE_FEATURE_TAB_COMPLETION
-		if (c != '\t')
+		ic &= ~VI_CMDMODE_BIT;
+		if (ic != '\t')
 			lastWasTab = FALSE;
 #endif
-	}
+	} /* while (1) */
 
 	if (command_len > 0)
 		remember_in_history(command);

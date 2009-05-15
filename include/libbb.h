@@ -1198,23 +1198,23 @@ unsigned long long bb_makedev(unsigned int major, unsigned int minor) FAST_FUNC;
 
 #if ENABLE_FEATURE_EDITING
 /* It's NOT just ENABLEd or disabled. It's a number: */
-#ifdef CONFIG_FEATURE_EDITING_HISTORY
-# define MAX_HISTORY (CONFIG_FEATURE_EDITING_HISTORY + 0)
-#else
-# define MAX_HISTORY 0
-#endif
+# ifdef CONFIG_FEATURE_EDITING_HISTORY
+#  define MAX_HISTORY (CONFIG_FEATURE_EDITING_HISTORY + 0)
+# else
+#  define MAX_HISTORY 0
+# endif
 typedef struct line_input_t {
 	int flags;
 	const char *path_lookup;
-#if MAX_HISTORY
+# if MAX_HISTORY
 	int cnt_history;
 	int cur_history;
-#if ENABLE_FEATURE_EDITING_SAVEHISTORY
+#  if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	unsigned cnt_history_in_file;
 	const char *hist_file;
-#endif
+#  endif
 	char *history[MAX_HISTORY + 1];
-#endif
+# endif
 } line_input_t;
 enum {
 	DO_HISTORY = 1 * (MAX_HISTORY > 0),
@@ -1241,12 +1241,12 @@ int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
 
 
 #ifndef COMM_LEN
-#ifdef TASK_COMM_LEN
+# ifdef TASK_COMM_LEN
 enum { COMM_LEN = TASK_COMM_LEN };
-#else
+# else
 /* synchronize with sizeof(task_struct.comm) in /usr/include/linux/sched.h */
 enum { COMM_LEN = 16 };
-#endif
+# endif
 #endif
 typedef struct procps_status_t {
 	DIR *dir;

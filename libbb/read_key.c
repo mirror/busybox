@@ -66,6 +66,7 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		0
 	};
 
+	errno = 0;
 	n = 0;
 	if (nbuffered)
 		n = *nbuffered;
