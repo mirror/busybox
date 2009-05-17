@@ -299,17 +299,19 @@ static void input_backward(unsigned num)
 
 static void put_prompt(void)
 {
-#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	/* Ask terminal where is cursor now.
-	 * lineedit_read_key handles response and corrects
-	 * our idea of current cursor position.
-	 * Testcase: run "echo -n long_line_long_line_long_line",
-	 * then type in a long, wrapping command and try to
-	 * delete it using backspace key.
-	 */
-	out1str("\033" "[6n");
-#endif
 	out1str(cmdedit_prompt);
+	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL) {
+		/* Ask terminal where is the cursor now.
+		 * lineedit_read_key handles response and corrects
+		 * our idea of current cursor position.
+		 * Testcase: run "echo -n long_line_long_line_long_line",
+		 * then type in a long, wrapping command and try to
+		 * delete it using backspace key.
+		 * Note: we print it _after_ prompt, because
+		 * prompt may contain CR. Example: PS1='\[\r\n\]\w '
+		 */
+		out1str("\033" "[6n");
+	}
 	cursor = 0;
 	{
 		unsigned w = cmdedit_termw; /* volatile var */
@@ -1458,8 +1460,8 @@ static int lineedit_read_key(char *read_key_buffer)
 		 && (int32_t)ic == KEYCODE_CURSOR_POS
 		) {
 			int col = ((ic >> 32) & 0x7fff) - 1;
-			if (col > 0) {
-				cmdedit_x += col;
+			if (col > cmdedit_prmt_len) {
+				cmdedit_x += (col - cmdedit_prmt_len);
 				while (cmdedit_x >= cmdedit_termw) {
 					cmdedit_x -= cmdedit_termw;
 					cmdedit_y++;
@@ -1583,6 +1585,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	/* Print out the command prompt */
 	parse_and_put_prompt(prompt);
 
+	read_key_buffer[0] = 0;
 	while (1) {
 		fflush(NULL);
 		ic = lineedit_read_key(read_key_buffer);
