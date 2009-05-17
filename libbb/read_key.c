@@ -9,7 +9,7 @@
  */
 #include "libbb.h"
 
-int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
+int64_t FAST_FUNC read_key(int fd, char *buffer)
 {
 	struct pollfd pfd;
 	const char *seq;
@@ -67,9 +67,7 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 	};
 
 	errno = 0;
-	n = 0;
-	if (nbuffered)
-		n = *nbuffered;
+	n = (unsigned char) *buffer++;
 	if (n == 0) {
 		/* If no data, block waiting for input. If we read more
 		 * than the minimal ESC sequence size, the "n=0" below
@@ -148,11 +146,54 @@ int FAST_FUNC read_key(int fd, smalluint *nbuffered, char *buffer)
 		}
 	}
 	/* We did not find matching sequence, it was a bare ESC.
-	 * We possibly read and stored more input in buffer[]
-	 * by now. */
+	 * We possibly read and stored more input in buffer[] by now. */
+
+	/* Try to decipher "ESC [ NNN ; NNN R" sequence */
+	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
+	 && n != 0
+	 && buffer[0] == '['
+	) {
+		char *end;
+		unsigned long row, col;
+
+		while (n < KEYCODE_BUFFER_SIZE-1) { /* 1 for cnt */
+			if (safe_poll(&pfd, 1, 50) == 0) {
+				/* No more data! */
+				break;
+			}
+			errno = 0;
+			if (safe_read(fd, buffer + n, 1) <= 0) {
+				/* If EAGAIN, then fd is O_NONBLOCK and poll lied:
+				 * in fact, there is no data. */
+				if (errno != EAGAIN)
+					c = -1; /* otherwise it's EOF/error */
+				goto ret;
+			}
+			if (buffer[n++] == 'R')
+				goto got_R;
+		}
+		goto ret;
+ got_R:
+		if (!isdigit(buffer[1]))
+			goto ret;
+		row = strtoul(buffer + 1, &end, 10);
+		if (*end != ';' || !isdigit(end[1]))
+			goto ret;
+		col = strtoul(end + 1, &end, 10);
+		if (*end != 'R')
+			goto ret;
+		if (row < 1 || col < 1 || (row | col) > 0x7fff)
+			goto ret;
+
+		buffer[-1] = 0;
+
+		/* Pack into "1 <row15bits> <col16bits>" 32-bit sequence */
+		c = (((-1 << 15) | row) << 16) | col;
+		/* Return it in high-order word */
+		return ((int64_t) c << 32) | (uint32_t)KEYCODE_CURSOR_POS;
+	}
 
  ret:
-	if (nbuffered)
-		*nbuffered = n;
+	buffer[-1] = n;
 	return c;
 }

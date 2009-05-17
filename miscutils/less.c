@@ -96,7 +96,6 @@ struct globals {
 	smallint pattern_valid;
 #endif
 	smallint terminated;
-	smalluint kbd_input_size;
 	struct termios term_orig, term_less;
 	char kbd_input[KEYCODE_BUFFER_SIZE];
 };
@@ -135,7 +134,6 @@ struct globals {
 #define terminated          (G.terminated        )
 #define term_orig           (G.term_orig         )
 #define term_less           (G.term_less         )
-#define kbd_input_size      (G.kbd_input_size    )
 #define kbd_input           (G.kbd_input         )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
@@ -806,7 +804,7 @@ static void reinitialize(void)
 	buffer_fill_and_print();
 }
 
-static ssize_t getch_nowait(void)
+static int getch_nowait(void)
 {
 	int rd;
 	struct pollfd pfd[2];
@@ -839,7 +837,7 @@ static ssize_t getch_nowait(void)
 		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
 	fflush(stdout);
 
-	if (kbd_input_size == 0) {
+	if (kbd_input[0] == 0) { /* if nothing is buffered */
 #if ENABLE_FEATURE_LESS_WINCH
 		while (1) {
 			int r;
@@ -856,7 +854,7 @@ static ssize_t getch_nowait(void)
 
 	/* We have kbd_fd in O_NONBLOCK mode, read inside read_key()
 	 * would not block even if there is no input available */
-	rd = read_key(kbd_fd, &kbd_input_size, kbd_input);
+	rd = read_key(kbd_fd, kbd_input);
 	if (rd == -1) {
 		if (errno == EAGAIN) {
 			/* No keyboard input available. Since poll() did return,
@@ -872,9 +870,9 @@ static ssize_t getch_nowait(void)
 	return rd;
 }
 
-/* Grab a character from input without requiring the return key. If the
- * character is ASCII \033, get more characters and assign certain sequences
- * special return codes. Note that this function works best with raw input. */
+/* Grab a character from input without requiring the return key.
+ * May return KEYCODE_xxx values.
+ * Note that this function works best with raw input. */
 static int less_getch(int pos)
 {
 	int i;

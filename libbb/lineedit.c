@@ -86,8 +86,8 @@ struct lineedit_statics {
 	volatile unsigned cmdedit_termw; /* = 80; */ /* actual terminal width */
 	sighandler_t previous_SIGWINCH_handler;
 
-	unsigned cmdedit_x;        /* real x terminal position */
-	unsigned cmdedit_y;        /* pseudoreal y terminal position */
+	unsigned cmdedit_x;        /* real x (col) terminal position */
+	unsigned cmdedit_y;        /* pseudoreal y (row) terminal position */
 	unsigned cmdedit_prmt_len; /* length of prompt (without colors etc) */
 
 	unsigned cursor;
@@ -299,6 +299,16 @@ static void input_backward(unsigned num)
 
 static void put_prompt(void)
 {
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+	/* Ask terminal where is cursor now.
+	 * lineedit_read_key handles response and corrects
+	 * our idea of current cursor position.
+	 * Testcase: run "echo -n long_line_long_line_long_line",
+	 * then type in a long, wrapping command and try to
+	 * delete it using backspace key.
+	 */
+	out1str("\033" "[6n");
+#endif
 	out1str(cmdedit_prompt);
 	cursor = 0;
 	{
@@ -1430,18 +1440,33 @@ static void win_changed(int nsig)
 		signal(SIGWINCH, win_changed); /* rearm ourself */
 }
 
-static int lineedit_read_key(smalluint *read_key_bufsize, char *read_key_buffer)
+static int lineedit_read_key(char *read_key_buffer)
 {
-	int ic;
+	int64_t ic;
 	struct pollfd pfd;
+
 	pfd.fd = STDIN_FILENO;
 	pfd.events = POLLIN;
 	do {
+ poll_again:
 		/* Wait for input. Can't just call read_key, it will return
 		 * at once if stdin is in non-blocking mode. */
 		safe_poll(&pfd, 1, -1);
 		/* note: read_key sets errno to 0 on success: */
-		ic = read_key(STDIN_FILENO, read_key_bufsize, read_key_buffer);
+		ic = read_key(STDIN_FILENO, read_key_buffer);
+		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
+		 && (int32_t)ic == KEYCODE_CURSOR_POS
+		) {
+			int col = ((ic >> 32) & 0x7fff) - 1;
+			if (col > 0) {
+				cmdedit_x += col;
+				while (cmdedit_x >= cmdedit_termw) {
+					cmdedit_x -= cmdedit_termw;
+					cmdedit_y++;
+				}
+			}
+			goto poll_again;
+		}
 	} while (errno == EAGAIN);
 	return ic;
 }
@@ -1482,7 +1507,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #endif
 	struct termios initial_settings;
 	struct termios new_settings;
-	smalluint read_key_bufsize;
 	char read_key_buffer[KEYCODE_BUFFER_SIZE];
 
 	INIT_S();
@@ -1561,7 +1585,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 
 	while (1) {
 		fflush(NULL);
-		ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
+		ic = lineedit_read_key(read_key_buffer);
 
 #if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
@@ -1738,7 +1762,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			sc = cursor;
 			prev_ic = ic;
 
-			ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
+			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
 				goto prepare_to_die;
 
@@ -1801,7 +1825,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			put();
 			break;
 		case 'r'|VI_CMDMODE_BIT:
-			ic = lineedit_read_key(&read_key_bufsize, read_key_buffer);
+			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
 				goto prepare_to_die;
 			if (ic < ' ' || ic > 255) {

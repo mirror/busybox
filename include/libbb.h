@@ -962,16 +962,23 @@ enum {
 	KEYCODE_FUN11    = -22,
 	KEYCODE_FUN12    = -23,
 #endif
-	/* How long the longest ESC sequence we know? */
-	KEYCODE_BUFFER_SIZE = 4
+	KEYCODE_CURSOR_POS = -0x100,
+	/* How long is the longest ESC sequence we know?
+	 * We want it big enough to be able to contain
+	 * cursor position sequence "ESC [ 9999 ; 9999 R"
+	 */
+	KEYCODE_BUFFER_SIZE = 16
 };
 /* Note: fd may be in blocking or non-blocking mode, both make sense.
  * For one, less uses non-blocking mode.
  * Only the first read syscall inside read_key may block indefinitely
  * (unless fd is in non-blocking mode),
  * subsequent reads will time out after a few milliseconds.
+ * Return of -1 means EOF or error (errno == 0 on EOF).
+ * buffer[0] is used as a counter of buffered chars and must be 0
+ * on first call.
  */
-int read_key(int fd, smalluint *nbuffered, char *buffer) FAST_FUNC;
+int64_t read_key(int fd, char *buffer) FAST_FUNC;
 
 
 /* Networking */

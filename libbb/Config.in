@@ -102,6 +102,18 @@ config FEATURE_EDITING_FANCY_PROMPT
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and escape codes.
 
+config FEATURE_EDITING_ASK_TERMINAL
+	bool "Query cursor position from terminal"
+	default n
+	depends on FEATURE_EDITING
+	help
+	  Allow usage of "ESC [ 6 n" sequence. Terminal answers back with
+	  current cursor position. This information is used to make line
+	  editing more robust in some cases.
+	  If you are not sure whether your terminals respond to this code
+	  correctly, or want to save on code size (about 300 bytes),
+	  then do not turn this option on.
+
 config FEATURE_VERBOSE_CP_MESSAGE
 	bool "Give more precise messages when copy fails (cp, mv etc)"
 	default n

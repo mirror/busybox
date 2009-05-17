@@ -151,7 +151,6 @@ struct globals {
 	char erase_char;         // the users erase character
 	char last_input_char;    // last char read from user
 
-	smalluint chars_to_parse;
 #if ENABLE_FEATURE_VI_DOT_CMD
 	smallint adding2q;	 // are we currently adding user input to q
 	int lmc_len;             // length of last_modifying_cmd
@@ -235,7 +234,6 @@ struct globals {
 #define last_forward_char       (G.last_forward_char  )
 #define erase_char              (G.erase_char         )
 #define last_input_char         (G.last_input_char    )
-#define chars_to_parse          (G.chars_to_parse     )
 #if ENABLE_FEATURE_VI_READONLY
 #define readonly_mode           (G.readonly_mode      )
 #else
@@ -620,7 +618,7 @@ static void edit_file(char *fn)
 		// poll to see if there is input already waiting. if we are
 		// not able to display output fast enough to keep up, skip
 		// the display update until we catch up with input.
-		if (!chars_to_parse && mysleep(0) == 0) {
+		if (!readbuffer[0] && mysleep(0) == 0) {
 			// no input pending - so update output
 			refresh(FALSE);
 			show_status_line();
@@ -2206,7 +2204,7 @@ static int readit(void) // read (maybe cursor) key from stdin
 	int c;
 
 	fflush(stdout);
-	c = read_key(STDIN_FILENO, &chars_to_parse, readbuffer);
+	c = read_key(STDIN_FILENO, readbuffer);
 	if (c == -1) { // EOF/error
 		go_bottom_and_clear_to_eol();
 		cookmode(); // terminal to "cooked"
@@ -3851,10 +3849,11 @@ static void crash_dummy()
 	cmd1 = " \n\r\002\004\005\006\025\0310^$-+wWeEbBhjklHL";
 
 	// is there already a command running?
-	if (chars_to_parse > 0)
+	if (readbuffer[0] > 0)
 		goto cd1;
  cd0:
-	startrbi = rbi = 0;
+	readbuffer[0] = 'X';
+	startrbi = rbi = 1;
 	sleeptime = 0;          // how long to pause between commands
 	memset(readbuffer, '\0', sizeof(readbuffer));
 	// generate a command by percentages
@@ -3928,7 +3927,7 @@ static void crash_dummy()
 		}
 		strcat(readbuffer, "\033");
 	}
-	chars_to_parse = strlen(readbuffer);
+	readbuffer[0] = strlen(readbuffer + 1);
  cd1:
 	totalcmds++;
 	if (sleeptime > 0)
