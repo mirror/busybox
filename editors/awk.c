@@ -1571,13 +1571,14 @@ static int awk_split(const char *s, node *spl, char **slist)
 				n++; /* we saw yet another delimiter */
 			} else {
 				pmatch[0].rm_eo = l;
-				if (s[l]) pmatch[0].rm_eo++;
+				if (s[l])
+					pmatch[0].rm_eo++;
 			}
 			memcpy(s1, s, l);
 			/* make sure we remove *all* of the separator chars */
-			while (l < pmatch[0].rm_eo) {
-				s1[l++] = '\0';
-			}
+			do {
+				s1[l] = '\0';
+			} while (++l < pmatch[0].rm_eo);
 			nextword(&s1);
 			s += pmatch[0].rm_eo;
 		} while (*s);
