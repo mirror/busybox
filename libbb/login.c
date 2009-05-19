@@ -62,10 +62,12 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 			case 'm':
 				outbuf = uts.machine;
 				break;
+#ifndef HAVE_NO_UTSNAME_DOMAINNAME
 			case 'D':
 			case 'o':
 				outbuf = uts.domainname;
 				break;
+#endif
 			case 'd':
 				strftime(buf, sizeof(buf), fmtstr_d, localtime(&t));
 				break;
