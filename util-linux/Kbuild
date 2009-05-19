@@ -33,6 +33,7 @@ lib-$(CONFIG_RDEV)              += rdev.o
 lib-$(CONFIG_READPROFILE)       += readprofile.o
 lib-$(CONFIG_RTCWAKE)           += rtcwake.o
 lib-$(CONFIG_SCRIPT)            += script.o
+lib-$(CONFIG_SCRIPTREPLAY)      += scriptreplay.o
 lib-$(CONFIG_SETARCH)           += setarch.o
 lib-$(CONFIG_SWAPONOFF)         += swaponoff.o
 lib-$(CONFIG_SWITCH_ROOT)       += switch_root.o

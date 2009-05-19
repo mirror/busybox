@@ -764,6 +764,13 @@ config SCRIPT
 	help
 	  The script makes typescript of terminal session.
 
+config SCRIPTREPLAY
+	bool "scriptreplay"
+	default n
+	help
+	  This program replays a typescript, using timing information
+	  given by script -t.
+
 config SETARCH
 	bool "setarch"
 	default n

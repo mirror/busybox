@@ -3512,6 +3512,11 @@
      "\n	-g	Process group id(s)" \
      "\n	-u	Process user name(s) and/or id(s)" \
 
+#define scriptreplay_trivial_usage \
+       "timingfile [typescript [divisor]]"
+#define scriptreplay_full_usage "\n\n" \
+       "Play back typescripts, using timing information"
+
 #define reset_trivial_usage \
        ""
 #define reset_full_usage "\n\n" \
@@ -3706,13 +3711,16 @@
        "$ rx /tmp/foo\n"
 
 #define script_trivial_usage \
-       "[-afq] [-c COMMAND] [OUTFILE]"
+       "[-afq" IF_SCRIPTREPLAY("t") "] [-c COMMAND] [OUTFILE]"
 #define script_full_usage "\n\n" \
        "Options:" \
      "\n	-a	Append output" \
      "\n	-c	Run COMMAND, not shell" \
      "\n	-f	Flush output after each write" \
      "\n	-q	Quiet" \
+	IF_SCRIPTREPLAY( \
+     "\n	-t	Send timing to stderr" \
+	)
 
 #define sed_trivial_usage \
        "[-efinr] pattern [files...]"
