@@ -445,6 +445,9 @@ struct globals {
 	int last_jobid;
 	pid_t saved_tty_pgrp;
 	struct pipe *job_list;
+# define G_saved_tty_pgrp (G.saved_tty_pgrp)
+#else
+# define G_saved_tty_pgrp 0
 #endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
@@ -1055,8 +1058,8 @@ enum {
 		| (1 << SIGINT)
 		| (1 << SIGHUP)
 		,
-#if ENABLE_HUSH_JOB
 	SPECIAL_JOB_SIGS = 0
+#if ENABLE_HUSH_JOB
 		| (1 << SIGTTIN)
 		| (1 << SIGTTOU)
 		| (1 << SIGTSTP)
@@ -1088,8 +1091,8 @@ static void sigexit(int sig)
 
 	/* Careful: we can end up here after [v]fork. Do not restore
 	 * tty pgrp then, only top-level shell process does that */
-	if (G.saved_tty_pgrp && getpid() == G.root_pid)
-		tcsetpgrp(G_interactive_fd, G.saved_tty_pgrp);
+	if (G_saved_tty_pgrp && getpid() == G.root_pid)
+		tcsetpgrp(G_interactive_fd, G_saved_tty_pgrp);
 
 	/* Not a signal, just exit */
 	if (sig <= 0)
@@ -3400,7 +3403,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 {
 	pid_t p;
 	int rcode = checkjobs(fg_pipe);
-	if (G.saved_tty_pgrp) {
+	if (G_saved_tty_pgrp) {
 		/* Job finished, move the shell to the foreground */
 		p = getpgrp(); /* our process group id */
 		debug_printf_jobs("fg'ing ourself: getpgrp()=%d\n", (int)p);
@@ -3656,7 +3659,7 @@ static int run_pipe(struct pipe *pi)
 					pgrp = getpid();
 				if (setpgid(0, pgrp) == 0
 				 && pi->followup != PIPE_BG
-				 && G.saved_tty_pgrp /* we have ctty */
+				 && G_saved_tty_pgrp /* we have ctty */
 				) {
 					/* We do it in *every* child, not just first,
 					 * to avoid races */
@@ -5954,7 +5957,7 @@ static void block_signals(int second_time)
 	mask = (1 << SIGQUIT);
 	if (G_interactive_fd) {
 		mask = (1 << SIGQUIT) | SPECIAL_INTERACTIVE_SIGS;
-		if (G.saved_tty_pgrp) /* we have ctty, job control sigs work */
+		if (G_saved_tty_pgrp) /* we have ctty, job control sigs work */
 			mask |= SPECIAL_JOB_SIGS;
 	}
 	G.non_DFL_mask = mask;
@@ -6235,10 +6238,10 @@ int hush_main(int argc, char **argv)
 	 */
 #if ENABLE_HUSH_JOB
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
-		G.saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
-		debug_printf("saved_tty_pgrp:%d\n", G.saved_tty_pgrp);
-		if (G.saved_tty_pgrp < 0)
-			G.saved_tty_pgrp = 0;
+		G_saved_tty_pgrp = tcgetpgrp(STDIN_FILENO);
+		debug_printf("saved_tty_pgrp:%d\n", G_saved_tty_pgrp);
+		if (G_saved_tty_pgrp < 0)
+			G_saved_tty_pgrp = 0;
 
 		/* try to dup stdin to high fd#, >= 255 */
 		G_interactive_fd = fcntl(STDIN_FILENO, F_DUPFD, 255);
@@ -6248,7 +6251,7 @@ int hush_main(int argc, char **argv)
 			if (G_interactive_fd < 0) {
 				/* give up */
 				G_interactive_fd = 0;
-				G.saved_tty_pgrp = 0;
+				G_saved_tty_pgrp = 0;
 			}
 		}
 // TODO: track & disallow any attempts of user
@@ -6258,7 +6261,7 @@ int hush_main(int argc, char **argv)
 	if (G_interactive_fd) {
 		close_on_exec_on(G_interactive_fd);
 
-		if (G.saved_tty_pgrp) {
+		if (G_saved_tty_pgrp) {
 			/* If we were run as 'hush &', sleep until we are
 			 * in the foreground (tty pgrp == our pgrp).
 			 * If we get started under a job aware app (like bash),
@@ -6266,8 +6269,8 @@ int hush_main(int argc, char **argv)
 			 * who gets the foreground */
 			while (1) {
 				pid_t shell_pgrp = getpgrp();
-				G.saved_tty_pgrp = tcgetpgrp(G_interactive_fd);
-				if (G.saved_tty_pgrp == shell_pgrp)
+				G_saved_tty_pgrp = tcgetpgrp(G_interactive_fd);
+				if (G_saved_tty_pgrp == shell_pgrp)
 					break;
 				/* send TTIN to ourself (should stop us) */
 				kill(- shell_pgrp, SIGTTIN);
@@ -6277,7 +6280,7 @@ int hush_main(int argc, char **argv)
 		/* Block some signals */
 		block_signals(signal_mask_is_inited);
 
-		if (G.saved_tty_pgrp) {
+		if (G_saved_tty_pgrp) {
 			/* Set other signals to restore saved_tty_pgrp */
 			set_fatal_handlers();
 			/* Put ourselves in our own process group
@@ -6690,7 +6693,7 @@ static int builtin_fg_bg(char **argv)
  found:
 	/* TODO: bash prints a string representation
 	 * of job being foregrounded (like "sleep 1 | cat") */
-	if (argv[0][0] == 'f' && G.saved_tty_pgrp) {
+	if (argv[0][0] == 'f' && G_saved_tty_pgrp) {
 		/* Put the job into the foreground.  */
 		tcsetpgrp(G_interactive_fd, pi->pgrp);
 	}
