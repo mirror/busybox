@@ -1464,7 +1464,8 @@ static void interpret_standby(uint8_t standby)
 		printf("off");
 	} else if (standby <= 240 || standby == 252 || standby == 255) {
 		/* standby is in 5 sec units */
-		printf("%u minutes %u seconds", standby / (60/5), standby % (60/5));
+		unsigned t = standby * 5;
+		printf("%u minutes %u seconds", t / 60, t % 60);
 	} else if (standby <= 251) {
 		unsigned t = (standby - 240); /* t is in 30 min units */;
 		printf("%u.%c hours", t / 2, (t & 1) ? '5' : '0');
