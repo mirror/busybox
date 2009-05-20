@@ -19,7 +19,7 @@
 /* __restrict is known in EGCS 1.2 and above. */
 #if !__GNUC_PREREQ(2,92)
 # ifndef __restrict
-#  define __restrict     /* Ignore */
+#  define __restrict
 # endif
 #endif
 
@@ -61,14 +61,14 @@
 #  define DEPRECATED __attribute__ ((__deprecated__))
 #  define UNUSED_PARAM_RESULT __attribute__ ((warn_unused_result))
 # else
-#  define DEPRECATED /* n/a */
-#  define UNUSED_PARAM_RESULT /* n/a */
+#  define DEPRECATED
+#  define UNUSED_PARAM_RESULT
 # endif
 #else
-# define ALWAYS_INLINE inline /* n/a */
-# define NOINLINE /* n/a */
-# define DEPRECATED /* n/a */
-# define UNUSED_PARAM_RESULT /* n/a */
+# define ALWAYS_INLINE inline
+# define NOINLINE
+# define DEPRECATED
+# define UNUSED_PARAM_RESULT
 #endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
@@ -144,19 +144,19 @@
 
 /* SWAP_LEnn means "convert CPU<->little_endian by swapping bytes" */
 #if BB_BIG_ENDIAN
-#define SWAP_BE16(x) (x)
-#define SWAP_BE32(x) (x)
-#define SWAP_BE64(x) (x)
-#define SWAP_LE16(x) bswap_16(x)
-#define SWAP_LE32(x) bswap_32(x)
-#define SWAP_LE64(x) bswap_64(x)
+# define SWAP_BE16(x) (x)
+# define SWAP_BE32(x) (x)
+# define SWAP_BE64(x) (x)
+# define SWAP_LE16(x) bswap_16(x)
+# define SWAP_LE32(x) bswap_32(x)
+# define SWAP_LE64(x) bswap_64(x)
 #else
-#define SWAP_BE16(x) bswap_16(x)
-#define SWAP_BE32(x) bswap_32(x)
-#define SWAP_BE64(x) bswap_64(x)
-#define SWAP_LE16(x) (x)
-#define SWAP_LE32(x) (x)
-#define SWAP_LE64(x) (x)
+# define SWAP_BE16(x) bswap_16(x)
+# define SWAP_BE32(x) bswap_32(x)
+# define SWAP_BE64(x) bswap_64(x)
+# define SWAP_LE16(x) (x)
+# define SWAP_LE32(x) (x)
+# define SWAP_LE64(x) (x)
 #endif
 
 /* ---- Unaligned access ------------------------------------ */
@@ -165,15 +165,15 @@
  * a lvalue. This makes it more likely to not swap them by mistake
  */
 #if defined(i386) || defined(__x86_64__)
-#define move_from_unaligned16(v, u16p) ((v) = *(uint16_t*)(u16p))
-#define move_from_unaligned32(v, u32p) ((v) = *(uint32_t*)(u32p))
-#define move_to_unaligned32(u32p, v)   (*(uint32_t*)(u32p) = (v))
+# define move_from_unaligned16(v, u16p) ((v) = *(uint16_t*)(u16p))
+# define move_from_unaligned32(v, u32p) ((v) = *(uint32_t*)(u32p))
+# define move_to_unaligned32(u32p, v)   (*(uint32_t*)(u32p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
 /* performs reasonably well (gcc usually inlines memcpy here) */
-#define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
-#define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
-#define move_to_unaligned32(u32p, v) do { \
+# define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
+# define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
+# define move_to_unaligned32(u32p, v) do { \
 	uint32_t __t = (v); \
 	memcpy((u32p), &__t, 4); \
 } while (0)
@@ -225,21 +225,21 @@ __extension__ typedef unsigned long long __u64;
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
 	|| defined __dietlibc__ || defined _NEWLIB_VERSION
-#include <features.h>
-#define HAVE_FEATURES_H
-#include <stdint.h>
-#define HAVE_STDINT_H
+# include <features.h>
+# define HAVE_FEATURES_H
+# include <stdint.h>
+# define HAVE_STDINT_H
 #elif !defined __APPLE__
 /* Largest integral types.  */
-#if __BIG_ENDIAN__
+# if __BIG_ENDIAN__
 typedef long                intmax_t;
 typedef unsigned long       uintmax_t;
-#else
+# else
 __extension__
 typedef long long           intmax_t;
 __extension__
 typedef unsigned long long  uintmax_t;
-#endif
+# endif
 #endif
 
 /* Size-saving "small" ints (arch-dependent) */
@@ -256,20 +256,20 @@ typedef unsigned smalluint;
 /* ISO C Standard:  7.16  Boolean type and values  <stdbool.h> */
 #if (defined __digital__ && defined __unix__)
 /* old system without (proper) C99 support */
-#define bool smalluint
+# define bool smalluint
 #else
 /* modern system, so use it */
-#include <stdbool.h>
+# include <stdbool.h>
 #endif
 
 /* Try to defeat gcc's alignment of "char message[]"-like data */
 #if 1 /* if needed: !defined(arch1) && !defined(arch2) */
-#define ALIGN1 __attribute__((aligned(1)))
-#define ALIGN2 __attribute__((aligned(2)))
+# define ALIGN1 __attribute__((aligned(1)))
+# define ALIGN2 __attribute__((aligned(2)))
 #else
 /* Arches which MUST have 2 or 4 byte alignment for everything are here */
-#define ALIGN1
-#define ALIGN2
+# define ALIGN1
+# define ALIGN2
 #endif
 
 
@@ -281,13 +281,13 @@ typedef unsigned smalluint;
 #if ENABLE_NOMMU || \
     (defined __UCLIBC__ && __UCLIBC_MAJOR__ >= 0 && __UCLIBC_MINOR__ >= 9 && \
     __UCLIBC_SUBLEVEL__ > 28 && !defined __ARCH_USE_MMU__)
-#define BB_MMU 0
-#define USE_FOR_NOMMU(...) __VA_ARGS__
-#define USE_FOR_MMU(...)
+# define BB_MMU 0
+# define USE_FOR_NOMMU(...) __VA_ARGS__
+# define USE_FOR_MMU(...)
 #else
-#define BB_MMU 1
-#define USE_FOR_NOMMU(...)
-#define USE_FOR_MMU(...) __VA_ARGS__
+# define BB_MMU 1
+# define USE_FOR_NOMMU(...)
+# define USE_FOR_MMU(...) __VA_ARGS__
 #endif
 
 /* Platforms that haven't got dprintf need to implement fdprintf() in
@@ -297,7 +297,7 @@ typedef unsigned smalluint;
 /* Needed for: glibc */
 /* Not needed for: dietlibc */
 /* Others: ?? (add as needed) */
-#define fdprintf dprintf
+# define fdprintf dprintf
 #endif
 
 #if defined(__dietlibc__)
@@ -323,7 +323,6 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 # define PRIu32 "u"
 /* use legacy setpgrp(pid_t,pid_t) for now.  move to platform.c */
 # define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
-
 # if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
 #  define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
 # endif
@@ -344,44 +343,53 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #endif
 
 #if defined(__linux__)
-#include <sys/mount.h>
+# include <sys/mount.h>
 /* Make sure we have all the new mount flags we actually try to use. */
-#ifndef MS_BIND
-#define MS_BIND        (1<<12)
-#endif
-#ifndef MS_MOVE
-#define MS_MOVE        (1<<13)
-#endif
-#ifndef MS_RECURSIVE
-#define MS_RECURSIVE   (1<<14)
-#endif
-#ifndef MS_SILENT
-#define MS_SILENT      (1<<15)
-#endif
-
+# ifndef MS_BIND
+#  define MS_BIND        (1 << 12)
+# endif
+# ifndef MS_MOVE
+#  define MS_MOVE        (1 << 13)
+# endif
+# ifndef MS_RECURSIVE
+#  define MS_RECURSIVE   (1 << 14)
+# endif
+# ifndef MS_SILENT
+#  define MS_SILENT      (1 << 15)
+# endif
 /* The shared subtree stuff, which went in around 2.6.15. */
-#ifndef MS_UNBINDABLE
-#define MS_UNBINDABLE  (1<<17)
-#endif
-#ifndef MS_PRIVATE
-#define MS_PRIVATE     (1<<18)
-#endif
-#ifndef MS_SLAVE
-#define MS_SLAVE       (1<<19)
-#endif
-#ifndef MS_SHARED
-#define MS_SHARED      (1<<20)
-#endif
-#ifndef MS_RELATIME
-#define MS_RELATIME   (1 << 21)
+# ifndef MS_UNBINDABLE
+#  define MS_UNBINDABLE  (1 << 17)
+# endif
+# ifndef MS_PRIVATE
+#  define MS_PRIVATE     (1 << 18)
+# endif
+# ifndef MS_SLAVE
+#  define MS_SLAVE       (1 << 19)
+# endif
+# ifndef MS_SHARED
+#  define MS_SHARED      (1 << 20)
+# endif
+# ifndef MS_RELATIME
+#  define MS_RELATIME    (1 << 21)
+# endif
+
+# if !defined(BLKSSZGET)
+#  define BLKSSZGET _IO(0x12, 104)
+# endif
+# if !defined(BLKGETSIZE64)
+#  define BLKGETSIZE64 _IOR(0x12,114,size_t)
+# endif
 #endif
 
-#if !defined(BLKSSZGET)
-#define BLKSSZGET _IO(0x12, 104)
+/* The field domainname of struct utsname is Linux specific. */
+#if !defined(__linux__)
+# define HAVE_NO_UTSNAME_DOMAINNAME
 #endif
-#if !defined(BLKGETSIZE64)
-#define BLKGETSIZE64 _IOR(0x12,114,size_t)
-#endif
+
+/* If this system doesn't have IUCLC bit in struct termios::c_iflag... */
+#ifndef IUCLC
+# define IUCLC 0
 #endif
 
 #endif

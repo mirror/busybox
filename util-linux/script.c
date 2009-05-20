@@ -10,15 +10,7 @@
  *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
-
 #include "libbb.h"
-
-static smallint fd_count = 2;
-
-static void handle_sigchld(int sig UNUSED_PARAM)
-{
-	fd_count = 0;
-}
 
 int script_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int script_main(int argc UNUSED_PARAM, char **argv)
@@ -36,6 +28,15 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	const char *shell;
 	char shell_opt[] = "-i";
 	char *shell_arg = NULL;
+	enum {
+		OPT_a = (1 << 0),
+		OPT_c = (1 << 1),
+		OPT_f = (1 << 2),
+		OPT_q = (1 << 3),
+#if ENABLE_SCRIPTREPLAY
+		OPT_t = (1 << 4),
+#endif
+	};
 
 #if ENABLE_GETOPT_LONG
 	static const char getopt_longopts[] ALIGN1 =
@@ -43,25 +44,28 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
 		"quiet\0"   No_argument       "q"
+# if ENABLE_SCRIPTREPLAY
+		"timing\0"  No_argument       "t"
+# endif
 		;
 
 	applet_long_options = getopt_longopts;
 #endif
 	opt_complementary = "?1"; /* max one arg */
-	opt = getopt32(argv, "ac:fq", &shell_arg);
+	opt = getopt32(argv, "ac:fq" IF_SCRIPTREPLAY("t") , &shell_arg);
 	//argc -= optind;
 	argv += optind;
 	if (argv[0]) {
 		fname = argv[0];
 	}
 	mode = O_CREAT|O_TRUNC|O_WRONLY;
-	if (opt & 1) {
+	if (opt & OPT_a) {
 		mode = O_CREAT|O_APPEND|O_WRONLY;
 	}
-	if (opt & 2) {
+	if (opt & OPT_c) {
 		shell_opt[1] = 'c';
 	}
-	if (!(opt & 8)) { /* not -q */
+	if (!(opt & OPT_q)) {
 		printf("Script started, file is %s\n", fname);
 	}
 	shell = getenv("SHELL");
@@ -83,7 +87,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	/* "script" from util-linux exits when child exits,
 	 * we wouldn't wait for EOF from slave pty
 	 * (output may be produced by grandchildren of child) */
-	signal(SIGCHLD, handle_sigchld);
+	signal(SIGCHLD, record_signo);
 
 	/* TODO: SIGWINCH? pass window size changes down to slave? */
 
@@ -97,19 +101,23 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 #define buf bb_common_bufsiz1
 		struct pollfd pfd[2];
 		int outfd, count, loop;
+#if ENABLE_SCRIPTREPLAY
+		double oldtime = time(NULL);
+#endif
+		smallint fd_count = 2;
 
 		outfd = xopen(fname, mode);
 		pfd[0].fd = pty;
 		pfd[0].events = POLLIN;
-		pfd[1].fd = 0;
+		pfd[1].fd = STDIN_FILENO;
 		pfd[1].events = POLLIN;
 		ndelay_on(pty); /* this descriptor is not shared, can do this */
-		/* ndelay_on(0); - NO, stdin can be shared! Pity :( */
+		/* ndelay_on(STDIN_FILENO); - NO, stdin can be shared! Pity :( */
 
 		/* copy stdin to pty master input,
 		 * copy pty master output to stdout and file */
 		/* TODO: don't use full_write's, use proper write buffering */
-		while (fd_count) {
+		while (fd_count && !bb_got_signal) {
 			/* not safe_poll! we want SIGCHLD to EINTR poll */
 			if (poll(pfd, fd_count, -1) < 0 && errno != EINTR) {
 				/* If child exits too quickly, we may get EIO:
@@ -124,9 +132,20 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 					goto restore;
 				}
 				if (count > 0) {
+#if ENABLE_SCRIPTREPLAY
+					if (opt & OPT_t) {
+						struct timeval tv;
+						double newtime;
+
+						gettimeofday(&tv, NULL);
+						newtime = tv.tv_sec + (double) tv.tv_usec / 1000000;
+						fprintf(stderr, "%f %u\n", newtime - oldtime, count);
+						oldtime = newtime;
+					}
+#endif
 					full_write(STDOUT_FILENO, buf, count);
 					full_write(outfd, buf, count);
-					if (opt & 4) { /* -f */
+					if (opt & OPT_f) {
 						fsync(outfd);
 					}
 				}
@@ -142,8 +161,8 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 				}
 			}
 		}
-		/* If loop was exited because SIGCHLD handler set fd_count to 0,
-		 * there still can be some buffered output. But not loop forever:
+		/* If loop was exited because SIGCHLD handler set bb_got_signal,
+		 * there still can be some buffered output. But dont loop forever:
 		 * we won't pump orphaned grandchildren's output indefinitely.
 		 * Testcase: running this in script:
 		 *      exec dd if=/dev/zero bs=1M count=1
@@ -158,7 +177,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
  restore:
 		if (attr_ok == 0)
 			tcsetattr(0, TCSAFLUSH, &tt);
-		if (!(opt & 8)) /* not -q */
+		if (!(opt & OPT_q))
 			printf("Script done, file is %s\n", fname);
 		return EXIT_SUCCESS;
 	}
