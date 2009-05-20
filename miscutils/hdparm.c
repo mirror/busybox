@@ -870,16 +870,27 @@ static void identify(uint16_t *val)
 	} else {
 		/* addressing...CHS? See section 6.2 of ATA specs 4 or 5 */
 		ll = (uint32_t)val[LBA_SECTS_MSB] << 16 | val[LBA_SECTS_LSB];
-		mm = 0; bbbig = 0;
+		mm = 0;
+		bbbig = 0;
 		if ((ll > 0x00FBFC10) && (!val[LCYLS]))
 			printf("\tCHS addressing not supported\n");
 		else {
 			jj = val[WHATS_VALID] & OK_W54_58;
-			printf("\tLogical\t\tmax\tcurrent\n\tcylinders\t%u\t%u\n\theads\t\t%u\t%u\n\tsectors/track\t%u\t%u\n\t--\n",
-					val[LCYLS],jj?val[LCYLS_CUR]:0, val[LHEADS],jj?val[LHEADS_CUR]:0, val[LSECTS],jj?val[LSECTS_CUR]:0);
+			printf("\tLogical\t\tmax\tcurrent\n"
+				"\tcylinders\t%u\t%u\n"
+				"\theads\t\t%u\t%u\n"
+				"\tsectors/track\t%u\t%u\n"
+				"\t--\n",
+				val[LCYLS],
+				jj ? val[LCYLS_CUR] : 0,
+				val[LHEADS],
+				jj ? val[LHEADS_CUR] : 0,
+				val[LSECTS],
+				jj ? val[LSECTS_CUR] : 0);
 
 			if ((min_std == 1) && (val[TRACK_BYTES] || val[SECT_BYTES]))
-				printf("\tbytes/track: %u\tbytes/sector: %u\n", val[TRACK_BYTES], val[SECT_BYTES]);
+				printf("\tbytes/track: %u\tbytes/sector: %u\n",
+					val[TRACK_BYTES], val[SECT_BYTES]);
 
 			if (jj) {
 				mm = (uint32_t)val[CAPACITY_MSB] << 16 | val[CAPACITY_LSB];
@@ -921,22 +932,24 @@ static void identify(uint16_t *val)
 	printf("Capabilities:\n\t");
 
 	if (dev == ATAPI_DEV) {
-		if (eqpt != CDROM && (val[CAPAB_0] & CMD_Q_SUP)) printf("Cmd queuing, ");
-		if (val[CAPAB_0] & OVLP_SUP) printf("Cmd overlap, ");
+		if (eqpt != CDROM && (val[CAPAB_0] & CMD_Q_SUP))
+			printf("Cmd queuing, ");
+		if (val[CAPAB_0] & OVLP_SUP)
+			printf("Cmd overlap, ");
 	}
 	if (val[CAPAB_0] & LBA_SUP) printf("LBA, ");
 
 	if (like_std != 1) {
 		printf("IORDY%s(can%s be disabled)\n",
-				!(val[CAPAB_0] & IORDY_SUP) ? "(may be)" : "",
-				(val[CAPAB_0] & IORDY_OFF) ? "" :"not");
+			!(val[CAPAB_0] & IORDY_SUP) ? "(may be)" : "",
+			(val[CAPAB_0] & IORDY_OFF) ? "" :"not");
 	} else
 		printf("no IORDY\n");
 
 	if ((like_std == 1) && val[BUF_TYPE]) {
 		printf("\tBuffer type: %04x: %s%s\n", val[BUF_TYPE],
-				(val[BUF_TYPE] < 2) ? "single port, single-sector" : "dual port, multi-sector",
-				(val[BUF_TYPE] > 2) ? " with read caching ability" : "");
+			(val[BUF_TYPE] < 2) ? "single port, single-sector" : "dual port, multi-sector",
+			(val[BUF_TYPE] > 2) ? " with read caching ability" : "");
 	}
 
 	if ((min_std == 1) && (val[BUFFER__SIZE] && (val[BUFFER__SIZE] != NOVAL_1))) {
@@ -953,9 +966,11 @@ static void identify(uint16_t *val)
 		if (like_std == 1)
 			printf("\tCan%s perform double-word IO\n", (!val[DWORD_IO]) ? "not" : "");
 		else {
-			printf("\tStandby timer values: spec'd by %s", (val[CAPAB_0] & STD_STBY) ? "Standard" : "Vendor");
+			printf("\tStandby timer values: spec'd by %s",
+				(val[CAPAB_0] & STD_STBY) ? "standard" : "vendor");
 			if ((like_std > 3) && ((val[CAPAB_1] & VALID) == VALID_VAL))
-				printf(", %s device specific minimum\n", (val[CAPAB_1] & MIN_STANDBY_TIMER) ? "with" : "no");
+				printf(", %s device specific minimum\n",
+					(val[CAPAB_1] & MIN_STANDBY_TIMER) ? "with" : "no");
 			else
 				bb_putchar('\n');
 		}
@@ -983,7 +998,8 @@ static void identify(uint16_t *val)
 		}
 		if (like_std > 5 && val[ACOUSTIC]) {
 			printf("\tRecommended acoustic management value: %u, current value: %u\n",
-					(val[ACOUSTIC] >> 8) & 0x00ff, val[ACOUSTIC] & 0x00ff);
+				(val[ACOUSTIC] >> 8) & 0x00ff,
+				val[ACOUSTIC] & 0x00ff);
 		}
 	} else {
 		 /* ATAPI */
@@ -992,8 +1008,11 @@ static void identify(uint16_t *val)
 
 		if (val[PKT_REL] || val[SVC_NBSY]) {
 			printf("\tOverlap support:");
-			if (val[PKT_REL]) printf(" %uus to release bus.", val[PKT_REL]);
-			if (val[SVC_NBSY]) printf(" %uus to clear BSY after SERVICE cmd.", val[SVC_NBSY]);
+			if (val[PKT_REL])
+				printf(" %uus to release bus.", val[PKT_REL]);
+			if (val[SVC_NBSY])
+				printf(" %uus to clear BSY after SERVICE cmd.",
+					val[SVC_NBSY]);
 			bb_putchar('\n');
 		}
 	}
@@ -1057,14 +1076,17 @@ static void identify(uint16_t *val)
 	if (val[WHATS_VALID] & OK_W64_70) {
 		if (val[PIO_NO_FLOW] || val[PIO_FLOW]) {
 			printf("\t\tCycle time:");
-			if (val[PIO_NO_FLOW]) printf(" no flow control=%uns", val[PIO_NO_FLOW]);
-			if (val[PIO_FLOW]) printf("  IORDY flow control=%uns", val[PIO_FLOW]);
+			if (val[PIO_NO_FLOW])
+				printf(" no flow control=%uns", val[PIO_NO_FLOW]);
+			if (val[PIO_FLOW])
+				printf("  IORDY flow control=%uns", val[PIO_FLOW]);
 			bb_putchar('\n');
 		}
 	}
 
 	if ((val[CMDS_SUPP_1] & VALID) == VALID_VAL) {
-		printf("Commands/features:\n\tEnabled\tSupported:\n");
+		printf("Commands/features:\n"
+			"\tEnabled\tSupported:\n");
 		jj = val[CMDS_SUPP_0];
 		kk = val[CMDS_EN_0];
 		for (ii = 0; ii < NUM_CMD_FEAT_STR; ii++) {
@@ -1098,11 +1120,14 @@ static void identify(uint16_t *val)
 		jj = val[SECU_STATUS];
 		if (jj) {
 			for (ii = 0; ii < NUM_SECU_STR; ii++) {
-				printf("\t%s\t%s\n", (!(jj & 0x0001)) ? "not" : "", nth_string(secu_str, ii));
+				printf("\t%s\t%s\n",
+					(!(jj & 0x0001)) ? "not" : "",
+					nth_string(secu_str, ii));
 				jj >>=1;
 			}
 			if (val[SECU_STATUS] & SECU_ENABLED) {
-				printf("\tSecurity level %s\n", (val[SECU_STATUS] & SECU_LEVEL) ? "maximum" : "high");
+				printf("\tSecurity level %s\n",
+					(val[SECU_STATUS] & SECU_LEVEL) ? "maximum" : "high");
 			}
 		}
 		jj =  val[ERASE_TIME]     & ERASE_BITS;
@@ -1127,16 +1152,20 @@ static void identify(uint16_t *val)
 			strng = " determined by CSEL";
 		else
 			strng = "";
-		printf("HW reset results:\n\tCBLID- %s Vih\n\tDevice num = %i%s\n",
-				(val[HWRST_RSLT] & CBLID) ? "above" : "below", !(oo), strng);
+		printf("HW reset results:\n"
+			"\tCBLID- %s Vih\n"
+			"\tDevice num = %i%s\n",
+			(val[HWRST_RSLT] & CBLID) ? "above" : "below",
+			!(oo), strng);
 	}
 
 	/* more stuff from std 5 */
 	if ((like_std > 4) && (eqpt != CDROM)) {
 		if (val[CFA_PWR_MODE] & VALID_W160) {
-			printf("CFA power mode 1:\n\t%s%s\n", (val[CFA_PWR_MODE] & PWR_MODE_OFF) ? "disabled" : "enabled",
-					(val[CFA_PWR_MODE] & PWR_MODE_REQ) ? " and required by some commands" : "");
-
+			printf("CFA power mode 1:\n"
+				"\t%s%s\n",
+				(val[CFA_PWR_MODE] & PWR_MODE_OFF) ? "disabled" : "enabled",
+				(val[CFA_PWR_MODE] & PWR_MODE_REQ) ? " and required by some commands" : "");
 			if (val[CFA_PWR_MODE] & MAX_AMPS)
 				printf("\tMaximum current = %uma\n", val[CFA_PWR_MODE] & MAX_AMPS);
 		}
@@ -1184,11 +1213,12 @@ static void dump_identity(const struct hd_driveid *id)
 			printf(" %s", nth_string(cfg_str, i));
 	}
 	printf(" }\n RawCHS=%u/%u/%u, TrkSize=%u, SectSize=%u, ECCbytes=%u\n"
-			" BuffType=(%u) %s, BuffSize=%ukB, MaxMultSect=%u",
-				id->cyls, id->heads, id->sectors, id->track_bytes,
-				id->sector_bytes, id->ecc_bytes,
-				id->buf_type, nth_string(BuffType, (id->buf_type > 3) ? 0 : id->buf_type),
-				id->buf_size/2, id->max_multsect);
+		" BuffType=(%u) %s, BuffSize=%ukB, MaxMultSect=%u",
+		id->cyls, id->heads, id->sectors, id->track_bytes,
+		id->sector_bytes, id->ecc_bytes,
+		id->buf_type,
+		nth_string(BuffType, (id->buf_type > 3) ? 0 : id->buf_type),
+		id->buf_size/2, id->max_multsect);
 	if (id->max_multsect) {
 		printf(", MultSect=");
 		if (!(id->multsect_valid & 1))
@@ -1213,7 +1243,10 @@ static void dump_identity(const struct hd_driveid *id)
 	if (id->capability & 2)
 		printf(", LBAsects=%u", id->lba_capacity);
 
-	printf("\n IORDY=%s", (id->capability & 8) ? (id->capability & 4) ?  "on/off" : "yes" : "no");
+	printf("\n IORDY=%s",
+		(id->capability & 8)
+			? ((id->capability & 4) ? "on/off" : "yes")
+			: "no");
 
 	if (((id->capability & 8) || (id->field_valid & 2)) && (id->field_valid & 2))
 		printf(", tPIO={min:%u,w/IORDY:%u}", id->eide_pio, id->eide_pio_iordy);
@@ -1285,12 +1318,14 @@ static void dump_identity(const struct hd_driveid *id)
 	if ((id->minor_rev_num && id->minor_rev_num <= 31)
 	 || (id->major_rev_num && id->minor_rev_num <= 31)
 	) {
-		printf("\n Drive conforms to: %s: ", (id->minor_rev_num <= 31) ? nth_string(minor_str, id->minor_rev_num) : "unknown");
-		if (id->major_rev_num != 0x0000 &&  /* NOVAL_0 */
-		    id->major_rev_num != 0xFFFF) {  /* NOVAL_1 */
+		printf("\n Drive conforms to: %s: ",
+			(id->minor_rev_num <= 31) ? nth_string(minor_str, id->minor_rev_num) : "unknown");
+		if (id->major_rev_num != 0x0000 /* NOVAL_0 */
+		 && id->major_rev_num != 0xFFFF /* NOVAL_1 */
+		) {
 			for (i = 0; i <= 15; i++) {
 				if (id->major_rev_num & (1<<i))
-						printf(" ATA/ATAPI-%u", i);
+					printf(" ATA/ATAPI-%u", i);
 			}
 		}
 	}
@@ -1450,10 +1485,10 @@ static void interpret_standby(uint8_t standby)
 		printf("off");
 	} else if (standby <= 240 || standby == 252 || standby == 255) {
 		/* standby is in 5 sec units */
-		printf("%u minutes %u seconds", standby / 12, (standby*5) % 60);
+		printf("%u minutes %u seconds", standby / (60/5), standby % (60/5));
 	} else if (standby <= 251) {
 		unsigned t = (standby - 240); /* t is in 30 min units */;
-		printf("%u.%c hours", t / 2, (t & 1) ? '0' : '5');
+		printf("%u.%c hours", t / 2, (t & 1) ? '5' : '0');
 	}
 	if (standby == 253)
 		printf("vendor-specific");
@@ -1653,10 +1688,13 @@ static void process_dev(char *devname)
 		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_apmmode) {
-		args[2] = (apmmode == 255) ? 0x85 /* disable */ : 0x05 /* set */; /* feature register */
+		/* feature register */
+		args[2] = (apmmode == 255) ? 0x85 /* disable */ : 0x05 /* set */;
 		args[1] = apmmode; /* sector count register 1-255 */
 		if (get_apmmode)
-			printf(" setting APM level to %s 0x%02lX (%ld)\n", (apmmode == 255) ? "disabled" : "", apmmode, apmmode);
+			printf(" setting APM level to %s 0x%02lX (%ld)\n",
+				(apmmode == 255) ? "disabled" : "",
+				apmmode, apmmode);
 		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 		args[1] = 0;
 	}
@@ -1707,7 +1745,8 @@ static void process_dev(char *devname)
 	}
 	if (set_seagate) {
 		args[0] = 0xfb;
-		if (get_seagate) printf(" disabling Seagate auto powersaving mode\n");
+		if (get_seagate)
+			printf(" disabling Seagate auto powersaving mode\n");
 		ioctl_or_warn(fd, HDIO_DRIVE_CMD, &args);
 	}
 	if (set_standby) {
@@ -1725,14 +1764,15 @@ static void process_dev(char *devname)
 		char buf[512];
 		flush_buffer_cache();
 		if (-1 == read(fd, buf, sizeof(buf)))
-			bb_perror_msg("read(%d bytes) failed (rc=-1)", sizeof(buf));
+			bb_perror_msg("read of 512 bytes failed");
 	}
 #endif	/* HDIO_DRIVE_CMD */
 
 	if (get_mult || get_identity) {
 		multcount = -1;
 		if (ioctl(fd, HDIO_GET_MULTCOUNT, &multcount)) {
-			if (get_mult && ENABLE_IOCTL_HEX2STR_ERROR) /* To be coherent with ioctl_or_warn. */
+			/* To be coherent with ioctl_or_warn. */
+			if (get_mult && ENABLE_IOCTL_HEX2STR_ERROR)
 				bb_perror_msg("HDIO_GET_MULTCOUNT");
 			else
 				bb_perror_msg("ioctl %#x failed", HDIO_GET_MULTCOUNT);
@@ -1804,7 +1844,7 @@ static void process_dev(char *devname)
 
 			if (!ioctl_or_warn(fd, HDIO_GETGEO, &g))
 				printf(" geometry\t= %u/%u/%u, sectors = %ld, start = %ld\n",
-						g.cylinders, g.heads, g.sectors, parm, g.start);
+					g.cylinders, g.heads, g.sectors, parm, g.start);
 		}
 	}
 #ifdef HDIO_DRIVE_CMD
