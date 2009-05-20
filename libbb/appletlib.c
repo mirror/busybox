@@ -633,15 +633,14 @@ static int busybox_main(char **argv)
 	if (!argv[1]) {
 		/* Called without arguments */
 		const char *a;
-		unsigned col, output_width;
+		int col;
+		unsigned output_width;
  help:
 		output_width = 80;
 		if (ENABLE_FEATURE_AUTOWIDTH) {
 			/* Obtain the terminal width */
 			get_terminal_width_height(0, &output_width, NULL);
 		}
-		/* leading tab and room to wrap */
-		output_width -= MAX_APPLET_NAME_LEN + 8;
 
 		dup2(1, 2);
 		full_write2_str(bb_banner); /* reuse const string... */
@@ -661,17 +660,23 @@ static int busybox_main(char **argv)
 		       "Currently defined functions:\n");
 		col = 0;
 		a = applet_names;
+		/* prevent last comma to be in the very last pos */
+		output_width--;
 		while (*a) {
-			int len;
-			if (col > output_width) {
+			int len2 = strlen(a) + 2;
+			if (col >= (int)output_width - len2) {
 				full_write2_str(",\n");
 				col = 0;
 			}
-			full_write2_str(col ? ", " : "\t");
+			if (col == 0) {
+				col = 6;
+				full_write2_str("\t");
+			} else {
+				full_write2_str(", ");
+			}
 			full_write2_str(a);
-			len = strlen(a);
-			col += len + 2;
-			a += len + 1;
+			col += len2;
+			a += len2 - 1;
 		}
 		full_write2_str("\n\n");
 		return 0;
