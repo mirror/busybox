@@ -192,9 +192,10 @@ typedef enum reserved_style {
 #endif
 #if ENABLE_HUSH_CASE
 	RES_CASE  ,
-	/* two pseudo-keywords support contrived "case" syntax: */
-	RES_MATCH , /* "word)" */
-	RES_CASEI , /* "this command is inside CASE" */
+	/* three pseudo-keywords support contrived "case" syntax: */
+	RES_CASE_IN,   /* "case ... IN", turns into RES_MATCH when IN is observed */
+	RES_MATCH ,    /* "word)" */
+	RES_CASE_BODY, /* "this command is inside CASE" */
 	RES_ESAC  ,
 #endif
 	RES_XXXX  ,
@@ -3766,8 +3767,9 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 #endif
 #if ENABLE_HUSH_CASE
 		[RES_CASE ] = "CASE" ,
+		[RES_CASE_IN ] = "CASE_IN" ,
 		[RES_MATCH] = "MATCH",
-		[RES_CASEI] = "CASEI",
+		[RES_CASE_BODY] = "CASE_BODY",
 		[RES_ESAC ] = "ESAC" ,
 #endif
 		[RES_XXXX ] = "XXXX" ,
@@ -4011,7 +4013,7 @@ static int run_list(struct pipe *pi)
 			}
 			continue;
 		}
-		if (rword == RES_CASEI) { /* inside of a case branch */
+		if (rword == RES_CASE_BODY) { /* inside of a case branch */
 			if (cond_code != 0)
 				continue; /* not matched yet, skip this pipe */
 		}
@@ -4252,7 +4254,9 @@ static void done_pipe(struct parse_context *ctx, pipe_style type)
 #endif
 #if ENABLE_HUSH_CASE
 		if (ctx->ctx_res_w == RES_MATCH)
-			ctx->ctx_res_w = RES_CASEI;
+			ctx->ctx_res_w = RES_CASE_BODY;
+		if (ctx->ctx_res_w == RES_CASE)
+			ctx->ctx_res_w = RES_CASE_IN;
 #endif
 		ctx->command = NULL; /* trick done_command below */
 		/* Create the memory for command, roughly:
@@ -4366,10 +4370,10 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 
 	debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
 #if ENABLE_HUSH_CASE
-	if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE)
-		/* "case word IN ..." - IN part starts first match part */
+	if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE_IN) {
+		/* "case word IN ..." - IN part starts first MATCH part */
 		r = &reserved_match;
-	else
+	} else
 #endif
 	if (r->flag == 0) { /* '!' */
 		if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
@@ -4494,6 +4498,9 @@ static int done_word(o_string *word, struct parse_context *ctx)
 # if ENABLE_HUSH_LOOPS
 		 && ctx->ctx_res_w != RES_FOR /* ...not after FOR or IN */
 		 && ctx->ctx_res_w != RES_IN
+# endif
+# if ENABLE_HUSH_CASE
+		 && ctx->ctx_res_w != RES_CASE
 # endif
 		) {
 			debug_printf_parse("checking '%s' for reserved-ness\n", word->data);
@@ -5578,7 +5585,13 @@ static struct pipe *parse_stream(char **pstring,
 		}
 
 		if (end_trigger && end_trigger == ch
-		 && (heredoc_cnt == 0 || end_trigger != ';')
+		 && (ch != ';' || heredoc_cnt == 0)
+#if ENABLE_HUSH_CASE
+		 && (ch != ')'
+		    || ctx.ctx_res_w != RES_MATCH
+		    || (!dest.o_quoted && strcmp(dest.data, "esac") == 0)
+		    )
+#endif
 		) {
 			if (heredoc_cnt) {
 				/* This is technically valid:
@@ -5784,7 +5797,7 @@ static struct pipe *parse_stream(char **pstring,
 					break;
 				ch = i_getch(input);
 				nommu_addchr(&ctx.as_string, ch);
-				if (ctx.ctx_res_w == RES_CASEI) {
+				if (ctx.ctx_res_w == RES_CASE_BODY) {
 					ctx.ctx_dsemicolon = 1;
 					ctx.ctx_res_w = RES_MATCH;
 					break;

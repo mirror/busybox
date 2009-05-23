@@ -25,13 +25,16 @@ case w in `echo w`) echo OK_51;; `echo WRONG >&2`w) echo WRONG;; esac;
 case w in `echo OK_52 >&2`) echo SKIP;; `echo`w) echo OK_53;; esac;
 
 # parsing cases in subshells can easily get messy
- case m in  m) echo ok-sub1;; esac
- case m in (m) echo ok-sub2;; esac
-(case m in  m) echo ok-sub3;; esac)
-(case m in (m) echo ok-sub4;; esac)
+ case m in  m) echo OK_sub1;; esac
+ case m in (m) echo OK_sub2;; esac
+(case m in  m) echo OK_sub3;; esac)
+(case m in (m) echo OK_sub4;; esac)
 (
- case m in  m) echo ok-sub5;; esac
+ case m in  m) echo OK_sub5;; esac
 )
 (
- case m in (m) echo ok-sub6;; esac
+ case m in (m) echo OK_sub6;; esac
 )
+(case esac in "esac") echo OK_esac1;; esac)
+
+echo Done
