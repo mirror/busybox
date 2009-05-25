@@ -69,7 +69,7 @@
 #endif
 
 
-/* Debug build knobs */
+/* Build knobs */
 #define LEAK_HUNTING 0
 #define BUILD_AS_NOMMU 0
 /* Enable/disable sanity checks. Ok to enable in production,
@@ -77,6 +77,13 @@
  * Keeping 1 for now even in released versions.
  */
 #define HUSH_DEBUG 1
+/* Slightly bigger (+200 bytes), but faster hush.
+ * So far it only enables a trick with counting SIGCHLDs and forks,
+ * which allows us to do fewer waitpid's.
+ * (we can detect a case where neither forks were done nor SIGCHLDs happened
+ * and therefore waitpid will return the same result as last time)
+ */
+#define ENABLE_HUSH_FAST 0
 
 
 #if BUILD_AS_NOMMU
@@ -485,8 +492,11 @@ struct globals {
 	struct function *top_func;
 #endif
 	/* Signal and trap handling */
-//	unsigned count_SIGCHLD;
-//	unsigned handled_SIGCHLD;
+#if ENABLE_HUSH_FAST
+	unsigned count_SIGCHLD;
+	unsigned handled_SIGCHLD;
+	smallint last_waitpid_was_0;
+#endif
 	/* which signals have non-DFL handler (even with no traps set)? */
 	unsigned non_DFL_mask;
 	char **traps; /* char *traps[NSIG] */
@@ -1050,7 +1060,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  *    Restore blocked signal set to one inherited by shell just prior to exec.
  *
  * Note: as a result, we do not use signal handlers much. The only uses
- * are to count SIGCHLDs [disabled - bug somewhere, + bloat]
+ * are to count SIGCHLDs
  * and to restore tty pgrp on signal-induced exit.
  */
 enum {
@@ -1067,10 +1077,13 @@ enum {
 #endif
 };
 
-//static void SIGCHLD_handler(int sig UNUSED_PARAM)
-//{
-//	G.count_SIGCHLD++;
-//}
+#if ENABLE_HUSH_FAST
+static void SIGCHLD_handler(int sig UNUSED_PARAM)
+{
+	G.count_SIGCHLD++;
+//bb_error_msg("[%d] SIGCHLD_handler: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+}
+#endif
 
 #if ENABLE_HUSH_JOB
 
@@ -1158,9 +1171,12 @@ static int check_and_run_traps(int sig)
 		}
 		/* not a trap: special action */
 		switch (sig) {
-//		case SIGCHLD:
-//			G.count_SIGCHLD++;
-//			break;
+#if ENABLE_HUSH_FAST
+		case SIGCHLD:
+			G.count_SIGCHLD++;
+//bb_error_msg("[%d] check_and_run_traps: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+			break;
+#endif
 		case SIGINT:
 			/* Builtin was ^C'ed, make it look prettier: */
 			bb_putchar('\n');
@@ -2665,6 +2681,10 @@ static void setup_heredoc(struct redir_struct *redir)
 #endif
 	}
 	/* parent */
+#if ENABLE_HUSH_FAST
+	G.count_SIGCHLD++;
+//bb_error_msg("[%d] fork in setup_heredoc: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+#endif
 	enable_restore_tty_pgrp_on_exit();
 #if !BB_MMU
 	free(to_free);
@@ -3273,9 +3293,16 @@ static int checkjobs(struct pipe* fg_pipe)
 	debug_printf_jobs("checkjobs %p\n", fg_pipe);
 
 	errno = 0;
-//	if (G.handled_SIGCHLD == G.count_SIGCHLD)
-//		/* avoid doing syscall, nothing there anyway */
-//		return rcode;
+#if ENABLE_HUSH_FAST
+	if (G.handled_SIGCHLD == G.count_SIGCHLD) {
+//bb_error_msg("[%d] checkjobs: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d was 0?:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD, G.last_waitpid_was_0);
+		/* avoid doing syscall, nothing there anyway */
+		if (G.last_waitpid_was_0)
+			return 0;
+		errno = ECHILD;
+		return -1;
+	}
+#endif
 
 	attributes = WUNTRACED;
 	if (fg_pipe == NULL)
@@ -3294,13 +3321,20 @@ static int checkjobs(struct pipe* fg_pipe)
 		int i;
 		int dead;
 
-//		i = G.count_SIGCHLD;
+#if ENABLE_HUSH_FAST
+		i = G.count_SIGCHLD;
+#endif
 		childpid = waitpid(-1, &status, attributes);
 		if (childpid <= 0) {
 			if (childpid && errno != ECHILD)
 				bb_perror_msg("waitpid");
-//			else /* Until next SIGCHLD, waitpid's are useless */
-//				G.handled_SIGCHLD = i;
+#if ENABLE_HUSH_FAST
+			else { /* Until next SIGCHLD, waitpid's are useless */
+				G.last_waitpid_was_0 = (childpid == 0);
+				G.handled_SIGCHLD = i;
+//bb_error_msg("[%d] checkjobs: waitpid returned <= 0, G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+			}
+#endif
 			break;
 		}
 		dead = WIFEXITED(status) || WIFSIGNALED(status);
@@ -3696,6 +3730,10 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* parent or error */
+#if ENABLE_HUSH_FAST
+		G.count_SIGCHLD++;
+//bb_error_msg("[%d] fork in run_pipe: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+#endif
 		enable_restore_tty_pgrp_on_exit();
 #if !BB_MMU
 		/* Clean up after vforked child */
@@ -4861,6 +4899,10 @@ static FILE *generate_stream_from_string(const char *s)
 	}
 
 	/* parent */
+#if ENABLE_HUSH_FAST
+	G.count_SIGCHLD++;
+//bb_error_msg("[%d] fork in generate_stream_from_string: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+#endif
 	enable_restore_tty_pgrp_on_exit();
 #if !BB_MMU
 	free(to_free);
@@ -5990,9 +6032,14 @@ static void block_signals(int second_time)
 			second_time ? NULL : &G.inherited_set);
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
-//	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
+#if ENABLE_HUSH_FAST
+	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
 	if (!second_time)
-		signal(SIGCHLD, SIG_DFL); // SIGCHLD_handler);
+		signal(SIGCHLD, SIGCHLD_handler);
+#else
+	if (!second_time)
+		signal(SIGCHLD, SIG_DFL);
+#endif
 }
 
 #if ENABLE_HUSH_JOB
