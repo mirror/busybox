@@ -1248,6 +1248,17 @@
        "$ find / -name passwd\n" \
        "/etc/passwd\n"
 
+#define flash_lock_trivial_usage \
+       "MTD_DEVICE OFFSET SECTORS"
+#define flash_lock_full_usage "\n\n" \
+       "Lock part or all of an MTD device. If SECTORS is -1, then all sectors\n" \
+       "will be locked, regardless of the value of OFFSET"
+
+#define flash_unlock_trivial_usage \
+       "MTD_DEVICE"
+#define flash_unlock_full_usage "\n\n" \
+       "Unlock an MTD device"
+
 #define flash_eraseall_trivial_usage \
        "[-jq] MTD_DEVICE"
 #define flash_eraseall_full_usage "\n\n" \

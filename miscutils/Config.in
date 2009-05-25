@@ -250,6 +250,20 @@ config FBSPLASH
 	    "NN" (ASCII decimal number) - percentage to show on progress bar
 	    "exit" - well you guessed it
 
+config FLASH_LOCK
+	bool "flash_lock"
+	default n
+	help
+	  The flash_lock binary from mtd-utils as of git head 5ec0c10d0. This
+	  utility locks part or all of the flash device.
+
+config FLASH_UNLOCK
+	bool "flash_unlock"
+	default n
+	help
+	  The flash_unlock binary from mtd-utils as of git head 5ec0c10d0. This
+	  utility unlocks part or all of the flash device.
+
 config FLASH_ERASEALL
 	bool "flash_eraseall"
 	default n

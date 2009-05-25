@@ -30,7 +30,7 @@ static void xgroup_study(struct group *g)
 	}
 
 	/* if a specific gid is requested, the --system switch and */
-	/* min and max values are overriden, and the range of valid */
+	/* min and max values are overridden, and the range of valid */
 	/* gid values is set to [0, INT_MAX] */
 	if (!(option_mask32 & OPT_GID)) {
 		if (option_mask32 & OPT_SYSTEM_ACCOUNT) {

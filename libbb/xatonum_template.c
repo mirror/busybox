@@ -157,6 +157,11 @@ type FAST_FUNC xstrto(_range)(const char *numstr, int base, type lower, type upp
 	return xstrto(_range_sfx)(numstr, base, lower, upper, NULL);
 }
 
+type FAST_FUNC xstrto()(const char *numstr, int base)
+{
+	return xstrto(_range_sfx)(numstr, base, XSTR_TYPE_MIN, XSTR_TYPE_MAX, NULL);
+}
+
 type FAST_FUNC xato(_range_sfx)(const char *numstr,
 		type lower,
 		type upper,

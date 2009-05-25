@@ -22,6 +22,7 @@ unsigned type xato##UT##_sfx(const char *str, const struct suffix_mult *sfx) FAS
 unsigned type xato##UT(const char *str) FAST_FUNC; \
 type xstrto##T##_range_sfx(const char *str, int b, type l, type u, const struct suffix_mult *sfx) FAST_FUNC; \
 type xstrto##T##_range(const char *str, int b, type l, type u) FAST_FUNC; \
+type xstrto##T(const char *str, int b) FAST_FUNC; \
 type xato##T##_range_sfx(const char *str, type l, type u, const struct suffix_mult *sfx) FAST_FUNC; \
 type xato##T##_range(const char *str, type l, type u) FAST_FUNC; \
 type xato##T##_sfx(const char *str, const struct suffix_mult *sfx) FAST_FUNC; \
@@ -65,6 +66,9 @@ narrow xstrto##N##_range_sfx(const char *str, int b, narrow l, narrow u, const s
 static ALWAYS_INLINE \
 narrow xstrto##N##_range(const char *str, int b, narrow l, narrow u) \
 { return xstrto##W##_range(str, b, l, u); } \
+static ALWAYS_INLINE \
+narrow xstrto##N(const char *str, int b) \
+{ return xstrto##W(str, b); } \
 static ALWAYS_INLINE \
 narrow xato##N##_range_sfx(const char *str, narrow l, narrow u, const struct suffix_mult *sfx) \
 { return xato##W##_range_sfx(str, l, u, sfx); } \

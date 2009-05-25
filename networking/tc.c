@@ -322,7 +322,7 @@ static int print_qdisc(const struct sockaddr_nl *who UNUSED_PARAM,
 		int qqq = index_in_strings(_q_, name);
 		if (qqq == 0) { /* pfifo_fast aka prio */
 			prio_print_opt(tb[TCA_OPTIONS]);
-		} else if (qqq == 1) { /* class based queueing */
+		} else if (qqq == 1) { /* class based queuing */
 			cbq_print_opt(tb[TCA_OPTIONS]);
 		} else
 			bb_error_msg("unknown %s", name);
@@ -388,7 +388,7 @@ static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
 		int qqq = index_in_strings(_q_, name);
 		if (qqq == 0) { /* pfifo_fast aka prio */
 			/* nothing. */ /*prio_print_opt(tb[TCA_OPTIONS]);*/
-		} else if (qqq == 1) { /* class based queueing */
+		} else if (qqq == 1) { /* class based queuing */
 			/* cbq_print_copt() is identical to cbq_print_opt(). */
 			cbq_print_opt(tb[TCA_OPTIONS]);
 		} else
