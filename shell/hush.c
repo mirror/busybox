@@ -3301,8 +3301,8 @@ static int checkjobs(struct pipe* fg_pipe)
 	if (G.handled_SIGCHLD == G.count_SIGCHLD) {
 //bb_error_msg("[%d] checkjobs: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d children?:%d fg_pipe:%p",
 //getpid(), G.count_SIGCHLD, G.handled_SIGCHLD, G.we_have_children, fg_pipe);
-		/* There was heither fork nor SIGCHLD since last waitpid */
-		/* Avoid doing syscall, nothing there anyway */
+		/* There was neither fork nor SIGCHLD since last waitpid */
+		/* Avoid doing waitpid syscall if possible */
 		if (!G.we_have_children) {
 			errno = ECHILD;
 			return -1;
