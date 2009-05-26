@@ -495,7 +495,7 @@ struct globals {
 #if ENABLE_HUSH_FAST
 	unsigned count_SIGCHLD;
 	unsigned handled_SIGCHLD;
-	smallint last_waitpid_was_0;
+	smallint we_have_children;
 #endif
 	/* which signals have non-DFL handler (even with no traps set)? */
 	unsigned non_DFL_mask;
@@ -3292,21 +3292,29 @@ static int checkjobs(struct pipe* fg_pipe)
 
 	debug_printf_jobs("checkjobs %p\n", fg_pipe);
 
-	errno = 0;
-#if ENABLE_HUSH_FAST
-	if (G.handled_SIGCHLD == G.count_SIGCHLD) {
-//bb_error_msg("[%d] checkjobs: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d was 0?:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD, G.last_waitpid_was_0);
-		/* avoid doing syscall, nothing there anyway */
-		if (G.last_waitpid_was_0)
-			return 0;
-		errno = ECHILD;
-		return -1;
-	}
-#endif
-
 	attributes = WUNTRACED;
 	if (fg_pipe == NULL)
 		attributes |= WNOHANG;
+
+	errno = 0;
+#if ENABLE_HUSH_FAST
+	if (G.handled_SIGCHLD == G.count_SIGCHLD) {
+//bb_error_msg("[%d] checkjobs: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d children?:%d fg_pipe:%p",
+//getpid(), G.count_SIGCHLD, G.handled_SIGCHLD, G.we_have_children, fg_pipe);
+		/* There was heither fork nor SIGCHLD since last waitpid */
+		/* Avoid doing syscall, nothing there anyway */
+		if (!G.we_have_children) {
+			errno = ECHILD;
+			return -1;
+		}
+		if (fg_pipe == NULL) { /* is WNOHANG set? */
+			/* We have children, but they did not exit
+			 * or stop yet (we saw no SIGCHLD) */
+			return 0;
+		}
+		/* else: !WNOHANG, waitpid will block, can't short-circuit */
+	}
+#endif
 
 /* Do we do this right?
  * bash-3.00# sleep 20 | false
@@ -3330,7 +3338,7 @@ static int checkjobs(struct pipe* fg_pipe)
 				bb_perror_msg("waitpid");
 #if ENABLE_HUSH_FAST
 			else { /* Until next SIGCHLD, waitpid's are useless */
-				G.last_waitpid_was_0 = (childpid == 0);
+				G.we_have_children = (childpid == 0);
 				G.handled_SIGCHLD = i;
 //bb_error_msg("[%d] checkjobs: waitpid returned <= 0, G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 			}
