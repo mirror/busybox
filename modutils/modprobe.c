@@ -114,7 +114,9 @@ static void add_probe(const char *name)
 	struct module_entry *m;
 
 	m = get_or_add_modentry(name);
-	if (m->flags & MODULE_FLAG_LOADED) {
+	if (!(option_mask32 & MODPROBE_OPT_REMOVE)
+	 && (m->flags & MODULE_FLAG_LOADED)
+	) {
 		DBG("skipping %s, it is already loaded", name);
 		return;
 	}
@@ -350,7 +352,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		config_close(parser);
 	}
 
-	if (opt & MODPROBE_OPT_INSERT_ALL) {
+	if (opt & (MODPROBE_OPT_INSERT_ALL | MODPROBE_OPT_REMOVE)) {
 		/* Each argument is a module name */
 		do {
 			DBG("adding module %s", *argv);
