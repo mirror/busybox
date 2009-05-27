@@ -539,6 +539,7 @@ static int builtin_shift(char **argv);
 static int builtin_source(char **argv);
 static int builtin_test(char **argv);
 static int builtin_trap(char **argv);
+static int builtin_type(char **argv);
 static int builtin_true(char **argv);
 static int builtin_umask(char **argv);
 static int builtin_unset(char **argv);
@@ -610,6 +611,7 @@ static const struct built_in_command bltins[] = {
 	BLTIN("shift"   , builtin_shift   , "Shift positional parameters"),
 	BLTIN("test"    , builtin_test    , "Test condition"),
 	BLTIN("trap"    , builtin_trap    , "Trap signals"),
+	BLTIN("type"    , builtin_type    , "Write a description of command type"),
 //	BLTIN("ulimit"  , builtin_return  , "Control resource limits"),
 	BLTIN("umask"   , builtin_umask   , "Set file creation mask"),
 	BLTIN("unset"   , builtin_unset   , "Unset environment variable"),
@@ -2864,6 +2866,39 @@ static struct pipe *parse_stream(char **pstring,
 		int end_trigger);
 static void parse_and_run_string(const char *s);
 
+
+static char *find_in_path(const char *arg)
+{
+	char *ret = NULL;
+	const char *PATH = get_local_var_value("PATH");
+
+	if (!PATH)
+		return NULL;
+
+	while (1) {
+		const char *end = strchrnul(PATH, ':');
+		int sz = end - PATH; /* must be int! */
+
+		free(ret);
+		if (sz != 0) {
+			ret = xasprintf("%.*s/%s", sz, PATH, arg);
+		} else {
+			/* We have xxx::yyyy in $PATH,
+			 * it means "use current dir" */
+			ret = xstrdup(arg);
+		}
+		if (access(ret, F_OK) == 0)
+			break;
+
+		if (*end == '\0') {
+			free(ret);
+			return NULL;
+		}
+		PATH = end + 1;
+	}
+
+	return ret;
+}
 
 static const struct built_in_command* find_builtin(const char *name)
 {
@@ -6728,6 +6763,43 @@ static int builtin_trap(char **argv)
 	goto process_sig_list;
 }
 
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
+static int builtin_type(char **argv)
+{
+	int i, ret = EXIT_SUCCESS;
+
+	for (i = 1; argv[i]; ++i) {
+		void *path;
+		const void *find_ret;
+		const char *type;
+
+		type = path = NULL;
+
+		if (0) {} /* make conditional compile easier below */
+		/*else if ((find_ret = find_alias(argv[i])))
+			type = "an alias";*/
+#if ENABLE_HUSH_FUNCTIONS
+		else if ((find_ret = find_function(argv[i])))
+			type = "a function";
+#endif
+		else if ((find_ret = find_builtin(argv[i])))
+			type = "a shell builtin";
+		else if ((find_ret = path = find_in_path(argv[i])))
+			type = find_ret;
+
+		if (!type) {
+			bb_error_msg("type: %s: not found", argv[i]);
+			ret = EXIT_FAILURE;
+		} else
+			printf("%s is %s\n", argv[i], type);
+
+		if (path)
+			free(path);
+	}
+
+	return ret;
+}
+
 #if ENABLE_HUSH_JOB
 /* built-in 'fg' and 'bg' handler */
 static int builtin_fg_bg(char **argv)
@@ -6986,7 +7058,7 @@ static int builtin_shift(char **argv)
 
 static int builtin_source(char **argv)
 {
-	const char *PATH;
+	char *arg_path;
 	FILE *input;
 	save_arg_t sv;
 #if ENABLE_HUSH_FUNCTIONS
@@ -6996,36 +7068,15 @@ static int builtin_source(char **argv)
 	if (*++argv == NULL)
 		return EXIT_FAILURE;
 
-	if (strchr(*argv, '/') == NULL
-	 && (PATH = get_local_var_value("PATH")) != NULL
-	) {
-		/* Search through $PATH */
-		while (1) {
-			const char *end = strchrnul(PATH, ':');
-			int sz = end - PATH; /* must be int! */
-
-			if (sz != 0) {
-				char *tmp = xasprintf("%.*s/%s", sz, PATH, *argv);
-				input = fopen_for_read(tmp);
-				free(tmp);
-			} else {
-				/* We have xxx::yyyy in $PATH,
-				 * it means "use current dir" */
-				input = fopen_for_read(*argv);
-			}
-			if (input)
-				goto opened_ok;
-			if (*end == '\0')
-				break;
-			PATH = end + 1;
-		}
-	}
-	input = fopen_or_warn(*argv, "r");
+	if (strchr(*argv, '/') == NULL && (arg_path = find_in_path(*argv)) != NULL) {
+		input = fopen_for_read(arg_path);
+		free(arg_path);
+	} else
+		input = fopen_or_warn(*argv, "r");
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
 		return EXIT_FAILURE;
 	}
- opened_ok:
 	close_on_exec_on(fileno(input));
 
 #if ENABLE_HUSH_FUNCTIONS
