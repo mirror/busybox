@@ -214,11 +214,11 @@ static int sysctl_handle_preload_file(const char *filename)
 // (but _whitespace_ from ends should be trimmed first (and we do it right))
 //TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
 	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
+		char *tp;
 		sysctl_dots_to_slashes(token[0]);
-		/* Save ~4 bytes by using parser internals */
-		/* parser->line is big enough for sprintf */
-		sprintf(parser->line, "%s=%s", token[0], token[1]);
-		sysctl_act_recursive(parser->line);
+		tp = xasprintf("%s=%s", token[0], token[1]);
+		sysctl_act_recursive(tp);
+		free(tp);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		config_close(parser);

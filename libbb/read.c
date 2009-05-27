@@ -229,7 +229,7 @@ void* FAST_FUNC xmalloc_read(int fd, size_t *maxsz_p)
 		if (size > 64*1024)
 			size = 64*1024;
 	}
-	xrealloc(buf, total + 1);
+	buf = xrealloc(buf, total + 1);
 	buf[total] = '\0';
 
 	if (maxsz_p)
@@ -273,7 +273,7 @@ void* FAST_FUNC xmalloc_open_read_close(const char *filename, size_t *maxsz_p)
 		free(buf);
 		return NULL;
 	}
-	xrealloc(buf, size + 1);
+	buf = xrealloc(buf, size + 1);
 	buf[size] = '\0';
 
 	if (maxsz_p)

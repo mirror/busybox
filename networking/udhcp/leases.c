@@ -63,7 +63,8 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(
 	if (oldest) {
 		oldest->hostname[0] = '\0';
 		if (hostname) {
-        		hostname_length = hostname[-1]; /* look at option size byte */
+			/* option size byte, + 1 for NUL */
+        		hostname_length = hostname[-1] + 1;
 			if (hostname_length > sizeof(oldest->hostname))
 				hostname_length = sizeof(oldest->hostname);
             		hostname = (uint8_t*) safe_strncpy((char*)oldest->hostname, (char*)hostname, hostname_length);
