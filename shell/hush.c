@@ -50,7 +50,6 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      $var refs in function do not pick up values set by "var=val func"
  *      builtins: ulimit
  *      follow IFS rules more precisely, including update semantics
  *
@@ -4110,8 +4109,11 @@ static int run_list(struct pipe *pi)
 				}
 #endif
 #if ENABLE_HUSH_FUNCTIONS
-				if (G.flag_return_in_progress == 1)
-					goto check_jobs_and_break;
+				if (G.flag_return_in_progress == 1) {
+					/* same as "goto check_jobs_and_break" */
+					checkjobs(NULL);
+					break;
+				}
 #endif
 			} else if (pi->followup == PIPE_BG) {
 				/* What does bash do with attempts to background builtins? */

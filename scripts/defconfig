@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Busybox version: 1.14.0
-# Wed Apr 15 04:12:17 2009
+# Busybox version: 1.14.1
+# Wed May 27 18:05:31 2009
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -859,6 +859,7 @@ CONFIG_HUSH_IF=y
 CONFIG_HUSH_LOOPS=y
 CONFIG_HUSH_CASE=y
 CONFIG_HUSH_FUNCTIONS=y
+CONFIG_HUSH_EXPORT_N=y
 # CONFIG_LASH is not set
 CONFIG_MSH=y
 
