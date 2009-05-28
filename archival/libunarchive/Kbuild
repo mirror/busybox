@@ -4,7 +4,9 @@
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 
-lib-y:= \
+lib-y:=
+
+COMMON_FILES:= \
 \
 	data_skip.o \
 	data_extract_all.o \
@@ -49,3 +51,7 @@ lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_unzip.o
 lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o get_header_tar_bz2.o
 lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o get_header_tar_lzma.o
 lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += decompress_bunzip2.o
+
+ifneq ($(lib-y),)
+lib-y += $(COMMON_FILES)
+endif
