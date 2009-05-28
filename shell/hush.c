@@ -6785,15 +6785,14 @@ static int builtin_type(char **argv)
 			type = "a shell builtin";
 		else if ((path = find_in_path(*argv)) != NULL)
 			type = path;
-
-		if (!type) {
+		else {
 			bb_error_msg("type: %s: not found", *argv);
 			ret = EXIT_FAILURE;
-		} else
-			printf("%s is %s\n", *argv, type);
+			continue;
+		}
 
-		if (path)
-			free(path);
+		printf("%s is %s\n", *argv, type);
+		free(path);
 	}
 
 	return ret;
