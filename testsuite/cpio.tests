@@ -41,7 +41,7 @@ ls -ln cpio.testdir | $FILTER_LS" \
 " \
 	"" ""
 
-# Currently fails. Numerous: "1 blocks" versus "1 block",
+# Currently fails. Numerous buglets: "1 blocks" versus "1 block",
 # "1 block" must go to stderr, does not list cpio.testdir/x and cpio.testdir/y
 testing "cpio lists hardlinks" \
 "$ECHO -ne '$hexdump' | bzcat | cpio -t 2>&1; echo \$?" \
@@ -68,6 +68,7 @@ testing "cpio extracts zero-sized hardlinks 2" \
 "find cpio.testdir | cpio -H newc --create | (cd cpio.testdir2 && cpio -i); echo \$?;
 ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
 "\
+2 blocks
 0
 -rw-r--r-- 2 $user $group 0 empty
 -rw-r--r-- 2 $user $group 0 empty1
