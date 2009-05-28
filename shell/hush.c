@@ -6762,10 +6762,8 @@ static int builtin_type(char **argv)
 	int ret = EXIT_SUCCESS;
 
 	while (*++argv) {
-		char *path;
 		const char *type;
-
-		type = path = NULL;
+		char *path = NULL;
 
 		if (0) {} /* make conditional compile easier below */
 		/*else if (find_alias(*argv))
