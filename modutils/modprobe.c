@@ -211,9 +211,9 @@ static int read_config(const char *path)
 
 static int do_modprobe(struct module_entry *m)
 {
-	struct module_entry *m2;
+	struct module_entry *m2 = m2; /* for compiler */
 	char *fn, *options;
-	int rc = -1;
+	int rc, first;
 	llist_t *l;
 
 	if (!(m->flags & MODULE_FLAG_FOUND_IN_MODDEP)) {
@@ -228,13 +228,22 @@ static int do_modprobe(struct module_entry *m)
 	for (l = m->deps; l != NULL; l = l->link)
 		DBG("dep: %s", l->data);
 
+	first = 1;
 	rc = 0;
 	while (m->deps && rc == 0) {
 		fn = llist_pop(&m->deps);
 		m2 = get_or_add_modentry(fn);
 		if (option_mask32 & MODPROBE_OPT_REMOVE) {
-			if (bb_delete_module(m->modname, O_EXCL) != 0)
-				rc = errno;
+			if (m2->flags & MODULE_FLAG_LOADED) {
+				if (bb_delete_module(m2->modname, O_EXCL) != 0) {
+					if (first)
+						rc = errno;
+				} else {
+					m2->flags &= ~MODULE_FLAG_LOADED;
+				}
+			}
+			/* do not error out if *deps* fail to unload */
+			first = 0;
 		} else if (!(m2->flags & MODULE_FLAG_LOADED)) {
 			options = m2->options;
 			m2->options = NULL;
@@ -252,11 +261,10 @@ static int do_modprobe(struct module_entry *m)
 		free(fn);
 	}
 
-//FIXME: what if rc < 0?
-	if (rc > 0 && !(option_mask32 & INSMOD_OPT_SILENT)) {
+	if (rc && !(option_mask32 & INSMOD_OPT_SILENT)) {
 		bb_error_msg("failed to %sload module %s: %s",
 			(option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
-			m->probed_name ? m->probed_name : m->modname,
+			m2->probed_name ? m2->probed_name : m2->modname,
 			moderror(rc)
 		);
 	}
