@@ -6766,32 +6766,31 @@ static int builtin_trap(char **argv)
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
 static int builtin_type(char **argv)
 {
-	int i, ret = EXIT_SUCCESS;
+	int ret = EXIT_SUCCESS;
 
-	for (i = 1; argv[i]; ++i) {
-		void *path;
-		const void *find_ret;
+	while (*++argv) {
+		char *path;
 		const char *type;
 
 		type = path = NULL;
 
 		if (0) {} /* make conditional compile easier below */
-		/*else if ((find_ret = find_alias(argv[i])))
+		/*else if (find_alias(*argv))
 			type = "an alias";*/
 #if ENABLE_HUSH_FUNCTIONS
-		else if ((find_ret = find_function(argv[i])))
+		else if (find_function(*argv))
 			type = "a function";
 #endif
-		else if ((find_ret = find_builtin(argv[i])))
+		else if (find_builtin(*argv))
 			type = "a shell builtin";
-		else if ((find_ret = path = find_in_path(argv[i])))
-			type = find_ret;
+		else if ((path = find_in_path(*argv)) != NULL)
+			type = path;
 
 		if (!type) {
-			bb_error_msg("type: %s: not found", argv[i]);
+			bb_error_msg("type: %s: not found", *argv);
 			ret = EXIT_FAILURE;
 		} else
-			printf("%s is %s\n", argv[i], type);
+			printf("%s is %s\n", *argv, type);
 
 		if (path)
 			free(path);
