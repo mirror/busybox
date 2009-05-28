@@ -2053,10 +2053,10 @@ static char *expand_pseudo_dquoted(const char *str)
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
 static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 {
-	/* or_mask is either 0 (normal case) or 0x80
-	 * (expansion of right-hand side of assignment == 1-element expand.
-	 * It will also do no globbing, and thus we must not backslash-quote!) */
-
+	/* or_mask is either 0 (normal case) or 0x80 -
+	 * expansion of right-hand side of assignment == 1-element expand.
+	 * It will also do no globbing, and thus we must not backslash-quote!
+	 */
 	char ored_ch;
 	char *p;
 
@@ -2410,6 +2410,7 @@ static char *expand_string_to_string(const char *str)
 			bb_error_msg_and_die("BUG in varexp2");
 	/* actually, just move string 2*sizeof(char*) bytes back */
 	overlapping_strcpy((char*)list, list[0]);
+	unbackslash((char*)list);
 	debug_printf_expand("string_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
@@ -3871,7 +3872,6 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_LOOPS
 	struct pipe *loop_top = NULL;
-	char *for_varname = NULL;
 	char **for_lcur = NULL;
 	char **for_list = NULL;
 #endif
@@ -4007,22 +4007,18 @@ static int run_list(struct pipe *pi)
 				for_list = expand_strvec_to_strvec(vals);
 				for_lcur = for_list;
 				debug_print_strings("for_list", for_list);
-				for_varname = pi->cmds[0].argv[0];
-				pi->cmds[0].argv[0] = NULL;
 			}
-			free(pi->cmds[0].argv[0]);
 			if (!*for_lcur) {
 				/* "for" loop is over, clean up */
 				free(for_list);
 				for_list = NULL;
 				for_lcur = NULL;
-				pi->cmds[0].argv[0] = for_varname;
 				break;
 			}
 			/* Insert next value from for_lcur */
 			/* note: *for_lcur already has quotes removed, $var expanded, etc */
-			pi->cmds[0].argv[0] = xasprintf("%s=%s", for_varname, *for_lcur++);
-			pi->cmds[0].assignment_cnt = 1;
+			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), 0, 0);
+			continue;
 		}
 		if (rword == RES_IN) {
 			continue; /* "for v IN list;..." - "in" has no cmds anyway */
@@ -4509,12 +4505,12 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		 * Same with heredocs:
 		 * for <<\H delim is H; <<\\H, <<"\H", <<"\\H" - \H
 		 */
-		unbackslash(ctx->pending_redirect->rd_filename);
-		/* Is it <<"HEREDOC"? */
-		if (ctx->pending_redirect->rd_type == REDIRECT_HEREDOC
-		 && word->o_quoted
-		) {
-			ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
+		if (ctx->pending_redirect->rd_type == REDIRECT_HEREDOC) {
+			unbackslash(ctx->pending_redirect->rd_filename);
+			/* Is it <<"HEREDOC"? */
+			if (word->o_quoted) {
+				ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
+			}
 		}
 		debug_printf_parse("word stored in rd_filename: '%s'\n", word->data);
 		ctx->pending_redirect = NULL;
@@ -5433,7 +5429,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * "The backslash retains its special meaning [in "..."]
 		 * only when followed by one of the following characters:
 		 * $, `, ", \, or <newline>.  A double quote may be quoted
-		 * within double quotes by preceding it with a backslash.
+		 * within double quotes by preceding it with a backslash."
 		 */
 		if (strchr("$`\"\\\n", next) != NULL) {
 			ch = i_getch(input);
@@ -5802,10 +5798,7 @@ static struct pipe *parse_stream(char **pstring,
 				nommu_addchr(&ctx.as_string, ch);
 				if (ch == '\'')
 					break;
-				if (dest.o_assignment == NOT_ASSIGNMENT)
-					o_addqchr(&dest, ch);
-				else
-					o_addchr(&dest, ch);
+				o_addqchr(&dest, ch);
 			}
 			break;
 		case '"':
