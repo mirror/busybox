@@ -933,54 +933,6 @@ void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
 #endif
 
 
-/* "Keycodes" that report an escape sequence.
- * We use something which fits into signed char,
- * yet doesn't represent any valid Unicode characher.
- * Also, -1 is reserved for error indication and we don't use it. */
-enum {
-	KEYCODE_UP       =  -2,
-	KEYCODE_DOWN     =  -3,
-	KEYCODE_RIGHT    =  -4,
-	KEYCODE_LEFT     =  -5,
-	KEYCODE_HOME     =  -6,
-	KEYCODE_END      =  -7,
-	KEYCODE_INSERT   =  -8,
-	KEYCODE_DELETE   =  -9,
-	KEYCODE_PAGEUP   = -10,
-	KEYCODE_PAGEDOWN = -11,
-#if 0
-	KEYCODE_FUN1     = -12,
-	KEYCODE_FUN2     = -13,
-	KEYCODE_FUN3     = -14,
-	KEYCODE_FUN4     = -15,
-	KEYCODE_FUN5     = -16,
-	KEYCODE_FUN6     = -17,
-	KEYCODE_FUN7     = -18,
-	KEYCODE_FUN8     = -19,
-	KEYCODE_FUN9     = -20,
-	KEYCODE_FUN10    = -21,
-	KEYCODE_FUN11    = -22,
-	KEYCODE_FUN12    = -23,
-#endif
-	KEYCODE_CURSOR_POS = -0x100,
-	/* How long is the longest ESC sequence we know?
-	 * We want it big enough to be able to contain
-	 * cursor position sequence "ESC [ 9999 ; 9999 R"
-	 */
-	KEYCODE_BUFFER_SIZE = 16
-};
-/* Note: fd may be in blocking or non-blocking mode, both make sense.
- * For one, less uses non-blocking mode.
- * Only the first read syscall inside read_key may block indefinitely
- * (unless fd is in non-blocking mode),
- * subsequent reads will time out after a few milliseconds.
- * Return of -1 means EOF or error (errno == 0 on EOF).
- * buffer[0] is used as a counter of buffered chars and must be 0
- * on first call.
- */
-int64_t read_key(int fd, char *buffer) FAST_FUNC;
-
-
 /* Networking */
 int create_icmp_socket(void) FAST_FUNC;
 int create_icmp6_socket(void) FAST_FUNC;
@@ -1207,6 +1159,54 @@ unsigned long long bb_makedev(unsigned int major, unsigned int minor) FAST_FUNC;
 #undef makedev
 #define makedev(a,b) bb_makedev(a,b)
 #endif
+
+
+/* "Keycodes" that report an escape sequence.
+ * We use something which fits into signed char,
+ * yet doesn't represent any valid Unicode characher.
+ * Also, -1 is reserved for error indication and we don't use it. */
+enum {
+	KEYCODE_UP       =  -2,
+	KEYCODE_DOWN     =  -3,
+	KEYCODE_RIGHT    =  -4,
+	KEYCODE_LEFT     =  -5,
+	KEYCODE_HOME     =  -6,
+	KEYCODE_END      =  -7,
+	KEYCODE_INSERT   =  -8,
+	KEYCODE_DELETE   =  -9,
+	KEYCODE_PAGEUP   = -10,
+	KEYCODE_PAGEDOWN = -11,
+#if 0
+	KEYCODE_FUN1     = -12,
+	KEYCODE_FUN2     = -13,
+	KEYCODE_FUN3     = -14,
+	KEYCODE_FUN4     = -15,
+	KEYCODE_FUN5     = -16,
+	KEYCODE_FUN6     = -17,
+	KEYCODE_FUN7     = -18,
+	KEYCODE_FUN8     = -19,
+	KEYCODE_FUN9     = -20,
+	KEYCODE_FUN10    = -21,
+	KEYCODE_FUN11    = -22,
+	KEYCODE_FUN12    = -23,
+#endif
+	KEYCODE_CURSOR_POS = -0x100,
+	/* How long is the longest ESC sequence we know?
+	 * We want it big enough to be able to contain
+	 * cursor position sequence "ESC [ 9999 ; 9999 R"
+	 */
+	KEYCODE_BUFFER_SIZE = 16
+};
+/* Note: fd may be in blocking or non-blocking mode, both make sense.
+ * For one, less uses non-blocking mode.
+ * Only the first read syscall inside read_key may block indefinitely
+ * (unless fd is in non-blocking mode),
+ * subsequent reads will time out after a few milliseconds.
+ * Return of -1 means EOF or error (errno == 0 on EOF).
+ * buffer[0] is used as a counter of buffered chars and must be 0
+ * on first call.
+ */
+int64_t read_key(int fd, char *buffer) FAST_FUNC;
 
 
 #if ENABLE_FEATURE_EDITING

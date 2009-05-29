@@ -1006,7 +1006,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * Commands run in command substitution ("`cmd`")
  * have SIGTTIN, SIGTTOU, SIGTSTP set to SIG_IGN.
  *
- * Ordinary commands have signals set to SIG_IGN/DFL set as inherited
+ * Ordinary commands have signals set to SIG_IGN/DFL as inherited
  * by the shell from its parent.
  *
  * Siganls which differ from SIG_DFL action
@@ -1285,7 +1285,7 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 		if (strncmp(cur->varstr, str, name_len) != 0) {
 			if (!cur->next) {
 				/* Bail out. Note that now cur points
-				 * to last var in linked list */
+				 * to the last var in the linked list */
 				break;
 			}
 			cur = cur->next;

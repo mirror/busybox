@@ -1451,10 +1451,13 @@ static int lineedit_read_key(char *read_key_buffer)
 	pfd.events = POLLIN;
 	do {
  poll_again:
-		/* Wait for input. Can't just call read_key, it will return
-		 * at once if stdin is in non-blocking mode. */
-		safe_poll(&pfd, 1, -1);
-		/* note: read_key sets errno to 0 on success: */
+		if (read_key_buffer[0] == 0) {
+			/* Wait for input. Can't just call read_key,
+			 * it returns at once if stdin
+			 * is in non-blocking mode. */
+			safe_poll(&pfd, 1, -1);
+		}
+		/* Note: read_key sets errno to 0 on success: */
 		ic = read_key(STDIN_FILENO, read_key_buffer);
 		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
 		 && (int32_t)ic == KEYCODE_CURSOR_POS

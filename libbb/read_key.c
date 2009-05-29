@@ -69,11 +69,14 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 	errno = 0;
 	n = (unsigned char) *buffer++;
 	if (n == 0) {
-		/* If no data, block waiting for input. If we read more
-		 * than the minimal ESC sequence size, the "n=0" below
-		 * would instead have to figure out how much to keep,
-		 * resulting in larger code. */
-		n = safe_read(fd, buffer, 3);
+		/* If no data, block waiting for input.
+		 * It is tempting to read more than one byte here,
+		 * but it breaks pasting. Example: at shell prompt,
+		 * user presses "c","a","t" and then pastes "\nline\n".
+		 * When we were reading 3 bytes here, we were eating
+		 * "li" too, and cat was getting wrong input.
+		 */
+		n = safe_read(fd, buffer, 1);
 		if (n <= 0)
 			return -1;
 	}
