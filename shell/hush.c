@@ -5240,7 +5240,6 @@ static int handle_dollar(o_string *as_string,
 		o_string *dest,
 		struct in_str *input)
 {
-	int expansion;
 	int ch = i_peek(input);  /* first character after the $ */
 	unsigned char quote_mask = dest->o_escape ? 0x80 : 0;
 
@@ -5279,10 +5278,12 @@ static int handle_dollar(o_string *as_string,
 		goto make_one_char_var;
 	case '{': {
 		bool first_char, all_digits;
+		int expansion;
 
-		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
+		o_addchr(dest, SPECIAL_VAR_SYMBOL);
+
 		/* TODO: maybe someone will try to escape the '}' */
 		expansion = 0;
 		first_char = true;
