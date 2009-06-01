@@ -1635,7 +1635,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			 * if the len=0 and no chars to delete */
 			if (command_len == 0) {
 				errno = 0;
+#if ENABLE_FEATURE_EDITING_VI
  prepare_to_die:
+#endif
 				/* to control stopped jobs */
 				break_out = command_len = -1;
 				break;
