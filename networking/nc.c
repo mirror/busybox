@@ -129,7 +129,7 @@ int nc_main(int argc, char **argv)
 
 	if (wsecs) {
 		alarm(0);
-		/* Non-ignored siganls revert to SIG_DFL on exec anyway */
+		/* Non-ignored signals revert to SIG_DFL on exec anyway */
 		/*signal(SIGALRM, SIG_DFL);*/
 	}
 

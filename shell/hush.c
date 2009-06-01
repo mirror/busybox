@@ -563,9 +563,9 @@ struct built_in_command {
 	int (*function)(char **argv);
 #if ENABLE_HUSH_HELP
 	const char *descr;
-#define BLTIN(cmd, func, help) { cmd, func, help }
+# define BLTIN(cmd, func, help) { cmd, func, help }
 #else
-#define BLTIN(cmd, func, help) { cmd, func }
+# define BLTIN(cmd, func, help) { cmd, func }
 #endif
 };
 
@@ -612,7 +612,7 @@ static const struct built_in_command bltins[] = {
 	BLTIN("test"    , builtin_test    , "Test condition"),
 	BLTIN("trap"    , builtin_trap    , "Trap signals"),
 	BLTIN("type"    , builtin_type    , "Write a description of command type"),
-//	BLTIN("ulimit"  , builtin_return  , "Control resource limits"),
+//	BLTIN("ulimit"  , builtin_ulimit  , "Control resource limits"),
 	BLTIN("umask"   , builtin_umask   , "Set file creation mask"),
 	BLTIN("unset"   , builtin_unset   , "Unset environment variable"),
 	BLTIN("wait"    , builtin_wait    , "Wait for process"),
@@ -627,7 +627,7 @@ static const struct built_in_command bltins[] = {
 # define debug_enter() (G.debug_indent++)
 # define debug_leave() (G.debug_indent--)
 #else
-# define indent()    ((void)0)
+# define indent()      ((void)0)
 # define debug_enter() ((void)0)
 # define debug_leave() ((void)0)
 #endif
@@ -693,7 +693,7 @@ static void debug_print_strings(const char *prefix, char **vv)
 		fprintf(stderr, " '%s'\n", *vv++);
 }
 #else
-#define debug_print_strings(prefix, vv) ((void)0)
+# define debug_print_strings(prefix, vv) ((void)0)
 #endif
 
 
@@ -819,7 +819,7 @@ static void syntax_error_unexpected_ch(unsigned lineno, int ch)
 #if ENABLE_HUSH_INTERACTIVE
 static void cmdedit_update_prompt(void);
 #else
-# define cmdedit_update_prompt()
+# define cmdedit_update_prompt() ((void)0)
 #endif
 
 
@@ -1003,13 +1003,13 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * If job control is off, backgrounded commands ("cmd &")
  * have SIGINT, SIGQUIT set to SIG_IGN.
  *
- * Commands run in command substitution ("`cmd`")
+ * Commands which are run in command substitution ("`cmd`")
  * have SIGTTIN, SIGTTOU, SIGTSTP set to SIG_IGN.
  *
  * Ordinary commands have signals set to SIG_IGN/DFL as inherited
  * by the shell from its parent.
  *
- * Siganls which differ from SIG_DFL action
+ * Signals which differ from SIG_DFL action
  * (note: child (i.e., [v]forked) shell is not an interactive shell):
  *
  * SIGQUIT: ignore
@@ -1714,7 +1714,7 @@ static void nommu_addchr(o_string *o, int ch)
 		o_addchr(o, ch);
 }
 #else
-#define nommu_addchr(o, str) ((void)0)
+# define nommu_addchr(o, str) ((void)0)
 #endif
 
 static void o_addstr_with_NUL(o_string *o, const char *str)
@@ -1834,7 +1834,7 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	}
 }
 #else
-#define debug_print_list(prefix, o, n) ((void)0)
+# define debug_print_list(prefix, o, n) ((void)0)
 #endif
 
 /* n = o_save_ptr_helper(str, n) "starts new string" by storing an index value
@@ -6294,7 +6294,7 @@ int hush_main(int argc, char **argv)
 		/* bash: after sourcing /etc/profile,
 		 * tries to source (in the given order):
 		 * ~/.bash_profile, ~/.bash_login, ~/.profile,
-		 * stopping of first found. --noprofile turns this off.
+		 * stopping on first found. --noprofile turns this off.
 		 * bash also sources ~/.bash_logout on exit.
 		 * If called as sh, skips .bash_XXX files.
 		 */
@@ -6325,8 +6325,8 @@ int hush_main(int argc, char **argv)
 	 * NB: don't forget to (re)run block_signals(0/1) as needed.
 	 */
 
-	/* A shell is interactive if the '-i' flag was given, or if all of
-	 * the following conditions are met:
+	/* A shell is interactive if the '-i' flag was given,
+	 * or if all of the following conditions are met:
 	 *    no -c command
 	 *    no arguments remaining or the -s flag given
 	 *    standard input is a terminal
