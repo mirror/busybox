@@ -771,6 +771,11 @@ static void syntax_error_at(unsigned lineno, const char *msg)
 	die_if_script(lineno, "syntax error at '%s'", msg);
 }
 
+static void syntax_error_unterm_str(unsigned lineno, const char *s)
+{
+	die_if_script(lineno, "syntax error: unterminated %s", s);
+}
+
 /* It so happens that all such cases are totally fatal
  * even if shell is interactive: EOF while looking for closing
  * delimiter. There is nowhere to read stuff from after that,
@@ -779,16 +784,9 @@ static void syntax_error_at(unsigned lineno, const char *msg)
 static void syntax_error_unterm_ch(unsigned lineno, char ch) NORETURN;
 static void syntax_error_unterm_ch(unsigned lineno, char ch)
 {
-	char msg[2];
-	msg[0] = ch;
-	msg[1] = '\0';
-	die_if_script(lineno, "syntax error: unterminated %s", msg);
+	char msg[2] = { ch, '\0' };
+	syntax_error_unterm_str(lineno, msg);
 	xfunc_die();
-}
-
-static void syntax_error_unterm_str(unsigned lineno, const char *s)
-{
-	die_if_script(lineno, "syntax error: unterminated %s", s);
 }
 
 static void syntax_error_unexpected_ch(unsigned lineno, int ch)
