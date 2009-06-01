@@ -25,3 +25,10 @@
 *.orig
 *.rej
 /*.patch
+
+#
+# debugging stuff
+#
+core
+.gdb_history
+.gdbinit
