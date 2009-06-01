@@ -10,8 +10,8 @@ unset LC_TIME
 unset LC_ALL
 
 test -x hush || {
-    echo "No ./hush - creating a link to ../../busybox"
-    ln -s ../../busybox hush
+	echo "No ./hush - creating a link to ../../busybox"
+	ln -s ../../busybox hush
 }
 if test -e ../../.config ; then
 	eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' ../../.config)
@@ -25,48 +25,48 @@ export THIS_SH
 
 do_test()
 {
-    test -d "$1" || return 0
-    d=${d%/}
-#   echo Running tests in directory "$1"
-    (
-    tret=0
-    cd "$1" || { echo "cannot cd $1!"; exit 1; }
-    for x in run-*; do
+	test -d "$1" || return 0
+	d=${d%/}
+#	echo Running tests in directory "$1"
+	(
+	tret=0
+	cd "$1" || { echo "cannot cd $1!"; exit 1; }
+	for x in run-*; do
 	test -f "$x" || continue
 	case "$x" in
-	    "$0"|run-minimal|run-gprof) ;;
-	    *.orig|*~) ;;
-	    #*) echo $x ; sh $x ;;
-	    *)
-	    sh "$x" >"../$1-$x.fail" 2>&1 && \
-	    { echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
-	    ;;
+		"$0"|run-minimal|run-gprof) ;;
+		*.orig|*~) ;;
+		#*) echo $x ; sh $x ;;
+		*)
+		sh "$x" >"../$1-$x.fail" 2>&1 && \
+		{ echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
+		;;
 	esac
-    done
-    # Many bash run-XXX scripts just do this,
-    # no point in duplication it all over the place
-    for x in *.tests; do
+	done
+	# Many bash run-XXX scripts just do this,
+	# no point in duplication it all over the place
+	for x in *.tests; do
 	test -x "$x" || continue
 	name="${x%%.tests}"
 	test -f "$name.right" || continue
 #	echo Running test: "$x"
 	(
-	    "$THIS_SH" "./$x" >"$name.xx" 2>&1
-	    # filter C library differences
-	    sed -i \
-		-e "/: invalid option /s:'::g" \
-		"$name.xx"
-	    test $? -eq 77 && rm -f "../$1-$x.fail" && exit 77
-	    diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
+		"$THIS_SH" "./$x" >"$name.xx" 2>&1
+		# filter C library differences
+		sed -i \
+			-e "/: invalid option /s:'::g" \
+			"$name.xx"
+		test $? -eq 77 && rm -f "../$1-$x.fail" && exit 77
+		diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
 	)
 	case $? in
 		0)  echo "$1/$x: ok";;
 		77) echo "$1/$x: skip (feature disabled)";;
 		*)  echo "$1/$x: fail"; tret=1;;
 	esac
-    done
-    exit ${tret}
-    )
+	done
+	exit ${tret}
+	)
 }
 
 # Main part of this script
@@ -75,19 +75,19 @@ do_test()
 ret=0
 
 if [ $# -lt 1 ]; then
-    # All sub directories
-    modules=`ls -d hush-*`
+	# All sub directories
+	modules=`ls -d hush-*`
 
-    for module in $modules; do
+	for module in $modules; do
 	do_test $module || ret=1
-    done
+	done
 else
-    while [ $# -ge 1 ]; do
+	while [ $# -ge 1 ]; do
 	if [ -d $1 ]; then
-	    do_test $1 || ret=1
+		do_test $1 || ret=1
 	fi
 	shift
-    done
+	done
 fi
 
 exit ${ret}
