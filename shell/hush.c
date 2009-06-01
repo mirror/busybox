@@ -5303,6 +5303,9 @@ static int handle_dollar(o_string *as_string,
 					all_digits = true;
 					goto char_ok;
 				}
+				/* They're being verbose and doing ${?} */
+				if (i_peek(input) == '}' && strchr("$!?#*@_", ch))
+					goto char_ok;
 			}
 
 			if (expansion < 2

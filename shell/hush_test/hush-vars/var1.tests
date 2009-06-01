@@ -4,6 +4,6 @@ echo $URL
 echo ${URL}_abc
 
 true
-false; echo $?
+false; echo $? ${?}
 true
-{ false; echo $?; }
+{ false; echo $? ${?}; }
