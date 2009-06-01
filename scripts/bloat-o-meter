@@ -25,10 +25,10 @@ nm_args = " ".join([x for x in sys.argv[3:]])
 def getsizes(file):
     sym = {}
     for l in os.popen("nm --size-sort %s %s" % (nm_args, file)).readlines():
-    	l = l.strip()
-	# Skip empty lines
+        l = l.strip()
+        # Skip empty lines
         if not len(l): continue
-	# Skip archive members
+        # Skip archive members
         if len(l.split()) == 1 and l.endswith(':'):
           continue
         size, type, name = l.split()
