@@ -44,14 +44,28 @@
  *
  * Bash stuff (maybe optionally enable?):
  *      &> and >& redirection of stdout+stderr
- *      Brace expansion
+ *      Brace Expansion
  *      reserved words: [[ ]] function select
  *      substrings ${var:1:5}
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      builtins: ulimit
+ *      builtins: ulimit, local
  *      follow IFS rules more precisely, including update semantics
+ *      export builtin should be special, its arguments are assignments
+ *          and therefore expansion of them should be "one-word" expansion:
+ *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
+ *          compare with:
+ *              $ ls i=`echo 'a  b'`     # ls has two args: "i=a" and "b"
+ *              ls: cannot access i=a: No such file or directory
+ *              ls: cannot access b: No such file or directory
+ *          Note1: same applies to local builtin when we'll have it.
+ *          Note2: bash 3.2.33(1) does this only if export word itself
+ *          is not quoted:
+ *              $ export i=`echo 'aaa  bbb'`; echo "$i"
+ *              aaa  bbb
+ *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
+ *              aaa
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
