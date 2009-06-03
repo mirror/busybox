@@ -3398,6 +3398,8 @@ static int checkjobs(struct pipe* fg_pipe)
 #endif
 						return rcode;
 					}
+					if (!fg_pipe->alive_cmds)
+						return rcode;
 				}
 				/* There are still running processes in the fg pipe */
 				goto wait_more; /* do waitpid again */
