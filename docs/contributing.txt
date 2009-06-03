@@ -17,19 +17,18 @@ help. However, before you dive in, headlong and hotfoot, there are some things
 you need to do:
 
 
-Checkout the Latest Code from CVS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Checkout the Latest Code
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is a necessary first step. Please do not try to work with the last
 released version, as there is a good chance that somebody has already fixed
 the bug you found. Somebody might have even added the feature you had in mind.
 Don't make your work obsolete before you start!
 
-For information on how to check out Busybox from CVS, please look at the
+For information on how to check out Busybox development tree, please look at the
 following links:
 
-	http://busybox.net/cvs_anon.html
-	http://busybox.net/cvs_howto.html
+	http://busybox.net/source.html
 
 
 Read the Mailing List
@@ -87,14 +86,10 @@ Knife" of embedded Linux, there are some applets that will not be accepted:
    we do not want to start adding mkfs/fsck tools for every (or any)
    filesystem under the sun. (fsck_minix.c and mkfs_minix.c are living on
    borrowed time.) There are far too many of these tools out there.  Use
-   the upstream version. Not everything has to be part of Busybox.
-
- - Any partitioning tools: Partitioning a device is typically done once and
-   only once, and tools which do this generally do not need to reside on the
-   target device (esp a flash device). If you need a partitioning tool, grab
-   one (such as fdisk, sfdisk, or cfdisk from util-linux) and use that, but
-   don't try to merge it into busybox. These are nasty and complex and we
-   don't want to maintain them.
+   the upstream version.  Rationale: bugs in these tools can destroy
+   vast amounts of data.  Keeping up with filesystem format development
+   is impractical (especially in the area of keeping fsck tool safe
+   and up-to-date).
 
  - Any disk, device, or media-specific tools: Use the -utils or -tools package
    that was designed for your device; don't try to shoehorn them into Busybox.
@@ -102,12 +97,6 @@ Knife" of embedded Linux, there are some applets that will not be accepted:
  - Any architecture specific tools: Busybox is (or should be) architecture
    independent. Do not send us tools that cannot be used across multiple
    platforms / arches.
-
- - Any daemons that are not essential to basic system operation. To date, only
-   syslogd and klogd meet this requirement. We do not need a web server, an
-   ftp daemon, a dhcp server, a mail transport agent or a dns resolver. If you
-   need one of those, you are welcome to ask the folks on the mailing list for
-   recommendations, but please don't bloat up Busybox with any of these.
 
 
 Bug Reporting
@@ -138,7 +127,7 @@ an example:
 	llegal instruction
 
     I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder,
-    and the latest uClibc from CVS.  Thanks for the wonderful program!
+    and the latest uClibc from CVS.
 
 	-Diligent
 
@@ -198,14 +187,6 @@ Janitorial Work
 ~~~~~~~~~~~~~~~
 
 These are dirty jobs, but somebody's gotta do 'em.
-
- - Converting applets to use getopt() for option processing. Type 'find -name
-   '*.c'|grep -L getopt' to get a listing of the applets that currently don't
-   use getopt. If a .c file processes no options, it should have a line that
-   reads: /* no options, no getopt */ somewhere in the file.
-
- - Replace any "naked" calls to malloc, calloc, realloc, str[n]dup, fopen with
-   the x* equivalents found in libbb/xfuncs.c.
 
  - Security audits:
    http://www.securityfocus.com/popups/forums/secprog/intro.shtml
