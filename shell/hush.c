@@ -394,6 +394,9 @@ struct parse_context {
 struct variable {
 	struct variable *next;
 	char *varstr;        /* points to "name=" portion */
+#if ENABLE_HUSH_LOCAL
+	unsigned func_nest_level;
+#endif
 	int max_len;         /* if > 0, name is part of initial env; else name is malloced */
 	smallint flg_export; /* putenv should be done on this var */
 	smallint flg_read_only;
@@ -488,6 +491,10 @@ struct globals {
 	struct variable shell_ver;
 #if ENABLE_HUSH_FUNCTIONS
 	struct function *top_func;
+# if ENABLE_HUSH_LOCAL
+	struct variable **shadowed_vars_pp;
+	unsigned func_nest_level;
+# endif
 #endif
 	/* Signal and trap handling */
 #if ENABLE_HUSH_FAST
@@ -528,6 +535,9 @@ static int builtin_jobs(char **argv);
 #endif
 #if ENABLE_HUSH_HELP
 static int builtin_help(char **argv);
+#endif
+#if ENABLE_HUSH_LOCAL
+static int builtin_local(char **argv);
 #endif
 #if HUSH_DEBUG
 static int builtin_memleak(char **argv);
@@ -598,6 +608,9 @@ static const struct built_in_command bltins[] = {
 #endif
 #if ENABLE_HUSH_JOB
 	BLTIN("jobs"    , builtin_jobs    , "List active jobs"),
+#endif
+#if ENABLE_HUSH_LOCAL
+	BLTIN("local"   , builtin_local   , "Set local variable"),
 #endif
 #if HUSH_DEBUG
 	BLTIN("memleak" , builtin_memleak , "Debug tool"),
@@ -1261,12 +1274,21 @@ static const char *get_local_var_value(const char *name)
  * -1: clear export flag and unsetenv the variable
  * flg_read_only is set only when we handle -R var=val
  */
-#if BB_MMU
-#define set_local_var(str, flg_export, flg_read_only) \
+#if !BB_MMU && ENABLE_HUSH_LOCAL
+/* all params are used */
+#elif BB_MMU && ENABLE_HUSH_LOCAL
+#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
+	set_local_var(str, flg_export, local_lvl)
+#elif BB_MMU && !ENABLE_HUSH_LOCAL
+#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
 	set_local_var(str, flg_export)
+#elif !BB_MMU && !ENABLE_HUSH_LOCAL
+#define set_local_var(str, flg_export, local_lvl, flg_read_only) \
+	set_local_var(str, flg_export, flg_read_only)
 #endif
-static int set_local_var(char *str, int flg_export, int flg_read_only)
+static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_only)
 {
+	struct variable **var_pp;
 	struct variable *cur;
 	char *eq_sign;
 	int name_len;
@@ -1278,15 +1300,10 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 	}
 
 	name_len = eq_sign - str + 1; /* including '=' */
-	cur = G.top_var; /* cannot be NULL (we have HUSH_VERSION and it's RO) */
-	while (1) {
+	var_pp = &G.top_var;
+	while ((cur = *var_pp) != NULL) {
 		if (strncmp(cur->varstr, str, name_len) != 0) {
-			if (!cur->next) {
-				/* Bail out. Note that now cur points
-				 * to the last var in the linked list */
-				break;
-			}
-			cur = cur->next;
+			var_pp = &cur->next;
 			continue;
 		}
 		/* We found an existing var with this name */
@@ -1298,33 +1315,61 @@ static int set_local_var(char *str, int flg_export, int flg_read_only)
 			free(str);
 			return -1;
 		}
-		if (flg_export == -1) {
+		if (flg_export == -1) { // "&& cur->flg_export" ?
 			debug_printf_env("%s: unsetenv '%s'\n", __func__, str);
 			*eq_sign = '\0';
 			unsetenv(str);
 			*eq_sign = '=';
 		}
+#if ENABLE_HUSH_LOCAL
+		if (cur->func_nest_level < local_lvl) {
+			/* New variable is declared as local,
+			 * and existing one is global, or local
+			 * from enclosing function.
+			 * Remove and save old one: */
+			*var_pp = cur->next;
+			cur->next = *G.shadowed_vars_pp;
+			*G.shadowed_vars_pp = cur;
+			/* bash 3.2.33(1) and exported vars:
+			 * # export z=z
+			 * # f() { local z=a; env | grep ^z; }
+			 * # f
+			 * z=a
+			 * # env | grep ^z
+			 * z=z
+			 */
+			if (cur->flg_export)
+				flg_export = 1;
+			break;
+		}
+#endif
 		if (strcmp(cur->varstr + name_len, eq_sign + 1) == 0) {
  free_and_exp:
 			free(str);
 			goto exp;
 		}
-		if (cur->max_len >= strlen(str)) {
-			/* This one is from startup env, reuse space */
-			strcpy(cur->varstr, str);
-			goto free_and_exp;
-		}
-		/* max_len == 0 signifies "malloced" var, which we can
-		 * (and has to) free */
-		if (!cur->max_len)
+		if (cur->max_len != 0) {
+			if (cur->max_len >= strlen(str)) {
+				/* This one is from startup env, reuse space */
+				strcpy(cur->varstr, str);
+				goto free_and_exp;
+			}
+		} else {
+			/* max_len == 0 signifies "malloced" var, which we can
+			 * (and has to) free */
 			free(cur->varstr);
+		}
 		cur->max_len = 0;
 		goto set_str_and_exp;
 	}
 
-	/* Not found - create next variable struct */
-	cur->next = xzalloc(sizeof(*cur));
-	cur = cur->next;
+	/* Not found - create new variable struct */
+	cur = xzalloc(sizeof(*cur));
+#if ENABLE_HUSH_LOCAL
+	cur->func_nest_level = local_lvl;
+#endif
+	cur->next = *var_pp;
+	*var_pp = cur;
 
  set_str_and_exp:
 	cur->varstr = str;
@@ -1418,7 +1463,7 @@ static void arith_set_local_var(const char *name, const char *val, int flags)
 {
 	/* arith code doesnt malloc space, so do it for it */
 	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, flags, 0);
+	set_local_var(var, flags, /*lvl:*/ 0, /*ro:*/ 0);
 }
 #endif
 
@@ -1438,7 +1483,7 @@ static void add_vars(struct variable *var)
 			debug_printf_env("%s: restoring exported '%s'\n", __func__, var->varstr);
 			putenv(var->varstr);
 		} else {
-			debug_printf_env("%s: restoring local '%s'\n", __func__, var->varstr);
+			debug_printf_env("%s: restoring variable '%s'\n", __func__, var->varstr);
 		}
 		var = next;
 	}
@@ -1471,7 +1516,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 				var_p->next = old;
 				old = var_p;
 			}
-			set_local_var(*s, 1, 0);
+			set_local_var(*s, /*exp:*/ 1, /*lvl:*/ 0, /*ro:*/ 0);
 		}
 		s++;
 	}
@@ -2302,7 +2347,7 @@ static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 								val = NULL;
 							} else {
 								char *new_var = xasprintf("%s=%s", var, val);
-								set_local_var(new_var, 0, 0);
+								set_local_var(new_var, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 							}
 						}
 					}
@@ -3036,9 +3081,13 @@ static int run_function(const struct function *funcp, char **argv)
 	smallint sv_flg;
 
 	save_and_replace_G_args(&sv, argv);
+
 	/* "we are in function, ok to use return" */
 	sv_flg = G.flag_return_in_progress;
 	G.flag_return_in_progress = -1;
+#if ENABLE_HUSH_LOCAL
+	G.func_nest_level++;
+#endif
 
 	/* On MMU, funcp->body is always non-NULL */
 # if !BB_MMU
@@ -3052,7 +3101,32 @@ static int run_function(const struct function *funcp, char **argv)
 		rc = run_list(funcp->body);
 	}
 
+#if ENABLE_HUSH_LOCAL
+	{
+		struct variable *var;
+		struct variable **var_pp;
+
+		var_pp = &G.top_var;
+		while ((var = *var_pp) != NULL) {
+			if (var->func_nest_level < G.func_nest_level) {
+				var_pp = &var->next;
+				continue;
+			}
+			/* Unexport */
+			if (var->flg_export)
+				bb_unsetenv(var->varstr);
+			/* Remove from global list */
+			*var_pp = var->next;
+			/* Free */
+			if (!var->max_len)
+				free(var->varstr);
+			free(var);
+		}
+		G.func_nest_level--;
+	}
+#endif
 	G.flag_return_in_progress = sv_flg;
+
 	restore_G_args(&sv, argv);
 
 	return rc;
@@ -3606,7 +3680,7 @@ static int run_pipe(struct pipe *pi)
 				p = expand_string_to_string(*argv);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
-				set_local_var(p, 0, 0);
+				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 				argv++;
 			}
 			/* Do we need to flag set_local_var() errors?
@@ -3651,9 +3725,17 @@ static int run_pipe(struct pipe *pi)
 				}
 #if ENABLE_HUSH_FUNCTIONS
 				else {
+# if ENABLE_HUSH_LOCAL
+					struct variable **sv;
+					sv = G.shadowed_vars_pp;
+					G.shadowed_vars_pp = &old_vars;
+# endif
 					debug_printf_exec(": function '%s' '%s'...\n",
 						funcp->name, argv_expanded[1]);
 					rcode = run_function(funcp, argv_expanded) & 0xff;
+# if ENABLE_HUSH_LOCAL
+					G.shadowed_vars_pp = sv;
+# endif
 				}
 #endif
 			}
@@ -4050,7 +4132,7 @@ static int run_list(struct pipe *pi)
 			}
 			/* Insert next value from for_lcur */
 			/* note: *for_lcur already has quotes removed, $var expanded, etc */
-			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), 0, 0);
+			set_local_var(xasprintf("%s=%s", pi->cmds[0].argv[0], *for_lcur++), /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 			continue;
 		}
 		if (rword == RES_IN) {
@@ -6250,7 +6332,7 @@ int hush_main(int argc, char **argv)
 			break;
 		case 'R':
 		case 'V':
-			set_local_var(xstrdup(optarg), 0, opt == 'R');
+			set_local_var(xstrdup(optarg), /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ opt == 'R');
 			break;
 # if ENABLE_HUSH_FUNCTIONS
 		case 'F': {
@@ -6583,6 +6665,55 @@ static void print_escaped(const char *s)
 	} while (*s);
 }
 
+#if !ENABLE_HUSH_LOCAL
+#define helper_export_local(argv, exp, lvl) \
+	helper_export_local(argv, exp)
+#endif
+static void helper_export_local(char **argv, int exp, int lvl)
+{
+	do {
+		char *name = *argv;
+
+		/* So far we do not check that name is valid (TODO?) */
+
+		if (strchr(name, '=') == NULL) {
+			struct variable *var;
+
+			var = get_local_var(name);
+			if (exp == -1) { /* unexporting? */
+				/* export -n NAME (without =VALUE) */
+				if (var) {
+					var->flg_export = 0;
+					debug_printf_env("%s: unsetenv '%s'\n", __func__, name);
+					unsetenv(name);
+				} /* else: export -n NOT_EXISTING_VAR: no-op */
+				continue;
+			}
+			if (exp == 1) { /* exporting? */
+				/* export NAME (without =VALUE) */
+				if (var) {
+					var->flg_export = 1;
+					debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
+					putenv(var->varstr);
+					continue;
+				}
+			}
+			/* Exporting non-existing variable.
+			 * bash does not put it in environment,
+			 * but remembers that it is exported,
+			 * and does put it in env when it is set later.
+			 * We just set it to "" and export. */
+			/* Or, it's "local NAME" (without =VALUE).
+			 * bash sets the value to "". */
+			name = xasprintf("%s=", name);
+		} else {
+			/* (Un)exporting/making local NAME=VALUE */
+			name = xstrdup(name);
+		}
+		set_local_var(name, /*exp:*/ exp, /*lvl:*/ lvl, /*ro:*/ 0);
+	} while (*++argv);
+}
+
 static int builtin_export(char **argv)
 {
 	unsigned opt_unexport;
@@ -6625,49 +6756,22 @@ static int builtin_export(char **argv)
 	argv++;
 #endif
 
-	do {
-		char *name = *argv;
-
-		/* So far we do not check that name is valid (TODO?) */
-
-		if (strchr(name, '=') == NULL) {
-			struct variable *var;
-
-			var = get_local_var(name);
-			if (opt_unexport) {
-				/* export -n NAME (without =VALUE) */
-				if (var) {
-					var->flg_export = 0;
-					debug_printf_env("%s: unsetenv '%s'\n", __func__, name);
-					unsetenv(name);
-				} /* else: export -n NOT_EXISTING_VAR: no-op */
-				continue;
-			}
-			/* export NAME (without =VALUE) */
-			if (var) {
-				var->flg_export = 1;
-				debug_printf_env("%s: putenv '%s'\n", __func__, var->varstr);
-				putenv(var->varstr);
-				continue;
-			}
-			/* Exporting non-existing variable.
-			 * bash does not put it in environment,
-			 * but remembers that it is exported,
-			 * and does put it in env when it is set later.
-			 * We just set it to "" and export. */
-			name = xasprintf("%s=", name);
-		} else {
-			/* (Un)exporting NAME=VALUE */
-			name = xstrdup(name);
-		}
-		set_local_var(name,
-			/*export:*/ (opt_unexport ? -1 : 1),
-			/*readonly:*/ 0
-		);
-	} while (*++argv);
+	helper_export_local(argv, (opt_unexport ? -1 : 1), 0);
 
 	return EXIT_SUCCESS;
 }
+
+#if ENABLE_HUSH_LOCAL
+static int builtin_local(char **argv)
+{
+	if (G.func_nest_level == 0) {
+		bb_error_msg("%s: not in a function", argv[0]);
+		return EXIT_FAILURE; /* bash compat */
+	}
+	helper_export_local(argv, 0, G.func_nest_level);
+	return EXIT_SUCCESS;
+}
+#endif
 
 static int builtin_trap(char **argv)
 {
@@ -6944,7 +7048,7 @@ static int builtin_read(char **argv)
 //TODO: bash unbackslashes input, splits words and puts them in argv[i]
 
 	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
-	return set_local_var(string, 0, 0);
+	return set_local_var(string, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
