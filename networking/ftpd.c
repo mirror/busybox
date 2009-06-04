@@ -1320,6 +1320,8 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 				handle_appe();
 			else if (cmdval == const_STOU) /* "store unique" */
 				handle_stou();
+			else
+				goto bad_cmd;
 		}
 #endif
 #if 0
@@ -1340,6 +1342,9 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 			 * (doesn't necessarily mean "we must support them")
 			 * foo 1.2.3: XXXX - comment
 			 */
+#if ENABLE_FEATURE_FTP_WRITE
+ bad_cmd:
+#endif
 			cmdio_write_raw(STR(FTP_BADCMD)" Unknown command\r\n");
 		}
 	}
