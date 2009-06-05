@@ -1095,17 +1095,19 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
 	unsigned abs_timeout;
+	unsigned verbose_S;
 	smallint opts;
 
 	INIT_G();
 
 	abs_timeout = 1 * 60 * 60;
+	verbose_S = 0;
 	G.timeout = 2 * 60;
-	opt_complementary = "t+:T+:vv";
+	opt_complementary = "t+:T+:vv:SS";
 #if BB_MMU
-	opts = getopt32(argv,   "vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
+	opts = getopt32(argv,   "vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 #else
-	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose);
+	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 /* TODO: pass -n too? */
@@ -1116,6 +1118,8 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		return ls_main(argc, argv);
 	}
 #endif
+	if (G.verbose < verbose_S)
+		G.verbose = verbose_S;
 	if (abs_timeout | G.timeout) {
 		if (abs_timeout == 0)
 			abs_timeout = INT_MAX;
