@@ -16,7 +16,7 @@
 
 #include "libbb.h"
 
-#if ENABLE_FEATURE_USE_TERMIOS
+/* Support for FEATURE_USE_TERMIOS */
 
 struct globals {
 	int cin_fileno;
@@ -29,7 +29,9 @@ struct globals {
 #define new_settings     (G.new_settings    )
 #define cin_fileno       (G.cin_fileno      )
 
-#define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
+#define setTermSettings(fd, argp) do { \
+		if (ENABLE_FEATURE_USE_TERMIOS) tcsetattr(fd, TCSANOW, argp); \
+	} while(0)
 #define getTermSettings(fd, argp) tcgetattr(fd, argp)
 
 static void gotsig(int sig UNUSED_PARAM)
@@ -38,11 +40,6 @@ static void gotsig(int sig UNUSED_PARAM)
 	setTermSettings(cin_fileno, &initial_settings);
 	exit(EXIT_FAILURE);
 }
-
-#else /* !FEATURE_USE_TERMIOS */
-#define INIT_G() ((void)0)
-#define setTermSettings(fd, argp) ((void)0)
-#endif /* FEATURE_USE_TERMIOS */
 
 #define CONVERTED_TAB_SIZE 8
 
@@ -72,21 +69,21 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 	if (!cin)
 		return bb_cat(argv);
 
-#if ENABLE_FEATURE_USE_TERMIOS
-	cin_fileno = fileno(cin);
-	getTermSettings(cin_fileno, &initial_settings);
-	new_settings = initial_settings;
-	new_settings.c_lflag &= ~ICANON;
-	new_settings.c_lflag &= ~ECHO;
-	new_settings.c_cc[VMIN] = 1;
-	new_settings.c_cc[VTIME] = 0;
-	setTermSettings(cin_fileno, &new_settings);
-	bb_signals(0
-		+ (1 << SIGINT)
-		+ (1 << SIGQUIT)
-		+ (1 << SIGTERM)
-		, gotsig);
-#endif
+	if (ENABLE_FEATURE_USE_TERMIOS) {
+		cin_fileno = fileno(cin);
+		getTermSettings(cin_fileno, &initial_settings);
+		new_settings = initial_settings;
+		new_settings.c_lflag &= ~ICANON;
+		new_settings.c_lflag &= ~ECHO;
+		new_settings.c_cc[VMIN] = 1;
+		new_settings.c_cc[VTIME] = 0;
+		setTermSettings(cin_fileno, &new_settings);
+		bb_signals(0
+			+ (1 << SIGINT)
+			+ (1 << SIGQUIT)
+			+ (1 << SIGTERM)
+			, gotsig);
+	}
 
 	do {
 		file = stdin;
@@ -126,9 +123,8 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 				for (;;) {
 					input = getc(cin);
 					input = tolower(input);
-#if !ENABLE_FEATURE_USE_TERMIOS
-					printf("\033[A"); /* up cursor */
-#endif
+					if (!ENABLE_FEATURE_USE_TERMIOS)
+						printf("\033[A"); /* cursor up */
 					/* Erase the last message */
 					printf("\r%*s\r", len, "");
 
@@ -150,10 +146,10 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 
 				/* The user may have resized the terminal.
 				 * Re-read the dimensions. */
-#if ENABLE_FEATURE_USE_TERMIOS
-				get_terminal_width_height(cin_fileno, &terminal_width, &terminal_height);
-				terminal_height -= 1;
-#endif
+				if (ENABLE_FEATURE_USE_TERMIOS) {
+					get_terminal_width_height(cin_fileno, &terminal_width, &terminal_height);
+					terminal_height -= 1;
+				}
 			}
 
 			/* Crudely convert tabs into spaces, which are

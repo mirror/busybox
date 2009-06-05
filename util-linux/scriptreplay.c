@@ -30,9 +30,9 @@ int scriptreplay_main(int argc UNUSED_PARAM, char **argv)
 		usleep(delay * factor);
 		bb_copyfd_exact_size(fd, STDOUT_FILENO, count);
 	}
-#if ENABLE_FEATURE_CLEAN_UP
-	close(fd);
-	fclose(tfp);
-#endif
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(fd);
+		fclose(tfp);
+	}
 	return EXIT_SUCCESS;
 }

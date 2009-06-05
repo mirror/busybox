@@ -33,24 +33,20 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		OPT_c = (1 << 1),
 		OPT_f = (1 << 2),
 		OPT_q = (1 << 3),
-#if ENABLE_SCRIPTREPLAY
 		OPT_t = (1 << 4),
-#endif
 	};
 
-#if ENABLE_GETOPT_LONG
 	static const char getopt_longopts[] ALIGN1 =
 		"append\0"  No_argument       "a"
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
 		"quiet\0"   No_argument       "q"
-# if ENABLE_SCRIPTREPLAY
-		"timing\0"  No_argument       "t"
-# endif
+		IF_SCRIPTREPLAY("timing\0"  No_argument       "t")
 		;
 
-	applet_long_options = getopt_longopts;
-#endif
+	if (ENABLE_GETOPT_LONG)
+		applet_long_options = getopt_longopts;
+
 	opt_complementary = "?1"; /* max one arg */
 	opt = getopt32(argv, "ac:fq" IF_SCRIPTREPLAY("t") , &shell_arg);
 	//argc -= optind;
@@ -101,9 +97,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 #define buf bb_common_bufsiz1
 		struct pollfd pfd[2];
 		int outfd, count, loop;
-#if ENABLE_SCRIPTREPLAY
-		double oldtime = time(NULL);
-#endif
+		double oldtime = ENABLE_SCRIPTREPLAY ? time(NULL) : 0;
 		smallint fd_count = 2;
 
 		outfd = xopen(fname, mode);
@@ -132,8 +126,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 					goto restore;
 				}
 				if (count > 0) {
-#if ENABLE_SCRIPTREPLAY
-					if (opt & OPT_t) {
+					if (ENABLE_SCRIPTREPLAY && (opt & OPT_t)) {
 						struct timeval tv;
 						double newtime;
 
@@ -142,7 +135,6 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 						fprintf(stderr, "%f %u\n", newtime - oldtime, count);
 						oldtime = newtime;
 					}
-#endif
 					full_write(STDOUT_FILENO, buf, count);
 					full_write(outfd, buf, count);
 					if (opt & OPT_f) {
