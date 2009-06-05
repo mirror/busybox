@@ -281,14 +281,14 @@ static void scale(ullong ul)
 #define S_STAT(a) \
 typedef struct a { \
 	struct s_stat *next; \
-	void (*collect)(struct a *s); \
+	void (*collect)(struct a *s) FAST_FUNC; \
 	const char *label;
 #define S_STAT_END(a) } a;
 
 S_STAT(s_stat)
 S_STAT_END(s_stat)
 
-static void collect_literal(s_stat *s UNUSED_PARAM)
+static void FAST_FUNC collect_literal(s_stat *s UNUSED_PARAM)
 {
 }
 
@@ -325,7 +325,7 @@ S_STAT(cpu_stat)
 S_STAT_END(cpu_stat)
 
 
-static void collect_cpu(cpu_stat *s)
+static void FAST_FUNC collect_cpu(cpu_stat *s)
 {
 	ullong data[CPU_FIELDCNT] = { 0, 0, 0, 0, 0, 0, 0 };
 	unsigned frac[CPU_FIELDCNT] = { 0, 0, 0, 0, 0, 0, 0 };
@@ -399,7 +399,7 @@ S_STAT(int_stat)
 	int no;
 S_STAT_END(int_stat)
 
-static void collect_int(int_stat *s)
+static void FAST_FUNC collect_int(int_stat *s)
 {
 	ullong data[1];
 	ullong old;
@@ -433,7 +433,7 @@ S_STAT(ctx_stat)
 	ullong old;
 S_STAT_END(ctx_stat)
 
-static void collect_ctx(ctx_stat *s)
+static void FAST_FUNC collect_ctx(ctx_stat *s)
 {
 	ullong data[1];
 	ullong old;
@@ -462,7 +462,7 @@ S_STAT(blk_stat)
 	ullong old[2];
 S_STAT_END(blk_stat)
 
-static void collect_blk(blk_stat *s)
+static void FAST_FUNC collect_blk(blk_stat *s)
 {
 	ullong data[2];
 	int i;
@@ -504,7 +504,7 @@ S_STAT(fork_stat)
 	ullong old;
 S_STAT_END(fork_stat)
 
-static void collect_thread_nr(fork_stat *s UNUSED_PARAM)
+static void FAST_FUNC collect_thread_nr(fork_stat *s UNUSED_PARAM)
 {
 	ullong data[1];
 
@@ -515,7 +515,7 @@ static void collect_thread_nr(fork_stat *s UNUSED_PARAM)
 	scale(data[0]);
 }
 
-static void collect_fork(fork_stat *s)
+static void FAST_FUNC collect_fork(fork_stat *s)
 {
 	ullong data[1];
 	ullong old;
@@ -549,7 +549,7 @@ S_STAT(if_stat)
 	char *device_colon;
 S_STAT_END(if_stat)
 
-static void collect_if(if_stat *s)
+static void FAST_FUNC collect_if(if_stat *s)
 {
 	ullong data[4];
 	int i;
@@ -624,7 +624,7 @@ S_STAT_END(mem_stat)
 //HugePages_Total:     0
 //HugePages_Free:      0
 //Hugepagesize:     4096 kB
-static void collect_mem(mem_stat *s)
+static void FAST_FUNC collect_mem(mem_stat *s)
 {
 	ullong m_total = 0;
 	ullong m_free = 0;
@@ -671,7 +671,7 @@ static s_stat* init_mem(const char *param)
 S_STAT(swp_stat)
 S_STAT_END(swp_stat)
 
-static void collect_swp(swp_stat *s UNUSED_PARAM)
+static void FAST_FUNC collect_swp(swp_stat *s UNUSED_PARAM)
 {
 	ullong s_total[1];
 	ullong s_free[1];
@@ -695,7 +695,7 @@ static s_stat* init_swp(const char *param UNUSED_PARAM)
 S_STAT(fd_stat)
 S_STAT_END(fd_stat)
 
-static void collect_fd(fd_stat *s UNUSED_PARAM)
+static void FAST_FUNC collect_fd(fd_stat *s UNUSED_PARAM)
 {
 	ullong data[2];
 
@@ -720,7 +720,7 @@ S_STAT(time_stat)
 	int scale;
 S_STAT_END(time_stat)
 
-static void collect_time(time_stat *s)
+static void FAST_FUNC collect_time(time_stat *s)
 {
 	char buf[sizeof("12:34:56.123456")];
 	struct tm* tm;
@@ -755,7 +755,7 @@ static s_stat* init_time(const char *param)
 	return (s_stat*)s;
 }
 
-static void collect_info(s_stat *s)
+static void FAST_FUNC collect_info(s_stat *s)
 {
 	gen ^= 1;
 	while (s) {

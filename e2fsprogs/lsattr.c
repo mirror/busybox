@@ -57,8 +57,9 @@ static void list_attributes(const char *name)
 	bb_perror_msg("reading %s", name);
 }
 
-static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
-			   void *private UNUSED_PARAM)
+static int FAST_FUNC lsattr_dir_proc(const char *dir_name,
+		struct dirent *de,
+		void *private UNUSED_PARAM)
 {
 	struct stat st;
 	char *path;

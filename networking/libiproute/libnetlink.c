@@ -104,7 +104,7 @@ int FAST_FUNC rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, in
 }
 
 static int rtnl_dump_filter(struct rtnl_handle *rth,
-		int (*filter)(const struct sockaddr_nl *, struct nlmsghdr *n, void *),
+		int (*filter)(const struct sockaddr_nl *, struct nlmsghdr *n, void *) FAST_FUNC,
 		void *arg1/*,
 		int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
 		void *arg2*/)
@@ -196,7 +196,7 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 }
 
 int FAST_FUNC xrtnl_dump_filter(struct rtnl_handle *rth,
-		int (*filter)(const struct sockaddr_nl *, struct nlmsghdr *, void *),
+		int (*filter)(const struct sockaddr_nl *, struct nlmsghdr *, void *) FAST_FUNC,
 		void *arg1)
 {
 	int ret = rtnl_dump_filter(rth, filter, arg1/*, NULL, NULL*/);
@@ -206,10 +206,10 @@ int FAST_FUNC xrtnl_dump_filter(struct rtnl_handle *rth,
 }
 
 int FAST_FUNC rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
-	      pid_t peer, unsigned groups,
-	      struct nlmsghdr *answer,
-	      int (*junk)(struct sockaddr_nl *, struct nlmsghdr *, void *),
-	      void *jarg)
+		pid_t peer, unsigned groups,
+		struct nlmsghdr *answer,
+		int (*junk)(struct sockaddr_nl *, struct nlmsghdr *, void *),
+		void *jarg)
 {
 /* bbox doesn't use parameters no. 3, 4, 6, 7, they are stubbed out */
 #define peer   0

@@ -239,36 +239,36 @@ typedef struct servtab_t {
 #ifdef INETD_BUILTINS_ENABLED
 /* Echo received data */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-static void echo_stream(int, servtab_t *);
-static void echo_dg(int, servtab_t *);
+static void FAST_FUNC echo_stream(int, servtab_t *);
+static void FAST_FUNC echo_dg(int, servtab_t *);
 #endif
 /* Internet /dev/null */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-static void discard_stream(int, servtab_t *);
-static void discard_dg(int, servtab_t *);
+static void FAST_FUNC discard_stream(int, servtab_t *);
+static void FAST_FUNC discard_dg(int, servtab_t *);
 #endif
 /* Return 32 bit time since 1900 */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
-static void machtime_stream(int, servtab_t *);
-static void machtime_dg(int, servtab_t *);
+static void FAST_FUNC machtime_stream(int, servtab_t *);
+static void FAST_FUNC machtime_dg(int, servtab_t *);
 #endif
 /* Return human-readable time */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-static void daytime_stream(int, servtab_t *);
-static void daytime_dg(int, servtab_t *);
+static void FAST_FUNC daytime_stream(int, servtab_t *);
+static void FAST_FUNC daytime_dg(int, servtab_t *);
 #endif
 /* Familiar character generator */
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-static void chargen_stream(int, servtab_t *);
-static void chargen_dg(int, servtab_t *);
+static void FAST_FUNC chargen_stream(int, servtab_t *);
+static void FAST_FUNC chargen_dg(int, servtab_t *);
 #endif
 
 struct builtin {
 	/* NB: not necessarily NUL terminated */
 	char bi_service7[7];      /* internally provided service name */
 	uint8_t bi_fork;          /* 1 if stream fn should run in child */
-	void (*bi_stream_fn)(int, servtab_t *);
-	void (*bi_dgram_fn)(int, servtab_t *);
+	void (*bi_stream_fn)(int, servtab_t *) FAST_FUNC;
+	void (*bi_dgram_fn)(int, servtab_t *) FAST_FUNC;
 };
 
 static const struct builtin builtins[] = {
@@ -1386,7 +1386,7 @@ static const char *const cat_args[] = { "cat", NULL };
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 /* Echo service -- echo data back. */
 /* ARGSUSED */
-static void echo_stream(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 #if BB_MMU
 	while (1) {
@@ -1407,7 +1407,7 @@ static void echo_stream(int s, servtab_t *sep UNUSED_PARAM)
 	/* on failure we return to main, which does exit(EXIT_FAILURE) */
 #endif
 }
-static void echo_dg(int s, servtab_t *sep)
+static void FAST_FUNC echo_dg(int s, servtab_t *sep)
 {
 	enum { BUFSIZE = 12*1024 }; /* for jumbo sized packets! :) */
 	char *buf = xmalloc(BUFSIZE); /* too big for stack */
@@ -1427,7 +1427,7 @@ static void echo_dg(int s, servtab_t *sep)
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 /* Discard service -- ignore data. */
 /* ARGSUSED */
-static void discard_stream(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 #if BB_MMU
 	while (safe_read(s, line, LINE_SIZE) > 0)
@@ -1446,7 +1446,7 @@ static void discard_stream(int s, servtab_t *sep UNUSED_PARAM)
 #endif
 }
 /* ARGSUSED */
-static void discard_dg(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC discard_dg(int s, servtab_t *sep UNUSED_PARAM)
 {
 	/* dgram builtins are non-forking - DONT BLOCK! */
 	recv(s, line, LINE_SIZE, MSG_DONTWAIT);
@@ -1467,7 +1467,7 @@ static void init_ring(void)
 }
 /* Character generator. MMU arches only. */
 /* ARGSUSED */
-static void chargen_stream(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC chargen_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	char *rs;
 	int len;
@@ -1495,7 +1495,7 @@ static void chargen_stream(int s, servtab_t *sep UNUSED_PARAM)
 	}
 }
 /* ARGSUSED */
-static void chargen_dg(int s, servtab_t *sep)
+static void FAST_FUNC chargen_dg(int s, servtab_t *sep)
 {
 	int len;
 	char text[LINESIZ + 2];
@@ -1544,14 +1544,14 @@ static uint32_t machtime(void)
 	return htonl((uint32_t)(tv.tv_sec + 2208988800));
 }
 /* ARGSUSED */
-static void machtime_stream(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC machtime_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	uint32_t result;
 
 	result = machtime();
 	full_write(s, &result, sizeof(result));
 }
-static void machtime_dg(int s, servtab_t *sep)
+static void FAST_FUNC machtime_dg(int s, servtab_t *sep)
 {
 	uint32_t result;
 	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);
@@ -1569,14 +1569,14 @@ static void machtime_dg(int s, servtab_t *sep)
 #if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 /* Return human-readable time of day */
 /* ARGSUSED */
-static void daytime_stream(int s, servtab_t *sep UNUSED_PARAM)
+static void FAST_FUNC daytime_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	time_t t;
 
 	t = time(NULL);
 	fdprintf(s, "%.24s\r\n", ctime(&t));
 }
-static void daytime_dg(int s, servtab_t *sep)
+static void FAST_FUNC daytime_dg(int s, servtab_t *sep)
 {
 	time_t t;
 	len_and_sockaddr *lsa = alloca(LSA_LEN_SIZE + sep->se_lsa->len);

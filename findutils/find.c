@@ -65,7 +65,7 @@
 IF_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
 IF_FEATURE_FIND_XDEV(static int xdev_count;)
 
-typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *);
+typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *) FAST_FUNC;
 
 typedef struct {
 	action_fp f;
@@ -73,12 +73,15 @@ typedef struct {
 	bool invert;
 #endif
 } action;
+
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
-#define ACTF(name)         static int func_##name(const char *fileName UNUSED_PARAM, \
-                                                  struct stat *statbuf UNUSED_PARAM, \
-                                                  action_##name* ap UNUSED_PARAM)
-                         ACTS(print)
-                         ACTS(name,  const char *pattern; bool iname;)
+#define ACTF(name) \
+	static int FAST_FUNC func_##name(const char *fileName UNUSED_PARAM, \
+		struct stat *statbuf UNUSED_PARAM, \
+		action_##name* ap UNUSED_PARAM)
+
+                        ACTS(print)
+                        ACTS(name,  const char *pattern; bool iname;)
 IF_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))
 IF_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
 IF_FEATURE_FIND_PRINT0( ACTS(print0))

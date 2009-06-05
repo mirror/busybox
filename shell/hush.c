@@ -256,8 +256,8 @@ typedef struct in_str {
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
 	FILE *file;
-	int (*get) (struct in_str *);
-	int (*peek) (struct in_str *);
+	int (*get) (struct in_str *) FAST_FUNC;
+	int (*peek) (struct in_str *) FAST_FUNC;
 } in_str;
 #define i_getch(input) ((input)->get(input))
 #define i_peek(input) ((input)->peek(input))
@@ -537,43 +537,43 @@ struct globals {
 
 
 /* Function prototypes for builtins */
-static int builtin_cd(char **argv);
-static int builtin_echo(char **argv);
-static int builtin_eval(char **argv);
-static int builtin_exec(char **argv);
-static int builtin_exit(char **argv);
-static int builtin_export(char **argv);
+static int builtin_cd(char **argv) FAST_FUNC;
+static int builtin_echo(char **argv) FAST_FUNC;
+static int builtin_eval(char **argv) FAST_FUNC;
+static int builtin_exec(char **argv) FAST_FUNC;
+static int builtin_exit(char **argv) FAST_FUNC;
+static int builtin_export(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_JOB
-static int builtin_fg_bg(char **argv);
-static int builtin_jobs(char **argv);
+static int builtin_fg_bg(char **argv) FAST_FUNC;
+static int builtin_jobs(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_HELP
-static int builtin_help(char **argv);
+static int builtin_help(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_LOCAL
-static int builtin_local(char **argv);
+static int builtin_local(char **argv) FAST_FUNC;
 #endif
 #if HUSH_DEBUG
-static int builtin_memleak(char **argv);
+static int builtin_memleak(char **argv) FAST_FUNC;
 #endif
-static int builtin_pwd(char **argv);
-static int builtin_read(char **argv);
-static int builtin_set(char **argv);
-static int builtin_shift(char **argv);
-static int builtin_source(char **argv);
-static int builtin_test(char **argv);
-static int builtin_trap(char **argv);
-static int builtin_type(char **argv);
-static int builtin_true(char **argv);
-static int builtin_umask(char **argv);
-static int builtin_unset(char **argv);
-static int builtin_wait(char **argv);
+static int builtin_pwd(char **argv) FAST_FUNC;
+static int builtin_read(char **argv) FAST_FUNC;
+static int builtin_set(char **argv) FAST_FUNC;
+static int builtin_shift(char **argv) FAST_FUNC;
+static int builtin_source(char **argv) FAST_FUNC;
+static int builtin_test(char **argv) FAST_FUNC;
+static int builtin_trap(char **argv) FAST_FUNC;
+static int builtin_type(char **argv) FAST_FUNC;
+static int builtin_true(char **argv) FAST_FUNC;
+static int builtin_umask(char **argv) FAST_FUNC;
+static int builtin_unset(char **argv) FAST_FUNC;
+static int builtin_wait(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_LOOPS
-static int builtin_break(char **argv);
-static int builtin_continue(char **argv);
+static int builtin_break(char **argv) FAST_FUNC;
+static int builtin_continue(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_FUNCTIONS
-static int builtin_return(char **argv);
+static int builtin_return(char **argv) FAST_FUNC;
 #endif
 
 /* Table of built-in functions.  They can be forked or not, depending on
@@ -584,7 +584,7 @@ static int builtin_return(char **argv);
  * still be set at the end. */
 struct built_in_command {
 	const char *cmd;
-	int (*function)(char **argv);
+	int (*function)(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_HELP
 	const char *descr;
 # define BLTIN(cmd, func, help) { cmd, func, help }
@@ -1541,7 +1541,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 /*
  * in_str support
  */
-static int static_get(struct in_str *i)
+static int FAST_FUNC static_get(struct in_str *i)
 {
 	int ch = *i->p++;
 	if (ch != '\0')
@@ -1550,7 +1550,7 @@ static int static_get(struct in_str *i)
 	return EOF;
 }
 
-static int static_peek(struct in_str *i)
+static int FAST_FUNC static_peek(struct in_str *i)
 {
 	return *i->p;
 }
@@ -1629,7 +1629,7 @@ static void get_user_input(struct in_str *i)
 
 /* This is the magic location that prints prompts
  * and gets data back from the user */
-static int file_get(struct in_str *i)
+static int FAST_FUNC file_get(struct in_str *i)
 {
 	int ch;
 
@@ -1668,7 +1668,7 @@ static int file_get(struct in_str *i)
 /* All callers guarantee this routine will never
  * be used right after a newline, so prompting is not needed.
  */
-static int file_peek(struct in_str *i)
+static int FAST_FUNC file_peek(struct in_str *i)
 {
 	int ch;
 	if (i->p && *i->p) {
@@ -6560,12 +6560,12 @@ int lash_main(int argc, char **argv)
 /*
  * Built-ins
  */
-static int builtin_true(char **argv UNUSED_PARAM)
+static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 {
 	return 0;
 }
 
-static int builtin_test(char **argv)
+static int FAST_FUNC builtin_test(char **argv)
 {
 	int argc = 0;
 	while (*argv) {
@@ -6575,7 +6575,7 @@ static int builtin_test(char **argv)
 	return test_main(argc, argv - argc);
 }
 
-static int builtin_echo(char **argv)
+static int FAST_FUNC builtin_echo(char **argv)
 {
 	int argc = 0;
 	while (*argv) {
@@ -6585,7 +6585,7 @@ static int builtin_echo(char **argv)
 	return echo_main(argc, argv - argc);
 }
 
-static int builtin_eval(char **argv)
+static int FAST_FUNC builtin_eval(char **argv)
 {
 	int rcode = EXIT_SUCCESS;
 
@@ -6602,7 +6602,7 @@ static int builtin_eval(char **argv)
 	return rcode;
 }
 
-static int builtin_cd(char **argv)
+static int FAST_FUNC builtin_cd(char **argv)
 {
 	const char *newdir = argv[1];
 	if (newdir == NULL) {
@@ -6621,7 +6621,7 @@ static int builtin_cd(char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int builtin_exec(char **argv)
+static int FAST_FUNC builtin_exec(char **argv)
 {
 	if (*++argv == NULL)
 		return EXIT_SUCCESS; /* bash does this */
@@ -6635,7 +6635,7 @@ static int builtin_exec(char **argv)
 	}
 }
 
-static int builtin_exit(char **argv)
+static int FAST_FUNC builtin_exit(char **argv)
 {
 	debug_printf_exec("%s()\n", __func__);
 
@@ -6730,7 +6730,7 @@ static void helper_export_local(char **argv, int exp, int lvl)
 	} while (*++argv);
 }
 
-static int builtin_export(char **argv)
+static int FAST_FUNC builtin_export(char **argv)
 {
 	unsigned opt_unexport;
 
@@ -6778,7 +6778,7 @@ static int builtin_export(char **argv)
 }
 
 #if ENABLE_HUSH_LOCAL
-static int builtin_local(char **argv)
+static int FAST_FUNC builtin_local(char **argv)
 {
 	if (G.func_nest_level == 0) {
 		bb_error_msg("%s: not in a function", argv[0]);
@@ -6789,7 +6789,7 @@ static int builtin_local(char **argv)
 }
 #endif
 
-static int builtin_trap(char **argv)
+static int FAST_FUNC builtin_trap(char **argv)
 {
 	int sig;
 	char *new_cmd;
@@ -6879,7 +6879,7 @@ static int builtin_trap(char **argv)
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/type.html */
-static int builtin_type(char **argv)
+static int FAST_FUNC builtin_type(char **argv)
 {
 	int ret = EXIT_SUCCESS;
 
@@ -6913,7 +6913,7 @@ static int builtin_type(char **argv)
 
 #if ENABLE_HUSH_JOB
 /* built-in 'fg' and 'bg' handler */
-static int builtin_fg_bg(char **argv)
+static int FAST_FUNC builtin_fg_bg(char **argv)
 {
 	int i, jobnum;
 	struct pipe *pi;
@@ -6976,7 +6976,7 @@ static int builtin_fg_bg(char **argv)
 #endif
 
 #if ENABLE_HUSH_HELP
-static int builtin_help(char **argv UNUSED_PARAM)
+static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 {
 	const struct built_in_command *x;
 
@@ -6992,7 +6992,7 @@ static int builtin_help(char **argv UNUSED_PARAM)
 #endif
 
 #if ENABLE_HUSH_JOB
-static int builtin_jobs(char **argv UNUSED_PARAM)
+static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
 {
 	struct pipe *job;
 	const char *status_string;
@@ -7010,7 +7010,7 @@ static int builtin_jobs(char **argv UNUSED_PARAM)
 #endif
 
 #if HUSH_DEBUG
-static int builtin_memleak(char **argv UNUSED_PARAM)
+static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 {
 	void *p;
 	unsigned long l;
@@ -7039,13 +7039,13 @@ static int builtin_memleak(char **argv UNUSED_PARAM)
 }
 #endif
 
-static int builtin_pwd(char **argv UNUSED_PARAM)
+static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 {
 	puts(set_cwd());
 	return EXIT_SUCCESS;
 }
 
-static int builtin_read(char **argv)
+static int FAST_FUNC builtin_read(char **argv)
 {
 	char *string;
 	const char *name = "REPLY";
@@ -7088,7 +7088,7 @@ static int builtin_read(char **argv)
  *
  * So far, we only support "set -- [argument...]" and some of the short names.
  */
-static int builtin_set(char **argv)
+static int FAST_FUNC builtin_set(char **argv)
 {
 	int n;
 	char **pp, **g_argv;
@@ -7147,7 +7147,7 @@ static int builtin_set(char **argv)
 	return EXIT_FAILURE;
 }
 
-static int builtin_shift(char **argv)
+static int FAST_FUNC builtin_shift(char **argv)
 {
 	int n = 1;
 	if (argv[1]) {
@@ -7167,7 +7167,7 @@ static int builtin_shift(char **argv)
 	return EXIT_FAILURE;
 }
 
-static int builtin_source(char **argv)
+static int FAST_FUNC builtin_source(char **argv)
 {
 	char *arg_path;
 	FILE *input;
@@ -7208,7 +7208,7 @@ static int builtin_source(char **argv)
 	return G.last_exitcode;
 }
 
-static int builtin_umask(char **argv)
+static int FAST_FUNC builtin_umask(char **argv)
 {
 	int rc;
 	mode_t mask;
@@ -7240,7 +7240,7 @@ static int builtin_umask(char **argv)
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
-static int builtin_unset(char **argv)
+static int FAST_FUNC builtin_unset(char **argv)
 {
 	int ret;
 	unsigned opts;
@@ -7277,7 +7277,7 @@ static int builtin_unset(char **argv)
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
-static int builtin_wait(char **argv)
+static int FAST_FUNC builtin_wait(char **argv)
 {
 	int ret = EXIT_SUCCESS;
 	int status, sig;
@@ -7361,7 +7361,7 @@ static unsigned parse_numeric_argv1(char **argv, unsigned def, unsigned def_min)
 #endif
 
 #if ENABLE_HUSH_LOOPS
-static int builtin_break(char **argv)
+static int FAST_FUNC builtin_break(char **argv)
 {
 	unsigned depth;
 	if (G.depth_of_loop == 0) {
@@ -7379,7 +7379,7 @@ static int builtin_break(char **argv)
 	return EXIT_SUCCESS;
 }
 
-static int builtin_continue(char **argv)
+static int FAST_FUNC builtin_continue(char **argv)
 {
 	G.flag_break_continue = 1; /* BC_CONTINUE = 2 = 1+1 */
 	return builtin_break(argv);
@@ -7387,7 +7387,7 @@ static int builtin_continue(char **argv)
 #endif
 
 #if ENABLE_HUSH_FUNCTIONS
-static int builtin_return(char **argv)
+static int FAST_FUNC builtin_return(char **argv)
 {
 	int rc;
 

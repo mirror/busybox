@@ -20,8 +20,7 @@
 
 #include "volume_id_internal.h"
 
-struct hpfs_super
-{
+struct hpfs_super {
 	uint8_t		magic[4];
 	uint8_t		version;
 } __attribute__((__packed__));

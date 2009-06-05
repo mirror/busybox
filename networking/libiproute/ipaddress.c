@@ -196,7 +196,7 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
+static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		struct nlmsghdr *n, void *arg UNUSED_PARAM)
 {
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);
@@ -349,8 +349,7 @@ static int print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 }
 
 
-struct nlmsg_list
-{
+struct nlmsg_list {
 	struct nlmsg_list *next;
 	struct nlmsghdr	  h;
 };
@@ -377,7 +376,7 @@ static int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo)
 }
 
 
-static int store_nlmsg(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int FAST_FUNC store_nlmsg(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 {
 	struct nlmsg_list **linfo = (struct nlmsg_list**)arg;
 	struct nlmsg_list *h;

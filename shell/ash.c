@@ -900,7 +900,7 @@ sharg(union node *arg, FILE *fp)
 	}
 }
 
-static void
+static void FAST_FUNC
 shcmd(union node *cmd, FILE *fp)
 {
 	union node *np;
@@ -1686,14 +1686,14 @@ freeparam(volatile struct shparam *param)
 }
 
 #if ENABLE_ASH_GETOPTS
-static void getoptsreset(const char *value);
+static void FAST_FUNC getoptsreset(const char *value);
 #endif
 
 struct var {
 	struct var *next;               /* next entry in hash list */
 	int flags;                      /* flags are defined above */
 	const char *text;               /* name=value */
-	void (*func)(const char *);     /* function to be called when  */
+	void (*func)(const char *) FAST_FUNC; /* function to be called when  */
 					/* the variable gets set/unset */
 };
 
@@ -1745,17 +1745,17 @@ change_lc_ctype(const char *value)
 #endif
 #if ENABLE_ASH_MAIL
 static void chkmail(void);
-static void changemail(const char *);
+static void changemail(const char *) FAST_FUNC;
 #endif
-static void changepath(const char *);
+static void changepath(const char *) FAST_FUNC;
 #if ENABLE_ASH_RANDOM_SUPPORT
-static void change_random(const char *);
+static void change_random(const char *) FAST_FUNC;
 #endif
 
 static const struct {
 	int flags;
 	const char *text;
-	void (*func)(const char *);
+	void (*func)(const char *) FAST_FUNC;
 } varinit_data[] = {
 #ifdef IFS_BROKEN
 	{ VSTRFIXED|VTEXTFIXED       , defifsvar   , NULL            },
@@ -1861,7 +1861,7 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 
 #if ENABLE_ASH_GETOPTS
-static void
+static void FAST_FUNC
 getoptsreset(const char *value)
 {
 	shellparam.optind = number(value);
@@ -2492,7 +2492,7 @@ docd(const char *dest, int flags)
 	return err;
 }
 
-static int
+static int FAST_FUNC
 cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	const char *dest;
@@ -2556,7 +2556,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	return 0;
 }
 
-static int
+static int FAST_FUNC
 pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int flags;
@@ -3161,7 +3161,7 @@ printalias(const struct alias *ap)
 /*
  * TODO - sort output
  */
-static int
+static int FAST_FUNC
 aliascmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *n, *v;
@@ -3196,7 +3196,7 @@ aliascmd(int argc UNUSED_PARAM, char **argv)
 	return ret;
 }
 
-static int
+static int FAST_FUNC
 unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int i;
@@ -3680,7 +3680,7 @@ setjobctl(int on)
 	doing_jobctl = on;
 }
 
-static int
+static int FAST_FUNC
 killcmd(int argc, char **argv)
 {
 	int i = 1;
@@ -3745,7 +3745,7 @@ restartjob(struct job *jp, int mode)
 	return status;
 }
 
-static int
+static int FAST_FUNC
 fg_bgcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct job *jp;
@@ -4000,7 +4000,7 @@ showjobs(FILE *out, int mode)
 	}
 }
 
-static int
+static int FAST_FUNC
 jobscmd(int argc UNUSED_PARAM, char **argv)
 {
 	int mode, m;
@@ -4053,7 +4053,7 @@ getstatus(struct job *job)
 	return retval;
 }
 
-static int
+static int FAST_FUNC
 waitcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct job *job;
@@ -5587,9 +5587,9 @@ struct backcmd {                /* result of evalbackcmd */
 /* These forward decls are needed to use "eval" code for backticks handling: */
 static uint8_t back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
-static void evaltree(union node *, int);
+static void FAST_FUNC evaltree(union node *, int);
 
-static void
+static void FAST_FUNC
 evalbackcmd(union node *n, struct backcmd *result)
 {
 	int saveherefd;
@@ -7018,7 +7018,7 @@ casematch(union node *pattern, char *val)
 
 struct builtincmd {
 	const char *name;
-	int (*builtin)(int, char **);
+	int (*builtin)(int, char **) FAST_FUNC;
 	/* unsigned flags; */
 };
 #define IS_BUILTIN_SPECIAL(b) ((b)->name[0] & 1)
@@ -7312,7 +7312,7 @@ addcmdentry(char *name, struct cmdentry *entry)
 	cmdp->rehash = 0;
 }
 
-static int
+static int FAST_FUNC
 hashcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	struct tblentry **pp;
@@ -7382,7 +7382,7 @@ hashcd(void)
  * pathval() still returns the old value at this point.
  * Called with interrupts off.
  */
-static void
+static void FAST_FUNC
 changepath(const char *new)
 {
 	const char *old;
@@ -7614,7 +7614,7 @@ describe_command(char *command, int describe_command_verbose)
 	return 0;
 }
 
-static int
+static int FAST_FUNC
 typecmd(int argc UNUSED_PARAM, char **argv)
 {
 	int i = 1;
@@ -7633,7 +7633,7 @@ typecmd(int argc UNUSED_PARAM, char **argv)
 }
 
 #if ENABLE_ASH_CMDCMD
-static int
+static int FAST_FUNC
 commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int c;
@@ -8018,13 +8018,13 @@ dotrap(void)
 }
 
 /* forward declarations - evaluation is fairly recursive business... */
-static void evalloop(union node *, int);
-static void evalfor(union node *, int);
-static void evalcase(union node *, int);
-static void evalsubshell(union node *, int);
+static void FAST_FUNC evalloop(union node *, int);
+static void FAST_FUNC evalfor(union node *, int);
+static void FAST_FUNC evalcase(union node *, int);
+static void FAST_FUNC evalsubshell(union node *, int);
 static void expredir(union node *);
-static void evalpipe(union node *, int);
-static void evalcommand(union node *, int);
+static void FAST_FUNC evalpipe(union node *, int);
+static void FAST_FUNC evalcommand(union node *, int);
 static int evalbltin(const struct builtincmd *, int, char **);
 static void prehash(union node *);
 
@@ -8032,13 +8032,13 @@ static void prehash(union node *);
  * Evaluate a parse tree.  The value is left in the global variable
  * exitstatus.
  */
-static void
+static void FAST_FUNC
 evaltree(union node *n, int flags)
 {
 	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 	int checkexit = 0;
-	void (*evalfn)(union node *, int);
+	void (*evalfn)(union node *, int) FAST_FUNC;
 	int status;
 	int int_level;
 
@@ -8182,7 +8182,7 @@ static
 #endif
 void evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
 
-static void
+static void FAST_FUNC
 evalloop(union node *n, int flags)
 {
 	int status;
@@ -8218,7 +8218,7 @@ evalloop(union node *n, int flags)
 	exitstatus = status;
 }
 
-static void
+static void FAST_FUNC
 evalfor(union node *n, int flags)
 {
 	struct arglist arglist;
@@ -8258,7 +8258,7 @@ evalfor(union node *n, int flags)
 	popstackmark(&smark);
 }
 
-static void
+static void FAST_FUNC
 evalcase(union node *n, int flags)
 {
 	union node *cp;
@@ -8288,7 +8288,7 @@ evalcase(union node *n, int flags)
 /*
  * Kick off a subshell to evaluate a tree.
  */
-static void
+static void FAST_FUNC
 evalsubshell(union node *n, int flags)
 {
 	struct job *jp;
@@ -8375,7 +8375,7 @@ expredir(union node *n)
  * of the shell, which make the last process in a pipeline the parent
  * of all the rest.)
  */
-static void
+static void FAST_FUNC
 evalpipe(union node *n, int flags)
 {
 	struct job *jp;
@@ -8644,7 +8644,7 @@ mklocal(char *name)
 /*
  * The "local" command.
  */
-static int
+static int FAST_FUNC
 localcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *name;
@@ -8656,19 +8656,19 @@ localcmd(int argc UNUSED_PARAM, char **argv)
 	return 0;
 }
 
-static int
+static int FAST_FUNC
 falsecmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	return 1;
 }
 
-static int
+static int FAST_FUNC
 truecmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	return 0;
 }
 
-static int
+static int FAST_FUNC
 execcmd(int argc UNUSED_PARAM, char **argv)
 {
 	if (argv[1]) {
@@ -8683,7 +8683,7 @@ execcmd(int argc UNUSED_PARAM, char **argv)
 /*
  * The return command.
  */
-static int
+static int FAST_FUNC
 returncmd(int argc UNUSED_PARAM, char **argv)
 {
 	/*
@@ -8695,28 +8695,28 @@ returncmd(int argc UNUSED_PARAM, char **argv)
 }
 
 /* Forward declarations for builtintab[] */
-static int breakcmd(int, char **);
-static int dotcmd(int, char **);
-static int evalcmd(int, char **);
-static int exitcmd(int, char **);
-static int exportcmd(int, char **);
+static int breakcmd(int, char **) FAST_FUNC;
+static int dotcmd(int, char **) FAST_FUNC;
+static int evalcmd(int, char **) FAST_FUNC;
+static int exitcmd(int, char **) FAST_FUNC;
+static int exportcmd(int, char **) FAST_FUNC;
 #if ENABLE_ASH_GETOPTS
-static int getoptscmd(int, char **);
+static int getoptscmd(int, char **) FAST_FUNC;
 #endif
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-static int helpcmd(int, char **);
+static int helpcmd(int, char **) FAST_FUNC;
 #endif
 #if ENABLE_SH_MATH_SUPPORT
-static int letcmd(int, char **);
+static int letcmd(int, char **) FAST_FUNC;
 #endif
-static int readcmd(int, char **);
-static int setcmd(int, char **);
-static int shiftcmd(int, char **);
-static int timescmd(int, char **);
-static int trapcmd(int, char **);
-static int umaskcmd(int, char **);
-static int unsetcmd(int, char **);
-static int ulimitcmd(int, char **);
+static int readcmd(int, char **) FAST_FUNC;
+static int setcmd(int, char **) FAST_FUNC;
+static int shiftcmd(int, char **) FAST_FUNC;
+static int timescmd(int, char **) FAST_FUNC;
+static int trapcmd(int, char **) FAST_FUNC;
+static int umaskcmd(int, char **) FAST_FUNC;
+static int unsetcmd(int, char **) FAST_FUNC;
+static int ulimitcmd(int, char **) FAST_FUNC;
 
 #define BUILTIN_NOSPEC          "0"
 #define BUILTIN_SPECIAL         "1"
@@ -8739,9 +8739,10 @@ static int ulimitcmd(int, char **);
  * Apart from the above, [[ expr ]] should work as [ expr ]
  */
 
-#define echocmd   echo_main
-#define printfcmd printf_main
-#define testcmd   test_main
+/* Stubs for calling non-FAST_FUNC's */
+static int FAST_FUNC echocmd(int argc, char **argv)   { return echo_main(argc, argv); }
+static int FAST_FUNC printfcmd(int argc, char **argv) { return printf_main(argc, argv); }
+static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, argv); }
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
@@ -8864,14 +8865,14 @@ isassignment(const char *p)
 		return 0;
 	return *q == '=';
 }
-static int
+static int FAST_FUNC
 bltincmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	/* Preserve exitstatus of a previous possible redirection
 	 * as POSIX mandates */
 	return back_exitstatus;
 }
-static void
+static void FAST_FUNC
 evalcommand(union node *cmd, int flags)
 {
 	static const struct builtincmd null_bltin = {
@@ -9189,7 +9190,7 @@ prehash(union node *n)
  * be an error to break out of more loops than exist, but it isn't
  * in the standard shell so we don't make it one here.
  */
-static int
+static int FAST_FUNC
 breakcmd(int argc UNUSED_PARAM, char **argv)
 {
 	int n = argv[1] ? number(argv[1]) : 1;
@@ -9734,7 +9735,7 @@ chkmail(void)
 	popstackmark(&smark);
 }
 
-static void
+static void FAST_FUNC
 changemail(const char *val UNUSED_PARAM)
 {
 	mail_var_path_changed = 1;
@@ -9890,7 +9891,7 @@ options(int cmdline)
 /*
  * The shift builtin command.
  */
-static int
+static int FAST_FUNC
 shiftcmd(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
@@ -9952,7 +9953,7 @@ showvars(const char *sep_prefix, int on, int off)
 /*
  * The set command builtin.
  */
-static int
+static int FAST_FUNC
 setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int retval;
@@ -9973,7 +9974,7 @@ setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 }
 
 #if ENABLE_ASH_RANDOM_SUPPORT
-static void
+static void FAST_FUNC
 change_random(const char *value)
 {
 	/* Galois LFSR parameter */
@@ -10103,7 +10104,7 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
  * be processed in the current argument.  If shellparam.optnext is NULL,
  * then it's the first time getopts has been called.
  */
-static int
+static int FAST_FUNC
 getoptscmd(int argc, char **argv)
 {
 	char **optbase;
@@ -11792,7 +11793,7 @@ evalstring(char *s, int mask)
 /*
  * The eval command.
  */
-static int
+static int FAST_FUNC
 evalcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *p;
@@ -11917,7 +11918,7 @@ find_dot_file(char *name)
 	/* NOTREACHED */
 }
 
-static int
+static int FAST_FUNC
 dotcmd(int argc, char **argv)
 {
 	struct strlist *sp;
@@ -11952,7 +11953,7 @@ dotcmd(int argc, char **argv)
 	return status;
 }
 
-static int
+static int FAST_FUNC
 exitcmd(int argc UNUSED_PARAM, char **argv)
 {
 	if (stoppedjobs())
@@ -12176,7 +12177,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 /*
  * The trap builtin.
  */
-static int
+static int FAST_FUNC
 trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	char *action;
@@ -12226,7 +12227,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 /*
  * Lists available builtins
  */
-static int
+static int FAST_FUNC
 helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	unsigned col;
@@ -12264,7 +12265,7 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 /*
  * The export and readonly commands.
  */
-static int
+static int FAST_FUNC
 exportcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct var *vp;
@@ -12315,7 +12316,7 @@ unsetfunc(const char *name)
  * variable to allow a function to be unset when there is a readonly variable
  * with the same name.
  */
-static int
+static int FAST_FUNC
 unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	char **ap;
@@ -12353,7 +12354,7 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 	0
 };
 
-static int
+static int FAST_FUNC
 timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	long clk_tck, s, t;
@@ -12383,7 +12384,7 @@ timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  *
  * Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  */
-static int
+static int FAST_FUNC
 letcmd(int argc UNUSED_PARAM, char **argv)
 {
 	arith_t i;
@@ -12425,7 +12426,7 @@ typedef enum __rlimit_resource rlim_t;
  *      -d DELIM        End on DELIM char, not newline
  *      -e              Use line editing (tty only)
  */
-static int
+static int FAST_FUNC
 readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	static const char *const arg_REPLY[] = { "REPLY", NULL };
@@ -12635,7 +12636,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	return status;
 }
 
-static int
+static int FAST_FUNC
 umaskcmd(int argc UNUSED_PARAM, char **argv)
 {
 	static const char permuser[3] ALIGN1 = "ugo";
@@ -12811,7 +12812,7 @@ printlim(enum limtype how, const struct rlimit *limit,
 	}
 }
 
-static int
+static int FAST_FUNC
 ulimitcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	int c;

@@ -78,7 +78,7 @@ static unsigned get_hz(void)
 	return hz_internal;
 }
 
-static int print_route(const struct sockaddr_nl *who UNUSED_PARAM,
+static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		struct nlmsghdr *n, void *arg UNUSED_PARAM)
 {
 	struct rtmsg *r = NLMSG_DATA(n);

@@ -42,8 +42,8 @@ typedef int execfn(char *command);
 
 struct method_t {
 	const char *name;
-	int (*up)(struct interface_defn_t *ifd, execfn *e);
-	int (*down)(struct interface_defn_t *ifd, execfn *e);
+	int (*up)(struct interface_defn_t *ifd, execfn *e) FAST_FUNC;
+	int (*down)(struct interface_defn_t *ifd, execfn *e) FAST_FUNC;
 };
 
 struct address_family_t {
@@ -325,7 +325,7 @@ static int execute(const char *command, struct interface_defn_t *ifd, execfn *ex
 #endif
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV6
-static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
@@ -337,7 +337,7 @@ static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int loopback_down6(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC loopback_down6(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	return execute("ip link set %iface% down", ifd, exec);
@@ -346,7 +346,7 @@ static int loopback_down6(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int static_up6(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC static_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -362,7 +362,7 @@ static int static_up6(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 3) ? 3 : 0);
 }
 
-static int static_down6(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC static_down6(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	return execute("ip link set %iface% down", ifd, exec);
@@ -372,7 +372,7 @@ static int static_down6(struct interface_defn_t *ifd, execfn *exec)
 }
 
 #if ENABLE_FEATURE_IFUPDOWN_IP
-static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 	result = execute("ip tunnel add %iface% mode sit remote "
@@ -383,7 +383,7 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 4) ? 4 : 0);
 }
 
-static int v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
+static int FAST_FUNC v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
 {
 	return execute("ip tunnel del %iface%", ifd, exec);
 }
@@ -405,7 +405,7 @@ static const struct address_family_t addr_inet6 = {
 #endif /* FEATURE_IFUPDOWN_IPV6 */
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4
-static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC loopback_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
@@ -417,7 +417,7 @@ static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int loopback_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC loopback_down(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
@@ -429,7 +429,7 @@ static int loopback_down(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int static_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC static_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -451,7 +451,7 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 #endif
 }
 
-static int static_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC static_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -468,8 +468,7 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 }
 
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-struct dhcp_client_t
-{
+struct dhcp_client_t {
 	const char *name;
 	const char *startcmd;
 	const char *stopcmd;
@@ -497,7 +496,7 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 #endif /* ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
 
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	unsigned i;
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -517,7 +516,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	return 0;
 }
 #elif ENABLE_APP_UDHCPC
-static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
@@ -533,7 +532,7 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 			ifd, exec);
 }
 #else
-static int dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
+static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
 		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
@@ -541,7 +540,7 @@ static int dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
 #endif
 
 #if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
-static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result = 0;
 	unsigned i;
@@ -564,7 +563,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 3) ? 3 : 0);
 }
 #elif ENABLE_APP_UDHCPC
-static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 	result = execute("kill "
@@ -579,42 +578,42 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 3) ? 3 : 0);
 }
 #else
-static int dhcp_down(struct interface_defn_t *ifd UNUSED_PARAM,
+static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd UNUSED_PARAM,
 		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
 }
 #endif
 
-static int manual_up_down(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
+static int FAST_FUNC manual_up_down(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
 {
 	return 1;
 }
 
-static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC bootp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("bootpc[[ --bootfile %bootfile%]] --dev %iface%"
 			"[[ --server %server%]][[ --hwaddr %hwaddr%]]"
 			" --returniffail --serverbcast", ifd, exec);
 }
 
-static int ppp_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC ppp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("pon[[ %provider%]]", ifd, exec);
 }
 
-static int ppp_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC ppp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("poff[[ %provider%]]", ifd, exec);
 }
 
-static int wvdial_up(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC wvdial_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("start-stop-daemon --start -x wvdial "
 		"-p /var/run/wvdial.%iface% -b -m --[[ %provider%]]", ifd, exec);
 }
 
-static int wvdial_down(struct interface_defn_t *ifd, execfn *exec)
+static int FAST_FUNC wvdial_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	return execute("start-stop-daemon --stop -x wvdial "
 			"-p /var/run/wvdial.%iface% -s 2", ifd, exec);

@@ -24,7 +24,7 @@ static inline uint64_t hton64(uint64_t v)
 
 
 /* on these functions, make sure your datatype matches */
-static int read_ip(const char *line, void *arg)
+static int FAST_FUNC read_ip(const char *line, void *arg)
 {
 	len_and_sockaddr *lsa;
 
@@ -37,13 +37,13 @@ static int read_ip(const char *line, void *arg)
 }
 
 
-static int read_mac(const char *line, void *arg)
+static int FAST_FUNC read_mac(const char *line, void *arg)
 {
 	return NULL == ether_aton_r(line, (struct ether_addr *)arg);
 }
 
 
-static int read_str(const char *line, void *arg)
+static int FAST_FUNC read_str(const char *line, void *arg)
 {
 	char **dest = arg;
 
@@ -53,14 +53,14 @@ static int read_str(const char *line, void *arg)
 }
 
 
-static int read_u32(const char *line, void *arg)
+static int FAST_FUNC read_u32(const char *line, void *arg)
 {
 	*(uint32_t*)arg = bb_strtou32(line, NULL, 10);
 	return errno == 0;
 }
 
 
-static int read_yn(const char *line, void *arg)
+static int FAST_FUNC read_yn(const char *line, void *arg)
 {
 	char *dest = arg;
 
@@ -156,7 +156,7 @@ static void attach_option(struct option_set **opt_list,
 
 
 /* read a dhcp option and add it to opt_list */
-static int read_opt(const char *const_line, void *arg)
+static int FAST_FUNC read_opt(const char *const_line, void *arg)
 {
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
@@ -251,7 +251,7 @@ static int read_opt(const char *const_line, void *arg)
 	return retval;
 }
 
-static int read_staticlease(const char *const_line, void *arg)
+static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 {
 	char *line;
 	char *mac_string;
@@ -278,7 +278,7 @@ static int read_staticlease(const char *const_line, void *arg)
 
 struct config_keyword {
 	const char *keyword;
-	int (*handler)(const char *line, void *var);
+	int (*handler)(const char *line, void *var) FAST_FUNC;
 	void *var;
 	const char *def;
 };

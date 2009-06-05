@@ -13,7 +13,7 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* Iterate a function on each entry of a directory */
 int iterate_on_dir(const char *dir_name,
-		int (*func)(const char *, struct dirent *, void *),
+		int FAST_FUNC (*func)(const char *, struct dirent *, void *),
 		void *private);
 
 /* Get/set a file version on an ext2 file system */

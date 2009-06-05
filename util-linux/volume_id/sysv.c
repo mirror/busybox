@@ -23,8 +23,7 @@
 #define SYSV_NICINOD			100
 #define SYSV_NICFREE			50
 
-struct sysv_super
-{
+struct sysv_super {
 	uint16_t	s_isize;
 	uint16_t	s_pad0;
 	uint32_t	s_fsize;

@@ -67,7 +67,7 @@ static int decode_arg(const char *arg, struct globals *gp)
 
 static void change_attributes(const char *name, struct globals *gp);
 
-static int chattr_dir_proc(const char *dir_name, struct dirent *de, void *gp)
+static int FAST_FUNC chattr_dir_proc(const char *dir_name, struct dirent *de, void *gp)
 {
 	char *path = concat_subpath_file(dir_name, de->d_name);
 	/* path is NULL if de->d_name is "." or "..", else... */
