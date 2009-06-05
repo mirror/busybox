@@ -80,11 +80,11 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 #if ENABLE_SH_MATH_SUPPORT_64
 typedef long long arith_t;
 #define arith_t_fmt "%lld"
-#define strto_arith_t strtoll
+#define strto_arith_t strtoull
 #else
 typedef long arith_t;
 #define arith_t_fmt "%ld"
-#define strto_arith_t strtol
+#define strto_arith_t strtoul
 #endif
 
 typedef const char *(*arith_var_lookup_t)(const char *name);

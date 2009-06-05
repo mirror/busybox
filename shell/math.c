@@ -562,7 +562,11 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 		}
 		if (isdigit(arithval)) {
 			numstackptr->var = NULL;
+			errno = 0;
+			/* call strtoul[l]: */
 			numstackptr->val = strto_arith_t(expr, (char **) &expr, 0);
+			if (errno)
+				numstackptr->val = 0; /* bash compat */
 			goto num;
 		}
 		for (p = op_tokens; ; p++) {
@@ -592,7 +596,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 			lasttok = TOK_NUM;
 
 		/* Plus and minus are binary (not unary) _only_ if the last
-		 * token was as number, or a right paren (which pretends to be
+		 * token was a number, or a right paren (which pretends to be
 		 * a number, since it evaluates to one). Think about it.
 		 * It makes sense. */
 		if (lasttok != TOK_NUM) {
@@ -611,7 +615,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 				break;
 			}
 		}
-		/* We don't want a unary operator to cause recursive descent on the
+		/* We don't want an unary operator to cause recursive descent on the
 		 * stack, because there can be many in a row and it could cause an
 		 * operator to be evaluated before its argument is pushed onto the
 		 * integer stack. */

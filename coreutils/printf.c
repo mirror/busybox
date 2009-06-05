@@ -78,6 +78,14 @@ static int multiconvert(const char *arg, void *result, converter convert)
 static void FAST_FUNC conv_strtoull(const char *arg, void *result)
 {
 	*(unsigned long long*)result = bb_strtoull(arg, NULL, 0);
+	/* both coreutils 6.10 and bash 3.2:
+	 * $ printf '%x\n' -2
+	 * fffffffffffffffe
+	 * Mimic that:
+	 */
+	if (errno) {
+		*(unsigned long long*)result = bb_strtoll(arg, NULL, 0);
+	}
 }
 static void FAST_FUNC conv_strtoll(const char *arg, void *result)
 {
