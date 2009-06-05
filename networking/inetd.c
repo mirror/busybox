@@ -1356,9 +1356,12 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 				if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
 					bb_perror_msg("setrlimit");
 			closelog();
-			xmove_fd(ctrl, 0);
-			xdup2(0, 1);
-			xdup2(0, 2);
+			xmove_fd(ctrl, STDIN_FILENO);
+			xdup2(STDIN_FILENO, STDOUT_FILENO);
+			/* manpages of inetd I managed to find either say
+			 * that stderr is also redirected to the network,
+			 * or do not talk about redirection at all (!) */
+			xdup2(STDIN_FILENO, STDERR_FILENO);
 			/* NB: among others, this loop closes listening socket
 			 * for nowait stream children */
 			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
