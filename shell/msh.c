@@ -3174,7 +3174,7 @@ static int dohelp(struct op *t UNUSED_PARAM, char **args UNUSED_PARAM)
 	int col;
 	const struct builtincmd *x;
 
-	printf("\n"
+	printf(
 		"Built-in commands:\n"
 		"------------------\n");
 

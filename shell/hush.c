@@ -50,7 +50,7 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      builtins: ulimit, local
+ *      builtins: ulimit
  *      follow IFS rules more precisely, including update semantics
  *      export builtin should be special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
@@ -593,56 +593,58 @@ struct built_in_command {
 #endif
 };
 
-/* For now, echo and test are unconditionally enabled.
- * Maybe make it configurable? */
-static const struct built_in_command bltins[] = {
-	BLTIN("."       , builtin_source  , "Run commands in a file"),
-	BLTIN(":"       , builtin_true    , "No-op"),
-	BLTIN("["       , builtin_test    , "Test condition"),
+static const struct built_in_command bltins1[] = {
+	BLTIN("."        , builtin_source  , "Run commands in a file"),
+	BLTIN(":"        , builtin_true    , NULL),
 #if ENABLE_HUSH_JOB
-	BLTIN("bg"      , builtin_fg_bg   , "Resume a job in the background"),
+	BLTIN("bg"       , builtin_fg_bg   , "Resume a job in the background"),
 #endif
 #if ENABLE_HUSH_LOOPS
-	BLTIN("break"   , builtin_break   , "Exit from a loop"),
+	BLTIN("break"    , builtin_break   , "Exit from a loop"),
 #endif
-	BLTIN("cd"      , builtin_cd      , "Change directory"),
+	BLTIN("cd"       , builtin_cd      , "Change directory"),
 #if ENABLE_HUSH_LOOPS
-	BLTIN("continue", builtin_continue, "Start new loop iteration"),
+	BLTIN("continue" , builtin_continue, "Start new loop iteration"),
 #endif
-	BLTIN("echo"    , builtin_echo    , "Write to stdout"),
-	BLTIN("eval"    , builtin_eval    , "Construct and run shell command"),
-	BLTIN("exec"    , builtin_exec    , "Execute command, don't return to shell"),
-	BLTIN("exit"    , builtin_exit    , "Exit"),
-	BLTIN("export"  , builtin_export  , "Set environment variable"),
+	BLTIN("eval"     , builtin_eval    , "Construct and run shell command"),
+	BLTIN("exec"     , builtin_exec    , "Execute command, don't return to shell"),
+	BLTIN("exit"     , builtin_exit    , "Exit"),
+	BLTIN("export"   , builtin_export  , "Set environment variables"),
 #if ENABLE_HUSH_JOB
-	BLTIN("fg"      , builtin_fg_bg   , "Bring job into the foreground"),
+	BLTIN("fg"       , builtin_fg_bg   , "Bring job into the foreground"),
 #endif
 #if ENABLE_HUSH_HELP
-	BLTIN("help"    , builtin_help    , "List shell built-in commands"),
+	BLTIN("help"     , builtin_help    , NULL),
 #endif
 #if ENABLE_HUSH_JOB
-	BLTIN("jobs"    , builtin_jobs    , "List active jobs"),
+	BLTIN("jobs"     , builtin_jobs    , "List jobs"),
 #endif
 #if ENABLE_HUSH_LOCAL
-	BLTIN("local"   , builtin_local   , "Set local variable"),
+	BLTIN("local"    , builtin_local   , "Set local variables"),
 #endif
 #if HUSH_DEBUG
-	BLTIN("memleak" , builtin_memleak , "Debug tool"),
+	BLTIN("memleak"  , builtin_memleak , NULL),
 #endif
-	BLTIN("pwd"     , builtin_pwd     , "Print current directory"),
-	BLTIN("read"    , builtin_read    , "Input environment variable"),
+	BLTIN("read"     , builtin_read    , "Input into variable"),
 #if ENABLE_HUSH_FUNCTIONS
-	BLTIN("return"  , builtin_return  , "Return from a function"),
+	BLTIN("return"   , builtin_return  , "Return from a function"),
 #endif
-	BLTIN("set"     , builtin_set     , "Set/unset shell local variables"),
-	BLTIN("shift"   , builtin_shift   , "Shift positional parameters"),
-	BLTIN("test"    , builtin_test    , "Test condition"),
-	BLTIN("trap"    , builtin_trap    , "Trap signals"),
-	BLTIN("type"    , builtin_type    , "Write a description of command type"),
-//	BLTIN("ulimit"  , builtin_ulimit  , "Control resource limits"),
-	BLTIN("umask"   , builtin_umask   , "Set file creation mask"),
-	BLTIN("unset"   , builtin_unset   , "Unset environment variable"),
-	BLTIN("wait"    , builtin_wait    , "Wait for process"),
+	BLTIN("set"      , builtin_set     , "Set/unset positional parameters"),
+	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
+	BLTIN("trap"     , builtin_trap    , "Trap signals"),
+	BLTIN("type"     , builtin_type    , "Write a description of command type"),
+//	BLTIN("ulimit"   , builtin_ulimit  , "Control resource limits"),
+	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
+	BLTIN("unset"    , builtin_unset   , "Unset variables"),
+	BLTIN("wait"     , builtin_wait    , "Wait for process"),
+};
+/* For now, echo and test are unconditionally enabled.
+ * Maybe make it configurable? */
+static const struct built_in_command bltins2[] = {
+	BLTIN("["        , builtin_test    , NULL),
+	BLTIN("echo"     , builtin_echo    , NULL),
+	BLTIN("pwd"      , builtin_pwd     , NULL),
+	BLTIN("test"     , builtin_test    , NULL),
 };
 
 
@@ -1231,15 +1233,17 @@ static int check_and_run_traps(int sig)
 }
 
 
-static const char *set_cwd(void)
+static const char *get_cwd(int force)
 {
-	/* xrealloc_getcwd_or_warn(arg) calls free(arg),
-	 * we must not try to free(bb_msg_unknown) */
-	if (G.cwd == bb_msg_unknown)
-		G.cwd = NULL;
-	G.cwd = xrealloc_getcwd_or_warn((char *)G.cwd);
-	if (!G.cwd)
-		G.cwd = bb_msg_unknown;
+	if (force || G.cwd == NULL) {
+		/* xrealloc_getcwd_or_warn(arg) calls free(arg),
+		 * we must not try to free(bb_msg_unknown) */
+		if (G.cwd == bb_msg_unknown)
+			G.cwd = NULL;
+		G.cwd = xrealloc_getcwd_or_warn((char *)G.cwd);
+		if (!G.cwd)
+			G.cwd = bb_msg_unknown;
+	}
 	return G.cwd;
 }
 
@@ -1579,7 +1583,7 @@ static const char* setup_prompt_string(int promptmode)
 		/* Set up the prompt */
 		if (promptmode == 0) { /* PS1 */
 			free((char*)G.PS1);
-			G.PS1 = xasprintf("%s %c ", G.cwd, (geteuid() != 0) ? '$' : '#');
+			G.PS1 = xasprintf("%s %c ", get_cwd(0), (geteuid() != 0) ? '$' : '#');
 			prompt_str = G.PS1;
 		} else
 			prompt_str = G.PS2;
@@ -2511,7 +2515,9 @@ static char **expand_assignments(char **argv, int count)
 
 #if BB_MMU
 /* never called */
-void re_execute_shell(char ***to_free, const char *s, char *argv0, char **argv);
+void re_execute_shell(char ***to_free, const char *s,
+		char *g_argv0, char **g_argv,
+		char **builtin_argv) NORETURN;
 
 static void reset_traps_to_defaults(void)
 {
@@ -2563,10 +2569,14 @@ static void reset_traps_to_defaults(void)
 
 #else /* !BB_MMU */
 
-static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char **g_argv) NORETURN;
-static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char **g_argv)
+static void re_execute_shell(char ***to_free, const char *s,
+		char *g_argv0, char **g_argv,
+		char **builtin_argv) NORETURN;
+static void re_execute_shell(char ***to_free, const char *s,
+		char *g_argv0, char **g_argv,
+		char **builtin_argv)
 {
-	char param_buf[sizeof("-$%x:%x:%x:%x") + sizeof(unsigned) * 4];
+	char param_buf[sizeof("-$%x:%x:%x:%x:%x") + sizeof(unsigned) * 2];
 	char *heredoc_argv[4];
 	struct variable *cur;
 #if ENABLE_HUSH_FUNCTIONS
@@ -2585,16 +2595,22 @@ static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char
 		goto do_exec;
 	}
 
-	sprintf(param_buf, "-$%x:%x:%x" IF_HUSH_LOOPS(":%x")
+	cnt = 0;
+	pp = builtin_argv;
+	if (pp) while (*pp++)
+		cnt++;
+
+	sprintf(param_buf, "-$%x:%x:%x:%x" IF_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
 			, (unsigned) G.last_bg_pid
 			, (unsigned) G.last_exitcode
+			, cnt
 			IF_HUSH_LOOPS(, G.depth_of_loop)
 			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...> <funcs...>
 	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
 	 */
-	cnt = 6;
+	cnt += 6;
 	for (cur = G.top_var; cur; cur = cur->next) {
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
@@ -2648,6 +2664,11 @@ static void re_execute_shell(char ***to_free, const char *s, char *g_argv0, char
 	 */
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
+	if (builtin_argv) {
+		while (*++builtin_argv)
+			*pp++ = *builtin_argv;
+		*pp++ = (char *) "";
+	}
 	*pp++ = g_argv0;
 	while (*g_argv)
 		*pp++ = *g_argv++;
@@ -2735,7 +2756,7 @@ static void setup_heredoc(struct redir_struct *redir)
 #else
 		/* Delegate blocking writes to another process */
 		xmove_fd(pair.wr, STDOUT_FILENO);
-		re_execute_shell(&to_free, heredoc, NULL, NULL);
+		re_execute_shell(&to_free, heredoc, NULL, NULL, NULL);
 #endif
 	}
 	/* parent */
@@ -2958,16 +2979,30 @@ static char *find_in_path(const char *arg)
 	return ret;
 }
 
-static const struct built_in_command* find_builtin(const char *name)
+static const struct built_in_command* find_builtin_helper(const char *name,
+		const struct built_in_command *x,
+		const struct built_in_command *end)
 {
-	const struct built_in_command *x;
-	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-		if (strcmp(name, x->cmd) != 0)
+	while (x != end) {
+		if (strcmp(name, x->cmd) != 0) {
+			x++;
 			continue;
+		}
 		debug_printf_exec("found builtin '%s'\n", name);
 		return x;
 	}
 	return NULL;
+}
+static const struct built_in_command* find_builtin1(const char *name)
+{
+	return find_builtin_helper(name, bltins1, &bltins1[ARRAY_SIZE(bltins1)]);
+}
+static const struct built_in_command* find_builtin(const char *name)
+{
+	const struct built_in_command *x = find_builtin1(name);
+	if (x)
+		return x;
+	return find_builtin_helper(name, bltins2, &bltins2[ARRAY_SIZE(bltins2)]);
 }
 
 #if ENABLE_HUSH_FUNCTIONS
@@ -3084,7 +3119,8 @@ static void exec_function(nommu_save_t *nommu_save,
 	re_execute_shell(&nommu_save->argv_from_re_execing,
 			funcp->body_as_string,
 			G.global_argv[0],
-			argv + 1);
+			argv + 1,
+			NULL);
 # endif
 }
 
@@ -3148,6 +3184,37 @@ static int run_function(const struct function *funcp, char **argv)
 #endif /* ENABLE_HUSH_FUNCTIONS */
 
 
+# if BB_MMU
+#define exec_builtin(nommu_save, x, argv) \
+	exec_builtin(x, argv)
+# else
+#define exec_builtin(nommu_save, x, argv) \
+	exec_builtin(nommu_save, argv)
+# endif
+static void exec_builtin(nommu_save_t *nommu_save,
+		const struct built_in_command *x,
+		char **argv) NORETURN;
+static void exec_builtin(nommu_save_t *nommu_save,
+		const struct built_in_command *x,
+		char **argv)
+{
+# if BB_MMU
+	int rcode = x->function(argv);
+	fflush(NULL);
+	_exit(rcode);
+# else
+	/* On NOMMU, we must never block!
+	 * Example: { sleep 99 | read line; } & echo Ok
+	 */
+	re_execute_shell(&nommu_save->argv_from_re_execing,
+			argv[0],
+			G.global_argv[0],
+			G.global_argv + 1,
+			argv);
+# endif
+}
+
+
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
@@ -3197,27 +3264,22 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		goto skip;
 #endif
 
-	/* On NOMMU, we must never block!
-	 * Example: { sleep 99999 | read line } & echo Ok
-	 * read builtin will block on read syscall, leaving parent blocked
-	 * in vfork. Therefore we can't do this:
-	 */
-#if BB_MMU
 	/* Check if the command matches any of the builtins.
 	 * Depending on context, this might be redundant.  But it's
 	 * easier to waste a few CPU cycles than it is to figure out
 	 * if this is one of those cases.
 	 */
 	{
-		int rcode;
-		const struct built_in_command *x = find_builtin(argv[0]);
+		/* On NOMMU, it is more expensive to re-execute shell
+		 * just in order to run echo or test builtin.
+		 * It's better to skip it here and run corresponding
+		 * non-builtin later. */
+		const struct built_in_command *x;
+		x = BB_MMU ? find_builtin(argv[0]) : find_builtin1(argv[0]);
 		if (x) {
-			rcode = x->function(argv);
-			fflush(NULL);
-			_exit(rcode);
+			exec_builtin(nommu_save, x, argv);
 		}
 	}
-#endif
 #if ENABLE_HUSH_FUNCTIONS
 	/* Check if the command matches any functions */
 	{
@@ -3292,7 +3354,8 @@ static void pseudo_exec(nommu_save_t *nommu_save,
 		re_execute_shell(&nommu_save->argv_from_re_execing,
 				command->group_as_string,
 				G.global_argv[0],
-				G.global_argv + 1);
+				G.global_argv + 1,
+				NULL);
 #endif
 	}
 
@@ -5030,7 +5093,8 @@ static FILE *generate_stream_from_string(const char *s)
 		re_execute_shell(&to_free,
 				s,
 				G.global_argv[0],
-				G.global_argv + 1);
+				G.global_argv + 1,
+				NULL);
 #endif
 	}
 
@@ -6240,6 +6304,7 @@ int hush_main(int argc, char **argv)
 	};
 	int signal_mask_is_inited = 0;
 	int opt;
+	unsigned builtin_argc;
 	char **e;
 	struct variable *cur_var;
 
@@ -6277,7 +6342,6 @@ int hush_main(int argc, char **argv)
 	G.global_argc = argc;
 	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
-	set_cwd();
 	cmdedit_update_prompt();
 
 	if (setjmp(die_jmp)) {
@@ -6297,6 +6361,7 @@ int hush_main(int argc, char **argv)
 
 	/* Parse options */
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
+	builtin_argc = 0;
 	while (1) {
 		opt = getopt(argc, argv, "c:xins"
 #if !BB_MMU
@@ -6310,15 +6375,40 @@ int hush_main(int argc, char **argv)
 			break;
 		switch (opt) {
 		case 'c':
+			/* Possibilities:
+			 * sh ... -c 'script'
+			 * sh ... -c 'script' ARG0 [ARG1...]
+			 * On NOMMU, if builtin_argc != 0,
+			 * sh ... -c 'builtin' [BARGV...] "" ARG0 [ARG1...]
+			 * "" needs to be replaced with NULL
+			 * and BARGV vector fed to builtin function.
+			 * Note: this form never happens:
+			 * sh ... -c 'builtin' [BARGV...] ""
+			 */
 			if (!G.root_pid)
 				G.root_pid = getpid();
 			G.global_argv = argv + optind;
-			if (!argv[optind]) {
-				/* -c 'script' (no params): prevent empty $0 */
-				*--G.global_argv = argv[0];
-				optind--;
-			} /* else -c 'script' PAR0 PAR1: $0 is PAR0 */
 			G.global_argc = argc - optind;
+			if (builtin_argc) {
+				/* -c 'builtin' [BARGV...] "" ARG0 [ARG1...] */
+				const struct built_in_command *x;
+
+				block_signals(0); /* 0: called 1st time */
+				x = find_builtin(optarg);
+				if (x) { /* paranoia */
+					G.global_argc -= builtin_argc; /* skip [BARGV...] "" */
+					G.global_argv += builtin_argc;
+					G.global_argv[-1] = NULL; /* replace "" */
+					G.last_exitcode = x->function(argv + optind - 1);
+				}
+				goto final_return;
+			}
+			if (!G.global_argv[0]) {
+				/* -c 'script' (no params): prevent empty $0 */
+				G.global_argv--; /* points to argv[i] of 'script' */
+				G.global_argv[0] = argv[0];
+				G.global_argc--;
+			} /* else -c 'script' ARG0 [ARG1...]: $0 is ARG0 */
 			block_signals(0); /* 0: called 1st time */
 			parse_and_run_string(optarg);
 			goto final_return;
@@ -6341,6 +6431,8 @@ int hush_main(int argc, char **argv)
 			G.last_bg_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
 			G.last_exitcode = bb_strtou(optarg, &optarg, 16);
+			optarg++;
+			builtin_argc = bb_strtou(optarg, &optarg, 16);
 # if ENABLE_HUSH_LOOPS
 			optarg++;
 			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
@@ -6617,7 +6709,7 @@ static int FAST_FUNC builtin_cd(char **argv)
 		bb_perror_msg("cd: %s", newdir);
 		return EXIT_FAILURE;
 	}
-	set_cwd();
+	get_cwd(1);
 	return EXIT_SUCCESS;
 }
 
@@ -6663,17 +6755,16 @@ static int FAST_FUNC builtin_exit(char **argv)
 
 static void print_escaped(const char *s)
 {
+	if (*s == '\'')
+		goto squote;
 	do {
-		if (*s != '\'') {
-			const char *p;
-
-			p = strchrnul(s, '\'');
-			/* print 'xxxx', possibly just '' */
-			printf("'%.*s'", (int)(p - s), s);
-			if (*p == '\0')
-				break;
-			s = p;
-		}
+		const char *p = strchrnul(s, '\'');
+		/* print 'xxxx', possibly just '' */
+		printf("'%.*s'", (int)(p - s), s);
+		if (*p == '\0')
+			break;
+		s = p;
+ squote:
 		/* s points to '; print "'''...'''" */
 		putchar('"');
 		do putchar('\''); while (*++s == '\'');
@@ -6980,13 +7071,14 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 {
 	const struct built_in_command *x;
 
-	printf("\n"
+	printf(
 		"Built-in commands:\n"
 		"------------------\n");
-	for (x = bltins; x != &bltins[ARRAY_SIZE(bltins)]; x++) {
-		printf("%s\t%s\n", x->cmd, x->descr);
+	for (x = bltins1; x != &bltins1[ARRAY_SIZE(bltins1)]; x++) {
+		if (x->descr)
+			printf("%s\t%s\n", x->cmd, x->descr);
 	}
-	printf("\n\n");
+	bb_putchar('\n');
 	return EXIT_SUCCESS;
 }
 #endif
@@ -7041,7 +7133,7 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 
 static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 {
-	puts(set_cwd());
+	puts(get_cwd(0));
 	return EXIT_SUCCESS;
 }
 
