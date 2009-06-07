@@ -256,8 +256,7 @@ pid_t FAST_FUNC fork_or_rexec(char **argv)
 	pid_t pid;
 	/* Maybe we are already re-execed and come here again? */
 	if (re_execed)
-		return 0; /* child */
-
+		return 0;
 	pid = vfork();
 	if (pid < 0) /* wtf? */
 		bb_perror_msg_and_die("vfork");

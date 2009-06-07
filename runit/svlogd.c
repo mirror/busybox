@@ -281,7 +281,7 @@ static unsigned processorstop(struct logdir *ld)
 	if (ld->fddir == -1) return 1;
 	while (fchdir(ld->fddir) == -1)
 		pause2cannot("change directory, want processor", ld->name);
-	if (wait_exitcode(wstat) != 0) {
+	if (WEXITSTATUS(wstat) != 0) {
 		warnx("processor failed, restart", ld->name);
 		ld->fnsave[26] = 't';
 		unlink(ld->fnsave);

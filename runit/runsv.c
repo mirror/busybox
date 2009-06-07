@@ -252,7 +252,8 @@ static unsigned custom(struct svdir *s, char c)
 	char a[10];
 	struct stat st;
 
-	if (s->islog) return 0;
+	if (s->islog)
+		return 0;
 	strcpy(a, "control/?");
 	a[8] = c; /* replace '?' */
 	if (stat(a, &st) == 0) {
@@ -274,7 +275,7 @@ static unsigned custom(struct svdir *s, char c)
 				warn_cannot("wait for child control/?");
 				return 0;
 			}
-			return !wait_exitcode(w);
+			return WEXITSTATUS(w) == 0;
 		}
 	} else {
 		if (errno != ENOENT)

@@ -765,12 +765,8 @@ pid_t safe_waitpid(pid_t pid, int *wstat, int options) FAST_FUNC;
  */
 int wait4pid(pid_t pid) FAST_FUNC;
 pid_t wait_any_nohang(int *wstat) FAST_FUNC;
-#define wait_crashed(w) ((w) & 127)
-#define wait_exitcode(w) ((w) >> 8)
-#define wait_stopsig(w) ((w) >> 8)
-#define wait_stopped(w) (((w) & 127) == 127)
 /* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
-pid_t spawn_and_wait(char **argv) FAST_FUNC;
+int spawn_and_wait(char **argv) FAST_FUNC;
 struct nofork_save_area {
 	jmp_buf die_jmp;
 	const char *applet_name;

@@ -337,7 +337,7 @@ static int checkscript(void)
 		bb_perror_msg(WARN"cannot %s child %s/check", "wait for", *service);
 		return 0;
 	}
-	return !wait_exitcode(w);
+	return WEXITSTATUS(w) == 0;
 }
 
 static int check(const char *a)
