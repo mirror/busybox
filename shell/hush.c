@@ -6825,7 +6825,18 @@ static int FAST_FUNC builtin_export(char **argv)
 {
 	unsigned opt_unexport;
 
-	if (argv[1] == NULL) {
+#if ENABLE_HUSH_EXPORT_N
+	/* "!": do not abort on errors */
+	opt_unexport = getopt32(argv, "!n");
+	if (opt_unexport == (uint32_t)-1)
+		return EXIT_FAILURE;
+	argv += optind;
+#else
+	opt_unexport = 0;
+	argv++;
+#endif
+
+	if (argv[0] == NULL) {
 		char **e = environ;
 		if (e) {
 			while (*e) {
@@ -6850,18 +6861,6 @@ static int FAST_FUNC builtin_export(char **argv)
 		}
 		return EXIT_SUCCESS;
 	}
-
-#if ENABLE_HUSH_EXPORT_N
-	/* "!": do not abort on errors */
-	/* "+": stop at 1st non-option */
-	opt_unexport = getopt32(argv, "!+n");
-	if (opt_unexport == (unsigned)-1)
-		return EXIT_FAILURE;
-	argv += optind;
-#else
-	opt_unexport = 0;
-	argv++;
-#endif
 
 	helper_export_local(argv, (opt_unexport ? -1 : 1), 0);
 
