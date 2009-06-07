@@ -173,23 +173,6 @@ typedef struct nommu_save_t {
 } nommu_save_t;
 #endif
 
-/* The descrip member of this structure is only used to make
- * debugging output pretty */
-static const struct {
-	int mode;
-	signed char default_fd;
-	char descrip[3];
-} redir_table[] = {
-	{ 0,                         0, "??" },
-	{ O_RDONLY,                  0, "<"  },
-	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
-	{ O_CREAT|O_APPEND|O_WRONLY, 1, ">>" },
-	{ O_RDONLY,                  0, "<<" },
-	{ O_CREAT|O_RDWR,            1, "<>" },
-/* Should not be needed. Bogus default_fd helps in debugging */
-/*	{ O_RDONLY,                 77, "<<" }, */
-};
-
 typedef enum reserved_style {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
@@ -262,6 +245,22 @@ typedef struct in_str {
 #define i_getch(input) ((input)->get(input))
 #define i_peek(input) ((input)->peek(input))
 
+/* The descrip member of this structure is only used to make
+ * debugging output pretty */
+static const struct {
+	int mode;
+	signed char default_fd;
+	char descrip[3];
+} redir_table[] = {
+	{ O_RDONLY,                  0, "<"  },
+	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
+	{ O_CREAT|O_APPEND|O_WRONLY, 1, ">>" },
+	{ O_CREAT|O_RDWR,            1, "<>" },
+	{ O_RDONLY,                  0, "<<" },
+/* Should not be needed. Bogus default_fd helps in debugging */
+/*	{ O_RDONLY,                 77, "<<" }, */
+};
+
 struct redir_struct {
 	struct redir_struct *next;
 	char *rd_filename;          /* filename */
@@ -271,18 +270,17 @@ struct redir_struct {
 	smallint rd_type;           /* (enum redir_type) */
 	/* note: for heredocs, rd_filename contains heredoc delimiter,
 	 * and subsequently heredoc itself; and rd_dup is a bitmask:
-	 * 1: do we need to trim leading tabs?
-	 * 2: is heredoc quoted (<<'delim' syntax) ?
+	 * bit 0: do we need to trim leading tabs?
+	 * bit 1: is heredoc quoted (<<'delim' syntax) ?
 	 */
 };
 typedef enum redir_type {
-	REDIRECT_INVALID   = 0,
-	REDIRECT_INPUT     = 1,
-	REDIRECT_OVERWRITE = 2,
-	REDIRECT_APPEND    = 3,
+	REDIRECT_INPUT     = 0,
+	REDIRECT_OVERWRITE = 1,
+	REDIRECT_APPEND    = 2,
+	REDIRECT_IO        = 3,
 	REDIRECT_HEREDOC   = 4,
-	REDIRECT_IO        = 5,
-	REDIRECT_HEREDOC2  = 6, /* REDIRECT_HEREDOC after heredoc is loaded */
+	REDIRECT_HEREDOC2  = 5, /* REDIRECT_HEREDOC after heredoc is loaded */
 
 	REDIRFD_CLOSE      = -3,
 	REDIRFD_SYNTAX_ERR = -2,
@@ -3093,13 +3091,13 @@ static void unset_func(const char *name)
 }
 
 # if BB_MMU
-#define exec_function(nommu_save, funcp, argv) \
+#define exec_function(to_free, funcp, argv) \
 	exec_function(funcp, argv)
 # endif
-static void exec_function(nommu_save_t *nommu_save,
+static void exec_function(char ***to_free,
 		const struct function *funcp,
 		char **argv) NORETURN;
-static void exec_function(nommu_save_t *nommu_save,
+static void exec_function(char ***to_free,
 		const struct function *funcp,
 		char **argv)
 {
@@ -3116,7 +3114,7 @@ static void exec_function(nommu_save_t *nommu_save,
 	fflush(NULL);
 	_exit(n);
 # else
-	re_execute_shell(&nommu_save->argv_from_re_execing,
+	re_execute_shell(to_free,
 			funcp->body_as_string,
 			G.global_argv[0],
 			argv + 1,
@@ -3185,16 +3183,16 @@ static int run_function(const struct function *funcp, char **argv)
 
 
 # if BB_MMU
-#define exec_builtin(nommu_save, x, argv) \
+#define exec_builtin(to_free, x, argv) \
 	exec_builtin(x, argv)
 # else
-#define exec_builtin(nommu_save, x, argv) \
-	exec_builtin(nommu_save, argv)
+#define exec_builtin(to_free, x, argv) \
+	exec_builtin(to_free, argv)
 # endif
-static void exec_builtin(nommu_save_t *nommu_save,
+static void exec_builtin(char ***to_free,
 		const struct built_in_command *x,
 		char **argv) NORETURN;
-static void exec_builtin(nommu_save_t *nommu_save,
+static void exec_builtin(char ***to_free,
 		const struct built_in_command *x,
 		char **argv)
 {
@@ -3206,7 +3204,7 @@ static void exec_builtin(nommu_save_t *nommu_save,
 	/* On NOMMU, we must never block!
 	 * Example: { sleep 99 | read line; } & echo Ok
 	 */
-	re_execute_shell(&nommu_save->argv_from_re_execing,
+	re_execute_shell(to_free,
 			argv[0],
 			G.global_argv[0],
 			G.global_argv + 1,
@@ -3277,7 +3275,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		const struct built_in_command *x;
 		x = BB_MMU ? find_builtin(argv[0]) : find_builtin1(argv[0]);
 		if (x) {
-			exec_builtin(nommu_save, x, argv);
+			exec_builtin(&nommu_save->argv_from_re_execing, x, argv);
 		}
 	}
 #if ENABLE_HUSH_FUNCTIONS
@@ -3285,7 +3283,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	{
 		const struct function *funcp = find_function(argv[0]);
 		if (funcp) {
-			exec_function(nommu_save, funcp, argv);
+			exec_function(&nommu_save->argv_from_re_execing, funcp, argv);
 		}
 	}
 #endif
@@ -5025,7 +5023,7 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 					char *p;
 
 					redir->rd_type = REDIRECT_HEREDOC2;
-					/* redir->dup is (ab)used to indicate <<- */
+					/* redir->rd_dup is (ab)used to indicate <<- */
 					p = fetch_till_str(&ctx->as_string, input,
 						redir->rd_filename, redir->rd_dup & HEREDOC_SKIPTABS);
 					if (!p) {
@@ -6122,10 +6120,8 @@ static struct pipe *parse_stream(char **pstring,
 		IF_HAS_KEYWORDS(struct parse_context *p2;)
 
 		/* Clean up allocated tree.
-		 * Samples for finding leaks on syntax error recovery path.
-		 * Run them from interactive shell, watch pmap `pidof hush`.
-		 * while if false; then false; fi do break; done
-		 * (bash accepts it)
+		 * Sample for finding leaks on syntax error recovery path.
+		 * Run it from interactive shell, watch pmap `pidof hush`.
 		 * while if false; then false; fi; do break; fi
 		 * Samples to catch leaks at execution:
 		 * while if (true | {true;}); then echo ok; fi; do break; done
