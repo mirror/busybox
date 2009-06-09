@@ -1298,6 +1298,8 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 	 */
 	f1 = argv[0];
 	f2 = argv[1];
+	/* Compat: "diff file name_which_doesnt_exist" exits with 2 */
+	xfunc_error_retval = 2;
 	if (LONE_DASH(f1)) {
 		fstat(STDIN_FILENO, &stb1);
 		gotstdin++;
@@ -1308,6 +1310,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 		gotstdin++;
 	} else
 		xstat(f2, &stb2);
+	xfunc_error_retval = 1;
 
 	if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
 		bb_error_msg_and_die("can't compare stdin to a directory");
