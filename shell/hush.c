@@ -296,12 +296,40 @@ struct command {
 	pid_t pid;                  /* 0 if exited */
 	int assignment_cnt;         /* how many argv[i] are assignments? */
 	smallint is_stopped;        /* is the command currently running? */
-	smallint grp_type;          /* GRP_xxx */
-#define GRP_NORMAL   0
-#define GRP_SUBSHELL 1
+	smallint cmd_type;          /* CMD_xxx */
+#define CMD_NORMAL   0
+#define CMD_SUBSHELL 1
+/* used for "[[ EXPR ]]" */
+#define CMD_SINGLEWORD_NOGLOB 2
+/* used for "export noglob=* glob* a=`echo a b`" */
+/* #define CMD_SINGLEWORD_NOGLOB_COND 3 */
+// It is hard to implement correctly, adds significant amounts of tricky code,
+// and all this only useful for really obscure export statements
+// almost nobody would use anyway. #ifdef CMD_SINGLEWORD_NOGLOB_COND
+// guard the code which implement it, but I have doubts it works
+// in all cases (especially with mixed globbed/non-globbed arguments)
 #if ENABLE_HUSH_FUNCTIONS
-# define GRP_FUNCTION 2
+# define CMD_FUNCDEF 4
 #endif
+//TODO
+//#define CMD_ARITH - let EXPR, ((EXPR))
+//let EXPR [EXPR...]
+// Each EXPR is an arithmetic expression to be evaluated (ARITHMETIC EVALUATION)
+// If the last arg evaluates to 0, let returns 1; 0 is returned otherwise.
+// NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
+//((EXPR))
+// The EXPR is evaluated according to ARITHMETIC EVALUATION.
+// This is exactly equivalent to let "expression".
+//[[ EXPR ]]
+// Basically, word splitting and pathname expansion should NOT be performed
+// Examples:
+// no word splitting:     a="a b"; [[ $a = "a b" ]]; echo $? should print "0"
+// no pathname expansion: [[ /bin/m* = "/bin/m*" ]]; echo $? should print "0"
+// Additional operators:
+// || and && should work as -o and -a
+// =~ regexp match
+// Apart from the above, [[ expr ]] should work as [ expr ]
+
 	/* if non-NULL, this "command" is { list }, ( list ), or a compound statement */
 	struct pipe *group;
 #if !BB_MMU
@@ -310,11 +338,11 @@ struct command {
 #if ENABLE_HUSH_FUNCTIONS
 	struct function *child_func;
 /* This field is used to prevent a bug here:
- * while...do f1() {a;}; f1; f1 {b;}; f1; done
+ * while...do f1() {a;}; f1; f1() {b;}; f1; done
  * When we execute "f1() {a;}" cmd, we create new function and clear
  * cmd->group, cmd->group_as_string, cmd->argv[0].
- * when we execute "f1 {b;}", we notice that f1 exists,
- * and that it's "parent cmd" struct is still "alive",
+ * When we execute "f1() {b;}", we notice that f1 exists,
+ * and that its "parent cmd" struct is still "alive",
  * we put those fields back into cmd->xxx
  * (struct function has ->parent_cmd ptr to facilitate that).
  * When we loop back, we can execute "f1() {a;}" again and set f1 correctly.
@@ -2440,7 +2468,7 @@ static char **expand_variables(char **argv, int or_mask)
 	n = 0;
 	v = argv;
 	while (*v) {
-		n = expand_vars_to_list(&output, n, *v, (char)or_mask);
+		n = expand_vars_to_list(&output, n, *v, (unsigned char)or_mask);
 		v++;
 	}
 	debug_print_list("expand_variables", &output, n);
@@ -2456,6 +2484,46 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, 0x100);
 }
 
+static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
+{
+	return expand_variables(argv, 0x80);
+}
+
+#ifdef CMD_SINGLEWORD_NOGLOB_COND
+static char **expand_strvec_to_strvec_singleword_noglob_cond(char **argv)
+{
+	int n;
+	char **list;
+	char **v;
+	o_string output = NULL_O_STRING;
+
+	n = 0;
+	v = argv;
+	while (*v) {
+		int is_var = is_well_formed_var_name(*v, '=');
+		/* is_var * 0x80: singleword expansion for vars */
+		n = expand_vars_to_list(&output, n, *v, is_var * 0x80);
+
+		/* Subtle! expand_vars_to_list did not glob last word yet.
+		 * It does this only when fed with further data.
+		 * Therefore we set globbing flags AFTER it, not before:
+		 */
+
+		/* if it is not recognizably abc=...; then: */
+		output.o_escape = !is_var; /* protect against globbing for "$var" */
+		/* (unquoted $var will temporarily switch it off) */
+		output.o_glob = !is_var; /* and indeed do globbing */
+		v++;
+	}
+	debug_print_list("expand_cond", &output, n);
+
+	/* output.data (malloced in one block) gets returned in "list" */
+	list = o_finalize_list(&output, n);
+	debug_print_strings("expand_cond[1]", list);
+	return list;
+}
+#endif
+
 /* Used for expansion of right hand of assignments */
 /* NB: should NOT do globbing! "export v=/bin/c*; env | grep ^v=" outputs
  * "v=/bin/c*" */
@@ -2465,7 +2533,7 @@ static char *expand_string_to_string(const char *str)
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
-	list = expand_variables(argv, 0x80); /* 0x80: make one-element expansion */
+	list = expand_variables(argv, 0x80); /* 0x80: singleword expansion */
 	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
@@ -2875,8 +2943,8 @@ static void free_pipe(struct pipe *pi)
 		}
 		/* not "else if": on syntax error, we may have both! */
 		if (command->group) {
-			debug_printf_clean("   begin group (grp_type:%d)\n",
-					command->grp_type);
+			debug_printf_clean("   begin group (cmd_type:%d)\n",
+					command->cmd_type);
 			free_pipe_list(command->group);
 			debug_printf_clean("   end group\n");
 			command->group = NULL;
@@ -3688,7 +3756,7 @@ static int run_pipe(struct pipe *pi)
 
 	if (pi->num_cmds != 1
 	 || pi->followup == PIPE_BG
-	 || command->grp_type == GRP_SUBSHELL
+	 || command->cmd_type == CMD_SUBSHELL
 	) {
 		goto must_fork;
 	}
@@ -3700,7 +3768,7 @@ static int run_pipe(struct pipe *pi)
 
 	if (command->group) {
 #if ENABLE_HUSH_FUNCTIONS
-		if (command->grp_type == GRP_FUNCTION) {
+		if (command->cmd_type == CMD_FUNCDEF) {
 			/* "executing" func () { list } */
 			struct function *funcp;
 
@@ -3770,7 +3838,18 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-		argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
+		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
+			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
+		}
+#ifdef CMD_SINGLEWORD_NOGLOB_COND
+		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB_COND) {
+			argv_expanded = expand_strvec_to_strvec_singleword_noglob_cond(argv + command->assignment_cnt);
+
+		}
+#endif
+		else {
+			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
+		}
 
 		x = find_builtin(argv_expanded[0]);
 #if ENABLE_HUSH_FUNCTIONS
@@ -4012,7 +4091,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
-	static const char *const GRPTYPE[] = {
+	static const char *const CMDTYPE[] = {
 		"{}",
 		"()",
 #if ENABLE_HUSH_FUNCTIONS
@@ -4036,7 +4115,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 					command->assignment_cnt);
 			if (command->group) {
 				fprintf(stderr, " group %s: (argv=%p)\n",
-						GRPTYPE[command->grp_type],
+						CMDTYPE[command->cmd_type],
 						argv);
 				debug_print_tree(command->group, lvl+1);
 				prn++;
@@ -4649,7 +4728,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		debug_printf_parse("pop stack %p\n", ctx->stack);
 		old = ctx->stack;
 		old->command->group = ctx->list_head;
-		old->command->grp_type = GRP_NORMAL;
+		old->command->cmd_type = CMD_NORMAL;
 #if !BB_MMU
 		o_addstr(&old->as_string, ctx->as_string.data);
 		o_free_unsafe(&ctx->as_string);
@@ -4745,6 +4824,19 @@ static int done_word(o_string *word, struct parse_context *ctx)
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
+# ifdef CMD_SINGLEWORD_NOGLOB_COND
+			if (strcmp(word->data, "export") == 0
+#  if ENABLE_HUSH_LOCAL
+			 || strcmp(word->data, "local") == 0
+#  endif
+			) {
+				command->cmd_type = CMD_SINGLEWORD_NOGLOB_COND;
+			} else
+# endif
+			if (strcmp(word->data, "[[") == 0) {
+				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
+			}
+			/* fall through */
 		}
 #endif
 		if (command->group) {
@@ -5189,7 +5281,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 			return 1;
 		}
 		nommu_addchr(&ctx->as_string, ch);
-		command->grp_type = GRP_FUNCTION;
+		command->cmd_type = CMD_FUNCDEF;
 		goto skip;
 	}
 #endif
@@ -5209,7 +5301,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	endch = '}';
 	if (ch == '(') {
 		endch = ')';
-		command->grp_type = GRP_SUBSHELL;
+		command->cmd_type = CMD_SUBSHELL;
 	} else {
 		/* bash does not allow "{echo...", requires whitespace */
 		ch = i_getch(input);
