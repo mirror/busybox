@@ -718,7 +718,7 @@ static void parse_conf(const char *path, int flag)
 			/* form "/path/file" */
 			sprintf(cur->before_colon, "/%s%.*s",
 				path,
-				after_colon - buf - 1, /* includes "/", but not ":" */
+				(int) (after_colon - buf - 1), /* includes "/", but not ":" */
 				buf);
 			/* canonicalize it */
 			p = bb_simplify_abs_path_inplace(cur->before_colon);
