@@ -1730,13 +1730,13 @@ static const char defifs[] ALIGN1 = " \t\n";
 
 /* Need to be before varinit_data[] */
 #if ENABLE_LOCALE_SUPPORT
-static void
+static void FAST_FUNC
 change_lc_all(const char *value)
 {
 	if (value && *value != '\0')
 		setlocale(LC_ALL, value);
 }
-static void
+static void FAST_FUNC
 change_lc_ctype(const char *value)
 {
 	if (value && *value != '\0')
@@ -8740,9 +8740,15 @@ static int ulimitcmd(int, char **) FAST_FUNC;
  */
 
 /* Stubs for calling non-FAST_FUNC's */
+#if ENABLE_ASH_BUILTIN_ECHO
 static int FAST_FUNC echocmd(int argc, char **argv)   { return echo_main(argc, argv); }
+#endif
+#if ENABLE_ASH_BUILTIN_PRINTF
 static int FAST_FUNC printfcmd(int argc, char **argv) { return printf_main(argc, argv); }
+#endif
+#if ENABLE_ASH_BUILTIN_TEST
 static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, argv); }
+#endif
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {

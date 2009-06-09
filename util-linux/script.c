@@ -36,16 +36,17 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		OPT_t = (1 << 4),
 	};
 
+#if ENABLE_GETOPT_LONG
 	static const char getopt_longopts[] ALIGN1 =
 		"append\0"  No_argument       "a"
 		"command\0" Required_argument "c"
 		"flush\0"   No_argument       "f"
 		"quiet\0"   No_argument       "q"
-		IF_SCRIPTREPLAY("timing\0"  No_argument       "t")
+		IF_SCRIPTREPLAY("timing\0" No_argument "t")
 		;
 
-	if (ENABLE_GETOPT_LONG)
-		applet_long_options = getopt_longopts;
+	applet_long_options = getopt_longopts;
+#endif
 
 	opt_complementary = "?1"; /* max one arg */
 	opt = getopt32(argv, "ac:fq" IF_SCRIPTREPLAY("t") , &shell_arg);
