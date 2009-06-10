@@ -318,6 +318,11 @@ struct command {
 // Additional operators:
 // || and && should work as -o and -a
 // =~ regexp match
+// == should do _pattern match_ against right side. bash does this:
+//      # [[ *a* == bab ]] && echo YES
+//      # [[ bab == *a* ]] && echo YES
+//      YES
+// != does the negated == (i.e., also with pattern matching)
 // Apart from the above, [[ expr ]] should work as [ expr ]
 
 /* used for "export noglob=* glob* a=`echo a b`" */
