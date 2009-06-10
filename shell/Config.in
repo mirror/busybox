@@ -43,9 +43,6 @@ config ASH
 	  shell (by Herbert Xu), which was created by porting the 'ash' shell
 	  (written by Kenneth Almquist) from NetBSD.
 
-comment "Ash Shell Options"
-	depends on ASH
-
 config ASH_BASH_COMPAT
 	bool "bash-compatible extensions"
 	default y
@@ -169,6 +166,13 @@ config HUSH
 	  It does not handle select, aliases, brace expansion,
 	  tilde expansion, &>file and >&file redirection of stdout+stderr.
 
+config HUSH_BASH_COMPAT
+	bool "bash-compatible extensions"
+	default y
+	depends on HUSH
+	help
+	  Enable bash-compatible extensions.
+
 config HUSH_HELP
 	bool "help builtin"
 	default n
@@ -267,9 +271,6 @@ config MSH
 #	  on it and compare vs bash) but for most things it works quite well.
 #	  It uses only vfork, so it can be used on uClinux systems.
 
-
-comment "Bourne Shell Options"
-	depends on MSH || LASH || HUSH || ASH
 
 config SH_MATH_SUPPORT
 	bool "POSIX math support"

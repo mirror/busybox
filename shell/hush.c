@@ -42,11 +42,18 @@
  *      <(list) and >(list) Process Substitution
  *      Tilde Expansion
  *
- * Bash stuff (maybe optionally enable?):
+ * Bash stuff (optionally enabled):
  *      &> and >& redirection of stdout+stderr
  *      Brace Expansion
  *      reserved words: [[ ]] function select
  *      substrings ${var:1:5}
+ *      let EXPR [EXPR...]
+ *        Each EXPR is an arithmetic expression (ARITHMETIC EVALUATION)
+ *        If the last arg evaluates to 0, let returns 1; 0 otherwise.
+ *        NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
+ *      ((EXPR))
+ *        The EXPR is evaluated according to ARITHMETIC EVALUATION.
+ *        This is exactly equivalent to let "expression".
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
@@ -59,7 +66,7 @@
  *              $ ls i=`echo 'a  b'`     # ls has two args: "i=a" and "b"
  *              ls: cannot access i=a: No such file or directory
  *              ls: cannot access b: No such file or directory
- *          Note1: same applies to local builtin when we'll have it.
+ *          Note1: same applies to local builtin.
  *          Note2: bash 3.2.33(1) does this only if export word itself
  *          is not quoted:
  *              $ export i=`echo 'aaa  bbb'`; echo "$i"
@@ -299,28 +306,11 @@ struct command {
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
+
 /* used for "[[ EXPR ]]" */
-#define CMD_SINGLEWORD_NOGLOB 2
-/* used for "export noglob=* glob* a=`echo a b`" */
-/* #define CMD_SINGLEWORD_NOGLOB_COND 3 */
-// It is hard to implement correctly, adds significant amounts of tricky code,
-// and all this only useful for really obscure export statements
-// almost nobody would use anyway. #ifdef CMD_SINGLEWORD_NOGLOB_COND
-// guard the code which implement it, but I have doubts it works
-// in all cases (especially with mixed globbed/non-globbed arguments)
-#if ENABLE_HUSH_FUNCTIONS
-# define CMD_FUNCDEF 4
+#if ENABLE_HUSH_BASH_COMPAT
+# define CMD_SINGLEWORD_NOGLOB 2
 #endif
-//TODO
-//#define CMD_ARITH - let EXPR, ((EXPR))
-//let EXPR [EXPR...]
-// Each EXPR is an arithmetic expression to be evaluated (ARITHMETIC EVALUATION)
-// If the last arg evaluates to 0, let returns 1; 0 is returned otherwise.
-// NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
-//((EXPR))
-// The EXPR is evaluated according to ARITHMETIC EVALUATION.
-// This is exactly equivalent to let "expression".
-//[[ EXPR ]]
 // Basically, word splitting and pathname expansion should NOT be performed
 // Examples:
 // no word splitting:     a="a b"; [[ $a = "a b" ]]; echo $? should print "0"
@@ -329,6 +319,18 @@ struct command {
 // || and && should work as -o and -a
 // =~ regexp match
 // Apart from the above, [[ expr ]] should work as [ expr ]
+
+/* used for "export noglob=* glob* a=`echo a b`" */
+/*#define CMD_SINGLEWORD_NOGLOB_COND 3 */
+// It is hard to implement correctly, it adds significant amounts of tricky code,
+// and all this is only useful for really obscure export statements
+// almost nobody would use anyway. #ifdef CMD_SINGLEWORD_NOGLOB_COND
+// guards the code which implements it, but I have doubts it works
+// in all cases (especially with mixed globbed/non-globbed arguments)
+
+#if ENABLE_HUSH_FUNCTIONS
+# define CMD_FUNCDEF 3
+#endif
 
 	/* if non-NULL, this "command" is { list }, ( list ), or a compound statement */
 	struct pipe *group;
@@ -2484,10 +2486,12 @@ static char **expand_strvec_to_strvec(char **argv)
 	return expand_variables(argv, 0x100);
 }
 
+#if ENABLE_HUSH_BASH_COMPAT
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
 	return expand_variables(argv, 0x80);
 }
+#endif
 
 #ifdef CMD_SINGLEWORD_NOGLOB_COND
 static char **expand_strvec_to_strvec_singleword_noglob_cond(char **argv)
@@ -3838,9 +3842,12 @@ static int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
+		if (0) {}
+#if ENABLE_HUSH_BASH_COMPAT
+		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
 		}
+#endif
 #ifdef CMD_SINGLEWORD_NOGLOB_COND
 		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB_COND) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob_cond(argv + command->assignment_cnt);
@@ -4094,6 +4101,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	static const char *const CMDTYPE[] = {
 		"{}",
 		"()",
+		"[noglob]",
 #if ENABLE_HUSH_FUNCTIONS
 		"func()",
 #endif
@@ -4833,10 +4841,12 @@ static int done_word(o_string *word, struct parse_context *ctx)
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB_COND;
 			} else
 # endif
+# if ENABLE_HUSH_BASH_COMPAT
 			if (strcmp(word->data, "[[") == 0) {
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
 			}
 			/* fall through */
+# endif
 		}
 #endif
 		if (command->group) {
