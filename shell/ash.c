@@ -900,7 +900,7 @@ sharg(union node *arg, FILE *fp)
 	}
 }
 
-static void FAST_FUNC
+static void
 shcmd(union node *cmd, FILE *fp)
 {
 	union node *np;
@@ -5587,7 +5587,7 @@ struct backcmd {                /* result of evalbackcmd */
 /* These forward decls are needed to use "eval" code for backticks handling: */
 static uint8_t back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
-static void FAST_FUNC evaltree(union node *, int);
+static void evaltree(union node *, int);
 
 static void FAST_FUNC
 evalbackcmd(union node *n, struct backcmd *result)
@@ -8018,13 +8018,13 @@ dotrap(void)
 }
 
 /* forward declarations - evaluation is fairly recursive business... */
-static void FAST_FUNC evalloop(union node *, int);
-static void FAST_FUNC evalfor(union node *, int);
-static void FAST_FUNC evalcase(union node *, int);
-static void FAST_FUNC evalsubshell(union node *, int);
+static void evalloop(union node *, int);
+static void evalfor(union node *, int);
+static void evalcase(union node *, int);
+static void evalsubshell(union node *, int);
 static void expredir(union node *);
-static void FAST_FUNC evalpipe(union node *, int);
-static void FAST_FUNC evalcommand(union node *, int);
+static void evalpipe(union node *, int);
+static void evalcommand(union node *, int);
 static int evalbltin(const struct builtincmd *, int, char **);
 static void prehash(union node *);
 
@@ -8032,13 +8032,13 @@ static void prehash(union node *);
  * Evaluate a parse tree.  The value is left in the global variable
  * exitstatus.
  */
-static void FAST_FUNC
+static void
 evaltree(union node *n, int flags)
 {
 	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 	int checkexit = 0;
-	void (*evalfn)(union node *, int) FAST_FUNC;
+	void (*evalfn)(union node *, int);
 	int status;
 	int int_level;
 
@@ -8182,7 +8182,7 @@ static
 #endif
 void evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
 
-static void FAST_FUNC
+static void
 evalloop(union node *n, int flags)
 {
 	int status;
@@ -8218,7 +8218,7 @@ evalloop(union node *n, int flags)
 	exitstatus = status;
 }
 
-static void FAST_FUNC
+static void
 evalfor(union node *n, int flags)
 {
 	struct arglist arglist;
@@ -8258,7 +8258,7 @@ evalfor(union node *n, int flags)
 	popstackmark(&smark);
 }
 
-static void FAST_FUNC
+static void
 evalcase(union node *n, int flags)
 {
 	union node *cp;
@@ -8288,7 +8288,7 @@ evalcase(union node *n, int flags)
 /*
  * Kick off a subshell to evaluate a tree.
  */
-static void FAST_FUNC
+static void
 evalsubshell(union node *n, int flags)
 {
 	struct job *jp;
@@ -8375,7 +8375,7 @@ expredir(union node *n)
  * of the shell, which make the last process in a pipeline the parent
  * of all the rest.)
  */
-static void FAST_FUNC
+static void
 evalpipe(union node *n, int flags)
 {
 	struct job *jp;
@@ -8883,7 +8883,7 @@ bltincmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	 * as POSIX mandates */
 	return back_exitstatus;
 }
-static void FAST_FUNC
+static void
 evalcommand(union node *cmd, int flags)
 {
 	static const struct builtincmd null_bltin = {
