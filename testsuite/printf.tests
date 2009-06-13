@@ -79,12 +79,13 @@ testing "printf understands %Ld" \
 	"-5\n""0\n" \
 	"" ""
 
-# We are "more correct" here than bash/coreutils: they happily print -2
-# as if it is a huge unsigned number
-testing "printf handles %u -N" \
-	"${bb}printf '%u\n' 1 -2 3 2>&1; echo \$?" \
-	"1\n""printf: -2: invalid number\n""0\n""3\n""0\n" \
-	"" ""
+# "FIXED" now to act compatibly
+## We are "more correct" here than bash/coreutils: they happily print -2
+## as if it is a huge unsigned number
+#testing "printf handles %u -N" \
+#	"${bb}printf '%u\n' 1 -2 3 2>&1; echo \$?" \
+#	"1\n""printf: -2: invalid number\n""0\n""3\n""0\n" \
+#	"" ""
 
 # Actually, we are wrong here: exit code should be 1
 testing "printf handles %d bad_input" \
