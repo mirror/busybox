@@ -8,7 +8,7 @@
 # you can just add an entry like:
 #   /sbin/foobar        f       2755    0       0       -       -       -       -       -
 # and (assuming the file /sbin/foobar exists) it will be made setuid
-# root (regardless of what its permissions are on the host filesystem.
+# root (regardless of what its permissions are on the host filesystem).
 # Furthermore, you can use a single table entry to create a many device
 # minors.  For example, if I wanted to create /dev/hda and /dev/hda[0-15]
 # I could just use the following two table entries:

@@ -276,10 +276,12 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	setsockopt_reuseaddr(sock);
 	sa_len = lsa->len; /* I presume sockaddr len stays the same */
 	xbind(sock, &lsa->u.sa, sa_len);
-	if (tcp)
+	if (tcp) {
 		xlisten(sock, backlog);
-	else /* udp: needed for recv_from_to to work: */
+		close_on_exec_on(sock);
+	} else { /* udp: needed for recv_from_to to work: */
 		socket_want_pktinfo(sock);
+	}
 	/* ndelay_off(sock); - it is the default I think? */
 
 #ifndef SSLSVD
@@ -409,10 +411,6 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Child: prepare env, log, and exec prog */
-
-	/* Closing tcp listening socket */
-	if (tcp)
-		close(sock);
 
 	{ /* vfork alert! every xmalloc in this block should be freed! */
 		char *local_hostname = local_hostname; /* for compiler */

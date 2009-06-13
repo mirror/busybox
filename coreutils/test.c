@@ -51,39 +51,49 @@
 
 enum token {
 	EOI,
-	FILRD,
+
+	FILRD, /* file access */
 	FILWR,
 	FILEX,
+
 	FILEXIST,
-	FILREG,
+
+	FILREG, /* file type */
 	FILDIR,
 	FILCDEV,
 	FILBDEV,
 	FILFIFO,
 	FILSOCK,
+
 	FILSYM,
 	FILGZ,
 	FILTT,
-	FILSUID,
+
+	FILSUID, /* file bit */
 	FILSGID,
 	FILSTCK,
-	FILNT,
+
+	FILNT, /* file ops */
 	FILOT,
 	FILEQ,
+
 	FILUID,
 	FILGID,
-	STREZ,
+
+	STREZ, /* str ops */
 	STRNZ,
 	STREQ,
 	STRNE,
 	STRLT,
 	STRGT,
-	INTEQ,
+
+	INTEQ, /* int ops */
 	INTNE,
 	INTGE,
 	INTGT,
 	INTLE,
 	INTLT,
+
 	UNOT,
 	BAND,
 	BOR,
@@ -385,8 +395,8 @@ static int binop(void)
 			return val1 >  val2;
 		if (op->op_num == INTLE)
 			return val1 <= val2;
-		if (op->op_num == INTLT)
-			return val1 <  val2;
+		/*if (op->op_num == INTLT)*/
+		return val1 <  val2;
 	}
 	if (is_str_op(op->op_num)) {
 		val1 = strcmp(opnd1, opnd2);
@@ -396,8 +406,8 @@ static int binop(void)
 			return val1 != 0;
 		if (op->op_num == STRLT)
 			return val1 < 0;
-		if (op->op_num == STRGT)
-			return val1 > 0;
+		/*if (op->op_num == STRGT)*/
+		return val1 > 0;
 	}
 	/* We are sure that these three are by now the only binops we didn't check
 	 * yet, so we do not check if the class is correct:
@@ -412,25 +422,29 @@ static int binop(void)
 			return b1.st_mtime > b2.st_mtime;
 		if (op->op_num == FILOT)
 			return b1.st_mtime < b2.st_mtime;
-		if (op->op_num == FILEQ)
-			return b1.st_dev == b2.st_dev && b1.st_ino == b2.st_ino;
+		/*if (op->op_num == FILEQ)*/
+		return b1.st_dev == b2.st_dev && b1.st_ino == b2.st_ino;
 	}
-	return 1; /* NOTREACHED */
+	/*return 1; - NOTREACHED */
 }
 
 
 static void initialize_group_array(void)
 {
-	ngroups = getgroups(0, NULL);
-	if (ngroups > 0) {
+	int n;
+
+	/* getgroups may be expensive, try to use it only once */
+	ngroups = 32;
+	do {
 		/* FIXME: ash tries so hard to not die on OOM,
 		 * and we spoil it with just one xrealloc here */
 		/* We realloc, because test_main can be entered repeatedly by shell.
 		 * Testcase (ash): 'while true; do test -x some_file; done'
 		 * and watch top. (some_file must have owner != you) */
-		group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
-		getgroups(ngroups, group_array);
-	}
+		n = ngroups;
+		group_array = xrealloc(group_array, n * sizeof(gid_t));
+		ngroups = getgroups(n, group_array);
+	} while (ngroups > n);
 }
 
 
@@ -717,7 +731,7 @@ int test_main(int argc, char **argv)
 	 * isn't likely in the case of a shell.  paranoia
 	 * prevails...
 	 */
-	ngroups = 0;
+	/*ngroups = 0; - done by INIT_S() */
 
 	//argc--;
 	argv++;
