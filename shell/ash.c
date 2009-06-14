@@ -2224,17 +2224,17 @@ listvars(int on, int off, char ***end)
 /* ============ Path search helper
  *
  * The variable path (passed by reference) should be set to the start
- * of the path before the first call; padvance will update
- * this value as it proceeds.  Successive calls to padvance will return
+ * of the path before the first call; path_advance will update
+ * this value as it proceeds.  Successive calls to path_advance will return
  * the possible path expansions in sequence.  If an option (indicated by
  * a percent sign) appears in the path entry then the global variable
  * pathopt will be set to point to it; otherwise pathopt will be set to
  * NULL.
  */
-static const char *pathopt;     /* set by padvance */
+static const char *pathopt;     /* set by path_advance */
 
 static char *
-padvance(const char **path, const char *name)
+path_advance(const char **path, const char *name)
 {
 	const char *p;
 	char *q;
@@ -2538,7 +2538,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	}
 	do {
 		c = *path;
-		p = padvance(&path, dest);
+		p = path_advance(&path, dest);
 		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
 			if (c && c != ':')
 				flags |= CD_PRINT;
@@ -7159,7 +7159,7 @@ shellexec(char **argv, const char *path, int idx)
 		e = errno;
 	} else {
 		e = ENOENT;
-		while ((cmdname = padvance(&path, argv[0])) != NULL) {
+		while ((cmdname = path_advance(&path, argv[0])) != NULL) {
 			if (--idx < 0 && pathopt == NULL) {
 				tryexec(IF_FEATURE_SH_STANDALONE(-1,) cmdname, argv, envp);
 				if (errno != ENOENT && errno != ENOTDIR)
@@ -7198,7 +7198,7 @@ printentry(struct tblentry *cmdp)
 	idx = cmdp->param.index;
 	path = pathval();
 	do {
-		name = padvance(&path, cmdp->cmdname);
+		name = path_advance(&path, cmdp->cmdname);
 		stunalloc(name);
 	} while (--idx >= 0);
 	out1fmt("%s%s\n", name, (cmdp->rehash ? "*" : nullstr));
@@ -7570,7 +7570,7 @@ describe_command(char *command, int describe_command_verbose)
 			p = command;
 		} else {
 			do {
-				p = padvance(&path, command);
+				p = path_advance(&path, command);
 				stunalloc(p);
 			} while (--j >= 0);
 		}
@@ -8727,23 +8727,6 @@ static int ulimitcmd(int, char **) FAST_FUNC;
 #define BUILTIN_REG_ASSG        "6"
 #define BUILTIN_SPEC_REG_ASSG   "7"
 
-/* We do not handle [[ expr ]] bashism bash-compatibly,
- * we make it a synonym of [ expr ].
- * Basically, word splitting and pathname expansion should NOT be performed
- * Examples:
- * no word splitting:     a="a b"; [[ $a = "a b" ]]; echo $? should print "0"
- * no pathname expansion: [[ /bin/m* = "/bin/m*" ]]; echo $? should print "0"
- * Additional operators:
- * || and && should work as -o and -a
- * =~ regexp match
- * == should do _pattern match_ against right side. bash does this:
- *      # [[ *a* == bab ]] && echo YES
- *      # [[ bab == *a* ]] && echo YES
- *      YES
- * != does the negated == (i.e., also with pattern matching)
- * Apart from the above, [[ expr ]] should work as [ expr ]
- */
-
 /* Stubs for calling non-FAST_FUNC's */
 #if ENABLE_ASH_BUILTIN_ECHO
 static int FAST_FUNC echocmd(int argc, char **argv)   { return echo_main(argc, argv); }
@@ -9718,7 +9701,7 @@ chkmail(void)
 	setstackmark(&smark);
 	mpath = mpathset() ? mpathval() : mailval();
 	for (mtp = mailtime; mtp < mailtime + MAXMBOXES; mtp++) {
-		p = padvance(&mpath, nullstr);
+		p = path_advance(&mpath, nullstr);
 		if (p == NULL)
 			break;
 		if (*p == '\0')
@@ -11912,7 +11895,7 @@ find_dot_file(char *name)
 		goto try_cur_dir;
 	}
 
-	while ((fullname = padvance(&path, name)) != NULL) {
+	while ((fullname = path_advance(&path, name)) != NULL) {
  try_cur_dir:
 		if ((stat(fullname, &statb) == 0) && S_ISREG(statb.st_mode)) {
 			/*
@@ -11921,7 +11904,8 @@ find_dot_file(char *name)
 			 */
 			return fullname;
 		}
-		stunalloc(fullname);
+		if (fullname != name)
+			stunalloc(fullname);
 	}
 
 	/* not found in the PATH */
@@ -12095,7 +12079,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 	e = ENOENT;
 	idx = -1;
  loop:
-	while ((fullname = padvance(&path, name)) != NULL) {
+	while ((fullname = path_advance(&path, name)) != NULL) {
 		stunalloc(fullname);
 		/* NB: code below will still use fullname
 		 * despite it being "unallocated" */

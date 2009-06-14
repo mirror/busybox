@@ -19,7 +19,6 @@
  * Original copyright notice states:
  *     "This program is in the Public Domain."
  */
-
 #include "libbb.h"
 #include <setjmp.h>
 
@@ -28,7 +27,6 @@
 /* test_main() is called from shells, and we need to be extra careful here.
  * This is true regardless of PREFER_APPLETS and STANDALONE_SHELL
  * state. */
-
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;
@@ -46,6 +44,50 @@
 			"-nt"|"-ot"|"-ef";
 	operand ::= <any legal UNIX file name>
 */
+
+/* TODO: handle [[ expr ]] bashism bash-compatibly.
+ * [[ ]] is meant to be a "better [ ]", with less weird syntax
+ * and without the risk of variables and quoted strings misinterpreted
+ * as operators.
+ * This will require support from shells - we need to know quote status
+ * of each parameter (see below).
+ *
+ * Word splitting and pathname expansion should NOT be performed:
+ *      # a="a b"; [[ $a = "a b" ]] && echo YES
+ *      YES
+ *      # [[ /bin/m* ]] && echo YES
+ *      YES
+ *
+ * =~ should do regexp match
+ * = and == should do pattern match against right side:
+ *      # [[ *a* == bab ]] && echo YES
+ *      # [[ bab == *a* ]] && echo YES
+ *      YES
+ * != does the negated == (i.e., also with pattern matching).
+ * Pattern matching is quotation-sensitive:
+ *      # [[ bab == "b"a* ]] && echo YES
+ *      YES
+ *      # [[ bab == b"a*" ]] && echo YES
+ *
+ * Conditional operators such as -f must be unquoted literals to be recognized:
+ *      # [[ -e /bin ]] && echo YES
+ *      YES
+ *      # [[ '-e' /bin ]] && echo YES
+ *      bash: conditional binary operator expected...
+ *      # A='-e'; [[ $A /bin ]] && echo YES
+ *      bash: conditional binary operator expected...
+ *
+ * || and && should work as -o and -a work in [ ]
+ * -a and -o aren't recognized (&& and || are to be used instead)
+ * ( and ) do not need to be quoted unlike in [ ]:
+ *      # [[ ( abc ) && '' ]] && echo YES
+ *      # [[ ( abc ) || '' ]] && echo YES
+ *      YES
+ *      # [[ ( abc ) -o '' ]] && echo YES
+ *      bash: syntax error in conditional expression...
+ *
+ * Apart from the above, [[ expr ]] should work as [ expr ]
+ */
 
 #define TEST_DEBUG 0
 

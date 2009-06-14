@@ -311,22 +311,9 @@ struct command {
 #if ENABLE_HUSH_BASH_COMPAT
 # define CMD_SINGLEWORD_NOGLOB 2
 #endif
-// Basically, word splitting and pathname expansion should NOT be performed
-// Examples:
-// no word splitting:     a="a b"; [[ $a = "a b" ]]; echo $? should print "0"
-// no pathname expansion: [[ /bin/m* = "/bin/m*" ]]; echo $? should print "0"
-// Additional operators:
-// || and && should work as -o and -a
-// =~ regexp match
-// == should do _pattern match_ against right side. bash does this:
-//      # [[ *a* == bab ]] && echo YES
-//      # [[ bab == *a* ]] && echo YES
-//      YES
-// != does the negated == (i.e., also with pattern matching)
-// Apart from the above, [[ expr ]] should work as [ expr ]
 
 /* used for "export noglob=* glob* a=`echo a b`" */
-/*#define CMD_SINGLEWORD_NOGLOB_COND 3 */
+//#define CMD_SINGLEWORD_NOGLOB_COND 3
 // It is hard to implement correctly, it adds significant amounts of tricky code,
 // and all this is only useful for really obscure export statements
 // almost nobody would use anyway. #ifdef CMD_SINGLEWORD_NOGLOB_COND
