@@ -129,7 +129,7 @@ int install_main(int argc, char **argv)
 	if (opts & OPT_PRESERVE_TIME) {
 		copy_flags |= FILEUTILS_PRESERVE_STATUS;
 	}
-	mode = 0666;
+	mode = 0755; /* GNU coreutils 6.10 compat */
 	if (opts & OPT_MODE)
 		bb_parse_mode(mode_str, &mode);
 	uid = (opts & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
@@ -175,8 +175,9 @@ int install_main(int argc, char **argv)
 			}
 		}
 
-		/* Set the file mode */
-		if ((opts & OPT_MODE) && chmod(dest, mode) == -1) {
+		/* Set the file mode (always, not only with -m).
+		 * GNU coreutils 6.10 is not affected by umask. */
+		if (chmod(dest, mode) == -1) {
 			bb_perror_msg("can't change %s of %s", "permissions", dest);
 			ret = EXIT_FAILURE;
 		}
