@@ -12,6 +12,7 @@
 
 #define NOT_DIGIT(a) (((unsigned char)(a-'0')) > 9)
 
+#if 0 // UNUSED
 double FAST_FUNC bb_strtod(const char *arg, char **endp)
 {
 	double v;
@@ -36,6 +37,7 @@ double FAST_FUNC bb_strtod(const char *arg, char **endp)
 	}
 	return v;
 }
+#endif
 
 #if 0
 /* String to timespec: "NNNN[.NNNNN]" -> struct timespec.
