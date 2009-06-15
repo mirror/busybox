@@ -22,8 +22,15 @@ int seq_main(int argc, char **argv)
 	unsigned width;
 	unsigned frac_part;
 	const char *sep, *opt_s = "\n";
-	unsigned opt = getopt32(argv, "+ws:", &opt_s);
+	unsigned opt;
 
+#if ENABLE_LOCALE_SUPPORT
+	/* Undo busybox.c: on input, we want to use dot
+	 * as fractional separator, regardless of current locale */
+	setlocale(LC_NUMERIC, "C");
+#endif
+
+	opt = getopt32(argv, "+ws:", &opt_s);
 	argc -= optind;
 	argv += optind;
 	first = increment = 1;
@@ -43,6 +50,10 @@ int seq_main(int argc, char **argv)
 		default:
 			bb_show_usage();
 	}
+
+#if ENABLE_LOCALE_SUPPORT
+	setlocale(LC_NUMERIC, "");
+#endif
 
 	/* Last checked to be compatible with: coreutils-6.10 */
 	width = 0;
