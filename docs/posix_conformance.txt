@@ -189,7 +189,7 @@ df POSIX options
 df Busybox specific options: 
   -a, -m, -B SIZE, -i, -h
 Remark:
-- It seems that GNU df doesnt rount percents up in its output (thus its results are a bit different)
+- It seems that GNU df does not round percents up in its output (thus its results are a bit different)
 
 diff POSIX options
  option           | exists | compliant | remarks

@@ -120,11 +120,13 @@ fi
 
 # Populate a directory with links to all busybox applets
 
+# Note: if $LINKSDIR/applet exists, we do not overwrite it.
+# Useful if one wants to run tests against a standard utility, not an applet.
 LINKSDIR="$bindir/runtest-tempdir-links"
-rm -rf "$LINKSDIR" 2>/dev/null
-mkdir "$LINKSDIR"
+#rm -rf "$LINKSDIR" 2>/dev/null
+mkdir "$LINKSDIR" 2>/dev/null
 for i in $implemented; do
-	ln -s "$bindir/busybox" "$LINKSDIR/$i"
+	ln -s "$bindir/busybox" "$LINKSDIR/$i" 2>/dev/null
 done
 
 # Set up option flags so tests can be selective.
@@ -142,7 +144,7 @@ for applet in $applets; do
 
 	# Is this a new-style test?
 	if [ -f "$applet.tests" ]; then
-		if [ ! -h "$LINKSDIR/$applet" ]; then
+		if [ ! -e "$LINKSDIR/$applet" ]; then
 			# (avoiding bash'ism "${applet:0:4}")
 			if ! echo "$applet" | grep "^all_" >/dev/null; then
 				echo "SKIPPED: $applet (not built)"
