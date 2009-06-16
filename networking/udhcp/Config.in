@@ -74,6 +74,9 @@ config FEATURE_UDHCP_PORT
 	  At the cost of ~300 bytes, enables -P port option.
 	  This feature is typically not needed.
 
+# TODO: UDHCP_DEBUG is inconvenient to use.
+# Make it controllable at runtime (say, via -v, -vv, -vvv)
+
 config UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"
 	default n

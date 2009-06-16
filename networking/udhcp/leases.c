@@ -22,7 +22,7 @@ static struct dhcpOfferedAddr *oldest_expired_lease(void)
 	for (i = 0; i < server_config.max_leases; i++) {
 		if (leases[i].expires < oldest_time) {
 			oldest_time = leases[i].expires;
-			oldest_lease = &(leases[i]);
+			oldest_lease = &leases[i];
 		}
 	}
 	return oldest_lease;
@@ -142,7 +142,7 @@ static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 }
 
 
-/* Find a new usable (we think) address. */
+/* Find a new usable (we think) address */
 uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 {
 	uint32_t addr;

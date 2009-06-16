@@ -23,6 +23,7 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 #define DHCP_OPTIONS_BUFSIZE  308
 
+//TODO: rename to dhcp_packet; rename ciaddr/yiaddr/chaddr
 struct dhcpMessage {
 	uint8_t op;      /* 1 = BOOTREQUEST, 2 = BOOTREPLY */
 	uint8_t htype;   /* hardware address type. 1 = 10mb ethernet */
@@ -44,6 +45,7 @@ struct dhcpMessage {
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
 
+//TODO: rename to ip_udp_dhcp_packet?
 struct udp_dhcp_packet {
 	struct iphdr ip;
 	struct udphdr udp;

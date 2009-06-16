@@ -78,6 +78,10 @@ struct server_config_t {
 typedef uint32_t leasetime_t;
 typedef int32_t signed_leasetime_t;
 
+//TODO: (1) rename to dyn_lease (that's what it is. we also have static_lease).
+//(2) lease_mac16 may be shortened to lease_mac[6], since e.g. ARP probing uses
+//only 6 first bytes anyway. We can check received dhcp packets
+//that their "chaddr"s have only 6 first bytes != 0, and complain otherwise.
 struct dhcpOfferedAddr {
 	uint8_t lease_mac16[16];
 	/* "nip": IP in network order */
