@@ -78,9 +78,9 @@ typedef uint32_t leasetime_t;
 typedef int32_t signed_leasetime_t;
 
 struct dhcpOfferedAddr {
-	uint8_t chaddr[16];
-	/* In network order */
-	uint32_t yiaddr;
+	uint8_t lease_mac16[16];
+	/* "nip": IP in network order */
+	uint32_t lease_nip;
 	/* Unix time when lease expires, regardless of value of
 	 * server_config.remaining. Kept in memory in host order.
 	 * When written to file, converted to network order

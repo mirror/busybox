@@ -38,10 +38,10 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 		continue;
 
 	for (i = 0; i < server_config.max_leases; i++) {
-		if ((j != 16 && memcmp(leases[i].chaddr, chaddr, 16) == 0)
-		 || (yiaddr && leases[i].yiaddr == yiaddr)
+		if ((j != 16 && memcmp(leases[i].lease_mac16, chaddr, 16) == 0)
+		 || (yiaddr && leases[i].lease_nip == yiaddr)
 		) {
-			memset(&(leases[i]), 0, sizeof(leases[i]));
+			memset(&leases[i], 0, sizeof(leases[i]));
 		}
 	}
 }
@@ -75,8 +75,8 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(
 				hostname++;
 			}
 		}
-		memcpy(oldest->chaddr, chaddr, 16);
-		oldest->yiaddr = yiaddr;
+		memcpy(oldest->lease_mac16, chaddr, 16);
+		oldest->lease_nip = yiaddr;
 		oldest->expires = time(NULL) + leasetime;
 	}
 
@@ -97,7 +97,7 @@ struct dhcpOfferedAddr* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
 	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (!memcmp(leases[i].chaddr, chaddr, 16))
+		if (!memcmp(leases[i].lease_mac16, chaddr, 16))
 			return &(leases[i]);
 
 	return NULL;
@@ -110,8 +110,8 @@ struct dhcpOfferedAddr* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
 	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (leases[i].yiaddr == yiaddr)
-			return &(leases[i]);
+		if (leases[i].lease_nip == yiaddr)
+			return &leases[i];
 
 	return NULL;
 }
@@ -174,9 +174,9 @@ uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 	}
 
 	if (oldest_lease && lease_expired(oldest_lease)
-	 && nobody_responds_to_arp(oldest_lease->yiaddr, chaddr)
+	 && nobody_responds_to_arp(oldest_lease->lease_nip, chaddr)
 	) {
-		return oldest_lease->yiaddr;
+		return oldest_lease->lease_nip;
 	}
 
 	return 0;

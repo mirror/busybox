@@ -170,8 +170,8 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 
-			memcpy(&static_lease.chaddr, &packet.chaddr, 16);
-			static_lease.yiaddr = static_lease_ip;
+			memcpy(&static_lease.lease_mac16, &packet.chaddr, 16);
+			static_lease.lease_nip = static_lease_ip;
 			static_lease.expires = 0;
 
 			lease = &static_lease;
@@ -204,19 +204,19 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 					DEBUG("server_id = %08x", ntohl(server_id_aligned));
 					if (server_id_aligned == server_config.server
 					 && requested
-					 && requested_aligned == lease->yiaddr
+					 && requested_aligned == lease->lease_nip
 					) {
-						send_ACK(&packet, lease->yiaddr);
+						send_ACK(&packet, lease->lease_nip);
 					}
 				} else if (requested) {
 					/* INIT-REBOOT State */
-					if (lease->yiaddr == requested_aligned)
-						send_ACK(&packet, lease->yiaddr);
+					if (lease->lease_nip == requested_aligned)
+						send_ACK(&packet, lease->lease_nip);
 					else
 						send_NAK(&packet);
-				} else if (lease->yiaddr == packet.ciaddr) {
+				} else if (lease->lease_nip == packet.ciaddr) {
 					/* RENEWING or REBINDING State */
-					send_ACK(&packet, lease->yiaddr);
+					send_ACK(&packet, lease->lease_nip);
 				} else { /* don't know what to do!!!! */
 					send_NAK(&packet);
 				}
@@ -231,10 +231,11 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				if (lease) {
 					if (lease_expired(lease)) {
 						/* probably best if we drop this lease */
-						memset(lease->chaddr, 0, 16);
-					/* make some contention for this address */
-					} else
+						memset(lease->lease_mac16, 0, 16);
+					} else {
+						/* make some contention for this address */
 						send_NAK(&packet);
+					}
 				} else {
 					uint32_t r = ntohl(requested_aligned);
 					if (r < server_config.start_ip
@@ -252,7 +253,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case DHCPDECLINE:
 			DEBUG("Received DECLINE");
 			if (lease) {
-				memset(lease->chaddr, 0, 16);
+				memset(lease->lease_mac16, 0, 16);
 				lease->expires = time(NULL) + server_config.decline_time;
 			}
 			break;

@@ -61,10 +61,10 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		const char *fmt = ":%02x" + 1;
 		for (i = 0; i < 6; i++) {
-			printf(fmt, lease.chaddr[i]);
+			printf(fmt, lease.lease_mac16[i]);
 			fmt = ":%02x";
 		}
-		addr.s_addr = lease.yiaddr;
+		addr.s_addr = lease.lease_nip;
 		/* actually, 15+1 and 19+1, +1 is a space between columns */
 		/* lease.hostname is char[20] and is always NUL terminated */
 		printf(" %-16s%-20s", inet_ntoa(addr), lease.hostname);

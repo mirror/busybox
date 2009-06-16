@@ -132,7 +132,7 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 			signed_leasetime_t tmp = lease->expires - time(NULL);
 			if (tmp >= 0)
 				lease_time_aligned = tmp;
-			packet.yiaddr = lease->yiaddr;
+			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or the client has requested an IP */
 		else if ((req = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL

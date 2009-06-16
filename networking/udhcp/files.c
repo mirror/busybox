@@ -360,7 +360,7 @@ void FAST_FUNC write_leases(void)
 	for (i = 0; i < server_config.max_leases; i++) {
 		leasetime_t tmp_time;
 
-		if (leases[i].yiaddr == 0)
+		if (leases[i].lease_nip == 0)
 			continue;
 
 		/* Screw with the time in the struct, for easier writing */
@@ -413,14 +413,14 @@ void FAST_FUNC read_leases(const char *file)
 	IF_UDHCP_DEBUG(i = 0;)
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		/* ADDME: what if it matches some static lease? */
-		uint32_t y = ntohl(lease.yiaddr);
+		uint32_t y = ntohl(lease.lease_nip);
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
 			signed_leasetime_t expires = ntohl(lease.expires) - (signed_leasetime_t)time_passed;
 			if (expires <= 0)
 				continue;
 			/* NB: add_lease takes "relative time", IOW,
 			 * lease duration, not lease deadline. */
-			if (!(add_lease(lease.chaddr, lease.yiaddr, expires, lease.hostname))) {
+			if (!(add_lease(lease.lease_mac16, lease.lease_nip, expires, lease.hostname))) {
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
