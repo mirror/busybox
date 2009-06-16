@@ -31,7 +31,8 @@ static int send_packet_to_relay(struct dhcpMessage *payload)
 {
 	DEBUG("Forwarding packet to relay");
 
-	return udhcp_send_kernel_packet(payload, server_config.server, SERVER_PORT,
+	return udhcp_send_kernel_packet(payload,
+			server_config.server, SERVER_PORT,
 			payload->giaddr, SERVER_PORT);
 }
 
@@ -42,23 +43,31 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 	const uint8_t *chaddr;
 	uint32_t ciaddr;
 
-	if (force_broadcast) {
-		DEBUG("broadcasting packet to client (NAK)");
-		ciaddr = INADDR_BROADCAST;
-		chaddr = MAC_BCAST_ADDR;
-	} else if (payload->ciaddr) {
-		DEBUG("unicasting packet to client ciaddr");
-		ciaddr = payload->ciaddr;
-		chaddr = payload->chaddr;
-	} else if (payload->flags & htons(BROADCAST_FLAG)) {
-		DEBUG("broadcasting packet to client (requested)");
+	// Was:
+	//if (force_broadcast) { /* broadcast */ }
+	//else if (payload->ciaddr) { /* unicast to payload->ciaddr */ }
+	//else if (payload->flags & htons(BROADCAST_FLAG)) { /* broadcast */ }
+	//else { /* unicast to payload->yiaddr */ }
+	// But this is wrong: yiaddr is _our_ idea what client's IP is
+	// (for example, from lease file). Client may not know that,
+	// and may not have UDP socket listening on that IP!
+	// We should never unicast to payload->yiaddr!
+	// payload->ciaddr, OTOH, comes from client's request packet,
+	// and can be used.
+
+	if (force_broadcast
+	 || (payload->flags & htons(BROADCAST_FLAG))
+	 || !payload->ciaddr
+	) {
+		DEBUG("broadcasting packet to client");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
 	} else {
-		DEBUG("unicasting packet to client yiaddr");
-		ciaddr = payload->yiaddr;
+		DEBUG("unicasting packet to client ciaddr");
+		ciaddr = payload->ciaddr;
 		chaddr = payload->chaddr;
 	}
+
 	return udhcp_send_raw_packet(payload,
 		/*src*/ server_config.server, SERVER_PORT,
 		/*dst*/ ciaddr, CLIENT_PORT, chaddr,
@@ -118,17 +127,18 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 		struct dhcpOfferedAddr *lease;
 
 		lease = find_lease_by_chaddr(oldpacket->chaddr);
-		/* the client is in our lease/offered table */
+		/* The client is in our lease/offered table */
 		if (lease) {
 			signed_leasetime_t tmp = lease->expires - time(NULL);
 			if (tmp >= 0)
 				lease_time_aligned = tmp;
 			packet.yiaddr = lease->yiaddr;
-		/* Or the client has requested an ip */
-		} else if ((req = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
-		 /* Don't look here (ugly hackish thing to do) */
+		}
+		/* Or the client has requested an IP */
+		else if ((req = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
+		 /* (read IP) */
 		 && (move_from_unaligned32(req_align, req), 1)
-		 /* and the ip is in the lease range */
+		 /* and the IP is in the lease range */
 		 && ntohl(req_align) >= server_config.start_ip
 		 && ntohl(req_align) <= server_config.end_ip
 		 /* and is not already taken/offered */
@@ -137,9 +147,10 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 			|| lease_expired(lease))
 		) {
 			packet.yiaddr = req_align;
-		/* otherwise, find a free IP */
-		} else {
-			packet.yiaddr = find_free_or_expired_address();
+		}
+		/* Otherwise, find a free IP */
+		else {
+			packet.yiaddr = find_free_or_expired_address(oldpacket->chaddr);
 		}
 
 		if (!packet.yiaddr) {

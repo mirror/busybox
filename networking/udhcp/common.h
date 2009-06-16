@@ -92,7 +92,11 @@ int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *addr, ui
 int udhcp_raw_socket(int ifindex) FAST_FUNC;
 int udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf) FAST_FUNC;
 /* Returns 1 if no reply received */
-int arpping(uint32_t test_ip, uint32_t from_ip, uint8_t *from_mac, const char *interface) FAST_FUNC;
+int arpping(uint32_t test_ip,
+		const uint8_t *safe_mac,
+		uint32_t from_ip,
+		uint8_t *from_mac,
+		const char *interface) FAST_FUNC;
 
 #if ENABLE_UDHCP_DEBUG
 # define DEBUG(str, args...) bb_info_msg("### " str, ## args)

@@ -99,7 +99,7 @@ struct dhcpOfferedAddr *add_lease(
 int lease_expired(struct dhcpOfferedAddr *lease) FAST_FUNC;
 struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
 struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;
-uint32_t find_free_or_expired_address(void) FAST_FUNC;
+uint32_t find_free_or_expired_address(const uint8_t *chaddr) FAST_FUNC;
 
 
 /*** static_leases.h ***/

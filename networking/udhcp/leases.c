@@ -118,7 +118,7 @@ struct dhcpOfferedAddr* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
 
 
 /* check is an IP is taken, if it is, add it to the lease table */
-static int nobody_responds_to_arp(uint32_t addr)
+static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 {
 	/* 16 zero bytes */
 	static const uint8_t blank_chaddr[16] = { 0 };
@@ -127,7 +127,9 @@ static int nobody_responds_to_arp(uint32_t addr)
 	struct in_addr temp;
 	int r;
 
-	r = arpping(addr, server_config.server, server_config.arp, server_config.interface);
+	r = arpping(addr, safe_mac,
+			server_config.server, server_config.arp,
+			server_config.interface);
 	if (r)
 		return r;
 
@@ -140,7 +142,7 @@ static int nobody_responds_to_arp(uint32_t addr)
 
 
 /* Find a new usable (we think) address. */
-uint32_t FAST_FUNC find_free_or_expired_address(void)
+uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 {
 	uint32_t addr;
 	struct dhcpOfferedAddr *oldest_lease = NULL;
@@ -163,7 +165,7 @@ uint32_t FAST_FUNC find_free_or_expired_address(void)
 
 		lease = find_lease_by_yiaddr(net_addr);
 		if (!lease) {
-			if (nobody_responds_to_arp(net_addr))
+			if (nobody_responds_to_arp(net_addr, chaddr))
 				return net_addr;
 		} else {
 			if (!oldest_lease || lease->expires < oldest_lease->expires)
@@ -172,7 +174,7 @@ uint32_t FAST_FUNC find_free_or_expired_address(void)
 	}
 
 	if (oldest_lease && lease_expired(oldest_lease)
-	 && nobody_responds_to_arp(oldest_lease->yiaddr)
+	 && nobody_responds_to_arp(oldest_lease->yiaddr, chaddr)
 	) {
 		return oldest_lease->yiaddr;
 	}

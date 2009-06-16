@@ -553,9 +553,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
  * the client MUST send a DHCPDECLINE message to the server and restarts
  * the configuration process..." */
 						if (!arpping(packet.yiaddr,
-							    (uint32_t) 0,
-							    client_config.arp,
-							    client_config.interface)
+								NULL,
+								(uint32_t) 0,
+								client_config.arp,
+								client_config.interface)
 						) {
 							bb_info_msg("offered address is in use "
 								"(got ARP reply), declining");
