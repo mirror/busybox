@@ -99,7 +99,7 @@ static void init_packet(struct dhcpMessage *packet, struct dhcpMessage *oldpacke
 /* add in the bootp options */
 static void add_bootp_options(struct dhcpMessage *packet)
 {
-	packet->siaddr = server_config.siaddr;
+	packet->siaddr_nip = server_config.siaddr_nip;
 	if (server_config.sname)
 		strncpy((char*)packet->sname, server_config.sname, sizeof(packet->sname) - 1);
 	if (server_config.boot_file)

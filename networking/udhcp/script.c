@@ -37,7 +37,8 @@ static inline int upper_length(int length, int opt_index)
 }
 
 
-static int sprintip(char *dest, const char *pre, const uint8_t *ip)
+/* note: ip is a pointer to an IP in network order, possibly misaliged */
+static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 {
 	return sprintf(dest, "%s%d.%d.%d.%d", pre, ip[0], ip[1], ip[2], ip[3]);
 }
@@ -76,12 +77,12 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 	for (;;) {
 		switch (type) {
 		case OPTION_IP_PAIR:
-			dest += sprintip(dest, "", option);
+			dest += sprint_nip(dest, "", option);
 			*dest++ = '/';
 			option += 4;
 			optlen = 4;
 		case OPTION_IP:	/* Works regardless of host byte order. */
-			dest += sprintip(dest, "", option);
+			dest += sprint_nip(dest, "", option);
 			break;
 		case OPTION_BOOLEAN:
 			dest += sprintf(dest, *option ? "yes" : "no");
@@ -145,7 +146,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 					num_options++; /* for mton */
 			}
 		}
-		if (packet->siaddr)
+		if (packet->siaddr_nip)
 			num_options++;
 		temp = get_option(packet, DHCP_OPTION_OVERLOAD);
 		if (temp)
@@ -164,7 +165,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		return envp;
 
 	*curr = xmalloc(sizeof("ip=255.255.255.255"));
-	sprintip(*curr, "ip=", (uint8_t *) &packet->yiaddr);
+	sprint_nip(*curr, "ip=", (uint8_t *) &packet->yiaddr);
 	putenv(*curr++);
 
 	opt_name = dhcp_option_strings;
@@ -187,9 +188,9 @@ static char **fill_envp(struct dhcpMessage *packet)
 		opt_name += strlen(opt_name) + 1;
 		i++;
 	}
-	if (packet->siaddr) {
+	if (packet->siaddr_nip) {
 		*curr = xmalloc(sizeof("siaddr=255.255.255.255"));
-		sprintip(*curr, "siaddr=", (uint8_t *) &packet->siaddr);
+		sprint_nip(*curr, "siaddr=", (uint8_t *) &packet->siaddr_nip);
 		putenv(*curr++);
 	}
 	if (!(over & FILE_FIELD) && packet->file[0]) {

@@ -24,7 +24,7 @@ static inline uint64_t hton64(uint64_t v)
 
 
 /* on these functions, make sure your datatype matches */
-static int FAST_FUNC read_ip(const char *line, void *arg)
+static int FAST_FUNC read_nip(const char *line, void *arg)
 {
 	len_and_sockaddr *lsa;
 
@@ -187,15 +187,15 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 		opt = buffer; /* new meaning for variable opt */
 		switch (option->flags & TYPE_MASK) {
 		case OPTION_IP:
-			retval = read_ip(val, buffer);
+			retval = read_nip(val, buffer);
 			break;
 		case OPTION_IP_PAIR:
-			retval = read_ip(val, buffer);
+			retval = read_nip(val, buffer);
 			val = strtok(NULL, ", \t/-");
 			if (!val)
 				retval = 0;
 			if (retval)
-				retval = read_ip(val, buffer + 4);
+				retval = read_nip(val, buffer + 4);
 			break;
 		case OPTION_STRING:
 #if ENABLE_FEATURE_UDHCP_RFC3397
@@ -266,7 +266,7 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 
 	/* Read ip */
 	ip_string = strtok_r(NULL, " \t", &line);
-	read_ip(ip_string, &ip);
+	read_nip(ip_string, &ip);
 
 	addStaticLease(arg, (uint8_t*) &mac_bytes, ip);
 
@@ -285,13 +285,12 @@ struct config_keyword {
 
 static const struct config_keyword keywords[] = {
 	/* keyword       handler   variable address               default */
-	{"start",        read_ip,  &(server_config.start_ip),     "192.168.0.20"},
-	{"end",          read_ip,  &(server_config.end_ip),       "192.168.0.254"},
+	{"start",        read_nip, &(server_config.start_ip),     "192.168.0.20"},
+	{"end",          read_nip, &(server_config.end_ip),       "192.168.0.254"},
 	{"interface",    read_str, &(server_config.interface),    "eth0"},
 	/* Avoid "max_leases value not sane" warning by setting default
 	 * to default_end_ip - default_start_ip + 1: */
 	{"max_leases",   read_u32, &(server_config.max_leases),   "235"},
-//	{"remaining",    read_yn,  &(server_config.remaining),    "yes"},
 	{"auto_time",    read_u32, &(server_config.auto_time),    "7200"},
 	{"decline_time", read_u32, &(server_config.decline_time), "3600"},
 	{"conflict_time",read_u32, &(server_config.conflict_time),"3600"},
@@ -299,7 +298,7 @@ static const struct config_keyword keywords[] = {
 	{"min_lease",    read_u32, &(server_config.min_lease),    "60"},
 	{"lease_file",   read_str, &(server_config.lease_file),   LEASES_FILE},
 	{"pidfile",      read_str, &(server_config.pidfile),      "/var/run/udhcpd.pid"},
-	{"siaddr",       read_ip,  &(server_config.siaddr),       "0.0.0.0"},
+	{"siaddr",       read_nip, &(server_config.siaddr_nip),   "0.0.0.0"},
 	/* keywords with no defaults must be last! */
 	{"option",       read_opt, &(server_config.options),      ""},
 	{"opt",          read_opt, &(server_config.options),      ""},

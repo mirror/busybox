@@ -34,13 +34,13 @@ struct dhcpMessage {
 #define BROADCAST_FLAG 0x8000 /* "I need broadcast replies" */
 	uint32_t ciaddr; /* client IP (if client is in BOUND, RENEW or REBINDING state) */
 	uint32_t yiaddr; /* 'your' (client) IP address */
-	uint32_t siaddr; /* IP address of next server to use in bootstrap,
-	                  * returned in DHCPOFFER, DHCPACK by server */
+	/* IP address of next server to use in bootstrap, returned in DHCPOFFER, DHCPACK by server */
+	uint32_t siaddr_nip;
 	uint32_t gateway_nip; /* relay agent IP address */
-	uint8_t chaddr[16];/* link-layer client hardware address (MAC) */
-	uint8_t sname[64]; /* server host name (ASCIZ) */
-	uint8_t file[128]; /* boot file name (ASCIZ) */
-	uint32_t cookie;   /* fixed first four option bytes (99,130,83,99 dec) */
+	uint8_t chaddr[16];   /* link-layer client hardware address (MAC) */
+	uint8_t sname[64];    /* server host name (ASCIZ) */
+	uint8_t file[128];    /* boot file name (ASCIZ) */
+	uint32_t cookie;      /* fixed first four option bytes (99,130,83,99 dec) */
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
 

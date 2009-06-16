@@ -39,11 +39,6 @@ struct server_config_t {
 	char *interface;                /* The name of the interface to use */
 	int ifindex;                    /* Index number of the interface to use */
 	uint8_t arp[6];                 /* Our arp address */
-// disabled: dumpleases has no way of knowing this value,
-// and will break if it's off. Now it's on always.
-//	char remaining;                 /* Should the lease time in lease file
-//	                                 * be written as lease time remaining, or
-//	                                 * as the absolute time the lease expires */
 	uint32_t lease;	                /* lease time in seconds (host order) */
 	uint32_t max_leases;            /* maximum number of leases (including reserved address) */
 	uint32_t auto_time;             /* how long should udhcpd wait before writing a config file.
@@ -53,7 +48,7 @@ struct server_config_t {
 	uint32_t conflict_time;         /* how long an arp conflict offender is leased for */
 	uint32_t offer_time;            /* how long an offered address is reserved */
 	uint32_t min_lease;             /* minimum lease time a client can request */
-	uint32_t siaddr;                /* next server bootp option */
+	uint32_t siaddr_nip;                /* next server bootp option */
 	char *lease_file;
 	char *pidfile;
 	char *notify_file;              /* What to run whenever leases are written */
@@ -81,11 +76,9 @@ struct dhcpOfferedAddr {
 	uint8_t lease_mac16[16];
 	/* "nip": IP in network order */
 	uint32_t lease_nip;
-	/* Unix time when lease expires, regardless of value of
-	 * server_config.remaining. Kept in memory in host order.
+	/* Unix time when lease expires. Kept in memory in host order.
 	 * When written to file, converted to network order
-	 * and optionally adjusted (current time subtracted)
-	 * if server_config.remaining = 1 */
+	 * and adjusted (current time subtracted) */
 	leasetime_t expires;
 	uint8_t hostname[20]; /* (size is a multiply of 4) */
 };
