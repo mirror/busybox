@@ -117,7 +117,7 @@ struct dhcpOfferedAddr* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
 }
 
 
-/* check is an IP is taken, if it is, add it to the lease table */
+/* Check if the IP is taken; if it is, add it to the lease table */
 static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 {
 	/* 16 zero bytes */
@@ -128,7 +128,8 @@ static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 	int r;
 
 	r = arpping(addr, safe_mac,
-			server_config.server_nip, server_config.arp,
+			server_config.server_nip,
+			server_config.server_mac,
 			server_config.interface);
 	if (r)
 		return r;

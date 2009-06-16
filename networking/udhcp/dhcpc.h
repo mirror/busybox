@@ -6,7 +6,7 @@
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct client_config_t {
-	uint8_t arp[6];                 /* Our arp address */
+	uint8_t client_mac[6];          /* Our arp address */
 	/* TODO: combine flag fields into single "unsigned opt" */
 	/* (can be set directly to the result of getopt32) */
 	char no_default_options;        /* Do not include default optins in request */

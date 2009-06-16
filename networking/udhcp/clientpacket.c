@@ -37,11 +37,11 @@ uint32_t FAST_FUNC random_xid(void)
 }
 
 
-/* initialize a packet with the proper defaults */
+/* Initialize the packet with the proper defaults */
 static void init_packet(struct dhcpMessage *packet, char type)
 {
 	udhcp_init_header(packet, type);
-	memcpy(packet->chaddr, client_config.arp, 6);
+	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
 		add_option_string(packet->options, client_config.clientid);
 	if (client_config.hostname)
@@ -122,6 +122,7 @@ int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 }
 #endif
 
+
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 {
@@ -143,7 +144,7 @@ int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 }
 
 
-/* Broadcasts a DHCP request message */
+/* Broadcast a DHCP request message */
 /* RFC 2131 3.1 paragraph 3:
  * "The client _broadcasts_ a DHCPREQUEST message..."
  */

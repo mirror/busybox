@@ -93,8 +93,11 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	leases = xzalloc(server_config.max_leases * sizeof(*leases));
 	read_leases(server_config.lease_file);
 
-	if (udhcp_read_interface(server_config.interface, &server_config.ifindex,
-			   &server_config.server_nip, server_config.arp)) {
+	if (udhcp_read_interface(server_config.interface,
+			&server_config.ifindex,
+			&server_config.server_nip,
+			server_config.server_mac)
+	) {
 		retval = 1;
 		goto ret;
 	}

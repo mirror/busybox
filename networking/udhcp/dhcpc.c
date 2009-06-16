@@ -273,9 +273,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 
-	if (udhcp_read_interface(client_config.interface, &client_config.ifindex,
-			   NULL, client_config.arp))
+	if (udhcp_read_interface(client_config.interface,
+			&client_config.ifindex,
+			NULL,
+			client_config.client_mac)
+	) {
 		return 1;
+	}
+
 #if !BB_MMU
 	/* on NOMMU reexec (i.e., background) early */
 	if (!(opt & OPT_f)) {
@@ -303,7 +308,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	if (!client_config.clientid && !(opt & OPT_C)) {
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
 		client_config.clientid[OPT_DATA] = 1;
-		memcpy(client_config.clientid + OPT_DATA+1, client_config.arp, 6);
+		memcpy(client_config.clientid + OPT_DATA+1, client_config.client_mac, 6);
 	}
 
 	if (!client_config.vendorclass)
@@ -490,7 +495,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			/* Ignore packets that aren't for us */
-			if (memcmp(packet.chaddr, client_config.arp, 6)) {
+			if (memcmp(packet.chaddr, client_config.client_mac, 6)) {
 				DEBUG("Packet does not have our chaddr - ignoring");
 				continue;
 			}
@@ -555,7 +560,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						if (!arpping(packet.yiaddr,
 								NULL,
 								(uint32_t) 0,
-								client_config.arp,
+								client_config.client_mac,
 								client_config.interface)
 						) {
 							bb_info_msg("offered address is in use "

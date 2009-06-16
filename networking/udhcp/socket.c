@@ -37,7 +37,7 @@
 #include "common.h"
 
 
-int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *arp)
+int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *mac)
 {
 	int fd;
 	struct ifreq ifr;
@@ -69,14 +69,14 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 		*ifindex = ifr.ifr_ifindex;
 	}
 
-	if (arp) {
+	if (mac) {
 		if (ioctl_or_warn(fd, SIOCGIFHWADDR, &ifr) != 0) {
 			close(fd);
 			return -1;
 		}
-		memcpy(arp, ifr.ifr_hwaddr.sa_data, 6);
+		memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
 		DEBUG("adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
-			arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
 
 	close(fd);

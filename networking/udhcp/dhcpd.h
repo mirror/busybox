@@ -28,17 +28,23 @@ struct static_lease {
 };
 
 struct server_config_t {
-	uint32_t server_nip;            /* Our IP, in network order */
+	char *interface;                /* interface to use */
+//TODO: ifindex, server_nip, server_mac
+// are obtained from interface name.
+// Instead of querying them *once*, create update_server_network_data_cache()
+// and call it before any usage of these fields.
+// update_server_network_data_cache() must re-query data
+// if more than N seconds have passed after last use.
+	int ifindex;
+	uint32_t server_nip;
 #if ENABLE_FEATURE_UDHCP_PORT
 	uint16_t port;
 #endif
+	uint8_t server_mac[6];          /* our MAC address (used only for ARP probing) */
+	struct option_set *options;     /* list of DHCP options loaded from the config file */
 	/* start,end are in host order: we need to compare start <= ip <= end */
-	uint32_t start_ip;              /* Start address of leases, in host order */
-	uint32_t end_ip;                /* End of leases, in host order */
-	struct option_set *options;     /* List of DHCP options loaded from the config file */
-	char *interface;                /* The name of the interface to use */
-	int ifindex;                    /* Index number of the interface to use */
-	uint8_t arp[6];                 /* Our arp address */
+	uint32_t start_ip;              /* start address of leases, in host order */
+	uint32_t end_ip;                /* end of leases, in host order */
 	uint32_t lease;	                /* lease time in seconds (host order) */
 	uint32_t max_leases;            /* maximum number of leases (including reserved address) */
 	uint32_t auto_time;             /* how long should udhcpd wait before writing a config file.
@@ -48,10 +54,10 @@ struct server_config_t {
 	uint32_t conflict_time;         /* how long an arp conflict offender is leased for */
 	uint32_t offer_time;            /* how long an offered address is reserved */
 	uint32_t min_lease;             /* minimum lease time a client can request */
-	uint32_t siaddr_nip;                /* next server bootp option */
+	uint32_t siaddr_nip;            /* "next server" bootp option */
 	char *lease_file;
 	char *pidfile;
-	char *notify_file;              /* What to run whenever leases are written */
+	char *notify_file;              /* what to run whenever leases are written */
 	char *sname;                    /* bootp server name */
 	char *boot_file;                /* bootp boot file option */
 	struct static_lease *static_leases; /* List of ip/mac pairs to assign static leases */
