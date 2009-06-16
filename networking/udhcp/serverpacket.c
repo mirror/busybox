@@ -26,14 +26,14 @@
 #include "options.h"
 
 
-/* send a packet to giaddr using the kernel ip stack */
+/* send a packet to gateway_nip using the kernel ip stack */
 static int send_packet_to_relay(struct dhcpMessage *payload)
 {
 	DEBUG("Forwarding packet to relay");
 
 	return udhcp_send_kernel_packet(payload,
-			server_config.server, SERVER_PORT,
-			payload->giaddr, SERVER_PORT);
+			server_config.server_nip, SERVER_PORT,
+			payload->gateway_nip, SERVER_PORT);
 }
 
 
@@ -69,7 +69,7 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 	}
 
 	return udhcp_send_raw_packet(payload,
-		/*src*/ server_config.server, SERVER_PORT,
+		/*src*/ server_config.server_nip, SERVER_PORT,
 		/*dst*/ ciaddr, CLIENT_PORT, chaddr,
 		server_config.ifindex);
 }
@@ -78,7 +78,7 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 /* send a dhcp packet, if force broadcast is set, the packet will be broadcast to the client */
 static int send_packet(struct dhcpMessage *payload, int force_broadcast)
 {
-	if (payload->giaddr)
+	if (payload->gateway_nip)
 		return send_packet_to_relay(payload);
 	return send_packet_to_client(payload, force_broadcast);
 }
@@ -90,9 +90,9 @@ static void init_packet(struct dhcpMessage *packet, struct dhcpMessage *oldpacke
 	packet->xid = oldpacket->xid;
 	memcpy(packet->chaddr, oldpacket->chaddr, 16);
 	packet->flags = oldpacket->flags;
-	packet->giaddr = oldpacket->giaddr;
+	packet->gateway_nip = oldpacket->gateway_nip;
 	packet->ciaddr = oldpacket->ciaddr;
-	add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server);
+	add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server_nip);
 }
 
 

@@ -128,7 +128,7 @@ static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 	int r;
 
 	r = arpping(addr, safe_mac,
-			server_config.server, server_config.arp,
+			server_config.server_nip, server_config.arp,
 			server_config.interface);
 	if (r)
 		return r;

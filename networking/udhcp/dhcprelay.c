@@ -247,7 +247,7 @@ int dhcprelay_main(int argc, char **argv)
 	char **client_ifaces;
 	int *fds;
 	int num_sockets, max_socket;
-	uint32_t our_ip;
+	uint32_t our_nip;
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
@@ -272,7 +272,7 @@ int dhcprelay_main(int argc, char **argv)
 	max_socket = init_sockets(client_ifaces, num_sockets, argv[2], fds);
 
 	/* Get our IP on server_iface */
-	if (udhcp_read_interface(argv[2], NULL, &our_ip, NULL))
+	if (udhcp_read_interface(argv[2], NULL, &our_nip, NULL))
 		return 1;
 
 	/* Main loop */
@@ -309,10 +309,10 @@ int dhcprelay_main(int argc, char **argv)
 
 				/* Get our IP on corresponding client_iface */
 //why? what if server can't route such IP?
-				if (udhcp_read_interface(client_ifaces[i-1], NULL, &dhcp_msg.giaddr, NULL)) {
+				if (udhcp_read_interface(client_ifaces[i-1], NULL, &dhcp_msg.gateway_nip, NULL)) {
 					/* Fall back to our server_iface's IP */
 //this makes more sense!
-					dhcp_msg.giaddr = our_ip;
+					dhcp_msg.gateway_nip = our_nip;
 				}
 //maybe set dhcp_msg.flags |= BROADCAST_FLAG too?
 				pass_to_server(&dhcp_msg, packlen, i, fds, &client_addr, &server_addr);

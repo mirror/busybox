@@ -37,7 +37,7 @@
 #include "common.h"
 
 
-int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
+int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *arp)
 {
 	int fd;
 	struct ifreq ifr;
@@ -48,7 +48,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 
 	ifr.ifr_addr.sa_family = AF_INET;
 	strncpy_IFNAMSIZ(ifr.ifr_name, interface);
-	if (addr) {
+	if (nip) {
 		if (ioctl_or_perror(fd, SIOCGIFADDR, &ifr,
 			"is interface %s up and configured?", interface)
 		) {
@@ -56,7 +56,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 			return -1;
 		}
 		our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
-		*addr = our_ip->sin_addr.s_addr;
+		*nip = our_ip->sin_addr.s_addr;
 		DEBUG("ip of %s = %s", interface, inet_ntoa(our_ip->sin_addr));
 	}
 

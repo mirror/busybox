@@ -36,7 +36,7 @@ struct dhcpMessage {
 	uint32_t yiaddr; /* 'your' (client) IP address */
 	uint32_t siaddr; /* IP address of next server to use in bootstrap,
 	                  * returned in DHCPOFFER, DHCPACK by server */
-	uint32_t giaddr; /* relay agent IP address */
+	uint32_t gateway_nip; /* relay agent IP address */
 	uint8_t chaddr[16];/* link-layer client hardware address (MAC) */
 	uint8_t sname[64]; /* server host name (ASCIZ) */
 	uint8_t file[128]; /* boot file name (ASCIZ) */
@@ -88,7 +88,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name) FAST_FUNC;
 void udhcp_sp_setup(void) FAST_FUNC;
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd) FAST_FUNC;
 int udhcp_sp_read(const fd_set *rfds) FAST_FUNC;
-int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *addr, uint8_t *arp) FAST_FUNC;
+int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *arp) FAST_FUNC;
 int udhcp_raw_socket(int ifindex) FAST_FUNC;
 int udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf) FAST_FUNC;
 /* Returns 1 if no reply received */

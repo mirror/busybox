@@ -94,7 +94,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	read_leases(server_config.lease_file);
 
 	if (udhcp_read_interface(server_config.interface, &server_config.ifindex,
-			   &server_config.server, server_config.arp)) {
+			   &server_config.server_nip, server_config.arp)) {
 		retval = 1;
 		goto ret;
 	}
@@ -202,7 +202,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				if (server_id) {
 					/* SELECTING State */
 					DEBUG("server_id = %08x", ntohl(server_id_aligned));
-					if (server_id_aligned == server_config.server
+					if (server_id_aligned == server_config.server_nip
 					 && requested
 					 && requested_aligned == lease->lease_nip
 					) {

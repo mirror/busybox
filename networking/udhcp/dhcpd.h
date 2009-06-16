@@ -28,7 +28,7 @@ struct static_lease {
 };
 
 struct server_config_t {
-	uint32_t server;                /* Our IP, in network order */
+	uint32_t server_nip;            /* Our IP, in network order */
 #if ENABLE_FEATURE_UDHCP_PORT
 	uint16_t port;
 #endif
