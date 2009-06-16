@@ -159,8 +159,8 @@ uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 		if ((addr & 0xff) == 0xff)
 			continue;
 		net_addr = htonl(addr);
-		/* addr has a static lease? */
-		if (reservedIp(server_config.static_leases, net_addr))
+		/* is this a static lease addr? */
+		if (is_nip_reserved(server_config.static_leases, net_addr))
 			continue;
 
 		lease = find_lease_by_yiaddr(net_addr);

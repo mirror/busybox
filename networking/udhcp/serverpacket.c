@@ -120,7 +120,7 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 
 	init_packet(&packet, oldpacket, DHCPOFFER);
 
-	static_lease_ip = getIpByMac(server_config.static_leases, oldpacket->chaddr);
+	static_lease_ip = get_static_nip_by_mac(server_config.static_leases, oldpacket->chaddr);
 
 	/* ADDME: if static, short circuit */
 	if (!static_lease_ip) {

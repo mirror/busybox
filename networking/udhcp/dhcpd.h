@@ -23,7 +23,7 @@ struct option_set {
 
 struct static_lease {
 	struct static_lease *next;
-	uint32_t ip;
+	uint32_t nip;
 	uint8_t mac[6];
 };
 
@@ -97,15 +97,15 @@ uint32_t find_free_or_expired_address(const uint8_t *chaddr) FAST_FUNC;
 
 /*** static_leases.h ***/
 
-/* Config file will pass static lease info to this function which will add it
- * to a data structure that can be searched later */
-void addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t ip) FAST_FUNC;
-/* Check to see if a mac has an associated static lease */
-uint32_t getIpByMac(struct static_lease *lease_struct, void *arg) FAST_FUNC;
-/* Check to see if an ip is reserved as a static ip */
-int reservedIp(struct static_lease *lease_struct, uint32_t ip) FAST_FUNC;
+/* Config file parser will pass static lease info to this function
+ * which will add it to a data structure that can be searched later */
+void add_static_lease(struct static_lease **st_lease_pp, uint8_t *mac, uint32_t nip) FAST_FUNC;
+/* Find static lease IP by mac */
+uint32_t get_static_nip_by_mac(struct static_lease *st_lease, void *arg) FAST_FUNC;
+/* Check to see if an IP is reserved as a static IP */
+int is_nip_reserved(struct static_lease *st_lease, uint32_t nip) FAST_FUNC;
 /* Print out static leases just to check what's going on (debug code) */
-void printStaticLeases(struct static_lease **lease_struct) FAST_FUNC;
+void print_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 
 
 /*** serverpacket.h ***/

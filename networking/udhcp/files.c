@@ -268,9 +268,9 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 	ip_string = strtok_r(NULL, " \t", &line);
 	read_nip(ip_string, &ip);
 
-	addStaticLease(arg, (uint8_t*) &mac_bytes, ip);
+	add_static_lease(arg, (uint8_t*) &mac_bytes, ip);
 
-	if (ENABLE_UDHCP_DEBUG) printStaticLeases(arg);
+	if (ENABLE_UDHCP_DEBUG) print_static_leases(arg);
 
 	return 1;
 }

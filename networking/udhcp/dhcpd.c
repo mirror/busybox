@@ -166,7 +166,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Look for a static lease */
-		static_lease_ip = getIpByMac(server_config.static_leases, &packet.chaddr);
+		static_lease_ip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
 		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 
