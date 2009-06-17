@@ -5,16 +5,13 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-/************************************/
-/* Defaults _you_ may want to tweak */
-/************************************/
-
-/* the period of time the client is allowed to use that address */
-#define LEASE_TIME              (60*60*24*10) /* 10 days of seconds */
-#define LEASES_FILE		CONFIG_DHCPD_LEASES_FILE
-
-/* where to find the DHCP server configuration file */
+/* Defaults you may want to tweak */
+/* Default max_lease_sec */
+#define LEASE_TIME      (60*60*24 * 10)
+#define LEASES_FILE     CONFIG_DHCPD_LEASES_FILE
+/* Where to find the DHCP server configuration file */
 #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"
+
 
 struct option_set {
 	uint8_t *data;
@@ -119,7 +116,11 @@ uint32_t get_static_nip_by_mac(struct static_lease *st_lease, void *arg) FAST_FU
 /* Check to see if an IP is reserved as a static IP */
 int is_nip_reserved(struct static_lease *st_lease, uint32_t nip) FAST_FUNC;
 /* Print out static leases just to check what's going on (debug code) */
-void print_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
+void log_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
+#else
+# define log_static_leases(st_lease_pp) ((void)0)
+#endif
 
 
 /*** serverpacket.h ***/

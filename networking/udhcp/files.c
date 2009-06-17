@@ -270,7 +270,7 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 
 	add_static_lease(arg, (uint8_t*) &mac_bytes, ip);
 
-	if (ENABLE_UDHCP_DEBUG) print_static_leases(arg);
+	log_static_leases(arg);
 
 	return 1;
 }

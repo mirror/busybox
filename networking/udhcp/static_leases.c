@@ -57,19 +57,23 @@ int FAST_FUNC is_nip_reserved(struct static_lease *st_lease, uint32_t nip)
 	return 0;
 }
 
-#if ENABLE_UDHCP_DEBUG
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
 /* Print out static leases just to check what's going on */
 /* Takes the address of the pointer to the static_leases linked list */
-void FAST_FUNC print_static_leases(struct static_lease **st_lease_pp)
+void FAST_FUNC log_static_leases(struct static_lease **st_lease_pp)
 {
-	struct static_lease *cur = *st_lease_pp;
+	struct static_lease *cur;
 
+	if (dhcp_verbose < 2)
+		return;
+
+	cur = *st_lease_pp;
 	while (cur) {
-		printf("PrintStaticLeases: lease mac: %02x:%02x:%02x:%02x:%02x:%02x\n",
+		bb_info_msg("static lease: mac:%02x:%02x:%02x:%02x:%02x:%02x nip:%x",
 			cur->mac[0], cur->mac[1], cur->mac[2],
-			cur->mac[3], cur->mac[4], cur->mac[5]
+			cur->mac[3], cur->mac[4], cur->mac[5],
+			cur->nip
 		);
-		printf("PrintStaticLeases: lease ip: %x\n", cur->nip);
 		cur = cur->next;
 	}
 }
