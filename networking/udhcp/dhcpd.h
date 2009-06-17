@@ -79,30 +79,33 @@ struct server_config_t {
 typedef uint32_t leasetime_t;
 typedef int32_t signed_leasetime_t;
 
-//TODO: (1) rename to dyn_lease (that's what it is. we also have static_lease).
-//(2) lease_mac16 may be shortened to lease_mac[6], since e.g. ARP probing uses
-//only 6 first bytes anyway. We can check received dhcp packets
-//that their "chaddr"s have only 6 first bytes != 0, and complain otherwise.
-struct dhcpOfferedAddr {
-	uint8_t lease_mac16[16];
+struct dyn_lease {
 	/* "nip": IP in network order */
-	uint32_t lease_nip;
 	/* Unix time when lease expires. Kept in memory in host order.
 	 * When written to file, converted to network order
 	 * and adjusted (current time subtracted) */
 	leasetime_t expires;
-	uint8_t hostname[20]; /* (size is a multiply of 4) */
+	uint32_t lease_nip;
+	/* We use lease_mac[6], since e.g. ARP probing uses
+	 * only 6 first bytes anyway. We check received dhcp packets
+	 * that their hlen == 6 and thus chaddr has only 6 significant bytes
+	 * (dhcp packet has chaddr[16])
+	 */
+	uint8_t lease_mac[6];
+	uint8_t hostname[20];
+	uint8_t pad[2];
+	/* total size is a multiply of 4 */
 };
 
-extern struct dhcpOfferedAddr *leases;
+extern struct dyn_lease *leases;
 
-struct dhcpOfferedAddr *add_lease(
+struct dyn_lease *add_lease(
 		const uint8_t *chaddr, uint32_t yiaddr,
 		leasetime_t leasetime, uint8_t *hostname
 		) FAST_FUNC;
-int lease_expired(struct dhcpOfferedAddr *lease) FAST_FUNC;
-struct dhcpOfferedAddr *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
-struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;
+int lease_expired(struct dyn_lease *lease) FAST_FUNC;
+struct dyn_lease *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
+struct dyn_lease *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;
 uint32_t find_free_or_expired_address(const uint8_t *chaddr) FAST_FUNC;
 
 
@@ -121,10 +124,10 @@ void print_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 
 /*** serverpacket.h ***/
 
-int send_offer(struct dhcpMessage *oldpacket) FAST_FUNC;
-int send_NAK(struct dhcpMessage *oldpacket) FAST_FUNC;
-int send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr) FAST_FUNC;
-int send_inform(struct dhcpMessage *oldpacket) FAST_FUNC;
+int send_offer(struct dhcp_packet *oldpacket) FAST_FUNC;
+int send_NAK(struct dhcp_packet *oldpacket) FAST_FUNC;
+int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr) FAST_FUNC;
+int send_inform(struct dhcp_packet *oldpacket) FAST_FUNC;
 
 
 /*** files.h ***/

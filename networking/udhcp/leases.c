@@ -11,9 +11,9 @@
 
 
 /* Find the oldest expired lease, NULL if there are no expired leases */
-static struct dhcpOfferedAddr *oldest_expired_lease(void)
+static struct dyn_lease *oldest_expired_lease(void)
 {
-	struct dhcpOfferedAddr *oldest_lease = NULL;
+	struct dyn_lease *oldest_lease = NULL;
 	leasetime_t oldest_time = time(NULL);
 	unsigned i;
 
@@ -38,7 +38,7 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 		continue;
 
 	for (i = 0; i < server_config.max_leases; i++) {
-		if ((j != 16 && memcmp(leases[i].lease_mac16, chaddr, 16) == 0)
+		if ((j != 16 && memcmp(leases[i].lease_mac, chaddr, 6) == 0)
 		 || (yiaddr && leases[i].lease_nip == yiaddr)
 		) {
 			memset(&leases[i], 0, sizeof(leases[i]));
@@ -48,11 +48,11 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 
 
 /* Add a lease into the table, clearing out any old ones */
-struct dhcpOfferedAddr* FAST_FUNC add_lease(
+struct dyn_lease* FAST_FUNC add_lease(
 		const uint8_t *chaddr, uint32_t yiaddr,
 		leasetime_t leasetime, uint8_t *hostname)
 {
-	struct dhcpOfferedAddr *oldest;
+	struct dyn_lease *oldest;
 	uint8_t hostname_length;
 
 	/* clean out any old ones */
@@ -75,7 +75,7 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(
 				hostname++;
 			}
 		}
-		memcpy(oldest->lease_mac16, chaddr, 16);
+		memcpy(oldest->lease_mac, chaddr, 6);
 		oldest->lease_nip = yiaddr;
 		oldest->expires = time(NULL) + leasetime;
 	}
@@ -85,19 +85,19 @@ struct dhcpOfferedAddr* FAST_FUNC add_lease(
 
 
 /* True if a lease has expired */
-int FAST_FUNC lease_expired(struct dhcpOfferedAddr *lease)
+int FAST_FUNC lease_expired(struct dyn_lease *lease)
 {
 	return (lease->expires < (leasetime_t) time(NULL));
 }
 
 
 /* Find the first lease that matches chaddr, NULL if no match */
-struct dhcpOfferedAddr* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
+struct dyn_lease* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
 {
 	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (!memcmp(leases[i].lease_mac16, chaddr, 16))
+		if (memcmp(leases[i].lease_mac, chaddr, 6) == 0)
 			return &(leases[i]);
 
 	return NULL;
@@ -105,7 +105,7 @@ struct dhcpOfferedAddr* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
 
 
 /* Find the first lease that matches yiaddr, NULL is no match */
-struct dhcpOfferedAddr* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
+struct dyn_lease* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
 {
 	unsigned i;
 
@@ -146,12 +146,12 @@ static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 {
 	uint32_t addr;
-	struct dhcpOfferedAddr *oldest_lease = NULL;
+	struct dyn_lease *oldest_lease = NULL;
 
 	addr = server_config.start_ip; /* addr is in host order here */
 	for (; addr <= server_config.end_ip; addr++) {
 		uint32_t net_addr;
-		struct dhcpOfferedAddr *lease;
+		struct dyn_lease *lease;
 
 		/* ie, 192.168.55.0 */
 		if ((addr & 0xff) == 0)

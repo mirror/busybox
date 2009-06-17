@@ -25,7 +25,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	int64_t written_at, curr, expires_abs;
 	const char *file = LEASES_FILE;
-	struct dhcpOfferedAddr lease;
+	struct dyn_lease lease;
 	struct in_addr addr;
 
 	enum {
@@ -61,7 +61,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
 		const char *fmt = ":%02x" + 1;
 		for (i = 0; i < 6; i++) {
-			printf(fmt, lease.lease_mac16[i]);
+			printf(fmt, lease.lease_mac[i]);
 			fmt = ":%02x";
 		}
 		addr.s_addr = lease.lease_nip;

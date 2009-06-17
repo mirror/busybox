@@ -97,7 +97,7 @@ static void xid_del(uint32_t xid)
  * p - pointer to the dhcp packet
  * returns the message type on success, -1 otherwise
  */
-static int get_dhcp_packet_type(struct dhcpMessage *p)
+static int get_dhcp_packet_type(struct dhcp_packet *p)
 {
 	uint8_t *op;
 
@@ -175,7 +175,7 @@ static int init_sockets(char **client_ifaces, int num_clients,
  * p - packet to send
  * client - number of the client
  */
-static void pass_to_server(struct dhcpMessage *p, int packet_len, int client, int *fds,
+static void pass_to_server(struct dhcp_packet *p, int packet_len, int client, int *fds,
 			struct sockaddr_in *client_addr, struct sockaddr_in *server_addr)
 {
 	int res, type;
@@ -206,7 +206,7 @@ static void pass_to_server(struct dhcpMessage *p, int packet_len, int client, in
  * pass_to_client() - forwards dhcp packets from server to client
  * p - packet to send
  */
-static void pass_to_client(struct dhcpMessage *p, int packet_len, int *fds)
+static void pass_to_client(struct dhcp_packet *p, int packet_len, int *fds)
 {
 	int res, type;
 	struct xid_item *item;
@@ -240,7 +240,7 @@ static void pass_to_client(struct dhcpMessage *p, int packet_len, int *fds)
 int dhcprelay_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dhcprelay_main(int argc, char **argv)
 {
-	struct dhcpMessage dhcp_msg;
+	struct dhcp_packet dhcp_msg;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
 	fd_set rfds;

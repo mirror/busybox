@@ -149,7 +149,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	int max_fd;
 	int retval;
 	struct timeval tv;
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	fd_set rfds;
 
 #if ENABLE_GETOPT_LONG
@@ -498,7 +498,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			/* Ignore packets that aren't for us */
-			if (memcmp(packet.chaddr, client_config.client_mac, 6)) {
+			if (packet.hlen != 6
+			 || memcmp(packet.chaddr, client_config.client_mac, 6)
+			) {
 //FIXME: need to also check that last 10 bytes are zero
 				log1("chaddr does not match, ignoring packet"); // log2?
 				continue;

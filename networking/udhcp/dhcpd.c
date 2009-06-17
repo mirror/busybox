@@ -18,7 +18,7 @@
 
 
 /* globals */
-struct dhcpOfferedAddr *leases;
+struct dyn_lease *leases;
 /* struct server_config_t server_config is in bb_common_bufsiz1 */
 
 
@@ -27,7 +27,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	fd_set rfds;
 	int server_socket = -1, retval, max_sock;
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	uint8_t *state, *server_id, *requested;
 	uint32_t server_id_aligned = server_id_aligned; /* for compiler */
 	uint32_t requested_aligned = requested_aligned;
@@ -36,7 +36,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned num_ips;
 	unsigned opt;
 	struct option_set *option;
-	struct dhcpOfferedAddr *lease, static_lease;
+	struct dyn_lease *lease, static_lease;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 
 #if ENABLE_FEATURE_UDHCP_PORT
@@ -170,6 +170,11 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 
+		if (packet.hlen != 6) {
+			bb_error_msg("MAC length != 6, ignoring packet");
+			continue;
+		}
+
 		state = get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (state == NULL) {
 			bb_error_msg("no message type option, ignoring packet");
@@ -181,7 +186,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 
-			memcpy(&static_lease.lease_mac16, &packet.chaddr, 16);
+			memcpy(&static_lease.lease_mac, &packet.chaddr, 6);
 			static_lease.lease_nip = static_lease_ip;
 			static_lease.expires = 0;
 
@@ -212,7 +217,6 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			if (lease) {
 				if (server_id) {
 					/* SELECTING State */
-					log1("server_id = %08x", ntohl(server_id_aligned));
 					if (server_id_aligned == server_config.server_nip
 					 && requested
 					 && requested_aligned == lease->lease_nip
@@ -242,7 +246,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				if (lease) {
 					if (lease_expired(lease)) {
 						/* probably best if we drop this lease */
-						memset(lease->lease_mac16, 0, 16);
+						memset(lease->lease_mac, 0, sizeof(lease->lease_mac));
 					} else {
 						/* make some contention for this address */
 						send_NAK(&packet);
@@ -264,7 +268,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case DHCPDECLINE:
 			log1("Received DECLINE");
 			if (lease) {
-				memset(lease->lease_mac16, 0, 16);
+				memset(lease->lease_mac, 0, sizeof(lease->lease_mac));
 				lease->expires = time(NULL) + server_config.decline_time;
 			}
 			break;

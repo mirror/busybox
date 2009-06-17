@@ -38,7 +38,7 @@ uint32_t FAST_FUNC random_xid(void)
 
 
 /* Initialize the packet with the proper defaults */
-static void init_packet(struct dhcpMessage *packet, char type)
+static void init_packet(struct dhcp_packet *packet, char type)
 {
 	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.client_mac, 6);
@@ -56,7 +56,7 @@ static void init_packet(struct dhcpMessage *packet, char type)
 /* Add a parameter request list for stubborn DHCP servers. Pull the data
  * from the struct in options.c. Don't do bounds checking here because it
  * goes towards the head of the packet. */
-static void add_param_req_option(struct dhcpMessage *packet)
+static void add_param_req_option(struct dhcp_packet *packet)
 {
 	uint8_t c;
 	int end = end_option(packet->options);
@@ -96,7 +96,7 @@ static void add_param_req_option(struct dhcpMessage *packet)
  * client reverts to using the IP broadcast address.
  */
 
-static int raw_bcast_from_client_config_ifindex(struct dhcpMessage *packet)
+static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
 {
 	return udhcp_send_raw_packet(packet,
 		/*src*/ INADDR_ANY, CLIENT_PORT,
@@ -109,7 +109,7 @@ static int raw_bcast_from_client_config_ifindex(struct dhcpMessage *packet)
 /* Broadcast a DHCP decline message */
 int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 
 	init_packet(&packet, DHCPDECLINE);
 	packet.xid = xid;
@@ -126,7 +126,7 @@ int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 
 	init_packet(&packet, DHCPDISCOVER);
 	packet.xid = xid;
@@ -150,7 +150,7 @@ int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
  */
 int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	struct in_addr addr;
 
 	init_packet(&packet, DHCPREQUEST);
@@ -169,7 +169,7 @@ int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 /* Unicasts or broadcasts a DHCP renew message */
 int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
@@ -189,7 +189,7 @@ int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 /* Unicasts a DHCP release message */
 int FAST_FUNC send_release(uint32_t server, uint32_t ciaddr)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 
 	init_packet(&packet, DHCPRELEASE);
 	packet.xid = random_xid();
@@ -203,10 +203,10 @@ int FAST_FUNC send_release(uint32_t server, uint32_t ciaddr)
 
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
-int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *dhcp_pkt, int fd)
+int FAST_FUNC udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 {
 	int bytes;
-	struct udp_dhcp_packet packet;
+	struct ip_udp_dhcp_packet packet;
 	uint16_t check;
 
 	memset(&packet, 0, sizeof(packet));

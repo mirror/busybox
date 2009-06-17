@@ -19,9 +19,9 @@
 #include "dhcpd.h"
 #include "options.h"
 
-void FAST_FUNC udhcp_init_header(struct dhcpMessage *packet, char type)
+void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 {
-	memset(packet, 0, sizeof(struct dhcpMessage));
+	memset(packet, 0, sizeof(struct dhcp_packet));
 	packet->op = BOOTREQUEST; /* if client to a server */
 	switch (type) {
 	case DHCPOFFER:
@@ -37,7 +37,7 @@ void FAST_FUNC udhcp_init_header(struct dhcpMessage *packet, char type)
 }
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-void FAST_FUNC udhcp_dump_packet(struct dhcpMessage *packet)
+void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 {
 	char buf[sizeof(packet->chaddr)*2 + 1];
 
@@ -84,7 +84,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcpMessage *packet)
 #endif
 
 /* Read a packet from socket fd, return -1 on read error, -2 on packet error */
-int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
+int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 {
 	int bytes;
 	unsigned char *vendor;
@@ -165,20 +165,20 @@ uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 }
 
 /* Construct a ip/udp header for a packet, send packet */
-int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *dhcp_pkt,
+int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
 		int ifindex)
 {
 	struct sockaddr_ll dest;
-	struct udp_dhcp_packet packet;
+	struct ip_udp_dhcp_packet packet;
 	int fd;
 	int result = -1;
 	const char *msg;
 
 	enum {
-		IP_UPD_DHCP_SIZE = sizeof(struct udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
-		UPD_DHCP_SIZE    = IP_UPD_DHCP_SIZE - offsetof(struct udp_dhcp_packet, udp),
+		IP_UPD_DHCP_SIZE = sizeof(struct ip_udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+		UPD_DHCP_SIZE    = IP_UPD_DHCP_SIZE - offsetof(struct ip_udp_dhcp_packet, udp),
 	};
 
 	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
@@ -236,7 +236,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *dhcp_pkt,
 }
 
 /* Let the kernel do all the work for packet generation */
-int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *dhcp_pkt,
+int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {
@@ -246,7 +246,7 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *dhcp_pkt,
 	const char *msg;
 
 	enum {
-		DHCP_SIZE = sizeof(struct dhcpMessage) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+		DHCP_SIZE = sizeof(struct dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
 	};
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);

@@ -23,8 +23,8 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 #define DHCP_OPTIONS_BUFSIZE  308
 
-//TODO: rename to dhcp_packet; rename ciaddr/yiaddr/chaddr
-struct dhcpMessage {
+//TODO: rename ciaddr/yiaddr/chaddr
+struct dhcp_packet {
 	uint8_t op;      /* 1 = BOOTREQUEST, 2 = BOOTREPLY */
 	uint8_t htype;   /* hardware address type. 1 = 10mb ethernet */
 	uint8_t hlen;    /* hardware address length */
@@ -45,39 +45,38 @@ struct dhcpMessage {
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
 
-//TODO: rename to ip_udp_dhcp_packet?
-struct udp_dhcp_packet {
+struct ip_udp_dhcp_packet {
 	struct iphdr ip;
 	struct udphdr udp;
-	struct dhcpMessage data;
+	struct dhcp_packet data;
 } PACKED;
 
 /* Let's see whether compiler understood us right */
-struct BUG_bad_sizeof_struct_udp_dhcp_packet {
-	char BUG_bad_sizeof_struct_udp_dhcp_packet
-		[(sizeof(struct udp_dhcp_packet) != 576 + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS) ? -1 : 1];
+struct BUG_bad_sizeof_struct_ip_udp_dhcp_packet {
+	char BUG_bad_sizeof_struct_ip_udp_dhcp_packet
+		[(sizeof(struct ip_udp_dhcp_packet) != 576 + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS) ? -1 : 1];
 };
 
 uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
 
-void udhcp_init_header(struct dhcpMessage *packet, char type) FAST_FUNC;
+void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
 
-/*int udhcp_recv_raw_packet(struct dhcpMessage *dhcp_pkt, int fd); - in dhcpc.h */
-int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd) FAST_FUNC;
+/*int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd); - in dhcpc.h */
+int udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd) FAST_FUNC;
 
-int udhcp_send_raw_packet(struct dhcpMessage *dhcp_pkt,
+int udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
 		int ifindex) FAST_FUNC;
 
-int udhcp_send_kernel_packet(struct dhcpMessage *dhcp_pkt,
+int udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port) FAST_FUNC;
 
 
 /**/
 
-void udhcp_run_script(struct dhcpMessage *packet, const char *name) FAST_FUNC;
+void udhcp_run_script(struct dhcp_packet *packet, const char *name) FAST_FUNC;
 
 // Still need to clean these up...
 
@@ -104,16 +103,22 @@ int arpping(uint32_t test_ip,
 extern int dhcp_verbose;
 # define log1(...) do { if (dhcp_verbose >= 1) bb_info_msg(__VA_ARGS__); } while (0)
 # if CONFIG_UDHCP_DEBUG >= 2
-void udhcp_dump_packet(struct dhcpMessage *packet) FAST_FUNC;
+void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 #  define log2(...) do { if (dhcp_verbose >= 2) bb_info_msg(__VA_ARGS__); } while (0)
 # else
 #  define udhcp_dump_packet(...) ((void)0)
 #  define log2(...) ((void)0)
 # endif
+# if CONFIG_UDHCP_DEBUG >= 3
+#  define log3(...) do { if (dhcp_verbose >= 3) bb_info_msg(__VA_ARGS__); } while (0)
+# else
+#  define log3(...) ((void)0)
+# endif
 #else
 # define udhcp_dump_packet(...) ((void)0)
 # define log1(...) ((void)0)
 # define log2(...) ((void)0)
+# define log3(...) ((void)0)
 #endif
 
 POP_SAVED_FUNCTION_VISIBILITY

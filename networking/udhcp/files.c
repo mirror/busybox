@@ -390,7 +390,7 @@ void FAST_FUNC write_leases(void)
 
 void FAST_FUNC read_leases(const char *file)
 {
-	struct dhcpOfferedAddr lease;
+	struct dyn_lease lease;
 	int64_t written_at, time_passed;
 	int fd;
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
@@ -420,7 +420,7 @@ void FAST_FUNC read_leases(const char *file)
 				continue;
 			/* NB: add_lease takes "relative time", IOW,
 			 * lease duration, not lease deadline. */
-			if (!(add_lease(lease.lease_mac16, lease.lease_nip, expires, lease.hostname))) {
+			if (!(add_lease(lease.lease_mac, lease.lease_nip, expires, lease.hostname))) {
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}

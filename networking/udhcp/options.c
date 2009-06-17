@@ -120,7 +120,7 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 
 
 /* get an option with bounds checking (warning, result is not aligned). */
-uint8_t* FAST_FUNC get_option(struct dhcpMessage *packet, int code)
+uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
 {
 	uint8_t *optionptr;
 	int len;
@@ -159,15 +159,21 @@ uint8_t* FAST_FUNC get_option(struct dhcpMessage *packet, int code)
 				rem = sizeof(packet->sname);
 				continue;
 			}
-			return NULL;
+			break;
 		}
 		len = 2 + optionptr[OPT_LEN];
 		rem -= len;
 		if (rem < 0)
 			continue; /* complain and return NULL */
 
-		if (optionptr[OPT_CODE] == code)
+		if (optionptr[OPT_CODE] == code) {
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
+			char buf[256 * 2 + 2];
+			*bin2hex(buf, (void*) (optionptr + OPT_DATA), optionptr[OPT_LEN]) = '\0';
+			log2("Option 0x%02x found: %s", code, buf);
+#endif
 			return optionptr + OPT_DATA;
+		}
 
 		if (optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
 			overload |= optionptr[OPT_DATA];
@@ -175,6 +181,9 @@ uint8_t* FAST_FUNC get_option(struct dhcpMessage *packet, int code)
 		}
 		optionptr += len;
 	}
+
+	/* log3 because udhcpc uses it a lot - very noisy */
+	log3("Option 0x%02x not found", code);
 	return NULL;
 }
 

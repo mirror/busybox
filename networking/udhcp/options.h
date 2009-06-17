@@ -100,7 +100,7 @@ extern const struct dhcp_option dhcp_options[];
 extern const char dhcp_option_strings[];
 extern const uint8_t dhcp_option_lengths[];
 
-uint8_t *get_option(struct dhcpMessage *packet, int code) FAST_FUNC;
+uint8_t *get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 int end_option(uint8_t *optionptr) FAST_FUNC;
 int add_option_string(uint8_t *optionptr, uint8_t *string) FAST_FUNC;
 int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FAST_FUNC;

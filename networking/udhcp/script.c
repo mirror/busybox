@@ -129,7 +129,7 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 
 
 /* put all the parameters into an environment */
-static char **fill_envp(struct dhcpMessage *packet)
+static char **fill_envp(struct dhcp_packet *packet)
 {
 	int num_options = 0;
 	int i;
@@ -210,7 +210,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 
 /* Call a script with a par file and env vars */
-void FAST_FUNC udhcp_run_script(struct dhcpMessage *packet, const char *name)
+void FAST_FUNC udhcp_run_script(struct dhcp_packet *packet, const char *name)
 {
 	char **envp, **curr;
 	char *argv[3];

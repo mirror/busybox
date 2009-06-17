@@ -27,7 +27,7 @@
 
 
 /* send a packet to gateway_nip using the kernel ip stack */
-static int send_packet_to_relay(struct dhcpMessage *dhcp_pkt)
+static int send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
 {
 	log1("Forwarding packet to relay");
 
@@ -38,7 +38,7 @@ static int send_packet_to_relay(struct dhcpMessage *dhcp_pkt)
 
 
 /* send a packet to a specific mac address and ip address by creating our own ip packet */
-static int send_packet_to_client(struct dhcpMessage *dhcp_pkt, int force_broadcast)
+static int send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	const uint8_t *chaddr;
 	uint32_t ciaddr;
@@ -76,7 +76,7 @@ static int send_packet_to_client(struct dhcpMessage *dhcp_pkt, int force_broadca
 
 
 /* send a dhcp packet, if force broadcast is set, the packet will be broadcast to the client */
-static int send_packet(struct dhcpMessage *dhcp_pkt, int force_broadcast)
+static int send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	if (dhcp_pkt->gateway_nip)
 		return send_packet_to_relay(dhcp_pkt);
@@ -84,11 +84,11 @@ static int send_packet(struct dhcpMessage *dhcp_pkt, int force_broadcast)
 }
 
 
-static void init_packet(struct dhcpMessage *packet, struct dhcpMessage *oldpacket, char type)
+static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacket, char type)
 {
 	udhcp_init_header(packet, type);
 	packet->xid = oldpacket->xid;
-	memcpy(packet->chaddr, oldpacket->chaddr, 16);
+	memcpy(packet->chaddr, oldpacket->chaddr, sizeof(oldpacket->chaddr));
 	packet->flags = oldpacket->flags;
 	packet->gateway_nip = oldpacket->gateway_nip;
 	packet->ciaddr = oldpacket->ciaddr;
@@ -97,7 +97,7 @@ static void init_packet(struct dhcpMessage *packet, struct dhcpMessage *oldpacke
 
 
 /* add in the bootp options */
-static void add_bootp_options(struct dhcpMessage *packet)
+static void add_bootp_options(struct dhcp_packet *packet)
 {
 	packet->siaddr_nip = server_config.siaddr_nip;
 	if (server_config.sname)
@@ -108,9 +108,9 @@ static void add_bootp_options(struct dhcpMessage *packet)
 
 
 /* send a DHCP OFFER to a DHCP DISCOVER */
-int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_offer(struct dhcp_packet *oldpacket)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	uint32_t req_align;
 	uint32_t lease_time_aligned = server_config.lease;
 	uint32_t static_lease_ip;
@@ -124,7 +124,7 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 
 	/* ADDME: if static, short circuit */
 	if (!static_lease_ip) {
-		struct dhcpOfferedAddr *lease;
+		struct dyn_lease *lease;
 
 		lease = find_lease_by_chaddr(oldpacket->chaddr);
 		/* The client is in our lease/offered table */
@@ -195,9 +195,9 @@ int FAST_FUNC send_offer(struct dhcpMessage *oldpacket)
 }
 
 
-int FAST_FUNC send_NAK(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_NAK(struct dhcp_packet *oldpacket)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 
 	init_packet(&packet, oldpacket, DHCPNAK);
 
@@ -206,9 +206,9 @@ int FAST_FUNC send_NAK(struct dhcpMessage *oldpacket)
 }
 
 
-int FAST_FUNC send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
+int FAST_FUNC send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	struct option_set *curr;
 	uint8_t *lease_time;
 	uint32_t lease_time_aligned = server_config.lease;
@@ -256,9 +256,9 @@ int FAST_FUNC send_ACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 }
 
 
-int FAST_FUNC send_inform(struct dhcpMessage *oldpacket)
+int FAST_FUNC send_inform(struct dhcp_packet *oldpacket)
 {
-	struct dhcpMessage packet;
+	struct dhcp_packet packet;
 	struct option_set *curr;
 
 	init_packet(&packet, oldpacket, DHCPACK);
