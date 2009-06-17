@@ -220,6 +220,12 @@ static int read_config(const char *path)
 				config_file_action, NULL, NULL, 1);
 }
 
+static const char *humanly_readable_name(struct module_entry *m)
+{
+	/* probed_name may be NULL. modname always exists. */
+	return m->probed_name ? m->probed_name : m->modname;
+}
+
 /* Return: similar to bb_init_module:
  * 0 on success,
  * -errno on open/read error,
@@ -234,7 +240,8 @@ static int do_modprobe(struct module_entry *m)
 
 	if (!(m->flags & MODULE_FLAG_FOUND_IN_MODDEP)) {
 		if (!(option_mask32 & INSMOD_OPT_SILENT))
-			bb_error_msg("module %s not found in modules.dep", m->probed_name);
+			bb_error_msg("module %s not found in modules.dep",
+				humanly_readable_name(m));
 		return -ENOENT;
 	}
 	DBG("do_modprob'ing %s", m->modname);
@@ -259,7 +266,7 @@ static int do_modprobe(struct module_entry *m)
 				if (rc) {
 					if (first) {
 						bb_error_msg("failed to unload module %s: %s",
-							m2->probed_name ? m2->probed_name : m2->modname,
+							humanly_readable_name(m2),
 							moderror(rc));
 						break;
 					}
@@ -286,7 +293,7 @@ static int do_modprobe(struct module_entry *m)
 		free(options);
 		if (rc) {
 			bb_error_msg("failed to load module %s (%s): %s",
-			m2->probed_name ? m2->probed_name : m2->modname,
+				humanly_readable_name(m2),
 				fn,
 				moderror(rc)
 			);
