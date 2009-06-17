@@ -41,7 +41,7 @@ enum {
 
 /* Returns 1 if no reply received */
 
-int FAST_FUNC arpping(uint32_t test_ip,
+int FAST_FUNC arpping(uint32_t test_nip,
 		const uint8_t *safe_mac,
 		uint32_t from_ip,
 		uint8_t *from_mac,
@@ -78,7 +78,7 @@ int FAST_FUNC arpping(uint32_t test_ip,
 	memcpy(arp.sHaddr, from_mac, 6);                /* source hardware address */
 	memcpy(arp.sInaddr, &from_ip, sizeof(from_ip)); /* source IP address */
 	/* tHaddr is zero-filled */                     /* target hardware address */
-	memcpy(arp.tInaddr, &test_ip, sizeof(test_ip)); /* target IP address */
+	memcpy(arp.tInaddr, &test_nip, sizeof(test_nip));/* target IP address */
 
 	memset(&addr, 0, sizeof(addr));
 	safe_strncpy(addr.sa_data, interface, sizeof(addr.sa_data));
@@ -111,7 +111,7 @@ int FAST_FUNC arpping(uint32_t test_ip,
 			 && arp.operation == htons(ARPOP_REPLY)
 			 /* don't check it: Linux doesn't return proper tHaddr (fixed in 2.6.24?) */
 			 /* && memcmp(arp.tHaddr, from_mac, 6) == 0 */
-			 && *((uint32_t *) arp.sInaddr) == test_ip
+			 && *((uint32_t *) arp.sInaddr) == test_nip
 			) {
 				 /* if ARP source MAC matches safe_mac
 				  * (which is client's MAC), then it's not a conflict

@@ -295,7 +295,7 @@ static const struct config_keyword keywords[] = {
 	{"decline_time", read_u32, &(server_config.decline_time), "3600"},
 	{"conflict_time",read_u32, &(server_config.conflict_time),"3600"},
 	{"offer_time",   read_u32, &(server_config.offer_time),   "60"},
-	{"min_lease",    read_u32, &(server_config.min_lease),    "60"},
+	{"min_lease",    read_u32, &(server_config.min_lease_sec),"60"},
 	{"lease_file",   read_str, &(server_config.lease_file),   LEASES_FILE},
 	{"pidfile",      read_str, &(server_config.pidfile),      "/var/run/udhcpd.pid"},
 	{"siaddr",       read_nip, &(server_config.siaddr_nip),   "0.0.0.0"},
@@ -359,23 +359,23 @@ void FAST_FUNC write_leases(void)
 	for (i = 0; i < server_config.max_leases; i++) {
 		leasetime_t tmp_time;
 
-		if (leases[i].lease_nip == 0)
+		if (g_leases[i].lease_nip == 0)
 			continue;
 
 		/* Screw with the time in the struct, for easier writing */
-		tmp_time = leases[i].expires;
+		tmp_time = g_leases[i].expires;
 
-		leases[i].expires -= curr;
-		if ((signed_leasetime_t) leases[i].expires < 0)
-			leases[i].expires = 0;
-		leases[i].expires = htonl(leases[i].expires);
+		g_leases[i].expires -= curr;
+		if ((signed_leasetime_t) g_leases[i].expires < 0)
+			g_leases[i].expires = 0;
+		g_leases[i].expires = htonl(g_leases[i].expires);
 
 		/* No error check. If the file gets truncated,
 		 * we lose some leases on restart. Oh well. */
-		full_write(fd, &leases[i], sizeof(leases[i]));
+		full_write(fd, &g_leases[i], sizeof(g_leases[i]));
 
 		/* Then restore it when done */
-		leases[i].expires = tmp_time;
+		g_leases[i].expires = tmp_time;
 	}
 	close(fd);
 

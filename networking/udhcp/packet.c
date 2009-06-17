@@ -78,7 +78,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		//, packet->cookie
 		//, packet->options[]
 	);
-	bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr));
+	*bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr)) = '\0';
 	bb_info_msg(" chaddr %s", buf);
 }
 #endif

@@ -46,15 +46,15 @@ struct server_config_t {
 	/* start,end are in host order: we need to compare start <= ip <= end */
 	uint32_t start_ip;              /* start address of leases, in host order */
 	uint32_t end_ip;                /* end of leases, in host order */
-	uint32_t lease;	                /* lease time in seconds (host order) */
-	uint32_t max_leases;            /* maximum number of leases (including reserved address) */
+	uint32_t max_lease_sec;         /* maximum lease time (host order) */
+	uint32_t min_lease_sec;         /* minimum lease time a client can request */
+	uint32_t max_leases;            /* maximum number of leases (including reserved addresses) */
 	uint32_t auto_time;             /* how long should udhcpd wait before writing a config file.
 	                                 * if this is zero, it will only write one on SIGUSR1 */
 	uint32_t decline_time;          /* how long an address is reserved if a client returns a
 	                                 * decline message */
 	uint32_t conflict_time;         /* how long an arp conflict offender is leased for */
 	uint32_t offer_time;            /* how long an offered address is reserved */
-	uint32_t min_lease;             /* minimum lease time a client can request */
 	uint32_t siaddr_nip;            /* "next server" bootp option */
 	char *lease_file;
 	char *pidfile;
@@ -89,24 +89,24 @@ struct dyn_lease {
 	/* We use lease_mac[6], since e.g. ARP probing uses
 	 * only 6 first bytes anyway. We check received dhcp packets
 	 * that their hlen == 6 and thus chaddr has only 6 significant bytes
-	 * (dhcp packet has chaddr[16])
+	 * (dhcp packet has chaddr[16], not [6])
 	 */
 	uint8_t lease_mac[6];
 	uint8_t hostname[20];
 	uint8_t pad[2];
 	/* total size is a multiply of 4 */
-};
+} PACKED;
 
-extern struct dyn_lease *leases;
+extern struct dyn_lease *g_leases;
 
 struct dyn_lease *add_lease(
 		const uint8_t *chaddr, uint32_t yiaddr,
 		leasetime_t leasetime, uint8_t *hostname
 		) FAST_FUNC;
-int lease_expired(struct dyn_lease *lease) FAST_FUNC;
-struct dyn_lease *find_lease_by_chaddr(const uint8_t *chaddr) FAST_FUNC;
-struct dyn_lease *find_lease_by_yiaddr(uint32_t yiaddr) FAST_FUNC;
-uint32_t find_free_or_expired_address(const uint8_t *chaddr) FAST_FUNC;
+int is_expired_lease(struct dyn_lease *lease) FAST_FUNC;
+struct dyn_lease *find_lease_by_mac(const uint8_t *mac) FAST_FUNC;
+struct dyn_lease *find_lease_by_nip(uint32_t nip) FAST_FUNC;
+uint32_t find_free_or_expired_nip(const uint8_t *safe_mac) FAST_FUNC;
 
 
 /*** static_leases.h ***/

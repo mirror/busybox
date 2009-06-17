@@ -218,17 +218,17 @@ void FAST_FUNC udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	if (client_config.script == NULL)
 		return;
 
-	log1("Executing %s", client_config.script);
-
 	envp = fill_envp(packet);
 
 	/* call script */
+	log1("Executing %s", client_config.script);
 	argv[0] = (char*) client_config.script;
 	argv[1] = (char*) name;
 	argv[2] = NULL;
 	wait4pid(spawn(argv));
 
 	for (curr = envp; *curr; curr++) {
+		log2(" %s", *curr);
 		bb_unsetenv(*curr);
 		free(*curr);
 	}

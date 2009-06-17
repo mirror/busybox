@@ -107,14 +107,30 @@ static void add_bootp_options(struct dhcp_packet *packet)
 }
 
 
+static uint32_t select_lease_time(struct dhcp_packet *packet)
+{
+	uint32_t lease_time_sec = server_config.max_lease_sec;
+	uint8_t *lease_time_opt = get_option(packet, DHCP_LEASE_TIME);
+	if (lease_time_opt) {
+		move_from_unaligned32(lease_time_sec, lease_time_opt);
+		lease_time_sec = ntohl(lease_time_sec);
+		if (lease_time_sec > server_config.max_lease_sec)
+			lease_time_sec = server_config.max_lease_sec;
+		if (lease_time_sec < server_config.min_lease_sec)
+			lease_time_sec = server_config.min_lease_sec;
+	}
+	return lease_time_sec;
+}
+
+
 /* send a DHCP OFFER to a DHCP DISCOVER */
 int FAST_FUNC send_offer(struct dhcp_packet *oldpacket)
 {
 	struct dhcp_packet packet;
-	uint32_t req_align;
-	uint32_t lease_time_aligned = server_config.lease;
+	uint32_t req_nip;
+	uint32_t lease_time_sec = server_config.max_lease_sec;
 	uint32_t static_lease_ip;
-	uint8_t *req, *lease_time, *p_host_name;
+	uint8_t *req_ip_opt, *p_host_name;
 	struct option_set *curr;
 	struct in_addr addr;
 
@@ -126,31 +142,31 @@ int FAST_FUNC send_offer(struct dhcp_packet *oldpacket)
 	if (!static_lease_ip) {
 		struct dyn_lease *lease;
 
-		lease = find_lease_by_chaddr(oldpacket->chaddr);
+		lease = find_lease_by_mac(oldpacket->chaddr);
 		/* The client is in our lease/offered table */
 		if (lease) {
 			signed_leasetime_t tmp = lease->expires - time(NULL);
 			if (tmp >= 0)
-				lease_time_aligned = tmp;
+				lease_time_sec = tmp;
 			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or the client has requested an IP */
-		else if ((req = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
+		else if ((req_ip_opt = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
 		 /* (read IP) */
-		 && (move_from_unaligned32(req_align, req), 1)
+		 && (move_from_unaligned32(req_nip, req_ip_opt), 1)
 		 /* and the IP is in the lease range */
-		 && ntohl(req_align) >= server_config.start_ip
-		 && ntohl(req_align) <= server_config.end_ip
+		 && ntohl(req_nip) >= server_config.start_ip
+		 && ntohl(req_nip) <= server_config.end_ip
 		 /* and is not already taken/offered */
-		 && (!(lease = find_lease_by_yiaddr(req_align))
+		 && (!(lease = find_lease_by_nip(req_nip))
 			/* or its taken, but expired */
-			|| lease_expired(lease))
+			|| is_expired_lease(lease))
 		) {
-			packet.yiaddr = req_align;
+			packet.yiaddr = req_nip;
 		}
 		/* Otherwise, find a free IP */
 		else {
-			packet.yiaddr = find_free_or_expired_address(oldpacket->chaddr);
+			packet.yiaddr = find_free_or_expired_nip(oldpacket->chaddr);
 		}
 
 		if (!packet.yiaddr) {
@@ -162,23 +178,13 @@ int FAST_FUNC send_offer(struct dhcp_packet *oldpacket)
 			bb_error_msg("lease pool is full - OFFER abandoned");
 			return -1;
 		}
-		lease_time = get_option(oldpacket, DHCP_LEASE_TIME);
-		if (lease_time) {
-			move_from_unaligned32(lease_time_aligned, lease_time);
-			lease_time_aligned = ntohl(lease_time_aligned);
-			if (lease_time_aligned > server_config.lease)
-				lease_time_aligned = server_config.lease;
-		}
-
-		/* Make sure we aren't just using the lease time from the previous offer */
-		if (lease_time_aligned < server_config.min_lease)
-			lease_time_aligned = server_config.min_lease;
+		lease_time_sec = select_lease_time(oldpacket);
 	} else {
 		/* It is a static lease... use it */
 		packet.yiaddr = static_lease_ip;
 	}
 
-	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_aligned));
+	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
 
 	curr = server_config.options;
 	while (curr) {
@@ -210,25 +216,16 @@ int FAST_FUNC send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 {
 	struct dhcp_packet packet;
 	struct option_set *curr;
-	uint8_t *lease_time;
-	uint32_t lease_time_aligned = server_config.lease;
+	uint32_t lease_time_sec;
 	struct in_addr addr;
 	uint8_t *p_host_name;
 
 	init_packet(&packet, oldpacket, DHCPACK);
 	packet.yiaddr = yiaddr;
 
-	lease_time = get_option(oldpacket, DHCP_LEASE_TIME);
-	if (lease_time) {
-		move_from_unaligned32(lease_time_aligned, lease_time);
-		lease_time_aligned = ntohl(lease_time_aligned);
-		if (lease_time_aligned > server_config.lease)
-			lease_time_aligned = server_config.lease;
-		else if (lease_time_aligned < server_config.min_lease)
-			lease_time_aligned = server_config.min_lease;
-	}
+	lease_time_sec = select_lease_time(oldpacket);
 
-	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_aligned));
+	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
 
 	curr = server_config.options;
 	while (curr) {
@@ -246,7 +243,7 @@ int FAST_FUNC send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 		return -1;
 
 	p_host_name = get_option(oldpacket, DHCP_HOST_NAME);
-	add_lease(packet.chaddr, packet.yiaddr, lease_time_aligned, p_host_name);
+	add_lease(packet.chaddr, packet.yiaddr, lease_time_sec, p_host_name);
 	if (ENABLE_FEATURE_UDHCPD_WRITE_LEASES_EARLY) {
 		/* rewrite the file with leases at every new acceptance */
 		write_leases();

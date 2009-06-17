@@ -6,7 +6,7 @@
 #include "common.h"
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-int dhcp_verbose;
+unsigned dhcp_verbose;
 #endif
 
 const uint8_t MAC_BCAST_ADDR[6] ALIGN2 = {

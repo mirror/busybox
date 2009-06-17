@@ -93,14 +93,14 @@ int udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uin
 int udhcp_raw_socket(int ifindex) FAST_FUNC;
 int udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf) FAST_FUNC;
 /* Returns 1 if no reply received */
-int arpping(uint32_t test_ip,
+int arpping(uint32_t test_nip,
 		const uint8_t *safe_mac,
 		uint32_t from_ip,
 		uint8_t *from_mac,
 		const char *interface) FAST_FUNC;
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-extern int dhcp_verbose;
+extern unsigned dhcp_verbose;
 # define log1(...) do { if (dhcp_verbose >= 1) bb_info_msg(__VA_ARGS__); } while (0)
 # if CONFIG_UDHCP_DEBUG >= 2
 void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;

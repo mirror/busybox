@@ -119,6 +119,20 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 };
 
 
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
+static void log_option(const char *pfx, const uint8_t *opt)
+{
+	if (dhcp_verbose >= 2) {
+		char buf[256 * 2 + 2];
+		*bin2hex(buf, (void*) (opt + OPT_DATA), opt[OPT_LEN]) = '\0';
+		bb_info_msg("%s: 0x%02x %s", pfx, opt[OPT_CODE], buf);
+	}
+}
+#else
+# define log_option(pfx, opt) ((void)0)
+#endif
+
+
 /* get an option with bounds checking (warning, result is not aligned). */
 uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
 {
@@ -167,11 +181,7 @@ uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
 			continue; /* complain and return NULL */
 
 		if (optionptr[OPT_CODE] == code) {
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
-			char buf[256 * 2 + 2];
-			*bin2hex(buf, (void*) (optionptr + OPT_DATA), optionptr[OPT_LEN]) = '\0';
-			log2("Option 0x%02x found: %s", code, buf);
-#endif
+			log_option("Option found", optionptr);
 			return optionptr + OPT_DATA;
 		}
 
@@ -214,7 +224,7 @@ int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 				string[OPT_CODE]);
 		return 0;
 	}
-	log1("Adding option 0x%02x", string[OPT_CODE]);
+	log_option("Adding option", string);
 	memcpy(optionptr + end, string, string[OPT_LEN] + 2);
 	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
 	return string[OPT_LEN] + 2;

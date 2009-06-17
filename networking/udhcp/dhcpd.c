@@ -18,7 +18,7 @@
 
 
 /* globals */
-struct dyn_lease *leases;
+struct dyn_lease *g_leases;
 /* struct server_config_t server_config is in bb_common_bufsiz1 */
 
 
@@ -28,15 +28,13 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	fd_set rfds;
 	int server_socket = -1, retval, max_sock;
 	struct dhcp_packet packet;
-	uint8_t *state, *server_id, *requested;
-	uint32_t server_id_aligned = server_id_aligned; /* for compiler */
-	uint32_t requested_aligned = requested_aligned;
+	uint8_t *state;
 	uint32_t static_lease_ip;
 	unsigned timeout_end;
 	unsigned num_ips;
 	unsigned opt;
 	struct option_set *option;
-	struct dyn_lease *lease, static_lease;
+	struct dyn_lease *lease, fake_lease;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 
 #if ENABLE_FEATURE_UDHCP_PORT
@@ -84,10 +82,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
-	server_config.lease = LEASE_TIME;
+	server_config.max_lease_sec = LEASE_TIME;
 	if (option) {
-		move_from_unaligned32(server_config.lease, option->data + 2);
-		server_config.lease = ntohl(server_config.lease);
+		move_from_unaligned32(server_config.max_lease_sec, option->data + OPT_DATA);
+		server_config.max_lease_sec = ntohl(server_config.max_lease_sec);
 	}
 
 	/* Sanity check */
@@ -98,7 +96,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		server_config.max_leases = num_ips;
 	}
 
-	leases = xzalloc(server_config.max_leases * sizeof(*leases));
+	g_leases = xzalloc(server_config.max_leases * sizeof(g_leases[0]));
 	read_leases(server_config.lease_file);
 
 	if (udhcp_read_interface(server_config.interface,
@@ -186,13 +184,13 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 
-			memcpy(&static_lease.lease_mac, &packet.chaddr, 6);
-			static_lease.lease_nip = static_lease_ip;
-			static_lease.expires = 0;
+			memcpy(&fake_lease.lease_mac, &packet.chaddr, 6);
+			fake_lease.lease_nip = static_lease_ip;
+			fake_lease.expires = 0;
 
-			lease = &static_lease;
+			lease = &fake_lease;
 		} else {
-			lease = find_lease_by_chaddr(packet.chaddr);
+			lease = find_lease_by_mac(packet.chaddr);
 		}
 
 		switch (state[0]) {
@@ -203,29 +201,32 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				bb_error_msg("send OFFER failed");
 			}
 			break;
-		case DHCPREQUEST:
+		case DHCPREQUEST: {
+			uint8_t *server_id_opt, *requested_opt;
+			uint32_t server_id_net = server_id_net; /* for compiler */
+			uint32_t requested_nip = requested_nip; /* for compiler */
+
 			log1("Received REQUEST");
 
-			requested = get_option(&packet, DHCP_REQUESTED_IP);
-			server_id = get_option(&packet, DHCP_SERVER_ID);
-
-			if (requested)
-				move_from_unaligned32(requested_aligned, requested);
-			if (server_id)
-				move_from_unaligned32(server_id_aligned, server_id);
+			requested_opt = get_option(&packet, DHCP_REQUESTED_IP);
+			server_id_opt = get_option(&packet, DHCP_SERVER_ID);
+			if (requested_opt)
+				move_from_unaligned32(requested_nip, requested_opt);
+			if (server_id_opt)
+				move_from_unaligned32(server_id_net, server_id_opt);
 
 			if (lease) {
-				if (server_id) {
+				if (server_id_opt) {
 					/* SELECTING State */
-					if (server_id_aligned == server_config.server_nip
-					 && requested
-					 && requested_aligned == lease->lease_nip
+					if (server_id_net == server_config.server_nip
+					 && requested_opt
+					 && requested_nip == lease->lease_nip
 					) {
 						send_ACK(&packet, lease->lease_nip);
 					}
-				} else if (requested) {
+				} else if (requested_opt) {
 					/* INIT-REBOOT State */
-					if (lease->lease_nip == requested_aligned)
+					if (lease->lease_nip == requested_nip)
 						send_ACK(&packet, lease->lease_nip);
 					else
 						send_NAK(&packet);
@@ -237,14 +238,14 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				}
 
 			/* what to do if we have no record of the client */
-			} else if (server_id) {
+			} else if (server_id_opt) {
 				/* SELECTING State */
 
-			} else if (requested) {
+			} else if (requested_opt) {
 				/* INIT-REBOOT State */
-				lease = find_lease_by_yiaddr(requested_aligned);
+				lease = find_lease_by_nip(requested_nip);
 				if (lease) {
-					if (lease_expired(lease)) {
+					if (is_expired_lease(lease)) {
 						/* probably best if we drop this lease */
 						memset(lease->lease_mac, 0, sizeof(lease->lease_mac));
 					} else {
@@ -252,7 +253,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 						send_NAK(&packet);
 					}
 				} else {
-					uint32_t r = ntohl(requested_aligned);
+					uint32_t r = ntohl(requested_nip);
 					if (r < server_config.start_ip
 				         || r > server_config.end_ip
 					) {
@@ -265,6 +266,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				/* RENEWING or REBINDING State */
 			}
 			break;
+		}
 		case DHCPDECLINE:
 			log1("Received DECLINE");
 			if (lease) {

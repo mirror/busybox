@@ -17,12 +17,12 @@ static struct dyn_lease *oldest_expired_lease(void)
 	leasetime_t oldest_time = time(NULL);
 	unsigned i;
 
-	/* Unexpired leases have leases[i].expires >= current time
+	/* Unexpired leases have g_leases[i].expires >= current time
 	 * and therefore can't ever match */
 	for (i = 0; i < server_config.max_leases; i++) {
-		if (leases[i].expires < oldest_time) {
-			oldest_time = leases[i].expires;
-			oldest_lease = &leases[i];
+		if (g_leases[i].expires < oldest_time) {
+			oldest_time = g_leases[i].expires;
+			oldest_lease = &g_leases[i];
 		}
 	}
 	return oldest_lease;
@@ -38,10 +38,10 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 		continue;
 
 	for (i = 0; i < server_config.max_leases; i++) {
-		if ((j != 16 && memcmp(leases[i].lease_mac, chaddr, 6) == 0)
-		 || (yiaddr && leases[i].lease_nip == yiaddr)
+		if ((j != 16 && memcmp(g_leases[i].lease_mac, chaddr, 6) == 0)
+		 || (yiaddr && g_leases[i].lease_nip == yiaddr)
 		) {
-			memset(&leases[i], 0, sizeof(leases[i]));
+			memset(&g_leases[i], 0, sizeof(g_leases[i]));
 		}
 	}
 }
@@ -85,40 +85,40 @@ struct dyn_lease* FAST_FUNC add_lease(
 
 
 /* True if a lease has expired */
-int FAST_FUNC lease_expired(struct dyn_lease *lease)
+int FAST_FUNC is_expired_lease(struct dyn_lease *lease)
 {
 	return (lease->expires < (leasetime_t) time(NULL));
 }
 
 
-/* Find the first lease that matches chaddr, NULL if no match */
-struct dyn_lease* FAST_FUNC find_lease_by_chaddr(const uint8_t *chaddr)
+/* Find the first lease that matches MAC, NULL if no match */
+struct dyn_lease* FAST_FUNC find_lease_by_mac(const uint8_t *mac)
 {
 	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (memcmp(leases[i].lease_mac, chaddr, 6) == 0)
-			return &(leases[i]);
+		if (memcmp(g_leases[i].lease_mac, mac, 6) == 0)
+			return &g_leases[i];
 
 	return NULL;
 }
 
 
-/* Find the first lease that matches yiaddr, NULL is no match */
-struct dyn_lease* FAST_FUNC find_lease_by_yiaddr(uint32_t yiaddr)
+/* Find the first lease that matches IP, NULL is no match */
+struct dyn_lease* FAST_FUNC find_lease_by_nip(uint32_t nip)
 {
 	unsigned i;
 
 	for (i = 0; i < server_config.max_leases; i++)
-		if (leases[i].lease_nip == yiaddr)
-			return &leases[i];
+		if (g_leases[i].lease_nip == nip)
+			return &g_leases[i];
 
 	return NULL;
 }
 
 
 /* Check if the IP is taken; if it is, add it to the lease table */
-static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
+static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac)
 {
 	/* 16 zero bytes */
 	static const uint8_t blank_chaddr[16] = { 0 };
@@ -127,30 +127,30 @@ static int nobody_responds_to_arp(uint32_t addr, const uint8_t *safe_mac)
 	struct in_addr temp;
 	int r;
 
-	r = arpping(addr, safe_mac,
+	r = arpping(nip, safe_mac,
 			server_config.server_nip,
 			server_config.server_mac,
 			server_config.interface);
 	if (r)
 		return r;
 
-	temp.s_addr = addr;
+	temp.s_addr = nip;
 	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
 		inet_ntoa(temp), (unsigned)server_config.conflict_time);
-	add_lease(blank_chaddr, addr, server_config.conflict_time, NULL);
+	add_lease(blank_chaddr, nip, server_config.conflict_time, NULL);
 	return 0;
 }
 
 
 /* Find a new usable (we think) address */
-uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
+uint32_t FAST_FUNC find_free_or_expired_nip(const uint8_t *safe_mac)
 {
 	uint32_t addr;
 	struct dyn_lease *oldest_lease = NULL;
 
 	addr = server_config.start_ip; /* addr is in host order here */
 	for (; addr <= server_config.end_ip; addr++) {
-		uint32_t net_addr;
+		uint32_t nip;
 		struct dyn_lease *lease;
 
 		/* ie, 192.168.55.0 */
@@ -159,23 +159,23 @@ uint32_t FAST_FUNC find_free_or_expired_address(const uint8_t *chaddr)
 		/* ie, 192.168.55.255 */
 		if ((addr & 0xff) == 0xff)
 			continue;
-		net_addr = htonl(addr);
+		nip = htonl(addr);
 		/* is this a static lease addr? */
-		if (is_nip_reserved(server_config.static_leases, net_addr))
+		if (is_nip_reserved(server_config.static_leases, nip))
 			continue;
 
-		lease = find_lease_by_yiaddr(net_addr);
+		lease = find_lease_by_nip(nip);
 		if (!lease) {
-			if (nobody_responds_to_arp(net_addr, chaddr))
-				return net_addr;
+			if (nobody_responds_to_arp(nip, safe_mac))
+				return nip;
 		} else {
 			if (!oldest_lease || lease->expires < oldest_lease->expires)
 				oldest_lease = lease;
 		}
 	}
 
-	if (oldest_lease && lease_expired(oldest_lease)
-	 && nobody_responds_to_arp(oldest_lease->lease_nip, chaddr)
+	if (oldest_lease && is_expired_lease(oldest_lease)
+	 && nobody_responds_to_arp(oldest_lease->lease_nip, safe_mac)
 	) {
 		return oldest_lease->lease_nip;
 	}
