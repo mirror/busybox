@@ -41,7 +41,7 @@ static smallint state;
 /* just a little helper */
 static void change_listen_mode(int new_mode)
 {
-	log1("entering %s listen mode",
+	log1("Entering listen mode: %s",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
 
 	listen_mode = new_mode;
