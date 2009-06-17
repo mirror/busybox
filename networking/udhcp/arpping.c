@@ -7,13 +7,11 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include <netinet/if_ether.h>
 #include <net/if_arp.h>
 
 #include "common.h"
 #include "dhcpd.h"
-
 
 struct arpMsg {
 	/* Ethernet header */
@@ -38,9 +36,7 @@ enum {
 	ARP_MSG_SIZE = 0x2a
 };
 
-
 /* Returns 1 if no reply received */
-
 int FAST_FUNC arpping(uint32_t test_nip,
 		const uint8_t *safe_mac,
 		uint32_t from_ip,
@@ -103,7 +99,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 			if (r < 0)
 				break;
 
-			//bb_error_msg("sHaddr %02x:%02x:%02x:%02x:%02x:%02x",
+			//log3("sHaddr %02x:%02x:%02x:%02x:%02x:%02x",
 			//	arp.sHaddr[0], arp.sHaddr[1], arp.sHaddr[2],
 			//	arp.sHaddr[3], arp.sHaddr[4], arp.sHaddr[5]);
 
@@ -113,13 +109,13 @@ int FAST_FUNC arpping(uint32_t test_nip,
 			 /* && memcmp(arp.tHaddr, from_mac, 6) == 0 */
 			 && *((uint32_t *) arp.sInaddr) == test_nip
 			) {
-				 /* if ARP source MAC matches safe_mac
-				  * (which is client's MAC), then it's not a conflict
-				  * (client simply already has this IP and replies to ARPs!)
-				  */
+				/* if ARP source MAC matches safe_mac
+				 * (which is client's MAC), then it's not a conflict
+				 * (client simply already has this IP and replies to ARPs!)
+				 */
 				if (!safe_mac || memcmp(safe_mac, arp.sHaddr, 6) != 0)
 					rv = 0;
-				//else bb_error_msg("sHaddr == safe_mac");
+				//else log2("sHaddr == safe_mac");
 				break;
 			}
 		}
