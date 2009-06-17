@@ -57,7 +57,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 		}
 		our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
 		*nip = our_ip->sin_addr.s_addr;
-		DEBUG("ip of %s = %s", interface, inet_ntoa(our_ip->sin_addr));
+		log1("IP %s", inet_ntoa(our_ip->sin_addr));
 	}
 
 	if (ifindex) {
@@ -65,7 +65,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 			close(fd);
 			return -1;
 		}
-		DEBUG("adapter index %d", ifr.ifr_ifindex);
+		log1("Adapter index %d", ifr.ifr_ifindex);
 		*ifindex = ifr.ifr_ifindex;
 	}
 
@@ -75,7 +75,7 @@ int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t
 			return -1;
 		}
 		memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
-		DEBUG("adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
+		log1("MAC %02x:%02x:%02x:%02x:%02x:%02x",
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
 
@@ -90,7 +90,7 @@ int FAST_FUNC udhcp_listen_socket(/*uint32_t ip,*/ int port, const char *inf)
 	int fd;
 	struct sockaddr_in addr;
 
-	DEBUG("Opening listen socket on *:%d %s", port, inf);
+	log1("Opening listen socket on *:%d %s", port, inf);
 	fd = xsocket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	setsockopt_reuseaddr(fd);

@@ -44,7 +44,15 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	CLIENT_PORT = 68;
 #endif
 
-	opt = getopt32(argv, "fS" IF_FEATURE_UDHCP_PORT("P:", &str_P));
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+	opt_complementary = "vv";
+#endif
+	opt = getopt32(argv, "fSv"
+		IF_FEATURE_UDHCP_PORT("P:", &str_P)
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+		, &dhcp_verbose
+#endif
+		);
 	argv += optind;
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
@@ -131,7 +139,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		if (retval < 0 && errno != EINTR) {
-			DEBUG("error on select");
+			log1("Error on select");
 			continue;
 		}
 
@@ -155,7 +163,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		if (bytes < 0) {
 			/* bytes can also be -2 ("bad packet data") */
 			if (bytes == -1 && errno != EINTR) {
-				DEBUG("error on read, %s, reopening socket", strerror(errno));
+				log1("Read error: %s, reopening socket", strerror(errno));
 				close(server_socket);
 				server_socket = -1;
 			}
@@ -164,7 +172,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		state = get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (state == NULL) {
-			bb_error_msg("cannot get option from packet, ignoring");
+			bb_error_msg("no message type option, ignoring packet");
 			continue;
 		}
 
@@ -184,14 +192,14 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		switch (state[0]) {
 		case DHCPDISCOVER:
-			DEBUG("Received DISCOVER");
+			log1("Received DISCOVER");
 
 			if (send_offer(&packet) < 0) {
 				bb_error_msg("send OFFER failed");
 			}
 			break;
 		case DHCPREQUEST:
-			DEBUG("received REQUEST");
+			log1("Received REQUEST");
 
 			requested = get_option(&packet, DHCP_REQUESTED_IP);
 			server_id = get_option(&packet, DHCP_SERVER_ID);
@@ -204,7 +212,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			if (lease) {
 				if (server_id) {
 					/* SELECTING State */
-					DEBUG("server_id = %08x", ntohl(server_id_aligned));
+					log1("server_id = %08x", ntohl(server_id_aligned));
 					if (server_id_aligned == server_config.server_nip
 					 && requested
 					 && requested_aligned == lease->lease_nip
@@ -254,19 +262,19 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 			break;
 		case DHCPDECLINE:
-			DEBUG("Received DECLINE");
+			log1("Received DECLINE");
 			if (lease) {
 				memset(lease->lease_mac16, 0, 16);
 				lease->expires = time(NULL) + server_config.decline_time;
 			}
 			break;
 		case DHCPRELEASE:
-			DEBUG("Received RELEASE");
+			log1("Received RELEASE");
 			if (lease)
 				lease->expires = time(NULL);
 			break;
 		case DHCPINFORM:
-			DEBUG("Received INFORM");
+			log1("Received INFORM");
 			send_inform(&packet);
 			break;
 		default:

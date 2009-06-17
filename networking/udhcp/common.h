@@ -62,15 +62,15 @@ uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
 
 void udhcp_init_header(struct dhcpMessage *packet, char type) FAST_FUNC;
 
-/*int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd); - in dhcpc.h */
+/*int udhcp_recv_raw_packet(struct dhcpMessage *dhcp_pkt, int fd); - in dhcpc.h */
 int udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd) FAST_FUNC;
 
-int udhcp_send_raw_packet(struct dhcpMessage *payload,
+int udhcp_send_raw_packet(struct dhcpMessage *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
 		int ifindex) FAST_FUNC;
 
-int udhcp_send_kernel_packet(struct dhcpMessage *payload,
+int udhcp_send_kernel_packet(struct dhcpMessage *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port) FAST_FUNC;
 
@@ -100,10 +100,20 @@ int arpping(uint32_t test_ip,
 		uint8_t *from_mac,
 		const char *interface) FAST_FUNC;
 
-#if ENABLE_UDHCP_DEBUG
-# define DEBUG(str, args...) bb_info_msg("### " str, ## args)
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+extern int dhcp_verbose;
+# define log1(...) do { if (dhcp_verbose >= 1) bb_info_msg(__VA_ARGS__); } while (0)
+# if CONFIG_UDHCP_DEBUG >= 2
+void udhcp_dump_packet(struct dhcpMessage *packet) FAST_FUNC;
+#  define log2(...) do { if (dhcp_verbose >= 2) bb_info_msg(__VA_ARGS__); } while (0)
+# else
+#  define udhcp_dump_packet(...) ((void)0)
+#  define log2(...) ((void)0)
+# endif
 #else
-# define DEBUG(str, args...) do {;} while (0)
+# define udhcp_dump_packet(...) ((void)0)
+# define log1(...) ((void)0)
+# define log2(...) ((void)0)
 #endif
 
 POP_SAVED_FUNCTION_VISIBILITY

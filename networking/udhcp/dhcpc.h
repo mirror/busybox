@@ -6,12 +6,11 @@
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct client_config_t {
-	uint8_t client_mac[6];          /* Our arp address */
-	/* TODO: combine flag fields into single "unsigned opt" */
-	/* (can be set directly to the result of getopt32) */
-	char no_default_options;        /* Do not include default optins in request */
+	uint8_t client_mac[6];          /* Our mac address */
+	char no_default_options;        /* Do not include default options in request */
 	IF_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
+	int verbose;
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
@@ -44,7 +43,7 @@ int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
 int send_release(uint32_t server, uint32_t ciaddr) FAST_FUNC;
 
-int udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd) FAST_FUNC;
+int udhcp_recv_raw_packet(struct dhcpMessage *dhcp_pkt, int fd) FAST_FUNC;
 
 POP_SAVED_FUNCTION_VISIBILITY
 

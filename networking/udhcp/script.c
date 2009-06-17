@@ -218,7 +218,7 @@ void FAST_FUNC udhcp_run_script(struct dhcpMessage *packet, const char *name)
 	if (client_config.script == NULL)
 		return;
 
-	DEBUG("vfork'ing and exec'ing %s", client_config.script);
+	log1("Executing %s", client_config.script);
 
 	envp = fill_envp(packet);
 

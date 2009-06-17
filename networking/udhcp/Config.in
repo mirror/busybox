@@ -74,15 +74,17 @@ config FEATURE_UDHCP_PORT
 	  At the cost of ~300 bytes, enables -P port option.
 	  This feature is typically not needed.
 
-# TODO: UDHCP_DEBUG is inconvenient to use.
-# Make it controllable at runtime (say, via -v, -vv, -vvv)
-
 config UDHCP_DEBUG
-	bool "Compile udhcp with noisy debugging messages"
-	default n
-	depends on APP_UDHCPD || APP_UDHCPC
+	int "Maximum verbosity level for udhcp applets (0..3)"
+	default 0
+	range 0 3
+	depends on APP_UDHCPD || APP_UDHCPC || APP_DHCPRELAY
 	help
-	  If selected, udhcpd will output extra debugging output.
+	  Verbosity can be increased with multiple -v options.
+	  This options controls how high it can be cranked up.
+
+	  Bigger values result in bigger code. Levels above 1
+	  are very verbose and useful for debugging only.
 
 config FEATURE_UDHCP_RFC3397
 	bool "Support for RFC3397 domain search (experimental)"

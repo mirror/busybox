@@ -27,48 +27,48 @@
 
 
 /* send a packet to gateway_nip using the kernel ip stack */
-static int send_packet_to_relay(struct dhcpMessage *payload)
+static int send_packet_to_relay(struct dhcpMessage *dhcp_pkt)
 {
-	DEBUG("Forwarding packet to relay");
+	log1("Forwarding packet to relay");
 
-	return udhcp_send_kernel_packet(payload,
+	return udhcp_send_kernel_packet(dhcp_pkt,
 			server_config.server_nip, SERVER_PORT,
-			payload->gateway_nip, SERVER_PORT);
+			dhcp_pkt->gateway_nip, SERVER_PORT);
 }
 
 
 /* send a packet to a specific mac address and ip address by creating our own ip packet */
-static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcast)
+static int send_packet_to_client(struct dhcpMessage *dhcp_pkt, int force_broadcast)
 {
 	const uint8_t *chaddr;
 	uint32_t ciaddr;
 
 	// Was:
 	//if (force_broadcast) { /* broadcast */ }
-	//else if (payload->ciaddr) { /* unicast to payload->ciaddr */ }
-	//else if (payload->flags & htons(BROADCAST_FLAG)) { /* broadcast */ }
-	//else { /* unicast to payload->yiaddr */ }
+	//else if (dhcp_pkt->ciaddr) { /* unicast to dhcp_pkt->ciaddr */ }
+	//else if (dhcp_pkt->flags & htons(BROADCAST_FLAG)) { /* broadcast */ }
+	//else { /* unicast to dhcp_pkt->yiaddr */ }
 	// But this is wrong: yiaddr is _our_ idea what client's IP is
 	// (for example, from lease file). Client may not know that,
 	// and may not have UDP socket listening on that IP!
-	// We should never unicast to payload->yiaddr!
-	// payload->ciaddr, OTOH, comes from client's request packet,
+	// We should never unicast to dhcp_pkt->yiaddr!
+	// dhcp_pkt->ciaddr, OTOH, comes from client's request packet,
 	// and can be used.
 
 	if (force_broadcast
-	 || (payload->flags & htons(BROADCAST_FLAG))
-	 || !payload->ciaddr
+	 || (dhcp_pkt->flags & htons(BROADCAST_FLAG))
+	 || !dhcp_pkt->ciaddr
 	) {
-		DEBUG("broadcasting packet to client");
+		log1("Broadcasting packet to client");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
 	} else {
-		DEBUG("unicasting packet to client ciaddr");
-		ciaddr = payload->ciaddr;
-		chaddr = payload->chaddr;
+		log1("Unicasting packet to client ciaddr");
+		ciaddr = dhcp_pkt->ciaddr;
+		chaddr = dhcp_pkt->chaddr;
 	}
 
-	return udhcp_send_raw_packet(payload,
+	return udhcp_send_raw_packet(dhcp_pkt,
 		/*src*/ server_config.server_nip, SERVER_PORT,
 		/*dst*/ ciaddr, CLIENT_PORT, chaddr,
 		server_config.ifindex);
@@ -76,11 +76,11 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 
 
 /* send a dhcp packet, if force broadcast is set, the packet will be broadcast to the client */
-static int send_packet(struct dhcpMessage *payload, int force_broadcast)
+static int send_packet(struct dhcpMessage *dhcp_pkt, int force_broadcast)
 {
-	if (payload->gateway_nip)
-		return send_packet_to_relay(payload);
-	return send_packet_to_client(payload, force_broadcast);
+	if (dhcp_pkt->gateway_nip)
+		return send_packet_to_relay(dhcp_pkt);
+	return send_packet_to_client(dhcp_pkt, force_broadcast);
 }
 
 
@@ -201,7 +201,7 @@ int FAST_FUNC send_NAK(struct dhcpMessage *oldpacket)
 
 	init_packet(&packet, oldpacket, DHCPNAK);
 
-	DEBUG("Sending NAK");
+	log1("Sending NAK");
 	return send_packet(&packet, 1);
 }
 

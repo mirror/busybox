@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include <netinet/in.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
 #include <netpacket/packet.h>
@@ -19,7 +18,6 @@
 #include "common.h"
 #include "dhcpd.h"
 #include "options.h"
-
 
 void FAST_FUNC udhcp_init_header(struct dhcpMessage *packet, char type)
 {
@@ -38,8 +36,54 @@ void FAST_FUNC udhcp_init_header(struct dhcpMessage *packet, char type)
 	add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
 }
 
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+void FAST_FUNC udhcp_dump_packet(struct dhcpMessage *packet)
+{
+	char buf[sizeof(packet->chaddr)*2 + 1];
 
-/* read a packet from socket fd, return -1 on read error, -2 on packet error */
+	if (dhcp_verbose < 2)
+		return;
+
+	bb_info_msg(
+		//" op %x"
+		//" htype %x"
+		" hlen %x"
+		//" hops %x"
+		" xid %x"
+		//" secs %x"
+		//" flags %x"
+		" ciaddr %x"
+		" yiaddr %x" 
+		" siaddr %x"
+		" giaddr %x"
+		//" chaddr %s"
+		//" sname %s"
+		//" file %s"
+		//" cookie %x"
+		//" options %s"
+		//, packet->op
+		//, packet->htype
+		, packet->hlen
+		//, packet->hops
+		, packet->xid
+		//, packet->secs
+		//, packet->flags
+		, packet->ciaddr
+		, packet->yiaddr
+		, packet->siaddr_nip
+		, packet->gateway_nip
+		//, packet->chaddr[16]
+		//, packet->sname[64]
+		//, packet->file[128]
+		//, packet->cookie
+		//, packet->options[]
+	);
+	bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr));
+	bb_info_msg(" chaddr %s", buf);
+}
+#endif
+
+/* Read a packet from socket fd, return -1 on read error, -2 on packet error */
 int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 {
 	int bytes;
@@ -48,15 +92,16 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 	memset(packet, 0, sizeof(*packet));
 	bytes = safe_read(fd, packet, sizeof(*packet));
 	if (bytes < 0) {
-		DEBUG("cannot read on listening socket, ignoring");
+		log1("Packet read error, ignoring");
 		return bytes; /* returns -1 */
 	}
 
 	if (packet->cookie != htonl(DHCP_MAGIC)) {
-		bb_error_msg("received bogus message, ignoring");
+		bb_info_msg("Packet with bad magic, ignoring");
 		return -2;
 	}
-	DEBUG("Received a packet");
+	log1("Received a packet");
+	udhcp_dump_packet(packet);
 
 	if (packet->op == BOOTREQUEST) {
 		vendor = get_option(packet, DHCP_VENDOR);
@@ -71,7 +116,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 				if (vendor[OPT_LEN - 2] == (uint8_t)strlen(broken_vendors[i])
 				 && !strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - 2])
 				) {
-					DEBUG("broken client (%s), forcing broadcast replies",
+					log1("Broken client (%s), forcing broadcast replies",
 						broken_vendors[i]);
 					packet->flags |= htons(BROADCAST_FLAG);
 				}
@@ -80,7 +125,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 			if (vendor[OPT_LEN - 2] == (uint8_t)(sizeof("MSFT 98")-1)
 			 && memcmp(vendor, "MSFT 98", sizeof("MSFT 98")-1) == 0
 			) {
-				DEBUG("broken client (%s), forcing broadcast replies", "MSFT 98");
+				log1("Broken client (%s), forcing broadcast replies", "MSFT 98");
 				packet->flags |= htons(BROADCAST_FLAG);
 			}
 #endif
@@ -90,11 +135,10 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcpMessage *packet, int fd)
 	return bytes;
 }
 
-
 uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 {
 	/* Compute Internet Checksum for "count" bytes
-	 *         beginning at location "addr".
+	 * beginning at location "addr".
 	 */
 	int32_t sum = 0;
 	uint16_t *source = (uint16_t *) addr;
@@ -120,9 +164,8 @@ uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 	return ~sum;
 }
 
-
 /* Construct a ip/udp header for a packet, send packet */
-int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
+int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
 		int ifindex)
@@ -146,7 +189,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
 
 	memset(&dest, 0, sizeof(dest));
 	memset(&packet, 0, sizeof(packet));
-	packet.data = *payload; /* struct copy */
+	packet.data = *dhcp_pkt; /* struct copy */
 
 	dest.sll_family = AF_PACKET;
 	dest.sll_protocol = htons(ETH_P_IP);
@@ -179,6 +222,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
 	 * If you need to change this: last byte of the packet is
 	 * packet.data.options[end_option(packet.data.options)]
 	 */
+	udhcp_dump_packet(dhcp_pkt);
 	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0,
 				(struct sockaddr *) &dest, sizeof(dest));
 	msg = "sendto";
@@ -191,9 +235,8 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcpMessage *payload,
 	return result;
 }
 
-
 /* Let the kernel do all the work for packet generation */
-int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *payload,
+int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *dhcp_pkt,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {
@@ -232,7 +275,8 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcpMessage *payload,
 	}
 
 	/* Currently we send full-sized DHCP packets (see above) */
-	result = safe_write(fd, payload, DHCP_SIZE);
+	udhcp_dump_packet(dhcp_pkt);
+	result = safe_write(fd, dhcp_pkt, DHCP_SIZE);
 	msg = "write";
  ret_close:
 	close(fd);

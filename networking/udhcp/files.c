@@ -96,7 +96,7 @@ static void attach_option(struct option_set **opt_list,
 
 	existing = find_option(*opt_list, option->code);
 	if (!existing) {
-		DEBUG("Attaching option %02x to list", option->code);
+		log2("Attaching option %02x to list", option->code);
 
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
@@ -125,7 +125,7 @@ static void attach_option(struct option_set **opt_list,
 	}
 
 	/* add it to an existing option */
-	DEBUG("Attaching option %02x to existing member of list", option->code);
+	log1("Attaching option %02x to existing member of list", option->code);
 	if (option->flags & OPTION_LIST) {
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
@@ -393,7 +393,9 @@ void FAST_FUNC read_leases(const char *file)
 	struct dhcpOfferedAddr lease;
 	int64_t written_at, time_passed;
 	int fd;
-	IF_UDHCP_DEBUG(unsigned i;)
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+	unsigned i = 0;
+#endif
 
 	fd = open_or_warn(file, O_RDONLY);
 	if (fd < 0)
@@ -409,9 +411,8 @@ void FAST_FUNC read_leases(const char *file)
 	if ((uint64_t)time_passed > 12 * 60 * 60)
 		goto ret;
 
-	IF_UDHCP_DEBUG(i = 0;)
 	while (full_read(fd, &lease, sizeof(lease)) == sizeof(lease)) {
-		/* ADDME: what if it matches some static lease? */
+//FIXME: what if it matches some static lease?
 		uint32_t y = ntohl(lease.lease_nip);
 		if (y >= server_config.start_ip && y <= server_config.end_ip) {
 			signed_leasetime_t expires = ntohl(lease.expires) - (signed_leasetime_t)time_passed;
@@ -423,10 +424,12 @@ void FAST_FUNC read_leases(const char *file)
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
-			IF_UDHCP_DEBUG(i++;)
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+			i++;
+#endif
 		}
 	}
-	DEBUG("Read %d leases", i);
+	log1("Read %d leases", i);
  ret:
 	close(fd);
 }

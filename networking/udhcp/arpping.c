@@ -128,6 +128,6 @@ int FAST_FUNC arpping(uint32_t test_ip,
 
  ret:
 	close(s);
-	DEBUG("%srp reply received for this address", rv ? "No a" : "A");
+	log1("%srp reply received for this address", rv ? "No a" : "A");
 	return rv;
 }

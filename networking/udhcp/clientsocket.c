@@ -85,24 +85,24 @@ int FAST_FUNC udhcp_raw_socket(int ifindex)
 		.filter = (struct sock_filter *) filter_instr,
 	};
 
-	DEBUG("opening raw socket on ifindex %d", ifindex);
+	log1("Opening raw socket on ifindex %d", ifindex); //log2?
 
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
-	DEBUG("got raw socket fd %d", fd);
+	log1("Got raw socket fd %d", fd); //log2?
 
 	if (SERVER_PORT == 67 && CLIENT_PORT == 68) {
 		/* Use only if standard ports are in use */
 		/* Ignoring error (kernel may lack support for this) */
 		if (setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &filter_prog,
 				sizeof(filter_prog)) >= 0)
-			DEBUG("attached filter to raw socket fd %d", fd);
+			log1("Attached filter to raw socket fd %d", fd); // log?
 	}
 
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
 	xbind(fd, (struct sockaddr *) &sock, sizeof(sock));
-	DEBUG("bound to raw socket fd %d", fd);
+	log1("Created raw socket");
 
 	return fd;
 }

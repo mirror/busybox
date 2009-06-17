@@ -20,9 +20,9 @@
 
 static int sockfd = -1;
 
-#define LISTEN_NONE 0
+#define LISTEN_NONE   0
 #define LISTEN_KERNEL 1
-#define LISTEN_RAW 2
+#define LISTEN_RAW    2
 static smallint listen_mode;
 
 #define INIT_SELECTING  0
@@ -41,7 +41,7 @@ static smallint state;
 /* just a little helper */
 static void change_listen_mode(int new_mode)
 {
-	DEBUG("entering %s listen mode",
+	log1("entering %s listen mode",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
 
 	listen_mode = new_mode;
@@ -195,18 +195,17 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		OPT_s = 1 << 12,
 		OPT_T = 1 << 13,
 		OPT_t = 1 << 14,
-		OPT_v = 1 << 15,
-		OPT_S = 1 << 16,
-		OPT_A = 1 << 17,
-		OPT_O = 1 << 18,
-		OPT_o = 1 << 19,
-		OPT_f = 1 << 20,
+		OPT_S = 1 << 15,
+		OPT_A = 1 << 16,
+		OPT_O = 1 << 17,
+		OPT_o = 1 << 18,
+		OPT_f = 1 << 19,
 /* The rest has variable bit positions, need to be clever */
-		OPTBIT_f = 20,
-		USE_FOR_MMU(              OPTBIT_b,)
+		OPTBIT_f = 19,
+		USE_FOR_MMU(             OPTBIT_b,)
 		IF_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
 		IF_FEATURE_UDHCP_PORT(   OPTBIT_P,)
-		USE_FOR_MMU(              OPT_b = 1 << OPTBIT_b,)
+		USE_FOR_MMU(             OPT_b = 1 << OPTBIT_b,)
 		IF_FEATURE_UDHCPC_ARPING(OPT_a = 1 << OPTBIT_a,)
 		IF_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
 	};
@@ -219,18 +218,26 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Parse command line */
 	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
-	opt_complementary = "c--C:C--c:O::T+:t+:A+";
+	opt_complementary = "c--C:C--c:O::T+:t+:A+"
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+		":vv"
+#endif
+		;
 	IF_GETOPT_LONG(applet_long_options = udhcpc_longopts;)
-	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:vSA:O:of"
+	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:SA:O:of"
 		USE_FOR_MMU("b")
 		IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
+		"v"
 		, &str_c, &str_V, &str_h, &str_h, &str_F
 		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
 		, &client_config.script /* s */
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
 		, &list_O
 		IF_FEATURE_UDHCP_PORT(, &str_P)
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+		, &dhcp_verbose
+#endif
 		);
 	if (opt & OPT_c)
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
@@ -252,10 +259,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (opt & OPT_r)
 		requested_ip = inet_addr(str_r);
-	if (opt & OPT_v) {
-		puts("version "BB_VER);
-		return 0;
-	}
 #if ENABLE_FEATURE_UDHCP_PORT
 	if (opt & OPT_P) {
 		CLIENT_PORT = xatou16(str_P);
@@ -348,7 +351,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		retval = 0; /* If we already timed out, fall through, else... */
 		if (tv.tv_sec > 0) {
 			timestamp_before_wait = (unsigned)monotonic_sec();
-			DEBUG("Waiting on select...");
+			log1("Waiting on select...");
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 			if (retval < 0) {
 				/* EINTR? A signal was caught, don't panic */
@@ -428,7 +431,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case BOUND:
 				/* Half of the lease passed, time to enter renewing state */
 				change_listen_mode(LISTEN_KERNEL);
-				DEBUG("Entering renew state");
+				log1("Entering renew state");
 				state = RENEWING;
 				/* fall right through */
 			case RENEWING:
@@ -439,7 +442,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					continue;
 				}
 				/* Timed out, enter rebinding state */
-				DEBUG("Entering rebinding state");
+				log1("Entering rebinding state");
 				state = REBINDING;
 				/* fall right through */
 			case REBINDING:
@@ -477,7 +480,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			else
 				len = udhcp_recv_raw_packet(&packet, sockfd);
 			if (len == -1) { /* error is severe, reopen socket */
-				DEBUG("error on read, %s, reopening socket", strerror(errno));
+				bb_info_msg("Read error: %s, reopening socket", strerror(errno));
 				sleep(discover_timeout); /* 3 seconds by default */
 				change_listen_mode(listen_mode); /* just close and reopen */
 			}
@@ -489,20 +492,21 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 
 			if (packet.xid != xid) {
-				DEBUG("Ignoring xid %x (our xid is %x)",
+				log1("xid %x (our is %x), ignoring packet",
 					(unsigned)packet.xid, (unsigned)xid);
 				continue;
 			}
 
 			/* Ignore packets that aren't for us */
 			if (memcmp(packet.chaddr, client_config.client_mac, 6)) {
-				DEBUG("Packet does not have our chaddr - ignoring");
+//FIXME: need to also check that last 10 bytes are zero
+				log1("chaddr does not match, ignoring packet"); // log2?
 				continue;
 			}
 
 			message = get_option(&packet, DHCP_MESSAGE_TYPE);
 			if (message == NULL) {
-				bb_error_msg("cannot get message type from packet - ignoring");
+				bb_error_msg("no message type option, ignoring packet");
 				continue;
 			}
 
@@ -563,7 +567,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 								client_config.client_mac,
 								client_config.interface)
 						) {
-							bb_info_msg("offered address is in use "
+							bb_info_msg("Offered address is in use "
 								"(got ARP reply), declining");
 							send_decline(xid, server_addr, packet.yiaddr);
 

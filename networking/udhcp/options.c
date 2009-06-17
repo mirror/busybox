@@ -205,7 +205,7 @@ int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 				string[OPT_CODE]);
 		return 0;
 	}
-	DEBUG("adding option 0x%02x", string[OPT_CODE]);
+	log1("Adding option 0x%02x", string[OPT_CODE]);
 	memcpy(optionptr + end, string, string[OPT_LEN] + 2);
 	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
 	return string[OPT_LEN] + 2;

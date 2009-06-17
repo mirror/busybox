@@ -203,7 +203,7 @@ int FAST_FUNC send_release(uint32_t server, uint32_t ciaddr)
 
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
-int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
+int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *dhcp_pkt, int fd)
 {
 	int bytes;
 	struct udp_dhcp_packet packet;
@@ -212,19 +212,19 @@ int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 	memset(&packet, 0, sizeof(packet));
 	bytes = safe_read(fd, &packet, sizeof(packet));
 	if (bytes < 0) {
-		DEBUG("Cannot read on raw listening socket - ignoring");
+		log1("Packet read error, ignoring");
 		/* NB: possible down interface, etc. Caller should pause. */
 		return bytes; /* returns -1 */
 	}
 
 	if (bytes < (int) (sizeof(packet.ip) + sizeof(packet.udp))) {
-		DEBUG("Packet is too short, ignoring");
+		log1("Packet is too short, ignoring");
 		return -2;
 	}
 
 	if (bytes < ntohs(packet.ip.tot_len)) {
 		/* packet is bigger than sizeof(packet), we did partial read */
-		DEBUG("Oversized packet, ignoring");
+		log1("Oversized packet, ignoring");
 		return -2;
 	}
 
@@ -238,7 +238,7 @@ int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 	/* || bytes > (int) sizeof(packet) - can't happen */
 	 || ntohs(packet.udp.len) != (uint16_t)(bytes - sizeof(packet.ip))
 	) {
-		DEBUG("Unrelated/bogus packet");
+		log1("Unrelated/bogus packet, ignoring");
 		return -2;
 	}
 
@@ -246,7 +246,7 @@ int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 	check = packet.ip.check;
 	packet.ip.check = 0;
 	if (check != udhcp_checksum(&packet.ip, sizeof(packet.ip))) {
-		DEBUG("Bad IP header checksum, ignoring");
+		log1("Bad IP header checksum, ignoring");
 		return -2;
 	}
 
@@ -257,16 +257,17 @@ int FAST_FUNC udhcp_recv_raw_packet(struct dhcpMessage *payload, int fd)
 	check = packet.udp.check;
 	packet.udp.check = 0;
 	if (check && check != udhcp_checksum(&packet, bytes)) {
-		bb_error_msg("packet with bad UDP checksum received, ignoring");
+		log1("Packet with bad UDP checksum received, ignoring");
 		return -2;
 	}
 
-	memcpy(payload, &packet.data, bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
+	memcpy(dhcp_pkt, &packet.data, bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
-	if (payload->cookie != htonl(DHCP_MAGIC)) {
-		bb_error_msg("received bogus message (bad magic), ignoring");
+	if (dhcp_pkt->cookie != htonl(DHCP_MAGIC)) {
+		bb_info_msg("Packet with bad magic, ignoring");
 		return -2;
 	}
-	DEBUG("Got valid DHCP packet");
+	log1("Got valid DHCP packet");
+	udhcp_dump_packet(dhcp_pkt);
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
 }
