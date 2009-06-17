@@ -9,10 +9,9 @@
  */
 
 /* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
- * we expect the full dependency list to be specified in modules.dep.  Older
- * versions would only export the direct dependency list.
+ * we expect the full dependency list to be specified in modules.dep.
+ * Older versions would only export the direct dependency list.
  */
-
 #include "libbb.h"
 #include "modutils.h"
 #include <sys/utsname.h>
@@ -21,11 +20,11 @@
 //#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
 #define DBG(...) ((void)0)
 
-#define MODULE_FLAG_LOADED		0x0001
-#define MODULE_FLAG_NEED_DEPS		0x0002
+#define MODULE_FLAG_LOADED              0x0001
+#define MODULE_FLAG_NEED_DEPS           0x0002
 /* "was seen in modules.dep": */
-#define MODULE_FLAG_FOUND_IN_MODDEP	0x0004
-#define MODULE_FLAG_BLACKLISTED		0x0008
+#define MODULE_FLAG_FOUND_IN_MODDEP     0x0004
+#define MODULE_FLAG_BLACKLISTED         0x0008
 
 struct module_entry { /* I'll call it ME. */
 	unsigned flags;
@@ -38,18 +37,30 @@ struct module_entry { /* I'll call it ME. */
 	llist_t *deps; /* strings. modules we depend on */
 };
 
+/* NB: INSMOD_OPT_SILENT bit suppresses ONLY non-existent modules,
+ * not deleted ones (those are still listed in modules.dep).
+ * module-init-tools version 3.4:
+ * # modprobe bogus
+ * FATAL: Module bogus not found. [exitcode 1]
+ * # modprobe -q bogus            [silent, exitcode still 1]
+ * but:
+ * # rm kernel/drivers/net/dummy.ko
+ * # modprobe -q dummy
+ * FATAL: Could not open '/lib/modules/xxx/kernel/drivers/net/dummy.ko': No such file or directory
+ * [exitcode 1]
+ */
 #define MODPROBE_OPTS  "acdlnrt:VC:" IF_FEATURE_MODPROBE_BLACKLIST("b")
 enum {
-	MODPROBE_OPT_INSERT_ALL	= (INSMOD_OPT_UNUSED << 0), /* a */
-	MODPROBE_OPT_DUMP_ONLY	= (INSMOD_OPT_UNUSED << 1), /* c */
-	MODPROBE_OPT_D		= (INSMOD_OPT_UNUSED << 2), /* d */
-	MODPROBE_OPT_LIST_ONLY	= (INSMOD_OPT_UNUSED << 3), /* l */
-	MODPROBE_OPT_SHOW_ONLY	= (INSMOD_OPT_UNUSED << 4), /* n */
-	MODPROBE_OPT_REMOVE	= (INSMOD_OPT_UNUSED << 5), /* r */
-	MODPROBE_OPT_RESTRICT	= (INSMOD_OPT_UNUSED << 6), /* t */
-	MODPROBE_OPT_VERONLY	= (INSMOD_OPT_UNUSED << 7), /* V */
-	MODPROBE_OPT_CONFIGFILE	= (INSMOD_OPT_UNUSED << 8), /* C */
-	MODPROBE_OPT_BLACKLIST	= (INSMOD_OPT_UNUSED << 9) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
+	MODPROBE_OPT_INSERT_ALL = (INSMOD_OPT_UNUSED << 0), /* a */
+	MODPROBE_OPT_DUMP_ONLY  = (INSMOD_OPT_UNUSED << 1), /* c */
+	MODPROBE_OPT_D          = (INSMOD_OPT_UNUSED << 2), /* d */
+	MODPROBE_OPT_LIST_ONLY  = (INSMOD_OPT_UNUSED << 3), /* l */
+	MODPROBE_OPT_SHOW_ONLY  = (INSMOD_OPT_UNUSED << 4), /* n */
+	MODPROBE_OPT_REMOVE     = (INSMOD_OPT_UNUSED << 5), /* r */
+	MODPROBE_OPT_RESTRICT   = (INSMOD_OPT_UNUSED << 6), /* t */
+	MODPROBE_OPT_VERONLY    = (INSMOD_OPT_UNUSED << 7), /* V */
+	MODPROBE_OPT_CONFIGFILE = (INSMOD_OPT_UNUSED << 8), /* C */
+	MODPROBE_OPT_BLACKLIST  = (INSMOD_OPT_UNUSED << 9) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
 };
 
 struct globals {
@@ -140,7 +151,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 {
 	char *tokens[3];
 	parser_t *p;
-        struct module_entry *m;
+	struct module_entry *m;
 	int rc = TRUE;
 
 	if (bb_basename(filename)[0] == '.')
@@ -199,7 +210,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 		}
 	}
 	config_close(p);
-error:
+ error:
 	return rc;
 }
 
@@ -209,6 +220,11 @@ static int read_config(const char *path)
 				config_file_action, NULL, NULL, 1);
 }
 
+/* Return: similar to bb_init_module:
+ * 0 on success,
+ * -errno on open/read error,
+ * errno on init_module() error
+ */
 static int do_modprobe(struct module_entry *m)
 {
 	struct module_entry *m2 = m2; /* for compiler */
@@ -217,7 +233,8 @@ static int do_modprobe(struct module_entry *m)
 	llist_t *l;
 
 	if (!(m->flags & MODULE_FLAG_FOUND_IN_MODDEP)) {
-		DBG("skipping %s, not found in modules.dep", m->modname);
+		if (!(option_mask32 & INSMOD_OPT_SILENT))
+			bb_error_msg("module %s not found in modules.dep", m->probed_name);
 		return -ENOENT;
 	}
 	DBG("do_modprob'ing %s", m->modname);
@@ -230,43 +247,52 @@ static int do_modprobe(struct module_entry *m)
 
 	first = 1;
 	rc = 0;
-	while (m->deps && rc == 0) {
-		fn = llist_pop(&m->deps);
+	while (m->deps) {
+		rc = 0;
+		fn = llist_pop(&m->deps); /* we leak it */
 		m2 = get_or_add_modentry(fn);
+
 		if (option_mask32 & MODPROBE_OPT_REMOVE) {
+			/* modprobe -r */
 			if (m2->flags & MODULE_FLAG_LOADED) {
-				if (bb_delete_module(m2->modname, O_EXCL) != 0) {
-					if (first)
-						rc = errno;
+				rc = bb_delete_module(m2->modname, O_EXCL);
+				if (rc) {
+					if (first) {
+						bb_error_msg("failed to unload module %s: %s",
+							m2->probed_name ? m2->probed_name : m2->modname,
+							moderror(rc));
+						break;
+					}
 				} else {
 					m2->flags &= ~MODULE_FLAG_LOADED;
 				}
 			}
 			/* do not error out if *deps* fail to unload */
 			first = 0;
-		} else if (!(m2->flags & MODULE_FLAG_LOADED)) {
-			options = m2->options;
-			m2->options = NULL;
-			if (m == m2)
-				options = gather_options_str(options, G.cmdline_mopts);
-			rc = bb_init_module(fn, options);
-			DBG("loaded %s '%s', rc:%d", fn, options, rc);
-			if (rc == 0)
-				m2->flags |= MODULE_FLAG_LOADED;
-			free(options);
-		} else {
-			DBG("%s is already loaded, skipping", fn);
+			continue;
 		}
 
-		free(fn);
-	}
+		if (m2->flags & MODULE_FLAG_LOADED) {
+			DBG("%s is already loaded, skipping", fn);
+			continue;
+		}
 
-	if (rc && !(option_mask32 & INSMOD_OPT_SILENT)) {
-		bb_error_msg("failed to %sload module %s: %s",
-			(option_mask32 & MODPROBE_OPT_REMOVE) ? "un" : "",
+		options = m2->options;
+		m2->options = NULL;
+		if (m == m2)
+			options = gather_options_str(options, G.cmdline_mopts);
+		rc = bb_init_module(fn, options);
+		DBG("loaded %s '%s', rc:%d", fn, options, rc);
+		free(options);
+		if (rc) {
+			bb_error_msg("failed to load module %s (%s): %s",
 			m2->probed_name ? m2->probed_name : m2->modname,
-			moderror(rc)
-		);
+				fn,
+				moderror(rc)
+			);
+			break;
+		}
+		m2->flags |= MODULE_FLAG_LOADED;
 	}
 
 	return rc;
@@ -278,7 +304,7 @@ static void load_modules_dep(void)
 	char *colon, *tokens[2];
 	parser_t *p;
 
-	/* Modprobe does not work at all without modprobe.dep,
+	/* Modprobe does not work at all without modules.dep,
 	 * even if the full module name is given. Returning error here
 	 * was making us later confuse user with this message:
 	 * "module /full/path/to/existing/file/module.ko not found".
@@ -387,35 +413,40 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		load_modules_dep();
 	}
 
+	rc = 0;
 	while ((me = llist_pop(&G.probes)) != NULL) {
 		if (me->realnames == NULL) {
+			DBG("probing by module name");
 			/* This is not an alias. Literal names are blacklisted
 			 * only if '-b' is given.
 			 */
 			if (!(opt & MODPROBE_OPT_BLACKLIST)
 			 || !(me->flags & MODULE_FLAG_BLACKLISTED)
 			) {
-				rc = do_modprobe(me);
-//FIXME: what if rc > 0?
-				if (rc < 0 && !(opt & INSMOD_OPT_SILENT))
-					bb_error_msg("module %s not found",
-						     me->probed_name);
+				rc |= do_modprobe(me);
 			}
-		} else {
-			/* Probe all realnames */
-			do {
-				char *realname = llist_pop(&me->realnames);
-				struct module_entry *m2;
-
-				DBG("probing %s by realname %s", me->modname, realname);
-				m2 = get_or_add_modentry(realname);
-				if (!(m2->flags & MODULE_FLAG_BLACKLISTED))
-					do_modprobe(m2);
-//FIXME: error check?
-				free(realname);
-			} while (me->realnames != NULL);
+			continue;
 		}
+
+		/* Probe all real names for the alias */
+		do {
+			char *realname = llist_pop(&me->realnames);
+			struct module_entry *m2;
+
+			DBG("probing alias %s by realname %s", me->modname, realname);
+			m2 = get_or_add_modentry(realname);
+			if (!(m2->flags & MODULE_FLAG_BLACKLISTED)
+			 && (!(m2->flags & MODULE_FLAG_LOADED)
+			    || (opt & MODPROBE_OPT_REMOVE))
+			) {
+//TODO: we can pass "me" as 2nd param to do_modprobe,
+//and make do_modprobe emit more meaningful error messages
+//with alias name included, not just module name alias resolves to.
+				rc |= do_modprobe(m2);
+			}
+			free(realname);
+		} while (me->realnames != NULL);
 	}
 
-	return EXIT_SUCCESS;
+	return (rc != 0);
 }

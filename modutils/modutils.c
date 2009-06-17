@@ -25,7 +25,7 @@ void FAST_FUNC replace(char *s, char what, char with)
 	}
 }
 
-char * FAST_FUNC replace_underscores(char *s)
+char* FAST_FUNC replace_underscores(char *s)
 {
 	replace(s, '-', '_');
 	return s;
@@ -45,7 +45,7 @@ int FAST_FUNC string_to_llist(char *string, llist_t **llist, const char *delim)
 	return len;
 }
 
-char * FAST_FUNC filename2modname(const char *filename, char *modname)
+char* FAST_FUNC filename2modname(const char *filename, char *modname)
 {
 	int i;
 	char *from;
@@ -60,24 +60,6 @@ char * FAST_FUNC filename2modname(const char *filename, char *modname)
 	modname[i] = '\0';
 
 	return modname;
-}
-
-const char * FAST_FUNC moderror(int err)
-{
-	switch (err) {
-	case -1:
-		return "no such module";
-	case ENOEXEC:
-		return "invalid module format";
-	case ENOENT:
-		return "unknown symbol in module, or unknown parameter";
-	case ESRCH:
-		return "module has wrong symbol version";
-	case ENOSYS:
-		return "kernel does not support requested operation";
-	default:
-		return strerror(err);
-	}
 }
 
 char * FAST_FUNC parse_cmdline_module_options(char **argv)
@@ -95,6 +77,11 @@ char * FAST_FUNC parse_cmdline_module_options(char **argv)
 	return options;
 }
 
+/* Return:
+ * 0 on success,
+ * -errno on open/read error,
+ * errno on init_module() error
+ */
 int FAST_FUNC bb_init_module(const char *filename, const char *options)
 {
 	size_t len;
@@ -104,6 +91,7 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	if (!options)
 		options = "";
 
+//TODO: audit bb_init_module_24 to match error code convention
 #if ENABLE_FEATURE_2_4_MODULES
 	if (get_linux_version_code() < KERNEL_VERSION(2,6,0))
 		return bb_init_module_24(filename, options);
@@ -111,19 +99,40 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 
 	/* Use the 2.6 way */
 	len = INT_MAX - 4095;
-	rc = ENOENT;
+	errno = ENOMEM; /* may be changed by e.g. open errors below */
 	image = xmalloc_open_zipped_read_close(filename, &len);
-	if (image) {
-		rc = 0;
-		if (init_module(image, len, options) != 0)
-			rc = errno;
-		free(image);
-	}
+	if (!image)
+		return -errno;
 
+	errno = 0;
+	init_module(image, len, options);
+	rc = errno;
+	free(image);
 	return rc;
 }
 
 int FAST_FUNC bb_delete_module(const char *module, unsigned int flags)
 {
-	return delete_module(module, flags);
+	errno = 0;
+	delete_module(module, flags);
+	return errno;
+}
+
+const char* FAST_FUNC moderror(int err)
+{
+	switch (err) {
+	case -1: /* btw: it's -EPERM */
+		return "no such module";
+	case ENOEXEC:
+		return "invalid module format";
+	case ENOENT:
+		return "unknown symbol in module, or unknown parameter";
+	case ESRCH:
+		return "module has wrong symbol version";
+	case ENOSYS:
+		return "kernel does not support requested operation";
+	}
+	if (err < 0) /* should always be */
+		err = -err;
+	return strerror(err);
 }

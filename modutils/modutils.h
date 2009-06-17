@@ -17,7 +17,6 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
  * internally for the maximum alias name length, which can be quite long */
 #define MODULE_NAME_LEN 256
 
-const char *moderror(int err) FAST_FUNC;
 void replace(char *s, char what, char with) FAST_FUNC;
 char *replace_underscores(char *s) FAST_FUNC;
 int string_to_llist(char *string, llist_t **llist, const char *delim) FAST_FUNC;
@@ -52,8 +51,19 @@ enum {
 #endif
 };
 
+/* Return:
+ * 0 on success,
+ * -errno on open/read error,
+ * errno on init_module() error
+ */
 int FAST_FUNC bb_init_module(const char *module, const char *options);
+/* Return:
+ * 0 on success,
+ * errno on init_module() error
+ */
 int FAST_FUNC bb_delete_module(const char *module, unsigned int flags);
+/* Translates error return to a string */
+const char *moderror(int err) FAST_FUNC;
 
 #if ENABLE_FEATURE_2_4_MODULES
 int FAST_FUNC bb_init_module_24(const char *module, const char *options);
