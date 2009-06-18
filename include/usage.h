@@ -4209,7 +4209,14 @@
 #define sync_trivial_usage \
        ""
 #define sync_full_usage "\n\n" \
-       "Write all buffered filesystem blocks to disk"
+       "Write all buffered blocks to disk"
+
+#define fsync_trivial_usage \
+       "[OPTION]... FILE..."
+#define fsync_full_usage \
+       "Write files' buffered blocks to disk\n" \
+     "\nOptions:" \
+     "\n	-d	Avoid syncing metadata"
 
 #define sysctl_trivial_usage \
        "[OPTIONS]... [VALUE]..."

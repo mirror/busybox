@@ -249,6 +249,12 @@ config FOLD
 	help
 	  Wrap text to fit a specific width.
 
+config FSYNC
+	bool "fsync"
+	default n
+	help
+	  fsync is used to flush file-related cached blocks to disk.
+
 config HEAD
 	bool "head"
 	default n

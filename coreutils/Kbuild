@@ -36,6 +36,7 @@ lib-$(CONFIG_EXPR)      += expr.o
 lib-$(CONFIG_EXPAND)    += expand.o
 lib-$(CONFIG_FALSE)     += false.o
 lib-$(CONFIG_FOLD)      += fold.o
+lib-$(CONFIG_FSYNC)     += fsync.o
 lib-$(CONFIG_HEAD)      += head.o
 lib-$(CONFIG_HOSTID)    += hostid.o
 lib-$(CONFIG_ID)        += id.o
