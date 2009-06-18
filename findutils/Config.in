@@ -12,7 +12,7 @@ config FIND
 	  find is used to search your system to find specified files.
 
 config FEATURE_FIND_PRINT0
-	bool "Enable -print0: NUL-separated output"
+	bool "Enable -print0: NUL-terminated output"
 	default y
 	depends on FIND
 	help
@@ -235,7 +235,7 @@ config FEATURE_XARGS_SUPPORT_TERMOPT
 	  is exceeded.
 
 config FEATURE_XARGS_SUPPORT_ZERO_TERM
-	bool "Enable -0: null terminated input"
+	bool "Enable -0: NUL-terminated input"
 	default n
 	depends on XARGS
 	help
