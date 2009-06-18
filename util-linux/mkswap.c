@@ -5,7 +5,6 @@
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 #if ENABLE_SELINUX
@@ -48,7 +47,33 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 	bb_perror_msg_and_die("SELinux relabeling failed");
 }
 #else
-#define mkswap_selinux_setcontext(fd, path) ((void)0)
+# define mkswap_selinux_setcontext(fd, path) ((void)0)
+#endif
+
+#if ENABLE_DESKTOP
+static void mkswap_generate_uuid(uint8_t *buf)
+{
+	unsigned i;
+	char uuid_string[32];
+
+	/* rand() is guaranteed to generate at least [0, 2^15) range,
+	 * but lowest bits in some libc are not so "random".  */
+	srand((unsigned)monotonic_us() + getpid());
+	for (i = 0; i < 16; i++)
+		buf[i] = rand() >> 5;
+
+	bin2hex(uuid_string, (void*) buf, 16);
+	/* f.e. UUID=dfd9c173-be52-4d27-99a5-c34c6c2ff55f */
+	printf("UUID=%.8s"  "-%.4s-%.4s-%.4s-%.12s\n",
+		uuid_string,
+		uuid_string+8,
+		uuid_string+8+4,
+		uuid_string+8+4+4,
+		uuid_string+8+4+4+4
+	);
+}
+#else
+# define mkswap_generate_uuid(buf) ((void)0)
 #endif
 
 #if 0 /* from Linux 2.6.23 */
@@ -113,10 +138,10 @@ int mkswap_main(int argc, char **argv)
 	// Make a header. hdr is zero-filled so far...
 	hdr[0] = 1;
 	hdr[1] = (len / pagesize) - 1;
+	mkswap_generate_uuid((void*) &hdr[3]);
 
 	// Write the header.  Sync to disk because some kernel versions check
 	// signature on disk (not in cache) during swapon.
-
 	xlseek(fd, 1024, SEEK_SET);
 	xwrite(fd, hdr, NWORDS * 4);
 	xlseek(fd, pagesize - 10, SEEK_SET);
