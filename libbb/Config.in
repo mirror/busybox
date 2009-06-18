@@ -163,4 +163,5 @@ config FEATURE_HWIB
 	help
 	  Support for printing infiniband addresses in
 	  network applets.
+
 endmenu

@@ -17,7 +17,11 @@ config FEATURE_UNIX_LOCAL
 	default n
 	help
 	  Enable Unix domain socket support in all busybox networking
-	  applets.
+	  applets.  Address of the form local:/path/to/unix/socket
+	  will be recognized.
+
+	  This extension is almost never used in real world usage.
+	  You most likely want to say N.
 
 config FEATURE_PREFER_IPV4_ADDRESS
 	bool "Prefer IPv4 addresses from DNS queries"
@@ -833,15 +837,14 @@ config TFTP_DEBUG
 	default n
 	depends on TFTP || TFTPD
 	help
-	  Enable debug settings for tftp. This is useful if you're running
-	  into problems with tftp as the protocol doesn't help you much when
-	  you run into problems.
+	  Make tftp[d] print debugging messages on stderr.
+	  This is useful if you are diagnosing a bug in tftp[d].
 
 config TRACEROUTE
 	bool "traceroute"
 	default n
 	help
-	  Utility to trace the route of IP packets
+	  Utility to trace the route of IP packets.
 
 config FEATURE_TRACEROUTE_VERBOSE
 	bool "Enable verbose output"

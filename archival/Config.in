@@ -53,12 +53,12 @@ config AR
 	  probably say N here.
 
 config FEATURE_AR_LONG_FILENAMES
-	bool "Support for long filenames (not need for debs)"
+	bool "Support for long filenames (not needed for debs)"
 	default n
 	depends on AR
 	help
-	  By default the ar format can only store the first 15 characters of
-	  the filename, this option removes that limitation.
+	  By default the ar format can only store the first 15 characters
+	  of the filename, this option removes that limitation.
 	  It supports the GNU ar long filename method which moves multiple long
 	  filenames into a the data section of a new ar entry.
 
@@ -211,11 +211,11 @@ config FEATURE_TAR_CREATE
 	  tar archives using the `-c' option.
 
 config FEATURE_TAR_AUTODETECT
-	bool "Autodetect gz/bz2 compressed tarballs"
+	bool "Autodetect compressed tarballs"
 	default n
 	depends on FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA
 	help
-	  With this option tar can automatically detect gzip/bzip2 compressed
+	  With this option tar can automatically detect compressed
 	  tarballs. Currently it works only on files (not pipes etc).
 
 config FEATURE_TAR_FROM

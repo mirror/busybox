@@ -193,7 +193,7 @@ char* FAST_FUNC INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
 
 	if (sin6->sin6_family != AF_INET6) {
 #ifdef DEBUG
-		bb_error_msg("rresolve: unsupport address family %d!",
+		bb_error_msg("rresolve: unsupported address family %d!",
 				  sin6->sin6_family);
 #endif
 		errno = EAFNOSUPPORT;
