@@ -406,16 +406,6 @@ config MKSWAP
 	  Once you have created swap space using 'mkswap' you need to enable
 	  the swap space using the 'swapon' utility.
 
-config FEATURE_MKSWAP_V0
-	bool "Version 0 support"
-	default n
-	depends on MKSWAP
-#	depends on MKSWAP && DEPRECATED
-	help
-	  Enable support for the old v0 style.
-	  If your kernel is older than 2.1.117, then v0 support is the
-	  only option.
-
 config FEATURE_MKSWAP_UUID
 	bool "UUID support"
 	default n
