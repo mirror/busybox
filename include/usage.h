@@ -2901,6 +2901,9 @@
      "\n	-f		Dry run" \
 	) \
 	) \
+	IF_FEATURE_MOUNT_HELPERS( \
+     "\n	-i		Don't run mount helper" \
+	) \
 	IF_FEATURE_MTAB_SUPPORT( \
      "\n	-n		Don't update /etc/mtab" \
 	) \

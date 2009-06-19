@@ -79,15 +79,21 @@ enum {
 };
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
-#define useMtab (!(option_mask32 & OPT_n))
+#define USE_MTAB (!(option_mask32 & OPT_n))
 #else
-#define useMtab 0
+#define USE_MTAB 0
 #endif
 
 #if ENABLE_FEATURE_MOUNT_FAKE
-#define fakeIt (option_mask32 & OPT_f)
+#define FAKE_IT (option_mask32 & OPT_f)
 #else
-#define fakeIt 0
+#define FAKE_IT 0
+#endif
+
+#if ENABLE_FEATURE_MOUNT_HELPERS
+#define HELPERS_ALLOWED (!(option_mask32 & OPT_i))
+#else
+#define HELPERS_ALLOWED 0
 #endif
 
 
@@ -360,7 +366,7 @@ static llist_t *get_block_backed_filesystems(void)
 		"/proc/filesystems",
 	};
 	char *fs, *buf;
-	llist_t *list = 0;
+	llist_t *list = NULL;
 	int i;
 	FILE *f;
 
@@ -369,10 +375,11 @@ static llist_t *get_block_backed_filesystems(void)
 		if (!f) continue;
 
 		while ((buf = xmalloc_fgetline(f)) != NULL) {
-			if (!strncmp(buf, "nodev", 5) && isspace(buf[5]))
+			if (strncmp(buf, "nodev", 5) == 0 && isspace(buf[5]))
 				continue;
 			fs = skip_whitespace(buf);
-			if (*fs=='#' || *fs=='*' || !*fs) continue;
+			if (*fs == '#' || *fs == '*' || !*fs)
+				continue;
 
 			llist_add_to_end(&list, xstrdup(fs));
 			free(buf);
@@ -398,7 +405,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 {
 	int rc = 0;
 
-	if (fakeIt) {
+	if (FAKE_IT) {
 		if (verbose >= 2)
 			bb_error_msg("would do mount('%s','%s','%s',0x%08lx,'%s')",
 				mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
@@ -414,11 +421,15 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 
 		// If mount failed, try
 		// helper program mount.<mnt_type>
-		if (ENABLE_FEATURE_MOUNT_HELPERS && rc) {
-			char *args[6];
+		if (HELPERS_ALLOWED && rc) {
+			char *args[8];
 			int errno_save = errno;
 			args[0] = xasprintf("mount.%s", mp->mnt_type);
 			rc = 1;
+			if (FAKE_IT)
+				args[rc++] = (char *)"-f";
+			if (ENABLE_FEATURE_MTAB_SUPPORT && !USE_MTAB)
+				args[rc++] = (char *)"-n";
 			args[rc++] = mp->mnt_fsname;
 			args[rc++] = mp->mnt_dir;
 			if (filteropts) {
@@ -449,7 +460,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 	// If the mount was successful, and we're maintaining an old-style
 	// mtab file by hand, add the new entry to it now.
  mtab:
-	if (useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
+	if (USE_MTAB && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		const char *option_str = mount_option_str;
@@ -1570,8 +1581,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 {
 	int rc = -1;
 	long vfsflags;
-	char *loopFile = 0, *filteropts = 0;
-	llist_t *fl = 0;
+	char *loopFile = NULL, *filteropts = NULL;
+	llist_t *fl = NULL;
 	struct stat st;
 
 	vfsflags = parse_mount_options(mp->mnt_opts, &filteropts);
@@ -1581,21 +1592,28 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		mp->mnt_type = NULL;
 
 	// Might this be a virtual filesystem?
-	if (ENABLE_FEATURE_MOUNT_HELPERS
-	 && (strchr(mp->mnt_fsname, '#'))
-	) {
-		char *s, *p, *args[35];
-		int n = 0;
-// FIXME: does it allow execution of arbitrary commands?!
-// What args[0] can end up with?
-		for (s = p = mp->mnt_fsname; *s && n < 35-3; ++s) {
-			if (s[0] == '#' && s[1] != '#') {
-				*s = '\0';
-				args[n++] = p;
-				p = s + 1;
+	if (ENABLE_FEATURE_MOUNT_HELPERS && strchr(mp->mnt_fsname, '#')) {
+		char *args[35];
+		char *s;
+		int n;
+		// fsname: "cmd#arg1#arg2..."
+		// WARNING: allows execution of arbitrary commands!
+		// Try "mount 'sh#-c#sh' bogus_dir".
+		// It is safe ONLY because non-root
+		// cannot use two-argument mount command
+		// and using one-argument "mount 'sh#-c#sh'" doesn't work:
+		// "mount: can't find sh#-c#sh in /etc/fstab"
+		// (if /etc/fstab has it, it's ok: root sets up /etc/fstab).
+
+		s = mp->mnt_fsname;
+		n = 0;
+		args[n++] = s;
+		while (*s && n < 35 - 2) {
+			if (*s++ == '#' && *s != '#') {
+				s[-1] = '\0';
+				args[n++] = s;
 			}
 		}
-		args[n++] = p;
 		args[n++] = mp->mnt_dir;
 		args[n] = NULL;
 		rc = wait4pid(xspawn(args));
@@ -1704,7 +1722,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 			rc = mount_it_now(mp, vfsflags, filteropts);
-			if (!rc) break;
+			if (!rc)
+				break;
 		}
 	}
 
