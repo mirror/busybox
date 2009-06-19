@@ -50,7 +50,7 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 # define mkswap_selinux_setcontext(fd, path) ((void)0)
 #endif
 
-#if ENABLE_DESKTOP
+#if ENABLE_FEATURE_MKSWAP_UUID
 static void mkswap_generate_uuid(uint8_t *buf)
 {
 	/* http://www.ietf.org/rfc/rfc4122.txt
