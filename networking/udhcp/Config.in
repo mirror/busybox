@@ -75,9 +75,9 @@ config FEATURE_UDHCP_PORT
 	  This feature is typically not needed.
 
 config UDHCP_DEBUG
-	int "Maximum verbosity level for udhcp applets (0..3)"
+	int "Maximum verbosity level for udhcp applets (0..9)"
 	default 0
-	range 0 3
+	range 0 9
 	depends on APP_UDHCPD || APP_UDHCPC || APP_DHCPRELAY
 	help
 	  Verbosity can be increased with multiple -v options.

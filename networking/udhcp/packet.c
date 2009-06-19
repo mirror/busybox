@@ -36,7 +36,7 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
 }
 
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
 void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 {
 	char buf[sizeof(packet->chaddr)*2 + 1];
