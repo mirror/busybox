@@ -53,14 +53,65 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 #if ENABLE_DESKTOP
 static void mkswap_generate_uuid(uint8_t *buf)
 {
+	pid_t pid;
 	unsigned i;
 	char uuid_string[32];
 
-	/* rand() is guaranteed to generate at least [0, 2^15) range,
+	/* http://www.ietf.org/rfc/rfc4122.txt
+	 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	 * |                          time_low                             |
+	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	 * |       time_mid                |         time_hi_and_version   |
+	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	 * |clk_seq__and_variant           |         node (0-1)            |
+	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	 * |                         node (2-5)                            |
+	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	 * IOW, uuid has this layout:
+	 * uint32_t time_low (big endian)
+	 * uint16_t time_mid (big endian)
+	 * uint16_t time_hi_and_version (big endian)
+	 *  version is a 4-bit field:
+	 *   1 Time-based version
+	 *   2 DCE Security version, with embedded POSIX UIDs
+	 *   3 Name-based version (MD5)
+	 *   4 Randomly generated version
+	 *   5 Name-based version (SHA-1)
+	 * uint16_t clk_seq_and_variant (big endian)
+	 *  variant is a 3-bit field:
+	 *   0xx Reserved, NCS backward compatibility
+	 *   10x The variant specified in rfc4122
+	 *   110 Reserved, Microsoft backward compatibility
+	 *   111 Reserved for future definition
+	 * uint8_t node[6]
+	 *
+	 * For version 4, these bits are set/cleared:
+	 * time_hi_and_version & 0x0fff | 0x4000
+	 * clk_seq_and_variant & 0x3fff | 0x8000
+	 */
+
+	i = open("/dev/urandom", O_RDONLY);
+	if (i >= 0) {
+		read(i, buf, 16);
+		close(i);
+	}
+	/* Paranoia. /dev/urandom may be missing.
+	 * rand() is guaranteed to generate at least [0, 2^15) range,
 	 * but lowest bits in some libc are not so "random".  */
-	srand((unsigned)monotonic_us() + getpid());
-	for (i = 0; i < 16; i++)
-		buf[i] = rand() >> 5;
+	srand(monotonic_us());
+	pid = getpid();
+	while (1) {
+		for (i = 0; i < 16; i++)
+			buf[i] ^= rand() >> 5;
+		if (pid == 0)
+			break;
+		srand(pid);
+		pid = 0;
+	}
+
+	buf[4 + 2    ] = (buf[4 + 2    ] & 0x0f) | 0x40; /* time_hi_and_version */
+	buf[4 + 2 + 2] = (buf[4 + 2 + 2] & 0x3f) | 0x80; /* clk_seq_and_variant */
 
 	bin2hex(uuid_string, (void*) buf, 16);
 	/* f.e. UUID=dfd9c173-be52-4d27-99a5-c34c6c2ff55f */
