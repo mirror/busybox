@@ -114,7 +114,7 @@ config LOCALE_SUPPORT
 	  Enable this if your system has locale support and you would like
 	  busybox to support locale settings.
 
-config GETOPT_LONG
+config LONG_OPTS
 	bool "Support for --long-options"
 	default y
 	help

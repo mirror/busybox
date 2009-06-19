@@ -457,7 +457,7 @@ int ifenslave_main(int argc UNUSED_PARAM, char **argv)
 		OPT_d = (1 << 1),
 		OPT_f = (1 << 2),
 	};
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char ifenslave_longopts[] ALIGN1 =
 		"change-active\0"  No_argument "c"
 		"detach\0"         No_argument "d"

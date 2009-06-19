@@ -41,7 +41,7 @@ int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc UNUSED_PARAM, char **argv)
 {
 #if ENABLE_DESKTOP
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char longopts[] ALIGN1 =
 		/* name, has_arg, val */
 		"no-create\0"         No_argument       "c"
@@ -59,7 +59,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	int opts;
 
 #if ENABLE_DESKTOP
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	applet_long_options = longopts;
 #endif
 #endif

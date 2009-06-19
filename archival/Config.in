@@ -256,7 +256,7 @@ config FEATURE_TAR_GNU_EXTENSIONS
 config FEATURE_TAR_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on TAR && GETOPT_LONG
+	depends on TAR && LONG_OPTS
 	help
 	  Enable use of long options, increases size by about 400 Bytes
 

@@ -16,7 +16,7 @@ config CHCON
 config FEATURE_CHCON_LONG_OPTIONS
 	bool "Enable long options"
 	default y
-	depends on CHCON && GETOPT_LONG
+	depends on CHCON && LONG_OPTS
 	help
 	  Support long options for the chcon applet.
 
@@ -67,7 +67,7 @@ config RUNCON
 config FEATURE_RUNCON_LONG_OPTIONS
 	bool "Enable long options"
 	default y
-	depends on RUNCON && GETOPT_LONG
+	depends on RUNCON && LONG_OPTS
 	help
 	  Support long options for the runcon applet.
 

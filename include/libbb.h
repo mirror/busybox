@@ -835,7 +835,7 @@ int sanitize_env_if_suid(void) FAST_FUNC;
 
 extern const char *const bb_argv_dash[]; /* "-", NULL */
 extern const char *opt_complementary;
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 #define No_argument "\0"
 #define Required_argument "\001"
 #define Optional_argument "\002"

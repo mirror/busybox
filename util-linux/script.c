@@ -36,7 +36,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 		OPT_t = (1 << 4),
 	};
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char getopt_longopts[] ALIGN1 =
 		"append\0"  No_argument       "a"
 		"command\0" Required_argument "c"

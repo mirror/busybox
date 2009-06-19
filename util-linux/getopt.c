@@ -38,7 +38,7 @@
    mode */
 enum {
 	NON_OPT = 1,
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 /* LONG_OPT is the code that is returned when a long option is found. */
 	LONG_OPT = 2
 #endif
@@ -53,7 +53,7 @@ enum {
 	OPT_s	= 0x10,	// -s
 	OPT_T	= 0x20,	// -T
 	OPT_u	= 0x40,	// -u
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 	OPT_a	= 0x80,	// -a
 	OPT_l	= 0x100, // -l
 #endif
@@ -141,7 +141,7 @@ static const char *normalize(const char *arg)
  * optstr must contain the short options, and longopts the long options.
  * Other settings are found in global variables.
  */
-#if !ENABLE_GETOPT_LONG
+#if !ENABLE_FEATURE_GETOPT_LONG
 #define generate_output(argv,argc,optstr,longopts) \
 	generate_output(argv,argc,optstr)
 #endif
@@ -149,7 +149,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 {
 	int exit_code = 0; /* We assume everything will be OK */
 	int opt;
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 	int longindex;
 #endif
 	const char *charptr;
@@ -168,7 +168,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 
 	while (1) {
 		opt =
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 			alternative ?
 			getopt_long_only(argc, argv, optstr, longopts, &longindex) :
 			getopt_long(argc, argv, optstr, longopts, &longindex);
@@ -180,7 +180,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 		if (opt == '?' || opt == ':' )
 			exit_code = 1;
 		else if (!quiet_output) {
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 			if (opt == LONG_OPT) {
 				printf(" --%s", longopts[longindex].name);
 				if (longopts[longindex].has_arg)
@@ -209,7 +209,7 @@ static int generate_output(char **argv, int argc, const char *optstr, const stru
 	return exit_code;
 }
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 /*
  * Register several long options. options is a string of long options,
  * separated by commas or whitespace.
@@ -273,7 +273,7 @@ static void set_shell(const char *new_shell)
  *   4) Returned for -T
  */
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 static const char getopt_longopts[] ALIGN1 =
 	"options\0"      Required_argument "o"
 	"longoptions\0"  Required_argument "l"
@@ -295,7 +295,7 @@ int getopt_main(int argc, char **argv)
 	unsigned opt;
 	const char *compatible;
 	char *s_arg;
-#if ENABLE_GETOPT_LONG
+#if ENABLE_FEATURE_GETOPT_LONG
 	struct option *long_options = NULL;
 	llist_t *l_arg = NULL;
 #endif
@@ -321,7 +321,7 @@ int getopt_main(int argc, char **argv)
 		return generate_output(argv+1, argc-1, s, long_options);
 	}
 
-#if !ENABLE_GETOPT_LONG
+#if !ENABLE_FEATURE_GETOPT_LONG
 	opt = getopt32(argv, "+o:n:qQs:Tu", &optstr, &name, &s_arg);
 #else
 	applet_long_options = getopt_longopts;

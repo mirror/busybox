@@ -132,7 +132,7 @@ config FTPPUT
 config FEATURE_FTPGETPUT_LONG_OPTIONS
 	bool "Enable long options in ftpget/ftpput"
 	default n
-	depends on GETOPT_LONG && (FTPGET || FTPPUT)
+	depends on LONG_OPTS && (FTPGET || FTPPUT)
 	help
 	  Support long options for the ftpget/ftpput applet.
 
@@ -578,7 +578,7 @@ config FEATURE_IPCALC_FANCY
 config FEATURE_IPCALC_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on IPCALC && GETOPT_LONG
+	depends on IPCALC && LONG_OPTS
 	help
 	  Support long options for the ipcalc applet.
 
@@ -910,7 +910,7 @@ config FEATURE_WGET_AUTHENTICATION
 config FEATURE_WGET_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on WGET && GETOPT_LONG
+	depends on WGET && LONG_OPTS
 	help
 	  Support long options for the wget applet.
 

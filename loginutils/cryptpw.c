@@ -60,7 +60,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	int len;
 	int fd;
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char mkpasswd_longopts[] ALIGN1 =
 		"stdin\0"       No_argument       "s"
 		"password-fd\0" Required_argument "P"

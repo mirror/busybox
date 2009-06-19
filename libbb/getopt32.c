@@ -314,7 +314,7 @@ typedef struct {
 } t_complementary;
 
 /* You can set applet_long_options for parse called long options */
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 static const struct option bb_null_long_options[1] = {
 	{ 0, 0, 0, 0 }
 };
@@ -335,7 +335,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	const unsigned char *s;
 	t_complementary *on_off;
 	va_list p;
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 	const struct option *l_o;
 	struct option *long_options = (struct option *) &bb_null_long_options;
 #endif
@@ -384,7 +384,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 		c++;
 	}
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 	if (applet_long_options) {
 		const char *optstr;
 		unsigned i, count;
@@ -424,7 +424,7 @@ getopt32(char **argv, const char *applet_opts, ...)
  next_long: ;
 		}
 	}
-#endif /* ENABLE_GETOPT_LONG */
+#endif /* ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG */
 	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
 		t_complementary *pair;
 		unsigned *pair_switch;
@@ -543,7 +543,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 	 * "fake" short options, like this one:
 	 * wget $'-\203' "Test: test" http://kernel.org/
 	 * (supposed to act as --header, but doesn't) */
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG
 	while ((c = getopt_long(argc, argv, applet_opts,
 			long_options, NULL)) != -1) {
 #else

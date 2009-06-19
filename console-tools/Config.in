@@ -91,7 +91,7 @@ config SETCONSOLE
 config FEATURE_SETCONSOLE_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on SETCONSOLE && GETOPT_LONG
+	depends on SETCONSOLE && LONG_OPTS
 	help
 	  Support long options for the setconsole applet.
 

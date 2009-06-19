@@ -273,7 +273,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_CPIO_O(const char *cpio_fmt = "";)
 	unsigned opt;
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	applet_long_options =
 		"extract\0"      No_argument       "i"
 		"list\0"         No_argument       "t"

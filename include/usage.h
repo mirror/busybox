@@ -610,13 +610,13 @@
 #define cryptpw_full_usage "\n\n" \
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-P,--password-fd=NUM	Read password from fd NUM" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-P NUM	Read password from fd NUM" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
@@ -631,13 +631,13 @@
 #define mkpasswd_full_usage "\n\n" \
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-P,--password-fd=NUM	Read password from fd NUM" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-P NUM	Read password from fd NUM" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
@@ -969,12 +969,12 @@
 #define dumpleases_full_usage "\n\n" \
        "Display DHCP leases granted by udhcpd\n" \
      "\nOptions:" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-f,--file=FILE	Leases file to load" \
      "\n	-r,--remaining	Interpret lease times as time remaining" \
      "\n	-a,--absolute	Interpret lease times as expire time" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-f FILE	Leases file to load" \
      "\n	-r	Interpret lease times as time remaining" \
      "\n	-a	Interpret lease times as expire time" \
@@ -1396,7 +1396,7 @@
        "[OPTIONS]..."
 #define getopt_full_usage "\n\n" \
        "Parse command options\n" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-a,--alternative		Allow long options starting with single -" \
      "\n	-l,--longoptions=longopts	Long options to be recognized" \
      "\n	-n,--name=progname		The name under which errors are reported" \
@@ -1407,7 +1407,7 @@
      "\n	-T,--test			Test for getopt(1) version" \
      "\n	-u,--unquoted			Don't quote the output" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-a		Allow long options starting with single -" \
      "\n	-l longopts	Long options to be recognized" \
      "\n	-n progname	The name under which errors are reported" \
@@ -3184,16 +3184,16 @@
      "\n	-u	Unlock (re-enable) account" \
 
 #define chpasswd_trivial_usage \
-	IF_GETOPT_LONG("[--md5|--encrypted]") IF_NOT_GETOPT_LONG("[-m|-e]")
+	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
 #define chpasswd_full_usage "\n\n" \
        "Read user:password information from stdin " \
        "and update /etc/passwd accordingly.\n" \
      "\nOptions:" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-e,--encrypted	Supplied passwords are in encrypted form" \
      "\n	-m,--md5	Use MD5 encryption instead of DES" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-e	Supplied passwords are in encrypted form" \
      "\n	-m	Use MD5 encryption instead of DES" \
 	)
@@ -3632,7 +3632,7 @@
        "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 #define rtcwake_full_usage "\n\n" \
        "Enter a system sleep state until specified wakeup time\n" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
      "\n	-a,--auto	Read clock mode from adjtime" \
      "\n	-l,--local	Clock is set to local time" \
      "\n	-u,--utc	Clock is set to UTC time" \
@@ -3641,7 +3641,7 @@
      "\n	-s,--seconds=SEC Set the timeout in SEC seconds from now" \
      "\n	-t,--time=TIME	Set the timeout to TIME seconds from epoch" \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
      "\n	-a	Read clock mode from adjtime" \
      "\n	-l	Clock is set to local time" \
      "\n	-u	Clock is set to UTC time" \
@@ -4640,7 +4640,7 @@ IF_FEATURE_TUNCTL_UG( \
        "[-Cfbnqtvo] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
        "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 #define udhcpc_full_usage "\n\n" \
-	IF_GETOPT_LONG( \
+	IF_LONG_OPTS( \
        "	-V,--vendorclass=CLASSID	Vendor class identifier" \
      "\n	-i,--interface=INTERFACE	Interface to use (default eth0)" \
      "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
@@ -4669,7 +4669,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\n	-a,--arping	Use arping to validate offered address" \
 	) \
 	) \
-	IF_NOT_GETOPT_LONG( \
+	IF_NOT_LONG_OPTS( \
        "	-V CLASSID	Vendor class identifier" \
      "\n	-i INTERFACE	Interface to use (default: eth0)" \
      "\n	-H,-h HOSTNAME	Client hostname" \

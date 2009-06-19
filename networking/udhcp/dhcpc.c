@@ -152,7 +152,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	struct dhcp_packet packet;
 	fd_set rfds;
 
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char udhcpc_longopts[] ALIGN1 =
 		"clientid\0"       Required_argument "c"
 		"clientid-none\0"  No_argument       "C"
@@ -223,7 +223,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		":vv"
 #endif
 		;
-	IF_GETOPT_LONG(applet_long_options = udhcpc_longopts;)
+	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
 	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:SA:O:of"
 		USE_FOR_MMU("b")
 		IF_FEATURE_UDHCPC_ARPING("a")

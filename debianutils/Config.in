@@ -35,7 +35,7 @@ config RUN_PARTS
 config FEATURE_RUN_PARTS_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on RUN_PARTS && GETOPT_LONG
+	depends on RUN_PARTS && LONG_OPTS
 	help
 	  Support long options for the run-parts applet.
 
@@ -69,7 +69,7 @@ config FEATURE_START_STOP_DAEMON_FANCY
 config FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on START_STOP_DAEMON && GETOPT_LONG
+	depends on START_STOP_DAEMON && LONG_OPTS
 	help
 	  Support long options for the start-stop-daemon applet.
 

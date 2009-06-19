@@ -33,7 +33,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 		OPT_r	= 0x2,	// -r
 		OPT_f	= 0x4,	// -f
 	};
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char dumpleases_longopts[] ALIGN1 =
 		"absolute\0"  No_argument       "a"
 		"remaining\0" No_argument       "r"

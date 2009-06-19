@@ -73,7 +73,7 @@ static const unsigned short utsname_offset[] = {
 int uname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uname_main(int argc UNUSED_PARAM, char **argv)
 {
-#if ENABLE_GETOPT_LONG
+#if ENABLE_LONG_OPTS
 	static const char longopts[] ALIGN1 =
 		/* name, has_arg, val */
 		"all\0"               No_argument       "a"
@@ -97,7 +97,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv)
 	const unsigned short *delta;
 	unsigned toprint;
 
-	IF_GETOPT_LONG(applet_long_options = longopts);
+	IF_LONG_OPTS(applet_long_options = longopts);
 	toprint = getopt32(argv, options);
 
 	if (argv[optind]) { /* coreutils-6.9 compat */

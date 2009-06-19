@@ -250,6 +250,13 @@ config GETOPT
 	  written by others, this utility may be for you. Most people will
 	  wisely leave this disabled.
 
+config FEATURE_GETOPT_LONG
+	bool "Support option -l"
+	default y if LONG_OPTS
+	help
+	  Enable support for recognising long options using the -l option to
+	  getopt.
+
 config HEXDUMP
 	bool "hexdump"
 	default n
@@ -286,7 +293,7 @@ config HWCLOCK
 config FEATURE_HWCLOCK_LONG_OPTIONS
 	bool "Support long options (--hctosys,...)"
 	default n
-	depends on HWCLOCK && GETOPT_LONG
+	depends on HWCLOCK && LONG_OPTS
 	help
 	  By default, the hwclock utility only uses short options. If you
 	  are overly fond of its long options, such as --hctosys, --utc, etc)

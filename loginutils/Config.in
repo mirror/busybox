@@ -100,7 +100,7 @@ config ADDGROUP
 config FEATURE_ADDGROUP_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on ADDGROUP && GETOPT_LONG
+	depends on ADDGROUP && LONG_OPTS
 	help
 	  Support long options for the addgroup applet.
 
@@ -148,7 +148,7 @@ config ADDUSER
 config FEATURE_ADDUSER_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on ADDUSER && GETOPT_LONG
+	depends on ADDUSER && LONG_OPTS
 	help
 	  Support long options for the adduser applet.
 
