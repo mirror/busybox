@@ -319,22 +319,20 @@ static void make_device(char *path, int delete)
 		/* "Execute" the line we found */
 
 		if (!delete && major >= 0) {
-			if (ENABLE_FEATURE_MDEV_RENAME)
-				unlink(device_name);
-			if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
-				bb_perror_msg_and_die("mknod %s", device_name);
+			char *node_name = (char *)device_name;
+			if (ENABLE_FEATURE_MDEV_RENAME && alias)
+				alias = node_name = build_alias(alias, device_name);
+			if (mknod(node_name, mode | type, makedev(major, minor)) && errno != EEXIST)
+				bb_perror_msg_and_die("mknod %s", node_name);
 			if (major == root_major && minor == root_minor)
-				symlink(device_name, "root");
+				symlink(node_name, "root");
 			if (ENABLE_FEATURE_MDEV_CONF) {
-				chmod(device_name, mode);
-				chown(device_name, ugid.uid, ugid.gid);
+				chmod(node_name, mode);
+				chown(node_name, ugid.uid, ugid.gid);
 			}
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				alias = build_alias(alias, device_name);
-				/* move the device, and optionally
-				 * make a symlink to moved device node */
-				if (rename(device_name, alias) == 0 && aliaslink == '>')
-					symlink(alias, device_name);
+				if (aliaslink == '>')
+					symlink(node_name, device_name);
 				free(alias);
 			}
 		}
@@ -355,15 +353,15 @@ static void make_device(char *path, int delete)
 		}
 
 		if (delete) {
-			unlink(device_name);
-			/* At creation time, device might have been moved
-			 * and a symlink might have been created. Undo that. */
-
+			char *node_name = (char *)device_name;
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				alias = build_alias(alias, device_name);
-				unlink(alias);
-				free(alias);
+				alias = node_name = build_alias(alias, device_name);
+				if (aliaslink == '>')
+					unlink(device_name);
 			}
+			unlink(node_name);
+			if (ENABLE_FEATURE_MDEV_RENAME)
+				free(alias);
 		}
 
 		/* We found matching line.

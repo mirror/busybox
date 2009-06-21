@@ -162,6 +162,32 @@ brw-r--r-- 1 0 1 8,0 sda
 " \
 	"" ""
 
+# continuing to use directory structure from prev test
+rm -rf mdev.testdir/dev/*
+mkdir -p mdev.testdir/sys/class/tty/capi
+echo "191:0" >mdev.testdir/sys/class/tty/capi/dev
+mkdir -p mdev.testdir/sys/class/tty/capi1
+echo "191:1" >mdev.testdir/sys/class/tty/capi1/dev
+mkdir -p mdev.testdir/sys/class/tty/capi20
+echo "191:20" >mdev.testdir/sys/class/tty/capi20/dev
+echo "capi            0:0 0660 =capi20"      >mdev.testdir/etc/mdev.conf
+echo "capi([0-9])     0:0 0660 =capi20.0%1" >>mdev.testdir/etc/mdev.conf
+echo "capi([0-9]*)    0:0 0660 =capi20.%1"  >>mdev.testdir/etc/mdev.conf
+# mdev invocation with DEVPATH=/class/tty/capi20 was deleting /dev/capi20
+testing "move rule does not delete node with name == device_name" \
+	"\
+	env - PATH=$PATH ACTION=add DEVPATH=/class/tty/capi chroot mdev.testdir /mdev 2>&1;
+	env - PATH=$PATH ACTION=add DEVPATH=/class/tty/capi1 chroot mdev.testdir /mdev 2>&1;
+	env - PATH=$PATH ACTION=add DEVPATH=/class/tty/capi20 chroot mdev.testdir /mdev 2>&1;
+	ls -lnR mdev.testdir/dev | $FILTER_LS" \
+"\
+mdev.testdir/dev:
+crw-rw---- 1 0 0 191,0 capi20
+crw-rw---- 1 0 0 191,1 capi20.01
+crw-rw---- 1 0 0 191,20 capi20.20
+" \
+	"" ""
+
 # clean up
 rm -rf mdev.testdir
 
