@@ -57,7 +57,7 @@ char * FAST_FUNC filename2modname(const char *filename, char *modname)
 	from = bb_get_last_path_component_nostrip(filename);
 	for (i = 0; i < (MODULE_NAME_LEN-1) && from[i] != '\0' && from[i] != '.'; i++)
 		modname[i] = (from[i] == '-') ? '_' : from[i];
-	modname[i] = 0;
+	modname[i] = '\0';
 
 	return modname;
 }

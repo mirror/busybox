@@ -3404,12 +3404,15 @@
        "files do not block on disk I/O"
 
 #define readlink_trivial_usage \
-	USE_FEATURE_READLINK_FOLLOW("[-f] ") "FILE"
+	USE_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"
 #define readlink_full_usage "\n\n" \
        "Display the value of a symlink" \
 	USE_FEATURE_READLINK_FOLLOW( "\n" \
      "\nOptions:" \
-     "\n	-f	Canonicalize by following all symlinks") \
+     "\n	-f	Canonicalize by following all symlinks" \
+     "\n	-n	Don't add newline" \
+     "\n	-v	Verbose" \
+	) \
 
 #define readprofile_trivial_usage \
        "[OPTIONS]..."

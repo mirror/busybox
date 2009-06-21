@@ -11909,7 +11909,8 @@ find_dot_file(char *name)
 			 */
 			return fullname;
 		}
-		stunalloc(fullname);
+		if (fullname != name)
+			stunalloc(fullname);
 	}
 
 	/* not found in the PATH */
