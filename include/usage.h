@@ -1675,6 +1675,9 @@
        "$ hostname\n" \
        "sage\n"
 
+#define dnsdomainname_trivial_usage NOUSAGE_STR
+#define dnsdomainname_full_usage ""
+
 #define httpd_trivial_usage \
        "[-ifv[v]]" \
        " [-c CONFFILE]" \
