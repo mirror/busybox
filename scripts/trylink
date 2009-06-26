@@ -99,6 +99,11 @@ else
 fi
 )`
 
+# The --gc-sections option is not supported by older versions of ld
+if test -n "$GC_SECTIONS"; then
+    GC_SECTIONS=`check_cc "$GC_SECTIONS" ""`
+fi
+
 # Sanitize lib list (dups, extra spaces etc)
 LDLIBS=`echo "$LDLIBS" | xargs -n1 | sort | uniq | xargs`
 
