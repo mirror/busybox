@@ -152,6 +152,8 @@ static void print_direc(char *format, unsigned fmt_length,
 	if (have_width - 1 == have_prec)
 		have_width = NULL;
 
+	errno = 0;
+
 	switch (format[fmt_length - 1]) {
 	case 'c':
 		printf(format, *argument);
