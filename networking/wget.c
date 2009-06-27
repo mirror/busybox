@@ -840,7 +840,7 @@ However, in real world it was observed that some web servers
 			 */
 			while ((str = gethdr(buf, sizeof(buf), sfp /*, &n*/)) != NULL) {
 				/* gethdr converted "FOO:" string to lowercase */
-				smalluint key = index_in_strings(keywords, *&buf) + 1;
+				smalluint key = index_in_strings(keywords, buf) + 1;
 				if (key == KEY_content_length) {
 					content_len = BB_STRTOOFF(str, NULL, 10);
 					if (errno || content_len < 0) {
