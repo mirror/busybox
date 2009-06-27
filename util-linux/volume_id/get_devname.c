@@ -86,7 +86,14 @@ uuidcache_check_device(const char *device,
 	char *label = label;
 	int fd;
 
+	/* note: this check rejects links to devices, among other nodes */
 	if (!S_ISBLK(statbuf->st_mode))
+		return TRUE;
+
+	/* Users report that mucking with floppies (especially non-present
+	 * ones) is significant PITA. This is a horribly dirty hack,
+	 * but it is very useful in real world. */
+	if (major(statbuf->st_rdev) == 2)
 		return TRUE;
 
 	fd = open(device, O_RDONLY);
