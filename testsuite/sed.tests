@@ -207,4 +207,17 @@ testing "sed n command must reset 'substituted' bit" \
 	"sed 's/1/x/;T;n;: next;s/3/y/;t quit;n;b next;: quit;q'" \
 	"0\nx\n2\ny\n" "" "0\n1\n2\n3\n"
 
+testing "sed d does not break n,m matching" \
+	"sed -n '1d;1,3p'" \
+	"second\nthird\n" "" "first\nsecond\nthird\nfourth\n"
+
+testing "sed d does not break n,regex matching" \
+	"sed -n '1d;1,/hir/p'" \
+	"second\nthird\n" "" "first\nsecond\nthird\nfourth\n"
+
+testing "sed d does not break n,regex matching #2" \
+	"sed -n '1,5d;1,/hir/p'" \
+	"second2\nthird2\n" "" \
+	"first\nsecond\nthird\nfourth\n""first2\nsecond2\nthird2\nfourth2\n"
+
 exit $FAILCOUNT
