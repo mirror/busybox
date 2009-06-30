@@ -193,6 +193,42 @@ static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) { }
 #endif
 
 
+/* IPv6 knows scoped address types i.e. link and site local addresses. Link
+ * local addresses can have a scope identifier to specify the
+ * interface/link an address is valid on (e.g. fe80::1%eth0). This scope
+ * identifier is only valid on a single node.
+ *
+ * RFC 4007 says that the scope identifier MUST NOT be sent across the wire,
+ * unless all nodes agree on the semantic. Apache e.g. regards zone identifiers
+ * in the Host header as invalid requests, see
+ * https://issues.apache.org/bugzilla/show_bug.cgi?id=35122
+ */
+static void strip_ipv6_scope_id(char *host)
+{
+	char *scope, *cp;
+
+	/* bbox wget actually handles IPv6 addresses without [], like
+	 * wget "http://::1/xxx", but this is not standard.
+	 * To save code, _here_ we do not support it. */
+
+	if (host[0] != '[')
+		return; /* not IPv6 */
+
+	scope = strchr(host, '%');
+	if (!scope)
+		return;
+
+	/* Remove the IPv6 zone identifier from the host address */
+	cp = strchr(host, ']');
+	if (!cp || (cp[1] != ':' && cp[1] != '\0')) {
+		/* malformed address (not "[xx]:nn" or "[xx]") */
+		return;
+	}
+
+	/* cp points to "]...", scope points to "%eth0]..." */
+	overlapping_strcpy(scope, cp);
+}
+
 /* Read NMEMB bytes into PTR from STREAM.  Returns the number of bytes read,
  * and a short count if an eof or non-interrupt error is encountered.  */
 static size_t safe_fread(void *ptr, size_t nmemb, FILE *stream)
@@ -655,20 +691,30 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* TODO: compat issue: should handle "wget URL1 URL2..." */
+
 	parse_url(argv[optind], &target);
-	server.host = target.host;
-	server.port = target.port;
 
 	/* Use the proxy if necessary */
 	use_proxy = (strcmp(proxy_flag, "off") != 0);
 	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
-		if (proxy && *proxy) {
+		if (proxy && proxy[0]) {
 			parse_url(proxy, &server);
 		} else {
 			use_proxy = 0;
 		}
 	}
+	if (!use_proxy) {
+		server.port = target.port;
+		if (ENABLE_FEATURE_IPV6) {
+			server.host = xstrdup(target.host);
+		} else {
+			server.host = target.host;
+		}
+	}
+
+	if (ENABLE_FEATURE_IPV6)
+		strip_ipv6_scope_id(target.host);
 
 	/* Guess an output filename, if there was no -O FILE */
 	if (!(opt & WGET_OPT_OUTNAME)) {
@@ -862,6 +908,8 @@ However, in real world it was observed that some web servers
 					parse_url(str, &target);
 					if (!use_proxy) {
 						server.host = target.host;
+						/* strip_ipv6_scope_id(target.host); - no! */
+						/* we assume remote never gives us IPv6 addr with scope id */
 						server.port = target.port;
 						free(lsa);
 						goto resolve_lsa;
