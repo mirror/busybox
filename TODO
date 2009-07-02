@@ -318,3 +318,4 @@ vdprintf() -> similar sized functionality
   most likely there is more
 
 * even more support for statistics: mpstat, iostat, powertop....
+
