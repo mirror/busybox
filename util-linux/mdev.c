@@ -317,49 +317,51 @@ static void make_device(char *path, int delete)
 		/* End of field parsing */
 
 		/* "Execute" the line we found */
+		{
+			const char *node_name;
 
-		if (!delete && major >= 0) {
-			char *node_name = (char *)device_name;
+			node_name = device_name;
 			if (ENABLE_FEATURE_MDEV_RENAME && alias)
-				alias = node_name = build_alias(alias, device_name);
-			if (mknod(node_name, mode | type, makedev(major, minor)) && errno != EEXIST)
-				bb_perror_msg_and_die("mknod %s", node_name);
-			if (major == root_major && minor == root_minor)
-				symlink(node_name, "root");
-			if (ENABLE_FEATURE_MDEV_CONF) {
-				chmod(node_name, mode);
-				chown(node_name, ugid.uid, ugid.gid);
-			}
-			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				if (aliaslink == '>')
-					symlink(node_name, device_name);
-				free(alias);
-			}
-		}
+				node_name = alias = build_alias(alias, device_name);
 
-		if (ENABLE_FEATURE_MDEV_EXEC && command) {
-			/* setenv will leak memory, use putenv/unsetenv/free */
-			char *s = xasprintf("%s=%s", "MDEV", device_name);
-			char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
-			putenv(s);
-			putenv(s1);
-			if (system(command) == -1)
-				bb_perror_msg_and_die("can't run '%s'", command);
-			unsetenv("SUBSYSTEM");
-			free(s1);
-			unsetenv("MDEV");
-			free(s);
-			free(command);
-		}
-
-		if (delete) {
-			char *node_name = (char *)device_name;
-			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				alias = node_name = build_alias(alias, device_name);
-				if (aliaslink == '>')
-					unlink(device_name);
+			if (!delete && major >= 0) {
+				if (mknod(node_name, mode | type, makedev(major, minor)) && errno != EEXIST)
+					bb_perror_msg_and_die("mknod %s", node_name);
+				if (major == root_major && minor == root_minor)
+					symlink(node_name, "root");
+				if (ENABLE_FEATURE_MDEV_CONF) {
+					chmod(node_name, mode);
+					chown(node_name, ugid.uid, ugid.gid);
+				}
+				if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+					if (aliaslink == '>')
+						symlink(node_name, device_name);
+				}
 			}
-			unlink(node_name);
+
+			if (ENABLE_FEATURE_MDEV_EXEC && command) {
+				/* setenv will leak memory, use putenv/unsetenv/free */
+				char *s = xasprintf("%s=%s", "MDEV", node_name);
+				char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
+				putenv(s);
+				putenv(s1);
+				if (system(command) == -1)
+					bb_perror_msg_and_die("can't run '%s'", command);
+				unsetenv("SUBSYSTEM");
+				free(s1);
+				unsetenv("MDEV");
+				free(s);
+				free(command);
+			}
+
+			if (delete) {
+				if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+					if (aliaslink == '>')
+						unlink(device_name);
+				}
+				unlink(node_name);
+			}
+
 			if (ENABLE_FEATURE_MDEV_RENAME)
 				free(alias);
 		}
