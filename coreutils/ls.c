@@ -144,8 +144,7 @@ static const char ls_options[] ALIGN1 =
 	IF_FEATURE_LS_FOLLOWLINKS("L")   /* 1, 24 */
 	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 25 */
 	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 26 */
-	IF_SELINUX("K") /* 1, 27 */
-	IF_SELINUX("Z") /* 1, 28 */
+	IF_SELINUX("KZ") /* 2, 28 */
 	IF_FEATURE_AUTOWIDTH("T:w:") /* 2, 30 */
 	;
 enum {
@@ -162,6 +161,16 @@ enum {
 	OPT_Q = (1 << 10),
 	//OPT_A = (1 << 11),
 	//OPT_k = (1 << 12),
+	OPTBIT_color = 13
+		+ 4 * ENABLE_FEATURE_LS_TIMESTAMPS
+		+ 4 * ENABLE_FEATURE_LS_SORTFILES
+		+ 2 * ENABLE_FEATURE_LS_FILETYPES
+		+ 1 * ENABLE_FEATURE_LS_FOLLOWLINKS
+		+ 1 * ENABLE_FEATURE_LS_RECURSIVE
+		+ 1 * ENABLE_FEATURE_HUMAN_READABLE
+		+ 2 * ENABLE_SELINUX
+		+ 2 * ENABLE_FEATURE_AUTOWIDTH,
+	OPT_color = 1 << OPTBIT_color,
 };
 
 enum {
@@ -966,7 +975,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		if (!p || (p[0] && strcmp(p, "none") != 0))
 			show_color = 1;
 	}
-	if (opt & (1 << i)) {  /* next flag after short options */
+	if (opt & OPT_color) {  /* next flag after short options */
 		if (strcmp("always", color_opt) == 0)
 			show_color = 1;
 		else if (strcmp("never", color_opt) == 0)
