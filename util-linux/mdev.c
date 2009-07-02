@@ -303,8 +303,12 @@ static void make_device(char *path, int delete)
 				const char *s = "$@*";
 				const char *s2 = strchr(s, val[0]);
 
-				if (!s2)
-					bb_error_msg_and_die("bad line %u", parser->lineno);
+				if (!s2) {
+					bb_error_msg("bad line %u", parser->lineno);
+					if (ENABLE_FEATURE_MDEV_RENAME)
+						free(alias);
+					continue;
+				}
 
 				/* Are we running this command now?
 				 * Run $cmd on delete, @cmd on create, *cmd on both
@@ -346,7 +350,7 @@ static void make_device(char *path, int delete)
 				putenv(s);
 				putenv(s1);
 				if (system(command) == -1)
-					bb_perror_msg_and_die("can't run '%s'", command);
+					bb_perror_msg("can't run '%s'", command);
 				unsetenv("SUBSYSTEM");
 				free(s1);
 				unsetenv("MDEV");
