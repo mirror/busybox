@@ -115,7 +115,7 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_U16] =     2,
 	[OPTION_S16] =     2,
 	[OPTION_U32] =     4,
-	[OPTION_S32] =     4
+	[OPTION_S32] =     4,
 };
 
 

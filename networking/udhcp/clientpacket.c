@@ -166,7 +166,7 @@ int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 }
 
 
-/* Unicasts or broadcasts a DHCP renew message */
+/* Unicast or broadcast a DHCP renew message */
 int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
@@ -186,7 +186,7 @@ int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 }
 
 
-/* Unicasts a DHCP release message */
+/* Unicast a DHCP release message */
 int FAST_FUNC send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;

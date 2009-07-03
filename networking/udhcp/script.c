@@ -14,7 +14,7 @@
 
 
 /* get a rough idea of how long an option will be (rounding up...) */
-static const uint8_t max_option_length[] = {
+static const uint8_t len_of_option_as_string[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
 	[OPTION_STRING] =	1,
@@ -30,17 +30,10 @@ static const uint8_t max_option_length[] = {
 };
 
 
-static inline int upper_length(int length, int opt_index)
-{
-	return max_option_length[opt_index] *
-		(length / dhcp_option_lengths[opt_index]);
-}
-
-
 /* note: ip is a pointer to an IP in network order, possibly misaliged */
 static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 {
-	return sprintf(dest, "%s%d.%d.%d.%d", pre, ip[0], ip[1], ip[2], ip[3]);
+	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
 
@@ -57,9 +50,10 @@ static int mton(uint32_t mask)
 }
 
 
-/* Allocate and fill with the text of option 'option'. */
-static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, const char *opt_name)
+/* Create "opt_name=opt_value" string */
+static char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_option *type_p, const char *opt_name)
 {
+	unsigned upper_length;
 	int len, type, optlen;
 	uint16_t val_u16;
 	int16_t val_s16;
@@ -67,14 +61,16 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 	int32_t val_s32;
 	char *dest, *ret;
 
-	len = option[OPT_LEN - 2];
+	/* option points to OPT_DATA, need to go back and get OPT_LEN */
+	len = option[OPT_LEN - OPT_DATA];
 	type = type_p->flags & TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
+	upper_length = len_of_option_as_string[type] * (len / optlen);
 
-	dest = ret = xmalloc(upper_length(len, type) + strlen(opt_name) + 2);
+	dest = ret = xmalloc(upper_length + strlen(opt_name) + 2);
 	dest += sprintf(ret, "%s=", opt_name);
 
-	for (;;) {
+	while (len >= optlen) {
 		switch (type) {
 		case OPTION_IP_PAIR:
 			dest += sprint_nip(dest, "", option);
@@ -114,15 +110,20 @@ static char *alloc_fill_opts(uint8_t *option, const struct dhcp_option *type_p, 
 		case OPTION_STR1035:
 			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
 			dest = dname_dec(option, len, ret);
-			free(ret);
-			return dest;
+			if (dest) {
+				free(ret);
+				return dest;
+			}
+			/* error. return "optname=" string */
+			return ret;
 #endif
 		}
 		option += optlen;
 		len -= optlen;
 		if (len <= 0)
 			break;
-		dest += sprintf(dest, " ");
+		*dest++ = ' ';
+		*dest = '\0';
 	}
 	return ret;
 }
@@ -174,7 +175,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 		temp = get_option(packet, dhcp_options[i].code);
 		if (!temp)
 			goto next;
-		*curr = alloc_fill_opts(temp, &dhcp_options[i], opt_name);
+		*curr = xmalloc_optname_optval(temp, &dhcp_options[i], opt_name);
 		putenv(*curr++);
 
 		/* Fill in a subnet bits option for things like /24 */
