@@ -223,7 +223,6 @@ static void processorstart(struct logdir *ld)
 	while ((pid = vfork()) == -1)
 		pause2cannot("vfork for processor", ld->name);
 	if (!pid) {
-		char *prog[4];
 		int fd;
 
 		/* child */
@@ -256,11 +255,7 @@ static void processorstart(struct logdir *ld)
 		xmove_fd(fd, 5);
 
 // getenv("SHELL")?
-		prog[0] = (char*)"sh";
-		prog[1] = (char*)"-c";
-		prog[2] = ld->processor;
-		prog[3] = NULL;
-		execv("/bin/sh", prog);
+		execl("/bin/sh", "/bin/sh" + 5, "-c", ld->processor, (char*) NULL);
 		bb_perror_msg_and_die(FATAL"can't %s processor %s", "run", ld->name);
 	}
 	ld->fnsave[26] = sv_ch; /* ...restore */
@@ -398,13 +393,14 @@ static unsigned rotate(struct logdir *ld)
 			pause2cannot("rename current", ld->name);
 		while ((ld->fdcur = open("current", O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) == -1)
 			pause2cannot("create new current", ld->name);
-		/* we presume this cannot fail */
-		ld->filecur = fdopen(ld->fdcur, "a"); ////
+		while ((ld->filecur = fdopen(ld->fdcur, "a")) == NULL) ////
+			pause2cannot("create new current", ld->name); /* very unlikely */
 		setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
 		close_on_exec_on(ld->fdcur);
 		ld->size = 0;
 		while (fchmod(ld->fdcur, 0644) == -1)
 			pause2cannot("set mode of current", ld->name);
+
 		rmoldest(ld);
 		processorstart(ld);
 	}
@@ -551,10 +547,11 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	free(ld->processor); ld->processor = NULL;
 
 	/* read config */
-	i = open_read_close("config", buf, sizeof(buf));
+	i = open_read_close("config", buf, sizeof(buf) - 1);
 	if (i < 0 && errno != ENOENT)
 		bb_perror_msg(WARNING"%s/config", ld->name);
 	if (i > 0) {
+		buf[i] = '\0';
 		if (verbose)
 			bb_error_msg(INFO"read: %s/config", ld->name);
 		s = buf;
