@@ -898,16 +898,6 @@ static int list_single(const struct dnode *dn)
 }
 
 
-/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
-#if ENABLE_FEATURE_LS_COLOR
-/* long option entry used only for --color, which has no short option
- * equivalent */
-static const char ls_color_opt[] ALIGN1 =
-	"color\0" Optional_argument "\xff" /* no short equivalent */
-	;
-#endif
-
-
 int ls_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct dnode **dnd;
@@ -920,8 +910,25 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	int dnfiles;
 	int dndirs;
 	int i;
+#if ENABLE_FEATURE_LS_COLOR
+	/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
+	/* coreutils 6.10:
+	 * # ls --color=BOGUS
+	 * ls: invalid argument 'BOGUS' for '--color'
+	 * Valid arguments are:
+	 * 'always', 'yes', 'force'
+	 * 'never', 'no', 'none'
+	 * 'auto', 'tty', 'if-tty'
+	 * (and substrings: "--color=alwa" work too)
+	 */
+	static const char ls_longopts[] ALIGN1 =
+		"color\0" Optional_argument "\xff"; /* no short equivalent */
+	static const char color_str[] ALIGN1 =
+		"always\0""yes\0""force\0"
+		"auto\0""tty\0""if-tty\0";
 	/* need to initialize since --color has _an optional_ argument */
-	IF_FEATURE_LS_COLOR(const char *color_opt = "always";)
+	const char *color_opt = color_str; /* "always" */
+#endif
 
 	INIT_G();
 
@@ -929,14 +936,14 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
 
 #if ENABLE_FEATURE_AUTOWIDTH
-	/* Obtain the terminal width */
+	/* obtain the terminal width */
 	get_terminal_width_height(STDIN_FILENO, &terminal_width, NULL);
-	/* Go one less... */
+	/* go one less... */
 	terminal_width--;
 #endif
 
 	/* process options */
-	IF_FEATURE_LS_COLOR(applet_long_options = ls_color_opt;)
+	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
 #if ENABLE_FEATURE_AUTOWIDTH
 	opt_complementary = "T+:w+"; /* -T N, -w N */
 	opt = getopt32(argv, ls_options, &tabstops, &terminal_width
@@ -975,13 +982,20 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		if (!p || (p[0] && strcmp(p, "none") != 0))
 			show_color = 1;
 	}
-	if (opt & OPT_color) {  /* next flag after short options */
-		if (strcmp("always", color_opt) == 0)
-			show_color = 1;
-		else if (strcmp("never", color_opt) == 0)
+	if (opt & OPT_color) {
+		if (color_opt[0] == 'n')
 			show_color = 0;
-		else if (strcmp("auto", color_opt) == 0 && isatty(STDOUT_FILENO))
-			show_color = 1;
+		else switch (index_in_substrings(color_str, color_opt)) {
+		case 3:
+		case 4:
+		case 5:
+			if (isatty(STDOUT_FILENO)) {
+		case 0:
+		case 1:
+		case 2:
+				show_color = 1;
+			}
+		}
 	}
 #endif
 
