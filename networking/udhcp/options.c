@@ -48,6 +48,7 @@ const struct dhcp_option dhcp_options[] = {
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* search             */
 #endif
+	{ OPTION_STATIC_ROUTES                    , 0x79 }, /* DHCP_STATIC_ROUTES */
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
 	{ OPTION_STRING                           , 0xfc }, /* wpad               */
 
@@ -97,6 +98,7 @@ const char dhcp_option_strings[] ALIGN1 =
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	"search" "\0"
 #endif
+	"staticroutes" "\0" /* DHCP_STATIC_ROUTES  */
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
 	"wpad" "\0"
 	;
@@ -116,6 +118,8 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_S16] =     2,
 	[OPTION_U32] =     4,
 	[OPTION_S32] =     4,
+	/* Just like OPTION_STRING, we use minimum length here */
+	[OPTION_STATIC_ROUTES] = 5,
 };
 
 

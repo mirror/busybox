@@ -20,6 +20,7 @@ enum {
 	OPTION_S16,
 	OPTION_U32,
 	OPTION_S32,
+	OPTION_STATIC_ROUTES,
 };
 
 /* Client requests this option by default */
@@ -68,6 +69,7 @@ enum {
 #define DHCP_VENDOR             0x3c
 #define DHCP_CLIENT_ID          0x3d
 #define DHCP_FQDN               0x51
+#define DHCP_STATIC_ROUTES      0x79
 #define DHCP_END                0xFF
 /* Offsets in option byte sequence */
 #define OPT_CODE                0
