@@ -1276,6 +1276,11 @@ typedef struct procps_status_t {
 	unsigned sid;
 	unsigned uid;
 	unsigned gid;
+#if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
+	unsigned ruid;
+	unsigned rgid;
+	int niceness;
+#endif
 	unsigned tty_major,tty_minor;
 #if ENABLE_FEATURE_TOPMEM
 	unsigned long mapped_rw;
@@ -1296,6 +1301,7 @@ typedef struct procps_status_t {
 	int last_seen_on_cpu;
 #endif
 } procps_status_t;
+/* flag bits for procps_scan(xx, flags) calls */
 enum {
 	PSSCAN_PID      = 1 << 0,
 	PSSCAN_PPID     = 1 << 1,
@@ -1322,16 +1328,16 @@ enum {
 				),
 	IF_SELINUX(PSSCAN_CONTEXT = 1 << 17,)
 	PSSCAN_START_TIME = 1 << 18,
-	PSSCAN_CPU      = 1 << 19,
+	PSSCAN_CPU      = (1 << 19) * ENABLE_FEATURE_TOP_SMP_PROCESS,
+	PSSCAN_NICE     = (1 << 20) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
+	PSSCAN_RUIDGID  = (1 << 21) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	/**/            | PSSCAN_COMM | PSSCAN_STATE
 	/**/            | PSSCAN_VSZ | PSSCAN_RSS
 	/**/            | PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
-	/**/            | PSSCAN_TTY
-#if ENABLE_FEATURE_TOP_SMP_PROCESS
+	/**/            | PSSCAN_TTY | PSSCAN_NICE
 	/**/            | PSSCAN_CPU
-#endif
 };
 //procps_status_t* alloc_procps_scan(void) FAST_FUNC;
 void free_procps_scan(procps_status_t* sp) FAST_FUNC;

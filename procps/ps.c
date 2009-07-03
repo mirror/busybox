@@ -32,7 +32,7 @@ enum { MAX_WIDTH = 2*1024 };
 
 typedef struct {
 	uint16_t width;
-	char name[6];
+	char name6[6];
 	const char *header;
 	void (*f)(char *buf, int size, const procps_status_t *ps);
 	int ps_flags;
@@ -174,6 +174,11 @@ static void func_user(char *buf, int size, const procps_status_t *ps)
 #endif
 }
 
+static void func_group(char *buf, int size, const procps_status_t *ps)
+{
+	safe_strncpy(buf, get_cached_groupname(ps->gid), size+1);
+}
+
 static void func_comm(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, ps->comm, size+1);
@@ -227,6 +232,26 @@ static void func_tty(char *buf, int size, const procps_status_t *ps)
 		snprintf(buf, size+1, "%u,%u", ps->tty_major, ps->tty_minor);
 }
 
+
+#if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
+
+static void func_rgroup(char *buf, int size, const procps_status_t *ps)
+{
+	safe_strncpy(buf, get_cached_groupname(ps->rgid), size+1);
+}
+
+static void func_ruser(char *buf, int size, const procps_status_t *ps)
+{
+	safe_strncpy(buf, get_cached_username(ps->ruid), size+1);
+}
+
+static void func_nice(char *buf, int size, const procps_status_t *ps)
+{
+	sprintf(buf, "%*d", size, ps->niceness);
+}
+
+#endif /* FEATURE_PS_ADDITIONAL_COLUMNS */
+
 #if ENABLE_FEATURE_PS_TIME
 static void func_etime(char *buf, int size, const procps_status_t *ps)
 {
@@ -276,6 +301,7 @@ static void func_pcpu(char *buf, int size, const procps_status_t *ps)
 static const ps_out_t out_spec[] = {
 // Mandated by POSIX:
 	{ 8                  , "user"  ,"USER"   ,func_user  ,PSSCAN_UIDGID  },
+	{ 8                  , "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID  },
 	{ 16                 , "comm"  ,"COMMAND",func_comm  ,PSSCAN_COMM    },
 	{ 256                , "args"  ,"COMMAND",func_args  ,PSSCAN_COMM    },
 	{ 5                  , "pid"   ,"PID"    ,func_pid   ,PSSCAN_PID     },
@@ -284,11 +310,12 @@ static const ps_out_t out_spec[] = {
 #if ENABLE_FEATURE_PS_TIME
 	{ sizeof("ELAPSED")-1, "etime" ,"ELAPSED",func_etime ,PSSCAN_START_TIME },
 #endif
-//	{ sizeof("GROUP"  )-1, "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID  },
-//	{ sizeof("NI"     )-1, "nice"  ,"NI"     ,func_nice  ,PSSCAN_        },
-//	{ sizeof("%CPU"   )-1, "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_        },
-//	{ sizeof("RGROUP" )-1, "rgroup","RGROUP" ,func_rgroup,PSSCAN_UIDGID  },
-//	{ sizeof("RUSER"  )-1, "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_UIDGID  },
+#if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
+	{ 5                  , "nice"  ,"NI"     ,func_nice  ,PSSCAN_NICE    },
+	{ 8                  , "rgroup","RGROUP" ,func_rgroup,PSSCAN_RUIDGID },
+	{ 8                  , "ruser" ,"RUSER"  ,func_ruser ,PSSCAN_RUIDGID },
+//	{ 5                  , "pcpu"  ,"%CPU"   ,func_pcpu  ,PSSCAN_        },
+#endif
 #if ENABLE_FEATURE_PS_TIME
 	{ 6                  , "time"  ,"TIME"   ,func_time  ,PSSCAN_STIME | PSSCAN_UTIME },
 #endif
@@ -311,7 +338,7 @@ static const ps_out_t* find_out_spec(const char *name)
 {
 	unsigned i;
 	for (i = 0; i < ARRAY_SIZE(out_spec); i++) {
-		if (!strcmp(name, out_spec[i].name))
+		if (!strncmp(name, out_spec[i].name6, 6))
 			return &out_spec[i];
 	}
 	bb_error_msg_and_die("bad -o argument '%s'", name);

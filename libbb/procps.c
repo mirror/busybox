@@ -151,6 +151,16 @@ static unsigned long fast_strtoul_10(char **endptr)
 	*endptr = str + 1; /* We skip trailing space! */
 	return n;
 }
+
+static long fast_strtol_10(char **endptr)
+{
+	if (**endptr != '-')
+		return fast_strtoul_10(endptr);
+
+	(*endptr)++;
+	return - (long)fast_strtoul_10(endptr);
+}
+
 static char *skip_fields(char *str, int count)
 {
 	do {
@@ -208,7 +218,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		if (flags & PSSCAN_UIDGID) {
 			if (stat(filename, &sb))
 				break;
-			/* Need comment - is this effective or real UID/GID? */
+			/* Effective UID/GID, not real */
 			sp->uid = sb.st_uid;
 			sp->gid = sb.st_gid;
 		}
@@ -293,7 +303,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			sp->utime = fast_strtoul_10(&cp);
 			sp->stime = fast_strtoul_10(&cp);
 			cp = skip_fields(cp, 3); /* cutime, cstime, priority */
-			tasknice = fast_strtoul_10(&cp);
+			tasknice = fast_strtol_10(&cp);
 			cp = skip_fields(cp, 2); /* timeout, it_real_value */
 			sp->start_time = fast_strtoul_10(&cp);
 			/* vsz is in bytes and we want kb */
@@ -309,6 +319,10 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			sp->last_seen_on_cpu = fast_strtoul_10(&cp);
 #endif
 #endif /* end of !ENABLE_FEATURE_TOP_SMP_PROCESS */
+
+#if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
+			sp->niceness = tasknice;
+#endif
 
 			if (sp->vsz == 0 && sp->state[0] != 'Z')
 				sp->state[1] = 'W';
@@ -372,7 +386,29 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			fclose(file);
 		}
 #endif /* TOPMEM */
+#if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
+		if (flags & PSSCAN_RUIDGID) {
+			FILE *file;
 
+			strcpy(filename_tail, "/status");
+			file = fopen_for_read(filename);
+			if (!file)
+				break;
+			while (fgets(buf, sizeof(buf), file)) {
+				char *tp;
+#define SCAN_TWO(str, name, statement) \
+	if (strncmp(buf, str, sizeof(str)-1) == 0) { \
+		tp = skip_whitespace(buf + sizeof(str)-1); \
+		sscanf(tp, "%u", &sp->name); \
+		statement; \
+	}
+				SCAN_TWO("Uid:", ruid, continue);
+				SCAN_TWO("Gid:", rgid, break);
+#undef SCAN_TWO
+			}
+			fclose(file);
+		}
+#endif /* PS_ADDITIONAL_COLUMNS */
 #if 0 /* PSSCAN_CMD is not used */
 		if (flags & (PSSCAN_CMD|PSSCAN_ARGV0)) {
 			free(sp->argv0);
