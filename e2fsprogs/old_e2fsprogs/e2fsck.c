@@ -1886,7 +1886,7 @@ static void e2fsck_journal_reset_super(e2fsck_t ctx, journal_superblock_t *jsb,
 	int i;
 
 	/* Leave a valid existing V1 superblock signature alone.
-	 * Anything unrecognisable we overwrite with a new V2
+	 * Anything unrecognizable we overwrite with a new V2
 	 * signature. */
 
 	if (jsb->s_header.h_magic != htonl(JFS_MAGIC_NUMBER) ||

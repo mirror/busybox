@@ -169,7 +169,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	 && FROM->sll_pkttype != PACKET_MULTICAST)
 		return false;
 
-	/* Only these types are recognised */
+	/* Only these types are recognized */
 	if (ah->ar_op != htons(ARPOP_REQUEST) && ah->ar_op != htons(ARPOP_REPLY))
 		return false;
 

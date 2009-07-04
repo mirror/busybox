@@ -687,7 +687,7 @@ static char *get_one_address(char *p, int *addr)	// get colon addr, if present
 		sscanf(p, "%d%n", addr, &st);
 		p += st;
 	} else {
-		// unrecognised address - assume -1
+		// unrecognized address - assume -1
 		*addr = -1;
 	}
 	return p;
@@ -2979,7 +2979,7 @@ static void do_cmd(int c)
 		//case '`':	// `-
 		//case 'u':	// u- FIXME- there is no undo
 		//case 'v':	// v-
-	default:			// unrecognised command
+	default:			// unrecognized command
 		buf[0] = c;
 		buf[1] = '\0';
 		if (c < ' ') {
@@ -3356,7 +3356,7 @@ static void do_cmd(int c)
 		} else if (sscanf(p, "%d", &j) > 0) {
 			dot = find_line(j);		// go to line # j
 			dot_skip_over_ws();
-		} else {		// unrecognised cmd
+		} else {		// unrecognized cmd
 			not_implemented(p);
 		}
 #endif /* !FEATURE_VI_COLON */

@@ -253,9 +253,9 @@ config GETOPT
 config FEATURE_GETOPT_LONG
 	bool "Support option -l"
 	default y if LONG_OPTS
+	depends on GETOPT
 	help
-	  Enable support for recognising long options using the -l option to
-	  getopt.
+	  Enable support for long options (option -l).
 
 config HEXDUMP
 	bool "hexdump"

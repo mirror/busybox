@@ -675,7 +675,7 @@ static void identify(uint16_t *val)
 	swab(val, buf, sizeof(buf));
 	val = buf;
 #endif
-	/* check if we recognise the device type */
+	/* check if we recognize the device type */
 	bb_putchar('\n');
 	if (!(val[GEN_CONFIG] & NOT_ATA)) {
 		dev = ATA_DEV;
