@@ -114,6 +114,16 @@ config FEATURE_EDITING_ASK_TERMINAL
 	  correctly, or want to save on code size (about 300 bytes),
 	  then do not turn this option on.
 
+config FEATURE_NON_POSIX_CP
+	bool "Non-POSIX, but safer, copying to special nodes"
+	default y
+	help
+	  With this option, "cp file symlink" will delete symlink
+	  and create a regular file. This does not conform to POSIX,
+	  but prevents a symlink attack.
+	  Similarly, "cp file device" will not send file's data
+	  to the device.
+
 config FEATURE_VERBOSE_CP_MESSAGE
 	bool "Give more precise messages when copy fails (cp, mv etc)"
 	default n

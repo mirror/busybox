@@ -8,9 +8,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
-
 #include "libbb.h"
 
+// FEATURE_NON_POSIX_CP:
+//
 // POSIX: if exists and -i, ask (w/o -i assume yes).
 // Then open w/o EXCL (yes, not unlink!).
 // If open still fails and -f, try unlink, then try open again.
@@ -23,22 +24,21 @@
 // NB: we have special code which still allows for "cp file /dev/node"
 // to work POSIX-ly (the only realistic case where it makes sense)
 
-#define DO_POSIX_CP 0  /* 1 - POSIX behavior, 0 - safe behavior */
-
 // errno must be set to relevant value ("why we cannot create dest?")
 // for POSIX mode to give reasonable error message
 static int ask_and_unlink(const char *dest, int flags)
 {
 	int e = errno;
-#if DO_POSIX_CP
+#if !ENABLE_FEATURE_NON_POSIX_CP
 	if (!(flags & (FILEUTILS_FORCE|FILEUTILS_INTERACTIVE))) {
 		// Either it exists, or the *path* doesnt exist
 		bb_perror_msg("cannot create '%s'", dest);
 		return -1;
 	}
 #endif
-	// If !DO_POSIX_CP, act as if -f is always in effect - we don't want
-	// "cannot create" msg, we want unlink to be done (silently unless -i).
+	// If ENABLE_FEATURE_NON_POSIX_CP, act as if -f is always in effect
+	// - we don't want "cannot create" msg, we want unlink to be done
+	// (silently unless -i).
 
 	// TODO: maybe we should do it only if ctty is present?
 	if (flags & FILEUTILS_INTERACTIVE) {
@@ -279,10 +279,10 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		 * non-interactive cp. NB: it is still racy
 		 * for "cp file /home/bad_user/file" case
 		 * (user can rm file and create a link to /etc/passwd) */
-		if (DO_POSIX_CP
+		if (!ENABLE_FEATURE_NON_POSIX_CP
 		 || (dest_exists
-		     && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
-		     && !S_ISLNK(dest_stat.st_mode))
+		    && !(flags & (FILEUTILS_RECUR|FILEUTILS_INTERACTIVE))
+		    && !S_ISLNK(dest_stat.st_mode))
 		) {
 			dst_fd = open(dest, O_WRONLY|O_CREAT|O_TRUNC, new_mode);
 		} else  /* safe way: */
