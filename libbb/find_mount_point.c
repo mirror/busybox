@@ -17,7 +17,7 @@
  * Given any other file (or directory), find the mount table entry for its
  * filesystem.
  */
-struct mntent* FAST_FUNC find_mount_point(const char *name, const char *table)
+struct mntent* FAST_FUNC find_mount_point(const char *name)
 {
 	struct stat s;
 	dev_t mountDevice;
@@ -25,27 +25,35 @@ struct mntent* FAST_FUNC find_mount_point(const char *name, const char *table)
 	struct mntent *mountEntry;
 
 	if (stat(name, &s) != 0)
-		return 0;
+		return NULL;
 
-	if ((s.st_mode & S_IFMT) == S_IFBLK)
+	if (S_ISBLK(s.st_mode))
 		mountDevice = s.st_rdev;
 	else
 		mountDevice = s.st_dev;
 
 
-	mountTable = setmntent(table ? table : bb_path_mtab_file, "r");
+	mountTable = setmntent(bb_path_mtab_file, "r");
 	if (!mountTable)
 		return 0;
 
-	while ((mountEntry = getmntent(mountTable)) != 0) {
+	while ((mountEntry = getmntent(mountTable)) != NULL) {
+		/* rootfs mount in Linux 2.6 exists always,
+		 * and it makes sense to always ignore it.
+		 * Otherwise people can't reference their "real" root! */
+		if (strcmp(mountEntry->mnt_fsname, "rootfs") == 0)
+			continue;
+
 		if (strcmp(name, mountEntry->mnt_dir) == 0
 		 || strcmp(name, mountEntry->mnt_fsname) == 0
 		) { /* String match. */
 			break;
 		}
-		if (stat(mountEntry->mnt_fsname, &s) == 0 && s.st_rdev == mountDevice)	/* Match the device. */
+		/* Match the device. */
+		if (stat(mountEntry->mnt_fsname, &s) == 0 && s.st_rdev == mountDevice)
 			break;
-		if (stat(mountEntry->mnt_dir, &s) == 0 && s.st_dev == mountDevice)	/* Match the directory's mount point. */
+		/* Match the directory's mount point. */
+		if (stat(mountEntry->mnt_dir, &s) == 0 && s.st_dev == mountDevice)
 			break;
 	}
 	endmntent(mountTable);

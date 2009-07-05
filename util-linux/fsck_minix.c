@@ -374,38 +374,28 @@ static int ask(const char *string, int def)
  */
 static void check_mount(void)
 {
-	FILE *f;
-	struct mntent *mnt;
-	int cont;
-	int fd;
-//XXX:FIXME use find_mount_point()
-	f = setmntent(MOUNTED, "r");
-	if (f == NULL)
-		return;
-	while ((mnt = getmntent(f)) != NULL)
-		if (strcmp(device_name, mnt->mnt_fsname) == 0)
-			break;
-	endmntent(f);
-	if (!mnt)
-		return;
+	if (find_mount_point(device_name)) {
+		int cont;
+#if ENABLE_FEATURE_MTAB_SUPPORT
+		/*
+		 * If the root is mounted read-only, then /etc/mtab is
+		 * probably not correct; so we won't issue a warning based on
+		 * it.
+		 */
+		int fd = open(bb_path_mtab_file, O_RDWR);
 
-	/*
-	 * If the root is mounted read-only, then /etc/mtab is
-	 * probably not correct; so we won't issue a warning based on
-	 * it.
-	 */
-	fd = open(MOUNTED, O_RDWR);
-	if (fd < 0 && errno == EROFS)
-		return;
-	close(fd);
-
-	printf("%s is mounted. ", device_name);
-	cont = 0;
-	if (isatty(0) && isatty(1))
-		cont = ask("Do you really want to continue", 0);
-	if (!cont) {
-		printf("Check aborted\n");
-		exit(EXIT_SUCCESS);
+		if (fd < 0 && errno == EROFS)
+			return;
+		close(fd);
+#endif
+		printf("%s is mounted. ", device_name);
+		cont = 0;
+		if (isatty(0) && isatty(1))
+			cont = ask("Do you really want to continue", 0);
+		if (!cont) {
+			printf("Check aborted\n");
+			exit(EXIT_SUCCESS);
+		}
 	}
 }
 

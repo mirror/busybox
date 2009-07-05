@@ -239,7 +239,7 @@ static void open_tty(const char *tty)
 //		cur_dir_fd = xopen(".", O_DIRECTORY | O_NONBLOCK);
 //		xchdir("/dev");
 //		xstat(tty, &st);
-//		if ((st.st_mode & S_IFMT) != S_IFCHR)
+//		if (!S_ISCHR(st.st_mode))
 //			bb_error_msg_and_die("%s: not a character device", tty);
 
 		if (tty[0] != '/')

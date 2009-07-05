@@ -44,7 +44,6 @@ int df_main(int argc, char **argv)
 	FILE *mount_table;
 	struct mntent *mount_entry;
 	struct statfs s;
-	static const char ignored_mounts[] ALIGN1 = "rootfs\0";
 
 	enum {
 		OPT_KILO  = (1 << 0),
@@ -120,7 +119,7 @@ int df_main(int argc, char **argv)
 			mount_point = *argv++;
 			if (!mount_point)
 				break;
-			mount_entry = find_mount_point(mount_point, bb_path_mtab_file);
+			mount_entry = find_mount_point(mount_point);
 			if (!mount_entry) {
 				bb_error_msg("%s: can't find mount point", mount_point);
  set_error:
@@ -154,8 +153,8 @@ int df_main(int argc, char **argv)
 						) / (blocks_used + s.f_bavail);
 			}
 
-			/* GNU coreutils 6.10 skip certain mounts, try to be compatible.  */
-			if (index_in_strings(device, ignored_mounts) != -1)
+			/* GNU coreutils 6.10 skips certain mounts, try to be compatible.  */
+			if (strcmp(device, "rootfs") == 0)
 				continue;
 
 #ifdef WHY_WE_DO_IT_FOR_DEV_ROOT_ONLY

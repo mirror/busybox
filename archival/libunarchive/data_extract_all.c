@@ -21,7 +21,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	/* Check if the file already exists */
 	if (archive_handle->ah_flags & ARCHIVE_EXTRACT_UNCONDITIONAL) {
 		/* Remove the entry if it exists */
-		if (((file_header->mode & S_IFMT) != S_IFDIR)
+		if ((!S_ISDIR(file_header->mode))
 		 && (unlink(file_header->name) == -1)
 		 && (errno != ENOENT)
 		) {
@@ -132,7 +132,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 #endif
 			lchown(file_header->name, file_header->uid, file_header->gid);
 	}
-	if ((file_header->mode & S_IFMT) != S_IFLNK) {
+	if (S_ISLNK(file_header->mode)) {
 		/* uclibc has no lchmod, glibc is even stranger -
 		 * it has lchmod which seems to do nothing!
 		 * so we use chmod... */
