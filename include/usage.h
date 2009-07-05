@@ -2541,12 +2541,17 @@
 #define makemime_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define makemime_full_usage "\n\n" \
-       "Create MIME-encoded message\n" \
+       "Create multipart MIME-encoded message from FILEs.\n" \
+/*     "Transfer encoding is base64, disposition is inline (not attachment)\n" */ \
      "\nOptions:" \
-     "\n	-C      Charset" \
-     "\n	-e	Transfer encoding. Ignored. base64 is assumed" \
+     "\n	-o FILE	Output. Default: stdout" \
+     "\n	-a HDR	Add header. Examples:" \
+     "\n		\"From: user@host.org\", \"Date: `date -R`\"" \
+     "\n	-c CT	Content type. Default: text/plain" \
+     "\n	-C CS   Charset. Default: " CONFIG_FEATURE_MIME_CHARSET \
+/*   "\n	-e ENC	Transfer encoding. Ignored. base64 is assumed" */ \
      "\n" \
-     "\nOther options are silently ignored." \
+     "\nOther options are silently ignored" \
 
 #define man_trivial_usage \
        "[OPTIONS] [MANPAGE]..."
@@ -3776,17 +3781,17 @@
 #define selinuxenabled_full_usage ""
 
 #define sendmail_trivial_usage \
-       "[OPTIONS] [rcpt]..."
+       "[OPTIONS] [RECIPIENT_EMAIL]..."
 #define sendmail_full_usage "\n\n" \
-       "Send an email\n" \
+       "Read email from stdin and send it\n" \
      "\nStandard options:" \
-     "\n	-t		Read recipients from message body, add them to those on cmdline" \
-     "\n	-f sender	Sender. REQUIRED!" \
-     "\n	-o options	various options. -oi IMPLIED! others are IGNORED!" \
+     "\n	-t		Read additional recipients from message body" \
+     "\n	-f sender	Sender (required)" \
+     "\n	-o options	Various options. -oi implied, others are ignored" \
      "\n" \
      "\nBusybox specific options:" \
      "\n	-w seconds	Network timeout" \
-     "\n	-H 'prog args'	Run connection helper" \
+     "\n	-H 'PROG ARGS'	Run connection helper" \
      "\n			Examples:" \
      "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp" \
      "\n				-connect smtp.gmail.com:25' <email.txt" \
@@ -3797,9 +3802,12 @@
      "\n	-S server[:port] Server" \
      "\n	-au<username>	Username for AUTH LOGIN" \
      "\n	-ap<password>	Password for AUTH LOGIN" \
-     "\n	-am<method>	Authentication method. Ignored. login is implied." \
+     "\n	-am<method>	Authentication method. Ignored. LOGIN is implied" \
      "\n" \
      "\nOther options are silently ignored; -oi -t is implied" \
+	IF_MAKEMIME( \
+     "\nUse makemime applet to create message with attachments" \
+	)
 
 #define seq_trivial_usage \
        "[-w] [-s SEP] [FIRST [INC]] LAST"

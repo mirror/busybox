@@ -35,12 +35,68 @@ Options:
                     -c auto to set Content-Type: to text/plain or
                     application/octet-stream based on picked encoding.
   -j file1 file2  - join mime section file2 to multipart section file1.
-  -o file         - write ther result to file, instead of stdout (not
+  -o file         - write the result to file, instead of stdout (not
                     allowed in child processes).
   -a header       - prepend an additional header to the output.
 
   @file - read all of the above options from file, one option or
           value on each line.
+  {which version of makemime is this? What do we support?}
+*/
+
+
+/* In busybox 1.15.0.svn, makemime generates output like this
+ * (empty lines are shown exactly!):
+{headers added with -a HDR}
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="24269534-2145583448-1655890676"
+
+--24269534-2145583448-1655890676
+Content-Type: {set by -c, e.g. text/plain}; charset={set by -C, e.g. us-ascii}
+Content-Disposition: inline; filename="A"
+Content-Transfer-Encoding: base64
+
+...file A contents...
+--24269534-2145583448-1655890676
+Content-Type: {set by -c, e.g. text/plain}; charset={set by -C, e.g. us-ascii}
+Content-Disposition: inline; filename="B"
+Content-Transfer-Encoding: base64
+
+...file B contents...
+--24269534-2145583448-1655890676--
+
+*/
+
+
+/* For reference: here is an example email to LKML which has
+ * 1st unnamed part (so it serves as an email body)
+ * and one attached file:
+...other headers...
+Content-Type: multipart/mixed; boundary="=-tOfTf3byOS0vZgxEWcX+"
+...other headers...
+Mime-Version: 1.0
+...other headers...
+
+
+--=-tOfTf3byOS0vZgxEWcX+
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
+
+...email text...
+...email text...
+
+
+--=-tOfTf3byOS0vZgxEWcX+
+Content-Disposition: attachment; filename="xyz"
+Content-Type: text/plain; name="xyz"; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+
+...file contents...
+...file contents...
+
+--=-tOfTf3byOS0vZgxEWcX+--
+
+...random junk added by mailing list robots and such...
 */
 
 int makemime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -86,7 +142,8 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 
 	// make a random string -- it will delimit message parts
 	srand(monotonic_us());
-	boundary = xasprintf("%d-%d-%d", rand(), rand(), rand());
+	boundary = xasprintf("%u-%u-%u",
+			(unsigned)rand(), (unsigned)rand(), (unsigned)rand());
 
 	// put multipart header
 	printf(
