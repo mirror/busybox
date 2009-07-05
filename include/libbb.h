@@ -29,6 +29,10 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#if defined __FreeBSD__
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -86,7 +90,9 @@ int klogctl(int type, char *b, int len);
 /* This is declared here rather than #including <libgen.h> in order to avoid
  * confusing the two versions of basename.  See the dirname/basename man page
  * for details. */
+#if !defined __FreeBSD__
 char *dirname(char *path);
+#endif
 /* Include our own copy of struct sysinfo to avoid binary compatibility
  * problems with Linux 2.4, which changed things.  Grumble, grumble. */
 struct sysinfo {

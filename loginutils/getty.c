@@ -22,6 +22,10 @@
 #include <utmp.h> /* updwtmp() */
 #endif
 
+#ifndef IUCLC
+# define IUCLC 0
+#endif
+
 /*
  * Some heuristics to find out what environment we are in: if it is not
  * System V, assume it is SunOS 4.

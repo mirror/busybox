@@ -37,6 +37,9 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 	tcgetattr(fd, &oldtio);
 	tcflush(fd, TCIFLUSH);
 	tio = oldtio;
+#ifndef IUCLC
+# define IUCLC 0
+#endif
 	tio.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
 	tio.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|TOSTOP);
 	tcsetattr_stdin_TCSANOW(&tio);

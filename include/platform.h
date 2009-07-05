@@ -36,12 +36,10 @@
 #undef inline
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ > 199901L
 /* it's a keyword */
+#elif __GNUC_PREREQ(2,7)
+# define inline __inline__
 #else
-# if __GNUC_PREREQ(2,7)
-#  define inline __inline__
-# else
-#  define inline
-# endif
+# define inline
 #endif
 
 #ifndef __const
@@ -52,6 +50,7 @@
 #define NORETURN __attribute__ ((__noreturn__))
 #define PACKED __attribute__ ((__packed__))
 #define ALIGNED(m) __attribute__ ((__aligned__(m)))
+
 /* __NO_INLINE__: some gcc's do not honor inlining! :( */
 #if __GNUC_PREREQ(3,0) && !defined(__NO_INLINE__)
 # define ALWAYS_INLINE __attribute__ ((always_inline)) inline
@@ -122,24 +121,34 @@
 
 /* ---- Endian Detection ------------------------------------ */
 
-#if (defined __digital__ && defined __unix__)
+#if defined(__digital__) && defined(__unix__)
 # include <sex.h>
 # define __BIG_ENDIAN__ (BYTE_ORDER == BIG_ENDIAN)
 # define __BYTE_ORDER BYTE_ORDER
+#elif defined __FreeBSD__
+char *strchrnul(const char *s, int c);
+# include <sys/resource.h>	/* rlimit */
+# include <machine/endian.h>
+# define bswap_64 __bswap64
+# define bswap_32 __bswap32
+# define bswap_16 __bswap16
+# define __BIG_ENDIAN__ (_BYTE_ORDER == _BIG_ENDIAN)
 #elif !defined __APPLE__
 # include <byteswap.h>
 # include <endian.h>
 #endif
 
-#ifdef __BIG_ENDIAN__
+#if defined(__BIG_ENDIAN__) && __BIG_ENDIAN__
 # define BB_BIG_ENDIAN 1
 # define BB_LITTLE_ENDIAN 0
 #elif __BYTE_ORDER == __BIG_ENDIAN
 # define BB_BIG_ENDIAN 1
 # define BB_LITTLE_ENDIAN 0
-#else
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
+#else
+# error "Can't determine endiannes"
 #endif
 
 /* SWAP_LEnn means "convert CPU<->little_endian by swapping bytes" */
@@ -183,7 +192,7 @@
 
 #ifndef __APPLE__
 # include <arpa/inet.h>
-# ifndef __socklen_t_defined
+# if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
 typedef int socklen_t;
 # endif
 #else
@@ -192,20 +201,13 @@ typedef int socklen_t;
 
 /* ---- Compiler dependent settings ------------------------- */
 
-#if (defined __digital__ && defined __unix__) || defined __APPLE__
+#if (defined __digital__ && defined __unix__) \
+ || defined __APPLE__ || defined __FreeBSD__
 # undef HAVE_MNTENT_H
 # undef HAVE_SYS_STATFS_H
 #else
 # define HAVE_MNTENT_H 1
 # define HAVE_SYS_STATFS_H 1
-#endif /* ___digital__ && __unix__ */
-
-/* linux/loop.h relies on __u64. Make sure we have that as a proper type
- * until userspace is widely fixed.  */
-#if (defined __INTEL_COMPILER && !defined __GNUC__) || \
-	(defined __GNUC__ && defined __STRICT_ANSI__)
-__extension__ typedef long long __s64;
-__extension__ typedef unsigned long long __u64;
 #endif
 
 /*----- Kernel versioning ------------------------------------*/
@@ -224,14 +226,15 @@ __extension__ typedef unsigned long long __u64;
 /* Don't perpetuate e2fsck crap into the headers.  Clean up e2fsck instead. */
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
-	|| defined __dietlibc__ || defined _NEWLIB_VERSION
+ || defined __dietlibc__ || defined _NEWLIB_VERSION
 # include <features.h>
 # define HAVE_FEATURES_H
 # include <stdint.h>
 # define HAVE_STDINT_H
 #elif !defined __APPLE__
-/* Largest integral types.  */
-# if __BIG_ENDIAN__
+/* Largest integral types. */
+# if BB_BIG_ENDIAN
+/* Looks BROKEN! */
 typedef long                intmax_t;
 typedef unsigned long       uintmax_t;
 # else
@@ -308,18 +311,15 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 }
 #endif
 
-/* Don't use lchown with glibc older than 2.1.x ... uClibc lacks it */
-#if (defined __GLIBC__ && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1) || \
-    defined __UC_LIBC__
+/* Don't use lchown with glibc older than 2.1.x */
+#if defined(__GLIBC__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1
 # define lchown chown
 #endif
 
-#if (defined __digital__ && defined __unix__)
+#if defined(__digital__) && defined(__unix__)
 
 # include <standards.h>
-# define HAVE_STANDARDS_H
 # include <inttypes.h>
-# define HAVE_INTTYPES_H
 # define PRIu32 "u"
 /* use legacy setpgrp(pid_t,pid_t) for now.  move to platform.c */
 # define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me,__me); } while (0)
@@ -336,7 +336,7 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 #  define ADJ_TICK MOD_CLKB
 # endif
 
-#else /* !__digital__ */
+#else
 
 # define bb_setpgrp() setpgrp()
 
@@ -385,11 +385,6 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 /* The field domainname of struct utsname is Linux specific. */
 #if !defined(__linux__)
 # define HAVE_NO_UTSNAME_DOMAINNAME
-#endif
-
-/* If this system doesn't have IUCLC bit in struct termios::c_iflag... */
-#ifndef IUCLC
-# define IUCLC 0
 #endif
 
 #endif

@@ -19,7 +19,7 @@
  */
 
 #include "libbb.h"
-#include <features.h>
+//#include <features.h>
 #include <assert.h>
 
 #ifndef _PATH_SHADOW

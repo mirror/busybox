@@ -24,7 +24,7 @@
  */
 
 #include <net/if.h>
-#include <features.h>
+//#include <features.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
