@@ -3229,7 +3229,7 @@
        "$ patch -p0 -i example.diff"
 
 #define pgrep_trivial_usage \
-       "[-flnovx] PATTERN"
+       "[-flnovx] [-s SID|-P PPID|PATTERN]"
 #define pgrep_full_usage "\n\n" \
        "Display process(es) selected by regex PATTERN\n" \
      "\nOptions:" \
@@ -3237,8 +3237,10 @@
      "\n	-f	Match against entire command line" \
      "\n	-n	Show the newest process only" \
      "\n	-o	Show the oldest process only" \
-     "\n	-v	Negate the matching" \
+     "\n	-v	Negate the match" \
      "\n	-x	Match whole name (not substring)" \
+     "\n	-s	Match session ID (0 for current)" \
+     "\n	-P	Match parent process ID" \
 
 #if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
 #define pidof_trivial_usage \
@@ -3331,7 +3333,7 @@
        "the new root file system"
 
 #define pkill_trivial_usage \
-       "[-l] | [-fnovx] [-signal] PATTERN"
+       "[-l|-SIGNAL] [-fnovx] [-s SID|-P PPID|PATTERN]"
 #define pkill_full_usage "\n\n" \
        "Send a signal to process(es) selected by regex PATTERN\n" \
      "\nOptions:" \
@@ -3339,8 +3341,10 @@
      "\n	-f	Match against entire command line" \
      "\n	-n	Signal the newest process only" \
      "\n	-o	Signal the oldest process only" \
-     "\n	-v	Negate the matching" \
+     "\n	-v	Negate the match" \
      "\n	-x	Match whole name (not substring)" \
+     "\n	-s	Match session ID (0 for current)" \
+     "\n	-P	Match parent process ID" \
 
 #define popmaildir_trivial_usage \
        "[OPTIONS] Maildir [connection-helper ...]"

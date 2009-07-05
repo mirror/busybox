@@ -6,7 +6,6 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-
 #include "libbb.h"
 #include "xregex.h"
 
@@ -15,26 +14,30 @@
 #define pkill (ENABLE_PKILL && applet_name[1] == 'k')
 
 enum {
-	/* "vlfxon" */
-	PGREPOPTBIT_V = 0, /* must be first, we need OPT_INVERT = 0/1 */
-	PGREPOPTBIT_L,
-	PGREPOPTBIT_F,
-	PGREPOPTBIT_X,
-	PGREPOPTBIT_O,
-	PGREPOPTBIT_N,
+	/* "vlfxons:P:" */
+	OPTBIT_V = 0, /* must be first, we need OPT_INVERT = 0/1 */
+	OPTBIT_L,
+	OPTBIT_F,
+	OPTBIT_X,
+	OPTBIT_O,
+	OPTBIT_N,
+	OPTBIT_S,
+	OPTBIT_P,
 };
 
-#define OPT_INVERT	(opt & (1 << PGREPOPTBIT_V))
-#define OPT_LIST	(opt & (1 << PGREPOPTBIT_L))
-#define OPT_FULL	(opt & (1 << PGREPOPTBIT_F))
-#define OPT_ANCHOR	(opt & (1 << PGREPOPTBIT_X))
-#define OPT_FIRST	(opt & (1 << PGREPOPTBIT_O))
-#define OPT_LAST	(opt & (1 << PGREPOPTBIT_N))
+#define OPT_INVERT	(opt & (1 << OPTBIT_V))
+#define OPT_LIST	(opt & (1 << OPTBIT_L))
+#define OPT_FULL	(opt & (1 << OPTBIT_F))
+#define OPT_ANCHOR	(opt & (1 << OPTBIT_X))
+#define OPT_FIRST	(opt & (1 << OPTBIT_O))
+#define OPT_LAST	(opt & (1 << OPTBIT_N))
+#define OPT_SID		(opt & (1 << OPTBIT_S))
+#define OPT_PPID	(opt & (1 << OPTBIT_P))
 
-static void act(unsigned pid, char *cmd, int signo, unsigned opt)
+static void act(unsigned pid, char *cmd, int signo)
 {
 	if (pgrep) {
-		if (OPT_LIST)
+		if (option_mask32 & (1 << OPTBIT_L)) /* OPT_LIST */
 			printf("%d %s\n", pid, cmd);
 		else
 			printf("%d\n", pid);
@@ -45,13 +48,12 @@ static void act(unsigned pid, char *cmd, int signo, unsigned opt)
 int pgrep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pgrep_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned pid = getpid();
-	int signo = SIGTERM;
+	unsigned pid;
+	int signo;
 	unsigned opt;
-	int scan_mask = PSSCAN_COMM;
-	char *first_arg;
-	int first_arg_idx;
+	int scan_mask;
 	int matched_pid;
+	int sid2match, ppid2match;
 	char *cmd_last;
 	procps_status_t *proc;
 	/* These are initialized to 0 */
@@ -64,52 +66,52 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 
 	memset(&Z, 0, sizeof(Z));
 
-	/* We must avoid interpreting -NUM (signal num) as an option */
-	first_arg_idx = 1;
-	while (1) {
-		first_arg = argv[first_arg_idx];
-		if (!first_arg)
-			break;
-		/* not "-<small_letter>..."? */
-		if (first_arg[0] != '-' || first_arg[1] < 'a' || first_arg[1] > 'z') {
-			argv[first_arg_idx] = NULL; /* terminate argv here */
-			break;
-		}
-		first_arg_idx++;
-	}
-	opt = getopt32(argv, "vlfxon");
-	argv[first_arg_idx] = first_arg;
-
-	argv += optind;
-	//argc -= optind; - unused anyway
-	if (OPT_FULL)
-		scan_mask |= PSSCAN_ARGVN;
-
-	if (pkill) {
-		if (OPT_LIST) { /* -l: print the whole signal list */
-			print_signames();
-			return 0;
-		}
-		if (first_arg && first_arg[0] == '-') {
-			signo = get_signum(&first_arg[1]);
-			if (signo < 0) /* || signo > MAX_SIGNUM ? */
-				bb_error_msg_and_die("bad signal name '%s'", &first_arg[1]);
+	/* Parse -SIGNAL for pkill. Must be first option, if present */
+	signo = SIGTERM;
+	if (pkill && argv[1] && argv[1][0] == '-') {
+		int temp = get_signum(argv[1]+1);
+		if (temp != -1) {
+			signo = temp;
 			argv++;
 		}
 	}
 
-	/* One pattern is required */
-	if (!argv[0] || argv[1])
+	/* Parse remaining options */
+	ppid2match = -1;
+	sid2match = -1;
+	opt_complementary = "s+:P+"; /* numeric opts */
+	opt = getopt32(argv, "vlfxons:P:", &sid2match, &ppid2match);
+	argv += optind;
+
+	if (pkill && OPT_LIST) { /* -l: print the whole signal list */
+		print_signames();
+		return 0;
+	}
+
+	pid = getpid();
+	if (sid2match == 0)
+		sid2match = getsid(pid);
+
+	scan_mask = PSSCAN_COMM;
+	if (OPT_FULL)
+		scan_mask |= PSSCAN_ARGVN;
+
+	/* One pattern is required, if no -s and no -P */
+	if ((sid2match & ppid2match) < 0 && (!argv[0] || argv[1]))
 		bb_show_usage();
 
-	xregcomp(&re_buffer, argv[0], 0);
+	if (argv[0])
+		xregcomp(&re_buffer, argv[0], 0);
+
 	matched_pid = 0;
 	cmd_last = NULL;
 	proc = NULL;
 	while ((proc = procps_scan(proc, scan_mask)) != NULL) {
 		char *cmd;
+
 		if (proc->pid == pid)
 			continue;
+
 		cmd = proc->argv0;
 		if (!cmd) {
 			cmd = proc->comm;
@@ -120,8 +122,15 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 				i--;
 			}
 		}
+
+		if (ppid2match >= 0 && ppid2match != proc->ppid)
+			continue;
+		if (sid2match >= 0  && sid2match != proc->sid)
+			continue;
+
 		/* NB: OPT_INVERT is always 0 or 1 */
-		if ((regexec(&re_buffer, cmd, 1, re_match, 0) == 0 /* match found */
+		if (!argv[0] ||
+		    (regexec(&re_buffer, cmd, 1, re_match, 0) == 0 /* match found */
 		     && (!OPT_ANCHOR || (re_match[0].rm_so == 0 && re_match[0].rm_eo == (regoff_t)strlen(cmd)))) ^ OPT_INVERT
 		) {
 			matched_pid = proc->pid;
@@ -130,13 +139,14 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 				cmd_last = xstrdup(cmd);
 				continue;
 			}
-			act(proc->pid, cmd, signo, opt);
+			act(proc->pid, cmd, signo);
 			if (OPT_FIRST)
 				break;
 		}
 	}
+
 	if (cmd_last) {
-		act(matched_pid, cmd_last, signo, opt);
+		act(matched_pid, cmd_last, signo);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(cmd_last);
 	}
