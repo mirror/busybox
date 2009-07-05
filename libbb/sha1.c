@@ -53,6 +53,12 @@ static inline uint64_t hton64(uint64_t v)
 #endif
 
 
+/* Some arch headers have conflicting defines */
+#undef ch
+#undef parity
+#undef maj
+#undef rnd
+
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
 	unsigned t;
@@ -161,6 +167,13 @@ static const uint64_t sha_K[80] = {
 	0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL,
 	0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL
 };
+
+#undef Ch
+#undef Maj
+#undef S0
+#undef S1
+#undef R0
+#undef R1
 
 static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 {
