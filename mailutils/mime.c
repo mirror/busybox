@@ -232,7 +232,7 @@ static int parse(const char *boundary, char **argv)
 		// N.B. to avoid false positives let us seek to the _last_ occurance
 		p = NULL;
 		s = line;
-		while ((s=strcasestr(s, "Content-Type:")) != NULL)
+		while ((s = strcasestr(s, "Content-Type:")) != NULL)
 			p = s++;
 		if (!p)
 			goto next;
@@ -281,8 +281,8 @@ static int parse(const char *boundary, char **argv)
 				pid = vfork();
 				if (0 == pid) {
 					// child reads from fd[0]
-					xdup2(fd[0], STDIN_FILENO);
-					close(fd[0]); close(fd[1]);
+					close(fd[1]);
+					xmove_fd(fd[0], STDIN_FILENO);
 					xsetenv("CONTENT_TYPE", type);
 					xsetenv("CHARSET", charset);
 					xsetenv("ENCODING", encoding);
@@ -308,7 +308,8 @@ static int parse(const char *boundary, char **argv)
 			if (0 == strcasecmp(encoding, "base64")) {
 				decode_base64(stdin, fp);
 			} else if (0 != strcasecmp(encoding, "7bit")
-				&& 0 != strcasecmp(encoding, "8bit")) {
+				&& 0 != strcasecmp(encoding, "8bit")
+			) {
 				// quoted-printable, binary, user-defined are unsupported so far
 				bb_error_msg_and_die("no support of encoding '%s'", encoding);
 			} else {
@@ -323,11 +324,15 @@ static int parse(const char *boundary, char **argv)
 				// no means to truncate what we already have sent to the helper.
 				p = xmalloc_fgets_str(stdin, "\r\n");
 				while (p) {
-					if ((s = xmalloc_fgets_str(stdin, "\r\n")) == NULL)
+					s = xmalloc_fgets_str(stdin, "\r\n");
+					if (s == NULL)
 						break;
-					if ('-' == s[0] && '-' == s[1]
-						&& 0 == strncmp(s+2, boundary, boundary_len))
+					if ('-' == s[0]
+					 && '-' == s[1]
+					 && 0 == strncmp(s+2, boundary, boundary_len)
+					) {
 						break;
+					}
 					fputs(p, fp);
 					p = s;
 				}
