@@ -50,10 +50,10 @@ static void clear_lease(const uint8_t *chaddr, uint32_t yiaddr)
 /* Add a lease into the table, clearing out any old ones */
 struct dyn_lease* FAST_FUNC add_lease(
 		const uint8_t *chaddr, uint32_t yiaddr,
-		leasetime_t leasetime, uint8_t *hostname)
+		leasetime_t leasetime,
+		const char *hostname, int hostname_len)
 {
 	struct dyn_lease *oldest;
-	uint8_t hostname_length;
 
 	/* clean out any old ones */
 	clear_lease(chaddr, yiaddr);
@@ -63,16 +63,15 @@ struct dyn_lease* FAST_FUNC add_lease(
 	if (oldest) {
 		oldest->hostname[0] = '\0';
 		if (hostname) {
-			/* option size byte, + 1 for NUL */
-        		hostname_length = hostname[-1] + 1;
-			if (hostname_length > sizeof(oldest->hostname))
-				hostname_length = sizeof(oldest->hostname);
-            		hostname = (uint8_t*) safe_strncpy((char*)oldest->hostname, (char*)hostname, hostname_length);
+			char *p;
+			if (hostname_len > sizeof(oldest->hostname))
+				hostname_len = sizeof(oldest->hostname);
+            		p = safe_strncpy(oldest->hostname, hostname, hostname_len);
 			/* sanitization (s/non-ASCII/^/g) */
-			while (*hostname) {
-				if (*hostname < ' ' || *hostname > 126)
-					*hostname = '^';
-				hostname++;
+			while (*p) {
+				if (*p < ' ' || *p > 126)
+					*p = '^';
+				p++;
 			}
 		}
 		memcpy(oldest->lease_mac, chaddr, 6);
@@ -137,7 +136,7 @@ static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac)
 	temp.s_addr = nip;
 	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
 		inet_ntoa(temp), (unsigned)server_config.conflict_time);
-	add_lease(blank_chaddr, nip, server_config.conflict_time, NULL);
+	add_lease(blank_chaddr, nip, server_config.conflict_time, NULL, 0);
 	return 0;
 }
 

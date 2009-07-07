@@ -89,7 +89,7 @@ struct dyn_lease {
 	 * (dhcp packet has chaddr[16], not [6])
 	 */
 	uint8_t lease_mac[6];
-	uint8_t hostname[20];
+	char hostname[20];
 	uint8_t pad[2];
 	/* total size is a multiply of 4 */
 } PACKED;
@@ -98,7 +98,8 @@ extern struct dyn_lease *g_leases;
 
 struct dyn_lease *add_lease(
 		const uint8_t *chaddr, uint32_t yiaddr,
-		leasetime_t leasetime, uint8_t *hostname
+		leasetime_t leasetime,
+		const char *hostname, int hostname_len
 		) FAST_FUNC;
 int is_expired_lease(struct dyn_lease *lease) FAST_FUNC;
 struct dyn_lease *find_lease_by_mac(const uint8_t *mac) FAST_FUNC;

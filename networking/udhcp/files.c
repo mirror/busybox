@@ -420,7 +420,11 @@ void FAST_FUNC read_leases(const char *file)
 				continue;
 			/* NB: add_lease takes "relative time", IOW,
 			 * lease duration, not lease deadline. */
-			if (!(add_lease(lease.lease_mac, lease.lease_nip, expires, lease.hostname))) {
+			if (add_lease(lease.lease_mac, lease.lease_nip,
+					expires,
+					lease.hostname, sizeof(lease.hostname)
+				) == 0
+			) {
 				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
