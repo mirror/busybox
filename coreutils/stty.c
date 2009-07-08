@@ -68,10 +68,6 @@
 # define CSWTCH _POSIX_VDISABLE
 #endif
 
-#ifndef IUCLC
-# define IUCLC 0
-#endif
-
 /* SunOS 5.3 loses (^Z doesn't work) if 'swtch' is the same as 'susp'.
    So the default is to disable 'swtch.'  */
 #if defined(__sparc__) && defined(__svr4__)

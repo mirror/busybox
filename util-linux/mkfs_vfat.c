@@ -7,12 +7,15 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-#include "libbb.h"
-#include "volume_id/volume_id_internal.h"
-
 #include <linux/hdreg.h> /* HDIO_GETGEO */
 #include <linux/fd.h>    /* FDGETPRM */
+#include <sys/mount.h>   /* BLKSSZGET */
+#if !defined(BLKSSZGET)
+# define BLKSSZGET _IO(0x12, 104)
+#endif
 //#include <linux/msdos_fs.h>
+#include "libbb.h"
+#include "volume_id/volume_id_internal.h"
 
 #define SECTOR_SIZE             512
 

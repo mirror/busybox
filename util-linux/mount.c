@@ -8,7 +8,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 // Design notes: There is no spec for mount.  Remind me to write one.
 //
 // mount_main() calls singlemount() which calls mount_it_now().
@@ -17,9 +16,37 @@
 // singlemount() can loop through /etc/filesystems for fstype detection.
 // mount_it_now() does the actual mount.
 //
-
 #include <mntent.h>
 #include <syslog.h>
+#include <sys/mount.h>
+#ifndef MS_BIND
+# define MS_BIND        (1 << 12)
+#endif
+#ifndef MS_MOVE
+# define MS_MOVE        (1 << 13)
+#endif
+#ifndef MS_RECURSIVE
+# define MS_RECURSIVE   (1 << 14)
+#endif
+#ifndef MS_SILENT
+# define MS_SILENT      (1 << 15)
+#endif
+/* The shared subtree stuff, which went in around 2.6.15. */
+#ifndef MS_UNBINDABLE
+# define MS_UNBINDABLE  (1 << 17)
+#endif
+#ifndef MS_PRIVATE
+# define MS_PRIVATE     (1 << 18)
+#endif
+#ifndef MS_SLAVE
+# define MS_SLAVE       (1 << 19)
+#endif
+#ifndef MS_SHARED
+# define MS_SHARED      (1 << 20)
+#endif
+#ifndef MS_RELATIME
+# define MS_RELATIME    (1 << 21)
+#endif
 #include "libbb.h"
 
 #if ENABLE_FEATURE_MOUNT_LABEL

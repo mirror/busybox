@@ -12,6 +12,10 @@
 #define _LARGEFILE64_SOURCE
 #endif
 #include <assert.h>             /* assert */
+#include <sys/mount.h>
+#if !defined(BLKSSZGET)
+# define BLKSSZGET _IO(0x12, 104)
+#endif
 #include "libbb.h"
 
 /* Looks like someone forgot to add this to config system */

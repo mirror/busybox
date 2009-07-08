@@ -342,49 +342,5 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 
 #endif
 
-#if defined(__linux__)
-# include <sys/mount.h>
-/* Make sure we have all the new mount flags we actually try to use. */
-# ifndef MS_BIND
-#  define MS_BIND        (1 << 12)
-# endif
-# ifndef MS_MOVE
-#  define MS_MOVE        (1 << 13)
-# endif
-# ifndef MS_RECURSIVE
-#  define MS_RECURSIVE   (1 << 14)
-# endif
-# ifndef MS_SILENT
-#  define MS_SILENT      (1 << 15)
-# endif
-/* The shared subtree stuff, which went in around 2.6.15. */
-# ifndef MS_UNBINDABLE
-#  define MS_UNBINDABLE  (1 << 17)
-# endif
-# ifndef MS_PRIVATE
-#  define MS_PRIVATE     (1 << 18)
-# endif
-# ifndef MS_SLAVE
-#  define MS_SLAVE       (1 << 19)
-# endif
-# ifndef MS_SHARED
-#  define MS_SHARED      (1 << 20)
-# endif
-# ifndef MS_RELATIME
-#  define MS_RELATIME    (1 << 21)
-# endif
-
-# if !defined(BLKSSZGET)
-#  define BLKSSZGET _IO(0x12, 104)
-# endif
-# if !defined(BLKGETSIZE64)
-#  define BLKGETSIZE64 _IOR(0x12,114,size_t)
-# endif
-#endif
-
-/* The field domainname of struct utsname is Linux specific. */
-#if !defined(__linux__)
-# define HAVE_NO_UTSNAME_DOMAINNAME
-#endif
 
 #endif

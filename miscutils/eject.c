@@ -13,7 +13,11 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 
+#include <sys/mount.h>
 #include "libbb.h"
+/* Must be after libbb.h: they need size_t */
+#include <scsi/sg.h>
+#include <scsi/scsi.h>
 
 /* various defines swiped from linux/cdrom.h */
 #define CDROMCLOSETRAY            0x5319  /* pendant of CDROMEJECT  */
@@ -26,9 +30,6 @@
 
 /* Code taken from the original eject (http://eject.sourceforge.net/),
  * refactored it a bit for busybox (ne-bb@nicoerfurth.de) */
-
-#include <scsi/sg.h>
-#include <scsi/scsi.h>
 
 static void eject_scsi(const char *dev)
 {

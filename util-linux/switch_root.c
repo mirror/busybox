@@ -5,18 +5,16 @@
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
-#include "libbb.h"
 #include <sys/vfs.h>
-
+#include <sys/mount.h>
+#include "libbb.h"
 // Make up for header deficiencies
 #ifndef RAMFS_MAGIC
 # define RAMFS_MAGIC ((unsigned)0x858458f6)
 #endif
-
 #ifndef TMPFS_MAGIC
 # define TMPFS_MAGIC ((unsigned)0x01021994)
 #endif
-
 #ifndef MS_MOVE
 # define MS_MOVE     8192
 #endif
