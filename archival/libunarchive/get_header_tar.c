@@ -301,9 +301,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	file_header->uname = tar.uname[0] ? xstrndup(tar.uname, sizeof(tar.uname)) : NULL;
 	file_header->gname = tar.gname[0] ? xstrndup(tar.gname, sizeof(tar.gname)) : NULL;
 #endif
-	file_header->mtime = GET_OCTAL(tar.mtime);
-	/* Size field: handle GNU tar's "base256 encoding" */
-	file_header->size = (*tar.size & 0xc0) == 0x80 /* positive base256? */
+	/* mtime: rudimentally handle GNU tar's "base256 encoding"
+	 * People report tarballs with NEGATIVE unix times encoded that way */
+	file_header->mtime = (tar.mtime[0] & 0x80) /* base256? */
+			? 0 /* bogus */
+			: GET_OCTAL(tar.mtime);
+	/* size: handle GNU tar's "base256 encoding" */
+	file_header->size = (tar.size[0] & 0xc0) == 0x80 /* positive base256? */
 			? getBase256_len12(tar.size)
 			: GET_OCTAL(tar.size);
 	file_header->gid = GET_OCTAL(tar.gid);
