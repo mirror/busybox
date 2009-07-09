@@ -167,21 +167,32 @@ sub maybe_unshift
 	}
 	unshift (@{$array}, $ele);
 }
+sub add_mod_deps
+{
+	my ($depth, $mod, $mod2, $module, $this_module) = @_;
+
+	$depth .= " ";
+	warn "${depth}loading deps of module: $this_module\n" if $verbose;
+
+	foreach my $md (keys %{$mod->{$this_module}}) {
+		add_mod_deps ($depth, $mod, $mod2, $module, $md);
+		warn "${depth} outputting $md\n" if $verbose;
+		maybe_unshift (\@{$$mod2->{$module}}, $md);
+	}
+
+	if (!%{$mod->{$this_module}}) {
+		warn "${depth} no deps\n" if $verbose;
+	}
+}
 foreach my $module (keys %$mod) {
-    warn "filling out module: $module\n" if $verbose;
-    @{$mod2->{$module}} = ();
-    foreach my $md (keys %{$mod->{$module}}) {
-        foreach my $md2 (keys %{$mod->{$md}}) {
-            warn "outputting $md2\n" if $verbose;
-            maybe_unshift (\@{$mod2->{$module}}, $md2);
-        }
-        warn "outputting $md\n" if $verbose;
-        maybe_unshift (\@{$mod2->{$module}}, $md);
-    }
+	warn "filling out module: $module\n" if $verbose;
+	@{$mod2->{$module}} = ();
+	add_mod_deps ("", $mod, \$mod2, $module, $module);
 }
 
 # figure out where the output should go
 if ($stdout == 0) {
+	warn "writing $basedir/modules.dep\n" if $verbose;
     open(STDOUT, ">$basedir/modules.dep")
                              or die "cannot open $basedir/modules.dep: $!";
 }
