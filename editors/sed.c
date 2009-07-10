@@ -894,12 +894,13 @@ static void process_files(void)
 			|| (!sed_cmd->beg_line && !sed_cmd->end_line
 				&& !sed_cmd->beg_match && !sed_cmd->end_match)
 			/* Or did we match the start of a numerical range? */
-			|| (sed_cmd->beg_line > 0 && (sed_cmd->beg_line == linenum
-							/* "shadowed beginning" case: "1d;1,ENDp" - p still matches at line 2
-							 * even though 1d skipped line 1 which is a start line for p */
-							|| (sed_cmd->end_line && sed_cmd->beg_line < linenum && sed_cmd->end_line >= linenum)
-							|| (sed_cmd->end_match && sed_cmd->beg_line < linenum)
-						)
+			|| (sed_cmd->beg_line > 0
+			    && (sed_cmd->beg_line == linenum
+			       /* GNU sed compat:
+			        * "shadowed beginning" case: "1d;1,ENDp" - p still matches at line 2
+			        * even though 1d skipped line 1 which is a start line for p */
+			       || (sed_cmd->beg_line < linenum && (sed_cmd->end_line > 0 || sed_cmd->end_match))
+			       )
 			)
 			/* Or does this line match our begin address regex? */
 			|| (beg_match(sed_cmd, pattern_space))
@@ -928,12 +929,10 @@ static void process_files(void)
 				     && (regexec(sed_cmd->end_match,
 				                 pattern_space, 0, NULL, 0) == 0)
 				);
-				if (n && sed_cmd->beg_line > 0) {
-					/* Once matched, "n,regex" range is dead, disabling it */
-					regfree(sed_cmd->end_match);
-					free(sed_cmd->end_match);
-					sed_cmd->end_match = NULL;
-				}
+			}
+			if (n && sed_cmd->beg_line > 0) {
+				/* once matched, "n,xxx" range is dead, disabling it */
+				sed_cmd->beg_line = -2;
 			}
 			sed_cmd->in_match = !n;
 		}

@@ -220,4 +220,9 @@ testing "sed d does not break n,regex matching #2" \
 	"second2\nthird2\n" "" \
 	"first\nsecond\nthird\nfourth\n""first2\nsecond2\nthird2\nfourth2\n"
 
+testing "sed 2d;2,1p (gnu compat)" \
+	"sed -n '2d;2,1p'" \
+	"third\n" "" \
+	"first\nsecond\nthird\nfourth\n"
+
 exit $FAILCOUNT
