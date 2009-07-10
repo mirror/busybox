@@ -33,32 +33,26 @@
  *
  * PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
  */
-
 #include "libbb.h"
-
+#if ENABLE_FEATURE_ASSUME_UNICODE
+# include <wchar.h>
+# include <wctype.h>
+#endif
 
 /* FIXME: obsolete CONFIG item? */
 #define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
 
-
 #ifdef TEST
-
-#define ENABLE_FEATURE_EDITING 0
-#define ENABLE_FEATURE_TAB_COMPLETION 0
-#define ENABLE_FEATURE_USERNAME_COMPLETION 0
-#define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
-
-#endif  /* TEST */
+# define ENABLE_FEATURE_EDITING 0
+# define ENABLE_FEATURE_TAB_COMPLETION 0
+# define ENABLE_FEATURE_USERNAME_COMPLETION 0
+# define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
+#endif
 
 
 /* Entire file (except TESTing part) sits inside this #if */
 #if ENABLE_FEATURE_EDITING
 
-#if ENABLE_LOCALE_SUPPORT
-#define Isprint(c) isprint(c)
-#else
-#define Isprint(c) ((c) >= ' ' && (c) != ((unsigned char)'\233'))
-#endif
 
 #define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
 	(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
@@ -67,6 +61,38 @@
 #undef IF_FEATURE_GETUSERNAME_AND_HOMEDIR
 #define IF_FEATURE_GETUSERNAME_AND_HOMEDIR(...) __VA_ARGS__
 #endif
+
+
+#undef CHAR_T
+#if ENABLE_FEATURE_ASSUME_UNICODE
+# define BB_NUL L'\0'
+# define CHAR_T wchar_t
+# define BB_isspace(c) iswspace(c)
+# define BB_isalnum(c) iswalnum(c)
+# define BB_ispunct(c) iswpunct(c)
+# define BB_isprint(c) iswprint(c)
+/* this catches bugs */
+# undef isspace
+# undef isalnum
+# undef ispunct
+# undef isprint
+# define isspace isspace_must_not_be_used
+# define isalnum isalnum_must_not_be_used
+# define ispunct ispunct_must_not_be_used
+# define isprint isprint_must_not_be_used
+#else
+# define BB_NUL '\0'
+# define CHAR_T char
+# define BB_isspace(c) isspace(c)
+# define BB_isalnum(c) isalnum(c)
+# define BB_ispunct(c) ispunct(c)
+# if ENABLE_LOCALE_SUPPORT
+#  define BB_isprint(c) isprint(c)
+# else
+#  define BB_isprint(c) ((c) >= ' ' && (c) != ((unsigned char)'\233'))
+# endif
+#endif
+
 
 enum {
 	/* We use int16_t for positions, need to limit line len */
@@ -92,7 +118,7 @@ struct lineedit_statics {
 
 	unsigned cursor;
 	unsigned command_len;
-	char *command_ps;
+	CHAR_T *command_ps;
 
 	const char *cmdedit_prompt;
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -111,9 +137,9 @@ struct lineedit_statics {
 
 #if ENABLE_FEATURE_EDITING_VI
 #define DELBUFSIZ 128
-	char *delptr;
+	CHAR_T *delptr;
 	smallint newdelflag;     /* whether delbuf should be reused yet */
-	char delbuf[DELBUFSIZ];  /* a place to store deleted characters */
+	CHAR_T delbuf[DELBUFSIZ];  /* a place to store deleted characters */
 #endif
 
 	/* Formerly these were big buffers on stack: */
@@ -172,6 +198,49 @@ static void deinit_S(void)
 #define DEINIT_S() deinit_S()
 
 
+#if ENABLE_FEATURE_ASSUME_UNICODE
+static size_t load_string(const char *src, int maxsize)
+{
+	ssize_t len = mbstowcs(command_ps, src, maxsize - 1);
+	if (len < 0)
+		len = 0;
+	command_ps[len] = L'\0';
+	return len;
+}
+static size_t save_string(char *dst, int maxsize)
+{
+	ssize_t len = wcstombs(dst, command_ps, maxsize - 1);
+	if (len < 0)
+		len = 0;
+	dst[len] = '\0';
+	return len;
+}
+/* I thought just fputwc(c, stdout) would work. But no... */
+static void BB_PUTCHAR(wchar_t c)
+{
+	char buf[MB_CUR_MAX + 1];
+	mbstate_t mbst = { 0 };
+	ssize_t len = wcrtomb(buf, c, &mbst);
+
+	if (len > 0) {
+		buf[len] = '\0';
+		fputs(buf, stdout);
+	}
+}
+#else
+static size_t load_string(const char *src, int maxsize)
+{
+	safe_strncpy(command_ps, src, maxsize);
+	return strlen(command_ps);
+}
+static void save_string(char *dst, int maxsize)
+{
+	safe_strncpy(dst, command_ps, maxsize);
+}
+#define BB_PUTCHAR(c) bb_putchar(c)
+#endif
+
+
 /* Put 'command_ps[cursor]', cursor++.
  * Advance cursor on screen. If we reached right margin, scroll text up
  * and remove terminal margin effect by printing 'next_char' */
@@ -183,15 +252,15 @@ static void cmdedit_set_out_char(void)
 static void cmdedit_set_out_char(int next_char)
 #endif
 {
-	int c = (unsigned char)command_ps[cursor];
+	CHAR_T c = command_ps[cursor];
 
-	if (c == '\0') {
+	if (c == BB_NUL) {
 		/* erase character after end of input string */
 		c = ' ';
 	}
 #if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
 	/* Display non-printable characters in reverse */
-	if (!Isprint(c)) {
+	if (!BB_isprint(c)) {
 		if (c >= 128)
 			c -= 128;
 		if (c < ' ')
@@ -202,7 +271,7 @@ static void cmdedit_set_out_char(int next_char)
 	} else
 #endif
 	{
-		bb_putchar(c);
+		BB_PUTCHAR(c);
 	}
 	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
@@ -224,7 +293,7 @@ static void cmdedit_set_out_char(int next_char)
 		bb_putchar('\b');
 #endif
 	}
-// Huh? What if command_ps[cursor] == '\0' (we are at the end already?)
+// Huh? What if command_ps[cursor] == BB_NUL (we are at the end already?)
 	cursor++;
 }
 
@@ -357,7 +426,8 @@ static void input_delete(int save)
 	}
 #endif
 
-	overlapping_strcpy(command_ps + j, command_ps + j + 1);
+	memmove(command_ps + j, command_ps + j + 1,
+			(command_len - j + 1) * sizeof(command_ps[0]));
 	command_len--;
 	input_end();                    /* rewrite new line */
 	cmdedit_set_out_char(' ');      /* erase char */
@@ -374,8 +444,9 @@ static void put(void)
 		return;
 	ocursor = cursor;
 	/* open hole and then fill it */
-	memmove(command_ps + cursor + j, command_ps + cursor, command_len - cursor + 1);
-	strncpy(command_ps + cursor, delbuf, j);
+	memmove(command_ps + cursor + j, command_ps + cursor,
+			(command_len - cursor + 1) * sizeof(command_ps[0]));
+	memcpy(command_ps + cursor, delbuf, j * sizeof(command_ps[0]));
 	command_len += j;
 	input_end();                    /* rewrite new line */
 	input_backward(cursor - ocursor - j + 1); /* at end of new text */
@@ -857,10 +928,10 @@ static void input_tab(smallint *lastWasTab)
 
 		*lastWasTab = TRUE;             /* flop trigger */
 
-		/* Make a local copy of the string -- up
-		 * to the position of the cursor */
-		tmp = strncpy(matchBuf, command_ps, cursor);
-		tmp[cursor] = '\0';
+		/* Make a local copy of the string --
+		 * up to the position of the cursor */
+		save_string(matchBuf, cursor + 1);
+		tmp = matchBuf;
 
 		find_type = find_match(matchBuf, &recalc_pos);
 
@@ -930,6 +1001,8 @@ static void input_tab(smallint *lastWasTab)
 		/* have space to placed match? */
 		if ((len_found - strlen(matchBuf) + command_len) < MAX_LINELEN) {
 			/* before word for match   */
+//TODO:
+#if !ENABLE_FEATURE_ASSUME_UNICODE
 			command_ps[cursor - recalc_pos] = '\0';
 			/* save   tail line        */
 			strcpy(matchBuf, command_ps + cursor);
@@ -944,6 +1017,7 @@ static void input_tab(smallint *lastWasTab)
 			/* new len                         */
 			command_len = strlen(command_ps);
 			/* write out the matched command   */
+#endif
 			redraw(cmdedit_y, command_len - recalc_pos);
 		}
 		free(tmp);
@@ -978,10 +1052,19 @@ line_input_t* FAST_FUNC new_line_input_t(int flags)
 
 static void save_command_ps_at_cur_history(void)
 {
-	if (command_ps[0] != '\0') {
+	if (command_ps[0] != BB_NUL) {
 		int cur = state->cur_history;
 		free(state->history[cur]);
+
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		{
+			char tbuf[MAX_LINELEN];
+			save_string(tbuf, sizeof(tbuf));
+			state->history[cur] = xstrdup(tbuf);
+		}
+#else
 		state->history[cur] = xstrdup(command_ps);
+#endif
 	}
 }
 
@@ -1199,93 +1282,105 @@ static void remember_in_history(char *str)
 
 #if ENABLE_FEATURE_EDITING_VI
 static void
-vi_Word_motion(char *command, int eat)
+vi_Word_motion(int eat)
 {
-	while (cursor < command_len && !isspace(command[cursor]))
+	CHAR_T *command = command_ps;
+
+	while (cursor < command_len && !BB_isspace(command[cursor]))
 		input_forward();
-	if (eat) while (cursor < command_len && isspace(command[cursor]))
+	if (eat) while (cursor < command_len && BB_isspace(command[cursor]))
 		input_forward();
 }
 
 static void
-vi_word_motion(char *command, int eat)
+vi_word_motion(int eat)
 {
-	if (isalnum(command[cursor]) || command[cursor] == '_') {
+	CHAR_T *command = command_ps;
+
+	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
 		while (cursor < command_len
-		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_'))
+		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_'))
 			input_forward();
-	} else if (ispunct(command[cursor])) {
-		while (cursor < command_len && ispunct(command[cursor+1]))
+	} else if (BB_ispunct(command[cursor])) {
+		while (cursor < command_len && BB_ispunct(command[cursor+1]))
 			input_forward();
 	}
 
 	if (cursor < command_len)
 		input_forward();
 
-	if (eat && cursor < command_len && isspace(command[cursor]))
-		while (cursor < command_len && isspace(command[cursor]))
+	if (eat && cursor < command_len && BB_isspace(command[cursor]))
+		while (cursor < command_len && BB_isspace(command[cursor]))
 			input_forward();
 }
 
 static void
-vi_End_motion(char *command)
+vi_End_motion(void)
 {
+	CHAR_T *command = command_ps;
+
 	input_forward();
-	while (cursor < command_len && isspace(command[cursor]))
+	while (cursor < command_len && BB_isspace(command[cursor]))
 		input_forward();
-	while (cursor < command_len-1 && !isspace(command[cursor+1]))
+	while (cursor < command_len-1 && !BB_isspace(command[cursor+1]))
 		input_forward();
 }
 
 static void
-vi_end_motion(char *command)
+vi_end_motion(void)
 {
+	CHAR_T *command = command_ps;
+
 	if (cursor >= command_len-1)
 		return;
 	input_forward();
-	while (cursor < command_len-1 && isspace(command[cursor]))
+	while (cursor < command_len-1 && BB_isspace(command[cursor]))
 		input_forward();
 	if (cursor >= command_len-1)
 		return;
-	if (isalnum(command[cursor]) || command[cursor] == '_') {
+	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
 		while (cursor < command_len-1
-		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_')
+		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_')
 		) {
 			input_forward();
 		}
-	} else if (ispunct(command[cursor])) {
-		while (cursor < command_len-1 && ispunct(command[cursor+1]))
+	} else if (BB_ispunct(command[cursor])) {
+		while (cursor < command_len-1 && BB_ispunct(command[cursor+1]))
 			input_forward();
 	}
 }
 
 static void
-vi_Back_motion(char *command)
+vi_Back_motion(void)
 {
-	while (cursor > 0 && isspace(command[cursor-1]))
+	CHAR_T *command = command_ps;
+
+	while (cursor > 0 && BB_isspace(command[cursor-1]))
 		input_backward(1);
-	while (cursor > 0 && !isspace(command[cursor-1]))
+	while (cursor > 0 && !BB_isspace(command[cursor-1]))
 		input_backward(1);
 }
 
 static void
-vi_back_motion(char *command)
+vi_back_motion(void)
 {
+	CHAR_T *command = command_ps;
+
 	if (cursor <= 0)
 		return;
 	input_backward(1);
-	while (cursor > 0 && isspace(command[cursor]))
+	while (cursor > 0 && BB_isspace(command[cursor]))
 		input_backward(1);
 	if (cursor <= 0)
 		return;
-	if (isalnum(command[cursor]) || command[cursor] == '_') {
+	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
 		while (cursor > 0
-		 && (isalnum(command[cursor-1]) || command[cursor-1] == '_')
+		 && (BB_isalnum(command[cursor-1]) || command[cursor-1] == '_')
 		) {
 			input_backward(1);
 		}
-	} else if (ispunct(command[cursor])) {
-		while (cursor > 0 && ispunct(command[cursor-1]))
+	} else if (BB_ispunct(command[cursor])) {
+		while (cursor > 0 && BB_ispunct(command[cursor-1]))
 			input_backward(1);
 	}
 }
@@ -1446,6 +1541,11 @@ static int lineedit_read_key(char *read_key_buffer)
 {
 	int64_t ic;
 	struct pollfd pfd;
+	int delay = -1;
+#if ENABLE_FEATURE_ASSUME_UNICODE
+	char unicode_buf[MB_CUR_MAX + 1];
+	int unicode_idx = 0;
+#endif
 
 	pfd.fd = STDIN_FILENO;
 	pfd.events = POLLIN;
@@ -1455,7 +1555,7 @@ static int lineedit_read_key(char *read_key_buffer)
 			/* Wait for input. Can't just call read_key,
 			 * it returns at once if stdin
 			 * is in non-blocking mode. */
-			safe_poll(&pfd, 1, -1);
+			safe_poll(&pfd, 1, delay);
 		}
 		/* Note: read_key sets errno to 0 on success: */
 		ic = read_key(STDIN_FILENO, read_key_buffer);
@@ -1472,19 +1572,26 @@ static int lineedit_read_key(char *read_key_buffer)
 			}
 			goto poll_again;
 		}
+
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		{
+			wchar_t wc;
+
+			if ((int32_t)ic < 0) /* KEYCODE_xxx */
+				return ic;
+			unicode_buf[unicode_idx++] = ic;
+			unicode_buf[unicode_idx] = '\0';
+			if (mbstowcs(&wc, unicode_buf, 1) < 1 && unicode_idx < MB_CUR_MAX) {
+				delay = 50;
+				goto poll_again;
+			}
+			ic = wc;
+		}
+#endif
 	} while (errno == EAGAIN);
+
 	return ic;
 }
-
-/*
- * The emacs and vi modes share much of the code in the big
- * command loop.  Commands entered when in vi's command mode (aka
- * "escape mode") get an extra bit added to distinguish them --
- * this keeps them from being self-inserted.  This clutters the
- * big switch a bit, but keeps all the code in one place.
- */
-
-#define VI_CMDMODE_BIT 0x100
 
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
@@ -1505,7 +1612,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #if ENABLE_FEATURE_TAB_COMPLETION
 	smallint lastWasTab = FALSE;
 #endif
-	int ic;
 	smallint break_out = 0;
 #if ENABLE_FEATURE_EDITING_VI
 	smallint vi_cmdmode = 0;
@@ -1547,8 +1653,13 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
 	command_len = 0;
+#if ENABLE_FEATURE_ASSUME_UNICODE
+	command_ps = xzalloc(maxsize * sizeof(command_ps[0]));
+#else
 	command_ps = command;
 	command[0] = '\0';
+#endif
+#define command command_must_not_be_used
 
 	new_settings = initial_settings;
 	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
@@ -1580,8 +1691,8 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #endif
 
 #if 0
-	for (ic = 0; ic <= MAX_HISTORY; ic++)
-		bb_error_msg("history[%d]:'%s'", ic, state->history[ic]);
+	for (i = 0; i <= MAX_HISTORY; i++)
+		bb_error_msg("history[%d]:'%s'", i, state->history[i]);
 	bb_error_msg("cur_history:%d cnt_history:%d", state->cur_history, state->cnt_history);
 #endif
 
@@ -1590,6 +1701,20 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 
 	read_key_buffer[0] = 0;
 	while (1) {
+		/*
+		 * The emacs and vi modes share much of the code in the big
+		 * command loop.  Commands entered when in vi's command mode
+		 * (aka "escape mode") get an extra bit added to distinguish
+		 * them - this keeps them from being self-inserted. This
+		 * clutters the big switch a bit, but keeps all the code
+		 * in one place.
+		 */
+		enum {
+			VI_CMDMODE_BIT = 0x40000000,
+			/* 0x80000000 bit flags KEYCODE_xxx */
+		};
+		int32_t ic;
+
 		fflush(NULL);
 		ic = lineedit_read_key(read_key_buffer);
 
@@ -1667,7 +1792,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #endif
 		case CTRL('K'):
 			/* Control-k -- clear to end of line */
-			command[cursor] = 0;
+			command_ps[cursor] = BB_NUL;
 			command_len = cursor;
 			printf("\033[J");
 			break;
@@ -1697,17 +1822,18 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		vi_case(CTRL('U')|VI_CMDMODE_BIT:)
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
-				overlapping_strcpy(command, command + cursor);
 				command_len -= cursor;
+				memmove(command_ps, command_ps + cursor,
+					(command_len + 1) * sizeof(command_ps[0]));
 				redraw(cmdedit_y, command_len);
 			}
 			break;
 		case CTRL('W'):
 		vi_case(CTRL('W')|VI_CMDMODE_BIT:)
 			/* Control-W -- Remove the last word */
-			while (cursor > 0 && isspace(command[cursor-1]))
+			while (cursor > 0 && BB_isspace(command_ps[cursor-1]))
 				input_backspace();
-			while (cursor > 0 && !isspace(command[cursor-1]))
+			while (cursor > 0 && !BB_isspace(command_ps[cursor-1]))
 				input_backspace();
 			break;
 
@@ -1737,22 +1863,22 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			}
 			break;
 		case 'W'|VI_CMDMODE_BIT:
-			vi_Word_motion(command, 1);
+			vi_Word_motion(1);
 			break;
 		case 'w'|VI_CMDMODE_BIT:
-			vi_word_motion(command, 1);
+			vi_word_motion(1);
 			break;
 		case 'E'|VI_CMDMODE_BIT:
-			vi_End_motion(command);
+			vi_End_motion();
 			break;
 		case 'e'|VI_CMDMODE_BIT:
-			vi_end_motion(command);
+			vi_end_motion();
 			break;
 		case 'B'|VI_CMDMODE_BIT:
-			vi_Back_motion(command);
+			vi_Back_motion();
 			break;
 		case 'b'|VI_CMDMODE_BIT:
-			vi_back_motion(command);
+			vi_back_motion();
 			break;
 		case 'C'|VI_CMDMODE_BIT:
 			vi_cmdmode = 0;
@@ -1787,17 +1913,17 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			case 'E':
 				switch (ic) {
 				case 'w':   /* "dw", "cw" */
-					vi_word_motion(command, vi_cmdmode);
+					vi_word_motion(vi_cmdmode);
 					break;
 				case 'W':   /* 'dW', 'cW' */
-					vi_Word_motion(command, vi_cmdmode);
+					vi_Word_motion(vi_cmdmode);
 					break;
 				case 'e':   /* 'de', 'ce' */
-					vi_end_motion(command);
+					vi_end_motion();
 					input_forward();
 					break;
 				case 'E':   /* 'dE', 'cE' */
-					vi_End_motion(command);
+					vi_End_motion();
 					input_forward();
 					break;
 				}
@@ -1809,9 +1935,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			case 'b':  /* "db", "cb" */
 			case 'B':  /* implemented as B */
 				if (ic == 'b')
-					vi_back_motion(command);
+					vi_back_motion();
 				else
-					vi_Back_motion(command);
+					vi_Back_motion();
 				while (sc-- > cursor)
 					input_delete(1);
 				break;
@@ -1839,7 +1965,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			if (ic < ' ' || ic > 255) {
 				beep();
 			} else {
-				command[cursor] = ic;
+				command_ps[cursor] = ic;
 				bb_putchar(ic);
 				bb_putchar('\b');
 			}
@@ -1865,7 +1991,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
  rewrite_line:
 			/* Rewrite the line with the selected history item */
 			/* change command */
-			command_len = strlen(strcpy(command, state->history[state->cur_history] ? : ""));
+			command_len = load_string(state->history[state->cur_history] ? : "", maxsize);
 			/* redraw and go to eol (bol, in vi) */
 			redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
 			break;
@@ -1896,7 +2022,10 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 //					break;
 //				}
 //			}
-			if (ic < ' ' || ic > 255) {
+			if (ic < ' '
+			 || (!ENABLE_FEATURE_ASSUME_UNICODE && ic >= 256)
+			 || (ENABLE_FEATURE_ASSUME_UNICODE && ic >= VI_CMDMODE_BIT)
+			) {
 				/* If VI_CMDMODE_BIT is set, ic is >= 256
 				 * and command mode ignores unexpected chars.
 				 * Otherwise, we are here if ic is a
@@ -1913,15 +2042,16 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			command_len++;
 			if (cursor == (command_len - 1)) {
 				/* We are at the end, append */
-				command[cursor] = ic;
-				command[cursor + 1] = '\0';
+				command_ps[cursor] = ic;
+				command_ps[cursor + 1] = BB_NUL;
 				cmdedit_set_out_char(' ');
 			} else {
 				/* In the middle, insert */
 				int sc = cursor;
 
-				memmove(command + sc + 1, command + sc, command_len - sc);
-				command[sc] = ic;
+				memmove(command_ps + sc + 1, command_ps + sc,
+					(command_len - sc) * sizeof(command_ps[0]));
+				command_ps[sc] = ic;
 				sc++;
 				/* rewrite from cursor */
 				input_end();
@@ -1940,6 +2070,14 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			lastWasTab = FALSE;
 #endif
 	} /* while (1) */
+
+/* Stop bug catching using "command_must_not_be_used" trick */
+#undef command
+
+#if ENABLE_FEATURE_ASSUME_UNICODE
+	command_len = save_string(command, maxsize - 1);
+	free(command_ps);
+#endif
 
 	if (command_len > 0)
 		remember_in_history(command);
@@ -1976,7 +2114,7 @@ int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 	return strlen(command);
 }
 
-#endif  /* FEATURE_COMMAND_EDITING */
+#endif  /* FEATURE_EDITING */
 
 
 /*
