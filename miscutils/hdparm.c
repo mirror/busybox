@@ -11,9 +11,10 @@
  * hdparm.c - Command line interface to get/set hard disk parameters
  *          - by Mark Lord (C) 1994-2002 -- freely distributable
  */
+#include "libbb.h"
+/* must be _after_ libbb.h: */
 #include <linux/hdreg.h>
 #include <sys/mount.h>
-#include "libbb.h"
 
 /* device types */
 /* ------------ */

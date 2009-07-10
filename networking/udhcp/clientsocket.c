@@ -20,6 +20,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include "common.h"
+#include "dhcpd.h"
+#include "dhcpc.h"
+
 
 //#include <features.h>
 #include <asm/types.h>
@@ -31,10 +35,6 @@
 #include <linux/if_ether.h>
 #endif
 #include <linux/filter.h>
-
-#include "common.h"
-#include "dhcpd.h"
-#include "dhcpc.h"
 
 int FAST_FUNC udhcp_raw_socket(int ifindex)
 {

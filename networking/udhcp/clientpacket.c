@@ -7,6 +7,10 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+#include "common.h"
+#include "dhcpd.h"
+#include "dhcpc.h"
+#include "options.h"
 
 //#include <features.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
@@ -17,11 +21,6 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #endif
-
-#include "common.h"
-#include "dhcpd.h"
-#include "dhcpc.h"
-#include "options.h"
 
 
 /* Create a random xid */
