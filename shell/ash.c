@@ -251,7 +251,7 @@ static void trace_vprintf(const char *fmt, va_list va);
 # define close(fd) do { \
 	int dfd = (fd); \
 	if (close(dfd) < 0) \
-		bb_error_msg("bug on %d: closing %d(%x)", \
+		bb_error_msg("bug on %d: closing %d(0x%x)", \
 			__LINE__, dfd, dfd); \
 } while (0)
 #else
@@ -997,7 +997,7 @@ static void
 showtree(union node *n)
 {
 	trace_puts("showtree called\n");
-	shtree(n, 1, NULL, stdout);
+	shtree(n, 1, NULL, stderr);
 }
 
 #endif /* DEBUG */
@@ -3987,7 +3987,7 @@ showjobs(FILE *out, int mode)
 {
 	struct job *jp;
 
-	TRACE(("showjobs(%x) called\n", mode));
+	TRACE(("showjobs(0x%x) called\n", mode));
 
 	/* Handle all finished jobs */
 	while (dowait(DOWAIT_NONBLOCK, NULL) > 0)
@@ -4048,7 +4048,7 @@ getstatus(struct job *job)
 		}
 		retval += 128;
 	}
-	TRACE(("getstatus: job %d, nproc %d, status %x, retval %x\n",
+	TRACE(("getstatus: job %d, nproc %d, status 0x%x, retval 0x%x\n",
 		jobno(job), job->nprocs, status, retval));
 	return retval;
 }
@@ -8496,7 +8496,7 @@ poplocalvars(void)
 	while ((lvp = localvars) != NULL) {
 		localvars = lvp->next;
 		vp = lvp->vp;
-		TRACE(("poplocalvar %s", vp ? vp->text : "-"));
+		TRACE(("poplocalvar %s\n", vp ? vp->text : "-"));
 		if (vp == NULL) {       /* $- saved */
 			memcpy(optlist, lvp->text, sizeof(optlist));
 			free((char*)lvp->text);
@@ -9348,7 +9348,7 @@ preadfd(void)
  * 2) If an EOF was pushed back (g_parsefile->left_in_line < -BIGNUM)
  *    or we are reading from a string so we can't refill the buffer,
  *    return EOF.
- * 3) If the is more stuff in this buffer, use it else call read to fill it.
+ * 3) If there is more stuff in this buffer, use it else call read to fill it.
  * 4) Process input up to the next newline, deleting nul characters.
  */
 //#define pgetc_debug(...) bb_error_msg(__VA_ARGS__)
@@ -11843,8 +11843,9 @@ cmdloop(int top)
 #endif
 		}
 		n = parsecmd(inter);
-#if DEBUG
-		showtree(n);
+#if DEBUG > 2
+		if (debug && (n != NEOF))
+			showtree(n);
 #endif
 		if (n == NEOF) {
 			if (!top || numeof >= 50)
