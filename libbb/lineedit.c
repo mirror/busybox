@@ -1296,8 +1296,10 @@ vi_word_motion(int eat)
 
 	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
 		while (cursor < command_len
-		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_'))
+		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_')
+		) {
 			input_forward();
+		}
 	} else if (BB_ispunct(command[cursor])) {
 		while (cursor < command_len && BB_ispunct(command[cursor+1]))
 			input_forward();
@@ -1306,9 +1308,10 @@ vi_word_motion(int eat)
 	if (cursor < command_len)
 		input_forward();
 
-	if (eat && cursor < command_len && BB_isspace(command[cursor]))
+	if (eat) {
 		while (cursor < command_len && BB_isspace(command[cursor]))
 			input_forward();
+	}
 }
 
 static void
@@ -1592,7 +1595,7 @@ static int lineedit_read_key(char *read_key_buffer)
 
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
-#define vi_case(caselabel) IF_FEATURE_EDITING(case caselabel)
+#define vi_case(caselabel) IF_FEATURE_EDITING_VI(case caselabel)
 
 /* convert uppercase ascii to equivalent control char, for readability */
 #undef CTRL
