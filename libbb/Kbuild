@@ -139,6 +139,8 @@ lib-$(CONFIG_HWCLOCK) += rtc.o
 lib-$(CONFIG_RTCWAKE) += rtc.o
 lib-$(CONFIG_FEATURE_CHECK_NAMES) += die_if_bad_username.o
 
+lib-$(CONFIG_FEATURE_ASSUME_UNICODE) += unicode.o
+
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't
 # require regex.h to be in the include dir even if we don't need it thereby
 # allowing us to build busybox even if uclibc regex support is disabled.

@@ -34,10 +34,7 @@
  * PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
  */
 #include "libbb.h"
-#if ENABLE_FEATURE_ASSUME_UNICODE
-# include <wchar.h>
-# include <wctype.h>
-#endif
+#include "unicode.h"
 
 /* FIXME: obsolete CONFIG item? */
 #define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
@@ -1581,7 +1578,7 @@ static int lineedit_read_key(char *read_key_buffer)
 				return ic;
 			unicode_buf[unicode_idx++] = ic;
 			unicode_buf[unicode_idx] = '\0';
-			if (mbstowcs(&wc, unicode_buf, 1) < 1 && unicode_idx < MB_CUR_MAX) {
+			if (mbstowcs(&wc, unicode_buf, 1) != 1 && unicode_idx < MB_CUR_MAX) {
 				delay = 50;
 				goto poll_again;
 			}
@@ -1635,6 +1632,8 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		DEINIT_S();
 		return len;
 	}
+
+	check_unicode_in_env();
 
 // FIXME: audit & improve this
 	if (maxsize > MAX_LINELEN)

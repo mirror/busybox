@@ -30,12 +30,9 @@
  * [2009-03]
  * ls sorts listing now, and supports almost all options.
  */
-
 #include "libbb.h"
+#include "unicode.h"
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
-#include <wchar.h>
-#endif
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -296,9 +293,8 @@ enum {
 /* libbb candidate */
 static size_t mbstrlen(const char *string)
 {
-	size_t width = mbsrtowcs(NULL /*dest*/, &string,
-				MAXINT(size_t) /*len*/, NULL /*state*/);
-	if (width == (size_t)-1)
+	size_t width = mbstowcs(NULL, string, INT_MAX);
+	if (width == (size_t)-1L)
 		return strlen(string);
 	return width;
 }
@@ -931,6 +927,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	INIT_G();
+
+	check_unicode_in_env();
 
 	all_fmt = LIST_SHORT |
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
