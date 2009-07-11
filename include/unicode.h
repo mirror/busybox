@@ -7,9 +7,12 @@
 
 #if !ENABLE_FEATURE_ASSUME_UNICODE
 
+# define bb_mbstrlen(string) strlen(string)
 # define check_unicode_in_env() ((void)0)
 
 #else
+
+size_t bb_mbstrlen(const char *string) FAST_FUNC;
 
 # if ENABLE_LOCALE_SUPPORT
 
@@ -18,6 +21,8 @@
 #  define check_unicode_in_env() ((void)0)
 
 # else
+
+/* Crude "locale support" which knows only C and Unicode locales */
 
 #  if !ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
 #   define check_unicode_in_env() ((void)0)
@@ -50,8 +55,8 @@ int iswspace(wint_t wc) FAST_FUNC;
 int iswalnum(wint_t wc) FAST_FUNC;
 int iswpunct(wint_t wc) FAST_FUNC;
 
-# endif
+# endif /* !LOCALE_SUPPORT */
 
-#endif
+#endif /* FEATURE_ASSUME_UNICODE */
 
 #endif

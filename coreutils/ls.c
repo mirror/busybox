@@ -289,20 +289,6 @@ enum {
 } while (0)
 
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
-/* libbb candidate */
-static size_t mbstrlen(const char *string)
-{
-	size_t width = mbstowcs(NULL, string, INT_MAX);
-	if (width == (size_t)-1L)
-		return strlen(string);
-	return width;
-}
-#else
-#define mbstrlen(string) strlen(string)
-#endif
-
-
 static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
 {
 	struct stat dstat;
@@ -570,7 +556,7 @@ static void showfiles(struct dnode **dn, int nfiles)
 	} else {
 		/* find the longest file name, use that as the column width */
 		for (i = 0; i < nfiles; i++) {
-			int len = mbstrlen(dn[i]->name);
+			int len = bb_mbstrlen(dn[i]->name);
 			if (column_width < len)
 				column_width = len;
 		}
@@ -717,7 +703,7 @@ static int print_name(const char *name)
 {
 	if (option_mask32 & OPT_Q) {
 #if ENABLE_FEATURE_ASSUME_UNICODE
-		int len = 2 + mbstrlen(name);
+		int len = 2 + bb_mbstrlen(name);
 #else
 		int len = 2;
 #endif
@@ -737,7 +723,7 @@ static int print_name(const char *name)
 	/* No -Q: */
 #if ENABLE_FEATURE_ASSUME_UNICODE
 	fputs(name, stdout);
-	return mbstrlen(name);
+	return bb_mbstrlen(name);
 #else
 	return printf("%s", name);
 #endif

@@ -7,13 +7,22 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 #include "libbb.h"
+# include "unicode.h"
 
-/* if LOCALE_SUPPORT, libc locale stuff takes care of it, else: */
+size_t FAST_FUNC bb_mbstrlen(const char *string)
+{
+	size_t width = mbstowcs(NULL, string, INT_MAX);
+	if (width == (size_t)-1L)
+		return strlen(string);
+	return width;
+}
 
 #if !ENABLE_LOCALE_SUPPORT
-#include "unicode.h"
 
-/* 0: not known yet,
+/* Crude "locale support" which knows only C and Unicode locales */
+
+/* unicode_is_enabled:
+ * 0: not known yet,
  * 1: not unicode (IOW: assuming one char == one byte)
  * 2: unicode
  */
@@ -39,6 +48,7 @@ void FAST_FUNC check_unicode_in_env(void)
 
 static size_t wcrtomb_internal(char *s, wchar_t wc)
 {
+	int n;
 	uint32_t v = wc;
 
 	if (v <= 0x7f) {
@@ -46,65 +56,38 @@ static size_t wcrtomb_internal(char *s, wchar_t wc)
 		return 1;
 	}
 
-	/* 80-7FF -> 110yyyxx 10xxxxxx */
-	if (v <= 0x7ff) {
-		s[1] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[0] = v | 0xc0;
-		return 2;
-	}
+	/* RFC 3629 says that Unicode ends at 10FFFF,
+	 * but we cover entire 32 bits */
 
-	/* 800-FFFF -> 1110yyyy 10yyyyxx 10xxxxxx */
-	if (v <= 0xffff) {
-		s[2] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[1] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[0] = v | 0xe0;
-		return 3;
-	}
-
-	/* RFC 3629 says that Unicode ends at 10FFFF */
-
-	/* 10000-1FFFFF -> 11110zzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	if (v <= 0x1fffff) {
-		s[3] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[2] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[1] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[0] = v | 0xf0;
-		return 4;
-	}
-
-	/* 200000-3FFFFFF -> 111110tt 10zzzzzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	if (v <= 0x3ffffff) {
-		s[4] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[3] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[2] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[1] = (v & 0x3f) | 0x80;
-		v >>= 6;
-		s[0] = v | 0xf8;
-		return 5;
-	}
-
+	n = 2;
 	/* 4000000-FFFFFFFF -> 111111tt 10tttttt 10zzzzzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	s[5] = (v & 0x3f) | 0x80;
-	v >>= 6;
-	s[4] = (v & 0x3f) | 0x80;
-	v >>= 6;
-	s[3] = (v & 0x3f) | 0x80;
-	v >>= 6;
-	s[2] = (v & 0x3f) | 0x80;
-	v >>= 6;
-	s[1] = (v & 0x3f) | 0x80;
-	v >>= 6;
-	s[0] = v | 0xfc;
-	return 6;
+	if (v >= 0x4000000) {
+		s[5] = (wc & 0x3f) | 0x80;
+		wc = (uint32_t)wc >> 6; /* ensuring that high bits are 0 */
+		n++;
+	}
+	/* 200000-3FFFFFF -> 111110tt 10zzzzzz 10zzyyyy 10yyyyxx 10xxxxxx */
+	if (v >= 0x200000) {
+		s[4] = (wc & 0x3f) | 0x80;
+		wc >>= 6;
+		n++;
+	}
+	/* 10000-1FFFFF -> 11110zzz 10zzyyyy 10yyyyxx 10xxxxxx */
+	if (v >= 0x10000) {
+		s[3] = (wc & 0x3f) | 0x80;
+		wc >>= 6;
+		n++;
+	}
+	/* 800-FFFF -> 1110yyyy 10yyyyxx 10xxxxxx */
+	if (v >= 0x800) {
+		s[2] = (wc & 0x3f) | 0x80;
+		wc >>= 6;
+		n++;
+	}
+	s[1] = (wc & 0x3f) | 0x80;
+	wc >>= 6;
+	s[0] = wc | (uint8_t)(0x3f00 >> n);
+	return n;
 }
 
 size_t FAST_FUNC wcrtomb(char *s, wchar_t wc, mbstate_t *ps UNUSED_PARAM)
@@ -164,7 +147,9 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 	if (unicode_is_enabled != 2) {
 		while (n) {
 			unsigned char c = *src++;
-			*dest++ = c;
+
+			if (dest)
+				*dest++ = c;
 			if (c == 0)
 				break;
 			n--;
@@ -177,7 +162,8 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 		unsigned c = (unsigned char) *src++;
 
 		if (c <= 0x7f) {
-			*dest++ = c;
+			if (dest)
+				*dest++ = c;
 			if (c == '\0')
 				break;
 			n--;
@@ -216,7 +202,8 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 			//or maybe: c = 0xfffd; /* replacement character */
 		}
 
-		*dest++ = c;
+		if (dest)
+			*dest++ = c;
 		n--;
 	}
 
