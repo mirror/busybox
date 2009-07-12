@@ -79,7 +79,22 @@ static void new_group(char *group, gid_t gid)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(p);
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	/* Ignore errors: if file is missing we suppose admin doesn't want it */
+	/* /etc/gshadow fields:
+	 * 1. Group name.
+	 * 2. Encrypted password.
+	 *    If set, non-members of the group can join the group
+	 *    by typing the password for that group using the newgrp command.
+	 *    If the value is of this field ! then no user is allowed
+	 *    to access the group using the newgrp command. A value of !!
+	 *    is treated the same as a value of ! only it indicates
+	 *    that a password has never been set before. If the value is null,
+	 *    only group members can log into the group.
+	 * 3. Group administrators (comma delimited list).
+	 *    Group members listed here can add or remove group members
+	 *    using the gpasswd command.
+	 * 4. Group members (comma delimited list).
+	 */
+	/* Ignore errors: if file is missing we assume admin doesn't want it */
 	update_passwd(bb_path_gshadow_file, group, "!::", NULL);
 #endif
 }

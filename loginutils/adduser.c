@@ -177,7 +177,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	 * 5. maximum days password is valid
 	 * 6. days before password is to expire that user is warned
 	 * 7. days after password expires that account is disabled
-	 * 8. unix date when login expires (may no longer be used)
+	 * 8. unix date when login expires (i.e. when it may no longer be used)
 	 */
 	/* fields:     2 3  4 5     6 78 */
 	p = xasprintf("!:%u:0:99999:7:::", (unsigned)(time(NULL)) / (24*60*60));
