@@ -87,6 +87,12 @@ int FAST_FUNC update_passwd(const char *filename,
 	int i;
 	int changed_lines;
 	int ret = -1; /* failure */
+	/* used as a bool: "are we modifying /etc/shadow?" */
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	const char *shadow = strstr(filename, "shadow");
+#else
+# define shadow NULL
+#endif
 
 	filename = xmalloc_follow_symlinks(filename);
 	if (filename == NULL)
@@ -100,7 +106,7 @@ int FAST_FUNC update_passwd(const char *filename,
 	name = xasprintf("%s:", name);
 	user_len = strlen(name);
 
-	if (ENABLE_FEATURE_SHADOWPASSWDS && strstr(filename, "shadow"))
+	if (shadow)
 		old_fp = fopen(filename, "r+");
 	else
 		old_fp = fopen_or_warn(filename, "r+");
@@ -215,8 +221,18 @@ int FAST_FUNC update_passwd(const char *filename,
 		) {
 			/* Change passwd */
 			cp = strchrnul(cp, ':'); /* move past old passwd */
-			/* name: + new_passwd + :rest of line */
-			fprintf(new_fp, "%s%s%s\n", name, new_passwd, cp);
+
+			if (shadow && *cp == ':') {
+				/* /etc/shadow's field 3 (passwd change date) needs updating */
+				/* move past old change date */
+				cp = strchrnul(cp + 1, ':');
+				/* "name:" + "new_passwd" + ":" + "change date" + ":rest of line" */
+				fprintf(new_fp, "%s%s:%u%s\n", name, new_passwd,
+					(unsigned)(time(NULL)) / (24*60*60), cp);
+			} else {
+				/* "name:" + "new_passwd" + ":rest of line" */
+				fprintf(new_fp, "%s%s%s\n", name, new_passwd, cp);
+			}
 			changed_lines++;
 		} /* else delete user or group: skip the line */
  next:

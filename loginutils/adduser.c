@@ -169,7 +169,18 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		free(p);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	p = xasprintf("!:%u:0:99999:7:::", (unsigned)(time(NULL) / 86400)); /* sp->sp_lstchg */
+	/* /etc/shadow fields:
+	 * 1. username
+	 * 2. encrypted password
+	 * 3. last password change (unix date (unix time/24*60*60))
+	 * 4. minimum days required between password changes
+	 * 5. maximum days password is valid
+	 * 6. days before password is to expire that user is warned
+	 * 7. days after password expires that account is disabled
+	 * 8. unix date when login expires (may no longer be used)
+	 */
+	/* fields:     2 3  4 5     6 78 */
+	p = xasprintf("!:%u:0:99999:7:::", (unsigned)(time(NULL)) / (24*60*60));
 	/* ignore errors: if file is missing we suppose admin doesn't want it */
 	update_passwd(bb_path_shadow_file, pw.pw_name, p, NULL);
 	if (ENABLE_FEATURE_CLEAN_UP)
