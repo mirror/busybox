@@ -115,6 +115,9 @@ struct lineedit_statics {
 
 	unsigned cursor;
 	unsigned command_len;
+	/* *int* maxsize: we want x in "if (x > S.maxsize)"
+	 * to _not_ be promoted to unsigned */
+	int maxsize;
 	CHAR_T *command_ps;
 
 	const char *cmdedit_prompt;
@@ -389,12 +392,12 @@ static void put_prompt(void)
 /* draw prompt, editor line, and clear tail */
 static void redraw(int y, int back_cursor)
 {
-	if (y > 0)                              /* up to start y */
-		printf("\033[%dA", y);
+	if (y > 0)  /* up to start y */
+		printf("\033[%uA", y);
 	bb_putchar('\r');
 	put_prompt();
-	input_end();                            /* rewrite */
-	printf("\033[J");                       /* erase after cursor */
+	input_end();      /* rewrite */
+	printf("\033[J"); /* erase after cursor */
 	input_backward(back_cursor);
 }
 
@@ -687,7 +690,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	memmove(pos_buf+(is), pos_buf+(in), (MAX_LINELEN+1-(is)-(in)) * sizeof(pos_buf[0])); \
 } while (0)
 
-static int find_match(char *matchBuf, int *len_with_quotes)
+static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
 	int command_mode;
@@ -922,12 +925,19 @@ static void input_tab(smallint *lastWasTab)
 #define matchBuf (S.input_tab__matchBuf)
 		int find_type;
 		int recalc_pos;
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		/* cursor pos in command converted to multibyte form */
+		int cursor_mb;
+#endif
 
 		*lastWasTab = TRUE;             /* flop trigger */
 
 		/* Make a local copy of the string --
 		 * up to the position of the cursor */
 		save_string(matchBuf, cursor + 1);
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		cursor_mb = strlen(matchBuf);
+#endif
 		tmp = matchBuf;
 
 		find_type = find_match(matchBuf, &recalc_pos);
@@ -939,7 +949,7 @@ static void input_tab(smallint *lastWasTab)
 		/* If the word starts with `~' and there is no slash in the word,
 		 * then try completing this word as a username. */
 		if (state->flags & USERNAME_COMPLETION)
-			if (matchBuf[0] == '~' && strchr(matchBuf, '/') == 0)
+			if (matchBuf[0] == '~' && strchr(matchBuf, '/') == NULL)
 				username_tab_completion(matchBuf, NULL);
 #endif
 		/* Try to match any executable in our path and everything
@@ -965,18 +975,20 @@ static void input_tab(smallint *lastWasTab)
 			num_matches = n + 1;
 		}
 		/* Did we find exactly one match? */
-		if (!matches || num_matches > 1) {
+		if (!matches || num_matches > 1) { /* no */
 			beep();
 			if (!matches)
 				return;         /* not found */
 			/* find minimal match */
 			tmp1 = xstrdup(matches[0]);
-			for (tmp = tmp1; *tmp; tmp++)
-				for (len_found = 1; len_found < num_matches; len_found++)
-					if (matches[len_found][(tmp - tmp1)] != *tmp) {
+			for (tmp = tmp1; *tmp; tmp++) {
+				for (len_found = 1; len_found < num_matches; len_found++) {
+					if (matches[len_found][tmp - tmp1] != *tmp) {
 						*tmp = '\0';
 						break;
 					}
+				}
+			}
 			if (*tmp1 == '\0') {        /* have unique */
 				free(tmp1);
 				return;
@@ -994,29 +1006,44 @@ static void input_tab(smallint *lastWasTab)
 				tmp[len_found+1] = '\0';
 			}
 		}
+
 		len_found = strlen(tmp);
-		/* have space to placed match? */
-		if ((len_found - strlen(matchBuf) + command_len) < MAX_LINELEN) {
-			/* before word for match   */
-//TODO:
 #if !ENABLE_FEATURE_ASSUME_UNICODE
-			command_ps[cursor - recalc_pos] = '\0';
-			/* save   tail line        */
+		/* have space to place the match? */
+		/* The result consists of three parts with these lengths: */
+		/* (cursor - recalc_pos) + len_found + (command_len - cursor) */
+		/* it simplifies into: */
+		if ((int)(len_found + command_len - recalc_pos) < S.maxsize) {
+			/* save tail */
 			strcpy(matchBuf, command_ps + cursor);
-			/* add    match            */
-			strcat(command_ps, tmp);
-			/* add    tail             */
-			strcat(command_ps, matchBuf);
-			/* back to begin word for match    */
-			input_backward(recalc_pos);
-			/* new pos                         */
-			recalc_pos = cursor + len_found;
-			/* new len                         */
+			/* add match and tail */
+			sprintf(&command_ps[cursor - recalc_pos], "%s%s", tmp, matchBuf);
 			command_len = strlen(command_ps);
-			/* write out the matched command   */
-#endif
+			/* new pos */
+			recalc_pos = cursor - recalc_pos + len_found;
+			/* write out the matched command */
 			redraw(cmdedit_y, command_len - recalc_pos);
 		}
+#else
+		{
+			char command[MAX_LINELEN];
+			int len = save_string(command, sizeof(command));
+			/* have space to place the match? */
+			/* (cursor_mb - recalc_pos) + len_found + (len - cursor_mb) */
+			if ((int)(len_found + len - recalc_pos) < MAX_LINELEN) {
+				/* save tail */
+				strcpy(matchBuf, command + cursor_mb);
+				/* where do we want to have cursor after all? */
+				strcpy(&command[cursor_mb - recalc_pos], tmp);
+				len = load_string(command, S.maxsize);
+				/* add match and tail */
+				sprintf(&command[cursor_mb - recalc_pos], "%s%s", tmp, matchBuf);
+				command_len = load_string(command, S.maxsize);
+				/* write out the matched command */
+				redraw(cmdedit_y, command_len - len);
+			}
+		}
+#endif
 		free(tmp);
 #undef matchBuf
 	} else {
@@ -1024,7 +1051,8 @@ static void input_tab(smallint *lastWasTab)
 		 * just hit TAB again, print a list of all the
 		 * available choices... */
 		if (matches && num_matches > 0) {
-			int sav_cursor = cursor;        /* change goto_new_line() */
+			/* changed by goto_new_line() */
+			int sav_cursor = cursor;
 
 			/* Go to the next line */
 			goto_new_line();
@@ -1641,6 +1669,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 // FIXME: audit & improve this
 	if (maxsize > MAX_LINELEN)
 		maxsize = MAX_LINELEN;
+	S.maxsize = maxsize;
 
 	/* With null flags, no other fields are ever used */
 	state = st ? st : (line_input_t*) &const_int_0;
