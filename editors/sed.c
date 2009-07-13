@@ -888,53 +888,44 @@ static void process_files(void)
 		old_matched = sed_cmd->in_match;
 
 		/* Determine if this command matches this line: */
-			/* Are we continuing a previous multi-line match? */
+
+		/* Are we continuing a previous multi-line match? */
 		sed_cmd->in_match = sed_cmd->in_match
 			/* Or is no range necessary? */
 			|| (!sed_cmd->beg_line && !sed_cmd->end_line
 				&& !sed_cmd->beg_match && !sed_cmd->end_match)
 			/* Or did we match the start of a numerical range? */
-			|| (sed_cmd->beg_line > 0
-			    && (sed_cmd->beg_line == linenum
-			       /* GNU sed compat:
-			        * "shadowed beginning" case: "1d;1,ENDp" - p still matches at line 2
-			        * even though 1d skipped line 1 which is a start line for p */
-			       || (sed_cmd->beg_line < linenum && (sed_cmd->end_line > 0 || sed_cmd->end_match))
-			       )
-			)
+			|| (sed_cmd->beg_line > 0 && (sed_cmd->beg_line <= linenum))
 			/* Or does this line match our begin address regex? */
 			|| (beg_match(sed_cmd, pattern_space))
 			/* Or did we match last line of input? */
 			|| (sed_cmd->beg_line == -1 && next_line == NULL);
 
+		/* Snapshot the value */
 		matched = sed_cmd->in_match;
 
 		//bb_error_msg("cmd:'%c' matched:%d beg_line:%d end_line:%d linenum:%d",
 		//sed_cmd->cmd, matched, sed_cmd->beg_line, sed_cmd->end_line, linenum);
 
 		/* Is this line the end of the current match? */
+
 		if (matched) {
-			int n = (
+			/* once matched, "n,xxx" range is dead, disabling it */
+			if (sed_cmd->beg_line > 0)
+				sed_cmd->beg_line = -2;
+			sed_cmd->in_match = !(
 				/* has the ending line come, or is this a single address command? */
-				sed_cmd->end_line ?
+				(sed_cmd->end_line ?
 					sed_cmd->end_line == -1 ?
 						!next_line
 						: (sed_cmd->end_line <= linenum)
 					: !sed_cmd->end_match
-				);
-			if (!n) {
+				)
 				/* or does this line matches our last address regex */
-				n = (sed_cmd->end_match
-				     && old_matched
+				|| (sed_cmd->end_match && old_matched
 				     && (regexec(sed_cmd->end_match,
-				                 pattern_space, 0, NULL, 0) == 0)
-				);
-			}
-			if (n && sed_cmd->beg_line > 0) {
-				/* once matched, "n,xxx" range is dead, disabling it */
-				sed_cmd->beg_line = -2;
-			}
-			sed_cmd->in_match = !n;
+				                 pattern_space, 0, NULL, 0) == 0))
+			);
 		}
 
 		/* Skip blocks of commands we didn't match */
