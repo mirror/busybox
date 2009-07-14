@@ -297,8 +297,8 @@ static int status(const char *unused UNUSED_PARAM)
 {
 	int r;
 
-	r = svstatus_get();
-	switch (r) { case -1: case 0: return 0; }
+	if (svstatus_get() <= 0)
+		return 0;
 
 	r = svstatus_print(*service);
 	if (chdir("log") == -1) {
@@ -343,7 +343,7 @@ static int checkscript(void)
 static int check(const char *a)
 {
 	int r;
-	unsigned pid;
+	unsigned pid_le32;
 	uint64_t timestamp;
 
 	r = svstatus_get();
@@ -354,29 +354,29 @@ static int check(const char *a)
 			return 1;
 		return -1;
 	}
-	pid = SWAP_LE32(svstatus.pid_le32);
+	pid_le32 = svstatus.pid_le32;
 	switch (*a) {
 	case 'x':
 		return 0;
 	case 'u':
-		if (!pid || svstatus.run_or_finish != 1) return 0;
+		if (!pid_le32 || svstatus.run_or_finish != 1) return 0;
 		if (!checkscript()) return 0;
 		break;
 	case 'd':
-		if (pid) return 0;
+		if (pid_le32) return 0;
 		break;
 	case 'c':
-		if (pid && !checkscript()) return 0;
+		if (pid_le32 && !checkscript()) return 0;
 		break;
 	case 't':
-		if (!pid && svstatus.want == 'd') break;
+		if (!pid_le32 && svstatus.want == 'd') break;
 		timestamp = SWAP_BE64(svstatus.time_be64);
-		if ((tstart > timestamp) || !pid || svstatus.got_term || !checkscript())
+		if ((tstart > timestamp) || !pid_le32 || svstatus.got_term || !checkscript())
 			return 0;
 		break;
 	case 'o':
 		timestamp = SWAP_BE64(svstatus.time_be64);
-		if ((!pid && tstart > timestamp) || (pid && svstatus.want != 'd'))
+		if ((!pid_le32 && tstart > timestamp) || (pid_le32 && svstatus.want != 'd'))
 			return 0;
 	}
 	printf(OK);
@@ -387,12 +387,16 @@ static int check(const char *a)
 
 static int control(const char *a)
 {
-	int fd, r;
+	int fd, r, l;
 
+/* Is it an optimization?
+   It causes problems with "sv o SRV; ...; sv d SRV"
+   ('d' is not passed to SRV because its .want == 'd'):
 	if (svstatus_get() <= 0)
 		return -1;
 	if (svstatus.want == *a)
 		return 0;
+*/
 	fd = open_write("supervise/control");
 	if (fd == -1) {
 		if (errno != ENODEV)
@@ -401,9 +405,10 @@ static int control(const char *a)
 			*a == 'x' ? ok("runsv not running") : failx("runsv not running");
 		return -1;
 	}
-	r = write(fd, a, strlen(a));
+	l = strlen(a);
+	r = write(fd, a, l);
 	close(fd);
-	if (r != strlen(a)) {
+	if (r != l) {
 		warn("cannot write to supervise/control");
 		return -1;
 	}
@@ -411,15 +416,12 @@ static int control(const char *a)
 }
 
 int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sv_main(int argc, char **argv)
+int sv_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
-	unsigned i, want_exit;
 	char *x;
 	char *action;
 	const char *varservice = CONFIG_SV_DEFAULT_SERVICE_DIR;
-	unsigned services;
-	char **servicex;
 	unsigned waitsec = 7;
 	smallint kll = 0;
 	int verbose = 0;
@@ -438,12 +440,9 @@ int sv_main(int argc, char **argv)
 
 	opt_complementary = "w+:vv"; /* -w N, -v is a counter */
 	opt = getopt32(argv, "w:v", &waitsec, &verbose);
-	argc -= optind;
 	argv += optind;
 	action = *argv++;
 	if (!action || !*argv) bb_show_usage();
-	service = argv;
-	services = argc - 1;
 
 	tnow = time(NULL) + 0x400000000000000aULL;
 	tstart = tnow;
@@ -534,20 +533,20 @@ int sv_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	servicex = service;
-	for (i = 0; i < services; ++i) {
-		if ((**service != '/') && (**service != '.')) {
+	service = argv;
+	while ((x = *service) != NULL) {
+		if (x[0] != '/' && x[0] != '.') {
 			if (chdir(varservice) == -1)
 				goto chdir_failed_0;
 		}
-		if (chdir(*service) == -1) {
+		if (chdir(x) == -1) {
  chdir_failed_0:
 			fail("cannot change to service directory");
 			goto nullify_service_0;
 		}
 		if (act && (act(acts) == -1)) {
  nullify_service_0:
-			*service = NULL;
+			*service = (char*) -1L; /* "dead" */
 		}
 		if (fchdir(curdir) == -1)
 			fatal_cannot("change to original directory");
@@ -555,19 +554,20 @@ int sv_main(int argc, char **argv)
 	}
 
 	if (cbk) while (1) {
+		int want_exit;
 		int diff;
 
 		diff = tnow - tstart;
-		service = servicex;
+		service = argv;
 		want_exit = 1;
-		for (i = 0; i < services; ++i, ++service) {
-			if (!*service)
-				continue;
-			if ((**service != '/') && (**service != '.')) {
+		while ((x = *service) != NULL) {
+			if (x == (char*) -1L) /* "dead" */
+				goto next;
+			if (x[0] != '/' && x[0] != '.') {
 				if (chdir(varservice) == -1)
 					goto chdir_failed;
 			}
-			if (chdir(*service) == -1) {
+			if (chdir(x) == -1) {
  chdir_failed:
 				fail("cannot change to service directory");
 				goto nullify_service;
@@ -578,17 +578,19 @@ int sv_main(int argc, char **argv)
 			if (diff >= waitsec) {
 				printf(kll ? "kill: " : "timeout: ");
 				if (svstatus_get() > 0) {
-					svstatus_print(*service);
+					svstatus_print(x);
 					++rc;
 				}
 				bb_putchar('\n'); /* will also flush the output */
 				if (kll)
 					control("k");
  nullify_service:
-				*service = NULL;
+				*service = (char*) -1L; /* "dead" */
 			}
 			if (fchdir(curdir) == -1)
 				fatal_cannot("change to original directory");
+ next:
+			service++;
 		}
 		if (want_exit) break;
 		usleep(420000);
