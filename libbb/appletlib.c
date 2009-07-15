@@ -689,8 +689,9 @@ static int busybox_main(char **argv)
 		busybox = xmalloc_readlink(bb_busybox_exec_path);
 		if (!busybox)
 			busybox = bb_busybox_exec_path;
-		/* -s makes symlinks, argv[3] is a custom defined */
-		/* install directory or NULL to use the hardcoded defaults */
+		/* busybox --install [-s] [DIR]: */
+		/* -s: make symlinks */
+		/* DIR: directory to install links to */
 		use_symbolic_links = (argv[2] && strcmp(argv[2], "-s") == 0 && argv++);
 		install_links(busybox, use_symbolic_links, argv[2]);
 		return 0;
