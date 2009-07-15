@@ -116,30 +116,36 @@ lib-y += xgethostbyname.o
 lib-y += xreadlink.o
 lib-y += xrealloc_vector.o
 
-# conditionally compiled objects:
-lib-$(CONFIG_FEATURE_MOUNT_LOOP) += loop.o
-lib-$(CONFIG_LOSETUP) += loop.o
+# A mix of optimizations (why build stuff we know won't be used)
+# and objects which may fail to build (SELinux on selinux-less system)
+lib-$(CONFIG_SELINUX) += selinux_common.o
 lib-$(CONFIG_FEATURE_MTAB_SUPPORT) += mtab.o
+lib-$(CONFIG_FEATURE_ASSUME_UNICODE) += unicode.o
+lib-$(CONFIG_FEATURE_CHECK_NAMES) += die_if_bad_username.o
+
+lib-$(CONFIG_LOSETUP) += loop.o
+lib-$(CONFIG_FEATURE_MOUNT_LOOP) += loop.o
+
 lib-$(CONFIG_ADDGROUP) += update_passwd.o
 lib-$(CONFIG_ADDUSER) += update_passwd.o
 lib-$(CONFIG_DELGROUP) += update_passwd.o
 lib-$(CONFIG_DELUSER) += update_passwd.o
+
 lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CHPASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CRYPTPW) += pw_encrypt.o
 lib-$(CONFIG_SULOGIN) += pw_encrypt.o
-lib-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) += pw_encrypt.o
 lib-$(CONFIG_VLOCK) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_SU) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_LOGIN) += pw_encrypt.o correct_password.o
+lib-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) += pw_encrypt.o
+
 lib-$(CONFIG_DF) += find_mount_point.o
 lib-$(CONFIG_MKFS_MINIX) += find_mount_point.o
-lib-$(CONFIG_SELINUX) += selinux_common.o
+lib-$(CONFIG_FSCK_MINIX) += find_mount_point.o
+
 lib-$(CONFIG_HWCLOCK) += rtc.o
 lib-$(CONFIG_RTCWAKE) += rtc.o
-lib-$(CONFIG_FEATURE_CHECK_NAMES) += die_if_bad_username.o
-
-lib-$(CONFIG_FEATURE_ASSUME_UNICODE) += unicode.o
 
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't
 # require regex.h to be in the include dir even if we don't need it thereby

@@ -233,11 +233,13 @@ static size_t load_string(const char *src, int maxsize)
 	safe_strncpy(command_ps, src, maxsize);
 	return strlen(command_ps);
 }
+# if ENABLE_FEATURE_TAB_COMPLETION 
 static void save_string(char *dst, int maxsize)
 {
 	safe_strncpy(dst, command_ps, maxsize);
 }
-#define BB_PUTCHAR(c) bb_putchar(c)
+# endif
+# define BB_PUTCHAR(c) bb_putchar(c)
 #endif
 
 
@@ -683,6 +685,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 #undef dirbuf
 }
 
+//FIXME: HUH??? How about Unicode?
 #define QUOT (UCHAR_MAX+1)
 
 #define collapse_pos(is, in) do { \
