@@ -53,7 +53,7 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 		//" secs %x"
 		//" flags %x"
 		" ciaddr %x"
-		" yiaddr %x" 
+		" yiaddr %x"
 		" siaddr %x"
 		" giaddr %x"
 		//" chaddr %s"

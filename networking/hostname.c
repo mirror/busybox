@@ -31,7 +31,7 @@ static void do_sethostname(char *s, int isfile)
 
 /* Manpage circa 2009:
  *
- * hostname [-v] [-a] [--alias] [-d] [--domain] [-f] [--fqdn] [--long] 
+ * hostname [-v] [-a] [--alias] [-d] [--domain] [-f] [--fqdn] [--long]
  *      [-i] [--ip-address] [-s] [--short] [-y] [--yp] [--nis]
  *
  * hostname [-v] [-F filename] [--file filename] / [hostname]

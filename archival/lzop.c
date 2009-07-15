@@ -856,7 +856,7 @@ static const unsigned char lzop_magic[9] = {
 /* This coding is derived from Alexander Lehmann's pngcheck code. */
 static void check_magic(void)
 {
-	unsigned char magic[sizeof(lzop_magic)];	
+	unsigned char magic[sizeof(lzop_magic)];
 	xread(0, magic, sizeof(magic));
 	if (memcmp(magic, lzop_magic, sizeof(lzop_magic)) != 0)
 		bb_error_msg_and_die("bad magic number");
@@ -948,7 +948,7 @@ static int read_header(header_t *h)
 	/* skip extra field [not used yet] */
 	if (h->flags & F_H_EXTRA_FIELD) {
 		uint32_t k;
-		
+
 		/* note: the checksum also covers the length */
 		init_chksum(&G.chksum_in);
 		h->extra_field_len = f_read32();
@@ -1033,7 +1033,7 @@ static smallint do_lzo_compress(void)
 static smallint do_lzo_decompress(void)
 {
 	header_t header;
-	
+
 	check_magic();
 	p_header(&header);
 	return lzo_decompress(&header);

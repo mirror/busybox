@@ -7207,7 +7207,7 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 
 	if (!G.memleak_value)
 		G.memleak_value = l;
-	
+
 	l -= G.memleak_value;
 	if ((long)l < 0)
 		l = 0;

@@ -304,7 +304,7 @@ static void swd_search(lzo_swd_p s, unsigned node, unsigned cnt)
 		    p2[1] == p1[1]) {
 			unsigned i;
 			assert(lzo_memcmp(bp,&b[node],3) == 0);
-				
+
 			p1 += 2; p2 += 2;
 			do {} while (++p1 < px && *p1 == *++p2);
 			i = p1-bp;

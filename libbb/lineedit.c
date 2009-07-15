@@ -233,7 +233,7 @@ static size_t load_string(const char *src, int maxsize)
 	safe_strncpy(command_ps, src, maxsize);
 	return strlen(command_ps);
 }
-# if ENABLE_FEATURE_TAB_COMPLETION 
+# if ENABLE_FEATURE_TAB_COMPLETION
 static void save_string(char *dst, int maxsize)
 {
 	safe_strncpy(dst, command_ps, maxsize);
