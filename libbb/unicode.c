@@ -2,7 +2,7 @@
 /*
  * Unicode support routines.
  *
- * Copyright (C) 2008 Denys Vlasenko
+ * Copyright (C) 2009 Denys Vlasenko
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
@@ -84,6 +84,7 @@ static size_t wcrtomb_internal(char *s, wchar_t wc)
 		wc >>= 6;
 		n++;
 	}
+	/* 80-7FF -> 110yyyxx 10xxxxxx */
 	s[1] = (wc & 0x3f) | 0x80;
 	wc >>= 6;
 	s[0] = wc | (uint8_t)(0x3f00 >> n);
