@@ -685,29 +685,34 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 #undef dirbuf
 }
 
-//FIXME: HUH??? How about Unicode?
+/* QUOT is used on elements of int_buf[], which are bytes,
+ * not Unicode chars. Therefore it works correctly even in Unicode mode.
+ */
 #define QUOT (UCHAR_MAX+1)
 
-#define collapse_pos(is, in) do { \
-	memmove(int_buf+(is), int_buf+(in), (MAX_LINELEN+1-(is)-(in)) * sizeof(pos_buf[0])); \
-	memmove(pos_buf+(is), pos_buf+(in), (MAX_LINELEN+1-(is)-(in)) * sizeof(pos_buf[0])); \
-} while (0)
+#define int_buf (S.find_match__int_buf)
+#define pos_buf (S.find_match__pos_buf)
+
+static void collapse_pos(int is, int in)
+{
+	memmove(int_buf+is, int_buf+in, (MAX_LINELEN+1 - is - in) * sizeof(int_buf[0]));
+	memmove(pos_buf+is, pos_buf+in, (MAX_LINELEN+1 - is - in) * sizeof(pos_buf[0]));
+}
 
 static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
 	int command_mode;
 	int c, c2;
+/*	Were local, but it uses too much stack */
 /*	int16_t int_buf[MAX_LINELEN + 1]; */
 /*	int16_t pos_buf[MAX_LINELEN + 1]; */
-#define int_buf (S.find_match__int_buf)
-#define pos_buf (S.find_match__pos_buf)
 
 	/* set to integer dimension characters and own positions */
 	for (i = 0;; i++) {
 		int_buf[i] = (unsigned char)matchBuf[i];
 		if (int_buf[i] == 0) {
-			pos_buf[i] = -1;        /* indicator end line */
+			pos_buf[i] = -1; /* end-fo-line indicator */
 			break;
 		}
 		pos_buf[i] = i;
@@ -720,7 +725,7 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 			int_buf[j] |= QUOT;
 			i++;
 #if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-			if (matchBuf[i] == '\t')        /* algorithm equivalent */
+			if (matchBuf[i] == '\t')  /* algorithm equivalent */
 				int_buf[j] = ' ' | QUOT;
 #endif
 		}
@@ -763,11 +768,11 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 		}
 		if (command_mode) {
 			collapse_pos(0, i + command_mode);
-			i = -1;                         /* hack incremet */
+			i = -1;  /* hack incremet */
 		}
 	}
 	/* collapse `command...` */
-	for (i = 0; int_buf[i]; i++)
+	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '`') {
 			for (j = i + 1; int_buf[j]; j++)
 				if (int_buf[j] == '`') {
@@ -776,34 +781,37 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 					break;
 				}
 			if (j) {
-				/* not found close ` - command mode, collapse all previous */
+				/* not found closing ` - command mode, collapse all previous */
 				collapse_pos(0, i + 1);
 				break;
 			} else
-				i--;                    /* hack incremet */
+				i--;  /* hack incremet */
 		}
+	}
 
 	/* collapse (command...(command...)...) or {command...{command...}...} */
-	c = 0;                                          /* "recursive" level */
+	c = 0;  /* "recursive" level */
 	c2 = 0;
-	for (i = 0; int_buf[i]; i++)
+	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '(' || int_buf[i] == '{') {
 			if (int_buf[i] == '(')
 				c++;
 			else
 				c2++;
 			collapse_pos(0, i + 1);
-			i = -1;                         /* hack incremet */
+			i = -1;  /* hack incremet */
 		}
-	for (i = 0; pos_buf[i] >= 0 && (c > 0 || c2 > 0); i++)
+	}
+	for (i = 0; pos_buf[i] >= 0 && (c > 0 || c2 > 0); i++) {
 		if ((int_buf[i] == ')' && c > 0) || (int_buf[i] == '}' && c2 > 0)) {
 			if (int_buf[i] == ')')
 				c--;
 			else
 				c2--;
 			collapse_pos(0, i + 1);
-			i = -1;                         /* hack incremet */
+			i = -1;  /* hack incremet */
 		}
+	}
 
 	/* skip first not quote space */
 	for (i = 0; int_buf[i]; i++)
@@ -814,7 +822,7 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 
 	/* set find mode for completion */
 	command_mode = FIND_EXE_ONLY;
-	for (i = 0; int_buf[i]; i++)
+	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == ' ' || int_buf[i] == '<' || int_buf[i] == '>') {
 			if (int_buf[i] == ' ' && command_mode == FIND_EXE_ONLY
 			 && matchBuf[pos_buf[0]] == 'c'
@@ -826,6 +834,7 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 				break;
 			}
 		}
+	}
 	for (i = 0; int_buf[i]; i++)
 		/* "strlen" */;
 	/* find last word */
@@ -873,9 +882,9 @@ static void showfiles(void)
 	int nrows = nfiles;
 	int l;
 
-	/* find the longest file name-  use that as the column width */
+	/* find the longest file name - use that as the column width */
 	for (row = 0; row < nrows; row++) {
-		l = strlen(matches[row]);
+		l = bb_mbstrlen(matches[row]);
 		if (column_width < l)
 			column_width = l;
 	}
@@ -895,7 +904,8 @@ static void showfiles(void)
 
 		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			printf("%s%-*s", matches[n],
-				(int)(column_width - strlen(matches[n])), "");
+				(int)(column_width - bb_mbstrlen(matches[n])), ""
+			);
 		}
 		puts(matches[n]);
 	}
@@ -904,14 +914,14 @@ static void showfiles(void)
 static char *add_quote_for_spec_chars(char *found)
 {
 	int l = 0;
-	char *s = xmalloc((strlen(found) + 1) * 2);
+	char *s = xzalloc((strlen(found) + 1) * 2);
 
 	while (*found) {
 		if (strchr(" `\"#$%^&*()=+{}[]:;\'|\\<>", *found))
 			s[l++] = '\\';
 		s[l++] = *found++;
 	}
-	s[l] = 0;
+	/* s[l] = '\0'; - already is */
 	return s;
 }
 
