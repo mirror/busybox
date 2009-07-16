@@ -692,13 +692,12 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 
 #define int_buf (S.find_match__int_buf)
 #define pos_buf (S.find_match__pos_buf)
-
+/* is must be <= in */
 static void collapse_pos(int is, int in)
 {
-	memmove(int_buf+is, int_buf+in, (MAX_LINELEN+1 - is - in) * sizeof(int_buf[0]));
-	memmove(pos_buf+is, pos_buf+in, (MAX_LINELEN+1 - is - in) * sizeof(pos_buf[0]));
+	memmove(int_buf+is, int_buf+in, (MAX_LINELEN+1-in)*sizeof(int_buf[0]));
+	memmove(pos_buf+is, pos_buf+in, (MAX_LINELEN+1-in)*sizeof(pos_buf[0]));
 }
-
 static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
@@ -866,9 +865,9 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 	*len_with_quotes = j ? j - pos_buf[0] : 0;
 
 	return command_mode;
+}
 #undef int_buf
 #undef pos_buf
-}
 
 /*
  * display by column (original idea from ls applet,
@@ -917,7 +916,7 @@ static char *add_quote_for_spec_chars(char *found)
 	char *s = xzalloc((strlen(found) + 1) * 2);
 
 	while (*found) {
-		if (strchr(" `\"#$%^&*()=+{}[]:;\'|\\<>", *found))
+		if (strchr(" `\"#$%^&*()=+{}[]:;'|\\<>", *found))
 			s[l++] = '\\';
 		s[l++] = *found++;
 	}
@@ -1642,7 +1641,8 @@ static int lineedit_read_key(char *read_key_buffer)
 #undef CTRL
 #define CTRL(a) ((a) & ~0x40)
 
-/* Returns:
+/* maxsize must be >= 2.
+ * Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
