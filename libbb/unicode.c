@@ -48,7 +48,7 @@ void FAST_FUNC check_unicode_in_env(void)
 
 static size_t wcrtomb_internal(char *s, wchar_t wc)
 {
-	int n;
+	int n, i;
 	uint32_t v = wc;
 
 	if (v <= 0x7f) {
@@ -59,34 +59,26 @@ static size_t wcrtomb_internal(char *s, wchar_t wc)
 	/* RFC 3629 says that Unicode ends at 10FFFF,
 	 * but we cover entire 32 bits */
 
-	n = 2;
 	/* 4000000-FFFFFFFF -> 111111tt 10tttttt 10zzzzzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	if (v >= 0x4000000) {
-		s[5] = (wc & 0x3f) | 0x80;
-		wc = (uint32_t)wc >> 6; /* ensuring that high bits are 0 */
-		n++;
-	}
 	/* 200000-3FFFFFF -> 111110tt 10zzzzzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	if (v >= 0x200000) {
-		s[4] = (wc & 0x3f) | 0x80;
-		wc >>= 6;
-		n++;
-	}
 	/* 10000-1FFFFF -> 11110zzz 10zzyyyy 10yyyyxx 10xxxxxx */
-	if (v >= 0x10000) {
-		s[3] = (wc & 0x3f) | 0x80;
-		wc >>= 6;
-		n++;
-	}
 	/* 800-FFFF -> 1110yyyy 10yyyyxx 10xxxxxx */
-	if (v >= 0x800) {
-		s[2] = (wc & 0x3f) | 0x80;
-		wc >>= 6;
+	/* 80-7FF -> 110yyyxx 10xxxxxx */
+
+	/* How many bytes do we need? */
+	n = 2;
+	/* (0x80000000+ would result in n = 7, limiting n to 6) */
+	while (v >= 0x800 && n < 6) {
+		v >>= 5;
 		n++;
 	}
-	/* 80-7FF -> 110yyyxx 10xxxxxx */
-	s[1] = (wc & 0x3f) | 0x80;
-	wc >>= 6;
+	/* Fill bytes n-1..1 */
+	i = n;
+	while (--i) {
+		s[i] = (wc & 0x3f) | 0x80;
+		wc >>= 6;
+	}
+	/* Fill byte 0 */
 	s[0] = wc | (uint8_t)(0x3f00 >> n);
 	return n;
 }
