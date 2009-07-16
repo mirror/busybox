@@ -39,7 +39,7 @@ void FAST_FUNC check_unicode_in_env(void)
 	unicode_is_enabled = 1;
 
 	lang = getenv("LANG");
-	if (!lang || !strstr(lang, ".utf8"))
+	if (!lang || !(strstr(lang, ".utf") || strstr(lang, ".UTF")))
 		return;
 
 	unicode_is_enabled = 2;
