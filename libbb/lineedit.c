@@ -429,7 +429,9 @@ static void input_delete(int save)
 #endif
 
 	memmove(command_ps + j, command_ps + j + 1,
-			(command_len - j + 1) * sizeof(command_ps[0]));
+			/* (command_len + 1 [because of NUL]) - (j + 1)
+			 * simplified into (command_len - j) */
+			(command_len - j) * sizeof(command_ps[0]));
 	command_len--;
 	input_end();                    /* rewrite new line */
 	cmdedit_set_out_char(' ');      /* erase char */
