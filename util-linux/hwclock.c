@@ -36,7 +36,10 @@ static void write_rtc(time_t t, int utc)
 	struct tm tm;
 	int rtc = rtc_xopen(&rtcname, O_WRONLY);
 
-	tm = *(utc ? gmtime(&t) : localtime(&t));
+	if (utc)
+		gmtime_r(&t, &tm);
+	else
+		localtime_r(&t, &tm);
 	tm.tm_isdst = 0;
 
 	xioctl(rtc, RTC_SET_TIME, &tm);

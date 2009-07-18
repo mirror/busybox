@@ -437,6 +437,9 @@ struct BUG_too_small {
 };
 
 
+void parse_datestr(const char *date_str, struct tm *tm_time) FAST_FUNC;
+
+
 int xsocket(int domain, int type, int protocol) FAST_FUNC;
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen) FAST_FUNC;
 void xlisten(int s, int backlog) FAST_FUNC;
