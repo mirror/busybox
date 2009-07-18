@@ -374,7 +374,7 @@ static int ask(const char *string, int def)
  */
 static void check_mount(void)
 {
-	if (find_mount_point(device_name)) {
+	if (find_mount_point(device_name, 0)) {
 		int cont;
 #if ENABLE_FEATURE_MTAB_SUPPORT
 		/*

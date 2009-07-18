@@ -119,7 +119,7 @@ int df_main(int argc, char **argv)
 			mount_point = *argv++;
 			if (!mount_point)
 				break;
-			mount_entry = find_mount_point(mount_point);
+			mount_entry = find_mount_point(mount_point, 1);
 			if (!mount_entry) {
 				bb_error_msg("%s: can't find mount point", mount_point);
  set_error:

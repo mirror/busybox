@@ -36,6 +36,20 @@
 export FAILCOUNT=0
 export SKIP=
 
+# Helper for helpers. Oh my...
+
+test x"$ECHO" != x"" || {
+	ECHO="echo"
+	test x"`echo -ne`" = x"" || {
+		# Compile and use a replacement 'echo' which understands -e -n
+		ECHO="$PWD/echo-ne"
+		test -x "$ECHO" || {
+			gcc -Os -o "$ECHO" ../scripts/echo.c || exit 1
+		}
+	}
+	export ECHO
+}
+
 # Helper functions
 
 optional()
@@ -73,7 +87,7 @@ testing()
 
   $ECHO -ne "$3" > expected
   $ECHO -ne "$4" > input
-  [ -z "$VERBOSE" ] || echo "echo '$5' | $2"
+  [ -z "$VERBOSE" ] || echo "echo -ne '$5' | $2"
   $ECHO -ne "$5" | eval "$2" > actual
   RETVAL=$?
 

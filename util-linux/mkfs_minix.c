@@ -682,7 +682,7 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 		G.total_blocks = 65535;
 
 	/* Check if it is mounted */
-	if (find_mount_point(G.device_name))
+	if (find_mount_point(G.device_name, 0))
 		bb_error_msg_and_die("can't format mounted filesystem");
 
 	xmove_fd(xopen(G.device_name, O_RDWR), dev_fd);

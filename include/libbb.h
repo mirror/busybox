@@ -995,7 +995,7 @@ extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
 
 #ifdef HAVE_MNTENT_H
 extern int match_fstype(const struct mntent *mt, const char *fstypes) FAST_FUNC;
-extern struct mntent *find_mount_point(const char *name) FAST_FUNC;
+extern struct mntent *find_mount_point(const char *name, int subdir_too) FAST_FUNC;
 #endif
 extern void erase_mtab(const char * name) FAST_FUNC;
 extern unsigned int tty_baud_to_value(speed_t speed) FAST_FUNC;

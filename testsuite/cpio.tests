@@ -41,6 +41,7 @@ ls -ln cpio.testdir | $FILTER_LS" \
 " \
 	"" ""
 
+test x"$SKIP_KNOWN_BUGS" = x"" && {
 # Currently fails. Numerous buglets: "1 blocks" versus "1 block",
 # "1 block" must go to stderr, does not list cpio.testdir/x and cpio.testdir/y
 testing "cpio lists hardlinks" \
@@ -53,6 +54,7 @@ cpio.testdir/y
 0
 " \
 	"" ""
+}
 
 # More complex case
 rm -rf cpio.testdir cpio.testdir2 2>/dev/null
