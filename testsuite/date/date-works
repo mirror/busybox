@@ -35,10 +35,10 @@ dt=`busybox date -d 01231133`
 dt=`echo "$dt" | cut -b5-19`
 test x"$dt" = x"Jan 23 11:33:00"
 
-dt=`busybox date -d 012311332000`
+dt=`busybox date -d 200001231133`
 dt=`echo "$dt" | cut -b1-19`
 test x"$dt" = x"Sun Jan 23 11:33:00"
 
-dt=`busybox date -d 012311332000.30`
+dt=`busybox date -d 200001231133.30`
 dt=`echo "$dt" | cut -b1-19`
 test x"$dt" = x"Sun Jan 23 11:33:30"
