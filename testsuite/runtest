@@ -2,7 +2,7 @@
 # Usage:
 # runtest [applet1] [applet2...]
 
-. testing.sh
+. ./testing.sh
 
 # Run one old-style test.
 # Tests are stored in applet/testcase shell scripts.

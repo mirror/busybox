@@ -5,20 +5,11 @@ cases for particular applets:
 
 ./runtest <applet1> <applet2>...
 
-The test cases for an applet reside in the subdirectory of the applet name.  The
-name of the test case should be the assertion that is tested.  The test case
-should be a shell fragment that returns successfully if the test case passes,
-and unsuccessfully otherwise.
-
 Set SKIP_KNOWN_BUGS environment variable to any non-empty value
 to exclude tests which are known to fail.
 
 Set SKIP_INTERNET_TESTS to exclude tests which require working
 internet connection.
-
-If the test case relies on a certain feature, it should include the string
-"FEATURE: " followed by the name of the feature in a comment.  If it is always
-expected to fail, it should include the string "XFAIL" in a comment.
 
 
 Common causes of false positives:
@@ -28,6 +19,18 @@ host system timezone setting. For glibc based host systems, timezona settings
 are in /etc/localtime.
 
 LANG and LC_xxx environment variables set to non-C locale.
+
+
+Developer's notes:
+
+The test cases for an applet reside in the subdirectory of the applet name.
+The name of the test case should be the assertion that is tested.
+The test case should be a shell fragment that returns successfully
+if the test case passes, and unsuccessfully otherwise.
+
+If the test case relies on a certain feature, it should include the string
+"FEATURE: " followed by the name of the feature in a comment.  If it is always
+expected to fail, it should include the string "XFAIL" in a comment.
 
 
 For the entire testsuite, the copyright is as follows:
