@@ -16,50 +16,117 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *tm_time)
 	if (last_colon != NULL) {
 		/* Parse input and assign appropriately to tm_time */
 
+		/* HH:MM */
 		if (sscanf(date_str, "%u:%u%c",
 					&tm_time->tm_hour,
 					&tm_time->tm_min,
 					&end) >= 2) {
 			/* no adjustments needed */
-		} else if (sscanf(date_str, "%u.%u-%u:%u%c",
+		} else
+		/* mm.dd-HH:MM */
+		if (sscanf(date_str, "%u.%u-%u:%u%c",
 					&tm_time->tm_mon, &tm_time->tm_mday,
 					&tm_time->tm_hour, &tm_time->tm_min,
 					&end) >= 4) {
-			/* Adjust dates from 1-12 to 0-11 */
+			/* Adjust month from 1-12 to 0-11 */
 			tm_time->tm_mon -= 1;
-		} else if (sscanf(date_str, "%u.%u.%u-%u:%u%c", &tm_time->tm_year,
+		} else
+		/* yyyy.mm.dd-HH:MM */
+		if (sscanf(date_str, "%u.%u.%u-%u:%u%c", &tm_time->tm_year,
 					&tm_time->tm_mon, &tm_time->tm_mday,
 					&tm_time->tm_hour, &tm_time->tm_min,
 					&end) >= 5) {
 			tm_time->tm_year -= 1900; /* Adjust years */
-			tm_time->tm_mon -= 1; /* Adjust dates from 1-12 to 0-11 */
-		} else if (sscanf(date_str, "%u-%u-%u %u:%u%c", &tm_time->tm_year,
+			tm_time->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
+		} else
+		/* yyyy-mm-dd HH:MM */
+		if (sscanf(date_str, "%u-%u-%u %u:%u%c", &tm_time->tm_year,
 					&tm_time->tm_mon, &tm_time->tm_mday,
 					&tm_time->tm_hour, &tm_time->tm_min,
 					&end) >= 5) {
 			tm_time->tm_year -= 1900; /* Adjust years */
-			tm_time->tm_mon -= 1; /* Adjust dates from 1-12 to 0-11 */
-//TODO: coreutils 6.9 also accepts "YYYY-MM-DD HH" (no minutes)
+			tm_time->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
+//TODO: coreutils 6.9 also accepts "yyyy-mm-dd HH" (no minutes)
 		} else {
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
 		if (end == ':') {
+			/* xxx:SS */
 			if (sscanf(last_colon + 1, "%u%c", &tm_time->tm_sec, &end) == 1)
 				end = '\0';
 			/* else end != NUL and we error out */
 		}
 	} else {
-		if (sscanf(date_str, "%2u%2u%2u%2u%u%c", &tm_time->tm_mon,
-				&tm_time->tm_mday, &tm_time->tm_hour, &tm_time->tm_min,
-				&tm_time->tm_year, &end) < 4)
+		/* Googled the following on an old date manpage:
+		 *
+		 * The canonical representation for setting the date/time is:
+		 * cc   Century (either 19 or 20)
+		 * yy   Year in abbreviated form (e.g. 89, 06)
+		 * mm   Numeric month, a number from 1 to 12
+		 * dd   Day, a number from 1 to 31
+		 * HH   Hour, a number from 0 to 23
+		 * MM   Minutes, a number from 0 to 59
+		 * ss   Seconds, a number from 0 to 61 (with leap seconds)
+		 * Everything but the minutes is optional
+		 *
+		 * This coincides with the format of "touch -t TIME"
+		 */
+		int len = strchrnul(date_str, '.') - date_str;
+
+		/* MM[.SS] */
+		if (len == 2 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 12,
+					&tm_time->tm_min,
+					&end) >= 1) {
+		} else
+		/* HHMM[.SS] */
+		if (len == 4 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 9,
+					&tm_time->tm_hour,
+					&tm_time->tm_min,
+					&end) >= 2) {
+		} else
+		/* ddHHMM[.SS] */
+		if (len == 6 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 6,
+					&tm_time->tm_mday,
+					&tm_time->tm_hour,
+					&tm_time->tm_min,
+					&end) >= 3) {
+		} else
+		/* mmddHHMM[.SS] */
+		if (len == 8 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 3,
+					&tm_time->tm_mon,
+					&tm_time->tm_mday,
+					&tm_time->tm_hour,
+					&tm_time->tm_min,
+					&end) >= 4) {
+			/* Adjust month from 1-12 to 0-11 */
+			tm_time->tm_mon -= 1;
+		} else
+		/* yymmddHHMM[.SS] */
+		if (len == 10 && sscanf(date_str, "%2u%2u%2u%2u%2u%c",
+					&tm_time->tm_year,
+					&tm_time->tm_mon,
+					&tm_time->tm_mday,
+					&tm_time->tm_hour,
+					&tm_time->tm_min,
+					&end) >= 5) {
+			/* Adjust month from 1-12 to 0-11 */
+			tm_time->tm_mon -= 1;
+		} else
+		/* yyyymmddHHMM[.SS] */
+		if (len == 12 && sscanf(date_str, "%4u%2u%2u%2u%2u%c",
+					&tm_time->tm_year,
+					&tm_time->tm_mon,
+					&tm_time->tm_mday,
+					&tm_time->tm_hour,
+					&tm_time->tm_min,
+					&end) >= 5) {
+			tm_time->tm_year -= 1900; /* Adjust years */
+			tm_time->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
+		} else {
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
-		/* correct for century  - minor Y2K problem here? */
-		if (tm_time->tm_year >= 1900) {
-			tm_time->tm_year -= 1900;
 		}
-		/* adjust date */
-		tm_time->tm_mon -= 1;
 		if (end == '.') {
+			/* xxx.SS */
 			if (sscanf(strchr(date_str, '.') + 1, "%u%c",
 					&tm_time->tm_sec, &end) == 1)
 				end = '\0';

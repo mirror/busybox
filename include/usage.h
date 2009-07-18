@@ -668,6 +668,7 @@
 #define date_full_usage "\n\n" \
        "Display time (using +FMT), or set time\n" \
      "\nOptions:" \
+     "\n	[-s] TIME	Set time to TIME" \
      "\n	-u		Work in UTC (don't convert to local time)" \
      "\n	-R		Output RFC-822 compliant date string" \
 	IF_FEATURE_DATE_ISOFMT( \
@@ -676,18 +677,17 @@
      "\n			'hours', 'minutes', or 'seconds' for date and" \
      "\n			time to the indicated precision" \
 	) \
-     "\n	-d TIME		Display TIME, not 'now'" \
      "\n	-r FILE		Display last modification time of FILE" \
-     "\n	[-s] TIME	Set time to TIME" \
+     "\n	-d TIME		Display TIME, not 'now'" \
 	IF_FEATURE_DATE_ISOFMT( \
-     "\n	-D FMT		Use FMT for str->date conversion" \
+     "\n	-D FMT		Use FMT for -d TIME conversion" \
 	) \
      "\n" \
      "\nRecognized formats for TIME:" \
      "\n	hh:mm[:ss]" \
      "\n	[YYYY.]MM.DD-hh:mm[:ss]" \
      "\n	YYYY-MM-DD hh:mm[:ss]" \
-     "\n	MMDDhhmm[[YY]YY][.ss]" \
+     "\n	[[[[[YY]YY]MM]DD]hh]mm[.ss]" \
 
 #define date_example_usage \
        "$ date\n" \

@@ -64,9 +64,13 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_DESKTOP && ENABLE_LONG_OPTS
 	applet_long_options = touch_longopts;
 #endif
-	opts = getopt32(argv, "c" IF_DESKTOP("r:d:")
+	/* -d and -t both set time. In coreutils,
+	 * accepted data format differs a bit between -d and -t.
+	 * We accept the same formats for both */
+	opts = getopt32(argv, "c" IF_DESKTOP("r:d:t:")
 				/*ignored:*/ "fma"
 				IF_DESKTOP(, &reference_file)
+				IF_DESKTOP(, &date_str)
 				IF_DESKTOP(, &date_str)
 	);
 
