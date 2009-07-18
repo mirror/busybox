@@ -74,7 +74,7 @@ int uname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uname_main(int argc UNUSED_PARAM, char **argv)
 {
 #if ENABLE_LONG_OPTS
-	static const char longopts[] ALIGN1 =
+	static const char uname_longopts[] ALIGN1 =
 		/* name, has_arg, val */
 		"all\0"               No_argument       "a"
 		"kernel-name\0"       No_argument       "s"
@@ -97,7 +97,7 @@ int uname_main(int argc UNUSED_PARAM, char **argv)
 	const unsigned short *delta;
 	unsigned toprint;
 
-	IF_LONG_OPTS(applet_long_options = longopts);
+	IF_LONG_OPTS(applet_long_options = uname_longopts);
 	toprint = getopt32(argv, options);
 
 	if (argv[optind]) { /* coreutils-6.9 compat */

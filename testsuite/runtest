@@ -120,12 +120,17 @@ fi
 
 # Populate a directory with links to all busybox applets
 
-# Note: if $LINKSDIR/applet exists, we do not overwrite it.
-# Useful if one wants to run tests against a standard utility, not an applet.
 LINKSDIR="$bindir/runtest-tempdir-links"
-#rm -rf "$LINKSDIR" 2>/dev/null
+
+# Comment this line out if you have put a different binary in $LINKSDIR
+# (say, a "standard" tool's binary) in order to run tests against it:
+rm -rf "$LINKSDIR" 2>/dev/null
+
 mkdir "$LINKSDIR" 2>/dev/null
 for i in $implemented; do
+	# Note: if $LINKSDIR/applet exists, we do not overwrite it.
+	# Useful if one wants to run tests against a standard utility,
+	# not an applet.
 	ln -s "$bindir/busybox" "$LINKSDIR/$i" 2>/dev/null
 done
 

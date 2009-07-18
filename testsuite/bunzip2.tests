@@ -517,8 +517,8 @@ if test "${0##*/}" = "bunzip2.tests"; then
     if test1_bz2 | ${bb}bunzip2 >/dev/null \
 	&& test "`test1_bz2 | ${bb}bunzip2 | md5sum`" = "61bbeee4be9c6f110a71447f584fda7b  -"
     then
-	echo "$unpack: test bz2 file: PASS"
+	echo "PASS: $unpack: test bz2 file"
     else
-	echo "$unpack: test bz2 file: FAIL"
+	echo "FAIL: $unpack: test bz2 file"
     fi
 fi

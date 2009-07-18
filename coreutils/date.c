@@ -142,12 +142,11 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		} else {
 			parse_datestr(date_str, &tm_time);
 		}
+
 		/* Correct any day of week and day of year etc. fields */
 		tm_time.tm_isdst = -1;	/* Be sure to recheck dst */
-		tm = mktime(&tm_time);
-		if (tm < 0) {
-			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
-		}
+		tm = validate_tm_time(date_str, &tm_time);
+
 		maybe_set_utc(opt);
 
 		/* if setting time, set it */

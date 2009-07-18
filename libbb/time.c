@@ -71,6 +71,15 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *tm_time)
 	}
 }
 
+time_t FAST_FUNC validate_tm_time(const char *date_str, struct tm *tm_time)
+{
+	time_t t = mktime(tm_time);
+	if (t == (time_t) -1L) {
+		bb_error_msg_and_die(bb_msg_invalid_date, date_str);
+	}
+	return t;
+}
+
 #if ENABLE_MONOTONIC_SYSCALL
 
 #include <sys/syscall.h>

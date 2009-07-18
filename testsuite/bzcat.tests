@@ -32,9 +32,9 @@ prep() {
 check() {
     eval $2 >t_actual 2>&1
     if $ECHO -ne "$expected" | cmp - t_actual; then
-	echo "$1: PASS"
+	echo "PASS: $1"
     else
-	echo "$1: FAIL"
+	echo "FAIL: $1"
     fi
 }
 

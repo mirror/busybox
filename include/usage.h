@@ -4556,11 +4556,12 @@
        "and show the status for however many processes will fit on the screen." \
 
 #define touch_trivial_usage \
-       "[-c] FILE [FILE]..."
+       "[-c] [-d DATE] FILE [FILE]..."
 #define touch_full_usage "\n\n" \
        "Update the last-modified date on the given FILE[s]\n" \
      "\nOptions:" \
-     "\n	-c	Do not create any files" \
+     "\n	-c	Do not create files" \
+     "\n	-d DT	Date/time to use" \
 
 #define touch_example_usage \
        "$ ls -l /tmp/foo\n" \

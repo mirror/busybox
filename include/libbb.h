@@ -438,6 +438,7 @@ struct BUG_too_small {
 
 
 void parse_datestr(const char *date_str, struct tm *tm_time) FAST_FUNC;
+time_t validate_tm_time(const char *date_str, struct tm *tm_time) FAST_FUNC;
 
 
 int xsocket(int domain, int type, int protocol) FAST_FUNC;
