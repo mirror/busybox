@@ -9,11 +9,13 @@ test "`id -u`" = 0 || {
 	exit 0
 }
 
+testdir=$PWD/testdir
+
 dd if=/dev/zero of=mount.image1m count=1 bs=1M 2>/dev/null || { echo "dd error"; exit 1; }
 mkfs.minix -v mount.image1m >/dev/null 2>&1 || { echo "mkfs.minix error"; exit 1; }
-testdir=$PWD/testdir
-mkdir $testdir 2>/dev/null
-umount -d $testdir 2>/dev/null
+modprobe minix 2>/dev/null
+mkdir "$testdir" 2>/dev/null
+umount -d "$testdir" 2>/dev/null
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 #   file input will be file called "input"
@@ -27,8 +29,8 @@ testing "mount -o remount,mand" \
 	"1\n""1\n" \
 	"" ""
 
-umount -d $testdir
-rmdir $testdir
+umount -d "$testdir"
+rmdir "$testdir"
 rm mount.image1m
 
 exit $FAILCOUNT
