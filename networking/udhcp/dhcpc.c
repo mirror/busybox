@@ -439,7 +439,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 * I hazard to guess existing listening socket
 			 * is somehow conflicting with it, but why is it
 			 * not deterministic then?! Strange.
-			 * Anyway, it does recover by eventually failing throigh
+			 * Anyway, it does recover by eventually failing through
 			 * into INIT_SELECTING state.
 			 */
 					send_renew(xid, server_addr, requested_ip);
