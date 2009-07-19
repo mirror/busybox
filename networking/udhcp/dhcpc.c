@@ -29,7 +29,7 @@ static smallint listen_mode;
 #define REQUESTING      1
 /* select/renew was sent, DHCPACK reply received */
 #define BOUND           2
-/* half of lease passed, want renew it by sending unicast renew requests */
+/* half of lease passed, want to renew it by sending unicast renew requests */
 #define RENEWING        3
 /* renew requests were not answered, lease is almost over, send broadcast renew */
 #define REBINDING       4
@@ -424,7 +424,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				state = INIT_SELECTING;
 				goto leasefail;
 			case BOUND:
-				/* Half of the lease passed, time to enter renewing state */
+				/* 1/2 lease passed, enter renewing state */
 				state = RENEWING;
 				change_listen_mode(LISTEN_KERNEL);
 				log1("Entering renew state");
@@ -433,7 +433,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case_RENEW_REQUESTED:
 			case RENEWING:
 				if (timeout > 60) {
-					/* send an unicast renew request packet */
+					/* send an unicast renew request */
+			/* Sometimes observed to fail (EADDRNOTAVAIL) to bind
+			 * a new UDP socket for sending inside send_renew.
+			 * I hazard to guess existing listening socket
+			 * is somehow conflicting with it, but why is it
+			 * not deterministic then?! Strange.
+			 * Anyway, it does recover by eventually failing throigh
+			 * into INIT_SELECTING state.
+			 */
 					send_renew(xid, server_addr, requested_ip);
 					timeout >>= 1;
 					continue;
@@ -446,7 +454,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
 				if (timeout > 0) {
-					/* send a broadcast renew request packet */
+					/* send a broadcast renew request */
 					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip);
 					timeout >>= 1;
 					continue;
@@ -477,7 +485,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				goto case_RENEW_REQUESTED;
 			/* Start things over */
 			packet_num = 0;
-			/* Kill any timeouts because the user wants this to hurry along */
+			/* Kill any timeouts, user wants this to hurry along */
 			timeout = 0;
 			continue;
 		case SIGUSR2:
