@@ -960,7 +960,6 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		bb_signals_recursive_norestart((1 << SIGHUP), record_signo);
 
 	/* Now run the looping stuff for the rest of forever.
-	 * NB: if delayed signal happened, avoid blocking in wait().
 	 */
 	while (1) {
 		int maybe_WNOHANG;
@@ -976,10 +975,11 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		maybe_WNOHANG |= check_delayed_sigs();
 
 		/* Wait for any child process(es) to exit.
-		 * NB: "delayed" signals will also interrupt this wait(),
-		 * bb_signals_recursive_norestart() set them up for that.
-		 * This guarantees we won't be stuck here
-		 * till next orphan dies.
+		 *
+		 * If check_delayed_sigs above reported that a signal
+		 * was caught, wait will be nonblocking. This ensures
+		 * that if SIGHUP has reloaded inittab, respawn and askfirst
+		 * actions will not be delayed until next child death.
 		 */
 		if (maybe_WNOHANG)
 			maybe_WNOHANG = WNOHANG;
@@ -987,6 +987,9 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			pid_t wpid;
 			struct init_action *a;
 
+			/* If signals happen _in_ the wait, they interrupt it,
+			 * bb_signals_recursive_norestart set them up that way
+			 */
 			wpid = waitpid(-1, NULL, maybe_WNOHANG);
 			if (wpid <= 0)
 				break;
