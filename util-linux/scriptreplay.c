@@ -18,6 +18,9 @@ int scriptreplay_main(int argc UNUSED_PARAM, char **argv)
 	unsigned long count;
 	FILE *tfp;
 
+	if (!argv[1])
+		bb_show_usage();
+
 	if (argv[2]) {
 		script = argv[2];
 		if (argv[3])
