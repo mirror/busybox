@@ -628,10 +628,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						inet_ntoa(temp_addr), (unsigned)lease_seconds);
 				}
 				requested_ip = packet.yiaddr;
-				udhcp_run_script(&packet,
-					((state >= RENEWING && state <= RENEW_REQUESTED)
-					? "renew" : "bound")
-				);
+				udhcp_run_script(&packet, state == REQUESTING ? "bound" : "renew");
 
 				state = BOUND;
 				change_listen_mode(LISTEN_NONE);
