@@ -635,7 +635,7 @@ config TAIL
 	  from files.
 
 config FEATURE_FANCY_TAIL
-	bool "Enable extra tail options (-q, -s, and -v)"
+	bool "Enable extra tail options (-q, -s, -v, and -F)"
 	default y
 	depends on TAIL
 	help

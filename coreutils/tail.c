@@ -85,18 +85,15 @@ int tail_main(int argc, char **argv)
 	unsigned count = 10;
 	unsigned sleep_period = 1;
 	bool from_top;
-	int header_threshhold = 1;
 	const char *str_c, *str_n;
 
 	char *tailbuf;
 	size_t tailbufsize;
-	int taillen = 0;
-	int newlines_seen = 0;
-	int nfiles, nread, nwrite, i, opt;
-	unsigned seen;
+	unsigned header_threshhold = 1;
+	unsigned nfiles;
+	int i, opt;
 
 	int *fds;
-	char *s, *buf;
 	const char *fmt;
 
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
@@ -110,8 +107,9 @@ int tail_main(int argc, char **argv)
 	}
 #endif
 
-	IF_FEATURE_FANCY_TAIL(opt_complementary = "s+";) /* -s N */
-	opt = getopt32(argv, "fc:n:" IF_FEATURE_FANCY_TAIL("qs:v"),
+	/* -s NUM, -F imlies -f */
+	IF_FEATURE_FANCY_TAIL(opt_complementary = "s+:Ff";)
+	opt = getopt32(argv, "fc:n:" IF_FEATURE_FANCY_TAIL("qs:vF"),
 			&str_c, &str_n IF_FEATURE_FANCY_TAIL(,&sleep_period));
 #define FOLLOW (opt & 0x1)
 #define COUNT_BYTES (opt & 0x2)
@@ -119,8 +117,12 @@ int tail_main(int argc, char **argv)
 	if (opt & 0x2) count = eat_num(str_c); // -c
 	if (opt & 0x4) count = eat_num(str_n); // -n
 #if ENABLE_FEATURE_FANCY_TAIL
-	if (opt & 0x8) header_threshhold = INT_MAX; // -q
+	/* q: make it impossible for nfiles to be > header_threshhold */
+	if (opt & 0x8) header_threshhold = UINT_MAX; // -q
 	if (opt & 0x20) header_threshhold = 0; // -v
+#define FOLLOW_RETRY (opt & 0x40)
+#else
+#define FOLLOW_RETRY 0
 #endif
 	argc -= optind;
 	argv += optind;
@@ -128,19 +130,21 @@ int tail_main(int argc, char **argv)
 	G.status = EXIT_SUCCESS;
 
 	/* open all the files */
-	fds = xmalloc(sizeof(int) * (argc + 1));
+	fds = xmalloc(sizeof(fds[0]) * (argc + 1));
 	if (!argv[0]) {
 		struct stat statbuf;
 
-		if (!fstat(STDIN_FILENO, &statbuf) && S_ISFIFO(statbuf.st_mode)) {
+		if (fstat(STDIN_FILENO, &statbuf) == 0
+		 && S_ISFIFO(statbuf.st_mode)
+		) {
 			opt &= ~1; /* clear FOLLOW */
 		}
-		*argv = (char *) bb_msg_standard_input;
+		argv[0] = (char *) bb_msg_standard_input;
 	}
 	nfiles = i = 0;
 	do {
 		int fd = open_or_warn_stdin(argv[i]);
-		if (fd < 0) {
+		if (fd < 0 && !FOLLOW_RETRY) {
 			G.status = EXIT_FAILURE;
 			continue;
 		}
@@ -161,9 +165,18 @@ int tail_main(int argc, char **argv)
 	tailbuf = xmalloc(tailbufsize);
 
 	/* tail the files */
-	fmt = header_fmt + 1;	/* Skip header leading newline on first output. */
+	fmt = header_fmt + 1; /* skip header leading newline on first output */
 	i = 0;
 	do {
+		char *buf;
+		int taillen;
+		int newlines_seen;
+		unsigned seen;
+		int nread;
+
+		if (ENABLE_FEATURE_FANCY_TAIL && fds[i] < 0)
+			continue; /* may happen with -E */
+
 		if (nfiles > header_threshhold) {
 			tail_xprint_header(fmt, argv[i]);
 			fmt = header_fmt;
@@ -192,13 +205,13 @@ int tail_main(int argc, char **argv)
 		newlines_seen = 0;
 		while ((nread = tail_read(fds[i], buf, tailbufsize-taillen)) > 0) {
 			if (from_top) {
-				nwrite = nread;
+				int nwrite = nread;
 				if (seen < count) {
 					if (COUNT_BYTES) {
 						nwrite -= (count - seen);
 						seen = count;
 					} else {
-						s = buf;
+						char *s = buf;
 						do {
 							--nwrite;
 							if (*s++ == '\n' && ++seen == count) {
@@ -231,6 +244,7 @@ int tail_main(int argc, char **argv)
 						taillen += nread;
 					} else {
 						int extra = (buf[nread-1] != '\n');
+						char *s;
 
 						k = newlines_seen + newlines_in_buf + extra - count;
 						s = tailbuf;
@@ -257,23 +271,54 @@ int tail_main(int argc, char **argv)
 		}
 	} while (++i < nfiles);
 
-	buf = xrealloc(tailbuf, BUFSIZ);
+	tailbuf = xrealloc(tailbuf, BUFSIZ);
 
 	fmt = NULL;
 
 	if (FOLLOW) while (1) {
 		sleep(sleep_period);
+
 		i = 0;
 		do {
+			int nread;
+			const char *filename = argv[i];
+			int fd = fds[i];
+
+			if (FOLLOW_RETRY) {
+				struct stat sbuf, fsbuf;
+
+				if (fd < 0
+				 || fstat(fd, &fsbuf) < 0
+				 || stat(filename, &sbuf) < 0
+				 || fsbuf.st_dev != sbuf.st_dev
+				 || fsbuf.st_ino != sbuf.st_ino
+				) {
+					int new_fd;
+
+					if (fd >= 0)
+						close(fd);
+					new_fd = open(filename, O_RDONLY);
+					if (new_fd >= 0) {
+						bb_error_msg("%s has %s; following end of new file",
+							filename, (fd < 0) ? "appeared" : "been replaced"
+						);
+					} else if (fd >= 0) {
+						bb_perror_msg("%s has become inaccessible", filename);
+					}
+					fds[i] = fd = new_fd;
+				}
+			}
+			if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
+				continue;
 			if (nfiles > header_threshhold) {
 				fmt = header_fmt;
 			}
-			while ((nread = tail_read(fds[i], buf, BUFSIZ)) > 0) {
+			while ((nread = tail_read(fd, tailbuf, BUFSIZ)) > 0) {
 				if (fmt) {
-					tail_xprint_header(fmt, argv[i]);
+					tail_xprint_header(fmt, filename);
 					fmt = NULL;
 				}
-				xwrite(STDOUT_FILENO, buf, nread);
+				xwrite(STDOUT_FILENO, tailbuf, nread);
 			}
 		} while (++i < nfiles);
 	}
