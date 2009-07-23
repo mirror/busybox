@@ -263,7 +263,7 @@ static void trace_vprintf(const char *fmt, va_list va);
 /* ============ Utility functions */
 #define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
 
-/* C99 say: "char" declaration may be signed or unsigned by default */
+/* C99 says: "char" declaration may be signed or unsigned by default */
 #define signed_char2int(sc) ((int)(signed char)(sc))
 
 static int isdigit_str9(const char *str)
@@ -988,7 +988,7 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 		break;
 	case NPIPE:
 		for (lp = n->npipe.cmdlist; lp; lp = lp->next) {
-			shcmd(lp->n, fp);
+			shtree(lp->n, 0, NULL, fp);
 			if (lp->next)
 				fputs(" | ", fp);
 		}
@@ -4387,11 +4387,12 @@ cmdtxt(union node *n)
 		cmdputs("if ");
 		cmdtxt(n->nif.test);
 		cmdputs("; then ");
-		n = n->nif.ifpart;
 		if (n->nif.elsepart) {
-			cmdtxt(n);
+			cmdtxt(n->nif.ifpart);
 			cmdputs("; else ");
 			n = n->nif.elsepart;
+		} else {
+			n = n->nif.ifpart;
 		}
 		p = "; fi";
 		goto dotail;
@@ -11859,8 +11860,8 @@ cmdloop(int top)
 #endif
 		}
 		n = parsecmd(inter);
-#if DEBUG > 2
-		if (debug && (n != NODE_EOF))
+#if DEBUG
+		if (DEBUG > 2 && debug && (n != NODE_EOF))
 			showtree(n);
 #endif
 		if (n == NODE_EOF) {
