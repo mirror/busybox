@@ -4541,8 +4541,11 @@ clear_traps(void)
 static void closescript(void);
 
 /* Called after fork(), in child */
+#if !JOBS
+# define forkchild(jp, n, mode) forkchild(jp, mode)
+#endif
 static void
-forkchild(struct job *jp, /*union node *n,*/ int mode)
+forkchild(struct job *jp, union node *n, int mode)
 {
 	int oldlvl;
 
@@ -4598,6 +4601,13 @@ forkchild(struct job *jp, /*union node *n,*/ int mode)
 		 * Take care of the second rule: */
 		setsignal(SIGQUIT);
 	}
+#if JOBS
+	if (n && n->type == NCMD && strcmp(n->ncmd.args->narg.text, "jobs") == 0) {
+		TRACE(("Job hack\n"));
+		freejob(curjob);
+		return;
+	}
+#endif
 	for (jp = curjob; jp; jp = jp->prev_job)
 		freejob(jp);
 	jobless = 0;
@@ -4659,7 +4669,7 @@ forkshell(struct job *jp, union node *n, int mode)
 		ash_msg_and_raise_error("can't fork");
 	}
 	if (pid == 0)
-		forkchild(jp, /*n,*/ mode);
+		forkchild(jp, n, mode);
 	else
 		forkparent(jp, n, mode, pid);
 	return pid;
