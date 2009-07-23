@@ -640,6 +640,12 @@ union node {
 	struct nnot nnot;
 };
 
+/*
+ * NODE_EOF is returned by parsecmd when it encounters an end of file.
+ * It must be distinct from NULL.
+ */
+#define NODE_EOF ((union node *) -1L)
+
 struct nodelist {
 	struct nodelist *next;
 	union node *n;
@@ -954,6 +960,12 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 		return;
 
 	indent(ind, pfx, fp);
+
+	if (n == NODE_EOF) {
+		fputs("<EOF>", fp);
+		return;
+	}
+
 	switch (n->type) {
 	case NSEMI:
 		s = "; ";
@@ -10143,12 +10155,6 @@ static char *wordtext;                 /* text of last word returned by readtoke
 static struct nodelist *backquotelist;
 static union node *redirnode;
 static struct heredoc *heredoc;
-/*
- * NEOF is returned by parsecmd when it encounters an end of file.  It
- * must be distinct from NULL, so we use the address of a variable that
- * happens to be handy.
- */
-#define NEOF ((union node *)&tokpushback)
 
 /*
  * Called when an unexpected token is read during the parse.  The argument
@@ -11680,8 +11686,8 @@ peektoken(void)
 }
 
 /*
- * Read and parse a command.  Returns NEOF on end of file.  (NULL is a
- * valid parse tree indicating a blank line.)
+ * Read and parse a command.  Returns NODE_EOF on end of file.
+ * (NULL is a valid parse tree indicating a blank line.)
  */
 static union node *
 parsecmd(int interact)
@@ -11695,7 +11701,7 @@ parsecmd(int interact)
 	needprompt = 0;
 	t = readtoken();
 	if (t == TEOF)
-		return NEOF;
+		return NODE_EOF;
 	if (t == TNL)
 		return NULL;
 	tokpushback = 1;
@@ -11770,7 +11776,7 @@ evalstring(char *s, int mask)
 	setstackmark(&smark);
 
 	skip = 0;
-	while ((n = parsecmd(0)) != NEOF) {
+	while ((n = parsecmd(0)) != NODE_EOF) {
 		evaltree(n, 0);
 		popstackmark(&smark);
 		skip = evalskip;
@@ -11844,10 +11850,10 @@ cmdloop(int top)
 		}
 		n = parsecmd(inter);
 #if DEBUG > 2
-		if (debug && (n != NEOF))
+		if (debug && (n != NODE_EOF))
 			showtree(n);
 #endif
-		if (n == NEOF) {
+		if (n == NODE_EOF) {
 			if (!top || numeof >= 50)
 				break;
 			if (!stoppedjobs()) {
