@@ -182,8 +182,12 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 			pager = "more";
 	}
 
-	/* Parse man.conf */
-	parser = config_open2("/etc/man.conf", fopen_for_read);
+	/* Parse man.conf[ig] */
+	/* man version 1.6f uses man.config */
+	parser = config_open2("/etc/man.config", fopen_for_read);
+	if (!parser)
+		parser = config_open2("/etc/man.conf", fopen_for_read);
+
 	while (config_read(parser, token, 2, 0, "# \t", PARSE_NORMAL)) {
 		if (!token[1])
 			continue;
