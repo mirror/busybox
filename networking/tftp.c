@@ -157,7 +157,7 @@ static char *tftp_get_option(const char *option, char *buf, int len)
 #endif
 
 static int tftp_protocol(
-		len_and_sockaddr *our_lsa,
+		len_and_sockaddr *our_lsa, /* NULL if tftp, !NULL if tftpd */
 		len_and_sockaddr *peer_lsa,
 		const char *local_file
 		IF_TFTP(, const char *remote_file)
@@ -165,10 +165,10 @@ static int tftp_protocol(
 		IF_FEATURE_TFTP_BLOCKSIZE(, int blksize))
 {
 #if !ENABLE_TFTP
-#define remote_file NULL
+# define remote_file NULL
 #endif
 #if !(ENABLE_FEATURE_TFTP_BLOCKSIZE && ENABLE_TFTPD)
-#define tsize NULL
+# define tsize NULL
 #endif
 #if !ENABLE_FEATURE_TFTP_BLOCKSIZE
 	enum { blksize = TFTP_BLKSIZE_DEFAULT };
@@ -178,7 +178,7 @@ static int tftp_protocol(
 #define socket_fd (pfd[0].fd)
 	int len;
 	int send_len;
-	IF_FEATURE_TFTP_BLOCKSIZE(smallint want_option_ack = 0;)
+	IF_FEATURE_TFTP_BLOCKSIZE(smallint expect_OACK = 0;)
 	smallint finished = 0;
 	uint16_t opcode;
 	uint16_t block_nr;
@@ -188,21 +188,18 @@ static int tftp_protocol(
 	int io_bufsize = blksize + 4;
 	char *cp;
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
-	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
-	/* We must keep the transmit and receive buffers seperate */
-	/* In case we rcv a garbage pkt and we need to rexmit the last pkt */
+	 * size varies meaning BUFFERS_GO_ON_STACK would fail.
+	 *
+	 * We must keep the transmit and receive buffers seperate
+	 * in case we rcv a garbage pkt - we need to rexmit the last pkt.
+	 */
 	char *xbuf = xmalloc(io_bufsize);
 	char *rbuf = xmalloc(io_bufsize);
 
 	socket_fd = xsocket(peer_lsa->u.sa.sa_family, SOCK_DGRAM, 0);
 	setsockopt_reuseaddr(socket_fd);
 
-	block_nr = 1;
-	cp = xbuf + 2;
-
-	if (!ENABLE_TFTP || our_lsa) {
-		/* tftpd */
-
+	if (!ENABLE_TFTP || our_lsa) { /* tftpd */
 		/* Create a socket which is:
 		 * 1. bound to IP:port peer sent 1st datagram to,
 		 * 2. connected to peer's IP:port
@@ -216,19 +213,13 @@ static int tftp_protocol(
 		if (error_pkt_reason || error_pkt_str[0])
 			goto send_err_pkt;
 
-		if (CMD_GET(option_mask32)) {
-			/* it's upload - we must ACK 1st packet (with filename)
-			 * as if it's "block 0" */
-			block_nr = 0;
-		}
-
 		if (user_opt) {
 			struct passwd *pw = xgetpwnam(user_opt);
 			change_identity(pw); /* initgroups, setgid, setuid */
 		}
 	}
 
-	/* Open local file (must be after changing user) */
+	/* Prepare open mode */
 	if (CMD_PUT(option_mask32)) {
 		open_mode = O_RDONLY;
 	} else {
@@ -240,20 +231,18 @@ static int tftp_protocol(
 		}
 #endif
 	}
-	if (!(option_mask32 & TFTPD_OPT)) {
-		local_fd = CMD_GET(option_mask32) ? STDOUT_FILENO : STDIN_FILENO;
-		if (NOT_LONE_DASH(local_file))
-			local_fd = xopen(local_file, open_mode);
-	} else {
+
+	block_nr = 1;
+	cp = xbuf + 2;
+
+	if (!ENABLE_TFTP || our_lsa) { /* tftpd */
+		/* Open file (must be after changing user) */
 		local_fd = open(local_file, open_mode);
 		if (local_fd < 0) {
 			error_pkt_reason = ERR_NOFILE;
 			strcpy((char*)error_pkt_str, "can't open file");
 			goto send_err_pkt;
 		}
-	}
-
-	if (!ENABLE_TFTP || our_lsa) {
 /* gcc 4.3.1 would NOT optimize it out as it should! */
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
 		if (blksize != TFTP_BLKSIZE_DEFAULT || tsize) {
@@ -265,8 +254,19 @@ static int tftp_protocol(
 			goto add_blksize_opt;
 		}
 #endif
-	} else {
-/* Removing it, or using if() statement instead of #if may lead to
+		if (CMD_GET(option_mask32)) {
+			/* It's upload and we don't send OACK.
+			 * We must ACK 1st packet (with filename)
+			 * as if it is "block 0" */
+			block_nr = 0;
+		}
+
+	} else { /* tftp */
+		/* Open file (must be after changing user) */
+		local_fd = CMD_GET(option_mask32) ? STDOUT_FILENO : STDIN_FILENO;
+		if (NOT_LONE_DASH(local_file))
+			local_fd = xopen(local_file, open_mode);
+/* Removing #if, or using if() statement instead of #if may lead to
  * "warning: null argument where non-null required": */
 #if ENABLE_TFTP
 		/* tftp */
@@ -309,7 +309,7 @@ static int tftp_protocol(
 			bb_error_msg("remote filename is too long");
 			goto ret;
 		}
-		want_option_ack = 1;
+		expect_OACK = 1;
 #endif
 #endif /* ENABLE_TFTP */
 
@@ -457,8 +457,8 @@ static int tftp_protocol(
 		}
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
-		if (want_option_ack) {
-			want_option_ack = 0;
+		if (expect_OACK) {
+			expect_OACK = 0;
 			if (opcode == TFTP_OACK) {
 				/* server seems to support options */
 				char *res;
@@ -471,15 +471,18 @@ static int tftp_protocol(
 						goto send_err_pkt;
 					}
 					io_bufsize = blksize + 4;
-					/* Send ACK for OACK ("block" no: 0) */
-					block_nr = 0;
-					continue;
 				}
-				/* rfc2347:
-				 * "An option not acknowledged by the server
-				 *  must be ignored by the client and server
-				 *  as if it were never requested." */
+				if (CMD_GET(option_mask32)) {
+					/* We'll send ACK for OACK,
+					 * such ACK has "block no" of 0 */
+					block_nr = 0;
+				}
+				continue;
 			}
+			/* rfc2347:
+			 * "An option not acknowledged by the server
+			 *  must be ignored by the client and server
+			 *  as if it were never requested." */
 			bb_error_msg("server only supports blocksize of 512");
 			blksize = TFTP_BLKSIZE_DEFAULT;
 			io_bufsize = TFTP_BLKSIZE_DEFAULT + 4;
