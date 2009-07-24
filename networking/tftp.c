@@ -1,7 +1,5 @@
 /* vi: set sw=4 ts=4: */
-/* -------------------------------------------------------------------------
- * tftp.c
- *
+/*
  * A simple tftp client/server for busybox.
  * Tries to follow RFC1350.
  * Only "octet" mode supported.
@@ -19,8 +17,7 @@
  * tftpd added by Denys Vlasenko & Vladimir Dronnikov
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- * ------------------------------------------------------------------------- */
-
+ */
 #include "libbb.h"
 
 #if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
@@ -232,6 +229,34 @@ static int tftp_protocol(
 #endif
 	}
 
+	/* Examples of network traffic.
+	 * Note two cases when ACKs with block# of 0 are sent.
+	 *
+	 * Download without options:
+	 * tftp -> "\0\1FILENAME\0octet\0"
+	 *         "\0\3\0\1FILEDATA..." <- tftpd
+	 * tftp -> "\0\4\0\1"
+	 * ...
+	 * Download with option of blksize 16384:
+	 * tftp -> "\0\1FILENAME\0octet\0blksize\00016384\0"
+	 *         "\0\6blksize\00016384\0" <- tftpd
+	 * tftp -> "\0\4\0\0"
+	 *         "\0\3\0\1FILEDATA..." <- tftpd
+	 * tftp -> "\0\4\0\1"
+	 * ...
+	 * Upload without options:
+	 * tftp -> "\0\2FILENAME\0octet\0"
+	 *         "\0\4\0\0" <- tftpd
+	 * tftp -> "\0\3\0\1FILEDATA..."
+	 *         "\0\4\0\1" <- tftpd
+	 * ...
+	 * Upload with option of blksize 16384:
+	 * tftp -> "\0\2FILENAME\0octet\0blksize\00016384\0"
+	 *         "\0\6blksize\00016384\0" <- tftpd
+	 * tftp -> "\0\3\0\1FILEDATA..."
+	 *         "\0\4\0\1" <- tftpd
+	 * ...
+	 */
 	block_nr = 1;
 	cp = xbuf + 2;
 
