@@ -1354,8 +1354,8 @@ static void remove_package(const unsigned package_num, int noisy)
 	free_array(exclude_files);
 	free_array(remove_files);
 
-	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
-	exclude_files = xzalloc(sizeof(char*) * 3);
+	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep */
+	exclude_files = xzalloc(sizeof(exclude_files[0]) * 3);
 	exclude_files[0] = xstrdup(conffile_name);
 	exclude_files[1] = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, "postrm");
 
@@ -1393,20 +1393,25 @@ static void purge_package(const unsigned package_num)
 	sprintf(list_name, "/var/lib/dpkg/info/%s.%s", package_name, "list");
 	remove_files = create_list(list_name);
 
-	exclude_files = xzalloc(sizeof(char*));
-
 	/* Some directories cant be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files)) /* repeat */;
+	while (remove_file_array(remove_files, NULL))
+		continue;
 	free_array(remove_files);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = all_control_list(package_name);
-	remove_file_array(remove_files, exclude_files);
-	free_array(remove_files);
-	free(exclude_files);
 
-	/* Run postrm script */
+	/* Delete all of them except the postrm script */
+	exclude_files = xzalloc(sizeof(exclude_files[0]) * 2);
+	exclude_files[0] = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, "postrm");
+	remove_file_array(remove_files, exclude_files);
+	free_array(exclude_files);
+
+	/* Run and remove postrm script */
 	run_package_script_or_die(package_name, "postrm");
+	remove_file_array(remove_files, NULL);
+
+	free_array(remove_files);
 
 	/* Change package status */
 	set_status(status_num, "not-installed", 3);
