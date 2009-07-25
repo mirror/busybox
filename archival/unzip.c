@@ -208,7 +208,8 @@ static uint32_t read_next_cds(int count_m1, uint32_t cds_offset, cds_header_t *c
 
 static void unzip_skip(off_t skip)
 {
-	bb_copyfd_exact_size(zip_fd, -1, skip);
+	if (lseek(zip_fd, skip, SEEK_CUR) == (off_t)-1)
+		bb_copyfd_exact_size(zip_fd, -1, skip);
 }
 
 static void unzip_create_leading_dirs(const char *fn)
