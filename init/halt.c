@@ -85,6 +85,8 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 //TODO: I tend to think that signalling linuxrc is wrong
 // pity original author didn't comment on it...
 		if (ENABLE_FEATURE_INITRD) {
+			/* talk to linuxrc */
+			/* bbox init/linuxrc assumed */
 			pid_t *pidlist = find_pid_by_name("linuxrc");
 			if (pidlist[0] > 0)
 				rc = kill(pidlist[0], signals[which]);
@@ -92,7 +94,21 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 				free(pidlist);
 		}
 		if (rc) {
-			rc = kill(1, signals[which]);
+			/* talk to init */
+			if (!ENABLE_FEATURE_CALL_TELINIT) {
+				/* bbox init assumed */
+				rc = kill(1, signals[which]);
+			} else {
+				/* SysV style init assumed */
+				/* runlevels:
+				 * 0 == shutdown
+				 * 6 == reboot */
+				rc = execlp(CONFIG_TELINIT_PATH,
+						CONFIG_TELINIT_PATH,
+						which == 2 ? "6" : "0",
+						(char *)NULL
+				);
+			}
 		}
 	} else {
 		rc = reboot(magic[which]);
