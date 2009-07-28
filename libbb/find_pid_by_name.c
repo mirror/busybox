@@ -41,18 +41,20 @@ and therefore comm field contains "exe".
 static int comm_match(procps_status_t *p, const char *procName)
 {
 	int argv1idx;
+	const char *argv1;
 
-	/* comm does not match */
 	if (strncmp(p->comm, procName, 15) != 0)
-		return 0;
+		return 0; /* comm does not match */
 
-	/* in Linux, if comm is 15 chars, it may be a truncated */
-	if (p->comm[14] == '\0') /* comm is not truncated - match */
-		return 1;
+	/* In Linux, if comm is 15 chars, it is truncated.
+	 * (or maybe the name was exactly 15 chars, but there is
+	 * no way to know that) */
+	if (p->comm[14] == '\0')
+		return 1; /* comm is not truncated - matches */
 
 	/* comm is truncated, but first 15 chars match.
 	 * This can be crazily_long_script_name.sh!
-	 * The telltale sign is basename(argv[1]) == procName. */
+	 * The telltale sign is basename(argv[1]) == procName */
 
 	if (!p->argv0)
 		return 0;
@@ -60,8 +62,9 @@ static int comm_match(procps_status_t *p, const char *procName)
 	argv1idx = strlen(p->argv0) + 1;
 	if (argv1idx >= p->argv_len)
 		return 0;
+	argv1 = p->argv0 + argv1idx;
 
-	if (strcmp(bb_basename(p->argv0 + argv1idx), procName) != 0)
+	if (strcmp(bb_basename(argv1), procName) != 0)
 		return 0;
 
 	return 1;
@@ -83,11 +86,12 @@ pid_t* FAST_FUNC find_pid_by_name(const char *procName)
 	procps_status_t* p = NULL;
 
 	pidList = xzalloc(sizeof(*pidList));
-	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM|PSSCAN_ARGVN))) {
+	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM|PSSCAN_ARGVN|PSSCAN_EXE))) {
 		if (comm_match(p, procName)
 		/* or we require argv0 to match (essential for matching reexeced /proc/self/exe)*/
 		 || (p->argv0 && strcmp(bb_basename(p->argv0), procName) == 0)
-		/* TODO: we can also try /proc/NUM/exe link, do we want that? */
+		/* or we require /proc/PID/exe link to match */
+		 || (p->exe && strcmp(bb_basename(p->exe), procName) == 0)
 		) {
 			pidList = xrealloc_vector(pidList, 2, i);
 			pidList[i++] = p->pid;

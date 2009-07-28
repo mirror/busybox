@@ -111,6 +111,7 @@ void FAST_FUNC free_procps_scan(procps_status_t* sp)
 {
 	closedir(sp->dir);
 	free(sp->argv0);
+	free(sp->exe);
 	IF_SELINUX(free(sp->context);)
 	free(sp);
 }
@@ -213,7 +214,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		}
 #endif
 
-		filename_tail = filename + sprintf(filename, "/proc/%d", pid);
+		filename_tail = filename + sprintf(filename, "/proc/%u/", pid);
 
 		if (flags & PSSCAN_UIDGID) {
 			if (stat(filename, &sb))
@@ -230,7 +231,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			unsigned long vsz, rss;
 #endif
 			/* see proc(5) for some details on this */
-			strcpy(filename_tail, "/stat");
+			strcpy(filename_tail, "stat");
 			n = read_to_buf(filename, buf);
 			if (n < 0)
 				break;
@@ -340,7 +341,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		if (flags & (PSSCAN_SMAPS)) {
 			FILE *file;
 
-			strcpy(filename_tail, "/smaps");
+			strcpy(filename_tail, "smaps");
 			file = fopen_for_read(filename);
 			if (!file)
 				break;
@@ -390,7 +391,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		if (flags & PSSCAN_RUIDGID) {
 			FILE *file;
 
-			strcpy(filename_tail, "/status");
+			strcpy(filename_tail, "status");
 			file = fopen_for_read(filename);
 			if (!file)
 				break;
@@ -415,7 +416,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			sp->argv0 = NULL;
 			free(sp->cmd);
 			sp->cmd = NULL;
-			strcpy(filename_tail, "/cmdline");
+			strcpy(filename_tail, "cmdline");
 			/* TODO: to get rid of size limits, read into malloc buf,
 			 * then realloc it down to real size. */
 			n = read_to_buf(filename, buf);
@@ -436,7 +437,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		if (flags & (PSSCAN_ARGV0|PSSCAN_ARGVN)) {
 			free(sp->argv0);
 			sp->argv0 = NULL;
-			strcpy(filename_tail, "/cmdline");
+			strcpy(filename_tail, "cmdline");
 			n = read_to_buf(filename, buf);
 			if (n <= 0)
 				break;
@@ -451,6 +452,11 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			}
 		}
 #endif
+		if (flags & PSSCAN_EXE) {
+			strcpy(filename_tail, "exe");
+			free(sp->exe);
+			sp->exe = xmalloc_readlink(filename);
+		}
 		break;
 	}
 	return sp;

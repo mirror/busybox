@@ -1280,6 +1280,7 @@ typedef struct procps_status_t {
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
 	uint16_t argv_len;
 	char *argv0;
+	char *exe;
 	IF_SELINUX(char *context;)
 	/* Everything below must contain no ptrs to malloc'ed data:
 	 * it is memset(0) for each process in procps_scan() */
@@ -1327,7 +1328,7 @@ enum {
 	PSSCAN_COMM     = 1 << 5,
 	/* PSSCAN_CMD      = 1 << 6, - use read_cmdline instead */
 	PSSCAN_ARGV0    = 1 << 7,
-	/* PSSCAN_EXE      = 1 << 8, - not implemented */
+	PSSCAN_EXE      = 1 << 8,
 	PSSCAN_STATE    = 1 << 9,
 	PSSCAN_VSZ      = 1 << 10,
 	PSSCAN_RSS      = 1 << 11,
