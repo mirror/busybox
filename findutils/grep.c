@@ -120,17 +120,18 @@ struct globals {
 } while (0)
 #define max_matches       (G.max_matches         )
 #if !ENABLE_EXTRA_COMPAT
-#define reflags           (G.reflags             )
+# define reflags          (G.reflags             )
 #else
-#define case_fold         (G.case_fold           )
+# define case_fold        (G.case_fold           )
 /* http://www.delorie.com/gnu/docs/regex/regex_46.html */
-#define reflags           re_syntax_options
-#undef REG_NOSUB
-#undef REG_EXTENDED
-#undef REG_ICASE
-#define REG_NOSUB    bug:is:here /* should not be used */
-#define REG_EXTENDED RE_SYNTAX_EGREP
-#define REG_ICASE    bug:is:here /* should not be used */
+# define reflags           re_syntax_options
+# undef REG_NOSUB
+# undef REG_EXTENDED
+# undef REG_ICASE
+# define REG_NOSUB    bug:is:here /* should not be used */
+/* Just RE_SYNTAX_EGREP is not enough, need to enable {n[,[m]]} too */
+# define REG_EXTENDED (RE_SYNTAX_EGREP | RE_INTERVALS | RE_NO_BK_BRACES)
+# define REG_ICASE    bug:is:here /* should not be used */
 #endif
 #define invert_search     (G.invert_search       )
 #define print_filename    (G.print_filename      )
@@ -370,17 +371,22 @@ static int grep_file(FILE *file)
 						if (found)
 							print_line(gl->pattern, strlen(gl->pattern), linenum, ':');
 					} else while (1) {
-						char old = line[gl->matched_range.rm_eo];
-						line[gl->matched_range.rm_eo] = '\0';
+						unsigned end = gl->matched_range.rm_eo;
+						char old = line[end];
+						line[end] = '\0';
 						print_line(line + gl->matched_range.rm_so,
-								gl->matched_range.rm_eo - gl->matched_range.rm_so,
+								end - gl->matched_range.rm_so,
 								linenum, ':');
-						line[gl->matched_range.rm_eo] = old;
+						line[end] = old;
 #if !ENABLE_EXTRA_COMPAT
-						break;
+						if (regexec(&gl->compiled_regex, line + end,
+								1, &gl->matched_range, REG_NOTBOL) != 0)
+							break;
+						gl->matched_range.rm_so += end;
+						gl->matched_range.rm_eo += end;
 #else
 						if (re_search(&gl->compiled_regex, line, line_len,
-								gl->matched_range.rm_eo, line_len - gl->matched_range.rm_eo,
+								end, line_len - end,
 								&gl->matched_range) < 0)
 							break;
 #endif
