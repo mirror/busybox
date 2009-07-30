@@ -21,9 +21,9 @@ typedef enum bb_install_loc_t {
 } bb_install_loc_t;
 
 typedef enum bb_suid_t {
-	_BB_SUID_NEVER = 0,
+	_BB_SUID_DROP = 0,
 	_BB_SUID_MAYBE,
-	_BB_SUID_ALWAYS
+	_BB_SUID_REQUIRE
 } bb_suid_t;
 
 

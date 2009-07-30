@@ -569,12 +569,12 @@ static void check_suid(int applet_no)
 #endif
  check_need_suid:
 #endif
-	if (APPLET_SUID(applet_no) == _BB_SUID_ALWAYS) {
+	if (APPLET_SUID(applet_no) == _BB_SUID_REQUIRE) {
 		/* Real uid is not 0. If euid isn't 0 too, suid bit
 		 * is most probably not set on our executable */
 		if (geteuid())
 			bb_error_msg_and_die("must be suid to work properly");
-	} else if (APPLET_SUID(applet_no) == _BB_SUID_NEVER) {
+	} else if (APPLET_SUID(applet_no) == _BB_SUID_DROP) {
 		xsetgid(rgid);  /* drop all privileges */
 		xsetuid(ruid);
 	}
