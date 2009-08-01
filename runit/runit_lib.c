@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
+#ifdef UNUSED
 unsigned byte_chr(char *s,unsigned n,int c)
 {
 	char ch;
@@ -50,7 +51,6 @@ unsigned byte_chr(char *s,unsigned n,int c)
 	return t - s;
 }
 
-#ifdef UNUSED
 static /* as it isn't used anywhere else */
 void tai_pack(char *s, const struct tai *t)
 {

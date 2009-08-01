@@ -27,10 +27,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-extern unsigned byte_chr(char *s,unsigned n,int c);
-
-#define direntry struct dirent
-
+//extern unsigned byte_chr(char *s,unsigned n,int c);
+//
 //struct tai {
 //	uint64_t x;
 //};

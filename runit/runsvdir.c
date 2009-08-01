@@ -129,7 +129,7 @@ static NOINLINE pid_t runsv(const char *name)
 static NOINLINE int do_rescan(void)
 {
 	DIR *dir;
-	direntry *d;
+	struct dirent *d;
 	int i;
 	struct stat s;
 	int need_rescan = 0;

@@ -28,6 +28,103 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
+/*
+Config files
+
+On startup, and after receiving a HUP signal, svlogd checks for each
+log directory log if the configuration file log/config exists,
+and if so, reads the file line by line and adjusts configuration
+for log as follows:
+
+If the line is empty, or starts with a #, it is ignored. A line
+of the form
+
+ssize
+    sets the maximum file size of current when svlogd should rotate
+    the current log file to size bytes. Default is 1000000.
+    If size is zero, svlogd doesnt rotate log files
+    You should set size to at least (2 * len).
+nnum
+    sets the number of old log files svlogd should maintain to num.
+    If svlogd sees more that num old log files in log after log file
+    rotation, it deletes the oldest one. Default is 10.
+    If num is zero, svlogd doesnt remove old log files.
+Nmin
+    sets the minimum number of old log files svlogd should maintain
+    to min. min must be less than num. If min is set, and svlogd
+    cannot write to current because the filesystem is full,
+    and it sees more than min old log files, it deletes the oldest one.
+ttimeout
+    sets the maximum age of the current log file when svlogd should
+    rotate the current log file to timeout seconds. If current
+    is timeout seconds old, and is not empty, svlogd forces log file rotation.
+!processor
+    tells svlogd to feed each recent log file through processor
+    (see above) on log file rotation. By default log files are not processed.
+ua.b.c.d[:port]
+    tells svlogd to transmit the first len characters of selected
+    log messages to the IP address a.b.c.d, port number port.
+    If port isnt set, the default port for syslog is used (514).
+    len can be set through the -l option, see below. If svlogd
+    has trouble sending udp packets, it writes error messages
+    to the log directory. Attention: logging through udp is unreliable,
+    and should be used in private networks only.
+Ua.b.c.d[:port]
+    is the same as the u line above, but the log messages are no longer
+    written to the log directory, but transmitted through udp only.
+    Error messages from svlogd concerning sending udp packages still go
+    to the log directory.
+pprefix
+    tells svlogd to prefix each line to be written to the log directory,
+    to standard error, or through UDP, with prefix.
+
+If a line starts with a -, +, e, or E, svlogd matches the first len characters
+of each log message against pattern and acts accordingly:
+
+-pattern
+    the log message is deselected.
++pattern
+    the log message is selected.
+epattern
+    the log message is selected to be printed to standard error.
+Epattern
+    the log message is deselected to be printed to standard error.
+
+Initially each line is selected to be written to log/current. Deselected
+log messages are discarded from log. Initially each line is deselected
+to be written to standard err. Log messages selected for standard error
+are written to standard error.
+
+Pattern Matching
+
+svlogd matches a log message against the string pattern as follows:
+
+pattern is applied to the log message one character by one, starting
+with the first. A character not a star (*) and not a plus (+) matches itself.
+A plus matches the next character in pattern in the log message one
+or more times. A star before the end of pattern matches any string
+in the log message that does not include the next character in pattern.
+A star at the end of pattern matches any string.
+
+Timestamps optionally added by svlogd are not considered part
+of the log message.
+
+An svlogd pattern is not a regular expression. For example consider
+a log message like this
+
+2005-12-18_09:13:50.97618 tcpsvd: info: pid 1977 from 10.4.1.14
+
+The following pattern doesnt match
+
+-*pid*
+
+because the first star matches up to the first p in tcpsvd,
+and then the match fails because i is not s. To match this
+log message, you can use a pattern like this instead
+
+-*: *: pid *
+*/
+
 #include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"
@@ -72,6 +169,8 @@ struct globals {
 	int wstat;
 	unsigned nearest_rotate;
 
+	void* (*memRchr)(const void *, int, size_t);
+
 	smallint exitasap;
 	smallint rotateasap;
 	smallint reopenasap;
@@ -94,6 +193,7 @@ struct globals {
 #define fndir          (G.fndir         )
 #define fdwdir         (G.fdwdir        )
 #define wstat          (G.wstat         )
+#define memRchr        (G.memRchr       )
 #define nearest_rotate (G.nearest_rotate)
 #define exitasap       (G.exitasap      )
 #define rotateasap     (G.rotateasap    )
@@ -121,7 +221,6 @@ struct globals {
 #define PAUSE "pausing: "
 #define INFO "info: "
 
-#define usage() bb_show_usage()
 static void fatalx(const char *m0)
 {
 	bb_error_msg_and_die(FATAL"%s", m0);
@@ -273,7 +372,8 @@ static unsigned processorstop(struct logdir *ld)
 		sig_block(SIGHUP);
 		ld->ppid = 0;
 	}
-	if (ld->fddir == -1) return 1;
+	if (ld->fddir == -1)
+		return 1;
 	while (fchdir(ld->fddir) == -1)
 		pause2cannot("change directory, want processor", ld->name);
 	if (WEXITSTATUS(wstat) != 0) {
@@ -564,6 +664,10 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 			case '-':
 			case 'e':
 			case 'E':
+				/* Filtering requires one-line buffering,
+				 * resetting the "find newline" function
+				 * accordingly */
+				memRchr = memchr;
 				/* Add '\n'-terminated line to ld->inst */
 				while (1) {
 					int l = asprintf(&new, "%s%s\n", ld->inst ? : "", s);
@@ -708,7 +812,7 @@ static int buffer_pread(/*int fd, */char *s, unsigned len)
 	struct pollfd input;
 	int i;
 
-	input.fd = 0;
+	input.fd = STDIN_FILENO;
 	input.events = POLLIN;
 
 	do {
@@ -852,12 +956,11 @@ static void logmatch(struct logdir *ld)
 int svlogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int svlogd_main(int argc, char **argv)
 {
-	char *r,*l,*b;
+	char *r, *l, *b;
 	ssize_t stdin_cnt = 0;
 	int i;
 	unsigned opt;
 	unsigned timestamp = 0;
-	void* (*memRchr)(const void *, int, size_t) = memchr;
 
 	INIT_G();
 
@@ -866,13 +969,16 @@ int svlogd_main(int argc, char **argv)
 			&r, &replace, &l, &b, &timestamp, &verbose);
 	if (opt & 1) { // -r
 		repl = r[0];
-		if (!repl || r[1]) usage();
+		if (!repl || r[1])
+			bb_show_usage();
 	}
 	if (opt & 2) if (!repl) repl = '_'; // -R
 	if (opt & 4) { // -l
 		linemax = xatou_range(l, 0, BUFSIZ-26);
-		if (linemax == 0) linemax = BUFSIZ-26;
-		if (linemax < 256) linemax = 256;
+		if (linemax == 0)
+			linemax = BUFSIZ-26;
+		if (linemax < 256)
+			linemax = 256;
 	}
 	////if (opt & 8) { // -b
 	////	buflen = xatoi_u(b);
@@ -885,11 +991,12 @@ int svlogd_main(int argc, char **argv)
 	argc -= optind;
 
 	dirn = argc;
-	if (dirn <= 0) usage();
-	////if (buflen <= linemax) usage();
+	if (dirn <= 0)
+		bb_show_usage();
+	////if (buflen <= linemax) bb_show_usage();
 	fdwdir = xopen(".", O_RDONLY|O_NDELAY);
 	close_on_exec_on(fdwdir);
-	dir = xzalloc(dirn * sizeof(struct logdir));
+	dir = xzalloc(dirn * sizeof(dir[0]));
 	for (i = 0; i < dirn; ++i) {
 		dir[i].fddir = -1;
 		dir[i].fdcur = -1;
@@ -914,13 +1021,14 @@ int svlogd_main(int argc, char **argv)
 	bb_signals_recursive_norestart(1 << SIGALRM, sig_alarm_handler);
 	bb_signals_recursive_norestart(1 << SIGHUP, sig_hangup_handler);
 
-	logdirs_reopen();
-
 	/* Without timestamps, we don't have to print each line
 	 * separately, so we can look for _last_ newline, not first,
-	 * thus batching writes */
-	if (!timestamp)
-		memRchr = memrchr;
+	 * thus batching writes. If filtering is enabled in config,
+	 * logdirs_reopen resets it to memchr.
+	 */
+	memRchr = (timestamp ? memchr : memrchr);
+
+	logdirs_reopen();
 
 	setvbuf(stderr, NULL, _IOFBF, linelen);
 
@@ -988,7 +1096,8 @@ int svlogd_main(int argc, char **argv)
 		}
 		for (i = 0; i < dirn; ++i) {
 			struct logdir *ld = &dir[i];
-			if (ld->fddir == -1) continue;
+			if (ld->fddir == -1)
+				continue;
 			if (ld->inst)
 				logmatch(ld);
 			if (ld->matcherr == 'e') {
@@ -996,7 +1105,8 @@ int svlogd_main(int argc, char **argv)
 				////full_write(STDERR_FILENO, printptr, printlen);
 				fwrite(printptr, 1, printlen, stderr);
 			}
-			if (ld->match != '+') continue;
+			if (ld->match != '+')
+				continue;
 			buffer_pwrite(i, printptr, printlen);
 		}
 
@@ -1019,12 +1129,14 @@ int svlogd_main(int argc, char **argv)
 			}
 			/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 			for (i = 0; i < dirn; ++i) {
-				if (dir[i].fddir == -1) continue;
+				if (dir[i].fddir == -1)
+					continue;
 				if (dir[i].matcherr == 'e') {
 					////full_write(STDERR_FILENO, lineptr, linelen);
 					fwrite(lineptr, 1, linelen, stderr);
 				}
-				if (dir[i].match != '+') continue;
+				if (dir[i].match != '+')
+					continue;
 				buffer_pwrite(i, lineptr, linelen);
 			}
 		}
@@ -1046,7 +1158,7 @@ int svlogd_main(int argc, char **argv)
 	for (i = 0; i < dirn; ++i) {
 		if (dir[i].ppid)
 			while (!processorstop(&dir[i]))
-				/* repeat */;
+				continue;
 		logdir_close(&dir[i]);
 	}
 	return 0;
