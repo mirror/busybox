@@ -273,10 +273,10 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			device_num == 0x0d00 || // xd
 			device_num == 0x1600 )  // hdc, hdd
 		)
-			bb_error_msg_and_die("Will not try to make filesystem on full-disk device (use -I if wanted)");
+			bb_error_msg_and_die("will not try to make filesystem on full-disk device (use -I if wanted)");
 		// can't work on mounted filesystems
-		if (find_mount_point(device_name, NULL))
-			bb_error_msg_and_die("Can't format mounted filesystem");
+		if (find_mount_point(device_name))
+			bb_error_msg_and_die("can't format mounted filesystem");
 #endif
 		// get true sector size
 		// (parameter must be int*, not long* or size_t*)
