@@ -84,6 +84,7 @@ struct svdir {
 	int fdlock;
 	int fdcontrol;
 	int fdcontrolwrite;
+	int wstat;
 };
 
 struct globals {
@@ -138,7 +139,8 @@ static void s_term(int sig_no UNUSED_PARAM)
 	write(selfpipe.wr, "", 1); /* XXX */
 }
 
-static char *add_str(char *p, const char *to_add)
+/* libbb candidate */
+static char *bb_stpcpy(char *p, const char *to_add)
 {
 	while ((*p = *to_add) != '\0') {
 		p++;
@@ -189,24 +191,26 @@ static void update_status(struct svdir *s)
 		char *p = stat_buf;
 		switch (s->state) {
 		case S_DOWN:
-			p = add_str(p, "down");
+			p = bb_stpcpy(p, "down");
 			break;
 		case S_RUN:
-			p = add_str(p, "run");
+			p = bb_stpcpy(p, "run");
 			break;
 		case S_FINISH:
-			p = add_str(p, "finish");
+			p = bb_stpcpy(p, "finish");
 			break;
 		}
-		if (s->ctrl & C_PAUSE) p = add_str(p, ", paused");
-		if (s->ctrl & C_TERM) p = add_str(p, ", got TERM");
+		if (s->ctrl & C_PAUSE)
+			p = bb_stpcpy(p, ", paused");
+		if (s->ctrl & C_TERM)
+			p = bb_stpcpy(p, ", got TERM");
 		if (s->state != S_DOWN)
 			switch (s->sd_want) {
 			case W_DOWN:
-				p = add_str(p, ", want down");
+				p = bb_stpcpy(p, ", want down");
 				break;
 			case W_EXIT:
-				p = add_str(p, ", want exit");
+				p = bb_stpcpy(p, ", want exit");
 				break;
 			}
 		*p++ = '\n';
@@ -263,7 +267,7 @@ static unsigned custom(struct svdir *s, char c)
 				warn_cannot("vfork for control/?");
 				return 0;
 			}
-			if (!pid) {
+			if (pid == 0) {
 				/* child */
 				if (haslog && dup2(logpipe.wr, 1) == -1)
 					warn_cannot("setup stdout for control/?");
@@ -305,12 +309,33 @@ static void stopservice(struct svdir *s)
 static void startservice(struct svdir *s)
 {
 	int p;
-	const char *run;
+	const char *arg[4];
+	char exitcode[sizeof(int)*3 + 2];
+	char sigcode[sizeof(int)*3 + 2];
 
-	if (s->state == S_FINISH)
-		run = "./finish";
-	else {
-		run = "./run";
+	if (s->state == S_FINISH) {
+/* Two arguments are given to ./finish. The first one is ./run exit code,
+ * or -1 if ./run didnt exit normally. The second one is
+ * the least significant byte of the exit status as determined by waitpid;
+ * for instance it is 0 if ./run exited normally, and the signal number
+ * if ./run was terminated by a signal. If runsv cannot start ./run
+ * for some reason, the exit code is 111 and the status is 0.
+ */
+		arg[0] = "./finish";
+		arg[1] = "-1";
+		if (WIFEXITED(s->wstat)) {
+			sprintf(exitcode, "%u", (int) WEXITSTATUS(s->wstat));
+			arg[1] = exitcode;
+		}
+		//arg[2] = "0";
+		//if (WIFSIGNALED(s->wstat)) {
+			sprintf(sigcode, "%u", (int) WTERMSIG(s->wstat));
+			arg[2] = sigcode;
+		//}
+		arg[3] = NULL;
+	} else {
+		arg[0] = "./run";
+		arg[1] = NULL;
 		custom(s, 'u');
 	}
 
@@ -340,8 +365,8 @@ static void startservice(struct svdir *s)
 			, SIG_DFL);*/
 		sig_unblock(SIGCHLD);
 		sig_unblock(SIGTERM);
-		execl(run, run, (char *) NULL);
-		fatal2_cannot(s->islog ? "start log/" : "start ", run);
+		execv(arg[0], (char**) arg);
+		fatal2_cannot(s->islog ? "start log/" : "start ", arg[0]);
 	}
 	/* parent */
 	if (s->state != S_FINISH) {
@@ -591,9 +616,10 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 			if ((child == -1) && (errno != EINTR))
 				break;
 			if (child == svd[0].pid) {
+				svd[0].wstat = wstat;
 				svd[0].pid = 0;
 				pidchanged = 1;
-				svd[0].ctrl &=~ C_TERM;
+				svd[0].ctrl &= ~C_TERM;
 				if (svd[0].state != S_FINISH) {
 					fd = open_read("finish");
 					if (fd != -1) {
@@ -612,6 +638,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (haslog) {
 				if (child == svd[1].pid) {
+					svd[0].wstat = wstat;
 					svd[1].pid = 0;
 					pidchanged = 1;
 					svd[1].state = S_DOWN;
