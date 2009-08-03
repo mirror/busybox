@@ -172,12 +172,11 @@ int nc_main(int argc, char **argv)
 
 		testfds = readfds;
 
-		if (select(cfd + 1, &testfds, NULL, NULL, NULL) < 0)
+		if (select(FD_SETSIZE, &testfds, NULL, NULL, NULL) < 0)
 			bb_perror_msg_and_die("select");
 
 #define iobuf bb_common_bufsiz1
-		fd = STDIN_FILENO;
-		while (1) {
+		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
 				nread = safe_read(fd, iobuf, sizeof(iobuf));
 				if (fd == cfd) {
@@ -185,21 +184,17 @@ int nc_main(int argc, char **argv)
 						exit(EXIT_SUCCESS);
 					ofd = STDOUT_FILENO;
 				} else {
-					if (nread < 1) {
-						/* Close outgoing half-connection so they get EOF,
-						 * but leave incoming alone so we can see response */
+					if (nread<1) {
+						// Close outgoing half-connection so they get EOF, but
+						// leave incoming alone so we can see response.
 						shutdown(cfd, 1);
 						FD_CLR(STDIN_FILENO, &readfds);
 					}
 					ofd = cfd;
 				}
 				xwrite(ofd, iobuf, nread);
-				if (delay > 0)
-					sleep(delay);
+				if (delay > 0) sleep(delay);
 			}
-			if (fd == cfd)
-				break;
-			fd = cfd;
 		}
 	}
 }
