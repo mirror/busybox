@@ -135,29 +135,27 @@ int nc_main(int argc, char **argv)
 
 	/* -e given? */
 	if (execparam) {
-		signal(SIGCHLD, SIG_IGN);
-		// With more than one -l, repeatedly act as server.
-		if (do_listen > 1 && vfork()) {
-			/* parent */
-			// This is a bit weird as cleanup goes, since we wind up with no
-			// stdin/stdout/stderr.  But it's small and shouldn't hurt anything.
-			// We check for cfd == 0 above.
-			logmode = LOGMODE_NONE;
-			close(0);
-			close(1);
-			close(2);
+		pid_t pid;
+		/* With more than one -l, repeatedly act as server */
+		if (do_listen > 1 && (pid = vfork()) != 0) {
+			/* parent or error */
+			if (pid < 0)
+				bb_perror_msg_and_die("vfork");
+			/* prevent zombies */
+			signal(SIGCHLD, SIG_IGN);
+			close(cfd);
 			goto accept_again;
 		}
-		/* child (or main thread if no multiple -l) */
+		/* child, or main thread if only one -l */
 		xmove_fd(cfd, 0);
 		xdup2(0, 1);
 		xdup2(0, 2);
 		IF_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
-		/* Don't print stuff or it will go over the wire.... */
+		/* Don't print stuff or it will go over the wire... */
 		_exit(127);
 	}
 
-	// Select loop copying stdin to cfd, and cfd to stdout.
+	/* Select loop copying stdin to cfd, and cfd to stdout */
 
 	FD_ZERO(&readfds);
 	FD_SET(cfd, &readfds);
@@ -170,11 +168,12 @@ int nc_main(int argc, char **argv)
 
 		testfds = readfds;
 
-		if (select(FD_SETSIZE, &testfds, NULL, NULL, NULL) < 0)
+		if (select(cfd + 1, &testfds, NULL, NULL, NULL) < 0)
 			bb_perror_msg_and_die("select");
 
 #define iobuf bb_common_bufsiz1
-		for (fd = 0; fd < FD_SETSIZE; fd++) {
+		fd = STDIN_FILENO;
+		while (1) {
 			if (FD_ISSET(fd, &testfds)) {
 				nread = safe_read(fd, iobuf, sizeof(iobuf));
 				if (fd == cfd) {
@@ -182,17 +181,21 @@ int nc_main(int argc, char **argv)
 						exit(EXIT_SUCCESS);
 					ofd = STDOUT_FILENO;
 				} else {
-					if (nread<1) {
-						// Close outgoing half-connection so they get EOF, but
-						// leave incoming alone so we can see response.
+					if (nread < 1) {
+						/* Close outgoing half-connection so they get EOF,
+						 * but leave incoming alone so we can see response */
 						shutdown(cfd, 1);
 						FD_CLR(STDIN_FILENO, &readfds);
 					}
 					ofd = cfd;
 				}
 				xwrite(ofd, iobuf, nread);
-				if (delay > 0) sleep(delay);
+				if (delay > 0)
+					sleep(delay);
 			}
+			if (fd == cfd)
+				break;
+			fd = cfd;
 		}
 	}
 }
