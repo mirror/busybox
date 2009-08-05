@@ -296,6 +296,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 				goto die_infile;
 			n = ibs;
 			bb_simple_perror_msg(infile);
+			/* GNU dd with conv=noerror skips over "bad blocks" */
+			xlseek(ifd, ibs, SEEK_CUR);
 		}
 		if ((size_t)n == ibs)
 			G.in_full++;
