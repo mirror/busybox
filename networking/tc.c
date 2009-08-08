@@ -516,7 +516,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 				duparg(*argv, "priority");
 			filter_prio = get_u32(*argv, "priority");
 		} else if (arg == ARG_proto) { /* filter::list */
-			__u16 tmp;
+			uint16_t tmp;
 			if (filter_proto)
 				duparg(*argv, "protocol");
 			if (ll_proto_a2n(&tmp, *argv))

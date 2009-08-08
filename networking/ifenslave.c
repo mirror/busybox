@@ -105,15 +105,12 @@
 #include <linux/if_bonding.h>
 #include <linux/sockios.h>
 
-#ifndef IFNAMSIZ
-#define IFNAMSIZ 16
-#endif
-
-typedef uint64_t u64; /* hack, so we may include kernel's ethtool.h */
-typedef uint32_t u32; /* ditto */
-typedef uint16_t u16; /* ditto */
-typedef uint8_t u8;   /* ditto */
+#include "fix_u32.h" /* hack, so we may include kernel's ethtool.h */
 #include <linux/ethtool.h>
+
+#ifndef IFNAMSIZ
+# define IFNAMSIZ 16
+#endif
 
 
 struct dev_data {

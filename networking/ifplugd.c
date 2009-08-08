@@ -8,6 +8,7 @@
  */
 #include "libbb.h"
 
+#include "fix_u32.h"
 #include <linux/if.h>
 #include <linux/mii.h>
 #include <linux/ethtool.h>

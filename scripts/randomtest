@@ -35,6 +35,10 @@ cat .config \
 | grep -v ^CONFIG_SELINUX= \
 | grep -v ^CONFIG_EFENCE= \
 | grep -v ^CONFIG_DMALLOC= \
+| grep -v ^CONFIG_ACPID= \
+| grep -v ^CONFIG_FLASH_ERASEALL= \
+| grep -v ^CONFIG_FLASH_LOCK= \
+| grep -v ^CONFIG_FLASH_UNLOCK= \
 | cat >.config.new
 mv .config.new .config
 }
