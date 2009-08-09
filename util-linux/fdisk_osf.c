@@ -45,18 +45,16 @@
 
 #if defined(i386) || defined(__sparc__) || defined(__arm__) \
  || defined(__m68k__) || defined(__mips__) || defined(__s390__) \
- || defined(__sh__) || defined(__x86_64__)
-#define BSD_LABELSECTOR   1
-#define BSD_LABELOFFSET   0
+ || defined(__s390__) || defined(__s390x__) \
+ || defined(__sh__) || defined(__x86_64__) || defined(__avr32__)
+# define BSD_LABELSECTOR   1
+# define BSD_LABELOFFSET   0
 #elif defined(__alpha__) || defined(__powerpc__) || defined(__ia64__) \
  || defined(__hppa__)
-#define BSD_LABELSECTOR   0
-#define BSD_LABELOFFSET   64
-#elif defined(__s390__) || defined(__s390x__)
-#define BSD_LABELSECTOR   1
-#define BSD_LABELOFFSET   0
+# define BSD_LABELSECTOR   0
+# define BSD_LABELOFFSET   64
 #else
-#error unknown architecture
+# error unknown architecture
 #endif
 
 #define BSD_BBSIZE        8192          /* size of boot area, with label */
