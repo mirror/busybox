@@ -50,12 +50,12 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	off_t current;
 	struct stat sbuf;
 
-	/* (A good comment is missing here) */
-	current = lseek(fd, 0, SEEK_CUR);
 	/* /proc files report zero st_size, don't lseek them. */
-	if (fstat(fd, &sbuf) == 0 && sbuf.st_size)
+	if (fstat(fd, &sbuf) == 0 && sbuf.st_size) {
+		current = lseek(fd, 0, SEEK_CUR);
 		if (sbuf.st_size < current)
 			lseek(fd, 0, SEEK_SET);
+	}
 
 	r = full_read(fd, buf, count);
 	if (r < 0) {
@@ -119,10 +119,11 @@ int tail_main(int argc, char **argv)
 #if ENABLE_FEATURE_FANCY_TAIL
 	/* q: make it impossible for nfiles to be > header_threshhold */
 	if (opt & 0x8) header_threshhold = UINT_MAX; // -q
+	//if (opt & 0x10) // -s
 	if (opt & 0x20) header_threshhold = 0; // -v
-#define FOLLOW_RETRY (opt & 0x40)
+# define FOLLOW_RETRY (opt & 0x40)
 #else
-#define FOLLOW_RETRY 0
+# define FOLLOW_RETRY 0
 #endif
 	argc -= optind;
 	argv += optind;
@@ -189,7 +190,7 @@ int tail_main(int argc, char **argv)
 			off_t current = lseek(fds[i], 0, SEEK_END);
 			if (current > 0) {
 				if (count == 0)
-					continue; /* showing zero lines is easy :) */
+					continue; /* showing zero bytes is easy :) */
 				current -= count;
 				if (current < 0)
 					current = 0;
@@ -201,12 +202,15 @@ int tail_main(int argc, char **argv)
 
 		buf = tailbuf;
 		taillen = 0;
+		/* "We saw 1st line/byte".
+		 * Used only by +N code ("start from Nth", 1-based) */
 		seen = 1;
 		newlines_seen = 0;
 		while ((nread = tail_read(fds[i], buf, tailbufsize-taillen)) > 0) {
 			if (from_top) {
 				int nwrite = nread;
 				if (seen < count) {
+					/* We need to skip a few more bytes/lines */
 					if (COUNT_BYTES) {
 						nwrite -= (count - seen);
 						seen = count;
