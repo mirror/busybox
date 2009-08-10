@@ -51,10 +51,10 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	struct stat sbuf;
 
 	/* /proc files report zero st_size, don't lseek them. */
-	if (fstat(fd, &sbuf) == 0 && sbuf.st_size) {
+	if (fstat(fd, &sbuf) == 0 && sbuf.st_size > 0) {
 		current = lseek(fd, 0, SEEK_CUR);
 		if (sbuf.st_size < current)
-			lseek(fd, 0, SEEK_SET);
+			xlseek(fd, 0, SEEK_SET);
 	}
 
 	r = full_read(fd, buf, count);
@@ -174,8 +174,9 @@ int tail_main(int argc, char **argv)
 		int newlines_seen;
 		unsigned seen;
 		int nread;
+		int fd = fds[i];
 
-		if (ENABLE_FEATURE_FANCY_TAIL && fds[i] < 0)
+		if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
 			continue; /* may happen with -E */
 
 		if (nfiles > header_threshhold) {
@@ -183,30 +184,46 @@ int tail_main(int argc, char **argv)
 			fmt = header_fmt;
 		}
 
-		/* Optimizing count-bytes case if the file is seekable.
-		 * Beware of backing up too far.
-		 * Also we exclude files with size 0 (because of /proc/xxx) */
-		if (COUNT_BYTES && !from_top) {
-			off_t current = lseek(fds[i], 0, SEEK_END);
+		if (!from_top) {
+			off_t current = lseek(fd, 0, SEEK_END);
 			if (current > 0) {
-				if (count == 0)
-					continue; /* showing zero bytes is easy :) */
-				current -= count;
+				unsigned off;
+				if (COUNT_BYTES) {
+				/* Optimizing count-bytes case if the file is seekable.
+				 * Beware of backing up too far.
+				 * Also we exclude files with size 0 (because of /proc/xxx) */
+					if (count == 0)
+						continue; /* showing zero bytes is easy :) */
+					current -= count;
+					if (current < 0)
+						current = 0;
+					xlseek(fd, current, SEEK_SET);
+					bb_copyfd_size(fd, STDOUT_FILENO, count);
+					continue;
+				}
+#if 1 /* This is technically incorrect for *LONG* strings, but very useful */
+				/* Optimizing count-lines case if the file is seekable.
+				 * We assume the lines are <64k.
+				 * (Users complain that tail takes too long
+				 * on multi-gigabyte files) */
+				off = (count | 0xf); /* for small counts, be more paranoid */
+				if (off > (INT_MAX / (64*1024)))
+					off = (INT_MAX / (64*1024));
+				current -= off * (64*1024);
 				if (current < 0)
 					current = 0;
-				xlseek(fds[i], current, SEEK_SET);
-				bb_copyfd_size(fds[i], STDOUT_FILENO, count);
-				continue;
+				xlseek(fd, current, SEEK_SET);
+#endif
 			}
 		}
 
 		buf = tailbuf;
 		taillen = 0;
 		/* "We saw 1st line/byte".
-		 * Used only by +N code ("start from Nth", 1-based) */
+		 * Used only by +N code ("start from Nth", 1-based): */
 		seen = 1;
 		newlines_seen = 0;
-		while ((nread = tail_read(fds[i], buf, tailbufsize-taillen)) > 0) {
+		while ((nread = tail_read(fd, buf, tailbufsize-taillen)) > 0) {
 			if (from_top) {
 				int nwrite = nread;
 				if (seen < count) {
