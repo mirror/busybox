@@ -637,6 +637,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 						perform_release(requested_ip, server_addr);
 					goto ret0;
 				}
+				/* future renew failures should not exit (JM) */
+				opt &= ~OPT_n;
 #if BB_MMU /* NOMMU case backgrounded earlier */
 				if (!(opt & OPT_f)) {
 					client_background();
