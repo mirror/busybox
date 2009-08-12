@@ -13,14 +13,20 @@ test -x hush || {
 	echo "No ./hush - creating a link to ../../busybox"
 	ln -s ../../busybox hush
 }
-if test -e ../../.config ; then
-	eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' ../../.config)
+if test ! -e .config; then
+	if test -f ../../.config; then
+		cp ../../.config . || exit 1
+	else
+		echo "Missing .config file"
+		exit 1
+	fi
 fi
+eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' .config)
 
-PATH="$PWD:$PATH" # for hush and recho/zecho/printenv
+PATH="`pwd`:$PATH" # for hush and recho/zecho/printenv
 export PATH
 
-THIS_SH="$PWD/hush"
+THIS_SH="`pwd`/hush"
 export THIS_SH
 
 do_test()

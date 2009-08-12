@@ -58,6 +58,7 @@
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
  *      builtins: ulimit
+ *      special variables (PWD etc)
  *      follow IFS rules more precisely, including update semantics
  *      export builtin should be special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
