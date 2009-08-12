@@ -6038,6 +6038,8 @@ static struct pipe *parse_stream(char **pstring,
 			dest.o_assignment = NOT_ASSIGNMENT;
 		}
 
+		/* Note: nommu_addchr(&ctx.as_string, ch) is already done */
+
 		switch (ch) {
 		case '#':
 			if (dest.length == 0) {
@@ -6061,12 +6063,17 @@ static struct pipe *parse_stream(char **pstring,
 			ch = i_getch(input);
 			if (ch != '\n') {
 				o_addchr(&dest, '\\');
-				nommu_addchr(&ctx.as_string, '\\');
+				/*nommu_addchr(&ctx.as_string, '\\'); - already done */
 				o_addchr(&dest, ch);
 				nommu_addchr(&ctx.as_string, ch);
 				/* Example: echo Hello \2>file
 				 * we need to know that word 2 is quoted */
 				dest.o_quoted = 1;
+			} else {
+#if !BB_MMU
+				/* It's "\<newline>". Remove trailing '\' from ctx.as_string */
+				ctx.as_string.data[--ctx.as_string.length] = '\0';
+#endif
 			}
 			break;
 		case '$':

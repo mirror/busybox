@@ -38,16 +38,16 @@ do_test()
 	tret=0
 	cd "$1" || { echo "cannot cd $1!"; exit 1; }
 	for x in run-*; do
-	test -f "$x" || continue
-	case "$x" in
-		"$0"|run-minimal|run-gprof) ;;
-		*.orig|*~) ;;
-		#*) echo $x ; sh $x ;;
-		*)
-		sh "$x" >"../$1-$x.fail" 2>&1 && \
-		{ echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
-		;;
-	esac
+		test -f "$x" || continue
+		case "$x" in
+			"$0"|run-minimal|run-gprof) ;;
+			*.orig|*~) ;;
+			#*) echo $x ; sh $x ;;
+			*)
+			sh "$x" >"../$1-$x.fail" 2>&1 && \
+			{ echo "$1/$x: ok"; rm "../$1-$x.fail"; } || echo "$1/$x: fail";
+			;;
+		esac
 	done
 	# Many bash run-XXX scripts just do this,
 	# no point in duplication it all over the place
