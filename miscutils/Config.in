@@ -584,6 +584,12 @@ config TTYSIZE
 	  error, but returns default 80x24.
 	  Usage in shell scripts: width=`ttysize w`.
 
+config VOLNAME
+	bool "volname"
+	default n
+	help
+	  Prints a CD-ROM volume name.
+
 config WATCHDOG
 	bool "watchdog"
 	default n

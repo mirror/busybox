@@ -4901,6 +4901,11 @@ IF_FEATURE_TUNCTL_UG( \
      "\nOptions:" \
      "\n	-a	Lock all VTs" \
 
+#define volname_trivial_usage \
+       "[DEVICE]"
+#define volname_full_usage "\n\n" \
+       "Show CD volume name of the DEVICE (default /dev/cdrom)"
+
 #define watch_trivial_usage \
        "[-n seconds] [-t] PROG [ARGS]"
 #define watch_full_usage "\n\n" \
