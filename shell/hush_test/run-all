@@ -9,18 +9,22 @@ unset LC_NUMERIC
 unset LC_TIME
 unset LC_ALL
 
-test -x hush || {
+if test ! -x hush; then
+	if test ! -x ../../busybox; then
+		echo "Can't run tests. Put hush binary into this directory (`pwd`)"
+		exit 1
+	fi
 	echo "No ./hush - creating a link to ../../busybox"
 	ln -s ../../busybox hush
-}
-if test ! -e .config; then
-	if test -f ../../.config; then
-		cp ../../.config . || exit 1
-	else
+fi
+if test ! -f .config; then
+	if test ! -f ../../.config; then
 		echo "Missing .config file"
 		exit 1
 	fi
+	cp ../../.config . || exit 1
 fi
+
 eval $(sed -e '/^#/d' -e '/^$/d' -e 's:^:export :' .config)
 
 PATH="`pwd`:$PATH" # for hush and recho/zecho/printenv
