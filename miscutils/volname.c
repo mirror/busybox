@@ -24,7 +24,7 @@
  */
 
 /*
- * mods from  distrubuted source (eject-2.0.13) are by
+ * mods from distributed source (eject-2.0.13) are by
  * Matthew Stoltenberg <d3matt@gmail.com>
  */
 #include "libbb.h"
