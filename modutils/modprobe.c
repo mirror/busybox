@@ -344,7 +344,7 @@ static void load_modules_dep(void)
 			G.num_unresolved_deps--;
 			llist_add_to(&m->deps, xstrdup(tokens[0]));
 			if (tokens[1])
-				string_to_llist(tokens[1], &m->deps, " ");
+				string_to_llist(tokens[1], &m->deps, " \t");
 		} else
 			DBG("skipping dep line");
 	}
