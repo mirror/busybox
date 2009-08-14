@@ -92,7 +92,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	if (sid2match == 0)
 		sid2match = getsid(pid);
 
-	scan_mask = PSSCAN_COMM;
+	scan_mask = PSSCAN_COMM | PSSCAN_ARGV0;
 	if (OPT_FULL)
 		scan_mask |= PSSCAN_ARGVN;
 
@@ -117,9 +117,9 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 			cmd = proc->comm;
 		} else {
 			int i = proc->argv_len;
-			while (i) {
-				if (!cmd[i]) cmd[i] = ' ';
-				i--;
+			while (--i >= 0) {
+				if ((unsigned char)cmd[i] < ' ')
+					cmd[i] = ' ';
 			}
 		}
 
