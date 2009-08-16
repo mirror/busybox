@@ -241,4 +241,11 @@ testing "sed 2d;2,1p (gnu compat)" \
 	"third\n" "" \
 	"first\nsecond\nthird\nfourth\n"
 
+# Regex means: "match / at BOL or nothing, then one or more not-slashes".
+# The bug was that second slash in /usr/lib was treated as "at BOL" too.
+testing "sed beginning (^) matches only once" \
+	"sed 's,\(^/\|\)[^/][^/]*,>\0<,g'" \
+	">/usr</>lib<\n" "" \
+	"/usr/lib\n"
+
 exit $FAILCOUNT

@@ -589,7 +589,7 @@ static void pipe_putc(char c)
 
 static void do_subst_w_backrefs(char *line, char *replace)
 {
-	int i,j;
+	int i, j;
 
 	/* go through the replacement string */
 	for (i = 0; replace[i]; i++) {
@@ -624,23 +624,24 @@ static void do_subst_w_backrefs(char *line, char *replace)
 	}
 }
 
-static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
+static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 {
-	char *oldline = *line;
+	char *line = *line_p;
 	int altered = 0;
 	unsigned match_count = 0;
 	regex_t *current_regex;
 
+	current_regex = sed_cmd->sub_match;
 	/* Handle empty regex. */
-	if (sed_cmd->sub_match == NULL) {
+	if (!current_regex) {
 		current_regex = G.previous_regex_ptr;
 		if (!current_regex)
 			bb_error_msg_and_die("no previous regexp");
-	} else
-		G.previous_regex_ptr = current_regex = sed_cmd->sub_match;
+	}
+	G.previous_regex_ptr = current_regex;
 
 	/* Find the first match */
-	if (REG_NOMATCH == regexec(current_regex, oldline, 10, G.regmatch, 0))
+	if (REG_NOMATCH == regexec(current_regex, line, 10, G.regmatch, 0))
 		return 0;
 
 	/* Initialize temporary output buffer. */
@@ -657,7 +658,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 		   The match_count check is so not to break
 		   echo "hi" | busybox sed 's/^/!/g' */
 		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
-			pipe_putc(*oldline++);
+			pipe_putc(*line++);
 			continue;
 		}
 
@@ -669,35 +670,41 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 		 && (sed_cmd->which_match != match_count)
 		) {
 			for (i = 0; i < G.regmatch[0].rm_eo; i++)
-				pipe_putc(*oldline++);
+				pipe_putc(*line++);
 			continue;
 		}
 
 		/* print everything before the match */
 		for (i = 0; i < G.regmatch[0].rm_so; i++)
-			pipe_putc(oldline[i]);
+			pipe_putc(line[i]);
 
 		/* then print the substitution string */
-		do_subst_w_backrefs(oldline, sed_cmd->string);
+		do_subst_w_backrefs(line, sed_cmd->string);
 
 		/* advance past the match */
-		oldline += G.regmatch[0].rm_eo;
+		line += G.regmatch[0].rm_eo;
 		/* flag that something has changed */
 		altered++;
 
 		/* if we're not doing this globally, get out now */
 		if (sed_cmd->which_match)
 			break;
-	} while (*oldline && (regexec(current_regex, oldline, 10, G.regmatch, 0) != REG_NOMATCH));
+
+		if (*line == '\0')
+			break;
+//maybe (G.regmatch[0].rm_eo ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
+	} while (regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
 
 	/* Copy rest of string into output pipeline */
+	while (1) {
+		char c = *line++;
+		pipe_putc(c);
+		if (c == '\0')
+			break;
+	}
 
-	while (*oldline)
-		pipe_putc(*oldline++);
-	pipe_putc(0);
-
-	free(*line);
-	*line = G.pipeline.buf;
+	free(*line_p);
+	*line_p = G.pipeline.buf;
 	return altered;
 }
 
