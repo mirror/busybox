@@ -3510,7 +3510,7 @@ getjob(const char *name, int getctl)
 {
 	struct job *jp;
 	struct job *found;
-	const char *err_msg = "No such job: %s";
+	const char *err_msg = "%s: no such job";
 	unsigned num;
 	int c;
 	const char *p;
@@ -3562,10 +3562,8 @@ getjob(const char *name, int getctl)
 		p++;
 	}
 
-	found = 0;
-	while (1) {
-		if (!jp)
-			goto err;
+	found = NULL;
+	while (jp) {
 		if (match(jp->ps[0].cmd, p)) {
 			if (found)
 				goto err;
@@ -3574,6 +3572,9 @@ getjob(const char *name, int getctl)
 		}
 		jp = jp->prev_job;
 	}
+	if (!found)
+		goto err;
+	jp = found;
 
  gotit:
 #if JOBS
