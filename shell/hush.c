@@ -6746,6 +6746,15 @@ int lash_main(int argc, char **argv)
 }
 #endif
 
+#if ENABLE_MSH
+int msh_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int msh_main(int argc, char **argv)
+{
+	//bb_error_msg("msh is deprecated, please use hush instead");
+	return hush_main(argc, argv);
+}
+#endif
+
 
 /*
  * Built-ins

@@ -24,9 +24,9 @@ config FEATURE_SH_IS_HUSH
 ####	select LASH
 ####	bool "lash"
 
-config FEATURE_SH_IS_MSH
-	select MSH
-	bool "msh"
+####config FEATURE_SH_IS_MSH
+####	select MSH
+####	bool "msh"
 
 config FEATURE_SH_IS_NONE
 	bool "none"
@@ -260,6 +260,7 @@ config LASH
 config MSH
 	bool "msh (deprecated: please use hush)"
 	default n
+	select HUSH
 	help
 	  msh is deprecated and will be removed, please migrate to hush.
 	  If there is a feature msh has but hush does not, please let us know.

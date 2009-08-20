@@ -16,14 +16,10 @@ Rob Landley suggested these:
   Figure out where we need utf8 support, and add it.
 
   sh
-    The command shell situation is a big mess.  We have three different
+    The command shell situation is a mess.  We have two different
     shells that don't really share any code, and the "standalone shell" doesn't
     work all that well (especially not in a chroot environment), due to apps not
     being reentrant.
-    lash is phased out. hush can be configured down to be nearly as small,
-    but less buggy :)
-  init
-    General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG).
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
@@ -265,7 +261,7 @@ Minor stuff:
 ---
   possible code duplication ingroup() and is_a_group_member()
 ---
-  Move __get_hz() to a better place and (re)use it in route.c, ash.c, msh.c
+  Move __get_hz() to a better place and (re)use it in route.c, ash.c
 ---
   See grep -r strtod
   Alot of duplication that wants cleanup.

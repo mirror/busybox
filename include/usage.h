@@ -119,13 +119,10 @@
 #define ash_full_usage ""
 #define hush_trivial_usage NOUSAGE_STR
 #define hush_full_usage ""
+#define lash_trivial_usage NOUSAGE_STR
+#define lash_full_usage ""
 #define msh_trivial_usage NOUSAGE_STR
 #define msh_full_usage ""
-#define bbsh_trivial_usage \
-       "[FILE]...\n" \
-       "or: bbsh -c command [args]..."
-#define bbsh_full_usage "\n\n" \
-       "The bbsh shell (command interpreter)"
 
 #define awk_trivial_usage \
        "[OPTIONS] [AWK_PROGRAM] [FILE]..."
@@ -3903,12 +3900,6 @@
        "Run PROG in a new session. PROG will have no controlling terminal\n" \
        "and will not be affected by keyboard signals (Ctrl-C etc).\n" \
        "See setsid(2) for details." \
-
-#define lash_trivial_usage \
-       "[FILE]...\n" \
-       "or: sh -c command [args]..."
-#define lash_full_usage "\n\n" \
-       "lash is deprecated, please use hush"
 
 #define last_trivial_usage \
        ""IF_FEATURE_LAST_FANCY("[-HW] [-f file]")
