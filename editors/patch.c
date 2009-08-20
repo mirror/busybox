@@ -74,12 +74,18 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	int patch_level;
 	int ret = 0;
 	char plus = '+';
+	unsigned opt;
+	enum {
+		OPT_R = (1 << 2),
+		OPT_N = (1 << 3),
+	};
 
 	xfunc_error_retval = 2;
 	{
 		const char *p = "-1";
 		const char *i = "-"; /* compat */
-		if (getopt32(argv, "p:i:R", &p, &i) & 4)
+		opt = getopt32(argv, "p:i:RN", &p, &i);
+		if (opt & OPT_R)
 			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */
 		patch_file = xfopen_stdin(i);
@@ -201,6 +207,10 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 							if (diff)
 								src_line = NULL;
 						}
+					}
+					/* Do not patch an already patched hunk with -N */
+					if (src_line == 0 && (opt & OPT_N)) {
+						continue;
 					}
 					if (!src_line) {
 						bb_error_msg("hunk #%u FAILED at %u", hunk_count, hunk_offset_start);

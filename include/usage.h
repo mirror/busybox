@@ -3218,11 +3218,12 @@
 	)
 
 #define patch_trivial_usage \
-       "[-p NUM] [-i DIFF] [-R]"
+       "[-p NUM] [-i DIFF] [-R] [-N]"
 #define patch_full_usage "\n\n" \
        "	-p NUM	Strip NUM leading components from file names" \
      "\n	-i DIFF	Read DIFF instead of stdin" \
      "\n	-R	Reverse patch" \
+     "\n	-N	Ignore already applied patches" \
 
 #define patch_example_usage \
        "$ patch -p1 < example.diff\n" \
