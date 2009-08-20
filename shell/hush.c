@@ -6461,7 +6461,7 @@ int hush_main(int argc, char **argv)
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
 	builtin_argc = 0;
 	while (1) {
-		opt = getopt(argc, argv, "c:xins"
+		opt = getopt(argc, argv, "+c:xins"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
