@@ -393,7 +393,7 @@ void xsetenv(const char *key, const char *value) FAST_FUNC;
 void bb_unsetenv(const char *key) FAST_FUNC;
 void xunlink(const char *pathname) FAST_FUNC;
 void xstat(const char *pathname, struct stat *buf) FAST_FUNC;
-int xopen(const char *pathname, int flags) FAST_FUNC FAST_FUNC;
+int xopen(const char *pathname, int flags) FAST_FUNC;
 int xopen3(const char *pathname, int flags, int mode) FAST_FUNC;
 int open_or_warn(const char *pathname, int flags) FAST_FUNC;
 int open3_or_warn(const char *pathname, int flags, int mode) FAST_FUNC;
