@@ -19,6 +19,12 @@ config BBCONFIG
 	  The bbconfig applet will print the config file with which
 	  busybox was built.
 
+config BEEP
+	bool "beep"
+	default n
+	help
+	  The beep applets beeps in a given freq/Hz.
+
 config CHAT
 	bool "chat"
 	default n

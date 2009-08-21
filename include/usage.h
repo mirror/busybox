@@ -145,6 +145,16 @@
        "$ basename /foo/bar.txt .txt\n" \
        "bar"
 
+#define beep_trivial_usage \
+       "-f freq -l length -d delay -r repetitions -n"
+#define beep_full_usage "\n\n" \
+	"Options:\n" \
+     "\n	-f	Frequency in Hz" \
+     "\n	-l	Length in ms" \
+     "\n	-d	Delay in ms" \
+     "\n	-r	Repetitions" \
+     "\n	-n	Start new tone" \
+
 #define fbsplash_trivial_usage \
        "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
 #define fbsplash_full_usage "\n\n" \
