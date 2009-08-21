@@ -19,8 +19,16 @@
 #define OPT_d (1<<2)
 #define OPT_r (1<<3)
 /* defaults */
-#define FREQ (4440)
-#define LENGTH (50)
+#ifndef CONFIG_FEATURE_BEEP_FREQ
+# define FREQ (4000)
+#else
+# define FREQ (CONFIG_FEATURE_BEEP_FREQ)
+#endif
+#ifndef CONFIG_FEATURE_BEEP_LENGTH
+# define LENGTH (30)
+#else
+# define LENGTH (CONFIG_FEATURE_BEEP_LENGTH)
+#endif
 #define DELAY (0)
 #define REPETITIONS (1)
 

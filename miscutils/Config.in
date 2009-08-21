@@ -25,6 +25,22 @@ config BEEP
 	help
 	  The beep applets beeps in a given freq/Hz.
 
+config FEATURE_BEEP_FREQ
+	int "default frequency"
+	range 0 2147483647
+	default 4000
+	depends on BEEP
+	help
+	  Frequency for default beep.
+
+config FEATURE_BEEP_LENGTH
+	int "default length"
+	range 0 2147483647
+	default 30
+	depends on BEEP
+	help
+	  Length in ms for default beep.
+
 config CHAT
 	bool "chat"
 	default n
