@@ -11,92 +11,80 @@
 
 #include <linux/kd.h>
 #ifndef CLOCK_TICK_RATE
-#define CLOCK_TICK_RATE 1193180
+# define CLOCK_TICK_RATE 1193180
 #endif
 
-#define OPT_f (1<<0)
-#define OPT_l (1<<1)
-#define OPT_d (1<<2)
-#define OPT_r (1<<3)
 /* defaults */
 #ifndef CONFIG_FEATURE_BEEP_FREQ
 # define FREQ (4000)
 #else
 # define FREQ (CONFIG_FEATURE_BEEP_FREQ)
 #endif
-#ifndef CONFIG_FEATURE_BEEP_LENGTH
+#ifndef CONFIG_FEATURE_BEEP_LENGTH_MS
 # define LENGTH (30)
 #else
-# define LENGTH (CONFIG_FEATURE_BEEP_LENGTH)
+# define LENGTH (CONFIG_FEATURE_BEEP_LENGTH_MS)
 #endif
 #define DELAY (0)
 #define REPETITIONS (1)
 
-#define GET_ARG do { if (!*++opt) opt = *++argv; if (opt == NULL) bb_show_usage();} while (0)
-#define NEW_BEEP() { \
-	freq = FREQ; \
-	length = LENGTH; \
-	delay = DELAY; \
-	rep = REPETITIONS; \
-	}
-
 int beep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int beep_main(int argc UNUSED_PARAM, char **argv)
+int beep_main(int argc, char **argv)
 {
 	int speaker = get_console_fd_or_die();
-	unsigned freq, length, delay, rep;
-	unsigned long ioctl_arg;
-	char *opt = NULL;
-	bool do_parse = true;
+	unsigned length, delay, rep;
+	unsigned tickrate_div_freq;
+	int c;
 
-	NEW_BEEP()
-	while (*argv && *++argv) {
-		opt = *argv;
-
-		while (*opt == '-')
-			++opt;
-		if (do_parse)
-			switch (*opt) {
-			case 'f':
-				GET_ARG;
-				freq = xatoul(opt);
-				continue;
-			case 'l':
-				GET_ARG;
-				length = xatoul(opt);
-				continue;
-			case 'd':
-				GET_ARG;
-				delay = xatoul(opt);
-				continue;
-			case 'r':
-				GET_ARG;
-				rep = xatoul(opt);
-				continue;
-			case 'n':
-				break;
-			default:
-				bb_show_usage();
-				break;
-			}
- again:
+	c = 'n';
+	while (c != -1) {
+		if (c == 'n') {
+			tickrate_div_freq = CLOCK_TICK_RATE / FREQ;
+			length = LENGTH;
+			delay = DELAY;
+			rep = REPETITIONS;
+		}
+		c = getopt(argc, argv, "f:l:d:r:n");
+/* TODO: -s, -c:
+ * pipe stdin to stdout, but also beep after each line (-s) or char (-c)
+ */
+		switch (c) {
+		case 'f':
+/* TODO: what "-f 0" should do? */
+			tickrate_div_freq = (unsigned)CLOCK_TICK_RATE / xatou(optarg);
+			continue;
+		case 'l':
+			length = xatou(optarg);
+			continue;
+		case 'd':
+/* TODO:
+ * -d N, -D N
+ * specify a delay of N milliseconds between repetitions.
+ * -d specifies that this delay should only occur between beeps,
+ * that is, it should not occur after the last repetition.
+ * -D indicates that the delay should occur after every repetition
+ */
+			delay = xatou(optarg);
+			continue;
+		case 'r':
+			rep = xatou(optarg);
+			continue;
+		case 'n':
+		case -1:
+			break;
+		default:
+			bb_show_usage();
+		}
 		while (rep) {
 //bb_info_msg("rep[%d] freq=%d, length=%d, delay=%d", rep, freq, length, delay);
-			ioctl_arg = (int)(CLOCK_TICK_RATE/freq);
-			xioctl(speaker, KIOCSOUND, (void*)ioctl_arg);
+			xioctl(speaker, KIOCSOUND, (void*)(long)tickrate_div_freq);
 			usleep(1000 * length);
-			ioctl(speaker, KIOCSOUND, 0);
-			if (rep--)
+			ioctl(speaker, KIOCSOUND, (void*)0);
+			if (--rep)
 				usleep(delay);
 		}
-		if (opt && *opt == 'n')
-				NEW_BEEP()
-		if (!do_parse && *argv == NULL)
-			goto out;
 	}
-	do_parse = false;
-	goto again;
- out:
+
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(speaker);
 	return EXIT_SUCCESS;
@@ -117,11 +105,11 @@ g=$((392*3))
         -n -f$g -l200 -r2 \
         -n -f$f -l200 \
         -n -f$e -l200 \
-        -n -f$d -l200  \
-        -n -f$c -l200 -r2  \
-        -n -f$d -l200  \
-        -n -f$e -l200  \
-        -n -f$e -l400  \
+        -n -f$d -l200 \
+        -n -f$c -l200 -r2 \
+        -n -f$d -l200 \
+        -n -f$e -l200 \
+        -n -f$e -l400 \
         -n -f$d -l100 \
         -n -f$d -l200 \
 */

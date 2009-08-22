@@ -33,7 +33,7 @@ config FEATURE_BEEP_FREQ
 	help
 	  Frequency for default beep.
 
-config FEATURE_BEEP_LENGTH
+config FEATURE_BEEP_LENGTH_MS
 	int "default length"
 	range 0 2147483647
 	default 30
