@@ -32,6 +32,15 @@ CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
 
 ifeq ($(CONFIG_WERROR),y)
 CFLAGS += $(call cc-option,-Werror,)
+## TODO:
+## gcc version 4.4.0 20090506 (Red Hat 4.4.0-4) (GCC) is a PITA:
+## const char *ptr; ... off_t v = *(off_t*)ptr; -> BOOM
+## and no easy way to convince it to shut the hell up.
+## We have a lot of such things all over the place.
+## Classic *(off_t*)(void*)ptr does not work,
+## and I am unwilling to do crazy gcc specific ({ void *ppp = ...; })
+## stuff in macros. This would obfuscate the code too much.
+#CFLAGS += $(call cc-ifversion, -eq, 0404, -fno-strict-aliasing)
 endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
