@@ -3240,9 +3240,9 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #define FORK_NOJOB 2
 
 /* mode flags for showjob(s) */
-#define SHOW_PGID       0x01    /* only show pgid - for jobs -p */
-#define SHOW_PID        0x04    /* include process pid */
-#define SHOW_CHANGED    0x08    /* only jobs whose state has changed */
+#define SHOW_ONLY_PGID  0x01    /* show only pgid (jobs -p) */
+#define SHOW_PIDS       0x02    /* show individual pids, not just one line per job */
+#define SHOW_CHANGED    0x04    /* only jobs whose state has changed */
 
 /*
  * A job structure contains information about a job.  A job is either a
@@ -3250,7 +3250,6 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  * latter case, pidlist will be non-NULL, and will point to a -1 terminated
  * array of pids.
  */
-
 struct procstat {
 	pid_t   pid;            /* process id */
 	int     status;         /* last process status from wait() */
@@ -3935,7 +3934,7 @@ showjob(FILE *out, struct job *jp, int mode)
 
 	ps = jp->ps;
 
-	if (mode & SHOW_PGID) {
+	if (mode & SHOW_ONLY_PGID) { /* jobs -p */
 		/* just output process (group) id of pipeline */
 		fprintf(out, "%d\n", ps->pid);
 		return;
@@ -3945,11 +3944,11 @@ showjob(FILE *out, struct job *jp, int mode)
 	indent_col = col;
 
 	if (jp == curjob)
-		s[col - 2] = '+';
+		s[col - 3] = '+';
 	else if (curjob && jp == curjob->prev_job)
-		s[col - 2] = '-';
+		s[col - 3] = '-';
 
-	if (mode & SHOW_PID)
+	if (mode & SHOW_PIDS)
 		col += fmtstr(s + col, 16, "%d ", ps->pid);
 
 	psend = ps + jp->nprocs;
@@ -3963,25 +3962,32 @@ showjob(FILE *out, struct job *jp, int mode)
 			status = jp->stopstatus;
 		col += sprint_status(s + col, status, 0);
 	}
+	/* By now, "[JOBID]*  [maybe PID] STATUS" is printed */
 
+	/* This loop either prints "<cmd1> | <cmd2> | <cmd3>" line
+	 * or prints several "PID             | <cmdN>" lines,
+	 * depending on SHOW_PIDS bit.
+	 * We do not print status of individual processes
+	 * between PID and <cmdN>. bash does it, but not very well:
+	 * first line shows overall job status, not process status,
+	 * making it impossible to know 1st process status.
+	 */
 	goto start;
-
-	do {
+	while (1) {
 		/* for each process */
-		col = fmtstr(s, 48, " |\n%*c%d ", indent_col, ' ', ps->pid) - 3;
+		s[0] = '\0';
+		col = 33;
+		if (mode & SHOW_PIDS)
+			col = fmtstr(s, 48, "\n%*c%d ", indent_col, ' ', ps->pid) - 1;
  start:
-		fprintf(out, "%s%*c%s",
-			s, 33 - col >= 0 ? 33 - col : 0, ' ', ps->cmd
-		);
-		if (!(mode & SHOW_PID)) {
-			showpipe(jp, out);
+		fprintf(out, "%s%*c", s, 33 - col >= 0 ? 33 - col : 0, ' ');
+		if (ps != jp->ps)
+			fprintf(out, "| ");
+		fprintf(out, "%s", ps->cmd);
+		if (++ps == psend)
 			break;
-		}
-		if (++ps == psend) {
-			outcslow('\n', out);
-			break;
-		}
-	} while (1);
+	}
+	outcslow('\n', out);
 
 	jp->changed = 0;
 
@@ -4021,15 +4027,15 @@ jobscmd(int argc UNUSED_PARAM, char **argv)
 	mode = 0;
 	while ((m = nextopt("lp"))) {
 		if (m == 'l')
-			mode = SHOW_PID;
+			mode |= SHOW_PIDS;
 		else
-			mode = SHOW_PGID;
+			mode |= SHOW_ONLY_PGID;
 	}
 
 	argv = argptr;
 	if (*argv) {
 		do
-			showjob(stdout, getjob(*argv,0), mode);
+			showjob(stdout, getjob(*argv, 0), mode);
 		while (*++argv);
 	} else
 		showjobs(stdout, mode);
