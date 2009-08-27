@@ -645,7 +645,7 @@ static int busybox_main(char **argv)
 		dup2(1, 2);
 		full_write2_str(bb_banner); /* reuse const string... */
 		full_write2_str(" multi-call binary\n"
-		       "Copyright (C) 1998-2008 Erik Andersen, Rob Landley, Denys Vlasenko\n"
+		       "Copyright (C) 1998-2009 Erik Andersen, Rob Landley, Denys Vlasenko\n"
 		       "and others. Licensed under GPLv2.\n"
 		       "See source distribution for full notice.\n"
 		       "\n"
