@@ -2287,10 +2287,9 @@
        "	linux64		Set 64bit uname emulation" \
 
 #define ln_trivial_usage \
-       "[OPTIONS] TARGET... LINK_NAME|DIRECTORY"
+       "[OPTIONS] TARGET... LINK|DIRECTORY"
 #define ln_full_usage "\n\n" \
-       "Create a link named LINK_NAME or DIRECTORY to the specified TARGET.\n" \
-       "Use '--' to indicate that all following arguments are non-options.\n" \
+       "Create a link LINK or DIRECTORY/TARGET to the specified TARGET(s)\n" \
      "\nOptions:" \
      "\n	-s	Make symlinks instead of hardlinks" \
      "\n	-f	Remove existing destination files" \
@@ -3211,8 +3210,7 @@
 #define chpasswd_trivial_usage \
 	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
 #define chpasswd_full_usage "\n\n" \
-       "Read user:password information from stdin " \
-       "and update /etc/passwd accordingly.\n" \
+       "Read user:password from stdin and update /etc/passwd\n" \
      "\nOptions:" \
 	IF_LONG_OPTS( \
      "\n	-e,--encrypted	Supplied passwords are in encrypted form" \
@@ -3608,13 +3606,13 @@
 #define rmdir_full_usage "\n\n" \
        "Remove the DIRECTORY, if it is empty\n" \
      "\nOptions:" \
-     IF_FEATURE_RMDIR_LONG_OPTIONS( \
+	IF_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p|--parents	Include parents" \
-     "\n	-ignore-fail-on-non-empty" \
-     ) \
-     IF_NOT_FEATURE_RMDIR_LONG_OPTIONS( \
+     "\n	--ignore-fail-on-non-empty" \
+	) \
+	IF_NOT_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p	Include parents" \
-     )
+	)
 
 #define rmdir_example_usage \
        "# rmdir /tmp/foo\n"
