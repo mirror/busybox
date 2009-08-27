@@ -135,8 +135,7 @@
 #define basename_trivial_usage \
        "FILE [SUFFIX]"
 #define basename_full_usage "\n\n" \
-       "Strip directory path and suffixes from FILE.\n" \
-       "If specified, also remove any trailing SUFFIX."
+       "Strip directory path and .SUFFIX from FILE\n"
 #define basename_example_usage \
        "$ basename /usr/local/bin/foo\n" \
        "foo\n" \
@@ -171,7 +170,7 @@
 #define brctl_trivial_usage \
        "COMMAND [BRIDGE [INTERFACE]]"
 #define brctl_full_usage "\n\n" \
-       "Manage ethernet bridges.\n" \
+       "Manage ethernet bridges\n" \
      "\nCommands:" \
 	IF_FEATURE_BRCTL_SHOW( \
      "\n	show			Show a list of bridges" \
@@ -334,7 +333,7 @@
      "\n	-r,--role=ROLE		security context" \
      "\n	-t,--type=TYPE" \
      "\n	-l,--range=RANGE" \
-     "\n	-R,--recursive		Recurse subdirectories" \
+     "\n	-R,--recursive		Recurse" \
 	) \
 	IF_NOT_FEATURE_CHCON_LONG_OPTIONS( \
      "\n	-v	Verbose" \
@@ -345,7 +344,7 @@
      "\n	-r ROLE" \
      "\n	-t TYPE" \
      "\n	-l RNG" \
-     "\n	-R	Recurse subdirectories" \
+     "\n	-R	Recurse" \
 	)
 
 #define chmod_trivial_usage \
@@ -354,7 +353,7 @@
        "Each MODE is one or more of the letters ugoa, one of the\n" \
        "symbols +-= and one or more of the letters rwxst\n" \
      "\nOptions:" \
-     "\n	-R	Recurse directories" \
+     "\n	-R	Recurse" \
 	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	List all files" \
@@ -375,7 +374,7 @@
 #define chgrp_full_usage "\n\n" \
        "Change the group membership of each FILE to GROUP\n" \
      "\nOptions:" \
-     "\n	-R	Recurse directories" \
+     "\n	-R	Recurse" \
      "\n	-h	Affect symlinks instead of symlink targets" \
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
@@ -397,7 +396,7 @@
 #define chown_full_usage "\n\n" \
        "Change the owner and/or group of each FILE to OWNER and/or GROUP\n" \
      "\nOptions:" \
-     "\n	-R	Recurse directories" \
+     "\n	-R	Recurse" \
      "\n	-h	Affect symlinks instead of symlink targets" \
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
@@ -558,7 +557,7 @@
      "\n	-p	Preserve file attributes if possible" \
      "\n	-f	Force overwrite" \
      "\n	-i	Prompt before overwrite" \
-     "\n	-R,-r	Recurse directories" \
+     "\n	-R,-r	Recurse" \
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
@@ -1071,7 +1070,7 @@
 #define expand_trivial_usage \
        "[-i] [-t NUM] [FILE|-]"
 #define expand_full_usage "\n\n" \
-       "Convert tabs to spaces, writing to standard output.\n" \
+       "Convert tabs to spaces, writing to standard output\n" \
      "\nOptions:" \
 	IF_FEATURE_EXPAND_LONG_OPTIONS( \
      "\n	-i,--initial	Do not convert tabs after non blanks" \
@@ -1085,8 +1084,8 @@
 #define expr_trivial_usage \
        "EXPRESSION"
 #define expr_full_usage "\n\n" \
-       "Print the value of EXPRESSION to standard output.\n" \
-       "\n" \
+       "Print the value of EXPRESSION to standard output\n" \
+    "\n" \
        "EXPRESSION may be:\n" \
        "	ARG1 | ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
        "	ARG1 & ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
@@ -1126,7 +1125,7 @@
      "\n	-i	Inetd mode" \
      "\n	-w	Inetd 'wait' mode" \
      "\n	-b ADDR	Bind to specified address" \
-     "\n	STRING	Ident answer string (default is 'nobody')" \
+     "\n	STRING	Ident answer string (default: nobody)" \
 
 #define false_trivial_usage \
        ""
@@ -1409,7 +1408,7 @@
 #define getopt_trivial_usage \
        "[OPTIONS]"
 #define getopt_full_usage "\n\n" \
-       "Parse options\n" \
+       "Options:" \
 	IF_LONG_OPTS( \
      "\n	-a,--alternative		Allow long options starting with single -" \
      "\n	-l,--longoptions=longopts	Long options to be recognized" \
@@ -1488,7 +1487,7 @@
      "\nOptions:" \
      "\n	-H	Prefix output lines with filename where match was found" \
      "\n	-h	Suppress the prefixing filename on output" \
-     "\n	-r	Recurse subdirectories" \
+     "\n	-r	Recurse" \
      "\n	-i	Ignore case distinctions" \
      "\n	-l	List names of files that match" \
      "\n	-L	List names of files that do not match" \
@@ -2196,7 +2195,7 @@
        "[-a|k|s|u] [-C TTY]"
 #define kbd_mode_full_usage "\n\n" \
        "Report or set the keyboard mode\n" \
-     "\nOptions set mode:" \
+     "\nOptions:" \
      "\n	-a	Default (ASCII)" \
      "\n	-k	Medium-raw (keyboard)" \
      "\n	-s	Raw (scancode)" \
@@ -2206,7 +2205,7 @@
 #define kill_trivial_usage \
        "[-l] [-SIG] PID..."
 #define kill_full_usage "\n\n" \
-       "Send a signal (default is TERM) to given PIDs\n" \
+       "Send a signal (default: TERM) to given PIDs\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
 /*   "\n	-s SIG	Yet another way of specifying SIG" */ \
@@ -2224,7 +2223,7 @@
 #define killall_trivial_usage \
        "[-l] [-q] [-SIG] process-name..."
 #define killall_full_usage "\n\n" \
-       "Send a signal (default is TERM) to given processes\n" \
+       "Send a signal (default: TERM) to given processes\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
 /*   "\n	-s SIG	Yet another way of specifying SIG" */ \
@@ -2236,7 +2235,7 @@
 #define killall5_trivial_usage \
        "[-l] [-SIG] [-o PID]..."
 #define killall5_full_usage "\n\n" \
-       "Send a signal (default is TERM) to all processes outside current session\n" \
+       "Send a signal (default: TERM) to all processes outside current session\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
      "\n	-o PID	Do not signal this PID" \
@@ -2266,9 +2265,9 @@
        "changed, and files can be manipulated in various ways.\n" \
      "\nOptions:" \
      "\n	-E	Quit once the end of a file is reached" \
-     "\n	-M,-m	Display a status line containing the line numbers" \
+     "\n	-M,-m	Display status line with line numbers" \
      "\n		and percentage through the file" \
-     "\n	-N	Prefix line numbers to each line" \
+     "\n	-N	Prefix line number to each line" \
      "\n	-I	Ignore case in all searches" \
      "\n	-~	Suppress ~s displayed past the end of the file" \
 
@@ -2548,7 +2547,7 @@
 #define makemime_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define makemime_full_usage "\n\n" \
-       "Create multipart MIME-encoded message from FILEs.\n" \
+       "Create multipart MIME-encoded message from FILEs\n" \
 /*     "Transfer encoding is base64, disposition is inline (not attachment)\n" */ \
      "\nOptions:" \
      "\n	-o FILE	Output. Default: stdout" \
@@ -2603,7 +2602,7 @@
        "[OPTIONS] [FILE]..." \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTIONS] -c [FILE]")
 #define sha1sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
@@ -2615,7 +2614,7 @@
        "[OPTIONS] [FILE]..." \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum [OPTIONS] -c [FILE]")
 #define sha256sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA256 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
@@ -2627,7 +2626,7 @@
        "[OPTIONS] [FILE]..." \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum [OPTIONS] -c [FILE]")
 #define sha512sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums." \
+       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA512 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
      "\nOptions:" \
      "\n	-c	Check sums against given list" \
@@ -2692,8 +2691,8 @@
 #define mkdir_full_usage "\n\n" \
        "Create DIRECTORY\n" \
      "\nOptions:" \
-     "\n	-m	Set permission mode (as in chmod), not rwxrwxrwx - umask" \
-     "\n	-p	No error if existing, make parent directories as needed" \
+     "\n	-m	Mode" \
+     "\n	-p	No error if exists; make parent directories as needed" \
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
@@ -2912,7 +2911,7 @@
 #define mount_trivial_usage \
        "[flags] DEVICE NODE [-o OPT,OPT]"
 #define mount_full_usage "\n\n" \
-       "Mount a filesystem. Filesystem autodetection requires /proc be mounted.\n" \
+       "Mount a filesystem. Filesystem autodetection requires /proc.\n" \
      "\nOptions:" \
      "\n	-a		Mount all filesystems in fstab" \
 	IF_FEATURE_MOUNT_FAKE( \
@@ -3014,7 +3013,7 @@
 #define nameif_full_usage "\n\n" \
        "Rename network interface while it in the down state\n" \
      "\nOptions:" \
-     "\n	-c FILE		Use configuration file (default is /etc/mactab)" \
+     "\n	-c FILE		Use configuration file (default: /etc/mactab)" \
      "\n	-s		Use syslog (LOCAL0 facility)" \
      "\n	IFNAME MACADDR	new_interface_name interface_mac_address" \
 
@@ -3368,11 +3367,11 @@
      "\n	-s		Skip authorization" \
      "\n	-T		Get messages with TOP instead with RETR" \
      "\n	-k		Keep retrieved messages on the server" \
-     "\n	-t timeout	Set network timeout" \
-     IF_FEATURE_POPMAILDIR_DELIVERY( \
+     "\n	-t timeout	Network timeout" \
+	IF_FEATURE_POPMAILDIR_DELIVERY( \
      "\n	-F \"program arg1 arg2 ...\"	Filter by program. May be multiple" \
      "\n	-M \"program arg1 arg2 ...\"	Deliver by program" \
-     ) \
+	) \
      "\n	-R size		Remove old messages on the server >= size (in bytes). Ignored" \
      "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" \
      "\n	-L size		Do not retrieve new messages >= size (in bytes). Ignored" \
@@ -3391,7 +3390,7 @@
      "\n	-f	Force power off (don't go through init)" \
 
 #define printenv_trivial_usage \
-       "[VARIABLES...]"
+       "[VARIABLE...]"
 #define printenv_full_usage "\n\n" \
        "Print all or part of environment.\n" \
        "If no environment VARIABLE specified, print them all."
@@ -3582,7 +3581,7 @@
      "\n	-i		Ignore files that do not exist" \
      "\n	-f file		File with list of files to process. Use - for stdin" \
      "\n	-e directory	Directory to exclude" \
-     "\n	-R,-r		Recurse directories" \
+     "\n	-R,-r		Recurse" \
      "\n	-n		Don't change any file labels" \
      "\n	-o file		Save list of files with incorrect context" \
      "\n	-v		Verbose" \
@@ -3607,7 +3606,7 @@
 #define rmdir_trivial_usage \
        "[OPTIONS] DIRECTORY..."
 #define rmdir_full_usage "\n\n" \
-       "Remove the DIRECTORY, if it is empty.\n" \
+       "Remove the DIRECTORY, if it is empty\n" \
      "\nOptions:" \
      IF_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p|--parents	Include parents" \
@@ -3732,7 +3731,8 @@
 #define runlevel_trivial_usage \
        "[utmp]"
 #define runlevel_full_usage "\n\n" \
-       "Find the current and previous system runlevel.\n\n" \
+       "Find the current and previous system runlevel\n" \
+       "\n" \
        "If no utmp file exists or if no runlevel record can be found,\n" \
        "print \"unknown\""
 #define runlevel_example_usage \
@@ -4206,8 +4206,8 @@
 #define svlogd_trivial_usage \
        "[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."
 #define svlogd_full_usage "\n\n" \
-       "Continuously read log data from standard input, optionally " \
-       "filter log messages, and write the data to one or more automatically " \
+       "Continuously read log data from standard input, optionally\n" \
+       "filter log messages, and write the data to one or more automatically\n" \
        "rotated logs" \
 
 #define swapoff_trivial_usage \
@@ -4525,7 +4525,7 @@
 #define tftpd_trivial_usage \
        "[-cr] [-u USER] [DIR]"
 #define tftpd_full_usage "\n\n" \
-       "Transfer a file on tftp client's request.\n" \
+       "Transfer a file on tftp client's request\n" \
        "\n" \
        "tftpd should be used as an inetd service.\n" \
        "tftpd's line for inetd.conf:\n" \
@@ -4602,7 +4602,7 @@
      "\n	-v	Verbose" \
      "\n	-m max_ttl	Max time-to-live (max number of hops)" \
      "\n	-p port#	Base UDP port number used in probes" \
-     "\n			(default is 33434)" \
+     "\n			(default 33434)" \
      "\n	-q nqueries	Number of probes per 'ttl' (default 3)" \
      "\n	-s src_addr	IP address to use as the source address" \
      "\n	-t tos		Type-of-service in probe packets (default 0)" \
@@ -4639,7 +4639,7 @@
 #define tunctl_trivial_usage \
        "[-f device] ([-t name] | -d name)" IF_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
 #define tunctl_full_usage "\n\n" \
-       "Create or delete tun interfaces" \
+       "Create or delete tun interfaces\n" \
      "\nOptions:" \
      "\n	-f name		tun device (/dev/net/tun)" \
      "\n	-t name		Create iface 'name'" \
@@ -4761,7 +4761,7 @@ IF_FEATURE_TUNCTL_UG( \
 #define uname_trivial_usage \
        "[-amnrspv]"
 #define uname_full_usage "\n\n" \
-       "Print system information.\n" \
+       "Print system information\n" \
      "\nOptions:" \
      "\n	-a	Print all" \
      "\n	-m	The machine (hardware) type" \
@@ -4786,7 +4786,7 @@ IF_FEATURE_TUNCTL_UG( \
 #define unexpand_trivial_usage \
        "[-f][-a][-t NUM] [FILE|-]"
 #define unexpand_full_usage "\n\n" \
-       "Convert spaces to tabs, writing to standard output.\n" \
+       "Convert spaces to tabs, writing to standard output\n" \
      "\nOptions:" \
 	IF_FEATURE_UNEXPAND_LONG_OPTIONS( \
      "\n	-a,--all	Convert all blanks" \
