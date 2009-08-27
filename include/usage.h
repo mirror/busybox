@@ -148,7 +148,7 @@
 #define beep_trivial_usage \
        "-f freq -l length -d delay -r repetitions -n"
 #define beep_full_usage "\n\n" \
-	"Options:\n" \
+       "Options:" \
      "\n	-f	Frequency in Hz" \
      "\n	-l	Length in ms" \
      "\n	-d	Delay in ms" \
@@ -158,7 +158,7 @@
 #define fbsplash_trivial_usage \
        "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
 #define fbsplash_full_usage "\n\n" \
-       "Options:\n" \
+       "Options:" \
      "\n	-s	Image" \
      "\n	-c	Hide cursor" \
      "\n	-d	Framebuffer device (default /dev/fb0)" \
@@ -1799,8 +1799,8 @@
 #define ifplugd_trivial_usage \
        "[OPTIONS]"
 #define ifplugd_full_usage "\n\n" \
-       "Network interface plug detection daemon.\n\n" \
-       "Options:\n" \
+       "Network interface plug detection daemon\n" \
+     "\nOptions:" \
      "\n	-n		Do not daemonize" \
      "\n	-s		Do not log to syslog" \
      "\n	-i IFACE	Interface" \
