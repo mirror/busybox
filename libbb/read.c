@@ -336,7 +336,7 @@ int FAST_FUNC open_zipped(const char *fname)
 		 || (ENABLE_FEATURE_SEAMLESS_BZ2 && strcmp(sfx, ".bz2") == 0)
 		) {
 			/* .gz and .bz2 both have 2-byte signature, and their
-			 * unpack_XXX_stream want this header skipped. */
+			 * unpack_XXX_stream wants this header skipped. */
 			xread(fd, &magic, 2);
 #if ENABLE_FEATURE_SEAMLESS_GZ
 #if BB_MMU
