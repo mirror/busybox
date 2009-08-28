@@ -60,8 +60,8 @@ typedef struct archive_handle_t {
 	/* Count the number of bytes processed */
 	off_t offset;
 
-	/* Function that skips data: read_by_char or read_by_skip */
-	void FAST_FUNC (*seek)(const struct archive_handle_t *archive_handle, const unsigned amount);
+	/* Function that skips data */
+	void FAST_FUNC (*seek)(int fd, off_t amount);
 
 	/* Temporary storage */
 	char *buffer;
@@ -107,8 +107,8 @@ extern char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_tar_bz2(archive_handle_t *archive_handle) FAST_FUNC;
 extern char get_header_tar_lzma(archive_handle_t *archive_handle) FAST_FUNC;
 
-extern void seek_by_jump(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
-extern void seek_by_read(const archive_handle_t *archive_handle, unsigned amount) FAST_FUNC;
+extern void seek_by_jump(int fd, off_t amount) FAST_FUNC;
+extern void seek_by_read(int fd, off_t amount) FAST_FUNC;
 
 extern void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;

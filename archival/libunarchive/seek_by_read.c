@@ -9,8 +9,8 @@
 /*  If we are reading through a pipe, or from stdin then we can't lseek,
  *  we must read and discard the data to skip over it.
  */
-void FAST_FUNC seek_by_read(const archive_handle_t *archive_handle, unsigned jump_size)
+void FAST_FUNC seek_by_read(int fd, off_t amount)
 {
-	if (jump_size)
-		bb_copyfd_exact_size(archive_handle->src_fd, -1, jump_size);
+	if (amount)
+		bb_copyfd_exact_size(fd, -1, amount);
 }

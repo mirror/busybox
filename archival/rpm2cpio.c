@@ -33,9 +33,10 @@ struct rpm_header {
 	uint32_t size; /* Size of store (4 bytes) */
 };
 
-static off_t skip_header(int rpm_fd)
+static unsigned skip_header(int rpm_fd)
 {
 	struct rpm_header header;
+	unsigned len;
 
 	xread(rpm_fd, &header, sizeof(header));
 //	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC_STR, 3) != 0) {
@@ -48,10 +49,12 @@ static off_t skip_header(int rpm_fd)
 		bb_error_msg_and_die("invalid RPM header magic or unsupported version");
 		// ": %x != %x", header.magic_and_ver, htonl(RPM_HEADER_VERnMAGIC));
 	}
-	/* Seek past index entries */
-	lseek(rpm_fd, 16 * ntohl(header.entries), SEEK_CUR);
-	/* Seek past store */
-	return lseek(rpm_fd, ntohl(header.size), SEEK_CUR);
+
+	/* Seek past index entries, and past store */
+	len = 16 * ntohl(header.entries) + ntohl(header.size);
+	seek_by_jump(rpm_fd, len);
+
+	return sizeof(header) + len;
 }
 
 /* No getopt required */
@@ -60,7 +63,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct rpm_lead lead;
 	int rpm_fd;
-	off_t pos;
+	unsigned pos;
 	unsigned char magic[2];
 	IF_DESKTOP(long long) int FAST_FUNC (*unpack)(int src_fd, int dst_fd);
 
@@ -78,7 +81,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Skip the signature header, align to 8 bytes */
 	pos = skip_header(rpm_fd);
-	lseek(rpm_fd, (8 - (unsigned)pos) & 7, SEEK_CUR);
+	seek_by_jump(rpm_fd, (8 - pos) & 7);
 
 	/* Skip the main header */
 	skip_header(rpm_fd);
