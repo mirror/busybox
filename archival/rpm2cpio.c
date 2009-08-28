@@ -23,7 +23,7 @@ struct rpm_lead {
 	char reserved[16];
 };
 
-#define RPM_HEADER_VERnMAGIC 0x8eade801
+#define RPM_HEADER_MAGICnVER 0x8eade801
 #define RPM_HEADER_MAGIC_STR "\216\255\350"
 
 struct rpm_header {
@@ -33,7 +33,9 @@ struct rpm_header {
 	uint32_t size; /* Size of store (4 bytes) */
 };
 
-static unsigned skip_header(int rpm_fd)
+enum { rpm_fd = STDIN_FILENO };
+
+static unsigned skip_header(void)
 {
 	struct rpm_header header;
 	unsigned len;
@@ -45,9 +47,9 @@ static unsigned skip_header(int rpm_fd)
 //	if (header.version != 1) {
 //		bb_error_msg_and_die("unsupported RPM header version");
 //	}
-	if (header.magic_and_ver != htonl(RPM_HEADER_VERnMAGIC)) {
+	if (header.magic_and_ver != htonl(RPM_HEADER_MAGICnVER)) {
 		bb_error_msg_and_die("invalid RPM header magic or unsupported version");
-		// ": %x != %x", header.magic_and_ver, htonl(RPM_HEADER_VERnMAGIC));
+		// ": %x != %x", header.magic_and_ver, htonl(RPM_HEADER_MAGICnVER));
 	}
 
 	/* Seek past index entries, and past store */
@@ -62,15 +64,12 @@ int rpm2cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct rpm_lead lead;
-	int rpm_fd;
 	unsigned pos;
 	unsigned char magic[2];
 	IF_DESKTOP(long long) int FAST_FUNC (*unpack)(int src_fd, int dst_fd);
 
-	if (!argv[1]) {
-		rpm_fd = STDIN_FILENO;
-	} else {
-		rpm_fd = xopen(argv[1], O_RDONLY);
+	if (argv[1]) {
+		xmove_fd(xopen(argv[1], O_RDONLY), rpm_fd);
 	}
 	xread(rpm_fd, &lead, sizeof(lead));
 
@@ -80,11 +79,11 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* Skip the signature header, align to 8 bytes */
-	pos = skip_header(rpm_fd);
+	pos = skip_header();
 	seek_by_jump(rpm_fd, (8 - pos) & 7);
 
 	/* Skip the main header */
-	skip_header(rpm_fd);
+	skip_header();
 
 	xread(rpm_fd, &magic, 2);
 	unpack = unpack_gz_stream;
