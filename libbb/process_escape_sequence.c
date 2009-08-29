@@ -45,6 +45,9 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 	}
 #endif
 
+	/* bash requires leading 0 in octal escapes:
+	 * \02 works, \2 does not (prints \ and 2).
+	 * We treat \2 as a valid octal escape sequence. */
 	do {
 		d = (unsigned char)(*q) - '0';
 #ifdef WANT_HEX_ESCAPES
@@ -80,7 +83,10 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 				break;
 			}
 		} while (*++p);
-		n = *(p + (sizeof(charmap)/2));
+		/* p points to found escape char or NUL,
+		 * advance it and find what it translates to */
+		p += sizeof(charmap) / 2;
+		n = *p;
 	}
 
 	*ptr = q;
