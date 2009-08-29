@@ -132,7 +132,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 #endif
 			lchown(file_header->name, file_header->uid, file_header->gid);
 	}
-	if (S_ISLNK(file_header->mode)) {
+	if (!S_ISLNK(file_header->mode)) {
 		/* uclibc has no lchmod, glibc is even stranger -
 		 * it has lchmod which seems to do nothing!
 		 * so we use chmod... */
