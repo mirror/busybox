@@ -461,15 +461,15 @@ out2str(const char *p)
 /* ============ Parser structures */
 
 /* control characters in argument strings */
-#define CTLESC '\201'           /* escape next character */
-#define CTLVAR '\202'           /* variable defn */
-#define CTLENDVAR '\203'
-#define CTLBACKQ '\204'
+#define CTLESC       ((unsigned char)'\201')    /* escape next character */
+#define CTLVAR       ((unsigned char)'\202')    /* variable defn */
+#define CTLENDVAR    ((unsigned char)'\203')
+#define CTLBACKQ     ((unsigned char)'\204')
 #define CTLQUOTE 01             /* ored with CTLBACKQ code if in quotes */
 /*      CTLBACKQ | CTLQUOTE == '\205' */
-#define CTLARI  '\206'          /* arithmetic expression */
-#define CTLENDARI '\207'
-#define CTLQUOTEMARK '\210'
+#define CTLARI       ((unsigned char)'\206')    /* arithmetic expression */
+#define CTLENDARI    ((unsigned char)'\207')
+#define CTLQUOTEMARK ((unsigned char)'\210')
 
 /* variable substitution byte (follows CTLVAR) */
 #define VSTYPE  0x0f            /* type of variable substitution */
@@ -5379,7 +5379,7 @@ esclen(const char *start, const char *p)
  * Remove any CTLESC characters from a string.
  */
 static char *
-_rmescapes(char *str, int flag)
+rmescapes(char *str, int flag)
 {
 	static const char qchars[] ALIGN1 = { CTLESC, CTLQUOTEMARK, '\0' };
 
@@ -5442,8 +5442,6 @@ _rmescapes(char *str, int flag)
 	}
 	return r;
 }
-#define rmescapes(p) _rmescapes((p), 0)
-
 #define pmatch(a, b) !fnmatch((a), (b), 0)
 
 /*
@@ -5458,7 +5456,7 @@ preglob(const char *pattern, int quoted, int flag)
 	if (quoted) {
 		flag |= RMESCAPE_QUOTED;
 	}
-	return _rmescapes((char *)pattern, flag);
+	return rmescapes((char *)pattern, flag);
 }
 
 /*
@@ -5469,14 +5467,17 @@ memtodest(const char *p, size_t len, int syntax, int quotes)
 {
 	char *q = expdest;
 
-	q = makestrspace(len * 2, q);
+	q = makestrspace(quotes ? len * 2 : len, q);
 
 	while (len--) {
 		int c = signed_char2int(*p++);
 		if (!c)
 			continue;
-		if (quotes && (SIT(c, syntax) == CCTL || SIT(c, syntax) == CBACK))
-			USTPUTC(CTLESC, q);
+		if (quotes) {
+			int n = SIT(c, syntax);
+			if (n == CCTL || n == CBACK)
+				USTPUTC(CTLESC, q);
+		}
 		USTPUTC(c, q);
 	}
 
@@ -5776,7 +5777,7 @@ expari(int quotes)
 	expdest = p;
 
 	if (quotes)
-		rmescapes(p + 2);
+		rmescapes(p + 2, 0);
 
 	len = cvtnum(ash_arith(p + 2));
 
@@ -6196,7 +6197,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	rmesc = startp;
 	rmescend = (char *)stackblock() + strloc;
 	if (quotes) {
-		rmesc = _rmescapes(startp, RMESCAPE_ALLOC | RMESCAPE_GROW);
+		rmesc = rmescapes(startp, RMESCAPE_ALLOC | RMESCAPE_GROW);
 		if (rmesc != startp) {
 			rmescend = expdest;
 			startp = (char *)stackblock() + startloc;
@@ -6939,7 +6940,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 			 */
  nometa:
 			*exparg.lastp = str;
-			rmescapes(str->text);
+			rmescapes(str->text, 0);
 			exparg.lastp = &str->next;
 		} else {
 			*exparg.lastp = NULL;
@@ -6987,7 +6988,7 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 		expandmeta(exparg.list /*, flag*/);
 	} else {
 		if (flag & EXP_REDIR) /*XXX - for now, just remove escapes */
-			rmescapes(p);
+			rmescapes(p, 0);
 		sp = stzalloc(sizeof(*sp));
 		sp->text = p;
 		*exparg.lastp = sp;
@@ -10412,7 +10413,7 @@ parsefname(void)
 		TRACE(("Here document %d\n", n->type));
 		if (!noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
 			raise_error_syntax("illegal eof marker for << redirection");
-		rmescapes(wordtext);
+		rmescapes(wordtext, 0);
 		here->eofmark = wordtext;
 		here->next = NULL;
 		if (heredoclist == NULL)
