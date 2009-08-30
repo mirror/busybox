@@ -115,7 +115,10 @@ static void get_dest_addr(const char *hostid, struct ether_addr *eaddr)
 	if (eap) {
 		*eaddr = *eap;
 		bb_debug_msg("The target station address is %s\n\n", ether_ntoa(eaddr));
-#if !defined(__UCLIBC__)
+#if !defined(__UCLIBC_MAJOR__) \
+ || __UCLIBC_MAJOR__ > 0 \
+ || __UCLIBC_MINOR__ > 9 \
+ || (__UCLIBC_MINOR__ == 9 && __UCLIBC_SUBLEVEL__ >= 30)
 	} else if (ether_hostton(hostid, eaddr) == 0) {
 		bb_debug_msg("Station address for hostname %s is %s\n\n", hostid, ether_ntoa(eaddr));
 #endif
