@@ -6400,7 +6400,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	case '7':
 	case '8':
 	case '9':
-		num = number(name);
+		num = atoi(name); /* number(name) fails on ${var#str} etc */
 		if (num < 0 || num > shellparam.nparam)
 			return -1;
 		p = num ? shellparam.p[num - 1] : arg0;
