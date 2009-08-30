@@ -12,23 +12,23 @@
 
 #include "libbb.h"
 
-static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
+static void xgetoptfile_uniq_s(const char *n, int fd)
 {
-	const char *n;
-
-	n = *argv;
-	if (n != NULL) {
-		if ((n[0] != '-') || n[1]) {
-			return xfopen(n, "r\0w" + read0write2);
-		}
-	}
-	return (read0write2) ? stdout : stdin;
+	if (n == NULL)
+		return;
+	if ((n[0] == '-') && !n[1])
+		return;
+	/* close(fd); - optimization */
+	xmove_fd(
+		xopen3(n,
+			(fd == STDIN_FILENO) ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC),
+			0666),
+		fd);
 }
 
 int uniq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uniq_main(int argc UNUSED_PARAM, char **argv)
 {
-	FILE *in, *out;
 	const char *input_filename;
 	unsigned skip_fields, skip_chars, max_chars;
 	unsigned opt;
@@ -53,11 +53,11 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 
 	input_filename = *argv;
 
-	in = xgetoptfile_uniq_s(argv, 0);
+	xgetoptfile_uniq_s(*argv, STDIN_FILENO);
 	if (*argv) {
 		++argv;
 	}
-	out = xgetoptfile_uniq_s(argv, 2);
+	xgetoptfile_uniq_s(*argv, STDOUT_FILENO);
 	if (*argv && argv[1]) {
 		bb_show_usage();
 	}
@@ -75,7 +75,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 		dups = 0;
 
 		/* gnu uniq ignores newlines */
-		while ((cur_line = xmalloc_fgetline(in)) != NULL) {
+		while ((cur_line = xmalloc_fgetline(stdin)) != NULL) {
 			cur_compare = cur_line;
 			for (i = skip_fields; i; i--) {
 				cur_compare = skip_whitespace(cur_compare);
@@ -95,14 +95,14 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 
 		if (old_line) {
 			if (!(opt & (OPT_d << !!dups))) { /* (if dups, opt & OPT_u) */
-				fprintf(out, "\0%lu " + (opt & 1), dups + 1); /* 1 == OPT_c */
-				fprintf(out, "%s\n", old_line);
+				printf("\0%lu " + (opt & 1), dups + 1); /* 1 == OPT_c */
+				printf("%s\n", old_line);
 			}
 			free(old_line);
 		}
 	} while (cur_line);
 
-	die_if_ferror(in, input_filename);
+	die_if_ferror(stdin, input_filename);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
