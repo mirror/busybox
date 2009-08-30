@@ -89,6 +89,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			}
 
+			free(cur_line);
 			++dups;	 /* testing for overflow seems excessive */
 		}
 
