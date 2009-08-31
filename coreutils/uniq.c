@@ -12,20 +12,6 @@
 
 #include "libbb.h"
 
-static void xgetoptfile_uniq_s(const char *n, int fd)
-{
-	if (n == NULL)
-		return;
-	if ((n[0] == '-') && !n[1])
-		return;
-	/* close(fd); - optimization */
-	xmove_fd(
-		xopen3(n,
-			(fd == STDIN_FILENO) ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC),
-			0666),
-		fd);
-}
-
 int uniq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uniq_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -51,15 +37,25 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "cduf:s:w:", &skip_fields, &skip_chars, &max_chars);
 	argv += optind;
 
-	input_filename = *argv;
+	input_filename = argv[0];
+	if (input_filename) {
+		const char *output;
 
-	xgetoptfile_uniq_s(*argv, STDIN_FILENO);
-	if (*argv) {
-		++argv;
-	}
-	xgetoptfile_uniq_s(*argv, STDOUT_FILENO);
-	if (*argv && argv[1]) {
-		bb_show_usage();
+		if (input_filename[0] != '-' || input_filename[1]) {
+			close(STDIN_FILENO); /* == 0 */
+			xopen(input_filename, O_RDONLY); /* fd will be 0 */
+		}
+		output = argv[1];
+		if (output) {
+			if (argv[2])
+				bb_show_usage();
+			if (output[0] != '-' || output[1]) {
+				// Won't work with "uniq - FILE" and closed stdin:
+				//close(STDOUT_FILENO);
+				//xopen3(output, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+				xmove_fd(xopen3(output, O_WRONLY | O_CREAT | O_TRUNC, 0666), STDOUT_FILENO);
+			}
+		}
 	}
 
 	cur_compare = cur_line = NULL; /* prime the pump */
@@ -95,7 +91,10 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 
 		if (old_line) {
 			if (!(opt & (OPT_d << !!dups))) { /* (if dups, opt & OPT_u) */
-				printf("\0%lu " + (opt & 1), dups + 1); /* 1 == OPT_c */
+				if (opt & OPT_c) {
+					/* %7lu matches GNU coreutils 6.9 */
+					printf("%7lu ", dups + 1);
+				}
 				printf("%s\n", old_line);
 			}
 			free(old_line);
