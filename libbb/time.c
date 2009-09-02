@@ -66,7 +66,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *tm_time)
 		 * dd   Day, a number from 1 to 31
 		 * HH   Hour, a number from 0 to 23
 		 * MM   Minutes, a number from 0 to 59
-		 * ss   Seconds, a number from 0 to 61 (with leap seconds)
+		 * .SS  Seconds, a number from 0 to 61 (with leap seconds)
 		 * Everything but the minutes is optional
 		 *
 		 * This coincides with the format of "touch -t TIME"
@@ -112,7 +112,7 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *tm_time)
 			/* Adjust month from 1-12 to 0-11 */
 			tm_time->tm_mon -= 1;
 		} else
-		/* yyyymmddHHMM[.SS] */
+		/* ccyymmddHHMM[.SS] */
 		if (len == 12 && sscanf(date_str, "%4u%2u%2u%2u%2u%c",
 					&tm_time->tm_year,
 					&tm_time->tm_mon,
