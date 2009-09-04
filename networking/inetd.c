@@ -1031,10 +1031,10 @@ static void reap_child(int sig UNUSED_PARAM)
 				continue;
 			/* One of our "wait" services */
 			if (WIFEXITED(status) && WEXITSTATUS(status))
-				bb_error_msg("%s: exit status 0x%x",
+				bb_error_msg("%s: exit status %u",
 						sep->se_program, WEXITSTATUS(status));
 			else if (WIFSIGNALED(status))
-				bb_error_msg("%s: exit signal 0x%x",
+				bb_error_msg("%s: exit signal %u",
 						sep->se_program, WTERMSIG(status));
 			sep->se_wait = 1;
 			add_fd_to_set(sep->se_fd);
@@ -1119,7 +1119,12 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	else
 		bb_sanitize_stdio();
 	if (!(opt & 4)) {
-		openlog(applet_name, LOG_PID, LOG_DAEMON);
+		/* LOG_NDELAY: connect to syslog daemon NOW.
+		 * Otherwise, we may open syslog socket
+		 * in vforked child, making opened fds and syslog()
+		 * internal state inconsistent.
+		 * This was observed to leak file descriptors. */
+		openlog(applet_name, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
 
@@ -1355,17 +1360,23 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			if (rlim_ofile.rlim_cur != rlim_ofile_cur)
 				if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
 					bb_perror_msg("setrlimit");
-			closelog();
+
+			/*closelog(); - BAD, we are after vfork,
+			 * this may confuse syslog() state.
+			 * Let's hope libc set syslog fd to CLOEXEC...
+			 */
 			xmove_fd(ctrl, STDIN_FILENO);
 			xdup2(STDIN_FILENO, STDOUT_FILENO);
 			/* manpages of inetd I managed to find either say
 			 * that stderr is also redirected to the network,
 			 * or do not talk about redirection at all (!) */
-			xdup2(STDIN_FILENO, STDERR_FILENO);
-			/* NB: among others, this loop closes listening socket
+			if (!sep->se_wait) /* only for usual "tcp nowait" */
+				xdup2(STDIN_FILENO, STDERR_FILENO);
+			/* NB: among others, this loop closes listening sockets
 			 * for nowait stream children */
 			for (sep2 = serv_list; sep2; sep2 = sep2->se_next)
-				maybe_close(sep2->se_fd);
+				if (sep2->se_fd != ctrl)
+					maybe_close(sep2->se_fd);
 			sigaction_set(SIGPIPE, &saved_pipe_handler);
 			restore_sigmask(&omask);
 			BB_EXECVP(sep->se_program, sep->se_argv);
