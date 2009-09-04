@@ -1361,9 +1361,9 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 				if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
 					bb_perror_msg("setrlimit");
 
-			/*closelog(); - BAD, we are after vfork,
-			 * this may confuse syslog() state.
-			 * Let's hope libc set syslog fd to CLOEXEC...
+			/* closelog(); - WRONG. we are after vfork,
+			 * this may confuse syslog() internal state.
+			 * Let's hope libc sets syslog fd to CLOEXEC...
 			 */
 			xmove_fd(ctrl, STDIN_FILENO);
 			xdup2(STDIN_FILENO, STDOUT_FILENO);
