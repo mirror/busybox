@@ -211,8 +211,10 @@ static size_t iac_safe_write(int fd, const char *buf, size_t count)
 enum {
 	OPT_WATCHCHILD = (1 << 2), /* -K */
 	OPT_INETD      = (1 << 3) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -i */
-	OPT_PORT       = (1 << 4) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p */
+	OPT_PORT       = (1 << 4) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -p PORT */
 	OPT_FOREGROUND = (1 << 6) * ENABLE_FEATURE_TELNETD_STANDALONE, /* -F */
+	OPT_SYSLOG     = (1 << 7) * ENABLE_FEATURE_TELNETD_INETD_WAIT, /* -S */
+	OPT_WAIT       = (1 << 8) * ENABLE_FEATURE_TELNETD_INETD_WAIT, /* -w SEC */
 };
 
 static struct tsession *
@@ -438,24 +440,29 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 	struct tsession *ts;
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 #define IS_INETD (opt & OPT_INETD)
-	int master_fd = master_fd; /* be happy, gcc */
-	unsigned portnbr = 23;
+	int master_fd = master_fd; /* for compiler */
+	int sec_linger = sec_linger;
 	char *opt_bindaddr = NULL;
 	char *opt_portnbr;
 #else
 	enum {
 		IS_INETD = 1,
 		master_fd = -1,
-		portnbr = 23,
 	};
 #endif
 	INIT_G();
 
+	/* -w NUM, and implies -F. -w and -i don't mix */
+	IF_FEATURE_TELNETD_INETD_WAIT(opt_complementary = "wF:w+:i--w:w--i";)
 	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
 	 * don't need to guess whether it's ok to pass -i to us */
-	opt = getopt32(argv, "f:l:Ki" IF_FEATURE_TELNETD_STANDALONE("p:b:F"),
+	opt = getopt32(argv, "f:l:Ki"
+			IF_FEATURE_TELNETD_STANDALONE("p:b:F")
+			IF_FEATURE_TELNETD_INETD_WAIT("Sw:"),
 			&G.issuefile, &G.loginpath
-			IF_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr));
+			IF_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr)
+			IF_FEATURE_TELNETD_INETD_WAIT(, &sec_linger)
+	);
 	if (!IS_INETD /*&& !re_execed*/) {
 		/* inform that we start in standalone mode?
 		 * May be useful when people forget to give -i */
@@ -467,32 +474,30 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	/* Redirect log to syslog early, if needed */
-	if (IS_INETD || !(opt & OPT_FOREGROUND)) {
+	if (IS_INETD || (opt & OPT_SYSLOG) || !(opt & OPT_FOREGROUND)) {
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
-	IF_FEATURE_TELNETD_STANDALONE(
-		if (opt & OPT_PORT)
-			portnbr = xatou16(opt_portnbr);
-	);
-
-	/* Used to check access(G.loginpath, X_OK) here. Pointless.
-	 * exec will do this for us for free later. */
-
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	if (IS_INETD) {
 		G.sessions = make_new_session(0);
 		if (!G.sessions) /* pty opening or vfork problem, exit */
-			return 1; /* make_new_session prints error message */
+			return 1; /* make_new_session printed error message */
 	} else {
-		master_fd = create_and_bind_stream_or_die(opt_bindaddr, portnbr);
-		xlisten(master_fd, 1);
+		master_fd = 0;
+		if (!(opt & OPT_WAIT)) {
+			unsigned portnbr = 23;
+			if (opt & OPT_PORT)
+				portnbr = xatou16(opt_portnbr);
+			master_fd = create_and_bind_stream_or_die(opt_bindaddr, portnbr);
+			xlisten(master_fd, 1);
+		}
 		close_on_exec_on(master_fd);
 	}
 #else
 	G.sessions = make_new_session();
 	if (!G.sessions) /* pty opening or vfork problem, exit */
-		return 1; /* make_new_session prints error message */
+		return 1; /* make_new_session printed error message */
 #endif
 
 	/* We don't want to die if just one session is broken */
@@ -556,7 +561,18 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 			G.maxfd = master_fd;
 	}
 
-	count = select(G.maxfd + 1, &rdfdset, &wrfdset, NULL, NULL);
+	{
+		struct timeval tv;
+		struct timeval *tv_ptr = NULL;
+		if ((opt & OPT_WAIT) && !G.sessions) {
+			tv.tv_sec = sec_linger;
+			tv.tv_usec = 0;
+			tv_ptr = &tv;
+		}
+		count = select(G.maxfd + 1, &rdfdset, &wrfdset, NULL, tv_ptr);
+	}
+	if (count == 0) /* "telnetd -w SEC" timed out */
+		return 0;
 	if (count < 0)
 		goto again; /* EINTR or ENOMEM */
 

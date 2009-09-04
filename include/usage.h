@@ -1468,11 +1468,11 @@
      "\n	-m		Get baud rate from modem's CONNECT status message" \
      "\n	-w		Wait for a CR or LF before sending /etc/issue" \
      "\n	-n		Do not prompt the user for a login name" \
-     "\n	-f issue_file	Display issue_file instead of /etc/issue" \
-     "\n	-l login_app	Invoke login_app instead of /bin/login" \
-     "\n	-t timeout	Terminate after timeout if no username is read" \
-     "\n	-I initstring	Init string to send before anything else" \
-     "\n	-H login_host	Log login_host into the utmp file as the hostname" \
+     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue" \
+     "\n	-l LOGIN	Invoke LOGIN instead of /bin/login" \
+     "\n	-t SEC		Terminate after SEC if no username is read" \
+     "\n	-I INITSTR	Send INITSTR before anything else" \
+     "\n	-H HOST		Log HOST into the utmp file as the hostname" \
 
 #define grep_trivial_usage \
        "[-HhrilLnqvso" \
@@ -4415,14 +4415,18 @@
 	IF_NOT_FEATURE_TELNETD_STANDALONE(" via inetd") "\n" \
      "\nOptions:" \
      "\n	-l LOGIN	Exec LOGIN on connect" \
-     "\n	-f issue_file	Display issue_file instead of /etc/issue" \
+     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue" \
      "\n	-K		Close connection as soon as login exits" \
      "\n			(normally wait until all programs close slave pty)" \
 	IF_FEATURE_TELNETD_STANDALONE( \
      "\n	-p PORT		Port to listen on" \
-     "\n	-b ADDR		Address to bind to" \
+     "\n	-b ADDR[:PORT]	Address to bind to" \
      "\n	-F		Run in foreground" \
-     "\n	-i		Run as inetd subservice" \
+     "\n	-i		Run as inetd service" \
+	IF_FEATURE_TELNETD_INETD_WAIT( \
+     "\n	-w SEC		Run as inetd service in wait mode, linger time SEC" \
+     "\n	-S		Log to syslog (implied by -i or without -F and -w)" \
+	) \
 	)
 
 /* "test --help" does not print help (POSIX compat), only "[ --help" does.

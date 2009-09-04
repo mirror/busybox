@@ -788,6 +788,27 @@ config FEATURE_TELNETD_STANDALONE
 	help
 	  Selecting this will make telnetd able to run standalone.
 
+config FEATURE_TELNETD_INETD_WAIT
+	bool "Support -w SEC option (inetd wait mode)"
+	default n
+	depends on FEATURE_TELNETD_STANDALONE
+	help
+	  This option allows you to run telnetd in "inet wait" mode.
+	  Example inetd.conf line (note "wait", not usual "nowait"):
+
+	  telnet stream tcp wait root /bin/telnetd telnetd -w10
+
+	  In this example, inetd passes _listening_ socket_ as fd 0
+	  to telnetd when connection appears.
+	  telnetd will wait for connections until all existing
+	  connections are closed, and no new connections
+	  appear during 10 seconds. Then it exits, and inetd continues
+	  to listen for new connections.
+
+	  This option is rarely used. "tcp nowait" is much more usual
+	  way of running tcp services, including telnetd.
+	  You most probably want to say N here.
+
 config TFTP
 	bool "tftp"
 	default n
