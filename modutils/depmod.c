@@ -10,9 +10,9 @@
 
 #undef _GNU_SOURCE
 #define _GNU_SOURCE
-#include <libbb.h>
-#include <sys/utsname.h> /* uname() */
+#include "libbb.h"
 #include "modutils.h"
+#include <sys/utsname.h> /* uname() */
 
 /*
  * Theory of operation:

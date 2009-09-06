@@ -7,8 +7,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
-#include <sys/utsname.h>
 #include "libbb.h"
+/* After libbb.h, since it needs sys/types.h on some systems */
+#include <sys/utsname.h>
 #include "rtc_.h"
 
 #if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
@@ -67,7 +68,10 @@ static void show_clock(int utc)
 static void to_sys_clock(int utc)
 {
 	struct timeval tv;
-	const struct timezone tz = { timezone/60 - 60*daylight, 0 };
+	struct timezone tz;
+
+	tz.tz_minuteswest = timezone/60 - 60*daylight;
+	tz.tz_dsttime = 0;
 
 	tv.tv_sec = read_rtc(utc);
 	tv.tv_usec = 0;

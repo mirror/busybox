@@ -9,9 +9,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/param.h>  /* MAXHOSTNAMELEN */
-#include <sys/utsname.h>
 #include "libbb.h"
+/* After libbb.h, since it needs sys/types.h on some systems */
+#include <sys/utsname.h>
 
 #define LOGIN " login: "
 

@@ -682,7 +682,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 				static const struct suffix_mult km_suffixes[] = {
 					{ "k", 1024 },
 					{ "m", 1024*1024 },
-					{ }
+					{ "", 0 }
 				};
 				ld->sizemax = xatou_sfx(&s[1], km_suffixes);
 				break;
@@ -698,7 +698,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 					{ "m", 60 },
 					{ "h", 60*60 },
 					/*{ "d", 24*60*60 },*/
-					{ }
+					{ "", 0 }
 				};
 				ld->rotate_period = xatou_sfx(&s[1], mh_suffixes);
 				if (ld->rotate_period) {

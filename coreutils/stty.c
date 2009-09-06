@@ -774,7 +774,7 @@ static const struct suffix_mult stty_suffixes[] = {
 	{ "b",  512 },
 	{ "k", 1024 },
 	{ "B", 1024 },
-	{ }
+	{ "", 0 }
 };
 
 static const struct mode_info *find_mode(const char *name)

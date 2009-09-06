@@ -29,7 +29,7 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ "M", 1048576 },
 	{ "GD", 1000000000 },
 	{ "G", 1073741824 },
-	{ }
+	{ "", 0 }
 };
 
 struct globals {

@@ -182,7 +182,7 @@ static const struct op operators[] = {
 	{"p", print_no_pop},
 	{"f", print_stack_no_pop},
 	{"o", set_output_base},
-	{ /* zero filled */ }
+	{ "", NULL }
 };
 
 static void stack_machine(const char *argument)

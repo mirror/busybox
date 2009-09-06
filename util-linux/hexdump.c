@@ -47,7 +47,7 @@ static const struct suffix_mult suffixes[] = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
-	{ }
+	{ "", 0 }
 };
 
 int hexdump_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

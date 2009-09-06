@@ -782,7 +782,7 @@ static action*** parse_params(char **argv)
 				{ "", 512 },
 				{ "b", 512 },
 				{ "k", 1024 },
-				{ }
+				{ "", 0 }
 			};
 			action_size *ap;
 			ap = ALLOC_ACTION(size);

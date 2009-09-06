@@ -33,7 +33,7 @@ int watchdog_main(int argc, char **argv)
 	static const struct suffix_mult suffixes[] = {
 		{ "ms", 1 },
 		{ "", 1000 },
-		{ }
+		{ "", 0 }
 	};
 
 	unsigned opts;

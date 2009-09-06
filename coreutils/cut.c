@@ -111,7 +111,10 @@ static void cut_file(FILE *file, char delim, const struct cut_list *cut_lists, u
 			int ndelim = -1;	/* zero-based / one-based problem */
 			int nfields_printed = 0;
 			char *field = NULL;
-			const char delimiter[2] = { delim, 0 };
+			char delimiter[2];
+
+			delimiter[0] = delim;
+			delimiter[1] = 0;
 
 			/* does this line contain any delimiters? */
 			if (strchr(line, delim) == NULL) {

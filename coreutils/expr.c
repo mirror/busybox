@@ -214,9 +214,9 @@ static arith_t arithmetic_common(VALUE *l, VALUE *r, int op)
 
 static VALUE *docolon(VALUE *sv, VALUE *pv)
 {
+	enum { NMATCH = 2 };
 	VALUE *v;
 	regex_t re_buffer;
-	const int NMATCH = 2;
 	regmatch_t re_regs[NMATCH];
 
 	tostring(sv);

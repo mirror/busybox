@@ -9,7 +9,7 @@
  */
 
 #include "libbb.h"
-
+/* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h> /* uname() */
 #include <fnmatch.h>
 

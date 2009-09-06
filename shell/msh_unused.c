@@ -2064,7 +2064,7 @@ static int rlookup(char *n)
 		{ "{"    , '{'    },
 		{ "}"    , '}'    },
 		{ "."    , DOT    },
-		{ },
+		{ ""     , 0      },
 	};
 
 	const struct res *rp;

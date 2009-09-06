@@ -48,8 +48,9 @@
  *  Fix handling of -a to not print "unknown", add -o and -i support.
  */
 
-#include <sys/utsname.h>
 #include "libbb.h"
+/* After libbb.h, since it needs sys/types.h on some systems */
+#include <sys/utsname.h>
 
 typedef struct {
 	struct utsname name;

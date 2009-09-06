@@ -57,7 +57,7 @@ const struct dhcp_option dhcp_options[] = {
 	 * with "option XXX YYY" syntax in dhcpd config file. */
 
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
-	{ } /* zeroed terminating entry */
+	{ 0, 0 } /* zeroed terminating entry */
 };
 
 /* Used for converting options from incoming packets to env variables
