@@ -253,14 +253,16 @@ int unzip_main(int argc, char **argv)
 	enum { O_PROMPT, O_NEVER, O_ALWAYS };
 
 	zip_header_t zip_header;
-	smallint verbose = 1;
+	smallint quiet = 0;
+	IF_NOT_DESKTOP(const) smallint verbose = 0;
 	smallint listing = 0;
 	smallint overwrite = O_PROMPT;
 #if ENABLE_DESKTOP
 	uint32_t cds_offset;
 	unsigned cds_entries;
 #endif
-	unsigned total_size;
+	unsigned long total_usize;
+	unsigned long total_size;
 	unsigned total_entries;
 	int dst_fd = -1;
 	char *src_fn = NULL;
@@ -273,8 +275,49 @@ int unzip_main(int argc, char **argv)
 	char key_buf[80];
 	struct stat stat_buf;
 
+/* -q, -l and -v: UnZip 5.52 of 28 February 2005, by Info-ZIP:
+ *
+ * # /usr/bin/unzip -qq -v decompress_unlzma.i.zip
+ *   204372  Defl:N    35278  83%  09-06-09 14:23  0d056252  decompress_unlzma.i
+ * # /usr/bin/unzip -q -v decompress_unlzma.i.zip
+ *  Length   Method    Size  Ratio   Date   Time   CRC-32    Name
+ * --------  ------  ------- -----   ----   ----   ------    ----
+ *   204372  Defl:N    35278  83%  09-06-09 14:23  0d056252  decompress_unlzma.i
+ * --------          -------  ---                            -------
+ *   204372            35278  83%                            1 file
+ * # /usr/bin/unzip -v decompress_unlzma.i.zip
+ * Archive:  decompress_unlzma.i.zip
+ *  Length   Method    Size  Ratio   Date   Time   CRC-32    Name
+ * --------  ------  ------- -----   ----   ----   ------    ----
+ *   204372  Defl:N    35278  83%  09-06-09 14:23  0d056252  decompress_unlzma.i
+ * --------          -------  ---                            -------
+ *   204372            35278  83%                            1 file
+ * # unzip -v decompress_unlzma.i.zip
+ * Archive:  decompress_unlzma.i.zip
+ *   Length     Date   Time    Name
+ *  --------    ----   ----    ----
+ *    204372  09-06-09 14:23   decompress_unlzma.i
+ *  --------                   -------
+ *    204372                   1 files
+ * # /usr/bin/unzip -l -qq decompress_unlzma.i.zip
+ *    204372  09-06-09 14:23   decompress_unlzma.i
+ * # /usr/bin/unzip -l -q decompress_unlzma.i.zip
+ *   Length     Date   Time    Name
+ *  --------    ----   ----    ----
+ *    204372  09-06-09 14:23   decompress_unlzma.i
+ *  --------                   -------
+ *    204372                   1 file
+ * # /usr/bin/unzip -l decompress_unlzma.i.zip
+ * Archive:  decompress_unlzma.i.zip
+ *   Length     Date   Time    Name
+ *  --------    ----   ----    ----
+ *    204372  09-06-09 14:23   decompress_unlzma.i
+ *  --------                   -------
+ *    204372                   1 file
+ */
+
 	/* '-' makes getopt return 1 for non-options */
-	while ((opt = getopt(argc, argv, "-d:lnopqx")) != -1) {
+	while ((opt = getopt(argc, argv, "-d:lnopqxv")) != -1) {
 		switch (opt_range) {
 		case 0: /* Options */
 			switch (opt) {
@@ -294,7 +337,12 @@ int unzip_main(int argc, char **argv)
 				dst_fd = STDOUT_FILENO;
 
 			case 'q': /* Be quiet */
-				verbose = 0;
+				quiet++;
+				break;
+
+			case 'v': /* Verbose list */
+				IF_DESKTOP(verbose++;)
+				listing = 1;
 				break;
 
 			case 1: /* The zip file */
@@ -373,14 +421,21 @@ int unzip_main(int argc, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
-	if (verbose) {
-		printf("Archive:  %s\n", src_fn);
-		if (listing){
-			puts("  Length     Date   Time    Name\n"
-			     " --------    ----   ----    ----");
+	if (quiet <= 1) { /* not -qq */
+		if (quiet == 0)
+			printf("Archive:  %s\n", src_fn);
+		if (listing) {
+			puts(verbose ?
+				" Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
+				"--------  ------  ------- -----   ----   ----   ------    ----"
+				:
+				"  Length     Date   Time    Name\n"
+				" --------    ----   ----    ----"
+				);
 		}
 	}
 
+	total_usize = 0;
 	total_size = 0;
 	total_entries = 0;
 #if ENABLE_DESKTOP
@@ -449,20 +504,39 @@ int unzip_main(int argc, char **argv)
 
 		} else { /* Extract entry */
 			if (listing) { /* List entry */
-				if (verbose) {
-					unsigned dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
-					printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
-					   zip_header.formatted.ucmpsize,
-					   (dostime & 0x01e00000) >> 21,
-					   (dostime & 0x001f0000) >> 16,
-					   (((dostime & 0xfe000000) >> 25) + 1980) % 100,
-					   (dostime & 0x0000f800) >> 11,
-					   (dostime & 0x000007e0) >> 5,
-					   dst_fn);
-					total_size += zip_header.formatted.ucmpsize;
+				unsigned dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
+				if (!verbose) {
+					//      "  Length     Date   Time    Name\n"
+					//      " --------    ----   ----    ----"
+					printf(       "%9u  %02u-%02u-%02u %02u:%02u   %s\n",
+						(unsigned)zip_header.formatted.ucmpsize,
+						(dostime & 0x01e00000) >> 21,
+						(dostime & 0x001f0000) >> 16,
+						(((dostime & 0xfe000000) >> 25) + 1980) % 100,
+						(dostime & 0x0000f800) >> 11,
+						(dostime & 0x000007e0) >> 5,
+						dst_fn);
+					total_usize += zip_header.formatted.ucmpsize;
 				} else {
-					/* short listing -- filenames only */
-					puts(dst_fn);
+					unsigned long percents = zip_header.formatted.ucmpsize - zip_header.formatted.cmpsize;
+					percents = percents * 100;
+					if (zip_header.formatted.ucmpsize)
+						percents /= zip_header.formatted.ucmpsize;
+					//      " Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
+					//      "--------  ------  ------- -----   ----   ----   ------    ----"
+					printf(      "%8u  Defl:N"    "%9u%4u%%  %02u-%02u-%02u %02u:%02u  %08x  %s\n",
+						(unsigned)zip_header.formatted.ucmpsize,
+						(unsigned)zip_header.formatted.cmpsize,
+						(unsigned)percents,
+						(dostime & 0x01e00000) >> 21,
+						(dostime & 0x001f0000) >> 16,
+						(((dostime & 0xfe000000) >> 25) + 1980) % 100,
+						(dostime & 0x0000f800) >> 11,
+						(dostime & 0x000007e0) >> 5,
+						zip_header.formatted.crc32,
+						dst_fn);
+					total_usize += zip_header.formatted.ucmpsize;
+					total_size += zip_header.formatted.cmpsize;
 				}
 				i = 'n';
 			} else if (dst_fd == STDOUT_FILENO) { /* Extracting to STDOUT */
@@ -472,7 +546,7 @@ int unzip_main(int argc, char **argv)
 					if (errno != ENOENT) {
 						bb_perror_msg_and_die("can't stat '%s'", dst_fn);
 					}
-					if (verbose) {
+					if (!quiet) {
 						printf("   creating: %s\n", dst_fn);
 					}
 					unzip_create_leading_dirs(dst_fn);
@@ -520,7 +594,7 @@ int unzip_main(int argc, char **argv)
 			unzip_create_leading_dirs(dst_fn);
 			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT | O_TRUNC);
 		case -1: /* Unzip */
-			if (verbose) {
+			if (!quiet) {
 				printf("  inflating: %s\n", dst_fn);
 			}
 			unzip_extract(&zip_header, dst_fd);
@@ -549,17 +623,32 @@ int unzip_main(int argc, char **argv)
 			goto check_file;
 
 		default:
-			printf("error: invalid response [%c]\n",(char)i);
+			printf("error: invalid response [%c]\n", (char)i);
 			goto check_file;
 		}
 
 		total_entries++;
 	}
 
-	if (listing && verbose) {
-		printf(" --------                   -------\n"
-		       "%9d                   %d files\n",
-		       total_size, total_entries);
+	if (listing && quiet <= 1) {
+		if (!verbose) {
+			//      "  Length     Date   Time    Name\n"
+			//      " --------    ----   ----    ----"
+			printf( " --------                   -------\n"
+				"%9lu"   "                   %u files\n",
+				total_usize, total_entries);
+		} else {
+			unsigned long percents = total_usize - total_size;
+			percents = percents * 100;
+			if (total_usize)
+				percents /= total_usize;
+			//      " Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
+			//      "--------  ------  ------- -----   ----   ----   ------    ----"
+			printf( "--------          -------  ---                            -------\n"
+				"%8lu"              "%17lu%4u%%                            %u files\n",
+				total_usize, total_size, (unsigned)percents,
+				total_entries);
+		}
 	}
 
 	return 0;
