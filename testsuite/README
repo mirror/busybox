@@ -15,7 +15,7 @@ internet connection.
 Common causes of false positives:
 
 For busybox built against uclibc, /etc/TZ does not exist or does not match
-host system timezone setting. For glibc based host systems, timezona settings
+host system timezone setting. For glibc based host systems, timezone settings
 are in /etc/localtime.
 
 LANG and LC_xxx environment variables set to non-C locale.

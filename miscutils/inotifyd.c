@@ -34,8 +34,8 @@ static const char mask_names[] ALIGN1 =
 	"a"	// 0x00000001	File was accessed
 	"c"	// 0x00000002	File was modified
 	"e"	// 0x00000004	Metadata changed
-	"w"	// 0x00000008	Writtable file was closed
-	"0"	// 0x00000010	Unwrittable file closed
+	"w"	// 0x00000008	Writable file was closed
+	"0"	// 0x00000010	Unwritable file closed
 	"r"	// 0x00000020	File was opened
 	"m"	// 0x00000040	File was moved from X
 	"y"	// 0x00000080	File was moved to Y

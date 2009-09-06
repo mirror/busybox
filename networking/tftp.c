@@ -187,7 +187,7 @@ static int tftp_protocol(
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail.
 	 *
-	 * We must keep the transmit and receive buffers seperate
+	 * We must keep the transmit and receive buffers separate
 	 * in case we rcv a garbage pkt - we need to rexmit the last pkt.
 	 */
 	char *xbuf = xmalloc(io_bufsize);

@@ -102,7 +102,7 @@ void FAST_FUNC config_close(parser_t *parser)
 0. If parser is NULL return 0.
 1. Read a line from config file. If nothing to read then return 0.
    Handle continuation character. Advance lineno for each physical line.
-   Discard everything past comment characher.
+   Discard everything past comment character.
 2. if PARSE_TRIM is set (default), remove leading and trailing delimiters.
 3. If resulting line is empty goto 1.
 4. Look for first delimiter. If !PARSE_COLLAPSE or !PARSE_TRIM is set then

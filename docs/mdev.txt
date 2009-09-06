@@ -122,6 +122,6 @@ IOW: this will serialize concurrent mdev invocations.
 
 If you want to activate this feature, execute "echo >/dev/mdev.seq" prior to
 setting mdev to be the hotplug handler. This writes single '\n' to the file.
-NB: mdev recognizes /dev/mdev.seq consisting of single '\n' characher
+NB: mdev recognizes /dev/mdev.seq consisting of single '\n' character
 as a special case. IOW: this will not make your first hotplug event
 to stall for two seconds.

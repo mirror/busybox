@@ -68,9 +68,9 @@ Downloading the current source code:
 
     http://www.busybox.net/cgi-bin/viewcvs.cgi/trunk/busybox/
 
-  Anonymous SVN access is available.  For instructions, check out:
+  Anonymous GIT access is available.  For instructions, check out:
 
-    http://busybox.net/subversion.html
+    http://www.busybox.net/source.html
 
   For those that are actively contributing and would like to check files in,
   see:

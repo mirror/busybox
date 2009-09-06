@@ -9,7 +9,7 @@ Mark Whitley - the remix
 Thomas Lundquist - Trying to keep it updated.
 
 When doing this you should consider using the latest svn trunk.
-This is a good thing if you plan to getting it commited into mainline.
+This is a good thing if you plan to getting it committed into mainline.
 
 Initial Write
 -------------
@@ -107,7 +107,7 @@ the function declaration. If not, add it somewhere anyway, with or without
 ifdefs to include or not.
 
 You can look at libbb/Config.in and try to find out if the function is
-tuneable and add it there if it is.
+tunable and add it there if it is.
 
 
 Placement / Directory

@@ -133,7 +133,7 @@ Seems to be somewhat old, but contains useful bits for getty.c hacking
   characters will operate on the incoming data before it is delivered to
   the user.
 
-  In non-canonical mode, incoming data is quanitified by use of the
+  In non-canonical mode, incoming data is quantified by use of the
   c_cc[VMIN and c_cc[VTIME] values in termios.c_cc[].
 
   Some programmers use the select() call to detect the completion of a

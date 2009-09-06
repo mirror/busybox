@@ -21,7 +21,7 @@ To help with that, busybox applets should have options to override
 default behavior, whatever that is for a given applet.
 
 
-Current sutiation is a bit of a mess:
+Current situation is a bit of a mess:
 
 acpid - auto-backgrounds unless -d
 crond - auto-backgrounds unless -f, logs to syslog unless -d or -L.
@@ -51,7 +51,7 @@ Total: 13 applets (+1 obsolete),
  5 never log to syslog (acpid httpd telnetd klogd syslogd, last two
  - for obviously correct reasons),
  there are no daemons which always log to syslog,
- 12 auto-background if not run as inetd servies (all except dnsd.
+ 12 auto-background if not run as inetd services (all except dnsd.
  Note that there is no "standard" dnsd AFAIKS). But see below
  for daemons (tcpsvd etc) which don't auto-background.
 

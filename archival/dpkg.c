@@ -493,7 +493,7 @@ static void free_package(common_node_t *node)
 }
 
 /*
- * Gets the next package field from package_buffer, seperated into the field name
+ * Gets the next package field from package_buffer, separated into the field name
  * and field value, it returns the int offset to the first character of the next field
  */
 static int read_package_field(const char *package_buffer, char **field_name, char **field_value)
@@ -806,7 +806,7 @@ static void write_status_file(deb_file_t **deb_file)
 		write_flag = FALSE;
 		tmp_string = strstr(control_buffer, "Status:");
 		if (tmp_string != NULL) {
-			/* Seperate the status value from the control buffer */
+			/* Separate the status value from the control buffer */
 			tmp_string += 7;
 			tmp_string += strspn(tmp_string, " \n\t");
 			status_from_file = xstrndup(tmp_string, strcspn(tmp_string, "\n"));

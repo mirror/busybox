@@ -7,7 +7,7 @@ And the complete list of all utilities that POSIX covers:
 http://www.opengroup.org/onlinepubs/9699919799/idx/utilities.html
 
 This listing is a work in progress, and currently only covers
-tool options (not operands, enviroment variables, return codes, etc..).
+tool options (not operands, environment variables, return codes, etc..).
 For each option it is set if it (a) exists and (b) compliant to POSIX 2008.
 Some options exist but there is no value in the 'compliant' column: that
 means no one has yet bothered to make sure that the option does what it is

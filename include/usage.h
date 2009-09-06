@@ -2001,8 +2001,8 @@
      "\n	a	File is accessed" \
      "\n	c	File is modified" \
      "\n	e	Metadata changed" \
-     "\n	w	Writtable file is closed" \
-     "\n	0	Unwrittable file is closed" \
+     "\n	w	Writable file is closed" \
+     "\n	0	Unwritable file is closed" \
      "\n	r	File is opened" \
      "\n	D	File is deleted" \
      "\n	M	File is moved" \
@@ -3860,7 +3860,7 @@
      "\n	-l	Log changes in file labels to syslog" \
      "\n	-n	Don't change any file labels" \
      "\n	-q	Suppress warnings" \
-     "\n	-r dir	Use an altenate root path" \
+     "\n	-r dir	Use an alternate root path" \
      "\n	-e dir	Exclude directory" \
      "\n	-F	Force reset of context to match file_context for customizable files" \
      "\n	-o file	Save list of files with incorrect context" \

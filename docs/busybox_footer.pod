@@ -33,7 +33,7 @@ The following people have contributed code to BusyBox whether they know it or
 not.  If you have written code included in BusyBox, you should probably be
 listed here so you can obtain your bit of eternal glory.  If you should be
 listed here, or the description of what you have done needs more detail, or is
-incorect, please send in an update.
+incorrect, please send in an update.
 
 
 =for html <br>
@@ -158,7 +158,7 @@ John Lombardo <john@deltanet.com>
 
 Glenn McGrath <bug1@iinet.net.au>
 
-    Common unarchving code and unarchiving applets, ifupdown, ftpgetput,
+    Common unarchiving code and unarchiving applets, ifupdown, ftpgetput,
     nameif, sed, patch, fold, install, uudecode.
     Various bugfixes, review and apply numerous patches.
 

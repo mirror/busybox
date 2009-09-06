@@ -252,7 +252,7 @@ because it looks like whitespace; using lower-case is easy on the eyes.
 Exceptions:
 
  - Enums, macros, and constant variables are occasionally written in all
-   upper-case with words optionally seperatedy by underscores (i.e. FIFO_TYPE,
+   upper-case with words optionally separated by underscores (i.e. FIFO_TYPE,
    ISBLKDEV()).
 
  - Nobody is going to get mad at you for using 'pvar' as the name of a

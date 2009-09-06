@@ -1174,7 +1174,7 @@ unsigned long long bb_makedev(unsigned int major, unsigned int minor) FAST_FUNC;
 
 /* "Keycodes" that report an escape sequence.
  * We use something which fits into signed char,
- * yet doesn't represent any valid Unicode characher.
+ * yet doesn't represent any valid Unicode character.
  * Also, -1 is reserved for error indication and we don't use it. */
 enum {
 	KEYCODE_UP       =  -2,

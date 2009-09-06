@@ -124,7 +124,7 @@ an example:
     But when I use BusyBox date I get this instead:
 
 	$ date
-	llegal instruction
+	Illegal instruction
 
     I am using Debian unstable, kernel version 2.4.19-rmk1 on an Netwinder,
     and the latest uClibc from CVS.
