@@ -28,6 +28,8 @@
  */
 
 #include <assert.h>
+#include <malloc.h>
+#include <sys/user.h> /* PAGE_SIZE */
 #include "busybox.h"
 
 
@@ -763,6 +765,24 @@ int lbb_main(char **argv)
 int main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
+	/* Tweak malloc for reduced memory consumption */
+#ifndef PAGE_SIZE
+# define PAGE_SIZE (4*1024) /* guess */
+#endif
+#ifdef M_TRIM_THRESHOLD
+	/* M_TRIM_THRESHOLD is the maximum amount of freed top-most memory
+	 * to keep before releasing to the OS
+	 * Default is way too big: 256k
+	 */
+	mallopt(M_TRIM_THRESHOLD, 2 * PAGE_SIZE);
+#endif
+#ifdef M_MMAP_THRESHOLD
+	/* M_MMAP_THRESHOLD is the request size threshold for using mmap()
+	 * Default is too big: 256k
+	 */
+	mallopt(M_MMAP_THRESHOLD, 8 * PAGE_SIZE - 256);
+#endif
+
 #if defined(SINGLE_APPLET_MAIN)
 	/* Only one applet is selected by the user! */
 	/* applet_names in this case is just "applet\0\0" */
