@@ -486,7 +486,7 @@ struct globals2 {
 #define fsplitter    (G.fsplitter   )
 #define rsplitter    (G.rsplitter   )
 #define INIT_G() do { \
-	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G1) + sizeof(G)) + sizeof(G1)); \
+	SET_PTR_TO_GLOBALS((char*)xzalloc(sizeof(G1)+sizeof(G)) + sizeof(G1)); \
 	G.next_token__ltclass = TC_OPTERM; \
 	G.evaluate__seed = 1; \
 } while (0)

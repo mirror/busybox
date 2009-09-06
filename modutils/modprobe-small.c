@@ -314,6 +314,7 @@ static int load_dep_bb(void)
 
 	while ((line = xmalloc_fgetline(fp)) != NULL) {
 		char* space;
+		char* linebuf;
 		int cur;
 
 		if (!line[0]) {
@@ -328,7 +329,8 @@ static int load_dep_bb(void)
 		if (*space)
 			*space++ = '\0';
 		modinfo[cur].aliases = space;
-		modinfo[cur].deps = xmalloc_fgetline(fp) ? : xzalloc(1);
+		linebuf = xmalloc_fgetline(fp);
+		modinfo[cur].deps = linebuf ? linebuf : xzalloc(1);
 		if (modinfo[cur].deps[0]) {
 			/* deps are not "", so next line must be empty */
 			line = xmalloc_fgetline(fp);

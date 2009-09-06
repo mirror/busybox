@@ -2037,7 +2037,8 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
  rewrite_line:
 			/* Rewrite the line with the selected history item */
 			/* change command */
-			command_len = load_string(state->history[state->cur_history] ? : "", maxsize);
+			command_len = load_string(state->history[state->cur_history] ?
+					state->history[state->cur_history] : "", maxsize);
 			/* redraw and go to eol (bol, in vi) */
 			redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
 			break;

@@ -1186,7 +1186,7 @@ static void process_files(void)
 		case 'x': /* Exchange hold and pattern space */
 		{
 			char *tmp = pattern_space;
-			pattern_space = G.hold_space ? : xzalloc(1);
+			pattern_space = G.hold_space ? G.hold_space : xzalloc(1);
 			last_gets_char = '\n';
 			G.hold_space = tmp;
 			break;

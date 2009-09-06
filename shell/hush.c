@@ -5794,7 +5794,7 @@ static struct pipe *parse_stream(char **pstring,
 	 * found.  When recursing, quote state is passed in via dest->o_escape.
 	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
-			end_trigger ? : 'X');
+			end_trigger ? end_trigger : 'X');
 	debug_enter();
 
 	G.ifs = get_local_var_value("IFS");
@@ -6860,7 +6860,8 @@ static int FAST_FUNC builtin_cd(char **argv)
 		 * bash says "bash: cd: HOME not set" and does nothing
 		 * (exitcode 1)
 		 */
-		newdir = get_local_var_value("HOME") ? : "/";
+		const char *home = get_local_var_value("HOME");
+		newdir = home ? home : "/";
 	}
 	if (chdir(newdir)) {
 		/* Mimic bash message exactly */

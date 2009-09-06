@@ -177,7 +177,8 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 static const char *find_token(const char *const string_array[], const char *key, const char *defvalue)
 {
 	const char *r = NULL;
-	for (int i = 0; string_array[i] != 0; i++) {
+	int i;
+	for (i = 0; string_array[i] != NULL; i++) {
 		if (strcasecmp(string_array[i], key) == 0) {
 			r = (char *)string_array[i+1];
 			break;

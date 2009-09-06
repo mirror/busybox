@@ -254,7 +254,7 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 }
 #endif
 
-static void setmode(struct fb_var_screeninfo *base,
+static void setfbmode(struct fb_var_screeninfo *base,
 					struct fb_var_screeninfo *set)
 {
 	if ((int32_t) set->xres > 0)
@@ -402,7 +402,7 @@ int fbset_main(int argc, char **argv)
 	}
 
 	if (options & OPT_CHANGE) {
-		setmode(&var, &varset);
+		setfbmode(&var, &varset);
 		if (options & OPT_ALL)
 			var.activate = FB_ACTIVATE_ALL;
 		xioctl(fh, FBIOPUT_VSCREENINFO, &var);

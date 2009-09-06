@@ -862,7 +862,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		struct sysinfo info;
 
 		if (sysinfo(&info) == 0
-		 && (info.mem_unit ? : 1) * (long long)info.totalram < 1024*1024
+		 && (info.mem_unit ? info.mem_unit : 1) * (long long)info.totalram < 1024*1024
 		) {
 			message(L_CONSOLE, "Low memory, forcing swapon");
 			/* swapon -a requires /proc typically */

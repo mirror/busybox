@@ -670,7 +670,7 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 				memRchr = memchr;
 				/* Add '\n'-terminated line to ld->inst */
 				while (1) {
-					int l = asprintf(&new, "%s%s\n", ld->inst ? : "", s);
+					int l = asprintf(&new, "%s%s\n", ld->inst ? ld->inst : "", s);
 					if (l >= 0 && new)
 						break;
 					pause_nomem();

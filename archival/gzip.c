@@ -2078,7 +2078,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	//if (opt & 0x4) // -v
 	argv += optind;
 
-	SET_PTR_TO_GLOBALS(xzalloc(sizeof(struct globals) + sizeof(struct globals2))
+	SET_PTR_TO_GLOBALS((char *)xzalloc(sizeof(struct globals)+sizeof(struct globals2))
 			+ sizeof(struct globals));
 	barrier();
 

@@ -212,7 +212,7 @@ int bbsh_main(int argc, char **argv)
 		unsigned cmdlen=0;
 		for (;;) {
 			if (!f) putchar('$');
-			if (1 > getline(&command, &cmdlen,f ? : stdin)) break;
+			if (1 > getline(&command, &cmdlen, f ? f : stdin)) break;
 
 			handle(command);
 		}

@@ -105,7 +105,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 	}
 
 	/* Find a loop device.  */
-	try = *device ? : dev;
+	try = *device ? *device : dev;
 	for (i = 0; rc; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 

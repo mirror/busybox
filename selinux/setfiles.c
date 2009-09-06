@@ -347,7 +347,7 @@ static int restore(const char *file)
 		 * same.  For "-vv", emit everything. */
 		if (verbose > 1 || !user_only_changed) {
 			bb_info_msg("%s: reset %s context %s->%s",
-				applet_name, my_file, context ?: "", newcon);
+				applet_name, my_file, context ? context : "", newcon);
 		}
 	}
 
