@@ -20,6 +20,7 @@ Rob Landley suggested these:
     shells that don't really share any code, and the "standalone shell" doesn't
     work all that well (especially not in a chroot environment), due to apps not
     being reentrant.
+
   Do a SUSv3 audit
     Look at the full Single Unix Specification version 3 (available online at
     "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
@@ -28,6 +29,7 @@ Rob Landley suggested these:
 
     Even better would be some kind of automated compliance test harness that
     exercises each command line option and the various corner cases.
+
   Internationalization
     How much internationalization should we do?
 
@@ -314,3 +316,41 @@ vdprintf() -> similar sized functionality
   most likely there is more
 
 * even more support for statistics: mpstat, iostat, powertop....
+
+
+Unicode work needed:
+
+Applets which only need to align columns on screen correctly:
+
+ls - already done, use source as an example
+df
+dumpleases
+lsmod
+
+Applets which need to account for Unicode chars
+while processing the output:
+
+[un]expand
+fold
+man
+watch
+cut (-b and -c are currently the same, needs fixing)
+
+These applets need to ensure that unicode input
+is handled correctly (say, <unicode><backspace> sequence):
+
+getty, login
+rm -i
+unzip (overwrite prompt)
+
+Viewers/editors are more difficult (many cases to get right).
+libbb/lineedit.c is an example how to do it:
+
+less, most, ed, vi
+awk
+[ef]grep
+sed
+
+Probably needs some specialized work:
+
+loadkeys
