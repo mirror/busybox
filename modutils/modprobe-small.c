@@ -44,11 +44,13 @@ struct globals {
 	char *module_load_options;
 	smallint dep_bb_seen;
 	smallint wrote_dep_bb_ok;
-	int module_count;
+	unsigned module_count;
 	int module_found_idx;
-	int stringbuf_idx;
-	char stringbuf[32 * 1024]; /* some modules have lots of stuff */
+	unsigned stringbuf_idx;
+	unsigned stringbuf_size;
+	char *stringbuf; /* some modules have lots of stuff */
 	/* for example, drivers/media/video/saa7134/saa7134.ko */
+	/* therefore having a fixed biggish buffer is not wise */
 };
 #define G (*ptr_to_globals)
 #define modinfo             (G.modinfo            )
@@ -58,31 +60,35 @@ struct globals {
 #define module_found_idx    (G.module_found_idx   )
 #define module_load_options (G.module_load_options)
 #define stringbuf_idx       (G.stringbuf_idx      )
+#define stringbuf_size      (G.stringbuf_size     )
 #define stringbuf           (G.stringbuf          )
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
+static void append(const char *s)
+{
+	unsigned len = strlen(s);
+	if (stringbuf_idx + len + 15 > stringbuf_size) {
+		stringbuf_size = stringbuf_idx + len + 127;
+		dbg2_error_msg("grow stringbuf to %u", stringbuf_size);
+		stringbuf = xrealloc(stringbuf, stringbuf_size);
+	}
+	memcpy(stringbuf + stringbuf_idx, s, len);
+	stringbuf_idx += len;
+}
 
 static void appendc(char c)
 {
-	if (stringbuf_idx < sizeof(stringbuf))
-		stringbuf[stringbuf_idx++] = c;
+	/* We appendc() only after append(), + 15 trick in append()
+	 * makes it unnecessary to check for overflow here */
+	stringbuf[stringbuf_idx++] = c;
 }
 
 static void bksp(void)
 {
 	if (stringbuf_idx)
 		stringbuf_idx--;
-}
-
-static void append(const char *s)
-{
-	size_t len = strlen(s);
-	if (stringbuf_idx + len < sizeof(stringbuf)) {
-		memcpy(stringbuf + stringbuf_idx, s, len);
-		stringbuf_idx += len;
-	}
 }
 
 static void reset_stringbuf(void)
@@ -92,7 +98,7 @@ static void reset_stringbuf(void)
 
 static char* copy_stringbuf(void)
 {
-	char *copy = xmalloc(stringbuf_idx);
+	char *copy = xzalloc(stringbuf_idx + 1); /* terminating NUL */
 	return memcpy(copy, stringbuf, stringbuf_idx);
 }
 
@@ -216,8 +222,8 @@ static void parse_module(module_info *info, const char *pathname)
 		pos = (ptr - module_image);
 	}
 	bksp(); /* remove last ' ' */
-	appendc('\0');
 	info->aliases = copy_stringbuf();
+	replace(info->aliases, '-', '_');
 
 	/* "dependency1 depandency2" */
 	reset_stringbuf();
@@ -228,7 +234,6 @@ static void parse_module(module_info *info, const char *pathname)
 		dbg2_error_msg("dep:'%s'", ptr);
 		append(ptr);
 	}
-	appendc('\0');
 	info->deps = copy_stringbuf();
 
 	free(module_image);
