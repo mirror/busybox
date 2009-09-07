@@ -2824,9 +2824,21 @@
        "-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
 
 #define modprobe_trivial_usage \
-       "[-knqrsv] MODULE [symbol=value...]"
+	IF_MODPROBE_SMALL("[-qfwrsv] MODULE [symbol=value...]") \
+	IF_NOT_MODPROBE_SMALL("[-" \
+		IF_FEATURE_2_4_MODULES("k")"nqrsv" \
+		IF_FEATURE_MODPROBE_BLACKLIST("b")"] MODULE [symbol=value...]")
 #define modprobe_full_usage "\n\n" \
        "Options:" \
+	IF_MODPROBE_SMALL( \
+     "\n	-q	Quiet" \
+     "\n	-f	Force" \
+     "\n	-w	Wait for unload" \
+     "\n	-r	Remove module (stacks) or do autoclean" \
+     "\n	-s	Report via syslog instead of stderr" \
+     "\n	-v	Verbose" \
+	) \
+	IF_NOT_MODPROBE_SMALL( \
 	IF_FEATURE_2_4_MODULES( \
      "\n	-k	Make module autoclean-able" \
 	) \
@@ -2837,7 +2849,8 @@
      "\n	-v	Verbose" \
 	IF_FEATURE_MODPROBE_BLACKLIST( \
      "\n	-b	Apply blacklist to module names too" \
-        )
+	) \
+	)
 
 #define modprobe_notes_usage \
 "modprobe can (un)load a stack of modules, passing each module options (when\n" \
