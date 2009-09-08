@@ -231,6 +231,8 @@ static const struct {
 #endif
 };
 
+static const char index_html[] ALIGN1 = "index.html";
+
 
 struct globals {
 	int verbose;            /* must be int (used by getopt32) */
@@ -328,7 +330,7 @@ enum {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	bind_addr_or_port = "80"; \
-	index_page = "index.html"; \
+	index_page = index_html; \
 	file_size = -1; \
 } while (0)
 
@@ -569,6 +571,8 @@ static void parse_conf(const char *path, int flag)
 		ch = (buf[0] & ~0x20); /* toupper if it's a letter */
 
 		if (ch == 'I') {
+			if (index_page != index_html)
+				free((char*)index_page);
 			index_page = xstrdup(after_colon);
 			continue;
 		}
@@ -2101,8 +2105,12 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		}
 		send_cgi_and_exit(urlcopy, prequest, length, cookie, content_type);
 	}
+#endif
+
+	if (urlp[-1] == '/')
+		strcpy(urlp, index_page);
+	if (stat(tptr, &sb) == 0) {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-	{
 		char *suffix = strrchr(tptr, '.');
 		if (suffix) {
 			Htaccess *cur;
@@ -2112,16 +2120,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 				}
 			}
 		}
-	}
 #endif
-	if (prequest != request_GET && prequest != request_HEAD) {
-		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
-	}
-#endif  /* FEATURE_HTTPD_CGI */
-
-	if (urlp[-1] == '/')
-		strcpy(urlp, index_page);
-	if (stat(tptr, &sb) == 0) {
 		file_size = sb.st_size;
 		last_mod = sb.st_mtime;
 	}
@@ -2135,19 +2134,18 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 		}
 	}
-#endif
-	/* else {
-	 *	fall through to send_file, it errors out if open fails
-	 * }
-	 */
+	/* else fall through to send_file, it errors out if open fails: */
 
+	if (prequest != request_GET && prequest != request_HEAD) {
+		/* POST for files does not make sense */
+		send_headers_and_exit(HTTP_NOT_IMPLEMENTED);
+	}
 	send_file_and_exit(tptr,
-#if ENABLE_FEATURE_HTTPD_CGI
 		(prequest != request_HEAD ? SEND_HEADERS_AND_BODY : SEND_HEADERS)
-#else
-		SEND_HEADERS_AND_BODY
-#endif
 	);
+#else
+	send_file_and_exit(tptr, SEND_HEADERS_AND_BODY);
+#endif
 }
 
 /*
