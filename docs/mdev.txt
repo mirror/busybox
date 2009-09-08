@@ -79,6 +79,18 @@ the format:
 	<device regex> <uid>:<gid> <octal permissions> [=path] [@|$|*<command>]
     or
 	<device regex> <uid>:<gid> <octal permissions> [>path] [@|$|*<command>]
+
+For example:
+---8<---
+# block devices
+([hs]d[a-z])		root:disk	660	>disk/%1/0
+([hs]d[a-z])([0-9]+)	root:disk	660	>disk/%1/%2
+mmcblk([0-9]+)		root:disk	660	>disk/mmc/%1/0
+mmcblk([0-9]+)p([0-9]+)	root:disk	660	>disk/mmc/%1/%2
+# network devices
+(tun|tap)		root:network	660	>net/%1
+---8<---
+
 The special characters have the meaning:
 	@ Run after creating the device.
 	$ Run before removing the device.
