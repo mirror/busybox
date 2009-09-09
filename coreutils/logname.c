@@ -27,7 +27,7 @@
 int logname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int logname_main(int argc, char **argv UNUSED_PARAM)
 {
-	char buf[128];
+	char buf[64];
 
 	if (argc > 1) {
 		bb_show_usage();

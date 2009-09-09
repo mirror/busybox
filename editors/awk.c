@@ -114,7 +114,7 @@ typedef struct nvblock_s {
 	var *pos;
 	struct nvblock_s *prev;
 	struct nvblock_s *next;
-	var nv[0];
+	var nv[];
 } nvblock;
 
 typedef struct tsplitter_s {

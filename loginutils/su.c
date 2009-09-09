@@ -40,11 +40,24 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 
 	if (ENABLE_FEATURE_SU_SYSLOG) {
 		/* The utmp entry (via getlogin) is probably the best way to identify
-		the user, especially if someone su's from a su-shell.
-		But getlogin can fail -- usually due to lack of utmp entry.
-		in this case resort to getpwuid.  */
-		old_user = xstrdup(IF_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
-		tty = xmalloc_ttyname(2) ? : "none";
+		 * the user, especially if someone su's from a su-shell.
+		 * But getlogin can fail -- usually due to lack of utmp entry.
+		 * in this case resort to getpwuid.  */
+		const char *user;
+#if ENABLE_FEATURE_UTMP
+		char user_buf[64];
+		user = user_buf;
+		if (getlogin_r(user_buf, sizeof(user_buf)) != 0)
+#endif
+		{
+			pw = getpwuid(cur_uid);
+			user = pw ? pw->pw_name : "";
+		}
+		old_user = xstrdup(user);
+		tty = xmalloc_ttyname(2);
+		if (!tty) {
+			tty = "none";
+		}
 		openlog(applet_name, 0, LOG_AUTH);
 	}
 
