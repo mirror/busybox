@@ -63,10 +63,10 @@ EOF
 	}
 	# Empty line + NOT delimiter. Save empty line,
 	# and go check next line
-	printf "%s\n" $'\r' -vC >&3
+	printf "%s\n" $'\r' >&3
     done
     # Not empty line - just save
-    printf "%s\n" "$line" -vC >&3
+    printf "%s\n" "$line" >&3
 done 3>"$file"
 
 cat <<EOF
