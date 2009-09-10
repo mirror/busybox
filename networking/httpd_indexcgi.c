@@ -28,7 +28,8 @@ httpd_indexcgi.c -o index.cgi
 /* We don't use printf, as it pulls in >12 kb of code from uclibc (i386). */
 /* Currently malloc machinery is the biggest part of libc we pull in. */
 /* We have only one realloc and one strdup, any idea how to do without? */
-/* Size (i386, approximate):
+
+/* Size (i386, static uclibc, approximate):
  *   text    data     bss     dec     hex filename
  *  13036      44    3052   16132    3f04 index.cgi
  *   2576       4    2048    4628    1214 index.cgi.o
@@ -210,7 +211,7 @@ static void fmt_04u(/*char *dst,*/ unsigned n)
 	fmt_02u(n % 100);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	dir_list_t *dir_list;
 	dir_list_t *cdir;
@@ -225,6 +226,7 @@ int main(void)
 	QUERY_STRING = getenv("QUERY_STRING");
 	if (!QUERY_STRING
 	 || QUERY_STRING[0] != '/'
+	 || strstr(QUERY_STRING, "//")
 	 || strstr(QUERY_STRING, "/../")
 	 || strcmp(strrchr(QUERY_STRING, '/'), "/..") == 0
 	) {
