@@ -7,6 +7,11 @@
 /*
  * This program is a CGI application. It processes server-side includes:
  * <!--#include file="file.html" -->
+ *
+ * Usage: put these lines in httpd.conf:
+ *
+ * *.html:/bin/httpd_ssi
+ * *.htm:/bin/httpd_ssi
  */
 
 /* Build a-la
@@ -65,9 +70,10 @@ static void process_includes(const char *filename)
 			continue;
 		}
 		*closing_dq = '\0';
-		/* FIXME: (1) are relative paths ok?
+		/* FIXME:
+		 * (1) are relative paths with /../ etc ok?
 		 * (2) if we include a/1.htm and it includes b/2.htm,
-		 * do we need to insert a/b/2.htm or b/2.htm?
+		 * do we need to include a/b/2.htm or b/2.htm?
 		 * IOW, do we need to "cd $dirname"?
 		 */
 		process_includes(line + sizeof(INCLUDE)-1);
