@@ -186,7 +186,7 @@ static void func_comm(char *buf, int size, const procps_status_t *ps)
 
 static void func_args(char *buf, int size, const procps_status_t *ps)
 {
-	read_cmdline(buf, size, ps->pid, ps->comm);
+	read_cmdline(buf, size+1, ps->pid, ps->comm);
 }
 
 static void func_pid(char *buf, int size, const procps_status_t *ps)

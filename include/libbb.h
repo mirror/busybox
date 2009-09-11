@@ -1359,9 +1359,9 @@ enum {
 //procps_status_t* alloc_procps_scan(void) FAST_FUNC;
 void free_procps_scan(procps_status_t* sp) FAST_FUNC;
 procps_status_t* procps_scan(procps_status_t* sp, int flags) FAST_FUNC;
-/* Format cmdline (up to col chars) into char buf[col+1] */
+/* Format cmdline (up to col chars) into char buf[size] */
 /* Puts [comm] if cmdline is empty (-> process is a kernel thread) */
-void read_cmdline(char *buf, int col, unsigned pid, const char *comm) FAST_FUNC;
+void read_cmdline(char *buf, int size, unsigned pid, const char *comm) FAST_FUNC;
 pid_t *find_pid_by_name(const char* procName) FAST_FUNC;
 pid_t *pidlist_reverse(pid_t *pidList) FAST_FUNC;
 

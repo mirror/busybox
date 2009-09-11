@@ -464,18 +464,19 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 
 void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 {
-	ssize_t sz;
+	int sz;
 	char filename[sizeof("/proc//cmdline") + sizeof(int)*3];
 
 	sprintf(filename, "/proc/%u/cmdline", pid);
-	sz = open_read_close(filename, buf, col);
+	sz = open_read_close(filename, buf, col - 1);
 	if (sz > 0) {
 		buf[sz] = '\0';
 		while (--sz >= 0 && buf[sz] == '\0')
 			continue;
-		while (--sz >= 0)
+		do {
 			if ((unsigned char)(buf[sz]) < ' ')
 				buf[sz] = ' ';
+		} while (--sz >= 0);
 	} else {
 		snprintf(buf, col, "[%s]", comm);
 	}
