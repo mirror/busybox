@@ -471,6 +471,8 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 	sz = open_read_close(filename, buf, col);
 	if (sz > 0) {
 		buf[sz] = '\0';
+		while (--sz >= 0 && buf[sz] == '\0')
+			continue;
 		while (--sz >= 0)
 			if ((unsigned char)(buf[sz]) < ' ')
 				buf[sz] = ' ';

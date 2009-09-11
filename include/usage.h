@@ -1338,7 +1338,7 @@
 #define ftpd_trivial_usage \
        "[-wvS] [-t N] [-T N] [DIR]"
 #define ftpd_full_usage "\n\n" \
-       "FTP server\n" \
+       "Anonymous FTP server\n" \
        "\n" \
        "ftpd should be used as an inetd service.\n" \
        "ftpd's line for inetd.conf:\n" \
