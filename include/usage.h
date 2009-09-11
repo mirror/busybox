@@ -4566,7 +4566,7 @@
        "Defaults: SECS: 10, SIG: TERM." \
 
 #define top_trivial_usage \
-       "[-b] [-nCOUNT] [-dSECONDS]"
+       "[-b] [-nCOUNT] [-dSECONDS]" IF_FEATURE_TOPMEM(" [-m]")
 #define top_full_usage "\n\n" \
        "Provide a view of process activity in real time.\n" \
        "Read the status of all processes from /proc each SECONDS\n" \

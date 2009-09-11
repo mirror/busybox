@@ -147,15 +147,15 @@ const char *opt_complementary
 
 Special characters:
 
- "-"    A dash as the first char in a opt_complementary group forces
-        all arguments to be treated as options, even if they have
-        no leading dashes. Next char in this case can't be a digit (0-9),
-        use ':' or end of line. For example:
+ "-"    A group consisting of just a dash forces all arguments
+        to be treated as options, even if they have no leading dashes.
+        Next char in this case can't be a digit (0-9), use ':' or end of line.
+        Example:
 
-        opt_complementary = "-:w-x:x-w";
-        getopt32(argv, "wx");
+        opt_complementary = "-:w-x:x-w"; // "-w-x:x-w" would also work,
+        getopt32(argv, "wx");            // but is less readable
 
-        Allows any arguments to be given without a dash (./program w x)
+        This makes it possible to use options without a dash (./program w x)
         as well as with a dash (./program -x).
 
         NB: getopt32() will leak a small amount of memory if you use

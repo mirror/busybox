@@ -320,6 +320,29 @@ vdprintf() -> similar sized functionality
 
 Unicode work needed:
 
+Unicode support uses libc multibyte functions if LOCALE_SUPPORT is on
+(in this case, the code will also support many more encodings),
+or uses a limited subset of re-implemented multibyte functions
+which only understand "one byte == one char" and unicode.
+This is useful if you build against uclibc with locale support disabled.
+
+Unicode-dependent applets must call check_unicode_in_env() when they
+begin executing.
+
+Applet code may conditionalize on FEATURE_ASSUME_UNICODE
+in order to use more efficient code if unicode support is not requested.
+
+Available functions (if you need more, implement them in libbb/unicode.c
+so that they work without LOCALE_SUPPORT too):
+
+int bb_mbstrlen(str) - multibyte-aware strlen
+size_t mbstowcs(wdest, src, n)
+size_t wcstombs(dest, wsrc, n)
+size_t wcrtomb(str, wc, wstate)
+int iswspace(wc)
+int iswalnum(wc)
+int iswpunct(wc)
+
 Applets which only need to align columns on screen correctly:
 
 ls - already done, use source as an example
