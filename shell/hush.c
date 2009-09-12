@@ -3079,15 +3079,21 @@ static const struct built_in_command* find_builtin(const char *name)
 }
 
 #if ENABLE_HUSH_FUNCTIONS
-static const struct function *find_function(const char *name)
+static struct function **find_function_slot(const char *name)
 {
-	const struct function *funcp = G.top_func;
-	while (funcp) {
-		if (strcmp(name, funcp->name) == 0) {
+	struct function **funcpp = &G.top_func;
+	while (*funcpp) {
+		if (strcmp(name, (*funcpp)->name) == 0) {
 			break;
 		}
-		funcp = funcp->next;
+		funcpp = &(*funcpp)->next;
 	}
+	return funcpp;
+}
+
+static const struct function *find_function(const char *name)
+{
+	const struct function *funcp = *find_function_slot(name);
 	if (funcp)
 		debug_printf_exec("found function '%s'\n", name);
 	return funcp;
@@ -3096,18 +3102,11 @@ static const struct function *find_function(const char *name)
 /* Note: takes ownership on name ptr */
 static struct function *new_function(char *name)
 {
-	struct function *funcp;
-	struct function **funcpp = &G.top_func;
+	struct function **funcpp = find_function_slot(name);
+	struct function *funcp = *funcpp;
 
-	while ((funcp = *funcpp) != NULL) {
-		struct command *cmd;
-
-		if (strcmp(funcp->name, name) != 0) {
-			funcpp = &funcp->next;
-			continue;
-		}
-
-		cmd = funcp->parent_cmd;
+	if (funcp != NULL) {
+		struct command *cmd = funcp->parent_cmd;
 		debug_printf_exec("func %p parent_cmd %p\n", funcp, cmd);
 		if (!cmd) {
 			debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
@@ -3129,39 +3128,36 @@ static struct function *new_function(char *name)
 			cmd->group_as_string = funcp->body_as_string;
 # endif
 		}
-		goto skip;
+	} else {
+		debug_printf_exec("remembering new function '%s'\n", name);
+		funcp = *funcpp = xzalloc(sizeof(*funcp));
+		/*funcp->next = NULL;*/
 	}
-	debug_printf_exec("remembering new function '%s'\n", name);
-	funcp = *funcpp = xzalloc(sizeof(*funcp));
-	/*funcp->next = NULL;*/
- skip:
+
 	funcp->name = name;
 	return funcp;
 }
 
 static void unset_func(const char *name)
 {
-	struct function *funcp;
-	struct function **funcpp = &G.top_func;
+	struct function **funcpp = find_function_slot(name);
+	struct function *funcp = *funcpp;
 
-	while ((funcp = *funcpp) != NULL) {
-		if (strcmp(funcp->name, name) == 0) {
-			*funcpp = funcp->next;
-			/* funcp is unlinked now, deleting it.
-			 * Note: if !funcp->body, the function was created by
-			 * "-F name body", do not free ->body_as_string
-			 * and ->name as they were not malloced. */
-			if (funcp->body) {
-				free_pipe_list(funcp->body);
-				free(funcp->name);
+	if (funcp != NULL) {
+		debug_printf_exec("freeing function '%s'\n", funcp->name);
+		*funcpp = funcp->next;
+		/* funcp is unlinked now, deleting it.
+		 * Note: if !funcp->body, the function was created by
+		 * "-F name body", do not free ->body_as_string
+		 * and ->name as they were not malloced. */
+		if (funcp->body) {
+			free_pipe_list(funcp->body);
+			free(funcp->name);
 # if !BB_MMU
-				free(funcp->body_as_string);
+			free(funcp->body_as_string);
 # endif
-			}
-			free(funcp);
-			break;
 		}
-		funcpp = &funcp->next;
+		free(funcp);
 	}
 }
 
