@@ -222,7 +222,7 @@ static const char *const TOKSTR[] = {
 #define unnest_msg_and_return(expr, ...) return expr
 #endif
 
-enum token_types {
+enum {
 	UNOP,
 	BINOP,
 	BUNOP,
@@ -231,53 +231,96 @@ enum token_types {
 };
 
 struct operator_t {
-	char op_text[4];
 	unsigned char op_num, op_type;
 };
 
-static const struct operator_t ops[] = {
-	{ "-r", FILRD   , UNOP   },
-	{ "-w", FILWR   , UNOP   },
-	{ "-x", FILEX   , UNOP   },
-	{ "-e", FILEXIST, UNOP   },
-	{ "-f", FILREG  , UNOP   },
-	{ "-d", FILDIR  , UNOP   },
-	{ "-c", FILCDEV , UNOP   },
-	{ "-b", FILBDEV , UNOP   },
-	{ "-p", FILFIFO , UNOP   },
-	{ "-u", FILSUID , UNOP   },
-	{ "-g", FILSGID , UNOP   },
-	{ "-k", FILSTCK , UNOP   },
-	{ "-s", FILGZ   , UNOP   },
-	{ "-t", FILTT   , UNOP   },
-	{ "-z", STREZ   , UNOP   },
-	{ "-n", STRNZ   , UNOP   },
-	{ "-h", FILSYM  , UNOP   },    /* for backwards compat */
+static const struct operator_t ops_table[] = {
+	{ /* "-r" */ FILRD   , UNOP   },
+	{ /* "-w" */ FILWR   , UNOP   },
+	{ /* "-x" */ FILEX   , UNOP   },
+	{ /* "-e" */ FILEXIST, UNOP   },
+	{ /* "-f" */ FILREG  , UNOP   },
+	{ /* "-d" */ FILDIR  , UNOP   },
+	{ /* "-c" */ FILCDEV , UNOP   },
+	{ /* "-b" */ FILBDEV , UNOP   },
+	{ /* "-p" */ FILFIFO , UNOP   },
+	{ /* "-u" */ FILSUID , UNOP   },
+	{ /* "-g" */ FILSGID , UNOP   },
+	{ /* "-k" */ FILSTCK , UNOP   },
+	{ /* "-s" */ FILGZ   , UNOP   },
+	{ /* "-t" */ FILTT   , UNOP   },
+	{ /* "-z" */ STREZ   , UNOP   },
+	{ /* "-n" */ STRNZ   , UNOP   },
+	{ /* "-h" */ FILSYM  , UNOP   },    /* for backwards compat */
 
-	{ "-O" , FILUID , UNOP   },
-	{ "-G" , FILGID , UNOP   },
-	{ "-L" , FILSYM , UNOP   },
-	{ "-S" , FILSOCK, UNOP   },
-	{ "="  , STREQ  , BINOP  },
-	{ "==" , STREQ  , BINOP  },
-	{ "!=" , STRNE  , BINOP  },
-	{ "<"  , STRLT  , BINOP  },
-	{ ">"  , STRGT  , BINOP  },
-	{ "-eq", INTEQ  , BINOP  },
-	{ "-ne", INTNE  , BINOP  },
-	{ "-ge", INTGE  , BINOP  },
-	{ "-gt", INTGT  , BINOP  },
-	{ "-le", INTLE  , BINOP  },
-	{ "-lt", INTLT  , BINOP  },
-	{ "-nt", FILNT  , BINOP  },
-	{ "-ot", FILOT  , BINOP  },
-	{ "-ef", FILEQ  , BINOP  },
-	{ "!"  , UNOT   , BUNOP  },
-	{ "-a" , BAND   , BBINOP },
-	{ "-o" , BOR    , BBINOP },
-	{ "("  , LPAREN , PAREN  },
-	{ ")"  , RPAREN , PAREN  },
+	{ /* "-O" */ FILUID  , UNOP   },
+	{ /* "-G" */ FILGID  , UNOP   },
+	{ /* "-L" */ FILSYM  , UNOP   },
+	{ /* "-S" */ FILSOCK , UNOP   },
+	{ /* "="  */ STREQ   , BINOP  },
+	{ /* "==" */ STREQ   , BINOP  },
+	{ /* "!=" */ STRNE   , BINOP  },
+	{ /* "<"  */ STRLT   , BINOP  },
+	{ /* ">"  */ STRGT   , BINOP  },
+	{ /* "-eq"*/ INTEQ   , BINOP  },
+	{ /* "-ne"*/ INTNE   , BINOP  },
+	{ /* "-ge"*/ INTGE   , BINOP  },
+	{ /* "-gt"*/ INTGT   , BINOP  },
+	{ /* "-le"*/ INTLE   , BINOP  },
+	{ /* "-lt"*/ INTLT   , BINOP  },
+	{ /* "-nt"*/ FILNT   , BINOP  },
+	{ /* "-ot"*/ FILOT   , BINOP  },
+	{ /* "-ef"*/ FILEQ   , BINOP  },
+	{ /* "!"  */ UNOT    , BUNOP  },
+	{ /* "-a" */ BAND    , BBINOP },
+	{ /* "-o" */ BOR     , BBINOP },
+	{ /* "("  */ LPAREN  , PAREN  },
+	{ /* ")"  */ RPAREN  , PAREN  },
 };
+/* Please keep these two tables in sync */
+static const char ops_texts[] ALIGN1 =
+	"-r"  "\0"
+	"-w"  "\0"
+	"-x"  "\0"
+	"-e"  "\0"
+	"-f"  "\0"
+	"-d"  "\0"
+	"-c"  "\0"
+	"-b"  "\0"
+	"-p"  "\0"
+	"-u"  "\0"
+	"-g"  "\0"
+	"-k"  "\0"
+	"-s"  "\0"
+	"-t"  "\0"
+	"-z"  "\0"
+	"-n"  "\0"
+	"-h"  "\0"
+
+	"-O"  "\0"
+	"-G"  "\0"
+	"-L"  "\0"
+	"-S"  "\0"
+	"="   "\0"
+	"=="  "\0"
+	"!="  "\0"
+	"<"   "\0"
+	">"   "\0"
+	"-eq" "\0"
+	"-ne" "\0"
+	"-ge" "\0"
+	"-gt" "\0"
+	"-le" "\0"
+	"-lt" "\0"
+	"-nt" "\0"
+	"-ot" "\0"
+	"-ef" "\0"
+	"!"   "\0"
+	"-a"  "\0"
+	"-o"  "\0"
+	"("   "\0"
+	")"   "\0"
+;
 
 
 #if ENABLE_FEATURE_TEST_64
@@ -384,29 +427,22 @@ static int equalf(const char *f1, const char *f2)
 */
 
 
-static enum token check_operator(char *s)
+static enum token check_operator(const char *s)
 {
 	static const struct operator_t no_op = {
 		.op_num = -1,
 		.op_type = -1
 	};
-	const struct operator_t *op;
+	int n;
 
 	last_operator = &no_op;
-	if (s == NULL) {
+	if (s == NULL)
 		return EOI;
-	}
-
-	op = ops;
-	do {
-		if (strcmp(s, op->op_text) == 0) {
-			last_operator = op;
-			return op->op_num;
-		}
-		op++;
-	} while (op < ops + ARRAY_SIZE(ops));
-
-	return OPERAND;
+	n = index_in_strings(ops_texts, s);
+	if (n < 0)
+		return OPERAND;
+	last_operator = &ops_table[n];
+	return ops_table[n].op_num;
 }
 
 
@@ -422,7 +458,7 @@ static int binop(void)
 
 	opnd2 = *++args;
 	if (opnd2 == NULL)
-		syntax(op->op_text, "argument expected");
+		syntax(args[-1], "argument expected");
 
 	if (is_int_op(op->op_num)) {
 		val1 = getn(opnd1);
