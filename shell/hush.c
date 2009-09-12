@@ -78,6 +78,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
+#include <malloc.h>   /* for malloc_trim */
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE
@@ -7265,6 +7266,10 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 	void *p;
 	unsigned long l;
 
+#ifdef M_TRIM_THRESHOLD
+	/* Optional. Reduces probability of false positives */
+	malloc_trim(0);
+#endif
 	/* Crude attempt to find where "free memory" starts,
 	 * sans fragmentation. */
 	p = malloc(240);
