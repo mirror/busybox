@@ -348,13 +348,15 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 	unsigned total_diff;
 	jiffy_counts_t *p_jif, *p_prev_jif;
 	int i;
-
 # if ENABLE_FEATURE_TOP_SMP_CPU
 	int n_cpu_lines;
 # endif
 
 	/* using (unsigned) casts to make operations cheaper */
-# define  CALC_TOT_DIFF  ((unsigned)(p_jif->total - p_prev_jif->total) ? : 1)
+# define  CALC_TOTAL_DIFF do { \
+	total_diff = (unsigned)(p_jif->total - p_prev_jif->total); \
+	if (total_diff == 0) total_diff = 1; \
+} while (0)
 
 # if ENABLE_FEATURE_TOP_DECIMALS
 #  define CALC_STAT(xxx) char xxx[8]
@@ -381,7 +383,7 @@ static void display_cpus(int scr_width, char *scrbuf, int *lines_rem_p)
 		p_jif = &cpu_jif[i];
 		p_prev_jif = &cpu_prev_jif[i];
 # endif
-		total_diff = CALC_TOT_DIFF;
+		CALC_TOTAL_DIFF;
 
 		{ /* Need a block: CALC_STAT are declarations */
 			CALC_STAT(usr);
@@ -511,6 +513,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	/* xxx_shift and xxx_scale variables allow us to replace
 	 * expensive divides with multiply and shift */
 	unsigned pmem_shift, pmem_scale, pmem_half;
+	unsigned tmp_unsigned;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned pcpu_shift, pcpu_scale, pcpu_half;
 	unsigned busy_jifs;
@@ -565,12 +568,16 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	 * we assume that unsigned is at least 32-bit.
 	 */
 	pcpu_shift = 6;
-	pcpu_scale = (UPSCALE*64 * (uint16_t)busy_jifs ? : 1);
+	pcpu_scale = UPSCALE*64 * (uint16_t)busy_jifs;
+	if (pcpu_scale == 0)
+		pcpu_scale = 1;
 	while (pcpu_scale < (1U << (BITS_PER_INT-2))) {
 		pcpu_scale *= 4;
 		pcpu_shift += 2;
 	}
-	pcpu_scale /= ( (uint16_t)(cur_jif.total - prev_jif.total) * total_pcpu ? : 1);
+	tmp_unsigned = (uint16_t)(cur_jif.total - prev_jif.total) * total_pcpu;
+	if (tmp_unsigned != 0)
+		pcpu_scale /= tmp_unsigned;
 	/* we want (s->pcpu * pcpu_scale) to never overflow */
 	while (pcpu_scale >= 1024) {
 		pcpu_scale /= 4;
