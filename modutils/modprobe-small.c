@@ -218,6 +218,7 @@ static void parse_module(module_info *info, const char *pathname)
 	bksp(); /* remove last ' ' */
 	appendc('\0');
 	info->aliases = copy_stringbuf();
+	replace(info->aliases, '-', '_');
 
 	/* "dependency1 depandency2" */
 	reset_stringbuf();
