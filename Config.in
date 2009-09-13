@@ -30,6 +30,14 @@ config EXTRA_COMPAT
 	  some GNU extensions in libc. You probably only need this option
 	  if you plan to run busybox on desktop.
 
+config USE_PORTABLE_CODE
+	bool "Avoid using GCC-specific code constructs"
+	default n
+	help
+	  Use this option if you are trying to compile busybox with
+	  compiler other than gcc.
+	  If you do use gcc, this option may needlessly increase code size.
+
 choice
 	prompt "Buffer allocation policy"
 	default FEATURE_BUFFERS_USE_MALLOC

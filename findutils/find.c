@@ -276,7 +276,11 @@ ACTF(inum)
 ACTF(exec)
 {
 	int i, rc;
+#if ENABLE_USE_PORTABLE_CODE
+	char **argv = alloca(sizeof(char*) * (ap->exec_argc + 1));
+#else /* gcc 4.3.1 generates smaller code: */
 	char *argv[ap->exec_argc + 1];
+#endif
 	for (i = 0; i < ap->exec_argc; i++)
 		argv[i] = subst(ap->exec_argv[i], ap->subst_count[i], fileName);
 	argv[i] = NULL; /* terminate the list */
