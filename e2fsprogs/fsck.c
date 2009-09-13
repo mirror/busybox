@@ -490,60 +490,55 @@ static int wait_many(int flags)
 static void execute(const char *type, const char *device,
 		const char *mntpt /*, int interactive */)
 {
-	char *argv[num_args + 4]; /* see count below: */
-	int argc;
 	int i;
 	struct fsck_instance *inst;
 	pid_t pid;
 
-	argv[0] = xasprintf("fsck.%s", type); /* 1 */
-	for (i = 0; i < num_args; i++)
-		argv[i+1] = args[i]; /* num_args */
-	argc = num_args + 1;
+	args[0] = xasprintf("fsck.%s", type);
 
 #if DO_PROGRESS_INDICATOR
 	if (progress && !progress_active()) {
 		if (strcmp(type, "ext2") == 0
 		 || strcmp(type, "ext3") == 0
 		) {
-			argv[argc++] = xasprintf("-C%d", progress_fd); /* 1 */
+			args[XXX] = xasprintf("-C%d", progress_fd); /* 1 */
 			inst->flags |= FLAG_PROGRESS;
 		}
 	}
 #endif
 
-	argv[argc++] = (char*)device; /* 1 */
-	argv[argc] = NULL; /* 1 */
+	args[num_args - 2] = (char*)device;
+	/* args[num_args - 1] = NULL; - already is */
 
 	if (verbose || noexecute) {
-		printf("[%s (%d) -- %s]", argv[0], num_running,
+		printf("[%s (%d) -- %s]", args[0], num_running,
 					mntpt ? mntpt : device);
-		for (i = 0; i < argc; i++)
-			printf(" %s", argv[i]);
+		for (i = 0; args[i]; i++)
+			printf(" %s", args[i]);
 		bb_putchar('\n');
 	}
 
 	/* Fork and execute the correct program. */
 	pid = -1;
 	if (!noexecute) {
-		pid = spawn(argv);
+		pid = spawn(args);
 		if (pid < 0)
-			bb_simple_perror_msg(argv[0]);
+			bb_simple_perror_msg(args[0]);
 	}
 
 #if DO_PROGRESS_INDICATOR
-	free(argv[num_args + 1]);
+	free(args[XXX]);
 #endif
 
 	/* No child, so don't record an instance */
 	if (pid <= 0) {
-		free(argv[0]);
+		free(args[0]);
 		return;
 	}
 
 	inst = xzalloc(sizeof(*inst));
 	inst->pid = pid;
-	inst->prog = argv[0];
+	inst->prog = args[0];
 	inst->device = xstrdup(device);
 	inst->base_device = base_device(device);
 #if DO_PROGRESS_INDICATOR
@@ -899,6 +894,12 @@ static void compile_fs_type(char *fs_type)
 	}
 }
 
+static char **new_args(void)
+{
+	args = xrealloc_vector(args, 2, num_args);
+	return &args[num_args++];
+}
+
 int fsck_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fsck_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -922,11 +923,9 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 	opts_for_fsck = doall = notitle = 0;
 	devices = NULL;
 	num_devices = 0;
-	/* in bss, so already zeroed
-	args = NULL;
-	num_args = 0;
-	instance_list = NULL;
-	*/
+	new_args(); /* args[0] = NULL, will be replaced by fsck.<type> */
+	/* instance_list = NULL; - in bss, so already zeroed */
+
 	while (*++argv) {
 		int j;
 		int optpos;
@@ -944,8 +943,7 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if (arg[0] != '-' || opts_for_fsck) {
-			args = xrealloc_vector(args, 2, num_args);
-			args[num_args++] = arg;
+			*new_args() = arg;
 			continue;
 		}
 
@@ -1022,8 +1020,7 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 		if (optpos) {
 			options[0] = '-';
 			options[optpos + 1] = '\0';
-			args = xrealloc_vector(args, 2, num_args);
-			args[num_args++] = options;
+			*new_args() = options;
 		}
 	}
 	if (getenv("FSCK_FORCE_ALL_PARALLEL"))
@@ -1031,6 +1028,8 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 	tmp = getenv("FSCK_MAX_INST");
 	if (tmp)
 		max_running = xatoi(tmp);
+	new_args(); /* args[num_args - 2] will be replaced by <device> */
+	new_args(); /* args[num_args - 1] is the last, NULL element */
 
 	if (!notitle)
 		puts("fsck (busybox "BB_VER", "BB_BT")");
