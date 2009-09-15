@@ -448,7 +448,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 
 		// If mount failed, try
 		// helper program mount.<mnt_type>
-		if (HELPERS_ALLOWED && rc) {
+		if (HELPERS_ALLOWED && rc && mp->mnt_type) {
 			char *args[8];
 			int errno_save = errno;
 			args[0] = xasprintf("mount.%s", mp->mnt_type);
