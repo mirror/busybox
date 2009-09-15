@@ -78,7 +78,7 @@ struct ocfs2_super_block {
 	uint64_t	s_first_cluster_group;		/* Block offset of 1st cluster group header */
 	uint8_t		s_label[OCFS2_MAX_VOL_LABEL_LEN];	/* Label for mounting, etc. */
 	uint8_t		s_uuid[OCFS2_VOL_UUID_LEN];	/* 128-bit uuid */
-} __attribute__((__packed__));
+} PACKED;
 
 int volume_id_probe_ocfs2(struct volume_id *id /*,uint64_t off*/)
 {

@@ -1117,7 +1117,7 @@ static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 			uint32_t mtime;
 			uint8_t xtra_flags_UNUSED;
 			uint8_t os_flags_UNUSED;
-		} __attribute__((packed)) formatted;
+		} PACKED formatted;
 	} header;
 	struct BUG_header {
 		char BUG_header[sizeof(header) == 8 ? 1 : -1];

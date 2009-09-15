@@ -156,7 +156,7 @@ typedef struct {
 	uint8_t pos;
 	uint32_t dict_size;
 	uint64_t dst_size;
-} __attribute__ ((packed)) lzma_header_t;
+} PACKED lzma_header_t;
 
 
 /* #defines will force compiler to compute/optimize each one with each usage.

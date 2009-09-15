@@ -31,7 +31,7 @@ struct msdos_partition_entry {
 	uint8_t		end_cyl;
 	uint32_t	start_sect;
 	uint32_t	nr_sects;
-} __attribute__((packed));
+} PACKED;
 
 #define MSDOS_PARTTABLE_OFFSET		0x1be
 #define MSDOS_SIG_OFF			0x1fe

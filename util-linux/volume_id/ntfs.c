@@ -45,7 +45,7 @@ struct ntfs_super_block {
 	uint8_t		reserved2[3];
 	uint8_t		volume_serial[8];
 	uint16_t	checksum;
-} __attribute__((__packed__));
+} PACKED;
 
 struct master_file_table_record {
 	uint8_t		magic[4];
@@ -58,7 +58,7 @@ struct master_file_table_record {
 	uint16_t	flags;
 	uint32_t	bytes_in_use;
 	uint32_t	bytes_allocated;
-} __attribute__((__packed__));
+} PACKED;
 
 struct file_attribute {
 	uint32_t	type;
@@ -70,13 +70,13 @@ struct file_attribute {
 	uint16_t	instance;
 	uint32_t	value_len;
 	uint16_t	value_offset;
-} __attribute__((__packed__));
+} PACKED;
 
 struct volume_info {
 	uint64_t	reserved;
 	uint8_t		major_ver;
 	uint8_t		minor_ver;
-} __attribute__((__packed__));
+} PACKED;
 
 #define MFT_RECORD_VOLUME			3
 #define MFT_RECORD_ATTR_VOLUME_NAME		0x60

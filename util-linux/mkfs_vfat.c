@@ -79,7 +79,7 @@ struct msdos_dir_entry {
 	uint16_t date;           /* 018 date */
 	uint16_t start;          /* 01a first cluster */
 	uint32_t size;           /* 01c file size in bytes */
-} __attribute__ ((packed));
+} PACKED;
 
 /* Example of boot sector's beginning:
 0000  eb 58 90 4d 53 57 49 4e  34 2e 31 00 02 08 26 00  |...MSWIN4.1...&.|
@@ -96,7 +96,7 @@ struct msdos_volume_info { /* (offsets are relative to start of boot sector) */
 	uint32_t volume_id32;     /* 043 volume ID number */
 	char     volume_label[11];/* 047 volume label */
 	char     fs_type[8];      /* 052 typically "FATnn" */
-} __attribute__ ((packed));       /* 05a end. Total size 26 (0x1a) bytes */
+} PACKED;                         /* 05a end. Total size 26 (0x1a) bytes */
 
 struct msdos_boot_sector {
 	char     boot_jump[3];       /* 000 short or near jump instruction */
@@ -124,7 +124,7 @@ struct msdos_boot_sector {
 	char     boot_code[0x200 - 0x5a - 2]; /* 05a */
 #define BOOT_SIGN 0xAA55
 	uint16_t boot_sign;          /* 1fe */
-} __attribute__ ((packed));
+} PACKED;
 
 #define FAT_FSINFO_SIG1 0x41615252
 #define FAT_FSINFO_SIG2 0x61417272
@@ -137,7 +137,7 @@ struct fat32_fsinfo {
 	uint32_t reserved2[3];
 	uint16_t reserved3;          /* 1fc */
 	uint16_t boot_sign;          /* 1fe */
-} __attribute__ ((packed));
+} PACKED;
 
 struct bug_check {
 	char BUG1[sizeof(struct msdos_dir_entry  ) == 0x20 ? 1 : -1];
