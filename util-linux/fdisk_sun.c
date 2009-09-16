@@ -27,9 +27,9 @@
 
 #define SCSI_IOCTL_GET_IDLUN 0x5382
 
-static int sun_other_endian;
-static int scsi_disk;
-static int floppy;
+static smallint sun_other_endian;
+static smallint scsi_disk;
+static smallint floppy;
 
 #ifndef IDE0_MAJOR
 #define IDE0_MAJOR 3
@@ -81,7 +81,7 @@ static const char *const sun_sys_types[] = {
 
 
 static void
-set_sun_partition(int i, uint start, uint stop, int sysid)
+set_sun_partition(int i, unsigned start, unsigned stop, int sysid)
 {
 	sunlabel->infos[i].id = sysid;
 	sunlabel->partitions[i].start_cylinder =
@@ -98,7 +98,8 @@ check_sun_label(void)
 	int csum;
 
 	if (sunlabel->magic != SUN_LABEL_MAGIC
-	 && sunlabel->magic != SUN_LABEL_MAGIC_SWAPPED) {
+	 && sunlabel->magic != SUN_LABEL_MAGIC_SWAPPED
+	) {
 		current_label_type = LABEL_DOS;
 		sun_other_endian = 0;
 		return 0;
@@ -173,7 +174,7 @@ sun_autoconfigure_scsi(void)
 		return NULL;
 
 	sprintf(buffer,
-		"Host: scsi%d Channel: %02d Id: %02d Lun: %02d\n",
+		"Host: scsi%u Channel: %02u Id: %02u Lun: %02u\n",
 		/* This is very wrong (works only if you have one HBA),
 		   but I haven't found a way how to get hostno
 		   from the current kernel */
@@ -317,7 +318,7 @@ create_sunlabel(void)
 	}
 
 	snprintf((char *)(sunlabel->info), sizeof(sunlabel->info),
-		"%s%s%s cyl %d alt %d hd %d sec %d",
+		"%s%s%s cyl %u alt %u hd %u sec %u",
 		p ? p->vendor : "", (p && *p->vendor) ? " " : "",
 		p ? p->model : (floppy ? "3,5\" floppy" : "Linux custom"),
 		g_cylinders, SUN_SSWAP16(sunlabel->nacyl), g_heads, g_sectors);
@@ -361,7 +362,7 @@ toggle_sunflags(int i, unsigned char mask)
 }
 
 static void
-fetch_sun(uint *starts, uint *lens, uint *start, uint *stop)
+fetch_sun(unsigned *starts, unsigned *lens, unsigned *start, unsigned *stop)
 {
 	int i, continuous = 1;
 
@@ -390,7 +391,7 @@ fetch_sun(uint *starts, uint *lens, uint *start, uint *stop)
 	}
 }
 
-static uint *verify_sun_starts;
+static unsigned *verify_sun_starts;
 
 static int
 verify_sun_cmp(int *a, int *b)
@@ -404,7 +405,7 @@ verify_sun_cmp(int *a, int *b)
 static void
 verify_sun(void)
 {
-	uint starts[8], lens[8], start, stop;
+	unsigned starts[8], lens[8], start, stop;
 	int i,j,k,starto,endo;
 	int array[8];
 
@@ -413,7 +414,7 @@ verify_sun(void)
 	for (k = 0; k < 7; k++) {
 		for (i = 0; i < 8; i++) {
 			if (k && (lens[i] % (g_heads * g_sectors))) {
-				printf("Partition %d doesn't end on cylinder boundary\n", i+1);
+				printf("Partition %u doesn't end on cylinder boundary\n", i+1);
 			}
 			if (lens[i]) {
 				for (j = 0; j < i; j++)
@@ -433,8 +434,8 @@ verify_sun(void)
 								endo = starts[i]+lens[i];
 								if (starts[j]+lens[j] < endo)
 									endo = starts[j]+lens[j];
-								printf("Partition %d overlaps with others in "
-									"sectors %d-%d\n", i+1, starto, endo);
+								printf("Partition %u overlaps with others in "
+									"sectors %u-%u\n", i+1, starto, endo);
 							}
 						}
 					}
@@ -455,20 +456,20 @@ verify_sun(void)
 	}
 	stop = g_cylinders * g_heads * g_sectors;
 	if (starts[array[0]])
-		printf("Unused gap - sectors 0-%d\n", starts[array[0]]);
+		printf("Unused gap - sectors %u-%u\n", 0, starts[array[0]]);
 	for (i = 0; i < 7 && array[i+1] != -1; i++) {
-		printf("Unused gap - sectors %d-%d\n", starts[array[i]]+lens[array[i]], starts[array[i+1]]);
+		printf("Unused gap - sectors %u-%u\n", starts[array[i]]+lens[array[i]], starts[array[i+1]]);
 	}
 	start = starts[array[i]] + lens[array[i]];
 	if (start < stop)
-		printf("Unused gap - sectors %d-%d\n", start, stop);
+		printf("Unused gap - sectors %u-%u\n", start, stop);
 }
 
 static void
 add_sun_partition(int n, int sys)
 {
-	uint start, stop, stop2;
-	uint starts[8], lens[8];
+	unsigned start, stop, stop2;
+	unsigned starts[8], lens[8];
 	int whole_disk = 0;
 
 	char mesg[256];
@@ -529,7 +530,7 @@ and is of type 'Whole disk'\n");
 				whole_disk = 1;
 				break;
 			}
-			printf("Sector %d is already allocated\n", first);
+			printf("Sector %u is already allocated\n", first);
 		} else
 			break;
 	}
@@ -560,8 +561,8 @@ and is of type 'Whole disk'\n");
 		} else if (last > stop) {
 			printf(
 "You haven't covered the whole disk with the 3rd partition,\n"
-"but your value %d %s covers some other partition.\n"
-"Your entry has been changed to %d %s\n",
+"but your value %u %s covers some other partition.\n"
+"Your entry has been changed to %u %s\n",
 				scround(last), str_units(SINGULAR),
 				scround(stop), str_units(SINGULAR));
 			last = stop;
@@ -627,11 +628,11 @@ sun_list_table(int xtra)
 	w = strlen(disk_device);
 	if (xtra)
 		printf(
-		"\nDisk %s (Sun disk label): %d heads, %d sectors, %d rpm\n"
-		"%d cylinders, %d alternate cylinders, %d physical cylinders\n"
-		"%d extra sects/cyl, interleave %d:1\n"
+		"\nDisk %s (Sun disk label): %u heads, %u sectors, %u rpm\n"
+		"%u cylinders, %u alternate cylinders, %u physical cylinders\n"
+		"%u extra sects/cyl, interleave %u:1\n"
 		"%s\n"
-		"Units = %s of %d * 512 bytes\n\n",
+		"Units = %s of %u * 512 bytes\n\n",
 			disk_device, g_heads, g_sectors, SUN_SSWAP16(sunlabel->rspeed),
 			g_cylinders, SUN_SSWAP16(sunlabel->nacyl),
 			SUN_SSWAP16(sunlabel->pcylcount),
@@ -641,8 +642,8 @@ sun_list_table(int xtra)
 			str_units(PLURAL), units_per_sector);
 	else
 		printf(
-	"\nDisk %s (Sun disk label): %d heads, %d sectors, %d cylinders\n"
-	"Units = %s of %d * 512 bytes\n\n",
+	"\nDisk %s (Sun disk label): %u heads, %u sectors, %u cylinders\n"
+	"Units = %s of %u * 512 bytes\n\n",
 			disk_device, g_heads, g_sectors, g_cylinders,
 			str_units(PLURAL), units_per_sector);
 
@@ -652,7 +653,7 @@ sun_list_table(int xtra)
 		if (sunlabel->partitions[i].num_sectors) {
 			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * g_heads * g_sectors;
 			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
-			printf("%s %c%c %9ld %9ld %9ld%c  %2x  %s\n",
+			printf("%s %c%c %9lu %9lu %9lu%c  %2x  %s\n",
 				partname(disk_device, i+1, w),			/* device */
 				(sunlabel->infos[i].flags & 0x01) ? 'u' : ' ',  /* flags */
 				(sunlabel->infos[i].flags & 0x10) ? 'r' : ' ',
