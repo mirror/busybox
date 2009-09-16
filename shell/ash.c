@@ -5552,7 +5552,7 @@ exptilde(char *startp, char *p, int flags)
 	char *name;
 	struct passwd *pw;
 	const char *home;
-	int quotes = flags & (EXP_FULL | EXP_CASE);
+	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
 	int startloc;
 
 	name = p + 1;
@@ -6327,7 +6327,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	int syntax;
 	int quoted = varflags & VSQUOTE;
 	int subtype = varflags & VSTYPE;
-	int quotes = flags & (EXP_FULL | EXP_CASE);
+	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
 
 	if (quoted && (flags & EXP_FULL))
 		sep = 1 << CHAR_BIT;
@@ -6563,6 +6563,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		patloc = expdest - (char *)stackblock();
 		if (0 == subevalvar(p, /* str: */ NULL, patloc, subtype,
 				startloc, varflags,
+//TODO: | EXP_REDIR too? All other such places do it too
 				/* quotes: */ flags & (EXP_FULL | EXP_CASE),
 				var_str_list)
 		) {
