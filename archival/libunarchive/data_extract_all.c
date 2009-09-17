@@ -128,10 +128,11 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				struct group *grp = getgrnam(file_header->gname);
 				if (grp) gid = grp->gr_gid;
 			}
-			lchown(file_header->name, uid, gid);
+			/* GNU tar 1.15.1 use chown, not lchown */
+			chown(file_header->name, uid, gid);
 		} else
 #endif
-			lchown(file_header->name, file_header->uid, file_header->gid);
+			chown(file_header->name, file_header->uid, file_header->gid);
 	}
 	if (!S_ISLNK(file_header->mode)) {
 		/* uclibc has no lchmod, glibc is even stranger -
