@@ -4,14 +4,14 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-#define ARCHIVE_PRESERVE_DATE           1
-#define ARCHIVE_CREATE_LEADING_DIRS     2
-#define ARCHIVE_EXTRACT_UNCONDITIONAL   4
-#define ARCHIVE_EXTRACT_QUIET           8
-#define ARCHIVE_EXTRACT_NEWER           16
-#define ARCHIVE_NOPRESERVE_OWN          32
-#define ARCHIVE_NOPRESERVE_PERM         64
-#define ARCHIVE_NUMERIC_OWNER           128
+#define ARCHIVE_RESTORE_DATE        (1 << 0)
+#define ARCHIVE_CREATE_LEADING_DIRS (1 << 1)
+#define ARCHIVE_UNLINK_OLD          (1 << 2)
+#define ARCHIVE_EXTRACT_QUIET       (1 << 3)
+#define ARCHIVE_EXTRACT_NEWER       (1 << 4)
+#define ARCHIVE_DONT_RESTORE_OWNER  (1 << 5)
+#define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
+#define ARCHIVE_NUMERIC_OWNER       (1 << 7)
 
 typedef struct file_header_t {
 	char *name;

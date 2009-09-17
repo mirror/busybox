@@ -387,7 +387,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 			archive_handle->action_data = data_extract_to_stdout;
 	}
 	if (opt & CPIO_OPT_UNCONDITIONAL) {
-		archive_handle->ah_flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
+		archive_handle->ah_flags |= ARCHIVE_UNLINK_OLD;
 		archive_handle->ah_flags &= ~ARCHIVE_EXTRACT_NEWER;
 	}
 	if (opt & CPIO_OPT_VERBOSE) {
@@ -405,7 +405,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		archive_handle->ah_flags |= ARCHIVE_CREATE_LEADING_DIRS;
 	}
 	if (opt & CPIO_OPT_PRESERVE_MTIME) {
-		archive_handle->ah_flags |= ARCHIVE_PRESERVE_DATE;
+		archive_handle->ah_flags |= ARCHIVE_RESTORE_DATE;
 	}
 
 	while (*argv) {

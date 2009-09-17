@@ -735,10 +735,10 @@ enum {
 	IF_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
-	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
-	OPTBIT_NOPRESERVE_OWN,
-	OPTBIT_NOPRESERVE_PERM,
+	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) /* 15th bit */
 	OPTBIT_NUMERIC_OWNER,
+	OPTBIT_NOPRESERVE_OWNER,
+	OPTBIT_NOPRESERVE_PERM,
 	OPT_TEST         = 1 << 0, // t
 	OPT_EXTRACT      = 1 << 1, // x
 	OPT_BASEDIR      = 1 << 2, // C
@@ -755,9 +755,9 @@ enum {
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
-	OPT_NOPRESERVE_OWN  = 1 << OPTBIT_NOPRESERVE_OWN , // no-same-owner
-	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 	OPT_NUMERIC_OWNER = 1 << OPTBIT_NUMERIC_OWNER,
+	OPT_NOPRESERVE_OWNER = 1 << OPTBIT_NOPRESERVE_OWNER , // no-same-owner
+	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -789,12 +789,15 @@ static const char tar_longopts[] ALIGN1 =
 # if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
 # endif
+	/* use numeric uid/gid from tar header, not textual */
 	"numeric-owner\0"       No_argument       "\xfc"
+	/* do not restore owner */
 	"no-same-owner\0"       No_argument       "\xfd"
+	/* do not restore mode */
 	"no-same-permissions\0" No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
 	/* therefore we have to either put it _after_ --no-same-perm */
-	/* or add OPT[BIT]_EXCLUDE before OPT[BIT]_NOPRESERVE_OWN */
+	/* or add OPT[BIT]_EXCLUDE before OPT[BIT]_NOPRESERVE_OWNER */
 # if ENABLE_FEATURE_TAR_FROM
 	"exclude\0"             Required_argument "\xff"
 # endif
@@ -817,12 +820,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	/* Initialise default values */
 	tar_handle = init_handle();
 	tar_handle->ah_flags = ARCHIVE_CREATE_LEADING_DIRS
-	                     | ARCHIVE_PRESERVE_DATE
-	                     | ARCHIVE_EXTRACT_UNCONDITIONAL;
+	                     | ARCHIVE_RESTORE_DATE
+	                     | ARCHIVE_UNLINK_OLD;
 
 	/* Apparently only root's tar preserves perms (see bug 3844) */
 	if (getuid() != 0)
-		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_PERM;
+		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_PERM;
 
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
@@ -856,6 +859,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		, &verboseFlag // combined count for -t and -v
 		, &verboseFlag // combined count for -t and -v
 		);
+	//bb_error_msg("opt:%08x", opt);
 	argv += optind;
 
 	if (verboseFlag) tar_handle->action_header = header_verbose_list;
@@ -868,16 +872,16 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		tar_handle->action_data = data_extract_to_stdout;
 
 	if (opt & OPT_KEEP_OLD)
-		tar_handle->ah_flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
-
-	if (opt & OPT_NOPRESERVE_OWN)
-		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_OWN;
-
-	if (opt & OPT_NOPRESERVE_PERM)
-		tar_handle->ah_flags |= ARCHIVE_NOPRESERVE_PERM;
+		tar_handle->ah_flags &= ~ARCHIVE_UNLINK_OLD;
 
 	if (opt & OPT_NUMERIC_OWNER)
 		tar_handle->ah_flags |= ARCHIVE_NUMERIC_OWNER;
+
+	if (opt & OPT_NOPRESERVE_OWNER)
+		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_OWNER;
+
+	if (opt & OPT_NOPRESERVE_PERM)
+		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_PERM;
 
 	if (opt & OPT_GZIP)
 		get_header_ptr = get_header_tar_gz;
