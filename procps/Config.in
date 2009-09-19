@@ -188,6 +188,13 @@ config FEATURE_TOPMEM
 	help
 	  Enable 's' in top (gives lots of memory info).
 
+config FEATURE_SHOW_THREADS
+	bool "Support for showing threads in ps/top"
+	default n
+	depends on PS || TOP
+	help
+	  Enables ps -T option and 'h' command in top
+
 config UPTIME
 	bool "uptime"
 	default n
@@ -202,6 +209,5 @@ config WATCH
 	help
 	  watch is used to execute a program periodically, showing
 	  output to the screen.
-
 
 endmenu

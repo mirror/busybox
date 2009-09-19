@@ -976,7 +976,10 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		/* read process IDs & status for all the processes */
 		while ((p = procps_scan(p, scan_mask)) != NULL) {
 			int n;
-			if (scan_mask == TOP_MASK) {
+#if ENABLE_FEATURE_TOPMEM
+			if (scan_mask != TOPMEM_MASK)
+#endif
+			{
 				n = ntop;
 				top = xrealloc_vector(top, 6, ntop++);
 				top[n].pid = p->pid;
@@ -991,8 +994,9 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_TOP_SMP_PROCESS
 				top[n].last_seen_on_cpu = p->last_seen_on_cpu;
 #endif
-			} else { /* TOPMEM */
+			}
 #if ENABLE_FEATURE_TOPMEM
+			else { /* TOPMEM */
 				if (!(p->mapped_ro | p->mapped_rw))
 					continue; /* kernel threads are ignored */
 				n = ntop;
@@ -1007,15 +1011,15 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 				topmem[n].dirty    = p->private_dirty + p->shared_dirty;
 				topmem[n].dirty_sh = p->shared_dirty;
 				topmem[n].stack    = p->stack;
-#endif
 			}
+#endif
 		} /* end of "while we read /proc" */
 		if (ntop == 0) {
 			bb_error_msg("no process info in /proc");
 			break;
 		}
 
-		if (scan_mask == TOP_MASK) {
+		if (scan_mask != TOPMEM_MASK) {
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			if (!prev_hist_count) {
 				do_stats();
@@ -1039,7 +1043,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		if (OPT_BATCH_MODE) {
 			lines_rem = INT_MAX;
 		}
-		if (scan_mask == TOP_MASK)
+		if (scan_mask != TOPMEM_MASK)
 			display_process_list(lines_rem, col);
 #if ENABLE_FEATURE_TOPMEM
 		else
@@ -1076,6 +1080,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 				sort_function[2] = time_sort;
 # endif
 			}
+#if ENABLE_FEATURE_SHOW_THREADS
+			if (c == 'h'
+			 IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
+			) {
+				scan_mask ^= PSSCAN_TASKS;
+			}
+#endif
 # if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			if (c == 'p') {
 				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)

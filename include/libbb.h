@@ -1275,6 +1275,7 @@ enum { COMM_LEN = 16 };
 #endif
 typedef struct procps_status_t {
 	DIR *dir;
+	IF_FEATURE_SHOW_THREADS(DIR *task_dir;)
 	uint8_t shift_pages_to_bytes;
 	uint8_t shift_pages_to_kb;
 /* Fields are set to 0/NULL if failed to determine (or not requested) */
@@ -1348,6 +1349,7 @@ enum {
 	PSSCAN_CPU      = (1 << 19) * ENABLE_FEATURE_TOP_SMP_PROCESS,
 	PSSCAN_NICE     = (1 << 20) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
 	PSSCAN_RUIDGID  = (1 << 21) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
+	PSSCAN_TASKS	= (1 << 22) * ENABLE_FEATURE_SHOW_THREADS,
 	/* These are all retrieved from proc/NN/stat in one go: */
 	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
 	/**/            | PSSCAN_COMM | PSSCAN_STATE

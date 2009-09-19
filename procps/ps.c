@@ -17,7 +17,6 @@ enum { MAX_WIDTH = 2*1024 };
 #if ENABLE_DESKTOP
 
 #include <sys/times.h> /* for times() */
-//#include <sys/sysinfo.h> /* for sysinfo() */
 #ifndef AT_CLKTCK
 #define AT_CLKTCK 17
 #endif
@@ -61,6 +60,7 @@ struct globals {
 #define kernel_HZ          (G.kernel_HZ         )
 #define seconds_since_boot (G.seconds_since_boot)
 #define default_o          (G.default_o         )
+#define INIT_G() do { } while (0)
 
 #if ENABLE_FEATURE_PS_TIME
 /* for ELF executables, notes are pushed before environment and args */
@@ -452,21 +452,34 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
-	IF_SELINUX(int opt;)
+	int opt;
+	enum {
+		OPT_Z = (1 << 0),
+		OPT_o = (1 << 1),
+		OPT_a = (1 << 2),
+		OPT_A = (1 << 3),
+		OPT_d = (1 << 4),
+		OPT_e = (1 << 5),
+		OPT_f = (1 << 6),
+		OPT_l = (1 << 7),
+		OPT_T = (1 << 8) * ENABLE_FEATURE_SHOW_THREADS,
+	};
+
+	INIT_G();
 
 	// POSIX:
 	// -a  Write information for all processes associated with terminals
 	//     Implementations may omit session leaders from this list
 	// -A  Write information for all processes
 	// -d  Write information for all processes, except session leaders
-	// -e  Write information for all processes (equivalent to -A.)
+	// -e  Write information for all processes (equivalent to -A)
 	// -f  Generate a full listing
 	// -l  Generate a long listing
 	// -o col1,col2,col3=header
 	//     Select which columns to display
 	/* We allow (and ignore) most of the above. FIXME */
 	opt_complementary = "o::";
-	IF_SELINUX(opt =) getopt32(argv, "Zo:aAdefl", &opt_o);
+	opt = getopt32(argv, "Zo:aAdefl" IF_FEATURE_SHOW_THREADS("T"), &opt_o);
 	if (opt_o) {
 		do {
 			parse_o(llist_pop(&opt_o));
@@ -474,7 +487,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		/* Below: parse_o() needs char*, NOT const char*... */
 #if ENABLE_SELINUX
-		if (!(opt & 1) || !is_selinux_enabled()) {
+		if (!(opt & OPT_Z) || !is_selinux_enabled()) {
 			/* no -Z or no SELinux: do not show LABEL */
 			strcpy(default_o, DEFAULT_O_STR + sizeof(SELINUX_O_PREFIX)-1);
 		} else
@@ -485,6 +498,10 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 		parse_o(default_o);
 	}
 	post_process();
+#if ENABLE_FEATURE_SHOW_THREADS
+	if (opt & OPT_T)
+		need_flags |= PSSCAN_TASKS;
+#endif
 
 	/* Was INT_MAX, but some libc's go belly up with printf("%.*s")
 	 * and such large widths */
@@ -497,7 +514,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	format_header();
 
 	p = NULL;
-	while ((p = procps_scan(p, need_flags))) {
+	while ((p = procps_scan(p, need_flags)) != NULL) {
 		format_process(p);
 	}
 
@@ -558,7 +575,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			| PSSCAN_VSZ
 			| PSSCAN_COMM
 			| use_selinux
-	))) {
+	)) != NULL) {
 #if ENABLE_SELINUX
 		if (use_selinux) {
 			len = printf("%5u %-32.32s %s  ",
