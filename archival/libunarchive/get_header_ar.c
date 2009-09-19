@@ -7,10 +7,20 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+static unsigned read_num(const char *str, int base)
+{
+	/* This code works because
+	 * on misformatted numbers bb_strtou returns all-ones */
+	int err = bb_strtou(str, NULL, base);
+	if (err == -1)
+		bb_error_msg_and_die("invalid ar header");
+	return err;
+}
+
 char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 {
-	int err;
 	file_header_t *typed = archive_handle->file_header;
+	unsigned size;
 	union {
 		char raw[60];
 		struct {
@@ -49,57 +59,60 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	if (ar.formatted.magic[0] != '`' || ar.formatted.magic[1] != '\n')
 		bb_error_msg_and_die("invalid ar header");
 
-	/* FIXME: more thorough routine would be in order here */
-	/* (we have something like that in tar) */
-	/* but for now we are lax. This code works because */
-	/* on misformatted numbers bb_strtou returns all-ones */
-	typed->mode = err = bb_strtou(ar.formatted.mode, NULL, 8);
-	if (err == -1) bb_error_msg_and_die("invalid ar header");
-	typed->mtime = err = bb_strtou(ar.formatted.date, NULL, 10);
-	if (err == -1) bb_error_msg_and_die("invalid ar header");
-	typed->uid = err = bb_strtou(ar.formatted.uid, NULL, 10);
-	if (err == -1) bb_error_msg_and_die("invalid ar header");
-	typed->gid = err = bb_strtou(ar.formatted.gid, NULL, 10);
-	if (err == -1) bb_error_msg_and_die("invalid ar header");
-	typed->size = err = bb_strtou(ar.formatted.size, NULL, 10);
-	if (err == -1) bb_error_msg_and_die("invalid ar header");
+	/* FIXME: more thorough routine would be in order here
+	 * (we have something like that in tar)
+	 * but for now we are lax. */
+	typed->size = size = read_num(ar.formatted.size, 10);
 
-	/* long filenames have '/' as the first character */
+	/* special filenames have '/' as the first character */
 	if (ar.formatted.name[0] == '/') {
-#if ENABLE_FEATURE_AR_LONG_FILENAMES
-		unsigned long_offset;
-
-		if (ar.formatted.name[1] == '/') {
-			/* If the second char is a '/' then this entries data section
-			 * stores long filename for multiple entries, they are stored
-			 * in static variable long_names for use in future entries */
-			ar_long_name_size = typed->size;
-			ar_long_names = xmalloc(ar_long_name_size);
-			xread(archive_handle->src_fd, ar_long_names, ar_long_name_size);
-			archive_handle->offset += ar_long_name_size;
-			/* This ar entries data section only contained filenames for other records
-			 * they are stored in the static ar_long_names for future reference */
-			return get_header_ar(archive_handle); /* Return next header */
-		}
-
 		if (ar.formatted.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
 			data_skip(archive_handle);
-			archive_handle->offset += typed->size;
+			archive_handle->offset += size;
 			return get_header_ar(archive_handle); /* Return next header */
 		}
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
+		if (ar.formatted.name[1] == '/') {
+			/* If the second char is a '/' then this entries data section
+			 * stores long filename for multiple entries, they are stored
+			 * in static variable long_names for use in future entries
+			 */
+			ar_long_name_size = size;
+			free(ar_long_names);
+			ar_long_names = xmalloc(size);
+			xread(archive_handle->src_fd, ar_long_names, size);
+			archive_handle->offset += size;
+			/* Return next header */
+			return get_header_ar(archive_handle);
+		}
+#else
+		bb_error_msg_and_die("long filenames not supported");
+#endif
+	}
+	/* Only size is always present, the rest may be missing in
+	 * long filename pseudo file. Thus we decode the rest
+	 * after dealing with long filename pseudo file.
+	 */
+	typed->mode = read_num(ar.formatted.mode, 8);
+	typed->mtime = read_num(ar.formatted.date, 10);
+	typed->uid = read_num(ar.formatted.uid, 10);
+	typed->gid = read_num(ar.formatted.gid, 10);
+
+#if ENABLE_FEATURE_AR_LONG_FILENAMES
+	if (ar.formatted.name[0] == '/') {
+		unsigned long_offset;
 
 		/* The number after the '/' indicates the offset in the ar data section
-		 * (saved in variable long_name) that conatains the real filename */
-		long_offset = atoi(&ar.formatted.name[1]);
+		 * (saved in ar_long_names) that conatains the real filename */
+		long_offset = read_num(&ar.formatted.name[1], 10);
 		if (long_offset >= ar_long_name_size) {
 			bb_error_msg_and_die("can't resolve long filename");
 		}
 		typed->name = xstrdup(ar_long_names + long_offset);
-#else
-		bb_error_msg_and_die("long filenames not supported");
+	} else
 #endif
-	} else {
+	{
 		/* short filenames */
 		typed->name = xstrndup(ar.formatted.name, 16);
 	}
