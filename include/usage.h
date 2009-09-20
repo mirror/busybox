@@ -3424,6 +3424,9 @@
        "Report process status\n" \
      "\nOptions:" \
      "\n	-o col1,col2=header	Select columns for display" \
+	IF_FEATURE_SHOW_THREADS( \
+     "\n	-T			Show threads" \
+	)
 
 #else /* !ENABLE_DESKTOP */
 
