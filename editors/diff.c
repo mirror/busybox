@@ -14,6 +14,9 @@
 
 #include "libbb.h"
 
+#define dbg_error_msg(...) ((void)0)
+//#define dbg_error_msg(...) bb_error_msg(__VA_ARGS__)
+
 // #define FSIZE_MAX 32768
 
 /* NOINLINEs added to prevent gcc from merging too much into diffreg()
@@ -474,12 +477,13 @@ static int stone(int *a, int n, int *b, int *c)
 {
 	int i, k, y, j, l;
 	int oldc, tc, oldl;
-	unsigned int numtries;
+	unsigned numtries;
+	int isq = isqrt(n);
 #if ENABLE_FEATURE_DIFF_MINIMAL
-	const unsigned int bound =
-		(option_mask32 & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
+	const unsigned bound =
+		(option_mask32 & FLAG_d) ? UINT_MAX : MAX(256, isq);
 #else
-	const unsigned int bound = MAX(256, isqrt(n));
+	const unsigned bound = MAX(256, isq);
 #endif
 
 	k = 0;
@@ -769,6 +773,8 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
 	if (context_idx < 0)
 		return;
 
+	dbg_error_msg("dumping %d context_vecs", context_idx+1);
+
 	b = d = 0;			/* gcc */
 	lowa = MAX(1, cvp->a - opt_U_context);
 	upb = MIN(nlen[0], context_vector[context_idx].b + opt_U_context);
@@ -860,6 +866,10 @@ static void change(const char *file1, FILE *f1, const char *file2, FILE *f2,
 			int a, int b, int c, int d)
 {
 	if ((a > b && c > d) || (option_mask32 & FLAG_q)) {
+//compat BUG: "diff -ub F1 F2" will output nothing, but will exit 1
+//if F1 and F2 differ only in whitespace. "standard" diff exits 0.
+//This is the place where this erroneous exitcode is set:
+		dbg_error_msg("%d: abcd:%d,%d,%d,%d, anychange=1", __LINE__, a,b,c,d);
 		anychange = 1;
 		return;
 	}
@@ -885,6 +895,7 @@ static void change(const char *file1, FILE *f1, const char *file2, FILE *f2,
 	context_vector[context_idx].b = b;
 	context_vector[context_idx].c = c;
 	context_vector[context_idx].d = d;
+	dbg_error_msg("new context_vec[%d]:%d,%d,%d,%d", context_idx, a,b,c,d);
 	anychange = 1;
 }
 
@@ -1074,6 +1085,7 @@ static unsigned diffreg(const char *file1, const char *file2, int flags)
  closem:
 	if (anychange) {
 		exit_status |= 1;
+		dbg_error_msg("exit_status|=1 = %d", exit_status);
 		if (rval == D_SAME)
 			rval = D_DIFFER;
 	}
