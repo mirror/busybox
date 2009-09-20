@@ -12,26 +12,27 @@
 #include "volume_id.h"
 
 int findfs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int findfs_main(int argc, char **argv)
+int findfs_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *tmp = NULL;
+	char *dev = *++argv;
 
-	if (argc != 2)
+	if (!dev)
 		bb_show_usage();
 
-	if (!strncmp(argv[1], "LABEL=", 6))
-		tmp = get_devname_from_label(argv[1] + 6);
-	else if (!strncmp(argv[1], "UUID=", 5))
-		tmp = get_devname_from_uuid(argv[1] + 5);
-	else if (!strncmp(argv[1], "/dev/", 5)) {
-		/* Just pass a device name right through.  This might aid in some scripts
-		being able to call this unconditionally */
-		tmp = argv[1];
-	} else
-		bb_show_usage();
+	if (strncmp(dev, "/dev/", 5) == 0) {
+		/* Just pass any /dev/xxx name right through.
+		 * This might aid in some scripts being able
+		 * to call this unconditionally */
+		dev = NULL;
+	} else {
+		/* Otherwise, handle LABEL=xxx and UUID=xxx,
+		 * fail on anything else */
+		if (!resolve_mount_spec(argv))
+			bb_show_usage();
+	}
 
-	if (tmp) {
-		puts(tmp);
+	if (*argv != dev) {
+		puts(*argv);
 		return 0;
 	}
 	return 1;

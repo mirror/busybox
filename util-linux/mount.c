@@ -50,7 +50,9 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_MOUNT_LABEL
-#include "volume_id.h"
+# include "volume_id.h"
+#else
+# define resolve_mount_spec(fsname) ((void)0)
 #endif
 
 // Needed for nfs support only
@@ -288,23 +290,6 @@ static int verbose_mount(const char *source, const char *target,
 }
 #else
 #define verbose_mount(...) mount(__VA_ARGS__)
-#endif
-
-#if ENABLE_FEATURE_MOUNT_LABEL
-static void resolve_mount_spec(char **fsname)
-{
-	char *tmp = NULL;
-
-	if (!strncmp(*fsname, "UUID=", 5))
-		tmp = get_devname_from_uuid(*fsname + 5);
-	else if (!strncmp(*fsname, "LABEL=", 6))
-		tmp = get_devname_from_label(*fsname + 6);
-
-	if (tmp)
-		*fsname = tmp;
-}
-#else
-#define resolve_mount_spec(fsname) ((void)0)
 #endif
 
 // Append mount options to string

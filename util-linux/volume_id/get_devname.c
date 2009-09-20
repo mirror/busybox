@@ -260,3 +260,20 @@ char *get_devname_from_uuid(const char *spec)
 	}
 	return NULL;
 }
+
+int resolve_mount_spec(char **fsname)
+{
+	char *tmp = *fsname;
+
+	if (strncmp(*fsname, "UUID=", 5) == 0)
+		tmp = get_devname_from_uuid(*fsname + 5);
+	else if (strncmp(*fsname, "LABEL=", 6) == 0)
+		tmp = get_devname_from_label(*fsname + 6);
+
+	if (tmp == *fsname)
+		return 0; /* no UUID= or LABEL= prefix found */
+
+	if (tmp)
+		*fsname = tmp;
+	return 1;
+}

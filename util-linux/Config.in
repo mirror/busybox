@@ -689,6 +689,7 @@ config FEATURE_MOUNT_LABEL
 	help
 	  This allows for specifying a device by label or uuid, rather than by
 	  name. This feature utilizes the same functionality as blkid/findfs.
+	  This also enables label or uuid support for swapon.
 
 config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"

@@ -21,3 +21,10 @@
 char *get_devname_from_label(const char *spec);
 char *get_devname_from_uuid(const char *spec);
 void display_uuid_cache(void);
+
+/* Returns:
+ * 0: no UUID= or LABEL= prefix found
+ * 1: UUID= or LABEL= prefix found. In this case,
+ *    *fsname is replaced if device with such UUID or LABEL is found
+ */
+int resolve_mount_spec(char **fsname);
