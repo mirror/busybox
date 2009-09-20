@@ -102,7 +102,7 @@ struct globals {
 	bool anychange;
 	smallint exit_status;
 	int opt_U_context;
-	size_t max_context;     /* size of context_vec_start */
+	int context_idx;
 	IF_FEATURE_DIFF_DIR(int dl_count;)
 	IF_FEATURE_DIFF_DIR(char **dl;)
 	char *opt_S_start;
@@ -119,9 +119,7 @@ struct globals {
 	long *ixold;            /* will be overlaid on klist */
 	struct line *nfile[2];
 	struct line *sfile[2];  /* shortened by pruning common prefix/suffix */
-	struct context_vec *context_vec_start;
-	struct context_vec *context_vec_end;
-	struct context_vec *context_vec_ptr;
+	struct context_vec *context_vector;
 	char *tempname1, *tempname2;
 	struct stat stb1, stb2;
 };
@@ -129,7 +127,7 @@ struct globals {
 #define anychange          (G.anychange         )
 #define exit_status        (G.exit_status       )
 #define opt_U_context      (G.opt_U_context     )
-#define max_context        (G.max_context       )
+#define context_idx        (G.context_idx       )
 #define dl_count           (G.dl_count          )
 #define dl                 (G.dl                )
 #define opt_S_start        (G.opt_S_start       )
@@ -147,9 +145,7 @@ struct globals {
 #define ixold              (G.ixold             )
 #define nfile              (G.nfile             )
 #define sfile              (G.sfile             )
-#define context_vec_start  (G.context_vec_start )
-#define context_vec_end    (G.context_vec_end   )
-#define context_vec_ptr    (G.context_vec_ptr   )
+#define context_vector     (G.context_vector    )
 #define stb1               (G.stb1              )
 #define stb2               (G.stb2              )
 #define tempname1          (G.tempname1         )
@@ -157,7 +153,7 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	opt_U_context = 3; \
-	max_context = 64; \
+	context_vector = xrealloc_vector(context_vector, 6, 0); \
 } while (0)
 
 
@@ -230,11 +226,10 @@ static ALWAYS_INLINE int fiddle_sum(int sum, int t)
 }
 static int readhash(FILE *fp)
 {
-	int i, t, space;
+	int i, t;
 	int sum;
 
 	sum = 1;
-	space = 0;
 	i = 0;
 	if (!(option_mask32 & (FLAG_b | FLAG_w))) {
 		while ((t = getc(fp)) != '\n') {
@@ -247,8 +242,11 @@ static int readhash(FILE *fp)
 			i = 1;
 		}
 	} else {
+		int space = 0;
+
 		while (1) {
-			switch (t = getc(fp)) {
+			t = getc(fp);
+			switch (t) {
 			case '\t':
 			case '\r':
 			case '\v':
@@ -763,19 +761,19 @@ static int asciifile(FILE *f)
 /* dump accumulated "unified" diff changes */
 static void dump_unified_vec(FILE *f1, FILE *f2)
 {
-	struct context_vec *cvp = context_vec_start;
+	struct context_vec *cvp = context_vector;
 	int lowa, upb, lowc, upd;
 	int a, b, c, d;
 	char ch;
 
-	if (context_vec_start > context_vec_ptr)
+	if (context_idx < 0)
 		return;
 
 	b = d = 0;			/* gcc */
 	lowa = MAX(1, cvp->a - opt_U_context);
-	upb = MIN(nlen[0], context_vec_ptr->b + opt_U_context);
+	upb = MIN(nlen[0], context_vector[context_idx].b + opt_U_context);
 	lowc = MAX(1, cvp->c - opt_U_context);
-	upd = MIN(nlen[1], context_vec_ptr->d + opt_U_context);
+	upd = MIN(nlen[1], context_vector[context_idx].d + opt_U_context);
 
 	printf("@@ -");
 	uni_range(lowa, upb);
@@ -787,7 +785,7 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
 	 * Output changes in "unified" diff format--the old and new lines
 	 * are printed together.
 	 */
-	for (; cvp <= context_vec_ptr; cvp++) {
+	for (; cvp <= &context_vector[context_idx]; cvp++) {
 		a = cvp->a;
 		b = cvp->b;
 		c = cvp->c;
@@ -834,7 +832,7 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
 	}
 	fetch(ixnew, d + 1, upd, f2, ' ');
 
-	context_vec_ptr = context_vec_start - 1;
+	context_idx = -1;
 }
 
 
@@ -866,25 +864,13 @@ static void change(const char *file1, FILE *f1, const char *file2, FILE *f2,
 		return;
 	}
 
-	/*
-	 * Allocate change records as needed.
-	 */
-	if (context_vec_ptr == context_vec_end - 1) {
-		ptrdiff_t offset = context_vec_ptr - context_vec_start;
-
-		max_context <<= 1;
-		context_vec_start = xrealloc(context_vec_start,
-				max_context * sizeof(struct context_vec));
-		context_vec_end = context_vec_start + max_context;
-		context_vec_ptr = context_vec_start + offset;
-	}
 	if (anychange == 0) {
 		/*
 		 * Print the context/unidiff header first time through.
 		 */
 		print_header(file1, file2);
-	} else if (a > context_vec_ptr->b + (2 * opt_U_context) + 1
-	        && c > context_vec_ptr->d + (2 * opt_U_context) + 1
+	} else if (a > context_vector[context_idx].b + (2 * opt_U_context) + 1
+	        && c > context_vector[context_idx].d + (2 * opt_U_context) + 1
 	) {
 		/*
 		 * If this change is more than 'context' lines from the
@@ -893,11 +879,12 @@ static void change(const char *file1, FILE *f1, const char *file2, FILE *f2,
 // dump_unified_vec() seeks!
 		dump_unified_vec(f1, f2);
 	}
-	context_vec_ptr++;
-	context_vec_ptr->a = a;
-	context_vec_ptr->b = b;
-	context_vec_ptr->c = c;
-	context_vec_ptr->d = d;
+	context_idx++;
+	context_vector = xrealloc_vector(context_vector, 6, context_idx);
+	context_vector[context_idx].a = a;
+	context_vector[context_idx].b = b;
+	context_vector[context_idx].c = c;
+	context_vector[context_idx].d = d;
 	anychange = 1;
 }
 
@@ -1010,7 +997,7 @@ static unsigned diffreg(const char *file1, const char *file2, int flags)
 	int i;
 
 	anychange = 0;
-	context_vec_ptr = context_vec_start - 1;
+	context_idx = -1;
 	tempname1 = tempname2 = NULL;
 
 	/* Is any of them a directory? Then it's simple */
