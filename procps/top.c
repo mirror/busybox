@@ -895,7 +895,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	int lines_rem;
 	unsigned interval;
 	char *str_interval, *str_iterations;
-	IF_NOT_FEATURE_TOPMEM(const) unsigned scan_mask = TOP_MASK;
+	unsigned scan_mask = TOP_MASK;
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
 	struct pollfd pfd[1];
@@ -1080,13 +1080,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 				sort_function[2] = time_sort;
 # endif
 			}
-#if ENABLE_FEATURE_SHOW_THREADS
+# if ENABLE_FEATURE_SHOW_THREADS
 			if (c == 'h'
 			 IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
 			) {
 				scan_mask ^= PSSCAN_TASKS;
 			}
-#endif
+# endif
 # if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			if (c == 'p') {
 				IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
