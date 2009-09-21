@@ -1038,7 +1038,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * is finished or backgrounded. It is the same in interactive and
  * non-interactive shells, and is the same regardless of whether
  * a user trap handler is installed or a shell special one is in effect.
- * ^C or ^Z from keyboard seem to execute "at once" because it usually
+ * ^C or ^Z from keyboard seems to execute "at once" because it usually
  * backgrounds (i.e. stops) or kills all members of currently running
  * pipe.
  *
@@ -1105,7 +1105,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  *    (child shell is not interactive),
  *    unset all traps (note: regardless of child shell's type - {}, (), etc)
  * after [v]fork, if we plan to exec:
- *    POSIX says pending signal mask is cleared in child - no need to clear it.
+ *    POSIX says fork clears pending signal mask in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
  *
  * Note: as a result, we do not use signal handlers much. The only uses
@@ -5673,8 +5673,10 @@ static int handle_dollar(o_string *as_string,
 			goto make_var;
 		}
 		/* else: it's $_ */
-	/* TODO: */
-	/* $_ Shell or shell script name; or last cmd name */
+	/* TODO: $_ and $-: */
+	/* $_ Shell or shell script name; or last argument of last command
+	 * (if last command wasn't a pipe; if it was, bash sets $_ to "");
+	 * but in command's env, set to full pathname used to invoke it */
 	/* $- Option flags set by set builtin or shell options (-i etc) */
 	default:
 		o_addQchr(dest, '$');
