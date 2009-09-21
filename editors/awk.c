@@ -250,7 +250,7 @@ enum {
 
 /* builtins */
 enum {
-	B_a2,	B_ix,	B_ma,	B_sp,	B_ss,	B_ti,	B_lo,	B_up,
+	B_a2,	B_ix,	B_ma,	B_sp,	B_ss,	B_ti,   B_mt,	B_lo,	B_up,
 	B_ge,	B_gs,	B_su,
 	B_an,	B_co,	B_ls,	B_or,	B_rs,	B_xo,
 };
@@ -299,7 +299,7 @@ static const char tokenlist[] ALIGN1 =
 	"\4rand"    "\3sin"     "\4sqrt"    "\5srand"
 	"\6gensub"  "\4gsub"    "\5index"   "\6length"
 	"\5match"   "\5split"   "\7sprintf" "\3sub"
-	"\6substr"  "\7systime" "\10strftime"
+	"\6substr"  "\7systime" "\10strftime" "\6mktime"
 	"\7tolower" "\7toupper" NTC
 	"\7getline" NTC
 	"\4func"    "\10function"   NTC
@@ -353,7 +353,7 @@ static const uint32_t tokeninfo[] = {
 	OC_FBLTIN|F_rn,    OC_FBLTIN|Nx|F_si, OC_FBLTIN|Nx|F_sq, OC_FBLTIN|Nx|F_sr,
 	OC_B|B_ge|P(0xd6), OC_B|B_gs|P(0xb6), OC_B|B_ix|P(0x9b), OC_FBLTIN|Sx|F_le,
 	OC_B|B_ma|P(0x89), OC_B|B_sp|P(0x8b), OC_SPRINTF,        OC_B|B_su|P(0xb6),
-	OC_B|B_ss|P(0x8f), OC_FBLTIN|F_ti,    OC_B|B_ti|P(0x0b),
+	OC_B|B_ss|P(0x8f), OC_FBLTIN|F_ti,    OC_B|B_ti|P(0x0b), OC_B|B_mt|P(0x0b),
 	OC_B|B_lo|P(0x49), OC_B|B_up|P(0x49),
 	OC_GETLINE|SV|P(0),
 	0,	0,
@@ -2001,7 +2001,35 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 	return i;
 }
 
-static var *exec_builtin(node *op, var *res)
+static NOINLINE int do_mktime(const char *ds)
+{
+	struct tm then;
+	int count;
+
+	/*memset(&then, 0, sizeof(then)); - not needed */
+	then.tm_isdst = -1; /* default is unknown */
+
+	/* manpage of mktime says these fields are ints,
+	 * so we can sscanf stuff directly into them */
+	count = sscanf(ds, "%u %u %u %u %u %u %d",
+		&then.tm_year, &then.tm_mon, &then.tm_mday,
+		&then.tm_hour, &then.tm_min, &then.tm_sec,
+		&then.tm_isdst);
+
+	if (count < 6
+	 || (unsigned)then.tm_mon < 1
+	 || (unsigned)then.tm_year < 1900
+	) {
+		return -1;
+	}
+
+	then.tm_mon -= 1;
+	then.tm_year -= - 1900;
+
+	return mktime(&then);
+}
+
+static NOINLINE var *exec_builtin(node *op, var *res)
 {
 #define tspl (G.exec_builtin__tspl)
 
@@ -2148,6 +2176,10 @@ static var *exec_builtin(node *op, var *res)
 			localtime(&tt));
 		g_buf[i] = '\0';
 		setvar_s(res, g_buf);
+		break;
+
+	case B_mt:
+		setvar_i(res, do_mktime(as[0]));
 		break;
 
 	case B_ma:
