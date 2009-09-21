@@ -2024,7 +2024,7 @@ static NOINLINE int do_mktime(const char *ds)
 	}
 
 	then.tm_mon -= 1;
-	then.tm_year -= - 1900;
+	then.tm_year -= 1900;
 
 	return mktime(&then);
 }
