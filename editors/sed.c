@@ -690,10 +690,8 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		if (sed_cmd->which_match)
 			break;
 
-		if (*line == '\0')
-			break;
 //maybe (G.regmatch[0].rm_eo ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
-	} while (regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
+	} while (*line && regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
 
 	/* Copy rest of string into output pipeline */
 	while (1) {
