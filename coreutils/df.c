@@ -25,6 +25,7 @@
 #include <mntent.h>
 #include <sys/vfs.h>
 #include "libbb.h"
+#include "unicode.h"
 
 #if !ENABLE_FEATURE_HUMAN_READABLE
 static unsigned long kscale(unsigned long b, unsigned long bs)
@@ -56,6 +57,8 @@ int df_main(int argc, char **argv)
 	};
 	const char *disp_units_hdr = NULL;
 	char *chp;
+
+	check_unicode_in_env();
 
 #if ENABLE_FEATURE_HUMAN_READABLE && ENABLE_FEATURE_DF_FANCY
 	opt_complementary = "k-mB:m-Bk:B-km";
@@ -108,6 +111,9 @@ int df_main(int argc, char **argv)
 	while (1) {
 		const char *device;
 		const char *mount_point;
+#if ENABLE_FEATURE_ASSUME_UNICODE
+		size_t dev_len;
+#endif
 
 		if (mount_table) {
 			mount_entry = getmntent(mount_table);
@@ -169,8 +175,18 @@ int df_main(int argc, char **argv)
 			}
 #endif
 
+#if ENABLE_FEATURE_ASSUME_UNICODE
+			dev_len = bb_mbstrlen(device);
+			if (dev_len > 20) {
+				printf("%s\n%20s", device, "");
+			} else {
+				printf("%s%*s", device, 20 - dev_len, "");
+			}
+#else
 			if (printf("\n%-20s" + 1, device) > 20)
 				    printf("\n%-20s", "");
+#endif
+
 #if ENABLE_FEATURE_HUMAN_READABLE
 			printf(" %9s ",
 				make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
