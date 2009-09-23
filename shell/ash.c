@@ -4553,7 +4553,52 @@ forkchild(struct job *jp, union node *n, int mode)
 	 * Do we do it correctly? */
 
 	closescript();
-	clear_traps();
+
+	if (mode == FORK_NOJOB          /* is it `xxx` ? */
+	 && n && n->type == NCMD        /* is it single cmd? */
+	/* && n->ncmd.args->type == NARG - always true? */
+	 && strcmp(n->ncmd.args->narg.text, "trap") == 0
+	 && n->ncmd.args->narg.next == NULL /* "trap" with no arguments */
+	/* && n->ncmd.args->narg.backquote == NULL - do we need to check this? */
+	) {
+		TRACE(("Trap hack\n"));
+		/* Awful hack for `trap` or $(trap).
+		 *
+		 * http://www.opengroup.org/onlinepubs/009695399/utilities/trap.html
+		 * contains an example where "trap" is executed in a subshell:
+		 *
+		 * save_traps=$(trap)
+		 * ...
+		 * eval "$save_traps"
+		 *
+		 * Standard does not say that "trap" in subshell shall print
+		 * parent shell's traps. It only says that its output
+		 * must have suitable form, but then, in the above example
+		 * (which is not supposed to be normative), it implies that.
+		 *
+		 * bash (and probably other shell) does implement it
+		 * (traps are reset to defaults, but "trap" still shows them),
+		 * but as a result, "trap" logic is hopelessly messed up:
+		 *
+		 * # trap
+		 * trap -- 'echo Ho' SIGWINCH  <--- we have a handler
+		 * # (trap)        <--- trap is in subshell - no output (correct, traps are reset)
+		 * # true | trap   <--- trap is in subshell - no output (ditto)
+		 * # echo `true | trap`    <--- in subshell - output (but traps are reset!)
+		 * trap -- 'echo Ho' SIGWINCH
+		 * # echo `(trap)`         <--- in subshell in subshell - output
+		 * trap -- 'echo Ho' SIGWINCH
+		 * # echo `true | (trap)`  <--- in subshell in subshell in subshell - output!
+		 * trap -- 'echo Ho' SIGWINCH
+		 *
+		 * The rules when to forget and when to not forget traps
+		 * get really complex and nonsensical.
+		 *
+		 * Our solution: ONLY bare $(trap) or `trap` is special.
+		 */
+	} else {
+		clear_traps();
+	}
 #if JOBS
 	/* do job control only in root shell */
 	doing_jobctl = 0;
@@ -4597,8 +4642,14 @@ forkchild(struct job *jp, union node *n, int mode)
 		setsignal(SIGQUIT);
 	}
 #if JOBS
-	if (n && n->type == NCMD && strcmp(n->ncmd.args->narg.text, "jobs") == 0) {
+	if (n && n->type == NCMD
+	 && strcmp(n->ncmd.args->narg.text, "jobs") == 0
+	) {
 		TRACE(("Job hack\n"));
+		/* "jobs": we do not want to clear job list for it,
+		 * instead we remove only _its_ own_ job from job list.
+		 * This makes "jobs .... | cat" more useful.
+		 */
 		freejob(curjob);
 		return;
 	}
@@ -12208,7 +12259,7 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*ap) {
 		for (signo = 0; signo < NSIG; signo++) {
 			if (trap[signo] != NULL) {
-				out1fmt("trap -- %s %s\n",
+				out1fmt("trap -- %s SIG%s\n",
 						single_quote(trap[signo]),
 						get_signame(signo));
 			}
