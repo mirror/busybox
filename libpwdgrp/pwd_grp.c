@@ -816,7 +816,7 @@ static int bb__parsepwent(void *data, char *line)
 
 	i = 0;
 	do {
-		p = ((char *) ((struct passwd *) data)) + pw_off[i];
+		p = (char *) data + pw_off[i];
 
 		if ((i & 6) ^ 2) {	/* i!=2 and i!=3 */
 			*((char **) p) = line;
@@ -873,7 +873,7 @@ static int bb__parsegrent(void *data, char *line)
 	end_of_buf = ((struct group *) data)->gr_name; /* Evil hack! */
 	i = 0;
 	do {
-		p = ((char *) ((struct group *) data)) + gr_off[i];
+		p = (char *) data + gr_off[i];
 
 		if (i < 2) {
 			*((char **) p) = line;
@@ -966,15 +966,15 @@ static const unsigned char sp_off[] ALIGN1 = {
 	offsetof(struct spwd, sp_flag)          /* 8 - not a char ptr */
 };
 
-static int bb__parsespent(void *data, char * line)
+static int bb__parsespent(void *data, char *line)
 {
 	char *endptr;
 	char *p;
 	int i;
 
 	i = 0;
-	do {
-		p = ((char *) ((struct spwd *) data)) + sp_off[i];
+	while (1) {
+		p = (char *) data + sp_off[i];
 		if (i < 2) {
 			*((char **) p) = line;
 			line = strchr(line, ':');
@@ -982,10 +982,10 @@ static int bb__parsespent(void *data, char * line)
 				break;
 			}
 		} else {
-			*((long *) p) = (long) strtoul(line, &endptr, 10);
+			*((long *) p) = strtoul(line, &endptr, 10);
 
 			if (endptr == line) {
-				*((long *) p) = ((i != 8) ? -1L : ((long)(~0UL)));
+				*((long *) p) = (i != 8) ? -1L : (long)(~0UL);
 			}
 
 			line = endptr;
@@ -1003,9 +1003,9 @@ static int bb__parsespent(void *data, char * line)
 
 		}
 
-		*line++ = 0;
+		*line++ = '\0';
 		++i;
-	} while (1);
+	}
 
 	return EINVAL;
 }

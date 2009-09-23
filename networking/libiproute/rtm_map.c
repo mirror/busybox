@@ -88,7 +88,7 @@ int rtnl_rtntype_a2n(int *id, char *arg)
 		res = RTN_THROW;
 	else {
 		res = strtoul(arg, &end, 0);
-		if (!end || end == arg || *end || res > 255)
+		if (end == arg || *end || res > 255)
 			return -1;
 	}
 	*id = res;

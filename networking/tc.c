@@ -89,7 +89,7 @@ static int get_qdisc_handle(__u32 *h, const char *str) {
 	if (p == str)
 		return 1;
 	maj <<= 16;
-	if (*p != ':' && *p!=0)
+	if (*p != ':' && *p != '\0')
 		return 1;
  ok:
 	*h = maj;
@@ -119,7 +119,8 @@ static int get_tc_classid(__u32 *h, const char *str) {
 		maj <<= 16;
 		str = p + 1;
 		min = strtoul(str, &p, 16);
-		if (*p != 0 || min >= (1<<16))
+//FIXME: check for "" too?
+		if (*p != '\0' || min >= (1<<16))
 			return 1;
 		maj |= min;
 	} else if (*p != 0)

@@ -22,6 +22,7 @@ unsigned get_unsigned(char *arg, const char *errmsg)
 
 	if (*arg) {
 		res = strtoul(arg, &ptr, 0);
+//FIXME: "" will be accepted too, is it correct?!
 		if (!*ptr && res <= UINT_MAX) {
 			return res;
 		}
@@ -36,6 +37,7 @@ uint32_t get_u32(char *arg, const char *errmsg)
 
 	if (*arg) {
 		res = strtoul(arg, &ptr, 0);
+//FIXME: "" will be accepted too, is it correct?!
 		if (!*ptr && res <= 0xFFFFFFFFUL) {
 			return res;
 		}
@@ -50,6 +52,7 @@ uint16_t get_u16(char *arg, const char *errmsg)
 
 	if (*arg) {
 		res = strtoul(arg, &ptr, 0);
+//FIXME: "" will be accepted too, is it correct?!
 		if (!*ptr && res <= 0xFFFF) {
 			return res;
 		}

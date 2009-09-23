@@ -10078,7 +10078,7 @@ change_random(const char *value)
 		vrandom.flags &= ~VNOFUNC;
 	} else {
 		/* set/reset */
-		random_galois_LFSR = random_LCG = strtoul(value, (char **)NULL, 10);
+		random_galois_LFSR = random_LCG = strtoul(value, NULL, 10);
 	}
 }
 #endif

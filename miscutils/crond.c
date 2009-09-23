@@ -320,11 +320,13 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 			skip = 1;
 			++ptr;
 		} else if (isdigit(*ptr)) {
+			char *endp;
 			if (n1 < 0) {
-				n1 = strtol(ptr, &ptr, 10) + off;
+				n1 = strtol(ptr, &endp, 10) + off;
 			} else {
-				n2 = strtol(ptr, &ptr, 10) + off;
+				n2 = strtol(ptr, &endp, 10) + off;
 			}
+			ptr = endp; /* gcc likes temp var for &endp */
 			skip = 1;
 		} else if (names) {
 			int i;
@@ -361,7 +363,9 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 			n2 = n1;
 		}
 		if (*ptr == '/') {
-			skip = strtol(ptr + 1, &ptr, 10);
+			char *endp;
+			skip = strtol(ptr + 1, &endp, 10);
+			ptr = endp; /* gcc likes temp var for &endp */
 		}
 
 		/*

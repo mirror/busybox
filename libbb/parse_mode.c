@@ -40,7 +40,7 @@ int FAST_FUNC bb_parse_mode(const char *s, mode_t *current_mode)
 	mode_t new_mode;
 	char op;
 
-	if (((unsigned int)(*s - '0')) < 8) {
+	if ((unsigned char)(*s - '0') < 8) {
 		unsigned long tmp;
 		char *e;
 

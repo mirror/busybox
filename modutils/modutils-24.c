@@ -2432,11 +2432,11 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 		loc = contents + sym->value;
 
 		if (*pinfo == 'c') {
-			if (!isdigit(*(pinfo + 1))) {
+			if (!isdigit(pinfo[1])) {
 				bb_error_msg_and_die("parameter type 'c' for %s must be followed by"
 						     " the maximum size", param);
 			}
-			charssize = strtoul(pinfo + 1, (char **) NULL, 10);
+			charssize = strtoul(pinfo + 1, NULL, 10);
 		}
 
 		if (val == NULL) {
@@ -2449,6 +2449,8 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 		n = 0;
 		p = val;
 		while (*p != 0) {
+			char *endp;
+
 			if (++n > max)
 				bb_error_msg_and_die("too many values for %s (max %d)", param, max);
 
@@ -2472,19 +2474,23 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 				p += len;
 				break;
 			case 'b':
-				*loc++ = strtoul(p, &p, 0);
+				*loc++ = strtoul(p, &endp, 0);
+				p = endp; /* gcc likes temp var for &endp */
 				break;
 			case 'h':
-				*(short *) loc = strtoul(p, &p, 0);
+				*(short *) loc = strtoul(p, &endp, 0);
 				loc += tgt_sizeof_short;
+				p = endp;
 				break;
 			case 'i':
-				*(int *) loc = strtoul(p, &p, 0);
+				*(int *) loc = strtoul(p, &endp, 0);
 				loc += tgt_sizeof_int;
+				p = endp;
 				break;
 			case 'l':
-				*(long *) loc = strtoul(p, &p, 0);
+				*(long *) loc = strtoul(p, &endp, 0);
 				loc += tgt_sizeof_long;
+				p = endp;
 				break;
 			default:
 				bb_error_msg_and_die("unknown parameter type '%c' for %s",
