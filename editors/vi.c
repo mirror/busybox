@@ -2187,11 +2187,11 @@ static void catch_sig(int sig)
 }
 #endif /* FEATURE_VI_USE_SIGNALS */
 
-static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
+static int mysleep(int hund)	// sleep for 'hund' 1/100 seconds or stdin ready
 {
 	struct pollfd pfd[1];
 
-	pfd[0].fd = 0;
+	pfd[0].fd = STDIN_FILENO;
 	pfd[0].events = POLLIN;
 	return safe_poll(pfd, 1, hund*10) > 0;
 }

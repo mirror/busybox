@@ -15,7 +15,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <paths.h>
 #include "busybox.h" /* uses applet tables */
 
 /* This does a fork/exec in one call, using vfork().  Returns PID of new child,

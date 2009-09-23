@@ -74,7 +74,7 @@ typedef struct {
 #endif
 } action;
 
-#define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
+#define ACTS(name, ...) typedef struct { action a; __VA_ARGS__ } action_##name;
 #define ACTF(name) \
 	static int FAST_FUNC func_##name(const char *fileName UNUSED_PARAM, \
 		struct stat *statbuf UNUSED_PARAM, \

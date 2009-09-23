@@ -21,7 +21,6 @@
 #include <syslog.h>
 */
 
-#include <paths.h>
 #include <sys/un.h>
 #include <sys/uio.h>
 

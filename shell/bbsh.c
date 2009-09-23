@@ -54,7 +54,7 @@ struct command {
 	int flags;		// exit, suspend, && ||
 	int pid;		// pid (or exit code)
 	int argc;
-	char *argv[0];
+	char *argv[];
 };
 
 // A collection of processes piped into/waiting on each other.

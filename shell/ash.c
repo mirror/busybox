@@ -5042,7 +5042,7 @@ struct redirtab {
 	struct redirtab *next;
 	int nullredirs;
 	int pair_count;
-	struct two_fd_t two_fd[0];
+	struct two_fd_t two_fd[];
 };
 #define redirlist (G_var.redirlist)
 
