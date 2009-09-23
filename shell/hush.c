@@ -899,7 +899,7 @@ static int is_well_formed_var_name(const char *s, char terminator)
 /* Replace each \x with x in place, return ptr past NUL. */
 static char *unbackslash(char *src)
 {
-	char *dst = src;
+	char *dst = src = strchrnul(src, '\\');
 	while (1) {
 		if (*src == '\\')
 			src++;
