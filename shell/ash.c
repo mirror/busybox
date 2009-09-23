@@ -12259,8 +12259,9 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*ap) {
 		for (signo = 0; signo < NSIG; signo++) {
 			if (trap[signo] != NULL) {
-				out1fmt("trap -- %s SIG%s\n",
+				out1fmt("trap -- %s %s%s\n",
 						single_quote(trap[signo]),
+						(signo == 0 ? "" : "SIG"),
 						get_signame(signo));
 			}
 		}
