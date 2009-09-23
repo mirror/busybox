@@ -87,11 +87,13 @@ static unsigned long long getOctal(char *str, int len)
 {
 	unsigned long long v;
 	/* NB: leading spaces are allowed. Using strtoull to handle that.
-	 * The downside is that we accept e.g. "-123" too :)
+	 * The downside is that we accept e.g. "-123" too :(
 	 */
 	str[len] = '\0';
 	v = strtoull(str, &str, 8);
-	if (*str && (!ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY || *str != ' '))
+	/* std: "Each numeric field is terminated by one or more
+	 * <space> or NUL characters". We must support ' '! */
+	if (*str != '\0' && *str != ' ')
 		bb_error_msg_and_die("corrupted octal value in tar header");
 	return v;
 }
@@ -262,20 +264,20 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		sum_s += ((signed char*)&tar)[i];
 #endif
 	}
-#if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
-	sum = strtoul(tar.chksum, &cp, 8);
-	if ((*cp && *cp != ' ')
-	 || (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum))
-	) {
-		bb_error_msg_and_die("invalid tar header checksum");
-	}
-#else
 	/* This field does not need special treatment (getOctal) */
+	{
+		char *endp; /* gcc likes temp var for &endp */
+		sum = strtoul(tar.chksum, &endp, 8);
+		if ((*endp != '\0' && *endp != ' ')
+		 || (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum))
+		) {
+			bb_error_msg_and_die("invalid tar header checksum");
+		}
+	}
 	sum = xstrtoul(tar.chksum, 8);
 	if (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
-#endif
 
 	/* 0 is reserved for high perf file, treat as normal file */
 	if (!tar.typeflag) tar.typeflag = '0';
