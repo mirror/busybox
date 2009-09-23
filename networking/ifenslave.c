@@ -101,13 +101,15 @@
 #include "libbb.h"
 
 /* #include <net/if.h> - no. linux/if_bonding.h pulls in linux/if.h */
+#include <linux/if.h>
 #include <net/if_arp.h>
 #include <linux/if_bonding.h>
 #include <linux/sockios.h>
-
 #include "fix_u32.h" /* hack, so we may include kernel's ethtool.h */
 #include <linux/ethtool.h>
-
+#ifndef BOND_ABI_VERSION
+# define BOND_ABI_VERSION 2
+#endif
 #ifndef IFNAMSIZ
 # define IFNAMSIZ 16
 #endif
