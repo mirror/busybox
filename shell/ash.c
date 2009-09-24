@@ -193,6 +193,7 @@ struct globals_misc {
 	/* indicates specified signal received */
 	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
 	char *trap[NSIG];
+	char **trap_ptr;        /* used only by "trap hack" */
 
 	/* Rarely referenced stuff */
 #if ENABLE_ASH_RANDOM_SUPPORT
@@ -222,6 +223,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define sigmode     (G_misc.sigmode    )
 #define gotsig      (G_misc.gotsig     )
 #define trap        (G_misc.trap       )
+#define trap_ptr    (G_misc.trap_ptr   )
 #define random_galois_LFSR (G_misc.random_galois_LFSR)
 #define random_LCG         (G_misc.random_LCG        )
 #define backgndpid  (G_misc.backgndpid )
@@ -231,6 +233,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 	barrier(); \
 	curdir = nullstr; \
 	physdir = nullstr; \
+	trap_ptr = trap; \
 } while (0)
 
 
@@ -4539,7 +4542,7 @@ static void closescript(void);
 #if !JOBS
 # define forkchild(jp, n, mode) forkchild(jp, mode)
 #endif
-static void
+static NOINLINE void
 forkchild(struct job *jp, union node *n, int mode)
 {
 	int oldlvl;
@@ -4596,8 +4599,10 @@ forkchild(struct job *jp, union node *n, int mode)
 		 *
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
-		free(trap[0]); /* Prevent EXIT trap from firing in `trap` */
-		trap[0] = NULL;
+		/* This is needed to prevent EXIT trap firing and such
+		 * (trap_ptr will be freed in trapcmd()) */
+		trap_ptr = memcpy(xmalloc(sizeof(trap)), trap, sizeof(trap));
+		memset(trap, 0, sizeof(trap));
 	} else {
 		clear_traps();
 	}
@@ -12260,15 +12265,23 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	ap = argptr;
 	if (!*ap) {
 		for (signo = 0; signo < NSIG; signo++) {
-			if (trap[signo] != NULL) {
+			char *tr = trap_ptr[signo];
+			if (tr) {
 				out1fmt("trap -- %s %s%s\n",
-						single_quote(trap[signo]),
+						single_quote(tr),
 						(signo == 0 ? "" : "SIG"),
 						get_signame(signo));
+				if (trap_ptr != trap)
+					free(tr);
 			}
+		}
+		if (trap_ptr != trap) {
+			free(trap_ptr);
+			trap_ptr = trap;
 		}
 		return 0;
 	}
+
 	action = NULL;
 	if (ap[1])
 		action = *ap++;
