@@ -409,7 +409,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		break; /* success, continue login process */
 
  pam_auth_failed:
-		bb_error_msg("pam_%s call failed: %s (%d)", failed_msg,
+		/* syslog, because we don't want potential attacker
+		 * to know _why_ login failed */
+		syslog(LOG_WARNING, "pam_%s call failed: %s (%d)", failed_msg,
 					pam_strerror(pamh, pamret), pamret);
 		safe_strncpy(username, "UNKNOWN", sizeof(username));
 #else /* not PAM */
