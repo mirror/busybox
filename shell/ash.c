@@ -4525,7 +4525,7 @@ clear_traps(void)
 			INT_OFF;
 			free(*tp);
 			*tp = NULL;
-			if (tp != &trap[0])
+			if ((tp - trap) != 0)
 				setsignal(tp - trap);
 			INT_ON;
 		}
@@ -4596,6 +4596,8 @@ forkchild(struct job *jp, union node *n, int mode)
 		 *
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
+		free(trap[0]); /* Prevent EXIT trap from firing in `trap` */
+		trap[0] = NULL;
 	} else {
 		clear_traps();
 	}
@@ -13023,6 +13025,7 @@ exitshell(void)
 	if (p) {
 		trap[0] = NULL;
 		evalstring(p, 0);
+		free(p);
 	}
 	flush_stdout_stderr();
  out:
