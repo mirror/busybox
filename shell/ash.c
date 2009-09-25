@@ -4601,8 +4601,9 @@ forkchild(struct job *jp, union node *n, int mode)
 		 *
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
-		/* This is needed to prevent EXIT trap firing and such */
+		/* Save trap handler strings for trap builtin to print */
 		trap_ptr = memcpy(xmalloc(sizeof(trap)), trap, sizeof(trap));
+		/* Fall through into clearing traps */
 	}
 	clear_traps();
 #if JOBS
