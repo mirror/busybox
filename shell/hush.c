@@ -1111,6 +1111,14 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * Note: as a result, we do not use signal handlers much. The only uses
  * are to count SIGCHLDs
  * and to restore tty pgrp on signal-induced exit.
+ *
+ * TODO compat:
+ * Standard says "When a subshell is entered, traps that are not being ignored
+ * are set to the default actions". bash interprets it so that traps which
+ * are set to "" (ignore) are NOT reset to defaults. We reset them to default.
+ * bash example:
+ * # trap '' SYS; (bash -c 'kill -SYS $PPID'; echo YES)
+ * YES    <-- subshell was not killed by SIGSYS
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -3625,9 +3633,9 @@ static int checkjobs(struct pipe* fg_pipe)
 						/* Note: is WIFSIGNALED, WEXITSTATUS = sig + 128 */
 						rcode = WEXITSTATUS(status);
 						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
-						/* bash prints killing signal's name for *last*
+						/* bash prints killer signal's name for *last*
 						 * process in pipe (prints just newline for SIGINT).
-						 * Mimic this. Example: "sleep 5" + ^\
+						 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
 						 */
 						if (WIFSIGNALED(status)) {
 							int sig = WTERMSIG(status);
