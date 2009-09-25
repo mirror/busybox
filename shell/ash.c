@@ -4526,7 +4526,9 @@ clear_traps(void)
 	for (tp = trap; tp < &trap[NSIG]; tp++) {
 		if (*tp && **tp) {      /* trap not NULL or "" (SIG_IGN) */
 			INT_OFF;
-			free(*tp);
+			if (trap_ptr == trap)
+				free(*tp);
+			/* else: it "belongs" to trap_ptr vector, don't free */
 			*tp = NULL;
 			if ((tp - trap) != 0)
 				setsignal(tp - trap);
@@ -4602,10 +4604,8 @@ forkchild(struct job *jp, union node *n, int mode)
 		/* This is needed to prevent EXIT trap firing and such
 		 * (trap_ptr will be freed in trapcmd()) */
 		trap_ptr = memcpy(xmalloc(sizeof(trap)), trap, sizeof(trap));
-		memset(trap, 0, sizeof(trap));
-	} else {
-		clear_traps();
 	}
+	clear_traps();
 #if JOBS
 	/* do job control only in root shell */
 	doing_jobctl = 0;
