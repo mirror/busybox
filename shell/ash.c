@@ -4601,8 +4601,7 @@ forkchild(struct job *jp, union node *n, int mode)
 		 *
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
-		/* This is needed to prevent EXIT trap firing and such
-		 * (trap_ptr will be freed in trapcmd()) */
+		/* This is needed to prevent EXIT trap firing and such */
 		trap_ptr = memcpy(xmalloc(sizeof(trap)), trap, sizeof(trap));
 	}
 	clear_traps();
@@ -12271,14 +12270,18 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 						single_quote(tr),
 						(signo == 0 ? "" : "SIG"),
 						get_signame(signo));
-				if (trap_ptr != trap)
-					free(tr);
+		/* trap_ptr != trap only if we are in special-cased `trap` code.
+		 * In this case, we will exit very soon, no need to free(). */
+				/* if (trap_ptr != trap) */
+				/*	free(tr); */
 			}
 		}
+		/*
 		if (trap_ptr != trap) {
 			free(trap_ptr);
 			trap_ptr = trap;
 		}
+		*/
 		return 0;
 	}
 
