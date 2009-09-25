@@ -1112,13 +1112,10 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * are to count SIGCHLDs
  * and to restore tty pgrp on signal-induced exit.
  *
- * TODO compat:
+ * Note 2 (compat):
  * Standard says "When a subshell is entered, traps that are not being ignored
  * are set to the default actions". bash interprets it so that traps which
- * are set to "" (ignore) are NOT reset to defaults. We reset them to default.
- * bash example:
- * # trap '' SYS; (bash -c 'kill -SYS $PPID'; echo YES)
- * YES    <-- subshell was not killed by SIGSYS
+ * are set to "" (ignore) are NOT reset to defaults. We do the same.
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -2605,43 +2602,51 @@ static void reset_traps_to_defaults(void)
 {
 	/* This function is always called in a child shell
 	 * after fork (not vfork, NOMMU doesn't use this function).
-	 * Child shells are not interactive.
-	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
-	 * Testcase: (while :; do :; done) + ^Z should background.
-	 * Same goes for SIGTERM, SIGHUP, SIGINT.
 	 */
 	unsigned sig;
 	unsigned mask;
 
+	/* Child shells are not interactive.
+	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
+	 * Testcase: (while :; do :; done) + ^Z should background.
+	 * Same goes for SIGTERM, SIGHUP, SIGINT.
+	 */
 	if (!G.traps && !(G.non_DFL_mask & SPECIAL_INTERACTIVE_SIGS))
-		return;
+		return; /* already no traps and no SPECIAL_INTERACTIVE_SIGS */
 
-	/* Stupid. It can be done with *single* &= op, but we can't use
-	 * the fact that G.blocked_set is implemented as a bitmask... */
+	/* Switching off SPECIAL_INTERACTIVE_SIGS.
+	 * Stupid. It can be done with *single* &= op, but we can't use
+	 * the fact that G.blocked_set is implemented as a bitmask
+	 * in libc... */
 	mask = (SPECIAL_INTERACTIVE_SIGS >> 1);
 	sig = 1;
 	while (1) {
-		if (mask & 1)
-			sigdelset(&G.blocked_set, sig);
+		if (mask & 1) {
+			/* Careful. Only if no trap or trap is not "" */
+			if (!G.traps || !G.traps[sig] || G.traps[sig][0])
+				sigdelset(&G.blocked_set, sig);
+		}
 		mask >>= 1;
 		if (!mask)
 			break;
 		sig++;
 	}
-
+	/* Our homegrown sig mask is saner to work with :) */
 	G.non_DFL_mask &= ~SPECIAL_INTERACTIVE_SIGS;
+
+	/* Resetting all traps to default except empty ones */
 	mask = G.non_DFL_mask;
 	if (G.traps) for (sig = 0; sig < NSIG; sig++, mask >>= 1) {
-		if (!G.traps[sig])
+		if (!G.traps[sig] || !G.traps[sig][0])
 			continue;
 		free(G.traps[sig]);
 		G.traps[sig] = NULL;
 		/* There is no signal for 0 (EXIT) */
 		if (sig == 0)
 			continue;
-		/* There was a trap handler, we are removing it.
+		/* There was a trap handler, we just removed it.
 		 * But if sig still has non-DFL handling,
-		 * we should not unblock it. */
+		 * we should not unblock the sig. */
 		if (mask & 1)
 			continue;
 		sigdelset(&G.blocked_set, sig);
