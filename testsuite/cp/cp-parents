@@ -1,0 +1,5 @@
+mkdir -p foo/bar/baz
+touch foo/bar/baz/file
+mkdir dir
+busybox cp --parents foo/bar/baz/file dir
+test -f dir/foo/bar/baz/file

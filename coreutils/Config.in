@@ -78,6 +78,14 @@ config CP
 	help
 	  cp is used to copy files and directories.
 
+config FEATURE_CP_LONG_OPTIONS
+	bool "Enable long options for cp"
+	default n
+	depends on CP
+	help
+	  Enable long options for cp.
+	  Also add support for --parents option.
+
 config CUT
 	bool "cut"
 	default n
@@ -113,7 +121,7 @@ config FEATURE_DD_SIGNAL_HANDLING
 	default y
 	depends on DD
 	help
-	  sending a SIGUSR1 signal to a running `dd' process makes it
+	  Sending a SIGUSR1 signal to a running `dd' process makes it
 	  print to standard error the number of records read and written
 	  so far, then to resume copying.
 

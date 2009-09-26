@@ -20,7 +20,6 @@
 
 /* This is a NOEXEC applet. Be very careful! */
 
-
 int cp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cp_main(int argc, char **argv)
 {
@@ -31,12 +30,16 @@ int cp_main(int argc, char **argv)
 	int s_flags;
 	int d_flags;
 	int flags;
-	int status = 0;
+	int status;
 	enum {
 		OPT_a = 1 << (sizeof(FILEUTILS_CP_OPTSTR)-1),
 		OPT_r = 1 << (sizeof(FILEUTILS_CP_OPTSTR)),
 		OPT_P = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+1),
 		OPT_H = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+2),
+		OPT_v = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+3),
+#if ENABLE_FEATURE_CP_LONG_OPTIONS
+		OPT_parents = 1 << (sizeof(FILEUTILS_CP_OPTSTR)+4),
+#endif
 	};
 
 	// Need at least two arguments
@@ -46,6 +49,20 @@ int cp_main(int argc, char **argv)
 	// -R (and therefore -r) turns on -d (coreutils does this)
 	// -a = -pdR
 	opt_complementary = "-2:l--s:s--l:Pd:rRd:Rd:apdR:HL";
+#if ENABLE_FEATURE_CP_LONG_OPTIONS
+	applet_long_options =
+		"archive\0"        No_argument "a"
+		"force\0"          No_argument "f"
+		"interactive\0"    No_argument "i"
+		"link\0"           No_argument "l"
+		"dereference\0"    No_argument "L"
+		"no-dereference\0" No_argument "P"
+		"recursive\0"      No_argument "R"
+		"symbolic-link\0"  No_argument "s"
+		"verbose\0"        No_argument "v"
+		"parents\0"        No_argument "\xff"
+		;
+#endif
 	// -v (--verbose) is ignored
 	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPHv");
 	/* Options of cp from GNU coreutils 6.10:
@@ -62,8 +79,9 @@ int cp_main(int argc, char **argv)
 	 * -d	same as --no-dereference --preserve=links
 	 * -p	same as --preserve=mode,ownership,timestamps
 	 * -c	same as --preserve=context
+	 * --parents
+	 *	use full source file name under DIRECTORY
 	 * NOT SUPPORTED IN BBOX:
-	 * long options are not supported (even those above).
 	 * --backup[=CONTROL]
 	 *	make a backup of each existing destination file
 	 * -b	like --backup but does not accept an argument
@@ -73,8 +91,6 @@ int cp_main(int argc, char **argv)
 	 *	preserve attributes (default: mode,ownership,timestamps),
 	 *	if possible additional attributes: security context,links,all
 	 * --no-preserve=ATTR_LIST
-	 * --parents
-	 *	use full source file name under DIRECTORY
 	 * --remove-destination
 	 *	remove  each existing destination file before attempting to open
 	 * --sparse=WHEN
@@ -115,39 +131,61 @@ int cp_main(int argc, char **argv)
 	}
 #endif
 
+	status = EXIT_SUCCESS;
 	last = argv[argc - 1];
 	/* If there are only two arguments and...  */
 	if (argc == 2) {
 		s_flags = cp_mv_stat2(*argv, &source_stat,
-				      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+				(flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
 		if (s_flags < 0)
 			return EXIT_FAILURE;
 		d_flags = cp_mv_stat(last, &dest_stat);
 		if (d_flags < 0)
 			return EXIT_FAILURE;
 
-		/* ...if neither is a directory or...  */
-		if ( !((s_flags | d_flags) & 2) ||
-			/* ...recursing, the 1st is a directory, and the 2nd doesn't exist... */
-			((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags)
+#if ENABLE_FEATURE_CP_LONG_OPTIONS
+		if (flags & OPT_parents) {
+			if (!(d_flags & 2)) {
+				bb_error_msg_and_die("with --parents, the destination must be a directory");
+			}
+		}
+#endif
+
+		/* ...if neither is a directory...  */
+		if (!((s_flags | d_flags) & 2)
+		    /* ...or: recursing, the 1st is a directory, and the 2nd doesn't exist... */
+		 || ((flags & FILEUTILS_RECUR) && (s_flags & 2) && !d_flags)
 		) {
-			/* ...do a simple copy.  */
+			/* Do a simple copy */
 			dest = last;
 			goto DO_COPY; /* NB: argc==2 -> *++argv==last */
 		}
 	}
 
 	while (1) {
+#if ENABLE_FEATURE_CP_LONG_OPTIONS
+		if (flags & OPT_parents) {
+			char *dest_dup;
+			char *dest_dir;
+			dest = concat_path_file(last, *argv);
+			dest_dup = xstrdup(dest);
+			dest_dir = dirname(dest_dup);
+			if (bb_make_directory(dest_dir, -1, FILEUTILS_RECUR)) {
+				return EXIT_FAILURE;
+			}
+			free(dest_dup);
+			goto DO_COPY;
+		}
+#endif
 		dest = concat_path_file(last, bb_get_last_path_component_strip(*argv));
  DO_COPY:
 		if (copy_file(*argv, dest, flags) < 0) {
-			status = 1;
-		}
-		if (*++argv == last) {
-			/* possibly leaking dest... */
-			break;
+			status = EXIT_FAILURE;
 		}
 		free((void*)dest);
+		if (*++argv == last) {
+			break;
+		}
 	}
 
 	/* Exit. We are NOEXEC, not NOFORK. We do exit at the end of main() */
