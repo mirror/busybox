@@ -65,7 +65,7 @@
 IF_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
 IF_FEATURE_FIND_XDEV(static int xdev_count;)
 
-typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *) FAST_FUNC;
+typedef int (*action_fp)(const char *fileName, const struct stat *statbuf, void *) FAST_FUNC;
 
 typedef struct {
 	action_fp f;
@@ -77,7 +77,7 @@ typedef struct {
 #define ACTS(name, ...) typedef struct { action a; __VA_ARGS__ } action_##name;
 #define ACTF(name) \
 	static int FAST_FUNC func_##name(const char *fileName UNUSED_PARAM, \
-		struct stat *statbuf UNUSED_PARAM, \
+		const struct stat *statbuf UNUSED_PARAM, \
 		action_##name* ap UNUSED_PARAM)
 
                         ACTS(print)
@@ -139,7 +139,7 @@ static char* subst(const char *src, unsigned count, const char* filename)
  * bit 0=1: matched successfully (TRUE)
  */
 
-static int exec_actions(action ***appp, const char *fileName, struct stat *statbuf)
+static int exec_actions(action ***appp, const char *fileName, const struct stat *statbuf)
 {
 	int cur_group;
 	int cur_action;
@@ -392,26 +392,34 @@ static int FAST_FUNC fileAction(const char *fileName,
 
 	if (depth < minmaxdepth[0]) return TRUE;
 	if (depth > minmaxdepth[1]) return SKIP;
-#undef minmaxdepth
 #endif
 
 #if ENABLE_FEATURE_FIND_XDEV
-	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
-		for (i = 0; i < xdev_count; i++) {
-			if (xdev_dev[i] == statbuf->st_dev)
-				break;
-		}
-		if (i == xdev_count)
+	if (S_ISDIR(statbuf->st_mode)) {
+		if (xdev_count) {
+			for (i = 0; i < xdev_count; i++) {
+				if (xdev_dev[i] == statbuf->st_dev)
+					goto found;
+			}
 			return SKIP;
+ found: ;
+		}
 	}
 #endif
 	i = exec_actions(actions, fileName, statbuf);
 	/* Had no explicit -print[0] or -exec? then print */
 	if ((i & TRUE) && need_print)
 		puts(fileName);
+
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	if (S_ISDIR(statbuf->st_mode))
+		if (depth == minmaxdepth[1])
+			return SKIP;
+#endif
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
 	return (i & SKIP) ? SKIP : TRUE;
+#undef minmaxdepth
 }
 
 
