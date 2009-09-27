@@ -2,13 +2,13 @@ ___
 ___
 ___
 trap -- 'a' EXIT
-trap -- 'a' SIGINT
-trap -- 'a' SIGUSR1
-trap -- 'a' SIGUSR2
+trap -- 'a' INT
+trap -- 'a' USR1
+trap -- 'a' USR2
 ___
 ___
-trap -- 'a' SIGUSR1
-trap -- 'a' SIGUSR2
+trap -- 'a' USR1
+trap -- 'a' USR2
 ___
 ___
-trap -- 'a' SIGUSR2
+trap -- 'a' USR2

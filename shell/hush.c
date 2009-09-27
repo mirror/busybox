@@ -7111,8 +7111,11 @@ static int FAST_FUNC builtin_trap(char **argv)
 			if (G.traps[i]) {
 				printf("trap -- ");
 				print_escaped(G.traps[i]);
-				/* bash compat: it says SIGxxx, not just xxx */
-				printf(" %s%s\n", i == 0 ? "" : "SIG", get_signame(i));
+				/* note: bash adds "SIG", but only if invoked
+				 * as "bash". If called as "sh", or if set -o posix,
+				 * then it prints short signal names.
+				 * We are printing short names: */
+				printf(" %s\n", get_signame(i));
 			}
 		}
 		/*fflush(stdout); - done after each builtin anyway */

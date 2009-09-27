@@ -12267,13 +12267,16 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		for (signo = 0; signo < NSIG; signo++) {
 			char *tr = trap_ptr[signo];
 			if (tr) {
-				out1fmt("trap -- %s %s%s\n",
+				/* note: bash adds "SIG", but only if invoked
+				 * as "bash". If called as "sh", or if set -o posix,
+				 * then it prints short signal names.
+				 * We are printing short names: */
+				out1fmt("trap -- %s %s\n",
 						single_quote(tr),
-						(signo == 0 ? "" : "SIG"),
 						get_signame(signo));
 		/* trap_ptr != trap only if we are in special-cased `trap` code.
 		 * In this case, we will exit very soon, no need to free(). */
-				/* if (trap_ptr != trap) */
+				/* if (trap_ptr != trap && tp[0]) */
 				/*	free(tr); */
 			}
 		}
