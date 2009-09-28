@@ -114,8 +114,8 @@ struct lineedit_statics {
 	unsigned cmdedit_prmt_len; /* length of prompt (without colors etc) */
 
 	unsigned cursor;
-	unsigned command_len;
-	/* *int* maxsize: we want x in "if (x > S.maxsize)"
+	int command_len; /* must be signed */
+	/* signed maxsize: we want x in "if (x > S.maxsize)"
 	 * to _not_ be promoted to unsigned */
 	int maxsize;
 	CHAR_T *command_ps;
@@ -2124,7 +2124,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 #undef command
 
 #if ENABLE_FEATURE_ASSUME_UNICODE
-	command_len = save_string(command, maxsize - 1);
+	command[0] = '\0';
+	if (command_len > 0)
+		command_len = save_string(command, maxsize - 1);
 	free(command_ps);
 #endif
 
