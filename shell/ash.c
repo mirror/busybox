@@ -8539,12 +8539,13 @@ setinteractive(int on)
 		static smallint did_banner;
 
 		if (!did_banner) {
-			out1fmt(
-				"\n\n"
-				"%s built-in shell (ash)\n"
+			/* note: ash and hush share this string */
+			out1fmt("\n\n%s %s\n"
 				"Enter 'help' for a list of built-in commands."
 				"\n\n",
-				bb_banner);
+				bb_banner,
+				"built-in shell (ash)"
+			);
 			did_banner = 1;
 		}
 	}

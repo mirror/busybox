@@ -6816,10 +6816,13 @@ int hush_main(int argc, char **argv)
 	 */
 
 	if (!ENABLE_FEATURE_SH_EXTRA_QUIET && G_interactive_fd) {
-		printf("\n\n%s hush - the humble shell\n", bb_banner);
-		if (ENABLE_HUSH_HELP)
-			puts("Enter 'help' for a list of built-in commands.");
-		puts("");
+		/* note: ash and hush share this string */
+		printf("\n\n%s %s\n"
+			IF_HUSH_HELP("Enter 'help' for a list of built-in commands.\n")
+			"\n",
+			bb_banner,
+			"hush - the humble shell"
+		);
 	}
 
 	parse_and_run_file(stdin);
