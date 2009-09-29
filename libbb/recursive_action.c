@@ -48,7 +48,7 @@ static int FAST_FUNC true_action(const char *fileName UNUSED_PARAM,
  * into that directory, instead recursive_action() returns 0 (if FALSE)
  * or 1 (if SKIP)
  *
- * followLinks=0/1 differs mainly in handling of links to dirs.
+ * ACTION_FOLLOWLINKS mainly controls handling of links to dirs.
  * 0: lstat(statbuf). Calls fileAction on link name even if points to dir.
  * 1: stat(statbuf). Calls dirAction and optionally recurse on link to dir.
  */
@@ -61,6 +61,7 @@ int FAST_FUNC recursive_action(const char *fileName,
 		unsigned depth)
 {
 	struct stat statbuf;
+	unsigned follow;
 	int status;
 	DIR *dir;
 	struct dirent *next;
@@ -68,14 +69,22 @@ int FAST_FUNC recursive_action(const char *fileName,
 	if (!fileAction) fileAction = true_action;
 	if (!dirAction) dirAction = true_action;
 
-	status = ACTION_FOLLOWLINKS; /* hijack a variable for bitmask... */
-	if (!depth)
-		status = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
-	status = ((flags & status) ? stat : lstat)(fileName, &statbuf);
+	follow = ACTION_FOLLOWLINKS;
+	if (depth == 0)
+		follow = ACTION_FOLLOWLINKS | ACTION_FOLLOWLINKS_L0;
+	follow &= flags;
+	status = (follow ? stat : lstat)(fileName, &statbuf);
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
 		bb_error_msg("status=%d flags=%x", status, flags);
 #endif
+		if ((flags & ACTION_DANGLING_OK)
+		 && errno == ENOENT
+		 && lstat(fileName, &statbuf) == 0
+		) {
+			/* Dangling link */
+			return fileAction(fileName, &statbuf, userData, depth);
+		}
 		goto done_nak_warn;
 	}
 
