@@ -264,15 +264,15 @@ struct globals {
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #if ENABLE_FEATURE_LS_COLOR
-#define show_color     (G.show_color    )
+# define show_color     (G.show_color    )
 #else
 enum { show_color = 0 };
 #endif
-#define exit_code      (G.exit_code     )
-#define all_fmt        (G.all_fmt       )
+#define exit_code       (G.exit_code     )
+#define all_fmt         (G.all_fmt       )
 #if ENABLE_FEATURE_AUTOWIDTH
-#define tabstops       (G.tabstops      )
-#define terminal_width (G.terminal_width)
+# define tabstops       (G.tabstops      )
+# define terminal_width (G.terminal_width)
 #else
 enum {
 	tabstops = COLUMN_GAP,
@@ -280,8 +280,8 @@ enum {
 };
 #endif
 #define current_time_t (G.current_time_t)
-/* memset: we have to zero it out because of NOEXEC */
 #define INIT_G() do { \
+	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
 	IF_FEATURE_AUTOWIDTH(tabstops = COLUMN_GAP;) \
 	IF_FEATURE_AUTOWIDTH(terminal_width = TERMINAL_WIDTH;) \

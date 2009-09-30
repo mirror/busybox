@@ -662,7 +662,7 @@ popen_ls(const char *opt)
 		execv(bb_busybox_exec_path + 1, (char**) argv);
 		_exit(127);
 #else
-		memset(&G, 0, sizeof(G));
+		/* memset(&G, 0, sizeof(G)); - ls_main does it */
 		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
 #endif
 	}
@@ -1114,7 +1114,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 /* --group-directories-first would be nice, but ls don't do that yet */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
-		memset(&G, 0, sizeof(G));
+		/* memset(&G, 0, sizeof(G)); - ls_main does it */
 		return ls_main(argc, argv);
 	}
 #endif

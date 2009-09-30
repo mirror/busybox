@@ -109,6 +109,8 @@ struct globals {
 	struct G_sizecheck { \
 		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
 	}; \
+	/* we have to zero it out because of NOEXEC */ \
+	memset(&G, 0, offsetof(struct globals, need_print)); \
 	G.need_print = 1; \
 	G.recurse_flags = ACTION_RECURSE; \
 } while (0)

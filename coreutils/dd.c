@@ -36,8 +36,10 @@ struct globals {
 	off_t out_full, out_part, in_full, in_part;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
-/* We have to zero it out because of NOEXEC */
-#define INIT_G() memset(&G, 0, sizeof(G))
+#define INIT_G() do { \
+	/* we have to zero it out because of NOEXEC */ \
+	memset(&G, 0, sizeof(G)); \
+} while (0)
 
 
 static void dd_output_status(int UNUSED_PARAM cur_signal)

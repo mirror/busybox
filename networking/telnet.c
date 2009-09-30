@@ -77,11 +77,10 @@ struct globals {
 	struct termios termios_raw;
 };
 #define G (*(struct globals*)&bb_common_bufsiz1)
-void BUG_telnet_globals_too_big(void);
 #define INIT_G() do { \
-	if (sizeof(G) > COMMON_BUFSIZE) \
-		BUG_telnet_globals_too_big(); \
-	/* memset(&G, 0, sizeof G); - already is */ \
+	struct G_sizecheck { \
+		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
+	}; \
 } while (0)
 
 /* Function prototypes */
