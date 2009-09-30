@@ -11,7 +11,7 @@ trap 'bad: caught WINCH' WINCH
 # With TERM we'll check whether it is reset
 trap 'bad: caught TERM'  TERM
 
-# using bash, becuase we don't have $PPID (yet)
+# using bash, because we don't have $PPID (yet)
 (bash -c 'kill -HUP   $PPID'; echo Ok)
 (bash -c 'kill -QUIT  $PPID'; echo Ok)
 (bash -c 'kill -SYS   $PPID'; echo Ok)
