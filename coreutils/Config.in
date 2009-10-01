@@ -81,7 +81,7 @@ config CP
 config FEATURE_CP_LONG_OPTIONS
 	bool "Enable long options for cp"
 	default n
-	depends on CP
+	depends on CP && LONG_OPTS
 	help
 	  Enable long options for cp.
 	  Also add support for --parents option.
