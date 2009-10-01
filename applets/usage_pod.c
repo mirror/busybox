@@ -66,7 +66,7 @@ int main(void)
 
 	names = applet_names;
 	usage = usage_messages;
-	while (*names && usage) {
+	while (*names && *usage) {
 		if (*names >= 'a' && *names <= 'z'
 		 && *usage != NOUSAGE_STR[0]
 		) {
