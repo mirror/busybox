@@ -66,12 +66,15 @@ int main(void)
 
 	names = applet_names;
 	usage = usage_messages;
-	while (*names && *usage) {
+	while (*names) {
 		if (*names >= 'a' && *names <= 'z'
 		 && *usage != NOUSAGE_STR[0]
 		) {
 			printf("=item B<%s>\n\n", names);
-			printf("%s %s\n\n", names, usage);
+			if (*usage)
+				printf("%s %s\n\n", names, usage);
+			else
+				printf("%s\n\n", names);
 		}
 		names += strlen(names) + 1;
 		usage += strlen(usage) + 1;
