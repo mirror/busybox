@@ -8,7 +8,7 @@ BusyBox - The Swiss Army Knife of Embedded Linux
 
  busybox <applet> [arguments...]  # or
 
- <applet> [arguments...]	    # if symlinked
+ <applet> [arguments...]	  # if symlinked
 
 =head1 DESCRIPTION
 

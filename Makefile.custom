@@ -111,15 +111,19 @@ doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 silent_cmd_doc =
 disp_doc       = $($(quiet)cmd_doc)
 
+# sed adds newlines after "Options:" etc,
+# this is needed in order to get good BusyBox.{1,txt,html}
 docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
 		$(srctree)/include/usage.h \
 		$(srctree)/docs/busybox_footer.pod \
-		$(srctree)/docs/autodocifier.pl
+		applets/usage_pod
 	$(disp_doc)
 	$(Q)-mkdir -p docs
-	$(Q)-( cat $(srctree)/docs/busybox_header.pod ; \
-	    $(srctree)/docs/autodocifier.pl $(srctree)/include/usage.h ; \
-	    cat $(srctree)/docs/busybox_footer.pod ; ) > docs/busybox.pod
+	$(Q)-( \
+	    cat $(srctree)/docs/busybox_header.pod; \
+	    applets/usage_pod | sed 's/^[A-Za-z][A-Za-z ]*[a-z]:$$/&\n/'; \
+	    cat $(srctree)/docs/busybox_footer.pod; \
+	    ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
 	$(disp_doc)
@@ -129,8 +133,7 @@ docs/BusyBox.txt: docs/busybox.pod
 docs/BusyBox.1: docs/busybox.pod
 	$(disp_doc)
 	$(Q)-mkdir -p docs
-	$(Q)-pod2man --center=BusyBox --release="version $(VERSION)" \
-		$< > $@
+	$(Q)-pod2man --center=BusyBox --release="version $(VERSION)" $< > $@
 
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	$(disp_doc)
@@ -140,8 +143,7 @@ docs/BusyBox.html: docs/busybox.net/BusyBox.html
 
 docs/busybox.net/BusyBox.html: docs/busybox.pod
 	$(Q)-mkdir -p docs/busybox.net
-	$(Q)-pod2html --noindex $< > \
-	    docs/busybox.net/BusyBox.html
+	$(Q)-pod2html --noindex $< > $@
 	$(Q)-rm -f pod2htm*
 
 # documentation, cross-reference
