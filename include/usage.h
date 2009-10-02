@@ -48,7 +48,7 @@
      "\n	-h DIR		Home directory" \
      "\n	-g GECOS	GECOS field" \
      "\n	-s SHELL	Login shell" \
-     "\n	-G GROUP	Add user to existing group" \
+     "\n	-G GRP		Add user to existing group" \
      "\n	-S		Create a system user" \
      "\n	-D		Do not assign a password" \
      "\n	-H		Do not create home directory" \
@@ -689,7 +689,7 @@
      "\n	-D FMT		Use FMT for -d TIME conversion" \
 	) \
      "\n" \
-     "\nRecognized formats for TIME:" \
+     "\nRecognized TIME formats:" \
      "\n	hh:mm[:ss]" \
      "\n	[YYYY.]MM.DD-hh:mm[:ss]" \
      "\n	YYYY-MM-DD hh:mm[:ss]" \
@@ -1189,12 +1189,12 @@
 #define blkid_trivial_usage \
        ""
 #define blkid_full_usage "\n\n" \
-       "Print UUIDs of all filesystems."
+       "Print UUIDs of all filesystems"
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
 #define findfs_full_usage "\n\n" \
-       "Find a filesystem device based on a label or UUID."
+       "Find a filesystem device based on a label or UUID"
 #define findfs_example_usage \
        "$ findfs LABEL=MyDevice"
 
@@ -3145,22 +3145,22 @@
 #define nmeter_full_usage "\n\n" \
        "Monitor system in real time\n\n" \
        "Format specifiers:\n" \
-       "%Nc or %[cN]	Monitor CPU. N - bar size, default 10\n" \
+       " %Nc or %[cN]	Monitor CPU. N - bar size, default 10\n" \
        "		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)\n" \
-       "%[niface]	Monitor network interface 'iface'\n" \
-       "%m		Monitor allocated memory\n" \
-       "%[mf]		Monitor free memory\n" \
-       "%[mt]		Monitor total memory\n" \
-       "%s		Monitor allocated swap\n" \
-       "%f		Monitor number of used file descriptors\n" \
-       "%Ni		Monitor total/specific IRQ rate\n" \
-       "%x		Monitor context switch rate\n" \
-       "%p		Monitor forks\n" \
-       "%[pn]		Monitor # of processes\n" \
-       "%b		Monitor block io\n" \
-       "%Nt		Show time (with N decimal points)\n" \
-       "%Nd		Milliseconds between updates (default:1000)\n" \
-       "%r		Print <cr> instead of <lf> at EOL" \
+       " %[niface]	Monitor network interface 'iface'\n" \
+       " %m		Monitor allocated memory\n" \
+       " %[mf]		Monitor free memory\n" \
+       " %[mt]		Monitor total memory\n" \
+       " %s		Monitor allocated swap\n" \
+       " %f		Monitor number of used file descriptors\n" \
+       " %Ni		Monitor total/specific IRQ rate\n" \
+       " %x		Monitor context switch rate\n" \
+       " %p		Monitor forks\n" \
+       " %[pn]		Monitor # of processes\n" \
+       " %b		Monitor block io\n" \
+       " %Nt		Show time (with N decimal points)\n" \
+       " %Nd		Milliseconds between updates (default:1000)\n" \
+       " %r		Print <cr> instead of <lf> at EOL" \
 
 #define nmeter_example_usage \
        "nmeter '%250d%t %20c int %i bio %b mem %m forks%p'"
@@ -4493,35 +4493,35 @@
 #define tcpsvd_full_usage "\n\n" \
        "Create TCP socket, bind  to IP:PORT and listen\n" \
        "for incoming connection. Run PROG for each connection.\n" \
-     "\nIP		IP to listen on. '0' = all" \
-     "\nPORT		Port to listen on" \
-     "\nPROG [ARGS]	Program to run" \
-     "\n-l NAME		Local hostname (else looks up local hostname in DNS)" \
-     "\n-u USER[:GROUP]	Change to user/group after bind" \
-     "\n-c N		Handle up to N connections simultaneously" \
-     "\n-b N		Allow a backlog of approximately N TCP SYNs" \
-     "\n-C N[:MSG]	Allow only up to N connections from the same IP" \
-     "\n		New connections from this IP address are closed" \
-     "\n		immediately. MSG is written to the peer before close" \
-     "\n-h		Look up peer's hostname" \
-     "\n-E		Do not set up environment variables" \
-     "\n-v		Verbose" \
+     "\n	IP		IP to listen on. '0' = all" \
+     "\n	PORT		Port to listen on" \
+     "\n	PROG [ARGS]	Program to run" \
+     "\n	-l NAME		Local hostname (else looks up local hostname in DNS)" \
+     "\n	-u USER[:GRP]	Change to user/group after bind" \
+     "\n	-c N		Handle up to N connections simultaneously" \
+     "\n	-b N		Allow a backlog of approximately N TCP SYNs" \
+     "\n	-C N[:MSG]	Allow only up to N connections from the same IP" \
+     "\n			New connections from this IP address are closed" \
+     "\n			immediately. MSG is written to the peer before close" \
+     "\n	-h		Look up peer's hostname" \
+     "\n	-E		Do not set up environment variables" \
+     "\n	-v		Verbose" \
 
 #define udpsvd_trivial_usage \
        "[-hEv] [-c N] [-u USER] [-l NAME] IP PORT PROG"
 #define udpsvd_full_usage "\n\n" \
        "Create UDP socket, bind to IP:PORT and wait\n" \
        "for incoming packets. Run PROG for each packet,\n" \
-       "redirecting all further packets with same peer ip:port to it\n" \
-     "\nIP		IP to listen on. '0' = all" \
-     "\nPORT		Port to listen on" \
-     "\nPROG [ARGS]	Program to run" \
-     "\n-l NAME		Local hostname (else looks up local hostname in DNS)" \
-     "\n-u USER[:GROUP]	Change to user/group after bind" \
-     "\n-c N		Handle up to N connections simultaneously" \
-     "\n-h		Look up peer's hostname" \
-     "\n-E		Do not set up environment variables" \
-     "\n-v		Verbose" \
+       "redirecting all further packets with same peer ip:port to it.\n" \
+     "\n	IP		IP to listen on. '0' = all" \
+     "\n	PORT		Port to listen on" \
+     "\n	PROG [ARGS]	Program to run" \
+     "\n	-l NAME		Local hostname (else looks up local hostname in DNS)" \
+     "\n	-u USER[:GRP]	Change to user/group after bind" \
+     "\n	-c N		Handle up to N connections simultaneously" \
+     "\n	-h		Look up peer's hostname" \
+     "\n	-E		Do not set up environment variables" \
+     "\n	-v		Verbose" \
 
 #define tftp_trivial_usage \
        "[OPTIONS] HOST [PORT]"

@@ -133,7 +133,7 @@ docs/BusyBox.txt: docs/busybox.pod
 docs/BusyBox.1: docs/busybox.pod
 	$(disp_doc)
 	$(Q)-mkdir -p docs
-	$(Q)-pod2man --center=BusyBox --release="version $(VERSION)" $< > $@
+	$(Q)-pod2man --center=BusyBox --release="version $(KERNELVERSION)" $< > $@
 
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	$(disp_doc)

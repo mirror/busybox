@@ -39,7 +39,7 @@ incorrect, please send in an update.
 =for html <br>
 
 Emanuele Aina <emanuele.aina@tiscali.it>
-	run-parts
+    run-parts
 
 =for html <br>
 
@@ -97,7 +97,7 @@ Dave Cinege <dcinege@psychosis.com>
 
 Jordan Crouse <jordan@cosmicpenguin.net>
 
-	ipcalc
+    ipcalc
 
 =for html <br>
 
@@ -146,7 +146,7 @@ Matt Kraai <kraai@alumni.cmu.edu>
 
 Stephan Linz <linz@li-pro.net>
 
-	ipcalc, Red Hat equivalence
+    ipcalc, Red Hat equivalence
 
 =for html <br>
 
@@ -250,7 +250,7 @@ Enrique Zanardi <ezanardi@ull.es>
 
 Tito Ragusa <farmatito@tiscali.it>
 
-	devfsd and size optimizations in strings, openvt and deallocvt.
+    devfsd and size optimizations in strings, openvt and deallocvt.
 
 =cut
 
