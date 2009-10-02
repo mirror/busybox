@@ -232,19 +232,17 @@ static const unsigned opt_flags[] = {
 /*
  * a directory entry and its stat info are stored here
  */
-struct dnode {                  /* the basic node */
-	const char *name;             /* the dir entry name */
-	const char *fullname;         /* the dir entry name */
-	int   allocated;
+struct dnode {
+	const char *name;       /* the dir entry name */
+	const char *fullname;   /* the dir entry name */
+	struct dnode *next;     /* point at the next node */
+	smallint fname_allocated;
 	struct stat dstat;      /* the file stat info */
 	IF_SELINUX(security_context_t sid;)
-	struct dnode *next;     /* point at the next node */
 };
 
-static struct dnode **list_dir(const char *);
-static struct dnode **dnalloc(int);
-static int list_single(const struct dnode *);
-
+static struct dnode **list_dir(const char *, unsigned *);
+static unsigned list_single(const struct dnode *);
 
 struct globals {
 #if ENABLE_FEATURE_LS_COLOR
@@ -318,7 +316,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 		}
 	}
 
-	cur = xmalloc(sizeof(struct dnode));
+	cur = xmalloc(sizeof(*cur));
 	cur->fullname = fullname;
 	cur->name = name;
 	cur->dstat = dstat;
@@ -391,9 +389,9 @@ static char append_char(mode_t mode)
 
 #define countdirs(A, B) count_dirs((A), (B), 1)
 #define countsubdirs(A, B) count_dirs((A), (B), 0)
-static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
+static unsigned count_dirs(struct dnode **dn, unsigned nfiles, int notsubdirs)
 {
-	int i, dirs;
+	unsigned i, dirs;
 
 	if (!dn)
 		return 0;
@@ -404,7 +402,7 @@ static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 			continue;
 		name = dn[i]->name;
 		if (notsubdirs
-		 || name[0]!='.' || (name[1] && (name[1]!='.' || name[2]))
+		 || name[0] != '.' || (name[1] && (name[1] != '.' || name[2]))
 		) {
 			dirs++;
 		}
@@ -412,22 +410,8 @@ static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 	return dirs;
 }
 
-static int countfiles(struct dnode **dnp)
-{
-	int nfiles;
-	struct dnode *cur;
-
-	if (dnp == NULL)
-		return 0;
-	nfiles = 0;
-	for (cur = dnp[0]; cur->next; cur = cur->next)
-		nfiles++;
-	nfiles++;
-	return nfiles;
-}
-
 /* get memory to hold an array of pointers */
-static struct dnode **dnalloc(int num)
+static struct dnode **dnalloc(unsigned num)
 {
 	if (num < 1)
 		return NULL;
@@ -436,16 +420,16 @@ static struct dnode **dnalloc(int num)
 }
 
 #if ENABLE_FEATURE_LS_RECURSIVE
-static void dfree(struct dnode **dnp, int nfiles)
+static void dfree(struct dnode **dnp, unsigned nfiles)
 {
-	int i;
+	unsigned i;
 
 	if (dnp == NULL)
 		return;
 
 	for (i = 0; i < nfiles; i++) {
 		struct dnode *cur = dnp[i];
-		if (cur->allocated)
+		if (cur->fname_allocated)
 			free((char*)cur->fullname);	/* free the filename */
 		free(cur);		/* free the dnode */
 	}
@@ -455,12 +439,12 @@ static void dfree(struct dnode **dnp, int nfiles)
 #define dfree(...) ((void)0)
 #endif
 
-static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
+static struct dnode **splitdnarray(struct dnode **dn, unsigned nfiles, int which)
 {
-	int dncnt, i, d;
+	unsigned dncnt, i, d;
 	struct dnode **dnp;
 
-	if (dn == NULL || nfiles < 1)
+	if (dn == NULL)
 		return NULL;
 
 	/* count how many dirs and regular files there are */
@@ -540,15 +524,17 @@ static void dnsort(struct dnode **dn, int size)
 #endif
 
 
-static void showfiles(struct dnode **dn, int nfiles)
+static void showfiles(struct dnode **dn, unsigned nfiles)
 {
-	int i, ncols, nrows, row, nc;
-	int column = 0;
-	int nexttab = 0;
-	int column_width = 0; /* for STYLE_LONG and STYLE_SINGLE not used */
+	unsigned i, ncols, nrows, row, nc;
+	unsigned column = 0;
+	unsigned nexttab = 0;
+	unsigned column_width = 0; /* for STYLE_LONG and STYLE_SINGLE not used */
 
+	/* Never happens:
 	if (dn == NULL || nfiles < 1)
 		return;
+	*/
 
 	if (all_fmt & STYLE_LONG) {
 		ncols = 1;
@@ -615,15 +601,18 @@ static off_t calculate_blocks(struct dnode **dn, int nfiles)
 #endif
 
 
-static void showdirs(struct dnode **dn, int ndirs, int first)
+static void showdirs(struct dnode **dn, unsigned ndirs, int first)
 {
-	int i, nfiles;
+	unsigned i, nfiles;
 	struct dnode **subdnp;
-	int dndirs;
+	unsigned dndirs;
 	struct dnode **dnd;
 
-	if (dn == NULL || ndirs < 1)
+	/* Never happens:
+	if (dn == NULL || ndirs < 1) {
 		return;
+	}
+	*/
 
 	for (i = 0; i < ndirs; i++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
@@ -632,8 +621,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 			first = 0;
 			printf("%s:\n", dn[i]->fullname);
 		}
-		subdnp = list_dir(dn[i]->fullname);
-		nfiles = countfiles(subdnp);
+		subdnp = list_dir(dn[i]->fullname, &nfiles);
 #if ENABLE_DESKTOP
 		if (all_fmt & STYLE_LONG)
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp, nfiles));
@@ -662,23 +650,26 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 }
 
 
-static struct dnode **list_dir(const char *path)
+static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 {
 	struct dnode *dn, *cur, **dnp;
 	struct dirent *entry;
 	DIR *dir;
-	int i, nfiles;
+	unsigned i, nfiles;
 
+	/* Never happens:
 	if (path == NULL)
 		return NULL;
+	*/
 
-	dn = NULL;
-	nfiles = 0;
+	*nfiles_p = 0;
 	dir = warn_opendir(path);
 	if (dir == NULL) {
 		exit_code = EXIT_FAILURE;
 		return NULL;	/* could not open the dir */
 	}
+	dn = NULL;
+	nfiles = 0;
 	while ((entry = readdir(dir)) != NULL) {
 		char *fullname;
 
@@ -698,22 +689,26 @@ static struct dnode **list_dir(const char *path)
 			free(fullname);
 			continue;
 		}
-		cur->allocated = 1;
+		cur->fname_allocated = 1;
 		cur->next = dn;
 		dn = cur;
 		nfiles++;
 	}
 	closedir(dir);
 
+	if (dn == NULL)
+		return NULL;
+
 	/* now that we know how many files there are
 	 * allocate memory for an array to hold dnode pointers
 	 */
-	if (dn == NULL)
-		return NULL;
+	*nfiles_p = nfiles;
 	dnp = dnalloc(nfiles);
-	for (i = 0, cur = dn; i < nfiles; i++) {
-		dnp[i] = cur;	/* save pointer to node in array */
-		cur = cur->next;
+	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
+		dnp[i] = dn;	/* save pointer to node in array */
+		dn = dn->next;
+		if (!dn)
+			break;
 	}
 
 	return dnp;
@@ -724,9 +719,9 @@ static int print_name(const char *name)
 {
 	if (option_mask32 & OPT_Q) {
 #if ENABLE_FEATURE_ASSUME_UNICODE
-		int len = 2 + bb_mbstrlen(name);
+		unsigned len = 2 + bb_mbstrlen(name);
 #else
-		int len = 2;
+		unsigned len = 2;
 #endif
 		putchar('"');
 		while (*name) {
@@ -751,9 +746,9 @@ static int print_name(const char *name)
 }
 
 
-static int list_single(const struct dnode *dn)
+static NOINLINE unsigned list_single(const struct dnode *dn)
 {
-	int column = 0;
+	unsigned column = 0;
 	char *lpath = lpath; /* for compiler */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	char *filetime;
@@ -764,8 +759,10 @@ static int list_single(const struct dnode *dn)
 	char append;
 #endif
 
+	/* Never happens:
 	if (dn->fullname == NULL)
 		return 0;
+	*/
 
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	ttime = dn->dstat.st_mtime;	/* the default time */
@@ -909,10 +906,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	struct dnode *dn;
 	struct dnode *cur;
 	unsigned opt;
-	int nfiles;
-	int dnfiles;
-	int dndirs;
-	int i;
+	unsigned nfiles;
+	unsigned dnfiles;
+	unsigned dndirs;
+	unsigned i;
 #if ENABLE_FEATURE_LS_COLOR
 	/* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
 	/* coreutils 6.10:
@@ -1039,25 +1036,30 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		argv++;
 		if (!cur)
 			continue;
-		cur->allocated = 0;
+		cur->fname_allocated = 0;
 		cur->next = dn;
 		dn = cur;
 		nfiles++;
 	} while (*argv);
 
+	/* nfiles _may_ be 0 here - try "ls doesnt_exist" */
+	if (nfiles == 0)
+		return exit_code;
+
 	/* now that we know how many files there are
 	 * allocate memory for an array to hold dnode pointers
 	 */
 	dnp = dnalloc(nfiles);
-	for (i = 0, cur = dn; i < nfiles; i++) {
-		dnp[i] = cur;	/* save pointer to node in array */
-		cur = cur->next;
+	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
+		dnp[i] = dn;	/* save pointer to node in array */
+		dn = dn->next;
+		if (!dn)
+			break;
 	}
 
 	if (all_fmt & DISP_NOLIST) {
 		dnsort(dnp, nfiles);
-		if (nfiles > 0)
-			showfiles(dnp, nfiles);
+		showfiles(dnp, nfiles);
 	} else {
 		dnd = splitdnarray(dnp, nfiles, SPLIT_DIR);
 		dnf = splitdnarray(dnp, nfiles, SPLIT_FILE);
