@@ -17,8 +17,7 @@
  * it more portable.
  *
  * KNOWN BUGS:
- * 1. ls -l of a directory doesn't give "total <blocks>" header
- * 2. hidden files can make column width too large
+ * 1. hidden files can make column width too large
  *
  * NON-OPTIMAL BEHAVIOUR:
  * 1. autowidth reads directories twice
@@ -598,6 +597,24 @@ static void showfiles(struct dnode **dn, int nfiles)
 }
 
 
+#if ENABLE_DESKTOP
+static off_t calculate_blocks(struct dnode **dn, int nfiles)
+{
+	uoff_t blocks = 1;
+	while (nfiles) {
+		blocks += (*dn)->dstat.st_blocks; /* in 512 byte blocks */
+		dn++;
+		nfiles--;
+	}
+
+	/* Even though POSIX says use 512 byte blocks, coreutils use 1k */
+	/* Actually, we round up by calculating (blocks + 1) / 2,
+	 * "+ 1" was done when we initialized blocks to 1 */
+	return blocks >> 1;
+}
+#endif
+
+
 static void showdirs(struct dnode **dn, int ndirs, int first)
 {
 	int i, nfiles;
@@ -617,6 +634,10 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 		}
 		subdnp = list_dir(dn[i]->fullname);
 		nfiles = countfiles(subdnp);
+#if ENABLE_DESKTOP
+		if (all_fmt & STYLE_LONG)
+			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp, nfiles));
+#endif
 		if (nfiles > 0) {
 			/* list all files at this level */
 			dnsort(subdnp, nfiles);
