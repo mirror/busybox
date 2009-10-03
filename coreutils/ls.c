@@ -324,7 +324,6 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 	return cur;
 }
 
-
 /* FYI type values: 1:fifo 2:char 4:dir 6:blk 8:file 10:link 12:socket
  * (various wacky OSes: 13:Sun door 14:BSD whiteout 5:XENIX named file
  *  3/7:multiplexed char/block device)
@@ -386,7 +385,6 @@ static char append_char(mode_t mode)
 }
 #endif
 
-
 #define countdirs(A, B) count_dirs((A), (B), 1)
 #define countsubdirs(A, B) count_dirs((A), (B), 0)
 static unsigned count_dirs(struct dnode **dn, unsigned nfiles, int notsubdirs)
@@ -430,10 +428,10 @@ static void dfree(struct dnode **dnp, unsigned nfiles)
 	for (i = 0; i < nfiles; i++) {
 		struct dnode *cur = dnp[i];
 		if (cur->fname_allocated)
-			free((char*)cur->fullname);	/* free the filename */
-		free(cur);		/* free the dnode */
+			free((char*)cur->fullname);
+		free(cur);
 	}
-	free(dnp);			/* free the array holding the dnode pointers */
+	free(dnp);
 }
 #else
 #define dfree(...) ((void)0)
@@ -564,9 +562,10 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 	for (row = 0; row < nrows; row++) {
 		for (nc = 0; nc < ncols; nc++) {
 			/* reach into the array based on the column and row */
-			i = (nc * nrows) + row;	/* assume display by column */
 			if (all_fmt & DISP_ROWS)
 				i = (row * ncols) + nc;	/* display across row */
+			else
+				i = (nc * nrows) + row;	/* display by column */
 			if (i < nfiles) {
 				if (column > 0) {
 					nexttab -= column;
@@ -640,21 +639,21 @@ static void showdirs(struct dnode **dn, unsigned ndirs, int first)
 			/* list all files at this level */
 			dnsort(subdnp, nfiles);
 			showfiles(subdnp, nfiles);
-			if (ENABLE_FEATURE_LS_RECURSIVE) {
-				if (all_fmt & DISP_RECURSIVE) {
-					/* recursive- list the sub-dirs */
-					dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
-					dndirs = countsubdirs(subdnp, nfiles);
-					if (dndirs > 0) {
-						dnsort(dnd, dndirs);
-						showdirs(dnd, dndirs, 0);
-						/* free the array of dnode pointers to the dirs */
-						free(dnd);
-					}
+			if (ENABLE_FEATURE_LS_RECURSIVE
+			 && (all_fmt & DISP_RECURSIVE)
+			) {
+				/* recursive - list the sub-dirs */
+				dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
+				dndirs = countsubdirs(subdnp, nfiles);
+				if (dndirs > 0) {
+					dnsort(dnd, dndirs);
+					showdirs(dnd, dndirs, 0);
+					/* free the array of dnode pointers to the dirs */
+					free(dnd);
 				}
-				/* free the dnodes and the fullname mem */
-				dfree(subdnp, nfiles);
 			}
+			/* free the dnodes and the fullname mem */
+			dfree(subdnp, nfiles);
 		}
 	}
 }
