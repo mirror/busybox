@@ -12909,8 +12909,7 @@ printlim(enum limtype how, const struct rlimit *limit,
 static int FAST_FUNC
 ulimitcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	int c;
-	rlim_t val = 0;
+	rlim_t val;
 	enum limtype how = SOFT | HARD;
 	const struct limits *l;
 	int set, all = 0;
@@ -12971,6 +12970,7 @@ ulimitcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		continue;
 
 	set = *argptr ? 1 : 0;
+	val = 0;
 	if (set) {
 		char *p = *argptr;
 
@@ -12979,15 +12979,13 @@ ulimitcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		if (strncmp(p, "unlimited\n", 9) == 0)
 			val = RLIM_INFINITY;
 		else {
-			val = (rlim_t) 0;
-
-			while ((c = *p++) >= '0' && c <= '9') {
-				val = (val * 10) + (long)(c - '0');
-				// val is actually 'unsigned long int' and can't get < 0
-				if (val < (rlim_t) 0)
-					break;
-			}
-			if (c)
+			if (sizeof(val) == sizeof(int))
+				val = bb_strtou(p, NULL, 10);
+			else if (sizeof(val) == sizeof(long))
+				val = bb_strtoul(p, NULL, 10);
+			else
+				val = bb_strtoull(p, NULL, 10);
+			if (errno)
 				ash_msg_and_raise_error("bad number");
 			val <<= l->factor_shift;
 		}
