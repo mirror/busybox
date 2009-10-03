@@ -584,6 +584,16 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 
 
 #if ENABLE_DESKTOP
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/ls.html
+ * If any of the -l, -n, -s options is specified, each list
+ * of files within the directory shall be preceded by a
+ * status line indicating the number of file system blocks
+ * occupied by files in the directory in 512-byte units if
+ * the -k option is not specified, or 1024-byte units if the
+ * -k option is specified, rounded up to the next integral
+ * number of units.
+ */
+/* by Jorgen Overgaard (jorgen AT antistaten.se) */
 static off_t calculate_blocks(struct dnode **dn, int nfiles)
 {
 	uoff_t blocks = 1;
@@ -593,7 +603,7 @@ static off_t calculate_blocks(struct dnode **dn, int nfiles)
 		nfiles--;
 	}
 
-	/* Even though POSIX says use 512 byte blocks, coreutils use 1k */
+	/* Even though standard says use 512 byte blocks, coreutils use 1k */
 	/* Actually, we round up by calculating (blocks + 1) / 2,
 	 * "+ 1" was done when we initialized blocks to 1 */
 	return blocks >> 1;
