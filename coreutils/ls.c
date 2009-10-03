@@ -592,13 +592,15 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
  * number of units.
  */
 /* by Jorgen Overgaard (jorgen AT antistaten.se) */
-static off_t calculate_blocks(struct dnode **dn, int nfiles)
+static off_t calculate_blocks(struct dnode **dn)
 {
 	uoff_t blocks = 1;
-	while (nfiles) {
-		blocks += (*dn)->dstat.st_blocks; /* in 512 byte blocks */
-		dn++;
-		nfiles--;
+	if (dn) {
+		while (*dn) {
+			/* st_blocks is in 512 byte blocks */
+			blocks += (*dn)->dstat.st_blocks;
+			dn++;
+		}
 	}
 
 	/* Even though standard says use 512 byte blocks, coreutils use 1k */
