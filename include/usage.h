@@ -3814,6 +3814,7 @@
      "\n	-t		Read additional recipients from message body" \
      "\n	-f sender	Sender (required)" \
      "\n	-o options	Various options. -oi implied, others are ignored" \
+     "\n	-i		-oi synonym. implied and ignored" \
      "\n" \
      "\nBusybox specific options:" \
      "\n	-w seconds	Network timeout" \

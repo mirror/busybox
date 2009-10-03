@@ -73,11 +73,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		OPT_t = 1 << 0,         // read message for recipients, append them to those on cmdline
 		OPT_f = 1 << 1,         // sender address
 		OPT_o = 1 << 2,         // various options. -oi IMPLIED! others are IGNORED!
+		OPT_i = 1 << 3,         // IMPLIED!
 	//--- BB specific options
-		OPT_w = 1 << 3,         // network timeout
-		OPT_H = 1 << 4,         // use external connection helper
-		OPT_S = 1 << 5,         // specify connection string
-		OPT_a = 1 << 6,         // authentication tokens
+		OPT_w = 1 << 4,         // network timeout
+		OPT_H = 1 << 5,         // use external connection helper
+		OPT_S = 1 << 6,         // specify connection string
+		OPT_a = 1 << 7,         // authentication tokens
 	};
 
 	// init global variables
@@ -93,7 +94,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// N.B. since -H and -S are mutually exclusive they do not interfere in opt_connect
 	// -a is for ssmtp (http://downloads.openwrt.org/people/nico/man/man8/ssmtp.8.html) compatibility,
 	// it is still under development.
-	opts = getopt32(argv, "tf:o:w:H:S:a::", &opt_from, NULL, &timeout, &opt_connect, &opt_connect, &list);
+	opts = getopt32(argv, "tf:o:iw:H:S:a::", &opt_from, NULL, &timeout, &opt_connect, &opt_connect, &list);
 	//argc -= optind;
 	argv += optind;
 

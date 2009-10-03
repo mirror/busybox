@@ -29,7 +29,7 @@
 #define SENDMAIL        "sendmail"
 #endif
 #ifndef SENDMAIL_ARGS
-#define SENDMAIL_ARGS   "-ti", "oem"
+#define SENDMAIL_ARGS   "-ti", NULL
 #endif
 #ifndef CRONUPDATE
 #define CRONUPDATE      "cron.update"
