@@ -136,7 +136,7 @@ static int get_prefix_1(inet_prefix *dst, char *arg, int family)
 				if (!(host & (host + 1))) {
 					for (plen = 0; mask; mask <<= 1)
 						++plen;
-					if (plen >= 0 && plen <= dst->bitlen) {
+					if (plen <= dst->bitlen) {
 						dst->bitlen = plen;
 						/* dst->flags |= PREFIXLEN_SPECIFIED; */
 					} else
