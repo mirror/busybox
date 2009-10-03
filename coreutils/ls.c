@@ -385,27 +385,29 @@ static char append_char(mode_t mode)
 }
 #endif
 
-#define countdirs(A, B) count_dirs((A), (B), 1)
-#define countsubdirs(A, B) count_dirs((A), (B), 0)
-static unsigned count_dirs(struct dnode **dn, unsigned nfiles, int notsubdirs)
+static unsigned count_dirs(struct dnode **dn, int which)
 {
-	unsigned i, dirs;
+	unsigned dirs, all;
 
 	if (!dn)
 		return 0;
-	dirs = 0;
-	for (i = 0; i < nfiles; i++) {
+
+	dirs = all = 0;
+	for (; *dn; dn++) {
 		const char *name;
-		if (!S_ISDIR(dn[i]->dstat.st_mode))
+
+		all++;
+		if (!S_ISDIR((*dn)->dstat.st_mode))
 			continue;
-		name = dn[i]->name;
-		if (notsubdirs
+		name = (*dn)->name;
+		if (which != SPLIT_SUBDIR /* if not requested to skip . / .. */
+		 /* or if it's not . or .. */
 		 || name[0] != '.' || (name[1] && (name[1] != '.' || name[2]))
 		) {
 			dirs++;
 		}
 	}
-	return dirs;
+	return which != SPLIT_FILE ? dirs : all - dirs;
 }
 
 /* get memory to hold an array of pointers */
@@ -414,18 +416,19 @@ static struct dnode **dnalloc(unsigned num)
 	if (num < 1)
 		return NULL;
 
+	num++; /* so that we have terminating NULL */
 	return xzalloc(num * sizeof(struct dnode *));
 }
 
 #if ENABLE_FEATURE_LS_RECURSIVE
-static void dfree(struct dnode **dnp, unsigned nfiles)
+static void dfree(struct dnode **dnp)
 {
 	unsigned i;
 
 	if (dnp == NULL)
 		return;
 
-	for (i = 0; i < nfiles; i++) {
+	for (i = 0; dnp[i]; i++) {
 		struct dnode *cur = dnp[i];
 		if (cur->fname_allocated)
 			free((char*)cur->fullname);
@@ -437,40 +440,36 @@ static void dfree(struct dnode **dnp, unsigned nfiles)
 #define dfree(...) ((void)0)
 #endif
 
-static struct dnode **splitdnarray(struct dnode **dn, unsigned nfiles, int which)
+/* Returns NULL-terminated malloced vector of pointers (or NULL) */
+static struct dnode **splitdnarray(struct dnode **dn, int which)
 {
-	unsigned dncnt, i, d;
+	unsigned dncnt, d;
 	struct dnode **dnp;
 
 	if (dn == NULL)
 		return NULL;
 
-	/* count how many dirs and regular files there are */
-	if (which == SPLIT_SUBDIR)
-		dncnt = countsubdirs(dn, nfiles);
-	else {
-		dncnt = countdirs(dn, nfiles);	/* assume we are looking for dirs */
-		if (which == SPLIT_FILE)
-			dncnt = nfiles - dncnt;	/* looking for files */
-	}
+	/* count how many dirs or files there are */
+	dncnt = count_dirs(dn, which);
 
 	/* allocate a file array and a dir array */
 	dnp = dnalloc(dncnt);
 
 	/* copy the entrys into the file or dir array */
-	for (d = i = 0; i < nfiles; i++) {
-		if (S_ISDIR(dn[i]->dstat.st_mode)) {
+	for (d = 0; *dn; dn++) {
+		if (S_ISDIR((*dn)->dstat.st_mode)) {
 			const char *name;
+
 			if (!(which & (SPLIT_DIR|SPLIT_SUBDIR)))
 				continue;
-			name = dn[i]->name;
+			name = (*dn)->name;
 			if ((which & SPLIT_DIR)
 			 || name[0]!='.' || (name[1] && (name[1]!='.' || name[2]))
 			) {
-				dnp[d++] = dn[i];
+				dnp[d++] = *dn;
 			}
 		} else if (!(which & (SPLIT_DIR|SPLIT_SUBDIR))) {
-			dnp[d++] = dn[i];
+			dnp[d++] = *dn;
 		}
 	}
 	return dnp;
@@ -538,7 +537,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 		ncols = 1;
 	} else {
 		/* find the longest file name, use that as the column width */
-		for (i = 0; i < nfiles; i++) {
+		for (i = 0; dn[i]; i++) {
 			int len = bb_mbstrlen(dn[i]->name);
 			if (column_width < len)
 				column_width = len;
@@ -610,11 +609,11 @@ static off_t calculate_blocks(struct dnode **dn, int nfiles)
 #endif
 
 
-static void showdirs(struct dnode **dn, unsigned ndirs, int first)
+static void showdirs(struct dnode **dn, int first)
 {
-	unsigned i, nfiles;
-	struct dnode **subdnp;
+	unsigned nfiles;
 	unsigned dndirs;
+	struct dnode **subdnp;
 	struct dnode **dnd;
 
 	/* Never happens:
@@ -623,17 +622,17 @@ static void showdirs(struct dnode **dn, unsigned ndirs, int first)
 	}
 	*/
 
-	for (i = 0; i < ndirs; i++) {
+	for (; *dn; dn++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
 			if (!first)
 				bb_putchar('\n');
 			first = 0;
-			printf("%s:\n", dn[i]->fullname);
+			printf("%s:\n", (*dn)->fullname);
 		}
-		subdnp = list_dir(dn[i]->fullname, &nfiles);
+		subdnp = list_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
 		if (all_fmt & STYLE_LONG)
-			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp, nfiles));
+			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
 #endif
 		if (nfiles > 0) {
 			/* list all files at this level */
@@ -643,22 +642,23 @@ static void showdirs(struct dnode **dn, unsigned ndirs, int first)
 			 && (all_fmt & DISP_RECURSIVE)
 			) {
 				/* recursive - list the sub-dirs */
-				dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
-				dndirs = countsubdirs(subdnp, nfiles);
+				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
+				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
 				if (dndirs > 0) {
 					dnsort(dnd, dndirs);
-					showdirs(dnd, dndirs, 0);
+					showdirs(dnd, 0);
 					/* free the array of dnode pointers to the dirs */
 					free(dnd);
 				}
 			}
 			/* free the dnodes and the fullname mem */
-			dfree(subdnp, nfiles);
+			dfree(subdnp);
 		}
 	}
 }
 
 
+/* Returns NULL-terminated malloced vector of pointers (or NULL) */
 static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 {
 	struct dnode *dn, *cur, **dnp;
@@ -1070,9 +1070,9 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		dnsort(dnp, nfiles);
 		showfiles(dnp, nfiles);
 	} else {
-		dnd = splitdnarray(dnp, nfiles, SPLIT_DIR);
-		dnf = splitdnarray(dnp, nfiles, SPLIT_FILE);
-		dndirs = countdirs(dnp, nfiles);
+		dnd = splitdnarray(dnp, SPLIT_DIR);
+		dnf = splitdnarray(dnp, SPLIT_FILE);
+		dndirs = count_dirs(dnp, SPLIT_DIR);
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
 			dnsort(dnf, dnfiles);
@@ -1082,12 +1082,12 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (dndirs > 0) {
 			dnsort(dnd, dndirs);
-			showdirs(dnd, dndirs, dnfiles == 0);
+			showdirs(dnd, dnfiles == 0);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnd);
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
-		dfree(dnp, nfiles);
+		dfree(dnp);
 	return exit_code;
 }
