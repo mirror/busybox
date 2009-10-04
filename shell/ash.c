@@ -6371,6 +6371,16 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 /*
  * Add the value of a specialized variable to the stack string.
+ * name parameter (examples):
+ * ash -c 'echo $1'      name:'1='
+ * ash -c 'echo $qwe'    name:'qwe='
+ * ash -c 'echo $$'      name:'$='
+ * ash -c 'echo ${$}'    name:'$='
+ * ash -c 'echo ${$##q}' name:'$=q'
+ * ash -c 'echo ${#$}'   name:'$='
+ * note: examples with bad shell syntax:
+ * ash -c 'echo ${#$1}'  name:'$=1'
+ * ash -c 'echo ${#1#}'  name:'1=#'
  */
 static ssize_t
 varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
@@ -6407,7 +6417,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 			return -1;
  numvar:
 		len = cvtnum(num);
-		break;
+		goto check_1char_name;
 	case '-':
 		expdest = makestrspace(NOPTS, expdest);
 		for (i = NOPTS - 1; i >= 0; i--) {
@@ -6416,6 +6426,12 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 				len++;
 			}
 		}
+ check_1char_name:
+#if 0
+		/* handles cases similar to ${#$1} */
+		if (name[2] != '\0')
+			raise_error_syntax("bad substitution");
+#endif
 		break;
 	case '@':
 		if (sep)
