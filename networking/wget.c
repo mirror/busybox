@@ -370,8 +370,10 @@ static void parse_url(char *src_url, struct host_info *h)
 		h->path = sp;
 	}
 
+	// We used to set h->user to NULL here, but this interferes
+	// with handling of code 302 ("object was moved")
+
 	sp = strrchr(h->host, '@');
-	h->user = NULL;
 	if (sp != NULL) {
 		h->user = h->host;
 		*sp = '\0';
@@ -692,6 +694,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 
 	/* TODO: compat issue: should handle "wget URL1 URL2..." */
 
+	target.user = NULL;
 	parse_url(argv[optind], &target);
 
 	/* Use the proxy if necessary */

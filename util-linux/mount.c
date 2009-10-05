@@ -19,6 +19,9 @@
 #include <mntent.h>
 #include <syslog.h>
 #include <sys/mount.h>
+#ifndef MS_UNION
+# define MS_UNION       (1 << 8)
+#endif
 #ifndef MS_BIND
 # define MS_BIND        (1 << 12)
 #endif
@@ -177,6 +180,7 @@ static const int32_t mount_options[] = {
 		/* "loud"        */ ~MS_SILENT,
 
 		// action flags
+		/* "union"       */ MS_UNION,
 		/* "bind"        */ MS_BIND,
 		/* "move"        */ MS_MOVE,
 		/* "shared"      */ MS_SHARED,
@@ -231,6 +235,7 @@ static const char mount_option_str[] =
 		"loud\0"
 
 		// action flags
+		"union\0"
 		"bind\0"
 		"move\0"
 		"shared\0"
