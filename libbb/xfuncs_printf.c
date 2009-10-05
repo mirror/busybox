@@ -213,6 +213,12 @@ void FAST_FUNC xwrite_str(int fd, const char *str)
 	xwrite(fd, str, strlen(str));
 }
 
+void FAST_FUNC xclose(int fd)
+{
+	if (close(fd))
+		bb_perror_msg_and_die("close failed");
+}
+
 // Die with an error message if we can't lseek to the right spot.
 off_t FAST_FUNC xlseek(int fd, off_t offset, int whence)
 {

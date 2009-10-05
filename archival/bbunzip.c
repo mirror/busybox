@@ -98,6 +98,7 @@ int FAST_FUNC bbunpack(char **argv,
 		status = unpacker(&info);
 		if (status < 0)
 			exitcode = 1;
+		xclose(STDOUT_FILENO); /* with error check! */
 
 		if (filename) {
 			char *del = new_name;
@@ -108,12 +109,11 @@ int FAST_FUNC bbunpack(char **argv,
 
 					times.actime = info.mtime;
 					times.modtime = info.mtime;
-					/* Close first.
+					/* Note: we closed it first.
 					 * On some systems calling utime
-					 * then closing resets the mtime. */
-					close(STDOUT_FILENO);
-					/* Ignoring errors */
-					utime(new_name, &times);
+					 * then closing resets the mtime
+					 * back to current time. */
+					utime(new_name, &times); /* ignoring errors */
 				}
 
 				/* Delete _compressed_ file */

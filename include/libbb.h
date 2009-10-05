@@ -631,6 +631,9 @@ extern void xwrite(int fd, const void *buf, size_t count) FAST_FUNC;
 extern void xwrite_str(int fd, const char *str) FAST_FUNC;
 extern void xopen_xwrite_close(const char* file, const char *str) FAST_FUNC;
 
+/* Close fd, but check for failures (some types of write errors) */
+extern void xclose(int fd) FAST_FUNC;
+
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file) FAST_FUNC;
 
