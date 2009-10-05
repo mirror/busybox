@@ -11291,6 +11291,8 @@ parsesub: {
  badsub:
 			raise_error_syntax("bad substitution");
 		}
+		if (c != '}' && subtype == VSLENGTH)
+			goto badsub;
 
 		STPUTC('=', out);
 		flags = 0;
