@@ -20,7 +20,7 @@
 #define acpid_full_usage "\n\n" \
        "Listen to ACPI events and spawn specific helpers on event arrival\n" \
      "\nOptions:" \
-     "\n	-d	Do not daemonize and log to stderr" \
+     "\n	-d	Don't daemonize, log to stderr" \
      "\n	-c DIR	Config directory [/etc/acpi]" \
      "\n	-e FILE	/proc event file [/proc/acpi/event]" \
      "\n	-l FILE	Log file [/var/log/acpid]" \
@@ -50,8 +50,8 @@
      "\n	-s SHELL	Login shell" \
      "\n	-G GRP		Add user to existing group" \
      "\n	-S		Create a system user" \
-     "\n	-D		Do not assign a password" \
-     "\n	-H		Do not create home directory" \
+     "\n	-D		Don't assign a password" \
+     "\n	-H		Don't create home directory" \
      "\n	-u UID		User id" \
 
 #define adjtimex_trivial_usage \
@@ -304,7 +304,7 @@
      "\n	a	Append mode only" \
      "\n	c	Enable compress" \
      "\n	D	Write dir contents synchronously" \
-     "\n	d	Do not backup with dump" \
+     "\n	d	Don't backup with dump" \
      "\n	i	Cannot be modified (immutable)" \
      "\n	j	Write all data to journal first" \
      "\n	s	Zero disk storage when deleted" \
@@ -378,7 +378,7 @@
      "\n	-h	Affect symlinks instead of symlink targets" \
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
-     "\n	-P	Do not traverse symlinks (default)" \
+     "\n	-P	Don't traverse symlinks (default)" \
 	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	Verbose" \
@@ -400,7 +400,7 @@
      "\n	-h	Affect symlinks instead of symlink targets" \
      "\n	-L	Traverse all symlinks to directories" \
      "\n	-H	Traverse symlinks on command line only" \
-     "\n	-P	Do not traverse symlinks (default)" \
+     "\n	-P	Don't traverse symlinks (default)" \
 	IF_DESKTOP( \
      "\n	-c	List changed files" \
      "\n	-v	List all files" \
@@ -794,7 +794,7 @@
      "\n	-fg	Run in foreground" \
      "\n	-np	Exit after parsing the configuration file" \
      "\n		and processing synthetic REGISTER events," \
-     "\n		do not poll for events" \
+     "\n		don't poll for events" \
 	)
 
 #define df_trivial_usage \
@@ -1073,11 +1073,11 @@
        "Convert tabs to spaces, writing to standard output\n" \
      "\nOptions:" \
 	IF_FEATURE_EXPAND_LONG_OPTIONS( \
-     "\n	-i,--initial	Do not convert tabs after non blanks" \
+     "\n	-i,--initial	Don't convert tabs after non blanks" \
      "\n	-t,--tabs=N	Tabstops every N chars" \
 	) \
 	IF_NOT_FEATURE_EXPAND_LONG_OPTIONS( \
-     "\n	-i	Do not convert tabs after non blanks" \
+     "\n	-i	Don't convert tabs after non blanks" \
      "\n	-t	Tabstops every N chars" \
 	)
 
@@ -1210,7 +1210,7 @@
 	IF_FEATURE_FIND_MAXDEPTH( \
      "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies" \
      "\n			tests/actions to command line arguments only") \
-     "\n	-mindepth N	Do not act on first N levels" \
+     "\n	-mindepth N	Don't act on first N levels" \
      "\n	-name PATTERN	File name (w/o directory name) matches PATTERN" \
      "\n	-iname PATTERN	Case insensitive -name" \
 	IF_FEATURE_FIND_PATH( \
@@ -1463,11 +1463,11 @@
        "Open a tty, prompt for a login name, then invoke /bin/login\n" \
      "\nOptions:" \
      "\n	-h		Enable hardware (RTS/CTS) flow control" \
-     "\n	-i		Do not display /etc/issue before running login" \
-     "\n	-L		Local line, do not do carrier detect" \
+     "\n	-i		Don't display /etc/issue before running login" \
+     "\n	-L		Local line, don't do carrier detect" \
      "\n	-m		Get baud rate from modem's CONNECT status message" \
      "\n	-w		Wait for a CR or LF before sending /etc/issue" \
-     "\n	-n		Do not prompt the user for a login name" \
+     "\n	-n		Don't prompt the user for a login name" \
      "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue" \
      "\n	-l LOGIN	Invoke LOGIN instead of /bin/login" \
      "\n	-t SEC		Terminate after SEC if no username is read" \
@@ -1490,7 +1490,7 @@
      "\n	-r	Recurse" \
      "\n	-i	Ignore case distinctions" \
      "\n	-l	List names of files that match" \
-     "\n	-L	List names of files that do not match" \
+     "\n	-L	List names of files that don't match" \
      "\n	-n	Print line number with output lines" \
      "\n	-q	Quiet. Return 0 if PATTERN is found, 1 otherwise" \
      "\n	-v	Select non-matching lines" \
@@ -1696,7 +1696,7 @@
        "Listen for incoming HTTP requests\n" \
      "\nOptions:" \
      "\n	-i		Inetd mode" \
-     "\n	-f		Do not daemonize" \
+     "\n	-f		Don't daemonize" \
      "\n	-v[v]		Verbose" \
      "\n	-c FILE		Configuration file (default httpd.conf)" \
      "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
@@ -1800,12 +1800,12 @@
 #define ifplugd_full_usage "\n\n" \
        "Network interface plug detection daemon\n" \
      "\nOptions:" \
-     "\n	-n		Do not daemonize" \
-     "\n	-s		Do not log to syslog" \
+     "\n	-n		Don't daemonize" \
+     "\n	-s		Don't log to syslog" \
      "\n	-i IFACE	Interface" \
      "\n	-f/-F		Treat link detection error as link down/link up" \
      "\n			(otherwise exit on error)" \
-     "\n	-a		Do not up interface automatically" \
+     "\n	-a		Don't up interface automatically" \
      "\n	-M		Monitor creation/destruction of interface" \
      "\n			(otherwise it must exist)" \
      "\n	-r PROG		Script to run" \
@@ -2037,7 +2037,7 @@
      "\n	-m	Output load map to stdout" \
 	) \
      "\n	-o NAME	Set internal module name to NAME" \
-     "\n	-x	Do not export externs" \
+     "\n	-x	Don't export externs" \
 	)
 
 /* -v, -b, -c are ignored */
@@ -2227,7 +2227,7 @@
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
 /*   "\n	-s SIG	Yet another way of specifying SIG" */ \
-     "\n	-q	Do not complain if no processes were killed" \
+     "\n	-q	Don't complain if no processes were killed" \
 
 #define killall_example_usage \
        "$ killall apache\n"
@@ -2238,7 +2238,7 @@
        "Send a signal (default: TERM) to all processes outside current session\n" \
      "\nOptions:" \
      "\n	-l	List all signal names and numbers" \
-     "\n	-o PID	Do not signal this PID" \
+     "\n	-o PID	Don't signal this PID" \
 /*   "\n	-s SIG	Yet another way of specifying SIG" */ \
 
 #define klogd_trivial_usage \
@@ -2340,7 +2340,7 @@
 #define login_full_usage "\n\n" \
        "Begin a new session on the system\n" \
      "\nOptions:" \
-     "\n	-f	Do not authenticate (user already authenticated)" \
+     "\n	-f	Don't authenticate (user already authenticated)" \
      "\n	-h	Name of the remote host" \
      "\n	-p	Preserve environment" \
 
@@ -2475,7 +2475,7 @@
        "List file attributes on an ext2 fs\n" \
      "\nOptions:" \
      "\n	-R	Recursively list subdirectories" \
-     "\n	-a	Do not hide entries starting with ." \
+     "\n	-a	Don't hide entries starting with ." \
      "\n	-d	List directory entries instead of contents" \
      "\n	-l	List long flag names" \
      "\n	-v	List the file's version/generation number" \
@@ -2569,8 +2569,8 @@
 #define matchpathcon_trivial_usage \
        "[-n] [-N] [-f file_contexts_file] [-p prefix] [-V]"
 #define matchpathcon_full_usage "\n\n" \
-       "	-n	Do not display path" \
-     "\n	-N	Do not use translations" \
+       "	-n	Don't display path" \
+     "\n	-N	Don't use translations" \
      "\n	-f	Use alternate file_context file" \
      "\n	-p	Use prefix to speed translations" \
      "\n	-V	Verify file context on disk matches defaults" \
@@ -2725,7 +2725,7 @@
      "\n	-L lbl		Set the volume label" \
      "\n	-m percent	Percent of fs blocks to reserve for admin" \
      "\n	-M dir		Set last mounted directory" \
-     "\n	-n		Do not actually create anything" \
+     "\n	-n		Don't actually create anything" \
      "\n	-N num		Number of inodes to create" \
      "\n	-o os		Set the 'creator os' field" \
      "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" \
@@ -3385,7 +3385,7 @@
 	) \
      "\n	-R size		Remove old messages on the server >= size (in bytes). Ignored" \
      "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" \
-     "\n	-L size		Do not retrieve new messages >= size (in bytes). Ignored" \
+     "\n	-L size		Don't retrieve new messages >= size (in bytes). Ignored" \
      "\n	-H lines	Type specified number of lines of a message. Ignored"
 #define popmaildir_example_usage \
        "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
@@ -3510,7 +3510,7 @@
        "[FILE]..."
 #define readahead_full_usage "\n\n" \
        "Preload FILE(s) in RAM cache so that subsequent reads for those" \
-       "files do not block on disk I/O"
+       "files don't block on disk I/O"
 
 #define readlink_trivial_usage \
 	IF_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"
@@ -3592,7 +3592,7 @@
        "[-iFnrRv] [-e excludedir]... [-o filename] [-f filename | pathname]"
 #define restorecon_full_usage "\n\n" \
        "Reset security contexts of files in pathname\n" \
-     "\n	-i		Ignore files that do not exist" \
+     "\n	-i		Ignore files that don't exist" \
      "\n	-f file		File with list of files to process. Use - for stdin" \
      "\n	-e directory	Directory to exclude" \
      "\n	-R,-r		Recurse" \
@@ -4212,7 +4212,7 @@
        "up: if service isn't running, start it. If service stops, restart it\n" \
        "once: like 'up', but if service stops, don't restart it\n" \
        "down: send TERM and CONT signals. If ./run exits, start ./finish\n" \
-       "	if it exists. After it stops, do not restart service\n" \
+       "	if it exists. After it stops, don't restart service\n" \
        "exit: send TERM and CONT signals to service and log service. If they exit,\n" \
        "	runsv exits too\n" \
        "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n" \
@@ -4401,7 +4401,7 @@
 #define tee_full_usage "\n\n" \
        "Copy standard input to each FILE, and also to standard output\n" \
      "\nOptions:" \
-     "\n	-a	Append to the given FILEs, do not overwrite" \
+     "\n	-a	Append to the given FILEs, don't overwrite" \
      "\n	-i	Ignore interrupt signals (SIGINT)" \
 
 #define tee_example_usage \
@@ -4505,7 +4505,7 @@
      "\n			New connections from this IP address are closed" \
      "\n			immediately. MSG is written to the peer before close" \
      "\n	-h		Look up peer's hostname" \
-     "\n	-E		Do not set up environment variables" \
+     "\n	-E		Don't set up environment variables" \
      "\n	-v		Verbose" \
 
 #define udpsvd_trivial_usage \
@@ -4521,7 +4521,7 @@
      "\n	-u USER[:GRP]	Change to user/group after bind" \
      "\n	-c N		Handle up to N connections simultaneously" \
      "\n	-h		Look up peer's hostname" \
-     "\n	-E		Do not set up environment variables" \
+     "\n	-E		Don't set up environment variables" \
      "\n	-v		Verbose" \
 
 #define tftp_trivial_usage \
@@ -4581,7 +4581,7 @@
 #define touch_full_usage "\n\n" \
        "Update the last-modified date on the given FILE[s]\n" \
      "\nOptions:" \
-     "\n	-c	Do not create files" \
+     "\n	-c	Don't create files" \
      "\n	-d DT	Date/time to use" \
 
 #define touch_example_usage \
@@ -4699,7 +4699,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
      "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
-     "\n	-o,--no-default-options	Do not request any options (unless -O is also given)" \
+     "\n	-o,--no-default-options	Don't request any options (unless -O is also given)" \
      "\n	-f,--foreground	Run in foreground" \
 	USE_FOR_MMU( \
      "\n	-b,--background	Background if lease is not immediately obtained" \
@@ -4728,7 +4728,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\n	-T N		Try to get a lease for N seconds (default 3)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \
      "\n	-O OPT		Request DHCP option OPT (cumulative)" \
-     "\n	-o		Do not request any options (unless -O is also given)" \
+     "\n	-o		Don't request any options (unless -O is also given)" \
      "\n	-f		Run in foreground" \
 	USE_FOR_MMU( \
      "\n	-b		Background if lease is not immediately obtained" \
@@ -4912,7 +4912,7 @@ IF_FEATURE_TUNCTL_UG( \
 	IF_FEATURE_VI_COLON( \
      "\n	-c	Initial command to run ($EXINIT also available)") \
 	IF_FEATURE_VI_READONLY( \
-     "\n	-R	Read-only - do not write to the file") \
+     "\n	-R	Read-only - don't write to the file") \
      "\n	-H	Short help regarding available features" \
 
 #define vlock_trivial_usage \
@@ -5014,7 +5014,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\nOptions:" \
 	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
      "\n	-p	Ask user whether to run each command") \
-     "\n	-r	Do not run command if input is empty" \
+     "\n	-r	Don't run command if input is empty" \
 	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
      "\n	-0	Input is separated by NUL characters") \
      "\n	-t	Print the command on stderr before execution" \
