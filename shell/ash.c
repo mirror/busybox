@@ -13083,7 +13083,6 @@ init(void)
 	/* from var.c: */
 	{
 		char **envp;
-		char ppid[sizeof(int)*3 + 2];
 		const char *p;
 		struct stat st1, st2;
 
@@ -13094,8 +13093,7 @@ init(void)
 			}
 		}
 
-		sprintf(ppid, "%u", (unsigned) getppid());
-		setvar("PPID", ppid, 0);
+		setvar("PPID", utoa(getppid()), 0);
 
 		p = lookupvar("PWD");
 		if (p)

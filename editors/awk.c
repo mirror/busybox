@@ -765,11 +765,9 @@ static var *setvar_u(var *v, const char *value)
 /* set array element to user string */
 static void setari_u(var *a, int idx, const char *s)
 {
-	char sidx[sizeof(int)*3 + 1];
 	var *v;
 
-	sprintf(sidx, "%d", idx);
-	v = findvar(iamarray(a), sidx);
+	v = findvar(iamarray(a), itoa(idx));
 	setvar_u(v, s);
 }
 

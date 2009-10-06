@@ -147,7 +147,7 @@ int cal_main(int argc, char **argv)
 		unsigned *dp;
 		char lineout[80];
 
-		sprintf(lineout, "%d", year);
+		sprintf(lineout, "%u", year);
 		center(lineout,
 			   (WEEK_LEN * 3 + HEAD_SEP * 2)
 			   + julian * (J_WEEK_LEN * 2 + HEAD_SEP

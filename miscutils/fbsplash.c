@@ -391,9 +391,7 @@ int fbsplash_main(int argc UNUSED_PARAM, char **argv)
 		num = atoi(num_buf);
 		if (isdigit(num_buf[0]) && (num <= 100)) {
 #if DEBUG
-			char strVal[10];
-			sprintf(strVal, "%d", num);
-			DEBUG_MESSAGE(strVal);
+			DEBUG_MESSAGE(itoa(num));
 #endif
 			fb_drawprogressbar(num);
 		}
