@@ -193,7 +193,7 @@
 #define bunzip2_trivial_usage \
        "[OPTIONS] [FILE]"
 #define bunzip2_full_usage "\n\n" \
-       "Uncompress FILE (or standard input if FILE is '-' or omitted)\n" \
+       "Uncompress FILE (or standard input)\n" \
      "\nOptions:" \
      "\n	-c	Write to standard output" \
      "\n	-f	Force" \
@@ -201,8 +201,7 @@
 #define bzip2_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define bzip2_full_usage "\n\n" \
-       "Compress FILE(s) with bzip2 algorithm.\n" \
-       "When FILE is '-' or unspecified, reads standard input. Implies -c.\n" \
+       "Compress FILEs (or standard input) with bzip2 algorithm.\n" \
      "\nOptions:" \
      "\n	-c	Write to standard output" \
      "\n	-d	Decompress" \
@@ -245,7 +244,7 @@
 #define unlzma_trivial_usage \
        "[OPTIONS] [FILE]"
 #define unlzma_full_usage "\n\n" \
-       "Uncompress FILE (or standard input if FILE is '-' or omitted)\n" \
+       "Uncompress FILE (or standard input)\n" \
      "\nOptions:" \
      "\n	-c	Write to standard output" \
      "\n	-f	Force" \
@@ -266,7 +265,7 @@
 #define cat_trivial_usage \
        "[-u] [FILE]..."
 #define cat_full_usage "\n\n" \
-       "Concatenate FILE(s) and print them to stdout\n" \
+       "Concatenate FILEs and print them to stdout\n" \
      "\nOptions:" \
      "\n	-u	Use unbuffered i/o (ignored)" \
 
@@ -1622,9 +1621,8 @@
 #define head_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define head_full_usage "\n\n" \
-       "Print first 10 lines of each FILE to standard output.\n" \
-       "With more than one FILE, precede each with a header giving the\n" \
-       "file name. With no FILE, or when FILE is -, read standard input.\n" \
+       "Print first 10 lines of each FILE (or standard input) to standard output.\n" \
+       "With more than one FILE, precede each with a header giving the file name.\n" \
      "\nOptions:" \
      "\n	-n NUM	Print first NUM lines instead of first 10" \
 	IF_FEATURE_FANCY_HEAD( \
@@ -1640,7 +1638,7 @@
 #define hexdump_trivial_usage \
        "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] FILE..."
 #define hexdump_full_usage "\n\n" \
-       "Display file(s) or standard input in a user specified format\n" \
+       "Display FILEs or standard input in a user specified format\n" \
      "\nOptions:" \
      "\n	-b		One-byte octal display" \
      "\n	-c		One-byte character display" \
@@ -3189,7 +3187,7 @@
        "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
 #define od_full_usage "\n\n" \
        "Write an unambiguous representation, octal bytes by default, of FILE\n" \
-       "to standard output. With no FILE or when FILE is -, read standard input."
+       "(or standard input) to standard output."
 
 #define openvt_trivial_usage \
        "[-c N] [-sw] [PROG [ARGS]]"
@@ -3509,8 +3507,7 @@
 #define readahead_trivial_usage \
        "[FILE]..."
 #define readahead_full_usage "\n\n" \
-       "Preload FILE(s) in RAM cache so that subsequent reads for those" \
-       "files don't block on disk I/O"
+       "Preload FILEs to RAM"
 
 #define readlink_trivial_usage \
 	IF_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"
@@ -3607,8 +3604,7 @@
 #define rm_trivial_usage \
        "[OPTIONS] FILE..."
 #define rm_full_usage "\n\n" \
-       "Remove (unlink) the FILE(s). Use '--' to\n" \
-       "indicate that all following arguments are non-options.\n" \
+       "Remove (unlink) FILEs\n" \
      "\nOptions:" \
      "\n	-i	Always prompt before removing" \
      "\n	-f	Never prompt" \
@@ -4312,17 +4308,16 @@
 #define tac_trivial_usage \
 	"[FILE]..."
 #define tac_full_usage "\n\n" \
-	"Concatenate FILE(s) and print them in reverse"
+	"Concatenate FILEs and print them in reverse"
 
 #define tail_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define tail_full_usage "\n\n" \
-       "Print last 10 lines of each FILE to standard output.\n" \
-       "With more than one FILE, precede each with a header giving the\n" \
-       "file name. With no FILE, or when FILE is -, read standard input.\n" \
+       "Print last 10 lines of each FILE (or standard input) to standard output.\n" \
+       "With more than one FILE, precede each with a header giving the file name.\n" \
      "\nOptions:" \
 	IF_FEATURE_FANCY_TAIL( \
-     "\n	-c N[kbm]	Output the last N bytes") \
+     "\n	-c N[kbm]	Output last N bytes") \
      "\n	-n N[kbm]	Print last N lines instead of last 10" \
      "\n	-f		Output data as the file grows" \
 	IF_FEATURE_FANCY_TAIL( \
@@ -4343,9 +4338,11 @@
 	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a") \
 	IF_FEATURE_SEAMLESS_Z("Z") "xtvO] " \
 	IF_FEATURE_TAR_FROM("[-X FILE] ") \
-       "[-f TARFILE] [-C DIR] [FILE(s)]..."
+       "[-f TARFILE] [-C DIR] [FILE]..."
 #define tar_full_usage "\n\n" \
-       "Create, extract, or list files from a tar file\n" \
+	IF_FEATURE_TAR_CREATE("Create, extract, ") \
+	IF_NOT_FEATURE_TAR_CREATE("Extract ") \
+       "or list files from a tar file\n" \
      "\nOptions:" \
 	IF_FEATURE_TAR_CREATE( \
      "\n	c	Create") \
