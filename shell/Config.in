@@ -187,7 +187,7 @@ config HUSH_INTERACTIVE
 	help
 	  Enable interactive mode (prompt and command editing).
 	  Without this, hush simply reads and executes commands
-	  from stdin just like a shell script from the file.
+	  from stdin just like a shell script from a file.
 	  No prompt, no PS1/PS2 magic shell variables.
 
 config HUSH_JOB
