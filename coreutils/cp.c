@@ -182,10 +182,12 @@ int cp_main(int argc, char **argv)
 		if (copy_file(*argv, dest, flags) < 0) {
 			status = EXIT_FAILURE;
 		}
-		free((void*)dest);
 		if (*++argv == last) {
+			/* possibly leaking dest... */
 			break;
 		}
+		/* don't move up: dest may be == last and not malloced! */
+		free((void*)dest);
 	}
 
 	/* Exit. We are NOEXEC, not NOFORK. We do exit at the end of main() */
