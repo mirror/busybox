@@ -269,7 +269,7 @@ static void setfbmode(struct fb_var_screeninfo *base,
 		base->bits_per_pixel = set->bits_per_pixel;
 }
 
-static void showmode(struct fb_var_screeninfo *v)
+static NOINLINE void showmode(struct fb_var_screeninfo *v)
 {
 	double drate = 0, hrate = 0, vrate = 0;
 

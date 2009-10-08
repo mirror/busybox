@@ -598,7 +598,7 @@ static int lzo_get_method(header_t *h)
 /**********************************************************************/
 // compress a file
 /**********************************************************************/
-static smallint lzo_compress(const header_t *h)
+static NOINLINE smallint lzo_compress(const header_t *h)
 {
 	unsigned block_size = LZO_BLOCK_SIZE;
 	int r = 0; /* LZO_E_OK */
@@ -706,7 +706,7 @@ static void lzo_check(uint32_t FAST_FUNC (*fn)(uint32_t, const uint8_t*, unsigne
 /**********************************************************************/
 // decompress a file
 /**********************************************************************/
-static smallint lzo_decompress(const header_t *h)
+static NOINLINE smallint lzo_decompress(const header_t *h)
 {
 	unsigned block_size = LZO_BLOCK_SIZE;
 	int r;
