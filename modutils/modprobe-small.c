@@ -573,6 +573,14 @@ static void process_module(char *name, const char *cmdline_options)
 		info = find_alias(name);
 	}
 
+// Problem here: there can be more than one module
+// for the given alias. For example,
+// "pci:v00008086d00007010sv00000000sd00000000bc01sc01i80" matches
+// ata_piix because it has an alias "pci:v00008086d00007010sv*sd*bc*sc*i*"
+// and ata_generic, it has an alias "alias=pci:v*d*sv*sd*bc01sc01i*"
+// Standard modprobe would load them both.
+// In this code, find_alias() returns only the first matching module.
+
 	/* rmmod? unload it by name */
 	if (is_rmmod) {
 		if (delete_module(name, O_NONBLOCK | O_EXCL) != 0
