@@ -585,7 +585,7 @@ uint8_t mmed3(uint8_t a, uint8_t b, uint8_t c)
 #define MAIN_QSORT_DEPTH_THRESH (BZ_N_RADIX + BZ_N_QSORT)
 #define MAIN_QSORT_STACK_SIZE   100
 
-static
+static NOINLINE
 void mainQSort3(uint32_t* ptr,
 		uint8_t*  block,
 		uint16_t* quadrant,

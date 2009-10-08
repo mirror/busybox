@@ -603,7 +603,7 @@ static void logdir_close(struct logdir *ld)
 	ld->processor = NULL;
 }
 
-static unsigned logdir_open(struct logdir *ld, const char *fn)
+static NOINLINE unsigned logdir_open(struct logdir *ld, const char *fn)
 {
 	char buf[128];
 	unsigned now;

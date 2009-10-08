@@ -96,7 +96,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 	return cur_size;
 }
 
-static void rewrite(priv_dumper_t *dumper, FS *fs)
+static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 {
 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
 	PR *pr, **nextpr = NULL;

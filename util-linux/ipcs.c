@@ -115,7 +115,7 @@ static void print_perms(int id, struct ipc_perm *ipcp)
 }
 
 
-static void do_shm(void)
+static NOINLINE void do_shm(void)
 {
 	int maxid, shmid, id;
 	struct shmid_ds shmseg;

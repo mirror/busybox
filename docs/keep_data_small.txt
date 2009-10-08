@@ -214,3 +214,34 @@ Result (non-static busybox built against glibc):
    text    data     bss     dec     hex filename
  634416    2736   23856  661008   a1610 busybox
  632580    2672   22944  658196   a0b14 busybox_noalign
+
+
+
+		Keeping code small
+
+Set CONFIG_EXTRA_CFLAGS="-fno-inline-functions-called-once",
+produce "make bloatcheck", see the biggest auto-inlined functions.
+Now, set CONFIG_EXTRA_CFLAGS back to "", but add NOINLINE
+to some of these functions. In 1.16.x timeframe, the results were
+(annotated "make bloatcheck" output):
+
+function             old     new   delta
+expand_vars_to_list    -    1712   +1712 win
+lzo1x_optimize         -    1429   +1429 win
+arith_apply            -    1326   +1326 win
+read_interfaces        -    1163   +1163 loss, leave w/o NOINLINE
+logdir_open            -    1148   +1148 win
+check_deps             -    1148   +1148 loss
+rewrite                -    1039   +1039 win
+run_pipe             358    1396   +1038 win
+write_status_file      -    1029   +1029 almost the same, leave w/o NOINLINE
+dump_identity          -     987    +987 win
+mainQSort3             -     921    +921 win
+parse_one_line         -     916    +916 loss
+summarize              -     897    +897 almost the same
+do_shm                 -     884    +884 win
+cpio_o                 -     863    +863 win
+subCommand             -     841    +841 loss
+receive                -     834    +834 loss
+
+855 bytes saved in total.

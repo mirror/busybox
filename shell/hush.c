@@ -2151,7 +2151,7 @@ static char *expand_pseudo_dquoted(const char *str)
  * to be filled). This routine is extremely tricky: has to deal with
  * variables/parameters with whitespace, $* and $@, and constructs like
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
-static int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
+static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
 {
 	/* or_mask is either 0 (normal case) or 0x80 -
 	 * expansion of right-hand side of assignment == 1-element expand.
@@ -3750,7 +3750,7 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * backgrounded: cmd &     { list } &
  * subshell:     ( list ) [&]
  */
-static int run_pipe(struct pipe *pi)
+static NOINLINE int run_pipe(struct pipe *pi)
 {
 	static const char *const null_ptr = NULL;
 	int i;

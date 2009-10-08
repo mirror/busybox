@@ -1185,7 +1185,7 @@ static const char BuffType[] ALIGN1 =
 	"unknown""\0"     "1Sect""\0"      "DualPort""\0"  "DualPortCache"
 ;
 
-static void dump_identity(const struct hd_driveid *id)
+static NOINLINE void dump_identity(const struct hd_driveid *id)
 {
 	int i;
 	const unsigned short *id_regs = (const void*) id;

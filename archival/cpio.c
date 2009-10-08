@@ -117,7 +117,7 @@ static off_t cpio_pad4(off_t size)
 
 /* Return value will become exit code.
  * It's ok to exit instead of return. */
-static int cpio_o(void)
+static NOINLINE int cpio_o(void)
 {
 	static const char trailer[] ALIGN1 = "TRAILER!!!";
 	struct name_s {

@@ -293,7 +293,7 @@ arith_lookup_val(v_n_t *t, a_e_h_t *math_hooks)
 /* "applying" a token means performing it on the top elements on the integer
  * stack. For a unary operator it will only change the top element, but a
  * binary operator will pop two arguments and push a result */
-static int
+static NOINLINE int
 arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hooks)
 {
 	v_n_t *numptr_m1;

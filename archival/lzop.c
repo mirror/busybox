@@ -75,7 +75,7 @@ static void copy3(uint8_t* ip, const uint8_t* m_pos, unsigned off)
 #define TEST_IP		(ip < ip_end)
 #define TEST_OP		(op <= op_end)
 
-static int lzo1x_optimize(uint8_t *in, unsigned in_len,
+static NOINLINE int lzo1x_optimize(uint8_t *in, unsigned in_len,
 		uint8_t *out, unsigned *out_len,
 		void* wrkmem UNUSED_PARAM)
 {
