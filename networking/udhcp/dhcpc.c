@@ -451,6 +451,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				state = REBINDING;
 				/* fall right through */
 			case REBINDING:
+				/* Switch to bcast receive */
+				change_listen_mode(LISTEN_RAW);
 				/* Lease is *really* about to run out,
 				 * try to find DHCP server using broadcast */
 				if (timeout > 0) {
@@ -462,7 +464,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				/* Timed out, enter init state */
 				bb_info_msg("Lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
-				change_listen_mode(LISTEN_RAW);
 				state = INIT_SELECTING;
 				/*timeout = 0; - already is */
 				packet_num = 0;
