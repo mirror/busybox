@@ -78,6 +78,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
+#include <malloc.h>   /* for malloc_trim */
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE
@@ -786,7 +787,7 @@ static void xxfree(void *ptr)
  * HUSH_DEBUG >= 2 prints line number in this file where it was detected.
  */
 #if HUSH_DEBUG < 2
-# define die_if_script(lineno, fmt...)          die_if_script(fmt)
+# define die_if_script(lineno, ...)             die_if_script(__VA_ARGS__)
 # define syntax_error(lineno, msg)              syntax_error(msg)
 # define syntax_error_at(lineno, msg)           syntax_error_at(msg)
 # define syntax_error_unterm_ch(lineno, ch)     syntax_error_unterm_ch(ch)
@@ -855,7 +856,7 @@ static void syntax_error_unexpected_ch(unsigned lineno, int ch)
 # undef syntax_error_unterm_str
 # undef syntax_error_unexpected_ch
 #else
-# define die_if_script(fmt...)          die_if_script(__LINE__, fmt)
+# define die_if_script(...)             die_if_script(__LINE__, __VA_ARGS__)
 # define syntax_error(msg)              syntax_error(__LINE__, msg)
 # define syntax_error_at(msg)           syntax_error_at(__LINE__, msg)
 # define syntax_error_unterm_ch(ch)     syntax_error_unterm_ch(__LINE__, ch)
@@ -898,7 +899,7 @@ static int is_well_formed_var_name(const char *s, char terminator)
 /* Replace each \x with x in place, return ptr past NUL. */
 static char *unbackslash(char *src)
 {
-	char *dst = src;
+	char *dst = src = strchrnul(src, '\\');
 	while (1) {
 		if (*src == '\\')
 			src++;
@@ -1037,7 +1038,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * is finished or backgrounded. It is the same in interactive and
  * non-interactive shells, and is the same regardless of whether
  * a user trap handler is installed or a shell special one is in effect.
- * ^C or ^Z from keyboard seem to execute "at once" because it usually
+ * ^C or ^Z from keyboard seems to execute "at once" because it usually
  * backgrounds (i.e. stops) or kills all members of currently running
  * pipe.
  *
@@ -1104,12 +1105,17 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  *    (child shell is not interactive),
  *    unset all traps (note: regardless of child shell's type - {}, (), etc)
  * after [v]fork, if we plan to exec:
- *    POSIX says pending signal mask is cleared in child - no need to clear it.
+ *    POSIX says fork clears pending signal mask in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
  *
  * Note: as a result, we do not use signal handlers much. The only uses
  * are to count SIGCHLDs
  * and to restore tty pgrp on signal-induced exit.
+ *
+ * Note 2 (compat):
+ * Standard says "When a subshell is entered, traps that are not being ignored
+ * are set to the default actions". bash interprets it so that traps which
+ * are set to "" (ignore) are NOT reset to defaults. We do the same.
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -2596,43 +2602,51 @@ static void reset_traps_to_defaults(void)
 {
 	/* This function is always called in a child shell
 	 * after fork (not vfork, NOMMU doesn't use this function).
-	 * Child shells are not interactive.
-	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
-	 * Testcase: (while :; do :; done) + ^Z should background.
-	 * Same goes for SIGTERM, SIGHUP, SIGINT.
 	 */
 	unsigned sig;
 	unsigned mask;
 
+	/* Child shells are not interactive.
+	 * SIGTTIN/SIGTTOU/SIGTSTP should not have special handling.
+	 * Testcase: (while :; do :; done) + ^Z should background.
+	 * Same goes for SIGTERM, SIGHUP, SIGINT.
+	 */
 	if (!G.traps && !(G.non_DFL_mask & SPECIAL_INTERACTIVE_SIGS))
-		return;
+		return; /* already no traps and no SPECIAL_INTERACTIVE_SIGS */
 
-	/* Stupid. It can be done with *single* &= op, but we can't use
-	 * the fact that G.blocked_set is implemented as a bitmask... */
+	/* Switching off SPECIAL_INTERACTIVE_SIGS.
+	 * Stupid. It can be done with *single* &= op, but we can't use
+	 * the fact that G.blocked_set is implemented as a bitmask
+	 * in libc... */
 	mask = (SPECIAL_INTERACTIVE_SIGS >> 1);
 	sig = 1;
 	while (1) {
-		if (mask & 1)
-			sigdelset(&G.blocked_set, sig);
+		if (mask & 1) {
+			/* Careful. Only if no trap or trap is not "" */
+			if (!G.traps || !G.traps[sig] || G.traps[sig][0])
+				sigdelset(&G.blocked_set, sig);
+		}
 		mask >>= 1;
 		if (!mask)
 			break;
 		sig++;
 	}
-
+	/* Our homegrown sig mask is saner to work with :) */
 	G.non_DFL_mask &= ~SPECIAL_INTERACTIVE_SIGS;
+
+	/* Resetting all traps to default except empty ones */
 	mask = G.non_DFL_mask;
 	if (G.traps) for (sig = 0; sig < NSIG; sig++, mask >>= 1) {
-		if (!G.traps[sig])
+		if (!G.traps[sig] || !G.traps[sig][0])
 			continue;
 		free(G.traps[sig]);
 		G.traps[sig] = NULL;
 		/* There is no signal for 0 (EXIT) */
 		if (sig == 0)
 			continue;
-		/* There was a trap handler, we are removing it.
+		/* There was a trap handler, we just removed it.
 		 * But if sig still has non-DFL handling,
-		 * we should not unblock it. */
+		 * we should not unblock the sig. */
 		if (mask & 1)
 			continue;
 		sigdelset(&G.blocked_set, sig);
@@ -3079,15 +3093,21 @@ static const struct built_in_command* find_builtin(const char *name)
 }
 
 #if ENABLE_HUSH_FUNCTIONS
-static const struct function *find_function(const char *name)
+static struct function **find_function_slot(const char *name)
 {
-	const struct function *funcp = G.top_func;
-	while (funcp) {
-		if (strcmp(name, funcp->name) == 0) {
+	struct function **funcpp = &G.top_func;
+	while (*funcpp) {
+		if (strcmp(name, (*funcpp)->name) == 0) {
 			break;
 		}
-		funcp = funcp->next;
+		funcpp = &(*funcpp)->next;
 	}
+	return funcpp;
+}
+
+static const struct function *find_function(const char *name)
+{
+	const struct function *funcp = *find_function_slot(name);
 	if (funcp)
 		debug_printf_exec("found function '%s'\n", name);
 	return funcp;
@@ -3096,18 +3116,11 @@ static const struct function *find_function(const char *name)
 /* Note: takes ownership on name ptr */
 static struct function *new_function(char *name)
 {
-	struct function *funcp;
-	struct function **funcpp = &G.top_func;
+	struct function **funcpp = find_function_slot(name);
+	struct function *funcp = *funcpp;
 
-	while ((funcp = *funcpp) != NULL) {
-		struct command *cmd;
-
-		if (strcmp(funcp->name, name) != 0) {
-			funcpp = &funcp->next;
-			continue;
-		}
-
-		cmd = funcp->parent_cmd;
+	if (funcp != NULL) {
+		struct command *cmd = funcp->parent_cmd;
 		debug_printf_exec("func %p parent_cmd %p\n", funcp, cmd);
 		if (!cmd) {
 			debug_printf_exec("freeing & replacing function '%s'\n", funcp->name);
@@ -3129,39 +3142,36 @@ static struct function *new_function(char *name)
 			cmd->group_as_string = funcp->body_as_string;
 # endif
 		}
-		goto skip;
+	} else {
+		debug_printf_exec("remembering new function '%s'\n", name);
+		funcp = *funcpp = xzalloc(sizeof(*funcp));
+		/*funcp->next = NULL;*/
 	}
-	debug_printf_exec("remembering new function '%s'\n", name);
-	funcp = *funcpp = xzalloc(sizeof(*funcp));
-	/*funcp->next = NULL;*/
- skip:
+
 	funcp->name = name;
 	return funcp;
 }
 
 static void unset_func(const char *name)
 {
-	struct function *funcp;
-	struct function **funcpp = &G.top_func;
+	struct function **funcpp = find_function_slot(name);
+	struct function *funcp = *funcpp;
 
-	while ((funcp = *funcpp) != NULL) {
-		if (strcmp(funcp->name, name) == 0) {
-			*funcpp = funcp->next;
-			/* funcp is unlinked now, deleting it.
-			 * Note: if !funcp->body, the function was created by
-			 * "-F name body", do not free ->body_as_string
-			 * and ->name as they were not malloced. */
-			if (funcp->body) {
-				free_pipe_list(funcp->body);
-				free(funcp->name);
+	if (funcp != NULL) {
+		debug_printf_exec("freeing function '%s'\n", funcp->name);
+		*funcpp = funcp->next;
+		/* funcp is unlinked now, deleting it.
+		 * Note: if !funcp->body, the function was created by
+		 * "-F name body", do not free ->body_as_string
+		 * and ->name as they were not malloced. */
+		if (funcp->body) {
+			free_pipe_list(funcp->body);
+			free(funcp->name);
 # if !BB_MMU
-				free(funcp->body_as_string);
+			free(funcp->body_as_string);
 # endif
-			}
-			free(funcp);
-			break;
 		}
-		funcpp = &funcp->next;
+		free(funcp);
 	}
 }
 
@@ -3628,9 +3638,9 @@ static int checkjobs(struct pipe* fg_pipe)
 						/* Note: is WIFSIGNALED, WEXITSTATUS = sig + 128 */
 						rcode = WEXITSTATUS(status);
 						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
-						/* bash prints killing signal's name for *last*
+						/* bash prints killer signal's name for *last*
 						 * process in pipe (prints just newline for SIGINT).
-						 * Mimic this. Example: "sleep 5" + ^\
+						 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
 						 */
 						if (WIFSIGNALED(status)) {
 							int sig = WTERMSIG(status);
@@ -5183,6 +5193,47 @@ static FILE *generate_stream_from_string(const char *s)
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */
 		IF_HUSH_JOB(G.run_list_level = 1;)
+		/* Awful hack for `trap` or $(trap).
+		 *
+		 * http://www.opengroup.org/onlinepubs/009695399/utilities/trap.html
+		 * contains an example where "trap" is executed in a subshell:
+		 *
+		 * save_traps=$(trap)
+		 * ...
+		 * eval "$save_traps"
+		 *
+		 * Standard does not say that "trap" in subshell shall print
+		 * parent shell's traps. It only says that its output
+		 * must have suitable form, but then, in the above example
+		 * (which is not supposed to be normative), it implies that.
+		 *
+		 * bash (and probably other shell) does implement it
+		 * (traps are reset to defaults, but "trap" still shows them),
+		 * but as a result, "trap" logic is hopelessly messed up:
+		 *
+		 * # trap
+		 * trap -- 'echo Ho' SIGWINCH  <--- we have a handler
+		 * # (trap)        <--- trap is in subshell - no output (correct, traps are reset)
+		 * # true | trap   <--- trap is in subshell - no output (ditto)
+		 * # echo `true | trap`    <--- in subshell - output (but traps are reset!)
+		 * trap -- 'echo Ho' SIGWINCH
+		 * # echo `(trap)`         <--- in subshell in subshell - output
+		 * trap -- 'echo Ho' SIGWINCH
+		 * # echo `true | (trap)`  <--- in subshell in subshell in subshell - output!
+		 * trap -- 'echo Ho' SIGWINCH
+		 *
+		 * The rules when to forget and when to not forget traps
+		 * get really complex and nonsensical.
+		 *
+		 * Our solution: ONLY bare $(trap) or `trap` is special.
+		 */
+		s = skip_whitespace(s);
+		if (strncmp(s, "trap", 4) == 0 && (*skip_whitespace(s + 4) == '\0'))
+		{
+			static const char *const argv[] = { NULL, NULL };
+			builtin_trap((char**)argv);
+			exit(0); /* not _exit() - we need to fflush */
+		}
 #if BB_MMU
 		reset_traps_to_defaults();
 		parse_and_run_string(s);
@@ -5676,8 +5727,10 @@ static int handle_dollar(o_string *as_string,
 			goto make_var;
 		}
 		/* else: it's $_ */
-	/* TODO: */
-	/* $_ Shell or shell script name; or last cmd name */
+	/* TODO: $_ and $-: */
+	/* $_ Shell or shell script name; or last argument of last command
+	 * (if last command wasn't a pipe; if it was, bash sets $_ to "");
+	 * but in command's env, set to full pathname used to invoke it */
 	/* $- Option flags set by set builtin or shell options (-i etc) */
 	default:
 		o_addQchr(dest, '$');
@@ -5794,7 +5847,7 @@ static struct pipe *parse_stream(char **pstring,
 	 * found.  When recursing, quote state is passed in via dest->o_escape.
 	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
-			end_trigger ? : 'X');
+			end_trigger ? end_trigger : 'X');
 	debug_enter();
 
 	G.ifs = get_local_var_value("IFS");
@@ -6860,7 +6913,8 @@ static int FAST_FUNC builtin_cd(char **argv)
 		 * bash says "bash: cd: HOME not set" and does nothing
 		 * (exitcode 1)
 		 */
-		newdir = get_local_var_value("HOME") ? : "/";
+		const char *home = get_local_var_value("HOME");
+		newdir = home ? home : "/";
 	}
 	if (chdir(newdir)) {
 		/* Mimic bash message exactly */
@@ -7057,6 +7111,10 @@ static int FAST_FUNC builtin_trap(char **argv)
 			if (G.traps[i]) {
 				printf("trap -- ");
 				print_escaped(G.traps[i]);
+				/* note: bash adds "SIG", but only if invoked
+				 * as "bash". If called as "sh", or if set -o posix,
+				 * then it prints short signal names.
+				 * We are printing short names: */
 				printf(" %s\n", get_signame(i));
 			}
 		}
@@ -7268,6 +7326,10 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 	void *p;
 	unsigned long l;
 
+#ifdef M_TRIM_THRESHOLD
+	/* Optional. Reduces probability of false positives */
+	malloc_trim(0);
+#endif
 	/* Crude attempt to find where "free memory" starts,
 	 * sans fragmentation. */
 	p = malloc(240);

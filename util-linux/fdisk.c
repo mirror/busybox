@@ -9,12 +9,15 @@
 
 #ifndef _LARGEFILE64_SOURCE
 /* For lseek64 */
-#define _LARGEFILE64_SOURCE
+# define _LARGEFILE64_SOURCE
 #endif
 #include <assert.h>             /* assert */
 #include <sys/mount.h>
 #if !defined(BLKSSZGET)
 # define BLKSSZGET _IO(0x12, 104)
+#endif
+#if !defined(BLKGETSIZE64)
+# define BLKGETSIZE64 _IOR(0x12,114,size_t)
 #endif
 #include "libbb.h"
 
