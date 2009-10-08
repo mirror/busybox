@@ -30,8 +30,6 @@
 #define SYS_POWER_PATH "/sys/power/state"
 #define DEFAULT_MODE   "standby"
 
-static time_t rtc_time;
-
 static NOINLINE bool may_wakeup(const char *rtcname)
 {
 	ssize_t ret;
@@ -50,7 +48,7 @@ static NOINLINE bool may_wakeup(const char *rtcname)
 	return strncmp(buf, "enabled\n", 8) == 0;
 }
 
-static NOINLINE void setup_alarm(int fd, time_t *wakeup)
+static NOINLINE void setup_alarm(int fd, time_t *wakeup, time_t rtc_time)
 {
 	struct tm *tm;
 	struct linux_rtc_wkalrm	wake;
@@ -102,6 +100,8 @@ static NOINLINE void setup_alarm(int fd, time_t *wakeup)
 int rtcwake_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 {
+	time_t rtc_time;
+
 	unsigned opt;
 	const char *rtcname = NULL;
 	const char *suspend;
@@ -170,7 +170,7 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 		alarm_time += sys_time - rtc_time;
 	} else
 		alarm_time = rtc_time + seconds + 1;
-	setup_alarm(fd, &alarm_time);
+	setup_alarm(fd, &alarm_time, rtc_time);
 
 	sync();
 	printf("wakeup from \"%s\" at %s", suspend, ctime(&alarm_time));
