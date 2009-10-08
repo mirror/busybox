@@ -32,7 +32,7 @@
 
 static time_t rtc_time;
 
-static bool may_wakeup(const char *rtcname)
+static NOINLINE bool may_wakeup(const char *rtcname)
 {
 	ssize_t ret;
 	char buf[128];
@@ -50,7 +50,7 @@ static bool may_wakeup(const char *rtcname)
 	return strncmp(buf, "enabled\n", 8) == 0;
 }
 
-static void setup_alarm(int fd, time_t *wakeup)
+static NOINLINE void setup_alarm(int fd, time_t *wakeup)
 {
 	struct tm *tm;
 	struct linux_rtc_wkalrm	wake;

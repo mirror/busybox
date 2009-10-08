@@ -583,7 +583,7 @@ static void touch(const char *filename)
 }
 
 /* update_utmp - update our utmp entry */
-static void update_utmp(const char *line, char *fakehost)
+static NOINLINE void update_utmp(const char *line, char *fakehost)
 {
 	struct utmp ut;
 	struct utmp *utp;

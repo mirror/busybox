@@ -245,3 +245,7 @@ subCommand             -     841    +841 loss
 receive                -     834    +834 loss
 
 855 bytes saved in total.
+
+scripts/mkdiff_obj_bloat may be useful to automate this process: run
+"scripts/mkdiff_obj_bloat NORMALLY_BUILT_TREE FORCED_NOINLINE_TREE"
+and select modules which shrank.

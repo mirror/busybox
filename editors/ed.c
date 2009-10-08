@@ -951,7 +951,7 @@ static void deleteLines(int num1, int num2)
  * Returns the line number which matches, or 0 if there was no match
  * with an error printed.
  */
-static int searchLines(const char *str, int num1, int num2)
+static NOINLINE int searchLines(const char *str, int num1, int num2)
 {
 	const LINE *lp;
 	int len;

@@ -6376,7 +6376,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
  * ash -c 'echo ${#$1}'  name:'$=1'
  * ash -c 'echo ${#1#}'  name:'1=#'
  */
-static ssize_t
+static NOINLINE ssize_t
 varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 {
 	int num;

@@ -242,7 +242,7 @@ static NOINLINE void do_shm(void)
 }
 
 
-static void do_sem(void)
+static NOINLINE void do_sem(void)
 {
 	int maxid, semid, id;
 	struct semid_ds semary;
@@ -348,7 +348,7 @@ static void do_sem(void)
 }
 
 
-static void do_msg(void)
+static NOINLINE void do_msg(void)
 {
 	int maxid, msqid, id;
 	struct msqid_ds msgque;

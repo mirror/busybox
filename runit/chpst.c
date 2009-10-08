@@ -92,7 +92,7 @@ enum {
 	OPT_2 = (1 << 20) * ENABLE_CHPST,
 };
 
-static void edir(const char *directory_name)
+static NOINLINE void edir(const char *directory_name)
 {
 	int wdir;
 	DIR *dir;

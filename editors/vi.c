@@ -1210,7 +1210,7 @@ static int next_tabstop(int col)
 }
 
 //----- Synchronize the cursor to Dot --------------------------
-static void sync_cursor(char *d, int *row, int *col)
+static NOINLINE void sync_cursor(char *d, int *row, int *col)
 {
 	char *beg_cur;	// begin and end of "d" line
 	char *tp;

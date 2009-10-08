@@ -94,7 +94,7 @@ static void print_queuelen(char *name)
 		printf("qlen %d", ifr.ifr_qlen);
 }
 
-static int print_linkinfo(const struct nlmsghdr *n)
+static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 {
 	struct ifinfomsg *ifi = NLMSG_DATA(n);
 	struct rtattr * tb[IFLA_MAX+1];
