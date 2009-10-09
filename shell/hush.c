@@ -484,6 +484,7 @@ struct globals {
 	line_input_t *line_input_state;
 #endif
 	pid_t root_pid;
+	pid_t root_ppid;
 	pid_t last_bg_pid;
 #if ENABLE_HUSH_JOB
 	int run_list_level;
@@ -1307,6 +1308,9 @@ static const char *get_local_var_value(const char *name)
 	struct variable **pp = get_ptr_to_local_var(name);
 	if (pp)
 		return strchr((*pp)->varstr, '=') + 1;
+	if (strcmp(name, "PPID") == 0)
+		return utoa(G.root_ppid);
+	// bash compat: UID? EUID?
 	return NULL;
 }
 
@@ -2687,8 +2691,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 	if (pp) while (*pp++)
 		cnt++;
 
-	sprintf(param_buf, "-$%x:%x:%x:%x" IF_HUSH_LOOPS(":%x")
+	sprintf(param_buf, "-$%x:%x:%x:%x:%x" IF_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
+			, (unsigned) G.root_ppid
 			, (unsigned) G.last_bg_pid
 			, (unsigned) G.last_exitcode
 			, cnt
@@ -6510,7 +6515,7 @@ int hush_main(int argc, char **argv)
 	 * MACHTYPE=i386-pc-linux-gnu
 	 * OSTYPE=linux-gnu
 	 * HOSTNAME=<xxxxxxxxxx>
-	 * PPID=<NNNNN>
+	 * PPID=<NNNNN> - we also do it elsewhere
 	 * EUID=<NNNNN>
 	 * UID=<NNNNN>
 	 * GROUPS=()
@@ -6587,8 +6592,10 @@ int hush_main(int argc, char **argv)
 			 * Note: this form never happens:
 			 * sh ... -c 'builtin' [BARGV...] ""
 			 */
-			if (!G.root_pid)
+			if (!G.root_pid) {
 				G.root_pid = getpid();
+				G.root_ppid = getppid();
+			}
 			G.global_argv = argv + optind;
 			G.global_argc = argc - optind;
 			if (builtin_argc) {
@@ -6630,6 +6637,8 @@ int hush_main(int argc, char **argv)
 		case '$':
 			G.root_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
+			G.root_ppid = bb_strtou(optarg, &optarg, 16);
+			optarg++;
 			G.last_bg_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
 			G.last_exitcode = bb_strtou(optarg, &optarg, 16);
@@ -6670,8 +6679,10 @@ int hush_main(int argc, char **argv)
 		}
 	} /* option parsing loop */
 
-	if (!G.root_pid)
+	if (!G.root_pid) {
 		G.root_pid = getpid();
+		G.root_ppid = getppid();
+	}
 
 	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
