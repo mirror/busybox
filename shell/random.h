@@ -2,7 +2,7 @@
 /*
  * $RANDOM support.
  *
- * Copyright (C) 2008 Denys Vlasenko
+ * Copyright (C) 2009 Denys Vlasenko
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
