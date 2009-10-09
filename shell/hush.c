@@ -86,6 +86,9 @@
 #endif
 #include "math.h"
 #include "match.h"
+#if ENABLE_ASH_RANDOM_SUPPORT
+# include "random.h"
+#endif
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
@@ -486,6 +489,9 @@ struct globals {
 	pid_t root_pid;
 	pid_t root_ppid;
 	pid_t last_bg_pid;
+#if ENABLE_HUSH_RANDOM_SUPPORT
+	random_t random_gen;
+#endif
 #if ENABLE_HUSH_JOB
 	int run_list_level;
 	int last_jobid;
@@ -1311,6 +1317,10 @@ static const char *get_local_var_value(const char *name)
 	if (strcmp(name, "PPID") == 0)
 		return utoa(G.root_ppid);
 	// bash compat: UID? EUID?
+#if ENABLE_HUSH_RANDOM_SUPPORT
+	if (strcmp(name, "RANDOM") == 0)
+		return utoa(next_random(&G.random_gen));
+#endif
 	return NULL;
 }
 
@@ -6595,6 +6605,9 @@ int hush_main(int argc, char **argv)
 			if (!G.root_pid) {
 				G.root_pid = getpid();
 				G.root_ppid = getppid();
+#if ENABLE_HUSH_RANDOM_SUPPORT
+				INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
+#endif
 			}
 			G.global_argv = argv + optind;
 			G.global_argc = argc - optind;
@@ -6683,6 +6696,9 @@ int hush_main(int argc, char **argv)
 		G.root_pid = getpid();
 		G.root_ppid = getppid();
 	}
+#if ENABLE_HUSH_RANDOM_SUPPORT
+	INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
+#endif
 
 	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
