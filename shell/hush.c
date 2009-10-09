@@ -86,7 +86,7 @@
 #endif
 #include "math.h"
 #include "match.h"
-#if ENABLE_ASH_RANDOM_SUPPORT
+#if ENABLE_HUSH_RANDOM_SUPPORT
 # include "random.h"
 #endif
 #ifndef PIPE_BUF
