@@ -6,7 +6,12 @@ for try in 1 2 3 4 5; do
     echo "sent $try signal"
 done &
 
+# Ensure "wait" have something to wait for
 sleep 2 &
+
+# Ensure we do not execute "trap" below before "kill -USR1" above
+# (was getting failure on loaded machine without this)
+sleep 0.1
 
 sleeping=true
 while $sleeping; do
