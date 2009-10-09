@@ -250,6 +250,14 @@ config HUSH_EXPORT_N
 	help
 	  Enable support for export '-n' option in hush. It is a bash extension.
 
+config HUSH_RANDOM_SUPPORT
+	bool "Pseudorandom generator and $RANDOM variable"
+	default n
+	depends on HUSH
+	help
+	  Enable pseudorandom generator and dynamic variable "$RANDOM".
+	  Each read of "$RANDOM" will generate a new pseudorandom value.
+
 config LASH
 	bool "lash (deprecated: aliased to hush)"
 	default n
