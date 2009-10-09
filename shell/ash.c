@@ -51,16 +51,19 @@
 #include <setjmp.h>
 #include <fnmatch.h>
 #include "math.h"
+#if ENABLE_ASH_RANDOM_SUPPORT
+# include "random.h"
+#endif
 
 #if defined SINGLE_APPLET_MAIN
 /* STANDALONE does not make sense, and won't compile */
-#undef CONFIG_FEATURE_SH_STANDALONE
-#undef ENABLE_FEATURE_SH_STANDALONE
-#undef IF_FEATURE_SH_STANDALONE
-#undef IF_NOT_FEATURE_SH_STANDALONE(...)
-#define ENABLE_FEATURE_SH_STANDALONE 0
-#define IF_FEATURE_SH_STANDALONE(...)
-#define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
+# undef CONFIG_FEATURE_SH_STANDALONE
+# undef ENABLE_FEATURE_SH_STANDALONE
+# undef IF_FEATURE_SH_STANDALONE
+# undef IF_NOT_FEATURE_SH_STANDALONE(...)
+# define ENABLE_FEATURE_SH_STANDALONE 0
+# define IF_FEATURE_SH_STANDALONE(...)
+# define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
 #endif
 
 #ifndef PIPE_BUF
@@ -197,9 +200,7 @@ struct globals_misc {
 
 	/* Rarely referenced stuff */
 #if ENABLE_ASH_RANDOM_SUPPORT
-	/* Random number generators */
-	int32_t random_galois_LFSR; /* Galois LFSR (fast but weak). signed! */
-	uint32_t random_LCG;        /* LCG (fast but weak) */
+	random_t random_gen;
 #endif
 	pid_t backgndpid;        /* pid of last background process */
 	smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
@@ -224,8 +225,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define gotsig      (G_misc.gotsig     )
 #define trap        (G_misc.trap       )
 #define trap_ptr    (G_misc.trap_ptr   )
-#define random_galois_LFSR (G_misc.random_galois_LFSR)
-#define random_LCG         (G_misc.random_LCG        )
+#define random_gen  (G_misc.random_gen )
 #define backgndpid  (G_misc.backgndpid )
 #define job_warning (G_misc.job_warning)
 #define INIT_G_misc() do { \
@@ -10075,28 +10075,18 @@ change_random(const char *value)
 	/* Another example - taps at 32 31 30 10: */
 	/* MASK = 0x00400007 */
 
+	uint32_t t;
+
 	if (value == NULL) {
 		/* "get", generate */
-		uint32_t t;
-
-		/* LCG has period of 2^32 and alternating lowest bit */
-		random_LCG = 1664525 * random_LCG + 1013904223;
-		/* Galois LFSR has period of 2^32-1 = 3 * 5 * 17 * 257 * 65537 */
-		t = (random_galois_LFSR << 1);
-		if (random_galois_LFSR < 0) /* if we just shifted 1 out of msb... */
-			t ^= MASK;
-		random_galois_LFSR = t;
-		/* Both are weak, combining them gives better randomness
-		 * and ~2^64 period. & 0x7fff is probably bash compat
-		 * for $RANDOM range. Combining with subtraction is
-		 * just for fun. + and ^ would work equally well. */
-		t = (t - random_LCG) & 0x7fff;
+		t = next_random(&random_gen);
 		/* set without recursion */
 		setvar(vrandom.text, utoa(t), VNOFUNC);
 		vrandom.flags &= ~VNOFUNC;
 	} else {
 		/* set/reset */
-		random_galois_LFSR = random_LCG = strtoul(value, NULL, 10);
+		t = strtoul(value, NULL, 10);
+		INIT_RANDOM_T(&random_gen, (t ? t : 1), t);
 	}
 }
 #endif
@@ -13271,7 +13261,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_ASH_RANDOM_SUPPORT
 	/* Can use monotonic_ns() for better randomness but for now it is
 	 * not used anywhere else in busybox... so avoid bloat */
-	random_galois_LFSR = random_LCG = rootpid + monotonic_us();
+	INIT_RANDOM_T(&random_gen, rootpid, monotonic_us());
 #endif
 	init();
 	setstackmark(&smark);
