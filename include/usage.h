@@ -4692,7 +4692,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\n	-p,--pidfile=file	Create pidfile" \
      "\n	-r,--request=IP		IP address to request" \
      "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
-     "\n	-t,--retries=N		Send up to N request packets" \
+     "\n	-t,--retries=N		Send up to N discover packets" \
      "\n	-T,--timeout=N		Pause between packets (default 3 seconds)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
      "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
