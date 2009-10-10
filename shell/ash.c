@@ -1164,7 +1164,7 @@ enum {
 	/* Most machines require the value returned from malloc to be aligned
 	 * in some way.  The following macro will get this right
 	 * on many machines.  */
-	SHELL_SIZE = sizeof(union {int i; char *cp; double d; }) - 1,
+	SHELL_SIZE = sizeof(union { int i; char *cp; double d; }) - 1,
 	/* Minimum size of a block */
 	MINSIZE = SHELL_ALIGN(504),
 };
@@ -7771,7 +7771,7 @@ static char *funcstring;        /* block to allocate strings from */
 #define EV_TESTED  02           /* exit status is checked; ignore -e flag */
 #define EV_BACKCMD 04           /* command executing within back quotes */
 
-static const short nodesize[N_NUMBER] = {
+static const uint8_t nodesize[N_NUMBER] = {
 	[NCMD     ] = SHELL_ALIGN(sizeof(struct ncmd)),
 	[NPIPE    ] = SHELL_ALIGN(sizeof(struct npipe)),
 	[NREDIR   ] = SHELL_ALIGN(sizeof(struct nredir)),
