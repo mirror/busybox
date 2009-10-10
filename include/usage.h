@@ -4693,7 +4693,7 @@ IF_FEATURE_TUNCTL_UG( \
      "\n	-r,--request=IP		IP address to request" \
      "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t,--retries=N		Send up to N request packets" \
-     "\n	-T,--timeout=N		Try to get a lease for N seconds (default 3)" \
+     "\n	-T,--timeout=N		Pause between packets (default 3 seconds)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
      "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
      "\n	-o,--no-default-options	Don't request any options (unless -O is also given)" \
