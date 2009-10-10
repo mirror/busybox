@@ -1155,6 +1155,49 @@ errmsg(int e, const char *em)
 
 /* ============ Memory allocation */
 
+#if 0
+/* I consider these wrappers nearly useless:
+ * ok, they return you to nearest exception handler, but
+ * how much memory do you leak in the process, making
+ * memory starvation worse?
+ */
+static void *
+ckrealloc(void * p, size_t nbytes)
+{
+	p = realloc(p, nbytes);
+	if (!p)
+		ash_msg_and_raise_error(bb_msg_memory_exhausted);
+	return p;
+}
+
+static void *
+ckmalloc(size_t nbytes)
+{
+	return ckrealloc(NULL, nbytes);
+}
+
+static void *
+ckzalloc(size_t nbytes)
+{
+	return memset(ckmalloc(nbytes), 0, nbytes);
+}
+
+static char *
+ckstrdup(const char *s)
+{
+	char *p = strdup(s);
+	if (!p)
+		ash_msg_and_raise_error(bb_msg_memory_exhausted);
+	return p;
+}
+#else
+/* Using bbox equivalents. They exit if out of memory */
+# define ckrealloc xrealloc
+# define ckmalloc  xmalloc
+# define ckzalloc  xzalloc
+# define ckstrdup  xstrdup
+#endif
+
 /*
  * It appears that grabstackstr() will barf with such alignments
  * because stalloc() will return a string allocated in a new stackblock.
@@ -1210,42 +1253,9 @@ extern struct globals_memstack *const ash_ptr_to_globals_memstack;
 	herefd = -1; \
 } while (0)
 
+
 #define stackblock()     ((void *)g_stacknxt)
 #define stackblocksize() g_stacknleft
-
-
-static void *
-ckrealloc(void * p, size_t nbytes)
-{
-	p = realloc(p, nbytes);
-	if (!p)
-		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	return p;
-}
-
-static void *
-ckmalloc(size_t nbytes)
-{
-	return ckrealloc(NULL, nbytes);
-}
-
-static void *
-ckzalloc(size_t nbytes)
-{
-	return memset(ckmalloc(nbytes), 0, nbytes);
-}
-
-/*
- * Make a copy of a string in safe storage.
- */
-static char *
-ckstrdup(const char *s)
-{
-	char *p = strdup(s);
-	if (!p)
-		ash_msg_and_raise_error(bb_msg_memory_exhausted);
-	return p;
-}
 
 /*
  * Parse trees for commands are allocated in lifo order, so we use a stack
