@@ -1318,8 +1318,11 @@ static const char *get_local_var_value(const char *name)
 		return utoa(G.root_ppid);
 	// bash compat: UID? EUID?
 #if ENABLE_HUSH_RANDOM_SUPPORT
-	if (strcmp(name, "RANDOM") == 0)
+	if (strcmp(name, "RANDOM") == 0) {
+		if (G.random_gen.galois_LFSR == 0)
+			INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
 		return utoa(next_random(&G.random_gen));
+	}
 #endif
 	return NULL;
 }
@@ -6605,9 +6608,6 @@ int hush_main(int argc, char **argv)
 			if (!G.root_pid) {
 				G.root_pid = getpid();
 				G.root_ppid = getppid();
-#if ENABLE_HUSH_RANDOM_SUPPORT
-				INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
-#endif
 			}
 			G.global_argv = argv + optind;
 			G.global_argc = argc - optind;
@@ -6696,9 +6696,6 @@ int hush_main(int argc, char **argv)
 		G.root_pid = getpid();
 		G.root_ppid = getppid();
 	}
-#if ENABLE_HUSH_RANDOM_SUPPORT
-	INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
-#endif
 
 	/* If we are login shell... */
 	if (argv[0] && argv[0][0] == '-') {
