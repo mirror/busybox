@@ -41,7 +41,8 @@ pid_t FAST_FUNC spawn(char **argv)
 		 * (but don't run atexit() stuff, which would screw up parent.)
 		 */
 		failed = errno;
-		bb_perror_msg("can't execute '%s'", argv[0]);
+		/* mount, for example, does not want the message */
+		/*bb_perror_msg("can't execute '%s'", argv[0]);*/
 		_exit(111);
 	}
 	/* parent */
