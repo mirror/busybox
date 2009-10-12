@@ -13,7 +13,13 @@ typedef struct random_t {
 	uint32_t LCG;        /* LCG (fast but weak) */
 } random_t;
 
+#define UNINITED_RANDOM_T(rnd) \
+	((rnd)->galois_LFSR == 0)
+
 #define INIT_RANDOM_T(rnd, nonzero, v) \
 	((rnd)->galois_LFSR = (nonzero), (rnd)->LCG = (v))
+
+#define CLEAR_RANDOM_T(rnd) \
+	((rnd)->galois_LFSR = 0)
 
 uint32_t next_random(random_t *rnd) FAST_FUNC;

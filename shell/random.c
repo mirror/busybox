@@ -20,6 +20,13 @@ next_random(random_t *rnd)
 
 	uint32_t t;
 
+	if (UNINITED_RANDOM_T(rnd)) {
+		/* Can use monotonic_ns() for better randomness but for now
+		 * it is not used anywhere else in busybox... so avoid bloat
+		 */
+		INIT_RANDOM_T(rnd, getpid(), monotonic_us());
+	}
+
 	/* LCG has period of 2^32 and alternating lowest bit */
 	rnd->LCG = 1664525 * rnd->LCG + 1013904223;
 	/* Galois LFSR has period of 2^32-1 = 3 * 5 * 17 * 257 * 65537 */

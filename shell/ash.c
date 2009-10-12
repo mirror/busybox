@@ -4725,10 +4725,12 @@ forkshell(struct job *jp, union node *n, int mode)
 			freejob(jp);
 		ash_msg_and_raise_error("can't fork");
 	}
-	if (pid == 0)
+	if (pid == 0) {
+		CLEAR_RANDOM_T(&random_gen); /* or else $RANDOM repeats in child */
 		forkchild(jp, n, mode);
-	else
+	} else {
 		forkparent(jp, n, mode, pid);
+	}
 	return pid;
 }
 
@@ -10079,12 +10081,6 @@ setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 static void FAST_FUNC
 change_random(const char *value)
 {
-	/* Galois LFSR parameter */
-	/* Taps at 32 31 29 1: */
-	enum { MASK = 0x8000000b };
-	/* Another example - taps at 32 31 30 10: */
-	/* MASK = 0x00400007 */
-
 	uint32_t t;
 
 	if (value == NULL) {
@@ -13268,11 +13264,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	rootpid = getpid();
 
-#if ENABLE_ASH_RANDOM_SUPPORT
-	/* Can use monotonic_ns() for better randomness but for now it is
-	 * not used anywhere else in busybox... so avoid bloat */
-	INIT_RANDOM_T(&random_gen, rootpid, monotonic_us());
-#endif
 	init();
 	setstackmark(&smark);
 	procargs(argv);

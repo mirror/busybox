@@ -88,6 +88,8 @@
 #include "match.h"
 #if ENABLE_HUSH_RANDOM_SUPPORT
 # include "random.h"
+#else
+# define CLEAR_RANDOM_T(rnd) ((void)0)
 #endif
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
@@ -1319,8 +1321,6 @@ static const char *get_local_var_value(const char *name)
 	// bash compat: UID? EUID?
 #if ENABLE_HUSH_RANDOM_SUPPORT
 	if (strcmp(name, "RANDOM") == 0) {
-		if (G.random_gen.galois_LFSR == 0)
-			INIT_RANDOM_T(&G.random_gen, G.root_pid, monotonic_us());
 		return utoa(next_random(&G.random_gen));
 	}
 #endif
@@ -4000,6 +4000,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (!command->pid) { /* child */
 #if ENABLE_HUSH_JOB
 			disable_restore_tty_pgrp_on_exit();
+			CLEAR_RANDOM_T(&G.random_gen); /* or else $RANDOM repeats in child */
 
 			/* Every child adds itself to new process group
 			 * with pgid == pid_of_first_child_in_pipe */
@@ -5207,6 +5208,7 @@ static FILE *generate_stream_from_string(const char *s)
 			+ (1 << SIGTTIN)
 			+ (1 << SIGTTOU)
 			, SIG_IGN);
+		CLEAR_RANDOM_T(&G.random_gen); /* or else $RANDOM repeats in child */
 		close(channel[0]); /* NB: close _first_, then move fd! */
 		xmove_fd(channel[1], 1);
 		/* Prevent it from trying to handle ctrl-z etc */

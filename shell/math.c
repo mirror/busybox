@@ -258,7 +258,7 @@ static int
 arith_lookup_val(v_n_t *t, a_e_h_t *math_hooks)
 {
 	if (t->var) {
-		const char * p = lookupvar(t->var);
+		const char *p = lookupvar(t->var);
 
 		if (p) {
 			int errcode;
