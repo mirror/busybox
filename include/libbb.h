@@ -691,6 +691,10 @@ char *itoa_to_buf(int n, char *buf, unsigned buflen) FAST_FUNC;
 /* Intelligent formatters of bignums */
 void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
 void smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
+/* If block_size == 0, display size without fractional part,
+ * else display (size * block_size) with one decimal digit.
+ * If display_unit == 0, add suffix (K,M,G...),
+ * else divide by display_unit and do not use suffix. */
 //TODO: provide pointer to buf (avoid statics)?
 const char *make_human_readable_str(unsigned long long size,
 		unsigned long block_size, unsigned long display_unit) FAST_FUNC;

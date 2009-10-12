@@ -829,7 +829,9 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 		} else {
 			if (all_fmt & LS_DISP_HR) {
 				column += printf("%9s ",
-					make_human_readable_str(dn->dstat.st_size, 1, 0));
+					/* print st_size, show one fractional, use suffixes */
+					make_human_readable_str(dn->dstat.st_size, 1, 0)
+				);
 			} else {
 				column += printf("%9"OFF_FMT"u ", (off_t) dn->dstat.st_size);
 			}
