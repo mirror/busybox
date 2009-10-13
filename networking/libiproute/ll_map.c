@@ -27,15 +27,16 @@ struct idxmap {
 	char           name[16];
 };
 
-static struct idxmap *idxmap[16];
+static struct idxmap **idxmap; /* treat as *idxmap[16] */
 
 static struct idxmap *find_by_index(int idx)
 {
 	struct idxmap *im;
 
-	for (im = idxmap[idx & 0xF]; im; im = im->next)
-		if (im->index == idx)
-			return im;
+	if (idxmap)
+		for (im = idxmap[idx & 0xF]; im; im = im->next)
+			if (im->index == idx)
+				return im;
 	return NULL;
 }
 
@@ -59,8 +60,10 @@ int FAST_FUNC ll_remember_index(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[IFLA_IFNAME] == NULL)
 		return 0;
 
-	h = ifi->ifi_index & 0xF;
+	if (!idxmap)
+		idxmap = xzalloc(sizeof(idxmap[0]) * 16);
 
+	h = ifi->ifi_index & 0xF;
 	for (imp = &idxmap[h]; (im = *imp) != NULL; imp = &im->next)
 		if (im->index == ifi->ifi_index)
 			goto found;
@@ -152,13 +155,15 @@ int FAST_FUNC xll_name_to_index(const char *name)
 		ret = icache;
 		goto out;
 	}
-	for (i = 0; i < 16; i++) {
-		for (im = idxmap[i]; im; im = im->next) {
-			if (strcmp(im->name, name) == 0) {
-				icache = im->index;
-				strcpy(ncache, name);
-				ret = im->index;
-				goto out;
+	if (idxmap) {
+		for (i = 0; i < 16; i++) {
+			for (im = idxmap[i]; im; im = im->next) {
+				if (strcmp(im->name, name) == 0) {
+					icache = im->index;
+					strcpy(ncache, name);
+					ret = im->index;
+					goto out;
+				}
 			}
 		}
 	}
@@ -195,6 +200,6 @@ int FAST_FUNC xll_name_to_index(const char *name)
 int FAST_FUNC ll_init_map(struct rtnl_handle *rth)
 {
 	xrtnl_wilddump_request(rth, AF_UNSPEC, RTM_GETLINK);
-	xrtnl_dump_filter(rth, ll_remember_index, &idxmap);
+	xrtnl_dump_filter(rth, ll_remember_index, NULL);
 	return 0;
 }
