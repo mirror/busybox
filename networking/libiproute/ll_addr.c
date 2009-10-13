@@ -17,7 +17,7 @@
 #include "utils.h"
 
 
-const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen)
+const char* FAST_FUNC ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen)
 {
 	int i;
 	int l;
@@ -27,13 +27,13 @@ const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int 
 		return inet_ntop(AF_INET, addr, buf, blen);
 	}
 	l = 0;
-	for (i=0; i<alen; i++) {
-		if (i==0) {
-			snprintf(buf+l, blen, ":%02x"+1, addr[i]);
+	for (i = 0; i < alen; i++) {
+		if (i == 0) {
+			snprintf(buf + l, blen, ":%02x"+1, addr[i]);
 			blen -= 2;
 			l += 2;
 		} else {
-			snprintf(buf+l, blen, ":%02x", addr[i]);
+			snprintf(buf + l, blen, ":%02x", addr[i]);
 			blen -= 3;
 			l += 3;
 		}
@@ -41,7 +41,7 @@ const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int 
 	return buf;
 }
 
-int ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
+int FAST_FUNC ll_addr_a2n(unsigned char *lladdr, int len, char *arg)
 {
 	int i;
 

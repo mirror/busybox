@@ -98,7 +98,7 @@ __PF(ECONET,econet)
 #undef __PF
 
 
-const char *ll_proto_n2a(unsigned short id, char *buf, int len)
+const char* FAST_FUNC ll_proto_n2a(unsigned short id, char *buf, int len)
 {
 	unsigned i;
 	id = ntohs(id);
@@ -110,7 +110,7 @@ const char *ll_proto_n2a(unsigned short id, char *buf, int len)
 	return buf;
 }
 
-int ll_proto_a2n(unsigned short *id, char *buf)
+int FAST_FUNC ll_proto_a2n(unsigned short *id, char *buf)
 {
 	unsigned i;
 	for (i = 0; i < ARRAY_SIZE(llproto_names); i++) {

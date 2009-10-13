@@ -196,7 +196,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("Deleted ");
 	}
 	if (r->rtm_type != RTN_UNICAST && !filter.type) {
-		printf("%s ", rtnl_rtntype_n2a(r->rtm_type, b1, sizeof(b1)));
+		printf("%s ", rtnl_rtntype_n2a(r->rtm_type, b1));
 	}
 
 	if (tb[RTA_DST]) {

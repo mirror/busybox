@@ -90,10 +90,10 @@ static void rtnl_rtprot_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_protos", rtnl_rtprot_tab->tab);
 }
 
-const char* rtnl_rtprot_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_rtprot_n2a(int id, char *buf)
 {
 	if (id < 0 || id >= 256) {
-		snprintf(buf, len, "%d", id);
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 
@@ -101,11 +101,12 @@ const char* rtnl_rtprot_n2a(int id, char *buf, int len)
 
 	if (rtnl_rtprot_tab->tab[id])
 		return rtnl_rtprot_tab->tab[id];
-	snprintf(buf, len, "%d", id);
+	/* buf is SPRINT_BSIZE big */
+	sprintf(buf, "%d", id);
 	return buf;
 }
 
-int rtnl_rtprot_a2n(uint32_t *id, char *arg)
+int FAST_FUNC rtnl_rtprot_a2n(uint32_t *id, char *arg)
 {
 	rtnl_rtprot_initialize();
 	return rtnl_a2n(rtnl_rtprot_tab, id, arg, 0);
@@ -127,10 +128,10 @@ static void rtnl_rtscope_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_scopes", rtnl_rtscope_tab->tab);
 }
 
-const char* rtnl_rtscope_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_rtscope_n2a(int id, char *buf)
 {
 	if (id < 0 || id >= 256) {
-		snprintf(buf, len, "%d", id);
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 
@@ -138,11 +139,12 @@ const char* rtnl_rtscope_n2a(int id, char *buf, int len)
 
 	if (rtnl_rtscope_tab->tab[id])
 		return rtnl_rtscope_tab->tab[id];
-	snprintf(buf, len, "%d", id);
+	/* buf is SPRINT_BSIZE big */
+	sprintf(buf, "%d", id);
 	return buf;
 }
 
-int rtnl_rtscope_a2n(uint32_t *id, char *arg)
+int FAST_FUNC rtnl_rtscope_a2n(uint32_t *id, char *arg)
 {
 	rtnl_rtscope_initialize();
 	return rtnl_a2n(rtnl_rtscope_tab, id, arg, 0);
@@ -159,17 +161,17 @@ static void rtnl_rtrealm_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_realms", rtnl_rtrealm_tab->tab);
 }
 
-int rtnl_rtrealm_a2n(uint32_t *id, char *arg)
+int FAST_FUNC rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 {
 	rtnl_rtrealm_initialize();
 	return rtnl_a2n(rtnl_rtrealm_tab, id, arg, 0);
 }
 
 #if ENABLE_FEATURE_IP_RULE
-const char* rtnl_rtrealm_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_rtrealm_n2a(int id, char *buf)
 {
 	if (id < 0 || id >= 256) {
-		snprintf(buf, len, "%d", id);
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 
@@ -177,7 +179,8 @@ const char* rtnl_rtrealm_n2a(int id, char *buf, int len)
 
 	if (rtnl_rtrealm_tab->tab[id])
 		return rtnl_rtrealm_tab->tab[id];
-	snprintf(buf, len, "%d", id);
+	/* buf is SPRINT_BSIZE big */
+	sprintf(buf, "%d", id);
 	return buf;
 }
 #endif
@@ -193,10 +196,10 @@ static void rtnl_rtdsfield_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_dsfield", rtnl_rtdsfield_tab->tab);
 }
 
-const char * rtnl_dsfield_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_dsfield_n2a(int id, char *buf)
 {
 	if (id < 0 || id >= 256) {
-		snprintf(buf, len, "%d", id);
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 
@@ -204,11 +207,12 @@ const char * rtnl_dsfield_n2a(int id, char *buf, int len)
 
 	if (rtnl_rtdsfield_tab->tab[id])
 		return rtnl_rtdsfield_tab->tab[id];
-	snprintf(buf, len, "0x%02x", id);
+	/* buf is SPRINT_BSIZE big */
+	sprintf(buf, "0x%02x", id);
 	return buf;
 }
 
-int rtnl_dsfield_a2n(uint32_t *id, char *arg)
+int FAST_FUNC rtnl_dsfield_a2n(uint32_t *id, char *arg)
 {
 	rtnl_rtdsfield_initialize();
 	return rtnl_a2n(rtnl_rtdsfield_tab, id, arg, 16);
@@ -229,10 +233,10 @@ static void rtnl_rttable_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_tables", rtnl_rttable_tab->tab);
 }
 
-const char *rtnl_rttable_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_rttable_n2a(int id, char *buf)
 {
 	if (id < 0 || id >= 256) {
-		snprintf(buf, len, "%d", id);
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 
@@ -240,11 +244,12 @@ const char *rtnl_rttable_n2a(int id, char *buf, int len)
 
 	if (rtnl_rttable_tab->tab[id])
 		return rtnl_rttable_tab->tab[id];
-	snprintf(buf, len, "%d", id);
+	/* buf is SPRINT_BSIZE big */
+	sprintf(buf, "%d", id);
 	return buf;
 }
 
-int rtnl_rttable_a2n(uint32_t *id, char *arg)
+int FAST_FUNC rtnl_rttable_a2n(uint32_t *id, char *arg)
 {
 	rtnl_rttable_initialize();
 	return rtnl_a2n(rtnl_rttable_tab, id, arg, 0);

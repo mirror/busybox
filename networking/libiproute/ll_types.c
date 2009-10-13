@@ -15,7 +15,7 @@
 #include "libbb.h"
 #include "rt_names.h"
 
-const char *ll_type_n2a(int type, char *buf, int len)
+const char* FAST_FUNC ll_type_n2a(int type, char *buf)
 {
 	static const char arphrd_name[] =
 	/* 0,                  */ "generic" "\0"
@@ -200,6 +200,6 @@ const char *ll_type_n2a(int type, char *buf, int len)
 			return aname;
 		aname += strlen(aname) + 1;
 	}
-	snprintf(buf, len, "[%d]", type);
+	sprintf(buf, "[%d]", type);
 	return buf;
 }

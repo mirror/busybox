@@ -15,7 +15,7 @@
 #include "rt_names.h"
 #include "utils.h"
 
-const char *rtnl_rtntype_n2a(int id, char *buf, int len)
+const char* FAST_FUNC rtnl_rtntype_n2a(int id, char *buf)
 {
 	switch (id) {
 	case RTN_UNSPEC:
@@ -43,13 +43,14 @@ const char *rtnl_rtntype_n2a(int id, char *buf, int len)
 	case RTN_XRESOLVE:
 		return "xresolve";
 	default:
-		snprintf(buf, len, "%d", id);
+		/* buf is SPRINT_BSIZE big */
+		sprintf(buf, "%d", id);
 		return buf;
 	}
 }
 
 
-int rtnl_rtntype_a2n(int *id, char *arg)
+int FAST_FUNC rtnl_rtntype_a2n(int *id, char *arg)
 {
 	static const char keywords[] ALIGN1 =
 		"local\0""nat\0""broadcast\0""brd\0""anycast\0"
@@ -95,7 +96,7 @@ int rtnl_rtntype_a2n(int *id, char *arg)
 	return 0;
 }
 
-int get_rt_realms(uint32_t *realms, char *arg)
+int FAST_FUNC get_rt_realms(uint32_t *realms, char *arg)
 {
 	uint32_t realm = 0;
 	char *p = strchr(arg, '/');

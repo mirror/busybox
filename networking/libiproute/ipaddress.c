@@ -162,7 +162,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 
 	if (!filter.family || filter.family == AF_PACKET) {
 		SPRINT_BUF(b1);
-		printf("%c    link/%s ", _SL_, ll_type_n2a(ifi->ifi_type, b1, sizeof(b1)));
+		printf("%c    link/%s ", _SL_, ll_type_n2a(ifi->ifi_type, b1));
 
 		if (tb[IFLA_ADDRESS]) {
 			fputs(ll_addr_n2a(RTA_DATA(tb[IFLA_ADDRESS]),
@@ -308,7 +308,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 				    RTA_DATA(rta_tb[IFA_ANYCAST]),
 				    abuf, sizeof(abuf)));
 	}
-	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope, b1, sizeof(b1)));
+	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope, b1));
 	if (ifa->ifa_flags & IFA_F_SECONDARY) {
 		ifa->ifa_flags &= ~IFA_F_SECONDARY;
 		printf("secondary ");
