@@ -127,7 +127,16 @@ config FEATURE_DD_SIGNAL_HANDLING
 
 	  $ dd if=/dev/zero of=/dev/null&
 	  $ pid=$! kill -USR1 $pid; sleep 1; kill $pid
-	  10899206+0 records in 10899206+0 records out
+	  10899206+0 records in
+	  10899206+0 records out
+
+config FEATURE_DD_THIRD_STATUS_LINE
+	bool "Enable the third status line upon signal"
+	default n
+	depends on DD && FEATURE_DD_SIGNAL_HANDLING
+	help
+	  Displays a coreutils-like third status line with transferred bytes,
+	  elapsed time and speed.
 
 config FEATURE_DD_IBS_OBS
 	bool "Enable ibs, obs and conv options"
