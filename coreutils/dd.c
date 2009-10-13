@@ -73,9 +73,9 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 	 * (sleep 1; echo DONE) | ./busybox dd >/dev/null
 	 */
 	diff_us -= G.begin_time_us;
-	/* We need to calculate "(total * 1M) / usec" without overflow.
+	/* We need to calculate "(total * 1000000) / usec" without overflow.
 	 * this would work too, but is bigger than integer code below.
-	 * total = G.total_bytes * (double)(1024 * 1024) / (diff_us ? diff_us : 1);
+	 * total = G.total_bytes * (double)1000000 / (diff_us ? diff_us : 1);
 	 */
 	diff_scaled = diff_us;
 	total = G.total_bytes;
@@ -83,7 +83,7 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 		total >>= 1;
 		diff_scaled >>= 1;
 	}
-	total *= (1024 * 1024);
+	total *= (1024 * 1024); /* should be 1000000, but it's +45 bytes */
 	if (diff_scaled > 1)
 		total /= diff_scaled;
 	fprintf(stderr, "%f seconds, %sB/s\n",
