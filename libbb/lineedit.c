@@ -1601,6 +1601,7 @@ static int lineedit_read_key(char *read_key_buffer)
 		}
 		/* Note: read_key sets errno to 0 on success: */
 		ic = read_key(STDIN_FILENO, read_key_buffer);
+
 		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
 		 && (int32_t)ic == KEYCODE_CURSOR_POS
 		) {
@@ -1761,10 +1762,10 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			VI_CMDMODE_BIT = 0x40000000,
 			/* 0x80000000 bit flags KEYCODE_xxx */
 		};
-		int32_t ic;
+		int32_t ic, ic_raw;
 
 		fflush(NULL);
-		ic = lineedit_read_key(read_key_buffer);
+		ic = ic_raw = lineedit_read_key(read_key_buffer);
 
 #if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
@@ -1795,27 +1796,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		vi_case('\x7f'|VI_CMDMODE_BIT:) /* DEL */
 			/* Control-b -- Move back one character */
 			input_backward(1);
-			break;
-		case CTRL('C'):
-		vi_case(CTRL('C')|VI_CMDMODE_BIT:)
-			/* Control-c -- stop gathering input */
-			goto_new_line();
-			command_len = 0;
-			break_out = -1; /* "do not append '\n'" */
-			break;
-		case CTRL('D'):
-			/* Control-d -- Delete one character, or exit
-			 * if the len=0 and no chars to delete */
-			if (command_len == 0) {
-				errno = 0;
-#if ENABLE_FEATURE_EDITING_VI
- prepare_to_die:
-#endif
-				/* to control stopped jobs */
-				break_out = command_len = -1;
-				break;
-			}
-			input_delete(0);
 			break;
 		case CTRL('E'):
 		vi_case('$'|VI_CMDMODE_BIT:)
@@ -1939,21 +1919,17 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			/* fall through */
 		case 'd'|VI_CMDMODE_BIT: {
 			int nc, sc;
-			int prev_ic;
-
-			sc = cursor;
-			prev_ic = ic;
 
 			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
 				goto prepare_to_die;
-
-			if ((ic | VI_CMDMODE_BIT) == prev_ic) {
-				/* "cc", "dd" */
+			if (ic == ic_raw) { /* "cc", "dd" */
 				input_backward(cursor);
 				goto clear_to_eol;
 				break;
 			}
+
+			sc = cursor;
 			switch (ic) {
 			case 'w':
 			case 'W':
@@ -2007,6 +1983,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			put();
 			break;
 		case 'r'|VI_CMDMODE_BIT:
+//FIXME: unicode case?
 			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
 				goto prepare_to_die;
@@ -2062,6 +2039,31 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			break;
 
 		default:
+			if (initial_settings.c_cc[VINTR] != 0
+			 && ic_raw == initial_settings.c_cc[VINTR]
+			) {
+				/* Ctrl-C (usually) - stop gathering input */
+				goto_new_line();
+				command_len = 0;
+				break_out = -1; /* "do not append '\n'" */
+				break;
+			}
+			if (initial_settings.c_cc[VEOF] != 0
+			 && ic_raw == initial_settings.c_cc[VEOF]
+			) {
+				/* Ctrl-D (usually) - delete one character,
+				 * or exit if len=0 and no chars to delete */
+				if (command_len == 0) {
+					errno = 0;
+#if ENABLE_FEATURE_EDITING_VI
+ prepare_to_die:
+#endif
+					break_out = command_len = -1;
+					break;
+				}
+				input_delete(0);
+				break;
+			}
 //			/* Control-V -- force insert of next char */
 //			if (c == CTRL('V')) {
 //				if (safe_read(STDIN_FILENO, &c, 1) < 1)
@@ -2076,7 +2078,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			 || (ENABLE_FEATURE_ASSUME_UNICODE && ic >= VI_CMDMODE_BIT)
 			) {
 				/* If VI_CMDMODE_BIT is set, ic is >= 256
-				 * and command mode ignores unexpected chars.
+				 * and vi mode ignores unexpected chars.
 				 * Otherwise, we are here if ic is a
 				 * control char or an unhandled ESC sequence,
 				 * which is also ignored.
@@ -2108,14 +2110,13 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				input_backward(cursor - sc);
 			}
 			break;
-		} /* switch (input_key) */
+		} /* switch (ic) */
 
 		if (break_out)
 			break;
 
 #if ENABLE_FEATURE_TAB_COMPLETION
-		ic &= ~VI_CMDMODE_BIT;
-		if (ic != '\t')
+		if (ic_raw != '\t')
 			lastWasTab = FALSE;
 #endif
 	} /* while (1) */
