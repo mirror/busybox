@@ -22,6 +22,7 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 		'O','B'        |0x80,KEYCODE_DOWN    ,
 		'O','C'        |0x80,KEYCODE_RIGHT   ,
 		'O','D'        |0x80,KEYCODE_LEFT    ,
+		/* Ctrl-<arrow>: ESC [ 1 ; 5 x, where x = A/B/C/D  */
 		'O','H'        |0x80,KEYCODE_HOME    ,
 		'O','F'        |0x80,KEYCODE_END     ,
 #if 0

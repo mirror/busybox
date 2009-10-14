@@ -134,9 +134,8 @@ config FEATURE_VERBOSE_CP_MESSAGE
 	    $ cp file /vmlinuz/file
 	    cp: cannot stat '/vmlinuz/file': Path has non-directory component
 	  If this feature is not enabled, they will be, respectively:
-	    cp: cannot remove '/does_not_exist/file': No such file or directory
+	    cp: cannot create '/does_not_exist/file': No such file or directory
 	    cp: cannot stat '/vmlinuz/file': Not a directory
-	  respectively.
 	  This will cost you ~60 bytes.
 
 config FEATURE_COPYBUF_KB
