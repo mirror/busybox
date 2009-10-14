@@ -49,9 +49,9 @@ struct globals {
 static void dd_output_status(int UNUSED_PARAM cur_signal)
 {
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
-	unsigned long long total;
-	unsigned long long diff_scaled;
-	unsigned long long diff_us = monotonic_us(); /* before fprintf */
+	double seconds;
+	unsigned long long bytes_sec;
+	unsigned long long now_us = monotonic_us(); /* before fprintf */
 #endif
 
 	/* Deliberately using %u, not %d */
@@ -72,24 +72,12 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
 	 * (echo DONE) | ./busybox dd >/dev/null
 	 * (sleep 1; echo DONE) | ./busybox dd >/dev/null
 	 */
-	diff_us -= G.begin_time_us;
-	/* We need to calculate "(total * 1000000) / usec" without overflow.
-	 * this would work too, but is bigger than integer code below.
-	 * total = G.total_bytes * (double)1000000 / (diff_us ? diff_us : 1);
-	 */
-	diff_scaled = diff_us;
-	total = G.total_bytes;
-	while (total > MAXINT(unsigned long long) / (1024 * 1024)) {
-		total >>= 1;
-		diff_scaled >>= 1;
-	}
-	total *= (1024 * 1024); /* should be 1000000, but it's +45 bytes */
-	if (diff_scaled > 1)
-		total /= diff_scaled;
+	seconds = (now_us - G.begin_time_us) / 1000000.0;
+	bytes_sec = G.total_bytes / seconds;
 	fprintf(stderr, "%f seconds, %sB/s\n",
-			diff_us / 1000000.0,
+			seconds,
 			/* show fractional digit, use suffixes */
-			make_human_readable_str(total, 1, 0)
+			make_human_readable_str(bytes_sec, 1, 0)
 	);
 #endif
 }
