@@ -587,6 +587,9 @@ static int builtin_local(char **argv) FAST_FUNC;
 #if HUSH_DEBUG
 static int builtin_memleak(char **argv) FAST_FUNC;
 #endif
+#if ENABLE_PRINTF
+static int builtin_printf(char **argv) FAST_FUNC;
+#endif
 static int builtin_pwd(char **argv) FAST_FUNC;
 static int builtin_read(char **argv) FAST_FUNC;
 static int builtin_set(char **argv) FAST_FUNC;
@@ -674,6 +677,9 @@ static const struct built_in_command bltins1[] = {
 static const struct built_in_command bltins2[] = {
 	BLTIN("["        , builtin_test    , NULL),
 	BLTIN("echo"     , builtin_echo    , NULL),
+#if ENABLE_PRINTF
+	BLTIN("printf"   , builtin_printf  , NULL),
+#endif
 	BLTIN("pwd"      , builtin_pwd     , NULL),
 	BLTIN("test"     , builtin_test    , NULL),
 };
@@ -6916,6 +6922,13 @@ static int FAST_FUNC builtin_echo(char **argv)
 {
 	return _builtin_applet(argv, echo_main);
 }
+
+#if ENABLE_PRINTF
+static int FAST_FUNC builtin_printf(char **argv)
+{
+	return _builtin_applet(argv, printf_main);
+}
+#endif
 
 static int FAST_FUNC builtin_eval(char **argv)
 {
