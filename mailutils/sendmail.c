@@ -9,6 +9,10 @@
 #include "libbb.h"
 #include "mail.h"
 
+// limit maximum allowed number of headers to prevent overflows.
+// set to 0 to not limit
+#define MAX_HEADERS 256
+
 static int smtp_checkp(const char *fmt, const char *param, int code)
 {
 	char *answer;
@@ -55,7 +59,9 @@ static char *sane_address(char *str)
 
 static void rcptto(const char *s)
 {
-	smtp_checkp("RCPT TO:<%s>", s, 250);
+	// N.B. we don't die if recipient is rejected, for the other recipients may be accepted
+	if (250 != smtp_checkp("RCPT TO:<%s>", s, -1))
+		bb_error_msg("Bad recipient: <%s>", s);
 }
 
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -66,6 +72,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	char *s;
 	llist_t *list = NULL;
 	char *domain = sane_address(safe_getdomainname());
+	unsigned nheaders = 0;
 	int code;
 
 	enum {
@@ -197,6 +204,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// and then use the rest of stdin as message body
 	code = 0; // set "analyze headers" mode
 	while ((s = xmalloc_fgetline(G.fp0)) != NULL) {
+ dump:
 		// put message lines doubling leading dots
 		if (code) {
 			// escape leading dots
@@ -215,41 +223,62 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		// To: or Cc: headers add recipients
 		if (0 == strncasecmp("To: ", s, 4) || 0 == strncasecmp("Bcc: " + 1, s, 4)) {
 			rcptto(sane_address(s+4));
-//			goto addh;
-			llist_add_to_end(&list, s);
+			goto addheader;
 		// Bcc: header adds blind copy (hidden) recipient
 		} else if (0 == strncasecmp("Bcc: ", s, 5)) {
 			rcptto(sane_address(s+5));
 			free(s);
 			// N.B. Bcc: vanishes from headers!
 		// other headers go verbatim
-		} else if (s[0]) {
-// addh:
+		// N.B. we allow MAX_HEADERS generic headers at most to prevent attacks
+		} else if (strchr(s, ':')) {
+ addheader:
+			if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
+				goto bail;
 			llist_add_to_end(&list, s);
-		// the empty line stops analyzing headers
+		// a line without ":" (an empty line too, by definition) doesn't look like a valid header
+		// so stop "analyze headers" mode
 		} else {
-			free(s);
+ reenter:
 			// put recipients specified on cmdline
 			while (*argv) {
-				s = sane_address(*argv);
-				rcptto(s);
-				llist_add_to_end(&list, xasprintf("To: %s", s));
+				char *t = sane_address(*argv);
+				rcptto(t);
+				//if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
+				//	goto bail;
+				llist_add_to_end(&list, xasprintf("To: %s", t));
 				argv++;
 			}
 			// enter "put message" mode
-			smtp_check("DATA", 354);
+			// N.B. DATA fails iff no recipients were accepted (or even provided)
+			// in this case just bail out gracefully
+			if (354 != smtp_check("DATA", -1))
+				goto bail;
 			// dump the headers
 			while (list) {
 				printf("%s\r\n", (char *) llist_pop(&list));
 			}
-			printf("%s\r\n" + 2); // quirk for format string to be reused
 			// stop analyzing headers
 			code++;
+			// N.B. !s means: we read nothing, and nothing to be read in the future.
+			// just dump empty line and break the loop
+			if (!s) {
+				puts("\r");
+				break;
+			}
+			// go dump message body
+			// N.B. "s" already contains the first non-header line, so pretend we read it from input
+			goto dump;
 		}
 	}
+	// odd case: we didn't stop "analyze headers" mode -> message body is empty. Reenter the loop
+	// N.B. after reenter code will be > 0
+	if (!code)
+		goto reenter;
 
 	// finalize the message
 	smtp_check(".", 250);
+ bail:
 	// ... and say goodbye
 	smtp_check("QUIT", 221);
 	// cleanup
