@@ -112,19 +112,19 @@ int mkswap_main(int argc, char **argv)
 	// Make a header. hdr is zero-filled so far...
 	hdr[0] = 1;
 	hdr[1] = (len / pagesize) - 1;
-#if ENABLE_FEATURE_MKSWAP_UUID
-	char uuid_string[32];
-	generate_uuid((void*) &hdr[3]);
-	bin2hex(uuid_string, (void*) &hdr[3], 16);
-	/* f.e. UUID=dfd9c173-be52-4d27-99a5-c34c6c2ff55f */
-	printf("UUID=%.8s"  "-%.4s-%.4s-%.4s-%.12s\n",
-		uuid_string,
-		uuid_string+8,
-		uuid_string+8+4,
-		uuid_string+8+4+4,
-		uuid_string+8+4+4+4
-	);
-#endif
+	if (ENABLE_FEATURE_MKSWAP_UUID) {
+		char uuid_string[32];
+		generate_uuid((void*) &hdr[3]);
+		bin2hex(uuid_string, (void*) &hdr[3], 16);
+		/* f.e. UUID=dfd9c173-be52-4d27-99a5-c34c6c2ff55f */
+		printf("UUID=%.8s"  "-%.4s-%.4s-%.4s-%.12s\n",
+			uuid_string,
+			uuid_string+8,
+			uuid_string+8+4,
+			uuid_string+8+4+4,
+			uuid_string+8+4+4+4
+		);
+	}
 
 	// Write the header.  Sync to disk because some kernel versions check
 	// signature on disk (not in cache) during swapon.
