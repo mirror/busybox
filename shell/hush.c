@@ -6897,24 +6897,24 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 	return 0;
 }
 
-static int FAST_FUNC builtin_test(char **argv)
+static int FAST_FUNC _builtin_applet(char **argv, int (applet)(int argc, char **argv))
 {
 	int argc = 0;
 	while (*argv) {
 		argc++;
 		argv++;
 	}
-	return test_main(argc, argv - argc);
+	return applet(argc, argv - argc);
+}
+
+static int FAST_FUNC builtin_test(char **argv)
+{
+	return _builtin_applet(argv, test_main);
 }
 
 static int FAST_FUNC builtin_echo(char **argv)
 {
-	int argc = 0;
-	while (*argv) {
-		argc++;
-		argv++;
-	}
-	return echo_main(argc, argv - argc);
+	return _builtin_applet(argv, echo_main);
 }
 
 static int FAST_FUNC builtin_eval(char **argv)
