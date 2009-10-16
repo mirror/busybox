@@ -644,6 +644,9 @@ static const struct address_family_t addr_inet = {
 
 #endif	/* if ENABLE_FEATURE_IFUPDOWN_IPV4 */
 
+/* Returns pointer to the next word, or NULL.
+ * In 1st case, advances *buf to the word after this one.
+ */
 static char *next_word(char **buf)
 {
 	unsigned length;
@@ -663,7 +666,7 @@ static char *next_word(char **buf)
 	if (word[length] != '\0')
 		word[length++] = '\0';
 
-	*buf = word + length;
+	*buf = skip_whitespace(word + length);
 
 	return word;
 }
