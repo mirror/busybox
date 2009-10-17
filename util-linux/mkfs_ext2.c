@@ -275,9 +275,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	 * don't check all the filesystems at the same time.  We use a
 	 * kludgy hack of using the UUID to derive a random jitter value.
 	 */
-	for (i = 0, n = 0; i < sizeof(sb->s_uuid); i++)
-		n += sb->s_uuid[i];
-	sb->s_max_mnt_count += n % EXT2_DFL_MAX_MNT_COUNT;
+	sb->s_max_mnt_count += sb->s_uuid[ARRAY_SIZE(sb->s_uuid)-1] % EXT2_DFL_MAX_MNT_COUNT;
 
 	// open the device, get number of blocks
 	xmove_fd(xopen3(argv[0], O_WRONLY | O_CREAT, 0666), fd);
