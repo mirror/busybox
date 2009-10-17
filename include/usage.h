@@ -2735,7 +2735,7 @@
 /*   "\n	-j		Create a journal (ext3)" */ \
 /*   "\n	-J opts		Set journal options (size/device)" */ \
 /*   "\n	-l file		Read bad blocks list from file" */ \
-     "\n	-L LABEL	Set the volume label" \
+     "\n	-L LBL		Volume label" \
      "\n	-m PERCENT	Percent of blocks to reserve for admin" \
 /*   "\n	-M dir		Set last mounted directory" */ \
 /*   "\n	-n		Don't actually create anything" */ \
