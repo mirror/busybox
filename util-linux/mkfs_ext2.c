@@ -95,14 +95,14 @@ static bool is_power_of(uint32_t x, uint16_t n)
 	return (z == (int)z);
 }
 
-static bool has_super(uint32_t x)
+static uint32_t has_super(uint32_t x)
 {
 	return (0 == x || 1 == x || is_power_of(x, 3) || is_power_of(x, 5) || is_power_of(x, 7));
 }
 
 #else
 
-static bool has_super(uint32_t x)
+static uint32_t has_super(uint32_t x)
 {
 	static const uint32_t supers[] = {
 		0, 1, 3, 5, 7, 9, 25, 27, 49, 81, 125, 243, 343, 625, 729,
@@ -112,7 +112,8 @@ static bool has_super(uint32_t x)
 		48828125, 129140163, 244140625, 282475249, 387420489,
 		1162261467, 1220703125, 1977326743, 3486784401/* >2^31 */,
 	};
-	for (int i = sizeof(supers)/sizeof(supers[0]); --i >= 0; )
+	unsigned i;
+	for (i = ARRAY_SIZE(supers); --i >= 0;)
 		if (x == supers[i])
 			return 1;
 	return 0;
@@ -358,7 +359,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		i < ngroups;
 		i++, pos += nblocks_per_group, n -= nblocks_per_group
 	) {
-		uint32_t overhead = pos + has_super(i) * (1/*sb*/ + gdtsz + rgdtsz);
+		uint32_t overhead = pos + (has_super(i) ? (1/*sb*/ + gdtsz + rgdtsz) : 0);
 		gd[i].bg_block_bitmap = overhead + 0;
 		gd[i].bg_inode_bitmap = overhead + 1;
 		gd[i].bg_inode_table  = overhead + 2;
@@ -384,19 +385,21 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// dump filesystem skeleton structures
 	buf = xmalloc(blocksize);
 	for (i = 0, pos = first_data_block; i < ngroups; i++, pos += nblocks_per_group) {
-		uint32_t overhead = has_super(i) * (1/*sb*/ + gdtsz + rgdtsz);
-		uint32_t start;// = has_super(i) * (1/*sb*/ + gdtsz + rgdtsz);
+		uint32_t overhead = has_super(i) ? (1/*sb*/ + gdtsz + rgdtsz) : 0;
+		uint32_t start;// = has_super(i) ? (1/*sb*/ + gdtsz + rgdtsz) : 0;
 		uint32_t end;
 
 		// dump superblock and group descriptors and their backups
 		if (overhead) { // N.B. in fact, we want (has_super(i)) condition, but it is equal to (overhead != 0) and is cheaper
 //bb_info_msg("SUPER@[%d]", pos);
 			// N.B. 1024 byte blocks are special
-			PUT(blocksize * pos + 1024 * (0 == i && 0 == first_data_block), sb, blocksize);
+			PUT(blocksize * pos + ((0 == i && 0 == first_data_block) ? 1024 : 0), sb, blocksize);
 			PUT(blocksize * pos + blocksize, gd, (gdtsz + rgdtsz) * blocksize);
 		}
 
-		start = overhead + 1/*bbmp*/ + 1/*ibmp*/ + itsz + (0 == i) * 2; // +2: /, /lost+found
+		start = overhead + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
+		if (i == 0)
+			start += 2; // for / and /lost+found
 		end = nblocks_per_group - (start + gd[i].bg_free_blocks_count);
 		// mark preallocated blocks as allocated
 		allocate(buf, blocksize, start, end);
