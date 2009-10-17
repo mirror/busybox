@@ -2702,37 +2702,6 @@
        "/tmp/foo/bar/baz: No such file or directory\n" \
        "$ mkdir -p /tmp/foo/bar/baz\n"
 
-#define mke2fs_trivial_usage \
-       "[-c|-l filename] [-b block-size] [-f fragment-size] [-g blocks-per-group] " \
-       "[-i bytes-per-inode] [-j] [-J journal-options] [-N number-of-inodes] [-n] " \
-       "[-m reserved-blocks-percentage] [-o creator-os] [-O feature[,...]] [-q] " \
-       "[r fs-revision-level] [-E extended-options] [-v] [-F] [-L volume-label] " \
-       "[-M last-mounted-directory] [-S] [-T filesystem-type] " \
-       "device [blocks-count]"
-#define mke2fs_full_usage "\n\n" \
-       "	-b size		Block size in bytes" \
-     "\n	-c		Check for bad blocks before creating" \
-     "\n	-E opts		Set extended options" \
-     "\n	-f size		Fragment size in bytes" \
-     "\n	-F		Force (ignore sanity checks)" \
-     "\n	-g num		Number of blocks in a block group" \
-     "\n	-i ratio	The bytes/inode ratio" \
-     "\n	-j		Create a journal (ext3)" \
-     "\n	-J opts		Set journal options (size/device)" \
-     "\n	-l file		Read bad blocks list from file" \
-     "\n	-L lbl		Set the volume label" \
-     "\n	-m percent	Percent of fs blocks to reserve for admin" \
-     "\n	-M dir		Set last mounted directory" \
-     "\n	-n		Don't actually create anything" \
-     "\n	-N num		Number of inodes to create" \
-     "\n	-o os		Set the 'creator os' field" \
-     "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" \
-     "\n	-q		Quiet" \
-     "\n	-r rev		Set filesystem revision" \
-     "\n	-S		Write superblock and group descriptors only" \
-     "\n	-T fs-type	Set usage type (news/largefile/largefile4)" \
-     "\n	-v		Verbose" \
-
 #define mkfifo_trivial_usage \
        "[OPTIONS] name"
 #define mkfifo_full_usage "\n\n" \
@@ -2742,6 +2711,42 @@
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
+
+#define mkfs_ext2_trivial_usage \
+       /* "[-c|-l filename] " */ \
+       "[-b BLK_SIZE] " \
+       /* "[-f fragment-size] [-g blocks-per-group] " */ \
+       "[-i BYTES_PER_INODE] " \
+       /* "[-j] [-J journal-options] [-N number-of-inodes] [-n] " */ \
+       "[-m RESERVED_PERCENT] " \
+       /* "[-o creator-os] [-O feature[,...]] [-q] " */ \
+       /* "[r fs-revision-level] [-E extended-options] [-v] [-F] " */ \
+       "[-L LABEL] " \
+       /* "[-M last-mounted-directory] [-S] [-T filesystem-type] " */ \
+       "DEVICE [BLK_COUNT]"
+#define mkfs_ext2_full_usage "\n" \
+     "\n	-b BLK_SIZE	Block size in bytes" \
+/*   "\n	-c		Check for bad blocks before creating" */ \
+/*   "\n	-E opts		Set extended options" */ \
+/*   "\n	-f size		Fragment size in bytes" */ \
+/*   "\n	-F		Force (ignore sanity checks)" */ \
+/*   "\n	-g num		Number of blocks in a block group" */ \
+     "\n	-i BYTES	The bytes/inode ratio" \
+/*   "\n	-j		Create a journal (ext3)" */ \
+/*   "\n	-J opts		Set journal options (size/device)" */ \
+/*   "\n	-l file		Read bad blocks list from file" */ \
+     "\n	-L LABEL	Set the volume label" \
+     "\n	-m PERCENT	Percent of blocks to reserve for admin" \
+/*   "\n	-M dir		Set last mounted directory" */ \
+/*   "\n	-n		Don't actually create anything" */ \
+/*   "\n	-N num		Number of inodes to create" */ \
+/*   "\n	-o os		Set the 'creator os' field" */ \
+/*   "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" */ \
+/*   "\n	-q		Quiet" */ \
+/*   "\n	-r rev		Set filesystem revision" */ \
+/*   "\n	-S		Write superblock and group descriptors only" */ \
+/*   "\n	-T fs-type	Set usage type (news/largefile/largefile4)" */ \
+/*   "\n	-v		Verbose" */ \
 
 #define mkfs_minix_trivial_usage \
        "[-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]"

@@ -239,6 +239,12 @@ config MKFS_VFAT
 	help
 	  Utility to create FAT32 filesystems.
 
+config MKFS_EXT2
+	bool "mkfs_ext2"
+	default n
+	help
+	  Utility to create EXT2 filesystems.
+
 config GETOPT
 	bool "getopt"
 	default n
