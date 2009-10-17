@@ -112,11 +112,14 @@ static uint32_t has_super(uint32_t x)
 		48828125, 129140163, 244140625, 282475249, 387420489,
 		1162261467, 1220703125, 1977326743, 3486784401/* >2^31 */,
 	};
-	unsigned i;
-	for (i = ARRAY_SIZE(supers); --i >= 0;)
-		if (x == supers[i])
+	const uint32_t *sp = supers + ARRAY_SIZE(supers)-1;
+	while (1) {
+		if (x == *sp)
 			return 1;
-	return 0;
+		if (0 == *sp)
+			return 0;
+		sp--;
+	}
 }
 #endif
 
