@@ -59,16 +59,16 @@ struct ext2_dir {
 	char     name3[12];
 };
 
-static inline int int_log2(int arg)
+static unsigned int_log2(unsigned arg)
 {
-	int r = 0;
+	unsigned r = 0;
 	while ((arg >>= 1) != 0)
 		r++;
 	return r;
 }
 
 // taken from mkfs_minix.c. libbb candidate?
-static ALWAYS_INLINE unsigned div_roundup(uint32_t size, uint32_t n)
+static unsigned div_roundup(uint32_t size, uint32_t n)
 {
 	return (size + n-1) / n;
 }
