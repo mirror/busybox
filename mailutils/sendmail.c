@@ -229,10 +229,15 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			rcptto(sane_address(s+5));
 			free(s);
 			// N.B. Bcc: vanishes from headers!
+
 		// other headers go verbatim
-		// N.B. we allow MAX_HEADERS generic headers at most to prevent attacks
-		} else if (strchr(s, ':')) {
+
+		// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
+		// Continuation is denoted by prefixing additional lines with whitespace(s).
+		// Thanks (stefan.seyfried at googlemail.com) for pointing this out.
+		} else if (strchr(s, ':') || (list && skip_whitespace(s) != s)) {
  addheader:
+			// N.B. we allow MAX_HEADERS generic headers at most to prevent attacks
 			if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
 				goto bail;
 			llist_add_to_end(&list, s);
