@@ -2717,11 +2717,12 @@
        "[-b BLK_SIZE] " \
        /* "[-f fragment-size] [-g blocks-per-group] " */ \
        "[-i BYTES_PER_INODE] " \
-       /* "[-j] [-J journal-options] [-N number-of-inodes] [-n] " */ \
+       /* "[-j] [-J journal-options] [-N number-of-inodes] " */ \
        "[-m RESERVED_PERCENT] " \
        /* "[-o creator-os] [-O feature[,...]] [-q] " */ \
        /* "[r fs-revision-level] [-E extended-options] [-v] [-F] " */ \
        "[-L LABEL] " \
+       "[-n] " \
        /* "[-M last-mounted-directory] [-S] [-T filesystem-type] " */ \
        "DEVICE [BLK_COUNT]"
 #define mkfs_ext2_full_usage "\n" \
@@ -2738,7 +2739,7 @@
      "\n	-L LBL		Volume label" \
      "\n	-m PERCENT	Percent of blocks to reserve for admin" \
 /*   "\n	-M dir		Set last mounted directory" */ \
-/*   "\n	-n		Don't actually create anything" */ \
+     "\n	-n		Dry run" \
 /*   "\n	-N num		Number of inodes to create" */ \
 /*   "\n	-o os		Set the 'creator os' field" */ \
 /*   "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" */ \
