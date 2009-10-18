@@ -3895,6 +3895,12 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 		}
 
+		/* if someone gives us an empty string: ``, $(), ... */
+		if (!argv_expanded[0]) {
+			debug_leave();
+			return 0;
+		}
+
 		x = find_builtin(argv_expanded[0]);
 #if ENABLE_HUSH_FUNCTIONS
 		funcp = NULL;
