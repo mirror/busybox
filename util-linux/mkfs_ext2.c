@@ -70,7 +70,11 @@ static unsigned int_log2(unsigned arg)
 // taken from mkfs_minix.c. libbb candidate?
 static unsigned div_roundup(uint32_t size, uint32_t n)
 {
-	return (size + n-1) / n;
+	// Overflow-resistant
+	uint32_t res = size / n;
+	if (res * n != size)
+		res++;
+	return res;
 }
 
 static void allocate(uint8_t *bitmap, uint32_t blocksize, uint32_t start, uint32_t end)
@@ -161,6 +165,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	unsigned i, pos, n;
 	unsigned bs, blocksize, blocksize_log2;
 	unsigned nreserved = 5;
+	unsigned long long nblocks_ull;
 	uint32_t nblocks;
 	uint32_t ngroups;
 	unsigned bytes_per_inode;
@@ -179,23 +184,13 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	struct ext2_dir *dir;
 	uint8_t *buf;
 
-	bs = EXT2_MIN_BLOCK_SIZE;
 	opt_complementary = "-1:b+:m+:i+";
 	opts = getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
 		NULL, &bs, NULL, &bytes_per_inode, NULL, NULL, NULL, NULL,
 		&nreserved, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
 	argv += optind; // argv[0] -- device
 
-	// block size minimax, block size is a multiple of minimum
-	blocksize = bs;
-	if (blocksize < EXT2_MIN_BLOCK_SIZE
-	 || blocksize > EXT2_MAX_BLOCK_SIZE
-	 || (blocksize & (blocksize - 1)) // not power of 2
-	) {
-		bb_error_msg_and_die("-%c is bad", 'b');
-	}
-
-	// reserved blocks count
+	// reserved blocks percentage
 	if (nreserved > 50)
 		bb_error_msg_and_die("-%c is bad", 'm');
 
@@ -209,6 +204,42 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// it is loop block device which mounted!
 	if (find_mount_point(argv[0], 0))
 		bb_error_msg_and_die("can't format mounted filesystem");
+
+	// open the device, get size in kbytes
+	xmove_fd(xopen3(argv[0], O_WRONLY | O_CREAT, 0666), fd);
+	if (argv[1]) {
+		nblocks_ull = xatoull(argv[1]);
+	} else {
+		nblocks_ull = (uoff_t)xlseek(fd, 0, SEEK_END) / 1024;
+	}
+
+	// block size is a multiple of 1024
+	blocksize = 1024;
+	if (nblocks_ull >= 512*1024) // mke2fs 1.41.9 compat
+		blocksize = 4096;
+	if (EXT2_MAX_BLOCK_SIZE > 4096) {
+		// nblocks_ull >> 22 == size in 4gigabyte chunks.
+		// if it is >= 16k gigs, blocksize must be increased.
+		// Try "mke2fs -F image_std $((16 * 1024*1024*1024))"
+		while ((nblocks_ull >> 22) >= blocksize)
+			blocksize *= 2;
+	}
+	if (opts & OPT_b)
+		blocksize = bs;
+	if (blocksize < EXT2_MIN_BLOCK_SIZE
+	 || blocksize > EXT2_MAX_BLOCK_SIZE
+	 || (blocksize & (blocksize - 1)) // not power of 2
+	) {
+		bb_error_msg_and_die("blocksize %u is bad", blocksize);
+	}
+	blocksize_log2 = int_log2(blocksize);
+	nblocks_ull >>= (blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
+	// nblocks: the total number of blocks in the filesystem
+	nblocks = nblocks_ull;
+	if (nblocks != nblocks_ull)
+		bb_error_msg_and_die("block count doesn't fit in 32 bits");
+	if (nblocks < 8)
+		bb_error_msg_and_die("need >= 8 blocks");
 
 	// TODO: 5?/5 WE MUST NOT DEPEND ON WHETHER DEVICE IS /dev/zero 'ed OR NOT
 	// TODO: 3/5 refuse if mounted
@@ -226,7 +257,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	sb->s_magic = EXT2_SUPER_MAGIC;
 	sb->s_inode_size = sizeof(*inode);
 	sb->s_first_ino = EXT2_GOOD_OLD_FIRST_INO;
-	blocksize_log2 = int_log2(blocksize);
 	sb->s_log_block_size = sb->s_log_frag_size = blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE;
 	// first 1024 bytes of the device are for boot record. If block size is 1024 bytes, then
 	// the first block available for data is 1, otherwise 0
@@ -261,18 +291,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	 */
 	sb->s_max_mnt_count += sb->s_uuid[ARRAY_SIZE(sb->s_uuid)-1] % EXT2_DFL_MAX_MNT_COUNT;
 
-	// open the device, get number of blocks
-	xmove_fd(xopen3(argv[0], O_WRONLY | O_CREAT, 0666), fd);
-	if (argv[1]) {
-		nblocks = xatou(argv[1]);
-	} else {
-		nblocks = (uoff_t)xlseek(fd, 0, SEEK_END) >> blocksize_log2;
-	}
 	sb->s_blocks_count = nblocks;
 
-	// nblocks is the total number of blocks in the filesystem
-	if (nblocks < 8)
-		bb_error_msg_and_die("nblocks");
 	// reserve blocks for superuser
 	sb->s_r_blocks_count = ((uint64_t) nblocks * nreserved) / 100;
 

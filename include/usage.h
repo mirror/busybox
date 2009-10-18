@@ -2724,7 +2724,7 @@
        "[-L LABEL] " \
        "[-n] " \
        /* "[-M last-mounted-directory] [-S] [-T filesystem-type] " */ \
-       "DEVICE [BLK_COUNT]"
+       "DEVICE [KBYTES]"
 #define mkfs_ext2_full_usage "\n" \
      "\n	-b BLK_SIZE	Block size in bytes" \
 /*   "\n	-c		Check for bad blocks before creating" */ \
