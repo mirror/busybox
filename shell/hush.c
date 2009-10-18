@@ -2185,7 +2185,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 	ored_ch = 0;
 
-	debug_printf_expand("expand_vars_to_list: arg '%s'\n", arg);
+	debug_printf_expand("expand_vars_to_list: arg:'%s' or_mask:%x\n", arg, or_mask);
 	debug_print_list("expand_vars_to_list", output, n);
 	n = o_save_ptr(output, n);
 	debug_print_list("expand_vars_to_list[0]", output, n);
@@ -3425,7 +3425,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't execute '%s'", argv[0]);
-	_exit(EXIT_FAILURE);
+	_exit(127); /* bash compat */
 }
 
 /* Called after [v]fork() in run_pipe
@@ -3895,7 +3895,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 		}
 
-		/* if someone gives us an empty string: ``, $(), ... */
+		/* if someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
 			debug_leave();
 			return 0;
@@ -5802,7 +5802,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	if (ch != '\n') {
 		next = i_peek(input);
 	}
-	debug_printf_parse(": ch=%c (%d) escape=%d\n",
+	debug_printf_parse("\" ch=%c (%d) escape=%d\n",
 					ch, ch, dest->o_escape);
 	if (ch == '\\') {
 		if (next == EOF) {
@@ -5881,6 +5881,11 @@ static struct pipe *parse_stream(char **pstring,
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
 			end_trigger ? end_trigger : 'X');
 	debug_enter();
+
+	/* If very first arg is "" or '', dest.data may end up NULL.
+	 * Preventing this: */
+	o_addchr(&dest, '\0');
+	dest.length = 0;
 
 	G.ifs = get_local_var_value("IFS");
 	if (G.ifs == NULL)
@@ -6979,16 +6984,32 @@ static int FAST_FUNC builtin_cd(char **argv)
 
 static int FAST_FUNC builtin_exec(char **argv)
 {
+	static const char pseudo_null_str[] = { SPECIAL_VAR_SYMBOL, SPECIAL_VAR_SYMBOL, '\0' };
+	char **pp = argv;
+#if !BB_MMU
+	nommu_save_t dummy;
+#endif
+
 	if (*++argv == NULL)
 		return EXIT_SUCCESS; /* bash does this */
-	{
-#if !BB_MMU
-		nommu_save_t dummy;
-#endif
-		/* TODO: if exec fails, bash does NOT exit! We do... */
-		pseudo_exec_argv(&dummy, argv, 0, NULL);
-		/* never returns */
+
+	/* Make sure empty arguments aren't ignored */
+	/* Example: exec ls '' */
+	pp = argv;
+	while (*pp) {
+		if ((*pp)[0] == '\0')
+			*pp = (char*)pseudo_null_str;
+		pp++;
 	}
+
+	/* Careful: we can end up here after [v]fork. Do not restore
+	 * tty pgrp then, only top-level shell process does that */
+	if (G_saved_tty_pgrp && getpid() == G.root_pid)
+		tcsetpgrp(G_interactive_fd, G_saved_tty_pgrp);
+
+	/* TODO: if exec fails, bash does NOT exit! We do... */
+	pseudo_exec_argv(&dummy, argv, 0, NULL);
+	/* never returns */
 }
 
 static int FAST_FUNC builtin_exit(char **argv)
