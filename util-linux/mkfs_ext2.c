@@ -283,7 +283,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		nblocks = xatou(argv[1]);
 	} else {
 		nblocks = ((uoff_t)xlseek(fd, 0, SEEK_END)) / blocksize;
-		xlseek(fd, 0, SEEK_SET);
 	}
 	sb->s_blocks_count = nblocks;
 
@@ -414,7 +413,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		);
 		// dump inode bitmap
 		PUT((pos + overhead + 1) * blocksize, buf, blocksize);
-
 	}
 
 	// zero boot sectors
