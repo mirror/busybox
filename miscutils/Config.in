@@ -137,11 +137,11 @@ config FEATURE_CROND_D
 	  -d sets loglevel to 0 (most verbose) and directs all output to stderr.
 
 config FEATURE_CROND_CALL_SENDMAIL
-	bool "Using /usr/sbin/sendmail?"
+	bool "Report command output via email (using sendmail)"
 	default n
 	depends on CROND
 	help
-	  Support calling /usr/sbin/sendmail for send cmd outputs.
+	  Command output will be sent to corresponding user via email.
 
 config FEATURE_CROND_DIR
 	string "crond spool directory"
