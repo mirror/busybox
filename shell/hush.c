@@ -556,7 +556,7 @@ struct globals {
 	unsigned long memleak_value;
 	int debug_indent;
 #endif
-	char user_input_buf[ENABLE_FEATURE_EDITING ? BUFSIZ : 2];
+	char user_input_buf[ENABLE_FEATURE_EDITING ? CONFIG_FEATURE_EDITING_MAX_LEN : 2];
 };
 #define G (*ptr_to_globals)
 /* Not #defining name to G.name - this quickly gets unwieldy
@@ -1666,7 +1666,7 @@ static void get_user_input(struct in_str *i)
 		G.flag_SIGINT = 0;
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
 		 * only after <Enter>. (^C will work) */
-		r = read_line_input(prompt_str, G.user_input_buf, BUFSIZ-1, G.line_input_state);
+		r = read_line_input(prompt_str, G.user_input_buf, CONFIG_FEATURE_EDITING_MAX_LEN-1, G.line_input_state);
 		/* catch *SIGINT* etc (^C is handled by read_line_input) */
 		check_and_run_traps(0);
 	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
