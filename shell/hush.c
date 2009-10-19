@@ -2689,9 +2689,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 	char param_buf[sizeof("-$%x:%x:%x:%x:%x") + sizeof(unsigned) * 2];
 	char *heredoc_argv[4];
 	struct variable *cur;
-#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_FUNCTIONS
 	struct function *funcp;
-#endif
+# endif
 	char **argv, **pp;
 	unsigned cnt;
 
@@ -2726,10 +2726,10 @@ static void re_execute_shell(char ***to_free, const char *s,
 		if (!cur->flg_export || cur->flg_read_only)
 			cnt += 2;
 	}
-#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_FUNCTIONS
 	for (funcp = G.top_func; funcp; funcp = funcp->next)
 		cnt += 3;
-#endif
+# endif
 	pp = g_argv;
 	while (*pp++)
 		cnt++;
@@ -2747,13 +2747,13 @@ static void re_execute_shell(char ***to_free, const char *s,
 			*pp++ = cur->varstr;
 		}
 	}
-#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_FUNCTIONS
 	for (funcp = G.top_func; funcp; funcp = funcp->next) {
 		*pp++ = (char *) "-F";
 		*pp++ = funcp->name;
 		*pp++ = funcp->body_as_string;
 	}
-#endif
+# endif
 	/* We can pass activated traps here. Say, -Tnn:trap_string
 	 *
 	 * However, POSIX says that subshells reset signals with traps
@@ -3242,9 +3242,9 @@ static int run_function(const struct function *funcp, char **argv)
 	/* "we are in function, ok to use return" */
 	sv_flg = G.flag_return_in_progress;
 	G.flag_return_in_progress = -1;
-#if ENABLE_HUSH_LOCAL
+# if ENABLE_HUSH_LOCAL
 	G.func_nest_level++;
-#endif
+# endif
 
 	/* On MMU, funcp->body is always non-NULL */
 # if !BB_MMU
@@ -3258,7 +3258,7 @@ static int run_function(const struct function *funcp, char **argv)
 		rc = run_list(funcp->body);
 	}
 
-#if ENABLE_HUSH_LOCAL
+# if ENABLE_HUSH_LOCAL
 	{
 		struct variable *var;
 		struct variable **var_pp;
@@ -3281,7 +3281,7 @@ static int run_function(const struct function *funcp, char **argv)
 		}
 		G.func_nest_level--;
 	}
-#endif
+# endif
 	G.flag_return_in_progress = sv_flg;
 
 	restore_G_args(&sv, argv);
@@ -3291,13 +3291,13 @@ static int run_function(const struct function *funcp, char **argv)
 #endif /* ENABLE_HUSH_FUNCTIONS */
 
 
-# if BB_MMU
+#if BB_MMU
 #define exec_builtin(to_free, x, argv) \
 	exec_builtin(x, argv)
-# else
+#else
 #define exec_builtin(to_free, x, argv) \
 	exec_builtin(to_free, argv)
-# endif
+#endif
 static void exec_builtin(char ***to_free,
 		const struct built_in_command *x,
 		char **argv) NORETURN;
@@ -3305,11 +3305,11 @@ static void exec_builtin(char ***to_free,
 		const struct built_in_command *x,
 		char **argv)
 {
-# if BB_MMU
+#if BB_MMU
 	int rcode = x->function(argv);
 	fflush(NULL);
 	_exit(rcode);
-# else
+#else
 	/* On NOMMU, we must never block!
 	 * Example: { sleep 99 | read line; } & echo Ok
 	 */
@@ -3318,7 +3318,7 @@ static void exec_builtin(char ***to_free,
 			G.global_argv[0],
 			G.global_argv + 1,
 			argv);
-# endif
+#endif
 }
 
 
@@ -4115,30 +4115,30 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 	};
 	static const char *RES[] = {
 		[RES_NONE ] = "NONE" ,
-#if ENABLE_HUSH_IF
+# if ENABLE_HUSH_IF
 		[RES_IF   ] = "IF"   ,
 		[RES_THEN ] = "THEN" ,
 		[RES_ELIF ] = "ELIF" ,
 		[RES_ELSE ] = "ELSE" ,
 		[RES_FI   ] = "FI"   ,
-#endif
-#if ENABLE_HUSH_LOOPS
+# endif
+# if ENABLE_HUSH_LOOPS
 		[RES_FOR  ] = "FOR"  ,
 		[RES_WHILE] = "WHILE",
 		[RES_UNTIL] = "UNTIL",
 		[RES_DO   ] = "DO"   ,
 		[RES_DONE ] = "DONE" ,
-#endif
-#if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
+# endif
+# if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
 		[RES_IN   ] = "IN"   ,
-#endif
-#if ENABLE_HUSH_CASE
+# endif
+# if ENABLE_HUSH_CASE
 		[RES_CASE ] = "CASE" ,
 		[RES_CASE_IN ] = "CASE_IN" ,
 		[RES_MATCH] = "MATCH",
 		[RES_CASE_BODY] = "CASE_BODY",
 		[RES_ESAC ] = "ESAC" ,
-#endif
+# endif
 		[RES_XXXX ] = "XXXX" ,
 		[RES_SNTX ] = "SNTX" ,
 	};
@@ -4146,9 +4146,9 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		"{}",
 		"()",
 		"[noglob]",
-#if ENABLE_HUSH_FUNCTIONS
+# if ENABLE_HUSH_FUNCTIONS
 		"func()",
-#endif
+# endif
 	};
 
 	int pin, prn;
@@ -4184,7 +4184,7 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 		pin++;
 	}
 }
-#endif
+#endif /* debug_print_tree */
 
 /* NB: called by pseudo_exec, and therefore must not modify any
  * global data until exec/_exit (we can be a child after vfork!) */
@@ -4658,25 +4658,25 @@ struct reserved_combo {
 };
 enum {
 	FLAG_END   = (1 << RES_NONE ),
-#if ENABLE_HUSH_IF
+# if ENABLE_HUSH_IF
 	FLAG_IF    = (1 << RES_IF   ),
 	FLAG_THEN  = (1 << RES_THEN ),
 	FLAG_ELIF  = (1 << RES_ELIF ),
 	FLAG_ELSE  = (1 << RES_ELSE ),
 	FLAG_FI    = (1 << RES_FI   ),
-#endif
-#if ENABLE_HUSH_LOOPS
+# endif
+# if ENABLE_HUSH_LOOPS
 	FLAG_FOR   = (1 << RES_FOR  ),
 	FLAG_WHILE = (1 << RES_WHILE),
 	FLAG_UNTIL = (1 << RES_UNTIL),
 	FLAG_DO    = (1 << RES_DO   ),
 	FLAG_DONE  = (1 << RES_DONE ),
 	FLAG_IN    = (1 << RES_IN   ),
-#endif
-#if ENABLE_HUSH_CASE
+# endif
+# if ENABLE_HUSH_CASE
 	FLAG_MATCH = (1 << RES_MATCH),
 	FLAG_ESAC  = (1 << RES_ESAC ),
-#endif
+# endif
 	FLAG_START = (1 << RES_XXXX ),
 };
 
@@ -4688,26 +4688,26 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
 	 * FLAG_START means the word must start a new compound list.
 	 */
 	static const struct reserved_combo reserved_list[] = {
-#if ENABLE_HUSH_IF
+# if ENABLE_HUSH_IF
 		{ "!",     RES_NONE,  NOT_ASSIGNMENT , 0 },
 		{ "if",    RES_IF,    WORD_IS_KEYWORD, FLAG_THEN | FLAG_START },
 		{ "then",  RES_THEN,  WORD_IS_KEYWORD, FLAG_ELIF | FLAG_ELSE | FLAG_FI },
 		{ "elif",  RES_ELIF,  WORD_IS_KEYWORD, FLAG_THEN },
 		{ "else",  RES_ELSE,  WORD_IS_KEYWORD, FLAG_FI   },
 		{ "fi",    RES_FI,    NOT_ASSIGNMENT , FLAG_END  },
-#endif
-#if ENABLE_HUSH_LOOPS
+# endif
+# if ENABLE_HUSH_LOOPS
 		{ "for",   RES_FOR,   NOT_ASSIGNMENT , FLAG_IN | FLAG_DO | FLAG_START },
 		{ "while", RES_WHILE, WORD_IS_KEYWORD, FLAG_DO | FLAG_START },
 		{ "until", RES_UNTIL, WORD_IS_KEYWORD, FLAG_DO | FLAG_START },
 		{ "in",    RES_IN,    NOT_ASSIGNMENT , FLAG_DO   },
 		{ "do",    RES_DO,    WORD_IS_KEYWORD, FLAG_DONE },
 		{ "done",  RES_DONE,  NOT_ASSIGNMENT , FLAG_END  },
-#endif
-#if ENABLE_HUSH_CASE
+# endif
+# if ENABLE_HUSH_CASE
 		{ "case",  RES_CASE,  NOT_ASSIGNMENT , FLAG_MATCH | FLAG_START },
 		{ "esac",  RES_ESAC,  NOT_ASSIGNMENT , FLAG_END  },
-#endif
+# endif
 	};
 	const struct reserved_combo *r;
 
@@ -4721,11 +4721,11 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
  */
 static int reserved_word(o_string *word, struct parse_context *ctx)
 {
-#if ENABLE_HUSH_CASE
+# if ENABLE_HUSH_CASE
 	static const struct reserved_combo reserved_match = {
 		"",        RES_MATCH, NOT_ASSIGNMENT , FLAG_MATCH | FLAG_ESAC
 	};
-#endif
+# endif
 	const struct reserved_combo *r;
 
 	if (word->o_quoted)
@@ -4735,12 +4735,12 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		return 0;
 
 	debug_printf("found reserved word %s, res %d\n", r->literal, r->res);
-#if ENABLE_HUSH_CASE
+# if ENABLE_HUSH_CASE
 	if (r->res == RES_IN && ctx->ctx_res_w == RES_CASE_IN) {
 		/* "case word IN ..." - IN part starts first MATCH part */
 		r = &reserved_match;
 	} else
-#endif
+# endif
 	if (r->flag == 0) { /* '!' */
 		if (ctx->ctx_inverted) { /* bash doesn't accept '! ! true' */
 			syntax_error("! ! command");
@@ -4781,19 +4781,19 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		old = ctx->stack;
 		old->command->group = ctx->list_head;
 		old->command->cmd_type = CMD_NORMAL;
-#if !BB_MMU
+# if !BB_MMU
 		o_addstr(&old->as_string, ctx->as_string.data);
 		o_free_unsafe(&ctx->as_string);
 		old->command->group_as_string = xstrdup(old->as_string.data);
 		debug_printf_parse("pop, remembering as:'%s'\n",
 				old->command->group_as_string);
-#endif
+# endif
 		*ctx = *old;   /* physical copy */
 		free(old);
 	}
 	return 1;
 }
-#endif
+#endif /* HAS_KEYWORDS */
 
 /* Word is complete, look at it and update parsing context.
  * Normal return is 0. Syntax errors return 1.
@@ -5200,9 +5200,9 @@ static FILE *generate_stream_from_string(const char *s)
 {
 	FILE *pf;
 	int pid, channel[2];
-#if !BB_MMU
+# if !BB_MMU
 	char **to_free;
-#endif
+# endif
 
 	xpipe(channel);
 	pid = BB_MMU ? fork() : vfork();
@@ -5266,11 +5266,11 @@ static FILE *generate_stream_from_string(const char *s)
 			builtin_trap((char**)argv);
 			exit(0); /* not _exit() - we need to fflush */
 		}
-#if BB_MMU
+# if BB_MMU
 		reset_traps_to_defaults();
 		parse_and_run_string(s);
 		_exit(G.last_exitcode);
-#else
+# else
 	/* We re-execute after vfork on NOMMU. This makes this script safe:
 	 * yes "0123456789012345678901234567890" | dd bs=32 count=64k >BIG
 	 * huge=`cat BIG` # was blocking here forever
@@ -5281,18 +5281,18 @@ static FILE *generate_stream_from_string(const char *s)
 				G.global_argv[0],
 				G.global_argv + 1,
 				NULL);
-#endif
+# endif
 	}
 
 	/* parent */
-#if ENABLE_HUSH_FAST
+# if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++;
 //bb_error_msg("[%d] fork in generate_stream_from_string: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
-#endif
+# endif
 	enable_restore_tty_pgrp_on_exit();
-#if !BB_MMU
+# if !BB_MMU
 	free(to_free);
-#endif
+# endif
 	close(channel[1]);
 	pf = fdopen(channel[0], "r");
 	return pf;
@@ -5336,7 +5336,7 @@ static int process_command_subs(o_string *dest, const char *s)
 	debug_printf("closed FILE from child. return 0\n");
 	return 0;
 }
-#endif
+#endif /* ENABLE_HUSH_TICK */
 
 static int parse_group(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, int ch)
@@ -5704,7 +5704,7 @@ static int handle_dollar(o_string *as_string,
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
 	}
-#if (ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_TICK)
+#if ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_TICK
 	case '(': {
 # if !BB_MMU
 		int pos;
@@ -6169,8 +6169,9 @@ static struct pipe *parse_stream(char **pstring,
 				/* Example: echo Hello \2>file
 				 * we need to know that word 2 is quoted */
 				dest.o_quoted = 1;
-			} else {
+			}
 #if !BB_MMU
+			else {
 				/* It's "\<newline>". Remove trailing '\' from ctx.as_string */
 				ctx.as_string.data[--ctx.as_string.length] = '\0';
 #endif
@@ -6914,30 +6915,30 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 	return 0;
 }
 
-static int FAST_FUNC _builtin_applet(char **argv, int (applet)(int argc, char **argv))
+static int FAST_FUNC run_applet_main(char **argv, int (*applet_main)(int argc, char **argv))
 {
 	int argc = 0;
 	while (*argv) {
 		argc++;
 		argv++;
 	}
-	return applet(argc, argv - argc);
+	return applet_main(argc, argv - argc);
 }
 
 static int FAST_FUNC builtin_test(char **argv)
 {
-	return _builtin_applet(argv, test_main);
+	return run_applet_main(argv, test_main);
 }
 
 static int FAST_FUNC builtin_echo(char **argv)
 {
-	return _builtin_applet(argv, echo_main);
+	return run_applet_main(argv, echo_main);
 }
 
 #if ENABLE_PRINTF
 static int FAST_FUNC builtin_printf(char **argv)
 {
-	return _builtin_applet(argv, printf_main);
+	return run_applet_main(argv, printf_main);
 }
 #endif
 
@@ -7395,10 +7396,10 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 	void *p;
 	unsigned long l;
 
-#ifdef M_TRIM_THRESHOLD
+# ifdef M_TRIM_THRESHOLD
 	/* Optional. Reduces probability of false positives */
 	malloc_trim(0);
-#endif
+# endif
 	/* Crude attempt to find where "free memory" starts,
 	 * sans fragmentation. */
 	p = malloc(240);
