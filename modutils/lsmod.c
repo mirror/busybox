@@ -9,6 +9,7 @@
  */
 
 #include "libbb.h"
+#include "unicode.h"
 
 #if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 enum {
@@ -46,6 +47,11 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #if ENABLE_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
 	char *token[4];
 	parser_t *parser = config_open("/proc/modules");
+#if ENABLE_FEATURE_ASSUME_UNICODE
+	size_t name_len;
+#endif
+	check_unicode_in_env();
+
 	printf("%-24sSize  Used by", "Module");
 	check_tainted();
 
@@ -58,7 +64,13 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				token[3][strlen(token[3])-1] = '\0';
 			} else
 				token[3] = (char *) "";
+#if ENABLE_FEATURE_ASSUME_UNICODE
+			name_len = bb_mbstrlen(token[0]);
+			name_len = (name_len > 19) ? 0 : 19 - name_len;
+			printf("%s%*s %8s %2s %s\n", token[0], name_len, "", token[1], token[2], token[3]);
+#else
 			printf("%-19s %8s %2s %s\n", token[0], token[1], token[2], token[3]);
+#endif
 		}
 	} else {
 		while (config_read(parser, token, 4, 4, "# \t", PARSE_NORMAL & ~PARSE_GREEDY)) {
@@ -66,7 +78,13 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			// or comma-separated list ended by comma
 			// so trimming the trailing char is just what we need!
 			token[3][strlen(token[3])-1] = '\0';
+#if ENABLE_FEATURE_ASSUME_UNICODE
+			name_len = bb_mbstrlen(token[0]);
+			name_len = (name_len > 19) ? 0 : 19 - name_len;
+			printf("%s%*s %8s %2s %s\n", token[0], name_len, "", token[1], token[2], token[3]);
+#else
 			printf("%-19s %8s %2s %s\n", token[0], token[1], token[2], token[3]);
+#endif
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
