@@ -53,6 +53,8 @@
 #include "math.h"
 #if ENABLE_ASH_RANDOM_SUPPORT
 # include "random.h"
+#else
+# define CLEAR_RANDOM_T(rnd) ((void)0)
 #endif
 
 #if defined SINGLE_APPLET_MAIN

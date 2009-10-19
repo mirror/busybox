@@ -562,13 +562,15 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	{
-		struct timeval tv;
 		struct timeval *tv_ptr = NULL;
+#if ENABLE_FEATURE_TELNETD_INETD_WAIT
+		struct timeval tv;
 		if ((opt & OPT_WAIT) && !G.sessions) {
 			tv.tv_sec = sec_linger;
 			tv.tv_usec = 0;
 			tv_ptr = &tv;
 		}
+#endif
 		count = select(G.maxfd + 1, &rdfdset, &wrfdset, NULL, tv_ptr);
 	}
 	if (count == 0) /* "telnetd -w SEC" timed out */

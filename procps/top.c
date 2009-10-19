@@ -513,8 +513,8 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	/* xxx_shift and xxx_scale variables allow us to replace
 	 * expensive divides with multiply and shift */
 	unsigned pmem_shift, pmem_scale, pmem_half;
-	unsigned tmp_unsigned;
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+	unsigned tmp_unsigned;
 	unsigned pcpu_shift, pcpu_scale, pcpu_half;
 	unsigned busy_jifs;
 #endif

@@ -1271,6 +1271,7 @@ line_input_t *new_line_input_t(int flags) FAST_FUNC;
  */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state) FAST_FUNC;
 #else
+#define MAX_HISTORY 0
 int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
 #define read_line_input(prompt, command, maxsize, state) \
 	read_line_input(prompt, command, maxsize)
