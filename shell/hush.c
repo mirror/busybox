@@ -3322,6 +3322,16 @@ static void exec_builtin(char ***to_free,
 }
 
 
+static void execvp_or_die(char **argv) NORETURN;
+static void execvp_or_die(char **argv)
+{
+	debug_printf_exec("execing '%s'\n", argv[0]);
+	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+	execvp(argv[0], argv);
+	bb_perror_msg("can't execute '%s'", argv[0]);
+	_exit(127); /* bash compat */
+}
+
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
@@ -3337,7 +3347,7 @@ static void exec_builtin(char ***to_free,
 static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded) NORETURN;
-static void pseudo_exec_argv(nommu_save_t *nommu_save,
+static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded)
 {
@@ -3421,11 +3431,7 @@ static void pseudo_exec_argv(nommu_save_t *nommu_save,
 #if ENABLE_FEATURE_SH_STANDALONE || BB_MMU
  skip:
 #endif
-	debug_printf_exec("execing '%s'\n", argv[0]);
-	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-	execvp(argv[0], argv);
-	bb_perror_msg("can't execute '%s'", argv[0]);
-	_exit(127); /* bash compat */
+	execvp_or_die(argv);
 }
 
 /* Called after [v]fork() in run_pipe
@@ -6985,32 +6991,19 @@ static int FAST_FUNC builtin_cd(char **argv)
 
 static int FAST_FUNC builtin_exec(char **argv)
 {
-	static const char pseudo_null_str[] = { SPECIAL_VAR_SYMBOL, SPECIAL_VAR_SYMBOL, '\0' };
-	char **pp;
-#if !BB_MMU
-	nommu_save_t dummy;
-#endif
-
 	if (*++argv == NULL)
 		return EXIT_SUCCESS; /* bash does this */
-
-	/* Make sure empty arguments aren't ignored */
-	/* Example: exec ls '' */
-	pp = argv;
-	while (*pp) {
-		if ((*pp)[0] == '\0')
-			*pp = (char*)pseudo_null_str;
-		pp++;
-	}
 
 	/* Careful: we can end up here after [v]fork. Do not restore
 	 * tty pgrp then, only top-level shell process does that */
 	if (G_saved_tty_pgrp && getpid() == G.root_pid)
 		tcsetpgrp(G_interactive_fd, G_saved_tty_pgrp);
 
-	/* TODO: if exec fails, bash does NOT exit! We do... */
-	pseudo_exec_argv(&dummy, argv, 0, NULL);
-	/* never returns */
+	/* TODO: if exec fails, bash does NOT exit! We do.
+	 * We'll need to undo sigprocmask (it's inside execvp_or_die)
+	 * and tcsetpgrp, and this is inherently racy.
+	 */
+	execvp_or_die(argv);
 }
 
 static int FAST_FUNC builtin_exit(char **argv)

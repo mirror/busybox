@@ -1,7 +1,6 @@
 if test $# = 0; then
-    # UNFIXED BUG in builtin_exec! will glob param!
-    #exec "$THIS_SH" "$0" 'param_glob.t*'
-    "$THIS_SH" "$0" 'param_glob.t*'
+    exec "$THIS_SH" "$0" 'param_glob.t*'
+    echo NOT SHOWN
     exit
 fi
 echo $*
