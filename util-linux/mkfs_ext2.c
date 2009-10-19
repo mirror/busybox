@@ -10,6 +10,10 @@
 #include "libbb.h"
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>
+#include <sys/user.h> /* PAGE_SIZE */
+#ifndef PAGE_SIZE
+# define PAGE_SIZE 4096
+#endif
 #include "volume_id/volume_id_internal.h"
 
 #define	ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
@@ -26,8 +30,8 @@
 //#define LINUX_S_IFWHT                  0160000
 //#define EXT2_FEATURE_INCOMPAT_WHITEOUT 0x0020
 
-// storage helper
-void BUG_unsupported_field_size(void);
+// storage helpers
+char BUG_wrong_field_size(void);
 #define STORE_LE(field, value) \
 do { \
 	if (sizeof(field) == 4) \
@@ -37,8 +41,11 @@ do { \
 	else if (sizeof(field) == 1) \
 		field = (value); \
 	else \
-		BUG_unsupported_field_size(); \
+		BUG_wrong_field_size(); \
 } while (0)
+
+#define FETCH_LE32(field) \
+	(sizeof(field) == 4 ? cpu_to_le32(field) : BUG_wrong_field_size())
 
 // All fields are little-endian
 struct ext2_dir {
@@ -68,10 +75,10 @@ static unsigned int_log2(unsigned arg)
 }
 
 // taken from mkfs_minix.c. libbb candidate?
-static unsigned div_roundup(uint32_t size, uint32_t n)
+static unsigned div_roundup(uint64_t size, uint32_t n)
 {
 	// Overflow-resistant
-	uint32_t res = size / n;
+	uint64_t res = size / n;
 	if (res * n != size)
 		res++;
 	return res;
@@ -83,8 +90,8 @@ static void allocate(uint8_t *bitmap, uint32_t blocksize, uint32_t start, uint32
 	memset(bitmap, 0, blocksize);
 	i = start / 8;
 	memset(bitmap, 0xFF, i);
-	bitmap[i] = 0xFF >> (8-(start&7));
-//bb_info_msg("ALLOC: [%u][%u][%u]: [%u]:=[%x]", blocksize, start, end, blocksize - end/8 - 1, (uint8_t)(0xFF << (8-(end&7))));
+	bitmap[i] = 0xFF >> (8 - (start & 7));
+//bb_info_msg("ALLOC: [%u][%u][%u]: [%u-%u]:=[%x],[%x]", blocksize, start, end, start/8, blocksize - end/8 - 1, 0xFF >> (8 - (start & 7)), (uint8_t)(0xFF << (8-(end&7))));
 	i = end / 8;
 	bitmap[blocksize - i - 1] = 0xFF << (8 - (end & 7));
 	memset(bitmap + blocksize - i, 0xFF, i); // N.B. no overflow here!
@@ -167,15 +174,15 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	unsigned blocksize, blocksize_log2;
 	unsigned nreserved = 5;
 	unsigned long long kilobytes;
-	uint32_t nblocks;
+	uint32_t nblocks, nblocks_full;
 	uint32_t ngroups;
 	uint32_t bytes_per_inode;
 	uint32_t first_data_block;
-	uint32_t ninodes_per_group;
+	uint32_t inodes_per_group;
 	uint32_t gdtsz, itsz;
 	time_t timestamp;
 	unsigned opts;
-	const char *label;
+	const char *label = "";
 	struct stat st;
 	struct ext2_super_block *sb; // superblock
 	struct ext2_group_desc *gd; // group descriptors
@@ -245,27 +252,19 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	nblocks = kilobytes;
 	if (nblocks != kilobytes)
 		bb_error_msg_and_die("block count doesn't fit in 32 bits");
+#define kilobytes kilobytes_unused_after_this
+
+	if (blocksize < PAGE_SIZE)
+		nblocks &= ~((PAGE_SIZE / blocksize)-1);
+
+	// N.B. killing e2fsprogs feature! Unused blocks don't account in calculations
+ 	nblocks_full = nblocks;
+ retry:
 	if (nblocks < 8)
 		bb_error_msg_and_die("need >= 8 blocks");
-#define kilobytes kilobytes_unused_after_this
 
 	// number of bits in one block, i.e. 8*blocksize
 #define	blocks_per_group (8 * blocksize)
-
-/* e2fsprogs-1.41.9
-	overhead = 2 + fs->inode_blocks_per_group;
-	if (has_super(fs->group_desc_count - 1))
-		overhead += 1 + fs->desc_blocks + super->s_reserved_gdt_blocks;
-	rem = (nblocks - first_data_block) % blocks_per_group);
-	if ((fs->group_desc_count == 1) && rem && (rem < overhead)) {
-		retval = EXT2_ET_TOOSMALL;
-		goto cleanup;
-	}
-	if (rem && (rem < overhead+50)) {
-		nblocks -= rem;
-		goto retry;
-	}
-*/
 
 	// N.B. a block group can have no more than blocks_per_group blocks
 	first_data_block = (EXT2_MIN_BLOCK_SIZE == blocksize);
@@ -273,117 +272,65 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	if (0 == ngroups)
 		bb_error_msg_and_die("ngroups");
 
-	{
-		// ninodes is the total number of inodes (files) in the file system
-		uint32_t ninodes = nblocks / (bytes_per_inode >> blocksize_log2);
-		if (ninodes < EXT2_GOOD_OLD_FIRST_INO+1)
-			ninodes = EXT2_GOOD_OLD_FIRST_INO+1;
-		ninodes_per_group = div_roundup(ninodes, ngroups);
-		// minimum number because the first EXT2_GOOD_OLD_FIRST_INO-1 are reserved
-		if (ninodes_per_group < 16)
-			ninodes_per_group = 16;
-	}
-
-	// TODO: 5?/5 WE MUST NOT DEPEND ON WHETHER DEVICE IS /dev/zero 'ed OR NOT
-	// TODO: 3/5 refuse if mounted
-	// TODO: 4/5 compat options
-	// TODO: 1/5 sanity checks
-	// TODO: 0/5 more verbose error messages
-	// TODO: 0/5 info printing
-	// TODO: 2/5 bigendianness! Spot where it comes to play! sb->, gd->
-	// TODO: 2/5 reserved GDT: how to mark but not allocate?
-	// TODO: 3/5 dir_index?
-
-	// fill the superblock
-	sb = xzalloc(blocksize);
-	sb->s_rev_level = 1; // revision 1 filesystem
-	sb->s_magic = EXT2_SUPER_MAGIC;
-	sb->s_inode_size = sizeof(*inode);
-	sb->s_first_ino = EXT2_GOOD_OLD_FIRST_INO;
-	sb->s_log_block_size = sb->s_log_frag_size = blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE;
-	// first 1024 bytes of the device are for boot record. If block size is 1024 bytes, then
-	// the first block available for data is 1, otherwise 0
-	sb->s_first_data_block = first_data_block; // 0 or 1
-	// block and inode bitmaps occupy no more than one block, so maximum number of blocks is
-	sb->s_blocks_per_group = sb->s_frags_per_group = blocks_per_group;
-	timestamp = time(NULL);
-	sb->s_mkfs_time = sb->s_wtime = sb->s_lastcheck = timestamp;
-	sb->s_state = 1;
-	sb->s_creator_os = EXT2_OS_LINUX;
-	sb->s_checkinterval = 24*60*60 * 180; // 180 days
-	sb->s_errors = EXT2_ERRORS_DEFAULT;
-	sb->s_feature_compat = EXT2_FEATURE_COMPAT_SUPP
-		| (EXT2_FEATURE_COMPAT_RESIZE_INO * ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT)
-		| (EXT2_FEATURE_COMPAT_DIR_INDEX * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX)
-		;
-	// e2fsprogs-1.41.9 doesn't like EXT2_FEATURE_INCOMPAT_WHITEOUT
-	sb->s_feature_incompat = EXT2_FEATURE_INCOMPAT_FILETYPE;// | EXT2_FEATURE_INCOMPAT_WHITEOUT;
-	sb->s_feature_ro_compat = EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER;
-	sb->s_flags = EXT2_FLAGS_SIGNED_HASH * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX;
-	generate_uuid(sb->s_uuid);
-	if (ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX) {
-		sb->s_def_hash_version = EXT2_HASH_HALF_MD4;
-		generate_uuid((uint8_t *)sb->s_hash_seed);
-	}
-	/*
-	 * From e2fsprogs: add "jitter" to the superblock's check interval so that we
-	 * don't check all the filesystems at the same time.  We use a
-	 * kludgy hack of using the UUID to derive a random jitter value.
-	 */
-	sb->s_max_mnt_count = EXT2_DFL_MAX_MNT_COUNT
-		+ (sb->s_uuid[ARRAY_SIZE(sb->s_uuid)-1] % EXT2_DFL_MAX_MNT_COUNT);
-
-	sb->s_blocks_count = nblocks;
-
-	// reserve blocks for superuser
-	sb->s_r_blocks_count = ((uint64_t) nblocks * nreserved) / 100;
-
-	gdtsz = div_roundup(ngroups, EXT2_DESC_PER_BLOCK(sb));
-	/*
-	 * From e2fsprogs: Calculate the number of GDT blocks to reserve for online
-	 * filesystem growth.
-	 * The absolute maximum number of GDT blocks we can reserve is determined by
-	 * the number of block pointers that can fit into a single block.
-	 */
-	/* We set it at 1024x the current filesystem size, or
-	 * the upper block count limit (2^32), whichever is lower.
-	 */
+	gdtsz = div_roundup(ngroups, blocksize / sizeof(*gd));
+	// TODO: reserved blocks must be marked as such in the bitmaps,
+	// or resulting filesystem is corrupt
 	if (ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT) {
+		/*
+		 * From e2fsprogs: Calculate the number of GDT blocks to reserve for online
+		 * filesystem growth.
+		 * The absolute maximum number of GDT blocks we can reserve is determined by
+		 * the number of block pointers that can fit into a single block.
+		 * We set it at 1024x the current filesystem size, or
+		 * the upper block count limit (2^32), whichever is lower.
+		 */
 		uint32_t rgdtsz = 0xFFFFFFFF; // maximum block number
 		if (nblocks < rgdtsz / 1024)
 			rgdtsz = nblocks * 1024;
 		rgdtsz = div_roundup(rgdtsz - first_data_block, blocks_per_group);
-		rgdtsz = div_roundup(rgdtsz, EXT2_DESC_PER_BLOCK(sb)) - gdtsz;
-		if (rgdtsz > EXT2_ADDR_PER_BLOCK(sb))
-			rgdtsz = EXT2_ADDR_PER_BLOCK(sb);
-		STORE_LE(sb->s_reserved_gdt_blocks, rgdtsz);
+		rgdtsz = div_roundup(rgdtsz, blocksize / sizeof(*gd)) - gdtsz;
+		if (rgdtsz > blocksize / sizeof(uint32_t))
+			rgdtsz = blocksize / sizeof(uint32_t);
+		//TODO: STORE_LE(sb->s_reserved_gdt_blocks, rgdtsz);
 		gdtsz += rgdtsz;
 	}
 
-	// N.B. a block group can have no more than 8*blocksize inodes
-	if (ninodes_per_group > blocks_per_group)
-		ninodes_per_group = blocks_per_group;
-	// adjust inodes per group so they completely fill the inode table blocks in the descriptor
-	ninodes_per_group = (div_roundup(ninodes_per_group * EXT2_INODE_SIZE(sb), blocksize) << blocksize_log2) / EXT2_INODE_SIZE(sb);
-	// make sure the number of inodes per group is a multiple of 8
-	ninodes_per_group &= ~7;
-	sb->s_inodes_per_group = ninodes_per_group;// = div_roundup(ninodes_per_group * sb->s_inode_size, blocksize);
-	// total ninodes
-	sb->s_inodes_count = ninodes_per_group * ngroups;
+	{
+		// N.B. e2fsprogs does as follows!
+		// ninodes is the total number of inodes (files) in the file system
+		uint32_t ninodes = nblocks_full / (blocksize >= 4096 ? 1 : 4096 / blocksize);
+		uint32_t overhead, remainder;
+		if (ninodes < EXT2_GOOD_OLD_FIRST_INO+1)
+			ninodes = EXT2_GOOD_OLD_FIRST_INO+1;
+		inodes_per_group = div_roundup(ninodes, ngroups);
+		// minimum number because the first EXT2_GOOD_OLD_FIRST_INO-1 are reserved
+		if (inodes_per_group < 16)
+			inodes_per_group = 16;
 
-	itsz = ninodes_per_group * sb->s_inode_size / blocksize;
-	sb->s_free_inodes_count = sb->s_inodes_count - EXT2_GOOD_OLD_FIRST_INO;
+		// N.B. a block group can have no more than 8*blocksize inodes
+		if (inodes_per_group > blocks_per_group)
+			inodes_per_group = blocks_per_group;
+		// adjust inodes per group so they completely fill the inode table blocks in the descriptor
+		inodes_per_group = (div_roundup(inodes_per_group * sizeof(*inode), blocksize) << blocksize_log2) / sizeof(*inode);
+		// make sure the number of inodes per group is a multiple of 8
+		inodes_per_group &= ~7;
+		itsz = div_roundup(inodes_per_group * sizeof(*inode), blocksize);
 
-	// write the label, if any
-	if (opts & OPT_L)
-		safe_strncpy((char *)sb->s_volume_name, label, sizeof(sb->s_volume_name));
+		// the last block needs more attention: doesn't it too small for possible overhead?
+		overhead = (has_super(ngroups - 1) ? (1/*sb*/ + gdtsz) : 0) + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
+		remainder = (nblocks - first_data_block) % blocks_per_group;
+		if ((1 == ngroups) && remainder && (remainder < overhead))
+			bb_error_msg_and_die("way small device");
+		if (remainder && (remainder < overhead + 50)) {
+//bb_info_msg("CHOP[%u]", remainder);
+			nblocks -= remainder;
+			goto retry;
+		}
+	}
 
-#if 1
-/*	if (fs_param.s_blocks_count != s->s_blocks_count)
-		fprintf(stderr, _("warning: %u blocks unused.\n\n"),
-		       fs_param.s_blocks_count - s->s_blocks_count);
-*/
-
+	// print info
+	if (nblocks_full - nblocks)
+		printf("warning: %u blocks unused\n\n", nblocks_full - nblocks);
 	printf(
 		"Filesystem label=%s\n"
 		"OS type: Linux\n"
@@ -396,16 +343,17 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		"%u block groups\n"
 		"%u blocks per group, %u fragments per group\n"
 		"%u inodes per group"
-		, (char *)sb->s_volume_name
-		, blocksize, sb->s_log_block_size
-		, blocksize, sb->s_log_block_size
-		, sb->s_inodes_count, sb->s_blocks_count
-		, sb->s_r_blocks_count, nreserved
+		, label
+		, blocksize, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE
+		, blocksize, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE
+		, inodes_per_group * ngroups, nblocks
+		//, div_roundup((uint64_t) nblocks * nreserved, 100), nreserved
+		, (unsigned)((uint64_t) nblocks_full * nreserved / 100), nreserved
 		, first_data_block
-		, gdtsz * EXT2_DESC_PER_BLOCK(sb) * blocks_per_group
+		, gdtsz * (blocksize / sizeof(*gd)) * blocks_per_group
 		, ngroups
 		, blocks_per_group, blocks_per_group
-		, ninodes_per_group
+		, inodes_per_group
 	);
 	{
 		const char *fmt = "\nSuperblock backups stored on blocks:\n"
@@ -420,84 +368,149 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	bb_putchar('\n');
-#endif
 
+	// dry run? -> we are done
 	if (opts & OPT_n)
 		goto done;
 
+	// TODO: 3/5 refuse if mounted
+	// TODO: 4/5 compat options
+	// TODO: 1/5 sanity checks
+	// TODO: 0/5 more verbose error messages
+	// TODO: 4/5 bigendianness: recheck, wait for ARM reporters
+	// TODO: 2/5 reserved GDT: how to mark but not allocate?
+	// TODO: 3/5 dir_index?
+
+	// fill the superblock
+	sb = xzalloc(blocksize);
+	STORE_LE(sb->s_rev_level, 1); // revision 1 filesystem
+	STORE_LE(sb->s_magic, EXT2_SUPER_MAGIC);
+	STORE_LE(sb->s_inode_size, sizeof(*inode));
+	STORE_LE(sb->s_first_ino, EXT2_GOOD_OLD_FIRST_INO);
+	STORE_LE(sb->s_log_block_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
+	STORE_LE(sb->s_log_frag_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
+	// first 1024 bytes of the device are for boot record. If block size is 1024 bytes, then
+	// the first block available for data is 1, otherwise 0
+	STORE_LE(sb->s_first_data_block, first_data_block); // 0 or 1
+	// block and inode bitmaps occupy no more than one block, so maximum number of blocks is
+	STORE_LE(sb->s_blocks_per_group, blocks_per_group);
+	STORE_LE(sb->s_frags_per_group, blocks_per_group);
+	// blocks
+	STORE_LE(sb->s_blocks_count, nblocks);
+	// reserve blocks for superuser
+	STORE_LE(sb->s_r_blocks_count, (uint32_t)((uint64_t) nblocks_full * nreserved / 100));
+	// ninodes
+	STORE_LE(sb->s_inodes_per_group, inodes_per_group);
+	STORE_LE(sb->s_inodes_count, inodes_per_group * ngroups);
+	STORE_LE(sb->s_free_inodes_count, inodes_per_group * ngroups - EXT2_GOOD_OLD_FIRST_INO);
+	// timestamps
+	timestamp = time(NULL);
+	STORE_LE(sb->s_mkfs_time, timestamp);
+	STORE_LE(sb->s_wtime, timestamp);
+	STORE_LE(sb->s_lastcheck, timestamp);
+	// misc
+	STORE_LE(sb->s_state, 1); // TODO: what's 1?
+	STORE_LE(sb->s_creator_os, EXT2_OS_LINUX);
+	STORE_LE(sb->s_checkinterval, 24*60*60 * 180); // 180 days
+	STORE_LE(sb->s_errors, EXT2_ERRORS_DEFAULT);
+	STORE_LE(sb->s_feature_compat, EXT2_FEATURE_COMPAT_SUPP
+		| (EXT2_FEATURE_COMPAT_RESIZE_INO * ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT)
+		| (EXT2_FEATURE_COMPAT_DIR_INDEX * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX)
+	);
+	// e2fsprogs-1.41.9 doesn't like EXT2_FEATURE_INCOMPAT_WHITEOUT
+	STORE_LE(sb->s_feature_incompat, EXT2_FEATURE_INCOMPAT_FILETYPE);// | EXT2_FEATURE_INCOMPAT_WHITEOUT;
+	STORE_LE(sb->s_feature_ro_compat, EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER);
+	STORE_LE(sb->s_flags, EXT2_FLAGS_SIGNED_HASH * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX);
+	generate_uuid(sb->s_uuid);
+	if (ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX) {
+		STORE_LE(sb->s_def_hash_version, EXT2_HASH_HALF_MD4);
+		generate_uuid((uint8_t *)sb->s_hash_seed);
+	}
+	/*
+	 * From e2fsprogs: add "jitter" to the superblock's check interval so that we
+	 * don't check all the filesystems at the same time.  We use a
+	 * kludgy hack of using the UUID to derive a random jitter value.
+	 */
+	STORE_LE(sb->s_max_mnt_count, EXT2_DFL_MAX_MNT_COUNT
+		+ (sb->s_uuid[ARRAY_SIZE(sb->s_uuid)-1] % EXT2_DFL_MAX_MNT_COUNT));
+
+	// write the label, if any
+	if (label) //opts & OPT_L)
+		safe_strncpy((char *)sb->s_volume_name, label, sizeof(sb->s_volume_name));
+
 	// fill group descriptors
 	gd = xzalloc(gdtsz * blocksize);
+	buf = xmalloc(blocksize);
 	sb->s_free_blocks_count = 0;
-	for (i = 0, pos = first_data_block, n = nblocks;
+	for (i = 0, pos = first_data_block, n = nblocks - first_data_block;
 		i < ngroups;
 		i++, pos += blocks_per_group, n -= blocks_per_group
 	) {
 		uint32_t overhead = pos + (has_super(i) ? (1/*sb*/ + gdtsz) : 0);
-		gd[i].bg_block_bitmap = overhead + 0;
-		gd[i].bg_inode_bitmap = overhead + 1;
-		gd[i].bg_inode_table  = overhead + 2;
+		uint32_t fb;
+		STORE_LE(gd[i].bg_block_bitmap, overhead + 0);
+		STORE_LE(gd[i].bg_inode_bitmap, overhead + 1);
+		STORE_LE(gd[i].bg_inode_table, overhead + 2);
 		overhead = overhead - pos + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
-		gd[i].bg_free_inodes_count = ninodes_per_group;
-		//gd[i].bg_used_dirs_count = 0;
+		gd[i].bg_free_inodes_count = inodes_per_group;
+		//STORE_LE(gd[i].bg_used_dirs_count, 0);
 		// N.B. both root and lost+found dirs are within the first block group, thus +2
 		if (0 == i) {
 			overhead += 2;
-			gd[i].bg_used_dirs_count = 2;
+			STORE_LE(gd[i].bg_used_dirs_count, 2);
 			gd[i].bg_free_inodes_count -= EXT2_GOOD_OLD_FIRST_INO;
 		}
-		// N.B. the following is pure heuristics!
-		// Likely to cope with 1024-byte blocks, when first block is for boot sectors
-		if (ngroups-1 == i) {
-			overhead += first_data_block;
-		}
-		gd[i].bg_free_blocks_count = (n < blocks_per_group ? n : blocks_per_group) - overhead;
-		sb->s_free_blocks_count += gd[i].bg_free_blocks_count;
+//		// N.B. the following is pure heuristics!
+//		// Likely to cope with 1024-byte blocks, when first block is for boot sectors
+//		if (ngroups-1 == i) {
+//			n -= first_data_block;
+//		}
+
+		// mark preallocated blocks as allocated
+		fb = (n < blocks_per_group ? n : blocks_per_group) - overhead;
+//bb_info_msg("ALLOC: [%u][%u][%u]", blocksize, overhead, blocks_per_group - (fb + overhead));
+		allocate(buf, blocksize,
+			overhead,
+			blocks_per_group - (fb + overhead)
+		);
+		// dump block bitmap
+		PUT((uint64_t)(FETCH_LE32(gd[i].bg_block_bitmap)) * blocksize, buf, blocksize);
+		STORE_LE(gd[i].bg_free_blocks_count, fb);
+
+		// mark preallocated inodes as allocated
+		allocate(buf, blocksize,
+			inodes_per_group - gd[i].bg_free_inodes_count,
+			blocks_per_group - inodes_per_group
+		);
+		// dump inode bitmap
+		//PUT((uint64_t)(FETCH_LE32(gd[i].bg_block_bitmap)) * blocksize, buf, blocksize);
+		//but it's right after block bitmap, so we can just:
+		xwrite(fd, buf, blocksize);
+		STORE_LE(gd[i].bg_free_inodes_count, gd[i].bg_free_inodes_count);
+
+		// count overall free blocks
+		sb->s_free_blocks_count += fb;
 	}
 	STORE_LE(sb->s_free_blocks_count, sb->s_free_blocks_count);
 
 	// dump filesystem skeleton structures
 //	printf("Writing superblocks and filesystem accounting information: ");
-	buf = xmalloc(blocksize);
 	for (i = 0, pos = first_data_block; i < ngroups; i++, pos += blocks_per_group) {
-		uint32_t overhead = has_super(i) ? (1/*sb*/ + gdtsz) : 0;
-		uint32_t start;
-		uint32_t end;
-
 		// dump superblock and group descriptors and their backups
-		if (overhead) { // N.B. in fact, we want (has_super(i)) condition, but it is equal to (overhead != 0) and is cheaper
+		if (has_super(i)) {
 			// N.B. 1024 byte blocks are special
 			PUT(((uint64_t)pos << blocksize_log2) + ((0 == i && 0 == first_data_block) ? 1024 : 0), sb, 1024);//blocksize);
 			PUT(((uint64_t)pos << blocksize_log2) + blocksize, gd, gdtsz * blocksize);
 		}
-
-		start = overhead + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
-		if (i == 0)
-			start += 2; // for "/" and "/lost+found"
-		end = blocks_per_group - (start + gd[i].bg_free_blocks_count);
-
-		// mark preallocated blocks as allocated
-		allocate(buf, blocksize, start, end);
-		// dump block bitmap
-		PUT((uint64_t)(pos + overhead) * blocksize, buf, blocksize);
-
-		// mark preallocated inodes as allocated
-		allocate(buf, blocksize,
-			ninodes_per_group - gd[i].bg_free_inodes_count,
-			blocks_per_group - ninodes_per_group
-		);
-		// dump inode bitmap
-		//PUT((uint64_t)(pos + overhead + 1) * blocksize, buf, blocksize);
-		//but it's right after block bitmap, so we can just:
-		xwrite(fd, buf, blocksize);
 	}
 
 	// zero boot sectors
 	memset(buf, 0, blocksize);
-	PUT(0, buf, 1024); // N.B. 1024 <= blocksize
+	PUT(0, buf, 1024); // N.B. 1024 <= blocksize, so buf[0..1023] contains zeros
 	// zero inode tables
 	for (i = 0; i < ngroups; ++i)
 		for (n = 0; n < itsz; ++n)
-			PUT((uint64_t)(gd[i].bg_inode_table + n) * blocksize, buf, blocksize);
+			PUT((uint64_t)(FETCH_LE32(gd[i].bg_inode_table) + n) * blocksize, buf, blocksize);
 
 	// prepare directory inode
 	inode = (struct ext2_inode *)buf;
@@ -511,13 +524,13 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	// dump root dir inode
 	STORE_LE(inode->i_links_count, 3); // "/.", "/..", "/lost+found/.." point to this inode
-	STORE_LE(inode->i_block[0], gd[0].bg_inode_table + itsz);
-	PUT(((uint64_t)gd[0].bg_inode_table << blocksize_log2) + (EXT2_ROOT_INO-1) * sizeof(*inode), buf, sizeof(*inode));
+	STORE_LE(inode->i_block[0], FETCH_LE32(gd[0].bg_inode_table) + itsz);
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) << blocksize_log2) + (EXT2_ROOT_INO-1) * sizeof(*inode), buf, sizeof(*inode));
 
 	// dump lost+found dir inode
 	STORE_LE(inode->i_links_count, 2); // both "/lost+found" and "/lost+found/." point to this inode
-	STORE_LE(inode->i_block[0], inode->i_block[0]+1); // use next block //= gd[0].bg_inode_table + itsz + 1;
-	PUT(((uint64_t)gd[0].bg_inode_table << blocksize_log2) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode), buf, sizeof(*inode));
+	STORE_LE(inode->i_block[0], inode->i_block[0]+1); // use next block
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) << blocksize_log2) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode), buf, sizeof(*inode));
 
 	// dump directories
 	memset(buf, 0, blocksize);
@@ -534,7 +547,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	STORE_LE(dir->name_len2, 2);
 	STORE_LE(dir->file_type2, EXT2_FT_DIR);
 	dir->name2[0] = '.'; dir->name2[1] = '.';
-	PUT((uint64_t)(gd[0].bg_inode_table + itsz + 1) * blocksize, buf, blocksize);
+	PUT((uint64_t)(FETCH_LE32(gd[0].bg_inode_table) + itsz + 1) * blocksize, buf, blocksize);
 
 	// dump root dir block
 	STORE_LE(dir->inode1, EXT2_ROOT_INO);
@@ -544,13 +557,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	STORE_LE(dir->name_len3, 10);
 	STORE_LE(dir->file_type3, EXT2_FT_DIR);
 	strcpy(dir->name3, "lost+found");
-	PUT((uint64_t)(gd[0].bg_inode_table + itsz + 0) * blocksize, buf, blocksize);
-
-//	bb_info_msg("done\n"
-//		"This filesystem will be automatically checked every %u mounts or\n"
-//		"180 days, whichever comes first. Use tune2fs -c or -i to override.",
-//		sb->s_max_mnt_count
-//	);
+	PUT((uint64_t)(FETCH_LE32(gd[0].bg_inode_table) + itsz + 0) * blocksize, buf, blocksize);
 
  done:
 	// cleanup
