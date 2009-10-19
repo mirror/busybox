@@ -75,10 +75,11 @@ static unsigned int_log2(unsigned arg)
 }
 
 // taken from mkfs_minix.c. libbb candidate?
-static unsigned div_roundup(uint64_t size, uint32_t n)
+// why "uint64_t size"? we never use it for anything >32 bits
+static uint32_t div_roundup(uint64_t size, uint32_t n)
 {
 	// Overflow-resistant
-	uint64_t res = size / n;
+	uint32_t res = size / n;
 	if (res * n != size)
 		res++;
 	return res;
