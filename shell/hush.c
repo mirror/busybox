@@ -6986,7 +6986,7 @@ static int FAST_FUNC builtin_cd(char **argv)
 static int FAST_FUNC builtin_exec(char **argv)
 {
 	static const char pseudo_null_str[] = { SPECIAL_VAR_SYMBOL, SPECIAL_VAR_SYMBOL, '\0' };
-	char **pp = argv;
+	char **pp;
 #if !BB_MMU
 	nommu_save_t dummy;
 #endif
