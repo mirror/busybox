@@ -6174,8 +6174,8 @@ static struct pipe *parse_stream(char **pstring,
 			else {
 				/* It's "\<newline>". Remove trailing '\' from ctx.as_string */
 				ctx.as_string.data[--ctx.as_string.length] = '\0';
-#endif
 			}
+#endif
 			break;
 		case '$':
 			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
@@ -6915,14 +6915,14 @@ static int FAST_FUNC builtin_true(char **argv UNUSED_PARAM)
 	return 0;
 }
 
-static int FAST_FUNC run_applet_main(char **argv, int (*applet_main)(int argc, char **argv))
+static int run_applet_main(char **argv, int (*applet_main_func)(int argc, char **argv))
 {
 	int argc = 0;
 	while (*argv) {
 		argc++;
 		argv++;
 	}
-	return applet_main(argc, argv - argc);
+	return applet_main_func(argc, argv - argc);
 }
 
 static int FAST_FUNC builtin_test(char **argv)
