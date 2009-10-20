@@ -88,13 +88,14 @@ static uint32_t div_roundup(uint64_t size, uint32_t n)
 static void allocate(uint8_t *bitmap, uint32_t blocksize, uint32_t start, uint32_t end)
 {
 	uint32_t i;
+
+//bb_info_msg("ALLOC: [%u][%u][%u]: [%u-%u]:=[%x],[%x]", blocksize, start, end, start/8, blocksize - end/8 - 1, (1 << (start & 7)) - 1, (uint8_t)(0xFF00 >> (end & 7)));
 	memset(bitmap, 0, blocksize);
 	i = start / 8;
 	memset(bitmap, 0xFF, i);
-	bitmap[i] = 0xFF >> (8 - (start & 7));
-//bb_info_msg("ALLOC: [%u][%u][%u]: [%u-%u]:=[%x],[%x]", blocksize, start, end, start/8, blocksize - end/8 - 1, 0xFF >> (8 - (start & 7)), (uint8_t)(0xFF << (8-(end&7))));
+	bitmap[i] = (1 << (start & 7)) - 1; //0..7 => 00000000..01111111
 	i = end / 8;
-	bitmap[blocksize - i - 1] = 0xFF << (8 - (end & 7));
+	bitmap[blocksize - i - 1] |= 0x7F00 >> (end & 7); //0..7 => 00000000..11111110
 	memset(bitmap + blocksize - i, 0xFF, i); // N.B. no overflow here!
 }
 

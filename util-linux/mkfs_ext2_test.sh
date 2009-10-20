@@ -38,22 +38,12 @@ test_mke2fs() {
     }
 }
 
-# Should start from kilobytes=60, but e2fsck complains on it:
-# e2fsck 1.41.4 (27-Jan-2009)
-# Pass 1: Checking inodes, blocks, and sizes
-# Pass 2: Checking directory structure
-# Pass 3: Checking directory connectivity
-# Pass 4: Checking reference counts
-# Pass 5: Checking group summary information
-# Inode bitmap differences:  +(9--11)
-# Free inodes count wrong for group #0 (5, counted=8).
-# Directories count wrong for group #0 (2, counted=1).
-# Free inodes count wrong (5, counted=8).
-# image_bb: 11/16 files (0.0% non-contiguous), 9/60 blocks
-kilobytes=68
+# kilobytes=60 is the minimal allowed size
+kilobytes=60
 while true; do
     test_mke2fs #|| exit 1
     : $((kilobytes++))
+    test $kilobytes = 200 && break
 done
 exit
 
