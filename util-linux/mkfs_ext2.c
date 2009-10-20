@@ -309,20 +309,23 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	{
 		// N.B. e2fsprogs does as follows!
-		// ninodes is the total number of inodes (files) in the file system
-		uint32_t ninodes = ((uint64_t) nblocks_full * blocksize) / bytes_per_inode;
 		uint32_t overhead, remainder;
+		// ninodes is the max number of inodes in this filesystem
+		uint32_t ninodes = ((uint64_t) nblocks_full * blocksize) / bytes_per_inode;
 		if (ninodes < EXT2_GOOD_OLD_FIRST_INO+1)
 			ninodes = EXT2_GOOD_OLD_FIRST_INO+1;
 		inodes_per_group = div_roundup(ninodes, ngroups);
 		// minimum number because the first EXT2_GOOD_OLD_FIRST_INO-1 are reserved
 		if (inodes_per_group < 16)
 			inodes_per_group = 16;
-
-		// a block group can have no more than 8*blocksize inodes
+		// a block group can't have more inodes than blocks
 		if (inodes_per_group > blocks_per_group)
 			inodes_per_group = blocks_per_group;
 		// adjust inodes per group so they completely fill the inode table blocks in the descriptor
+//incompatibility on images >= 0.5GB:
+//difference in sizeof(*inode) sometimes
+//results in slightly bigger inodes_per_group here
+//compared to standard mke2fs:
 		inodes_per_group = (div_roundup(inodes_per_group * sizeof(*inode), blocksize) * blocksize) / sizeof(*inode);
 		// make sure the number of inodes per group is a multiple of 8
 		inodes_per_group &= ~7;
@@ -345,6 +348,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		////) {
 		////	bb_error_msg_and_die("way small device");
 		////}
+
 		// Standard mke2fs uses 50. Looks like a bug in our calculation
 		// of "remainder" or "overhead" - we don't match standard mke2fs
 		// when we transition from one group to two groups
@@ -414,6 +418,9 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	sb = xzalloc(1024);
 	STORE_LE(sb->s_rev_level, 1); // revision 1 filesystem
 	STORE_LE(sb->s_magic, EXT2_SUPER_MAGIC);
+//incompatibility:
+//on images > 0.5GB, standard mke2fs uses 256 byte inodes.
+//we always use 128 byte ones:
 	STORE_LE(sb->s_inode_size, sizeof(*inode));
 	STORE_LE(sb->s_first_ino, EXT2_GOOD_OLD_FIRST_INO);
 	STORE_LE(sb->s_log_block_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
