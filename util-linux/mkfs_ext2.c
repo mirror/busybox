@@ -332,9 +332,10 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		if ((1 == ngroups) && remainder && (remainder < overhead))
 			bb_error_msg_and_die("way small device");
 		// Standard mke2fs uses 50. Looks like a bug in our calculation
-		// of "remainder" or "overhead" - we dont match standard mke2fs
-		// when we transition from one group to two groups (a bit after 8M
-		// image size) and for two->three groups transition (at 16M) too.
+		// of "remainder" or "overhead" - we don't match standard mke2fs
+		// when we transition from one group to two groups
+		// (a bit after 8M image size), but it works for two->three groups
+		// transition (at 16M).
 		if (remainder && (remainder < overhead + 50)) {
 //bb_info_msg("CHOP[%u]", remainder);
 			nblocks -= remainder;
