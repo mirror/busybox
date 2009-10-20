@@ -173,9 +173,9 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	unsigned i, pos, n;
 	unsigned bs, bpi;
 	unsigned blocksize, blocksize_log2;
-	unsigned nreserved = 5;
+	unsigned reserved_percent = 5;
 	unsigned long long kilobytes;
-	uint32_t nblocks, nblocks_full;
+	uint32_t nblocks, nblocks_full, nreserved;
 	uint32_t ngroups;
 	uint32_t bytes_per_inode;
 	uint32_t first_data_block;
@@ -194,12 +194,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "-1:b+:m+:i+";
 	opts = getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
 		NULL, &bs, NULL, &bpi, NULL, NULL, NULL, NULL,
-		&nreserved, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
+		&reserved_percent, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
 	argv += optind; // argv[0] -- device
-
-	// reserved blocks percentage
-	if (nreserved > 50)
-		bb_error_msg_and_die("-%c is bad", 'm');
 
 	// check the device is a block device
 	xmove_fd(xopen(argv[0], O_WRONLY), fd);
@@ -228,14 +224,15 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & OPT_i)
 		bytes_per_inode = bpi;
 
+	// Determine block size
 	// block size is a multiple of 1024
 	blocksize = 1024;
 	if (kilobytes >= 512*1024) // mke2fs 1.41.9 compat
 		blocksize = 4096;
 	if (EXT2_MAX_BLOCK_SIZE > 4096) {
 		// kilobytes >> 22 == size in 4gigabyte chunks.
-		// if it is >= 16k gigs, blocksize must be increased.
-		// Try "mke2fs -F image_std $((16 * 1024*1024*1024))"
+		// if size >= 16k gigs, blocksize must be increased.
+		// Try "mke2fs -F image $((16 * 1024*1024*1024))"
 		while ((kilobytes >> 22) >= blocksize)
 			blocksize *= 2;
 	}
@@ -247,28 +244,38 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	) {
 		bb_error_msg_and_die("blocksize %u is bad", blocksize);
 	}
+	// number of bits in one block, i.e. 8*blocksize
+#define blocks_per_group (8 * blocksize)
+	first_data_block = (EXT2_MIN_BLOCK_SIZE == blocksize);
 	blocksize_log2 = int_log2(blocksize);
+
+	// Determine number of blocks
 	kilobytes >>= (blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
-	// nblocks: the total number of blocks in the filesystem
 	nblocks = kilobytes;
 	if (nblocks != kilobytes)
 		bb_error_msg_and_die("block count doesn't fit in 32 bits");
 #define kilobytes kilobytes_unused_after_this
-
 	if (blocksize < PAGE_SIZE)
-		nblocks &= ~((PAGE_SIZE / blocksize)-1);
+		nblocks &= ~((PAGE_SIZE >> blocksize_log2)-1);
+	// Experimentally, standard mke2fs won't work on images smaller than 60k
+	if (nblocks < 60)
+		bb_error_msg_and_die("need >= 60 blocks");
+
+	// How many reserved blocks?
+	if (reserved_percent > 50)
+		bb_error_msg_and_die("-%c is bad", 'm');
+	//nreserved = div_roundup((uint64_t) nblocks * reserved_percent, 100);
+	nreserved = (uint64_t)nblocks * reserved_percent / 100;
 
 	// N.B. killing e2fsprogs feature! Unused blocks don't account in calculations
  	nblocks_full = nblocks;
+
+	// If last block group is too small, nblocks may be decreased in order
+	// to discard it, and control returns here to recalculate some
+	// parameters.
+	// Note: blocksize and bytes_per_inode are never recalculated.
  retry:
-	if (nblocks < 8)
-		bb_error_msg_and_die("need >= 8 blocks");
-
-	// number of bits in one block, i.e. 8*blocksize
-#define	blocks_per_group (8 * blocksize)
-
 	// N.B. a block group can have no more than blocks_per_group blocks
-	first_data_block = (EXT2_MIN_BLOCK_SIZE == blocksize);
 	ngroups = div_roundup(nblocks - first_data_block, blocks_per_group);
 	if (0 == ngroups)
 		bb_error_msg_and_die("ngroups");
@@ -308,21 +315,21 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		if (inodes_per_group < 16)
 			inodes_per_group = 16;
 
-		// N.B. a block group can have no more than 8*blocksize inodes
+		// a block group can have no more than 8*blocksize inodes
 		if (inodes_per_group > blocks_per_group)
 			inodes_per_group = blocks_per_group;
 		// adjust inodes per group so they completely fill the inode table blocks in the descriptor
-		inodes_per_group = (div_roundup(inodes_per_group * sizeof(*inode), blocksize) << blocksize_log2) / sizeof(*inode);
+		inodes_per_group = (div_roundup(inodes_per_group * sizeof(*inode), blocksize) * blocksize) / sizeof(*inode);
 		// make sure the number of inodes per group is a multiple of 8
 		inodes_per_group &= ~7;
 		itsz = div_roundup(inodes_per_group * sizeof(*inode), blocksize);
 
-		// the last block needs more attention: doesn't it too small for possible overhead?
+		// the last group needs more attention: isn't it too small for possible overhead?
 		overhead = (has_super(ngroups - 1) ? (1/*sb*/ + gdtsz) : 0) + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
 		remainder = (nblocks - first_data_block) % blocks_per_group;
 		if ((1 == ngroups) && remainder && (remainder < overhead))
 			bb_error_msg_and_die("way small device");
-		if (remainder && (remainder < overhead + 50)) {
+		if (remainder && (remainder < overhead + 50/* e2fsprogs hardcoded */)) {
 //bb_info_msg("CHOP[%u]", remainder);
 			nblocks -= remainder;
 			goto retry;
@@ -348,8 +355,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		, blocksize, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE
 		, blocksize, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE
 		, inodes_per_group * ngroups, nblocks
-		//, div_roundup((uint64_t) nblocks * nreserved, 100), nreserved
-		, (unsigned)((uint64_t) nblocks_full * nreserved / 100), nreserved
+		, nreserved, reserved_percent
 		, first_data_block
 		, gdtsz * (blocksize / sizeof(*gd)) * blocks_per_group
 		, ngroups
@@ -399,7 +405,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// blocks
 	STORE_LE(sb->s_blocks_count, nblocks);
 	// reserve blocks for superuser
-	STORE_LE(sb->s_r_blocks_count, (uint32_t)((uint64_t) nblocks_full * nreserved / 100));
+	STORE_LE(sb->s_r_blocks_count, nreserved);
 	// ninodes
 	STORE_LE(sb->s_inodes_per_group, inodes_per_group);
 	STORE_LE(sb->s_inodes_count, inodes_per_group * ngroups);
@@ -418,7 +424,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		| (EXT2_FEATURE_COMPAT_RESIZE_INO * ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT)
 		| (EXT2_FEATURE_COMPAT_DIR_INDEX * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX)
 	);
-	// e2fsprogs-1.41.9 doesn't like EXT2_FEATURE_INCOMPAT_WHITEOUT
+	// e2fsck from 1.41.9 doesn't like EXT2_FEATURE_INCOMPAT_WHITEOUT
 	STORE_LE(sb->s_feature_incompat, EXT2_FEATURE_INCOMPAT_FILETYPE);// | EXT2_FEATURE_INCOMPAT_WHITEOUT;
 	STORE_LE(sb->s_feature_ro_compat, EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER);
 	STORE_LE(sb->s_flags, EXT2_FLAGS_SIGNED_HASH * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX);
@@ -435,9 +441,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	STORE_LE(sb->s_max_mnt_count, EXT2_DFL_MAX_MNT_COUNT
 		+ (sb->s_uuid[ARRAY_SIZE(sb->s_uuid)-1] % EXT2_DFL_MAX_MNT_COUNT));
 
-	// write the label, if any
-	if (label) //opts & OPT_L)
-		safe_strncpy((char *)sb->s_volume_name, label, sizeof(sb->s_volume_name));
+	// write the label
+	safe_strncpy((char *)sb->s_volume_name, label, sizeof(sb->s_volume_name));
 
 	// fill group descriptors
 	gd = xzalloc(gdtsz * blocksize);
@@ -461,11 +466,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 			STORE_LE(gd[i].bg_used_dirs_count, 2);
 			gd[i].bg_free_inodes_count -= EXT2_GOOD_OLD_FIRST_INO;
 		}
-//		// N.B. the following is pure heuristics!
-//		// Likely to cope with 1024-byte blocks, when first block is for boot sectors
-//		if (ngroups-1 == i) {
-//			n -= first_data_block;
-//		}
 
 		// mark preallocated blocks as allocated
 		fb = (n < blocks_per_group ? n : blocks_per_group) - overhead;
@@ -500,8 +500,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		// dump superblock and group descriptors and their backups
 		if (has_super(i)) {
 			// N.B. 1024 byte blocks are special
-			PUT(((uint64_t)pos << blocksize_log2) + ((0 == i && 0 == first_data_block) ? 1024 : 0), sb, 1024);//blocksize);
-			PUT(((uint64_t)pos << blocksize_log2) + blocksize, gd, gdtsz * blocksize);
+			PUT(((uint64_t)pos * blocksize) + ((0 == i && 0 == first_data_block) ? 1024 : 0), sb, 1024);//blocksize);
+			PUT(((uint64_t)pos * blocksize) + blocksize, gd, gdtsz * blocksize);
 		}
 	}
 
@@ -526,12 +526,12 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// dump root dir inode
 	STORE_LE(inode->i_links_count, 3); // "/.", "/..", "/lost+found/.." point to this inode
 	STORE_LE(inode->i_block[0], FETCH_LE32(gd[0].bg_inode_table) + itsz);
-	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) << blocksize_log2) + (EXT2_ROOT_INO-1) * sizeof(*inode), buf, sizeof(*inode));
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_ROOT_INO-1) * sizeof(*inode), buf, sizeof(*inode));
 
 	// dump lost+found dir inode
 	STORE_LE(inode->i_links_count, 2); // both "/lost+found" and "/lost+found/." point to this inode
 	STORE_LE(inode->i_block[0], inode->i_block[0]+1); // use next block
-	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) << blocksize_log2) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode), buf, sizeof(*inode));
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode), buf, sizeof(*inode));
 
 	// dump directories
 	memset(buf, 0, blocksize);
