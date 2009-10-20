@@ -256,8 +256,9 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	if (nblocks != kilobytes)
 		bb_error_msg_and_die("block count doesn't fit in 32 bits");
 #define kilobytes kilobytes_unused_after_this
-	if (blocksize < PAGE_SIZE)
-		nblocks &= ~((PAGE_SIZE >> blocksize_log2)-1);
+//compat problem
+//	if (blocksize < PAGE_SIZE)
+//		nblocks &= ~((PAGE_SIZE >> blocksize_log2)-1);
 	// Experimentally, standard mke2fs won't work on images smaller than 60k
 	if (nblocks < 60)
 		bb_error_msg_and_die("need >= 60 blocks");
@@ -307,7 +308,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	{
 		// N.B. e2fsprogs does as follows!
 		// ninodes is the total number of inodes (files) in the file system
-		uint32_t ninodes = nblocks_full / (blocksize >= 4096 ? 1 : 4096 / blocksize);
+		uint32_t ninodes = ((uint64_t) nblocks_full * blocksize) / bytes_per_inode;
 		uint32_t overhead, remainder;
 		if (ninodes < EXT2_GOOD_OLD_FIRST_INO+1)
 			ninodes = EXT2_GOOD_OLD_FIRST_INO+1;
