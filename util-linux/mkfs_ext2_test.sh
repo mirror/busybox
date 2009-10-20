@@ -45,31 +45,30 @@ test_mke2fs() {
 
 # -:bbox +:standard
 
-# kilobytes=60 is the minimal allowed size.
-#
-# kilobytes=8378 is the first value where we differ from std:
-# +warning: 185 blocks unused
-#  Filesystem label=
-#  OS type: Linux
-#  Block size=1024 (log=0)
-#  Fragment size=1024 (log=0)
-# -2096 inodes, 8378 blocks
-# +2096 inodes, 8193 blocks
-#  418 blocks reserved for the super user
-#  First data block=1
-# -2 block groups
-# +1 block groups
-#  8192 blocks per group, 8192 fragments per group
-# -1048 inodes per group
-# -Superblock backups stored on blocks:
-# -8193
-# +2096 inodes per group
-#
+# kilobytes=60 is the minimal allowed size
 kilobytes=60
 while true; do
     test_mke2fs || exit 1
     : $((kilobytes++))
-    test $kilobytes = 300000 && break
+    test $kilobytes = 200 && break
+done
+
+# Transition from one block group to two
+# fails in [8378..8410] range
+kilobytes=$((8*1024 - 20))
+while true; do
+    test_mke2fs #|| exit 1
+    : $((kilobytes++))
+    test $kilobytes = $((8*1024 + 300)) && break
+done
+
+# Transition from two block groups to three
+# works
+kilobytes=$((16*1024 - 40))
+while true; do
+    test_mke2fs || exit 1
+    : $((kilobytes++))
+    test $kilobytes = $((16*1024 + 500)) && break
 done
 exit
 

@@ -179,7 +179,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	uint32_t nblocks, nblocks_full, nreserved;
 	uint32_t ngroups;
 	uint32_t bytes_per_inode;
-	uint32_t first_data_block;
+	uint32_t first_block;
 	uint32_t inodes_per_group;
 	uint32_t gdtsz, itsz;
 	time_t timestamp;
@@ -247,7 +247,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	}
 	// number of bits in one block, i.e. 8*blocksize
 #define blocks_per_group (8 * blocksize)
-	first_data_block = (EXT2_MIN_BLOCK_SIZE == blocksize);
+	first_block = (EXT2_MIN_BLOCK_SIZE == blocksize);
 	blocksize_log2 = int_log2(blocksize);
 
 	// Determine number of blocks
@@ -278,7 +278,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// Note: blocksize and bytes_per_inode are never recalculated.
  retry:
 	// N.B. a block group can have no more than blocks_per_group blocks
-	ngroups = div_roundup(nblocks - first_data_block, blocks_per_group);
+	ngroups = div_roundup(nblocks - first_block, blocks_per_group);
 	if (0 == ngroups)
 		bb_error_msg_and_die("ngroups");
 
@@ -297,7 +297,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		uint32_t rgdtsz = 0xFFFFFFFF; // maximum block number
 		if (nblocks < rgdtsz / 1024)
 			rgdtsz = nblocks * 1024;
-		rgdtsz = div_roundup(rgdtsz - first_data_block, blocks_per_group);
+		rgdtsz = div_roundup(rgdtsz - first_block, blocks_per_group);
 		rgdtsz = div_roundup(rgdtsz, blocksize / sizeof(*gd)) - gdtsz;
 		if (rgdtsz > blocksize / sizeof(uint32_t))
 			rgdtsz = blocksize / sizeof(uint32_t);
@@ -328,17 +328,20 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 		// the last group needs more attention: isn't it too small for possible overhead?
 		overhead = (has_super(ngroups - 1) ? (1/*sb*/ + gdtsz) : 0) + 1/*bbmp*/ + 1/*ibmp*/ + itsz;
-		remainder = (nblocks - first_data_block) % blocks_per_group;
+		remainder = (nblocks - first_block) % blocks_per_group;
 		if ((1 == ngroups) && remainder && (remainder < overhead))
 			bb_error_msg_and_die("way small device");
-		if (remainder && (remainder < overhead + 50/* e2fsprogs hardcoded */)) {
+		// Standard mke2fs uses 50. Looks like a bug in our calculation
+		// of "remainder" or "overhead" - we dont match standard mke2fs
+		// when we transition from one group to two groups (a bit after 8M
+		// image size) and for two->three groups transition (at 16M) too.
+		if (remainder && (remainder < overhead + 50)) {
 //bb_info_msg("CHOP[%u]", remainder);
 			nblocks -= remainder;
 			goto retry;
 		}
 	}
 
-	// print info
 	if (nblocks_full - nblocks)
 		printf("warning: %u blocks unused\n\n", nblocks_full - nblocks);
 	printf(
@@ -358,7 +361,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		, blocksize, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE
 		, inodes_per_group * ngroups, nblocks
 		, nreserved, reserved_percent
-		, first_data_block
+		, first_block
 		, gdtsz * (blocksize / sizeof(*gd)) * blocks_per_group
 		, ngroups
 		, blocks_per_group, blocks_per_group
@@ -367,7 +370,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	{
 		const char *fmt = "\nSuperblock backups stored on blocks:\n"
 			"\t%u";
-		pos = first_data_block;
+		pos = first_block;
 		for (i = 1; i < ngroups; i++) {
 			pos += blocks_per_group;
 			if (has_super(i)) {
@@ -399,8 +402,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	STORE_LE(sb->s_log_block_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
 	STORE_LE(sb->s_log_frag_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
 	// first 1024 bytes of the device are for boot record. If block size is 1024 bytes, then
-	// the first block available for data is 1, otherwise 0
-	STORE_LE(sb->s_first_data_block, first_data_block); // 0 or 1
+	// the first block is 1, otherwise 0
+	STORE_LE(sb->s_first_data_block, first_block);
 	// block and inode bitmaps occupy no more than one block, so maximum number of blocks is
 	STORE_LE(sb->s_blocks_per_group, blocks_per_group);
 	STORE_LE(sb->s_frags_per_group, blocks_per_group);
@@ -450,7 +453,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	gd = xzalloc(gdtsz * blocksize);
 	buf = xmalloc(blocksize);
 	sb->s_free_blocks_count = 0;
-	for (i = 0, pos = first_data_block, n = nblocks - first_data_block;
+	for (i = 0, pos = first_block, n = nblocks - first_block;
 		i < ngroups;
 		i++, pos += blocks_per_group, n -= blocks_per_group
 	) {
@@ -498,11 +501,11 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	// dump filesystem skeleton structures
 //	printf("Writing superblocks and filesystem accounting information: ");
-	for (i = 0, pos = first_data_block; i < ngroups; i++, pos += blocks_per_group) {
+	for (i = 0, pos = first_block; i < ngroups; i++, pos += blocks_per_group) {
 		// dump superblock and group descriptors and their backups
 		if (has_super(i)) {
 			// N.B. 1024 byte blocks are special
-			PUT(((uint64_t)pos * blocksize) + ((0 == i && 0 == first_data_block) ? 1024 : 0), sb, 1024);//blocksize);
+			PUT(((uint64_t)pos * blocksize) + ((0 == i && 0 == first_block) ? 1024 : 0), sb, 1024);//blocksize);
 			PUT(((uint64_t)pos * blocksize) + blocksize, gd, gdtsz * blocksize);
 		}
 	}
