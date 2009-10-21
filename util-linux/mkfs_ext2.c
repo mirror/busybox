@@ -236,6 +236,13 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// open the device, get size in kbytes
 	if (argv[1]) {
 		kilobytes = xatoull(argv[1]);
+		// seek past end fails on block devices but works on files
+		if (lseek(fd, kilobytes * 1024 - 1, SEEK_SET) != (off_t)-1) {
+			xwrite(fd, "", 1); // file grows if needed
+		}
+		//else {
+		//	bb_error_msg("warning, block device is smaller");
+		//}
 	} else {
 		kilobytes = (uoff_t)xlseek(fd, 0, SEEK_END) / 1024;
 	}
@@ -610,7 +617,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	dir = (struct ext2_dir *)buf;
 
 	// dump 2nd+ blocks of "/lost+found"
-	STORE_LE(dir->rec_len1, blocksize); // e2fsck 1.41.4 compat
+	STORE_LE(dir->rec_len1, blocksize); // e2fsck 1.41.4 compat (1.41.9 does not need this)
 	for (i = 1; i < lost_and_found_blocks; ++i)
 		PUT((uint64_t)(FETCH_LE32(gd[0].bg_inode_table) + inode_table_blocks + 1+i) * blocksize,
 				buf, blocksize);
