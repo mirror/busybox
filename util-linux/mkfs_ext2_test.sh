@@ -1,6 +1,7 @@
 #!/bin/sh
 
-system_mke2fs='/sbin/mke2fs'
+# Disabling features we do not match exactly:
+system_mke2fs='/sbin/mke2fs -I 128 -O ^resize_inode'
 bbox_mke2fs='./busybox mke2fs'
 
 gen_image() { # params: mke2fs_invocation image_name
@@ -51,10 +52,10 @@ while true; do
 done
 
 # Transition from one block group to two
-# fails in [8378..8410] range
+# fails in [8378..8410] range unless -O ^resize_inode
 kilobytes=$((1 * 8*1024 - 50))
 while true; do
-    test_mke2fs #|| exit 1
+    test_mke2fs || exit 1
     : $((kilobytes++))
     test $kilobytes = $((1 * 8*1024 + 300)) && break
 done
@@ -69,10 +70,10 @@ while true; do
 done
 
 # Transition from 3 block groups to 4
-# fails in [24825..24922] range
+# fails in [24825..24922] range unless -O ^resize_inode
 kilobytes=$((3 * 8*1024 - 50))
 while true; do
-    test_mke2fs #|| exit 1
+    test_mke2fs || exit 1
     : $((kilobytes++))
     test $kilobytes = $((3 * 8*1024 + 500)) && break
 done
@@ -87,10 +88,10 @@ while true; do
 done
 
 # Transition from 5 block groups to 6
-# fails in [41230..41391] range
+# fails in [41230..41391] range unless -O ^resize_inode
 kilobytes=$((5 * 8*1024 - 50))
 while true; do
-    test_mke2fs #|| exit 1
+    test_mke2fs || exit 1
     : $((kilobytes++))
     test $kilobytes = $((5 * 8*1024 + 700)) && break
 done
@@ -98,6 +99,6 @@ exit
 
 # Random sizes
 while true; do
-    kilobytes=$(( (RANDOM*RANDOM) % 1000000 + 60))
+    kilobytes=$(( (RANDOM*RANDOM) % 5000000 + 60))
     test_mke2fs || exit 1
 done
