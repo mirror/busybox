@@ -605,16 +605,17 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode),
 				buf, sizeof(*inode));
 
-	// zero the blocks for "/lost+found"
+	// dump directories
 	memset(buf, 0, blocksize);
+	dir = (struct ext2_dir *)buf;
+
+	// dump 2nd+ blocks of "/lost+found"
+	STORE_LE(dir->rec_len1, blocksize); // e2fsck 1.41.4 compat
 	for (i = 1; i < lost_and_found_blocks; ++i)
 		PUT((uint64_t)(FETCH_LE32(gd[0].bg_inode_table) + inode_table_blocks + 1+i) * blocksize,
 				buf, blocksize);
 
-	// dump directories
-	dir = (struct ext2_dir *)buf;
-
-	// dump lost+found dir block
+	// dump 1st block of "/lost+found"
 	STORE_LE(dir->inode1, EXT2_GOOD_OLD_FIRST_INO);
 	STORE_LE(dir->rec_len1, 12);
 	STORE_LE(dir->name_len1, 1);
