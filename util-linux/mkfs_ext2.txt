@@ -41,7 +41,7 @@ Next check after:         Mon Apr 19 13:40:55 2010                      Next che
 Reserved blocks uid:      0 (user root)                                 Reserved blocks uid:      0 (user root)
 Reserved blocks gid:      0 (group root)                                Reserved blocks gid:      0 (group root)
 First inode:              11                                            First inode:              11
-Inode size:	          128                                           Inode size:	          256
+Inode size:               128                                           Inode size:               256
                                                                         Required extra isize:     28
                                                                         Desired extra isize:      28
 Default directory hash:   half_md4                                      Default directory hash:   half_md4
