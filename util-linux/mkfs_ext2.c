@@ -120,16 +120,45 @@ static uint32_t has_super(uint32_t x)
 	}
 }
 
-/* Standard mke2fs 1.41.9:
- * Usage: mke2fs [-c|-l filename] [-b block-size] [-f fragment-size]
- * 	[-i bytes-per-inode] [-I inode-size] [-J journal-options]
- * 	[-G meta group size] [-N number-of-inodes]
- * 	[-m reserved-blocks-percentage] [-o creator-os]
- * 	[-g blocks-per-group] [-L volume-label] [-M last-mounted-directory]
- * 	[-O feature[,...]] [-r fs-revision] [-E extended-option[,...]]
- * 	[-T fs-type] [-U UUID] [-jnqvFSV] device [blocks-count]
-*/
-// N.B. not commented below options are taken and silently ignored
+#define fd 3	/* predefined output descriptor */
+
+static void PUT(uint64_t off, void *buf, uint32_t size)
+{
+//	bb_info_msg("PUT[%llu]:[%u]", off, size);
+	xlseek(fd, off, SEEK_SET);
+	xwrite(fd, buf, size);
+}
+
+// 128 and 256-byte inodes:
+// 128-byte inode is described by struct ext2_inode.
+// 256-byte one just has these fields appended:
+//      __u16   i_extra_isize;
+//      __u16   i_pad1;
+//      __u32   i_ctime_extra;  /* extra Change time (nsec << 2 | epoch) */
+//      __u32   i_mtime_extra;  /* extra Modification time (nsec << 2 | epoch) */
+//      __u32   i_atime_extra;  /* extra Access time (nsec << 2 | epoch) */
+//      __u32   i_crtime;       /* File creation time */
+//      __u32   i_crtime_extra; /* extra File creation time (nsec << 2 | epoch)*/
+//      __u32   i_version_hi;   /* high 32 bits for 64-bit version */
+// the rest is padding.
+//
+// linux/ext2_fs.h has "#define i_size_high i_dir_acl" which suggests that even
+// 128-byte inode is capable of describing large files (i_dir_acl is meaningful
+// only for directories, which never need i_size_high).
+//
+// Standard mke2fs creates a filesystem with 256-byte inodes if it is
+// bigger than 0.5GB. So far, we do not do this.
+
+// Standard mke2fs 1.41.9:
+// Usage: mke2fs [-c|-l filename] [-b block-size] [-f fragment-size]
+// 	[-i bytes-per-inode] [-I inode-size] [-J journal-options]
+// 	[-G meta group size] [-N number-of-inodes]
+// 	[-m reserved-blocks-percentage] [-o creator-os]
+// 	[-g blocks-per-group] [-L volume-label] [-M last-mounted-directory]
+// 	[-O feature[,...]] [-r fs-revision] [-E extended-option[,...]]
+// 	[-T fs-type] [-U UUID] [-jnqvFSV] device [blocks-count]
+//
+// Options not commented below are taken but silently ignored:
 enum {
 	OPT_c = 1 << 0,
 	OPT_l = 1 << 1,
@@ -158,15 +187,6 @@ enum {
 	OPT_S = 1 << 24,
 	//OPT_V = 1 << 25,	// -V version. bbox applets don't support that
 };
-
-#define fd 3	/* predefined output descriptor */
-
-static void PUT(uint64_t off, void *buf, uint32_t size)
-{
-//	bb_info_msg("PUT[%llu]:[%u]", off, size);
-	xlseek(fd, off, SEEK_SET);
-	xwrite(fd, buf, size);
-}
 
 int mkfs_ext2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
