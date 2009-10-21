@@ -4666,22 +4666,24 @@
      "\n	-f name		tun device (/dev/net/tun)" \
      "\n	-t name		Create iface 'name'" \
      "\n	-d name		Delete iface 'name'" \
-IF_FEATURE_TUNCTL_UG( \
+	IF_FEATURE_TUNCTL_UG( \
      "\n	-u owner	Set iface owner" \
      "\n	-g group	Set iface group" \
      "\n	-b		Brief output" \
-)
+	)
 #define tunctl_example_usage \
        "# tunctl\n" \
        "# tunctl -d tun0\n"
 
 #define tune2fs_trivial_usage \
-       "[-c max-mounts-count] [-e errors-behavior] [-g group] " \
-       "[-i interval[d|m|w]] [-j] [-J journal-options] [-l] [-s sparse-flag] " \
-       "[-m reserved-blocks-percent] [-o [^]mount-options[,...]] " \
-       "[-r reserved-blocks-count] [-u user] [-C mount-count] " \
-       "[-L volume-label] [-M last-mounted-dir] [-O [^]feature[,...]] " \
-       "[-T last-check-time] [-U UUID] device"
+/*     "[-c max-mounts-count] [-e errors-behavior] [-g group] " */ \
+/*     "[-i interval[d|m|w]] [-j] [-J journal-options] [-l] [-s sparse-flag] " */ \
+/*     "[-m reserved-blocks-percent] [-o [^]mount-options[,...]] " */ \
+/*     "[-r reserved-blocks-count] [-u user] [-C mount-count] " */ \
+       "[-L LABEL] " \
+/*     "[-M last-mounted-dir] [-O [^]feature[,...]] " */ \
+/*     "[-T last-check-time] [-U UUID] " */ \
+       "BLOCKDEV"
 #define tune2fs_full_usage "\n\n" \
        "Adjust filesystem options on ext[23] filesystems"
 
