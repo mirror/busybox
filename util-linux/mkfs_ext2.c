@@ -10,25 +10,19 @@
 #include "libbb.h"
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>
-#include <sys/user.h> /* PAGE_SIZE */
-#ifndef PAGE_SIZE
-# define PAGE_SIZE 4096
-#endif
 #include "volume_id/volume_id_internal.h"
 
 #define	ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
-#define	ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX 1
+#define	ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
 
 // from e2fsprogs
 #define s_reserved_gdt_blocks s_padding1
 #define s_mkfs_time           s_reserved[0]
 #define s_flags               s_reserved[22]
-#define EXT2_HASH_HALF_MD4     1
-#define EXT2_FLAGS_SIGNED_HASH 0x0001
 
-// whiteout: for writable overlays
-//#define LINUX_S_IFWHT                  0160000
-//#define EXT2_FEATURE_INCOMPAT_WHITEOUT 0x0020
+#define EXT2_HASH_HALF_MD4       1
+#define EXT2_FLAGS_SIGNED_HASH   0x0001
+#define EXT2_FLAGS_UNSIGNED_HASH 0x0002
 
 // storage helpers
 char BUG_wrong_field_size(void);
@@ -288,9 +282,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	if (nblocks != kilobytes)
 		bb_error_msg_and_die("block count doesn't fit in 32 bits");
 #define kilobytes kilobytes_unused_after_this
-//compat problem
-//	if (blocksize < PAGE_SIZE)
-//		nblocks &= ~((PAGE_SIZE >> blocksize_log2)-1);
 	// Experimentally, standard mke2fs won't work on images smaller than 60k
 	if (nblocks < 60)
 		bb_error_msg_and_die("need >= 60 blocks");
@@ -471,19 +462,22 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	STORE_LE(sb->s_mkfs_time, timestamp);
 	STORE_LE(sb->s_wtime, timestamp);
 	STORE_LE(sb->s_lastcheck, timestamp);
-	// misc
+	// misc. Values are chosen to match mke2fs 1.41.9
 	STORE_LE(sb->s_state, 1); // TODO: what's 1?
 	STORE_LE(sb->s_creator_os, EXT2_OS_LINUX);
 	STORE_LE(sb->s_checkinterval, 24*60*60 * 180); // 180 days
 	STORE_LE(sb->s_errors, EXT2_ERRORS_DEFAULT);
+	// mke2fs 1.41.9 also sets EXT3_FEATURE_COMPAT_RESIZE_INODE
+	// and if >= 0.5GB, EXT3_FEATURE_RO_COMPAT_LARGE_FILE.
+	// we use values which match "mke2fs -O ^resize_inode":
+	// in this case 1.41.9 never sets EXT3_FEATURE_RO_COMPAT_LARGE_FILE.
 	STORE_LE(sb->s_feature_compat, EXT2_FEATURE_COMPAT_SUPP
 		| (EXT2_FEATURE_COMPAT_RESIZE_INO * ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT)
 		| (EXT2_FEATURE_COMPAT_DIR_INDEX * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX)
 	);
-	// e2fsck from 1.41.9 doesn't like EXT2_FEATURE_INCOMPAT_WHITEOUT
-	STORE_LE(sb->s_feature_incompat, EXT2_FEATURE_INCOMPAT_FILETYPE);// | EXT2_FEATURE_INCOMPAT_WHITEOUT;
+	STORE_LE(sb->s_feature_incompat, EXT2_FEATURE_INCOMPAT_FILETYPE);
 	STORE_LE(sb->s_feature_ro_compat, EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER);
-	STORE_LE(sb->s_flags, EXT2_FLAGS_SIGNED_HASH * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX);
+	STORE_LE(sb->s_flags, EXT2_FLAGS_UNSIGNED_HASH * ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX);
 	generate_uuid(sb->s_uuid);
 	if (ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX) {
 		STORE_LE(sb->s_def_hash_version, EXT2_HASH_HALF_MD4);
