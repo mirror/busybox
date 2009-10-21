@@ -183,7 +183,7 @@ int df_main(int argc, char **argv)
 			if (dev_len > 20) {
 				printf("%s\n%20s", device, "");
 			} else {
-				printf("%s%*s", device, 20 - dev_len, "");
+				printf("%s%*s", device, 20 - (int)dev_len, "");
 			}
 #else
 			if (printf("\n%-20s" + 1, device) > 20)
