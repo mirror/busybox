@@ -233,7 +233,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		kilobytes = xatoull(argv[1]);
 		// seek past end fails on block devices but works on files
 		if (lseek(fd, kilobytes * 1024 - 1, SEEK_SET) != (off_t)-1) {
-			xwrite(fd, "", 1); // file grows if needed
+			if (!(opts & OPT_n))
+				xwrite(fd, "", 1); // file grows if needed
 		}
 		//else {
 		//	bb_error_msg("warning, block device is smaller");
