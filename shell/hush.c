@@ -454,9 +454,9 @@ struct function {
 	char *name;
 	struct command *parent_cmd;
 	struct pipe *body;
-#if !BB_MMU
+# if !BB_MMU
 	char *body_as_string;
-#endif
+# endif
 };
 #endif
 

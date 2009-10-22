@@ -27,10 +27,10 @@
  * FEATURE_INSTALLER or FEATURE_SUID will still link printf routines in. :(
  */
 
+#include "busybox.h"
 #include <assert.h>
 #include <malloc.h>
 #include <sys/user.h> /* PAGE_SIZE */
-#include "busybox.h"
 
 
 /* Declare <applet>_main() */
