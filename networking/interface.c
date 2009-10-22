@@ -410,20 +410,20 @@ static struct interface *add_interface(char *name)
 static char *get_name(char *name, char *p)
 {
 	/* Extract <name> from nul-terminated p where p matches
-	   <name>: after leading whitespace.
-	   If match is not made, set name empty and return unchanged p */
-	int namestart = 0, nameend = 0;
+	 * <name>: after leading whitespace.
+	 * If match is not made, set name empty and return unchanged p
+	 */
+	char *nameend;
+	char *namestart = skip_whitespace(p);
 
-	while (isspace(p[namestart]))
-		namestart++;
 	nameend = namestart;
-	while (p[nameend] && p[nameend] != ':' && !isspace(p[nameend]))
+	while (*nameend && *nameend != ':' && !isspace(*nameend))
 		nameend++;
-	if (p[nameend] == ':') {
+	if (*nameend == ':') {
 		if ((nameend - namestart) < IFNAMSIZ) {
-			memcpy(name, &p[namestart], nameend - namestart);
+			memcpy(name, namestart, nameend - namestart);
 			name[nameend - namestart] = '\0';
-			p = &p[nameend];
+			p = nameend;
 		} else {
 			/* Interface name too large */
 			name[0] = '\0';

@@ -359,7 +359,8 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 			continue;
 		}
 		/* Skip spaces */
-		if (isspace(substr[idx])) continue;
+		if (isspace(substr[idx]))
+			continue;
 
 		switch (substr[idx]) {
 		/* Replace all occurrences */
@@ -417,8 +418,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", sed_cmd->cmd)) {
 		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
-			bb_error_msg_and_die
-				("only a beginning address can be specified for edit commands");
+			bb_error_msg_and_die("only a beginning address can be specified for edit commands");
 		for (;;) {
 			if (*cmdstr == '\n' || *cmdstr == '\\') {
 				cmdstr++;
