@@ -2713,6 +2713,7 @@
 	)
 
 #define mkfs_ext2_trivial_usage \
+       "[-Fn] " \
        /* "[-c|-l filename] " */ \
        "[-b BLK_SIZE] " \
        /* "[-f fragment-size] [-g blocks-per-group] " */ \
@@ -2722,7 +2723,6 @@
        /* "[-o creator-os] [-O feature[,...]] [-q] " */ \
        /* "[r fs-revision-level] [-E extended-options] [-v] [-F] " */ \
        "[-L LABEL] " \
-       "[-n] " \
        /* "[-M last-mounted-directory] [-S] [-T filesystem-type] " */ \
        "BLOCKDEV [KBYTES]"
 #define mkfs_ext2_full_usage "\n" \
@@ -2730,7 +2730,7 @@
 /*   "\n	-c		Check device for bad blocks" */ \
 /*   "\n	-E opts		Set extended options" */ \
 /*   "\n	-f size		Fragment size in bytes" */ \
-/*   "\n	-F		Force (ignore sanity checks)" */ \
+     "\n	-F		Force" \
 /*   "\n	-g num		Number of blocks in a block group" */ \
      "\n	-i RATIO	Max number of files is filesystem_size / RATIO" \
      "\n	-I BYTES	Inode size (min 128)" \
