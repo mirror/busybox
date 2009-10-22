@@ -2732,7 +2732,7 @@
 /*   "\n	-f size		Fragment size in bytes" */ \
 /*   "\n	-F		Force (ignore sanity checks)" */ \
 /*   "\n	-g num		Number of blocks in a block group" */ \
-     "\n	-i RATIO	Set max number of files to filesystem_size / RATIO" \
+     "\n	-i RATIO	Max number of files is filesystem_size / RATIO" \
      "\n	-I BYTES	Inode size (min 128)" \
 /*   "\n	-j		Create a journal (ext3)" */ \
 /*   "\n	-J opts		Set journal options (size/device)" */ \
