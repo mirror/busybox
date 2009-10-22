@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Disabling features we do not match exactly:
-system_mke2fs='/sbin/mke2fs -I 128 -O ^resize_inode'
+system_mke2fs='/sbin/mke2fs -O ^resize_inode'
 bbox_mke2fs='./busybox mke2fs'
 
 gen_image() { # params: mke2fs_invocation image_name

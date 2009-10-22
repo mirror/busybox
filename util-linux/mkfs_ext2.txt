@@ -1,5 +1,7 @@
 Difference between bbox mke2fs and standard one (dumpe2fs comparison):
 
+[upd: inode size has been fixed since then]
+
 Two significant differences:
 - standard mke2fs has resize_inode feature and thus has reserved GDT blocks,
   which decreases free blocks;

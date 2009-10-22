@@ -2716,7 +2716,7 @@
        /* "[-c|-l filename] " */ \
        "[-b BLK_SIZE] " \
        /* "[-f fragment-size] [-g blocks-per-group] " */ \
-       "[-i BYTES_PER_INODE] " \
+       "[-i INODE_RATIO] [-I INODE_SIZE] " \
        /* "[-j] [-J journal-options] [-N number-of-inodes] " */ \
        "[-m RESERVED_PERCENT] " \
        /* "[-o creator-os] [-O feature[,...]] [-q] " */ \
@@ -2724,15 +2724,16 @@
        "[-L LABEL] " \
        "[-n] " \
        /* "[-M last-mounted-directory] [-S] [-T filesystem-type] " */ \
-       "DEVICE [KBYTES]"
+       "BLOCKDEV [KBYTES]"
 #define mkfs_ext2_full_usage "\n" \
-     "\n	-b BLK_SIZE	Block size in bytes" \
-/*   "\n	-c		Check for bad blocks before creating" */ \
+     "\n	-b BLK_SIZE	Block size, bytes" \
+/*   "\n	-c		Check device for bad blocks" */ \
 /*   "\n	-E opts		Set extended options" */ \
 /*   "\n	-f size		Fragment size in bytes" */ \
 /*   "\n	-F		Force (ignore sanity checks)" */ \
 /*   "\n	-g num		Number of blocks in a block group" */ \
-     "\n	-i BYTES	The bytes/inode ratio" \
+     "\n	-i RATIO	Set max number of files to filesystem_size / RATIO" \
+     "\n	-I BYTES	Inode size (min 128)" \
 /*   "\n	-j		Create a journal (ext3)" */ \
 /*   "\n	-J opts		Set journal options (size/device)" */ \
 /*   "\n	-l file		Read bad blocks list from file" */ \
@@ -2750,7 +2751,7 @@
 /*   "\n	-v		Verbose" */ \
 
 #define mkfs_minix_trivial_usage \
-       "[-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]"
+       "[-c | -l filename] [-nXX] [-iXX] BLOCKDEV [KBYTES]"
 #define mkfs_minix_full_usage "\n\n" \
        "Make a MINIX filesystem\n" \
      "\nOptions:" \
@@ -2761,7 +2762,7 @@
      "\n	-v		Make version 2 filesystem" \
 
 #define mkfs_vfat_trivial_usage \
-       "[-v] [-n LABEL] FILE_OR_DEVICE [SIZE_IN_KB]"
+       "[-v] [-n LABEL] BLOCKDEV [KBYTES]"
 /* Accepted but ignored:
        "[-c] [-C] [-I] [-l bad-block-file] [-b backup-boot-sector] "
        "[-m boot-msg-file] [-i volume-id] "

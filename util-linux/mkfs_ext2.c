@@ -159,7 +159,7 @@ enum {
 	OPT_b = 1 << 2,		// block size, in bytes
 	OPT_f = 1 << 3,
 	OPT_i = 1 << 4,		// bytes per inode
-	OPT_I = 1 << 5,
+	OPT_I = 1 << 5,		// custom inode size, in bytes
 	OPT_J = 1 << 6,
 	OPT_G = 1 << 7,
 	OPT_N = 1 << 8,
@@ -188,6 +188,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	unsigned i, pos, n;
 	unsigned bs, bpi;
 	unsigned blocksize, blocksize_log2;
+	unsigned inodesize, user_inodesize;
 	unsigned reserved_percent = 5;
 	unsigned long long kilobytes;
 	uint32_t nblocks, nblocks_full;
@@ -211,7 +212,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "-1:b+:m+:i+";
 	opts = getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
-		NULL, &bs, NULL, &bpi, NULL, NULL, NULL, NULL,
+		NULL, &bs, NULL, &bpi, &user_inodesize, NULL, NULL, NULL,
 		&reserved_percent, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
 	argv += optind; // argv[0] -- device
 
@@ -249,11 +250,15 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & OPT_i)
 		bytes_per_inode = bpi;
 
-	// Determine block size
+	// Determine block size and inode size
 	// block size is a multiple of 1024
+	// inode size is a multiple of 128
 	blocksize = 1024;
-	if (kilobytes >= 512*1024) // mke2fs 1.41.9 compat
+	inodesize = sizeof(struct ext2_inode); // 128
+	if (kilobytes >= 512*1024) { // mke2fs 1.41.9 compat
 		blocksize = 4096;
+		inodesize = 256;
+	}
 	if (EXT2_MAX_BLOCK_SIZE > 4096) {
 		// kilobytes >> 22 == size in 4gigabyte chunks.
 		// if size >= 16k gigs, blocksize must be increased.
@@ -269,6 +274,18 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	) {
 		bb_error_msg_and_die("blocksize %u is bad", blocksize);
 	}
+	// Do we have custom inode size?
+	if (opts & OPT_I) {
+		if (user_inodesize < sizeof(*inode)
+		 || user_inodesize > blocksize
+		 || (user_inodesize & (user_inodesize - 1)) // not power of 2
+		) {
+			bb_error_msg("-%c is bad", 'I');
+		} else {
+			inodesize = user_inodesize;
+		}
+	}
+
 	if ((int32_t)bytes_per_inode < blocksize)
 		bb_error_msg_and_die("-%c is bad", 'i');
 	// number of bits in one block, i.e. 8*blocksize
@@ -340,14 +357,10 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		if (inodes_per_group > blocks_per_group)
 			inodes_per_group = blocks_per_group;
 		// adjust inodes per group so they completely fill the inode table blocks in the descriptor
-//incompatibility on images >= 0.5GB:
-//difference in sizeof(*inode) sometimes
-//results in slightly bigger inodes_per_group here
-//compared to standard mke2fs:
-		inodes_per_group = (div_roundup(inodes_per_group * sizeof(*inode), blocksize) * blocksize) / sizeof(*inode);
+		inodes_per_group = (div_roundup(inodes_per_group * inodesize, blocksize) * blocksize) / inodesize;
 		// make sure the number of inodes per group is a multiple of 8
 		inodes_per_group &= ~7;
-		inode_table_blocks = div_roundup(inodes_per_group * sizeof(*inode), blocksize);
+		inode_table_blocks = div_roundup(inodes_per_group * inodesize, blocksize);
 
 		// to be useful, lost+found should occupy at least 2 blocks (but not exceeding 16*1024 bytes),
 		// and at most EXT2_NDIR_BLOCKS. So reserve these blocks right now
@@ -434,12 +447,12 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	// fill the superblock
 	sb = xzalloc(1024);
-	STORE_LE(sb->s_rev_level, 1); // revision 1 filesystem
+	STORE_LE(sb->s_rev_level, EXT2_DYNAMIC_REV); // revision 1 filesystem
 	STORE_LE(sb->s_magic, EXT2_SUPER_MAGIC);
-//incompatibility:
-//on images > 0.5GB, standard mke2fs uses 256 byte inodes.
-//we always use 128 byte ones:
-	STORE_LE(sb->s_inode_size, sizeof(*inode));
+	STORE_LE(sb->s_inode_size, inodesize);
+	// set "Required extra isize" and "Desired extra isize" fields to 28
+	if (inodesize != sizeof(*inode))
+		STORE_LE(sb->s_reserved[21], 0x001C001C);
 	STORE_LE(sb->s_first_ino, EXT2_GOOD_OLD_FIRST_INO);
 	STORE_LE(sb->s_log_block_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
 	STORE_LE(sb->s_log_frag_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
@@ -592,8 +605,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// dump root dir inode
 	STORE_LE(inode->i_links_count, 3); // "/.", "/..", "/lost+found/.." point to this inode
 	STORE_LE(inode->i_block[0], FETCH_LE32(gd[0].bg_inode_table) + inode_table_blocks);
-	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_ROOT_INO-1) * sizeof(*inode),
-				buf, sizeof(*inode));
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_ROOT_INO-1) * inodesize,
+				buf, inodesize);
 
 	// dump lost+found dir inode
 	STORE_LE(inode->i_links_count, 2); // both "/lost+found" and "/lost+found/." point to this inode
@@ -603,8 +616,8 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	for (i = 0; i < lost_and_found_blocks; ++i)
 		STORE_LE(inode->i_block[i], i + n); // use next block
 //bb_info_msg("LAST BLOCK USED[%u]", i + n);
-	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_GOOD_OLD_FIRST_INO-1) * sizeof(*inode),
-				buf, sizeof(*inode));
+	PUT(((uint64_t)FETCH_LE32(gd[0].bg_inode_table) * blocksize) + (EXT2_GOOD_OLD_FIRST_INO-1) * inodesize,
+				buf, inodesize);
 
 	// dump directories
 	memset(buf, 0, blocksize);
