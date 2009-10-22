@@ -43,22 +43,19 @@
 
 #include "libbb.h"
 
-#if ENABLE_LOCALE_SUPPORT
-#define isspace_given_isprint(c) isspace(c)
-#else
-#undef isspace
-#undef isprint
-#define isspace(c) ((((c) == ' ') || (((unsigned int)((c) - 9)) <= (13 - 9))))
-#define isprint(c) (((unsigned int)((c) - 0x20)) <= (0x7e - 0x20))
-#define isspace_given_isprint(c) ((c) == ' ')
+#if !ENABLE_LOCALE_SUPPORT
+# undef isprint
+# undef isspace
+# define isprint(c) ((unsigned)((c) - 0x20) <= (0x7e - 0x20))
+# define isspace(c) ((c) == ' ')
 #endif
 
 #if ENABLE_FEATURE_WC_LARGE
-#define COUNT_T unsigned long long
-#define COUNT_FMT "llu"
+# define COUNT_T unsigned long long
+# define COUNT_FMT "llu"
 #else
-#define COUNT_T unsigned
-#define COUNT_FMT "u"
+# define COUNT_T unsigned
+# define COUNT_FMT "u"
 #endif
 
 enum {
@@ -123,11 +120,11 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 			c = getc(fp);
 			if (isprint(c)) {
 				++linepos;
-				if (!isspace_given_isprint(c)) {
+				if (!isspace(c)) {
 					in_word = 1;
 					continue;
 				}
-			} else if (((unsigned int)(c - 9)) <= 4) {
+			} else if ((unsigned)(c - 9) <= 4) {
 				/* \t  9
 				 * \n 10
 				 * \v 11

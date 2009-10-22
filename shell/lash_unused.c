@@ -697,7 +697,7 @@ static char * strsep_space(char *string, int * ix)
 
 	/* Find the end of any whitespace trailing behind
 	 * the token and let that be part of the token */
-	while (string[*ix] && (isspace)(string[*ix]) ) {
+	while (string[*ix] && isspace(string[*ix])) {
 		(*ix)++;
 	}
 

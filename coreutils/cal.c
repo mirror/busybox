@@ -262,7 +262,7 @@ static void trim_trailing_spaces_and_print(char *s)
 	}
 	while (p != s) {
 		--p;
-		if (!(isspace)(*p)) {	/* We want the function... not the inline. */
+		if (!isspace(*p)) {
 			p[1] = '\0';
 			break;
 		}

@@ -1783,23 +1783,23 @@ static int st_test(char *p, int type, int dir, char *tested)
 
 	if (type == S_BEFORE_WS) {
 		c = ci;
-		test = ((!isspace(c)) || c == '\n');
+		test = (!isspace(c) || c == '\n');
 	}
 	if (type == S_TO_WS) {
 		c = c0;
-		test = ((!isspace(c)) || c == '\n');
+		test = (!isspace(c) || c == '\n');
 	}
 	if (type == S_OVER_WS) {
 		c = c0;
-		test = ((isspace(c)));
+		test = isspace(c);
 	}
 	if (type == S_END_PUNCT) {
 		c = ci;
-		test = ((ispunct(c)));
+		test = ispunct(c);
 	}
 	if (type == S_END_ALNUM) {
 		c = ci;
-		test = ((isalnum(c)) || c == '_');
+		test = (isalnum(c) || c == '_');
 	}
 	*tested = c;
 	return test;

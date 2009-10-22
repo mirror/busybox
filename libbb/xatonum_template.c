@@ -25,9 +25,8 @@ unsigned type FAST_FUNC xstrtou(_range_sfx)(const char *numstr, int base,
 	int old_errno;
 	char *e;
 
-	/* Disallow '-' and any leading whitespace. Make sure we get the
-	 * actual isspace function rather than a macro implementaion. */
-	if (*numstr == '-' || *numstr == '+' || (isspace)(*numstr))
+	/* Disallow '-' and any leading whitespace. */
+	if (*numstr == '-' || *numstr == '+' || isspace(*numstr))
 		goto inval;
 
 	/* Since this is a lib function, we're not allowed to reset errno to 0.

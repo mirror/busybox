@@ -423,10 +423,10 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 			if (*cmdstr == '\n' || *cmdstr == '\\') {
 				cmdstr++;
 				break;
-			} else if (isspace(*cmdstr))
-				cmdstr++;
-			else
+			}
+			if (!isspace(*cmdstr))
 				break;
+			cmdstr++;
 		}
 		sed_cmd->string = xstrdup(cmdstr);
 		/* "\anychar" -> "anychar" */

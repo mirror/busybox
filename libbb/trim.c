@@ -13,7 +13,6 @@
 void FAST_FUNC trim(char *s)
 {
 	size_t len = strlen(s);
-	size_t lws;
 
 	/* trim trailing whitespace */
 	while (len && isspace(s[len-1]))
@@ -21,10 +20,10 @@ void FAST_FUNC trim(char *s)
 
 	/* trim leading whitespace */
 	if (len) {
-		lws = strspn(s, " \n\r\t\v");
-		if (lws) {
-			len -= lws;
-			memmove(s, s + lws, len);
+		char *nws = skip_whitespace(s);
+		if ((nws - s) != 0) {
+			len -= (nws - s);
+			memmove(s, nws, len);
 		}
 	}
 	s[len] = '\0';

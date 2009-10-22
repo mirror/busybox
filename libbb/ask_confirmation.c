@@ -20,9 +20,7 @@ int FAST_FUNC bb_ask_confirmation(void)
 	int c;
 
 	while (((c = getchar()) != EOF) && (c != '\n')) {
-		/* Make sure we get the actual function call for isspace,
-		 * as speed is not critical here. */
-		if (first && !(isspace)(c)) {
+		if (first && !isspace(c)) {
 			--first;
 			if ((c == 'y') || (c == 'Y')) {
 				++retval;
