@@ -1576,13 +1576,22 @@ extern const char bb_default_login_shell[];
 #undef islower
 #undef isprint
 #undef ispunct
-#undef isspace
 #undef isupper
 #undef isxdigit
 
 /* This one is more efficient - we save ~400 bytes */
 #undef isdigit
 #define isdigit(a) ((unsigned)((a) - '0') <= 9)
+
+/* This one is more efficient too! ~200 bytes */
+/* In POSIX/C locale (the only locale we care about: do we REALLY want
+ * to allow Unicode whitespace in, say, .conf files? nuts!)
+ * isspace is only these chars: "\t\n\v\f\r" and space.
+ * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
+ * Use that.
+ */
+#undef isspace
+#define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
 
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
