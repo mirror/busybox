@@ -201,7 +201,6 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	uint32_t inode_table_blocks;
 	uint32_t lost_and_found_blocks;
 	time_t timestamp;
-	unsigned opts;
 	const char *label = "";
 	struct stat st;
 	struct ext2_super_block *sb; // superblock
@@ -210,8 +209,10 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	struct ext2_dir *dir;
 	uint8_t *buf;
 
+	// using global "option_mask32" instead of local "opts":
+	// we are register starved here
 	opt_complementary = "-1:b+:m+:i+";
-	opts = getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
+	/*opts =*/ getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
 		NULL, &bs, NULL, &bpi, &user_inodesize, NULL, NULL, NULL,
 		&reserved_percent, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
 	argv += optind; // argv[0] -- device
@@ -219,7 +220,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// check the device is a block device
 	xmove_fd(xopen(argv[0], O_WRONLY), fd);
 	fstat(fd, &st);
-	if (!S_ISBLK(st.st_mode) && !(opts & OPT_F))
+	if (!S_ISBLK(st.st_mode) && !(option_mask32 & OPT_F))
 		bb_error_msg_and_die("not a block device");
 
 	// check if it is mounted
@@ -233,7 +234,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		kilobytes = xatoull(argv[1]);
 		// seek past end fails on block devices but works on files
 		if (lseek(fd, kilobytes * 1024 - 1, SEEK_SET) != (off_t)-1) {
-			if (!(opts & OPT_n))
+			if (!(option_mask32 & OPT_n))
 				xwrite(fd, "", 1); // file grows if needed
 		}
 		//else {
@@ -248,7 +249,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		bytes_per_inode = 4096;
 	if (kilobytes < 3*1024)
 		bytes_per_inode = 8192;
-	if (opts & OPT_i)
+	if (option_mask32 & OPT_i)
 		bytes_per_inode = bpi;
 
 	// Determine block size and inode size
@@ -267,7 +268,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		while ((kilobytes >> 22) >= blocksize)
 			blocksize *= 2;
 	}
-	if (opts & OPT_b)
+	if (option_mask32 & OPT_b)
 		blocksize = bs;
 	if (blocksize < EXT2_MIN_BLOCK_SIZE
 	 || blocksize > EXT2_MAX_BLOCK_SIZE
@@ -276,7 +277,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("blocksize %u is bad", blocksize);
 	}
 	// Do we have custom inode size?
-	if (opts & OPT_I) {
+	if (option_mask32 & OPT_I) {
 		if (user_inodesize < sizeof(*inode)
 		 || user_inodesize > blocksize
 		 || (user_inodesize & (user_inodesize - 1)) // not power of 2
@@ -432,7 +433,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	}
 	bb_putchar('\n');
 
-	if (opts & OPT_n) {
+	if (option_mask32 & OPT_n) {
 		if (ENABLE_FEATURE_CLEAN_UP)
 			close(fd);
 		return EXIT_SUCCESS;
