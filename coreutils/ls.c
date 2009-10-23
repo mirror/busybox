@@ -633,7 +633,7 @@ static void showdirs(struct dnode **dn, int first)
 		}
 		subdnp = list_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
-		if (all_fmt & STYLE_LONG)
+		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
 #endif
 		if (nfiles > 0) {
