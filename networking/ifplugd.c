@@ -361,7 +361,7 @@ static smallint detect_link_ethtool(void)
 	set_ifreq_to_ifname(&ifreq);
 
 	edata.cmd = ETHTOOL_GLINK;
-	ifreq.ifr_data = &edata;
+	ifreq.ifr_data = (void*) &edata;
 
 	if (network_ioctl(SIOCETHTOOL, &ifreq) < 0) {
 		bb_perror_msg("ETHTOOL_GLINK failed");
