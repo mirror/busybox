@@ -1362,7 +1362,7 @@
      "\n	DIR	Change root to this directory" \
 
 #define ftpget_trivial_usage \
-       "[OPTIONS] HOST LOCAL_FILE REMOTE_FILE"
+       "[OPTIONS] HOST [LOCAL_FILE] REMOTE_FILE"
 #define ftpget_full_usage "\n\n" \
        "Retrieve a remote file via FTP\n" \
      "\nOptions:" \
@@ -1382,7 +1382,7 @@
 	)
 
 #define ftpput_trivial_usage \
-       "[OPTIONS] HOST REMOTE_FILE LOCAL_FILE"
+       "[OPTIONS] HOST [REMOTE_FILE] LOCAL_FILE"
 #define ftpput_full_usage "\n\n" \
        "Store a local file on a remote machine via FTP\n" \
      "\nOptions:" \

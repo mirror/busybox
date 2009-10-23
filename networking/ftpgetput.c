@@ -306,7 +306,7 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
 	applet_long_options = ftpgetput_longopts;
 #endif
-	opt_complementary = "=3:vv:cc"; /* must have 3 params; -v and -c count */
+	opt_complementary = "-2:vv:cc"; /* must have 2 to 3 params; -v and -c count */
 	opt = getopt32(argv, "cvu:p:P:", &user, &password, &port,
 					&verbose_flag, &do_continue);
 	argv += optind;
@@ -321,5 +321,5 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	ftp_login();
-	return ftp_action(argv[1], argv[2]);
+	return ftp_action(argv[1], argv[2] ? argv[2] : argv[1]);
 }
