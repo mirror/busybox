@@ -2031,7 +2031,6 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 {
 #define tspl (G.exec_builtin__tspl)
 
-	int (*to_xxx)(int);
 	var *tv;
 	node *an[4];
 	var *av[4];
@@ -2061,7 +2060,8 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	if ((uint32_t)nargs < (info >> 30))
 		syntax_error(EMSG_TOO_FEW_ARGS);
 
-	switch (info & OPNMASK) {
+	info &= OPNMASK;
+	switch (info) {
 
 	case B_a2:
 #if ENABLE_FEATURE_AWK_LIBM
@@ -2126,15 +2126,12 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 
 	case B_lo:
-		to_xxx = tolower;
-		goto lo_cont;
-
 	case B_up:
-		to_xxx = toupper;
- lo_cont:
 		s1 = s = xstrdup(as[0]);
 		while (*s1) {
-			*s1 = (*to_xxx)(*s1);
+			//*s1 = (info == B_up) ? toupper(*s1) : tolower(*s1);
+			if ((unsigned char)((*s1 | 0x20) - 'a') <= ('z' - 'a'))
+				*s1 = (info == B_up) ? (*s1 & 0xdf) : (*s1 | 0x20);
 			s1++;
 		}
 		setvar_p(res, s);

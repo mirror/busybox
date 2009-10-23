@@ -1242,10 +1242,8 @@ int FAST_FUNC in_ib(const char *bufp, struct sockaddr *sap)
 		c = *bufp++;
 		if (isdigit(c))
 			val = c - '0';
-		else if (c >= 'a' && c <= 'f')
-			val = c - 'a' + 10;
-		else if (c >= 'A' && c <= 'F')
-			val = c - 'A' + 10;
+		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+			val = (c|0x20) - ('a' - 10);
 		else {
 			errno = EINVAL;
 			return -1;
@@ -1254,17 +1252,15 @@ int FAST_FUNC in_ib(const char *bufp, struct sockaddr *sap)
 		c = *bufp;
 		if (isdigit(c))
 			val |= c - '0';
-		else if (c >= 'a' && c <= 'f')
-			val |= c - 'a' + 10;
-		else if (c >= 'A' && c <= 'F')
-			val |= c - 'A' + 10;
-		else if (c == ':' || c == 0)
+		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+			val |= (c|0x20) - ('a' - 10);
+		else if (c == ':' || c == '\0')
 			val >>= 4;
 		else {
 			errno = EINVAL;
 			return -1;
 		}
-		if (c != 0)
+		if (c != '\0')
 			bufp++;
 		*ptr++ = (unsigned char) (val & 0377);
 		i++;
