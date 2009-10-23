@@ -1601,8 +1601,28 @@ extern const char bb_default_login_shell[];
  * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
  */
 #define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
-#define isalnum(a) ({ unsigned char bb__isalnum = ((a)|0x20) - '0'; bb__isalnum <= 9 || (bb__isalnum - ('a' - '0')) <= 25; })
-#define isxdigit(a) ({ unsigned char bb__isxdigit = ((a)|0x20) - '0'; bb__isxdigit <= 9 || (bb__isxdigit - ('a' - '0')) <= 5; })
+
+// Bigger code:
+//#define isalnum(a) ({ unsigned char bb__isalnum = (a) - '0'; bb__isalnum <= 9 || ((bb__isalnum - ('A' - '0')) & 0xdf) <= 25; }) */
+#define isalnum(a) bb_ascii_isalnum(a)
+static ALWAYS_INLINE int bb_ascii_isalnum(unsigned char a)
+{
+	unsigned char b = a - '0';
+	if (b <= 9)
+		return (b <= 9);
+	b = (a|0x20) - 'a';
+	return b <= 'z' - 'a';
+}
+#define isxdigit(a) bb_ascii_isxdigit(a)
+static ALWAYS_INLINE int bb_ascii_isxdigit(unsigned char a)
+{
+	unsigned char b = a - '0';
+	if (b <= 9)
+		return (b <= 9);
+	b = (a|0x20) - 'a';
+	return b <= 'f' - 'a';
+}
+
 // Unsafe wrt NUL!
 //#define ispunct(a) (strchr("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a)) != NULL)
 #define ispunct(a) (strchrnul("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a))[0])
