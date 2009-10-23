@@ -1566,8 +1566,11 @@ extern const char bb_default_login_shell[];
 #define RB_POWER_OFF   0x4321fedc
 #endif
 
-/* Make sure we call functions instead of macros.  */
+/* Make sure we call functions instead of these macros */
 #undef isalnum
+#undef ispunct
+#undef isxdigit
+/* and these we'll redefine */
 #undef isalpha
 #undef isascii
 #undef isblank
@@ -1575,24 +1578,31 @@ extern const char bb_default_login_shell[];
 #undef isgraph
 #undef islower
 #undef isprint
-#undef ispunct
 #undef isupper
-#undef isxdigit
+#undef isdigit
+#undef isspace
 
 /* This one is more efficient - we save ~500 bytes.
  * BTW, x86 likes (unsigned char) cast more than (unsigned). */
-#undef isdigit
 #define isdigit(a) ((unsigned char)((a) - '0') <= 9)
 
-/* This one is more efficient too! ~200 bytes */
+#define isascii(a) ((unsigned char)(a) <= 0x7f)
+#define isgraph(a) ((unsigned char)(a) > ' ')
+#define isprint(a) ((unsigned char)(a) >= ' ')
+#define isupper(a) ((unsigned char)((a) - 'A') <= ('Z' - 'A'))
+#define islower(a) ((unsigned char)((a) - 'a') <= ('z' - 'a'))
+#define isalpha(a) ((unsigned char)(((a) | 0x20) - 'a') <= ('z' - 'a'))
+#define isblank(a) ({ unsigned char bb__isblank = (a); bb__isblank == ' ' || bb__isblank == '\t'; })
+#define iscntrl(a) ({ unsigned char bb__iscntrl = (a); bb__iscntrl < ' ' || bb__iscntrl == 0x7f; })
+
 /* In POSIX/C locale (the only locale we care about: do we REALLY want
  * to allow Unicode whitespace in, say, .conf files? nuts!)
  * isspace is only these chars: "\t\n\v\f\r" and space.
  * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
  * Use that.
  */
-#undef isspace
 #define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
+
 
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 

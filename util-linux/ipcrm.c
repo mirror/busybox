@@ -122,7 +122,7 @@ int ipcrm_main(int argc, char **argv)
 	while ((c = getopt(argc, argv, "q:m:s:Q:M:S:h?")) != -1) {
 		int result;
 		int id = 0;
-		int iskey = (isupper)(c);
+		int iskey = isupper(c);
 
 		/* needed to delete semaphores */
 		union semun arg;

@@ -841,7 +841,7 @@ static int expand_arguments(char *command)
 				num_skip_chars = 1;
 			} else {
 				src = dst + 1;
-				while ((isalnum)(*src) || *src == '_') src++;
+				while (isalnum(*src) || *src == '_') src++;
 			}
 			if (src == NULL) {
 				src = dst+dstlen;

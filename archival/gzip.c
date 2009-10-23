@@ -1173,7 +1173,7 @@ static void gen_codes(ct_data * tree, int max_code)
 
 		Tracec(tree != G2.static_ltree,
 			   (stderr, "\nn %3d %c l %2d c %4x (%x) ", n,
-				(isgraph(n) ? n : ' '), len, tree[n].Code,
+				(n > ' ' ? n : ' '), len, tree[n].Code,
 				next_code[len] - 1));
 	}
 }
@@ -1541,7 +1541,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 		lc = G1.l_buf[lx++];
 		if ((flag & 1) == 0) {
 			SEND_CODE(lc, ltree);	/* send a literal byte */
-			Tracecv(isgraph(lc), (stderr, " '%c' ", lc));
+			Tracecv(lc > ' ', (stderr, " '%c' ", lc));
 		} else {
 			/* Here, lc is the match length - MIN_MATCH */
 			code = G2.length_code[lc];

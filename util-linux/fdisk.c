@@ -460,7 +460,7 @@ read_line(const char *prompt)
 		line_buffer[--sz] = '\0';
 
 	line_ptr = line_buffer;
-	while (*line_ptr && !isgraph(*line_ptr))
+	while (*line_ptr != '\0' && (unsigned char)*line_ptr <= ' ')
 		line_ptr++;
 	return *line_ptr;
 }

@@ -225,19 +225,22 @@ static void get_username_or_die(char *buf, int size_buf)
 	/* skip whitespace */
 	do {
 		c = getchar();
-		if (c == EOF) exit(EXIT_FAILURE);
+		if (c == EOF)
+			exit(EXIT_FAILURE);
 		if (c == '\n') {
-			if (!--cntdown) exit(EXIT_FAILURE);
+			if (!--cntdown)
+				exit(EXIT_FAILURE);
 			goto prompt;
 		}
-	} while (isspace(c));
+	} while (isspace(c)); /* maybe isblank? */
 
 	*buf++ = c;
 	if (!fgets(buf, size_buf-2, stdin))
 		exit(EXIT_FAILURE);
 	if (!strchr(buf, '\n'))
 		exit(EXIT_FAILURE);
-	while (isgraph(*buf)) buf++;
+	while ((unsigned char)*buf > ' ')
+		buf++;
 	*buf = '\0';
 }
 

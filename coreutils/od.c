@@ -20,9 +20,6 @@
 
 #include "dump.h"
 
-#define isdecdigit(c) isdigit(c)
-#define ishexdigit(c) (isxdigit)(c)
-
 static void
 odoffset(dumper_t *dumper, int argc, char ***argvp)
 {
@@ -51,8 +48,8 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 
 	if ((*p != '+')
 		&& (argc < 2
-			|| (!isdecdigit(p[0])
-				&& ((p[0] != 'x') || !ishexdigit(p[1])))))
+			|| (!isdigit(p[0])
+				&& ((p[0] != 'x') || !isxdigit(p[1])))))
 		return;
 
 	base = 0;
@@ -62,7 +59,7 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 	 */
 	if (p[0] == '+')
 		++p;
-	if (p[0] == 'x' && ishexdigit(p[1])) {
+	if (p[0] == 'x' && isxdigit(p[1])) {
 		++p;
 		base = 16;
 	} else if (p[0] == '0' && p[1] == 'x') {
@@ -72,10 +69,10 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 
 	/* skip over the number */
 	if (base == 16)
-		for (num = p; ishexdigit(*p); ++p)
+		for (num = p; isxdigit(*p); ++p)
 			continue;
 	else
-		for (num = p; isdecdigit(*p); ++p)
+		for (num = p; isdigit(*p); ++p)
 			continue;
 
 	/* check for no number */
