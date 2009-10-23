@@ -40,9 +40,14 @@ static void write_wtmp(void)
 #define RB_HALT_SYSTEM RB_HALT
 #endif
 
-#ifndef RB_POWER_OFF
-#define RB_POWER_OFF RB_POWERDOWN
+#ifndef RB_POWERDOWN
+/* Stop system and switch power off if possible.  */
+# define RB_POWERDOWN   0x4321fedc
 #endif
+#ifndef RB_POWER_OFF
+# define RB_POWER_OFF RB_POWERDOWN
+#endif
+
 
 int halt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int halt_main(int argc UNUSED_PARAM, char **argv)

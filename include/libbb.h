@@ -30,8 +30,8 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #if defined __FreeBSD__
-#include <netinet/in.h>
-#include <arpa/inet.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
 #endif
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -45,7 +45,11 @@
 #include <limits.h>
 #include <sys/param.h>
 #ifndef PATH_MAX
-#define PATH_MAX 256
+# define PATH_MAX 256
+#endif
+
+#ifndef BUFSIZ
+# define BUFSIZ 4096
 #endif
 
 #ifdef HAVE_MNTENT_H
@@ -64,13 +68,13 @@
 #endif
 
 #if ENABLE_LOCALE_SUPPORT
-#include <locale.h>
+# include <locale.h>
 #else
-#define setlocale(x,y) ((void)0)
+# define setlocale(x,y) ((void)0)
 #endif
 
 #ifdef DMALLOC
-#include <dmalloc.h>
+# include <dmalloc.h>
 #endif
 
 #include <pwd.h>
@@ -1478,9 +1482,6 @@ extern const int const_int_0;
 extern const int const_int_1;
 
 
-#ifndef BUFSIZ
-#define BUFSIZ 4096
-#endif
 /* Providing hard guarantee on minimum size (think of BUFSIZ == 128) */
 enum { COMMON_BUFSIZE = (BUFSIZ >= 256*sizeof(void*) ? BUFSIZ+1 : 256*sizeof(void*)) };
 extern char bb_common_bufsiz1[COMMON_BUFSIZE];
@@ -1561,10 +1562,8 @@ extern const char bb_default_login_shell[];
 #define DEV_CONSOLE "/dev/console"
 
 
-#ifndef RB_POWER_OFF
-/* Stop system and switch power off if possible.  */
-#define RB_POWER_OFF   0x4321fedc
-#endif
+#define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
+
 
 /* We redefine ctype macros. Unicode-correct handling of char types
  * can't be done with such byte-oriented operations anyway,
@@ -1603,7 +1602,7 @@ extern const char bb_default_login_shell[];
 #define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
 
 // Bigger code:
-//#define isalnum(a) ({ unsigned char bb__isalnum = (a) - '0'; bb__isalnum <= 9 || ((bb__isalnum - ('A' - '0')) & 0xdf) <= 25; }) */
+//#define isalnum(a) ({ unsigned char bb__isalnum = (a) - '0'; bb__isalnum <= 9 || ((bb__isalnum - ('A' - '0')) & 0xdf) <= 25; })
 #define isalnum(a) bb_ascii_isalnum(a)
 static ALWAYS_INLINE int bb_ascii_isalnum(unsigned char a)
 {
@@ -1643,9 +1642,6 @@ static ALWAYS_INLINE unsigned char bb_ascii_tolower(unsigned char a)
 		a += 'a' - 'A';
 	return a;
 }
-
-
-#define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
 
 POP_SAVED_FUNCTION_VISIBILITY
