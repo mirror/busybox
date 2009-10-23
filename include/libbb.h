@@ -1566,42 +1566,63 @@ extern const char bb_default_login_shell[];
 #define RB_POWER_OFF   0x4321fedc
 #endif
 
-/* Make sure we call functions instead of these macros */
+/* We redefine ctype macros. Unicode-correct handling of char types
+ * can't be done with such byte-oriented operations anyway,
+ * we don't lose anything.
+ */
 #undef isalnum
-#undef ispunct
-#undef isxdigit
-/* and these we'll redefine */
 #undef isalpha
 #undef isascii
 #undef isblank
 #undef iscntrl
+#undef isdigit
 #undef isgraph
 #undef islower
 #undef isprint
-#undef isupper
-#undef isdigit
+#undef ispunct
 #undef isspace
+#undef isupper
+#undef isxdigit
+#undef toupper
+#undef tolower
 
-/* This one is more efficient - we save ~500 bytes.
+/* We save ~500 bytes on isdigit alone.
  * BTW, x86 likes (unsigned char) cast more than (unsigned). */
 #define isdigit(a) ((unsigned char)((a) - '0') <= 9)
-
 #define isascii(a) ((unsigned char)(a) <= 0x7f)
 #define isgraph(a) ((unsigned char)(a) > ' ')
 #define isprint(a) ((unsigned char)(a) >= ' ')
 #define isupper(a) ((unsigned char)((a) - 'A') <= ('Z' - 'A'))
 #define islower(a) ((unsigned char)((a) - 'a') <= ('z' - 'a'))
-#define isalpha(a) ((unsigned char)(((a) | 0x20) - 'a') <= ('z' - 'a'))
+#define isalpha(a) ((unsigned char)(((a)|0x20) - 'a') <= ('z' - 'a'))
 #define isblank(a) ({ unsigned char bb__isblank = (a); bb__isblank == ' ' || bb__isblank == '\t'; })
 #define iscntrl(a) ({ unsigned char bb__iscntrl = (a); bb__iscntrl < ' ' || bb__iscntrl == 0x7f; })
-
-/* In POSIX/C locale (the only locale we care about: do we REALLY want
- * to allow Unicode whitespace in, say, .conf files? nuts!)
- * isspace is only these chars: "\t\n\v\f\r" and space.
+/* In POSIX/C locale isspace is only these chars: "\t\n\v\f\r" and space.
  * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
- * Use that.
  */
 #define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
+#define isalnum(a) ({ unsigned char bb__isalnum = ((a)|0x20) - '0'; bb__isalnum <= 9 || (bb__isalnum - ('a' - '0')) <= 25; })
+#define isxdigit(a) ({ unsigned char bb__isxdigit = ((a)|0x20) - '0'; bb__isxdigit <= 9 || (bb__isxdigit - ('a' - '0')) <= 5; })
+// Unsafe wrt NUL!
+//#define ispunct(a) (strchr("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a)) != NULL)
+#define ispunct(a) (strchrnul("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a))[0])
+
+#define toupper(a) bb_ascii_toupper(a)
+static ALWAYS_INLINE unsigned char bb_ascii_toupper(unsigned char a)
+{
+	unsigned char b = a - 'a';
+	if (b <= ('z' - 'a'))
+		a -= 'a' - 'A';
+	return a;
+}
+#define tolower(a) bb_ascii_tolower(a)
+static ALWAYS_INLINE unsigned char bb_ascii_tolower(unsigned char a)
+{
+	unsigned char b = a - 'A';
+	if (b <= ('Z' - 'A'))
+		a += 'a' - 'A';
+	return a;
+}
 
 
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
