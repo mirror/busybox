@@ -673,17 +673,27 @@
 #define date_full_usage "\n\n" \
        "Display time (using +FMT), or set time\n" \
      "\nOptions:" \
+	IF_NOT_LONG_OPTS( \
      "\n	[-s] TIME	Set time to TIME" \
      "\n	-u		Work in UTC (don't convert to local time)" \
-     "\n	-R		Output RFC-822 compliant date string" \
+     "\n	-R		Output RFC-2822 compliant date string" \
+	) IF_LONG_OPTS( \
+     "\n	[-s,--set] TIME	Set time to TIME" \
+     "\n	-u,--utc		Work in UTC (don't convert to local time)" \
+     "\n	-R,--rfc-2822		Output RFC-2822 compliant date string" \
+	) \
 	IF_FEATURE_DATE_ISOFMT( \
      "\n	-I[SPEC]	Output ISO-8601 compliant date string" \
      "\n			SPEC='date' (default) for date only," \
      "\n			'hours', 'minutes', or 'seconds' for date and" \
      "\n			time to the indicated precision" \
-	) \
+	) IF_NOT_LONG_OPTS( \
      "\n	-r FILE		Display last modification time of FILE" \
      "\n	-d TIME		Display TIME, not 'now'" \
+	) IF_LONG_OPTS( \
+     "\n	-r,--reference FILE		Display last modification time of FILE" \
+     "\n	-d,--date TIME		Display TIME, not 'now'" \
+	) \
 	IF_FEATURE_DATE_ISOFMT( \
      "\n	-D FMT		Use FMT for -d TIME conversion" \
 	) \

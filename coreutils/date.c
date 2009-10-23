@@ -69,6 +69,18 @@ static void maybe_set_utc(int opt)
 		putenv((char*)"TZ=UTC0");
 }
 
+#if ENABLE_LONG_OPTS
+static const char date_longopts[] ALIGN1 =
+		"rfc-822\0" No_argument "R"
+		"rfc-2822\0" No_argument "R"
+		"set\0" Required_argument "s"
+		"utc\0" No_argument "u"
+		/*"universal\0" No_argument "u"*/
+		"date\0" Required_argument "d"
+		"reference\0" Required_argument "r"
+		;
+#endif
+
 int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int date_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -84,6 +96,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 	opt_complementary = "d--s:s--d"
 		IF_FEATURE_DATE_ISOFMT(":R--I:I--R");
+	IF_LONG_OPTS(applet_long_options = date_longopts;)
 	opt = getopt32(argv, "Rs:ud:r:"
 			IF_FEATURE_DATE_ISOFMT("I::D:"),
 			&date_str, &date_str, &filename
