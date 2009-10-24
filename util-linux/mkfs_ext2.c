@@ -414,7 +414,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		, inodes_per_group * ngroups, nblocks
 		, nreserved, reserved_percent
 		, first_block
-		, group_desc_blocks * (blocksize / sizeof(*gd)) * blocks_per_group
+		, group_desc_blocks * (blocksize / (unsigned)sizeof(*gd)) * blocks_per_group
 		, ngroups
 		, blocks_per_group, blocks_per_group
 		, inodes_per_group
