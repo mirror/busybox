@@ -898,7 +898,7 @@
      "\n	-d	Daemonize" \
 
 #define dos2unix_trivial_usage \
-       "[OPTION] [FILE]"
+       "[OPTIONS] [FILE]"
 #define dos2unix_full_usage "\n\n" \
        "Convert FILE in-place from DOS to Unix format.\n" \
        "When no file is given, use stdin/stdout.\n" \
@@ -907,7 +907,7 @@
      "\n	-d	unix2dos" \
 
 #define unix2dos_trivial_usage \
-       "[OPTION] [FILE]"
+       "[OPTIONS] [FILE]"
 #define unix2dos_full_usage "\n\n" \
        "Convert FILE in-place from Unix to DOS format.\n" \
        "When no file is given, use stdin/stdout.\n" \
@@ -3250,12 +3250,21 @@
 	)
 
 #define patch_trivial_usage \
-       "[-p NUM] [-i DIFF] [-R] [-N]"
+       "[OPTIONS] [ORIGFILE [PATCHFILE]]"
 #define patch_full_usage "\n\n" \
+	IF_LONG_OPTS( \
+       "	-p,--strip NUM	Strip NUM leading components from file names" \
+     "\n	-i,--input DIFF	Read DIFF instead of stdin" \
+     "\n	-R,--reverse	Reverse patch" \
+     "\n	-N,--forward	Ignore already applied patches" \
+     "\n	--dry-run	Don't actually change files" \
+	) \
+	IF_NOT_LONG_OPTS( \
        "	-p NUM	Strip NUM leading components from file names" \
      "\n	-i DIFF	Read DIFF instead of stdin" \
      "\n	-R	Reverse patch" \
      "\n	-N	Ignore already applied patches" \
+	)
 
 #define patch_example_usage \
        "$ patch -p1 < example.diff\n" \
