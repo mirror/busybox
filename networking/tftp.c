@@ -572,7 +572,7 @@ static int tftp_protocol(
 	strcpy((char*)error_pkt_str, bb_msg_read_error);
  send_err_pkt:
 	if (error_pkt_str[0])
-		bb_error_msg((char*)error_pkt_str);
+		bb_error_msg("%s", (char*)error_pkt_str);
 	error_pkt[1] = TFTP_ERROR;
 	xsendto(socket_fd, error_pkt, 4 + 1 + strlen((char*)error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);

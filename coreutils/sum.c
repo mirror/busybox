@@ -41,7 +41,7 @@ static unsigned sum_file(const char *file, unsigned type)
 			if (!bytes_read && !r)
 				/* no error */
 				break;
-			bb_perror_msg(file);
+			bb_simple_perror_msg(file);
 			return 0;
 		}
 
