@@ -16,11 +16,17 @@
 
 /*
  * Usage and known bugs:
- * Terminal key codes are not extensive, and more will probably
- * need to be added. This version was created on Debian GNU/Linux 2.x.
+ * Terminal key codes are not extensive, more needs to be added.
+ * This version was created on Debian GNU/Linux 2.x.
  * Delete, Backspace, Home, End, and the arrow keys were tested
  * to work in an Xterm and console. Ctrl-A also works as Home.
  * Ctrl-E also works as End.
+ *
+ * The following readline-like commands are not implemented:
+ * ESC-b -- Move back one word
+ * ESC-f -- Move forward one word
+ * ESC-d -- Delete forward one word
+ * CTL-t -- Transpose two characters
  *
  * lineedit does not know that the terminal escape sequences do not
  * take up space on the screen. The redisplay code assumes, unless
@@ -64,11 +70,9 @@
 #if ENABLE_FEATURE_ASSUME_UNICODE
 # define BB_NUL L'\0'
 # define CHAR_T wchar_t
-# define BB_isspace(c) iswspace(c)
-# define BB_isalnum(c) iswalnum(c)
-# define BB_ispunct(c) iswpunct(c)
-# define BB_isprint(c) iswprint(c)
-/* this catches bugs */
+static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
+static bool BB_isalnum(CHAR_T c) { return ((unsigned)c < 256 && isalnum(c)); }
+static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # undef isspace
 # undef isalnum
 # undef ispunct
@@ -83,11 +87,6 @@
 # define BB_isspace(c) isspace(c)
 # define BB_isalnum(c) isalnum(c)
 # define BB_ispunct(c) ispunct(c)
-# if ENABLE_LOCALE_SUPPORT
-#  define BB_isprint(c) isprint(c)
-# else
-#  define BB_isprint(c) ((c) >= ' ' && (c) != ((unsigned char)'\233'))
-# endif
 #endif
 
 
@@ -1302,24 +1301,10 @@ static void remember_in_history(char *str)
 #endif /* MAX_HISTORY */
 
 
+#if ENABLE_FEATURE_EDITING_VI
 /*
- * This function is used to grab a character buffer
- * from the input file descriptor and allows you to
- * a string with full command editing (sort of like
- * a mini readline).
- *
- * The following standard commands are not implemented:
- * ESC-b -- Move back one word
- * ESC-f -- Move forward one word
- * ESC-d -- Delete back one word
- * ESC-h -- Delete forward one word
- * CTL-t -- Transpose two characters
- *
- * Minimalist vi-style command line editing available if configured.
  * vi mode implemented 2005 by Paul Fox <pgf@foxharp.boston.ma.us>
  */
-
-#if ENABLE_FEATURE_EDITING_VI
 static void
 vi_Word_motion(int eat)
 {
@@ -1427,6 +1412,58 @@ vi_back_motion(void)
 	}
 }
 #endif
+
+/* Modelled after bash 4.0 behavior of Ctrl-<arrow> */
+static void ctrl_left(void)
+{
+	CHAR_T *command = command_ps;
+
+	while (1) {
+		CHAR_T c;
+
+		input_backward(1);
+		if (cursor == 0)
+			break;
+		c = command[cursor];
+		if (c != ' ' && !BB_ispunct(c)) {
+			/* we reached a "word" delimited by spaces/punct.
+			 * go to its beginning */
+			while (1) {
+				c = command[cursor - 1];
+				if (c == ' ' || BB_ispunct(c))
+					break;
+				input_backward(1);
+				if (cursor == 0)
+					break;
+			}
+			break;
+		}
+	}
+}
+static void ctrl_right(void)
+{
+	CHAR_T *command = command_ps;
+
+	while (1) {
+		CHAR_T c;
+
+		c = command[cursor];
+		if (c == BB_NUL)
+			break;
+		if (c != ' ' && !BB_ispunct(c)) {
+			/* we reached a "word" delimited by spaces/punct.
+			 * go to its end + 1 */
+			while (1) {
+				input_forward();
+				c = command[cursor];
+				if (c == BB_NUL || c == ' ' || BB_ispunct(c))
+					break;
+			}
+			break;
+		}
+		input_forward();
+	}
+}
 
 
 /*
@@ -2027,6 +2064,12 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			break;
 		case KEYCODE_LEFT:
 			input_backward(1);
+			break;
+		case KEYCODE_CTRL_LEFT:
+			ctrl_left();
+			break;
+		case KEYCODE_CTRL_RIGHT:
+			ctrl_right();
 			break;
 		case KEYCODE_DELETE:
 			input_delete(0);
