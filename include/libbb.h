@@ -1222,7 +1222,7 @@ enum {
 	KEYCODE_FUN11    = -22,
 	KEYCODE_FUN12    = -23,
 #endif
-	KEYCODE_CURSOR_POS = -0x100,
+	KEYCODE_CURSOR_POS = -0x100, /* 0xfff..fff00 */
 	/* How long is the longest ESC sequence we know?
 	 * We want it big enough to be able to contain
 	 * cursor position sequence "ESC [ 9999 ; 9999 R"

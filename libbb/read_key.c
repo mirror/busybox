@@ -83,8 +83,8 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 		/* ESC [ 2 4 ; 5 ~ - Ctrl-F12 */
 		/* ESC [ 2 4 ; 6 ~ - Ctrl-Shift-F12 */
 #endif
-		'[','1',';','5','A' |0x80,KEYCODE_CTRL_UP   ,
-		'[','1',';','5','B' |0x80,KEYCODE_CTRL_DOWN ,
+		/* '[','1',';','5','A' |0x80,KEYCODE_CTRL_UP   , - unused */
+		/* '[','1',';','5','B' |0x80,KEYCODE_CTRL_DOWN , - unused */
 		'[','1',';','5','C' |0x80,KEYCODE_CTRL_RIGHT,
 		'[','1',';','5','D' |0x80,KEYCODE_CTRL_LEFT ,
 		0
