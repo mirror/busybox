@@ -27,7 +27,11 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 #if 0
 		'O','P'        |0x80,KEYCODE_FUN1    ,
 		/* [ESC] ESC O [2] P - [Alt-][Shift-]F1 */
-		/* Ctrl- seems to not affect sequences */
+		/* ESC [ O 1 ; 2 P - Shift-F1 */
+		/* ESC [ O 1 ; 3 P - Alt-F1 */
+		/* ESC [ O 1 ; 4 P - Alt-Shift-F1 */
+		/* ESC [ O 1 ; 5 P - Ctrl-F1 */
+		/* ESC [ O 1 ; 6 P - Ctrl-Shift-F1 */
 		'O','Q'        |0x80,KEYCODE_FUN2    ,
 		'O','R'        |0x80,KEYCODE_FUN3    ,
 		'O','S'        |0x80,KEYCODE_FUN4    ,
@@ -73,12 +77,18 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 		'[','2','1','~'|0x80,KEYCODE_FUN10   ,
 		'[','2','3','~'|0x80,KEYCODE_FUN11   ,
 		'[','2','4','~'|0x80,KEYCODE_FUN12   ,
+		/* ESC [ 2 4 ; 2 ~ - Shift-F12 */
+		/* ESC [ 2 4 ; 3 ~ - Alt-F12 */
+		/* ESC [ 2 4 ; 4 ~ - Alt-Shift-F12 */
+		/* ESC [ 2 4 ; 5 ~ - Ctrl-F12 */
+		/* ESC [ 2 4 ; 6 ~ - Ctrl-Shift-F12 */
 #endif
 		'[','1',';','5','A' |0x80,KEYCODE_CTRL_UP   ,
 		'[','1',';','5','B' |0x80,KEYCODE_CTRL_DOWN ,
 		'[','1',';','5','C' |0x80,KEYCODE_CTRL_RIGHT,
 		'[','1',';','5','D' |0x80,KEYCODE_CTRL_LEFT ,
 		0
+		/* ESC [ Z - Shift-Tab */
 	};
 
 	errno = 0;
