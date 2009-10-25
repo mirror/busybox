@@ -51,6 +51,12 @@ enum {
 #endif
 };
 
+#if ENABLE_FEATURE_INSMOD_TRY_MMAP
+void* FAST_FUNC try_to_mmap_module(const char *filename, size_t *image_size_p);
+#else
+# define try_to_mmap_module(filename, image_size) NULL
+#endif
+
 /* Return:
  * 0 on success,
  * -errno on open/read error,

@@ -3783,12 +3783,20 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	int m_has_modinfo;
 #endif
 	char *image;
-	size_t image_size = 64 * 1024 * 1024;
+	size_t image_size;
+	bool mmaped;
 
-	/* Load module into memory and unzip if compressed */
-	image = xmalloc_open_zipped_read_close(m_filename, &image_size);
-	if (!image)
-		return EXIT_FAILURE;
+	image_size = INT_MAX - 4095;
+	mmaped = 0;
+	image = try_to_mmap_module(m_filename, &image_size);
+	if (image) {
+		mmaped = 1;
+	} else {
+		/* Load module into memory and unzip if compressed */
+		image = xmalloc_open_zipped_read_close(m_filename, &image_size);
+		if (!image)
+			return EXIT_FAILURE;
+	}
 
 	m_name = xstrdup(bb_basename(m_filename));
 	/* "module.o[.gz]" -> "module" */
@@ -3901,7 +3909,10 @@ int FAST_FUNC bb_init_module_24(const char *m_filename, const char *options)
 	exit_status = EXIT_SUCCESS;
 
  out:
-	free(image);
+	if (mmaped)
+		munmap(image, image_size);
+	else
+		free(image);
 	free(m_name);
 
 	return exit_status;

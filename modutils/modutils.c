@@ -62,7 +62,7 @@ char* FAST_FUNC filename2modname(const char *filename, char *modname)
 	return modname;
 }
 
-char * FAST_FUNC parse_cmdline_module_options(char **argv)
+char* FAST_FUNC parse_cmdline_module_options(char **argv)
 {
 	char *options;
 	int optlen;
@@ -77,6 +77,40 @@ char * FAST_FUNC parse_cmdline_module_options(char **argv)
 	return options;
 }
 
+#if ENABLE_FEATURE_INSMOD_TRY_MMAP
+void* FAST_FUNC try_to_mmap_module(const char *filename, size_t *image_size_p)
+{
+	/* We have user reports of failure to load 3MB module
+	 * on a 16MB RAM machine. Apparently even a transient
+	 * memory spike to 6MB during module load
+	 * is too big for that system. */
+	void *image;
+	struct stat st;
+	int fd;
+
+	fd = xopen(filename, O_RDONLY);
+	fstat(fd, &st);
+	image = NULL;
+	/* st.st_size is off_t, we can't just pass it to mmap */
+	if (st.st_size <= *image_size_p) {
+		size_t image_size = st.st_size;
+		image = mmap(NULL, image_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (image == MAP_FAILED) {
+			image = NULL;
+		} else if (*(uint32_t*)image != SWAP_BE32(0x7f454C46)) {
+			/* No ELF signature. Compressed module? */
+			munmap(image, image_size);
+			image = NULL;
+		} else {
+			/* Success. Report the size */
+			*image_size_p = image_size;
+		}
+	}
+	close(fd);
+	return image;
+}
+#endif
+
 /* Return:
  * 0 on success,
  * -errno on open/read error,
@@ -84,9 +118,10 @@ char * FAST_FUNC parse_cmdline_module_options(char **argv)
  */
 int FAST_FUNC bb_init_module(const char *filename, const char *options)
 {
-	size_t len;
+	size_t image_size;
 	char *image;
 	int rc;
+	bool mmaped;
 
 	if (!options)
 		options = "";
@@ -97,17 +132,25 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 		return bb_init_module_24(filename, options);
 #endif
 
-	/* Use the 2.6 way */
-	len = INT_MAX - 4095;
-	errno = ENOMEM; /* may be changed by e.g. open errors below */
-	image = xmalloc_open_zipped_read_close(filename, &len);
-	if (!image)
-		return -errno;
+	image_size = INT_MAX - 4095;
+	mmaped = 0;
+	image = try_to_mmap_module(filename, &image_size);
+	if (image) {
+		mmaped = 1;
+	} else {
+		errno = ENOMEM; /* may be changed by e.g. open errors below */
+		image = xmalloc_open_zipped_read_close(filename, &image_size);
+		if (!image)
+			return -errno;
+	}
 
 	errno = 0;
-	init_module(image, len, options);
+	init_module(image, image_size, options);
 	rc = errno;
-	free(image);
+	if (mmaped)
+		munmap(image, image_size);
+	else
+		free(image);
 	return rc;
 }
 
