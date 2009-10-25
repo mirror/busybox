@@ -727,7 +727,7 @@ static void handle_SIGCHLD(int status)
 #endif
 
 enum {
-	OPTBIT_KEEP_OLD = 7,
+	OPTBIT_KEEP_OLD = 8,
 	IF_FEATURE_TAR_CREATE(   OPTBIT_CREATE      ,)
 	IF_FEATURE_TAR_CREATE(   OPTBIT_DEREFERENCE ,)
 	IF_FEATURE_SEAMLESS_BZ2( OPTBIT_BZIP2       ,)
@@ -735,7 +735,7 @@ enum {
 	IF_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
-	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) /* 15th bit */
+	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
 	OPTBIT_NUMERIC_OWNER,
 	OPTBIT_NOPRESERVE_OWNER,
 	OPTBIT_NOPRESERVE_PERM,
@@ -744,9 +744,10 @@ enum {
 	OPT_BASEDIR      = 1 << 2, // C
 	OPT_TARNAME      = 1 << 3, // f
 	OPT_2STDOUT      = 1 << 4, // O
-	OPT_P            = 1 << 5, // p
-	OPT_VERBOSE      = 1 << 6, // v
-	OPT_KEEP_OLD     = 1 << 7, // k
+	OPT_NOPRESERVE_OWNER = 1 << 5, // no-same-owner
+	OPT_P            = 1 << 6, // p
+	OPT_VERBOSE      = 1 << 7, // v
+	OPT_KEEP_OLD     = 1 << 8, // k
 	OPT_CREATE       = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_CREATE      )) + 0, // c
 	OPT_DEREFERENCE  = IF_FEATURE_TAR_CREATE(   (1 << OPTBIT_DEREFERENCE )) + 0, // h
 	OPT_BZIP2        = IF_FEATURE_SEAMLESS_BZ2( (1 << OPTBIT_BZIP2       )) + 0, // j
@@ -756,7 +757,6 @@ enum {
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NUMERIC_OWNER = 1 << OPTBIT_NUMERIC_OWNER,
-	OPT_NOPRESERVE_OWNER = 1 << OPTBIT_NOPRESERVE_OWNER , // no-same-owner
 	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
@@ -766,6 +766,10 @@ static const char tar_longopts[] ALIGN1 =
 	"directory\0"           Required_argument "C"
 	"file\0"                Required_argument "f"
 	"to-stdout\0"           No_argument       "O"
+	/* do not restore owner */
+	/* Note: GNU tar handles 'o' as no-same-owner only on extract,
+	 * on create, 'o' is --old-archive. We do not support --old-archive. */
+	"no-same-owner\0"       No_argument       "o"
 	"same-permissions\0"    No_argument       "p"
 	"verbose\0"             No_argument       "v"
 	"keep-old\0"            No_argument       "k"
@@ -790,9 +794,7 @@ static const char tar_longopts[] ALIGN1 =
 	"compress\0"            No_argument       "Z"
 # endif
 	/* use numeric uid/gid from tar header, not textual */
-	"numeric-owner\0"       No_argument       "\xfc"
-	/* do not restore owner */
-	"no-same-owner\0"       No_argument       "\xfd"
+	"numeric-owner\0"       No_argument       "\xfd"
 	/* do not restore mode */
 	"no-same-permissions\0" No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
@@ -869,7 +871,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 	opt = getopt32(argv,
-		"txC:f:Opvk"
+		"txC:f:Oopvk"
 		IF_FEATURE_TAR_CREATE(   "ch"  )
 		IF_FEATURE_SEAMLESS_BZ2( "j"   )
 		IF_FEATURE_SEAMLESS_LZMA("a"   )
