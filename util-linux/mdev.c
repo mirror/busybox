@@ -331,7 +331,7 @@ static void make_device(char *path, int delete)
 
 			if (!delete && major >= 0) {
 				if (mknod(node_name, mode | type, makedev(major, minor)) && errno != EEXIST)
-					bb_perror_msg_and_die("mknod %s", node_name);
+					bb_perror_msg_and_die("can't create %s", node_name);
 				if (major == root_major && minor == root_minor)
 					symlink(node_name, "root");
 				if (ENABLE_FEATURE_MDEV_CONF) {
