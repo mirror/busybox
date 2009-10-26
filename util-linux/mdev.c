@@ -111,7 +111,7 @@ static void make_device(char *path, int delete)
 {
 	char *device_name;
 	int major, minor, type, len;
-	int mode;
+	mode_t mode;
 	parser_t *parser;
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
@@ -249,7 +249,8 @@ static void make_device(char *path, int delete)
 				bb_error_msg("unknown user/group %s", tokens[1]);
 
 			/* 3rd field: mode - device permissions */
-			mode = strtoul(tokens[2], NULL, 8);
+			/* mode = strtoul(tokens[2], NULL, 8); */
+			bb_parse_mode(tokens[2], &mode);
 
 			val = tokens[3];
 			/* 4th field (opt): >|=alias */
