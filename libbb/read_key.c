@@ -14,7 +14,6 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 	struct pollfd pfd;
 	const char *seq;
 	int n;
-	int c;
 
 	/* Known escape sequences for cursor and function keys */
 	static const char esccmds[] ALIGN1 = {
@@ -91,8 +90,11 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 		/* ESC [ Z - Shift-Tab */
 	};
 
+	buffer++; /* saved chars counter is in buffer[-1] now */
+
+ start_over:
 	errno = 0;
-	n = (unsigned char) *buffer++;
+	n = (unsigned char)buffer[-1];
 	if (n == 0) {
 		/* If no data, block waiting for input.
 		 * It is tempting to read more than one byte here,
@@ -106,15 +108,17 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 			return -1;
 	}
 
-	/* Grab character to return from buffer */
-	c = (unsigned char)buffer[0];
-	n--;
-	if (n)
-		memmove(buffer, buffer + 1, n);
-
-	/* Only ESC starts ESC sequences */
-	if (c != 27)
-		goto ret;
+	{
+		unsigned char c = buffer[0];
+		n--;
+		if (n)
+			memmove(buffer, buffer + 1, n);
+		/* Only ESC starts ESC sequences */
+		if (c != 27) {
+			buffer[-1] = n;
+			return c;
+		}
+	}
 
 	/* Loop through known ESC sequences */
 	pfd.fd = fd;
@@ -136,17 +140,21 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 				if (safe_poll(&pfd, 1, 50) == 0) {
 					/* No more data!
 					 * Array is sorted from shortest to longest,
-					 * we can't match anything later in array,
-					 * break out of both loops. */
-					goto ret;
+					 * we can't match anything later in array -
+					 * anything later is longer than this seq.
+					 * Break out of both loops. */
+					goto got_all;
 				}
 				errno = 0;
 				if (safe_read(fd, buffer + n, 1) <= 0) {
 					/* If EAGAIN, then fd is O_NONBLOCK and poll lied:
 					 * in fact, there is no data. */
-					if (errno != EAGAIN)
-						c = -1; /* otherwise it's EOF/error */
-					goto ret;
+					if (errno != EAGAIN) {
+						/* otherwise: it's EOF/error */
+						buffer[-1] = 0;
+						return -1;
+					}
+					goto got_all;
 				}
 				n++;
 			}
@@ -162,66 +170,82 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 			}
 			if (seq[i] & 0x80) {
 				/* Entire seq matched */
-				c = (signed char)seq[i+1];
 				n = 0;
 				/* n -= i; memmove(...);
 				 * would be more correct,
 				 * but we never read ahead that much,
 				 * and n == i here. */
-				goto ret;
+				buffer[-1] = 0;
+				return (signed char)seq[i+1];
 			}
 			i++;
 		}
 	}
-	/* We did not find matching sequence, it was a bare ESC.
-	 * We possibly read and stored more input in buffer[] by now. */
+	/* We did not find matching sequence.
+	 * We possibly read and stored more input in buffer[] by now.
+	 * n = bytes read. Try to read more until we time out.
+	 */
+	while (n < KEYCODE_BUFFER_SIZE-1) { /* 1 for count byte at buffer[-1] */
+		if (safe_poll(&pfd, 1, 50) == 0) {
+			/* No more data! */
+			break;
+		}
+		errno = 0;
+		if (safe_read(fd, buffer + n, 1) <= 0) {
+			/* If EAGAIN, then fd is O_NONBLOCK and poll lied:
+			 * in fact, there is no data. */
+			if (errno != EAGAIN) {
+				/* otherwise: it's EOF/error */
+				buffer[-1] = 0;
+				return -1;
+			}
+			break;
+		}
+		n++;
+	}
+ got_all:
+
+	if (n <= 1) {
+		/* Alt-x is usually returned as ESC x.
+		 * Report ESC, x is remembered for the next call.
+		 */
+		buffer[-1] = n;
+		return 27;
+	}
 
 	/* Try to decipher "ESC [ NNN ; NNN R" sequence */
 	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	 && n != 0
+	 && n >= 5
 	 && buffer[0] == '['
+	 && isdigit(buffer[1])
+	 && buffer[n-1] == 'R'
 	) {
 		char *end;
 		unsigned long row, col;
 
-		while (n < KEYCODE_BUFFER_SIZE-1) { /* 1 for cnt */
-			if (safe_poll(&pfd, 1, 50) == 0) {
-				/* No more data! */
-				break;
-			}
-			errno = 0;
-			if (safe_read(fd, buffer + n, 1) <= 0) {
-				/* If EAGAIN, then fd is O_NONBLOCK and poll lied:
-				 * in fact, there is no data. */
-				if (errno != EAGAIN)
-					c = -1; /* otherwise it's EOF/error */
-				goto ret;
-			}
-			if (buffer[n++] == 'R')
-				goto got_R;
-		}
-		goto ret;
- got_R:
-		if (!isdigit(buffer[1]))
-			goto ret;
 		row = strtoul(buffer + 1, &end, 10);
 		if (*end != ';' || !isdigit(end[1]))
-			goto ret;
+			goto not_R;
 		col = strtoul(end + 1, &end, 10);
 		if (*end != 'R')
-			goto ret;
+			goto not_R;
 		if (row < 1 || col < 1 || (row | col) > 0x7fff)
-			goto ret;
+			goto not_R;
 
 		buffer[-1] = 0;
 
 		/* Pack into "1 <row15bits> <col16bits>" 32-bit sequence */
-		c = (((-1 << 15) | row) << 16) | col;
+		col |= (((-1 << 15) | row) << 16);
 		/* Return it in high-order word */
-		return ((int64_t) c << 32) | (uint32_t)KEYCODE_CURSOR_POS;
+		return ((int64_t) col << 32) | (uint32_t)KEYCODE_CURSOR_POS;
 	}
+ not_R:
 
- ret:
-	buffer[-1] = n;
-	return c;
+	/* We were doing "buffer[-1] = n; return c;" here, but this results
+	 * in unknown key sequences being interpreted as ESC + garbage.
+	 * This was not useful. Pretend there was no key pressed,
+	 * go and wait for a new keypress:
+	 */
+	buffer[-1] = 0;
+	goto start_over;
 }
