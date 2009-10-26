@@ -3812,14 +3812,12 @@
        "Options:" \
      "\n	-e CMD	Add CMD to sed commands to be executed" \
      "\n	-f FILE	Add FILE contents to sed commands to be executed" \
-     "\n	-i	Edit files in-place" \
+     "\n	-i	Edit files in-place (default uses stdout for all output)" \
      "\n	-n	Suppress automatic printing of pattern space" \
      "\n	-r	Use extended regex syntax" \
      "\n" \
-     "\nIf no -e or -f is given, the first non-option argument is taken as the sed" \
-     "\ncommand to interpret. All remaining arguments are names of input files; if no" \
-     "\ninput files are specified, then the standard input is read. Source files" \
-     "\nwill not be modified unless -i option is given." \
+     "\nIf no -e or -f, the first non-option argument is the sed command string." \
+     "\nRemaining arguments are input files (stdin if none)."
 
 #define sed_example_usage \
        "$ echo \"foo\" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
