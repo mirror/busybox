@@ -1552,8 +1552,8 @@ static void process_dev(char *devname)
 	unsigned char args[4] = { WIN_SETFEATURES, 0, 0, 0 };
 	const char *fmt = " %s\t= %2ld";
 
-	/*fd = xopen(devname, O_RDONLY | O_NONBLOCK);*/
-	xmove_fd(xopen(devname, O_RDONLY | O_NONBLOCK), fd);
+	/*fd = xopen_nonblocking(devname);*/
+	xmove_fd(xopen_nonblocking(devname), fd);
 	printf("\n%s:\n", devname);
 
 	if (getset_readahead == IS_SET) {

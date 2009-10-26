@@ -36,7 +36,7 @@ int loadkmap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	fd = get_console_fd_or_die();
 /* or maybe:
 	opt = getopt32(argv, "C:", &tty_name);
-	fd = xopen(tty_name, O_NONBLOCK);
+	fd = xopen_nonblocking(tty_name);
 */
 
 	xread(STDIN_FILENO, flags, 7);

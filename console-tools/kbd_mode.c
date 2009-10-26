@@ -25,7 +25,7 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 	const char *tty_name = CURRENT_TTY;
 
 	opt = getopt32(argv, "sakuC:", &tty_name);
-	fd = xopen(tty_name, O_NONBLOCK);
+	fd = xopen_nonblocking(tty_name);
 	opt &= 0xf; /* clear -C bit, see (*) */
 
 	if (!opt) { /* print current setting */

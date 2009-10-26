@@ -1295,7 +1295,7 @@ int stty_main(int argc, char **argv)
 	if (file_name) {
 		int fd, fdflags;
 		G.device_name = file_name;
-		fd = xopen(G.device_name, O_RDONLY | O_NONBLOCK);
+		fd = xopen_nonblocking(G.device_name);
 		if (fd != STDIN_FILENO) {
 			dup2(fd, STDIN_FILENO);
 			close(fd);

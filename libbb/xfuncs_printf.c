@@ -140,6 +140,15 @@ int FAST_FUNC xopen(const char *pathname, int flags)
 	return xopen3(pathname, flags, 0666);
 }
 
+/* Die if we can't open an existing file readonly with O_NONBLOCK
+ * and return the fd.
+ * Note that for ioctl O_RDONLY is sufficient.
+ */
+int FAST_FUNC xopen_nonblocking(const char *pathname)
+{
+	return xopen(pathname, O_RDONLY | O_NONBLOCK);
+}
+
 // Warn if we can't open a file and return a fd.
 int FAST_FUNC open3_or_warn(const char *pathname, int flags, int mode)
 {

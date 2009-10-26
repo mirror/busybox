@@ -103,7 +103,7 @@ int eject_main(int argc UNUSED_PARAM, char **argv)
 	   eject /dev/cdrom
 	*/
 
-	xmove_fd(xopen(device, O_RDONLY|O_NONBLOCK), dev_fd);
+	xmove_fd(xopen_nonblocking(device), dev_fd);
 
 	if (ENABLE_FEATURE_EJECT_SCSI && (flags & FLAG_SCSI))
 		eject_scsi(device);

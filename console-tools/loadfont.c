@@ -277,7 +277,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "m:C:", &mapfilename, &tty_name);
 	argv += optind;
 
-	fd = xopen(tty_name, O_NONBLOCK);
+	fd = xopen_nonblocking(tty_name);
 
 	if (sizeof(CONFIG_DEFAULT_SETFONT_DIR) > 1) { // if not ""
 		if (*argv[0] != '/') {
