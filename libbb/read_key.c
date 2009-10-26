@@ -202,6 +202,31 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 			break;
 		}
 		n++;
+		/* Try to decipher "ESC [ NNN ; NNN R" sequence */
+		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
+		 && n >= 5
+		 && buffer[0] == '['
+		 && buffer[n-1] == 'R'
+		 && isdigit(buffer[1])
+		) {
+			char *end;
+			unsigned long row, col;
+
+			row = strtoul(buffer + 1, &end, 10);
+			if (*end != ';' || !isdigit(end[1]))
+				continue;
+			col = strtoul(end + 1, &end, 10);
+			if (*end != 'R')
+				continue;
+			if (row < 1 || col < 1 || (row | col) > 0x7fff)
+				continue;
+
+			buffer[-1] = 0;
+			/* Pack into "1 <row15bits> <col16bits>" 32-bit sequence */
+			col |= (((-1 << 15) | row) << 16);
+			/* Return it in high-order word */
+			return ((int64_t) col << 32) | (uint32_t)KEYCODE_CURSOR_POS;
+		}
 	}
  got_all:
 
@@ -212,34 +237,6 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 		buffer[-1] = n;
 		return 27;
 	}
-
-	/* Try to decipher "ESC [ NNN ; NNN R" sequence */
-	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	 && n >= 5
-	 && buffer[0] == '['
-	 && isdigit(buffer[1])
-	 && buffer[n-1] == 'R'
-	) {
-		char *end;
-		unsigned long row, col;
-
-		row = strtoul(buffer + 1, &end, 10);
-		if (*end != ';' || !isdigit(end[1]))
-			goto not_R;
-		col = strtoul(end + 1, &end, 10);
-		if (*end != 'R')
-			goto not_R;
-		if (row < 1 || col < 1 || (row | col) > 0x7fff)
-			goto not_R;
-
-		buffer[-1] = 0;
-
-		/* Pack into "1 <row15bits> <col16bits>" 32-bit sequence */
-		col |= (((-1 << 15) | row) << 16);
-		/* Return it in high-order word */
-		return ((int64_t) col << 32) | (uint32_t)KEYCODE_CURSOR_POS;
-	}
- not_R:
 
 	/* We were doing "buffer[-1] = n; return c;" here, but this results
 	 * in unknown key sequences being interpreted as ESC + garbage.

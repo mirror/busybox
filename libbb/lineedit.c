@@ -370,6 +370,7 @@ static void input_backward(unsigned num)
 static void put_prompt(void)
 {
 	out1str(cmdedit_prompt);
+	fflush(NULL);
 	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL) {
 		/* Ask terminal where is the cursor now.
 		 * lineedit_read_key handles response and corrects
@@ -380,7 +381,33 @@ static void put_prompt(void)
 		 * Note: we print it _after_ prompt, because
 		 * prompt may contain CR. Example: PS1='\[\r\n\]\w '
 		 */
-		out1str("\033" "[6n");
+		/* Problem: if there is buffered input on stdin,
+		 * the response will be delivered later,
+		 * possibly to an unsuspecting application.
+		 * Testcase: "sleep 1; busybox ash" + press and hold [Enter].
+		 * Result:
+		 * ~/srcdevel/bbox/fix/busybox.t4 #
+		 * ~/srcdevel/bbox/fix/busybox.t4 #
+		 * ^[[59;34~/srcdevel/bbox/fix/busybox.t4 #  <-- garbage
+		 * ~/srcdevel/bbox/fix/busybox.t4 #
+		 *
+		 * Checking for input with poll only makes the race narrower,
+		 * I still can trigger it. Strace:
+		 *
+		 * write(1, "~/srcdevel/bbox/fix/busybox.t4 # ", 33) = 33
+		 * poll([{fd=0, events=POLLIN}], 1, 0) = 0 (Timeout)  <-- no input exists
+		 * write(1, "\33[6n", 4) = 4  <-- send the ESC sequence, quick!
+		 * poll([{fd=0, events=POLLIN}], 1, 4294967295) = 1 ([{fd=0, revents=POLLIN}])
+		 * read(0, "\n", 1)      = 1  <-- oh crap, user's input got in first
+		 */
+		struct pollfd pfd;
+
+		pfd.fd = STDIN_FILENO;
+		pfd.events = POLLIN;
+		if (safe_poll(&pfd, 1, 0) == 0) {
+			out1str("\033" "[6n");
+			fflush(NULL); /* make terminal see it ASAP! */
+		}
 	}
 	cursor = 0;
 	{
@@ -1603,7 +1630,7 @@ static void cmdedit_setwidth(unsigned w, int redraw_flg)
 		int new_y = (cursor + cmdedit_prmt_len) / w;
 		/* redraw */
 		redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), command_len - cursor);
-		fflush(stdout);
+		fflush(NULL);
 	}
 }
 
@@ -1640,6 +1667,7 @@ static int lineedit_read_key(char *read_key_buffer)
 		ic = read_key(STDIN_FILENO, read_key_buffer);
 
 		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
+		 && cursor == 0 /* otherwise it may be bogus */
 		 && (int32_t)ic == KEYCODE_CURSOR_POS
 		) {
 			int col = ((ic >> 32) & 0x7fff) - 1;
@@ -1708,7 +1736,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	) {
 		/* Happens when e.g. stty -echo was run before */
 		parse_and_put_prompt(prompt);
-		fflush(stdout);
+		/* fflush(stdout); - done by parse_and_put_prompt */
 		if (fgets(command, maxsize, stdin) == NULL)
 			len = -1; /* EOF or error */
 		else
@@ -2190,7 +2218,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	tcsetattr_stdin_TCSANOW(&initial_settings);
 	/* restore SIGWINCH handler */
 	signal(SIGWINCH, previous_SIGWINCH_handler);
-	fflush(stdout);
+	fflush(NULL);
 
 	len = command_len;
 	DEINIT_S();
@@ -2204,7 +2232,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
 	fputs(prompt, stdout);
-	fflush(stdout);
+	fflush(NULL);
 	fgets(command, maxsize, stdin);
 	return strlen(command);
 }
