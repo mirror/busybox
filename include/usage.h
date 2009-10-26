@@ -4950,6 +4950,14 @@
 #define volname_full_usage "\n\n" \
        "Show CD volume name of the DEVICE (default /dev/cdrom)"
 
+#define wall_trivial_usage \
+	"[file]"
+#define wall_full_usage "\n\n" \
+	"Write content of file or standard-input to all logged-in users"
+#define wall_sample_usage \
+	"echo foo | wall\n" \
+	"wall ./mymessage"
+
 #define watch_trivial_usage \
        "[-n seconds] [-t] PROG [ARGS]"
 #define watch_full_usage "\n\n" \
