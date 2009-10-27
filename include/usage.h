@@ -3812,7 +3812,7 @@
        "Options:" \
      "\n	-e CMD	Add CMD to sed commands to be executed" \
      "\n	-f FILE	Add FILE contents to sed commands to be executed" \
-     "\n	-i	Edit files in-place (default uses stdout for all output)" \
+     "\n	-i	Edit files in-place (else sends result to stdout)" \
      "\n	-n	Suppress automatic printing of pattern space" \
      "\n	-r	Use extended regex syntax" \
      "\n" \
