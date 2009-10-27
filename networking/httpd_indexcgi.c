@@ -149,7 +149,7 @@ static void fmt_url(/*char *dst,*/ const char *name)
 		guarantee(3);
 		*dst = c;
 		if ((c - '0') > 9 /* not a digit */
-		 && ((c|0x20) - 'a') > 26 /* not A-Z or a-z */
+		 && ((c|0x20) - 'a') > ('z' - 'a') /* not A-Z or a-z */
 		 && !strchr("._-+@", c)
 		) {
 			*dst++ = '%';
