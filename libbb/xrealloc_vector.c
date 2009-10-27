@@ -20,8 +20,9 @@
  * idx step, plus one: if idx == 0x20, vector[] is resized to 0x31,
  * thus last usable element is vector[0x30].
  *
- * In other words: after xrealloc_vector(v, 4, idx) it's ok to use
- * at least v[idx] and v[idx+1], for all idx values.
+ * In other words: after xrealloc_vector(v, 4, idx), with any idx,
+ * it's ok to use at least v[idx] and v[idx+1].
+ * v[idx+2] etc generally are not ok.
  *
  * New elements are zeroed out, but only if realloc was done
  * (not on every call). You can depend on v[idx] and v[idx+1] being
