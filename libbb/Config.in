@@ -111,7 +111,7 @@ config FEATURE_EDITING_ASK_TERMINAL
 	  current cursor position. This information is used to make line
 	  editing more robust in some cases.
 	  If you are not sure whether your terminals respond to this code
-	  correctly, or want to save on code size (about 300 bytes),
+	  correctly, or want to save on code size (about 400 bytes),
 	  then do not turn this option on.
 
 config FEATURE_NON_POSIX_CP

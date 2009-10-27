@@ -141,7 +141,7 @@ struct lineedit_statics {
 	CHAR_T delbuf[DELBUFSIZ];  /* a place to store deleted characters */
 #endif
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	smallint sent_ESC_br_n6;
+	smallint sent_ESC_br6n;
 #endif
 
 	/* Formerly these were big buffers on stack: */
@@ -409,7 +409,7 @@ static void put_prompt(void)
 		pfd.fd = STDIN_FILENO;
 		pfd.events = POLLIN;
 		if (safe_poll(&pfd, 1, 0) == 0) {
-			S.sent_ESC_br_n6 = 1;
+			S.sent_ESC_br6n = 1;
 			out1str("\033" "[6n");
 			fflush(NULL); /* make terminal see it ASAP! */
 		}
@@ -1674,9 +1674,9 @@ static int lineedit_read_key(char *read_key_buffer)
 
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
 		if ((int32_t)ic == KEYCODE_CURSOR_POS
-		 && S.sent_ESC_br_n6
+		 && S.sent_ESC_br6n
 		) {
-			S.sent_ESC_br_n6 = 0;
+			S.sent_ESC_br6n = 0;
 			if (cursor == 0) { /* otherwise it may be bogus */
 				int col = ((ic >> 32) & 0x7fff) - 1;
 				if (col > cmdedit_prmt_len) {
@@ -2203,7 +2203,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	} /* while (1) */
 
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	if (S.sent_ESC_br_n6) {
+	if (S.sent_ESC_br6n) {
 		/* "sleep 1; busybox ash" + hold [Enter] to trigger.
 		 * We sent "ESC [ 6 n", but got '\n' first, and
 		 * KEYCODE_CURSOR_POS response is now buffered from terminal.
