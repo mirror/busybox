@@ -283,59 +283,14 @@ char* FAST_FUNC xasprintf(const char *format, ...)
 	int r;
 	char *string_ptr;
 
-#if 1
-	// GNU extension
 	va_start(p, format);
 	r = vasprintf(&string_ptr, format, p);
 	va_end(p);
-#else
-	// Bloat for systems that haven't got the GNU extension.
-	va_start(p, format);
-	r = vsnprintf(NULL, 0, format, p);
-	va_end(p);
-	string_ptr = xmalloc(r+1);
-	va_start(p, format);
-	r = vsnprintf(string_ptr, r+1, format, p);
-	va_end(p);
-#endif
 
 	if (r < 0)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	return string_ptr;
 }
-
-#if 0 /* If we will ever meet a libc which hasn't [f]dprintf... */
-int FAST_FUNC fdprintf(int fd, const char *format, ...)
-{
-	va_list p;
-	int r;
-	char *string_ptr;
-
-#if 1
-	// GNU extension
-	va_start(p, format);
-	r = vasprintf(&string_ptr, format, p);
-	va_end(p);
-#else
-	// Bloat for systems that haven't got the GNU extension.
-	va_start(p, format);
-	r = vsnprintf(NULL, 0, format, p) + 1;
-	va_end(p);
-	string_ptr = malloc(r);
-	if (string_ptr) {
-		va_start(p, format);
-		r = vsnprintf(string_ptr, r, format, p);
-		va_end(p);
-	}
-#endif
-
-	if (r >= 0) {
-		full_write(fd, string_ptr, r);
-		free(string_ptr);
-	}
-	return r;
-}
-#endif
 
 void FAST_FUNC xsetenv(const char *key, const char *value)
 {

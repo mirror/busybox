@@ -7,6 +7,13 @@
 #ifndef	BB_PLATFORM_H
 #define BB_PLATFORM_H 1
 
+/* Assume all these functions exist by default.  Platforms where it is not
+ * true will #undef them below.
+ */
+#define HAVE_FDPRINTF 1
+#define HAVE_STRCHRNUL 1
+#define HAVE_VASPRINTF 1
+
 /* Convenience macros to test the version of gcc. */
 #undef __GNUC_PREREQ
 #if defined __GNUC__ && defined __GNUC_MINOR__
@@ -126,7 +133,6 @@
 # define __BIG_ENDIAN__ (BYTE_ORDER == BIG_ENDIAN)
 # define __BYTE_ORDER BYTE_ORDER
 #elif defined __FreeBSD__
-char *strchrnul(const char *s, int c);
 # include <sys/resource.h>	/* rlimit */
 # include <machine/endian.h>
 # define bswap_64 __bswap64
@@ -148,7 +154,7 @@ char *strchrnul(const char *s, int c);
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
 #else
-# error "Can't determine endiannes"
+# error "Can't determine endianness"
 #endif
 
 /* SWAP_LEnn means "convert CPU<->little_endian by swapping bytes" */
@@ -293,24 +299,6 @@ typedef unsigned smalluint;
 # define USE_FOR_MMU(...) __VA_ARGS__
 #endif
 
-/* Platforms that haven't got dprintf need to implement fdprintf() in
- * libbb.  This would require a platform.c.  It's not going to be cleaned
- * out of the tree, so stop saying it should be. */
-#if !defined(__dietlibc__)
-/* Needed for: glibc */
-/* Not needed for: dietlibc */
-/* Others: ?? (add as needed) */
-# define fdprintf dprintf
-#endif
-
-#if defined(__dietlibc__)
-static ALWAYS_INLINE char* strchrnul(const char *s, char c)
-{
-	while (*s && *s != c) ++s;
-	return (char*)s;
-}
-#endif
-
 /* Don't use lchown with glibc older than 2.1.x */
 #if defined(__GLIBC__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1
 # define lchown chown
@@ -342,5 +330,39 @@ static ALWAYS_INLINE char* strchrnul(const char *s, char c)
 
 #endif
 
+#if defined(__GLIBC__)
+# define fdprintf dprintf
+#endif
+
+#if defined(__dietlibc__)
+#undef HAVE_STRCHRNUL
+#endif
+
+#if defined(__WATCOMC__)
+#undef HAVE_FDPRINTF
+#undef HAVE_STRCHRNUL
+#undef HAVE_VASPRINTF
+#endif
+
+#if defined(__FreeBSD__)
+#undef HAVE_STRCHRNUL
+#endif
+
+/*
+ * Now, define prototypes for all the functions defined in platform.c
+ * These must come after all the HAVE_* macros are defined (or not)
+ */
+
+#ifndef HAVE_STRCHRNUL
+extern char *strchrnul(const char *s, int c) FAST_FUNC;
+#endif
+
+#ifndef HAVE_VASPRINTF
+extern int vasprintf(char **string_ptr, const char *format, va_list p) FAST_FUNC;
+#endif
+
+#ifndef HAVE_FDPRINTF
+extern int fdprintf(int fd, const char *format, ...);
+#endif
 
 #endif
