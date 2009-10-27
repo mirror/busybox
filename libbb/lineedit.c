@@ -140,6 +140,9 @@ struct lineedit_statics {
 	smallint newdelflag;     /* whether delbuf should be reused yet */
 	CHAR_T delbuf[DELBUFSIZ];  /* a place to store deleted characters */
 #endif
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+	smallint sent_ESC_br_n6;
+#endif
 
 	/* Formerly these were big buffers on stack: */
 #if ENABLE_FEATURE_TAB_COMPLETION
@@ -371,7 +374,8 @@ static void put_prompt(void)
 {
 	out1str(cmdedit_prompt);
 	fflush(NULL);
-	if (ENABLE_FEATURE_EDITING_ASK_TERMINAL) {
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+	{
 		/* Ask terminal where is the cursor now.
 		 * lineedit_read_key handles response and corrects
 		 * our idea of current cursor position.
@@ -405,10 +409,12 @@ static void put_prompt(void)
 		pfd.fd = STDIN_FILENO;
 		pfd.events = POLLIN;
 		if (safe_poll(&pfd, 1, 0) == 0) {
+			S.sent_ESC_br_n6 = 1;
 			out1str("\033" "[6n");
 			fflush(NULL); /* make terminal see it ASAP! */
 		}
 	}
+#endif
 	cursor = 0;
 	{
 		unsigned w = cmdedit_termw; /* volatile var */
@@ -1666,20 +1672,24 @@ static int lineedit_read_key(char *read_key_buffer)
 		/* Note: read_key sets errno to 0 on success: */
 		ic = read_key(STDIN_FILENO, read_key_buffer);
 
-		if (ENABLE_FEATURE_EDITING_ASK_TERMINAL
-		 && cursor == 0 /* otherwise it may be bogus */
-		 && (int32_t)ic == KEYCODE_CURSOR_POS
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+		if ((int32_t)ic == KEYCODE_CURSOR_POS
+		 && S.sent_ESC_br_n6
 		) {
-			int col = ((ic >> 32) & 0x7fff) - 1;
-			if (col > cmdedit_prmt_len) {
-				cmdedit_x += (col - cmdedit_prmt_len);
-				while (cmdedit_x >= cmdedit_termw) {
-					cmdedit_x -= cmdedit_termw;
-					cmdedit_y++;
+			S.sent_ESC_br_n6 = 0;
+			if (cursor == 0) { /* otherwise it may be bogus */
+				int col = ((ic >> 32) & 0x7fff) - 1;
+				if (col > cmdedit_prmt_len) {
+					cmdedit_x += (col - cmdedit_prmt_len);
+					while (cmdedit_x >= cmdedit_termw) {
+						cmdedit_x -= cmdedit_termw;
+						cmdedit_y++;
+					}
 				}
 			}
 			goto poll_again;
 		}
+#endif
 
 #if ENABLE_FEATURE_ASSUME_UNICODE
 		{
@@ -2191,6 +2201,21 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			lastWasTab = FALSE;
 #endif
 	} /* while (1) */
+
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+	if (S.sent_ESC_br_n6) {
+		/* "sleep 1; busybox ash" + hold [Enter] to trigger.
+		 * We sent "ESC [ 6 n", but got '\n' first, and
+		 * KEYCODE_CURSOR_POS response is now buffered from terminal.
+		 * It's bad already and not much can be done with it
+		 * (it _will_ be visible for the next process to read stdin),
+		 * but without this delay it even shows up on the screen
+		 * as garbage because we restore echo settings with tcsetattr
+		 * before it comes in. UGLY!
+		 */
+		usleep(20*1000);
+	}
+#endif
 
 /* Stop bug catching using "command_must_not_be_used" trick */
 #undef command
