@@ -10,23 +10,18 @@
 /* Read a line from stdin.  If the first non-whitespace char is 'y' or 'Y',
  * return 1.  Otherwise return 0.
  */
-
 #include "libbb.h"
 
 int FAST_FUNC bb_ask_confirmation(void)
 {
-	int retval = 0;
-	int first = 1;
+	char first = 0;
 	int c;
 
 	while (((c = getchar()) != EOF) && (c != '\n')) {
-		if (first && !isspace(c)) {
-			--first;
-			if ((c == 'y') || (c == 'Y')) {
-				++retval;
-			}
+		if (first == 0 && !isblank(c)) {
+			first = c|0x20;
 		}
 	}
 
-	return retval;
+	return first == 'y';
 }
