@@ -263,7 +263,7 @@ static void alarm_handler(int sig UNUSED_PARAM)
 	 * We don't want to block here */
 	ndelay_on(1);
 	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
-	fflush(stdout);
+	fflush(NULL);
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
 	ndelay_off(1);

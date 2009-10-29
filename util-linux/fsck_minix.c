@@ -341,22 +341,24 @@ static int ask(const char *string, int def)
 	}
 	printf(def ? "%s (y/n)? " : "%s (n/y)? ", string);
 	for (;;) {
-		fflush(stdout);
+		fflush(NULL);
 		c = getchar();
 		if (c == EOF) {
 			if (!def)
 				errors_uncorrected = 1;
 			return def;
 		}
-		c = toupper(c);
-		if (c == 'Y') {
+		if (c == '\n')
+			break;
+		c |= 0x20; /* tolower */
+		if (c == 'y') {
 			def = 1;
 			break;
-		} else if (c == 'N') {
+		}
+		if (c == 'n') {
 			def = 0;
 			break;
-		} else if (c == ' ' || c == '\n')
-			break;
+		}
 	}
 	if (def)
 		printf("y\n");

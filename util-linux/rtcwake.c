@@ -141,7 +141,7 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 		seconds = xatoi(opt_seconds);
 	if (opt & RTCWAKE_OPT_TIME)
 		/* alarm time, time_t (absolute, seconds since 1/1 1970 UTC) */
-		alarm_time = xatoi(opt_time);
+		alarm_time = xatol(opt_time);
 
 	if (!alarm_time && !seconds)
 		bb_error_msg_and_die("must provide wake time");
@@ -160,8 +160,6 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 
 	/* relative or absolute alarm time, normalized to time_t */
 	sys_time = time(NULL);
-	if (sys_time == (time_t)-1)
-		bb_perror_msg_and_die("read system time");
 	rtc_time = rtc_read_time(fd, utc);
 
 	if (alarm_time) {
@@ -174,7 +172,7 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 
 	sync();
 	printf("wakeup from \"%s\" at %s", suspend, ctime(&alarm_time));
-	fflush(stdout);
+	fflush(NULL);
 	usleep(10 * 1000);
 
 	if (strcmp(suspend, "on"))
