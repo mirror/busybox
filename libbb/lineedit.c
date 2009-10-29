@@ -1662,7 +1662,6 @@ static int lineedit_read_key(char *read_key_buffer)
 	pfd.fd = STDIN_FILENO;
 	pfd.events = POLLIN;
 	do {
- poll_again:
 		if (read_key_buffer[0] == 0) {
 			/* Wait for input. Can't just call read_key,
 			 * it returns at once if stdin
@@ -1687,7 +1686,7 @@ static int lineedit_read_key(char *read_key_buffer)
 					}
 				}
 			}
-			goto poll_again;
+			continue;
 		}
 #endif
 
@@ -1701,7 +1700,7 @@ static int lineedit_read_key(char *read_key_buffer)
 			unicode_buf[unicode_idx] = '\0';
 			if (mbstowcs(&wc, unicode_buf, 1) != 1 && unicode_idx < MB_CUR_MAX) {
 				delay = 50;
-				goto poll_again;
+				continue;
 			}
 			ic = wc;
 		}
