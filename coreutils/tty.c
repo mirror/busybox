@@ -7,8 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/tty.html */
+/* BB_AUDIT SUSv4 compliant */
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/tty.html */
 
 #include "libbb.h"
 
@@ -28,14 +28,14 @@ int tty_main(int argc, char **argv IF_NOT_INCLUDE_SUSv2(UNUSED_PARAM))
 	/* gnu tty outputs a warning that it is ignoring all args. */
 	bb_warn_ignoring_args(argc);
 
-	retval = 0;
+	retval = EXIT_SUCCESS;
 
-	s = xmalloc_ttyname(0);
+	s = xmalloc_ttyname(STDIN_FILENO);
 	if (s == NULL) {
 	/* According to SUSv3, ttyname can fail with EBADF or ENOTTY.
 	 * We know the file descriptor is good, so failure means not a tty. */
 		s = "not a tty";
-		retval = 1;
+		retval = EXIT_FAILURE;
 	}
 	IF_INCLUDE_SUSv2(if (!silent) puts(s);)
 	IF_NOT_INCLUDE_SUSv2(puts(s);)
