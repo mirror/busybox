@@ -1662,6 +1662,9 @@ static int lineedit_read_key(char *read_key_buffer)
 	pfd.fd = STDIN_FILENO;
 	pfd.events = POLLIN;
 	do {
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL || ENABLE_FEATURE_ASSUME_UNICODE
+ poll_again:
+#endif
 		if (read_key_buffer[0] == 0) {
 			/* Wait for input. Can't just call read_key,
 			 * it returns at once if stdin
@@ -1686,7 +1689,7 @@ static int lineedit_read_key(char *read_key_buffer)
 					}
 				}
 			}
-			continue;
+			goto poll_again;
 		}
 #endif
 
@@ -1700,7 +1703,7 @@ static int lineedit_read_key(char *read_key_buffer)
 			unicode_buf[unicode_idx] = '\0';
 			if (mbstowcs(&wc, unicode_buf, 1) != 1 && unicode_idx < MB_CUR_MAX) {
 				delay = 50;
-				continue;
+				goto poll_again;
 			}
 			ic = wc;
 		}
