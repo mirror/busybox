@@ -20,10 +20,11 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 {
 	/* bash builtin "echo -e '\ec'" interprets \e as ESC,
 	 * but coreutils "/bin/echo -e '\ec'" does not.
-	 * manpages tend to support coreutils way. */
+	 * manpages tend to support coreutils way.
+	 * Update: coreutils added support for \e on 28 Oct 2009. */
 	static const char charmap[] ALIGN1 = {
-		'a',  'b', /*'e',*/ 'f',  'n',  'r',  't',  'v',  '\\', 0,
-		'\a', '\b', /*27,*/ '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
+		'a',  'b', 'e', 'f',  'n',  'r',  't',  'v',  '\\', 0,
+		'\a', '\b', 27, '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
 
 	const char *p;
 	const char *q;
