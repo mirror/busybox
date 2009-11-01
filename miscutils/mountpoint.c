@@ -55,8 +55,17 @@ int mountpoint_main(int argc UNUSED_PARAM, char **argv)
 
 			if (opt & OPT_d)
 				printf("%u:%u\n", major(st_dev), minor(st_dev));
-			if (opt & OPT_n)
-				printf("%s %s\n", find_block_device(arg), arg);
+			if (opt & OPT_n) {
+				const char *d = find_block_device(arg);
+				/* name is undefined, but device is mounted -> anonymous superblock! */
+				/* happens with btrfs */
+				if (!d) {
+					d = "UNKNOWN";
+					/* TODO: iterate /proc/mounts, or /proc/self/mountinfo
+					 * to find out the device name */
+				}
+				printf("%s %s\n", d, arg);
+			}
 			if (!(opt & (OPT_q | OPT_d | OPT_n)))
 				printf("%s is %sa mountpoint\n", arg, is_not_mnt ? "not " : "");
 			return is_not_mnt;
