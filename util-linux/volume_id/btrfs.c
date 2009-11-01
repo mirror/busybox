@@ -80,19 +80,26 @@ struct btrfs_super_block {
 
 int FAST_FUNC volume_id_probe_btrfs(struct volume_id *id /*,uint64_t off*/)
 {
-#define off ((uint64_t) (64 * 1024))
+	// btrfs has superblocks at 64K, 64M and 256G
+	// minimum btrfs size is 256M
+	// so we never step out the device if we analyze
+	// the first and the second superblocks
 	struct btrfs_super_block *sb;
+	unsigned off = 64;
 
-	dbg("btrfs: probing at offset 0x%llx", (unsigned long long) off);
+	while (off < 64*1024*1024) {
+		off *= 1024;
+		dbg("btrfs: probing at offset 0x%x", off);
 
-	sb = volume_id_get_buffer(id, off, sizeof(*sb));
-	if (sb == NULL)
-		return -1;
+		sb = volume_id_get_buffer(id, off, sizeof(*sb));
+		if (sb == NULL)
+			return -1;
 
-	if (memcmp(sb->magic, BTRFS_MAGIC, 8) != 0)
-		return -1;
+		if (memcmp(sb->magic, BTRFS_MAGIC, 8) != 0)
+			return -1;
+	}
 
-	// N.B.: btrfs supports 256-byte labels
+	// N.B.: btrfs natively supports 256 (>VOLUME_ID_LABEL_SIZE) size labels
 	volume_id_set_label_string(id, sb->label, VOLUME_ID_LABEL_SIZE);
 	volume_id_set_uuid(id, sb->fsid, UUID_DCE);
 
