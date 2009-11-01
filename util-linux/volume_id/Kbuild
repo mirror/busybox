@@ -11,6 +11,7 @@ lib-$(CONFIG_FINDFS)                            += get_devname.o
 lib-$(CONFIG_FEATURE_MOUNT_LABEL)               += get_devname.o
 
 lib-$(CONFIG_VOLUMEID)                          += volume_id.o util.o
+lib-$(CONFIG_FEATURE_VOLUMEID_BTRFS)            += btrfs.o
 lib-$(CONFIG_FEATURE_VOLUMEID_EXT)              += ext.o
 lib-$(CONFIG_FEATURE_VOLUMEID_FAT)              += fat.o
 lib-$(CONFIG_FEATURE_VOLUMEID_HFS)              += hfs.o

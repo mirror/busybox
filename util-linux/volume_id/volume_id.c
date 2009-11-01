@@ -109,6 +109,9 @@ static const probe_fptr fs2[] = {
 #if ENABLE_FEATURE_VOLUMEID_EXT
 	volume_id_probe_ext,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_BTRFS
+	volume_id_probe_btrfs,
+#endif
 #if ENABLE_FEATURE_VOLUMEID_REISERFS
 	volume_id_probe_reiserfs,
 #endif

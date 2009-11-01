@@ -451,6 +451,13 @@ config FEATURE_VOLUMEID_EXT
 	help
 	  TODO
 
+config FEATURE_VOLUMEID_BTRFS
+	bool "btrfs filesystem"
+	default n
+	depends on VOLUMEID
+	help
+	  TODO
+
 config FEATURE_VOLUMEID_REISERFS
 	bool "Reiser filesystem"
 	default n

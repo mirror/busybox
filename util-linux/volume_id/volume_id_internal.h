@@ -184,6 +184,8 @@ int volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/, uint64_t 
 
 /* FS */
 
+int volume_id_probe_btrfs(struct volume_id *id /*,uint64_t off*/);
+
 int volume_id_probe_cramfs(struct volume_id *id /*,uint64_t off*/);
 
 int volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/);

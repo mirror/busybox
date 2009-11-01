@@ -44,7 +44,7 @@ get_label_uuid(int fd, char **label, char **uuid)
 	if (vid->label[0] != '\0' || vid->uuid[0] != '\0') {
 		*label = xstrndup(vid->label, sizeof(vid->label));
 		*uuid  = xstrndup(vid->uuid, sizeof(vid->uuid));
-		dbg("found label '%s', uuid '%s' on %s", *label, *uuid, device);
+		dbg("found label '%s', uuid '%s'", *label, *uuid);
 		rv = 0;
 	}
  ret:
