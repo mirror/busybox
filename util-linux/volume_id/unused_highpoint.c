@@ -37,7 +37,7 @@ struct hpt45x_meta {
 #define HPT45X_MAGIC_BAD		0x5a7816fd
 
 
-int volume_id_probe_highpoint_37x_raid(struct volume_id *id, uint64_t off)
+int FAST_FUNC volume_id_probe_highpoint_37x_raid(struct volume_id *id, uint64_t off)
 {
 	struct hpt37x_meta *hpt;
 	uint32_t magic;
@@ -58,7 +58,7 @@ int volume_id_probe_highpoint_37x_raid(struct volume_id *id, uint64_t off)
 	return 0;
 }
 
-int volume_id_probe_highpoint_45x_raid(struct volume_id *id, uint64_t off, uint64_t size)
+int FAST_FUNC volume_id_probe_highpoint_45x_raid(struct volume_id *id, uint64_t off, uint64_t size)
 {
 	struct hpt45x_meta *hpt;
 	uint64_t meta_off;

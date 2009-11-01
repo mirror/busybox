@@ -36,7 +36,7 @@ struct mac_partition {
 	uint8_t		type[32];
 } PACKED;
 
-int volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
+int FAST_FUNC volume_id_probe_mac_partition_map(struct volume_id *id, uint64_t off)
 {
 	const uint8_t *buf;
 	struct mac_driver_desc *driver;

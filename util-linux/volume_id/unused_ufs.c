@@ -162,7 +162,7 @@ struct ufs_super_block {
 #define UFS_MAGIC_FEA			0x00195612
 #define UFS_MAGIC_LFN			0x00095014
 
-int volume_id_probe_ufs(struct volume_id *id, uint64_t off)
+int FAST_FUNC volume_id_probe_ufs(struct volume_id *id, uint64_t off)
 {
 	static const short offsets[] = { 0, 8, 64, 256 };
 

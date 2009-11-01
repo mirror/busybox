@@ -45,8 +45,8 @@
 #define ENABLE_FEATURE_VOLUMEID_UFS           0
 
 
-typedef int (*raid_probe_fptr)(struct volume_id *id, /*uint64_t off,*/ uint64_t size);
-typedef int (*probe_fptr)(struct volume_id *id /*, uint64_t off*/);
+typedef int FAST_FUNC (*raid_probe_fptr)(struct volume_id *id, /*uint64_t off,*/ uint64_t size);
+typedef int FAST_FUNC (*probe_fptr)(struct volume_id *id /*, uint64_t off*/);
 
 static const raid_probe_fptr raid1[] = {
 #if ENABLE_FEATURE_VOLUMEID_LINUXRAID
@@ -153,7 +153,7 @@ static const probe_fptr fs2[] = {
 #endif
 };
 
-int volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64_t size)
+int FAST_FUNC volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64_t size)
 {
 	unsigned i;
 
@@ -199,7 +199,7 @@ int volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64_t size)
 }
 
 /* open volume by device node */
-struct volume_id *volume_id_open_node(int fd)
+struct volume_id* FAST_FUNC volume_id_open_node(int fd)
 {
 	struct volume_id *id;
 
@@ -212,7 +212,7 @@ struct volume_id *volume_id_open_node(int fd)
 
 #ifdef UNUSED
 /* open volume by major/minor */
-struct volume_id *volume_id_open_dev_t(dev_t devt)
+struct volume_id* FAST_FUNC volume_id_open_dev_t(dev_t devt)
 {
 	struct volume_id *id;
 	char *tmp_node[VOLUME_ID_PATH_MAX];
@@ -232,7 +232,7 @@ struct volume_id *volume_id_open_dev_t(dev_t devt)
 }
 #endif
 
-void free_volume_id(struct volume_id *id)
+void FAST_FUNC free_volume_id(struct volume_id *id)
 {
 	if (id == NULL)
 		return;

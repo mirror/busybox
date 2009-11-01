@@ -35,7 +35,7 @@ struct cramfs_super {
 	uint8_t		name[16];
 } PACKED;
 
-int volume_id_probe_cramfs(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_cramfs(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t)0)
 	struct cramfs_super *cs;

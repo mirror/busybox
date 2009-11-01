@@ -80,7 +80,7 @@ struct ocfs2_super_block {
 	uint8_t		s_uuid[OCFS2_VOL_UUID_LEN];	/* 128-bit uuid */
 } PACKED;
 
-int volume_id_probe_ocfs2(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_ocfs2(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t)0)
 	struct ocfs2_super_block *os;

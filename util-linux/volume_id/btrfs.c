@@ -78,7 +78,7 @@ struct btrfs_super_block {
 	// ...
 } PACKED;
 
-int volume_id_probe_btrfs(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_btrfs(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t) (64 * 1024))
 	struct btrfs_super_block *sb;

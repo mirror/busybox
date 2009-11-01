@@ -41,7 +41,7 @@ struct silicon_meta {
 
 #define SILICON_MAGIC		0x2F000000
 
-int volume_id_probe_silicon_medley_raid(struct volume_id *id, uint64_t off, uint64_t size)
+int FAST_FUNC volume_id_probe_silicon_medley_raid(struct volume_id *id, uint64_t off, uint64_t size)
 {
 	uint64_t meta_off;
 	struct silicon_meta *sil;

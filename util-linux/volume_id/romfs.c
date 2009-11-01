@@ -27,7 +27,7 @@ struct romfs_super {
 	uint8_t name[];
 } PACKED;
 
-int volume_id_probe_romfs(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_romfs(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t)0)
 	struct romfs_super *rfs;

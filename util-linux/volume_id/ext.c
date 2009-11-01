@@ -43,7 +43,7 @@ struct ext2_super_block {
 #define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV	0x00000008
 #define EXT_SUPERBLOCK_OFFSET			0x400
 
-int volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t)0)
 	struct ext2_super_block *es;

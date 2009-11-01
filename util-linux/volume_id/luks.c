@@ -80,7 +80,7 @@ struct BUG_bad_size_luks_phdr {
 		1 : -1];
 };
 
-int volume_id_probe_luks(struct volume_id *id /*,uint64_t off*/)
+int FAST_FUNC volume_id_probe_luks(struct volume_id *id /*,uint64_t off*/)
 {
 #define off ((uint64_t)0)
 	struct luks_phdr *header;

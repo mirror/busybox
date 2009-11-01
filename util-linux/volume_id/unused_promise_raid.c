@@ -27,7 +27,7 @@ struct promise_meta {
 #define PDC_CONFIG_OFF		0x1200
 #define PDC_SIGNATURE		"Promise Technology, Inc."
 
-int volume_id_probe_promise_fasttrack_raid(struct volume_id *id, uint64_t off, uint64_t size)
+int FAST_FUNC volume_id_probe_promise_fasttrack_raid(struct volume_id *id, uint64_t off, uint64_t size)
 {
 	static const unsigned short sectors[] = {
 		63, 255, 256, 16, 399

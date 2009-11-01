@@ -47,7 +47,7 @@ struct msdos_partition_entry {
 #define is_raid(type) \
 	(type == LINUX_RAID_PARTITION)
 
-int volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
+int FAST_FUNC volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t off)
 {
 	const uint8_t *buf;
 	int i;
