@@ -11,7 +11,12 @@
  * true will #undef them below.
  */
 #define HAVE_FDPRINTF 1
+#define HAVE_MEMRCHR 1
+#define HAVE_MKDTEMP 1
+#define HAVE_SETBIT 1
+#define HAVE_STRCASESTR 1
 #define HAVE_STRCHRNUL 1
+#define HAVE_STRSIGNAL 1
 #define HAVE_VASPRINTF 1
 
 /* Convenience macros to test the version of gcc. */
@@ -335,17 +340,22 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__dietlibc__)
-#undef HAVE_STRCHRNUL
+# undef HAVE_STRCHRNUL
 #endif
 
 #if defined(__WATCOMC__)
-#undef HAVE_FDPRINTF
-#undef HAVE_STRCHRNUL
-#undef HAVE_VASPRINTF
+# undef HAVE_FDPRINTF
+# undef HAVE_MEMRCHR
+# undef HAVE_MKDTEMP
+# undef HAVE_SETBIT
+# undef HAVE_STRCASESTR
+# undef HAVE_STRCHRNUL
+# undef HAVE_STRSIGNAL
+# undef HAVE_VASPRINTF
 #endif
 
 #if defined(__FreeBSD__)
-#undef HAVE_STRCHRNUL
+# undef HAVE_STRCHRNUL
 #endif
 
 /*
@@ -353,16 +363,38 @@ typedef unsigned smalluint;
  * These must come after all the HAVE_* macros are defined (or not)
  */
 
+#ifndef HAVE_FDPRINTF
+extern int fdprintf(int fd, const char *format, ...);
+#endif
+
+#ifndef HAVE_MEMRCHR
+extern void *memrchr(const void *s, int c, size_t n) FAST_FUNC;
+#endif
+
+#ifndef HAVE_MKDTEMP
+extern char *mkdtemp(char *template) FAST_FUNC;
+#endif
+
+#ifndef HAVE_SETBIT
+# define setbit(a, b)  ((a)[(b) >> 3] |= 1 << ((b) & 7))
+# define clrbit(a, b)  ((a)[(b) >> 3] &= ~(1 << ((b) & 7)))
+#endif
+
+#ifndef HAVE_STRCASESTR
+extern char *strcasestr(const char *s, const char *pattern) FAST_FUNC;
+#endif
+
 #ifndef HAVE_STRCHRNUL
 extern char *strchrnul(const char *s, int c) FAST_FUNC;
 #endif
 
-#ifndef HAVE_VASPRINTF
-extern int vasprintf(char **string_ptr, const char *format, va_list p) FAST_FUNC;
+#ifndef HAVE_STRSIGNAL
+/* Not exactly the same: instead of "Stopped" it shows "STOP" etc */
+# define strsignal(sig) get_signame(sig)
 #endif
 
-#ifndef HAVE_FDPRINTF
-extern int fdprintf(int fd, const char *format, ...);
+#ifndef HAVE_VASPRINTF
+extern int vasprintf(char **string_ptr, const char *format, va_list p) FAST_FUNC;
 #endif
 
 #endif

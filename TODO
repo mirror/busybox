@@ -6,11 +6,8 @@ do one of these bounce an email off the person it's listed under to see if they
 have any suggestions how they plan to go about it, and to minimize conflicts
 between your work and theirs.  But otherwise, all of these are fair game.
 
-Rob Landley suggested these:
-  Add a libbb/platform.c
-    Implement fdprintf() for platforms that haven't got one.
-    Implement bb_realpath() that can handle NULL on non-glibc.
-    Cleanup bb_asprintf()
+Rob Landley suggested this:
+  Implement bb_realpath() that can handle NULL on non-glibc.
 
   Remove obsolete _() wrapper crud for internationalization we don't do.
   Figure out where we need utf8 support, and add it.
