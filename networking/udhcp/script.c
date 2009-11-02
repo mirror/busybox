@@ -267,7 +267,7 @@ void FAST_FUNC udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	envp = fill_envp(packet);
 
 	/* call script */
-	log1("Executing %s", client_config.script);
+	log1("Executing %s %s", client_config.script, name);
 	argv[0] = (char*) client_config.script;
 	argv[1] = (char*) name;
 	argv[2] = NULL;
