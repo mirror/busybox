@@ -2771,6 +2771,15 @@
      "\n	-l FILENAME	Read bad blocks list from FILENAME" \
      "\n	-v		Make version 2 filesystem" \
 
+#define mkfs_reiser_trivial_usage \
+       "[-f] [-l LABEL] BLOCKDEV [4K-BLOCKS]"
+
+#define mkfs_reiser_full_usage "\n\n" \
+       "Make a ReiserFS V3 filesystem\n" \
+     "\nOptions:" \
+     "\n	-f	Force" \
+     "\n	-l LBL	Volume label" \
+
 #define mkfs_vfat_trivial_usage \
        "[-v] [-n LABEL] BLOCKDEV [KBYTES]"
 /* Accepted but ignored:

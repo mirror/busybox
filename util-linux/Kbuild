@@ -24,6 +24,7 @@ lib-$(CONFIG_LOSETUP)           += losetup.o
 lib-$(CONFIG_MDEV)              += mdev.o
 lib-$(CONFIG_MKFS_EXT2)         += mkfs_ext2.o
 lib-$(CONFIG_MKFS_MINIX)        += mkfs_minix.o
+lib-$(CONFIG_MKFS_REISER)       += mkfs_reiser.o
 lib-$(CONFIG_MKFS_VFAT)         += mkfs_vfat.o
 lib-$(CONFIG_MKSWAP)            += mkswap.o
 lib-$(CONFIG_MORE)              += more.o
