@@ -331,12 +331,12 @@ void xmove_fd(int, int) FAST_FUNC;
 DIR *xopendir(const char *path) FAST_FUNC;
 DIR *warn_opendir(const char *path) FAST_FUNC;
 
-/* UNUSED: char *xmalloc_realpath(const char *path) FAST_FUNC; */
-char *xmalloc_readlink(const char *path) FAST_FUNC;
-char *xmalloc_readlink_or_warn(const char *path) FAST_FUNC;
-char *xrealloc_getcwd_or_warn(char *cwd) FAST_FUNC;
+/* UNUSED: char *xmalloc_realpath(const char *path) FAST_FUNC RETURNS_MALLOC; */
+char *xmalloc_readlink(const char *path) FAST_FUNC RETURNS_MALLOC;
+char *xmalloc_readlink_or_warn(const char *path) FAST_FUNC RETURNS_MALLOC;
+char *xrealloc_getcwd_or_warn(char *cwd) FAST_FUNC RETURNS_MALLOC;
 
-char *xmalloc_follow_symlinks(const char *path) FAST_FUNC;
+char *xmalloc_follow_symlinks(const char *path) FAST_FUNC RETURNS_MALLOC;
 
 
 enum {
@@ -514,23 +514,23 @@ int create_and_connect_stream_or_die(const char *peer, int port) FAST_FUNC;
 /* Connect to peer identified by lsa */
 int xconnect_stream(const len_and_sockaddr *lsa) FAST_FUNC;
 /* Get local address of bound or accepted socket */
-len_and_sockaddr *get_sock_lsa(int fd) FAST_FUNC;
+len_and_sockaddr *get_sock_lsa(int fd) FAST_FUNC RETURNS_MALLOC;
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.
  * UNIX socket address being returned, IPX sockaddr etc...
  * On error does bb_error_msg and returns NULL */
-len_and_sockaddr* host2sockaddr(const char *host, int port) FAST_FUNC;
+len_and_sockaddr* host2sockaddr(const char *host, int port) FAST_FUNC RETURNS_MALLOC;
 /* Version which dies on error */
-len_and_sockaddr* xhost2sockaddr(const char *host, int port) FAST_FUNC;
-len_and_sockaddr* xdotted2sockaddr(const char *host, int port) FAST_FUNC;
+len_and_sockaddr* xhost2sockaddr(const char *host, int port) FAST_FUNC RETURNS_MALLOC;
+len_and_sockaddr* xdotted2sockaddr(const char *host, int port) FAST_FUNC RETURNS_MALLOC;
 /* Same, useful if you want to force family (e.g. IPv6) */
 #if !ENABLE_FEATURE_IPV6
 #define host_and_af2sockaddr(host, port, af) host2sockaddr((host), (port))
 #define xhost_and_af2sockaddr(host, port, af) xhost2sockaddr((host), (port))
 #else
-len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af) FAST_FUNC;
-len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af) FAST_FUNC;
+len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af) FAST_FUNC RETURNS_MALLOC;
+len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t af) FAST_FUNC RETURNS_MALLOC;
 #endif
 /* Assign sin[6]_port member if the socket is an AF_INET[6] one,
  * otherwise no-op. Useful for ftp.
@@ -539,14 +539,14 @@ void set_nport(len_and_sockaddr *lsa, unsigned port) FAST_FUNC;
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
 int get_nport(const struct sockaddr *sa) FAST_FUNC;
 /* Reverse DNS. Returns NULL on failure. */
-char* xmalloc_sockaddr2host(const struct sockaddr *sa) FAST_FUNC;
+char* xmalloc_sockaddr2host(const struct sockaddr *sa) FAST_FUNC RETURNS_MALLOC;
 /* This one doesn't append :PORTNUM */
-char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa) FAST_FUNC;
+char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa) FAST_FUNC RETURNS_MALLOC;
 /* This one also doesn't fall back to dotted IP (returns NULL) */
-char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa) FAST_FUNC;
+char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa) FAST_FUNC RETURNS_MALLOC;
 /* inet_[ap]ton on steroids */
-char* xmalloc_sockaddr2dotted(const struct sockaddr *sa) FAST_FUNC;
-char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa) FAST_FUNC;
+char* xmalloc_sockaddr2dotted(const struct sockaddr *sa) FAST_FUNC RETURNS_MALLOC;
+char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa) FAST_FUNC RETURNS_MALLOC;
 // "old" (ipv4 only) API
 // users: traceroute.c hostname.c - use _list_ of all IPs
 struct hostent *xgethostbyname(const char *name) FAST_FUNC;
@@ -564,15 +564,16 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 		struct sockaddr *to,
 		socklen_t sa_size) FAST_FUNC;
 
-char *xstrdup(const char *s) FAST_FUNC;
-char *xstrndup(const char *s, int n) FAST_FUNC;
+
+char *xstrdup(const char *s) FAST_FUNC RETURNS_MALLOC;
+char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
 void overlapping_strcpy(char *dst, const char *src) FAST_FUNC;
 char *safe_strncpy(char *dst, const char *src, size_t size) FAST_FUNC;
 char *strncpy_IFNAMSIZ(char *dst, const char *src) FAST_FUNC;
 /* Guaranteed to NOT be a macro (smallest code). Saves nearly 2k on uclibc.
  * But potentially slow, don't use in one-billion-times loops */
 int bb_putchar(int ch) FAST_FUNC;
-char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2))) FAST_FUNC;
+char *xasprintf(const char *format, ...) __attribute__ ((format(printf, 1, 2))) FAST_FUNC RETURNS_MALLOC;
 /* Prints unprintable chars ch as ^C or M-c to file
  * (M-c is used only if ch is ORed with PRINTABLE_META),
  * else it is printed as-is (except for ch = 0x9b) */
@@ -592,9 +593,9 @@ void fputc_printable(int ch, FILE *file) FAST_FUNC;
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */
-void *malloc_or_warn(size_t size) FAST_FUNC;
-void *xmalloc(size_t size) FAST_FUNC;
-void *xzalloc(size_t size) FAST_FUNC;
+void *malloc_or_warn(size_t size) FAST_FUNC RETURNS_MALLOC;
+void *xmalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
+void *xzalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
 void *xrealloc(void *old, size_t size) FAST_FUNC;
 /* After xrealloc_vector(v, 4, idx) it's ok to use
  * at least v[idx] and v[idx+1], for all idx values.
@@ -617,16 +618,16 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FA
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
+extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Reads block up to *maxsz_p (default: INT_MAX - 4095) */
-extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC;
+extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
-extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
+extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Autodetects .gz etc */
 extern int open_zipped(const char *fname) FAST_FUNC;
-extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC;
+extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Never returns NULL */
-extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC;
+extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count) FAST_FUNC;
 // NB: will return short write on error, not -1,
@@ -645,17 +646,17 @@ extern void xprint_and_close_file(FILE *file) FAST_FUNC;
 extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
 extern char *bb_get_chunk_with_continuation(FILE *file, int *end, int *lineno) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
-extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC;
+extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC RETURNS_MALLOC;
 /* Same, with limited max size, and returns the length (excluding NUL): */
-extern char *xmalloc_fgets_str_len(FILE *file, const char *terminating_string, size_t *maxsz_p) FAST_FUNC;
+extern char *xmalloc_fgets_str_len(FILE *file, const char *terminating_string, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Chops off TERMINATING_STRING from the end: */
-extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string) FAST_FUNC;
+extern char *xmalloc_fgetline_str(FILE *file, const char *terminating_string) FAST_FUNC RETURNS_MALLOC;
 /* Reads up to (and including) "\n" or NUL byte: */
-extern char *xmalloc_fgets(FILE *file) FAST_FUNC;
+extern char *xmalloc_fgets(FILE *file) FAST_FUNC RETURNS_MALLOC;
 /* Chops off '\n' from the end, unlike fgets: */
-extern char *xmalloc_fgetline(FILE *file) FAST_FUNC;
+extern char *xmalloc_fgetline(FILE *file) FAST_FUNC RETURNS_MALLOC;
 /* Same, but doesn't try to conserve space (may have some slack after the end) */
-/* extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC; */
+/* extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC RETURNS_MALLOC; */
 
 extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 extern void die_if_ferror_stdout(void) FAST_FUNC;
@@ -1157,7 +1158,7 @@ const char *nth_string(const char *strings, int n) FAST_FUNC;
 extern void print_login_issue(const char *issue_file, const char *tty) FAST_FUNC;
 extern void print_login_prompt(void) FAST_FUNC;
 
-char *xmalloc_ttyname(int fd) FAST_FUNC;
+char *xmalloc_ttyname(int fd) FAST_FUNC RETURNS_MALLOC;
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, unsigned *width, unsigned *height) FAST_FUNC;
 

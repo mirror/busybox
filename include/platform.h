@@ -60,6 +60,15 @@
 
 #define UNUSED_PARAM __attribute__ ((__unused__))
 #define NORETURN __attribute__ ((__noreturn__))
+/* "The malloc attribute is used to tell the compiler that a function
+ * may be treated as if any non-NULL pointer it returns cannot alias
+ * any other pointer valid when the function returns. This will often
+ * improve optimization. Standard functions with this property include
+ * malloc and calloc. realloc-like functions have this property as long
+ * as the old pointer is never referred to (including comparing it
+ * to the new pointer) after the function returns a non-NULL value."
+ */
+#define RETURNS_MALLOC __attribute__ ((malloc))
 #define PACKED __attribute__ ((__packed__))
 #define ALIGNED(m) __attribute__ ((__aligned__(m)))
 
