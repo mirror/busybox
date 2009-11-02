@@ -36,7 +36,7 @@ int logname_main(int argc, char **argv UNUSED_PARAM)
 	/* Using _r function - avoid pulling in static buffer from libc */
 	if (getlogin_r(buf, sizeof(buf)) == 0) {
 		puts(buf);
-		return fflush(stdout);
+		return fflush_all();
 	}
 
 	bb_perror_msg_and_die("getlogin");

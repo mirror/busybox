@@ -237,7 +237,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		} else {
 			printf(" UNSOLICITED?\n");
 		}
-		fflush(stdout);
+		fflush_all();
 	}
 	received++;
 	if (FROM->sll_pkttype != PACKET_HOST)

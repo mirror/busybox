@@ -151,7 +151,7 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 		fputs(rtnl_rtntype_n2a(r->rtm_type, b1), stdout);
 
 	bb_putchar('\n');
-	/*fflush(stdout);*/
+	/*fflush_all();*/
 	return 0;
 }
 

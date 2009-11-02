@@ -279,7 +279,7 @@ static int xargs_ask_confirmation(void)
 
 	tty_stream = xfopen_for_read(CURRENT_TTY);
 	fputs(" ?...", stderr);
-	fflush(stderr);
+	fflush_all();
 	c = savec = getc(tty_stream);
 	while (c != EOF && c != '\n')
 		c = getc(tty_stream);

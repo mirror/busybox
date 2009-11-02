@@ -815,7 +815,7 @@ int traceroute_main(int argc, char **argv)
 
 			if (!first && pausemsecs > 0)
 				usleep(pausemsecs * 1000);
-			fflush(stdout);
+			fflush_all();
 
 			t1 = monotonic_us();
 			send_probe(++seq, ttl);

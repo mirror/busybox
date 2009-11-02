@@ -341,7 +341,7 @@ static int ask(const char *string, int def)
 	}
 	printf(def ? "%s (y/n)? " : "%s (n/y)? ", string);
 	for (;;) {
-		fflush(NULL);
+		fflush_all();
 		c = getchar();
 		if (c == EOF) {
 			if (!def)

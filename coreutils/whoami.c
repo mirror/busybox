@@ -22,5 +22,5 @@ int whoami_main(int argc, char **argv UNUSED_PARAM)
 	/* Will complain and die if username not found */
 	puts(xuid2uname(geteuid()));
 
-	return fflush(stdout);
+	return fflush_all();
 }

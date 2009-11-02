@@ -23,5 +23,5 @@ int dirname_main(int argc, char **argv)
 
 	puts(dirname(argv[1]));
 
-	return fflush(stdout);
+	return fflush_all();
 }

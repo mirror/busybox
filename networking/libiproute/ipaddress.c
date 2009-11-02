@@ -182,7 +182,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		}
 	}
 	bb_putchar('\n');
-	/*fflush(stdout);*/
+	/*fflush_all();*/
 	return 0;
 }
 
@@ -344,7 +344,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("       %s", buf);
 	}
 	bb_putchar('\n');
-	/*fflush(stdout);*/
+	/*fflush_all();*/
 	return 0;
 }
 

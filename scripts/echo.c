@@ -187,7 +187,7 @@ int main(int argc, char **argv)
 		putchar('\n');
 	}
  ret:
-	return fflush(stdout);
+	return fflush_all();
 }
 
 /*-

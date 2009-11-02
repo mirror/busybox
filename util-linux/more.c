@@ -114,7 +114,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 						(int) (ftello(file)*100 / st.st_size),
 						st.st_size);
 				}
-				fflush(stdout);
+				fflush_all();
 
 				/*
 				 * We've just displayed the "--More--" prompt, so now we need
@@ -189,7 +189,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 			putchar(c);
 		}
 		fclose(file);
-		fflush(stdout);
+		fflush_all();
 	} while (*argv && *++argv);
  end:
 	setTermSettings(cin_fileno, &initial_settings);

@@ -630,7 +630,7 @@ popen_ls(const char *opt)
 	cwd = xrealloc_getcwd_or_warn(NULL);
 	xpiped_pair(outfd);
 
-	/*fflush(NULL); - so far we dont use stdio on output */
+	/*fflush_all(); - so far we dont use stdio on output */
 	pid = BB_MMU ? fork() : vfork();
 	if (pid < 0)
 		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");

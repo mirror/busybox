@@ -255,12 +255,9 @@ void FAST_FUNC die_if_ferror_stdout(void)
 	die_if_ferror(stdout, bb_msg_standard_output);
 }
 
-// Die with an error message if we have trouble flushing stdout.
-void FAST_FUNC xfflush_stdout(void)
+int FAST_FUNC fflush_all(void)
 {
-	if (fflush(stdout)) {
-		bb_perror_msg_and_die(bb_msg_standard_output);
-	}
+	return fflush(NULL);
 }
 
 
@@ -276,9 +273,9 @@ int FAST_FUNC bb_putchar(int ch)
  * then close that file. */
 void FAST_FUNC xprint_and_close_file(FILE *file)
 {
-	fflush(stdout);
+	fflush_all();
 	// copyfd outputs error messages for us.
-	if (bb_copyfd_eof(fileno(file), 1) == -1)
+	if (bb_copyfd_eof(fileno(file), STDOUT_FILENO) == -1)
 		xfunc_die();
 
 	fclose(file);

@@ -252,7 +252,7 @@ static NOINLINE int cpio_o(void)
 				free(lpath);
 			} else { /* S_ISREG */
 				int fd = xopen(name, O_RDONLY);
-				fflush(stdout);
+				fflush_all();
 				/* We must abort if file got shorter too! */
 				bb_copyfd_exact_size(fd, STDOUT_FILENO, st.st_size);
 				bytes += st.st_size;

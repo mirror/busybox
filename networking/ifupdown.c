@@ -969,7 +969,7 @@ static int doit(char *str)
 		pid_t child;
 		int status;
 
-		fflush(NULL);
+		fflush_all();
 		child = vfork();
 		switch (child) {
 		case -1: /* failure */
@@ -1038,7 +1038,7 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 	xpiped_pair(infd);
 	xpiped_pair(outfd);
 
-	fflush(NULL);
+	fflush_all();
 	pid = vfork();
 
 	switch (pid) {

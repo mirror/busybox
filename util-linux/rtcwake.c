@@ -172,7 +172,7 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 
 	sync();
 	printf("wakeup from \"%s\" at %s", suspend, ctime(&alarm_time));
-	fflush(NULL);
+	fflush_all();
 	usleep(10 * 1000);
 
 	if (strcmp(suspend, "on"))

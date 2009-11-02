@@ -632,7 +632,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	}
 	/* printf(" %d", hist_iterations); */
 	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
-	fflush(stdout);
+	fflush_all();
 }
 #undef UPSCALE
 #undef SHOW_STAT
@@ -856,7 +856,7 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 		s++;
 	}
 	bb_putchar(OPT_BATCH_MODE ? '\n' : '\r');
-	fflush(stdout);
+	fflush_all();
 #undef HDR_STR
 #undef MIN_WIDTH
 }

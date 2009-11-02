@@ -20,7 +20,7 @@ int pwd_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (buf != NULL) {
 		puts(buf);
 		free(buf);
-		return fflush(stdout);
+		return fflush_all();
 	}
 
 	return EXIT_FAILURE;

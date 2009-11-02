@@ -288,7 +288,7 @@ make_new_session(
 		/*ts->size2 = 0;*/
 	}
 
-	fflush(NULL); /* flush all streams */
+	fflush_all();
 	pid = vfork(); /* NOMMU-friendly */
 	if (pid < 0) {
 		free(ts);
@@ -331,7 +331,7 @@ make_new_session(
 	/*termbuf.c_lflag &= ~ICANON;*/
 	tcsetattr_stdin_TCSANOW(&termbuf);
 
-	/* Uses FILE-based I/O to stdout, but does fflush(stdout),
+	/* Uses FILE-based I/O to stdout, but does fflush_all(),
 	 * so should be safe with vfork.
 	 * I fear, though, that some users will have ridiculously big
 	 * issue files, and they may block writing to fd 1,

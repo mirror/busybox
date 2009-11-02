@@ -286,7 +286,7 @@ static int restore(const char *file)
 			if (count == 0)
 				bb_putchar('\n');
 			bb_putchar('*');
-			fflush(stdout);
+			fflush_all();
 		}
 	}
 

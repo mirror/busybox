@@ -686,7 +686,7 @@ static int readLines(const char *file, int num)
 	cc = 0;
 
 	printf("\"%s\", ", file);
-	fflush(stdout);
+	fflush_all();
 
 	do {
 		cp = memchr(bufPtr, '\n', bufUsed);
@@ -775,7 +775,7 @@ static int writeLines(const char *file, int num1, int num2)
 	}
 
 	printf("\"%s\", ", file);
-	fflush(stdout);
+	fflush_all();
 
 	lp = findLine(num1);
 	if (lp == NULL) {

@@ -491,7 +491,7 @@ static void unpack_tail(int sz, uint32_t *tp,
 	if (tp)
 		printf(" time=%u.%03u ms", triptime / 1000, triptime % 1000);
 	puts(dupmsg);
-	fflush(stdout);
+	fflush_all();
 }
 static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 {

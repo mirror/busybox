@@ -22,5 +22,5 @@ int hostid_main(int argc, char **argv UNUSED_PARAM)
 
 	printf("%lx\n", gethostid());
 
-	return fflush(stdout);
+	return fflush_all();
 }

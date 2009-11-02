@@ -1152,7 +1152,7 @@ int svlogd_main(int argc, char **argv)
 			/* Move unprocessed data to the front of line */
 			memmove((timestamp ? line+26 : line), lineptr, stdin_cnt);
 		}
-		fflush(NULL);////
+		fflush_all();////
 	}
 
 	for (i = 0; i < dirn; ++i) {

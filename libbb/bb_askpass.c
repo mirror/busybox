@@ -55,7 +55,7 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 	}
 
 	fputs(prompt, stdout);
-	fflush(stdout);
+	fflush_all();
 	ret = NULL;
 	/* On timeout or Ctrl-C, read will hopefully be interrupted,
 	 * and we return NULL */
@@ -77,6 +77,6 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 
 	tcsetattr_stdin_TCSANOW(&oldtio);
 	bb_putchar('\n');
-	fflush(stdout);
+	fflush_all();
 	return ret;
 }

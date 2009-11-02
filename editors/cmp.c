@@ -108,7 +108,7 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 				outfile = stderr;
 				/* There may have been output to stdout (option -l), so
 				 * make sure we fflush before writing to stderr. */
-				xfflush_stdout();
+				fflush_all();
 			}
 			if (!(opt & CMP_OPT_s)) {
 				if (opt & CMP_OPT_l) {

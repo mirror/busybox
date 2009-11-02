@@ -189,7 +189,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 
 	memset(&Z, 0, sizeof(Z));
 	INIT_G();
-	//fflush(NULL); - is this needed because of NOEXEC?
+	//fflush_all(); - is this needed because of NOEXEC?
 
 	for (n = 1; argv[n]; n++) {
 		int what;

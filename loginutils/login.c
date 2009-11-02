@@ -137,7 +137,7 @@ static void die_if_nologin(void)
 		puts("\r\nSystem closed for routine maintenance\r");
 
 	fclose(fp);
-	fflush(NULL);
+	fflush_all();
 	/* Users say that they do need this prior to exit: */
 	tcdrain(STDOUT_FILENO);
 	exit(EXIT_FAILURE);
@@ -250,7 +250,7 @@ static void motd(void)
 
 	fd = open(bb_path_motd_file, O_RDONLY);
 	if (fd >= 0) {
-		fflush(stdout);
+		fflush_all();
 		bb_copyfd_eof(fd, STDOUT_FILENO);
 		close(fd);
 	}
@@ -263,7 +263,7 @@ static void alarm_handler(int sig UNUSED_PARAM)
 	 * We don't want to block here */
 	ndelay_on(1);
 	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
-	fflush(NULL);
+	fflush_all();
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
 	ndelay_off(1);

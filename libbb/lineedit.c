@@ -373,7 +373,7 @@ static void input_backward(unsigned num)
 static void put_prompt(void)
 {
 	out1str(cmdedit_prompt);
-	fflush(NULL);
+	fflush_all();
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
 	{
 		/* Ask terminal where is the cursor now.
@@ -411,7 +411,7 @@ static void put_prompt(void)
 		if (safe_poll(&pfd, 1, 0) == 0) {
 			S.sent_ESC_br6n = 1;
 			out1str("\033" "[6n");
-			fflush(NULL); /* make terminal see it ASAP! */
+			fflush_all(); /* make terminal see it ASAP! */
 		}
 	}
 #endif
@@ -1636,7 +1636,7 @@ static void cmdedit_setwidth(unsigned w, int redraw_flg)
 		int new_y = (cursor + cmdedit_prmt_len) / w;
 		/* redraw */
 		redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), command_len - cursor);
-		fflush(NULL);
+		fflush_all();
 	}
 }
 
@@ -1748,7 +1748,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	) {
 		/* Happens when e.g. stty -echo was run before */
 		parse_and_put_prompt(prompt);
-		/* fflush(stdout); - done by parse_and_put_prompt */
+		/* fflush_all(); - done by parse_and_put_prompt */
 		if (fgets(command, maxsize, stdin) == NULL)
 			len = -1; /* EOF or error */
 		else
@@ -1841,7 +1841,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		};
 		int32_t ic, ic_raw;
 
-		fflush(NULL);
+		fflush_all();
 		ic = ic_raw = lineedit_read_key(read_key_buffer);
 
 #if ENABLE_FEATURE_EDITING_VI
@@ -2245,7 +2245,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	tcsetattr_stdin_TCSANOW(&initial_settings);
 	/* restore SIGWINCH handler */
 	signal(SIGWINCH, previous_SIGWINCH_handler);
-	fflush(NULL);
+	fflush_all();
 
 	len = command_len;
 	DEINIT_S();
@@ -2259,7 +2259,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
 	fputs(prompt, stdout);
-	fflush(NULL);
+	fflush_all();
 	fgets(command, maxsize, stdin);
 	return strlen(command);
 }

@@ -44,7 +44,7 @@ void FAST_FUNC bb_info_msg(const char *s, ...)
 	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG))
 		syslog(LOG_INFO, "%s", msg);
 	if (logmode & LOGMODE_STDIO) {
-		fflush(stdout);
+		fflush_all();
 		/* used = strlen(msg); - must be true already */
 		msg[used++] = '\n';
 		full_write(STDOUT_FILENO, msg, used);

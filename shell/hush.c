@@ -1206,7 +1206,7 @@ static void hush_exit(int exitcode)
 	}
 
 #if ENABLE_HUSH_JOB
-	fflush(NULL); /* flush all streams */
+	fflush_all();
 	sigexit(- (exitcode & 0xff));
 #else
 	exit(exitcode);
@@ -1679,7 +1679,7 @@ static void get_user_input(struct in_str *i)
 	do {
 		G.flag_SIGINT = 0;
 		fputs(prompt_str, stdout);
-		fflush(stdout);
+		fflush_all();
 		G.user_input_buf[0] = r = fgetc(i->file);
 		/*G.user_input_buf[1] = '\0'; - already is and never changed */
 //do we need check_and_run_traps(0)? (maybe only if stdin)
@@ -3220,7 +3220,7 @@ static void exec_function(char ***to_free,
 	G.global_argc = n;
 	/* On MMU, funcp->body is always non-NULL */
 	n = run_list(funcp->body);
-	fflush(NULL);
+	fflush_all();
 	_exit(n);
 # else
 	re_execute_shell(to_free,
@@ -3307,7 +3307,7 @@ static void exec_builtin(char ***to_free,
 {
 #if BB_MMU
 	int rcode = x->function(argv);
-	fflush(NULL);
+	fflush_all();
 	_exit(rcode);
 #else
 	/* On NOMMU, we must never block!
@@ -3933,7 +3933,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->cmd, argv_expanded[1]);
 					rcode = x->function(argv_expanded) & 0xff;
-					fflush(NULL);
+					fflush_all();
 				}
 #if ENABLE_HUSH_FUNCTIONS
 				else {
@@ -7136,7 +7136,7 @@ static int FAST_FUNC builtin_export(char **argv)
 				putchar('\n');
 #endif
 			}
-			/*fflush(stdout); - done after each builtin anyway */
+			/*fflush_all(); - done after each builtin anyway */
 		}
 		return EXIT_SUCCESS;
 	}
@@ -7181,7 +7181,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 				printf(" %s\n", get_signame(i));
 			}
 		}
-		/*fflush(stdout); - done after each builtin anyway */
+		/*fflush_all(); - done after each builtin anyway */
 		return EXIT_SUCCESS;
 	}
 

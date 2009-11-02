@@ -95,5 +95,5 @@ int seq_main(int argc, char **argv)
 	if (n) /* if while loop executed at least once */
 		bb_putchar('\n');
 
-	return fflush(stdout);
+	return fflush_all();
 }

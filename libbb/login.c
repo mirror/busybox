@@ -85,7 +85,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 		fputs(outbuf, stdout);
 	}
 	fclose(fp);
-	fflush(stdout);
+	fflush_all();
 }
 
 void FAST_FUNC print_login_prompt(void)
@@ -94,7 +94,7 @@ void FAST_FUNC print_login_prompt(void)
 
 	fputs(hostname, stdout);
 	fputs(LOGIN, stdout);
-	fflush(stdout);
+	fflush_all();
 	free(hostname);
 }
 

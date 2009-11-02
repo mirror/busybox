@@ -2552,7 +2552,7 @@ static var *evaluate(node *op, var *res)
 				break;
 
 			case F_sy:
-				fflush(NULL);
+				fflush_all();
 				R.d = (ENABLE_FEATURE_ALLOW_EXEC && L.s && *L.s)
 						? (system(L.s) >> 8) : 0;
 				break;
@@ -2565,7 +2565,7 @@ static var *evaluate(node *op, var *res)
 						X.rsm = newfile(L.s);
 						fflush(X.rsm->F);
 					} else {
-						fflush(NULL);
+						fflush_all();
 					}
 				}
 				break;

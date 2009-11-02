@@ -135,7 +135,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 		} else { /* logread -f */
 			if (cur == shbuf_tail) {
 				sem_up(log_semid);
-				fflush(stdout);
+				fflush_all();
 				sleep(1); /* TODO: replace me with a sleep_on */
 				continue;
 			}

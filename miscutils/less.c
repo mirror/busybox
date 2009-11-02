@@ -157,7 +157,7 @@ struct globals {
 /* Reset terminal input to normal */
 static void set_tty_cooked(void)
 {
-	fflush(stdout);
+	fflush_all();
 	tcsetattr(kbd_fd, TCSANOW, &term_orig);
 }
 
@@ -835,7 +835,7 @@ static int getch_nowait(void)
 	/* Position cursor if line input is done */
 	if (less_gets_pos >= 0)
 		move_cursor(max_displayed_line + 2, less_gets_pos + 1);
-	fflush(stdout);
+	fflush_all();
 
 	if (kbd_input[0] == 0) { /* if nothing is buffered */
 #if ENABLE_FEATURE_LESS_WINCH

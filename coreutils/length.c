@@ -18,5 +18,5 @@ int length_main(int argc, char **argv)
 
 	printf("%u\n", (unsigned)strlen(*argv));
 
-	return fflush(stdout);
+	return fflush_all();
 }

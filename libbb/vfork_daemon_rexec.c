@@ -25,7 +25,7 @@ pid_t FAST_FUNC spawn(char **argv)
 	volatile int failed;
 	pid_t pid;
 
-// Ain't it a good place to fflush(NULL)?
+	fflush_all();
 
 	/* Be nice to nommu machines. */
 	failed = 0;

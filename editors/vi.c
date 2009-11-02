@@ -2136,7 +2136,7 @@ static void rawmode(void)
 
 static void cookmode(void)
 {
-	fflush(stdout);
+	fflush_all();
 	tcsetattr_stdin_TCSANOW(&term_orig);
 }
 
@@ -2201,7 +2201,7 @@ static int readit(void) // read (maybe cursor) key from stdin
 {
 	int c;
 
-	fflush(stdout);
+	fflush_all();
 	c = read_key(STDIN_FILENO, readbuffer);
 	if (c == -1) { // EOF/error
 		go_bottom_and_clear_to_eol();
@@ -2555,7 +2555,7 @@ static void show_status_line(void)
 		}
 		place_cursor(crow, ccol, FALSE);	// put cursor back in correct place
 	}
-	fflush(stdout);
+	fflush_all();
 }
 
 //----- format the status buffer, the bottom line of screen ------
@@ -3963,7 +3963,7 @@ static void crash_test()
 	if (msg[0]) {
 		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
 			totalcmds, last_input_char, msg, SOs, SOn);
-		fflush(stdout);
+		fflush_all();
 		while (safe_read(STDIN_FILENO, d, 1) > 0) {
 			if (d[0] == '\n' || d[0] == '\r')
 				break;

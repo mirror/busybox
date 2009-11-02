@@ -1406,7 +1406,7 @@ static void do_time(int cache /*,int fd*/)
 	} else { /* Time device */
 		printf("Timing buffered disk reads:");
 	}
-	fflush(stdout);
+	fflush_all();
 
 	/* Now do the timing */
 	iterations = 0;

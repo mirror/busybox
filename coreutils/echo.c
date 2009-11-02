@@ -141,7 +141,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 		bb_putchar('\n');
 	}
  ret:
-	return fflush(stdout);
+	return fflush_all();
 }
 
 /*-

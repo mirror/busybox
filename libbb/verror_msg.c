@@ -64,7 +64,7 @@ void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 	}
 
 	if (logmode & LOGMODE_STDIO) {
-		fflush(stdout);
+		fflush_all();
 		full_write(STDERR_FILENO, msg, used);
 	}
 	if (logmode & LOGMODE_SYSLOG) {
@@ -125,8 +125,8 @@ void FAST_FUNC bb_verror_msg(const char *s, va_list p, const char* strerr)
 		iov[1].iov_len = 2;
 		/*iov[2].iov_base = msgc;*/
 		/*iov[2].iov_len = used;*/
-		fflush(stdout);
-		writev(2, iov, 3);
+		fflush_all();
+		writev(STDERR_FILENO, iov, 3);
 	}
 	if (logmode & LOGMODE_SYSLOG) {
 		syslog(LOG_ERR, "%s", msgc);

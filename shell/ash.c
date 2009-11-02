@@ -389,16 +389,7 @@ static void
 flush_stdout_stderr(void)
 {
 	INT_OFF;
-	fflush(stdout);
-	fflush(stderr);
-	INT_ON;
-}
-
-static void
-flush_stderr(void)
-{
-	INT_OFF;
-	fflush(stderr);
+	fflush_all();
 	INT_ON;
 }
 
@@ -451,7 +442,7 @@ static void
 out2str(const char *p)
 {
 	outstr(p, stderr);
-	flush_stderr();
+	flush_stdout_stderr();
 }
 
 
@@ -8184,7 +8175,7 @@ evaltree(union node *n, int flags)
 	default:
 #if DEBUG
 		out1fmt("Node type = %d\n", n->type);
-		fflush(stdout);
+		fflush_all();
 		break;
 #endif
 	case NNOT:
@@ -9101,7 +9092,7 @@ evalcommand(union node *cmd, int flags)
 		for (;;) {
 			find_command(argv[0], &cmdentry, cmd_flag, path);
 			if (cmdentry.cmdtype == CMDUNKNOWN) {
-				flush_stderr();
+				flush_stdout_stderr();
 				status = 127;
 				goto bail;
 			}

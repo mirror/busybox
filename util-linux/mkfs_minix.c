@@ -505,7 +505,7 @@ static void alarm_intr(int alnum UNUSED_PARAM)
 	if (!G.currently_testing)
 		return;
 	printf("%d ...", G.currently_testing);
-	fflush(stdout);
+	fflush_all();
 }
 
 static void check_blocks(void)

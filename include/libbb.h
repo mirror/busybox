@@ -659,7 +659,7 @@ extern char *xmalloc_fgetline(FILE *file) FAST_FUNC;
 
 extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
 extern void die_if_ferror_stdout(void) FAST_FUNC;
-extern void xfflush_stdout(void) FAST_FUNC;
+extern int fflush_all(void) FAST_FUNC;
 extern void fflush_stdout_and_exit(int retval) NORETURN FAST_FUNC;
 extern int fclose_if_not_stdin(FILE *file) FAST_FUNC;
 extern FILE *xfopen(const char *filename, const char *mode) FAST_FUNC;

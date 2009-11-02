@@ -87,7 +87,7 @@ const FAST_FUNC char *command(const char *fmt, const char *param)
 		msg = xasprintf(fmt, param);
 		printf("%s\r\n", msg);
 	}
-	fflush(stdout);
+	fflush_all();
 	return msg;
 }
 
