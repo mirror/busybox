@@ -110,8 +110,11 @@ int FAST_FUNC update_passwd(const char *filename,
 		old_fp = fopen(filename, "r+");
 	else
 		old_fp = fopen_or_warn(filename, "r+");
-	if (!old_fp)
+	if (!old_fp) {
+		if (shadow)
+			ret = 0; /* missing shadow is not an error */
 		goto free_mem;
+	}
 	old_fd = fileno(old_fp);
 
 	selinux_preserve_fcontext(old_fd);
