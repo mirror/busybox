@@ -391,16 +391,22 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	while (1) {
 		while (1) {
 			int spf_adj;
-			off_t tcl = (volume_size_sect - reserved_sect - NUM_FATS * sect_per_fat) / sect_per_clust;
+			uoff_t tcl = (volume_size_sect - reserved_sect - NUM_FATS * sect_per_fat) / sect_per_clust;
 			// tcl may be > MAX_CLUST_32 here, but it may be
 			// because sect_per_fat is underestimated,
 			// and with increased sect_per_fat it still may become
 			// <= MAX_CLUST_32. Therefore, we do not check
 			// against MAX_CLUST_32, but against a bigger const:
-			if (tcl > 0x7fffffff)
+			if (tcl > 0x80ffffff)
 				goto next;
 			total_clust = tcl; // fits in uint32_t
-			spf_adj = ((total_clust + 2) * 4 + bytes_per_sect - 1) / bytes_per_sect - sect_per_fat;
+			// Every cluster needs 4 bytes in FAT. +2 entries since
+			// FAT has space for non-existent clusters 0 and 1.
+			// Let's see how many sectors that needs.
+			//May overflow at "*4":
+			//spf_adj = ((total_clust+2) * 4 + bytes_per_sect-1) / bytes_per_sect - sect_per_fat;
+			//Same in the more obscure, non-overflowing form:
+			spf_adj = ((total_clust+2) + (bytes_per_sect/4)-1) / (bytes_per_sect/4) - sect_per_fat;
 #if 0
 			bb_error_msg("sect_per_clust:%u sect_per_fat:%u total_clust:%u",
 					sect_per_clust, sect_per_fat, (int)tcl);
