@@ -2815,17 +2815,11 @@
        "$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
-       "DEVICE"
+       "[OPTIONS] BLOCKDEV" /* [SIZE_IN_KB] */
 #define mkswap_full_usage "\n\n" \
-       "Prepare block device to be used as swap partition"
-#if 0
-       "[-c] [-v0|-v1] DEVICE [BLOCKS]"
-     "\nOptions:"
-     "\n	-c	Check for readability"
-     "\n	-v0	Make swap version 0 (max 128M)"
-     "\n	-v1	Make swap version 1 (default for kernels > 2.1.117)"
-     "\n	BLOCKS	Number of blocks to use (default is entire partition)"
-#endif
+       "Prepare BLOCKDEV to be used as swap partition\n" \
+     "\nOptions:" \
+     "\n	-L LBL	Label" \
 
 #define mktemp_trivial_usage \
        "[-dt] [-p DIR] [TEMPLATE]"
