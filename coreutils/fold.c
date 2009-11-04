@@ -30,7 +30,7 @@ static int adjust_column(int column, char c)
 			column = 0;
 		else if (c == '\t')
 			column = column + 8 - column % 8;
-		else			/* if (isprint (c)) */
+		else			/* if (isprint(c)) */
 			column++;
 	} else
 		column++;
@@ -38,7 +38,7 @@ static int adjust_column(int column, char c)
 }
 
 int fold_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fold_main(int argc, char **argv)
+int fold_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *line_out = NULL;
 	int allocated_out = 0;
@@ -49,7 +49,7 @@ int fold_main(int argc, char **argv)
 
 	if (ENABLE_INCLUDE_SUSv2) {
 		/* Turn any numeric options into -w options.  */
-		for (i = 1; i < argc; i++) {
+		for (i = 1; argv[i]; i++) {
 			char const *a = argv[i];
 
 			if (*a++ == '-') {
@@ -122,11 +122,10 @@ int fold_main(int argc, char **argv)
 						}
 						goto rescan;
 					}
-				} else {
-					if (offset_out == 0) {
-						line_out[offset_out++] = c;
-						continue;
-					}
+				}
+				if (offset_out == 0) {
+					line_out[offset_out++] = c;
+					continue;
 				}
 				line_out[offset_out++] = '\n';
 				fwrite(line_out, sizeof(char), (size_t) offset_out, stdout);
