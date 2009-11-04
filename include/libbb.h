@@ -334,7 +334,8 @@ DIR *warn_opendir(const char *path) FAST_FUNC;
 /* UNUSED: char *xmalloc_realpath(const char *path) FAST_FUNC RETURNS_MALLOC; */
 char *xmalloc_readlink(const char *path) FAST_FUNC RETURNS_MALLOC;
 char *xmalloc_readlink_or_warn(const char *path) FAST_FUNC RETURNS_MALLOC;
-char *xrealloc_getcwd_or_warn(char *cwd) FAST_FUNC RETURNS_MALLOC;
+/* !RETURNS_MALLOC: it's a realloc-like function */
+char *xrealloc_getcwd_or_warn(char *cwd) FAST_FUNC;
 
 char *xmalloc_follow_symlinks(const char *path) FAST_FUNC RETURNS_MALLOC;
 
@@ -618,7 +619,7 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FA
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
+extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
 /* Reads block up to *maxsz_p (default: INT_MAX - 4095) */
 extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
