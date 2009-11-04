@@ -2,7 +2,7 @@
 # Copyright 2006 Bernhard Reutner-Fischer
 # Licensed under GPL v2 or later, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 a="taskset"
 
 # testing "test name"              "opts" "expected result" "file inp" "stdin"

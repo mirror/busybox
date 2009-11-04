@@ -6,7 +6,7 @@
 
 # AUDIT: Unit tests for uuencode
 
-. testing.sh
+. ./testing.sh
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 #   file input will be file called "input"

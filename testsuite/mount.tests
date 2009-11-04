@@ -2,7 +2,7 @@
 # Copyright 2007 by Denys Vlasenko <vda.linux@googlemail.com>
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 test "`id -u`" = 0 || {
 	echo "SKIPPED: must be root to test this"

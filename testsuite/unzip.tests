@@ -5,7 +5,7 @@
 # Copyright 2006 Glenn McGrath
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 #   file input will be file called "input"

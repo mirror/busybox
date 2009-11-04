@@ -2,7 +2,7 @@
 # Copyright 2009 by Denys Vlasenko
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 

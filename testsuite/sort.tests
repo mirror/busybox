@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
 # SUSv3 compliant sort tests.
 # Copyright 2005 by Rob Landley <rob@landley.net>
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 # The basic tests.  These should work even with the small busybox.
 

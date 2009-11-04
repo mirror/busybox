@@ -3,7 +3,7 @@
 # Copyright 2008 by Denys Vlasenko <vda.linux@googlemail.com>
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 COLLAPSE=$(( 0x00010000))
 TRIM=$((     0x00020000))

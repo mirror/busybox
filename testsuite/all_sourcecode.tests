@@ -5,7 +5,7 @@
 # Licensed under GPL v2, see file LICENSE for details.
 
 [ -n "$srcdir" ] || srcdir=$(pwd)
-. testing.sh
+. ./testing.sh
 
 
 #

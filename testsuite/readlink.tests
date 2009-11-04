@@ -4,7 +4,7 @@
 # Copyright 2006 by Natanael Copa <n@tanael.org>
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 TESTDIR=readlink_testdir
 TESTFILE="$TESTDIR/testfile"

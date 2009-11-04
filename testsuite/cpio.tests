@@ -2,7 +2,7 @@
 # Copyright 2008 by Denys Vlasenko
 # Licensed under GPL v2, see file LICENSE for details.
 
-. testing.sh
+. ./testing.sh
 
 # ls -ln shows date. Need to remove that, it's variable.
 # sed: coalesce spaces
