@@ -1,0 +1,32 @@
+#!/bin/sh
+
+exec 2>&1
+exec </dev/null
+
+pwd="$PWD"
+
+if="${PWD##*/ifplugd_}"
+
+echo "* Starting ifplugd [$$]"
+exec \
+env - PATH="$PATH" \
+softlimit \
+setuidgid root \
+ifplugd -apq -n -s -i "$if" -r "$pwd/ifplugd_handler"
+
+#-n       Do not daemonize
+#-s       Do not log to syslog
+#-i IFACE Interface
+#-f/-F    Treat link detection error as link down/link up (otherwise exit on error)
+#-a       Do not up interface automatically
+#-M       Monitor creation/destruction of interface (otherwise it must exist)
+#-r PROG  Script to run
+#-x ARG   Extra argument for script
+#-I       Dont exit on nonzero exit code from script
+#-p       Dont run script on daemon startup
+#-q       Dont run script on daemon quit
+#-l       Run script on startup even if no cable is detected
+#-t SECS  Poll time in seconds
+#-u SECS  Delay before running script after link up
+#-d SECS  Delay after link down
+#-m MODE  API mode (mii, priv, ethtool, wlan, auto)

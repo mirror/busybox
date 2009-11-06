@@ -1,0 +1,82 @@
+#!/bin/sh
+# executed by udhcpc
+# parameters: $1 and environment
+#
+# $1 is:
+#
+# deconfig: This argument is used when udhcpc starts, and
+# when a lease is lost. The script should put the interface in an
+# up, but deconfigured state, ie: ifconfig $interface 0.0.0.0.
+# Environment: interface=ethN
+#
+# bound: This argument is used when udhcpc moves from an
+# unbound, to a bound state. All of the paramaters are set in
+# enviromental variables, The script should configure the interface,
+# and set any other relavent parameters (default gateway, dns server, etc).
+# Environment:
+# dhcptype=5
+# serverid=172.16.42.102
+# lease=97200
+# interface=eth0
+# ip=172.16.42.177
+# subnet=255.255.255.0
+# mask=24
+# broadcast=172.16.22.255
+# router=172.16.42.98
+# dns=10.34.32.125 10.32.63.5 10.34.255.7 10.11.255.27
+# domain=lab.example.com example.com
+# ntpsrv=10.34.32.125 10.34.255.7
+#
+# renew: This argument is used when a DHCP lease is renewed. All of
+# the paramaters are set in enviromental variables. This argument is
+# used when the interface is already configured, so the IP address,
+# will not change, however, the other DHCP paramaters, such as the
+# default gateway, subnet mask, and dns server may change.
+# Environment: same as for "bound".
+#
+# nak: This argument is used with udhcpc receives a NAK message.
+# The script with the deconfig argument will be called directly
+# afterwards, so no changes to the network interface are neccessary.
+# This hook is provided for purely informational purposes (the
+# message option may contain a reason for the NAK).
+# Environment: interface=ethN, serverid=IP_ADDR
+#
+# leasefail: called when lease cannot be obtained
+# (for example, when DHCP server is down).
+# Environment: interface=ethN
+
+# TODO: put domain into /etc/resolv.conf (thru /var/service/fw)
+# TODO: feed ntp IPs to /var/service/ntp
+
+service=`basename $PWD`
+outfile="$service.ipconf"
+dir="/var/run/service/fw"
+
+exec >>"$0.out" 2>&1
+
+echo "`date`: Params: $*"
+
+if test x"$1" != x"bound" && test x"$1" != x"renew" ; then
+	# Reconfigure network with this interface disabled
+	echo "Deconfiguring"
+	rm "$service.out"
+	rm "$outfile"
+	rm "$dir/$outfile"
+	sv u /var/service/fw
+	exit
+fi
+
+# Bound: we've got the lease
+
+# Process params
+env >"$service.out"
+./convert2ipconf "$service.out" "$outfile"
+
+# Reconfigure routing and firewall if needed
+diff --brief "$outfile" "$dir/$outfile" >/dev/null 2>&1
+if test "$?" != "0"; then
+	echo "Reconfiguring"
+	mkdir -p "$dir" 2>/dev/null
+	cp "$outfile" "$dir/$outfile"
+	sv u /var/service/fw
+fi
