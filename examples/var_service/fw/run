@@ -49,8 +49,8 @@ rundir="/var/run/service/$service"
 ###         ... Local Process...
 
 doit() {
-    echo "# $*"
-    "$@"
+	echo "# $*"
+	"$@"
 }
 
 #exec >/dev/null
@@ -88,25 +88,25 @@ echo; echo "* Configuring hardware"
 echo; echo "* Resetting address and routing info"
 doit ip a f dev lo
 i=0; while test "${if[$i]}"; do
-    doit ip a f dev "${if[$i]}"
-    doit ip r f dev "${if[$i]}" root 0/0
+	doit ip a f dev "${if[$i]}"
+	doit ip r f dev "${if[$i]}" root 0/0
 let i++; done
 
 echo; echo "* Configuring addresses"
 doit ip a a dev lo 127.0.0.1/8 scope host
 doit ip a a dev lo ::1/128 scope host
 i=0; while test "${if[$i]}"; do
-    if test "${ipmask[$i]}"; then
-        doit ip a a dev "${if[$i]}" "${ipmask[$i]}" brd +
-        doit ip l set dev "${if[$i]}" up
-    fi
+	if test "${ipmask[$i]}"; then
+		doit ip a a dev "${if[$i]}" "${ipmask[$i]}" brd +
+		doit ip l set dev "${if[$i]}" up
+	fi
 let i++; done
 
 echo; echo "* Configuring routes"
 i=0; while test "${if[$i]}"; do
-    if test "${net[$i]}" && test "${gw[$i]}"; then
-        doit ip r a "${net[$i]}" via "${gw[$i]}"
-    fi
+	if test "${net[$i]}" && test "${gw[$i]}"; then
+		doit ip r a "${net[$i]}" via "${gw[$i]}"
+	fi
 let i++; done
 
 echo; echo "* Recreating /etc/* files reflecting new network configuration:"
