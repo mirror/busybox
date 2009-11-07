@@ -471,7 +471,8 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		strcpy(boot_blk->boot_jump, "\xeb\x58\x90" "mkdosfs"); // system_id[8] included :)
 		STORE_LE(boot_blk->bytes_per_sect, bytes_per_sect);
 		STORE_LE(boot_blk->sect_per_clust, sect_per_clust);
-		STORE_LE(boot_blk->reserved_sect, reserved_sect);
+		// cast in needed on big endian to suppress a warning
+		STORE_LE(boot_blk->reserved_sect, (uint16_t)reserved_sect);
 		STORE_LE(boot_blk->fats, 2);
 		//STORE_LE(boot_blk->dir_entries, 0); // for FAT32, stays 0
 		if (volume_size_sect <= 0xffff)

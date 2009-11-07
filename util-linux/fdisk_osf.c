@@ -615,7 +615,7 @@ xbsd_create_disklabel(void)
 
 	while (1) {
 		c = read_nonempty("Do you want to create a disklabel? (y/n) ");
-		if (c == 'y' || c == 'Y') {
+		if ((c|0x20) == 'y') {
 			if (xbsd_initlabel(
 #if defined(__alpha__) || defined(__powerpc__) || defined(__hppa__) || \
 	defined(__s390__) || defined(__s390x__)
@@ -629,7 +629,7 @@ xbsd_create_disklabel(void)
 			}
 			return 0;
 		}
-		if (c == 'n')
+		if ((c|0x20) == 'n')
 			return 0;
 	}
 }
@@ -964,6 +964,7 @@ xbsd_writelabel(struct partition *p)
 #if !defined(__alpha__) && !defined(__powerpc__) && !defined(__hppa__)
 	sector = get_start_sect(p) + BSD_LABELSECTOR;
 #else
+	(void)p; /* silence warning */
 	sector = BSD_LABELSECTOR;
 #endif
 
