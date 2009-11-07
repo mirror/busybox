@@ -221,7 +221,14 @@ static void fb_drawimage(void)
 	unsigned char *pixline;
 	unsigned i, j, width, height, line_size;
 
-	theme_file = xfopen_stdin(G.image_filename);
+	if (LONE_DASH(G.image_filename))
+		theme_file = stdin;
+	else {
+		int fd = open_zipped(G.image_filename);
+		if (fd < 0)
+			bb_simple_perror_msg_and_die(G.image_filename);
+		theme_file = fdopen(fd, "r");
+	}
 	head = xmalloc(256);
 
 	/* parse ppm header
