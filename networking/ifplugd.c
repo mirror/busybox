@@ -628,6 +628,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, OPTION_STR,
 		&G.iface, &G.script_name, &G.poll_time, &G.delay_up,
 		&G.delay_down, &G.api_mode, &G.extra_arg);
+	G.poll_time *= 1000;
 
 	applet_name = xasprintf("ifplugd(%s)", G.iface);
 
@@ -752,7 +753,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 
 		if (poll(netlink_pollfd,
 				(opts & FLAG_MONITOR) ? 1 : 0,
-				G.poll_time * 1000
+				G.poll_time
 			) < 0
 		) {
 			if (errno == EINTR)
