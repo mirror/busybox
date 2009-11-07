@@ -522,12 +522,8 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 	/* what info of the processes is shown */
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
 		"  PID  PPID USER     STAT   VSZ %MEM"
-#if ENABLE_FEATURE_TOP_SMP_PROCESS
-		" CPU"
-#endif
-#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-		" %CPU"
-#endif
+		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
+		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
 		" COMMAND");
 	lines_rem--;
 
@@ -606,22 +602,14 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		/* PID PPID USER STAT VSZ %MEM [%CPU] COMMAND */
 		col = snprintf(line_buf, scr_width,
 				"\n" "%5u%6u %-8.8s %s%s" FMT
-#if ENABLE_FEATURE_TOP_SMP_PROCESS
-				" %3d"
-#endif
-#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-				FMT
-#endif
+				IF_FEATURE_TOP_SMP_PROCESS(" %3d")
+				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(FMT)
 				" ",
 				s->pid, s->ppid, get_cached_username(s->uid),
 				s->state, vsz_str_buf,
 				SHOW_STAT(pmem)
-#if ENABLE_FEATURE_TOP_SMP_PROCESS
-				, s->last_seen_on_cpu
-#endif
-#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-				, SHOW_STAT(pcpu)
-#endif
+				IF_FEATURE_TOP_SMP_PROCESS(, s->last_seen_on_cpu)
+				IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(, SHOW_STAT(pcpu))
 		);
 		if ((int)(col + 1) < scr_width)
 			read_cmdline(line_buf + col, scr_width - col, s->pid, s->comm);
