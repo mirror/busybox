@@ -561,11 +561,11 @@ static int tftp_protocol(
 					io_bufsize = blksize + 4;
 				}
 # if ENABLE_FEATURE_TFTP_PROGRESS_BAR
-				if (G.size == 0) { /* if we don't know it yet */
+				if (remote_file && G.size == 0) { /* if we don't know it yet */
 					res = tftp_get_option("tsize", &rbuf[2], len - 2);
 					if (res) {
 						G.size = bb_strtoull(res, NULL, 10);
-						if (remote_file && G.size)
+						if (G.size)
 							tftp_progress_init();
 					}
 				}
@@ -579,8 +579,8 @@ static int tftp_protocol(
 			}
 			/* rfc2347:
 			 * "An option not acknowledged by the server
-			 *  must be ignored by the client and server
-			 *  as if it were never requested." */
+			 * must be ignored by the client and server
+			 * as if it were never requested." */
 			bb_error_msg("server only supports blocksize of 512");
 			blksize = TFTP_BLKSIZE_DEFAULT;
 			io_bufsize = TFTP_BLKSIZE_DEFAULT + 4;
