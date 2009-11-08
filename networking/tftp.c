@@ -129,9 +129,8 @@ static void progress_meter(int flag)
 
 	errno = save_errno;
 }
-static void tftp_progress_init(const char *file)
+static void tftp_progress_init(void)
 {
-	G.file = file;
 	progress_meter(-1);
 }
 static void tftp_progress_done(void)
@@ -139,8 +138,8 @@ static void tftp_progress_done(void)
 	progress_meter(0);
 }
 #else
-# define tftp_progress_init(file) ((void)0)
-# define tftp_progress_done()     ((void)0)
+# define tftp_progress_init() ((void)0)
+# define tftp_progress_done() ((void)0)
 #endif
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
@@ -411,7 +410,7 @@ static int tftp_protocol(
 			 * we look at server's reply later */
 			G.size = st.st_size;
 			if (remote_file && st.st_size)
-				tftp_progress_init(remote_file);
+				tftp_progress_init();
 # endif
 		}
 #endif
@@ -567,7 +566,7 @@ static int tftp_protocol(
 					if (res) {
 						G.size = bb_strtoull(res, NULL, 10);
 						if (remote_file && G.size)
-							tftp_progress_init(remote_file);
+							tftp_progress_init();
 					}
 				}
 # endif
@@ -715,6 +714,9 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 			remote_file, local_file);
 # endif
 
+# if ENABLE_FEATURE_TFTP_PROGRESS_BAR
+	G.file = remote_file;
+# endif
 	result = tftp_protocol(
 		NULL /*our_lsa*/, peer_lsa,
 		local_file, remote_file
