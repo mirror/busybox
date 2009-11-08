@@ -24,12 +24,9 @@ struct globals {
 	off_t content_len;        /* Content-length of the file */
 	off_t beg_range;          /* Range at which continue begins */
 #if ENABLE_FEATURE_WGET_STATUSBAR
-	off_t lastsize;
-	off_t totalsize;
 	off_t transferred;        /* Number of bytes transferred so far */
 	const char *curfile;      /* Name of current file being transferred */
-	unsigned lastupdate_sec;
-	unsigned start_sec;
+	bb_progress_t pmt;
 #endif
 	smallint chunked;         /* chunked transfer encoding */
 	smallint got_clen;        /* got content-length: from server  */
@@ -40,108 +37,30 @@ struct BUG_G_too_big {
 };
 #define content_len     (G.content_len    )
 #define beg_range       (G.beg_range      )
-#define lastsize        (G.lastsize       )
-#define totalsize       (G.totalsize      )
 #define transferred     (G.transferred    )
 #define curfile         (G.curfile        )
-#define lastupdate_sec  (G.lastupdate_sec )
-#define start_sec       (G.start_sec      )
 #define INIT_G() do { } while (0)
 
 
 #if ENABLE_FEATURE_WGET_STATUSBAR
-enum {
-	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
-};
-
-static unsigned int get_tty2_width(void)
-{
-	unsigned width;
-	get_terminal_width_height(2, &width, NULL);
-	return width;
-}
 
 static void progress_meter(int flag)
 {
 	/* We can be called from signal handler */
 	int save_errno = errno;
-	off_t abbrevsize;
-	unsigned since_last_update, elapsed;
-	unsigned ratio;
-	int barlength, i;
 
 	if (flag == -1) { /* first call to progress_meter */
-		start_sec = monotonic_sec();
-		lastupdate_sec = start_sec;
-		lastsize = 0;
-		totalsize = content_len + beg_range; /* as content_len changes.. */
+		bb_progress_init(&G.pmt);
 	}
 
-	ratio = 100;
-	if (totalsize != 0 && !G.chunked) {
-		/* long long helps to have it working even if !LFS */
-		ratio = (unsigned) (100ULL * (transferred+beg_range) / totalsize);
-		if (ratio > 100) ratio = 100;
-	}
-
-	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
-
-	barlength = get_tty2_width() - 49;
-	if (barlength > 0) {
-		/* god bless gcc for variable arrays :) */
-		i = barlength * ratio / 100;
-		{
-			char buf[i+1];
-			memset(buf, '*', i);
-			buf[i] = '\0';
-			fprintf(stderr, "|%s%*s|", buf, barlength - i, "");
-		}
-	}
-	i = 0;
-	abbrevsize = transferred + beg_range;
-	while (abbrevsize >= 100000) {
-		i++;
-		abbrevsize >>= 10;
-	}
-	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6d%c ", (int)abbrevsize, " kMGTPEZY"[i]);
-
-// Nuts! Ain't it easier to update progress meter ONLY when we transferred++?
-
-	elapsed = monotonic_sec();
-	since_last_update = elapsed - lastupdate_sec;
-	if (transferred > lastsize) {
-		lastupdate_sec = elapsed;
-		lastsize = transferred;
-		if (since_last_update >= STALLTIME) {
-			/* We "cut off" these seconds from elapsed time
-			 * by adjusting start time */
-			start_sec += since_last_update;
-		}
-		since_last_update = 0; /* we are un-stalled now */
-	}
-	elapsed -= start_sec; /* now it's "elapsed since start" */
-
-	if (since_last_update >= STALLTIME) {
-		fprintf(stderr, " - stalled -");
-	} else {
-		off_t to_download = totalsize - beg_range;
-		if (transferred <= 0 || (int)elapsed <= 0 || transferred > to_download || G.chunked) {
-			fprintf(stderr, "--:--:-- ETA");
-		} else {
-			/* to_download / (transferred/elapsed) - elapsed: */
-			int eta = (int) ((unsigned long long)to_download*elapsed/transferred - elapsed);
-			/* (long long helps to have working ETA even if !LFS) */
-			i = eta % 3600;
-			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
-		}
-	}
+	bb_progress_update(&G.pmt, curfile, beg_range, transferred,
+			   G.chunked ? 0 : content_len + beg_range);
 
 	if (flag == 0) {
 		/* last call to progress_meter */
 		alarm(0);
-		transferred = 0;
 		fputc('\n', stderr);
+		transferred = 0;
 	} else {
 		if (flag == -1) { /* first call to progress_meter */
 			signal_SA_RESTART_empty_mask(SIGALRM, progress_meter);
@@ -151,41 +70,7 @@ static void progress_meter(int flag)
 
 	errno = save_errno;
 }
-/* Original copyright notice which applies to the CONFIG_FEATURE_WGET_STATUSBAR stuff,
- * much of which was blatantly stolen from openssh.  */
-/*-
- * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * 3. <BSD Advertising Clause omitted per the July 22, 1999 licensing change
- *		ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change>
- *
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- */
+
 #else /* FEATURE_WGET_STATUSBAR */
 
 static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) { }

@@ -1451,6 +1451,16 @@ int print_flags_separated(const int *masks, const char *labels,
 		int flags, const char *separator) FAST_FUNC;
 int print_flags(const masks_labels_t *ml, int flags) FAST_FUNC;
 
+typedef struct bb_progress_t {
+	off_t lastsize;
+	unsigned lastupdate_sec;
+	unsigned start_sec;
+} bb_progress_t;
+
+void bb_progress_init(bb_progress_t *p) FAST_FUNC;
+void bb_progress_update(bb_progress_t *p, const char *curfile,
+			off_t beg_range, off_t transferred,
+			off_t totalsize) FAST_FUNC;
 
 extern const char *applet_name;
 /* "BusyBox vN.N.N (timestamp or extra_version)" */
