@@ -110,9 +110,9 @@ static int tftp_blksize_check(const char *blksize_str, int maxsize)
 		bb_error_msg("bad blocksize '%s'", blksize_str);
 		return -1;
 	}
-#if ENABLE_TFTP_DEBUG
+# if ENABLE_TFTP_DEBUG
 	bb_error_msg("using blksize %u", blksize);
-#endif
+# endif
 	return blksize;
 }
 
@@ -154,19 +154,18 @@ static char *tftp_get_option(const char *option, char *buf, int len)
 #endif
 
 static int tftp_protocol(
-		len_and_sockaddr *our_lsa, /* NULL if tftp, !NULL if tftpd */
+		/* NULL if tftp, !NULL if tftpd: */
+		len_and_sockaddr *our_lsa,
 		len_and_sockaddr *peer_lsa,
 		const char *local_file
 		IF_TFTP(, const char *remote_file)
-		IF_FEATURE_TFTP_BLOCKSIZE(IF_TFTPD(, void *tsize))
-		IF_FEATURE_TFTP_BLOCKSIZE(, int blksize))
-{
 #if !ENABLE_TFTP
 # define remote_file NULL
 #endif
-#if !(ENABLE_FEATURE_TFTP_BLOCKSIZE && ENABLE_TFTPD)
-# define tsize NULL
-#endif
+		/* 1 for tftp; 1/0 for tftpd depending whether client asked about it: */
+		IF_FEATURE_TFTP_BLOCKSIZE(, off_t transfer_size)
+		IF_FEATURE_TFTP_BLOCKSIZE(, int blksize))
+{
 #if !ENABLE_FEATURE_TFTP_BLOCKSIZE
 	enum { blksize = TFTP_BLKSIZE_DEFAULT };
 #endif
@@ -270,7 +269,7 @@ static int tftp_protocol(
 		}
 /* gcc 4.3.1 would NOT optimize it out as it should! */
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
-		if (blksize != TFTP_BLKSIZE_DEFAULT || tsize) {
+		if (blksize != TFTP_BLKSIZE_DEFAULT || transfer_size) {
 			/* Create and send OACK packet. */
 			/* For the download case, block_nr is still 1 -
 			 * we expect 1st ACK from peer to be for (block_nr-1),
@@ -321,40 +320,49 @@ static int tftp_protocol(
 		}
 		strcpy(cp, remote_file);
 		cp += len;
-		/* add "mode" part of the package */
+		/* add "mode" part of the packet */
 		strcpy(cp, "octet");
 		cp += sizeof("octet");
 
-#if ENABLE_FEATURE_TFTP_BLOCKSIZE
-		if (blksize == TFTP_BLKSIZE_DEFAULT)
+# if ENABLE_FEATURE_TFTP_BLOCKSIZE
+		if (blksize == TFTP_BLKSIZE_DEFAULT && !transfer_size)
 			goto send_pkt;
 
-		/* Non-standard blocksize: add option to pkt */
-		if ((&xbuf[io_bufsize - 1] - cp) < sizeof("blksize NNNNN")) {
+		/* Need to add option to pkt */
+		if ((&xbuf[io_bufsize - 1] - cp) < sizeof("blksize NNNNN tsize ") + sizeof(transfer_size)*3) {
 			bb_error_msg("remote filename is too long");
 			goto ret;
 		}
 		expect_OACK = 1;
-#endif
+# endif
 #endif /* ENABLE_TFTP */
 
 #if ENABLE_FEATURE_TFTP_BLOCKSIZE
  add_blksize_opt:
-#if ENABLE_TFTPD
-		if (tsize) {
-			struct stat st;
-			/* add "tsize", <nul>, size, <nul> */
-			strcpy(cp, "tsize");
-			cp += sizeof("tsize");
-			fstat(local_fd, &st);
-			cp += snprintf(cp, 10, "%u", (int) st.st_size) + 1;
-		}
-#endif
 		if (blksize != TFTP_BLKSIZE_DEFAULT) {
 			/* add "blksize", <nul>, blksize, <nul> */
 			strcpy(cp, "blksize");
 			cp += sizeof("blksize");
 			cp += snprintf(cp, 6, "%d", blksize) + 1;
+		}
+		if (transfer_size) {
+			/* add "tsize", <nul>, size, <nul> (see RFC2349) */
+			/* if tftp and downloading, we send "0" (since we opened local_fd with O_TRUNC)
+			 * and this makes server to send "tsize" option with the size */
+			/* if tftp and uploading, we send file size (maybe dont, to not confuse old servers???) */
+			/* if tftpd and downloading, we are answering to client's request */
+			/* if tftpd and uploading: transfer_size == 0, this code is not executed */
+			struct stat st;
+			strcpy(cp, "tsize");
+			cp += sizeof("tsize");
+			st.st_size = 0;
+			fstat(local_fd, &st);
+			cp += sprintf(cp, "%"OFF_FMT"u", (off_t)st.st_size) + 1;
+# if 0 /*ENABLE_FEATURE_TFTP_PROGRESS_BAR*/
+			/* Save for progress bar. If 0 (tftp downloading),
+			 * we look at server's reply later */
+			transfer_size = st.st_size;
+# endif
 		}
 #endif
 		/* First packet is built, so skip packet generation */
@@ -497,6 +505,14 @@ static int tftp_protocol(
 					}
 					io_bufsize = blksize + 4;
 				}
+# if 0 /*ENABLE_FEATURE_TFTP_PROGRESS_BAR*/
+				if (transfer_size == 0) { /* if we don't know it yet */
+					res = tftp_get_option("tsize", &rbuf[2], len - 2);
+					if (res) {
+						transfer_size = bb_strtoull(res, NULL, 10);
+					}
+				}
+# endif
 				if (CMD_GET(option_mask32)) {
 					/* We'll send ACK for OACK,
 					 * such ACK has "block no" of 0 */
@@ -578,7 +594,6 @@ static int tftp_protocol(
 			&peer_lsa->u.sa, peer_lsa->len);
 	return EXIT_FAILURE;
 #undef remote_file
-#undef tsize
 }
 
 #if ENABLE_TFTP
@@ -589,10 +604,10 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 	len_and_sockaddr *peer_lsa;
 	const char *local_file = NULL;
 	const char *remote_file = NULL;
-#if ENABLE_FEATURE_TFTP_BLOCKSIZE
+# if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	const char *blksize_str = TFTP_BLKSIZE_DEFAULT_STR;
 	int blksize;
-#endif
+# endif
 	int result;
 	int port;
 	IF_GETPUT(int opt;)
@@ -610,7 +625,7 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 			IF_FEATURE_TFTP_BLOCKSIZE(, &blksize_str));
 	argv += optind;
 
-#if ENABLE_FEATURE_TFTP_BLOCKSIZE
+# if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	/* Check if the blksize is valid:
 	 * RFC2348 says between 8 and 65464 */
 	blksize = tftp_blksize_check(blksize_str, 65564);
@@ -618,7 +633,7 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 		//bb_error_msg("bad block size");
 		return EXIT_FAILURE;
 	}
-#endif
+# endif
 
 	if (remote_file) {
 		if (!local_file) {
@@ -636,16 +651,16 @@ int tftp_main(int argc UNUSED_PARAM, char **argv)
 	port = bb_lookup_port(argv[1], "udp", 69);
 	peer_lsa = xhost2sockaddr(argv[0], port);
 
-#if ENABLE_TFTP_DEBUG
+# if ENABLE_TFTP_DEBUG
 	fprintf(stderr, "using server '%s', remote_file '%s', local_file '%s'\n",
 			xmalloc_sockaddr2dotted(&peer_lsa->u.sa),
 			remote_file, local_file);
-#endif
+# endif
 
 	result = tftp_protocol(
 		NULL /*our_lsa*/, peer_lsa,
 		local_file, remote_file
-		IF_FEATURE_TFTP_BLOCKSIZE(IF_TFTPD(, NULL /*tsize*/))
+		IF_FEATURE_TFTP_BLOCKSIZE(, 1 /* transfer_size */)
 		IF_FEATURE_TFTP_BLOCKSIZE(, blksize)
 	);
 
@@ -667,7 +682,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	const char *error_msg;
 	int opt, result, opcode;
 	IF_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)
-	IF_FEATURE_TFTP_BLOCKSIZE(char *tsize = NULL;)
+	IF_FEATURE_TFTP_BLOCKSIZE(off_t transfer_size = 0;)
 
 	INIT_G();
 
@@ -714,7 +729,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	if (mode >= block_buf + result || strcmp(mode, "octet") != 0) {
 		goto err;
 	}
-#if ENABLE_FEATURE_TFTP_BLOCKSIZE
+# if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	{
 		char *res;
 		char *opt_str = mode + sizeof("octet");
@@ -730,10 +745,12 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 				}
 			}
 			/* did client ask us about file size? */
-			tsize = tftp_get_option("tsize", opt_str, opt_len);
+			if (tftp_get_option("tsize", opt_str, opt_len)) {
+				transfer_size = 1;
+			}
 		}
 	}
-#endif
+# endif
 
 	if (!ENABLE_FEATURE_TFTP_PUT || opcode == TFTP_WRQ) {
 		if (opt & TFTPD_OPT_r) {
@@ -743,6 +760,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 			goto err;
 		}
 		IF_GETPUT(option_mask32 |= TFTP_OPT_GET;) /* will receive file's data */
+		transfer_size = 0; /* do not send file size, it's meaningless */
 	} else {
 		IF_GETPUT(option_mask32 |= TFTP_OPT_PUT;) /* will send file's data */
 	}
@@ -756,7 +774,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	result = tftp_protocol(
 		our_lsa, peer_lsa,
 		local_file IF_TFTP(, NULL /*remote_file*/)
-		IF_FEATURE_TFTP_BLOCKSIZE(, tsize)
+		IF_FEATURE_TFTP_BLOCKSIZE(, transfer_size)
 		IF_FEATURE_TFTP_BLOCKSIZE(, blksize)
 	);
 
