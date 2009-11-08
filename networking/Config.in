@@ -846,12 +846,19 @@ config FEATURE_TFTP_PUT
 	  Also enable download support in tftpd, if tftpd is selected.
 
 config FEATURE_TFTP_BLOCKSIZE
-	bool "Enable \"blksize\" protocol option"
+	bool "Enable 'blksize' and 'tsize' protocol options"
 	default n
 	depends on TFTP || TFTPD
 	help
 	  Allow tftp to specify block size, and tftpd to understand
-	  "blksize" option.
+	  "blksize" and "tsize" options.
+
+config FEATURE_TFTP_PROGRESS_BAR
+	bool "Enable tftp progress meter"
+	default n
+	depends on TFTP && FEATURE_TFTP_BLOCKSIZE
+	help
+	  Show progress bar.
 
 config TFTP_DEBUG
 	bool "Enable debug"
