@@ -3,17 +3,29 @@
 # parameters: $1 and environment
 #
 # $1 is:
-#
 # deconfig: This argument is used when udhcpc starts, and
-# when a lease is lost. The script should put the interface in an
+# when a leases is lost. The script should put the interface in an
 # up, but deconfigured state, ie: ifconfig $interface 0.0.0.0.
-# Environment: interface=ethN
 #
 # bound: This argument is used when udhcpc moves from an
 # unbound, to a bound state. All of the paramaters are set in
 # enviromental variables, The script should configure the interface,
-# and set any other relavent parameters (default gateway, dns server, etc).
-# Environment:
+# and set any other relavent parameters (default gateway, dns server,
+# etc).
+#
+# renew: This argument is used when a DHCP lease is renewed. All of
+# the paramaters are set in enviromental variables. This argument is
+# used when the interface is already configured, so the IP address,
+# will not change, however, the other DHCP paramaters, such as the
+# default gateway, subnet mask, and dns server may change.
+#
+# nak: This argument is used with udhcpc receives a NAK message.
+# The script with the deconfig argument will be called directly
+# afterwards, so no changes to the network interface are neccessary.
+# This hook is provided for purely informational purposes (the
+# message option may contain a reason for the NAK).
+#
+# env shows something like:
 # dhcptype=5
 # serverid=172.16.42.102
 # lease=97200
@@ -26,33 +38,19 @@
 # dns=10.34.32.125 10.32.63.5 10.34.255.7 10.11.255.27
 # domain=lab.example.com example.com
 # ntpsrv=10.34.32.125 10.34.255.7
-#
-# renew: This argument is used when a DHCP lease is renewed. All of
-# the paramaters are set in enviromental variables. This argument is
-# used when the interface is already configured, so the IP address,
-# will not change, however, the other DHCP paramaters, such as the
-# default gateway, subnet mask, and dns server may change.
-# Environment: same as for "bound".
-#
-# nak: This argument is used with udhcpc receives a NAK message.
-# The script with the deconfig argument will be called directly
-# afterwards, so no changes to the network interface are neccessary.
-# This hook is provided for purely informational purposes (the
-# message option may contain a reason for the NAK).
-# Environment: interface=ethN, serverid=IP_ADDR
-#
-# leasefail: called when lease cannot be obtained
-# (for example, when DHCP server is down).
-# Environment: interface=ethN
 
 # TODO: put domain into /etc/resolv.conf (thru /var/service/fw)
 # TODO: feed ntp IPs to /var/service/ntp
 
-service=`basename $PWD`
-outfile="$service.ipconf"
-dir="/var/run/service/fw"
+service=${PWD##*/}
+file_ipconf="$service.ipconf"
+file_ntpconf="$service.ntpconf"
+dir_ipconf="/var/run/service/fw"
+dir_ntpconf="/var/run/service/ntp"
 
-exec >>"$0.out" 2>&1
+exec >/dev/null
+#exec >>"$0.out"  #debug
+exec 2>&1
 
 echo "`date`: Params: $*"
 
@@ -60,23 +58,34 @@ if test x"$1" != x"bound" && test x"$1" != x"renew" ; then
 	# Reconfigure network with this interface disabled
 	echo "Deconfiguring"
 	rm "$service.out"
-	rm "$outfile"
-	rm "$dir/$outfile"
+	rm "$file_ipconf"
+	rm "$file_ntpconf"
+	rm "$dir_ipconf/$file_ipconf"
+	rm "$dir_ntpconf/$file_ntpconf"
 	sv u /var/service/fw
 	exit
 fi
 
 # Bound: we've got the lease
+#env >"$service.out"  # debug
 
-# Process params
-env >"$service.out"
-./convert2ipconf "$service.out" "$outfile"
-
+./convert2ipconf  "$file_ipconf"
 # Reconfigure routing and firewall if needed
-diff --brief "$outfile" "$dir/$outfile" >/dev/null 2>&1
+diff --brief "$file_ipconf" "$dir_ipconf/$file_ipconf" >/dev/null 2>&1
 if test "$?" != "0"; then
-	echo "Reconfiguring"
-	mkdir -p "$dir" 2>/dev/null
-	cp "$outfile" "$dir/$outfile"
+	echo "Reconfiguring fw"
+	mkdir -p "$dir_ipconf" 2>/dev/null
+	cp "$file_ipconf" "$dir_ipconf/$file_ipconf"
 	sv u /var/service/fw
+fi
+
+./convert2ntpconf "$file_ntpconf"
+# Reconfigure ntp server addresses if needed
+diff --brief "$file_ntpconf" "$dir_ntpconf/$file_ntpconf" >/dev/null 2>&1
+if test "$?" != "0"; then
+	echo "Reconfiguring ntp"
+	mkdir -p "$dir_ntpconf" 2>/dev/null
+	cp "$file_ntpconf" "$dir_ntpconf/$file_ntpconf"
+	sv t /var/service/ntp
+	sv u /var/service/ntp
 fi

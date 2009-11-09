@@ -19,24 +19,12 @@
 #let cfg=cfg+1
 #if[$cfg]=...; ip[$cfg]=...; ipmask[$cfg]=.../...; gw[$cfg]=...; net[$cfg]=... dns[$cfg]=...
 
-exec >"$0.out" 2>&1
+exec >/dev/null
+#exec >"$0.out"  # debug
+exec 2>&1
 
 test "$interface" || exit 1
-test -f "$1" || exit 1
-
-# Unsafe, and does not handle values with spaces:
-#. "./$1" || exit 1
-# Safe(r) parsing:
-sq="'"
-while read line; do
-	#echo "line: $line"
-	# Skip empty lines and lines with single quotes
-	test "${line##*$sq*}" || continue
-	var="${line%%=*}"
-	val="${line#*=}"
-	#echo "var:$var val:'$val'"
-	eval "$var='$val'"
-done <"$1"
+test "$ip" || exit 1
 
 {
 echo "let cfg=cfg+1"
@@ -50,4 +38,4 @@ test "$dns"		&& echo "dns[\$cfg]='$dns'"
 # which subnet(s) is/are available thru advertised router
 # Assume 0/0
 echo "net[\$cfg]='0/0'"
-} >"$2"
+} >"$1"
