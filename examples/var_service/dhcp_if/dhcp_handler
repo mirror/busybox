@@ -1,31 +1,12 @@
 #!/bin/sh
 # executed by udhcpc
 # parameters: $1 and environment
-#
 # $1 is:
-# deconfig: This argument is used when udhcpc starts, and
-# when a leases is lost. The script should put the interface in an
-# up, but deconfigured state, ie: ifconfig $interface 0.0.0.0.
 #
-# bound: This argument is used when udhcpc moves from an
-# unbound, to a bound state. All of the paramaters are set in
-# enviromental variables, The script should configure the interface,
-# and set any other relavent parameters (default gateway, dns server,
-# etc).
+# deconfig: udhcpc starts, or lease is lost.
+# Environment example: interface=eth0
 #
-# renew: This argument is used when a DHCP lease is renewed. All of
-# the paramaters are set in enviromental variables. This argument is
-# used when the interface is already configured, so the IP address,
-# will not change, however, the other DHCP paramaters, such as the
-# default gateway, subnet mask, and dns server may change.
-#
-# nak: This argument is used with udhcpc receives a NAK message.
-# The script with the deconfig argument will be called directly
-# afterwards, so no changes to the network interface are neccessary.
-# This hook is provided for purely informational purposes (the
-# message option may contain a reason for the NAK).
-#
-# env shows something like:
+# bound: lease is obtained. Environment example:
 # dhcptype=5
 # serverid=172.16.42.102
 # lease=97200
@@ -38,9 +19,18 @@
 # dns=10.34.32.125 10.32.63.5 10.34.255.7 10.11.255.27
 # domain=lab.example.com example.com
 # ntpsrv=10.34.32.125 10.34.255.7
+#
+# renew: lease is renewed. Environment is similar to "bound".
+# The IP address does not not change, however, the other DHCP paramaters,
+# such as the default gateway, subnet mask, and dns server may change.
+#
+# nak: udhcpc received a NAK message.
+# Environment example: interface=eth0
+#
+# leasefail: udhcpc cannot obtain a lease (DHCP server not responding, etc).
+# Environment example: interface=eth0
 
-# TODO: put domain into /etc/resolv.conf (thru /var/service/fw)
-# TODO: feed ntp IPs to /var/service/ntp
+# TODO: put $domain into /etc/resolv.conf (thru /var/service/fw)
 
 service=${PWD##*/}
 file_ipconf="$service.ipconf"
@@ -69,23 +59,25 @@ fi
 # Bound: we've got the lease
 #env >"$service.out"  # debug
 
-./convert2ipconf  "$file_ipconf"
+./convert2ipconf "$file_ipconf"
 # Reconfigure routing and firewall if needed
 diff --brief "$file_ipconf" "$dir_ipconf/$file_ipconf" >/dev/null 2>&1
-if test "$?" != "0"; then
+if test $? != 0; then
 	echo "Reconfiguring fw"
 	mkdir -p "$dir_ipconf" 2>/dev/null
 	cp "$file_ipconf" "$dir_ipconf/$file_ipconf"
 	sv u /var/service/fw
 fi
 
-./convert2ntpconf "$file_ntpconf"
-# Reconfigure ntp server addresses if needed
-diff --brief "$file_ntpconf" "$dir_ntpconf/$file_ntpconf" >/dev/null 2>&1
-if test "$?" != "0"; then
-	echo "Reconfiguring ntp"
-	mkdir -p "$dir_ntpconf" 2>/dev/null
-	cp "$file_ntpconf" "$dir_ntpconf/$file_ntpconf"
-	sv t /var/service/ntp
-	sv u /var/service/ntp
+if test -d /var/service/ntp; then
+	./convert2ntpconf "$file_ntpconf"
+	# Reconfigure ntp server addresses if needed
+	diff --brief "$file_ntpconf" "$dir_ntpconf/$file_ntpconf" >/dev/null 2>&1
+	if test $? != 0; then
+		echo "Reconfiguring ntp"
+		mkdir -p "$dir_ntpconf" 2>/dev/null
+		cp "$file_ntpconf" "$dir_ntpconf/$file_ntpconf"
+		sv t /var/service/ntp
+		sv u /var/service/ntp
+	fi
 fi

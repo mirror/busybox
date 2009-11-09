@@ -1,5 +1,6 @@
 #!/bin/sh
 
+#exec >/dev/null
 exec 2>&1
 exec </dev/null
 
@@ -12,9 +13,13 @@ exec \
 env - PATH="$PATH" \
 softlimit \
 setuidgid root \
-ifplugd -apqns -t3 -u9 -d9 -i "$if" -r "$pwd/ifplugd_handler"
+ifplugd -apqns -t3 -u8 -d8 -i "$if" -r "$pwd/ifplugd_handler"
 
-# we use -t3 to wake ifplugd up less often
+# We use -t3 to wake ifplugd up less often.
+# If after three tests (3*3=9 > 8) link state seen to be different,
+# the handler will be called.
+# IOW: short link losses will be ignored, longer ones
+# will trigger DHCP reconfiguration and such (see handler code).
 
 #-a       Do not up interface automatically
 #-p       Dont run script on daemon startup
