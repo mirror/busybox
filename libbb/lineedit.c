@@ -372,55 +372,14 @@ static void input_backward(unsigned num)
 
 static void put_prompt(void)
 {
+	unsigned w;
+
 	out1str(cmdedit_prompt);
 	fflush_all();
-#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
-	{
-		/* Ask terminal where is the cursor now.
-		 * lineedit_read_key handles response and corrects
-		 * our idea of current cursor position.
-		 * Testcase: run "echo -n long_line_long_line_long_line",
-		 * then type in a long, wrapping command and try to
-		 * delete it using backspace key.
-		 * Note: we print it _after_ prompt, because
-		 * prompt may contain CR. Example: PS1='\[\r\n\]\w '
-		 */
-		/* Problem: if there is buffered input on stdin,
-		 * the response will be delivered later,
-		 * possibly to an unsuspecting application.
-		 * Testcase: "sleep 1; busybox ash" + press and hold [Enter].
-		 * Result:
-		 * ~/srcdevel/bbox/fix/busybox.t4 #
-		 * ~/srcdevel/bbox/fix/busybox.t4 #
-		 * ^[[59;34~/srcdevel/bbox/fix/busybox.t4 #  <-- garbage
-		 * ~/srcdevel/bbox/fix/busybox.t4 #
-		 *
-		 * Checking for input with poll only makes the race narrower,
-		 * I still can trigger it. Strace:
-		 *
-		 * write(1, "~/srcdevel/bbox/fix/busybox.t4 # ", 33) = 33
-		 * poll([{fd=0, events=POLLIN}], 1, 0) = 0 (Timeout)  <-- no input exists
-		 * write(1, "\33[6n", 4) = 4  <-- send the ESC sequence, quick!
-		 * poll([{fd=0, events=POLLIN}], 1, 4294967295) = 1 ([{fd=0, revents=POLLIN}])
-		 * read(0, "\n", 1)      = 1  <-- oh crap, user's input got in first
-		 */
-		struct pollfd pfd;
-
-		pfd.fd = STDIN_FILENO;
-		pfd.events = POLLIN;
-		if (safe_poll(&pfd, 1, 0) == 0) {
-			S.sent_ESC_br6n = 1;
-			out1str("\033" "[6n");
-			fflush_all(); /* make terminal see it ASAP! */
-		}
-	}
-#endif
 	cursor = 0;
-	{
-		unsigned w = cmdedit_termw; /* volatile var */
-		cmdedit_y = cmdedit_prmt_len / w; /* new quasireal y */
-		cmdedit_x = cmdedit_prmt_len % w;
-	}
+	w = cmdedit_termw; /* read volatile var once */
+	cmdedit_y = cmdedit_prmt_len / w; /* new quasireal y */
+	cmdedit_x = cmdedit_prmt_len % w;
 }
 
 /* draw prompt, editor line, and clear tail */
@@ -1503,6 +1462,51 @@ static void ctrl_right(void)
  * read_line_input and its helpers
  */
 
+#if ENABLE_FEATURE_EDITING_ASK_TERMINAL
+static void ask_terminal(void)
+{
+	/* Ask terminal where is the cursor now.
+	 * lineedit_read_key handles response and corrects
+	 * our idea of current cursor position.
+	 * Testcase: run "echo -n long_line_long_line_long_line",
+	 * then type in a long, wrapping command and try to
+	 * delete it using backspace key.
+	 * Note: we print it _after_ prompt, because
+	 * prompt may contain CR. Example: PS1='\[\r\n\]\w '
+	 */
+	/* Problem: if there is buffered input on stdin,
+	 * the response will be delivered later,
+	 * possibly to an unsuspecting application.
+	 * Testcase: "sleep 1; busybox ash" + press and hold [Enter].
+	 * Result:
+	 * ~/srcdevel/bbox/fix/busybox.t4 #
+	 * ~/srcdevel/bbox/fix/busybox.t4 #
+	 * ^[[59;34~/srcdevel/bbox/fix/busybox.t4 #  <-- garbage
+	 * ~/srcdevel/bbox/fix/busybox.t4 #
+	 *
+	 * Checking for input with poll only makes the race narrower,
+	 * I still can trigger it. Strace:
+	 *
+	 * write(1, "~/srcdevel/bbox/fix/busybox.t4 # ", 33) = 33
+	 * poll([{fd=0, events=POLLIN}], 1, 0) = 0 (Timeout)  <-- no input exists
+	 * write(1, "\33[6n", 4) = 4  <-- send the ESC sequence, quick!
+	 * poll([{fd=0, events=POLLIN}], 1, 4294967295) = 1 ([{fd=0, revents=POLLIN}])
+	 * read(0, "\n", 1)      = 1  <-- oh crap, user's input got in first
+	 */
+	struct pollfd pfd;
+
+	pfd.fd = STDIN_FILENO;
+	pfd.events = POLLIN;
+	if (safe_poll(&pfd, 1, 0) == 0) {
+		S.sent_ESC_br6n = 1;
+		out1str("\033" "[6n");
+		fflush_all(); /* make terminal see it ASAP! */
+	}
+}
+#else
+#define ask_terminal() ((void)0)
+#endif
+
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void parse_and_put_prompt(const char *prmt_ptr)
 {
@@ -1822,8 +1826,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	bb_error_msg("cur_history:%d cnt_history:%d", state->cur_history, state->cnt_history);
 #endif
 
-	/* Print out the command prompt */
+	/* Print out the command prompt, optionally ask where cursor is */
 	parse_and_put_prompt(prompt);
+	ask_terminal();
 
 	read_key_buffer[0] = 0;
 	while (1) {
