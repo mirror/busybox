@@ -53,7 +53,7 @@ int fgetsetversion(const char *name, unsigned long *get_version, unsigned long s
 	int fd, r;
 	IF_LONG_IS_WIDER(int ver;)
 
-	fd = open(name, O_NONBLOCK);
+	fd = open(name, O_RDONLY | O_NONBLOCK);
 	if (fd == -1)
 		return -1;
 	if (!get_version) {
@@ -95,7 +95,7 @@ int fgetsetflags(const char *name, unsigned long *get_flags, unsigned long set_f
 	) {
 		goto notsupp;
 	}
-	fd = open(name, O_NONBLOCK); /* neither read nor write asked for */
+	fd = open(name, O_RDONLY | O_NONBLOCK); /* neither read nor write asked for */
 	if (fd == -1)
 		return -1;
 

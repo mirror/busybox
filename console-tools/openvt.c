@@ -61,9 +61,7 @@ static int get_vt_fd(void)
 	for (fd = 0; fd < 3; fd++)
 		if (!not_vt_fd(fd))
 			return fd;
-	/* _only_ O_NONBLOCK: ask for neither read nor write perms */
-	/*FIXME: use? device_open(DEV_CONSOLE,0); */
-	fd = open(DEV_CONSOLE, O_NONBLOCK);
+	fd = open(DEV_CONSOLE, O_RDONLY | O_NONBLOCK);
 	if (fd >= 0 && !not_vt_fd(fd))
 		return fd;
 	bb_error_msg_and_die("can't find open VT");

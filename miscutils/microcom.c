@@ -92,7 +92,7 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 	sfd = open_or_warn(argv[0], O_RDWR | O_NOCTTY | O_NONBLOCK);
 	if (sfd < 0)
 		goto done;
-	fcntl(sfd, F_SETFL, 0);
+	fcntl(sfd, F_SETFL, O_RDWR);
 
 	// put device to "raw mode"
 	xget1(sfd, &tio, &tiosfd);

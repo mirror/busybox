@@ -39,18 +39,18 @@ ssize_t FAST_FUNC safe_read(int fd, void *buf, size_t count)
  * *** BIG SURPRISE! It stays even after child exits! ***
  *
  * This is a design bug in UNIX API.
- *      fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) | O_NONBLOCK);
+ *      fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
  * will set nonblocking mode not only on _your_ stdin, but
  * also on stdin of your parent, etc.
  *
  * In general,
  *      fd2 = dup(fd1);
- *      fcntl(fd2, F_SETFL, fcntl(fd2, F_GETFL, 0) | O_NONBLOCK);
+ *      fcntl(fd2, F_SETFL, fcntl(fd2, F_GETFL) | O_NONBLOCK);
  * sets both fd1 and fd2 to O_NONBLOCK. This includes cases
  * where duping is done implicitly by fork() etc.
  *
  * We need
- *      fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD, 0) | O_NONBLOCK);
+ *      fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | O_NONBLOCK);
  * (note SETFD, not SETFL!) but such thing doesn't exist.
  *
  * Alternatively, we need nonblocking_read(fd, ...) which doesn't

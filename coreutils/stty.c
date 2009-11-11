@@ -1293,17 +1293,9 @@ int stty_main(int argc, char **argv)
 
 	/* Now it is safe to start doing things */
 	if (file_name) {
-		int fd, fdflags;
 		G.device_name = file_name;
-		fd = xopen_nonblocking(G.device_name);
-		if (fd != STDIN_FILENO) {
-			dup2(fd, STDIN_FILENO);
-			close(fd);
-		}
-		fdflags = fcntl(STDIN_FILENO, F_GETFL);
-		if (fdflags < 0 ||
-			fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
-			perror_on_device_and_die("%s: cannot reset non-blocking mode");
+		xmove_fd(xopen_nonblocking(G.device_name), STDIN_FILENO);
+		ndelay_off(STDIN_FILENO);
 	}
 
 	/* Initialize to all zeroes so there is no risk memcmp will report a

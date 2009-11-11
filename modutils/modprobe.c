@@ -373,7 +373,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			 * "If name is NULL, all unused modules marked
 			 * autoclean will be removed".
 			 */
-			if (bb_delete_module(NULL, O_NONBLOCK|O_EXCL) != 0)
+			if (bb_delete_module(NULL, O_NONBLOCK | O_EXCL) != 0)
 				bb_perror_msg_and_die("rmmod");
 		}
 		return EXIT_SUCCESS;
