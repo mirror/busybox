@@ -43,21 +43,20 @@ static const char env_longopts[] ALIGN1 =
 int env_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int env_main(int argc UNUSED_PARAM, char **argv)
 {
-	char **ep;
-	unsigned opt;
+	unsigned opts;
 	llist_t *unset_env = NULL;
 
 	opt_complementary = "u::";
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
 	applet_long_options = env_longopts;
 #endif
-	opt = getopt32(argv, "+iu:", &unset_env);
+	opts = getopt32(argv, "+iu:", &unset_env);
 	argv += optind;
-	if (*argv && LONE_DASH(argv[0])) {
-		opt |= 1;
+	if (argv[0] && LONE_DASH(argv[0])) {
+		opts |= 1;
 		++argv;
 	}
-	if (opt & 1) {
+	if (opts & 1) {
 		clearenv();
 	}
 	while (unset_env) {
@@ -84,8 +83,11 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 		bb_simple_perror_msg_and_die(*argv);
 	}
 
-	for (ep = environ; *ep; ep++) {
-		puts(*ep);
+	if (environ) { /* clearenv() may set environ == NULL! */
+		char **ep;
+		for (ep = environ; *ep; ep++) {
+			puts(*ep);
+		}
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
