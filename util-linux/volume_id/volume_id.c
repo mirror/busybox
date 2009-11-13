@@ -223,7 +223,7 @@ struct volume_id* FAST_FUNC volume_id_open_dev_t(dev_t devt)
 	/* create temporary node to open block device */
 	unlink(tmp_node);
 	if (mknod(tmp_node, (S_IFBLK | 0600), devt) != 0)
-		bb_perror_msg_and_die("cannot mknod(%s)", tmp_node);
+		bb_perror_msg_and_die("can't mknod(%s)", tmp_node);
 
 	id = volume_id_open_node(tmp_node);
 	unlink(tmp_node);

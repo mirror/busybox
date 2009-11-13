@@ -24,7 +24,7 @@ int FAST_FUNC get_linux_version_code(void)
 	int i, r;
 
 	if (uname(&name) == -1) {
-		bb_perror_msg("cannot get system information");
+		bb_perror_msg("can't get system information");
 		return 0;
 	}
 

@@ -143,7 +143,7 @@ static unsigned get_kernel_HZ(void)
 		kernel_HZ = get_HZ_by_waiting();
 
 	//if (open_read_close("/proc/uptime", buf, sizeof(buf) <= 0)
-	//	bb_perror_msg_and_die("cannot read %s", "/proc/uptime");
+	//	bb_perror_msg_and_die("can't read %s", "/proc/uptime");
 	//buf[sizeof(buf)-1] = '\0';
 	///sscanf(buf, "%llu", &seconds_since_boot);
 	sysinfo(&info);

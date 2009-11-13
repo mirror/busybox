@@ -77,7 +77,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Create pidfile */
 	write_pidfile(server_config.pidfile);
-	/* if (!..) bb_perror_msg("cannot create pidfile %s", pidfile); */
+	/* if (!..) bb_perror_msg("can't create pidfile %s", pidfile); */
 
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
 

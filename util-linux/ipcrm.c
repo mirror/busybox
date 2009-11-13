@@ -63,7 +63,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 				ret = shmctl(id, IPC_RMID, NULL);
 
 			if (ret) {
-				bb_perror_msg("cannot remove id %s", argv[0]);
+				bb_perror_msg("can't remove id %s", argv[0]);
 				nb_errors++;
 			}
 		}

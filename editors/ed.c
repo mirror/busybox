@@ -456,7 +456,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 		 */
 		nlp = malloc(sizeof(LINE) + lp->len + deltaLen);
 		if (nlp == NULL) {
-			bb_error_msg("cannot get memory for line");
+			bb_error_msg("can't get memory for line");
 			return;
 		}
 
@@ -983,7 +983,7 @@ static NOINLINE int searchLines(const char *str, int num1, int num2)
 		lp = lp->next;
 	}
 
-	bb_error_msg("cannot find string \"%s\"", str);
+	bb_error_msg("can't find string \"%s\"", str);
 	return 0;
 }
 

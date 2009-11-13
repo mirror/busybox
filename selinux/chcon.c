@@ -49,12 +49,12 @@ static int FAST_FUNC change_filedir_context(
 	}
 	if (status < 0 && errno != ENODATA) {
 		if ((option_mask32 & OPT_QUIET) == 0)
-			bb_error_msg("cannot obtain security context: %s", fname);
+			bb_error_msg("can't obtain security context: %s", fname);
 		goto skip;
 	}
 
 	if (file_context == NULL && specified_context == NULL) {
-		bb_error_msg("cannot apply partial context to unlabeled file %s", fname);
+		bb_error_msg("can't apply partial context to unlabeled file %s", fname);
 		goto skip;
 	}
 
@@ -62,7 +62,7 @@ static int FAST_FUNC change_filedir_context(
 		context = set_security_context_component(file_context,
 							 user, role, type, range);
 		if (!context) {
-			bb_error_msg("cannot compute security context from %s", file_context);
+			bb_error_msg("can't compute security context from %s", file_context);
 			goto skip;
 		}
 	} else {
@@ -75,7 +75,7 @@ static int FAST_FUNC change_filedir_context(
 
 	context_string = context_str(context);
 	if (!context_string) {
-		bb_error_msg("cannot obtain security context in text expression");
+		bb_error_msg("can't obtain security context in text expression");
 		goto skip;
 	}
 

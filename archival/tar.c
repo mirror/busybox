@@ -331,7 +331,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		if (sizeof(statbuf->st_size) > 4
 		 && statbuf->st_size > (off_t)0777777777777LL
 		) {
-			bb_error_msg_and_die("cannot store file '%s' "
+			bb_error_msg_and_die("can't store file '%s' "
 				"of size %"OFF_FMT"d, aborting",
 				fileName, statbuf->st_size);
 		}
@@ -598,7 +598,7 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
-		bb_perror_msg_and_die("cannot stat tar file");
+		bb_perror_msg_and_die("can't stat tar file");
 
 #if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 	if (gzip)

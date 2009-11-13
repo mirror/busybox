@@ -175,7 +175,7 @@ static void initselinux(char *username, char *full_tty,
 		return;
 
 	if (get_default_context(username, NULL, user_sid)) {
-		bb_error_msg_and_die("cannot get SID for %s", username);
+		bb_error_msg_and_die("can't get SID for %s", username);
 	}
 	if (getfilecon(full_tty, &old_tty_sid) < 0) {
 		bb_perror_msg_and_die("getfilecon(%s) failed", full_tty);

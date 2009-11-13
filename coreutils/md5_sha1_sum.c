@@ -174,7 +174,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/*
 		if (fclose_if_not_stdin(pre_computed_stream) == EOF) {
-			bb_perror_msg_and_die("cannot close file %s", file_ptr);
+			bb_perror_msg_and_die("can't close file %s", file_ptr);
 		}
 		*/
 	} else {

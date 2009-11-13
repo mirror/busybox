@@ -42,7 +42,7 @@ int rm_main(int argc UNUSED_PARAM, char **argv)
 			const char *base = bb_get_last_path_component_strip(*argv);
 
 			if (DOT_OR_DOTDOT(base)) {
-				bb_error_msg("cannot remove '.' or '..'");
+				bb_error_msg("can't remove '.' or '..'");
 			} else if (remove_file(*argv, flags) >= 0) {
 				continue;
 			}

@@ -193,7 +193,7 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 			close(fd);
 			xrename(new_fname, pas->pw_name);
 		} else {
-			bb_error_msg("cannot create %s/%s",
+			bb_error_msg("can't create %s/%s",
 					crontab_dir, new_fname);
 		}
 		if (tmp_fname)
@@ -220,7 +220,7 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 		/* loop */
 	}
 	if (fd < 0) {
-		bb_error_msg("cannot append to %s/%s",
+		bb_error_msg("can't append to %s/%s",
 				crontab_dir, CRONUPDATE);
 	}
 	return 0;

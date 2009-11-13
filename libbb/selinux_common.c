@@ -36,7 +36,7 @@ void FAST_FUNC setfscreatecon_or_die(security_context_t scontext)
 	if (setfscreatecon(scontext) < 0) {
 		/* Can be NULL. All known printf implementations
 		 * display "(null)", "<null>" etc */
-		bb_perror_msg_and_die("cannot set default "
+		bb_perror_msg_and_die("can't set default "
 				"file creation context to %s", scontext);
 	}
 }

@@ -626,7 +626,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Impossible?
 	if ((opt & WGET_OPT_CONTINUE) && !fname_out)
-		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
+		bb_error_msg_and_die("can't specify continue (-c) without a filename (-O)");
 	*/
 
 	/* Determine where to start transfer */

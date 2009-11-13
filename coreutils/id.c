@@ -175,7 +175,7 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 			}
 		} else if (n < 0) { /* error in get_groups() */
 			if (!ENABLE_DESKTOP)
-				bb_error_msg_and_die("cannot get groups");
+				bb_error_msg_and_die("can't get groups");
 			else
 				return EXIT_FAILURE;
 		}

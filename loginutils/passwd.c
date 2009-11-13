@@ -146,7 +146,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & OPT_lud)) {
 		if (myuid && !c) { /* passwd starts with '!' */
 			/* LOGMODE_BOTH */
-			bb_error_msg_and_die("cannot change "
+			bb_error_msg_and_die("can't change "
 					"locked password for %s", name);
 		}
 		printf("Changing password for %s\n", name);
@@ -189,7 +189,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 	}
 	/* LOGMODE_BOTH */
 	if (rc < 0)
-		bb_error_msg_and_die("cannot update password file %s",
+		bb_error_msg_and_die("can't update password file %s",
 				filename);
 	bb_info_msg("Password for %s changed by %s", name, myname);
 

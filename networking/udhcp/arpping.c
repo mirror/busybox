@@ -57,7 +57,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 	}
 
 	if (setsockopt_broadcast(s) == -1) {
-		bb_perror_msg("cannot enable bcast on raw socket");
+		bb_perror_msg("can't enable bcast on raw socket");
 		goto ret;
 	}
 

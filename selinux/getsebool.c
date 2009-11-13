@@ -25,7 +25,7 @@ int getsebool_main(int argc, char **argv)
 
 		rc = security_get_boolean_names(&names, &len);
 		if (rc)
-			bb_perror_msg_and_die("cannot get boolean names");
+			bb_perror_msg_and_die("can't get boolean names");
 
 		if (!len) {
 			puts("No booleans");

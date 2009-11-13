@@ -383,7 +383,7 @@ static bool do_statfs(const char *filename, const char *format)
 	}
 #endif
 	if (statfs(filename, &statfsbuf) != 0) {
-		bb_perror_msg("cannot read file system information for '%s'", filename);
+		bb_perror_msg("can't read file system information for '%s'", filename);
 		return 0;
 	}
 
@@ -495,7 +495,7 @@ static bool do_stat(const char *filename, const char *format)
 	}
 #endif
 	if ((option_mask32 & OPT_DEREFERENCE ? stat : lstat) (filename, &statbuf) != 0) {
-		bb_perror_msg("cannot stat '%s'", filename);
+		bb_perror_msg("can't stat '%s'", filename);
 		return 0;
 	}
 

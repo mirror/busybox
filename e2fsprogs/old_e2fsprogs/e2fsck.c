@@ -9400,7 +9400,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Cannot proceed without a root inode. */
 	{ PR_3_NO_ROOT_INODE_ABORT,
-	  N_("Cannot proceed without a @r.\n"),
+	  N_("can't proceed without a @r.\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Internal error: couldn't find dir_info */
@@ -12653,7 +12653,7 @@ static void check_mount(e2fsck_t ctx)
 
 	printf(_("%s is mounted.  "), ctx->filesystem_name);
 	if (!ctx->interactive)
-		bb_error_msg_and_die(_("cannot continue, aborting"));
+		bb_error_msg_and_die(_("can't continue, aborting"));
 	printf(_("\n\n\007\007\007\007WARNING!!!  "
 	       "Running e2fsck on a mounted filesystem may cause\n"
 	       "SEVERE filesystem damage.\007\007\007\n\n"));
@@ -13373,7 +13373,7 @@ restart:
 				 * happen, unless the hardware or
 				 * device driver is being bogus.
 				 */
-				bb_error_msg(_("cannot set superblock flags on %s"), ctx->device_name);
+				bb_error_msg(_("can't set superblock flags on %s"), ctx->device_name);
 				bb_error_msg_and_die(0);
 			}
 			retval = e2fsck_run_ext3_journal(ctx);

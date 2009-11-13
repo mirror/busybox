@@ -164,7 +164,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 		/* if setting time, set it */
 		if ((opt & OPT_SET) && stime(&tm) < 0) {
-			bb_perror_msg("cannot set date");
+			bb_perror_msg("can't set date");
 		}
 	}
 

@@ -305,7 +305,7 @@ static void init_exec(const char *command)
 			ioctl(STDIN_FILENO, TIOCSCTTY, 0 /*only try, don't steal*/);
 	}
 	BB_EXECVP(cmd[0] + dash, cmd);
-	message(L_LOG | L_CONSOLE, "cannot run '%s': %s", cmd[0], strerror(errno));
+	message(L_LOG | L_CONSOLE, "can't run '%s': %s", cmd[0], strerror(errno));
 	/* returns if execvp fails */
 }
 
@@ -899,7 +899,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			BB_EXECVP(argv[0], argv);
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
-			message(L_CONSOLE, "cannot load SELinux Policy. "
+			message(L_CONSOLE, "can't load SELinux Policy. "
 				"Machine is in enforcing mode. Halting now.");
 			exit(EXIT_FAILURE);
 		}

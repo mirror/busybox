@@ -63,9 +63,9 @@ void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
 			close(s);
 		if (s_addr->sa_family == AF_INET)
 			bb_perror_msg_and_die("%s (%s)",
-				"cannot connect to remote host",
+				"can't connect to remote host",
 				inet_ntoa(((struct sockaddr_in *)s_addr)->sin_addr));
-		bb_perror_msg_and_die("cannot connect to remote host");
+		bb_perror_msg_and_die("can't connect to remote host");
 	}
 }
 

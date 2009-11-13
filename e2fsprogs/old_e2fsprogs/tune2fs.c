@@ -392,7 +392,7 @@ static time_t parse_time(char *str)
 		ts.tm_mday = 0;
 #endif
 	if (ts.tm_mday == 0) {
-		bb_error_msg_and_die("Cannot parse date/time specifier: %s", str);
+		bb_error_msg_and_die("can't parse date/time specifier: %s", str);
 	}
 	return mktime(&ts);
 }
@@ -590,7 +590,7 @@ int tune2fs_main(int argc, char **argv)
 	}
 	retval = ext2fs_check_if_mounted(device_name, &mount_flags);
 	if (retval)
-		bb_error_msg_and_die("cannot determine if %s is mounted", device_name);
+		bb_error_msg_and_die("can't determine if %s is mounted", device_name);
 	/* Normally we only need to write out the superblock */
 	fs->flags |= EXT2_FLAG_SUPER_ONLY;
 

@@ -92,7 +92,7 @@ static void nameif_parse_selector(ethtable_t *ch, char *selector)
 			lmac = xmalloc(ETH_ALEN);
 			ch->mac = ether_aton_r(selector + (strncmp(selector, "mac=", 4) ? 0 : 4), lmac);
 			if (ch->mac == NULL)
-				bb_error_msg_and_die("cannot parse %s", selector);
+				bb_error_msg_and_die("can't parse %s", selector);
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED
 			found_selector++;
 		};
@@ -211,7 +211,7 @@ int nameif_main(int argc, char **argv)
 		if (strcmp(ifr.ifr_name, ch->ifname) != 0) {
 			strcpy(ifr.ifr_newname, ch->ifname);
 			ioctl_or_perror_and_die(ctl_sk, SIOCSIFNAME, &ifr,
-					"cannot change ifname %s to %s",
+					"can't change ifname %s to %s",
 					ifr.ifr_name, ch->ifname);
 		}
 		/* Remove list entry of renamed interface */

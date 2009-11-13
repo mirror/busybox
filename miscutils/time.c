@@ -380,7 +380,7 @@ static void run_command(char *const *cmd, resource_t *resp)
 		   versus merely warnings if the cast is left off.  */
 		BB_EXECVP(cmd[0], cmd);
 		xfunc_error_retval = (errno == ENOENT ? 127 : 126);
-		bb_error_msg_and_die("cannot run %s", cmd[0]);
+		bb_error_msg_and_die("can't run %s", cmd[0]);
 	}
 
 	/* Have signals kill the child but not self (if possible).  */

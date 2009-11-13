@@ -426,7 +426,7 @@ int xargs_main(int argc, char **argv)
 			n_chars += strlen(*argv) + 1;
 		}
 		if (n_max_chars < n_chars) {
-			bb_error_msg_and_die("cannot fit single argument within argument list size limit");
+			bb_error_msg_and_die("can't fit single argument within argument list size limit");
 		}
 		n_max_chars -= n_chars;
 	} else {

@@ -243,22 +243,22 @@ static void write_tables(void)
 	msg_eol = "seek to 0 failed";
 	xlseek(dev_fd, 0, SEEK_SET);
 
-	msg_eol = "cannot clear boot sector";
+	msg_eol = "can't clear boot sector";
 	xwrite(dev_fd, G.boot_block_buffer, 512);
 
 	msg_eol = "seek to BLOCK_SIZE failed";
 	xlseek(dev_fd, BLOCK_SIZE, SEEK_SET);
 
-	msg_eol = "cannot write superblock";
+	msg_eol = "can't write superblock";
 	xwrite(dev_fd, G.superblock_buffer, BLOCK_SIZE);
 
-	msg_eol = "cannot write inode map";
+	msg_eol = "can't write inode map";
 	xwrite(dev_fd, G.inode_map, SB_IMAPS * BLOCK_SIZE);
 
-	msg_eol = "cannot write zone map";
+	msg_eol = "can't write zone map";
 	xwrite(dev_fd, G.zone_map, SB_ZMAPS * BLOCK_SIZE);
 
-	msg_eol = "cannot write inodes";
+	msg_eol = "can't write inodes";
 	xwrite(dev_fd, G.inode_buffer, INODE_BUFFER_SIZE);
 
 	msg_eol = "\n";
@@ -687,7 +687,7 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(xopen(G.device_name, O_RDWR), dev_fd);
 	if (fstat(dev_fd, &statbuf) < 0)
-		bb_error_msg_and_die("cannot stat %s", G.device_name);
+		bb_error_msg_and_die("can't stat %s", G.device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		opt &= ~1; // clear -c (check)
 

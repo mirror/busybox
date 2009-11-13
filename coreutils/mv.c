@@ -87,10 +87,10 @@ int mv_main(int argc, char **argv)
 			if (errno != EXDEV
 			 || (source_exists = cp_mv_stat2(*argv, &source_stat, lstat)) < 1
 			) {
-				bb_perror_msg("cannot rename '%s'", *argv);
+				bb_perror_msg("can't rename '%s'", *argv);
 			} else {
 				static const char fmt[] ALIGN1 =
-					"cannot overwrite %sdirectory with %sdirectory";
+					"can't overwrite %sdirectory with %sdirectory";
 
 				if (dest_exists) {
 					if (dest_exists == 3) {
@@ -105,7 +105,7 @@ int mv_main(int argc, char **argv)
 						}
 					}
 					if (unlink(dest) < 0) {
-						bb_perror_msg("cannot remove '%s'", dest);
+						bb_perror_msg("can't remove '%s'", dest);
 						goto RET_1;
 					}
 				}

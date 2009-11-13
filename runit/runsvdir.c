@@ -73,7 +73,7 @@ struct globals {
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {
-	bb_perror_msg_and_die("%s: fatal: cannot %s%s", svdir, m1, m2);
+	bb_perror_msg_and_die("%s: fatal: can't %s%s", svdir, m1, m2);
 	/* was exiting 100 */
 }
 static void warn3x(const char *m1, const char *m2, const char *m3)
@@ -82,7 +82,7 @@ static void warn3x(const char *m1, const char *m2, const char *m3)
 }
 static void warn2_cannot(const char *m1, const char *m2)
 {
-	warn3x("cannot ", m1, m2);
+	warn3x("can't ", m1, m2);
 }
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 static void warnx(const char *m1)
@@ -256,14 +256,14 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		if (rploglen < 7) {
 			warnx("log must have at least seven characters");
 		} else if (piped_pair(logpipe)) {
-			warnx("cannot create pipe for log");
+			warnx("can't create pipe for log");
 		} else {
 			close_on_exec_on(logpipe.rd);
 			close_on_exec_on(logpipe.wr);
 			ndelay_on(logpipe.rd);
 			ndelay_on(logpipe.wr);
 			if (dup2(logpipe.wr, 2) == -1) {
-				warnx("cannot set filedescriptor for log");
+				warnx("can't set filedescriptor for log");
 			} else {
 				pfd[0].fd = logpipe.rd;
 				pfd[0].events = POLLIN;

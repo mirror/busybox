@@ -193,7 +193,7 @@ int FAST_FUNC xll_name_to_index(const char *name)
 	}
 /* out:*/
 	if (ret <= 0)
-		bb_error_msg_and_die("cannot find device \"%s\"", name);
+		bb_error_msg_and_die("can't find device '%s'", name);
 	return ret;
 }
 

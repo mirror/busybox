@@ -443,5 +443,5 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 	execvp(startas, argv);
-	bb_perror_msg_and_die("cannot start %s", startas);
+	bb_perror_msg_and_die("can't start %s", startas);
 }

@@ -30,12 +30,12 @@ static int ask_and_unlink(const char *dest, int flags)
 #if !ENABLE_FEATURE_NON_POSIX_CP
 	if (!(flags & (FILEUTILS_FORCE|FILEUTILS_INTERACTIVE))) {
 		/* Either it exists, or the *path* doesnt exist */
-		bb_perror_msg("cannot create '%s'", dest);
+		bb_perror_msg("can't create '%s'", dest);
 		return -1;
 	}
 #endif
 	// else: act as if -f is always in effect.
-	// We don't want "cannot create" msg, we want unlink to be done
+	// We don't want "can't create" msg, we want unlink to be done
 	// (silently unless -i). Why? POSIX cp usually succeeds with
 	// O_TRUNC open of existing file, and user is left ignorantly happy.
 	// With above block unconditionally enabled, non-POSIX cp
@@ -56,12 +56,12 @@ static int ask_and_unlink(const char *dest, int flags)
 		if (e == errno && e == ENOENT) {
 			/* e == ENOTDIR is similar: path has non-dir component,
 			 * but in this case we don't even reach copy_file() */
-			bb_error_msg("cannot create '%s': Path does not exist", dest);
+			bb_error_msg("can't create '%s': Path does not exist", dest);
 			return -1; /* error */
 		}
 #endif
 		errno = e; /* do not use errno from unlink */
-		bb_perror_msg("cannot create '%s'", dest);
+		bb_perror_msg("can't create '%s'", dest);
 		return -1; /* error */
 	}
 	return 1; /* ok (to try again) */
@@ -90,13 +90,13 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		 * Making [sym]links to dangling symlinks works, so... */
 		if (flags & (FILEUTILS_MAKE_SOFTLINK|FILEUTILS_MAKE_HARDLINK))
 			goto make_links;
-		bb_perror_msg("cannot stat '%s'", source);
+		bb_perror_msg("can't stat '%s'", source);
 		return -1;
 	}
 
 	if (lstat(dest, &dest_stat) < 0) {
 		if (errno != ENOENT) {
-			bb_perror_msg("cannot stat '%s'", dest);
+			bb_perror_msg("can't stat '%s'", dest);
 			return -1;
 		}
 	} else {
@@ -114,14 +114,14 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		security_context_t con;
 		if (lgetfilecon(source, &con) >= 0) {
 			if (setfscreatecon(con) < 0) {
-				bb_perror_msg("cannot set setfscreatecon %s", con);
+				bb_perror_msg("can't set setfscreatecon %s", con);
 				freecon(con);
 				return -1;
 			}
 		} else if (errno == ENOTSUP || errno == ENODATA) {
 			setfscreatecon_or_die(NULL);
 		} else {
-			bb_perror_msg("cannot lgetfilecon %s", source);
+			bb_perror_msg("can't lgetfilecon %s", source);
 			return -1;
 		}
 	}
@@ -166,13 +166,13 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			mode |= S_IRWXU;
 			if (mkdir(dest, mode) < 0) {
 				umask(saved_umask);
-				bb_perror_msg("cannot create directory '%s'", dest);
+				bb_perror_msg("can't create directory '%s'", dest);
 				return -1;
 			}
 			umask(saved_umask);
 			/* need stat info for add_to_ino_dev_hashtable */
 			if (lstat(dest, &dest_stat) < 0) {
-				bb_perror_msg("cannot stat '%s'", dest);
+				bb_perror_msg("can't stat '%s'", dest);
 				return -1;
 			}
 		}
@@ -204,7 +204,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		if (!dest_exists
 		 && chmod(dest, source_stat.st_mode & ~saved_umask) < 0
 		) {
-			bb_perror_msg("cannot preserve %s of '%s'", "permissions", dest);
+			bb_perror_msg("can't preserve %s of '%s'", "permissions", dest);
 			/* retval = -1; - WRONG! copy *WAS* made */
 		}
 		goto preserve_mode_ugid_time;
@@ -222,7 +222,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			if (ovr <= 0)
 				return ovr;
 			if (lf(source, dest) < 0) {
-				bb_perror_msg("cannot create link '%s'", dest);
+				bb_perror_msg("can't create link '%s'", dest);
 				return -1;
 			}
 		}
@@ -257,7 +257,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 					if (ovr <= 0)
 						return ovr;
 					if (link(link_target, dest) < 0) {
-						bb_perror_msg("cannot create link '%s'", dest);
+						bb_perror_msg("can't create link '%s'", dest);
 						return -1;
 					}
 				}
@@ -318,7 +318,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			retval = -1;
 		/* Ok, writing side I can understand... */
 		if (close(dst_fd) < 0) {
-			bb_perror_msg("cannot close '%s'", dest);
+			bb_perror_msg("can't close '%s'", dest);
 			retval = -1;
 		}
 		/* ...but read size is already checked by bb_copyfd_eof */
@@ -345,12 +345,12 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			int r = symlink(lpath, dest);
 			free(lpath);
 			if (r < 0) {
-				bb_perror_msg("cannot create symlink '%s'", dest);
+				bb_perror_msg("can't create symlink '%s'", dest);
 				return -1;
 			}
 			if (flags & FILEUTILS_PRESERVE_STATUS)
 				if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-					bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
+					bb_perror_msg("can't preserve %s of '%s'", "ownership", dest);
 		}
 		/* _Not_ jumping to preserve_mode_ugid_time:
 		 * symlinks don't have those */
@@ -360,7 +360,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 	 || S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode)
 	) {
 		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
-			bb_perror_msg("cannot create '%s'", dest);
+			bb_perror_msg("can't create '%s'", dest);
 			return -1;
 		}
 	} else {
@@ -380,13 +380,13 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		times.modtime = source_stat.st_mtime;
 		/* BTW, utimes sets usec-precision time - just FYI */
 		if (utime(dest, &times) < 0)
-			bb_perror_msg("cannot preserve %s of '%s'", "times", dest);
+			bb_perror_msg("can't preserve %s of '%s'", "times", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
 			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
-			bb_perror_msg("cannot preserve %s of '%s'", "ownership", dest);
+			bb_perror_msg("can't preserve %s of '%s'", "ownership", dest);
 		}
 		if (chmod(dest, source_stat.st_mode) < 0)
-			bb_perror_msg("cannot preserve %s of '%s'", "permissions", dest);
+			bb_perror_msg("can't preserve %s of '%s'", "permissions", dest);
 	}
 
 	return retval;

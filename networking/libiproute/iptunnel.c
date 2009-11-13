@@ -222,7 +222,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				}
 				p->iph.protocol = IPPROTO_IPV6;
 			} else {
-				bb_error_msg_and_die("%s tunnel mode", "cannot guess");
+				bb_error_msg_and_die("%s tunnel mode", "can't guess");
 			}
 		} else if (key == ARG_key) {
 			unsigned uval;
@@ -377,7 +377,7 @@ static int do_add(int cmd, char **argv)
 	case IPPROTO_IPV6:
 		return do_add_ioctl(cmd, "sit0", &p);
 	default:
-		bb_error_msg_and_die("cannot determine tunnel mode (ipip, gre or sit)");
+		bb_error_msg_and_die("can't determine tunnel mode (ipip, gre or sit)");
 	}
 }
 
@@ -499,7 +499,7 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 			continue;
 		type = do_ioctl_get_iftype(name);
 		if (type == -1) {
-			bb_error_msg("cannot get type of [%s]", name);
+			bb_error_msg("can't get type of [%s]", name);
 			continue;
 		}
 		if (type != ARPHRD_TUNNEL && type != ARPHRD_IPGRE && type != ARPHRD_SIT)

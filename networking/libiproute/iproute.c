@@ -499,7 +499,7 @@ static void iproute_flush_cache(void)
 	}
 
 	if (write(flush_fd, "-1", 2) < 2) {
-		bb_perror_msg("cannot flush routing cache");
+		bb_perror_msg("can't flush routing cache");
 		return;
 	}
 	close(flush_fd);
@@ -681,7 +681,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 	if (filter.tb != -1) {
 		xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 	} else if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
-		bb_perror_msg_and_die("cannot send dump request");
+		bb_perror_msg_and_die("can't send dump request");
 	}
 	xrtnl_dump_filter(&rth, print_route, NULL);
 

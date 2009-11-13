@@ -242,7 +242,7 @@ int FAST_FUNC rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 	status = sendmsg(rtnl->fd, &msg, 0);
 
 	if (status < 0) {
-		bb_perror_msg("cannot talk to rtnetlink");
+		bb_perror_msg("can't talk to rtnetlink");
 		goto ret;
 	}
 

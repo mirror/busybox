@@ -178,7 +178,7 @@ int ipcalc_main(int argc, char **argv)
 
 			hostinfo = gethostbyaddr((char *) &ipaddr, sizeof(ipaddr), AF_INET);
 			if (!hostinfo) {
-				bb_herror_msg_and_die("cannot find hostname for %s", argv[0]);
+				bb_herror_msg_and_die("can't find hostname for %s", argv[0]);
 			}
 			str_tolower(hostinfo->h_name);
 

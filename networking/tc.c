@@ -531,7 +531,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 		if (rtnl_dump_request(&rth, obj == OBJ_qdisc ? RTM_GETQDISC :
 						obj == OBJ_class ? RTM_GETTCLASS : RTM_GETTFILTER,
 						&msg, sizeof(msg)) < 0)
-			bb_simple_perror_msg_and_die("cannot send dump request");
+			bb_simple_perror_msg_and_die("can't send dump request");
 
 		xrtnl_dump_filter(&rth, obj == OBJ_qdisc ? print_qdisc :
 						obj == OBJ_class ? print_class : print_filter,

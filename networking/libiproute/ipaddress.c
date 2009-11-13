@@ -426,7 +426,7 @@ int ipaddr_list_or_flush(char **argv, int flush)
 			bb_error_msg_and_die(bb_msg_requires_arg, "flush");
 		}
 		if (filter.family == AF_PACKET) {
-			bb_error_msg_and_die("cannot flush link addresses");
+			bb_error_msg_and_die("can't flush link addresses");
 		}
 	}
 

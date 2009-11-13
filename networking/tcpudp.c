@@ -251,14 +251,14 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	if (!cert) cert = "./cert.pem";
 	if (!key) key = cert;
 	if (matrixSslOpen() < 0)
-		fatal("cannot initialize ssl");
+		fatal("can't initialize ssl");
 	if (matrixSslReadKeys(&keys, cert, key, 0, ca) < 0) {
 		if (client)
-			fatal("cannot read cert, key, or ca file");
-		fatal("cannot read cert or key file");
+			fatal("can't read cert, key, or ca file");
+		fatal("can't read cert or key file");
 	}
 	if (matrixSslNewSession(&ssl, keys, 0, SSL_FLAGS_SERVER) < 0)
-		fatal("cannot create ssl session");
+		fatal("can't create ssl session");
 #endif
 
 	sig_block(SIGCHLD);
@@ -425,7 +425,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 			if (opts & OPT_h) {
 				free_me1 = remote_hostname = xmalloc_sockaddr2host_noport(&remote.u.sa);
 				if (!remote_hostname) {
-					bb_error_msg("cannot look up hostname for %s", remote_addr);
+					bb_error_msg("can't look up hostname for %s", remote_addr);
 					remote_hostname = remote_addr;
 				}
 			}
@@ -441,7 +441,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 				if (!local_hostname) {
 					free_me2 = local_hostname = xmalloc_sockaddr2host_noport(&local.u.sa);
 					if (!local_hostname)
-						bb_error_msg_and_die("cannot look up hostname for %s", local_addr);
+						bb_error_msg_and_die("can't look up hostname for %s", local_addr);
 				}
 				/* else: local_hostname is not NULL, but is NOT malloced! */
 			}

@@ -834,7 +834,7 @@ static void RunJob(const char *user, CronLine *line)
 				line->cl_Shell);
 			line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
 		} else {
-			crondlog(ERR20 "cannot create mail file %s for user %s, "
+			crondlog(ERR20 "can't create mail file %s for user %s, "
 					"discarding output", mailFile, user);
 		}
 	}
