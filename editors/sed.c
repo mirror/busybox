@@ -1340,10 +1340,10 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 				bb_perror_msg_and_die("can't create temp file %s", G.outname);
 			G.nonstdout = fdopen(nonstdoutfd, "w");
 
-			/* Set permissions of output file */
-
+			/* Set permissions/owner of output file */
 			fstat(fileno(file), &statbuf);
 			fchmod(nonstdoutfd, statbuf.st_mode);
+			fchown(nonstdoutfd, statbuf.st_uid, statbuf.st_gid);
 			add_input_file(file);
 			process_files();
 			fclose(G.nonstdout);
