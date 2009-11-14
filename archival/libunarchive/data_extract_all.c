@@ -143,9 +143,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 		/* same for utime */
 		if (archive_handle->ah_flags & ARCHIVE_RESTORE_DATE) {
-			struct utimbuf t;
-			t.actime = t.modtime = file_header->mtime;
-			utime(file_header->name, &t);
+			struct timeval t = {.tv_sec = file_header->mtime,
+								.tv_usec = 0};
+			utimes(file_header->name, &t);
 		}
 	}
 }

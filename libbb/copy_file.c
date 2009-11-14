@@ -374,12 +374,10 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 	/* Cannot happen: */
 	/* && !(flags & (FILEUTILS_MAKE_SOFTLINK|FILEUTILS_MAKE_HARDLINK)) */
 	) {
-		struct utimbuf times;
-
-		times.actime = source_stat.st_atime;
-		times.modtime = source_stat.st_mtime;
+		struct timeval times = {.tv_sec = source_stat.st_mtime,
+								.tv_usec = 0};
 		/* BTW, utimes sets usec-precision time - just FYI */
-		if (utime(dest, &times) < 0)
+		if (utimes(dest, &times) < 0)
 			bb_perror_msg("can't preserve %s of '%s'", "times", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
 			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
