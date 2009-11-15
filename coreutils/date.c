@@ -123,8 +123,33 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & (OPT_SET | OPT_DATE))) {
 		opt |= OPT_SET;
 		date_str = argv[0]; /* can be NULL */
-		if (date_str)
+		if (date_str) {
+#if ENABLE_DESKTOP
+			int len = strspn(date_str, "0123456789");
+			if (date_str[len] == '\0'
+			 || (date_str[len] == '.'
+			    && isdigit(date_str[len+1])
+			    && isdigit(date_str[len+2])
+			    && date_str[len+3] == '\0'
+			    )
+			) {
+				/* Dreaded [MMDDhhmm[[CC]YY][.ss]] format!
+				 * It does not match -d or -s format.
+				 * Some users actually do use it.
+				 */
+				len -= 8;
+				if (len < 0 || len > 4 || (len & 1))
+					bb_error_msg_and_die(bb_msg_invalid_date, date_str);
+				if (len != 0) { /* move YY or CCYY to front */
+					char buf[4];
+					memcpy(buf, date_str + 8, len);
+					memmove(date_str + len, date_str, 8);
+					memcpy(date_str, buf, len);
+				}
+			}
+#endif
 			argv++;
+		}
 	}
 	if (*argv)
 		bb_show_usage();

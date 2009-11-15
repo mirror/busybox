@@ -74,25 +74,25 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *tm_time)
 		int len = strchrnul(date_str, '.') - date_str;
 
 		/* MM[.SS] */
-		if (len == 2 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 12,
+		if (len == 2 && sscanf(date_str, "%2u%2u%2u%2u""%2u%c" + 12,
 					&tm_time->tm_min,
 					&end) >= 1) {
 		} else
 		/* HHMM[.SS] */
-		if (len == 4 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 9,
+		if (len == 4 && sscanf(date_str, "%2u%2u%2u""%2u%2u%c" + 9,
 					&tm_time->tm_hour,
 					&tm_time->tm_min,
 					&end) >= 2) {
 		} else
 		/* ddHHMM[.SS] */
-		if (len == 6 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 6,
+		if (len == 6 && sscanf(date_str, "%2u%2u""%2u%2u%2u%c" + 6,
 					&tm_time->tm_mday,
 					&tm_time->tm_hour,
 					&tm_time->tm_min,
 					&end) >= 3) {
 		} else
 		/* mmddHHMM[.SS] */
-		if (len == 8 && sscanf(date_str, "%2u%2u%2u%2u%2u%c" + 3,
+		if (len == 8 && sscanf(date_str, "%2u""%2u%2u%2u%2u%c" + 3,
 					&tm_time->tm_mon,
 					&tm_time->tm_mday,
 					&tm_time->tm_hour,
