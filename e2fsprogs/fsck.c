@@ -41,6 +41,16 @@
  * API for fsck.something, NOT ad-hoc hacks in generic fsck. */
 #define DO_PROGRESS_INDICATOR 0
 
+/* fsck 1.41.4 (27-Jan-2009) manpage says:
+ * 0   - No errors
+ * 1   - File system errors corrected
+ * 2   - System should be rebooted
+ * 4   - File system errors left uncorrected
+ * 8   - Operational error
+ * 16  - Usage or syntax error
+ * 32  - Fsck canceled by user request
+ * 128 - Shared library error
+ */
 #define EXIT_OK          0
 #define EXIT_NONDESTRUCT 1
 #define EXIT_DESTRUCT    2
@@ -52,7 +62,6 @@
 /*
  * Internal structure for mount table entries.
  */
-
 struct fs_info {
 	struct fs_info *next;
 	char	*device;
