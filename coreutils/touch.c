@@ -40,6 +40,9 @@
 int touch_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int touch_main(int argc UNUSED_PARAM, char **argv)
 {
+	int fd;
+	int status = EXIT_SUCCESS;
+	int opts;
 #if ENABLE_DESKTOP
 # if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
@@ -49,17 +52,15 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		"date\0"              Required_argument "d"
 	;
 # endif
-	struct timeval timebuf = {.tv_usec = 0};
 	char *reference_file = NULL;
 	char *date_str = NULL;
+	struct timeval timebuf;
+	timebuf.tv_usec = 0;
 #else
 # define reference_file NULL
 # define date_str       NULL
 # define timebuf        (*(struct timeval*)NULL)
 #endif
-	int fd;
-	int status = EXIT_SUCCESS;
-	int opts;
 
 #if ENABLE_DESKTOP && ENABLE_LONG_OPTS
 	applet_long_options = touch_longopts;

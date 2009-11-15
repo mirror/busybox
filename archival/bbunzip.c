@@ -105,10 +105,12 @@ int FAST_FUNC bbunpack(char **argv,
 			if (status >= 0) {
 				/* TODO: restore other things? */
 				if (info.mtime) {
-					struct timeval times = {.tv_sec = info.mtime,
-											.tv_usec = 0};
+					struct timeval times;
+
+					times.tv_sec = info.mtime;
+					times.tv_usec = 0;
 					/* Note: we closed it first.
-					 * On some systems calling utime
+					 * On some systems calling utimes
 					 * then closing resets the mtime
 					 * back to current time. */
 					utimes(new_name, &times); /* ignoring errors */

@@ -374,8 +374,10 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 	/* Cannot happen: */
 	/* && !(flags & (FILEUTILS_MAKE_SOFTLINK|FILEUTILS_MAKE_HARDLINK)) */
 	) {
-		struct timeval times = {.tv_sec = source_stat.st_mtime,
-								.tv_usec = 0};
+		struct timeval times;
+
+		times.tv_sec = source_stat.st_mtime;
+		times.tv_usec = 0;
 		/* BTW, utimes sets usec-precision time - just FYI */
 		if (utimes(dest, &times) < 0)
 			bb_perror_msg("can't preserve %s of '%s'", "times", dest);

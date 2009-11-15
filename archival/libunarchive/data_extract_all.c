@@ -143,8 +143,10 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 		/* same for utime */
 		if (archive_handle->ah_flags & ARCHIVE_RESTORE_DATE) {
-			struct timeval t = {.tv_sec = file_header->mtime,
-								.tv_usec = 0};
+			struct timeval t;
+
+			t.tv_sec = file_header->mtime;
+			t.tv_usec = 0;
 			utimes(file_header->name, &t);
 		}
 	}
