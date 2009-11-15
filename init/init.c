@@ -40,9 +40,9 @@
 #define ONCE        0x04
 /*
  * NB: while SYSINIT/WAIT/ONCE are being processed,
- * SIGHUP ("reread /etc/inittab") will be ignored.
- * Rationale: it would be ambiguous whether SYSINIT/WAIT/ONCE
- * need to be rerun or not.
+ * SIGHUP ("reread /etc/inittab") will be processed only after
+ * each group of actions. If new inittab adds, say, a SYSINIT action,
+ * it will not be run, since init is already "past SYSINIT stage".
  */
 /* Start these after ONCE are started, restart on exit */
 #define RESPAWN     0x08
@@ -754,12 +754,12 @@ static void reload_inittab(void)
 
 	/* Disable old entries */
 	for (a = init_action_list; a; a = a->next)
-		a->action_type = ONCE;
+		a->action_type = 0;
 
 	/* Append new entries, or modify existing entries
-	 * (set a->action_type) if cmd and device name
+	 * (incl. setting a->action_type) if cmd and device name
 	 * match new ones. End result: only entries with
-	 * a->action_type == ONCE are stale.
+	 * a->action_type == 0 are stale.
 	 */
 	parse_inittab();
 
@@ -767,24 +767,26 @@ static void reload_inittab(void)
 	/* Kill stale entries */
 	/* Be nice and send SIGTERM first */
 	for (a = init_action_list; a; a = a->next)
-		if (a->action_type == ONCE && a->pid != 0)
+		if (a->action_type == 0 && a->pid != 0)
 			kill(a->pid, SIGTERM);
 	if (CONFIG_FEATURE_KILL_DELAY) {
 		/* NB: parent will wait in NOMMU case */
 		if ((BB_MMU ? fork() : vfork()) == 0) { /* child */
 			sleep(CONFIG_FEATURE_KILL_DELAY);
 			for (a = init_action_list; a; a = a->next)
-				if (a->action_type == ONCE && a->pid != 0)
+				if (a->action_type == 0 && a->pid != 0)
 					kill(a->pid, SIGKILL);
 			_exit(EXIT_SUCCESS);
 		}
 	}
 #endif
 
-	/* Remove stale (ONCE) and not useful (SYSINIT,WAIT) entries */
+	/* Remove stale entries and SYSINIT entries.
+	 * We never rerun SYSINIT entries anyway,
+	 * removing them too saves a few bytes */
 	nextp = &init_action_list;
 	while ((a = *nextp) != NULL) {
-		if (a->action_type & (ONCE | SYSINIT | WAIT)) {
+		if ((a->action_type & ~SYSINIT) == 0) {
 			*nextp = a->next;
 			free(a);
 		} else {
@@ -943,6 +945,12 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		bb_signals_recursive_norestart((1 << SIGINT), record_signo);
 	}
 
+	/* Set up "reread /etc/inittab" handler.
+	 * Handler is set up without SA_RESTART, it will interrupt syscalls.
+	 */
+	if (!DEBUG_INIT && ENABLE_FEATURE_USE_INITTAB)
+		bb_signals_recursive_norestart((1 << SIGHUP), record_signo);
+
 	/* Now run everything that needs to be run */
 	/* First run the sysinit command */
 	run_actions(SYSINIT);
@@ -952,12 +960,6 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	check_delayed_sigs();
 	/* Next run anything to be run only once */
 	run_actions(ONCE);
-
-	/* Set up "reread /etc/inittab" handler.
-	 * Handler is set up without SA_RESTART, it will interrupt syscalls.
-	 */
-	if (!DEBUG_INIT && ENABLE_FEATURE_USE_INITTAB)
-		bb_signals_recursive_norestart((1 << SIGHUP), record_signo);
 
 	/* Now run the looping stuff for the rest of forever.
 	 */
