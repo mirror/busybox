@@ -38,3 +38,19 @@ FILE* FAST_FUNC xfopen_for_write(const char *path)
 {
 	return xfopen(path, "w");
 }
+
+static FILE* xfdopen_helper(unsigned fd_and_rw_bit)
+{
+	FILE* fp = fdopen(fd_and_rw_bit >> 1, fd_and_rw_bit & 1 ? "w" : "r");
+	if (!fp)
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
+	return fp;
+}
+FILE* FAST_FUNC xfdopen_for_read(int fd)
+{
+	return xfdopen_helper(fd << 1);
+}
+FILE* FAST_FUNC xfdopen_for_write(int fd)
+{
+	return xfdopen_helper((fd << 1) + 1);
+}

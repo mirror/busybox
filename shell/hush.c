@@ -5301,25 +5301,22 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 	free(to_free);
 # endif
 	close(channel[1]);
-//TODO: libbb: fdopen_or_die?
-	return fdopen(channel[0], "r");
+	close_on_exec_on(channel[0]);
+	return xfdopen_for_read(channel[0]);
 }
 
 /* Return code is exit status of the process that is run. */
 static int process_command_subs(o_string *dest, const char *s)
 {
-	FILE *pf;
+	FILE *fp;
 	struct in_str pipe_str;
 	pid_t pid;
 	int status, ch, eol_cnt;
 
-	pf = generate_stream_from_string(s, &pid);
-	if (pf == NULL)
-		return 1;
-	close_on_exec_on(fileno(pf));
+	fp = generate_stream_from_string(s, &pid);
 
 	/* Now send results of command back into original context */
-	setup_file_in_str(&pipe_str, pf);
+	setup_file_in_str(&pipe_str, fp);
 	eol_cnt = 0;
 	while ((ch = i_getch(&pipe_str)) != EOF) {
 		if (ch == '\n') {
@@ -5334,7 +5331,7 @@ static int process_command_subs(o_string *dest, const char *s)
 	}
 
 	debug_printf("done reading from `cmd` pipe, closing it\n");
-	fclose(pf);
+	fclose(fp);
 	/* We need to extract exitcode. Test case
 	 * "true; echo `sleep 1; false` $?"
 	 * should print 1 */

@@ -93,7 +93,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// save initial stdin since body is piped!
 	xdup2(STDIN_FILENO, 3);
-	G.fp0 = fdopen(3, "r");
+	G.fp0 = xfdopen_for_read(3);
 
 	// parse options
 	// -f is required. -H and -S are mutually exclusive

@@ -227,7 +227,7 @@ static void fb_drawimage(void)
 		int fd = open_zipped(G.image_filename);
 		if (fd < 0)
 			bb_simple_perror_msg_and_die(G.image_filename);
-		theme_file = fdopen(fd, "r");
+		theme_file = xfdopen_for_read(fd);
 	}
 	head = xmalloc(256);
 

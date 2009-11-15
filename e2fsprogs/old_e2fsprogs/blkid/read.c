@@ -374,9 +374,7 @@ void blkid_read_cache(blkid_cache cache)
 	DBG(DEBUG_CACHE, printf("reading cache file %s\n",
 				cache->bic_filename));
 
-	file = fdopen(fd, "r");
-	if (!file)
-		goto errout;
+	file = xfdopen_for_read(fd);
 
 	while (fgets(buf, sizeof(buf), file)) {
 		blkid_dev dev;

@@ -384,11 +384,7 @@ static void write_out_dep_bb(int fd)
 	FILE *fp;
 
 	/* We want good error reporting. fdprintf is not good enough. */
-	fp = fdopen(fd, "w");
-	if (!fp) {
-		close(fd);
-		goto err;
-	}
+	fp = xfdopen_for_write(fd);
 	i = 0;
 	while (modinfo[i].pathname) {
 		fprintf(fp, "%s%s%s\n" "%s%s\n",

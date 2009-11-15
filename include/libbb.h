@@ -658,21 +658,23 @@ extern char *xmalloc_fgetline(FILE *file) FAST_FUNC RETURNS_MALLOC;
 /* Same, but doesn't try to conserve space (may have some slack after the end) */
 /* extern char *xmalloc_fgetline_fast(FILE *file) FAST_FUNC RETURNS_MALLOC; */
 
-extern void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
-extern void die_if_ferror_stdout(void) FAST_FUNC;
-extern int fflush_all(void) FAST_FUNC;
-extern void fflush_stdout_and_exit(int retval) NORETURN FAST_FUNC;
-extern int fclose_if_not_stdin(FILE *file) FAST_FUNC;
-extern FILE *xfopen(const char *filename, const char *mode) FAST_FUNC;
+void die_if_ferror(FILE *file, const char *msg) FAST_FUNC;
+void die_if_ferror_stdout(void) FAST_FUNC;
+int fflush_all(void) FAST_FUNC;
+void fflush_stdout_and_exit(int retval) NORETURN FAST_FUNC;
+int fclose_if_not_stdin(FILE *file) FAST_FUNC;
+FILE* xfopen(const char *filename, const char *mode) FAST_FUNC;
 /* Prints warning to stderr and returns NULL on failure: */
-extern FILE *fopen_or_warn(const char *filename, const char *mode) FAST_FUNC;
+FILE* fopen_or_warn(const char *filename, const char *mode) FAST_FUNC;
 /* "Opens" stdin if filename is special, else just opens file: */
-extern FILE *xfopen_stdin(const char *filename) FAST_FUNC;
-extern FILE *fopen_or_warn_stdin(const char *filename) FAST_FUNC;
-extern FILE* fopen_for_read(const char *path) FAST_FUNC;
-extern FILE* xfopen_for_read(const char *path) FAST_FUNC;
-extern FILE* fopen_for_write(const char *path) FAST_FUNC;
-extern FILE* xfopen_for_write(const char *path) FAST_FUNC;
+FILE* xfopen_stdin(const char *filename) FAST_FUNC;
+FILE* fopen_or_warn_stdin(const char *filename) FAST_FUNC;
+FILE* fopen_for_read(const char *path) FAST_FUNC;
+FILE* xfopen_for_read(const char *path) FAST_FUNC;
+FILE* fopen_for_write(const char *path) FAST_FUNC;
+FILE* xfopen_for_write(const char *path) FAST_FUNC;
+FILE* xfdopen_for_read(int fd) FAST_FUNC;
+FILE* xfdopen_for_write(int fd) FAST_FUNC;
 
 int bb_pstrcmp(const void *a, const void *b) /* not FAST_FUNC! */;
 void qsort_string_vector(char **sv, unsigned count) FAST_FUNC;

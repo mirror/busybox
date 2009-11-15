@@ -95,7 +95,7 @@ int blkid_flush_cache(blkid_cache cache)
 		sprintf(tmp, "%s-XXXXXX", filename);
 		fd = mkstemp(tmp);
 		if (fd >= 0) {
-			file = fdopen(fd, "w");
+			file = xfdopen_for_write(fd);
 			opened = tmp;
 		}
 		fchmod(fd, 0644);

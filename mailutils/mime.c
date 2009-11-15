@@ -293,7 +293,7 @@ static int parse(const char *boundary, char **argv)
 				}
 				// parent dumps to fd[1]
 				close(fd[0]);
-				fp = fdopen(fd[1], "w");
+				fp = xfdopen_for_write(fd[1]);
 				signal(SIGPIPE, SIG_IGN); // ignore EPIPE
 			// or create a file for dump
 			} else {

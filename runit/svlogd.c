@@ -761,8 +761,8 @@ static NOINLINE unsigned logdir_open(struct logdir *ld, const char *fn)
 	}
 	while ((ld->fdcur = open("current", O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) == -1)
 		pause2cannot("open current", ld->name);
-	/* we presume this cannot fail */
-	ld->filecur = fdopen(ld->fdcur, "a"); ////
+	while ((ld->filecur = fdopen(ld->fdcur, "a")) == NULL)
+		pause2cannot("open current", ld->name); ////
 	setvbuf(ld->filecur, NULL, _IOFBF, linelen); ////
 
 	close_on_exec_on(ld->fdcur);

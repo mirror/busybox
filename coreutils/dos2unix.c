@@ -42,10 +42,10 @@ static void convert(char *fn, int conv_type)
 		i = mkstemp(temp_fn);
 		if (i == -1
 		 || fchmod(i, st.st_mode) == -1
-		 || !(out = fdopen(i, "w+"))
 		) {
 			bb_simple_perror_msg_and_die(temp_fn);
 		}
+		out = xfdopen_for_write(i);
 	}
 
 	while ((i = fgetc(in)) != EOF) {

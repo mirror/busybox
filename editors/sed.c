@@ -1338,7 +1338,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			nonstdoutfd = mkstemp(G.outname);
 			if (-1 == nonstdoutfd)
 				bb_perror_msg_and_die("can't create temp file %s", G.outname);
-			G.nonstdout = fdopen(nonstdoutfd, "w");
+			G.nonstdout = xfdopen_for_write(nonstdoutfd);
 
 			/* Set permissions/owner of output file */
 			fstat(fileno(file), &statbuf);

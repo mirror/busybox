@@ -1056,8 +1056,8 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 	/* parent */
 	close(infd.rd);
 	close(outfd.wr);
-	*in = fdopen(infd.wr, "w");
-	*out = fdopen(outfd.rd, "r");
+	*in = xfdopen_for_write(infd.wr);
+	*out = xfdopen_for_read(outfd.rd);
 	return pid;
 }
 

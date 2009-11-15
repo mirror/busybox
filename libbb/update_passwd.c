@@ -137,12 +137,7 @@ int FAST_FUNC update_passwd(const char *filename,
 		fchown(new_fd, sb.st_uid, sb.st_gid);
 	}
 	errno = 0;
-	new_fp = fdopen(new_fd, "w");
-	if (!new_fp) {
-		bb_perror_nomsg();
-		close(new_fd);
-		goto unlink_new;
-	}
+	new_fp = xfdopen_for_write(new_fd);
 
 	/* Backup file is "/etc/passwd-" */
 	*sfx_char = '-';
