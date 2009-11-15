@@ -2287,7 +2287,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			 * expanded result may need to be globbed
 			 * and $IFS-splitted */
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
-			process_command_subs(&subst_result, arg);
+			G.last_exitcode = process_command_subs(&subst_result, arg);
 			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
 			val = subst_result.data;
 			goto store_val;
@@ -3904,7 +3904,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* if someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
 			debug_leave();
-			return 0;
+			return 0; // or G.last_exitcode? see emptytick.tests
 		}
 
 		x = find_builtin(argv_expanded[0]);
@@ -5202,10 +5202,10 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 
 
 #if ENABLE_HUSH_TICK
-static FILE *generate_stream_from_string(const char *s)
+static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 {
-	FILE *pf;
-	int pid, channel[2];
+	pid_t pid;
+	int channel[2];
 # if !BB_MMU
 	char **to_free;
 # endif
@@ -5291,6 +5291,7 @@ static FILE *generate_stream_from_string(const char *s)
 	}
 
 	/* parent */
+	*pid_p = pid;
 # if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++;
 //bb_error_msg("[%d] fork in generate_stream_from_string: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
@@ -5300,8 +5301,8 @@ static FILE *generate_stream_from_string(const char *s)
 	free(to_free);
 # endif
 	close(channel[1]);
-	pf = fdopen(channel[0], "r");
-	return pf;
+//TODO: libbb: fdopen_or_die?
+	return fdopen(channel[0], "r");
 }
 
 /* Return code is exit status of the process that is run. */
@@ -5309,9 +5310,10 @@ static int process_command_subs(o_string *dest, const char *s)
 {
 	FILE *pf;
 	struct in_str pipe_str;
-	int ch, eol_cnt;
+	pid_t pid;
+	int status, ch, eol_cnt;
 
-	pf = generate_stream_from_string(s);
+	pf = generate_stream_from_string(s, &pid);
 	if (pf == NULL)
 		return 1;
 	close_on_exec_on(fileno(pf));
@@ -5331,16 +5333,14 @@ static int process_command_subs(o_string *dest, const char *s)
 		o_addQchr(dest, ch);
 	}
 
-	debug_printf("done reading from pipe, pclose()ing\n");
-	/* Note: we got EOF, and we just close the read end of the pipe.
-	 * We do not wait for the `cmd` child to terminate. bash and ash do.
-	 * Try these:
-	 * echo `echo Hi; exec 1>&-; sleep 2` - bash waits 2 sec
-	 * `false`; echo $? - bash outputs "1"
-	 */
+	debug_printf("done reading from `cmd` pipe, closing it\n");
 	fclose(pf);
-	debug_printf("closed FILE from child. return 0\n");
-	return 0;
+	/* We need to extract exitcode. Test case
+	 * "true; echo `sleep 1; false` $?"
+	 * should print 1 */
+	safe_waitpid(pid, &status, 0);
+	debug_printf("child exited. returning its exitcode:%d\n", WEXITSTATUS(status));
+	return WEXITSTATUS(status);
 }
 #endif /* ENABLE_HUSH_TICK */
 
