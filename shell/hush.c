@@ -2024,6 +2024,7 @@ static int o_glob(o_string *o, int n)
 	}
 
 	memset(&globdata, 0, sizeof(globdata));
+//TODO: can use GLOB_BRACE | GLOB_TILDE here:
 	gr = glob(pattern, 0, NULL, &globdata);
 	debug_printf_glob("glob('%s'):%d\n", pattern, gr);
 	if (gr == GLOB_NOSPACE)
@@ -5384,6 +5385,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		goto skip;
 	}
 #endif
+
+#if 0 /* Prevented by caller */
 	if (command->argv /* word [word]{... */
 	 || dest->length /* word{... */
 	 || dest->o_quoted /* ""{... */
@@ -5393,6 +5396,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 			"syntax error, groups and arglists don't mix\n");
 		return 1;
 	}
+#endif
 
 #if ENABLE_HUSH_FUNCTIONS
  skip:
@@ -5962,10 +5966,24 @@ static struct pipe *parse_stream(char **pstring,
 			return pi;
 		}
 		nommu_addchr(&ctx.as_string, ch);
+
+		next = '\0';
+		if (ch != '\n')
+			next = i_peek(input);
+
+		is_special = "{}<>;&|()#'" /* special outside of "str" */
+				"\\$\"" IF_HUSH_TICK("`"); /* always special */
+		/* Are { and } special here? */
+		if (ctx.command->argv /* word [word]{... */
+		 || dest.length /* word{... */
+		 || dest.o_quoted /* ""{... */
+		 || (next != ';' && next != ')' && !strchr(G.ifs, next)) /* {word */
+		) {
+			/* They are not special, skip "{}" */
+			is_special += 2;
+		}
+		is_special = strchr(is_special, ch);
 		is_ifs = strchr(G.ifs, ch);
-		is_special = strchr("<>;&|(){}#'" /* special outside of "str" */
-				"\\$\"" IF_HUSH_TICK("`") /* always special */
-				, ch);
 
 		if (!is_special && !is_ifs) { /* ordinary char */
  ordinary_char:
@@ -6075,11 +6093,6 @@ static struct pipe *parse_stream(char **pstring,
  skip_end_trigger:
 		if (is_ifs)
 			continue;
-
-		next = '\0';
-		if (ch != '\n') {
-			next = i_peek(input);
-		}
 
 		/* Catch <, > before deciding whether this word is
 		 * an assignment. a=1 2>z b=2: b=2 is still assignment */
