@@ -1,17 +1,13 @@
 true;  ``; echo $?
 false; ``; echo $?
-# UNFIXED BUG. bash sets $? to 127:
 true;  `""`; echo $?
-# bash sets $? to 127:
 false; `""`; echo $?
 true;  `     `; echo $?
 false; `     `; echo $?
 
 true;  $(); echo $?
 false; $(); echo $?
-# bash sets $? to 127:
 true;  $(""); echo $?
-# bash sets $? to 127:
 false; $(""); echo $?
 true;  $(     ); echo $?
 false; $(     ); echo $?

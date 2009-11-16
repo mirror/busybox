@@ -3904,7 +3904,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* if someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
 			debug_leave();
-			return 0; // or G.last_exitcode? see emptytick.tests
+			return G.last_exitcode;
 		}
 
 		x = find_builtin(argv_expanded[0]);
@@ -6380,15 +6380,26 @@ static struct pipe *parse_stream(char **pstring,
  */
 static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 {
+	/* Why we need empty flag?
+	 * An obscure corner case "false; ``; echo $?":
+	 * empty command in `` should still set $? to 0.
+	 * But we can't just set $? to 0 at the start,
+	 * this breaks "false; echo `echo $?`" case.
+	 */
+	bool empty = 1;
 	while (1) {
 		struct pipe *pipe_list;
 
 		pipe_list = parse_stream(NULL, inp, end_trigger);
-		if (!pipe_list) /* EOF */
+		if (!pipe_list) { /* EOF */
+			if (empty)
+				G.last_exitcode = 0;
 			break;
+		}
 		debug_print_tree(pipe_list, 0);
 		debug_printf_exec("parse_and_run_stream: run_and_free_list\n");
 		run_and_free_list(pipe_list);
+		empty = 0;
 	}
 }
 
