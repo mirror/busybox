@@ -2003,6 +2003,130 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)(ptrdiff_t)list[n-1]) + string_start;
 }
 
+#undef HUSH_BRACE_EXP
+/* There in a GNU extension, GLOB_BRACE, but it is not usable:
+ * first, it processes even {a} (no commas), second,
+ * I didn't manage to make it return strings when they don't match
+ # existing files. Need to re-implement it.
+ *
+ * This code needs corresponding quoting on variable expansion side.
+ * Currently, "a='{q,w}'; echo $a" erroneously expands braces in $a
+ */
+#ifdef HUSH_BRACE_EXP
+/* Return pointer to next closing brace or to comma */
+static const char *next_brace_sub(const char *cp)
+{
+	unsigned depth = 0;
+	cp++;
+	while (*cp != '\0') {
+		if (*cp == '\\') {
+			if (*++cp == '\0')
+				break;
+			cp++;
+			continue;
+    		}
+		 /*{*/ if ((*cp == '}' && depth-- == 0) || (*cp == ',' && depth == 0))
+			break;
+		if (*cp++ == '{') /*}*/
+			depth++;
+	}
+
+	return *cp != '\0' ? cp : NULL;
+}
+static int glob_brace(const char *pattern, int flags, glob_t *pglob)
+{
+	const char *begin;
+	char *alt_start;
+	const char *p;
+	const char *next;
+	const char *rest;
+	size_t rest_len;
+	char *onealt;
+
+	debug_printf_glob("glob_brace('%s')\n", pattern);
+
+	begin = pattern;
+	while (1) {
+		if (*begin == '\0')
+			goto do_glob;
+		if (*begin == '{') /*}*/ {
+			/* Find the first sub-pattern and at the same time
+			 * find the rest after the closing brace */
+			next = next_brace_sub(begin);
+			if (next == NULL) {
+				/* An illegal expression */
+				goto do_glob;
+			}
+			/*{*/ if (*next == '}') {
+				/* "{abc}" with no commas - illegal
+				 * brace expr, disregard and skip it */
+				begin = next + 1;
+				continue;
+			}
+			break;
+		}
+		if (*begin == '\\' && begin[1] != '\0')
+			begin++;
+		begin++;
+	}
+	debug_printf_glob("begin:%s\n", begin);
+	debug_printf_glob("next:%s\n", next);
+
+	/* Now find the end of the whole brace expression */
+	rest = next;
+	/*{*/ while (*rest != '}') {
+		rest = next_brace_sub(rest);
+		if (rest == NULL) {
+			/* An illegal expression */
+			goto do_glob;
+		}
+		debug_printf_glob("rest:%s\n", rest);
+	}
+	rest_len = strlen(++rest) + 1;
+
+	/* We are sure the brace expression is well-formed */
+
+	/* Allocate working buffer large enough for our work */
+	onealt = alloca(strlen(pattern));
+	/* We know the prefix for all sub-patterns */
+	alt_start = mempcpy(onealt, pattern, begin - pattern);
+
+	/* We have a brace expression.  BEGIN points to the opening {,
+	 * NEXT points past the terminator of the first element, and REST
+	 * points past the final }.  We will accumulate result names from
+	 * recursive runs for each brace alternative in the buffer using
+	 * GLOB_APPEND.  */
+
+	p = begin + 1;
+	while (1) {
+		int result;
+
+		/* Construct the new glob expression */
+		memcpy(mempcpy(alt_start, p, next - p), rest, rest_len);
+
+		result = glob_brace(onealt, flags, pglob);
+		/* If we got an error, return it */
+		if (result && result != GLOB_NOMATCH)
+			return result;
+
+		flags |= GLOB_APPEND;
+
+		/*{*/ if (*next == '}') {
+			/* We saw the last entry */
+			break;
+		}
+		p = next + 1;
+		next = next_brace_sub(next);
+	}
+
+	/* We found some entries */
+	return 0;
+
+ do_glob:
+	return glob(pattern, flags, NULL, pglob);
+}
+#endif
+
 /* o_glob performs globbing on last list[], saving each result
  * as a new list[]. */
 static int o_glob(o_string *o, int n)
@@ -2024,17 +2148,22 @@ static int o_glob(o_string *o, int n)
 	}
 
 	memset(&globdata, 0, sizeof(globdata));
-//TODO: can use GLOB_BRACE | GLOB_TILDE here:
+#ifdef HUSH_BRACE_EXP
+	gr = glob_brace(pattern, GLOB_NOCHECK, &globdata);
+	debug_printf_glob("glob_brace('%s'):%d\n", pattern, gr);
+#else
 	gr = glob(pattern, 0, NULL, &globdata);
 	debug_printf_glob("glob('%s'):%d\n", pattern, gr);
+#endif
 	if (gr == GLOB_NOSPACE)
-		bb_error_msg_and_die("out of memory during glob");
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	if (gr == GLOB_NOMATCH) {
 		globfree(&globdata);
 		goto literal;
 	}
-	if (gr != 0) { /* GLOB_ABORTED ? */
-		/* TODO: testcase for bad glob pattern behavior */
+	if (gr != 0) {
+		/* GLOB_ABORTED? Only happens with GLOB_ERR flag,
+		 * but we didn't specify it. Paranoia again. */
 		bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
 	}
 	if (globdata.gl_pathv && globdata.gl_pathv[0]) {
