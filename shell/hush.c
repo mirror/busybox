@@ -2007,7 +2007,7 @@ static int o_get_last_ptr(o_string *o, int n)
 /* There in a GNU extension, GLOB_BRACE, but it is not usable:
  * first, it processes even {a} (no commas), second,
  * I didn't manage to make it return strings when they don't match
- # existing files. Need to re-implement it.
+ * existing files. Need to re-implement it.
  *
  * This code needs corresponding quoting on variable expansion side.
  * Currently, "a='{q,w}'; echo $a" erroneously expands braces in $a
