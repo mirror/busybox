@@ -889,18 +889,6 @@ static void cmdedit_update_prompt(void);
 
 /* Utility functions
  */
-static int glob_needed(const char *s)
-{
-	while (*s) {
-		if (*s == '\\')
-			s++;
-		if (*s == '*' || *s == '[' || *s == '?')
-			return 1;
-		s++;
-	}
-	return 0;
-}
-
 static int is_well_formed_var_name(const char *s, char terminator)
 {
 	if (!s || !(isalpha(*s) || *s == '_'))
@@ -1856,13 +1844,31 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 	}
 }
 
+#undef HUSH_BRACE_EXP
+/*
+ * HUSH_BRACE_EXP code needs corresponding quoting on variable expansion side.
+ * Currently, "v='{q,w}'; echo $v" erroneously expands braces in $v.
+ * Apparently, on unquoted $v bash still does globbing
+ * ("v='*.txt'; echo $v" prints all .txt files),
+ * but NOT brace expansion! Thus, there should be TWO independent
+ * quoting mechanisms on $v expansion side: one protects
+ * $v from brace expansion, and other additionally protects "$v" against globbing.
+ * We have only second one.
+ */
+
+#ifdef HUSH_BRACE_EXP
+# define MAYBE_BRACES "{}"
+#else
+# define MAYBE_BRACES ""
+#endif
+
 /* My analysis of quoting semantics tells me that state information
  * is associated with a destination, not a source.
  */
 static void o_addqchr(o_string *o, int ch)
 {
 	int sz = 1;
-	char *found = strchr("*?[\\", ch);
+	char *found = strchr("*?[\\" MAYBE_BRACES, ch);
 	if (found)
 		sz++;
 	o_grow_by(o, sz);
@@ -1878,7 +1884,7 @@ static void o_addqchr(o_string *o, int ch)
 static void o_addQchr(o_string *o, int ch)
 {
 	int sz = 1;
-	if (o->o_escape && strchr("*?[\\", ch)) {
+	if (o->o_escape && strchr("*?[\\" MAYBE_BRACES, ch)) {
 		sz++;
 		o->data[o->length] = '\\';
 		o->length++;
@@ -1898,7 +1904,7 @@ static void o_addQstr(o_string *o, const char *str, int len)
 	while (len) {
 		char ch;
 		int sz;
-		int ordinary_cnt = strcspn(str, "*?[\\");
+		int ordinary_cnt = strcspn(str, "*?[\\" MAYBE_BRACES);
 		if (ordinary_cnt > len) /* paranoia */
 			ordinary_cnt = len;
 		o_addblock(o, str, ordinary_cnt);
@@ -1909,7 +1915,7 @@ static void o_addQstr(o_string *o, const char *str, int len)
 
 		ch = *str++;
 		sz = 1;
-		if (ch) { /* it is necessarily one of "*?[\\" */
+		if (ch) { /* it is necessarily one of "*?[\\" MAYBE_BRACES */
 			sz++;
 			o->data[o->length] = '\\';
 			o->length++;
@@ -2003,16 +2009,29 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)(ptrdiff_t)list[n-1]) + string_start;
 }
 
-#undef HUSH_BRACE_EXP
+#ifdef HUSH_BRACE_EXP
 /* There in a GNU extension, GLOB_BRACE, but it is not usable:
  * first, it processes even {a} (no commas), second,
  * I didn't manage to make it return strings when they don't match
  * existing files. Need to re-implement it.
- *
- * This code needs corresponding quoting on variable expansion side.
- * Currently, "a='{q,w}'; echo $a" erroneously expands braces in $a
  */
-#ifdef HUSH_BRACE_EXP
+
+/* Helper */
+static int glob_needed(const char *s)
+{
+	while (*s) {
+		if (*s == '\\') {
+			if (!s[1])
+				return 0;
+			s += 2;
+			continue;
+		}
+		if (*s == '*' || *s == '[' || *s == '?' || *s == '{')
+			return 1;
+		s++;
+	}
+	return 0;
+}
 /* Return pointer to next closing brace or to comma */
 static const char *next_brace_sub(const char *cp)
 {
@@ -2033,29 +2052,29 @@ static const char *next_brace_sub(const char *cp)
 
 	return *cp != '\0' ? cp : NULL;
 }
-static int glob_brace(const char *pattern, int flags, glob_t *pglob)
+/* Recursive brace globber. Note: may garble pattern[]. */
+static int glob_brace(char *pattern, o_string *o, int n)
 {
+	char *new_pattern_buf;
 	const char *begin;
-	char *alt_start;
-	const char *p;
 	const char *next;
 	const char *rest;
+	const char *p;
 	size_t rest_len;
-	char *onealt;
 
 	debug_printf_glob("glob_brace('%s')\n", pattern);
 
 	begin = pattern;
 	while (1) {
 		if (*begin == '\0')
-			goto do_glob;
+			goto simple_glob;
 		if (*begin == '{') /*}*/ {
 			/* Find the first sub-pattern and at the same time
 			 * find the rest after the closing brace */
 			next = next_brace_sub(begin);
 			if (next == NULL) {
 				/* An illegal expression */
-				goto do_glob;
+				goto simple_glob;
 			}
 			/*{*/ if (*next == '}') {
 				/* "{abc}" with no commas - illegal
@@ -2078,7 +2097,7 @@ static int glob_brace(const char *pattern, int flags, glob_t *pglob)
 		rest = next_brace_sub(rest);
 		if (rest == NULL) {
 			/* An illegal expression */
-			goto do_glob;
+			goto simple_glob;
 		}
 		debug_printf_glob("rest:%s\n", rest);
 	}
@@ -2087,9 +2106,7 @@ static int glob_brace(const char *pattern, int flags, glob_t *pglob)
 	/* We are sure the brace expression is well-formed */
 
 	/* Allocate working buffer large enough for our work */
-	onealt = alloca(strlen(pattern));
-	/* We know the prefix for all sub-patterns */
-	alt_start = mempcpy(onealt, pattern, begin - pattern);
+	new_pattern_buf = xmalloc(strlen(pattern));
 
 	/* We have a brace expression.  BEGIN points to the opening {,
 	 * NEXT points past the terminator of the first element, and REST
@@ -2099,18 +2116,19 @@ static int glob_brace(const char *pattern, int flags, glob_t *pglob)
 
 	p = begin + 1;
 	while (1) {
-		int result;
-
 		/* Construct the new glob expression */
-		memcpy(mempcpy(alt_start, p, next - p), rest, rest_len);
+		memcpy(
+			mempcpy(
+				mempcpy(new_pattern_buf,
+					/* We know the prefix for all sub-patterns */
+					pattern, begin - pattern),
+				p, next - p),
+			rest, rest_len);
 
-		result = glob_brace(onealt, flags, pglob);
-		/* If we got an error, return it */
-		if (result && result != GLOB_NOMATCH)
-			return result;
-
-		flags |= GLOB_APPEND;
-
+		/* Note: glob_brace() may garble new_pattern_buf[].
+		 * That's why we re-copy prefix every time (1st memcpy above).
+		 */
+		n = glob_brace(new_pattern_buf, o, n);
 		/*{*/ if (*next == '}') {
 			/* We saw the last entry */
 			break;
@@ -2118,17 +2136,96 @@ static int glob_brace(const char *pattern, int flags, glob_t *pglob)
 		p = next + 1;
 		next = next_brace_sub(next);
 	}
+	free(new_pattern_buf);
+	return n;
 
-	/* We found some entries */
-	return 0;
+ simple_glob:
+	{
+		int gr;
+		glob_t globdata;
 
- do_glob:
-	return glob(pattern, flags, NULL, pglob);
+		memset(&globdata, 0, sizeof(globdata));
+		gr = glob(pattern, 0, NULL, &globdata);
+		debug_printf_glob("glob('%s'):%d\n", pattern, gr);
+		if (gr != 0) {
+			if (gr == GLOB_NOMATCH) {
+				globfree(&globdata);
+				/* NB: garbles parameter */
+				unbackslash(pattern);
+				o_addstr_with_NUL(o, pattern);
+				debug_printf_glob("glob pattern '%s' is literal\n", pattern);
+				return o_save_ptr_helper(o, n);
+			}
+			if (gr == GLOB_NOSPACE)
+				bb_error_msg_and_die(bb_msg_memory_exhausted);
+			/* GLOB_ABORTED? Only happens with GLOB_ERR flag,
+			 * but we didn't specify it. Paranoia again. */
+			bb_error_msg_and_die("glob error %d on '%s'", gr, pattern);
+		}
+		if (globdata.gl_pathv && globdata.gl_pathv[0]) {
+			char **argv = globdata.gl_pathv;
+			while (1) {
+				o_addstr_with_NUL(o, *argv);
+				n = o_save_ptr_helper(o, n);
+				argv++;
+				if (!*argv)
+					break;
+			}
+		}
+		globfree(&globdata);
+	}
+	return n;
 }
-#endif
+/* Performs globbing on last list[],
+ * saving each result as a new list[].
+ */
+static int o_glob(o_string *o, int n)
+{
+	char *pattern, *copy;
 
-/* o_glob performs globbing on last list[], saving each result
- * as a new list[]. */
+	debug_printf_glob("start o_glob: n:%d o->data:%p\n", n, o->data);
+	if (!o->data)
+		return o_save_ptr_helper(o, n);
+	pattern = o->data + o_get_last_ptr(o, n);
+	debug_printf_glob("glob pattern '%s'\n", pattern);
+	if (!glob_needed(pattern)) {
+		/* unbackslash last string in o in place, fix length */
+		o->length = unbackslash(pattern) - o->data;
+		debug_printf_glob("glob pattern '%s' is literal\n", pattern);
+		return o_save_ptr_helper(o, n);
+	}
+
+	copy = xstrdup(pattern);
+	/* "forget" pattern in o */
+	o->length = pattern - o->data;
+	n = glob_brace(copy, o, n);
+	free(copy);
+	if (DEBUG_GLOB)
+		debug_print_list("o_glob returning", o, n);
+	return n;
+}
+
+#else
+
+/* Helper */
+static int glob_needed(const char *s)
+{
+	while (*s) {
+		if (*s == '\\') {
+			if (!s[1])
+				return 0;
+			s += 2;
+			continue;
+		}
+		if (*s == '*' || *s == '[' || *s == '?')
+			return 1;
+		s++;
+	}
+	return 0;
+}
+/* Performs globbing on last list[],
+ * saving each result as a new list[].
+ */
 static int o_glob(o_string *o, int n)
 {
 	glob_t globdata;
@@ -2142,33 +2239,35 @@ static int o_glob(o_string *o, int n)
 	debug_printf_glob("glob pattern '%s'\n", pattern);
 	if (!glob_needed(pattern)) {
  literal:
+		/* unbackslash last string in o in place, fix length */
 		o->length = unbackslash(pattern) - o->data;
 		debug_printf_glob("glob pattern '%s' is literal\n", pattern);
 		return o_save_ptr_helper(o, n);
 	}
 
 	memset(&globdata, 0, sizeof(globdata));
-#ifdef HUSH_BRACE_EXP
-	gr = glob_brace(pattern, GLOB_NOCHECK, &globdata);
-	debug_printf_glob("glob_brace('%s'):%d\n", pattern, gr);
-#else
+	/* Can't use GLOB_NOCHECK: it does not unescape the string.
+	 * If we glob "*.\*" and don't find anything, we need
+	 * to fall back to using literal "*.*", but GLOB_NOCHECK
+	 * will return "*.\*"!
+	 */
 	gr = glob(pattern, 0, NULL, &globdata);
 	debug_printf_glob("glob('%s'):%d\n", pattern, gr);
-#endif
-	if (gr == GLOB_NOSPACE)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
-	if (gr == GLOB_NOMATCH) {
-		globfree(&globdata);
-		goto literal;
-	}
 	if (gr != 0) {
+		if (gr == GLOB_NOMATCH) {
+			globfree(&globdata);
+			goto literal;
+		}
+		if (gr == GLOB_NOSPACE)
+			bb_error_msg_and_die(bb_msg_memory_exhausted);
 		/* GLOB_ABORTED? Only happens with GLOB_ERR flag,
 		 * but we didn't specify it. Paranoia again. */
-		bb_error_msg("glob(3) error %d on '%s'", gr, pattern);
+		bb_error_msg_and_die("glob error %d on '%s'", gr, pattern);
 	}
 	if (globdata.gl_pathv && globdata.gl_pathv[0]) {
 		char **argv = globdata.gl_pathv;
-		o->length = pattern - o->data; /* "forget" pattern */
+		/* "forget" pattern in o */
+		o->length = pattern - o->data;
 		while (1) {
 			o_addstr_with_NUL(o, *argv);
 			n = o_save_ptr_helper(o, n);
@@ -2182,6 +2281,8 @@ static int o_glob(o_string *o, int n)
 		debug_print_list("o_glob returning", o, n);
 	return n;
 }
+
+#endif
 
 /* If o->o_glob == 1, glob the string so far remembered.
  * Otherwise, just finish current list[] and start new */
