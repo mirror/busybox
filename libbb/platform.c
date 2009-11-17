@@ -30,7 +30,8 @@ int FAST_FUNC vasprintf(char **string_ptr, const char *format, va_list p)
 
 	if (r < 128) {
 		va_end(p2);
-		return xstrdup(buf);
+		*string_ptr = xstrdup(buf);
+		return r;
 	}
 
 	*string_ptr = xmalloc(r+1);
