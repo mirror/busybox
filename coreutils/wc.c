@@ -68,19 +68,14 @@ enum {
 int wc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int wc_main(int argc UNUSED_PARAM, char **argv)
 {
-	FILE *fp;
-	const char *s, *arg;
+	const char *arg;
 	const char *start_fmt = " %9"COUNT_FMT + 1;
 	const char *fname_fmt = " %s\n";
 	COUNT_T *pcounts;
 	COUNT_T counts[4];
 	COUNT_T totals[4];
-	unsigned linepos;
-	unsigned u;
-	int num_files = 0;
-	int c;
+	int num_files;
 	smallint status = EXIT_SUCCESS;
-	smallint in_word;
 	unsigned print_type;
 
 	print_type = getopt32(argv, "lwcL");
@@ -101,7 +96,14 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 
 	pcounts = counts;
 
+	num_files = 0;
 	while ((arg = *argv++) != 0) {
+		FILE *fp;
+		const char *s;
+		unsigned u;
+		unsigned linepos;
+		smallint in_word;
+
 		++num_files;
 		fp = fopen_or_warn_stdin(arg);
 		if (!fp) {
@@ -114,10 +116,19 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 		in_word = 0;
 
 		do {
+			int c;
 			/* Our -w doesn't match GNU wc exactly... oh well */
 
 			++counts[WC_CHARS];
 			c = getc(fp);
+			if (c == EOF) {
+				if (ferror(fp)) {
+					bb_simple_perror_msg(arg);
+					status = EXIT_FAILURE;
+				}
+				--counts[WC_CHARS];
+				goto DO_EOF;		/* Treat an EOF as '\r'. */
+			}
 			if (isprint(c)) {
 				++linepos;
 				if (!isspace(c)) {
@@ -134,7 +145,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 				if (c == '\t') {
 					linepos = (linepos | 7) + 1;
 				} else {			/* '\n', '\r', '\f', or '\v' */
-				DO_EOF:
+ DO_EOF:
 					if (linepos > counts[WC_LENGTH]) {
 						counts[WC_LENGTH] = linepos;
 					}
@@ -145,13 +156,6 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 						linepos = 0;
 					}
 				}
-			} else if (c == EOF) {
-				if (ferror(fp)) {
-					bb_simple_perror_msg(arg);
-					status = EXIT_FAILURE;
-				}
-				--counts[WC_CHARS];
-				goto DO_EOF;		/* Treat an EOF as '\r'. */
 			} else {
 				continue;
 			}
@@ -170,7 +174,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 
 		fclose_if_not_stdin(fp);
 
-	OUTPUT:
+ OUTPUT:
 		/* coreutils wc tries hard to print pretty columns
 		 * (saves results for all files, find max col len etc...)
 		 * we won't try that hard, it will bloat us too much */
