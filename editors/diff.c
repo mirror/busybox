@@ -749,7 +749,7 @@ static int asciifile(FILE *f)
 	rewind(f);
 	cnt = fread(g_read_buf, 1, COMMON_BUFSIZE, f);
 	for (i = 0; i < cnt; i++) {
-		if (!isprint(g_read_buf[i])
+		if (!isprint_asciionly(g_read_buf[i])
 		 && !isspace(g_read_buf[i])
 		) {
 			return 0;

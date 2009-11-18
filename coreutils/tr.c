@@ -153,7 +153,7 @@ static unsigned expand(const char *arg, char **buffer_p)
 				}
 				if (j == CLASS_punct || j == CLASS_cntrl) {
 					for (i = '\0'; i < ASCII; i++) {
-						if ((j == CLASS_punct && isprint(i) && !isalnum(i) && !isspace(i))
+						if ((j == CLASS_punct && isprint_asciionly(i) && !isalnum(i) && !isspace(i))
 						 || (j == CLASS_cntrl && iscntrl(i))
 						) {
 							buffer[pos++] = i;

@@ -1606,10 +1606,11 @@ extern const char bb_default_login_shell[];
 
 /* We save ~500 bytes on isdigit alone.
  * BTW, x86 likes (unsigned char) cast more than (unsigned). */
-#define isdigit(a) ((unsigned char)((a) - '0') <= 9)
+
+/* These work the same for ASCII and Unicode,
+ * assuming no one asks "is this a *Unicode* letter?" using isalpha(letter) */
 #define isascii(a) ((unsigned char)(a) <= 0x7f)
-#define isgraph(a) ((unsigned char)(a) > ' ')
-#define isprint(a) ((unsigned char)(a) >= ' ')
+#define isdigit(a) ((unsigned char)((a) - '0') <= 9)
 #define isupper(a) ((unsigned char)((a) - 'A') <= ('Z' - 'A'))
 #define islower(a) ((unsigned char)((a) - 'a') <= ('z' - 'a'))
 #define isalpha(a) ((unsigned char)(((a)|0x20) - 'a') <= ('z' - 'a'))
@@ -1619,9 +1620,9 @@ extern const char bb_default_login_shell[];
  * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
  */
 #define isspace(a) ({ unsigned char bb__isspace = (a) - 9; bb__isspace == (' ' - 9) || bb__isspace <= (13 - 9); })
-
-// Bigger code:
-//#define isalnum(a) ({ unsigned char bb__isalnum = (a) - '0'; bb__isalnum <= 9 || ((bb__isalnum - ('A' - '0')) & 0xdf) <= 25; })
+// Unsafe wrt NUL: #define ispunct(a) (strchr("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a)) != NULL)
+#define ispunct(a) (strchrnul("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a))[0])
+// Bigger code: #define isalnum(a) ({ unsigned char bb__isalnum = (a) - '0'; bb__isalnum <= 9 || ((bb__isalnum - ('A' - '0')) & 0xdf) <= 25; })
 #define isalnum(a) bb_ascii_isalnum(a)
 static ALWAYS_INLINE int bb_ascii_isalnum(unsigned char a)
 {
@@ -1640,11 +1641,6 @@ static ALWAYS_INLINE int bb_ascii_isxdigit(unsigned char a)
 	b = (a|0x20) - 'a';
 	return b <= 'f' - 'a';
 }
-
-// Unsafe wrt NUL!
-//#define ispunct(a) (strchr("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a)) != NULL)
-#define ispunct(a) (strchrnul("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", (a))[0])
-
 #define toupper(a) bb_ascii_toupper(a)
 static ALWAYS_INLINE unsigned char bb_ascii_toupper(unsigned char a)
 {
@@ -1661,6 +1657,14 @@ static ALWAYS_INLINE unsigned char bb_ascii_tolower(unsigned char a)
 		a += 'a' - 'A';
 	return a;
 }
+
+/* In ASCII and Unicode, these are likely to be very different.
+ * Let's prevent ambiguous usage from the start */
+#define isgraph(a) isgraph_is_ambiguous_dont_use(a)
+#define isprint(a) isprint_is_ambiguous_dont_use(a)
+/* NB: must not treat EOF as isgraph or isprint */
+#define isgraph_asciionly(a) ((unsigned)((a) - 0x21) <= 0x7e - 0x21)
+#define isprint_asciionly(a) ((unsigned)((a) - 0x20) <= 0x7e - 0x20)
 
 
 POP_SAVED_FUNCTION_VISIBILITY

@@ -1475,9 +1475,8 @@ static void init_ring(void)
 	int i;
 
 	end_ring = ring;
-	for (i = 0; i <= 128; ++i)
-		if (isprint(i))
-			*end_ring++ = i;
+	for (i = ' '; i < 127; i++)
+		*end_ring++ = i;
 }
 /* Character generator. MMU arches only. */
 /* ARGSUSED */

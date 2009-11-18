@@ -492,13 +492,13 @@ static void conv_c(PR *pr, unsigned char *p)
 		str += 4;
 	} while (*str);
 
-	if (isprint(*p)) {
+	if (isprint_asciionly(*p)) {
 		*pr->cchar = 'c';
 		printf(pr->fmt, *p);
 	} else {
 		sprintf(buf, "%03o", (int) *p);
 		str = buf;
-	  strpr:
+ strpr:
 		*pr->cchar = 's';
 		printf(pr->fmt, str);
 	}
@@ -519,7 +519,7 @@ static void conv_u(PR *pr, unsigned char *p)
 	} else if (*p == 0x7f) {
 		*pr->cchar = 's';
 		printf(pr->fmt, "del");
-	} else if (isprint(*p)) {
+	} else if (*p < 0x7f) { /* isprint() */
 		*pr->cchar = 'c';
 		printf(pr->fmt, *p);
 	} else {
@@ -609,7 +609,7 @@ static void display(priv_dumper_t* dumper)
 							break;
 						}
 						case F_P:
-							printf(pr->fmt, isprint(*bp) ? *bp : '.');
+							printf(pr->fmt, isprint_asciionly(*bp) ? *bp : '.');
 							break;
 						case F_STR:
 							printf(pr->fmt, (char *) bp);

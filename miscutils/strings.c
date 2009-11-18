@@ -49,7 +49,7 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 		count = 0;
 		do {
 			c = fgetc(file);
-			if (isprint(c) || c == '\t') {
+			if (isprint_asciionly(c) || c == '\t') {
 				if (count > n) {
 					bb_putchar(c);
 				} else {

@@ -128,7 +128,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 	/* Handle -i */
 	if (flags & FLAG_i) {
 		for (start = end = 0; str[end]; end++)
-			if (isprint(str[end]))
+			if (isprint_asciionly(str[end]))
 				str[start++] = str[end];
 		str[start] = '\0';
 	}

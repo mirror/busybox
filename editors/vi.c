@@ -30,9 +30,9 @@
 #if ENABLE_LOCALE_SUPPORT
 
 #if ENABLE_FEATURE_VI_8BIT
-#define Isprint(c) isprint(c)
+# define Isprint(c) isprint(c)
 #else
-#define Isprint(c) (isprint(c) && (unsigned char)(c) < 0x7f)
+# define Isprint(c) (isprint(c) && (unsigned char)(c) < 0x7f)
 #endif
 
 #else
