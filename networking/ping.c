@@ -30,13 +30,13 @@
 #include "libbb.h"
 
 #if ENABLE_PING6
-#include <netinet/icmp6.h>
+# include <netinet/icmp6.h>
 /* I see RENUMBERED constants in bits/in.h - !!?
  * What a fuck is going on with libc? Is it a glibc joke? */
-#ifdef IPV6_2292HOPLIMIT
-#undef IPV6_HOPLIMIT
-#define IPV6_HOPLIMIT IPV6_2292HOPLIMIT
-#endif
+# ifdef IPV6_2292HOPLIMIT
+#  undef IPV6_HOPLIMIT
+#  define IPV6_HOPLIMIT IPV6_2292HOPLIMIT
+# endif
 #endif
 
 enum {
@@ -173,13 +173,14 @@ static void ping6(len_and_sockaddr *lsa)
 }
 #endif
 
-int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc UNUSED_PARAM, char **argv)
+#if !ENABLE_PING6
+# define common_ping_main(af, argv) common_ping_main(argv)
+#endif
+static int common_ping_main(sa_family_t af, char **argv)
 {
 	len_and_sockaddr *lsa;
-#if ENABLE_PING6
-	sa_family_t af = AF_UNSPEC;
 
+#if ENABLE_PING6
 	while ((++argv)[0] && argv[0][0] == '-') {
 		if (argv[0][1] == '4') {
 			af = AF_INET;
@@ -716,12 +717,10 @@ static void ping(len_and_sockaddr *lsa)
 		ping4(lsa);
 }
 
-int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ping_main(int argc UNUSED_PARAM, char **argv)
+static int common_ping_main(int opt, char **argv)
 {
 	len_and_sockaddr *lsa;
 	char *str_s;
-	int opt;
 
 	INIT_G();
 
@@ -765,13 +764,25 @@ int ping_main(int argc UNUSED_PARAM, char **argv)
 #endif /* FEATURE_FANCY_PING */
 
 
+int ping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int ping_main(int argc UNUSED_PARAM, char **argv)
+{
+#if !ENABLE_FEATURE_FANCY_PING
+	return common_ping_main(AF_UNSPEC, argv);
+#else
+	return common_ping_main(0, argv);
+#endif
+}
+
 #if ENABLE_PING6
 int ping6_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ping6_main(int argc UNUSED_PARAM, char **argv)
 {
-	argv[0] = (char*)"-6";
-	return ping_main(0 /* argc+1 - but it's unused anyway */,
-			argv - 1);
+# if !ENABLE_FEATURE_FANCY_PING
+	return common_ping_main(AF_INET6, argv);
+# else
+	return common_ping_main(OPT_IPV6, argv);
+# endif
 }
 #endif
 
