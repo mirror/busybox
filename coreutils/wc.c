@@ -129,7 +129,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 				--counts[WC_CHARS];
 				goto DO_EOF;		/* Treat an EOF as '\r'. */
 			}
-			if (isprint(c)) {
+			if (isprint_asciionly(c)) {
 				++linepos;
 				if (!isspace(c)) {
 					in_word = 1;

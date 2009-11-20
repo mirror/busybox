@@ -30,9 +30,10 @@
 #if ENABLE_LOCALE_SUPPORT
 
 #if ENABLE_FEATURE_VI_8BIT
-# define Isprint(c) isprint(c)
+//FIXME: this does not work properly for Unicode anyway
+# define Isprint(c) (isprint)(c)
 #else
-# define Isprint(c) (isprint(c) && (unsigned char)(c) < 0x7f)
+# define Isprint(c) isprint_asciionly(c)
 #endif
 
 #else
@@ -891,7 +892,7 @@ static void colon(char *buf)
 			li, ch);
 	} else if (strncmp(cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
-			not_implemented("No address allowed on this command");
+			status_line_bold("No address allowed on this command");
 			goto vc1;
 		}
 		if (args[0]) {
@@ -2588,36 +2589,41 @@ static void status_line(const char *format, ...)
 // copy s to buf, convert unprintable
 static void print_literal(char *buf, const char *s)
 {
+	char *d;
 	unsigned char c;
-	char b[2];
 
-	b[1] = '\0';
 	buf[0] = '\0';
 	if (!s[0])
 		s = "(NULL)";
+
+	d = buf;
 	for (; *s; s++) {
 		int c_is_no_print;
 
 		c = *s;
 		c_is_no_print = (c & 0x80) && !Isprint(c);
 		if (c_is_no_print) {
-			strcat(buf, SOn);
+			strcpy(d, SOn);
+			d += sizeof(SOn)-1;
 			c = '.';
 		}
-		if (c < ' ' || c == 127) {
-			strcat(buf, "^");
-			if (c == 127)
+		if (c < ' ' || c == 0x7f) {
+			*d++ = '^';
+			c |= '@'; /* 0x40 */
+			if (c == 0x7f)
 				c = '?';
-			else
-				c += '@';
 		}
-		b[0] = c;
-		strcat(buf, b);
-		if (c_is_no_print)
-			strcat(buf, SOs);
-		if (*s == '\n')
-			strcat(buf, "$");
-		if (strlen(buf) > MAX_INPUT_LEN - 10) // paranoia
+		*d++ = c;
+		*d = '\0';
+		if (c_is_no_print) {
+			strcpy(d, SOs);
+			d += sizeof(SOs)-1;
+		}
+		if (*s == '\n') {
+			*d++ = '$';
+			*d = '\0';
+		}
+		if (d - buf > MAX_INPUT_LEN - 10) // paranoia
 			break;
 	}
 }
@@ -2982,11 +2988,6 @@ static void do_cmd(int c)
 	default:			// unrecognized command
 		buf[0] = c;
 		buf[1] = '\0';
-		if (c < ' ') {
-			buf[0] = '^';
-			buf[1] = c + '@';
-			buf[2] = '\0';
-		}
 		not_implemented(buf);
 		end_cmd_q();	// stop adding to q
 	case 0x00:			// nul- ignore

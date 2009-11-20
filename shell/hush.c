@@ -5572,6 +5572,10 @@ static int process_command_subs(o_string *dest, const char *s)
 }
 #endif /* ENABLE_HUSH_TICK */
 
+#if !ENABLE_HUSH_FUNCTIONS
+#define parse_group(dest, ctx, input, ch) \
+	parse_group(ctx, input, ch)
+#endif
 static int parse_group(o_string *dest, struct parse_context *ctx,
 	struct in_str *input, int ch)
 {
