@@ -272,6 +272,13 @@ config FBSPLASH
 	    "NN" (ASCII decimal number) - percentage to show on progress bar
 	    "exit" - well you guessed it
 
+config FLASHCP
+	bool "flashcp"
+	default n
+	help
+	  The flashcp binary, inspired by mtd-utils as of git head 5eceb74f7.
+	  This utility is used to copy images into a MTD device.
+
 config FLASH_LOCK
 	bool "flash_lock"
 	default n

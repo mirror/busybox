@@ -17,6 +17,7 @@ lib-$(CONFIG_DEVFSD)      += devfsd.o
 lib-$(CONFIG_DEVMEM)      += devmem.o
 lib-$(CONFIG_EJECT)       += eject.o
 lib-$(CONFIG_FBSPLASH)    += fbsplash.o
+lib-$(CONFIG_FLASHCP)     += flashcp.o
 lib-$(CONFIG_FLASH_ERASEALL) += flash_eraseall.o
 lib-$(CONFIG_FLASH_LOCK)     += flash_lock_unlock.o
 lib-$(CONFIG_FLASH_UNLOCK)   += flash_lock_unlock.o

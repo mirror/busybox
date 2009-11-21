@@ -1286,8 +1286,15 @@
 #define flash_eraseall_full_usage "\n\n" \
        "Erase an MTD device\n" \
      "\nOptions:" \
-     "\n	-j	format the device for jffs2" \
-     "\n	-q	don't display progress messages"
+     "\n	-j	Format the device for jffs2" \
+     "\n	-q	Don't display progress messages" \
+
+#define flashcp_trivial_usage \
+       "-v FILE MTD_DEVICE"
+#define flashcp_full_usage "\n\n" \
+       "Copy an image to MTD device\n" \
+     "\nOptions:" \
+     "\n	-v	Verbose" \
 
 #define fold_trivial_usage \
        "[-bs] [-w WIDTH] [FILE]"
