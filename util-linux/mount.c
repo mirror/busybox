@@ -19,6 +19,10 @@
 #include <mntent.h>
 #include <syslog.h>
 #include <sys/mount.h>
+// Grab more as needed from util-linux's mount/mount_constants.h
+#ifndef MS_DIRSYNC
+# define MS_DIRSYNC     (1 << 7) // Directory modifications are synchronous
+#endif
 #ifndef MS_UNION
 # define MS_UNION       (1 << 8)
 #endif
@@ -34,7 +38,7 @@
 #ifndef MS_SILENT
 # define MS_SILENT      (1 << 15)
 #endif
-/* The shared subtree stuff, which went in around 2.6.15. */
+// The shared subtree stuff, which went in around 2.6.15
 #ifndef MS_UNBINDABLE
 # define MS_UNBINDABLE  (1 << 17)
 #endif
@@ -50,8 +54,8 @@
 #ifndef MS_RELATIME
 # define MS_RELATIME    (1 << 21)
 #endif
-#include "libbb.h"
 
+#include "libbb.h"
 #if ENABLE_FEATURE_MOUNT_LABEL
 # include "volume_id.h"
 #else
@@ -65,14 +69,6 @@
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
-
-#ifndef MS_SILENT
-#define MS_SILENT	(1 << 15)
-#endif
-// Grab more as needed from util-linux's mount/mount_constants.h
-#ifndef MS_DIRSYNC
-#define MS_DIRSYNC      128     // Directory modifications are synchronous
-#endif
 
 
 #if defined(__dietlibc__)
