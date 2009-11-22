@@ -27,6 +27,7 @@ lib-$(CONFIG_NAMEIF)       += nameif.o
 lib-$(CONFIG_NC)           += nc.o
 lib-$(CONFIG_NETSTAT)      += netstat.o
 lib-$(CONFIG_NSLOOKUP)     += nslookup.o
+lib-$(CONFIG_NTPD)         += ntpd.o
 lib-$(CONFIG_PING)         += ping.o
 lib-$(CONFIG_PING6)        += ping.o
 lib-$(CONFIG_PSCAN)        += pscan.o

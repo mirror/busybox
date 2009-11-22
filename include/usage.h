@@ -3210,6 +3210,17 @@
        "Name:       debian\n" \
        "Address:    127.0.0.1\n"
 
+#define ntpd_trivial_usage \
+	"[-dngl] [-p PEER]..."
+#define ntpd_full_usage "\n\n" \
+       "NTP client/server\n" \
+     "\nOptions:" \
+     "\n	-d	Verbose" \
+     "\n	-n	Do not daemonize" \
+     "\n	-g	Set system time even if offset is > 1000 sec" \
+     "\n	-l	Run as server on port 123" \
+     "\n	-p PEER	Obtain time from PEER (may be repeated)" \
+
 #define od_trivial_usage \
        "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
 #define od_full_usage "\n\n" \

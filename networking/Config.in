@@ -661,6 +661,20 @@ config NSLOOKUP
 	help
 	  nslookup is a tool to query Internet name servers.
 
+config NTPD
+	bool "ntpd"
+	default n
+	help
+	  The NTP client/server daemon.
+
+config FEATURE_NTPD_SERVER
+        bool "Make ntpd usable as a NTP server"
+        default y
+        depends on NTPD
+        help
+	  Make ntpd usable as a NTP server. If you disable this option 
+	  ntpd will be usable only as a NTP client.
+
 config PING
 	bool "ping"
 	default n
