@@ -3346,7 +3346,7 @@
 #define ping_full_usage "\n\n" \
        "Send ICMP ECHO_REQUEST packets to network hosts\n" \
      "\nOptions:" \
-     "\n	-4, -6		Force IPv4 or IPv6 hostname resolution" \
+     "\n	-4, -6		Force IP or IPv6 name resolution" \
      "\n	-c CNT		Send only CNT pings" \
      "\n	-s SIZE		Send SIZE data bytes in packets (default:56)" \
      "\n	-I IFACE/IP	Use interface or IP address as source" \
@@ -4648,49 +4648,49 @@
        "hello world\n"
 
 #define traceroute_trivial_usage \
-       "[-46FIldnrv] [-f 1st_ttl] [-m max_ttl] [-p port#] [-q nqueries]\n" \
-       "	[-s src_addr] [-t tos] [-w wait] [-g gateway] [-i iface]\n" \
-       "	[-z pausemsecs] HOST [data size]"
+       "[-"IF_TRACEROUTE6("46")"FIldnrv] [-f 1ST_TTL] [-m MAXTTL] [-p PORT] [-q PROBES]\n" \
+       "	[-s SRC_IP] [-t TOS] [-w WAIT_SEC] [-g GATEWAY] [-i IFACE]\n" \
+       "	[-z PAUSE_MSEC] HOST [BYTES]"
 #define traceroute_full_usage "\n\n" \
        "Trace the route to HOST\n" \
      "\nOptions:" \
-     "\n	-4, -6	Force IPv4 or IPv6 hostname resolution" \
+	IF_TRACEROUTE6( \
+     "\n	-4, -6	Force IP or IPv6 name resolution" \
+	) \
      "\n	-F	Set the don't fragment bit" \
      "\n	-I	Use ICMP ECHO instead of UDP datagrams" \
      "\n	-l	Display the ttl value of the returned packet" \
      "\n	-d	Set SO_DEBUG options to socket" \
      "\n	-n	Print numeric addresses" \
-     "\n	-r	Bypass the normal routing tables and send directly to a host" \
+     "\n	-r	Bypass routing tables, send directly to HOST" \
      "\n	-v	Verbose" \
-     "\n	-m max_ttl	Max time-to-live (max number of hops)" \
-     "\n	-p port#	Base UDP port number used in probes" \
-     "\n			(default 33434)" \
-     "\n	-q nqueries	Number of probes per 'ttl' (default 3)" \
-     "\n	-s src_addr	IP address to use as the source address" \
-     "\n	-t tos		Type-of-service in probe packets (default 0)" \
-     "\n	-w wait		Time in seconds to wait for a response" \
-     "\n			(default 3)" \
-     "\n	-g		Loose source route gateway (8 max)" \
+     "\n	-m	Max time-to-live (max number of hops)" \
+     "\n	-p	Base UDP port number used in probes" \
+     "\n		(default 33434)" \
+     "\n	-q	Number of probes per 'ttl' (default 3)" \
+     "\n	-s	IP address to use as the source address" \
+     "\n	-t	Type-of-service in probe packets (default 0)" \
+     "\n	-w	Time in seconds to wait for a response (default 3)" \
+     "\n	-g	Loose source route gateway (8 max)" \
 
 #define traceroute6_trivial_usage \
-       "[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n" \
-       "	[-s src_addr] [-t tos] [-w wait] [-i iface]\n" \
-       "	HOST [data size]"
+       "[-dnrv] [-m MAXTTL] [-p PORT] [-q PROBES]\n" \
+       "	[-s SRC_IP] [-t TOS] [-w WAIT_SEC] [-i IFACE]\n" \
+       "	HOST [BYTES]"
 #define traceroute6_full_usage "\n\n" \
        "Trace the route to HOST\n" \
      "\nOptions:" \
      "\n	-d	Set SO_DEBUG options to socket" \
      "\n	-n	Print numeric addresses" \
-     "\n	-r	Bypass the normal routing tables and send directly to a host" \
+     "\n	-r	Bypass routing tables, send directly to HOST" \
      "\n	-v	Verbose" \
-     "\n	-m max_ttl	Max time-to-live (max number of hops)" \
-     "\n	-p port#	Base UDP port number used in probes" \
-     "\n			(default is 33434)" \
-     "\n	-q nqueries	Number of probes per 'ttl' (default 3)" \
-     "\n	-s src_addr	IP address to use as the source address" \
-     "\n	-t tos		Type-of-service in probe packets (default 0)" \
-     "\n	-w wait		Time in seconds to wait for a response" \
-     "\n			(default 3)" \
+     "\n	-m	Max time-to-live (max number of hops)" \
+     "\n	-p	Base UDP port number used in probes" \
+     "\n		(default is 33434)" \
+     "\n	-q	Number of probes per 'ttl' (default 3)" \
+     "\n	-s	IP address to use as the source address" \
+     "\n	-t	Type-of-service in probe packets (default 0)" \
+     "\n	-w	Time in seconds to wait for a response (default 3)" \
 
 #define true_trivial_usage \
        ""
