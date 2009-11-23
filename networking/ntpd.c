@@ -152,6 +152,16 @@ typedef struct {
 	uint8_t			 trustlevel;
 } ntp_peer_t;
 
+enum {
+	OPT_n = (1 << 0),
+	OPT_g = (1 << 1),
+	OPT_q = (1 << 2),
+	/* Insert new options above this line. */
+	/* Non-compat options: */
+	OPT_p = (1 << 3),
+	OPT_l = (1 << 4),
+};
+
 
 struct globals {
 	unsigned	verbose;
@@ -164,7 +174,6 @@ struct globals {
 	uint8_t		settime;
 	uint8_t		firstadj;
 	smallint	peer_cnt;
-
 };
 #define G (*ptr_to_globals)
 
@@ -468,14 +477,14 @@ settime(double offset)
 	char		buf[80];
 	time_t		tval;
 
-#if 0
 	if (!G.settime)
-		return;
-#endif
+		goto bail;
+
+	G.settime = 0;
 
 	/* if the offset is small, don't call settimeofday */
 	if (offset < SETTIME_MIN_OFFSET && offset > -SETTIME_MIN_OFFSET)
-		return;
+		goto bail;
 
 	gettimeofday(&curtime, NULL); /* never fails */
 
@@ -486,10 +495,8 @@ settime(double offset)
 
 	if (settimeofday(&curtime, NULL) == -1) {
 		bb_error_msg("settimeofday");
-		return;
+		goto bail;
 	}
-
-	G.settime = 0;
 
 	tval = curtime.tv_sec;
 	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
@@ -504,6 +511,10 @@ settime(double offset)
 		if (p->deadline)
 			p->deadline -= offset;
 	}
+
+ bail:
+	if (option_mask32 & OPT_q)
+		exit(0);
 }
 
 static void
@@ -669,8 +680,7 @@ client_dispatch(ntp_peer_t *p)
 			offset->offset, offset->delay, (int) interval);
 
 	client_update(p);
-	if (!G.settime)
-		settime(offset->offset);
+	settime(offset->offset);
 
 	if (++p->shift >= OFFSET_ARRAY_SIZE)
 		p->shift = 0;
@@ -817,13 +827,6 @@ server_dispatch(int fd)
  *      Note: The kernel time discipline is disabled with this option.
  */
 
-enum {
-	OPT_n = (1 << 0),
-	OPT_g = (1 << 1),
-	OPT_p = (1 << 2),
-	OPT_l = (1 << 3),
-};
-
 /* By doing init in a separate function we decrease stack usage
  * in main loop.
  */
@@ -840,7 +843,7 @@ static NOINLINE void ntp_init(char **argv)
 	peers = NULL;
 	opt_complementary = "dd:p::"; /* d: counter, p: list */
 	opts = getopt32(argv,
-			"ng" /* compat */
+			"ngq" /* compat */
 			"p:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			"d" /* compat */
 			"46aAbLNx", /* compat, ignored */
@@ -891,7 +894,6 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ntpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct globals g;
-	unsigned new_cnt;
 	struct pollfd *pfd;
 	ntp_peer_t **idx2peer;
 
@@ -900,13 +902,12 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 	ntp_init(argv);
 
-	new_cnt = g.peer_cnt;
-	idx2peer = xzalloc(sizeof(void *) * new_cnt);
-#if ENABLE_FEATURE_NTPD_SERVER
-	if (g.listen_fd != -1)
-		new_cnt++;
-#endif
-	pfd = xzalloc(sizeof(pfd[0]) * new_cnt);
+	{
+		unsigned new_cnt = g.peer_cnt;
+		idx2peer = xzalloc(sizeof(void *) * new_cnt);
+		/* if ENABLE_FEATURE_NTPD_SERVER, + 1 for listen_fd: */
+		pfd = xzalloc(sizeof(pfd[0]) * (new_cnt + ENABLE_FEATURE_NTPD_SERVER));
+	}
 
 	while (!bb_got_signal) {
 		llist_t *item;
@@ -964,11 +965,8 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
-		if (g.settime
-		 && ((trial_cnt > 0 && sent_cnt == 0) || g.peer_cnt == 0)
-		) {
+		if ((trial_cnt > 0 && sent_cnt == 0) || g.peer_cnt == 0)
 			settime(0);	/* no good peers, don't wait */
-		}
 
 		timeout = nextaction - time(NULL);
 		if (timeout < 0)

@@ -3211,13 +3211,14 @@
        "Address:    127.0.0.1\n"
 
 #define ntpd_trivial_usage \
-	"[-dngl] [-p PEER]..."
+	"[-dngql] [-p PEER]..."
 #define ntpd_full_usage "\n\n" \
        "NTP client/server\n" \
      "\nOptions:" \
      "\n	-d	Verbose" \
      "\n	-n	Do not daemonize" \
      "\n	-g	Set system time even if offset is > 1000 sec" \
+     "\n	-q	Quit after clock is set" \
      "\n	-l	Run as server on port 123" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 
