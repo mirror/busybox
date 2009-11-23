@@ -4648,17 +4648,18 @@
        "hello world\n"
 
 #define traceroute_trivial_usage \
-       "[-FIldnrv] [-f 1st_ttl] [-m max_ttl] [-p port#] [-q nqueries]\n" \
+       "[-46FIldnrv] [-f 1st_ttl] [-m max_ttl] [-p port#] [-q nqueries]\n" \
        "	[-s src_addr] [-t tos] [-w wait] [-g gateway] [-i iface]\n" \
        "	[-z pausemsecs] HOST [data size]"
 #define traceroute_full_usage "\n\n" \
        "Trace the route to HOST\n" \
      "\nOptions:" \
+     "\n	-4, -6	Force IPv4 or IPv6 hostname resolution" \
      "\n	-F	Set the don't fragment bit" \
      "\n	-I	Use ICMP ECHO instead of UDP datagrams" \
      "\n	-l	Display the ttl value of the returned packet" \
      "\n	-d	Set SO_DEBUG options to socket" \
-     "\n	-n	Print hop addresses numerically rather than symbolically" \
+     "\n	-n	Print numeric addresses" \
      "\n	-r	Bypass the normal routing tables and send directly to a host" \
      "\n	-v	Verbose" \
      "\n	-m max_ttl	Max time-to-live (max number of hops)" \
@@ -4668,8 +4669,28 @@
      "\n	-s src_addr	IP address to use as the source address" \
      "\n	-t tos		Type-of-service in probe packets (default 0)" \
      "\n	-w wait		Time in seconds to wait for a response" \
-     "\n			(default 3 sec)" \
+     "\n			(default 3)" \
      "\n	-g		Loose source route gateway (8 max)" \
+
+#define traceroute6_trivial_usage \
+       "[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n" \
+       "	[-s src_addr] [-t tos] [-w wait] [-i iface]\n" \
+       "	HOST [data size]"
+#define traceroute6_full_usage "\n\n" \
+       "Trace the route to HOST\n" \
+     "\nOptions:" \
+     "\n	-d	Set SO_DEBUG options to socket" \
+     "\n	-n	Print numeric addresses" \
+     "\n	-r	Bypass the normal routing tables and send directly to a host" \
+     "\n	-v	Verbose" \
+     "\n	-m max_ttl	Max time-to-live (max number of hops)" \
+     "\n	-p port#	Base UDP port number used in probes" \
+     "\n			(default is 33434)" \
+     "\n	-q nqueries	Number of probes per 'ttl' (default 3)" \
+     "\n	-s src_addr	IP address to use as the source address" \
+     "\n	-t tos		Type-of-service in probe packets (default 0)" \
+     "\n	-w wait		Time in seconds to wait for a response" \
+     "\n			(default 3)" \
 
 #define true_trivial_usage \
        ""
