@@ -211,6 +211,13 @@
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
+#if ENABLE_FEATURE_IPV6
+# include <netinet/ip6.h>
+# include <netinet/icmp6.h>
+# ifndef SOL_IPV6
+#  define SOL_IPV6 IPPROTO_IPV6
+# endif
+#endif
 
 #include "libbb.h"
 #include "inet_common.h"
@@ -222,7 +229,9 @@
 # define IPPROTO_IP 0
 #endif
 
-/* Keep in sync with getopt32 call! */
+
+#define OPT_STRING "FIlnrdvxt:i:m:p:q:s:w:z:f:" \
+		    IF_FEATURE_TRACEROUTE_SOURCE_ROUTE("g:")
 enum {
 	OPT_DONT_FRAGMNT = (1 << 0),    /* F */
 	OPT_USE_ICMP     = (1 << 1) * ENABLE_FEATURE_TRACEROUTE_USE_ICMP, /* I */
@@ -309,15 +318,15 @@ static int
 wait_for_reply(struct sockaddr_in *fromp)
 {
 	struct pollfd pfd[1];
-	int cc = 0;
+	int read_len = 0;
 	socklen_t fromlen = sizeof(*fromp);
 
 	pfd[0].fd = rcvsock;
 	pfd[0].events = POLLIN;
 	if (safe_poll(pfd, 1, waittime * 1000) > 0)
-		cc = recvfrom(rcvsock, recv_pkt, sizeof(recv_pkt), 0,
+		read_len = recvfrom(rcvsock, recv_pkt, sizeof(recv_pkt), 0,
 			    (struct sockaddr *)fromp, &fromlen);
-	return cc;
+	return read_len;
 }
 
 /*
@@ -417,8 +426,7 @@ send_probe(int seq, int ttl)
 		len -= sizeof(*outudp);
 		set_nport(dest_lsa, htons(port + seq));
 	}
-	res = xsendto(sndsock, out, len,
-			(struct sockaddr *)&dest_lsa->u.sa, dest_lsa->len);
+	res = xsendto(sndsock, out, len, &dest_lsa->u.sa, dest_lsa->len);
 	if (res != len) {
 		bb_info_msg("sent %d octets, ret=%d", len, res);
 	}
@@ -447,11 +455,11 @@ pr_type(unsigned char t)
 #endif
 
 #if !ENABLE_FEATURE_TRACEROUTE_VERBOSE
-#define packet_ok(cc, from, seq) \
-	packet_ok(cc, seq)
+#define packet_ok(read_len, from, seq) \
+	packet_ok(read_len, seq)
 #endif
 static int
-packet_ok(int cc, const struct sockaddr_in *from, int seq)
+packet_ok(int read_len, const struct sockaddr_in *from, int seq)
 {
 	const struct icmp *icp;
 	unsigned char type, code;
@@ -460,15 +468,15 @@ packet_ok(int cc, const struct sockaddr_in *from, int seq)
 
 	ip = (struct ip *) recv_pkt;
 	hlen = ip->ip_hl << 2;
-	if (cc < hlen + ICMP_MINLEN) {
+	if (read_len < hlen + ICMP_MINLEN) {
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		if (verbose)
-			printf("packet too short (%d bytes) from %s\n", cc,
+			printf("packet too short (%d bytes) from %s\n", read_len,
 				inet_ntoa(from->sin_addr));
 #endif
 		return 0;
 	}
-	cc -= hlen;
+	read_len -= hlen;
 	icp = (struct icmp *)(recv_pkt + hlen);
 	type = icp->icmp_type;
 	code = icp->icmp_code;
@@ -498,7 +506,7 @@ packet_ok(int cc, const struct sockaddr_in *from, int seq)
 			}
 
 			hicmp = (struct icmp *)((unsigned char *)hip + hlen);
-			if (hlen + SIZEOF_ICMP_HDR <= cc
+			if (hlen + SIZEOF_ICMP_HDR <= read_len
 			 && hip->ip_p == IPPROTO_ICMP
 			 && hicmp->icmp_id == htons(ident)
 			 && hicmp->icmp_seq == htons(seq)
@@ -507,7 +515,7 @@ packet_ok(int cc, const struct sockaddr_in *from, int seq)
 			}
 		} else {
 			up = (struct udphdr *)((char *)hip + hlen);
-			if (hlen + 12 <= cc
+			if (hlen + 12 <= read_len
 			 && hip->ip_p == IPPROTO_UDP
 // Off: since we do not form the entire IP packet,
 // but defer it to kernel, we can't set source port,
@@ -526,10 +534,10 @@ packet_ok(int cc, const struct sockaddr_in *from, int seq)
 
 		printf("\n%d bytes from %s to "
 		       "%s: icmp type %d (%s) code %d\n",
-			cc, inet_ntoa(from->sin_addr),
+			read_len, inet_ntoa(from->sin_addr),
 			inet_ntoa(ip->ip_dst),
 			type, pr_type(type), icp->icmp_code);
-		for (i = 4; i < cc; i += sizeof(*lp))
+		for (i = 4; i < read_len; i += sizeof(*lp))
 			printf("%2d: x%8.8x\n", i, *lp++);
 	}
 #endif
@@ -542,34 +550,39 @@ packet_ok(int cc, const struct sockaddr_in *from, int seq)
  * numeric value, otherwise try for symbolic name.
  */
 static void
-print_inetname(const struct sockaddr_in *from)
+print_inetname(const struct sockaddr *from)
 {
-	const char *ina;
+	char *ina = xmalloc_sockaddr2dotted_noport(from);
 
-	ina = inet_ntoa(from->sin_addr);
-	if (option_mask32 & OPT_ADDR_NUM)
+	if (option_mask32 & OPT_ADDR_NUM) {
 		printf("  %s", ina);
-	else {
+	} else {
 		char *n = NULL;
-		if (from->sin_addr.s_addr != INADDR_ANY)
+
+		if (from->sa_family != AF_INET
+		 || ((struct sockaddr_in*)from)->sin_addr.s_addr != INADDR_ANY
+		) {
+			/* Try to reverse resolve if it is not 0.0.0.0 */
 			n = xmalloc_sockaddr2host_noport((struct sockaddr*)from);
+		}
 		printf("  %s (%s)", (n ? n : ina), ina);
 		free(n);
 	}
+	free(ina);
 }
 
 static void
-print(int cc, const struct sockaddr_in *from)
+print(int read_len, const struct sockaddr_in *from)
 {
-	print_inetname(from);
+	print_inetname((const struct sockaddr*)from);
 	if (verbose) {
 		const struct ip *ip;
 		int hlen;
 
 		ip = (struct ip *) recv_pkt;
 		hlen = ip->ip_hl << 2;
-		cc -= hlen;
-		printf(" %d bytes to %s", cc, inet_ntoa(ip->ip_dst));
+		read_len -= hlen;
+		printf(" %d bytes to %s", read_len, inet_ntoa(ip->ip_dst));
 	}
 }
 
@@ -581,17 +594,16 @@ print_delta_ms(unsigned t1p, unsigned t2p)
 }
 
 /*
-Usage: [-dFIlnrvx] [-g gateway] [-i iface] [-f first_ttl]
-[-m max_ttl] [ -p port] [-q nqueries] [-s src_addr] [-t tos]
-[-w waittime] [-z pausemsecs] host [packetlen]"
-*/
+ * Usage: [-dFIlnrvx] [-g gateway] [-i iface] [-f first_ttl]
+ * [-m max_ttl] [ -p port] [-q nqueries] [-s src_addr] [-t tos]
+ * [-w waittime] [-z pausemsecs] host [packetlen]"
+ */
 
 int traceroute_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int traceroute_main(int argc, char **argv)
+int traceroute_main(int argc UNUSED_PARAM, char **argv)
 {
+	int i;
 	int minpacket;
-	int ttl, i;
-	int seq = 0;
 	int tos = 0;
 	int max_ttl = 30;
 	int nprobes = 3;
@@ -611,19 +623,14 @@ int traceroute_main(int argc, char **argv)
 	llist_t *source_route_list = NULL;
 	int lsrr = 0;
 #endif
+	int ttl;
+	int seq;
 
 	INIT_G();
 
-#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	opt_complementary = "x-x:g::";
-#else
-	opt_complementary = "x-x";
-#endif
-
-	op = getopt32(argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
-#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-					"g:"
-#endif
+	/* minimum 1 arg */
+	opt_complementary = "-1:x-x" IF_FEATURE_TRACEROUTE_SOURCE_ROUTE(":g::");
+	op = getopt32(argv, OPT_STRING
 		, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str
 		, &source, &waittime_str, &pausemsecs_str, &first_ttl_str
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
@@ -681,17 +688,9 @@ int traceroute_main(int argc, char **argv)
 
 	/* Process destination and optional packet size */
 	argv += optind;
-	argc -= optind;
-	switch (argc) {
-	case 2:
+	if (argv[1])
 		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
-		/* Fall through */
-	case 1:
-		dest_lsa = xhost2sockaddr(argv[0], port);
-		break;
-	default:
-		bb_show_usage();
-	}
+	dest_lsa = xhost2sockaddr(argv[0], port);
 
 	/* Ensure the socket fds won't be 0, 1 or 2 */
 	bb_sanitize_stdio();
@@ -710,8 +709,7 @@ int traceroute_main(int argc, char **argv)
 		xmove_fd(xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP), sndsock);
 	else
 		xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), sndsock);
-#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
-#if defined(IP_OPTIONS)
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE && defined IP_OPTIONS
 	if (lsrr > 0) {
 		unsigned char optlist[MAX_IPOPTLEN];
 
@@ -734,8 +732,7 @@ int traceroute_main(int argc, char **argv)
 			bb_perror_msg_and_die("IP_OPTIONS");
 		}
 	}
-#endif /* IP_OPTIONS */
-#endif /* CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE */
+#endif
 #ifdef SO_SNDBUF
 	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, &packlen, sizeof(packlen)) < 0) {
 		bb_perror_msg_and_die("SO_SNDBUF");
@@ -796,6 +793,7 @@ int traceroute_main(int argc, char **argv)
 		printf(" from %s", source);
 	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
 
+	seq = 0;
 	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
 //TODO: make it protocol agnostic (get rid of sockaddr_in)
 		struct sockaddr_in from;
@@ -808,7 +806,7 @@ int traceroute_main(int argc, char **argv)
 
 		printf("%2d", ttl);
 		for (probe = 0; probe < nprobes; ++probe) {
-			int cc;
+			int read_len;
 			unsigned t1;
 			unsigned t2;
 			struct ip *ip;
@@ -819,18 +817,18 @@ int traceroute_main(int argc, char **argv)
 
 			t1 = monotonic_us();
 			send_probe(++seq, ttl);
-			first = 0;
 
-			while ((cc = wait_for_reply(&from)) != 0) {
+			first = 0;
+			while ((read_len = wait_for_reply(&from)) != 0) {
 				t2 = monotonic_us();
-				i = packet_ok(cc, &from, seq);
+				i = packet_ok(read_len, &from, seq);
 				/* Skip short packet */
 				if (i == 0)
 					continue;
 				if (!gotlastaddr
 				 || from.sin_addr.s_addr != lastaddr
 				) {
-					print(cc, &from);
+					print(read_len, &from);
 					lastaddr = from.sin_addr.s_addr;
 					gotlastaddr = 1;
 				}
@@ -912,7 +910,8 @@ int traceroute_main(int argc, char **argv)
 				}
 				break;
 			}
-			if (cc == 0)
+			/* there was no packet at all? */
+			if (read_len == 0)
 				printf("  *");
 		}
 		bb_putchar('\n');
@@ -922,5 +921,6 @@ int traceroute_main(int argc, char **argv)
 			break;
 		}
 	}
+
 	return 0;
 }
