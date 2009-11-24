@@ -30,13 +30,13 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 	else if (archive_handle->ah_flags & ARCHIVE_EXTRACT_NEWER) {
 		/* Remove the existing entry if its older than the extracted entry */
-		struct stat statbuf;
-		if (lstat(file_header->name, &statbuf) == -1) {
+		struct stat existing_sb;
+		if (lstat(file_header->name, &existing_sb) == -1) {
 			if (errno != ENOENT) {
 				bb_perror_msg_and_die("can't stat old file");
 			}
 		}
-		else if (statbuf.st_mtime <= file_header->mtime) {
+		else if (existing_sb.st_mtime >= file_header->mtime) {
 			if (!(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 				bb_error_msg("%s not created: newer or "
 					"same age file exists", file_header->name);
