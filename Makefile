@@ -359,8 +359,10 @@ scripts_basic:
 scripts/basic/%: scripts_basic ;
 
 # bbox: we have helpers in applets/
+# we depend on scripts_basic, since scripts/basic/fixdep
+# must be built before any other host prog
 PHONY += applets_dir
-applets_dir:
+applets_dir: scripts_basic
 	$(Q)$(MAKE) $(build)=applets
 
 applets/%: applets_dir ;
