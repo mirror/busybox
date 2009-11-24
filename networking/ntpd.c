@@ -5,7 +5,6 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */
 
@@ -59,30 +58,32 @@ typedef struct {
 	uint16_t fractions;
 } s_fixedpt_t;
 
-#define	NTP_DIGESTSIZE		16
-#define	NTP_MSGSIZE_NOAUTH	48
-#define	NTP_MSGSIZE		(NTP_MSGSIZE_NOAUTH + 4 + NTP_DIGESTSIZE)
+enum {
+	NTP_DIGESTSIZE     = 16,
+	NTP_MSGSIZE_NOAUTH = 48,
+	NTP_MSGSIZE        = (NTP_MSGSIZE_NOAUTH + 4 + NTP_DIGESTSIZE),
+};
 
 typedef struct {
-	uint8_t status;	/* status of local clock and leap info */
-	uint8_t stratum;	/* Stratum level */
-	uint8_t ppoll;		/* poll value */
-	int8_t precision;
+	uint8_t     status;     /* status of local clock and leap info */
+	uint8_t     stratum;    /* stratum level */
+	uint8_t     ppoll;      /* poll value */
+	int8_t      precision;
 	s_fixedpt_t rootdelay;
 	s_fixedpt_t dispersion;
-	uint32_t refid;
+	uint32_t    refid;
 	l_fixedpt_t reftime;
 	l_fixedpt_t orgtime;
 	l_fixedpt_t rectime;
 	l_fixedpt_t xmttime;
-	uint32_t keyid;
-	uint8_t digest[NTP_DIGESTSIZE];
+	uint32_t    keyid;
+	uint8_t     digest[NTP_DIGESTSIZE];
 } ntp_msg_t;
 
 typedef struct {
-	int			fd;
-	ntp_msg_t		msg;
-	double			xmttime;
+	int       fd;
+	ntp_msg_t msg;
+	double    xmttime;
 } ntp_query_t;
 
 enum {
@@ -97,6 +98,7 @@ enum {
 	/* Status Masks */
 	MODE_MASK	= (7 << 0),
 	VERSION_MASK	= (7 << 3),
+	VERSION_SHIFT	= 3,
 	LI_MASK		= (3 << 6),
 
 	/* Mode values */
@@ -107,7 +109,7 @@ enum {
 	MODE_SERVER	= 4,	/* server */
 	MODE_BROADCAST	= 5,	/* broadcast */
 	MODE_RES1	= 6,	/* reserved for NTP control message */
-	MODE_RES2	= 7	/* reserved for private use */
+	MODE_RES2	= 7,	/* reserved for private use */
 };
 
 #define	JAN_1970	2208988800UL	/* 1970 - 1900 in seconds */
@@ -115,7 +117,7 @@ enum {
 enum client_state {
 	STATE_NONE,
 	STATE_QUERY_SENT,
-	STATE_REPLY_RECEIVED
+	STATE_REPLY_RECEIVED,
 };
 
 typedef struct {
@@ -132,24 +134,27 @@ typedef struct {
 } ntp_status_t;
 
 typedef struct {
-	ntp_status_t		status;
-	double			offset;
-	double			delay;
-	double			error;
-	time_t			rcvd;
-	uint8_t			good;
+	ntp_status_t	status;
+	double		offset;
+	double		delay;
+	double		error;
+	time_t		rcvd;
+	uint8_t		good;
 } ntp_offset_t;
 
 typedef struct {
+//TODO:
+// (1) store dotted addr str, to avoid constant translations
+// (2) periodically re-resolve DNS names
 	len_and_sockaddr	*lsa;
-	ntp_query_t		 query;
-	ntp_offset_t		 reply[OFFSET_ARRAY_SIZE];
-	ntp_offset_t		 update;
-	enum client_state	 state;
-	time_t			 next;
-	time_t			 deadline;
-	uint8_t			 shift;
-	uint8_t			 trustlevel;
+	ntp_query_t		query;
+	ntp_offset_t		reply[OFFSET_ARRAY_SIZE];
+	ntp_offset_t		update;
+	enum client_state	state;
+	time_t			next;
+	time_t			deadline;
+	uint8_t			shift;
+	uint8_t			trustlevel;
 } ntp_peer_t;
 
 enum {
@@ -211,8 +216,7 @@ add_peers(const char *s)
 static double
 gettime(void)
 {
-	struct timeval	tv;
-
+	struct timeval tv;
 	gettimeofday(&tv, NULL); /* never fails */
 	return (tv.tv_sec + JAN_1970 + 1.0e-6 * tv.tv_usec);
 }
@@ -228,11 +232,20 @@ d_to_tv(double d, struct timeval *tv)
 static double
 lfp_to_d(l_fixedpt_t lfp)
 {
-	double	ret;
-
+	double ret;
 	lfp.int_partl = ntohl(lfp.int_partl);
 	lfp.fractionl = ntohl(lfp.fractionl);
-	ret = (double)(lfp.int_partl) + ((double)lfp.fractionl / UINT_MAX);
+	ret = (double)lfp.int_partl + ((double)lfp.fractionl / UINT_MAX);
+	return ret;
+}
+
+static double
+sfp_to_d(s_fixedpt_t sfp)
+{
+	double ret;
+	sfp.int_parts = ntohs(sfp.int_parts);
+	sfp.fractions = ntohs(sfp.fractions);
+	ret = (double)sfp.int_parts + ((double)sfp.fractions / USHRT_MAX);
 	return ret;
 }
 
@@ -240,33 +253,22 @@ lfp_to_d(l_fixedpt_t lfp)
 static l_fixedpt_t
 d_to_lfp(double d)
 {
-	l_fixedpt_t	lfp;
-
-	lfp.int_partl = htonl((uint32_t)d);
-	lfp.fractionl = htonl((uint32_t)((d - (u_int32_t)d) * UINT_MAX));
+	l_fixedpt_t lfp;
+	lfp.int_partl = (uint32_t)d;
+	lfp.fractionl = (uint32_t)((d - lfp.int_partl) * UINT_MAX);
+	lfp.int_partl = htonl(lfp.int_partl);
+	lfp.fractionl = htonl(lfp.fractionl);
 	return lfp;
 }
-#endif
 
-static double
-sfp_to_d(s_fixedpt_t sfp)
-{
-	double	ret;
-
-	sfp.int_parts = ntohs(sfp.int_parts);
-	sfp.fractions = ntohs(sfp.fractions);
-	ret = (double)(sfp.int_parts) + ((double)sfp.fractions / USHRT_MAX);
-	return ret;
-}
-
-#if ENABLE_FEATURE_NTPD_SERVER
 static s_fixedpt_t
 d_to_sfp(double d)
 {
-	s_fixedpt_t	sfp;
-
-	sfp.int_parts = htons((uint16_t)d);
-	sfp.fractions = htons((uint16_t)((d - (u_int16_t)d) * USHRT_MAX));
+	s_fixedpt_t sfp;
+	sfp.int_parts = (uint16_t)d;
+	sfp.fractions = (uint16_t)((d - sfp.int_parts) * USHRT_MAX);
+	sfp.int_parts = htons(sfp.int_parts);
+	sfp.fractions = htons(sfp.fractions);
 	return sfp;
 }
 #endif
@@ -282,9 +284,8 @@ static time_t
 error_interval(void)
 {
 	time_t interval, r;
-
 	interval = INTERVAL_QUERY_PATHETIC * QSCALE_OFF_MAX / QSCALE_OFF_MIN;
-	r = random() % (interval / 10);
+	r = (unsigned)random() % (unsigned long)(interval / 10);
 	return (interval + r);
 }
 
@@ -352,12 +353,8 @@ client_query(ntp_peer_t *p)
 static int
 offset_compare(const void *aa, const void *bb)
 {
-	const ntp_peer_t * const *a;
-	const ntp_peer_t * const *b;
-
-	a = aa;
-	b = bb;
-
+	const ntp_peer_t *const *a = aa;
+	const ntp_peer_t *const *b = bb;
 	if ((*a)->update.offset < (*b)->update.offset)
 		return -1;
 	return ((*a)->update.offset > (*b)->update.offset);
@@ -368,7 +365,6 @@ updated_scale(double offset)
 {
 	if (offset < 0)
 		offset = -offset;
-
 	if (offset > QSCALE_OFF_MAX)
 		return 1;
 	if (offset < QSCALE_OFF_MIN)
@@ -559,9 +555,8 @@ static time_t
 scale_interval(time_t requested)
 {
 	time_t interval, r;
-
 	interval = requested * G.scale;
-	r = random() % MAX(5, interval / 10);
+	r = (unsigned)random() % (unsigned long)(MAX(5, interval / 10));
 	return (interval + r);
 }
 
@@ -577,9 +572,10 @@ client_dispatch(ntp_peer_t *p)
 
 	addr = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
 
-	size = recvfrom(p->query.fd, &msg, sizeof(msg), 0, NULL, NULL);
+//TODO: use MSG_DONTWAIT flag?
+	size = recv(p->query.fd, &msg, sizeof(msg), 0);
 	if (size == -1) {
-		bb_perror_msg("recvfrom(%s) error", addr);
+		bb_perror_msg("recv(%s) error", addr);
 		if (errno == EHOSTUNREACH || errno == EHOSTDOWN
 		 || errno == ENETUNREACH || errno == ENETDOWN
 		 || errno == ECONNREFUSED || errno == EADDRNOTAVAIL
@@ -693,48 +689,58 @@ client_dispatch(ntp_peer_t *p)
 static void
 server_dispatch(int fd)
 {
-	ssize_t			size;
-	uint8_t			version;
-	double			rectime;
-	len_and_sockaddr	*to;
-	struct sockaddr		*from;
-	ntp_msg_t		query, reply;
+	ssize_t          size;
+	uint8_t          version;
+	double           rectime;
+	len_and_sockaddr *to;
+	struct sockaddr  *from;
+	ntp_msg_t        msg;
+	uint8_t          query_status;
+	uint8_t          query_ppoll;
+	l_fixedpt_t      query_xmttime;
 
 	to = get_sock_lsa(G.listen_fd);
 	from = xzalloc(to->len);
 
-	size = recv_from_to(fd, &query, sizeof(query), 0, from, &to->u.sa, to->len);
-	if (size == -1)
-		bb_error_msg_and_die("recv_from_to");
+//TODO: use MGS_DONTWAIT flag?
+	size = recv_from_to(fd, &msg, sizeof(msg), 0, from, &to->u.sa, to->len);
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
-		char *addr = xmalloc_sockaddr2dotted_noport(from);
+		char *addr;
+		if (size < 0)
+			bb_error_msg_and_die("recv_from_to");
+		addr = xmalloc_sockaddr2dotted_noport(from);
 		bb_error_msg("malformed packet received from %s", addr);
 		free(addr);
 		goto bail;
 	}
 
-	rectime = gettime();
-	version = (query.status & VERSION_MASK) >> 3;
+	query_status = msg.status;
+	query_ppoll = msg.ppoll;
+	query_xmttime = msg.xmttime;
 
-	memset(&reply, 0, sizeof(reply));
-	reply.status = G.status.synced ? G.status.leap : LI_ALARM;
-	reply.status |= (query.status & VERSION_MASK);
-	reply.status |= ((query.status & MODE_MASK) == MODE_CLIENT) ?
+	/* Build a reply packet */
+	memset(&msg, 0, sizeof(msg));
+	msg.status = G.status.synced ? G.status.leap : LI_ALARM;
+	msg.status |= (query_status & VERSION_MASK);
+	msg.status |= ((query_status & MODE_MASK) == MODE_CLIENT) ?
 			 MODE_SERVER : MODE_SYM_PAS;
-	reply.stratum =	G.status.stratum;
-	reply.ppoll = query.ppoll;
-	reply.precision = G.status.precision;
-	reply.rectime = d_to_lfp(rectime);
-	reply.reftime = d_to_lfp(G.status.reftime);
-	reply.xmttime = d_to_lfp(gettime());
-	reply.orgtime = query.xmttime;
-	reply.rootdelay = d_to_sfp(G.status.rootdelay);
-	reply.refid = (version > 3) ? G.status.refid4 : G.status.refid;
+	msg.stratum = G.status.stratum;
+	msg.ppoll = query_ppoll;
+	msg.precision = G.status.precision;
+	rectime = gettime();
+	msg.xmttime = msg.rectime = d_to_lfp(rectime);
+	msg.reftime = d_to_lfp(G.status.reftime);
+	//msg.xmttime = d_to_lfp(gettime()); // = msg.rectime
+	msg.orgtime = query_xmttime;
+	msg.rootdelay = d_to_sfp(G.status.rootdelay);
+	version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */
+	msg.refid = (version > (3 << VERSION_SHIFT)) ? G.status.refid4 : G.status.refid;
 
 	/* We reply from the address packet was sent to,
 	 * this makes to/from look swapped here: */
-	sendmsg_wrap(fd, /*from:*/ &to->u.sa, /*to:*/ from, /*addrlen:*/ to->len,
-			&reply, size);
+	sendmsg_wrap(fd,
+		/*from:*/ &to->u.sa, /*to:*/ from, /*addrlen:*/ to->len,
+		&msg, size);
 
  bail:
 	free(to);
@@ -835,7 +841,8 @@ static NOINLINE void ntp_init(char **argv)
 	unsigned opts;
 	llist_t *peers;
 
-	tzset();
+	srandom(getpid());
+	/* tzset(); - why? it's called automatically when needed, no? */
 
 	if (getuid())
 		bb_error_msg_and_die("need root privileges");
@@ -911,7 +918,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 	while (!bb_got_signal) {
 		llist_t *item;
-		unsigned i, j, idx_peers;
+		unsigned i, j, first_peer_idx;
 		unsigned sent_cnt, trial_cnt;
 		int nfds, timeout;
 		time_t nextaction;
@@ -926,7 +933,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			i++;
 		}
 #endif
-		idx_peers = i;
+		first_peer_idx = i;
 		sent_cnt = trial_cnt = 0;
 		for (item = g.ntp_peers; item != NULL; item = item->link) {
 			ntp_peer_t *p = (ntp_peer_t *) item->data;
@@ -960,7 +967,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			if (p->state == STATE_QUERY_SENT) {
 				pfd[i].fd = p->query.fd;
 				pfd[i].events = POLLIN;
-				idx2peer[i - idx_peers] = p;
+				idx2peer[i - first_peer_idx] = p;
 				i++;
 			}
 		}
@@ -978,7 +985,8 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 		j = 0;
 #if ENABLE_FEATURE_NTPD_SERVER
-		for (; nfds > 0 && j < idx_peers; j++) {
+//TODO: simplify. There is only one server fd!
+		for (; nfds > 0 && j < first_peer_idx; j++) {
 			if (pfd[j].revents & (POLLIN|POLLERR)) {
 				nfds--;
 				server_dispatch(pfd[j].fd);
@@ -988,7 +996,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		for (; nfds > 0 && j < i; j++) {
 			if (pfd[j].revents & (POLLIN|POLLERR)) {
 				nfds--;
-				client_dispatch(idx2peer[j - idx_peers]);
+				client_dispatch(idx2peer[j - first_peer_idx]);
 			}
 		}
 	} /* while (!bb_got_signal) */

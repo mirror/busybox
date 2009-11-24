@@ -161,6 +161,7 @@ static len_and_sockaddr* str2sockaddr(
 IF_FEATURE_IPV6(sa_family_t af,)
 		int ai_flags)
 {
+IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
 	int rc;
 	len_and_sockaddr *r;
 	struct addrinfo *result = NULL;
@@ -221,12 +222,40 @@ IF_FEATURE_IPV6(sa_family_t af,)
  skip: ;
 	}
 
-	memset(&hint, 0 , sizeof(hint));
-#if !ENABLE_FEATURE_IPV6
-	hint.ai_family = AF_INET; /* do not try to find IPv6 */
-#else
-	hint.ai_family = af;
+	/* Next two if blocks allow to skip getaddrinfo()
+	 * in case host is a numeric IP(v6) address,
+	 * getaddrinfo() initializes DNS resolution machinery,
+	 * scans network config and such - tens of syscalls.
+	 */
+	/* If we were not asked specifically for IPv6,
+	 * check whether this is a numeric IPv4 */
+	IF_FEATURE_IPV6(if(af != AF_INET6)) {
+		struct in_addr in4;
+		if (inet_aton(host, &in4) != 0) {
+			r = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_in));
+			r->len = sizeof(struct sockaddr_in);
+			r->u.sa.sa_family = AF_INET;
+			r->u.sin.sin_addr = in4;
+			goto set_port;
+		}
+	}
+#if ENABLE_FEATURE_IPV6
+	/* If we were not asked specifically for IPv4,
+	 * check whether this is a numeric IPv6 */
+	if (af != AF_INET) {
+		struct in6_addr in6;
+		if (inet_pton(AF_INET6, host, &in6) > 0) {
+			r = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_in6));
+			r->len = sizeof(struct sockaddr_in6);
+			r->u.sa.sa_family = AF_INET6;
+			r->u.sin6.sin6_addr = in6;
+			goto set_port;
+		}
+	}
 #endif
+
+	memset(&hint, 0 , sizeof(hint));
+	hint.ai_family = af;
 	/* Needed. Or else we will get each address thrice (or more)
 	 * for each possible socket type (tcp,udp,raw...): */
 	hint.ai_socktype = SOCK_STREAM;
@@ -250,9 +279,11 @@ IF_FEATURE_IPV6(sa_family_t af,)
 		}
 	}
 #endif
-	r = xmalloc(offsetof(len_and_sockaddr, u.sa) + used_res->ai_addrlen);
+	r = xmalloc(LSA_LEN_SIZE + used_res->ai_addrlen);
 	r->len = used_res->ai_addrlen;
 	memcpy(&r->u.sa, used_res->ai_addr, used_res->ai_addrlen);
+
+ IF_FEATURE_IPV6(set_port:)
 	set_nport(r, htons(port));
  ret:
 	freeaddrinfo(result);
