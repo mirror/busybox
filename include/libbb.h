@@ -490,7 +490,8 @@ enum {
 /* Create stream socket, and allocate suitable lsa.
  * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6))
  * af == AF_UNSPEC will result in trying to create IPv6 socket,
- * and if kernel doesn't support it, IPv4.
+ * and if kernel doesn't support it, fall back to IPv4.
+ * This is useful if you plan to bind to resulting local lsa.
  */
 #if ENABLE_FEATURE_IPV6
 int xsocket_type(len_and_sockaddr **lsap, int af, int sock_type) FAST_FUNC;

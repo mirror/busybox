@@ -12,22 +12,22 @@
 # error "Sorry, your kernel has to support IP_PKTINFO"
 #endif
 
-#define	INTERVAL_QUERY_NORMAL		30	/* sync to peers every n secs */
-#define	INTERVAL_QUERY_PATHETIC		60
-#define	INTERVAL_QUERY_AGRESSIVE	5
+#define INTERVAL_QUERY_NORMAL		30	/* sync to peers every n secs */
+#define INTERVAL_QUERY_PATHETIC		60
+#define INTERVAL_QUERY_AGRESSIVE	5
 
-#define	TRUSTLEVEL_BADPEER		6	/* bad if *less than* TRUSTLEVEL_BADPEER */
-#define	TRUSTLEVEL_PATHETIC		2
-#define	TRUSTLEVEL_AGRESSIVE		8
-#define	TRUSTLEVEL_MAX			10
+#define TRUSTLEVEL_BADPEER		6	/* bad if *less than* TRUSTLEVEL_BADPEER */
+#define TRUSTLEVEL_PATHETIC		2
+#define TRUSTLEVEL_AGRESSIVE		8
+#define TRUSTLEVEL_MAX			10
 
-#define	QSCALE_OFF_MIN			0.05
-#define	QSCALE_OFF_MAX			0.50
+#define QSCALE_OFF_MIN			0.05
+#define QSCALE_OFF_MAX			0.50
 
-#define	QUERYTIME_MAX		15	/* single query might take n secs max */
-#define	OFFSET_ARRAY_SIZE	8
-#define	SETTIME_MIN_OFFSET	180	/* min offset for settime at start */
-#define	SETTIME_TIMEOUT		15	/* max seconds to wait with -s */
+#define QUERYTIME_MAX		15	/* single query might take n secs max */
+#define OFFSET_ARRAY_SIZE	8
+#define SETTIME_MIN_OFFSET	180	/* min offset for settime at start */
+#define SETTIME_TIMEOUT		15	/* max seconds to wait with -s */
 
 /* Style borrowed from NTP ref/tcpdump and updated for SNTPv4 (RFC2030). */
 
@@ -112,7 +112,7 @@ enum {
 	MODE_RES2	= 7,	/* reserved for private use */
 };
 
-#define	JAN_1970	2208988800UL	/* 1970 - 1900 in seconds */
+#define OFFSET_1900_1970 2208988800UL  /* 1970 - 1900 in seconds */
 
 enum client_state {
 	STATE_NONE,
@@ -173,12 +173,12 @@ struct globals {
 #if ENABLE_FEATURE_NTPD_SERVER
 	int		listen_fd;
 #endif
+	unsigned	peer_cnt;
 	llist_t		*ntp_peers;
 	ntp_status_t	status;
 	uint32_t	scale;
 	uint8_t		settime;
 	uint8_t		firstadj;
-	smallint	peer_cnt;
 };
 #define G (*ptr_to_globals)
 
@@ -214,11 +214,11 @@ add_peers(const char *s)
 }
 
 static double
-gettime_fp(void)
+gettime1900fp(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL); /* never fails */
-	return (tv.tv_sec + 1.0e-6 * tv.tv_usec + JAN_1970);
+	return (tv.tv_sec + 1.0e-6 * tv.tv_usec + OFFSET_1900_1970);
 }
 
 static void
@@ -311,12 +311,43 @@ sendmsg_wrap(int fd,
 static int
 send_query_to_peer(ntp_peer_t *p)
 {
+	// Why do we need to bind()?
+	// See what happens when we don't bind:
+	//
+	// socket(PF_INET, SOCK_DGRAM, IPPROTO_IP) = 3
+	// setsockopt(3, SOL_IP, IP_TOS, [16], 4) = 0
+	// gettimeofday({1259071266, 327885}, NULL) = 0
+	// sendto(3, "xxx", 48, MSG_DONTWAIT, {sa_family=AF_INET, sin_port=htons(123), sin_addr=inet_addr("10.34.32.125")}, 16) = 48
+	// ^^^ we sent it from some source port picked by kernel.
+	// time(NULL)              = 1259071266
+	// write(2, "ntpd: entering poll 15 secs\n", 28) = 28
+	// poll([{fd=3, events=POLLIN}], 1, 15000) = 1 ([{fd=3, revents=POLLIN}])
+	// recv(3, "yyy", 68, MSG_DONTWAIT) = 48
+	// ^^^ this recv will receive packets to any local port!
+	//
+	// Uncomment this and use strace to see it in action:
+#define PROBE_LOCAL_ADDR // { len_and_sockaddr lsa; lsa.len = LSA_SIZEOF_SA; getsockname(p->query.fd, &lsa.u.sa, &lsa.len); }
+
 	if (p->query.fd == -1) {
-		p->query.fd = xsocket(p->lsa->u.sa.sa_family, SOCK_DGRAM, 0);
+		int fd, family;
+		len_and_sockaddr *local_lsa;
+
+		family = p->lsa->u.sa.sa_family;
+		//was: p->query.fd = xsocket(family, SOCK_DGRAM, 0);
+		p->query.fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
+		/* local_lsa has "null" address and port 0 now.
+		 * bind() ensures we have a *particular port* selected by kernel
+		 * and remembered in p->query.fd, thus later recv(p->query.fd)
+		 * receives only packets sent to this port.
+		 */
+		PROBE_LOCAL_ADDR
+		xbind(fd, &local_lsa->u.sa, local_lsa->len);
+		PROBE_LOCAL_ADDR
 #if ENABLE_FEATURE_IPV6
-		if (p->lsa->u.sa.sa_family == AF_INET)
+		if (family == AF_INET)
 #endif
-			setsockopt(p->query.fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
+			setsockopt(fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
+		free(local_lsa);
 	}
 
 	/*
@@ -335,7 +366,7 @@ send_query_to_peer(ntp_peer_t *p)
 
 	p->query.msg.xmttime.int_partl = random();
 	p->query.msg.xmttime.fractionl = random();
-	p->query.xmttime = gettime_fp();
+	p->query.xmttime = gettime1900fp();
 
 	if (sendmsg_wrap(p->query.fd, /*from:*/ NULL, /*to:*/ &p->lsa->u.sa, /*addrlen:*/ p->lsa->len,
 			&p->query.msg, NTP_MSGSIZE_NOAUTH) == -1) {
@@ -437,7 +468,7 @@ adjtime_wrap(void)
 	}
 
 	G.firstadj = 0;
-	G.status.reftime = gettime_fp();
+	G.status.reftime = gettime1900fp();
 	G.status.stratum++;	/* one more than selected peer */
 	G.scale = updated_scale(offset_median);
 
@@ -568,6 +599,10 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 
 	addr = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
 
+	/* We can recvfrom here and check from.IP, but some multihomed
+	 * ntp servers reply from their *other IP*.
+	 * TODO: maybe we should check at least what we can: from.port == 123?
+	 */
 	size = recv(p->query.fd, &msg, sizeof(msg), MSG_DONTWAIT);
 	if (size == -1) {
 		bb_perror_msg("recv(%s) error", addr);
@@ -583,7 +618,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		xfunc_die();
 	}
 
-	T4 = gettime_fp();
+	T4 = gettime1900fp();
 
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
 		bb_error_msg("malformed packet received from %s", addr);
@@ -635,7 +670,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		goto bail;
 	}
 	offset->error = (T2 - T1) - (T3 - T4);
-// Can we use (T4 - JAN_1970) instead of time(NULL)?
+// Can we use (T4 - OFFSET_1900_1970) instead of time(NULL)?
 	offset->rcvd = time(NULL);
 	offset->good = 1;
 
@@ -724,10 +759,10 @@ recv_and_process_client_pkt(void /*int fd*/)
 	msg.stratum = G.status.stratum;
 	msg.ppoll = query_ppoll;
 	msg.precision = G.status.precision;
-	rectime = gettime_fp();
+	rectime = gettime1900fp();
 	msg.xmttime = msg.rectime = d_to_lfp(rectime);
 	msg.reftime = d_to_lfp(G.status.reftime);
-	//msg.xmttime = d_to_lfp(gettime_fp()); // = msg.rectime
+	//msg.xmttime = d_to_lfp(gettime1900fp()); // = msg.rectime
 	msg.orgtime = query_xmttime;
 	msg.rootdelay = d_to_sfp(G.status.rootdelay);
 	version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */

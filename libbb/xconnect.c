@@ -346,7 +346,7 @@ int FAST_FUNC xsocket_type(len_and_sockaddr **lsap, IF_FEATURE_IPV6(int family,)
 		len = sizeof(struct sockaddr_in6);
 	}
 #endif
-	lsa = xzalloc(offsetof(len_and_sockaddr, u.sa) + len);
+	lsa = xzalloc(LSA_LEN_SIZE + len);
 	lsa->len = len;
 	lsa->u.sa.sa_family = family;
 	*lsap = lsa;
