@@ -483,7 +483,11 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	// -l  Generate a long listing
 	// -o col1,col2,col3=header
 	//     Select which columns to display
-	/* We allow (and ignore) most of the above. FIXME */
+	/* We allow (and ignore) most of the above. FIXME.
+	 * -T is picked for threads (POSIX hasn't it standardized).
+	 * procps v3.2.7 supports -T and shows tids as SPID column,
+	 * it also supports -L where it shows tids as LWP column.
+	 */
 	opt_complementary = "o::";
 	opt = getopt32(argv, "Zo:aAdefl"IF_FEATURE_SHOW_THREADS("T"), &opt_o);
 	if (opt_o) {
