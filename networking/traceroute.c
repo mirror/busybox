@@ -1020,6 +1020,7 @@ common_traceroute_main(int op, char **argv)
 		set_nport(dest_lsa, htons(1025));
 		/* dummy connect. makes kernel pick source IP (and port) */
 		xconnect(probe_fd, &dest_lsa->u.sa, dest_lsa->len);
+		set_nport(dest_lsa, htons(port));
 
 		/* read IP and port */
 		source_lsa = get_sock_lsa(probe_fd);
