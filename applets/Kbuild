@@ -12,6 +12,9 @@ hostprogs-y += usage usage_pod applet_tables
 
 always:= $(hostprogs-y)
 
+# fixdep is needed to compile other host programs
+$(addprefix $(obj)/,$(always)): $(objtree)/scripts/basic/fixdep
+
 # Generated files need additional love
 
 # This trick decreases amount of rebuilds
