@@ -472,16 +472,14 @@ send_probe(int seq, int ttl)
 	} else
 #endif
 	{
-#if defined(IP_TTL)
-		if (setsockopt(sndsock, IPPROTO_IP, IP_TTL,
-				(char *)&ttl, sizeof(ttl)) < 0) {
+#if defined IP_TTL
+		res = setsockopt(sndsock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+		if (res < 0)
 			bb_perror_msg_and_die("setsockopt ttl %d", ttl);
-		}
 #endif
+		out = outicmp;
 		len = packlen - sizeof(*outip);
-		if (option_mask32 & OPT_USE_ICMP)
-			out = outicmp;
-		else {
+		if (!(option_mask32 & OPT_USE_ICMP)) {
 			out = outdata;
 			len -= sizeof(*outudp);
 			set_nport(dest_lsa, htons(port + seq));
@@ -489,9 +487,8 @@ send_probe(int seq, int ttl)
 	}
 
 	res = xsendto(sndsock, out, len, &dest_lsa->u.sa, dest_lsa->len);
-	if (res != len) {
+	if (res != len)
 		bb_info_msg("sent %d octets, ret=%d", len, res);
-	}
 }
 
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
@@ -797,7 +794,7 @@ common_traceroute_main(int op, char **argv)
 	int lsrr = 0;
 #endif
 #if ENABLE_TRACEROUTE6
-	sa_family_t af = AF_UNSPEC;
+	sa_family_t af;
 #else
 	enum { af = AF_INET };
 #endif
@@ -863,31 +860,26 @@ common_traceroute_main(int op, char **argv)
 	}
 #endif
 
+	/* Process destination and optional packet size */
+	minpacket = sizeof(*outip) + SIZEOF_ICMP_HDR + sizeof(*outdata) + optlen;
+	if (!(op & OPT_USE_ICMP))
+		minpacket += sizeof(*outudp) - SIZEOF_ICMP_HDR;
 #if ENABLE_TRACEROUTE6
+	af = AF_UNSPEC;
 	if (op & OPT_IPV4)
 		af = AF_INET;
-	if (op & OPT_IPV6) {
+	if (op & OPT_IPV6)
 		af = AF_INET6;
-		minpacket = sizeof(struct outdata6_t);
-	} else
-#endif
-	{
-		minpacket = sizeof(*outip) + SIZEOF_ICMP_HDR
-			     + sizeof(*outdata) + optlen;
-		if (!(op & OPT_USE_ICMP))
-			minpacket += sizeof(*outudp) - SIZEOF_ICMP_HDR;
-	}
-	packlen = minpacket;
-
-	/* Process destination and optional packet size */
-	if (argv[1])
-		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
-#if ENABLE_TRACEROUTE6
 	dest_lsa = xhost_and_af2sockaddr(argv[0], port, af);
 	af = dest_lsa->u.sa.sa_family;
+	if (af == AF_INET6)
+		minpacket = sizeof(struct outdata6_t);
 #else
 	dest_lsa = xhost2sockaddr(argv[0], port);
 #endif
+	packlen = minpacket;
+	if (argv[1])
+		packlen = xatoul_range(argv[1], minpacket, 32 * 1024);
 
 	/* Ensure the socket fds won't be 0, 1 or 2 */
 	bb_sanitize_stdio();
