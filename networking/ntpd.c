@@ -7,7 +7,9 @@
  */
 #include "libbb.h"
 #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */
-
+#ifndef IPTOS_LOWDELAY
+# define IPTOS_LOWDELAY 0x10
+#endif
 #ifndef IP_PKTINFO
 # error "Sorry, your kernel has to support IP_PKTINFO"
 #endif
@@ -161,10 +163,11 @@ enum {
 	OPT_n = (1 << 0),
 	OPT_g = (1 << 1),
 	OPT_q = (1 << 2),
+	OPT_N = (1 << 3),
 	/* Insert new options above this line. */
 	/* Non-compat options: */
-	OPT_p = (1 << 3),
-	OPT_l = (1 << 4),
+	OPT_p = (1 << 4),
+	OPT_l = (1 << 5) * ENABLE_FEATURE_NTPD_SERVER,
 };
 
 
@@ -877,16 +880,18 @@ static NOINLINE void ntp_init(char **argv)
 	/* tzset(); - why? it's called automatically when needed, no? */
 
 	if (getuid())
-		bb_error_msg_and_die("need root privileges");
+		bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 	peers = NULL;
 	opt_complementary = "dd:p::"; /* d: counter, p: list */
 	opts = getopt32(argv,
-			"ngq" /* compat */
+			"ngqN" /* compat */
 			"p:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			"d" /* compat */
-			"46aAbLNx", /* compat, ignored */
+			"46aAbLx", /* compat, ignored */
 			&peers, &G.verbose);
+	if (!(opts & (OPT_p|OPT_l)))
+		bb_show_usage();
 #if ENABLE_FEATURE_NTPD_SERVER
 	G.listen_fd = -1;
 	if (opts & OPT_l) {
@@ -903,6 +908,9 @@ static NOINLINE void ntp_init(char **argv)
 		logmode = LOGMODE_NONE;
 		bb_daemonize(DAEMON_DEVNULL_STDIO);
 	}
+	/* I hesitate to set -20 prio. -15 should be high enough for timekeeping */
+	if (opts & OPT_N)
+		setpriority(PRIO_PROCESS, 0, -15);
 
 	/* Set some globals */
 	{

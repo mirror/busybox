@@ -3219,6 +3219,9 @@
      "\n	-n	Do not daemonize" \
      "\n	-g	Set system time even if offset is > 1000 sec" \
      "\n	-q	Quit after clock is set" \
+/* -N exists for mostly compat reasons, thus Not essential to inform */ \
+/* the user that it exists: user may use nice as well */ \
+/*   "\n	-N	Run at high priority" */ \
      "\n	-l	Run as server on port 123" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 

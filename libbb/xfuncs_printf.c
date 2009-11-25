@@ -388,7 +388,7 @@ int FAST_FUNC xsocket(int domain, int type, int protocol)
 		if (domain == AF_PACKET) s = "PACKET";
 		if (domain == AF_NETLINK) s = "NETLINK";
 IF_FEATURE_IPV6(if (domain == AF_INET6) s = "INET6";)
-		bb_perror_msg_and_die("socket(AF_%s)", s);
+		bb_perror_msg_and_die("socket(AF_%s,%d,%d)", s, type, protocol);
 #else
 		bb_perror_msg_and_die("socket");
 #endif

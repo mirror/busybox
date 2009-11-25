@@ -1801,8 +1801,6 @@ static int match_opt(const char *fs_opt, const char *O_opt)
 
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
-static const char must_be_root[] ALIGN1 = "you must be root";
-
 int mount_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mount_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1871,7 +1869,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 		// argument when we get it.
 		if (argv[1]) {
 			if (nonroot)
-				bb_error_msg_and_die(must_be_root);
+				bb_error_msg_and_die(bb_msg_you_must_be_root);
 			mtpair->mnt_fsname = argv[0];
 			mtpair->mnt_dir = argv[1];
 			mtpair->mnt_type = fstype;
@@ -1888,7 +1886,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	i = parse_mount_options(cmdopts, NULL); // FIXME: should be "long", not "int"
 	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
-		bb_error_msg_and_die(must_be_root);
+		bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
 	if (ENABLE_FEATURE_MOUNT_FLAGS
@@ -1947,7 +1945,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			// No, mount -a won't mount anything,
 			// even user mounts, for mere humans
 			if (nonroot)
-				bb_error_msg_and_die(must_be_root);
+				bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 			// Does type match? (NULL matches always)
 			if (!match_fstype(mtcur, fstype))
@@ -2012,7 +2010,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			// fstab must have "users" or "user"
 			l = parse_mount_options(mtcur->mnt_opts, NULL);
 			if (!(l & MOUNT_USERS))
-				bb_error_msg_and_die(must_be_root);
+				bb_error_msg_and_die(bb_msg_you_must_be_root);
 		}
 
 		// Mount the last thing we found

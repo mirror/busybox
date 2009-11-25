@@ -1474,6 +1474,7 @@ extern const char bb_msg_write_error[];
 extern const char bb_msg_unknown[];
 extern const char bb_msg_can_not_create_raw_socket[];
 extern const char bb_msg_perm_denied_are_you_root[];
+extern const char bb_msg_you_must_be_root[];
 extern const char bb_msg_requires_arg[];
 extern const char bb_msg_invalid_arg[];
 extern const char bb_msg_standard_input[];
