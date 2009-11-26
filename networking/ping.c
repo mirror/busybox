@@ -690,7 +690,8 @@ static void ping6(len_and_sockaddr *lsa)
 			 /* don't check len - we trust the kernel: */
 			 /* && mp->cmsg_len >= CMSG_LEN(sizeof(int)) */
 			) {
-				hoplimit = *(int*)CMSG_DATA(mp);
+				/*hoplimit = *(int*)CMSG_DATA(mp); - unaligned access */
+				move_from_unaligned_int(hoplimit, CMSG_DATA(mp));
 			}
 		}
 		unpack6(packet, c, /*&from,*/ hoplimit);
