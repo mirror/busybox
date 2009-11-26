@@ -442,7 +442,7 @@ adjtime_wrap(void)
 	qsort(peers, offset_cnt, sizeof(peers[0]), offset_compare);
 
 	middle = offset_cnt / 2;
-	if ((offset_cnt & 1) == 0 && middle != 0) {
+	if (middle != 0 && (offset_cnt & 1) == 0) {
 		offset_median = (peers[middle-1]->update.offset + peers[middle]->update.offset) / 2;
 		G.status.rootdelay = (peers[middle-1]->update.delay + peers[middle]->update.delay) / 2;
 		G.status.stratum = MAX(peers[middle-1]->update.status.stratum, peers[middle]->update.status.stratum);
