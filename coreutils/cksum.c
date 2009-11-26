@@ -4,8 +4,8 @@
  *
  * Copyright (C) 2006 by Rob Sullivan, with ideas from code by Walter Harms
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details. */
-
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 #include "libbb.h"
 
 int cksum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
