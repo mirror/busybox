@@ -6,7 +6,6 @@
  *
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 /*
@@ -32,22 +31,23 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 		socklen_t tolen)
 {
 #ifndef IP_PKTINFO
+	(void)from; /* suppress "unused from" warning */
 	return sendto(fd, buf, len, flags, to, tolen);
 #else
 	struct iovec iov[1];
 	struct msghdr msg;
 	union {
 		char cmsg[CMSG_SPACE(sizeof(struct in_pktinfo))];
-#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
+# if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 		char cmsg6[CMSG_SPACE(sizeof(struct in6_pktinfo))];
-#endif
+# endif
 	} u;
 	struct cmsghdr* cmsgptr;
 
 	if (from->sa_family != AF_INET
-#if ENABLE_FEATURE_IPV6
+# if ENABLE_FEATURE_IPV6
 	 && from->sa_family != AF_INET6
-#endif
+# endif
 	) {
 		/* ANY local address */
 		return sendto(fd, buf, len, flags, to, tolen);
@@ -76,20 +76,26 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 		cmsgptr->cmsg_type = IP_PKTINFO;
 		cmsgptr->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
 		pktptr = (struct in_pktinfo *)(CMSG_DATA(cmsgptr));
-		/* pktptr->ipi_ifindex = 0; -- already done by memset(cbuf...) */
+		/*pktptr->ipi_ifindex = 0; -- already done by memset(u...) */
+		/* In general, CMSG_DATA() can be unaligned, but in this case
+		 * we know for sure it is sufficiently aligned:
+		 * CMSG_FIRSTHDR simply returns &u above,
+		 * and CMSG_DATA returns &u + size_t + int + int.
+		 * Thus direct assignment is ok:
+		 */
 		pktptr->ipi_spec_dst = ((struct sockaddr_in*)from)->sin_addr;
 	}
-#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
+# if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 	else if (to->sa_family == AF_INET6 && from->sa_family == AF_INET6) {
 		struct in6_pktinfo *pktptr;
 		cmsgptr->cmsg_level = IPPROTO_IPV6;
 		cmsgptr->cmsg_type = IPV6_PKTINFO;
 		cmsgptr->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		pktptr = (struct in6_pktinfo *)(CMSG_DATA(cmsgptr));
-		/* pktptr->ipi6_ifindex = 0; -- already done by memset(cbuf...) */
+		/* pktptr->ipi6_ifindex = 0; -- already done by memset(u...) */
 		pktptr->ipi6_addr = ((struct sockaddr_in6*)from)->sin6_addr;
 	}
-#endif
+# endif
 	msg.msg_controllen = cmsgptr->cmsg_len;
 
 	return sendmsg(fd, &msg, flags);
@@ -106,15 +112,16 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 		socklen_t sa_size)
 {
 #ifndef IP_PKTINFO
+	(void)to; /* suppress "unused to" warning */
 	return recvfrom(fd, buf, len, flags, from, &sa_size);
 #else
 	/* man recvmsg and man cmsg is needed to make sense of code below */
 	struct iovec iov[1];
 	union {
 		char cmsg[CMSG_SPACE(sizeof(struct in_pktinfo))];
-#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
+# if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 		char cmsg6[CMSG_SPACE(sizeof(struct in6_pktinfo))];
-#endif
+# endif
 	} u;
 	struct cmsghdr *cmsgptr;
 	struct msghdr msg;
@@ -135,6 +142,8 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 	if (recv_length < 0)
 		return recv_length;
 
+# define to4 ((struct sockaddr_in*)to)
+# define to6 ((struct sockaddr_in6*)to)
 	/* Here we try to retrieve destination IP and memorize it */
 	for (cmsgptr = CMSG_FIRSTHDR(&msg);
 			cmsgptr != NULL;
@@ -143,25 +152,27 @@ recv_from_to(int fd, void *buf, size_t len, int flags,
 		if (cmsgptr->cmsg_level == IPPROTO_IP
 		 && cmsgptr->cmsg_type == IP_PKTINFO
 		) {
-#define pktinfo(cmsgptr) ( (struct in_pktinfo*)(CMSG_DATA(cmsgptr)) )
+# define pktinfo(cmsgptr) ( (struct in_pktinfo*)(CMSG_DATA(cmsgptr)) )
 			to->sa_family = AF_INET;
-			((struct sockaddr_in*)to)->sin_addr = pktinfo(cmsgptr)->ipi_addr;
-			/* ((struct sockaddr_in*)to)->sin_port = 123; */
-#undef pktinfo
+			/*to4->sin_addr = pktinfo(cmsgptr)->ipi_addr; - may be unaligned */
+			memcpy(&to4->sin_addr, &pktinfo(cmsgptr)->ipi_addr, sizeof(to4->sin_addr));
+			/*to4->sin_port = 123; - this data is not supplied by kernel */
+# undef pktinfo
 			break;
 		}
-#if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
+# if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
 		if (cmsgptr->cmsg_level == IPPROTO_IPV6
 		 && cmsgptr->cmsg_type == IPV6_PKTINFO
 		) {
-#define pktinfo(cmsgptr) ( (struct in6_pktinfo*)(CMSG_DATA(cmsgptr)) )
+#  define pktinfo(cmsgptr) ( (struct in6_pktinfo*)(CMSG_DATA(cmsgptr)) )
 			to->sa_family = AF_INET6;
-			((struct sockaddr_in6*)to)->sin6_addr = pktinfo(cmsgptr)->ipi6_addr;
-			/* ((struct sockaddr_in6*)to)->sin6_port = 123; */
-#undef pktinfo
+			/*to6->sin6_addr = pktinfo(cmsgptr)->ipi6_addr; - may be unaligned */
+			memcpy(&to6->sin6_addr, &pktinfo(cmsgptr)->ipi6_addr, sizeof(to6->sin6_addr));
+			/*to6->sin6_port = 123; */
+#  undef pktinfo
 			break;
 		}
-#endif
+# endif
 	}
 	return recv_length;
 #endif
