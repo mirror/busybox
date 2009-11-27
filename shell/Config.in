@@ -15,6 +15,7 @@ choice
 config FEATURE_SH_IS_ASH
 	select ASH
 	bool "ash"
+	depends on !NOMMU
 
 config FEATURE_SH_IS_HUSH
 	select HUSH
@@ -36,6 +37,7 @@ endchoice
 config ASH
 	bool "ash"
 	default n
+	depends on !NOMMU
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
 	  the most complete and most pedantically correct shell included with

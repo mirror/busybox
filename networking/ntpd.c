@@ -892,6 +892,14 @@ static NOINLINE void ntp_init(char **argv)
 			&peers, &G.verbose);
 	if (!(opts & (OPT_p|OPT_l)))
 		bb_show_usage();
+	if (opts & OPT_g)
+		G.settime = 1;
+	while (peers)
+		add_peers(llist_pop(&peers));
+	if (!(opts & OPT_n)) {
+		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO, argv);
+		logmode = LOGMODE_NONE;
+	}
 #if ENABLE_FEATURE_NTPD_SERVER
 	G.listen_fd = -1;
 	if (opts & OPT_l) {
@@ -900,14 +908,6 @@ static NOINLINE void ntp_init(char **argv)
 		setsockopt(G.listen_fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
 	}
 #endif
-	if (opts & OPT_g)
-		G.settime = 1;
-	while (peers)
-		add_peers(llist_pop(&peers));
-	if (!(opts & OPT_n)) {
-		logmode = LOGMODE_NONE;
-		bb_daemonize(DAEMON_DEVNULL_STDIO);
-	}
 	/* I hesitate to set -20 prio. -15 should be high enough for timekeeping */
 	if (opts & OPT_N)
 		setpriority(PRIO_PROCESS, 0, -15);
