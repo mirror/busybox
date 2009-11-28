@@ -34,7 +34,7 @@ static const char mkdir_longopts[] ALIGN1 =
 #endif
 
 int mkdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mkdir_main(int argc, char **argv)
+int mkdir_main(int argc UNUSED_PARAM, char **argv)
 {
 	mode_t mode = (mode_t)(-1);
 	int status = EXIT_SUCCESS;
@@ -64,11 +64,9 @@ int mkdir_main(int argc, char **argv)
 	}
 #endif
 
-	if (optind == argc) {
-		bb_show_usage();
-	}
-
 	argv += optind;
+	if (!argv[0])
+		bb_show_usage();
 
 	do {
 		if (bb_make_directory(*argv, mode, flags)) {

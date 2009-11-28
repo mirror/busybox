@@ -463,9 +463,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	if (!argv[1] || argv[2])
-		bb_show_usage();
-	dir = argv[1];
+	dir = single_argv(argv);
 
 	xpiped_pair(selfpipe);
 	close_on_exec_on(selfpipe.rd);

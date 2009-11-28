@@ -15,13 +15,8 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int dirname_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dirname_main(int argc, char **argv)
+int dirname_main(int argc UNUSED_PARAM, char **argv)
 {
-	if (argc != 2) {
-		bb_show_usage();
-	}
-
-	puts(dirname(argv[1]));
-
+	puts(dirname(single_argv(argv)));
 	return fflush_all();
 }

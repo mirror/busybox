@@ -869,6 +869,7 @@ void bb_sanitize_stdio(void) FAST_FUNC;
 int sanitize_env_if_suid(void) FAST_FUNC;
 
 
+char* single_argv(char **argv) FAST_FUNC;
 extern const char *const bb_argv_dash[]; /* "-", NULL */
 extern const char *opt_complementary;
 #if ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG

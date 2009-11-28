@@ -56,7 +56,7 @@ static const char ret_code_descript[] =
 ;
 
 int adjtimex_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int adjtimex_main(int argc, char **argv)
+int adjtimex_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		OPT_quiet = 0x1
@@ -66,10 +66,11 @@ int adjtimex_main(int argc, char **argv)
 	struct timex txc;
 	int i, ret;
 	const char *descript;
-	txc.modes=0;
 
+	opt_complementary = "=0"; /* no valid non-option parameters */
 	opt = getopt32(argv, "qo:f:p:t:",
 			&opt_o, &opt_f, &opt_p, &opt_t);
+	txc.modes = 0;
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o
 		txc.offset = xatol(opt_o);
@@ -86,9 +87,6 @@ int adjtimex_main(int argc, char **argv)
 	if (opt & 0x10) { // -t
 		txc.tick = xatol(opt_t);
 		txc.modes |= ADJ_TICK;
-	}
-	if (argc != optind) { /* no valid non-option parameters */
-		bb_show_usage();
 	}
 
 	ret = adjtimex(&txc);

@@ -6,19 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 int chvt_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int chvt_main(int argc, char **argv)
+int chvt_main(int argc UNUSED_PARAM, char **argv)
 {
-	int num;
-
-	if (argc != 2) {
-		bb_show_usage();
-	}
-
-	num = xatou_range(argv[1], 1, 63);
+	int num = xatou_range(single_argv(argv), 1, 63);
 	console_make_active(get_console_fd_or_die(), num);
 	return EXIT_SUCCESS;
 }

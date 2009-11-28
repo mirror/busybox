@@ -92,6 +92,7 @@ lib-y += setup_environment.o
 lib-y += sha1.o
 lib-y += signals.o
 lib-y += simplify_path.o
+lib-y += single_argv.o
 lib-y += skip_whitespace.o
 lib-y += speed_table.o
 lib-y += str_tolower.o

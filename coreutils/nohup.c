@@ -32,14 +32,14 @@ nohup: redirecting stderr to stdout
 */
 
 int nohup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int nohup_main(int argc, char **argv)
+int nohup_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *nohupout;
 	char *home;
 
 	xfunc_error_retval = 127;
 
-	if (argc < 2) bb_show_usage();
+	if (!argv[1]) bb_show_usage();
 
 	/* If stdin is a tty, detach from it. */
 	if (isatty(STDIN_FILENO)) {

@@ -2821,7 +2821,7 @@ unknown_command(int c)
 #endif
 
 int fdisk_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int fdisk_main(int argc, char **argv)
+int fdisk_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	/*
@@ -2839,7 +2839,6 @@ int fdisk_main(int argc, char **argv)
 	opt_complementary = "b+:C+:H+:S+"; /* numeric params */
 	opt = getopt32(argv, "b:C:H:lS:u" IF_FEATURE_FDISK_BLKSIZE("s"),
 				&sector_size, &user_cylinders, &user_heads, &user_sectors);
-	argc -= optind;
 	argv += optind;
 	if (opt & OPT_b) { // -b
 		/* Ugly: this sector size is really per device,
@@ -2883,14 +2882,14 @@ int fdisk_main(int argc, char **argv)
 		int j;
 
 		nowarn = 1;
-		if (argc <= 0)
+		if (!argv[0])
 			bb_show_usage();
-		for (j = 0; j < argc; j++) {
+		for (j = 0; argv[j]; j++) {
 			unsigned long long size;
 			fd = xopen(argv[j], O_RDONLY);
 			size = bb_BLKGETSIZE_sectors(fd) / 2;
 			close(fd);
-			if (argc == 1)
+			if (argv[1])
 				printf("%llu\n", size);
 			else
 				printf("%s: %llu\n", argv[j], size);
@@ -2900,7 +2899,7 @@ int fdisk_main(int argc, char **argv)
 #endif
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
-	if (argc != 1)
+	if (!argv[0] || argv[1])
 		bb_show_usage();
 
 	disk_device = argv[0];

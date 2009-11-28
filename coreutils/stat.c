@@ -640,29 +640,29 @@ static bool do_stat(const char *filename, const char *format)
 }
 
 int stat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int stat_main(int argc, char **argv)
+int stat_main(int argc UNUSED_PARAM, char **argv)
 {
 	IF_FEATURE_STAT_FORMAT(char *format = NULL;)
 	int i;
-	int ok = 1;
+	int ok;
+	unsigned opts;
 	statfunc_ptr statfunc = do_stat;
 
-	getopt32(argv, "ftL"
+	opt_complementary = "-1"; /* min one arg */
+	opts = getopt32(argv, "ftL"
 		IF_SELINUX("Z")
 		IF_FEATURE_STAT_FORMAT("c:", &format)
 	);
-
-	if (option_mask32 & OPT_FILESYS) /* -f */
+	if (opts & OPT_FILESYS) /* -f */
 		statfunc = do_statfs;
-	if (argc == optind)           /* files */
-		bb_show_usage();
-
 #if ENABLE_SELINUX
-	if (option_mask32 & OPT_SELINUX) {
+	if (opts & OPT_SELINUX) {
 		selinux_or_die();
 	}
-#endif	/* ENABLE_SELINUX */
-	for (i = optind; i < argc; ++i)
+#endif
+	ok = 1;
+	argv += optind;
+	for (i = 0; argv[i]; ++i)
 		ok &= statfunc(argv[i] IF_FEATURE_STAT_FORMAT(, format));
 
 	return (ok ? EXIT_SUCCESS : EXIT_FAILURE);

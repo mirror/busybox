@@ -26,7 +26,7 @@ int ln_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ln_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
-	int flag;
+	int opts;
 	char *last;
 	char *src_name;
 	char *src;
@@ -34,11 +34,8 @@ int ln_main(int argc, char **argv)
 	struct stat statbuf;
 	int (*link_func)(const char *, const char *);
 
-	flag = getopt32(argv, "sfnbS:", &suffix);
-
-	if (argc == optind) {
-		bb_show_usage();
-	}
+	opt_complementary = "-1"; /* min one arg */
+	opts = getopt32(argv, "sfnbS:", &suffix);
 
 	last = argv[argc - 1];
 	argv += optind;
@@ -53,7 +50,7 @@ int ln_main(int argc, char **argv)
 		src = last;
 
 		if (is_directory(src,
-		                (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
+		                (opts & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
 		                NULL)
 		) {
 			src_name = xstrdup(*argv);
@@ -61,7 +58,7 @@ int ln_main(int argc, char **argv)
 			free(src_name);
 			src_name = src;
 		}
-		if (!(flag & LN_SYMLINK) && stat(*argv, &statbuf)) {
+		if (!(opts & LN_SYMLINK) && stat(*argv, &statbuf)) {
 			// coreutils: "ln dangling_symlink new_hardlink" works
 			if (lstat(*argv, &statbuf) || !S_ISLNK(statbuf.st_mode)) {
 				bb_simple_perror_msg(*argv);
@@ -71,7 +68,7 @@ int ln_main(int argc, char **argv)
 			}
 		}
 
-		if (flag & LN_BACKUP) {
+		if (opts & LN_BACKUP) {
 			char *backup;
 			backup = xasprintf("%s%s", src, suffix);
 			if (rename(src, backup) < 0 && errno != ENOENT) {
@@ -87,12 +84,12 @@ int ln_main(int argc, char **argv)
 			 * Therefore, always unlink().
 			 */
 			unlink(src);
-		} else if (flag & LN_FORCE) {
+		} else if (opts & LN_FORCE) {
 			unlink(src);
 		}
 
 		link_func = link;
-		if (flag & LN_SYMLINK) {
+		if (opts & LN_SYMLINK) {
 			link_func = symlink;
 		}
 

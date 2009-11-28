@@ -35,7 +35,7 @@ static unsigned long kscale(unsigned long b, unsigned long bs)
 #endif
 
 int df_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int df_main(int argc, char **argv)
+int df_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned long blocks_used;
 	unsigned blocks_percent_used;
@@ -105,7 +105,7 @@ int df_main(int argc, char **argv)
 
 	mount_table = NULL;
 	argv += optind;
-	if (optind >= argc) {
+	if (!argv[0]) {
 		mount_table = setmntent(bb_path_mtab_file, "r");
 		if (!mount_table)
 			bb_perror_msg_and_die(bb_path_mtab_file);

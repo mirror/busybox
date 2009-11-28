@@ -1156,7 +1156,7 @@ static void set_control_char_or_die(const struct control_info *info,
 #define STTY_noargs             (1 << 4)
 
 int stty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int stty_main(int argc, char **argv)
+int stty_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct termios mode;
 	void (*output_func)(const struct termios *, const int);
@@ -1211,8 +1211,10 @@ int stty_main(int argc, char **argv)
 						if (!file_name)
 							bb_error_msg_and_die(bb_msg_requires_arg, "-F");
 						/* remove -F param from arg[vc] */
-						--argc;
-						while (argv[p]) { argv[p] = argv[p+1]; ++p; }
+						while (argv[p]) {
+							argv[p] = argv[p+1];
+							++p;
+						}
 					}
 					goto end_option;
 				default:
