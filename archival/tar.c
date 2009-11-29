@@ -136,7 +136,6 @@ static void addHardLinkInfo(HardLinkInfo **hlInfoHeadPtr,
 	hlInfo->dev = statbuf->st_dev;
 	hlInfo->ino = statbuf->st_ino;
 //	hlInfo->linkCount = statbuf->st_nlink;
-//TODO: "normalize" the name so that "./name/" == "name" etc?
 	strcpy(hlInfo->name, fileName);
 }
 
@@ -156,15 +155,12 @@ static void freeHardLinkInfo(HardLinkInfo **hlInfoHeadPtr)
 	}
 }
 
-/* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf, const char *filename)
+/* Might be faster (and bigger) if the dev/ino were stored in numeric order ;) */
+static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf)
 {
 	while (hlInfo) {
-		if ((statbuf->st_ino == hlInfo->ino)
-		 && (statbuf->st_dev == hlInfo->dev)
-		/* Name must NOT match. Think "tar cf t.tar file file"
-		 * (same file tarred twice) */
-		 && strcmp(filename, hlInfo->name) != 0
+		if (statbuf->st_ino == hlInfo->ino
+		 && statbuf->st_dev == hlInfo->dev
 		) {
 			DBG("found hardlink:'%s'", hlInfo->name);
 			break;
@@ -448,7 +444,7 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	tbInfo->hlInfo = NULL;
 	if (!S_ISDIR(statbuf->st_mode) && statbuf->st_nlink > 1) {
 		DBG("'%s': st_nlink > 1", header_name);
-		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf, header_name);
+		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf);
 		if (tbInfo->hlInfo == NULL) {
 			DBG("'%s': addHardLinkInfo", header_name);
 			addHardLinkInfo(&tbInfo->hlInfoHead, statbuf, header_name);
@@ -627,8 +623,8 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 	while (include) {
 		if (!recursive_action(include->data, ACTION_RECURSE |
 				(dereferenceFlag ? ACTION_FOLLOWLINKS : 0),
-				writeFileToTarball, writeFileToTarball, &tbInfo, 0))
-		{
+				writeFileToTarball, writeFileToTarball, &tbInfo, 0)
+		) {
 			errorFlag = TRUE;
 		}
 		include = include->link;
@@ -970,24 +966,21 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Open the tar file */
 	{
-		FILE *tar_stream;
-		int flags;
+		int tar_fd = STDIN_FILENO;
+		int flags = O_RDONLY;
 
 		if (opt & OPT_CREATE) {
 			/* Make sure there is at least one file to tar up.  */
 			if (tar_handle->accept == NULL)
 				bb_error_msg_and_die("empty archive");
 
-			tar_stream = stdout;
+			tar_fd = STDOUT_FILENO;
 			/* Mimicking GNU tar 1.15.1: */
 			flags = O_WRONLY | O_CREAT | O_TRUNC;
-		} else {
-			tar_stream = stdin;
-			flags = O_RDONLY;
 		}
 
 		if (LONE_DASH(tar_filename)) {
-			tar_handle->src_fd = fileno(tar_stream);
+			tar_handle->src_fd = tar_fd;
 			tar_handle->seek = seek_by_read;
 		} else {
 			if (ENABLE_FEATURE_TAR_AUTODETECT && flags == O_RDONLY) {
