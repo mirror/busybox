@@ -1,0 +1,35 @@
+#!/bin/sh
+# Copyright 2009 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. ./testing.sh
+
+mkdir tempdir && cd tempdir || exit 1
+
+# testing "test name" "script" "expected result" "file input" "stdin"
+
+testing "tar hardlinks and repeated files" \
+">input_hard1
+ln input_hard1 input_hard2
+mkdir input_dir
+>input_dir/file
+tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input
+tar tvf test.tar | sed 's/.*[0-9] input/input/'
+tar xf test.tar 2>&1 && echo Ok
+" \
+"input
+input_dir/
+input_dir/file
+input_hard1
+input_hard2 -> input_hard1
+input_hard1 -> input_hard1
+input_dir/
+input_dir/file
+input
+Ok
+" \
+"" ""
+
+cd .. && rm -rf tempdir || exit 1
+
+exit $FAILCOUNT
