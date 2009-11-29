@@ -2622,12 +2622,10 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 #if ENABLE_SH_MATH_SUPPORT
 # define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8) | (d << 12))
-static const uint16_t S_I_T[] =
 #else
 # define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8))
-static const uint16_t S_I_T[] =
 #endif
-{
+static const uint16_t S_I_T[] = {
 #if ENABLE_ASH_ALIAS
 	SIT_ITEM(CSPCL   , CIGN     , CIGN , CIGN   ),    /* 0, PEOA */
 #endif
