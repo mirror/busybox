@@ -26,11 +26,14 @@
 #include <fnmatch.h>
 #include "libbb.h"
 #include "unarchive.h"
-
 /* FIXME: Stop using this non-standard feature */
 #ifndef FNM_LEADING_DIR
-#define FNM_LEADING_DIR 0
+# define FNM_LEADING_DIR 0
 #endif
+
+
+//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
+#define DBG(...) ((void)0)
 
 
 #define block_buf bb_common_bufsiz1
@@ -52,8 +55,7 @@
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
 #define NAME_SIZE      100
 #define NAME_SIZE_STR "100"
-typedef struct TarHeader TarHeader;
-struct TarHeader {		  /* byte offset */
+typedef struct TarHeader {       /* byte offset */
 	char name[NAME_SIZE];     /*   0-99 */
 	char mode[8];             /* 100-107 */
 	char uid[8];              /* 108-115 */
@@ -75,39 +77,38 @@ struct TarHeader {		  /* byte offset */
 	char devminor[8];         /* 337-344 */
 	char prefix[155];         /* 345-499 */
 	char padding[12];         /* 500-512 (pad to exactly TAR_BLOCK_SIZE) */
-};
+} TarHeader;
 
 /*
 ** writeTarFile(), writeFileToTarball(), and writeTarHeader() are
 ** the only functions that deal with the HardLinkInfo structure.
 ** Even these functions use the xxxHardLinkInfo() functions.
 */
-typedef struct HardLinkInfo HardLinkInfo;
-struct HardLinkInfo {
-	HardLinkInfo *next;     /* Next entry in list */
-	dev_t dev;              /* Device number */
-	ino_t ino;              /* Inode number */
-	short linkCount;        /* (Hard) Link Count */
-	char name[1];           /* Start of filename (must be last) */
-};
+typedef struct HardLinkInfo {
+	struct HardLinkInfo *next; /* Next entry in list */
+	dev_t dev;                 /* Device number */
+	ino_t ino;                 /* Inode number */
+//	short linkCount;           /* (Hard) Link Count */
+	char name[1];              /* Start of filename (must be last) */
+} HardLinkInfo;
 
 /* Some info to be carried along when creating a new tarball */
-typedef struct TarBallInfo TarBallInfo;
-struct TarBallInfo {
+typedef struct TarBallInfo {
 	int tarFd;                      /* Open-for-write file descriptor
 	                                 * for the tarball */
-	struct stat statBuf;            /* Stat info for the tarball, letting
-	                                 * us know the inode and device that the
-	                                 * tarball lives, so we can avoid trying
-	                                 * to include the tarball into itself */
 	int verboseFlag;                /* Whether to print extra stuff or not */
 	const llist_t *excludeList;     /* List of files to not include */
 	HardLinkInfo *hlInfoHead;       /* Hard Link Tracking Information */
 	HardLinkInfo *hlInfo;           /* Hard Link Info for the current file */
-};
+//TODO: save only st_dev + st_ino
+	struct stat tarFileStatBuf;     /* Stat info for the tarball, letting
+	                                 * us know the inode and device that the
+	                                 * tarball lives, so we can avoid trying
+	                                 * to include the tarball into itself */
+} TarBallInfo;
 
 /* A nice enum with all the possible tar file content types */
-enum TarFileType {
+enum {
 	REGTYPE = '0',		/* regular file */
 	REGTYPE0 = '\0',	/* regular file (ancient bug compat) */
 	LNKTYPE = '1',		/* hard link */
@@ -120,7 +121,6 @@ enum TarFileType {
 	GNULONGLINK = 'K',	/* GNU long (>100 chars) link name */
 	GNULONGNAME = 'L',	/* GNU long (>100 chars) file name */
 };
-typedef enum TarFileType TarFileType;
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
 static void addHardLinkInfo(HardLinkInfo **hlInfoHeadPtr,
@@ -135,7 +135,8 @@ static void addHardLinkInfo(HardLinkInfo **hlInfoHeadPtr,
 	*hlInfoHeadPtr = hlInfo;
 	hlInfo->dev = statbuf->st_dev;
 	hlInfo->ino = statbuf->st_ino;
-	hlInfo->linkCount = statbuf->st_nlink;
+//	hlInfo->linkCount = statbuf->st_nlink;
+//TODO: "normalize" the name so that "./name/" == "name" etc?
 	strcpy(hlInfo->name, fileName);
 }
 
@@ -156,11 +157,18 @@ static void freeHardLinkInfo(HardLinkInfo **hlInfoHeadPtr)
 }
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf)
+static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf, const char *filename)
 {
 	while (hlInfo) {
-		if ((statbuf->st_ino == hlInfo->ino) && (statbuf->st_dev == hlInfo->dev))
+		if ((statbuf->st_ino == hlInfo->ino)
+		 && (statbuf->st_dev == hlInfo->dev)
+		/* Name must NOT match. Think "tar cf t.tar file file"
+		 * (same file tarred twice) */
+		 && strcmp(filename, hlInfo->name) != 0
+		) {
+			DBG("found hardlink:'%s'", hlInfo->name);
 			break;
+		}
 		hlInfo = hlInfo->next;
 	}
 	return hlInfo;
@@ -171,7 +179,7 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo *hlInfo, struct stat *statbuf
  * Stores low-order bits only if whole value does not fit. */
 static void putOctal(char *cp, int len, off_t value)
 {
-	char tempBuffer[sizeof(off_t)*3+1];
+	char tempBuffer[sizeof(off_t)*3 + 1];
 	char *tempString = tempBuffer;
 	int width;
 
@@ -376,16 +384,19 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 	while (excluded_files) {
 		if (excluded_files->data[0] == '/') {
 			if (fnmatch(excluded_files->data, file,
-						FNM_PATHNAME | FNM_LEADING_DIR) == 0)
+					FNM_PATHNAME | FNM_LEADING_DIR) == 0)
 				return 1;
 		} else {
 			const char *p;
 
 			for (p = file; p[0] != '\0'; p++) {
-				if ((p == file || p[-1] == '/') && p[0] != '/' &&
-					fnmatch(excluded_files->data, p,
-							FNM_PATHNAME | FNM_LEADING_DIR) == 0)
+				if ((p == file || p[-1] == '/')
+				 && p[0] != '/'
+				 && fnmatch(excluded_files->data, p,
+						FNM_PATHNAME | FNM_LEADING_DIR) == 0
+				) {
 					return 1;
+				}
 			}
 		}
 		excluded_files = excluded_files->link;
@@ -394,7 +405,7 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 	return 0;
 }
 #else
-#define exclude_file(excluded_files, file) 0
+# define exclude_file(excluded_files, file) 0
 #endif
 
 static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statbuf,
@@ -403,6 +414,8 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *) userData;
 	const char *header_name;
 	int inputFileFd = -1;
+
+	DBG("writeFileToTarball('%s')", fileName);
 
 	/* Strip leading '/' (must be before memorizing hardlink's name) */
 	header_name = fileName;
@@ -433,17 +446,20 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 	 * by adding the file information to the HardLinkInfo linked list.
 	 */
 	tbInfo->hlInfo = NULL;
-	if (statbuf->st_nlink > 1) {
-		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf);
-		if (tbInfo->hlInfo == NULL)
+	if (!S_ISDIR(statbuf->st_mode) && statbuf->st_nlink > 1) {
+		DBG("'%s': st_nlink > 1", header_name);
+		tbInfo->hlInfo = findHardLinkInfo(tbInfo->hlInfoHead, statbuf, header_name);
+		if (tbInfo->hlInfo == NULL) {
+			DBG("'%s': addHardLinkInfo", header_name);
 			addHardLinkInfo(&tbInfo->hlInfoHead, statbuf, header_name);
+		}
 	}
 
 	/* It is a bad idea to store the archive we are in the process of creating,
 	 * so check the device and inode to be sure that this particular file isn't
 	 * the new tarball */
-	if (tbInfo->statBuf.st_dev == statbuf->st_dev
-	 && tbInfo->statBuf.st_ino == statbuf->st_ino
+	if (tbInfo->tarFileStatBuf.st_dev == statbuf->st_dev
+	 && tbInfo->tarFileStatBuf.st_ino == statbuf->st_ino
 	) {
 		bb_error_msg("%s: file is the archive; skipping", fileName);
 		return TRUE;
@@ -505,37 +521,37 @@ static int FAST_FUNC writeFileToTarball(const char *fileName, struct stat *statb
 }
 
 #if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
-#if !(ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2)
-#define vfork_compressor(tar_fd, gzip) vfork_compressor(tar_fd)
-#endif
+# if !(ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2)
+#  define vfork_compressor(tar_fd, gzip) vfork_compressor(tar_fd)
+# endif
 /* Don't inline: vfork scares gcc and pessimizes code */
 static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 {
 	pid_t gzipPid;
-#if ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2
+# if ENABLE_FEATURE_SEAMLESS_GZ && ENABLE_FEATURE_SEAMLESS_BZ2
 	const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
-#elif ENABLE_FEATURE_SEAMLESS_GZ
+# elif ENABLE_FEATURE_SEAMLESS_GZ
 	const char *zip_exec = "gzip";
-#else /* only ENABLE_FEATURE_SEAMLESS_BZ2 */
+# else /* only ENABLE_FEATURE_SEAMLESS_BZ2 */
 	const char *zip_exec = "bzip2";
-#endif
+# endif
 	// On Linux, vfork never unpauses parent early, although standard
 	// allows for that. Do we want to waste bytes checking for it?
-#define WAIT_FOR_CHILD 0
+# define WAIT_FOR_CHILD 0
 	volatile int vfork_exec_errno = 0;
 	struct fd_pair gzipDataPipe;
-#if WAIT_FOR_CHILD
+# if WAIT_FOR_CHILD
 	struct fd_pair gzipStatusPipe;
 	xpiped_pair(gzipStatusPipe);
-#endif
+# endif
 	xpiped_pair(gzipDataPipe);
 
 	signal(SIGPIPE, SIG_IGN); /* we only want EPIPE on errors */
 
-#if defined(__GNUC__) && __GNUC__
+# if defined(__GNUC__) && __GNUC__
 	/* Avoid vfork clobbering */
 	(void) &zip_exec;
-#endif
+# endif
 
 	gzipPid = vfork();
 	if (gzipPid < 0)
@@ -545,12 +561,12 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 		/* child */
 		/* NB: close _first_, then move fds! */
 		close(gzipDataPipe.wr);
-#if WAIT_FOR_CHILD
+# if WAIT_FOR_CHILD
 		close(gzipStatusPipe.rd);
 		/* gzipStatusPipe.wr will close only on exec -
 		 * parent waits for this close to happen */
 		fcntl(gzipStatusPipe.wr, F_SETFD, FD_CLOEXEC);
-#endif
+# endif
 		xmove_fd(gzipDataPipe.rd, 0);
 		xmove_fd(tar_fd, 1);
 		/* exec gzip/bzip2 program/applet */
@@ -562,7 +578,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 	/* parent */
 	xmove_fd(gzipDataPipe.wr, tar_fd);
 	close(gzipDataPipe.rd);
-#if WAIT_FOR_CHILD
+# if WAIT_FOR_CHILD
 	close(gzipStatusPipe.wr);
 	while (1) {
 		char buf;
@@ -574,7 +590,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 			continue;	/* try it again */
 	}
 	close(gzipStatusPipe.rd);
-#endif
+# endif
 	if (vfork_exec_errno) {
 		errno = vfork_exec_errno;
 		bb_perror_msg_and_die("can't execute '%s'", zip_exec);
@@ -597,7 +613,7 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
-	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
+	if (fstat(tbInfo.tarFd, &tbInfo.tarFileStatBuf) < 0)
 		bb_perror_msg_and_die("can't stat tar file");
 
 #if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
@@ -675,7 +691,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 	return newlist;
 }
 #else
-#define append_file_list_to_list(x) 0
+# define append_file_list_to_list(x) 0
 #endif
 
 #if ENABLE_FEATURE_SEAMLESS_Z
@@ -700,7 +716,7 @@ static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
 	return EXIT_FAILURE;
 }
 #else
-#define get_header_tar_Z NULL
+# define get_header_tar_Z NULL
 #endif
 
 #ifdef CHECK_FOR_CHILD_EXITCODE

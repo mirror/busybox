@@ -13,9 +13,12 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	int res;
 
 	if (archive_handle->ah_flags & ARCHIVE_CREATE_LEADING_DIRS) {
-		char *name = xstrdup(file_header->name);
-		bb_make_directory(dirname(name), -1, FILEUTILS_RECUR);
-		free(name);
+		char *slash = strrchr(file_header->name, '/');
+		if (slash) {
+			*slash = '\0';
+			bb_make_directory(file_header->name, -1, FILEUTILS_RECUR);
+			*slash = '/';
+		}
 	}
 
 	if (archive_handle->ah_flags & ARCHIVE_UNLINK_OLD) {
@@ -52,8 +55,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 
 	/* Handle hard links separately
 	 * We identified hard links as regular files of size 0 with a symlink */
-	if (S_ISREG(file_header->mode) && (file_header->link_target)
-	 && (file_header->size == 0)
+	if (S_ISREG(file_header->mode)
+	 && file_header->link_target
+	 && file_header->size == 0
 	) {
 		/* hard link */
 		res = link(file_header->link_target, file_header->name);
@@ -121,6 +125,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			gid_t gid = file_header->gid;
 
 			if (file_header->uname) {
+//TODO: cache last name/id pair?
 				struct passwd *pwd = getpwnam(file_header->uname);
 				if (pwd) uid = pwd->pw_uid;
 			}
@@ -128,7 +133,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				struct group *grp = getgrnam(file_header->gname);
 				if (grp) gid = grp->gr_gid;
 			}
-			/* GNU tar 1.15.1 use chown, not lchown */
+			/* GNU tar 1.15.1 uses chown, not lchown */
 			chown(file_header->name, uid, gid);
 		} else
 #endif
