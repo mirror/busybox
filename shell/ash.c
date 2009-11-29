@@ -2621,50 +2621,54 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 
 #if ENABLE_SH_MATH_SUPPORT
-static const uint8_t S_I_T[][4] = {
-# if ENABLE_ASH_ALIAS
-	{ CSPCL, CIGN, CIGN, CIGN },            /* 0, PEOA */
-# endif
-	{ CSPCL, CWORD, CWORD, CWORD },         /* 1, ' ' */
-	{ CNL, CNL, CNL, CNL },                 /* 2, \n */
-	{ CWORD, CCTL, CCTL, CWORD },           /* 3, !*-/:=?[]~ */
-	{ CDQUOTE, CENDQUOTE, CWORD, CWORD },   /* 4, '"' */
-	{ CVAR, CVAR, CWORD, CVAR },            /* 5, $ */
-	{ CSQUOTE, CWORD, CENDQUOTE, CWORD },   /* 6, "'" */
-	{ CSPCL, CWORD, CWORD, CLP },           /* 7, ( */
-	{ CSPCL, CWORD, CWORD, CRP },           /* 8, ) */
-	{ CBACK, CBACK, CCTL, CBACK },          /* 9, \ */
-	{ CBQUOTE, CBQUOTE, CWORD, CBQUOTE },   /* 10, ` */
-	{ CENDVAR, CENDVAR, CWORD, CENDVAR },   /* 11, } */
-# ifndef USE_SIT_FUNCTION
-	{ CENDFILE, CENDFILE, CENDFILE, CENDFILE }, /* 12, PEOF */
-	{ CWORD, CWORD, CWORD, CWORD },         /* 13, 0-9A-Za-z */
-	{ CCTL, CCTL, CCTL, CCTL }              /* 14, CTLESC ... */
-# endif
-};
+# define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8) | (d << 12))
+static const uint16_t S_I_T[] =
 #else
-static const uint8_t S_I_T[][3] = {
-# if ENABLE_ASH_ALIAS
-	{ CSPCL, CIGN, CIGN },                  /* 0, PEOA */
-# endif
-	{ CSPCL, CWORD, CWORD },                /* 1, ' ' */
-	{ CNL, CNL, CNL },                      /* 2, \n */
-	{ CWORD, CCTL, CCTL },                  /* 3, !*-/:=?[]~ */
-	{ CDQUOTE, CENDQUOTE, CWORD },          /* 4, '"' */
-	{ CVAR, CVAR, CWORD },                  /* 5, $ */
-	{ CSQUOTE, CWORD, CENDQUOTE },          /* 6, "'" */
-	{ CSPCL, CWORD, CWORD },                /* 7, ( */
-	{ CSPCL, CWORD, CWORD },                /* 8, ) */
-	{ CBACK, CBACK, CCTL },                 /* 9, \ */
-	{ CBQUOTE, CBQUOTE, CWORD },            /* 10, ` */
-	{ CENDVAR, CENDVAR, CWORD },            /* 11, } */
-# ifndef USE_SIT_FUNCTION
-	{ CENDFILE, CENDFILE, CENDFILE },       /* 12, PEOF */
-	{ CWORD, CWORD, CWORD },                /* 13, 0-9A-Za-z */
-	{ CCTL, CCTL, CCTL }                    /* 14, CTLESC ... */
-# endif
+# define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8))
+static const uint16_t S_I_T[] =
+#endif
+{
+#if ENABLE_ASH_ALIAS
+	SIT_ITEM(CSPCL   , CIGN     , CIGN , CIGN   ),    /* 0, PEOA */
+#endif
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CWORD  ),    /* 1, ' ' */
+	SIT_ITEM(CNL     , CNL      , CNL  , CNL    ),    /* 2, \n */
+	SIT_ITEM(CWORD   , CCTL     , CCTL , CWORD  ),    /* 3, !*-/:=?[]~ */
+	SIT_ITEM(CDQUOTE , CENDQUOTE, CWORD, CWORD  ),    /* 4, '"' */
+	SIT_ITEM(CVAR    , CVAR     , CWORD, CVAR   ),    /* 5, $ */
+	SIT_ITEM(CSQUOTE , CWORD    , CENDQUOTE, CWORD),  /* 6, "'" */
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CLP    ),    /* 7, ( */
+	SIT_ITEM(CSPCL   , CWORD    , CWORD, CRP    ),    /* 8, ) */
+	SIT_ITEM(CBACK   , CBACK    , CCTL , CBACK  ),    /* 9, \ */
+	SIT_ITEM(CBQUOTE , CBQUOTE  , CWORD, CBQUOTE),    /* 10, ` */
+	SIT_ITEM(CENDVAR , CENDVAR  , CWORD, CENDVAR),    /* 11, } */
+#ifndef USE_SIT_FUNCTION
+	SIT_ITEM(CENDFILE, CENDFILE , CENDFILE, CENDFILE),/* 12, PEOF */
+	SIT_ITEM(CWORD   , CWORD    , CWORD, CWORD  ),    /* 13, 0-9A-Za-z */
+	SIT_ITEM(CCTL    , CCTL     , CCTL , CCTL   )     /* 14, CTLESC ... */
+#endif
+#undef SIT_ITEM
 };
-#endif /* SH_MATH_SUPPORT */
+/* Constants below must match table above */
+enum {
+#if ENABLE_ASH_ALIAS
+	CSPCL_CIGN_CIGN_CIGN               , /*  0 */
+#endif
+	CSPCL_CWORD_CWORD_CWORD            , /*  1 */
+	CNL_CNL_CNL_CNL                    , /*  2 */
+	CWORD_CCTL_CCTL_CWORD              , /*  3 */
+	CDQUOTE_CENDQUOTE_CWORD_CWORD      , /*  4 */
+	CVAR_CVAR_CWORD_CVAR               , /*  5 */
+	CSQUOTE_CWORD_CENDQUOTE_CWORD      , /*  6 */
+	CSPCL_CWORD_CWORD_CLP              , /*  7 */
+	CSPCL_CWORD_CWORD_CRP              , /*  8 */
+	CBACK_CBACK_CCTL_CBACK             , /*  9 */
+	CBQUOTE_CBQUOTE_CWORD_CBQUOTE      , /* 10 */
+	CENDVAR_CENDVAR_CWORD_CENDVAR      , /* 11 */
+	CENDFILE_CENDFILE_CENDFILE_CENDFILE, /* 12 */
+	CWORD_CWORD_CWORD_CWORD            , /* 13 */
+	CCTL_CCTL_CCTL_CCTL                , /* 14 */
+};
 
 /* c in SIT(c, syntax) must be an *unsigned char* or PEOA or PEOF,
  * caller must ensure proper cast on it if c is *char_ptr!
@@ -2714,45 +2718,12 @@ SIT(int c, int syntax)
 		}
 		indx = syntax_index_table[s - spec_symbls];
 	}
-	return S_I_T[indx][syntax];
+	return (S_I_T[indx] >> (syntax*4)) & 0xf;
 }
 
 #else   /* !USE_SIT_FUNCTION */
 
-# if ENABLE_ASH_ALIAS
-#  define CSPCL_CIGN_CIGN_CIGN                 0
-#  define CSPCL_CWORD_CWORD_CWORD              1
-#  define CNL_CNL_CNL_CNL                      2
-#  define CWORD_CCTL_CCTL_CWORD                3
-#  define CDQUOTE_CENDQUOTE_CWORD_CWORD        4
-#  define CVAR_CVAR_CWORD_CVAR                 5
-#  define CSQUOTE_CWORD_CENDQUOTE_CWORD        6
-#  define CSPCL_CWORD_CWORD_CLP                7
-#  define CSPCL_CWORD_CWORD_CRP                8
-#  define CBACK_CBACK_CCTL_CBACK               9
-#  define CBQUOTE_CBQUOTE_CWORD_CBQUOTE       10
-#  define CENDVAR_CENDVAR_CWORD_CENDVAR       11
-#  define CENDFILE_CENDFILE_CENDFILE_CENDFILE 12
-#  define CWORD_CWORD_CWORD_CWORD             13
-#  define CCTL_CCTL_CCTL_CCTL                 14
-# else
-#  define CSPCL_CWORD_CWORD_CWORD              0
-#  define CNL_CNL_CNL_CNL                      1
-#  define CWORD_CCTL_CCTL_CWORD                2
-#  define CDQUOTE_CENDQUOTE_CWORD_CWORD        3
-#  define CVAR_CVAR_CWORD_CVAR                 4
-#  define CSQUOTE_CWORD_CENDQUOTE_CWORD        5
-#  define CSPCL_CWORD_CWORD_CLP                6
-#  define CSPCL_CWORD_CWORD_CRP                7
-#  define CBACK_CBACK_CCTL_CBACK               8
-#  define CBQUOTE_CBQUOTE_CWORD_CBQUOTE        9
-#  define CENDVAR_CENDVAR_CWORD_CENDVAR       10
-#  define CENDFILE_CENDFILE_CENDFILE_CENDFILE 11
-#  define CWORD_CWORD_CWORD_CWORD             12
-#  define CCTL_CCTL_CCTL_CCTL                 13
-# endif
-
-static const uint8_t syntax_index_table[258] = {
+static const uint8_t syntax_index_table[] = {
 	/* BASESYNTAX_DQSYNTAX_SQSYNTAX_ARISYNTAX */
 	/*   0      */ CWORD_CWORD_CWORD_CWORD,
 	/*   1      */ CWORD_CWORD_CWORD_CWORD,
@@ -3016,9 +2987,9 @@ static const uint8_t syntax_index_table[258] = {
 	/* PEOF */     CENDFILE_CENDFILE_CENDFILE_CENDFILE,
 };
 
-# define SIT(c, syntax) (S_I_T[syntax_index_table[c]][syntax])
+# define SIT(c, syntax) ((S_I_T[syntax_index_table[c]] >> (syntax*4)) & 0xf)
 
-#endif  /* USE_SIT_FUNCTION */
+#endif  /* !USE_SIT_FUNCTION */
 
 
 /* ============ Alias handling */
@@ -10437,7 +10408,7 @@ noexpand(const char *text)
 			continue;
 		if (c == CTLESC)
 			text++;
-		else if (SIT((signed char)c, BASESYNTAX) == CCTL)
+		else if (SIT(c, BASESYNTAX) == CCTL)
 			return 0;
 	}
 	return 1;
@@ -11398,8 +11369,10 @@ parsebackq: {
 					continue;
 				}
 				if (pc != '\\' && pc != '`' && pc != '$'
-				 && (!dblquote || pc != '"'))
+				 && (!dblquote || pc != '"')
+				) {
 					STPUTC('\\', pout);
+				}
 				if (pc <= 255 /* not PEOA or PEOF */) {
 					break;
 				}
