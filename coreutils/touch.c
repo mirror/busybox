@@ -54,8 +54,8 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 # endif
 	char *reference_file = NULL;
 	char *date_str = NULL;
-	struct timeval timebuf;
-	timebuf.tv_usec = 0;
+	struct timeval timebuf[2];
+	timebuf[1].tv_usec = timebuf[0].tv_usec = 0;
 #else
 # define reference_file NULL
 # define date_str       NULL
@@ -84,7 +84,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	if (reference_file) {
 		struct stat stbuf;
 		xstat(reference_file, &stbuf);
-		timebuf.tv_sec = stbuf.st_mtime;
+		timebuf[1].tv_sec = timebuf[0].tv_sec = stbuf.st_mtime;
 	}
 
 	if (date_str) {
@@ -100,11 +100,11 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		tm_time.tm_isdst = -1;	/* Be sure to recheck dst */
 		t = validate_tm_time(date_str, &tm_time);
 
-		timebuf.tv_sec = t;
+		timebuf[1].tv_sec = timebuf[0].tv_sec = t;
 	}
 
 	do {
-		if (utimes(*argv, reference_file ? &timebuf : NULL)) {
+		if (utimes(*argv, reference_file ? timebuf : NULL)) {
 			if (errno == ENOENT) { /* no such file */
 				if (opts) { /* creation is disabled, so ignore */
 					continue;
@@ -115,7 +115,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 						  );
 				if ((fd >= 0) && !close(fd)) {
 					if (reference_file)
-						utimes(*argv, &timebuf);
+						utimes(*argv, timebuf);
 					continue;
 				}
 			}

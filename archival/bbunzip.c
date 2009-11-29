@@ -105,15 +105,15 @@ int FAST_FUNC bbunpack(char **argv,
 			if (status >= 0) {
 				/* TODO: restore other things? */
 				if (info.mtime) {
-					struct timeval times;
+					struct timeval times[2];
 
-					times.tv_sec = info.mtime;
-					times.tv_usec = 0;
+					times[1].tv_sec = times[0].tv_sec = info.mtime;
+					times[1].tv_usec = times[0].tv_usec = 0;
 					/* Note: we closed it first.
 					 * On some systems calling utimes
 					 * then closing resets the mtime
 					 * back to current time. */
-					utimes(new_name, &times); /* ignoring errors */
+					utimes(new_name, times); /* ignoring errors */
 				}
 
 				/* Delete _compressed_ file */
