@@ -446,6 +446,7 @@ out2str(const char *p)
 /* ============ Parser structures */
 
 /* control characters in argument strings */
+#define CTL_FIRST CTLESC
 #define CTLESC       ((unsigned char)'\201')    /* escape next character */
 #define CTLVAR       ((unsigned char)'\202')    /* variable defn */
 #define CTLENDVAR    ((unsigned char)'\203')
@@ -455,6 +456,7 @@ out2str(const char *p)
 #define CTLARI       ((unsigned char)'\206')    /* arithmetic expression */
 #define CTLENDARI    ((unsigned char)'\207')
 #define CTLQUOTEMARK ((unsigned char)'\210')
+#define CTL_LAST CTLQUOTEMARK
 
 /* variable substitution byte (follows CTLVAR) */
 #define VSTYPE  0x0f            /* type of variable substitution */
@@ -2602,23 +2604,12 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #define CSPCL    13             /* these terminate a word */
 #define CIGN     14             /* character should be ignored */
 
+#define PEOF     256
 #if ENABLE_ASH_ALIAS
-# define PEOA         256
-# define PEOF         257
-#else
-# define PEOF         256
+# define PEOA    257
 #endif
 
-/* number syntax index */
-#define BASESYNTAX 0    /* not in quotes */
-#define DQSYNTAX   1    /* in double quotes */
-#define SQSYNTAX   2    /* in single quotes */
-#define ARISYNTAX  3    /* in arithmetic */
-#define PSSYNTAX   4    /* prompt */
-
-#if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-# define USE_SIT_FUNCTION
-#endif
+#define USE_SIT_FUNCTION ENABLE_ASH_OPTIMIZE_FOR_SIZE
 
 #if ENABLE_SH_MATH_SUPPORT
 # define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8) | (d << 12))
@@ -2640,7 +2631,7 @@ static const uint16_t S_I_T[] = {
 	SIT_ITEM(CBACK   , CBACK    , CCTL , CBACK  ),    /* 9, \ */
 	SIT_ITEM(CBQUOTE , CBQUOTE  , CWORD, CBQUOTE),    /* 10, ` */
 	SIT_ITEM(CENDVAR , CENDVAR  , CWORD, CENDVAR),    /* 11, } */
-#ifndef USE_SIT_FUNCTION
+#if !USE_SIT_FUNCTION
 	SIT_ITEM(CENDFILE, CENDFILE , CENDFILE, CENDFILE),/* 12, PEOF */
 	SIT_ITEM(CWORD   , CWORD    , CWORD, CWORD  ),    /* 13, 0-9A-Za-z */
 	SIT_ITEM(CCTL    , CCTL     , CCTL , CCTL   )     /* 14, CTLESC ... */
@@ -2671,8 +2662,14 @@ enum {
 /* c in SIT(c, syntax) must be an *unsigned char* or PEOA or PEOF,
  * caller must ensure proper cast on it if c is *char_ptr!
  */
+/* Values for syntax param */
+#define BASESYNTAX 0    /* not in quotes */
+#define DQSYNTAX   1    /* in double quotes */
+#define SQSYNTAX   2    /* in single quotes */
+#define ARISYNTAX  3    /* in arithmetic */
+#define PSSYNTAX   4    /* prompt. never passed to SIT() */
 
-#ifdef USE_SIT_FUNCTION
+#if USE_SIT_FUNCTION
 
 static int
 SIT(int c, int syntax)
@@ -2696,24 +2693,24 @@ SIT(int c, int syntax)
 	const char *s;
 	int indx;
 
-	if (c == PEOF) {         /* 2^8+2 */
+	if (c == PEOF)
 		return CENDFILE;
-	}
 # if ENABLE_ASH_ALIAS
-	if (c == PEOA) {         /* 2^8+1 */
+	if (c == PEOA)
 		indx = 0;
-	} else
+	else
 # endif
 	{
-		if ((unsigned char)c >= CTLESC
-		 && (unsigned char)c <= CTLQUOTEMARK
+		/* Cast is purely for paranoia here,
+		 * just in case someone passed signed char to us */
+		if ((unsigned char)c >= CTL_FIRST
+		 && (unsigned char)c <= CTL_LAST
 		) {
 			return CCTL;
 		}
 		s = strchrnul(spec_symbls, c);
-		if (*s == '\0') {
+		if (*s == '\0')
 			return CWORD;
-		}
 		indx = syntax_index_table[s - spec_symbls];
 	}
 	return (S_I_T[indx] >> (syntax*4)) & 0xf;
@@ -2979,13 +2976,13 @@ static const uint8_t syntax_index_table[] = {
 	/* 253      */ CWORD_CWORD_CWORD_CWORD,
 	/* 254      */ CWORD_CWORD_CWORD_CWORD,
 	/* 255      */ CWORD_CWORD_CWORD_CWORD,
+	/* PEOF */     CENDFILE_CENDFILE_CENDFILE_CENDFILE,
 # if ENABLE_ASH_ALIAS
 	/* PEOA */     CSPCL_CIGN_CIGN_CIGN,
 # endif
-	/* PEOF */     CENDFILE_CENDFILE_CENDFILE_CENDFILE,
 };
 
-# define SIT(c, syntax) ((S_I_T[syntax_index_table[c]] >> (syntax*4)) & 0xf)
+# define SIT(c, syntax) ((S_I_T[syntax_index_table[c]] >> ((syntax)*4)) & 0xf)
 
 #endif  /* !USE_SIT_FUNCTION */
 
@@ -9544,17 +9541,14 @@ pgetc(void)
 }
 
 #if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-#define pgetc_fast() pgetc()
+# define pgetc_fast() pgetc()
 #else
-#define pgetc_fast() pgetc_as_macro()
+# define pgetc_fast() pgetc_as_macro()
 #endif
 
-/*
- * Same as pgetc(), but ignores PEOA.
- */
 #if ENABLE_ASH_ALIAS
 static int
-pgetc2(void)
+pgetc_without_PEOA(void)
 {
 	int c;
 	do {
@@ -9567,7 +9561,7 @@ pgetc2(void)
 	return c;
 }
 #else
-#define pgetc2() pgetc()
+# define pgetc_without_PEOA() pgetc()
 #endif
 
 /*
@@ -9581,7 +9575,7 @@ pfgets(char *line, int len)
 	int c;
 
 	while (--nleft > 0) {
-		c = pgetc2();
+		c = pgetc_without_PEOA();
 		if (c == PEOF) {
 			if (p == line)
 				return NULL;
@@ -10891,7 +10885,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				USTPUTC(c, out);
 				break;
 			case CBACK:     /* backslash */
-				c = pgetc2();
+				c = pgetc_without_PEOA();
 				if (c == PEOF) {
 					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
@@ -11005,9 +10999,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 #endif
 					goto endword;   /* exit outer loop */
 				}
-#if ENABLE_ASH_ALIAS
-				if (c != PEOA)
-#endif
+				IF_ASH_ALIAS(if (c != PEOA))
 					USTPUTC(c, out);
 
 			}
@@ -11059,13 +11051,12 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 checkend: {
 	if (eofmark) {
 #if ENABLE_ASH_ALIAS
-		if (c == PEOA) {
-			c = pgetc2();
-		}
+		if (c == PEOA)
+			c = pgetc_without_PEOA();
 #endif
 		if (striptabs) {
 			while (c == '\t') {
-				c = pgetc2();
+				c = pgetc_without_PEOA();
 			}
 		}
 		if (c == *eofmark) {
@@ -11377,9 +11368,7 @@ parsebackq: {
 				/* fall through */
 
 			case PEOF:
-#if ENABLE_ASH_ALIAS
-			case PEOA:
-#endif
+			IF_ASH_ALIAS(case PEOA:)
 				startlinno = g_parsefile->linno;
 				raise_error_syntax("EOF in backquote substitution");
 
@@ -11596,9 +11585,7 @@ xxreadtoken(void)
 		c = pgetc_fast();
 		switch (c) {
 		case ' ': case '\t':
-#if ENABLE_ASH_ALIAS
-		case PEOA:
-#endif
+		IF_ASH_ALIAS(case PEOA:)
 			continue;
 		case '#':
 			while ((c = pgetc()) != '\n' && c != PEOF)
