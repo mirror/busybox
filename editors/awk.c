@@ -516,7 +516,7 @@ static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
 #endif
 
-static void zero_out_var(var * vp)
+static void zero_out_var(var *vp)
 {
 	memset(vp, 0, sizeof(*vp));
 }
@@ -533,7 +533,8 @@ static unsigned hashidx(const char *name)
 {
 	unsigned idx = 0;
 
-	while (*name) idx = *name++ + (idx << 6) - idx;
+	while (*name)
+		idx = *name++ + (idx << 6) - idx;
 	return idx;
 }
 
@@ -542,9 +543,9 @@ static xhash *hash_init(void)
 {
 	xhash *newhash;
 
-	newhash = xzalloc(sizeof(xhash));
+	newhash = xzalloc(sizeof(*newhash));
 	newhash->csize = FIRST_PRIME;
-	newhash->items = xzalloc(newhash->csize * sizeof(hash_item *));
+	newhash->items = xzalloc(FIRST_PRIME * sizeof(newhash->items[0]));
 
 	return newhash;
 }
@@ -554,7 +555,7 @@ static void *hash_search(xhash *hash, const char *name)
 {
 	hash_item *hi;
 
-	hi = hash->items [ hashidx(name) % hash->csize ];
+	hi = hash->items[hashidx(name) % hash->csize];
 	while (hi) {
 		if (strcmp(hi->name, name) == 0)
 			return &(hi->data);
@@ -573,7 +574,7 @@ static void hash_rebuild(xhash *hash)
 		return;
 
 	newsize = PRIMES[hash->nprime++];
-	newitems = xzalloc(newsize * sizeof(hash_item *));
+	newitems = xzalloc(newsize * sizeof(newitems[0]));
 
 	for (i = 0; i < hash->csize; i++) {
 		hi = hash->items[i];
@@ -659,9 +660,8 @@ static void skip_spaces(char **s)
 static char *nextword(char **s)
 {
 	char *p = *s;
-
-	while (*(*s)++) /* */;
-
+	while (*(*s)++)
+		continue;
 	return p;
 }
 
@@ -671,8 +671,10 @@ static char nextchar(char **s)
 
 	c = *((*s)++);
 	pps = *s;
-	if (c == '\\') c = bb_process_escape_sequence((const char**)s);
-	if (c == '\\' && *s == pps) c = *((*s)++);
+	if (c == '\\')
+		c = bb_process_escape_sequence((const char**)s);
+	if (c == '\\' && *s == pps)
+		c = *((*s)++);
 	return c;
 }
 
@@ -754,10 +756,10 @@ static var *setvar_s(var *v, const char *value)
 	return setvar_p(v, (value && *value) ? xstrdup(value) : NULL);
 }
 
-/* same as setvar_s but set USER flag */
+/* same as setvar_s but sets USER flag */
 static var *setvar_u(var *v, const char *value)
 {
-	setvar_s(v, value);
+	v = setvar_s(v, value);
 	v->type |= VF_USER;
 	return v;
 }
@@ -842,7 +844,7 @@ static var *copyvar(var *dest, const var *src)
 
 static var *incvar(var *v)
 {
-	return setvar_i(v, getvar_i(v) + 1.);
+	return setvar_i(v, getvar_i(v) + 1.0);
 }
 
 /* return true if v is number or numeric string */
@@ -856,8 +858,8 @@ static int is_numeric(var *v)
 static int istrue(var *v)
 {
 	if (is_numeric(v))
-		return (v->number == 0) ? 0 : 1;
-	return (v->string && *(v->string)) ? 1 : 0;
+		return (v->number != 0);
+	return (v->string && v->string[0]);
 }
 
 /* temporary variables allocator. Last allocated should be first freed */
@@ -869,7 +871,8 @@ static var *nvalloc(int n)
 
 	while (g_cb) {
 		pb = g_cb;
-		if ((g_cb->pos - g_cb->nv) + n <= g_cb->size) break;
+		if ((g_cb->pos - g_cb->nv) + n <= g_cb->size)
+			break;
 		g_cb = g_cb->next;
 	}
 
@@ -880,7 +883,8 @@ static var *nvalloc(int n)
 		g_cb->pos = g_cb->nv;
 		g_cb->prev = pb;
 		/*g_cb->next = NULL; - xzalloc did it */
-		if (pb) pb->next = g_cb;
+		if (pb)
+			pb->next = g_cb;
 	}
 
 	v = r = g_cb->pos;
@@ -1143,9 +1147,11 @@ static node *parse_expr(uint32_t iexp)
 			/* for binary and postfix-unary operators, jump back over
 			 * previous operators with higher priority */
 			vn = cn;
-			while ( ((t_info & PRIMASK) > (vn->a.n->info & PRIMASK2))
-			 || ((t_info == vn->info) && ((t_info & OPCLSMASK) == OC_COLON)) )
+			while (((t_info & PRIMASK) > (vn->a.n->info & PRIMASK2))
+			    || ((t_info == vn->info) && ((t_info & OPCLSMASK) == OC_COLON))
+			) {
 				vn = vn->a.n;
+			}
 			if ((t_info & OPCLSMASK) == OC_TERNARY)
 				t_info += P(6);
 			cn = vn->a.n->r.n = new_node(t_info);
@@ -1985,17 +1991,20 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 		}
 
 		sp += eo;
-		if (i == nm) break;
+		if (i == nm)
+			break;
 		if (eo == so) {
 			ds[di] = *sp++;
-			if (!ds[di++]) break;
+			if (!ds[di++])
+				break;
 		}
 	}
 
 	qrealloc(&ds, di + strlen(sp), &dssize);
 	strcpy(ds + di, sp);
 	setvar_p(dest, ds);
-	if (re == &sreg) regfree(re);
+	if (re == &sreg)
+		regfree(re);
 	return i;
 }
 
@@ -2438,7 +2447,7 @@ static var *evaluate(node *op, var *res)
 			if (!op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
-			X.v = R.v = nvalloc(op->r.f->nargs+1);
+			X.v = R.v = nvalloc(op->r.f->nargs + 1);
 			while (op1) {
 				L.v = evaluate(nextarg(&op1), v1);
 				copyvar(R.v, L.v);
@@ -2610,7 +2619,7 @@ static var *evaluate(node *op, var *res)
 				R.d--;
 				goto r_op_change;
 			case '!':
-				L.d = istrue(X.v) ? 0 : 1;
+				L.d = !istrue(X.v);
 				break;
 			case '-':
 				L.d = -R.d;
@@ -2670,7 +2679,8 @@ static var *evaluate(node *op, var *res)
 				L.d *= R.d;
 				break;
 			case '/':
-				if (R.d == 0) syntax_error(EMSG_DIV_BY_ZERO);
+				if (R.d == 0)
+					syntax_error(EMSG_DIV_BY_ZERO);
 				L.d /= R.d;
 				break;
 			case '&':
@@ -2681,7 +2691,8 @@ static var *evaluate(node *op, var *res)
 #endif
 				break;
 			case '%':
-				if (R.d == 0) syntax_error(EMSG_DIV_BY_ZERO);
+				if (R.d == 0)
+					syntax_error(EMSG_DIV_BY_ZERO);
 				L.d -= (int)(L.d / R.d) * R.d;
 				break;
 			}
@@ -2707,7 +2718,7 @@ static var *evaluate(node *op, var *res)
 				R.i = (L.d == 0);
 				break;
 			}
-			setvar_i(res, (opn & 0x1 ? R.i : !R.i) ? 1 : 0);
+			setvar_i(res, (opn & 1 ? R.i : !R.i) ? 1 : 0);
 			break;
 
 		default:
@@ -2789,7 +2800,8 @@ static rstream *next_input_file(void)
 	FILE *F = NULL;
 	const char *fname, *ind;
 
-	if (rsm.F) fclose(rsm.F);
+	if (rsm.F)
+		fclose(rsm.F);
 	rsm.F = NULL;
 	rsm.pos = rsm.adv = 0;
 
@@ -2929,7 +2941,8 @@ int awk_main(int argc, char **argv)
 		awk_exit(EXIT_SUCCESS);
 
 	/* input file could already be opened in BEGIN block */
-	if (!iF) iF = next_input_file();
+	if (!iF)
+		iF = next_input_file();
 
 	/* passing through input files */
 	while (iF) {
