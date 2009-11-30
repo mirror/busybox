@@ -2424,17 +2424,19 @@ static var *evaluate(node *op, var *res)
 			X.re = as_regex(op1, &sreg);
 			R.i = regexec(X.re, L.s, 0, NULL, 0);
 			if (X.re == &sreg) regfree(X.re);
-			setvar_i(res, (R.i == 0 ? 1 : 0) ^ (opn == '!' ? 1 : 0));
+			setvar_i(res, (R.i == 0) ^ (opn == '!'));
 			break;
 
 		case XC( OC_MOVE ):
 			/* if source is a temporary string, jusk relink it to dest */
-			if (R.v == v1+1 && R.v->string) {
-				res = setvar_p(L.v, R.v->string);
-				R.v->string = NULL;
-			} else {
+//Disabled: if R.v is numeric but happens to have cached R.v->string,
+//then L.v ends up being a string, which is wrong
+//			if (R.v == v1+1 && R.v->string) {
+//				res = setvar_p(L.v, R.v->string);
+//				R.v->string = NULL;
+//			} else {
 				res = copyvar(L.v, R.v);
-			}
+//			}
 			break;
 
 		case XC( OC_TERNARY ):
