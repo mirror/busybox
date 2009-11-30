@@ -59,7 +59,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 #else
 # define reference_file NULL
 # define date_str       NULL
-# define timebuf        (*(struct timeval*)NULL)
+# define timebuf        ((struct timeval*)NULL)
 #endif
 
 #if ENABLE_DESKTOP && ENABLE_LONG_OPTS
@@ -104,16 +104,15 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	do {
-		if (utimes(*argv, reference_file ? timebuf : NULL)) {
+		if (utimes(*argv, reference_file ? timebuf : NULL) != 0) {
 			if (errno == ENOENT) { /* no such file */
 				if (opts) { /* creation is disabled, so ignore */
 					continue;
 				}
-				/* Try to create the file. */
-				fd = open(*argv, O_RDWR | O_CREAT,
-						  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
-						  );
-				if ((fd >= 0) && !close(fd)) {
+				/* Try to create the file */
+				fd = open(*argv, O_RDWR | O_CREAT, 0666);
+				if (fd >= 0) {
+					xclose(fd);
 					if (reference_file)
 						utimes(*argv, timebuf);
 					continue;
