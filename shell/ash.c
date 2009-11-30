@@ -6349,22 +6349,16 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 static NOINLINE ssize_t
 varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 {
-	int num;
 	const char *p;
+	int num;
 	int i;
-	int sep = 0;
 	int sepq = 0;
 	ssize_t len = 0;
-	char **ap;
-	int syntax;
-	int quoted = varflags & VSQUOTE;
 	int subtype = varflags & VSTYPE;
 	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
+	int quoted = varflags & VSQUOTE;
+	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
 
-	if (quoted && (flags & EXP_FULL))
-		sep = 1 << CHAR_BIT;
-
-	syntax = quoted ? DQSYNTAX : BASESYNTAX;
 	switch (*name) {
 	case '$':
 		num = rootpid;
@@ -6397,13 +6391,20 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 			raise_error_syntax("bad substitution");
 #endif
 		break;
-	case '@':
-		if (sep)
+	case '@': {
+		char **ap;
+		int sep;
+
+		if (quoted && (flags & EXP_FULL)) {
+			/* note: this is not meant as PEOF value */
+			sep = 1 << CHAR_BIT;
 			goto param;
+		}
 		/* fall through */
 	case '*':
 		sep = ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
-		if (quotes && (SIT(sep, syntax) == CCTL || SIT(sep, syntax) == CBACK))
+		i = SIT(sep, syntax);
+		if (quotes && (i == CCTL || i == CBACK))
 			sepq = 1;
  param:
 		ap = shellparam.p;
@@ -6428,11 +6429,14 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 				q = expdest;
 				if (sepq)
 					STPUTC(CTLESC, q);
+				/* note: may put NUL despite sep != 0
+				 * (see sep = 1 << CHAR_BIT above) */
 				STPUTC(sep, q);
 				expdest = q;
 			}
 		}
 		return len;
+	} /* case '@' and '*' */
 	case '0':
 	case '1':
 	case '2':
@@ -6464,7 +6468,8 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 					break;
 				eq++;
 				if (name_len == (unsigned)(eq - str)
-				 && strncmp(str, name, name_len) == 0) {
+				 && strncmp(str, name, name_len) == 0
+				) {
 					p = eq;
 					/* goto value; - WRONG! */
 					/* think "A=1 A=2 B=$A" */
