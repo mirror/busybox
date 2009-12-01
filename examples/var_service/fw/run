@@ -1,5 +1,8 @@
 #!/bin/bash
-# (using bashisms: "function", arrays)
+# (using bashism: arrays)
+
+service="${PWD##*/}"
+rundir="/var/run/service/$service"
 
 user=root
 extif=if
@@ -9,9 +12,6 @@ ext_open_tcp="21 22 80" # space-separated
 sv o .
 # Debug
 #date '+%Y-%m-%d %H:%M:%S' >>"$0.log"
-
-service=`basename "$PWD"`
-rundir="/var/run/service/$service"
 
 ### filter This is the default table (if no -t option is passed).  It contains
 ###        the  built-in chains INPUT (for packets coming into the box itself),

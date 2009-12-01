@@ -180,8 +180,8 @@ struct globals {
 	llist_t		*ntp_peers;
 	ntp_status_t	status;
 	uint32_t	scale;
-	uint8_t		settime;
-	uint8_t		firstadj;
+	uint8_t		time_is_set;
+	uint8_t		first_adj_done;
 };
 #define G (*ptr_to_globals)
 
@@ -454,23 +454,25 @@ adjtime_wrap(void)
 	G.status.leap = peers[middle]->update.status.leap;
 
 	bb_info_msg("adjusting local clock by %fs", offset_median);
-
+	errno = 0;
 	d_to_tv(offset_median, &tv);
-	if (adjtime(&tv, &olddelta) == -1)
-		bb_error_msg("adjtime failed");
-	else if (!G.firstadj
+	if (adjtime(&tv, &olddelta) == -1) {
+		bb_perror_msg("adjtime failed"); //TODO: maybe _and_die?
+	} else
+	if (G.first_adj_done
 	 && olddelta.tv_sec == 0
 	 && olddelta.tv_usec == 0
 	 && !G.status.synced
 	) {
 		bb_info_msg("clock synced");
 		G.status.synced = 1;
-	} else if (G.status.synced) {
+	} else
+	if (G.status.synced) {
 		bb_info_msg("clock unsynced");
 		G.status.synced = 0;
 	}
 
-	G.firstadj = 0;
+	G.first_adj_done = 1;
 	G.status.reftime = gettime1900fp();
 	G.status.stratum++;	/* one more than selected peer */
 	G.scale = updated_scale(offset_median);
@@ -495,7 +497,7 @@ adjtime_wrap(void)
 }
 
 static void
-settime(double offset)
+step_time_once(double offset)
 {
 	ntp_peer_t *p;
 	llist_t		*item;
@@ -503,10 +505,9 @@ settime(double offset)
 	char		buf[80];
 	time_t		tval;
 
-	if (!G.settime)
+	if (G.time_is_set)
 		goto bail;
-
-	G.settime = 0;
+	G.time_is_set = 1;
 
 	/* if the offset is small, don't call settimeofday */
 	if (offset < SETTIME_MIN_OFFSET && offset > -SETTIME_MIN_OFFSET)
@@ -514,6 +515,7 @@ settime(double offset)
 
 	gettimeofday(&curtime, NULL); /* never fails */
 
+//isn't it simpler to: offset += curtime.tv_sec; offset += 1.0e-6 * curtime.tv_usec?
 	d_to_tv(offset, &tv);
 	curtime.tv_usec += tv.tv_usec + 1000000;
 	curtime.tv_sec += tv.tv_sec - 1 + (curtime.tv_usec / 1000000);
@@ -708,7 +710,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 			offset->offset, offset->delay, (int) interval);
 
 	update_peer_data(p);
-	settime(offset->offset);
+	step_time_once(offset->offset);
 
 	p->shift++;
 	if (p->shift >= OFFSET_ARRAY_SIZE)
@@ -892,8 +894,9 @@ static NOINLINE void ntp_init(char **argv)
 			&peers, &G.verbose);
 	if (!(opts & (OPT_p|OPT_l)))
 		bb_show_usage();
-	if (opts & OPT_g)
-		G.settime = 1;
+//WRONG
+//	if (opts & OPT_g)
+//		G.time_is_set = 1;
 	while (peers)
 		add_peers(llist_pop(&peers));
 	if (!(opts & OPT_n)) {
@@ -931,7 +934,6 @@ static NOINLINE void ntp_init(char **argv)
 		G.status.precision = prec;
 	}
 	G.scale = 1;
-	G.firstadj = 1;
 
 	bb_signals((1 << SIGTERM) | (1 << SIGINT), record_signo);
 	bb_signals((1 << SIGPIPE) | (1 << SIGHUP), SIG_IGN);
@@ -1019,7 +1021,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		if ((trial_cnt > 0 && sent_cnt == 0) || g.peer_cnt == 0)
-			settime(0); /* no good peers, don't wait */
+			step_time_once(0); /* no good peers, don't wait */
 
 		timeout = nextaction - cur_time;
 		if (timeout < 0)
