@@ -67,26 +67,20 @@ enum {
 };
 
 typedef struct {
-	uint8_t     status;     /* status of local clock and leap info */
-	uint8_t     stratum;    /* stratum level */
-	uint8_t     ppoll;      /* poll value */
-	int8_t      precision;
-	s_fixedpt_t rootdelay;
-	s_fixedpt_t dispersion;
-	uint32_t    refid;
-	l_fixedpt_t reftime;
-	l_fixedpt_t orgtime;
-	l_fixedpt_t rectime;
-	l_fixedpt_t xmttime;
-	uint32_t    keyid;
-	uint8_t     digest[NTP_DIGESTSIZE];
+	uint8_t     m_status;     /* status of local clock and leap info */
+	uint8_t     m_stratum;    /* stratum level */
+	uint8_t     m_ppoll;      /* poll value */
+	int8_t      m_precision;
+	s_fixedpt_t m_rootdelay;
+	s_fixedpt_t m_dispersion;
+	uint32_t    m_refid;
+	l_fixedpt_t m_reftime;
+	l_fixedpt_t m_orgtime;
+	l_fixedpt_t m_rectime;
+	l_fixedpt_t m_xmttime;
+	uint32_t    m_keyid;
+	uint8_t     m_digest[NTP_DIGESTSIZE];
 } ntp_msg_t;
-
-typedef struct {
-	int       fd;
-	ntp_msg_t msg;
-	double    xmttime;
-} ntp_query_t;
 
 enum {
 	NTP_VERSION	= 4,
@@ -116,48 +110,38 @@ enum {
 
 #define OFFSET_1900_1970 2208988800UL  /* 1970 - 1900 in seconds */
 
-enum client_state {
+typedef struct {
+	double		o_offset;
+	double		o_delay;
+	//UNUSED: double		o_error;
+	time_t		o_rcvd;
+	uint32_t	o_refid4;
+	uint8_t		o_leap;
+	uint8_t		o_stratum;
+	uint8_t		o_good;
+} ntp_offset_t;
+
+typedef struct {
+//TODO: periodically re-resolve DNS names?
+	len_and_sockaddr	*lsa;
+	char			*dotted;
+	double			xmttime;
+	time_t			next;
+	time_t			deadline;
+	int			fd;
+	uint8_t			state;
+	uint8_t			shift;
+	uint8_t			trustlevel;
+	ntp_msg_t		msg;
+	ntp_offset_t		update;
+	ntp_offset_t		reply[OFFSET_ARRAY_SIZE];
+} ntp_peer_t;
+/* for ntp_peer_t::state */
+enum {
 	STATE_NONE,
 	STATE_QUERY_SENT,
 	STATE_REPLY_RECEIVED,
 };
-
-typedef struct {
-	double		rootdelay;
-	double		rootdispersion;
-	double		reftime;
-	uint32_t	refid;
-	uint32_t	refid4;
-	uint8_t		synced;
-	uint8_t		leap;
-	int8_t		precision;
-	uint8_t		poll;
-	uint8_t		stratum;
-} ntp_status_t;
-
-typedef struct {
-	ntp_status_t	status;
-	double		offset;
-	double		delay;
-	double		error;
-	time_t		rcvd;
-	uint8_t		good;
-} ntp_offset_t;
-
-typedef struct {
-//TODO:
-// (1) store dotted addr str, to avoid constant translations
-// (2) periodically re-resolve DNS names
-	len_and_sockaddr	*lsa;
-	ntp_query_t		query;
-	ntp_offset_t		reply[OFFSET_ARRAY_SIZE];
-	ntp_offset_t		update;
-	enum client_state	state;
-	time_t			next;
-	time_t			deadline;
-	uint8_t			shift;
-	uint8_t			trustlevel;
-} ntp_peer_t;
 
 enum {
 	OPT_n = (1 << 0),
@@ -172,14 +156,21 @@ enum {
 
 
 struct globals {
-	unsigned	verbose;
+	double		rootdelay;
+	double		reftime;
+	llist_t		*ntp_peers;
 #if ENABLE_FEATURE_NTPD_SERVER
 	int		listen_fd;
 #endif
+	unsigned	verbose;
 	unsigned	peer_cnt;
-	llist_t		*ntp_peers;
-	ntp_status_t	status;
+	uint32_t	refid;
+	uint32_t	refid4;
 	uint32_t	scale;
+	uint8_t		synced;
+	uint8_t		leap;
+	int8_t		precision;
+	uint8_t		stratum;
 	uint8_t		time_is_set;
 	uint8_t		first_adj_done;
 };
@@ -190,7 +181,7 @@ static const int const_IPTOS_LOWDELAY = IPTOS_LOWDELAY;
 
 
 static void
-set_next(ntp_peer_t *p, time_t t)
+set_next(ntp_peer_t *p, unsigned t)
 {
 	p->next = time(NULL) + t;
 	p->deadline = 0;
@@ -204,12 +195,12 @@ add_peers(const char *s)
 	p = xzalloc(sizeof(*p));
 //TODO: big ntpd uses all IPs, not just 1st, do we need to mimic that?
 	p->lsa = xhost2sockaddr(s, 123);
-	p->query.fd = -1;
-	p->query.msg.status = MODE_CLIENT | (NTP_VERSION << 3);
+	p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
+	p->fd = -1;
+	p->msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	if (STATE_NONE != 0)
 		p->state = STATE_NONE;
 	p->trustlevel = TRUSTLEVEL_PATHETIC;
-	p->query.fd = -1;
 	set_next(p, 0);
 
 	llist_add_to(&G.ntp_peers, p);
@@ -241,6 +232,7 @@ lfp_to_d(l_fixedpt_t lfp)
 	return ret;
 }
 
+#if 0 //UNUSED
 static double
 sfp_to_d(s_fixedpt_t sfp)
 {
@@ -250,6 +242,7 @@ sfp_to_d(s_fixedpt_t sfp)
 	ret = (double)sfp.int_parts + ((double)sfp.fractions / USHRT_MAX);
 	return ret;
 }
+#endif
 
 #if ENABLE_FEATURE_NTPD_SERVER
 static l_fixedpt_t
@@ -282,17 +275,17 @@ set_deadline(ntp_peer_t *p, time_t t)
 	p->next = 0;
 }
 
-static time_t
+static unsigned
 error_interval(void)
 {
-	time_t interval, r;
+	unsigned interval, r;
 	interval = INTERVAL_QUERY_PATHETIC * QSCALE_OFF_MAX / QSCALE_OFF_MIN;
-	r = (unsigned)random() % (unsigned long)(interval / 10);
+	r = (unsigned)random() % (unsigned)(interval / 10);
 	return (interval + r);
 }
 
 static int
-sendmsg_wrap(int fd,
+do_sendto(int fd,
 		const struct sockaddr *from, const struct sockaddr *to, socklen_t addrlen,
 		ntp_msg_t *msg, ssize_t len)
 {
@@ -331,16 +324,16 @@ send_query_to_peer(ntp_peer_t *p)
 	// Uncomment this and use strace to see it in action:
 #define PROBE_LOCAL_ADDR // { len_and_sockaddr lsa; lsa.len = LSA_SIZEOF_SA; getsockname(p->query.fd, &lsa.u.sa, &lsa.len); }
 
-	if (p->query.fd == -1) {
+	if (p->fd == -1) {
 		int fd, family;
 		len_and_sockaddr *local_lsa;
 
 		family = p->lsa->u.sa.sa_family;
-		//was: p->query.fd = xsocket(family, SOCK_DGRAM, 0);
-		p->query.fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
+		//was: p->fd = xsocket(family, SOCK_DGRAM, 0);
+		p->fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
 		/* local_lsa has "null" address and port 0 now.
 		 * bind() ensures we have a *particular port* selected by kernel
-		 * and remembered in p->query.fd, thus later recv(p->query.fd)
+		 * and remembered in p->fd, thus later recv(p->fd)
 		 * receives only packets sent to this port.
 		 */
 		PROBE_LOCAL_ADDR
@@ -367,16 +360,19 @@ send_query_to_peer(ntp_peer_t *p)
 	 * Save the real transmit timestamp locally.
 	 */
 
-	p->query.msg.xmttime.int_partl = random();
-	p->query.msg.xmttime.fractionl = random();
-	p->query.xmttime = gettime1900fp();
+	p->msg.m_xmttime.int_partl = random();
+	p->msg.m_xmttime.fractionl = random();
+	p->xmttime = gettime1900fp();
 
-	if (sendmsg_wrap(p->query.fd, /*from:*/ NULL, /*to:*/ &p->lsa->u.sa, /*addrlen:*/ p->lsa->len,
-			&p->query.msg, NTP_MSGSIZE_NOAUTH) == -1) {
+	if (do_sendto(p->fd, /*from:*/ NULL, /*to:*/ &p->lsa->u.sa, /*addrlen:*/ p->lsa->len,
+			&p->msg, NTP_MSGSIZE_NOAUTH) == -1
+	) {
 		set_next(p, INTERVAL_QUERY_PATHETIC);
 		return -1;
 	}
 
+	if (G.verbose)
+		bb_error_msg("sent request to %s", p->dotted);
 	p->state = STATE_QUERY_SENT;
 	set_deadline(p, QUERYTIME_MAX);
 
@@ -384,13 +380,13 @@ send_query_to_peer(ntp_peer_t *p)
 }
 
 static int
-offset_compare(const void *aa, const void *bb)
+compare_offsets(const void *aa, const void *bb)
 {
 	const ntp_peer_t *const *a = aa;
 	const ntp_peer_t *const *b = bb;
-	if ((*a)->update.offset < (*b)->update.offset)
+	if ((*a)->update.o_offset < (*b)->update.o_offset)
 		return -1;
-	return ((*a)->update.offset > (*b)->update.offset);
+	return ((*a)->update.o_offset > (*b)->update.o_offset);
 }
 
 static uint32_t
@@ -406,24 +402,20 @@ updated_scale(double offset)
 }
 
 static void
-adjtime_wrap(void)
+slew_time(void)
 {
 	ntp_peer_t	 *p;
-	unsigned	  offset_cnt;
-	unsigned	  middle;
-	int		  i = 0;
-	ntp_peer_t	**peers;
-	double		  offset_median;
 	llist_t		 *item;
-	len_and_sockaddr *lsa;
-	struct timeval	  tv, olddelta;
+	unsigned	  offset_cnt;
+	double		  offset_median;
+	struct timeval	  tv;
 
 	offset_cnt = 0;
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		p = (ntp_peer_t *) item->data;
 		if (p->trustlevel < TRUSTLEVEL_BADPEER)
 			continue;
-		if (!p->update.good)
+		if (!p->update.o_good)
 			return;
 		offset_cnt++;
 	}
@@ -431,68 +423,74 @@ adjtime_wrap(void)
 	if (offset_cnt == 0)
 		goto clear_good;
 
-	peers = xzalloc(sizeof(peers[0]) * offset_cnt);
-	for (item = G.ntp_peers; item != NULL; item = item->link) {
-		p = (ntp_peer_t *) item->data;
-		if (p->trustlevel < TRUSTLEVEL_BADPEER)
-			continue;
-		peers[i++] = p;
+	{
+		len_and_sockaddr *lsa;
+		unsigned middle;
+		unsigned i = 0;
+		ntp_peer_t **peers = xzalloc(sizeof(peers[0]) * offset_cnt);
+
+		for (item = G.ntp_peers; item != NULL; item = item->link) {
+			p = (ntp_peer_t *) item->data;
+			if (p->trustlevel < TRUSTLEVEL_BADPEER)
+				continue;
+			peers[i++] = p;
+		}
+
+		qsort(peers, offset_cnt, sizeof(peers[0]), compare_offsets);
+
+		middle = offset_cnt / 2;
+		if (middle != 0 && (offset_cnt & 1) == 0) {
+			offset_median = (peers[middle-1]->update.o_offset + peers[middle]->update.o_offset) / 2;
+			G.rootdelay = (peers[middle-1]->update.o_delay + peers[middle]->update.o_delay) / 2;
+			G.stratum = 1 + MAX(peers[middle-1]->update.o_stratum, peers[middle]->update.o_stratum);
+		} else {
+			offset_median = peers[middle]->update.o_offset;
+			G.rootdelay = peers[middle]->update.o_delay;
+			G.stratum = 1 + peers[middle]->update.o_stratum;
+		}
+		G.leap = peers[middle]->update.o_leap;
+		G.refid4 = peers[middle]->update.o_refid4;
+		lsa = peers[middle]->lsa;
+		G.refid =
+#if ENABLE_FEATURE_IPV6
+			lsa->u.sa.sa_family != AF_INET ?
+				G.refid4 :
+#endif
+				lsa->u.sin.sin_addr.s_addr;
+		free(peers);
 	}
 
-	qsort(peers, offset_cnt, sizeof(peers[0]), offset_compare);
+	bb_error_msg("adjusting clock by %fs, our stratum is %u", offset_median, G.stratum);
 
-	middle = offset_cnt / 2;
-	if (middle != 0 && (offset_cnt & 1) == 0) {
-		offset_median = (peers[middle-1]->update.offset + peers[middle]->update.offset) / 2;
-		G.status.rootdelay = (peers[middle-1]->update.delay + peers[middle]->update.delay) / 2;
-		G.status.stratum = MAX(peers[middle-1]->update.status.stratum, peers[middle]->update.status.stratum);
-	} else {
-		offset_median = peers[middle]->update.offset;
-		G.status.rootdelay = peers[middle]->update.delay;
-		G.status.stratum = peers[middle]->update.status.stratum;
-	}
-	G.status.leap = peers[middle]->update.status.leap;
-
-	bb_info_msg("adjusting local clock by %fs", offset_median);
 	errno = 0;
 	d_to_tv(offset_median, &tv);
-	if (adjtime(&tv, &olddelta) == -1) {
+	if (adjtime(&tv, &tv) == -1) {
 		bb_perror_msg("adjtime failed"); //TODO: maybe _and_die?
-	} else
-	if (G.first_adj_done
-	 && olddelta.tv_sec == 0
-	 && olddelta.tv_usec == 0
-	 && !G.status.synced
-	) {
-		bb_info_msg("clock synced");
-		G.status.synced = 1;
-	} else
-	if (G.status.synced) {
-		bb_info_msg("clock unsynced");
-		G.status.synced = 0;
+	} else {
+		if (G.verbose >= 2)
+			bb_error_msg("old adjust: %d.%06u", (int)tv.tv_sec, (unsigned)tv.tv_usec);
+		if (G.first_adj_done
+		 && tv.tv_sec == 0
+		 && tv.tv_usec == 0 // TODO: allow for tiny values?
+		 && !G.synced
+		) {
+			G.synced = 1;
+			bb_error_msg("clock %ssynced", "");
+		} else
+		if (G.synced) {
+			G.synced = 0;
+			bb_error_msg("clock %ssynced", "un");
+		}
 	}
 
 	G.first_adj_done = 1;
-	G.status.reftime = gettime1900fp();
-	G.status.stratum++;	/* one more than selected peer */
+	G.reftime = gettime1900fp();
 	G.scale = updated_scale(offset_median);
-
-	G.status.refid4 = peers[middle]->update.status.refid4;
-
-	lsa = peers[middle]->lsa;
-	G.status.refid =
-#if ENABLE_FEATURE_IPV6
-		lsa->u.sa.sa_family != AF_INET ?
-			G.status.refid4 :
-#endif
-			lsa->u.sin.sin_addr.s_addr;
-
-	free(peers);
 
  clear_good:
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		p = (ntp_peer_t *) item->data;
-		p->update.good = 0;
+		p->update.o_good = 0;
 	}
 }
 
@@ -530,7 +528,7 @@ step_time_once(double offset)
 	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
 
 	/* Do we want to print message below to system log when daemonized? */
-	bb_info_msg("set local clock to %s (offset %fs)", buf, offset);
+	bb_error_msg("set local clock to %s (offset %fs)", buf, offset);
 
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		p = (ntp_peer_t *) item->data;
@@ -548,69 +546,68 @@ step_time_once(double offset)
 static void
 update_peer_data(ntp_peer_t *p)
 {
-	int i, best = 0, good = 0;
-
-	/*
-	 * clock filter
-	 * find the offset which arrived with the lowest delay
-	 * use that as the peer update
-	 * invalidate it and all older ones
+	/* Clock filter.
+	 * Find the offset which arrived with the lowest delay.
+	 * Use that as the peer update.
+	 * Invalidate it and all older ones.
 	 */
+	int i;
+	int best = best; /* for compiler */
+	int good;
 
-	for (i = 0; good == 0 && i < OFFSET_ARRAY_SIZE; i++) {
-		if (p->reply[i].good) {
+	good = 0;
+	for (i = 0; i < OFFSET_ARRAY_SIZE; i++) {
+		if (p->reply[i].o_good) {
 			good++;
-			best = i;
+			best = i++;
+			break;
 		}
 	}
 
 	for (; i < OFFSET_ARRAY_SIZE; i++) {
-		if (p->reply[i].good) {
+		if (p->reply[i].o_good) {
 			good++;
-			if (p->reply[i].delay < p->reply[best].delay)
+			if (p->reply[i].o_delay < p->reply[best].o_delay)
 				best = i;
 		}
 	}
 
-	if (good < 8)
+	if (good < 8) //FIXME: was it meant to be OFFSET_ARRAY_SIZE, not 8?
 		return;
 
 	memcpy(&p->update, &p->reply[best], sizeof(p->update));
-	adjtime_wrap();
+	slew_time();
 
 	for (i = 0; i < OFFSET_ARRAY_SIZE; i++)
-		if (p->reply[i].rcvd <= p->reply[best].rcvd)
-			p->reply[i].good = 0;
+		if (p->reply[i].o_rcvd <= p->reply[best].o_rcvd)
+			p->reply[i].o_good = 0;
 }
 
-static time_t
-scale_interval(time_t requested)
+static unsigned
+scale_interval(unsigned requested)
 {
-	time_t interval, r;
+	unsigned interval, r;
 	interval = requested * G.scale;
-	r = (unsigned)random() % (unsigned long)(MAX(5, interval / 10));
+	r = (unsigned)random() % (unsigned)(MAX(5, interval / 10));
 	return (interval + r);
 }
 
 static void
 recv_and_process_peer_pkt(ntp_peer_t *p)
 {
-	char			 *addr;
 	ssize_t			 size;
 	ntp_msg_t		 msg;
 	double			 T1, T2, T3, T4;
-	time_t			 interval;
+	unsigned		 interval;
 	ntp_offset_t		*offset;
-
-	addr = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
 
 	/* We can recvfrom here and check from.IP, but some multihomed
 	 * ntp servers reply from their *other IP*.
 	 * TODO: maybe we should check at least what we can: from.port == 123?
 	 */
-	size = recv(p->query.fd, &msg, sizeof(msg), MSG_DONTWAIT);
+	size = recv(p->fd, &msg, sizeof(msg), MSG_DONTWAIT);
 	if (size == -1) {
-		bb_perror_msg("recv(%s) error", addr);
+		bb_perror_msg("recv(%s) error", p->dotted);
 		if (errno == EHOSTUNREACH || errno == EHOSTDOWN
 		 || errno == ENETUNREACH || errno == ENETDOWN
 		 || errno == ECONNREFUSED || errno == EADDRNOTAVAIL
@@ -618,7 +615,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		) {
 //TODO: always do this?
 			set_next(p, error_interval());
-			goto bail;
+			goto close_sock;
 		}
 		xfunc_die();
 	}
@@ -626,23 +623,23 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	T4 = gettime1900fp();
 
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
-		bb_error_msg("malformed packet received from %s", addr);
+		bb_error_msg("malformed packet received from %s", p->dotted);
 		goto bail;
 	}
 
-	if (msg.orgtime.int_partl != p->query.msg.xmttime.int_partl
-	 || msg.orgtime.fractionl != p->query.msg.xmttime.fractionl
+	if (msg.m_orgtime.int_partl != p->msg.m_xmttime.int_partl
+	 || msg.m_orgtime.fractionl != p->msg.m_xmttime.fractionl
 	) {
 		goto bail;
 	}
 
-	if ((msg.status & LI_ALARM) == LI_ALARM
-	 || msg.stratum == 0
-	 || msg.stratum > NTP_MAXSTRATUM
+	if ((msg.m_status & LI_ALARM) == LI_ALARM
+	 || msg.m_stratum == 0
+	 || msg.m_stratum > NTP_MAXSTRATUM
 	) {
 		interval = error_interval();
-		bb_info_msg("reply from %s: not synced, next query %ds", addr, (int) interval);
-		goto bail;
+		bb_error_msg("reply from %s: not synced, next query %us", p->dotted, interval);
+		goto close_sock;
 	}
 
 	/*
@@ -660,34 +657,34 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	 *    d = (T4 - T1) - (T3 - T2)     t = ((T2 - T1) + (T3 - T4)) / 2.
 	 */
 
-	T1 = p->query.xmttime;
-	T2 = lfp_to_d(msg.rectime);
-	T3 = lfp_to_d(msg.xmttime);
+	T1 = p->xmttime;
+	T2 = lfp_to_d(msg.m_rectime);
+	T3 = lfp_to_d(msg.m_xmttime);
 
 	offset = &p->reply[p->shift];
 
-	offset->offset = ((T2 - T1) + (T3 - T4)) / 2;
-	offset->delay = (T4 - T1) - (T3 - T2);
-	if (offset->delay < 0) {
+	offset->o_offset = ((T2 - T1) + (T3 - T4)) / 2;
+	offset->o_delay = (T4 - T1) - (T3 - T2);
+	if (offset->o_delay < 0) {
 		interval = error_interval();
 		set_next(p, interval);
-		bb_info_msg("reply from %s: negative delay %f", addr, p->reply[p->shift].delay);
-		goto bail;
+		bb_error_msg("reply from %s: negative delay %f", p->dotted, p->reply[p->shift].o_delay);
+		goto close_sock;
 	}
-	offset->error = (T2 - T1) - (T3 - T4);
+	//UNUSED: offset->o_error = (T2 - T1) - (T3 - T4);
 // Can we use (T4 - OFFSET_1900_1970) instead of time(NULL)?
-	offset->rcvd = time(NULL);
-	offset->good = 1;
+	offset->o_rcvd = time(NULL);
+	offset->o_good = 1;
 
-	offset->status.leap = (msg.status & LI_MASK);
-	offset->status.precision = msg.precision;
-	offset->status.rootdelay = sfp_to_d(msg.rootdelay);
-	offset->status.rootdispersion = sfp_to_d(msg.dispersion);
-	offset->status.refid = ntohl(msg.refid);
-	offset->status.refid4 = msg.xmttime.fractionl;
-	offset->status.reftime = lfp_to_d(msg.reftime);
-	offset->status.poll = msg.ppoll;
-	offset->status.stratum = msg.stratum;
+	offset->o_leap = (msg.m_status & LI_MASK);
+	//UNUSED: offset->o_precision = msg.m_precision;
+	//UNUSED: offset->o_rootdelay = sfp_to_d(msg.m_rootdelay);
+	//UNUSED: offset->o_rootdispersion = sfp_to_d(msg.m_dispersion);
+	//UNUSED: offset->o_refid = ntohl(msg.m_refid);
+	offset->o_refid4 = msg.m_xmttime.fractionl;
+	//UNUSED: offset->o_reftime = lfp_to_d(msg.m_reftime);
+	//UNUSED: offset->o_poll = msg.m_ppoll;
+	offset->o_stratum = msg.m_stratum;
 
 	if (p->trustlevel < TRUSTLEVEL_PATHETIC)
 		interval = scale_interval(INTERVAL_QUERY_PATHETIC);
@@ -703,21 +700,29 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	if (p->trustlevel < TRUSTLEVEL_MAX) {
 		p->trustlevel++;
 		if (p->trustlevel == TRUSTLEVEL_BADPEER)
-			bb_info_msg("peer %s now valid", addr);
+			bb_error_msg("peer %s now valid", p->dotted);
 	}
 
-	bb_info_msg("reply from %s: offset %f delay %f, next query %ds", addr,
-			offset->offset, offset->delay, (int) interval);
+	if (G.verbose)
+		bb_error_msg("reply from %s: offset %f delay %f, next query %us", p->dotted,
+			offset->o_offset, offset->o_delay, interval);
 
 	update_peer_data(p);
-	step_time_once(offset->offset);
+	step_time_once(offset->o_offset);
 
 	p->shift++;
 	if (p->shift >= OFFSET_ARRAY_SIZE)
 		p->shift = 0;
 
+ close_sock:
+	/* We do not expect any more packets for now.
+	 * Closing the socket informs kernel about it.
+	 * We open a new socket when we send a new query.
+	 */
+	close(p->fd);
+	p->fd = -1;
  bail:
-	free(addr);
+	return;
 }
 
 #if ENABLE_FEATURE_NTPD_SERVER
@@ -751,31 +756,31 @@ recv_and_process_client_pkt(void /*int fd*/)
 		goto bail;
 	}
 
-	query_status = msg.status;
-	query_ppoll = msg.ppoll;
-	query_xmttime = msg.xmttime;
+	query_status = msg.m_status;
+	query_ppoll = msg.m_ppoll;
+	query_xmttime = msg.m_xmttime;
 
 	/* Build a reply packet */
 	memset(&msg, 0, sizeof(msg));
-	msg.status = G.status.synced ? G.status.leap : LI_ALARM;
-	msg.status |= (query_status & VERSION_MASK);
-	msg.status |= ((query_status & MODE_MASK) == MODE_CLIENT) ?
+	msg.m_status = G.synced ? G.leap : LI_ALARM;
+	msg.m_status |= (query_status & VERSION_MASK);
+	msg.m_status |= ((query_status & MODE_MASK) == MODE_CLIENT) ?
 			 MODE_SERVER : MODE_SYM_PAS;
-	msg.stratum = G.status.stratum;
-	msg.ppoll = query_ppoll;
-	msg.precision = G.status.precision;
+	msg.m_stratum = G.stratum;
+	msg.m_ppoll = query_ppoll;
+	msg.m_precision = G.precision;
 	rectime = gettime1900fp();
-	msg.xmttime = msg.rectime = d_to_lfp(rectime);
-	msg.reftime = d_to_lfp(G.status.reftime);
-	//msg.xmttime = d_to_lfp(gettime1900fp()); // = msg.rectime
-	msg.orgtime = query_xmttime;
-	msg.rootdelay = d_to_sfp(G.status.rootdelay);
+	msg.m_xmttime = msg.m_rectime = d_to_lfp(rectime);
+	msg.m_reftime = d_to_lfp(G.reftime);
+	//msg.m_xmttime = d_to_lfp(gettime1900fp()); // = msg.m_rectime
+	msg.m_orgtime = query_xmttime;
+	msg.m_rootdelay = d_to_sfp(G.rootdelay);
 	version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */
-	msg.refid = (version > (3 << VERSION_SHIFT)) ? G.status.refid4 : G.status.refid;
+	msg.m_refid = (version > (3 << VERSION_SHIFT)) ? G.refid4 : G.refid;
 
 	/* We reply from the local address packet was sent to,
 	 * this makes to/from look swapped here: */
-	sendmsg_wrap(G.listen_fd,
+	do_sendto(G.listen_fd,
 		/*from:*/ &to->u.sa, /*to:*/ from, /*addrlen:*/ to->len,
 		&msg, size);
 
@@ -931,7 +936,7 @@ static NOINLINE void ntp_init(char **argv)
 #endif
 		while (b > 1)
 			prec--, b >>= 1;
-		G.status.precision = prec;
+		G.precision = prec;
 	}
 	G.scale = 1;
 
@@ -991,18 +996,14 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (p->deadline != 0 && p->deadline <= cur_time) {
 				/* Timed out waiting for reply */
-				char *addr = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
-
 				timeout = error_interval();
-				bb_info_msg("no reply from %s received in time, "
-						"next query %ds", addr, timeout);
+				bb_error_msg("timed out waiting for %s, "
+						"next query %us", p->dotted, timeout);
 				if (p->trustlevel >= TRUSTLEVEL_BADPEER) {
 					p->trustlevel /= 2;
 					if (p->trustlevel < TRUSTLEVEL_BADPEER)
-						bb_info_msg("peer %s now invalid", addr);
+						bb_error_msg("peer %s now invalid", p->dotted);
 				}
-				free(addr);
-
 				set_next(p, timeout);
 			}
 
@@ -1013,7 +1014,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 			if (p->state == STATE_QUERY_SENT) {
 				/* Wait for reply from this peer */
-				pfd[i].fd = p->query.fd;
+				pfd[i].fd = p->fd;
 				pfd[i].events = POLLIN;
 				idx2peer[i] = p;
 				i++;
@@ -1024,12 +1025,12 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			step_time_once(0); /* no good peers, don't wait */
 
 		timeout = nextaction - cur_time;
-		if (timeout < 0)
-			timeout = 0;
+		if (timeout < 1)
+			timeout = 1;
 
 		/* Here we may block */
-		if (g.verbose)
-			bb_error_msg("entering poll %u secs", timeout);
+		if (g.verbose >= 2)
+			bb_error_msg("poll %u sec, waiting on %u sockets", timeout, i);
 		nfds = poll(pfd, i, timeout * 1000);
 		if (nfds <= 0)
 			continue;
