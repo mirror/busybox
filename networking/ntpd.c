@@ -171,7 +171,7 @@ struct globals {
 	uint8_t		leap;
 	int8_t		precision;
 	uint8_t		stratum;
-	uint8_t		time_is_set;
+	uint8_t		time_is_stepped;
 	uint8_t		first_adj_done;
 };
 #define G (*ptr_to_globals)
@@ -372,7 +372,7 @@ send_query_to_peer(ntp_peer_t *p)
 	}
 
 	if (G.verbose)
-		bb_error_msg("sent request to %s", p->dotted);
+		bb_error_msg("sent query to %s", p->dotted);
 	p->state = STATE_QUERY_SENT;
 	set_deadline(p, QUERYTIME_MAX);
 
@@ -498,37 +498,34 @@ static void
 step_time_once(double offset)
 {
 	ntp_peer_t *p;
-	llist_t		*item;
-	struct timeval	tv, curtime;
-	char		buf[80];
-	time_t		tval;
+	llist_t *item;
+	struct timeval tv;
+	char buf[80];
+	time_t tval;
 
-	if (G.time_is_set)
+	if (G.time_is_stepped)
 		goto bail;
-	G.time_is_set = 1;
+	G.time_is_stepped = 1;
 
 	/* if the offset is small, don't call settimeofday */
 	if (offset < SETTIME_MIN_OFFSET && offset > -SETTIME_MIN_OFFSET)
 		goto bail;
 
-	gettimeofday(&curtime, NULL); /* never fails */
-
-//isn't it simpler to: offset += curtime.tv_sec; offset += 1.0e-6 * curtime.tv_usec?
+	gettimeofday(&tv, NULL); /* never fails */
+	offset += tv.tv_sec;
+	offset += 1.0e-6 * tv.tv_usec;
 	d_to_tv(offset, &tv);
-	curtime.tv_usec += tv.tv_usec + 1000000;
-	curtime.tv_sec += tv.tv_sec - 1 + (curtime.tv_usec / 1000000);
-	curtime.tv_usec %= 1000000;
 
-	if (settimeofday(&curtime, NULL) == -1) {
+	if (settimeofday(&tv, NULL) == -1) {
 		bb_error_msg("settimeofday");
 		goto bail;
 	}
 
-	tval = curtime.tv_sec;
+	tval = tv.tv_sec;
 	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
 
-	/* Do we want to print message below to system log when daemonized? */
-	bb_error_msg("set local clock to %s (offset %fs)", buf, offset);
+// Do we want to print message below to system log when daemonized?
+	bb_error_msg("setting clock to %s (offset %fs)", buf, offset);
 
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		p = (ntp_peer_t *) item->data;
@@ -638,7 +635,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	 || msg.m_stratum > NTP_MAXSTRATUM
 	) {
 		interval = error_interval();
-		bb_error_msg("reply from %s: not synced, next query %us", p->dotted, interval);
+		bb_error_msg("reply from %s: not synced, next query in %us", p->dotted, interval);
 		goto close_sock;
 	}
 
@@ -704,10 +701,11 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	}
 
 	if (G.verbose)
-		bb_error_msg("reply from %s: offset %f delay %f, next query %us", p->dotted,
+		bb_error_msg("reply from %s: offset %f delay %f, next query in %us", p->dotted,
 			offset->o_offset, offset->o_delay, interval);
 
 	update_peer_data(p);
+//TODO: do it after all peers had a chance to return at least one reply?
 	step_time_once(offset->o_offset);
 
 	p->shift++;
@@ -901,7 +899,7 @@ static NOINLINE void ntp_init(char **argv)
 		bb_show_usage();
 //WRONG
 //	if (opts & OPT_g)
-//		G.time_is_set = 1;
+//		G.time_is_stepped = 1;
 	while (peers)
 		add_peers(llist_pop(&peers));
 	if (!(opts & OPT_n)) {
@@ -998,7 +996,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 				/* Timed out waiting for reply */
 				timeout = error_interval();
 				bb_error_msg("timed out waiting for %s, "
-						"next query %us", p->dotted, timeout);
+						"next query in %us", p->dotted, timeout);
 				if (p->trustlevel >= TRUSTLEVEL_BADPEER) {
 					p->trustlevel /= 2;
 					if (p->trustlevel < TRUSTLEVEL_BADPEER)
@@ -1030,7 +1028,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Here we may block */
 		if (g.verbose >= 2)
-			bb_error_msg("poll %u sec, waiting on %u sockets", timeout, i);
+			bb_error_msg("poll %u sec, sockets:%u", timeout, i);
 		nfds = poll(pfd, i, timeout * 1000);
 		if (nfds <= 0)
 			continue;
