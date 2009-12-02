@@ -108,7 +108,6 @@ typedef struct {
 #define OFFSET_ARRAY_SIZE  8
 typedef struct {
 	len_and_sockaddr	*lsa;
-	char			*hostname;
 	char			*dotted;
 	/* When to send new query (if fd == -1)
 	 * or when receive times out (if fd >= 0): */
@@ -166,24 +165,14 @@ set_next(ntp_peer_t *p, unsigned t)
 	p->next_action_time = time(NULL) + t;
 }
 
-static len_and_sockaddr*
-resolve_hostname(ntp_peer_t *p)
-{
-	p->lsa = host2sockaddr(p->hostname, 123);
-	if (p->lsa)
-		p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
-	return p->lsa;
-}
-
 static void
 add_peers(char *s)
 {
 	ntp_peer_t *p;
 
 	p = xzalloc(sizeof(*p));
-	p->hostname = s;
-	p->dotted = s;
-	resolve_hostname(p);
+	p->lsa = xhost2sockaddr(s, 123);
+	p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
 	p->fd = -1;
 	p->msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->trustlevel = TRUSTLEVEL_PATHETIC;
@@ -306,15 +295,6 @@ send_query_to_peer(ntp_peer_t *p)
 	if (p->fd == -1) {
 		int fd, family;
 		len_and_sockaddr *local_lsa;
-
-//TODO: big ntpd uses all IPs, not just 1st, do we need to mimic that?
-//TODO: periodically re-resolve DNS names?
-		if (!p->lsa) {
-			if (!resolve_hostname(p)) {
-				set_next(p, INTERVAL_QUERY_PATHETIC);
-				return -1;
-			}
-		}
 
 		family = p->lsa->u.sa.sa_family;
 		p->fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
