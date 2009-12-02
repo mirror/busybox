@@ -166,6 +166,15 @@ set_next(ntp_peer_t *p, unsigned t)
 	p->next_action_time = time(NULL) + t;
 }
 
+static len_and_sockaddr*
+resolve_hostname(ntp_peer_t *p)
+{
+	p->lsa = host2sockaddr(p->hostname, 123);
+	if (p->lsa)
+		p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
+	return p->lsa;
+}
+
 static void
 add_peers(char *s)
 {
@@ -174,6 +183,7 @@ add_peers(char *s)
 	p = xzalloc(sizeof(*p));
 	p->hostname = s;
 	p->dotted = s;
+	resolve_hostname(p);
 	p->fd = -1;
 	p->msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->trustlevel = TRUSTLEVEL_PATHETIC;
@@ -300,12 +310,10 @@ send_query_to_peer(ntp_peer_t *p)
 //TODO: big ntpd uses all IPs, not just 1st, do we need to mimic that?
 //TODO: periodically re-resolve DNS names?
 		if (!p->lsa) {
-			p->lsa = host2sockaddr(p->hostname, 123);
-			if (!p->lsa) {
+			if (!resolve_hostname(p)) {
 				set_next(p, INTERVAL_QUERY_PATHETIC);
 				return -1;
 			}
-			p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
 		}
 
 		family = p->lsa->u.sa.sa_family;
