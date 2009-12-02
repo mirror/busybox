@@ -113,7 +113,7 @@ enum {
 typedef struct {
 	double		o_offset;
 	double		o_delay;
-	//UNUSED: double		o_error;
+	//UNUSED: double o_error;
 	time_t		o_rcvd;
 	uint32_t	o_refid4;
 	uint8_t		o_leap;
@@ -404,42 +404,34 @@ updated_scale(double offset)
 static void
 slew_time(void)
 {
-	ntp_peer_t	 *p;
-	llist_t		 *item;
-	unsigned	  offset_cnt;
-	double		  offset_median;
-	struct timeval	  tv;
-
-	offset_cnt = 0;
-	for (item = G.ntp_peers; item != NULL; item = item->link) {
-		p = (ntp_peer_t *) item->data;
-		if (p->trustlevel < TRUSTLEVEL_BADPEER)
-			continue;
-		if (!p->update.o_good)
-			return;
-		offset_cnt++;
-	}
-
-	if (offset_cnt == 0)
-		goto clear_good;
+	llist_t *item;
+	double offset_median;
+	struct timeval tv;
 
 	{
 		len_and_sockaddr *lsa;
+		ntp_peer_t **peers = xzalloc(sizeof(peers[0]) * G.peer_cnt);
+		unsigned goodpeer_cnt = 0;
 		unsigned middle;
-		unsigned i = 0;
-		ntp_peer_t **peers = xzalloc(sizeof(peers[0]) * offset_cnt);
 
 		for (item = G.ntp_peers; item != NULL; item = item->link) {
-			p = (ntp_peer_t *) item->data;
+			ntp_peer_t *p = (ntp_peer_t *) item->data;
 			if (p->trustlevel < TRUSTLEVEL_BADPEER)
 				continue;
-			peers[i++] = p;
+			if (!p->update.o_good)
+				return;
+			peers[goodpeer_cnt++] = p;
 		}
 
-		qsort(peers, offset_cnt, sizeof(peers[0]), compare_offsets);
+		if (goodpeer_cnt == 0) {
+			free(peers);
+			goto clear_good;
+		}
 
-		middle = offset_cnt / 2;
-		if (middle != 0 && (offset_cnt & 1) == 0) {
+		qsort(peers, goodpeer_cnt, sizeof(peers[0]), compare_offsets);
+
+		middle = goodpeer_cnt / 2;
+		if (middle != 0 && (goodpeer_cnt & 1) == 0) {
 			offset_median = (peers[middle-1]->update.o_offset + peers[middle]->update.o_offset) / 2;
 			G.rootdelay = (peers[middle-1]->update.o_delay + peers[middle]->update.o_delay) / 2;
 			G.stratum = 1 + MAX(peers[middle-1]->update.o_stratum, peers[middle]->update.o_stratum);
@@ -480,11 +472,12 @@ slew_time(void)
 	}
 
 	G.reftime = gettime1900fp();
+//TODO: log if G.scale changed?
 	G.scale = updated_scale(offset_median);
 
  clear_good:
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
-		p = (ntp_peer_t *) item->data;
+		ntp_peer_t *p = (ntp_peer_t *) item->data;
 		p->update.o_good = 0;
 	}
 }
@@ -512,7 +505,7 @@ step_time_once(double offset)
 	d_to_tv(offset, &tv);
 
 	if (settimeofday(&tv, NULL) == -1) {
-		bb_error_msg("settimeofday");
+		bb_perror_msg("settimeofday");
 		goto bail;
 	}
 
@@ -544,22 +537,13 @@ update_peer_data(ntp_peer_t *p)
 	 * Invalidate it and all older ones.
 	 */
 	int i;
-	int best = best; /* for compiler */
-	int good;
+	int best = -1;
+	int good = 0;
 
-	good = 0;
 	for (i = 0; i < OFFSET_ARRAY_SIZE; i++) {
 		if (p->reply[i].o_good) {
 			good++;
-			best = i++;
-			break;
-		}
-	}
-
-	for (; i < OFFSET_ARRAY_SIZE; i++) {
-		if (p->reply[i].o_good) {
-			good++;
-			if (p->reply[i].o_delay < p->reply[best].o_delay)
+			if (best < 0 || p->reply[i].o_delay < p->reply[best].o_delay)
 				best = i;
 		}
 	}
@@ -612,8 +596,6 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		xfunc_die();
 	}
 
-	T4 = gettime1900fp();
-
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
 		bb_error_msg("malformed packet received from %s", p->dotted);
 		goto bail;
@@ -649,6 +631,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	 *    d = (T4 - T1) - (T3 - T2)     t = ((T2 - T1) + (T3 - T4)) / 2.
 	 */
 
+	T4 = gettime1900fp();
 	T1 = p->xmttime;
 	T2 = lfp_to_d(msg.m_rectime);
 	T3 = lfp_to_d(msg.m_xmttime);
@@ -658,14 +641,13 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	offset->o_offset = ((T2 - T1) + (T3 - T4)) / 2;
 	offset->o_delay = (T4 - T1) - (T3 - T2);
 	if (offset->o_delay < 0) {
+		bb_error_msg("reply from %s: negative delay %f", p->dotted, offset->o_delay);
 		interval = error_interval();
 		set_next(p, interval);
-		bb_error_msg("reply from %s: negative delay %f", p->dotted, p->reply[p->shift].o_delay);
 		goto close_sock;
 	}
 	//UNUSED: offset->o_error = (T2 - T1) - (T3 - T4);
-// Can we use (T4 - OFFSET_1900_1970) instead of time(NULL)?
-	offset->o_rcvd = time(NULL);
+	offset->o_rcvd = time(NULL); /* can use (time_t)(T4 - OFFSET_1900_1970) too */
 	offset->o_good = 1;
 
 	offset->o_leap = (msg.m_status & LI_MASK);
