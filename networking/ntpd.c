@@ -469,21 +469,16 @@ slew_time(void)
 	} else {
 		if (G.verbose >= 2)
 			bb_error_msg("old adjust: %d.%06u", (int)tv.tv_sec, (unsigned)tv.tv_usec);
-		if (G.first_adj_done
-		 && tv.tv_sec == 0
-		 && tv.tv_usec == 0 // TODO: allow for tiny values?
-		 && !G.synced
-		) {
-			G.synced = 1;
-			bb_error_msg("clock %ssynced", "");
-		} else
-		if (G.synced) {
-			G.synced = 0;
-			bb_error_msg("clock %ssynced", "un");
+		if (G.first_adj_done) {
+			uint8_t synced = (tv.tv_sec == 0 && tv.tv_usec == 0);
+			if (synced != G.synced) {
+				G.synced = synced;
+				bb_error_msg("clock is %ssynced", synced ? "" : "un");
+			}
 		}
+		G.first_adj_done = 1;
 	}
 
-	G.first_adj_done = 1;
 	G.reftime = gettime1900fp();
 	G.scale = updated_scale(offset_median);
 
