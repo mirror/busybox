@@ -100,15 +100,15 @@ static const char *const optletters_optnames[] = {
 	"a"   "allexport",
 	"b"   "notify",
 	"u"   "nounset",
-	"\0"  "vi"
+	"\0"  "vi",
 #if DEBUG
 	,"\0"  "nolog"
 	,"\0"  "debug"
 #endif
 };
 
-#define optletters(n) optletters_optnames[(n)][0]
-#define optnames(n) (&optletters_optnames[(n)][1])
+#define optletters(n)  optletters_optnames[n][0]
+#define optnames(n)   (optletters_optnames[n] + 1)
 
 enum { NOPTS = ARRAY_SIZE(optletters_optnames) };
 
@@ -3194,8 +3194,8 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 /* ============ jobs.c */
 
 /* Mode argument to forkshell.  Don't change FORK_FG or FORK_BG. */
-#define FORK_FG 0
-#define FORK_BG 1
+#define FORK_FG    0
+#define FORK_BG    1
 #define FORK_NOJOB 2
 
 /* mode flags for showjob(s) */
@@ -3210,9 +3210,9 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  * array of pids.
  */
 struct procstat {
-	pid_t   pid;            /* process id */
-	int     status;         /* last process status from wait() */
-	char    *cmd;           /* text of command being run */
+	pid_t   ps_pid;         /* process id */
+	int     ps_status;      /* last process status from wait() */
+	char    *ps_cmd;        /* text of command being run */
 };
 
 struct job {
@@ -3518,7 +3518,7 @@ getjob(const char *name, int getctl)
 
 	found = NULL;
 	while (jp) {
-		if (match(jp->ps[0].cmd, p)) {
+		if (match(jp->ps[0].ps_cmd, p)) {
 			if (found)
 				goto err;
 			found = jp;
@@ -3552,8 +3552,8 @@ freejob(struct job *jp)
 
 	INT_OFF;
 	for (i = jp->nprocs, ps = jp->ps; --i >= 0; ps++) {
-		if (ps->cmd != nullstr)
-			free(ps->cmd);
+		if (ps->ps_cmd != nullstr)
+			free(ps->ps_cmd);
 	}
 	if (jp->ps != &jp->ps0)
 		free(jp->ps);
@@ -3655,7 +3655,7 @@ killcmd(int argc, char **argv)
 		do {
 			if (argv[i][0] == '%') {
 				struct job *jp = getjob(argv[i], 0);
-				unsigned pid = jp->ps[0].pid;
+				unsigned pid = jp->ps[0].ps_pid;
 				/* Enough space for ' -NNN<nul>' */
 				argv[i] = alloca(sizeof(int)*3 + 3);
 				/* kill_main has matching code to expect
@@ -3669,15 +3669,15 @@ killcmd(int argc, char **argv)
 }
 
 static void
-showpipe(struct job *jp, FILE *out)
+showpipe(struct job *jp /*, FILE *out*/)
 {
-	struct procstat *sp;
-	struct procstat *spend;
+	struct procstat *ps;
+	struct procstat *psend;
 
-	spend = jp->ps + jp->nprocs;
-	for (sp = jp->ps + 1; sp < spend; sp++)
-		fprintf(out, " | %s", sp->cmd);
-	outcslow('\n', out);
+	psend = jp->ps + jp->nprocs;
+	for (ps = jp->ps + 1; ps < psend; ps++)
+		printf(" | %s", ps->ps_cmd);
+	outcslow('\n', stdout);
 	flush_stdout_stderr();
 }
 
@@ -3694,15 +3694,15 @@ restartjob(struct job *jp, int mode)
 	if (jp->state == JOBDONE)
 		goto out;
 	jp->state = JOBRUNNING;
-	pgid = jp->ps->pid;
+	pgid = jp->ps[0].ps_pid;
 	if (mode == FORK_FG)
 		xtcsetpgrp(ttyfd, pgid);
 	killpg(pgid, SIGCONT);
 	ps = jp->ps;
 	i = jp->nprocs;
 	do {
-		if (WIFSTOPPED(ps->status)) {
-			ps->status = -1;
+		if (WIFSTOPPED(ps->ps_status)) {
+			ps->ps_status = -1;
 		}
 		ps++;
 	} while (--i);
@@ -3716,22 +3716,20 @@ static int FAST_FUNC
 fg_bgcmd(int argc UNUSED_PARAM, char **argv)
 {
 	struct job *jp;
-	FILE *out;
 	int mode;
 	int retval;
 
 	mode = (**argv == 'f') ? FORK_FG : FORK_BG;
 	nextopt(nullstr);
 	argv = argptr;
-	out = stdout;
 	do {
 		jp = getjob(*argv, 1);
 		if (mode == FORK_BG) {
 			set_curjob(jp, CUR_RUNNING);
-			fprintf(out, "[%d] ", jobno(jp));
+			printf("[%d] ", jobno(jp));
 		}
-		outstr(jp->ps->cmd, out);
-		showpipe(jp, out);
+		out1str(jp->ps[0].ps_cmd);
+		showpipe(jp /*, stdout*/);
 		retval = restartjob(jp, mode);
 	} while (*argv && *++argv);
 	return retval;
@@ -3790,8 +3788,9 @@ dowait(int wait_flags, struct job *job)
 	/* Do a wait system call. If job control is compiled in, we accept
 	 * stopped processes. wait_flags may have WNOHANG, preventing blocking.
 	 * NB: _not_ safe_waitpid, we need to detect EINTR */
-	pid = waitpid(-1, &status,
-			(doing_jobctl ? (wait_flags | WUNTRACED) : wait_flags));
+	if (doing_jobctl)
+		wait_flags |= WUNTRACED;
+	pid = waitpid(-1, &status, wait_flags);
 	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
 				pid, status, errno, strerror(errno)));
 	if (pid <= 0)
@@ -3800,32 +3799,32 @@ dowait(int wait_flags, struct job *job)
 	INT_OFF;
 	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
-		struct procstat *sp;
-		struct procstat *spend;
+		struct procstat *ps;
+		struct procstat *psend;
 		if (jp->state == JOBDONE)
 			continue;
 		state = JOBDONE;
-		spend = jp->ps + jp->nprocs;
-		sp = jp->ps;
+		ps = jp->ps;
+		psend = ps + jp->nprocs;
 		do {
-			if (sp->pid == pid) {
+			if (ps->ps_pid == pid) {
 				TRACE(("Job %d: changing status of proc %d "
 					"from 0x%x to 0x%x\n",
-					jobno(jp), pid, sp->status, status));
-				sp->status = status;
+					jobno(jp), pid, ps->ps_status, status));
+				ps->ps_status = status;
 				thisjob = jp;
 			}
-			if (sp->status == -1)
+			if (ps->ps_status == -1)
 				state = JOBRUNNING;
 #if JOBS
 			if (state == JOBRUNNING)
 				continue;
-			if (WIFSTOPPED(sp->status)) {
-				jp->stopstatus = sp->status;
+			if (WIFSTOPPED(ps->ps_status)) {
+				jp->stopstatus = ps->ps_status;
 				state = JOBSTOPPED;
 			}
 #endif
-		} while (++sp < spend);
+		} while (++ps < psend);
 		if (thisjob)
 			goto gotjob;
 	}
@@ -3891,7 +3890,7 @@ showjob(FILE *out, struct job *jp, int mode)
 
 	if (mode & SHOW_ONLY_PGID) { /* jobs -p */
 		/* just output process (group) id of pipeline */
-		fprintf(out, "%d\n", ps->pid);
+		fprintf(out, "%d\n", ps->ps_pid);
 		return;
 	}
 
@@ -3904,7 +3903,7 @@ showjob(FILE *out, struct job *jp, int mode)
 		s[col - 3] = '-';
 
 	if (mode & SHOW_PIDS)
-		col += fmtstr(s + col, 16, "%d ", ps->pid);
+		col += fmtstr(s + col, 16, "%d ", ps->ps_pid);
 
 	psend = ps + jp->nprocs;
 
@@ -3912,7 +3911,7 @@ showjob(FILE *out, struct job *jp, int mode)
 		strcpy(s + col, "Running");
 		col += sizeof("Running") - 1;
 	} else {
-		int status = psend[-1].status;
+		int status = psend[-1].ps_status;
 		if (jp->state == JOBSTOPPED)
 			status = jp->stopstatus;
 		col += sprint_status(s + col, status, 0);
@@ -3928,20 +3927,20 @@ showjob(FILE *out, struct job *jp, int mode)
 	 * making it impossible to know 1st process status.
 	 */
 	goto start;
-	while (1) {
+	do {
 		/* for each process */
 		s[0] = '\0';
 		col = 33;
 		if (mode & SHOW_PIDS)
-			col = fmtstr(s, 48, "\n%*c%d ", indent_col, ' ', ps->pid) - 1;
+			col = fmtstr(s, 48, "\n%*c%d ", indent_col, ' ', ps->ps_pid) - 1;
  start:
-		fprintf(out, "%s%*c", s, 33 - col >= 0 ? 33 - col : 0, ' ');
-		if (ps != jp->ps)
-			fprintf(out, "| ");
-		fprintf(out, "%s", ps->cmd);
-		if (++ps == psend)
-			break;
-	}
+		fprintf(out, "%s%*c%s%s",
+				s,
+				33 - col >= 0 ? 33 - col : 0, ' ',
+				ps == jp->ps ? "" : "| ",
+				ps->ps_cmd
+		);
+	} while (++ps != psend);
 	outcslow('\n', out);
 
 	jp->changed = 0;
@@ -3992,8 +3991,9 @@ jobscmd(int argc UNUSED_PARAM, char **argv)
 		do
 			showjob(stdout, getjob(*argv, 0), mode);
 		while (*++argv);
-	} else
+	} else {
 		showjobs(stdout, mode);
+	}
 
 	return 0;
 }
@@ -4005,7 +4005,7 @@ getstatus(struct job *job)
 	int status;
 	int retval;
 
-	status = job->ps[job->nprocs - 1].status;
+	status = job->ps[job->nprocs - 1].ps_status;
 	retval = WEXITSTATUS(status);
 	if (!WIFEXITED(status)) {
 #if JOBS
@@ -4072,7 +4072,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 			while (1) {
 				if (!job)
 					goto repeat;
-				if (job->ps[job->nprocs - 1].pid == pid)
+				if (job->ps[job->nprocs - 1].ps_pid == pid)
 					break;
 				job = job->prev_job;
 			}
@@ -4576,7 +4576,7 @@ forkchild(struct job *jp, union node *n, int mode)
 		if (jp->nprocs == 0)
 			pgrp = getpid();
 		else
-			pgrp = jp->ps[0].pid;
+			pgrp = jp->ps[0].ps_pid;
 		/* this can fail because we are doing it in the parent also */
 		setpgid(0, pgrp);
 		if (mode == FORK_FG)
@@ -4648,7 +4648,7 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 		if (jp->nprocs == 0)
 			pgrp = pid;
 		else
-			pgrp = jp->ps[0].pid;
+			pgrp = jp->ps[0].ps_pid;
 		/* This can fail because we are doing it in the child also */
 		setpgid(pid, pgrp);
 	}
@@ -4659,12 +4659,12 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 	}
 	if (jp) {
 		struct procstat *ps = &jp->ps[jp->nprocs++];
-		ps->pid = pid;
-		ps->status = -1;
-		ps->cmd = nullstr;
+		ps->ps_pid = pid;
+		ps->ps_status = -1;
+		ps->ps_cmd = nullstr;
 #if JOBS
 		if (doing_jobctl && n)
-			ps->cmd = commandtext(n);
+			ps->ps_cmd = commandtext(n);
 #endif
 	}
 }
@@ -7683,7 +7683,7 @@ describe_command(char *command, int describe_command_verbose)
 		return 127;
 	}
  out:
-	outstr("\n", stdout);
+	out1str("\n");
 	return 0;
 }
 
@@ -11852,8 +11852,9 @@ evalcmd(int argc UNUSED_PARAM, char **argv)
 }
 
 /*
- * Read and execute commands.  "Top" is nonzero for the top level command
- * loop; it turns on prompting if the shell is interactive.
+ * Read and execute commands.
+ * "Top" is nonzero for the top level command loop;
+ * it turns on prompting if the shell is interactive.
  */
 static int
 cmdloop(int top)
