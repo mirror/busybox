@@ -229,8 +229,8 @@ static int grep_file(FILE *file)
 	char *line = NULL;
 	ssize_t line_len;
 	size_t line_alloc_len;
-#define rm_so start[0]
-#define rm_eo end[0]
+# define rm_so start[0]
+# define rm_eo end[0]
 #endif
 #if ENABLE_FEATURE_GREP_CONTEXT
 	int print_n_lines_after = 0;
@@ -238,7 +238,7 @@ static int grep_file(FILE *file)
 	int idx = 0; /* used for iteration through the circular buffer */
 #else
 	enum { print_n_lines_after = 0 };
-#endif /* ENABLE_FEATURE_GREP_CONTEXT */
+#endif
 
 	while (
 #if !ENABLE_EXTRA_COMPAT
@@ -377,6 +377,8 @@ static int grep_file(FILE *file)
 						print_line(line + gl->matched_range.rm_so,
 								end - gl->matched_range.rm_so,
 								linenum, ':');
+						if (old == '\0')
+							break;
 						line[end] = old;
 #if !ENABLE_EXTRA_COMPAT
 						if (regexec(&gl->compiled_regex, line + end,
