@@ -101,6 +101,9 @@ static const char *const optletters_optnames[] = {
 	"b"   "notify",
 	"u"   "nounset",
 	"\0"  "vi",
+#if ENABLE_ASH_BASH_COMPAT
+	"\0"  "pipefail"
+#endif
 #if DEBUG
 	,"\0"  "nolog"
 	,"\0"  "debug"
@@ -178,9 +181,14 @@ struct globals_misc {
 #define bflag optlist[11]
 #define uflag optlist[12]
 #define viflag optlist[13]
+#if ENABLE_ASH_BASH_COMPAT
+# define pipefail optlist[14]
+#else
+# define pipefail 0
+#endif
 #if DEBUG
-#define nolog optlist[14]
-#define debug optlist[15]
+# define nolog optlist[14 + ENABLE_ASH_BASH_COMPAT]
+# define debug optlist[15 + ENABLE_ASH_BASH_COMPAT]
 #endif
 
 	/* trap handler commands */
@@ -3999,13 +4007,23 @@ jobscmd(int argc UNUSED_PARAM, char **argv)
 }
 #endif /* JOBS */
 
+/* Called only on finished or stopped jobs (no members are running) */
 static int
 getstatus(struct job *job)
 {
 	int status;
 	int retval;
+	struct procstat *ps;
 
-	status = job->ps[job->nprocs - 1].ps_status;
+	/* Fetch last member's status */
+	ps = job->ps + job->nprocs - 1;
+	status = ps->ps_status;
+	if (pipefail) {
+		/* "set -o pipefail" mode: use last _nonzero_ status */
+		while (status == 0 && --ps >= job->ps)
+			status = ps->ps_status;
+	}
+
 	retval = WEXITSTATUS(status);
 	if (!WIFEXITED(status)) {
 #if JOBS
