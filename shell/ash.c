@@ -13016,6 +13016,10 @@ init(void)
 
 	/* from trap.c: */
 	signal(SIGCHLD, SIG_DFL);
+	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
+	 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
+	 */
+        signal(SIGHUP, SIG_DFL);
 
 	/* from var.c: */
 	{
