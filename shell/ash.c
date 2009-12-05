@@ -100,9 +100,9 @@ static const char *const optletters_optnames[] = {
 	"a"   "allexport",
 	"b"   "notify",
 	"u"   "nounset",
-	"\0"  "vi",
+	"\0"  "vi"
 #if ENABLE_ASH_BASH_COMPAT
-	"\0"  "pipefail"
+	,"\0"  "pipefail"
 #endif
 #if DEBUG
 	,"\0"  "nolog"
