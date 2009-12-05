@@ -17,12 +17,12 @@ updates, you also need to have hotplugging enabled in your kernel.
 Here's a typical code snippet from the init script:
 [0] mount -t proc proc /proc
 [1] mount -t sysfs sysfs /sys
-[2] echo /bin/mdev > /proc/sys/kernel/hotplug
+[2] echo /sbin/mdev > /proc/sys/kernel/hotplug
 [3] mdev -s
 
 Alternatively, without procfs the above becomes:
 [1] mount -t sysfs sysfs /sys
-[2] sysctl -w kernel.hotplug=/bin/mdev
+[2] sysctl -w kernel.hotplug=/sbin/mdev
 [3] mdev -s
 
 
@@ -33,7 +33,7 @@ code snippet:
 [6] mount -t devpts devpts /dev/pts
 
 The simple explanation here is that [1] you need to have /sys mounted before
-executing mdev.  Then you [2] instruct the kernel to execute /bin/mdev whenever
+executing mdev.  Then you [2] instruct the kernel to execute /sbin/mdev whenever
 a device is added or removed so that the device node can be created or
 destroyed.  Then you [3] seed /dev with all the device nodes that were created
 while the system was booting.

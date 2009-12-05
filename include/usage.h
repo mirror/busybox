@@ -2656,7 +2656,7 @@
        "	-s	Scan /sys and populate /dev during system boot\n" \
        "\n" \
        "It can be run by kernel as a hotplug helper. To activate it:\n" \
-       " echo /bin/mdev >/proc/sys/kernel/hotplug\n" \
+       " echo /sbin/mdev > /proc/sys/kernel/hotplug\n" \
 	IF_FEATURE_MDEV_CONF( \
        "It uses /etc/mdev.conf with lines\n" \
        "[-]DEVNAME UID:GID PERM" \
