@@ -167,10 +167,9 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 
 #ifdef WHY_WE_DO_IT_FOR_DEV_ROOT_ONLY
-/* ... and also this is the only user of find_block_device */
 			if (strcmp(device, "/dev/root") == 0) {
 				/* Adjusts device to be the real root device,
-				* or leaves device alone if it can't find it */
+				 * or leaves device alone if it can't find it */
 				device = find_block_device("/");
 				if (!device) {
 					goto set_error;

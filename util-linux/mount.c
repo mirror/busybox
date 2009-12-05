@@ -1829,7 +1829,8 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *lst_o = NULL;
 	const char *fstabname;
 	FILE *fstab;
-	int i, j, rc = 0;
+	int i, j;
+	int rc = EXIT_SUCCESS;
 	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
 	IF_NOT_DESKTOP(const int nonroot = 0;)
@@ -1893,7 +1894,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			mtpair->mnt_type = fstype;
 			mtpair->mnt_opts = cmdopts;
 			resolve_mount_spec(&mtpair->mnt_fsname);
-			rc = singlemount(mtpair, 0);
+			rc = singlemount(mtpair, /*ignore_busy:*/ 0);
 			return rc;
 		}
 		storage_path = bb_simplify_path(argv[0]); // malloced
@@ -1949,10 +1950,13 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 		if (argv[0]) {
 
 			// Is this what we're looking for?
-			if (strcmp(argv[0], mtcur->mnt_fsname) &&
-			   strcmp(storage_path, mtcur->mnt_fsname) &&
-			   strcmp(argv[0], mtcur->mnt_dir) &&
-			   strcmp(storage_path, mtcur->mnt_dir)) continue;
+			if (strcmp(argv[0], mtcur->mnt_fsname) != 0
+			 && strcmp(storage_path, mtcur->mnt_fsname) != 0
+			 && strcmp(argv[0], mtcur->mnt_dir) != 0
+			 && strcmp(storage_path, mtcur->mnt_dir) != 0
+			) {
+				continue; // no
+			}
 
 			// Remember this entry.  Something later may have
 			// overmounted it, and we want the _last_ match.
@@ -1960,6 +1964,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 		// If we're mounting all
 		} else {
+			struct mntent *mp;
 			// No, mount -a won't mount anything,
 			// even user mounts, for mere humans
 			if (nonroot)
@@ -1969,7 +1974,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			if (!match_fstype(mtcur, fstype))
 				continue;
 
-			// Skip noauto and swap anyway.
+			// Skip noauto and swap anyway
 			if ((parse_mount_options(mtcur->mnt_opts, NULL) & (MOUNT_NOAUTO | MOUNT_SWAP))
 			// swap is bogus "fstype", parse_mount_options can't check fstypes
 			 || strcasecmp(mtcur->mnt_type, "swap") == 0
@@ -1987,10 +1992,23 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 
-			// Mount this thing
-			if (singlemount(mtcur, 1)) {
-				// Count number of failed mounts
-				rc++;
+			// If nothing is mounted on this directory...
+			// (otherwise repeated "mount -a" mounts everything again)
+			mp = find_mount_point(mtcur->mnt_dir, /*subdir_too:*/ 0);
+			// We do not check fsname match of found mount point -
+			// "/" may have fsname of "/dev/root" while fstab
+			// says "/dev/something_else".
+			if (mp) {
+				bb_error_msg("according to %s, "
+					"%s is already mounted on %s",
+					bb_path_mtab_file,
+					mp->mnt_fsname, mp->mnt_dir);
+			} else {
+				// ...mount this thing
+				if (singlemount(mtcur, /*ignore_busy:*/ 1)) {
+					// Count number of failed mounts
+					rc++;
+				}
 			}
 			free(mtcur->mnt_opts);
 		}
@@ -1998,7 +2016,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	// End of fstab/mtab is reached.
 	// Were we looking for something specific?
-	if (argv[0]) {
+	if (argv[0]) { // yes
 		long l;
 
 		// If we didn't find anything, complain
@@ -2031,13 +2049,24 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 				bb_error_msg_and_die(bb_msg_you_must_be_root);
 		}
 
-		// Mount the last thing we found
-		mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
-		append_mount_options(&(mtcur->mnt_opts), cmdopts);
-		resolve_mount_spec(&mtpair->mnt_fsname);
-		rc = singlemount(mtcur, 0);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			free(mtcur->mnt_opts);
+		//util-linux-2.12 does not do this check.
+		//// If nothing is mounted on this directory...
+		//// (otherwise repeated "mount FOO" mounts FOO again)
+		//mp = find_mount_point(mtcur->mnt_dir, /*subdir_too:*/ 0);
+		//if (mp) {
+		//	bb_error_msg("according to %s, "
+		//		"%s is already mounted on %s",
+		//		bb_path_mtab_file,
+		//		mp->mnt_fsname, mp->mnt_dir);
+		//} else {
+			// ...mount the last thing we found
+			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
+			append_mount_options(&(mtcur->mnt_opts), cmdopts);
+			resolve_mount_spec(&mtpair->mnt_fsname);
+			rc = singlemount(mtcur, /*ignore_busy:*/ 0);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(mtcur->mnt_opts);
+		//}
 	}
 
  //ret:
@@ -2047,5 +2076,15 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 		free(storage_path);
 		free(cmdopts);
 	}
+
+//TODO: exitcode should be ORed mask of (from "man mount"):
+// 0 success
+// 1 incorrect invocation or permissions
+// 2 system error (out of memory, cannot fork, no more loop devices)
+// 4 internal mount bug or missing nfs support in mount
+// 8 user interrupt
+//16 problems writing or locking /etc/mtab
+//32 mount failure
+//64 some mount succeeded
 	return rc;
 }
