@@ -145,7 +145,7 @@
        "bar"
 
 #define beep_trivial_usage \
-       "-f freq -l length -d delay -r repetitions -n"
+       "-f FREQ -l LEN -d DELAY -r COUNT -n"
 #define beep_full_usage "\n\n" \
        "Options:" \
      "\n	-f	Frequency in Hz" \
@@ -614,13 +614,13 @@
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
 	IF_LONG_OPTS( \
-     "\n	-P,--password-fd=NUM	Read password from fd NUM" \
+     "\n	-P,--password-fd=N	Read password from fd N" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
 	IF_NOT_LONG_OPTS( \
-     "\n	-P NUM	Read password from fd NUM" \
+     "\n	-P N	Read password from fd N" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
      "\n	-S SALT" \
@@ -635,13 +635,13 @@
        "Crypt the PASSWORD using crypt(3)\n" \
      "\nOptions:" \
 	IF_LONG_OPTS( \
-     "\n	-P,--password-fd=NUM	Read password from fd NUM" \
+     "\n	-P,--password-fd=N	Read password from fd N" \
 /*   "\n	-s,--stdin		Use stdin; like -P0" */ \
      "\n	-m,--method=TYPE	Encryption method TYPE" \
      "\n	-S,--salt=SALT" \
 	) \
 	IF_NOT_LONG_OPTS( \
-     "\n	-P NUM	Read password from fd NUM" \
+     "\n	-P N	Read password from fd N" \
 /*   "\n	-s	Use stdin; like -P0" */ \
      "\n	-m TYPE	Encryption method TYPE" \
      "\n	-S SALT" \
@@ -1002,6 +1002,7 @@
      "\n	-a	Interpret lease times as expire time" \
 	)
 
+/*
 #define e2fsck_trivial_usage \
        "[-panyrcdfvstDFSV] [-b superblock] [-B blocksize] " \
        "[-I inode_buffer_blocks] [-P process_inode_size] " \
@@ -1021,6 +1022,7 @@
      "\n	-j journal	Set location of the external journal" \
      "\n	-l file		Add to badblocks list" \
      "\n	-L file		Set badblocks list" \
+*/
 
 #define echo_trivial_usage \
 	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG...]"
@@ -1077,7 +1079,7 @@
      "\n	-p pass		Append four or six byte password PW to the packet" \
 
 #define expand_trivial_usage \
-       "[-i] [-t NUM] [FILE|-]"
+       "[-i] [-t N] [FILE|-]"
 #define expand_full_usage "\n\n" \
        "Convert tabs to spaces, writing to standard output\n" \
      "\nOptions:" \
@@ -1513,7 +1515,7 @@
      "\n	-s	Suppress file open/read error messages" \
      "\n	-c	Only print count of matching lines" \
      "\n	-o	Show only the part of a line that matches PATTERN" \
-     "\n	-m MAX	Match up to MAX times per file" \
+     "\n	-m N	Match up to N times per file" \
 	IF_DESKTOP( \
      "\n	-w	Match whole words only") \
      "\n	-F	PATTERN is a set of newline-separated strings" \
@@ -1522,9 +1524,9 @@
      "\n	-e PTRN	Pattern to match" \
      "\n	-f FILE	Read pattern from file" \
 	IF_FEATURE_GREP_CONTEXT( \
-     "\n	-A	Print NUM lines of trailing context" \
-     "\n	-B	Print NUM lines of leading context" \
-     "\n	-C	Print NUM lines of output context") \
+     "\n	-A N	Print N lines of trailing context" \
+     "\n	-B N	Print N lines of leading context" \
+     "\n	-C N	Print N lines of output context") \
 	IF_EXTRA_COMPAT( \
      "\n	-z	Input is NUL terminated") \
 
@@ -1573,7 +1575,7 @@
        "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-       "[-d delay] [-n] [-f]" IF_FEATURE_WTMP(" [-w]")
+       "[-d DELAY] [-n] [-f]" IF_FEATURE_WTMP(" [-w]")
 #define halt_full_usage "\n\n" \
        "Halt the system\n" \
      "\nOptions:" \
@@ -1641,9 +1643,9 @@
        "Print first 10 lines of each FILE (or standard input) to standard output.\n" \
        "With more than one FILE, precede each with a header giving the file name.\n" \
      "\nOptions:" \
-     "\n	-n NUM	Print first NUM lines instead of first 10" \
+     "\n	-n N	Print first N lines instead of first 10" \
 	IF_FEATURE_FANCY_HEAD( \
-     "\n	-c NUM	Output the first NUM bytes" \
+     "\n	-c N	Output the first N bytes" \
      "\n	-q	Never output headers giving file names" \
      "\n	-v	Always output headers giving file names") \
 
@@ -2463,7 +2465,7 @@
      "\n	-S	Sort by file size") \
      "\n	-s	List the size of each file, in blocks" \
 	IF_FEATURE_AUTOWIDTH( \
-     "\n	-T NUM	Assume tabstop every NUM columns") \
+     "\n	-T N	Assume tabstop every N columns") \
 	IF_FEATURE_LS_TIMESTAMPS( \
      "\n	-t	With -l: sort by modification time") \
 	IF_FEATURE_LS_TIMESTAMPS( \
@@ -2471,7 +2473,7 @@
 	IF_FEATURE_LS_SORTFILES( \
      "\n	-v	Sort by version") \
 	IF_FEATURE_AUTOWIDTH( \
-     "\n	-w NUM	Assume the terminal is NUM columns wide") \
+     "\n	-w N	Assume the terminal is N columns wide") \
      "\n	-x	List by lines" \
 	IF_FEATURE_LS_SORTFILES( \
      "\n	-X	Sort by extension") \
@@ -2748,7 +2750,7 @@
 /*   "\n	-E opts		Set extended options" */ \
 /*   "\n	-f size		Fragment size in bytes" */ \
      "\n	-F		Force" \
-/*   "\n	-g num		Number of blocks in a block group" */ \
+/*   "\n	-g N		Number of blocks in a block group" */ \
      "\n	-i RATIO	Max number of files is filesystem_size / RATIO" \
      "\n	-I BYTES	Inode size (min 128)" \
 /*   "\n	-j		Create a journal (ext3)" */ \
@@ -2758,7 +2760,7 @@
      "\n	-m PERCENT	Percent of blocks to reserve for admin" \
 /*   "\n	-M dir		Set last mounted directory" */ \
      "\n	-n		Dry run" \
-/*   "\n	-N num		Number of inodes to create" */ \
+/*   "\n	-N N		Number of inodes to create" */ \
 /*   "\n	-o os		Set the 'creator os' field" */ \
 /*   "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" */ \
 /*   "\n	-q		Quiet" */ \
@@ -2946,7 +2948,7 @@
        "$ dmesg | more\n"
 
 #define mount_trivial_usage \
-       "[flags] DEVICE NODE [-o OPT,OPT]"
+       "[OPTIONS] [-o OPTS] DEVICE NODE"
 #define mount_full_usage "\n\n" \
        "Mount a filesystem. Filesystem autodetection requires /proc.\n" \
      "\nOptions:" \
@@ -2985,14 +2987,13 @@
      "\n	[r]slave	Convert [recursively] to a slave subtree" \
      "\n	[r]private	Convert [recursively] to a private subtree" \
      "\n	[un]bindable	Make mount point [un]able to be bind mounted" \
-     "\n	bind		Bind a directory to an additional location" \
+     "\n	bind		Bind a file or directory to another location" \
      "\n	move		Relocate an existing mount point" \
 	) \
-     "\n	remount		Remount a mounted filesystem, changing its flags" \
-     "\n	ro/rw		Read-only/read-write mount" \
+     "\n	remount		Remount a mounted filesystem, changing flags" \
+     "\n	ro/rw		Same as -r/-w" \
      "\n" \
-     "\nThere are EVEN MORE flags that are specific to each filesystem" \
-     "\nYou'll have to see the written documentation for those filesystems" \
+     "\nThere are filesystem-specific -o flags." \
 
 #define mount_example_usage \
        "$ mount\n" \
@@ -3243,10 +3244,11 @@
 #define openvt_example_usage \
        "openvt 2 /bin/ash\n"
 
+/*
 #define parse_trivial_usage \
-       "[-n maxtokens] [-m mintokens] [-d delims] [-f flags] file ..."
-#define parse_full_usage "\n\n" \
-       "[-n maxtokens] [-m mintokens] [-d delims] [-f flags] file ..."
+       "[-n MAXTOKENS] [-m MINTOKENS] [-d DELIMS] [-f FLAGS] FILE..."
+#define parse_full_usage ""
+*/
 
 #define passwd_trivial_usage \
        "[OPTIONS] [USER]"
@@ -3254,7 +3256,7 @@
        "Change USER's password. If no USER is specified,\n" \
        "changes the password for the current user.\n" \
      "\nOptions:" \
-     "\n	-a	Algorithm to use for password (choices: des, md5)" /* ", sha1)" */ \
+     "\n	-a	Algorithm to use for password (des, md5)" /* ", sha1)" */ \
      "\n	-d	Delete password for the account" \
      "\n	-l	Lock (disable) account" \
      "\n	-u	Unlock (re-enable) account" \
@@ -3277,14 +3279,14 @@
        "[OPTIONS] [ORIGFILE [PATCHFILE]]"
 #define patch_full_usage "\n\n" \
 	IF_LONG_OPTS( \
-       "	-p,--strip NUM	Strip NUM leading components from file names" \
+       "	-p,--strip N	Strip N leading components from file names" \
      "\n	-i,--input DIFF	Read DIFF instead of stdin" \
      "\n	-R,--reverse	Reverse patch" \
      "\n	-N,--forward	Ignore already applied patches" \
      "\n	--dry-run	Don't actually change files" \
 	) \
 	IF_NOT_LONG_OPTS( \
-       "	-p NUM	Strip NUM leading components from file names" \
+       "	-p N	Strip N leading components from file names" \
      "\n	-i DIFF	Read DIFF instead of stdin" \
      "\n	-R	Reverse patch" \
      "\n	-N	Ignore already applied patches" \
@@ -3413,34 +3415,34 @@
      "\n	-P	Match parent process ID" \
 
 #define popmaildir_trivial_usage \
-       "[OPTIONS] Maildir [connection-helper ...]"
+       "[OPTIONS] MAILDIR [CONN_HELPER ARGS]"
 #define popmaildir_full_usage "\n\n" \
        "Fetch content of remote mailbox to local maildir\n" \
      "\nOptions:" \
-     "\n	-b		Binary mode. Ignored" \
-     "\n	-d		Debug. Ignored" \
-     "\n	-m		Show used memory. Ignored" \
-     "\n	-V		Show version. Ignored" \
-     "\n	-c		Use tcpclient. Ignored" \
-     "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" \
+/*   "\n	-b		Binary mode. Ignored" */ \
+/*   "\n	-d		Debug. Ignored" */ \
+/*   "\n	-m		Show used memory. Ignored" */ \
+/*   "\n	-V		Show version. Ignored" */ \
+/*   "\n	-c		Use tcpclient. Ignored" */ \
+/*   "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" */ \
      "\n	-s		Skip authorization" \
      "\n	-T		Get messages with TOP instead with RETR" \
      "\n	-k		Keep retrieved messages on the server" \
-     "\n	-t timeout	Network timeout" \
+     "\n	-t SEC		Network timeout" \
 	IF_FEATURE_POPMAILDIR_DELIVERY( \
-     "\n	-F \"program arg1 arg2 ...\"	Filter by program. May be multiple" \
-     "\n	-M \"program arg1 arg2 ...\"	Deliver by program" \
+     "\n	-F \"PROG ARGS\"	Filter program. May be multiple" \
+     "\n	-M \"PROG ARGS\"	Delivery program" \
 	) \
-     "\n	-R size		Remove old messages on the server >= size (in bytes). Ignored" \
-     "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" \
-     "\n	-L size		Don't retrieve new messages >= size (in bytes). Ignored" \
-     "\n	-H lines	Type specified number of lines of a message. Ignored"
+/*   "\n	-R BYTES	Remove old messages on the server >= BYTES. Ignored" */
+/*   "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" */
+/*   "\n	-L BYTES	Don't retrieve new messages >= BYTES. Ignored" */
+/*   "\n	-H LINES	Type first LINES of a message. Ignored" */
 #define popmaildir_example_usage \
        "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
        "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
 
 #define poweroff_trivial_usage \
-       "[-d delay] [-n] [-f]"
+       "[-d DELAY] [-n] [-f]"
 #define poweroff_full_usage "\n\n" \
        "Halt and shut off power\n" \
      "\nOptions:" \
@@ -3591,7 +3593,7 @@
        "Return the absolute pathnames of given argument"
 
 #define reboot_trivial_usage \
-       "[-d delay] [-n] [-f]"
+       "[-d DELAY] [-n] [-f]"
 #define reboot_full_usage "\n\n" \
        "Reboot the system\n" \
      "\nOptions:" \
@@ -4223,11 +4225,11 @@
      "\n	[SETTING]	See manpage" \
 
 #define su_trivial_usage \
-       "[OPTIONS] [-] [username]"
+       "[OPTIONS] [-] [USERNAME]"
 #define su_full_usage "\n\n" \
        "Change user id or become root\n" \
      "\nOptions:" \
-     "\n	-p, -m	Preserve environment" \
+     "\n	-p,-m	Preserve environment" \
      "\n	-c CMD	Command to pass to 'sh -c'" \
      "\n	-s SH	Shell to use instead of default shell" \
 
@@ -4247,7 +4249,7 @@
      "\n	-s	Use System V sum algorithm (512byte blocks)" \
 
 #define sv_trivial_usage \
-       "[-v] [-w sec] command service..."
+       "[-v] [-w SEC] command service..."
 #define sv_full_usage "\n\n" \
        "Control services monitored by runsv supervisor.\n" \
        "Commands (only first character is enough):\n" \
@@ -4277,13 +4279,13 @@
      "\n	-a	Stop swapping on all swap devices" \
 
 #define swapon_trivial_usage \
-       "[-a]" IF_FEATURE_SWAPON_PRI(" [-p pri]") " [DEVICE]"
+       "[-a]" IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
 #define swapon_full_usage "\n\n" \
        "Start swapping on DEVICE\n" \
      "\nOptions:" \
      "\n	-a	Start swapping on all swap devices" \
 	IF_FEATURE_SWAPON_PRI( \
-     "\n	-p pri	Set swap device priority" \
+     "\n	-p PRI	Set swap device priority" \
 	) \
 
 #define switch_root_trivial_usage \
@@ -4338,7 +4340,7 @@
      "\n	-S		Smaller logging output" \
 	IF_FEATURE_ROTATE_LOGFILE( \
      "\n	-s SIZE		Max size (KB) before rotate (default:200KB, 0=off)" \
-     "\n	-b NUM		Number of rotated logs to keep (default:1, max=99, 0=purge)") \
+     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)") \
 	IF_FEATURE_REMOTE_LOG( \
      "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
      "\n	-L		Log locally and via network (default is network only if -R)") \
@@ -4825,7 +4827,7 @@
 	)
 
 #define umount_trivial_usage \
-       "[flags] FILESYSTEM|DIRECTORY"
+       "[OPTIONS] FILESYSTEM|DIRECTORY"
 #define umount_full_usage "\n\n" \
        "Unmount file systems\n" \
      "\nOptions:" \
@@ -4863,7 +4865,7 @@
        "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
 
 #define uncompress_trivial_usage \
-       "[-c] [-f] [name...]"
+       "[-c] [-f] [FILE...]"
 #define uncompress_full_usage "\n\n" \
        "Uncompress .Z file[s]\n" \
      "\nOptions:" \
@@ -4871,7 +4873,7 @@
      "\n	-f	Overwrite an existing file" \
 
 #define unexpand_trivial_usage \
-       "[-f][-a][-t NUM] [FILE|-]"
+       "[-f][-a][-t N] [FILE|-]"
 #define unexpand_full_usage "\n\n" \
        "Convert spaces to tabs, writing to standard output\n" \
      "\nOptions:" \
@@ -4936,7 +4938,7 @@
        "[pauses for 1 second]\n"
 
 #define uudecode_trivial_usage \
-       "[-o outfile] [infile]"
+       "[-o OUTFILE] [INFILE]"
 #define uudecode_full_usage "\n\n" \
        "Uudecode a file\n" \
        "Finds outfile name in uuencoded source unless -o is given"
@@ -4947,7 +4949,7 @@
        "-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox\n"
 
 #define uuencode_trivial_usage \
-       "[-m] [infile] stored_filename"
+       "[-m] [INFILE] STORED_FILENAME"
 #define uuencode_full_usage "\n\n" \
        "Uuencode a file to stdout\n" \
      "\nOptions:" \
@@ -4996,9 +4998,9 @@
        "Show CD volume name of the DEVICE (default /dev/cdrom)"
 
 #define wall_trivial_usage \
-	"[file]"
+	"[FILE]"
 #define wall_full_usage "\n\n" \
-	"Write content of file or standard-input to all logged-in users"
+	"Write content of FILE or standard-input to all logged-in users"
 #define wall_sample_usage \
 	"echo foo | wall\n" \
 	"wall ./mymessage"
