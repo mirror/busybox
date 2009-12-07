@@ -2510,6 +2510,9 @@
      "\n	-m	Parseable output" \
      "\n	-k	Show driver" \
 
+#define lsusb_trivial_usage NOUSAGE_STR
+#define lsusb_full_usage ""
+
 #if ENABLE_FEATURE_MAKEDEVS_LEAF
 #define makedevs_trivial_usage \
        "NAME TYPE MAJOR MINOR FIRST LAST [s]"

@@ -357,6 +357,15 @@ config LSPCI
 
 	  This version uses sysfs (/sys/bus/pci/devices) only.
 
+config LSUSB
+	bool "lsusb"
+	default n
+	help
+	  lsusb is a utility for displaying information about USB buses in the
+	  system and devices connected to them.
+
+	  This version uses sysfs (/sys/bus/usb/devices) only.
+
 config MDEV
 	bool "mdev"
 	default n
