@@ -1999,10 +1999,12 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			// "/" may have fsname of "/dev/root" while fstab
 			// says "/dev/something_else".
 			if (mp) {
-				bb_error_msg("according to %s, "
-					"%s is already mounted on %s",
-					bb_path_mtab_file,
-					mp->mnt_fsname, mp->mnt_dir);
+				if (verbose) {
+					bb_error_msg("according to %s, "
+						"%s is already mounted on %s",
+						bb_path_mtab_file,
+						mp->mnt_fsname, mp->mnt_dir);
+				}
 			} else {
 				// ...mount this thing
 				if (singlemount(mtcur, /*ignore_busy:*/ 1)) {
