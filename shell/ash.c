@@ -4213,15 +4213,16 @@ cmdputs(const char *s)
 	};
 
 	const char *p, *str;
-	char cc[2] = " ";
+	char cc[2];
 	char *nextc;
 	unsigned char c;
 	unsigned char subtype = 0;
 	int quoted = 0;
 
+	cc[1] = '\0';
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
 	p = s;
-	while ((c = *p++) != 0) {
+	while ((c = *p++) != '\0') {
 		str = NULL;
 		switch (c) {
 		case CTLESC:
@@ -4292,7 +4293,8 @@ cmdputs(const char *s)
 		while ((c = *str++) != '\0') {
 			USTPUTC(c, nextc);
 		}
-	}
+	} /* while *p++ not NUL */
+
 	if (quoted & 1) {
 		USTPUTC('"', nextc);
 	}
