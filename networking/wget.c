@@ -462,7 +462,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 			rdsz = sizeof(buf);
 			if (G.got_clen) {
-				if (G.content_len < sizeof(buf)) {
+				if (G.content_len < (off_t)sizeof(buf)) {
 					if ((int)G.content_len <= 0)
 						break;
 					rdsz = (unsigned)G.content_len;
