@@ -522,7 +522,7 @@ static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	bb_error_msg("no dhcp clients found");
 	return 0;
 }
-#elif ENABLE_APP_UDHCPC
+#elif ENABLE_UDHCPC
 static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #if ENABLE_FEATURE_IFUPDOWN_IP
@@ -569,7 +569,7 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	result += static_down(ifd, exec);
 	return ((result == 3) ? 3 : 0);
 }
-#elif ENABLE_APP_UDHCPC
+#elif ENABLE_UDHCPC
 static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;

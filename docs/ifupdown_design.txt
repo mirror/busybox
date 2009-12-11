@@ -26,7 +26,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
        }
        bb_error_msg("no dhcp clients found, using static interface shutdown");
        return static_down(ifd, exec);
-#elif ENABLE_APP_UDHCPC
+#elif ENABLE_UDHCPC
        return execute("kill "
                       "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
 #else
