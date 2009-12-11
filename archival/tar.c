@@ -336,7 +336,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		 && statbuf->st_size > (off_t)0777777777777LL
 		) {
 			bb_error_msg_and_die("can't store file '%s' "
-				"of size %"OFF_FMT"d, aborting",
+				"of size %"OFF_FMT"u, aborting",
 				fileName, statbuf->st_size);
 		}
 		header.typeflag = REGTYPE;

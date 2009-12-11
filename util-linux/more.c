@@ -110,7 +110,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 			if (input != 'r' && please_display_more_prompt) {
 				len = printf("--More-- ");
 				if (st.st_size > 0) {
-					len += printf("(%d%% of %"OFF_FMT"d bytes)",
+					len += printf("(%u%% of %"OFF_FMT"u bytes)",
 						(int) (ftello(file)*100 / st.st_size),
 						st.st_size);
 				}

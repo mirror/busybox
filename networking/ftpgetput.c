@@ -212,7 +212,7 @@ int ftp_receive(const char *local_path, char *server_path)
 	}
 
 	if (do_continue) {
-		sprintf(buf, "REST %"OFF_FMT"d", beg_range);
+		sprintf(buf, "REST %"OFF_FMT"u", beg_range);
 		if (ftpcmd(buf, NULL) != 350) {
 			do_continue = 0;
 		}

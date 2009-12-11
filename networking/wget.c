@@ -35,10 +35,6 @@ struct globals {
 struct BUG_G_too_big {
 	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 };
-#define content_len     (G.content_len    )
-#define beg_range       (G.beg_range      )
-#define transferred     (G.transferred    )
-#define curfile         (G.curfile        )
 #define INIT_G() do { } while (0)
 
 
@@ -53,14 +49,14 @@ static void progress_meter(int flag)
 		bb_progress_init(&G.pmt);
 	}
 
-	bb_progress_update(&G.pmt, curfile, beg_range, transferred,
-			   G.chunked ? 0 : content_len + beg_range);
+	bb_progress_update(&G.pmt, G.curfile, G.beg_range, G.transferred,
+			   G.chunked ? 0 : G.content_len + G.beg_range);
 
 	if (flag == 0) {
 		/* last call to progress_meter */
 		alarm(0);
 		fputc('\n', stderr);
-		transferred = 0;
+		G.transferred = 0;
 	} else {
 		if (flag == -1) { /* first call to progress_meter */
 			signal_SA_RESTART_empty_mask(SIGALRM, progress_meter);
@@ -390,8 +386,8 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	 * Querying file size
 	 */
 	if (ftpcmd("SIZE ", target->path, sfp, buf) == 213) {
-		content_len = BB_STRTOOFF(buf+4, NULL, 10);
-		if (errno || content_len < 0) {
+		G.content_len = BB_STRTOOFF(buf+4, NULL, 10);
+		if (G.content_len < 0 || errno) {
 			bb_error_msg_and_die("SIZE value is garbage");
 		}
 		G.got_clen = 1;
@@ -420,10 +416,10 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	*dfpp = open_socket(lsa);
 
-	if (beg_range) {
-		sprintf(buf, "REST %"OFF_FMT"d", beg_range);
+	if (G.beg_range) {
+		sprintf(buf, "REST %"OFF_FMT"u", G.beg_range);
 		if (ftpcmd(buf, NULL, sfp, buf) == 350)
-			content_len -= beg_range;
+			G.content_len -= G.beg_range;
 	}
 
 	if (ftpcmd("RETR ", target->path, sfp, buf) > 150)
@@ -460,12 +456,18 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	/* Loops only if chunked */
 	while (1) {
-		while (content_len > 0 || !G.got_clen) {
+		while (1) {
 			int n;
-			unsigned rdsz = sizeof(buf);
+			unsigned rdsz;
 
-			if (content_len < sizeof(buf) && (G.chunked || G.got_clen))
-				rdsz = (unsigned)content_len;
+			rdsz = sizeof(buf);
+			if (G.got_clen) {
+				if (G.content_len < sizeof(buf)) {
+					if ((int)G.content_len <= 0)
+						break;
+					rdsz = (unsigned)G.content_len;
+				}
+			}
 			n = safe_fread(buf, rdsz, dfp);
 			if (n <= 0) {
 				if (ferror(dfp)) {
@@ -476,10 +478,10 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 			}
 			xwrite(output_fd, buf, n);
 #if ENABLE_FEATURE_WGET_STATUSBAR
-			transferred += n;
+			G.transferred += n;
 #endif
 			if (G.got_clen)
-				content_len -= n;
+				G.content_len -= n;
 		}
 
 		if (!G.chunked)
@@ -488,10 +490,11 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
  get_clen:
 		safe_fgets(buf, sizeof(buf), dfp);
-		content_len = STRTOOFF(buf, NULL, 16);
+		G.content_len = STRTOOFF(buf, NULL, 16);
 		/* FIXME: error check? */
-		if (content_len == 0)
+		if (G.content_len == 0)
 			break; /* all done! */
+		G.got_clen = 1;
 	}
 
 	if (!(option_mask32 & WGET_OPT_QUIET))
@@ -621,7 +624,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #if ENABLE_FEATURE_WGET_STATUSBAR
-	curfile = bb_get_last_path_component_nostrip(fname_out);
+	G.curfile = bb_get_last_path_component_nostrip(fname_out);
 #endif
 
 	/* Impossible?
@@ -633,7 +636,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & WGET_OPT_CONTINUE) {
 		output_fd = open(fname_out, O_WRONLY);
 		if (output_fd >= 0) {
-			beg_range = xlseek(output_fd, 0, SEEK_END);
+			G.beg_range = xlseek(output_fd, 0, SEEK_END);
 		}
 		/* File doesn't exist. We do not create file here yet.
 		 * We are not sure it exists on remove side */
@@ -684,8 +687,8 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
 
-		if (beg_range)
-			fprintf(sfp, "Range: bytes=%"OFF_FMT"d-\r\n", beg_range);
+		if (G.beg_range)
+			fprintf(sfp, "Range: bytes=%"OFF_FMT"u-\r\n", G.beg_range);
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 		if (extra_headers)
 			fputs(extra_headers, sfp);
@@ -756,7 +759,7 @@ However, in real world it was observed that some web servers
 		case 303:
 			break;
 		case 206:
-			if (beg_range)
+			if (G.beg_range)
 				break;
 			/* fall through */
 		default:
@@ -777,8 +780,8 @@ However, in real world it was observed that some web servers
 			}
 			key = index_in_strings(keywords, buf) + 1;
 			if (key == KEY_content_length) {
-				content_len = BB_STRTOOFF(str, NULL, 10);
-				if (errno || content_len < 0) {
+				G.content_len = BB_STRTOOFF(str, NULL, 10);
+				if (G.content_len < 0 || errno) {
 					bb_error_msg_and_die("content-length %s is garbage", sanitize_string(str));
 				}
 				G.got_clen = 1;
@@ -841,13 +844,14 @@ However, in real world it was observed that some web servers
 	}
 
 	retrieve_file_data(dfp, output_fd);
+	xclose(output_fd);
 
 	if (dfp != sfp) {
 		/* It's ftp. Close it properly */
 		fclose(dfp);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
 			bb_error_msg_and_die("ftp error: %s", sanitize_string(buf+4));
-		ftpcmd("QUIT", NULL, sfp, buf);
+		/* ftpcmd("QUIT", NULL, sfp, buf); - why bother? */
 	}
 
 	return EXIT_SUCCESS;
