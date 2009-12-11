@@ -1360,6 +1360,7 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 #endif
 #ifdef TIOCGWINSZ
 		case param_cols:
+		case param_columns:
 			set_window_size(-1, xatoul_sfx(argnext, stty_suffixes));
 			break;
 		case param_size:
