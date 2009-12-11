@@ -146,6 +146,7 @@ lib-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) += pw_encrypt.o
 lib-$(CONFIG_DF) += find_mount_point.o
 lib-$(CONFIG_MKFS_MINIX) += find_mount_point.o
 lib-$(CONFIG_FSCK_MINIX) += find_mount_point.o
+lib-$(CONFIG_MOUNT) += find_mount_point.o
 
 lib-$(CONFIG_HWCLOCK) += rtc.o
 lib-$(CONFIG_RTCWAKE) += rtc.o
