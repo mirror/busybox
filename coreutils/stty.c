@@ -619,9 +619,9 @@ enum {
 
 
 struct globals {
-	const char *device_name; // = bb_msg_standard_input;
+	const char *device_name;
 	/* The width of the screen, for output wrapping */
-	unsigned max_col; // = 80;
+	unsigned max_col;
 	/* Current position, to know when to wrap */
 	unsigned current_col;
 	char buf[10];
@@ -734,7 +734,13 @@ static void wrapf(const char *message, ...)
 		G.current_col = 0;
 }
 
-static void set_window_size(const int rows, const int cols)
+static void newline(void)
+{
+	if (G.current_col != 0)
+		wrapf("\n");
+}
+
+static void set_window_size(int rows, int cols)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 
@@ -755,7 +761,7 @@ bail:
 		perror_on_device("%s");
 }
 
-static void display_window_size(const int fancy)
+static void display_window_size(int fancy)
 {
 	const char *fmt_str = "%s\0%s: no size information for this device";
 	unsigned width, height;
@@ -765,7 +771,7 @@ static void display_window_size(const int fancy)
 			perror_on_device(fmt_str);
 		}
 	} else {
-		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
+		wrapf(fancy ? "rows %u; columns %u;" : "%u %u\n",
 				height, width);
 	}
 }
@@ -864,21 +870,21 @@ static void display_recoverable(const struct termios *mode,
 
 static void display_speed(const struct termios *mode, int fancy)
 {
-	                     //01234567 8 9
+	//____________________ 01234567 8 9
 	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
 	unsigned long ispeed, ospeed;
 
 	ospeed = ispeed = cfgetispeed(mode);
 	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
 		ispeed = ospeed;                /* in case ispeed was 0 */
-		         //0123 4 5 6 7 8 9
+		//________ 0123 4 5 6 7 8 9
 		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
 	}
 	if (fancy) fmt_str += 9;
 	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
 }
 
-static void do_display(const struct termios *mode, const int all)
+static void do_display(const struct termios *mode, int all)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -889,9 +895,9 @@ static void do_display(const struct termios *mode, const int all)
 	if (all)
 		display_window_size(1);
 #ifdef HAVE_C_LINE
-	wrapf("line = %d;\n", mode->c_line);
+	wrapf("line = %u;\n", mode->c_line);
 #else
-	wrapf("\n");
+	newline();
 #endif
 
 	for (i = 0; i != CIDX_min; ++i) {
@@ -902,7 +908,7 @@ static void do_display(const struct termios *mode, const int all)
 #endif
 		/* If eof uses the same slot as min, only print whichever applies */
 #if VEOF == VMIN
-		if ((mode->c_lflag & ICANON) == 0
+		if (!(mode->c_lflag & ICANON)
 		 && (i == CIDX_eof || i == CIDX_eol)
 		) {
 			continue;
@@ -914,15 +920,14 @@ static void do_display(const struct termios *mode, const int all)
 #if VEOF == VMIN
 	if ((mode->c_lflag & ICANON) == 0)
 #endif
-		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
-	if (G.current_col) wrapf("\n");
+		wrapf("min = %u; time = %u;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
+	newline();
 
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
 		if (mode_info[i].type != prev_type) {
-			/* wrapf("\n"); */
-			if (G.current_col) wrapf("\n");
+			newline();
 			prev_type = mode_info[i].type;
 		}
 
@@ -939,7 +944,7 @@ static void do_display(const struct termios *mode, const int all)
 			}
 		}
 	}
-	if (G.current_col) wrapf("\n");
+	newline();
 }
 
 static void sane_mode(struct termios *mode)
@@ -1138,7 +1143,7 @@ static void set_control_char_or_die(const struct control_info *info,
 		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
 	else if (arg[0] == '\0' || arg[1] == '\0')
 		value = arg[0];
-	else if (!strcmp(arg, "^-") || !strcmp(arg, "undef"))
+	else if (strcmp(arg, "^-") == 0 || strcmp(arg, "undef") == 0)
 		value = _POSIX_VDISABLE;
 	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
 		value = arg[1] & 0x1f; /* Non-letters get weird results */
@@ -1159,7 +1164,7 @@ int stty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int stty_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct termios mode;
-	void (*output_func)(const struct termios *, const int);
+	void (*output_func)(const struct termios *, int);
 	const char *file_name = NULL;
 	int display_all = 0;
 	int stty_state;
@@ -1289,9 +1294,11 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 		(STTY_verbose_output | STTY_recoverable_output))
 		bb_error_msg_and_die("verbose and stty-readable output styles are mutually exclusive");
 	/* Specifying -a or -g with non-options is an error */
-	if (!(stty_state & STTY_noargs) &&
-		(stty_state & (STTY_verbose_output | STTY_recoverable_output)))
+	if (!(stty_state & STTY_noargs)
+	 && (stty_state & (STTY_verbose_output | STTY_recoverable_output))
+	) {
 		bb_error_msg_and_die("modes may not be set when specifying an output style");
+	}
 
 	/* Now it is safe to start doing things */
 	if (file_name) {
