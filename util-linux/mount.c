@@ -1958,6 +1958,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 		// If we're mounting all
 		} else {
+			struct mntent *mp;
 			// No, mount -a won't mount anything,
 			// even user mounts, for mere humans
 			if (nonroot)
@@ -1985,10 +1986,25 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			// NFS mounts want this to be xrealloc-able
 			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 
-			// Mount this thing
-			if (singlemount(mtcur, 1)) {
-				// Count number of failed mounts
-				rc++;
+			// If nothing is mounted on this directory...
+			// (otherwise repeated "mount -a" mounts everything again)
+			mp = find_mount_point(mtcur->mnt_dir, /*subdir_too:*/ 0);
+			// We do not check fsname match of found mount point -
+			// "/" may have fsname of "/dev/root" while fstab
+			// says "/dev/something_else".
+			if (mp) {
+				if (verbose) {
+					bb_error_msg("according to %s, "
+						"%s is already mounted on %s",
+						bb_path_mtab_file,
+						mp->mnt_fsname, mp->mnt_dir);
+				}
+			} else {
+				// ...mount this thing
+				if (singlemount(mtcur, /*ignore_busy:*/ 1)) {
+					// Count number of failed mounts
+					rc++;
+				}
 			}
 			free(mtcur->mnt_opts);
 		}

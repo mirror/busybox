@@ -47,4 +47,21 @@ testing "awk NF in BEGIN" \
 	":0::::\n" \
 	"" ""
 
+prg='
+function b(tmp) {
+	tmp = 0;
+	print "" tmp; #this line causes the bug
+	return tmp;
+}
+function c(tmpc) {
+	tmpc = b(); return tmpc;
+}
+BEGIN {
+	print (c() ? "string" : "number");
+}'
+testing "awk string cast (bug 725)" \
+	"awk '$prg'" \
+	"0\nnumber\n" \
+	"" ""
+
 exit $FAILCOUNT

@@ -358,6 +358,15 @@ scripts_basic:
 # To avoid any implicit rule to kick in, define an empty command.
 scripts/basic/%: scripts_basic ;
 
+# bbox: we have helpers in applets/
+# we depend on scripts_basic, since scripts/basic/fixdep
+# must be built before any other host prog
+PHONY += applets_dir
+applets_dir: scripts_basic
+	$(Q)$(MAKE) $(build)=applets
+
+applets/%: applets_dir ;
+
 PHONY += outputmakefile
 # outputmakefile generates a Makefile in the output directory, if using a
 # separate output directory. This allows convenient use of make in the
@@ -797,7 +806,7 @@ ifneq ($(KBUILD_MODULES),)
 	$(Q)rm -f $(MODVERDIR)/*
 endif
 
-archprepare: prepare1 scripts_basic
+archprepare: prepare1 scripts_basic applets_dir
 
 prepare0: archprepare FORCE
 	$(Q)$(MAKE) $(build)=.

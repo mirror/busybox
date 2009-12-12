@@ -377,6 +377,8 @@ static int grep_file(FILE *file)
 						print_line(line + gl->matched_range.rm_so,
 								end - gl->matched_range.rm_so,
 								linenum, ':');
+						if (old == '\0')
+							break;
 						line[end] = old;
 #if !ENABLE_EXTRA_COMPAT
 						if (regexec(&gl->compiled_regex, line + end,
