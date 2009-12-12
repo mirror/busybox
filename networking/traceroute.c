@@ -703,9 +703,10 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 }
 #else /* !ENABLE_TRACEROUTE6 */
 static ALWAYS_INLINE int
-packet_ok(int read_len, len_and_sockaddr *from_lsa,
-			struct sockaddr *to UNUSED_PARAM,
-			int seq)
+packet_ok(int read_len,
+		len_and_sockaddr *from_lsa IF_NOT_FEATURE_TRACEROUTE_VERBOSE(UNUSED_PARAM),
+		struct sockaddr *to UNUSED_PARAM,
+		int seq)
 {
 	return packet4_ok(read_len, &from_lsa->u.sin, seq);
 }

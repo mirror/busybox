@@ -32,8 +32,10 @@ int beep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int beep_main(int argc, char **argv)
 {
 	int speaker = get_console_fd_or_die();
-	unsigned length, delay, rep;
-	unsigned tickrate_div_freq;
+	unsigned tickrate_div_freq = tickrate_div_freq; /* for compiler */
+	unsigned length = length;
+	unsigned delay = delay;
+	unsigned rep = rep;
 	int c;
 
 	c = 'n';

@@ -71,7 +71,9 @@
 # define BB_NUL L'\0'
 # define CHAR_T wchar_t
 static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
+# if ENABLE_FEATURE_EDITING_VI
 static bool BB_isalnum(CHAR_T c) { return ((unsigned)c < 256 && isalnum(c)); }
+# endif
 static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # undef isspace
 # undef isalnum

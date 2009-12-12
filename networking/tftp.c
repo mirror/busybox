@@ -743,7 +743,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	const char *error_msg;
 	int opt, result, opcode;
 	IF_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)
-	IF_FEATURE_TFTP_BLOCKSIZE(int want_transfer_size;)
+	IF_FEATURE_TFTP_BLOCKSIZE(int want_transfer_size = 0;)
 
 	INIT_G();
 
@@ -791,7 +791,6 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 		goto err;
 	}
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE
-	want_transfer_size = 0;
 	{
 		char *res;
 		char *opt_str = mode + sizeof("octet");
