@@ -122,15 +122,16 @@ static void EndJob(const char *user, CronLine *line);
 static void DeleteFile(const char *userName);
 
 
+/* 0 is the most verbose, default 8 */
 #define LVL5  "\x05"
 #define LVL7  "\x07"
 #define LVL8  "\x08"
-#define LVL9  "\x09"
 #define WARN9 "\x49"
 #define DIE9  "\xc9"
 /* level >= 20 is "error" */
 #define ERR20 "\x14"
 
+static void crondlog(const char *ctl, ...) __attribute__ ((format (printf, 1, 2)));
 static void crondlog(const char *ctl, ...)
 {
 	va_list va;
@@ -146,8 +147,16 @@ static void crondlog(const char *ctl, ...)
 			if (logfd >= 0)
 				xmove_fd(logfd, STDERR_FILENO);
 		}
-// TODO: ERR -> error, WARN -> warning, LVL -> info
-		bb_verror_msg(ctl + 1, va, /* strerr: */ NULL);
+		/* When we log to syslog, level > 8 is logged at LOG_ERR
+		 * syslog level, level <= 8 is logged at LOG_INFO. */
+		if (level > 8) {
+			bb_verror_msg(ctl + 1, va, /* strerr: */ NULL);
+		} else {
+			char *msg = NULL;
+			vasprintf(&msg, ctl + 1, va);
+			bb_info_msg("%s: %s", applet_name, msg);
+			free(msg);
+		}
 	}
 	va_end(va);
 	if (ctl[0] & 0x80)
@@ -157,25 +166,25 @@ static void crondlog(const char *ctl, ...)
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int crond_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned opt;
+	unsigned opts;
 
 	INIT_G();
 
 	/* "-b after -f is ignored", and so on for every pair a-b */
 	opt_complementary = "f-b:b-f:S-L:L-S" IF_FEATURE_CROND_D(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
-	opt = getopt32(argv, "l:L:fbSc:" IF_FEATURE_CROND_D("d:"),
+	opts = getopt32(argv, "l:L:fbSc:" IF_FEATURE_CROND_D("d:"),
 			&LogLevel, &LogFile, &CDir
 			IF_FEATURE_CROND_D(,&LogLevel));
 	/* both -d N and -l N set the same variable: LogLevel */
 
-	if (!(opt & OPT_f)) {
+	if (!(opts & OPT_f)) {
 		/* close stdin, stdout, stderr.
 		 * close unused descriptors - don't need them. */
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 	}
 
-	if (!DebugOpt && LogFile == NULL) {
+	if (!(opts & OPT_d) && LogFile == NULL) {
 		/* logging to syslog */
 		openlog(applet_name, LOG_CONS | LOG_PID, LOG_CRON);
 		logmode = LOGMODE_SYSLOG;
@@ -184,20 +193,21 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	xchdir(CDir);
 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
-	crondlog(LVL9 "crond (busybox "BB_VER") started, log level %d", LogLevel);
+	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", LogLevel);
 	SynchronizeDir();
 
 	/* main loop - synchronize to 1 second after the minute, minimum sleep
 	 * of 1 second. */
 	{
 		time_t t1 = time(NULL);
-		time_t t2;
-		long dt;
 		int rescan = 60;
 		int sleep_time = 60;
 
 		write_pidfile("/var/run/crond.pid");
 		for (;;) {
+			time_t t2;
+			long dt;
+
 			sleep((sleep_time + 1) - (time(NULL) % sleep_time));
 
 			t2 = time(NULL);
@@ -227,7 +237,7 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 			if (DebugOpt)
 				crondlog(LVL5 "wakeup dt=%ld", dt);
 			if (dt < -60 * 60 || dt > 60 * 60) {
-				crondlog(WARN9 "time disparity of %d minutes detected", dt / 60);
+				crondlog(WARN9 "time disparity of %ld minutes detected", dt / 60);
 			} else if (dt > 0) {
 				TestJobs(t1, t2);
 				RunJobs();
@@ -239,8 +249,9 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 				}
 			}
 			t1 = t2;
-		}
+		} /* for (;;) */
 	}
+
 	return 0; /* not reached */
 }
 
@@ -281,7 +292,7 @@ static void ChangeUser(struct passwd *pas)
 	/* careful: we're after vfork! */
 	change_identity(pas); /* - initgroups, setgid, setuid */
 	if (chdir(pas->pw_dir) < 0) {
-		crondlog(LVL9 "can't chdir(%s)", pas->pw_dir);
+		crondlog(WARN9 "can't chdir(%s)", pas->pw_dir);
 		if (chdir(TMPDIR) < 0) {
 			crondlog(DIE9 "can't chdir(%s)", TMPDIR); /* exits */
 		}
@@ -760,7 +771,7 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 	/* prepare things before vfork */
 	pas = getpwnam(user);
 	if (!pas) {
-		crondlog(LVL9 "can't get uid for %s", user);
+		crondlog(WARN9 "can't get uid for %s", user);
 		goto err;
 	}
 	SetEnv(pas);
@@ -900,7 +911,7 @@ static void RunJob(const char *user, CronLine *line)
 	/* prepare things before vfork */
 	pas = getpwnam(user);
 	if (!pas) {
-		crondlog(LVL9 "can't get uid for %s", user);
+		crondlog(WARN9 "can't get uid for %s", user);
 		goto err;
 	}
 	SetEnv(pas);

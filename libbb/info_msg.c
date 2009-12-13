@@ -38,6 +38,7 @@ void FAST_FUNC bb_info_msg(const char *s, ...)
 
 	va_start(p, s);
 	used = vasprintf(&msg, s, p);
+	va_end(p);
 	if (used < 0)
 		return;
 
@@ -51,6 +52,5 @@ void FAST_FUNC bb_info_msg(const char *s, ...)
 	}
 
 	free(msg);
-	va_end(p);
 #endif
 }
