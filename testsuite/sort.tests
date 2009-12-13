@@ -27,6 +27,8 @@ egg	1	2	papyrus
 999	3	0	algebra
 "
 
+# testing "description" "command(s)" "result" "infile" "stdin"
+
 # Sorting with keys
 
 testing "sort one key" "sort -k4,4 input" \
@@ -114,5 +116,16 @@ one\0two\0three\0\
 
 testing "sort key doesn't strip leading blanks, disables fallback global sort" \
 "sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n"
+
+testing "sort file in place" \
+"strace -oZZZ sort -o input input && cat input" "\
+111
+222
+" "\
+222
+111
+" ""
+
+# testing "description" "command(s)" "result" "infile" "stdin"
 
 exit $FAILCOUNT
