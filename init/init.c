@@ -260,6 +260,20 @@ static int open_stdio_to_tty(const char* tty_name)
 	return 1; /* success */
 }
 
+static void reset_sighandlers_and_unblock_sigs(void)
+{
+	bb_signals(0
+		+ (1 << SIGUSR1)
+		+ (1 << SIGUSR2)
+		+ (1 << SIGTERM)
+		+ (1 << SIGQUIT)
+		+ (1 << SIGINT)
+		+ (1 << SIGHUP)
+		+ (1 << SIGTSTP)
+		, SIG_DFL);
+	sigprocmask_allsigs(SIG_UNBLOCK);
+}
+
 /* Wrapper around exec:
  * Takes string (max COMMAND_SIZE chars).
  * If chars like '>' detected, execs '[-]/bin/sh -c "exec ......."'.
@@ -329,16 +343,7 @@ static pid_t run(const struct init_action *a)
 	/* Child */
 
 	/* Reset signal handlers that were set by the parent process */
-	bb_signals(0
-		+ (1 << SIGUSR1)
-		+ (1 << SIGUSR2)
-		+ (1 << SIGTERM)
-		+ (1 << SIGQUIT)
-		+ (1 << SIGINT)
-		+ (1 << SIGHUP)
-		+ (1 << SIGTSTP)
-		, SIG_DFL);
-	sigprocmask_allsigs(SIG_UNBLOCK);
+	reset_sighandlers_and_unblock_sigs();
 
 	/* Create a new session and make ourself the process group leader */
 	setsid();
@@ -651,11 +656,20 @@ static void run_shutdown_and_kill_processes(void)
  * and only one will be remembered and acted upon.
  */
 
+/* The SIGUSR[12]/SIGTERM handler */
 static void halt_reboot_pwoff(int sig) NORETURN;
 static void halt_reboot_pwoff(int sig)
 {
 	const char *m;
 	unsigned rb;
+
+	/* We may call run() and it unmasks signals,
+	 * including the one masked inside this signal handler.
+	 * Testcase which would start multiple reboot scripts:
+	 *  while true; do reboot; done
+	 * Preventing it:
+	 */
+	reset_sighandlers_and_unblock_sigs();
 
 	run_shutdown_and_kill_processes();
 
@@ -671,6 +685,48 @@ static void halt_reboot_pwoff(int sig)
 	message(L_CONSOLE, "Requesting system %s", m);
 	pause_and_low_level_reboot(rb);
 	/* not reached */
+}
+
+/* Handler for QUIT - exec "restart" action,
+ * else (no such action defined) do nothing */
+static void restart_handler(int sig UNUSED_PARAM)
+{
+	struct init_action *a;
+
+	for (a = init_action_list; a; a = a->next) {
+		if (!(a->action_type & RESTART))
+			continue;
+
+		/* Starting from here, we won't return.
+		 * Thus don't need to worry about preserving errno
+		 * and such.
+		 */
+
+		reset_sighandlers_and_unblock_sigs();
+
+		run_shutdown_and_kill_processes();
+
+		/* Allow Ctrl-Alt-Del to reboot the system.
+		 * This is how kernel sets it up for init, we follow suit.
+		 */
+		reboot(RB_ENABLE_CAD); /* misnomer */
+
+		if (open_stdio_to_tty(a->terminal)) {
+			dbg_message(L_CONSOLE, "Trying to re-exec %s", a->command);
+			/* Theoretically should be safe.
+			 * But in practice, kernel bugs may leave
+			 * unkillable processes, and wait() may block forever.
+			 * Oh well. Hoping "new" init won't be too surprised
+			 * by having children it didn't create.
+			 */
+			//while (wait(NULL) > 0)
+			//	continue;
+			init_exec(a->command);
+		}
+		/* Open or exec failed */
+		pause_and_low_level_reboot(RB_HALT_SYSTEM);
+		/* not reached */
+	}
 }
 
 /* The SIGSTOP/SIGTSTP handler
@@ -703,45 +759,6 @@ static void stop_handler(int sig UNUSED_PARAM)
 	signal(SIGCONT, SIG_DFL);
 	errno = saved_errno;
 	bb_got_signal = saved_bb_got_signal;
-}
-
-/* Handler for QUIT - exec "restart" action,
- * else (no such action defined) do nothing */
-static void restart_handler(int sig UNUSED_PARAM)
-{
-	struct init_action *a;
-
-	for (a = init_action_list; a; a = a->next) {
-		if (!(a->action_type & RESTART))
-			continue;
-
-		/* Starting from here, we won't return.
-		 * Thus don't need to worry about preserving errno
-		 * and such.
-		 */
-		run_shutdown_and_kill_processes();
-
-		/* Allow Ctrl-Alt-Del to reboot the system.
-		 * This is how kernel sets it up for init, we follow suit.
-		 */
-		reboot(RB_ENABLE_CAD); /* misnomer */
-
-		if (open_stdio_to_tty(a->terminal)) {
-			dbg_message(L_CONSOLE, "Trying to re-exec %s", a->command);
-			/* Theoretically should be safe.
-			 * But in practice, kernel bugs may leave
-			 * unkillable processes, and wait() may block forever.
-			 * Oh well. Hoping "new" init won't be too surprised
-			 * by having children it didn't create.
-			 */
-			//while (wait(NULL) > 0)
-			//	continue;
-			init_exec(a->command);
-		}
-		/* Open or exec failed */
-		pause_and_low_level_reboot(RB_HALT_SYSTEM);
-		/* not reached */
-	}
 }
 
 #if ENABLE_FEATURE_USE_INITTAB
