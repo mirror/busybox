@@ -86,7 +86,6 @@ static const char *log_console = VC_5;
 enum {
 	L_LOG = 0x1,
 	L_CONSOLE = 0x2,
-	MAYBE_CONSOLE = L_CONSOLE * !ENABLE_FEATURE_EXTRA_QUIET,
 #ifndef RB_HALT_SYSTEM
 	RB_HALT_SYSTEM = 0xcdef0123, /* FIXME: this overflows enum */
 	RB_ENABLE_CAD = 0x89abcdef,
@@ -856,8 +855,10 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1])
 		xsetenv("RUNLEVEL", argv[1]);
 
+#if ENABLE_FEATURE_EXTRA_QUIET
 	/* Hello world */
-	message(MAYBE_CONSOLE | L_LOG, "init started: %s", bb_banner);
+	message(L_CONSOLE | L_LOG, "init started: %s", bb_banner);
+#endif
 
 	/* Make sure there is enough memory to do something useful. */
 	if (ENABLE_SWAPONOFF) {
