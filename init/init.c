@@ -270,6 +270,7 @@ static void reset_sighandlers_and_unblock_sigs(void)
 		+ (1 << SIGINT)
 		+ (1 << SIGHUP)
 		+ (1 << SIGTSTP)
+		+ (1 << SIGSTOP)
 		, SIG_DFL);
 	sigprocmask_allsigs(SIG_UNBLOCK);
 }
