@@ -119,7 +119,7 @@ static void message(int where, const char *fmt, ...)
 	msg[l] = '\0';
 	if (where & L_LOG) {
 		/* Log the message to syslogd */
-		openlog("init", 0, LOG_DAEMON);
+		openlog(applet_name, 0, LOG_DAEMON);
 		/* don't print "\r" */
 		syslog(LOG_INFO, "%s", msg + 1);
 		closelog();
@@ -482,8 +482,8 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 		/* Don't enter action if it's already in the list,
 		 * This prevents losing running RESPAWNs.
 		 */
-		if ((strcmp(a->command, command) == 0)
-		 && (strcmp(a->terminal, cons) == 0)
+		if (strcmp(a->command, command) == 0
+		 && strcmp(a->terminal, cons) == 0
 		) {
 			/* Remove from list */
 			*nextp = a->next;
@@ -842,7 +842,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 {
 	die_sleep = 30 * 24*60*60; /* if xmalloc would ever die... */
 
-	if (argv[1] && !strcmp(argv[1], "-q")) {
+	if (argv[1] && strcmp(argv[1], "-q") == 0) {
 		return kill(1, SIGHUP);
 	}
 
@@ -896,7 +896,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Check if we are supposed to be in single user mode */
 	if (argv[1]
-	 && (!strcmp(argv[1], "single") || !strcmp(argv[1], "-s") || LONE_CHAR(argv[1], '1'))
+	 && (strcmp(argv[1], "single") == 0 || strcmp(argv[1], "-s") == 0 || LONE_CHAR(argv[1], '1'))
 	) {
 		/* ??? shouldn't we set RUNLEVEL="b" here? */
 		/* Start a shell on console */
