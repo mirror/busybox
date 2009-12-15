@@ -1639,52 +1639,42 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	 && (mp->mnt_fsname[0] == '/' || mp->mnt_fsname[0] == '\\')
 	 && mp->mnt_fsname[0] == mp->mnt_fsname[1]
 	) {
-#if 0 /* reported to break things */
+		int len;
+		char c;
 		len_and_sockaddr *lsa;
-		char *ip, *dotted;
-		char *s;
+		char *ip, *dotted, *s;
 
-		// Replace '/' with '\' and verify that unc points to "//server/share".
-		for (s = mp->mnt_fsname; *s; ++s)
-			if (*s == '/') *s = '\\';
-
-		// Get server IP
-		s = strrchr(mp->mnt_fsname, '\\');
-		if (s <= mp->mnt_fsname+1)
+		s = mp->mnt_fsname + 2;
+		len = strcspn(s, "/\\");
+		s += len; // points after hostname
+		if (len == 0 || *s == '\0')
 			goto report_error;
+		c = *s;
 		*s = '\0';
-		lsa = host2sockaddr(mp->mnt_fsname+2, 0);
-		*s = '\\';
+		lsa = host2sockaddr(s, 0);
+		*s = c;
 		if (!lsa)
 			goto report_error;
 
-		// Insert ip=... option into string flags.
+		// Insert "ip=..." option into options
 		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
+		if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
 		ip = xasprintf("ip=%s", dotted);
+		if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
 		parse_mount_options(ip, &filteropts);
+		if (ENABLE_FEATURE_CLEAN_UP) free(ip);
 
-		// Compose new unc '\\server-ip\share'
-		// (s => slash after hostname)
-		mp->mnt_fsname = xasprintf("\\\\%s%s", dotted, s);
-#endif
-		// Lock is required [why?]
+		// "-o mand" is required [why?]
 		vfsflags |= MS_MANDLOCK;
 		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
-#if 0
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(mp->mnt_fsname);
-			free(ip);
-			free(dotted);
-			free(lsa);
-		}
-#endif
+
 		goto report_error;
 	}
 
 	// Might this be an NFS filesystem?
 	if (ENABLE_FEATURE_MOUNT_NFS
-	 && (!mp->mnt_type || !strcmp(mp->mnt_type, "nfs"))
+	 && (!mp->mnt_type || strcmp(mp->mnt_type, "nfs") == 0)
 	 && strchr(mp->mnt_fsname, ':') != NULL
 	) {
 		rc = nfsmount(mp, vfsflags, filteropts);
@@ -1702,7 +1692,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = NULL; // will receive malloced loop dev name
-			if (set_loop(&(mp->mnt_fsname), loopFile, 0) < 0) {
+			if (set_loop(&mp->mnt_fsname, loopFile, 0) < 0) {
 				if (errno == EPERM || errno == EACCES)
 					bb_error_msg(bb_msg_perm_denied_are_you_root);
 				else
@@ -1870,9 +1860,9 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 			{
 				// Don't show rootfs. FIXME: why??
 				// util-linux 2.12a happily shows rootfs...
-				//if (!strcmp(mtpair->mnt_fsname, "rootfs")) continue;
+				//if (strcmp(mtpair->mnt_fsname, "rootfs") == 0) continue;
 
-				if (!fstype || !strcmp(mtpair->mnt_type, fstype))
+				if (!fstype || strcmp(mtpair->mnt_type, fstype) == 0)
 					printf("%s on %s type %s (%s)\n", mtpair->mnt_fsname,
 							mtpair->mnt_dir, mtpair->mnt_type,
 							mtpair->mnt_opts);
