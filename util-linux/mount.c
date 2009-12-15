@@ -1598,6 +1598,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	llist_t *fl = NULL;
 	struct stat st;
 
+	errno = 0;
+
 	vfsflags = parse_mount_options(mp->mnt_opts, &filteropts);
 
 	// Treat fstype "auto" as unspecified
@@ -1642,17 +1644,16 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		int len;
 		char c;
 		len_and_sockaddr *lsa;
-		char *ip, *dotted, *s;
+		char *hostname, *dotted, *ip;
 
-		s = mp->mnt_fsname + 2;
-		len = strcspn(s, "/\\");
-		s += len; // points after hostname
-		if (len == 0 || *s == '\0')
+		hostname = mp->mnt_fsname + 2;
+		len = strcspn(hostname, "/\\");
+		if (len == 0 || hostname[len] == '\0')
 			goto report_error;
-		c = *s;
-		*s = '\0';
-		lsa = host2sockaddr(s, 0);
-		*s = c;
+		c = hostname[len];
+		hostname[len] = '\0';
+		lsa = host2sockaddr(hostname, 0);
+		hostname[len] = c;
 		if (!lsa)
 			goto report_error;
 
@@ -1713,9 +1714,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		// Loop through filesystem types until mount succeeds
 		// or we run out
 
-		// Initialize list of block backed filesystems.  This has to be
-		// done here so that during "mount -a", mounts after /proc shows up
-		// can autodetect.
+		// Initialize list of block backed filesystems.
+		// This has to be done here so that during "mount -a",
+		// mounts after /proc shows up can autodetect.
 		if (!fslist) {
 			fslist = get_block_backed_filesystems();
 			if (ENABLE_FEATURE_CLEAN_UP && fslist)
