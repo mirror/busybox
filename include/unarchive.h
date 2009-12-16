@@ -58,7 +58,7 @@ typedef struct archive_handle_t {
 	char *ah_buffer;
 
 	/* Flags and misc. stuff */
-	unsigned char ah_flags;
+	unsigned ah_flags;
 
 	/* "Private" storage for archivers */
 //	unsigned char ah_priv_inited;
@@ -74,6 +74,7 @@ typedef struct archive_handle_t {
 #define ARCHIVE_DONT_RESTORE_OWNER  (1 << 5)
 #define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
 #define ARCHIVE_NUMERIC_OWNER       (1 << 7)
+#define ARCHIVE_O_TRUNC             (1 << 8)
 
 
 /* Info struct unpackers can fill out to inform users of thing like

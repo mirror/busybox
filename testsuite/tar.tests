@@ -31,6 +31,19 @@ Ok
 " \
 "" ""
 
+testing "tar --overwrite" "\
+rm -rf input_* test.tar 2>/dev/null
+ln input input_hard
+tar cf test.tar input_hard
+echo WRONG >input
+# --overwrite opens 'input_hard' without unlinking,
+# thus 'input_hard' still linked to 'input' and we write 'Ok' into it
+tar xf test.tar --overwrite 2>&1 && cat input
+" "\
+Ok
+" \
+"Ok\n" ""
+
 cd .. && rm -rf tempdir || exit 1
 
 exit $FAILCOUNT

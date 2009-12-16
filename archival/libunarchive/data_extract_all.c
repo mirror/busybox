@@ -72,8 +72,11 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		switch (file_header->mode & S_IFMT) {
 		case S_IFREG: {
 			/* Regular file */
+			int flags = O_WRONLY | O_CREAT | O_EXCL;
+			if (archive_handle->ah_flags & ARCHIVE_O_TRUNC)
+				flags = O_WRONLY | O_CREAT | O_TRUNC;
 			dst_fd = xopen3(file_header->name,
-				O_WRONLY | O_CREAT | O_EXCL,
+				flags,
 				file_header->mode
 				);
 			bb_copyfd_exact_size(archive_handle->src_fd, dst_fd, file_header->size);

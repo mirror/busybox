@@ -751,6 +751,7 @@ enum {
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	OPTBIT_NUMERIC_OWNER,
 	OPTBIT_NOPRESERVE_PERM,
+	OPTBIT_OVERWRITE,
 #endif
 	OPT_TEST         = 1 << 0, // t
 	OPT_EXTRACT      = 1 << 1, // x
@@ -771,6 +772,7 @@ enum {
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
+	OPT_OVERWRITE       = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_OVERWRITE      )) + 0, // overwrite
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -807,9 +809,11 @@ static const char tar_longopts[] ALIGN1 =
 	"compress\0"            No_argument       "Z"
 # endif
 	/* use numeric uid/gid from tar header, not textual */
-	"numeric-owner\0"       No_argument       "\xfd"
+	"numeric-owner\0"       No_argument       "\xfc"
 	/* do not restore mode */
-	"no-same-permissions\0" No_argument       "\xfe"
+	"no-same-permissions\0" No_argument       "\xfd"
+	/* on unpack, open with O_TRUNC and !O_EXCL */
+	"overwrite\0"           No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
 	/* therefore we have to put it _after_ --no-same-permissions */
 # if ENABLE_FEATURE_TAR_FROM
@@ -923,6 +927,11 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & OPT_NOPRESERVE_PERM)
 		tar_handle->ah_flags |= ARCHIVE_DONT_RESTORE_PERM;
+
+	if (opt & OPT_OVERWRITE) {
+		tar_handle->ah_flags &= ~ARCHIVE_UNLINK_OLD;
+		tar_handle->ah_flags |= ARCHIVE_O_TRUNC;
+	}
 
 	if (opt & OPT_GZIP)
 		get_header_ptr = get_header_tar_gz;
