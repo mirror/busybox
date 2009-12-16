@@ -66,9 +66,16 @@
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE
-#include <rpc/rpc.h>
-#include <rpc/pmap_prot.h>
-#include <rpc/pmap_clnt.h>
+#if ENABLE_FEATURE_MOUNT_NFS
+/* This is just a warning of a common mistake.  Possibly this should be a
+ * uclibc faq entry rather than in busybox... */
+# if defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
+#  error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support"
+# endif
+# include <rpc/rpc.h>
+# include <rpc/pmap_prot.h>
+# include <rpc/pmap_clnt.h>
+#endif
 
 
 #if defined(__dietlibc__)
@@ -544,12 +551,6 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
  * plus NFSv3 stuff.
  */
 
-/* This is just a warning of a common mistake.  Possibly this should be a
- * uclibc faq entry rather than in busybox... */
-#if defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
-#error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support."
-#endif
-
 #define MOUNTPORT 635
 #define MNTPATHLEN 1024
 #define MNTNAMLEN 255
@@ -740,28 +741,27 @@ enum {
  * "after #include <errno.h> the symbol errno is reserved for any use,
  *  it cannot even be used as a struct tag or field name".
  */
-
 #ifndef EDQUOT
-#define EDQUOT	ENOSPC
+# define EDQUOT ENOSPC
 #endif
-
 /* Convert each NFSERR_BLAH into EBLAH */
-static const struct {
-	short stat;
-	short errnum;
-} nfs_errtbl[] = {
-	{0,0}, {1,EPERM}, {2,ENOENT}, {5,EIO}, {6,ENXIO}, {13,EACCES}, {17,EEXIST},
-	{19,ENODEV}, {20,ENOTDIR}, {21,EISDIR}, {22,EINVAL}, {27,EFBIG},
-	{28,ENOSPC}, {30,EROFS}, {63,ENAMETOOLONG}, {66,ENOTEMPTY}, {69,EDQUOT},
-	{70,ESTALE}, {71,EREMOTE}, {-1,EIO}
+static const uint8_t nfs_err_stat[] = {
+	 1,  2,  5,  6, 13, 17,
+	19, 20, 21, 22, 27, 28,
+	30, 63, 66, 69, 70, 71
+};
+static const uint8_t nfs_err_errnum[] = {
+	EPERM , ENOENT      , EIO      , ENXIO , EACCES, EEXIST,
+	ENODEV, ENOTDIR     , EISDIR   , EINVAL, EFBIG , ENOSPC,
+	EROFS , ENAMETOOLONG, ENOTEMPTY, EDQUOT, ESTALE, EREMOTE
 };
 static char *nfs_strerror(int status)
 {
 	int i;
 
-	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
-		if (nfs_errtbl[i].stat == status)
-			return strerror(nfs_errtbl[i].errnum);
+	for (i = 0; i < ARRAY_SIZE(nfs_err_stat); i++) {
+		if (nfs_err_stat[i] == status)
+			return strerror(nfs_err_errnum[i]);
 	}
 	return xasprintf("unknown nfs status return value: %d", status);
 }
@@ -797,8 +797,12 @@ static bool_t xdr_dirpath(XDR *xdrs, dirpath *objp)
 
 static bool_t xdr_fhandle3(XDR *xdrs, fhandle3 *objp)
 {
-	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
+	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val,
+				(unsigned int *) &objp->fhandle3_len,
+				FHSIZE3)
+	) {
 		 return FALSE;
+	}
 	return TRUE;
 }
 
@@ -806,9 +810,14 @@ static bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
 {
 	if (!xdr_fhandle3(xdrs, &objp->fhandle))
 		return FALSE;
-	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
-				sizeof(int), (xdrproc_t) xdr_int))
+	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val),
+				&(objp->auth_flavours.auth_flavours_len),
+				~0,
+				sizeof(int),
+				(xdrproc_t) xdr_int)
+	) {
 		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -859,11 +868,7 @@ find_kernel_nfs_mount_version(void)
 
 	kernel_version = get_linux_version_code();
 	if (kernel_version) {
-		if (kernel_version < KERNEL_VERSION(2,1,32))
-			nfs_mount_version = 1;
-		else if (kernel_version < KERNEL_VERSION(2,2,18) ||
-				(kernel_version >= KERNEL_VERSION(2,3,0) &&
-				 kernel_version < KERNEL_VERSION(2,3,99)))
+		if (kernel_version < KERNEL_VERSION(2,2,18))
 			nfs_mount_version = 3;
 		/* else v4 since 2.3.99pre4 */
 	}
