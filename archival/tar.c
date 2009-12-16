@@ -729,7 +729,7 @@ static void handle_SIGCHLD(int status)
 		/* wait failed?! I'm confused... */
 		return;
 
-	if (WIFEXITED(status) && WEXITSTATUS(status)==0)
+	if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
 		/* child exited with 0 */
 		return;
 	/* Cannot happen?
@@ -748,15 +748,16 @@ enum {
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
 	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	OPTBIT_NUMERIC_OWNER,
-	OPTBIT_NOPRESERVE_OWNER,
 	OPTBIT_NOPRESERVE_PERM,
+#endif
 	OPT_TEST         = 1 << 0, // t
 	OPT_EXTRACT      = 1 << 1, // x
 	OPT_BASEDIR      = 1 << 2, // C
 	OPT_TARNAME      = 1 << 3, // f
 	OPT_2STDOUT      = 1 << 4, // O
-	OPT_NOPRESERVE_OWNER = 1 << 5, // no-same-owner
+	OPT_NOPRESERVE_OWNER = 1 << 5, // o == no-same-owner
 	OPT_P            = 1 << 6, // p
 	OPT_VERBOSE      = 1 << 7, // v
 	OPT_KEEP_OLD     = 1 << 8, // k
@@ -768,8 +769,8 @@ enum {
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
-	OPT_NUMERIC_OWNER = 1 << OPTBIT_NUMERIC_OWNER,
-	OPT_NOPRESERVE_PERM = 1 << OPTBIT_NOPRESERVE_PERM, // no-same-permissions
+	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
+	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -810,8 +811,7 @@ static const char tar_longopts[] ALIGN1 =
 	/* do not restore mode */
 	"no-same-permissions\0" No_argument       "\xfe"
 	/* --exclude takes next bit position in option mask, */
-	/* therefore we have to either put it _after_ --no-same-perm */
-	/* or add OPT[BIT]_EXCLUDE before OPT[BIT]_NOPRESERVE_OWNER */
+	/* therefore we have to put it _after_ --no-same-permissions */
 # if ENABLE_FEATURE_TAR_FROM
 	"exclude\0"             Required_argument "\xff"
 # endif

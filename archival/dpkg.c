@@ -1469,6 +1469,14 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	ar_handle->sub_archive = tar_handle;
 }
 
+static void FAST_FUNC data_extract_to_buffer(archive_handle_t *archive_handle)
+{
+	unsigned size = archive_handle->file_header->size;
+
+	archive_handle->ah_buffer = xzalloc(size + 1);
+	xread(archive_handle->src_fd, archive_handle->ah_buffer, size);
+}
+
 static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *myaccept)
 {
 	ar_handle->sub_archive->action_data = data_extract_to_buffer;
@@ -1478,7 +1486,7 @@ static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, lli
 	unpack_ar_archive(ar_handle);
 	close(ar_handle->src_fd);
 
-	return ar_handle->sub_archive->buffer;
+	return ar_handle->sub_archive->ah_buffer;
 }
 
 static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
@@ -1487,7 +1495,7 @@ static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
 
 	name_ptr += strspn(name_ptr, "./");
 	if (name_ptr[0] != '\0') {
-		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->buffer, name_ptr);
+		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->ah_buffer, name_ptr);
 		data_extract_all(archive_handle);
 	}
 }
@@ -1530,7 +1538,7 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle->sub_archive->accept = accept_list;
 	archive_handle->sub_archive->filter = filter_accept_list;
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
-	archive_handle->sub_archive->buffer = info_prefix;
+	archive_handle->sub_archive->ah_buffer = info_prefix;
 	archive_handle->sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
 	unpack_ar_archive(archive_handle);
 
@@ -1541,7 +1549,7 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_data(archive_handle);
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
-	archive_handle->sub_archive->buffer = (char*)"/"; /* huh? */
+	archive_handle->sub_archive->ah_buffer = (char*)"/"; /* huh? */
 	archive_handle->sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
 	unpack_ar_archive(archive_handle);
 

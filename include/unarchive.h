@@ -4,15 +4,6 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-#define ARCHIVE_RESTORE_DATE        (1 << 0)
-#define ARCHIVE_CREATE_LEADING_DIRS (1 << 1)
-#define ARCHIVE_UNLINK_OLD          (1 << 2)
-#define ARCHIVE_EXTRACT_QUIET       (1 << 3)
-#define ARCHIVE_EXTRACT_NEWER       (1 << 4)
-#define ARCHIVE_DONT_RESTORE_OWNER  (1 << 5)
-#define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
-#define ARCHIVE_NUMERIC_OWNER       (1 << 7)
-
 typedef struct file_header_t {
 	char *name;
 	char *link_target;
@@ -64,7 +55,7 @@ typedef struct archive_handle_t {
 	void FAST_FUNC (*seek)(int fd, off_t amount);
 
 	/* Temporary storage */
-	char *buffer;
+	char *ah_buffer;
 
 	/* Flags and misc. stuff */
 	unsigned char ah_flags;
@@ -74,6 +65,15 @@ typedef struct archive_handle_t {
 	void *ah_priv[8];
 
 } archive_handle_t;
+/* bits in ah_flags */
+#define ARCHIVE_RESTORE_DATE        (1 << 0)
+#define ARCHIVE_CREATE_LEADING_DIRS (1 << 1)
+#define ARCHIVE_UNLINK_OLD          (1 << 2)
+#define ARCHIVE_EXTRACT_QUIET       (1 << 3)
+#define ARCHIVE_EXTRACT_NEWER       (1 << 4)
+#define ARCHIVE_DONT_RESTORE_OWNER  (1 << 5)
+#define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
+#define ARCHIVE_NUMERIC_OWNER       (1 << 7)
 
 
 /* Info struct unpackers can fill out to inform users of thing like
@@ -94,7 +94,6 @@ extern void unpack_ar_archive(archive_handle_t *ar_archive) FAST_FUNC;
 extern void data_skip(archive_handle_t *archive_handle) FAST_FUNC;
 extern void data_extract_all(archive_handle_t *archive_handle) FAST_FUNC;
 extern void data_extract_to_stdout(archive_handle_t *archive_handle) FAST_FUNC;
-extern void data_extract_to_buffer(archive_handle_t *archive_handle) FAST_FUNC;
 
 extern void header_skip(const file_header_t *file_header) FAST_FUNC;
 extern void header_list(const file_header_t *file_header) FAST_FUNC;
