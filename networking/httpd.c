@@ -2347,7 +2347,12 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 #if ENABLE_FEATURE_HTTPD_AUTH_MD5
 	if (opt & OPT_MD5) {
-		puts(pw_encrypt(pass, "$1$", 1));
+		char salt[sizeof("$1$XXXXXXXX")];
+		salt[0] = '$';
+		salt[1] = '1';
+		salt[2] = '$';
+		crypt_make_salt(salt + 3, 4, 0);
+		puts(pw_encrypt(pass, salt, 1));
 		return 0;
 	}
 #endif
