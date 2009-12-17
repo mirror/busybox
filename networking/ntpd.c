@@ -16,23 +16,23 @@
 
 
 /* Sync to peers every N secs */
-#define INTERVAL_QUERY_NORMAL		30
-#define INTERVAL_QUERY_PATHETIC		60
-#define INTERVAL_QUERY_AGRESSIVE	5
+#define INTERVAL_QUERY_NORMAL    30
+#define INTERVAL_QUERY_PATHETIC  60
+#define INTERVAL_QUERY_AGRESSIVE  5
 
 /* Bad if *less than* TRUSTLEVEL_BADPEER */
-#define TRUSTLEVEL_BADPEER		6
-#define TRUSTLEVEL_PATHETIC		2
-#define TRUSTLEVEL_AGRESSIVE		8
-#define TRUSTLEVEL_MAX			10
+#define TRUSTLEVEL_BADPEER        6
+#define TRUSTLEVEL_PATHETIC       2
+#define TRUSTLEVEL_AGRESSIVE      8
+#define TRUSTLEVEL_MAX           10
 
-#define QSCALE_OFF_MIN			0.05
-#define QSCALE_OFF_MAX			0.50
+#define QSCALE_OFF_MIN         0.05
+#define QSCALE_OFF_MAX         0.50
 
 /* Single query might take n secs max */
-#define QUERYTIME_MAX		15
+#define QUERYTIME_MAX            15
 /* Min offset for settime at start. "man ntpd" says it's 128 ms */
-#define STEPTIME_MIN_OFFSET	0.128
+#define STEPTIME_MIN_OFFSET   0.128
 
 typedef struct {
 	uint32_t int_partl;
@@ -67,58 +67,58 @@ typedef struct {
 } ntp_msg_t;
 
 enum {
-	NTP_VERSION	= 4,
-	NTP_MAXSTRATUM	= 15,
+	NTP_VERSION     = 4,
+	NTP_MAXSTRATUM  = 15,
 	/* Leap Second Codes (high order two bits of m_status) */
-	LI_NOWARNING	= (0 << 6),	/* no warning */
-	LI_PLUSSEC	= (1 << 6),	/* add a second (61 seconds) */
-	LI_MINUSSEC	= (2 << 6),	/* minus a second (59 seconds) */
-	LI_ALARM	= (3 << 6),	/* alarm condition */
+	LI_NOWARNING    = (0 << 6),    /* no warning */
+	LI_PLUSSEC      = (1 << 6),    /* add a second (61 seconds) */
+	LI_MINUSSEC     = (2 << 6),    /* minus a second (59 seconds) */
+	LI_ALARM        = (3 << 6),    /* alarm condition */
 
 	/* Status Masks */
-	MODE_MASK	= (7 << 0),
-	VERSION_MASK	= (7 << 3),
-	VERSION_SHIFT	= 3,
-	LI_MASK		= (3 << 6),
+	MODE_MASK       = (7 << 0),
+	VERSION_MASK    = (7 << 3),
+	VERSION_SHIFT   = 3,
+	LI_MASK         = (3 << 6),
 
 	/* Mode values */
-	MODE_RES0	= 0,	/* reserved */
-	MODE_SYM_ACT	= 1,	/* symmetric active */
-	MODE_SYM_PAS	= 2,	/* symmetric passive */
-	MODE_CLIENT	= 3,	/* client */
-	MODE_SERVER	= 4,	/* server */
-	MODE_BROADCAST	= 5,	/* broadcast */
-	MODE_RES1	= 6,	/* reserved for NTP control message */
-	MODE_RES2	= 7,	/* reserved for private use */
+	MODE_RES0       = 0,    /* reserved */
+	MODE_SYM_ACT    = 1,    /* symmetric active */
+	MODE_SYM_PAS    = 2,    /* symmetric passive */
+	MODE_CLIENT     = 3,    /* client */
+	MODE_SERVER     = 4,    /* server */
+	MODE_BROADCAST  = 5,    /* broadcast */
+	MODE_RES1       = 6,    /* reserved for NTP control message */
+	MODE_RES2       = 7,    /* reserved for private use */
 };
 
 #define OFFSET_1900_1970 2208988800UL  /* 1970 - 1900 in seconds */
 
 typedef struct {
-	double		o_offset;
-	double		o_delay;
-	//UNUSED: double o_error;
-	time_t		o_rcvd;
-	uint32_t	o_refid4;
-	uint8_t		o_leap;
-	uint8_t		o_stratum;
-	uint8_t		o_good;
-} ntp_offset_t;
+	double   d_offset;
+	double   d_delay;
+	//UNUSED: double d_error;
+	time_t   d_rcvd;
+	uint32_t d_refid4;
+	uint8_t  d_leap;
+	uint8_t  d_stratum;
+	uint8_t  d_good;
+} ntp_datapoint_t;
 
-#define OFFSET_ARRAY_SIZE  8
+#define NUM_DATAPOINTS  8
 typedef struct {
-	len_and_sockaddr	*lsa;
-	char			*dotted;
-	/* When to send new query (if fd == -1)
-	 * or when receive times out (if fd >= 0): */
-	time_t			next_action_time;
-	int			fd;
-	uint8_t			shift;
-	uint8_t			trustlevel;
-	ntp_msg_t		msg;
-	double			xmttime;
-	ntp_offset_t		update;
-	ntp_offset_t		reply[OFFSET_ARRAY_SIZE];
+	len_and_sockaddr *p_lsa;
+	char             *p_dotted;
+	/* When to send new query (if p_fd == -1)
+	 * or when receive times out (if p_fd >= 0): */
+	time_t           next_action_time;
+	int              p_fd;
+	uint8_t          p_datapoint_idx;
+	uint8_t          trustlevel;
+	ntp_msg_t        msg;
+	double           p_xmttime;
+	ntp_datapoint_t  update;
+	ntp_datapoint_t  p_datapoint[NUM_DATAPOINTS];
 } ntp_peer_t;
 
 enum {
@@ -134,24 +134,24 @@ enum {
 
 
 struct globals {
-	double		rootdelay;
-	double		reftime;
-	llist_t		*ntp_peers;
+	double   rootdelay;
+	double   reftime;
+	llist_t  *ntp_peers;
 #if ENABLE_FEATURE_NTPD_SERVER
-	int		listen_fd;
+	int      listen_fd;
 #endif
-	unsigned	verbose;
-	unsigned	peer_cnt;
-	unsigned	scale;
-	uint32_t	refid;
-	uint32_t	refid4;
-	uint8_t		synced;
-	uint8_t		leap;
+	unsigned verbose;
+	unsigned peer_cnt;
+	unsigned scale;
+	uint32_t refid;
+	uint32_t refid4;
+	uint8_t  synced;
+	uint8_t  leap;
 #define G_precision -6
-//	int8_t		precision;
-	uint8_t		stratum;
-	uint8_t		time_is_stepped;
-	uint8_t		first_adj_done;
+//	int8_t   precision;
+	uint8_t  stratum;
+	uint8_t  time_was_stepped;
+	uint8_t  first_adj_done;
 };
 #define G (*ptr_to_globals)
 
@@ -171,9 +171,9 @@ add_peers(char *s)
 	ntp_peer_t *p;
 
 	p = xzalloc(sizeof(*p));
-	p->lsa = xhost2sockaddr(s, 123);
-	p->dotted = xmalloc_sockaddr2dotted_noport(&p->lsa->u.sa);
-	p->fd = -1;
+	p->p_lsa = xhost2sockaddr(s, 123);
+	p->p_dotted = xmalloc_sockaddr2dotted_noport(&p->p_lsa->u.sa);
+	p->p_fd = -1;
 	p->msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->trustlevel = TRUSTLEVEL_PATHETIC;
 	p->next_action_time = time(NULL); /* = set_next(p, 0); */
@@ -292,15 +292,15 @@ send_query_to_peer(ntp_peer_t *p)
 	// Uncomment this and use strace to see it in action:
 #define PROBE_LOCAL_ADDR // { len_and_sockaddr lsa; lsa.len = LSA_SIZEOF_SA; getsockname(p->query.fd, &lsa.u.sa, &lsa.len); }
 
-	if (p->fd == -1) {
+	if (p->p_fd == -1) {
 		int fd, family;
 		len_and_sockaddr *local_lsa;
 
-		family = p->lsa->u.sa.sa_family;
-		p->fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
+		family = p->p_lsa->u.sa.sa_family;
+		p->p_fd = fd = xsocket_type(&local_lsa, family, SOCK_DGRAM);
 		/* local_lsa has "null" address and port 0 now.
 		 * bind() ensures we have a *particular port* selected by kernel
-		 * and remembered in p->fd, thus later recv(p->fd)
+		 * and remembered in p->p_fd, thus later recv(p->p_fd)
 		 * receives only packets sent to this port.
 		 */
 		PROBE_LOCAL_ADDR
@@ -328,19 +328,19 @@ send_query_to_peer(ntp_peer_t *p)
 	 */
 	p->msg.m_xmttime.int_partl = random();
 	p->msg.m_xmttime.fractionl = random();
-	p->xmttime = gettime1900d();
+	p->p_xmttime = gettime1900d();
 
-	if (do_sendto(p->fd, /*from:*/ NULL, /*to:*/ &p->lsa->u.sa, /*addrlen:*/ p->lsa->len,
+	if (do_sendto(p->p_fd, /*from:*/ NULL, /*to:*/ &p->p_lsa->u.sa, /*addrlen:*/ p->p_lsa->len,
 			&p->msg, NTP_MSGSIZE_NOAUTH) == -1
 	) {
-		close(p->fd);
-		p->fd = -1;
+		close(p->p_fd);
+		p->p_fd = -1;
 		set_next(p, INTERVAL_QUERY_PATHETIC);
 		return -1;
 	}
 
 	if (G.verbose)
-		bb_error_msg("sent query to %s", p->dotted);
+		bb_error_msg("sent query to %s", p->p_dotted);
 	set_next(p, QUERYTIME_MAX);
 
 	return 0;
@@ -357,9 +357,9 @@ step_time_once(double offset)
 	char buf[80];
 	time_t tval;
 
-	if (G.time_is_stepped)
+	if (G.time_was_stepped)
 		goto bail;
-	G.time_is_stepped = 1;
+	G.time_was_stepped = 1;
 
 	/* if the offset is small, don't step, slew (later) */
 	if (offset < STEPTIME_MIN_OFFSET && offset > -STEPTIME_MIN_OFFSET)
@@ -397,9 +397,9 @@ compare_offsets(const void *aa, const void *bb)
 {
 	const ntp_peer_t *const *a = aa;
 	const ntp_peer_t *const *b = bb;
-	if ((*a)->update.o_offset < (*b)->update.o_offset)
+	if ((*a)->update.d_offset < (*b)->update.d_offset)
 		return -1;
-	return ((*a)->update.o_offset > (*b)->update.o_offset);
+	return ((*a)->update.d_offset > (*b)->update.d_offset);
 }
 static unsigned
 updated_scale(double offset)
@@ -428,7 +428,7 @@ slew_time(void)
 			ntp_peer_t *p = (ntp_peer_t *) item->data;
 			if (p->trustlevel < TRUSTLEVEL_BADPEER)
 				continue;
-			if (!p->update.o_good) {
+			if (!p->update.d_good) {
 				free(peers);
 				return;
 			}
@@ -444,22 +444,22 @@ slew_time(void)
 
 		middle = goodpeer_cnt / 2;
 		if (middle != 0 && (goodpeer_cnt & 1) == 0) {
-			offset_median = (peers[middle-1]->update.o_offset + peers[middle]->update.o_offset) / 2;
-			G.rootdelay = (peers[middle-1]->update.o_delay + peers[middle]->update.o_delay) / 2;
-			G.stratum = 1 + MAX(peers[middle-1]->update.o_stratum, peers[middle]->update.o_stratum);
+			offset_median = (peers[middle-1]->update.d_offset + peers[middle]->update.d_offset) / 2;
+			G.rootdelay = (peers[middle-1]->update.d_delay + peers[middle]->update.d_delay) / 2;
+			G.stratum = 1 + MAX(peers[middle-1]->update.d_stratum, peers[middle]->update.d_stratum);
 		} else {
-			offset_median = peers[middle]->update.o_offset;
-			G.rootdelay = peers[middle]->update.o_delay;
-			G.stratum = 1 + peers[middle]->update.o_stratum;
+			offset_median = peers[middle]->update.d_offset;
+			G.rootdelay = peers[middle]->update.d_delay;
+			G.stratum = 1 + peers[middle]->update.d_stratum;
 		}
-		G.leap = peers[middle]->update.o_leap;
-		G.refid4 = peers[middle]->update.o_refid4;
+		G.leap = peers[middle]->update.d_leap;
+		G.refid4 = peers[middle]->update.d_refid4;
 		G.refid =
 #if ENABLE_FEATURE_IPV6
-			peers[middle]->lsa->u.sa.sa_family != AF_INET ?
+			peers[middle]->p_lsa->u.sa.sa_family != AF_INET ?
 				G.refid4 :
 #endif
-				peers[middle]->lsa->u.sin.sin_addr.s_addr;
+				peers[middle]->p_lsa->u.sin.sin_addr.s_addr;
 		free(peers);
 	}
 //TODO: if (offset_median > BIG) step_time(offset_median)?
@@ -490,7 +490,7 @@ slew_time(void)
  clear_good:
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		ntp_peer_t *p = (ntp_peer_t *) item->data;
-		p->update.o_good = 0;
+		p->update.d_good = 0;
 	}
 }
 
@@ -498,7 +498,7 @@ static void
 update_peer_data(ntp_peer_t *p)
 {
 	/* Clock filter.
-	 * Find the offset which arrived with the lowest delay.
+	 * Find the datapoint with the lowest delay.
 	 * Use that as the peer update.
 	 * Invalidate it and all older ones.
 	 */
@@ -506,23 +506,23 @@ update_peer_data(ntp_peer_t *p)
 	int best = -1;
 	int good = 0;
 
-	for (i = 0; i < OFFSET_ARRAY_SIZE; i++) {
-		if (p->reply[i].o_good) {
+	for (i = 0; i < NUM_DATAPOINTS; i++) {
+		if (p->p_datapoint[i].d_good) {
 			good++;
-			if (best < 0 || p->reply[i].o_delay < p->reply[best].o_delay)
+			if (best < 0 || p->p_datapoint[i].d_delay < p->p_datapoint[best].d_delay)
 				best = i;
 		}
 	}
 
-	if (good < 8) //FIXME: was it meant to be OFFSET_ARRAY_SIZE, not 8?
+	if (good < 8) //FIXME: was it meant to be NUM_DATAPOINTS, not 8?
 		return;
 
-	memcpy(&p->update, &p->reply[best], sizeof(p->update));
+	memcpy(&p->update, &p->p_datapoint[best], sizeof(p->update));
 	slew_time();
 
-	for (i = 0; i < OFFSET_ARRAY_SIZE; i++)
-		if (p->reply[i].o_rcvd <= p->reply[best].o_rcvd)
-			p->reply[i].o_good = 0;
+	for (i = 0; i < NUM_DATAPOINTS; i++)
+		if (p->p_datapoint[i].d_rcvd <= p->p_datapoint[best].d_rcvd)
+			p->p_datapoint[i].d_good = 0;
 }
 
 static unsigned
@@ -536,19 +536,19 @@ scale_interval(unsigned requested)
 static void
 recv_and_process_peer_pkt(ntp_peer_t *p)
 {
-	ssize_t			 size;
-	ntp_msg_t		 msg;
-	double			 T1, T2, T3, T4;
-	unsigned		 interval;
-	ntp_offset_t		*offset;
+	ssize_t   size;
+	ntp_msg_t msg;
+	double    T1, T2, T3, T4;
+	unsigned  interval;
+	ntp_datapoint_t *datapoint;
 
 	/* We can recvfrom here and check from.IP, but some multihomed
 	 * ntp servers reply from their *other IP*.
 	 * TODO: maybe we should check at least what we can: from.port == 123?
 	 */
-	size = recv(p->fd, &msg, sizeof(msg), MSG_DONTWAIT);
+	size = recv(p->p_fd, &msg, sizeof(msg), MSG_DONTWAIT);
 	if (size == -1) {
-		bb_perror_msg("recv(%s) error", p->dotted);
+		bb_perror_msg("recv(%s) error", p->p_dotted);
 		if (errno == EHOSTUNREACH || errno == EHOSTDOWN
 		 || errno == ENETUNREACH || errno == ENETDOWN
 		 || errno == ECONNREFUSED || errno == EADDRNOTAVAIL
@@ -562,7 +562,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	}
 
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
-		bb_error_msg("malformed packet received from %s", p->dotted);
+		bb_error_msg("malformed packet received from %s", p->p_dotted);
 		goto bail;
 	}
 
@@ -580,52 +580,52 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 // "DENY", "RSTR" - peer does not like us at all
 // "RATE" - peer is overloaded, reduce polling freq
 		interval = error_interval();
-		bb_error_msg("reply from %s: not synced, next query in %us", p->dotted, interval);
+		bb_error_msg("reply from %s: not synced, next query in %us", p->p_dotted, interval);
 		goto close_sock;
 	}
 
 	/*
 	 * From RFC 2030 (with a correction to the delay math):
 	 *
-	 *     Timestamp Name          ID   When Generated
-	 *     ------------------------------------------------------------
-	 *     Originate Timestamp     T1   time request sent by client
-	 *     Receive Timestamp       T2   time request received by server
-	 *     Transmit Timestamp      T3   time reply sent by server
-	 *     Destination Timestamp   T4   time reply received by client
+	 * Timestamp Name          ID   When Generated
+	 * ------------------------------------------------------------
+	 * Originate Timestamp     T1   time request sent by client
+	 * Receive Timestamp       T2   time request received by server
+	 * Transmit Timestamp      T3   time reply sent by server
+	 * Destination Timestamp   T4   time reply received by client
 	 *
-	 *  The roundtrip delay d and local clock offset t are defined as
+	 * The roundtrip delay and local clock offset are defined as
 	 *
-	 *    d = (T4 - T1) - (T3 - T2)     t = ((T2 - T1) + (T3 - T4)) / 2.
+	 * delay = (T4 - T1) - (T3 - T2); offset = ((T2 - T1) + (T3 - T4)) / 2
 	 */
 	T4 = gettime1900d();
-	T1 = p->xmttime;
+	T1 = p->p_xmttime;
 	T2 = lfp_to_d(msg.m_rectime);
 	T3 = lfp_to_d(msg.m_xmttime);
 
-	offset = &p->reply[p->shift];
+	datapoint = &p->p_datapoint[p->p_datapoint_idx];
 
-	offset->o_offset = ((T2 - T1) + (T3 - T4)) / 2;
-	offset->o_delay = (T4 - T1) - (T3 - T2);
-	if (offset->o_delay < 0) {
-		bb_error_msg("reply from %s: negative delay %f", p->dotted, offset->o_delay);
+	datapoint->d_offset = ((T2 - T1) + (T3 - T4)) / 2;
+	datapoint->d_delay = (T4 - T1) - (T3 - T2);
+	if (datapoint->d_delay < 0) {
+		bb_error_msg("reply from %s: negative delay %f", p->p_dotted, datapoint->d_delay);
 		interval = error_interval();
 		set_next(p, interval);
 		goto close_sock;
 	}
-	//UNUSED: offset->o_error = (T2 - T1) - (T3 - T4);
-	offset->o_rcvd = (time_t)(T4 - OFFSET_1900_1970); /* = time(NULL); */
-	offset->o_good = 1;
+	//UNUSED: datapoint->d_error = (T2 - T1) - (T3 - T4);
+	datapoint->d_rcvd = (time_t)(T4 - OFFSET_1900_1970); /* = time(NULL); */
+	datapoint->d_good = 1;
 
-	offset->o_leap = (msg.m_status & LI_MASK);
-	//UNUSED: offset->o_precision = msg.m_precision;
-	//UNUSED: offset->o_rootdelay = sfp_to_d(msg.m_rootdelay);
-	//UNUSED: offset->o_rootdispersion = sfp_to_d(msg.m_dispersion);
-	//UNUSED: offset->o_refid = ntohl(msg.m_refid);
-	offset->o_refid4 = msg.m_xmttime.fractionl;
-	//UNUSED: offset->o_reftime = lfp_to_d(msg.m_reftime);
-	//UNUSED: offset->o_poll = msg.m_ppoll;
-	offset->o_stratum = msg.m_stratum;
+	datapoint->d_leap = (msg.m_status & LI_MASK);
+	//UNUSED: datapoint->o_precision = msg.m_precision;
+	//UNUSED: datapoint->o_rootdelay = sfp_to_d(msg.m_rootdelay);
+	//UNUSED: datapoint->o_rootdispersion = sfp_to_d(msg.m_dispersion);
+	//UNUSED: datapoint->d_refid = ntohl(msg.m_refid);
+	datapoint->d_refid4 = msg.m_xmttime.fractionl;
+	//UNUSED: datapoint->o_reftime = lfp_to_d(msg.m_reftime);
+	//UNUSED: datapoint->o_poll = msg.m_ppoll;
+	datapoint->d_stratum = msg.m_stratum;
 
 	if (p->trustlevel < TRUSTLEVEL_PATHETIC)
 		interval = scale_interval(INTERVAL_QUERY_PATHETIC);
@@ -640,28 +640,28 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	if (p->trustlevel < TRUSTLEVEL_MAX) {
 		p->trustlevel++;
 		if (p->trustlevel == TRUSTLEVEL_BADPEER)
-			bb_error_msg("peer %s now valid", p->dotted);
+			bb_error_msg("peer %s now valid", p->p_dotted);
 	}
 
 	if (G.verbose)
-		bb_error_msg("reply from %s: offset %f delay %f, next query in %us", p->dotted,
-			offset->o_offset, offset->o_delay, interval);
+		bb_error_msg("reply from %s: offset %f delay %f, next query in %us", p->p_dotted,
+			datapoint->d_offset, datapoint->d_delay, interval);
 
 	update_peer_data(p);
 //TODO: do it after all peers had a chance to return at least one reply?
-	step_time_once(offset->o_offset);
+	step_time_once(datapoint->d_offset);
 
-	p->shift++;
-	if (p->shift >= OFFSET_ARRAY_SIZE)
-		p->shift = 0;
+	p->p_datapoint_idx++;
+	if (p->p_datapoint_idx >= NUM_DATAPOINTS)
+		p->p_datapoint_idx = 0;
 
  close_sock:
 	/* We do not expect any more packets from this peer for now.
 	 * Closing the socket informs kernel about it.
 	 * We open a new socket when we send a new query.
 	 */
-	close(p->fd);
-	p->fd = -1;
+	close(p->p_fd);
+	p->p_fd = -1;
  bail:
 	return;
 }
@@ -840,7 +840,7 @@ static NOINLINE void ntp_init(char **argv)
 	if (!(opts & (OPT_p|OPT_l)))
 		bb_show_usage();
 	if (opts & OPT_x) /* disable stepping, only slew is allowed */
-		G.time_is_stepped = 1;
+		G.time_was_stepped = 1;
 	while (peers)
 		add_peers(llist_pop(&peers));
 	if (!(opts & OPT_n)) {
@@ -872,7 +872,7 @@ static NOINLINE void ntp_init(char **argv)
 		clock_getres(CLOCK_REALTIME, &tp);
 		tp.tv_sec = 0;
 		tp.tv_nsec = 10000000;
-		b = 1000000000 / tp.tv_nsec;	/* convert to Hz */
+		b = 1000000000 / tp.tv_nsec;  /* convert to Hz */
 # else
 		b = 100; /* b = 1000000000/10000000 = 100 */
 # endif
@@ -934,22 +934,22 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 			/* Overflow-safe "if (p->next_action_time <= cur_time) ..." */
 			if ((int)(cur_time - p->next_action_time) >= 0) {
-				if (p->fd == -1) {
+				if (p->p_fd == -1) {
 					/* Time to send new req */
 					trial_cnt++;
 					if (send_query_to_peer(p) == 0)
 						sent_cnt++;
 				} else {
 					/* Timed out waiting for reply */
-					close(p->fd);
-					p->fd = -1;
+					close(p->p_fd);
+					p->p_fd = -1;
 					timeout = error_interval();
 					bb_error_msg("timed out waiting for %s, "
-							"next query in %us", p->dotted, timeout);
+							"next query in %us", p->p_dotted, timeout);
 					if (p->trustlevel >= TRUSTLEVEL_BADPEER) {
 						p->trustlevel /= 2;
 						if (p->trustlevel < TRUSTLEVEL_BADPEER)
-							bb_error_msg("peer %s now invalid", p->dotted);
+							bb_error_msg("peer %s now invalid", p->p_dotted);
 					}
 					set_next(p, timeout);
 				}
@@ -958,9 +958,9 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			if (p->next_action_time < nextaction)
 				nextaction = p->next_action_time;
 
-			if (p->fd >= 0) {
+			if (p->p_fd >= 0) {
 				/* Wait for reply from this peer */
-				pfd[i].fd = p->fd;
+				pfd[i].fd = p->p_fd;
 				pfd[i].events = POLLIN;
 				idx2peer[i] = p;
 				i++;
