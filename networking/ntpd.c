@@ -326,7 +326,6 @@ send_query_to_peer(ntp_peer_t *p)
 	 *
 	 * Save the real transmit timestamp locally.
 	 */
-
 	p->msg.m_xmttime.int_partl = random();
 	p->msg.m_xmttime.fractionl = random();
 	p->xmttime = gettime1900d();
@@ -577,6 +576,9 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	 || msg.m_stratum == 0
 	 || msg.m_stratum > NTP_MAXSTRATUM
 	) {
+// TODO: stratum 0 responses may have commands in 32-bit m_refid field:
+// "DENY", "RSTR" - peer does not like us at all
+// "RATE" - peer is overloaded, reduce polling freq
 		interval = error_interval();
 		bb_error_msg("reply from %s: not synced, next query in %us", p->dotted, interval);
 		goto close_sock;
@@ -596,7 +598,6 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 	 *
 	 *    d = (T4 - T1) - (T3 - T2)     t = ((T2 - T1) + (T3 - T4)) / 2.
 	 */
-
 	T4 = gettime1900d();
 	T1 = p->xmttime;
 	T2 = lfp_to_d(msg.m_rectime);
@@ -613,7 +614,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		goto close_sock;
 	}
 	//UNUSED: offset->o_error = (T2 - T1) - (T3 - T4);
-	offset->o_rcvd = time(NULL); /* can use (time_t)(T4 - OFFSET_1900_1970) too */
+	offset->o_rcvd = (time_t)(T4 - OFFSET_1900_1970); /* = time(NULL); */
 	offset->o_good = 1;
 
 	offset->o_leap = (msg.m_status & LI_MASK);
