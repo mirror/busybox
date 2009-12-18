@@ -98,7 +98,7 @@ typedef struct {
 	double   d_offset;
 	double   d_delay;
 	//UNUSED: double d_error;
-	time_t   d_rcvd;
+	time_t   d_rcv_time;
 	uint32_t d_refid4;
 	uint8_t  d_leap;
 	uint8_t  d_stratum;
@@ -147,8 +147,8 @@ struct globals {
 	uint32_t refid4;
 	uint8_t  synced;
 	uint8_t  leap;
-#define G_precision -6
-//	int8_t   precision;
+#define G_precision_exp -6
+//	int8_t   precision_exp;
 	uint8_t  stratum;
 	uint8_t  time_was_stepped;
 	uint8_t  first_adj_done;
@@ -352,6 +352,7 @@ send_query_to_peer(ntp_peer_t *p)
 static void
 step_time_once(double offset)
 {
+	double dtime;
 	llist_t *item;
 	struct timeval tv;
 	char buf[80];
@@ -366,9 +367,9 @@ step_time_once(double offset)
 		goto bail;
 
 	gettimeofday(&tv, NULL); /* never fails */
-	offset += tv.tv_sec;
-	offset += 1.0e-6 * tv.tv_usec;
-	d_to_tv(offset, &tv);
+	dtime = offset + tv.tv_sec;
+	dtime += 1.0e-6 * tv.tv_usec;
+	d_to_tv(dtime, &tv);
 
 	if (settimeofday(&tv, NULL) == -1)
 		bb_perror_msg_and_die("settimeofday");
@@ -380,7 +381,7 @@ step_time_once(double offset)
 
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		ntp_peer_t *p = (ntp_peer_t *) item->data;
-		p->next_action_time -= offset;
+		p->next_action_time -= (time_t)offset;
 	}
 
  bail:
@@ -517,11 +518,11 @@ update_peer_data(ntp_peer_t *p)
 	if (good < 8) //FIXME: was it meant to be NUM_DATAPOINTS, not 8?
 		return;
 
-	memcpy(&p->update, &p->p_datapoint[best], sizeof(p->update));
+	p->update = p->p_datapoint[best]; /* struct copy */
 	slew_time();
 
 	for (i = 0; i < NUM_DATAPOINTS; i++)
-		if (p->p_datapoint[i].d_rcvd <= p->p_datapoint[best].d_rcvd)
+		if (p->p_datapoint[i].d_rcv_time <= p->p_datapoint[best].d_rcv_time)
 			p->p_datapoint[i].d_good = 0;
 }
 
@@ -614,7 +615,7 @@ recv_and_process_peer_pkt(ntp_peer_t *p)
 		goto close_sock;
 	}
 	//UNUSED: datapoint->d_error = (T2 - T1) - (T3 - T4);
-	datapoint->d_rcvd = (time_t)(T4 - OFFSET_1900_1970); /* = time(NULL); */
+	datapoint->d_rcv_time = (time_t)(T4 - OFFSET_1900_1970); /* = time(NULL); */
 	datapoint->d_good = 1;
 
 	datapoint->d_leap = (msg.m_status & LI_MASK);
@@ -709,7 +710,7 @@ recv_and_process_client_pkt(void /*int fd*/)
 			 MODE_SERVER : MODE_SYM_PAS;
 	msg.m_stratum = G.stratum;
 	msg.m_ppoll = query_ppoll;
-	msg.m_precision = G_precision;
+	msg.m_precision = G_precision_exp;
 	rectime = gettime1900d();
 	msg.m_xmttime = msg.m_rectime = d_to_lfp(rectime);
 	msg.m_reftime = d_to_lfp(G.reftime);
@@ -861,7 +862,7 @@ static NOINLINE void ntp_init(char **argv)
 
 	/* Set some globals */
 #if 0
-	/* With constant b = 100, G.precision is also constant -6.
+	/* With constant b = 100, G.precision_exp is also constant -6.
 	 * Uncomment this and you'll see */
 	{
 		int prec = 0;
@@ -878,8 +879,8 @@ static NOINLINE void ntp_init(char **argv)
 # endif
 		while (b > 1)
 			prec--, b >>= 1;
-		//G.precision = prec;
-		bb_error_msg("G.precision:%d", prec); /* -6 */
+		//G.precision_exp = prec;
+		bb_error_msg("G.precision_exp:%d", prec); /* -6 */
 	}
 #endif
 	G.scale = 1;
