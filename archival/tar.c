@@ -860,7 +860,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = tar_longopts;
 #endif
 #if ENABLE_DESKTOP
-	if (argv[1][0] != '-') {
+	if (argv[1] && argv[1][0] != '-') {
 		/* Compat:
 		 * 1st argument without dash handles options with parameters
 		 * differently from dashed one: it takes *next argv[i]*
