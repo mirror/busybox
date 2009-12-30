@@ -191,24 +191,21 @@ static void stack_machine(const char *argument)
 	double d;
 	const struct op *o = operators;
 
-	if (argument == 0)
-		return;
-
 	d = strtod(argument, &endPointer);
 
-	if (endPointer != argument) {
+	if (endPointer != argument && *endPointer == '\0') {
 		push(d);
 		return;
 	}
 
-	while (o->name[0]) {
+	while (o->function) {
 		if (strcmp(o->name, argument) == 0) {
 			o->function();
 			return;
 		}
 		o++;
 	}
-	bb_error_msg_and_die("%s: syntax error", argument);
+	bb_error_msg_and_die("syntax error at '%s'", argument);
 }
 
 /* return pointer to next token in buffer and set *buffer to one char
@@ -239,15 +236,17 @@ int dc_main(int argc UNUSED_PARAM, char **argv)
 			cursor = line;
 			while (1) {
 				token = get_token(&cursor);
-				if (!token) break;
+				if (!token)
+					break;
 				*cursor++ = '\0';
 				stack_machine(token);
 			}
 			free(line);
 		}
 	} else {
-		if (argv[0][0] == '-')
-			bb_show_usage();
+		// why? it breaks "dc -2 2 * p"
+		//if (argv[0][0] == '-')
+		//	bb_show_usage();
 		do {
 			stack_machine(*argv);
 		} while (*++argv);
