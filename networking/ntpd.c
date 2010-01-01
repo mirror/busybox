@@ -43,13 +43,13 @@
  * max 5 is very talkative (and bloated). 2 is non-bloated,
  * production level setting.
  */
-#define MAX_VERBOSE        2
+#define MAX_VERBOSE     2
 
 
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define QUERYTIME_MAX   15      /* wait for reply up to N secs */
 
-#define FREQ_TOLERANCE  15e-6   /* % frequency tolerance (15 PPM) */
+#define FREQ_TOLERANCE  0.000015 /* % frequency tolerance (15 PPM) */
 #define MINPOLL         4       /* % minimum poll interval (6: 64 s) */
 #define MAXPOLL         12      /* % maximum poll interval (12: 1.1h, 17: 36.4h) (was 17) */
 #define MINDISP         0.01    /* % minimum dispersion (s) */
@@ -59,34 +59,35 @@
 #define MIN_SELECTED    1       /* % minimum intersection survivors */
 #define MIN_CLUSTERED   3       /* % minimum cluster survivors */
 
-#define MAXFREQ  0.000500       /* frequency tolerance (500 PPM) */
+#define MAXDRIFT        0.000500 /* frequency drift we can correct (500 PPM) */
 
 /* Clock discipline parameters and constants */
 #define STEP_THRESHOLD  0.128   /* step threshold (s) */
-#define WATCH_THRESHOLD  150    /* stepout threshold (s). std ntpd uses 900 (11 mins (!)) */
+#define WATCH_THRESHOLD 150     /* stepout threshold (s). std ntpd uses 900 (11 mins (!)) */
 /* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
 #define PANIC_THRESHOLD 1000    /* panic threshold (s) */
 
 /* Poll-adjust threshold.
  * When we see that offset is small enough compared to discipline jitter,
  * we grow a counter: += MINPOLL. When it goes over POLLADJ_LIMIT,
- * we poll_ext++. If offset isn't small, counter -= poll_ext*2,
- * and when it goes below -POLLADJ_LIMIT, we poll_ext--
+ * we poll_exp++. If offset isn't small, counter -= poll_exp*2,
+ * and when it goes below -POLLADJ_LIMIT, we poll_exp--
  */
-#define POLLADJ_LIMIT     30
+#define POLLADJ_LIMIT   30
 /* If offset < POLLADJ_GATE * discipline_jitter, then we can increase
  * poll interval (we think we can't improve timekeeping
  * by staying at smaller poll).
  */
-#define POLLADJ_GATE       4
+#define POLLADJ_GATE    4
 /* Compromise Allan intercept (s). doc uses 1500, std ntpd uses 512 */
-#define ALLAN            512
+#define ALLAN           512
 /* PLL loop gain */
-#define PLL            65536
+#define PLL             65536
 /* FLL loop gain [why it depends on MAXPOLL??] */
-#define FLL    (MAXPOLL + 1)
+#define FLL             (MAXPOLL + 1)
 /* Parameter averaging constant */
-#define AVG                4
+#define AVG             4
+
 
 enum {
 	NTP_VERSION     = 4,
@@ -251,13 +252,17 @@ struct globals {
 	uint8_t  discipline_state;      // doc calls it c.state
 	uint8_t  poll_exp;              // s.poll
 	int      polladj_count;         // c.count
-	double   discipline_jitter;     // c.jitter
+	long     kernel_freq_drift;
 	double   last_update_offset;    // c.last
+	double   last_update_recv_time; // s.t
+	double   discipline_jitter;     // c.jitter
+//TODO: add s.jitter - grep for it here and see clock_combine() in doc
+#define USING_KERNEL_PLL_LOOP 1
+#if !USING_KERNEL_PLL_LOOP
 	double   discipline_freq_drift; // c.freq
 //TODO: conditionally calculate wander? it's used only for logging
 	double   discipline_wander;     // c.wander
-	double   last_update_recv_time; // s.t
-//TODO: add s.jitter - grep for it here and see clock_combine() in doc
+#endif
 };
 #define G (*ptr_to_globals)
 
@@ -1153,25 +1158,27 @@ update_local_clock(peer_t *p, double t)
 	 * (Any other state does not reach this, they all return earlier)
 	 * By this time, freq_drift and G.last_update_offset are set
 	 * to values suitable for adjtimex.
-	 *
-	 * Calculate the new frequency drift and frequency stability (wander).
+	 */
+#if !USING_KERNEL_PLL_LOOP
+	/* Calculate the new frequency drift and frequency stability (wander).
 	 * Compute the clock wander as the RMS of exponentially weighted
 	 * frequency differences. This is not used directly, but can,
 	 * along with the jitter, be a highly useful monitoring and
 	 * debugging tool.
 	 */
 	dtemp = G.discipline_freq_drift + freq_drift;
-	G.discipline_freq_drift = MAXD(MIND(MAXFREQ, dtemp), -MAXFREQ);
+	G.discipline_freq_drift = MAXD(MIND(MAXDRIFT, dtemp), -MAXDRIFT);
 	etemp = SQUARE(G.discipline_wander);
 	dtemp = SQUARE(dtemp);
 	G.discipline_wander = SQRT(etemp + (dtemp - etemp) / AVG);
 
+	VERB3 bb_error_msg("discipline freq_drift=%.9f(int:%ld corr:%e) wander=%f",
+			G.discipline_freq_drift,
+			(long)(G.discipline_freq_drift * 65536e6),
+			freq_drift,
+			G.discipline_wander);
+#endif
 	VERB3 {
-		bb_error_msg("discipline freq_drift=%.9f(int:%ld corr:%e) wander=%f",
-				G.discipline_freq_drift,
-				(long)(G.discipline_freq_drift * 65536e6),
-				freq_drift,
-				G.discipline_wander);
 		memset(&tmx, 0, sizeof(tmx));
 		if (adjtimex(&tmx) < 0)
 			bb_perror_msg_and_die("adjtimex");
@@ -1192,7 +1199,7 @@ update_local_clock(peer_t *p, double t)
 	}
 	memset(&tmx, 0, sizeof(tmx));
 #if 0
-//doesn't work, offset remains 0 (!):
+//doesn't work, offset remains 0 (!) in kernel:
 //ntpd:  set adjtimex freq:1786097 tmx.offset:77487
 //ntpd: prev adjtimex freq:1786097 tmx.offset:0
 //ntpd:  cur adjtimex freq:1786097 tmx.offset:0
@@ -1218,14 +1225,21 @@ update_local_clock(peer_t *p, double t)
 	rc = adjtimex(&tmx);
 	if (rc < 0)
 		bb_perror_msg_and_die("adjtimex");
+	if (G.kernel_freq_drift != tmx.freq / 65536) {
+		G.kernel_freq_drift = tmx.freq / 65536;
+		VERB2 bb_error_msg("kernel clock drift: %ld ppm", G.kernel_freq_drift);
+	}
 	VERB3 {
 		bb_error_msg("adjtimex:%d freq:%ld offset:%ld constant:%ld status:0x%x",
 				rc, tmx.freq, tmx.offset, tmx.constant, tmx.status);
+#if 0
+		/* always gives the same output as above msg */
 		memset(&tmx, 0, sizeof(tmx));
 		if (adjtimex(&tmx) < 0)
 			bb_perror_msg_and_die("adjtimex");
 		VERB3 bb_error_msg("c adjtimex freq:%ld offset:%ld constant:%ld status:0x%x",
 				tmx.freq, tmx.offset, tmx.constant, tmx.status);
+#endif
 	}
 // #define STA_MODE 0x4000  /* mode (0 = PLL, 1 = FLL) (ro) */ - ?
 // it appeared after a while:
