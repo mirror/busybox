@@ -1403,6 +1403,8 @@ recv_and_process_peer_pkt(peer_t *p)
 	 * the delay is clamped not less than the system precision.
 	 */
 	p->lastpkt_delay = (T4 - T1) - (T3 - T2);
+	if (p->lastpkt_delay < G_precision_sec)
+		p->lastpkt_delay = G_precision_sec;
 	datapoint->d_dispersion = LOG2D(msg.m_precision_exp) + G_precision_sec;
 	if (!p->p_reachable_bits) {
 		/* 1st datapoint ever - replicate offset in every element */
