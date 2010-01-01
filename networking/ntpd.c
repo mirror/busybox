@@ -390,8 +390,13 @@ static void
 filter_datapoints(peer_t *p, double t)
 {
 	int i, idx;
+	int got_newest;
 	double minoff, maxoff, wavg, sum, w;
-	double x = x;
+	double x = x; /* for compiler */
+	double oldest_off = oldest_off;
+	double oldest_age = oldest_age;
+	double newest_off = newest_off;
+	double newest_age = newest_age;
 
 	minoff = maxoff = p->filter_datapoint[0].d_offset;
 	for (i = 1; i < NUM_DATAPOINTS; i++) {
@@ -416,6 +421,7 @@ filter_datapoints(peer_t *p, double t)
 	//                      /       (i+1)
 	//                     ---     2
 	//                     i=0
+	got_newest = 0;
 	sum = 0;
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
 		VERB4 {
@@ -437,23 +443,36 @@ filter_datapoints(peer_t *p, double t)
 		if (maxoff == p->filter_datapoint[idx].d_offset) {
 			maxoff += 1;
 		} else {
-			x = p->filter_datapoint[idx].d_offset * w;
+			oldest_off = p->filter_datapoint[idx].d_offset;
+			oldest_age = t - p->filter_datapoint[idx].d_recv_time;
+			if (!got_newest) {
+				got_newest = 1;
+				newest_off = oldest_off;
+				newest_age = oldest_age;
+			}
+			x = oldest_off * w;
 			wavg += x;
 			w /= 2;
 		}
 
 		idx = (idx - 1) & (NUM_DATAPOINTS - 1);
 	}
-	wavg += x; /* add another older6/64 to form older6/32 */
-	p->filter_offset = wavg;
 	p->filter_dispersion = sum;
-//TODO: fix systematic underestimation with large poll intervals.
-// Imagine that we still have a bit of uncorrected drift,
-// and poll interval is big. Offsets form a progression:
-// 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7, 0.7 is most recent.
-// The algorithm above drops 0.0 and 0.7 as outliers,
-// and then we have this estimation, ~25% off from 0.7:
-// 0.1/32 + 0.2/32 + 0.3/16 + 0.4/8 + 0.5/4 + 0.6/2 = 0.503125
+	wavg += x; /* add another older6/64 to form older6/32 */
+	/* Fix systematic underestimation with large poll intervals.
+	 * Imagine that we still have a bit of uncorrected drift,
+	 * and poll interval is big (say, 100 sec). Offsets form a progression:
+	 * 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 - 0.7 is most recent.
+	 * The algorithm above drops 0.0 and 0.7 as outliers,
+	 * and then we have this estimation, ~25% off from 0.7:
+	 * 0.1/32 + 0.2/32 + 0.3/16 + 0.4/8 + 0.5/4 + 0.6/2 = 0.503125
+	 */
+	x = newest_age / (oldest_age - newest_age); /* in above example, 100 / (600 - 100) */
+	if (x < 1) {
+		x = (newest_off - oldest_off) * x; /* 0.5 * 100/500 = 0.1 */
+		wavg += x;
+	}
+	p->filter_offset = wavg;
 
 	//                       +-----            -----+ ^ 1/2
 	//                       |  n-1                 |
@@ -472,8 +491,10 @@ filter_datapoints(peer_t *p, double t)
 	sum = SQRT(sum) / NUM_DATAPOINTS;
 	p->filter_jitter = sum > G_precision_sec ? sum : G_precision_sec;
 
-	VERB3 bb_error_msg("filter offset:%f disp:%f jitter:%f",
-			p->filter_offset, p->filter_dispersion, p->filter_jitter);
+	VERB3 bb_error_msg("filter offset:%f(corr:%e) disp:%f jitter:%f",
+			p->filter_offset, x,
+			p->filter_dispersion,
+			p->filter_jitter);
 
 }
 
@@ -948,7 +969,7 @@ set_new_values(int disc_state, double offset, double recv_time)
 	 * of the last clock filter sample, which must be earlier than
 	 * the current time.
 	 */
-	VERB3 bb_error_msg("disc_state=%d last_update_offset=%f last_update_recv_time=%f",
+	VERB3 bb_error_msg("disc_state=%d last update offset=%f recv_time=%f",
 			disc_state, offset, recv_time);
 	G.discipline_state = disc_state;
 	G.last_update_offset = offset;
@@ -1227,26 +1248,27 @@ update_local_clock(peer_t *p, double t)
 	tmx.constant = G.poll_exp - 4;
 	//tmx.esterror = (u_int32)(clock_jitter * 1e6);
 	//tmx.maxerror = (u_int32)((sys_rootdelay / 2 + sys_rootdisp) * 1e6);
-	VERB3 bb_error_msg("b adjtimex freq:%ld offset:%ld constant:%ld status:0x%x",
-			tmx.freq, tmx.offset, tmx.constant, tmx.status);
 	rc = adjtimex(&tmx);
 	if (rc < 0)
 		bb_perror_msg_and_die("adjtimex");
-	if (G.kernel_freq_drift != tmx.freq / 65536) {
-		G.kernel_freq_drift = tmx.freq / 65536;
-		VERB2 bb_error_msg("kernel clock drift: %ld ppm", G.kernel_freq_drift);
-	}
-	VERB3 {
-		bb_error_msg("adjtimex:%d freq:%ld offset:%ld constant:%ld status:0x%x",
+	/* NB: here kernel returns constant == G.poll_exp, not == G.poll_exp - 4.
+	 * Not sure why. Perhaps it is normal.
+	 */
+	VERB3 bb_error_msg("adjtimex:%d freq:%ld offset:%ld constant:%ld status:0x%x",
 				rc, tmx.freq, tmx.offset, tmx.constant, tmx.status);
 #if 0
+	VERB3 {
 		/* always gives the same output as above msg */
 		memset(&tmx, 0, sizeof(tmx));
 		if (adjtimex(&tmx) < 0)
 			bb_perror_msg_and_die("adjtimex");
 		VERB3 bb_error_msg("c adjtimex freq:%ld offset:%ld constant:%ld status:0x%x",
 				tmx.freq, tmx.offset, tmx.constant, tmx.status);
+	}
 #endif
+	if (G.kernel_freq_drift != tmx.freq / 65536) {
+		G.kernel_freq_drift = tmx.freq / 65536;
+		VERB2 bb_error_msg("kernel clock drift: %ld ppm", G.kernel_freq_drift);
 	}
 // #define STA_MODE 0x4000  /* mode (0 = PLL, 1 = FLL) (ro) */ - ?
 // it appeared after a while:
