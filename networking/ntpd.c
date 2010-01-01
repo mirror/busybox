@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  *
  * Parts of OpenNTPD clock syncronization code is replaced by
- * code which is based on ntp-4.2.6. It carries the following
+ * code which is based on ntp-4.2.6, whuch carries the following
  * copyright notice:
  *
  ***********************************************************************
@@ -39,6 +39,13 @@
 #endif
 
 
+/* Verbosity control (max level of -dddd options accepted).
+ * max 5 is very talkative (and bloated). 2 is non-bloated,
+ * production level setting.
+ */
+#define MAX_VERBOSE        2
+
+
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define QUERYTIME_MAX   15      /* wait for reply up to N secs */
 
@@ -62,7 +69,7 @@
 
 /* Poll-adjust threshold.
  * When we see that offset is small enough compared to discipline jitter,
- * we grow a counter: += poll_ext. When it goes over POLLADJ_LIMIT,
+ * we grow a counter: += MINPOLL. When it goes over POLLADJ_LIMIT,
  * we poll_ext++. If offset isn't small, counter -= poll_ext*2,
  * and when it goes below -POLLADJ_LIMIT, we poll_ext--
  */
@@ -80,19 +87,6 @@
 #define FLL    (MAXPOLL + 1)
 /* Parameter averaging constant */
 #define AVG                4
-
-/* Verbosity control (max level of -dddd options accepted).
- * max 5 is very talkative (and bloated). 2 is non-bloated,
- * production level setting.
- */
-#define MAX_VERBOSE        2
-
-#define VERB1 if (MAX_VERBOSE && G.verbose)
-#define VERB2 if (MAX_VERBOSE >= 2 && G.verbose >= 2)
-#define VERB3 if (MAX_VERBOSE >= 3 && G.verbose >= 3)
-#define VERB4 if (MAX_VERBOSE >= 4 && G.verbose >= 4)
-#define VERB5 if (MAX_VERBOSE >= 5 && G.verbose >= 5)
-
 
 enum {
 	NTP_VERSION     = 4,
@@ -268,6 +262,13 @@ struct globals {
 #define G (*ptr_to_globals)
 
 static const int const_IPTOS_LOWDELAY = IPTOS_LOWDELAY;
+
+
+#define VERB1 if (MAX_VERBOSE && G.verbose)
+#define VERB2 if (MAX_VERBOSE >= 2 && G.verbose >= 2)
+#define VERB3 if (MAX_VERBOSE >= 3 && G.verbose >= 3)
+#define VERB4 if (MAX_VERBOSE >= 4 && G.verbose >= 4)
+#define VERB5 if (MAX_VERBOSE >= 5 && G.verbose >= 5)
 
 
 static double LOG2D(int a)
@@ -1420,7 +1421,9 @@ recv_and_process_peer_pkt(peer_t *p)
 			);
 		}
 		if (rc > 0 && fabs(q->filter_offset) < POLLADJ_GATE * G.discipline_jitter) {
-			G.polladj_count += G.poll_exp;
+			/* was += G.poll_exp but it is a bit
+			 * too optimistic for my taste at high poll_exp's */
+			G.polladj_count += MINPOLL;
 			if (G.polladj_count > POLLADJ_LIMIT) {
 				G.polladj_count = 0;
 				if (G.poll_exp < MAXPOLL) {
