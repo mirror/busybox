@@ -432,7 +432,7 @@ filter_datapoints(peer_t *p, double t)
 		sum += dispersion(&p->filter_datapoint[idx], t) / (2 << i);
 
 		if (minoff == p->filter_datapoint[idx].d_offset) {
-			minoff -= 1;
+			minoff -= 1; /* so that we don't match it ever again */
 		} else
 		if (maxoff == p->filter_datapoint[idx].d_offset) {
 			maxoff += 1;
@@ -447,6 +447,13 @@ filter_datapoints(peer_t *p, double t)
 	wavg += x; /* add another older6/64 to form older6/32 */
 	p->filter_offset = wavg;
 	p->filter_dispersion = sum;
+//TODO: fix systematic underestimation with large poll intervals.
+// Imagine that we still have a bit of uncorrected drift,
+// and poll interval is big. Offsets form a progression:
+// 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7, 0.7 is most recent.
+// The algorithm above drops 0.0 and 0.7 as outliers,
+// and then we have this estimation, ~25% off from 0.7:
+// 0.1/32 + 0.2/32 + 0.3/16 + 0.4/8 + 0.5/4 + 0.6/2 = 0.503125
 
 	//                       +-----            -----+ ^ 1/2
 	//                       |  n-1                 |
