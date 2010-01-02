@@ -414,9 +414,7 @@ int time_main(int argc UNUSED_PARAM, char **argv)
 	run_command(argv, &res);
 
 	/* Cheat. printf's are shorter :) */
-	/* (but see bb_putchar() body for additional wrinkle!) */
-	xdup2(2, 1); /* just in case libc does something silly :( */
-	stdout = stderr;
+	xdup2(STDERR_FILENO, STDOUT_FILENO);
 	summarize(output_format, argv, &res);
 
 	if (WIFSTOPPED(res.waitstatus))

@@ -354,10 +354,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		if (*cpio_fmt != 'n') /* we _require_ "-H newc" */
 			bb_show_usage();
 		if (opt & CPIO_OPT_FILE) {
-			fclose(stdout);
-			stdout = fopen_for_write(cpio_filename);
-			/* Paranoia: I don't trust libc that much */
-			xdup2(fileno(stdout), STDOUT_FILENO);
+			xmove_fd(xopen3(cpio_filename, O_WRONLY | O_CREAT | O_TRUNC, 0666), STDOUT_FILENO);
 		}
  dump:
 		return cpio_o();

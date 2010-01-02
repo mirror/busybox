@@ -263,10 +263,7 @@ int FAST_FUNC fflush_all(void)
 
 int FAST_FUNC bb_putchar(int ch)
 {
-	/* time.c needs putc(ch, stdout), not putchar(ch).
-	 * it does "stdout = stderr;", but then glibc's putchar()
-	 * doesn't work as expected. bad glibc, bad */
-	return putc(ch, stdout);
+	return putchar(ch);
 }
 
 /* Die with an error message if we can't copy an entire FILE* to stdout,
