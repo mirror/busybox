@@ -216,7 +216,7 @@ These are dirty jobs, but somebody's gotta do 'em.
 
 Other useful links:
 
- - the comp.lang.c FAQ: http://web.onetelnet.ch/~twolf/tw/c/index.html#Sources
+ - the comp.lang.c FAQ: http://home.datacomm.ch/t_wolf/tw/c/index.html#Sources
 
 
 
