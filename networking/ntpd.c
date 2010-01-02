@@ -166,7 +166,7 @@ typedef struct {
 	int              p_fd;
 	int              datapoint_idx;
 	uint32_t         lastpkt_refid;
-	uint8_t          lastpkt_leap;
+	uint8_t          lastpkt_status;
 	uint8_t          lastpkt_stratum;
 	uint8_t          p_reachable_bits;
 	double           p_xmttime;
@@ -216,7 +216,7 @@ struct globals {
 	 *  in stratum 2+ packets, it's IPv4 address or 4 first bytes of MD5 hash of IPv6
 	 */
 	uint32_t refid;
-	uint8_t  leap;
+	uint8_t  ntp_status;
 	/* precision is defined as the larger of the resolution and time to
 	 * read the clock, in log2 units.  For instance, the precision of a
 	 * mains-frequency clock incrementing at 60 Hz is 16 ms, even when the
@@ -245,8 +245,6 @@ struct globals {
 #define G_precision_sec  (1.0 / (1 << (- G_precision_exp)))
 	uint8_t  stratum;
 	/* Bool. After set to 1, never goes back to 0: */
-//TODO: fix logic:
-//	uint8_t  time_was_stepped;
 	uint8_t  adjtimex_was_done;
 
 	uint8_t  discipline_state;      // doc calls it c.state
@@ -415,12 +413,13 @@ filter_datapoints(peer_t *p, double t)
 	 */
 	wavg = 0;
 	w = 0.5;
-	//                     n-1
-	//                     ---    dispersion(i)
-	// filter_dispersion =  \     -------------
-	//                      /       (i+1)
-	//                     ---     2
-	//                     i=0
+	/*                     n-1
+	 *                     ---    dispersion(i)
+	 * filter_dispersion =  \     -------------
+	 *                      /       (i+1)
+	 *                     ---     2
+	 *                     i=0
+	 */
 	got_newest = 0;
 	sum = 0;
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
@@ -474,21 +473,22 @@ filter_datapoints(peer_t *p, double t)
 	}
 	p->filter_offset = wavg;
 
-	//                       +-----            -----+ ^ 1/2
-	//                       |  n-1                 |
-	//                       |  ---                 |
-	//                  1    |  \                2  |
-	// filter_jitter = --- * |  /  (avg-offset_j)   |
-	//                  n    |  ---                 |
-	//                       |  j=0                 |
-	//                       +-----            -----+
-	// where n is the number of valid datapoints in the filter (n > 1);
-	// if filter_jitter < precision then filter_jitter = precision
+	/*                  +-----                 -----+ ^ 1/2
+	 *                  |       n-1                 |
+	 *                  |       ---                 |
+	 *                  |  1    \                2  |
+	 * filter_jitter =  | --- * /  (avg-offset_j)   |
+	 *                  |  n    ---                 |
+	 *                  |       j=0                 |
+	 *                  +-----                 -----+
+	 * where n is the number of valid datapoints in the filter (n > 1);
+	 * if filter_jitter < precision then filter_jitter = precision
+	 */
 	sum = 0;
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
 		sum += SQUARE(wavg - p->filter_datapoint[i].d_offset);
 	}
-	sum = SQRT(sum) / NUM_DATAPOINTS;
+	sum = SQRT(sum / NUM_DATAPOINTS);
 	p->filter_jitter = sum > G_precision_sec ? sum : G_precision_sec;
 
 	VERB3 bb_error_msg("filter offset:%f(corr:%e) disp:%f jitter:%f",
@@ -570,22 +570,23 @@ do_sendto(int fd,
 static int
 send_query_to_peer(peer_t *p)
 {
-	// Why do we need to bind()?
-	// See what happens when we don't bind:
-	//
-	// socket(PF_INET, SOCK_DGRAM, IPPROTO_IP) = 3
-	// setsockopt(3, SOL_IP, IP_TOS, [16], 4) = 0
-	// gettimeofday({1259071266, 327885}, NULL) = 0
-	// sendto(3, "xxx", 48, MSG_DONTWAIT, {sa_family=AF_INET, sin_port=htons(123), sin_addr=inet_addr("10.34.32.125")}, 16) = 48
-	// ^^^ we sent it from some source port picked by kernel.
-	// time(NULL)              = 1259071266
-	// write(2, "ntpd: entering poll 15 secs\n", 28) = 28
-	// poll([{fd=3, events=POLLIN}], 1, 15000) = 1 ([{fd=3, revents=POLLIN}])
-	// recv(3, "yyy", 68, MSG_DONTWAIT) = 48
-	// ^^^ this recv will receive packets to any local port!
-	//
-	// Uncomment this and use strace to see it in action:
-#define PROBE_LOCAL_ADDR // { len_and_sockaddr lsa; lsa.len = LSA_SIZEOF_SA; getsockname(p->query.fd, &lsa.u.sa, &lsa.len); }
+	/* Why do we need to bind()?
+	 * See what happens when we don't bind:
+	 *
+	 * socket(PF_INET, SOCK_DGRAM, IPPROTO_IP) = 3
+	 * setsockopt(3, SOL_IP, IP_TOS, [16], 4) = 0
+	 * gettimeofday({1259071266, 327885}, NULL) = 0
+	 * sendto(3, "xxx", 48, MSG_DONTWAIT, {sa_family=AF_INET, sin_port=htons(123), sin_addr=inet_addr("10.34.32.125")}, 16) = 48
+	 * ^^^ we sent it from some source port picked by kernel.
+	 * time(NULL)              = 1259071266
+	 * write(2, "ntpd: entering poll 15 secs\n", 28) = 28
+	 * poll([{fd=3, events=POLLIN}], 1, 15000) = 1 ([{fd=3, revents=POLLIN}])
+	 * recv(3, "yyy", 68, MSG_DONTWAIT) = 48
+	 * ^^^ this recv will receive packets to any local port!
+	 *
+	 * Uncomment this and use strace to see it in action:
+	 */
+#define PROBE_LOCAL_ADDR /* { len_and_sockaddr lsa; lsa.len = LSA_SIZEOF_SA; getsockname(p->query.fd, &lsa.u.sa, &lsa.len); } */
 
 	if (p->p_fd == -1) {
 		int fd, family;
@@ -662,8 +663,6 @@ step_time(double offset)
 	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
 
 	bb_error_msg("setting clock to %s (offset %fs)", buf, offset);
-
-//	G.time_was_stepped = 1;
 }
 
 
@@ -705,13 +704,14 @@ fit(peer_t *p, double rd)
 		VERB3 bb_error_msg("peer %s unfit for selection: unreachable", p->p_dotted);
 		return 0;
 	}
-//TODO: we never accept such packets anyway, right?
-	if ((p->lastpkt_leap & LI_ALARM) == LI_ALARM
+#if 0	/* we filter out such packets earlier */
+	if ((p->lastpkt_status & LI_ALARM) == LI_ALARM
 	 || p->lastpkt_stratum >= MAXSTRAT
 	) {
 		VERB3 bb_error_msg("peer %s unfit for selection: bad status/stratum", p->p_dotted);
 		return 0;
 	}
+#endif
 	/* rd is root_distance(p, t) */
 	if (rd > MAXDIST + FREQ_TOLERANCE * (1 << G.poll_exp)) {
 		VERB3 bb_error_msg("peer %s unfit for selection: root distance too high", p->p_dotted);
@@ -908,7 +908,6 @@ select_and_cluster(double t)
 			selection_jitter_sq = 0;
 			for (j = 0; j < num_survivors; j++) {
 				peer_t *q = survivor[j].p;
-//TODO: where is 1/(n-1) * ... multiplier?
 				selection_jitter_sq += SQUARE(p->filter_offset - q->filter_offset);
 			}
 			if (i == 0 || selection_jitter_sq > max_selection_jitter) {
@@ -918,7 +917,7 @@ select_and_cluster(double t)
 			VERB5 bb_error_msg("survivor %d selection_jitter^2:%f",
 					i, selection_jitter_sq);
 		}
-		max_selection_jitter = SQRT(max_selection_jitter);
+		max_selection_jitter = SQRT(max_selection_jitter / num_survivors);
 		VERB4 bb_error_msg("max_selection_jitter (at %d):%f min_jitter:%f",
 				max_idx, max_selection_jitter, min_jitter);
 
@@ -991,7 +990,9 @@ update_local_clock(peer_t *p, double t)
 	double offset = p->filter_offset;
 	double recv_time = p->lastpkt_recv_time;
 	double abs_offset;
+#if !USING_KERNEL_PLL_LOOP
 	double freq_drift;
+#endif
 	double since_last_update;
 	double etemp, dtemp;
 
@@ -1017,7 +1018,9 @@ update_local_clock(peer_t *p, double t)
 	 * and frequency errors.
 	 */
 	since_last_update = recv_time - G.reftime;
+#if !USING_KERNEL_PLL_LOOP
 	freq_drift = 0;
+#endif
 	if (G.discipline_state == STATE_FREQ) {
 		/* Ignore updates until the stepout threshold */
 		if (since_last_update < WATCH_THRESHOLD) {
@@ -1025,7 +1028,9 @@ update_local_clock(peer_t *p, double t)
 					WATCH_THRESHOLD - since_last_update);
 			return 0; /* "leave poll interval as is" */
 		}
+#if !USING_KERNEL_PLL_LOOP
 		freq_drift = (offset - G.last_update_offset) / since_last_update;
+#endif
 	}
 
 	/* There are two main regimes: when the
@@ -1145,6 +1150,7 @@ update_local_clock(peer_t *p, double t)
 			break;
 
 		default:
+#if !USING_KERNEL_PLL_LOOP
 			/* Compute freq_drift due to PLL and FLL contributions.
 			 *
 			 * The FLL and PLL frequency gain constants
@@ -1167,6 +1173,7 @@ update_local_clock(peer_t *p, double t)
 			etemp = MIND(since_last_update, (1 << G.poll_exp));
 			dtemp = (4 * PLL) << G.poll_exp;
 			freq_drift += offset * etemp / SQUARE(dtemp);
+#endif
 			set_new_values(STATE_SYNC, offset, recv_time);
 			break;
 		}
@@ -1174,7 +1181,7 @@ update_local_clock(peer_t *p, double t)
 	}
 
 	G.reftime = t;
-	G.leap = p->lastpkt_leap;
+	G.ntp_status = p->lastpkt_status;
 	G.refid = p->lastpkt_refid;
 	G.rootdelay = p->lastpkt_rootdelay + p->lastpkt_delay;
 	dtemp = p->filter_jitter; // SQRT(SQUARE(p->filter_jitter) + SQUARE(s.jitter));
@@ -1241,10 +1248,10 @@ update_local_clock(peer_t *p, double t)
 			/* + (G.last_update_offset < 0 ? -0.5 : 0.5) - too small to bother */
 			+ old_tmx_offset; /* almost always 0 */
 	tmx.status = STA_PLL;
-	//if (sys_leap == LEAP_ADDSECOND)
-	//	tmx.status |= STA_INS;
-	//else if (sys_leap == LEAP_DELSECOND)
-	//	tmx.status |= STA_DEL;
+	if (G.ntp_status & LI_PLUSSEC)
+		tmx.status |= STA_INS;
+	if (G.ntp_status & LI_MINUSSEC)
+		tmx.status |= STA_DEL;
 	tmx.constant = G.poll_exp - 4;
 	//tmx.esterror = (u_int32)(clock_jitter * 1e6);
 	//tmx.maxerror = (u_int32)((sys_rootdelay / 2 + sys_rootdisp) * 1e6);
@@ -1376,18 +1383,12 @@ recv_and_process_peer_pkt(peer_t *p)
 		goto close_sock;
 	}
 
-//	/*
-//	 * Verify the server is synchronized with valid stratum and
-//	 * reference time not later than the transmit time.
-//	 */
-//	if (p->lastpkt_leap == NOSYNC || p->lastpkt_stratum >= MAXSTRAT)
-//		return;                 /* unsynchronized */
-//
 //	/* Verify valid root distance */
 //	if (msg.m_rootdelay / 2 + msg.m_rootdisp >= MAXDISP || p->lastpkt_reftime > msg.m_xmt)
 //		return;                 /* invalid header values */
 
-	p->lastpkt_leap = msg.m_status;
+	p->lastpkt_status = msg.m_status;
+	p->lastpkt_stratum = msg.m_stratum;
 	p->lastpkt_rootdelay = sfp_to_d(msg.m_rootdelay);
 	p->lastpkt_rootdisp = sfp_to_d(msg.m_rootdisp);
 	p->lastpkt_refid = msg.m_refid;
@@ -1557,7 +1558,7 @@ recv_and_process_client_pkt(void /*int fd*/)
 
 	/* Build a reply packet */
 	memset(&msg, 0, sizeof(msg));
-	msg.m_status = G.stratum < MAXSTRAT ? G.leap : LI_ALARM;
+	msg.m_status = G.stratum < MAXSTRAT ? G.ntp_status : LI_ALARM;
 	msg.m_status |= (query_status & VERSION_MASK);
 	msg.m_status |= ((query_status & MODE_MASK) == MODE_CLIENT) ?
 			 MODE_SERVER : MODE_SYM_PAS;
@@ -1821,10 +1822,6 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 				i++;
 			}
 		}
-
-//		if ((trial_cnt > 0 && sent_cnt == 0) || g.peer_cnt == 0) {
-//			G.time_was_stepped = 1;
-//		}
 
 		timeout = nextaction - cur_time;
 		if (timeout < 1)
