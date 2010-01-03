@@ -192,8 +192,9 @@ enum {
 	OPT_x = (1 << 3),
 	/* Insert new options above this line. */
 	/* Non-compat options: */
-	OPT_p = (1 << 4),
-	OPT_l = (1 << 5) * ENABLE_FEATURE_NTPD_SERVER,
+	OPT_w = (1 << 4),
+	OPT_p = (1 << 5),
+	OPT_l = (1 << 6) * ENABLE_FEATURE_NTPD_SERVER,
 };
 
 struct globals {
@@ -940,7 +941,7 @@ select_and_cluster(void)
 		double min_jitter = min_jitter;
 
 		if (num_survivors <= MIN_CLUSTERED) {
-			bb_error_msg("num_survivors %d <= %d, not discarding more",
+			VERB3 bb_error_msg("num_survivors %d <= %d, not discarding more",
 					num_survivors, MIN_CLUSTERED);
 			break;
 		}
@@ -1381,8 +1382,8 @@ recv_and_process_peer_pkt(peer_t *p)
 		 || errno == EAGAIN
 		) {
 //TODO: always do this?
-			set_next(p, retry_interval());
-			goto close_sock;
+			interval = retry_interval();
+			goto set_next_and_close_sock;
 		}
 		xfunc_die();
 	}
@@ -1407,7 +1408,7 @@ recv_and_process_peer_pkt(peer_t *p)
 // "RATE" - peer is overloaded, reduce polling freq
 		interval = poll_interval(0);
 		bb_error_msg("reply from %s: not synced, next query in %us", p->p_dotted, interval);
-		goto close_sock;
+		goto set_next_and_close_sock;
 	}
 
 //	/* Verify valid root distance */
@@ -1466,18 +1467,30 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	p->reachable_bits |= 1;
 	VERB1 {
-		bb_error_msg("reply from %s: reach 0x%02x offset %f delay %f",
+		bb_error_msg("reply from %s: reach 0x%02x offset %f delay %f status 0x%02x strat %d refid 0x%08x rootdelay %f",
 			p->p_dotted,
 			p->reachable_bits,
-			datapoint->d_offset, p->lastpkt_delay);
+			datapoint->d_offset,
+			p->lastpkt_delay,
+			p->lastpkt_status,
+			p->lastpkt_stratum,
+			p->lastpkt_refid,
+			p->lastpkt_rootdelay
+			/* not shown: m_ppoll, m_precision_exp, m_rootdisp,
+			 * m_reftime, m_orgtime, m_rectime, m_xmttime
+			 */
+		);
 	}
 
 	/* Muck with statictics and update the clock */
 	filter_datapoints(p);
 	q = select_and_cluster();
 	rc = -1;
-	if (q)
-		rc = update_local_clock(q);
+	if (q) {
+		rc = 0;
+		if (!(option_mask32 & OPT_w))
+			rc = update_local_clock(q);
+	}
 
 	if (rc != 0) {
 		/* Adjust the poll interval by comparing the current offset
@@ -1537,9 +1550,9 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	/* Decide when to send new query for this peer */
 	interval = poll_interval(0);
-	set_next(p, interval);
 
- close_sock:
+ set_next_and_close_sock:
+	set_next(p, interval);
 	/* We do not expect any more packets from this peer for now.
 	 * Closing the socket informs kernel about it.
 	 * We open a new socket when we send a new query.
@@ -1723,7 +1736,7 @@ static NOINLINE void ntp_init(char **argv)
 	opt_complementary = "dd:p::"; /* d: counter, p: list */
 	opts = getopt32(argv,
 			"nqNx" /* compat */
-			"p:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
+			"wp:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			"d" /* compat */
 			"46aAbgL", /* compat, ignored */
 			&peers, &G.verbose);

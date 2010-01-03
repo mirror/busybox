@@ -3223,7 +3223,7 @@
        "Address:    127.0.0.1\n"
 
 #define ntpd_trivial_usage \
-	"[-dngql] [-p PEER]..."
+	"[-dnqwl] [-p PEER]..."
 #define ntpd_full_usage "\n\n" \
        "NTP client/server\n" \
      "\nOptions:" \
@@ -3233,6 +3233,7 @@
 /* -N exists for mostly compat reasons, thus not essential to inform */ \
 /* the user that it exists: user may use nice as well */ \
 /*   "\n	-N	Run at high priority" */ \
+     "\n	-w	Do not set time (used to look at peer data)" \
      "\n	-l	Run as server on port 123" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 
