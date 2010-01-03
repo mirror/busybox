@@ -274,7 +274,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 			bb_error_msg_and_die("invalid tar header checksum");
 		}
 	}
-	sum = xstrtoul(tar.chksum, 8);
+	/* don't use xstrtoul, tar.chksum may have leading spaces */
+	sum = strtoul(tar.chksum, NULL, 8);
 	if (sum_u != sum IF_FEATURE_TAR_OLDSUN_COMPATIBILITY(&& sum_s != sum)) {
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
