@@ -47,9 +47,10 @@
 
 
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
-#define QUERYTIME_MAX   15      /* wait for reply up to N secs */
+#define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
 
 #define FREQ_TOLERANCE  0.000015 /* % frequency tolerance (15 PPM) */
+#define BURSTPOLL       0
 #define MINPOLL         4       /* % minimum poll interval (6: 64 s) */
 #define MAXPOLL         12      /* % maximum poll interval (12: 1.1h, 17: 36.4h) (was 17) */
 #define MINDISP         0.01    /* % minimum dispersion (s) */
@@ -162,13 +163,13 @@ typedef struct {
 	char             *p_dotted;
 	/* when to send new query (if p_fd == -1)
 	 * or when receive times out (if p_fd >= 0): */
-	time_t           next_action_time;
 	int              p_fd;
 	int              datapoint_idx;
 	uint32_t         lastpkt_refid;
 	uint8_t          lastpkt_status;
 	uint8_t          lastpkt_stratum;
-	uint8_t          p_reachable_bits;
+	uint8_t          reachable_bits;
+	double           next_action_time;
 	double           p_xmttime;
 	double           lastpkt_recv_time;
 	double           lastpkt_delay;
@@ -196,6 +197,7 @@ enum {
 };
 
 struct globals {
+	double   cur_time;
 	/* total round trip delay to currently selected reference clock */
 	double   rootdelay;
 	/* reference timestamp: time when the system clock was last set or corrected */
@@ -245,7 +247,8 @@ struct globals {
 #define G_precision_sec  (1.0 / (1 << (- G_precision_exp)))
 	uint8_t  stratum;
 	/* Bool. After set to 1, never goes back to 0: */
-	uint8_t  adjtimex_was_done;
+	smallint adjtimex_was_done;
+	smallint initial_poll_complete;
 
 	uint8_t  discipline_state;      // doc calls it c.state
 	uint8_t  poll_exp;              // s.poll
@@ -303,7 +306,8 @@ gettime1900d(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL); /* never fails */
-	return (tv.tv_sec + 1.0e-6 * tv.tv_usec + OFFSET_1900_1970);
+	G.cur_time = tv.tv_sec + (1.0e-6 * tv.tv_usec) + OFFSET_1900_1970;
+	return G.cur_time;
 }
 
 static void
@@ -355,13 +359,13 @@ d_to_sfp(double d)
 #endif
 
 static double
-dispersion(const datapoint_t *dp, double t)
+dispersion(const datapoint_t *dp)
 {
-	return dp->d_dispersion + FREQ_TOLERANCE * (t - dp->d_recv_time);
+	return dp->d_dispersion + FREQ_TOLERANCE * (G.cur_time - dp->d_recv_time);
 }
 
 static double
-root_distance(peer_t *p, double t)
+root_distance(peer_t *p)
 {
 	/* The root synchronization distance is the maximum error due to
 	 * all causes of the local clock relative to the primary server.
@@ -371,21 +375,21 @@ root_distance(peer_t *p, double t)
 	return MAXD(MINDISP, p->lastpkt_rootdelay + p->lastpkt_delay) / 2
 		+ p->lastpkt_rootdisp
 		+ p->filter_dispersion
-		+ FREQ_TOLERANCE * (t - p->lastpkt_recv_time)
+		+ FREQ_TOLERANCE * (G.cur_time - p->lastpkt_recv_time)
 		+ p->filter_jitter;
 }
 
 static void
 set_next(peer_t *p, unsigned t)
 {
-	p->next_action_time = time(NULL) + t;
+	p->next_action_time = G.cur_time + t;
 }
 
 /*
  * Peer clock filter and its helpers
  */
 static void
-filter_datapoints(peer_t *p, double t)
+filter_datapoints(peer_t *p)
 {
 	int i, idx;
 	int got_newest;
@@ -427,14 +431,14 @@ filter_datapoints(peer_t *p, double t)
 			bb_error_msg("datapoint[%d]: off:%f disp:%f(%f) age:%f%s",
 				i,
 				p->filter_datapoint[idx].d_offset,
-				p->filter_datapoint[idx].d_dispersion, dispersion(&p->filter_datapoint[idx], t),
-				t - p->filter_datapoint[idx].d_recv_time,
+				p->filter_datapoint[idx].d_dispersion, dispersion(&p->filter_datapoint[idx]),
+				G.cur_time - p->filter_datapoint[idx].d_recv_time,
 				(minoff == p->filter_datapoint[idx].d_offset || maxoff == p->filter_datapoint[idx].d_offset)
 					? " (outlier by offset)" : ""
 			);
 		}
 
-		sum += dispersion(&p->filter_datapoint[idx], t) / (2 << i);
+		sum += dispersion(&p->filter_datapoint[idx]) / (2 << i);
 
 		if (minoff == p->filter_datapoint[idx].d_offset) {
 			minoff -= 1; /* so that we don't match it ever again */
@@ -443,7 +447,7 @@ filter_datapoints(peer_t *p, double t)
 			maxoff += 1;
 		} else {
 			oldest_off = p->filter_datapoint[idx].d_offset;
-			oldest_age = t - p->filter_datapoint[idx].d_recv_time;
+			oldest_age = G.cur_time - p->filter_datapoint[idx].d_recv_time;
 			if (!got_newest) {
 				got_newest = 1;
 				newest_off = oldest_off;
@@ -466,10 +470,13 @@ filter_datapoints(peer_t *p, double t)
 	 * and then we have this estimation, ~25% off from 0.7:
 	 * 0.1/32 + 0.2/32 + 0.3/16 + 0.4/8 + 0.5/4 + 0.6/2 = 0.503125
 	 */
-	x = newest_age / (oldest_age - newest_age); /* in above example, 100 / (600 - 100) */
-	if (x < 1) {
-		x = (newest_off - oldest_off) * x; /* 0.5 * 100/500 = 0.1 */
-		wavg += x;
+	x = oldest_age - newest_age;
+	if (x != 0) {
+		x = newest_age / x; /* in above example, 100 / (600 - 100) */
+		if (x < 1) { /* paranoia check */
+			x = (newest_off - oldest_off) * x; /* 0.5 * 100/500 = 0.1 */
+			wavg += x;
+		}
 	}
 	p->filter_offset = wavg;
 
@@ -499,7 +506,7 @@ filter_datapoints(peer_t *p, double t)
 }
 
 static void
-reset_peer_stats(peer_t *p, double t, double offset)
+reset_peer_stats(peer_t *p, double offset)
 {
 	int i;
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
@@ -509,7 +516,7 @@ reset_peer_stats(peer_t *p, double t, double offset)
 				p->filter_datapoint[i].d_offset -= offset;
 			}
 		} else {
-			p->filter_datapoint[i].d_recv_time  = t;
+			p->filter_datapoint[i].d_recv_time  = G.cur_time;
 			p->filter_datapoint[i].d_offset     = 0;
 			p->filter_datapoint[i].d_dispersion = MAXDISP;
 		}
@@ -517,11 +524,11 @@ reset_peer_stats(peer_t *p, double t, double offset)
 	if (offset < 16 * STEP_THRESHOLD) {
 		p->lastpkt_recv_time -= offset;
 	} else {
-		p->p_reachable_bits = 0;
-		p->lastpkt_recv_time = t;
+		p->reachable_bits = 0;
+		p->lastpkt_recv_time = G.cur_time;
 	}
-	filter_datapoints(p, t); /* recalc p->filter_xxx */
-	p->next_action_time -= (time_t)offset;
+	filter_datapoints(p); /* recalc p->filter_xxx */
+	p->next_action_time -= offset;
 	VERB5 bb_error_msg("%s->lastpkt_recv_time=%f", p->p_dotted, p->lastpkt_recv_time);
 }
 
@@ -535,8 +542,8 @@ add_peers(char *s)
 	p->p_dotted = xmalloc_sockaddr2dotted_noport(&p->p_lsa->u.sa);
 	p->p_fd = -1;
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
-	p->next_action_time = time(NULL); /* = set_next(p, 0); */
-	reset_peer_stats(p, gettime1900d(), 16 * STEP_THRESHOLD);
+	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
+	reset_peer_stats(p, 16 * STEP_THRESHOLD);
 	/* Speed up initial sync: with small offsets from peers,
 	 * 3 samples will sync
 	 */
@@ -567,7 +574,7 @@ do_sendto(int fd,
 	return 0;
 }
 
-static int
+static void
 send_query_to_peer(peer_t *p)
 {
 	/* Why do we need to bind()?
@@ -632,20 +639,19 @@ send_query_to_peer(peer_t *p)
 		close(p->p_fd);
 		p->p_fd = -1;
 		set_next(p, RETRY_INTERVAL);
-		return -1;
+		return;
 	}
 
-	p->p_reachable_bits <<= 1;
+	p->reachable_bits <<= 1;
 	VERB1 bb_error_msg("sent query to %s", p->p_dotted);
-	set_next(p, QUERYTIME_MAX);
-
-	return 0;
+	set_next(p, RESPONSE_INTERVAL);
 }
 
 
-static void
+static NOINLINE void
 step_time(double offset)
 {
+	llist_t *item;
 	double dtime;
 	struct timeval tv;
 	char buf[80];
@@ -663,6 +669,17 @@ step_time(double offset)
 	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
 
 	bb_error_msg("setting clock to %s (offset %fs)", buf, offset);
+
+	/* Correct various fields which contain time-relative values: */
+
+	/* p->lastpkt_recv_time, p->next_action_time and such: */
+	for (item = G.ntp_peers; item != NULL; item = item->link) {
+		peer_t *pp = (peer_t *) item->data;
+		reset_peer_stats(pp, offset);
+	}
+	/* Globals: */
+	G.cur_time -= offset;
+	G.last_update_recv_time -= offset;
 }
 
 
@@ -700,7 +717,8 @@ compare_survivor_metric(const void *aa, const void *bb)
 static int
 fit(peer_t *p, double rd)
 {
-	if (p->p_reachable_bits == 0) {
+	if ((p->reachable_bits & (p->reachable_bits-1)) == 0) {
+		/* One or zero bits in reachable_bits */
 		VERB3 bb_error_msg("peer %s unfit for selection: unreachable", p->p_dotted);
 		return 0;
 	}
@@ -712,7 +730,7 @@ fit(peer_t *p, double rd)
 		return 0;
 	}
 #endif
-	/* rd is root_distance(p, t) */
+	/* rd is root_distance(p) */
 	if (rd > MAXDIST + FREQ_TOLERANCE * (1 << G.poll_exp)) {
 		VERB3 bb_error_msg("peer %s unfit for selection: root distance too high", p->p_dotted);
 		return 0;
@@ -724,7 +742,7 @@ fit(peer_t *p, double rd)
         return 1;
 }
 static peer_t*
-select_and_cluster(double t)
+select_and_cluster(void)
 {
 	llist_t    *item;
 	int        i, j;
@@ -742,9 +760,9 @@ select_and_cluster(double t)
 
 	num_points = 0;
 	item = G.ntp_peers;
-	while (item != NULL) {
+	if (G.initial_poll_complete) while (item != NULL) {
 		peer_t *p = (peer_t *) item->data;
-		double rd = root_distance(p, t);
+		double rd = root_distance(p);
 		double offset = p->filter_offset;
 
 		if (!fit(p, rd)) {
@@ -775,7 +793,7 @@ select_and_cluster(double t)
 	num_candidates = num_points / 3;
 	if (num_candidates == 0) {
 		VERB3 bb_error_msg("no valid datapoints, no peer selected");
-		return NULL; /* never happers? */
+		return NULL;
 	}
 //TODO: sorting does not seem to be done in reference code
 	qsort(point, num_points, sizeof(point[0]), compare_point_edge);
@@ -856,7 +874,7 @@ select_and_cluster(double t)
 		p = point[i].p;
 		survivor[num_survivors].p = p;
 //TODO: save root_distance in point_t and reuse here?
-		survivor[num_survivors].metric = MAXDIST * p->lastpkt_stratum + root_distance(p, t);
+		survivor[num_survivors].metric = MAXDIST * p->lastpkt_stratum + root_distance(p);
 		VERB4 bb_error_msg("survivor[%d] metric:%f peer:%s",
 			num_survivors, survivor[num_survivors].metric, p->p_dotted);
 		num_survivors++;
@@ -952,7 +970,7 @@ select_and_cluster(double t)
 	VERB3 bb_error_msg("selected peer %s filter_offset:%f age:%f",
 			survivor[0].p->p_dotted,
 			survivor[0].p->filter_offset,
-			t - survivor[0].p->lastpkt_recv_time
+			G.cur_time - survivor[0].p->lastpkt_recv_time
 	);
 	return survivor[0].p;
 }
@@ -981,8 +999,8 @@ set_new_values(int disc_state, double offset, double recv_time)
 #define STATE_FREQ      3       /* initial frequency */
 #define STATE_SYNC      4       /* clock synchronized (normal operation) */
 /* Return: -1: decrease poll interval, 0: leave as is, 1: increase */
-static int
-update_local_clock(peer_t *p, double t)
+static NOINLINE int
+update_local_clock(peer_t *p)
 {
 	int rc;
 	long old_tmx_offset;
@@ -1037,8 +1055,6 @@ update_local_clock(peer_t *p, double t)
 	 * offset exceeds the step threshold and when it does not.
 	 */
 	if (abs_offset > STEP_THRESHOLD) {
-		llist_t *item;
-
 		switch (G.discipline_state) {
 		case STATE_SYNC:
 			/* The first outlyer: ignore it, switch to SPIK state */
@@ -1089,10 +1105,6 @@ update_local_clock(peer_t *p, double t)
 		G.polladj_count = 0;
 		G.poll_exp = MINPOLL;
 		G.stratum = MAXSTRAT;
-		for (item = G.ntp_peers; item != NULL; item = item->link) {
-			peer_t *pp = (peer_t *) item->data;
-			reset_peer_stats(pp, t, offset);
-		}
 		if (G.discipline_state == STATE_NSET) {
 			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);
 			return 1; /* "ok to increase poll interval" */
@@ -1101,8 +1113,9 @@ update_local_clock(peer_t *p, double t)
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
 
-		if (G.poll_exp < MINPOLL) {
-			VERB3 bb_error_msg("saw small offset %f, disabling burst mode", offset);
+		if (G.poll_exp < MINPOLL && G.initial_poll_complete) {
+			VERB3 bb_error_msg("small offset:%f, disabling burst mode", offset);
+			G.polladj_count = 0;
 			G.poll_exp = MINPOLL;
 		}
 
@@ -1128,7 +1141,7 @@ update_local_clock(peer_t *p, double t)
 			 */
 			set_new_values(STATE_FREQ, offset, recv_time);
 			VERB3 bb_error_msg("transitioning to FREQ, datapoint ignored");
-			return -1; /* "decrease poll interval" */
+			return 0; /* "leave poll interval as is" */
 
 #if 0 /* this is dead code for now */
 		case STATE_FSET:
@@ -1180,12 +1193,12 @@ update_local_clock(peer_t *p, double t)
 		G.stratum = p->lastpkt_stratum + 1;
 	}
 
-	G.reftime = t;
+	G.reftime = G.cur_time;
 	G.ntp_status = p->lastpkt_status;
 	G.refid = p->lastpkt_refid;
 	G.rootdelay = p->lastpkt_rootdelay + p->lastpkt_delay;
 	dtemp = p->filter_jitter; // SQRT(SQUARE(p->filter_jitter) + SQUARE(s.jitter));
-	dtemp += MAXD(p->filter_dispersion + FREQ_TOLERANCE * (t - p->lastpkt_recv_time) + abs_offset, MINDISP);
+	dtemp += MAXD(p->filter_dispersion + FREQ_TOLERANCE * (G.cur_time - p->lastpkt_recv_time) + abs_offset, MINDISP);
 	G.rootdisp = p->lastpkt_rootdisp + dtemp;
 	VERB3 bb_error_msg("updating leap/refid/reftime/rootdisp from peer %s", p->p_dotted);
 
@@ -1318,19 +1331,20 @@ retry_interval(void)
 	return interval;
 }
 static unsigned
-poll_interval(int exponent) /* exp is always -1 or 0 */
+poll_interval(int exponent)
 {
 	/* Want to send next packet at (1 << G.poll_exp) + small random value */
 	unsigned interval, r;
-	exponent += G.poll_exp; /* G.poll_exp is always > 0 */
-	/* never true: if (exp < 0) exp = 0; */
+	exponent = G.poll_exp + exponent;
+	if (exponent < 0)
+		exponent = 0;
 	interval = 1 << exponent;
 	r = random();
 	interval += ((r & (interval-1)) >> 4) + ((r >> 8) & 1); /* + 1/16 of interval, max */
 	VERB3 bb_error_msg("chose poll interval:%u (poll_exp:%d exp:%d)", interval, G.poll_exp, exponent);
 	return interval;
 }
-static void
+static NOINLINE void
 recv_and_process_peer_pkt(peer_t *p)
 {
 	int         rc;
@@ -1410,12 +1424,12 @@ recv_and_process_peer_pkt(peer_t *p)
 	T1 = p->p_xmttime;
 	T2 = lfp_to_d(msg.m_rectime);
 	T3 = lfp_to_d(msg.m_xmttime);
-	T4 = gettime1900d();
+	T4 = G.cur_time;
 
 	p->lastpkt_recv_time = T4;
 
 	VERB5 bb_error_msg("%s->lastpkt_recv_time=%f", p->p_dotted, p->lastpkt_recv_time);
-	p->datapoint_idx = p->p_reachable_bits ? (p->datapoint_idx + 1) % NUM_DATAPOINTS : 0;
+	p->datapoint_idx = p->reachable_bits ? (p->datapoint_idx + 1) % NUM_DATAPOINTS : 0;
 	datapoint = &p->filter_datapoint[p->datapoint_idx];
 	datapoint->d_recv_time = T4;
 	datapoint->d_offset    = ((T2 - T1) + (T3 - T4)) / 2;
@@ -1429,7 +1443,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	if (p->lastpkt_delay < G_precision_sec)
 		p->lastpkt_delay = G_precision_sec;
 	datapoint->d_dispersion = LOG2D(msg.m_precision_exp) + G_precision_sec;
-	if (!p->p_reachable_bits) {
+	if (!p->reachable_bits) {
 		/* 1st datapoint ever - replicate offset in every element */
 		int i;
 		for (i = 1; i < NUM_DATAPOINTS; i++) {
@@ -1437,20 +1451,20 @@ recv_and_process_peer_pkt(peer_t *p)
 		}
 	}
 
-	p->p_reachable_bits |= 1;
+	p->reachable_bits |= 1;
 	VERB1 {
 		bb_error_msg("reply from %s: reach 0x%02x offset %f delay %f",
 			p->p_dotted,
-			p->p_reachable_bits,
+			p->reachable_bits,
 			datapoint->d_offset, p->lastpkt_delay);
 	}
 
 	/* Muck with statictics and update the clock */
-	filter_datapoints(p, T4);
-	q = select_and_cluster(T4);
+	filter_datapoints(p);
+	q = select_and_cluster();
 	rc = -1;
 	if (q)
-		rc = update_local_clock(q, T4);
+		rc = update_local_clock(q);
 
 	if (rc != 0) {
 		/* Adjust the poll interval by comparing the current offset
@@ -1524,12 +1538,11 @@ recv_and_process_peer_pkt(peer_t *p)
 }
 
 #if ENABLE_FEATURE_NTPD_SERVER
-static void
+static NOINLINE void
 recv_and_process_client_pkt(void /*int fd*/)
 {
 	ssize_t          size;
 	uint8_t          version;
-	double           rectime;
 	len_and_sockaddr *to;
 	struct sockaddr  *from;
 	msg_t            msg;
@@ -1565,8 +1578,9 @@ recv_and_process_client_pkt(void /*int fd*/)
 	msg.m_stratum = G.stratum;
 	msg.m_ppoll = G.poll_exp;
 	msg.m_precision_exp = G_precision_exp;
-	rectime = gettime1900d();
-	msg.m_xmttime = msg.m_rectime = d_to_lfp(rectime);
+	/* this time was obtained between poll() and recv() */
+	msg.m_rectime = d_to_lfp(G.cur_time);
+	msg.m_xmttime = d_to_lfp(gettime1900d()); /* this instant */
 	msg.m_reftime = d_to_lfp(G.reftime);
 	msg.m_orgtime = query_xmttime;
 	msg.m_rootdelay = d_to_sfp(G.rootdelay);
@@ -1686,33 +1700,10 @@ static NOINLINE void ntp_init(char **argv)
 		bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 	/* Set some globals */
-#if 0
-	/* With constant b = 100, G.precision_exp is also constant -6.
-	 * Uncomment this to verify.
-	 */
-	{
-		int prec = 0;
-		int b;
-# if 0
-		struct timespec	tp;
-		/* We can use sys_clock_getres but assuming 10ms tick should be fine */
-		clock_getres(CLOCK_REALTIME, &tp);
-		tp.tv_sec = 0;
-		tp.tv_nsec = 10000000;
-		b = 1000000000 / tp.tv_nsec;  /* convert to Hz */
-# else
-		b = 100; /* b = 1000000000/10000000 = 100 */
-# endif
-		while (b > 1)
-			prec--, b >>= 1;
-		/*G.precision_exp = prec;*/
-		/*G.precision_sec = (1.0 / (1 << (- prec)));*/
-		bb_error_msg("G.precision_exp:%d sec:%f", prec, G_precision_sec); /* -6 */
-	}
-#endif
 	G.stratum = MAXSTRAT;
-	G.poll_exp = 1; /* should use MINPOLL, but 1 speeds up initial sync */
-	G.reftime = G.last_update_recv_time = gettime1900d();
+	if (BURSTPOLL != 0)
+		G.poll_exp = BURSTPOLL; /* speeds up initial sync */
+	G.reftime = G.last_update_recv_time = gettime1900d(); /* sets G.cur_time too */
 
 	/* Parse options */
 	peers = NULL;
@@ -1752,61 +1743,66 @@ static NOINLINE void ntp_init(char **argv)
 int ntpd_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ntpd_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct globals g;
+#undef G
+	struct globals G;
 	struct pollfd *pfd;
 	peer_t **idx2peer;
+	unsigned cnt;
 
-	memset(&g, 0, sizeof(g));
-	SET_PTR_TO_GLOBALS(&g);
+	memset(&G, 0, sizeof(G));
+	SET_PTR_TO_GLOBALS(&G);
 
 	ntp_init(argv);
 
-	{
-		/* if ENABLE_FEATURE_NTPD_SERVER, + 1 for listen_fd: */
-		unsigned cnt = g.peer_cnt + ENABLE_FEATURE_NTPD_SERVER;
-		idx2peer = xzalloc(sizeof(idx2peer[0]) * cnt);
-		pfd = xzalloc(sizeof(pfd[0]) * cnt);
-	}
+	/* If ENABLE_FEATURE_NTPD_SERVER, + 1 for listen_fd: */
+	cnt = G.peer_cnt + ENABLE_FEATURE_NTPD_SERVER;
+	idx2peer = xzalloc(sizeof(idx2peer[0]) * cnt);
+	pfd = xzalloc(sizeof(pfd[0]) * cnt);
+
+	/* Countdown: we never sync before we sent 5 packets to each peer
+	 * NB: if some peer is not responding, we may end up sending
+	 * fewer packets to it and more to other peers.
+	 * NB2: sync usually happens using 5-1=4 packets, since last reply
+	 * does not come back instantaneously.
+	 */
+	cnt = G.peer_cnt * 5;
 
 	while (!bb_got_signal) {
 		llist_t *item;
 		unsigned i, j;
-		unsigned sent_cnt, trial_cnt;
 		int nfds, timeout;
-		time_t cur_time, nextaction;
+		double nextaction;
 
 		/* Nothing between here and poll() blocks for any significant time */
 
-		cur_time = time(NULL);
-		nextaction = cur_time + 3600;
+		nextaction = G.cur_time + 3600;
 
 		i = 0;
 #if ENABLE_FEATURE_NTPD_SERVER
-		if (g.listen_fd != -1) {
-			pfd[0].fd = g.listen_fd;
+		if (G.listen_fd != -1) {
+			pfd[0].fd = G.listen_fd;
 			pfd[0].events = POLLIN;
 			i++;
 		}
 #endif
 		/* Pass over peer list, send requests, time out on receives */
-		sent_cnt = trial_cnt = 0;
-		for (item = g.ntp_peers; item != NULL; item = item->link) {
+		for (item = G.ntp_peers; item != NULL; item = item->link) {
 			peer_t *p = (peer_t *) item->data;
 
-			/* Overflow-safe "if (p->next_action_time <= cur_time) ..." */
-			if ((int)(cur_time - p->next_action_time) >= 0) {
+			if (p->next_action_time <= G.cur_time) {
 				if (p->p_fd == -1) {
 					/* Time to send new req */
-					trial_cnt++;
-					if (send_query_to_peer(p) == 0)
-						sent_cnt++;
+					if (--cnt == 0) {
+						G.initial_poll_complete = 1;
+					}
+					send_query_to_peer(p);
 				} else {
 					/* Timed out waiting for reply */
 					close(p->p_fd);
 					p->p_fd = -1;
-					timeout = poll_interval(-1); /* try a bit faster */
+					timeout = poll_interval(-2); /* -2: try a bit sooner */
 					bb_error_msg("timed out waiting for %s, reach 0x%02x, next query in %us",
-							p->p_dotted, p->p_reachable_bits, timeout);
+							p->p_dotted, p->reachable_bits, timeout);
 					set_next(p, timeout);
 				}
 			}
@@ -1823,23 +1819,26 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
-		timeout = nextaction - cur_time;
-		if (timeout < 1)
-			timeout = 1;
+		timeout = nextaction - G.cur_time;
+		if (timeout < 0)
+			timeout = 0;
+		timeout++; /* (nextaction - G.cur_time) rounds down, compensating */
 
 		/* Here we may block */
 		VERB2 bb_error_msg("poll %us, sockets:%u", timeout, i);
 		nfds = poll(pfd, i, timeout * 1000);
+		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0)
 			continue;
 
 		/* Process any received packets */
 		j = 0;
 #if ENABLE_FEATURE_NTPD_SERVER
-		if (g.listen_fd != -1) {
+		if (G.listen_fd != -1) {
 			if (pfd[0].revents /* & (POLLIN|POLLERR)*/) {
 				nfds--;
-				recv_and_process_client_pkt(/*g.listen_fd*/);
+				recv_and_process_client_pkt(/*G.listen_fd*/);
+				gettime1900d(); /* sets G.cur_time */
 			}
 			j = 1;
 		}
@@ -1848,6 +1847,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			if (pfd[j].revents /* & (POLLIN|POLLERR)*/) {
 				nfds--;
 				recv_and_process_peer_pkt(idx2peer[j]);
+				gettime1900d(); /* sets G.cur_time */
 			}
 		}
 	} /* while (!bb_got_signal) */
