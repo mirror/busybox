@@ -544,11 +544,6 @@ add_peers(char *s)
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
 	reset_peer_stats(p, 16 * STEP_THRESHOLD);
-	/* Speed up initial sync: with small offsets from peers,
-	 * 3 samples will sync
-	 */
-	p->filter_datapoint[6].d_dispersion = 0;
-	p->filter_datapoint[7].d_dispersion = 0;
 
 	llist_add_to(&G.ntp_peers, p);
 	G.peer_cnt++;
@@ -710,8 +705,9 @@ compare_survivor_metric(const void *aa, const void *bb)
 {
 	const survivor_t *a = aa;
 	const survivor_t *b = bb;
-	if (a->metric < b->metric)
+	if (a->metric < b->metric) {
 		return -1;
+	}
 	return (a->metric > b->metric);
 }
 static int
@@ -1290,26 +1286,6 @@ update_local_clock(peer_t *p)
 		G.kernel_freq_drift = tmx.freq / 65536;
 		VERB2 bb_error_msg("kernel clock drift: %ld ppm", G.kernel_freq_drift);
 	}
-// #define STA_MODE 0x4000  /* mode (0 = PLL, 1 = FLL) (ro) */ - ?
-// it appeared after a while:
-//ntpd: p adjtimex freq:-14545653 offset:-5396 constant:10 status:0x41
-//ntpd: c adjtimex freq:-14547835 offset:-8307 constant:10 status:0x1
-//ntpd: p adjtimex freq:-14547835 offset:-6398 constant:10 status:0x41
-//ntpd: c adjtimex freq:-14550486 offset:-10158 constant:10 status:0x1
-//ntpd: p adjtimex freq:-14550486 offset:-6132 constant:10 status:0x41
-//ntpd: c adjtimex freq:-14636129 offset:-10158 constant:10 status:0x4001
-//ntpd: p adjtimex freq:-14636129 offset:-10002 constant:10 status:0x4041
-//ntpd: c adjtimex freq:-14636245 offset:-7497 constant:10 status:0x1
-//ntpd: p adjtimex freq:-14636245 offset:-4573 constant:10 status:0x41
-//ntpd: c adjtimex freq:-14642034 offset:-11715 constant:10 status:0x1
-//ntpd: p adjtimex freq:-14642034 offset:-4098 constant:10 status:0x41
-//ntpd: c adjtimex freq:-14699112 offset:-11746 constant:10 status:0x4001
-//ntpd: p adjtimex freq:-14699112 offset:-4239 constant:10 status:0x4041
-//ntpd: c adjtimex freq:-14762330 offset:-12786 constant:10 status:0x4001
-//ntpd: p adjtimex freq:-14762330 offset:-4434 constant:10 status:0x4041
-//ntpd: b adjtimex freq:0 offset:-9669 constant:8 status:0x1
-//ntpd: adjtimex:0 freq:-14809095 offset:-9669 constant:10 status:0x4001
-//ntpd: c adjtimex freq:-14809095 offset:-9669 constant:10 status:0x4001
 
 	return 1; /* "ok to increase poll interval" */
 }
@@ -1333,7 +1309,6 @@ retry_interval(void)
 static unsigned
 poll_interval(int exponent)
 {
-	/* Want to send next packet at (1 << G.poll_exp) + small random value */
 	unsigned interval, r;
 	exponent = G.poll_exp + exponent;
 	if (exponent < 0)
