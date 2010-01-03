@@ -335,7 +335,7 @@ static ALWAYS_INLINE double SQRT(double X)
 	if (sizeof(float) != 4)
 		return sqrt(X);
 
-	/* This avoids needing libm, saves about 1.2k on x86-32 */
+	/* This avoids needing libm, saves about 0.5k on x86-32 */
 	return my_SQRT(X);
 }
 
