@@ -78,7 +78,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	}
 
 #if ENABLE_FEATURE_ASSUME_UNICODE
-	check_unicode_in_env();
+	init_unicode();
 	/* libbb candidate? */
 	{
 		wchar_t wbuf21[21];

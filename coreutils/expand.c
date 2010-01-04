@@ -144,7 +144,7 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 		"all\0"              No_argument       "a"
 	;
 #endif
-	check_unicode_in_env();
+	init_unicode();
 
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
 		IF_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);

@@ -945,7 +945,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	check_unicode_in_env();
+	init_unicode();
 
 	all_fmt = LIST_SHORT |
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));

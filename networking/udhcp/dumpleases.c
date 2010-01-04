@@ -43,7 +43,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 
 	applet_long_options = dumpleases_longopts;
 #endif
-	check_unicode_in_env();
+	init_unicode();
 
 	opt_complementary = "=0:a--r:r--a";
 	opt = getopt32(argv, "arf:", &file);

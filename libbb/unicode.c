@@ -7,7 +7,9 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 #include "libbb.h"
-# include "unicode.h"
+#include "unicode.h"
+
+uint8_t unicode_status;
 
 size_t FAST_FUNC bb_mbstrlen(const char *string)
 {
@@ -17,32 +19,38 @@ size_t FAST_FUNC bb_mbstrlen(const char *string)
 	return width;
 }
 
-#if !ENABLE_LOCALE_SUPPORT
+#if ENABLE_LOCALE_SUPPORT
+
+/* Unicode support using libc */
+
+void FAST_FUNC init_unicode(void)
+{
+	/* In unicode, this is a one character string */
+	static const char unicode_0x394[] = { 0xce, 0x94, 0 };
+
+	if (unicode_status != UNICODE_UNKNOWN)
+		return;
+
+	unicode_status = bb_mbstrlen(unicode_0x394) == 1 ? UNICODE_ON : UNICODE_OFF;
+}
+
+#else
 
 /* Crude "locale support" which knows only C and Unicode locales */
 
-/* unicode_is_enabled:
- * 0: not known yet,
- * 1: not unicode (IOW: assuming one char == one byte)
- * 2: unicode
- */
-# if !ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
-#  define unicode_is_enabled 2
-# else
-static smallint unicode_is_enabled;
-void FAST_FUNC check_unicode_in_env(void)
+# if ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
+void FAST_FUNC init_unicode(void)
 {
 	char *lang;
 
-	if (unicode_is_enabled)
+	if (unicode_status != UNICODE_UNKNOWN)
 		return;
-	unicode_is_enabled = 1;
 
+	unicode_status = UNICODE_OFF;
 	lang = getenv("LANG");
 	if (!lang || !(strstr(lang, ".utf") || strstr(lang, ".UTF")))
 		return;
-
-	unicode_is_enabled = 2;
+	unicode_status = UNICODE_ON;
 }
 # endif
 
@@ -85,7 +93,7 @@ static size_t wcrtomb_internal(char *s, wchar_t wc)
 
 size_t FAST_FUNC wcrtomb(char *s, wchar_t wc, mbstate_t *ps UNUSED_PARAM)
 {
-	if (unicode_is_enabled != 2) {
+	if (unicode_status != UNICODE_ON) {
 		*s = wc;
 		return 1;
 	}
@@ -97,7 +105,7 @@ size_t FAST_FUNC wcstombs(char *dest, const wchar_t *src, size_t n)
 {
 	size_t org_n = n;
 
-	if (unicode_is_enabled != 2) {
+	if (unicode_status != UNICODE_ON) {
 		while (n) {
 			wchar_t c = *src++;
 			*dest++ = c;
@@ -137,7 +145,7 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 {
 	size_t org_n = n;
 
-	if (unicode_is_enabled != 2) {
+	if (unicode_status != UNICODE_ON) {
 		while (n) {
 			unsigned char c = *src++;
 

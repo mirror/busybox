@@ -5,10 +5,17 @@
 #ifndef UNICODE_H
 #define UNICODE_H 1
 
+enum {
+	UNICODE_UNKNOWN = 0,
+	UNICODE_OFF = 1,
+	UNICODE_ON = 2,
+};
+
 #if !ENABLE_FEATURE_ASSUME_UNICODE
 
 # define bb_mbstrlen(string) strlen(string)
-# define check_unicode_in_env() ((void)0)
+# define unicode_status UNICODE_OFF
+# define init_unicode() ((void)0)
 
 #else
 
@@ -18,16 +25,19 @@ size_t bb_mbstrlen(const char *string) FAST_FUNC;
 
 #  include <wchar.h>
 #  include <wctype.h>
-#  define check_unicode_in_env() ((void)0)
+extern uint8_t unicode_status;
+void init_unicode(void) FAST_FUNC;
 
 # else
 
 /* Crude "locale support" which knows only C and Unicode locales */
 
 #  if !ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
-#   define check_unicode_in_env() ((void)0)
+#   define unicode_status UNICODE_ON
+#   define init_unicode() ((void)0)
 #  else
-void check_unicode_in_env(void) FAST_FUNC;
+extern uint8_t unicode_status;
+void init_unicode(void) FAST_FUNC;
 #  endif
 
 #  undef MB_CUR_MAX

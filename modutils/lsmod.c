@@ -49,7 +49,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 # if ENABLE_FEATURE_ASSUME_UNICODE
 	size_t name_len;
 # endif
-	check_unicode_in_env();
+	init_unicode();
 
 	printf("%-24sSize  Used by", "Module");
 	check_tainted();

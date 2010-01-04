@@ -1763,7 +1763,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		return len;
 	}
 
-	check_unicode_in_env();
+	init_unicode();
 
 // FIXME: audit & improve this
 	if (maxsize > MAX_LINELEN)

@@ -9,8 +9,8 @@
 
    Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */
-
 #include "libbb.h"
+#include "unicode.h"
 
 /* Must match getopt32 call */
 #define FLAG_COUNT_BYTES        1
@@ -20,39 +20,53 @@
 /* Assuming the current column is COLUMN, return the column that
    printing C will move the cursor to.
    The first column is 0. */
-static int adjust_column(int column, char c)
+static int adjust_column(unsigned column, char c)
 {
-	if (!(option_mask32 & FLAG_COUNT_BYTES)) {
-		if (c == '\b') {
-			if (column > 0)
-				column--;
-		} else if (c == '\r')
+	if (option_mask32 & FLAG_COUNT_BYTES)
+		return ++column;
+
+	if (c == '\t')
+		return column + 8 - column % 8;
+
+	if (c == '\b') {
+		if ((int)--column < 0)
 			column = 0;
-		else if (c == '\t')
-			column = column + 8 - column % 8;
-		else			/* if (isprint(c)) */
+	}
+	else if (c == '\r')
+		column = 0;
+	else { /* just a printable char */
+		if (unicode_status != UNICODE_ON /* every byte is a new char */
+		 || (c & 0xc0) != 0x80 /* it isn't a 2nd+ byte of a Unicode char */
+		) {
 			column++;
-	} else
-		column++;
+		}
+	}
 	return column;
+}
+
+/* Note that this function can write NULs, unlike fputs etc. */
+static void write2stdout(const void *buf, unsigned size)
+{
+	fwrite(buf, 1, size, stdout);
 }
 
 int fold_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fold_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *line_out = NULL;
-	int allocated_out = 0;
-	char *w_opt;
-	int width = 80;
-	int i;
-	int errs = 0;
+	const char *w_opt = "80";
+	unsigned width;
+	smallint exitcode = EXIT_SUCCESS;
+
+	init_unicode();
 
 	if (ENABLE_INCLUDE_SUSv2) {
 		/* Turn any numeric options into -w options.  */
+		int i;
 		for (i = 1; argv[i]; i++) {
-			char const *a = argv[i];
-
-			if (*a++ == '-') {
+			const char *a = argv[i];
+			if (*a == '-') {
+				a++;
 				if (*a == '-' && !a[1]) /* "--" */
 					break;
 				if (isdigit(*a))
@@ -62,8 +76,7 @@ int fold_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	getopt32(argv, "bsw:", &w_opt);
-	if (option_mask32 & FLAG_WIDTH)
-		width = xatoul_range(w_opt, 1, 10000);
+	width = xatou_range(w_opt, 1, 10000);
 
 	argv += optind;
 	if (!*argv)
@@ -72,79 +85,81 @@ int fold_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		FILE *istream = fopen_or_warn_stdin(*argv);
 		int c;
-		int column = 0;		/* Screen column where next char will go. */
-		int offset_out = 0;	/* Index in 'line_out' for next char. */
+		unsigned column = 0;     /* Screen column where next char will go */
+		unsigned offset_out = 0; /* Index in 'line_out' for next char */
 
 		if (istream == NULL) {
-			errs |= EXIT_FAILURE;
+			exitcode = EXIT_FAILURE;
 			continue;
 		}
 
 		while ((c = getc(istream)) != EOF) {
-			if (offset_out + 1 >= allocated_out) {
-				allocated_out += 1024;
-				line_out = xrealloc(line_out, allocated_out);
+			/* We grow line_out in chunks of 0x1000 bytes */
+			if ((offset_out & 0xfff) == 0) {
+				line_out = xrealloc(line_out, offset_out + 0x1000);
 			}
-
+ rescan:
+			line_out[offset_out] = c;
 			if (c == '\n') {
-				line_out[offset_out++] = c;
-				fwrite(line_out, sizeof(char), (size_t) offset_out, stdout);
+				write2stdout(line_out, offset_out + 1);
 				column = offset_out = 0;
 				continue;
 			}
- rescan:
 			column = adjust_column(column, c);
-
-			if (column > width) {
-				/* This character would make the line too long.
-				   Print the line plus a newline, and make this character
-				   start the next line. */
-				if (option_mask32 & FLAG_BREAK_SPACES) {
-					/* Look for the last blank. */
-					int logical_end;
-
-					for (logical_end = offset_out - 1; logical_end >= 0; logical_end--) {
-						if (isblank(line_out[logical_end])) {
-							break;
-						}
-					}
-					if (logical_end >= 0) {
-						/* Found a blank.  Don't output the part after it. */
-						logical_end++;
-						fwrite(line_out, sizeof(char), (size_t) logical_end, stdout);
-						bb_putchar('\n');
-						/* Move the remainder to the beginning of the next line.
-						   The areas being copied here might overlap. */
-						memmove(line_out, line_out + logical_end, offset_out - logical_end);
-						offset_out -= logical_end;
-						for (column = i = 0; i < offset_out; i++) {
-							column = adjust_column(column, line_out[i]);
-						}
-						goto rescan;
-					}
-				}
-				if (offset_out == 0) {
-					line_out[offset_out++] = c;
-					continue;
-				}
-				line_out[offset_out++] = '\n';
-				fwrite(line_out, sizeof(char), (size_t) offset_out, stdout);
-				column = offset_out = 0;
-				goto rescan;
+			if (column <= width || offset_out == 0) {
+				/* offset_out == 0 case happens
+				 * with small width (say, 1) and tabs.
+				 * The very first tab already goes to column 8,
+				 * but we must not wrap it */
+				offset_out++;
+				continue;
 			}
 
-			line_out[offset_out++] = c;
-		}
+			/* This character would make the line too long.
+			 * Print the line plus a newline, and make this character
+			 * start the next line */
+			if (option_mask32 & FLAG_BREAK_SPACES) {
+				unsigned i;
+				unsigned logical_end;
+
+				/* Look for the last blank. */
+				for (logical_end = offset_out - 1; (int)logical_end >= 0; logical_end--) {
+					if (!isblank(line_out[logical_end]))
+						continue;
+
+					/* Found a space or tab.
+					 * Output up to and including it, and start a new line */
+					logical_end++;
+					/*line_out[logical_end] = '\n'; - NO! this nukes one buffered character */
+					write2stdout(line_out, logical_end);
+					putchar('\n');
+					/* Move the remainder to the beginning of the next line.
+					 * The areas being copied here might overlap. */
+					memmove(line_out, line_out + logical_end, offset_out - logical_end);
+					offset_out -= logical_end;
+					for (column = i = 0; i < offset_out; i++) {
+						column = adjust_column(column, line_out[i]);
+					}
+					goto rescan;
+				}
+				/* No blank found, wrap will split the overlong word */
+			}
+			/* Output what we accumulated up to now, and start a new line */
+			line_out[offset_out] = '\n';
+			write2stdout(line_out, offset_out + 1);
+			column = offset_out = 0;
+			goto rescan;
+		} /* while (not EOF) */
 
 		if (offset_out) {
-			fwrite(line_out, sizeof(char), (size_t) offset_out, stdout);
+			write2stdout(line_out, offset_out);
 		}
 
 		if (fclose_if_not_stdin(istream)) {
-			bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
-			errs |= EXIT_FAILURE;
+			bb_simple_perror_msg(*argv);
+			exitcode = EXIT_FAILURE;
 		}
 	} while (*++argv);
 
-	fflush_stdout_and_exit(errs);
+	fflush_stdout_and_exit(exitcode);
 }

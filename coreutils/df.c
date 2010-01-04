@@ -58,7 +58,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	const char *disp_units_hdr = NULL;
 	char *chp;
 
-	check_unicode_in_env();
+	init_unicode();
 
 #if ENABLE_FEATURE_HUMAN_READABLE && ENABLE_FEATURE_DF_FANCY
 	opt_complementary = "k-mB:m-Bk:B-km";
