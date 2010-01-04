@@ -307,16 +307,17 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 #else
 	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
+	argv += optind;
 	if (opt & CPIO_OPT_PASSTHROUGH) {
 		pid_t pid;
 		struct fd_pair pp;
 
-		if (argv[optind] == NULL)
+		if (argv[0] == NULL)
 			bb_show_usage();
 		if (opt & CPIO_OPT_CREATE_LEADING_DIR)
-			mkdir(argv[optind], 0777);
+			mkdir(argv[0], 0777);
 		/* Crude existence check:
-		 * close(xopen(argv[optind], O_RDONLY | O_DIRECTORY));
+		 * close(xopen(argv[0], O_RDONLY | O_DIRECTORY));
 		 * We can also xopen, fstat, IS_DIR, later fchdir.
 		 * This would check for existence earlier and cleaner.
 		 * As it stands now, if we fail xchdir later,
@@ -335,14 +336,14 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 #else
 		xpiped_pair(pp);
 #endif
-		pid = fork_or_rexec(argv);
+		pid = fork_or_rexec(argv - optind);
 		if (pid == 0) { /* child */
 			close(pp.rd);
 			xmove_fd(pp.wr, STDOUT_FILENO);
 			goto dump;
 		}
 		/* parent */
-		xchdir(argv[optind++]);
+		xchdir(*argv++);
 		close(pp.wr);
 		xmove_fd(pp.rd, STDIN_FILENO);
 		opt &= ~CPIO_OPT_PASSTHROUGH;
@@ -361,7 +362,6 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	}
  skip:
 #endif
-	argv += optind;
 
 	archive_handle = init_handle();
 	archive_handle->src_fd = STDIN_FILENO;
@@ -407,7 +407,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 
 	while (*argv) {
 		archive_handle->filter = filter_accept_list;
-		llist_add_to(&(archive_handle->accept), *argv);
+		llist_add_to(&archive_handle->accept, *argv);
 		argv++;
 	}
 

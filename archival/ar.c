@@ -49,7 +49,7 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 	archive_handle = init_handle();
 
 	/* Prepend '-' to the first argument if required */
-	opt_complementary = "--:p:t:x:-1:p--tx:t--px:x--pt";
+	opt_complementary = "--:-1:p:t:x:-1:p--tx:t--px:x--pt";
 	opt = getopt32(argv, "ptxovcr");
 	argv += optind;
 
@@ -75,7 +75,7 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die(msg_unsupported_err, "insertion");
 	}
 
-	archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
+	archive_handle->src_fd = xopen(*argv++, O_RDONLY);
 
 	while (*argv) {
 		archive_handle->filter = filter_accept_list;
