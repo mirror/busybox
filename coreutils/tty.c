@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int tty_main(int argc, char **argv IF_NOT_INCLUDE_SUSv2(UNUSED_PARAM))
+int tty_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *s;
 	IF_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
@@ -22,11 +22,11 @@ int tty_main(int argc, char **argv IF_NOT_INCLUDE_SUSv2(UNUSED_PARAM))
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
 	IF_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
-	IF_INCLUDE_SUSv2(argc -= optind;)
-	IF_NOT_INCLUDE_SUSv2(argc -= 1;)
+	IF_INCLUDE_SUSv2(argv += optind;)
+	IF_NOT_INCLUDE_SUSv2(argv += 1;)
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
-	bb_warn_ignoring_args(argc);
+	bb_warn_ignoring_args(argv[0]);
 
 	retval = EXIT_SUCCESS;
 

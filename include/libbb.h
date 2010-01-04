@@ -1022,7 +1022,11 @@ extern struct mntent *find_mount_point(const char *name, int subdir_too) FAST_FU
 extern void erase_mtab(const char * name) FAST_FUNC;
 extern unsigned int tty_baud_to_value(speed_t speed) FAST_FUNC;
 extern speed_t tty_value_to_baud(unsigned int value) FAST_FUNC;
-extern void bb_warn_ignoring_args(int n) FAST_FUNC;
+#if ENABLE_DESKTOP
+extern void bb_warn_ignoring_args(char *arg) FAST_FUNC;
+#else
+# define bb_warn_ignoring_args(arg) ((void)0)
+#endif
 
 extern int get_linux_version_code(void) FAST_FUNC;
 

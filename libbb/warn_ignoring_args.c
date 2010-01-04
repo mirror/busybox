@@ -6,12 +6,13 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
-void FAST_FUNC bb_warn_ignoring_args(int n)
+#if ENABLE_DESKTOP
+void FAST_FUNC bb_warn_ignoring_args(char *arg)
 {
-	if (n) {
+	if (arg) {
 		bb_error_msg("ignoring all arguments");
 	}
 }
+#endif

@@ -28,9 +28,9 @@ int dumpkmap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	struct kbentry ke;
 	int i, j, fd;
-	RESERVE_CONFIG_BUFFER(flags,MAX_NR_KEYMAPS);
+	RESERVE_CONFIG_BUFFER(flags, MAX_NR_KEYMAPS);
 
-/*	bb_warn_ignoring_args(argc>=2);*/
+/*	bb_warn_ignoring_args(argv[1]);*/
 
 	fd = get_console_fd_or_die();
 

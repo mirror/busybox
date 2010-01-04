@@ -166,7 +166,7 @@ static int iprule_list(char **argv)
 
 	if (*argv) {
 		//bb_error_msg("\"rule show\" needs no arguments");
-		bb_warn_ignoring_args(1);
+		bb_warn_ignoring_args(*argv);
 		return -1;
 	}
 

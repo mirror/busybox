@@ -14,10 +14,10 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int sync_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int sync_main(int argc, char **argv UNUSED_PARAM)
+int sync_main(int argc UNUSED_PARAM, char **argv)
 {
 	/* coreutils-6.9 compat */
-	bb_warn_ignoring_args(argc - 1);
+	bb_warn_ignoring_args(argv[1]);
 
 	sync();
 
