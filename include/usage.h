@@ -3233,7 +3233,7 @@
 /* -N exists for mostly compat reasons, thus not essential to inform */ \
 /* the user that it exists: user may use nice as well */ \
 /*   "\n	-N	Run at high priority" */ \
-     "\n	-w	Do not set time (used to look at peer data)" \
+     "\n	-w	Do not set time (only query peers), implies -n" \
      "\n	-l	Run as server on port 123" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 

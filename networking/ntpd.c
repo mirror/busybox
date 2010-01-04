@@ -1466,7 +1466,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	}
 
 	p->reachable_bits |= 1;
-	VERB1 {
+	if ((MAX_VERBOSE && G.verbose) || (option_mask32 & OPT_w)) {
 		bb_error_msg("reply from %s: reach 0x%02x offset %f delay %f status 0x%02x strat %d refid 0x%08x rootdelay %f",
 			p->p_dotted,
 			p->reachable_bits,
@@ -1733,7 +1733,7 @@ static NOINLINE void ntp_init(char **argv)
 
 	/* Parse options */
 	peers = NULL;
-	opt_complementary = "dd:p::"; /* d: counter, p: list */
+	opt_complementary = "dd:p::wn"; /* d: counter; p: list; -w implies -n */
 	opts = getopt32(argv,
 			"nqNx" /* compat */
 			"wp:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
