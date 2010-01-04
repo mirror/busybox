@@ -16,21 +16,23 @@
 #endif
 
 int mesg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int mesg_main(int argc, char **argv)
+int mesg_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat sb;
 	const char *tty;
 	char c = 0;
 
-	if (--argc == 0
-	 || (argc == 1 && ((c = **++argv) == 'y' || c == 'n'))
+	argv++;
+
+	if (!argv[0]
+	 || (!argv[1] && ((c = argv[0][0]) == 'y' || c == 'n'))
 	) {
 		tty = xmalloc_ttyname(STDERR_FILENO);
 		if (tty == NULL) {
 			tty = "ttyname";
 		} else if (stat(tty, &sb) == 0) {
 			mode_t m;
-			if (argc == 0) {
+			if (c == 0) {
 				puts((sb.st_mode & (S_IWGRP|S_IWOTH)) ? "is y" : "is n");
 				return EXIT_SUCCESS;
 			}

@@ -21,11 +21,11 @@ static const char *const setenforce_cmd[] = {
 };
 
 int setenforce_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int setenforce_main(int argc, char **argv)
+int setenforce_main(int argc UNUSED_PARAM, char **argv)
 {
 	int i, rc;
 
-	if (argc != 2)
+	if (!argv[1] || argv[2])
 		bb_show_usage();
 
 	selinux_or_die();

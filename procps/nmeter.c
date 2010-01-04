@@ -785,7 +785,7 @@ static init_func *const init_functions[] = {
 };
 
 int nmeter_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int nmeter_main(int argc, char **argv)
+int nmeter_main(int argc UNUSED_PARAM, char **argv)
 {
 	char buf[32];
 	s_stat *first = NULL;
@@ -797,7 +797,7 @@ int nmeter_main(int argc, char **argv)
 
 	xchdir("/proc");
 
-	if (argc != 2)
+	if (!argv[1])
 		bb_show_usage();
 
 	if (open_read_close("version", buf, sizeof(buf)-1) > 0) {

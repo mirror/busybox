@@ -1142,7 +1142,7 @@ static llist_t *read_iface_state(void)
 
 
 int ifupdown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ifupdown_main(int argc, char **argv)
+int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 {
 	int (*cmds)(struct interface_defn_t *);
 	struct interfaces_file_t *defn;
@@ -1161,7 +1161,8 @@ int ifupdown_main(int argc, char **argv)
 	}
 
 	getopt32(argv, OPTION_STR, &interfaces);
-	if (argc - optind > 0) {
+	argv += optind;
+	if (argv[0]) {
 		if (DO_ALL) bb_show_usage();
 	} else {
 		if (!DO_ALL) bb_show_usage();
@@ -1175,7 +1176,7 @@ int ifupdown_main(int argc, char **argv)
 	if (DO_ALL) {
 		target_list = defn->autointerfaces;
 	} else {
-		llist_add_to_end(&target_list, argv[optind]);
+		llist_add_to_end(&target_list, argv[0]);
 	}
 
 	/* Update the interfaces */

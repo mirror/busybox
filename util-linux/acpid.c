@@ -74,6 +74,7 @@ int acpid_main(int argc, char **argv)
 	}
 
 	argv += optind;
+	argc -= optind;
 
 	// goto configuration directory
 	xchdir(opt_conf);
@@ -102,7 +103,7 @@ int acpid_main(int argc, char **argv)
 	// evdev files given, use evdev interface
 
 	// open event devices
-	pfd = xzalloc(sizeof(*pfd) * (argc - optind));
+	pfd = xzalloc(sizeof(*pfd) * argc);
 	nfd = 0;
 	while (*argv) {
 		pfd[nfd].fd = open_or_warn(*argv++, O_RDONLY | O_NONBLOCK);

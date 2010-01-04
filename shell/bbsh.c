@@ -199,7 +199,7 @@ static void handle(char *command)
 }
 
 int bbsh_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bbsh_main(int argc, char **argv)
+int bbsh_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *command=NULL;
 	FILE *f;

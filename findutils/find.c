@@ -835,7 +835,7 @@ static action*** parse_params(char **argv)
 
 
 int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int find_main(int argc, char **argv)
+int find_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char options[] ALIGN1 =
 	                  "-follow\0"
@@ -859,7 +859,7 @@ IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 
 	INIT_G();
 
-	for (firstopt = 1; firstopt < argc; firstopt++) {
+	for (firstopt = 1; argv[firstopt]; firstopt++) {
 		if (argv[firstopt][0] == '-')
 			break;
 		if (ENABLE_FEATURE_FIND_NOT && LONE_CHAR(argv[firstopt], '!'))

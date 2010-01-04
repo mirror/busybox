@@ -69,7 +69,7 @@ static int pencode(char *s)
 #define strbuf bb_common_bufsiz1
 
 int logger_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int logger_main(int argc, char **argv)
+int logger_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *str_p, *str_t;
 	int opt;
@@ -89,9 +89,8 @@ int logger_main(int argc, char **argv)
 	if (opt & 0x1) /* -p */
 		i = pencode(str_p);
 
-	argc -= optind;
 	argv += optind;
-	if (!argc) {
+	if (!argv[0]) {
 		while (fgets(strbuf, COMMON_BUFSIZE, stdin)) {
 			if (strbuf[0]
 			 && NOT_LONE_CHAR(strbuf, '\n')

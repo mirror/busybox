@@ -182,7 +182,7 @@ static ALWAYS_INLINE unsigned random_delay_ms(unsigned secs)
  * main program
  */
 int zcip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int zcip_main(int argc, char **argv)
+int zcip_main(int argc UNUSED_PARAM, char **argv)
 {
 	int state;
 	char *r_opt;
@@ -241,7 +241,6 @@ int zcip_main(int argc, char **argv)
 			bb_error_msg_and_die("invalid link address");
 		}
 	}
-	argc -= optind;
 	argv += optind - 1;
 
 	/* Now: argv[0]:junk argv[1]:intf argv[2]:script argv[3]:NULL */

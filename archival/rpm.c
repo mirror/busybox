@@ -116,7 +116,9 @@ int rpm_main(int argc, char **argv)
 	}
 	argv += optind;
 	//argc -= optind;
-	if (!argv[0]) bb_show_usage();
+	if (!argv[0]) {
+		bb_show_usage();
+	}
 
 	while (*argv) {
 		rpm_fd = xopen(*argv++, O_RDONLY);

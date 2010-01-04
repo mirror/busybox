@@ -38,7 +38,7 @@ static void FAST_FUNC header_verbose_list_ar(const file_header_t *file_header)
 #define AR_OPT_INSERT		0x40
 
 int ar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ar_main(int argc, char **argv)
+int ar_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char msg_unsupported_err[] ALIGN1 =
 		"archive %s is not supported";
@@ -51,6 +51,7 @@ int ar_main(int argc, char **argv)
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:p:t:x:-1:p--tx:t--px:x--pt";
 	opt = getopt32(argv, "ptxovcr");
+	argv += optind;
 
 	if (opt & AR_CTX_PRINT) {
 		archive_handle->action_data = data_extract_to_stdout;
@@ -76,9 +77,9 @@ int ar_main(int argc, char **argv)
 
 	archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
 
-	while (optind < argc) {
+	while (*argv) {
 		archive_handle->filter = filter_accept_list;
-		llist_add_to(&(archive_handle->accept), argv[optind++]);
+		llist_add_to(&archive_handle->accept, *argv++);
 	}
 
 	unpack_ar_archive(archive_handle);

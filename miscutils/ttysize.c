@@ -12,7 +12,7 @@
 #include "libbb.h"
 
 int ttysize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ttysize_main(int argc, char **argv)
+int ttysize_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned w, h;
 	struct winsize wsz;
@@ -24,7 +24,7 @@ int ttysize_main(int argc, char **argv)
 		h = wsz.ws_row;
 	}
 
-	if (argc == 1) {
+	if (!argv[1]) {
 		printf("%u %u", w, h);
 	} else {
 		const char *fmt, *arg;

@@ -260,7 +260,7 @@ static int in_ether(const char *bufp, struct sockaddr *sap);
  * Our main function.
  */
 int ifconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int ifconfig_main(int argc, char **argv)
+int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
@@ -291,19 +291,17 @@ int ifconfig_main(int argc, char **argv)
 
 	/* skip argv[0] */
 	++argv;
-	--argc;
 
 #if ENABLE_FEATURE_IFCONFIG_STATUS
-	if (argc > 0 && (argv[0][0] == '-' && argv[0][1] == 'a' && !argv[0][2])) {
+	if (argv[0] && (argv[0][0] == '-' && argv[0][1] == 'a' && !argv[0][2])) {
 		interface_opt_a = 1;
-		--argc;
 		++argv;
 	}
 #endif
 
-	if (argc <= 1) {
+	if (!argv[0] || !argv[1]) { /* one or no args */
 #if ENABLE_FEATURE_IFCONFIG_STATUS
-		return display_interfaces(argc ? *argv : NULL);
+		return display_interfaces(argv[0] /* can be NULL */);
 #else
 		bb_error_msg_and_die("no support for status display");
 #endif

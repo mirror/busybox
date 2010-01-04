@@ -35,7 +35,7 @@
 #endif
 
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int last_main(int argc, char **argv UNUSED_PARAM)
+int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	struct utmp ut;
 	int n, file = STDIN_FILENO;
@@ -56,7 +56,7 @@ int last_main(int argc, char **argv UNUSED_PARAM)
 		TYPE_OLD_TIME	/* OLD_TIME, 4 */
 	};
 
-	if (argc > 1) {
+	if (argv[1]) {
 		bb_show_usage();
 	}
 	file = xopen(bb_path_wtmp_file, O_RDONLY);

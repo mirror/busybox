@@ -39,7 +39,9 @@ int nohup_main(int argc UNUSED_PARAM, char **argv)
 
 	xfunc_error_retval = 127;
 
-	if (!argv[1]) bb_show_usage();
+	if (!argv[1]) {
+		bb_show_usage();
+	}
 
 	/* If stdin is a tty, detach from it. */
 	if (isatty(STDIN_FILENO)) {

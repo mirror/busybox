@@ -12,7 +12,7 @@
 #include "libbb.h"
 
 int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int free_main(int argc, char **argv)
+int free_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct sysinfo info;
 	sysinfo(&info);
@@ -46,7 +46,7 @@ int free_main(int argc, char **argv)
 		info.bufferram*=info.mem_unit;
 	}
 
-	if (argc > 1 && *argv[1] == '-')
+	if (argv[1] && argv[1][0] == '-')
 		bb_show_usage();
 
 	printf("%6s%13s%13s%13s%13s%13s\n", "", "total", "used", "free",

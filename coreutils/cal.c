@@ -77,7 +77,7 @@ static char *build_row(char *p, unsigned *dp);
 #define	HEAD_SEP	2		/* spaces between day headings */
 
 int cal_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int cal_main(int argc, char **argv)
+int cal_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct tm *local_time;
 	struct tm zero_tm;
@@ -92,13 +92,8 @@ int cal_main(int argc, char **argv)
 	option_mask32 &= 1;
 	month = 0;
 	argv += optind;
-	argc -= optind;
 
-	if (argc > 2) {
-		bb_show_usage();
-	}
-
-	if (!argc) {
+	if (!argv[0]) {
 		time(&now);
 		local_time = localtime(&now);
 		year = local_time->tm_year + 1900;
@@ -106,7 +101,10 @@ int cal_main(int argc, char **argv)
 			month = local_time->tm_mon + 1;
 		}
 	} else {
-		if (argc == 2) {
+		if (argv[1]) {
+			if (argv[2]) {
+				bb_show_usage();
+			}
 			month = xatou_range(*argv++, 1, 12);
 		}
 		year = xatou_range(*argv, 1, 9999);

@@ -519,7 +519,7 @@ static int grep_dir(const char *dir)
 }
 
 int grep_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int grep_main(int argc, char **argv)
+int grep_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *file;
 	int matched;
@@ -606,7 +606,6 @@ int grep_main(int argc, char **argv)
 	}
 
 	argv += optind;
-	argc -= optind;
 
 	/* if we didn't get a pattern from -e and no command file was specified,
 	 * first parameter should be the pattern. no pattern, no worky */
@@ -616,12 +615,11 @@ int grep_main(int argc, char **argv)
 			bb_show_usage();
 		pattern = new_grep_list_data(*argv++, 0);
 		llist_add_to(&pattern_head, pattern);
-		argc--;
 	}
 
 	/* argv[0..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames. */
-	if (argc > 1)
+	if (argv[0] && argv[1])
 		print_filename = 1;
 	/* -H / -h of course override */
 	if (option_mask32 & OPT_H)
@@ -633,7 +631,7 @@ int grep_main(int argc, char **argv)
 	 * stdin. Otherwise, we grep through all the files specified. */
 	matched = 0;
 	do {
-		cur_file = *argv++;
+		cur_file = *argv;
 		file = stdin;
 		if (!cur_file || LONE_DASH(cur_file)) {
 			cur_file = "(standard input)";
@@ -659,7 +657,7 @@ int grep_main(int argc, char **argv)
 		matched += grep_file(file);
 		fclose_if_not_stdin(file);
  grep_done: ;
-	} while (--argc > 0);
+	} while (*argv && *++argv);
 
 	/* destroy all the elments in the pattern list */
 	if (ENABLE_FEATURE_CLEAN_UP) {

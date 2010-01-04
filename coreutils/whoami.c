@@ -14,9 +14,9 @@
 /* This is a NOFORK applet. Be very careful! */
 
 int whoami_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int whoami_main(int argc, char **argv UNUSED_PARAM)
+int whoami_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	if (argc > 1)
+	if (argv[1])
 		bb_show_usage();
 
 	/* Will complain and die if username not found */

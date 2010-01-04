@@ -673,7 +673,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 
 /* main: now we pull it all together... */
 int nc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int nc_main(int argc, char **argv)
+int nc_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *str_p, *str_s;
 	IF_NC_EXTRA(char *str_i, *str_o;)
@@ -702,7 +702,6 @@ int nc_main(int argc, char **argv)
 	while (*++proggie) {
 		if (strcmp(*proggie, "-e") == 0) {
 			*proggie = NULL;
-			argc = proggie - argv;
 			proggie++;
 			goto e_found;
 		}

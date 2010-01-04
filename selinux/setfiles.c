@@ -490,7 +490,7 @@ static int process_one(char *name)
 }
 
 int setfiles_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int setfiles_main(int argc, char **argv)
+int setfiles_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat sb;
 	int rc, i = 0;
@@ -549,6 +549,7 @@ int setfiles_main(int argc, char **argv)
 				 IF_FEATURE_SETFILES_CHECK_OPTION(&policyfile,)
 			&verbose);
 	}
+	argv += optind;
 
 #if ENABLE_FEATURE_SETFILES_CHECK_OPTION
 	if ((applet_name[0] == 's') && (flags & OPT_c)) {
@@ -595,24 +596,20 @@ int setfiles_main(int argc, char **argv)
 		   we can support either checking against the active policy or
 		   checking against a binary policy file. */
 		set_matchpathcon_canoncon(&canoncon);
-		if (argc == 1)
+		if (!argv[0])
 			bb_show_usage();
-		if (stat(argv[optind], &sb) < 0) {
-			bb_simple_perror_msg_and_die(argv[optind]);
-		}
+		xstat(argv[0], &sb);
 		if (!S_ISREG(sb.st_mode)) {
-			bb_error_msg_and_die("spec file %s is not a regular file", argv[optind]);
+			bb_error_msg_and_die("spec file %s is not a regular file", argv[0]);
 		}
 		/* Load the file contexts configuration and check it. */
-		rc = matchpathcon_init(argv[optind]);
+		rc = matchpathcon_init(argv[0]);
 		if (rc < 0) {
-			bb_simple_perror_msg_and_die(argv[optind]);
+			bb_simple_perror_msg_and_die(argv[0]);
 		}
-
-		optind++;
-
 		if (nerr)
 			exit(EXIT_FAILURE);
+		argv++;
 	}
 
 	if (input_filename) {
@@ -628,9 +625,9 @@ int setfiles_main(int argc, char **argv)
 		if (ENABLE_FEATURE_CLEAN_UP)
 			fclose_if_not_stdin(f);
 	} else {
-		if (optind >= argc)
+		if (!argv[0])
 			bb_show_usage();
-		for (i = optind; i < argc; i++) {
+		for (i = 0; argv[i]; i++) {
 			errors |= process_one(argv[i]);
 		}
 	}

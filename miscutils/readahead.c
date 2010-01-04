@@ -13,11 +13,13 @@
 #include "libbb.h"
 
 int readahead_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int readahead_main(int argc, char **argv)
+int readahead_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 
-	if (argc == 1) bb_show_usage();
+	if (!argv[1]) {
+		bb_show_usage();
+	}
 
 	while (*++argv) {
 		int fd = open_or_warn(*argv, O_RDONLY);

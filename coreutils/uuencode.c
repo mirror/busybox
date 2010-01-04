@@ -16,7 +16,7 @@ enum {
 };
 
 int uuencode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uuencode_main(int argc, char **argv)
+int uuencode_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat stat_buf;
 	int src_fd = STDIN_FILENO;
@@ -32,7 +32,7 @@ int uuencode_main(int argc, char **argv)
 		tbl = bb_uuenc_tbl_base64;
 	}
 	argv += optind;
-	if (argc == optind + 2) {
+	if (argv[1]) {
 		src_fd = xopen(*argv, O_RDONLY);
 		fstat(src_fd, &stat_buf);
 		mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
