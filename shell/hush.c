@@ -3896,9 +3896,7 @@ static int checkjobs(struct pipe* fg_pipe)
 					fg_pipe->alive_cmds--;
 					if (i == fg_pipe->num_cmds - 1) {
 						/* last process gives overall exitstatus */
-						/* Note: is WIFSIGNALED, WEXITSTATUS = sig + 128 */
 						rcode = WEXITSTATUS(status);
-						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 						/* bash prints killer signal's name for *last*
 						 * process in pipe (prints just newline for SIGINT).
 						 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
@@ -3906,7 +3904,11 @@ static int checkjobs(struct pipe* fg_pipe)
 						if (WIFSIGNALED(status)) {
 							int sig = WTERMSIG(status);
 							printf("%s\n", sig == SIGINT ? "" : get_signame(sig));
+							/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
+							 * Maybe we need to use sig | 128? */
+							rcode = sig + 128;
 						}
+						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 					}
 				} else {
 					fg_pipe->cmds[i].is_stopped = 1;
