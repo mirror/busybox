@@ -27,4 +27,7 @@ testing "unexpand case 6" "unexpand" \
 testing "unexpand case 7" "unexpand" \
 	"123\t 45678\n" "" "123 \t 45678\n" \
 
+testing "unexpand with unicode characher 0x394" "unexpand" \
+	"1ΔΔΔ5\t99999\n" "" "1ΔΔΔ5   99999\n" \
+
 exit $FAILCOUNT

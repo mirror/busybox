@@ -20,8 +20,8 @@
  *
  *  Caveat: this versions of expand and unexpand don't accept tab lists.
  */
-
 #include "libbb.h"
+#include "unicode.h"
 
 enum {
 	OPT_INITIAL     = 1 << 0,
@@ -30,35 +30,37 @@ enum {
 };
 
 #if ENABLE_EXPAND
-static void expand(FILE *file, int tab_size, unsigned opt)
+static void expand(FILE *file, unsigned tab_size, unsigned opt)
 {
 	char *line;
 
-	tab_size = -tab_size;
-
 	while ((line = xmalloc_fgets(file)) != NULL) {
-		int pos;
 		unsigned char c;
-		char *ptr = line;
+		char *ptr;
+		char *ptr_strbeg;
 
-		goto start;
+		ptr = ptr_strbeg = line;
 		while ((c = *ptr) != '\0') {
 			if ((opt & OPT_INITIAL) && !isblank(c)) {
-				fputs(ptr, stdout);
+				/* not space or tab */
 				break;
 			}
-			ptr++;
 			if (c == '\t') {
-				c = ' ';
-				while (++pos < 0)
-					bb_putchar(c);
+				unsigned len;
+				*ptr = '\0';
+# if ENABLE_FEATURE_ASSUME_UNICODE
+				len = bb_mbstrlen(ptr_strbeg);
+# else
+				len = ptr - ptr_strbeg;
+# endif
+				len = tab_size - (len % tab_size);
+				/*while (ptr[1] == '\t') { ptr++; len += tab_size; } - can handle many tabs at once */
+				printf("%s%*s", ptr_strbeg, len, "");
+				ptr_strbeg = ptr + 1;
 			}
-			bb_putchar(c);
-			if (++pos >= 0) {
- start:
-				pos = tab_size;
-			}
+			ptr++;
 		}
+		fputs(ptr_strbeg, stdout);
 		free(line);
 	}
 }
@@ -75,6 +77,7 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 
 		while (*ptr) {
 			unsigned n;
+			unsigned len;
 
 			while (*ptr == ' ') {
 				column++;
@@ -97,8 +100,19 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 			}
 			n = strcspn(ptr, "\t ");
 			printf("%*s%.*s", column, "", n, ptr);
+# if ENABLE_FEATURE_ASSUME_UNICODE
+			{
+				char c;
+				c = ptr[n];
+				ptr[n] = '\0';
+				len = bb_mbstrlen(ptr);
+				ptr[n] = c;
+			}
+# else
+			len = n;
+# endif
 			ptr += n;
-			column = (column + n) % tab_size;
+			column = (column + len) % tab_size;
 		}
 		free(line);
 	}
@@ -130,6 +144,7 @@ int expand_main(int argc UNUSED_PARAM, char **argv)
 		"all\0"              No_argument       "a"
 	;
 #endif
+	check_unicode_in_env();
 
 	if (ENABLE_EXPAND && (!ENABLE_UNEXPAND || applet_name[0] == 'e')) {
 		IF_FEATURE_EXPAND_LONG_OPTIONS(applet_long_options = expand_longopts);
