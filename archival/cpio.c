@@ -364,7 +364,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	archive_handle = init_handle();
-	archive_handle->src_fd = STDIN_FILENO;
+	/* archive_handle->src_fd = STDIN_FILENO; - done by init_handle */
 	archive_handle->seek = seek_by_read;
 	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
 

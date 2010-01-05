@@ -36,6 +36,7 @@ ls -ln cpio.testdir | $FILTER_LS" \
 "\
 1 blocks
 0
+total 0
 -rw-r--r-- 2 $user $group 0 x
 -rw-r--r-- 2 $user $group 0 y
 " \
@@ -47,10 +48,10 @@ test x"$SKIP_KNOWN_BUGS" = x"" && {
 testing "cpio lists hardlinks" \
 "$ECHO -ne '$hexdump' | bzcat | cpio -t 2>&1; echo \$?" \
 "\
-1 block
 cpio.testdir
 cpio.testdir/x
 cpio.testdir/y
+1 blocks
 0
 " \
 	"" ""
@@ -72,6 +73,7 @@ ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
 "\
 2 blocks
 0
+total 8
 -rw-r--r-- 2 $user $group 0 empty
 -rw-r--r-- 2 $user $group 0 empty1
 -rw-r--r-- 2 $user $group 2 nonempty

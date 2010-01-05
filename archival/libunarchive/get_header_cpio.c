@@ -70,6 +70,15 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	file_header->name = xzalloc(namesize + 1);
 	/* Read in filename */
 	xread(archive_handle->src_fd, file_header->name, namesize);
+	if (file_header->name[0] == '/') {
+		/* Testcase: echo /etc/hosts | cpio -pvd /tmp
+		 * Without this code, it tries to unpack /etc/hosts
+		 * into "/etc/hosts", not "etc/hosts".
+		 */
+		char *p = file_header->name;
+		do p++; while (*p == '/');
+		overlapping_strcpy(file_header->name, p);
+	}
 	archive_handle->offset += namesize;
 
 	/* Update offset amount and skip padding before file contents */
