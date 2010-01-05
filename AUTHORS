@@ -171,3 +171,6 @@ Bernhard Reutner-Fischer <rep.dot.nop@gmail.com>
 
 Mike Frysinger <vapier@gentoo.org>
     initial e2fsprogs, printenv, setarch, sum, misc
+
+Jie Zhang <jie.zhang@analog.com>
+    fixed two bugs in msh and hush (exitcode of killed processes)
