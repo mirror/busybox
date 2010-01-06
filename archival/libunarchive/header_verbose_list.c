@@ -11,18 +11,20 @@ void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 	struct tm *mtime = localtime(&(file_header->mtime));
 
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
-	char uid[8];
-	char gid[8];
-	char *user = file_header->uname;
-	char *group = file_header->gname;
+	char uid[sizeof(int)*3 + 2];
+	/*char gid[sizeof(int)*3 + 2];*/
+	char *user;
+	char *group;
 
+	user = file_header->uname;
 	if (user == NULL) {
-		snprintf(uid, sizeof(uid), "%u", (unsigned)file_header->uid);
+		sprintf(uid, "%u", (unsigned)file_header->uid);
 		user = uid;
 	}
+	group = file_header->gname;
 	if (group == NULL) {
-		snprintf(gid, sizeof(gid), "%u", (unsigned)file_header->gid);
-		group = gid;
+		/*sprintf(gid, "%u", (unsigned)file_header->gid);*/
+		group = utoa(file_header->gid);
 	}
 	printf("%s %s/%s %9"OFF_FMT"u %4u-%02u-%02u %02u:%02u:%02u %s",
 		bb_mode_string(file_header->mode),
@@ -37,10 +39,10 @@ void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 		mtime->tm_sec,
 		file_header->name);
 #else /* !FEATURE_TAR_UNAME_GNAME */
-	printf("%s %d/%d %9"OFF_FMT"u %4u-%02u-%02u %02u:%02u:%02u %s",
+	printf("%s %u/%u %9"OFF_FMT"u %4u-%02u-%02u %02u:%02u:%02u %s",
 		bb_mode_string(file_header->mode),
-		file_header->uid,
-		file_header->gid,
+		(unsigned)file_header->uid,
+		(unsigned)file_header->gid,
 		file_header->size,
 		1900 + mtime->tm_year,
 		1 + mtime->tm_mon,
