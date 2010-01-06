@@ -59,15 +59,17 @@ int FAST_FUNC rtc_xopen(const char **default_rtc, int flags)
 	return xopen(*default_rtc, flags);
 }
 
-time_t FAST_FUNC rtc_read_time(int fd, int utc)
+void FAST_FUNC rtc_read_tm(struct tm *tm, int fd)
 {
-	struct tm tm;
-	char *oldtz = 0;
-	time_t t = 0;
+	memset(tm, 0, sizeof(*tm));
+	xioctl(fd, RTC_RD_TIME, tm);
+	tm->tm_isdst = -1; /* "not known" */
+}
 
-	memset(&tm, 0, sizeof(struct tm));
-	xioctl(fd, RTC_RD_TIME, &tm);
-	tm.tm_isdst = -1; /* not known */
+time_t FAST_FUNC rtc_tm2time(struct tm *tm, int utc)
+{
+	char *oldtz = oldtz; /* for compiler */
+	time_t t;
 
 	if (utc) {
 		oldtz = getenv("TZ");
@@ -75,7 +77,7 @@ time_t FAST_FUNC rtc_read_time(int fd, int utc)
 		tzset();
 	}
 
-	t = mktime(&tm);
+	t = mktime(tm);
 
 	if (utc) {
 		unsetenv("TZ");

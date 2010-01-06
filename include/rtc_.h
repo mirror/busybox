@@ -11,9 +11,11 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-extern int rtc_adjtime_is_utc(void) FAST_FUNC;
-extern int rtc_xopen(const char **default_rtc, int flags) FAST_FUNC;
-extern time_t rtc_read_time(int fd, int utc) FAST_FUNC;
+int rtc_adjtime_is_utc(void) FAST_FUNC;
+int rtc_xopen(const char **default_rtc, int flags) FAST_FUNC;
+void rtc_read_tm(struct tm *tm, int fd) FAST_FUNC;
+time_t rtc_tm2time(struct tm *tm, int utc) FAST_FUNC;
+
 
 /*
  * Everything below this point has been copied from linux/rtc.h

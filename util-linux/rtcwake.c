@@ -160,7 +160,12 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 
 	/* relative or absolute alarm time, normalized to time_t */
 	sys_time = time(NULL);
-	rtc_time = rtc_read_time(fd, utc);
+	{
+		struct tm tm;
+		rtc_read_tm(&tm, fd);
+		rtc_time = rtc_tm2time(&tm, utc);
+	}
+
 
 	if (alarm_time) {
 		if (alarm_time < sys_time)

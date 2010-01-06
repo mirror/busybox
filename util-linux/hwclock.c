@@ -20,34 +20,54 @@
 
 static const char *rtcname;
 
-static time_t read_rtc(int utc)
+static time_t read_rtc(struct timeval *sys_tv, int utc)
 {
-	time_t ret;
+	struct tm tm;
 	int fd;
+	int before;
 
 	fd = rtc_xopen(&rtcname, O_RDONLY);
-	ret = rtc_read_time(fd, utc);
+
+	rtc_read_tm(&tm, fd);
+	before = tm.tm_sec;
+	while (1) {
+		rtc_read_tm(&tm, fd);
+		gettimeofday(sys_tv, NULL);
+		if (before != tm.tm_sec)
+			break;
+	}
+
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(fd);
 
-	return ret;
+	return rtc_tm2time(&tm, utc);
 }
 
 static void show_clock(int utc)
 {
-	//struct tm *ptm;
+	struct timeval sys_tv;
 	time_t t;
+	long diff;
 	char *cp;
 
-	t = read_rtc(utc);
-	//ptm = localtime(&t);  /* Sets 'tzname[]' */
+	t = read_rtc(&sys_tv, utc);
 
 	cp = ctime(&t);
 	strchrnul(cp, '\n')[0] = '\0';
 
 	//printf("%s  0.000000 seconds %s\n", cp, utc ? "" : (ptm->tm_isdst ? tzname[1] : tzname[0]));
-	/* 0.000000 stand for unimplemented difference between RTC and system clock */
-	printf("%s  0.000000 seconds\n", cp);
+	diff = sys_tv.tv_sec - t;
+	if (diff < 0 /*&& tv.tv_usec != 0*/) {
+		/* Why? */
+		/* diff >= 0 is ok:   diff < 0, can't just use tv.tv_usec: */
+		/*   45.520820          43.520820 */
+		/* - 44.000000        - 45.000000 */
+		/* =  0.520820        = -1.479180, not -2.520820! */
+		diff++;
+		/* should be 1000000 - tv.tv_usec, but then we must check tv.tv_usec != 0 */
+		sys_tv.tv_usec = 999999 - sys_tv.tv_usec;
+	}
+	printf("%s  %ld.%06lu seconds\n", cp, diff, (unsigned long)sys_tv.tv_usec);
 }
 
 static void to_sys_clock(int utc)
@@ -58,7 +78,7 @@ static void to_sys_clock(int utc)
 	tz.tz_minuteswest = timezone/60 - 60*daylight;
 	tz.tz_dsttime = 0;
 
-	tv.tv_sec = read_rtc(utc);
+	tv.tv_sec = read_rtc(NULL, utc);
 	tv.tv_usec = 0;
 	if (settimeofday(&tv, &tz))
 		bb_perror_msg_and_die("settimeofday() failed");
@@ -79,15 +99,15 @@ static void from_sys_clock(int utc)
 
 		gettimeofday(&tv, NULL);
 
+		t = tv.tv_sec;
 		rem_usec = 1000000 - tv.tv_usec;
 		if (rem_usec < 1024) {
 			/* Less than 1ms to next second. Good enough */
  small_rem:
-			tv.tv_sec++;
+			t++;
 		}
 
 		/* Prepare tm */
-		t = tv.tv_sec;
 		if (utc)
 			gmtime_r(&t, &tm); /* may read /etc/xxx (it takes time) */
 		else
