@@ -115,11 +115,17 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 	i = 0;
 	do {
 		zero_tm.tm_mon = i;
+		/* full month name according to locale */
 		strftime(buf, sizeof(buf), "%B", &zero_tm);
 		month_names[i] = xstrdup(buf);
 
 		if (i < 7) {
 			zero_tm.tm_wday = i;
+//FIXME: unicode
+//Bug 839:
+//testcase with doublewidth Japanese chars: "LANG=zh_TW.utf8 cal"
+//perhaps use wc[s]width() to probe terminal width
+			/* abbreviated weekday name according to locale */
 			strftime(buf, sizeof(buf), "%a", &zero_tm);
 			strncpy(day_headings + i * (3+julian) + julian, buf, 2);
 		}
