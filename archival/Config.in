@@ -165,6 +165,13 @@ config GZIP
 	  gzip is used to compress files.
 	  It's probably the most widely used UNIX compression program.
 
+config FEATURE_GZIP_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on GZIP && LONG_OPTS
+	help
+	  Enable use of long options, increases size by about 106 Bytes
+
 config LZOP
 	bool "lzop"
 	default n

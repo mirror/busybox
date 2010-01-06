@@ -2043,6 +2043,23 @@ IF_DESKTOP(long long) int pack_gzip(unpack_info_t *info UNUSED_PARAM)
 	return 0;
 }
 
+#if ENABLE_FEATURE_GZIP_LONG_OPTIONS
+static const char gzip_longopts[] ALIGN1 =
+	"stdout\0"              No_argument       "c"
+	"to-stdout\0"           No_argument       "c"
+	"force\0"               No_argument       "f"
+	"verbose\0"             No_argument       "v"
+#if ENABLE_GUNZIP
+	"decompress\0"          No_argument       "d"
+	"uncompress\0"          No_argument       "d"
+	"test\0"                No_argument       "t"
+#endif
+	"quiet\0"               No_argument       "q"
+	"fast\0"                No_argument       "1"
+	"best\0"                No_argument       "9"
+	;
+#endif
+
 /*
  * Linux kernel build uses gzip -d -n. We accept and ignore it.
  * Man page says:
@@ -2066,6 +2083,9 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 
+#if ENABLE_FEATURE_GZIP_LONG_OPTIONS
+	applet_long_options = gzip_longopts;
+#endif
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
 	opt = getopt32(argv, "cfv" IF_GUNZIP("dt") "q123456789n");
 #if ENABLE_GUNZIP /* gunzip_main may not be visible... */
@@ -2080,7 +2100,6 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 
 	SET_PTR_TO_GLOBALS((char *)xzalloc(sizeof(struct globals)+sizeof(struct globals2))
 			+ sizeof(struct globals));
-	barrier();
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, G1.l_buf, INBUFSIZ);
