@@ -8,8 +8,8 @@ typedef struct file_header_t {
 	char *name;
 	char *link_target;
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
-	char *uname;
-	char *gname;
+	char *tar__uname;
+	char *tar__gname;
 #endif
 	off_t size;
 	uid_t uid;
@@ -19,16 +19,25 @@ typedef struct file_header_t {
 	dev_t device;
 } file_header_t;
 
+struct hardlinks_t;
+
 typedef struct archive_handle_t {
+	/* Flags. 1st since it is most used member */
+	unsigned ah_flags;
+
+	/* The raw stream as read from disk or stdin */
+	int src_fd;
+
 	/* Define if the header and data component should be processed */
 	char FAST_FUNC (*filter)(struct archive_handle_t *);
+	/* List of files that have been accepted */
 	llist_t *accept;
 	/* List of files that have been rejected */
 	llist_t *reject;
 	/* List of files that have successfully been worked on */
 	llist_t *passed;
 
-	/* Contains the processed header entry */
+	/* Currently processed file's header */
 	file_header_t *file_header;
 
 	/* Process the header component, e.g. tar -t */
@@ -37,33 +46,33 @@ typedef struct archive_handle_t {
 	/* Process the data component, e.g. extract to filesystem */
 	void FAST_FUNC (*action_data)(struct archive_handle_t *);
 
-#if ENABLE_DPKG || ENABLE_DPKG_DEB
-	/* "subarchive" is used only by dpkg[-deb] applets */
-	/* How to process any sub archive, e.g. get_header_tar_gz */
-	char FAST_FUNC (*action_data_subarchive)(struct archive_handle_t *);
-	/* Contains the handle to a sub archive */
-	struct archive_handle_t *sub_archive;
-#endif
-
-	/* The raw stream as read from disk or stdin */
-	int src_fd;
-
-	/* Count the number of bytes processed */
-	off_t offset;
-
 	/* Function that skips data */
 	void FAST_FUNC (*seek)(int fd, off_t amount);
 
+	/* Count processed bytes */
+	off_t offset;
+
+	/* Archiver specific. Can make it a union if it ever gets big */
+#if ENABLE_TAR
+	smallint tar__end;
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+	char* tar__longname;
+	char* tar__linkname;
+# endif
+#endif
+#if ENABLE_CPIO
+	uoff_t cpio__blocks;
+	struct hardlinks_t *cpio__hardlinks_to_create;
+	struct hardlinks_t *cpio__created_hardlinks;
+#endif
+#if ENABLE_DPKG || ENABLE_DPKG_DEB
 	/* Temporary storage */
-	char *ah_buffer;
-
-	/* Flags and misc. stuff */
-	unsigned ah_flags;
-
-	/* "Private" storage for archivers */
-//	unsigned char ah_priv_inited;
-	void *ah_priv[8];
-
+	char *dpkg__buffer;
+	/* How to process any sub archive, e.g. get_header_tar_gz */
+	char FAST_FUNC (*dpkg__action_data_subarchive)(struct archive_handle_t *);
+	/* Contains the handle to a sub archive */
+	struct archive_handle_t *dpkg__sub_archive;
+#endif
 } archive_handle_t;
 /* bits in ah_flags */
 #define ARCHIVE_RESTORE_DATE        (1 << 0)

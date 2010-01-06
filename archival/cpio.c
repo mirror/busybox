@@ -412,14 +412,14 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* see get_header_cpio */
-	archive_handle->ah_priv[2] = (void*) ~(ptrdiff_t)0;
+	archive_handle->cpio__blocks = (off_t)-1;
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
 
-	if (archive_handle->ah_priv[2] != (void*) ~(ptrdiff_t)0
+	if (archive_handle->cpio__blocks != (off_t)-1
 	 && !(opt & CPIO_OPT_QUIET)
 	)
-		printf("%lu blocks\n", (unsigned long)(ptrdiff_t)(archive_handle->ah_priv[2]));
+		printf("%"OFF_FMT"u blocks\n", archive_handle->cpio__blocks);
 
 	return EXIT_SUCCESS;
 }

@@ -28,7 +28,7 @@ int dpkg_deb_main(int argc, char **argv)
 
 	/* Setup an ar archive handle that refers to the gzip sub archive */
 	ar_archive = init_handle();
-	ar_archive->sub_archive = tar_archive;
+	ar_archive->dpkg__sub_archive = tar_archive;
 	ar_archive->filter = filter_accept_list_reassign;
 
 #if ENABLE_FEATURE_SEAMLESS_GZ

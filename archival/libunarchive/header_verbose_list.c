@@ -16,12 +16,12 @@ void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 	char *user;
 	char *group;
 
-	user = file_header->uname;
+	user = file_header->tar__uname;
 	if (user == NULL) {
 		sprintf(uid, "%u", (unsigned)file_header->uid);
 		user = uid;
 	}
-	group = file_header->gname;
+	group = file_header->tar__gname;
 	if (group == NULL) {
 		/*sprintf(gid, "%u", (unsigned)file_header->gid);*/
 		group = utoa(file_header->gid);

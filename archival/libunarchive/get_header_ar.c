@@ -122,8 +122,8 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(typed);
 #if ENABLE_DPKG || ENABLE_DPKG_DEB
-		if (archive_handle->sub_archive) {
-			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS)
+		if (archive_handle->dpkg__sub_archive) {
+			while (archive_handle->dpkg__action_data_subarchive(archive_handle->dpkg__sub_archive) == EXIT_SUCCESS)
 				continue;
 		} else
 #endif

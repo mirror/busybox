@@ -135,20 +135,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	int parse_names;
 
 	/* Our "private data" */
-#define p_end (*(smallint *)(&archive_handle->ah_priv[0]))
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-#define p_longname (*(char* *)(&archive_handle->ah_priv[1]))
-#define p_linkname (*(char* *)(&archive_handle->ah_priv[2]))
+# define p_longname (archive_handle->tar__longname)
+# define p_linkname (archive_handle->tar__linkname)
 #else
-#define p_longname 0
-#define p_linkname 0
+# define p_longname 0
+# define p_linkname 0
 #endif
-//	if (!archive_handle->ah_priv_inited) {
-//		archive_handle->ah_priv_inited = 1;
-//		p_end = 0;
-//		IF_FEATURE_TAR_GNU_EXTENSIONS(p_longname = NULL;)
-//		IF_FEATURE_TAR_GNU_EXTENSIONS(p_linkname = NULL;)
-//	}
 
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
@@ -190,7 +183,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 	/* If there is no filename its an empty header */
 	if (tar.name[0] == 0 && tar.prefix[0] == 0) {
-		if (p_end) {
+		if (archive_handle->tar__end) {
 			/* Second consecutive empty header - end of archive.
 			 * Read until the end to empty the pipe from gz or bz2
 			 */
@@ -198,10 +191,10 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 				continue;
 			return EXIT_FAILURE;
 		}
-		p_end = 1;
+		archive_handle->tar__end = 1;
 		return EXIT_SUCCESS;
 	}
-	p_end = 0;
+	archive_handle->tar__end = 0;
 
 	/* Check header has valid magic, "ustar" is for the proper tar,
 	 * five NULs are for the old tar format  */
@@ -301,8 +294,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* Will link_target be free()ed? */
 	}
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
-	file_header->uname = tar.uname[0] ? xstrndup(tar.uname, sizeof(tar.uname)) : NULL;
-	file_header->gname = tar.gname[0] ? xstrndup(tar.gname, sizeof(tar.gname)) : NULL;
+	file_header->tar__uname = tar.uname[0] ? xstrndup(tar.uname, sizeof(tar.uname)) : NULL;
+	file_header->tar__gname = tar.gname[0] ? xstrndup(tar.gname, sizeof(tar.gname)) : NULL;
 #endif
 	/* mtime: rudimentally handle GNU tar's "base256 encoding"
 	 * People report tarballs with NEGATIVE unix times encoded that way */
@@ -449,8 +442,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	free(file_header->link_target);
 	/* Do not free(file_header->name)! (why?) */
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
-	free(file_header->uname);
-	free(file_header->gname);
+	free(file_header->tar__uname);
+	free(file_header->tar__gname);
 #endif
 	return EXIT_SUCCESS;
 }

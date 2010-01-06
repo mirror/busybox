@@ -1446,7 +1446,7 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
-	ar_handle->sub_archive = tar_handle;
+	ar_handle->dpkg__sub_archive = tar_handle;
 }
 
 static void init_archive_deb_data(archive_handle_t *ar_handle)
@@ -1466,27 +1466,27 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
-	ar_handle->sub_archive = tar_handle;
+	ar_handle->dpkg__sub_archive = tar_handle;
 }
 
 static void FAST_FUNC data_extract_to_buffer(archive_handle_t *archive_handle)
 {
 	unsigned size = archive_handle->file_header->size;
 
-	archive_handle->ah_buffer = xzalloc(size + 1);
-	xread(archive_handle->src_fd, archive_handle->ah_buffer, size);
+	archive_handle->dpkg__buffer = xzalloc(size + 1);
+	xread(archive_handle->src_fd, archive_handle->dpkg__buffer, size);
 }
 
 static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, llist_t *myaccept)
 {
-	ar_handle->sub_archive->action_data = data_extract_to_buffer;
-	ar_handle->sub_archive->accept = myaccept;
-	ar_handle->sub_archive->filter = filter_accept_list;
+	ar_handle->dpkg__sub_archive->action_data = data_extract_to_buffer;
+	ar_handle->dpkg__sub_archive->accept = myaccept;
+	ar_handle->dpkg__sub_archive->filter = filter_accept_list;
 
 	unpack_ar_archive(ar_handle);
 	close(ar_handle->src_fd);
 
-	return ar_handle->sub_archive->ah_buffer;
+	return ar_handle->dpkg__sub_archive->dpkg__buffer;
 }
 
 static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
@@ -1495,7 +1495,7 @@ static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
 
 	name_ptr += strspn(name_ptr, "./");
 	if (name_ptr[0] != '\0') {
-		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->ah_buffer, name_ptr);
+		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->dpkg__buffer, name_ptr);
 		data_extract_all(archive_handle);
 	}
 }
@@ -1535,11 +1535,11 @@ static void unpack_package(deb_file_t *deb_file)
 		llist_add_to(&accept_list, c);
 		i++;
 	}
-	archive_handle->sub_archive->accept = accept_list;
-	archive_handle->sub_archive->filter = filter_accept_list;
-	archive_handle->sub_archive->action_data = data_extract_all_prefix;
-	archive_handle->sub_archive->ah_buffer = info_prefix;
-	archive_handle->sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
+	archive_handle->dpkg__sub_archive->accept = accept_list;
+	archive_handle->dpkg__sub_archive->filter = filter_accept_list;
+	archive_handle->dpkg__sub_archive->action_data = data_extract_all_prefix;
+	archive_handle->dpkg__sub_archive->dpkg__buffer = info_prefix;
+	archive_handle->dpkg__sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
 	unpack_ar_archive(archive_handle);
 
 	/* Run the preinst prior to extracting */
@@ -1548,19 +1548,19 @@ static void unpack_package(deb_file_t *deb_file)
 	/* Extract data.tar.gz to the root directory */
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_data(archive_handle);
-	archive_handle->sub_archive->action_data = data_extract_all_prefix;
-	archive_handle->sub_archive->ah_buffer = (char*)"/"; /* huh? */
-	archive_handle->sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
+	archive_handle->dpkg__sub_archive->action_data = data_extract_all_prefix;
+	archive_handle->dpkg__sub_archive->dpkg__buffer = (char*)"/"; /* huh? */
+	archive_handle->dpkg__sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */
 	list_filename = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, "list");
 	out_stream = xfopen_for_write(list_filename);
-	while (archive_handle->sub_archive->passed) {
+	while (archive_handle->dpkg__sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
-		fputs(archive_handle->sub_archive->passed->data, out_stream);
+		fputs(archive_handle->dpkg__sub_archive->passed->data, out_stream);
 		fputc('\n', out_stream);
-		archive_handle->sub_archive->passed = archive_handle->sub_archive->passed->link;
+		archive_handle->dpkg__sub_archive->passed = archive_handle->dpkg__sub_archive->passed->link;
 	}
 	fclose(out_stream);
 

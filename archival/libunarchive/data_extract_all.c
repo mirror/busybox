@@ -127,13 +127,13 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			uid_t uid = file_header->uid;
 			gid_t gid = file_header->gid;
 
-			if (file_header->uname) {
+			if (file_header->tar__uname) {
 //TODO: cache last name/id pair?
-				struct passwd *pwd = getpwnam(file_header->uname);
+				struct passwd *pwd = getpwnam(file_header->tar__uname);
 				if (pwd) uid = pwd->pw_uid;
 			}
-			if (file_header->gname) {
-				struct group *grp = getgrnam(file_header->gname);
+			if (file_header->tar__gname) {
+				struct group *grp = getgrnam(file_header->tar__gname);
 				if (grp) gid = grp->gr_gid;
 			}
 			/* GNU tar 1.15.1 uses chown, not lchown */

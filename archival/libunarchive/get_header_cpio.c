@@ -25,15 +25,6 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	int major, minor, nlink, mode, inode;
 	unsigned size, uid, gid, mtime;
 
-#define hardlinks_to_create (*(hardlinks_t **)(&archive_handle->ah_priv[0]))
-#define created_hardlinks   (*(hardlinks_t **)(&archive_handle->ah_priv[1]))
-#define block_count         (archive_handle->ah_priv[2])
-//	if (!archive_handle->ah_priv_inited) {
-//		archive_handle->ah_priv_inited = 1;
-//		hardlinks_to_create = NULL;
-//		created_hardlinks = NULL;
-//	}
-
 	/* There can be padding before archive header */
 	data_align(archive_handle, 4);
 
@@ -86,7 +77,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 
 	if (strcmp(file_header->name, "TRAILER!!!") == 0) {
 		/* Always round up. ">> 9" divides by 512 */
-		block_count = (void*)(ptrdiff_t) ((archive_handle->offset + 511) >> 9);
+		archive_handle->cpio__blocks = (uoff_t)(archive_handle->offset + 511) >> 9;
 		goto create_hardlinks;
 	}
 
@@ -112,13 +103,13 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 		strcpy(new->name, file_header->name);
 		/* Put file on a linked list for later */
 		if (size == 0) {
-			new->next = hardlinks_to_create;
-			hardlinks_to_create = new;
+			new->next = archive_handle->cpio__hardlinks_to_create;
+			archive_handle->cpio__hardlinks_to_create = new;
 			return EXIT_SUCCESS; /* Skip this one */
 			/* TODO: this breaks cpio -t (it does not show hardlinks) */
 		}
-		new->next = created_hardlinks;
-		created_hardlinks = new;
+		new->next = archive_handle->cpio__created_hardlinks;
+		archive_handle->cpio__created_hardlinks = new;
 	}
 	file_header->device = makedev(major, minor);
 
@@ -142,11 +133,11 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	free(file_header->link_target);
 	free(file_header->name);
 
-	while (hardlinks_to_create) {
+	while (archive_handle->cpio__hardlinks_to_create) {
 		hardlinks_t *cur;
-		hardlinks_t *make_me = hardlinks_to_create;
+		hardlinks_t *make_me = archive_handle->cpio__hardlinks_to_create;
 
-		hardlinks_to_create = make_me->next;
+		archive_handle->cpio__hardlinks_to_create = make_me->next;
 
 		memset(file_header, 0, sizeof(*file_header));
 		file_header->mtime = make_me->mtime;
@@ -158,7 +149,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 		/*file_header->link_target = NULL;*/
 
 		/* Try to find a file we are hardlinked to */
-		cur = created_hardlinks;
+		cur = archive_handle->cpio__created_hardlinks;
 		while (cur) {
 			/* TODO: must match maj/min too! */
 			if (cur->inode == make_me->inode) {
@@ -176,14 +167,14 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 		if (archive_handle->filter(archive_handle) == EXIT_SUCCESS)
 			archive_handle->action_data(archive_handle);
 		/* Move to the list of created hardlinked files */
-		make_me->next = created_hardlinks;
-		created_hardlinks = make_me;
+		make_me->next = archive_handle->cpio__created_hardlinks;
+		archive_handle->cpio__created_hardlinks = make_me;
  next_link: ;
 	}
 
-	while (created_hardlinks) {
-		hardlinks_t *p = created_hardlinks;
-		created_hardlinks = p->next;
+	while (archive_handle->cpio__created_hardlinks) {
+		hardlinks_t *p = archive_handle->cpio__created_hardlinks;
+		archive_handle->cpio__created_hardlinks = p->next;
 		free(p);
 	}
 
