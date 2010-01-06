@@ -1232,13 +1232,13 @@
      "\n	-type X		File type is X (X is one of: f,d,l,b,c,...)") \
 	IF_FEATURE_FIND_PERM( \
      "\n	-perm NNN	Permissions match any of (+NNN), all of (-NNN)," \
-     "\n			or exactly (NNN)") \
+     "\n			or exactly NNN") \
 	IF_FEATURE_FIND_MTIME( \
      "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N)," \
-     "\n			or exactly (N) days") \
+     "\n			or exactly N days") \
 	IF_FEATURE_FIND_MMIN( \
      "\n	-mmin MINS	Modified time is greater than (+N), less than (-N)," \
-     "\n			or exactly (N) minutes") \
+     "\n			or exactly N minutes") \
 	IF_FEATURE_FIND_NEWER( \
      "\n	-newer FILE	Modified time is more recent than FILE's") \
 	IF_FEATURE_FIND_INUM( \
@@ -1252,6 +1252,9 @@
 	IF_FEATURE_FIND_SIZE( \
      "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))." \
      "\n			+/-N: file size is bigger/smaller than N") \
+	IF_FEATURE_FIND_LINKS( \
+     "\n	-links N	Number of links is greater than (+N), less than (-N)," \
+     "\n			or exactly N") \
      "\n	-print		Print (default and assumed)" \
 	IF_FEATURE_FIND_PRINT0( \
      "\n	-print0		Delimit output with null characters rather than" \

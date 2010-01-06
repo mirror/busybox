@@ -96,6 +96,7 @@ IF_FEATURE_FIND_PRUNE(  ACTS(prune))
 IF_FEATURE_FIND_DELETE( ACTS(delete))
 IF_FEATURE_FIND_EXEC(   ACTS(exec,  char **exec_argv; unsigned *subst_count; int exec_argc;))
 IF_FEATURE_FIND_GROUP(  ACTS(group, gid_t gid;))
+IF_FEATURE_FIND_LINKS(  ACTS(links, char links_char; int links_count;))
 
 struct globals {
 	IF_FEATURE_FIND_XDEV(dev_t *xdev_dev;)
@@ -175,7 +176,7 @@ static int exec_actions(action ***appp, const char *fileName, const struct stat 
 	 * On return, bit is restored.  */
 
 	cur_group = -1;
-	while ((app = appp[++cur_group])) {
+	while ((app = appp[++cur_group]) != NULL) {
 		rc &= ~TRUE; /* 'success' so far, clear TRUE bit */
 		cur_action = -1;
 		while (1) {
@@ -390,7 +391,16 @@ ACTF(context)
 	return rc == 0;
 }
 #endif
-
+#if ENABLE_FEATURE_FIND_LINKS
+ACTF(links)
+{
+	switch(ap->links_char) {
+	case '-' : return (statbuf->st_nlink <  ap->links_count);
+	case '+' : return (statbuf->st_nlink >  ap->links_count);
+	default:   return (statbuf->st_nlink == ap->links_count);
+	}
+}
+#endif
 
 static int FAST_FUNC fileAction(const char *fileName,
 		struct stat *statbuf,
@@ -463,7 +473,7 @@ static int find_type(const char *type)
 
 #if ENABLE_FEATURE_FIND_PERM \
  || ENABLE_FEATURE_FIND_MTIME || ENABLE_FEATURE_FIND_MMIN \
- || ENABLE_FEATURE_FIND_SIZE
+ || ENABLE_FEATURE_FIND_SIZE  || ENABLE_FEATURE_FIND_LINKS
 static const char* plus_minus_num(const char* str)
 {
 	if (*str == '-' || *str == '+')
@@ -505,6 +515,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_GROUP(  PARM_group     ,)
 	IF_FEATURE_FIND_SIZE(   PARM_size      ,)
 	IF_FEATURE_FIND_CONTEXT(PARM_context   ,)
+	IF_FEATURE_FIND_LINKS(  PARM_links     ,)
 	};
 
 	static const char params[] ALIGN1 =
@@ -538,6 +549,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_GROUP(  "-group\0"  )
 	IF_FEATURE_FIND_SIZE(   "-size\0"   )
 	IF_FEATURE_FIND_CONTEXT("-context\0")
+	IF_FEATURE_FIND_LINKS(  "-links\0"  )
 	                         ;
 
 	action*** appp;
@@ -821,6 +833,14 @@ static action*** parse_params(char **argv)
 			/* SELinux headers erroneously declare non-const parameter */
 			if (selinux_raw_to_trans_context((char*)arg1, &ap->context))
 				bb_simple_perror_msg(arg1);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_LINKS
+		else if (parm == PARM_links) {
+			action_links *ap;
+			ap = ALLOC_ACTION(links);
+			ap->links_char = arg1[0];
+			ap->links_count = xatoul(plus_minus_num(arg1));
 		}
 #endif
 		else {
