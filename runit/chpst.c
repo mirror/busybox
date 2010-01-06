@@ -104,7 +104,7 @@ static NOINLINE void edir(const char *directory_name)
 	xchdir(directory_name);
 	dir = xopendir(".");
 	for (;;) {
-		RESERVE_CONFIG_BUFFER(buf, 256);
+		char buf[256];
 		char *tail;
 		int size;
 
@@ -148,7 +148,6 @@ static NOINLINE void edir(const char *directory_name)
 				break;
 		}
 		xsetenv(d->d_name, buf);
-		RELEASE_CONFIG_BUFFER(buf);
 	}
 	closedir(dir);
 	if (fchdir(wdir) == -1)

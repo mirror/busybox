@@ -19,7 +19,7 @@ int FAST_FUNC rtc_adjtime_is_utc(void)
 	FILE *f = fopen_for_read(ADJTIME_PATH);
 
 	if (f) {
-		RESERVE_CONFIG_BUFFER(buffer, 128);
+		char buffer[128];
 
 		while (fgets(buffer, sizeof(buffer), f)) {
 			int len = strlen(buffer);
@@ -35,8 +35,6 @@ int FAST_FUNC rtc_adjtime_is_utc(void)
 			}
 		}
 		fclose(f);
-
-		RELEASE_CONFIG_BUFFER(buffer);
 	}
 
 	return utc;

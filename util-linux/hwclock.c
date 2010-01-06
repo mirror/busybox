@@ -27,25 +27,10 @@ static time_t read_rtc(int utc)
 
 	fd = rtc_xopen(&rtcname, O_RDONLY);
 	ret = rtc_read_time(fd, utc);
-	close(fd);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fd);
 
 	return ret;
-}
-
-static void write_rtc(time_t t, int utc)
-{
-	struct tm tm;
-	int rtc = rtc_xopen(&rtcname, O_WRONLY);
-
-	if (utc)
-		gmtime_r(&t, &tm);
-	else
-		localtime_r(&t, &tm);
-	tm.tm_isdst = 0;
-
-	xioctl(rtc, RTC_SET_TIME, &tm);
-
-	close(rtc);
 }
 
 static void show_clock(int utc)
@@ -58,10 +43,10 @@ static void show_clock(int utc)
 	//ptm = localtime(&t);  /* Sets 'tzname[]' */
 
 	cp = ctime(&t);
-	if (cp[0])
-		cp[strlen(cp) - 1] = '\0';
+	strchrnul(cp, '\n')[0] = '\0';
 
-	//printf("%s  %.6f seconds %s\n", cp, 0.0, utc ? "" : (ptm->tm_isdst ? tzname[1] : tzname[0]));
+	//printf("%s  0.000000 seconds %s\n", cp, utc ? "" : (ptm->tm_isdst ? tzname[1] : tzname[0]));
+	/* 0.000000 stand for unimplemented difference between RTC and system clock */
 	printf("%s  0.000000 seconds\n", cp);
 }
 
@@ -81,12 +66,73 @@ static void to_sys_clock(int utc)
 
 static void from_sys_clock(int utc)
 {
+#define TWEAK_USEC 200
+	struct tm tm;
 	struct timeval tv;
+	unsigned adj = TWEAK_USEC;
+	int rtc = rtc_xopen(&rtcname, O_WRONLY);
 
-	gettimeofday(&tv, NULL);
-	//if (gettimeofday(&tv, NULL))
-	//	bb_perror_msg_and_die("gettimeofday() failed");
-	write_rtc(tv.tv_sec, utc);
+	/* Try to catch the moment when whole second is close */
+	while (1) {
+		unsigned rem_usec;
+		time_t t;
+
+		gettimeofday(&tv, NULL);
+
+		rem_usec = 1000000 - tv.tv_usec;
+		if (rem_usec < 1024) {
+			/* Less than 1ms to next second. Good enough */
+ small_rem:
+			tv.tv_sec++;
+		}
+
+		/* Prepare tm */
+		t = tv.tv_sec;
+		if (utc)
+			gmtime_r(&t, &tm); /* may read /etc/xxx (it takes time) */
+		else
+			localtime_r(&t, &tm); /* same */
+		tm.tm_isdst = 0;
+
+		/* gmtime/localtime took some time, re-get cur time */
+		gettimeofday(&tv, NULL);
+
+		if (tv.tv_sec < t /* may happen if rem_usec was < 1024 */
+		 || (tv.tv_sec == t && tv.tv_usec < 1024)
+		) {
+			/* We are not too far into next second. Good. */
+			break;
+		}
+		adj += 32; /* 2^(10-5) = 2^5 = 32 iterations max */
+		if (adj >= 1024) {
+			/* Give up trying to sync */
+			break;
+		}
+
+		/* Try to sync up by sleeping */
+		rem_usec = 1000000 - tv.tv_usec;
+		if (rem_usec < 1024) {
+			goto small_rem; /* already close, don't sleep */
+		}
+		/* Need to sleep.
+		 * Note that small adj on slow processors can make us
+		 * to always overshoot tv.tv_usec < 1024 check on next
+		 * iteration. That's why adj is increased on each iteration.
+		 * This also allows it to be reused as a loop limiter.
+		 */
+		usleep(rem_usec - adj);
+	}
+
+	xioctl(rtc, RTC_SET_TIME, &tm);
+
+	/* Debug aid to find "good" TWEAK_USEC.
+	 * Look for a value which makes tv_usec close to 999999 or 0.
+	 * for 2.20GHz Intel Core 2: TWEAK_USEC ~= 200
+	 */
+	//bb_error_msg("tv.tv_usec:%d adj:%d", (int)tv.tv_usec, adj);
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(rtc);
 }
 
 #define HWCLOCK_OPT_LOCALTIME   0x01
