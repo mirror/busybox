@@ -119,29 +119,23 @@ struct globals {
 
 static int run_script(const char *action)
 {
-	pid_t pid;
+	char *argv[5];
 	int r;
 
 	bb_error_msg("executing '%s %s %s'", G.script_name, G.iface, action);
 
 #if 1
-	pid = vfork();
-	if (pid < 0) {
-		bb_perror_msg("fork");
-		return -1;
-	}
 
-	if (pid == 0) {
-		/* child */
-		execlp(G.script_name, G.script_name, G.iface, action, G.extra_arg, NULL);
-		bb_perror_msg_and_die("can't execute '%s'", G.script_name);
-	}
+	argv[0] = (char*) G.script_name;
+	argv[1] = (char*) G.iface;
+	argv[2] = (char*) action;
+	argv[3] = (char*) G.extra_arg;
+	argv[4] = NULL;
 
-	/* parent */
-	wait(&r);
-	r = WEXITSTATUS(r);
+	/* r < 0 - can't exec, 0 <= r < 1000 - exited, >1000 - killed by sig (r-1000) */
+	r = wait4pid(spawn(argv));
 
-	bb_error_msg("exit code: %u", r);
+	bb_error_msg("exit code: %d", r);
 	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
 
 #else /* insanity */

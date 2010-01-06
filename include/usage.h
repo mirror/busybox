@@ -130,7 +130,7 @@
        "Options:" \
      "\n	-v VAR=VAL	Set variable" \
      "\n	-F SEP		Use SEP as field separator" \
-     "\n	-f FILE		Read program from file" \
+     "\n	-f FILE		Read program from FILE" \
 
 #define basename_trivial_usage \
        "FILE [SUFFIX]"
@@ -291,7 +291,7 @@
        "chat '' ATZ OK ATD123456 CONNECT '' ogin: pppuser word: ppppass '~'" \
 
 #define chattr_trivial_usage \
-       "[-R] [-+=AacDdijsStTu] [-v version] files..."
+       "[-R] [-+=AacDdijsStTu] [-v VERSION] [FILE]..."
 #define chattr_full_usage "\n\n" \
        "Change file attributes on an ext2 fs\n" \
      "\nModifiers:" \
@@ -4777,9 +4777,9 @@
      "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
      "\n	-c,--clientid=CLIENTID	Client identifier" \
      "\n	-C,--clientid-none	Suppress default client identifier" \
-     "\n	-p,--pidfile=file	Create pidfile" \
+     "\n	-p,--pidfile=FILE	Create pidfile" \
      "\n	-r,--request=IP		IP address to request" \
-     "\n	-s,--script=file	Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
+     "\n	-s,--script=FILE	Run FILE at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t,--retries=N		Send up to N discover packets" \
      "\n	-T,--timeout=N		Pause between packets (default 3 seconds)" \
      "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
@@ -4806,9 +4806,9 @@
      "\n	-H,-h HOSTNAME	Client hostname" \
      "\n	-c CLIENTID	Client identifier" \
      "\n	-C		Suppress default client identifier" \
-     "\n	-p file		Create pidfile" \
+     "\n	-p FILE		Create pidfile" \
      "\n	-r IP		IP address to request" \
-     "\n	-s file		Run file at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
+     "\n	-s FILE		Run FILE at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t N		Send up to N request packets" \
      "\n	-T N		Try to get a lease for N seconds (default 3)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \
