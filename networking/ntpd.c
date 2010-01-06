@@ -1902,6 +1902,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			) {
 				/* Useful for updating battery-backed RTC and such */
 				run_script("periodic");
+				gettime1900d(); /* sets G.cur_time */
 			}
 			continue;
 		}
