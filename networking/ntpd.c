@@ -194,7 +194,8 @@ enum {
 	/* Non-compat options: */
 	OPT_w = (1 << 4),
 	OPT_p = (1 << 5),
-	OPT_l = (1 << 6) * ENABLE_FEATURE_NTPD_SERVER,
+	OPT_S = (1 << 6),
+	OPT_l = (1 << 7) * ENABLE_FEATURE_NTPD_SERVER,
 };
 
 struct globals {
@@ -205,6 +206,9 @@ struct globals {
 	double   reftime;
 	/* total dispersion to currently selected reference clock */
 	double   rootdisp;
+
+	double   last_script_run;
+	char     *script_name;
 	llist_t  *ntp_peers;
 #if ENABLE_FEATURE_NTPD_SERVER
 	int      listen_fd;
@@ -682,6 +686,38 @@ send_query_to_peer(peer_t *p)
 }
 
 
+static void run_script(const char *action)
+{
+	char *argv[3];
+	char *env1, *env2;
+
+	if (!G.script_name)
+		return;
+
+	argv[0] = (char*) G.script_name;
+	argv[1] = (char*) action;
+	argv[2] = NULL;
+
+	VERB1 bb_error_msg("executing '%s %s'", G.script_name, action);
+
+	env1 = xasprintf("stratum=%u", G.stratum);
+	putenv(env1);
+	env2 = xasprintf("freq_drift_ppm=%ld", G.kernel_freq_drift);
+	putenv(env2);
+	/* Other items of potential interest: selected peer,
+	 * rootdelay, reftime, rootdisp, refid, ntp_status, poll_exp,
+	 * last_update_offset, last_update_recv_time, discipline_jitter
+	 */
+
+	wait4pid(spawn(argv));
+	G.last_script_run = G.cur_time;
+
+	unsetenv("stratum");
+	unsetenv("freq_drift_ppm");
+	free(env1);
+	free(env2);
+}
+
 static NOINLINE void
 step_time(double offset)
 {
@@ -1140,6 +1176,9 @@ update_local_clock(peer_t *p)
 		G.polladj_count = 0;
 		G.poll_exp = MINPOLL;
 		G.stratum = MAXSTRAT;
+
+		run_script("step");
+
 		if (G.discipline_state == STATE_NSET) {
 			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);
 			return 1; /* "ok to increase poll interval" */
@@ -1225,7 +1264,10 @@ update_local_clock(peer_t *p)
 			set_new_values(STATE_SYNC, offset, recv_time);
 			break;
 		}
-		G.stratum = p->lastpkt_stratum + 1;
+		if (G.stratum != p->lastpkt_stratum + 1) {
+			G.stratum = p->lastpkt_stratum + 1;
+			run_script("stratum");
+		}
 	}
 
 	G.reftime = G.cur_time;
@@ -1729,17 +1771,17 @@ static NOINLINE void ntp_init(char **argv)
 	G.stratum = MAXSTRAT;
 	if (BURSTPOLL != 0)
 		G.poll_exp = BURSTPOLL; /* speeds up initial sync */
-	G.reftime = G.last_update_recv_time = gettime1900d(); /* sets G.cur_time too */
+	G.last_script_run = G.reftime = G.last_update_recv_time = gettime1900d(); /* sets G.cur_time too */
 
 	/* Parse options */
 	peers = NULL;
 	opt_complementary = "dd:p::wn"; /* d: counter; p: list; -w implies -n */
 	opts = getopt32(argv,
 			"nqNx" /* compat */
-			"wp:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
+			"wp:S:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			"d" /* compat */
 			"46aAbgL", /* compat, ignored */
-			&peers, &G.verbose);
+			&peers, &G.script_name, &G.verbose);
 	if (!(opts & (OPT_p|OPT_l)))
 		bb_show_usage();
 //	if (opts & OPT_x) /* disable stepping, only slew is allowed */
@@ -1854,8 +1896,15 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		VERB2 bb_error_msg("poll %us, sockets:%u", timeout, i);
 		nfds = poll(pfd, i, timeout * 1000);
 		gettime1900d(); /* sets G.cur_time */
-		if (nfds <= 0)
+		if (nfds <= 0) {
+			if (G.adjtimex_was_done
+			 && G.cur_time - G.last_script_run > 11*60
+			) {
+				/* Useful for updating battery-backed RTC and such */
+				run_script("periodic");
+			}
 			continue;
+		}
 
 		/* Process any received packets */
 		j = 0;

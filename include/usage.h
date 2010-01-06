@@ -3226,7 +3226,7 @@
        "Address:    127.0.0.1\n"
 
 #define ntpd_trivial_usage \
-	"[-dnqwl] [-p PEER]..."
+	"[-dnqwl] [-S PROG] [-p PEER]..."
 #define ntpd_full_usage "\n\n" \
        "NTP client/server\n" \
      "\nOptions:" \
@@ -3238,6 +3238,7 @@
 /*   "\n	-N	Run at high priority" */ \
      "\n	-w	Do not set time (only query peers), implies -n" \
      "\n	-l	Run as server on port 123" \
+     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 
 #define od_trivial_usage \
