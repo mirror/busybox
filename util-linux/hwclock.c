@@ -18,17 +18,29 @@
 # endif
 #endif
 
-static const char *rtcname;
 
-static time_t read_rtc(struct timeval *sys_tv, int utc)
+/* diff code is disabled: it's not sys/hw clock diff, it's some useless
+ * "time between hwclock was started and we saw CMOS tick" quantity.
+ * It's useless since hwclock is started at a random moment,
+ * thus the quantity is also random, useless. Showing 0.000000 does not
+ * deprive us from any useful info. */
+#define SHOW_HWCLOCK_DIFF 0
+
+
+#if !SHOW_HWCLOCK_DIFF
+# define read_rtc(pp_rtcname, sys_tv, utc) read_rtc(pp_rtcname, utc)
+#endif
+static time_t read_rtc(const char **pp_rtcname, struct timeval *sys_tv, int utc)
 {
 	struct tm tm;
 	int fd;
-	int before;
 
-	fd = rtc_xopen(&rtcname, O_RDONLY);
+	fd = rtc_xopen(pp_rtcname, O_RDONLY);
 
 	rtc_read_tm(&tm, fd);
+
+#if SHOW_HWCLOCK_DIFF
+	int before;
 	before = tm.tm_sec;
 	while (1) {
 		rtc_read_tm(&tm, fd);
@@ -36,6 +48,7 @@ static time_t read_rtc(struct timeval *sys_tv, int utc)
 		if (before != tm.tm_sec)
 			break;
 	}
+#endif
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(fd);
@@ -43,19 +56,19 @@ static time_t read_rtc(struct timeval *sys_tv, int utc)
 	return rtc_tm2time(&tm, utc);
 }
 
-static void show_clock(int utc)
+static void show_clock(const char **pp_rtcname, int utc)
 {
-	struct timeval sys_tv;
 	time_t t;
-	long diff;
 	char *cp;
 
-	t = read_rtc(&sys_tv, utc);
-
+	t = read_rtc(pp_rtcname, &sys_tv, utc);
 	cp = ctime(&t);
 	strchrnul(cp, '\n')[0] = '\0';
+	printf("%s  0.000000 seconds\n", cp);
 
-	//printf("%s  0.000000 seconds %s\n", cp, utc ? "" : (ptm->tm_isdst ? tzname[1] : tzname[0]));
+#if SHOW_HWCLOCK_DIFF
+	struct timeval sys_tv;
+	long diff;
 	diff = sys_tv.tv_sec - t;
 	if (diff < 0 /*&& tv.tv_usec != 0*/) {
 		/* Why? */
@@ -68,9 +81,10 @@ static void show_clock(int utc)
 		sys_tv.tv_usec = 999999 - sys_tv.tv_usec;
 	}
 	printf("%s  %ld.%06lu seconds\n", cp, diff, (unsigned long)sys_tv.tv_usec);
+#endif
 }
 
-static void to_sys_clock(int utc)
+static void to_sys_clock(const char **pp_rtcname, int utc)
 {
 	struct timeval tv;
 	struct timezone tz;
@@ -78,19 +92,19 @@ static void to_sys_clock(int utc)
 	tz.tz_minuteswest = timezone/60 - 60*daylight;
 	tz.tz_dsttime = 0;
 
-	tv.tv_sec = read_rtc(NULL, utc);
+	tv.tv_sec = read_rtc(pp_rtcname, NULL, utc);
 	tv.tv_usec = 0;
 	if (settimeofday(&tv, &tz))
-		bb_perror_msg_and_die("settimeofday() failed");
+		bb_perror_msg_and_die("settimeofday");
 }
 
-static void from_sys_clock(int utc)
+static void from_sys_clock(const char **pp_rtcname, int utc)
 {
 #define TWEAK_USEC 200
 	struct tm tm;
 	struct timeval tv;
 	unsigned adj = TWEAK_USEC;
-	int rtc = rtc_xopen(&rtcname, O_WRONLY);
+	int rtc = rtc_xopen(pp_rtcname, O_WRONLY);
 
 	/* Try to catch the moment when whole second is close */
 	while (1) {
@@ -165,6 +179,7 @@ static void from_sys_clock(int utc)
 int hwclock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hwclock_main(int argc UNUSED_PARAM, char **argv)
 {
+	const char *rtcname = NULL;
 	unsigned opt;
 	int utc;
 
@@ -189,12 +204,12 @@ int hwclock_main(int argc UNUSED_PARAM, char **argv)
 		utc = rtc_adjtime_is_utc();
 
 	if (opt & HWCLOCK_OPT_HCTOSYS)
-		to_sys_clock(utc);
+		to_sys_clock(&rtcname, utc);
 	else if (opt & HWCLOCK_OPT_SYSTOHC)
-		from_sys_clock(utc);
+		from_sys_clock(&rtcname, utc);
 	else
 		/* default HWCLOCK_OPT_SHOW */
-		show_clock(utc);
+		show_clock(&rtcname, utc);
 
 	return 0;
 }

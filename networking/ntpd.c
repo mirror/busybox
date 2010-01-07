@@ -709,7 +709,10 @@ static void run_script(const char *action)
 	 * last_update_offset, last_update_recv_time, discipline_jitter
 	 */
 
-	wait4pid(spawn(argv));
+	/* Don't want to wait: it may run hwclock --systohc, and that
+	 * may take some time (seconds): */
+	/*wait4pid(spawn(argv));*/
+	spawn(argv);
 	G.last_script_run = G.cur_time;
 
 	unsetenv("stratum");
@@ -1805,7 +1808,8 @@ static NOINLINE void ntp_init(char **argv)
 		setpriority(PRIO_PROCESS, 0, -15);
 
 	bb_signals((1 << SIGTERM) | (1 << SIGINT), record_signo);
-	bb_signals((1 << SIGPIPE) | (1 << SIGHUP), SIG_IGN);
+	/* Removed SIGHUP here: */
+	bb_signals((1 << SIGPIPE) | (1 << SIGCHLD), SIG_IGN);
 }
 
 int ntpd_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
