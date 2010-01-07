@@ -689,7 +689,7 @@ send_query_to_peer(peer_t *p)
 static void run_script(const char *action)
 {
 	char *argv[3];
-	char *env1, *env2;
+	char *env1, *env2, *env3;
 
 	if (!G.script_name)
 		return;
@@ -700,12 +700,14 @@ static void run_script(const char *action)
 
 	VERB1 bb_error_msg("executing '%s %s'", G.script_name, action);
 
-	env1 = xasprintf("stratum=%u", G.stratum);
+	env1 = xasprintf("%s=%u", "stratum", G.stratum);
 	putenv(env1);
-	env2 = xasprintf("freq_drift_ppm=%ld", G.kernel_freq_drift);
+	env2 = xasprintf("%s=%ld", "freq_drift_ppm", G.kernel_freq_drift);
 	putenv(env2);
+	env3 = xasprintf("%s=%u", "poll_interval", 1 << G.poll_exp);
+	putenv(env3);
 	/* Other items of potential interest: selected peer,
-	 * rootdelay, reftime, rootdisp, refid, ntp_status, poll_exp,
+	 * rootdelay, reftime, rootdisp, refid, ntp_status,
 	 * last_update_offset, last_update_recv_time, discipline_jitter
 	 */
 
@@ -713,12 +715,15 @@ static void run_script(const char *action)
 	 * may take some time (seconds): */
 	/*wait4pid(spawn(argv));*/
 	spawn(argv);
-	G.last_script_run = G.cur_time;
 
 	unsetenv("stratum");
 	unsetenv("freq_drift_ppm");
+	unsetenv("poll_interval");
 	free(env1);
 	free(env2);
+	free(env3);
+
+	G.last_script_run = G.cur_time;
 }
 
 static NOINLINE void
@@ -1897,7 +1902,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		timeout++; /* (nextaction - G.cur_time) rounds down, compensating */
 
 		/* Here we may block */
-		VERB2 bb_error_msg("poll %us, sockets:%u", timeout, i);
+		VERB2 bb_error_msg("poll %us, sockets:%u, poll interval:%us", timeout, i, 1 << G.poll_exp);
 		nfds = poll(pfd, i, timeout * 1000);
 		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0) {
