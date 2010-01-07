@@ -1837,7 +1837,7 @@
      "\n	-t SECS		Poll time in seconds" \
      "\n	-u SECS		Delay before running script after link up" \
      "\n	-d SECS		Delay after link down" \
-     "\n	-m MODE		API mode (mii, priv, ethtool, wlan, auto)" \
+     "\n	-m MODE		API mode (mii, priv, ethtool, wlan, iff, auto)" \
      "\n	-k		Kill running daemon" \
 
 #define ifup_trivial_usage \
