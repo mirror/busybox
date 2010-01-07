@@ -83,7 +83,7 @@ static void show_clock(const char **pp_rtcname, int utc)
 			/* diff >= 0 is ok:   diff < 0, can't just use tv.tv_usec: */
 			/*   45.520820          43.520820 */
 			/* - 44.000000        - 45.000000 */
-			/* =  0.520820        = -1.479180, not -2.520820! */
+			/* =  1.520820        = -1.479180, not -2.520820! */
 			diff++;
 			/* should be 1000000 - tv.tv_usec, but then we must check tv.tv_usec != 0 */
 			sys_tv.tv_usec = 999999 - sys_tv.tv_usec;
