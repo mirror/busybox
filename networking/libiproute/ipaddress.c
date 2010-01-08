@@ -97,9 +97,8 @@ static void print_queuelen(char *name)
 static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 {
 	struct ifinfomsg *ifi = NLMSG_DATA(n);
-	struct rtattr * tb[IFLA_MAX+1];
+	struct rtattr *tb[IFLA_MAX+1];
 	int len = n->nlmsg_len;
-	unsigned m_flag = 0;
 
 	if (n->nlmsg_type != RTM_NEWLINK && n->nlmsg_type != RTM_DELLINK)
 		return 0;
@@ -130,22 +129,27 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		printf("Deleted ");
 
 	printf("%d: %s", ifi->ifi_index,
-		tb[IFLA_IFNAME] ? (char*)RTA_DATA(tb[IFLA_IFNAME]) : "<nil>");
+		/*tb[IFLA_IFNAME] ? (char*)RTA_DATA(tb[IFLA_IFNAME]) : "<nil>" - we checked tb[IFLA_IFNAME] above*/
+		(char*)RTA_DATA(tb[IFLA_IFNAME])
+	);
 
-	if (tb[IFLA_LINK]) {
-		SPRINT_BUF(b1);
-		int iflink = *(int*)RTA_DATA(tb[IFLA_LINK]);
-		if (iflink == 0)
-			printf("@NONE: ");
-		else {
-			printf("@%s: ", ll_idx_n2a(iflink, b1));
-			m_flag = ll_index_to_flags(iflink);
-			m_flag = !(m_flag & IFF_UP);
+	{
+		unsigned m_flag = 0;
+		if (tb[IFLA_LINK]) {
+			SPRINT_BUF(b1);
+			int iflink = *(int*)RTA_DATA(tb[IFLA_LINK]);
+			if (iflink == 0)
+				printf("@NONE: ");
+			else {
+				printf("@%s: ", ll_idx_n2a(iflink, b1));
+				m_flag = ll_index_to_flags(iflink);
+				m_flag = !(m_flag & IFF_UP);
+			}
+		} else {
+			printf(": ");
 		}
-	} else {
-		printf(": ");
+		print_link_flags(ifi->ifi_flags, m_flag);
 	}
-	print_link_flags(ifi->ifi_flags, m_flag);
 
 	if (tb[IFLA_MTU])
 		printf("mtu %u ", *(int*)RTA_DATA(tb[IFLA_MTU]));
@@ -382,12 +386,10 @@ static int FAST_FUNC store_nlmsg(const struct sockaddr_nl *who, struct nlmsghdr 
 	struct nlmsg_list *h;
 	struct nlmsg_list **lp;
 
-	h = malloc(n->nlmsg_len+sizeof(void*));
-	if (h == NULL)
-		return -1;
+	h = xzalloc(n->nlmsg_len + sizeof(void*));
 
 	memcpy(&h->h, n, n->nlmsg_len);
-	h->next = NULL;
+	/*h->next = NULL; - xzalloc did it */
 
 	for (lp = linfo; *lp; lp = &(*lp)->next)
 		continue;

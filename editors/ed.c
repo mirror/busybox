@@ -454,11 +454,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 		 * structure and use that.  Link it in in place of
 		 * the old line structure.
 		 */
-		nlp = malloc(sizeof(LINE) + lp->len + deltaLen);
-		if (nlp == NULL) {
-			bb_error_msg("can't get memory for line");
-			return;
-		}
+		nlp = xmalloc(sizeof(LINE) + lp->len + deltaLen);
 
 		nlp->len = lp->len + deltaLen;
 
@@ -712,12 +708,7 @@ static int readLines(const char *file, int num)
 
 		if (bufUsed >= bufSize) {
 			len = (bufSize * 3) / 2;
-			cp = realloc(bufBase, len);
-			if (cp == NULL) {
-				bb_error_msg("no memory for buffer");
-				close(fd);
-				return FALSE;
-			}
+			cp = xrealloc(bufBase, len);
 			bufBase = cp;
 			bufPtr = bufBase + bufUsed;
 			bufSize = len;
@@ -872,11 +863,7 @@ static int insertLine(int num, const char *data, int len)
 		return FALSE;
 	}
 
-	newLp = malloc(sizeof(LINE) + len - 1);
-	if (newLp == NULL) {
-		bb_error_msg("failed to allocate memory for line");
-		return FALSE;
-	}
+	newLp = xmalloc(sizeof(LINE) + len - 1);
 
 	memcpy(newLp->data, data, len);
 	newLp->len = len;

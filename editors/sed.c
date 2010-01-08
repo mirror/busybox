@@ -1094,7 +1094,7 @@ static void process_files(void)
 			/* append next_line, read new next_line. */
 			}
 			len = strlen(pattern_space);
-			pattern_space = realloc(pattern_space, len + strlen(next_line) + 2);
+			pattern_space = xrealloc(pattern_space, len + strlen(next_line) + 2);
 			pattern_space[len] = '\n';
 			strcpy(pattern_space + len+1, next_line);
 			last_gets_char = next_gets_char;

@@ -377,8 +377,7 @@ static struct fs_info *create_fs_device(const char *device, const char *mntpnt,
 {
 	struct fs_info *fs;
 
-	if (!(fs = malloc(sizeof(struct fs_info))))
-		return NULL;
+	fs = xmalloc(sizeof(struct fs_info));
 
 	fs->device = string_copy(device);
 	fs->mountpt = string_copy(mntpnt);
@@ -573,10 +572,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 	struct fsck_instance *inst, *p;
 	pid_t   pid;
 
-	inst = malloc(sizeof(struct fsck_instance));
-	if (!inst)
-		return ENOMEM;
-	memset(inst, 0, sizeof(struct fsck_instance));
+	inst = xzalloc(sizeof(struct fsck_instance));
 
 	prog = xasprintf("fsck.%s", type);
 	argv[0] = prog;

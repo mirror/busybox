@@ -50,9 +50,7 @@ errcode_t ext2fs_resize_mem(unsigned long EXT2FS_ATTR((unused)) old_size,
 	/* Use "memcpy" for pointer assignments here to avoid problems
 	 * with C99 strict type aliasing rules. */
 	memcpy(&p, ptr, sizeof (p));
-	p = realloc(p, size);
-	if (!p)
-		return EXT2_ET_NO_MEMORY;
+	p = xrealloc(p, size);
 	memcpy(ptr, &p, sizeof (p));
 	return 0;
 }
