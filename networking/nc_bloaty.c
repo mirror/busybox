@@ -340,16 +340,29 @@ create new one, and bind() it. TODO */
 			rr = accept(netfd, &remend.u.sa, &remend.len);
 			if (rr < 0)
 				bb_perror_msg_and_die("accept");
-			if (themaddr && memcmp(&remend.u.sa, &themaddr->u.sa, remend.len) != 0) {
-				/* nc 1.10 bails out instead, and its error message
-				 * is not suppressed by o_verbose */
-				if (o_verbose) {
-					char *remaddr = xmalloc_sockaddr2dotted(&remend.u.sa);
-					bb_error_msg("connect from wrong ip/port %s ignored", remaddr);
-					free(remaddr);
+			if (themaddr) {
+				int sv_port, port, r;
+
+				sv_port = get_nport(&remend.u.sa); /* save */
+				port = get_nport(&themaddr->u.sa);
+				if (port == 0) {
+					/* "nc -nl -p LPORT RHOST" (w/o RPORT!):
+					 * we should accept any remote port */
+					set_nport(&remend, 0); /* blot out remote port# */
 				}
-				close(rr);
-				goto again;
+				r = memcmp(&remend.u.sa, &themaddr->u.sa, remend.len);
+				set_nport(&remend, sv_port); /* restore */
+				if (r != 0) {
+					/* nc 1.10 bails out instead, and its error message
+					 * is not suppressed by o_verbose */
+					if (o_verbose) {
+						char *remaddr = xmalloc_sockaddr2dotted(&remend.u.sa);
+						bb_error_msg("connect from wrong ip/port %s ignored", remaddr);
+						free(remaddr);
+					}
+					close(rr);
+					goto again;
+				}
 			}
 			unarm();
 		} else
