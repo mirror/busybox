@@ -5111,7 +5111,7 @@ redirect(union node *redir, int flags)
 		do {
 			sv_pos++;
 #if ENABLE_ASH_BASH_COMPAT
-			if (redir->nfile.type == NTO2)
+			if (tmp->nfile.type == NTO2)
 				sv_pos++;
 #endif
 			tmp = tmp->nfile.next;
