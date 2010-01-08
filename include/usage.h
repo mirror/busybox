@@ -1825,7 +1825,7 @@
      "\n	-i IFACE	Interface" \
      "\n	-f/-F		Treat link detection error as link down/link up" \
      "\n			(otherwise exit on error)" \
-     "\n	-a		Don't up interface automatically" \
+     "\n	-a		Don't up interface at each link probe" \
      "\n	-M		Monitor creation/destruction of interface" \
      "\n			(otherwise it must exist)" \
      "\n	-r PROG		Script to run" \
