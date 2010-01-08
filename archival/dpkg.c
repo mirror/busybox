@@ -1493,7 +1493,18 @@ static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
 {
 	char *name_ptr = archive_handle->file_header->name;
 
-	name_ptr += strspn(name_ptr, "./");
+	/* Skip all leading "/" */
+	while (*name_ptr == '/')
+		name_ptr++;
+	/* Skip all leading "./" and "../" */
+	while (name_ptr[0] == '.') {
+		if (name_ptr[1] == '.' && name_ptr[2] == '/')
+			name_ptr++;
+		if (name_ptr[1] != '/')
+			break;
+		name_ptr += 2;
+	}
+
 	if (name_ptr[0] != '\0') {
 		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->dpkg__buffer, name_ptr);
 		data_extract_all(archive_handle);
