@@ -12615,7 +12615,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 
 	status = 0;
-	startword = 2;
+	startword = 1;
 	backslash = 0;
 #if ENABLE_ASH_READ_TIMEOUT
 	if (timeout) /* NB: ensuring end_ms is nonzero */
