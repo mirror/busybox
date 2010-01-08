@@ -89,14 +89,14 @@ typedef __u32 problem_t;
 
 struct problem_context {
 	errcode_t       errcode;
-	ext2_ino_t ino, ino2, dir;
+	ext2_ino_t      ino, ino2, dir;
 	struct ext2_inode *inode;
 	struct ext2_dir_entry *dirent;
-	blk_t   blk, blk2;
+	blk_t           blk, blk2;
 	e2_blkcnt_t     blkcount;
 	int             group;
-	__u64   num;
-	const char *str;
+	__u64           num;
+	const char      *str;
 };
 
 
@@ -133,31 +133,31 @@ typedef unsigned long dictcount_t;
 typedef enum { dnode_red, dnode_black } dnode_color_t;
 
 typedef struct dnode_t {
-    struct dnode_t *dict_left;
-    struct dnode_t *dict_right;
-    struct dnode_t *dict_parent;
-    dnode_color_t dict_color;
-    const void *dict_key;
-    void *dict_data;
+	struct dnode_t *dict_left;
+	struct dnode_t *dict_right;
+	struct dnode_t *dict_parent;
+	dnode_color_t dict_color;
+	const void *dict_key;
+	void *dict_data;
 } dnode_t;
 
 typedef int (*dict_comp_t)(const void *, const void *);
 typedef void (*dnode_free_t)(dnode_t *);
 
 typedef struct dict_t {
-    dnode_t dict_nilnode;
-    dictcount_t dict_nodecount;
-    dictcount_t dict_maxcount;
-    dict_comp_t dict_compare;
-    dnode_free_t dict_freenode;
-    int dict_dupes;
+	dnode_t dict_nilnode;
+	dictcount_t dict_nodecount;
+	dictcount_t dict_maxcount;
+	dict_comp_t dict_compare;
+	dnode_free_t dict_freenode;
+	int dict_dupes;
 } dict_t;
 
 typedef void (*dnode_process_t)(dict_t *, dnode_t *, void *);
 
 typedef struct dict_load_t {
-    dict_t *dict_dictptr;
-    dnode_t dict_nilnode;
+	dict_t *dict_dictptr;
+	dnode_t dict_nilnode;
 } dict_load_t;
 
 #define dict_count(D) ((D)->dict_nodecount)
@@ -214,9 +214,8 @@ static kmem_cache_t * do_cache_create(int len)
 {
 	kmem_cache_t *new_cache;
 
-	new_cache = malloc(sizeof(*new_cache));
-	if (new_cache)
-		new_cache->object_length = len;
+	new_cache = xmalloc(sizeof(*new_cache));
+	new_cache->object_length = len;
 	return new_cache;
 }
 
@@ -269,26 +268,26 @@ static void dnode_free(dnode_t *node);
 
 static void rotate_left(dnode_t *upper)
 {
-    dnode_t *lower, *lowleft, *upparent;
+	dnode_t *lower, *lowleft, *upparent;
 
-    lower = upper->right;
-    upper->right = lowleft = lower->left;
-    lowleft->parent = upper;
+	lower = upper->right;
+	upper->right = lowleft = lower->left;
+	lowleft->parent = upper;
 
-    lower->parent = upparent = upper->parent;
+	lower->parent = upparent = upper->parent;
 
-    /* don't need to check for root node here because root->parent is
-       the sentinel nil node, and root->parent->left points back to root */
+	/* don't need to check for root node here because root->parent is
+	   the sentinel nil node, and root->parent->left points back to root */
 
-    if (upper == upparent->left) {
-	upparent->left = lower;
-    } else {
-	assert (upper == upparent->right);
-	upparent->right = lower;
-    }
+	if (upper == upparent->left) {
+		upparent->left = lower;
+	} else {
+		assert (upper == upparent->right);
+		upparent->right = lower;
+	}
 
-    lower->left = upper;
-    upper->parent = lower;
+	lower->left = upper;
+	upper->parent = lower;
 }
 
 /*
@@ -298,23 +297,23 @@ static void rotate_left(dnode_t *upper)
 
 static void rotate_right(dnode_t *upper)
 {
-    dnode_t *lower, *lowright, *upparent;
+	dnode_t *lower, *lowright, *upparent;
 
-    lower = upper->left;
-    upper->left = lowright = lower->right;
-    lowright->parent = upper;
+	lower = upper->left;
+	upper->left = lowright = lower->right;
+	lowright->parent = upper;
 
-    lower->parent = upparent = upper->parent;
+	lower->parent = upparent = upper->parent;
 
-    if (upper == upparent->right) {
-	upparent->right = lower;
-    } else {
-	assert (upper == upparent->left);
-	upparent->left = lower;
-    }
+	if (upper == upparent->right) {
+		upparent->right = lower;
+	} else {
+		assert (upper == upparent->left);
+		upparent->left = lower;
+	}
 
-    lower->right = upper;
-    upper->parent = lower;
+	lower->right = upper;
+	upper->parent = lower;
 }
 
 /*
@@ -324,11 +323,11 @@ static void rotate_right(dnode_t *upper)
 
 static void free_nodes(dict_t *dict, dnode_t *node, dnode_t *nil)
 {
-    if (node == nil)
-	return;
-    free_nodes(dict, node->left, nil);
-    free_nodes(dict, node->right, nil);
-    dict->dict_freenode(node);
+	if (node == nil)
+		return;
+	free_nodes(dict, node->left, nil);
+	free_nodes(dict, node->right, nil);
+	dict->dict_freenode(node);
 }
 
 /*
@@ -340,12 +339,12 @@ static void free_nodes(dict_t *dict, dnode_t *node, dnode_t *nil)
 
 static int verify_dict_has_node(dnode_t *nil, dnode_t *root, dnode_t *node)
 {
-    if (root != nil) {
-	return root == node
-		|| verify_dict_has_node(nil, root->left, node)
-		|| verify_dict_has_node(nil, root->right, node);
-    }
-    return 0;
+	if (root != nil) {
+		return root == node
+			|| verify_dict_has_node(nil, root->left, node)
+			|| verify_dict_has_node(nil, root->right, node);
+	}
+	return 0;
 }
 
 
@@ -355,8 +354,8 @@ static int verify_dict_has_node(dnode_t *nil, dnode_t *root, dnode_t *node)
 
 static void dict_set_allocator(dict_t *dict, dnode_free_t fr)
 {
-    assert (dict_count(dict) == 0);
-    dict->dict_freenode = fr;
+	assert(dict_count(dict) == 0);
+	dict->dict_freenode = fr;
 }
 
 /*
@@ -366,11 +365,11 @@ static void dict_set_allocator(dict_t *dict, dnode_free_t fr)
 
 static void dict_free_nodes(dict_t *dict)
 {
-    dnode_t *nil = dict_nil(dict), *root = dict_root(dict);
-    free_nodes(dict, root, nil);
-    dict->dict_nodecount = 0;
-    dict->nilnode.left = &dict->nilnode;
-    dict->nilnode.right = &dict->nilnode;
+	dnode_t *nil = dict_nil(dict), *root = dict_root(dict);
+	free_nodes(dict, root, nil);
+	dict->dict_nodecount = 0;
+	dict->nilnode.left = &dict->nilnode;
+	dict->nilnode.right = &dict->nilnode;
 }
 
 /*
@@ -379,16 +378,16 @@ static void dict_free_nodes(dict_t *dict)
 
 static dict_t *dict_init(dict_t *dict, dictcount_t maxcount, dict_comp_t comp)
 {
-    dict->compare = comp;
-    dict->dict_freenode = dnode_free;
-    dict->dict_nodecount = 0;
-    dict->maxcount = maxcount;
-    dict->nilnode.left = &dict->nilnode;
-    dict->nilnode.right = &dict->nilnode;
-    dict->nilnode.parent = &dict->nilnode;
-    dict->nilnode.color = dnode_black;
-    dict->dupes = 0;
-    return dict;
+	dict->compare = comp;
+	dict->dict_freenode = dnode_free;
+	dict->dict_nodecount = 0;
+	dict->maxcount = maxcount;
+	dict->nilnode.left = &dict->nilnode;
+	dict->nilnode.right = &dict->nilnode;
+	dict->nilnode.parent = &dict->nilnode;
+	dict->nilnode.color = dnode_black;
+	dict->dupes = 0;
+	return dict;
 }
 
 /*
@@ -400,35 +399,35 @@ static dict_t *dict_init(dict_t *dict, dictcount_t maxcount, dict_comp_t comp)
 
 static dnode_t *dict_lookup(dict_t *dict, const void *key)
 {
-    dnode_t *root = dict_root(dict);
-    dnode_t *nil = dict_nil(dict);
-    dnode_t *saved;
-    int result;
+	dnode_t *root = dict_root(dict);
+	dnode_t *nil = dict_nil(dict);
+	dnode_t *saved;
+	int result;
 
-    /* simple binary search adapted for trees that contain duplicate keys */
+	/* simple binary search adapted for trees that contain duplicate keys */
 
-    while (root != nil) {
-	result = dict->compare(key, root->key);
-	if (result < 0)
-	    root = root->left;
-	else if (result > 0)
-	    root = root->right;
-	else {
-	    if (!dict->dupes) { /* no duplicates, return match          */
-		return root;
-	    } else {            /* could be dupes, find leftmost one    */
-		do {
-		    saved = root;
-		    root = root->left;
-		    while (root != nil && dict->compare(key, root->key))
+	while (root != nil) {
+		result = dict->compare(key, root->key);
+		if (result < 0)
+			root = root->left;
+		else if (result > 0)
 			root = root->right;
-		} while (root != nil);
-		return saved;
-	    }
+		else {
+			if (!dict->dupes) { /* no duplicates, return match          */
+				return root;
+			} else {            /* could be dupes, find leftmost one    */
+				do {
+					saved = root;
+					root = root->left;
+					while (root != nil && dict->compare(key, root->key))
+						root = root->right;
+				} while (root != nil);
+				return saved;
+			}
+		}
 	}
-    }
 
-    return NULL;
+	return NULL;
 }
 
 /*
@@ -441,87 +440,87 @@ static dnode_t *dict_lookup(dict_t *dict, const void *key)
 
 static void dict_insert(dict_t *dict, dnode_t *node, const void *key)
 {
-    dnode_t *where = dict_root(dict), *nil = dict_nil(dict);
-    dnode_t *parent = nil, *uncle, *grandpa;
-    int result = -1;
+	dnode_t *where = dict_root(dict), *nil = dict_nil(dict);
+	dnode_t *parent = nil, *uncle, *grandpa;
+	int result = -1;
 
-    node->key = key;
+	node->key = key;
 
-    /* basic binary tree insert */
+	/* basic binary tree insert */
 
-    while (where != nil) {
-	parent = where;
-	result = dict->compare(key, where->key);
-	/* trap attempts at duplicate key insertion unless it's explicitly allowed */
-	assert (dict->dupes || result != 0);
-	if (result < 0)
-	    where = where->left;
-	else
-	    where = where->right;
-    }
-
-    assert (where == nil);
-
-    if (result < 0)
-	parent->left = node;
-    else
-	parent->right = node;
-
-    node->parent = parent;
-    node->left = nil;
-    node->right = nil;
-
-    dict->dict_nodecount++;
-
-    /* red black adjustments */
-
-    node->color = dnode_red;
-
-    while (parent->color == dnode_red) {
-	grandpa = parent->parent;
-	if (parent == grandpa->left) {
-	    uncle = grandpa->right;
-	    if (uncle->color == dnode_red) {    /* red parent, red uncle */
-		parent->color = dnode_black;
-		uncle->color = dnode_black;
-		grandpa->color = dnode_red;
-		node = grandpa;
-		parent = grandpa->parent;
-	    } else {                            /* red parent, black uncle */
-		if (node == parent->right) {
-		    rotate_left(parent);
-		    parent = node;
-		    assert (grandpa == parent->parent);
-		    /* rotation between parent and child preserves grandpa */
-		}
-		parent->color = dnode_black;
-		grandpa->color = dnode_red;
-		rotate_right(grandpa);
-		break;
-	    }
-	} else {        /* symmetric cases: parent == parent->parent->right */
-	    uncle = grandpa->left;
-	    if (uncle->color == dnode_red) {
-		parent->color = dnode_black;
-		uncle->color = dnode_black;
-		grandpa->color = dnode_red;
-		node = grandpa;
-		parent = grandpa->parent;
-	    } else {
-		if (node == parent->left) {
-		    rotate_right(parent);
-		    parent = node;
-		    assert (grandpa == parent->parent);
-		}
-		parent->color = dnode_black;
-		grandpa->color = dnode_red;
-		rotate_left(grandpa);
-		break;
-	    }
+	while (where != nil) {
+		parent = where;
+		result = dict->compare(key, where->key);
+		/* trap attempts at duplicate key insertion unless it's explicitly allowed */
+		assert(dict->dupes || result != 0);
+		if (result < 0)
+			where = where->left;
+		else
+			where = where->right;
 	}
-    }
 
-    dict_root(dict)->color = dnode_black;
+	assert(where == nil);
+
+	if (result < 0)
+		parent->left = node;
+	else
+		parent->right = node;
+
+	node->parent = parent;
+	node->left = nil;
+	node->right = nil;
+
+	dict->dict_nodecount++;
+
+	/* red black adjustments */
+
+	node->color = dnode_red;
+
+	while (parent->color == dnode_red) {
+		grandpa = parent->parent;
+		if (parent == grandpa->left) {
+			uncle = grandpa->right;
+			if (uncle->color == dnode_red) {    /* red parent, red uncle */
+				parent->color = dnode_black;
+				uncle->color = dnode_black;
+				grandpa->color = dnode_red;
+				node = grandpa;
+				parent = grandpa->parent;
+			} else {                            /* red parent, black uncle */
+				if (node == parent->right) {
+					rotate_left(parent);
+					parent = node;
+					assert (grandpa == parent->parent);
+					/* rotation between parent and child preserves grandpa */
+				}
+				parent->color = dnode_black;
+				grandpa->color = dnode_red;
+				rotate_right(grandpa);
+				break;
+			}
+		} else {        /* symmetric cases: parent == parent->parent->right */
+			uncle = grandpa->left;
+			if (uncle->color == dnode_red) {
+				parent->color = dnode_black;
+				uncle->color = dnode_black;
+				grandpa->color = dnode_red;
+				node = grandpa;
+				parent = grandpa->parent;
+			} else {
+				if (node == parent->left) {
+					rotate_right(parent);
+					parent = node;
+					assert (grandpa == parent->parent);
+				}
+				parent->color = dnode_black;
+				grandpa->color = dnode_red;
+				rotate_left(grandpa);
+				break;
+			}
+		}
+	}
+
+	dict_root(dict)->color = dnode_black;
 
 }
 
@@ -532,23 +531,20 @@ static void dict_insert(dict_t *dict, dnode_t *node, const void *key)
 
 static dnode_t *dnode_init(dnode_t *dnode, void *data)
 {
-    dnode->data = data;
-    dnode->parent = NULL;
-    dnode->left = NULL;
-    dnode->right = NULL;
-    return dnode;
+	dnode->data = data;
+	dnode->parent = NULL;
+	dnode->left = NULL;
+	dnode->right = NULL;
+	return dnode;
 }
 
 static int dict_alloc_insert(dict_t *dict, const void *key, void *data)
 {
-    dnode_t *node = malloc(sizeof(dnode_t));
+	dnode_t *node = xmalloc(sizeof(dnode_t));
 
-    if (node) {
 	dnode_init(node, data);
 	dict_insert(dict, node, key);
 	return 1;
-    }
-    return 0;
 }
 
 /*
@@ -558,13 +554,13 @@ static int dict_alloc_insert(dict_t *dict, const void *key, void *data)
 
 static dnode_t *dict_first(dict_t *dict)
 {
-    dnode_t *nil = dict_nil(dict), *root = dict_root(dict), *left;
+	dnode_t *nil = dict_nil(dict), *root = dict_root(dict), *left;
 
-    if (root != nil)
-	while ((left = root->left) != nil)
-	    root = left;
+	if (root != nil)
+		while ((left = root->left) != nil)
+			root = left;
 
-    return (root == nil) ? NULL : root;
+	return (root == nil) ? NULL : root;
 }
 
 /*
@@ -576,29 +572,29 @@ static dnode_t *dict_first(dict_t *dict)
 
 static dnode_t *dict_next(dict_t *dict, dnode_t *curr)
 {
-    dnode_t *nil = dict_nil(dict), *parent, *left;
+	dnode_t *nil = dict_nil(dict), *parent, *left;
 
-    if (curr->right != nil) {
-	curr = curr->right;
-	while ((left = curr->left) != nil)
-	    curr = left;
-	return curr;
-    }
+	if (curr->right != nil) {
+		curr = curr->right;
+		while ((left = curr->left) != nil)
+			curr = left;
+		return curr;
+	}
 
-    parent = curr->parent;
-
-    while (parent != nil && curr == parent->right) {
-	curr = parent;
 	parent = curr->parent;
-    }
 
-    return (parent == nil) ? NULL : parent;
+	while (parent != nil && curr == parent->right) {
+		curr = parent;
+		parent = curr->parent;
+	}
+
+	return (parent == nil) ? NULL : parent;
 }
 
 
 static void dnode_free(dnode_t *node)
 {
-    free(node);
+	free(node);
 }
 
 
@@ -2392,8 +2388,8 @@ static const char *const abbrevs[] = {
 	N_("hHTREE @d @i"),
 	N_("llost+found"),
 	N_("Lis a link"),
-    N_("mmultiply-claimed"),
-    N_("ninvalid"),
+	N_("mmultiply-claimed"),
+	N_("ninvalid"),
 	N_("oorphaned"),
 	N_("pproblem in"),
 	N_("rroot @i"),
@@ -2742,10 +2738,7 @@ static region_t region_create(region_addr_t min, region_addr_t max)
 {
 	region_t        region;
 
-	region = malloc(sizeof(struct region_struct));
-	if (!region)
-		return NULL;
-	memset(region, 0, sizeof(struct region_struct));
+	region = xzalloc(sizeof(struct region_struct));
 	region->min = min;
 	region->max = max;
 	return region;
@@ -2810,9 +2803,7 @@ static int region_allocate(region_t region, region_addr_t start, int n)
 	/*
 	 * Insert a new region element structure into the linked list
 	 */
-	new_region = malloc(sizeof(struct region_el));
-	if (!new_region)
-		return -1;
+	new_region = xmalloc(sizeof(struct region_el));
 	new_region->start = start;
 	new_region->end = start + n;
 	new_region->next = r;
@@ -10311,12 +10302,8 @@ static int fill_dir_block(ext2_filsys fs,
 			continue;
 		}
 		if (fd->num_array >= fd->max_array) {
-			new_array = realloc(fd->harray,
+			new_array = xrealloc(fd->harray,
 			    sizeof(struct hash_entry) * (fd->max_array+500));
-			if (!new_array) {
-				fd->err = ENOMEM;
-				return BLOCK_ABORT;
-			}
 			fd->harray = new_array;
 			fd->max_array += 500;
 		}
@@ -10391,18 +10378,14 @@ static errcode_t alloc_size_dir(ext2_filsys fs, struct out_dir *outdir,
 	void                    *new_mem;
 
 	if (outdir->max) {
-		new_mem = realloc(outdir->buf, blocks * fs->blocksize);
-		if (!new_mem)
-			return ENOMEM;
+		new_mem = xrealloc(outdir->buf, blocks * fs->blocksize);
 		outdir->buf = new_mem;
-		new_mem = realloc(outdir->hashes,
+		new_mem = xrealloc(outdir->hashes,
 				  blocks * sizeof(ext2_dirhash_t));
-		if (!new_mem)
-			return ENOMEM;
 		outdir->hashes = new_mem;
 	} else {
-		outdir->buf = malloc(blocks * fs->blocksize);
-		outdir->hashes = malloc(blocks * sizeof(ext2_dirhash_t));
+		outdir->buf = xmalloc(blocks * fs->blocksize);
+		outdir->hashes = xmalloc(blocks * sizeof(ext2_dirhash_t));
 		outdir->num = 0;
 	}
 	outdir->max = blocks;
@@ -10849,15 +10832,11 @@ static errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino)
 
 	retval = ENOMEM;
 	fd.harray = 0;
-	dir_buf = malloc(inode.i_size);
-	if (!dir_buf)
-		goto errout;
+	dir_buf = xmalloc(inode.i_size);
 
 	fd.max_array = inode.i_size / 32;
 	fd.num_array = 0;
-	fd.harray = malloc(fd.max_array * sizeof(struct hash_entry));
-	if (!fd.harray)
-		goto errout;
+	fd.harray = xmalloc(fd.max_array * sizeof(struct hash_entry));
 
 	fd.ctx = ctx;
 	fd.buf = dir_buf;
@@ -11162,12 +11141,7 @@ int journal_init_revoke(journal_t *journal, int hash_size)
 		shift++;
 	journal->j_revoke->hash_shift = shift;
 
-	journal->j_revoke->hash_table = malloc(hash_size * sizeof(struct list_head));
-	if (!journal->j_revoke->hash_table) {
-		free(journal->j_revoke);
-		journal->j_revoke = NULL;
-		return -ENOMEM;
-	}
+	journal->j_revoke->hash_table = xmalloc(hash_size * sizeof(struct list_head));
 
 	for (tmp = 0; tmp < hash_size; tmp++)
 		INIT_LIST_HEAD(&journal->j_revoke->hash_table[tmp]);
@@ -12219,12 +12193,7 @@ void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 	void *ret;
 	char buf[256];
 
-	ret = malloc(size);
-	if (!ret) {
-		sprintf(buf, "Can't allocate %s\n", description);
-		bb_error_msg_and_die(buf);
-	}
-	memset(ret, 0, size);
+	ret = xzalloc(size);
 	return ret;
 }
 
@@ -12236,11 +12205,9 @@ static char *string_copy(const char *str, int len)
 		return NULL;
 	if (!len)
 		len = strlen(str);
-	ret = malloc(len+1);
-	if (ret) {
-		strncpy(ret, str, len);
-		ret[len] = 0;
-	}
+	ret = xmalloc(len+1);
+	strncpy(ret, str, len);
+	ret[len] = 0;
 	return ret;
 }
 
