@@ -65,11 +65,12 @@ static void passwd_study(struct passwd *p)
 	}
 }
 
-static void addgroup_wrapper(struct passwd *p)
+static void addgroup_wrapper(struct passwd *p, const char *group_name)
 {
 	char *cmd;
 
-	cmd = xasprintf("addgroup -g %u '%s'", (unsigned)p->pw_gid, p->pw_name);
+	cmd = xasprintf("addgroup '%s' '%s'",
+			p->pw_name, group_name);
 	system(cmd);
 	free(cmd);
 }
@@ -191,7 +192,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	/* addgroup should be responsible for dealing w/ gshadow */
 	/* if using a pre-existing group, don't create one */
     	if (usegroup)
-		addgroup_wrapper(&pw);
+		addgroup_wrapper(&pw, usegroup);
 
 	/* clear the umask for this process so it doesn't
 	 * screw up the permissions on the mkdir and chown. */
