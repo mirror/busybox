@@ -304,8 +304,12 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* -L makes sense only with -o or -p */
 
 #if !ENABLE_FEATURE_CPIO_O
+	/* no parameters */
+	opt_complementary = "=0";
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 #else
+	/* _exactly_ one parameter for -p, thus <= 1 param if -p is allowed */
+	opt_complementary = ENABLE_FEATURE_CPIO_P ? "?1" : "=0";
 	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
 	argv += optind;
 	if (opt & CPIO_OPT_PASSTHROUGH) {
@@ -346,13 +350,13 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		xchdir(*argv++);
 		close(pp.wr);
 		xmove_fd(pp.rd, STDIN_FILENO);
-		opt &= ~CPIO_OPT_PASSTHROUGH;
+		//opt &= ~CPIO_OPT_PASSTHROUGH;
 		opt |= CPIO_OPT_EXTRACT;
 		goto skip;
 	}
 	/* -o */
 	if (opt & CPIO_OPT_CREATE) {
-		if (*cpio_fmt != 'n') /* we _require_ "-H newc" */
+		if (cpio_fmt[0] != 'n') /* we _require_ "-H newc" */
 			bb_show_usage();
 		if (opt & CPIO_OPT_FILE) {
 			xmove_fd(xopen3(cpio_filename, O_WRONLY | O_CREAT | O_TRUNC, 0666), STDOUT_FILENO);

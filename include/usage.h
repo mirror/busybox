@@ -560,11 +560,15 @@
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
-       "-[ti" IF_FEATURE_CPIO_O("o") IF_FEATURE_CPIO_P("p") "dmvu] [-F FILE]" \
-       IF_FEATURE_CPIO_O( " [-H newc]" )
+       "[-ti" IF_FEATURE_CPIO_O("o") "]" IF_FEATURE_CPIO_P(" [-p DIR]") \
+       " [-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]")
 #define cpio_full_usage "\n\n" \
        "Extract or list files from a cpio archive" \
-	IF_FEATURE_CPIO_O( ", or create a cpio archive" ) \
+	IF_FEATURE_CPIO_O(", or" \
+     "\ncreate an archive" IF_FEATURE_CPIO_P(" (-o) or copy files (-p)") \
+		" using file list on standard input" \
+	) \
+     "\n" \
      "\nMain operation mode:" \
      "\n	-t	List" \
      "\n	-i	Extract" \
@@ -572,7 +576,7 @@
      "\n	-o	Create" \
 	) \
 	IF_FEATURE_CPIO_P( \
-     "\n	-p	Passthrough" \
+     "\n	-p DIR	Copy files to DIR" \
 	) \
      "\nOptions:" \
      "\n	-d	Make leading directories" \
