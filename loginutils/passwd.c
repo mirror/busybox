@@ -128,12 +128,20 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 		/* getspnam_r may return 0 yet set result to NULL.
 		 * At least glibc 2.4 does this. Be extra paranoid here. */
 		struct spwd *result = NULL;
-		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result)
-		 || !result || strcmp(result->sp_namp, pw->pw_name) != 0) {
-			/* LOGMODE_BOTH */
-			bb_error_msg("no record of %s in %s, using %s",
+		errno = 0;
+		if (getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result) != 0
+		 || !result /* no error, but no record found either */
+		 || strcmp(result->sp_namp, pw->pw_name) != 0 /* paranoia */
+		) {
+			if (errno != ENOENT) {
+				/* LOGMODE_BOTH */
+				bb_perror_msg("no record of %s in %s, using %s",
 					name, bb_path_shadow_file,
 					bb_path_passwd_file);
+			}
+			/* else: /etc/shadow does not exist,
+			 * apparently we are on a shadow-less system,
+			 * no surprise there */
 		} else {
 			pw->pw_passwd = result->sp_pwdp;
 		}
