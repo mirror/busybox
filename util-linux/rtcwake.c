@@ -50,7 +50,7 @@ static NOINLINE bool may_wakeup(const char *rtcname)
 
 static NOINLINE void setup_alarm(int fd, time_t *wakeup, time_t rtc_time)
 {
-	struct tm *tm;
+	struct tm *ptm;
 	struct linux_rtc_wkalrm	wake;
 
 	/* The wakeup time is in POSIX time (more or less UTC).
@@ -63,14 +63,14 @@ static NOINLINE void setup_alarm(int fd, time_t *wakeup, time_t rtc_time)
 	 * Else mode is local so the time given to the RTC
 	 * will instead use the local time zone.
 	 */
-	tm = localtime(wakeup);
+	ptm = localtime(wakeup);
 
-	wake.time.tm_sec = tm->tm_sec;
-	wake.time.tm_min = tm->tm_min;
-	wake.time.tm_hour = tm->tm_hour;
-	wake.time.tm_mday = tm->tm_mday;
-	wake.time.tm_mon = tm->tm_mon;
-	wake.time.tm_year = tm->tm_year;
+	wake.time.tm_sec = ptm->tm_sec;
+	wake.time.tm_min = ptm->tm_min;
+	wake.time.tm_hour = ptm->tm_hour;
+	wake.time.tm_mday = ptm->tm_mday;
+	wake.time.tm_mon = ptm->tm_mon;
+	wake.time.tm_year = ptm->tm_year;
 	/* wday, yday, and isdst fields are unused by Linux */
 	wake.time.tm_wday = -1;
 	wake.time.tm_yday = -1;
@@ -161,9 +161,9 @@ int rtcwake_main(int argc UNUSED_PARAM, char **argv)
 	/* relative or absolute alarm time, normalized to time_t */
 	sys_time = time(NULL);
 	{
-		struct tm tm;
-		rtc_read_tm(&tm, fd);
-		rtc_time = rtc_tm2time(&tm, utc);
+		struct tm tm_time;
+		rtc_read_tm(&tm_time, fd);
+		rtc_time = rtc_tm2time(&tm_time, utc);
 	}
 
 

@@ -13,8 +13,8 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 int rtc_adjtime_is_utc(void) FAST_FUNC;
 int rtc_xopen(const char **default_rtc, int flags) FAST_FUNC;
-void rtc_read_tm(struct tm *tm, int fd) FAST_FUNC;
-time_t rtc_tm2time(struct tm *tm, int utc) FAST_FUNC;
+void rtc_read_tm(struct tm *ptm, int fd) FAST_FUNC;
+time_t rtc_tm2time(struct tm *ptm, int utc) FAST_FUNC;
 
 
 /*

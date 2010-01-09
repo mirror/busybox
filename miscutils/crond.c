@@ -654,14 +654,14 @@ static int TestJobs(time_t t1, time_t t2)
 	/* Find jobs > t1 and <= t2 */
 
 	for (t = t1 - t1 % 60; t <= t2; t += 60) {
-		struct tm *tp;
+		struct tm *ptm;
 		CronFile *file;
 		CronLine *line;
 
 		if (t <= t1)
 			continue;
 
-		tp = localtime(&t);
+		ptm = localtime(&t);
 		for (file = FileBase; file; file = file->cf_Next) {
 			if (DebugOpt)
 				crondlog(LVL5 "file %s:", file->cf_User);
@@ -670,9 +670,9 @@ static int TestJobs(time_t t1, time_t t2)
 			for (line = file->cf_LineBase; line; line = line->cl_Next) {
 				if (DebugOpt)
 					crondlog(LVL5 " line %s", line->cl_Shell);
-				if (line->cl_Mins[tp->tm_min] && line->cl_Hrs[tp->tm_hour]
-				 && (line->cl_Days[tp->tm_mday] || line->cl_Dow[tp->tm_wday])
-				 && line->cl_Mons[tp->tm_mon]
+				if (line->cl_Mins[ptm->tm_min] && line->cl_Hrs[ptm->tm_hour]
+				 && (line->cl_Days[ptm->tm_mday] || line->cl_Dow[ptm->tm_wday])
+				 && line->cl_Mons[ptm->tm_mon]
 				) {
 					if (DebugOpt) {
 						crondlog(LVL5 " job: %d %s",

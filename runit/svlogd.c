@@ -266,18 +266,18 @@ static char* wstrdup(const char *str)
 /* NUL terminated */
 static void fmt_time_human_30nul(char *s)
 {
-	struct tm *t;
+	struct tm *ptm;
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	t = gmtime(&(tv.tv_sec));
+	ptm = gmtime(&tv.tv_sec);
 	sprintf(s, "%04u-%02u-%02u_%02u:%02u:%02u.%06u000",
-		(unsigned)(1900 + t->tm_year),
-		(unsigned)(t->tm_mon + 1),
-		(unsigned)(t->tm_mday),
-		(unsigned)(t->tm_hour),
-		(unsigned)(t->tm_min),
-		(unsigned)(t->tm_sec),
+		(unsigned)(1900 + ptm->tm_year),
+		(unsigned)(ptm->tm_mon + 1),
+		(unsigned)(ptm->tm_mday),
+		(unsigned)(ptm->tm_hour),
+		(unsigned)(ptm->tm_min),
+		(unsigned)(ptm->tm_sec),
 		(unsigned)(tv.tv_usec)
 	);
 	/* 4+1 + 2+1 + 2+1 + 2+1 + 2+1 + 2+1 + 9 = */

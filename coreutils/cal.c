@@ -79,7 +79,6 @@ static char *build_row(char *p, unsigned *dp);
 int cal_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cal_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct tm *local_time;
 	struct tm zero_tm;
 	time_t now;
 	unsigned month, year, flags, i;
@@ -94,11 +93,13 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	if (!argv[0]) {
+		struct tm *ptm;
+
 		time(&now);
-		local_time = localtime(&now);
-		year = local_time->tm_year + 1900;
+		ptm = localtime(&now);
+		year = ptm->tm_year + 1900;
 		if (!(flags & 2)) { /* no -y */
-			month = local_time->tm_mon + 1;
+			month = ptm->tm_mon + 1;
 		}
 	} else {
 		if (argv[1]) {

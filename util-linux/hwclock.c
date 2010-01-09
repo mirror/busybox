@@ -37,20 +37,20 @@
 #endif
 static time_t read_rtc(const char **pp_rtcname, struct timeval *sys_tv, int utc)
 {
-	struct tm tm;
+	struct tm tm_time;
 	int fd;
 
 	fd = rtc_xopen(pp_rtcname, O_RDONLY);
 
-	rtc_read_tm(&tm, fd);
+	rtc_read_tm(&tm_time, fd);
 
 #if SHOW_HWCLOCK_DIFF
 	{
-		int before = tm.tm_sec;
+		int before = tm_time.tm_sec;
 		while (1) {
-			rtc_read_tm(&tm, fd);
+			rtc_read_tm(&tm_time, fd);
 			gettimeofday(sys_tv, NULL);
-			if (before != tm.tm_sec)
+			if (before != tm_time.tm_sec)
 				break;
 		}
 	}
@@ -59,7 +59,7 @@ static time_t read_rtc(const char **pp_rtcname, struct timeval *sys_tv, int utc)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(fd);
 
-	return rtc_tm2time(&tm, utc);
+	return rtc_tm2time(&tm_time, utc);
 }
 
 static void show_clock(const char **pp_rtcname, int utc)
@@ -110,7 +110,7 @@ static void to_sys_clock(const char **pp_rtcname, int utc)
 static void from_sys_clock(const char **pp_rtcname, int utc)
 {
 #define TWEAK_USEC 200
-	struct tm tm;
+	struct tm tm_time;
 	struct timeval tv;
 	unsigned adj = TWEAK_USEC;
 	int rtc = rtc_xopen(pp_rtcname, O_WRONLY);
@@ -132,10 +132,10 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 
 		/* Prepare tm */
 		if (utc)
-			gmtime_r(&t, &tm); /* may read /etc/xxx (it takes time) */
+			gmtime_r(&t, &tm_time); /* may read /etc/xxx (it takes time) */
 		else
-			localtime_r(&t, &tm); /* same */
-		tm.tm_isdst = 0;
+			localtime_r(&t, &tm_time); /* same */
+		tm_time.tm_isdst = 0;
 
 		/* gmtime/localtime took some time, re-get cur time */
 		gettimeofday(&tv, NULL);
@@ -166,7 +166,7 @@ static void from_sys_clock(const char **pp_rtcname, int utc)
 		usleep(rem_usec - adj);
 	}
 
-	xioctl(rtc, RTC_SET_TIME, &tm);
+	xioctl(rtc, RTC_SET_TIME, &tm_time);
 
 	/* Debug aid to find "good" TWEAK_USEC.
 	 * Look for a value which makes tv_usec close to 999999 or 0.

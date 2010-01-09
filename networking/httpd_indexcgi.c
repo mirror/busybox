@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 	size_total = 0;
 	cdir = dir_list;
 	while (dir_list_count--) {
-		struct tm *tm;
+		struct tm *ptm;
 
 		if (S_ISDIR(cdir->dl_mode)) {
 			count_dirs++;
@@ -316,12 +316,12 @@ int main(int argc, char *argv[])
 			fmt_ull(cdir->dl_size);
 		fmt_str("<td class=dt>");
 		tm = gmtime(&cdir->dl_mtime);
-		fmt_04u(1900 + tm->tm_year); *dst++ = '-';
-		fmt_02u(tm->tm_mon + 1); *dst++ = '-';
-		fmt_02u(tm->tm_mday); *dst++ = ' ';
-		fmt_02u(tm->tm_hour); *dst++ = ':';
-		fmt_02u(tm->tm_min); *dst++ = ':';
-		fmt_02u(tm->tm_sec);
+		fmt_04u(1900 + ptm->tm_year); *dst++ = '-';
+		fmt_02u(ptm->tm_mon + 1); *dst++ = '-';
+		fmt_02u(ptm->tm_mday); *dst++ = ' ';
+		fmt_02u(ptm->tm_hour); *dst++ = ':';
+		fmt_02u(ptm->tm_min); *dst++ = ':';
+		fmt_02u(ptm->tm_sec);
 		*dst++ = '\n';
 
 		odd = 1 - odd;

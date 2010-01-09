@@ -538,16 +538,16 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		// create dir entry for volume_label
 		struct msdos_dir_entry *de;
 #if 0
-		struct tm tm;
+		struct tm tm_time;
 		uint16_t t, d;
 #endif
 		de = (void*)buf;
 		strncpy(de->name, volume_label, sizeof(de->name));
 		STORE_LE(de->attr, ATTR_VOLUME);
 #if 0
-		localtime_r(&create_time, &tm);
-		t = (tm.tm_sec >> 1) + (tm.tm_min << 5) + (tm.tm_hour << 11);
-		d = tm.tm_mday + ((tm.tm_mon+1) << 5) + ((tm.tm_year-80) << 9);
+		localtime_r(&create_time, &tm_time);
+		t = (tm_time.tm_sec >> 1) + (tm_time.tm_min << 5) + (tm_time.tm_hour << 11);
+		d = tm_time.tm_mday + ((tm_time.tm_mon+1) << 5) + ((tm_time.tm_year-80) << 9);
 		STORE_LE(de->time, t);
 		STORE_LE(de->date, d);
 		//STORE_LE(de->ctime_cs, 0);

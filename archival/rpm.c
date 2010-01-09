@@ -145,13 +145,13 @@ int rpm_main(int argc, char **argv)
 			if (func & rpm_query_info) {
 				/* Do the nice printout */
 				time_t bdate_time;
-				struct tm *bdate;
+				struct tm *bdate_ptm;
 				char bdatestring[50];
 				printf("Name        : %-29sRelocations: %s\n", rpm_getstr(TAG_NAME, 0), rpm_getstr(TAG_PREFIXS, 0) ? rpm_getstr(TAG_PREFIXS, 0) : "(not relocateable)");
 				printf("Version     : %-34sVendor: %s\n", rpm_getstr(TAG_VERSION, 0), rpm_getstr(TAG_VENDOR, 0) ? rpm_getstr(TAG_VENDOR, 0) : "(none)");
 				bdate_time = rpm_getint(TAG_BUILDTIME, 0);
-				bdate = localtime((time_t *) &bdate_time);
-				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate);
+				bdate_ptm = localtime(&bdate_time);
+				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
 				printf("Release     : %-30sBuild Date: %s\n", rpm_getstr(TAG_RELEASE, 0), bdatestring);
 				printf("Install date: %-30sBuild Host: %s\n", "(not installed)", rpm_getstr(TAG_BUILDHOST, 0));
 				printf("Group       : %-30sSource RPM: %s\n", rpm_getstr(TAG_GROUP, 0), rpm_getstr(TAG_SOURCERPM, 0));
