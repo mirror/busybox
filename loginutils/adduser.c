@@ -190,7 +190,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	/* add to group */
 	/* addgroup should be responsible for dealing w/ gshadow */
 	/* if using a pre-existing group, don't create one */
-	if (!usegroup)
+    	if (usegroup)
 		addgroup_wrapper(&pw);
 
 	/* clear the umask for this process so it doesn't
