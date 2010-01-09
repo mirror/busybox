@@ -312,7 +312,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "=0";
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 	if (opt & CPIO_OPT_FILE) { /* -F */
-		archive_handle->src_fd = xopen(cpio_filename, O_RDONLY);
+		xmove_fd(xopen(cpio_filename, O_RDONLY), STDIN_FILENO);
 	}
 #else
 	/* _exactly_ one parameter for -p, thus <= 1 param if -p is allowed */
