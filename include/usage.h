@@ -560,8 +560,8 @@
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
-       "[-ti" IF_FEATURE_CPIO_O("o") "]" IF_FEATURE_CPIO_P(" [-p DIR]") \
-       " [-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]")
+       "[-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]") \
+       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")
 #define cpio_full_usage "\n\n" \
        "Extract or list files from a cpio archive" \
 	IF_FEATURE_CPIO_O(", or" \
@@ -573,7 +573,7 @@
      "\n	-t	List" \
      "\n	-i	Extract" \
 	IF_FEATURE_CPIO_O( \
-     "\n	-o	Create" \
+     "\n	-o	Create (requires -H newc)" \
 	) \
 	IF_FEATURE_CPIO_P( \
      "\n	-p DIR	Copy files to DIR" \
@@ -583,9 +583,9 @@
      "\n	-m	Preserve mtime" \
      "\n	-v	Verbose" \
      "\n	-u	Overwrite" \
-     "\n	-F	Input file" \
+     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file" \
 	IF_FEATURE_CPIO_O( \
-     "\n	-H	Define format" \
+     "\n	-H newc	Archive format" \
 	) \
 
 #define crond_trivial_usage \

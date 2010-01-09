@@ -298,6 +298,10 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 
+	archive_handle = init_handle();
+	/* archive_handle->src_fd = STDIN_FILENO; - done by init_handle */
+	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
+
 	/* As of now we do not enforce this: */
 	/* -i,-t,-o,-p are mutually exclusive */
 	/* -u,-d,-m make sense only with -i or -p */
@@ -307,11 +311,17 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* no parameters */
 	opt_complementary = "=0";
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
+	if (opt & CPIO_OPT_FILE) { /* -F */
+		archive_handle->src_fd = xopen(cpio_filename, O_RDONLY);
+	}
 #else
 	/* _exactly_ one parameter for -p, thus <= 1 param if -p is allowed */
 	opt_complementary = ENABLE_FEATURE_CPIO_P ? "?1" : "=0";
 	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
 	argv += optind;
+	if ((opt & (CPIO_OPT_FILE|CPIO_OPT_CREATE)) == CPIO_OPT_FILE) { /* -F without -o */
+		xmove_fd(xopen(cpio_filename, O_RDONLY), STDIN_FILENO);
+	}
 	if (opt & CPIO_OPT_PASSTHROUGH) {
 		pid_t pid;
 		struct fd_pair pp;
@@ -367,11 +377,6 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
  skip:
 #endif
 
-	archive_handle = init_handle();
-	/* archive_handle->src_fd = STDIN_FILENO; - done by init_handle */
-	archive_handle->seek = seek_by_read;
-	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
-
 	/* One of either extract or test options must be given */
 	if ((opt & (CPIO_OPT_TEST | CPIO_OPT_EXTRACT)) == 0) {
 		bb_show_usage();
@@ -398,10 +403,6 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 			archive_handle->action_header = header_list;
 		}
 	}
-	if (opt & CPIO_OPT_FILE) { /* -F */
-		archive_handle->src_fd = xopen(cpio_filename, O_RDONLY);
-		archive_handle->seek = seek_by_jump;
-	}
 	if (opt & CPIO_OPT_CREATE_LEADING_DIR) {
 		archive_handle->ah_flags |= ARCHIVE_CREATE_LEADING_DIRS;
 	}
@@ -422,8 +423,9 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 
 	if (archive_handle->cpio__blocks != (off_t)-1
 	 && !(opt & CPIO_OPT_QUIET)
-	)
+	) {
 		printf("%"OFF_FMT"u blocks\n", archive_handle->cpio__blocks);
+	}
 
 	return EXIT_SUCCESS;
 }
