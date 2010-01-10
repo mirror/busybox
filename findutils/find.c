@@ -407,17 +407,33 @@ static int FAST_FUNC fileAction(const char *fileName,
 		void *userData IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM),
 		int depth IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
 {
-	int i;
+	int r;
 #if ENABLE_FEATURE_FIND_MAXDEPTH
 #define minmaxdepth ((int*)userData)
 
-	if (depth < minmaxdepth[0]) return TRUE;
-	if (depth > minmaxdepth[1]) return SKIP;
+	if (depth < minmaxdepth[0])
+		return TRUE; /* skip this, continue recursing */
+	if (depth > minmaxdepth[1])
+		return SKIP; /* stop recursing */
 #endif
 
+	r = exec_actions(G.actions, fileName, statbuf);
+	/* Had no explicit -print[0] or -exec? then print */
+	if ((r & TRUE) && G.need_print)
+		puts(fileName);
+
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	if (S_ISDIR(statbuf->st_mode)) {
+		if (depth == minmaxdepth[1])
+			return SKIP;
+	}
+#endif
 #if ENABLE_FEATURE_FIND_XDEV
+	/* -xdev stops on mountpoints, but AFTER mountpoit itself
+	 * is processed as usual */
 	if (S_ISDIR(statbuf->st_mode)) {
 		if (G.xdev_count) {
+			int i;
 			for (i = 0; i < G.xdev_count; i++) {
 				if (G.xdev_dev[i] == statbuf->st_dev)
 					goto found;
@@ -427,19 +443,10 @@ static int FAST_FUNC fileAction(const char *fileName,
 		}
 	}
 #endif
-	i = exec_actions(G.actions, fileName, statbuf);
-	/* Had no explicit -print[0] or -exec? then print */
-	if ((i & TRUE) && G.need_print)
-		puts(fileName);
 
-#if ENABLE_FEATURE_FIND_MAXDEPTH
-	if (S_ISDIR(statbuf->st_mode))
-		if (depth == minmaxdepth[1])
-			return SKIP;
-#endif
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
-	return (i & SKIP) ? SKIP : TRUE;
+	return (r & SKIP) ? SKIP : TRUE;
 #undef minmaxdepth
 }
 
@@ -914,13 +921,14 @@ IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 			struct stat stbuf;
 			if (!G.xdev_count) {
 				G.xdev_count = firstopt - 1;
-				G.xdev_dev = xmalloc(G.xdev_count * sizeof(dev_t));
+				G.xdev_dev = xzalloc(G.xdev_count * sizeof(G.xdev_dev[0]));
 				for (i = 1; i < firstopt; i++) {
 					/* not xstat(): shouldn't bomb out on
 					 * "find not_exist exist -xdev" */
-					if (stat(argv[i], &stbuf))
-						stbuf.st_dev = -1L;
-					G.xdev_dev[i-1] = stbuf.st_dev;
+					if (stat(argv[i], &stbuf) == 0)
+						G.xdev_dev[i-1] = stbuf.st_dev;
+					/* else G.xdev_dev[i-1] stays 0 and
+					 * won't match any real device dev_t */
 				}
 			}
 			argp[0] = (char*)"-a";
