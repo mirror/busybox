@@ -69,8 +69,11 @@ static void addgroup_wrapper(struct passwd *p, const char *group_name)
 {
 	char *cmd;
 
-	cmd = xasprintf("addgroup '%s' '%s'",
-			p->pw_name, group_name);
+	if (group_name) /* Add user to existing group */
+		cmd = xasprintf("addgroup '%s' '%s'", p->pw_name, group_name);
+	else    /* Add user to his own group with the first free gid found in passwd_study */
+		cmd = xasprintf("addgroup -g %u '%s'", (unsigned)p->pw_gid, p->pw_name);
+	/* Warning: to be compatible with external addgroup programs we should use --gid instead */
 	system(cmd);
 	free(cmd);
 }
@@ -79,10 +82,8 @@ static void passwd_wrapper(const char *login) NORETURN;
 
 static void passwd_wrapper(const char *login)
 {
-	static const char prog[] ALIGN1 = "passwd";
-
-	BB_EXECLP(prog, prog, login, NULL);
-	bb_error_msg_and_die("can't execute %s, you must set password manually", prog);
+	BB_EXECLP("passwd", "passwd", login, NULL);
+	bb_error_msg_and_die("can't execute passwd, you must set password manually");
 }
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
@@ -189,10 +190,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* add to group */
-	/* addgroup should be responsible for dealing w/ gshadow */
-	/* if using a pre-existing group, don't create one */
-    	if (usegroup)
-		addgroup_wrapper(&pw, usegroup);
+	addgroup_wrapper(&pw, usegroup);
 
 	/* clear the umask for this process so it doesn't
 	 * screw up the permissions on the mkdir and chown. */
@@ -201,9 +199,9 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		/* set the owner and group so it is owned by the new user,
 		 * then fix up the permissions to 2755. Can't do it before
 		 * since chown will clear the setgid bit */
-		if (mkdir(pw.pw_dir, 0755)
-		 || chown(pw.pw_dir, pw.pw_uid, pw.pw_gid)
-		 || chmod(pw.pw_dir, 02755) /* set setgid bit on homedir */
+		if ((mkdir(pw.pw_dir, 0755) != 0 && errno != EEXIST)
+		 || chown(pw.pw_dir, pw.pw_uid, pw.pw_gid) != 0
+		 || chmod(pw.pw_dir, 02755) != 0 /* set setgid bit on homedir */
 		) {
 			bb_simple_perror_msg(pw.pw_dir);
 		}
