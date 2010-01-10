@@ -42,6 +42,7 @@ total 0
 " \
 	"" ""
 
+
 test x"$SKIP_KNOWN_BUGS" = x"" && {
 # Currently fails. Numerous buglets: "1 blocks" versus "1 block",
 # "1 block" must go to stderr, does not list cpio.testdir/x and cpio.testdir/y
@@ -56,6 +57,7 @@ cpio.testdir/y
 " \
 	"" ""
 }
+
 
 # More complex case
 rm -rf cpio.testdir cpio.testdir2 2>/dev/null
@@ -81,6 +83,20 @@ total 8
 -rw-r--r-- 1 $user $group 0 solo
 " \
 	"" ""
+
+
+# Was trying to create "/usr/bin", correct is "usr/bin".
+rm -rf cpio.testdir
+testing "cpio -p with absolute paths" \
+"echo /usr/bin | cpio -dp cpio.testdir; echo \$?;
+ls cpio.testdir" \
+"\
+1 blocks
+0
+usr
+" \
+	"" ""
+
 
 # Clean up
 rm -rf cpio.testdir cpio.testdir2 2>/dev/null
