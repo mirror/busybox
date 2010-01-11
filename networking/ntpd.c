@@ -46,8 +46,34 @@
 #define MAX_VERBOSE     2
 
 
+/* High-level description of the algorithm:
+ *
+ * We start running with very small poll_exp, BURSTPOLL,
+ * in order to quickly accumulate INITIAL_SAMLPES datapoints
+ * for each peer. Then, time is stepped if the offset is larger
+ * than STEP_THRESHOLD, otherwise it isn't; anyway, we enlarge
+ * poll_exp to MINPOLL and enter frequency measurement step:
+ * we collect new datapoints but ignore them for WATCH_THRESHOLD
+ * seconds. After WATCH_THRESHOLD seconds we look at accumulated
+ * offset and estimate frequency drift.
+ *
+ * After this, we enter "steady state": we collect a datapoint,
+ * we select the best peer, if this datapoint is not a new one
+ * (IOW: if this datapoint isn't for selected peer), sleep
+ * and collect another one; otherwise, use its offset to update
+ * frequency drift, if offset is somewhat large, reduce poll_exp,
+ * otherwise increase poll_exp.
+ *
+ * If offset is larger than STEP_THRESHOLD, which shouldn't normally
+ * happen, we assume that something "bad" happened (computer
+ * was hibernated, someone set totally wrong date, etc),
+ * then the time is stepped, all datapoints are discarded,
+ * and we go back to steady state.
+ */
+
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
+#define INITIAL_SAMLPES 4       /* how many samples do we want for init */
 
 /* Clock discipline parameters and constants */
 #define STEP_THRESHOLD  0.128   /* step threshold (s) */
@@ -75,8 +101,9 @@
  * we grow a counter: += MINPOLL. When it goes over POLLADJ_LIMIT,
  * we poll_exp++. If offset isn't small, counter -= poll_exp*2,
  * and when it goes below -POLLADJ_LIMIT, we poll_exp--
+ * (bumped from 30 to 36 since otherwise I often see poll_exp going *2* steps down)
  */
-#define POLLADJ_LIMIT   30
+#define POLLADJ_LIMIT   36
 /* If offset < POLLADJ_GATE * discipline_jitter, then we can increase
  * poll interval (we think we can't improve timekeeping
  * by staying at smaller poll).
@@ -1555,6 +1582,7 @@ recv_and_process_peer_pkt(peer_t *p)
 			if (q->filter_offset < -POLLDOWN_OFFSET
 			 || q->filter_offset > POLLDOWN_OFFSET
 			) {
+				VERB3 bb_error_msg("offset:%f > POLLDOWN_OFFSET", q->filter_offset);
 				goto poll_down;
 			}
 		}
@@ -1856,13 +1884,14 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 	idx2peer = xzalloc(sizeof(idx2peer[0]) * cnt);
 	pfd = xzalloc(sizeof(pfd[0]) * cnt);
 
-	/* Countdown: we never sync before we sent 5 packets to each peer
+	/* Countdown: we never sync before we sent INITIAL_SAMLPES+1
+	 * packets to each peer.
 	 * NB: if some peer is not responding, we may end up sending
 	 * fewer packets to it and more to other peers.
-	 * NB2: sync usually happens using 5-1=4 packets, since last reply
-	 * does not come back instantaneously.
+	 * NB2: sync usually happens using INITIAL_SAMLPES packets,
+	 * since last reply does not come back instantaneously.
 	 */
-	cnt = G.peer_cnt * 5;
+	cnt = G.peer_cnt * (INITIAL_SAMLPES + 1);
 
 	while (!bb_got_signal) {
 		llist_t *item;
