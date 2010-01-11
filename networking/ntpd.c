@@ -49,24 +49,26 @@
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
 
-#define FREQ_TOLERANCE  0.000015 /* % frequency tolerance (15 PPM) */
-#define BURSTPOLL       0
-#define MINPOLL         4       /* % minimum poll interval (6: 64 s) */
-#define MAXPOLL         12      /* % maximum poll interval (12: 1.1h, 17: 36.4h) (was 17) */
-#define MINDISP         0.01    /* % minimum dispersion (s) */
-#define MAXDISP         16      /* maximum dispersion (s) */
-#define MAXSTRAT        16      /* maximum stratum (infinity metric) */
-#define MAXDIST         1       /* % distance threshold (s) */
-#define MIN_SELECTED    1       /* % minimum intersection survivors */
-#define MIN_CLUSTERED   3       /* % minimum cluster survivors */
-
-#define MAXDRIFT        0.000500 /* frequency drift we can correct (500 PPM) */
-
 /* Clock discipline parameters and constants */
 #define STEP_THRESHOLD  0.128   /* step threshold (s) */
 #define WATCH_THRESHOLD 150     /* stepout threshold (s). std ntpd uses 900 (11 mins (!)) */
 /* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
-#define PANIC_THRESHOLD 1000    /* panic threshold (s) */
+//UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (s) */
+
+#define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
+#define BURSTPOLL       0	/* initial poll */
+#define MINPOLL         4       /* minimum poll interval (6: 64 s) */
+#define BIGPOLL         10      /* drop to lower poll at any trouble (10: 17 min) */
+#define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h) (was 17) */
+#define POLLDOWN_OFFSET (STEP_THRESHOLD / 3) /* actively lower poll when we see such big offsets */
+#define MINDISP         0.01    /* minimum dispersion (s) */
+#define MAXDISP         16      /* maximum dispersion (s) */
+#define MAXSTRAT        16      /* maximum stratum (infinity metric) */
+#define MAXDIST         1       /* distance threshold (s) */
+#define MIN_SELECTED    1       /* minimum intersection survivors */
+#define MIN_CLUSTERED   3       /* minimum cluster survivors */
+
+#define MAXDRIFT        0.000500 /* frequency drift we can correct (500 PPM) */
 
 /* Poll-adjust threshold.
  * When we see that offset is small enough compared to discipline jitter,
@@ -686,10 +688,10 @@ send_query_to_peer(peer_t *p)
 }
 
 
-static void run_script(const char *action)
+static void run_script(const char *action, double offset)
 {
 	char *argv[3];
-	char *env1, *env2, *env3;
+	char *env1, *env2, *env3, *env4;
 
 	if (!G.script_name)
 		return;
@@ -706,9 +708,12 @@ static void run_script(const char *action)
 	putenv(env2);
 	env3 = xasprintf("%s=%u", "poll_interval", 1 << G.poll_exp);
 	putenv(env3);
+	env4 = xasprintf("%s=%f", "offset", offset);
+	putenv(env4);
 	/* Other items of potential interest: selected peer,
 	 * rootdelay, reftime, rootdisp, refid, ntp_status,
-	 * last_update_offset, last_update_recv_time, discipline_jitter
+	 * last_update_offset, last_update_recv_time, discipline_jitter,
+	 * how many peers have reachable_bits = 0?
 	 */
 
 	/* Don't want to wait: it may run hwclock --systohc, and that
@@ -719,9 +724,11 @@ static void run_script(const char *action)
 	unsetenv("stratum");
 	unsetenv("freq_drift_ppm");
 	unsetenv("poll_interval");
+	unsetenv("offset");
 	free(env1);
 	free(env2);
 	free(env3);
+	free(env4);
 
 	G.last_script_run = G.cur_time;
 }
@@ -1095,10 +1102,14 @@ update_local_clock(peer_t *p)
 
 	abs_offset = fabs(offset);
 
+#if 0
+	/* If needed, -S script can detect this by looking at $offset
+	 * env var and kill parent */
 	/* If the offset is too large, give up and go home */
 	if (abs_offset > PANIC_THRESHOLD) {
 		bb_error_msg_and_die("offset %f far too big, exiting", offset);
 	}
+#endif
 
 	/* If this is an old update, for instance as the result
 	 * of a system peer change, avoid it. We never use
@@ -1185,7 +1196,7 @@ update_local_clock(peer_t *p)
 		G.poll_exp = MINPOLL;
 		G.stratum = MAXSTRAT;
 
-		run_script("step");
+		run_script("step", offset);
 
 		if (G.discipline_state == STATE_NSET) {
 			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);
@@ -1274,7 +1285,7 @@ update_local_clock(peer_t *p)
 		}
 		if (G.stratum != p->lastpkt_stratum + 1) {
 			G.stratum = p->lastpkt_stratum + 1;
-			run_script("stratum");
+			run_script("stratum", offset);
 		}
 	}
 
@@ -1371,10 +1382,8 @@ update_local_clock(peer_t *p)
 				tmx.freq, tmx.offset, tmx.constant, tmx.status);
 	}
 #endif
-	if (G.kernel_freq_drift != tmx.freq / 65536) {
-		G.kernel_freq_drift = tmx.freq / 65536;
-		VERB2 bb_error_msg("kernel clock drift: %ld ppm", G.kernel_freq_drift);
-	}
+	G.kernel_freq_drift = tmx.freq / 65536;
+	VERB2 bb_error_msg("update offset:%f, clock drift:%ld ppm", G.last_update_offset, G.kernel_freq_drift);
 
 	return 1; /* "ok to increase poll interval" */
 }
@@ -1538,9 +1547,19 @@ recv_and_process_peer_pkt(peer_t *p)
 	rc = -1;
 	if (q) {
 		rc = 0;
-		if (!(option_mask32 & OPT_w))
+		if (!(option_mask32 & OPT_w)) {
 			rc = update_local_clock(q);
+			/* If drift is dangerously large, immediately
+			 * drop poll interval one step down.
+			 */
+			if (q->filter_offset < -POLLDOWN_OFFSET
+			 || q->filter_offset > POLLDOWN_OFFSET
+			) {
+				goto poll_down;
+			}
+		}
 	}
+	/* else: no peer selected, rc = -1: we want to poll more often */
 
 	if (rc != 0) {
 		/* Adjust the poll interval by comparing the current offset
@@ -1572,7 +1591,8 @@ recv_and_process_peer_pkt(peer_t *p)
 			}
 		} else {
 			G.polladj_count -= G.poll_exp * 2;
-			if (G.polladj_count < -POLLADJ_LIMIT) {
+			if (G.polladj_count < -POLLADJ_LIMIT || G.poll_exp >= BIGPOLL) {
+ poll_down:
 				G.polladj_count = 0;
 				if (G.poll_exp > MINPOLL) {
 					llist_t *item;
@@ -1910,7 +1930,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			 && G.cur_time - G.last_script_run > 11*60
 			) {
 				/* Useful for updating battery-backed RTC and such */
-				run_script("periodic");
+				run_script("periodic", G.last_update_offset);
 				gettime1900d(); /* sets G.cur_time */
 			}
 			continue;
