@@ -31,8 +31,6 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 	const char *opt_u
 )
 {
-	static const char *const arg_REPLY[] = { "REPLY", NULL };
-
 	unsigned end_ms; /* -t TIMEOUT */
 	int fd; /* -u FD */
 	int nchars; /* -n NUM */
@@ -94,8 +92,6 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 		fflush_all();
 	}
 
-	if (argv[0] == NULL)
-		argv = (char**)arg_REPLY;
 	if (ifs == NULL)
 		ifs = defifs;
 
@@ -125,7 +121,6 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 	bufpos = 0;
 	do {
 		char c;
-		const char *is_ifs;
 
 		if (end_ms) {
 			int timeout;
@@ -163,40 +158,53 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 		}
 		if (c == '\n')
 			break;
-		/* $IFS splitting */
+
+		/* $IFS splitting. NOT done if we run "read"
+		 * without variable names (bash compat).
+		 * Thus, "read" and "read REPLY" are not the same.
+		 */
+		if (argv[0]) {
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05 */
-		is_ifs = strchr(ifs, c);
-		if (startword && is_ifs) {
-			if (isspace(c))
+			const char *is_ifs = strchr(ifs, c);
+			if (startword && is_ifs) {
+				if (isspace(c))
+					continue;
+				/* it is a non-space ifs char */
+				startword--;
+				if (startword == 1) /* first one? */
+					continue; /* yes, it is not next word yet */
+			}
+			startword = 0;
+			if (argv[1] != NULL && is_ifs) {
+				buffer[bufpos] = '\0';
+				bufpos = 0;
+				setvar(*argv, buffer, 0);
+				argv++;
+				/* can we skip one non-space ifs char? (2: yes) */
+				startword = isspace(c) ? 2 : 1;
 				continue;
-			/* it is a non-space ifs char */
-			startword--;
-			if (startword == 1) /* first one? */
-				continue; /* yes, it is not next word yet */
-		}
-		startword = 0;
-		if (argv[1] != NULL && is_ifs) {
-			buffer[bufpos] = '\0';
-			bufpos = 0;
-			setvar(*argv, buffer, 0);
-			argv++;
-			/* can we skip one non-space ifs char? (2: yes) */
-			startword = isspace(c) ? 2 : 1;
-			continue;
+			}
 		}
  put:
 		bufpos++;
 	} while (--nchars);
 
-	/* Remove trailing space ifs chars */
-	while (--bufpos >= 0 && isspace(buffer[bufpos]) && strchr(ifs, buffer[bufpos]) != NULL)
-		continue;
-	buffer[bufpos + 1] = '\0';
+	if (argv[0]) {
+		/* Remove trailing space $IFS chars */
+		while (--bufpos >= 0 && isspace(buffer[bufpos]) && strchr(ifs, buffer[bufpos]) != NULL)
+			continue;
+		buffer[bufpos + 1] = '\0';
+		/* Use the remainder as a value for the next variable */
+		setvar(*argv, buffer, 0);
+		/* Set the rest to "" */
+		while (*++argv)
+			setvar(*argv, "", 0);
+	} else {
+		/* Note: no $IFS removal */
+		buffer[bufpos] = '\0';
+		setvar("REPLY", buffer, 0);
+	}
 
-	setvar(*argv, buffer, 0);
-
-	while (*++argv != NULL)
-		setvar(*argv, "", 0);
  ret:
 	free(buffer);
 	if (read_flags & BUILTIN_READ_SILENT)
