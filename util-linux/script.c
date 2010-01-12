@@ -119,7 +119,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 				 * for example, try "script -c true" */
 				break;
 			}
-			if (pfd[0].revents) {
+			if (pfd[0].revents & POLLIN) {
 				errno = 0;
 				count = safe_read(pty, buf, sizeof(buf));
 				if (count <= 0 && errno != EAGAIN) {
@@ -143,7 +143,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 					}
 				}
 			}
-			if (pfd[1].revents) {
+			if (pfd[1].revents & POLLIN) {
 				count = safe_read(STDIN_FILENO, buf, sizeof(buf));
 				if (count <= 0) {
 					/* err/eof from stdin: don't read stdin anymore */

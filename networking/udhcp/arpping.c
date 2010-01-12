@@ -95,7 +95,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 		if (r < 0)
 			break;
 		if (r) {
-			r = read(s, &arp, sizeof(arp));
+			r = safe_read(s, &arp, sizeof(arp));
 			if (r < 0)
 				break;
 
