@@ -2919,7 +2919,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 		char *g_argv0, char **g_argv,
 		char **builtin_argv)
 {
-	char param_buf[sizeof("-$%x:%x:%x:%x:%x") + sizeof(unsigned) * 2];
+#define NOMMU_HACK_FMT ("-$%x:%x:%x:%x:%x:%llx" IF_HUSH_LOOPS(":%x"))
+	/* delims + 2 * (number of bytes in printed hex numbers) */
+	char param_buf[sizeof(NOMMU_HACK_FMT) + 2 * (sizeof(int)*6 + sizeof(long long)*1)];
 	char *heredoc_argv[4];
 	struct variable *cur;
 # if ENABLE_HUSH_FUNCTIONS
@@ -2953,7 +2955,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 		}
 	}
 
-	sprintf(param_buf, "-$%x:%x:%x:%x:%x:%llx" IF_HUSH_LOOPS(":%x")
+	sprintf(param_buf, NOMMU_HACK_FMT
 			, (unsigned) G.root_pid
 			, (unsigned) G.root_ppid
 			, (unsigned) G.last_bg_pid
@@ -2962,7 +2964,8 @@ static void re_execute_shell(char ***to_free, const char *s,
 			, empty_trap_mask
 			IF_HUSH_LOOPS(, G.depth_of_loop)
 			);
-	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...> <funcs...>
+#undef NOMMU_HACK_FMT
+	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<etc...> <vars...> <funcs...>
 	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
 	 */
 	cnt += 6;
