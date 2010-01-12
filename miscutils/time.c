@@ -70,7 +70,7 @@ static void resuse_end(pid_t pid, resource_t *resp)
 			return;
 		}
 	}
-	resp->elapsed_ms = (monotonic_us() / 1000) - resp->elapsed_ms;
+	resp->elapsed_ms = monotonic_ms() - resp->elapsed_ms;
 }
 
 static void printargv(char *const *argv)
@@ -371,7 +371,7 @@ static void run_command(char *const *cmd, resource_t *resp)
 	void (*interrupt_signal)(int);
 	void (*quit_signal)(int);
 
-	resp->elapsed_ms = monotonic_us() / 1000;
+	resp->elapsed_ms = monotonic_ms();
 	pid = vfork();		/* Run CMD as child process.  */
 	if (pid < 0)
 		bb_perror_msg_and_die("fork");

@@ -88,7 +88,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 	timeout_ms = 2000;
 	do {
 		int r;
-		unsigned prevTime = monotonic_us();
+		unsigned prevTime = monotonic_ms();
 
 		pfd[0].events = POLLIN;
 		r = safe_poll(pfd, 1, timeout_ms);
@@ -119,7 +119,7 @@ int FAST_FUNC arpping(uint32_t test_nip,
 				break;
 			}
 		}
-		timeout_ms -= ((unsigned)monotonic_us() - prevTime) / 1000;
+		timeout_ms -= (unsigned)monotonic_ms() - prevTime;
 	} while (timeout_ms > 0);
 
  ret:

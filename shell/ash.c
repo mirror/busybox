@@ -12619,7 +12619,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	backslash = 0;
 #if ENABLE_ASH_READ_TIMEOUT
 	if (timeout) /* NB: ensuring end_ms is nonzero */
-		end_ms = ((unsigned)(monotonic_us() / 1000) + timeout) | 1;
+		end_ms = ((unsigned)monotonic_ms() + timeout) | 1;
 #endif
 	STARTSTACKSTR(p);
 	do {
@@ -12630,7 +12630,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			struct pollfd pfd[1];
 			pfd[0].fd = fd;
 			pfd[0].events = POLLIN;
-			timeout = end_ms - (unsigned)(monotonic_us() / 1000);
+			timeout = end_ms - (unsigned)monotonic_ms();
 			if ((int)timeout <= 0 /* already late? */
 			 || safe_poll(pfd, 1, timeout) != 1 /* no? wait... */
 			) { /* timed out! */

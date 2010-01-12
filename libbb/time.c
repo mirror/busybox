@@ -175,6 +175,12 @@ unsigned long long FAST_FUNC monotonic_us(void)
 	get_mono(&ts);
 	return ts.tv_sec * 1000000ULL + ts.tv_nsec/1000;
 }
+unsigned long long FAST_FUNC monotonic_ms(void)
+{
+	struct timespec ts;
+	get_mono(&ts);
+	return ts.tv_sec * 1000ULL + ts.tv_nsec/1000000;
+}
 unsigned FAST_FUNC monotonic_sec(void)
 {
 	struct timespec ts;
@@ -195,6 +201,12 @@ unsigned long long FAST_FUNC monotonic_us(void)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec * 1000000ULL + tv.tv_usec;
+}
+unsigned long long FAST_FUNC monotonic_ms(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000ULL + tv.tv_usec / 1000;
 }
 unsigned FAST_FUNC monotonic_sec(void)
 {
