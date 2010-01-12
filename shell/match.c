@@ -1,16 +1,16 @@
 /*
  * ##/%% variable matching code ripped out of ash shell for code sharing
  *
+ * This code is derived from software contributed to Berkeley by
+ * Kenneth Almquist.
+ *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ *
  * Copyright (c) 1989, 1991, 1993, 1994
  *      The Regents of the University of California.  All rights reserved.
  *
  * Copyright (c) 1997-2005 Herbert Xu <herbert@gondor.apana.org.au>
  * was re-ported from NetBSD and debianized.
- *
- * This code is derived from software contributed to Berkeley by
- * Kenneth Almquist.
- *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #ifdef STANDALONE
 # include <stdbool.h>

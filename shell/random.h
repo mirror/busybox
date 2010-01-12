@@ -6,6 +6,10 @@
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
+#ifndef SHELL_RANDOM_H
+#define SHELL_RANDOM_H 1
+
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 typedef struct random_t {
 	/* Random number generators */
@@ -23,3 +27,7 @@ typedef struct random_t {
 	((rnd)->galois_LFSR = 0)
 
 uint32_t next_random(random_t *rnd) FAST_FUNC;
+
+POP_SAVED_FUNCTION_VISIBILITY
+
+#endif

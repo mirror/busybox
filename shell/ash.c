@@ -2,18 +2,18 @@
 /*
  * ash shell port for busybox
  *
+ * This code is derived from software contributed to Berkeley by
+ * Kenneth Almquist.
+ *
+ * Original BSD copyright notice is retained at the end of this file.
+ *
  * Copyright (c) 1989, 1991, 1993, 1994
  *      The Regents of the University of California.  All rights reserved.
  *
  * Copyright (c) 1997-2005 Herbert Xu <herbert@gondor.apana.org.au>
  * was re-ported from NetBSD and debianized.
  *
- * This code is derived from software contributed to Berkeley by
- * Kenneth Almquist.
- *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
- *
- * Original BSD copyright notice is retained at the end of this file.
  */
 
 /*
@@ -34,8 +34,6 @@
 
 #define PROFILE 0
 
-#define IFS_BROKEN
-
 #define JOBS ENABLE_ASH_JOB_CONTROL
 
 #if DEBUG
@@ -50,6 +48,9 @@
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
+
+#include "shell_common.h"
+#include "builtin_read.h"
 #include "math.h"
 #if ENABLE_ASH_RANDOM_SUPPORT
 # include "random.h"
@@ -1737,13 +1738,6 @@ struct localvar {
 # define VDYNAMIC       0
 #endif
 
-#ifdef IFS_BROKEN
-static const char defifsvar[] ALIGN1 = "IFS= \t\n";
-#define defifs (defifsvar + 4)
-#else
-static const char defifs[] ALIGN1 = " \t\n";
-#endif
-
 
 /* Need to be before varinit_data[] */
 #if ENABLE_LOCALE_SUPPORT
@@ -1774,7 +1768,7 @@ static const struct {
 	const char *text;
 	void (*func)(const char *) FAST_FUNC;
 } varinit_data[] = {
-#ifdef IFS_BROKEN
+#if IFS_BROKEN
 	{ VSTRFIXED|VTEXTFIXED       , defifsvar   , NULL            },
 #else
 	{ VSTRFIXED|VTEXTFIXED|VUNSET, "IFS\0"     , NULL            },
@@ -12499,211 +12493,53 @@ typedef enum __rlimit_resource rlim_t;
 static int FAST_FUNC
 readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	static const char *const arg_REPLY[] = { "REPLY", NULL };
-
-	char **ap;
-	int backslash;
-	char c;
-	int rflag;
-	char *prompt;
-	const char *ifs;
-	char *p;
-	int startword;
-	int status;
+	char *opt_n = NULL;
+	char *opt_p = NULL;
+	char *opt_t = NULL;
+	char *opt_u = NULL;
+	int read_flags = 0;
+	const char *r;
 	int i;
-	int fd = 0;
-#if ENABLE_ASH_READ_NCHARS
-	int nchars = 0; /* if != 0, -n is in effect */
-	int silent = 0;
-	struct termios tty, old_tty;
-#endif
-#if ENABLE_ASH_READ_TIMEOUT
-	unsigned end_ms = 0;
-	unsigned timeout = 0;
-#endif
 
-	rflag = 0;
-	prompt = NULL;
-	while ((i = nextopt("p:u:r"
-		IF_ASH_READ_TIMEOUT("t:")
-		IF_ASH_READ_NCHARS("n:s")
-	)) != '\0') {
+	while ((i = nextopt("p:u:rt:n:s")) != '\0') {
 		switch (i) {
 		case 'p':
-			prompt = optionarg;
+			opt_p = optionarg;
 			break;
-#if ENABLE_ASH_READ_NCHARS
 		case 'n':
-			nchars = bb_strtou(optionarg, NULL, 10);
-			if (nchars < 0 || errno)
-				ash_msg_and_raise_error("invalid count");
-			/* nchars == 0: off (bash 3.2 does this too) */
+			opt_n = optionarg;
 			break;
 		case 's':
-			silent = 1;
+			read_flags |= BUILTIN_READ_SILENT;
 			break;
-#endif
-#if ENABLE_ASH_READ_TIMEOUT
 		case 't':
-			timeout = bb_strtou(optionarg, NULL, 10);
-			if (errno || timeout > UINT_MAX / 2048)
-				ash_msg_and_raise_error("invalid timeout");
-			timeout *= 1000;
-#if 0 /* even bash have no -t N.NNN support */
-			ts.tv_sec = bb_strtou(optionarg, &p, 10);
-			ts.tv_usec = 0;
-			/* EINVAL means number is ok, but not terminated by NUL */
-			if (*p == '.' && errno == EINVAL) {
-				char *p2;
-				if (*++p) {
-					int scale;
-					ts.tv_usec = bb_strtou(p, &p2, 10);
-					if (errno)
-						ash_msg_and_raise_error("invalid timeout");
-					scale = p2 - p;
-					/* normalize to usec */
-					if (scale > 6)
-						ash_msg_and_raise_error("invalid timeout");
-					while (scale++ < 6)
-						ts.tv_usec *= 10;
-				}
-			} else if (ts.tv_sec < 0 || errno) {
-				ash_msg_and_raise_error("invalid timeout");
-			}
-			if (!(ts.tv_sec | ts.tv_usec)) { /* both are 0? */
-				ash_msg_and_raise_error("invalid timeout");
-			}
-#endif /* if 0 */
+			opt_t = optionarg;
 			break;
-#endif
 		case 'r':
-			rflag = 1;
+			read_flags |= BUILTIN_READ_RAW;
 			break;
 		case 'u':
-			fd = bb_strtou(optionarg, NULL, 10);
-			if (fd < 0 || errno)
-				ash_msg_and_raise_error("invalid file descriptor");
+			opt_u = optionarg;
 			break;
 		default:
 			break;
 		}
 	}
-	if (prompt && isatty(fd)) {
-		out2str(prompt);
-	}
-	ap = argptr;
-	if (*ap == NULL)
-		ap = (char**)arg_REPLY;
-	ifs = bltinlookup("IFS");
-	if (ifs == NULL)
-		ifs = defifs;
-#if ENABLE_ASH_READ_NCHARS
-	tcgetattr(fd, &tty);
-	old_tty = tty;
-	if (nchars || silent) {
-		if (nchars) {
-			tty.c_lflag &= ~ICANON;
-			tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
-		}
-		if (silent) {
-			tty.c_lflag &= ~(ECHO | ECHOK | ECHONL);
-		}
-		/* if tcgetattr failed, tcsetattr will fail too.
-		 * Ignoring, it's harmless. */
-		tcsetattr(fd, TCSANOW, &tty);
-	}
-#endif
 
-	status = 0;
-	startword = 1;
-	backslash = 0;
-#if ENABLE_ASH_READ_TIMEOUT
-	if (timeout) /* NB: ensuring end_ms is nonzero */
-		end_ms = ((unsigned)monotonic_ms() + timeout) | 1;
-#endif
-	STARTSTACKSTR(p);
-	do {
-		const char *is_ifs;
+	r = builtin_read(setvar,
+		argptr,
+		bltinlookup("IFS"), /* can be NULL */
+		read_flags,
+		opt_n,
+		opt_p,
+		opt_t,
+		opt_u
+	);
 
-#if ENABLE_ASH_READ_TIMEOUT
-		if (end_ms) {
-			struct pollfd pfd[1];
-			pfd[0].fd = fd;
-			pfd[0].events = POLLIN;
-			timeout = end_ms - (unsigned)monotonic_ms();
-			if ((int)timeout <= 0 /* already late? */
-			 || safe_poll(pfd, 1, timeout) != 1 /* no? wait... */
-			) { /* timed out! */
-#if ENABLE_ASH_READ_NCHARS
-				tcsetattr(fd, TCSANOW, &old_tty);
-#endif
-				return 1;
-			}
-		}
-#endif
-		if (nonblock_safe_read(fd, &c, 1) != 1) {
-			status = 1;
-			break;
-		}
-		if (c == '\0')
-			continue;
-		if (backslash) {
-			backslash = 0;
-			if (c != '\n')
-				goto put;
-			continue;
-		}
-		if (!rflag && c == '\\') {
-			backslash = 1;
-			continue;
-		}
-		if (c == '\n')
-			break;
-		/* $IFS splitting */
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_05 */
-		is_ifs = strchr(ifs, c);
-		if (startword && is_ifs) {
-			if (isspace(c))
-				continue;
-			/* it is a non-space ifs char */
-			startword--;
-			if (startword == 1) /* first one? */
-				continue; /* yes, it is not next word yet */
-		}
-		startword = 0;
-		if (ap[1] != NULL && is_ifs) {
-			const char *beg;
-			STACKSTRNUL(p);
-			beg = stackblock();
-			setvar(*ap, beg, 0);
-			ap++;
-			/* can we skip one non-space ifs char? (2: yes) */
-			startword = isspace(c) ? 2 : 1;
-			STARTSTACKSTR(p);
-			continue;
-		}
- put:
-		STPUTC(c, p);
-	}
-/* end of do {} while: */
-#if ENABLE_ASH_READ_NCHARS
-	while (--nchars);
-#else
-	while (1);
-#endif
+	if ((uintptr_t)r > 1)
+		ash_msg_and_raise_error(r);
 
-#if ENABLE_ASH_READ_NCHARS
-	tcsetattr(fd, TCSANOW, &old_tty);
-#endif
-
-	STACKSTRNUL(p);
-	/* Remove trailing space ifs chars */
-	while ((char *)stackblock() <= --p && isspace(*p) && strchr(ifs, *p) != NULL)
-		*p = '\0';
-	setvar(*ap, stackblock(), 0);
-	while (*++ap != NULL)
-		setvar(*ap, nullstr, 0);
-	return status;
+	return (uintptr_t)r;
 }
 
 static int FAST_FUNC
