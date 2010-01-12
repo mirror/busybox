@@ -1884,7 +1884,7 @@ getoptsreset(const char *value)
  * Return of a legal variable name (a letter or underscore followed by zero or
  * more letters, underscores, and digits).
  */
-static char *
+static char* FAST_FUNC
 endofname(const char *name)
 {
 	char *p;
@@ -1991,7 +1991,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Find the value of a variable.  Returns NULL if not set.
  */
-static const char *
+static const char* FAST_FUNC
 lookupvar(const char *name)
 {
 	struct var *v;
@@ -2112,6 +2112,12 @@ setvar(const char *name, const char *val, int flags)
 	*p = '\0';
 	setvareq(nameeq, flags | VNOSAVE);
 	INT_ON;
+}
+
+static void FAST_FUNC
+setvar2(const char *name, const char *val)
+{
+	setvar(name, val, 0);
 }
 
 #if ENABLE_ASH_GETOPTS
@@ -5304,7 +5310,7 @@ ash_arith(const char *s)
 	int errcode = 0;
 
 	math_hooks.lookupvar = lookupvar;
-	math_hooks.setvar = setvar;
+	math_hooks.setvar    = setvar2;
 	math_hooks.endofname = endofname;
 
 	INT_OFF;
@@ -12526,7 +12532,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	}
 
-	r = builtin_read(setvar,
+	r = shell_builtin_read(setvar2,
 		argptr,
 		bltinlookup("IFS"), /* can be NULL */
 		read_flags,

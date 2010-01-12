@@ -6,7 +6,7 @@
 
 lib-y:=
 lib-$(CONFIG_ASH)      += ash.o ash_ptr_hack.o shell_common.o builtin_read.o
-lib-$(CONFIG_HUSH)     += hush.o match.o
+lib-$(CONFIG_HUSH)     += hush.o match.o shell_common.o builtin_read.o
 lib-$(CONFIG_CTTYHACK) += cttyhack.o
 
 lib-$(CONFIG_SH_MATH_SUPPORT) += math.o

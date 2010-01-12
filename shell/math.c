@@ -25,14 +25,6 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-#include "libbb.h"
-#include "math.h"
-
-#define a_e_h_t arith_eval_hooks_t
-#define lookupvar (math_hooks->lookupvar)
-#define setvar (math_hooks->setvar)
-#define endofname (math_hooks->endofname)
-
 /* Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -99,7 +91,6 @@
  * whitespace chars should be considered.  Look below the "#include"s for a
  * precompiler test.
  */
-
 /*
  * Aug 26, 2001              Manuel Novoa III
  *
@@ -109,7 +100,6 @@
  * modified slightly to take account of my changes to the code.
  *
  */
-
 /*
  *  (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  *
@@ -126,6 +116,13 @@
  * - protect $((num num)) as true zero expr (Manuel`s error)
  * - always use special isspace(), see comment from bash ;-)
  */
+#include "libbb.h"
+#include "math.h"
+
+#define a_e_h_t arith_eval_hooks_t
+#define lookupvar (math_hooks->lookupvar)
+#define setvar    (math_hooks->setvar   )
+#define endofname (math_hooks->endofname)
 
 #define arith_isspace(arithval) \
 	(arithval == ' ' || arithval == '\n' || arithval == '\t')
@@ -420,7 +417,7 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hoo
 		}
 		/* save to shell variable */
 		sprintf(buf, arith_t_fmt, rez);
-		setvar(numptr_m1->var, buf, 0);
+		setvar(numptr_m1->var, buf);
 		/* after saving, make previous value for v++ or v-- */
 		if (op == TOK_POST_INC)
 			rez--;

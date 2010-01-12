@@ -84,6 +84,9 @@
 #if ENABLE_HUSH_CASE
 # include <fnmatch.h>
 #endif
+
+#include "shell_common.h"
+#include "builtin_read.h"
 #include "math.h"
 #include "match.h"
 #if ENABLE_HUSH_RANDOM_SUPPORT
@@ -1307,7 +1310,7 @@ static struct variable *get_local_var(const char *name)
 	return NULL;
 }
 
-static const char *get_local_var_value(const char *name)
+static const char* FAST_FUNC get_local_var_value(const char *name)
 {
 	struct variable **pp = get_ptr_to_local_var(name);
 	if (pp)
@@ -1510,7 +1513,7 @@ static void unset_vars(char **strings)
 #if ENABLE_SH_MATH_SUPPORT
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
-static char *endofname(const char *name)
+static char* FAST_FUNC endofname(const char *name)
 {
 	char *p;
 
@@ -1524,11 +1527,10 @@ static char *endofname(const char *name)
 	return p;
 }
 
-static void arith_set_local_var(const char *name, const char *val, int flags)
+static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
-	/* arith code doesnt malloc space, so do it for it */
 	char *var = xasprintf("%s=%s", name, val);
-	set_local_var(var, flags, /*lvl:*/ 0, /*ro:*/ 0);
+	set_local_var(var, /*flags:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 }
 #endif
 
@@ -2538,7 +2540,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 			exp_str = expand_pseudo_dquoted(arg);
 			hooks.lookupvar = get_local_var_value;
-			hooks.setvar = arith_set_local_var;
+			hooks.setvar = set_local_var_from_halves;
 			hooks.endofname = endofname;
 			res = arith(exp_str ? exp_str : arg, &errcode, &hooks);
 			free(exp_str);
@@ -6157,7 +6159,7 @@ static struct pipe *parse_stream(char **pstring,
 
 	G.ifs = get_local_var_value("IFS");
 	if (G.ifs == NULL)
-		G.ifs = " \t\n";
+		G.ifs = defifs;
 
  reset:
 #if ENABLE_HUSH_INTERACTIVE
@@ -7727,24 +7729,37 @@ static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 
 static int FAST_FUNC builtin_read(char **argv)
 {
-	char *string;
-	const char *name = "REPLY";
+	const char *r;
+	char *opt_n = NULL;
+	char *opt_p = NULL;
+	char *opt_t = NULL;
+	char *opt_u = NULL;
+	int read_flags;
 
-	if (argv[1]) {
-		name = argv[1];
-		/* bash (3.2.33(1)) bug: "read 0abcd" will execute,
-		 * and _after_ that_ it will complain */
-		if (!is_well_formed_var_name(name, '\0')) {
-			/* Mimic bash message */
-			bb_error_msg("read: '%s': not a valid identifier", name);
-			return 1;
-		}
+	/* "!": do not abort on errors.
+	 * Option string must start with "sr" to match BUILTIN_READ_xxx
+	 */
+	read_flags = getopt32(argv, "!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u);
+	if (read_flags == (uint32_t)-1)
+		return EXIT_FAILURE;
+	argv += optind;
+
+	r = shell_builtin_read(set_local_var_from_halves,
+		argv,
+		get_local_var_value("IFS"), /* can be NULL */
+		read_flags,
+		opt_n,
+		opt_p,
+		opt_t,
+		opt_u
+	);
+
+	if ((uintptr_t)r > 1) {
+		bb_error_msg("%s", r);
+		r = (char*)(uintptr_t)1;
 	}
 
-//TODO: bash unbackslashes input, splits words and puts them in argv[i]
-
-	string = xmalloc_reads(STDIN_FILENO, xasprintf("%s=", name), NULL);
-	return set_local_var(string, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+	return (uintptr_t)r;
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set

@@ -21,7 +21,7 @@
 #include "builtin_read.h"
 
 const char* FAST_FUNC
-builtin_read(void (*setvar)(const char *name, const char *val, int flags),
+shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	char       **argv,
 	const char *ifs,
 	int        read_flags,
@@ -178,7 +178,7 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 			if (argv[1] != NULL && is_ifs) {
 				buffer[bufpos] = '\0';
 				bufpos = 0;
-				setvar(*argv, buffer, 0);
+				setvar(*argv, buffer);
 				argv++;
 				/* can we skip one non-space ifs char? (2: yes) */
 				startword = isspace(c) ? 2 : 1;
@@ -195,14 +195,14 @@ builtin_read(void (*setvar)(const char *name, const char *val, int flags),
 			continue;
 		buffer[bufpos + 1] = '\0';
 		/* Use the remainder as a value for the next variable */
-		setvar(*argv, buffer, 0);
+		setvar(*argv, buffer);
 		/* Set the rest to "" */
 		while (*++argv)
-			setvar(*argv, "", 0);
+			setvar(*argv, "");
 	} else {
 		/* Note: no $IFS removal */
 		buffer[bufpos] = '\0';
-		setvar("REPLY", buffer, 0);
+		setvar("REPLY", buffer);
 	}
 
  ret:

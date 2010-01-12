@@ -27,7 +27,7 @@ enum {
 };
 
 const char* FAST_FUNC
-builtin_read(void (*setvar)(const char *name, const char *val, int flags),
+shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	char       **argv,
 	const char *ifs,
 	int        read_flags,

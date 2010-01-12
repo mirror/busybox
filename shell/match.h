@@ -5,6 +5,8 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
+//TODO! Why ash.c still uses internal version?!
+
 typedef char *(*scan_t)(char *string, char *match, bool match_at_left);
 
 char *scanleft(char *string, char *match, bool match_at_left);

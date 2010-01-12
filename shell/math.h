@@ -87,12 +87,13 @@ typedef long arith_t;
 #define strto_arith_t strtoul
 #endif
 
-typedef const char *(*arith_var_lookup_t)(const char *name);
-typedef void (*arith_var_set_t)(const char *name, const char *val, int flags);
-typedef char *(*arith_var_endofname_t)(const char *name);
+typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
+typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
+typedef char*       FAST_FUNC (*arith_var_endofname_t)(const char *name);
+
 typedef struct arith_eval_hooks {
-	arith_var_lookup_t lookupvar;
-	arith_var_set_t setvar;
+	arith_var_lookup_t    lookupvar;
+	arith_var_set_t       setvar;
 	arith_var_endofname_t endofname;
 } arith_eval_hooks_t;
 
