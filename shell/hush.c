@@ -4406,9 +4406,15 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 					lvl*2, "", prn,
 					command->assignment_cnt);
 			if (command->group) {
-				fprintf(stderr, " group %s: (argv=%p)\n",
+				fprintf(stderr, " group %s: (argv=%p)%s%s\n",
 						CMDTYPE[command->cmd_type],
-						argv);
+						argv
+#if !BB_MMU
+						, " group_as_string:", command->group_as_string
+#else
+						, "", ""
+#endif
+				);
 				debug_print_tree(command->group, lvl+1);
 				prn++;
 				continue;
@@ -5986,7 +5992,7 @@ static int handle_dollar(o_string *as_string,
 #  if !BB_MMU
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
-			o_addchr(as_string, '`');
+			o_addchr(as_string, ')');
 		}
 #  endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -6535,6 +6541,9 @@ static struct pipe *parse_stream(char **pstring,
 				 * with redirect_opt_num(), but bash doesn't do it.
 				 * "echo foo 2| cat" yields "foo 2". */
 				done_command(&ctx);
+#if !BB_MMU
+				o_reset_to_empty_unquoted(&ctx.as_string);
+#endif
 			}
 			goto new_cmd;
 		case '(':
