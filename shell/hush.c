@@ -520,6 +520,7 @@ struct globals {
 	smalluint last_exitcode;
 	/* are global_argv and global_argv[1..n] malloced? (note: not [0]) */
 	smalluint global_args_malloced;
+	smalluint inherited_set_is_saved;
 	/* how many non-NULL argv's we have. NB: $# + 1 */
 	int global_argc;
 	char **global_argv;
@@ -1050,7 +1051,8 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  *
  * Trap handlers will execute even within trap handlers. (right?)
  *
- * User trap handlers are forgotten when subshell ("(cmd)") is entered.
+ * User trap handlers are forgotten when subshell ("(cmd)") is entered,
+ * except for handlers set to '' (empty string).
  *
  * If job control is off, backgrounded commands ("cmd &")
  * have SIGINT, SIGQUIT set to SIG_IGN.
@@ -1106,7 +1108,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * after [v]fork, if we plan to be a shell:
  *    unblock signals with special interactive handling
  *    (child shell is not interactive),
- *    unset all traps (note: regardless of child shell's type - {}, (), etc)
+ *    unset all traps except '' (note: regardless of child shell's type - {}, (), etc)
  * after [v]fork, if we plan to exec:
  *    POSIX says fork clears pending signal mask in child - no need to clear it.
  *    Restore blocked signal set to one inherited by shell just prior to exec.
@@ -1118,7 +1120,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * Note 2 (compat):
  * Standard says "When a subshell is entered, traps that are not being ignored
  * are set to the default actions". bash interprets it so that traps which
- * are set to "" (ignore) are NOT reset to defaults. We do the same.
+ * are set to '' (ignore) are NOT reset to defaults. We do the same.
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -2925,6 +2927,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 # endif
 	char **argv, **pp;
 	unsigned cnt;
+	unsigned long long empty_trap_mask;
 
 	if (!g_argv0) { /* heredoc */
 		argv = heredoc_argv;
@@ -2941,12 +2944,22 @@ static void re_execute_shell(char ***to_free, const char *s,
 	if (pp) while (*pp++)
 		cnt++;
 
-	sprintf(param_buf, "-$%x:%x:%x:%x:%x" IF_HUSH_LOOPS(":%x")
+	empty_trap_mask = 0;
+	if (G.traps) {
+		int sig;
+		for (sig = 1; sig < NSIG; sig++) {
+			if (G.traps[sig] && !G.traps[sig][0])
+				empty_trap_mask |= 1LL << sig;
+		}
+	}
+
+	sprintf(param_buf, "-$%x:%x:%x:%x:%x:%llx" IF_HUSH_LOOPS(":%x")
 			, (unsigned) G.root_pid
 			, (unsigned) G.root_ppid
 			, (unsigned) G.last_bg_pid
 			, (unsigned) G.last_exitcode
 			, cnt
+			, empty_trap_mask
 			IF_HUSH_LOOPS(, G.depth_of_loop)
 			);
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<depth> <vars...> <funcs...>
@@ -3002,7 +3015,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 	 * _inside_ group (just before echo 1), it works.
 	 *
 	 * I conclude it means we don't need to pass active traps here.
-	 * exec syscall below resets them to SIG_DFL for us.
+	 * Even if we would use signal handlers instead of signal masking
+	 * in order to implement trap handling,
+	 * exec syscall below resets signals to SIG_DFL for us.
 	 */
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
@@ -5447,7 +5462,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 	pid_t pid;
 	int channel[2];
 # if !BB_MMU
-	char **to_free;
+	char **to_free = NULL;
 # endif
 
 	xpipe(channel);
@@ -6677,10 +6692,17 @@ static void parse_and_run_file(FILE *f)
 }
 
 /* Called a few times only (or even once if "sh -c") */
-static void block_signals(int second_time)
+static void init_sigmasks(void)
 {
 	unsigned sig;
 	unsigned mask;
+	sigset_t old_blocked_set;
+
+	if (!G.inherited_set_is_saved) {
+		sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
+		G.inherited_set = G.blocked_set;
+	}
+	old_blocked_set = G.blocked_set;
 
 	mask = (1 << SIGQUIT);
 	if (G_interactive_fd) {
@@ -6690,8 +6712,6 @@ static void block_signals(int second_time)
 	}
 	G.non_DFL_mask = mask;
 
-	if (!second_time)
-		sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
 	sig = 0;
 	while (mask) {
 		if (mask & 1)
@@ -6701,18 +6721,21 @@ static void block_signals(int second_time)
 	}
 	sigdelset(&G.blocked_set, SIGCHLD);
 
-	sigprocmask(SIG_SETMASK, &G.blocked_set,
-			second_time ? NULL : &G.inherited_set);
+	if (memcmp(&old_blocked_set, &G.blocked_set, sizeof(old_blocked_set)) != 0)
+		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
 #if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
-	if (!second_time)
+	if (!G.inherited_set_is_saved)
 		signal(SIGCHLD, SIGCHLD_handler);
 #else
-	if (!second_time)
+	if (!G.inherited_set_is_saved)
 		signal(SIGCHLD, SIG_DFL);
 #endif
+
+	G.inherited_set_is_saved = 1;
 }
 
 #if ENABLE_HUSH_JOB
@@ -6774,7 +6797,6 @@ int hush_main(int argc, char **argv)
 		.flg_export = 1,
 		.flg_read_only = 1,
 	};
-	int signal_mask_is_inited = 0;
 	int opt;
 	unsigned builtin_argc;
 	char **e;
@@ -6865,10 +6887,9 @@ int hush_main(int argc, char **argv)
 	}
 
 	/* Shell is non-interactive at first. We need to call
-	 * block_signals(0) if we are going to execute "sh <script>",
+	 * init_sigmasks() if we are going to execute "sh <script>",
 	 * "sh -c <cmds>" or login shell's /etc/profile and friends.
-	 * If we later decide that we are interactive, we run block_signals(0)
-	 * (or re-run block_signals(1) if we ran block_signals(0) before)
+	 * If we later decide that we are interactive, we run init_sigmasks()
 	 * in order to intercept (more) signals.
 	 */
 
@@ -6908,7 +6929,7 @@ int hush_main(int argc, char **argv)
 				/* -c 'builtin' [BARGV...] "" ARG0 [ARG1...] */
 				const struct built_in_command *x;
 
-				block_signals(0); /* 0: called 1st time */
+				init_sigmasks();
 				x = find_builtin(optarg);
 				if (x) { /* paranoia */
 					G.global_argc -= builtin_argc; /* skip [BARGV...] "" */
@@ -6924,7 +6945,7 @@ int hush_main(int argc, char **argv)
 				G.global_argv[0] = argv[0];
 				G.global_argc--;
 			} /* else -c 'script' ARG0 [ARG1...]: $0 is ARG0 */
-			block_signals(0); /* 0: called 1st time */
+			init_sigmasks();
 			parse_and_run_string(optarg);
 			goto final_return;
 		case 'i':
@@ -6940,7 +6961,9 @@ int hush_main(int argc, char **argv)
 		case '<': /* "big heredoc" support */
 			full_write(STDOUT_FILENO, optarg, strlen(optarg));
 			_exit(0);
-		case '$':
+		case '$': {
+			unsigned long long empty_trap_mask;
+
 			G.root_pid = bb_strtou(optarg, &optarg, 16);
 			optarg++;
 			G.root_ppid = bb_strtou(optarg, &optarg, 16);
@@ -6950,11 +6973,26 @@ int hush_main(int argc, char **argv)
 			G.last_exitcode = bb_strtou(optarg, &optarg, 16);
 			optarg++;
 			builtin_argc = bb_strtou(optarg, &optarg, 16);
+			optarg++;
+			empty_trap_mask = bb_strtoull(optarg, &optarg, 16);
+			if (empty_trap_mask != 0) {
+				int sig;
+				init_sigmasks();
+				G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
+				for (sig = 1; sig < NSIG; sig++) {
+					if (empty_trap_mask & (1LL << sig)) {
+						G.traps[sig] = xzalloc(1); /* == xstrdup(""); */
+						sigaddset(&G.blocked_set, sig);
+					}
+				}
+				sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+			}
 # if ENABLE_HUSH_LOOPS
 			optarg++;
 			G.depth_of_loop = bb_strtou(optarg, &optarg, 16);
 # endif
 			break;
+		}
 		case 'R':
 		case 'V':
 			set_local_var(xstrdup(optarg), /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ opt == 'R');
@@ -6997,8 +7035,7 @@ int hush_main(int argc, char **argv)
 		input = fopen_for_read("/etc/profile");
 		if (input != NULL) {
 			close_on_exec_on(fileno(input));
-			block_signals(0); /* 0: called 1st time */
-			signal_mask_is_inited = 1;
+			init_sigmasks();
 			parse_and_run_file(input);
 			fclose(input);
 		}
@@ -7023,8 +7060,7 @@ int hush_main(int argc, char **argv)
 		G.global_argc = argc - optind;
 		input = xfopen_for_read(argv[optind]);
 		close_on_exec_on(fileno(input));
-		if (!signal_mask_is_inited)
-			block_signals(0); /* 0: called 1st time */
+		init_sigmasks();
 		parse_and_run_file(input);
 #if ENABLE_FEATURE_CLEAN_UP
 		fclose(input);
@@ -7033,7 +7069,7 @@ int hush_main(int argc, char **argv)
 	}
 
 	/* Up to here, shell was non-interactive. Now it may become one.
-	 * NB: don't forget to (re)run block_signals(0/1) as needed.
+	 * NB: don't forget to (re)run init_sigmasks() as needed.
 	 */
 
 	/* A shell is interactive if the '-i' flag was given,
@@ -7086,7 +7122,7 @@ int hush_main(int argc, char **argv)
 		}
 
 		/* Block some signals */
-		block_signals(signal_mask_is_inited);
+		init_sigmasks();
 
 		if (G_saved_tty_pgrp) {
 			/* Set other signals to restore saved_tty_pgrp */
@@ -7100,9 +7136,9 @@ int hush_main(int argc, char **argv)
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
-	} else if (!signal_mask_is_inited) {
-		block_signals(0); /* 0: called 1st time */
-	} /* else: block_signals(0) was done before */
+	} else {
+		init_sigmasks();
+	}
 #elif ENABLE_HUSH_INTERACTIVE
 	/* No job control compiled in, only prompt/line editing */
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
@@ -7117,15 +7153,11 @@ int hush_main(int argc, char **argv)
 	}
 	if (G_interactive_fd) {
 		close_on_exec_on(G_interactive_fd);
-		block_signals(signal_mask_is_inited);
-	} else if (!signal_mask_is_inited) {
-		block_signals(0);
 	}
+	init_sigmasks();
 #else
 	/* We have interactiveness code disabled */
-	if (!signal_mask_is_inited) {
-		block_signals(0);
-	}
+	init_sigmasks();
 #endif
 	/* bash:
 	 * if interactive but not a login shell, sources ~/.bashrc
@@ -7471,7 +7503,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 			free(G.traps[sig]);
 			G.traps[sig] = xstrdup(new_cmd);
 
-			debug_printf("trap: setting SIG%s (%i) to '%s'",
+			debug_printf("trap: setting SIG%s (%i) to '%s'\n",
 				get_signame(sig), sig, G.traps[sig]);
 
 			/* There is no signal for 0 (EXIT) */
