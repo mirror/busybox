@@ -4136,6 +4136,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 		/* if someone gives us an empty string: `cmd with empty output` */
 		if (!argv_expanded[0]) {
+			free(argv_expanded);
 			debug_leave();
 			return G.last_exitcode;
 		}
