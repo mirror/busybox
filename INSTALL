@@ -19,11 +19,24 @@ it, is to enable all features and then use "standalone shell" mode with a
 blank command $PATH.
 
 To enable all features, use "make defconfig", which produces the largest
-general-purpose configuration.  (It's allyesconfig minus debugging options,
+general-purpose configuration.  It's allyesconfig minus debugging options,
 optional packaging choices, and a few special-purpose features requiring
-extra configuration to use.)
+extra configuration to use.  Then enable "standalone shell" feature:
 
   make defconfig
+  make menuconfig
+  # select Busybox Settings
+  #   then General Configuration
+  #     then exec prefers applets
+  #   exit back to top level menu
+  #   select Shells
+  #     then Standalone shell
+  #   exit back to top level menu
+  # exit and save new configuration
+  #   OR
+  # use these commands to modify .config directly:
+  sed -e 's/.*FEATURE_PREFER_APPLETS.*/CONFIG_FEATURE_PREFER_APPLETS=y/' -i .config
+  sed -e 's/.*FEATURE_SH_STANDALONE.*/CONFIG_FEATURE_SH_STANDALONE=y/' -i .config
   make
   PATH= ./busybox ash
 
@@ -121,5 +134,4 @@ More Information:
 
 Se also the busybox FAQ, under the questions "How can I get started using
 BusyBox" and "How do I build a BusyBox-based system?"  The BusyBox FAQ is
-available from http://www.busybox.net/FAQ.html or as the file
-docs/busybox.net/FAQ.html in this tarball.
+available from http://www.busybox.net/FAQ.html
