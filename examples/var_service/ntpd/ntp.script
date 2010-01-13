@@ -1,0 +1,29 @@
+#!/bin/sh
+
+exec 2>/dev/null
+echo "`tail -n 99 "$0.log"`" >"$0.log"
+
+exec >>"$0.log"
+exec 2>&1
+
+dt=`date '+%Y-%m-%d %H:%M:%S'`
+
+if test x"$stratum" != x"" \
+&& test x"$poll_interval" != x"" \
+&& test 4 -ge "$stratum" \
+&& test 128 -le "$poll_interval" \
+; then
+	echo "$dt: $1"\
+		"freq_drift_ppm=$freq_drift_ppm"\
+		"offset=$offset"\
+		"stratum=$stratum"\
+		"poll_interval=$poll_interval,"\
+		"setting hardware clock"
+	exec hwclock --systohc
+fi
+
+echo "$dt: $1"\
+	"freq_drift_ppm=$freq_drift_ppm"\
+	"offset=$offset"\
+	"stratum=$stratum"\
+	"poll_interval=$poll_interval"\
