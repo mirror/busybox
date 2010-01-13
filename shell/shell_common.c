@@ -19,8 +19,17 @@
 #include "libbb.h"
 #include "shell_common.h"
 
-#if IFS_BROKEN
 const char defifsvar[] ALIGN1 = "IFS= \t\n";
-#else
-const char defifs[] ALIGN1 = " \t\n";
-#endif
+
+
+int FAST_FUNC is_well_formed_var_name(const char *s, char terminator)
+{
+	if (!s || !(isalpha(*s) || *s == '_'))
+		return 0;
+
+	do
+		s++;
+	while (isalnum(*s) || *s == '_');
+
+	return *s == terminator;
+}

@@ -893,16 +893,6 @@ static void cmdedit_update_prompt(void);
 
 /* Utility functions
  */
-static int is_well_formed_var_name(const char *s, char terminator)
-{
-	if (!s || !(isalpha(*s) || *s == '_'))
-		return 0;
-	s++;
-	while (isalnum(*s) || *s == '_')
-		s++;
-	return *s == terminator;
-}
-
 /* Replace each \x with x in place, return ptr past NUL. */
 static char *unbackslash(char *src)
 {

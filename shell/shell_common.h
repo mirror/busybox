@@ -21,14 +21,10 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-#define IFS_BROKEN 1
-
-#if IFS_BROKEN
 extern const char defifsvar[]; /* "IFS= \t\n" */
 #define defifs (defifsvar + 4)
-#else
-extern const char defifs[]; /* " \t\n" */
-#endif
+
+int FAST_FUNC is_well_formed_var_name(const char *s, char terminator);
 
 POP_SAVED_FUNCTION_VISIBILITY
 

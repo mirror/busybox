@@ -39,12 +39,23 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	unsigned end_ms; /* -t TIMEOUT */
 	int fd; /* -u FD */
 	int nchars; /* -n NUM */
+	char **pp;
 	char *buffer;
 	struct termios tty, old_tty;
 	const char *retval;
 	int bufpos; /* need to be able to hold -1 */
 	int startword;
 	smallint backslash;
+
+	pp = argv;
+	while (*pp) {
+		if (!is_well_formed_var_name(*pp, '\0')) {
+			/* Mimic bash message */
+			bb_error_msg("read: '%s': not a valid identifier", *pp);
+			return (const char *)(uintptr_t)1;
+		}
+		pp++;
+	}
 
 	nchars = 0; /* if != 0, -n is in effect */
 	if (opt_n) {

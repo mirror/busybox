@@ -1768,11 +1768,7 @@ static const struct {
 	const char *text;
 	void (*func)(const char *) FAST_FUNC;
 } varinit_data[] = {
-#if IFS_BROKEN
 	{ VSTRFIXED|VTEXTFIXED       , defifsvar   , NULL            },
-#else
-	{ VSTRFIXED|VTEXTFIXED|VUNSET, "IFS\0"     , NULL            },
-#endif
 #if ENABLE_ASH_MAIL
 	{ VSTRFIXED|VTEXTFIXED|VUNSET, "MAIL\0"    , changemail      },
 	{ VSTRFIXED|VTEXTFIXED|VUNSET, "MAILPATH\0", changemail      },
