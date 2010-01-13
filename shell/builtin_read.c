@@ -20,6 +20,11 @@
 #include "shell_common.h"
 #include "builtin_read.h"
 
+//TODO: use more efficient setvar() which takes a pointer to malloced "VAR=VAL"
+//string. hush naturally has it, and ash has setvareq().
+//Here we can simply store "VAR=" at buffer start and store read data directly
+//after "=", then pass buffer to setvar() to consume.
+
 const char* FAST_FUNC
 shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	char       **argv,
