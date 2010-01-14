@@ -117,7 +117,7 @@ somewhere else.
 
 To build out of tree, cd to an empty directory and configure busybox from there:
 
-  make -f /path/to/source/Makefile defconfig
+  make KBUILD_SRC=/path/to/source -f /path/to/source/Makefile defconfig
   make
   make install
 

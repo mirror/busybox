@@ -4514,7 +4514,8 @@
 	)
 
 /* "test --help" does not print help (POSIX compat), only "[ --help" does.
- * We display "<applet> EXPRESSION ]" here (not "<applet> EXPRESSION") */
+ * We display "<applet> EXPRESSION ]" here (not "<applet> EXPRESSION")
+ * Unfortunately, it screws up generated BusyBox.html. TODO. */
 #define test_trivial_usage \
        "EXPRESSION ]"
 #define test_full_usage "\n\n" \
