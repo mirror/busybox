@@ -311,7 +311,7 @@
      "\n	t	Disable tail-merging of partial blocks with other files" \
      "\n	u	Allow file to be undeleted" \
      "\nOptions:" \
-     "\n	-R	Recursively list subdirectories" \
+     "\n	-R	Recurse" \
      "\n	-v	Set the file's version/generation number" \
 
 #define chcon_trivial_usage \
@@ -531,10 +531,10 @@
 #define chrt_full_usage "\n\n" \
        "Manipulate real-time attributes of a process\n" \
      "\nOptions:" \
-     "\n	-p	Operate on pid" \
-     "\n	-r	Set scheduling policy to SCHED_RR" \
-     "\n	-f	Set scheduling policy to SCHED_FIFO" \
-     "\n	-o	Set scheduling policy to SCHED_OTHER" \
+     "\n	-p	Operate on PID" \
+     "\n	-r	Set SCHED_RR scheduling" \
+     "\n	-f	Set SCHED_FIFO scheduling" \
+     "\n	-o	Set SCHED_OTHER scheduling" \
      "\n	-m	Show min and max priorities" \
 
 #define chrt_example_usage \
@@ -551,12 +551,13 @@
 	IF_SELINUX( \
      "\n	-c	Preserve security context" \
 	) \
-     "\n	-d,-P	Preserve links" \
-     "\n	-H,-L	Dereference all symlinks (default)" \
+     "\n	-R,-r	Recurse" \
+     "\n	-d,-P	Preserve symlinks (default if -R)" \
+     "\n	-L	Follow all symlinks" \
+     "\n	-H	Follow symlinks on command line" \
      "\n	-p	Preserve file attributes if possible" \
      "\n	-f	Force overwrite" \
      "\n	-i	Prompt before overwrite" \
-     "\n	-R,-r	Recurse" \
      "\n	-l,-s	Create (sym)links" \
 
 #define cpio_trivial_usage \
@@ -863,7 +864,7 @@
      "\n	-L	Use LABEL instead of the filename in the unified header" \
      "\n	-N	Treat absent files as empty" \
      "\n	-q	Output only whether files differ" \
-     "\n	-r	Recursively compare subdirectories" \
+     "\n	-r	Recurse" \
      "\n	-S	Start with FILE when comparing directories" \
      "\n	-T	Make tabs line up by prefixing a tab when necessary" \
      "\n	-s	Report when two files are the same" \
@@ -956,8 +957,8 @@
        " bytes.\n" \
      "\nOptions:" \
      "\n	-a	Show file sizes too" \
-     "\n	-H	Follow symlinks on command line" \
      "\n	-L	Follow all symlinks" \
+     "\n	-H	Follow symlinks on command line" \
      "\n	-d N	Limit output to directories (and files with -a) of depth < N" \
      "\n	-c	Show grand total" \
      "\n	-l	Count sizes many times if hard linked" \
@@ -1219,7 +1220,7 @@
        "Search for files. The default PATH is the current directory,\n" \
        "default EXPRESSION is '-print'\n" \
      "\nEXPRESSION may consist of:" \
-     "\n	-follow		Dereference symlinks" \
+     "\n	-follow		Follow symlinks" \
 	IF_FEATURE_FIND_XDEV( \
      "\n	-xdev		Don't descend directories on other filesystems") \
 	IF_FEATURE_FIND_MAXDEPTH( \
@@ -1630,7 +1631,7 @@
      "\n	-T	Perform cache read timings" \
      "\n	-u	Get/set unmaskirq flag (0/1)" \
 	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF( \
-     "\n	-U	Un-register an IDE interface (DANGEROUS)") \
+     "\n	-U	Unregister an IDE interface (DANGEROUS)") \
      "\n	-v	Defaults; same as -mcudkrag for IDE drives" \
      "\n	-V	Display program version and exit immediately" \
 	IF_FEATURE_HDPARM_HDIO_DRIVE_RESET( \
@@ -1642,7 +1643,7 @@
      "\n	-y	Put IDE drive in standby mode" \
      "\n	-Y	Put IDE drive to sleep" \
      "\n	-Z	Disable Seagate auto-powersaving mode" \
-     "\n	-z	Re-read partition table" \
+     "\n	-z	Reread partition table" \
 
 #define head_trivial_usage \
        "[OPTIONS] [FILE]..."
@@ -2311,12 +2312,12 @@
        "	linux64		Set 64bit uname emulation" \
 
 #define ln_trivial_usage \
-       "[OPTIONS] TARGET... LINK|DIRECTORY"
+       "[OPTIONS] TARGET... LINK|DIR"
 #define ln_full_usage "\n\n" \
-       "Create a link LINK or DIRECTORY/TARGET to the specified TARGET(s)\n" \
+       "Create a link LINK or DIR/TARGET to the specified TARGET(s)\n" \
      "\nOptions:" \
      "\n	-s	Make symlinks instead of hardlinks" \
-     "\n	-f	Remove existing destination files" \
+     "\n	-f	Remove existing destinations" \
      "\n	-n	Don't dereference symlinks - treat like normal file" \
      "\n	-b	Make a backup of the target (if exists) before link operation" \
      "\n	-S suf	Use suffix instead of ~ when making backup files" \
@@ -2465,7 +2466,7 @@
 	IF_FEATURE_LS_FOLLOWLINKS( \
      "\n	-L	List entries pointed to by symlinks") \
 	IF_FEATURE_LS_RECURSIVE( \
-     "\n	-R	List subdirectories recursively") \
+     "\n	-R	Recurse") \
 	IF_FEATURE_LS_SORTFILES( \
      "\n	-r	Sort in reverse order") \
 	IF_FEATURE_LS_SORTFILES( \
@@ -2498,7 +2499,7 @@
 #define lsattr_full_usage "\n\n" \
        "List file attributes on an ext2 fs\n" \
      "\nOptions:" \
-     "\n	-R	Recursively list subdirectories" \
+     "\n	-R	Recurse" \
      "\n	-a	Don't hide entries starting with ." \
      "\n	-d	List directory entries instead of contents" \
      "\n	-l	List long flag names" \
@@ -3680,7 +3681,7 @@
      "\nOptions:" \
      "\n	-i	Always prompt before removing" \
      "\n	-f	Never prompt" \
-     "\n	-r,-R	Remove directories recursively" \
+     "\n	-R,-r	Recurse" \
 
 #define rm_example_usage \
        "$ rm -rf /tmp/foo\n"
@@ -3688,7 +3689,7 @@
 #define rmdir_trivial_usage \
        "[OPTIONS] DIRECTORY..."
 #define rmdir_full_usage "\n\n" \
-       "Remove the DIRECTORY, if it is empty\n" \
+       "Remove DIRECTORY if it is empty\n" \
      "\nOptions:" \
 	IF_FEATURE_RMDIR_LONG_OPTIONS( \
      "\n	-p|--parents	Include parents" \
@@ -3787,7 +3788,7 @@
 #define run_parts_trivial_usage \
        "[-t] "IF_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
 #define run_parts_full_usage "\n\n" \
-       "Run a bunch of scripts in a directory\n" \
+       "Run a bunch of scripts in DIRECTORY\n" \
      "\nOptions:" \
      "\n	-t	Print what would be run, but don't actually run anything" \
      "\n	-a ARG	Pass ARG as argument for every program" \
@@ -3929,7 +3930,7 @@
 #define setenforce_full_usage ""
 
 #define setfiles_trivial_usage \
-       "[-dnpqsvW] [-e dir]... [-o file] [-r alt_root_path]" \
+       "[-dnpqsvW] [-e DIR]... [-o FILE] [-r alt_root_path]" \
 	IF_FEATURE_SETFILES_CHECK_OPTION( \
        " [-c policyfile] spec_file" \
 	) \
@@ -3937,16 +3938,16 @@
 #define setfiles_full_usage "\n\n" \
        "Reset file contexts under pathname according to spec_file\n" \
 	IF_FEATURE_SETFILES_CHECK_OPTION( \
-     "\n	-c file	Check the validity of the contexts against the specified binary policy" \
+     "\n	-c FILE	Check the validity of the contexts against the specified binary policy" \
 	) \
      "\n	-d	Show which specification matched each file" \
      "\n	-l	Log changes in file labels to syslog" \
      "\n	-n	Don't change any file labels" \
      "\n	-q	Suppress warnings" \
-     "\n	-r dir	Use an alternate root path" \
-     "\n	-e dir	Exclude directory" \
+     "\n	-r DIR	Use an alternate root path" \
+     "\n	-e DIR	Exclude DIR" \
      "\n	-F	Force reset of context to match file_context for customizable files" \
-     "\n	-o file	Save list of files with incorrect context" \
+     "\n	-o FILE	Save list of files with incorrect context" \
      "\n	-s	Take a list of files from standard input (instead of command line)" \
      "\n	-v	Show changes in file labels, if type or role are changing" \
      "\n	-vv	Show changes in file labels, if type, role, or user are changing" \
@@ -4172,7 +4173,7 @@
      "\n	-c fmt	Use the specified format" \
 	) \
      "\n	-f	Display filesystem status" \
-     "\n	-L	Dereference links" \
+     "\n	-L	Follow links" \
      "\n	-t	Display info in terse form" \
 	IF_SELINUX( \
      "\n	-Z	Print security context" \
@@ -4192,7 +4193,7 @@
        " %h	Number of hard links\n" \
        " %i	Inode number\n" \
        " %n	File name\n" \
-       " %N	Quoted file name with dereference if symlink\n" \
+       " %N	File name, with -> TARGET if symlink\n" \
        " %o	I/O block size\n" \
        " %s	Total size, in bytes\n" \
        " %t	Major device type in hex\n" \
@@ -5003,7 +5004,7 @@
 	IF_FEATURE_VI_COLON( \
      "\n	-c	Initial command to run ($EXINIT also available)") \
 	IF_FEATURE_VI_READONLY( \
-     "\n	-R	Read-only - don't write to the file") \
+     "\n	-R	Read-only") \
      "\n	-H	Short help regarding available features" \
 
 #define vlock_trivial_usage \
