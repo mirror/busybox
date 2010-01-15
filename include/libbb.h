@@ -262,20 +262,21 @@ extern char *strrstr(const char *haystack, const char *needle) FAST_FUNC;
 extern const char *bb_mode_string(mode_t mode) FAST_FUNC;
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf) FAST_FUNC;
 enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
-	FILEUTILS_PRESERVE_STATUS = 1,
-	FILEUTILS_DEREFERENCE = 2,
-	FILEUTILS_RECUR = 4,
-	FILEUTILS_FORCE = 8,
-	FILEUTILS_INTERACTIVE = 0x10,
-	FILEUTILS_MAKE_HARDLINK = 0x20,
-	FILEUTILS_MAKE_SOFTLINK = 0x40,
-	FILEUTILS_DEREF_SOFTLINK = 0x80,
+	FILEUTILS_PRESERVE_STATUS = 1 << 0, /* -p */
+	FILEUTILS_DEREFERENCE     = 1 << 1, /* !-d */
+	FILEUTILS_RECUR           = 1 << 2, /* -R */
+	FILEUTILS_FORCE           = 1 << 3, /* -f */
+	FILEUTILS_INTERACTIVE     = 1 << 4, /* -i */
+	FILEUTILS_MAKE_HARDLINK   = 1 << 5, /* -l */
+	FILEUTILS_MAKE_SOFTLINK   = 1 << 6, /* -s */
+	FILEUTILS_DEREF_SOFTLINK  = 1 << 7, /* -L */
+	FILEUTILS_DEREFERENCE_L0  = 1 << 8, /* -H */
 #if ENABLE_SELINUX
-	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 0x100,
-	FILEUTILS_SET_SECURITY_CONTEXT = 0x200
+	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 9, /* -c */
+	FILEUTILS_SET_SECURITY_CONTEXT = 1 << 10,
 #endif
 };
-#define FILEUTILS_CP_OPTSTR "pdRfilsL" IF_SELINUX("c")
+#define FILEUTILS_CP_OPTSTR "pdRfilsLH" IF_SELINUX("c")
 extern int remove_file(const char *path, int flags) FAST_FUNC;
 /* NB: without FILEUTILS_RECUR in flags, it will basically "cat"
  * the source, not copy (unless "source" is a directory).

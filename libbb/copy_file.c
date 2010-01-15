@@ -83,7 +83,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 	signed char ovr;
 
 /* Inverse of cp -d ("cp without -d") */
-#define FLAGS_DEREF (flags & FILEUTILS_DEREFERENCE)
+#define FLAGS_DEREF (flags & (FILEUTILS_DEREFERENCE + FILEUTILS_DEREFERENCE_L0))
 
 	if ((FLAGS_DEREF ? stat : lstat)(source, &source_stat) < 0) {
 		/* This may be a dangling symlink.
@@ -194,7 +194,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			if (new_source == NULL)
 				continue;
 			new_dest = concat_path_file(dest, d->d_name);
-			if (copy_file(new_source, new_dest, flags) < 0)
+			if (copy_file(new_source, new_dest, flags & ~FILEUTILS_DEREFERENCE_L0) < 0)
 				retval = -1;
 			free(new_source);
 			free(new_dest);
