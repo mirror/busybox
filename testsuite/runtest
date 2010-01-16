@@ -92,6 +92,7 @@ if [ x"$1" = x"-v" ]; then
 fi
 
 implemented=$(
+	printf "busybox " # always implemented
 	"$bindir/busybox" 2>&1 |
 	while read line; do
 		if [ x"$line" = x"Currently defined functions:" ]; then

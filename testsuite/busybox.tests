@@ -6,12 +6,12 @@
 
 . ./testing.sh
 
-HELPDUMP=`busybox`
+HELPDUMP=`true | busybox 2>&1 | cat`
 
 # We need to test under calling the binary under other names.
 
 
-testing "busybox --help busybox" "busybox --help busybox" "$HELPDUMP\n\n" "" ""
+testing "busybox --help busybox" "true | busybox --help busybox 2>&1 | cat" "$HELPDUMP\n\n" "" ""
 
 ln -s `which busybox` busybox-suffix
 for i in busybox ./busybox-suffix
@@ -28,8 +28,8 @@ do
 
 	optional CAT
 	testing "" "$i cat" "moo" "" "moo"
-	testing "$i --help cat" "$i --help cat 2>&1 | grep prints" \
-		"Concatenates FILE(s) and prints them to stdout.\n" "" ""
+	testing "$i --help cat" "$i --help cat 2>&1 | grep print" \
+		"Concatenate FILEs and print them to stdout\n" "" ""
 	optional ""
 
 	testing "$i --help unknown" "$i --help unknown 2>&1" \
