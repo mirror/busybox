@@ -294,7 +294,6 @@ struct globals {
 #define G_precision_sec  (1.0 / (1 << (- G_precision_exp)))
 	uint8_t  stratum;
 	/* Bool. After set to 1, never goes back to 0: */
-	smallint adjtimex_was_done;
 	smallint initial_poll_complete;
 
 #define STATE_NSET      0       /* initial state, "nothing is set" */
@@ -813,6 +812,7 @@ step_time(double offset)
 	/* Globals: */
 	G.cur_time -= offset;
 	G.last_update_recv_time -= offset;
+	G.last_script_run -= offset;
 }
 
 
@@ -1171,7 +1171,6 @@ static NOINLINE int
 update_local_clock(peer_t *p)
 {
 	int rc;
-	long old_tmx_offset;
 	struct timex tmx;
 	/* Note: can use G.cluster_offset instead: */
 	double offset = p->filter_offset;
@@ -1423,17 +1422,6 @@ update_local_clock(peer_t *p)
 				tmx.freq, tmx.offset, tmx.constant, tmx.status);
 	}
 
-	old_tmx_offset = 0;
-	if (!G.adjtimex_was_done) {
-		G.adjtimex_was_done = 1;
-		/* When we use adjtimex for the very first time,
-		 * we need to ADD to pre-existing tmx.offset - it may be !0
-		 */
-		memset(&tmx, 0, sizeof(tmx));
-		if (adjtimex(&tmx) < 0)
-			bb_perror_msg_and_die("adjtimex");
-		old_tmx_offset = tmx.offset;
-	}
 	memset(&tmx, 0, sizeof(tmx));
 #if 0
 //doesn't work, offset remains 0 (!) in kernel:
@@ -1446,9 +1434,8 @@ update_local_clock(peer_t *p)
 	tmx.offset = G.last_update_offset * 1000000; /* usec */
 #endif
 	tmx.modes = ADJ_OFFSET | ADJ_STATUS | ADJ_TIMECONST;// | ADJ_MAXERROR | ADJ_ESTERROR;
-	tmx.offset = (G.last_update_offset * 1000000) /* usec */
+	tmx.offset = (G.last_update_offset * 1000000); /* usec */
 			/* + (G.last_update_offset < 0 ? -0.5 : 0.5) - too small to bother */
-			+ old_tmx_offset; /* almost always 0 */
 	tmx.status = STA_PLL;
 	if (G.ntp_status & LI_PLUSSEC)
 		tmx.status |= STA_INS;
@@ -2020,9 +2007,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		nfds = poll(pfd, i, timeout * 1000);
 		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0) {
-			if (G.adjtimex_was_done
-			 && G.cur_time - G.last_script_run > 11*60
-			) {
+			if (G.cur_time - G.last_script_run > 11*60) {
 				/* Useful for updating battery-backed RTC and such */
 				run_script("periodic", G.last_update_offset);
 				gettime1900d(); /* sets G.cur_time */
