@@ -306,13 +306,15 @@ struct globals {
 	uint8_t  poll_exp;              // s.poll
 	int      polladj_count;         // c.count
 	long     kernel_freq_drift;
+	peer_t   *last_update_peer;
 	double   last_update_offset;    // c.last
 	double   last_update_recv_time; // s.t
 	double   discipline_jitter;     // c.jitter
-//TODO: add s.jitter - grep for it here and see clock_combine() in doc
+	//double   cluster_offset;        // s.offset
+	//double   cluster_jitter;        // s.jitter
 #if !USING_KERNEL_PLL_LOOP
 	double   discipline_freq_drift; // c.freq
-//TODO: conditionally calculate wander? it's used only for logging
+	/* Maybe conditionally calculate wander? it's used only for logging */
 	double   discipline_wander;     // c.wander
 #endif
 };
@@ -821,6 +823,7 @@ typedef struct {
 	peer_t *p;
 	int    type;
 	double edge;
+	double opt_rd; /* optimization */
 } point_t;
 static int
 compare_point_edge(const void *aa, const void *bb)
@@ -876,6 +879,7 @@ fit(peer_t *p, double rd)
 static peer_t*
 select_and_cluster(void)
 {
+	peer_t     *p;
 	llist_t    *item;
 	int        i, j;
 	int        size = 3 * G.peer_cnt;
@@ -893,10 +897,11 @@ select_and_cluster(void)
 	num_points = 0;
 	item = G.ntp_peers;
 	if (G.initial_poll_complete) while (item != NULL) {
-		peer_t *p = (peer_t *) item->data;
-		double rd = root_distance(p);
-		double offset = p->filter_offset;
+		double rd, offset;
 
+		p = (peer_t *) item->data;
+		rd = root_distance(p);
+		offset = p->filter_offset;
 		if (!fit(p, rd)) {
 			item = item->link;
 			continue;
@@ -911,14 +916,17 @@ select_and_cluster(void)
 		point[num_points].p = p;
 		point[num_points].type = -1;
 		point[num_points].edge = offset - rd;
+		point[num_points].opt_rd = rd;
 		num_points++;
 		point[num_points].p = p;
 		point[num_points].type = 0;
 		point[num_points].edge = offset;
+		point[num_points].opt_rd = rd;
 		num_points++;
 		point[num_points].p = p;
 		point[num_points].type = 1;
 		point[num_points].edge = offset + rd;
+		point[num_points].opt_rd = rd;
 		num_points++;
 		item = item->link;
 	}
@@ -999,14 +1007,12 @@ select_and_cluster(void)
 	 */
 	num_survivors = 0;
 	for (i = 0; i < num_points; i++) {
-		peer_t *p;
-
 		if (point[i].edge < low || point[i].edge > high)
 			continue;
 		p = point[i].p;
 		survivor[num_survivors].p = p;
-//TODO: save root_distance in point_t and reuse here?
-		survivor[num_survivors].metric = MAXDIST * p->lastpkt_stratum + root_distance(p);
+		/* x.opt_rd == root_distance(p); */
+		survivor[num_survivors].metric = MAXDIST * p->lastpkt_stratum + point[i].opt_rd;
 		VERB4 bb_error_msg("survivor[%d] metric:%f peer:%s",
 			num_survivors, survivor[num_survivors].metric, p->p_dotted);
 		num_survivors++;
@@ -1050,8 +1056,8 @@ select_and_cluster(void)
 		 */
 		for (i = 0; i < num_survivors; i++) {
 			double selection_jitter_sq;
-			peer_t *p = survivor[i].p;
 
+			p = survivor[i].p;
 			if (i == 0 || p->filter_jitter < min_jitter)
 				min_jitter = p->filter_jitter;
 
@@ -1093,18 +1099,54 @@ select_and_cluster(void)
 		}
 	}
 
+	if (0) {
+		/* Combine the offsets of the clustering algorithm survivors
+		 * using a weighted average with weight determined by the root
+		 * distance. Compute the selection jitter as the weighted RMS
+		 * difference between the first survivor and the remaining
+		 * survivors. In some cases the inherent clock jitter can be
+		 * reduced by not using this algorithm, especially when frequent
+		 * clockhopping is involved. bbox: thus we don't do it.
+		 */
+		double x, y, z, w;
+		y = z = w = 0;
+		for (i = 0; i < num_survivors; i++) {
+			p = survivor[i].p;
+			x = root_distance(p);
+			y += 1 / x;
+			z += p->filter_offset / x;
+			w += SQUARE(p->filter_offset - survivor[0].p->filter_offset) / x;
+		}
+		//G.cluster_offset = z / y;
+		//G.cluster_jitter = SQRT(w / y);
+	}
+
 	/* Pick the best clock. If the old system peer is on the list
 	 * and at the same stratum as the first survivor on the list,
 	 * then don't do a clock hop. Otherwise, select the first
 	 * survivor on the list as the new system peer.
 	 */
-//TODO - see clock_combine()
+	p = survivor[0].p;
+	if (G.last_update_peer
+	 && G.last_update_peer->lastpkt_stratum <= p->lastpkt_stratum
+	) {
+		/* Starting from 1 is ok here */
+		for (i = 1; i < num_survivors; i++) {
+			if (G.last_update_peer == survivor[i].p) {
+				VERB4 bb_error_msg("keeping old synced peer");
+				p = G.last_update_peer;
+				goto keep_old;
+			}
+		}
+	}
+	G.last_update_peer = p;
+ keep_old:
 	VERB3 bb_error_msg("selected peer %s filter_offset:%f age:%f",
-			survivor[0].p->p_dotted,
-			survivor[0].p->filter_offset,
-			G.cur_time - survivor[0].p->lastpkt_recv_time
+			p->p_dotted,
+			p->filter_offset,
+			G.cur_time - p->lastpkt_recv_time
 	);
-	return survivor[0].p;
+	return p;
 }
 
 
@@ -1131,6 +1173,7 @@ update_local_clock(peer_t *p)
 	int rc;
 	long old_tmx_offset;
 	struct timex tmx;
+	/* Note: can use G.cluster_offset instead: */
 	double offset = p->filter_offset;
 	double recv_time = p->lastpkt_recv_time;
 	double abs_offset;
@@ -1343,7 +1386,7 @@ update_local_clock(peer_t *p)
 	G.ntp_status = p->lastpkt_status;
 	G.refid = p->lastpkt_refid;
 	G.rootdelay = p->lastpkt_rootdelay + p->lastpkt_delay;
-	dtemp = p->filter_jitter; // SQRT(SQUARE(p->filter_jitter) + SQUARE(s.jitter));
+	dtemp = p->filter_jitter; // SQRT(SQUARE(p->filter_jitter) + SQUARE(G.cluster_jitter));
 	dtemp += MAXD(p->filter_dispersion + FREQ_TOLERANCE * (G.cur_time - p->lastpkt_recv_time) + abs_offset, MINDISP);
 	G.rootdisp = p->lastpkt_rootdisp + dtemp;
 	VERB3 bb_error_msg("updating leap/refid/reftime/rootdisp from peer %s", p->p_dotted);
@@ -1433,7 +1476,8 @@ update_local_clock(peer_t *p)
 	}
 #endif
 	G.kernel_freq_drift = tmx.freq / 65536;
-	VERB2 bb_error_msg("update offset:%f, clock drift:%ld ppm", G.last_update_offset, G.kernel_freq_drift);
+	VERB2 bb_error_msg("update peer:%s, offset:%f, clock drift:%ld ppm",
+			p->p_dotted, G.last_update_offset, G.kernel_freq_drift);
 
 	return 1; /* "ok to increase poll interval" */
 }
