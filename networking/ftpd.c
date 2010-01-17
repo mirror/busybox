@@ -616,18 +616,22 @@ handle_retr(void)
 static int
 popen_ls(const char *opt)
 {
-	char *cwd;
-	const char *argv[] = {
-			"ftpd",
-			opt,
-			BB_MMU ? "--" : NULL,
-			G.ftp_arg,
-			NULL
-	};
+	const char *argv[5];
 	struct fd_pair outfd;
 	pid_t pid;
 
-	cwd = xrealloc_getcwd_or_warn(NULL);
+	argv[0] = "ftpd";
+	argv[1] = opt; /* "-l" or "-1" */
+#if BB_MMU
+	argv[2] = "--";
+#else
+	/* NOMMU ftpd ls helper chdirs to argv[2],
+	 * preventing peer from seeing real root. */
+	argv[2] = xrealloc_getcwd_or_warn(NULL);
+#endif
+	argv[3] = G.ftp_arg;
+	argv[4] = NULL;
+
 	xpiped_pair(outfd);
 
 	/*fflush_all(); - so far we dont use stdio on output */
@@ -638,9 +642,14 @@ popen_ls(const char *opt)
 	if (pid == 0) {
 		/* child */
 #if !BB_MMU
+		/* On NOMMU, we want to execute a child - copy of ourself.
+		 * In chroot we usually can't do it. Thus we chdir
+		 * out of the chroot back to original root,
+		 * and (see later below) execute bb_busybox_exec_path
+		 * relative to current directory */
 		if (fchdir(G.root_fd) != 0)
 			_exit(127);
-		close(G.root_fd);
+		/*close(G.root_fd); - close_on_exec_on() took care of this */
 #endif
 		/* NB: close _first_, then move fd! */
 		close(outfd.rd);
@@ -651,25 +660,23 @@ popen_ls(const char *opt)
 		 * ls won't read it anyway */
 		close(STDIN_FILENO);
 		dup(STDOUT_FILENO); /* copy will become STDIN_FILENO */
-#if !BB_MMU
-		/* ftpd ls helper chdirs to argv[2],
-		 * preventing peer from seeing real root we are in now
-		 */
-		argv[2] = cwd;
+#if BB_MMU
+		/* memset(&G, 0, sizeof(G)); - ls_main does it */
+		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
+#else
 		/* + 1: we must use relative path here if in chroot.
 		 * For example, execv("/proc/self/exe") will fail, since
 		 * it looks for "/proc/self/exe" _relative to chroot!_ */
 		execv(bb_busybox_exec_path + 1, (char**) argv);
 		_exit(127);
-#else
-		/* memset(&G, 0, sizeof(G)); - ls_main does it */
-		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
 #endif
 	}
 
 	/* parent */
 	close(outfd.wr);
-	free(cwd);
+#if !BB_MMU
+	free((char*)argv[2]);
+#endif
 	return outfd.rd;
 }
 
@@ -1108,8 +1115,9 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-/* TODO: pass -n too? */
-/* --group-directories-first would be nice, but ls don't do that yet */
+/* TODO: pass -n? It prevents user/group resolution, whicj may not work in chroot anyway */
+/* TODO: pass -A? It shows dot files */
+/* TODO: pass --group-directories-first? would be nice, but ls don't do that yet */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
@@ -1151,6 +1159,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 
 #if !BB_MMU
 	G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
+	close_on_exec_on(G.root_fd);
 #endif
 
 	if (argv[optind]) {
