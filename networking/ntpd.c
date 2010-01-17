@@ -57,6 +57,10 @@
  * seconds. After WATCH_THRESHOLD seconds we look at accumulated
  * offset and estimate frequency drift.
  *
+ * (frequency measurement step seems to not be strictly needed,
+ * it is conditionally disabled with USING_INITIAL_FREQ_ESTIMATION
+ * define set to 0)
+ *
  * After this, we enter "steady state": we collect a datapoint,
  * we select the best peer, if this datapoint is not a new one
  * (IOW: if this datapoint isn't for selected peer), sleep
@@ -76,21 +80,27 @@
 #define INITIAL_SAMLPES 4       /* how many samples do we want for init */
 
 /* Clock discipline parameters and constants */
-#define STEP_THRESHOLD  0.128   /* step threshold (s) */
-#define WATCH_THRESHOLD 150     /* stepout threshold (s). std ntpd uses 900 (11 mins (!)) */
+
+/* Step threshold (sec). std ntpd uses 0.128.
+ * Using exact power of 2 (1/8) results in smaller code */
+#define STEP_THRESHOLD  0.125
+#define WATCH_THRESHOLD 128     /* stepout threshold (sec). std ntpd uses 900 (11 mins (!)) */
 /* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
-//UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (s) */
+//UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
 
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
 #define BURSTPOLL       0	/* initial poll */
-#define MINPOLL         4       /* minimum poll interval (6: 64 s) */
+#define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
 #define BIGPOLL         10      /* drop to lower poll at any trouble (10: 17 min) */
-#define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h) (was 17) */
-#define POLLDOWN_OFFSET (STEP_THRESHOLD / 3) /* actively lower poll when we see such big offsets */
-#define MINDISP         0.01    /* minimum dispersion (s) */
-#define MAXDISP         16      /* maximum dispersion (s) */
+#define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
+/* Actively lower poll when we see such big offsets.
+ * With STEP_THRESHOLD = 0.125, it means we try to sync more aggressively
+ * if offset increases over 0.03 sec */
+#define POLLDOWN_OFFSET (STEP_THRESHOLD / 4)
+#define MINDISP         0.01    /* minimum dispersion (sec) */
+#define MAXDISP         16      /* maximum dispersion (sec) */
 #define MAXSTRAT        16      /* maximum stratum (infinity metric) */
-#define MAXDIST         1       /* distance threshold (s) */
+#define MAXDIST         1       /* distance threshold (sec) */
 #define MIN_SELECTED    1       /* minimum intersection survivors */
 #define MIN_CLUSTERED   3       /* minimum cluster survivors */
 
@@ -109,7 +119,7 @@
  * by staying at smaller poll).
  */
 #define POLLADJ_GATE    4
-/* Compromise Allan intercept (s). doc uses 1500, std ntpd uses 512 */
+/* Compromise Allan intercept (sec). doc uses 1500, std ntpd uses 512 */
 #define ALLAN           512
 /* PLL loop gain */
 #define PLL             65536
@@ -214,6 +224,9 @@ typedef struct {
 } peer_t;
 
 
+#define USING_KERNEL_PLL_LOOP          1
+#define USING_INITIAL_FREQ_ESTIMATION  0
+
 enum {
 	OPT_n = (1 << 0),
 	OPT_q = (1 << 1),
@@ -284,6 +297,11 @@ struct globals {
 	smallint adjtimex_was_done;
 	smallint initial_poll_complete;
 
+#define STATE_NSET      0       /* initial state, "nothing is set" */
+//#define STATE_FSET    1       /* frequency set from file */
+#define STATE_SPIK      2       /* spike detected */
+//#define STATE_FREQ    3       /* initial frequency */
+#define STATE_SYNC      4       /* clock synchronized (normal operation) */
 	uint8_t  discipline_state;      // doc calls it c.state
 	uint8_t  poll_exp;              // s.poll
 	int      polladj_count;         // c.count
@@ -292,7 +310,6 @@ struct globals {
 	double   last_update_recv_time; // s.t
 	double   discipline_jitter;     // c.jitter
 //TODO: add s.jitter - grep for it here and see clock_combine() in doc
-#define USING_KERNEL_PLL_LOOP 1
 #if !USING_KERNEL_PLL_LOOP
 	double   discipline_freq_drift; // c.freq
 //TODO: conditionally calculate wander? it's used only for logging
@@ -581,8 +598,10 @@ static void
 reset_peer_stats(peer_t *p, double offset)
 {
 	int i;
+	bool small_ofs = fabs(offset) < 16 * STEP_THRESHOLD;
+
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
-		if (offset < 16 * STEP_THRESHOLD) {
+		if (small_ofs) {
 			p->filter_datapoint[i].d_recv_time -= offset;
 			if (p->filter_datapoint[i].d_offset != 0) {
 				p->filter_datapoint[i].d_offset -= offset;
@@ -593,7 +612,7 @@ reset_peer_stats(peer_t *p, double offset)
 			p->filter_datapoint[i].d_dispersion = MAXDISP;
 		}
 	}
-	if (offset < 16 * STEP_THRESHOLD) {
+	if (small_ofs) {
 		p->lastpkt_recv_time -= offset;
 	} else {
 		p->reachable_bits = 0;
@@ -1105,12 +1124,6 @@ set_new_values(int disc_state, double offset, double recv_time)
 	G.last_update_offset = offset;
 	G.last_update_recv_time = recv_time;
 }
-/* Clock state definitions */
-#define STATE_NSET      0       /* initial state, "nothing is set" */
-#define STATE_FSET      1       /* frequency set from file */
-#define STATE_SPIK      2       /* spike detected */
-#define STATE_FREQ      3       /* initial frequency */
-#define STATE_SYNC      4       /* clock synchronized (normal operation) */
 /* Return: -1: decrease poll interval, 0: leave as is, 1: increase */
 static NOINLINE int
 update_local_clock(peer_t *p)
@@ -1156,6 +1169,7 @@ update_local_clock(peer_t *p)
 #if !USING_KERNEL_PLL_LOOP
 	freq_drift = 0;
 #endif
+#if USING_INITIAL_FREQ_ESTIMATION
 	if (G.discipline_state == STATE_FREQ) {
 		/* Ignore updates until the stepout threshold */
 		if (since_last_update < WATCH_THRESHOLD) {
@@ -1163,10 +1177,11 @@ update_local_clock(peer_t *p)
 					WATCH_THRESHOLD - since_last_update);
 			return 0; /* "leave poll interval as is" */
 		}
-#if !USING_KERNEL_PLL_LOOP
+# if !USING_KERNEL_PLL_LOOP
 		freq_drift = (offset - G.last_update_offset) / since_last_update;
-#endif
+# endif
 	}
+#endif
 
 	/* There are two main regimes: when the
 	 * offset exceeds the step threshold and when it does not.
@@ -1225,10 +1240,12 @@ update_local_clock(peer_t *p)
 
 		run_script("step", offset);
 
+#if USING_INITIAL_FREQ_ESTIMATION
 		if (G.discipline_state == STATE_NSET) {
 			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);
 			return 1; /* "ok to increase poll interval" */
 		}
+#endif
 		set_new_values(STATE_SYNC, /*offset:*/ 0, recv_time);
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
@@ -1255,11 +1272,15 @@ update_local_clock(peer_t *p)
 				 */
 				exit(0);
 			}
+#if USING_INITIAL_FREQ_ESTIMATION
 			/* This is the first update received and the frequency
 			 * has not been initialized. The first thing to do
 			 * is directly measure the oscillator frequency.
 			 */
 			set_new_values(STATE_FREQ, offset, recv_time);
+#else
+			set_new_values(STATE_SYNC, offset, recv_time);
+#endif
 			VERB3 bb_error_msg("transitioning to FREQ, datapoint ignored");
 			return 0; /* "leave poll interval as is" */
 
@@ -1274,6 +1295,7 @@ update_local_clock(peer_t *p)
 			break;
 #endif
 
+#if USING_INITIAL_FREQ_ESTIMATION
 		case STATE_FREQ:
 			/* since_last_update >= WATCH_THRESHOLD, we waited enough.
 			 * Correct the phase and frequency and switch to SYNC state.
@@ -1281,6 +1303,7 @@ update_local_clock(peer_t *p)
 			 */
 			set_new_values(STATE_SYNC, offset, recv_time);
 			break;
+#endif
 
 		default:
 #if !USING_KERNEL_PLL_LOOP
@@ -1579,9 +1602,7 @@ recv_and_process_peer_pkt(peer_t *p)
 			/* If drift is dangerously large, immediately
 			 * drop poll interval one step down.
 			 */
-			if (q->filter_offset < -POLLDOWN_OFFSET
-			 || q->filter_offset > POLLDOWN_OFFSET
-			) {
+			if (fabs(q->filter_offset) >= POLLDOWN_OFFSET) {
 				VERB3 bb_error_msg("offset:%f > POLLDOWN_OFFSET", q->filter_offset);
 				goto poll_down;
 			}
