@@ -632,6 +632,18 @@ popen_ls(const char *opt)
 	argv[3] = G.ftp_arg;
 	argv[4] = NULL;
 
+	/* Improve compatibility with non-RFC conforming FTP clients
+	 * which send e.g. "LIST -l", "LIST -la".
+	 * See https://bugs.kde.org/show_bug.cgi?id=195578 */
+	if (ENABLE_FEATURE_FTPD_ACCEPT_BROKEN_LIST
+	 && G.ftp_arg && G.ftp_arg[0] == '-' && G.ftp_arg[1] == 'l'
+	) {
+		const char *tmp = strchr(G.ftp_arg, ' ');
+		if (tmp) /* skip the space */
+			tmp++;
+		argv[3] = tmp;
+	}
+
 	xpiped_pair(outfd);
 
 	/*fflush_all(); - so far we dont use stdio on output */

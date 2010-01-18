@@ -117,6 +117,17 @@ config FEATURE_FTP_WRITE
 	help
 	  Enable all kinds of FTP upload commands (-w option)
 
+config FEATURE_FTPD_ACCEPT_BROKEN_LIST
+	bool "Enable workaround for RFC-violating clients"
+	default y
+	depends on FTPD
+	help
+	  Some ftp-clients (among them KDE's Konqueror) issue illegal
+	  "LIST -la" requests. This option works around those problems.
+	  It might prevent you from listing files starting with "-" and
+	  it increases the code size by ~40 bytes.
+	  Most other ftp servers seem to behave similar to this.
+
 config FTPGET
 	bool "ftpget"
 	default n
