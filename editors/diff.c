@@ -409,7 +409,7 @@ static void fetch(FILE_and_pos_t *ft, const off_t *ix, int a, int b, int ch)
  *   assigned dynamically allocated vectors of the offsets of the lines
  *   of the old and new file respectively. These must be freed by the caller.
  */
-static int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
+static NOINLINE int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
 {
 	int *J, slen[2], *class, *member;
 	struct line *nfile[2], *sfile[2];
@@ -542,8 +542,10 @@ start:
 				tok1 = read_token(&ft[1], tok1);
 
 				if (((tok0 ^ tok1) & TOK_EMPTY) != 0 /* one is empty (not both) */
-				 || (!(tok0 & TOK_EMPTY) && TOK2CHAR(tok0) != TOK2CHAR(tok1)))
+				 || (!(tok0 & TOK_EMPTY) && TOK2CHAR(tok0) != TOK2CHAR(tok1))
+				) {
 					J[i] = 0; /* Break the correspondence */
+				}
 			} while (!(tok0 & tok1 & TOK_EMPTY));
 		}
 	}
