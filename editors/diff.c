@@ -435,7 +435,10 @@ static int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
 			tok = read_token(&ft[i], tok);
 			if (!(tok & TOK_EMPTY)) {
 				/* Hash algorithm taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578. */
-				hash = hash * 128 - hash + TOK2CHAR(tok);
+				/*hash = hash * 128 - hash + TOK2CHAR(tok);
+				 * gcc insists on optimizing above to "hash * 127 + ...", thus... */
+				unsigned o = hash - TOK2CHAR(tok);
+				hash = hash * 128 - o; /* we want SPEED here */
 				continue;
 			}
 			if (nlen[i]++ == sz) {
