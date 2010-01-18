@@ -94,7 +94,7 @@ enum {                   /* Commandline flags */
 	FLAG_a,
 	FLAG_b,
 	FLAG_d,
-	FLAG_i, /* unused */
+	FLAG_i,
 	FLAG_L, /* unused */
 	FLAG_N,
 	FLAG_q,
@@ -176,6 +176,9 @@ static int read_token(FILE_and_pos_t *ft, token_t tok)
 		/* Only EOL? */
 		if (t == '\n')
 			tok |= TOK_EOL;
+
+		if (option_mask32 & FLAG(i)) /* Handcoded tolower() */
+			t = (t >= 'A' && t <= 'Z') ? t - ('A' - 'a') : t;
 
 		if ((option_mask32 & FLAG(w)) && is_space)
 			continue;
