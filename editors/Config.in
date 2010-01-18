@@ -35,14 +35,6 @@ config DIFF
 	  differences between them in a form that can be given to
 	  the patch command.
 
-config FEATURE_DIFF_BINARY
-	bool "Enable checks for binary files"
-	default y
-	depends on DIFF
-	help
-	  This option enables support for checking for binary files
-	  before a comparison is carried out.
-
 config FEATURE_DIFF_DIR
 	bool "Enable directory support"
 	default y
@@ -50,14 +42,6 @@ config FEATURE_DIFF_DIR
 	help
 	  This option enables support for directory and subdirectory
 	  comparison.
-
-config FEATURE_DIFF_MINIMAL
-	bool "Enable -d option to find smaller sets of changes"
-	default n
-	depends on DIFF
-	help
-	  Enabling this option allows the use of -d to make diff
-	  try hard to find the smallest possible set of changes.
 
 config ED
 	bool "ed"

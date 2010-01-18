@@ -44,21 +44,18 @@ testing "diff of stdin, twice" \
 	"" \
 	"stdin"
 
-test x"$SKIP_KNOWN_BUGS" = x"" && \
 testing "diff -b treats EOF as whitespace" \
 	'diff -ub - input; echo $?' \
 	"0\n" \
 	"abc" \
 	"abc "
 
-test x"$SKIP_KNOWN_BUGS" = x"" && \
 testing "diff -b treats all spaces as equal" \
 	'diff -ub - input; echo $?' \
 	"0\n" \
 	"a \t c\n" \
 	"a\t \tc\n"
 
-test x"$SKIP_KNOWN_BUGS" = x"" && \
 testing "diff always takes context from old file" \
 	"diff -ub - input | $TRIM_TAB" \
 "\
