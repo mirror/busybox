@@ -915,13 +915,8 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, "abdiL:NqrsS:tTU:wupBE",
 			&L_arg, &s_start, &opt_U_context);
 	argv += optind;
-	while (L_arg) {
-		if (label[0] && label[1])
-			bb_show_usage();
-		if (label[0]) /* then label[1] is NULL */
-			label[1] = label[0];
-		label[0] = llist_pop(&L_arg);
-	}
+	while (L_arg)
+		label[!!label[0]] = llist_pop(&L_arg);
 	xfunc_error_retval = 2;
 	for (int i = 0; i < 2; i++) {
 		file[i] = argv[i];
