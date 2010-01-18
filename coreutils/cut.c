@@ -264,7 +264,7 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 		/* now that the lists are parsed, we need to sort them to make life
 		 * easier on us when it comes time to print the chars / fields / lines
 		 */
-		qsort(cut_lists, nlists, sizeof(struct cut_list), cmpfunc);
+		qsort(cut_lists, nlists, sizeof(cut_lists[0]), cmpfunc);
 	}
 
 	{
