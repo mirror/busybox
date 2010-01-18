@@ -35,6 +35,13 @@ config DIFF
 	  differences between them in a form that can be given to
 	  the patch command.
 
+config FEATURE_DIFF_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on DIFF && LONG_OPTS
+	help
+	  Enable use of long options.
+
 config FEATURE_DIFF_DIR
 	bool "Enable directory support"
 	default y
