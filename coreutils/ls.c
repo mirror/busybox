@@ -481,35 +481,47 @@ static int sortcmp(const void *a, const void *b)
 	struct dnode *d1 = *(struct dnode **)a;
 	struct dnode *d2 = *(struct dnode **)b;
 	unsigned sort_opts = all_fmt & SORT_MASK;
-	int dif;
+	off_t dif;
 
 	dif = 0; /* assume SORT_NAME */
 	// TODO: use pre-initialized function pointer
 	// instead of branch forest
 	if (sort_opts == SORT_SIZE) {
-		dif = (int) (d2->dstat.st_size - d1->dstat.st_size);
+		dif = (d2->dstat.st_size - d1->dstat.st_size);
 	} else if (sort_opts == SORT_ATIME) {
-		dif = (int) (d2->dstat.st_atime - d1->dstat.st_atime);
+		dif = (d2->dstat.st_atime - d1->dstat.st_atime);
 	} else if (sort_opts == SORT_CTIME) {
-		dif = (int) (d2->dstat.st_ctime - d1->dstat.st_ctime);
+		dif = (d2->dstat.st_ctime - d1->dstat.st_ctime);
 	} else if (sort_opts == SORT_MTIME) {
-		dif = (int) (d2->dstat.st_mtime - d1->dstat.st_mtime);
+		dif = (d2->dstat.st_mtime - d1->dstat.st_mtime);
 	} else if (sort_opts == SORT_DIR) {
 		dif = S_ISDIR(d2->dstat.st_mode) - S_ISDIR(d1->dstat.st_mode);
 		/* } else if (sort_opts == SORT_VERSION) { */
 		/* } else if (sort_opts == SORT_EXT) { */
 	}
-
 	if (dif == 0) {
-		/* sort by name - may be a tie_breaker for time or size cmp */
-		if (ENABLE_LOCALE_SUPPORT) dif = strcoll(d1->name, d2->name);
-		else dif = strcmp(d1->name, d2->name);
+		/* sort by name, or tie_breaker for other sorts */
+		if (ENABLE_LOCALE_SUPPORT)
+			dif = strcoll(d1->name, d2->name);
+		else
+			dif = strcmp(d1->name, d2->name);
 	}
 
-	if (all_fmt & SORT_REVERSE) {
-		dif = -dif;
+	/* Make dif fit into an int */
+	if (sizeof(dif) > sizeof(int)) {
+		if (sizeof(dif) == sizeof(int)*2) {
+			/* typical on many arches */
+			if (dif != 0) {
+				dif = 1 | (int)((uoff_t)dif >> (sizeof(int)*8));
+			}
+		} else {
+			while ((dif & ~(off_t)INT_MAX) != 0) {
+				dif >>= (sizeof(int)*8 / 2);
+			}
+		}
 	}
-	return dif;
+
+	return (all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
 }
 
 static void dnsort(struct dnode **dn, int size)
