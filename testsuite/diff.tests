@@ -39,10 +39,38 @@ testing "diff of stdin, no newline in the file" \
 
 # we also test that stdin is in fact NOT read
 testing "diff of stdin, twice" \
-	"diff - -; echo $?; wc -c" \
+	'diff - -; echo $?; wc -c' \
 	"0\n5\n" \
 	"" \
 	"stdin"
+
+test x"$SKIP_KNOWN_BUGS" = x"" && \
+testing "diff -b treats EOF as whitespace" \
+	'diff -ub - input; echo $?' \
+	"0\n" \
+	"abc" \
+	"abc "
+
+test x"$SKIP_KNOWN_BUGS" = x"" && \
+testing "diff -b treats all spaces as equal" \
+	'diff -ub - input; echo $?' \
+	"0\n" \
+	"a \t c\n" \
+	"a\t \tc\n"
+
+test x"$SKIP_KNOWN_BUGS" = x"" && \
+testing "diff always takes context from old file" \
+	"diff -ub - input | $TRIM_TAB" \
+"\
+--- -
++++ input
+@@ -1 +1,3 @@
++abc
+ a c
++def
+" \
+	"abc\na  c\ndef\n" \
+	"a c\n"
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
