@@ -65,7 +65,29 @@ int iswspace(wint_t wc) FAST_FUNC;
 int iswalnum(wint_t wc) FAST_FUNC;
 int iswpunct(wint_t wc) FAST_FUNC;
 
+
 # endif /* !LOCALE_SUPPORT */
+
+
+# if 0 /* TODO: better support for printfing Unicode fields: */
+
+/* equivalent to printf("%-20.20s", str) */
+char unicode_buffer[20 * MB_CUR_MAX];
+printf("%s", unicode_exact(20, str, unicode_buffer);
+/* no need to free() anything */
+
+/* equivalent to printf("%-20s", str) */
+char *malloced = unicode_minimum(20, str);
+printf("%s", malloced);
+free(malloced); /* ugh */
+
+/* equivalent to printf("%-20s", str), better one */
+printf("%s%*s", str, unicode_pad_to_width(str, 20), "");
+/* equivalent to printf("%20s", str) */
+printf("%*s%s", unicode_pad_to_width(str, 20), "", str);
+
+# endif
+
 
 #endif /* FEATURE_ASSUME_UNICODE */
 

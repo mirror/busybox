@@ -761,10 +761,6 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 {
 	unsigned column = 0;
 	char *lpath = lpath; /* for compiler */
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-	char *filetime;
-	time_t ttime, age;
-#endif
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
 	struct stat info;
 	char append;
@@ -775,28 +771,20 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 		return 0;
 	*/
 
-#if ENABLE_FEATURE_LS_TIMESTAMPS
-	ttime = dn->dstat.st_mtime;	/* the default time */
-	if (all_fmt & TIME_ACCESS)
-		ttime = dn->dstat.st_atime;
-	if (all_fmt & TIME_CHANGE)
-		ttime = dn->dstat.st_ctime;
-	filetime = ctime(&ttime);
-#endif
 #if ENABLE_FEATURE_LS_FILETYPES
 	append = append_char(dn->dstat.st_mode);
 #endif
 
 	/* Do readlink early, so that if it fails, error message
-	 * does not appear *inside* of the "ls -l" line */
+	 * does not appear *inside* the "ls -l" line */
 	if (all_fmt & LIST_SYMLINK)
 		if (S_ISLNK(dn->dstat.st_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
 	if (all_fmt & LIST_INO)
-		column += printf("%7lu ", (long) dn->dstat.st_ino);
+		column += printf("%7llu ", (long long) dn->dstat.st_ino);
 	if (all_fmt & LIST_BLOCKS)
-		column += printf("%4"OFF_FMT"u ", (off_t) dn->dstat.st_blocks >> 1);
+		column += printf("%4"OFF_FMT"u ", (off_t) (dn->dstat.st_blocks >> 1));
 	if (all_fmt & LIST_MODEBITS)
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
 	if (all_fmt & LIST_NLINKS)
@@ -804,10 +792,10 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 #if ENABLE_FEATURE_LS_USERNAME
 	if (all_fmt & LIST_ID_NAME) {
 		if (option_mask32 & OPT_g) {
-			column += printf("%-8.8s",
+			column += printf("%-8.8s ",
 				get_cached_username(dn->dstat.st_uid));
 		} else {
-			column += printf("%-8.8s %-8.8s",
+			column += printf("%-8.8s %-8.8s ",
 				get_cached_username(dn->dstat.st_uid),
 				get_cached_groupname(dn->dstat.st_gid));
 		}
@@ -815,9 +803,9 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 #endif
 	if (all_fmt & LIST_ID_NUMERIC) {
 		if (option_mask32 & OPT_g)
-			column += printf("%-8u", (int) dn->dstat.st_uid);
+			column += printf("%-8u ", (int) dn->dstat.st_uid);
 		else
-			column += printf("%-8u %-8u",
+			column += printf("%-8u %-8u ",
 					(int) dn->dstat.st_uid,
 					(int) dn->dstat.st_gid);
 	}
@@ -828,7 +816,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 					(int) minor(dn->dstat.st_rdev));
 		} else {
 			if (all_fmt & LS_DISP_HR) {
-				column += printf("%9s ",
+				column += printf("%"HUMAN_READABLE_MAX_WIDTH_STR"s ",
 					/* print st_size, show one fractional, use suffixes */
 					make_human_readable_str(dn->dstat.st_size, 1, 0)
 				);
@@ -838,21 +826,30 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 		}
 	}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
-	if (all_fmt & LIST_FULLTIME)
-		column += printf("%24.24s ", filetime);
-	if (all_fmt & LIST_DATE_TIME)
-		if ((all_fmt & LIST_FULLTIME) == 0) {
+	if (all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
+		char *filetime;
+		time_t ttime = dn->dstat.st_mtime;
+		if (all_fmt & TIME_ACCESS)
+			ttime = dn->dstat.st_atime;
+		if (all_fmt & TIME_CHANGE)
+			ttime = dn->dstat.st_ctime;
+		filetime = ctime(&ttime);
+		/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
+		if (all_fmt & LIST_FULLTIME)
+			column += printf("%.24s ", filetime);
+		else { /* LIST_DATE_TIME */
 			/* current_time_t ~== time(NULL) */
-			age = current_time_t - ttime;
-			printf("%6.6s ", filetime + 4);
+			time_t age = current_time_t - ttime;
+			printf("%.6s ", filetime + 4); /* "Jun 30" */
 			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 				/* hh:mm if less than 6 months old */
-				printf("%5.5s ", filetime + 11);
-			} else {
-				printf(" %4.4s ", filetime + 20);
+				printf("%.5s ", filetime + 11);
+			} else { /* year. buggy if year > 9999 ;) */
+				printf(" %.4s ", filetime + 20);
 			}
 			column += 13;
 		}
+	}
 #endif
 #if ENABLE_SELINUX
 	if (all_fmt & LIST_CONTEXT) {

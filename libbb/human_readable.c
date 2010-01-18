@@ -58,7 +58,7 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long val,
 		/* will just print it as ulonglong (below) */
 	} else {
 		while ((val >= 1024)
-		 /* && (u < unit_chars + sizeof(unit_chars) - 1) - never happens */
+		 /* && (u < unit_chars + sizeof(unit_chars) - 1) - always true */
 		) {
 			fmt = "%llu.%u%c";
 			u++;
