@@ -84,27 +84,31 @@
 #define dbg_error_msg(...) ((void)0)
 #endif
 
-enum {                   /* print_status() and diffreg() return values */
-	STATUS_SAME,     /* files are the same */
-	STATUS_DIFFER,   /* files differ */
-	STATUS_BINARY,   /* binary files differ */
+enum {                  /* print_status() and diffreg() return values */
+	STATUS_SAME,    /* files are the same */
+	STATUS_DIFFER,  /* files differ */
+	STATUS_BINARY,  /* binary files differ */
 };
 
-enum {                   /* Commandline flags */
+enum {                  /* Commandline flags */
 	FLAG_a,
 	FLAG_b,
 	FLAG_d,
 	FLAG_i,
-	FLAG_L, /* unused */
+	FLAG_L,         /* never used, handled by getopt32 */
 	FLAG_N,
 	FLAG_q,
 	FLAG_r,
 	FLAG_s,
-	FLAG_S, /* unused */
+	FLAG_S,         /* never used, handled by getopt32 */
 	FLAG_t,
 	FLAG_T,
-	FLAG_U, /* unused */
+	FLAG_U,         /* never used, handled by getopt32 */
 	FLAG_w,
+	FLAG_u,         /* ignored, this is the default */
+	FLAG_p,         /* not implemented */
+	FLAG_B,
+	FLAG_E,         /* not implemented */
 };
 #define FLAG(x) (1 << FLAG_##x)
 
@@ -578,6 +582,8 @@ static bool diff(FILE_and_pos_t ft[2], char *file[2])
 	int idx = -1, i = 1;
 
 	do {
+		bool nonempty = false;
+
 		while (1) {
 			struct context_vec v;
 
@@ -606,6 +612,7 @@ static bool diff(FILE_and_pos_t ft[2], char *file[2])
 				) {
 					break;
 				}
+				nonempty |= (v.a >= v.b) && (v.c >= v.d);
 				vec = xrealloc_vector(vec, 6, ++idx);
 				vec[idx] = v;
 			}
@@ -617,7 +624,7 @@ static bool diff(FILE_and_pos_t ft[2], char *file[2])
 		}
 		if (idx < 0)
 			continue;
-		if (!(option_mask32 & FLAG(q))) {
+		if (!(option_mask32 & FLAG(q)) && !((option_mask32 & FLAG(B)) && !nonempty)) {
 			struct context_vec *cvp = vec;
 			int lowa = MAX(1, cvp->a - opt_U_context);
 			int upb  = MIN(nlen[0], vec[idx].b + opt_U_context);
@@ -880,8 +887,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 
 	/* exactly 2 params; collect multiple -L <label>; -U N */
 	opt_complementary = "=2:L::U+";
-	getopt32(argv, "abdiL:NqrsS:tTU:wu"
-			"p" /* ignored (for compatibility) */,
+	getopt32(argv, "abdiL:NqrsS:tTU:wupBE",
 			&L_arg, &s_start, &opt_U_context);
 	argv += optind;
 	while (L_arg) {

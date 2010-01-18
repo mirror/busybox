@@ -852,13 +852,14 @@
        "Relay DHCP requests between clients and server" \
 
 #define diff_trivial_usage \
-       "[-abdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
+       "[-abBdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
 #define diff_full_usage "\n\n" \
        "Compare files line by line and output the differences between them.\n" \
        "This implementation supports unified diffs only.\n" \
      "\nOptions:" \
      "\n	-a	Treat all files as text" \
      "\n	-b	Ignore changes in the amount of whitespace" \
+     "\n	-B	Ignore changes whose lines are all blank" \
      "\n	-d	Try hard to find a smaller set of changes" \
      "\n	-i	Ignore case differences" \
      "\n	-L	Use LABEL instead of the filename in the unified header" \
