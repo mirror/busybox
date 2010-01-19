@@ -432,7 +432,7 @@ static NOINLINE int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
 		token_t tok;
 		size_t sz = 100;
 		nfile[i] = xmalloc((sz + 3) * sizeof(nfile[i][0]));
-		seek_ft(&ft[i], 0);
+		fseeko(ft[i].ft_fp, 0, SEEK_SET); /* ft gets here without the correct position */
 
 		nlen[i] = 0;
 		/* We could zalloc nfile, but then zalloc starts showing in gprof at ~1% */
@@ -571,10 +571,11 @@ struct context_vec {
 	int d;          /* end line in new file */
 };
 
-static bool diff(FILE_and_pos_t ft[2], char *file[2])
+static bool diff(FILE* fp[2], char *file[2])
 {
 	int nlen[2];
 	off_t *ix[2];
+	FILE_and_pos_t ft[2] = { { fp[0] }, { fp[1] } };
 	int *J = create_J(ft, nlen, ix);
 
 	bool anychange = false;
@@ -670,7 +671,7 @@ static bool diff(FILE_and_pos_t ft[2], char *file[2])
 
 static int diffreg(char *file[2])
 {
-	FILE_and_pos_t ft[2];
+	FILE *fp[2];
 	bool binary = false, differ = false;
 	int status = STATUS_SAME;
 
@@ -681,23 +682,19 @@ static int diffreg(char *file[2])
 		/* Our diff implementation is using seek.
 		 * When we meet non-seekable file, we must make a temp copy.
 		 */
-		ft[i].ft_pos = 0;
 		if (lseek(fd, 0, SEEK_SET) == -1 && errno == ESPIPE) {
 			char name[] = "/tmp/difXXXXXX";
 			int fd_tmp = mkstemp(name);
 			if (fd_tmp < 0)
 				bb_perror_msg_and_die("mkstemp");
 			unlink(name);
-			ft[i].ft_pos = bb_copyfd_eof(fd, fd_tmp);
-			/* error message is printed by bb_copyfd_eof */
-			if (ft[i].ft_pos < 0)
+			if (bb_copyfd_eof(fd, fd_tmp) < 0)
 				xfunc_die();
-			fstat(fd, &stb[i]);
 			if (fd) /* Prevents closing of stdin */
 				close(fd);
 			fd = fd_tmp;
 		}
-		ft[i].ft_fp = fdopen(fd, "r");
+		fp[i] = fdopen(fd, "r");
 	}
 
 	while (1) {
@@ -705,10 +702,8 @@ static int diffreg(char *file[2])
 		char *const buf0 = bb_common_bufsiz1;
 		char *const buf1 = buf0 + sz;
 		int i, j;
-		i = fread(buf0, 1, sz, ft[0].ft_fp);
-		ft[0].ft_pos += i;
-		j = fread(buf1, 1, sz, ft[1].ft_fp);
-		ft[1].ft_pos += j;
+		i = fread(buf0, 1, sz, fp[0]);
+		j = fread(buf1, 1, sz, fp[1]);
 		if (i != j) {
 			differ = true;
 			i = MIN(i, j);
@@ -725,14 +720,14 @@ static int diffreg(char *file[2])
 	if (differ) {
 		if (binary && !(option_mask32 & FLAG(a)))
 			status = STATUS_BINARY;
-		else if (diff(ft, file))
+		else if (diff(fp, file))
 			status = STATUS_DIFFER;
 	}
 	if (status != STATUS_SAME)
 		exit_status |= 1;
 
-	fclose_if_not_stdin(ft[0].ft_fp);
-	fclose_if_not_stdin(ft[1].ft_fp);
+	fclose_if_not_stdin(fp[0]);
+	fclose_if_not_stdin(fp[1]);
 
 	return status;
 }
