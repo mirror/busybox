@@ -85,9 +85,11 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	{
 		const char *p = "-1";
 		const char *i = "-"; /* compat */
+		const char *g; /* unimplemented, default is "0" */
 #if ENABLE_LONG_OPTS
 		static const char patch_longopts[] ALIGN1 =
 			"strip\0"   Required_argument "p"
+			"get\0"     Required_argument "g"
 			"input\0"   Required_argument "i"
 			"reverse\0" No_argument       "R"
 			"forward\0" No_argument       "N"
@@ -95,7 +97,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			;
 		applet_long_options = patch_longopts;
 #endif
-		opt = getopt32(argv, "p:i:RN", &p, &i);
+		opt = getopt32(argv, "p:i:RNg:", &p, &i, &g);
 		if (opt & OPT_R)
 			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */
