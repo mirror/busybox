@@ -671,14 +671,14 @@ static bool diff(FILE* fp[2], char *file[2])
 
 static int diffreg(char *file[2])
 {
-	FILE *fp[2];
+	FILE *fp[2] = { stdin, stdin };
 	bool binary = false, differ = false;
 	int status = STATUS_SAME;
 
 	for (int i = 0; i < 2; i++) {
 		int fd = open_or_warn_stdin(file[i]);
 		if (fd == -1)
-			xfunc_die();
+			goto out;
 		/* Our diff implementation is using seek.
 		 * When we meet non-seekable file, we must make a temp copy.
 		 */
@@ -725,7 +725,7 @@ static int diffreg(char *file[2])
 	}
 	if (status != STATUS_SAME)
 		exit_status |= 1;
-
+out:
 	fclose_if_not_stdin(fp[0]);
 	fclose_if_not_stdin(fp[1]);
 
