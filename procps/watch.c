@@ -32,13 +32,19 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 	char *header;
 	char *cmd;
 
+#if 0 // maybe ENABLE_DESKTOP?
+	// procps3 compat - "echo TEST | watch cat" doesn't show TEST:
+	close(STDIN_FILENO);
+	xopen("/dev/null", O_RDONLY);
+#endif
+
 	opt_complementary = "-1:n+"; // at least one param; -n NUM
 	// "+": stop at first non-option (procps 3.x only)
 	opt = getopt32(argv, "+dtn:", &period);
 	argv += optind;
 
 	// watch from both procps 2.x and 3.x does concatenation. Example:
-	// watch ls -l "a /tmp" "2>&1" -- ls won't see "a /tmp" as one param
+	// watch ls -l "a /tmp" "2>&1" - ls won't see "a /tmp" as one param
 	cmd = *argv;
 	while (*++argv)
 		cmd = xasprintf("%s %s", cmd, *argv); // leaks cmd
@@ -51,7 +57,9 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 			const unsigned time_len = sizeof("1234-67-90 23:56:89");
 			time_t t;
 
-			get_terminal_width_height(STDIN_FILENO, &new_width, NULL);
+			// STDERR_FILENO is procps3 compat:
+			// "watch ls 2>/dev/null" does not detect tty size
+			get_terminal_width_height(STDERR_FILENO, &new_width, NULL);
 			if (new_width != width) {
 				width = new_width;
 				free(header);
@@ -62,7 +70,8 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 				strftime(header + width - time_len, time_len,
 					"%Y-%m-%d %H:%M:%S", localtime(&t));
 
-			printf("%s\n\n", header); /* compat: empty line */
+			// compat: empty line between header and cmd output
+			printf("%s\n\n", header);
 		}
 		fflush_all();
 		// TODO: 'real' watch pipes cmd's output to itself
