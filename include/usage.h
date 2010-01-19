@@ -4408,7 +4408,7 @@
 #define tar_trivial_usage \
        "-[" IF_FEATURE_TAR_CREATE("c") IF_FEATURE_SEAMLESS_GZ("z") \
 	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a") \
-	IF_FEATURE_SEAMLESS_Z("Z") "xtvO] " \
+	IF_FEATURE_SEAMLESS_Z("Z") IF_FEATURE_TAR_NOPRESERVE_TIME("m") "xtvO] " \
 	IF_FEATURE_TAR_FROM("[-X FILE] ") \
        "[-f TARFILE] [-C DIR] [FILE]..."
 #define tar_full_usage "\n\n" \
@@ -4432,6 +4432,9 @@
 	) \
 	IF_FEATURE_SEAMLESS_Z( \
      "\n	Z	Filter the archive through compress" \
+	) \
+	IF_FEATURE_TAR_NOPRESERVE_TIME( \
+     "\n	m	Do not extract files modified time" \
 	) \
      "\nFile selection:" \
      "\n	f	Name of TARFILE or \"-\" for stdin" \

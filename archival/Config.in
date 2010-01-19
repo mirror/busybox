@@ -276,6 +276,13 @@ config FEATURE_TAR_UNAME_GNAME
 	  listings (-t) and preserving permissions when unpacking (-p).
 	  +200 bytes.
 
+config FEATURE_TAR_NOPRESERVE_TIME
+	bool "Enable -m (do not preserve time) option"
+	default n
+	depends on TAR
+	help
+	  With this option busybox supports GNU tar -m (do not preserve time) option.
+
 endif #tar
 
 config UNCOMPRESS

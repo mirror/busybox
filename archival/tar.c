@@ -748,6 +748,7 @@ enum {
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
 	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
+	IF_FEATURE_TAR_NOPRESERVE_TIME(OPTBIT_NOPRESERVE_TIME,)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	OPTBIT_NUMERIC_OWNER,
 	OPTBIT_NOPRESERVE_PERM,
@@ -769,6 +770,7 @@ enum {
 	OPT_INCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
+	OPT_NOPRESERVE_TIME = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
@@ -807,6 +809,9 @@ static const char tar_longopts[] ALIGN1 =
 # endif
 # if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
+# endif
+# if ENABLE_FEATURE_TAR_NOPRESERVE_TIME
+	"touch\0"               No_argument       "m"
 # endif
 	/* use numeric uid/gid from tar header, not textual */
 	"numeric-owner\0"       No_argument       "\xfc"
@@ -894,6 +899,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_TAR_FROM(     "T:X:")
 		IF_FEATURE_SEAMLESS_GZ(  "z"   )
 		IF_FEATURE_SEAMLESS_Z(   "Z"   )
+		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 		, &base_dir // -C dir
 		, &tar_filename // -f filename
 		IF_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T
@@ -944,6 +950,11 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & OPT_COMPRESS)
 		get_header_ptr = get_header_tar_Z;
+
+#if ENABLE_FEATURE_TAR_NOPRESERVE_TIME
+	if (opt & OPT_NOPRESERVE_TIME)
+		tar_handle->ah_flags &= ~ARCHIVE_RESTORE_DATE;
+#endif
 
 #if ENABLE_FEATURE_TAR_FROM
 	tar_handle->reject = append_file_list_to_list(tar_handle->reject);
