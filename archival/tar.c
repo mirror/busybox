@@ -770,8 +770,8 @@ enum {
 	OPT_INCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
-	OPT_NOPRESERVE_TIME = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
+	OPT_NOPRESERVE_TIME = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
 	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
 	OPT_OVERWRITE       = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_OVERWRITE      )) + 0, // overwrite
@@ -951,14 +951,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_COMPRESS)
 		get_header_ptr = get_header_tar_Z;
 
-#if ENABLE_FEATURE_TAR_NOPRESERVE_TIME
 	if (opt & OPT_NOPRESERVE_TIME)
 		tar_handle->ah_flags &= ~ARCHIVE_RESTORE_DATE;
-#endif
 
 #if ENABLE_FEATURE_TAR_FROM
 	tar_handle->reject = append_file_list_to_list(tar_handle->reject);
-#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+# if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	/* Append excludes to reject */
 	while (excludes) {
 		llist_t *next = excludes->link;
@@ -966,12 +964,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		tar_handle->reject = excludes;
 		excludes = next;
 	}
-#endif
+# endif
 	tar_handle->accept = append_file_list_to_list(tar_handle->accept);
 #endif
 
 	/* Setup an array of filenames to work with */
-	/* TODO: This is the same as in ar, separate function ? */
+	/* TODO: This is the same as in ar, make a separate function? */
 	while (*argv) {
 		/* kill trailing '/' unless the string is just "/" */
 		char *cp = last_char_is(*argv, '/');
@@ -990,7 +988,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		int flags = O_RDONLY;
 
 		if (opt & OPT_CREATE) {
-			/* Make sure there is at least one file to tar up.  */
+			/* Make sure there is at least one file to tar up */
 			if (tar_handle->accept == NULL)
 				bb_error_msg_and_die("empty archive");
 
@@ -1022,7 +1020,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGCHLD, handle_SIGCHLD);
 #endif
 
-	/* create an archive */
+	/* Create an archive */
 	if (opt & OPT_CREATE) {
 #if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 		int zipMode = 0;

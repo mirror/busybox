@@ -4406,9 +4406,9 @@
        "nameserver 10.0.0.1\n"
 
 #define tar_trivial_usage \
-       "-[" IF_FEATURE_TAR_CREATE("c") IF_FEATURE_SEAMLESS_GZ("z") \
+       "-[" IF_FEATURE_TAR_CREATE("c") "xt" IF_FEATURE_SEAMLESS_GZ("z") \
 	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a") \
-	IF_FEATURE_SEAMLESS_Z("Z") IF_FEATURE_TAR_NOPRESERVE_TIME("m") "xtvO] " \
+	IF_FEATURE_SEAMLESS_Z("Z") IF_FEATURE_TAR_NOPRESERVE_TIME("m") "vO] " \
 	IF_FEATURE_TAR_FROM("[-X FILE] ") \
        "[-f TARFILE] [-C DIR] [FILE]..."
 #define tar_full_usage "\n\n" \
@@ -4417,7 +4417,8 @@
        "or list files from a tar file\n" \
      "\nOptions:" \
 	IF_FEATURE_TAR_CREATE( \
-     "\n	c	Create") \
+     "\n	c	Create" \
+	) \
      "\n	x	Extract" \
      "\n	t	List" \
      "\nArchive format selection:" \
@@ -4434,16 +4435,18 @@
      "\n	Z	Filter the archive through compress" \
 	) \
 	IF_FEATURE_TAR_NOPRESERVE_TIME( \
-     "\n	m	Do not extract files modified time" \
+     "\n	m	Do not restore mtime" \
 	) \
      "\nFile selection:" \
      "\n	f	Name of TARFILE or \"-\" for stdin" \
      "\n	O	Extract to stdout" \
 	IF_FEATURE_TAR_FROM( \
+	IF_FEATURE_TAR_LONG_OPTIONS( \
      "\n	exclude	File to exclude" \
+	) \
      "\n	X	File with names to exclude" \
 	) \
-     "\n	C	Change to directory DIR before operation" \
+     "\n	C	Change to DIR before operation" \
      "\n	v	Verbose" \
 
 #define tar_example_usage \

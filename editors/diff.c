@@ -432,7 +432,8 @@ static NOINLINE int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
 		token_t tok;
 		size_t sz = 100;
 		nfile[i] = xmalloc((sz + 3) * sizeof(nfile[i][0]));
-		fseeko(ft[i].ft_fp, 0, SEEK_SET); /* ft gets here without the correct position */
+		/* ft gets here without the correct position, cant use seek_ft */
+		fseeko(ft[i].ft_fp, 0, SEEK_SET);
 
 		nlen[i] = 0;
 		/* We could zalloc nfile, but then zalloc starts showing in gprof at ~1% */
@@ -625,7 +626,7 @@ static bool diff(FILE* fp[2], char *file[2])
 		}
 		if (idx < 0)
 			continue;
-		if (!(option_mask32 & FLAG(q)) && !((option_mask32 & FLAG(B)) && !nonempty)) {
+		if (!(option_mask32 & (FLAG(q)+FLAG(B))) && !nonempty) {
 			struct context_vec *cvp = vec;
 			int lowa = MAX(1, cvp->a - opt_U_context);
 			int upb  = MIN(nlen[0], vec[idx].b + opt_U_context);
@@ -634,8 +635,8 @@ static bool diff(FILE* fp[2], char *file[2])
 
 			if (!anychange) {
 				/* Print the context/unidiff header first time through */
-				printf("--- %s\n", label[0] ?: file[0]);
-				printf("+++ %s\n", label[1] ?: file[1]);
+				printf("--- %s\n", label[0] ? label[0] : file[0]);
+				printf("+++ %s\n", label[1] ? label[1] : file[1]);
 			}
 
 			printf("@@ -");

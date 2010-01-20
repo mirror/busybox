@@ -9,7 +9,10 @@
 #include "libbb.h"
 #include "unicode.h"
 
+/* If it's not a constant... */
+#ifndef unicode_status
 uint8_t unicode_status;
+#endif
 
 size_t FAST_FUNC bb_mbstrlen(const char *string)
 {
