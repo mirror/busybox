@@ -368,16 +368,6 @@ static int line_compar(const void *a, const void *b)
 #undef l1
 }
 
-static void uni_range(int a, int b)
-{
-	if (a < b)
-		printf("%d,%d", a, b - a + 1);
-	else if (a == b)
-		printf("%d", b);
-	else
-		printf("%d,0", b);
-}
-
 static void fetch(FILE_and_pos_t *ft, const off_t *ix, int a, int b, int ch)
 {
 	for (int i = a; i <= b; i++) {
@@ -561,17 +551,6 @@ start:
 	return J;
 }
 
-/*
- * The following struct is used to record change information
- * doing a "context" or "unified" diff.
- */
-struct context_vec {
-	int a;          /* start line in old file */
-	int b;          /* end line in old file */
-	int c;          /* start line in new file */
-	int d;          /* end line in new file */
-};
-
 static bool diff(FILE* fp[2], char *file[2])
 {
 	int nlen[2];
@@ -580,22 +559,23 @@ static bool diff(FILE* fp[2], char *file[2])
 	int *J = create_J(ft, nlen, ix);
 
 	bool anychange = false;
-	struct context_vec *vec = NULL;
-	int idx = -1, i = 1;
+	typedef struct { int a, b; } vec_t[2];
+	vec_t *vec = NULL;
+	int i = 1, idx = -1;
 
 	do {
 		bool nonempty = false;
 
 		while (1) {
-			struct context_vec v;
+			vec_t v;
 
-			for (v.a = i; v.a <= nlen[0] && J[v.a] == J[v.a - 1] + 1; v.a++)
+			for (v[0].a = i; v[0].a <= nlen[0] && J[v[0].a] == J[v[0].a - 1] + 1; v[0].a++)
 				continue;
-			v.c = J[v.a - 1] + 1;
+			v[1].a = J[v[0].a - 1] + 1;
 
-			for (v.b = v.a - 1; v.b < nlen[0] && !J[v.b + 1]; v.b++)
+			for (v[0].b = v[0].a - 1; v[0].b < nlen[0] && !J[v[0].b + 1]; v[0].b++)
 				continue;
-			v.d = J[v.b + 1] - 1;
+			v[1].b = J[v[0].b + 1] - 1;
 			/*
 			 * Indicate that there is a difference between lines a and b of the 'from' file
 			 * to get to lines c to d of the 'to' file. If a is greater than b then there
@@ -603,35 +583,36 @@ static bool diff(FILE* fp[2], char *file[2])
 			 * lines appended (beginning at b).  If c is greater than d then there are
 			 * lines missing from the 'to' file.
 			 */
-			if (v.a <= v.b || v.c <= v.d) {
+			if (v[0].a <= v[0].b || v[1].a <= v[1].b) {
 				/*
 				 * If this change is more than 'context' lines from the
 				 * previous change, dump the record and reset it.
 				 */
+				int ct = (2 * opt_U_context) + 1;
 				if (idx >= 0
-				 && v.a > vec[idx].b + (2 * opt_U_context) + 1
-				 && v.c > vec[idx].d + (2 * opt_U_context) + 1
+				 && v[0].a > vec[idx][0].b + ct
+				 && v[1].a > vec[idx][1].b + ct
 				) {
 					break;
 				}
-				nonempty |= (v.a >= v.b) && (v.c >= v.d);
+
+				for (int j = 0; j < 2; j++)
+					for (int k = v[j].a; k < v[j].b; k++)
+						nonempty |= (ix[j][k+1] - ix[j][k] != 1);
+
 				vec = xrealloc_vector(vec, 6, ++idx);
-				vec[idx] = v;
+				memcpy(vec[idx], v, sizeof(v));
 			}
 
-			i = v.b + 1;
+			i = v[0].b + 1;
 			if (i > nlen[0])
 				break;
-			J[v.b] = v.d;
+			J[v[0].b] = v[1].b;
 		}
-		if (idx < 0)
-			continue;
-		if (!(option_mask32 & (FLAG(q)+FLAG(B))) && !nonempty) {
-			struct context_vec *cvp = vec;
-			int lowa = MAX(1, cvp->a - opt_U_context);
-			int upb  = MIN(nlen[0], vec[idx].b + opt_U_context);
-			int lowc = MAX(1, cvp->c - opt_U_context);
-			int upd  = MIN(nlen[1], vec[idx].d + opt_U_context);
+		if (idx < 0 || ((option_mask32 & FLAG(B)) && !nonempty))
+			goto cont;
+		if (!(option_mask32 & FLAG(q))) {
+			vec_t span, *cvp = vec;
 
 			if (!anychange) {
 				/* Print the context/unidiff header first time through */
@@ -639,28 +620,33 @@ static bool diff(FILE* fp[2], char *file[2])
 				printf("+++ %s\n", label[1] ? label[1] : file[1]);
 			}
 
-			printf("@@ -");
-			uni_range(lowa, upb);
-			printf(" +");
-			uni_range(lowc, upd);
-			printf(" @@\n");
+			printf("@@");
+			for (int j = 0; j < 2; j++) {
+				int a = span[j].a = MAX(1, (*cvp)[j].a - opt_U_context);
+				int b = span[j].b = MIN(nlen[j], vec[idx][j].b + opt_U_context);
 
+				printf(" %c%d", j ? '+' : '-', MIN(a, b));
+				if (a == b)
+					continue;
+				printf(",%d", (a < b) ? b - a + 1 : 0);
+			}
+			printf(" @@\n");
 			/*
 			 * Output changes in "unified" diff format--the old and new lines
 			 * are printed together.
 			 */
-			while (1) {
+			for (int lowa = span[0].a; ; lowa = (*cvp++)[0].b + 1) {
 				bool end = cvp > &vec[idx];
-				fetch(&ft[0], ix[0], lowa, end ? upb : cvp->a - 1, ' ');
+				fetch(&ft[0], ix[0], lowa, end ? span[0].b : (*cvp)[0].a - 1, ' ');
 				if (end)
 					break;
-				fetch(&ft[0], ix[0], cvp->a, cvp->b, '-');
-				fetch(&ft[1], ix[1], cvp->c, cvp->d, '+');
-				lowa = cvp++->b + 1;
+				for (int j = 0; j < 2; j++)
+					fetch(&ft[j], ix[j], (*cvp)[j].a, (*cvp)[j].b, j ? '+' : '-');
 			}
 		}
-		idx = -1;
 		anychange = true;
+ cont:
+		idx = -1;
 	} while (i <= nlen[0]);
 
 	free(vec);

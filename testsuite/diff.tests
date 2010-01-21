@@ -44,6 +44,17 @@ testing "diff of stdin, twice" \
 	"" \
 	"stdin"
 
+testing "diff of empty file against nonempty one" \
+	"diff -u - input | $TRIM_TAB" \
+"\
+--- -
++++ input
+@@ -0,0 +1 @@
++a
+" \
+	"a\n" \
+	""
+
 testing "diff -b treats EOF as whitespace" \
 	'diff -ub - input; echo $?' \
 	"0\n" \
@@ -55,6 +66,26 @@ testing "diff -b treats all spaces as equal" \
 	"0\n" \
 	"a \t c\n" \
 	"a\t \tc\n"
+
+testing "diff -B ignores changes whose lines are all blank" \
+	'diff -uB - input; echo $?' \
+	"0\n" \
+	"a\n" \
+	"\na\n\n"
+
+testing "diff -B does not ignore changes whose lines are not all blank" \
+	"diff -uB - input | $TRIM_TAB" \
+"\
+--- -
++++ input
+@@ -1,3 +1 @@
+-
+-b
+-
++a
+" \
+	"a\n" \
+	"\nb\n\n"
 
 testing "diff always takes context from old file" \
 	"diff -ub - input | $TRIM_TAB" \
