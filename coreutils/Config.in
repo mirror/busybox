@@ -52,6 +52,13 @@ config CHOWN
 	  chown is used to change the user and/or group ownership
 	  of files.
 
+config FEATURE_CHOWN_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CHOWN && LONG_OPTS
+	help
+	  Enable use of long options
+
 config CHROOT
 	bool "chroot"
 	default n

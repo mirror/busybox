@@ -8,7 +8,6 @@
  */
 
 /* BB_AUDIT SUSv3 defects - none? */
-/* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chown.html */
 
 #include "libbb.h"
@@ -36,6 +35,20 @@
 /* -H or -L */
 #define BIT_TRAVERSE_TOP (0x20|0x40)
 #define OPT_TRAVERSE_TOP (IF_DESKTOP(opt & BIT_TRAVERSE_TOP) IF_NOT_DESKTOP(0))
+
+#if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
+static const char chown_longopts[] ALIGN1 =
+	"recursive\0"        No_argument   "R"
+	"dereference\0"      No_argument   "\xff"
+	"no-dereference\0"   No_argument   "h"
+# if ENABLE_DESKTOP
+	"changes\0"          No_argument   "c"
+	"silent\0"           No_argument   "f"
+	"quiet\0"            No_argument   "f"
+	"verbose\0"          No_argument   "v"
+# endif
+	;
+#endif
 
 typedef int (*chown_fptr)(const char *, uid_t, gid_t);
 
@@ -78,6 +91,9 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	param.ugid.gid = -1;
 	param.chown_func = chown;
 
+#if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
+	applet_long_options = chown_longopts;
+#endif
 	opt_complementary = "-2";
 	opt = getopt32(argv, OPT_STR);
 	argv += optind;
