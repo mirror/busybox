@@ -89,7 +89,6 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 
 	param.ugid.uid = -1;
 	param.ugid.gid = -1;
-	param.chown_func = chown;
 
 #if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
 	applet_long_options = chown_longopts;
@@ -99,6 +98,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	/* This matches coreutils behavior (almost - see below) */
+	param.chown_func = chown;
 	if (OPT_NODEREF
 	    /* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
 	    IF_DESKTOP( || (opt & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
@@ -117,8 +117,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	parse_chown_usergroup_or_die(&param.ugid, argv[0]);
 
 	/* Ok, ready to do the deed now */
-	argv++;
-	do {
+	while (*++argv) {
 		if (!recursive_action(*argv,
 				flags,          /* flags */
 				fileAction,     /* file action */
@@ -128,7 +127,7 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 		) {
 			retval = EXIT_FAILURE;
 		}
-	} while (*++argv);
+	}
 
 	return retval;
 }
