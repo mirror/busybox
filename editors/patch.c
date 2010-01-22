@@ -80,8 +80,8 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 		OPT_N = (1 << 3),
 		/*OPT_f = (1 << 4), ignored */
 		/*OPT_E = (1 << 5), ignored, this is the default */
-	//	/*OPT_g = (1 << x), ignored */
-		OPT_dry_run = (1 << 6) * ENABLE_LONG_OPTS,
+		/*OPT_g = (1 << 6), ignored */
+		OPT_dry_run = (1 << 7) * ENABLE_LONG_OPTS,
 	};
 
 	xfunc_error_retval = 2;
@@ -101,8 +101,9 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 		/* "Controls actions when a file is under RCS or SCCS control,
 		 * and does not exist or is read-only and matches the default version,
 		 * or when a file is under ClearCase control and does not exist..."
-		 * IOW: does anyone really wants this? */
-		//	"get\0"                   Required_argument "g" /*ignored*/
+		 * IOW: rather obscure option.
+		 * But Gentoo's portage does use -g0 */
+			"get\0"                   Required_argument "g" /*ignored*/
 # endif
 			"dry-run\0"               No_argument       "\xfd"
 # if ENABLE_DESKTOP
@@ -112,8 +113,8 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			;
 		applet_long_options = patch_longopts;
 #endif
-		/* -f,-E are ignored */
-		opt = getopt32(argv, "p:i:RN""fE"/*"g:"*/, &p, &i /*,NULL*/);
+		/* -f,-E,-g are ignored */
+		opt = getopt32(argv, "p:i:RN""fEg:", &p, &i, NULL);
 		if (opt & OPT_R)
 			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */
