@@ -78,7 +78,10 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	enum {
 		OPT_R = (1 << 2),
 		OPT_N = (1 << 3),
-		OPT_dry_run = (1 << 4) * ENABLE_LONG_OPTS,
+		/*OPT_f = (1 << 4), ignored */
+		/*OPT_E = (1 << 5), ignored, this is the default */
+	//	/*OPT_g = (1 << x), ignored */
+		OPT_dry_run = (1 << 6) * ENABLE_LONG_OPTS,
 	};
 
 	xfunc_error_retval = 2;
@@ -87,16 +90,30 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 		const char *i = "-"; /* compat */
 #if ENABLE_LONG_OPTS
 		static const char patch_longopts[] ALIGN1 =
-			"strip\0"   Required_argument "p"
-			"get\0"     Required_argument "g"
-			"input\0"   Required_argument "i"
-			"reverse\0" No_argument       "R"
-			"forward\0" No_argument       "N"
-			"dry-run\0" No_argument       "\xff"
+			"strip\0"                 Required_argument "p"
+			"input\0"                 Required_argument "i"
+			"reverse\0"               No_argument       "R"
+			"forward\0"               No_argument       "N"
+		/* "Assume user knows what [s]he is doing, do not ask any questions": */
+			"force\0"                 No_argument       "f" /*ignored*/
+# if ENABLE_DESKTOP
+			"remove-empty-files\0"    No_argument       "E" /*ignored*/
+		/* "Controls actions when a file is under RCS or SCCS control,
+		 * and does not exist or is read-only and matches the default version,
+		 * or when a file is under ClearCase control and does not exist..."
+		 * IOW: does anyone really wants this? */
+		//	"get\0"                   Required_argument "g" /*ignored*/
+# endif
+			"dry-run\0"               No_argument       "\xfd"
+# if ENABLE_DESKTOP
+			"backup-if-mismatch\0"    No_argument       "\xfe" /*ignored*/
+			"no-backup-if-mismatch\0" No_argument       "\xff" /*ignored*/
+# endif
 			;
 		applet_long_options = patch_longopts;
 #endif
-		opt = getopt32(argv, "p:i:RNg:", &p, &i, NULL);
+		/* -f,-E are ignored */
+		opt = getopt32(argv, "p:i:RN""fE"/*"g:"*/, &p, &i /*,NULL*/);
 		if (opt & OPT_R)
 			plus = '-';
 		patch_level = xatoi(p); /* can be negative! */
