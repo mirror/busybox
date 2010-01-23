@@ -71,12 +71,12 @@ static void maybe_set_utc(int opt)
 
 #if ENABLE_LONG_OPTS
 static const char date_longopts[] ALIGN1 =
-		"rfc-822\0" No_argument "R"
-		"rfc-2822\0" No_argument "R"
-		"set\0" Required_argument "s"
-		"utc\0" No_argument "u"
-		/*"universal\0" No_argument "u"*/
-		"date\0" Required_argument "d"
+		"rfc-822\0"   No_argument       "R"
+		"rfc-2822\0"  No_argument       "R"
+		"set\0"       Required_argument "s"
+		"utc\0"       No_argument       "u"
+	/*	"universal\0" No_argument       "u" */
+		"date\0"      Required_argument "d"
 		"reference\0" Required_argument "r"
 		;
 #endif
@@ -85,6 +85,7 @@ int date_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int date_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct tm tm_time;
+	char buf_fmt_dt2str[64];
 	time_t tm;
 	unsigned opt;
 	int ifmt = -1;
@@ -108,8 +109,8 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		ifmt = 0; /* default is date */
 		if (isofmt_arg) {
 			static const char isoformats[] ALIGN1 =
-				"date\0""hours\0""minutes\0""seconds\0";
-			ifmt = index_in_strings(isoformats, isofmt_arg);
+				"date\0""hours\0""minutes\0""seconds\0"; /* ns? */
+			ifmt = index_in_substrings(isoformats, isofmt_arg);
 			if (ifmt < 0)
 				bb_show_usage();
 		}
@@ -117,14 +118,14 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 
 	fmt_dt2str = NULL;
 	if (argv[0] && argv[0][0] == '+') {
-		fmt_dt2str = &argv[0][1];	/* Skip over the '+' */
+		fmt_dt2str = &argv[0][1]; /* skip over the '+' */
 		argv++;
 	}
 	if (!(opt & (OPT_SET | OPT_DATE))) {
 		opt |= OPT_SET;
 		date_str = argv[0]; /* can be NULL */
 		if (date_str) {
-#if ENABLE_DESKTOP
+#if ENABLE_FEATURE_DATE_COMPAT
 			int len = strspn(date_str, "0123456789");
 			if (date_str[len] == '\0'
 			 || (date_str[len] == '.'
@@ -133,7 +134,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 			    && date_str[len+3] == '\0'
 			    )
 			) {
-				/* Dreaded [MMDDhhmm[[CC]YY][.ss]] format!
+				/* Dreaded MMDDhhmm[[CC]YY][.ss] format!
 				 * It does not match -d or -s format.
 				 * Some users actually do use it.
 				 */
@@ -155,7 +156,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 
 	/* Now we have parsed all the information except the date format
-	   which depends on whether the clock is being set or read */
+	 * which depends on whether the clock is being set or read */
 
 	if (opt & OPT_REFERENCE) {
 		struct stat statbuf;
@@ -198,37 +199,28 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	/* Deal with format string */
 	if (fmt_dt2str == NULL) {
 		int i;
-		fmt_dt2str = xzalloc(32);
+		fmt_dt2str = buf_fmt_dt2str;
 		if (ENABLE_FEATURE_DATE_ISOFMT && ifmt >= 0) {
-			strcpy(fmt_dt2str, "%Y-%m-%d");
-			if (ifmt > 0) {
-				i = 8;
-				fmt_dt2str[i++] = 'T';
-				fmt_dt2str[i++] = '%';
-				fmt_dt2str[i++] = 'H';
-				if (ifmt > 1) {
-					fmt_dt2str[i++] = ':';
-					fmt_dt2str[i++] = '%';
-					fmt_dt2str[i++] = 'M';
-					if (ifmt > 2) {
-						fmt_dt2str[i++] = ':';
-						fmt_dt2str[i++] = '%';
-						fmt_dt2str[i++] = 'S';
-					}
-				}
+			/* -I[SPEC]: 0:date 1:hours 2:minutes 3:seconds */
+			strcpy(fmt_dt2str, "%Y-%m-%dT%H:%M:%S");
+			i = 8 + 3 * ifmt;
+			if (ifmt != 0) {
+				/* TODO: if (ifmt==4) i += sprintf(&fmt_dt2str[i], ",%09u", nanoseconds); */
  format_utc:
 				fmt_dt2str[i++] = '%';
-				fmt_dt2str[i] = (opt & OPT_UTC) ? 'Z' : 'z';
+				fmt_dt2str[i++] = (opt & OPT_UTC) ? 'Z' : 'z';
 			}
+			fmt_dt2str[i] = '\0';
 		} else if (opt & OPT_RFC2822) {
-			/* Undo busybox.c for date -R */
+			/* -R. undo busybox.c setlocale */
 			if (ENABLE_LOCALE_SUPPORT)
 				setlocale(LC_TIME, "C");
 			strcpy(fmt_dt2str, "%a, %d %b %Y %H:%M:%S ");
-			i = 22;
+			i = sizeof("%a, %d %b %Y %H:%M:%S ")-1;
 			goto format_utc;
-		} else /* default case */
+		} else { /* default case */
 			fmt_dt2str = (char*)"%a %b %e %H:%M:%S %Z %Y";
+		}
 	}
 
 #define date_buf bb_common_bufsiz1
@@ -240,7 +232,6 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		if (strncmp(fmt_dt2str, "%f", 2) == 0) {
 			fmt_dt2str = (char*)"%Y.%m.%d-%H:%M:%S";
 		}
-
 		/* Generate output string */
 		strftime(date_buf, sizeof(date_buf), fmt_dt2str, &tm_time);
 	}

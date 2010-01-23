@@ -115,6 +115,22 @@ config FEATURE_DATE_ISOFMT
 	  Enable option (-I) to output an ISO-8601 compliant
 	  date/time string.
 
+config FEATURE_DATE_COMPAT
+	bool "Support weird 'date MMDDhhmm[[YY]YY][.ss]' format"
+	default y
+	depends on DATE
+	help
+	  System time can be set by 'date -s DATE' and simply 'date DATE',
+	  but formats of DATE string are different. 'date DATE' accepts
+	  a rather weird MMDDhhmm[[YY]YY][.ss] format with completely
+	  unnatural placement of year between minutes and seconds.
+	  date -s (and other commands like touch -d) use more sensible
+	  formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
+
+	  With this option off, 'date DATE' is 'date -s DATE' support
+	  the same format. With it on, 'date DATE' additionally supports
+	  MMDDhhmm[[YY]YY][.ss] format.
+
 config DD
 	bool "dd"
 	default n
