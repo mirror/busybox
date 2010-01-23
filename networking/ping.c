@@ -162,7 +162,7 @@ static void ping6(len_and_sockaddr *lsa)
 				bb_perror_msg("recvfrom");
 			continue;
 		}
-		if (c >= 8) {			/* icmp6_hdr */
+		if (c >= ICMP_MINLEN) {			/* icmp6_hdr */
 			pkt = (struct icmp6_hdr *) packet;
 			if (pkt->icmp6_type == ICMP6_ECHO_REPLY)
 				break;
