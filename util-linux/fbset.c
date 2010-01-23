@@ -17,52 +17,13 @@
 #define DEFAULTFBDEV  FB_0
 #define DEFAULTFBMODE "/etc/fb.modes"
 
-enum {
-	CMD_FB = 1,
-	CMD_DB = 2,
-	CMD_GEOMETRY = 3,
-	CMD_TIMING = 4,
-	CMD_ACCEL = 5,
-	CMD_HSYNC = 6,
-	CMD_VSYNC = 7,
-	CMD_LACED = 8,
-	CMD_DOUBLE = 9,
-/*	CMD_XCOMPAT =     10, */
-	CMD_ALL = 11,
-	CMD_INFO = 12,
-	CMD_SHOW = 13,
-	CMD_CHANGE = 14,
-
-#if ENABLE_FEATURE_FBSET_FANCY
-	CMD_XRES = 100,
-	CMD_YRES = 101,
-	CMD_VXRES = 102,
-	CMD_VYRES = 103,
-	CMD_DEPTH = 104,
-	CMD_MATCH = 105,
-	CMD_PIXCLOCK = 106,
-	CMD_LEFT = 107,
-	CMD_RIGHT = 108,
-	CMD_UPPER = 109,
-	CMD_LOWER = 110,
-	CMD_HSLEN = 111,
-	CMD_VSLEN = 112,
-	CMD_CSYNC = 113,
-	CMD_GSYNC = 114,
-	CMD_EXTSYNC = 115,
-	CMD_BCAST = 116,
-	CMD_RGBA = 117,
-	CMD_STEP = 118,
-	CMD_MOVE = 119,
-#endif
-};
-
 /* Stuff stolen from the kernel's fb.h */
 #define FB_ACTIVATE_ALL 64
 enum {
 	FBIOGET_VSCREENINFO = 0x4600,
 	FBIOPUT_VSCREENINFO = 0x4601
 };
+
 struct fb_bitfield {
 	uint32_t offset;                /* beginning of bitfield */
 	uint32_t length;		/* length of bitfield */
@@ -106,6 +67,81 @@ struct fb_var_screeninfo {
 	uint32_t reserved[6];           /* Reserved for future compatibility */
 };
 
+static void copy_if_gt0(uint32_t *src, uint32_t *dst, unsigned cnt)
+{
+	do {
+		if ((int32_t) *src > 0)
+			*dst = *src;
+		src++;
+		dst++;
+	} while (--cnt);
+}
+
+static NOINLINE void copy_changed_values(
+		struct fb_var_screeninfo *base,
+		struct fb_var_screeninfo *set)
+{
+	//if ((int32_t) set->xres > 0) base->xres = set->xres;
+	//if ((int32_t) set->yres > 0) base->yres = set->yres;
+	//if ((int32_t) set->xres_virtual > 0)   base->xres_virtual = set->xres_virtual;
+	//if ((int32_t) set->yres_virtual > 0)   base->yres_virtual = set->yres_virtual;
+	copy_if_gt0(&set->xres, &base->xres, 4);
+
+	if ((int32_t) set->bits_per_pixel > 0) base->bits_per_pixel = set->bits_per_pixel;
+	//copy_if_gt0(&set->bits_per_pixel, &base->bits_per_pixel, 1);
+
+	//if ((int32_t) set->pixclock > 0)       base->pixclock = set->pixclock;
+	//if ((int32_t) set->left_margin > 0)    base->left_margin = set->left_margin;
+	//if ((int32_t) set->right_margin > 0)   base->right_margin = set->right_margin;
+	//if ((int32_t) set->upper_margin > 0)   base->upper_margin = set->upper_margin;
+	//if ((int32_t) set->lower_margin > 0)   base->lower_margin = set->lower_margin;
+	//if ((int32_t) set->hsync_len > 0) base->hsync_len = set->hsync_len;
+	//if ((int32_t) set->vsync_len > 0) base->vsync_len = set->vsync_len;
+	//if ((int32_t) set->sync > 0)  base->sync = set->sync;
+	//if ((int32_t) set->vmode > 0) base->vmode = set->vmode;
+	copy_if_gt0(&set->pixclock, &base->pixclock, 9);
+}
+
+
+enum {
+	CMD_FB = 1,
+	CMD_DB = 2,
+	CMD_GEOMETRY = 3,
+	CMD_TIMING = 4,
+	CMD_ACCEL = 5,
+	CMD_HSYNC = 6,
+	CMD_VSYNC = 7,
+	CMD_LACED = 8,
+	CMD_DOUBLE = 9,
+/*	CMD_XCOMPAT =     10, */
+	CMD_ALL = 11,
+	CMD_INFO = 12,
+	CMD_SHOW = 13,
+	CMD_CHANGE = 14,
+
+#if ENABLE_FEATURE_FBSET_FANCY
+	CMD_XRES = 100,
+	CMD_YRES = 101,
+	CMD_VXRES = 102,
+	CMD_VYRES = 103,
+	CMD_DEPTH = 104,
+	CMD_MATCH = 105,
+	CMD_PIXCLOCK = 106,
+	CMD_LEFT = 107,
+	CMD_RIGHT = 108,
+	CMD_UPPER = 109,
+	CMD_LOWER = 110,
+	CMD_HSLEN = 111,
+	CMD_VSLEN = 112,
+	CMD_CSYNC = 113,
+	CMD_GSYNC = 114,
+	CMD_EXTSYNC = 115,
+	CMD_BCAST = 116,
+	CMD_RGBA = 117,
+	CMD_STEP = 118,
+	CMD_MOVE = 119,
+#endif
+};
 
 static const struct cmdoptions_t {
 	const char name[9];
@@ -174,6 +210,16 @@ static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
 		*x |= flag;
 }
 
+/* Mode db file contains mode definitions like this:
+ * mode "800x600-48-lace"
+ *     # D: 36.00 MHz, H: 33.835 kHz, V: 96.39 Hz
+ *     geometry 800 600 800 600 8
+ *     timings 27778 56 80 79 11 128 12
+ *     laced true
+ *     hsync high
+ *     vsync high
+ * endmode
+ */
 static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
@@ -214,19 +260,52 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 			token[0]);
 		switch (i) {
 		case 0:
-			/* FIXME: catastrophic on arches with 64bit ints */
-			sscanf(p, "%d %d %d %d %d",
-				&(base->xres), &(base->yres),
-				&(base->xres_virtual), &(base->yres_virtual),
-				&(base->bits_per_pixel));
+			if (sizeof(int) == sizeof(base->xres)) {
+				sscanf(p, "%d %d %d %d %d",
+					&base->xres, &base->yres,
+					&base->xres_virtual, &base->yres_virtual,
+					&base->bits_per_pixel);
+			} else {
+				int base_xres, base_yres;
+				int base_xres_virtual, base_yres_virtual;
+				int base_bits_per_pixel;
+				sscanf(p, "%d %d %d %d %d",
+					&base_xres, &base_yres,
+					&base_xres_virtual, &base_yres_virtual,
+					&base_bits_per_pixel);
+				base->xres = base_xres;
+				base->yres = base_yres;
+				base->xres_virtual = base_xres_virtual;
+				base->yres_virtual = base_yres_virtual;
+				base->bits_per_pixel = base_bits_per_pixel;
+			}
 //bb_info_msg("GEO[%s]", p);
 			break;
 		case 1:
-			sscanf(p, "%d %d %d %d %d %d %d",
-				&(base->pixclock),
-				&(base->left_margin), &(base->right_margin),
-				&(base->upper_margin), &(base->lower_margin),
-				&(base->hsync_len), &(base->vsync_len));
+			if (sizeof(int) == sizeof(base->xres)) {
+				sscanf(p, "%d %d %d %d %d %d %d",
+					&base->pixclock,
+					&base->left_margin, &base->right_margin,
+					&base->upper_margin, &base->lower_margin,
+					&base->hsync_len, &base->vsync_len);
+			} else {
+				int base_pixclock;
+				int base_left_margin, base_right_margin;
+				int base_upper_margin, base_lower_margin;
+				int base_hsync_len, base_vsync_len;
+				sscanf(p, "%d %d %d %d %d %d %d",
+					&base_pixclock,
+					&base_left_margin, &base_right_margin,
+					&base_upper_margin, &base_lower_margin,
+					&base_hsync_len, &base_vsync_len);
+				base->pixclock = base_pixclock;
+				base->left_margin = base_left_margin;
+				base->right_margin = base_right_margin;
+				base->upper_margin = base_upper_margin;
+				base->lower_margin = base_lower_margin;
+				base->hsync_len = base_hsync_len;
+				base->vsync_len = base_vsync_len;
+			}
 //bb_info_msg("TIM[%s]", p);
 			break;
 		case 2:
@@ -253,21 +332,6 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 	return 0;
 }
 #endif
-
-static void setfbmode(struct fb_var_screeninfo *base,
-					struct fb_var_screeninfo *set)
-{
-	if ((int32_t) set->xres > 0)
-		base->xres = set->xres;
-	if ((int32_t) set->yres > 0)
-		base->yres = set->yres;
-	if ((int32_t) set->xres_virtual > 0)
-		base->xres_virtual = set->xres_virtual;
-	if ((int32_t) set->yres_virtual > 0)
-		base->yres_virtual = set->yres_virtual;
-	if ((int32_t) set->bits_per_pixel > 0)
-		base->bits_per_pixel = set->bits_per_pixel;
-}
 
 static NOINLINE void showmode(struct fb_var_screeninfo *v)
 {
@@ -308,15 +372,16 @@ int fbset_main(int argc, char **argv)
 		OPT_READMODE = (1 << 2),
 		OPT_ALL      = (1 << 9),
 	};
-	struct fb_var_screeninfo var, varset;
+	struct fb_var_screeninfo var_old, var_set;
 	int fh, i;
 	unsigned options = 0;
 
 	const char *fbdev = DEFAULTFBDEV;
 	const char *modefile = DEFAULTFBMODE;
-	char *thisarg, *mode = NULL;
+	char *thisarg;
+	char *mode = mode; /* for compiler */
 
-	memset(&varset, 0xff, sizeof(varset));
+	memset(&var_set, 0xff, sizeof(var_set)); /* set all to -1 */
 
 	/* parse cmd args.... why do they have to make things so difficult? */
 	argv++;
@@ -342,30 +407,38 @@ int fbset_main(int argc, char **argv)
 				options |= OPT_SHOW;
 				break;
 			case CMD_GEOMETRY:
-				varset.xres = xatou32(argv[1]);
-				varset.yres = xatou32(argv[2]);
-				varset.xres_virtual = xatou32(argv[3]);
-				varset.yres_virtual = xatou32(argv[4]);
-				varset.bits_per_pixel = xatou32(argv[5]);
+				var_set.xres = xatou32(argv[1]);
+				var_set.yres = xatou32(argv[2]);
+				var_set.xres_virtual = xatou32(argv[3]);
+				var_set.yres_virtual = xatou32(argv[4]);
+				var_set.bits_per_pixel = xatou32(argv[5]);
 				break;
 			case CMD_TIMING:
-				varset.pixclock = xatou32(argv[1]);
-				varset.left_margin = xatou32(argv[2]);
-				varset.right_margin = xatou32(argv[3]);
-				varset.upper_margin = xatou32(argv[4]);
-				varset.lower_margin = xatou32(argv[5]);
-				varset.hsync_len = xatou32(argv[6]);
-				varset.vsync_len = xatou32(argv[7]);
+				var_set.pixclock = xatou32(argv[1]);
+				var_set.left_margin = xatou32(argv[2]);
+				var_set.right_margin = xatou32(argv[3]);
+				var_set.upper_margin = xatou32(argv[4]);
+				var_set.lower_margin = xatou32(argv[5]);
+				var_set.hsync_len = xatou32(argv[6]);
+				var_set.vsync_len = xatou32(argv[7]);
+				break;
+			case CMD_ACCEL:
+				break;
+			case CMD_HSYNC:
+				var_set.sync |= FB_SYNC_HOR_HIGH_ACT;
+				break;
+			case CMD_VSYNC:
+				var_set.sync |= FB_SYNC_VERT_HIGH_ACT;
 				break;
 #if ENABLE_FEATURE_FBSET_FANCY
 			case CMD_XRES:
-				varset.xres = xatou32(argv[1]);
+				var_set.xres = xatou32(argv[1]);
 				break;
 			case CMD_YRES:
-				varset.yres = xatou32(argv[1]);
+				var_set.yres = xatou32(argv[1]);
 				break;
 			case CMD_DEPTH:
-				varset.bits_per_pixel = xatou32(argv[1]);
+				var_set.bits_per_pixel = xatou32(argv[1]);
 				break;
 #endif
 			}
@@ -376,13 +449,14 @@ int fbset_main(int argc, char **argv)
 			case CMD_SHOW:
 				break;
 			default:
-				options |= OPT_CHANGE; /* the other commands imply changes */
+				/* other commands imply changes */
+				options |= OPT_CHANGE;
 			}
 			argc -= g_cmdoptions[i].param_count;
 			argv += g_cmdoptions[i].param_count;
 			goto contin;
 		}
-		if (argc != 1)
+		if (!ENABLE_FEATURE_FBSET_READMODE || argc != 1)
 			bb_show_usage();
 		mode = *argv;
 		options |= OPT_READMODE;
@@ -390,27 +464,28 @@ int fbset_main(int argc, char **argv)
 	}
 
 	fh = xopen(fbdev, O_RDONLY);
-	xioctl(fh, FBIOGET_VSCREENINFO, &var);
+	xioctl(fh, FBIOGET_VSCREENINFO, &var_old);
+
 	if (options & OPT_READMODE) {
-#if !ENABLE_FEATURE_FBSET_READMODE
-		bb_show_usage();
-#else
-		if (!read_mode_db(&var, modefile, mode)) {
+#if ENABLE_FEATURE_FBSET_READMODE
+		if (!read_mode_db(&var_old, modefile, mode)) {
 			bb_error_msg_and_die("unknown video mode '%s'", mode);
 		}
 #endif
 	}
 
 	if (options & OPT_CHANGE) {
-		setfbmode(&var, &varset);
+		copy_changed_values(&var_old, &var_set);
 		if (options & OPT_ALL)
-			var.activate = FB_ACTIVATE_ALL;
-		xioctl(fh, FBIOPUT_VSCREENINFO, &var);
+			var_old.activate = FB_ACTIVATE_ALL;
+		xioctl(fh, FBIOPUT_VSCREENINFO, &var_old);
 	}
-	if (options == 0 || options & OPT_SHOW)
-		showmode(&var);
-	/* Don't close the file, as exiting will take care of that */
-	/* close(fh); */
+
+	if (options == 0 || (options & OPT_SHOW))
+		showmode(&var_old);
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(fh);
 
 	return EXIT_SUCCESS;
 }
