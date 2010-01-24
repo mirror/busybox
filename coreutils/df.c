@@ -178,7 +178,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 #if ENABLE_FEATURE_ASSUME_UNICODE
-			dev_len = bb_mbstrlen(device);
+			dev_len = unicode_strlen(device);
 			if (dev_len > 20) {
 				printf("%s\n%20s", device, "");
 			} else {

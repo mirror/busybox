@@ -72,7 +72,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 		/* lease.hostname is char[20] and is always NUL terminated */
 #if ENABLE_FEATURE_ASSUME_UNICODE
 		printf(" %-16s%s%*s", inet_ntoa(addr), lease.hostname,
-			20 - (int)bb_mbstrlen(lease.hostname), "");
+			20 - (int)unicode_strlen(lease.hostname), "");
 #else
 		printf(" %-16s%-20s", inet_ntoa(addr), lease.hostname);
 #endif

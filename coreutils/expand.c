@@ -49,7 +49,7 @@ static void expand(FILE *file, unsigned tab_size, unsigned opt)
 				unsigned len;
 				*ptr = '\0';
 # if ENABLE_FEATURE_ASSUME_UNICODE
-				len = bb_mbstrlen(ptr_strbeg);
+				len = unicode_strlen(ptr_strbeg);
 # else
 				len = ptr - ptr_strbeg;
 # endif
@@ -105,7 +105,7 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 				char c;
 				c = ptr[n];
 				ptr[n] = '\0';
-				len = bb_mbstrlen(ptr);
+				len = unicode_strlen(ptr);
 				ptr[n] = c;
 			}
 # else

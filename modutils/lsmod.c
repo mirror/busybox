@@ -64,7 +64,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			} else
 				token[3] = (char *) "";
 # if ENABLE_FEATURE_ASSUME_UNICODE
-			name_len = bb_mbstrlen(token[0]);
+			name_len = unicode_strlen(token[0]);
 			name_len = (name_len > 19) ? 0 : 19 - name_len;
 			printf("%s%*s %8s %2s %s\n", token[0], name_len, "", token[1], token[2], token[3]);
 # else
@@ -78,7 +78,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			// so trimming the trailing char is just what we need!
 			token[3][strlen(token[3])-1] = '\0';
 # if ENABLE_FEATURE_ASSUME_UNICODE
-			name_len = bb_mbstrlen(token[0]);
+			name_len = unicode_strlen(token[0]);
 			name_len = (name_len > 19) ? 0 : 19 - name_len;
 			printf("%s%*s %8s %2s %s\n", token[0], name_len, "", token[1], token[2], token[3]);
 # else

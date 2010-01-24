@@ -878,7 +878,7 @@ static void showfiles(void)
 
 	/* find the longest file name - use that as the column width */
 	for (row = 0; row < nrows; row++) {
-		l = bb_mbstrlen(matches[row]);
+		l = unicode_strlen(matches[row]);
 		if (column_width < l)
 			column_width = l;
 	}
@@ -898,7 +898,7 @@ static void showfiles(void)
 
 		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			printf("%s%-*s", matches[n],
-				(int)(column_width - bb_mbstrlen(matches[n])), ""
+				(int)(column_width - unicode_strlen(matches[n])), ""
 			);
 		}
 		puts(matches[n]);

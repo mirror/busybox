@@ -550,7 +550,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 	} else {
 		/* find the longest file name, use that as the column width */
 		for (i = 0; dn[i]; i++) {
-			int len = bb_mbstrlen(dn[i]->name);
+			int len = unicode_strlen(dn[i]->name);
 			if (column_width < len)
 				column_width = len;
 		}
@@ -742,7 +742,7 @@ static int print_name(const char *name)
 {
 	if (option_mask32 & OPT_Q) {
 #if ENABLE_FEATURE_ASSUME_UNICODE
-		unsigned len = 2 + bb_mbstrlen(name);
+		unsigned len = 2 + unicode_strlen(name);
 #else
 		unsigned len = 2;
 #endif
@@ -762,7 +762,7 @@ static int print_name(const char *name)
 	/* No -Q: */
 #if ENABLE_FEATURE_ASSUME_UNICODE
 	fputs(name, stdout);
-	return bb_mbstrlen(name);
+	return unicode_strlen(name);
 #else
 	return printf("%s", name);
 #endif

@@ -13,13 +13,16 @@ enum {
 
 #if !ENABLE_FEATURE_ASSUME_UNICODE
 
-# define bb_mbstrlen(string) strlen(string)
+# define unicode_strlen(string) strlen(string)
+# define unicode_scrlen(string) TODO
 # define unicode_status UNICODE_OFF
 # define init_unicode() ((void)0)
 
 #else
 
-size_t bb_mbstrlen(const char *string) FAST_FUNC;
+size_t FAST_FUNC unicode_strlen(const char *string);
+char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src);
+unsigned FAST_FUNC unicode_padding_to_width(unsigned width, const char *src);
 
 # if ENABLE_LOCALE_SUPPORT
 
@@ -30,7 +33,7 @@ void init_unicode(void) FAST_FUNC;
 
 # else
 
-/* Crude "locale support" which knows only C and Unicode locales */
+/* Homegrown Unicode support. It knows only C and Unicode locales. */
 
 #  if !ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
 #   define unicode_status UNICODE_ON
@@ -52,6 +55,7 @@ void init_unicode(void) FAST_FUNC;
 #  define iswspace  bb_iswspace
 #  define iswalnum  bb_iswalnum
 #  define iswpunct  bb_iswpunct
+#  define wcwidth   bb_wcwidth
 
 typedef int32_t wint_t;
 typedef struct {
@@ -67,27 +71,6 @@ int iswpunct(wint_t wc) FAST_FUNC;
 
 
 # endif /* !LOCALE_SUPPORT */
-
-
-# if 0 /* TODO: better support for printfing Unicode fields: */
-
-/* equivalent to printf("%-20.20s", str) */
-char unicode_buffer[20 * MB_CUR_MAX];
-printf("%s", unicode_exact(20, str, unicode_buffer);
-/* no need to free() anything */
-
-/* equivalent to printf("%-20s", str) */
-char *malloced = unicode_minimum(20, str);
-printf("%s", malloced);
-free(malloced); /* ugh */
-
-/* equivalent to printf("%-20s", str), better one */
-printf("%s%*s", str, unicode_pad_to_width(str, 20), "");
-/* equivalent to printf("%20s", str) */
-printf("%*s%s", unicode_pad_to_width(str, 20), "", str);
-
-# endif
-
 
 #endif /* FEATURE_ASSUME_UNICODE */
 
