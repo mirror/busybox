@@ -281,7 +281,8 @@ config FEATURE_TAR_NOPRESERVE_TIME
 	default n
 	depends on TAR
 	help
-	  With this option busybox supports GNU tar -m (do not preserve time) option.
+	  With this option busybox supports GNU tar -m
+	  (do not preserve time) option.
 
 endif #tar
 

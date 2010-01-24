@@ -53,14 +53,14 @@ typedef struct archive_handle_t {
 	off_t offset;
 
 	/* Archiver specific. Can make it a union if it ever gets big */
-#if ENABLE_TAR
+#if ENABLE_TAR || ENABLE_DPKG || ENABLE_DPKG_DEB
 	smallint tar__end;
 # if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	char* tar__longname;
 	char* tar__linkname;
 # endif
 #endif
-#if ENABLE_CPIO
+#if ENABLE_CPIO || ENABLE_RPM2CPIO || ENABLE_RPM
 	uoff_t cpio__blocks;
 	struct hardlinks_t *cpio__hardlinks_to_create;
 	struct hardlinks_t *cpio__created_hardlinks;

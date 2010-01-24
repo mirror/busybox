@@ -1516,13 +1516,13 @@ static char* FAST_FUNC endofname(const char *name)
 	}
 	return p;
 }
+#endif
 
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
 	set_local_var(var, /*flags:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 }
-#endif
 
 
 /*

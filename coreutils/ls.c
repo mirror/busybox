@@ -509,15 +509,10 @@ static int sortcmp(const void *a, const void *b)
 
 	/* Make dif fit into an int */
 	if (sizeof(dif) > sizeof(int)) {
-		if (sizeof(dif) == sizeof(int)*2) {
-			/* typical on many arches */
-			if (dif != 0) {
-				dif = 1 | (int)((uoff_t)dif >> (sizeof(int)*8));
-			}
-		} else {
-			while ((dif & ~(off_t)INT_MAX) != 0) {
-				dif >>= (sizeof(int)*8 / 2);
-			}
+		enum { BITS_TO_SHIFT = 8 * (sizeof(dif) - sizeof(int)) };
+		/* shift leaving only "int" worth of bits */
+		if (dif != 0) {
+			dif = 1 | (int)((uoff_t)dif >> BITS_TO_SHIFT);
 		}
 	}
 

@@ -189,17 +189,17 @@ static const struct cmdoptions_t {
 #endif
 };
 
-#if ENABLE_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
 enum {
-	FB_VMODE_INTERLACED = 1,        /* interlaced */
-	FB_VMODE_DOUBLE = 2,            /* double scan */
 	FB_SYNC_HOR_HIGH_ACT = 1,       /* horizontal sync high active */
 	FB_SYNC_VERT_HIGH_ACT = 2,      /* vertical sync high active */
+#if ENABLE_FEATURE_FBSET_READMODE
+	FB_VMODE_INTERLACED = 1,        /* interlaced */
+	FB_VMODE_DOUBLE = 2,            /* double scan */
 	FB_SYNC_EXT = 4,                /* external sync */
 	FB_SYNC_COMP_HIGH_ACT = 8,      /* composite sync high active */
-};
 #endif
+};
 
 #if ENABLE_FEATURE_FBSET_READMODE
 static void ss(uint32_t *x, uint32_t flag, char *buf, const char *what)
