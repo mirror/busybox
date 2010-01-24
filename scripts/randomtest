@@ -28,15 +28,18 @@ cat .config \
 | grep -v CONFIG_WERROR \
 | cat >.config.new
 mv .config.new .config
-echo CONFIG_WERROR=y >>.config
+#echo CONFIG_WERROR=y >>.config
+echo '# CONFIG_WERROR is not set' >>.config
 
 test "$libc" = glibc && {
 cat .config \
-| grep -v ^CONFIG_SELINUX= \
-| grep -v ^CONFIG_EFENCE= \
-| grep -v ^CONFIG_DMALLOC= \
+| grep -v CONFIG_STATIC \
+| grep -v CONFIG_SELINUX \
+| grep -v CONFIG_EFENCE \
+| grep -v CONFIG_DMALLOC \
 | cat >.config.new
 mv .config.new .config
+echo '# CONFIG_STATIC is not set' >>.config
 }
 
 test "$libc" = uclibc && {
