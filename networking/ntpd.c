@@ -735,6 +735,13 @@ send_query_to_peer(peer_t *p)
 }
 
 
+/* Note that there is no provision to prevent several run_scripts
+ * to be done in quick succession. In fact, it happens rather often
+ * if initial syncronization results in a step.
+ * You will see "step" and then "stratum" script runs, sometimes
+ * as close as only 0.002 seconds apart.
+ * Script should be ready to deal with this.
+ */
 static void run_script(const char *action, double offset)
 {
 	char *argv[3];
@@ -1185,8 +1192,8 @@ update_local_clock(peer_t *p)
 	abs_offset = fabs(offset);
 
 #if 0
-	/* If needed, -S script can detect this by looking at $offset
-	 * env var and kill parent */
+	/* If needed, -S script can do it by looking at $offset
+	 * env var and killing parent */
 	/* If the offset is too large, give up and go home */
 	if (abs_offset > PANIC_THRESHOLD) {
 		bb_error_msg_and_die("offset %f far too big, exiting", offset);
@@ -2007,7 +2014,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		nfds = poll(pfd, i, timeout * 1000);
 		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0) {
-			if (G.cur_time - G.last_script_run > 11*60) {
+			if (G.script_name && G.cur_time - G.last_script_run > 11*60) {
 				/* Useful for updating battery-backed RTC and such */
 				run_script("periodic", G.last_update_offset);
 				gettime1900d(); /* sets G.cur_time */
