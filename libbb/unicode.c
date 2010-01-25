@@ -203,11 +203,13 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 
 	while (n) {
 		wchar_t wc;
-		const char *rc = mbstowc_internal(dest ? dest : &wc, src);
-		if (rc == NULL) /* error */
+		src = mbstowc_internal(&wc, src);
+		if (src == NULL) /* error */
 			return (size_t) -1L;
 		if (dest)
-			dest++;
+			*dest++ = wc;
+		if (wc == 0) /* end-of-string */
+			break;
 		n--;
 	}
 

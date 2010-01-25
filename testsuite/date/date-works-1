@@ -126,4 +126,4 @@ test x"$res" = xOK
 
 # This should error out (by showing usage text). Testing for that
 dt=`busybox date -d 012311332000.30 %+c 2>&1 | head -n 1`
-test x"${dt#BusyBox * multi-call binary}" = x
+test x"${dt##BusyBox * multi-call binary*}" = x""
