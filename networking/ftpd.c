@@ -716,7 +716,7 @@ handle_dir_common(int opts)
 		/* STAT <filename> */
 		cmdio_write_raw(STR(FTP_STATFILE_OK)"-File status:\r\n");
 		while (1) {
-    			line = xmalloc_fgetline(ls_fp);
+			line = xmalloc_fgetline(ls_fp);
 			if (!line)
 				break;
 			/* Hack: 0 results in no status at all */
@@ -731,7 +731,7 @@ handle_dir_common(int opts)
 		int remote_fd = get_remote_transfer_fd(" Directory listing");
 		if (remote_fd >= 0) {
 			while (1) {
-    				line = xmalloc_fgetline(ls_fp);
+				line = xmalloc_fgetline(ls_fp);
 				if (!line)
 					break;
 				/* I've seen clients complaining when they

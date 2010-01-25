@@ -2037,7 +2037,7 @@ static const char *next_brace_sub(const char *cp)
 				break;
 			cp++;
 			continue;
-    		}
+		}
 		 /*{*/ if ((*cp == '}' && depth-- == 0) || (*cp == ',' && depth == 0))
 			break;
 		if (*cp++ == '{') /*}*/

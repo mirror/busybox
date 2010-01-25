@@ -17,7 +17,7 @@
 static const uint8_t len_of_option_as_string[] = {
 	[OPTION_IP] =		sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
- 	[OPTION_STATIC_ROUTES]= sizeof("255.255.255.255/32 255.255.255.255 "),
+	[OPTION_STATIC_ROUTES]= sizeof("255.255.255.255/32 255.255.255.255 "),
 	[OPTION_STRING] =	1,
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_STR1035] =	1,

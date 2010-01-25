@@ -32,7 +32,7 @@ BEGIN {
 }
 END {
 	for (i = 0; i <= pos; i++) {
-# 	printf("%s: help for #%i '%s' == %i\n", file[i], i, conf[i], help[i]);
+#	printf("%s: help for #%i '%s' == %i\n", file[i], i, conf[i], help[i]);
 		if (help[i] == 0) {
 			printf("%s: No helptext for '%s'\n", file[i], conf[i]);
 		}

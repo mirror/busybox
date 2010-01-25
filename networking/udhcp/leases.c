@@ -66,7 +66,7 @@ struct dyn_lease* FAST_FUNC add_lease(
 			char *p;
 			if (hostname_len > sizeof(oldest->hostname))
 				hostname_len = sizeof(oldest->hostname);
-            		p = safe_strncpy(oldest->hostname, hostname, hostname_len);
+			p = safe_strncpy(oldest->hostname, hostname, hostname_len);
 			/* sanitization (s/non-ASCII/^/g) */
 			while (*p) {
 				if (*p < ' ' || *p > 126)

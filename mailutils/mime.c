@@ -369,7 +369,7 @@ static int parse(const char *boundary, char **argv)
 			}
 		}
  next:
- 		free(line);
+		free(line);
 	}
 
 //bb_info_msg("ENDPARSE[%s]", boundary);

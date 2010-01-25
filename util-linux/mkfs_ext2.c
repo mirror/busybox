@@ -145,12 +145,12 @@ static void PUT(uint64_t off, void *buf, uint32_t size)
 
 // Standard mke2fs 1.41.9:
 // Usage: mke2fs [-c|-l filename] [-b block-size] [-f fragment-size]
-// 	[-i bytes-per-inode] [-I inode-size] [-J journal-options]
-// 	[-G meta group size] [-N number-of-inodes]
-// 	[-m reserved-blocks-percentage] [-o creator-os]
-// 	[-g blocks-per-group] [-L volume-label] [-M last-mounted-directory]
-// 	[-O feature[,...]] [-r fs-revision] [-E extended-option[,...]]
-// 	[-T fs-type] [-U UUID] [-jnqvFSV] device [blocks-count]
+//	[-i bytes-per-inode] [-I inode-size] [-J journal-options]
+//	[-G meta group size] [-N number-of-inodes]
+//	[-m reserved-blocks-percentage] [-o creator-os]
+//	[-g blocks-per-group] [-L volume-label] [-M last-mounted-directory]
+//	[-O feature[,...]] [-r fs-revision] [-E extended-option[,...]]
+//	[-T fs-type] [-U UUID] [-jnqvFSV] device [blocks-count]
 //
 // Options not commented below are taken but silently ignored:
 enum {
@@ -311,7 +311,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	nreserved = (uint64_t)nblocks * reserved_percent / 100;
 
 	// N.B. killing e2fsprogs feature! Unused blocks don't account in calculations
- 	nblocks_full = nblocks;
+	nblocks_full = nblocks;
 
 	// If last block group is too small, nblocks may be decreased in order
 	// to discard it, and control returns here to recalculate some

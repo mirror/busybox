@@ -28,7 +28,7 @@ test "$ip" || exit 1
 
 {
 echo "let cfg=cfg+1"
-test "$interface" 	&& echo "if[\$cfg]='$interface'"
+test "$interface"	&& echo "if[\$cfg]='$interface'"
 test "$ip"		&& echo "ip[\$cfg]='$ip'"
 test "$ip" && test "$mask" \
 			&& echo "ipmask[\$cfg]='$ip/$mask'"

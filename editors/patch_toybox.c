@@ -491,7 +491,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				int oldsum, newsum, del = 0;
 				char *s, *name;
 
- 				oldsum = oldline + oldlen;
+				oldsum = oldline + oldlen;
 				newsum = newline + newlen;
 
 				name = reverse ? oldname : newname;

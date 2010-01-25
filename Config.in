@@ -521,7 +521,7 @@ config EFENCE
 endchoice
 
 ### config PARSE
-### 	bool "Uniform config file parser debugging applet: parse"
+###	bool "Uniform config file parser debugging applet: parse"
 
 endmenu
 

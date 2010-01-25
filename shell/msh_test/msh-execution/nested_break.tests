@@ -3,15 +3,15 @@
 n=0
 while :
 do
-        echo A
-        while :
-        do
-    		echo B
-                break
-        done
-        echo iteration
-        [ $n = 1 ] && break
+	echo A
+	while :
+	do
+		echo B
+		break
+	done
+	echo iteration
+	[ $n = 1 ] && break
 	echo C
-        n=`expr $n + 1`
+	n=`expr $n + 1`
 done
 echo D

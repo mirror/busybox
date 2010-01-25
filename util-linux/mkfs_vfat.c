@@ -208,7 +208,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	int dev;
 	unsigned bytes_per_sect;
 	unsigned sect_per_fat;
-  	unsigned opts;
+	unsigned opts;
 	uint16_t sect_per_track;
 	uint8_t media_byte;
 	uint8_t sect_per_clust;
