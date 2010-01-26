@@ -46,7 +46,7 @@ keycode  26 =   bracketleft     braceleft       200             232             
 keycode  27 =   bracketright    braceright      223             255             Control_bracketright    Control_bracketright
 keycode  28 =   Return
 # Shift+Ctrl - Cyrillic
-keycode  29 =   Control		AltGr_Lock      Control         AltGr_Lock      Control		        Control		        Control		        Control		        Control		        Control		        
+keycode  29 =   Control		AltGr_Lock      Control         AltGr_Lock      Control		        Control		        Control		        Control		        Control		        Control
 keycode  30 =   a               A               198             230             Control_a               Control_a               Meta_a                  Meta_a                  Meta_Control_a          Meta_Control_a
 keycode  31 =   s               S               217             249             Control_s               Control_s               Meta_s                  Meta_s                  Meta_Control_s          Meta_Control_s
 keycode  32 =   d               D               215             247             Control_d               Control_d               Meta_d                  Meta_d                  Meta_Control_d          Meta_Control_d
