@@ -29,14 +29,15 @@ typedef struct filter_t {
 	int flushp;
 	int flushe;
 	struct rtnl_handle *rth;
-	int protocol, protocolmask;
-	int scope, scopemask;
-	int type, typemask;
-	int tos, tosmask;
+	//int protocol, protocolmask; - write-only fields?!
+	//int scope, scopemask; - unused
+	//int type; - read-only
+	//int typemask; - unused
+	//int tos, tosmask; - unused
 	int iif, iifmask;
 	int oif, oifmask;
-	int realm, realmmask;
-	inet_prefix rprefsrc;
+	//int realm, realmmask; - unused
+	//inet_prefix rprefsrc; - read-only
 	inet_prefix rvia;
 	inet_prefix rdst;
 	inet_prefix mdst;
@@ -44,15 +45,15 @@ typedef struct filter_t {
 	inet_prefix msrc;
 } filter_t;
 
-#define filter (*(filter_t*)&bb_common_bufsiz1)
+#define G_filter (*(filter_t*)&bb_common_bufsiz1)
 
 static int flush_update(void)
 {
-	if (rtnl_send(filter.rth, filter.flushb, filter.flushp) < 0) {
+	if (rtnl_send(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
 		bb_perror_msg("failed to send flush request");
 		return -1;
 	}
-	filter.flushp = 0;
+	G_filter.flushp = 0;
 	return 0;
 }
 
@@ -95,7 +96,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 			n->nlmsg_len, n->nlmsg_type, n->nlmsg_flags);
 		return 0;
 	}
-	if (filter.flushb && n->nlmsg_type != RTM_NEWROUTE)
+	if (G_filter.flushb && n->nlmsg_type != RTM_NEWROUTE)
 		return 0;
 	len -= NLMSG_LENGTH(sizeof(*r));
 	if (len < 0)
@@ -107,8 +108,8 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		host_len = 32;
 
 	if (r->rtm_family == AF_INET6) {
-		if (filter.tb) {
-			if (filter.tb < 0) {
+		if (G_filter.tb) {
+			if (G_filter.tb < 0) {
 				if (!(r->rtm_flags & RTM_F_CLONED)) {
 					return 0;
 				}
@@ -116,11 +117,11 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 				if (r->rtm_flags & RTM_F_CLONED) {
 					return 0;
 				}
-				if (filter.tb == RT_TABLE_LOCAL) {
+				if (G_filter.tb == RT_TABLE_LOCAL) {
 					if (r->rtm_type != RTN_LOCAL) {
 						return 0;
 					}
-				} else if (filter.tb == RT_TABLE_MAIN) {
+				} else if (G_filter.tb == RT_TABLE_MAIN) {
 					if (r->rtm_type == RTN_LOCAL) {
 						return 0;
 					}
@@ -130,72 +131,82 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 			}
 		}
 	} else {
-		if (filter.tb > 0 && filter.tb != r->rtm_table) {
+		if (G_filter.tb > 0 && G_filter.tb != r->rtm_table) {
 			return 0;
 		}
 	}
-	if (filter.rdst.family &&
-	    (r->rtm_family != filter.rdst.family || filter.rdst.bitlen > r->rtm_dst_len)) {
+	if (G_filter.rdst.family
+	 && (r->rtm_family != G_filter.rdst.family || G_filter.rdst.bitlen > r->rtm_dst_len)
+	) {
 		return 0;
 	}
-	if (filter.mdst.family &&
-	    (r->rtm_family != filter.mdst.family ||
-	     (filter.mdst.bitlen >= 0 && filter.mdst.bitlen < r->rtm_dst_len))) {
+	if (G_filter.mdst.family
+	 && (r->rtm_family != G_filter.mdst.family
+	    || (G_filter.mdst.bitlen >= 0 && G_filter.mdst.bitlen < r->rtm_dst_len)
+	    )
+	) {
 		return 0;
 	}
-	if (filter.rsrc.family &&
-	    (r->rtm_family != filter.rsrc.family || filter.rsrc.bitlen > r->rtm_src_len)) {
+	if (G_filter.rsrc.family
+	 && (r->rtm_family != G_filter.rsrc.family || G_filter.rsrc.bitlen > r->rtm_src_len)
+	) {
 		return 0;
 	}
-	if (filter.msrc.family &&
-	    (r->rtm_family != filter.msrc.family ||
-	     (filter.msrc.bitlen >= 0 && filter.msrc.bitlen < r->rtm_src_len))) {
+	if (G_filter.msrc.family
+	 && (r->rtm_family != G_filter.msrc.family
+	    || (G_filter.msrc.bitlen >= 0 && G_filter.msrc.bitlen < r->rtm_src_len)
+	    )
+	) {
 		return 0;
 	}
 
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
-	if (filter.rdst.family && inet_addr_match(&dst, &filter.rdst, filter.rdst.bitlen))
+	if (G_filter.rdst.family && inet_addr_match(&dst, &G_filter.rdst, G_filter.rdst.bitlen))
 		return 0;
-	if (filter.mdst.family && filter.mdst.bitlen >= 0 &&
-	    inet_addr_match(&dst, &filter.mdst, r->rtm_dst_len))
-		return 0;
-
-	if (filter.rsrc.family && inet_addr_match(&src, &filter.rsrc, filter.rsrc.bitlen))
-		return 0;
-	if (filter.msrc.family && filter.msrc.bitlen >= 0 &&
-	    inet_addr_match(&src, &filter.msrc, r->rtm_src_len))
+	if (G_filter.mdst.family && G_filter.mdst.bitlen >= 0 &&
+	    inet_addr_match(&dst, &G_filter.mdst, r->rtm_dst_len))
 		return 0;
 
-	if (filter.flushb &&
-	    r->rtm_family == AF_INET6 &&
-	    r->rtm_dst_len == 0 &&
-	    r->rtm_type == RTN_UNREACHABLE &&
-	    tb[RTA_PRIORITY] &&
-	    *(int*)RTA_DATA(tb[RTA_PRIORITY]) == -1)
+	if (G_filter.rsrc.family && inet_addr_match(&src, &G_filter.rsrc, G_filter.rsrc.bitlen))
 		return 0;
+	if (G_filter.msrc.family && G_filter.msrc.bitlen >= 0
+	 && inet_addr_match(&src, &G_filter.msrc, r->rtm_src_len)
+	) {
+		return 0;
+	}
 
-	if (filter.flushb) {
+	if (G_filter.flushb
+	 && r->rtm_family == AF_INET6
+	 && r->rtm_dst_len == 0
+	 && r->rtm_type == RTN_UNREACHABLE
+	 && tb[RTA_PRIORITY]
+	 && *(int*)RTA_DATA(tb[RTA_PRIORITY]) == -1
+	) {
+		return 0;
+	}
+
+	if (G_filter.flushb) {
 		struct nlmsghdr *fn;
-		if (NLMSG_ALIGN(filter.flushp) + n->nlmsg_len > filter.flushe) {
+		if (NLMSG_ALIGN(G_filter.flushp) + n->nlmsg_len > G_filter.flushe) {
 			if (flush_update())
 				bb_error_msg_and_die("flush");
 		}
-		fn = (struct nlmsghdr*)(filter.flushb + NLMSG_ALIGN(filter.flushp));
+		fn = (struct nlmsghdr*)(G_filter.flushb + NLMSG_ALIGN(G_filter.flushp));
 		memcpy(fn, n, n->nlmsg_len);
 		fn->nlmsg_type = RTM_DELROUTE;
 		fn->nlmsg_flags = NLM_F_REQUEST;
-		fn->nlmsg_seq = ++filter.rth->seq;
-		filter.flushp = (((char*)fn) + n->nlmsg_len) - filter.flushb;
-		filter.flushed = 1;
+		fn->nlmsg_seq = ++G_filter.rth->seq;
+		G_filter.flushp = (((char*)fn) + n->nlmsg_len) - G_filter.flushb;
+		G_filter.flushed = 1;
 		return 0;
 	}
 
 	if (n->nlmsg_type == RTM_DELROUTE) {
 		printf("Deleted ");
 	}
-	if (r->rtm_type != RTN_UNICAST && !filter.type) {
+	if (r->rtm_type != RTN_UNICAST /* && !G_filter.type - always 0 */) {
 		printf("%s ", rtnl_rtntype_n2a(r->rtm_type, b1));
 	}
 
@@ -235,17 +246,17 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	} else if (r->rtm_src_len) {
 		printf("from 0/%u ", r->rtm_src_len);
 	}
-	if (tb[RTA_GATEWAY] && filter.rvia.bitlen != host_len) {
+	if (tb[RTA_GATEWAY] && G_filter.rvia.bitlen != host_len) {
 		printf("via %s ", format_host(r->rtm_family,
 					RTA_PAYLOAD(tb[RTA_GATEWAY]),
 					RTA_DATA(tb[RTA_GATEWAY]),
 					abuf, sizeof(abuf)));
 	}
-	if (tb[RTA_OIF] && filter.oifmask != -1) {
+	if (tb[RTA_OIF] && G_filter.oifmask != -1) {
 		printf("dev %s ", ll_index_to_name(*(int*)RTA_DATA(tb[RTA_OIF])));
 	}
 
-	if (tb[RTA_PREFSRC] && filter.rprefsrc.bitlen != host_len) {
+	if (tb[RTA_PREFSRC] && /*G_filter.rprefsrc.bitlen - always 0*/ 0 != host_len) {
 		/* Do not use format_host(). It is our local addr
 		   and symbolic name will not be useful.
 		 */
@@ -276,7 +287,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 				printf(" error %d", ci->rta_error);
 		}
 	}
-	if (tb[RTA_IIF] && filter.iifmask != -1) {
+	if (tb[RTA_IIF] && G_filter.iifmask != -1) {
 		printf(" iif %s", ll_index_to_name(*(int*)RTA_DATA(tb[RTA_IIF])));
 	}
 	bb_putchar('\n');
@@ -441,10 +452,13 @@ IF_FEATURE_IP_RULE(ARG_table,)
 
 	if (req.r.rtm_type == RTN_LOCAL || req.r.rtm_type == RTN_NAT)
 		req.r.rtm_scope = RT_SCOPE_HOST;
-	else if (req.r.rtm_type == RTN_BROADCAST ||
-			req.r.rtm_type == RTN_MULTICAST ||
-			req.r.rtm_type == RTN_ANYCAST)
+	else
+	if (req.r.rtm_type == RTN_BROADCAST
+	 || req.r.rtm_type == RTN_MULTICAST
+	 || req.r.rtm_type == RTN_ANYCAST
+	) {
 		req.r.rtm_scope = RT_SCOPE_LINK;
+	}
 	else if (req.r.rtm_type == RTN_UNICAST || req.r.rtm_type == RTN_UNSPEC) {
 		if (cmd == RTM_DELROUTE)
 			req.r.rtm_scope = RT_SCOPE_NOWHERE;
@@ -507,9 +521,9 @@ static void iproute_flush_cache(void)
 
 static void iproute_reset_filter(void)
 {
-	memset(&filter, 0, sizeof(filter));
-	filter.mdst.bitlen = -1;
-	filter.msrc.bitlen = -1;
+	memset(&G_filter, 0, sizeof(G_filter));
+	G_filter.mdst.bitlen = -1;
+	G_filter.msrc.bitlen = -1;
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
@@ -545,7 +559,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 	int arg, parm;
 
 	iproute_reset_filter();
-	filter.tb = RT_TABLE_MAIN;
+	G_filter.tb = RT_TABLE_MAIN;
 
 	if (flush && !*argv)
 		bb_error_msg_and_die(bb_msg_requires_arg, "\"ip route flush\"");
@@ -555,14 +569,14 @@ static int iproute_list_or_flush(char **argv, int flush)
 		if (arg == KW_proto) {
 			uint32_t prot = 0;
 			NEXT_ARG();
-			filter.protocolmask = -1;
+			//G_filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
 				if (index_in_strings(keywords, *argv) != KW_all)
 					invarg(*argv, "protocol");
 				prot = 0;
-				filter.protocolmask = 0;
+				//G_filter.protocolmask = 0;
 			}
-			filter.protocol = prot;
+			//G_filter.protocol = prot;
 		} else if (arg == KW_dev || arg == KW_oif) {
 			NEXT_ARG();
 			od = *argv;
@@ -571,20 +585,20 @@ static int iproute_list_or_flush(char **argv, int flush)
 			id = *argv;
 		} else if (arg == KW_via) {
 			NEXT_ARG();
-			get_prefix(&filter.rvia, *argv, do_ipv6);
+			get_prefix(&G_filter.rvia, *argv, do_ipv6);
 		} else if (arg == KW_table) { /* table all/cache/main */
 			NEXT_ARG();
 			parm = index_in_substrings(keywords, *argv);
 			if (parm == KW_cache)
-				filter.tb = -1;
+				G_filter.tb = -1;
 			else if (parm == KW_all)
-				filter.tb = 0;
+				G_filter.tb = 0;
 			else if (parm != KW_main) {
 #if ENABLE_FEATURE_IP_RULE
 				uint32_t tid;
 				if (rtnl_rttable_a2n(&tid, *argv))
 					invarg(*argv, "table");
-				filter.tb = tid;
+				G_filter.tb = tid;
 #else
 				invarg(*argv, "table");
 #endif
@@ -592,21 +606,21 @@ static int iproute_list_or_flush(char **argv, int flush)
 		} else if (arg == KW_cache) {
 			/* The command 'ip route flush cache' is used by OpenSWAN.
 			 * Assuming it's a synonym for 'ip route flush table cache' */
-			filter.tb = -1;
+			G_filter.tb = -1;
 		} else if (arg == KW_from) {
 			NEXT_ARG();
 			parm = index_in_substrings(keywords, *argv);
 			if (parm == KW_root) {
 				NEXT_ARG();
-				get_prefix(&filter.rsrc, *argv, do_ipv6);
+				get_prefix(&G_filter.rsrc, *argv, do_ipv6);
 			} else if (parm == KW_match) {
 				NEXT_ARG();
-				get_prefix(&filter.msrc, *argv, do_ipv6);
+				get_prefix(&G_filter.msrc, *argv, do_ipv6);
 			} else {
 				if (parm == KW_exact)
 					NEXT_ARG();
-				get_prefix(&filter.msrc, *argv, do_ipv6);
-				filter.rsrc = filter.msrc;
+				get_prefix(&G_filter.msrc, *argv, do_ipv6);
+				G_filter.rsrc = G_filter.msrc;
 			}
 		} else { /* "to" is the default parameter */
 			if (arg == KW_to) {
@@ -616,21 +630,21 @@ static int iproute_list_or_flush(char **argv, int flush)
 			/* parm = arg; - would be more plausible, but we reuse 'arg' here */
 			if (arg == KW_root) {
 				NEXT_ARG();
-				get_prefix(&filter.rdst, *argv, do_ipv6);
+				get_prefix(&G_filter.rdst, *argv, do_ipv6);
 			} else if (arg == KW_match) {
 				NEXT_ARG();
-				get_prefix(&filter.mdst, *argv, do_ipv6);
+				get_prefix(&G_filter.mdst, *argv, do_ipv6);
 			} else { /* "to exact" is the default */
 				if (arg == KW_exact)
 					NEXT_ARG();
-				get_prefix(&filter.mdst, *argv, do_ipv6);
-				filter.rdst = filter.mdst;
+				get_prefix(&G_filter.mdst, *argv, do_ipv6);
+				G_filter.rdst = G_filter.mdst;
 			}
 		}
 		argv++;
 	}
 
-	if (do_ipv6 == AF_UNSPEC && filter.tb) {
+	if (do_ipv6 == AF_UNSPEC && G_filter.tb) {
 		do_ipv6 = AF_INET;
 	}
 
@@ -642,43 +656,43 @@ static int iproute_list_or_flush(char **argv, int flush)
 
 		if (id) {
 			idx = xll_name_to_index(id);
-			filter.iif = idx;
-			filter.iifmask = -1;
+			G_filter.iif = idx;
+			G_filter.iifmask = -1;
 		}
 		if (od) {
 			idx = xll_name_to_index(od);
-			filter.oif = idx;
-			filter.oifmask = -1;
+			G_filter.oif = idx;
+			G_filter.oifmask = -1;
 		}
 	}
 
 	if (flush) {
 		char flushb[4096-512];
 
-		if (filter.tb == -1) { /* "flush table cache" */
+		if (G_filter.tb == -1) { /* "flush table cache" */
 			if (do_ipv6 != AF_INET6)
 				iproute_flush_cache();
 			if (do_ipv6 == AF_INET)
 				return 0;
 		}
 
-		filter.flushb = flushb;
-		filter.flushp = 0;
-		filter.flushe = sizeof(flushb);
-		filter.rth = &rth;
+		G_filter.flushb = flushb;
+		G_filter.flushp = 0;
+		G_filter.flushe = sizeof(flushb);
+		G_filter.rth = &rth;
 
 		for (;;) {
 			xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
-			filter.flushed = 0;
+			G_filter.flushed = 0;
 			xrtnl_dump_filter(&rth, print_route, NULL);
-			if (filter.flushed == 0)
+			if (G_filter.flushed == 0)
 				return 0;
 			if (flush_update())
 				return 1;
 		}
 	}
 
-	if (filter.tb != -1) {
+	if (G_filter.tb != -1) {
 		xrtnl_wilddump_request(&rth, do_ipv6, RTM_GETROUTE);
 	} else if (rtnl_rtcache_request(&rth, do_ipv6) < 0) {
 		bb_perror_msg_and_die("can't send dump request");
