@@ -621,10 +621,10 @@ static int builtin_return(char **argv) FAST_FUNC;
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 struct built_in_command {
-	const char *cmd;
-	int (*function)(char **argv) FAST_FUNC;
+	const char *b_cmd;
+	int (*b_function)(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_HELP
-	const char *descr;
+	const char *b_descr;
 # define BLTIN(cmd, func, help) { cmd, func, help }
 #else
 # define BLTIN(cmd, func, help) { cmd, func }
@@ -3336,7 +3336,7 @@ static const struct built_in_command* find_builtin_helper(const char *name,
 		const struct built_in_command *end)
 {
 	while (x != end) {
-		if (strcmp(name, x->cmd) != 0) {
+		if (strcmp(name, x->b_cmd) != 0) {
 			x++;
 			continue;
 		}
@@ -3547,7 +3547,7 @@ static void exec_builtin(char ***to_free,
 		char **argv)
 {
 #if BB_MMU
-	int rcode = x->function(argv);
+	int rcode = x->b_function(argv);
 	fflush_all();
 	_exit(rcode);
 #else
@@ -4159,7 +4159,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #endif
 		if (x || funcp) {
 			if (!funcp) {
-				if (x->function == builtin_exec && argv_expanded[1] == NULL) {
+				if (x->b_function == builtin_exec && argv_expanded[1] == NULL) {
 					debug_printf("exec with redirects only\n");
 					rcode = setup_redirects(command, NULL);
 					goto clean_up_and_ret1;
@@ -4176,7 +4176,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->cmd, argv_expanded[1]);
-					rcode = x->function(argv_expanded) & 0xff;
+					rcode = x->b_function(argv_expanded) & 0xff;
 					fflush_all();
 				}
 #if ENABLE_HUSH_FUNCTIONS
@@ -6908,11 +6908,11 @@ int hush_main(int argc, char **argv)
 			 * sh ... -c 'script'
 			 * sh ... -c 'script' ARG0 [ARG1...]
 			 * On NOMMU, if builtin_argc != 0,
-			 * sh ... -c 'builtin' [BARGV...] "" ARG0 [ARG1...]
+			 * sh ... -c 'builtin' BARGV... "" ARG0 [ARG1...]
 			 * "" needs to be replaced with NULL
 			 * and BARGV vector fed to builtin function.
-			 * Note: this form never happens:
-			 * sh ... -c 'builtin' [BARGV...] ""
+			 * Note: the form without ARG0 never happens:
+			 * sh ... -c 'builtin' BARGV... ""
 			 */
 			if (!G.root_pid) {
 				G.root_pid = getpid();
@@ -6930,7 +6930,7 @@ int hush_main(int argc, char **argv)
 					G.global_argc -= builtin_argc; /* skip [BARGV...] "" */
 					G.global_argv += builtin_argc;
 					G.global_argv[-1] = NULL; /* replace "" */
-					G.last_exitcode = x->function(argv + optind - 1);
+					G.last_exitcode = x->b_function(argv + optind - 1);
 				}
 				goto final_return;
 			}
@@ -7651,8 +7651,8 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 		"Built-in commands:\n"
 		"------------------\n");
 	for (x = bltins1; x != &bltins1[ARRAY_SIZE(bltins1)]; x++) {
-		if (x->descr)
-			printf("%s\t%s\n", x->cmd, x->descr);
+		if (x->b_descr)
+			printf("%s\t%s\n", x->b_cmd, x->b_descr);
 	}
 	bb_putchar('\n');
 	return EXIT_SUCCESS;
