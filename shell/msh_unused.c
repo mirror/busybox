@@ -464,7 +464,7 @@ static void ioecho(char c);
  * IO control
  */
 static void pushio(struct ioarg *argp, int (*f) (struct ioarg *));
-#define PUSHIO(what,arg,gen) ((temparg.what = (arg)), pushio(&temparg,(gen)))
+#define PUSHIO(what,arg,gen) ((temparg.what = (arg)), pushio(&temparg, (gen)))
 static int remap(int fd);
 static int openpipe(int *pv);
 static void closepipe(int *pv);

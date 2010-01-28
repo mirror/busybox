@@ -48,7 +48,7 @@ static errcode_t follow_link(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 	if (link_count++ > 5) {
 		return EXT2_ET_SYMLINK_LOOP;
 	}
-	if (ext2fs_inode_data_blocks(fs,&ei)) {
+	if (ext2fs_inode_data_blocks(fs, &ei)) {
 		retval = ext2fs_get_mem(fs->blocksize, &buffer);
 		if (retval)
 			return retval;

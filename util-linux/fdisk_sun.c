@@ -480,7 +480,7 @@ add_sun_partition(int n, int sys)
 		return;
 	}
 
-	fetch_sun(starts,lens,&start,&stop);
+	fetch_sun(starts, lens, &start, &stop);
 	if (stop <= start) {
 		if (n == 2)
 			whole_disk = 1;

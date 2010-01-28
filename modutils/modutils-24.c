@@ -1570,7 +1570,7 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 
 		default:
-			printf("Warning: unhandled reloc %d\n",(int)ELF_R_TYPE(rel->r_info));
+			printf("Warning: unhandled reloc %d\n", (int)ELF_R_TYPE(rel->r_info));
 			ret = obj_reloc_unhandled;
 			break;
 
