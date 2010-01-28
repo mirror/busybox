@@ -147,7 +147,8 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 
 			if (nladdr.nl_pid != 0 ||
 			    h->nlmsg_pid != rth->local.nl_pid ||
-			    h->nlmsg_seq != rth->dump) {
+			    h->nlmsg_seq != rth->dump
+			) {
 //				if (junk) {
 //					err = junk(&nladdr, h, arg2);
 //					if (err < 0) {
@@ -281,7 +282,8 @@ int FAST_FUNC rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 
 			if (nladdr.nl_pid != peer ||
 			    h->nlmsg_pid != rtnl->local.nl_pid ||
-			    h->nlmsg_seq != seq) {
+			    h->nlmsg_seq != seq
+			) {
 //				if (junk) {
 //					l_err = junk(&nladdr, h, jarg);
 //					if (l_err < 0) {

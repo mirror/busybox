@@ -1158,9 +1158,11 @@ static void colon(char *buf)
 				file_modified = 0;
 				last_file_modified = -1;
 			}
-			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n' ||
-			     cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N')
-			     && l == ch) {
+			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n'
+			    || cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N'
+			    )
+			 && l == ch
+			) {
 				editing = 0;
 			}
 		}

@@ -73,9 +73,11 @@ int FAST_FUNC volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t of
 	/* check flags on all entries for a valid partition table */
 	part = (struct msdos_partition_entry*) &buf[MSDOS_PARTTABLE_OFFSET];
 	for (i = 0; i < 4; i++) {
-		if (part[i].boot_ind != 0 &&
-		    part[i].boot_ind != 0x80)
+		if (part[i].boot_ind != 0
+		 && part[i].boot_ind != 0x80
+		) {
 			return -1;
+		}
 
 		if (part[i].nr_sects != 0)
 			empty = 0;

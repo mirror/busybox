@@ -470,17 +470,22 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			msg.tcm_ifindex = xll_name_to_index(dev);
 			if (cmd >= CMD_show)
 				filter_ifindex = msg.tcm_ifindex;
-		} else if ((arg == ARG_qdisc && obj == OBJ_class && cmd >= CMD_show)
-				   || (arg == ARG_handle && obj == OBJ_qdisc
-					   && cmd == CMD_change)) {
+		} else
+		if ((arg == ARG_qdisc && obj == OBJ_class && cmd >= CMD_show)
+		 || (arg == ARG_handle && obj == OBJ_qdisc && cmd == CMD_change)
+		) {
 			NEXT_ARG();
 			/* We don't care about duparg2("qdisc handle",*argv) for now */
 			if (get_qdisc_handle(&filter_qdisc, *argv))
 				invarg(*argv, "qdisc");
-		} else if (obj != OBJ_qdisc &&
-				   (arg == ARG_root
-					 || arg == ARG_parent
-					 || (obj == OBJ_filter && arg >= ARG_pref))) {
+		} else
+		if (obj != OBJ_qdisc
+		 && (arg == ARG_root
+		    || arg == ARG_parent
+		    || (obj == OBJ_filter && arg >= ARG_pref)
+		    )
+		) {
+			/* nothing */
 		} else {
 			invarg(*argv, "command");
 		}

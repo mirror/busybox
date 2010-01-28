@@ -233,7 +233,8 @@ static int iprule_modify(int cmd, char **argv)
 			addattr_l(&req.n, sizeof(req), RTA_DST, &dst.data, dst.bytelen);
 		} else if (key == ARG_preference ||
 			   key == ARG_order ||
-			   key == ARG_priority) {
+			   key == ARG_priority
+		) {
 			uint32_t pref;
 			NEXT_ARG();
 			pref = get_u32(*argv, "preference");
@@ -256,7 +257,8 @@ static int iprule_modify(int cmd, char **argv)
 				invarg(*argv, "realms");
 			addattr32(&req.n, sizeof(req), RTA_FLOW, realm);
 		} else if (key == ARG_table ||
-			   key == ARG_lookup) {
+			   key == ARG_lookup
+		) {
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
@@ -264,11 +266,13 @@ static int iprule_modify(int cmd, char **argv)
 			req.r.rtm_table = tid;
 			table_ok = 1;
 		} else if (key == ARG_dev ||
-			   key == ARG_iif) {
+			   key == ARG_iif
+		) {
 			NEXT_ARG();
 			addattr_l(&req.n, sizeof(req), RTA_IIF, *argv, strlen(*argv)+1);
 		} else if (key == ARG_nat ||
-			   key == ARG_map_to) {
+			   key == ARG_map_to
+		) {
 			NEXT_ARG();
 			addattr32(&req.n, sizeof(req), RTA_GATEWAY, get_addr32(*argv));
 			req.r.rtm_type = RTN_NAT;

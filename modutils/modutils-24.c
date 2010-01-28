@@ -865,19 +865,23 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 		case R_H8_PCREL16:
 			v -= dot + 2;
-			if ((ElfW(Sword))v > 0x7fff ||
-			    (ElfW(Sword))v < -(ElfW(Sword))0x8000)
+			if ((ElfW(Sword))v > 0x7fff
+			 || (ElfW(Sword))v < -(ElfW(Sword))0x8000
+			) {
 				ret = obj_reloc_overflow;
-			else
+			} else {
 				*(unsigned short *)loc = v;
+			}
 			break;
 		case R_H8_PCREL8:
 			v -= dot + 1;
-			if ((ElfW(Sword))v > 0x7f ||
-			    (ElfW(Sword))v < -(ElfW(Sword))0x80)
+			if ((ElfW(Sword))v > 0x7f
+			 || (ElfW(Sword))v < -(ElfW(Sword))0x80
+			) {
 				ret = obj_reloc_overflow;
-			else
+			} else {
 				*(unsigned char *)loc = v;
+			}
 			break;
 
 #elif defined(__i386__)

@@ -163,20 +163,27 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	memset(tb, 0, sizeof(tb));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
 
-	if (G_filter.rdst.family && inet_addr_match(&dst, &G_filter.rdst, G_filter.rdst.bitlen))
+	if (G_filter.rdst.family
+	 && inet_addr_match(&dst, &G_filter.rdst, G_filter.rdst.bitlen)
+	) {
 		return 0;
-	if (G_filter.mdst.family && G_filter.mdst.bitlen >= 0 &&
-	    inet_addr_match(&dst, &G_filter.mdst, r->rtm_dst_len))
+	}
+	if (G_filter.mdst.family
+	 && G_filter.mdst.bitlen >= 0
+	 && inet_addr_match(&dst, &G_filter.mdst, r->rtm_dst_len)
+	) {
 		return 0;
-
-	if (G_filter.rsrc.family && inet_addr_match(&src, &G_filter.rsrc, G_filter.rsrc.bitlen))
+	}
+	if (G_filter.rsrc.family
+	 && inet_addr_match(&src, &G_filter.rsrc, G_filter.rsrc.bitlen)
+	) {
 		return 0;
+	}
 	if (G_filter.msrc.family && G_filter.msrc.bitlen >= 0
 	 && inet_addr_match(&src, &G_filter.msrc, r->rtm_src_len)
 	) {
 		return 0;
 	}
-
 	if (G_filter.flushb
 	 && r->rtm_family == AF_INET6
 	 && r->rtm_dst_len == 0

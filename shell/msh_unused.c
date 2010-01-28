@@ -3873,9 +3873,10 @@ static char *blank(int f)
 		scanequals = 0;
 	for (;;) {
 		c = subgetc('"', foundequals);
-		if (c == 0 ||
-			f & (DOBLANK && any(c, ifs->value)) ||
-			(!INSUB() && any(c, "\"'"))) {
+		if (c == 0
+		 || f & (DOBLANK && any(c, ifs->value))
+		 || (!INSUB() && any(c, "\"'"))
+		) {
 			scanequals = 0;
 			unget(c);
 			if (any(c, "\"'"))

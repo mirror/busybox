@@ -166,9 +166,12 @@ static NOINLINE int lzo1x_optimize(uint8_t *in, unsigned in_len,
 					o_m1_a++;
 				}
 				/* test if a literal run follows */
-				else if (nl == 0 && ip[0] < 16 && ip[0] != 0 &&
-						 (lit + 2 + ip[0] < 16))
-				{
+				else
+				if (nl == 0
+				 && ip[0] < 16
+				 && ip[0] != 0
+				 && (lit + 2 + ip[0] < 16)
+				) {
 					t = *ip++;
 					/* remove short run */
 					*litp &= ~3;

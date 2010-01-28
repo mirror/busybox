@@ -22,8 +22,9 @@ const char* FAST_FUNC ll_addr_n2a(unsigned char *addr, int alen, int type, char 
 	int i;
 	int l;
 
-	if (alen == 4 &&
-	    (type == ARPHRD_TUNNEL || type == ARPHRD_SIT || type == ARPHRD_IPGRE)) {
+	if (alen == 4
+	 && (type == ARPHRD_TUNNEL || type == ARPHRD_SIT || type == ARPHRD_IPGRE)
+	) {
 		return inet_ntop(AF_INET, addr, buf, blen);
 	}
 	l = 0;

@@ -907,10 +907,12 @@ get_mountport(struct pmap *pm_mnt,
 			goto next;
 		if (version && version <= 2 && pmap->pml_map.pm_vers > 2)
 			goto next;
-		if (pmap->pml_map.pm_vers > MAX_NFSPROT ||
-		    (proto && pm_mnt->pm_prot && pmap->pml_map.pm_prot != proto) ||
-		    (port && pmap->pml_map.pm_port != port))
+		if (pmap->pml_map.pm_vers > MAX_NFSPROT
+		 || (proto && pm_mnt->pm_prot && pmap->pml_map.pm_prot != proto)
+		 || (port && pmap->pml_map.pm_port != port)
+		) {
 			goto next;
+		}
 		memcpy(pm_mnt, &pmap->pml_map, sizeof(*pm_mnt));
  next:
 		pmap = pmap->pml_next;

@@ -950,8 +950,12 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					*buf++ = '\\';
 					*buf++ = '\\';
 				}
-			} else if (*src == '*' || *src == '?' || *src == '[' ||
-					   *src == ']') *buf++ = '\\';
+			} else
+			if (*src == '*' || *src == '?'
+			 || *src == '[' || *src == ']'
+			) {
+				*buf++ = '\\';
+			}
 			*buf++ = *src;
 		} else if (isspace(*src)) {
 			if (*prog->argv[argc_l] || (flag & LASH_OPT_SAW_QUOTE)) {
@@ -1365,8 +1369,9 @@ static int busy_loop(FILE *input)
 				continue;
 			}
 
-			if (!parse_command(&next_command, &newjob, &inbg) &&
-				newjob.num_progs) {
+			if (!parse_command(&next_command, &newjob, &inbg)
+			 && newjob.num_progs
+			) {
 				int pipefds[2] = { -1, -1 };
 				debug_printf("job=%p fed to run_command by busy_loop()'\n",
 						&newjob);

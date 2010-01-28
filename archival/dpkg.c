@@ -858,8 +858,9 @@ static void write_status_file(deb_file_t **deb_file)
 						if (field_name == NULL) {
 							break;
 						}
-						if ((strcmp(field_name, "Priority") == 0) ||
-							(strcmp(field_name, "Section") == 0)) {
+						if ((strcmp(field_name, "Priority") == 0)
+						 || (strcmp(field_name, "Section") == 0)
+						) {
 							fprintf(new_status_file, "%s: %s\n", field_name, field_value);
 						}
 					}
@@ -1079,8 +1080,9 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 
 			package_num = search_package_hashtable(package_edge->name, package_edge->version, package_edge->operator);
 
-			if (package_edge->type == EDGE_PRE_DEPENDS ||
-			    package_edge->type == EDGE_DEPENDS) {
+			if (package_edge->type == EDGE_PRE_DEPENDS
+			 || package_edge->type == EDGE_DEPENDS
+			) {
 				int result=1;
 				status_num = 0;
 

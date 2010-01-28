@@ -620,10 +620,12 @@ static int longest_match(IPos cur_match)
 		/* Skip to next match if the match length cannot increase
 		 * or if the match length is less than 2:
 		 */
-		if (match[best_len] != scan_end ||
-			match[best_len - 1] != scan_end1 ||
-			*match != *scan || *++match != scan[1])
+		if (match[best_len] != scan_end
+		 || match[best_len - 1] != scan_end1
+		 || *match != *scan || *++match != scan[1]
+		) {
 			continue;
+		}
 
 		/* The check at best_len-1 can be removed because it will be made
 		 * again later. (This heuristic is not always a win.)

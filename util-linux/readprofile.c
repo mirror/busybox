@@ -176,9 +176,11 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		/* ignore any LEADING (before a '[tT]' symbol is found)
 		   Absolute symbols */
 		if ((*mode == 'A' || *mode == '?') && total == 0) continue;
-		if (*mode != 'T' && *mode != 't' &&
-		    *mode != 'W' && *mode != 'w')
+		if (*mode != 'T' && *mode != 't'
+		 && *mode != 'W' && *mode != 'w'
+		) {
 			break;	/* only text is profiled */
+		}
 
 		if (indx >= len / sizeof(*buf))
 			bb_error_msg_and_die("profile address out of range. "

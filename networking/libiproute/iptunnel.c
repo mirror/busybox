@@ -204,19 +204,22 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			NEXT_ARG();
 			key = index_in_strings(keywords, *argv);
 			if (key == ARG_ipip ||
-			    key == ARG_ip_ip) {
+			    key == ARG_ip_ip
+			) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPIP) {
 					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
 				p->iph.protocol = IPPROTO_IPIP;
 			} else if (key == ARG_gre ||
-				   key == ARG_gre_ip) {
+				   key == ARG_gre_ip
+			) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_GRE) {
 					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
 				p->iph.protocol = IPPROTO_GRE;
 			} else if (key == ARG_sit ||
-				   key == ARG_ip6_ip) {
+				   key == ARG_ip6_ip
+			) {
 				if (p->iph.protocol && p->iph.protocol != IPPROTO_IPV6) {
 					bb_error_msg_and_die("%s tunnel mode", "you managed to ask for more than one");
 				}
@@ -297,7 +300,8 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 				p->iph.ttl = uval;
 			}
 		} else if (key == ARG_tos ||
-			   key == ARG_dsfield) {
+			   key == ARG_dsfield
+		) {
 			uint32_t uval;
 			NEXT_ARG();
 			key = index_in_strings(keywords, *argv);
@@ -485,7 +489,8 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 		/*buf[sizeof(buf) - 1] = 0; - fgets is safe anyway */
 		ptr = strchr(buf, ':');
 		if (ptr == NULL ||
-		    (*ptr++ = 0, sscanf(buf, "%s", name) != 1)) {
+		    (*ptr++ = 0, sscanf(buf, "%s", name) != 1)
+		) {
 			bb_error_msg("wrong format of /proc/net/dev");
 			return;
 		}
@@ -511,8 +516,10 @@ static void do_tunnels_list(struct ip_tunnel_parm *p)
 		    (p->name[0] && strcmp(p1.name, p->name)) ||
 		    (p->iph.daddr && p1.iph.daddr != p->iph.daddr) ||
 		    (p->iph.saddr && p1.iph.saddr != p->iph.saddr) ||
-		    (p->i_key && p1.i_key != p->i_key))
+		    (p->i_key && p1.i_key != p->i_key)
+		) {
 			continue;
+		}
 		print_tunnel(&p1);
 		bb_putchar('\n');
 	}

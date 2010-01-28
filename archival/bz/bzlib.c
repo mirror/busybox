@@ -393,10 +393,12 @@ int BZ2_bzBuffToBuffCompress(char* dest,
 	bz_stream strm;
 	int ret;
 
-	if (dest == NULL || destLen == NULL ||
-		 source == NULL ||
-		 blockSize100k < 1 || blockSize100k > 9)
+	if (dest == NULL || destLen == NULL
+	 || source == NULL
+	 || blockSize100k < 1 || blockSize100k > 9
+	) {
 		return BZ_PARAM_ERROR;
+	}
 
 	BZ2_bzCompressInit(&strm, blockSize100k);
 
