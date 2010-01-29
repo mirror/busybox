@@ -141,6 +141,57 @@ config FEATURE_CHECK_UNICODE_IN_ENV
 
 	  Otherwise, Unicode support will be always enabled and active.
 
+config SUBST_WCHAR
+	int "Character code to substitute unprintable characters with"
+	range 1 4294967295
+	depends on FEATURE_ASSUME_UNICODE
+	default 63
+	help
+	  Typical values are 63 for '?' (works with any output device),
+	  30 for ASCII substitute control code,
+	  65533 (0xfffd) for Unicode replacement character.
+
+config LAST_SUPPORTED_WCHAR
+	int "Range of supported Unicode characters"
+	range 0 4294967295
+	depends on FEATURE_ASSUME_UNICODE
+	default 767
+	help
+	  Any character with Unicode value bigger than this is assumed
+	  to be non-printable on output device. Many applets replace
+	  such chars with substitution character.
+
+	  The idea is that many valid printable Unicode chars are
+	  nevertheless are not displayed correctly. Think about
+	  combining charachers, double-wide hieroglyphs and such.
+	  Many terminals, xterms and such will fail to handle them
+	  correctly.
+
+	  Typical values are:
+	  126 - ASCII only
+	  767 (0x2ff) - there are no combining chars in [0..767] range
+			(the range includes Latin 1, Latin Ext. A and B),
+			code is ~700 bytes smaller for this case.
+	  4351 (0x10ff) - there are no double-wide chars in [0..4351] range,
+			code is ~300 bytes smaller for this case.
+	  0 - off, any valid printable Unicode character will be printed.
+
+config UNICODE_COMBINING_WCHARS
+	bool "Allow zero-width Unicode characters on output"
+	default n
+	depends on FEATURE_ASSUME_UNICODE
+	help
+	  With this option off, any Unicode char with width of 0
+	  is substituted on output.
+
+config UNICODE_WIDE_WCHARS
+	bool "Allow wide Unicode characters on output"
+	default n
+	depends on FEATURE_ASSUME_UNICODE
+	help
+	  With this option off, any Unicode char with width > 1
+	  is substituted on output.
+
 config LONG_OPTS
 	bool "Support for --long-options"
 	default y

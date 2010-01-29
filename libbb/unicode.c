@@ -216,8 +216,6 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 	return org_n - n;
 }
 
-#include "unicode_wcwidth.c"
-
 int FAST_FUNC iswspace(wint_t wc)
 {
 	return (unsigned)wc <= 0x7f && isspace(wc);
@@ -232,6 +230,8 @@ int FAST_FUNC iswpunct(wint_t wc)
 {
 	return (unsigned)wc <= 0x7f && ispunct(wc);
 }
+
+#include "unicode_wcwidth.c"
 
 #endif /* Homegrown Unicode support */
 
@@ -251,8 +251,22 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 	char *dst;
 	unsigned dst_len;
 
-	if (unicode_status != UNICODE_ON)
-		return xasprintf("%-*.*s", width, width, src);
+	if (unicode_status != UNICODE_ON) {
+		char *d = dst = xmalloc(width + 1);
+		while ((int)--width >= 0) {
+			unsigned char c = *src;
+			if (c == '\0') {
+				do
+					*d++ = ' ';
+				while ((int)--width >= 0);
+				break;
+			}
+			*d++ = (c >= ' ' && c < 0x7f) ? c : '?';
+			src++;
+		}
+		*d = '\0';
+		return dst;
+	}
 
 	dst = NULL;
 	dst_len = 0;
@@ -260,31 +274,64 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 		int w;
 		wchar_t wc;
 
-		dst = xrealloc(dst, dst_len + 2 * MB_CUR_MAX);
 #if ENABLE_LOCALE_SUPPORT
 		{
 			mbstate_t mbst = { 0 };
 			ssize_t rc = mbsrtowcs(&wc, &src, 1, &mbst);
-			if (rc <= 0) /* error, or end-of-string */
+			/* If invalid sequence is seen: -1 is returned,
+			 * src points to the invalid sequence, errno = EILSEQ.
+			 * Else number of wchars (excluding terminating L'\0')
+			 * written to dest is returned.
+			 * If len (here: 1) non-L'\0' wchars stored at dest,
+			 * src points to the next char to be converted.
+			 * If string is completely converted: src = NULL.
+			 */
+			if (rc == 0) /* end-of-string */
 				break;
+			if (rc < 0) { /* error */
+				src++;
+				goto subst;
+			}
+			if (!iswprint(wc))
+				goto subst;
 		}
 #else
-		src = mbstowc_internal(&wc, src);
-		if (!src || wc == 0) /* error, or end-of-string */
-			break;
-#endif
-		w = wcwidth(wc);
-		if (w < 0) /* non-printable wchar */
-			break;
-		width -= w;
-		if ((int)width < 0) { /* string is longer than width */
-			width += w;
-			while (width) {
-				dst[dst_len++] = ' ';
-				width--;
+		{
+			const char *src1 = mbstowc_internal(&wc, src);
+			/* src = NULL: invalid sequence is seen,
+			 * else: wc is set, src is advanced to next mb char
+			 */
+			if (src1) {/* no error */
+				if (wc == 0) /* end-of-string */
+					break;
+				src = src1;
+			} else { /* error */
+				src++;
+				goto subst;
 			}
+		}
+#endif
+		if (CONFIG_LAST_SUPPORTED_WCHAR && wc > CONFIG_LAST_SUPPORTED_WCHAR)
+			goto subst;
+		w = wcwidth(wc);
+		if ((ENABLE_UNICODE_COMBINING_WCHARS && w < 0) /* non-printable wchar */
+		 || (!ENABLE_UNICODE_COMBINING_WCHARS && wc <= 0)
+		 || (!ENABLE_UNICODE_WIDE_WCHARS && wc > 1)
+		) {
+ subst:
+			wc = CONFIG_SUBST_WCHAR;
+			w = 1;
+		}
+		width -= w;
+		/* Note: if width == 0, we still may add more chars,
+		 * they may be zero-width or combining ones */
+		if ((int)width < 0) {
+			/* can't add this wc, string would become longer than width */
+			width += w;
 			break;
 		}
+
+		dst = xrealloc(dst, dst_len + MB_CUR_MAX);
 #if ENABLE_LOCALE_SUPPORT
 		{
 			mbstate_t mbst = { 0 };
@@ -294,7 +341,14 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 		dst_len += wcrtomb_internal(&dst[dst_len], wc);
 #endif
 	}
+
+	/* Pad to remaining width */
+	dst = xrealloc(dst, dst_len + width + 1);
+	while ((int)--width >= 0) {
+		dst[dst_len++] = ' ';
+	}
 	dst[dst_len] = '\0';
+
 	return dst;
 }
 
