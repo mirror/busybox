@@ -78,9 +78,10 @@ run_oldstyle_applet_tests()
 
 
 lcwd=$(pwd)
-[ x"$tsdir" != x ] || tsdir="$lcwd"
-[ x"$bindir" != x ] || bindir="${lcwd%/*}" # one directory up from $lcwd
+[ x"$tsdir" != x"" ] || tsdir="$lcwd"
+[ x"$bindir" != x"" ] || bindir="${lcwd%/*}" # one directory up from $lcwd
 PATH="$bindir:$PATH"
+export bindir   # some tests need to look at $bindir/.config
 
 if [ x"$VERBOSE" = x ]; then
 	export VERBOSE=

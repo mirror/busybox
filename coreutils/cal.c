@@ -113,7 +113,10 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 			if (argv[2]) {
 				bb_show_usage();
 			}
-			month = xatou_range(*argv++, 1, 12);
+			if (!(flags & 2)) { /* no -y */
+				month = xatou_range(*argv, 1, 12);
+			}
+			argv++;
 		}
 		year = xatou_range(*argv, 1, 9999);
 	}
