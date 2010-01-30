@@ -21,51 +21,68 @@ for f in sys.argv[1:3]:
         sys.stderr.write("Error: file '%s' does not exist\n" % f)
         usage()
 
-nm_args = " ".join(sys.argv[3:])
+sym_args = " ".join(sys.argv[3:])
 def getsizes(file):
-    sym = {}
-    for l in os.popen("nm --size-sort %s %s" % (nm_args, file)).readlines():
-        l = l.strip()
-        # Skip empty lines
-        if not len(l): continue
-        # Skip archive members
-        if len(l.split()) == 1 and l.endswith(':'):
-          continue
-        size, type, name = l.split()
-        if type in "tTdDbBrR":
-            if "." in name: name = "static." + name.split(".")[0]
-            sym[name] = sym.get(name, 0) + int(size, 16)
-    for l in os.popen("readelf -S " + file).readlines():
+    sym, alias = {}, {}
+    dynsym_filter = re.compile("^\s+\d+:\s+[\dA-Fa-f]+\s+\d+\s+\w+\s+\w+\s+\w+\s+\w+\s+\w+\n$")
+    for l in os.popen("readelf -W -s %s %s" % (sym_args, file)).readlines():
+        if not dynsym_filter.match(l): continue
+        num, value, size, typ, bind, vis, ndx, name = l.strip().split()
+        if ndx == "UND": continue # skip undefined
+        if typ in ["SECTION", "FILES"]: continue # skip sections and files
+        if "." in name: name = "static." + name.split(".")[0]
+        value = int(value, 16)
+        size = int(size)
+        if bind != "GLOBAL": # see if it is an alias
+            alias[name] = {"addr" : value, "size":  size}
+        else:
+            sym[name] = {"addr" : value, "size":  size}
+    for a_nam, a_dat in alias.iteritems():
+        impl = [k for k, v in sym.iteritems() if v.get("addr") == a_dat["addr"]]
+        # If the non-GLOBAL sym has an implementation elsewhere then
+        # it's an alias, disregard it.
+        if not impl:
+            # If this non-GLOBAL sym does not have an implementation at
+            # another address, then treat it as a normal symbol.
+            sym[a_nam] = a_dat
+    for l in os.popen("readelf -W -S " + file).readlines():
         x = l.split()
-        if len(x)<6 or x[1] != ".rodata": continue
-        sym[".rodata"] = int(x[5], 16)
+        if len(x)<6: continue
+        # Should take these into account too!
+        #if x[1] not in [".text", ".rodata", ".symtab", ".strtab"]: continue
+        if x[1] not in [".rodata"]: continue
+        sym[x[1]] = {"addr" : int(x[3], 16), "size" : int(x[5], 16)}
     return sym
 
 old = getsizes(sys.argv[1])
 new = getsizes(sys.argv[2])
 grow, shrink, add, remove, up, down = 0, 0, 0, 0, 0, 0
-delta, common = [], {}
+delta, common = [], []
 
-for a in old:
+for a in old.iterkeys():
     if a in new:
-        common[a] = 1
+        common.append(a)
 
 for name in old:
     if name not in common:
         remove += 1
-        down += old[name]
-        delta.append((-old[name], name))
+        sz = old[name].get("size", 0)
+        down += sz
+        delta.append((-sz, name))
 
 for name in new:
     if name not in common:
         add += 1
-        up += new[name]
-        delta.append((new[name], name))
+        sz = new[name].get("size", 0)
+        up += sz
+        delta.append((sz, name))
 
 for name in common:
-        d = new.get(name, 0) - old.get(name, 0)
+        d = new[name].get("size", 0) - old[name].get("size", 0)
         if d>0: grow, up = grow+1, up+d
-        if d<0: shrink, down = shrink+1, down-d
+        elif d<0: shrink, down = shrink+1, down-d
+        else:
+            continue
         delta.append((d, name))
 
 delta.sort()
@@ -73,7 +90,10 @@ delta.reverse()
 
 print "%-48s %7s %7s %+7s" % ("function", "old", "new", "delta")
 for d, n in delta:
-    if d: print "%-48s %7s %7s %+7d" % (n, old.get(n,"-"), new.get(n,"-"), d)
+    if d:
+        old_sz = old.get(n, {}).get("size", "-")
+        new_sz = new.get(n, {}).get("size", "-")
+        print "%-48s %7s %7s %+7d" % (n, old_sz, new_sz, d)
 print "-"*78
 total="(add/remove: %s/%s grow/shrink: %s/%s up/down: %s/%s)%%sTotal: %s bytes"\
     % (add, remove, grow, shrink, up, -down, up-down)
