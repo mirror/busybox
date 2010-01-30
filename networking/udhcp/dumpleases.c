@@ -71,8 +71,11 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 		/* actually, 15+1 and 19+1, +1 is a space between columns */
 		/* lease.hostname is char[20] and is always NUL terminated */
 #if ENABLE_FEATURE_ASSUME_UNICODE
-		printf(" %-16s%s%*s", inet_ntoa(addr), lease.hostname,
-			20 - (int)unicode_strlen(lease.hostname), "");
+		{
+			char *uni_name = unicode_conv_to_printable_fixedwidth(NULL, lease.hostname, 20);
+			printf(" %-16s%s", inet_ntoa(addr), uni_name);
+			free(uni_name);
+		}
 #else
 		printf(" %-16s%-20s", inet_ntoa(addr), lease.hostname);
 #endif

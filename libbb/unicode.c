@@ -246,29 +246,45 @@ size_t FAST_FUNC unicode_strlen(const char *string)
 	return width;
 }
 
-char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
+static char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char *src, unsigned width, int flags)
 {
 	char *dst;
 	unsigned dst_len;
+	unsigned uni_count;
+	unsigned uni_width;
 
 	if (unicode_status != UNICODE_ON) {
-		char *d = dst = xmalloc(width + 1);
-		while ((int)--width >= 0) {
-			unsigned char c = *src;
-			if (c == '\0') {
-				do
-					*d++ = ' ';
-				while ((int)--width >= 0);
-				break;
+		char *d;
+		if (flags & UNI_FLAG_PAD) {
+			d = dst = xmalloc(width + 1);
+			while ((int)--width >= 0) {
+				unsigned char c = *src;
+				if (c == '\0') {
+					do
+						*d++ = ' ';
+					while ((int)--width >= 0);
+					break;
+				}
+				*d++ = (c >= ' ' && c < 0x7f) ? c : '?';
+				src++;
 			}
-			*d++ = (c >= ' ' && c < 0x7f) ? c : '?';
-			src++;
+			*d = '\0';
+		} else {
+			d = dst = xstrndup(src, width);
+			while (*d) {
+				unsigned char c = *d;
+				if (c < ' ' || c >= 0x7f)
+					*d = '?';
+				d++;
+			}
 		}
-		*d = '\0';
+		if (stats)
+			stats->byte_count = stats->unicode_count = (d - dst);
 		return dst;
 	}
 
 	dst = NULL;
+	uni_count = uni_width = 0;
 	dst_len = 0;
 	while (1) {
 		int w;
@@ -301,7 +317,7 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 			/* src = NULL: invalid sequence is seen,
 			 * else: wc is set, src is advanced to next mb char
 			 */
-			if (src1) {/* no error */
+			if (src1) { /* no error */
 				if (wc == 0) /* end-of-string */
 					break;
 				src = src1;
@@ -315,8 +331,8 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 			goto subst;
 		w = wcwidth(wc);
 		if ((ENABLE_UNICODE_COMBINING_WCHARS && w < 0) /* non-printable wchar */
-		 || (!ENABLE_UNICODE_COMBINING_WCHARS && wc <= 0)
-		 || (!ENABLE_UNICODE_WIDE_WCHARS && wc > 1)
+		 || (!ENABLE_UNICODE_COMBINING_WCHARS && w <= 0)
+		 || (!ENABLE_UNICODE_WIDE_WCHARS && w > 1)
 		) {
  subst:
 			wc = CONFIG_SUBST_WCHAR;
@@ -331,6 +347,8 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 			break;
 		}
 
+		uni_count++;
+		uni_width += w;
 		dst = xrealloc(dst, dst_len + MB_CUR_MAX);
 #if ENABLE_LOCALE_SUPPORT
 		{
@@ -343,15 +361,37 @@ char* FAST_FUNC unicode_cut_nchars(unsigned width, const char *src)
 	}
 
 	/* Pad to remaining width */
-	dst = xrealloc(dst, dst_len + width + 1);
-	while ((int)--width >= 0) {
-		dst[dst_len++] = ' ';
+	if (flags & UNI_FLAG_PAD) {
+		dst = xrealloc(dst, dst_len + width + 1);
+		uni_count += width;
+		uni_width += width;
+		while ((int)--width >= 0) {
+			dst[dst_len++] = ' ';
+		}
 	}
 	dst[dst_len] = '\0';
+	if (stats) {
+		stats->byte_count = dst_len;
+		stats->unicode_count = uni_count;
+		stats->unicode_width = uni_width;
+	}
 
 	return dst;
 }
+char* FAST_FUNC unicode_conv_to_printable(uni_stat_t *stats, const char *src)
+{
+	return unicode_conv_to_printable2(stats, src, INT_MAX, 0);
+}
+char* FAST_FUNC unicode_conv_to_printable_maxwidth(uni_stat_t *stats, const char *src, unsigned maxwidth)
+{
+	return unicode_conv_to_printable2(stats, src, maxwidth, 0);
+}
+char* FAST_FUNC unicode_conv_to_printable_fixedwidth(uni_stat_t *stats, const char *src, unsigned width)
+{
+	return unicode_conv_to_printable2(stats, src, width, UNI_FLAG_PAD);
+}
 
+#ifdef UNUSED
 unsigned FAST_FUNC unicode_padding_to_width(unsigned width, const char *src)
 {
 	if (unicode_status != UNICODE_ON) {
@@ -382,3 +422,4 @@ unsigned FAST_FUNC unicode_padding_to_width(unsigned width, const char *src)
 			return 0;
 	}
 }
+#endif
