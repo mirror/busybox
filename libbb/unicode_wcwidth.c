@@ -534,6 +534,7 @@ static int wcwidth(unsigned ucs)
 		|| ucs == 0x2329 /* left-pointing angle bracket; also CJK punct. char */
 		|| ucs == 0x232a /* right-pointing angle bracket; also CJK punct. char */
 		|| (ucs >= 0x2e80 && ucs <= 0xa4cf && ucs != 0x303f) /* CJK ... Yi */
+#  if LAST_SUPPORTED_WCHAR >= 0xac00
 		|| (ucs >= 0xac00 && ucs <= 0xd7a3) /* Hangul Syllables */
 		|| (ucs >= 0xf900 && ucs <= 0xfaff) /* CJK Compatibility Ideographs */
 		|| (ucs >= 0xfe10 && ucs <= 0xfe19) /* Vertical forms */
@@ -541,6 +542,7 @@ static int wcwidth(unsigned ucs)
 		|| (ucs >= 0xff00 && ucs <= 0xff60) /* Fullwidth Forms */
 		|| (ucs >= 0xffe0 && ucs <= 0xffe6)
 		|| ((ucs >> 17) == (2 >> 1)) /* 20000..3ffff: Supplementary and Tertiary Ideographic Planes */
+#  endif
 		);
 # endif
 #endif
