@@ -59,8 +59,39 @@
  * Latest version: http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
  */
 
-#if CONFIG_LAST_SUPPORTED_WCHAR == 0
-# define LAST_SUPPORTED_WCHAR ((1 << 31) - 1)
+/* Assigned Unicode character ranges:
+ * Plane Range
+ * 0       0000–FFFF   Basic Multilingual Plane
+ * 1      10000–1FFFF  Supplementary Multilingual Plane
+ * 2      20000–2FFFF  Supplementary Ideographic Plane
+ * 3      30000-3FFFF  Tertiary Ideographic Plane (no chars assigned yet)
+ * 4-13   40000–DFFFF  currently unassigned
+ * 14     E0000–EFFFF  Supplementary Special-purpose Plane
+ * 15     F0000–FFFFF  Supplementary Private Use Area-A
+ * 16    100000–10FFFF Supplementary Private Use Area-B
+ *
+ * "Supplementary Special-purpose Plane currently contains non-graphical
+ * characters in two blocks of 128 and 240 characters. The first block
+ * is for language tag characters for use when language cannot be indicated
+ * through other protocols (such as the xml:lang  attribute in XML).
+ * The other block contains glyph variation selectors to indicate
+ * an alternate glyph for a character that cannot be determined by context."
+ *
+ * In simpler terms: it is a tool to fix the "Han unification" mess
+ * created by Unicode committee, to select Chinese/Japanese/Korean/Taiwan
+ * version of a character. (They forgot that the whole purpose of the Unicode
+ * was to be able to write all chars in one charset without such tricks).
+ * Until East Asian users say it is actually necessary to support these
+ * code points in console applications like busybox
+ * (i.e. do these chars ever appear in filenames, hostnames, text files
+ * and such?), we are treating these code points as invalid.
+ *
+ * Tertiary Ideographic Plane is also ignored for now,
+ * until Unicode committee assigns something there.
+ */
+
+#if CONFIG_LAST_SUPPORTED_WCHAR < 126 || CONFIG_LAST_SUPPORTED_WCHAR > 0x30000
+# define LAST_SUPPORTED_WCHAR 0x30000
 #else
 # define LAST_SUPPORTED_WCHAR CONFIG_LAST_SUPPORTED_WCHAR
 #endif
@@ -429,7 +460,8 @@ static int wcwidth(unsigned ucs)
 #undef BIG_
 #undef PAIR
 	};
-# if LAST_SUPPORTED_WCHAR >= 0x1100
+# if LAST_SUPPORTED_WCHAR >= 0x10000
+	/* Combining chars in Supplementary Multilingual Plane 0x1xxxx */
 	static const struct interval combining0x10000[] = {
 		{ 0x0A01, 0x0A03 }, { 0x0A05, 0x0A06 }, { 0x0A0C, 0x0A0F },
 		{ 0x0A38, 0x0A3A }, { 0x0A3F, 0x0A3F }, { 0xD167, 0xD169 },
@@ -462,12 +494,35 @@ static int wcwidth(unsigned ucs)
 # if LAST_SUPPORTED_WCHAR < 0x1100
 	return -1;
 # else
-	/* binary search in table of non-spacing characters, cont. */
+	if (ucs >= LAST_SUPPORTED_WCHAR)
+		return -1;
+
+	/* High (d800..dbff) and low (dc00..dfff) surrogates are invalid (used only by UTF16) */
+	/* We also exclude Private Use Area (e000..f8ff) */
+	if (LAST_SUPPORTED_WCHAR >= 0xd800
+	 && (ucs >= 0xd800 || ucs <= 0xf8ff)
+	) {
+		return -1;
+	}
+
+	/* 0xfffe and 0xffff in every plane are invalid */
+	if (LAST_SUPPORTED_WCHAR >= 0xfffe
+	 && (ucs & 0xfffe) == 0xfffe
+	) {
+		return -1;
+	}
+
+#  if LAST_SUPPORTED_WCHAR >= 0x10000
+	/* binary search in table of non-spacing characters in Supplementary Multilingual Plane */
 	if (in_interval_table(ucs ^ 0x10000, combining0x10000, ARRAY_SIZE(combining0x10000) - 1))
 		return 0;
-	if (ucs == 0xE0001
-	 || (ucs >= 0xE0020 && ucs <= 0xE007F)
-	 || (ucs >= 0xE0100 && ucs <= 0xE01EF)
+#  endif
+	/* Check a few non-spacing chars in Supplementary Special-purpose Plane 0xExxxx */
+	if (LAST_SUPPORTED_WCHAR >= 0xE0001
+	 && (  ucs == 0xE0001
+	    || (ucs >= 0xE0020 && ucs <= 0xE007F)
+	    || (ucs >= 0xE0100 && ucs <= 0xE01EF)
+	    )
 	) {
 		return 0;
 	}
@@ -485,8 +540,7 @@ static int wcwidth(unsigned ucs)
 		|| (ucs >= 0xfe30 && ucs <= 0xfe6f) /* CJK Compatibility Forms */
 		|| (ucs >= 0xff00 && ucs <= 0xff60) /* Fullwidth Forms */
 		|| (ucs >= 0xffe0 && ucs <= 0xffe6)
-		|| (ucs >= 0x20000 && ucs <= 0x2fffd)
-		|| (ucs >= 0x30000 && ucs <= 0x3fffd)
+		|| ((ucs >> 17) == (2 >> 1)) /* 20000..3ffff: Supplementary and Tertiary Ideographic Planes */
 		);
 # endif
 #endif
