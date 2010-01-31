@@ -13,7 +13,7 @@ mkdir ls.testdir || exit 1
 
 # With Unicode provided by libc locale, I'm not sure this test can pass.
 # I suspect we might fail to skip exactly correct number of bytes
-# over broked unicode sequences.
+# over broken unicode sequences.
 test x"$CONFIG_FEATURE_ASSUME_UNICODE" = x"y" \
 && test x"$CONFIG_LOCALE_SUPPORT" != x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
