@@ -139,6 +139,8 @@ size_t FAST_FUNC wcstombs(char *dest, const wchar_t *src, size_t n)
 	return org_n - n;
 }
 
+#define ERROR_WCHAR (~(wchar_t)0)
+
 static const char *mbstowc_internal(wchar_t *res, const char *src)
 {
 	int bytes;
@@ -159,16 +161,22 @@ static const char *mbstowc_internal(wchar_t *res, const char *src)
 		c <<= 1;
 		bytes++;
 	} while ((c & 0x80) && bytes < 6);
-	if (bytes == 1)
-		return NULL;
+	if (bytes == 1) {
+		/* A bare "continuation" byte. Say, 80 */
+		*res = ERROR_WCHAR;
+		return src;
+	}
 	c = (uint8_t)(c) >> bytes;
 
 	while (--bytes) {
-		unsigned ch = (unsigned char) *src++;
+		unsigned ch = (unsigned char) *src;
 		if ((ch & 0xc0) != 0x80) {
-			return NULL;
+			/* Missing "continuation" byte. Example: e0 80 */
+			*res = ERROR_WCHAR;
+			return src;
 		}
 		c = (c << 6) + (ch & 0x3f);
+		src++;
 	}
 
 	/* TODO */
@@ -177,8 +185,8 @@ static const char *mbstowc_internal(wchar_t *res, const char *src)
 	/* 11110000 10000000 10000100 10000000 converts to 0x100 */
 	/* correct encoding: 11000100 10000000 */
 	if (c <= 0x7f) { /* crude check */
-		return NULL;
-		//or maybe 0xfffd; /* replacement character */
+		*res = ERROR_WCHAR;
+		return src;
 	}
 
 	*res = c;
@@ -204,7 +212,7 @@ size_t FAST_FUNC mbstowcs(wchar_t *dest, const char *src, size_t n)
 	while (n) {
 		wchar_t wc;
 		src = mbstowc_internal(&wc, src);
-		if (src == NULL) /* error */
+		if (wc == ERROR_WCHAR) /* error */
 			return (size_t) -1L;
 		if (dest)
 			*dest++ = wc;
@@ -312,20 +320,15 @@ static char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char 
 				goto subst;
 		}
 #else
-		{
-			const char *src1 = mbstowc_internal(&wc, src);
-			/* src = NULL: invalid sequence is seen,
-			 * else: wc is set, src is advanced to next mb char
-			 */
-			if (src1) { /* no error */
-				if (wc == 0) /* end-of-string */
-					break;
-				src = src1;
-			} else { /* error */
-				src++;
-				goto subst;
-			}
-		}
+		src = mbstowc_internal(&wc, src);
+		/* src is advanced to next mb char
+		 * wc == ERROR_WCHAR: invalid sequence is seen
+		 * else: wc is set
+		 */
+		if (wc == ERROR_WCHAR) /* error */
+			goto subst;
+		if (wc == 0) /* end-of-string */
+			break;
 #endif
 		if (CONFIG_LAST_SUPPORTED_WCHAR && wc > CONFIG_LAST_SUPPORTED_WCHAR)
 			goto subst;
@@ -411,7 +414,7 @@ unsigned FAST_FUNC unicode_padding_to_width(unsigned width, const char *src)
 		}
 #else
 		src = mbstowc_internal(&wc, src);
-		if (!src || wc == 0) /* error, or end-of-string */
+		if (wc == ERROR_WCHAR || wc == 0) /* error, or end-of-string */
 			return width;
 #endif
 		w = wcwidth(wc);
