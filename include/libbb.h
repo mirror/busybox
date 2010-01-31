@@ -577,11 +577,6 @@ char *strncpy_IFNAMSIZ(char *dst, const char *src) FAST_FUNC;
  * But potentially slow, don't use in one-billion-times loops */
 int bb_putchar(int ch) FAST_FUNC;
 char *xasprintf(const char *format, ...) __attribute__ ((format(printf, 1, 2))) FAST_FUNC RETURNS_MALLOC;
-/* Prints unprintable chars ch as ^C or M-c to file
- * (M-c is used only if ch is ORed with PRINTABLE_META),
- * else it is printed as-is (except for ch = 0x9b) */
-enum { PRINTABLE_META = 0x100 };
-void fputc_printable(int ch, FILE *file) FAST_FUNC;
 // gcc-4.1.1 still isn't good enough at optimizing it
 // (+200 bytes compared to macro)
 //static ALWAYS_INLINE
@@ -593,6 +588,20 @@ void fputc_printable(int ch, FILE *file) FAST_FUNC;
 #define LONE_CHAR(s,c)     ((s)[0] == (c) && !(s)[1])
 #define NOT_LONE_CHAR(s,c) ((s)[0] != (c) || (s)[1])
 #define DOT_OR_DOTDOT(s) ((s)[0] == '.' && (!(s)[1] || ((s)[1] == '.' && !(s)[2])))
+
+typedef struct uni_stat_t {
+	unsigned byte_count;
+	unsigned unicode_count;
+	unsigned unicode_width;
+} uni_stat_t;
+/* Returns a string with unprintable chars replaced by '?' or
+ * SUBST_WCHAR. This function is unicode-aware. */
+const char* FAST_FUNC printable_string(uni_stat_t *stats, const char *str);
+/* Prints unprintable char ch as ^C or M-c to file
+ * (M-c is used only if ch is ORed with PRINTABLE_META),
+ * else it is printed as-is (except for ch = 0x9b) */
+enum { PRINTABLE_META = 0x100 };
+void fputc_printable(int ch, FILE *file) FAST_FUNC;
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */

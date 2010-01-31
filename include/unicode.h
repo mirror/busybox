@@ -23,11 +23,6 @@ size_t FAST_FUNC unicode_strlen(const char *string);
 enum {
 	UNI_FLAG_PAD = (1 << 0),
 };
-typedef struct uni_stat_t {
-	unsigned byte_count;
-	unsigned unicode_count;
-	unsigned unicode_width;
-} uni_stat_t;
 //UNUSED: unsigned FAST_FUNC unicode_padding_to_width(unsigned width, const char *src);
 //UNUSED: char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char *src, unsigned width, int flags);
 char* FAST_FUNC unicode_conv_to_printable(uni_stat_t *stats, const char *src);

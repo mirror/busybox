@@ -241,9 +241,6 @@ struct dnode {
 	IF_SELINUX(security_context_t sid;)
 };
 
-static struct dnode **list_dir(const char *, unsigned *);
-static unsigned list_single(const struct dnode *);
-
 struct globals {
 #if ENABLE_FEATURE_LS_COLOR
 	smallint show_color;
@@ -528,242 +525,66 @@ static void dnsort(struct dnode **dn, int size)
 #endif
 
 
-static void showfiles(struct dnode **dn, unsigned nfiles)
+static unsigned calc_name_len(const char *name)
 {
-	unsigned i, ncols, nrows, row, nc;
-	unsigned column = 0;
-	unsigned nexttab = 0;
-	unsigned column_width = 0; /* for STYLE_LONG and STYLE_SINGLE not used */
+	unsigned len;
+	uni_stat_t uni_stat;
 
-	/* Never happens:
-	if (dn == NULL || nfiles < 1)
-		return;
-	*/
+	// TODO: quote tab as \t, etc, if -Q
+	name = printable_string(&uni_stat, name);
 
-	if (all_fmt & STYLE_LONG) {
-		ncols = 1;
-	} else {
-		/* find the longest file name, use that as the column width */
-		for (i = 0; dn[i]; i++) {
-			int len = unicode_strlen(dn[i]->name);
-			if (column_width < len)
-				column_width = len;
+	if (!(option_mask32 & OPT_Q)) {
+		return uni_stat.unicode_width;
+	}
+
+	len = 2 + uni_stat.unicode_width;
+	while (*name) {
+		if (*name == '"' || *name == '\\') {
+			len++;
 		}
-		column_width += tabstops +
-			IF_SELINUX( ((all_fmt & LIST_CONTEXT) ? 33 : 0) + )
-			             ((all_fmt & LIST_INO) ? 8 : 0) +
-			             ((all_fmt & LIST_BLOCKS) ? 5 : 0);
-		ncols = (int) (terminal_width / column_width);
+		name++;
 	}
-
-	if (ncols > 1) {
-		nrows = nfiles / ncols;
-		if (nrows * ncols < nfiles)
-			nrows++;                /* round up fractionals */
-	} else {
-		nrows = nfiles;
-		ncols = 1;
-	}
-
-	for (row = 0; row < nrows; row++) {
-		for (nc = 0; nc < ncols; nc++) {
-			/* reach into the array based on the column and row */
-			if (all_fmt & DISP_ROWS)
-				i = (row * ncols) + nc;	/* display across row */
-			else
-				i = (nc * nrows) + row;	/* display by column */
-			if (i < nfiles) {
-				if (column > 0) {
-					nexttab -= column;
-					printf("%*s", nexttab, "");
-					column += nexttab;
-				}
-				nexttab = column + column_width;
-				column += list_single(dn[i]);
-			}
-		}
-		putchar('\n');
-		column = 0;
-	}
+	return len;
 }
 
 
-#if ENABLE_DESKTOP
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/ls.html
- * If any of the -l, -n, -s options is specified, each list
- * of files within the directory shall be preceded by a
- * status line indicating the number of file system blocks
- * occupied by files in the directory in 512-byte units if
- * the -k option is not specified, or 1024-byte units if the
- * -k option is specified, rounded up to the next integral
- * number of units.
+/* Return the number of used columns.
+ * Note that only STYLE_COLUMNS uses return value.
+ * STYLE_SINGLE and STYLE_LONG don't care.
+ * coreutils 7.2 also supports:
+ * ls -b (--escape) = octal escapes (although it doesn't look like working)
+ * ls -N (--literal) = not escape at all
  */
-/* by Jorgen Overgaard (jorgen AT antistaten.se) */
-static off_t calculate_blocks(struct dnode **dn)
+static unsigned print_name(const char *name)
 {
-	uoff_t blocks = 1;
-	if (dn) {
-		while (*dn) {
-			/* st_blocks is in 512 byte blocks */
-			blocks += (*dn)->dstat.st_blocks;
-			dn++;
-		}
+	unsigned len;
+	uni_stat_t uni_stat;
+
+	// TODO: quote tab as \t, etc, if -Q
+	name = printable_string(&uni_stat, name);
+
+	if (!(option_mask32 & OPT_Q)) {
+		fputs(name, stdout);
+		return uni_stat.unicode_width;
 	}
 
-	/* Even though standard says use 512 byte blocks, coreutils use 1k */
-	/* Actually, we round up by calculating (blocks + 1) / 2,
-	 * "+ 1" was done when we initialized blocks to 1 */
-	return blocks >> 1;
-}
-#endif
-
-
-static void showdirs(struct dnode **dn, int first)
-{
-	unsigned nfiles;
-	unsigned dndirs;
-	struct dnode **subdnp;
-	struct dnode **dnd;
-
-	/* Never happens:
-	if (dn == NULL || ndirs < 1) {
-		return;
-	}
-	*/
-
-	for (; *dn; dn++) {
-		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
-			if (!first)
-				bb_putchar('\n');
-			first = 0;
-			printf("%s:\n", (*dn)->fullname);
+	len = 2 + uni_stat.unicode_width;
+	putchar('"');
+	while (*name) {
+		if (*name == '"' || *name == '\\') {
+			putchar('\\');
+			len++;
 		}
-		subdnp = list_dir((*dn)->fullname, &nfiles);
-#if ENABLE_DESKTOP
-		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
-			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
-#endif
-		if (nfiles > 0) {
-			/* list all files at this level */
-			dnsort(subdnp, nfiles);
-			showfiles(subdnp, nfiles);
-			if (ENABLE_FEATURE_LS_RECURSIVE
-			 && (all_fmt & DISP_RECURSIVE)
-			) {
-				/* recursive - list the sub-dirs */
-				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
-				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
-				if (dndirs > 0) {
-					dnsort(dnd, dndirs);
-					showdirs(dnd, 0);
-					/* free the array of dnode pointers to the dirs */
-					free(dnd);
-				}
-			}
-			/* free the dnodes and the fullname mem */
-			dfree(subdnp);
-		}
+		putchar(*name++);
 	}
+	putchar('"');
+	return len;
 }
 
-
-/* Returns NULL-terminated malloced vector of pointers (or NULL) */
-static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
-{
-	struct dnode *dn, *cur, **dnp;
-	struct dirent *entry;
-	DIR *dir;
-	unsigned i, nfiles;
-
-	/* Never happens:
-	if (path == NULL)
-		return NULL;
-	*/
-
-	*nfiles_p = 0;
-	dir = warn_opendir(path);
-	if (dir == NULL) {
-		exit_code = EXIT_FAILURE;
-		return NULL;	/* could not open the dir */
-	}
-	dn = NULL;
-	nfiles = 0;
-	while ((entry = readdir(dir)) != NULL) {
-		char *fullname;
-
-		/* are we going to list the file- it may be . or .. or a hidden file */
-		if (entry->d_name[0] == '.') {
-			if ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))
-			 && !(all_fmt & DISP_DOT)
-			) {
-				continue;
-			}
-			if (!(all_fmt & DISP_HIDDEN))
-				continue;
-		}
-		fullname = concat_path_file(path, entry->d_name);
-		cur = my_stat(fullname, bb_basename(fullname), 0);
-		if (!cur) {
-			free(fullname);
-			continue;
-		}
-		cur->fname_allocated = 1;
-		cur->next = dn;
-		dn = cur;
-		nfiles++;
-	}
-	closedir(dir);
-
-	if (dn == NULL)
-		return NULL;
-
-	/* now that we know how many files there are
-	 * allocate memory for an array to hold dnode pointers
-	 */
-	*nfiles_p = nfiles;
-	dnp = dnalloc(nfiles);
-	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
-		dnp[i] = dn;	/* save pointer to node in array */
-		dn = dn->next;
-		if (!dn)
-			break;
-	}
-
-	return dnp;
-}
-
-
-static int print_name(const char *name)
-{
-	if (option_mask32 & OPT_Q) {
-#if ENABLE_FEATURE_ASSUME_UNICODE
-		unsigned len = 2 + unicode_strlen(name);
-#else
-		unsigned len = 2;
-#endif
-		putchar('"');
-		while (*name) {
-			if (*name == '"') {
-				putchar('\\');
-				len++;
-			}
-			putchar(*name++);
-			if (!ENABLE_FEATURE_ASSUME_UNICODE)
-				len++;
-		}
-		putchar('"');
-		return len;
-	}
-	/* No -Q: */
-#if ENABLE_FEATURE_ASSUME_UNICODE
-	fputs(name, stdout);
-	return unicode_strlen(name);
-#else
-	return printf("%s", name);
-#endif
-}
-
-
+/* Return the number of used columns.
+ * Note that only STYLE_COLUMNS uses return value,
+ * STYLE_SINGLE and STYLE_LONG don't care.
+ */
 static NOINLINE unsigned list_single(const struct dnode *dn)
 {
 	unsigned column = 0;
@@ -912,6 +733,207 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 #endif
 
 	return column;
+}
+
+static void showfiles(struct dnode **dn, unsigned nfiles)
+{
+	unsigned i, ncols, nrows, row, nc;
+	unsigned column = 0;
+	unsigned nexttab = 0;
+	unsigned column_width = 0; /* used only by STYLE_COLUMNS */
+
+	if (all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
+		ncols = 1;
+	} else {
+		/* find the longest file name, use that as the column width */
+		for (i = 0; dn[i]; i++) {
+			int len = calc_name_len(dn[i]->name);
+			if (column_width < len)
+				column_width = len;
+		}
+		column_width += tabstops +
+			IF_SELINUX( ((all_fmt & LIST_CONTEXT) ? 33 : 0) + )
+				((all_fmt & LIST_INO) ? 8 : 0) +
+				((all_fmt & LIST_BLOCKS) ? 5 : 0);
+		ncols = (int) (terminal_width / column_width);
+	}
+
+	if (ncols > 1) {
+		nrows = nfiles / ncols;
+		if (nrows * ncols < nfiles)
+			nrows++;                /* round up fractionals */
+	} else {
+		nrows = nfiles;
+		ncols = 1;
+	}
+
+	for (row = 0; row < nrows; row++) {
+		for (nc = 0; nc < ncols; nc++) {
+			/* reach into the array based on the column and row */
+			if (all_fmt & DISP_ROWS)
+				i = (row * ncols) + nc;	/* display across row */
+			else
+				i = (nc * nrows) + row;	/* display by column */
+			if (i < nfiles) {
+				if (column > 0) {
+					nexttab -= column;
+					printf("%*s", nexttab, "");
+					column += nexttab;
+				}
+				nexttab = column + column_width;
+				column += list_single(dn[i]);
+			}
+		}
+		putchar('\n');
+		column = 0;
+	}
+}
+
+
+#if ENABLE_DESKTOP
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/ls.html
+ * If any of the -l, -n, -s options is specified, each list
+ * of files within the directory shall be preceded by a
+ * status line indicating the number of file system blocks
+ * occupied by files in the directory in 512-byte units if
+ * the -k option is not specified, or 1024-byte units if the
+ * -k option is specified, rounded up to the next integral
+ * number of units.
+ */
+/* by Jorgen Overgaard (jorgen AT antistaten.se) */
+static off_t calculate_blocks(struct dnode **dn)
+{
+	uoff_t blocks = 1;
+	if (dn) {
+		while (*dn) {
+			/* st_blocks is in 512 byte blocks */
+			blocks += (*dn)->dstat.st_blocks;
+			dn++;
+		}
+	}
+
+	/* Even though standard says use 512 byte blocks, coreutils use 1k */
+	/* Actually, we round up by calculating (blocks + 1) / 2,
+	 * "+ 1" was done when we initialized blocks to 1 */
+	return blocks >> 1;
+}
+#endif
+
+
+static struct dnode **list_dir(const char *, unsigned *);
+
+static void showdirs(struct dnode **dn, int first)
+{
+	unsigned nfiles;
+	unsigned dndirs;
+	struct dnode **subdnp;
+	struct dnode **dnd;
+
+	/* Never happens:
+	if (dn == NULL || ndirs < 1) {
+		return;
+	}
+	*/
+
+	for (; *dn; dn++) {
+		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
+			if (!first)
+				bb_putchar('\n');
+			first = 0;
+			printf("%s:\n", (*dn)->fullname);
+		}
+		subdnp = list_dir((*dn)->fullname, &nfiles);
+#if ENABLE_DESKTOP
+		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
+			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
+#endif
+		if (nfiles > 0) {
+			/* list all files at this level */
+			dnsort(subdnp, nfiles);
+			showfiles(subdnp, nfiles);
+			if (ENABLE_FEATURE_LS_RECURSIVE
+			 && (all_fmt & DISP_RECURSIVE)
+			) {
+				/* recursive - list the sub-dirs */
+				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
+				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
+				if (dndirs > 0) {
+					dnsort(dnd, dndirs);
+					showdirs(dnd, 0);
+					/* free the array of dnode pointers to the dirs */
+					free(dnd);
+				}
+			}
+			/* free the dnodes and the fullname mem */
+			dfree(subdnp);
+		}
+	}
+}
+
+
+/* Returns NULL-terminated malloced vector of pointers (or NULL) */
+static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
+{
+	struct dnode *dn, *cur, **dnp;
+	struct dirent *entry;
+	DIR *dir;
+	unsigned i, nfiles;
+
+	/* Never happens:
+	if (path == NULL)
+		return NULL;
+	*/
+
+	*nfiles_p = 0;
+	dir = warn_opendir(path);
+	if (dir == NULL) {
+		exit_code = EXIT_FAILURE;
+		return NULL;	/* could not open the dir */
+	}
+	dn = NULL;
+	nfiles = 0;
+	while ((entry = readdir(dir)) != NULL) {
+		char *fullname;
+
+		/* are we going to list the file- it may be . or .. or a hidden file */
+		if (entry->d_name[0] == '.') {
+			if ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))
+			 && !(all_fmt & DISP_DOT)
+			) {
+				continue;
+			}
+			if (!(all_fmt & DISP_HIDDEN))
+				continue;
+		}
+		fullname = concat_path_file(path, entry->d_name);
+		cur = my_stat(fullname, bb_basename(fullname), 0);
+		if (!cur) {
+			free(fullname);
+			continue;
+		}
+		cur->fname_allocated = 1;
+		cur->next = dn;
+		dn = cur;
+		nfiles++;
+	}
+	closedir(dir);
+
+	if (dn == NULL)
+		return NULL;
+
+	/* now that we know how many files there are
+	 * allocate memory for an array to hold dnode pointers
+	 */
+	*nfiles_p = nfiles;
+	dnp = dnalloc(nfiles);
+	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
+		dnp[i] = dn;	/* save pointer to node in array */
+		dn = dn->next;
+		if (!dn)
+			break;
+	}
+
+	return dnp;
 }
 
 

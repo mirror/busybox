@@ -7,7 +7,7 @@ dumpleases
 Applets which may need unicode handling (more extensive than sanitizing
 of filenames in error messages):
 
-ls - uses unicode_strlen, not scrlen
+ls - work in progress
 expand, unexpand - uses unicode_strlen, not scrlen
 ash, hush through lineedit - uses unicode_strlen, not scrlen
 top - need to sanitize process args

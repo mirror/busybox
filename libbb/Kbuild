@@ -73,6 +73,7 @@ lib-y += perror_nomsg_and_die.o
 lib-y += pidfile.o
 lib-y += platform.o
 lib-y += printable.o
+lib-y += printable_string.o
 lib-y += print_flags.o
 lib-y += process_escape_sequence.o
 lib-y += procps.o
