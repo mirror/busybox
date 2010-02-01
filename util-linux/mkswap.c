@@ -86,23 +86,19 @@ int mkswap_main(int argc UNUSED_PARAM, char **argv)
 	off_t len;
 	const char *label = "";
 
-	opt_complementary = "=1";
-	/* TODO: -p PAGESZ, -U UUID,
-	 * optional SIZE_IN_KB 2nd param
-	 */
+	opt_complementary = "-1"; /* at least one param */
+	/* TODO: -p PAGESZ, -U UUID */
 	getopt32(argv, "L:", &label);
 	argv += optind;
 
 	fd = xopen(argv[0], O_WRONLY);
 
-	/* Figure out how big the device is and announce our intentions */
-	/* fdlength was reported to be unreliable - use seek */
-	len = xlseek(fd, 0, SEEK_END);
-	if (ENABLE_SELINUX)
-		xlseek(fd, 0, SEEK_SET);
-
+	/* Figure out how big the device is */
+	len = get_volume_size_in_bytes(fd, argv[1], 1024, /*extend:*/ 1);
 	pagesize = getpagesize();
 	len -= pagesize;
+
+	/* Announce our intentions */
 	printf("Setting up swapspace version 1, size = %"OFF_FMT"u bytes\n", len);
 	mkswap_selinux_setcontext(fd, argv[0]);
 

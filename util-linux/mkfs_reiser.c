@@ -175,23 +175,12 @@ int mkfs_reiser_main(int argc UNUSED_PARAM, char **argv)
 
 	// check if it is mounted
 	// N.B. what if we format a file? find_mount_point will return false negative since
-	// it is loop block device which mounted!
+	// it is loop block device which is mounted!
 	if (find_mount_point(argv[0], 0))
 		bb_error_msg_and_die("can't format mounted filesystem");
 
 	// open the device, get size in blocks
-	if (argv[1]) {
-		blocks = xatoull(argv[1]);
-		// seek past end fails on block devices but works on files
-		if (lseek(fd, blocks * blocksize - 1, SEEK_SET) != (off_t)-1) {
-			xwrite(fd, "", 1); // file grows if needed
-		}
-		//else {
-		//	bb_error_msg("warning, block device is smaller");
-		//}
-	} else {
-		blocks = (uoff_t)xlseek(fd, 0, SEEK_END) / blocksize;
-	}
+	blocks = get_volume_size_in_bytes(fd, argv[1], blocksize, /*extend:*/ 1) / blocksize;
 
 	// block number sanity check
 	// we have a limit: skipped area, super block, journal and root block

@@ -2844,7 +2844,7 @@
        "$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
-       "[OPTIONS] BLOCKDEV" /* [SIZE_IN_KB] */
+       "[OPTIONS] BLOCKDEV [KBYTES]"
 #define mkswap_full_usage "\n\n" \
        "Prepare BLOCKDEV to be used as swap partition\n" \
      "\nOptions:" \

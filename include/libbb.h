@@ -412,6 +412,11 @@ int rename_or_warn(const char *oldpath, const char *newpath) FAST_FUNC;
 off_t xlseek(int fd, off_t offset, int whence) FAST_FUNC;
 off_t fdlength(int fd) FAST_FUNC;
 
+uoff_t FAST_FUNC get_volume_size_in_bytes(int fd,
+                const char *override,
+                unsigned override_units,
+                int extend);
+
 void xpipe(int filedes[2]) FAST_FUNC;
 /* In this form code with pipes is much more readable */
 struct fd_pair { int rd; int wr; };

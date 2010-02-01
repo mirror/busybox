@@ -230,19 +230,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("can't format mounted filesystem");
 
 	// open the device, get size in kbytes
-	if (argv[1]) {
-		kilobytes = xatoull(argv[1]);
-		// seek past end fails on block devices but works on files
-		if (lseek(fd, kilobytes * 1024 - 1, SEEK_SET) != (off_t)-1) {
-			if (!(option_mask32 & OPT_n))
-				xwrite(fd, "", 1); // file grows if needed
-		}
-		//else {
-		//	bb_error_msg("warning, block device is smaller");
-		//}
-	} else {
-		kilobytes = (uoff_t)xlseek(fd, 0, SEEK_END) / 1024;
-	}
+	kilobytes = get_volume_size_in_bytes(fd, argv[1], 1024, /*extend:*/ !(option_mask32 & OPT_n)) / 1024;
 
 	bytes_per_inode = 16384;
 	if (kilobytes < 512*1024)

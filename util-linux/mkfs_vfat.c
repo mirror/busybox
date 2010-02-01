@@ -244,7 +244,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// default volume ID = creation time
 	volume_id = time(NULL);
 
-	dev = xopen(device_name, O_EXCL | O_RDWR);
+	dev = xopen(device_name, O_RDWR);
 	if (fstat(dev, &st) < 0)
 		bb_simple_perror_msg_and_die(device_name);
 
@@ -252,7 +252,6 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	// Get image size and sector size
 	//
 	bytes_per_sect = SECTOR_SIZE;
-	volume_size_bytes = st.st_size;
 	if (!S_ISBLK(st.st_mode)) {
 		if (!S_ISREG(st.st_mode)) {
 			if (!argv[1])
@@ -262,10 +261,6 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		opts &= ~OPT_c;
 	} else {
 		int min_bytes_per_sect;
-
-		// more portable than BLKGETSIZE[64]
-		volume_size_bytes = xlseek(dev, 0, SEEK_END);
-		xlseek(dev, 0, SEEK_SET);
 #if 0
 		unsigned device_num;
 		// for true block devices we do check sanity
@@ -290,12 +285,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg("for this device sector size is %u", min_bytes_per_sect);
 		}
 	}
-	if (argv[1]) {
-		volume_size_bytes = XATOOFF(argv[1]);
-		if (volume_size_bytes >= MAXINT(off_t) / 1024)
-			bb_error_msg_and_die("image size is too big");
-		volume_size_bytes *= 1024;
-	}
+	volume_size_bytes = get_volume_size_in_bytes(dev, argv[1], 1024, /*extend:*/ 1);
 	volume_size_sect = volume_size_bytes / bytes_per_sect;
 
 	//
