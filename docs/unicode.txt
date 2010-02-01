@@ -26,30 +26,45 @@ But we also need to handle the following problematic moments:
 * Bidirectional handling. If user wants to echo a phrase
   in Hebrew, he types: echo "srettel werbeH"
 
-	Editors
+	Editors (vi, ed)
 
 This case is a bit similar to "shell input", but unlike shell,
 editors may encounder many more unexpected unicode sequences
-(try to load a random binry file...), and they need to preserve
+(try to load a random binary file...), and they need to preserve
 them, unlike shell which can afford to drop bogus input.
-
 
 	more, less
 
-.
+Need to correctly display any input file. Ideally, with
+ASCII/unicode/filtered_unicode option or keyboard switch.
+Note: need to handle tabs and backspaces specially
+(bksp is for manpage compat).
+
+	cut, fold, watch
+
+May need ability to cut unicode string to specified number of wchars
+and/or to specified screen width. Need to handle tabs specially.
+
+	sed, awk, grep
+
+Handle unicode-aware regexp match
 
 	ls (multi-column display)
 
-.
+ls will fail to line up columnar output if it will not account
+for character widths (and maybe filter out some of them, see
+above). OTOH, non-columnar views (ls -1, ls -l, ls | car)
+should NOT filter out bad unicode (but need to filter out
+control chars (coreutils does that). Note that unlike more/less,
+tabs and backspaces need not special handling.
 
 	top, ps
 
-.
+Need to perform filtering similar to ls.
 
 	Filename display (in error messages and elsewhere)
 
-.
-
+Need to perform filtering similar to ls.
 
 
 TODO: write an email to Asmus Freytag (asmus@unicode.org),
