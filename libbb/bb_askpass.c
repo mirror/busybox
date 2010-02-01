@@ -55,7 +55,6 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 
 	if (!passwd)
 		passwd = xmalloc(sizeof_passwd);
-	memset(passwd, 0, sizeof_passwd);
 	ret = passwd;
 	i = 0;
 	while (1) {
