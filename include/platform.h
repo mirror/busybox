@@ -215,6 +215,7 @@
 #ifndef __APPLE__
 # include <arpa/inet.h>
 # if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
+#  define socklen_t bb_socklen_t
 typedef int socklen_t;
 # endif
 #else
@@ -250,21 +251,6 @@ typedef int socklen_t;
 #if defined __GLIBC__ || defined __UCLIBC__ \
  || defined __dietlibc__ || defined _NEWLIB_VERSION
 # include <features.h>
-# define HAVE_FEATURES_H
-# include <stdint.h>
-# define HAVE_STDINT_H
-#elif !defined __APPLE__
-/* Largest integral types. */
-# if BB_BIG_ENDIAN
-/* Looks BROKEN! */
-typedef long                intmax_t;
-typedef unsigned long       uintmax_t;
-# else
-__extension__
-typedef long long           intmax_t;
-__extension__
-typedef unsigned long long  uintmax_t;
-# endif
 #endif
 
 /* Size-saving "small" ints (arch-dependent) */

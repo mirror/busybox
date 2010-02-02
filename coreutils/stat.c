@@ -12,10 +12,8 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
-/* vars to control behavior */
 #define OPT_FILESYS     (1 << 0)
 #define OPT_TERSE       (1 << 1)
 #define OPT_DEREFERENCE (1 << 2)
@@ -154,7 +152,7 @@ static void printfs(char *pformat, const char *msg)
 }
 
 /* print statfs info */
-static void print_statfs(char *pformat, const char m,
+static void FAST_FUNC print_statfs(char *pformat, const char m,
 		const char *const filename, const void *data
 		IF_SELINUX(, security_context_t scontext))
 {
@@ -166,34 +164,34 @@ static void print_statfs(char *pformat, const char m,
 		printf(pformat, get_f_fsid(statfsbuf));
 	} else if (m == 'l') {
 		strcat(pformat, "lu");
-		printf(pformat, (unsigned long) (statfsbuf->f_namelen));
+		printf(pformat, (unsigned long) statfsbuf->f_namelen);
 	} else if (m == 't') {
 		strcat(pformat, "lx");
-		printf(pformat, (unsigned long) (statfsbuf->f_type)); /* no equiv */
+		printf(pformat, (unsigned long) statfsbuf->f_type); /* no equiv */
 	} else if (m == 'T') {
 		printfs(pformat, human_fstype(statfsbuf->f_type));
 	} else if (m == 'b') {
-		strcat(pformat, "jd");
-		printf(pformat, (intmax_t) (statfsbuf->f_blocks));
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statfsbuf->f_blocks);
 	} else if (m == 'f') {
-		strcat(pformat, "jd");
-		printf(pformat, (intmax_t) (statfsbuf->f_bfree));
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statfsbuf->f_bfree);
 	} else if (m == 'a') {
-		strcat(pformat, "jd");
-		printf(pformat, (intmax_t) (statfsbuf->f_bavail));
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statfsbuf->f_bavail);
 	} else if (m == 's' || m == 'S') {
 		strcat(pformat, "lu");
-		printf(pformat, (unsigned long) (statfsbuf->f_bsize));
+		printf(pformat, (unsigned long) statfsbuf->f_bsize);
 	} else if (m == 'c') {
-		strcat(pformat, "jd");
-		printf(pformat, (intmax_t) (statfsbuf->f_files));
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statfsbuf->f_files);
 	} else if (m == 'd') {
-		strcat(pformat, "jd");
-		printf(pformat, (intmax_t) (statfsbuf->f_ffree));
-#if ENABLE_SELINUX
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statfsbuf->f_ffree);
+# if ENABLE_SELINUX
 	} else if (m == 'C' && (option_mask32 & OPT_SELINUX)) {
 		printfs(pformat, scontext);
-#endif
+# endif
 	} else {
 		strcatc(pformat, 'c');
 		printf(pformat, m);
@@ -201,7 +199,7 @@ static void print_statfs(char *pformat, const char m,
 }
 
 /* print stat info */
-static void print_stat(char *pformat, const char m,
+static void FAST_FUNC print_stat(char *pformat, const char m,
 		const char *const filename, const void *data
 		IF_SELINUX(, security_context_t scontext))
 {
@@ -227,14 +225,14 @@ static void print_stat(char *pformat, const char m,
 			printf(pformat, filename);
 		}
 	} else if (m == 'd') {
-		strcat(pformat, "ju");
-		printf(pformat, (uintmax_t) statbuf->st_dev);
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statbuf->st_dev);
 	} else if (m == 'D') {
-		strcat(pformat, "jx");
-		printf(pformat, (uintmax_t) statbuf->st_dev);
+		strcat(pformat, "llx");
+		printf(pformat, (unsigned long long) statbuf->st_dev);
 	} else if (m == 'i') {
-		strcat(pformat, "ju");
-		printf(pformat, (uintmax_t) statbuf->st_ino);
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statbuf->st_ino);
 	} else if (m == 'a') {
 		strcat(pformat, "lo");
 		printf(pformat, (unsigned long) (statbuf->st_mode & (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)));
@@ -269,14 +267,14 @@ static void print_stat(char *pformat, const char m,
 		strcat(pformat, "lx");
 		printf(pformat, (unsigned long) minor(statbuf->st_rdev));
 	} else if (m == 's') {
-		strcat(pformat, "ju");
-		printf(pformat, (uintmax_t) (statbuf->st_size));
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statbuf->st_size);
 	} else if (m == 'B') {
 		strcat(pformat, "lu");
 		printf(pformat, (unsigned long) 512); //ST_NBLOCKSIZE
 	} else if (m == 'b') {
-		strcat(pformat, "ju");
-		printf(pformat, (uintmax_t) statbuf->st_blocks);
+		strcat(pformat, "llu");
+		printf(pformat, (unsigned long long) statbuf->st_blocks);
 	} else if (m == 'o') {
 		strcat(pformat, "lu");
 		printf(pformat, (unsigned long) statbuf->st_blksize);
@@ -284,31 +282,34 @@ static void print_stat(char *pformat, const char m,
 		printfs(pformat, human_time(statbuf->st_atime));
 	} else if (m == 'X') {
 		strcat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu");
-		printf(pformat, (unsigned long) statbuf->st_atime);
+		/* note: (unsigned long) would be wrong:
+		 * imagine (unsigned long64)int32 */
+		printf(pformat, (long) statbuf->st_atime);
 	} else if (m == 'y') {
 		printfs(pformat, human_time(statbuf->st_mtime));
 	} else if (m == 'Y') {
 		strcat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu");
-		printf(pformat, (unsigned long) statbuf->st_mtime);
+		printf(pformat, (long) statbuf->st_mtime);
 	} else if (m == 'z') {
 		printfs(pformat, human_time(statbuf->st_ctime));
 	} else if (m == 'Z') {
 		strcat(pformat, TYPE_SIGNED(time_t) ? "ld" : "lu");
-		printf(pformat, (unsigned long) statbuf->st_ctime);
-#if ENABLE_SELINUX
+		printf(pformat, (long) statbuf->st_ctime);
+# if ENABLE_SELINUX
 	} else if (m == 'C' && (option_mask32 & OPT_SELINUX)) {
 		printfs(pformat, scontext);
-#endif
+# endif
 	} else {
 		strcatc(pformat, 'c');
 		printf(pformat, m);
 	}
 }
 
-static void print_it(const char *masterformat, const char *filename,
-		void (*print_func) (char*, char, const char*, const void* IF_SELINUX(, security_context_t scontext)),
+static void print_it(const char *masterformat,
+		const char *filename,
+		void FAST_FUNC (*print_func)(char*, char, const char*, const void* IF_SELINUX(, security_context_t scontext)),
 		const void *data
-		IF_SELINUX(, security_context_t scontext) )
+		IF_SELINUX(, security_context_t scontext))
 {
 	/* Create a working copy of the format string */
 	char *format = xstrdup(masterformat);
@@ -355,7 +356,7 @@ static void print_it(const char *masterformat, const char *filename,
 	free(format);
 	free(dest);
 }
-#endif
+#endif  /* FEATURE_STAT_FORMAT */
 
 /* Stat the file system and print what we find.  */
 #if !ENABLE_FEATURE_STAT_FORMAT
@@ -364,7 +365,6 @@ static void print_it(const char *masterformat, const char *filename,
 static bool do_statfs(const char *filename, const char *format)
 {
 	struct statfs statfsbuf;
-
 #if !ENABLE_FEATURE_STAT_FORMAT
 	const char *format;
 #endif
@@ -389,7 +389,7 @@ static bool do_statfs(const char *filename, const char *format)
 
 #if ENABLE_FEATURE_STAT_FORMAT
 	if (format == NULL) {
-#if !ENABLE_SELINUX
+# if !ENABLE_SELINUX
 		format = (option_mask32 & OPT_TERSE
 			? "%n %i %l %t %s %b %f %a %c %d\n"
 			: "  File: \"%n\"\n"
@@ -397,7 +397,7 @@ static bool do_statfs(const char *filename, const char *format)
 			  "Block size: %-10s\n"
 			  "Blocks: Total: %-10b Free: %-10f Available: %a\n"
 			  "Inodes: Total: %-10c Free: %d");
-#else
+# else
 		format = (option_mask32 & OPT_TERSE
 			? (option_mask32 & OPT_SELINUX ? "%n %i %l %t %s %b %f %a %c %d %C\n":
 			"%n %i %l %t %s %b %f %a %c %d\n")
@@ -414,7 +414,7 @@ static bool do_statfs(const char *filename, const char *format)
 			"Blocks: Total: %-10b Free: %-10f Available: %a\n"
 			"Inodes: Total: %-10c Free: %d\n")
 			);
-#endif /* SELINUX */
+# endif /* SELINUX */
 	}
 	print_it(format, filename, print_statfs, &statfsbuf IF_SELINUX(, scontext));
 #else /* FEATURE_STAT_FORMAT */
@@ -428,47 +428,48 @@ static bool do_statfs(const char *filename, const char *format)
 	       statfsbuf.f_namelen);
 
 	if (option_mask32 & OPT_TERSE)
-		printf("%lx ", (unsigned long) (statfsbuf.f_type));
+		printf("%lx ", (unsigned long) statfsbuf.f_type);
 	else
 		printf("Type: %s\n", human_fstype(statfsbuf.f_type));
 
-#if !ENABLE_SELINUX
+# if !ENABLE_SELINUX
 	format = (option_mask32 & OPT_TERSE
-		? "%lu %ld %ld %ld %ld %ld\n"
+		? "%lu %llu %llu %llu %llu %llu\n"
 		: "Block size: %-10lu\n"
-		  "Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
-		  "Inodes: Total: %-10jd Free: %jd\n");
+		  "Blocks: Total: %-10llu Free: %-10llu Available: %llu\n"
+		  "Inodes: Total: %-10llu Free: %llu\n");
 	printf(format,
-	       (unsigned long) (statfsbuf.f_bsize),
-	       (intmax_t) (statfsbuf.f_blocks),
-	       (intmax_t) (statfsbuf.f_bfree),
-	       (intmax_t) (statfsbuf.f_bavail),
-	       (intmax_t) (statfsbuf.f_files),
-	       (intmax_t) (statfsbuf.f_ffree));
-#else
+	       (unsigned long) statfsbuf.f_bsize,
+	       (unsigned long long) statfsbuf.f_blocks,
+	       (unsigned long long) statfsbuf.f_bfree,
+	       (unsigned long long) statfsbuf.f_bavail,
+	       (unsigned long long) statfsbuf.f_files,
+	       (unsigned long long) statfsbuf.f_ffree);
+# else
 	format = (option_mask32 & OPT_TERSE
-		? (option_mask32 & OPT_SELINUX ? "%lu %ld %ld %ld %ld %ld %C\n":
-		"%lu %ld %ld %ld %ld %ld\n")
-		: (option_mask32 & OPT_SELINUX ?
-		"Block size: %-10lu\n"
-		"Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
-		"Inodes: Total: %-10jd Free: %jd"
-		"S_context: %C\n":
-		"Block size: %-10lu\n"
-		"Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
-		"Inodes: Total: %-10jd Free: %jd\n"));
+		? (option_mask32 & OPT_SELINUX ? "%lu %llu %llu %llu %llu %llu %C\n" : "%lu %llu %llu %llu %llu %llu\n")
+		: (option_mask32 & OPT_SELINUX
+			?	"Block size: %-10lu\n"
+				"Blocks: Total: %-10llu Free: %-10llu Available: %llu\n"
+				"Inodes: Total: %-10llu Free: %llu"
+				"S_context: %C\n"
+			:	"Block size: %-10lu\n"
+				"Blocks: Total: %-10llu Free: %-10llu Available: %llu\n"
+				"Inodes: Total: %-10llu Free: %llu\n"
+			)
+		);
 	printf(format,
-	       (unsigned long) (statfsbuf.f_bsize),
-	       (intmax_t) (statfsbuf.f_blocks),
-	       (intmax_t) (statfsbuf.f_bfree),
-	       (intmax_t) (statfsbuf.f_bavail),
-	       (intmax_t) (statfsbuf.f_files),
-	       (intmax_t) (statfsbuf.f_ffree),
+		(unsigned long) statfsbuf.f_bsize,
+		(unsigned long long) statfsbuf.f_blocks,
+		(unsigned long long) statfsbuf.f_bfree,
+		(unsigned long long) statfsbuf.f_bavail,
+		(unsigned long long) statfsbuf.f_files,
+		(unsigned long long) statfsbuf.f_ffree,
 		scontext);
 
 	if (scontext)
 		freecon(scontext);
-#endif
+# endif
 #endif	/* FEATURE_STAT_FORMAT */
 	return 1;
 }
@@ -501,7 +502,7 @@ static bool do_stat(const char *filename, const char *format)
 
 #if ENABLE_FEATURE_STAT_FORMAT
 	if (format == NULL) {
-#if !ENABLE_SELINUX
+# if !ENABLE_SELINUX
 		if (option_mask32 & OPT_TERSE) {
 			format = "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o";
 		} else {
@@ -522,7 +523,7 @@ static bool do_stat(const char *filename, const char *format)
 					"Access: %x\n" "Modify: %y\n" "Change: %z\n";
 			}
 		}
-#else
+# else
 		if (option_mask32 & OPT_TERSE) {
 			format = (option_mask32 & OPT_SELINUX ?
 				  "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o %C\n":
@@ -558,21 +559,21 @@ static bool do_stat(const char *filename, const char *format)
 					  "Access: %x\n" "Modify: %y\n" "Change: %z\n");
 			}
 		}
-#endif
+# endif
 	}
 	print_it(format, filename, print_stat, &statbuf IF_SELINUX(, scontext));
 #else	/* FEATURE_STAT_FORMAT */
 	if (option_mask32 & OPT_TERSE) {
-		printf("%s %ju %ju %lx %lu %lu %jx %ju %lu %lx %lx %lu %lu %lu %lu"
+		printf("%s %llu %llu %lx %lu %lu %llx %llu %lu %lx %lx %lu %lu %lu %lu"
 		       IF_NOT_SELINUX("\n"),
 		       filename,
-		       (uintmax_t) (statbuf.st_size),
-		       (uintmax_t) statbuf.st_blocks,
+		       (unsigned long long) statbuf.st_size,
+		       (unsigned long long) statbuf.st_blocks,
 		       (unsigned long) statbuf.st_mode,
 		       (unsigned long) statbuf.st_uid,
 		       (unsigned long) statbuf.st_gid,
-		       (uintmax_t) statbuf.st_dev,
-		       (uintmax_t) statbuf.st_ino,
+		       (unsigned long long) statbuf.st_dev,
+		       (unsigned long long) statbuf.st_ino,
 		       (unsigned long) statbuf.st_nlink,
 		       (unsigned long) major(statbuf.st_rdev),
 		       (unsigned long) minor(statbuf.st_rdev),
@@ -581,12 +582,12 @@ static bool do_stat(const char *filename, const char *format)
 		       (unsigned long) statbuf.st_ctime,
 		       (unsigned long) statbuf.st_blksize
 		);
-#if ENABLE_SELINUX
+# if ENABLE_SELINUX
 		if (option_mask32 & OPT_SELINUX)
 			printf(" %lc\n", *scontext);
 		else
 			bb_putchar('\n');
-#endif
+# endif
 	} else {
 		char *linkname = NULL;
 
@@ -604,15 +605,15 @@ static bool do_stat(const char *filename, const char *format)
 		else
 			printf("  File: \"%s\"\n", filename);
 
-		printf("  Size: %-10ju\tBlocks: %-10ju IO Block: %-6lu %s\n"
-		       "Device: %jxh/%jud\tInode: %-10ju  Links: %-5lu",
-		       (uintmax_t) (statbuf.st_size),
-		       (uintmax_t) statbuf.st_blocks,
+		printf("  Size: %-10llu\tBlocks: %-10llu IO Block: %-6lu %s\n"
+		       "Device: %llxh/%llud\tInode: %-10llu  Links: %-5lu",
+		       (unsigned long long) statbuf.st_size,
+		       (unsigned long long) statbuf.st_blocks,
 		       (unsigned long) statbuf.st_blksize,
 		       file_type(&statbuf),
-		       (uintmax_t) statbuf.st_dev,
-		       (uintmax_t) statbuf.st_dev,
-		       (uintmax_t) statbuf.st_ino,
+		       (unsigned long long) statbuf.st_dev,
+		       (unsigned long long) statbuf.st_dev,
+		       (unsigned long long) statbuf.st_ino,
 		       (unsigned long) statbuf.st_nlink);
 		if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode))
 			printf(" Device type: %lx,%lx\n",
@@ -627,9 +628,9 @@ static bool do_stat(const char *filename, const char *format)
 		       (pw_ent != NULL) ? pw_ent->pw_name : "UNKNOWN",
 		       (unsigned long) statbuf.st_gid,
 		       (gw_ent != NULL) ? gw_ent->gr_name : "UNKNOWN");
-#if ENABLE_SELINUX
+# if ENABLE_SELINUX
 		printf("   S_Context: %lc\n", *scontext);
-#endif
+# endif
 		printf("Access: %s\n" "Modify: %s\n" "Change: %s\n",
 		       human_time(statbuf.st_atime),
 		       human_time(statbuf.st_mtime),
