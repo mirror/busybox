@@ -6,8 +6,10 @@
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
  */
+#ifndef INET_COMMON_H
+#define INET_COMMON_H 1
 
-#include "platform.h"
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* hostfirst!=0 If we expect this to be a hostname,
    try hostname database first
@@ -24,3 +26,7 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6) FAST_FUNC;
 /* These return malloced string */
 char *INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t netmask) FAST_FUNC;
 char *INET6_rresolve(struct sockaddr_in6 *sin6, int numeric) FAST_FUNC;
+
+POP_SAVED_FUNCTION_VISIBILITY
+
+#endif

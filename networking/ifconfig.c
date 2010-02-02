@@ -36,8 +36,8 @@
 #include <sys/types.h>
 #include <netinet/if_ether.h>
 #endif
-#include "inet_common.h"
 #include "libbb.h"
+#include "inet_common.h"
 
 #if ENABLE_FEATURE_IFCONFIG_SLIP
 # include <net/if_slip.h>

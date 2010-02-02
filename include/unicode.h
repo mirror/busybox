@@ -5,6 +5,8 @@
 #ifndef UNICODE_H
 #define UNICODE_H 1
 
+PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
+
 enum {
 	UNICODE_UNKNOWN = 0,
 	UNICODE_OFF = 1,
@@ -78,5 +80,7 @@ int iswpunct(wint_t wc) FAST_FUNC;
 # endif /* !LOCALE_SUPPORT */
 
 #endif /* FEATURE_ASSUME_UNICODE */
+
+POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

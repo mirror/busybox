@@ -33,8 +33,8 @@
 
 #include <net/if.h>
 #include <net/if_arp.h>
-#include "inet_common.h"
 #include "libbb.h"
+#include "inet_common.h"
 
 
 #if ENABLE_FEATURE_HWIB

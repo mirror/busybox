@@ -210,18 +210,6 @@
 } while (0)
 #endif
 
-/* ---- Networking ------------------------------------------ */
-
-#ifndef __APPLE__
-# include <arpa/inet.h>
-# if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
-#  define socklen_t bb_socklen_t
-typedef int socklen_t;
-# endif
-#else
-# include <netinet/in.h>
-#endif
-
 /* ---- Compiler dependent settings ------------------------- */
 
 #if (defined __digital__ && defined __unix__) \

@@ -30,10 +30,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
-#if defined __FreeBSD__
-# include <netinet/in.h>
-# include <arpa/inet.h>
-#endif
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -44,39 +40,26 @@
 /* Try to pull in PATH_MAX */
 #include <limits.h>
 #include <sys/param.h>
-#ifndef PATH_MAX
-# define PATH_MAX 256
-#endif
-
-#ifndef BUFSIZ
-# define BUFSIZ 4096
-#endif
-
 #ifdef HAVE_MNTENT_H
 #include <mntent.h>
 #endif
-
 #ifdef HAVE_SYS_STATFS_H
 #include <sys/statfs.h>
 #endif
-
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>
 #include <selinux/context.h>
 #include <selinux/flask.h>
 #include <selinux/av_permissions.h>
 #endif
-
 #if ENABLE_LOCALE_SUPPORT
 # include <locale.h>
 #else
 # define setlocale(x,y) ((void)0)
 #endif
-
 #ifdef DMALLOC
 # include <dmalloc.h>
 #endif
-
 #include <pwd.h>
 #include <grp.h>
 #if ENABLE_FEATURE_SHADOWPASSWDS
@@ -87,6 +70,23 @@
 #  include <shadow.h>
 # endif
 #endif
+#if defined __FreeBSD__
+# include <netinet/in.h>
+# include <arpa/inet.h>
+#elif defined __APPLE__
+# include <netinet/in.h>
+#else
+# include <arpa/inet.h>
+# if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
+/* We #define socklen_t *after* includes, otherwise we get
+ * typedef redefinition errors from system headers
+ * (in case "is it defined already" detection above failed)
+ */
+#  define socklen_t bb_socklen_t
+   typedef unsigned socklen_t;
+# endif
+#endif
+
 
 /* Some libc's forget to declare these, do it ourself */
 
@@ -121,6 +121,12 @@ struct sysinfo {
 	char _f[20 - 2 * sizeof(long) - sizeof(int)]; /* Padding: libc5 uses this.. */
 };
 int sysinfo(struct sysinfo* info);
+#ifndef PATH_MAX
+# define PATH_MAX 256
+#endif
+#ifndef BUFSIZ
+# define BUFSIZ 4096
+#endif
 
 
 /* Make all declarations hidden (-fvisibility flag only affects definitions) */
