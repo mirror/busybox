@@ -308,7 +308,7 @@ static int tftp_protocol(
 
 	if (!ENABLE_TFTP || our_lsa) { /* tftpd */
 		/* Open file (must be after changing user) */
-		local_fd = open(local_file, open_mode);
+		local_fd = open(local_file, open_mode, 0666);
 		if (local_fd < 0) {
 			error_pkt_reason = ERR_NOFILE;
 			strcpy((char*)error_pkt_str, "can't open file");
