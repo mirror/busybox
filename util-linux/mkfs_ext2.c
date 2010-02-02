@@ -217,7 +217,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 		&reserved_percent, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
 	argv += optind; // argv[0] -- device
 
-	// check the device is a block device
+	// open the device, check the device is a block device
 	xmove_fd(xopen(argv[0], O_WRONLY), fd);
 	fstat(fd, &st);
 	if (!S_ISBLK(st.st_mode) && !(option_mask32 & OPT_F))
@@ -225,11 +225,11 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	// check if it is mounted
 	// N.B. what if we format a file? find_mount_point will return false negative since
-	// it is loop block device which mounted!
+	// it is loop block device which is mounted!
 	if (find_mount_point(argv[0], 0))
 		bb_error_msg_and_die("can't format mounted filesystem");
 
-	// open the device, get size in kbytes
+	// get size in kbytes
 	kilobytes = get_volume_size_in_bytes(fd, argv[1], 1024, /*extend:*/ !(option_mask32 & OPT_n)) / 1024;
 
 	bytes_per_inode = 16384;
