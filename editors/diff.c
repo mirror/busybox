@@ -227,10 +227,12 @@ struct cand {
 
 static int search(const int *c, int k, int y, const struct cand *list)
 {
+	int i, j;
+
 	if (list[c[k]].y < y)	/* quick look for typical case */
 		return k + 1;
 
-	for (int i = 0, j = k + 1;;) {
+	for (i = 0, j = k + 1;;) {
 		const int l = (i + j) >> 1;
 		if (l > i) {
 			const int t = list[c[l]].y;
@@ -265,11 +267,13 @@ static void stone(const int *a, int n, const int *b, int *J, int pref)
 	int clistlen = 100;
 	int k = 0;
 	struct cand *clist = xzalloc(clistlen * sizeof(clist[0]));
+	struct cand cand;
+	struct cand *q;
 	int *klist = xzalloc((n + 2) * sizeof(klist[0]));
 	/*clist[0] = (struct cand){0}; - xzalloc did it */
 	/*klist[0] = 0; */
 
-	for (struct cand cand = {1}; cand.x <= n; cand.x++) {
+	for (cand.x = 1; cand.x <= n; cand.x++) {
 		int j = a[cand.x], oldl = 0;
 		unsigned numtries = 0;
 		if (j == 0)
@@ -303,7 +307,7 @@ static void stone(const int *a, int n, const int *b, int *J, int pref)
 		} while ((cand.y = b[++j]) > 0 && numtries < bound);
 	}
 	/* Unravel */
-	for (struct cand *q = clist + klist[k]; q->y; q = clist + q->pred)
+	for (q = clist + klist[k]; q->y; q = clist + q->pred)
 		J[q->x + pref] = q->y + pref;
 	free(klist);
 	free(clist);
@@ -348,10 +352,11 @@ static void equiv(struct line *a, int n, struct line *b, int m, int *c)
 
 static void unsort(const struct line *f, int l, int *b)
 {
+	int i;
 	int *a = xmalloc((l + 1) * sizeof(a[0]));
-	for (int i = 1; i <= l; i++)
+	for (i = 1; i <= l; i++)
 		a[f[i].serial] = f[i].value;
-	for (int i = 1; i <= l; i++)
+	for (i = 1; i <= l; i++)
 		b[i] = a[i];
 	free(a);
 }
@@ -370,12 +375,13 @@ static int line_compar(const void *a, const void *b)
 
 static void fetch(FILE_and_pos_t *ft, const off_t *ix, int a, int b, int ch)
 {
-	for (int i = a; i <= b; i++) {
+	int i, j, col;
+	for (i = a; i <= b; i++) {
 		seek_ft(ft, ix[i - 1]);
 		putchar(ch);
 		if (option_mask32 & FLAG(T))
 			putchar('\t');
-		for (int j = 0, col = 0; j < ix[i] - ix[i - 1]; j++) {
+		for (j = 0, col = 0; j < ix[i] - ix[i - 1]; j++) {
 			int c = fgetc(ft->ft_fp);
 			if (c == EOF) {
 				printf("\n\\ No newline at end of file\n");
@@ -410,19 +416,20 @@ static NOINLINE int *create_J(FILE_and_pos_t ft[2], int nlen[2], off_t *ix[2])
 {
 	int *J, slen[2], *class, *member;
 	struct line *nfile[2], *sfile[2];
-	int pref = 0, suff = 0;
+	int pref = 0, suff = 0, i, j, delta;
 
 	/* Lines of both files are hashed, and in the process
 	 * their offsets are stored in the array ix[fileno]
 	 * where fileno == 0 points to the old file, and
 	 * fileno == 1 points to the new one.
 	 */
-	for (int i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		unsigned hash;
 		token_t tok;
 		size_t sz = 100;
 		nfile[i] = xmalloc((sz + 3) * sizeof(nfile[i][0]));
 		/* ft gets here without the correct position, cant use seek_ft */
+		ft[i].ft_pos = 0;
 		fseeko(ft[i].ft_fp, 0, SEEK_SET);
 
 		nlen[i] = 0;
@@ -460,7 +467,7 @@ start:
 			nlen[i]--;
 		/* Now we copy the line offsets into ix */
 		ix[i] = xmalloc((nlen[i] + 2) * sizeof(ix[i][0]));
-		for (int j = 0; j < nlen[i] + 1; j++)
+		for (j = 0; j < nlen[i] + 1; j++)
 			ix[i][j] = nfile[i][j].offset;
 	}
 
@@ -475,10 +482,10 @@ start:
 	 * the result being sorted and stored in sfile[fileno],
 	 * and their sizes are stored in slen[fileno]
 	 */
-	for (int j = 0; j < 2; j++) {
+	for (j = 0; j < 2; j++) {
 		sfile[j] = nfile[j] + pref;
 		slen[j] = nlen[j] - pref - suff;
-		for (int i = 0; i <= slen[j]; i++)
+		for (i = 0; i <= slen[j]; i++)
 			sfile[j][i].serial = i;
 		qsort(sfile[j] + 1, slen[j], sizeof(*sfile[j]), line_compar);
 	}
@@ -512,7 +519,7 @@ start:
 	 * are initialized with 0 (no matches), so that function stone can
 	 * then assign them their right values
 	 */
-	for (int i = 0, delta = nlen[1] - nlen[0]; i <= nlen[0]; i++)
+	for (i = 0, delta = nlen[1] - nlen[0]; i <= nlen[0]; i++)
 		J[i] = i <= pref            ?  i :
 		       i > (nlen[0] - suff) ? (i + delta) : 0;
 	/* Here the magic is performed */
@@ -526,14 +533,14 @@ start:
 	 * which, due to limitations intrinsic to any hashing algorithm,
 	 * are different but ended up confounded as the same
 	 */
-	for (int i = 1; i <= nlen[0]; i++) {
+	for (i = 1; i <= nlen[0]; i++) {
 		if (!J[i])
 			continue;
 
 		seek_ft(&ft[0], ix[0][i - 1]);
 		seek_ft(&ft[1], ix[1][J[i] - 1]);
 
-		for (int j = J[i]; i <= nlen[0] && J[i] == j; i++, j++) {
+		for (j = J[i]; i <= nlen[0] && J[i] == j; i++, j++) {
 			token_t tok0 = 0, tok1 = 0;
 			do {
 				tok0 = read_token(&ft[0], tok0);
@@ -555,13 +562,18 @@ static bool diff(FILE* fp[2], char *file[2])
 {
 	int nlen[2];
 	off_t *ix[2];
-	FILE_and_pos_t ft[2] = { { fp[0] }, { fp[1] } };
-	int *J = create_J(ft, nlen, ix);
-
-	bool anychange = false;
+	FILE_and_pos_t ft[2];
 	typedef struct { int a, b; } vec_t[2];
 	vec_t *vec = NULL;
 	int i = 1, idx = -1;
+	bool anychange = false;
+	int *J;
+
+	ft[0].ft_fp = fp[0];
+	ft[1].ft_fp = fp[1];
+	/* note that ft[i].ft_pos is unintitalized, create_J()
+	 * must not assume otherwise */
+	J = create_J(ft, nlen, ix);
 
 	do {
 		bool nonempty = false;
@@ -660,9 +672,9 @@ static int diffreg(char *file[2])
 {
 	FILE *fp[2] = { stdin, stdin };
 	bool binary = false, differ = false;
-	int status = STATUS_SAME;
+	int status = STATUS_SAME, i;
 
-	for (int i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		int fd = open_or_warn_stdin(file[i]);
 		if (fd == -1)
 			goto out;
@@ -688,7 +700,7 @@ static int diffreg(char *file[2])
 		const size_t sz = COMMON_BUFSIZE / 2;
 		char *const buf0 = bb_common_bufsiz1;
 		char *const buf1 = buf0 + sz;
-		int i, j;
+		int j, k;
 		i = fread(buf0, 1, sz, fp[0]);
 		j = fread(buf1, 1, sz, fp[1]);
 		if (i != j) {
@@ -697,7 +709,7 @@ static int diffreg(char *file[2])
 		}
 		if (i == 0)
 			break;
-		for (int k = 0; k < i; k++) {
+		for (k = 0; k < i; k++) {
 			if (!buf0[k] || !buf1[k])
 				binary = true;
 			if (buf0[k] != buf1[k])
@@ -771,9 +783,10 @@ static int FAST_FUNC skip_dir(const char *filename,
 static void diffdir(char *p[2], const char *s_start)
 {
 	struct dlist list[2];
+	int i;
 
 	memset(&list, 0, sizeof(list));
-	for (int i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		/*list[i].s = list[i].e = 0; - memset did it */
 		/*list[i].dl = NULL; */
 
@@ -815,7 +828,7 @@ static void diffdir(char *p[2], const char *s_start)
 		else {
 			char *fullpath[2], *path[2]; /* if -N */
 
-			for (int i = 0; i < 2; i++) {
+			for (i = 0; i < 2; i++) {
 				if (pos == 0 || i == k) {
 					path[i] = fullpath[i] = concat_path_file(p[i], dp[i]);
 					stat(fullpath[i], &stb[i]);
@@ -883,7 +896,7 @@ static const char diff_longopts[] ALIGN1 =
 int diff_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int diff_main(int argc UNUSED_PARAM, char **argv)
 {
-	int gotstdin = 0;
+	int gotstdin = 0, i;
 	char *file[2], *s_start = NULL;
 	llist_t *L_arg = NULL;
 
@@ -900,7 +913,7 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 	while (L_arg)
 		label[!!label[0]] = llist_pop(&L_arg);
 	xfunc_error_retval = 2;
-	for (int i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		file[i] = argv[i];
 		/* Compat: "diff file name_which_doesnt_exist" exits with 2 */
 		if (LONE_DASH(file[i])) {
