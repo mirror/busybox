@@ -38,7 +38,7 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 #endif
 	tio.c_iflag &= ~(IUCLC|IXON|IXOFF|IXANY);
 	tio.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|TOSTOP);
-	tcsetattr_stdin_TCSANOW(&tio);
+	tcsetattr(fd, TCSANOW, &tio);
 
 	memset(&sa, 0, sizeof(sa));
 	/* sa.sa_flags = 0; - no SA_RESTART! */
@@ -77,8 +77,7 @@ char* FAST_FUNC bb_ask(const int fd, int timeout, const char *prompt)
 		alarm(0);
 	}
 	sigaction_set(SIGINT, &oldsa);
-
-	tcsetattr_stdin_TCSANOW(&oldtio);
+	tcsetattr(fd, TCSANOW, &oldtio);
 	bb_putchar('\n');
 	fflush_all();
 	return ret;
