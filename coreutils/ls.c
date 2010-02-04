@@ -255,7 +255,7 @@ struct globals {
 	/* Do time() just once. Saves one syscall per file for "ls -l" */
 	time_t current_time_t;
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #if ENABLE_FEATURE_LS_COLOR
 # define show_color     (G.show_color    )

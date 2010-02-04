@@ -94,7 +94,7 @@ struct globals {
 	char *env_var_user;
 	char *env_var_home;
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define LogLevel           (G.LogLevel               )
 #define LogFile            (G.LogFile                )

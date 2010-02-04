@@ -22,7 +22,7 @@ struct globals {
 	int cin_fileno;
 	struct termios initial_settings;
 	struct termios new_settings;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() ((void)0)
 #define initial_settings (G.initial_settings)

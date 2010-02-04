@@ -20,7 +20,7 @@
 #if ENABLE_FEATURE_SWAPON_PRI
 struct globals {
 	int flags;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define g_flags (G.flags)
 #else

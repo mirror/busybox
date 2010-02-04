@@ -35,8 +35,7 @@ struct globals {
 	dev_t dev_id; /* Device id where target file exists */
 	int nerr;
 	struct edir excludeArray[MAX_EXCLUDES];
-};
-
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 void BUG_setfiles_globals_too_big(void);
 #define INIT_G() do { \

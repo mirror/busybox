@@ -315,7 +315,7 @@ struct globals {
 #ifdef DO_FLUSHCACHE
 	unsigned char flushcache[4] = { WIN_FLUSHCACHE, 0, 0, 0 };
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 struct BUG_G_too_big {
 	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];

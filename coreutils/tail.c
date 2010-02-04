@@ -35,7 +35,7 @@ static const struct suffix_mult tail_suffixes[] = {
 
 struct globals {
 	bool status;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
 static void tail_xprint_header(const char *fmt, const char *filename)

@@ -38,7 +38,7 @@ struct globals {
 	unsigned long long total_bytes;
 	unsigned long long begin_time_us;
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	/* we have to zero it out because of NOEXEC */ \

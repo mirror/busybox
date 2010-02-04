@@ -95,7 +95,7 @@ struct globals {
 	struct fd_pair logpipe;
 	char *dir;
 	struct svdir svd[2];
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define haslog       (G.haslog      )
 #define sigterm      (G.sigterm     )

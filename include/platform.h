@@ -100,6 +100,13 @@
 # define EXTERNALLY_VISIBLE
 #endif
 
+/* At 4.4 gcc become much more anal about this, need to use "aliased" types */
+#if __GNUC_PREREQ(4,4)
+# define FIX_ALIASING __attribute__((__may_alias__))
+#else
+# define FIX_ALIASING
+#endif
+
 /* We use __extension__ in some places to suppress -pedantic warnings
    about GCC extensions.  This feature didn't work properly before
    gcc 2.8.  */

@@ -23,7 +23,7 @@ struct globals {
 	int verbose_flag;
 	int do_continue;
 	char buf[1]; /* actually [BUFSZ] */
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { BUFSZ = COMMON_BUFSIZE - offsetof(struct globals, buf) };
 struct BUG_G_too_big {

@@ -625,7 +625,7 @@ struct globals {
 	/* Current position, to know when to wrap */
 	unsigned current_col;
 	char buf[10];
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	G.device_name = bb_msg_standard_input; \

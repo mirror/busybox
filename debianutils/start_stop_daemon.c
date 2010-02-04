@@ -96,7 +96,7 @@ struct globals {
 	char *pidfile;
 	int user_id;
 	smallint signal_nr;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define found             (G.found               )
 #define userspec          (G.userspec            )

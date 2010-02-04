@@ -13,7 +13,7 @@ struct globals {
 	unsigned pointer;
 	unsigned base;
 	double stack[1];
-};
+} FIX_ALIASING;
 enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(double) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define pointer   (G.pointer   )

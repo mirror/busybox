@@ -50,7 +50,7 @@ struct globals {
 	int slink_depth;
 	int du_depth;
 	dev_t dir_dev;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
 

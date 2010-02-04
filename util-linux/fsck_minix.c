@@ -157,7 +157,6 @@ struct globals {
 	/* File-name data */
 	char current_name[MAX_DEPTH * MINIX_NAME_MAX];
 };
-
 #define G (*ptr_to_globals)
 #if ENABLE_FEATURE_MINIX2
 #define version2           (G.version2           )

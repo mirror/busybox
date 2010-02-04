@@ -43,8 +43,7 @@ struct globals {
 	__u32 filter_parent;
 	__u32 filter_prio;
 	__u32 filter_proto;
-};
-
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define filter_ifindex (G.filter_ifindex)
 #define filter_qdisc (G.filter_qdisc)

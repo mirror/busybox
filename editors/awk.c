@@ -444,7 +444,7 @@ struct globals2 {
 
 	/* biggest and least used members go last */
 	tsplitter fsplitter, rsplitter;
-};
+}; //FIX_ALIASING; - large code growth
 #define G1 (ptr_to_globals[-1])
 #define G (*(struct globals2 *)ptr_to_globals)
 /* For debug. nm --size-sort awk.o | grep -vi ' [tr] ' */

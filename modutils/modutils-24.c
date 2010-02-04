@@ -3203,6 +3203,7 @@ static int obj_create_image(struct obj_file *f, char *image)
 
 static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbits)
 {
+	typedef uint32_t aliased_uint32_t FIX_ALIASING;
 #if BB_LITTLE_ENDIAN
 # define ELFMAG_U32 ((uint32_t)(ELFMAG0 + 0x100 * (ELFMAG1 + (0x100 * (ELFMAG2 + 0x100 * ELFMAG3)))))
 #else
@@ -3224,7 +3225,7 @@ static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbit
 		bb_error_msg_and_die("error while loading ELF header");
 	memcpy(&f->header, image, sizeof(f->header));
 
-	if (*(uint32_t*)(&f->header.e_ident) != ELFMAG_U32) {
+	if (*(aliased_uint32_t*)(&f->header.e_ident) != ELFMAG_U32) {
 		bb_error_msg_and_die("not an ELF file");
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM

@@ -20,7 +20,7 @@ struct globals {
 	int handle;
 	int saved_disc;
 	struct termios saved_state;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define handle       (G.handle      )
 #define saved_disc   (G.saved_disc  )

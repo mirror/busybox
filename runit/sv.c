@@ -165,7 +165,7 @@ struct globals {
 /* "Bernstein" time format: unix + 0x400000000000000aULL */
 	uint64_t tstart, tnow;
 	svstatus_t svstatus;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define acts         (G.acts        )
 #define service      (G.service     )

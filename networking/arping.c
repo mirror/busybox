@@ -45,7 +45,7 @@ struct globals {
 	unsigned received;
 	unsigned brd_recv;
 	unsigned req_recv;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define src        (G.src       )
 #define dst        (G.dst       )

@@ -396,7 +396,7 @@ struct globals {
 	const uint32_t *lzo_crc32_table;
 	chksum_t chksum_in;
 	chksum_t chksum_out;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 //#define G (*ptr_to_globals)

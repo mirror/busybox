@@ -14,6 +14,10 @@
 #include "libbb.h"
 #include "unarchive.h"
 
+typedef uint32_t aliased_uint32_t FIX_ALIASING;
+typedef off_t    aliased_off_t    FIX_ALIASING;
+
+
 /*
  * GNU tar uses "base-256 encoding" for very large numbers (>8 billion).
  * Encoding is binary, with highest bit always set as a marker
@@ -68,10 +72,10 @@ static off_t getBase256_len12(const char *str)
  * and fetch it in one go:
  */
 	if (sizeof(off_t) == 8) {
-		value = *(off_t*)str;
+		value = *(aliased_off_t*)str;
 		value = SWAP_BE64(value);
 	} else if (sizeof(off_t) == 4) {
-		value = *(off_t*)str;
+		value = *(aliased_off_t*)str;
 		value = SWAP_BE32(value);
 	} else {
 		value = 0;
@@ -156,7 +160,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 #if ENABLE_DESKTOP || ENABLE_FEATURE_TAR_AUTODETECT
 	/* to prevent misdetection of bz2 sig */
-	*(uint32_t*)(&tar) = 0;
+	*(aliased_uint32_t*)&tar = 0;
 	i = full_read(archive_handle->src_fd, &tar, 512);
 	/* If GNU tar sees EOF in above read, it says:
 	 * "tar: A lone zero block at N", where N = kilobyte

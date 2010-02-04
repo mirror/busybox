@@ -63,7 +63,7 @@ typedef struct valinfo VALUE;
 /* The arguments given to the program, minus the program name.  */
 struct globals {
 	char **args;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
 /* forward declarations */

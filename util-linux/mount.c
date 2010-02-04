@@ -268,7 +268,7 @@ struct globals {
 	llist_t *fslist;
 	char getmntent_buf[1];
 
-};
+} FIX_ALIASING;
 enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_buf) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define nfs_mount_version (G.nfs_mount_version)

@@ -111,7 +111,7 @@ struct globals {
 	/* globals used internally */
 	llist_t *pattern_head;   /* growable list of patterns to match */
 	const char *cur_file;    /* the current file we are reading */
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	struct G_sizecheck { \

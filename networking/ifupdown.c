@@ -106,7 +106,7 @@ enum {
 struct globals {
 	char **my_environ;
 	const char *startup_PATH;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 

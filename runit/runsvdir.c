@@ -58,7 +58,7 @@ struct globals {
 	struct pollfd pfd[1];
 	unsigned stamplog;
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define sv          (G.sv          )
 #define svdir       (G.svdir       )

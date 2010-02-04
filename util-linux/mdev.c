@@ -64,7 +64,7 @@
 struct globals {
 	int root_major, root_minor;
 	char *subsystem;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define root_major (G.root_major)
 #define root_minor (G.root_minor)

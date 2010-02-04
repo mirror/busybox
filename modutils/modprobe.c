@@ -70,7 +70,7 @@ struct globals {
 	int num_unresolved_deps;
 	/* bool. "Did we have 'symbol:FOO' requested on cmdline?" */
 	smallint need_symbols;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 

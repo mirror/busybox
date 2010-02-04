@@ -313,7 +313,7 @@ struct globals {
 	fd_set allsock;
 	/* Used in next_line(), and as scratch read buffer */
 	char line[256];          /* _at least_ 256, see LINE_SIZE */
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { LINE_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line) };
 struct BUG_G_too_big {

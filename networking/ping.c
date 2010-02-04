@@ -263,7 +263,7 @@ struct globals {
 #endif
 	} pingaddr;
 	char rcvd_tbl[MAX_DUP_CHK / 8];
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define pingsock     (G.pingsock    )
 #define if_index     (G.if_index    )

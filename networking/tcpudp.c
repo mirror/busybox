@@ -50,7 +50,7 @@ struct globals {
 	unsigned cmax;
 	char **env_cur;
 	char *env_var[1]; /* actually bigger */
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define verbose      (G.verbose     )
 #define max_per_host (G.max_per_host)

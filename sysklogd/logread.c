@@ -34,7 +34,7 @@ struct globals {
 	struct sembuf SMrup[1]; // {0, -1, IPC_NOWAIT | SEM_UNDO},
 	struct sembuf SMrdn[2]; // {1, 0}, {0, +1, SEM_UNDO}
 	struct shbuf_ds *shbuf;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define SMrup (G.SMrup)
 #define SMrdn (G.SMrdn)

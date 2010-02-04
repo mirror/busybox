@@ -117,7 +117,7 @@ struct globals {
 		int idx;	/* Space used */
 		int len;	/* Space allocated */
 	} pipeline;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 void BUG_sed_globals_too_big(void);
 #define INIT_G() do { \

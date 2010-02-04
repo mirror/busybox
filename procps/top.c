@@ -100,10 +100,8 @@ struct globals {
 	int num_cpus;
 #endif
 	char line_buf[80];
-};
-
+}; //FIX_ALIASING; - large code growth
 enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
-
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	struct G_sizecheck { \

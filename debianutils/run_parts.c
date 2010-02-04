@@ -36,7 +36,7 @@ struct globals {
 	char **names;
 	int    cur;
 	char  *cmd[1];
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define names (G.names)
 #define cur   (G.cur  )

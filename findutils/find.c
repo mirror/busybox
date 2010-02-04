@@ -104,7 +104,7 @@ struct globals {
 	action ***actions;
 	bool need_print;
 	recurse_flags_t recurse_flags;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	struct G_sizecheck { \

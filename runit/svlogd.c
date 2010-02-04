@@ -184,7 +184,7 @@ struct globals {
 
 	sigset_t blocked_sigset;
 };
-#define G (*(struct globals*)ptr_to_globals)
+#define G (*ptr_to_globals)
 #define dir            (G.dir           )
 #define verbose        (G.verbose       )
 #define linemax        (G.linemax       )

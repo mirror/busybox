@@ -49,7 +49,7 @@ struct globals {
 	unsigned long long seconds_since_boot;
 #endif
 	char default_o[sizeof(DEFAULT_O_STR)];
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define out                (G.out               )
 #define out_cnt            (G.out_cnt           )

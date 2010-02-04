@@ -75,7 +75,7 @@ struct globals {
 	char    iacbuf[IACBUFSIZE];
 	struct termios termios_def;
 	struct termios termios_raw;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
 	struct G_sizecheck { \

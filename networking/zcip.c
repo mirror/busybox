@@ -77,7 +77,7 @@ enum {
 struct globals {
 	struct sockaddr saddr;
 	struct ether_addr eth_addr;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define saddr    (G.saddr   )
 #define eth_addr (G.eth_addr)
