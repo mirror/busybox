@@ -201,10 +201,14 @@
  * a lvalue. This makes it more likely to not swap them by mistake
  */
 #if defined(i386) || defined(__x86_64__)
-# define move_from_unaligned_int(v, intp) ((v) = *(int*)(intp))
-# define move_from_unaligned16(v, u16p) ((v) = *(uint16_t*)(u16p))
-# define move_from_unaligned32(v, u32p) ((v) = *(uint32_t*)(u32p))
-# define move_to_unaligned32(u32p, v)   (*(uint32_t*)(u32p) = (v))
+# include <stdint.h>
+typedef int      bb__aliased_int      FIX_ALIASING;
+typedef uint16_t bb__aliased_uint16_t FIX_ALIASING;
+typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
+# define move_from_unaligned_int(v, intp) ((v) = *(bb__aliased_int*)(intp))
+# define move_from_unaligned16(v, u16p) ((v) = *(bb__aliased_uint16_t*)(u16p))
+# define move_from_unaligned32(v, u32p) ((v) = *(bb__aliased_uint32_t*)(u32p))
+# define move_to_unaligned32(u32p, v)   (*(bb__aliased_uint32_t*)(u32p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
 /* performs reasonably well (gcc usually inlines memcpy here) */

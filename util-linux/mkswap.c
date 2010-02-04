@@ -65,7 +65,7 @@ struct swap_header_v1 {
 	uint32_t padding[117];   /* 11..127 */
 	uint32_t badpages[1];    /* 128 */
 	/* total 129 32-bit words in 2nd kilobyte */
-};
+} FIX_ALIASING;
 
 #define NWORDS 129
 #define hdr ((struct swap_header_v1*)bb_common_bufsiz1)

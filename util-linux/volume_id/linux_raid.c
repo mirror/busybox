@@ -44,6 +44,7 @@ struct mdp_super_block {
 
 int FAST_FUNC volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/, uint64_t size)
 {
+	typedef uint32_t aliased_uint32_t FIX_ALIASING;
 #define off ((uint64_t)0)
 	uint64_t sboff;
 	uint8_t uuid[16];
@@ -63,7 +64,7 @@ int FAST_FUNC volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/,
 	if (mdp->md_magic != cpu_to_le32(MD_MAGIC))
 		return -1;
 
-	*(uint32_t*)uuid = mdp->set_uuid0;
+	*(aliased_uint32_t*)uuid = mdp->set_uuid0;
 	memcpy(&uuid[4], &mdp->set_uuid1, 12);
 	volume_id_set_uuid(id, uuid, UUID_DCE);
 
