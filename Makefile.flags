@@ -40,6 +40,7 @@ CFLAGS += $(call cc-option,-Werror,)
 ## Classic *(off_t*)(void*)ptr does not work,
 ## and I am unwilling to do crazy gcc specific ({ void *ppp = ...; })
 ## stuff in macros. This would obfuscate the code too much.
+## Maybe try __attribute__((__may_alias__))?
 #CFLAGS += $(call cc-ifversion, -eq, 0404, -fno-strict-aliasing)
 endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()

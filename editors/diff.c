@@ -471,7 +471,7 @@ start:
 			ix[i][j] = nfile[i][j].offset;
 	}
 
-	/* lenght of prefix and suffix is calculated */
+	/* length of prefix and suffix is calculated */
 	for (; pref < nlen[0] && pref < nlen[1] &&
 	       nfile[0][pref + 1].value == nfile[1][pref + 1].value;
 	       pref++);
@@ -501,7 +501,7 @@ start:
 	free(nfile[1]);
 
 	class = xmalloc((slen[0] + 1) * sizeof(class[0]));
-	for (int i = 1; i <= slen[0]; i++) /* Unsorting */
+	for (i = 1; i <= slen[0]; i++) /* Unsorting */
 		class[sfile[0][i].serial] = sfile[0][i].value;
 	free(nfile[0]);
 #else
@@ -565,7 +565,7 @@ static bool diff(FILE* fp[2], char *file[2])
 	FILE_and_pos_t ft[2];
 	typedef struct { int a, b; } vec_t[2];
 	vec_t *vec = NULL;
-	int i = 1, idx = -1;
+	int i = 1, j, k, idx = -1;
 	bool anychange = false;
 	int *J;
 
@@ -608,8 +608,8 @@ static bool diff(FILE* fp[2], char *file[2])
 					break;
 				}
 
-				for (int j = 0; j < 2; j++)
-					for (int k = v[j].a; k < v[j].b; k++)
+				for (j = 0; j < 2; j++)
+					for (k = v[j].a; k < v[j].b; k++)
 						nonempty |= (ix[j][k+1] - ix[j][k] != 1);
 
 				vec = xrealloc_vector(vec, 6, ++idx);
@@ -624,6 +624,7 @@ static bool diff(FILE* fp[2], char *file[2])
 		if (idx < 0 || ((option_mask32 & FLAG(B)) && !nonempty))
 			goto cont;
 		if (!(option_mask32 & FLAG(q))) {
+			int lowa;
 			vec_t span, *cvp = vec;
 
 			if (!anychange) {
@@ -633,7 +634,7 @@ static bool diff(FILE* fp[2], char *file[2])
 			}
 
 			printf("@@");
-			for (int j = 0; j < 2; j++) {
+			for (j = 0; j < 2; j++) {
 				int a = span[j].a = MAX(1, (*cvp)[j].a - opt_U_context);
 				int b = span[j].b = MIN(nlen[j], vec[idx][j].b + opt_U_context);
 
@@ -647,12 +648,12 @@ static bool diff(FILE* fp[2], char *file[2])
 			 * Output changes in "unified" diff format--the old and new lines
 			 * are printed together.
 			 */
-			for (int lowa = span[0].a; ; lowa = (*cvp++)[0].b + 1) {
+			for (lowa = span[0].a; ; lowa = (*cvp++)[0].b + 1) {
 				bool end = cvp > &vec[idx];
 				fetch(&ft[0], ix[0], lowa, end ? span[0].b : (*cvp)[0].a - 1, ' ');
 				if (end)
 					break;
-				for (int j = 0; j < 2; j++)
+				for (j = 0; j < 2; j++)
 					fetch(&ft[j], ix[j], (*cvp)[j].a, (*cvp)[j].b, j ? '+' : '-');
 			}
 		}
