@@ -19,7 +19,7 @@ struct client_config_t {
 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
 	uint8_t *hostname;              /* Optional hostname to use */
 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
-};
+} FIX_ALIASING;
 
 /* server_config sits in 1st half of bb_common_bufsiz1 */
 #define client_config (*(struct client_config_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE / 2]))

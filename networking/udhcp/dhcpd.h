@@ -59,7 +59,7 @@ struct server_config_t {
 	char *sname;                    /* bootp server name */
 	char *boot_file;                /* bootp boot file option */
 	struct static_lease *static_leases; /* List of ip/mac pairs to assign static leases */
-};
+} FIX_ALIASING;
 
 #define server_config (*(struct server_config_t*)&bb_common_bufsiz1)
 /* client_config sits in 2nd half of bb_common_bufsiz1 */
