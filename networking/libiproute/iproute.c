@@ -22,7 +22,7 @@
 #endif
 
 
-typedef struct filter_t {
+struct filter_t {
 	int tb;
 	smallint flushed;
 	char *flushb;
@@ -43,7 +43,8 @@ typedef struct filter_t {
 	inet_prefix mdst;
 	inet_prefix rsrc;
 	inet_prefix msrc;
-} filter_t;
+} FIX_ALIASING;
+typedef struct filter_t filter_t;
 
 #define G_filter (*(filter_t*)&bb_common_bufsiz1)
 

@@ -107,7 +107,6 @@ typedef enum {
 #define PRINT_NET_CONN_WIDE         "%s   %6ld %6ld %-51s %-51s %-12s"
 #define PRINT_NET_CONN_HEADER_WIDE  "\nProto Recv-Q Send-Q %-51s %-51s State       "
 
-
 #define PROGNAME_WIDTH     20
 #define PROGNAME_WIDTH_STR "20"
 /* PROGNAME_WIDTH chars: 12345678901234567890 */
@@ -120,7 +119,6 @@ struct prg_node {
 };
 
 #define PRG_HASH_SIZE 211
-
 
 struct globals {
 	const char *net_conn_line;
@@ -311,21 +309,16 @@ static void build_ipv6_addr(char* local_addr, struct sockaddr_in6* localaddr)
 		   &in6.s6_addr32[0], &in6.s6_addr32[1],
 		   &in6.s6_addr32[2], &in6.s6_addr32[3]);
 	inet_ntop(AF_INET6, &in6, addr6, sizeof(addr6));
-	inet_pton(AF_INET6, addr6, (struct sockaddr *) &localaddr->sin6_addr);
+	inet_pton(AF_INET6, addr6, &localaddr->sin6_addr);
 
 	localaddr->sin6_family = AF_INET6;
 }
 #endif
 
-#if ENABLE_FEATURE_IPV6
-static void build_ipv4_addr(char* local_addr, struct sockaddr_in6* localaddr)
-#else
 static void build_ipv4_addr(char* local_addr, struct sockaddr_in* localaddr)
-#endif
 {
-	sscanf(local_addr, "%X",
-		   &((struct sockaddr_in *) localaddr)->sin_addr.s_addr);
-	((struct sockaddr *) localaddr)->sa_family = AF_INET;
+	sscanf(local_addr, "%X", &localaddr->sin_addr.s_addr);
+	localaddr->sin_family = AF_INET;
 }
 
 static const char *get_sname(int port, const char *proto, int numeric)
@@ -358,11 +351,13 @@ static char *ip_port_str(struct sockaddr *addr, int port, const char *proto, int
 
 struct inet_params {
 	int local_port, rem_port, state, uid;
+	union {
+		struct sockaddr     sa;
+		struct sockaddr_in  sin;
 #if ENABLE_FEATURE_IPV6
-	struct sockaddr_in6 localaddr, remaddr;
-#else
-	struct sockaddr_in localaddr, remaddr;
+		struct sockaddr_in6 sin6;
 #endif
+	} localaddr, remaddr;
 	unsigned long rxq, txq, inode;
 };
 
@@ -386,12 +381,12 @@ static int scan_inet_proc_line(struct inet_params *param, char *line)
 
 	if (strlen(local_addr) > 8) {
 #if ENABLE_FEATURE_IPV6
-		build_ipv6_addr(local_addr, &param->localaddr);
-		build_ipv6_addr(rem_addr, &param->remaddr);
+		build_ipv6_addr(local_addr, &param->localaddr.sin6);
+		build_ipv6_addr(rem_addr, &param->remaddr.sin6);
 #endif
 	} else {
-		build_ipv4_addr(local_addr, &param->localaddr);
-		build_ipv4_addr(rem_addr, &param->remaddr);
+		build_ipv4_addr(local_addr, &param->localaddr.sin);
+		build_ipv4_addr(rem_addr, &param->remaddr.sin);
 	}
 	return 0;
 }
@@ -403,10 +398,10 @@ static void print_inet_line(struct inet_params *param,
 	 || (!is_connected && (flags & NETSTAT_LISTENING))
 	) {
 		char *l = ip_port_str(
-				(struct sockaddr *) &param->localaddr, param->local_port,
+				&param->localaddr.sa, param->local_port,
 				proto, flags & NETSTAT_NUMERIC);
 		char *r = ip_port_str(
-				(struct sockaddr *) &param->remaddr, param->rem_port,
+				&param->remaddr.sa, param->rem_port,
 				proto, flags & NETSTAT_NUMERIC);
 		printf(net_conn_line,
 			proto, param->rxq, param->txq, l, r, state_str);
@@ -432,17 +427,17 @@ static int FAST_FUNC tcp_do_one(char *line)
 }
 
 #if ENABLE_FEATURE_IPV6
-# define notnull(A) ( \
-	( (A.sin6_family == AF_INET6)                               \
-	  && (A.sin6_addr.s6_addr32[0] | A.sin6_addr.s6_addr32[1] | \
-	      A.sin6_addr.s6_addr32[2] | A.sin6_addr.s6_addr32[3])  \
-	) || (                                                      \
-	  (A.sin6_family == AF_INET)                                \
-	  && ((struct sockaddr_in*)&A)->sin_addr.s_addr             \
-	)                                                           \
+# define NOT_NULL_ADDR(A) ( \
+	( (A.sa.sa_family == AF_INET6) \
+	  && (A.sin6.sin6_addr.s6_addr32[0] | A.sin6.sin6_addr.s6_addr32[1] | \
+	      A.sin6.sin6_addr.s6_addr32[2] | A.sin6.sin6_addr.s6_addr32[3])  \
+	) || ( \
+	  (A.sa.sa_family == AF_INET) \
+	  && A.sin.sin_addr.s_addr != 0 \
+	) \
 )
 #else
-# define notnull(A) (A.sin_addr.s_addr)
+# define NOT_NULL_ADDR(A) (A.sin_addr.s_addr)
 #endif
 
 static int FAST_FUNC udp_do_one(char *line)
@@ -464,7 +459,7 @@ static int FAST_FUNC udp_do_one(char *line)
 		break;
 	}
 
-	have_remaddr = notnull(param.remaddr);
+	have_remaddr = NOT_NULL_ADDR(param.remaddr);
 	print_inet_line(&param, state_str, "udp", have_remaddr);
 	return 0;
 }
@@ -477,7 +472,7 @@ static int FAST_FUNC raw_do_one(char *line)
 	if (scan_inet_proc_line(&param, line))
 		return 1;
 
-	have_remaddr = notnull(param.remaddr);
+	have_remaddr = NOT_NULL_ADDR(param.remaddr);
 	print_inet_line(&param, itoa(param.state), "raw", have_remaddr);
 	return 0;
 }

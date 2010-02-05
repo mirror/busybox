@@ -23,7 +23,7 @@
 #define IFF_LOWER_UP	0x10000		/* driver signals L1 up*/
 #endif
 
-typedef struct filter_t {
+struct filter_t {
 	char *label;
 	char *flushb;
 	struct rtnl_handle *rth;
@@ -38,7 +38,8 @@ typedef struct filter_t {
 	smallint up;
 	smallint flushed;
 	inet_prefix pfx;
-} filter_t;
+} FIX_ALIASING;
+typedef struct filter_t filter_t;
 
 #define G_filter (*(filter_t*)&bb_common_bufsiz1)
 

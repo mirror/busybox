@@ -625,7 +625,7 @@ write_sector(sector_t secno, const void *buf)
 
 #include "fdisk_aix.c"
 
-typedef struct {
+struct sun_partition {
 	unsigned char info[128];   /* Informative text string */
 	unsigned char spare0[14];
 	struct sun_info {
@@ -651,7 +651,8 @@ typedef struct {
 	} partitions[8];
 	unsigned short magic;      /* Magic number */
 	unsigned short csum;       /* Label xor'd checksum */
-} sun_partition;
+} FIX_ALIASING;
+typedef struct sun_partition sun_partition;
 #define sunlabel ((sun_partition *)MBRbuffer)
 STATIC_OSF void bsd_select(void);
 STATIC_OSF void xbsd_print_disklabel(int);
