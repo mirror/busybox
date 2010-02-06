@@ -199,7 +199,21 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		/* set the owner and group so it is owned by the new user,
 		 * then fix up the permissions to 2755. Can't do it before
 		 * since chown will clear the setgid bit */
-		if ((mkdir(pw.pw_dir, 0755) != 0 && errno != EEXIST)
+		int mkdir_err = mkdir(pw.pw_dir, 0755);
+		if (mkdir_err == 0) {
+			/* New home. Copy /etc/skel to it */
+			const char *args[] = {
+				"chown", "-R",
+				xasprintf("%u:%u", (int)pw.pw_uid, (int)pw.pw_gid),
+				pw.pw_dir, NULL
+			};
+			/* Be silent on any errors (like: no /etc/skel) */
+			logmode = LOGMODE_NONE;
+			copy_file("/etc/skel", pw.pw_dir, FILEUTILS_RECUR);
+			logmode = LOGMODE_STDIO;
+			chown_main(4, (char**)args);
+		}
+		if ((mkdir_err != 0 && errno != EEXIST)
 		 || chown(pw.pw_dir, pw.pw_uid, pw.pw_gid) != 0
 		 || chmod(pw.pw_dir, 02755) != 0 /* set setgid bit on homedir */
 		) {
@@ -212,5 +226,5 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		passwd_wrapper(pw.pw_name);
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -17,6 +17,7 @@ lib-$(CONFIG_CATV)      += catv.o
 lib-$(CONFIG_CHGRP)     += chgrp.o chown.o
 lib-$(CONFIG_CHMOD)     += chmod.o
 lib-$(CONFIG_CHOWN)     += chown.o
+lib-$(CONFIG_ADDGROUP)  += chown.o # used by adduser
 lib-$(CONFIG_CHROOT)    += chroot.o
 lib-$(CONFIG_CKSUM)     += cksum.o
 lib-$(CONFIG_COMM)      += comm.o
