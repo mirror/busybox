@@ -316,9 +316,9 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 #endif
 		if (bb_copyfd_eof(src_fd, dst_fd) == -1)
 			retval = -1;
-		/* Ok, writing side I can understand... */
+		/* Careful with writing... */
 		if (close(dst_fd) < 0) {
-			bb_perror_msg("can't close '%s'", dest);
+			bb_perror_msg("error writing to '%s'", dest);
 			retval = -1;
 		}
 		/* ...but read size is already checked by bb_copyfd_eof */

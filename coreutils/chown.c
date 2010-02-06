@@ -62,8 +62,8 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
 {
 #define param  (*(struct param_t*)vparam)
 #define opt option_mask32
-	uid_t u = (param.ugid.uid == (uid_t)-1) ? statbuf->st_uid : param.ugid.uid;
-	gid_t g = (param.ugid.gid == (gid_t)-1) ? statbuf->st_gid : param.ugid.gid;
+	uid_t u = (param.ugid.uid == (uid_t)-1L) ? statbuf->st_uid : param.ugid.uid;
+	gid_t g = (param.ugid.gid == (gid_t)-1L) ? statbuf->st_gid : param.ugid.gid;
 
 	if (param.chown_func(fileName, u, g) == 0) {
 		if (OPT_VERBOSE
@@ -75,7 +75,7 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf,
 		return TRUE;
 	}
 	if (!OPT_QUIET)
-		bb_simple_perror_msg(fileName);	/* A filename can have % in it... */
+		bb_simple_perror_msg(fileName);
 	return FALSE;
 #undef opt
 #undef param
@@ -87,8 +87,9 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	int opt, flags;
 	struct param_t param;
 
-	param.ugid.uid = -1;
-	param.ugid.gid = -1;
+	/* Just -1 might not work: uid_t may be unsigned long */
+	param.ugid.uid = -1L;
+	param.ugid.gid = -1L;
 
 #if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
 	applet_long_options = chown_longopts;
