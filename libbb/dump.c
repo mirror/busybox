@@ -349,16 +349,16 @@ static NOINLINE int next(priv_dumper_t *dumper)
 
 	for (;;) {
 		if (*dumper->argv) {
+			dumper->next__done = statok = 1;
 			if (!(freopen(*dumper->argv, "r", stdin))) {
 				bb_simple_perror_msg(*dumper->argv);
 				dumper->exitval = 1;
 				++dumper->argv;
 				continue;
 			}
-			dumper->next__done = statok = 1;
 		} else {
 			if (dumper->next__done)
-				return 0;
+				return 0; /* no next file */
 			dumper->next__done = 1;
 			statok = 0;
 		}
