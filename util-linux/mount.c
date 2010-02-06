@@ -267,7 +267,6 @@ struct globals {
 #endif
 	llist_t *fslist;
 	char getmntent_buf[1];
-
 } FIX_ALIASING;
 enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_buf) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
