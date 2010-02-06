@@ -893,14 +893,14 @@
      "\n	-s SIZE		Buffer size" \
 
 #define dnsd_trivial_usage \
-       "[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
+       "[-c CONFFILE] [-t TTL_SEC] [-p PORT] [-i ADDR] [-d]"
 #define dnsd_full_usage "\n\n" \
        "Small static DNS server daemon\n" \
      "\nOptions:" \
-     "\n	-c	Config filename" \
-     "\n	-t	TTL in seconds" \
-     "\n	-p	Listening port" \
-     "\n	-i	Listening ip (default all)" \
+     "\n	-c FILE	Config file" \
+     "\n	-t SEC	TTL" \
+     "\n	-p PORT	Listen on PORT" \
+     "\n	-i ADDR	Listen on ADDR" \
      "\n	-d	Daemonize" \
 
 #define dos2unix_trivial_usage \
@@ -4693,7 +4693,7 @@
 	) \
      "\n	-F	Set the don't fragment bit" \
      "\n	-I	Use ICMP ECHO instead of UDP datagrams" \
-     "\n	-l	Display the ttl value of the returned packet" \
+     "\n	-l	Display the TTL value of the returned packet" \
      "\n	-d	Set SO_DEBUG options to socket" \
      "\n	-n	Print numeric addresses" \
      "\n	-r	Bypass routing tables, send directly to HOST" \
@@ -4701,7 +4701,7 @@
      "\n	-m	Max time-to-live (max number of hops)" \
      "\n	-p	Base UDP port number used in probes" \
      "\n		(default 33434)" \
-     "\n	-q	Number of probes per 'ttl' (default 3)" \
+     "\n	-q	Number of probes per TTL (default 3)" \
      "\n	-s	IP address to use as the source address" \
      "\n	-t	Type-of-service in probe packets (default 0)" \
      "\n	-w	Time in seconds to wait for a response (default 3)" \
@@ -4721,7 +4721,7 @@
      "\n	-m	Max time-to-live (max number of hops)" \
      "\n	-p	Base UDP port number used in probes" \
      "\n		(default is 33434)" \
-     "\n	-q	Number of probes per 'ttl' (default 3)" \
+     "\n	-q	Number of probes per TTL (default 3)" \
      "\n	-s	IP address to use as the source address" \
      "\n	-t	Type-of-service in probe packets (default 0)" \
      "\n	-w	Time in seconds to wait for a response (default 3)" \
