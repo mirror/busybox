@@ -208,6 +208,7 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 # define move_from_unaligned_int(v, intp) ((v) = *(bb__aliased_int*)(intp))
 # define move_from_unaligned16(v, u16p) ((v) = *(bb__aliased_uint16_t*)(u16p))
 # define move_from_unaligned32(v, u32p) ((v) = *(bb__aliased_uint32_t*)(u32p))
+# define move_to_unaligned16(u16p, v)   (*(bb__aliased_uint16_t*)(u16p) = (v))
 # define move_to_unaligned32(u32p, v)   (*(bb__aliased_uint32_t*)(u32p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
@@ -215,6 +216,10 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 # define move_from_unaligned_int(v, intp) (memcpy(&(v), (intp), sizeof(int)))
 # define move_from_unaligned16(v, u16p) (memcpy(&(v), (u16p), 2))
 # define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
+# define move_to_unaligned16(u16p, v) do { \
+	uint16_t __t = (v); \
+	memcpy((u16p), &__t, 4); \
+} while (0)
 # define move_to_unaligned32(u32p, v) do { \
 	uint32_t __t = (v); \
 	memcpy((u32p), &__t, 4); \

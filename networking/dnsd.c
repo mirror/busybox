@@ -44,7 +44,7 @@ struct dns_head {
 	uint16_t nauth;
 	uint16_t nadd;
 };
-struct dns_prop {
+struct type_and_class {
 	uint16_t type;
 	uint16_t class;
 };
@@ -291,7 +291,7 @@ QCLASS  a two octet code that specifies the class of the query.
         (others are historic only)
         255 any class
 
-4.1.3. Resource record format
+4.1.3. Resource Record format
 
 The answer, authority, and additional sections all share the same format:
 a variable number of resource records, where the number of records
@@ -353,14 +353,14 @@ static int process_packet(struct dns_entry *conf_data,
 {
 	char *answstr;
 	struct dns_head *head;
-	struct dns_prop *unaligned_qprop;
+	struct type_and_class *unaligned_type_class;
 	char *query_string;
 	uint8_t *answb;
 	uint16_t outr_rlen;
 	uint16_t outr_flags;
 	uint16_t type;
 	uint16_t class;
-	int querystr_len;
+	int query_len;
 
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0) {
@@ -376,22 +376,22 @@ static int process_packet(struct dns_entry *conf_data,
 	/* start of query string */
 	query_string = (void *)(head + 1);
 	/* caller guarantees strlen is <= MAX_PACK_LEN */
-	querystr_len = strlen(query_string) + 1;
+	query_len = strlen(query_string) + 1;
 	/* may be unaligned! */
-	unaligned_qprop = (void *)(query_string + querystr_len);
-	querystr_len += sizeof(unaligned_qprop);
+	unaligned_type_class = (void *)(query_string + query_len);
+	query_len += sizeof(unaligned_type_class);
 	/* where to append answer block */
-	answb = (void *)(unaligned_qprop + 1);
+	answb = (void *)(unaligned_type_class + 1);
 
 	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
 	outr_flags = htons(0x8000 | 4);
 
-	move_from_unaligned16(type, &unaligned_qprop->type);
+	move_from_unaligned16(type, &unaligned_type_class->type);
 	if (type != htons(REQ_A) && type != htons(REQ_PTR)) {
 		/* we can't handle the query type */
 		goto empty_packet;
 	}
-	move_from_unaligned16(class, &unaligned_qprop->class);
+	move_from_unaligned16(class, &unaligned_type_class->class);
 	if (class != htons(1)) { /* not class INET? */
 		goto empty_packet;
 	}
@@ -408,11 +408,11 @@ static int process_packet(struct dns_entry *conf_data,
 	answstr = table_lookup(conf_data, type, query_string);
 	outr_rlen = 4;
 	if (answstr && type == htons(REQ_PTR)) {
-		/* return a host name */
+		/* returning a host name */
 		outr_rlen = strlen(answstr) + 1;
 	}
 	if (!answstr
-	 || (unsigned)(answb - buf) + querystr_len + 4 + 2 + outr_rlen > MAX_PACK_LEN
+	 || (unsigned)(answb - buf) + query_len + 4 + 2 + outr_rlen > MAX_PACK_LEN
 	) {
 		/* QR = 1 "response"
 		 * AA = 1 "Authoritative Answer"
@@ -421,20 +421,23 @@ static int process_packet(struct dns_entry *conf_data,
 		goto empty_packet;
 	}
 
-	/* copy query block to answer block */
-	memcpy(answb, query_string, querystr_len);
-	answb += querystr_len;
-	/* append answer Resource Record */
+	/* Append answer Resource Record */
+	memcpy(answb, query_string, query_len); /* name, type, class */
+	answb += query_len;
 	move_to_unaligned32((uint32_t *)answb, htonl(conf_ttl));
 	answb += 4;
-	move_to_unaligned32((uint16_t *)answb, htons(outr_rlen));
+	move_to_unaligned16((uint16_t *)answb, htons(outr_rlen));
 	answb += 2;
 	memcpy(answb, answstr, outr_rlen);
 	answb += outr_rlen;
 
 	/* QR = 1 "response",
 	 * AA = 1 "Authoritative Answer",
-	 * RCODE = 0 "success" */
+	 * TODO: need to set RA bit 0x80? One user says nslookup complains
+	 * "Got recursion not available from SERVER, trying next server"
+	 * "** server can't find HOSTNAME"
+	 * RCODE = 0 "success"
+	 */
 	outr_flags = htons(0x8000 | 0x0400 | 0);
 	/* we have one answer */
 	head->nansw = htons(1);
