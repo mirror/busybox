@@ -893,7 +893,7 @@
      "\n	-s SIZE		Buffer size" \
 
 #define dnsd_trivial_usage \
-       "[-c CONFFILE] [-t TTL_SEC] [-p PORT] [-i ADDR] [-d]"
+       "[-dvs] [-c CONFFILE] [-t TTL_SEC] [-p PORT] [-i ADDR]"
 #define dnsd_full_usage "\n\n" \
        "Small static DNS server daemon\n" \
      "\nOptions:" \
@@ -902,6 +902,11 @@
      "\n	-p PORT	Listen on PORT" \
      "\n	-i ADDR	Listen on ADDR" \
      "\n	-d	Daemonize" \
+     "\n	-v	Verbose" \
+     "\n	-s	Send successful replies only. Use this if you want" \
+     "\n		to use /etc/resolv.conf with two nameserver lines:" \
+     "\n			nameserver DNSD_SERVER" \
+     "\n			nameserver NORNAL_DNS_SERVER" \
 
 #define dos2unix_trivial_usage \
        "[OPTIONS] [FILE]"

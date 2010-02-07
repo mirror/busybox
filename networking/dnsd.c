@@ -56,7 +56,8 @@ struct dns_entry {
 	char name[1];
 };
 
-#define OPT_verbose (option_mask32)
+#define OPT_verbose (option_mask32 & 1)
+#define OPT_silent  (option_mask32 & 2)
 
 
 /*
@@ -351,10 +352,11 @@ static int process_packet(struct dns_entry *conf_data,
 		uint32_t conf_ttl,
 		uint8_t *buf)
 {
-	char *answstr;
 	struct dns_head *head;
 	struct type_and_class *unaligned_type_class;
+	const char *err_msg;
 	char *query_string;
+	char *answstr;
 	uint8_t *answb;
 	uint16_t outr_rlen;
 	uint16_t outr_flags;
@@ -365,12 +367,19 @@ static int process_packet(struct dns_entry *conf_data,
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0) {
 		bb_error_msg("packet has 0 queries, ignored");
-		return -1;
+		return 0; /* don't reply */
 	}
-
 	if (head->flags & htons(0x8000)) { /* QR bit */
 		bb_error_msg("response packet, ignored");
-		return -1;
+		return 0; /* don't reply */
+	}
+	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
+	outr_flags = htons(0x8000 | 4);
+	err_msg = NULL;
+	/* OPCODE != 0 "standard query" ? */
+	if ((head->flags & htons(0x7800)) != 0) {
+		err_msg = "opcode != 0";
+		goto empty_packet;
 	}
 
 	/* start of query string */
@@ -383,28 +392,16 @@ static int process_packet(struct dns_entry *conf_data,
 	/* where to append answer block */
 	answb = (void *)(unaligned_type_class + 1);
 
-	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
-	outr_flags = htons(0x8000 | 4);
-
+	move_from_unaligned16(class, &unaligned_type_class->class);
+	if (class != htons(1)) { /* not class INET? */
+		err_msg = "class != 1";
+		goto empty_packet;
+	}
 	move_from_unaligned16(type, &unaligned_type_class->type);
 	if (type != htons(REQ_A) && type != htons(REQ_PTR)) {
 		/* we can't handle this query type */
-//TODO: handle REQ_AAAA (0x1c) requests
-		bb_error_msg("type %u is !REQ_A and !REQ_PTR%s",
-				(int)ntohs(type),
-				", returning Not Implemented reply");
-		goto empty_packet;
-	}
-	move_from_unaligned16(class, &unaligned_type_class->class);
-	if (class != htons(1)) { /* not class INET? */
-		bb_error_msg("class != 1%s",
-				", returning Not Implemented reply");
-		goto empty_packet;
-	}
-	/* OPCODE != 0 "standard query" ? */
-	if ((head->flags & htons(0x7800)) != 0) {
-		bb_error_msg("opcode != 0%s",
-				", returning Not Implemented reply");
+//TODO: happens all the time with REQ_AAAA (0x1c) requests - implement those?
+		err_msg = "type is !REQ_A and !REQ_PTR";
 		goto empty_packet;
 	}
 
@@ -425,8 +422,7 @@ static int process_packet(struct dns_entry *conf_data,
 		/* QR = 1 "response"
 		 * AA = 1 "Authoritative Answer"
 		 * RCODE = 3 "Name Error" */
-		if (OPT_verbose)
-			bb_error_msg("returning Name Error reply");
+		err_msg = "name is not found";
 		outr_flags = htons(0x8000 | 0x0400 | 3);
 		goto empty_packet;
 	}
@@ -455,6 +451,16 @@ static int process_packet(struct dns_entry *conf_data,
 	head->nansw = htons(1);
 
  empty_packet:
+	if ((outr_flags & htons(0xf)) != 0) { /* not a positive response */
+		if (OPT_verbose) {
+			bb_error_msg("%s, %s",
+				err_msg,
+				OPT_silent ? "dropping query" : "sending error reply"
+			);
+		}
+		if (OPT_silent)
+			return 0;
+	}
 	head->flags |= outr_flags;
 	head->nauth = head->nadd = 0;
 	head->nquer = htons(1); // why???
@@ -476,21 +482,20 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 	uint16_t port = 53;
 	uint8_t buf[MAX_PACK_LEN + 1];
 
-	opts = getopt32(argv, "vi:c:t:p:d", &listen_interface, &fileconf, &sttl, &sport);
-	//if (opts & 0x1) // -v
-	//if (opts & 0x2) // -i
-	//if (opts & 0x4) // -c
-	if (opts & 0x8) // -t
+	opts = getopt32(argv, "vsi:c:t:p:d", &listen_interface, &fileconf, &sttl, &sport);
+	//if (opts & (1 << 0)) // -v
+	//if (opts & (1 << 1)) // -s
+	//if (opts & (1 << 2)) // -i
+	//if (opts & (1 << 3)) // -c
+	if (opts & (1 << 4)) // -t
 		conf_ttl = xatou_range(sttl, 1, 0xffffffff);
-	if (opts & 0x10) // -p
+	if (opts & (1 << 5)) // -p
 		port = xatou_range(sport, 1, 0xffff);
-	if (opts & 0x20) { // -d
+	if (opts & (1 << 6)) { // -d
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
-	/* Clear all except "verbose" bit */
-	option_mask32 &= 1;
 
 	conf_data = parse_conf_file(fileconf);
 
