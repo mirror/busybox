@@ -123,16 +123,16 @@ delta.reverse()
 if flag_timing:
     end_t3 = int(time.time() * 1e9)
 
-print "%-48s %7s %7s %+7s" % ("function", "old", "new", "delta")
+print("%-48s %7s %7s %+7s" % ("function", "old", "new", "delta"))
 for d, n in delta:
     if d:
         old_sz = old.get(n, {}).get("size", "-")
         new_sz = new.get(n, {}).get("size", "-")
-        print "%-48s %7s %7s %+7d" % (n, old_sz, new_sz, d)
-print "-"*78
+        print("%-48s %7s %7s %+7d" % (n, old_sz, new_sz, d))
+print("-"*78)
 total="(add/remove: %s/%s grow/shrink: %s/%s up/down: %s/%s)%%sTotal: %s bytes"\
     % (add, remove, grow, shrink, up, -down, up-down)
-print total % (" "*(80-len(total)))
+print(total % (" "*(80-len(total))))
 if flag_timing:
     print("\n%d/%d; %d Parse origin/new; processing nsecs" %
         (end_t1-start_t1, end_t2-start_t2, end_t3-start_t3))
