@@ -7,44 +7,69 @@
 # This software may be used and distributed according to the terms
 # of the GNU General Public License, incorporated herein by reference.
 
-import sys, os, re
+import sys, os#, re
 
 def usage():
-    sys.stderr.write("usage: %s file1 file2\n" % sys.argv[0])
+    sys.stderr.write("usage: %s [-t] file1 file2\n" % sys.argv[0])
     sys.exit(-1)
 
-if len(sys.argv) < 3:
+f1, f2 = (None, None)
+flag_timing, dashes = (False, False)
+
+for f in sys.argv[1:]:
+    if f.startswith("-"):
+        if f == "--": # sym_args
+            dashes = True
+            break
+        if f == "-t": # timings
+            flag_timing = True
+    else:
+        if not os.path.exists(f):
+            sys.stderr.write("Error: file '%s' does not exist\n" % f)
+            usage()
+        if f1 is None:
+            f1 = f
+        elif f2 is None:
+            f2 = f
+if flag_timing:
+    import time
+if f1 is None or f2 is None:
     usage()
 
-for f in sys.argv[1:3]:
-    if not os.path.exists(f):
-        sys.stderr.write("Error: file '%s' does not exist\n" % f)
-        usage()
-
-sym_args = " ".join(sys.argv[3:])
+sym_args = " ".join(sys.argv[3 + flag_timing + dashes:])
 def getsizes(file):
-    sym, alias = {}, {}
-    dynsym_filter = re.compile("^\s+\d+:\s+[\dA-Fa-f]+\s+\d+\s+\w+\s+\w+\s+\w+\s+\w+\s+\w+\n$")
+    sym, alias, lut = {}, {}, {}
+    #dynsym_filter = re.compile("^\d+:\s+[\dA-Fa-f]+\s+\d+\s+\w+\s+\w+\s+\w+\s+\w+\s+\w+$")
     for l in os.popen("readelf -W -s %s %s" % (sym_args, file)).readlines():
-        if not dynsym_filter.match(l): continue
-        num, value, size, typ, bind, vis, ndx, name = l.strip().split()
-        if ndx == "UND": continue # skip undefined
-        if typ in ["SECTION", "FILES"]: continue # skip sections and files
+        if True:
+            l = l.strip()
+            if not (len(l) and l[0].isdigit() and len(l.split()) == 8):
+                continue
+            num, value, size, typ, bind, vis, ndx, name = l.split()
+            if ndx == "UND": continue # skip undefined
+            if typ in ["SECTION", "FILES"]: continue # skip sections and files
+        #else:
+        #    l = l.strip()
+        #    match = dynsym_filter.match(l)
+        #    if not match: continue
+        #    x, value, size, typ, bind, x, ndx, name = l.split()
+        #    if ndx == "UND": continue # skip undefined
+        #    if typ in ["SECTION", "FILES"]: continue # skip sections and files
         if "." in name: name = "static." + name.split(".")[0]
         value = int(value, 16)
         size = int(size)
-        if bind != "GLOBAL": # see if it is an alias
-            alias[name] = {"addr" : value, "size":  size}
+        if vis != "DEFAULT" and bind != "GLOBAL": # see if it is an alias
+            alias[(value, size)] = {"name" : name}
         else:
             sym[name] = {"addr" : value, "size":  size}
-    for a_nam, a_dat in alias.iteritems():
-        impl = [k for k, v in sym.iteritems() if v.get("addr") == a_dat["addr"]]
+            lut[(value, size)] = 0
+    for addr, sz in alias.iterkeys():
         # If the non-GLOBAL sym has an implementation elsewhere then
         # it's an alias, disregard it.
-        if not impl:
+        if not (addr, sz) in lut:
             # If this non-GLOBAL sym does not have an implementation at
             # another address, then treat it as a normal symbol.
-            sym[a_nam] = a_dat
+            sym[alias[(addr, sz)]["name"]] = {"addr" : addr, "size": sz}
     for l in os.popen("readelf -W -S " + file).readlines():
         x = l.split()
         if len(x)<6: continue
@@ -54,26 +79,34 @@ def getsizes(file):
         sym[x[1]] = {"addr" : int(x[3], 16), "size" : int(x[5], 16)}
     return sym
 
-old = getsizes(sys.argv[1])
-new = getsizes(sys.argv[2])
+if flag_timing:
+    start_t1 = int(time.time() * 1e9)
+old = getsizes(f1)
+if flag_timing:
+    end_t1 = int(time.time() * 1e9)
+    start_t2 = int(time.time() * 1e9)
+new = getsizes(f2)
+if flag_timing:
+    end_t2 = int(time.time() * 1e9)
+    start_t3 = int(time.time() * 1e9)
 grow, shrink, add, remove, up, down = 0, 0, 0, 0, 0, 0
-delta, common = [], []
+delta, common = [], {}
 
-for a in old.iterkeys():
-    if a in new:
-        common.append(a)
+for name in old.iterkeys():
+    if name in new:
+        common[name] = 1
 
 for name in old:
     if name not in common:
         remove += 1
-        sz = old[name].get("size", 0)
+        sz = old[name]["size"]
         down += sz
         delta.append((-sz, name))
 
 for name in new:
     if name not in common:
         add += 1
-        sz = new[name].get("size", 0)
+        sz = new[name]["size"]
         up += sz
         delta.append((sz, name))
 
@@ -87,6 +120,8 @@ for name in common:
 
 delta.sort()
 delta.reverse()
+if flag_timing:
+    end_t3 = int(time.time() * 1e9)
 
 print "%-48s %7s %7s %+7s" % ("function", "old", "new", "delta")
 for d, n in delta:
@@ -98,3 +133,7 @@ print "-"*78
 total="(add/remove: %s/%s grow/shrink: %s/%s up/down: %s/%s)%%sTotal: %s bytes"\
     % (add, remove, grow, shrink, up, -down, up-down)
 print total % (" "*(80-len(total)))
+if flag_timing:
+    print("\n%d/%d; %d Parse origin/new; processing nsecs" %
+        (end_t1-start_t1, end_t2-start_t2, end_t3-start_t3))
+    print("total nsecs: %d" % (end_t3-start_t1))
