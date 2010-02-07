@@ -388,24 +388,32 @@ static int process_packet(struct dns_entry *conf_data,
 
 	move_from_unaligned16(type, &unaligned_type_class->type);
 	if (type != htons(REQ_A) && type != htons(REQ_PTR)) {
-		/* we can't handle the query type */
+		/* we can't handle this query type */
+//TODO: handle REQ_AAAA (0x1c) requests
+		bb_error_msg("type %u is !REQ_A and !REQ_PTR%s",
+				(int)ntohs(type),
+				", returning Not Implemented reply");
 		goto empty_packet;
 	}
 	move_from_unaligned16(class, &unaligned_type_class->class);
 	if (class != htons(1)) { /* not class INET? */
+		bb_error_msg("class != 1%s",
+				", returning Not Implemented reply");
 		goto empty_packet;
 	}
 	/* OPCODE != 0 "standard query" ? */
 	if ((head->flags & htons(0x7800)) != 0) {
+		bb_error_msg("opcode != 0%s",
+				", returning Not Implemented reply");
 		goto empty_packet;
 	}
 
 	/* look up the name */
-#if DEBUG
-	/* need to convert lengths to dots before we can use it in non-debug */
-	bb_info_msg("%s", query_string);
-#endif
 	answstr = table_lookup(conf_data, type, query_string);
+#if DEBUG
+	/* Shows lengths instead of dots, unusable for !DEBUG */
+	bb_error_msg("'%s'->'%s'", query_string, answstr);
+#endif
 	outr_rlen = 4;
 	if (answstr && type == htons(REQ_PTR)) {
 		/* returning a host name */
@@ -417,6 +425,8 @@ static int process_packet(struct dns_entry *conf_data,
 		/* QR = 1 "response"
 		 * AA = 1 "Authoritative Answer"
 		 * RCODE = 3 "Name Error" */
+		if (OPT_verbose)
+			bb_error_msg("returning Name Error reply");
 		outr_flags = htons(0x8000 | 0x0400 | 3);
 		goto empty_packet;
 	}
@@ -438,6 +448,8 @@ static int process_packet(struct dns_entry *conf_data,
 	 * "** server can't find HOSTNAME"
 	 * RCODE = 0 "success"
 	 */
+	if (OPT_verbose)
+		bb_error_msg("returning positive reply");
 	outr_flags = htons(0x8000 | 0x0400 | 0);
 	/* we have one answer */
 	head->nansw = htons(1);
@@ -492,7 +504,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 
 	{
 		char *p = xmalloc_sockaddr2dotted(&lsa->u.sa);
-		bb_info_msg("Accepting UDP packets on %s", p);
+		bb_error_msg("accepting UDP packets on %s", p);
 		free(p);
 	}
 
@@ -510,7 +522,7 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 		if (OPT_verbose)
-			bb_info_msg("Got UDP packet");
+			bb_error_msg("got UDP packet");
 		buf[r] = '\0'; /* paranoia */
 		r = process_packet(conf_data, conf_ttl, buf);
 		if (r <= 0)
