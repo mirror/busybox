@@ -575,13 +575,16 @@ static NOINLINE int inflate_codes(STATE_PARAM_ONLY)
 			do {
 				/* Was: nn -= (e = (e = GUNZIP_WSIZE - ((dd &= GUNZIP_WSIZE - 1) > w ? dd : w)) > nn ? nn : e); */
 				/* Who wrote THAT?? rewritten as: */
+				unsigned delta;
+
 				dd &= GUNZIP_WSIZE - 1;
 				e = GUNZIP_WSIZE - (dd > w ? dd : w);
+				delta = w > dd ? w - dd : dd - w;
 				if (e > nn) e = nn;
 				nn -= e;
 
 				/* copy to new buffer to prevent possible overwrite */
-				if (w - dd >= e) {	/* (this test assumes unsigned comparison) */
+				if (delta >= e) {
 					memcpy(gunzip_window + w, gunzip_window + dd, e);
 					w += e;
 					dd += e;
