@@ -247,7 +247,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(D, A, B, C, 12, 0xfd987193);
 	OP(C, D, A, B, 17, 0xa679438e);
 	OP(B, C, D, A, 22, 0x49b40821);
-# endif/* MD5_SIZE_VS_SPEED == 1 */
+# endif /* MD5_SIZE_VS_SPEED == 1 */
 
 	/* For the second to fourth round we have the possibly swapped words
 	   in CORRECT_WORDS.  Redefine the macro to take an additional first
@@ -286,7 +286,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(FG, D, A, B, C, 2, 9, 0xfcefa3f8);
 	OP(FG, C, D, A, B, 7, 14, 0x676f02d9);
 	OP(FG, B, C, D, A, 12, 20, 0x8d2a4c8a);
-# endif/* MD5_SIZE_VS_SPEED == 1 */
+# endif /* MD5_SIZE_VS_SPEED == 1 */
 
 	/* Round 3.  */
 # if MD5_SIZE_VS_SPEED == 1
@@ -313,7 +313,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(FH, D, A, B, C, 12, 11, 0xe6db99e5);
 	OP(FH, C, D, A, B, 15, 16, 0x1fa27cf8);
 	OP(FH, B, C, D, A, 2, 23, 0xc4ac5665);
-# endif/* MD5_SIZE_VS_SPEED == 1 */
+# endif /* MD5_SIZE_VS_SPEED == 1 */
 
 	/* Round 4.  */
 # if MD5_SIZE_VS_SPEED == 1
@@ -373,7 +373,8 @@ void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 		unsigned i = 64 - ctx->buflen;
 
 		/* Copy data into aligned buffer. */
-		if (i > len) i = len;
+		if (i > len)
+			i = len;
 		memcpy(ctx->buffer + ctx->buflen, buf, i);
 		len -= i;
 		ctx->buflen += i;
@@ -391,9 +392,6 @@ void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
  * in first 16 bytes following RESBUF.  The result is always in little
  * endian byte order, so that a byte-wise output yields to the wanted
  * ASCII representation of the message digest.
- *
- * IMPORTANT: On some systems it is required that RESBUF is correctly
- * aligned for a 32 bits value.
  */
 void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 {
