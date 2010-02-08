@@ -4109,6 +4109,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			/* Assignments, but no command */
 			/* Ensure redirects take effect. Try "a=t >file" */
 			rcode = setup_redirects(command, squirrel);
+//FIXME: "false; q=`false`; echo $?" should print 1
 			restore_redirects(squirrel);
 			/* Set shell variables */
 			while (*argv) {
