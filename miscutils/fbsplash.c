@@ -301,7 +301,7 @@ static void fb_drawimage(void)
  */
 static void init(const char *cfg_filename)
 {
-	static const char const param_names[] ALIGN1 =
+	static const char param_names[] ALIGN1 =
 		"BAR_WIDTH\0" "BAR_HEIGHT\0"
 		"BAR_LEFT\0" "BAR_TOP\0"
 		"BAR_R\0" "BAR_G\0" "BAR_B\0"

@@ -7,6 +7,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 #include "libbb.h"
+#ifndef O_NOATIME
+# define O_NOATIME 0
+#endif
 
 /* This is a NOFORK applet. Be very careful! */
 
