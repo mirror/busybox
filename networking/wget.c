@@ -546,6 +546,8 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		"passive-ftp\0"      No_argument       "\xff"
 		"header\0"           Required_argument "\xfe"
 		"post-data\0"        Required_argument "\xfd"
+		/* Ignored (we don't do ssl) */
+		"no-check-certificate\0" No_argument   "\xfc"
 		;
 #endif
 

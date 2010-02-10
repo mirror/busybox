@@ -5083,7 +5083,7 @@
 	IF_FEATURE_WGET_LONG_OPTIONS( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
        "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
-       "	[-U|--user-agent agent] url" \
+       "	[--no-check-certificate] [-U|--user-agent agent] url" \
 	) \
 	IF_NOT_FEATURE_WGET_LONG_OPTIONS( \
        "[-csq] [-O file] [-Y on/off] [-P DIR] [-U agent] url" \
