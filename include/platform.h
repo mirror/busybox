@@ -200,7 +200,7 @@
 /* NB: unaligned parameter should be a pointer, aligned one -
  * a lvalue. This makes it more likely to not swap them by mistake
  */
-#if defined(i386) || defined(__x86_64__)
+#if defined(i386) || defined(__x86_64__) || defined(__powerpc__)
 # include <stdint.h>
 typedef int      bb__aliased_int      FIX_ALIASING;
 typedef uint16_t bb__aliased_uint16_t FIX_ALIASING;
