@@ -592,6 +592,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
 		if (proxy && proxy[0]) {
+			server.user = NULL;
 			parse_url(proxy, &server);
 		} else {
 			use_proxy = 0;
