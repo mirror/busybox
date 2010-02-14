@@ -4680,7 +4680,6 @@
        "[-cds] STRING1 [STRING2]"
 #define tr_full_usage "\n\n" \
        "Translate, squeeze, or delete characters from stdin, writing to stdout\n" \
-       "stdin, writing to stdout\n" \
      "\nOptions:" \
      "\n	-c	Take complement of STRING1" \
      "\n	-d	Delete input characters coded STRING1" \
