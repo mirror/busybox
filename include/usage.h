@@ -57,7 +57,7 @@
 #define adjtimex_trivial_usage \
        "[-q] [-o OFF] [-f FREQ] [-p TCONST] [-t TICK]"
 #define adjtimex_full_usage "\n\n" \
-       "Read and optionally set system timebase parameters. See adjtimex(2).\n" \
+       "Read and optionally set system timebase parameters. See adjtimex(2)\n" \
      "\nOptions:" \
      "\n	-q	Quiet" \
      "\n	-o OFF	Time offset, microseconds" \
@@ -191,19 +191,19 @@
 	) \
 
 #define bunzip2_trivial_usage \
-       "[OPTIONS] [FILE]"
+       "[OPTIONS] [FILE]..."
 #define bunzip2_full_usage "\n\n" \
-       "Uncompress FILE (or standard input)\n" \
+       "Uncompress FILEs (or stdin)\n" \
      "\nOptions:" \
-     "\n	-c	Write to standard output" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
 
 #define bzip2_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define bzip2_full_usage "\n\n" \
-       "Compress FILEs (or standard input) with bzip2 algorithm.\n" \
+       "Compress FILEs (or stdin) with bzip2 algorithm\n" \
      "\nOptions:" \
-     "\n	-c	Write to standard output" \
+     "\n	-c	Write to stout" \
      "\n	-d	Decompress" \
      "\n	-f	Force" \
      "\n	-1..-9	Compression level" \
@@ -214,7 +214,7 @@
 #define lzop_trivial_usage \
        "[-cfvd123456789CF] [FILE]..."
 #define lzop_full_usage "\n\n" \
-       "	-c	Write to standard output" \
+       "	-c	Write to stdout" \
      "\n	-f	Force" \
      "\n	-v	Verbose" \
      "\n	-d	Decompress" \
@@ -231,7 +231,7 @@
 #define unlzop_trivial_usage \
        "[-cfvCF] [FILE]..."
 #define unlzop_full_usage "\n\n" \
-       "	-c	Write to standard output" \
+       "	-c	Write to stdout" \
      "\n	-f	Force" \
      "\n	-v	Verbose" \
      "\n	-F	Don't store or verify checksum" \
@@ -242,11 +242,11 @@
        "Uncompress to stdout"
 
 #define unlzma_trivial_usage \
-       "[OPTIONS] [FILE]"
+       "[OPTIONS] [FILE]..."
 #define unlzma_full_usage "\n\n" \
-       "Uncompress FILE (or standard input)\n" \
+       "Uncompress FILE (or stdin)\n" \
      "\nOptions:" \
-     "\n	-c	Write to standard output" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
 
 #define lzmacat_trivial_usage \
@@ -436,9 +436,9 @@
      "\n	-c BYTES	Limit core file size" \
      "\n	-v		Verbose" \
      "\n	-P		Create new process group" \
-     "\n	-0		Close standard input" \
-     "\n	-1		Close standard output" \
-     "\n	-2		Close standard error" \
+     "\n	-0		Close stdin" \
+     "\n	-1		Close stdout" \
+     "\n	-2		Close stderr" \
 
 #define setuidgid_trivial_usage \
        "USER PROG ARGS"
@@ -567,7 +567,7 @@
        "Extract or list files from a cpio archive" \
 	IF_FEATURE_CPIO_O(", or" \
      "\ncreate an archive" IF_FEATURE_CPIO_P(" (-o) or copy files (-p)") \
-		" using file list on standard input" \
+		" using file list on stdin" \
 	) \
      "\n" \
      "\nMain operation mode:" \
@@ -658,7 +658,7 @@
 #define cut_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define cut_full_usage "\n\n" \
-       "Print selected fields from each input FILE to standard output\n" \
+       "Print selected fields from each input FILE to stdout\n" \
      "\nOptions:" \
      "\n	-b LIST	Output only bytes from LIST" \
      "\n	-c LIST	Output only characters from LIST" \
@@ -721,7 +721,7 @@
        "p - print top of the stack (without altering the stack),\n" \
        "f - print entire stack, o - pop the value and set output radix\n" \
        "(value must be 10 or 16).\n" \
-       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16.\n" \
+       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16\n" \
 
 #define dc_example_usage \
        "$ dc 2 2 + p\n" \
@@ -993,7 +993,7 @@
 #define dumpkmap_trivial_usage \
        "> keymap"
 #define dumpkmap_full_usage "\n\n" \
-       "Print a binary keyboard translation table to standard output"
+       "Print a binary keyboard translation table to stdout"
 #define dumpkmap_example_usage \
        "$ dumpkmap > keymap\n"
 
@@ -1058,7 +1058,7 @@
 #define eject_trivial_usage \
        "[-t] [-T] [DEVICE]"
 #define eject_full_usage "\n\n" \
-       "Eject specified DEVICE (or default /dev/cdrom)\n" \
+       "Eject DEVICE or default /dev/cdrom\n" \
      "\nOptions:" \
 	IF_FEATURE_EJECT_SCSI( \
      "\n	-s	SCSI device" \
@@ -1092,7 +1092,7 @@
 #define expand_trivial_usage \
        "[-i] [-t N] [FILE|-]"
 #define expand_full_usage "\n\n" \
-       "Convert tabs to spaces, writing to standard output\n" \
+       "Convert tabs to spaces, writing to stdout\n" \
      "\nOptions:" \
 	IF_FEATURE_EXPAND_LONG_OPTIONS( \
      "\n	-i,--initial	Don't convert tabs after non blanks" \
@@ -1106,7 +1106,7 @@
 #define expr_trivial_usage \
        "EXPRESSION"
 #define expr_full_usage "\n\n" \
-       "Print the value of EXPRESSION to standard output\n" \
+       "Print the value of EXPRESSION to stdout\n" \
     "\n" \
        "EXPRESSION may be:\n" \
        "	ARG1 | ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
@@ -1261,7 +1261,7 @@
 	IF_FEATURE_FIND_DEPTH( \
      "\n	-depth		Process directory name after traversing it") \
 	IF_FEATURE_FIND_SIZE( \
-     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))." \
+     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))" \
      "\n			+/-N: file size is bigger/smaller than N") \
 	IF_FEATURE_FIND_LINKS( \
      "\n	-links N	Number of links is greater than (+N), less than (-N)," \
@@ -1313,10 +1313,9 @@
      "\n	-v	Verbose" \
 
 #define fold_trivial_usage \
-       "[-bs] [-w WIDTH] [FILE]"
+       "[-bs] [-w WIDTH] [FILE]..."
 #define fold_full_usage "\n\n" \
-       "Wrap input lines in each FILE (standard input by default), writing to\n" \
-       "standard output\n" \
+       "Wrap input lines in each FILE (or stdin), writing to stdout\n" \
      "\nOptions:" \
      "\n	-b	Count bytes rather than columns" \
      "\n	-s	Break at spaces" \
@@ -1468,7 +1467,7 @@
        "#!/bin/sh\n" \
        "GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n" \
        "       -n 'example.busybox' -- \"$@\"`\n" \
-       "if [ $? != 0 ]; then  exit 1; fi\n" \
+       "if [ $? != 0 ]; then exit 1; fi\n" \
        "eval set -- \"$GETOPT\"\n" \
        "while true; do\n" \
        " case $1 in\n" \
@@ -1516,7 +1515,7 @@
 	IF_FEATURE_GREP_CONTEXT("[-A/B/C N] ") \
        "PATTERN/-e PATTERN.../-f FILE [FILE]..."
 #define grep_full_usage "\n\n" \
-       "Search for PATTERN in each FILE or standard input\n" \
+       "Search for PATTERN in FILEs (or stdin)\n" \
      "\nOptions:" \
      "\n	-H	Add 'filename:' prefix" \
      "\n	-h	Do not add 'filename:' prefix" \
@@ -1564,9 +1563,9 @@
 #define gunzip_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define gunzip_full_usage "\n\n" \
-       "Uncompress FILEs (or standard input)\n" \
+       "Uncompress FILEs (or stdin)\n" \
      "\nOptions:" \
-     "\n	-c	Write to standard output" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
      "\n	-t	Test file integrity" \
 
@@ -1580,9 +1579,9 @@
 #define gzip_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define gzip_full_usage "\n\n" \
-       "Compress FILEs (or standard input)\n" \
+       "Compress FILEs (or stdin)\n" \
      "\nOptions:" \
-     "\n	-c	Write to standard output" \
+     "\n	-c	Write to stdout" \
      "\n	-d	Decompress" \
      "\n	-f	Force" \
 
@@ -1659,7 +1658,7 @@
 #define head_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define head_full_usage "\n\n" \
-       "Print first 10 lines of each FILE (or standard input) to standard output.\n" \
+       "Print first 10 lines of each FILE (or stdin) to stdout.\n" \
        "With more than one FILE, precede each with a header giving the file name.\n" \
      "\nOptions:" \
      "\n	-n N	Print first N lines instead of first 10" \
@@ -1674,9 +1673,9 @@
        "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #define hexdump_trivial_usage \
-       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] FILE..."
+       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
 #define hexdump_full_usage "\n\n" \
-       "Display FILEs or standard input in a user specified format\n" \
+       "Display FILEs (or stdin) in a user specified format\n" \
      "\nOptions:" \
      "\n	-b		One-byte octal display" \
      "\n	-c		One-byte character display" \
@@ -2028,11 +2027,11 @@
 "	::shutdown:/sbin/swapoff -a\n"
 
 #define inotifyd_trivial_usage \
-	"PROG FILE1[:MASK] ..."
+	"PROG FILE1[:MASK]..."
 #define inotifyd_full_usage "\n\n" \
        "Run PROG on filesystem changes." \
      "\nWhen a filesystem event matching MASK occurs on FILEn," \
-     "\nPROG <actual_event(s)> <FILEn> [<subfile_name>] is run." \
+     "\nPROG ACTUAL_EVENTS FILEn [SUBFILE] is run." \
      "\nEvents:" \
      "\n	a	File is accessed" \
      "\n	c	File is modified" \
@@ -2052,7 +2051,7 @@
      "\n	d	Subfile is deleted" \
      "\n" \
      "\ninotifyd waits for PROG to exit." \
-     "\nWhen x event happens for all FILEs, inotifyd exits" \
+     "\nWhen x event happens for all FILEs, inotifyd exits." \
 
 /* 2.6 style insmod has no options and required filename
  * (not module name - .ko can't be omitted) */
@@ -2297,8 +2296,7 @@
 #define less_trivial_usage \
        "[-EMNmh~I?] [FILE]..."
 #define less_full_usage "\n\n" \
-       "View a file or list of files. The position within files can be\n" \
-       "changed, and files can be manipulated in various ways.\n" \
+       "View FILE (or stdin) one screenful at a time\n" \
      "\nOptions:" \
      "\n	-E	Quit once the end of a file is reached" \
      "\n	-M,-m	Display status line with line numbers" \
@@ -2344,7 +2342,7 @@
 #define loadfont_trivial_usage \
        "< font"
 #define loadfont_full_usage "\n\n" \
-       "Load a console font from standard input" \
+       "Load a console font from stdin" \
 /*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
 
 #define loadfont_example_usage \
@@ -2353,7 +2351,7 @@
 #define loadkmap_trivial_usage \
        "< keymap"
 #define loadkmap_full_usage "\n\n" \
-       "Load a binary keyboard translation table from standard input\n" \
+       "Load a binary keyboard translation table from stdin\n" \
 /*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
 
 #define loadkmap_example_usage \
@@ -2362,7 +2360,7 @@
 #define logger_trivial_usage \
        "[OPTIONS] [MESSAGE]"
 #define logger_full_usage "\n\n" \
-       "Write MESSAGE to the system log. If MESSAGE is omitted, log stdin.\n" \
+       "Write MESSAGE (or stdin) to syslog\n" \
      "\nOptions:" \
      "\n	-s	Log to stderr as well as the system log" \
      "\n	-t TAG	Log using the specified tag (defaults to user name)" \
@@ -2972,7 +2970,7 @@
 #define more_trivial_usage \
        "[FILE]..."
 #define more_full_usage "\n\n" \
-       "View FILE or standard input one screenful at a time"
+       "View FILE (or stdin) one screenful at a time"
 
 #define more_example_usage \
        "$ dmesg | more\n"
@@ -3261,7 +3259,7 @@
        "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
 #define od_full_usage "\n\n" \
        "Write an unambiguous representation, octal bytes by default, of FILE\n" \
-       "(or standard input) to standard output."
+       "(or stdin) to stdout"
 
 #define openvt_trivial_usage \
        "[-c N] [-sw] [PROG ARGS]"
@@ -3639,10 +3637,10 @@
        "Parse MIME-encoded message\n" \
      "\nOptions:" \
      "\n	-x PREFIX	Extract content of MIME sections to files" \
-     "\n	-X PROG ARGS	Filter content of MIME sections through prog." \
+     "\n	-X PROG ARGS	Filter content of MIME sections through PROG" \
      "\n			Must be the last option" \
      "\n" \
-     "\nOther options are silently ignored." \
+     "\nOther options are silently ignored" \
 
 #define renice_trivial_usage \
        "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
@@ -3918,7 +3916,7 @@
        "[-w] [-s SEP] [FIRST [INC]] LAST"
 #define seq_full_usage "\n\n" \
        "Print numbers from FIRST to LAST, in steps of INC.\n" \
-       "FIRST, INC default to 1\n" \
+       "FIRST, INC default to 1.\n" \
      "\nOptions:" \
      "\n	-w	Pad to last with leading zeros" \
      "\n	-s SEP	String separator" \
@@ -3959,7 +3957,7 @@
      "\n	-e DIR	Exclude DIR" \
      "\n	-F	Force reset of context to match file_context for customizable files" \
      "\n	-o FILE	Save list of files with incorrect context" \
-     "\n	-s	Take a list of files from standard input (instead of command line)" \
+     "\n	-s	Take a list of files from stdin (instead of command line)" \
      "\n	-v	Show changes in file labels, if type or role are changing" \
      "\n	-vv	Show changes in file labels, if type, role, or user are changing" \
      "\n	-W	Display warnings about entries that had no matching files" \
@@ -3981,7 +3979,7 @@
        "Set entries into the kernel's scancode-to-keycode map,\n" \
        "allowing unusual keyboards to generate usable keycodes.\n\n" \
        "SCANCODE may be either xx or e0xx (hexadecimal),\n" \
-       "and KEYCODE is given in decimal" \
+       "and KEYCODE is given in decimal." \
 
 #define setkeycodes_example_usage \
        "$ setkeycodes e030 127\n"
@@ -4299,7 +4297,7 @@
 #define svlogd_trivial_usage \
        "[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."
 #define svlogd_full_usage "\n\n" \
-       "Continuously read log data from standard input, optionally\n" \
+       "Continuously read log data from stdin, optionally\n" \
        "filter log messages, and write the data to one or more automatically\n" \
        "rotated logs" \
 
@@ -4364,7 +4362,7 @@
        "[OPTIONS]"
 #define syslogd_full_usage "\n\n" \
        "System logging utility.\n" \
-       "Note that this version of syslogd ignores /etc/syslog.conf.\n" \
+       "This version of syslogd ignores /etc/syslog.conf\n" \
      "\nOptions:" \
      "\n	-n		Run in foreground" \
      "\n	-O FILE		Log to given file (default:/var/log/messages)" \
@@ -4395,7 +4393,7 @@
 #define tail_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define tail_full_usage "\n\n" \
-       "Print last 10 lines of each FILE (or standard input) to standard output.\n" \
+       "Print last 10 lines of each FILE (or stdin) to stdout.\n" \
        "With more than one FILE, precede each with a header giving the file name.\n" \
      "\nOptions:" \
 	IF_FEATURE_FANCY_TAIL( \
@@ -4484,7 +4482,7 @@
 #define tee_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define tee_full_usage "\n\n" \
-       "Copy standard input to each FILE, and also to standard output\n" \
+       "Copy stdin to each FILE, and also to stdout\n" \
      "\nOptions:" \
      "\n	-a	Append to the given FILEs, don't overwrite" \
      "\n	-i	Ignore interrupt signals (SIGINT)" \
@@ -4578,7 +4576,7 @@
 /* with not-implemented options: */
 /*     "[-hpEvv] [-c N] [-C N[:MSG]] [-b N] [-u USER] [-l NAME] [-i DIR|-x CDB] [-t SEC] IP PORT PROG" */
 #define tcpsvd_full_usage "\n\n" \
-       "Create TCP socket, bind  to IP:PORT and listen\n" \
+       "Create TCP socket, bind to IP:PORT and listen\n" \
        "for incoming connection. Run PROG for each connection.\n" \
      "\n	IP		IP to listen on. '0' = all" \
      "\n	PORT		Port to listen on" \
@@ -4645,12 +4643,12 @@
 #define time_trivial_usage \
        "[OPTIONS] PROG ARGS"
 #define time_full_usage "\n\n" \
-       "Run PROG. When it finishes, its resource usage is displayed.\n" \
+       "Run PROG, display resource usage when it exits\n" \
      "\nOptions:" \
      "\n	-v	Verbose" \
 
 #define timeout_trivial_usage \
-	"[-t SECS] [-s SIG] PROG ARGS"
+       "[-t SECS] [-s SIG] PROG ARGS"
 #define timeout_full_usage "\n\n" \
        "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n" \
        "Defaults: SECS: 10, SIG: TERM." \
@@ -4660,7 +4658,8 @@
 #define top_full_usage "\n\n" \
        "Provide a view of process activity in real time.\n" \
        "Read the status of all processes from /proc each SECONDS\n" \
-       "and show the status for however many processes will fit on the screen." \
+       "and display a screenful of them." \
+//TODO: add options and keyboard commands
 
 #define touch_trivial_usage \
        "[-c] [-d DATE] FILE [FILE]..."
@@ -4680,8 +4679,8 @@
 #define tr_trivial_usage \
        "[-cds] STRING1 [STRING2]"
 #define tr_full_usage "\n\n" \
-       "Translate, squeeze, and/or delete characters from\n" \
-       "standard input, writing to standard output\n" \
+       "Translate, squeeze, or delete characters from stdin, writing to stdout\n" \
+       "stdin, writing to stdout\n" \
      "\nOptions:" \
      "\n	-c	Take complement of STRING1" \
      "\n	-d	Delete input characters coded STRING1" \
@@ -4748,7 +4747,7 @@
 #define tty_trivial_usage \
        ""
 #define tty_full_usage "\n\n" \
-       "Print file name of standard input's terminal" \
+       "Print file name of stdin's terminal" \
 	IF_INCLUDE_SUSv2( "\n" \
      "\nOptions:" \
      "\n	-s	Print nothing, only return exit status" \
@@ -4760,7 +4759,7 @@
 #define ttysize_trivial_usage \
        "[w] [h]"
 #define ttysize_full_usage "\n\n" \
-       "Print dimension(s) of standard input's terminal, on error return 80x25"
+       "Print dimension(s) of stdin's terminal, on error return 80x25"
 
 #define tunctl_trivial_usage \
        "[-f device] ([-t name] | -d name)" IF_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
@@ -4914,7 +4913,7 @@
 #define unexpand_trivial_usage \
        "[-f][-a][-t N] [FILE|-]"
 #define unexpand_full_usage "\n\n" \
-       "Convert spaces to tabs, writing to standard output\n" \
+       "Convert spaces to tabs, writing to stdout\n" \
      "\nOptions:" \
 	IF_FEATURE_UNEXPAND_LONG_OPTIONS( \
      "\n	-a,--all	Convert all blanks" \
@@ -5039,7 +5038,7 @@
 #define wall_trivial_usage \
 	"[FILE]"
 #define wall_full_usage "\n\n" \
-	"Write content of FILE or standard-input to all logged-in users"
+	"Write content of FILE or stdin to all logged-in users"
 #define wall_sample_usage \
 	"echo foo | wall\n" \
 	"wall ./mymessage"
@@ -5072,8 +5071,8 @@
 #define wc_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define wc_full_usage "\n\n" \
-       "Print line, word, and byte counts for each FILE, and a total line if\n" \
-       "more than one FILE is specified. With no FILE, read standard input.\n" \
+       "Print line, word, and byte counts for each FILE (or stdin),\n" \
+       "and a total line if more than one FILE is specified\n" \
      "\nOptions:" \
      "\n	-c	Print the byte counts" \
      "\n	-l	Print the newline counts" \
@@ -5127,7 +5126,7 @@
 #define xargs_trivial_usage \
        "[OPTIONS] [PROG ARGS]"
 #define xargs_full_usage "\n\n" \
-       "Run PROG on every item given by standard input\n" \
+       "Run PROG on every item given by stdin\n" \
      "\nOptions:" \
 	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
      "\n	-p	Ask user whether to run each command") \
