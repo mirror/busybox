@@ -203,7 +203,7 @@
 #define bzip2_full_usage "\n\n" \
        "Compress FILEs (or stdin) with bzip2 algorithm\n" \
      "\nOptions:" \
-     "\n	-c	Write to stout" \
+     "\n	-c	Write to stdout" \
      "\n	-d	Decompress" \
      "\n	-f	Force" \
      "\n	-1..-9	Compression level" \
