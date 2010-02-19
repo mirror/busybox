@@ -422,7 +422,7 @@ called 'strings.c' - instead of two, food for thought).
 Testing String Equivalence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There's a right way and a wrong way to test for sting equivalence with
+There's a right way and a wrong way to test for string equivalence with
 strcmp():
 
 	The wrong way:
