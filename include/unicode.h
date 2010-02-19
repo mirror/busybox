@@ -5,6 +5,11 @@
 #ifndef UNICODE_H
 #define UNICODE_H 1
 
+#if ENABLE_LOCALE_SUPPORT
+# include <wchar.h>
+# include <wctype.h>
+#endif
+
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 enum {
@@ -33,8 +38,6 @@ char* FAST_FUNC unicode_conv_to_printable_fixedwidth(uni_stat_t *stats, const ch
 
 # if ENABLE_LOCALE_SUPPORT
 
-#  include <wchar.h>
-#  include <wctype.h>
 extern uint8_t unicode_status;
 void init_unicode(void) FAST_FUNC;
 
