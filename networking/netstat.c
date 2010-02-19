@@ -437,7 +437,7 @@ static int FAST_FUNC tcp_do_one(char *line)
 	) \
 )
 #else
-# define NOT_NULL_ADDR(A) (A.sin_addr.s_addr)
+# define NOT_NULL_ADDR(A) (A.sin.sin_addr.s_addr)
 #endif
 
 static int FAST_FUNC udp_do_one(char *line)
