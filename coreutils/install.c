@@ -167,11 +167,22 @@ int install_main(int argc, char **argv)
 				free(ddir);
 			}
 			if (isdir)
-				dest = concat_path_file(last, basename(arg));
-			if (copy_file(arg, dest, copy_flags)) {
+				dest = concat_path_file(last, bb_basename(arg));
+			if (copy_file(arg, dest, copy_flags) != 0) {
 				/* copy is not made */
 				ret = EXIT_FAILURE;
 				goto next;
+			}
+			if (opts & OPT_STRIP) {
+				char *args[4];
+				args[0] = (char*)"strip";
+				args[1] = (char*)"-p"; /* -p --preserve-dates */
+				args[2] = dest;
+				args[3] = NULL;
+				if (spawn_and_wait(args)) {
+					bb_perror_msg("strip");
+					ret = EXIT_FAILURE;
+				}
 			}
 		}
 
@@ -191,16 +202,6 @@ int install_main(int argc, char **argv)
 		) {
 			bb_perror_msg("can't change %s of %s", "ownership", dest);
 			ret = EXIT_FAILURE;
-		}
-		if (opts & OPT_STRIP) {
-			char *args[3];
-			args[0] = (char*)"strip";
-			args[1] = dest;
-			args[2] = NULL;
-			if (spawn_and_wait(args)) {
-				bb_perror_msg("strip");
-				ret = EXIT_FAILURE;
-			}
 		}
  next:
 		if (ENABLE_FEATURE_CLEAN_UP && isdir)
