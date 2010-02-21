@@ -27,7 +27,7 @@ int free_main(int argc UNUSED_PARAM, char **argv)
 		/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
 		info.totalram/=info.mem_unit;
 		info.freeram/=info.mem_unit;
-#ifndef __uClinux__
+#if BB_MMU
 		info.totalswap/=info.mem_unit;
 		info.freeswap/=info.mem_unit;
 #endif
@@ -38,7 +38,7 @@ int free_main(int argc UNUSED_PARAM, char **argv)
 		/* TODO:  Make all this stuff not overflow when mem >= 4 Gib */
 		info.totalram*=info.mem_unit;
 		info.freeram*=info.mem_unit;
-#ifndef __uClinux__
+#if BB_MMU
 		info.totalswap*=info.mem_unit;
 		info.freeswap*=info.mem_unit;
 #endif
@@ -56,7 +56,7 @@ int free_main(int argc UNUSED_PARAM, char **argv)
 			info.totalram-info.freeram, info.freeram,
 			info.sharedram, info.bufferram);
 
-#ifndef __uClinux__
+#if BB_MMU
 	printf("%6s%13ld%13ld%13ld\n", "Swap:", info.totalswap,
 			info.totalswap-info.freeswap, info.freeswap);
 

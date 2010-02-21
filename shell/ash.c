@@ -73,7 +73,7 @@
 # define PIPE_BUF 4096           /* amount of buffering in a pipe */
 #endif
 
-#if defined(__uClinux__)
+#if !BB_MMU
 # error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
