@@ -13,7 +13,7 @@
 #include <sys/kd.h>
 
 #ifndef KDFONTOP
-#define KDFONTOP 0x4B72
+# define KDFONTOP 0x4B72
 struct console_font_op {
 	unsigned op;            /* KD_FONT_OP_* */
 	unsigned flags;         /* KD_FONT_FLAG_* */
@@ -21,91 +21,137 @@ struct console_font_op {
 	unsigned charcount;
 	unsigned char *data;    /* font data with height fixed to 32 */
 };
-
-#define KD_FONT_OP_SET          0  /* Set font */
-#define KD_FONT_OP_GET          1  /* Get font */
-#define KD_FONT_OP_SET_DEFAULT  2  /* Set font to default,
-                                         data points to name / NULL */
-#define KD_FONT_OP_COPY         3  /* Copy from another console */
-
-#define KD_FONT_FLAG_OLD        0x80000000 /* Invoked via old interface */
-#define KD_FONT_FLAG_DONT_RECALC 1 /* Don't call adjust_height() */
+# define KD_FONT_OP_SET          0  /* Set font */
+# define KD_FONT_OP_GET          1  /* Get font */
+# define KD_FONT_OP_SET_DEFAULT  2  /* Set font to default, data points to name / NULL */
+# define KD_FONT_OP_COPY         3  /* Copy from another console */
+# define KD_FONT_FLAG_OLD        0x80000000 /* Invoked via old interface */
+# define KD_FONT_FLAG_DONT_RECALC 1 /* Don't call adjust_height() */
                                    /* (Used internally for PIO_FONT support) */
 #endif /* KDFONTOP */
 
 
 enum {
-	PSF_MAGIC1 = 0x36,
-	PSF_MAGIC2 = 0x04,
-
-	PSF_MODE512 = 0x01,
-	PSF_MODEHASTAB = 0x02,
-	PSF_MAXMODE = 0x03,
-	PSF_SEPARATOR = 0xffff
+	PSF1_MAGIC0 = 0x36,
+	PSF1_MAGIC1 = 0x04,
+	PSF1_MODE512 = 0x01,
+	PSF1_MODEHASTAB = 0x02,
+	PSF1_MODEHASSEQ = 0x04,
+	PSF1_MAXMODE = 0x05,
+	PSF1_STARTSEQ = 0xfffe,
+	PSF1_SEPARATOR = 0xffff,
 };
 
-struct psf_header {
-	unsigned char magic1, magic2;   /* Magic number */
+struct psf1_header {
+	unsigned char magic[2];         /* Magic number */
 	unsigned char mode;             /* PSF font mode */
 	unsigned char charsize;         /* Character size */
 };
 
-#define PSF_MAGIC_OK(x)	((x)->magic1 == PSF_MAGIC1 && (x)->magic2 == PSF_MAGIC2)
+#define psf1h(x) ((struct psf1_header*)(x))
 
-static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
+#define PSF1_MAGIC_OK(x) ( \
+     (x)->magic[0] == PSF1_MAGIC0 \
+  && (x)->magic[1] == PSF1_MAGIC1 \
+)
+
+#if ENABLE_FEATURE_LOADFONT_PSF2
+enum {
+	PSF2_MAGIC0 = 0x72,
+	PSF2_MAGIC1 = 0xb5,
+	PSF2_MAGIC2 = 0x4a,
+	PSF2_MAGIC3 = 0x86,
+	PSF2_HAS_UNICODE_TABLE = 0x01,
+	PSF2_MAXVERSION = 0,
+	PSF2_STARTSEQ = 0xfe,
+	PSF2_SEPARATOR = 0xff
+};
+
+struct psf2_header {
+	unsigned char magic[4];
+	unsigned int version;
+	unsigned int headersize;    /* offset of bitmaps in file */
+	unsigned int flags;
+	unsigned int length;        /* number of glyphs */
+	unsigned int charsize;      /* number of bytes for each character */
+	unsigned int height;        /* max dimensions of glyphs */
+	unsigned int width;         /* charsize = height * ((width + 7) / 8) */
+};
+
+#define psf2h(x) ((struct psf2_header*)(x))
+
+#define PSF2_MAGIC_OK(x) ( \
+     (x)->magic[0] == PSF2_MAGIC0 \
+  && (x)->magic[1] == PSF2_MAGIC1 \
+  && (x)->magic[2] == PSF2_MAGIC2 \
+  && (x)->magic[3] == PSF2_MAGIC3 \
+)
+#endif /* ENABLE_FEATURE_LOADFONT_PSF2 */
+
+
+static void do_loadfont(int fd, unsigned char *inbuf, int height, int width, int charsize, int fontsize)
 {
-	char *buf;
+	unsigned char *buf;
+	int charwidth = 32 * ((width+7)/8);
 	int i;
 
-	if (unit < 1 || unit > 32)
-		bb_error_msg_and_die("bad character size %d", unit);
+	if (height < 1 || height > 32 || width < 1 || width > 32)
+		bb_error_msg_and_die("bad character size %dx%d", height, width);
 
-	buf = xzalloc(16 * 1024);
+	buf = xzalloc(charwidth * ((fontsize < 128) ? 128 : fontsize));
 	for (i = 0; i < fontsize; i++)
-		memcpy(buf + (32 * i), inbuf + (unit * i), unit);
+		memcpy(buf + (i*charwidth), inbuf + (i*charsize), charsize);
 
 	{ /* KDFONTOP */
 		struct console_font_op cfo;
-
 		cfo.op = KD_FONT_OP_SET;
 		cfo.flags = 0;
-		cfo.width = 8;
-		cfo.height = unit;
+		cfo.width = width;
+		cfo.height = height;
 		cfo.charcount = fontsize;
-		cfo.data = (void*)buf;
-#if 0
-		if (!ioctl_or_perror(fd, KDFONTOP, &cfo, "KDFONTOP ioctl failed (will try PIO_FONTX)"))
-			goto ret;  /* success */
-#else
+		cfo.data = buf;
 		xioctl(fd, KDFONTOP, &cfo);
-#endif
 	}
 
-#if 0
-/* These ones do not honour -C tty (they set font on current tty regardless)
- * On x86, this distinction is visible on framebuffer consoles
- * (regular character consoles may have only one shared font anyway)
- */
-#if defined(PIO_FONTX) && !defined(__sparc__)
-	{
-		struct consolefontdesc cfd;
-
-		cfd.charcount = fontsize;
-		cfd.charheight = unit;
-		cfd.chardata = buf;
-
-		if (!ioctl_or_perror(fd, PIO_FONTX, &cfd, "PIO_FONTX ioctl failed (will try PIO_FONT)"))
-			goto ret;  /* success */
-	}
-#endif
-	xioctl(fd, PIO_FONT, buf);
- ret:
-#endif /* 0 */
 	free(buf);
 }
 
-static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
+/*
+ * Format of the Unicode information:
+ *
+ * For each font position <uc>*<seq>*<term>
+ * where <uc> is a 2-byte little endian Unicode value (PSF1)
+ * or an UTF-8 coded value (PSF2),
+ * <seq> = <ss><uc><uc>*, <ss> = psf1 ? 0xFFFE : 0xFE,
+ * <term> = psf1 ? 0xFFFF : 0xFF.
+ * and * denotes zero or more occurrences of the preceding item.
+ *
+ * Semantics:
+ * The leading <uc>* part gives Unicode symbols that are all
+ * represented by this font position. The following sequences
+ * are sequences of Unicode symbols - probably a symbol
+ * together with combining accents - also represented by
+ * this font position.
+ *
+ * Example:
+ * At the font position for a capital A-ring glyph, we
+ * may have:
+ *	00C5,212B,FFFE,0041,030A,FFFF
+ * Some font positions may be described by sequences only,
+ * namely when there is no precomposed Unicode value for the glyph.
+ */
+#if !ENABLE_FEATURE_LOADFONT_PSF2
+#define do_loadtable(fd, inbuf, tailsz, fontsize, psf2) \
+	do_loadtable(fd, inbuf, tailsz, fontsize)
+#endif
+static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize, int psf2)
 {
+#if !ENABLE_FEATURE_LOADFONT_PSF2
+/* gcc 4.3.1 code size: */
+# define psf2 0 /* +0 bytes */
+//	const int psf2 = 0; /* +8 bytes */
+//	enum { psf2 = 0 }; /* +13 bytes */
+#endif
 	struct unimapinit advice;
 	struct unimapdesc ud;
 	struct unipair *up;
@@ -114,15 +160,48 @@ static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	uint16_t unicode;
 
 	maxct = tailsz;	/* more than enough */
-	up = xmalloc(maxct * sizeof(struct unipair));
+	up = xmalloc(maxct * sizeof(*up));
 
 	for (glyph = 0; glyph < fontsize; glyph++) {
-		while (tailsz >= 2) {
-			unicode = (((uint16_t) inbuf[1]) << 8) + inbuf[0];
-			tailsz -= 2;
-			inbuf += 2;
-			if (unicode == PSF_SEPARATOR)
-				break;
+		while (tailsz > 0) {
+			if (!psf2) { /* PSF1 */
+				unicode = (((uint16_t) inbuf[1]) << 8) + inbuf[0];
+				tailsz -= 2;
+				inbuf += 2;
+				if (unicode == PSF1_SEPARATOR)
+					break;
+			} else { /* PSF2 */
+#if ENABLE_FEATURE_LOADFONT_PSF2
+				--tailsz;
+				unicode = *inbuf++;
+				if (unicode == PSF2_SEPARATOR) {
+					break;
+				} else if (unicode == PSF2_STARTSEQ) {
+					bb_error_msg_and_die("unicode sequences not implemented");
+				} else if (unicode >= 0xC0) {
+					if (unicode >= 0xFC)
+						unicode &= 0x01, maxct = 5;
+					else if (unicode >= 0xF8)
+						unicode &= 0x03, maxct = 4;
+					else if (unicode >= 0xF0)
+						unicode &= 0x07, maxct = 3;
+					else if (unicode >= 0xE0)
+						unicode &= 0x0F, maxct = 2;
+					else
+						unicode &= 0x1F, maxct = 1;
+					do {
+						if (tailsz <= 0 || *inbuf < 0x80 || *inbuf > 0xBF)
+							bb_error_msg_and_die("illegal UTF-8 character");
+						--tailsz;
+						unicode = (unicode << 6) + (*inbuf++ & 0x3F);
+					} while (--maxct > 0);
+				} else if (unicode >= 0x80) {
+					bb_error_msg_and_die("illegal UTF-8 character");
+				}
+#else
+				return;
+#endif
+			}
 			up[ct].unicode = unicode;
 			up[ct].fontpos = glyph;
 			ct++;
@@ -139,58 +218,78 @@ static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	ud.entry_ct = ct;
 	ud.entries = up;
 	xioctl(fd, PIO_UNIMAP, &ud);
+#undef psf2
 }
 
-static void do_load(int fd, struct psf_header *psfhdr, size_t len)
+static void do_load(int fd, unsigned char *buffer, size_t len)
 {
-	int unit;
-	int fontsize;
-	int hastable;
-	unsigned head0, head = head;
+	int height;
+	int width = 8;
+	int charsize;
+	int fontsize = 256;
+	int has_table = 0;
+	unsigned char *font = buffer;
+	unsigned char *table;
 
-	/* test for psf first */
-	if (len >= sizeof(struct psf_header) && PSF_MAGIC_OK(psfhdr)) {
-		if (psfhdr->mode > PSF_MAXMODE)
+	if (len >= sizeof(struct psf1_header) && PSF1_MAGIC_OK(psf1h(buffer))) {
+		if (psf1h(buffer)->mode > PSF1_MAXMODE)
 			bb_error_msg_and_die("unsupported psf file mode");
-		fontsize = ((psfhdr->mode & PSF_MODE512) ? 512 : 256);
-#if !defined(PIO_FONTX) || defined(__sparc__)
-		if (fontsize != 256)
-			bb_error_msg_and_die("only fontsize 256 supported");
+		if (psf1h(buffer)->mode & PSF1_MODE512)
+			fontsize = 512;
+		if (psf1h(buffer)->mode & PSF1_MODEHASTAB)
+			has_table = 1;
+		height = charsize = psf1h(buffer)->charsize;
+		font += sizeof(struct psf1_header);
+	} else
+#if ENABLE_FEATURE_LOADFONT_PSF2
+	if (len >= sizeof(struct psf2_header) && PSF2_MAGIC_OK(psf2h(buffer))) {
+		if (psf2h(buffer)->version > PSF2_MAXVERSION)
+			bb_error_msg_and_die("unsupported psf file version");
+		fontsize = psf2h(buffer)->length;
+		if (psf2h(buffer)->flags & PSF2_HAS_UNICODE_TABLE)
+			has_table = 2;
+		charsize = psf2h(buffer)->charsize;
+		height = psf2h(buffer)->height;
+		width = psf2h(buffer)->width;
+		font += psf2h(buffer)->headersize;
+	} else
 #endif
-		hastable = (psfhdr->mode & PSF_MODEHASTAB);
-		unit = psfhdr->charsize;
-		head0 = sizeof(struct psf_header);
-
-		head = head0 + fontsize * unit;
-		if (head > len || (!hastable && head != len))
-			bb_error_msg_and_die("input file: bad length");
-	} else {
-		/* file with three code pages? */
-		if (len == 9780) {
-			head0 = 40;
-			unit = 16;
-		} else {
-			/* bare font */
-			if (len & 0377)
-				bb_error_msg_and_die("input file: bad length");
-			head0 = 0;
-			unit = len / 256;
-		}
-		fontsize = 256;
-		hastable = 0;
+#if ENABLE_FEATURE_LOADFONT_RAW
+	if (len == 9780) {	/* file with three code pages? */
+		charsize = height = 16;
+		font += 40;
+	} else if ((len & 0377) == 0) {		/* bare font */
+		charsize = height = len / 256;
+	} else
+#endif
+	{
+		bb_error_msg_and_die("input file: bad length or unsupported font type");
 	}
 
-	do_loadfont(fd, (unsigned char *)psfhdr + head0, unit, fontsize);
-	if (hastable)
-		do_loadtable(fd, (unsigned char *)psfhdr + head, len - head, fontsize);
+#if !defined(PIO_FONTX) || defined(__sparc__)
+	if (fontsize != 256)
+		bb_error_msg_and_die("only fontsize 256 supported");
+#endif
+
+	table = font + fontsize * charsize;
+	buffer += len;
+
+	if (table > buffer || (!has_table && table != buffer))
+		bb_error_msg_and_die("input file: bad length");
+
+	do_loadfont(fd, font, height, width, charsize, fontsize);
+
+	if (has_table)
+		do_loadtable(fd, table, buffer - table, fontsize, has_table - 1);
 }
+
 
 #if ENABLE_LOADFONT
 int loadfont_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int loadfont_main(int argc UNUSED_PARAM, char **argv)
 {
 	size_t len;
-	struct psf_header *psfhdr;
+	unsigned char *buffer;
 
 	// no arguments allowed!
 	opt_complementary = "=0";
@@ -202,11 +301,11 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 	 * just read the entire file.
 	 */
 	len = 32*1024; // can't be larger
-	psfhdr = xmalloc_read(STDIN_FILENO, &len);
+	buffer = xmalloc_read(STDIN_FILENO, &len);
 	// xmalloc_open_zipped_read_close(filename, &len);
-	if (!psfhdr)
+	if (!buffer)
 		bb_perror_msg_and_die("error reading input font");
-	do_load(get_console_fd_or_die(), psfhdr, len);
+	do_load(get_console_fd_or_die(), buffer, len);
 
 	return EXIT_SUCCESS;
 }
@@ -269,7 +368,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	size_t len;
 	unsigned opts;
 	int fd;
-	struct psf_header *psfhdr;
+	unsigned char *buffer;
 	char *mapfilename;
 	const char *tty_name = CURRENT_TTY;
 
@@ -287,10 +386,10 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 	}
 	// load font
 	len = 32*1024; // can't be larger
-	psfhdr = xmalloc_open_zipped_read_close(*argv, &len);
-	if (!psfhdr)
+	buffer = xmalloc_open_zipped_read_close(*argv, &len);
+	if (!buffer)
 		bb_simple_perror_msg_and_die(*argv);
-	do_load(fd, psfhdr, len);
+	do_load(fd, buffer, len);
 
 	// load the screen map, if any
 	if (opts & 1) { // -m

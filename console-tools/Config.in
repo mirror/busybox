@@ -135,4 +135,21 @@ config SHOWKEY
 	help
 	  Shows keys pressed.
 
+comment "Common options for loadfont and setfont"
+	depends on LOADFONT || SETFONT
+
+config FEATURE_LOADFONT_PSF2
+	bool "Support for PSF2 console fonts"
+	default n
+	depends on LOADFONT || SETFONT
+	help
+	  Support PSF2 console fonts.
+
+config FEATURE_LOADFONT_RAW
+	bool "Support for old (raw) console fonts"
+	default n
+	depends on LOADFONT || SETFONT
+	help
+	  Support old (raw) console fonts.
+
 endmenu
