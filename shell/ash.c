@@ -4539,7 +4539,7 @@ forkchild(struct job *jp, union node *n, int mode)
 	if (mode == FORK_NOJOB          /* is it `xxx` ? */
 	 && n && n->type == NCMD        /* is it single cmd? */
 	/* && n->ncmd.args->type == NARG - always true? */
-	 && strcmp(n->ncmd.args->narg.text, "trap") == 0
+	 && n->ncmd.args && strcmp(n->ncmd.args->narg.text, "trap") == 0
 	 && n->ncmd.args->narg.next == NULL /* "trap" with no arguments */
 	/* && n->ncmd.args->narg.backquote == NULL - do we need to check this? */
 	) {
@@ -4627,7 +4627,7 @@ forkchild(struct job *jp, union node *n, int mode)
 	}
 #if JOBS
 	if (n && n->type == NCMD
-	 && strcmp(n->ncmd.args->narg.text, "jobs") == 0
+	 && n->ncmd.args && strcmp(n->ncmd.args->narg.text, "jobs") == 0
 	) {
 		TRACE(("Job hack\n"));
 		/* "jobs": we do not want to clear job list for it,
