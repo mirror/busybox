@@ -66,9 +66,6 @@ struct globals {
 	char *subsystem;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define root_major (G.root_major)
-#define root_minor (G.root_minor)
-#define subsystem  (G.subsystem )
 
 /* Prevent infinite loops in /sys symlinks */
 #define MAX_SYSFS_DEPTH 3
@@ -109,7 +106,7 @@ static char *build_alias(char *alias, const char *device_name)
  */
 static void make_device(char *path, int delete)
 {
-	char *device_name;
+	char *device_name, *subsystem_slash_devname;
 	int major, minor, type, len;
 	mode_t mode;
 	parser_t *parser;
@@ -140,17 +137,29 @@ static void make_device(char *path, int delete)
 	device_name = (char*) bb_basename(path);
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
-	 * But since 2.6.25 block devices are also in /sys/class/block,
-	 * we use strstr("/block/") to forestall future surprises. */
+	 * But since 2.6.25 block devices are also in /sys/class/block.
+	 * We use strstr("/block/") to forestall future surprises. */
 	type = S_IFCHR;
-	if (strstr(path, "/block/"))
+	if (strstr(path, "/block/") || strncmp(G.subsystem, "block", 5) == 0)
 		type = S_IFBLK;
 
 	/* Make path point to "subsystem/device_name" */
-	if (path[5] == 'b') /* legacy /sys/block? */
+	subsystem_slash_devname = NULL;
+	/* Check for coldplug invocations first */
+	if (strncmp(path, "/sys/block/", 11) == 0) /* legacy case */
 		path += sizeof("/sys/") - 1;
-	else
+	else if (strncmp(path, "/sys/class/", 11) == 0)
 		path += sizeof("/sys/class/") - 1;
+	else {
+		/* Example of a hotplug invocation:
+		 * SUBSYSTEM="block"
+		 * DEVPATH="/sys" + "/devices/virtual/mtd/mtd3/mtdblock3"
+		 * ("/sys" is added by mdev_main)
+		 * - path does not contain subsystem
+		 */
+		subsystem_slash_devname = concat_path_file(G.subsystem, device_name);
+		path = subsystem_slash_devname;
+	}
 
 	/* If we have config file, look up user settings */
 	if (ENABLE_FEATURE_MDEV_CONF)
@@ -332,7 +341,7 @@ static void make_device(char *path, int delete)
 			if (!delete && major >= 0) {
 				if (mknod(node_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 					bb_perror_msg("can't create %s", node_name);
-				if (major == root_major && minor == root_minor)
+				if (major == G.root_major && minor == G.root_minor)
 					symlink(node_name, "root");
 				if (ENABLE_FEATURE_MDEV_CONF) {
 					chmod(node_name, mode);
@@ -347,7 +356,7 @@ static void make_device(char *path, int delete)
 			if (ENABLE_FEATURE_MDEV_EXEC && command) {
 				/* setenv will leak memory, use putenv/unsetenv/free */
 				char *s = xasprintf("%s=%s", "MDEV", node_name);
-				char *s1 = xasprintf("%s=%s", "SUBSYSTEM", subsystem);
+				char *s1 = xasprintf("%s=%s", "SUBSYSTEM", G.subsystem);
 				putenv(s);
 				putenv(s1);
 				if (system(command) == -1)
@@ -381,6 +390,7 @@ static void make_device(char *path, int delete)
 
 	if (ENABLE_FEATURE_MDEV_CONF)
 		config_close(parser);
+	free(subsystem_slash_devname);
 }
 
 /* File callback for /sys/ traversal */
@@ -398,7 +408,7 @@ static int FAST_FUNC fileAction(const char *fileName,
 
 	strcpy(scratch, fileName);
 	scratch[len] = '\0';
-	make_device(scratch, 0);
+	make_device(scratch, /*delete:*/ 0);
 
 	return TRUE;
 }
@@ -412,10 +422,10 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
 	/* Extract device subsystem -- the name of the directory
 	 * under /sys/class/ */
 	if (1 == depth) {
-		free(subsystem);
-		subsystem = strrchr(fileName, '/');
-		if (subsystem)
-			subsystem = xstrdup(subsystem + 1);
+		free(G.subsystem);
+		G.subsystem = strrchr(fileName, '/');
+		if (G.subsystem)
+			G.subsystem = xstrdup(G.subsystem + 1);
 	}
 
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
@@ -500,8 +510,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		struct stat st;
 
 		xstat("/", &st);
-		root_major = major(st.st_dev);
-		root_minor = minor(st.st_dev);
+		G.root_major = major(st.st_dev);
+		G.root_minor = minor(st.st_dev);
 
 		/* ACTION_FOLLOWLINKS is needed since in newer kernels
 		 * /sys/block/loop* (for example) are symlinks to dirs,
@@ -538,8 +548,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
-		subsystem = getenv("SUBSYSTEM");
-		if (!action || !env_path /*|| !subsystem*/)
+		G.subsystem = getenv("SUBSYSTEM");
+		if (!action || !env_path /*|| !G.subsystem*/)
 			bb_show_usage();
 		fw = getenv("FIRMWARE");
 		op = index_in_strings(keywords, action);
@@ -574,10 +584,10 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			 * to happen and to cause erroneous deletion
 			 * of device nodes. */
 			if (!fw)
-				make_device(temp, 1);
+				make_device(temp, /*delete:*/ 1);
 		}
 		else if (op == OP_add) {
-			make_device(temp, 0);
+			make_device(temp, /*delete:*/ 0);
 			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
 				if (fw)
 					load_firmware(fw, temp);
