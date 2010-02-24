@@ -66,7 +66,7 @@ Downloading the current source code:
 
   You can browse the up to the minute source code and change history online.
 
-    http://www.busybox.net/cgi-bin/viewcvs.cgi/trunk/busybox/
+    http://git.busybox.net/busybox/
 
   Anonymous GIT access is available.  For instructions, check out:
 
@@ -83,11 +83,11 @@ Downloading the current source code:
   what happened is the subversion changelog.
 
   Note: if you want to compile busybox in a busybox environment you must
-  select ENABLE_DESKTOP.
+  select CONFIG_DESKTOP.
 
 ----------------
 
-getting help:
+Getting help:
 
   when you find you need help, you can check out the busybox mailing list
   archives at http://busybox.net/lists/busybox/ or even join
@@ -95,7 +95,7 @@ getting help:
 
 ----------------
 
-bugs:
+Bugs:
 
   if you find bugs, please submit a detailed bug report to the busybox mailing
   list at busybox@busybox.net.  a well-written bug report should include a
@@ -194,6 +194,11 @@ Supported hardware:
 ----------------
 
 Please feed suggestions, bug reports, insults, and bribes back to the busybox
-maintainer:
+mailing list:
+
+	busybox@busybox.net
+
+and/or maintainer:
+
 	Denys Vlasenko
-        <vda.linux@googlemail.com>
+	<vda.linux@googlemail.com>
