@@ -1127,9 +1127,9 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-/* TODO: pass -n? It prevents user/group resolution, whicj may not work in chroot anyway */
+/* TODO: pass -n? It prevents user/group resolution, which may not work in chroot anyway */
 /* TODO: pass -A? It shows dot files */
-/* TODO: pass --group-directories-first? would be nice, but ls don't do that yet */
+/* TODO: pass --group-directories-first? would be nice, but ls doesn't do that yet */
 		xchdir(argv[2]);
 		argv[2] = (char*)"--";
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
