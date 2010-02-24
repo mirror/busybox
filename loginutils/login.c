@@ -478,7 +478,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
 	/* setup_environment params: shell, clear_env, change_env, pw */
-	setup_environment(tmp, !(opt & LOGIN_OPT_p), 1, pw);
+	setup_environment(tmp, !(opt & LOGIN_OPT_p), SETUP_ENV_CHANGEENV, pw);
 
 	motd();
 

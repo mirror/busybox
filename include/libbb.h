@@ -1142,6 +1142,7 @@ extern void selinux_or_die(void) FAST_FUNC;
 extern int restricted_shell(const char *shell) FAST_FUNC;
 
 /* setup_environment:
+ * if chdir pw->pw_dir: ok: else if to_tmp == 1: goto /tmp else: goto / or die
  * if clear_env = 1: cd(pw->pw_dir), clear environment, then set
  *   TERM=(old value)
  *   USER=pw->pw_name, LOGNAME=pw->pw_name
@@ -1155,7 +1156,9 @@ extern int restricted_shell(const char *shell) FAST_FUNC;
  *   SHELL=shell
  * else does nothing
  */
-extern void setup_environment(const char *shell, int clear_env, int change_env, const struct passwd *pw) FAST_FUNC;
+#define SETUP_ENV_CHANGEENV (1<<0)
+#define SETUP_ENV_TO_TMP    (1<<1)
+extern void setup_environment(const char *shell, int clear_env, int flags, const struct passwd *pw) FAST_FUNC;
 extern int correct_password(const struct passwd *pw) FAST_FUNC;
 /* Returns a malloced string */
 #if !ENABLE_USE_BB_CRYPT
