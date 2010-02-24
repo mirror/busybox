@@ -2802,8 +2802,9 @@ list_devs_in_proc_partititons(void)
 				&ma, &mi, &sz, ptname) != 4)
 			continue;
 		for (s = ptname; *s; s++)
-			continue;
-		if (isdigit(s[-1]))
+    			continue;
+		/* note: excluding '0': e.g. mmcblk0 is not a partition name! */
+		if (s[-1] >= '1' && s[-1] <= '9')
 			continue;
 		sprintf(devname, "/dev/%s", ptname);
 		open_list_and_close(devname, 0);
