@@ -674,10 +674,14 @@ static action*** parse_params(char **argv)
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
 			while (1) {
-				if (!*argv) /* did not see ';' until end */
-					bb_error_msg_and_die("-exec CMD must end by ';'");
+				if (!*argv) /* did not see ';' or '+' until end */
+					bb_error_msg_and_die(bb_msg_requires_arg, "-exec");
 				if (LONE_CHAR(argv[0], ';'))
 					break;
+				//TODO: implement {} + (like xargs)
+				// See:
+				// find findutils/ -exec echo ">"{}"<" \;
+				// find findutils/ -exec echo ">"{}"<" +
 				argv++;
 				ap->exec_argc++;
 			}
