@@ -1046,7 +1046,7 @@ static uint32_t next_token(uint32_t expected)
 				*(p-1) = '\0';
 				tc = TC_VARIABLE;
 				/* also consume whitespace between functionname and bracket */
-				if (!(expected & TC_VARIABLE))
+				if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
 					skip_spaces(&p);
 				if (*p == '(') {
 					tc = TC_FUNCTION;
