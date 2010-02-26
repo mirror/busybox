@@ -292,9 +292,9 @@ static void ChangeUser(struct passwd *pas)
 	/* careful: we're after vfork! */
 	change_identity(pas); /* - initgroups, setgid, setuid */
 	if (chdir(pas->pw_dir) < 0) {
-		crondlog(WARN9 "can't chdir(%s)", pas->pw_dir);
+		crondlog(WARN9 "chdir(%s)", pas->pw_dir);
 		if (chdir(TMPDIR) < 0) {
-			crondlog(DIE9 "can't chdir(%s)", TMPDIR); /* exits */
+			crondlog(DIE9 "chdir(%s)", TMPDIR); /* exits */
 		}
 	}
 }
@@ -575,14 +575,14 @@ static void SynchronizeDir(void)
 	 */
 	unlink(CRONUPDATE);
 	if (chdir(CDir) < 0) {
-		crondlog(DIE9 "can't chdir(%s)", CDir);
+		crondlog(DIE9 "chdir(%s)", CDir);
 	}
 	{
 		DIR *dir = opendir(".");
 		struct dirent *den;
 
 		if (!dir)
-			crondlog(DIE9 "can't chdir(%s)", "."); /* exits */
+			crondlog(DIE9 "chdir(%s)", "."); /* exits */
 		while ((den = readdir(dir)) != NULL) {
 			if (strchr(den->d_name, '.') != NULL) {
 				continue;
