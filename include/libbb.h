@@ -1139,7 +1139,6 @@ extern void selinux_preserve_fcontext(int fdesc) FAST_FUNC;
 #define selinux_preserve_fcontext(fdesc) ((void)0)
 #endif
 extern void selinux_or_die(void) FAST_FUNC;
-extern int restricted_shell(const char *shell) FAST_FUNC;
 
 /* setup_environment:
  * if chdir pw->pw_dir: ok: else if to_tmp == 1: goto /tmp else: goto / or die

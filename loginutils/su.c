@@ -8,6 +8,23 @@
 #include "libbb.h"
 #include <syslog.h>
 
+#if ENABLE_FEATURE_SU_CHECKS_SHELLS
+/* Return 1 if SHELL is a restricted shell (one not returned by
+   getusershell), else 0, meaning it is a standard shell.  */
+static int restricted_shell(const char *shell)
+{
+	char *line;
+
+	/*setusershell(); - getusershell does it itself*/
+	while ((line = getusershell()) != NULL) {
+		if (/* *line != '#' && */ strcmp(line, shell) == 0)
+			return 0;
+	}
+	endusershell();
+	return 1;
+}
+#endif
+
 #define SU_OPT_mp (3)
 #define SU_OPT_l (4)
 
@@ -89,7 +106,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		opt_shell = getenv("SHELL");
 
 #if ENABLE_FEATURE_SU_CHECKS_SHELLS
-	if (opt_shell && cur_uid && restricted_shell(pw->pw_shell)) {
+	if (opt_shell && cur_uid != 0 && restricted_shell(pw->pw_shell)) {
 		/* The user being su'd to has a nonstandard shell, and so is
 		   probably a uucp account or has restricted access.  Don't
 		   compromise the account by allowing access with a standard
