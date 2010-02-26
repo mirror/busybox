@@ -32,8 +32,9 @@ static void edit_file(const struct passwd *pas, const char *file)
 	/* CHILD - change user and run editor */
 	/* initgroups, setgid, setuid */
 	change_identity(pas);
-	setup_environment(DEFAULT_SHELL, 0,
-		SETUP_ENV_CHANGEENV | SETUP_ENV_TO_TMP, pas);
+	setup_environment(DEFAULT_SHELL,
+			SETUP_ENV_CHANGEENV | SETUP_ENV_TO_TMP,
+			pas);
 	ptr = getenv("VISUAL");
 	if (!ptr) {
 		ptr = getenv("EDITOR");

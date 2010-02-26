@@ -30,7 +30,7 @@
 
 #include "libbb.h"
 
-void FAST_FUNC setup_environment(const char *shell, int clear_env, int flags, const struct passwd *pw)
+void FAST_FUNC setup_environment(const char *shell, int flags, const struct passwd *pw)
 {
 	/* Change the current working directory to be the home directory
 	 * of the user */
@@ -39,7 +39,7 @@ void FAST_FUNC setup_environment(const char *shell, int clear_env, int flags, co
 		bb_error_msg("can't chdir to home directory '%s'", pw->pw_dir);
 	}
 
-	if (clear_env) {
+	if (flags & SETUP_ENV_CLEARENV) {
 		const char *term;
 
 		/* Leave TERM unchanged. Set HOME, SHELL, USER, LOGNAME, PATH.

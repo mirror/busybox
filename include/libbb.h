@@ -1156,9 +1156,10 @@ extern int restricted_shell(const char *shell) FAST_FUNC;
  *   SHELL=shell
  * else does nothing
  */
-#define SETUP_ENV_CHANGEENV (1<<0)
-#define SETUP_ENV_TO_TMP    (1<<1)
-extern void setup_environment(const char *shell, int clear_env, int flags, const struct passwd *pw) FAST_FUNC;
+#define SETUP_ENV_CHANGEENV (1 << 0)
+#define SETUP_ENV_CLEARENV  (1 << 1)
+#define SETUP_ENV_TO_TMP    (1 << 2)
+extern void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
 extern int correct_password(const struct passwd *pw) FAST_FUNC;
 /* Returns a malloced string */
 #if !ENABLE_USE_BB_CRYPT
