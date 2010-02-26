@@ -12,7 +12,7 @@
 #include "libbb.h"
 
 int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int free_main(int argc UNUSED_PARAM, char **argv)
+int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 {
 	struct sysinfo info;
 	unsigned mem_unit;
