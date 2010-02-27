@@ -228,6 +228,39 @@ static const char *humanly_readable_name(struct module_entry *m)
 	return m->probed_name ? m->probed_name : m->modname;
 }
 
+static char *parse_and_add_kcmdline_module_options(char *options, const char *modulename)
+{
+	/* defined in arch/<architecture>/include/asm/setup.h
+	 * (maximum is 2048 for IA64 and SPARC) */
+	char kcmdline_buf[2048];
+	char *kcmdline;
+	char *kptr;
+	int len;
+
+	len = open_read_close("/proc/cmdline", kcmdline_buf, 2047);
+	if (len <= 0)
+		return options;
+	kcmdline_buf[len] = '\0';
+
+	len = strlen(modulename);
+	kcmdline = kcmdline_buf;
+	while ((kptr = strsep(&kcmdline, "\n\t ")) != NULL) {
+		if (strncmp(modulename, kptr, len) != 0)
+			continue;
+		kptr += len;
+		if (*kptr != '.')
+			continue;
+		/* It is "modulename.xxxx" */
+		kptr++;
+		if (strchr(kptr, '=') != NULL) {
+			/* It is "modulename.opt=[val]" */
+			options = gather_options_str(options, kptr);
+		}
+	}
+
+	return options;
+}
+
 /* Return: similar to bb_init_module:
  * 0 on success,
  * -errno on open/read error,
@@ -288,6 +321,7 @@ static int do_modprobe(struct module_entry *m)
 
 		options = m2->options;
 		m2->options = NULL;
+		options = parse_and_add_kcmdline_module_options(options, m2->modname);
 		if (m == m2)
 			options = gather_options_str(options, G.cmdline_mopts);
 		rc = bb_init_module(fn, options);
