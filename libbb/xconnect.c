@@ -96,28 +96,6 @@ unsigned FAST_FUNC bb_lookup_port(const char *port, const char *protocol, unsign
 }
 
 
-/* "Old" networking API - only IPv4 */
-
-/*
-void FAST_FUNC bb_lookup_host(struct sockaddr_in *s_in, const char *host)
-{
-	struct hostent *he;
-
-	memset(s_in, 0, sizeof(struct sockaddr_in));
-	s_in->sin_family = AF_INET;
-	he = xgethostbyname(host);
-	memcpy(&(s_in->sin_addr), he->h_addr_list[0], he->h_length);
-}
-
-
-int FAST_FUNC xconnect_tcp_v4(struct sockaddr_in *s_addr)
-{
-	int s = xsocket(AF_INET, SOCK_STREAM, 0);
-	xconnect(s, (struct sockaddr*) s_addr, sizeof(*s_addr));
-	return s;
-}
-*/
-
 /* "New" networking API */
 
 

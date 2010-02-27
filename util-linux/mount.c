@@ -1043,12 +1043,10 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 			bb_herror_msg("%s", hostname);
 			goto fail;
 		}
-		if ((size_t)hp->h_length > sizeof(struct in_addr)) {
-			bb_error_msg("got bad hp->h_length");
-			hp->h_length = sizeof(struct in_addr);
+		if (hp->h_length != (int)sizeof(struct in_addr)) {
+			bb_error_msg_and_die("only IPv4 is supported");
 		}
-		memcpy(&server_addr.sin_addr,
-				hp->h_addr, hp->h_length);
+		memcpy(&server_addr.sin_addr, hp->h_addr_list[0], sizeof(struct in_addr));
 	}
 
 	memcpy(&mount_server_addr, &server_addr, sizeof(mount_server_addr));
@@ -1331,13 +1329,11 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				bb_herror_msg("%s", mounthost);
 				goto fail;
 			}
-			if ((size_t)hp->h_length > sizeof(struct in_addr)) {
-				bb_error_msg("got bad hp->h_length");
-				hp->h_length = sizeof(struct in_addr);
+			if (hp->h_length != (int)sizeof(struct in_addr)) {
+				bb_error_msg_and_die("only IPv4 is supported");
 			}
 			mount_server_addr.sin_family = AF_INET;
-			memcpy(&mount_server_addr.sin_addr,
-						hp->h_addr, hp->h_length);
+			memcpy(&mount_server_addr.sin_addr, hp->h_addr_list[0], sizeof(struct in_addr));
 		}
 	}
 
