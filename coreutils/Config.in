@@ -183,6 +183,10 @@ config FEATURE_DF_FANCY
 	help
 	  This option enables -a, -i and -B.
 
+	    -a Show all filesystems
+	    -i Inodes
+	    -B <SIZE> Blocksize
+
 config DIRNAME
 	bool "dirname"
 	default n
@@ -681,6 +685,10 @@ config FEATURE_FANCY_TAIL
 	help
 	  The options (-q, -s, and -v) are provided by GNU tail, but
 	  are not specific in the SUSv3 standard.
+
+	    -q      Never output headers giving file names
+	    -s SEC  Wait SEC seconds between reads with -f
+	    -v      Always output headers giving file names
 
 config TEE
 	bool "tee"

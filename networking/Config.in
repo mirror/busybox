@@ -737,6 +737,13 @@ config SLATTACH
 #	def_bool n
 #	depends on TC
 
+config TCPSVD
+	bool "tcpsvd"
+	default n
+	help
+	  tcpsvd listens on a TCP port and runs a program for each new
+	  connection.
+
 config TELNET
 	bool "telnet"
 	default n
@@ -929,6 +936,20 @@ config FEATURE_TRACEROUTE_USE_ICMP
 	help
 	  Add option -I to use ICMP ECHO instead of UDP datagrams.
 
+config TUNCTL
+	bool "tunctl"
+	default n
+	help
+	  tunctl creates or deletes tun devices.
+
+config FEATURE_TUNCTL_UG
+	bool "Support owner:group assignment"
+	default n
+	depends on TUNCTL
+	help
+	  Allow to specify owner and group of newly created interface.
+	  340 bytes of pure bloat. Say no here.
+
 source networking/udhcp/Config.in
 
 config IFUPDOWN_UDHCPC_CMD_OPTIONS
@@ -939,6 +960,13 @@ config IFUPDOWN_UDHCPC_CMD_OPTIONS
 	  Command line options to pass to udhcpc from ifup.
 	  Intended to alter options not available in /etc/network/interfaces.
 	  (IE: --syslog --background etc...)
+
+config UDPSVD
+	bool "udpsvd"
+	default n
+	help
+	  udpsvd listens on an UDP port and runs a program for each new
+	  connection.
 
 config VCONFIG
 	bool "vconfig"
@@ -985,33 +1013,5 @@ config ZCIP
 
 	  See http://www.zeroconf.org for further details, and "zcip.script"
 	  in the busybox examples.
-
-config TCPSVD
-	bool "tcpsvd"
-	default n
-	help
-	  tcpsvd listens on a TCP port and runs a program for each new
-	  connection.
-
-config TUNCTL
-	bool "tunctl"
-	default n
-	help
-	  tunctl creates or deletes tun devices.
-
-config FEATURE_TUNCTL_UG
-	bool "Support owner:group assignment"
-	default n
-	depends on TUNCTL
-	help
-	  Allow to specify owner and group of newly created interface.
-	  340 bytes of pure bloat. Say no here.
-
-config UDPSVD
-	bool "udpsvd"
-	default n
-	help
-	  udpsvd listens on an UDP port and runs a program for each new
-	  connection.
 
 endmenu
