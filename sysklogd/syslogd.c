@@ -57,6 +57,15 @@ struct shbuf_ds {
 	char data[1];   /* data/messages */
 };
 
+#if ENABLE_FEATURE_REMOTE_LOG
+typedef struct {
+	int remoteFD;
+	unsigned last_dns_resolve;
+	len_and_sockaddr *remoteAddr;
+	const char *remoteHostname;
+} remoteHost_t;
+#endif
+
 /* Allows us to have smaller initializer. Ugly. */
 #define GLOBALS \
 	const char *logFilePath;                \
@@ -72,11 +81,6 @@ IF_FEATURE_ROTATE_LOGFILE( \
 	unsigned logFileRotate;                 \
 	unsigned curFileSize;                   \
 	smallint isRegular;                     \
-) \
-IF_FEATURE_REMOTE_LOG( \
-	/* udp socket for remote logging */     \
-	int remoteFD;                           \
-	len_and_sockaddr* remoteAddr;           \
 ) \
 IF_FEATURE_IPC_SYSLOG( \
 	int shmid; /* ipc shared memory id */   \
@@ -94,10 +98,8 @@ struct globals {
 	GLOBALS
 
 #if ENABLE_FEATURE_REMOTE_LOG
-	unsigned last_dns_resolve;
-	char *remoteAddrStr;
+	llist_t *remoteHosts;
 #endif
-
 #if ENABLE_FEATURE_IPC_SYSLOG
 	struct shbuf_ds *shbuf;
 #endif
@@ -126,9 +128,6 @@ static const struct init_globals init_data = {
 #if ENABLE_FEATURE_ROTATE_LOGFILE
 	.logFileSize = 200 * 1024,
 	.logFileRotate = 1,
-#endif
-#if ENABLE_FEATURE_REMOTE_LOG
-	.remoteFD = -1,
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
 	.shmid = -1,
@@ -185,7 +184,7 @@ enum {
 #define OPTION_PARAM &opt_m, &G.logFilePath, &opt_l \
 	IF_FEATURE_ROTATE_LOGFILE(,&opt_s) \
 	IF_FEATURE_ROTATE_LOGFILE(,&opt_b) \
-	IF_FEATURE_REMOTE_LOG(    ,&G.remoteAddrStr) \
+	IF_FEATURE_REMOTE_LOG(	  ,&remoteAddrList) \
 	IF_FEATURE_IPC_SYSLOG(    ,&opt_C)
 
 
@@ -534,20 +533,20 @@ static NOINLINE int create_socket(void)
 }
 
 #if ENABLE_FEATURE_REMOTE_LOG
-static int try_to_resolve_remote(void)
+static int try_to_resolve_remote(remoteHost_t *rh)
 {
-	if (!G.remoteAddr) {
+	if (!rh->remoteAddr) {
 		unsigned now = monotonic_sec();
 
 		/* Don't resolve name too often - DNS timeouts can be big */
-		if ((now - G.last_dns_resolve) < DNS_WAIT_SEC)
+		if ((now - rh->last_dns_resolve) < DNS_WAIT_SEC)
 			return -1;
-		G.last_dns_resolve = now;
-		G.remoteAddr = host2sockaddr(G.remoteAddrStr, 514);
-		if (!G.remoteAddr)
+		rh->last_dns_resolve = now;
+		rh->remoteAddr = host2sockaddr(rh->remoteHostname, 514);
+		if (!rh->remoteAddr)
 			return -1;
 	}
-	return socket(G.remoteAddr->u.sa.sa_family, SOCK_DGRAM, 0);
+	return socket(rh->remoteAddr->u.sa.sa_family, SOCK_DGRAM, 0);
 }
 #endif
 
@@ -555,6 +554,9 @@ static void do_syslogd(void) NORETURN;
 static void do_syslogd(void)
 {
 	int sock_fd;
+#if ENABLE_FEATURE_REMOTE_LOG
+	llist_t *item;
+#endif
 #if ENABLE_FEATURE_SYSLOGD_DUP
 	int last_sz = -1;
 	char *last_buf;
@@ -620,23 +622,25 @@ static void do_syslogd(void)
 		last_sz = sz;
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
+		/* Stock syslogd sends it '\n'-terminated
+		 * over network, mimic that */
+		recvbuf[sz] = '\n';
+
 		/* We are not modifying log messages in any way before send */
 		/* Remote site cannot trust _us_ anyway and need to do validation again */
-		if (G.remoteAddrStr) {
-			if (-1 == G.remoteFD) {
-				G.remoteFD = try_to_resolve_remote();
-				if (-1 == G.remoteFD)
-					goto no_luck;
+		for (item = G.remoteHosts; item != NULL; item = item->link) {
+			remoteHost_t *rh = (remoteHost_t *)item->data;
+
+			if (rh->remoteFD == -1) {
+				rh->remoteFD = try_to_resolve_remote(rh);
+				if (rh->remoteFD == -1)
+					continue;
 			}
-			/* Stock syslogd sends it '\n'-terminated
-			 * over network, mimic that */
-			recvbuf[sz] = '\n';
-			/* send message to remote logger, ignore possible error */
+			/* Send message to remote logger, ignore possible error */
 			/* TODO: on some errors, close and set G.remoteFD to -1
 			 * so that DNS resolution and connect is retried? */
-			sendto(G.remoteFD, recvbuf, sz+1, MSG_DONTWAIT,
-				    &G.remoteAddr->u.sa, G.remoteAddr->len);
- no_luck: ;
+			sendto(rh->remoteFD, recvbuf, sz+1, MSG_DONTWAIT,
+				&(rh->remoteAddr->u.sa), rh->remoteAddr->len);
 		}
 #endif
 		if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
@@ -656,17 +660,27 @@ static void do_syslogd(void)
 int syslogd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int syslogd_main(int argc UNUSED_PARAM, char **argv)
 {
-	char OPTION_DECL;
 	int opts;
-
-	INIT_G();
+	char OPTION_DECL;
 #if ENABLE_FEATURE_REMOTE_LOG
-	G.last_dns_resolve = monotonic_sec() - DNS_WAIT_SEC - 1;
+	llist_t *remoteAddrList = NULL;
 #endif
 
-	/* do normal option parsing */
-	opt_complementary = "=0"; /* no non-option params */
+	INIT_G();
+
+	/* No non-option params, -R can occur multiple times */
+	opt_complementary = "=0" IF_FEATURE_REMOTE_LOG(":R::");
 	opts = getopt32(argv, OPTION_STR, OPTION_PARAM);
+#if ENABLE_FEATURE_REMOTE_LOG
+	while (remoteAddrList) {
+		remoteHost_t *rh = xzalloc(sizeof(*rh));
+		rh->remoteHostname = llist_pop(&remoteAddrList);
+		rh->remoteFD = -1;
+		rh->last_dns_resolve = monotonic_sec() - DNS_WAIT_SEC - 1;
+		llist_add_to(&G.remoteHosts, rh);
+	}
+#endif
+
 #ifdef SYSLOGD_MARK
 	if (opts & OPT_mark) // -m
 		G.markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
