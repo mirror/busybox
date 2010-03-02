@@ -20,14 +20,12 @@ static const char head_opts[] ALIGN1 =
 #endif
 	;
 
-#if ENABLE_FEATURE_FANCY_HEAD
 static const struct suffix_mult head_suffixes[] = {
 	{ "b", 512 },
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
 	{ "", 0 }
 };
-#endif
 
 static const char header_fmt_str[] ALIGN1 = "\n==> %s <==\n";
 
@@ -78,11 +76,7 @@ int head_main(int argc, char **argv)
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
  GET_COUNT:
 #endif
-#if !ENABLE_FEATURE_FANCY_HEAD
-			count = xatoul(p);
-#else
 			count = xatoul_sfx(p, head_suffixes);
-#endif
 			break;
 		default:
 			bb_show_usage();

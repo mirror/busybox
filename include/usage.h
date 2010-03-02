@@ -1659,18 +1659,46 @@
        "[OPTIONS] [FILE]..."
 #define head_full_usage "\n\n" \
        "Print first 10 lines of each FILE (or stdin) to stdout.\n" \
-       "With more than one FILE, precede each with a header giving the file name.\n" \
+       "With more than one FILE, precede each with a filename header.\n" \
      "\nOptions:" \
-     "\n	-n N	Print first N lines instead of first 10" \
+     "\n	-n N[kbm]	Print first N lines" \
 	IF_FEATURE_FANCY_HEAD( \
-     "\n	-c N	Output the first N bytes" \
-     "\n	-q	Never output headers giving file names" \
-     "\n	-v	Always output headers giving file names") \
+     "\n	-c N[kbm]	Print first N bytes" \
+     "\n	-q		Never print headers" \
+     "\n	-v		Always print headers" \
+	) \
+     "\n" \
+     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)." \
 
 #define head_example_usage \
        "$ head -n 2 /etc/passwd\n" \
        "root:x:0:0:root:/root:/bin/bash\n" \
        "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
+
+#define tail_trivial_usage \
+       "[OPTIONS] [FILE]..."
+#define tail_full_usage "\n\n" \
+       "Print last 10 lines of each FILE (or stdin) to stdout.\n" \
+       "With more than one FILE, precede each with a filename header.\n" \
+     "\nOptions:" \
+     "\n	-f		Print data as file grows" \
+	IF_FEATURE_FANCY_TAIL( \
+     "\n	-s SECONDS	Wait SECONDS between reads with -f" \
+	) \
+     "\n	-n N[kbm]	Print last N lines" \
+	IF_FEATURE_FANCY_TAIL( \
+     "\n	-c N[kbm]	Print last N bytes" \
+     "\n	-q		Never print headers" \
+     "\n	-v		Always print headers" \
+     "\n" \
+     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)." \
+     "\nIf N starts with a '+', output begins with the Nth item from the start" \
+     "\nof each file, not from the end." \
+	) \
+
+#define tail_example_usage \
+       "$ tail -n 1 /etc/resolv.conf\n" \
+       "nameserver 10.0.0.1\n"
 
 #define hexdump_trivial_usage \
        "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
@@ -4389,29 +4417,6 @@
 	"[FILE]..."
 #define tac_full_usage "\n\n" \
 	"Concatenate FILEs and print them in reverse"
-
-#define tail_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define tail_full_usage "\n\n" \
-       "Print last 10 lines of each FILE (or stdin) to stdout.\n" \
-       "With more than one FILE, precede each with a header giving the file name.\n" \
-     "\nOptions:" \
-	IF_FEATURE_FANCY_TAIL( \
-     "\n	-c N[kbm]	Output last N bytes") \
-     "\n	-n N[kbm]	Print last N lines instead of last 10" \
-     "\n	-f		Output data as the file grows" \
-	IF_FEATURE_FANCY_TAIL( \
-     "\n	-q		Never output headers giving file names" \
-     "\n	-s SEC		Wait SEC seconds between reads with -f" \
-     "\n	-v		Always output headers giving file names" \
-     "\n" \
-     "\nIf the first character of N (bytes or lines) is a '+', output begins with" \
-     "\nthe Nth item from the start of each file, otherwise, print the last N items" \
-     "\nin the file. N bytes may be suffixed by k (x1024), b (x512), or m (1024^2)." ) \
-
-#define tail_example_usage \
-       "$ tail -n 1 /etc/resolv.conf\n" \
-       "nameserver 10.0.0.1\n"
 
 #define tar_trivial_usage \
        "-[" IF_FEATURE_TAR_CREATE("c") "xt" IF_FEATURE_SEAMLESS_GZ("z") \
