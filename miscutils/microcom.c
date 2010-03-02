@@ -119,7 +119,7 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 	nfd = 2;
 	// Not safe_poll: we want to exit on signal
 	while (!bb_got_signal && poll(pfd, nfd, timeout) > 0) {
-		if (nfd > 1 && (pfd[1].revents & POLLIN)) {
+		if (nfd > 1 && pfd[1].revents) {
 			char c;
 			// read from stdin -> write to device
 			if (safe_read(STDIN_FILENO, &c, 1) < 1) {
@@ -143,7 +143,7 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 				safe_poll(pfd, 1, delay);
 skip_write: ;
 		}
-		if (pfd[0].revents & POLLIN) {
+		if (pfd[0].revents) {
 #define iobuf bb_common_bufsiz1
 			ssize_t len;
 			// read from device -> write to stdout
