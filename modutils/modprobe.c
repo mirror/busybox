@@ -230,20 +230,17 @@ static const char *humanly_readable_name(struct module_entry *m)
 
 static char *parse_and_add_kcmdline_module_options(char *options, const char *modulename)
 {
-	/* defined in arch/<architecture>/include/asm/setup.h
-	 * (maximum is 2048 for IA64 and SPARC) */
-	char kcmdline_buf[2048];
+	char *kcmdline_buf;
 	char *kcmdline;
 	char *kptr;
 	int len;
 
-	len = open_read_close("/proc/cmdline", kcmdline_buf, 2047);
-	if (len <= 0)
+	kcmdline_buf = xmalloc_open_read_close("/proc/cmdline", NULL);
+	if (!kcmdline_buf)
 		return options;
-	kcmdline_buf[len] = '\0';
 
-	len = strlen(modulename);
 	kcmdline = kcmdline_buf;
+	len = strlen(modulename);
 	while ((kptr = strsep(&kcmdline, "\n\t ")) != NULL) {
 		if (strncmp(modulename, kptr, len) != 0)
 			continue;
@@ -257,6 +254,7 @@ static char *parse_and_add_kcmdline_module_options(char *options, const char *mo
 			options = gather_options_str(options, kptr);
 		}
 	}
+	free(kcmdline_buf);
 
 	return options;
 }
