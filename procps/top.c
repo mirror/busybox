@@ -696,12 +696,12 @@ static int topmem_sort(char *a, char *b)
 	return inverted ? -n : n;
 }
 
-/* Cut "NNNN " out of "    NNNN kb" */
+/* Cut "NNNN" out of "    NNNN kb" */
 static char *grab_number(char *str, const char *match, unsigned sz)
 {
 	if (strncmp(str, match, sz) == 0) {
 		str = skip_whitespace(str + sz);
-		(skip_non_whitespace(str))[1] = '\0';
+		(skip_non_whitespace(str))[0] = '\0';
 		return xstrdup(str);
 	}
 	return NULL;
@@ -768,19 +768,19 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 	}
 	fclose(fp);
 
-#define S(s) (s ? s : "0 ")
+#define S(s) (s ? s : "0")
 	snprintf(linebuf, sizeof(linebuf),
-		"Mem %stotal %sanon %smap %sfree",
+		"Mem total:%s anon:%s map:%s free:%s",
 		S(total), S(anon), S(map), S(mfree));
 	printf(OPT_BATCH_MODE ? "%.*s\n" : "\e[H\e[J%.*s\n", scr_width, linebuf);
 
 	snprintf(linebuf, sizeof(linebuf),
-		" %sslab %sbuf %scache %sdirty %swrite",
+		" slab:%s buf:%s cache:%s dirty:%s write:%s",
 		S(slab), S(buf), S(cache), S(dirty), S(mwrite));
 	printf("%.*s\n", scr_width, linebuf);
 
 	snprintf(linebuf, sizeof(linebuf),
-		"Swap %stotal %sfree", // TODO: % used?
+		"Swap total:%s free:%s", // TODO: % used?
 		S(swaptotal), S(swapfree));
 	printf("%.*s\n", scr_width, linebuf);
 
