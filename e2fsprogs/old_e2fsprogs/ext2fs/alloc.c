@@ -109,7 +109,7 @@ errcode_t ext2fs_alloc_block(ext2_filsys fs, blk_t goal,
 {
 	errcode_t	retval;
 	blk_t		block;
-	char		*buf = 0;
+	char		*buf = NULL;
 
 	if (!block_buf) {
 		retval = ext2fs_get_mem(fs->blocksize, &buf);

@@ -68,7 +68,7 @@ errcode_t ext2fs_adjust_ea_refcount(ext2_filsys fs, blk_t blk,
 {
 	errcode_t	retval;
 	struct ext2_ext_attr_header *header;
-	char	*buf = 0;
+	char	*buf = NULL;
 
 	if ((blk >= fs->super->s_blocks_count) ||
 	    (blk < fs->super->s_first_data_block))

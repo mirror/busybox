@@ -30,7 +30,7 @@ static errcode_t follow_link(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 			     char *buf, ext2_ino_t *res_inode)
 {
 	char *pathname;
-	char *buffer = 0;
+	char *buffer = NULL;
 	errcode_t retval;
 	struct ext2_inode ei;
 

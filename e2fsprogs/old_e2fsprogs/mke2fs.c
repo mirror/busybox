@@ -799,8 +799,8 @@ static int PRS(int argc, char **argv)
 	int		show_version_only = 0;
 	ext2_ino_t	num_inodes = 0;
 	errcode_t	retval;
-	char *		extended_opts = 0;
-	const char *	fs_type = 0;
+	char *		extended_opts = NULL;
+	const char *	fs_type = NULL;
 	blk_t		dev_size;
 	long		sysval;
 

@@ -333,7 +333,7 @@ errout:
  */
 errcode_t ext2fs_image_bitmap_read(ext2_filsys fs, int fd, int flags)
 {
-	char		*ptr, *buf = 0;
+	char		*ptr, *buf = NULL;
 	int		size;
 	ssize_t		actual;
 	errcode_t	retval;

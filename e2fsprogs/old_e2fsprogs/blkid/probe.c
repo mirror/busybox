@@ -82,7 +82,7 @@ static void set_uuid(blkid_dev dev, uuid_t uuid)
 static void get_ext2_info(blkid_dev dev, unsigned char *buf)
 {
 	struct ext2_super_block *es = (struct ext2_super_block *) buf;
-	const char *label = 0;
+	const char *label = NULL;
 
 	DBG(DEBUG_PROBE, printf("ext2_sb.compat = %08X:%08X:%08X\n",
 		   blkid_le32(es->s_feature_compat),
@@ -168,7 +168,7 @@ static int probe_vfat(int fd __BLKID_ATTR((unused)),
 {
 	struct vfat_super_block *vs;
 	char serno[10];
-	const char *label = 0;
+	const char *label = NULL;
 	int label_len = 0;
 
 	vs = (struct vfat_super_block *)buf;
@@ -201,7 +201,7 @@ static int probe_msdos(int fd __BLKID_ATTR((unused)),
 {
 	struct msdos_super_block *ms = (struct msdos_super_block *) buf;
 	char serno[10];
-	const char *label = 0;
+	const char *label = NULL;
 	int label_len = 0;
 
 	if (strncmp(ms->ms_label, "NO NAME", 7)) {
@@ -232,7 +232,7 @@ static int probe_xfs(int fd __BLKID_ATTR((unused)),
 		     unsigned char *buf)
 {
 	struct xfs_super_block *xs;
-	const char *label = 0;
+	const char *label = NULL;
 
 	xs = (struct xfs_super_block *)buf;
 
@@ -250,7 +250,7 @@ static int probe_reiserfs(int fd __BLKID_ATTR((unused)),
 {
 	struct reiserfs_super_block *rs = (struct reiserfs_super_block *) buf;
 	unsigned int blocksize;
-	const char *label = 0;
+	const char *label = NULL;
 
 	blocksize = blkid_le16(rs->rs_blocksize);
 
@@ -277,7 +277,7 @@ static int probe_jfs(int fd __BLKID_ATTR((unused)),
 		     unsigned char *buf)
 {
 	struct jfs_super_block *js;
-	const char *label = 0;
+	const char *label = NULL;
 
 	js = (struct jfs_super_block *)buf;
 
@@ -295,7 +295,7 @@ static int probe_romfs(int fd __BLKID_ATTR((unused)),
 		       unsigned char *buf)
 {
 	struct romfs_super_block *ros;
-	const char *label = 0;
+	const char *label = NULL;
 
 	ros = (struct romfs_super_block *)buf;
 
@@ -312,7 +312,7 @@ static int probe_cramfs(int fd __BLKID_ATTR((unused)),
 		       unsigned char *buf)
 {
 	struct cramfs_super_block *csb;
-	const char *label = 0;
+	const char *label = NULL;
 
 	csb = (struct cramfs_super_block *)buf;
 

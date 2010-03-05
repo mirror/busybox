@@ -1539,7 +1539,7 @@ static errcode_t e2fsck_get_journal(e2fsck_t ctx, journal_t **ret_journal)
 	struct buffer_head      *bh;
 	struct inode            *j_inode = NULL;
 	struct kdev_s           *dev_fs = NULL, *dev_journal;
-	const char              *journal_name = 0;
+	const char              *journal_name = NULL;
 	journal_t               *journal = NULL;
 	errcode_t               retval = 0;
 	io_manager              io_ptr = 0;
@@ -6009,7 +6009,7 @@ static int check_dir_block(ext2_filsys fs,
 	struct dir_info         *subdir, *dir;
 	struct dx_dir_info      *dx_dir;
 #ifdef ENABLE_HTREE
-	struct dx_dirblock_info *dx_db = 0;
+	struct dx_dirblock_info *dx_db = NULL;
 #endif /* ENABLE_HTREE */
 	struct ext2_dir_entry   *dirent, *prev;
 	ext2_dirhash_t          hash;
@@ -7524,7 +7524,7 @@ static void e2fsck_pass4(e2fsck_t ctx)
 	struct ext2_inode       inode;
 	struct problem_context  pctx;
 	__u16   link_count, link_counted;
-	char    *buf = 0;
+	char    *buf = NULL;
 	int     group, maxgroup;
 
 	/* Pass 4 */
@@ -9670,7 +9670,7 @@ int fix_problem(e2fsck_t ctx, problem_t code, struct problem_context *pctx)
 {
 	ext2_filsys fs = ctx->fs;
 	const struct e2fsck_problem *ptr;
-	struct latch_descr *ldesc = 0;
+	struct latch_descr *ldesc = NULL;
 	const char *message;
 	int             def_yn, answer, ans;
 	int             print_answer = 0;
@@ -10669,7 +10669,7 @@ static errcode_t calculate_tree(ext2_filsys fs,
 				ext2_ino_t parent)
 {
 	struct ext2_dx_root_info        *root_info;
-	struct ext2_dx_entry            *root, *dx_ent = 0;
+	struct ext2_dx_entry            *root, *dx_ent = NULL;
 	struct ext2_dx_countlimit       *root_limit, *limit;
 	errcode_t                       retval;
 	char                            * block_start;
@@ -10821,7 +10821,7 @@ static errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino)
 	ext2_filsys             fs = ctx->fs;
 	errcode_t               retval;
 	struct ext2_inode       inode;
-	char                    *dir_buf = 0;
+	char                    *dir_buf = NULL;
 	struct fill_dir_struct  fd;
 	struct out_dir          outdir;
 
@@ -11559,7 +11559,7 @@ static void check_resize_inode(e2fsck_t ctx)
 	struct problem_context  pctx;
 	int             i, j, gdt_off, ind_off;
 	blk_t           blk, pblk, expect;
-	__u32           *dind_buf = 0, *ind_buf;
+	__u32           *dind_buf = NULL, *ind_buf;
 	errcode_t       retval;
 
 	clear_problem_context(&pctx);
@@ -12975,7 +12975,7 @@ static errcode_t PRS(int argc, char **argv, e2fsck_t *ret_ctx)
 	e2fsck_t        ctx;
 	errcode_t       retval;
 	struct sigaction        sa;
-	char            *extended_opts = 0;
+	char            *extended_opts = NULL;
 
 	retval = e2fsck_allocate_context(&ctx);
 	if (retval)

@@ -136,7 +136,7 @@ errcode_t ext2fs_bmap(ext2_filsys fs, ext2_ino_t ino, struct ext2_inode *inode,
 	struct ext2_inode inode_buf;
 	blk_t addr_per_block;
 	blk_t	b;
-	char	*buf = 0;
+	char	*buf = NULL;
 	errcode_t	retval = 0;
 	int		blocks_alloc = 0, inode_dirty = 0;
 

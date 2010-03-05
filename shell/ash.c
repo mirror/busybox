@@ -2482,7 +2482,7 @@ static void hashcd(void);
 static int
 docd(const char *dest, int flags)
 {
-	const char *dir = 0;
+	const char *dir = NULL;
 	int err;
 
 	TRACE(("docd(\"%s\", %d) called\n", dest, flags));

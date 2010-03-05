@@ -112,7 +112,7 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 		  const char *value, const int vlength)
 {
 	blkid_tag	t = 0, head = 0;
-	char		*val = 0;
+	char		*val = NULL;
 
 	if (!dev || !name)
 		return -BLKID_ERR_PARAM;

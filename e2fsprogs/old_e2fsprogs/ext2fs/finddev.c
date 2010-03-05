@@ -115,9 +115,9 @@ success:
  */
 char *ext2fs_find_block_device(dev_t device)
 {
-	struct dir_list *list = 0, *new_list = 0;
+	struct dir_list *list = NULL, *new_list = NULL;
 	struct dir_list *current;
-	char	*ret_path = 0;
+	char	*ret_path = NULL;
 
 	/*
 	 * Add the starting directories to search...

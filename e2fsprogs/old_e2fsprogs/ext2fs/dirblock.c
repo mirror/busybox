@@ -80,7 +80,7 @@ errcode_t ext2fs_write_dir_block2(ext2_filsys fs, blk_t block,
 	int		do_swap = 0;
 	errcode_t	retval;
 	char		*p, *end;
-	char		*buf = 0;
+	char		*buf = NULL;
 	struct ext2_dir_entry *dirent;
 
 	if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||

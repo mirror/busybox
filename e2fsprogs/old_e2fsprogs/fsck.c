@@ -1166,7 +1166,7 @@ static void signal_cancel(int sig FSCK_ATTR((unused)))
 static void PRS(int argc, char **argv)
 {
 	int     i, j;
-	char    *arg, *dev, *tmp = 0;
+	char    *arg, *dev, *tmp = NULL;
 	char    options[128];
 	int     opt = 0;
 	int     opts_for_fsck = 0;

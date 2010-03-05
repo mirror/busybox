@@ -95,7 +95,7 @@ static errcode_t write_journal_file(ext2_filsys fs, char *filename,
 				    blk_t size, int flags)
 {
 	errcode_t	retval;
-	char		*buf = 0;
+	char		*buf = NULL;
 	int		fd, ret_size;
 	blk_t		i;
 

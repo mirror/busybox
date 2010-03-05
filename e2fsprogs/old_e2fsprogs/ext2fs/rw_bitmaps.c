@@ -149,7 +149,7 @@ errcode_t ext2fs_write_block_bitmap (ext2_filsys fs)
 static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 {
 	dgrp_t i;
-	char *block_bitmap = 0, *inode_bitmap = 0;
+	char *block_bitmap = NULL, *inode_bitmap = NULL;
 	char *buf;
 	errcode_t retval;
 	int block_nbytes = (int) EXT2_BLOCKS_PER_GROUP(fs->super) / 8;

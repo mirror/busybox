@@ -258,7 +258,7 @@ int blkid_probe_all(blkid_cache cache)
 {
 	FILE *proc;
 	char line[1024];
-	char ptname0[128], ptname1[128], *ptname = 0;
+	char ptname0[128], ptname1[128], *ptname = NULL;
 	char *ptnames[2];
 	dev_t devs[2];
 	int ma, mi;
