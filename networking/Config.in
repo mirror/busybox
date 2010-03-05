@@ -860,7 +860,7 @@ config TFTPD
 	  or from udpsvd. Example: "udpsvd -E 0 69 tftpd DIR"
 
 config FEATURE_TFTP_GET
-	bool "Enable \"get\" command"
+	bool "Enable 'tftp get' and/or tftpd upload code"
 	default y
 	depends on TFTP || TFTPD
 	help
@@ -868,8 +868,11 @@ config FEATURE_TFTP_GET
 	  a client to retrieve a file from a TFTP server.
 	  Also enable upload support in tftpd, if tftpd is selected.
 
+	  Note: this option does _not_ make tftpd capable of download
+	  (the usual operation people need from it)!
+
 config FEATURE_TFTP_PUT
-	bool "Enable \"put\" command"
+	bool "Enable 'tftp put' and/or tftpd download code"
 	default y
 	depends on TFTP || TFTPD
 	help

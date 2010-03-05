@@ -135,7 +135,8 @@ static void tftp_progress_init(void)
 }
 static void tftp_progress_done(void)
 {
-	progress_meter(0);
+	if (G.pmt.inited)
+		progress_meter(0);
 }
 #else
 # define tftp_progress_init() ((void)0)

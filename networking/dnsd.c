@@ -376,11 +376,6 @@ static int process_packet(struct dns_entry *conf_data,
 	/* QR = 1 "response", RCODE = 4 "Not Implemented" */
 	outr_flags = htons(0x8000 | 4);
 	err_msg = NULL;
-	/* OPCODE != 0 "standard query" ? */
-	if ((head->flags & htons(0x7800)) != 0) {
-		err_msg = "opcode != 0";
-		goto empty_packet;
-	}
 
 	/* start of query string */
 	query_string = (void *)(head + 1);
@@ -392,6 +387,11 @@ static int process_packet(struct dns_entry *conf_data,
 	/* where to append answer block */
 	answb = (void *)(unaligned_type_class + 1);
 
+	/* OPCODE != 0 "standard query"? */
+	if ((head->flags & htons(0x7800)) != 0) {
+		err_msg = "opcode != 0";
+		goto empty_packet;
+	}
 	move_from_unaligned16(class, &unaligned_type_class->class);
 	if (class != htons(1)) { /* not class INET? */
 		err_msg = "class != 1";

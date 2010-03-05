@@ -1490,6 +1490,7 @@ typedef struct bb_progress_t {
 	off_t lastsize;
 	unsigned lastupdate_sec;
 	unsigned start_sec;
+	smallint inited;
 } bb_progress_t;
 
 void bb_progress_init(bb_progress_t *p) FAST_FUNC;
