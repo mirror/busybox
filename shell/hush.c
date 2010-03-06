@@ -57,7 +57,6 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      builtins: ulimit
  *      special variables (done: PWD)
  *      follow IFS rules more precisely, including update semantics
  *      export builtin should be special, its arguments are assignments
@@ -87,6 +86,7 @@
 
 #include "shell_common.h"
 #include "builtin_read.h"
+#include "builtin_ulimit.h"
 #include "math.h"
 #include "match.h"
 #if ENABLE_HUSH_RANDOM_SUPPORT
@@ -671,7 +671,7 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
 	BLTIN("type"     , builtin_type    , "Write a description of command type"),
-//	BLTIN("ulimit"   , builtin_ulimit  , "Control resource limits"),
+	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
 	BLTIN("unset"    , builtin_unset   , "Unset variables"),
 	BLTIN("wait"     , builtin_wait    , "Wait for process"),
