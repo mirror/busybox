@@ -19,12 +19,12 @@
 #undef s16
 #undef s8
 
-#define __u64 bb_hack_u64
+#define __u64 bb_hack___u64
 #define u64 bb_hack_u64
 #define u32 bb_hack_u32
 #define u16 bb_hack_u16
 #define u8  bb_hack_u8
-#define __s64 bb_hack_s64
+#define __s64 bb_hack___s64
 #define s64 bb_hack_s64
 #define s32 bb_hack_s32
 #define s16 bb_hack_s16
