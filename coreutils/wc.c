@@ -88,6 +88,8 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 	if (!argv[0]) {
 		*--argv = (char *) bb_msg_standard_input;
 		fname_fmt = "\n";
+	}
+	if (!argv[1]) { /* zero or one filename? */
 		if (!((print_type-1) & print_type)) /* exactly one option? */
 			start_fmt = "%"COUNT_FMT;
 	}
