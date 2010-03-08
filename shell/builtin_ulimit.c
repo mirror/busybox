@@ -175,14 +175,15 @@ int FAST_FUNC shell_builtin_ulimit(char **argv)
 			opt_char = 'f';
 		for (l = limits_tbl; l != &limits_tbl[ARRAY_SIZE(limits_tbl)]; l++) {
 			if (opt_char == l->option) {
-				char *val_str = optarg ? optarg : (argv[optind] && argv[optind][0] != '-' ? argv[optind] : NULL);
+				char *val_str;
 
 				getrlimit(l->cmd, &limit);
+
+				val_str = optarg;
+				if (!val_str && argv[optind] && argv[optind][0] != '-')
+					val_str = argv[optind++]; /* ++ skips NN in "-c NN" case */
 				if (val_str) {
 					rlim_t val;
-
-					if (!optarg) /* -c NNN: make getopt skip NNN */
-						optind++;
 
 					if (strcmp(val_str, "unlimited") == 0)
 						val = RLIM_INFINITY;
