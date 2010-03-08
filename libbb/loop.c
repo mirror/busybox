@@ -8,14 +8,12 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #include "libbb.h"
-#include "fix_u32.h" /* hack, so we may include kernel's linux/loop.h */
 #include <linux/version.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 
 /* For 2.6, use the cleaned up header to get the 64 bit API. */
-/* linux/loop.h relies on __u64. Make sure we have that as a proper type
- * until userspace is widely fixed. */
+# include "fix_u32.h" /* some old toolchains need __u64 for linux/loop.h */
 # include <linux/loop.h>
 typedef struct loop_info64 bb_loop_info;
 # define BB_LOOP_SET_STATUS LOOP_SET_STATUS64
