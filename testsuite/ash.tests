@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# These are not ash tests, we use ash as a way to test lineedit!
+#
+# Copyright 2010 by Denys Vlasenko
+# Licensed under GPL v2, see file LICENSE for details.
+
+. ./testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "One byte which is not valid unicode char followed by valid input" \
+	"script -q -c 'ash' /dev/null >/dev/null; cat output; rm output" \
+	"\
+00000000  3f 2d 0a                                          |?-.|
+00000003
+" \
+	"" \
+	"echo \xff- | hexdump -C >output; exit; exit; exit; exit\n" \
+
+testing "30 bytes which are not valid unicode chars followed by valid input" \
+	"script -q -c 'ash' /dev/null >/dev/null; cat output; rm output" \
+	"\
+00000000  3f 3f 3f 3f 3f 3f 3f 3f  3f 3f 3f 3f 3f 3f 3f 3f  |????????????????|
+00000010  3f 3f 3f 3f 3f 3f 3f 3f  3f 3f 3f 3f 3f 3f 2d 0a  |??????????????-.|
+00000020
+" \
+	"" \
+	"echo \xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff- | hexdump -C >output; exit; exit; exit; exit\n" \
+
+# Not sure this behavior is perfect: we lose all invalid input which precedes
+# arrow keys and such. In this example, \xff\xff are lost
+testing "2 bytes which are not valid unicode chars followed by left arrow key" \
+	"script -q -c 'ash' /dev/null >/dev/null; cat output; rm output" \
+	"\
+00000000  3d 2d 0a                                          |=-.|
+00000003
+" \
+	"" \
+	"echo =+\xff\xff\x1b\x5b\x44- | hexdump -C >output; exit; exit; exit; exit\n" \
+
+exit $FAILCOUNT

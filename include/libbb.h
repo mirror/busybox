@@ -1277,6 +1277,7 @@ enum {
  * on first call.
  */
 int64_t read_key(int fd, char *buffer) FAST_FUNC;
+void read_key_ungets(char *buffer, const char *str, unsigned len) FAST_FUNC;
 
 
 #if ENABLE_FEATURE_EDITING

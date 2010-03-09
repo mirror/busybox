@@ -1700,18 +1700,34 @@ static int lineedit_read_key(char *read_key_buffer)
 #endif
 
 #if ENABLE_FEATURE_ASSUME_UNICODE
-		{
+		if (unicode_status == UNICODE_ON) {
 			wchar_t wc;
 
 			if ((int32_t)ic < 0) /* KEYCODE_xxx */
 				return ic;
+			// TODO: imagine sequence like: 0xff, <left-arrow>: we are currently losing 0xff...
+
 			unicode_buf[unicode_idx++] = ic;
 			unicode_buf[unicode_idx] = '\0';
-			if (mbstowcs(&wc, unicode_buf, 1) != 1 && unicode_idx < MB_CUR_MAX) {
-				delay = 50;
-				goto poll_again;
+			if (mbstowcs(&wc, unicode_buf, 1) != 1) {
+				/* Not (yet?) a valid unicode char */
+				if (unicode_idx < MB_CUR_MAX) {
+					delay = 50;
+					goto poll_again;
+				}
+				/* Invalid sequence. Save all "bad bytes" except first */
+				read_key_ungets(read_key_buffer, unicode_buf + 1, MB_CUR_MAX - 1);
+				/*
+				 * ic = unicode_buf[0] sounds even better, but currently
+				 * this does not work: wchar_t[] -> char[] conversion
+				 * when lineedit finishes mangles such "raw bytes"
+				 * (by misinterpreting them as unicode chars):
+				 */
+				ic = CONFIG_SUBST_WCHAR;
+			} else {
+				/* Valid unicode char, return its code */
+				ic = wc;
 			}
-			ic = wc;
 		}
 #endif
 	} while (errno == EAGAIN);

@@ -246,3 +246,12 @@ int64_t FAST_FUNC read_key(int fd, char *buffer)
 	buffer[-1] = 0;
 	goto start_over;
 }
+
+void FAST_FUNC read_key_ungets(char *buffer, const char *str, unsigned len)
+{
+	unsigned cur_len = (unsigned char)buffer[0];
+	if (len > KEYCODE_BUFFER_SIZE-1 - cur_len)
+		len = KEYCODE_BUFFER_SIZE-1 - cur_len;
+	memcpy(buffer + 1 + cur_len, str, len);
+	buffer[0] += cur_len + len;
+}
