@@ -912,8 +912,10 @@ static void nvfree(var *v)
 			free(p->x.array->items);
 			free(p->x.array);
 		}
-		if (p->type & VF_WALK)
+		if (p->type & VF_WALK) {
+			//bb_error_msg("free(walker@%p:%p) #1", &p->x.walker, p->x.walker);
 			free(p->x.walker);
+		}
 
 		clrvar(p);
 	}
@@ -1724,18 +1726,20 @@ static void hashwalk_init(var *v, xhash *array)
 	char **w;
 	hash_item *hi;
 	unsigned i;
-
-	if (v->type & VF_WALK)
-		free(v->x.walker);
+	char **prev_walker = (v->type & VF_WALK) ? v->x.walker : NULL;
 
 	v->type |= VF_WALK;
-	w = v->x.walker = xzalloc(2 + 2*sizeof(char *) + array->glen);
-	w[0] = w[1] = (char *)(w + 2);
+
+	/* walker structure is: "[ptr2end][ptr2start][prev]<word1>NUL<word2>NUL" */
+	w = v->x.walker = xzalloc(2 + 3*sizeof(char *) + array->glen);
+	//bb_error_msg("walker@%p=%p", &v->x.walker, v->x.walker);
+	w[0] = w[1] = (char *)(w + 3);
+	w[2] = (char *)prev_walker;
 	for (i = 0; i < array->csize; i++) {
 		hi = array->items[i];
 		while (hi) {
-			strcpy(*w, hi->name);
-			nextword(w);
+			strcpy(w[0], hi->name);
+			nextword(&w[0]);
 			hi = hi->next;
 		}
 	}
@@ -1746,10 +1750,16 @@ static int hashwalk_next(var *v)
 	char **w;
 
 	w = v->x.walker;
-	if (w[1] == w[0])
-		return FALSE;
+	if (w[1] == w[0]) {
+		char **prev_walker = (char**)w[2];
 
-	setvar_s(v, nextword(w+1));
+		//bb_error_msg("free(walker@%p:%p) #3, restoring to %p", &v->x.walker, v->x.walker, prev_walker);
+		free(v->x.walker);
+		v->x.walker = prev_walker;
+		return FALSE;
+	}
+
+	setvar_s(v, nextword(&w[1]));
 	return TRUE;
 }
 

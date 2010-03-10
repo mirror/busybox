@@ -67,4 +67,42 @@ testing "awk string cast (bug 725)" \
 testing "awk handles whitespace before array subscript" \
 	"awk 'BEGIN { arr [3] = 1; print arr [3] }'" "1\n" "" ""
 
+prg='
+BEGIN {
+  v["q"]=1
+  v["w"]=1
+  v["e"]=1
+  for (l in v) {
+    print "outer1", l;
+    for (l in v) {
+      print " inner", l;
+    }
+    print "outer2", l;
+  }
+  print "end", l;
+  l="a"
+  exit;
+}'
+testing "awk nested loops with the same variable" \
+	"awk '$prg'" \
+	"\
+outer1 e
+ inner e
+ inner q
+ inner w
+outer2 w
+outer1 q
+ inner e
+ inner q
+ inner w
+outer2 w
+outer1 w
+ inner e
+ inner q
+ inner w
+outer2 w
+end w
+" \
+	"" ""
+
 exit $FAILCOUNT
