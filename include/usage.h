@@ -3484,13 +3484,18 @@
 /*   "\n	-c		Use tcpclient. Ignored" */ \
 /*   "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" */ \
      "\n	-s		Skip authorization" \
-     "\n	-T		Get messages with TOP instead with RETR" \
+     "\n	-T		Get messages with TOP instead of RETR" \
      "\n	-k		Keep retrieved messages on the server" \
      "\n	-t SEC		Network timeout" \
 	IF_FEATURE_POPMAILDIR_DELIVERY( \
-     "\n	-F \"PROG ARGS\"	Filter program. May be multiple" \
+     "\n	-F \"PROG ARGS\"	Filter program (may be repeated)" \
      "\n	-M \"PROG ARGS\"	Delivery program" \
 	) \
+     "\n" \
+     "\nFetch from plain POP3 server:" \
+     "\npopmaildir -k DIR nc pop3.server.com 110 <user_and_pass.txt" \
+     "\nFetch from SSLed POP3 server and delete fetched emails:" \
+     "\npopmaildir DIR -- openssl s_client -quiet -connect pop3.server.com:995 <user_and_pass.txt"
 /*   "\n	-R BYTES	Remove old messages on the server >= BYTES. Ignored" */
 /*   "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" */
 /*   "\n	-L BYTES	Don't retrieve new messages >= BYTES. Ignored" */
