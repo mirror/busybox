@@ -1513,12 +1513,13 @@ static regex_t *as_regex(node *op, regex_t *preg)
 }
 
 /* gradually increasing buffer */
-static void qrealloc(char **b, int n, int *size)
+static char* qrealloc(char *b, int n, int *size)
 {
-	if (!*b || n >= *size) {
+	if (!b || n >= *size) {
 		*size = n + (n>>1) + 80;
-		*b = xrealloc(*b, *size);
+		b = xrealloc(b, *size);
 	}
+	return b;
 }
 
 /* resize field storage space */
@@ -1678,7 +1679,7 @@ static void handle_special(var *v)
 				memcpy(b+len, sep, sl);
 				len += sl;
 			}
-			qrealloc(&b, len+l+sl, &bsize);
+			b = qrealloc(b, len+l+sl, &bsize);
 			memcpy(b+len, s, l);
 			len += l;
 		}
@@ -1790,7 +1791,8 @@ static int awk_getline(rstream *rsm, var *v)
 	c = (char) rsplitter.n.info;
 	rp = 0;
 
-	if (!m) qrealloc(&m, 256, &size);
+	if (!m)
+		m = qrealloc(m, 256, &size);
 	do {
 		b = m + a;
 		so = eo = p;
@@ -1831,7 +1833,7 @@ static int awk_getline(rstream *rsm, var *v)
 			a = 0;
 		}
 
-		qrealloc(&m, a+p+128, &size);
+		m = qrealloc(m, a+p+128, &size);
 		b = m + a;
 		pp = p;
 		p += safe_read(fd, b+p, size-p-1);
@@ -1910,7 +1912,7 @@ static char *awk_printf(node *n)
 		}
 
 		incr = (f - s) + MAXVARFMT;
-		qrealloc(&b, incr + i, &bsize);
+		b = qrealloc(b, incr + i, &bsize);
 		c = *f;
 		if (c != '\0') f++;
 		c1 = *f;
@@ -1923,7 +1925,7 @@ static char *awk_printf(node *n)
 					(char)getvar_i(arg) : *getvar_s(arg));
 		} else if (c == 's') {
 			s1 = getvar_s(arg);
-			qrealloc(&b, incr+i+strlen(s1), &bsize);
+			b = qrealloc(b, incr+i+strlen(s1), &bsize);
 			i += sprintf(b+i, s, s1);
 		} else {
 			i += fmt_num(b+i, incr, s, getvar_i(arg), FALSE);
@@ -1967,7 +1969,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 		so = pmatch[0].rm_so;
 		eo = pmatch[0].rm_eo;
 
-		qrealloc(&ds, di + eo + rl, &dssize);
+		ds = qrealloc(ds, di + eo + rl, &dssize);
 		memcpy(ds + di, sp, eo);
 		di += eo;
 		if (++i >= nm) {
@@ -1991,7 +1993,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 						ds[di++] = c;
 					} else {
 						n = pmatch[j].rm_eo - pmatch[j].rm_so;
-						qrealloc(&ds, di + rl + n, &dssize);
+						ds = qrealloc(ds, di + rl + n, &dssize);
 						memcpy(ds + di, sp + pmatch[j].rm_so, n);
 						di += n;
 					}
@@ -2010,7 +2012,7 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 		}
 	}
 
-	qrealloc(&ds, di + strlen(sp), &dssize);
+	ds = qrealloc(ds, di + strlen(sp), &dssize);
 	strcpy(ds + di, sp);
 	setvar_p(dest, ds);
 	if (re == &sreg)
