@@ -674,10 +674,11 @@ static void skip_spaces(char **s)
 	*s = p;
 }
 
+/* returns old *s, advances *s past word and terminating NUL */
 static char *nextword(char **s)
 {
 	char *p = *s;
-	while (*(*s)++)
+	while (*(*s)++ != '\0')
 		continue;
 	return p;
 }
@@ -686,12 +687,12 @@ static char nextchar(char **s)
 {
 	char c, *pps;
 
-	c = *((*s)++);
+	c = *(*s)++;
 	pps = *s;
 	if (c == '\\')
 		c = bb_process_escape_sequence((const char**)s);
 	if (c == '\\' && *s == pps)
-		c = *((*s)++);
+		c = *(*s)++;
 	return c;
 }
 
@@ -963,7 +964,7 @@ static uint32_t next_token(uint32_t expected)
 /* Initialized to TC_OPTERM: */
 #define ltclass         (G.next_token__ltclass)
 
-	char *p, *pp, *s;
+	char *p, *s;
 	const char *tl;
 	uint32_t tc;
 	const uint32_t *ti;
@@ -996,9 +997,11 @@ static uint32_t next_token(uint32_t expected)
 			/* it's a string */
 			t_string = s = ++p;
 			while (*p != '\"') {
+				char *pp = p;
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
-				*(s++) = nextchar(&p);
+				*s++ = nextchar(&pp);
+				p = pp;
 			}
 			p++;
 			*s = '\0';
@@ -1012,12 +1015,14 @@ static uint32_t next_token(uint32_t expected)
 					syntax_error(EMSG_UNEXP_EOS);
 				*s = *p++;
 				if (*s++ == '\\') {
-					pp = p;
-					*(s-1) = bb_process_escape_sequence((const char **)&p);
-					if (*pp == '\\')
+					char *pp = p;
+					s[-1] = bb_process_escape_sequence((const char **)&pp);
+					if (*p == '\\')
 						*s++ = '\\';
-					if (p == pp)
+					if (pp == p)
 						*s++ = *p++;
+					else
+						p = pp;
 				}
 			}
 			p++;
@@ -1026,8 +1031,10 @@ static uint32_t next_token(uint32_t expected)
 
 		} else if (*p == '.' || isdigit(*p)) {
 			/* it's a number */
-			t_double = my_strtod(&p);
-			if (*p == '.')
+			char *pp = p;
+			t_double = my_strtod(&pp);
+			p = pp;
+			if (*pp == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
 
@@ -1037,7 +1044,7 @@ static uint32_t next_token(uint32_t expected)
 			tc = 0x00000001;
 			ti = tokeninfo;
 			while (*tl) {
-				l = *(tl++);
+				l = *tl++;
 				if (l == NTCC) {
 					tc <<= 1;
 					continue;
@@ -1066,10 +1073,10 @@ static uint32_t next_token(uint32_t expected)
 					syntax_error(EMSG_UNEXP_TOKEN);
 
 				t_string = --p;
-				while (isalnum_(*(++p))) {
-					*(p-1) = *p;
+				while (isalnum_(*++p)) {
+					p[-1] = *p;
 				}
-				*(p-1) = '\0';
+				p[-1] = '\0';
 				tc = TC_VARIABLE;
 				/* also consume whitespace between functionname and bracket */
 				if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
@@ -1332,7 +1339,8 @@ static void chain_group(void)
 
 	if (c & TC_GRPSTART) {
 		while (next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
-			if (t_tclass & TC_NEWLINE) continue;
+			if (t_tclass & TC_NEWLINE)
+				continue;
 			rollback_token();
 			chain_group();
 		}
@@ -1628,7 +1636,8 @@ static int awk_split(const char *s, node *spl, char **slist)
 			c[0] = toupper(c[0]);
 			c[1] = tolower(c[1]);
 		}
-		if (*s1) n++;
+		if (*s1)
+			n++;
 		while ((s1 = strpbrk(s1, c))) {
 			*s1++ = '\0';
 			n++;
@@ -1638,7 +1647,8 @@ static int awk_split(const char *s, node *spl, char **slist)
 	/* space split */
 	while (*s) {
 		s = skip_whitespace(s);
-		if (!*s) break;
+		if (!*s)
+			break;
 		n++;
 		while (*s && !isspace(*s))
 			*s1++ = *s++;
@@ -1836,7 +1846,8 @@ static int awk_getline(rstream *rsm, var *v)
 				}
 			} else if (c != '\0') {
 				s = strchr(b+pp, c);
-				if (!s) s = memchr(b+pp, '\0', p - pp);
+				if (!s)
+					s = memchr(b+pp, '\0', p - pp);
 				if (s) {
 					so = eo = s-b;
 					eo++;
@@ -1931,7 +1942,7 @@ static char *awk_printf(node *n)
 	i = 0;
 	while (*f) {
 		s = f;
-		while (*f && (*f != '%' || *(++f) == '%'))
+		while (*f && (*f != '%' || *++f == '%'))
 			f++;
 		while (*f && !isalpha(*f)) {
 			if (*f == '*')
@@ -1942,7 +1953,8 @@ static char *awk_printf(node *n)
 		incr = (f - s) + MAXVARFMT;
 		b = qrealloc(b, incr + i, &bsize);
 		c = *f;
-		if (c != '\0') f++;
+		if (c != '\0')
+			f++;
 		c1 = *f;
 		*f = '\0';
 		arg = evaluate(nextarg(&n), v);
@@ -1961,7 +1973,8 @@ static char *awk_printf(node *n)
 		*f = c1;
 
 		/* if there was an error while sprintf, return value is negative */
-		if (i < j) i = j;
+		if (i < j)
+			i = j;
 	}
 
 	b = xrealloc(b, i + 1);
@@ -1987,8 +2000,10 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 	regex_t sreg, *re;
 
 	re = as_regex(rn, &sreg);
-	if (!src) src = intvar[F0];
-	if (!dest) dest = intvar[F0];
+	if (!src)
+		src = intvar[F0];
+	if (!dest)
+		dest = intvar[F0];
 
 	i = di = 0;
 	sp = getvar_s(src);
@@ -2100,8 +2115,10 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	av[2] = av[3] = NULL;
 	for (i = 0; i < 4 && op; i++) {
 		an[i] = nextarg(&op);
-		if (isr & 0x09000000) av[i] = evaluate(an[i], &tv[i]);
-		if (isr & 0x08000000) as[i] = getvar_s(av[i]);
+		if (isr & 0x09000000)
+			av[i] = evaluate(an[i], &tv[i]);
+		if (isr & 0x08000000)
+			as[i] = getvar_s(av[i]);
 		isr >>= 1;
 	}
 
@@ -2140,10 +2157,13 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	case B_ss:
 		l = strlen(as[0]);
 		i = getvar_i(av[1]) - 1;
-		if (i > l) i = l;
-		if (i < 0) i = 0;
+		if (i > l)
+			i = l;
+		if (i < 0)
+			i = 0;
 		n = (nargs > 2) ? getvar_i(av[2]) : l-i;
-		if (n < 0) n = 0;
+		if (n < 0)
+			n = 0;
 		s = xstrndup(as[0]+i, n);
 		setvar_p(res, s);
 		break;
@@ -2193,7 +2213,8 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		if (ll > 0 && l >= 0) {
 			if (!icase) {
 				s = strstr(as[0], as[1]);
-				if (s) n = (s - as[0]) + 1;
+				if (s)
+					n = (s - as[0]) + 1;
 			} else {
 				/* this piece of code is terribly slow and
 				 * really should be rewritten
@@ -2239,7 +2260,8 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		setvar_i(newvar("RSTART"), pmatch[0].rm_so);
 		setvar_i(newvar("RLENGTH"), pmatch[0].rm_eo - pmatch[0].rm_so);
 		setvar_i(res, pmatch[0].rm_so);
-		if (re == &sreg) regfree(re);
+		if (re == &sreg)
+			regfree(re);
 		break;
 
 	case B_ge:
@@ -2305,11 +2327,16 @@ static var *evaluate(node *op, var *res)
 
 		/* execute inevitable things */
 		op1 = op->l.n;
-		if (opinfo & OF_RES1) X.v = L.v = evaluate(op1, v1);
-		if (opinfo & OF_RES2) R.v = evaluate(op->r.n, v1+1);
-		if (opinfo & OF_STR1) L.s = getvar_s(L.v);
-		if (opinfo & OF_STR2) R.s = getvar_s(R.v);
-		if (opinfo & OF_NUM1) L.d = getvar_i(L.v);
+		if (opinfo & OF_RES1)
+			X.v = L.v = evaluate(op1, v1);
+		if (opinfo & OF_RES2)
+			R.v = evaluate(op->r.n, v1+1);
+		if (opinfo & OF_STR1)
+			L.s = getvar_s(L.v);
+		if (opinfo & OF_STR2)
+			R.s = getvar_s(R.v);
+		if (opinfo & OF_NUM1)
+			L.d = getvar_i(L.v);
 
 		switch (XC(opinfo & OPCLSMASK)) {
 
@@ -2384,7 +2411,8 @@ static var *evaluate(node *op, var *res)
 							fputs(getvar_s(L.v), X.F);
 						}
 
-						if (op1) fputs(getvar_s(intvar[OFS]), X.F);
+						if (op1)
+							fputs(getvar_s(intvar[OFS]), X.F);
 					}
 				}
 				fputs(getvar_s(intvar[ORS]), X.F);
@@ -2463,7 +2491,8 @@ static var *evaluate(node *op, var *res)
  re_cont:
 			X.re = as_regex(op1, &sreg);
 			R.i = regexec(X.re, L.s, 0, NULL, 0);
-			if (X.re == &sreg) regfree(X.re);
+			if (X.re == &sreg)
+				regfree(X.re);
 			setvar_i(res, (R.i == 0) ^ (opn == '!'));
 			break;
 
@@ -2523,7 +2552,8 @@ static var *evaluate(node *op, var *res)
 					}
 				}
 			} else {
-				if (!iF) iF = next_input_file();
+				if (!iF)
+					iF = next_input_file();
 				X.rsm = iF;
 			}
 
@@ -2822,10 +2852,10 @@ static int is_assignment(const char *expr)
 		return FALSE;
 	}
 
-	*(s++) = '\0';
+	*s++ = '\0';
 	s0 = s1 = s;
 	while (*s)
-		*(s1++) = nextchar(&s);
+		*s1++ = nextchar(&s);
 
 	*s1 = '\0';
 	setvar_u(newvar(exprc), s0);
