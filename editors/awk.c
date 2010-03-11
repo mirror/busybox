@@ -14,6 +14,16 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 
+/* If you comment out one of these below, it will be #defined later
+ * to perform debug printfs to stderr: */
+#define debug_printf_walker(...)  do {} while (0)
+
+#ifndef debug_printf_walker
+# define debug_printf_walker(...) (fprintf(stderr, __VA_ARGS__))
+#endif
+
+
+
 #define	MAXVARFMT       240
 #define	MINNVBLOCK      64
 
@@ -32,6 +42,13 @@
 /* these flags are static, don't change them when value is changed */
 #define	VF_DONTTOUCH    (VF_ARRAY | VF_SPECIAL | VF_WALK | VF_CHILD | VF_DIRTY)
 
+typedef struct walker_list {
+	char *end;
+	char *cur;
+	struct walker_list *prev;
+	char wbuf[1];
+} walker_list;
+
 /* Variable */
 typedef struct var_s {
 	unsigned type;            /* flags */
@@ -41,7 +58,7 @@ typedef struct var_s {
 		int aidx;               /* func arg idx (for compilation stage) */
 		struct xhash_s *array;  /* array ptr */
 		struct var_s *parent;   /* for func args, ptr to actual parameter */
-		char **walker;          /* list of array elements (for..in) */
+		walker_list *walker;    /* list of array elements (for..in) */
 	} x;
 } var;
 
@@ -913,10 +930,17 @@ static void nvfree(var *v)
 			free(p->x.array);
 		}
 		if (p->type & VF_WALK) {
-			//bb_error_msg("free(walker@%p:%p) #1", &p->x.walker, p->x.walker);
-			free(p->x.walker);
+			walker_list *n;
+			walker_list *w = p->x.walker;
+			debug_printf_walker("nvfree: freeing walker @%p\n", &p->x.walker);
+			p->x.walker = NULL;
+			while (w) {
+				n = w->prev;
+				debug_printf_walker(" free(%p)\n", w);
+				free(w);
+				w = n;
+			}
 		}
-
 		clrvar(p);
 	}
 
@@ -1724,23 +1748,28 @@ static node *nextarg(node **pn)
 
 static void hashwalk_init(var *v, xhash *array)
 {
-	char **w;
 	hash_item *hi;
 	unsigned i;
-	char **prev_walker = (v->type & VF_WALK) ? v->x.walker : NULL;
+	walker_list *w;
+	walker_list *prev_walker;
 
-	v->type |= VF_WALK;
+	if (v->type & VF_WALK) {
+		prev_walker = v->x.walker;
+	} else {
+		v->type |= VF_WALK;
+		prev_walker = NULL;
+	}
+	debug_printf_walker("hashwalk_init: prev_walker:%p\n", prev_walker);
 
-	/* walker structure is: "[ptr2end][ptr2start][prev]<word1>NUL<word2>NUL" */
-	w = v->x.walker = xzalloc(2 + 3*sizeof(char *) + array->glen);
-	//bb_error_msg("walker@%p=%p", &v->x.walker, v->x.walker);
-	w[0] = w[1] = (char *)(w + 3);
-	w[2] = (char *)prev_walker;
+	w = v->x.walker = xzalloc(sizeof(*w) + array->glen + 1); /* why + 1? */
+	debug_printf_walker(" walker@%p=%p\n", &v->x.walker, w);
+	w->cur = w->end = w->wbuf;
+	w->prev = prev_walker;
 	for (i = 0; i < array->csize; i++) {
 		hi = array->items[i];
 		while (hi) {
-			strcpy(w[0], hi->name);
-			nextword(&w[0]);
+			strcpy(w->end, hi->name);
+			nextword(&w->end);
 			hi = hi->next;
 		}
 	}
@@ -1748,19 +1777,18 @@ static void hashwalk_init(var *v, xhash *array)
 
 static int hashwalk_next(var *v)
 {
-	char **w;
+	walker_list *w = v->x.walker;
 
-	w = v->x.walker;
-	if (w[1] == w[0]) {
-		char **prev_walker = (char**)w[2];
+	if (w->cur >= w->end) {
+		walker_list *prev_walker = w->prev;
 
-		//bb_error_msg("free(walker@%p:%p) #3, restoring to %p", &v->x.walker, v->x.walker, prev_walker);
-		free(v->x.walker);
+		debug_printf_walker("end of iteration, free(walker@%p:%p), prev_walker:%p\n", &v->x.walker, w, prev_walker);
+		free(w);
 		v->x.walker = prev_walker;
 		return FALSE;
 	}
 
-	setvar_s(v, nextword(&w[1]));
+	setvar_s(v, nextword(&w->cur));
 	return TRUE;
 }
 
