@@ -2205,7 +2205,7 @@ static int readit(void) // read (maybe cursor) key from stdin
 	int c;
 
 	fflush_all();
-	c = read_key(STDIN_FILENO, readbuffer);
+	c = read_key(STDIN_FILENO, readbuffer, /*timeout off:*/ -2);
 	if (c == -1) { // EOF/error
 		go_bottom_and_clear_to_eol();
 		cookmode(); // terminal to "cooked"

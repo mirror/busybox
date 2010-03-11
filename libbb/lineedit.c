@@ -1658,27 +1658,28 @@ static void win_changed(int nsig)
 static int lineedit_read_key(char *read_key_buffer)
 {
 	int64_t ic;
-	struct pollfd pfd;
-	int delay = -1;
+	int timeout = -1;
 #if ENABLE_FEATURE_ASSUME_UNICODE
 	char unicode_buf[MB_CUR_MAX + 1];
 	int unicode_idx = 0;
 #endif
 
-	pfd.fd = STDIN_FILENO;
-	pfd.events = POLLIN;
-	do {
-#if ENABLE_FEATURE_EDITING_ASK_TERMINAL || ENABLE_FEATURE_ASSUME_UNICODE
- poll_again:
+	while (1) {
+		/* Wait for input. TIMEOUT = -1 makes read_key wait even
+		 * on nonblocking stdin, TIMEOUT = 50 makes sure we won't
+		 * insist on full MB_CUR_MAX buffer to declare input like
+		 * "\xff\n",pause,"ls\n" invalid and thus won't lose "ls".
+		 *
+		 * Note: read_key sets errno to 0 on success.
+		 */
+		ic = read_key(STDIN_FILENO, read_key_buffer, timeout);
+		if (errno) {
+#if ENABLE_FEATURE_ASSUME_UNICODE
+			if (errno == EAGAIN && unicode_idx != 0)
+				goto pushback;
 #endif
-		if (read_key_buffer[0] == 0) {
-			/* Wait for input. Can't just call read_key,
-			 * it returns at once if stdin
-			 * is in non-blocking mode. */
-			safe_poll(&pfd, 1, delay);
+			break;
 		}
-		/* Note: read_key sets errno to 0 on success: */
-		ic = read_key(STDIN_FILENO, read_key_buffer);
 
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
 		if ((int32_t)ic == KEYCODE_CURSOR_POS
@@ -1695,7 +1696,7 @@ static int lineedit_read_key(char *read_key_buffer)
 					}
 				}
 			}
-			goto poll_again;
+			continue;
 		}
 #endif
 
@@ -1704,19 +1705,20 @@ static int lineedit_read_key(char *read_key_buffer)
 			wchar_t wc;
 
 			if ((int32_t)ic < 0) /* KEYCODE_xxx */
-				return ic;
-			// TODO: imagine sequence like: 0xff, <left-arrow>: we are currently losing 0xff...
+				break;
+			// TODO: imagine sequence like: 0xff,<left-arrow>: we are currently losing 0xff...
 
 			unicode_buf[unicode_idx++] = ic;
 			unicode_buf[unicode_idx] = '\0';
 			if (mbstowcs(&wc, unicode_buf, 1) != 1) {
 				/* Not (yet?) a valid unicode char */
 				if (unicode_idx < MB_CUR_MAX) {
-					delay = 50;
-					goto poll_again;
+					timeout = 50;
+					continue;
 				}
+ pushback:
 				/* Invalid sequence. Save all "bad bytes" except first */
-				read_key_ungets(read_key_buffer, unicode_buf + 1, MB_CUR_MAX - 1);
+				read_key_ungets(read_key_buffer, unicode_buf + 1, unicode_idx - 1);
 				/*
 				 * ic = unicode_buf[0] sounds even better, but currently
 				 * this does not work: wchar_t[] -> char[] conversion
@@ -1730,7 +1732,8 @@ static int lineedit_read_key(char *read_key_buffer)
 			}
 		}
 #endif
-	} while (errno == EAGAIN);
+		break;
+	}
 
 	return ic;
 }

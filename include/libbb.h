@@ -1275,8 +1275,12 @@ enum {
  * Return of -1 means EOF or error (errno == 0 on EOF).
  * buffer[0] is used as a counter of buffered chars and must be 0
  * on first call.
+ * timeout:
+ * -2: do not poll for input;
+ * -1: poll(-1) (i.e. block);
+ * >=0: poll for TIMEOUT milliseconds, return -1/EAGAIN on timeout
  */
-int64_t read_key(int fd, char *buffer) FAST_FUNC;
+int64_t read_key(int fd, char *buffer, int timeout) FAST_FUNC;
 void read_key_ungets(char *buffer, const char *str, unsigned len) FAST_FUNC;
 
 
