@@ -658,10 +658,8 @@ static void hash_remove(xhash *hash, const char *name)
 
 /* ------ some useful functions ------ */
 
-static void skip_spaces(char **s)
+static char *skip_spaces(char *p)
 {
-	char *p = *s;
-
 	while (1) {
 		if (*p == '\\' && p[1] == '\n') {
 			p++;
@@ -671,7 +669,7 @@ static void skip_spaces(char **s)
 		}
 		p++;
 	}
-	*s = p;
+	return p;
 }
 
 /* returns old *s, advances *s past word and terminating NUL */
@@ -822,7 +820,7 @@ static double getvar_i(var *v)
 		if (s && *s) {
 			v->number = my_strtod(&s);
 			if (v->type & VF_USER) {
-				skip_spaces(&s);
+				s = skip_spaces(s);
 				if (*s != '\0')
 					v->type &= ~VF_USER;
 			}
@@ -981,7 +979,7 @@ static uint32_t next_token(uint32_t expected)
 	} else {
 		p = g_pos;
  readnext:
-		skip_spaces(&p);
+		p = skip_spaces(p);
 		g_lineno = t_lineno;
 		if (*p == '#')
 			while (*p != '\n' && *p != '\0')
@@ -1080,7 +1078,7 @@ static uint32_t next_token(uint32_t expected)
 				tc = TC_VARIABLE;
 				/* also consume whitespace between functionname and bracket */
 				if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
-					skip_spaces(&p);
+					p = skip_spaces(p);
 				if (*p == '(') {
 					tc = TC_FUNCTION;
 				} else {
