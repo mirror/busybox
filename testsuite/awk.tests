@@ -69,10 +69,13 @@ testing "awk handles whitespace before array subscript" \
 
 prg='
 BEGIN {
-  v["q"]=1
-  v["w"]=1
+  u["a"]=1
+  u["b"]=1
+  u["c"]=1
+  v["d"]=1
   v["e"]=1
-  for (l in v) {
+  v["f"]=1
+  for (l in u) {
     print "outer1", l;
     for (l in v) {
       print " inner", l;
@@ -86,22 +89,100 @@ BEGIN {
 testing "awk nested loops with the same variable" \
 	"awk '$prg'" \
 	"\
-outer1 e
+outer1 a
+ inner d
  inner e
- inner q
- inner w
-outer2 w
-outer1 q
+ inner f
+outer2 f
+outer1 b
+ inner d
  inner e
- inner q
- inner w
-outer2 w
-outer1 w
+ inner f
+outer2 f
+outer1 c
+ inner d
  inner e
- inner q
- inner w
-outer2 w
-end w
+ inner f
+outer2 f
+end f
+" \
+	"" ""
+
+prg='
+BEGIN {
+  u["a"]=1
+  u["b"]=1
+  u["c"]=1
+  v["d"]=1
+  v["e"]=1
+  v["f"]=1
+  for (l in u) {
+    print "outer1", l;
+    for (l in v) {
+      print " inner", l;
+      break;
+    }
+    print "outer2", l;
+  }
+  print "end", l;
+  l="a"
+  exit;
+}'
+# It's not just buggy, it enters infinite loop. Thus disabled
+false && test x"$SKIP_KNOWN_BUGS" = x"" && testing "awk nested loops with the same variable and break" \
+	"awk '$prg'" \
+	"\
+outer1 a
+ inner d
+outer2 d
+outer1 b
+ inner d
+outer2 d
+outer1 c
+ inner d
+outer2 d
+end d
+" \
+	"" ""
+
+prg='
+function f() {
+  for (l in v) {
+    print " inner", l;
+    return;
+  }
+}
+
+BEGIN {
+  u["a"]=1
+  u["b"]=1
+  u["c"]=1
+  v["d"]=1
+  v["e"]=1
+  v["f"]=1
+  for (l in u) {
+    print "outer1", l;
+    f();
+    print "outer2", l;
+  }
+  print "end", l;
+  l="a"
+  exit;
+}'
+# It's not just buggy, it enters infinite loop. Thus disabled
+false && test x"$SKIP_KNOWN_BUGS" = x"" && testing "awk nested loops with the same variable and return" \
+	"awk '$prg'" \
+	"\
+outer1 a
+ inner d
+outer2 d
+outer1 b
+ inner d
+outer2 d
+outer1 c
+ inner d
+outer2 d
+end d
 " \
 	"" ""
 
