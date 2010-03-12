@@ -2302,19 +2302,7 @@ static var *evaluate(node *op, var *res)
 #define seed   (G.evaluate__seed)
 #define	sreg   (G.evaluate__sreg)
 
-	node *op1;
 	var *v1;
-	struct {
-		var *v;
-		const char *s;
-	} L = L; /* for compiler */
-	struct {
-		var *v;
-		const char *s;
-	} R = R;
-	double L_d = L_d;
-	uint32_t opinfo;
-	int opn;
 
 	if (!op)
 		return setvar_s(res, NULL);
@@ -2322,12 +2310,25 @@ static var *evaluate(node *op, var *res)
 	v1 = nvalloc(2);
 
 	while (op) {
+		struct {
+			var *v;
+			const char *s;
+		} L = L; /* for compiler */
+		struct {
+			var *v;
+			const char *s;
+		} R = R;
+		double L_d = L_d;
+		uint32_t opinfo;
+		int opn;
+		node *op1;
+
 		opinfo = op->info;
 		opn = (opinfo & OPNMASK);
 		g_lineno = op->lineno;
+		op1 = op->l.n;
 
 		/* execute inevitable things */
-		op1 = op->l.n;
 		if (opinfo & OF_RES1)
 			L.v = evaluate(op1, v1);
 		if (opinfo & OF_RES2)
@@ -2429,20 +2430,23 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_DELETE ): {
 			uint32_t info = op1->info & OPCLSMASK;
+			var *v;
+
 			if (info == OC_VAR) {
-				R.v = op1->l.v;
+				v = op1->l.v;
 			} else if (info == OC_FNARG) {
-				R.v = &fnargs[op1->l.aidx];
+				v = &fnargs[op1->l.aidx];
 			} else {
 				syntax_error(EMSG_NOT_ARRAY);
 			}
 
 			if (op1->r.n) {
+				const char *s;
 				clrvar(L.v);
-				L.s = getvar_s(evaluate(op1->r.n, v1));
-				hash_remove(iamarray(R.v), L.s);
+				s = getvar_s(evaluate(op1->r.n, v1));
+				hash_remove(iamarray(v), s);
 			} else {
-				clear_array(iamarray(R.v));
+				clear_array(iamarray(v));
 			}
 			break;
 		}
@@ -2520,30 +2524,32 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_FUNC ): {
-			var *v;
+			var *vbeg, *v;
+			const char *sv_progname;
 
 			if (!op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
-			v = R.v = nvalloc(op->r.f->nargs + 1);
+			vbeg = v = nvalloc(op->r.f->nargs + 1);
 			while (op1) {
-				L.v = evaluate(nextarg(&op1), v1);
-				copyvar(R.v, L.v);
-				R.v->type |= VF_CHILD;
-				R.v->x.parent = L.v;
-				if (++R.v - v >= op->r.f->nargs)
+				var *arg = evaluate(nextarg(&op1), v1);
+				copyvar(v, arg);
+				v->type |= VF_CHILD;
+				v->x.parent = arg;
+				if (++v - vbeg >= op->r.f->nargs)
 					break;
 			}
 
-			R.v = fnargs;
+			v = fnargs;
+			fnargs = vbeg;
+			sv_progname = g_progname;
+
+			res = evaluate(op->r.f->body.first, res);
+
+			g_progname = sv_progname;
+			nvfree(fnargs);
 			fnargs = v;
 
-			L.s = g_progname;
-			res = evaluate(op->r.f->body.first, res);
-			g_progname = L.s;
-
-			nvfree(fnargs);
-			fnargs = R.v;
 			break;
 		}
 
@@ -2790,9 +2796,9 @@ static var *evaluate(node *op, var *res)
 			if (is_numeric(L.v) && is_numeric(R.v)) {
 				Ld = getvar_i(L.v) - getvar_i(R.v);
 			} else {
-				L.s = getvar_s(L.v);
-				R.s = getvar_s(R.v);
-				Ld = icase ? strcasecmp(L.s, R.s) : strcmp(L.s, R.s);
+				const char *l = getvar_s(L.v);
+				const char *r = getvar_s(R.v);
+				Ld = icase ? strcasecmp(l, r) : strcmp(l, r);
 			}
 			switch (opn & 0xfe) {
 			case 0:
