@@ -2304,22 +2304,17 @@ static var *evaluate(node *op, var *res)
 
 	node *op1;
 	var *v1;
-	union {
+	struct {
 		var *v;
 		const char *s;
-		double d;
-		int i;
-	} L, R;
+	} L = L; /* for compiler */
+	struct {
+		var *v;
+		const char *s;
+	} R = R;
+	double L_d = L_d;
 	uint32_t opinfo;
 	int opn;
-	union {
-		char *s;
-		rstream *rsm;
-		FILE *F;
-		var *v;
-		regex_t *re;
-		uint32_t info;
-	} X;
 
 	if (!op)
 		return setvar_s(res, NULL);
@@ -2334,7 +2329,7 @@ static var *evaluate(node *op, var *res)
 		/* execute inevitable things */
 		op1 = op->l.n;
 		if (opinfo & OF_RES1)
-			X.v = L.v = evaluate(op1, v1);
+			L.v = evaluate(op1, v1);
 		if (opinfo & OF_RES2)
 			R.v = evaluate(op->r.n, v1+1);
 		if (opinfo & OF_STR1)
@@ -2342,7 +2337,7 @@ static var *evaluate(node *op, var *res)
 		if (opinfo & OF_STR2)
 			R.s = getvar_s(R.v);
 		if (opinfo & OF_NUM1)
-			L.d = getvar_i(L.v);
+			L_d = getvar_i(L.v);
 
 		switch (XC(opinfo & OPCLSMASK)) {
 
@@ -2356,7 +2351,6 @@ static var *evaluate(node *op, var *res)
 					op->info |= OF_CHECKED;
 					if (ptest(op1->r.n))
 						op->info &= ~OF_CHECKED;
-
 					op = op->a.n;
 				} else {
 					op = op->r.n;
@@ -2386,56 +2380,58 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_PRINT ):
-		case XC( OC_PRINTF ):
-			X.F = stdout;
+		case XC( OC_PRINTF ): {
+			FILE *F = stdout;
+
 			if (op->r.n) {
-				X.rsm = newfile(R.s);
-				if (!X.rsm->F) {
+				rstream *rsm = newfile(R.s);
+				if (!rsm->F) {
 					if (opn == '|') {
-						X.rsm->F = popen(R.s, "w");
-						if (X.rsm->F == NULL)
+						rsm->F = popen(R.s, "w");
+						if (rsm->F == NULL)
 							bb_perror_msg_and_die("popen");
-						X.rsm->is_pipe = 1;
+						rsm->is_pipe = 1;
 					} else {
-						X.rsm->F = xfopen(R.s, opn=='w' ? "w" : "a");
+						rsm->F = xfopen(R.s, opn=='w' ? "w" : "a");
 					}
 				}
-				X.F = X.rsm->F;
+				F = rsm->F;
 			}
 
 			if ((opinfo & OPCLSMASK) == OC_PRINT) {
 				if (!op1) {
-					fputs(getvar_s(intvar[F0]), X.F);
+					fputs(getvar_s(intvar[F0]), F);
 				} else {
 					while (op1) {
-						L.v = evaluate(nextarg(&op1), v1);
-						if (L.v->type & VF_NUMBER) {
+						var *v = evaluate(nextarg(&op1), v1);
+						if (v->type & VF_NUMBER) {
 							fmt_num(g_buf, MAXVARFMT, getvar_s(intvar[OFMT]),
-									getvar_i(L.v), TRUE);
-							fputs(g_buf, X.F);
+									getvar_i(v), TRUE);
+							fputs(g_buf, F);
 						} else {
-							fputs(getvar_s(L.v), X.F);
+							fputs(getvar_s(v), F);
 						}
 
 						if (op1)
-							fputs(getvar_s(intvar[OFS]), X.F);
+							fputs(getvar_s(intvar[OFS]), F);
 					}
 				}
-				fputs(getvar_s(intvar[ORS]), X.F);
+				fputs(getvar_s(intvar[ORS]), F);
 
 			} else {	/* OC_PRINTF */
-				L.s = awk_printf(op1);
-				fputs(L.s, X.F);
-				free((char*)L.s);
+				char *s = awk_printf(op1);
+				fputs(s, F);
+				free(s);
 			}
-			fflush(X.F);
+			fflush(F);
 			break;
+		}
 
-		case XC( OC_DELETE ):
-			X.info = op1->info & OPCLSMASK;
-			if (X.info == OC_VAR) {
+		case XC( OC_DELETE ): {
+			uint32_t info = op1->info & OPCLSMASK;
+			if (info == OC_VAR) {
 				R.v = op1->l.v;
-			} else if (X.info == OC_FNARG) {
+			} else if (info == OC_FNARG) {
 				R.v = &fnargs[op1->l.aidx];
 			} else {
 				syntax_error(EMSG_NOT_ARRAY);
@@ -2449,6 +2445,7 @@ static var *evaluate(node *op, var *res)
 				clear_array(iamarray(R.v));
 			}
 			break;
+		}
 
 		case XC( OC_NEWSOURCE ):
 			g_progname = op->l.new_progname;
@@ -2467,7 +2464,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_EXIT ):
-			awk_exit(L.d);
+			awk_exit(L_d);
 
 		/* -- recursive node type -- */
 
@@ -2495,11 +2492,13 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_MATCH ):
 			op1 = op->r.n;
  re_cont:
-			X.re = as_regex(op1, &sreg);
-			R.i = regexec(X.re, L.s, 0, NULL, 0);
-			if (X.re == &sreg)
-				regfree(X.re);
-			setvar_i(res, (R.i == 0) ^ (opn == '!'));
+			{
+				regex_t *re = as_regex(op1, &sreg);
+				int i = regexec(re, L.s, 0, NULL, 0);
+				if (re == &sreg)
+					regfree(re);
+				setvar_i(res, (i == 0) ^ (opn == '!'));
+			}
 			break;
 
 		case XC( OC_MOVE ):
@@ -2520,22 +2519,24 @@ static var *evaluate(node *op, var *res)
 			res = evaluate(istrue(L.v) ? op->r.n->l.n : op->r.n->r.n, res);
 			break;
 
-		case XC( OC_FUNC ):
+		case XC( OC_FUNC ): {
+			var *v;
+
 			if (!op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
-			X.v = R.v = nvalloc(op->r.f->nargs + 1);
+			v = R.v = nvalloc(op->r.f->nargs + 1);
 			while (op1) {
 				L.v = evaluate(nextarg(&op1), v1);
 				copyvar(R.v, L.v);
 				R.v->type |= VF_CHILD;
 				R.v->x.parent = L.v;
-				if (++R.v - X.v >= op->r.f->nargs)
+				if (++R.v - v >= op->r.f->nargs)
 					break;
 			}
 
 			R.v = fnargs;
-			fnargs = X.v;
+			fnargs = v;
 
 			L.s = g_progname;
 			res = evaluate(op->r.f->body.first, res);
@@ -2544,26 +2545,30 @@ static var *evaluate(node *op, var *res)
 			nvfree(fnargs);
 			fnargs = R.v;
 			break;
+		}
 
 		case XC( OC_GETLINE ):
-		case XC( OC_PGETLINE ):
+		case XC( OC_PGETLINE ): {
+			rstream *rsm;
+			int i;
+
 			if (op1) {
-				X.rsm = newfile(L.s);
-				if (!X.rsm->F) {
+				rsm = newfile(L.s);
+				if (!rsm->F) {
 					if ((opinfo & OPCLSMASK) == OC_PGETLINE) {
-						X.rsm->F = popen(L.s, "r");
-						X.rsm->is_pipe = TRUE;
+						rsm->F = popen(L.s, "r");
+						rsm->is_pipe = TRUE;
 					} else {
-						X.rsm->F = fopen_for_read(L.s);		/* not xfopen! */
+						rsm->F = fopen_for_read(L.s);		/* not xfopen! */
 					}
 				}
 			} else {
 				if (!iF)
 					iF = next_input_file();
-				X.rsm = iF;
+				rsm = iF;
 			}
 
-			if (!X.rsm->F) {
+			if (!rsm->F) {
 				setvar_i(intvar[ERRNO], errno);
 				setvar_i(res, -1);
 				break;
@@ -2572,46 +2577,48 @@ static var *evaluate(node *op, var *res)
 			if (!op->r.n)
 				R.v = intvar[F0];
 
-			L.i = awk_getline(X.rsm, R.v);
-			if (L.i > 0) {
-				if (!op1) {
-					incvar(intvar[FNR]);
-					incvar(intvar[NR]);
-				}
+			i = awk_getline(rsm, R.v);
+			if (i > 0 && !op1) {
+				incvar(intvar[FNR]);
+				incvar(intvar[NR]);
 			}
-			setvar_i(res, L.i);
+			setvar_i(res, i);
 			break;
+		}
 
 		/* simple builtins */
-		case XC( OC_FBLTIN ):
-			switch (opn) {
+		case XC( OC_FBLTIN ): {
+			int i;
+			rstream *rsm;
+			double R_d = R_d; /* for compiler */
 
+			switch (opn) {
 			case F_in:
-				R.d = (int)L.d;
+				R_d = (int)L_d;
 				break;
 
 			case F_rn:
-				R.d = (double)rand() / (double)RAND_MAX;
+				R_d = (double)rand() / (double)RAND_MAX;
 				break;
 #if ENABLE_FEATURE_AWK_LIBM
 			case F_co:
-				R.d = cos(L.d);
+				R_d = cos(L_d);
 				break;
 
 			case F_ex:
-				R.d = exp(L.d);
+				R_d = exp(L_d);
 				break;
 
 			case F_lg:
-				R.d = log(L.d);
+				R_d = log(L_d);
 				break;
 
 			case F_si:
-				R.d = sin(L.d);
+				R_d = sin(L_d);
 				break;
 
 			case F_sq:
-				R.d = sqrt(L.d);
+				R_d = sqrt(L_d);
 				break;
 #else
 			case F_co:
@@ -2623,54 +2630,54 @@ static var *evaluate(node *op, var *res)
 				break;
 #endif
 			case F_sr:
-				R.d = (double)seed;
-				seed = op1 ? (unsigned)L.d : (unsigned)time(NULL);
+				R_d = (double)seed;
+				seed = op1 ? (unsigned)L_d : (unsigned)time(NULL);
 				srand(seed);
 				break;
 
 			case F_ti:
-				R.d = time(NULL);
+				R_d = time(NULL);
 				break;
 
 			case F_le:
 				if (!op1)
 					L.s = getvar_s(intvar[F0]);
-				R.d = strlen(L.s);
+				R_d = strlen(L.s);
 				break;
 
 			case F_sy:
 				fflush_all();
-				R.d = (ENABLE_FEATURE_ALLOW_EXEC && L.s && *L.s)
+				R_d = (ENABLE_FEATURE_ALLOW_EXEC && L.s && *L.s)
 						? (system(L.s) >> 8) : 0;
 				break;
 
 			case F_ff:
-				if (!op1)
+				if (!op1) {
 					fflush(stdout);
-				else {
-					if (L.s && *L.s) {
-						X.rsm = newfile(L.s);
-						fflush(X.rsm->F);
-					} else {
-						fflush_all();
-					}
+				} else if (L.s && *L.s) {
+					rsm = newfile(L.s);
+					fflush(rsm->F);
+				} else {
+					fflush_all();
 				}
 				break;
 
 			case F_cl:
-				X.rsm = (rstream *)hash_search(fdhash, L.s);
-				if (X.rsm) {
-					R.i = X.rsm->is_pipe ? pclose(X.rsm->F) : fclose(X.rsm->F);
-					free(X.rsm->buffer);
+				i = 0;
+				rsm = (rstream *)hash_search(fdhash, L.s);
+				if (rsm) {
+					i = rsm->is_pipe ? pclose(rsm->F) : fclose(rsm->F);
+					free(rsm->buffer);
 					hash_remove(fdhash, L.s);
 				}
-				if (R.i != 0)
+				if (i != 0)
 					setvar_i(intvar[ERRNO], errno);
-				R.d = (double)R.i;
+				R_d = (double)i;
 				break;
 			}
-			setvar_i(res, R.d);
+			setvar_i(res, R_d);
 			break;
+		}
 
 		case XC( OC_BUILTIN ):
 			res = exec_builtin(op, res);
@@ -2680,60 +2687,58 @@ static var *evaluate(node *op, var *res)
 			setvar_p(res, awk_printf(op1));
 			break;
 
-		case XC( OC_UNARY ):
-			X.v = R.v;
-			L.d = R.d = getvar_i(R.v);
+		case XC( OC_UNARY ): {
+			double Ld, R_d;
+
+			Ld = R_d = getvar_i(R.v);
 			switch (opn) {
 			case 'P':
-				L.d = ++R.d;
+				Ld = ++R_d;
 				goto r_op_change;
 			case 'p':
-				R.d++;
+				R_d++;
 				goto r_op_change;
 			case 'M':
-				L.d = --R.d;
+				Ld = --R_d;
 				goto r_op_change;
 			case 'm':
-				R.d--;
-				goto r_op_change;
+				R_d--;
+ r_op_change:
+				setvar_i(R.v, R_d);
+				break;
 			case '!':
-				L.d = !istrue(X.v);
+				Ld = !istrue(R.v);
 				break;
 			case '-':
-				L.d = -R.d;
+				Ld = -R_d;
 				break;
- r_op_change:
-				setvar_i(X.v, R.d);
 			}
-			setvar_i(res, L.d);
+			setvar_i(res, Ld);
 			break;
+		}
 
-		case XC( OC_FIELD ):
-			R.i = (int)getvar_i(R.v);
-			if (R.i == 0) {
+		case XC( OC_FIELD ): {
+			int i = (int)getvar_i(R.v);
+			if (i == 0) {
 				res = intvar[F0];
 			} else {
 				split_f0();
-				if (R.i > nfields)
-					fsrealloc(R.i);
-				res = &Fields[R.i - 1];
+				if (i > nfields)
+					fsrealloc(i);
+				res = &Fields[i - 1];
 			}
 			break;
+		}
 
 		/* concatenation (" ") and index joining (",") */
 		case XC( OC_CONCAT ):
-		case XC( OC_COMMA ):
-			opn = strlen(L.s) + strlen(R.s) + 2;
-			X.s = xmalloc(opn);
-			strcpy(X.s, L.s);
-			if ((opinfo & OPCLSMASK) == OC_COMMA) {
-				L.s = getvar_s(intvar[SUBSEP]);
-				X.s = xrealloc(X.s, opn + strlen(L.s));
-				strcat(X.s, L.s);
-			}
-			strcat(X.s, R.s);
-			setvar_p(res, X.s);
+		case XC( OC_COMMA ): {
+			const char *sep = "";
+			if ((opinfo & OPCLSMASK) == OC_COMMA)
+				sep = getvar_s(intvar[SUBSEP]);
+			setvar_p(res, xasprintf("%s%s%s", L.s, sep, R.s));
 			break;
+		}
 
 		case XC( OC_LAND ):
 			setvar_i(res, istrue(L.v) ? ptest(op->r.n) : 0);
@@ -2744,60 +2749,65 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_BINARY ):
-		case XC( OC_REPLACE ):
-			R.d = getvar_i(R.v);
+		case XC( OC_REPLACE ): {
+			double R_d = getvar_i(R.v);
 			switch (opn) {
 			case '+':
-				L.d += R.d;
+				L_d += R_d;
 				break;
 			case '-':
-				L.d -= R.d;
+				L_d -= R_d;
 				break;
 			case '*':
-				L.d *= R.d;
+				L_d *= R_d;
 				break;
 			case '/':
-				if (R.d == 0)
+				if (R_d == 0)
 					syntax_error(EMSG_DIV_BY_ZERO);
-				L.d /= R.d;
+				L_d /= R_d;
 				break;
 			case '&':
 #if ENABLE_FEATURE_AWK_LIBM
-				L.d = pow(L.d, R.d);
+				L_d = pow(L_d, R_d);
 #else
 				syntax_error(EMSG_NO_MATH);
 #endif
 				break;
 			case '%':
-				if (R.d == 0)
+				if (R_d == 0)
 					syntax_error(EMSG_DIV_BY_ZERO);
-				L.d -= (int)(L.d / R.d) * R.d;
+				L_d -= (int)(L_d / R_d) * R_d;
 				break;
 			}
-			res = setvar_i(((opinfo & OPCLSMASK) == OC_BINARY) ? res : X.v, L.d);
+			res = setvar_i(((opinfo & OPCLSMASK) == OC_BINARY) ? res : L.v, L_d);
 			break;
+		}
 
-		case XC( OC_COMPARE ):
+		case XC( OC_COMPARE ): {
+			int i = i; /* for compiler */
+			double Ld;
+
 			if (is_numeric(L.v) && is_numeric(R.v)) {
-				L.d = getvar_i(L.v) - getvar_i(R.v);
+				Ld = getvar_i(L.v) - getvar_i(R.v);
 			} else {
 				L.s = getvar_s(L.v);
 				R.s = getvar_s(R.v);
-				L.d = icase ? strcasecmp(L.s, R.s) : strcmp(L.s, R.s);
+				Ld = icase ? strcasecmp(L.s, R.s) : strcmp(L.s, R.s);
 			}
 			switch (opn & 0xfe) {
 			case 0:
-				R.i = (L.d > 0);
+				i = (Ld > 0);
 				break;
 			case 2:
-				R.i = (L.d >= 0);
+				i = (Ld >= 0);
 				break;
 			case 4:
-				R.i = (L.d == 0);
+				i = (Ld == 0);
 				break;
 			}
-			setvar_i(res, (opn & 1 ? R.i : !R.i) ? 1 : 0);
+			setvar_i(res, (i == 0) ^ (opn & 1));
 			break;
+		}
 
 		default:
 			syntax_error(EMSG_POSSIBLE_ERROR);
@@ -2808,7 +2818,8 @@ static var *evaluate(node *op, var *res)
 			break;
 		if (nextrec)
 			break;
-	}
+	} /* while (op) */
+
 	nvfree(v1);
 	return res;
 #undef fnargs
