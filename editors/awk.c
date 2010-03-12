@@ -110,15 +110,14 @@ typedef struct node_s {
 	union {
 		struct node_s *n;
 		var *v;
-		int i;
-		char *s;
+		int aidx;
+		char *new_progname;
 		regex_t *re;
 	} l;
 	union {
 		struct node_s *n;
 		regex_t *ire;
 		func *f;
-		int argno;
 	} r;
 	union {
 		struct node_s *n;
@@ -575,7 +574,7 @@ static void *hash_search(xhash *hash, const char *name)
 	hi = hash->items[hashidx(name) % hash->csize];
 	while (hi) {
 		if (strcmp(hi->name, name) == 0)
-			return &(hi->data);
+			return &hi->data;
 		hi = hi->next;
 	}
 	return NULL;
@@ -630,7 +629,7 @@ static void *hash_find(xhash *hash, const char *name)
 		hash->items[idx] = hi;
 		hash->glen += l;
 	}
-	return &(hi->data);
+	return &hi->data;
 }
 
 #define findvar(hash, name) ((var*)    hash_find((hash), (name)))
@@ -642,7 +641,7 @@ static void hash_remove(xhash *hash, const char *name)
 {
 	hash_item *hi, **phi;
 
-	phi = &(hash->items[hashidx(name) % hash->csize]);
+	phi = &hash->items[hashidx(name) % hash->csize];
 	while (*phi) {
 		hi = *phi;
 		if (strcmp(hi->name, name) == 0) {
@@ -652,7 +651,7 @@ static void hash_remove(xhash *hash, const char *name)
 			free(hi);
 			break;
 		}
-		phi = &(hi->next);
+		phi = &hi->next;
 	}
 }
 
@@ -1221,7 +1220,7 @@ static node *parse_expr(uint32_t iexp)
 					v = hash_search(ahash, t_string);
 					if (v != NULL) {
 						cn->info = OC_FNARG;
-						cn->l.i = v->x.aidx;
+						cn->l.aidx = v->x.aidx;
 					} else {
 						cn->l.v = newvar(t_string);
 					}
@@ -1282,7 +1281,7 @@ static node *chain_node(uint32_t info)
 	if (seq->programname != g_progname) {
 		seq->programname = g_progname;
 		n = chain_node(OC_NEWSOURCE);
-		n->l.s = xstrdup(g_progname);
+		n->l.new_progname = xstrdup(g_progname);
 	}
 
 	n = seq->last;
@@ -1460,12 +1459,12 @@ static void parse_program(char *p)
 			f->nargs = 0;
 			while (next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
 				v = findvar(ahash, t_string);
-				v->x.aidx = (f->nargs)++;
+				v->x.aidx = f->nargs++;
 
 				if (next_token(TC_COMMA | TC_SEQTERM) & TC_SEQTERM)
 					break;
 			}
-			seq = &(f->body);
+			seq = &f->body;
 			chain_group();
 			clear_array(ahash);
 
@@ -1812,7 +1811,7 @@ static int awk_getline(rstream *rsm, var *v)
 {
 	char *b;
 	regmatch_t pmatch[2];
-	int a, p, pp=0, size;
+	int size, a, p, pp = 0;
 	int fd, so, eo, r, rp;
 	char c, *m, *s;
 
@@ -1829,6 +1828,7 @@ static int awk_getline(rstream *rsm, var *v)
 
 	if (!m)
 		m = qrealloc(m, 256, &size);
+
 	do {
 		b = m + a;
 		so = eo = p;
@@ -1857,7 +1857,8 @@ static int awk_getline(rstream *rsm, var *v)
 				s = strstr(b+rp, "\n\n");
 				if (s) {
 					so = eo = s-b;
-					while (b[eo] == '\n') eo++;
+					while (b[eo] == '\n')
+						eo++;
 					if (b[eo] != '\0')
 						break;
 				}
@@ -1865,7 +1866,7 @@ static int awk_getline(rstream *rsm, var *v)
 		}
 
 		if (a > 0) {
-			memmove(m, (const void *)(m+a), p+1);
+			memmove(m, m+a, p+1);
 			b = m;
 			a = 0;
 		}
@@ -1975,9 +1976,9 @@ static char *awk_printf(node *n)
 			i = j;
 	}
 
-	b = xrealloc(b, i + 1);
 	free(fmt);
 	nvfree(v);
+	b = xrealloc(b, i + 1);
 	b[i] = '\0';
 	return b;
 }
@@ -2361,7 +2362,7 @@ static var *evaluate(node *op, var *res)
 					op = op->r.n;
 				}
 			} else {
-				op = (ptest(op1)) ? op->a.n : op->r.n;
+				op = ptest(op1) ? op->a.n : op->r.n;
 			}
 			break;
 
@@ -2435,7 +2436,7 @@ static var *evaluate(node *op, var *res)
 			if (X.info == OC_VAR) {
 				R.v = op1->l.v;
 			} else if (X.info == OC_FNARG) {
-				R.v = &fnargs[op1->l.i];
+				R.v = &fnargs[op1->l.aidx];
 			} else {
 				syntax_error(EMSG_NOT_ARRAY);
 			}
@@ -2450,7 +2451,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_NEWSOURCE ):
-			g_progname = op->l.s;
+			g_progname = op->l.new_progname;
 			break;
 
 		case XC( OC_RETURN ):
@@ -2477,7 +2478,7 @@ static var *evaluate(node *op, var *res)
 			goto v_cont;
 
 		case XC( OC_FNARG ):
-			L.v = &fnargs[op->l.i];
+			L.v = &fnargs[op->l.aidx];
  v_cont:
 			res = op->r.n ? findvar(iamarray(L.v), R.s) : L.v;
 			break;
