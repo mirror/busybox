@@ -2103,7 +2103,6 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	uint32_t isr, info;
 	int nargs;
 	time_t tt;
-	char *s, *s1;
 	int i, l, ll, n;
 
 	tv = nvalloc(4);
@@ -2135,7 +2134,9 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 #endif
 		break;
 
-	case B_sp:
+	case B_sp: {
+		char *s, *s1;
+
 		if (nargs > 2) {
 			spl = (an[2]->info & OPCLSMASK) == OC_REGEXP ?
 				an[2] : mk_splitter(getvar_s(evaluate(an[2], &tv[2])), &tspl);
@@ -2147,12 +2148,15 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		s1 = s;
 		clear_array(iamarray(av[1]));
 		for (i = 1; i <= n; i++)
-			setari_u(av[1], i, nextword(&s1));
-		free(s);
+			setari_u(av[1], i, nextword(&s));
+		free(s1);
 		setvar_i(res, n);
 		break;
+	}
 
-	case B_ss:
+	case B_ss: {
+		char *s;
+
 		l = strlen(as[0]);
 		i = getvar_i(av[1]) - 1;
 		if (i > l)
@@ -2165,6 +2169,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		s = xstrndup(as[0]+i, n);
 		setvar_p(res, s);
 		break;
+	}
 
 	/* Bitwise ops must assume that operands are unsigned. GNU Awk 3.1.5:
 	 * awk '{ print or(-1,1) }' gives "4.29497e+09", not "-2.xxxe+09" */
@@ -2193,7 +2198,8 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		break;
 
 	case B_lo:
-	case B_up:
+	case B_up: {
+		char *s, *s1;
 		s1 = s = xstrdup(as[0]);
 		while (*s1) {
 			//*s1 = (info == B_up) ? toupper(*s1) : tolower(*s1);
@@ -2203,6 +2209,7 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		}
 		setvar_p(res, s);
 		break;
+	}
 
 	case B_ix:
 		n = 0;
@@ -2210,14 +2217,14 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 		l = strlen(as[0]) - ll;
 		if (ll > 0 && l >= 0) {
 			if (!icase) {
-				s = strstr(as[0], as[1]);
+				char *s = strstr(as[0], as[1]);
 				if (s)
 					n = (s - as[0]) + 1;
 			} else {
 				/* this piece of code is terribly slow and
 				 * really should be rewritten
 				 */
-				for (i=0; i<=l; i++) {
+				for (i = 0; i <= l; i++) {
 					if (strncasecmp(as[0]+i, as[1], ll) == 0) {
 						n = i+1;
 						break;
