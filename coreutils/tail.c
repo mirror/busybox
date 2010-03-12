@@ -241,7 +241,8 @@ int tail_main(int argc, char **argv)
 						} while (nwrite);
 					}
 				}
-				xwrite(STDOUT_FILENO, buf + nread - nwrite, nwrite);
+				if (nwrite > 0)
+					xwrite(STDOUT_FILENO, buf + nread - nwrite, nwrite);
 			} else if (count) {
 				if (COUNT_BYTES) {
 					taillen += nread;
