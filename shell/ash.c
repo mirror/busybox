@@ -6040,25 +6040,61 @@ scanleft(char *startp, char *rmesc, char *rmescend UNUSED_PARAM, char *str, int 
 }
 
 static char *
-scanright(char *startp, char *rmesc, char *rmescend, char *str, int quotes,
-	int zero)
+scanright(char *startp, char *rmesc, char *rmescend, char *pattern, int quotes, int match_at_start)
 {
+#if !ENABLE_ASH_OPTIMIZE_FOR_SIZE
+	int try2optimize = match_at_start;
+#endif
 	int esc = 0;
 	char *loc;
 	char *loc2;
 
-	for (loc = str - 1, loc2 = rmescend; loc >= startp; loc2--) {
+	/* If we called by "${v/pattern/repl}" or "${v//pattern/repl}":
+	 * startp="escaped_value_of_v" rmesc="raw_value_of_v"
+	 * rmescend=""(ptr to NUL in rmesc) pattern="pattern" quotes=match_at_start=1
+	 * Logic:
+	 * loc starts at NUL at the end of startp, loc2 starts at the end of rmesc,
+	 * and on each iteration they go back two/one char until they reach the beginning.
+	 * We try to find a match in "raw_value_of_v", "raw_value_of_", "raw_value_of" etc.
+	 */
+	/* TODO: document in what other circumstances we are called. */
+
+	for (loc = pattern - 1, loc2 = rmescend; loc >= startp; loc2--) {
 		int match;
 		char c = *loc2;
 		const char *s = loc2;
-		if (zero) {
+		if (match_at_start) {
 			*loc2 = '\0';
 			s = rmesc;
 		}
-		match = pmatch(str, s);
+		match = pmatch(pattern, s);
+		//bb_error_msg("pmatch(pattern:'%s',s:'%s'):%d", pattern, s, match);
 		*loc2 = c;
 		if (match)
 			return loc;
+#if !ENABLE_ASH_OPTIMIZE_FOR_SIZE
+		if (try2optimize) {
+			/* Maybe we can optimize this:
+			 * if pattern ends with unescaped *, we can avoid checking
+			 * shorter strings: if "foo*" doesnt match "raw_value_of_v",
+			 * it wont match truncated "raw_value_of_" strings too.
+			 */
+			unsigned plen = strlen(pattern);
+			/* Does it end with "*"? */
+			if (plen != 0 && pattern[--plen] == '*') {
+				/* "xxxx*" is not escaped */
+				/* "xxx\*" is escaped */
+				/* "xx\\*" is not escaped */
+				/* "x\\\*" is escaped */
+				int slashes = 0;
+				while (plen != 0 && pattern[--plen] == '\\')
+					slashes++;
+				if (!(slashes & 1))
+					break; /* ends with unescaped "*" */
+			}
+			try2optimize = 0;
+		}
+#endif
 		loc--;
 		if (quotes) {
 			if (--esc < 0) {
@@ -6248,7 +6284,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 #if ENABLE_ASH_BASH_COMPAT
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
-		char *idx, *end, *restart_detect;
+		char *idx, *end;
 
 		if (!repl) {
 			repl = parse_sub_pattern(str, varflags & VSQUOTE);
@@ -6257,17 +6293,19 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 		}
 
 		/* If there's no pattern to match, return the expansion unmolested */
-		if (*str == '\0')
+		if (str[0] == '\0')
 			return 0;
 
 		len = 0;
 		idx = startp;
 		end = str - 1;
 		while (idx < end) {
+ try_to_match:
 			loc = scanright(idx, rmesc, rmescend, str, quotes, 1);
 			if (!loc) {
 				/* No match, advance */
-				restart_detect = stackblock();
+				char *restart_detect = stackblock();
+ skip_matching:
 				STPUTC(*idx, expdest);
 				if (quotes && (unsigned char)*idx == CTLESC) {
 					idx++;
@@ -6279,7 +6317,16 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 				idx++;
 				len++;
 				rmesc++;
-				continue;
+				/* continue; - prone to quadratic behavior, smarter code: */
+				if (idx >= end)
+					break;
+				if (str[0] == '*') {
+					/* Pattern is "*foo". If "*foo" does not match "long_string",
+					 * it would never match "ong_string" etc, no point in trying.
+					 */
+					goto skip_matching;
+				}
+				goto try_to_match;
 			}
 
 			if (subtype == VSREPLACEALL) {
@@ -6294,7 +6341,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 			}
 
 			for (loc = repl; *loc; loc++) {
-				restart_detect = stackblock();
+				char *restart_detect = stackblock();
 				STPUTC(*loc, expdest);
 				if (stackblock() != restart_detect)
 					goto restart;
@@ -6303,7 +6350,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 			if (subtype == VSREPLACE) {
 				while (*idx) {
-					restart_detect = stackblock();
+					char *restart_detect = stackblock();
 					STPUTC(*idx, expdest);
 					if (stackblock() != restart_detect)
 						goto restart;
@@ -6332,7 +6379,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 	if (subtype < 0 || subtype > 7)
 		abort();
 #endif
-	/* zero = subtype == VSTRIMLEFT || subtype == VSTRIMLEFTMAX */
+	/* zero = (subtype == VSTRIMLEFT || subtype == VSTRIMLEFTMAX) */
 	zero = subtype >> 1;
 	/* VSTRIMLEFT/VSTRIMRIGHTMAX -> scanleft */
 	scan = (subtype & 1) ^ zero ? scanleft : scanright;
