@@ -128,7 +128,7 @@ done
 export OPTIONFLAGS=:$(
 	sed -nr 's/^CONFIG_//p' "$bindir/.config" |
 	sed 's/=.*//' | xargs | sed 's/ /:/g'
-	)
+	):
 
 status=0
 for applet in $applets; do
