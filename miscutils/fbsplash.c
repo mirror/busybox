@@ -84,7 +84,7 @@ static void fb_open(const char *strfb_device)
 	// map the device in memory
 	G.addr = mmap(NULL,
 			G.scr_var.xres * G.scr_var.yres
-			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/ ,
+			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
@@ -121,7 +121,7 @@ static void fb_drawrectangle(void)
 	// vertical lines
 	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
 	ptr2 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * BYTES_PER_PIXEL);
-	cnt = G.nbar_height - 1 /* HUH?!  G.nbar_posy + G.nbar_height - 1 - G.nbar_posy*/;
+	cnt = G.nbar_height - 1;
 	do {
 		*ptr1 = thispix; ptr1 += G.scr_var.xres;
 		*ptr2 = thispix; ptr2 += G.scr_var.xres;
@@ -216,70 +216,69 @@ static void fb_drawprogressbar(unsigned percent)
  */
 static void fb_drawimage(void)
 {
-	char *head, *ptr;
 	FILE *theme_file;
+	char *read_ptr;
 	unsigned char *pixline;
 	unsigned i, j, width, height, line_size;
 
-	if (LONE_DASH(G.image_filename))
+	if (LONE_DASH(G.image_filename)) {
 		theme_file = stdin;
-	else {
+	} else {
 		int fd = open_zipped(G.image_filename);
 		if (fd < 0)
 			bb_simple_perror_msg_and_die(G.image_filename);
 		theme_file = xfdopen_for_read(fd);
 	}
-	head = xmalloc(256);
 
-	/* parse ppm header
-	 * - A ppm image’s magic number is the two characters "P6".
+	/* Parse ppm header:
+	 * - Magic: two characters "P6".
 	 * - Whitespace (blanks, TABs, CRs, LFs).
 	 * - A width, formatted as ASCII characters in decimal.
 	 * - Whitespace.
-	 * - A height, again in ASCII decimal.
+	 * - A height, ASCII decimal.
 	 * - Whitespace.
-	 * - The maximum color value (Maxval), again in ASCII decimal. Must be
-	 *   less than 65536.
+	 * - The maximum color value, ASCII decimal, in 0..65535
 	 * - Newline or other single whitespace character.
+	 *   (we support newline only)
 	 * - A raster of Width * Height pixels in triplets of rgb
-	 *   in pure binary by 1 (or not implemented 2) bytes.
+	 *   in pure binary by 1 or 2 bytes. (we support only 1 byte)
 	 */
+#define concat_buf bb_common_bufsiz1
+	read_ptr = concat_buf;
 	while (1) {
-		if (fgets(head, 256, theme_file) == NULL
-			/* do not overrun the buffer */
-			|| strlen(bb_common_bufsiz1) >= sizeof(bb_common_bufsiz1) - 256)
+		int w, h, max_color_val;
+		int rem = concat_buf + sizeof(concat_buf) - read_ptr;
+		if (rem < 2
+		 || fgets(read_ptr, rem, theme_file) == NULL
+		) {
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
-
-		ptr = memchr(skip_whitespace(head), '#', 256);
-		if (ptr != NULL)
-			*ptr = 0; /* ignore comments */
-		strcat(bb_common_bufsiz1, head);
-		// width, height, max_color_val
-		if (sscanf(bb_common_bufsiz1, "P6 %u %u %u", &width, &height, &i) == 3
-			&& i <= 255)
+		}
+		read_ptr = strchrnul(read_ptr, '#');
+		*read_ptr = '\0'; /* ignore #comments */
+		if (sscanf(concat_buf, "P6 %u %u %u", &w, &h, &max_color_val) == 3
+		 && max_color_val <= 255
+		) {
+			width = w; /* w is on stack, width may be in register */
+			height = h;
 			break;
-		/* If we do not find a signature throughout the whole file then
-		   we will diagnose this via EOF on read in the head of the loop.  */
+		}
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(head);
-	if (width != G.scr_var.xres || height != G.scr_var.yres)
-		bb_error_msg_and_die("PPM %dx%d does not match screen %dx%d",
-							 width, height, G.scr_var.xres, G.scr_var.yres);
 	line_size = width*3;
+	pixline = xmalloc(line_size);
+
 	if (width > G.scr_var.xres)
 		width = G.scr_var.xres;
 	if (height > G.scr_var.yres)
 		height = G.scr_var.yres;
-
-	pixline = xmalloc(line_size);
 	for (j = 0; j < height; j++) {
-		unsigned char *pixel = pixline;
-		DATA *src = (DATA *)(G.addr + j * G.scr_fix.line_length);
+		unsigned char *pixel;
+		DATA *src;
 
 		if (fread(pixline, 1, line_size, theme_file) != line_size)
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
+		pixel = pixline;
+		src = (DATA *)(G.addr + j * G.scr_fix.line_length);
 		for (i = 0; i < width; i++) {
 			unsigned thispix;
 			thispix = (((unsigned)pixel[0] << 8) & 0xf800)
@@ -289,8 +288,7 @@ static void fb_drawimage(void)
 			pixel += 3;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(pixline);
+	free(pixline);
 	fclose(theme_file);
 }
 
@@ -312,7 +310,7 @@ static void init(const char *cfg_filename)
 	char *token[2];
 	parser_t *parser = config_open2(cfg_filename, xfopen_stdin);
 	while (config_read(parser, token, 2, 2, "#=",
-				    (PARSE_NORMAL | PARSE_MIN_DIE) & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
+				(PARSE_NORMAL | PARSE_MIN_DIE) & ~(PARSE_TRIM | PARSE_COLLAPSE))) {
 		unsigned val = xatoi_u(token[1]);
 		int i = index_in_strings(param_names, token[0]);
 		if (i < 0)
