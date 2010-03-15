@@ -5,16 +5,17 @@
 
 #include "libbb.h"
 #include "unarchive.h"
+#include "ar.h"
 
 void FAST_FUNC unpack_ar_archive(archive_handle_t *ar_archive)
 {
 	char magic[7];
 
-	xread(ar_archive->src_fd, magic, 7);
-	if (strncmp(magic, "!<arch>", 7) != 0) {
+	xread(ar_archive->src_fd, magic, AR_MAGIC_LEN);
+	if (strncmp(magic, AR_MAGIC, AR_MAGIC_LEN) != 0) {
 		bb_error_msg_and_die("invalid ar magic");
 	}
-	ar_archive->offset += 7;
+	ar_archive->offset += AR_MAGIC_LEN;
 
 	while (get_header_ar(ar_archive) == EXIT_SUCCESS)
 		continue;

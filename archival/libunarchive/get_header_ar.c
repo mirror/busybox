@@ -6,6 +6,7 @@
 
 #include "libbb.h"
 #include "unarchive.h"
+#include "ar.h"
 
 static unsigned read_num(const char *str, int base)
 {
@@ -23,15 +24,7 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	unsigned size;
 	union {
 		char raw[60];
-		struct {
-			char name[16];
-			char date[12];
-			char uid[6];
-			char gid[6];
-			char mode[8];
-			char size[10];
-			char magic[2];
-		} formatted;
+		struct ar_header formatted;
 	} ar;
 #if ENABLE_FEATURE_AR_LONG_FILENAMES
 	static char *ar_long_names;
@@ -55,13 +48,13 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	}
 	archive_handle->offset += 60;
 
-	/* align the headers based on the header magic */
 	if (ar.formatted.magic[0] != '`' || ar.formatted.magic[1] != '\n')
 		bb_error_msg_and_die("invalid ar header");
 
 	/* FIXME: more thorough routine would be in order here
 	 * (we have something like that in tar)
 	 * but for now we are lax. */
+	ar.formatted.magic[0] = '\0'; /* else 4G-2 file will have size="4294967294`\n..." */
 	typed->size = size = read_num(ar.formatted.size, 10);
 
 	/* special filenames have '/' as the first character */

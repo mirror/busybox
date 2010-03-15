@@ -62,6 +62,13 @@ config FEATURE_AR_LONG_FILENAMES
 	  It supports the GNU ar long filename method which moves multiple long
 	  filenames into a the data section of a new ar entry.
 
+config FEATURE_AR_CREATE
+	bool "Support archive creation"
+	default n
+	depends on AR
+	help
+	  This enables archive creation (-c and -r) with busybox ar.
+
 config BUNZIP2
 	bool "bunzip2"
 	default n

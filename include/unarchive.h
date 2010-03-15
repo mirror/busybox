@@ -73,6 +73,10 @@ typedef struct archive_handle_t {
 	/* Contains the handle to a sub archive */
 	struct archive_handle_t *dpkg__sub_archive;
 #endif
+#if ENABLE_FEATURE_AR_CREATE
+	const char *ar__name;
+	struct archive_handle_t *ar__out;
+#endif
 } archive_handle_t;
 /* bits in ah_flags */
 #define ARCHIVE_RESTORE_DATE        (1 << 0)
