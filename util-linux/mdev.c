@@ -140,7 +140,7 @@ static void make_device(char *path, int delete)
 	 * But since 2.6.25 block devices are also in /sys/class/block.
 	 * We use strstr("/block/") to forestall future surprises. */
 	type = S_IFCHR;
-	if (strstr(path, "/block/") || strncmp(G.subsystem, "block", 5) == 0)
+	if (strstr(path, "/block/") || (G.subsystem && strncmp(G.subsystem, "block", 5) == 0))
 		type = S_IFBLK;
 
 	/* Make path point to "subsystem/device_name" */
