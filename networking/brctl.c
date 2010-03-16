@@ -48,8 +48,9 @@ static ALWAYS_INLINE void strtotimeval(struct timeval *tv,
 {
 	double secs;
 #if BRCTL_USE_INTERNAL
-	secs = /*bb_*/strtod(time_str, NULL);
-	if (!secs)
+	char *endptr;
+	secs = /*bb_*/strtod(time_str, &endptr);
+	if (endptr == time_str)
 #else
 	if (sscanf(time_str, "%lf", &secs) != 1)
 #endif
