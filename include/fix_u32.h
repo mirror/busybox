@@ -8,6 +8,17 @@
 #ifndef FIX_U32_H
 #define FIX_U32_H 1
 
+/* Try hard to pull in u32 types and such.
+ * Otherwise, #include "fix_u32.h" + #include <linux/foo.h>
+ * may end up typedef'ing bb_hack_u32 inside foo.h,
+ * and repeated typedefs aren't allowed in C/C++.
+ */
+#include <asm/types.h>
+#include <linux/types.h>
+
+/* In case above includes still failed to provide the types,
+ * provide them ourself
+ */
 #undef __u64
 #undef u64
 #undef u32
@@ -20,15 +31,15 @@
 #undef s8
 
 #define __u64 bb_hack___u64
-#define u64 bb_hack_u64
-#define u32 bb_hack_u32
-#define u16 bb_hack_u16
-#define u8  bb_hack_u8
+#define u64   bb_hack_u64
+#define u32   bb_hack_u32
+#define u16   bb_hack_u16
+#define u8    bb_hack_u8
 #define __s64 bb_hack___s64
-#define s64 bb_hack_s64
-#define s32 bb_hack_s32
-#define s16 bb_hack_s16
-#define s8  bb_hack_s8
+#define s64   bb_hack_s64
+#define s32   bb_hack_s32
+#define s16   bb_hack_s16
+#define s8    bb_hack_s8
 
 typedef uint64_t __u64;
 typedef uint64_t u64;
