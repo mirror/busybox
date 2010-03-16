@@ -423,6 +423,10 @@ getopt32(char **argv, const char *applet_opts, ...)
 			c++;
  next_long: ;
 		}
+		/* Make it unnecessary to clear applet_long_options
+		 * by hand after each call to getopt32
+		 */
+		applet_long_options = NULL;
 	}
 #endif /* ENABLE_LONG_OPTS || ENABLE_FEATURE_GETOPT_LONG */
 	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
@@ -485,15 +489,15 @@ getopt32(char **argv, const char *applet_opts, ...)
 			s++;
 		}
 		pair = on_off;
-		pair_switch = &(pair->switch_on);
+		pair_switch = &pair->switch_on;
 		for (s++; *s && *s != ':'; s++) {
 			if (*s == '?') {
-				pair_switch = &(pair->requires);
+				pair_switch = &pair->requires;
 			} else if (*s == '-') {
-				if (pair_switch == &(pair->switch_off))
-					pair_switch = &(pair->incongruously);
+				if (pair_switch == &pair->switch_off)
+					pair_switch = &pair->incongruously;
 				else
-					pair_switch = &(pair->switch_off);
+					pair_switch = &pair->switch_off;
 			} else {
 				for (on_off = complementary; on_off->opt_char; on_off++)
 					if (on_off->opt_char == *s) {
@@ -504,6 +508,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 		s--;
 	}
+	opt_complementary = NULL;
 	va_end(p);
 
 	if (spec_flgs & (FIRST_ARGV_IS_OPT | ALL_ARGV_IS_OPTS)) {
