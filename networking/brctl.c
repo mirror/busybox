@@ -203,7 +203,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			goto done;
 		}
 
-		if (!*argv) /* all but 'addif/delif' need at least two arguments */
+		if (!*argv) /* all but 'addbr/delbr' need at least two arguments */
 			bb_show_usage();
 
 		strncpy_IFNAMSIZ(ifr.ifr_name, br);
