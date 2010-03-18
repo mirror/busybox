@@ -90,12 +90,6 @@
  * until Unicode committee assigns something there.
  */
 
-#if CONFIG_LAST_SUPPORTED_WCHAR < 126 || CONFIG_LAST_SUPPORTED_WCHAR >= 0x30000
-# define LAST_SUPPORTED_WCHAR 0x2ffff
-#else
-# define LAST_SUPPORTED_WCHAR CONFIG_LAST_SUPPORTED_WCHAR
-#endif
-
 #if LAST_SUPPORTED_WCHAR >= 0x300
 struct interval {
 	uint16_t first;

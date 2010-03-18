@@ -18,6 +18,8 @@ enum {
 	UNICODE_ON = 2,
 };
 
+#define unicode_isrtl(wc) 0
+
 #if !ENABLE_FEATURE_ASSUME_UNICODE
 
 # define unicode_strlen(string) strlen(string)
@@ -25,6 +27,17 @@ enum {
 # define init_unicode() ((void)0)
 
 #else
+
+# if CONFIG_LAST_SUPPORTED_WCHAR < 126 || CONFIG_LAST_SUPPORTED_WCHAR >= 0x30000
+#  define LAST_SUPPORTED_WCHAR 0x2ffff
+# else
+#  define LAST_SUPPORTED_WCHAR CONFIG_LAST_SUPPORTED_WCHAR
+# endif
+
+# if LAST_SUPPORTED_WCHAR < 0x590
+#  undef  ENABLE_UNICODE_BIDI_SUPPORT
+#  define ENABLE_UNICODE_BIDI_SUPPORT 0
+# endif
 
 size_t FAST_FUNC unicode_strlen(const char *string);
 enum {
@@ -78,6 +91,10 @@ size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps) FAST_FUNC;
 int iswspace(wint_t wc) FAST_FUNC;
 int iswalnum(wint_t wc) FAST_FUNC;
 int iswpunct(wint_t wc) FAST_FUNC;
+#  if ENABLE_UNICODE_BIDI_SUPPORT
+#   undef unicode_isrtl
+int unicode_isrtl(wint_t wc) FAST_FUNC;
+#  endif
 
 
 # endif /* !LOCALE_SUPPORT */

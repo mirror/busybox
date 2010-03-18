@@ -1738,6 +1738,18 @@ static int lineedit_read_key(char *read_key_buffer)
 	return ic;
 }
 
+#if ENABLE_UNICODE_BIDI_SUPPORT
+static int isrtl_str(void)
+{
+	int idx = cursor;
+	while (command_ps[idx] >= ' ' && command_ps[idx] < 127 && !isalpha(command_ps[idx]))
+		idx++;
+	return unicode_isrtl(command_ps[idx]);
+}
+#else
+# define isrtl_str() 0
+#endif
+
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
 #define vi_case(caselabel) IF_FEATURE_EDITING_VI(case caselabel)
@@ -1895,10 +1907,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			break;
 		case CTRL('B'):
 		vi_case('h'|VI_CMDMODE_BIT:)
-		vi_case('\b'|VI_CMDMODE_BIT:)
+		vi_case('\b'|VI_CMDMODE_BIT:) /* ^H */
 		vi_case('\x7f'|VI_CMDMODE_BIT:) /* DEL */
-			/* Control-b -- Move back one character */
-			input_backward(1);
+			input_backward(1); /* Move back one character */
 			break;
 		case CTRL('E'):
 		vi_case('$'|VI_CMDMODE_BIT:)
@@ -1908,13 +1919,20 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		case CTRL('F'):
 		vi_case('l'|VI_CMDMODE_BIT:)
 		vi_case(' '|VI_CMDMODE_BIT:)
-			/* Control-f -- Move forward one character */
-			input_forward();
+			input_forward(); /* Move forward one character */
 			break;
-		case '\b':
+		case '\b':   /* ^H */
 		case '\x7f': /* DEL */
-			/* Control-h and DEL */
-			input_backspace();
+			if (!isrtl_str())
+				input_backspace();
+			else
+				input_delete(0);
+			break;
+		case KEYCODE_DELETE:
+			if (!isrtl_str())
+				input_delete(0);
+			else
+				input_backspace();
 			break;
 #if ENABLE_FEATURE_TAB_COMPLETION
 		case '\t':
@@ -2137,9 +2155,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		case KEYCODE_CTRL_RIGHT:
 			ctrl_right();
 			break;
-		case KEYCODE_DELETE:
-			input_delete(0);
-			break;
 		case KEYCODE_HOME:
 			input_backward(cursor);
 			break;
@@ -2205,14 +2220,19 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				command_ps[cursor] = ic;
 				command_ps[cursor + 1] = BB_NUL;
 				cmdedit_set_out_char(' ');
+				if (unicode_isrtl(ic))
+					input_backward(1);
 			} else {
 				/* In the middle, insert */
+				/* is char right-to-left, or "neutral" one (e.g. comma) added to rtl text? */
+				int rtl = ENABLE_UNICODE_BIDI_SUPPORT ? (unicode_isrtl(ic) || (ic < 127 && !isalpha(ic) && isrtl_str())) : 0;
 				int sc = cursor;
 
 				memmove(command_ps + sc + 1, command_ps + sc,
 					(command_len - sc) * sizeof(command_ps[0]));
 				command_ps[sc] = ic;
-				sc++;
+				if (!rtl)
+					sc++;
 				/* rewrite from cursor */
 				input_end();
 				/* to prev x pos + 1 */

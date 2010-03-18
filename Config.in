@@ -196,6 +196,14 @@ config UNICODE_WIDE_WCHARS
 	  With this option off, any Unicode char with width > 1
 	  is substituted on output.
 
+config UNICODE_BIDI_SUPPORT
+	bool "Bidirectional character-aware line input"
+	default y
+	depends on FEATURE_ASSUME_UNICODE && !LOCALE_SUPPORT
+	help
+	  With this option on, right-to-left Unicode characters
+	  are treated differently on input (e.g. cursor movement).
+
 config LONG_OPTS
 	bool "Support for --long-options"
 	default y
