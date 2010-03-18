@@ -812,21 +812,22 @@ int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
 #endif
 
-/* NOMMU friendy fork+exec */
+/* NOMMU friendy fork+exec: */
 pid_t spawn(char **argv) FAST_FUNC;
 pid_t xspawn(char **argv) FAST_FUNC;
 
 pid_t safe_waitpid(pid_t pid, int *wstat, int options) FAST_FUNC;
-/* Unlike waitpid, waits ONLY for one process.
+pid_t wait_any_nohang(int *wstat) FAST_FUNC;
+/* wait4pid: unlike waitpid, waits ONLY for one process.
+ * Returns sig + 0x180 if child is killed by signal.
  * It's safe to pass negative 'pids' from failed [v]fork -
  * wait4pid will return -1 (and will not clobber [v]fork's errno).
  * IOW: rc = wait4pid(spawn(argv));
  *      if (rc < 0) bb_perror_msg("%s", argv[0]);
- *      if (rc > 0) bb_error_msg("exit code: %d", rc);
+ *      if (rc > 0) bb_error_msg("exit code: %d", rc & 0xff);
  */
 int wait4pid(pid_t pid) FAST_FUNC;
-pid_t wait_any_nohang(int *wstat) FAST_FUNC;
-/* wait4pid(spawn(argv)) + NOFORK/NOEXEC (if configured) */
+/* Same as wait4pid(spawn(argv)), but with NOFORK/NOEXEC if configured: */
 int spawn_and_wait(char **argv) FAST_FUNC;
 struct nofork_save_area {
 	jmp_buf die_jmp;

@@ -772,7 +772,7 @@ static void run_script(const char *action, double offset)
 
 	/* Don't want to wait: it may run hwclock --systohc, and that
 	 * may take some time (seconds): */
-	/*wait4pid(spawn(argv));*/
+	/*spawn_and_wait(argv);*/
 	spawn(argv);
 
 	unsetenv("stratum");

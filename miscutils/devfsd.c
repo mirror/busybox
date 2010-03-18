@@ -751,7 +751,7 @@ static void action_modload(const struct devfsd_notify_struct *info,
 	argv[4] = concat_path_file("/dev", info->devname); /* device */
 	argv[5] = NULL;
 
-	wait4pid(xspawn(argv));
+	spawn_and_wait(argv);
 	free(argv[4]);
 }  /*  End Function action_modload  */
 
@@ -783,7 +783,7 @@ static void action_execute(const struct devfsd_notify_struct *info,
 		argv[count] = largv[count];
 	}
 	argv[count] = NULL;
-	wait4pid(spawn(argv));
+	spawn_and_wait(argv);
 }   /*  End Function action_execute  */
 
 

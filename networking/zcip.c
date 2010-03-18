@@ -160,13 +160,13 @@ static int run(char *argv[3], const char *param, struct in_addr *ip)
 	}
 	bb_info_msg(fmt, argv[2], argv[0], addr);
 
-	status = wait4pid(spawn(argv + 1));
+	status = spawn_and_wait(argv + 1);
 	if (status < 0) {
 		bb_perror_msg("%s %s %s" + 3, argv[2], argv[0]);
 		return -errno;
 	}
 	if (status != 0)
-		bb_error_msg("script %s %s failed, exitcode=%d", argv[1], argv[2], status);
+		bb_error_msg("script %s %s failed, exitcode=%d", argv[1], argv[2], status & 0xff);
 	return status;
 }
 

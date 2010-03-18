@@ -97,7 +97,7 @@ int FAST_FUNC wait4pid(pid_t pid)
 	if (WIFEXITED(status))
 		return WEXITSTATUS(status);
 	if (WIFSIGNALED(status))
-		return WTERMSIG(status) + 1000;
+		return WTERMSIG(status) + 0x180;
 	return 0;
 }
 

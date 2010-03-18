@@ -271,7 +271,7 @@ void FAST_FUNC udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	argv[0] = (char*) client_config.script;
 	argv[1] = (char*) name;
 	argv[2] = NULL;
-	wait4pid(spawn(argv));
+	spawn_and_wait(argv);
 
 	for (curr = envp; *curr; curr++) {
 		log2(" %s", *curr);

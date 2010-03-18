@@ -456,7 +456,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 				args[rc++] = filteropts;
 			}
 			args[rc] = NULL;
-			rc = wait4pid(spawn(args));
+			rc = spawn_and_wait(args);
 			free(args[0]);
 			if (!rc)
 				break;
@@ -1633,7 +1633,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		}
 		args[n++] = mp->mnt_dir;
 		args[n] = NULL;
-		rc = wait4pid(xspawn(args));
+		rc = spawn_and_wait(args);
 		goto report_error;
 	}
 

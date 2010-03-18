@@ -64,16 +64,9 @@ static int xargs_exec(char **args)
 		bb_error_msg("%s: exited with status 255; aborting", args[0]);
 		return 124;
 	}
-/* Huh? I think we won't see this, ever. We don't wait with WUNTRACED!
-	if (WIFSTOPPED(status)) {
-		bb_error_msg("%s: stopped by signal %d",
-			args[0], WSTOPSIG(status));
-		return 125;
-	}
-*/
-	if (status >= 1000) {
+	if (status >= 0x180) {
 		bb_error_msg("%s: terminated by signal %d",
-			args[0], status - 1000);
+			args[0], status - 0x180);
 		return 125;
 	}
 	if (status)

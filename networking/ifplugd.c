@@ -132,10 +132,10 @@ static int run_script(const char *action)
 	argv[3] = (char*) G.extra_arg;
 	argv[4] = NULL;
 
-	/* r < 0 - can't exec, 0 <= r < 1000 - exited, >1000 - killed by sig (r-1000) */
-	r = wait4pid(spawn(argv));
+	/* r < 0 - can't exec, 0 <= r < 0x180 - exited, >=0x180 - killed by sig (r-0x180) */
+	r = spawn_and_wait(argv);
 
-	bb_error_msg("exit code: %d", r);
+	bb_error_msg("exit code: %d", r & 0xff);
 	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
 
 #else /* insanity */

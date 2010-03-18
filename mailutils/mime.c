@@ -357,7 +357,7 @@ static int parse(const char *boundary, char **argv)
 			if (opts & OPT_X) {
 				signal(SIGPIPE, SIG_DFL);
 				// exit if helper exited >0
-				rc = wait4pid(pid);
+				rc = (wait4pid(pid) & 0xff);
 				if (rc)
 					return rc+20;
 			}
