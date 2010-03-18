@@ -191,6 +191,12 @@ config FINDFS
 	  WARNING:
 	  With all submodules selected, it will add ~8k to busybox.
 
+config FLOCK
+	bool "flock"
+	default y
+	help
+	  Manage locks from shell scripts
+
 config FREERAMDISK
 	bool "freeramdisk"
 	default n
