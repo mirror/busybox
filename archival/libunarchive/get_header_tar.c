@@ -103,6 +103,63 @@ static unsigned long long getOctal(char *str, int len)
 }
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
 
+#if ENABLE_FEATURE_TAR_SELINUX
+/* Scan a PAX header for SELinux contexts, via "RHT.security.selinux" keyword.
+ * This is what Red Hat's patched version of tar uses.
+ */
+# define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
+static char *get_selinux_sctx_from_pax_hdr(archive_handle_t *archive_handle, unsigned sz)
+{
+	char *buf, *p;
+	char *result;
+
+	p = buf = xmalloc(sz + 1);
+	/* prevent bb_strtou from running off the buffer */
+	buf[sz] = '\0';
+	xread(archive_handle->src_fd, buf, sz);
+	archive_handle->offset += sz;
+
+	result = NULL;
+	while (sz != 0) {
+		char *end, *value;
+		unsigned len;
+
+		/* Every record has this format: "LEN NAME=VALUE\n" */
+		len = bb_strtou(p, &end, 10);
+		/* expect errno to be EINVAL, because the character
+		 * following the digits should be a space
+		 */
+		p += len;
+		sz -= len;
+		if ((int)sz < 0
+		 || len == 0
+		 || errno != EINVAL
+		 || *end != ' '
+		) {
+			bb_error_msg("malformed extended header, skipped");
+			// More verbose version:
+			//bb_error_msg("malformed extended header at %"OFF_FMT"d, skipped",
+			//		archive_handle->offset - (sz + len));
+			break;
+		}
+		/* overwrite the terminating newline with NUL
+		 * (we do not bother to check that it *was* a newline)
+		 */
+		p[-1] = '\0';
+		/* Is it selinux security context? */
+		value = end + 1;
+		if (strncmp(value, SELINUX_CONTEXT_KEYWORD"=", sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1) == 0) {
+			value += sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1;
+			result = xstrdup(value);
+			break;
+		}
+	}
+
+	free(buf);
+	return result;
+}
+#endif
+
 void BUG_tar_header_size(void);
 char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 {
@@ -150,7 +207,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS || ENABLE_FEATURE_TAR_SELINUX
  again:
 #endif
 	/* Align header */
@@ -392,8 +449,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	case 'S':	/* Sparse file */
 	case 'V':	/* Volume header */
 #endif
+#if !ENABLE_FEATURE_TAR_SELINUX
 	case 'g':	/* pax global header */
-	case 'x': {	/* pax extended header */
+	case 'x':	/* pax extended header */
+#else
+ skip_ext_hdr:
+#endif
+	{
 		off_t sz;
 		bb_error_msg("warning: skipping header '%c'", tar.typeflag);
 		sz = (file_header->size + 511) & ~(off_t)511;
@@ -404,6 +466,18 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* return get_header_tar(archive_handle); */
 		goto again_after_align;
 	}
+#if ENABLE_FEATURE_TAR_SELINUX
+	case 'g':	/* pax global header */
+	case 'x': {	/* pax extended header */
+		char **pp;
+		if ((uoff_t)file_header->size > 0xfffff) /* paranoia */
+			goto skip_ext_hdr;
+		pp = (tar.typeflag == 'g') ? &archive_handle->tar__global_sctx : &archive_handle->tar__next_file_sctx;
+		free(*pp);
+		*pp = get_selinux_sctx_from_pax_hdr(archive_handle, file_header->size);
+		goto again;
+	}
+#endif
 	default:
 		bb_error_msg_and_die("unknown typeflag: 0x%x", tar.typeflag);
 	}

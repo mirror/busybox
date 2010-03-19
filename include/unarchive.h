@@ -59,6 +59,10 @@ typedef struct archive_handle_t {
 	char* tar__longname;
 	char* tar__linkname;
 # endif
+# if ENABLE_FEATURE_TAR_SELINUX
+	char* tar__global_sctx;
+	char* tar__next_file_sctx;
+# endif
 #endif
 #if ENABLE_CPIO || ENABLE_RPM2CPIO || ENABLE_RPM
 	uoff_t cpio__blocks;

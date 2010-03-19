@@ -289,6 +289,14 @@ config FEATURE_TAR_NOPRESERVE_TIME
 	  With this option busybox supports GNU tar -m
 	  (do not preserve time) option.
 
+config FEATURE_TAR_SELINUX
+	bool "Support for extracting SELinux labels"
+	default n
+	depends on TAR && SELINUX
+	help
+	  With this option busybox supports restoring SELinux labels
+	  when extracting files from tar archives.
+
 config UNCOMPRESS
 	bool "uncompress"
 	default n

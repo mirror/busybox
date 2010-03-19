@@ -12,6 +12,17 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	int dst_fd;
 	int res;
 
+#if ENABLE_FEATURE_TAR_SELINUX
+	char *sctx = archive_handle->tar__next_file_sctx;
+	if (!sctx)
+		sctx = archive_handle->tar__global_sctx;
+	if (sctx) { /* setfscreatecon is 4 syscalls, avoid if possible */
+		setfscreatecon(sctx);
+		free(archive_handle->tar__next_file_sctx);
+		archive_handle->tar__next_file_sctx = NULL;
+	}
+#endif
+
 	if (archive_handle->ah_flags & ARCHIVE_CREATE_LEADING_DIRS) {
 		char *slash = strrchr(file_header->name, '/');
 		if (slash) {
@@ -45,7 +56,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 					"same age file exists", file_header->name);
 			}
 			data_skip(archive_handle);
-			return;
+			goto ret;
 		}
 		else if ((unlink(file_header->name) == -1) && (errno != EISDIR)) {
 			bb_perror_msg_and_die("can't remove old file %s",
@@ -158,4 +169,12 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			utimes(file_header->name, t);
 		}
 	}
+
+ ret: ;
+#if ENABLE_FEATURE_TAR_SELINUX
+	if (sctx) {
+		/* reset the context after creating an entry */
+		setfscreatecon(NULL);
+	}
+#endif
 }
