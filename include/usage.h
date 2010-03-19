@@ -1313,13 +1313,13 @@
      "\n	-v	Verbose" \
 
 #define flock_trivial_usage \
-       "[-sxun] FD|FILE [[-c] PROG ARGS]"
+       "[-sxun] FD|{FILE [-c] PROG ARGS}"
 #define flock_full_usage "\n\n" \
-       "[Un]lock file descriptor or file, then run PROG\n" \
+       "[Un]lock file descriptor, or lock FILE and run PROG\n" \
      "\nOptions:" \
      "\n	-s	Shared lock" \
      "\n	-x	Exclusive lock (default)" \
-     "\n	-u	Remove a lock from FD" \
+     "\n	-u	Unlock FD" \
      "\n	-n	Fail rather than wait" \
 
 #define fold_trivial_usage \
