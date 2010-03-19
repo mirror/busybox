@@ -22,6 +22,8 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 	char *buffer;
 	int buffer_size;
 
+	if (size > 0 && size <= 4 * 1024)
+		goto use_small_buf;
 	/* We want page-aligned buffer, just in case kernel is clever
 	 * and can do page-aligned io more efficiently */
 	buffer = mmap(NULL, CONFIG_FEATURE_COPYBUF_KB * 1024,
@@ -30,6 +32,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 			/* ignored: */ -1, 0);
 	buffer_size = CONFIG_FEATURE_COPYBUF_KB * 1024;
 	if (buffer == MAP_FAILED) {
+ use_small_buf:
 		buffer = alloca(4 * 1024);
 		buffer_size = 4 * 1024;
 	}
