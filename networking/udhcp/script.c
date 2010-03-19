@@ -78,8 +78,11 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			*dest++ = '/';
 			option += 4;
 			optlen = 4;
-		case OPTION_IP:	/* Works regardless of host byte order. */
+		case OPTION_IP:
 			dest += sprint_nip(dest, "", option);
+// TODO: it can be a list only if (type_p->flags & OPTION_LIST).
+// Should we bail out/warn if we see multi-ip option which is
+// not allowed to be such? For example, DHCP_BROADCAST...
 			break;
 		case OPTION_BOOLEAN:
 			dest += sprintf(dest, *option ? "yes" : "no");

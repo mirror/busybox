@@ -41,10 +41,10 @@ enum {
 #define DHCP_TIME_OFFSET        0x02
 #define DHCP_ROUTER             0x03
 #define DHCP_TIME_SERVER        0x04
-#define DHCP_NAME_SERVER        0x05
+//#define DHCP_NAME_SERVER      0x05 /* _really_ ancient */
 #define DHCP_DNS_SERVER         0x06
 #define DHCP_LOG_SERVER         0x07
-#define DHCP_COOKIE_SERVER      0x08
+//#define DHCP_COOKIE_SERVER    0x08 /* "quote of the day" */
 #define DHCP_LPR_SERVER         0x09
 #define DHCP_HOST_NAME          0x0c
 #define DHCP_BOOT_SIZE          0x0d
@@ -64,8 +64,8 @@ enum {
 #define DHCP_PARAM_REQ          0x37
 #define DHCP_MESSAGE            0x38
 #define DHCP_MAX_SIZE           0x39
-#define DHCP_T1                 0x3a
-#define DHCP_T2                 0x3b
+//#define DHCP_T1               0x3a
+//#define DHCP_T2               0x3b
 #define DHCP_VENDOR             0x3c
 #define DHCP_CLIENT_ID          0x3d
 #define DHCP_FQDN               0x51

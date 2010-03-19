@@ -11,17 +11,17 @@
 #include "options.h"
 
 
-/* Supported options are easily added here */
+/* Supported options are easily added here. See RFC2132 */
 const struct dhcp_option dhcp_options[] = {
 	/* flags                                    code */
 	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
 	{ OPTION_S32                              , 0x02 }, /* DHCP_TIME_OFFSET   */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x03 }, /* DHCP_ROUTER        */
 	{ OPTION_IP | OPTION_LIST                 , 0x04 }, /* DHCP_TIME_SERVER   */
-	{ OPTION_IP | OPTION_LIST                 , 0x05 }, /* DHCP_NAME_SERVER   */
+//	{ OPTION_IP | OPTION_LIST                 , 0x05 }, /* DHCP_NAME_SERVER   */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x06 }, /* DHCP_DNS_SERVER    */
 	{ OPTION_IP | OPTION_LIST                 , 0x07 }, /* DHCP_LOG_SERVER    */
-	{ OPTION_IP | OPTION_LIST                 , 0x08 }, /* DHCP_COOKIE_SERVER */
+//	{ OPTION_IP | OPTION_LIST                 , 0x08 }, /* DHCP_COOKIE_SERVER */
 	{ OPTION_IP | OPTION_LIST                 , 0x09 }, /* DHCP_LPR_SERVER    */
 	{ OPTION_STRING               | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
 	{ OPTION_U16                              , 0x0d }, /* DHCP_BOOT_SIZE     */
@@ -37,7 +37,7 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
 	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
 	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
-	{ OPTION_U8                               , 0x35 }, /* dhcptype           */
+	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
 	{ OPTION_STRING                           , 0x38 }, /* DHCP_MESSAGE       */
 	{ OPTION_STRING                           , 0x3C }, /* DHCP_VENDOR        */
@@ -68,10 +68,10 @@ const char dhcp_option_strings[] ALIGN1 =
 	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
 	"router" "\0"      /* DHCP_ROUTER         */
 	"timesrv" "\0"     /* DHCP_TIME_SERVER    */
-	"namesrv" "\0"     /* DHCP_NAME_SERVER    */
+//	"namesrv" "\0"     /* DHCP_NAME_SERVER    */
 	"dns" "\0"         /* DHCP_DNS_SERVER     */
 	"logsrv" "\0"      /* DHCP_LOG_SERVER     */
-	"cookiesrv" "\0"   /* DHCP_COOKIE_SERVER  */
+//	"cookiesrv" "\0"   /* DHCP_COOKIE_SERVER  */
 	"lprsrv" "\0"      /* DHCP_LPR_SERVER     */
 	"hostname" "\0"    /* DHCP_HOST_NAME      */
 	"bootsize" "\0"    /* DHCP_BOOT_SIZE      */
