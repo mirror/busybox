@@ -124,14 +124,6 @@ void log_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 #endif
 
 
-/*** serverpacket.h ***/
-
-int send_offer(struct dhcp_packet *oldpacket) FAST_FUNC;
-int send_NAK(struct dhcp_packet *oldpacket) FAST_FUNC;
-int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr) FAST_FUNC;
-int send_inform(struct dhcp_packet *oldpacket) FAST_FUNC;
-
-
 /*** files.h ***/
 
 void read_config(const char *file) FAST_FUNC;

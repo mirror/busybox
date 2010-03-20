@@ -17,8 +17,7 @@ lib-$(CONFIG_UDHCPC)            += dhcpc.o clientpacket.o clientsocket.o \
 UDHCPC_NEEDS_ARPING-$(CONFIG_FEATURE_UDHCPC_ARPING) = y
 lib-$(UDHCPC_NEEDS_ARPING-y)    += arpping.o
 
-lib-$(CONFIG_UDHCPD)            += dhcpd.o arpping.o files.o leases.o \
-                                   serverpacket.o static_leases.o
+lib-$(CONFIG_UDHCPD)            += dhcpd.o arpping.o files.o leases.o static_leases.o
 
 lib-$(CONFIG_DUMPLEASES)        += dumpleases.o
 lib-$(CONFIG_DHCPRELAY)         += dhcprelay.o
