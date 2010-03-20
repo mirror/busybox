@@ -13,6 +13,7 @@
 
 /* Supported options are easily added here.
  * See RFC2132 for more options.
+ * OPTION_REQ: these options are requested by udhcpc (unless -o).
  */
 const struct dhcp_option dhcp_options[] = {
 	/* flags                                    code */

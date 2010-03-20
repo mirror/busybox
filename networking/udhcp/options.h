@@ -46,9 +46,9 @@ enum {
 #define DHCP_LOG_SERVER         0x07
 //#define DHCP_COOKIE_SERVER    0x08 /* "quote of the day" server */
 #define DHCP_LPR_SERVER         0x09
-#define DHCP_HOST_NAME          0x0c
+#define DHCP_HOST_NAME          0x0c /* either client informs server or server gives name to client */
 #define DHCP_BOOT_SIZE          0x0d
-#define DHCP_DOMAIN_NAME        0x0f
+#define DHCP_DOMAIN_NAME        0x0f /* server gives domain suffix */
 #define DHCP_SWAP_SERVER        0x10
 #define DHCP_ROOT_PATH          0x11
 #define DHCP_IP_TTL             0x17
@@ -61,14 +61,14 @@ enum {
 #define DHCP_OPTION_OVERLOAD    0x34
 #define DHCP_MESSAGE_TYPE       0x35
 #define DHCP_SERVER_ID          0x36 /* by default server's IP */
-#define DHCP_PARAM_REQ          0x37
+#define DHCP_PARAM_REQ          0x37 /* list of options client wants */
 #define DHCP_MESSAGE            0x38 /* error message when sending NAK etc */
 #define DHCP_MAX_SIZE           0x39
 //#define DHCP_T1               0x3a
 //#define DHCP_T2               0x3b
-#define DHCP_VENDOR             0x3c /* client's vendor */
-#define DHCP_CLIENT_ID          0x3d /* by default client's MAC addr */
-#define DHCP_FQDN               0x51
+#define DHCP_VENDOR             0x3c /* client's vendor (a string) */
+#define DHCP_CLIENT_ID          0x3d /* by default client's MAC addr, but may be arbitrarily long */
+#define DHCP_FQDN               0x51 /* client asks to update DNS to map its FQDN to its new IP */
 #define DHCP_STATIC_ROUTES      0x79
 #define DHCP_END                0xFF
 /* Offsets in option byte sequence */

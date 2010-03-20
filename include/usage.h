@@ -4810,66 +4810,68 @@
        "Adjust filesystem options on ext[23] filesystems"
 
 #define udhcpc_trivial_usage \
-       "[-Cfbnqtvo] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n" \
-       "	[-p pidfile] [-r IP] [-s script] [-O dhcp-option]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
-#define udhcpc_full_usage "\n\n" \
+       "[-fbnqvoCR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n" \
+       "	[-H HOSTNAME] [-c CID] [-V VENDOR] [-O DHCP_OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
+#define udhcpc_full_usage "\n" \
 	IF_LONG_OPTS( \
-       "	-V,--vendorclass=CLASSID	Vendor class identifier" \
-     "\n	-i,--interface=INTERFACE	Interface to use (default eth0)" \
-     "\n	-H,-h,--hostname=HOSTNAME	Client hostname" \
-     "\n	-c,--clientid=CLIENTID	Client identifier" \
-     "\n	-C,--clientid-none	Suppress default client identifier" \
-     "\n	-p,--pidfile=FILE	Create pidfile" \
-     "\n	-r,--request=IP		IP address to request" \
-     "\n	-s,--script=FILE	Run FILE at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
-     "\n	-t,--retries=N		Send up to N discover packets" \
-     "\n	-T,--timeout=N		Pause between packets (default 3 seconds)" \
-     "\n	-A,--tryagain=N		Wait N seconds (default 20) after failure" \
-     "\n	-O,--request-option=OPT	Request DHCP option OPT (cumulative)" \
-     "\n	-o,--no-default-options	Don't request any options (unless -O is also given)" \
-     "\n	-f,--foreground	Run in foreground" \
+     "\n	-i,--interface IFACE	Interface to use (default eth0)" \
+     "\n	-p,--pidfile FILE	Create pidfile" \
+     "\n	-r,--request IP		IP address to request" \
+     "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
+     "\n	-t,--retries N		Send up to N discover packets" \
+     "\n	-T,--timeout N		Pause between packets (default 3 seconds)" \
+     "\n	-A,--tryagain N		Wait N seconds (default 20) after failure" \
+     "\n	-O,--request-option OPT	Request DHCP option OPT (cumulative)" \
+     "\n	-o,--no-default-options	Don't request any options (unless -O is given)" \
+     "\n	-f,--foreground		Run in foreground" \
 	USE_FOR_MMU( \
-     "\n	-b,--background	Background if lease is not immediately obtained" \
+     "\n	-b,--background		Background if lease is not obtained" \
 	) \
-     "\n	-S,--syslog	Log to syslog too" \
-     "\n	-n,--now	Exit with failure if lease is not immediately obtained" \
-     "\n	-q,--quit	Quit after obtaining lease" \
-     "\n	-R,--release	Release IP on quit" \
+     "\n	-S,--syslog		Log to syslog too" \
+     "\n	-n,--now		Exit if lease is not obtained" \
+     "\n	-q,--quit		Exit after obtaining lease" \
+     "\n	-R,--release		Release IP on exit" \
 	IF_FEATURE_UDHCP_PORT( \
-     "\n	-P,--client-port N  Use port N instead of default 68" \
+     "\n	-P,--client-port N	Use port N (default 68)" \
 	) \
 	IF_FEATURE_UDHCPC_ARPING( \
-     "\n	-a,--arping	Use arping to validate offered address" \
+     "\n	-a,--arping		Use arping to validate offered address" \
 	) \
+     "\n	-F,--fqdn NAME		Ask server to update DNS mapping for NAME" \
+     "\n	-H,-h,--hostname NAME	Send NAME as client hostname (default none)" \
+     "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')" \
+     "\n	-c,--clientid CLIENTID	Client identifier (default own MAC)" \
+     "\n	-C,--clientid-none	Don't send client identifier" \
 	) \
 	IF_NOT_LONG_OPTS( \
-       "	-V CLASSID	Vendor class identifier" \
-     "\n	-i INTERFACE	Interface to use (default: eth0)" \
-     "\n	-H,-h HOSTNAME	Client hostname" \
-     "\n	-c CLIENTID	Client identifier" \
-     "\n	-C		Suppress default client identifier" \
+     "\n	-i IFACE	Interface to use (default eth0)" \
      "\n	-p FILE		Create pidfile" \
      "\n	-r IP		IP address to request" \
-     "\n	-s FILE		Run FILE at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
-     "\n	-t N		Send up to N request packets" \
-     "\n	-T N		Try to get a lease for N seconds (default 3)" \
+     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
+     "\n	-t N		Send up to N discover packets" \
+     "\n	-T N		Pause between packets (default 3 seconds)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \
      "\n	-O OPT		Request DHCP option OPT (cumulative)" \
-     "\n	-o		Don't request any options (unless -O is also given)" \
+     "\n	-o		Don't request any options (unless -O is given)" \
      "\n	-f		Run in foreground" \
 	USE_FOR_MMU( \
-     "\n	-b		Background if lease is not immediately obtained" \
+     "\n	-b		Background if lease is not obtained" \
 	) \
      "\n	-S		Log to syslog too" \
-     "\n	-n		Exit with failure if lease is not immediately obtained" \
-     "\n	-q		Quit after obtaining lease" \
-     "\n	-R		Release IP on quit" \
+     "\n	-n		Exit if lease is not obtained" \
+     "\n	-q		Exit after obtaining lease" \
+     "\n	-R		Release IP on exit" \
 	IF_FEATURE_UDHCP_PORT( \
-     "\n	-P N		Use port N instead of default 68" \
+     "\n	-P N		Use port N (default 68)" \
 	) \
 	IF_FEATURE_UDHCPC_ARPING( \
      "\n	-a		Use arping to validate offered address" \
 	) \
+     "\n	-F NAME		Ask server to update DNS mapping for NAME" \
+     "\n	-H,-h NAME	Send NAME as client hostname (default none)" \
+     "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')" \
+     "\n	-c CLIENTID	Client identifier (default own MAC)" \
+     "\n	-C		Don't send client identifier" \
 	)
 
 #define udhcpd_trivial_usage \
@@ -4880,7 +4882,7 @@
      "\n	-f	Run in foreground" \
      "\n	-S	Log to syslog too" \
 	IF_FEATURE_UDHCP_PORT( \
-     "\n	-P N	Use port N instead of default 67" \
+     "\n	-P N	Use port N (default 67)" \
 	)
 
 #define umount_trivial_usage \

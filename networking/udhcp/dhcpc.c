@@ -125,8 +125,7 @@ static void client_background(void)
 static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
 {
 	uint8_t *storage;
-	int len = strlen(str);
-	if (len > 255) len = 255;
+	int len = strnlen(str, 255);
 	storage = xzalloc(len + extra + OPT_DATA);
 	storage[OPT_CODE] = code;
 	storage[OPT_LEN] = len + extra;
@@ -139,7 +138,7 @@ int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 {
 	uint8_t *temp, *message;
-	char *str_c, *str_V, *str_h, *str_F, *str_r;
+	const char *str_c, *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
 	int tryagain_timeout = 20;
@@ -222,6 +221,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
 	client_config.script = DEFAULT_SCRIPT;
+	str_V = "udhcp "BB_VER;
 
 	/* Parse command line */
 	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
@@ -246,23 +246,22 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		, &dhcp_verbose
 #endif
 		);
-	if (opt & OPT_c)
-		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
-	if (opt & OPT_V)
-		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
 	if (opt & (OPT_h|OPT_H))
 		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
 	if (opt & OPT_F) {
+		/* FQDN option format: [0x51][len][flags][0][0]<fqdn> */
 		client_config.fqdn = alloc_dhcp_option(DHCP_FQDN, str_F, 3);
-		/* Flags: 0000NEOS
-		S: 1 => Client requests Server to update A RR in DNS as well as PTR
-		O: 1 => Server indicates to client that DNS has been updated regardless
-		E: 1 => Name data is DNS format, i.e. <4>host<6>domain<3>com<0> not "host.domain.com"
-		N: 1 => Client requests Server to not update DNS
-		*/
+		/* Flag bits: 0000NEOS
+		 * S: 1 = Client requests server to update A RR in DNS as well as PTR
+		 * O: 1 = Server indicates to client that DNS has been updated regardless
+		 * E: 1 = Name is in DNS format, i.e. <4>host<6>domain<3>com<0>,
+		 *    not "host.domain.com". Format 0 is obsolete.
+		 * N: 1 = Client requests server to not update DNS (S must be 0 then)
+		 * Two [0] bytes which follow are deprecated and must be 0.
+		 */
 		client_config.fqdn[OPT_DATA + 0] = 0x1;
-		/* client_config.fqdn[OPT_DATA + 1] = 0; - redundant */
-		/* client_config.fqdn[OPT_DATA + 2] = 0; - redundant */
+		/*client_config.fqdn[OPT_DATA + 1] = 0; - xzalloc did it */
+		/*client_config.fqdn[OPT_DATA + 2] = 0; */
 	}
 	if (opt & OPT_r)
 		requested_ip = inet_addr(str_r);
@@ -291,6 +290,16 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		return 1;
 	}
 
+	if (opt & OPT_c) {
+		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
+	} else if (!(opt & OPT_C)) {
+		/* not set and not suppressed, set the default client ID */
+		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
+		client_config.clientid[OPT_DATA] = 1; /* type: ethernet */
+		memcpy(client_config.clientid + OPT_DATA+1, client_config.client_mac, 6);
+	}
+	if (str_V[0] != '\0')
+		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
 #if !BB_MMU
 	/* on NOMMU reexec (i.e., background) early */
 	if (!(opt & OPT_f)) {
@@ -313,16 +322,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
-
-	/* If not set, and not suppressed, set up the default client ID */
-	if (!client_config.clientid && !(opt & OPT_C)) {
-		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
-		client_config.clientid[OPT_DATA] = 1;
-		memcpy(client_config.clientid + OPT_DATA+1, client_config.client_mac, 6);
-	}
-
-	if (!client_config.vendorclass)
-		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, "udhcp "BB_VER, 0);
 
 	/* Set up the signal pipe */
 	udhcp_sp_setup();

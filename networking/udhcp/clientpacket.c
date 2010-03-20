@@ -47,8 +47,12 @@ static void init_packet(struct dhcp_packet *packet, char type)
 		add_option_string(packet->options, client_config.hostname);
 	if (client_config.fqdn)
 		add_option_string(packet->options, client_config.fqdn);
-	if ((type != DHCPDECLINE) && (type != DHCPRELEASE))
+	if (type != DHCPDECLINE
+	 && type != DHCPRELEASE
+	 && client_config.vendorclass
+	) {
 		add_option_string(packet->options, client_config.vendorclass);
+	}
 }
 
 
