@@ -44,6 +44,10 @@ struct dhcp_packet {
 	uint32_t cookie;      /* fixed first four option bytes (99,130,83,99 dec) */
 	uint8_t options[DHCP_OPTIONS_BUFSIZE + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS];
 } PACKED;
+#define DHCP_PKT_SNAME_LEN      64
+#define DHCP_PKT_FILE_LEN      128
+#define DHCP_PKT_SNAME_LEN_STR "64"
+#define DHCP_PKT_FILE_LEN_STR "128"
 
 struct ip_udp_dhcp_packet {
 	struct iphdr ip;

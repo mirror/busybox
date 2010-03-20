@@ -244,14 +244,12 @@ static char **fill_envp(struct dhcp_packet *packet)
 	}
 	if (!(over & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
-		packet->file[sizeof(packet->file) - 1] = '\0';
-		*curr = xasprintf("boot_file=%s", packet->file);
+		*curr = xasprintf("boot_file=%."DHCP_PKT_FILE_LEN_STR"s", packet->file);
 		putenv(*curr++);
 	}
 	if (!(over & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
-		packet->sname[sizeof(packet->sname) - 1] = '\0';
-		*curr = xasprintf("sname=%s", packet->sname);
+		*curr = xasprintf("sname=%."DHCP_PKT_SNAME_LEN_STR"s", packet->sname);
 		putenv(*curr++);
 	}
 	return envp;

@@ -20,10 +20,10 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
 	{ OPTION_S32                              , 0x02 }, /* DHCP_TIME_OFFSET   */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x03 }, /* DHCP_ROUTER        */
-	{ OPTION_IP | OPTION_LIST                 , 0x04 }, /* DHCP_TIME_SERVER   */
+//	{ OPTION_IP | OPTION_LIST                 , 0x04 }, /* DHCP_TIME_SERVER   */
 //	{ OPTION_IP | OPTION_LIST                 , 0x05 }, /* DHCP_NAME_SERVER   */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x06 }, /* DHCP_DNS_SERVER    */
-	{ OPTION_IP | OPTION_LIST                 , 0x07 }, /* DHCP_LOG_SERVER    */
+//	{ OPTION_IP | OPTION_LIST                 , 0x07 }, /* DHCP_LOG_SERVER    */
 //	{ OPTION_IP | OPTION_LIST                 , 0x08 }, /* DHCP_COOKIE_SERVER */
 	{ OPTION_IP | OPTION_LIST                 , 0x09 }, /* DHCP_LPR_SERVER    */
 	{ OPTION_STRING               | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
@@ -34,23 +34,23 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
 	{ OPTION_U16                              , 0x1a }, /* DHCP_MTU           */
 	{ OPTION_IP                   | OPTION_REQ, 0x1c }, /* DHCP_BROADCAST     */
-	{ OPTION_STRING                           , 0x28 }, /* nisdomain          */
-	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* nissrv             */
+	{ OPTION_STRING                           , 0x28 }, /* DHCP_NIS_DOMAIN    */
+	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* DHCP_NIS_SERVER    */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
 	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
 	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
-	{ OPTION_STRING                           , 0x38 }, /* DHCP_MESSAGE       */
-	{ OPTION_STRING                           , 0x42 }, /* tftp               */
-	{ OPTION_STRING                           , 0x43 }, /* bootfile           */
+	{ OPTION_STRING                           , 0x38 }, /* DHCP_ERR_MESSAGE   */
+//TODO: must be combined with 'sname' and 'file' handling:
+	{ OPTION_STRING                           , 0x42 }, /* DHCP_TFTP_SERVER_NAME */
+	{ OPTION_STRING                           , 0x43 }, /* DHCP_BOOT_FILE     */
 //TODO: not a string, but a set of LASCII strings:
-//	{ OPTION_STRING                           , 0x4D }, /* userclass          */
+//	{ OPTION_STRING                           , 0x4D }, /* DHCP_USER_CLASS    */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* search             */
+	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* DHCP_DOMAIN_SEARCH */
 #endif
 	{ OPTION_STATIC_ROUTES                    , 0x79 }, /* DHCP_STATIC_ROUTES */
-	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
-	{ OPTION_STRING                           , 0xfc }, /* wpad               */
+	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
 
 	/* Options below have no match in dhcp_option_strings[],
 	 * are not passed to dhcpc scripts, and cannot be specified
@@ -62,8 +62,9 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
 	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
-	{ OPTION_STRING                           , 0x3C }, /* DHCP_VENDOR        */
-	{ OPTION_STRING                           , 0x3D }, /* DHCP_CLIENT_ID     */
+	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
+//FIXME: handling of this option is not exactly correct:
+	{ OPTION_STRING                           , 0x3d }, /* DHCP_CLIENT_ID     */
 	{ 0, 0 } /* zeroed terminating entry */
 };
 
@@ -76,10 +77,10 @@ const char dhcp_option_strings[] ALIGN1 =
 	"subnet" "\0"      /* DHCP_SUBNET         */
 	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
 	"router" "\0"      /* DHCP_ROUTER         */
-	"timesrv" "\0"     /* DHCP_TIME_SERVER    */
+//	"timesrv" "\0"     /* DHCP_TIME_SERVER    */
 //	"namesrv" "\0"     /* DHCP_NAME_SERVER    */
 	"dns" "\0"         /* DHCP_DNS_SERVER     */
-	"logsrv" "\0"      /* DHCP_LOG_SERVER     */
+//	"logsrv" "\0"      /* DHCP_LOG_SERVER     */
 //	"cookiesrv" "\0"   /* DHCP_COOKIE_SERVER  */
 	"lprsrv" "\0"      /* DHCP_LPR_SERVER     */
 	"hostname" "\0"    /* DHCP_HOST_NAME      */
@@ -90,24 +91,24 @@ const char dhcp_option_strings[] ALIGN1 =
 	"ipttl" "\0"       /* DHCP_IP_TTL         */
 	"mtu" "\0"         /* DHCP_MTU            */
 	"broadcast" "\0"   /* DHCP_BROADCAST      */
-	"nisdomain" "\0"   /*                     */
-	"nissrv" "\0"      /*                     */
+	"nisdomain" "\0"   /* DHCP_NIS_DOMAIN     */
+	"nissrv" "\0"      /* DHCP_NIS_SERVER     */
 	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
 	"wins" "\0"        /* DHCP_WINS_SERVER    */
 	"lease" "\0"       /* DHCP_LEASE_TIME     */
 	"serverid" "\0"    /* DHCP_SERVER_ID      */
-	"message" "\0"     /* DHCP_MESSAGE        */
-	"tftp" "\0"
-	"bootfile" "\0"
-//	"userclass" "\0"
+	"message" "\0"     /* DHCP_ERR_MESSAGE    */
+	"tftp" "\0"        /* DHCP_TFTP_SERVER_NAME */
+	"bootfile" "\0"    /* DHCP_BOOT_FILE      */
+//	"userclass" "\0"   /* DHCP_USER_CLASS     */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	"search" "\0"
+	"search" "\0"      /* DHCP_DOMAIN_SEARCH  */
 #endif
 // "staticroutes" is only used to set udhcpc environment, it doesn't work
-// in udhcpd.conf since OPTION_STATIC_ROUTES is not handled yet:
-	"staticroutes" "\0" /* DHCP_STATIC_ROUTES  */
-	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
-	"wpad" "\0"
+// in udhcpd.conf since OPTION_STATIC_ROUTES is not handled yet
+// by "string->option" conversion code:
+	"staticroutes" "\0"/* DHCP_STATIC_ROUTES */
+	"wpad" "\0"        /* DHCP_WPAD          */
 	;
 
 
@@ -225,7 +226,7 @@ int FAST_FUNC end_option(uint8_t *optionptr)
 
 /* add an option string to the options */
 /* option bytes: [code][len][data1][data2]..[dataLEN] */
-int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
+void FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 {
 	int end = end_option(optionptr);
 
@@ -233,17 +234,16 @@ int FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 	if (end + string[OPT_LEN] + 2 + 1 >= DHCP_OPTIONS_BUFSIZE) {
 		bb_error_msg("option 0x%02x did not fit into the packet",
 				string[OPT_CODE]);
-		return 0;
+		return;
 	}
 	log_option("Adding option", string);
 	memcpy(optionptr + end, string, string[OPT_LEN] + 2);
 	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
-	return string[OPT_LEN] + 2;
 }
 
 
 /* add a one to four byte option to a packet */
-int FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
+void FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 {
 	const struct dhcp_option *dh;
 
@@ -258,10 +258,10 @@ int FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 				data <<= 8 * (4 - len);
 			/* Assignment is unaligned! */
 			move_to_unaligned32(&option[OPT_DATA], data);
-			return add_option_string(optionptr, option);
+			add_option_string(optionptr, option);
+			return;
 		}
 	}
 
 	bb_error_msg("can't add option 0x%02x", code);
-	return 0;
 }

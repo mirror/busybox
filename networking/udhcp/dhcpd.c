@@ -75,7 +75,9 @@ static int send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadca
 		server_config.ifindex);
 }
 
-/* send a dhcp packet, if force broadcast is set, the packet will be broadcast to the client */
+/* Send the dhcp packet.
+ * If force broadcast is set, the packet will be broadcast.
+ */
 static int send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	if (dhcp_pkt->gateway_nip)
@@ -94,10 +96,21 @@ static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacke
 	add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server_nip);
 }
 
-/* add in the bootp options */
-static void add_bootp_options(struct dhcp_packet *packet)
+/* Fill options field, siaddr_nip, and sname and boot_file fields.
+ * TODO: teach this code to use overload option.
+ */
+static void add_server_options(struct dhcp_packet *packet)
 {
+	struct option_set *curr = server_config.options;
+
+	while (curr) {
+		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
+			add_option_string(packet->options, curr->data);
+		curr = curr->next;
+	}
+
 	packet->siaddr_nip = server_config.siaddr_nip;
+
 	if (server_config.sname)
 		strncpy((char*)packet->sname, server_config.sname, sizeof(packet->sname) - 1);
 	if (server_config.boot_file)
@@ -123,17 +136,17 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, struct dyn_lease *lease)
 {
 	struct dhcp_packet packet;
-	uint32_t req_nip;
 	uint32_t lease_time_sec = server_config.max_lease_sec;
-	uint8_t *req_ip_opt;
 	const char *p_host_name;
-	struct option_set *curr;
 	struct in_addr addr;
 
 	init_packet(&packet, oldpacket, DHCPOFFER);
 
 	/* ADDME: if static, short circuit */
 	if (!static_lease_nip) {
+		uint32_t req_nip;
+		uint8_t *req_ip_opt;
+
 		/* The client is in our lease/offered table */
 		if (lease) {
 			packet.yiaddr = lease->lease_nip;
@@ -145,10 +158,10 @@ static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, 
 		 /* and the IP is in the lease range */
 		 && ntohl(req_nip) >= server_config.start_ip
 		 && ntohl(req_nip) <= server_config.end_ip
-		 /* and is not already taken/offered */
-		 && (!(lease = find_lease_by_nip(req_nip))
-			/* or its taken, but expired */
-			|| is_expired_lease(lease))
+		 /* and */
+		 && (  !(lease = find_lease_by_nip(req_nip)) /* is not already taken */
+		    || is_expired_lease(lease) /* or is taken, but expired */
+		    )
 		) {
 			packet.yiaddr = req_nip;
 		}
@@ -178,19 +191,11 @@ static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, 
 	}
 
 	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
-
-	curr = server_config.options;
-	while (curr) {
-		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			add_option_string(packet.options, curr->data);
-		curr = curr->next;
-	}
-
-	add_bootp_options(&packet);
+	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
 	bb_info_msg("Sending OFFER of %s", inet_ntoa(addr));
-	return send_packet(&packet, 0);
+	return send_packet(&packet, /*force_bcast:*/ 0);
 }
 
 static int send_NAK(struct dhcp_packet *oldpacket)
@@ -200,13 +205,12 @@ static int send_NAK(struct dhcp_packet *oldpacket)
 	init_packet(&packet, oldpacket, DHCPNAK);
 
 	log1("Sending NAK");
-	return send_packet(&packet, 1);
+	return send_packet(&packet, /*force_bcast:*/ 1);
 }
 
 static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 {
 	struct dhcp_packet packet;
-	struct option_set *curr;
 	uint32_t lease_time_sec;
 	struct in_addr addr;
 	const char *p_host_name;
@@ -217,20 +221,12 @@ static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	lease_time_sec = select_lease_time(oldpacket);
 
 	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
-
-	curr = server_config.options;
-	while (curr) {
-		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			add_option_string(packet.options, curr->data);
-		curr = curr->next;
-	}
-
-	add_bootp_options(&packet);
+	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
 	bb_info_msg("Sending ACK to %s", inet_ntoa(addr));
 
-	if (send_packet(&packet, 0) < 0)
+	if (send_packet(&packet, /*force_bcast:*/ 0) < 0)
 		return -1;
 
 	p_host_name = (const char*) get_option(oldpacket, DHCP_HOST_NAME);
@@ -250,20 +246,11 @@ static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 static int send_inform(struct dhcp_packet *oldpacket)
 {
 	struct dhcp_packet packet;
-	struct option_set *curr;
 
 	init_packet(&packet, oldpacket, DHCPACK);
+	add_server_options(&packet);
 
-	curr = server_config.options;
-	while (curr) {
-		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			add_option_string(packet.options, curr->data);
-		curr = curr->next;
-	}
-
-	add_bootp_options(&packet);
-
-	return send_packet(&packet, 0);
+	return send_packet(&packet, /*force_bcast:*/ 0);
 }
 
 
