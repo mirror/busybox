@@ -177,7 +177,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 }
 
 
-/* put all the parameters into an environment */
+/* put all the parameters into the environment */
 static char **fill_envp(struct dhcp_packet *packet)
 {
 	int num_options = 0;

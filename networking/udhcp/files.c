@@ -201,9 +201,8 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		case OPTION_STR1035:
 #endif
-			length = strlen(val);
+			length = strnlen(val, 254);
 			if (length > 0) {
-				if (length > 254) length = 254;
 				opt = val;
 				retval = 1;
 			}

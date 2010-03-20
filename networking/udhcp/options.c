@@ -11,7 +11,9 @@
 #include "options.h"
 
 
-/* Supported options are easily added here. See RFC2132 */
+/* Supported options are easily added here.
+ * See RFC2132 for more options.
+ */
 const struct dhcp_option dhcp_options[] = {
 	/* flags                                    code */
 	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
@@ -25,7 +27,7 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_IP | OPTION_LIST                 , 0x09 }, /* DHCP_LPR_SERVER    */
 	{ OPTION_STRING               | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
 	{ OPTION_U16                              , 0x0d }, /* DHCP_BOOT_SIZE     */
-	{ OPTION_STRING | OPTION_LIST | OPTION_REQ, 0x0f }, /* DHCP_DOMAIN_NAME   */
+	{ OPTION_STRING               | OPTION_REQ, 0x0f }, /* DHCP_DOMAIN_NAME   */
 	{ OPTION_IP                               , 0x10 }, /* DHCP_SWAP_SERVER   */
 	{ OPTION_STRING                           , 0x11 }, /* DHCP_ROOT_PATH     */
 	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
@@ -35,16 +37,13 @@ const struct dhcp_option dhcp_options[] = {
 	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* nissrv             */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
 	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
-	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
 	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
-	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
 	{ OPTION_STRING                           , 0x38 }, /* DHCP_MESSAGE       */
-	{ OPTION_STRING                           , 0x3C }, /* DHCP_VENDOR        */
-	{ OPTION_STRING                           , 0x3D }, /* DHCP_CLIENT_ID     */
 	{ OPTION_STRING                           , 0x42 }, /* tftp               */
 	{ OPTION_STRING                           , 0x43 }, /* bootfile           */
-	{ OPTION_STRING                           , 0x4D }, /* userclass          */
+//TODO: not a string, but a set of LASCII strings:
+//	{ OPTION_STRING                           , 0x4D }, /* userclass          */
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* search             */
 #endif
@@ -54,14 +53,23 @@ const struct dhcp_option dhcp_options[] = {
 
 	/* Options below have no match in dhcp_option_strings[],
 	 * are not passed to dhcpc scripts, and cannot be specified
-	 * with "option XXX YYY" syntax in dhcpd config file. */
+	 * with "option XXX YYY" syntax in dhcpd config file.
+	 * These entries are only used internally by udhcp[cd]
+	 * to correctly encode options into packets.
+	 */
 
+	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
+	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
+	{ OPTION_STRING                           , 0x3C }, /* DHCP_VENDOR        */
+	{ OPTION_STRING                           , 0x3D }, /* DHCP_CLIENT_ID     */
 	{ 0, 0 } /* zeroed terminating entry */
 };
 
 /* Used for converting options from incoming packets to env variables
- * for udhcpc stript */
+ * for udhcpc stript, and for setting options for udhcpd via
+ * "opt OPTION_NAME OPTION_VALUE" directives in udhcpd.conf file.
+ */
 /* Must match dhcp_options[] order */
 const char dhcp_option_strings[] ALIGN1 =
 	"subnet" "\0"      /* DHCP_SUBNET         */
@@ -85,19 +93,17 @@ const char dhcp_option_strings[] ALIGN1 =
 	"nissrv" "\0"      /*                     */
 	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
 	"wins" "\0"        /* DHCP_WINS_SERVER    */
-	"requestip" "\0"   /* DHCP_REQUESTED_IP   */
 	"lease" "\0"       /* DHCP_LEASE_TIME     */
-	"dhcptype" "\0"    /*                     */
 	"serverid" "\0"    /* DHCP_SERVER_ID      */
 	"message" "\0"     /* DHCP_MESSAGE        */
-	"vendorclass" "\0" /* DHCP_VENDOR         */
-	"clientid" "\0"    /* DHCP_CLIENT_ID      */
 	"tftp" "\0"
 	"bootfile" "\0"
-	"userclass" "\0"
+//	"userclass" "\0"
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	"search" "\0"
 #endif
+// "staticroutes" is only used to set udhcpc environment, it doesn't work
+// in udhcpd.conf since OPTION_STATIC_ROUTES is not handled yet:
 	"staticroutes" "\0" /* DHCP_STATIC_ROUTES  */
 	/* MSIE's "Web Proxy Autodiscovery Protocol" support */
 	"wpad" "\0"
