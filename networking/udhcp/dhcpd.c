@@ -120,12 +120,11 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 }
 
 /* send a DHCP OFFER to a DHCP DISCOVER */
-static int send_offer(struct dhcp_packet *oldpacket)
+static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, struct dyn_lease *lease)
 {
 	struct dhcp_packet packet;
 	uint32_t req_nip;
 	uint32_t lease_time_sec = server_config.max_lease_sec;
-	uint32_t static_lease_ip;
 	uint8_t *req_ip_opt;
 	const char *p_host_name;
 	struct option_set *curr;
@@ -133,18 +132,10 @@ static int send_offer(struct dhcp_packet *oldpacket)
 
 	init_packet(&packet, oldpacket, DHCPOFFER);
 
-	static_lease_ip = get_static_nip_by_mac(server_config.static_leases, oldpacket->chaddr);
-
 	/* ADDME: if static, short circuit */
-	if (!static_lease_ip) {
-		struct dyn_lease *lease;
-
-		lease = find_lease_by_mac(oldpacket->chaddr);
+	if (!static_lease_nip) {
 		/* The client is in our lease/offered table */
 		if (lease) {
-			signed_leasetime_t tmp = lease->expires - time(NULL);
-			if (tmp >= 0)
-				lease_time_sec = tmp;
 			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or the client has requested an IP */
@@ -183,7 +174,7 @@ static int send_offer(struct dhcp_packet *oldpacket)
 		lease_time_sec = select_lease_time(oldpacket);
 	} else {
 		/* It is a static lease... use it */
-		packet.yiaddr = static_lease_ip;
+		packet.yiaddr = static_lease_nip;
 	}
 
 	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
@@ -288,7 +279,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	int server_socket = -1, retval, max_sock;
 	struct dhcp_packet packet;
 	uint8_t *state;
-	uint32_t static_lease_ip;
+	uint32_t static_lease_nip;
 	unsigned timeout_end;
 	unsigned num_ips;
 	unsigned opt;
@@ -439,12 +430,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Look for a static lease */
-		static_lease_ip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
-		if (static_lease_ip) {
-			bb_info_msg("Found static lease: %x", static_lease_ip);
+		static_lease_nip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
+		if (static_lease_nip) {
+			bb_info_msg("Found static lease: %x", static_lease_nip);
 
 			memcpy(&fake_lease.lease_mac, &packet.chaddr, 6);
-			fake_lease.lease_nip = static_lease_ip;
+			fake_lease.lease_nip = static_lease_nip;
 			fake_lease.expires = 0;
 
 			lease = &fake_lease;
@@ -456,7 +447,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case DHCPDISCOVER:
 			log1("Received DISCOVER");
 
-			if (send_offer(&packet) < 0) {
+			if (send_offer(&packet, static_lease_nip, lease) < 0) {
 				bb_error_msg("send OFFER failed");
 			}
 			break;
