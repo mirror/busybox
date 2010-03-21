@@ -7,8 +7,8 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* Defaults you may want to tweak */
 /* Default max_lease_sec */
-#define LEASE_TIME      (60*60*24 * 10)
-#define LEASES_FILE     CONFIG_DHCPD_LEASES_FILE
+#define DEFAULT_LEASE_TIME      (60*60*24 * 10)
+#define LEASES_FILE             CONFIG_DHCPD_LEASES_FILE
 /* Where to find the DHCP server configuration file */
 #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"
 

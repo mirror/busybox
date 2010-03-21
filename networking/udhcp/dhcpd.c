@@ -319,7 +319,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
 	option = find_option(server_config.options, DHCP_LEASE_TIME);
-	server_config.max_lease_sec = LEASE_TIME;
+	server_config.max_lease_sec = DEFAULT_LEASE_TIME;
 	if (option) {
 		move_from_unaligned32(server_config.max_lease_sec, option->data + OPT_DATA);
 		server_config.max_lease_sec = ntohl(server_config.max_lease_sec);

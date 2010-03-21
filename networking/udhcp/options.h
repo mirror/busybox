@@ -35,7 +35,8 @@ enum {
 /* DHCP protocol. See RFC 2131 */
 #define DHCP_MAGIC		0x63825363
 
-/* DHCP option codes (partial list). See RFC 2132.
+/* DHCP option codes (partial list). See RFC 2132 and
+ * http://www.iana.org/assignments/bootp-dhcp-parameters/
  * Commented out options are handled by common option machinery,
  * uncommented ones have spacial cases (grep for them to see).
  */
