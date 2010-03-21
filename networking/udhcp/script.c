@@ -64,7 +64,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 
 	/* option points to OPT_DATA, need to go back and get OPT_LEN */
 	len = option[OPT_LEN - OPT_DATA];
-	type = type_p->flags & TYPE_MASK;
+	type = type_p->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
 	upper_length = len_of_option_as_string[type] * (len / optlen);
 

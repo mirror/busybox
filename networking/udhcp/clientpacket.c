@@ -109,24 +109,6 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
 }
 
 
-#if ENABLE_FEATURE_UDHCPC_ARPING
-/* Broadcast a DHCP decline message */
-int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
-{
-	struct dhcp_packet packet;
-
-	init_packet(&packet, DHCPDECLINE);
-	packet.xid = xid;
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-	add_simple_option(packet.options, DHCP_SERVER_ID, server);
-
-	bb_info_msg("Sending decline...");
-
-	return raw_bcast_from_client_config_ifindex(&packet);
-}
-#endif
-
-
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 {
@@ -136,11 +118,9 @@ int FAST_FUNC send_discover(uint32_t xid, uint32_t requested)
 	packet.xid = xid;
 	if (requested)
 		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
 	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
-
 	add_param_req_option(&packet);
 
 	bb_info_msg("Sending discover...");
@@ -159,7 +139,6 @@ int FAST_FUNC send_select(uint32_t xid, uint32_t server, uint32_t requested)
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
-
 	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 	add_param_req_option(&packet);
@@ -177,17 +156,46 @@ int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
+	/* RFC 2131:
+	 * "3.2 Client-server interaction - reusing a previously
+	 * allocated network address"...
+	 * The client broadcasts a DHCPREQUEST message on its local subnet.
+	 * The message includes the client's network address in the
+	 * REQUESTED_IP option. As the client has not received its
+	 * network address, it MUST NOT fill in the 'ciaddr' field."
+	 *
+	 * FIXME: we seem to not follow this, we do set ciaddr.
+	 */
 	packet.ciaddr = ciaddr;
-
+	add_simple_option(packet.options, DHCP_REQUESTED_IP, ciaddr);
+	if (server)
+		add_simple_option(packet.options, DHCP_SERVER_ID, server);
 	add_param_req_option(&packet);
+
 	bb_info_msg("Sending renew...");
 	if (server)
 		return udhcp_send_kernel_packet(&packet,
 			ciaddr, CLIENT_PORT,
 			server, SERVER_PORT);
-
 	return raw_bcast_from_client_config_ifindex(&packet);
 }
+
+
+#if ENABLE_FEATURE_UDHCPC_ARPING
+/* Broadcast a DHCP decline message */
+int FAST_FUNC send_decline(uint32_t xid, uint32_t server, uint32_t requested)
+{
+	struct dhcp_packet packet;
+
+	init_packet(&packet, DHCPDECLINE);
+	packet.xid = xid;
+	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+	add_simple_option(packet.options, DHCP_SERVER_ID, server);
+
+	bb_info_msg("Sending decline...");
+	return raw_bcast_from_client_config_ifindex(&packet);
+}
+#endif
 
 
 /* Unicast a DHCP release message */

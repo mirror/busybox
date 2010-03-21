@@ -21,11 +21,17 @@ extern const uint8_t MAC_BCAST_ADDR[6]; /* six all-ones */
 
 /*** packet.h ***/
 
-#define DHCP_OPTIONS_BUFSIZE  308
+/* DHCP protocol. See RFC 2131 */
+#define DHCP_MAGIC              0x63825363
+
+#define DHCP_OPTIONS_BUFSIZE    308
+
+#define BOOTREQUEST             1
+#define BOOTREPLY               2
 
 //TODO: rename ciaddr/yiaddr/chaddr
 struct dhcp_packet {
-	uint8_t op;      /* 1 = BOOTREQUEST, 2 = BOOTREPLY */
+	uint8_t op;      /* BOOTREQUEST or BOOTREPLY */
 	uint8_t htype;   /* hardware address type. 1 = 10mb ethernet */
 	uint8_t hlen;    /* hardware address length */
 	uint8_t hops;    /* used by relay agents only */
@@ -60,6 +66,71 @@ struct BUG_bad_sizeof_struct_ip_udp_dhcp_packet {
 	char BUG_bad_sizeof_struct_ip_udp_dhcp_packet
 		[(sizeof(struct ip_udp_dhcp_packet) != 576 + CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS) ? -1 : 1];
 };
+
+// RFC 2131  Table 5: Fields and options used by DHCP clients
+//
+// Field      DHCPDISCOVER          DHCPREQUEST           DHCPDECLINE,
+//            DHCPINFORM                                  DHCPRELEASE
+// -----      ------------          -----------           -----------
+// 'op'       BOOTREQUEST           BOOTREQUEST           BOOTREQUEST
+// 'hops'     0                     0                     0
+// 'xid'      selected by client    'xid' from server     selected by
+//                                  DHCPOFFER message     client
+// 'secs'     0 or seconds since    0 or seconds since    0
+//            DHCP process started  DHCP process started
+// 'flags'    Set 'BROADCAST'       Set 'BROADCAST'       0
+//            flag if client        flag if client
+//            requires broadcast    requires broadcast
+//            reply                 reply
+// 'ciaddr'   0 (DHCPDISCOVER)      0 or client's         0 (DHCPDECLINE)
+//            client's              network address       client's network
+//            network address       (BOUND/RENEW/REBIND)  address
+//            (DHCPINFORM)                                (DHCPRELEASE)
+// 'yiaddr'   0                     0                     0
+// 'siaddr'   0                     0                     0
+// 'giaddr'   0                     0                     0
+// 'chaddr'   client's hardware     client's hardware     client's hardware
+//            address               address               address
+// 'sname'    options, if           options, if           (unused)
+//            indicated in          indicated in
+//            'sname/file'          'sname/file'
+//            option; otherwise     option; otherwise
+//            unused                unused
+// 'file'     options, if           options, if           (unused)
+//            indicated in          indicated in
+//            'sname/file'          'sname/file'
+//            option; otherwise     option; otherwise
+//            unused                unused
+// 'options'  options               options               (unused)
+//
+// Option                     DHCPDISCOVER  DHCPREQUEST      DHCPDECLINE,
+//                            DHCPINFORM                     DHCPRELEASE
+// ------                     ------------  -----------      -----------
+// Requested IP address       MAY           MUST (in         MUST
+//                            (DISCOVER)    SELECTING or     (DHCPDECLINE),
+//                            MUST NOT      INIT-REBOOT)     MUST NOT
+//                            (INFORM)      MUST NOT (in     (DHCPRELEASE)
+//                                          BOUND or
+//                                          RENEWING)
+// IP address lease time      MAY           MAY              MUST NOT
+//                            (DISCOVER)
+//                            MUST NOT
+//                            (INFORM)
+// Use 'file'/'sname' fields  MAY           MAY              MAY
+// Client identifier          MAY           MAY              MAY
+// Vendor class identifier    MAY           MAY              MUST NOT
+// Server identifier          MUST NOT      MUST (after      MUST
+//                                          SELECTING)
+//                                          MUST NOT (after
+//                                          INIT-REBOOT,
+//                                          BOUND, RENEWING
+//                                          or REBINDING)
+// Parameter request list     MAY           MAY              MUST NOT
+// Maximum message size       MAY           MAY              MUST NOT
+// Message                    SHOULD NOT    SHOULD NOT       SHOULD
+// Site-specific              MAY           MAY              MUST NOT
+// All others                 MAY           MAY              MUST NOT
+
 
 uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
 

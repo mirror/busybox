@@ -252,7 +252,7 @@ void FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data
 			uint8_t option[6], len;
 
 			option[OPT_CODE] = code;
-			len = dhcp_option_lengths[dh->flags & TYPE_MASK];
+			len = dhcp_option_lengths[dh->flags & OPTION_TYPE_MASK];
 			option[OPT_LEN] = len;
 			if (BB_BIG_ENDIAN)
 				data <<= 8 * (4 - len);

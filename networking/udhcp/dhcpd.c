@@ -28,18 +28,8 @@
 #include "options.h"
 
 
-/* send a packet to gateway_nip using the kernel ip stack */
-static int send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
-{
-	log1("Forwarding packet to relay");
-
-	return udhcp_send_kernel_packet(dhcp_pkt,
-			server_config.server_nip, SERVER_PORT,
-			dhcp_pkt->gateway_nip, SERVER_PORT);
-}
-
-/* send a packet to a specific mac address and ip address by creating our own ip packet */
-static int send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadcast)
+/* Send a packet to a specific mac address and ip address by creating our own ip packet */
+static void send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	const uint8_t *chaddr;
 	uint32_t ciaddr;
@@ -69,25 +59,36 @@ static int send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadca
 		chaddr = dhcp_pkt->chaddr;
 	}
 
-	return udhcp_send_raw_packet(dhcp_pkt,
+	udhcp_send_raw_packet(dhcp_pkt,
 		/*src*/ server_config.server_nip, SERVER_PORT,
 		/*dst*/ ciaddr, CLIENT_PORT, chaddr,
 		server_config.ifindex);
 }
 
-/* Send the dhcp packet.
- * If force broadcast is set, the packet will be broadcast.
- */
-static int send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
+/* Send a packet to gateway_nip using the kernel ip stack */
+static void send_packet_to_relay(struct dhcp_packet *dhcp_pkt)
+{
+	log1("Forwarding packet to relay");
+
+	udhcp_send_kernel_packet(dhcp_pkt,
+			server_config.server_nip, SERVER_PORT,
+			dhcp_pkt->gateway_nip, SERVER_PORT);
+}
+
+static void send_packet(struct dhcp_packet *dhcp_pkt, int force_broadcast)
 {
 	if (dhcp_pkt->gateway_nip)
-		return send_packet_to_relay(dhcp_pkt);
-	return send_packet_to_client(dhcp_pkt, force_broadcast);
+		send_packet_to_relay(dhcp_pkt);
+	else
+		send_packet_to_client(dhcp_pkt, force_broadcast);
 }
 
 static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacket, char type)
 {
+	/* Sets op, htype, hlen, cookie fields
+	 * and adds DHCP_MESSAGE_TYPE option */
 	udhcp_init_header(packet, type);
+
 	packet->xid = oldpacket->xid;
 	memcpy(packet->chaddr, oldpacket->chaddr, sizeof(oldpacket->chaddr));
 	packet->flags = oldpacket->flags;
@@ -132,26 +133,32 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 	return lease_time_sec;
 }
 
-/* send a DHCP OFFER to a DHCP DISCOVER */
-static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, struct dyn_lease *lease)
+/* We got a DHCP DISCOVER. Send an OFFER. */
+static void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, struct dyn_lease *lease)
 {
 	struct dhcp_packet packet;
-	uint32_t lease_time_sec = server_config.max_lease_sec;
-	const char *p_host_name;
+	uint32_t lease_time_sec;
 	struct in_addr addr;
 
 	init_packet(&packet, oldpacket, DHCPOFFER);
 
-	/* ADDME: if static, short circuit */
+	/* If it is a static lease, use its IP */
+	packet.yiaddr = static_lease_nip;
+	/* Else: */
 	if (!static_lease_nip) {
+		/* We have no static lease for client's chaddr */
 		uint32_t req_nip;
 		uint8_t *req_ip_opt;
+		const char *p_host_name;
 
-		/* The client is in our lease/offered table */
 		if (lease) {
+			/* We have a dynamic lease for client's chaddr.
+			 * Reuse its IP (even if lease is expired).
+			 * Note that we ignore requested IP in this case.
+			 */
 			packet.yiaddr = lease->lease_nip;
 		}
-		/* Or the client has requested an IP */
+		/* Or: if client has requested an IP */
 		else if ((req_ip_opt = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
 		 /* (read IP) */
 		 && (move_from_unaligned32(req_nip, req_ip_opt), 1)
@@ -165,50 +172,49 @@ static int send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, 
 		) {
 			packet.yiaddr = req_nip;
 		}
-		/* Otherwise, find a free IP */
 		else {
+			/* Otherwise, find a free IP */
 			packet.yiaddr = find_free_or_expired_nip(oldpacket->chaddr);
 		}
 
 		if (!packet.yiaddr) {
-			bb_error_msg("no IP addresses to give - OFFER abandoned");
-			return -1;
+			bb_error_msg("no free IP addresses. OFFER abandoned");
+			return;
 		}
+		/* Reserve the IP for a short time hoping to get DHCPREQUEST soon */
 		p_host_name = (const char*) get_option(oldpacket, DHCP_HOST_NAME);
-		if (add_lease(packet.chaddr, packet.yiaddr,
+		lease = add_lease(packet.chaddr, packet.yiaddr,
 				server_config.offer_time,
 				p_host_name,
 				p_host_name ? (unsigned char)p_host_name[OPT_LEN - OPT_DATA] : 0
-			) == 0
-		) {
-			bb_error_msg("lease pool is full - OFFER abandoned");
-			return -1;
+		);
+		if (!lease) {
+			bb_error_msg("no free IP addresses. OFFER abandoned");
+			return;
 		}
-		lease_time_sec = select_lease_time(oldpacket);
-	} else {
-		/* It is a static lease... use it */
-		packet.yiaddr = static_lease_nip;
 	}
 
+	lease_time_sec = select_lease_time(oldpacket);
 	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
 	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
 	bb_info_msg("Sending OFFER of %s", inet_ntoa(addr));
-	return send_packet(&packet, /*force_bcast:*/ 0);
+	/* send_packet emits error message itself if it detects failure */
+	send_packet(&packet, /*force_bcast:*/ 0);
 }
 
-static int send_NAK(struct dhcp_packet *oldpacket)
+static void send_NAK(struct dhcp_packet *oldpacket)
 {
 	struct dhcp_packet packet;
 
 	init_packet(&packet, oldpacket, DHCPNAK);
 
 	log1("Sending NAK");
-	return send_packet(&packet, /*force_bcast:*/ 1);
+	send_packet(&packet, /*force_bcast:*/ 1);
 }
 
-static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
+static void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 {
 	struct dhcp_packet packet;
 	uint32_t lease_time_sec;
@@ -219,15 +225,13 @@ static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	packet.yiaddr = yiaddr;
 
 	lease_time_sec = select_lease_time(oldpacket);
-
 	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
+
 	add_server_options(&packet);
 
-	addr.s_addr = packet.yiaddr;
+	addr.s_addr = yiaddr;
 	bb_info_msg("Sending ACK to %s", inet_ntoa(addr));
-
-	if (send_packet(&packet, /*force_bcast:*/ 0) < 0)
-		return -1;
+	send_packet(&packet, /*force_bcast:*/ 0);
 
 	p_host_name = (const char*) get_option(oldpacket, DHCP_HOST_NAME);
 	add_lease(packet.chaddr, packet.yiaddr,
@@ -239,18 +243,21 @@ static int send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 		/* rewrite the file with leases at every new acceptance */
 		write_leases();
 	}
-
-	return 0;
 }
 
-static int send_inform(struct dhcp_packet *oldpacket)
+static void send_inform(struct dhcp_packet *oldpacket)
 {
 	struct dhcp_packet packet;
 
+	/* "The server responds to a DHCPINFORM message by sending a DHCPACK
+	 * message directly to the address given in the 'ciaddr' field
+	 * of the DHCPINFORM message.  The server MUST NOT send a lease
+	 * expiration time to the client and SHOULD NOT fill in 'yiaddr'."
+	 */
 	init_packet(&packet, oldpacket, DHCPACK);
 	add_server_options(&packet);
 
-	return send_packet(&packet, /*force_bcast:*/ 0);
+	send_packet(&packet, /*force_bcast:*/ 0);
 }
 
 
@@ -352,6 +359,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	while (1) { /* loop until universe collapses */
 		int bytes;
 		struct timeval tv;
+		uint8_t *server_id_opt;
+		uint8_t *requested_opt;
+		uint32_t requested_nip = requested_nip; /* for compiler */
 
 		if (server_socket < 0) {
 			server_socket = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
@@ -404,124 +414,126 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 			continue;
 		}
-
 		if (packet.hlen != 6) {
 			bb_error_msg("MAC length != 6, ignoring packet");
 			continue;
 		}
-
+		if (packet.op != BOOTREQUEST) {
+			bb_error_msg("not a REQUEST, ignoring packet");
+			continue;
+		}
 		state = get_option(&packet, DHCP_MESSAGE_TYPE);
-		if (state == NULL) {
-			bb_error_msg("no message type option, ignoring packet");
+		if (state == NULL || state[0] < DHCP_MINTYPE || state[0] > DHCP_MAXTYPE) {
+			bb_error_msg("no or bad message type option, ignoring packet");
 			continue;
 		}
 
-		/* Look for a static lease */
+		/* Look for a static/dynamic lease */
 		static_lease_nip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
 		if (static_lease_nip) {
 			bb_info_msg("Found static lease: %x", static_lease_nip);
-
 			memcpy(&fake_lease.lease_mac, &packet.chaddr, 6);
 			fake_lease.lease_nip = static_lease_nip;
 			fake_lease.expires = 0;
-
 			lease = &fake_lease;
 		} else {
 			lease = find_lease_by_mac(packet.chaddr);
 		}
 
+		/* Get REQUESTED_IP and SERVER_ID if present */
+		server_id_opt = get_option(&packet, DHCP_SERVER_ID);
+		if (server_id_opt) {
+			uint32_t server_id_net;
+			move_from_unaligned32(server_id_net, server_id_opt);
+			if (server_id_net != server_config.server_nip) {
+				/* client talks to somebody else */
+				log1("server ID doesn't match, ignoring");
+				continue;
+			}
+		}
+		requested_opt = get_option(&packet, DHCP_REQUESTED_IP);
+		if (requested_opt) {
+			move_from_unaligned32(requested_nip, requested_opt);
+		}
+
 		switch (state[0]) {
+
 		case DHCPDISCOVER:
 			log1("Received DISCOVER");
 
-			if (send_offer(&packet, static_lease_nip, lease) < 0) {
-				bb_error_msg("send OFFER failed");
-			}
+			send_offer(&packet, static_lease_nip, lease);
 			break;
-		case DHCPREQUEST: {
-			uint8_t *server_id_opt, *requested_opt;
-			uint32_t server_id_net = server_id_net; /* for compiler */
-			uint32_t requested_nip = requested_nip; /* for compiler */
 
+		case DHCPREQUEST:
 			log1("Received REQUEST");
 
-			requested_opt = get_option(&packet, DHCP_REQUESTED_IP);
-			server_id_opt = get_option(&packet, DHCP_SERVER_ID);
-			if (requested_opt)
-				move_from_unaligned32(requested_nip, requested_opt);
-			if (server_id_opt)
-				move_from_unaligned32(server_id_net, server_id_opt);
-
-			if (lease) {
-				if (server_id_opt) {
-					/* SELECTING State */
-					if (server_id_net == server_config.server_nip
-					 && requested_opt
-					 && requested_nip == lease->lease_nip
-					) {
-						send_ACK(&packet, lease->lease_nip);
-					}
-				} else if (requested_opt) {
-					/* INIT-REBOOT State */
-					if (lease->lease_nip == requested_nip)
-						send_ACK(&packet, lease->lease_nip);
-					else
-						send_NAK(&packet);
-				} else if (lease->lease_nip == packet.ciaddr) {
-					/* RENEWING or REBINDING State */
-					send_ACK(&packet, lease->lease_nip);
-				} else { /* don't know what to do!!!! */
-					send_NAK(&packet);
-				}
-
-			/* what to do if we have no record of the client */
-			} else if (server_id_opt) {
-				/* SELECTING State */
-
-			} else if (requested_opt) {
-				/* INIT-REBOOT State */
-				lease = find_lease_by_nip(requested_nip);
-				if (lease) {
-					if (is_expired_lease(lease)) {
-						/* probably best if we drop this lease */
-						memset(lease->lease_mac, 0, sizeof(lease->lease_mac));
-					} else {
-						/* make some contention for this address */
-						send_NAK(&packet);
-					}
-				} else {
-					uint32_t r = ntohl(requested_nip);
-					if (r < server_config.start_ip
-				         || r > server_config.end_ip
-					) {
-						send_NAK(&packet);
-					}
-					/* else remain silent */
-				}
-
-			} else {
-				/* RENEWING or REBINDING State */
+			/* RFC 2131: "The REQUESTED_IP option MUST be set
+			 * to the value of 'yiaddr' in the DHCPOFFER message
+			 * from the server." */
+			if (!requested_opt) {
+				log1("no requested IP, ignoring");
+				break;
+			}
+			if (lease && requested_nip == lease->lease_nip) {
+				/* client requests IP which matches the lease.
+				 * ACK it, and bump lease expiration time. */
+				send_ACK(&packet, lease->lease_nip);
+				break;
+			}
+			if (server_id_opt) {
+				/* client was talking specifically to us.
+				 * "No, we don't have this IP for you". */
+				send_NAK(&packet);
 			}
 			break;
-		}
+
 		case DHCPDECLINE:
+			/* RFC 2131:
+			 * "If the server receives a DHCPDECLINE message,
+			 * the client has discovered through some other means
+			 * that the suggested network address is already
+			 * in use. The server MUST mark the network address
+			 * as not available and SHOULD notify the local
+			 * sysadmin of a possible configuration problem."
+			 *
+			 * SERVER_ID must be present,
+			 * REQUESTED_IP must be present,
+			 * chaddr must be filled in,
+			 * ciaddr must be 0 (we do not check this)
+			 */
 			log1("Received DECLINE");
-			if (lease) {
+			if (server_id_opt
+			 && requested_opt
+			 && lease  /* chaddr matches this lease */
+			 && requested_nip == lease->lease_nip
+			) {
 				memset(lease->lease_mac, 0, sizeof(lease->lease_mac));
 				lease->expires = time(NULL) + server_config.decline_time;
 			}
 			break;
+
 		case DHCPRELEASE:
+			/* "Upon receipt of a DHCPRELEASE message, the server
+			 * marks the network address as not allocated."
+			 *
+			 * SERVER_ID must be present,
+			 * REQUESTED_IP must not be present (we do not check this),
+			 * chaddr must be filled in,
+			 * ciaddr must be filled in
+			 */
 			log1("Received RELEASE");
-			if (lease)
+			if (server_id_opt
+			 && lease  /* chaddr matches this lease */
+			 && packet.ciaddr == lease->lease_nip
+			) {
 				lease->expires = time(NULL);
+			}
 			break;
+
 		case DHCPINFORM:
 			log1("Received INFORM");
 			send_inform(&packet);
 			break;
-		default:
-			bb_info_msg("Unsupported DHCP message (%02x) - ignoring", state[0]);
 		}
 	}
  ret0:

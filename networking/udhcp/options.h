@@ -5,7 +5,6 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
-#define TYPE_MASK       0x0F
 
 enum {
 	OPTION_IP = 1,
@@ -21,19 +20,13 @@ enum {
 	OPTION_U32,
 	OPTION_S32,
 	OPTION_STATIC_ROUTES,
+
+	OPTION_TYPE_MASK = 0x0f,
+	/* Client requests this option by default */
+	OPTION_REQ  = 0x10,
+	/* There can be a list of 1 or more of these */
+	OPTION_LIST = 0x20,
 };
-
-/* Client requests this option by default */
-#define OPTION_REQ      0x10
-/* There can be a list of 1 or more of these */
-#define OPTION_LIST     0x20
-
-/*****************************************************************/
-/* Do not modify below here unless you know what you are doing!! */
-/*****************************************************************/
-
-/* DHCP protocol. See RFC 2131 */
-#define DHCP_MAGIC		0x63825363
 
 /* DHCP option codes (partial list). See RFC 2132 and
  * http://www.iana.org/assignments/bootp-dhcp-parameters/
@@ -81,7 +74,6 @@ enum {
 //#define DHCP_WPAD             0xfc /* MSIE's Web Proxy Autodiscovery Protocol */
 #define DHCP_END                0xff
 
-
 /* Offsets in option byte sequence */
 #define OPT_CODE                0
 #define OPT_LEN                 1
@@ -91,12 +83,7 @@ enum {
 #define FILE_FIELD              1
 #define SNAME_FIELD             2
 
-#define BOOTREQUEST             1
-#define BOOTREPLY               2
-
-#define ETH_10MB                1
-#define ETH_10MB_LEN            6
-
+/* DHCP_MESSAGE_TYPE values */
 #define DHCPDISCOVER            1 /* client -> server */
 #define DHCPOFFER               2 /* client <- server */
 #define DHCPREQUEST             3 /* client -> server */
@@ -105,6 +92,9 @@ enum {
 #define DHCPNAK                 6 /* client <- server */
 #define DHCPRELEASE             7 /* client -> server */
 #define DHCPINFORM              8 /* client -> server */
+#define DHCP_MINTYPE DHCPDISCOVER
+#define DHCP_MAXTYPE DHCPINFORM
+
 
 struct dhcp_option {
 	uint8_t flags;

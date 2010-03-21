@@ -21,7 +21,7 @@
 
 void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 {
-	memset(packet, 0, sizeof(struct dhcp_packet));
+	memset(packet, 0, sizeof(*packet));
 	packet->op = BOOTREQUEST; /* if client to a server */
 	switch (type) {
 	case DHCPOFFER:
@@ -29,10 +29,11 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	case DHCPNAK:
 		packet->op = BOOTREPLY; /* if server to client */
 	}
-	packet->htype = ETH_10MB;
-	packet->hlen = ETH_10MB_LEN;
+	packet->htype = 1; /* ethernet */
+	packet->hlen = 6;
 	packet->cookie = htonl(DHCP_MAGIC);
-	packet->options[0] = DHCP_END;
+	if (DHCP_END != 0)
+		packet->options[0] = DHCP_END;
 	add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
 }
 
@@ -228,6 +229,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 	msg = "sendto";
  ret_close:
 	close(fd);
+	/* FIXME: and if result >= 0 but != IP_UPD_DHCP_SIZE? */
 	if (result < 0) {
  ret_msg:
 		bb_perror_msg(msg, "PACKET");
@@ -280,6 +282,7 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 	msg = "write";
  ret_close:
 	close(fd);
+	/* FIXME: and if result >= 0 but != DHCP_SIZE? */
 	if (result < 0) {
  ret_msg:
 		bb_perror_msg(msg, "UDP");

@@ -99,7 +99,7 @@ static void attach_option(struct option_set **opt_list,
 		log2("Attaching option %02x to list", option->code);
 
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
 			buffer = (char *)dname_enc(NULL, 0, buffer, &length);
 #endif
@@ -118,7 +118,7 @@ static void attach_option(struct option_set **opt_list,
 		new->next = *curr;
 		*curr = new;
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
 			free(buffer);
 #endif
 		return;
@@ -128,7 +128,7 @@ static void attach_option(struct option_set **opt_list,
 	log1("Attaching option %02x to existing member of list", option->code);
 	if (option->flags & OPTION_LIST) {
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & TYPE_MASK) == OPTION_STR1035)
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035)
 			/* reuse buffer and length for RFC1035-formatted string */
 			buffer = (char *)dname_enc(existing->data + 2,
 					existing->data[OPT_LEN], buffer, &length);
@@ -136,7 +136,7 @@ static void attach_option(struct option_set **opt_list,
 		if (existing->data[OPT_LEN] + length <= 255) {
 			existing->data = xrealloc(existing->data,
 					existing->data[OPT_LEN] + length + 3);
-			if ((option->flags & TYPE_MASK) == OPTION_STRING) {
+			if ((option->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
 				/* ' ' can bring us to 256 - bad */
 				if (existing->data[OPT_LEN] + length >= 255)
 					return;
@@ -148,7 +148,7 @@ static void attach_option(struct option_set **opt_list,
 			existing->data[OPT_LEN] += length;
 		} /* else, ignore the data, we could put this in a second option in the future */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
 			free(buffer);
 #endif
 	} /* else, ignore the new data */
@@ -182,10 +182,10 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 	do {
 		val = strtok(NULL, ", \t");
 		if (!val) break;
-		length = dhcp_option_lengths[option->flags & TYPE_MASK];
+		length = dhcp_option_lengths[option->flags & OPTION_TYPE_MASK];
 		retval = 0;
 		opt = buffer; /* new meaning for variable opt */
-		switch (option->flags & TYPE_MASK) {
+		switch (option->flags & OPTION_TYPE_MASK) {
 		case OPTION_IP:
 			retval = read_nip(val, buffer);
 			break;

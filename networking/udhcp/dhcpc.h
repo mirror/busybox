@@ -40,7 +40,6 @@ int send_select(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 int send_decline(uint32_t xid, uint32_t server, uint32_t requested) FAST_FUNC;
 #endif
 int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
-int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr) FAST_FUNC;
 int send_release(uint32_t server, uint32_t ciaddr) FAST_FUNC;
 
 int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd) FAST_FUNC;
