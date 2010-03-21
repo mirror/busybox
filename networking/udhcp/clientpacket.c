@@ -156,20 +156,7 @@ int FAST_FUNC send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
-	/* RFC 2131:
-	 * "3.2 Client-server interaction - reusing a previously
-	 * allocated network address"...
-	 * The client broadcasts a DHCPREQUEST message on its local subnet.
-	 * The message includes the client's network address in the
-	 * REQUESTED_IP option. As the client has not received its
-	 * network address, it MUST NOT fill in the 'ciaddr' field."
-	 *
-	 * FIXME: we seem to not follow this, we do set ciaddr.
-	 */
 	packet.ciaddr = ciaddr;
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, ciaddr);
-	if (server)
-		add_simple_option(packet.options, DHCP_SERVER_ID, server);
 	add_param_req_option(&packet);
 
 	bb_info_msg("Sending renew...");

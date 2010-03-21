@@ -48,7 +48,7 @@ static void send_packet_to_client(struct dhcp_packet *dhcp_pkt, int force_broadc
 
 	if (force_broadcast
 	 || (dhcp_pkt->flags & htons(BROADCAST_FLAG))
-	 || !dhcp_pkt->ciaddr
+	 || dhcp_pkt->ciaddr == 0
 	) {
 		log1("Broadcasting packet to client");
 		ciaddr = INADDR_BROADCAST;
@@ -466,16 +466,101 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		case DHCPREQUEST:
 			log1("Received REQUEST");
+/* RFC 2131:
 
-			/* RFC 2131: "The REQUESTED_IP option MUST be set
-			 * to the value of 'yiaddr' in the DHCPOFFER message
-			 * from the server." */
+o DHCPREQUEST generated during SELECTING state:
+
+   Client inserts the address of the selected server in 'server
+   identifier', 'ciaddr' MUST be zero, 'requested IP address' MUST be
+   filled in with the yiaddr value from the chosen DHCPOFFER.
+
+   Note that the client may choose to collect several DHCPOFFER
+   messages and select the "best" offer.  The client indicates its
+   selection by identifying the offering server in the DHCPREQUEST
+   message.  If the client receives no acceptable offers, the client
+   may choose to try another DHCPDISCOVER message.  Therefore, the
+   servers may not receive a specific DHCPREQUEST from which they can
+   decide whether or not the client has accepted the offer.
+
+o DHCPREQUEST generated during INIT-REBOOT state:
+
+   'server identifier' MUST NOT be filled in, 'requested IP address'
+   option MUST be filled in with client's notion of its previously
+   assigned address. 'ciaddr' MUST be zero. The client is seeking to
+   verify a previously allocated, cached configuration. Server SHOULD
+   send a DHCPNAK message to the client if the 'requested IP address'
+   is incorrect, or is on the wrong network.
+
+   Determining whether a client in the INIT-REBOOT state is on the
+   correct network is done by examining the contents of 'giaddr', the
+   'requested IP address' option, and a database lookup. If the DHCP
+   server detects that the client is on the wrong net (i.e., the
+   result of applying the local subnet mask or remote subnet mask (if
+   'giaddr' is not zero) to 'requested IP address' option value
+   doesn't match reality), then the server SHOULD send a DHCPNAK
+   message to the client.
+
+   If the network is correct, then the DHCP server should check if
+   the client's notion of its IP address is correct. If not, then the
+   server SHOULD send a DHCPNAK message to the client. If the DHCP
+   server has no record of this client, then it MUST remain silent,
+   and MAY output a warning to the network administrator. This
+   behavior is necessary for peaceful coexistence of non-
+   communicating DHCP servers on the same wire.
+
+   If 'giaddr' is 0x0 in the DHCPREQUEST message, the client is on
+   the same subnet as the server.  The server MUST broadcast the
+   DHCPNAK message to the 0xffffffff broadcast address because the
+   client may not have a correct network address or subnet mask, and
+   the client may not be answering ARP requests.
+
+   If 'giaddr' is set in the DHCPREQUEST message, the client is on a
+   different subnet.  The server MUST set the broadcast bit in the
+   DHCPNAK, so that the relay agent will broadcast the DHCPNAK to the
+   client, because the client may not have a correct network address
+   or subnet mask, and the client may not be answering ARP requests.
+
+o DHCPREQUEST generated during RENEWING state:
+
+   'server identifier' MUST NOT be filled in, 'requested IP address'
+   option MUST NOT be filled in, 'ciaddr' MUST be filled in with
+   client's IP address. In this situation, the client is completely
+   configured, and is trying to extend its lease. This message will
+   be unicast, so no relay agents will be involved in its
+   transmission.  Because 'giaddr' is therefore not filled in, the
+   DHCP server will trust the value in 'ciaddr', and use it when
+   replying to the client.
+
+   A client MAY choose to renew or extend its lease prior to T1.  The
+   server may choose not to extend the lease (as a policy decision by
+   the network administrator), but should return a DHCPACK message
+   regardless.
+
+o DHCPREQUEST generated during REBINDING state:
+
+   'server identifier' MUST NOT be filled in, 'requested IP address'
+   option MUST NOT be filled in, 'ciaddr' MUST be filled in with
+   client's IP address. In this situation, the client is completely
+   configured, and is trying to extend its lease. This message MUST
+   be broadcast to the 0xffffffff IP broadcast address.  The DHCP
+   server SHOULD check 'ciaddr' for correctness before replying to
+   the DHCPREQUEST.
+
+   The DHCPREQUEST from a REBINDING client is intended to accommodate
+   sites that have multiple DHCP servers and a mechanism for
+   maintaining consistency among leases managed by multiple servers.
+   A DHCP server MAY extend a client's lease only if it has local
+   administrative authority to do so.
+*/
 			if (!requested_opt) {
-				log1("no requested IP, ignoring");
-				break;
+				requested_nip = packet.ciaddr;
+				if (requested_nip == 0) {
+					log1("no requested IP and no ciaddr, ignoring");
+					break;
+				}
 			}
 			if (lease && requested_nip == lease->lease_nip) {
-				/* client requests IP which matches the lease.
+				/* client requested or configured IP matches the lease.
 				 * ACK it, and bump lease expiration time. */
 				send_ACK(&packet, lease->lease_nip);
 				break;
