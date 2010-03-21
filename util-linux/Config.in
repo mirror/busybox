@@ -193,7 +193,7 @@ config FINDFS
 
 config FLOCK
 	bool "flock"
-	default y
+	default n
 	help
 	  Manage locks from shell scripts
 
