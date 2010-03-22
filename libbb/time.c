@@ -15,6 +15,9 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 
 	if (last_colon != NULL) {
 		/* Parse input and assign appropriately to ptm */
+#if ENABLE_DESKTOP
+		const char *endp;
+#endif
 
 		/* HH:MM */
 		if (sscanf(date_str, "%u:%u%c",
@@ -46,8 +49,17 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 					&end) >= 5) {
 			ptm->tm_year -= 1900; /* Adjust years */
 			ptm->tm_mon -= 1; /* Adjust month from 1-12 to 0-11 */
+		} else
+#if ENABLE_DESKTOP  /* strptime is BIG: ~1k in uclibc, ~10k in glibc */
+		/* month_name d HH:MM:SS YYYY. Supported by GNU date */
+		if ((endp = strptime(date_str, "%b %d %T %Y", ptm)) != NULL
+		 && *endp == '\0'
+		) {
+			return; /* don't fall through to end == ":" check */
+		} else
+#endif
 //TODO: coreutils 6.9 also accepts "yyyy-mm-dd HH" (no minutes)
-		} else {
+		{
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
 		if (end == ':') {
