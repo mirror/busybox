@@ -176,67 +176,48 @@ uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) 
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients
 //
-// Field      DHCPDISCOVER          DHCPREQUEST           DHCPDECLINE,
-//            DHCPINFORM                                  DHCPRELEASE
-// -----      ------------          -----------           -----------
-// 'op'       BOOTREQUEST           BOOTREQUEST           BOOTREQUEST
-// 'hops'     0                     0                     0
-// 'xid'      selected by client    'xid' from server     selected by
-//                                  DHCPOFFER message     client
-// 'secs'     0 or seconds since    0 or seconds since    0
-//            DHCP process started  DHCP process started
-// 'flags'    Set 'BROADCAST'       Set 'BROADCAST'       0
-//            flag if client        flag if client
-//            requires broadcast    requires broadcast
-//            reply                 reply
-// 'ciaddr'   0 (DHCPDISCOVER)      0 or client's         0 (DHCPDECLINE)
-//            client's              network address       client's network
-//            network address       (BOUND/RENEW/REBIND)  address
-//            (DHCPINFORM)                                (DHCPRELEASE)
-// 'yiaddr'   0                     0                     0
-// 'siaddr'   0                     0                     0
-// 'giaddr'   0                     0                     0
-// 'chaddr'   client's hardware     client's hardware     client's hardware
-//            address               address               address
-// 'sname'    options, if           options, if           (unused)
-//            indicated in          indicated in
-//            'sname/file'          'sname/file'
-//            option; otherwise     option; otherwise
-//            unused                unused
-// 'file'     options, if           options, if           (unused)
-//            indicated in          indicated in
-//            'sname/file'          'sname/file'
-//            option; otherwise     option; otherwise
-//            unused                unused
-// 'options'  options               options               (unused)
+// Fiels 'hops', 'yiaddr', 'siaddr', 'giaddr' are always zero
 //
-// Option                     DHCPDISCOVER  DHCPREQUEST      DHCPDECLINE,
-//                            DHCPINFORM                     DHCPRELEASE
-// ------                     ------------  -----------      -----------
-// Requested IP address       MAY           MUST (in         MUST
-//                            (DISCOVER)    SELECTING or     (DHCPDECLINE),
-//                            MUST NOT      INIT-REBOOT)     MUST NOT
-//                            (INFORM)      MUST NOT (in     (DHCPRELEASE)
-//                                          BOUND or
-//                                          RENEWING)
-// IP address lease time      MAY           MAY              MUST NOT
-//                            (DISCOVER)
-//                            MUST NOT
-//                            (INFORM)
-// Use 'file'/'sname' fields  MAY           MAY              MAY
-// Client identifier          MAY           MAY              MAY
-// Vendor class identifier    MAY           MAY              MUST NOT
-// Server identifier          MUST NOT      MUST (after      MUST
-//                                          SELECTING)
-//                                          MUST NOT (after
-//                                          INIT-REBOOT,
-//                                          BOUND, RENEWING
-//                                          or REBINDING)
-// Parameter request list     MAY           MAY              MUST NOT
-// Maximum message size       MAY           MAY              MUST NOT
-// Message                    SHOULD NOT    SHOULD NOT       SHOULD
-// Site-specific              MAY           MAY              MUST NOT
-// All others                 MAY           MAY              MUST NOT
+// Field      DHCPDISCOVER          DHCPINFORM            DHCPREQUEST           DHCPDECLINE         DHCPRELEASE
+// -----      ------------          ------------          -----------           -----------         -----------
+// 'xid'      selected by client    selected by client    'xid' from server     selected by client  selected by client
+//                                                        DHCPOFFER message
+// 'secs'     0 or seconds since    0 or seconds since    0 or seconds since    0                   0
+//            DHCP process started  DHCP process started  DHCP process started
+// 'flags'    Set 'BROADCAST'       Set 'BROADCAST'       Set 'BROADCAST'       0                   0
+//            flag if client        flag if client        flag if client
+//            requires broadcast    requires broadcast    requires broadcast
+//            reply                 reply                 reply
+// 'ciaddr'   0                     client's IP           0 or client's IP      0                   client's IP
+//                                                        (BOUND/RENEW/REBIND)
+// 'chaddr'   client's MAC          client's MAC          client's MAC          client's MAC        client's MAC
+// 'sname'    options or sname      options or sname      options or sname      (unused)            (unused)
+// 'file'     options or file       options or file       options or file       (unused)            (unused)
+// 'options'  options               options               options               message type opt    message type opt
+//
+// Option                     DHCPDISCOVER  DHCPINFORM  DHCPREQUEST      DHCPDECLINE  DHCPRELEASE
+// ------                     ------------  ----------  -----------      -----------  -----------
+// Requested IP address       MAY           MUST NOT    MUST (in         MUST         MUST NOT
+//                                                      SELECTING or
+//                                                      INIT-REBOOT)
+//                                                      MUST NOT (in
+//                                                      BOUND or
+//                                                      RENEWING)
+// IP address lease time      MAY           MUST NOT    MAY              MUST NOT     MUST NOT
+// Use 'file'/'sname' fields  MAY           MAY         MAY              MAY          MAY
+// Client identifier          MAY           MAY         MAY              MAY          MAY
+// Vendor class identifier    MAY           MAY         MAY              MUST NOT     MUST NOT
+// Server identifier          MUST NOT      MUST NOT    MUST (after      MUST         MUST
+//                                                      SELECTING)
+//                                                      MUST NOT (after
+//                                                      INIT-REBOOT,
+//                                                      BOUND, RENEWING
+//                                                      or REBINDING)
+// Parameter request list     MAY           MAY         MAY              MUST NOT     MUST NOT
+// Maximum message size       MAY           MAY         MAY              MUST NOT     MUST NOT
+// Message                    SHOULD NOT    SHOULD NOT  SHOULD NOT       SHOULD       SHOULD
+// Site-specific              MAY           MAY         MAY              MUST NOT     MUST NOT
+// All others                 MAY           MAY         MAY              MUST NOT     MUST NOT
 
 
 /*** Logging ***/
