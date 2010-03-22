@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "dhcpd.h"
-#include "options.h"
 
 void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 {
@@ -34,7 +33,7 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	packet->cookie = htonl(DHCP_MAGIC);
 	if (DHCP_END != 0)
 		packet->options[0] = DHCP_END;
-	add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
+	udhcp_add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
 }
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
@@ -105,7 +104,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 	udhcp_dump_packet(packet);
 
 	if (packet->op == BOOTREQUEST) {
-		vendor = get_option(packet, DHCP_VENDOR);
+		vendor = udhcp_get_option(packet, DHCP_VENDOR);
 		if (vendor) {
 #if 0
 			static const char broken_vendors[][8] = {
@@ -221,7 +220,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 
 	/* Currently we send full-sized DHCP packets (zero padded).
 	 * If you need to change this: last byte of the packet is
-	 * packet.data.options[end_option(packet.data.options)]
+	 * packet.data.options[udhcp_end_option(packet.data.options)]
 	 */
 	udhcp_dump_packet(dhcp_pkt);
 	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0,

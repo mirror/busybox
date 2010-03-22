@@ -11,7 +11,6 @@
  */
 
 #include "common.h"
-#include "options.h"
 
 #define SERVER_PORT      67
 #define SELECT_TIMEOUT    5 /* select timeout in sec. */
@@ -105,7 +104,7 @@ static int get_dhcp_packet_type(struct dhcp_packet *p)
 	if (p->op != BOOTREQUEST && p->op != BOOTREPLY)
 		return -1;
 	/* get message type option */
-	op = get_option(p, DHCP_MESSAGE_TYPE);
+	op = udhcp_get_option(p, DHCP_MESSAGE_TYPE);
 	if (op != NULL)
 		return op[0];
 	return -1;

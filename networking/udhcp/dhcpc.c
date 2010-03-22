@@ -24,7 +24,6 @@
 #include "common.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
-#include "options.h"
 
 #include <asm/types.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined(_NEWLIB_VERSION)
@@ -36,34 +35,278 @@
 #endif
 #include <linux/filter.h>
 
-
-static int sockfd = -1;
-
-#define LISTEN_NONE   0
-#define LISTEN_KERNEL 1
-#define LISTEN_RAW    2
-static smallint listen_mode;
-
-/* initial state: (re)start DHCP negotiation */
-#define INIT_SELECTING  0
-/* discover was sent, DHCPOFFER reply received */
-#define REQUESTING      1
-/* select/renew was sent, DHCPACK reply received */
-#define BOUND           2
-/* half of lease passed, want to renew it by sending unicast renew requests */
-#define RENEWING        3
-/* renew requests were not answered, lease is almost over, send broadcast renew */
-#define REBINDING       4
-/* manually requested renew (SIGUSR1) */
-#define RENEW_REQUESTED 5
-/* release, possibly manually requested (SIGUSR2) */
-#define RELEASED        6
-static smallint state;
-
 /* struct client_config_t client_config is in bb_common_bufsiz1 */
 
 
-/* Create a random xid */
+/*** Script execution code ***/
+
+/* get a rough idea of how long an option will be (rounding up...) */
+static const uint8_t len_of_option_as_string[] = {
+	[OPTION_IP] =		sizeof("255.255.255.255 "),
+	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
+	[OPTION_STATIC_ROUTES]= sizeof("255.255.255.255/32 255.255.255.255 "),
+	[OPTION_STRING] =	1,
+#if ENABLE_FEATURE_UDHCP_RFC3397
+	[OPTION_STR1035] =	1,
+#endif
+	[OPTION_BOOLEAN] =	sizeof("yes "),
+	[OPTION_U8] =		sizeof("255 "),
+	[OPTION_U16] =		sizeof("65535 "),
+	[OPTION_S16] =		sizeof("-32768 "),
+	[OPTION_U32] =		sizeof("4294967295 "),
+	[OPTION_S32] =		sizeof("-2147483684 "),
+};
+
+/* note: ip is a pointer to an IP in network order, possibly misaliged */
+static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
+{
+	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
+}
+
+/* really simple implementation, just count the bits */
+static int mton(uint32_t mask)
+{
+	int i = 0;
+	mask = ntohl(mask); /* 111110000-like bit pattern */
+	while (mask) {
+		i++;
+		mask <<= 1;
+	}
+	return i;
+}
+
+/* Create "opt_name=opt_value" string */
+static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_option *type_p, const char *opt_name)
+{
+	unsigned upper_length;
+	int len, type, optlen;
+	uint16_t val_u16;
+	int16_t val_s16;
+	uint32_t val_u32;
+	int32_t val_s32;
+	char *dest, *ret;
+
+	/* option points to OPT_DATA, need to go back and get OPT_LEN */
+	len = option[OPT_LEN - OPT_DATA];
+	type = type_p->flags & OPTION_TYPE_MASK;
+	optlen = dhcp_option_lengths[type];
+	upper_length = len_of_option_as_string[type] * (len / optlen);
+
+	dest = ret = xmalloc(upper_length + strlen(opt_name) + 2);
+	dest += sprintf(ret, "%s=", opt_name);
+
+	while (len >= optlen) {
+		switch (type) {
+		case OPTION_IP_PAIR:
+			dest += sprint_nip(dest, "", option);
+			*dest++ = '/';
+			option += 4;
+			optlen = 4;
+		case OPTION_IP:
+			dest += sprint_nip(dest, "", option);
+// TODO: it can be a list only if (type_p->flags & OPTION_LIST).
+// Should we bail out/warn if we see multi-ip option which is
+// not allowed to be such? For example, DHCP_BROADCAST...
+			break;
+		case OPTION_BOOLEAN:
+			dest += sprintf(dest, *option ? "yes" : "no");
+			break;
+		case OPTION_U8:
+			dest += sprintf(dest, "%u", *option);
+			break;
+		case OPTION_U16:
+			move_from_unaligned16(val_u16, option);
+			dest += sprintf(dest, "%u", ntohs(val_u16));
+			break;
+		case OPTION_S16:
+			move_from_unaligned16(val_s16, option);
+			dest += sprintf(dest, "%d", ntohs(val_s16));
+			break;
+		case OPTION_U32:
+			move_from_unaligned32(val_u32, option);
+			dest += sprintf(dest, "%lu", (unsigned long) ntohl(val_u32));
+			break;
+		case OPTION_S32:
+			move_from_unaligned32(val_s32, option);
+			dest += sprintf(dest, "%ld", (long) ntohl(val_s32));
+			break;
+		case OPTION_STRING:
+			memcpy(dest, option, len);
+			dest[len] = '\0';
+			return ret;	 /* Short circuit this case */
+		case OPTION_STATIC_ROUTES: {
+			/* Option binary format:
+			 * mask [one byte, 0..32]
+			 * ip [big endian, 0..4 bytes depending on mask]
+			 * router [big endian, 4 bytes]
+			 * may be repeated
+			 *
+			 * We convert it to a string "IP/MASK ROUTER IP2/MASK2 ROUTER2"
+			 */
+			const char *pfx = "";
+
+			while (len >= 1 + 4) { /* mask + 0-byte ip + router */
+				uint32_t nip;
+				uint8_t *p;
+				unsigned mask;
+				int bytes;
+
+				mask = *option++;
+				if (mask > 32)
+					break;
+				len--;
+
+				nip = 0;
+				p = (void*) &nip;
+				bytes = (mask + 7) / 8; /* 0 -> 0, 1..8 -> 1, 9..16 -> 2 etc */
+				while (--bytes >= 0) {
+					*p++ = *option++;
+					len--;
+				}
+				if (len < 4)
+					break;
+
+				/* print ip/mask */
+				dest += sprint_nip(dest, pfx, (void*) &nip);
+				pfx = " ";
+				dest += sprintf(dest, "/%u ", mask);
+				/* print router */
+				dest += sprint_nip(dest, "", option);
+				option += 4;
+				len -= 4;
+			}
+
+			return ret;
+		}
+#if ENABLE_FEATURE_UDHCP_RFC3397
+		case OPTION_STR1035:
+			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
+			dest = dname_dec(option, len, ret);
+			if (dest) {
+				free(ret);
+				return dest;
+			}
+			/* error. return "optname=" string */
+			return ret;
+#endif
+		}
+		option += optlen;
+		len -= optlen;
+		if (len <= 0)
+			break;
+		*dest++ = ' ';
+		*dest = '\0';
+	}
+	return ret;
+}
+
+/* put all the parameters into the environment */
+static char **fill_envp(struct dhcp_packet *packet)
+{
+	int num_options = 0;
+	int i;
+	char **envp, **curr;
+	const char *opt_name;
+	uint8_t *temp;
+	uint8_t over = 0;
+
+	if (packet) {
+		for (i = 0; dhcp_options[i].code; i++) {
+			if (udhcp_get_option(packet, dhcp_options[i].code)) {
+				num_options++;
+				if (dhcp_options[i].code == DHCP_SUBNET)
+					num_options++; /* for mton */
+			}
+		}
+		if (packet->siaddr_nip)
+			num_options++;
+		temp = udhcp_get_option(packet, DHCP_OPTION_OVERLOAD);
+		if (temp)
+			over = *temp;
+		if (!(over & FILE_FIELD) && packet->file[0])
+			num_options++;
+		if (!(over & SNAME_FIELD) && packet->sname[0])
+			num_options++;
+	}
+
+	curr = envp = xzalloc(sizeof(char *) * (num_options + 3));
+	*curr = xasprintf("interface=%s", client_config.interface);
+	putenv(*curr++);
+
+	if (packet == NULL)
+		return envp;
+
+	*curr = xmalloc(sizeof("ip=255.255.255.255"));
+	sprint_nip(*curr, "ip=", (uint8_t *) &packet->yiaddr);
+	putenv(*curr++);
+
+	opt_name = dhcp_option_strings;
+	i = 0;
+	while (*opt_name) {
+		temp = udhcp_get_option(packet, dhcp_options[i].code);
+		if (!temp)
+			goto next;
+		*curr = xmalloc_optname_optval(temp, &dhcp_options[i], opt_name);
+		putenv(*curr++);
+
+		/* Fill in a subnet bits option for things like /24 */
+		if (dhcp_options[i].code == DHCP_SUBNET) {
+			uint32_t subnet;
+			move_from_unaligned32(subnet, temp);
+			*curr = xasprintf("mask=%d", mton(subnet));
+			putenv(*curr++);
+		}
+ next:
+		opt_name += strlen(opt_name) + 1;
+		i++;
+	}
+	if (packet->siaddr_nip) {
+		*curr = xmalloc(sizeof("siaddr=255.255.255.255"));
+		sprint_nip(*curr, "siaddr=", (uint8_t *) &packet->siaddr_nip);
+		putenv(*curr++);
+	}
+	if (!(over & FILE_FIELD) && packet->file[0]) {
+		/* watch out for invalid packets */
+		*curr = xasprintf("boot_file=%."DHCP_PKT_FILE_LEN_STR"s", packet->file);
+		putenv(*curr++);
+	}
+	if (!(over & SNAME_FIELD) && packet->sname[0]) {
+		/* watch out for invalid packets */
+		*curr = xasprintf("sname=%."DHCP_PKT_SNAME_LEN_STR"s", packet->sname);
+		putenv(*curr++);
+	}
+	return envp;
+}
+
+/* Call a script with a par file and env vars */
+static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
+{
+	char **envp, **curr;
+	char *argv[3];
+
+	if (client_config.script == NULL)
+		return;
+
+	envp = fill_envp(packet);
+
+	/* call script */
+	log1("Executing %s %s", client_config.script, name);
+	argv[0] = (char*) client_config.script;
+	argv[1] = (char*) name;
+	argv[2] = NULL;
+	spawn_and_wait(argv);
+
+	for (curr = envp; *curr; curr++) {
+		log2(" %s", *curr);
+		bb_unsetenv(*curr);
+		free(*curr);
+	}
+	free(envp);
+}
+
+
+/*** Sending/receiving packets ***/
+
 static ALWAYS_INLINE uint32_t random_xid(void)
 {
 	return rand();
@@ -75,16 +318,16 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
-		add_option_string(packet->options, client_config.clientid);
+		udhcp_add_option_string(packet->options, client_config.clientid);
 	if (client_config.hostname)
-		add_option_string(packet->options, client_config.hostname);
+		udhcp_add_option_string(packet->options, client_config.hostname);
 	if (client_config.fqdn)
-		add_option_string(packet->options, client_config.fqdn);
+		udhcp_add_option_string(packet->options, client_config.fqdn);
 	if (type != DHCPDECLINE
 	 && type != DHCPRELEASE
 	 && client_config.vendorclass
 	) {
-		add_option_string(packet->options, client_config.vendorclass);
+		udhcp_add_option_string(packet->options, client_config.vendorclass);
 	}
 }
 
@@ -94,7 +337,7 @@ static void init_packet(struct dhcp_packet *packet, char type)
 static void add_param_req_option(struct dhcp_packet *packet)
 {
 	uint8_t c;
-	int end = end_option(packet->options);
+	int end = udhcp_end_option(packet->options);
 	int i, len = 0;
 
 	for (i = 0; (c = dhcp_options[i].code) != 0; i++) {
@@ -148,10 +391,10 @@ static int send_discover(uint32_t xid, uint32_t requested)
 	init_packet(&packet, DHCPDISCOVER);
 	packet.xid = xid;
 	if (requested)
-		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+		udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
-	add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
+	udhcp_add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
 	add_param_req_option(&packet);
 
 	bb_info_msg("Sending discover...");
@@ -169,8 +412,8 @@ static int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-	add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
 	add_param_req_option(&packet);
 
 	addr.s_addr = requested;
@@ -204,8 +447,8 @@ static int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 
 	init_packet(&packet, DHCPDECLINE);
 	packet.xid = xid;
-	add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-	add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending decline...");
 	return raw_bcast_from_client_config_ifindex(&packet);
@@ -221,7 +464,7 @@ static int send_release(uint32_t server, uint32_t ciaddr)
 	packet.xid = random_xid();
 	packet.ciaddr = ciaddr;
 
-	add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending release...");
 	return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
@@ -297,6 +540,32 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
 }
 
+
+/*** Main ***/
+
+static int sockfd = -1;
+
+#define LISTEN_NONE   0
+#define LISTEN_KERNEL 1
+#define LISTEN_RAW    2
+static smallint listen_mode;
+
+/* initial state: (re)start DHCP negotiation */
+#define INIT_SELECTING  0
+/* discover was sent, DHCPOFFER reply received */
+#define REQUESTING      1
+/* select/renew was sent, DHCPACK reply received */
+#define BOUND           2
+/* half of lease passed, want to renew it by sending unicast renew requests */
+#define RENEWING        3
+/* renew requests were not answered, lease is almost over, send broadcast renew */
+#define REBINDING       4
+/* manually requested renew (SIGUSR1) */
+#define RENEW_REQUESTED 5
+/* release, possibly manually requested (SIGUSR2) */
+#define RELEASED        6
+static smallint state;
+
 static int udhcp_raw_socket(int ifindex)
 {
 	int fd;
@@ -368,7 +637,6 @@ static int udhcp_raw_socket(int ifindex)
 	return fd;
 }
 
-/* just a little helper */
 static void change_listen_mode(int new_mode)
 {
 	log1("Entering listen mode: %s",
@@ -389,7 +657,6 @@ static void change_listen_mode(int new_mode)
 	/* else LISTEN_NONE: sockfd stays closed */
 }
 
-/* perform a renew */
 static void perform_renew(void)
 {
 	bb_info_msg("Performing a DHCP renew");
@@ -412,7 +679,6 @@ static void perform_renew(void)
 	}
 }
 
-/* perform a release */
 static void perform_release(uint32_t requested_ip, uint32_t server_addr)
 {
 	char buffer[sizeof("255.255.255.255")];
@@ -434,16 +700,6 @@ static void perform_release(uint32_t requested_ip, uint32_t server_addr)
 	state = RELEASED;
 }
 
-#if BB_MMU
-static void client_background(void)
-{
-	bb_daemonize(0);
-	logmode &= ~LOGMODE_STDIO;
-	/* rewrite pidfile, as our pid is different now */
-	write_pidfile(client_config.pidfile);
-}
-#endif
-
 static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
 {
 	uint8_t *storage;
@@ -454,6 +710,16 @@ static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
 	memcpy(storage + extra + OPT_DATA, str, len);
 	return storage;
 }
+
+#if BB_MMU
+static void client_background(void)
+{
+	bb_daemonize(0);
+	logmode &= ~LOGMODE_STDIO;
+	/* rewrite pidfile, as our pid is different now */
+	write_pidfile(client_config.pidfile);
+}
+#endif
 
 int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
@@ -541,7 +807,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
-	client_config.script = DEFAULT_SCRIPT;
+	client_config.script = CONFIG_UDHCPC_DEFAULT_SCRIPT;
 	str_V = "udhcp "BB_VER;
 
 	/* Parse command line */
@@ -861,7 +1127,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 
-		message = get_option(&packet, DHCP_MESSAGE_TYPE);
+		message = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (message == NULL) {
 			bb_error_msg("no message type option, ignoring packet");
 			continue;
@@ -872,7 +1138,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			/* Must be a DHCPOFFER to one of our xid's */
 			if (*message == DHCPOFFER) {
 		/* TODO: why we don't just fetch server's IP from IP header? */
-				temp = get_option(&packet, DHCP_SERVER_ID);
+				temp = udhcp_get_option(&packet, DHCP_SERVER_ID);
 				if (!temp) {
 					bb_error_msg("no server ID in message");
 					continue;
@@ -895,7 +1161,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		case RENEW_REQUESTED:
 		case REBINDING:
 			if (*message == DHCPACK) {
-				temp = get_option(&packet, DHCP_LEASE_TIME);
+				temp = udhcp_get_option(&packet, DHCP_LEASE_TIME);
 				if (!temp) {
 					bb_error_msg("no lease time with ACK, using 1 hour lease");
 					lease_seconds = 60 * 60;

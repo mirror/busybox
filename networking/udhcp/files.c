@@ -10,7 +10,6 @@
 
 #include "common.h"
 #include "dhcpd.h"
-#include "options.h"
 
 #if BB_LITTLE_ENDIAN
 static inline uint64_t hton64(uint64_t v)

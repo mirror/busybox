@@ -25,7 +25,6 @@
 #include "common.h"
 #include "dhcpc.h"
 #include "dhcpd.h"
-#include "options.h"
 
 
 /* Send a packet to a specific mac address and ip address by creating our own ip packet */
@@ -94,7 +93,7 @@ static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacke
 	packet->flags = oldpacket->flags;
 	packet->gateway_nip = oldpacket->gateway_nip;
 	packet->ciaddr = oldpacket->ciaddr;
-	add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server_nip);
+	udhcp_add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server_nip);
 }
 
 /* Fill options field, siaddr_nip, and sname and boot_file fields.
@@ -106,7 +105,7 @@ static void add_server_options(struct dhcp_packet *packet)
 
 	while (curr) {
 		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			add_option_string(packet->options, curr->data);
+			udhcp_add_option_string(packet->options, curr->data);
 		curr = curr->next;
 	}
 
@@ -121,7 +120,7 @@ static void add_server_options(struct dhcp_packet *packet)
 static uint32_t select_lease_time(struct dhcp_packet *packet)
 {
 	uint32_t lease_time_sec = server_config.max_lease_sec;
-	uint8_t *lease_time_opt = get_option(packet, DHCP_LEASE_TIME);
+	uint8_t *lease_time_opt = udhcp_get_option(packet, DHCP_LEASE_TIME);
 	if (lease_time_opt) {
 		move_from_unaligned32(lease_time_sec, lease_time_opt);
 		lease_time_sec = ntohl(lease_time_sec);
@@ -159,7 +158,7 @@ static void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip,
 			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or: if client has requested an IP */
-		else if ((req_ip_opt = get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
+		else if ((req_ip_opt = udhcp_get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
 		 /* (read IP) */
 		 && (move_from_unaligned32(req_nip, req_ip_opt), 1)
 		 /* and the IP is in the lease range */
@@ -182,7 +181,7 @@ static void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip,
 			return;
 		}
 		/* Reserve the IP for a short time hoping to get DHCPREQUEST soon */
-		p_host_name = (const char*) get_option(oldpacket, DHCP_HOST_NAME);
+		p_host_name = (const char*) udhcp_get_option(oldpacket, DHCP_HOST_NAME);
 		lease = add_lease(packet.chaddr, packet.yiaddr,
 				server_config.offer_time,
 				p_host_name,
@@ -195,7 +194,7 @@ static void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip,
 	}
 
 	lease_time_sec = select_lease_time(oldpacket);
-	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	udhcp_add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
 	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
@@ -225,7 +224,7 @@ static void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	packet.yiaddr = yiaddr;
 
 	lease_time_sec = select_lease_time(oldpacket);
-	add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	udhcp_add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
 
 	add_server_options(&packet);
 
@@ -233,7 +232,7 @@ static void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	bb_info_msg("Sending ACK to %s", inet_ntoa(addr));
 	send_packet(&packet, /*force_bcast:*/ 0);
 
-	p_host_name = (const char*) get_option(oldpacket, DHCP_HOST_NAME);
+	p_host_name = (const char*) udhcp_get_option(oldpacket, DHCP_HOST_NAME);
 	add_lease(packet.chaddr, packet.yiaddr,
 		lease_time_sec,
 		p_host_name,
@@ -422,7 +421,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg("not a REQUEST, ignoring packet");
 			continue;
 		}
-		state = get_option(&packet, DHCP_MESSAGE_TYPE);
+		state = udhcp_get_option(&packet, DHCP_MESSAGE_TYPE);
 		if (state == NULL || state[0] < DHCP_MINTYPE || state[0] > DHCP_MAXTYPE) {
 			bb_error_msg("no or bad message type option, ignoring packet");
 			continue;
@@ -441,7 +440,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Get REQUESTED_IP and SERVER_ID if present */
-		server_id_opt = get_option(&packet, DHCP_SERVER_ID);
+		server_id_opt = udhcp_get_option(&packet, DHCP_SERVER_ID);
 		if (server_id_opt) {
 			uint32_t server_id_net;
 			move_from_unaligned32(server_id_net, server_id_opt);
@@ -451,7 +450,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			}
 		}
-		requested_opt = get_option(&packet, DHCP_REQUESTED_IP);
+		requested_opt = udhcp_get_option(&packet, DHCP_REQUESTED_IP);
 		if (requested_opt) {
 			move_from_unaligned32(requested_nip, requested_opt);
 		}

@@ -7,8 +7,6 @@
  */
 
 #include "common.h"
-#include "dhcpd.h"
-#include "options.h"
 
 
 /* Supported options are easily added here.
@@ -111,7 +109,6 @@ const char dhcp_option_strings[] ALIGN1 =
 	"wpad" "\0"        /* DHCP_WPAD          */
 	;
 
-
 /* Lengths of the different option types */
 const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_IP] =      4,
@@ -144,9 +141,8 @@ static void log_option(const char *pfx, const uint8_t *opt)
 # define log_option(pfx, opt) ((void)0)
 #endif
 
-
 /* get an option with bounds checking (warning, result is not aligned). */
-uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
+uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 {
 	uint8_t *optionptr;
 	int len;
@@ -162,7 +158,7 @@ uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
 	rem = sizeof(packet->options);
 	while (1) {
 		if (rem <= 0) {
-			bb_error_msg("bogus packet, malformed option field");
+			bb_error_msg("bad packet, malformed option field");
 			return NULL;
 		}
 		if (optionptr[OPT_CODE] == DHCP_PADDING) {
@@ -209,9 +205,8 @@ uint8_t* FAST_FUNC get_option(struct dhcp_packet *packet, int code)
 	return NULL;
 }
 
-
 /* return the position of the 'end' option (no bounds checking) */
-int FAST_FUNC end_option(uint8_t *optionptr)
+int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 {
 	int i = 0;
 
@@ -223,12 +218,11 @@ int FAST_FUNC end_option(uint8_t *optionptr)
 	return i;
 }
 
-
 /* add an option string to the options */
 /* option bytes: [code][len][data1][data2]..[dataLEN] */
-void FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
+void FAST_FUNC udhcp_add_option_string(uint8_t *optionptr, uint8_t *string)
 {
-	int end = end_option(optionptr);
+	int end = udhcp_end_option(optionptr);
 
 	/* end position + string length + option code/length + end option */
 	if (end + string[OPT_LEN] + 2 + 1 >= DHCP_OPTIONS_BUFSIZE) {
@@ -241,9 +235,8 @@ void FAST_FUNC add_option_string(uint8_t *optionptr, uint8_t *string)
 	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
 }
 
-
 /* add a one to four byte option to a packet */
-void FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
+void FAST_FUNC udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 {
 	const struct dhcp_option *dh;
 
@@ -258,7 +251,7 @@ void FAST_FUNC add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data
 				data <<= 8 * (4 - len);
 			/* Assignment is unaligned! */
 			move_to_unaligned32(&option[OPT_DATA], data);
-			add_option_string(optionptr, option);
+			udhcp_add_option_string(optionptr, option);
 			return;
 		}
 	}

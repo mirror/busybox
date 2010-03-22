@@ -10,7 +10,6 @@
 #if ENABLE_FEATURE_UDHCP_RFC3397
 
 #include "common.h"
-#include "options.h"
 
 #define NS_MAXDNAME  1025	/* max domain name length */
 #define NS_MAXCDNAME  255	/* max compressed domain name length */
