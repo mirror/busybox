@@ -136,7 +136,6 @@ uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
 
 void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
 
-/*int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd); - in dhcpc.h */
 int udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd) FAST_FUNC;
 
 int udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
