@@ -64,14 +64,8 @@ static smallint state;
 
 
 /* Create a random xid */
-static uint32_t random_xid(void)
+static ALWAYS_INLINE uint32_t random_xid(void)
 {
-	static smallint initialized;
-
-	if (!initialized) {
-		srand(monotonic_us());
-		initialized = 1;
-	}
 	return rand();
 }
 
@@ -643,15 +637,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	bb_sanitize_stdio();
 	/* Equivalent of doing a fflush after every \n */
 	setlinebuf(stdout);
-
 	/* Create pidfile */
 	write_pidfile(client_config.pidfile);
-
 	/* Goes to stdout (unless NOMMU) and possibly syslog */
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
-
 	/* Set up the signal pipe */
 	udhcp_sp_setup();
+	/* We want random_xid to be random... */
+	srand(monotonic_us());
 
 	state = INIT_SELECTING;
 	udhcp_run_script(NULL, "deconfig");
@@ -681,7 +674,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		tv.tv_sec = timeout - already_waited_sec;
 		tv.tv_usec = 0;
-		retval = 0; /* If we already timed out, fall through, else... */
+		retval = 0;
+		/* If we already timed out, fall through with retval = 0, else... */
 		if ((int)tv.tv_sec > 0) {
 			timestamp_before_wait = (unsigned)monotonic_sec();
 			log1("Waiting on select...");
