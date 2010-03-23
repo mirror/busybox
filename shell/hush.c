@@ -125,14 +125,18 @@
 # define USE_FOR_MMU(...)
 #endif
 
-#if defined SINGLE_APPLET_MAIN
+#define SKIP_definitions 1
+#include "applet_tables.h"
+#undef SKIP_definitions
+#if NUM_APPLETS == 1
 /* STANDALONE does not make sense, and won't compile */
 # undef CONFIG_FEATURE_SH_STANDALONE
 # undef ENABLE_FEATURE_SH_STANDALONE
 # undef IF_FEATURE_SH_STANDALONE
+# undef IF_NOT_FEATURE_SH_STANDALONE
+# define ENABLE_FEATURE_SH_STANDALONE 0
 # define IF_FEATURE_SH_STANDALONE(...)
 # define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
-# define ENABLE_FEATURE_SH_STANDALONE 0
 #endif
 
 #if !ENABLE_HUSH_INTERACTIVE

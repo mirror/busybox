@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 	}
 	printf("\n");
 
+	printf("#ifndef SKIP_definitions\n");
 	printf("const char applet_names[] ALIGN1 = \"\"\n");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
@@ -120,9 +121,10 @@ int main(int argc, char **argv)
 		printf("0x%02x,\n", v);
 		i++;
 	}
-	printf("};\n\n");
+	printf("};\n");
 #endif
-
+	printf("#endif /* SKIP_definitions */\n");
+	printf("\n");
 	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
 
 	return 0;
