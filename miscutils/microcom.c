@@ -64,7 +64,7 @@ int microcom_main(int argc UNUSED_PARAM, char **argv)
 	if (sfd < 0) {
 		// device already locked -> bail out
 		if (errno == EEXIST)
-			bb_perror_msg_and_die("can't create %s", device_lock_file);
+			bb_perror_msg_and_die("can't create '%s'", device_lock_file);
 		// can't create lock -> don't care
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(device_lock_file);

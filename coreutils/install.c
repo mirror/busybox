@@ -50,7 +50,7 @@ static void setdefaultfilecon(const char *path)
 
 	if (lsetfilecon(path, scontext) < 0) {
 		if (errno != ENOTSUP) {
-			bb_perror_msg("warning: failed to change context"
+			bb_perror_msg("warning: can't change context"
 					" of %s to %s", path, scontext);
 		}
 	}

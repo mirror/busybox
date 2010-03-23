@@ -90,13 +90,13 @@ static int FAST_FUNC change_filedir_context(
 		if ((option_mask32 & OPT_VERBOSE) || ((option_mask32 & OPT_CHANHES) && !fail)) {
 			printf(!fail
 			       ? "context of %s changed to %s\n"
-			       : "failed to change context of %s to %s\n",
+			       : "can't change context of %s to %s\n",
 			       fname, context_string);
 		}
 		if (!fail) {
 			rc = TRUE;
 		} else if ((option_mask32 & OPT_QUIET) == 0) {
-			bb_error_msg("failed to change context of %s to %s",
+			bb_error_msg("can't change context of %s to %s",
 				     fname, context_string);
 		}
 	} else if (option_mask32 & OPT_VERBOSE) {

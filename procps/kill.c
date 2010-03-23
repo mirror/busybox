@@ -195,7 +195,7 @@ int kill_main(int argc, char **argv)
 						continue;
 					errors++;
 					if (!quiet)
-						bb_perror_msg("can't kill pid %u", (unsigned)*pl);
+						bb_perror_msg("can't kill pid %d", (int)*pl);
 				}
 			}
 			free(pidList);

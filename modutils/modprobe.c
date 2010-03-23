@@ -298,7 +298,7 @@ static int do_modprobe(struct module_entry *m)
 				rc = bb_delete_module(m2->modname, O_EXCL);
 				if (rc) {
 					if (first) {
-						bb_error_msg("failed to unload module %s: %s",
+						bb_error_msg("can't unload module %s: %s",
 							humanly_readable_name(m2),
 							moderror(rc));
 						break;
@@ -328,7 +328,7 @@ static int do_modprobe(struct module_entry *m)
 			rc = 0;
 		free(options);
 		if (rc) {
-			bb_error_msg("failed to load module %s (%s): %s",
+			bb_error_msg("can't load module %s (%s): %s",
 				humanly_readable_name(m2),
 				fn,
 				moderror(rc)

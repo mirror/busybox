@@ -389,13 +389,13 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		switch (udhcp_sp_read(&rfds)) {
 		case SIGUSR1:
-			bb_info_msg("Received a SIGUSR1");
+			bb_info_msg("Received SIGUSR1");
 			write_leases();
 			/* why not just reset the timeout, eh */
 			timeout_end = monotonic_sec() + server_config.auto_time;
 			continue;
 		case SIGTERM:
-			bb_info_msg("Received a SIGTERM");
+			bb_info_msg("Received SIGTERM");
 			goto ret0;
 		case 0:	/* no signal: read a packet */
 			break;

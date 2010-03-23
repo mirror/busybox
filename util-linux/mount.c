@@ -1921,7 +1921,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	}
 	fstab = setmntent(fstabname, "r");
 	if (!fstab)
-		bb_perror_msg_and_die("can't read %s", fstabname);
+		bb_perror_msg_and_die("can't read '%s'", fstabname);
 
 	// Loop through entries until we find what we're looking for
 	memset(mtpair, 0, sizeof(mtpair));

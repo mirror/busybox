@@ -63,7 +63,7 @@ int makedevs_main(int argc, char **argv)
 		/* if mode != S_IFCHR and != S_IFBLK,
 		 * third param in mknod() ignored */
 		if (mknod(nodname, mode, makedev(Smajor, Sminor)))
-			bb_perror_msg("can't create %s", nodname);
+			bb_perror_msg("can't create '%s'", nodname);
 
 		/*if (nodname == basedev)*/ /* ex. /dev/hda - to /dev/hda1 ... */
 			nodname = buf;

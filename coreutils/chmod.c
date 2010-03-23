@@ -50,7 +50,7 @@ static int FAST_FUNC fileAction(const char *fileName, struct stat *statbuf, void
 	newmode = statbuf->st_mode;
 
 	if (!bb_parse_mode((char *)param, &newmode))
-		bb_error_msg_and_die("invalid mode: %s", (char *)param);
+		bb_error_msg_and_die("invalid mode '%s'", (char *)param);
 
 	if (chmod(fileName, newmode) == 0) {
 		if (OPT_VERBOSE

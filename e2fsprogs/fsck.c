@@ -307,7 +307,7 @@ static void load_fs_info(const char *filename)
 
 	fstab = setmntent(filename, "r");
 	if (!fstab) {
-		bb_perror_msg("can't read %s", filename);
+		bb_perror_msg("can't read '%s'", filename);
 		return;
 	}
 

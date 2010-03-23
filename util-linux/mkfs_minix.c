@@ -687,7 +687,7 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(xopen(G.device_name, O_RDWR), dev_fd);
 	if (fstat(dev_fd, &statbuf) < 0)
-		bb_error_msg_and_die("can't stat %s", G.device_name);
+		bb_error_msg_and_die("can't stat '%s'", G.device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		opt &= ~1; // clear -c (check)
 

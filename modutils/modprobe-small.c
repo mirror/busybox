@@ -402,7 +402,7 @@ static void write_out_dep_bb(int fd)
 
 	if (rename(DEPFILE_BB".new", DEPFILE_BB) != 0) {
  err:
-		bb_perror_msg("can't create %s", DEPFILE_BB);
+		bb_perror_msg("can't create '%s'", DEPFILE_BB);
 		unlink(DEPFILE_BB".new");
 	} else {
  ok:

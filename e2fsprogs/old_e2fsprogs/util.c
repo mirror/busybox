@@ -35,7 +35,7 @@ void check_plausibility(const char *device, int force)
 	if (force)
 		return;
 	if (val == -1)
-		bb_perror_msg_and_die("can't stat %s", device);
+		bb_perror_msg_and_die("can't stat '%s'", device);
 	if (!S_ISBLK(s.st_mode)) {
 		printf("%s is not a block special device.\n", device);
 		proceed_question();

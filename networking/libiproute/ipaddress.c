@@ -194,7 +194,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 static int flush_update(void)
 {
 	if (rtnl_send(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
-		bb_perror_msg("failed to send flush request");
+		bb_perror_msg("can't send flush request");
 		return -1;
 	}
 	G_filter.flushp = 0;

@@ -51,7 +51,7 @@ typedef struct filter_t filter_t;
 static int flush_update(void)
 {
 	if (rtnl_send(G_filter.rth, G_filter.flushb, G_filter.flushp) < 0) {
-		bb_perror_msg("failed to send flush request");
+		bb_perror_msg("can't send flush request");
 		return -1;
 	}
 	G_filter.flushp = 0;
@@ -846,7 +846,7 @@ static int iproute_get(char **argv)
 			tb[RTA_PREFSRC]->rta_type = RTA_SRC;
 			r->rtm_src_len = 8*RTA_PAYLOAD(tb[RTA_PREFSRC]);
 		} else if (!tb[RTA_SRC]) {
-			bb_error_msg_and_die("failed to connect the route");
+			bb_error_msg_and_die("can't connect the route");
 		}
 		if (!odev && tb[RTA_OIF]) {
 			tb[RTA_OIF]->rta_type = 0;

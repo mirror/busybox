@@ -486,7 +486,7 @@ static smallint detect_link(void)
 	if (status == IFSTATUS_ERR
 	 && G.detect_link_func == detect_link_auto
 	) {
-		bb_error_msg("failed to detect link status");
+		bb_error_msg("can't detect link status");
 	}
 
 	if (status != G.iface_last_status) {
