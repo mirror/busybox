@@ -9,7 +9,6 @@ struct client_config_t {
 	char no_default_options;        /* Do not include default options in request */
 	IF_FEATURE_UDHCP_PORT(uint16_t port;)
 	int ifindex;                    /* Index number of the interface to use */
-	int verbose;
 	uint8_t opt_mask[256 / 8];      /* Bitmask of options to send (-O option) */
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */

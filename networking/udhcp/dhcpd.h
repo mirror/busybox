@@ -39,7 +39,6 @@ struct server_config_t {
 #endif
 	uint8_t server_mac[6];          /* our MAC address (used only for ARP probing) */
 	struct option_set *options;     /* list of DHCP options loaded from the config file */
-	int verbose;
 	/* start,end are in host order: we need to compare start <= ip <= end */
 	uint32_t start_ip;              /* start address of leases, in host order */
 	uint32_t end_ip;                /* end of leases, in host order */
