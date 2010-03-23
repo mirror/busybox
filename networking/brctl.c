@@ -32,7 +32,7 @@
 
 /* Maximum number of ports supported per bridge interface.  */
 #ifndef MAX_PORTS
-#define MAX_PORTS 32
+# define MAX_PORTS 32
 #endif
 
 /* Use internal number parsing and not the "exact" conversion.  */
@@ -40,26 +40,26 @@
 #define BRCTL_USE_INTERNAL 1
 
 #if ENABLE_FEATURE_BRCTL_FANCY
-#include <linux/if_bridge.h>
+# include <linux/if_bridge.h>
 
 /* FIXME: These 4 funcs are not really clean and could be improved */
 static ALWAYS_INLINE void strtotimeval(struct timeval *tv,
 		const char *time_str)
 {
 	double secs;
-#if BRCTL_USE_INTERNAL
+# if BRCTL_USE_INTERNAL
 	char *endptr;
 	secs = /*bb_*/strtod(time_str, &endptr);
 	if (endptr == time_str)
-#else
+# else
 	if (sscanf(time_str, "%lf", &secs) != 1)
-#endif
-		bb_error_msg_and_die (bb_msg_invalid_arg, time_str, "timespec");
+# endif
+		bb_error_msg_and_die(bb_msg_invalid_arg, time_str, "timespec");
 	tv->tv_sec = secs;
 	tv->tv_usec = 1000000 * (secs - tv->tv_sec);
 }
 
-static ALWAYS_INLINE unsigned long __tv_to_jiffies(const struct timeval *tv)
+static ALWAYS_INLINE unsigned long tv_to_jiffies(const struct timeval *tv)
 {
 	unsigned long long jif;
 
@@ -68,7 +68,7 @@ static ALWAYS_INLINE unsigned long __tv_to_jiffies(const struct timeval *tv)
 	return jif/10000;
 }
 # if 0
-static void __jiffies_to_tv(struct timeval *tv, unsigned long jiffies)
+static void jiffies_to_tv(struct timeval *tv, unsigned long jiffies)
 {
 	unsigned long long tvusec;
 
@@ -81,7 +81,7 @@ static unsigned long str_to_jiffies(const char *time_str)
 {
 	struct timeval tv;
 	strtotimeval(&tv, time_str);
-	return __tv_to_jiffies(&tv);
+	return tv_to_jiffies(&tv);
 }
 
 static void arm_ioctl(unsigned long *args,
@@ -220,9 +220,14 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		}
 #if ENABLE_FEATURE_BRCTL_FANCY
 		if (key == ARG_stp) { /* stp */
-			/* FIXME: parsing yes/y/on/1 versus no/n/off/0 is too involved */
-			arm_ioctl(args, BRCTL_SET_BRIDGE_STP_STATE,
-					  (unsigned)(**argv - '0'), 0);
+			static const char stp_opts[] ALIGN1 =
+				"0\0" "off\0" "n\0" "no\0"   /* 0 .. 3 */
+				"1\0" "on\0"  "y\0" "yes\0"; /* 4 .. 7 */
+			int onoff = index_in_strings(stp_opts, *argv);
+			if (onoff < 0)
+				bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+			onoff = (unsigned)onoff / 4;
+			arm_ioctl(args, BRCTL_SET_BRIDGE_STP_STATE, onoff, 0);
 			goto fire;
 		}
 		if ((unsigned)(key - ARG_setageing) < 4) { /* time related ops */

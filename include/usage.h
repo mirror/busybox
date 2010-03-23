@@ -187,7 +187,7 @@
      "\n	setpathcost BRIDGE COST		Set path cost" \
      "\n	setportprio BRIDGE PRIO		Set port priority" \
      "\n	setbridgeprio BRIDGE PRIO	Set bridge priority" \
-     "\n	stp BRIDGE [1|0]		STP on/off" \
+     "\n	stp BRIDGE [1/yes/on|0/no/off]	STP on/off" \
 	) \
 
 #define bunzip2_trivial_usage \
