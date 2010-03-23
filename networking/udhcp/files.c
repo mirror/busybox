@@ -21,7 +21,6 @@ static inline uint64_t hton64(uint64_t v)
 #endif
 #define ntoh64(v) hton64(v)
 
-
 /* on these functions, make sure your datatype matches */
 static int FAST_FUNC read_nip(const char *line, void *arg)
 {
@@ -35,12 +34,10 @@ static int FAST_FUNC read_nip(const char *line, void *arg)
 	return 1;
 }
 
-
 static int FAST_FUNC read_mac(const char *line, void *arg)
 {
 	return NULL == ether_aton_r(line, (struct ether_addr *)arg);
 }
-
 
 static int FAST_FUNC read_str(const char *line, void *arg)
 {
@@ -51,29 +48,26 @@ static int FAST_FUNC read_str(const char *line, void *arg)
 	return 1;
 }
 
-
 static int FAST_FUNC read_u32(const char *line, void *arg)
 {
 	*(uint32_t*)arg = bb_strtou32(line, NULL, 10);
 	return errno == 0;
 }
 
-
-static int FAST_FUNC read_yn(const char *line, void *arg)
+static int read_yn(const char *line, void *arg)
 {
 	char *dest = arg;
 
-	if (!strcasecmp("yes", line)) {
+	if (strcasecmp("yes", line) == 0) {
 		*dest = 1;
 		return 1;
 	}
-	if (!strcasecmp("no", line)) {
+	if (strcasecmp("no", line) == 0) {
 		*dest = 0;
 		return 1;
 	}
 	return 0;
 }
-
 
 /* find option 'code' in opt_list */
 struct option_set* FAST_FUNC find_option(struct option_set *opt_list, uint8_t code)
@@ -86,29 +80,33 @@ struct option_set* FAST_FUNC find_option(struct option_set *opt_list, uint8_t co
 	return NULL;
 }
 
-
 /* add an option to the opt_list */
-static void attach_option(struct option_set **opt_list,
-		const struct dhcp_option *option, char *buffer, int length)
+static NOINLINE void attach_option(
+		struct option_set **opt_list,
+		const struct dhcp_option *option,
+		char *buffer,
+		int length)
 {
 	struct option_set *existing, *new, **curr;
+#if ENABLE_FEATURE_UDHCP_RFC3397
+	char *allocated = NULL;
+#endif
 
 	existing = find_option(*opt_list, option->code);
 	if (!existing) {
 		log2("Attaching option %02x to list", option->code);
-
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035)
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035) {
 			/* reuse buffer and length for RFC1035-formatted string */
-			buffer = (char *)dname_enc(NULL, 0, buffer, &length);
+			allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
+		}
 #endif
-
 		/* make a new option */
 		new = xmalloc(sizeof(*new));
-		new->data = xmalloc(length + 2);
+		new->data = xmalloc(length + OPT_DATA);
 		new->data[OPT_CODE] = option->code;
 		new->data[OPT_LEN] = length;
-		memcpy(new->data + 2, buffer, length);
+		memcpy(new->data + OPT_DATA, buffer, length);
 
 		curr = opt_list;
 		while (*curr && (*curr)->data[OPT_CODE] < option->code)
@@ -116,43 +114,40 @@ static void attach_option(struct option_set **opt_list,
 
 		new->next = *curr;
 		*curr = new;
-#if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
-			free(buffer);
-#endif
-		return;
+		goto ret;
 	}
 
-	/* add it to an existing option */
-	log1("Attaching option %02x to existing member of list", option->code);
 	if (option->flags & OPTION_LIST) {
-#if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035)
-			/* reuse buffer and length for RFC1035-formatted string */
-			buffer = (char *)dname_enc(existing->data + 2,
-					existing->data[OPT_LEN], buffer, &length);
-#endif
-		if (existing->data[OPT_LEN] + length <= 255) {
-			existing->data = xrealloc(existing->data,
-					existing->data[OPT_LEN] + length + 3);
-			if ((option->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
-				/* ' ' can bring us to 256 - bad */
-				if (existing->data[OPT_LEN] + length >= 255)
-					return;
-				/* add space separator between STRING options in a list */
-				existing->data[existing->data[OPT_LEN] + 2] = ' ';
-				existing->data[OPT_LEN]++;
-			}
-			memcpy(existing->data + existing->data[OPT_LEN] + 2, buffer, length);
-			existing->data[OPT_LEN] += length;
-		} /* else, ignore the data, we could put this in a second option in the future */
-#if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035 && buffer != NULL)
-			free(buffer);
-#endif
-	} /* else, ignore the new data */
-}
+		unsigned old_len;
 
+		/* add it to an existing option */
+		log1("Attaching option %02x to existing member of list", option->code);
+		old_len = existing->data[OPT_LEN];
+#if ENABLE_FEATURE_UDHCP_RFC3397
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035) {
+			/* reuse buffer and length for RFC1035-formatted string */
+			allocated = buffer = (char *)dname_enc(existing->data + OPT_DATA, old_len, buffer, &length);
+		}
+#endif
+		if (old_len + length < 255) {
+			/* actually 255 is ok too, but adding a space can overlow it */
+
+			existing->data = xrealloc(existing->data, OPT_DATA + 1 + old_len + length);
+			if ((option->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
+				/* add space separator between STRING options in a list */
+				existing->data[OPT_DATA + old_len] = ' ';
+				old_len++;
+			}
+			memcpy(existing->data + OPT_DATA + old_len, buffer, length);
+			existing->data[OPT_LEN] = old_len + length;
+		} /* else, ignore the data, we could put this in a second option in the future */
+	} /* else, ignore the new data */
+
+ ret: ;
+#if ENABLE_FEATURE_UDHCP_RFC3397
+	free(allocated);
+#endif
+}
 
 /* read a dhcp option and add it to opt_list */
 static int FAST_FUNC read_opt(const char *const_line, void *arg)
@@ -166,7 +161,7 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 	uint16_t *result_u16 = (uint16_t *) buffer;
 	uint32_t *result_u32 = (uint32_t *) buffer;
 
-	/* Cheat, the only const line we'll actually get is "" */
+	/* Cheat, the only *const* line possible is "" */
 	line = (char *) const_line;
 	opt = strtok(line, " \t=");
 	if (!opt)
@@ -180,7 +175,8 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 	retval = 0;
 	do {
 		val = strtok(NULL, ", \t");
-		if (!val) break;
+		if (!val)
+			break;
 		length = dhcp_option_lengths[option->flags & OPTION_TYPE_MASK];
 		retval = 0;
 		opt = buffer; /* new meaning for variable opt */
@@ -337,7 +333,6 @@ void FAST_FUNC read_config(const char *file)
 	server_config.end_ip = ntohl(server_config.end_ip);
 }
 
-
 void FAST_FUNC write_leases(void)
 {
 	int fd;
@@ -384,7 +379,6 @@ void FAST_FUNC write_leases(void)
 		free(cmd);
 	}
 }
-
 
 void FAST_FUNC read_leases(const char *file)
 {
