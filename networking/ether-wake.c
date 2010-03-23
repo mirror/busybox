@@ -111,10 +111,9 @@ static void get_dest_addr(const char *hostid, struct ether_addr *eaddr)
 {
 	struct ether_addr *eap;
 
-	eap = ether_aton(hostid);
+	eap = ether_aton_r(hostid, eaddr);
 	if (eap) {
-		*eaddr = *eap;
-		bb_debug_msg("The target station address is %s\n\n", ether_ntoa(eaddr));
+		bb_debug_msg("The target station address is %s\n\n", ether_ntoa(eap));
 #if !defined(__UCLIBC_MAJOR__) \
  || __UCLIBC_MAJOR__ > 0 \
  || __UCLIBC_MINOR__ > 9 \
@@ -122,8 +121,9 @@ static void get_dest_addr(const char *hostid, struct ether_addr *eaddr)
 	} else if (ether_hostton(hostid, eaddr) == 0) {
 		bb_debug_msg("Station address for hostname %s is %s\n\n", hostid, ether_ntoa(eaddr));
 #endif
-	} else
+	} else {
 		bb_show_usage();
+	}
 }
 
 static int get_fill(unsigned char *pkt, struct ether_addr *eaddr, int broadcast)

@@ -176,7 +176,7 @@ uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) 
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients
 //
-// Fiels 'hops', 'yiaddr', 'siaddr', 'giaddr' are always zero
+// Fields 'hops', 'yiaddr', 'siaddr', 'giaddr' are always zero
 //
 // Field      DHCPDISCOVER          DHCPINFORM            DHCPREQUEST           DHCPDECLINE         DHCPRELEASE
 // -----      ------------          ------------          -----------           -----------         -----------

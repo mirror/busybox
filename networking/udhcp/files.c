@@ -34,11 +34,6 @@ static int FAST_FUNC read_nip(const char *line, void *arg)
 	return 1;
 }
 
-static int FAST_FUNC read_mac(const char *line, void *arg)
-{
-	return NULL == ether_aton_r(line, (struct ether_addr *)arg);
-}
-
 static int FAST_FUNC read_str(const char *line, void *arg)
 {
 	char **dest = arg;
@@ -242,6 +237,7 @@ static int FAST_FUNC read_opt(const char *const_line, void *arg)
 		if (retval)
 			attach_option(opt_list, option, opt, length);
 	} while (retval && option->flags & OPTION_LIST);
+
 	return retval;
 }
 
@@ -250,19 +246,21 @@ static int FAST_FUNC read_staticlease(const char *const_line, void *arg)
 	char *line;
 	char *mac_string;
 	char *ip_string;
-	struct ether_addr mac_bytes;
-	uint32_t ip;
+	struct ether_addr mac_bytes; /* it's "struct { uint8_t mac[6]; }" */
+	uint32_t nip;
 
 	/* Read mac */
 	line = (char *) const_line;
 	mac_string = strtok_r(line, " \t", &line);
-	read_mac(mac_string, &mac_bytes);
+	if (!mac_string || !ether_aton_r(mac_string, &mac_bytes))
+		return 0;
 
 	/* Read ip */
 	ip_string = strtok_r(NULL, " \t", &line);
-	read_nip(ip_string, &ip);
+	if (!ip_string || !read_nip(ip_string, &nip))
+		return 0;
 
-	add_static_lease(arg, (uint8_t*) &mac_bytes, ip);
+	add_static_lease(arg, (uint8_t*) &mac_bytes, nip);
 
 	log_static_leases(arg);
 
@@ -316,7 +314,7 @@ void FAST_FUNC read_config(const char *file)
 	parser = config_open(file);
 	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
 		for (k = keywords, i = 0; i < ARRAY_SIZE(keywords); k++, i++) {
-			if (!strcasecmp(token[0], k->keyword)) {
+			if (strcasecmp(token[0], k->keyword) == 0) {
 				if (!k->handler(token[1], k->var)) {
 					bb_error_msg("can't parse line %u in %s",
 							parser->lineno, file);

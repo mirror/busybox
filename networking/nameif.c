@@ -90,7 +90,7 @@ static void nameif_parse_selector(ethtable_t *ch, char *selector)
 		} else {
 #endif
 			lmac = xmalloc(ETH_ALEN);
-			ch->mac = ether_aton_r(selector + (strncmp(selector, "mac=", 4) ? 0 : 4), lmac);
+			ch->mac = ether_aton_r(selector + (strncmp(selector, "mac=", 4) != 0 ? 0 : 4), lmac);
 			if (ch->mac == NULL)
 				bb_error_msg_and_die("can't parse %s", selector);
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED

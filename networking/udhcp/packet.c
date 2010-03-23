@@ -113,8 +113,8 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 			};
 			int i;
 			for (i = 0; broken_vendors[i][0]; i++) {
-				if (vendor[OPT_LEN - 2] == (uint8_t)strlen(broken_vendors[i])
-				 && !strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - 2])
+				if (vendor[OPT_LEN - OPT_DATA] == (uint8_t)strlen(broken_vendors[i])
+				 && strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - OPT_DATA]) == 0
 				) {
 					log1("Broken client (%s), forcing broadcast replies",
 						broken_vendors[i]);
@@ -122,7 +122,7 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 				}
 			}
 #else
-			if (vendor[OPT_LEN - 2] == (uint8_t)(sizeof("MSFT 98")-1)
+			if (vendor[OPT_LEN - OPT_DATA] == (uint8_t)(sizeof("MSFT 98")-1)
 			 && memcmp(vendor, "MSFT 98", sizeof("MSFT 98")-1) == 0
 			) {
 				log1("Broken client (%s), forcing broadcast replies", "MSFT 98");
