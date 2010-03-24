@@ -44,14 +44,14 @@ char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
 		while (crtpos < clen) {
 			c = cstr + crtpos;
 
-			if (*c & NS_CMPRSFLGS) {
+			if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {
 				/* pointer */
 				if (crtpos + 2 > clen) /* no offset to jump to? abort */
 					return NULL;
 				if (retpos == 0) /* toplevel? save return spot */
 					retpos = crtpos + 2;
 				depth++;
-				crtpos = ((c[0] & 0x3f) << 8) | (c[1] & 0xff); /* jump */
+				crtpos = ((c[0] & 0x3f) << 8) | c[1]; /* jump */
 			} else if (*c) {
 				/* label */
 				if (crtpos + *c + 1 > clen) /* label too long? abort */
@@ -154,7 +154,7 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 	while (off < clen) {
 		c = cstr + off;
 
-		if ((*c & NS_CMPRSFLGS) != 0) {	/* pointer, skip */
+		if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {	/* pointer, skip */
 			off += 2;
 		} else if (*c) {	/* label, try matching dname */
 			inc = *c + 1;
@@ -164,8 +164,8 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 					return off;
 				d += *c + 1;
 				c += *c + 1;
-				if ((*c & NS_CMPRSFLGS) != 0)	/* pointer, jump */
-					c = cstr + (((*c & 0x3f) << 8) | (*(c + 1) & 0xff));
+				if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS)  /* pointer, jump */
+					c = cstr + (((c[0] & 0x3f) << 8) | c[1]);
 			}
 			off += inc;
 		} else {	/* null, skip */
@@ -196,7 +196,7 @@ uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int
 	for (d = dname; *d != 0; d += *d + 1) {
 		off = find_offset(cstr, clen, d);
 		if (off >= 0) {	/* found a match, add pointer and terminate string */
-			*d++ = NS_CMPRSFLGS;
+			*d++ = NS_CMPRSFLGS + (off >> 8);
 			*d = off;
 			break;
 		}
