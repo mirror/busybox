@@ -7,8 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#if ENABLE_FEATURE_UDHCP_RFC3397
-
 #include "common.h"
 
 #define NS_MAXDNAME  1025	/* max domain name length */
@@ -63,7 +61,7 @@ char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
 				if (dst)
 					dst[len - 1] = '.';
 			} else {
-				/* null: end of current domain name */
+				/* NUL: end of current domain name */
 				if (retpos == 0) {
 					/* toplevel? keep going */
 					crtpos++;
@@ -107,38 +105,39 @@ char* FAST_FUNC dname_dec(const uint8_t *cstr, int clen, const char *pre)
  */
 static uint8_t *convert_dname(const char *src)
 {
-	uint8_t c, *res, *lp, *rp;
+	uint8_t c, *res, *lenptr, *dst;
 	int len;
 
 	res = xmalloc(strlen(src) + 2);
-	rp = lp = res;
-	rp++;
+	dst = lenptr = res;
+	dst++;
 
 	for (;;) {
 		c = (uint8_t)*src++;
-		if (c == '.' || c == '\0') {	/* end of label */
-			len = rp - lp - 1;
+		if (c == '.' || c == '\0') {  /* end of label */
+			len = dst - lenptr - 1;
 			/* label too long, too short, or two '.'s in a row? abort */
 			if (len > NS_MAXLABEL || len == 0 || (c == '.' && *src == '.')) {
 				free(res);
 				return NULL;
 			}
-			*lp = len;
-			lp = rp++;
-			if (c == '\0' || *src == '\0')	/* end of dname */
+			*lenptr = len;
+			if (c == '\0' || *src == '\0')	/* "" or ".": end of src */
 				break;
-		} else {
-			if (c >= 0x41 && c <= 0x5A)		/* uppercase? convert to lower */
-				c += 0x20;
-			*rp++ = c;
+			lenptr = dst++;
+			continue;
 		}
+		if (c >= 'A' && c <= 'Z')  /* uppercase? convert to lower */
+			c += ('a' - 'A');
+		*dst++ = c;
 	}
 
-	*lp = 0;
-	if (rp - res > NS_MAXCDNAME) {	/* dname too long? abort */
+	if (dst - res >= NS_MAXCDNAME) {  /* dname too long? abort */
 		free(res);
 		return NULL;
 	}
+
+	*dst = 0;
 	return res;
 }
 
@@ -147,30 +146,35 @@ static uint8_t *convert_dname(const char *src)
 static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 {
 	const uint8_t *c, *d;
-	int off, inc;
+	int off;
 
 	/* find all labels in cstr */
 	off = 0;
 	while (off < clen) {
 		c = cstr + off;
 
-		if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {	/* pointer, skip */
+		if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS) {  /* pointer, skip */
 			off += 2;
-		} else if (*c) {	/* label, try matching dname */
-			inc = *c + 1;
+			continue;
+		}
+		if (*c) {  /* label, try matching dname */
 			d = dname;
-			while (*c == *d && memcmp(c + 1, d + 1, *c) == 0) {
-				if (*c == 0)	/* match, return offset */
+			while (1) {
+				unsigned len1 = *c + 1;
+				if (memcmp(c, d, len1) != 0)
+					break;
+				if (len1 == 1)  /* at terminating NUL - match, return offset */
 					return off;
-				d += *c + 1;
-				c += *c + 1;
+				d += len1;
+				c += len1;
 				if ((*c & NS_CMPRSFLGS) == NS_CMPRSFLGS)  /* pointer, jump */
 					c = cstr + (((c[0] & 0x3f) << 8) | c[1]);
 			}
-			off += inc;
-		} else {	/* null, skip */
-			off++;
+			off += cstr[off] + 1;
+			continue;
 		}
+		/* NUL, skip */
+		off++;
 	}
 
 	return -1;
@@ -178,7 +182,7 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 
 /* computes string to be appended to cstr so that src would be added to
  * the compression (best case, it's a 2-byte pointer to some offset within
- * cstr; worst case, it's all of src, converted to rfc3011 format).
+ * cstr; worst case, it's all of src, converted to <4>host<3>com<0> format).
  * The computed string is returned directly; its length is returned via retlen;
  * NULL and 0, respectively, are returned if an error occurs.
  */
@@ -193,17 +197,19 @@ uint8_t* FAST_FUNC dname_enc(const uint8_t *cstr, int clen, const char *src, int
 		return NULL;
 	}
 
-	for (d = dname; *d != 0; d += *d + 1) {
-		off = find_offset(cstr, clen, d);
-		if (off >= 0) {	/* found a match, add pointer and terminate string */
-			*d++ = NS_CMPRSFLGS + (off >> 8);
-			*d = off;
-			break;
+	d = dname;
+	while (*d) {
+		if (cstr) {
+			off = find_offset(cstr, clen, d);
+			if (off >= 0) {	/* found a match, add pointer and return */
+				*d++ = NS_CMPRSFLGS | (off >> 8);
+				*d = off;
+				break;
+			}
 		}
+		d += *d + 1;
 	}
 
 	*retlen = d - dname + 1;
 	return dname;
 }
-
-#endif /* ENABLE_FEATURE_UDHCP_RFC3397 */
