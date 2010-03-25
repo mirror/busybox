@@ -13,11 +13,6 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 #define DHCPD_CONF_FILE         "/etc/udhcpd.conf"
 
 
-struct option_set {
-	uint8_t *data;
-	struct option_set *next;
-};
-
 struct static_lease {
 	struct static_lease *next;
 	uint32_t nip;

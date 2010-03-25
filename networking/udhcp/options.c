@@ -212,7 +212,7 @@ int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 
 	while (optionptr[i] != DHCP_END) {
 		if (optionptr[i] != DHCP_PADDING)
-			i += optionptr[i + OPT_LEN] + 1;
+			i += optionptr[i + OPT_LEN] + OPT_DATA-1;
 		i++;
 	}
 	return i;
@@ -222,7 +222,8 @@ int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 /* option bytes: [code][len][data1][data2]..[dataLEN] */
 void FAST_FUNC udhcp_add_option_string(uint8_t *optionptr, uint8_t *string)
 {
-	int end = udhcp_end_option(optionptr);
+	unsigned len;
+	unsigned end = udhcp_end_option(optionptr);
 
 	/* end position + string length + option code/length + end option */
 	if (end + string[OPT_LEN] + 2 + 1 >= DHCP_OPTIONS_BUFSIZE) {
@@ -231,8 +232,9 @@ void FAST_FUNC udhcp_add_option_string(uint8_t *optionptr, uint8_t *string)
 		return;
 	}
 	log_option("Adding option", string);
-	memcpy(optionptr + end, string, string[OPT_LEN] + 2);
-	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
+	len = OPT_DATA + string[OPT_LEN];
+	memcpy(optionptr + end, string, len);
+	optionptr[end + len] = DHCP_END;
 }
 
 /* add a one to four byte option to a packet */

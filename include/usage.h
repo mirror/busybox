@@ -4821,6 +4821,7 @@
      "\n	-t,--retries N		Send up to N discover packets" \
      "\n	-T,--timeout N		Pause between packets (default 3 seconds)" \
      "\n	-A,--tryagain N		Wait N seconds (default 20) after failure" \
+     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)" \
      "\n	-O,--request-option OPT	Request DHCP option OPT (cumulative)" \
      "\n	-o,--no-default-options	Don't request any options (unless -O is given)" \
      "\n	-f,--foreground		Run in foreground" \
@@ -4851,6 +4852,7 @@
      "\n	-t N		Send up to N discover packets" \
      "\n	-T N		Pause between packets (default 3 seconds)" \
      "\n	-A N		Wait N seconds (default 20) after failure" \
+     "\n	-x OPT:VAL	Include option OPT in sent packets" \
      "\n	-O OPT		Request DHCP option OPT (cumulative)" \
      "\n	-o		Don't request any options (unless -O is given)" \
      "\n	-f		Run in foreground" \

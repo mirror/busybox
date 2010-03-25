@@ -161,6 +161,11 @@ struct dhcp_option {
 	uint8_t code;
 };
 
+struct option_set {
+	uint8_t *data;
+	struct option_set *next;
+};
+
 extern const struct dhcp_option dhcp_options[];
 extern const char dhcp_option_strings[];
 extern const uint8_t dhcp_option_lengths[];
@@ -173,6 +178,9 @@ void udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FA
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
+/* 2nd param is actually "struct option_set**" */
+int FAST_FUNC udhcp_str2optset(const char *const_line, void *arg);
+
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients
 //

@@ -145,7 +145,7 @@ static NOINLINE void attach_option(
 }
 
 /* read a dhcp option and add it to opt_list */
-static int FAST_FUNC read_opt(const char *const_line, void *arg)
+int FAST_FUNC udhcp_str2optset(const char *const_line, void *arg)
 {
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
@@ -292,8 +292,8 @@ static const struct config_keyword keywords[] = {
 	{"pidfile",      read_str, &(server_config.pidfile),      "/var/run/udhcpd.pid"},
 	{"siaddr",       read_nip, &(server_config.siaddr_nip),   "0.0.0.0"},
 	/* keywords with no defaults must be last! */
-	{"option",       read_opt, &(server_config.options),      ""},
-	{"opt",          read_opt, &(server_config.options),      ""},
+	{"option",       udhcp_str2optset, &(server_config.options), ""},
+	{"opt",          udhcp_str2optset, &(server_config.options), ""},
 	{"notify_file",  read_str, &(server_config.notify_file),  ""},
 	{"sname",        read_str, &(server_config.sname),        ""},
 	{"boot_file",    read_str, &(server_config.boot_file),    ""},

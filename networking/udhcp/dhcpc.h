@@ -13,6 +13,7 @@ struct client_config_t {
 	const char *interface;          /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
 	const char *script;             /* User script to run at dhcp events */
+	struct option_set *options;     /* list of DHCP options to send to server */
 	uint8_t *clientid;              /* Optional client id to use */
 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
 	uint8_t *hostname;              /* Optional hostname to use */

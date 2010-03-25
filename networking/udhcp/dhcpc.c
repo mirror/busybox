@@ -331,11 +331,11 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	}
 }
 
-/* Add a parameter request list for stubborn DHCP servers. Pull the data
- * from the struct in options.c. Don't do bounds checking here because it
- * goes towards the head of the packet. */
-static void add_param_req_option(struct dhcp_packet *packet)
+static void add_client_options(struct dhcp_packet *packet)
 {
+	/* Add am "param req" option with the list of options we'd like to have
+	 * from stubborn DHCP servers. Pull the data from the struct in options.c.
+	 * No bounds checking because it goes towards the head of the packet. */
 	uint8_t c;
 	int end = udhcp_end_option(packet->options);
 	int i, len = 0;
@@ -354,6 +354,19 @@ static void add_param_req_option(struct dhcp_packet *packet)
 		packet->options[end + OPT_CODE] = DHCP_PARAM_REQ;
 		packet->options[end + OPT_LEN] = len;
 		packet->options[end + OPT_DATA + len] = DHCP_END;
+	}
+
+	/* Add -x options if any */
+	{
+		struct option_set *curr = client_config.options;
+		while (curr) {
+			udhcp_add_option_string(packet->options, curr->data);
+			curr = curr->next;
+		}
+//		if (client_config.sname)
+//			strncpy((char*)packet->sname, client_config.sname, sizeof(packet->sname) - 1);
+//		if (client_config.boot_file)
+//			strncpy((char*)packet->file, client_config.boot_file, sizeof(packet->file) - 1);
 	}
 }
 
@@ -395,7 +408,7 @@ static int send_discover(uint32_t xid, uint32_t requested)
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
 	udhcp_add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
-	add_param_req_option(&packet);
+	add_client_options(&packet);
 
 	bb_info_msg("Sending discover...");
 	return raw_bcast_from_client_config_ifindex(&packet);
@@ -414,7 +427,7 @@ static int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 	packet.xid = xid;
 	udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
-	add_param_req_option(&packet);
+	add_client_options(&packet);
 
 	addr.s_addr = requested;
 	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
@@ -429,7 +442,7 @@ static int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
 	packet.ciaddr = ciaddr;
-	add_param_req_option(&packet);
+	add_client_options(&packet);
 
 	bb_info_msg("Sending renew...");
 	if (server)
@@ -728,6 +741,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	const char *str_c, *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
+	llist_t *list_x = NULL;
 	int tryagain_timeout = 20;
 	int discover_timeout = 3;
 	int discover_retries = 3;
@@ -792,9 +806,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		OPT_A = 1 << 16,
 		OPT_O = 1 << 17,
 		OPT_o = 1 << 18,
-		OPT_f = 1 << 19,
+		OPT_x = 1 << 19,
+		OPT_f = 1 << 20,
 /* The rest has variable bit positions, need to be clever */
-		OPTBIT_f = 19,
+		OPTBIT_f = 20,
 		USE_FOR_MMU(             OPTBIT_b,)
 		IF_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
 		IF_FEATURE_UDHCP_PORT(   OPTBIT_P,)
@@ -811,14 +826,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	str_V = "udhcp "BB_VER;
 
 	/* Parse command line */
-	/* Cc: mutually exclusive; O: list; -T,-t,-A take numeric param */
-	opt_complementary = "c--C:C--c:O::T+:t+:A+"
+	/* Cc: mutually exclusive; O,x: list; -T,-t,-A take numeric param */
+	opt_complementary = "c--C:C--c:O::x::T+:t+:A+"
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
 		":vv"
 #endif
 		;
 	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
-	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:SA:O:of"
+	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:SA:O:ox:f"
 		USE_FOR_MMU("b")
 		IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
@@ -828,6 +843,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		, &client_config.script /* s */
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
 		, &list_O
+		, &list_x
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
 		, &dhcp_verbose
@@ -867,6 +883,19 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg_and_die("unknown option '%s'", optstr);
 		n = dhcp_options[n].code;
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+	}
+	while (list_x) {
+		int n;
+		char *optstr = llist_pop(&list_x);
+		char *colon = strchr(optstr, ':');
+		if (colon)
+			*colon = '\0';
+		n = index_in_strings(dhcp_option_strings, optstr);
+		if (n < 0)
+			bb_error_msg_and_die("unknown option '%s'", optstr);
+		if (colon)
+			*colon = ' ';
+		udhcp_str2optset(optstr, &client_config.options);
 	}
 
 	if (udhcp_read_interface(client_config.interface,
