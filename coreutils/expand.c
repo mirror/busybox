@@ -49,7 +49,11 @@ static void expand(FILE *file, unsigned tab_size, unsigned opt)
 				unsigned len;
 				*ptr = '\0';
 # if ENABLE_FEATURE_ASSUME_UNICODE
-				len = unicode_strlen(ptr_strbeg);
+				{
+					uni_stat_t uni_stat;
+					printable_string(&uni_stat, ptr_strbeg);
+					len = uni_stat.unicode_width;
+				}
 # else
 				len = ptr - ptr_strbeg;
 # endif
@@ -103,9 +107,11 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 # if ENABLE_FEATURE_ASSUME_UNICODE
 			{
 				char c;
+				uni_stat_t uni_stat;
 				c = ptr[n];
 				ptr[n] = '\0';
-				len = unicode_strlen(ptr);
+				printable_string(&uni_stat, ptr);
+				len = uni_stat.unicode_width;
 				ptr[n] = c;
 			}
 # else
