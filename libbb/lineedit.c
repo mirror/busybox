@@ -1742,9 +1742,10 @@ static int lineedit_read_key(char *read_key_buffer)
 static int isrtl_str(void)
 {
 	int idx = cursor;
-	while (command_ps[idx] >= ' ' && command_ps[idx] < 127 && !isalpha(command_ps[idx]))
+
+	while (idx < command_len && unicode_bidi_is_neutral_wchar(command_ps[idx]))
 		idx++;
-	return unicode_isrtl(command_ps[idx]);
+	return unicode_bidi_isrtl(command_ps[idx]);
 }
 #else
 # define isrtl_str() 0
@@ -2220,19 +2221,18 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				command_ps[cursor] = ic;
 				command_ps[cursor + 1] = BB_NUL;
 				cmdedit_set_out_char(' ');
-				if (unicode_isrtl(ic))
+				if (unicode_bidi_isrtl(ic))
 					input_backward(1);
 			} else {
 				/* In the middle, insert */
-				/* is char right-to-left, or "neutral" one (e.g. comma) added to rtl text? */
-				int rtl = ENABLE_UNICODE_BIDI_SUPPORT ? (unicode_isrtl(ic) || (ic < 127 && !isalpha(ic) && isrtl_str())) : 0;
 				int sc = cursor;
 
 				memmove(command_ps + sc + 1, command_ps + sc,
 					(command_len - sc) * sizeof(command_ps[0]));
 				command_ps[sc] = ic;
-				if (!rtl)
-					sc++;
+				/* is right-to-left char, or neutral one (e.g. comma) was just added to rtl text? */
+				if (!isrtl_str())
+					sc++; /* no */
 				/* rewrite from cursor */
 				input_end();
 				/* to prev x pos + 1 */

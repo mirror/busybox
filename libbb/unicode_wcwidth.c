@@ -538,6 +538,6 @@ static int wcwidth(unsigned ucs)
 		|| ((ucs >> 17) == (2 >> 1)) /* 20000..3ffff: Supplementary and Tertiary Ideographic Planes */
 #  endif
 		);
-# endif
-#endif
+# endif /* >= 0x1100 */
+#endif /* >= 0x300 */
 }

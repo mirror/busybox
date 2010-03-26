@@ -18,7 +18,8 @@ enum {
 	UNICODE_ON = 2,
 };
 
-#define unicode_isrtl(wc) 0
+#define unicode_bidi_isrtl(wc) 0
+#define unicode_bidi_is_neutral_wchar(wc) (wc <= 126 && !isalpha(wc))
 
 #if !ENABLE_FEATURE_ASSUME_UNICODE
 
@@ -92,8 +93,12 @@ int iswspace(wint_t wc) FAST_FUNC;
 int iswalnum(wint_t wc) FAST_FUNC;
 int iswpunct(wint_t wc) FAST_FUNC;
 #  if ENABLE_UNICODE_BIDI_SUPPORT
-#   undef unicode_isrtl
-int unicode_isrtl(wint_t wc) FAST_FUNC;
+#   undef unicode_bidi_isrtl
+int unicode_bidi_isrtl(wint_t wc) FAST_FUNC;
+#   if ENABLE_UNICODE_NEUTRAL_TABLE
+#    undef unicode_bidi_is_neutral_wchar
+int unicode_bidi_is_neutral_wchar(wint_t wc) FAST_FUNC;
+#   endif
 #  endif
 
 

@@ -198,11 +198,22 @@ config UNICODE_WIDE_WCHARS
 
 config UNICODE_BIDI_SUPPORT
 	bool "Bidirectional character-aware line input"
-	default y
+	default n
 	depends on FEATURE_ASSUME_UNICODE && !LOCALE_SUPPORT
 	help
 	  With this option on, right-to-left Unicode characters
 	  are treated differently on input (e.g. cursor movement).
+
+config UNICODE_NEUTRAL_TABLE
+	bool "In bidi input, support non-ASCII neutral chars too"
+	default n
+	depends on UNICODE_BIDI_SUPPORT
+	help
+	  In most cases it's enough to treat only ASCII non-letters
+	  (i.e. punctuation, numbers and space) as characters
+	  with neutral directionality.
+	  With this option on, more extensive (and bigger) table
+	  of neutral chars will be used.
 
 config LONG_OPTS
 	bool "Support for --long-options"
