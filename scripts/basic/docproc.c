@@ -79,7 +79,9 @@ void exec_kernel_doc(char **svec)
 {
 	pid_t pid;
 	int ret;
-	char real_filename[PATH_MAX + 1];
+	char *real_filename;
+	int rflen;
+
 	/* Make sure output generated so far are flushed */
 	fflush(stdout);
 	switch(pid=fork()) {
@@ -87,10 +89,11 @@ void exec_kernel_doc(char **svec)
 			perror("fork");
 			exit(1);
 		case  0:
-			memset(real_filename, 0, sizeof(real_filename));
-			strncat(real_filename, getenv("SRCTREE"), PATH_MAX);
-			strncat(real_filename, KERNELDOCPATH KERNELDOC,
-					PATH_MAX - strlen(real_filename));
+			rflen  = strlen(getenv("SRCTREE"));
+			rflen += strlen(KERNELDOCPATH KERNELDOC);
+			real_filename = alloca(rflen + 1);
+			strcpy(real_filename, getenv("SRCTREE"));
+			strcat(real_filename, KERNELDOCPATH KERNELDOC);
 			execvp(real_filename, svec);
 			fprintf(stderr, "exec ");
 			perror(real_filename);
@@ -166,11 +169,10 @@ void find_export_symbols(char * filename)
 	struct symfile *sym;
 	char line[MAXLINESZ];
 	if (filename_exist(filename) == NULL) {
-		char real_filename[PATH_MAX + 1];
-		memset(real_filename, 0, sizeof(real_filename));
-		strncat(real_filename, getenv("SRCTREE"), PATH_MAX);
-		strncat(real_filename, filename,
-				PATH_MAX - strlen(real_filename));
+		int rflen = strlen(getenv("SRCTREE")) + strlen(filename);
+		char *real_filename = alloca(rflen + 1);
+		strcpy(real_filename, getenv("SRCTREE"));
+		strcat(real_filename, filename);
 		sym = add_new_file(filename);
 		fp = fopen(real_filename, "r");
 		if (fp == NULL)

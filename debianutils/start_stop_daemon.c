@@ -89,16 +89,17 @@ enum {
 #define TEST  (option_mask32 & OPT_TEST)
 
 struct globals {
-	struct pid_list *found;
+	struct pid_list *found_procs;
 	char *userspec;
 	char *cmdname;
 	char *execname;
 	char *pidfile;
+	char *execname_cmpbuf;
+	unsigned execname_sizeof;
 	int user_id;
 	smallint signal_nr;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define found             (G.found               )
 #define userspec          (G.userspec            )
 #define cmdname           (G.cmdname             )
 #define execname          (G.execname            )
@@ -118,7 +119,7 @@ struct globals {
 static int pid_is_exec(pid_t pid)
 {
 	struct stat st;
-	char buf[sizeof("/proc//exe") + sizeof(int)*3];
+	char buf[sizeof("/proc/%u/exe") + sizeof(int)*3];
 
 	sprintf(buf, "/proc/%u/exe", (unsigned)pid);
 	if (stat(buf, &st) < 0)
@@ -133,13 +134,13 @@ static int pid_is_exec(pid_t pid)
 static int pid_is_exec(pid_t pid)
 {
 	ssize_t bytes;
-	char buf[PATH_MAX];
+	char buf[sizeof("/proc/%u/cmdline") + sizeof(int)*3];
 
 	sprintf(buf, "/proc/%u/cmdline", (unsigned)pid);
-	bytes = open_read_close(buf, buf, sizeof(buf) - 1);
+	bytes = open_read_close(buf, G.execname_cmpbuf, G.execname_sizeof);
 	if (bytes > 0) {
-		buf[bytes] = '\0';
-		return strcmp(buf, execname) == 0;
+		G.execname_cmpbuf[bytes] = '\0';
+		return strcmp(execname, G.execname_cmpbuf) == 0;
 	}
 	return 0;
 }
@@ -194,9 +195,9 @@ static void check(int pid)
 		return;
 	}
 	p = xmalloc(sizeof(*p));
-	p->next = found;
+	p->next = G.found_procs;
 	p->pid = pid;
-	found = p;
+	G.found_procs = p;
 }
 
 static void do_pidfile(void)
@@ -266,13 +267,13 @@ static int do_stop(void)
 		bb_error_msg_and_die("internal error, please report");
 	}
 
-	if (!found) {
+	if (!G.found_procs) {
 		if (!QUIET)
 			printf("no %s found; none killed\n", what);
 		killed = -1;
 		goto ret;
 	}
-	for (p = found; p; p = p->next) {
+	for (p = G.found_procs; p; p = p->next) {
 		if (TEST || kill(p->pid, signal_nr) == 0) {
 			killed++;
 		} else {
@@ -282,7 +283,7 @@ static int do_stop(void)
 	}
 	if (!QUIET && killed) {
 		printf("stopped %s (pid", what);
-		for (p = found; p; p = p->next)
+		for (p = G.found_procs; p; p = p->next)
 			if (p->pid)
 				printf(" %u", (unsigned)p->pid);
 		puts(")");
@@ -365,6 +366,10 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		startas = execname;
 	if (!execname) /* in case -a is given and -x is not */
 		execname = startas;
+	if (execname) {
+		G.execname_sizeof = strlen(execname) + 1;
+		G.execname_cmpbuf = xmalloc(G.execname_sizeof + 1);
+	}
 
 //	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
@@ -386,9 +391,9 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		return (opt & OPT_OKNODO) ? 0 : (i <= 0);
 	}
 
-	if (found) {
+	if (G.found_procs) {
 		if (!QUIET)
-			printf("%s is already running\n%u\n", execname, (unsigned)found->pid);
+			printf("%s is already running\n%u\n", execname, (unsigned)G.found_procs->pid);
 		return !(opt & OPT_OKNODO);
 	}
 

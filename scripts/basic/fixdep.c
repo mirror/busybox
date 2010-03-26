@@ -203,7 +203,7 @@ void clear_config(void)
  */
 void use_config(char *m, int slen)
 {
-	char s[PATH_MAX];
+	char *s = alloca(slen+1);
 	char *p;
 
 	if (is_defined_config(m, slen))
@@ -310,7 +310,7 @@ void parse_dep_file(void *map, size_t len)
 	char *m = map;
 	char *end = m + len;
 	char *p;
-	char s[PATH_MAX];
+	char *s = alloca(len);
 
 	p = memchr(m, ':', len);
 	if (!p) {

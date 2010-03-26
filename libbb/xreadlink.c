@@ -100,18 +100,16 @@ char* FAST_FUNC xmalloc_readlink_or_warn(const char *path)
 	return buf;
 }
 
-/* UNUSED */
-#if 0
 char* FAST_FUNC xmalloc_realpath(const char *path)
 {
 #if defined(__GLIBC__) && !defined(__UCLIBC__)
 	/* glibc provides a non-standard extension */
+	/* new: POSIX.1-2008 specifies this behavior as well */
 	return realpath(path, NULL);
 #else
 	char buf[PATH_MAX+1];
 
-	/* on error returns NULL (xstrdup(NULL) ==NULL) */
+	/* on error returns NULL (xstrdup(NULL) == NULL) */
 	return xstrdup(realpath(path, buf));
 #endif
 }
-#endif

@@ -70,12 +70,13 @@ static char *conf_expand_value(const char *in)
 char *conf_get_default_confname(void)
 {
 	struct stat buf;
-	static char fullname[PATH_MAX+1];
+	static char *fullname = NULL;
 	char *env, *name;
 
 	name = conf_expand_value(conf_defname);
 	env = getenv(SRCTREE);
 	if (env) {
+		fullname = realloc(fullname, strlen(env) + strlen(name) + 2);
 		sprintf(fullname, "%s/%s", env, name);
 		if (!stat(fullname, &buf))
 			return fullname;

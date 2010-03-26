@@ -21,6 +21,8 @@ int FAST_FUNC setsockopt_broadcast(int fd)
 {
 	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &const_int_1, sizeof(const_int_1));
 }
+
+#ifdef SO_BINDTODEVICE
 int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
 {
 	int r;
@@ -36,6 +38,14 @@ int FAST_FUNC setsockopt_bindtodevice(int fd, const char *iface)
 		bb_perror_msg("can't bind to interface %s", iface);
 	return r;
 }
+#else
+int FAST_FUNC setsockopt_bindtodevice(int fd UNUSED_PARAM,
+		const char *iface UNUSED_PARAM)
+{
+	bb_error_msg("SO_BINDTODEVICE is not supported on this system");
+	return -1;
+}
+#endif
 
 len_and_sockaddr* FAST_FUNC get_sock_lsa(int fd)
 {

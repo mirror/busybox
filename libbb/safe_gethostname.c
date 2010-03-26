@@ -59,8 +59,12 @@ char* FAST_FUNC safe_gethostname(void)
  */
 char* FAST_FUNC safe_getdomainname(void)
 {
+/* The field domainname of struct utsname is Linux specific. */
+#if defined(__linux__)
 	struct utsname uts;
-
 	uname(&uts);
 	return xstrndup(!uts.domainname[0] ? "?" : uts.domainname, sizeof(uts.domainname));
+#else
+	return xstrdup("?");
+#endif
 }
