@@ -87,8 +87,8 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 	/* "Su Mo Tu We Th Fr Sa" */
 	/* -j heading: */
 	/* " Su  Mo  Tu  We  Th  Fr  Sa" */
-	char day_headings[ENABLE_FEATURE_ASSUME_UNICODE ? 28 * 6 : 28];
-	IF_FEATURE_ASSUME_UNICODE(char *hp = day_headings;)
+	char day_headings[ENABLE_UNICODE_SUPPORT ? 28 * 6 : 28];
+	IF_UNICODE_SUPPORT(char *hp = day_headings;)
 	char buf[40];
 
 	init_unicode();
@@ -134,7 +134,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 			zero_tm.tm_wday = i;
 			/* abbreviated weekday name according to locale */
 			strftime(buf, sizeof(buf), "%a", &zero_tm);
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 			if (julian)
 				*hp++ = ' ';
 			{
@@ -149,7 +149,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 #endif
 		}
 	} while (++i < 12);
-	IF_FEATURE_ASSUME_UNICODE(hp[-1] = '\0';)
+	IF_UNICODE_SUPPORT(hp[-1] = '\0';)
 
 	if (month) {
 		unsigned row, len, days[MAXDAYS];

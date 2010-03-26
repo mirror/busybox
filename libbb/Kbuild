@@ -124,7 +124,7 @@ lib-y += xrealloc_vector.o
 # and objects which may fail to build (SELinux on selinux-less system)
 lib-$(CONFIG_SELINUX) += selinux_common.o
 lib-$(CONFIG_FEATURE_MTAB_SUPPORT) += mtab.o
-lib-$(CONFIG_FEATURE_ASSUME_UNICODE) += unicode.o
+lib-$(CONFIG_UNICODE_SUPPORT) += unicode.o
 lib-$(CONFIG_FEATURE_CHECK_NAMES) += die_if_bad_username.o
 
 lib-$(CONFIG_LOSETUP) += loop.o

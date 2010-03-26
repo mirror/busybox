@@ -48,7 +48,7 @@ static void expand(FILE *file, unsigned tab_size, unsigned opt)
 			if (c == '\t') {
 				unsigned len;
 				*ptr = '\0';
-# if ENABLE_FEATURE_ASSUME_UNICODE
+# if ENABLE_UNICODE_SUPPORT
 				{
 					uni_stat_t uni_stat;
 					printable_string(&uni_stat, ptr_strbeg);
@@ -107,7 +107,7 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 			}
 			n = strcspn(ptr, "\t ");
 			printf("%*s%.*s", len, "", n, ptr);
-# if ENABLE_FEATURE_ASSUME_UNICODE
+# if ENABLE_UNICODE_SUPPORT
 			{
 				char c;
 				uni_stat_t uni_stat;

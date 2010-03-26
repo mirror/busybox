@@ -67,7 +67,7 @@
 
 
 #undef CHAR_T
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 # define BB_NUL L'\0'
 # define CHAR_T wchar_t
 static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
@@ -202,7 +202,7 @@ static void deinit_S(void)
 #define DEINIT_S() deinit_S()
 
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 static size_t load_string(const char *src, int maxsize)
 {
 	ssize_t len = mbstowcs(command_ps, src, maxsize - 1);
@@ -932,7 +932,7 @@ static void input_tab(smallint *lastWasTab)
 #define matchBuf (S.input_tab__matchBuf)
 		int find_type;
 		int recalc_pos;
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 		/* cursor pos in command converted to multibyte form */
 		int cursor_mb;
 #endif
@@ -942,7 +942,7 @@ static void input_tab(smallint *lastWasTab)
 		/* Make a local copy of the string --
 		 * up to the position of the cursor */
 		save_string(matchBuf, cursor + 1);
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 		cursor_mb = strlen(matchBuf);
 #endif
 		tmp = matchBuf;
@@ -1015,7 +1015,7 @@ static void input_tab(smallint *lastWasTab)
 		}
 
 		len_found = strlen(tmp);
-#if !ENABLE_FEATURE_ASSUME_UNICODE
+#if !ENABLE_UNICODE_SUPPORT
 		/* have space to place the match? */
 		/* The result consists of three parts with these lengths: */
 		/* (cursor - recalc_pos) + len_found + (command_len - cursor) */
@@ -1088,7 +1088,7 @@ static void save_command_ps_at_cur_history(void)
 		int cur = state->cur_history;
 		free(state->history[cur]);
 
-# if ENABLE_FEATURE_ASSUME_UNICODE
+# if ENABLE_UNICODE_SUPPORT
 		{
 			char tbuf[MAX_LINELEN];
 			save_string(tbuf, sizeof(tbuf));
@@ -1659,7 +1659,7 @@ static int lineedit_read_key(char *read_key_buffer)
 {
 	int64_t ic;
 	int timeout = -1;
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 	char unicode_buf[MB_CUR_MAX + 1];
 	int unicode_idx = 0;
 #endif
@@ -1674,7 +1674,7 @@ static int lineedit_read_key(char *read_key_buffer)
 		 */
 		ic = read_key(STDIN_FILENO, read_key_buffer, timeout);
 		if (errno) {
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 			if (errno == EAGAIN && unicode_idx != 0)
 				goto pushback;
 #endif
@@ -1700,7 +1700,7 @@ static int lineedit_read_key(char *read_key_buffer)
 		}
 #endif
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 		if (unicode_status == UNICODE_ON) {
 			wchar_t wc;
 
@@ -1817,7 +1817,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true if line > xt*yt */
 	command_len = 0;
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 	command_ps = xzalloc(maxsize * sizeof(command_ps[0]));
 #else
 	command_ps = command;
@@ -2199,8 +2199,8 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 //				}
 //			}
 			if (ic < ' '
-			 || (!ENABLE_FEATURE_ASSUME_UNICODE && ic >= 256)
-			 || (ENABLE_FEATURE_ASSUME_UNICODE && ic >= VI_CMDMODE_BIT)
+			 || (!ENABLE_UNICODE_SUPPORT && ic >= 256)
+			 || (ENABLE_UNICODE_SUPPORT && ic >= VI_CMDMODE_BIT)
 			) {
 				/* If VI_CMDMODE_BIT is set, ic is >= 256
 				 * and vi mode ignores unexpected chars.
@@ -2268,7 +2268,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 /* Stop bug catching using "command_must_not_be_used" trick */
 #undef command
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 	command[0] = '\0';
 	if (command_len > 0)
 		command_len = save_string(command, maxsize - 1);

@@ -14,7 +14,7 @@ mkdir ls.testdir || exit 1
 # With Unicode provided by libc locale, I'm not sure this test can pass.
 # I suspect we might fail to skip exactly correct number of bytes
 # over broked unicode sequences.
-test x"$CONFIG_FEATURE_ASSUME_UNICODE" = x"y" \
+test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_LOCALE_SUPPORT" != x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"767" \
@@ -133,7 +133,7 @@ test x"$CONFIG_FEATURE_ASSUME_UNICODE" = x"y" \
 ' "" ""
 
 # Currently fails on "0080_4.2.2__U-000007FF_=_e0_9f_bf" line
-test x"$CONFIG_FEATURE_ASSUME_UNICODE" = x"y" \
+test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_LOCALE_SUPPORT" != x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"0" \

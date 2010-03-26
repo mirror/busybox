@@ -36,7 +36,7 @@ const char* FAST_FUNC printable_string(uni_stat_t *stats, const char *str)
 		s++;
 	}
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 	dst = unicode_conv_to_printable(stats, str);
 #else
 	{

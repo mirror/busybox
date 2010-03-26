@@ -324,8 +324,8 @@ This is useful if you build against uclibc with locale support disabled.
 Unicode-dependent applets must call check_unicode_in_env() when they
 begin executing.
 
-Applet code may conditionalize on FEATURE_ASSUME_UNICODE
-in order to use more efficient code if unicode support is not requested.
+Applet code may conditionalize on UNICODE_SUPPORT in order to use
+more efficient code if unicode support is not requested.
 
 Available functions (if you need more, implement them in libbb/unicode.c
 so that they work without LOCALE_SUPPORT too):

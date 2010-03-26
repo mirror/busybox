@@ -66,7 +66,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 			fmt = ":%02x";
 		}
 		addr.s_addr = lease.lease_nip;
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 		{
 			char *uni_name = unicode_conv_to_printable_fixedwidth(NULL, lease.hostname, 19);
 			printf(" %-16s%s ", inet_ntoa(addr), uni_name);

@@ -60,7 +60,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				token[3][strlen(token[3])-1] = '\0';
 			} else
 				token[3] = (char *) "";
-# if ENABLE_FEATURE_ASSUME_UNICODE
+# if ENABLE_UNICODE_SUPPORT
 			{
 				uni_stat_t uni_stat;
 				char *uni_name = unicode_conv_to_printable(&uni_stat, token[0]);
@@ -78,7 +78,7 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			// or comma-separated list ended by comma
 			// so trimming the trailing char is just what we need!
 			token[3][strlen(token[3])-1] = '\0';
-# if ENABLE_FEATURE_ASSUME_UNICODE
+# if ENABLE_UNICODE_SUPPORT
 			{
 				uni_stat_t uni_stat;
 				char *uni_name = unicode_conv_to_printable(&uni_stat, token[0]);

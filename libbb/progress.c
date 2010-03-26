@@ -78,7 +78,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		if (ratio > 100) ratio = 100;
 	}
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 	init_unicode();
 	/* libbb candidate? */
 	{

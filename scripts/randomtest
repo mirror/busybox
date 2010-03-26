@@ -50,7 +50,7 @@ cat .config \
 | grep -v ^CONFIG_BUILD_LIBBUSYBOX= \
 | grep -v ^CONFIG_PAM= \
 | grep -v ^CONFIG_TASKSET= \
-| grep -v ^CONFIG_FEATURE_ASSUME_UNICODE= \
+| grep -v ^CONFIG_UNICODE_SUPPORT= \
 | grep -v ^CONFIG_PIE= \
 | grep -v CONFIG_STATIC \
 | grep -v CONFIG_CROSS_COMPILER_PREFIX \

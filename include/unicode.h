@@ -5,7 +5,7 @@
 #ifndef UNICODE_H
 #define UNICODE_H 1
 
-#if ENABLE_LOCALE_SUPPORT
+#if ENABLE_UNICODE_USING_LOCALE
 # include <wchar.h>
 # include <wctype.h>
 #endif
@@ -21,7 +21,7 @@ enum {
 #define unicode_bidi_isrtl(wc) 0
 #define unicode_bidi_is_neutral_wchar(wc) (wc <= 126 && !isalpha(wc))
 
-#if !ENABLE_FEATURE_ASSUME_UNICODE
+#if !ENABLE_UNICODE_SUPPORT
 
 # define unicode_strlen(string) strlen(string)
 # define unicode_status UNICODE_OFF
@@ -50,7 +50,7 @@ char* FAST_FUNC unicode_conv_to_printable(uni_stat_t *stats, const char *src);
 char* FAST_FUNC unicode_conv_to_printable_maxwidth(uni_stat_t *stats, const char *src, unsigned maxwidth);
 char* FAST_FUNC unicode_conv_to_printable_fixedwidth(uni_stat_t *stats, const char *src, unsigned width);
 
-# if ENABLE_LOCALE_SUPPORT
+# if ENABLE_UNICODE_USING_LOCALE
 
 extern uint8_t unicode_status;
 void init_unicode(void) FAST_FUNC;
@@ -102,9 +102,9 @@ int unicode_bidi_is_neutral_wchar(wint_t wc) FAST_FUNC;
 #  endif
 
 
-# endif /* !LOCALE_SUPPORT */
+# endif /* !UNICODE_USING_LOCALE */
 
-#endif /* FEATURE_ASSUME_UNICODE */
+#endif /* UNICODE_SUPPORT */
 
 POP_SAVED_FUNCTION_VISIBILITY
 

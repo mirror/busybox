@@ -174,7 +174,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			}
 #endif
 
-#if ENABLE_FEATURE_ASSUME_UNICODE
+#if ENABLE_UNICODE_SUPPORT
 			{
 				uni_stat_t uni_stat;
 				char *uni_dev = unicode_conv_to_printable(&uni_stat, device);

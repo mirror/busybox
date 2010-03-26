@@ -119,7 +119,7 @@ config LOCALE_SUPPORT
 	  Enable this if your system has locale support and you would like
 	  busybox to support locale settings.
 
-config FEATURE_ASSUME_UNICODE
+config UNICODE_SUPPORT
 	bool "Support Unicode"
 	default n
 	help
@@ -131,10 +131,18 @@ config FEATURE_ASSUME_UNICODE
 	  Probably by the time when busybox will be fully Unicode-clean,
 	  other encodings will be mainly of historic interest.
 
+config UNICODE_USING_LOCALE
+	bool "Use libc routines for Unicode (else uses internal ones)"
+	default n
+	depends on UNICODE_SUPPORT && LOCALE_SUPPORT
+	help
+	  With this option on, Unicode support is implemented using libc
+	  routines. Otherwise, internal implementation is used.
+
 config FEATURE_CHECK_UNICODE_IN_ENV
 	bool "Check $LANG environment variable"
 	default y
-	depends on FEATURE_ASSUME_UNICODE && !LOCALE_SUPPORT
+	depends on UNICODE_SUPPORT && !UNICODE_USING_LOCALE
 	help
 	  With this option on, Unicode support is activated
 	  only if LANG variable has the value of the form "xxxx.utf8"
@@ -143,7 +151,7 @@ config FEATURE_CHECK_UNICODE_IN_ENV
 
 config SUBST_WCHAR
 	int "Character code to substitute unprintable characters with"
-	depends on FEATURE_ASSUME_UNICODE
+	depends on UNICODE_SUPPORT
 	default 63
 	help
 	  Typical values are 63 for '?' (works with any output device),
@@ -152,7 +160,7 @@ config SUBST_WCHAR
 
 config LAST_SUPPORTED_WCHAR
 	int "Range of supported Unicode characters"
-	depends on FEATURE_ASSUME_UNICODE
+	depends on UNICODE_SUPPORT
 	default 767
 	help
 	  Any character with Unicode value bigger than this is assumed
@@ -183,7 +191,7 @@ config LAST_SUPPORTED_WCHAR
 config UNICODE_COMBINING_WCHARS
 	bool "Allow zero-width Unicode characters on output"
 	default n
-	depends on FEATURE_ASSUME_UNICODE
+	depends on UNICODE_SUPPORT
 	help
 	  With this option off, any Unicode char with width of 0
 	  is substituted on output.
@@ -191,7 +199,7 @@ config UNICODE_COMBINING_WCHARS
 config UNICODE_WIDE_WCHARS
 	bool "Allow wide Unicode characters on output"
 	default n
-	depends on FEATURE_ASSUME_UNICODE
+	depends on UNICODE_SUPPORT
 	help
 	  With this option off, any Unicode char with width > 1
 	  is substituted on output.
@@ -199,7 +207,7 @@ config UNICODE_WIDE_WCHARS
 config UNICODE_BIDI_SUPPORT
 	bool "Bidirectional character-aware line input"
 	default n
-	depends on FEATURE_ASSUME_UNICODE && !LOCALE_SUPPORT
+	depends on UNICODE_SUPPORT && !UNICODE_USING_LOCALE
 	help
 	  With this option on, right-to-left Unicode characters
 	  are treated differently on input (e.g. cursor movement).
