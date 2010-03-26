@@ -1,18 +1,19 @@
 /* vi: set sw=4 ts=4: */
 /*
- * packet.c -- packet ops
+ * Packet ops
+ *
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 #include <netinet/in.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
+# include <netpacket/packet.h>
+# include <net/ethernet.h>
 #else
-#include <asm/types.h>
-#include <linux/if_packet.h>
-#include <linux/if_ether.h>
+# include <asm/types.h>
+# include <linux/if_packet.h>
+# include <linux/if_ether.h>
 #endif
 
 #include "common.h"

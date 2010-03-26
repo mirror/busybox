@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * udhcp Server
+ * udhcp server
  * Copyright (C) 1999 Matthew Ramsay <matthewr@moreton.com.au>
  *			Chris Trew <ctrew@moreton.com.au>
  *
@@ -20,7 +20,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
 #include <syslog.h>
 #include "common.h"
 #include "dhcpc.h"

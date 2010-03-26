@@ -1,4 +1,7 @@
 /* vi: set sw=4 ts=4: */
+/*
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
 #ifndef UDHCP_DHCPC_H
 #define UDHCP_DHCPC_H 1
 

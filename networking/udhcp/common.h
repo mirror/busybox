@@ -1,6 +1,5 @@
 /* vi: set sw=4 ts=4: */
-/* common.h
- *
+/*
  * Russ Dill <Russ.Dill@asu.edu> September 2001
  * Rewritten by Vladimir Oleynik <dzo@simtreas.ru> (C) 2003
  *

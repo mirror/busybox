@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * socket.c -- DHCP server client/server socket creation
+ * DHCP server client/server socket creation
  *
  * udhcp client/server
  * Copyright (C) 1999 Matthew Ramsay <matthewr@moreton.com.au>
@@ -22,19 +22,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
 #include <net/if.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
+# include <netpacket/packet.h>
+# include <net/ethernet.h>
 #else
-#include <asm/types.h>
-#include <linux/if_packet.h>
-#include <linux/if_ether.h>
+# include <asm/types.h>
+# include <linux/if_packet.h>
+# include <linux/if_ether.h>
 #endif
 
 #include "common.h"
-
 
 int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *mac)
 {

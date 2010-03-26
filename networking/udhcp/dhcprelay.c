@@ -9,7 +9,6 @@
  *                   Netbeat AG
  * Upstream has GPL v2 or later
  */
-
 #include "common.h"
 
 #define SERVER_PORT      67
@@ -146,7 +145,6 @@ static char **get_client_devices(char *dev_list, int *client_number)
 	return client_dev;
 }
 
-
 /* Creates listen sockets (in fds) bound to client and server ifaces,
  * and returns numerically max fd.
  */
@@ -167,7 +165,6 @@ static int init_sockets(char **client_ifaces, int num_clients,
 	}
 	return n;
 }
-
 
 /**
  * pass_to_server() - forwards dhcp packets from client to server

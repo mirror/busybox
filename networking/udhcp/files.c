@@ -1,11 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * files.c -- DHCP server file manipulation *
+ * DHCP server config and lease file manipulation
+ *
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include <netinet/ether.h>
 
 #include "common.h"
@@ -72,28 +72,28 @@ struct config_keyword {
 };
 
 static const struct config_keyword keywords[] = {
-	/* keyword       handler   variable address               default */
-	{"start",        udhcp_str2nip, &(server_config.start_ip),     "192.168.0.20"},
-	{"end",          udhcp_str2nip, &(server_config.end_ip),       "192.168.0.254"},
-	{"interface",    read_str, &(server_config.interface),    "eth0"},
+	/* keyword        handler           variable address               default */
+	{"start"        , udhcp_str2nip   , &server_config.start_ip     , "192.168.0.20"},
+	{"end"          , udhcp_str2nip   , &server_config.end_ip       , "192.168.0.254"},
+	{"interface"    , read_str        , &server_config.interface    , "eth0"},
 	/* Avoid "max_leases value not sane" warning by setting default
 	 * to default_end_ip - default_start_ip + 1: */
-	{"max_leases",   read_u32, &(server_config.max_leases),   "235"},
-	{"auto_time",    read_u32, &(server_config.auto_time),    "7200"},
-	{"decline_time", read_u32, &(server_config.decline_time), "3600"},
-	{"conflict_time",read_u32, &(server_config.conflict_time),"3600"},
-	{"offer_time",   read_u32, &(server_config.offer_time),   "60"},
-	{"min_lease",    read_u32, &(server_config.min_lease_sec),"60"},
-	{"lease_file",   read_str, &(server_config.lease_file),   LEASES_FILE},
-	{"pidfile",      read_str, &(server_config.pidfile),      "/var/run/udhcpd.pid"},
-	{"siaddr",       udhcp_str2nip, &(server_config.siaddr_nip),   "0.0.0.0"},
+	{"max_leases"   , read_u32        , &server_config.max_leases   , "235"},
+	{"auto_time"    , read_u32        , &server_config.auto_time    , "7200"},
+	{"decline_time" , read_u32        , &server_config.decline_time , "3600"},
+	{"conflict_time", read_u32        , &server_config.conflict_time, "3600"},
+	{"offer_time"   , read_u32        , &server_config.offer_time   , "60"},
+	{"min_lease"    , read_u32        , &server_config.min_lease_sec, "60"},
+	{"lease_file"   , read_str        , &server_config.lease_file   , LEASES_FILE},
+	{"pidfile"      , read_str        , &server_config.pidfile      , "/var/run/udhcpd.pid"},
+	{"siaddr"       , udhcp_str2nip   , &server_config.siaddr_nip   , "0.0.0.0"},
 	/* keywords with no defaults must be last! */
-	{"option",       udhcp_str2optset, &(server_config.options), ""},
-	{"opt",          udhcp_str2optset, &(server_config.options), ""},
-	{"notify_file",  read_str, &(server_config.notify_file),  ""},
-	{"sname",        read_str, &(server_config.sname),        ""},
-	{"boot_file",    read_str, &(server_config.boot_file),    ""},
-	{"static_lease", read_staticlease, &(server_config.static_leases), ""},
+	{"option"       , udhcp_str2optset, &server_config.options      , ""},
+	{"opt"          , udhcp_str2optset, &server_config.options      , ""},
+	{"notify_file"  , read_str        , &server_config.notify_file  , ""},
+	{"sname"        , read_str        , &server_config.sname        , ""},
+	{"boot_file"    , read_str        , &server_config.boot_file    , ""},
+	{"static_lease" , read_staticlease, &server_config.static_leases, ""},
 };
 enum { KWS_WITH_DEFAULTS = ARRAY_SIZE(keywords) - 6 };
 

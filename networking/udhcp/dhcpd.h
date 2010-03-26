@@ -1,5 +1,7 @@
 /* vi: set sw=4 ts=4: */
-/* dhcpd.h */
+/*
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ */
 #ifndef UDHCP_DHCPD_H
 #define UDHCP_DHCPD_H 1
 
@@ -65,8 +67,6 @@ struct server_config_t {
 #endif
 
 
-/*** leases.h ***/
-
 typedef uint32_t leasetime_t;
 typedef int32_t signed_leasetime_t;
 
@@ -101,8 +101,6 @@ struct dyn_lease *find_lease_by_nip(uint32_t nip) FAST_FUNC;
 uint32_t find_free_or_expired_nip(const uint8_t *safe_mac) FAST_FUNC;
 
 
-/*** static_leases.h ***/
-
 /* Config file parser will pass static lease info to this function
  * which will add it to a data structure that can be searched later */
 void add_static_lease(struct static_lease **st_lease_pp, uint8_t *mac, uint32_t nip) FAST_FUNC;
@@ -117,8 +115,6 @@ void log_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 # define log_static_leases(st_lease_pp) ((void)0)
 #endif
 
-
-/*** files.h ***/
 
 void read_config(const char *file) FAST_FUNC;
 void write_leases(void) FAST_FUNC;

@@ -2,7 +2,6 @@
 /*
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-
 #include "common.h"
 #include "dhcpd.h"
 #include "unicode.h"
@@ -54,8 +53,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	/*     "00:00:00:00:00:00 255.255.255.255 ABCDEFGHIJKLMNOPQRS Wed Jun 30 21:49:08 1993" */
 	/*     "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 */
 
-	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
-		return 0;
+	xread(fd, &written_at, sizeof(written_at));
 	written_at = ntoh64(written_at);
 	curr = time(NULL);
 	if (curr < written_at)
@@ -68,15 +66,15 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 			fmt = ":%02x";
 		}
 		addr.s_addr = lease.lease_nip;
-		/* actually, 15+1 and 19+1, +1 is a space between columns */
-		/* lease.hostname is char[20] and is always NUL terminated */
 #if ENABLE_FEATURE_ASSUME_UNICODE
 		{
-			char *uni_name = unicode_conv_to_printable_fixedwidth(NULL, lease.hostname, 20);
-			printf(" %-16s%s", inet_ntoa(addr), uni_name);
+			char *uni_name = unicode_conv_to_printable_fixedwidth(NULL, lease.hostname, 19);
+			printf(" %-16s%s ", inet_ntoa(addr), uni_name);
 			free(uni_name);
 		}
 #else
+		/* actually, 15+1 and 19+1, +1 is a space between columns */
+		/* lease.hostname is char[20] and is always NUL terminated */
 		printf(" %-16s%-20s", inet_ntoa(addr), lease.hostname);
 #endif
 		expires_abs = ntohl(lease.expires) + written_at;

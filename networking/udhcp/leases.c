@@ -1,14 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * leases.c -- tools to manage DHCP leases
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include "common.h"
 #include "dhcpd.h"
-
 
 /* Find the oldest expired lease, NULL if there are no expired leases */
 static struct dyn_lease *oldest_expired_lease(void)
@@ -28,7 +25,6 @@ static struct dyn_lease *oldest_expired_lease(void)
 	return oldest_lease;
 }
 
-
 /* Clear out all leases with matching nonzero chaddr OR yiaddr.
  * If chaddr == NULL, this is a conflict lease.
  */
@@ -45,8 +41,7 @@ static void clear_leases(const uint8_t *chaddr, uint32_t yiaddr)
 	}
 }
 
-
-/* Add a lease into the table, clearing out any old ones
+/* Add a lease into the table, clearing out any old ones.
  * If chaddr == NULL, this is a conflict lease.
  */
 struct dyn_lease* FAST_FUNC add_lease(
@@ -84,13 +79,11 @@ struct dyn_lease* FAST_FUNC add_lease(
 	return oldest;
 }
 
-
 /* True if a lease has expired */
 int FAST_FUNC is_expired_lease(struct dyn_lease *lease)
 {
 	return (lease->expires < (leasetime_t) time(NULL));
 }
-
 
 /* Find the first lease that matches MAC, NULL if no match */
 struct dyn_lease* FAST_FUNC find_lease_by_mac(const uint8_t *mac)
@@ -104,7 +97,6 @@ struct dyn_lease* FAST_FUNC find_lease_by_mac(const uint8_t *mac)
 	return NULL;
 }
 
-
 /* Find the first lease that matches IP, NULL is no match */
 struct dyn_lease* FAST_FUNC find_lease_by_nip(uint32_t nip)
 {
@@ -116,7 +108,6 @@ struct dyn_lease* FAST_FUNC find_lease_by_nip(uint32_t nip)
 
 	return NULL;
 }
-
 
 /* Check if the IP is taken; if it is, add it to the lease table */
 static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac)
@@ -137,7 +128,6 @@ static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac)
 	add_lease(NULL, nip, server_config.conflict_time, NULL, 0);
 	return 0;
 }
-
 
 /* Find a new usable (we think) address */
 uint32_t FAST_FUNC find_free_or_expired_nip(const uint8_t *safe_mac)

@@ -24,7 +24,7 @@
 #define NS_CMPRSFLGS 0xc0	/* name compression pointer flag */
 
 
-/* expand a RFC1035-compressed list of domain names "cstr", of length "clen";
+/* Expand a RFC1035-compressed list of domain names "cstr", of length "clen";
  * returns a newly allocated string containing the space-separated domains,
  * prefixed with the contents of string pre, or NULL if an error occurs.
  */
@@ -149,8 +149,7 @@ static uint8_t *convert_dname(const char *src)
 	return res;
 }
 
-/* returns the offset within cstr at which dname can be found, or -1
- */
+/* Returns the offset within cstr at which dname can be found, or -1 */
 static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 {
 	const uint8_t *c, *d;
@@ -188,7 +187,7 @@ static int find_offset(const uint8_t *cstr, int clen, const uint8_t *dname)
 	return -1;
 }
 
-/* computes string to be appended to cstr so that src would be added to
+/* Computes string to be appended to cstr so that src would be added to
  * the compression (best case, it's a 2-byte pointer to some offset within
  * cstr; worst case, it's all of src, converted to <4>host<3>com<0> format).
  * The computed string is returned directly; its length is returned via retlen;

@@ -1,16 +1,13 @@
 /* vi: set sw=4 ts=4: */
 /*
- * static_leases.c -- Couple of functions to assist with storing and
- * retrieving data for static leases
+ * Storing and retrieving data for static leases
  *
  * Wade Berrier <wberrier@myrealbox.com> September 2004
  *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
-
 #include "common.h"
 #include "dhcpd.h"
-
 
 /* Takes the address of the pointer to the static_leases linked list,
  * address to a 6 byte mac address,

@@ -1,7 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * arpping.c
- *
  * Mostly stolen from: dhcpcd - DHCP client daemon
  * by Yoichi Hariguchi <yoichi@fore.com>
  *

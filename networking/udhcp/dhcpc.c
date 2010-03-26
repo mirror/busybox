@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * udhcp DHCP client
+ * udhcp client
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
