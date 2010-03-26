@@ -81,12 +81,13 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 
 		while (*ptr) {
 			unsigned n;
-			unsigned len;
+			unsigned len = 0;
 
 			while (*ptr == ' ') {
-				column++;
 				ptr++;
+				len++;
 			}
+			column += len;
 			if (*ptr == '\t') {
 				column += tab_size - (column % tab_size);
 				ptr++;
@@ -94,16 +95,18 @@ static void unexpand(FILE *file, unsigned tab_size, unsigned opt)
 			}
 
 			n = column / tab_size;
-			column = column % tab_size;
-			while (n--)
-				putchar('\t');
+			if (n) {
+				len = column = column % tab_size;
+				while (n--)
+					putchar('\t');
+			}
 
 			if ((opt & OPT_INITIAL) && ptr != line) {
-				printf("%*s%s", column, "", ptr);
+				printf("%*s%s", len, "", ptr);
 				break;
 			}
 			n = strcspn(ptr, "\t ");
-			printf("%*s%.*s", column, "", n, ptr);
+			printf("%*s%.*s", len, "", n, ptr);
 # if ENABLE_FEATURE_ASSUME_UNICODE
 			{
 				char c;
