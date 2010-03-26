@@ -8879,77 +8879,77 @@ static int FAST_FUNC testcmd(int argc, char **argv)   { return test_main(argc, a
 
 /* Keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtintab[] = {
-	{ BUILTIN_SPEC_REG      ".", dotcmd },
-	{ BUILTIN_SPEC_REG      ":", truecmd },
+	{ BUILTIN_SPEC_REG      "."       , dotcmd     },
+	{ BUILTIN_SPEC_REG      ":"       , truecmd    },
 #if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR       "[", testcmd },
+	{ BUILTIN_REGULAR       "["       , testcmd    },
 #if ENABLE_ASH_BASH_COMPAT
-	{ BUILTIN_REGULAR       "[[", testcmd },
+	{ BUILTIN_REGULAR       "[["      , testcmd    },
 #endif
 #endif
 #if ENABLE_ASH_ALIAS
-	{ BUILTIN_REG_ASSG      "alias", aliascmd },
+	{ BUILTIN_REG_ASSG      "alias"   , aliascmd   },
 #endif
 #if JOBS
-	{ BUILTIN_REGULAR       "bg", fg_bgcmd },
+	{ BUILTIN_REGULAR       "bg"      , fg_bgcmd   },
 #endif
-	{ BUILTIN_SPEC_REG      "break", breakcmd },
-	{ BUILTIN_REGULAR       "cd", cdcmd },
-	{ BUILTIN_NOSPEC        "chdir", cdcmd },
+	{ BUILTIN_SPEC_REG      "break"   , breakcmd   },
+	{ BUILTIN_REGULAR       "cd"      , cdcmd      },
+	{ BUILTIN_NOSPEC        "chdir"   , cdcmd      },
 #if ENABLE_ASH_CMDCMD
-	{ BUILTIN_REGULAR       "command", commandcmd },
+	{ BUILTIN_REGULAR       "command" , commandcmd },
 #endif
-	{ BUILTIN_SPEC_REG      "continue", breakcmd },
+	{ BUILTIN_SPEC_REG      "continue", breakcmd   },
 #if ENABLE_ASH_BUILTIN_ECHO
-	{ BUILTIN_REGULAR       "echo", echocmd },
+	{ BUILTIN_REGULAR       "echo"    , echocmd    },
 #endif
-	{ BUILTIN_SPEC_REG      "eval", evalcmd },
-	{ BUILTIN_SPEC_REG      "exec", execcmd },
-	{ BUILTIN_SPEC_REG      "exit", exitcmd },
-	{ BUILTIN_SPEC_REG_ASSG "export", exportcmd },
-	{ BUILTIN_REGULAR       "false", falsecmd },
+	{ BUILTIN_SPEC_REG      "eval"    , evalcmd    },
+	{ BUILTIN_SPEC_REG      "exec"    , execcmd    },
+	{ BUILTIN_SPEC_REG      "exit"    , exitcmd    },
+	{ BUILTIN_SPEC_REG_ASSG "export"  , exportcmd  },
+	{ BUILTIN_REGULAR       "false"   , falsecmd   },
 #if JOBS
-	{ BUILTIN_REGULAR       "fg", fg_bgcmd },
+	{ BUILTIN_REGULAR       "fg"      , fg_bgcmd   },
 #endif
 #if ENABLE_ASH_GETOPTS
-	{ BUILTIN_REGULAR       "getopts", getoptscmd },
+	{ BUILTIN_REGULAR       "getopts" , getoptscmd },
 #endif
-	{ BUILTIN_NOSPEC        "hash", hashcmd },
+	{ BUILTIN_NOSPEC        "hash"    , hashcmd    },
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
-	{ BUILTIN_NOSPEC        "help", helpcmd },
+	{ BUILTIN_NOSPEC        "help"    , helpcmd    },
 #endif
 #if JOBS
-	{ BUILTIN_REGULAR       "jobs", jobscmd },
-	{ BUILTIN_REGULAR       "kill", killcmd },
+	{ BUILTIN_REGULAR       "jobs"    , jobscmd    },
+	{ BUILTIN_REGULAR       "kill"    , killcmd    },
 #endif
 #if ENABLE_SH_MATH_SUPPORT
-	{ BUILTIN_NOSPEC        "let", letcmd },
+	{ BUILTIN_NOSPEC        "let"     , letcmd     },
 #endif
-	{ BUILTIN_ASSIGN        "local", localcmd },
+	{ BUILTIN_ASSIGN        "local"   , localcmd   },
 #if ENABLE_ASH_BUILTIN_PRINTF
-	{ BUILTIN_REGULAR       "printf", printfcmd },
+	{ BUILTIN_REGULAR       "printf"  , printfcmd  },
 #endif
-	{ BUILTIN_NOSPEC        "pwd", pwdcmd },
-	{ BUILTIN_REGULAR       "read", readcmd },
-	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd },
-	{ BUILTIN_SPEC_REG      "return", returncmd },
-	{ BUILTIN_SPEC_REG      "set", setcmd },
-	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
-	{ BUILTIN_SPEC_REG      "source", dotcmd },
+	{ BUILTIN_NOSPEC        "pwd"     , pwdcmd     },
+	{ BUILTIN_REGULAR       "read"    , readcmd    },
+	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd  },
+	{ BUILTIN_SPEC_REG      "return"  , returncmd  },
+	{ BUILTIN_SPEC_REG      "set"     , setcmd     },
+	{ BUILTIN_SPEC_REG      "shift"   , shiftcmd   },
+	{ BUILTIN_SPEC_REG      "source"  , dotcmd     },
 #if ENABLE_ASH_BUILTIN_TEST
-	{ BUILTIN_REGULAR       "test", testcmd },
+	{ BUILTIN_REGULAR       "test"    , testcmd    },
 #endif
-	{ BUILTIN_SPEC_REG      "times", timescmd },
-	{ BUILTIN_SPEC_REG      "trap", trapcmd },
-	{ BUILTIN_REGULAR       "true", truecmd },
-	{ BUILTIN_NOSPEC        "type", typecmd },
-	{ BUILTIN_NOSPEC        "ulimit", ulimitcmd },
-	{ BUILTIN_REGULAR       "umask", umaskcmd },
+	{ BUILTIN_SPEC_REG      "times"   , timescmd   },
+	{ BUILTIN_SPEC_REG      "trap"    , trapcmd    },
+	{ BUILTIN_REGULAR       "true"    , truecmd    },
+	{ BUILTIN_NOSPEC        "type"    , typecmd    },
+	{ BUILTIN_NOSPEC        "ulimit"  , ulimitcmd  },
+	{ BUILTIN_REGULAR       "umask"   , umaskcmd   },
 #if ENABLE_ASH_ALIAS
-	{ BUILTIN_REGULAR       "unalias", unaliascmd },
+	{ BUILTIN_REGULAR       "unalias" , unaliascmd },
 #endif
-	{ BUILTIN_SPEC_REG      "unset", unsetcmd },
-	{ BUILTIN_REGULAR       "wait", waitcmd },
+	{ BUILTIN_SPEC_REG      "unset"   , unsetcmd   },
+	{ BUILTIN_REGULAR       "wait"    , waitcmd    },
 };
 
 /* Should match the above table! */
