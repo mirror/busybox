@@ -49,10 +49,10 @@ static const uint8_t len_of_option_as_string[] = {
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_STR1035] =	1,
 #endif
-	[OPTION_BOOLEAN] =	sizeof("yes "),
+//	[OPTION_BOOLEAN] =	sizeof("yes "),
 	[OPTION_U8] =		sizeof("255 "),
 	[OPTION_U16] =		sizeof("65535 "),
-	[OPTION_S16] =		sizeof("-32768 "),
+//	[OPTION_S16] =		sizeof("-32768 "),
 	[OPTION_U32] =		sizeof("4294967295 "),
 	[OPTION_S32] =		sizeof("-2147483684 "),
 };
@@ -81,7 +81,6 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 	unsigned upper_length;
 	int len, type, optlen;
 	uint16_t val_u16;
-	int16_t val_s16;
 	uint32_t val_u32;
 	int32_t val_s32;
 	char *dest, *ret;
@@ -108,9 +107,9 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 // Should we bail out/warn if we see multi-ip option which is
 // not allowed to be such? For example, DHCP_BROADCAST...
 			break;
-		case OPTION_BOOLEAN:
-			dest += sprintf(dest, *option ? "yes" : "no");
-			break;
+//		case OPTION_BOOLEAN:
+//			dest += sprintf(dest, *option ? "yes" : "no");
+//			break;
 		case OPTION_U8:
 			dest += sprintf(dest, "%u", *option);
 			break;
@@ -118,10 +117,12 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			move_from_unaligned16(val_u16, option);
 			dest += sprintf(dest, "%u", ntohs(val_u16));
 			break;
-		case OPTION_S16:
-			move_from_unaligned16(val_s16, option);
-			dest += sprintf(dest, "%d", ntohs(val_s16));
-			break;
+//		case OPTION_S16: {
+//			int16_t val_s16;
+//			move_from_unaligned16(val_s16, option);
+//			dest += sprintf(dest, "%d", ntohs(val_s16));
+//			break;
+//		}
 		case OPTION_U32:
 			move_from_unaligned32(val_u32, option);
 			dest += sprintf(dest, "%lu", (unsigned long) ntohl(val_u32));
@@ -318,23 +319,23 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
-		udhcp_add_option_string(packet->options, client_config.clientid);
+		udhcp_add_binary_option(packet->options, client_config.clientid);
 	if (client_config.hostname)
-		udhcp_add_option_string(packet->options, client_config.hostname);
+		udhcp_add_binary_option(packet->options, client_config.hostname);
 	if (client_config.fqdn)
-		udhcp_add_option_string(packet->options, client_config.fqdn);
+		udhcp_add_binary_option(packet->options, client_config.fqdn);
 	if (type != DHCPDECLINE
 	 && type != DHCPRELEASE
 	 && client_config.vendorclass
 	) {
-		udhcp_add_option_string(packet->options, client_config.vendorclass);
+		udhcp_add_binary_option(packet->options, client_config.vendorclass);
 	}
 }
 
 static void add_client_options(struct dhcp_packet *packet)
 {
 	/* Add am "param req" option with the list of options we'd like to have
-	 * from stubborn DHCP servers. Pull the data from the struct in options.c.
+	 * from stubborn DHCP servers. Pull the data from the struct in common.c.
 	 * No bounds checking because it goes towards the head of the packet. */
 	uint8_t c;
 	int end = udhcp_end_option(packet->options);
@@ -360,7 +361,7 @@ static void add_client_options(struct dhcp_packet *packet)
 	{
 		struct option_set *curr = client_config.options;
 		while (curr) {
-			udhcp_add_option_string(packet->options, curr->data);
+			udhcp_add_binary_option(packet->options, curr->data);
 			curr = curr->next;
 		}
 //		if (client_config.sname)

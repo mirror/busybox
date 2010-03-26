@@ -74,10 +74,10 @@ enum {
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	OPTION_STR1035,	/* RFC1035 compressed domain name list */
 #endif
-	OPTION_BOOLEAN,
+//	OPTION_BOOLEAN,
 	OPTION_U8,
 	OPTION_U16,
-	OPTION_S16,
+//	OPTION_S16,
 	OPTION_U32,
 	OPTION_S32,
 	OPTION_STATIC_ROUTES,
@@ -172,14 +172,13 @@ extern const uint8_t dhcp_option_lengths[];
 
 uint8_t *udhcp_get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 int udhcp_end_option(uint8_t *optionptr) FAST_FUNC;
-void udhcp_add_option_string(uint8_t *optionptr, uint8_t *string) FAST_FUNC;
+void udhcp_add_binary_option(uint8_t *optionptr, uint8_t *addopt) FAST_FUNC;
 void udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FAST_FUNC;
 #if ENABLE_FEATURE_UDHCP_RFC3397
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
-/* 2nd param is actually "struct option_set**" */
-int FAST_FUNC udhcp_str2optset(const char *const_line, void *arg);
+struct option_set *find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients
@@ -254,6 +253,11 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 
 
 /*** Other shared functions ***/
+
+/* 2nd param is "uint32_t*" */
+int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
+/* 2nd param is "struct option_set**" */
+int FAST_FUNC udhcp_str2optset(const char *str, void *arg);
 
 uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
 

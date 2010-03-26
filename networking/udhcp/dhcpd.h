@@ -123,7 +123,6 @@ void log_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 void read_config(const char *file) FAST_FUNC;
 void write_leases(void) FAST_FUNC;
 void read_leases(const char *file) FAST_FUNC;
-struct option_set *find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
 
 POP_SAVED_FUNCTION_VISIBILITY

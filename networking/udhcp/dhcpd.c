@@ -105,7 +105,7 @@ static void add_server_options(struct dhcp_packet *packet)
 
 	while (curr) {
 		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			udhcp_add_option_string(packet->options, curr->data);
+			udhcp_add_binary_option(packet->options, curr->data);
 		curr = curr->next;
 	}
 
