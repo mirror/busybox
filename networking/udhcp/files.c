@@ -167,10 +167,11 @@ void FAST_FUNC write_leases(void)
 	close(fd);
 
 	if (server_config.notify_file) {
-// TODO: vfork-based child creation
-		char *cmd = xasprintf("%s %s", server_config.notify_file, server_config.lease_file);
-		system(cmd);
-		free(cmd);
+		char *argv[3];
+		argv[0] = server_config.notify_file;
+		argv[1] = server_config.lease_file;
+		argv[2] = NULL;
+		spawn_and_wait(argv);
 	}
 }
 

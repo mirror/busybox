@@ -93,7 +93,7 @@ static void init_packet(struct dhcp_packet *packet, struct dhcp_packet *oldpacke
 	packet->flags = oldpacket->flags;
 	packet->gateway_nip = oldpacket->gateway_nip;
 	packet->ciaddr = oldpacket->ciaddr;
-	udhcp_add_simple_option(packet->options, DHCP_SERVER_ID, server_config.server_nip);
+	udhcp_add_simple_option(packet, DHCP_SERVER_ID, server_config.server_nip);
 }
 
 /* Fill options field, siaddr_nip, and sname and boot_file fields.
@@ -105,7 +105,7 @@ static void add_server_options(struct dhcp_packet *packet)
 
 	while (curr) {
 		if (curr->data[OPT_CODE] != DHCP_LEASE_TIME)
-			udhcp_add_binary_option(packet->options, curr->data);
+			udhcp_add_binary_option(packet, curr->data);
 		curr = curr->next;
 	}
 
@@ -194,7 +194,7 @@ static void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip,
 	}
 
 	lease_time_sec = select_lease_time(oldpacket);
-	udhcp_add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
 	add_server_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
@@ -224,7 +224,7 @@ static void send_ACK(struct dhcp_packet *oldpacket, uint32_t yiaddr)
 	packet.yiaddr = yiaddr;
 
 	lease_time_sec = select_lease_time(oldpacket);
-	udhcp_add_simple_option(packet.options, DHCP_LEASE_TIME, htonl(lease_time_sec));
+	udhcp_add_simple_option(&packet, DHCP_LEASE_TIME, htonl(lease_time_sec));
 
 	add_server_options(&packet);
 
@@ -324,7 +324,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	bb_info_msg("%s (v"BB_VER") started", applet_name);
 
-	option = find_option(server_config.options, DHCP_LEASE_TIME);
+	option = udhcp_find_option(server_config.options, DHCP_LEASE_TIME);
 	server_config.max_lease_sec = DEFAULT_LEASE_TIME;
 	if (option) {
 		move_from_unaligned32(server_config.max_lease_sec, option->data + OPT_DATA);

@@ -226,14 +226,16 @@ int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 /* Add an option (supplied in binary form) to the options.
  * Option format: [code][len][data1][data2]..[dataLEN]
  */
-void FAST_FUNC udhcp_add_binary_option(uint8_t *optionptr, uint8_t *addopt)
+void FAST_FUNC udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addopt)
 {
 	unsigned len;
+	uint8_t *optionptr = packet->options;
 	unsigned end = udhcp_end_option(optionptr);
 
-	/* end position + option code/length + addopt length + end option */
 	len = OPT_DATA + addopt[OPT_LEN];
+	/* end position + (option code/length + addopt length) + end option */
 	if (end + len + 1 >= DHCP_OPTIONS_BUFSIZE) {
+//TODO: learn how to use overflow option if we exhaust packet->options[]
 		bb_error_msg("option 0x%02x did not fit into the packet",
 				addopt[OPT_CODE]);
 		return;
@@ -243,8 +245,8 @@ void FAST_FUNC udhcp_add_binary_option(uint8_t *optionptr, uint8_t *addopt)
 	optionptr[end + len] = DHCP_END;
 }
 
-/* Add a one to four byte option to a packet */
-void FAST_FUNC udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
+/* Add an one to four byte option to a packet */
+void FAST_FUNC udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t data)
 {
 	const struct dhcp_option *dh;
 
@@ -259,7 +261,7 @@ void FAST_FUNC udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_
 				data <<= 8 * (4 - len);
 			/* Assignment is unaligned! */
 			move_to_unaligned32(&option[OPT_DATA], data);
-			udhcp_add_binary_option(optionptr, option);
+			udhcp_add_binary_option(packet, option);
 			return;
 		}
 	}
@@ -268,7 +270,7 @@ void FAST_FUNC udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_
 }
 
 /* Find option 'code' in opt_list */
-struct option_set* FAST_FUNC find_option(struct option_set *opt_list, uint8_t code)
+struct option_set* FAST_FUNC udhcp_find_option(struct option_set *opt_list, uint8_t code)
 {
 	while (opt_list && opt_list->data[OPT_CODE] < code)
 		opt_list = opt_list->next;
@@ -307,7 +309,7 @@ static NOINLINE void attach_option(
 	char *allocated = NULL;
 #endif
 
-	existing = find_option(*opt_list, option->code);
+	existing = udhcp_find_option(*opt_list, option->code);
 	if (!existing) {
 		log2("Attaching option %02x to list", option->code);
 #if ENABLE_FEATURE_UDHCP_RFC3397

@@ -319,22 +319,22 @@ static void init_packet(struct dhcp_packet *packet, char type)
 	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
-		udhcp_add_binary_option(packet->options, client_config.clientid);
+		udhcp_add_binary_option(packet, client_config.clientid);
 	if (client_config.hostname)
-		udhcp_add_binary_option(packet->options, client_config.hostname);
+		udhcp_add_binary_option(packet, client_config.hostname);
 	if (client_config.fqdn)
-		udhcp_add_binary_option(packet->options, client_config.fqdn);
+		udhcp_add_binary_option(packet, client_config.fqdn);
 	if (type != DHCPDECLINE
 	 && type != DHCPRELEASE
 	 && client_config.vendorclass
 	) {
-		udhcp_add_binary_option(packet->options, client_config.vendorclass);
+		udhcp_add_binary_option(packet, client_config.vendorclass);
 	}
 }
 
 static void add_client_options(struct dhcp_packet *packet)
 {
-	/* Add am "param req" option with the list of options we'd like to have
+	/* Add a "param req" option with the list of options we'd like to have
 	 * from stubborn DHCP servers. Pull the data from the struct in common.c.
 	 * No bounds checking because it goes towards the head of the packet. */
 	uint8_t c;
@@ -361,7 +361,7 @@ static void add_client_options(struct dhcp_packet *packet)
 	{
 		struct option_set *curr = client_config.options;
 		while (curr) {
-			udhcp_add_binary_option(packet->options, curr->data);
+			udhcp_add_binary_option(packet, curr->data);
 			curr = curr->next;
 		}
 //		if (client_config.sname)
@@ -405,10 +405,10 @@ static int send_discover(uint32_t xid, uint32_t requested)
 	init_packet(&packet, DHCPDISCOVER);
 	packet.xid = xid;
 	if (requested)
-		udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
+		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 	/* Explicitly saying that we want RFC-compliant packets helps
 	 * some buggy DHCP servers to NOT send bigger packets */
-	udhcp_add_simple_option(packet.options, DHCP_MAX_SIZE, htons(576));
+	udhcp_add_simple_option(&packet, DHCP_MAX_SIZE, htons(576));
 	add_client_options(&packet);
 
 	bb_info_msg("Sending discover...");
@@ -426,8 +426,8 @@ static int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 
 	init_packet(&packet, DHCPREQUEST);
 	packet.xid = xid;
-	udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 	add_client_options(&packet);
 
 	addr.s_addr = requested;
@@ -461,8 +461,8 @@ static int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 
 	init_packet(&packet, DHCPDECLINE);
 	packet.xid = xid;
-	udhcp_add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
-	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending decline...");
 	return raw_bcast_from_client_config_ifindex(&packet);
@@ -478,7 +478,7 @@ static int send_release(uint32_t server, uint32_t ciaddr)
 	packet.xid = random_xid();
 	packet.ciaddr = ciaddr;
 
-	udhcp_add_simple_option(packet.options, DHCP_SERVER_ID, server);
+	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending release...");
 	return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);

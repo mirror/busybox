@@ -172,13 +172,13 @@ extern const uint8_t dhcp_option_lengths[];
 
 uint8_t *udhcp_get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 int udhcp_end_option(uint8_t *optionptr) FAST_FUNC;
-void udhcp_add_binary_option(uint8_t *optionptr, uint8_t *addopt) FAST_FUNC;
-void udhcp_add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data) FAST_FUNC;
+void udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addopt) FAST_FUNC;
+void udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t data) FAST_FUNC;
 #if ENABLE_FEATURE_UDHCP_RFC3397
 char *dname_dec(const uint8_t *cstr, int clen, const char *pre) FAST_FUNC;
 uint8_t *dname_enc(const uint8_t *cstr, int clen, const char *src, int *retlen) FAST_FUNC;
 #endif
-struct option_set *find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
+struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) FAST_FUNC;
 
 
 // RFC 2131  Table 5: Fields and options used by DHCP clients

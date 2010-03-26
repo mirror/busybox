@@ -163,6 +163,7 @@ uint32_t FAST_FUNC find_free_or_expired_nip(const uint8_t *safe_mac)
 
 		lease = find_lease_by_nip(nip);
 		if (!lease) {
+//TODO: DHCP servers do not always sit on the same subnet as clients: should *ping*, not arp-ping!
 			if (nobody_responds_to_arp(nip, safe_mac))
 				return nip;
 		} else {

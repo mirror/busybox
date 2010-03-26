@@ -33,7 +33,7 @@ void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 	packet->cookie = htonl(DHCP_MAGIC);
 	if (DHCP_END != 0)
 		packet->options[0] = DHCP_END;
-	udhcp_add_simple_option(packet->options, DHCP_MESSAGE_TYPE, type);
+	udhcp_add_simple_option(packet, DHCP_MESSAGE_TYPE, type);
 }
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
