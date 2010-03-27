@@ -1003,14 +1003,14 @@
        "Display DHCP leases granted by udhcpd\n" \
      "\nOptions:" \
 	IF_LONG_OPTS( \
-     "\n	-f,--file=FILE	Leases file to load" \
-     "\n	-r,--remaining	Interpret lease times as time remaining" \
-     "\n	-a,--absolute	Interpret lease times as expire time" \
+     "\n	-f,--file=FILE	Lease file" \
+     "\n	-r,--remaining	Show remaining time" \
+     "\n	-a,--absolute	Show expiration time" \
 	) \
 	IF_NOT_LONG_OPTS( \
-     "\n	-f FILE	Leases file to load" \
-     "\n	-r	Interpret lease times as time remaining" \
-     "\n	-a	Interpret lease times as expire time" \
+     "\n	-f FILE	Lease file" \
+     "\n	-r	Show remaining time" \
+     "\n	-a	Show expiration time" \
 	)
 
 /*
@@ -1042,8 +1042,8 @@
 	IF_FEATURE_FANCY_ECHO( "\n" \
      "\nOptions:" \
      "\n	-n	Suppress trailing newline" \
-     "\n	-e	Interpret backslash-escaped characters (i.e., \\t=tab)" \
-     "\n	-E	Disable interpretation of backslash-escaped characters" \
+     "\n	-e	Interpret backslash escapes (i.e., \\t=tab)" \
+     "\n	-E	Don't interpret backslash escapes (default)" \
 	)
 #define echo_example_usage \
        "$ echo \"Erik is cool\"\n" \

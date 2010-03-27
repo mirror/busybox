@@ -71,11 +71,11 @@ typedef uint32_t leasetime_t;
 typedef int32_t signed_leasetime_t;
 
 struct dyn_lease {
-	/* "nip": IP in network order */
 	/* Unix time when lease expires. Kept in memory in host order.
 	 * When written to file, converted to network order
 	 * and adjusted (current time subtracted) */
 	leasetime_t expires;
+	/* "nip": IP in network order */
 	uint32_t lease_nip;
 	/* We use lease_mac[6], since e.g. ARP probing uses
 	 * only 6 first bytes anyway. We check received dhcp packets
