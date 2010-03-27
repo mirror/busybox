@@ -56,8 +56,7 @@ static void sysctl_dots_to_slashes(char *name)
 			*cptr = '\0';
 			//bb_error_msg("trying:'%s'", name);
 			if (access(name, F_OK) == 0) {
-				if (cptr != end) /* prevent trailing '/' */
-					*cptr = '/';
+				*cptr = '/';
 				//bb_error_msg("replaced:'%s'", name);
 				last_good = cptr;
 				goto again;
