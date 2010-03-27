@@ -146,6 +146,25 @@ static void log_option(const char *pfx, const uint8_t *opt)
 # define log_option(pfx, opt) ((void)0)
 #endif
 
+unsigned FAST_FUNC udhcp_option_idx(const char *name)
+{
+	int n = index_in_strings(dhcp_option_strings, name);
+	if (n >= 0)
+		return n;
+
+	{
+		char buf[sizeof(dhcp_option_strings)];
+		char *d = buf;
+		const char *s = dhcp_option_strings;
+		while (s < dhcp_option_strings + sizeof(dhcp_option_strings) - 2) {
+			*d++ = (*s == '\0' ? ' ' : *s);
+			s++;
+		}
+		*d = '\0';
+		bb_error_msg_and_die("unknown option '%s', known options: %s", name, buf);
+	}
+}
+
 /* get an option with bounds checking (warning, result is not aligned). */
 uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 {
@@ -372,7 +391,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	char *opt, *val, *endptr;
 	char *str;
 	const struct dhcp_option *option;
-	int retval, length, idx;
+	int retval, length;
 	char buffer[8] ALIGNED(4);
 	uint16_t *result_u16 = (uint16_t *) buffer;
 	uint32_t *result_u32 = (uint32_t *) buffer;
@@ -383,10 +402,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	if (!opt)
 		return 0;
 
-	idx = index_in_strings(dhcp_option_strings, opt); /* NB: was strcasecmp! */
-	if (idx < 0)
-		return 0;
-	option = &dhcp_options[idx];
+	option = &dhcp_options[udhcp_option_idx(opt)];
 
 	retval = 0;
 	do {

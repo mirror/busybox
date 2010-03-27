@@ -879,21 +879,17 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		client_config.no_default_options = 1;
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
-		int n = index_in_strings(dhcp_option_strings, optstr);
-		if (n < 0)
-			bb_error_msg_and_die("unknown option '%s'", optstr);
+		unsigned n = udhcp_option_idx(optstr);
 		n = dhcp_options[n].code;
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 	while (list_x) {
-		int n;
+		unsigned n;
 		char *optstr = llist_pop(&list_x);
 		char *colon = strchr(optstr, ':');
 		if (colon)
 			*colon = '\0';
-		n = index_in_strings(dhcp_option_strings, optstr);
-		if (n < 0)
-			bb_error_msg_and_die("unknown option '%s'", optstr);
+		n = udhcp_option_idx(optstr);
 		if (colon)
 			*colon = ' ';
 		udhcp_str2optset(optstr, &client_config.options);

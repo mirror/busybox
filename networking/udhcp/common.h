@@ -169,6 +169,8 @@ extern const struct dhcp_option dhcp_options[];
 extern const char dhcp_option_strings[];
 extern const uint8_t dhcp_option_lengths[];
 
+unsigned FAST_FUNC udhcp_option_idx(const char *name);
+
 uint8_t *udhcp_get_option(struct dhcp_packet *packet, int code) FAST_FUNC;
 int udhcp_end_option(uint8_t *optionptr) FAST_FUNC;
 void udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addopt) FAST_FUNC;
