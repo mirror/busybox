@@ -1090,7 +1090,7 @@
      "\n	-p pass		Append four or six byte password PW to the packet" \
 
 #define expand_trivial_usage \
-       "[-i] [-t N] [FILE|-]"
+       "[-i] [-t N] [FILE]..."
 #define expand_full_usage "\n\n" \
        "Convert tabs to spaces, writing to stdout\n" \
      "\nOptions:" \
@@ -1496,7 +1496,7 @@
 #define getsebool_trivial_usage \
        "-a or getsebool boolean..."
 #define getsebool_full_usage "\n\n" \
-       "	-a	Show all SELinux booleans"
+       "	-a	Show all selinux booleans"
 
 #define getty_trivial_usage \
        "[OPTIONS] BAUD_RATE TTY [TERMTYPE]"
@@ -3520,7 +3520,7 @@
        "Halt and shut off power\n" \
      "\nOptions:" \
      "\n	-d	Delay interval for halting" \
-     "\n	-n	No call to sync()" \
+     "\n	-n	Do not sync" \
      "\n	-f	Force power off (don't go through init)" \
 
 #define printenv_trivial_usage \
@@ -3565,7 +3565,7 @@
        "Report process status\n" \
 	USAGE_PS \
 	IF_SELINUX( \
-     "\n	-Z	Show SE Linux context" \
+     "\n	-Z	Show selinux context" \
 	) \
 	IF_FEATURE_PS_WIDE( \
      "\n	w	Wide output" \
@@ -3651,7 +3651,7 @@
        "Options:" \
      "\n	-m mapfile	(Default: /boot/System.map)" \
      "\n	-p profile	(Default: /proc/profile)" \
-     "\n	-M mult		Set the profiling multiplier to mult" \
+     "\n	-M NUM		Set the profiling multiplier to NUM" \
      "\n	-i		Print only info about the sampling step" \
      "\n	-v		Verbose" \
      "\n	-a		Print all symbols, even if count is 0" \
@@ -3711,20 +3711,20 @@
        "Resize the screen"
 
 #define restorecon_trivial_usage \
-       "[-iFnrRv] [-e excludedir]... [-o filename] [-f filename | pathname]"
+       "[-iFnRv] [-e EXCLUDEDIR]... [-o FILE] [-f FILE]"
 #define restorecon_full_usage "\n\n" \
        "Reset security contexts of files in pathname\n" \
-     "\n	-i		Ignore files that don't exist" \
-     "\n	-f file		File with list of files to process. Use - for stdin" \
-     "\n	-e directory	Directory to exclude" \
-     "\n	-R,-r		Recurse" \
-     "\n	-n		Don't change any file labels" \
-     "\n	-o file		Save list of files with incorrect context" \
-     "\n	-v		Verbose" \
-     "\n	-vv		Show changed labels" \
-     "\n	-F		Force reset of context to match file_context" \
-     "\n			for customizable files, or the user section," \
-     "\n			if it has changed" \
+     "\n	-i	Ignore files that don't exist" \
+     "\n	-f FILE	File with list of files to process" \
+     "\n	-e DIR	Directory to exclude" \
+     "\n	-R,-r	Recurse" \
+     "\n	-n	Don't change any file labels" \
+     "\n	-o FILE	Save list of files with incorrect context" \
+     "\n	-v	Verbose" \
+     "\n	-vv	Show changed labels" \
+     "\n	-F	Force reset of context to match file_context" \
+     "\n		for customizable files, or the user section," \
+     "\n		if it has changed" \
 
 #define rm_trivial_usage \
        "[OPTIONS] FILE..."
@@ -3818,7 +3818,7 @@
 
 #define runcon_trivial_usage \
        "[-c] [-u USER] [-r ROLE] [-t TYPE] [-l RANGE] PROG ARGS\n" \
-       "	runcon CONTEXT PROG ARGS"
+       "runcon CONTEXT PROG ARGS"
 #define runcon_full_usage "\n\n" \
        "Run PROG in a different security context\n" \
      "\n	CONTEXT		Complete security context\n" \
@@ -3898,7 +3898,7 @@
 #define script_full_usage "\n\n" \
        "Options:" \
      "\n	-a	Append output" \
-     "\n	-c	Run PROG, not shell" \
+     "\n	-c PROG	Run PROG, not shell" \
      "\n	-f	Flush output after each write" \
      "\n	-q	Quiet" \
 	IF_SCRIPTREPLAY( \
@@ -4046,14 +4046,14 @@
        "See setsid(2) for details." \
 
 #define last_trivial_usage \
-       ""IF_FEATURE_LAST_FANCY("[-HW] [-f file]")
+       ""IF_FEATURE_LAST_FANCY("[-HW] [-f FILE]")
 #define last_full_usage "\n\n" \
        "Show listing of the last users that logged into the system" \
 	IF_FEATURE_LAST_FANCY( "\n" \
      "\nOptions:" \
 /*   "\n	-H	Show header line" */ \
      "\n	-W	Display with no host column truncation" \
-     "\n	-f file Read from file instead of /var/log/wtmp" \
+     "\n	-f FILE Read from FILE instead of /var/log/wtmp" \
 	)
 
 #define showkey_trivial_usage \
@@ -4265,7 +4265,7 @@
        " %d	Free file nodes in file system\n" \
        " %f	Free blocks in file system\n" \
 	IF_SELINUX( \
-       " %C	Security context in SELinux\n" \
+       " %C	Security context in selinux\n" \
 	) \
        " %i	File System ID in hex\n" \
        " %l	Maximum length of filenames\n" \
@@ -4338,7 +4338,7 @@
        "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service" \
 
 #define svlogd_trivial_usage \
-       "[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."
+       "[-ttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."
 #define svlogd_full_usage "\n\n" \
        "Continuously read log data from stdin, optionally\n" \
        "filter log messages, and write the data to one or more automatically\n" \
@@ -4926,7 +4926,7 @@
        "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
 
 #define uncompress_trivial_usage \
-       "[-c] [-f] [FILE]..."
+       "[-cf] [FILE]..."
 #define uncompress_full_usage "\n\n" \
        "Uncompress .Z file[s]\n" \
      "\nOptions:" \
@@ -4934,7 +4934,7 @@
      "\n	-f	Overwrite an existing file" \
 
 #define unexpand_trivial_usage \
-       "[-f][-a][-t N] [FILE|-]"
+       "[-fa][-t N] [FILE]..."
 #define unexpand_full_usage "\n\n" \
        "Convert spaces to tabs, writing to stdout\n" \
      "\nOptions:" \
@@ -4950,7 +4950,7 @@
 	)
 
 #define uniq_trivial_usage \
-       "[-fscduw]... [INPUT [OUTPUT]]"
+       "[-cdu][-f,s,w N] [INPUT [OUTPUT]]"
 #define uniq_full_usage "\n\n" \
        "Discard duplicate lines\n" \
      "\nOptions:" \
@@ -4968,7 +4968,7 @@
        "c\n"
 
 #define unzip_trivial_usage \
-       "[-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]"
+       "[-opts[modifiers]] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
 #define unzip_full_usage "\n\n" \
        "Extract files from ZIP archives\n" \
      "\nOptions:" \
@@ -4977,8 +4977,8 @@
      "\n	-o	Overwrite files without prompting" \
      "\n	-p	Send output to stdout" \
      "\n	-q	Quiet" \
-     "\n	-x	Exclude these files" \
-     "\n	-d	Extract files into this directory" \
+     "\n	-x XLST	Exclude these files" \
+     "\n	-d DIR	Extract files into DIR" \
 
 #define uptime_trivial_usage \
        ""
@@ -5108,12 +5108,12 @@
 
 #define wget_trivial_usage \
 	IF_FEATURE_WGET_LONG_OPTIONS( \
-       "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document file]\n" \
+       "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document FILE]\n" \
        "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
-       "	[--no-check-certificate] [-U|--user-agent agent] url" \
+       "	[--no-check-certificate] [-U|--user-agent AGENT] URL" \
 	) \
 	IF_NOT_FEATURE_WGET_LONG_OPTIONS( \
-       "[-csq] [-O file] [-Y on/off] [-P DIR] [-U agent] url" \
+       "[-csq] [-O FILE] [-Y on/off] [-P DIR] [-U AGENT] URL" \
 	)
 #define wget_full_usage "\n\n" \
        "Retrieve files via HTTP or FTP\n" \
@@ -5122,8 +5122,8 @@
      "\n	-c	Continue retrieval of aborted transfer" \
      "\n	-q	Quiet" \
      "\n	-P	Set directory prefix to DIR" \
-     "\n	-O	Save to filename ('-' for stdout)" \
-     "\n	-U	Adjust 'User-Agent' field" \
+     "\n	-O FILE	Save to FILE ('-' for stdout)" \
+     "\n	-U STR	Use STR for User-Agent header" \
      "\n	-Y	Use proxy ('on' or 'off')" \
 
 #define which_trivial_usage \
