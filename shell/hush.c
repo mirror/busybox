@@ -125,14 +125,18 @@
 # define USE_FOR_MMU(...)
 #endif
 
-#if defined SINGLE_APPLET_MAIN
+#define SKIP_definitions 1
+#include "applet_tables.h"
+#undef SKIP_definitions
+#if NUM_APPLETS == 1
 /* STANDALONE does not make sense, and won't compile */
 # undef CONFIG_FEATURE_SH_STANDALONE
 # undef ENABLE_FEATURE_SH_STANDALONE
 # undef IF_FEATURE_SH_STANDALONE
+# undef IF_NOT_FEATURE_SH_STANDALONE
+# define ENABLE_FEATURE_SH_STANDALONE 0
 # define IF_FEATURE_SH_STANDALONE(...)
 # define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
-# define ENABLE_FEATURE_SH_STANDALONE 0
 #endif
 
 #if !ENABLE_HUSH_INTERACTIVE
@@ -3568,7 +3572,9 @@ static void execvp_or_die(char **argv)
 {
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
-	execvp(argv[0], argv);
+	/* if FEATURE_SH_STANDALONE, "exec <applet_name>" should work,
+	 * therefore we should use BB_EXECVP, not execvp */
+	BB_EXECVP(argv[0], argv);
 	bb_perror_msg("can't execute '%s'", argv[0]);
 	_exit(127); /* bash compat */
 }

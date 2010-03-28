@@ -61,7 +61,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		logmode |= LOGMODE_SYSLOG;
 	}
 #if ENABLE_FEATURE_UDHCP_PORT
-	if (opt & 4) { /* -P */
+	if (opt & 8) { /* -P */
 		SERVER_PORT = xatou16(str_P);
 		CLIENT_PORT = SERVER_PORT + 1;
 	}

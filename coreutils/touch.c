@@ -104,7 +104,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	do {
-		if (utimes(*argv, reference_file ? timebuf : NULL) != 0) {
+		if (utimes(*argv, (reference_file || date_str) ? timebuf : NULL) != 0) {
 			if (errno == ENOENT) { /* no such file */
 				if (opts) { /* creation is disabled, so ignore */
 					continue;
@@ -113,7 +113,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 				fd = open(*argv, O_RDWR | O_CREAT, 0666);
 				if (fd >= 0) {
 					xclose(fd);
-					if (reference_file)
+					if (reference_file || date_str)
 						utimes(*argv, timebuf);
 					continue;
 				}

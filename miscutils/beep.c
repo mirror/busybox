@@ -79,11 +79,11 @@ int beep_main(int argc, char **argv)
 		}
 		while (rep) {
 //bb_info_msg("rep[%d] freq=%d, length=%d, delay=%d", rep, freq, length, delay);
-			xioctl(speaker, KIOCSOUND, (void*)(long)tickrate_div_freq);
+			xioctl(speaker, KIOCSOUND, (void*)(uintptr_t)tickrate_div_freq);
 			usleep(1000 * length);
 			ioctl(speaker, KIOCSOUND, (void*)0);
 			if (--rep)
-				usleep(delay);
+				usleep(1000 * delay);
 		}
 	}
 

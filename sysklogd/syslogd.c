@@ -698,7 +698,7 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opts & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
-	umask(0);
+	//umask(0); - why??
 	write_pidfile("/var/run/syslogd.pid");
 	do_syslogd();
 	/* return EXIT_SUCCESS; */

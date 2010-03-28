@@ -7,7 +7,8 @@
 # ls -ln shows date. Need to remove that, it's variable.
 # sed: coalesce spaces
 # cut: remove date
-FILTER_LS="sed 's/  */ /g' | cut -d' ' -f 1-5,9-"
+# grep: remove "total NNN" lines
+FILTER_LS="sed 's/  */ /g' | cut -d' ' -f 1-5,9- | grep -v '^total '"
 
 
 # newc cpio archive of directory cpio.testdir with empty x and y hardlinks
@@ -36,7 +37,6 @@ ls -ln cpio.testdir | $FILTER_LS" \
 "\
 1 blocks
 0
-total 0
 -rw-r--r-- 2 $user $group 0 x
 -rw-r--r-- 2 $user $group 0 y
 " \
@@ -75,7 +75,6 @@ ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
 "\
 2 blocks
 0
-total 8
 -rw-r--r-- 2 $user $group 0 empty
 -rw-r--r-- 2 $user $group 0 empty1
 -rw-r--r-- 2 $user $group 2 nonempty

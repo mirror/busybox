@@ -43,8 +43,6 @@
 #endif
 
 #include "busybox.h" /* for applet_names */
-//TODO: pull in some .h and find out do we have SINGLE_APPLET_MAIN?
-//#include "applet_tables.h" doesn't work
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
@@ -58,12 +56,15 @@
 # define CLEAR_RANDOM_T(rnd) ((void)0)
 #endif
 
-#if defined SINGLE_APPLET_MAIN
+#define SKIP_definitions 1
+#include "applet_tables.h"
+#undef SKIP_definitions
+#if NUM_APPLETS == 1
 /* STANDALONE does not make sense, and won't compile */
 # undef CONFIG_FEATURE_SH_STANDALONE
 # undef ENABLE_FEATURE_SH_STANDALONE
 # undef IF_FEATURE_SH_STANDALONE
-# undef IF_NOT_FEATURE_SH_STANDALONE(...)
+# undef IF_NOT_FEATURE_SH_STANDALONE
 # define ENABLE_FEATURE_SH_STANDALONE 0
 # define IF_FEATURE_SH_STANDALONE(...)
 # define IF_NOT_FEATURE_SH_STANDALONE(...) __VA_ARGS__
@@ -4539,7 +4540,7 @@ forkchild(struct job *jp, union node *n, int mode)
 	if (mode == FORK_NOJOB          /* is it `xxx` ? */
 	 && n && n->type == NCMD        /* is it single cmd? */
 	/* && n->ncmd.args->type == NARG - always true? */
-	 && strcmp(n->ncmd.args->narg.text, "trap") == 0
+	 && n->ncmd.args && strcmp(n->ncmd.args->narg.text, "trap") == 0
 	 && n->ncmd.args->narg.next == NULL /* "trap" with no arguments */
 	/* && n->ncmd.args->narg.backquote == NULL - do we need to check this? */
 	) {
@@ -4627,7 +4628,7 @@ forkchild(struct job *jp, union node *n, int mode)
 	}
 #if JOBS
 	if (n && n->type == NCMD
-	 && strcmp(n->ncmd.args->narg.text, "jobs") == 0
+	 && n->ncmd.args && strcmp(n->ncmd.args->narg.text, "jobs") == 0
 	) {
 		TRACE(("Job hack\n"));
 		/* "jobs": we do not want to clear job list for it,

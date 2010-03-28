@@ -1167,7 +1167,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			break;
 		}
 
-		if (pfd[TO_CGI].revents & POLLOUT) {
+		if (pfd[TO_CGI].revents) {
 			/* hdr_cnt > 0 here due to the way pfd[TO_CGI].events set */
 			/* Have data from peer and can write to CGI */
 			count = safe_write(toCgi_wr, hdr_ptr, hdr_cnt);
@@ -1184,7 +1184,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			}
 		}
 
-		if (pfd[0].revents & POLLIN) {
+		if (pfd[0].revents) {
 			/* post_len > 0 && hdr_cnt == 0 here */
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
@@ -1202,7 +1202,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			}
 		}
 
-		if (pfd[FROM_CGI].revents & POLLIN) {
+		if (pfd[FROM_CGI].revents) {
 			/* There is something to read from CGI */
 			char *rbuf = iobuf;
 
