@@ -64,6 +64,10 @@ release: distclean
 		-name .svn \
 		-print \
 		-exec rm -r -f {} \; ; \
+	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type d \
+		-name .git \
+		-print \
+		-exec rm -r -f {} \; ; \
 	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type f \
 		-name .\#* \
 		-print \
