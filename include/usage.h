@@ -931,13 +931,28 @@
 #define dpkg_full_usage "\n\n" \
        "Install, remove and manage Debian packages\n" \
      "\nOptions:" \
+	IF_LONG_OPTS( \
+     "\n	-i,--install	Install the package" \
+     "\n	-l,--list	List of installed packages" \
+     "\n	--configure	Configure an unpackaged package" \
+     "\n	-P,--purge	Purge all files of a package" \
+     "\n	-r,--remove	Remove all but the configuration files for a package" \
+     "\n	--unpack	Unpack a package, but don't configure it" \
+     "\n	--force-depends	Ignore dependency problems" \
+     "\n	--force-confnew	Overwrite existing config files when installing" \
+     "\n	--force-confold	Keep old config files when installing" \
+	) \
+	IF_NOT_LONG_OPTS( \
      "\n	-i		Install the package" \
      "\n	-l		List of installed packages" \
      "\n	-C		Configure an unpackaged package" \
-     "\n	-F depends	Ignore dependency problems" \
      "\n	-P		Purge all files of a package" \
      "\n	-r		Remove all but the configuration files for a package" \
      "\n	-u		Unpack a package, but don't configure it" \
+     "\n	-F depends	Ignore dependency problems" \
+     "\n	-F confnew	Overwrite existing config files when installing" \
+     "\n	-F confold	Keep old config files when installing" \
+	)
 
 #define dpkg_deb_trivial_usage \
        "[-cefxX] FILE [argument]"
