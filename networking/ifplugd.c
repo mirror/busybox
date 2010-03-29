@@ -214,7 +214,7 @@ static int network_ioctl(int request, void* data, const char *errmsg)
 {
 	int r = ioctl(ioctl_fd, request, data);
 	if (r < 0 && errmsg)
-		bb_perror_msg(errmsg);
+		bb_perror_msg("%s failed", errmsg);
 	return r;
 }
 
@@ -239,7 +239,7 @@ static void up_iface(void)
 		return;
 
 	set_ifreq_to_ifname(&ifrequest);
-	if (network_ioctl(SIOCGIFFLAGS, &ifrequest, "can't get interface flags") < 0) {
+	if (network_ioctl(SIOCGIFFLAGS, &ifrequest, "getting interface flags") < 0) {
 		G.iface_exists = 0;
 		return;
 	}
@@ -248,7 +248,7 @@ static void up_iface(void)
 		ifrequest.ifr_flags |= IFF_UP;
 		/* Let user know we mess up with interface */
 		bb_error_msg("upping interface");
-		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "can't set interface flags") < 0)
+		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0)
 			xfunc_die();
 	}
 
@@ -307,13 +307,13 @@ static smallint detect_link_mii(void)
 
 	set_ifreq_to_ifname(&ifreq);
 
-	if (network_ioctl(SIOCGMIIPHY, &ifreq, "SIOCGMIIPHY failed") < 0) {
+	if (network_ioctl(SIOCGMIIPHY, &ifreq, "SIOCGMIIPHY") < 0) {
 		return IFSTATUS_ERR;
 	}
 
 	mii->reg_num = 1;
 
-	if (network_ioctl(SIOCGMIIREG, &ifreq, "SIOCGMIIREG failed") < 0) {
+	if (network_ioctl(SIOCGMIIREG, &ifreq, "SIOCGMIIREG") < 0) {
 		return IFSTATUS_ERR;
 	}
 
@@ -327,13 +327,13 @@ static smallint detect_link_priv(void)
 
 	set_ifreq_to_ifname(&ifreq);
 
-	if (network_ioctl(SIOCDEVPRIVATE, &ifreq, "SIOCDEVPRIVATE failed") < 0) {
+	if (network_ioctl(SIOCDEVPRIVATE, &ifreq, "SIOCDEVPRIVATE") < 0) {
 		return IFSTATUS_ERR;
 	}
 
 	mii->reg_num = 1;
 
-	if (network_ioctl(SIOCDEVPRIVATE+1, &ifreq, "SIOCDEVPRIVATE+1 failed") < 0) {
+	if (network_ioctl(SIOCDEVPRIVATE+1, &ifreq, "SIOCDEVPRIVATE+1") < 0) {
 		return IFSTATUS_ERR;
 	}
 
@@ -350,7 +350,7 @@ static smallint detect_link_ethtool(void)
 	edata.cmd = ETHTOOL_GLINK;
 	ifreq.ifr_data = (void*) &edata;
 
-	if (network_ioctl(SIOCETHTOOL, &ifreq, "ETHTOOL_GLINK failed") < 0) {
+	if (network_ioctl(SIOCETHTOOL, &ifreq, "ETHTOOL_GLINK") < 0) {
 		return IFSTATUS_ERR;
 	}
 
@@ -363,7 +363,7 @@ static smallint detect_link_iff(void)
 
 	set_ifreq_to_ifname(&ifreq);
 
-	if (network_ioctl(SIOCGIFFLAGS, &ifreq, "SIOCGIFFLAGS failed") < 0) {
+	if (network_ioctl(SIOCGIFFLAGS, &ifreq, "SIOCGIFFLAGS") < 0) {
 		return IFSTATUS_ERR;
 	}
 
@@ -381,20 +381,21 @@ static smallint detect_link_iff(void)
 
 static smallint detect_link_wlan(void)
 {
+	int i;
 	struct iwreq iwrequest;
 	uint8_t mac[ETH_ALEN];
 
-	memset(&iwrequest, 0, sizeof(struct iwreq));
+	memset(&iwrequest, 0, sizeof(iwrequest));
 	strncpy_IFNAMSIZ(iwrequest.ifr_ifrn.ifrn_name, G.iface);
 
-	if (network_ioctl(SIOCGIWAP, &iwrequest, "SIOCGIWAP failed") < 0) {
+	if (network_ioctl(SIOCGIWAP, &iwrequest, "SIOCGIWAP") < 0) {
 		return IFSTATUS_ERR;
 	}
 
-	memcpy(mac, &(iwrequest.u.ap_addr.sa_data), ETH_ALEN);
+	memcpy(mac, &iwrequest.u.ap_addr.sa_data, ETH_ALEN);
 
 	if (mac[0] == 0xFF || mac[0] == 0x44 || mac[0] == 0x00) {
-		for (int i = 1; i < ETH_ALEN; ++i) {
+		for (i = 1; i < ETH_ALEN; ++i) {
 			if (mac[i] != mac[0])
 				return IFSTATUS_UP;
 		}
@@ -406,7 +407,17 @@ static smallint detect_link_wlan(void)
 
 static smallint detect_link_auto(void)
 {
-	const char *method;
+	static const struct {
+		const char *name;
+		smallint (*func)(void);
+	} method[] = {
+		{ "SIOCETHTOOL"       , &detect_link_ethtool },
+		{ "SIOCGMIIPHY"       , &detect_link_mii     },
+		{ "SIOCDEVPRIVATE"    , &detect_link_priv    },
+		{ "wireless extension", &detect_link_wlan    },
+		{ "IFF_RUNNING"       , &detect_link_iff     },
+	};
+	int i;
 	smallint iface_status;
 	smallint sv_logmode;
 
@@ -417,48 +428,17 @@ static smallint detect_link_auto(void)
 	}
 
 	sv_logmode = logmode;
-	logmode = LOGMODE_NONE;
-
-	iface_status = detect_link_ethtool();
-	if (iface_status != IFSTATUS_ERR) {
-		G.cached_detect_link_func = detect_link_ethtool;
-		method = "SIOCETHTOOL";
- found_method:
+	for (i = 0; i < ARRAY_SIZE(method); i++) {
+		logmode = LOGMODE_NONE;
+		iface_status = method[i].func();
 		logmode = sv_logmode;
-		bb_error_msg("using %s detection mode", method);
-		return iface_status;
+		if (iface_status != IFSTATUS_ERR) {
+			G.cached_detect_link_func = method[i].func;
+			bb_error_msg("using %s detection mode", method[i].name);
+			break;
+		}
 	}
-
-	iface_status = detect_link_mii();
-	if (iface_status != IFSTATUS_ERR) {
-		G.cached_detect_link_func = detect_link_mii;
-		method = "SIOCGMIIPHY";
-		goto found_method;
-	}
-
-	iface_status = detect_link_priv();
-	if (iface_status != IFSTATUS_ERR) {
-		G.cached_detect_link_func = detect_link_priv;
-		method = "SIOCDEVPRIVATE";
-		goto found_method;
-	}
-
-	iface_status = detect_link_wlan();
-	if (iface_status != IFSTATUS_ERR) {
-		G.cached_detect_link_func = detect_link_wlan;
-		method = "wireless extension";
-		goto found_method;
-	}
-
-	iface_status = detect_link_iff();
-	if (iface_status != IFSTATUS_ERR) {
-		G.cached_detect_link_func = detect_link_iff;
-		method = "IFF_RUNNING";
-		goto found_method;
-	}
-
-	logmode = sv_logmode;
-	return iface_status; /* IFSTATUS_ERR */
+	return iface_status;
 }
 
 static smallint detect_link(void)
