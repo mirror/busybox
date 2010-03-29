@@ -26,11 +26,16 @@
  *
  * FEATURE_INSTALLER or FEATURE_SUID will still link printf routines in. :(
  */
-
 #include "busybox.h"
 #include <assert.h>
 #include <malloc.h>
-#include <sys/user.h> /* PAGE_SIZE */
+/* Try to pull in PAGE_SIZE */
+#ifdef __linux__
+# include <sys/user.h>
+#endif
+#ifdef __GNU__ /* Hurd */
+# include <mach/vm_param.h>
+#endif
 
 
 /* Declare <applet>_main() */
@@ -41,13 +46,13 @@
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 /* Define usage_messages[] */
 static const char usage_messages[] ALIGN1 = ""
-#define MAKE_USAGE
-#include "usage.h"
-#include "applets.h"
+# define MAKE_USAGE
+# include "usage.h"
+# include "applets.h"
 ;
-#undef MAKE_USAGE
+# undef MAKE_USAGE
 #else
-#define usage_messages 0
+# define usage_messages 0
 #endif /* SHOW_USAGE */
 
 
