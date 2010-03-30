@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * ifplugd for busybox
+ * ifplugd for busybox, based on ifplugd 0.28 (written by Lennart Poettering).
  *
  * Copyright (C) 2009 Maksym Kryzhanovskyy <xmaks@email.cz>
  *
@@ -22,7 +22,11 @@
 #include <linux/wireless.h>
 
 /*
-TODO: describe compat status here.
+From initial port to busybox, removed most of the redundancy by
+converting implementation of a polymorphic interface to the strict
+functional style. The main role is run a script when link state
+changed, other activities like audio signal or detailed reports
+are on the script itself.
 
 One questionable point of the design is netlink usage:
 
@@ -500,38 +504,30 @@ static NOINLINE int check_existence_through_netlink(void)
 
 		mhdr = (struct nlmsghdr*)replybuf;
 		while (bytes > 0) {
-			if (!NLMSG_OK(mhdr, bytes)
-			 || bytes < sizeof(struct nlmsghdr)
-			 || bytes < mhdr->nlmsg_len
-			) {
+			if (!NLMSG_OK(mhdr, bytes)) {
 				bb_error_msg("netlink packet too small or truncated");
 				return -1;
 			}
 
 			if (mhdr->nlmsg_type == RTM_NEWLINK || mhdr->nlmsg_type == RTM_DELLINK) {
 				struct rtattr *attr;
-				struct ifinfomsg *imsg;
 				int attr_len;
-
-				imsg = NLMSG_DATA(mhdr);
 
 				if (mhdr->nlmsg_len < NLMSG_LENGTH(sizeof(struct ifinfomsg))) {
 					bb_error_msg("netlink packet too small or truncated");
 					return -1;
 				}
 
-				attr = (struct rtattr*)((char*)imsg + NLMSG_ALIGN(sizeof(struct ifinfomsg)));
-				attr_len = NLMSG_PAYLOAD(mhdr, sizeof(struct ifinfomsg));
+				attr = IFLA_RTA(NLMSG_DATA(mhdr));
+				attr_len = IFLA_PAYLOAD(mhdr);
 
 				while (RTA_OK(attr, attr_len)) {
 					if (attr->rta_type == IFLA_IFNAME) {
-						char ifname[IFNAMSIZ + 1];
 						int len = RTA_PAYLOAD(attr);
-
 						if (len > IFNAMSIZ)
 							len = IFNAMSIZ;
-						memcpy(ifname, RTA_DATA(attr), len);
-						if (strcmp(G.iface, ifname) == 0) {
+
+						if (strncmp(G.iface, RTA_DATA(attr), len) == 0) {
 							G.iface_exists = (mhdr->nlmsg_type == RTM_NEWLINK);
 						}
 					}
