@@ -245,7 +245,7 @@ static int version_compare(const unsigned ver1, const unsigned ver2)
 {
 	char *ch_ver1 = name_hashtable[ver1];
 	char *ch_ver2 = name_hashtable[ver2];
-	unsigned long epoch1 = 0, epoch2 = 0;
+	unsigned epoch1 = 0, epoch2 = 0;
 	char *colon;
 	char *deb_ver1, *deb_ver2;
 	char *upstream_ver1;
@@ -278,17 +278,16 @@ static int version_compare(const unsigned ver1, const unsigned ver2)
 	deb_ver1 = strrchr(upstream_ver1, '-');
 	deb_ver2 = strrchr(upstream_ver2, '-');
 	if (deb_ver1) {
-		deb_ver1[0] = '\0';
-		deb_ver1++;
+		*deb_ver1++ = '\0';
 	}
 	if (deb_ver2) {
-		deb_ver2[0] = '\0';
-		deb_ver2++;
+		*deb_ver2++ = '\0';
 	}
 	result = version_compare_part(upstream_ver1, upstream_ver2);
-	if (!result)
+	if (result == 0) {
 		/* Compare debian versions */
 		result = version_compare_part(deb_ver1, deb_ver2);
+	}
 
 	free(upstream_ver1);
 	free(upstream_ver2);
@@ -1570,13 +1569,16 @@ static void FAST_FUNC data_extract_all_prefix(archive_handle_t *archive_handle)
 }
 
 enum {
+	/* Commands */
 	OPT_configure            = (1 << 0),
-	OPT_force                = (1 << 1),
-	OPT_install              = (1 << 2),
-	OPT_list_installed       = (1 << 3),
-	OPT_purge                = (1 << 4),
-	OPT_remove               = (1 << 5),
-	OPT_unpack               = (1 << 6),
+	OPT_install              = (1 << 1),
+	OPT_list_installed       = (1 << 2),
+	OPT_purge                = (1 << 3),
+	OPT_remove               = (1 << 4),
+	OPT_unpack               = (1 << 5),
+	OPTMASK_cmd              = (1 << 6) - 1,
+	/* Options */
+	OPT_force                = (1 << 6),
 	OPT_force_ignore_depends = (1 << 7),
 	OPT_force_confnew        = (1 << 8),
 	OPT_force_confold        = (1 << 9),
@@ -1716,7 +1718,8 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	IF_LONG_OPTS(applet_long_options = dpkg_longopts);
-	opt = getopt32(argv, "CF:ilPru", &str_f);
+	opt = getopt32(argv, "CilPruF:", &str_f);
+	argv += optind;
 	//if (opt & OPT_configure) ... // -C
 	if (opt & OPT_force) { // -F (--force in official dpkg)
 		if (strcmp(str_f, "depends") == 0)
@@ -1725,7 +1728,8 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 			opt |= OPT_force_confnew;
 		else if (strcmp(str_f, "confold") == 0)
 			opt |= OPT_force_confold;
-		else bb_show_usage();
+		else
+			bb_show_usage();
 		option_mask32 = opt;
 	}
 	//if (opt & OPT_install) ... // -i
@@ -1733,17 +1737,19 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 	//if (opt & OPT_purge) ... // -P
 	//if (opt & OPT_remove) ... // -r
 	//if (opt & OPT_unpack) ... // -u (--unpack in official dpkg)
-	argv += optind;
-	/* check for non-option argument if expected  */
-	if (!opt || (!argv[0] && !(opt & OPT_list_installed)))
+	if (!(opt & OPTMASK_cmd) /* no cmd */
+	 || ((opt & OPTMASK_cmd) & ((opt & OPTMASK_cmd)-1)) /* more than one cmd */
+	 || (!(opt & OPT_list_installed) && !argv[0]) /* - all except -l require argument */
+	) {
 		bb_show_usage();
+	}
 
 /*	puts("(Reading database ... xxxxx files and directories installed.)"); */
 	index_status_file("/var/lib/dpkg/status");
 
 	/* if the list action was given print the installed packages and exit */
 	if (opt & OPT_list_installed) {
-		list_packages(argv[0]);
+		list_packages(argv[0]); /* param can be NULL */
 		return EXIT_SUCCESS;
 	}
 
