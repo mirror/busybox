@@ -1739,7 +1739,6 @@ int dpkg_main(int argc UNUSED_PARAM, char **argv)
 	//if (opt & OPT_unpack) ... // -u (--unpack in official dpkg)
 	if (!(opt & OPTMASK_cmd) /* no cmd */
 	 || ((opt & OPTMASK_cmd) & ((opt & OPTMASK_cmd)-1)) /* more than one cmd */
-	 || (!(opt & OPT_list_installed) && !argv[0]) /* - all except -l require argument */
 	) {
 		bb_show_usage();
 	}
