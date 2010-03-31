@@ -187,7 +187,7 @@ int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
  * TODO: audit & stop using these in bbox, they pull in static buffers */
 /**********************************************************************/
 
-#if 0
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 struct passwd *fgetpwent(FILE *stream)
 {
 	struct statics *S;
@@ -399,35 +399,6 @@ struct spwd *getspnam(const char *name)
 }
 #endif
 
-#ifdef THIS_ONE_IS_UNUSED
-/* This one doesn't use static buffers */
-int getpw(uid_t uid, char *buf)
-{
-	struct passwd resultbuf;
-	struct passwd *result;
-	char buffer[PWD_BUFFER_SIZE];
-
-	if (!buf) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	if (!getpwuid_r(uid, &resultbuf, buffer, sizeof(buffer), &result)) {
-		if (sprintf(buf, "%s:%s:%lu:%lu:%s:%s:%s\n",
-					resultbuf.pw_name, resultbuf.pw_passwd,
-					(unsigned long)(resultbuf.pw_uid),
-					(unsigned long)(resultbuf.pw_gid),
-					resultbuf.pw_gecos, resultbuf.pw_dir,
-					resultbuf.pw_shell) >= 0
-		) {
-			return 0;
-		}
-	}
-
-	return -1;
-}
-#endif
-
 /**********************************************************************/
 
 /* FIXME: we don't have such CONFIG_xx - ?! */
@@ -584,7 +555,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 }
 #endif
 
-#if 0
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 struct passwd *getpwent(void)
 {
 	static char line_buff[PWD_BUFFER_SIZE];
@@ -687,6 +658,7 @@ int getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups)
 	return ngroups_old;
 }
 
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 {
 	int rv = -1;
@@ -749,6 +721,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 
 	return rv;
 }
+#endif
 
 #if ENABLE_USE_BB_SHADOW
 static const unsigned char put_sp_off[] ALIGN1 = {

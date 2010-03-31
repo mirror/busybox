@@ -55,6 +55,7 @@ extern void setgrent(void);
 /* Close the group-file stream.  */
 extern void endgrent(void);
 
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 /* Read an entry from the group-file stream, opening it if necessary.  */
 extern struct group *getgrent(void);
 
@@ -64,6 +65,7 @@ extern struct group *fgetgrent(FILE *__stream);
 /* Write the given entry onto the given stream.  */
 extern int putgrent(const struct group *__restrict __p,
 		     FILE *__restrict __f);
+#endif
 
 /* Search for an entry with a matching group ID.  */
 extern struct group *getgrgid(gid_t __gid);

@@ -42,7 +42,6 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 #define getpwuid_r  bb_internal_getpwuid_r
 #define getpwnam_r  bb_internal_getpwnam_r
 #define fgetpwent_r bb_internal_fgetpwent_r
-//#define getpw       bb_internal_getpw
 
 
 /* All function names below should be remapped by #defines above
@@ -55,6 +54,7 @@ extern void setpwent(void);
 /* Close the password-file stream.  */
 extern void endpwent(void);
 
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 /* Read an entry from the password-file stream, opening it if necessary.  */
 extern struct passwd *getpwent(void);
 
@@ -64,6 +64,7 @@ extern struct passwd *fgetpwent(FILE *__stream);
 /* Write the given entry onto the given stream.  */
 extern int putpwent(const struct passwd *__restrict __p,
 		     FILE *__restrict __f);
+#endif
 
 /* Search for an entry with a matching user ID.  */
 extern struct passwd *getpwuid(uid_t __uid);
@@ -100,11 +101,6 @@ extern int fgetpwent_r(FILE *__restrict __stream,
 			char *__restrict __buffer, size_t __buflen,
 			struct passwd **__restrict __result);
 
-/* Re-construct the password-file line for the given uid
-   in the given buffer.  This knows the format that the caller
-   will expect, but this need not be the format of the password file.  */
-/* UNUSED extern int getpw(uid_t __uid, char *__buffer); */
-
 POP_SAVED_FUNCTION_VISIBILITY
 
-#endif /* pwd.h  */
+#endif
