@@ -19,7 +19,6 @@
  */
 
 #include "libbb.h"
-//#include <features.h>
 #include <assert.h>
 
 #ifndef _PATH_SHADOW
@@ -1000,7 +999,6 @@ static int bb__parsespent(void *data, char *line)
 			if (*endptr != ':') {
 				break;
 			}
-
 		}
 
 		*line++ = '\0';
@@ -1022,56 +1020,60 @@ static int bb__parsespent(void *data, char *line)
 static int bb__pgsreader(int (*parserfunc)(void *d, char *line), void *data,
 				char *__restrict line_buff, size_t buflen, FILE *f)
 {
-	int line_len;
 	int skip;
 	int rv = ERANGE;
 
 	if (buflen < PWD_BUFFER_SIZE) {
 		errno = rv;
-	} else {
-		skip = 0;
-		do {
-			if (!fgets(line_buff, buflen, f)) {
-				if (feof(f)) {
-					rv = ENOENT;
-				}
+		return rv;
+	}
+
+	skip = 0;
+	while (1) {
+		if (!fgets(line_buff, buflen, f)) {
+			if (feof(f)) {
+				rv = ENOENT;
+			}
+			break;
+		}
+
+		{
+			int line_len = strlen(line_buff) - 1;
+			if (line_len >= 0 && line_buff[line_len] == '\n') {
+				line_buff[line_len] = '\0';
+			} else
+			if (line_len + 2 == buflen) {
+				/* A start (or continuation) of overlong line */
+				skip = 1;
+				continue;
+			} /* else: a last line in the file, and it has no '\n' */
+		}
+
+		if (skip) {
+			/* This "line" is a remainder of overlong line, ignore */
+			skip = 0;
+			continue;
+		}
+
+		/* NOTE: glibc difference - glibc strips leading whitespace from
+		 * records.  We do not allow leading whitespace. */
+
+		/* Skip empty lines, comment lines, and lines with leading
+		 * whitespace. */
+		if (line_buff[0] != '\0' && line_buff[0] != '#' && !isspace(line_buff[0])) {
+			if (parserfunc == bb__parsegrent) {
+				/* Do evil group hack:
+				 * The group entry parsing function needs to know where
+				 * the end of the buffer is so that it can construct the
+				 * group member ptr table. */
+				((struct group *) data)->gr_name = line_buff + buflen;
+			}
+			if (parserfunc(data, line_buff) == 0) {
+				rv = 0;
 				break;
 			}
-
-			line_len = strlen(line_buff) - 1; /* strlen() must be > 0. */
-			if (line_buff[line_len] == '\n') {
-				line_buff[line_len] = 0;
-			} else if (line_len + 2 == buflen) { /* line too long */
-				++skip;
-				continue;
-			}
-
-			if (skip) {
-				--skip;
-				continue;
-			}
-
-			/* NOTE: glibc difference - glibc strips leading whitespace from
-			 * records.  We do not allow leading whitespace. */
-
-			/* Skip empty lines, comment lines, and lines with leading
-			 * whitespace. */
-			if (*line_buff && (*line_buff != '#') && !isspace(*line_buff)) {
-				if (parserfunc == bb__parsegrent) {	/* Do evil group hack. */
-					/* The group entry parsing function needs to know where
-					 * the end of the buffer is so that it can construct the
-					 * group member ptr table. */
-					((struct group *) data)->gr_name = line_buff + buflen;
-				}
-
-				if (!parserfunc(data, line_buff)) {
-					rv = 0;
-					break;
-				}
-			}
-		} while (1);
-
-	}
+		}
+	} /* while (1) */
 
 	return rv;
 }
