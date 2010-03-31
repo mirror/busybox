@@ -42,13 +42,17 @@
 /**********************************************************************/
 /* Prototypes for internal functions. */
 
-static int bb__pgsreader(int (*parserfunc)(void *d, char *line), void *data,
-		char *__restrict line_buff, size_t buflen, FILE *f);
+static int bb__pgsreader(
+		int FAST_FUNC (*parserfunc)(void *d, char *line),
+		void *data,
+		char *__restrict line_buff,
+		size_t buflen,
+		FILE *f);
 
-static int bb__parsepwent(void *pw, char *line);
-static int bb__parsegrent(void *gr, char *line);
+static int FAST_FUNC bb__parsepwent(void *pw, char *line);
+static int FAST_FUNC bb__parsegrent(void *gr, char *line);
 #if ENABLE_USE_BB_SHADOW
-static int bb__parsespent(void *sp, char *line);
+static int FAST_FUNC bb__parsespent(void *sp, char *line);
 #endif
 
 /**********************************************************************/
@@ -230,7 +234,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 	if (buflen < PWD_BUFFER_SIZE) {
  DO_ERANGE:
-		errno=rv;
+		errno = rv;
 		goto DONE;
 	}
 
@@ -405,14 +409,17 @@ int getpw(uid_t uid, char *buf)
 
 	if (!buf) {
 		errno = EINVAL;
-	} else if (!getpwuid_r(uid, &resultbuf, buffer, sizeof(buffer), &result)) {
+		return -1;
+	}
+
+	if (!getpwuid_r(uid, &resultbuf, buffer, sizeof(buffer), &result)) {
 		if (sprintf(buf, "%s:%s:%lu:%lu:%s:%s:%s\n",
 					resultbuf.pw_name, resultbuf.pw_passwd,
 					(unsigned long)(resultbuf.pw_uid),
 					(unsigned long)(resultbuf.pw_gid),
 					resultbuf.pw_gecos, resultbuf.pw_dir,
 					resultbuf.pw_shell) >= 0
-			) {
+		) {
 			return 0;
 		}
 	}
@@ -644,7 +651,7 @@ static gid_t *getgrouplist_internal(int *ngroups_ptr, const char *user, gid_t gi
 			for (m = group.gr_mem; *m; m++) {
 				if (strcmp(*m, user) != 0)
 					continue;
-				group_list = xrealloc_vector(group_list, 3, ngroups);
+				group_list = xrealloc_vector(group_list, /*8=2^3:*/ 3, ngroups);
 				group_list[ngroups++] = group.gr_gid;
 				break;
 			}
@@ -686,16 +693,17 @@ int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 
 	if (!p || !f) {
 		errno = EINVAL;
-	} else {
-		/* No extra thread locking is needed above what fprintf does. */
-		if (fprintf(f, "%s:%s:%lu:%lu:%s:%s:%s\n",
-					p->pw_name, p->pw_passwd,
-					(unsigned long)(p->pw_uid),
-					(unsigned long)(p->pw_gid),
-					p->pw_gecos, p->pw_dir, p->pw_shell) >= 0
-			) {
-			rv = 0;
-		}
+		return rv;
+	}
+
+	/* No extra thread locking is needed above what fprintf does. */
+	if (fprintf(f, "%s:%s:%lu:%lu:%s:%s:%s\n",
+				p->pw_name, p->pw_passwd,
+				(unsigned long)(p->pw_uid),
+				(unsigned long)(p->pw_gid),
+				p->pw_gecos, p->pw_dir, p->pw_shell) >= 0
+		) {
+		rv = 0;
 	}
 
 	return rv;
@@ -703,38 +711,39 @@ int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 
 int putgrent(const struct group *__restrict p, FILE *__restrict f)
 {
-	static const char format[] ALIGN1 = ",%s";
-
-	char **m;
-	const char *fmt;
 	int rv = -1;
 
 	if (!p || !f) {				/* Sigh... glibc checks. */
 		errno = EINVAL;
-	} else {
-		if (fprintf(f, "%s:%s:%lu:",
-					p->gr_name, p->gr_passwd,
-					(unsigned long)(p->gr_gid)) >= 0
-			) {
+		return rv;
+	}
 
-			fmt = format + 1;
+	if (fprintf(f, "%s:%s:%lu:",
+				p->gr_name, p->gr_passwd,
+				(unsigned long)(p->gr_gid)) >= 0
+	) {
+		static const char format[] ALIGN1 = ",%s";
 
-			assert(p->gr_mem);
-			m = p->gr_mem;
+		char **m;
+		const char *fmt;
 
-			while (1) {
-				if (!*m) {
-					if (fputc('\n', f) >= 0) {
-						rv = 0;
-					}
-					break;
+		fmt = format + 1;
+
+		assert(p->gr_mem);
+		m = p->gr_mem;
+
+		while (1) {
+			if (!*m) {
+				if (fputc('\n', f) >= 0) {
+					rv = 0;
 				}
-				if (fprintf(f, fmt, *m) < 0) {
-					break;
-				}
-				++m;
-				fmt = format;
+				break;
 			}
+			if (fprintf(f, fmt, *m) < 0) {
+				break;
+			}
+			m++;
+			fmt = format;
 		}
 	}
 
@@ -742,7 +751,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 }
 
 #if ENABLE_USE_BB_SHADOW
-static const unsigned char _sp_off[] ALIGN1 = {
+static const unsigned char put_sp_off[] ALIGN1 = {
 	offsetof(struct spwd, sp_lstchg),       /* 2 - not a char ptr */
 	offsetof(struct spwd, sp_min),          /* 3 - not a char ptr */
 	offsetof(struct spwd, sp_max),          /* 4 - not a char ptr */
@@ -753,9 +762,7 @@ static const unsigned char _sp_off[] ALIGN1 = {
 
 int putspent(const struct spwd *p, FILE *stream)
 {
-	static const char ld_format[] ALIGN1 = "%ld:";
-
-	const char *f;
+	const char *fmt;
 	long x;
 	int i;
 	int rv = -1;
@@ -767,13 +774,13 @@ int putspent(const struct spwd *p, FILE *stream)
 		goto DO_UNLOCK;
 	}
 
-	for (i = 0; i < sizeof(_sp_off); i++) {
-		f = ld_format;
-		x = *(const long *)(((const char *) p) + _sp_off[i]);
+	for (i = 0; i < sizeof(put_sp_off); i++) {
+		fmt = "%ld:";
+		x = *(long *)((char *)p + put_sp_off[i]);
 		if (x == -1) {
-			f += 3;
+			fmt += 3;
 		}
-		if (fprintf(stream, f, x) < 0) {
+		if (fprintf(stream, fmt, x) < 0) {
 			goto DO_UNLOCK;
 		}
 	}
@@ -805,7 +812,7 @@ static const unsigned char pw_off[] ALIGN1 = {
 	offsetof(struct passwd, pw_shell)       /* 6 */
 };
 
-static int bb__parsepwent(void *data, char *line)
+static int FAST_FUNC bb__parsepwent(void *data, char *line)
 {
 	char *endptr;
 	char *p;
@@ -815,9 +822,9 @@ static int bb__parsepwent(void *data, char *line)
 	while (1) {
 		p = (char *) data + pw_off[i];
 
-		if ((i & 6) ^ 2) {	/* i!=2 and i!=3 */
+		if (i < 2 || i > 3) {
 			*((char **) p) = line;
-			if (i==6) {
+			if (i == 6) {
 				return 0;
 			}
 			/* NOTE: glibc difference - glibc allows omission of
@@ -844,8 +851,8 @@ static int bb__parsepwent(void *data, char *line)
 			}
 		}
 
-		*line++ = 0;
-		++i;
+		*line++ = '\0';
+		i++;
 	} /* while (1) */
 
 	return -1;
@@ -859,7 +866,7 @@ static const unsigned char gr_off[] ALIGN1 = {
 	offsetof(struct group, gr_gid)          /* 2 - not a char ptr */
 };
 
-static int bb__parsegrent(void *data, char *line)
+static int FAST_FUNC bb__parsegrent(void *data, char *line)
 {
 	char *endptr;
 	char *p;
@@ -878,8 +885,8 @@ static int bb__parsegrent(void *data, char *line)
 			if (!line) {
 				break;
 			}
-			*line++ = 0;
-			++i;
+			*line++ = '\0';
+			i++;
 		} else {
 			*((gid_t *) p) = strtoul(line, &endptr, 10);
 
@@ -954,18 +961,18 @@ static int bb__parsegrent(void *data, char *line)
 
 #if ENABLE_USE_BB_SHADOW
 static const unsigned char sp_off[] ALIGN1 = {
-	offsetof(struct spwd, sp_namp),         /* 0 */
-	offsetof(struct spwd, sp_pwdp),         /* 1 */
-	offsetof(struct spwd, sp_lstchg),       /* 2 - not a char ptr */
-	offsetof(struct spwd, sp_min),          /* 3 - not a char ptr */
-	offsetof(struct spwd, sp_max),          /* 4 - not a char ptr */
-	offsetof(struct spwd, sp_warn),         /* 5 - not a char ptr */
-	offsetof(struct spwd, sp_inact),        /* 6 - not a char ptr */
-	offsetof(struct spwd, sp_expire),       /* 7 - not a char ptr */
-	offsetof(struct spwd, sp_flag)          /* 8 - not a char ptr */
+	offsetof(struct spwd, sp_namp),         /* 0: char* */
+	offsetof(struct spwd, sp_pwdp),         /* 1: char* */
+	offsetof(struct spwd, sp_lstchg),       /* 2: long */
+	offsetof(struct spwd, sp_min),          /* 3: long */
+	offsetof(struct spwd, sp_max),          /* 4: long */
+	offsetof(struct spwd, sp_warn),         /* 5: long */
+	offsetof(struct spwd, sp_inact),        /* 6: long */
+	offsetof(struct spwd, sp_expire),       /* 7: long */
+	offsetof(struct spwd, sp_flag)          /* 8: unsigned long */
 };
 
-static int bb__parsespent(void *data, char *line)
+static int FAST_FUNC bb__parsespent(void *data, char *line)
 {
 	char *endptr;
 	char *p;
@@ -978,31 +985,26 @@ static int bb__parsespent(void *data, char *line)
 			*((char **) p) = line;
 			line = strchr(line, ':');
 			if (!line) {
-				break;
+				break; /* error */
 			}
 		} else {
 			*((long *) p) = strtoul(line, &endptr, 10);
-
 			if (endptr == line) {
-				*((long *) p) = (i != 8) ? -1L : (long)(~0UL);
+				*((long *) p) = -1L;
 			}
-
 			line = endptr;
-
 			if (i == 8) {
-				if (!*endptr) {
-					return 0;
+				if (*line != '\0') {
+					break; /* error */
 				}
-				break;
+				return 0; /* all ok */
 			}
-
-			if (*endptr != ':') {
-				break;
+			if (*line != ':') {
+				break; /* error */
 			}
 		}
-
 		*line++ = '\0';
-		++i;
+		i++;
 	}
 
 	return EINVAL;
@@ -1016,9 +1018,12 @@ static int bb__parsespent(void *data, char *line)
  *
  * Returns 0 on success and ENOENT for end-of-file (glibc concession).
  */
-
-static int bb__pgsreader(int (*parserfunc)(void *d, char *line), void *data,
-				char *__restrict line_buff, size_t buflen, FILE *f)
+static int bb__pgsreader(
+		int FAST_FUNC (*parserfunc)(void *d, char *line),
+		void *data,
+		char *__restrict line_buff,
+		size_t buflen,
+		FILE *f)
 {
 	int skip;
 	int rv = ERANGE;
