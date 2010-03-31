@@ -164,6 +164,7 @@ int fgetgrent_r(FILE *__restrict stream, struct group *__restrict resultbuf,
 }
 
 #if ENABLE_USE_BB_SHADOW
+#ifdef UNUSED_FOR_NOW
 int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 				char *__restrict buffer, size_t buflen,
 				struct spwd **__restrict result)
@@ -179,6 +180,7 @@ int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 
 	return rv;
 }
+#endif
 #endif
 
 /**********************************************************************/
@@ -212,7 +214,7 @@ struct group *fgetgrent(FILE *stream)
 #endif
 
 #if ENABLE_USE_BB_SHADOW
-#if 0
+#ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 struct spwd *fgetspent(FILE *stream)
 {
 	struct statics *S;
@@ -225,6 +227,7 @@ struct spwd *fgetspent(FILE *stream)
 }
 #endif
 
+#ifdef UNUSED_FOR_NOW
 int sgetspent_r(const char *string, struct spwd *result_buf,
 				char *buffer, size_t buflen, struct spwd **result)
 {
@@ -254,6 +257,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 	return rv;
 }
 #endif
+#endif /* ENABLE_USE_BB_SHADOW */
 
 /**********************************************************************/
 
@@ -507,6 +511,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 	return rv;
 }
 
+#ifdef UNUSED_FOR_NOW
 #if ENABLE_USE_BB_SHADOW
 static FILE *spf /*= NULL*/;
 void setspent(void)
@@ -554,6 +559,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 	return rv;
 }
 #endif
+#endif /* UNUSED_FOR_NOW */
 
 #ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 struct passwd *getpwent(void)
@@ -575,9 +581,8 @@ struct group *getgrent(void)
 	getgrent_r(&gr, line_buff, sizeof(line_buff), &result);
 	return result;
 }
-#endif
 
-#if 0 //ENABLE_USE_BB_SHADOW
+#if ENABLE_USE_BB_SHADOW
 struct spwd *getspent(void)
 {
 	static char line_buff[PWD_BUFFER_SIZE];
@@ -598,6 +603,7 @@ struct spwd *sgetspent(const char *string)
 	return result;
 }
 #endif
+#endif /* UNUSED_SINCE_WE_AVOID_STATIC_BUFS */
 
 static gid_t *getgrouplist_internal(int *ngroups_ptr, const char *user, gid_t gid)
 {
@@ -663,10 +669,13 @@ int putpwent(const struct passwd *__restrict p, FILE *__restrict f)
 {
 	int rv = -1;
 
+#if 0
+	/* glibc does this check */
 	if (!p || !f) {
 		errno = EINVAL;
 		return rv;
 	}
+#endif
 
 	/* No extra thread locking is needed above what fprintf does. */
 	if (fprintf(f, "%s:%s:%lu:%lu:%s:%s:%s\n",
@@ -685,10 +694,13 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 {
 	int rv = -1;
 
-	if (!p || !f) {				/* Sigh... glibc checks. */
+#if 0
+	/* glibc does this check */
+	if (!p || !f) {
 		errno = EINVAL;
 		return rv;
 	}
+#endif
 
 	if (fprintf(f, "%s:%s:%lu:",
 				p->gr_name, p->gr_passwd,
@@ -733,6 +745,7 @@ static const unsigned char put_sp_off[] ALIGN1 = {
 	offsetof(struct spwd, sp_expire)        /* 7 - not a char ptr */
 };
 
+#ifdef UNUSED_FOR_NOW
 int putspent(const struct spwd *p, FILE *stream)
 {
 	const char *fmt;
@@ -770,9 +783,10 @@ int putspent(const struct spwd *p, FILE *stream)
 	return rv;
 }
 #endif
+#endif /* USE_BB_SHADOW */
 
 /**********************************************************************/
-/* Internal uClibc functions.                                         */
+/* Internal functions                                                 */
 /**********************************************************************/
 
 static const unsigned char pw_off[] ALIGN1 = {
@@ -879,9 +893,9 @@ static int FAST_FUNC bb__parsegrent(void *data, char *line)
 
 			if (p[1]) { /* We have a member list to process. */
 				/* Overwrite the last ':' with a ',' before counting.
-				 * This allows us to test for initial ',' and adds
-				 * one ',' so that the ',' count equals the member
-				 * count. */
+				 * This allows us to (1) test for initial ','
+				 * and (2) adds one ',' so that the number of commas
+				 * equals the member count. */
 				*p = ',';
 				do {
 					/* NOTE: glibc difference - glibc allows and trims leading

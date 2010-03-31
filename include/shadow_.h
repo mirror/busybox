@@ -60,7 +60,7 @@ struct spwd {
 /* All function names below should be remapped by #defines above
  * in order to not collide with libc names. */
 
-
+#ifdef UNUSED_FOR_NOW
 /* Open database for reading */
 extern void setspent(void);
 
@@ -85,11 +85,13 @@ extern int putspent(const struct spwd *__p, FILE *__stream);
 /* Reentrant versions of some of the functions above */
 extern int getspent_r(struct spwd *__result_buf, char *__buffer,
 		       size_t __buflen, struct spwd **__result);
+#endif
 
 extern int getspnam_r(const char *__name, struct spwd *__result_buf,
 		       char *__buffer, size_t __buflen,
 		       struct spwd **__result);
 
+#ifdef UNUSED_FOR_NOW
 extern int sgetspent_r(const char *__string, struct spwd *__result_buf,
 			char *__buffer, size_t __buflen,
 			struct spwd **__result);
@@ -102,6 +104,7 @@ extern int lckpwdf(void);
 
 /* Unlock password file */
 extern int ulckpwdf(void);
+#endif
 
 POP_SAVED_FUNCTION_VISIBILITY
 
