@@ -229,7 +229,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 	*result = NULL;
 
 	if (buflen < PWD_BUFFER_SIZE) {
-	DO_ERANGE:
+ DO_ERANGE:
 		errno=rv;
 		goto DONE;
 	}
@@ -722,7 +722,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 			assert(p->gr_mem);
 			m = p->gr_mem;
 
-			do {
+			while (1) {
 				if (!*m) {
 					if (fputc('\n', f) >= 0) {
 						rv = 0;
@@ -734,10 +734,8 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 				}
 				++m;
 				fmt = format;
-			} while (1);
-
+			}
 		}
-
 	}
 
 	return rv;
@@ -788,7 +786,7 @@ int putspent(const struct spwd *p, FILE *stream)
 		rv = 0;
 	}
 
-DO_UNLOCK:
+ DO_UNLOCK:
 	return rv;
 }
 #endif
@@ -814,7 +812,7 @@ static int bb__parsepwent(void *data, char *line)
 	int i;
 
 	i = 0;
-	do {
+	while (1) {
 		p = (char *) data + pw_off[i];
 
 		if ((i & 6) ^ 2) {	/* i!=2 and i!=3 */
@@ -848,7 +846,7 @@ static int bb__parsepwent(void *data, char *line)
 
 		*line++ = 0;
 		++i;
-	} while (1);
+	} /* while (1) */
 
 	return -1;
 }
@@ -871,7 +869,7 @@ static int bb__parsegrent(void *data, char *line)
 
 	end_of_buf = ((struct group *) data)->gr_name; /* Evil hack! */
 	i = 0;
-	do {
+	while (1) {
 		p = (char *) data + gr_off[i];
 
 		if (i < 2) {
@@ -934,17 +932,19 @@ static int bb__parsegrent(void *data, char *line)
 
 			if (--i) {
 				p = endptr;	/* Pointing to char prior to first member. */
-				do {
+				while (1) {
 					*members++ = ++p;
-					if (!--i) break;
-					while (*++p) {}
-				} while (1);
+					if (!--i)
+						break;
+					while (*++p)
+						continue;
+				}
 			}
 			*members = NULL;
 
 			return 0;
 		}
-	} while (1);
+	} /* while (1) */
 
  ERR:
 	return -1;
