@@ -789,9 +789,9 @@ config RDATE
 	  systems.
 
 config RDEV
-       bool "rdev"
-       default n
-       help
+	bool "rdev"
+	default n
+	help
 	  Print the device node associated with the filesystem mounted at '/'.
 
 config READPROFILE

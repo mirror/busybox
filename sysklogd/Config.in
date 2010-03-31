@@ -51,14 +51,14 @@ config FEATURE_SYSLOGD_DUP
 	  which are totally the same.
 
 config FEATURE_SYSLOGD_READ_BUFFER_SIZE
-       int "Read buffer size in bytes"
-       default 256
-       range 256 20000
-       depends on SYSLOGD
-       help
-         This option sets the size of the syslog read buffer.
-         Actual memory usage increases around five times the
-         change done here.
+	int "Read buffer size in bytes"
+	default 256
+	range 256 20000
+	depends on SYSLOGD
+	help
+	  This option sets the size of the syslog read buffer.
+	  Actual memory usage increases around five times the
+	  change done here.
 
 config FEATURE_IPC_SYSLOG
 	bool "Circular Buffer support"

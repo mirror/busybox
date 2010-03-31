@@ -679,10 +679,10 @@ config NTPD
 	  The NTP client/server daemon.
 
 config FEATURE_NTPD_SERVER
-        bool "Make ntpd usable as a NTP server"
-        default y
-        depends on NTPD
-        help
+	bool "Make ntpd usable as a NTP server"
+	default y
+	depends on NTPD
+	help
 	  Make ntpd usable as a NTP server. If you disable this option
 	  ntpd will be usable only as a NTP client.
 
