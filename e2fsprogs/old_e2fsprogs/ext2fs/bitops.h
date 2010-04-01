@@ -13,9 +13,7 @@
  * i386 bitops operations taken from <asm/bitops.h>, Copyright 1992,
  * Linus Torvalds.
  */
-
 #include <string.h>
-//#include <strings.h>
 
 extern int ext2fs_set_bit(unsigned int nr,void * addr);
 extern int ext2fs_clear_bit(unsigned int nr, void * addr);

@@ -102,7 +102,7 @@
 
 /* #include <net/if.h> - no. linux/if_bonding.h pulls in linux/if.h */
 #include <linux/if.h>
-#include <net/if_arp.h>
+//#include <net/if_arp.h> - not needed?
 #include <linux/if_bonding.h>
 #include <linux/sockios.h>
 #include "fix_u32.h" /* hack, so we may include kernel's ethtool.h */

@@ -6,9 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
-//#include <sys/ioctl.h>
-//#include <sys/socket.h>
 #include <net/if.h>
 #include <net/if_packet.h>
 #include <netpacket/packet.h>
