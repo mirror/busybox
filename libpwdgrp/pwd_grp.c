@@ -736,6 +736,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 #endif
 
 #if ENABLE_USE_BB_SHADOW
+#ifdef UNUSED_FOR_NOW
 static const unsigned char put_sp_off[] ALIGN1 = {
 	offsetof(struct spwd, sp_lstchg),       /* 2 - not a char ptr */
 	offsetof(struct spwd, sp_min),          /* 3 - not a char ptr */
@@ -745,7 +746,6 @@ static const unsigned char put_sp_off[] ALIGN1 = {
 	offsetof(struct spwd, sp_expire)        /* 7 - not a char ptr */
 };
 
-#ifdef UNUSED_FOR_NOW
 int putspent(const struct spwd *p, FILE *stream)
 {
 	const char *fmt;
@@ -1000,10 +1000,10 @@ static int FAST_FUNC bb__parsespent(void *data, char *line)
 
 /**********************************************************************/
 
-/* Reads until if EOF, or until if finds a line which fits in the buffer
+/* Reads until EOF, or until it finds a line which fits in the buffer
  * and for which the parser function succeeds.
  *
- * Returns 0 on success and ENOENT for end-of-file (glibc concession).
+ * Returns 0 on success and ENOENT for end-of-file (glibc convention).
  */
 static int bb__pgsreader(
 		int FAST_FUNC (*parserfunc)(void *d, char *line),
