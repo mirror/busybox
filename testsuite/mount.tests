@@ -9,6 +9,13 @@ test "`id -u`" = 0 || {
 	exit 0
 }
 
+optional MKFS_MINIX
+if [ -n "$SKIP" ]
+then
+  echo "SKIPPED: mount"
+  exit 0
+fi
+
 testdir=$PWD/testdir
 
 dd if=/dev/zero of=mount.image1m count=1 bs=1M 2>/dev/null || { echo "dd error"; exit 1; }

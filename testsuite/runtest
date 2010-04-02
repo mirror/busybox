@@ -26,10 +26,12 @@ run_applet_testcase()
 	if grep "^# FEATURE: " "$testcase" >/dev/null; then
 		local feature=$(sed -ne 's/^# FEATURE: //p' "$testcase")
 
-		if grep "^# $feature is not set$" "$bindir/.config" >/dev/null; then
-			echo "UNTESTED: $testname"
-			return 0
-		fi
+		for f in $feature; do
+			if grep "^# $f is not set$" "$bindir/.config" >/dev/null; then
+				echo "UNTESTED: $testname"
+				return 0
+			fi
+		done
 	fi
 
 	rm -rf ".tmpdir.$applet"

@@ -31,6 +31,7 @@ Ok
 " \
 "" ""
 
+optional FEATURE_TAR_LONG_OPTIONS
 testing "tar --overwrite" "\
 rm -rf input_* test.tar 2>/dev/null
 ln input input_hard
@@ -43,6 +44,7 @@ tar xf test.tar --overwrite 2>&1 && cat input
 Ok
 " \
 "Ok\n" ""
+SKIP=
 
 cd .. && rm -rf tempdir || exit 1
 

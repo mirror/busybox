@@ -1,3 +1,4 @@
+# FEATURE: CONFIG_FEATURE_CP_LONG_OPTIONS
 mkdir -p foo/bar/baz
 touch foo/bar/baz/file
 mkdir dir
