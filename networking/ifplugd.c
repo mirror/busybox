@@ -485,8 +485,10 @@ static smallint detect_link(void)
 
 static NOINLINE int check_existence_through_netlink(void)
 {
+	int iface_len;
 	char replybuf[1024];
 
+	iface_len = strlen(G.iface);
 	while (1) {
 		struct nlmsghdr *mhdr;
 		ssize_t bytes;
@@ -526,8 +528,9 @@ static NOINLINE int check_existence_through_netlink(void)
 						int len = RTA_PAYLOAD(attr);
 						if (len > IFNAMSIZ)
 							len = IFNAMSIZ;
-
-						if (strncmp(G.iface, RTA_DATA(attr), len) == 0) {
+						if (iface_len <= len
+						 && strncmp(G.iface, RTA_DATA(attr), len) == 0
+						) {
 							G.iface_exists = (mhdr->nlmsg_type == RTM_NEWLINK);
 						}
 					}
