@@ -51,8 +51,8 @@ device nodes if your system needs something more than the default root/root
 660 permissions.
 
 The file has the format:
-    <device regex>       <uid>:<gid> <octal permissions>
- or @<maj[,min1[-min2]]> <uid>:<gid> <octal permissions>
+    <device regex>       <uid>:<gid> <permissions>
+ or @<maj[,min1[-min2]]> <uid>:<gid> <permissions>
 
 For example:
     hd[a-z][0-9]* 0:3 660
@@ -63,7 +63,7 @@ create your own total match like so:
 	.* 1:1 777
 
 You can rename/move device nodes by using the next optional field.
-	<device regex> <uid>:<gid> <octal permissions> [=path]
+	<device regex> <uid>:<gid> <permissions> [=path]
 So if you want to place the device node into a subdirectory, make sure the path
 has a trailing /.  If you want to rename the device node, just place the name.
 	hda 0:3 660 =drives/
@@ -74,11 +74,17 @@ This will rename "hdb" to "cdrom".
 Similarly, ">path" renames/moves the device but it also creates
 a direct symlink /dev/DEVNAME to the renamed/moved device.
 
+You can also prevent creation of device nodes with the 4th field as "!":
+	tty[a-z]. 0:0 660 !
+	pty[a-z]. 0:0 660 !
+
 If you also enable support for executing your own commands, then the file has
 the format:
-	<device regex> <uid>:<gid> <octal permissions> [=path] [@|$|*<command>]
+	<device regex> <uid>:<gid> <permissions> [=path] [@|$|*<command>]
     or
-	<device regex> <uid>:<gid> <octal permissions> [>path] [@|$|*<command>]
+	<device regex> <uid>:<gid> <permissions> [>path] [@|$|*<command>]
+    or
+	<device regex> <uid>:<gid> <permissions> [!] [@|$|*<command>]
 
 For example:
 ---8<---

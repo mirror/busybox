@@ -204,7 +204,8 @@ static void make_device(char *path, int delete)
 				if (major < 0)
 					continue; /* no dev, no match */
 				sc = sscanf(val, "@%u,%u-%u", &cmaj, &cmin0, &cmin1);
-				if (sc < 1 || major != cmaj
+				if (sc < 1
+				 || major != cmaj
 				 || (sc == 2 && minor != cmin0)
 				 || (sc == 3 && (minor < cmin0 || minor > cmin1))
 				) {
@@ -243,7 +244,8 @@ static void make_device(char *path, int delete)
 
 				/* If no match, skip rest of line */
 				/* (regexec returns whole pattern as "range" 0) */
-				if (result || off[0].rm_so
+				if (result
+				 || off[0].rm_so
 				 || ((int)off[0].rm_eo != (int)strlen(str_to_match))
 				) {
 					continue; /* this line doesn't match */
@@ -258,28 +260,34 @@ static void make_device(char *path, int delete)
 				bb_error_msg("unknown user/group %s on line %d", tokens[1], parser->lineno);
 
 			/* 3rd field: mode - device permissions */
-			/* mode = strtoul(tokens[2], NULL, 8); */
 			bb_parse_mode(tokens[2], &mode);
 
 			val = tokens[3];
-			/* 4th field (opt): >|=alias */
+			/* 4th field (opt): ">|=alias" or "!" to not create the node */
 
 			if (ENABLE_FEATURE_MDEV_RENAME && val) {
-				aliaslink = val[0];
-				if (aliaslink == '>' || aliaslink == '=') {
-					char *a, *s, *st;
-					char *p;
-					unsigned i, n;
+				char *a, *s, *st;
 
-					a = val;
-					s = strchrnul(val, ' ');
-					st = strchrnul(val, '\t');
-					if (st < s)
-						s = st;
-					val = (s[0] && s[1]) ? s+1 : NULL;
+				a = val;
+				s = strchrnul(val, ' ');
+				st = strchrnul(val, '\t');
+				if (st < s)
+					s = st;
+				st = (s[0] && s[1]) ? s+1 : NULL;
+
+				aliaslink = a[0];
+				if (aliaslink == '!' && s == a+1) {
+					val = st;
+					/* "!": suppress node creation/deletion */
+					major = -1;
+				}
+				else if (aliaslink == '>' || aliaslink == '=') {
+					val = st;
 					s[0] = '\0';
-
 					if (ENABLE_FEATURE_MDEV_RENAME_REGEXP) {
+						char *p;
+						unsigned i, n;
+
 						/* substitute %1..9 with off[1..9], if any */
 						n = 0;
 						s = a;
@@ -323,8 +331,13 @@ static void make_device(char *path, int delete)
 				/* Are we running this command now?
 				 * Run $cmd on delete, @cmd on create, *cmd on both
 				 */
-				if (s2-s != delete)
+				if (s2 - s != delete) {
+					/* We are here if: '*',
+					 * or: '@' and delete = 0,
+					 * or: '$' and delete = 1
+					 */
 					command = xstrdup(val + 1);
+				}
 			}
 		}
 
@@ -368,7 +381,7 @@ static void make_device(char *path, int delete)
 				free(command);
 			}
 
-			if (delete) {
+			if (delete && major >= 0) {
 				if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 					if (aliaslink == '>')
 						unlink(device_name);
