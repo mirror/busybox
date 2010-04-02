@@ -1786,13 +1786,13 @@
      "\n	-i		Inetd mode" \
      "\n	-f		Don't daemonize" \
      "\n	-v[v]		Verbose" \
-     "\n	-c FILE		Configuration file (default httpd.conf)" \
      "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
 	IF_FEATURE_HTTPD_SETUID( \
      "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
 	IF_FEATURE_HTTPD_BASIC_AUTH( \
      "\n	-r REALM	Authentication Realm for Basic Authentication") \
      "\n	-h HOME		Home directory (default .)" \
+     "\n	-c FILE		Configuration file (default {/etc,HOME}/httpd.conf)" \
 	IF_FEATURE_HTTPD_AUTH_MD5( \
      "\n	-m STRING	MD5 crypt STRING") \
      "\n	-e STRING	HTML encode STRING" \
