@@ -220,10 +220,10 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		}
 #if ENABLE_FEATURE_BRCTL_FANCY
 		if (key == ARG_stp) { /* stp */
-			static const char stp_opts[] ALIGN1 =
+			static const char no_yes[] ALIGN1 =
 				"0\0" "off\0" "n\0" "no\0"   /* 0 .. 3 */
 				"1\0" "on\0"  "y\0" "yes\0"; /* 4 .. 7 */
-			int onoff = index_in_strings(stp_opts, *argv);
+			int onoff = index_in_strings(no_yes, *argv);
 			if (onoff < 0)
 				bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 			onoff = (unsigned)onoff / 4;

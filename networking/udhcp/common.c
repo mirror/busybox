@@ -435,8 +435,8 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 			}
 			break;
 //		case OPTION_BOOLEAN: {
-//			static const char noyes[] ALIGN1 = "no\0yes\0";
-//			buffer[0] = retval = index_in_strings(noyes, val);
+//			static const char no_yes[] ALIGN1 = "no\0yes\0";
+//			buffer[0] = retval = index_in_strings(no_yes, val);
 //			retval++; /* 0 - bad; 1: "no" 2: "yes" */
 //			break;
 //		}
