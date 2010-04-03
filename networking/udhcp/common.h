@@ -71,7 +71,8 @@ enum {
 	OPTION_IP_PAIR,
 	OPTION_STRING,
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	OPTION_STR1035,	/* RFC1035 compressed domain name list */
+	OPTION_DNS_STRING,  /* RFC1035 compressed domain name list */
+	OPTION_SIP_SERVERS,
 #endif
 //	OPTION_BOOLEAN,
 	OPTION_U8,
@@ -130,6 +131,7 @@ enum {
 //#define DHCP_USER_CLASS       0x4d /* RFC 3004. set of LASCII strings. "I am a printer" etc */
 #define DHCP_FQDN               0x51 /* client asks to update DNS to map its FQDN to its new IP */
 //#define DHCP_DOMAIN_SEARCH    0x77 /* RFC 3397. set of ASCIZ string, DNS-style compressed */
+//#define DHCP_SIP_SERVERS      0x78 /* RFC 3361. flag byte, then: 0: domain names, 1: IP addrs */
 //#define DHCP_STATIC_ROUTES    0x79 /* RFC 3442. (mask,ip,router) tuples */
 //#define DHCP_WPAD             0xfc /* MSIE's Web Proxy Autodiscovery Protocol */
 #define DHCP_END                0xff

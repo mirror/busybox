@@ -42,19 +42,24 @@
 
 /* get a rough idea of how long an option will be (rounding up...) */
 static const uint8_t len_of_option_as_string[] = {
-	[OPTION_IP] =		sizeof("255.255.255.255 "),
-	[OPTION_IP_PAIR] =	sizeof("255.255.255.255 ") * 2,
-	[OPTION_STATIC_ROUTES]= sizeof("255.255.255.255/32 255.255.255.255 "),
-	[OPTION_STRING] =	1,
+	[OPTION_IP              ] = sizeof("255.255.255.255 "),
+	[OPTION_IP_PAIR         ] = sizeof("255.255.255.255 ") * 2,
+	[OPTION_STATIC_ROUTES   ] = sizeof("255.255.255.255/32 255.255.255.255 "),
+	[OPTION_STRING          ] = 1,
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	[OPTION_STR1035] =	1,
+	[OPTION_DNS_STRING      ] = 1, /* unused */
+	/* Hmmm, this severely overestimates size if SIP_SERVERS option
+	 * is in domain name form: N-byte option in binary form
+	 * mallocs ~16*N bytes. But it is freed almost at once.
+	 */
+	[OPTION_SIP_SERVERS     ] = sizeof("255.255.255.255 "),
 #endif
-//	[OPTION_BOOLEAN] =	sizeof("yes "),
-	[OPTION_U8] =		sizeof("255 "),
-	[OPTION_U16] =		sizeof("65535 "),
-//	[OPTION_S16] =		sizeof("-32768 "),
-	[OPTION_U32] =		sizeof("4294967295 "),
-	[OPTION_S32] =		sizeof("-2147483684 "),
+//	[OPTION_BOOLEAN         ] = sizeof("yes "),
+	[OPTION_U8              ] = sizeof("255 "),
+	[OPTION_U16             ] = sizeof("65535 "),
+//	[OPTION_S16             ] = sizeof("-32768 "),
+	[OPTION_U32             ] = sizeof("4294967295 "),
+	[OPTION_S32             ] = sizeof("-2147483684 "),
 };
 
 /* note: ip is a pointer to an IP in network order, possibly misaliged */
@@ -80,16 +85,13 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 {
 	unsigned upper_length;
 	int len, type, optlen;
-	uint16_t val_u16;
-	uint32_t val_u32;
-	int32_t val_s32;
 	char *dest, *ret;
 
 	/* option points to OPT_DATA, need to go back and get OPT_LEN */
 	len = option[OPT_LEN - OPT_DATA];
 	type = type_p->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
-	upper_length = len_of_option_as_string[type] * (len / optlen);
+	upper_length = len_of_option_as_string[type] * ((unsigned)len / (unsigned)optlen);
 
 	dest = ret = xmalloc(upper_length + strlen(opt_name) + 2);
 	dest += sprintf(ret, "%s=", opt_name);
@@ -113,24 +115,20 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 		case OPTION_U8:
 			dest += sprintf(dest, "%u", *option);
 			break;
-		case OPTION_U16:
+//		case OPTION_S16:
+		case OPTION_U16: {
+			uint16_t val_u16;
 			move_from_unaligned16(val_u16, option);
 			dest += sprintf(dest, "%u", ntohs(val_u16));
 			break;
-//		case OPTION_S16: {
-//			int16_t val_s16;
-//			move_from_unaligned16(val_s16, option);
-//			dest += sprintf(dest, "%d", ntohs(val_s16));
-//			break;
-//		}
-		case OPTION_U32:
-			move_from_unaligned32(val_u32, option);
-			dest += sprintf(dest, "%lu", (unsigned long) ntohl(val_u32));
-			break;
+		}
 		case OPTION_S32:
-			move_from_unaligned32(val_s32, option);
-			dest += sprintf(dest, "%ld", (long) ntohl(val_s32));
+		case OPTION_U32: {
+			uint32_t val_u32;
+			move_from_unaligned32(val_u32, option);
+			dest += sprintf(dest, type == OPTION_U32 ? "%lu" : "%ld", (unsigned long) ntohl(val_u32));
 			break;
+		}
 		case OPTION_STRING:
 			memcpy(dest, option, len);
 			dest[len] = '\0';
@@ -180,7 +178,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			return ret;
 		}
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		case OPTION_STR1035:
+		case OPTION_DNS_STRING:
 			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
 			dest = dname_dec(option, len, ret);
 			if (dest) {
@@ -189,8 +187,35 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			}
 			/* error. return "optname=" string */
 			return ret;
+		case OPTION_SIP_SERVERS:
+			/* Option binary format:
+			 * type: byte
+			 * type=0: domain names, dns-compressed
+			 * type=1: IP addrs
+			 */
+			option++;
+			len--;
+			if (option[-1] == 0) {
+				dest = dname_dec(option, len, ret);
+				if (dest) {
+					free(ret);
+					return dest;
+				}
+			} else
+			if (option[-1] == 1) {
+				const char *pfx = "";
+				while (1) {
+					len -= 4;
+					if (len < 0)
+						break;
+					dest += sprint_nip(dest, pfx, option);
+					pfx = " ";
+					option += 4;
+				}
+			}
+			return ret;
 #endif
-		}
+		} /* switch */
 		option += optlen;
 		len -= optlen;
 		if (len <= 0)

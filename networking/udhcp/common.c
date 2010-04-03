@@ -50,7 +50,8 @@ const struct dhcp_option dhcp_options[] = {
 //TODO: not a string, but a set of LASCII strings:
 //	{ OPTION_STRING                           , 0x4D }, /* DHCP_USER_CLASS    */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	{ OPTION_STR1035 | OPTION_LIST            , 0x77 }, /* DHCP_DOMAIN_SEARCH */
+	{ OPTION_DNS_STRING | OPTION_LIST         , 0x77 }, /* DHCP_DOMAIN_SEARCH */
+	{ OPTION_SIP_SERVERS                      , 0x78 }, /* DHCP_SIP_SERVERS   */
 #endif
 	{ OPTION_STATIC_ROUTES                    , 0x79 }, /* DHCP_STATIC_ROUTES */
 	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
@@ -106,22 +107,32 @@ const char dhcp_option_strings[] ALIGN1 =
 //	"userclass" "\0"   /* DHCP_USER_CLASS     */
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	"search" "\0"      /* DHCP_DOMAIN_SEARCH  */
+// doesn't work in udhcpd.conf since OPTION_SIP_SERVERS
+// is not handled yet by "string->option" conversion code:
+	"sipservers" "\0"  /* DHCP_SIP_SERVERS    */
 #endif
-// "staticroutes" is only used to set udhcpc environment, it doesn't work
-// in udhcpd.conf since OPTION_STATIC_ROUTES is not handled yet
-// by "string->option" conversion code:
-	"staticroutes" "\0"/* DHCP_STATIC_ROUTES */
-	"wpad" "\0"        /* DHCP_WPAD          */
+// doesn't work in udhcpd.conf since OPTION_STATIC_ROUTES
+// is not handled yet by "string->option" conversion code:
+	"staticroutes" "\0"/* DHCP_STATIC_ROUTES  */
+	"wpad" "\0"        /* DHCP_WPAD           */
 	;
 
-/* Lengths of the different option types */
+/* Lengths of the option types in binary form.
+ * Used by:
+ * udhcp_str2optset: to determine how many bytes to allocate.
+ * xmalloc_optname_optval: to estimate string length
+ * from binary option length: (option[LEN] / dhcp_option_lengths[opt_type])
+ * is the number of elements, multiply in by one element's string width
+ * (len_of_option_as_string[opt_type]) and you know how wide string you need.
+ */
 const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_IP] =      4,
 	[OPTION_IP_PAIR] = 8,
 //	[OPTION_BOOLEAN] = 1,
-	[OPTION_STRING] =  1,
+	[OPTION_STRING] =  1,  /* ignored by udhcp_str2optset */
 #if ENABLE_FEATURE_UDHCP_RFC3397
-	[OPTION_STR1035] = 1,
+	[OPTION_DNS_STRING] = 1,  /* ignored by both udhcp_str2optset and xmalloc_optname_optval */
+	[OPTION_SIP_SERVERS] = 1,
 #endif
 	[OPTION_U8] =      1,
 	[OPTION_U16] =     2,
@@ -332,7 +343,7 @@ static NOINLINE void attach_option(
 	if (!existing) {
 		log2("Attaching option %02x to list", option->code);
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035) {
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 			/* reuse buffer and length for RFC1035-formatted string */
 			allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
 		}
@@ -360,7 +371,7 @@ static NOINLINE void attach_option(
 		log1("Attaching option %02x to existing member of list", option->code);
 		old_len = existing->data[OPT_LEN];
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_STR1035) {
+		if ((option->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 			/* reuse buffer and length for RFC1035-formatted string */
 			allocated = buffer = (char *)dname_enc(existing->data + OPT_DATA, old_len, buffer, &length);
 		}
@@ -426,7 +437,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 			break;
 		case OPTION_STRING:
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		case OPTION_STR1035:
+		case OPTION_DNS_STRING:
 #endif
 			length = strnlen(val, 254);
 			if (length > 0) {
