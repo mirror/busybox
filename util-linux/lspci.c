@@ -1,12 +1,12 @@
 /* vi: set sw=4 ts=4: */
 /*
-* lspci implementation for busybox
-*
-* Copyright (C) 2009  Malek Degachi <malek-degachi@laposte.net>
-*
-* Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
-*/
-#include <libbb.h>
+ * lspci implementation for busybox
+ *
+ * Copyright (C) 2009  Malek Degachi <malek-degachi@laposte.net>
+ *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ */
+#include "libbb.h"
 
 enum {
 	OPT_m = (1 << 0),

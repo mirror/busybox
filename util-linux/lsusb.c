@@ -1,12 +1,12 @@
 /* vi: set sw=4 ts=4: */
 /*
-* lspci implementation for busybox
-*
-* Copyright (C) 2009  Malek Degachi <malek-degachi@laposte.net>
-*
-* Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
-*/
-#include <libbb.h>
+ * lsusb implementation for busybox
+ *
+ * Copyright (C) 2009  Malek Degachi <malek-degachi@laposte.net>
+ *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ */
+#include "libbb.h"
 
 static int FAST_FUNC fileAction(
 		const char *fileName,
