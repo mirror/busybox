@@ -2060,6 +2060,8 @@ static int awk_sub(node *rn, const char *repl, int nm, var *src, var *dest, int 
 //gsub(/\<b*/,"") on "abc" will reach this point, advance to "bc"
 //... and will erroneously match "b" even though it is NOT at the word start.
 //we need REG_NOTBOW but it does not exist...
+//TODO: if EXTRA_COMPAT=y, use GNU matching and re_search,
+//it should be able to do it correctly.
 			/* Subtle: this is safe only because
 			 * qrealloc allocated at least one extra byte */
 			resbuf[residx] = *sp;
