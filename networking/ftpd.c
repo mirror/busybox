@@ -981,17 +981,23 @@ handle_stou(void)
 static uint32_t
 cmdio_get_cmd_and_arg(void)
 {
-	size_t len;
+	int len;
 	uint32_t cmdval;
 	char *cmd;
 
 	alarm(G.timeout);
 
 	free(G.ftp_cmd);
-	len = 8 * 1024; /* Paranoia. Peer may send 1 gigabyte long cmd... */
-	G.ftp_cmd = cmd = xmalloc_fgets_str_len(stdin, "\r\n", &len);
-	if (!cmd)
-		exit(0);
+	{
+		/* Paranoia. Peer may send 1 gigabyte long cmd... */
+		/* Using separate len_on_stk instead of len optimizes
+		 * code size (allows len to be in CPU register) */
+		size_t len_on_stk = 8 * 1024;
+		G.ftp_cmd = cmd = xmalloc_fgets_str_len(stdin, "\r\n", &len_on_stk);
+		if (!cmd)
+			exit(0);
+		len = len_on_stk;
+	}
 
 	/* De-escape telnet: 0xff,0xff => 0xff */
 	/* RFC959 says that ABOR, STAT, QUIT may be sent even during
