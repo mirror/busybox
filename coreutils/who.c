@@ -42,35 +42,47 @@ static void idle_string(char *str6, time_t t)
 int who_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int who_main(int argc UNUSED_PARAM, char **argv)
 {
-	char str6[6];
 	struct utmp *ut;
-	struct stat st;
-	char *name;
 	unsigned opt;
 
 	opt_complementary = "=0";
-	opt = getopt32(argv, "a");
+	opt = getopt32(argv, "aH");
+	if (opt & 2) // -H
+		printf("USER\t\tTTY\t\tIDLE\tTIME\t\t HOST\n");
 
 	setutent();
-	printf("USER       TTY      IDLE      TIME            HOST\n");
 	while ((ut = getutent()) != NULL) {
-		if (ut->ut_user[0] && (opt || ut->ut_type == USER_PROCESS)) {
-			time_t tmp;
-			/* ut->ut_line is device name of tty - "/dev/" */
-			name = concat_path_file("/dev", ut->ut_line);
+		if (ut->ut_user[0]
+		 && ((opt & 1) || ut->ut_type == USER_PROCESS)
+		) {
+			char str6[6];
+			char name[sizeof("/dev/") + sizeof(ut->ut_line) + 1];
+			struct stat st;
+			time_t seconds;
+
 			str6[0] = '?';
 			str6[1] = '\0';
+			strcpy(name, "/dev/");
+			safe_strncpy(ut->ut_line[0] == '/' ? name : name + sizeof("/dev/")-1,
+				ut->ut_line,
+				sizeof(ut->ut_line)+1
+			);
 			if (stat(name, &st) == 0)
 				idle_string(str6, st.st_atime);
 			/* manpages say ut_tv.tv_sec *is* time_t,
 			 * but some systems have it wrong */
-			tmp = ut->ut_tv.tv_sec;
-			/* 15 chars for time:   Nov 10 19:33:20 */
-			printf("%-10s %-8s %-9s %-15.15s %s\n",
-					ut->ut_user, ut->ut_line, str6,
-					ctime(&tmp) + 4, ut->ut_host);
-			if (ENABLE_FEATURE_CLEAN_UP)
-				free(name);
+			seconds = ut->ut_tv.tv_sec;
+			/* How wide time field can be?
+			 * "Nov 10 19:33:20": 15 chars
+			 * "2010-11-10 19:33": 16 chars
+			 */
+			printf("%-15.*s %-15.*s %-7s %-16.16s %.*s\n",
+					(int)sizeof(ut->ut_user), ut->ut_user,
+					(int)sizeof(ut->ut_line), ut->ut_line,
+					str6,
+					ctime(&seconds) + 4,
+					(int)sizeof(ut->ut_host), ut->ut_host
+			);
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)

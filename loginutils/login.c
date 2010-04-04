@@ -61,7 +61,7 @@ static void read_or_build_utent(struct utmp *utptr, int run_by_root)
 
 	/* First, try to find a valid utmp entry for this process.  */
 	/* If there is one, just use it.  */
-	while ((ut = getutent()) != NULL)
+	while ((ut = getutent()) != NULL) {
 		if (ut->ut_pid == pid && ut->ut_line[0] && ut->ut_id[0]
 		 && (ut->ut_type == LOGIN_PROCESS || ut->ut_type == USER_PROCESS)
 		) {
@@ -70,6 +70,7 @@ static void read_or_build_utent(struct utmp *utptr, int run_by_root)
 				memset(utptr->ut_host, 0, sizeof(utptr->ut_host));
 			return;
 		}
+	}
 
 // Why? Do we require non-root to exec login from another
 // former login process (e.g. login shell)? Some login's have

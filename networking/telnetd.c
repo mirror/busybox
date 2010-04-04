@@ -74,11 +74,11 @@ struct globals {
    string of characters fit for the terminal.  Do this by packing
    all characters meant for the terminal sequentially towards the end of buf.
 
-   Return a pointer to the beginning of the characters meant for the terminal.
+   Return a pointer to the beginning of the characters meant for the terminal
    and make *num_totty the number of characters that should be sent to
    the terminal.
 
-   Note - If an IAC (3 byte quantity) starts before (bf + len) but extends
+   Note - if an IAC (3 byte quantity) starts before (bf + len) but extends
    past (bf + len) then that IAC will be left unprocessed and *processed
    will be less than len.
 
