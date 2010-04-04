@@ -282,8 +282,10 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp /*, int *istrunc*/)
 		return NULL;
 
 	/* convert the header name to lower case */
-	for (s = buf; isalnum(*s) || *s == '-' || *s == '.'; ++s)
-		*s = tolower(*s);
+	for (s = buf; isalnum(*s) || *s == '-' || *s == '.'; ++s) {
+		/* tolower for "A-Z", no-op for "0-9a-z-." */
+		*s = (*s | 0x20);
+	}
 
 	/* verify we are at the end of the header name */
 	if (*s != ':')

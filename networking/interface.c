@@ -30,7 +30,6 @@
  *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu
  *			(default AF was wrong)
  */
-
 #include <net/if.h>
 #include <net/if_arp.h>
 #if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined(_NEWLIB_VERSION)
@@ -1215,53 +1214,12 @@ static int if_print(char *ifname)
 /* Input an Infiniband address and convert to binary. */
 int FAST_FUNC in_ib(const char *bufp, struct sockaddr *sap)
 {
-	unsigned char *ptr;
-	char c;
-	const char *orig;
-	int i;
-	unsigned val;
-
 	sap->sa_family = ib_hwtype.type;
-	ptr = (unsigned char *) sap->sa_data;
-
-	i = 0;
-	orig = bufp;
-	while ((*bufp != '\0') && (i < INFINIBAND_ALEN)) {
-		val = 0;
-		c = *bufp++;
-		if (isdigit(c))
-			val = c - '0';
-		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
-			val = (c|0x20) - ('a' - 10);
-		else {
-			errno = EINVAL;
-			return -1;
-		}
-		val <<= 4;
-		c = *bufp;
-		if (isdigit(c))
-			val |= c - '0';
-		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
-			val |= (c|0x20) - ('a' - 10);
-		else if (c == ':' || c == '\0')
-			val >>= 4;
-		else {
-			errno = EINVAL;
-			return -1;
-		}
-		if (c != '\0')
-			bufp++;
-		*ptr++ = (unsigned char) (val & 0377);
-		i++;
-
-		/* We might get a semicolon here - not required. */
-		if (*bufp == ':') {
-			bufp++;
-		}
-	}
-#ifdef DEBUG
-	fprintf(stderr, "in_ib(%s): %s\n", orig, UNSPEC_print(sap->sa_data));
-#endif
+//TODO: error check?
+	hex2bin((char*)sap->sa_data, bufp, INFINIBAND_ALEN);
+# ifdef HWIB_DEBUG
+	fprintf(stderr, "in_ib(%s): %s\n", bufp, UNSPEC_print(sap->sa_data));
+# endif
 	return 0;
 }
 #endif

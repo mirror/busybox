@@ -122,6 +122,41 @@ char* FAST_FUNC bin2hex(char *p, const char *cp, int count)
 	return p;
 }
 
+/* Convert "[x]x[:][x]x[:][x]x[:][x]x" hex string to binary, no more than COUNT bytes */
+char* FAST_FUNC hex2bin(char *dst, const char *str, int count)
+{
+	errno = EINVAL;
+	while (*str && count) {
+		uint8_t val;
+		uint8_t c = *str++;
+		if (isdigit(c))
+			val = c - '0';
+		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+			val = (c|0x20) - ('a' - 10);
+		else
+			return NULL;
+		val <<= 4;
+		c = *str;
+		if (isdigit(c))
+			val |= c - '0';
+		else if ((c|0x20) >= 'a' && (c|0x20) <= 'f')
+			val |= (c|0x20) - ('a' - 10);
+		else if (c == ':' || c == '\0')
+			val >>= 4;
+		else
+			return NULL;
+
+		*dst++ = val;
+		if (c != '\0')
+			str++;
+		if (*str == ':')
+			str++;
+		count--;
+	}
+	errno = (*str ? ERANGE : 0);
+	return dst;
+}
+
 /* Return how long the file at fd is, if there's any way to determine it. */
 #ifdef UNUSED
 off_t FAST_FUNC fdlength(int fd)
