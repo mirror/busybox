@@ -247,11 +247,23 @@ static void send_inform(struct dhcp_packet *oldpacket)
 {
 	struct dhcp_packet packet;
 
-	/* "The server responds to a DHCPINFORM message by sending a DHCPACK
+	/* "If a client has obtained a network address through some other means
+	 * (e.g., manual configuration), it may use a DHCPINFORM request message
+	 * to obtain other local configuration parameters.  Servers receiving a
+	 * DHCPINFORM message construct a DHCPACK message with any local
+	 * configuration parameters appropriate for the client without:
+	 * allocating a new address, checking for an existing binding, filling
+	 * in 'yiaddr' or including lease time parameters.  The servers SHOULD
+	 * unicast the DHCPACK reply to the address given in the 'ciaddr' field
+	 * of the DHCPINFORM message.
+	 * ...
+	 * The server responds to a DHCPINFORM message by sending a DHCPACK
 	 * message directly to the address given in the 'ciaddr' field
 	 * of the DHCPINFORM message.  The server MUST NOT send a lease
 	 * expiration time to the client and SHOULD NOT fill in 'yiaddr'."
 	 */
+//TODO: do a few sanity checks: is ciaddr set?
+//Better yet: is ciaddr == IP source addr?
 	init_packet(&packet, oldpacket, DHCPACK);
 	add_server_options(&packet);
 
