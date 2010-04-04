@@ -909,14 +909,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 	while (list_x) {
-		unsigned n;
 		char *optstr = llist_pop(&list_x);
 		char *colon = strchr(optstr, ':');
 		if (colon)
-			*colon = '\0';
-		n = udhcp_option_idx(optstr);
-		if (colon)
 			*colon = ' ';
+		/* now it looks similar to udhcpd's config file line:
+		 * "optname optval", using the common routine: */
 		udhcp_str2optset(optstr, &client_config.options);
 	}
 
