@@ -157,7 +157,7 @@ enum {
 #define DHCP_MINTYPE DHCPDISCOVER
 #define DHCP_MAXTYPE DHCPINFORM
 
-struct dhcp_option {
+struct dhcp_optflag {
 	uint8_t flags;
 	uint8_t code;
 };
@@ -167,7 +167,7 @@ struct option_set {
 	struct option_set *next;
 };
 
-extern const struct dhcp_option dhcp_options[];
+extern const struct dhcp_optflag dhcp_optflags[];
 extern const char dhcp_option_strings[];
 extern const uint8_t dhcp_option_lengths[];
 

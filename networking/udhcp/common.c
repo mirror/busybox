@@ -18,7 +18,7 @@ const uint8_t MAC_BCAST_ADDR[6] ALIGN2 = {
  * See RFC2132 for more options.
  * OPTION_REQ: these options are requested by udhcpc (unless -o).
  */
-const struct dhcp_option dhcp_options[] = {
+const struct dhcp_optflag dhcp_optflags[] = {
 	/* flags                                    code */
 	{ OPTION_IP                   | OPTION_REQ, 0x01 }, /* DHCP_SUBNET        */
 	{ OPTION_S32                              , 0x02 }, /* DHCP_TIME_OFFSET   */
@@ -76,7 +76,7 @@ const struct dhcp_option dhcp_options[] = {
  * for udhcpc stript, and for setting options for udhcpd via
  * "opt OPTION_NAME OPTION_VALUE" directives in udhcpd.conf file.
  */
-/* Must match dhcp_options[] order */
+/* Must match dhcp_optflags[] order */
 const char dhcp_option_strings[] ALIGN1 =
 	"subnet" "\0"      /* DHCP_SUBNET         */
 	"timezone" "\0"    /* DHCP_TIME_OFFSET    */
@@ -278,9 +278,9 @@ void FAST_FUNC udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addo
 /* Add an one to four byte option to a packet */
 void FAST_FUNC udhcp_add_simple_option(struct dhcp_packet *packet, uint8_t code, uint32_t data)
 {
-	const struct dhcp_option *dh;
+	const struct dhcp_optflag *dh;
 
-	for (dh = dhcp_options; dh->code; dh++) {
+	for (dh = dhcp_optflags; dh->code; dh++) {
 		if (dh->code == code) {
 			uint8_t option[6], len;
 
@@ -330,7 +330,7 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg)
 /* helper: add an option to the opt_list */
 static NOINLINE void attach_option(
 		struct option_set **opt_list,
-		const struct dhcp_option *option,
+		const struct dhcp_optflag *optflag,
 		char *buffer,
 		int length)
 {
@@ -339,11 +339,11 @@ static NOINLINE void attach_option(
 	char *allocated = NULL;
 #endif
 
-	existing = udhcp_find_option(*opt_list, option->code);
+	existing = udhcp_find_option(*opt_list, optflag->code);
 	if (!existing) {
-		log2("Attaching option %02x to list", option->code);
+		log2("Attaching option %02x to list", optflag->code);
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
+		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 			/* reuse buffer and length for RFC1035-formatted string */
 			allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
 		}
@@ -351,12 +351,12 @@ static NOINLINE void attach_option(
 		/* make a new option */
 		new = xmalloc(sizeof(*new));
 		new->data = xmalloc(length + OPT_DATA);
-		new->data[OPT_CODE] = option->code;
+		new->data[OPT_CODE] = optflag->code;
 		new->data[OPT_LEN] = length;
 		memcpy(new->data + OPT_DATA, buffer, length);
 
 		curr = opt_list;
-		while (*curr && (*curr)->data[OPT_CODE] < option->code)
+		while (*curr && (*curr)->data[OPT_CODE] < optflag->code)
 			curr = &(*curr)->next;
 
 		new->next = *curr;
@@ -364,14 +364,14 @@ static NOINLINE void attach_option(
 		goto ret;
 	}
 
-	if (option->flags & OPTION_LIST) {
+	if (optflag->flags & OPTION_LIST) {
 		unsigned old_len;
 
 		/* add it to an existing option */
-		log1("Attaching option %02x to existing member of list", option->code);
+		log1("Attaching option %02x to existing member of list", optflag->code);
 		old_len = existing->data[OPT_LEN];
 #if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((option->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
+		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 			/* reuse buffer and length for RFC1035-formatted string */
 			allocated = buffer = (char *)dname_enc(existing->data + OPT_DATA, old_len, buffer, &length);
 		}
@@ -380,7 +380,7 @@ static NOINLINE void attach_option(
 			/* actually 255 is ok too, but adding a space can overlow it */
 
 			existing->data = xrealloc(existing->data, OPT_DATA + 1 + old_len + length);
-			if ((option->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
+			if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
 				/* add space separator between STRING options in a list */
 				existing->data[OPT_DATA + old_len] = ' ';
 				old_len++;
@@ -401,7 +401,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
 	char *str;
-	const struct dhcp_option *option;
+	const struct dhcp_optflag *optflag;
 	int retval, length;
 	char buffer[8] ALIGNED(4);
 	uint16_t *result_u16 = (uint16_t *) buffer;
@@ -413,17 +413,17 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	if (!opt)
 		return 0;
 
-	option = &dhcp_options[udhcp_option_idx(opt)];
+	optflag = &dhcp_optflags[udhcp_option_idx(opt)];
 
 	retval = 0;
 	do {
 		val = strtok(NULL, ", \t");
 		if (!val)
 			break;
-		length = dhcp_option_lengths[option->flags & OPTION_TYPE_MASK];
+		length = dhcp_option_lengths[optflag->flags & OPTION_TYPE_MASK];
 		retval = 0;
 		opt = buffer; /* new meaning for variable opt */
-		switch (option->flags & OPTION_TYPE_MASK) {
+		switch (optflag->flags & OPTION_TYPE_MASK) {
 		case OPTION_IP:
 			retval = udhcp_str2nip(val, buffer);
 			break;
@@ -486,8 +486,8 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 			break;
 		}
 		if (retval)
-			attach_option(opt_list, option, opt, length);
-	} while (retval && option->flags & OPTION_LIST);
+			attach_option(opt_list, optflag, opt, length);
+	} while (retval && optflag->flags & OPTION_LIST);
 
 	return retval;
 }

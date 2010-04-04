@@ -81,7 +81,7 @@ static int mton(uint32_t mask)
 }
 
 /* Create "opt_name=opt_value" string */
-static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_option *type_p, const char *opt_name)
+static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_optflag *optflag, const char *opt_name)
 {
 	unsigned upper_length;
 	int len, type, optlen;
@@ -89,7 +89,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 
 	/* option points to OPT_DATA, need to go back and get OPT_LEN */
 	len = option[OPT_LEN - OPT_DATA];
-	type = type_p->flags & OPTION_TYPE_MASK;
+	type = optflag->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
 	upper_length = len_of_option_as_string[type] * ((unsigned)len / (unsigned)optlen);
 
@@ -105,7 +105,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			optlen = 4;
 		case OPTION_IP:
 			dest += sprint_nip(dest, "", option);
-// TODO: it can be a list only if (type_p->flags & OPTION_LIST).
+// TODO: it can be a list only if (optflag->flags & OPTION_LIST).
 // Should we bail out/warn if we see multi-ip option which is
 // not allowed to be such? For example, DHCP_BROADCAST...
 			break;
@@ -237,10 +237,10 @@ static char **fill_envp(struct dhcp_packet *packet)
 	uint8_t over = 0;
 
 	if (packet) {
-		for (i = 0; dhcp_options[i].code; i++) {
-			if (udhcp_get_option(packet, dhcp_options[i].code)) {
+		for (i = 0; dhcp_optflags[i].code; i++) {
+			if (udhcp_get_option(packet, dhcp_optflags[i].code)) {
 				num_options++;
-				if (dhcp_options[i].code == DHCP_SUBNET)
+				if (dhcp_optflags[i].code == DHCP_SUBNET)
 					num_options++; /* for mton */
 			}
 		}
@@ -269,14 +269,14 @@ static char **fill_envp(struct dhcp_packet *packet)
 	opt_name = dhcp_option_strings;
 	i = 0;
 	while (*opt_name) {
-		temp = udhcp_get_option(packet, dhcp_options[i].code);
+		temp = udhcp_get_option(packet, dhcp_optflags[i].code);
 		if (!temp)
 			goto next;
-		*curr = xmalloc_optname_optval(temp, &dhcp_options[i], opt_name);
+		*curr = xmalloc_optname_optval(temp, &dhcp_optflags[i], opt_name);
 		putenv(*curr++);
 
 		/* Fill in a subnet bits option for things like /24 */
-		if (dhcp_options[i].code == DHCP_SUBNET) {
+		if (dhcp_optflags[i].code == DHCP_SUBNET) {
 			uint32_t subnet;
 			move_from_unaligned32(subnet, temp);
 			*curr = xasprintf("mask=%d", mton(subnet));
@@ -366,8 +366,8 @@ static void add_client_options(struct dhcp_packet *packet)
 	int end = udhcp_end_option(packet->options);
 	int i, len = 0;
 
-	for (i = 0; (c = dhcp_options[i].code) != 0; i++) {
-		if ((   (dhcp_options[i].flags & OPTION_REQ)
+	for (i = 0; (c = dhcp_optflags[i].code) != 0; i++) {
+		if ((   (dhcp_optflags[i].flags & OPTION_REQ)
 		     && !client_config.no_default_options
 		    )
 		 || (client_config.opt_mask[c >> 3] & (1 << (c & 7)))
@@ -905,7 +905,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
 		unsigned n = udhcp_option_idx(optstr);
-		n = dhcp_options[n].code;
+		n = dhcp_optflags[n].code;
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 	while (list_x) {
