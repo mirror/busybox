@@ -70,17 +70,18 @@ enum {
 	OPTION_IP = 1,
 	OPTION_IP_PAIR,
 	OPTION_STRING,
-#if ENABLE_FEATURE_UDHCP_RFC3397
-	OPTION_DNS_STRING,  /* RFC1035 compressed domain name list */
-	OPTION_SIP_SERVERS,
-#endif
 //	OPTION_BOOLEAN,
 	OPTION_U8,
 	OPTION_U16,
 //	OPTION_S16,
 	OPTION_U32,
 	OPTION_S32,
+	OPTION_BIN,
 	OPTION_STATIC_ROUTES,
+#if ENABLE_FEATURE_UDHCP_RFC3397
+	OPTION_DNS_STRING,  /* RFC1035 compressed domain name list */
+	OPTION_SIP_SERVERS,
+#endif
 
 	OPTION_TYPE_MASK = 0x0f,
 	/* Client requests this option by default */

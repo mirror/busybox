@@ -324,9 +324,27 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg)
 }
 
 /* udhcp_str2optset:
- * Parse string option representation to binary form
- * and add it to opt_list
+ * Parse string option representation to binary form and add it to opt_list.
+ * Called to parse "udhcpc -x OPTNAME:OPTVAL"
+ * and to parse udhcpd.conf's "opt OPTNAME OPTVAL" directives.
  */
+/* helper for the helper */
+static char *allocate_tempopt_if_needed(
+		const struct dhcp_optflag *optflag,
+		char *buffer,
+		int *length_p)
+{
+	char *allocated = NULL;
+	if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_BIN) {
+		const char *end;
+		allocated = xstrdup(buffer); /* more than enough */
+		end = hex2bin(allocated, buffer, 255);
+		if (errno)
+			bb_error_msg_and_die("malformed hex string '%s'", buffer);
+		*length_p = end - allocated;
+	}
+	return allocated;
+}
 /* helper: add an option to the opt_list */
 static NOINLINE void attach_option(
 		struct option_set **opt_list,
@@ -335,13 +353,12 @@ static NOINLINE void attach_option(
 		int length)
 {
 	struct option_set *existing, *new, **curr;
-#if ENABLE_FEATURE_UDHCP_RFC3397
 	char *allocated = NULL;
-#endif
 
 	existing = udhcp_find_option(*opt_list, optflag->code);
 	if (!existing) {
 		log2("Attaching option %02x to list", optflag->code);
+		allocated = allocate_tempopt_if_needed(optflag, buffer, &length);
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
 			/* reuse buffer and length for RFC1035-formatted string */
@@ -368,7 +385,8 @@ static NOINLINE void attach_option(
 		unsigned old_len;
 
 		/* add it to an existing option */
-		log1("Attaching option %02x to existing member of list", optflag->code);
+		log2("Attaching option %02x to existing member of list", optflag->code);
+		allocated = allocate_tempopt_if_needed(optflag, buffer, &length);
 		old_len = existing->data[OPT_LEN];
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
@@ -390,10 +408,8 @@ static NOINLINE void attach_option(
 		} /* else, ignore the data, we could put this in a second option in the future */
 	} /* else, ignore the new data */
 
- ret: ;
-#if ENABLE_FEATURE_UDHCP_RFC3397
+ ret:
 	free(allocated);
-#endif
 }
 
 int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
@@ -402,6 +418,8 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	char *opt, *val, *endptr;
 	char *str;
 	const struct dhcp_optflag *optflag;
+	struct dhcp_optflag bin_optflag;
+	unsigned optcode;
 	int retval, length;
 	char buffer[8] ALIGNED(4);
 	uint16_t *result_u16 = (uint16_t *) buffer;
@@ -413,7 +431,15 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 	if (!opt)
 		return 0;
 
-	optflag = &dhcp_optflags[udhcp_option_idx(opt)];
+	optcode = bb_strtou(opt, NULL, 0);
+	if (!errno && optcode < 255) {
+		/* Raw (numeric) option code */
+		bin_optflag.flags = OPTION_BIN;
+		bin_optflag.code = optcode;
+		optflag = &bin_optflag;
+	} else {
+		optflag = &dhcp_optflags[udhcp_option_idx(opt)];
+	}
 
 	retval = 0;
 	do {
@@ -482,6 +508,9 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 			retval = (endptr[0] == '\0');
 			break;
 		}
+		case OPTION_BIN: /* handled in attach_option() */
+			opt = val;
+			retval = 1;
 		default:
 			break;
 		}
