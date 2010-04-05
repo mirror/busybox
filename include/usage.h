@@ -1220,7 +1220,7 @@
 	) \
      "\n	-b 2048		(for certain MO disks) use 2048-byte sectors" \
      "\n	-C CYLINDERS	Set number of cylinders/heads/sectors" \
-     "\n	-H HEADS\n" \
+     "\n	-H HEADS" \
      "\n	-S SECTORS" \
 
 #define blkid_trivial_usage \
