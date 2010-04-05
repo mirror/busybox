@@ -92,7 +92,8 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				goto next;
 			}
 			if (ut.ut_type != DEAD_PROCESS
-			 && ut.ut_user[0] && ut.ut_line[0]
+			 && ut.ut_user[0]
+			 && ut.ut_line[0]
 			) {
 				ut.ut_type = USER_PROCESS;
 			}

@@ -19,7 +19,7 @@
 #include <syslog.h>
 
 #if ENABLE_FEATURE_UTMP
-#include <utmp.h> /* LOGIN_PROCESS */
+# include <utmp.h> /* LOGIN_PROCESS */
 #endif
 
 #ifndef IUCLC
@@ -579,6 +579,7 @@ int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
+	pid_t pid;
 	char *fakehost = NULL;          /* Fake hostname for ut_host */
 	char *logname;                  /* login name, given to /bin/login */
 	/* Merging these into "struct local" may _seem_ to reduce
@@ -651,17 +652,18 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	/* tcgetattr() + error check */
 	ioctl_or_perror_and_die(0, TCGETS, &termios, "%s: TCGETS", options.tty);
 
+	pid = getpid();
 #ifdef __linux__
 // FIXME: do we need this? Otherwise "-" case seems to be broken...
 	// /* Forcibly make fd 0 our controlling tty, even if another session
 	//  * has it as a ctty. (Another session loses ctty). */
 	// ioctl(0, TIOCSCTTY, (void*)1);
 	/* Make ourself a foreground process group within our session */
-	tcsetpgrp(0, getpid());
+	tcsetpgrp(0, pid);
 #endif
 
 	/* Update the utmp file. This tty is ours now! */
-	update_utmp(LOGIN_PROCESS, options.tty, "LOGIN", fakehost);
+	update_utmp(pid, LOGIN_PROCESS, options.tty, "LOGIN", fakehost);
 
 	/* Initialize the termios settings (raw mode, eight-bit, blocking i/o). */
 	debug("calling termios_init\n");

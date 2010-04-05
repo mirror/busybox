@@ -797,9 +797,11 @@ void die_if_bad_username(const char* name) FAST_FUNC;
 #endif
 
 #if ENABLE_FEATURE_UTMP
-void FAST_FUNC update_utmp(int new_type, const char *short_tty, const char *username, const char *opt_host);
+void FAST_FUNC write_new_utmp(pid_t pid, int new_type, const char *tty_name, const char *username, const char *hostname);
+void FAST_FUNC update_utmp(pid_t pid, int new_type, const char *tty_name, const char *username, const char *hostname);
 #else
-# define update_utmp(new_type, short_tty, username, opt_host) ((void)0)
+# define write_new_utmp(pid, new_type, tty_name, username, hostname) ((void)0)
+# define update_utmp(pid, new_type, tty_name, username, hostname) ((void)0)
 #endif
 
 int execable_file(const char *name) FAST_FUNC;

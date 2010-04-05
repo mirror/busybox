@@ -20,17 +20,21 @@
  * Vladimir Oleynik <dzo@simtreas.ru> 2001
  * Set process group corrections, initial busybox port
  */
-
 #define DEBUG 0
 
 #include "libbb.h"
 #include <syslog.h>
 
 #if DEBUG
-#define TELCMDS
-#define TELOPTS
+# define TELCMDS
+# define TELOPTS
 #endif
 #include <arpa/telnet.h>
+
+#if ENABLE_FEATURE_UTMP
+# include <utmp.h> /* LOGIN_PROCESS */
+#endif
+
 
 struct tsession {
 	struct tsession *next;
@@ -319,7 +323,11 @@ make_new_session(
 	xopen(tty_name, O_RDWR); /* becomes our ctty */
 	xdup2(0, 1);
 	xdup2(0, 2);
-	tcsetpgrp(0, getpid()); /* switch this tty's process group to us */
+	pid = getpid();
+	tcsetpgrp(0, pid); /* switch this tty's process group to us */
+
+//TODO: fetch remote addr via getpeername (see ftpd.c)
+	write_new_utmp(pid, LOGIN_PROCESS, tty_name, /*username:*/ "LOGIN", /*hostname:*/ NULL);
 
 	/* The pseudo-terminal allocated to the client is configured to operate
 	 * in cooked mode, and with XTABS CRMOD enabled (see tty(4)) */
@@ -358,12 +366,13 @@ make_new_session(
 static void
 free_session(struct tsession *ts)
 {
-	struct tsession *t = G.sessions;
+	struct tsession *t;
 
 	if (option_mask32 & OPT_INETD)
 		exit(EXIT_SUCCESS);
 
 	/* Unlink this telnet session from the session list */
+	t = G.sessions;
 	if (t == ts)
 		G.sessions = ts->next;
 	else {
@@ -414,6 +423,7 @@ static void handle_sigchld(int sig UNUSED_PARAM)
 {
 	pid_t pid;
 	struct tsession *ts;
+	int save_errno = errno;
 
 	/* Looping: more than one child may have exited */
 	while (1) {
@@ -424,11 +434,22 @@ static void handle_sigchld(int sig UNUSED_PARAM)
 		while (ts) {
 			if (ts->shell_pid == pid) {
 				ts->shell_pid = -1;
+// man utmp:
+// When init(8) finds that a process has exited, it locates its utmp entry
+// by ut_pid, sets ut_type to DEAD_PROCESS, and clears ut_user, ut_host
+// and ut_time with null bytes.
+// [same applies to other processes which maintain utmp entries, like telnetd]
+//
+// We do not bother actually clearing fields:
+// it might be interesting to know who was logged in and from where
+				update_utmp(pid, DEAD_PROCESS, /*tty_name:*/ NULL, /*username:*/ NULL, /*hostname:*/ NULL);
 				break;
 			}
 			ts = ts->next;
 		}
 	}
+
+	errno = save_errno;
 }
 
 int telnetd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -689,6 +710,8 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 		ts = next;
 		continue;
  kill_session:
+		if (ts->shell_pid > 0)
+			update_utmp(ts->shell_pid, DEAD_PROCESS, /*tty_name:*/ NULL, /*username:*/ NULL, /*hostname:*/ NULL);
 		free_session(ts);
 		ts = next;
 	}

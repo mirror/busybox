@@ -384,7 +384,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
-	update_utmp(USER_PROCESS, short_tty, username, run_by_root ? opt_host : NULL);
+	update_utmp(getpid(), USER_PROCESS, short_tty, username, run_by_root ? opt_host : NULL);
 
 	/* We trust environment only if we run by root */
 	if (ENABLE_LOGIN_SCRIPTS && run_by_root)

@@ -18,17 +18,18 @@ static void write_wtmp(void)
 {
 	struct utmp utmp;
 	struct utsname uts;
-	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
+	/* "man utmp" says wtmp file should *not* be created automagically */
+	/*if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
 		close(creat(bb_path_wtmp_file, 0664));
-	}
+	}*/
 	memset(&utmp, 0, sizeof(utmp));
 	utmp.ut_tv.tv_sec = time(NULL);
-	safe_strncpy(utmp.ut_user, "shutdown", UT_NAMESIZE);
+	strcpy(utmp.ut_user, "shutdown"); /* it is wide enough */
 	utmp.ut_type = RUN_LVL;
-	safe_strncpy(utmp.ut_id, "~~", sizeof(utmp.ut_id));
-	safe_strncpy(utmp.ut_line, "~~", UT_LINESIZE);
-	if (uname(&uts) == 0)
-		safe_strncpy(utmp.ut_host, uts.release, sizeof(utmp.ut_host));
+	utmp.ut_id[0] = '~'; utmp.ut_id[1] = '~'; /* = strcpy(utmp.ut_id, "~~"); */
+	utmp.ut_line[0] = '~'; utmp.ut_line[1] = '~'; /* = strcpy(utmp.ut_line, "~~"); */
+	uname(&uts);
+	safe_strncpy(utmp.ut_host, uts.release, sizeof(utmp.ut_host));
 	updwtmp(bb_path_wtmp_file, &utmp);
 }
 #else
