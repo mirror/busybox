@@ -120,6 +120,8 @@ lib-y += xgethostbyname.o
 lib-y += xreadlink.o
 lib-y += xrealloc_vector.o
 
+lib-$(CONFIG_FEATURE_UTMP) += utmp.o
+
 # A mix of optimizations (why build stuff we know won't be used)
 # and objects which may fail to build (SELinux on selinux-less system)
 lib-$(CONFIG_SELINUX) += selinux_common.o

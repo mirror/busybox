@@ -30,7 +30,6 @@ static void write_wtmp(void)
 	if (uname(&uts) == 0)
 		safe_strncpy(utmp.ut_host, uts.release, sizeof(utmp.ut_host));
 	updwtmp(bb_path_wtmp_file, &utmp);
-
 }
 #else
 #define write_wtmp() ((void)0)

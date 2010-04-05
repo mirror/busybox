@@ -16,7 +16,7 @@
  *
  *----------------------------------------------------------------------
  */
-/* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -H, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
+/* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
 
 #include "libbb.h"
 #include <utmp.h>

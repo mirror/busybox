@@ -796,6 +796,12 @@ void die_if_bad_username(const char* name) FAST_FUNC;
 #define die_if_bad_username(name) ((void)(name))
 #endif
 
+#if ENABLE_FEATURE_UTMP
+void FAST_FUNC update_utmp(int new_type, const char *short_tty, const char *username, const char *opt_host);
+#else
+# define update_utmp(new_type, short_tty, username, opt_host) ((void)0)
+#endif
+
 int execable_file(const char *name) FAST_FUNC;
 char *find_execable(const char *filename, char **PATHp) FAST_FUNC;
 int exists_execable(const char *filename) FAST_FUNC;
