@@ -181,22 +181,6 @@ config GETTY
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
 
-config FEATURE_UTMP
-	bool "Support utmp file"
-	depends on GETTY || LOGIN || SU || WHO
-	default n
-	help
-	  The file /var/run/utmp is used to track who is currently logged in.
-
-config FEATURE_WTMP
-	bool "Support wtmp file"
-	depends on GETTY || LOGIN || SU || LAST
-	default n
-	select FEATURE_UTMP
-	help
-	  The file /var/run/wtmp is used to track when user's have logged into
-	  and logged out of the system.
-
 config LOGIN
 	bool "login"
 	default n

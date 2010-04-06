@@ -317,7 +317,7 @@ config INOTIFYD
 config LAST
 	bool "last"
 	default n
-	select FEATURE_WTMP
+	depends on FEATURE_WTMP
 	help
 	  'last' displays a list of the last users that logged into the system.
 

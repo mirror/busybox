@@ -825,7 +825,7 @@ config FEATURE_WC_LARGE
 config WHO
 	bool "who"
 	default n
-	select FEATURE_UTMP
+	depends on FEATURE_UTMP
 	help
 	  who is used to show who is logged on.
 
