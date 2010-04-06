@@ -15,6 +15,9 @@
 #include <sys/reboot.h>
 #include <sys/resource.h>
 #include <linux/vt.h>
+#if ENABLE_FEATURE_UTMP
+# include <utmp.h> /* DEAD_PROCESS */
+#endif
 
 
 /* Was a CONFIG_xxx option. A lot of people were building
@@ -415,6 +418,7 @@ static struct init_action *mark_terminated(pid_t pid)
 				return a;
 			}
 		}
+		update_utmp(pid, DEAD_PROCESS, /*tty_name:*/ NULL, /*username:*/ NULL, /*hostname:*/ NULL);
 	}
 	return NULL;
 }
