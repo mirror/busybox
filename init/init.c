@@ -568,9 +568,7 @@ static void parse_inittab(void)
 			goto bad_entry;
 		/* turn .*TTY -> /dev/TTY */
 		if (tty[0]) {
-			if (strncmp(tty, "/dev/", 5) == 0)
-				tty += 5;
-			tty = concat_path_file("/dev/", tty);
+			tty = concat_path_file("/dev/", skip_dev_pfx(tty));
 		}
 		new_init_action(1 << action, token[3], tty);
 		if (tty[0])

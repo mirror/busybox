@@ -35,9 +35,8 @@ static NOINLINE bool may_wakeup(const char *rtcname)
 	ssize_t ret;
 	char buf[128];
 
-	/* strip the '/dev/' from the rtcname here */
-	if (!strncmp(rtcname, "/dev/", 5))
-		rtcname += 5;
+	/* strip "/dev/" from the rtcname here */
+	rtcname = skip_dev_pfx(rtcname);
 
 	snprintf(buf, sizeof(buf), SYS_RTC_PATH, rtcname);
 	ret = open_read_close(buf, buf, sizeof(buf));

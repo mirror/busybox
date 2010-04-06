@@ -169,12 +169,12 @@ static char *base_device(const char *device)
 	const char *disk;
 	int len;
 #endif
-	cp = str = xstrdup(device);
+	str = xstrdup(device);
 
-	/* Skip over /dev/; if it's not present, give up. */
-	if (strncmp(cp, "/dev/", 5) != 0)
+	/* Skip over "/dev/"; if it's not present, give up */
+	cp = skip_dev_pfx(str);
+	if (cp == str)
 		goto errout;
-	cp += 5;
 
 	/*
 	 * For md devices, we treat them all as if they were all

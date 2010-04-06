@@ -249,9 +249,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	full_tty = xmalloc_ttyname(STDIN_FILENO);
 	if (!full_tty)
 		full_tty = xstrdup("UNKNOWN");
-	short_tty = full_tty;
-	if (strncmp(full_tty, "/dev/", 5) == 0)
-		short_tty += 5;
+	short_tty = skip_dev_pfx(full_tty);
 
 	if (opt_host) {
 		fromhost = xasprintf(" on '%s' from '%s'", short_tty, opt_host);

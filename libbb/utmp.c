@@ -15,14 +15,6 @@ static void touch(const char *filename)
 		close(open(filename, O_WRONLY | O_CREAT, 0664));
 }
 
-// TODO: move to libbb
-static const char* skip_dev_pfx(const char *tty_name)
-{
-	if (strncmp(tty_name, "/dev/", 5) == 0)
-		tty_name += 5;
-	return tty_name;
-}
-
 void FAST_FUNC write_new_utmp(pid_t pid, int new_type, const char *tty_name, const char *username, const char *hostname)
 {
 	struct utmp utent;

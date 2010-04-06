@@ -263,6 +263,8 @@ extern void chomp(char *s) FAST_FUNC;
 extern void trim(char *s) FAST_FUNC;
 extern char *skip_whitespace(const char *) FAST_FUNC;
 extern char *skip_non_whitespace(const char *) FAST_FUNC;
+extern char *skip_dev_pfx(const char *tty_name) FAST_FUNC;
+
 extern char *strrstr(const char *haystack, const char *needle) FAST_FUNC;
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
