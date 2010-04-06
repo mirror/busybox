@@ -47,23 +47,33 @@ int FAST_FUNC setsockopt_bindtodevice(int fd UNUSED_PARAM,
 }
 #endif
 
-len_and_sockaddr* FAST_FUNC get_sock_lsa(int fd)
+static len_and_sockaddr* get_lsa(int fd, int (*get_name)(int fd, struct sockaddr *addr, socklen_t *addrlen))
 {
 	len_and_sockaddr lsa;
 	len_and_sockaddr *lsa_ptr;
 
 	lsa.len = LSA_SIZEOF_SA;
-	if (getsockname(fd, &lsa.u.sa, &lsa.len) != 0)
+	if (get_name(fd, &lsa.u.sa, &lsa.len) != 0)
 		return NULL;
 
 	lsa_ptr = xzalloc(LSA_LEN_SIZE + lsa.len);
 	if (lsa.len > LSA_SIZEOF_SA) { /* rarely (if ever) happens */
 		lsa_ptr->len = lsa.len;
-		getsockname(fd, &lsa_ptr->u.sa, &lsa_ptr->len);
+		get_name(fd, &lsa_ptr->u.sa, &lsa_ptr->len);
 	} else {
 		memcpy(lsa_ptr, &lsa, LSA_LEN_SIZE + lsa.len);
 	}
 	return lsa_ptr;
+}
+
+len_and_sockaddr* FAST_FUNC get_sock_lsa(int fd)
+{
+	return get_lsa(fd, getsockname);
+}
+
+len_and_sockaddr* FAST_FUNC get_peer_lsa(int fd)
+{
+	return get_lsa(fd, getpeername);
 }
 
 void FAST_FUNC xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)

@@ -530,6 +530,8 @@ int create_and_connect_stream_or_die(const char *peer, int port) FAST_FUNC;
 int xconnect_stream(const len_and_sockaddr *lsa) FAST_FUNC;
 /* Get local address of bound or accepted socket */
 len_and_sockaddr *get_sock_lsa(int fd) FAST_FUNC RETURNS_MALLOC;
+/* Get remote address of connected or accepted socket */
+len_and_sockaddr *get_peer_lsa(int fd) FAST_FUNC RETURNS_MALLOC;
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.

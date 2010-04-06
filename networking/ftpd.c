@@ -461,21 +461,6 @@ handle_epsv(void)
 	free(response);
 }
 
-/* libbb candidate */
-static
-len_and_sockaddr* get_peer_lsa(int fd)
-{
-	len_and_sockaddr *lsa;
-	socklen_t len = 0;
-
-	if (getpeername(fd, NULL, &len) != 0)
-		return NULL;
-	lsa = xzalloc(LSA_LEN_SIZE + len);
-	lsa->len = len;
-	getpeername(fd, &lsa->u.sa, &lsa->len);
-	return lsa;
-}
-
 static void
 handle_port(void)
 {

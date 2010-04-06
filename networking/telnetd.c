@@ -226,6 +226,9 @@ make_new_session(
 		IF_FEATURE_TELNETD_STANDALONE(int sock)
 		IF_NOT_FEATURE_TELNETD_STANDALONE(void)
 ) {
+#if !ENABLE_FEATURE_TELNETD_STANDALONE
+	enum { sock = 0 );
+#endif
 	const char *login_argv[2];
 	struct termios termbuf;
 	int fd, pid;
@@ -243,9 +246,9 @@ make_new_session(
 	ndelay_on(fd);
 	close_on_exec_on(fd);
 
-#if ENABLE_FEATURE_TELNETD_STANDALONE
 	/* SO_KEEPALIVE by popular demand */
 	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+#if ENABLE_FEATURE_TELNETD_STANDALONE
 	ts->sockfd_read = sock;
 	ndelay_on(sock);
 	if (sock == 0) { /* We are called with fd 0 - we are in inetd mode */
@@ -256,8 +259,6 @@ make_new_session(
 	if (sock > G.maxfd)
 		G.maxfd = sock;
 #else
-	/* SO_KEEPALIVE by popular demand */
-	setsockopt(0, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 	/* ts->sockfd_read = 0; - done by xzalloc */
 	ts->sockfd_write = 1;
 	ndelay_on(0);
@@ -313,6 +314,17 @@ make_new_session(
 	/* Restore default signal handling ASAP */
 	bb_signals((1 << SIGCHLD) + (1 << SIGPIPE), SIG_DFL);
 
+	if (ENABLE_FEATURE_UTMP) {
+		len_and_sockaddr *lsa = get_peer_lsa(sock);
+		char *hostname = NULL;
+		if (lsa) {
+			hostname = xmalloc_sockaddr2dotted(&lsa->u.sa);
+			free(lsa);
+		}
+		write_new_utmp(pid, LOGIN_PROCESS, tty_name, /*username:*/ "LOGIN", hostname);
+		free(hostname);
+	}
+
 	/* Make new session and process group */
 	setsid();
 
@@ -325,9 +337,6 @@ make_new_session(
 	xdup2(0, 2);
 	pid = getpid();
 	tcsetpgrp(0, pid); /* switch this tty's process group to us */
-
-//TODO: fetch remote addr via getpeername (see ftpd.c)
-	write_new_utmp(pid, LOGIN_PROCESS, tty_name, /*username:*/ "LOGIN", /*hostname:*/ NULL);
 
 	/* The pseudo-terminal allocated to the client is configured to operate
 	 * in cooked mode, and with XTABS CRMOD enabled (see tty(4)) */
