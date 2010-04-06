@@ -21,6 +21,13 @@
 #endif
 #include "libbb.h"
 
+#if BB_LITTLE_ENDIAN
+# define inline_if_little_endian ALWAYS_INLINE
+#else
+# define inline_if_little_endian /* nothing */
+#endif
+
+
 /* Looks like someone forgot to add this to config system */
 #ifndef ENABLE_FEATURE_FDISK_BLKSIZE
 # define ENABLE_FEATURE_FDISK_BLKSIZE 0
@@ -181,7 +188,7 @@ struct pte {
 	sector_t offset;                /* disk sector number */
 	char *sectorbuffer;             /* disk sector contents */
 #if ENABLE_FEATURE_FDISK_WRITABLE
-	char changed;           /* boolean */
+	char changed;                   /* boolean */
 #endif
 };
 
@@ -445,27 +452,6 @@ close_dev_fd(void)
 	xmove_fd(xopen(bb_dev_null, O_RDONLY), dev_fd);
 }
 
-#if ENABLE_FEATURE_FDISK_WRITABLE
-/* Read line; return 0 or first printable char */
-static int
-read_line(const char *prompt)
-{
-	int sz;
-
-	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
-	if (sz <= 0)
-		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
-
-	if (line_buffer[sz-1] == '\n')
-		line_buffer[--sz] = '\0';
-
-	line_ptr = line_buffer;
-	while (*line_ptr != '\0' && (unsigned char)*line_ptr <= ' ')
-		line_ptr++;
-	return *line_ptr;
-}
-#endif
-
 /*
  * Return partition name - uses static storage
  */
@@ -497,29 +483,12 @@ partname(const char *dev, int pno, int lth)
 
 	if (lth) {
 		snprintf(bufp, bufsiz, "%*.*s%s%-2u",
-			 lth-wp-2, w, dev, p, pno);
+			lth-wp-2, w, dev, p, pno);
 	} else {
 		snprintf(bufp, bufsiz, "%.*s%s%-2u", w, dev, p, pno);
 	}
 	return bufp;
 }
-
-#if ENABLE_FEATURE_FDISK_WRITABLE
-static void
-set_all_unchanged(void)
-{
-	int i;
-
-	for (i = 0; i < MAXIMUM_PARTS; i++)
-		ptes[i].changed = 0;
-}
-
-static ALWAYS_INLINE void
-set_changed(int i)
-{
-	ptes[i].changed = 1;
-}
-#endif /* FEATURE_FDISK_WRITABLE */
 
 static ALWAYS_INLINE struct partition *
 get_part_table(int i)
@@ -541,7 +510,67 @@ valid_part_table_flag(const char *mbuffer)
 	return (mbuffer[510] == 0x55 && (uint8_t)mbuffer[511] == 0xaa);
 }
 
+static void fdisk_fatal(const char *why)
+{
+	if (listing) {
+		close_dev_fd();
+		longjmp(listingbuf, 1);
+	}
+	bb_error_msg_and_die(why, disk_device);
+}
+
+static void
+seek_sector(sector_t secno)
+{
+#if ENABLE_FDISK_SUPPORT_LARGE_DISKS
+	off64_t off = (off64_t)secno * sector_size;
+	if (lseek64(dev_fd, off, SEEK_SET) == (off64_t) -1)
+		fdisk_fatal(unable_to_seek);
+#else
+	uint64_t off = (uint64_t)secno * sector_size;
+	if (off > MAXINT(off_t)
+	 || lseek(dev_fd, (off_t)off, SEEK_SET) == (off_t) -1
+	) {
+		fdisk_fatal(unable_to_seek);
+	}
+#endif
+}
+
 #if ENABLE_FEATURE_FDISK_WRITABLE
+/* Read line; return 0 or first printable char */
+static int
+read_line(const char *prompt)
+{
+	int sz;
+
+	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
+	if (sz <= 0)
+		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
+
+	if (line_buffer[sz-1] == '\n')
+		line_buffer[--sz] = '\0';
+
+	line_ptr = line_buffer;
+	while (*line_ptr != '\0' && (unsigned char)*line_ptr <= ' ')
+		line_ptr++;
+	return *line_ptr;
+}
+
+static void
+set_all_unchanged(void)
+{
+	int i;
+
+	for (i = 0; i < MAXIMUM_PARTS; i++)
+		ptes[i].changed = 0;
+}
+
+static ALWAYS_INLINE void
+set_changed(int i)
+{
+	ptes[i].changed = 1;
+}
+
 static ALWAYS_INLINE void
 write_part_table_flag(char *b)
 {
@@ -579,48 +608,18 @@ read_hex(const char *const *sys)
 			continue;
 		}
 		v = bb_strtoul(line_ptr, NULL, 16);
-		if (v > 0xff)
-			/* Bad input also triggers this */
-			continue;
-		return v;
+		if (v <= 0xff)
+			return v;
 	}
 }
-#endif /* FEATURE_FDISK_WRITABLE */
 
-static void fdisk_fatal(const char *why)
-{
-	if (listing) {
-		close_dev_fd();
-		longjmp(listingbuf, 1);
-	}
-	bb_error_msg_and_die(why, disk_device);
-}
-
-static void
-seek_sector(sector_t secno)
-{
-#if ENABLE_FDISK_SUPPORT_LARGE_DISKS
-	off64_t off = (off64_t)secno * sector_size;
-	if (lseek64(dev_fd, off, SEEK_SET) == (off64_t) -1)
-		fdisk_fatal(unable_to_seek);
-#else
-	uint64_t off = (uint64_t)secno * sector_size;
-	if (off > MAXINT(off_t)
-	 || lseek(dev_fd, (off_t)off, SEEK_SET) == (off_t) -1
-	) {
-		fdisk_fatal(unable_to_seek);
-	}
-#endif
-}
-
-#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 write_sector(sector_t secno, const void *buf)
 {
 	seek_sector(secno);
 	xwrite(dev_fd, buf, sector_size);
 }
-#endif
+#endif /* FEATURE_FDISK_WRITABLE */
 
 
 #include "fdisk_aix.c"
@@ -713,32 +712,13 @@ STATIC_SUN void sun_write_table(void);
 #include "fdisk_sun.c"
 
 
-#if ENABLE_FEATURE_FDISK_WRITABLE
-/* start_sect and nr_sects are stored little endian on all machines */
-/* moreover, they are not aligned correctly */
-static void
-store4_little_endian(unsigned char *cp, unsigned val)
-{
-	cp[0] = val;
-	cp[1] = val >> 8;
-	cp[2] = val >> 16;
-	cp[3] = val >> 24;
-}
-#endif /* FEATURE_FDISK_WRITABLE */
-
-static unsigned
+static inline_if_little_endian unsigned
 read4_little_endian(const unsigned char *cp)
 {
-	return cp[0] + (cp[1] << 8) + (cp[2] << 16) + (cp[3] << 24);
+	uint32_t v;
+	move_from_unaligned32(v, cp);
+	return SWAP_LE32(v);
 }
-
-#if ENABLE_FEATURE_FDISK_WRITABLE
-static void
-set_start_sect(struct partition *p, unsigned start_sect)
-{
-	store4_little_endian(p->start4, start_sect);
-}
-#endif
 
 static sector_t
 get_start_sect(const struct partition *p)
@@ -746,19 +726,34 @@ get_start_sect(const struct partition *p)
 	return read4_little_endian(p->start4);
 }
 
+static sector_t
+get_nr_sects(const struct partition *p)
+{
+	return read4_little_endian(p->size4);
+}
+
 #if ENABLE_FEATURE_FDISK_WRITABLE
+/* start_sect and nr_sects are stored little endian on all machines */
+/* moreover, they are not aligned correctly */
+static inline_if_little_endian void
+store4_little_endian(unsigned char *cp, unsigned val)
+{
+	uint32_t v = SWAP_LE32(val);
+	move_to_unaligned32(cp, v);
+}
+
+static void
+set_start_sect(struct partition *p, unsigned start_sect)
+{
+	store4_little_endian(p->start4, start_sect);
+}
+
 static void
 set_nr_sects(struct partition *p, unsigned nr_sects)
 {
 	store4_little_endian(p->size4, nr_sects);
 }
 #endif
-
-static sector_t
-get_nr_sects(const struct partition *p)
-{
-	return read4_little_endian(p->size4);
-}
 
 /* Allocate a buffer and read a partition table sector */
 static void
@@ -942,7 +937,7 @@ get_sys_types(void)
 }
 #else
 #define get_sys_types() i386_sys_types
-#endif /* FEATURE_FDISK_WRITABLE */
+#endif
 
 static const char *
 partition_type(unsigned char type)
@@ -957,6 +952,24 @@ partition_type(unsigned char type)
 	return "Unknown";
 }
 
+static int
+is_cleared_partition(const struct partition *p)
+{
+	/* We consider partition "cleared" only if it has only zeros */
+	const char *cp = (const char *)p;
+	int cnt = sizeof(*p);
+	char bits = 0;
+	while (--cnt >= 0)
+		bits |= *cp++;
+	return (bits == 0);
+}
+
+static void
+clear_partition(struct partition *p)
+{
+	if (p)
+		memset(p, 0, sizeof(*p));
+}
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
 static int
@@ -998,25 +1011,7 @@ list_types(const char *const *sys)
 	} while (done < last[0]);
 	bb_putchar('\n');
 }
-#endif /* FEATURE_FDISK_WRITABLE */
 
-static int
-is_cleared_partition(const struct partition *p)
-{
-	return !(!p || p->boot_ind || p->head || p->sector || p->cyl ||
-		 p->sys_ind || p->end_head || p->end_sector || p->end_cyl ||
-		 get_start_sect(p) || get_nr_sects(p));
-}
-
-static void
-clear_partition(struct partition *p)
-{
-	if (!p)
-		return;
-	memset(p, 0, sizeof(struct partition));
-}
-
-#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 set_partition(int i, int doext, sector_t start, sector_t stop, int sysid)
 {
@@ -1189,26 +1184,22 @@ read_extended(int ext)
 static void
 create_doslabel(void)
 {
-	int i;
-
 	printf(msg_building_new_label, "DOS disklabel");
 
 	current_label_type = LABEL_DOS;
-
 #if ENABLE_FEATURE_OSF_LABEL
 	possibly_osf_label = 0;
 #endif
 	g_partitions = 4;
 
-	for (i = 510-64; i < 510; i++)
-		MBRbuffer[i] = 0;
+	memset(&MBRbuffer[510 - 4*16], 0, 4*16);
 	write_part_table_flag(MBRbuffer);
 	extended_offset = 0;
 	set_all_unchanged();
 	set_changed(0);
 	get_boot(CREATE_EMPTY_DOS);
 }
-#endif /* FEATURE_FDISK_WRITABLE */
+#endif
 
 static void
 get_sectorsize(void)
@@ -1721,9 +1712,10 @@ delete_partition(int i)
 				ptes[i] = ptes[i+1];
 				i++;
 			}
-		} else
+		} else {
 			/* the only logical: clear only */
 			clear_partition(ptes[i].part_table);
+		}
 	}
 }
 
