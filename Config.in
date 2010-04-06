@@ -259,7 +259,7 @@ config FEATURE_UTMP
 	  The file /var/run/utmp is used to track who is currently logged in.
 	  With this option on, certain applets (getty, login, telnetd etc)
 	  will create and delete entries there.
-	  "who" apples requires this option.
+	  "who" applet requires this option.
 
 config FEATURE_WTMP
 	bool "Support wtmp file"
@@ -270,7 +270,7 @@ config FEATURE_WTMP
 	  and logged out of the system.
 	  With this option on, certain applets (getty, login, telnetd etc)
 	  will append new entries there.
-	  "last" apples requires this option.
+	  "last" applet requires this option.
 
 config FEATURE_PIDFILE
 	bool "Support writing pidfiles"
