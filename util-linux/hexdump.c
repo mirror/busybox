@@ -92,8 +92,8 @@ int hexdump_main(int argc, char **argv)
 		if (ch == 'n') {
 			dumper->dump_length = xatoi_u(optarg);
 		} /* else */
-		if (ch == 's') {
-			dumper->dump_skip = xatoul_range_sfx(optarg, 0, LONG_MAX, suffixes);
+		if (ch == 's') { /* compat: -s accepts hex numbers too */
+			dumper->dump_skip = xstrtoul_range_sfx(optarg, /*base:*/ 0, /*lo:*/ 0, /*hi:*/ LONG_MAX, suffixes);
 		} /* else */
 		if (ch == 'v') {
 			dumper->dump_vflag = ALL;
