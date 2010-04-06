@@ -2598,8 +2598,7 @@ move_begin(unsigned i)
 		printf("Partition %u has no data area\n", i + 1);
 		return;
 	}
-	first = get_partition_start_from_dev_start(pe);
-	/* == pe->offset_from_dev_start + get_start_sect(p) */
+	first = get_partition_start_from_dev_start(pe); /* == pe->offset_from_dev_start + get_start_sect(p) */
 	new = read_int(0 /*was:first*/, first, first + nr_sects - 1, first, "New beginning of data");
 	if (new != first) {
 		sector_t new_relative = new - pe->offset_from_dev_start;
