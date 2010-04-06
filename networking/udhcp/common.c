@@ -109,7 +109,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"search" "\0"      /* DHCP_DOMAIN_SEARCH  */
 // doesn't work in udhcpd.conf since OPTION_SIP_SERVERS
 // is not handled yet by "string->option" conversion code:
-	"sipservers" "\0"  /* DHCP_SIP_SERVERS    */
+	"sipsrv" "\0"      /* DHCP_SIP_SERVERS    */
 #endif
 // doesn't work in udhcpd.conf since OPTION_STATIC_ROUTES
 // is not handled yet by "string->option" conversion code:
