@@ -63,13 +63,13 @@ int get_prefix(unsigned long netmask);
 
 #if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
 	static const char ipcalc_longopts[] ALIGN1 =
-		"netmask\0"   No_argument "m"
-		"broadcast\0" No_argument "b"
-		"network\0"   No_argument "n"
+		"netmask\0"   No_argument "m" // netmask from IP (assuming complete class A, B, or C network)
+		"broadcast\0" No_argument "b" // broadcast from IP [netmask]
+		"network\0"   No_argument "n" // network from IP [netmask]
 # if ENABLE_FEATURE_IPCALC_FANCY
-		"prefix\0"    No_argument "p"
-		"hostname\0"  No_argument "h"
-		"silent\0"    No_argument "s"
+		"prefix\0"    No_argument "p" // prefix from IP[/prefix] [netmask]
+		"hostname\0"  No_argument "h" // hostname from IP
+		"silent\0"    No_argument "s" // don’t ever display error messages
 # endif
 		;
 #endif
@@ -92,15 +92,16 @@ int ipcalc_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
 	applet_long_options = ipcalc_longopts;
 #endif
+	opt_complementary = "-1:?2"; /* minimum 1 arg, maximum 2 args */
 	opt = getopt32(argv, "mbn" IF_FEATURE_IPCALC_FANCY("phs"));
 	argv += optind;
 	if (opt & SILENT)
 		logmode = LOGMODE_NONE; /* suppress error_msg() output */
-	if (opt & (BROADCAST | NETWORK | NETPREFIX)) {
-		if (!argv[0] || !argv[1] || argv[2])
-			bb_show_usage();
-	} else {
-		if (!argv[0] || argv[1])
+	opt &= ~SILENT;
+	if (!(opt & (BROADCAST | NETWORK | NETPREFIX))) {
+		/* if no options at all or
+		 * (no broadcast,network,prefix) and (two args)... */
+		if (!opt || argv[1])
 			bb_show_usage();
 	}
 
