@@ -539,18 +539,18 @@ int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	procps_status_t *p;
-	int len;
 	int psscan_flags = PSSCAN_PID | PSSCAN_UIDGID
 			| PSSCAN_STATE | PSSCAN_VSZ | PSSCAN_COMM;
-#if !ENABLE_FEATURE_PS_WIDE
-	enum { terminal_width = 79 };
-#else
-	unsigned terminal_width;
-#endif
-
-#if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
-	int opts;
+	unsigned terminal_width IF_NOT_FEATURE_PS_WIDE(= 79);
+	enum {
+		OPT_Z = (1 << 0) * ENABLE_SELINUX,
+		OPT_T = (1 << ENABLE_SELINUX) * ENABLE_FEATURE_SHOW_THREADS,
+	};
+	int opts = 0;
+	/* If we support any options, parse argv */
+#if ENABLE_SELINUX || ENABLE_FEATURE_SHOW_THREADS || ENABLE_FEATURE_PS_WIDE
 # if ENABLE_FEATURE_PS_WIDE
+	/* -w is a bit complicated */
 	int w_count = 0;
 	opt_complementary = "-:ww";
 	opts = getopt32(argv, IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T")"w", &w_count);
@@ -565,27 +565,30 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		if (--terminal_width > MAX_WIDTH)
 			terminal_width = MAX_WIDTH;
 	}
-# else /* only ENABLE_SELINUX */
-	opts = getopt32(argv, "Z"IF_FEATURE_SHOW_THREADS("T"));
+# else
+	/* -w is not supported, only -Z and/or -T */
+	opt_complementary = "-";
+	opts = getopt32(argv, IF_SELINUX("Z")IF_FEATURE_SHOW_THREADS("T"));
 # endif
-# if ENABLE_SELINUX
-	if ((opts & 1) && is_selinux_enabled())
+#endif
+
+#if ENABLE_SELINUX
+	if ((opts & OPT_Z) && is_selinux_enabled()) {
 		psscan_flags = PSSCAN_PID | PSSCAN_CONTEXT
 				| PSSCAN_STATE | PSSCAN_COMM;
-# endif
-# if ENABLE_FEATURE_SHOW_THREADS
-	if (opts & (1 << ENABLE_SELINUX))
-		psscan_flags |= PSSCAN_TASKS;
-# endif
-#endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
-
-	if (psscan_flags & PSSCAN_CONTEXT)
 		puts("  PID CONTEXT                          STAT COMMAND");
-	else
+	} else
+#endif
+	{
 		puts("  PID USER       VSZ STAT COMMAND");
+	}
+	if (opts & OPT_T) {
+		psscan_flags |= PSSCAN_TASKS;
+	}
 
 	p = NULL;
 	while ((p = procps_scan(p, psscan_flags)) != NULL) {
+		int len;
 #if ENABLE_SELINUX
 		if (psscan_flags & PSSCAN_CONTEXT) {
 			len = printf("%5u %-32.32s %s  ",
@@ -621,4 +624,4 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	return EXIT_SUCCESS;
 }
 
-#endif /* ENABLE_DESKTOP */
+#endif /* !ENABLE_DESKTOP */
