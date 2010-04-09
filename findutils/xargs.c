@@ -25,10 +25,10 @@
 /* COMPAT:  SYSV version defaults size (and has a max value of) to 470.
    We try to make it as large as possible. */
 #if !defined(ARG_MAX) && defined(_SC_ARG_MAX)
-#define ARG_MAX sysconf (_SC_ARG_MAX)
+# define ARG_MAX sysconf(_SC_ARG_MAX)
 #endif
-#ifndef ARG_MAX
-#define ARG_MAX 470
+#if !defined(ARG_MAX)
+# define ARG_MAX 470
 #endif
 
 
@@ -378,8 +378,6 @@ int xargs_main(int argc, char **argv)
 	int child_error = 0;
 	char *max_args, *max_chars;
 	int n_max_arg;
-	size_t n_chars = 0;
-	long orig_arg_max;
 	const char *eof_str = NULL;
 	unsigned opt;
 	size_t n_max_chars;
@@ -408,28 +406,35 @@ int xargs_main(int argc, char **argv)
 		argc++;
 	}
 
-	orig_arg_max = ARG_MAX;
-	if (orig_arg_max == -1)
-		orig_arg_max = LONG_MAX;
-	orig_arg_max -= 2048;   /* POSIX.2 requires subtracting 2048 */
+	n_max_chars = ARG_MAX; /* might be calling sysconf(_SC_ARG_MAX) */
+	if (n_max_chars < 4*1024); /* paranoia */
+		n_max_chars = LONG_MAX;
+	/* The Open Group Base Specifications Issue 6:
+	 * "The xargs utility shall limit the command line length such that
+	 * when the command line is invoked, the combined argument
+	 * and environment lists (see the exec family of functions
+	 * in the System Interfaces volume of IEEE Std 1003.1-2001)
+	 * shall not exceed {ARG_MAX}-2048 bytes".
+	 */
+	n_max_chars -= 2048;
+	/* Sanity check for systems with huge ARG_MAX defines (e.g., Suns which
+	 * have it at 1 meg).  Things will work fine with a large ARG_MAX but it
+	 * will probably hurt the system more than it needs to; an array of this
+	 * size is allocated.
+	 */
+	if (n_max_chars > 20 * 1024)
+		n_max_chars = 20 * 1024;
 
 	if (opt & OPT_UPTO_SIZE) {
-		n_max_chars = xatoul_range(max_chars, 1, orig_arg_max);
+		size_t n_chars = 0;
+		n_max_chars = xatoul_range(max_chars, 1, n_max_chars);
 		for (i = 0; i < argc; i++) {
 			n_chars += strlen(*argv) + 1;
 		}
-		if (n_max_chars < n_chars) {
+		if (n_max_chars <= n_chars) {
 			bb_error_msg_and_die("can't fit single argument within argument list size limit");
 		}
 		n_max_chars -= n_chars;
-	} else {
-		/* Sanity check for systems with huge ARG_MAX defines (e.g., Suns which
-		   have it at 1 meg).  Things will work fine with a large ARG_MAX but it
-		   will probably hurt the system more than it needs to; an array of this
-		   size is allocated.  */
-		if (orig_arg_max > 20 * 1024)
-			orig_arg_max = 20 * 1024;
-		n_max_chars = orig_arg_max;
 	}
 	max_chars = xmalloc(n_max_chars);
 
@@ -442,9 +447,9 @@ int xargs_main(int argc, char **argv)
 	while ((list = read_args(list, eof_str, n_max_chars, max_chars)) != NULL ||
 		!(opt & OPT_NO_EMPTY))
 	{
+		size_t n_chars = 0;
 		opt |= OPT_NO_EMPTY;
 		n = 0;
-		n_chars = 0;
 #if ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT
 		for (cur = list; cur;) {
 			n_chars += cur->length;
