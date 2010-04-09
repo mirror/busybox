@@ -507,8 +507,9 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		archive_handle->action_header(/*archive_handle->*/ file_header);
 		/* Note that we kill the '/' only after action_header() */
 		/* (like GNU tar 1.15.1: verbose mode outputs "dir/dir/") */
-		if (cp) *cp = '\0';
-		archive_handle->ah_flags |= ARCHIVE_EXTRACT_QUIET;
+		if (cp)
+			*cp = '\0';
+		//archive_handle->ah_flags |= ARCHIVE_EXTRACT_QUIET; // why??
 		archive_handle->action_data(archive_handle);
 		llist_add_to(&(archive_handle->passed), file_header->name);
 	} else {

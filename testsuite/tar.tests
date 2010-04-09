@@ -4,20 +4,25 @@
 
 . ./testing.sh
 
-mkdir tempdir && cd tempdir || exit 1
+rm -rf tar.tempdir 2>/dev/null
+mkdir tar.tempdir && cd tar.tempdir || exit 1
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
-testing "tar hardlinks and repeated files" "\
+testing "tar hardlinks and repeated files" '\
 rm -rf input_* test.tar 2>/dev/null
 >input_hard1
 ln input_hard1 input_hard2
 mkdir input_dir
 >input_dir/file
+chmod -R 644 *
+chmod    755 input_dir
 tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input
-tar tvf test.tar | sed 's/.*[0-9] input/input/'
-tar xf test.tar 2>&1 && echo Ok
-" "\
+tar tvf test.tar | sed "s/.*[0-9] input/input/"
+tar xf test.tar 2>&1
+echo Ok: $?
+ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+' "\
 input
 input_dir/
 input_dir/file
@@ -27,7 +32,40 @@ input_hard1 -> input_hard1
 input_dir/
 input_dir/file
 input
-Ok
+Ok: 0
+-rw-r--r-- input_dir/file
+drwxr-xr-x input_dir
+-rw-r--r-- input_hard1
+-rw-r--r-- input_hard2
+" \
+"" ""
+
+testing "tar hardlinks mode" '\
+rm -rf input_* test.tar 2>/dev/null
+>input_hard1
+chmod 741 input_hard1
+ln input_hard1 input_hard2
+mkdir input_dir
+chmod 550 input_dir
+ln input_hard1 input_dir
+ln input_hard2 input_dir
+tar cf test.tar input_*
+tar tvf test.tar | sed "s/.*[0-9] input/input/"
+tar xf test.tar 2>&1
+echo Ok: $?
+ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+' "\
+input_dir/
+input_dir/input_hard1
+input_dir/input_hard2 -> input_dir/input_hard1
+input_hard1 -> input_dir/input_hard1
+input_hard2 -> input_dir/input_hard1
+Ok: 0
+-rwxr----x input_dir/input_hard1
+-rwxr----x input_dir/input_hard2
+dr-xr-x--- input_dir
+-rwxr----x input_hard1
+-rwxr----x input_hard2
 " \
 "" ""
 
@@ -46,6 +84,6 @@ Ok
 "Ok\n" ""
 SKIP=
 
-cd .. && rm -rf tempdir || exit 1
+cd .. && rm -rf tar.tempdir || exit 1
 
 exit $FAILCOUNT

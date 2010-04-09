@@ -34,12 +34,30 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 
 	if (archive_handle->ah_flags & ARCHIVE_UNLINK_OLD) {
 		/* Remove the entry if it exists */
-		if ((!S_ISDIR(file_header->mode))
-		 && (unlink(file_header->name) == -1)
-		 && (errno != ENOENT)
-		) {
-			bb_perror_msg_and_die("can't remove old file %s",
-					file_header->name);
+		if (!S_ISDIR(file_header->mode)) {
+			/* Is it hardlink?
+			 * We encode hard links as regular files of size 0 with a symlink */
+			if (S_ISREG(file_header->mode)
+			 && file_header->link_target
+			 && file_header->size == 0
+			) {
+				/* Ugly special case:
+				 * tar cf t.tar hardlink1 hardlink2 hardlink1
+				 * results in this tarball structure:
+				 * hardlink1
+				 * hardlink2 -> hardlink1
+				 * hardlink1 -> hardlink1 <== !!!
+				 */
+				if (strcmp(file_header->link_target, file_header->name) == 0)
+					goto ret;
+			}
+			/* Proceed with deleting */
+			if (unlink(file_header->name) == -1
+			 && errno != ENOENT
+			) {
+				bb_perror_msg_and_die("can't remove old file %s",
+						file_header->name);
+			}
 		}
 	}
 	else if (archive_handle->ah_flags & ARCHIVE_EXTRACT_NEWER) {
@@ -65,7 +83,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 
 	/* Handle hard links separately
-	 * We identified hard links as regular files of size 0 with a symlink */
+	 * We encode hard links as regular files of size 0 with a symlink */
 	if (S_ISREG(file_header->mode)
 	 && file_header->link_target
 	 && file_header->size == 0
