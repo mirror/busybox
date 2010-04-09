@@ -69,6 +69,35 @@ dr-xr-x--- input_dir
 " \
 "" ""
 
+testing "tar symlinks mode" '\
+rm -rf input_* test.tar 2>/dev/null
+>input_file
+chmod 741 input_file
+ln -s input_file input_soft
+mkdir input_dir
+chmod 550 input_dir
+ln input_file input_dir
+ln input_soft input_dir
+tar cf test.tar input_*
+tar tvf test.tar | sed "s/.*[0-9] input/input/"
+tar xf test.tar 2>&1
+echo Ok: $?
+ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+' "\
+input_dir/
+input_dir/input_file
+input_dir/input_soft -> input_file
+input_file -> input_dir/input_file
+input_soft -> input_dir/input_soft
+Ok: 0
+-rwxr----x input_dir/input_file
+lrwxrwxrwx input_file
+dr-xr-x--- input_dir
+-rwxr----x input_file
+lrwxrwxrwx input_file
+" \
+"" ""
+
 optional FEATURE_TAR_LONG_OPTIONS
 testing "tar --overwrite" "\
 rm -rf input_* test.tar 2>/dev/null

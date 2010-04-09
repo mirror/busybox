@@ -96,58 +96,60 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 					file_header->name,
 					file_header->link_target);
 		}
-	} else {
-		/* Create the filesystem entry */
-		switch (file_header->mode & S_IFMT) {
-		case S_IFREG: {
-			/* Regular file */
-			int flags = O_WRONLY | O_CREAT | O_EXCL;
-			if (archive_handle->ah_flags & ARCHIVE_O_TRUNC)
-				flags = O_WRONLY | O_CREAT | O_TRUNC;
-			dst_fd = xopen3(file_header->name,
-				flags,
-				file_header->mode
-				);
-			bb_copyfd_exact_size(archive_handle->src_fd, dst_fd, file_header->size);
-			close(dst_fd);
-			break;
+		/* Hardlinks have no separate mode/ownership, skip chown/chmod */
+		goto ret;
+	}
+
+	/* Create the filesystem entry */
+	switch (file_header->mode & S_IFMT) {
+	case S_IFREG: {
+		/* Regular file */
+		int flags = O_WRONLY | O_CREAT | O_EXCL;
+		if (archive_handle->ah_flags & ARCHIVE_O_TRUNC)
+			flags = O_WRONLY | O_CREAT | O_TRUNC;
+		dst_fd = xopen3(file_header->name,
+			flags,
+			file_header->mode
+			);
+		bb_copyfd_exact_size(archive_handle->src_fd, dst_fd, file_header->size);
+		close(dst_fd);
+		break;
+	}
+	case S_IFDIR:
+		res = mkdir(file_header->name, file_header->mode);
+		if ((res == -1)
+		 && (errno != EISDIR) /* btw, Linux doesn't return this */
+		 && (errno != EEXIST)
+		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
+		) {
+			bb_perror_msg("can't make dir %s", file_header->name);
 		}
-		case S_IFDIR:
-			res = mkdir(file_header->name, file_header->mode);
-			if ((res == -1)
-			 && (errno != EISDIR) /* btw, Linux doesn't return this */
-			 && (errno != EEXIST)
-			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-			) {
-				bb_perror_msg("can't make dir %s", file_header->name);
-			}
-			break;
-		case S_IFLNK:
-			/* Symlink */
-			res = symlink(file_header->link_target, file_header->name);
-			if ((res == -1)
-			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-			) {
-				bb_perror_msg("can't create %slink "
-					"from %s to %s", "sym",
-					file_header->name,
-					file_header->link_target);
-			}
-			break;
-		case S_IFSOCK:
-		case S_IFBLK:
-		case S_IFCHR:
-		case S_IFIFO:
-			res = mknod(file_header->name, file_header->mode, file_header->device);
-			if ((res == -1)
-			 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
-			) {
-				bb_perror_msg("can't create node %s", file_header->name);
-			}
-			break;
-		default:
-			bb_error_msg_and_die("unrecognized file type");
+		break;
+	case S_IFLNK:
+		/* Symlink */
+		res = symlink(file_header->link_target, file_header->name);
+		if ((res == -1)
+		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
+		) {
+			bb_perror_msg("can't create %slink "
+				"from %s to %s", "sym",
+				file_header->name,
+				file_header->link_target);
 		}
+		break;
+	case S_IFSOCK:
+	case S_IFBLK:
+	case S_IFCHR:
+	case S_IFIFO:
+		res = mknod(file_header->name, file_header->mode, file_header->device);
+		if ((res == -1)
+		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
+		) {
+			bb_perror_msg("can't create node %s", file_header->name);
+		}
+		break;
+	default:
+		bb_error_msg_and_die("unrecognized file type");
 	}
 
 	if (!(archive_handle->ah_flags & ARCHIVE_DONT_RESTORE_OWNER)) {
