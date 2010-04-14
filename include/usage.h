@@ -4835,10 +4835,7 @@
      "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")" \
      "\n	-t,--retries N		Send up to N discover packets" \
      "\n	-T,--timeout N		Pause between packets (default 3 seconds)" \
-     "\n	-A,--tryagain N		Wait N seconds (default 20) after failure" \
-     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)" \
-     "\n	-O,--request-option OPT	Request DHCP option OPT (cumulative)" \
-     "\n	-o,--no-default-options	Don't request any options (unless -O is given)" \
+     "\n	-A,--tryagain N		Wait N seconds after failure (default 20)" \
      "\n	-f,--foreground		Run in foreground" \
 	USE_FOR_MMU( \
      "\n	-b,--background		Background if lease is not obtained" \
@@ -4853,6 +4850,9 @@
 	IF_FEATURE_UDHCPC_ARPING( \
      "\n	-a,--arping		Use arping to validate offered address" \
 	) \
+     "\n	-O,--request-option OPT	Request DHCP option OPT (cumulative)" \
+     "\n	-o,--no-default-options	Don't request any options (unless -O is given)" \
+     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)" \
      "\n	-F,--fqdn NAME		Ask server to update DNS mapping for NAME" \
      "\n	-H,-h,--hostname NAME	Send NAME as client hostname (default none)" \
      "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')" \
