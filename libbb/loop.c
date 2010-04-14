@@ -104,7 +104,8 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 
 	/* Find a loop device.  */
 	try = *device ? *device : dev;
-	for (i = 0; rc && i < 256; i++) {
+	/* 1048575 is a max possible minor number in Linux circa 2010 */
+	for (i = 0; rc && i < 1048576; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 
 		IF_FEATURE_MOUNT_LOOP_CREATE(errno = 0;)
