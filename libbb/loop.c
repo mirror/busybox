@@ -104,14 +104,24 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 
 	/* Find a loop device.  */
 	try = *device ? *device : dev;
-	for (i = 0; rc; i++) {
+	for (i = 0; rc && i < 256; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 
-		/* Ran out of block devices, return failure.  */
+		IF_FEATURE_MOUNT_LOOP_CREATE(errno = 0;)
 		if (stat(try, &statbuf) != 0 || !S_ISBLK(statbuf.st_mode)) {
+			if (ENABLE_FEATURE_MOUNT_LOOP_CREATE
+			 && errno == ENOENT
+			 && try == dev
+			) {
+				/* Node doesn't exist, try to create it.  */
+				if (mknod(dev, S_IFBLK|0644, makedev(7, i)) == 0)
+					goto try_to_open;
+			}
+			/* Ran out of block devices, return failure.  */
 			rc = -ENOENT;
 			break;
 		}
+ try_to_open:
 		/* Open the sucker and check its loopiness.  */
 		dfd = open(try, mode);
 		if (dfd < 0 && errno == EROFS) {
