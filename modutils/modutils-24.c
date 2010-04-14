@@ -3285,6 +3285,9 @@ static struct obj_file *obj_load(char *image, size_t image_size, int loadprogbit
 			case SHT_SYMTAB:
 			case SHT_STRTAB:
 			case SHT_RELM:
+#if defined(__mips__)
+			case SHT_MIPS_DWARF:
+#endif
 				sec->contents = NULL;
 				if (sec->header.sh_size > 0) {
 					sec->contents = xmalloc(sec->header.sh_size);
