@@ -235,7 +235,8 @@ int ar_main(int argc UNUSED_PARAM, char **argv)
 				: O_RDONLY
 	);
 
-	archive_handle->filter = filter_accept_list;
+	if (*argv)
+		archive_handle->filter = filter_accept_list;
 	while (*argv) {
 		llist_add_to_end(&archive_handle->accept, *argv++);
 	}
