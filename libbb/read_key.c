@@ -264,5 +264,5 @@ void FAST_FUNC read_key_ungets(char *buffer, const char *str, unsigned len)
 	if (len > KEYCODE_BUFFER_SIZE-1 - cur_len)
 		len = KEYCODE_BUFFER_SIZE-1 - cur_len;
 	memcpy(buffer + 1 + cur_len, str, len);
-	buffer[0] += cur_len + len;
+	buffer[0] += len;
 }
