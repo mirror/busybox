@@ -502,6 +502,19 @@ static int init_text_buffer(char *fn)
 	return rc;
 }
 
+#if ENABLE_FEATURE_VI_WIN_RESIZE
+static void query_screen_dimensions(void)
+{
+	get_terminal_width_height(STDIN_FILENO, &columns, &rows);
+	if (rows > MAX_SCR_ROWS)
+		rows = MAX_SCR_ROWS;
+	if (columns > MAX_SCR_COLS)
+		columns = MAX_SCR_COLS;
+}
+#else
+# define query_screen_dimensions() ((void)0)
+#endif
+
 static void edit_file(char *fn)
 {
 #if ENABLE_FEATURE_VI_YANKMARK
@@ -518,11 +531,7 @@ static void edit_file(char *fn)
 	rows = 24;
 	columns = 80;
 	size = 0;
-	if (ENABLE_FEATURE_VI_WIN_RESIZE) {
-		get_terminal_width_height(0, &columns, &rows);
-		if (rows > MAX_SCR_ROWS) rows = MAX_SCR_ROWS;
-		if (columns > MAX_SCR_COLS) columns = MAX_SCR_COLS;
-	}
+	query_screen_dimensions();
 	new_screen(rows, columns);	// get memory for virtual screen
 	init_text_buffer(fn);
 
@@ -537,7 +546,7 @@ static void edit_file(char *fn)
 	ccol = 0;
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS
-	catch_sig(0);
+	signal(SIGINT, catch_sig);
 	signal(SIGWINCH, winch_sig);
 	signal(SIGTSTP, suspend_sig);
 	sig = sigsetjmp(restart, 1);
@@ -563,7 +572,7 @@ static void edit_file(char *fn)
 		char *p, *q;
 		int n = 0;
 
-		while ((p = initial_cmds[n])) {
+		while ((p = initial_cmds[n]) != NULL) {
 			do {
 				q = p;
 				p = strchr(q, '\n');
@@ -2143,50 +2152,51 @@ static void cookmode(void)
 	tcsetattr_stdin_TCSANOW(&term_orig);
 }
 
-//----- Come here when we get a window resize signal ---------
 #if ENABLE_FEATURE_VI_USE_SIGNALS
+//----- Come here when we get a window resize signal ---------
 static void winch_sig(int sig UNUSED_PARAM)
 {
+	int save_errno = errno;
 	// FIXME: do it in main loop!!!
 	signal(SIGWINCH, winch_sig);
-	if (ENABLE_FEATURE_VI_WIN_RESIZE) {
-		get_terminal_width_height(0, &columns, &rows);
-		if (rows > MAX_SCR_ROWS) rows = MAX_SCR_ROWS;
-		if (columns > MAX_SCR_COLS) columns = MAX_SCR_COLS;
-	}
+	query_screen_dimensions();
 	new_screen(rows, columns);	// get memory for virtual screen
 	redraw(TRUE);		// re-draw the screen
+	errno = save_errno;
 }
 
 //----- Come here when we get a continue signal -------------------
 static void cont_sig(int sig UNUSED_PARAM)
 {
+	int save_errno = errno;
 	rawmode(); // terminal to "raw"
 	last_status_cksum = 0; // force status update
 	redraw(TRUE); // re-draw the screen
 
 	signal(SIGTSTP, suspend_sig);
 	signal(SIGCONT, SIG_DFL);
-	kill(my_pid, SIGCONT); // huh? why? we are already "continued"...
+	//kill(my_pid, SIGCONT); // huh? why? we are already "continued"...
+	errno = save_errno;
 }
 
 //----- Come here when we get a Suspend signal -------------------
 static void suspend_sig(int sig UNUSED_PARAM)
 {
+	int save_errno = errno;
 	go_bottom_and_clear_to_eol();
 	cookmode(); // terminal to "cooked"
 
 	signal(SIGCONT, cont_sig);
 	signal(SIGTSTP, SIG_DFL);
 	kill(my_pid, SIGTSTP);
+	errno = save_errno;
 }
 
 //----- Come here when we get a signal ---------------------------
 static void catch_sig(int sig)
 {
 	signal(SIGINT, catch_sig);
-	if (sig)
-		siglongjmp(restart, sig);
+	siglongjmp(restart, sig);
 }
 #endif /* FEATURE_VI_USE_SIGNALS */
 
@@ -2781,9 +2791,7 @@ static void refresh(int full_screen)
 
 	if (ENABLE_FEATURE_VI_WIN_RESIZE) {
 		unsigned c = columns, r = rows;
-		get_terminal_width_height(0, &columns, &rows);
-		if (rows > MAX_SCR_ROWS) rows = MAX_SCR_ROWS;
-		if (columns > MAX_SCR_COLS) columns = MAX_SCR_COLS;
+		query_screen_dimensions();
 		full_screen |= (c - columns) | (r - rows);
 	}
 	sync_cursor(dot, &crow, &ccol);	// where cursor will be (on "dot")
