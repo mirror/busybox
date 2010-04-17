@@ -458,12 +458,10 @@ int vi_main(int argc, char **argv)
 	save_argc = argc;
 
 	//----- This is the main file handling loop --------------
-	if (optind >= argc) {
-		edit_file(0);
-	} else {
-		for (; optind < argc; optind++) {
-			edit_file(argv[optind]);
-		}
+	while (1) {
+		edit_file(argv[optind]); /* param might be NULL */
+		if (++optind >= argc)
+			break;
 	}
 	//-----------------------------------------------------------
 
@@ -955,6 +953,7 @@ static void colon(char *buf)
 	} else if (strncmp(cmd, "quit", i) == 0 // Quit
 	        || strncmp(cmd, "next", i) == 0 // edit next file
 	) {
+		int n;
 		if (useforce) {
 			// force end of argv list
 			if (*cmd == 'q') {
@@ -970,11 +969,12 @@ static void colon(char *buf)
 			goto vc1;
 		}
 		// are there other file to edit
-		if (*cmd == 'q' && optind < save_argc - 1) {
-			status_line_bold("%d more file to edit", (save_argc - optind - 1));
+		n = save_argc - optind - 1;
+		if (*cmd == 'q' && n > 0) {
+			status_line_bold("%d more file(s) to edit", n);
 			goto vc1;
 		}
-		if (*cmd == 'n' && optind >= save_argc - 1) {
+		if (*cmd == 'n' && n <= 0) {
 			status_line_bold("No more files to edit");
 			goto vc1;
 		}
