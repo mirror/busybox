@@ -2306,7 +2306,7 @@ static int file_size(const char *fn) // what is the byte size of "fn"
 	int cnt;
 
 	cnt = -1;
-	if (fn && fn[0] && stat(fn, &st_buf) == 0)	// see if file exists
+	if (fn && stat(fn, &st_buf) == 0)	// see if file exists
 		cnt = (int) st_buf.st_size;
 	return cnt;
 }
