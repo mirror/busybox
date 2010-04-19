@@ -105,7 +105,9 @@ static const char *unpack_usage_messages(void)
 
 static void full_write2_str(const char *str)
 {
-	xwrite_str(STDERR_FILENO, str);
+	// This uses stdio:
+	//xwrite_str(STDERR_FILENO, str);
+	write(STDERR_FILENO, str, strlen(str));
 }
 
 void FAST_FUNC bb_show_usage(void)
