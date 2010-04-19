@@ -138,6 +138,9 @@ struct globals {
 	int save_argc;           // how many file names on cmd line
 	int cmdcnt;              // repetition count
 	unsigned rows, columns;	 // the terminal screen is this size
+#if ENABLE_FEATURE_VI_ASK_TERMINAL
+	int get_rowcol_error;
+#endif
 	int crow, ccol;          // cursor is on Crow x Ccol
 	int offset;              // chars scrolled off the screen to the left
 	int have_status_msg;     // is default edit status needed?
@@ -503,7 +506,11 @@ static int init_text_buffer(char *fn)
 #if ENABLE_FEATURE_VI_WIN_RESIZE
 static void query_screen_dimensions(void)
 {
-	get_terminal_width_height(STDIN_FILENO, &columns, &rows);
+# if ENABLE_FEATURE_VI_ASK_TERMINAL
+	if (!G.get_rowcol_error)
+		G.get_rowcol_error =
+# endif
+			get_terminal_width_height(STDIN_FILENO, &columns, &rows);
 	if (rows > MAX_SCR_ROWS)
 		rows = MAX_SCR_ROWS;
 	if (columns > MAX_SCR_COLS)
@@ -530,6 +537,20 @@ static void edit_file(char *fn)
 	columns = 80;
 	size = 0;
 	query_screen_dimensions();
+#if ENABLE_FEATURE_VI_ASK_TERMINAL
+	if (G.get_rowcol_error /* TODO? && no input on stdin */) {
+		uint64_t k;
+		write1("\033[999;999H" "\033[6n");
+		fflush_all();
+		k = read_key(STDIN_FILENO, readbuffer, /*timeout_ms:*/ 100);
+		if ((int32_t)k == KEYCODE_CURSOR_POS) {
+			uint32_t rc = (k >> 32);
+			columns = (rc & 0x7fff);
+			rows = ((rc >> 16) & 0x7fff);
+		}
+		query_screen_dimensions();
+	}
+#endif
 	new_screen(rows, columns);	// get memory for virtual screen
 	init_text_buffer(fn);
 

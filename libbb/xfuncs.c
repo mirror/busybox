@@ -210,34 +210,40 @@ char* FAST_FUNC xmalloc_ttyname(int fd)
 	return buf;
 }
 
+static int wh_helper(int value, int def_val, const char *env_name, int *err)
+{
+	if (value == 0) {
+		char *s = getenv(env_name);
+		if (s) {
+			value = atoi(s);
+			/* If LINES/COLUMNS are set, pretent that there is
+			 * no error getting w/h, this prevents some ugly
+			 * cursor tricks by our callers */
+			*err = 0;
+		}
+	}
+	if (value <= 1 || value >= 30000)
+		value = def_val;
+	return value;
+}
+
 /* It is perfectly ok to pass in a NULL for either width or for
  * height, in which case that value will not be set.  */
 int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *height)
 {
-	struct winsize win = { 0, 0, 0, 0 };
-	int ret = ioctl(fd, TIOCGWINSZ, &win);
+	struct winsize win;
+	int err;
 
-	if (height) {
-		if (!win.ws_row) {
-			char *s = getenv("LINES");
-			if (s) win.ws_row = atoi(s);
-		}
-		if (win.ws_row <= 1 || win.ws_row >= 30000)
-			win.ws_row = 24;
-		*height = (int) win.ws_row;
-	}
-
-	if (width) {
-		if (!win.ws_col) {
-			char *s = getenv("COLUMNS");
-			if (s) win.ws_col = atoi(s);
-		}
-		if (win.ws_col <= 1 || win.ws_col >= 30000)
-			win.ws_col = 80;
-		*width = (int) win.ws_col;
-	}
-
-	return ret;
+	win.ws_row = 0;
+	win.ws_col = 0;
+	/* I've seen ioctl returning 0, but row/col is (still?) 0.
+	 * We treat that as an error too.  */
+	err = ioctl(fd, TIOCGWINSZ, &win) != 0 || win.ws_row == 0;
+	if (height)
+		*height = wh_helper(win.ws_row, 24, "LINES", &err);
+	if (width)
+		*width = wh_helper(win.ws_col, 80, "COLUMNS", &err);
+	return err;
 }
 
 int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
