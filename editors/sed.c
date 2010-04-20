@@ -936,7 +936,15 @@ static void process_files(void)
 		/* Skip blocks of commands we didn't match */
 		if (sed_cmd->cmd == '{') {
 			if (sed_cmd->invert ? matched : !matched) {
-				while (sed_cmd->cmd != '}') {
+				unsigned nest_cnt = 0;
+				while (1) {
+					if (sed_cmd->cmd == '{')
+						nest_cnt++;
+					if (sed_cmd->cmd == '}') {
+						nest_cnt--;
+						if (nest_cnt == 0)
+							break;
+					}
 					sed_cmd = sed_cmd->next;
 					if (!sed_cmd)
 						bb_error_msg_and_die("unterminated {");

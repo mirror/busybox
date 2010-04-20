@@ -253,4 +253,9 @@ testing "sed c" \
 	"repl\nrepl\n" "" \
 	"first\nsecond\n"
 
+testing "sed nested {}s" \
+	"sed '/asd/ { p; /s/ { s/s/c/ }; p; q }'" \
+	"qwe\nasd\nacd\nacd\n" "" \
+	"qwe\nasd\nzxc\n"
+
 exit $FAILCOUNT
