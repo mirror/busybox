@@ -1031,7 +1031,7 @@ static void process_files(void)
 		case 'c':
 			/* Only triggers on last line of a matching range. */
 			if (!sed_cmd->in_match)
-				sed_puts(sed_cmd->string, NO_EOL_CHAR);
+				sed_puts(sed_cmd->string, '\n');
 			goto discard_line;
 
 		/* Read file, append contents to output */
