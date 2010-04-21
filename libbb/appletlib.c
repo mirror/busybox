@@ -595,6 +595,17 @@ static void check_suid(int applet_no)
 
 
 #if ENABLE_FEATURE_INSTALLER
+static const char usr_bin [] ALIGN1 = "/usr/bin/";
+static const char usr_sbin[] ALIGN1 = "/usr/sbin/";
+static const char *const install_dir[] = {
+	&usr_bin [8], /* "/" */
+	&usr_bin [4], /* "/bin/" */
+	&usr_sbin[4], /* "/sbin/" */
+	usr_bin,
+	usr_sbin
+};
+
+
 /* create (sym)links for each applet */
 static void install_links(const char *busybox, int use_symbolic_links,
 		char *custom_install_dir)
@@ -602,16 +613,6 @@ static void install_links(const char *busybox, int use_symbolic_links,
 	/* directory table
 	 * this should be consistent w/ the enum,
 	 * busybox.h::bb_install_loc_t, or else... */
-	static const char usr_bin [] ALIGN1 = "/usr/bin";
-	static const char usr_sbin[] ALIGN1 = "/usr/sbin";
-	static const char *const install_dir[] = {
-		&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
-		&usr_bin [4], /* "/bin" */
-		&usr_sbin[4], /* "/sbin" */
-		usr_bin,
-		usr_sbin
-	};
-
 	int (*lf)(const char *, const char *);
 	char *fpc;
 	unsigned i;
@@ -635,8 +636,8 @@ static void install_links(const char *busybox, int use_symbolic_links,
 	}
 }
 #else
-#define install_links(x,y,z) ((void)0)
-#endif /* FEATURE_INSTALLER */
+# define install_links(x,y,z) ((void)0)
+#endif
 
 /* If we were called as "busybox..." */
 static int busybox_main(char **argv)
@@ -657,19 +658,20 @@ static int busybox_main(char **argv)
 		full_write2_str(bb_banner); /* reuse const string */
 		full_write2_str(" multi-call binary.\n"); /* reuse */
 		full_write2_str(
-		       "Copyright (C) 1998-2009 Erik Andersen, Rob Landley, Denys Vlasenko\n"
-		       "and others. Licensed under GPLv2.\n"
-		       "See source distribution for full notice.\n"
-		       "\n"
-		       "Usage: busybox [function] [arguments]...\n"
-		       "   or: function [arguments]...\n"
-		       "\n"
-		       "\tBusyBox is a multi-call binary that combines many common Unix\n"
-		       "\tutilities into a single executable.  Most people will create a\n"
-		       "\tlink to busybox for each function they wish to use and BusyBox\n"
-		       "\twill act like whatever it was invoked as.\n"
-		       "\n"
-		       "Currently defined functions:\n");
+			"Copyright (C) 1998-2009 Erik Andersen, Rob Landley, Denys Vlasenko\n"
+			"and others. Licensed under GPLv2.\n"
+			"See source distribution for full notice.\n"
+			"\n"
+			"Usage: busybox [function] [arguments]...\n"
+			"   or: function [arguments]...\n"
+			"\n"
+			"\tBusyBox is a multi-call binary that combines many common Unix\n"
+			"\tutilities into a single executable.  Most people will create a\n"
+			"\tlink to busybox for each function they wish to use and BusyBox\n"
+			"\twill act like whatever it was invoked as.\n"
+			"\n"
+			"Currently defined functions:\n"
+		);
 		col = 0;
 		a = applet_names;
 		/* prevent last comma to be in the very last pos */
@@ -691,6 +693,23 @@ static int busybox_main(char **argv)
 			a += len2 - 1;
 		}
 		full_write2_str("\n\n");
+		return 0;
+	}
+
+	if (strncmp(argv[1], "--list", 6) == 0) {
+		unsigned i = 0;
+		const char *a = applet_names;
+		dup2(1, 2);
+		while (*a) {
+#if ENABLE_FEATURE_INSTALLER
+			if (argv[1][6]) /* --list-path? */
+				full_write2_str(install_dir[APPLET_INSTALL_LOC(i)] + 1);
+#endif
+			full_write2_str(a);
+			full_write2_str("\n");
+			i++;
+			a += strlen(a) + 1;
+		}
 		return 0;
 	}
 
