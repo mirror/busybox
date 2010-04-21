@@ -618,10 +618,10 @@ popen_ls(const char *opt)
 	argv[4] = NULL;
 
 	/* Improve compatibility with non-RFC conforming FTP clients
-	 * which send e.g. "LIST -l", "LIST -la".
+	 * which send e.g. "LIST -l", "LIST -la", "LIST -aL".
 	 * See https://bugs.kde.org/show_bug.cgi?id=195578 */
 	if (ENABLE_FEATURE_FTPD_ACCEPT_BROKEN_LIST
-	 && G.ftp_arg && G.ftp_arg[0] == '-' && G.ftp_arg[1] == 'l'
+	 && G.ftp_arg && G.ftp_arg[0] == '-'
 	) {
 		const char *tmp = strchr(G.ftp_arg, ' ');
 		if (tmp) /* skip the space */
