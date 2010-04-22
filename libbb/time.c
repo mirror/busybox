@@ -68,6 +68,16 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 				end = '\0';
 			/* else end != NUL and we error out */
 		}
+	} else if (date_str[0] == '@') {
+		time_t t = bb_strtol(date_str + 1, NULL, 10);
+		if (!errno) {
+			struct tm *lt = localtime(&t);
+			if (lt) {
+				*ptm = *lt;
+				return;
+			}
+		}
+		end = '1';
 	} else {
 		/* Googled the following on an old date manpage:
 		 *
