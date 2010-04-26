@@ -1531,8 +1531,7 @@
      "\n	-H HOST		Log HOST into the utmp file as the hostname" \
 
 #define grep_trivial_usage \
-       "[-HhnlLoqvsri" \
-	IF_DESKTOP("w") \
+       "[-HhnlLoqvsriw" \
        "F" \
 	IF_FEATURE_GREP_EGREP_ALIAS("E") \
 	IF_EXTRA_COMPAT("z") \
@@ -1554,9 +1553,7 @@
      "\n	-s	Suppress open and read errors" \
      "\n	-r	Recurse" \
      "\n	-i	Ignore case" \
-	IF_DESKTOP( \
      "\n	-w	Match whole words only" \
-	) \
      "\n	-F	PATTERN is a literal (not regexp)" \
 	IF_FEATURE_GREP_EGREP_ALIAS( \
      "\n	-E	PATTERN is an extended regexp" \
