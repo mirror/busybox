@@ -198,14 +198,19 @@ static int exec_actions(action ***appp, const char *fileName, const struct stat 
 ACTF(name)
 {
 	const char *tmp = bb_basename(fileName);
-	if (tmp != fileName && !*tmp) { /* "foo/bar/". Oh no... go back to 'b' */
+	if (tmp != fileName && *tmp == '\0') {
+		/* "foo/bar/". Oh no... go back to 'b' */
 		tmp--;
 		while (tmp != fileName && *--tmp != '/')
 			continue;
 		if (*tmp == '/')
 			tmp++;
 	}
-	return fnmatch(ap->pattern, tmp, FNM_PERIOD | (ap->iname ? FNM_CASEFOLD : 0)) == 0;
+	/* Was using FNM_PERIOD flag too,
+	 * but somewhere between 4.1.20 and 4.4.0 GNU find stopped using it.
+	 * find -name '*foo' should match .foo too:
+	 */
+	return fnmatch(ap->pattern, tmp, (ap->iname ? FNM_CASEFOLD : 0)) == 0;
 }
 
 #if ENABLE_FEATURE_FIND_PATH
