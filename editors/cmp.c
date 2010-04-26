@@ -37,8 +37,7 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 {
 	FILE *fp1, *fp2, *outfile = stdout;
 	const char *filename1, *filename2 = "-";
-	IF_DESKTOP(off_t skip1 = 0, skip2 = 0;)
-	off_t char_pos = 0;
+	off_t skip1 = 0, skip2 = 0, char_pos = 0;
 	int line_pos = 1; /* Hopefully won't overflow... */
 	const char *fmt;
 	int c1, c2;
@@ -59,14 +58,12 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 
 	if (*++argv) {
 		filename2 = *argv;
-#if ENABLE_DESKTOP
-		if (*++argv) {
+		if (ENABLE_DESKTOP && *++argv) {
 			skip1 = XATOOFF(*argv);
 			if (*++argv) {
 				skip2 = XATOOFF(*argv);
 			}
 		}
-#endif
 	}
 
 	fp2 = xfopen_stdin(filename2);
@@ -83,10 +80,10 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 	else
 		fmt = fmt_differ;
 
-#if ENABLE_DESKTOP
-	while (skip1) { getc(fp1); skip1--; }
-	while (skip2) { getc(fp2); skip2--; }
-#endif
+	if (ENABLE_DESKTOP) {
+		while (skip1) { getc(fp1); skip1--; }
+		while (skip2) { getc(fp2); skip2--; }
+	}
 	do {
 		c1 = getc(fp1);
 		c2 = getc(fp2);
