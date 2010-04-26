@@ -10,17 +10,6 @@
 /* BB_AUDIT SUSv3 (virtually) compliant -- uses nicer GNU format for -l. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cmp.html */
 
-/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
- *
- * Original version majorly reworked for SUSv3 compliance, bug fixes, and
- * size optimizations.  Changes include:
- * 1) Now correctly distinguishes between errors and actual file differences.
- * 2) Proper handling of '-' args.
- * 3) Actual error checking of i/o.
- * 4) Accept SUSv3 -l option.  Note that we use the slightly nicer gnu format
- *    in the '-l' case.
- */
-
 #include "libbb.h"
 
 static const char fmt_eof[] ALIGN1 = "cmp: EOF on %s\n";
