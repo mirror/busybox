@@ -68,7 +68,7 @@
 
 #undef CHAR_T
 #if ENABLE_UNICODE_SUPPORT
-# define BB_NUL L'\0'
+# define BB_NUL ((wchar_t)0)
 # define CHAR_T wchar_t
 static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
 # if ENABLE_FEATURE_EDITING_VI
@@ -90,6 +90,14 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # define BB_isalnum(c) isalnum(c)
 # define BB_ispunct(c) ispunct(c)
 #endif
+
+
+# if ENABLE_UNICODE_PRESERVE_BROKEN
+#  define unicode_mark_inv_wchar(wc)   ((wc) | 0x20000000)
+#  define unicode_is_inv_wchar(wc)     ((wc) & 0x20000000)
+# else
+#  define unicode_is_inv_wchar(wc)     0
+# endif
 
 
 enum {
@@ -208,24 +216,58 @@ static size_t load_string(const char *src, int maxsize)
 	ssize_t len = mbstowcs(command_ps, src, maxsize - 1);
 	if (len < 0)
 		len = 0;
-	command_ps[len] = L'\0';
+	command_ps[len] = 0;
 	return len;
 }
-static size_t save_string(char *dst, int maxsize)
+static unsigned save_string(char *dst, unsigned maxsize)
 {
+#if !ENABLE_UNICODE_PRESERVE_BROKEN
 	ssize_t len = wcstombs(dst, command_ps, maxsize - 1);
 	if (len < 0)
 		len = 0;
 	dst[len] = '\0';
 	return len;
+#else
+	unsigned dstpos = 0;
+	unsigned srcpos = 0;
+
+	maxsize--;
+	while (dstpos < maxsize) {
+		wchar_t wc;
+		int n = srcpos;
+		while ((wc = command_ps[srcpos]) != 0
+		    && !unicode_is_inv_wchar(wc)
+		) {
+			srcpos++;
+		}
+		command_ps[srcpos] = 0;
+		n = wcstombs(dst + dstpos, command_ps + n, maxsize - dstpos);
+		if (n < 0) /* should not happen */
+			break;
+		dstpos += n;
+		if (wc == 0) /* usually is */
+			break;
+		/* We do have invalid byte here! */
+		command_ps[srcpos] = wc; /* restore it */
+		srcpos++;
+		if (dstpos == maxsize)
+			break;
+		dst[dstpos++] = (char) wc;
+	}
+	dst[dstpos] = '\0';
+	return dstpos;
+#endif
 }
 /* I thought just fputwc(c, stdout) would work. But no... */
 static void BB_PUTCHAR(wchar_t c)
 {
 	char buf[MB_CUR_MAX + 1];
 	mbstate_t mbst = { 0 };
-	ssize_t len = wcrtomb(buf, c, &mbst);
+	ssize_t len;
 
+	if (unicode_is_inv_wchar(c))
+		c = CONFIG_SUBST_WCHAR;
+	len = wcrtomb(buf, c, &mbst);
 	if (len > 0) {
 		buf[len] = '\0';
 		fputs(buf, stdout);
@@ -238,7 +280,7 @@ static size_t load_string(const char *src, int maxsize)
 	return strlen(command_ps);
 }
 # if ENABLE_FEATURE_TAB_COMPLETION
-static void save_string(char *dst, int maxsize)
+static void save_string(char *dst, unsigned maxsize)
 {
 	safe_strncpy(dst, command_ps, maxsize);
 }
@@ -1719,13 +1761,11 @@ static int lineedit_read_key(char *read_key_buffer)
  pushback:
 				/* Invalid sequence. Save all "bad bytes" except first */
 				read_key_ungets(read_key_buffer, unicode_buf + 1, unicode_idx - 1);
-				/*
-				 * ic = unicode_buf[0] sounds even better, but currently
-				 * this does not work: wchar_t[] -> char[] conversion
-				 * when lineedit finishes mangles such "raw bytes"
-				 * (by misinterpreting them as unicode chars):
-				 */
+# if !ENABLE_UNICODE_PRESERVE_BROKEN
 				ic = CONFIG_SUBST_WCHAR;
+# else
+				ic = unicode_mark_inv_wchar(unicode_buf[0]);
+# endif
 			} else {
 				/* Valid unicode char, return its code */
 				ic = wc;

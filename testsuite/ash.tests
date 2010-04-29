@@ -7,8 +7,30 @@
 
 . ./testing.sh
 
+test -f "$bindir/.config" && . "$bindir/.config"
+
 # testing "test name" "options" "expected result" "file input" "stdin"
 
+if test x"$CONFIG_UNICODE_PRESERVE_BROKEN" = x"y"; then
+testing "One byte which is not valid unicode char followed by valid input" \
+	"script -q -c 'ash' /dev/null >/dev/null; cat ash.output" \
+	"\
+00000000  ff 2d 0a                                          |.-.|
+00000003
+" \
+	"" \
+	"echo \xff- | hexdump -C >ash.output; exit; exit; exit; exit\n"
+
+testing "30 bytes which are not valid unicode chars followed by valid input" \
+	"script -q -c 'ash' /dev/null >/dev/null; cat ash.output" \
+	"\
+00000000  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
+00000010  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff 2d 0a  |..............-.|
+00000020
+" \
+	"" \
+	"echo \xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff- | hexdump -C >ash.output; exit; exit; exit; exit\n"
+else
 testing "One byte which is not valid unicode char followed by valid input" \
 	"script -q -c 'ash' /dev/null >/dev/null; cat ash.output" \
 	"\
@@ -27,6 +49,8 @@ testing "30 bytes which are not valid unicode chars followed by valid input" \
 " \
 	"" \
 	"echo \xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff- | hexdump -C >ash.output; exit; exit; exit; exit\n"
+fi
+
 
 # Not sure this behavior is perfect: we lose all invalid input which precedes
 # arrow keys and such. In this example, \xff\xff are lost

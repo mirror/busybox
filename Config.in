@@ -223,6 +223,17 @@ config UNICODE_NEUTRAL_TABLE
 	  With this option on, more extensive (and bigger) table
 	  of neutral chars will be used.
 
+config UNICODE_PRESERVE_BROKEN
+	bool "Make it possible to enter sequences of chars which are not Unicode"
+	default n
+	depends on UNICODE_SUPPORT
+	help
+	  With this option on, invalid UTF-8 bytes are not substituted
+	  with the selected substitution character.
+	  For example, this means that entering 'l', 's', ' ', 0xff, [Enter]
+	  at shell prompt will list file named 0xff (single char name
+	  with char value 255), not file named '?'.
+
 config LONG_OPTS
 	bool "Support for --long-options"
 	default y
