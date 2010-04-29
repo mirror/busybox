@@ -66,11 +66,20 @@ static int do_em_all(void)
 		bb_perror_msg_and_die("/etc/fstab");
 
 	err = 0;
-	while ((m = getmntent(f)) != NULL)
-		if (strcmp(m->mnt_type, MNTTYPE_SWAP) == 0)
-			err += swap_enable_disable(m->mnt_fsname);
+	while ((m = getmntent(f)) != NULL) {
+		if (strcmp(m->mnt_type, MNTTYPE_SWAP) == 0) {
+			/* swapon -a should ignore entries with noauto,
+			 * but swapoff -a should process them */
+			if (applet_name[5] != 'n'
+			 || hasmntopt(m, MNTOPT_NOAUTO) == NULL
+			) {
+				err += swap_enable_disable(m->mnt_fsname);
+			}
+		}
+	}
 
-	endmntent(f);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		endmntent(f);
 
 	return err;
 }
