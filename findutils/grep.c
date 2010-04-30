@@ -254,7 +254,10 @@ static int grep_file(FILE *file)
 		while (pattern_ptr) {
 			gl = (grep_list_data_t *)pattern_ptr->data;
 			if (FGREP_FLAG) {
-				found |= (strstr(line, gl->pattern) != NULL);
+				found |= (((option_mask32 & OPT_i)
+					? strcasestr(line, gl->pattern)
+					: strstr(line, gl->pattern)
+					) != NULL);
 			} else {
 				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
 					gl->flg_mem_alocated_compiled |= COMPILED;

@@ -75,6 +75,8 @@ testing "grep handles multiple regexps" "grep -e one -e two input ; echo \$?" \
 	"one\ntwo\n0\n" "one\ntwo\n" ""
 testing "grep -F handles multiple expessions" "grep -F -e one -e two input ; echo \$?" \
 	"one\ntwo\n0\n" "one\ntwo\n" ""
+testing "grep -F handles -i" "grep -F -i foo input ; echo \$?" \
+	"FOO\n0\n" "FOO\n" ""
 
 # -f file/-
 testing "grep can read regexps from stdin" "grep -f - input ; echo \$?" \
