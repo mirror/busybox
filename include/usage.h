@@ -3738,6 +3738,18 @@
      "\n		for customizable files, or the user section," \
      "\n		if it has changed" \
 
+#define rfkill_trivial_usage \
+       "COMMAND [INDEX|TYPE]"
+#define rfkill_full_usage "\n\n" \
+       "Enable/disable wireless devices\n" \
+       "\nCommands:" \
+     "\n	list [INDEX|TYPE]	List current state" \
+     "\n	block INDEX|TYPE	Disable device" \
+     "\n	unblock INDEX|TYPE	Enable device" \
+     "\n" \
+     "\n	TYPE: all, wlan(wifi), bluetooth, uwb(ultrawideband)," \
+     "\n		wimax, wwan, gps, fm" \
+
 #define rm_trivial_usage \
        "[OPTIONS] FILE..."
 #define rm_full_usage "\n\n" \
