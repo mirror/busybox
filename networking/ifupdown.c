@@ -573,8 +573,10 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
-	result = execute("kill "
-	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+	result = execute(
+		"test -f /var/run/udhcpc.%iface%.pid && "
+		"kill `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
+		ifd, exec);
 	/* Also bring the hardware interface down since
 	   killing the dhcp client alone doesn't do it.
 	   This enables consecutive ifup->ifdown->ifup */
