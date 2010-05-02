@@ -60,6 +60,8 @@ struct dyn_lease* FAST_FUNC add_lease(
 		memset(oldest, 0, sizeof(*oldest));
 		if (hostname) {
 			char *p;
+
+			hostname_len++; /* include NUL */
 			if (hostname_len > sizeof(oldest->hostname))
 				hostname_len = sizeof(oldest->hostname);
 			p = safe_strncpy(oldest->hostname, hostname, hostname_len);
