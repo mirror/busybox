@@ -175,7 +175,7 @@ static void do_logging(void)
 	//FILE *proc_netdev = xfopen("proc_netdev.log", "w");
 	FILE *proc_ps = xfopen("proc_ps.log", "w");
 	int look_for_login_process = (getppid() == 1);
-	unsigned count = 60*1000*1000 / 200*1000; /* ~1 minute */
+	unsigned count = 60*1000*1000 / (200*1000); /* ~1 minute */
 
 	while (--count && !bb_got_signal) {
 		char *p;
@@ -200,8 +200,8 @@ static void do_logging(void)
 			/* dump_procs saw a getty or {g,k,x}dm
 			 * stop logging in 2 seconds:
 			 */
-			if (count > 2*1000*1000 / 200*1000)
-				count = 2*1000*1000 / 200*1000;
+			if (count > 2*1000*1000 / (200*1000))
+				count = 2*1000*1000 / (200*1000);
 		}
 		fflush_all();
  wait_more:
