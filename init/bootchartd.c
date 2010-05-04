@@ -306,11 +306,12 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 			/* Inform parent that we are ready */
 			raise(SIGSTOP);
 
-		/* If we started by kernel, PATH might be not set.
-		 * And in order to run tar we may need PATH to be set:
+		/* If we are started by kernel, PATH might be unset.
+		 * In order to find "tar", let's set some sane PATH:
 		 */
 		if (cmd == CMD_PID1 && !getenv("PATH"))
 			putenv((char*)bb_PATH_root_path);
+
 		tempdir = make_tempdir(cmd == CMD_START ? argv[2] : NULL);
 		do_logging();
 		finalize(tempdir);
