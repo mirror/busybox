@@ -154,18 +154,15 @@
      "\n	-r	Repetitions" \
      "\n	-n	Start new tone" \
 
-#define fbsplash_trivial_usage \
-       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
-#define fbsplash_full_usage "\n\n" \
-       "Options:" \
-     "\n	-s	Image" \
-     "\n	-c	Hide cursor" \
-     "\n	-d	Framebuffer device (default /dev/fb0)" \
-     "\n	-i	Config file (var=value):" \
-     "\n			BAR_LEFT,BAR_TOP,BAR_WIDTH,BAR_HEIGHT" \
-     "\n			BAR_R,BAR_G,BAR_B" \
-     "\n	-f	Control pipe (else exit after drawing image)" \
-     "\n			commands: 'NN' (% for progress bar) or 'exit'" \
+#define bootchartd_trivial_usage \
+       "start [PROG ARGS]|stop|init"
+#define bootchartd_full_usage "\n\n" \
+       "Create /var/log/bootchart.tgz with boot chart data\n" \
+     "\nOptions:" \
+     "\nstart: start background logging; with PROG, run PROG, then kill logging with USR1" \
+     "\nstop: send USR1 to all bootchartd processes" \
+     "\ninit: start background logging; stop when getty/xdm is seen (for init scripts)" \
+     "\nUnder PID 1: as init, then exec $bootchart_init, /init, /sbin/init" \
 
 #define brctl_trivial_usage \
        "COMMAND [BRIDGE [INTERFACE]]"
@@ -1173,6 +1170,19 @@
        "$ false\n" \
        "$ echo $?\n" \
        "1\n"
+
+#define fbsplash_trivial_usage \
+       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
+#define fbsplash_full_usage "\n\n" \
+       "Options:" \
+     "\n	-s	Image" \
+     "\n	-c	Hide cursor" \
+     "\n	-d	Framebuffer device (default /dev/fb0)" \
+     "\n	-i	Config file (var=value):" \
+     "\n			BAR_LEFT,BAR_TOP,BAR_WIDTH,BAR_HEIGHT" \
+     "\n			BAR_R,BAR_G,BAR_B" \
+     "\n	-f	Control pipe (else exit after drawing image)" \
+     "\n			commands: 'NN' (% for progress bar) or 'exit'" \
 
 #define fbset_trivial_usage \
        "[OPTIONS] [MODE]"

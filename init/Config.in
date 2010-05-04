@@ -120,4 +120,18 @@ config MESG
 	  Mesg controls access to your terminal by others. It is typically
 	  used to allow or disallow other users to write to your terminal
 
+config BOOTCHARTD
+	bool "bootchartd"
+	default n
+	help
+	  bootchartd is commonly used to profile the boot process
+	  for the purpose of speeding it up. In this case, it is started
+	  by the kernel as the init process. This is configured by adding
+	  the init=/sbin/bootchartd option to the kernel command line.
+
+	  It can also be used to monitor the resource usage of a specific
+	  application or the running system in general. In this case,
+	  bootchartd is started interactively by running bootchartd start
+	  and stopped using bootchartd stop.
+
 endmenu
