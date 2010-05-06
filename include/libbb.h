@@ -651,6 +651,15 @@ extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
 extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
+/* Autodetects gzip/bzip2 formats. fd may be in the middle of the file! */
+#if ENABLE_FEATURE_SEAMLESS_LZMA \
+ || ENABLE_FEATURE_SEAMLESS_BZ2 \
+ || ENABLE_FEATURE_SEAMLESS_GZ \
+ /* || ENABLE_FEATURE_SEAMLESS_Z */
+extern int setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/) FAST_FUNC;
+#else
+# define setup_unzip_on_fd(...) ((void)0)
+#endif
 /* Autodetects .gz etc */
 extern int open_zipped(const char *fname) FAST_FUNC;
 extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
