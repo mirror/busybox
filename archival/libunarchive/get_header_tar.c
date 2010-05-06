@@ -18,87 +18,45 @@ typedef uint32_t aliased_uint32_t FIX_ALIASING;
 typedef off_t    aliased_off_t    FIX_ALIASING;
 
 
-/*
- * GNU tar uses "base-256 encoding" for very large numbers (>8 billion).
- * Encoding is binary, with highest bit always set as a marker
- * and sign in next-highest bit:
- * 80 00 .. 00 - zero
- * bf ff .. ff - largest positive number
- * ff ff .. ff - minus 1
- * c0 00 .. 00 - smallest negative number
- *
- * We expect it only in size field, where negative numbers don't make sense.
- */
-static off_t getBase256_len12(const char *str)
-{
-	off_t value;
-	int len;
-
-	/* if (*str & 0x40) error; - caller prevents this */
-
-	if (sizeof(off_t) >= 12) {
-		/* Probably 128-bit (16 byte) off_t. Can be optimized. */
-		len = 12;
-		value = *str++ & 0x3f;
-		while (--len)
-			value = (value << 8) + (unsigned char) *str++;
-		return value;
-	}
-
-#ifdef CHECK_FOR_OVERFLOW
-	/* Can be optimized to eat 32-bit chunks */
-	char c = *str++ & 0x3f;
-	len = 12;
-	while (1) {
-		if (c)
-			bb_error_msg_and_die("overflow in base-256 encoded file size");
-		if (--len == sizeof(off_t))
-			break;
-		c = *str++;
-	}
-#else
-	str += (12 - sizeof(off_t));
-#endif
-
-/* Now str points to sizeof(off_t) least significant bytes.
- *
- * Example of tar file with 8914993153 (0x213600001) byte file.
- * Field starts at offset 7c:
- * 00070  30 30 30 00 30 30 30 30  30 30 30 00 80 00 00 00  |000.0000000.....|
- * 00080  00 00 00 02 13 60 00 01  31 31 31 32 30 33 33 36  |.....`..11120336|
- *
- * str is at offset 80 or 84 now (64-bit or 32-bit off_t).
- * We (ab)use the fact that value happens to be aligned,
- * and fetch it in one go:
- */
-	if (sizeof(off_t) == 8) {
-		value = *(aliased_off_t*)str;
-		value = SWAP_BE64(value);
-	} else if (sizeof(off_t) == 4) {
-		value = *(aliased_off_t*)str;
-		value = SWAP_BE32(value);
-	} else {
-		value = 0;
-		len = sizeof(off_t);
-		while (--len)
-			value = (value << 8) + (unsigned char) *str++;
-	}
-	return value;
-}
-
 /* NB: _DESTROYS_ str[len] character! */
 static unsigned long long getOctal(char *str, int len)
 {
 	unsigned long long v;
+	char *end;
 	/* NB: leading spaces are allowed. Using strtoull to handle that.
 	 * The downside is that we accept e.g. "-123" too :(
 	 */
 	str[len] = '\0';
-	v = strtoull(str, &str, 8);
+	v = strtoull(str, &end, 8);
 	/* std: "Each numeric field is terminated by one or more
 	 * <space> or NUL characters". We must support ' '! */
-	if (*str != '\0' && *str != ' ')
-		bb_error_msg_and_die("corrupted octal value in tar header");
+	if (*end != '\0' && *end != ' ') {
+		int8_t first = str[0];
+		if (!(first & 0x80))
+			bb_error_msg_and_die("corrupted octal value in tar header");
+		/*
+		 * GNU tar uses "base-256 encoding" for very large numbers.
+		 * Encoding is binary, with highest bit always set as a marker
+		 * and sign in next-highest bit:
+		 * 80 00 .. 00 - zero
+		 * bf ff .. ff - largest positive number
+		 * ff ff .. ff - minus 1
+		 * c0 00 .. 00 - smallest negative number
+		 *
+		 * Example of tar file with 8914993153 (0x213600001) byte file.
+		 * Field starts at offset 7c:
+		 * 00070  30 30 30 00 30 30 30 30  30 30 30 00 80 00 00 00  |000.0000000.....|
+		 * 00080  00 00 00 02 13 60 00 01  31 31 31 32 30 33 33 36  |.....`..11120336|
+		 *
+		 * NB: tarballs with NEGATIVE unix times encoded that way were seen!
+		 */
+		v = first;
+		/* Sign-extend using 6th bit: */
+		v <<= sizeof(unsigned long long)*8 - 7;
+		v = (long long)v >> (sizeof(unsigned long long)*8 - 7);
+		while (--len != 0)
+			v = (v << 8) + (unsigned char) *str++;
+	}
 	return v;
 }
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
@@ -358,15 +316,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	file_header->tar__uname = tar.uname[0] ? xstrndup(tar.uname, sizeof(tar.uname)) : NULL;
 	file_header->tar__gname = tar.gname[0] ? xstrndup(tar.gname, sizeof(tar.gname)) : NULL;
 #endif
-	/* mtime: rudimentally handle GNU tar's "base256 encoding"
-	 * People report tarballs with NEGATIVE unix times encoded that way */
-	file_header->mtime = (tar.mtime[0] & 0x80) /* base256? */
-			? 0 /* bogus */
-			: GET_OCTAL(tar.mtime);
-	/* size: handle GNU tar's "base256 encoding" */
-	file_header->size = (tar.size[0] & 0xc0) == 0x80 /* positive base256? */
-			? getBase256_len12(tar.size)
-			: GET_OCTAL(tar.size);
+	file_header->mtime = GET_OCTAL(tar.mtime);
+	file_header->size = GET_OCTAL(tar.size);
 	file_header->gid = GET_OCTAL(tar.gid);
 	file_header->uid = GET_OCTAL(tar.uid);
 	/* Set bits 0-11 of the files mode */
