@@ -334,6 +334,11 @@ int FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		if (!ENABLE_FEATURE_SEAMLESS_BZ2
 		 || magic[0] != 'B' || magic[1] != 'Z'
 		) {
+
+// TODO: xz format support. rpm adopted it, "rpm -i FILE.rpm" badly needs this.
+// Signature: 0xFD, '7', 'z', 'X', 'Z', 0x00
+// More info at: http://tukaani.org/xz/xz-file-format.txt
+
 			if (fail_if_not_detected)
 				bb_error_msg_and_die("no gzip"
 					IF_FEATURE_SEAMLESS_BZ2("/bzip2")
