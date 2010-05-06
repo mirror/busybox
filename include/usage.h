@@ -3810,13 +3810,13 @@
      "\n	-A inet" IF_FEATURE_IPV6("{6}") "	Select address family" \
 
 #define rpm_trivial_usage \
-       "-i -q[ildc]p PACKAGE.rpm"
+       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
 #define rpm_full_usage "\n\n" \
        "Manipulate RPM packages\n" \
-     "\nOptions:" \
+     "\nCommands:" \
      "\n	-i	Install package" \
-     "\n	-q	Query package" \
-     "\n	-p	Query uninstalled package" \
+     "\n	-qp	Query package" \
+     "\nOptions:" \
      "\n	-i	Show information" \
      "\n	-l	List contents" \
      "\n	-d	List documents" \

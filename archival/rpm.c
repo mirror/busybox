@@ -71,7 +71,7 @@ static void *map;
 static rpm_index **mytags;
 static int tagcount;
 
-static void extract_cpio_gz(int fd);
+static void extract_cpio(int fd, const char *source_rpm);
 static rpm_index **rpm_gettags(int fd, int *num_tags);
 static int bsearch_rpmtag(const void *key, const void *item);
 static char *rpm_getstr(int tag, int itemindex);
@@ -122,6 +122,8 @@ int rpm_main(int argc, char **argv)
 	}
 
 	while (*argv) {
+		const char *source_rpm;
+
 		rpm_fd = xopen(*argv++, O_RDONLY);
 		mytags = rpm_gettags(rpm_fd, &tagcount);
 		if (!mytags)
@@ -130,11 +132,13 @@ int rpm_main(int argc, char **argv)
 		/* Mimimum is one page */
 		map = mmap(0, offset > pagesize ? (offset + offset % pagesize) : pagesize, PROT_READ, MAP_PRIVATE, rpm_fd, 0);
 
+		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
+
 		if (func & rpm_install) {
 			/* Backup any config files */
 			loop_through_files(TAG_BASENAMES, fileaction_dobackup);
 			/* Extact the archive */
-			extract_cpio_gz(rpm_fd);
+			extract_cpio(rpm_fd, source_rpm);
 			/* Set the correct file uid/gid's */
 			loop_through_files(TAG_BASENAMES, fileaction_setowngrp);
 		}
@@ -161,7 +165,7 @@ int rpm_main(int argc, char **argv)
 				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
 				printf("Release     : %-30sBuild Date: %s\n", rpm_getstr(TAG_RELEASE, 0), bdatestring);
 				printf("Install date: %-30sBuild Host: %s\n", "(not installed)", rpm_getstr(TAG_BUILDHOST, 0));
-				printf("Group       : %-30sSource RPM: %s\n", rpm_getstr(TAG_GROUP, 0), rpm_getstr(TAG_SOURCERPM, 0));
+				printf("Group       : %-30sSource RPM: %s\n", rpm_getstr(TAG_GROUP, 0), source_rpm);
 				printf("Size        : %-33dLicense: %s\n", rpm_getint(TAG_SIZE, 0), rpm_getstr(TAG_LICENSE, 0));
 				printf("URL         : %s\n", rpm_getstr(TAG_URL, 0));
 				printf("Summary     : %s\n", rpm_getstr(TAG_SUMMARY, 0));
@@ -194,9 +198,14 @@ int rpm_main(int argc, char **argv)
 	return 0;
 }
 
-static void extract_cpio_gz(int fd)
+static void extract_cpio(int fd, const char *source_rpm)
 {
 	archive_handle_t *archive_handle;
+
+	if (source_rpm != NULL) {
+		/* Binary rpm (it was built from some SRPM), install to root */
+		xchdir("/");
+	} /* else: SRPM, install to current dir */
 
 	/* Initialize */
 	archive_handle = init_handle();
@@ -215,7 +224,6 @@ static void extract_cpio_gz(int fd)
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 
-	xchdir("/"); /* Install RPM's to root */
 	setup_unzip_on_fd(archive_handle->src_fd /*, fail_if_not_detected: 1*/);
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
