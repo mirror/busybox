@@ -93,6 +93,7 @@ enum { // constant fds
 
 struct globals {
 	smallint iface_last_status;
+	smallint iface_prev_status;
 	smallint iface_exists;
 
 	/* Used in getopt32, must have sizeof == sizeof(int) */
@@ -121,14 +122,20 @@ struct globals {
 } while (0)
 
 
+static const char *strstatus(int status)
+{
+	if (status == IFSTATUS_ERR)
+		return "error";
+	return "down\0up" + (status * 5);
+}
+
 static int run_script(const char *action)
 {
+	char *env_PREVIOUS, *env_CURRENT;
 	char *argv[5];
 	int r;
 
 	bb_error_msg("executing '%s %s %s'", G.script_name, G.iface, action);
-
-#if 1
 
 	argv[0] = (char*) G.script_name;
 	argv[1] = (char*) G.iface;
@@ -136,82 +143,21 @@ static int run_script(const char *action)
 	argv[3] = (char*) G.extra_arg;
 	argv[4] = NULL;
 
+	env_PREVIOUS = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_prev_status));
+	putenv(env_PREVIOUS);
+	env_CURRENT = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_last_status));
+	putenv(env_CURRENT);
+
 	/* r < 0 - can't exec, 0 <= r < 0x180 - exited, >=0x180 - killed by sig (r-0x180) */
 	r = spawn_and_wait(argv);
 
+	unsetenv(IFPLUGD_ENV_PREVIOUS);
+	unsetenv(IFPLUGD_ENV_CURRENT);
+	free(env_PREVIOUS);
+	free(env_CURRENT);
+
 	bb_error_msg("exit code: %d", r & 0xff);
 	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
-
-#else /* insanity */
-
-	struct fd_pair pipe_pair;
-	char buf[256];
-	int i = 0;
-
-	xpiped_pair(pipe_pair);
-
-	pid = vfork();
-	if (pid < 0) {
-		bb_perror_msg("fork");
-		return -1;
-	}
-
-	/* child */
-	if (pid == 0) {
-		xmove_fd(pipe_pair.wr, 1);
-		xdup2(1, 2);
-		if (pipe_pair.rd > 2)
-			close(pipe_pair.rd);
-
-		// umask(0022); // Set up a sane umask
-
-		execlp(G.script_name, G.script_name, G.iface, action, G.extra_arg, NULL);
-		_exit(EXIT_FAILURE);
-	}
-
-	/* parent */
-	close(pipe_pair.wr);
-
-	while (1) {
-		if (bb_got_signal && bb_got_signal != SIGCHLD) {
-			bb_error_msg("killing child");
-			kill(pid, SIGTERM);
-			bb_got_signal = 0;
-			break;
-		}
-
-		r = read(pipe_pair.rd, &buf[i], 1);
-
-		if (buf[i] == '\n' || i == sizeof(buf)-2 || r != 1) {
-			if (r == 1 && buf[i] != '\n')
-				i++;
-
-			buf[i] = '\0';
-
-			if (i > 0)
-				bb_error_msg("client: %s", buf);
-
-			i = 0;
-		} else {
-			i++;
-		}
-
-		if (r != 1)
-			break;
-	}
-
-	close(pipe_pair.rd);
-
-	wait(&r);
-
-	if (!WIFEXITED(r) || WEXITSTATUS(r) != 0) {
-		bb_error_msg("program execution failed, return value is %i",
-			WEXITSTATUS(r));
-		return option_mask32 & FLAG_IGNORE_RETVAL ? 0 : WEXITSTATUS(r);
-	}
-	bb_error_msg("program executed successfully");
-	return 0;
-#endif
 }
 
 static int network_ioctl(int request, void* data, const char *errmsg)
@@ -226,13 +172,6 @@ static void set_ifreq_to_ifname(struct ifreq *ifreq)
 {
 	memset(ifreq, 0, sizeof(struct ifreq));
 	strncpy_IFNAMSIZ(ifreq->ifr_name, G.iface);
-}
-
-static const char *strstatus(int status)
-{
-	if (status == IFSTATUS_ERR)
-		return "error";
-	return "down\0up" + (status * 5);
 }
 
 static void up_iface(void)
@@ -474,9 +413,7 @@ static smallint detect_link(void)
 	}
 
 	if (status != G.iface_last_status) {
-//TODO: is it safe to repeatedly do this?
-		setenv(IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_last_status), 1);
-		setenv(IFPLUGD_ENV_CURRENT, strstatus(status), 1);
+		G.iface_prev_status = G.iface_last_status;
 		G.iface_last_status = status;
 	}
 
