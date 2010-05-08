@@ -16,7 +16,6 @@
 # define BLKSSZGET _IO(0x12, 104)
 #endif
 //#include <linux/msdos_fs.h>
-#include "volume_id/volume_id_internal.h"
 
 #define SECTOR_SIZE             512
 
@@ -168,15 +167,15 @@ static const char boot_code[] ALIGN1 =
 
 
 #define MARK_CLUSTER(cluster, value) \
-	((uint32_t *)fat)[cluster] = cpu_to_le32(value)
+	((uint32_t *)fat)[cluster] = SWAP_LE32(value)
 
 void BUG_unsupported_field_size(void);
 #define STORE_LE(field, value) \
 do { \
 	if (sizeof(field) == 4) \
-		field = cpu_to_le32(value); \
+		field = SWAP_LE32(value); \
 	else if (sizeof(field) == 2) \
-		field = cpu_to_le16(value); \
+		field = SWAP_LE16(value); \
 	else if (sizeof(field) == 1) \
 		field = (value); \
 	else \

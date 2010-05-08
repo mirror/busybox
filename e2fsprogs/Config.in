@@ -41,12 +41,12 @@ config LSATTR
 ###	  mke2fs is used to create an ext2/ext3 filesystem. The normal compat
 ###	  symlinks 'mkfs.ext2' and 'mkfs.ext3' are also provided.
 
-### config TUNE2FS
-###	bool "tune2fs"
-###	default n
-###	help
-###	  tune2fs allows the system administrator to adjust various tunable
-###	  filesystem parameters on Linux ext2/ext3 filesystems.
+config TUNE2FS
+	bool "tune2fs"
+	default n
+	help
+	  tune2fs allows the system administrator to adjust various tunable
+	  filesystem parameters on Linux ext2/ext3 filesystems.
 
 ### config E2LABEL
 ###	bool "e2label"

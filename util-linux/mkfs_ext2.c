@@ -10,7 +10,6 @@
 #include "libbb.h"
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>
-#include "volume_id/volume_id_internal.h"
 
 #define	ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
 #define	ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
@@ -29,9 +28,9 @@ char BUG_wrong_field_size(void);
 #define STORE_LE(field, value) \
 do { \
 	if (sizeof(field) == 4) \
-		field = cpu_to_le32(value); \
+		field = SWAP_LE32(value); \
 	else if (sizeof(field) == 2) \
-		field = cpu_to_le16(value); \
+		field = SWAP_LE16(value); \
 	else if (sizeof(field) == 1) \
 		field = (value); \
 	else \
@@ -39,7 +38,7 @@ do { \
 } while (0)
 
 #define FETCH_LE32(field) \
-	(sizeof(field) == 4 ? cpu_to_le32(field) : BUG_wrong_field_size())
+	(sizeof(field) == 4 ? SWAP_LE32(field) : BUG_wrong_field_size())
 
 // All fields are little-endian
 struct ext2_dir {

@@ -8,15 +8,14 @@
  */
 #include "libbb.h"
 #include <linux/fs.h>
-#include "volume_id/volume_id_internal.h"
 
 char BUG_wrong_field_size(void);
 #define STORE_LE(field, value) \
 do { \
 	if (sizeof(field) == 4) \
-		field = cpu_to_le32(value); \
+		field = SWAP_LE32(value); \
 	else if (sizeof(field) == 2) \
-		field = cpu_to_le16(value); \
+		field = SWAP_LE16(value); \
 	else if (sizeof(field) == 1) \
 		field = (value); \
 	else \
@@ -24,7 +23,7 @@ do { \
 } while (0)
 
 #define FETCH_LE32(field) \
-	(sizeof(field) == 4 ? cpu_to_le32(field) : BUG_wrong_field_size())
+	(sizeof(field) == 4 ? SWAP_LE32(field) : BUG_wrong_field_size())
 
 struct journal_params {
 	uint32_t jp_journal_1st_block;      /* where does journal start from on its device */
