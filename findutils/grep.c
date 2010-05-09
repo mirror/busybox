@@ -19,6 +19,41 @@
  * (C) 2006 Jac Goudsmit added -o option
  */
 
+//kbuild:lib-$(CONFIG_GREP) += grep.o
+//config:
+//config:config GREP
+//config:	bool "grep"
+//config:	default n
+//config:	help
+//config:	  grep is used to search files for a specified pattern.
+//config:
+//config:config FEATURE_GREP_EGREP_ALIAS
+//config:	bool "Enable extended regular expressions (egrep & grep -E)"
+//config:	default y
+//config:	depends on GREP
+//config:	help
+//config:	  Enabled support for extended regular expressions. Extended
+//config:	  regular expressions allow for alternation (foo|bar), grouping,
+//config:	  and various repetition operators.
+//config:
+//config:config FEATURE_GREP_FGREP_ALIAS
+//config:	bool "Alias fgrep to grep -F"
+//config:	default y
+//config:	depends on GREP
+//config:	help
+//config:	  fgrep sees the search pattern as a normal string rather than
+//config:	  regular expressions.
+//config:	  grep -F always works, this just creates the fgrep alias.
+//config:
+//config:config FEATURE_GREP_CONTEXT
+//config:	bool "Enable before and after context flags (-A, -B and -C)"
+//config:	default y
+//config:	depends on GREP
+//config:	help
+//config:	  Print the specified number of leading (-B) and/or trailing (-A)
+//config:	  context surrounding our matching lines.
+//config:	  Print the specified number of context lines (-C).
+
 #include "libbb.h"
 #include "xregex.h"
 

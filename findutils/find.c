@@ -53,6 +53,181 @@
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
 
+//kbuild:lib-$(CONFIG_FIND) += find.o
+//config:
+//config:config FIND
+//config:	bool "find"
+//config:	default n
+//config:	help
+//config:	  find is used to search your system to find specified files.
+//config:
+//config:config FEATURE_FIND_PRINT0
+//config:	bool "Enable -print0: NUL-terminated output"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Causes output names to be separated by a NUL character
+//config:	  rather than a newline. This allows names that contain
+//config:	  newlines and other whitespace to be more easily
+//config:	  interpreted by other programs.
+//config:
+//config:config FEATURE_FIND_MTIME
+//config:	bool "Enable -mtime: modified time matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Allow searching based on the modification time of
+//config:	  files, in days.
+//config:
+//config:config FEATURE_FIND_MMIN
+//config:	bool "Enable -mmin: modified time matching by minutes"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Allow searching based on the modification time of
+//config:	  files, in minutes.
+//config:
+//config:config FEATURE_FIND_PERM
+//config:	bool "Enable -perm: permissions matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Enable searching based on file permissions.
+//config:
+//config:config FEATURE_FIND_TYPE
+//config:	bool "Enable -type: file type matching (file/dir/link/...)"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Enable searching based on file type (file,
+//config:	  directory, socket, device, etc.).
+//config:
+//config:config FEATURE_FIND_XDEV
+//config:	bool "Enable -xdev: 'stay in filesystem'"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  This option allows find to restrict searches to a single filesystem.
+//config:
+//config:config FEATURE_FIND_MAXDEPTH
+//config:	bool "Enable -maxdepth N"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  This option enables -maxdepth N option.
+//config:
+//config:config FEATURE_FIND_NEWER
+//config:	bool "Enable -newer: compare file modification times"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -newer' option for finding any files which have
+//config:	  a modified time that is more recent than the specified FILE.
+//config:
+//config:config FEATURE_FIND_INUM
+//config:	bool "Enable -inum: inode number matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -inum' option for searching by inode number.
+//config:
+//config:config FEATURE_FIND_EXEC
+//config:	bool "Enable -exec: execute commands"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -exec' option for executing commands based upon
+//config:	  the files matched.
+//config:
+//config:config FEATURE_FIND_USER
+//config:	bool "Enable -user: username/uid matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -user' option for searching by username or uid.
+//config:
+//config:config FEATURE_FIND_GROUP
+//config:	bool "Enable -group: group/gid matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -group' option for searching by group name or gid.
+//config:
+//config:config FEATURE_FIND_NOT
+//config:	bool "Enable the 'not' (!) operator"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the '!' operator to invert the test results.
+//config:	  If 'Enable full-blown desktop' is enabled, then will also support
+//config:	  the non-POSIX notation '-not'.
+//config:
+//config:config FEATURE_FIND_DEPTH
+//config:	bool "Enable -depth"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Process each directory's contents before the directory itself.
+//config:
+//config:config FEATURE_FIND_PAREN
+//config:	bool "Enable parens in options"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Enable usage of parens '(' to specify logical order of arguments.
+//config:
+//config:config FEATURE_FIND_SIZE
+//config:	bool "Enable -size: file size matching"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -size' option for searching by file size.
+//config:
+//config:config FEATURE_FIND_PRUNE
+//config:	bool "Enable -prune: exclude subdirectories"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  If the file is a directory, dont descend into it. Useful for
+//config:	  exclusion .svn and CVS directories.
+//config:
+//config:config FEATURE_FIND_DELETE
+//config:	bool "Enable -delete: delete files/dirs"
+//config:	default n
+//config:	depends on FIND && FEATURE_FIND_DEPTH
+//config:	help
+//config:	  Support the 'find -delete' option for deleting files and directories.
+//config:	  WARNING: This option can do much harm if used wrong. Busybox will not
+//config:	  try to protect the user from doing stupid things. Use with care.
+//config:
+//config:config FEATURE_FIND_PATH
+//config:	bool "Enable -path: match pathname with shell pattern"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  The -path option matches whole pathname instead of just filename.
+//config:
+//config:config FEATURE_FIND_REGEX
+//config:	bool "Enable -regex: match pathname with regex"
+//config:	default y
+//config:	depends on FIND
+//config:	help
+//config:	  The -regex option matches whole pathname against regular expression.
+//config:
+//config:config FEATURE_FIND_CONTEXT
+//config:	bool "Enable -context: security context matching"
+//config:	default n
+//config:	depends on FIND && SELINUX
+//config:	help
+//config:	  Support the 'find -context' option for matching security context.
+//config:
+//config:config FEATURE_FIND_LINKS
+//config:	bool "Enable -links: link count matching"
+//config:	default n
+//config:	depends on FIND
+//config:	help
+//config:	  Support the 'find -links' option for matching number of links.
+
 #include <fnmatch.h>
 #include "libbb.h"
 #if ENABLE_FEATURE_FIND_REGEX

@@ -5,6 +5,5 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_FIND)	+= find.o
-lib-$(CONFIG_GREP)	+= grep.o
-lib-$(CONFIG_XARGS)	+= xargs.o
+
+INSERT
