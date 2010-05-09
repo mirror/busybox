@@ -1,14 +1,13 @@
 #!/bin/sh
 
-test $# -ge 2 || exit 1
+test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 # cd to objtree
-cd "$2" || exit 1
+cd "$2" || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 srctree="$1"
 
-find -type d \
-| while read; do
+find -type d | while read; do
     d="$REPLY"
 
     src="$srctree/$d/Kbuild.src"
@@ -16,11 +15,12 @@ find -type d \
     if test -f "$src"; then
 	echo "  CHK     $dst"
 
-	s=`grep -h '^//kbuild:' "$srctree/$d"/*.c | sed 's^//kbuild:^^'`
+	s=`sed -n 's@^//kbuild:@@p' "$srctree/$d"/*.c`
+	echo "# DO NOT EDIT. This file is generated from Kbuild.src" >"$dst.$$.tmp"
 	while read; do
 	    test x"$REPLY" = x"INSERT" && REPLY="$s"
 	    printf "%s\n" "$REPLY"
-	done <"$src" >"$dst.$$.tmp"
+	done <"$src" >>"$dst.$$.tmp"
 
 	if test -f "$dst" && cmp -s "$dst.$$.tmp" "$dst"; then
 	    rm "$dst.$$.tmp"
@@ -35,11 +35,12 @@ find -type d \
     if test -f "$src"; then
 	echo "  CHK     $dst"
 
-	s=`grep -h '^//config:' "$srctree/$d"/*.c | sed 's^//config:^^'`
+	s=`sed -n 's@^//config:@@p' "$srctree/$d"/*.c`
+	echo "# DO NOT EDIT. This file is generated from Config.src" >"$dst.$$.tmp"
 	while read; do
 	    test x"$REPLY" = x"INSERT" && REPLY="$s"
 	    printf "%s\n" "$REPLY"
-	done <"$src" >"$dst.$$.tmp"
+	done <"$src" >>"$dst.$$.tmp"
 
 	if test -f "$dst" && cmp -s "$dst.$$.tmp" "$dst"; then
 	    rm "$dst.$$.tmp"
