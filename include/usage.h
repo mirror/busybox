@@ -501,9 +501,9 @@
        "Clear screen"
 
 #define cmp_trivial_usage \
-       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]") "]]"
+       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
 #define cmp_full_usage "\n\n" \
-       "Compares FILE1 vs stdin if FILE2 is not specified\n" \
+       "Compare FILE1 with FILE2 (or stdin)\n" \
      "\nOptions:" \
      "\n	-l	Write the byte numbers (decimal) and values (octal)" \
      "\n		for all differing bytes" \
@@ -512,7 +512,7 @@
 #define comm_trivial_usage \
        "[-123] FILE1 FILE2"
 #define comm_full_usage "\n\n" \
-       "Compare FILE1 to FILE2, or to stdin if - is specified\n" \
+       "Compare FILE1 with FILE2\n" \
      "\nOptions:" \
      "\n	-1	Suppress lines unique to FILE1" \
      "\n	-2	Suppress lines unique to FILE2" \
