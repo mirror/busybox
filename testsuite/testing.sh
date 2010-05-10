@@ -54,14 +54,14 @@ test x"$ECHO" != x"" || {
 
 optional()
 {
-  option=`echo ":$OPTIONFLAGS:" | grep ":$1:"`
-  # Not set?
-  if [ -z "$1" ] || [ -z "$OPTIONFLAGS" ] || [ ${#option} -ne 0 ]
-  then
-    SKIP=
-    return
-  fi
-  SKIP=1
+	SKIP=
+	while test "$1"; do
+		if test x"${OPTIONFLAGS/*:$1:*/y}" != x"y"; then
+			SKIP=1
+			return
+		fi
+		shift
+	done
 }
 
 # The testing function
