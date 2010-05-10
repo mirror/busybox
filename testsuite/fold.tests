@@ -28,6 +28,7 @@ be preserved
 is here:>\0< - they must be preserved
 " \
 
+optional UNICODE_SUPPORT
 # The text was taken from English and Ukrainian wikipedia pages
 testing "fold -sw66 with unicode input" "fold -sw66" \
 	"\
@@ -54,6 +55,7 @@ Way.
 каталогом Мессьє та NGC224 за Новим загальним каталогом) — \
 спіральна галактика, що знаходиться на відстані приблизно у 2,5 \
 мільйони світлових років від нашої планети у сузір'ї Андромеди. \
-На початку ХХІ ст. в центрі галактики виявлено чорну дірку." \
+На початку ХХІ ст. в центрі галактики виявлено чорну дірку."
+SKIP=
 
 exit $FAILCOUNT

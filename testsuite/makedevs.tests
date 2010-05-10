@@ -16,6 +16,7 @@ FILTER_LS2="sed -e 's/,  */,/g' -e 's/  */ /g' | cut -d' ' -f 1-4,9-"
 rm -rf makedevs.testdir
 mkdir makedevs.testdir
 
+optional FEATURE_LS_RECURSIVE
 testing "makedevs -d ../makedevs.device_table.txt ." \
 	"(cd makedevs.testdir && makedevs -d ../makedevs.device_table.txt . 2>&1);
 	find makedevs.testdir ! -type d | sort | xargs ls -lnR | $FILTER_LS" \
@@ -132,6 +133,7 @@ crw-rw-rw- 1 0 0 1,9 makedevs.testdir/dev/urandom
 crw-rw-rw- 1 0 0 1,5 makedevs.testdir/dev/zero
 " \
 	"" ""
+SKIP=
 
 # clean up
 rm -rf makedevs.testdir

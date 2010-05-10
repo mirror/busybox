@@ -33,12 +33,14 @@ testing "awk long field sep" "awk -F-- '{ print NF, length(\$NF), \$NF }'" \
 testing "awk gsub falls back to non-extended-regex" \
 	"awk 'gsub(\"@(samp|code|file)\{\",\"\");'; echo \$?" "0\n" "" "Hi\n"
 
-tar xjf awk_t1.tar.bz2
+optional FEATURE_SEAMLESS_BZ2
+test x"$SKIP" != x"1" && tar xjf awk_t1.tar.bz2
 testing "awk 'gcc build bug'" \
 	"awk -f awk_t1_opt-functions.awk -f awk_t1_opth-gen.awk <awk_t1_input | md5sum" \
 	"f842e256461a5ab1ec60b58d16f1114f  -\n" \
 	"" ""
-rm -rf awk_t1_*
+rm -rf awk_t1_* 2>/dev/null
+SKIP=
 
 Q='":"'
 

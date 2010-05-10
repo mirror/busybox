@@ -30,7 +30,9 @@ testing "unexpand case 7" "unexpand" \
 testing "unexpand case 8" "unexpand" \
 	"a b\n" "" "a b\n" \
 
+optional UNICODE_SUPPORT
 testing "unexpand with unicode characher 0x394" "unexpand" \
-	"1ΔΔΔ5\t99999\n" "" "1ΔΔΔ5   99999\n" \
+	"1ΔΔΔ5\t99999\n" "" "1ΔΔΔ5   99999\n"
+SKIP=
 
 exit $FAILCOUNT

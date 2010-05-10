@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_FEATURE_TAR_UNAME_GNAME
+
 # This tarball contains a softlink with size field != 0.
 # If not ignored, it makes hext header to be skipped
 # and data to be read as a header.

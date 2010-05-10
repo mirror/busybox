@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_UNEXPAND
+
 rm -f foo bar
 echo -e "\ty" | expand -t 3 ../../busybox > foo
 echo -e "\ty" | busybox unexpand -t 3 ../../busybox > bar

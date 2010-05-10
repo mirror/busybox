@@ -9,6 +9,7 @@ mkdir tar.tempdir && cd tar.tempdir || exit 1
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
+optional FEATURE_TAR_CREATE
 testing "tar hardlinks and repeated files" '\
 rm -rf input_* test.tar 2>/dev/null
 >input_hard1
@@ -39,7 +40,9 @@ drwxr-xr-x input_dir
 -rw-r--r-- input_hard2
 " \
 "" ""
+SKIP=
 
+optional FEATURE_TAR_CREATE
 testing "tar hardlinks mode" '\
 rm -rf input_* test.tar 2>/dev/null
 >input_hard1
@@ -68,7 +71,9 @@ dr-xr-x--- input_dir
 -rwxr----x input_hard2
 " \
 "" ""
+SKIP=
 
+optional FEATURE_TAR_CREATE
 testing "tar symlinks mode" '\
 rm -rf input_* test.tar 2>/dev/null
 >input_file
@@ -97,6 +102,7 @@ dr-xr-x--- input_dir
 lrwxrwxrwx input_file
 " \
 "" ""
+SKIP=
 
 optional FEATURE_TAR_LONG_OPTIONS
 testing "tar --overwrite" "\

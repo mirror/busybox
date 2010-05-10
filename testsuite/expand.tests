@@ -10,12 +10,15 @@ testing "expand" \
 	"expand" \
 	"        12345678        12345678\n" \
 	"" \
-	"\t12345678\t12345678\n" \
+	"\t12345678\t12345678\n"
 
+optional UNICODE_SUPPORT
 testing "expand with unicode characher 0x394" \
 	"expand" \
 	"Δ       12345ΔΔΔ        12345678\n" \
 	"" \
-	"Δ\t12345ΔΔΔ\t12345678\n" \
+	"Δ\t12345ΔΔΔ\t12345678\n"
+SKIP=
+
 
 exit $FAILCOUNT
