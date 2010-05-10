@@ -9,6 +9,10 @@
 
 test -f "$bindir/.config" && . "$bindir/.config"
 
+test x"CONFIG_SCRIPT" = x"y" || exit 0
+test x"CONFIG_HEXDUMP" = x"y" || exit 0
+test x"CONFIG_FEATURE_DEVPTS" = x"y" || exit 0
+
 # testing "test name" "options" "expected result" "file input" "stdin"
 
 if test x"$CONFIG_UNICODE_PRESERVE_BROKEN" = x"y"; then

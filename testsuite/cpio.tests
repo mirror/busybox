@@ -69,6 +69,7 @@ ln cpio.testdir/empty cpio.testdir/empty1
 ln cpio.testdir/nonempty cpio.testdir/nonempty1
 mkdir cpio.testdir2
 
+optional FEATURE_CPIO_O
 testing "cpio extracts zero-sized hardlinks 2" \
 "find cpio.testdir | cpio -H newc --create | (cd cpio.testdir2 && cpio -i 2>&1); echo \$?;
 ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
@@ -82,10 +83,12 @@ ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
 -rw-r--r-- 1 $user $group 0 solo
 " \
 	"" ""
+SKIP=
 
 
 # Was trying to create "/usr/bin", correct is "usr/bin".
 rm -rf cpio.testdir
+optional FEATURE_CPIO_P
 testing "cpio -p with absolute paths" \
 "echo /usr/bin | cpio -dp cpio.testdir 2>&1; echo \$?;
 ls cpio.testdir" \
@@ -95,6 +98,7 @@ ls cpio.testdir" \
 usr
 " \
 	"" ""
+SKIP=
 
 
 # Clean up

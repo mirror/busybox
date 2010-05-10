@@ -227,7 +227,7 @@ make_new_session(
 		IF_NOT_FEATURE_TELNETD_STANDALONE(void)
 ) {
 #if !ENABLE_FEATURE_TELNETD_STANDALONE
-	enum { sock = 0 );
+	enum { sock = 0 };
 #endif
 	const char *login_argv[2];
 	struct termios termbuf;
