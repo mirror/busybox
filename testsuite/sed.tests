@@ -258,4 +258,18 @@ testing "sed nested {}s" \
 	"qwe\nasd\nacd\nacd\n" "" \
 	"qwe\nasd\nzxc\n"
 
+testing "sed a cmd ended by double backslash" \
+	"sed -e '/| one /a \\
+	| three \\\\' -e '/| one-/a \\
+	| three-* \\\\'" \
+'	| one \\
+	| three \\
+	| two \\
+' '' \
+'	| one \\
+	| two \\
+'
+
+# testing "description" "arguments" "result" "infile" "stdin"
+
 exit $FAILCOUNT
