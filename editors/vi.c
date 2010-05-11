@@ -65,8 +65,8 @@ static const char SOn[] ALIGN1 = "\033[0m";
 /* terminal bell sequence */
 static const char bell[] ALIGN1 = "\007";
 /* Clear-end-of-line and Clear-end-of-screen ESC sequence */
-static const char Ceol[] ALIGN1 = "\033[0K";
-static const char Ceos[] ALIGN1 = "\033[0J";
+static const char Ceol[] ALIGN1 = "\033[K";
+static const char Ceos[] ALIGN1 = "\033[J";
 /* Cursor motion arbitrary destination ESC sequence */
 static const char CMrc[] ALIGN1 = "\033[%d;%dH";
 /* Cursor motion up and down ESC sequence */

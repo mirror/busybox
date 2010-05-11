@@ -66,6 +66,10 @@
 #endif
 
 
+#define SEQ_CLEAR_TILL_END_OF_SCREEN "\033[J"
+//#define SEQ_CLEAR_TILL_END_OF_LINE   "\033[K"
+
+
 #undef CHAR_T
 #if ENABLE_UNICODE_SUPPORT
 # define BB_NUL ((wchar_t)0)
@@ -221,13 +225,13 @@ static size_t load_string(const char *src, int maxsize)
 }
 static unsigned save_string(char *dst, unsigned maxsize)
 {
-#if !ENABLE_UNICODE_PRESERVE_BROKEN
+# if !ENABLE_UNICODE_PRESERVE_BROKEN
 	ssize_t len = wcstombs(dst, command_ps, maxsize - 1);
 	if (len < 0)
 		len = 0;
 	dst[len] = '\0';
 	return len;
-#else
+# else
 	unsigned dstpos = 0;
 	unsigned srcpos = 0;
 
@@ -256,7 +260,7 @@ static unsigned save_string(char *dst, unsigned maxsize)
 	}
 	dst[dstpos] = '\0';
 	return dstpos;
-#endif
+# endif
 }
 /* I thought just fputwc(c, stdout) would work. But no... */
 static void BB_PUTCHAR(wchar_t c)
@@ -293,19 +297,19 @@ static void save_string(char *dst, unsigned maxsize)
  * Advance cursor on screen. If we reached right margin, scroll text up
  * and remove terminal margin effect by printing 'next_char' */
 #define HACK_FOR_WRONG_WIDTH 1
-#if HACK_FOR_WRONG_WIDTH
-static void cmdedit_set_out_char(void)
-#define cmdedit_set_out_char(next_char) cmdedit_set_out_char()
-#else
-static void cmdedit_set_out_char(int next_char)
-#endif
+static void put_cur_glyph_and_inc_cursor(void)
 {
 	CHAR_T c = command_ps[cursor];
 
 	if (c == BB_NUL) {
 		/* erase character after end of input string */
 		c = ' ';
+	} else {
+		/* advance cursor only if we aren't at the end yet */
+		cursor++;
+		cmdedit_x++;
 	}
+
 #if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
 	/* Display non-printable characters in reverse */
 	if (!BB_isprint(c)) {
@@ -321,7 +325,7 @@ static void cmdedit_set_out_char(int next_char)
 	{
 		BB_PUTCHAR(c);
 	}
-	if (++cmdedit_x >= cmdedit_termw) {
+	if (cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
 		cmdedit_x = 0;
@@ -335,27 +339,32 @@ static void cmdedit_set_out_char(int next_char)
 		 * this will break things: there will be one extra empty line */
 		puts("\r"); /* + implicit '\n' */
 #else
-		/* Works ok only if cmdedit_termw is correct */
-		/* destroy "(auto)margin" */
-		bb_putchar(next_char);
+		/* VT-10x terminals don't wrap cursor to next line when last char
+		 * on the line is printed - cursor stays "over" this char.
+		 * Need to print _next_ char too (first one to appear on next line)
+		 * to make cursor move down to next line.
+		 */
+		/* Works ok only if cmdedit_termw is correct. */
+		c = command_ps[cursor];
+		if (c == BB_NUL)
+			c = ' ';
+		BB_PUTCHAR(c);
 		bb_putchar('\b');
 #endif
 	}
-// Huh? What if command_ps[cursor] == BB_NUL (we are at the end already?)
-	cursor++;
 }
 
 /* Move to end of line (by printing all chars till the end) */
-static void input_end(void)
+static void put_till_end_and_adv_cursor(void)
 {
 	while (cursor < command_len)
-		cmdedit_set_out_char(' ');
+		put_cur_glyph_and_inc_cursor();
 }
 
 /* Go to the next line */
 static void goto_new_line(void)
 {
-	input_end();
+	put_till_end_and_adv_cursor();
 	if (cmdedit_x)
 		bb_putchar('\n');
 }
@@ -433,8 +442,8 @@ static void redraw(int y, int back_cursor)
 		printf("\033[%uA", y);
 	bb_putchar('\r');
 	put_prompt();
-	input_end();      /* rewrite */
-	printf("\033[J"); /* erase after cursor */
+	put_till_end_and_adv_cursor();
+	printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
 	input_backward(back_cursor);
 }
 
@@ -468,8 +477,9 @@ static void input_delete(int save)
 			 * simplified into (command_len - j) */
 			(command_len - j) * sizeof(command_ps[0]));
 	command_len--;
-	input_end();                    /* rewrite new line */
-	cmdedit_set_out_char(' ');      /* erase char */
+	put_till_end_and_adv_cursor();
+	/* Last char is still visible, erase it (and more) */
+	printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
 	input_backward(cursor - j);     /* back to old pos cursor */
 }
 
@@ -487,7 +497,7 @@ static void put(void)
 			(command_len - cursor + 1) * sizeof(command_ps[0]));
 	memcpy(command_ps + cursor, delbuf, j * sizeof(command_ps[0]));
 	command_len += j;
-	input_end();                    /* rewrite new line */
+	put_till_end_and_adv_cursor();
 	input_backward(cursor - ocursor - j + 1); /* at end of new text */
 }
 #endif
@@ -505,7 +515,7 @@ static void input_backspace(void)
 static void input_forward(void)
 {
 	if (cursor < command_len)
-		cmdedit_set_out_char(command_ps[cursor + 1]);
+		put_cur_glyph_and_inc_cursor();
 }
 
 #if ENABLE_FEATURE_TAB_COMPLETION
@@ -1955,7 +1965,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		case CTRL('E'):
 		vi_case('$'|VI_CMDMODE_BIT:)
 			/* Control-e -- End of line */
-			input_end();
+			put_till_end_and_adv_cursor();
 			break;
 		case CTRL('F'):
 		vi_case('l'|VI_CMDMODE_BIT:)
@@ -1984,12 +1994,12 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			/* Control-k -- clear to end of line */
 			command_ps[cursor] = BB_NUL;
 			command_len = cursor;
-			printf("\033[J");
+			printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
 			break;
 		case CTRL('L'):
 		vi_case(CTRL('L')|VI_CMDMODE_BIT:)
 			/* Control-l -- clear screen */
-			printf("\033[H");
+			printf("\033[H"); /* cursor to top,left */
 			redraw(0, command_len - cursor);
 			break;
 #if MAX_HISTORY > 0
@@ -2040,7 +2050,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			vi_cmdmode = 0;
 			break;
 		case 'A'|VI_CMDMODE_BIT:
-			input_end();
+			put_till_end_and_adv_cursor();
 			vi_cmdmode = 0;
 			break;
 		case 'x'|VI_CMDMODE_BIT:
@@ -2200,7 +2210,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			input_backward(cursor);
 			break;
 		case KEYCODE_END:
-			input_end();
+			put_till_end_and_adv_cursor();
 			break;
 
 		default:
@@ -2260,7 +2270,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				/* We are at the end, append */
 				command_ps[cursor] = ic;
 				command_ps[cursor + 1] = BB_NUL;
-				cmdedit_set_out_char(' ');
+				put_cur_glyph_and_inc_cursor();
 				if (unicode_bidi_isrtl(ic))
 					input_backward(1);
 			} else {
@@ -2273,8 +2283,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				/* is right-to-left char, or neutral one (e.g. comma) was just added to rtl text? */
 				if (!isrtl_str())
 					sc++; /* no */
-				/* rewrite from cursor */
-				input_end();
+				put_till_end_and_adv_cursor();
 				/* to prev x pos + 1 */
 				input_backward(cursor - sc);
 			}
