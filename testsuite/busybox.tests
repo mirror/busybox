@@ -10,7 +10,7 @@ HELPDUMP=`true | busybox 2>&1 | cat`
 
 # We need to test under calling the binary under other names.
 
-optional SHOW_USAGE
+optional FEATURE_VERBOSE_USAGE
 testing "busybox --help busybox" "true | busybox --help busybox 2>&1 | cat" "$HELPDUMP\n\n" "" ""
 SKIP=
 
@@ -27,7 +27,7 @@ do
 
 	testing "$i --help" "$i --help 2>&1" "$HELPDUMP\n\n" "" ""
 
-	optional SHOW_USAGE CAT
+	optional FEATURE_VERBOSE_USAGE CAT
 	testing "" "$i cat" "moo" "" "moo"
 	testing "$i --help cat" "$i --help cat 2>&1 | grep print" \
 		"Concatenate FILEs and print them to stdout\n" "" ""

@@ -13,6 +13,7 @@ test "`id -u`" = 0 || {
 
 if test x"$CONFIG_MKFS_MINIX" != x"y" \
 || test x"$CONFIG_FEATURE_MINIX2" != x"y" \
+|| test x"$CONFIG_FEATURE_MOUNT_LOOP" != x"y" \
 || test x"$CONFIG_FEATURE_DEVFS" = x"y" \
 ; then
 	echo "SKIPPED: mount"

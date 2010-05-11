@@ -31,7 +31,7 @@ rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 
-optional FEATURE_LS_SORTFILES
+optional FEATURE_LS_SORTFILES FEATURE_LS_TIMESTAMPS
 testing "cpio extracts zero-sized hardlinks" \
 "$ECHO -ne '$hexdump' | bzcat | cpio -i 2>&1; echo \$?;
 ls -ln cpio.testdir | $FILTER_LS" \
@@ -71,7 +71,7 @@ ln cpio.testdir/empty cpio.testdir/empty1
 ln cpio.testdir/nonempty cpio.testdir/nonempty1
 mkdir cpio.testdir2
 
-optional FEATURE_CPIO_O LONG_OPTS
+optional FEATURE_CPIO_O LONG_OPTS FEATURE_LS_SORTFILES FEATURE_LS_TIMESTAMPS
 testing "cpio extracts zero-sized hardlinks 2" \
 "find cpio.testdir | cpio -H newc --create | (cd cpio.testdir2 && cpio -i 2>&1); echo \$?;
 ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
