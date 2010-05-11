@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_INCLUDE_SUSv2
+
 $ECHO -ne "abc\ndef\n123\n" >input
 $ECHO -ne "def\n123\n" >logfile.ok
 busybox tail -2 input > logfile.bb

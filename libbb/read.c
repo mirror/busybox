@@ -321,44 +321,45 @@ int FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
 	xread(fd, &magic, 2);
-#if ENABLE_FEATURE_SEAMLESS_GZ
-# if BB_MMU
-	xformer = unpack_gz_stream;
-# else
-	xformer_prog = "gunzip";
-# endif
-#endif
-	if (!ENABLE_FEATURE_SEAMLESS_GZ
-	 || magic[0] != 0x1f || magic[1] != 0x8b
+	if (ENABLE_FEATURE_SEAMLESS_GZ
+	 && magic[0] == 0x1f && magic[1] == 0x8b
 	) {
-		if (!ENABLE_FEATURE_SEAMLESS_BZ2
-		 || magic[0] != 'B' || magic[1] != 'Z'
-		) {
-
+# if BB_MMU
+		xformer = unpack_gz_stream;
+# else
+		xformer_prog = "gunzip";
+# endif
+		goto found_magic;
+	}
+	if (ENABLE_FEATURE_SEAMLESS_BZ2
+	 && magic[0] == 'B' && magic[1] == 'Z'
+	) {
+# if BB_MMU
+		xformer = unpack_bz2_stream;
+# else
+		xformer_prog = "bunzip2";
+# endif
+		goto found_magic;
+	}
 // TODO: xz format support. rpm adopted it, "rpm -i FILE.rpm" badly needs this.
 // Signature: 0xFD, '7', 'z', 'X', 'Z', 0x00
 // More info at: http://tukaani.org/xz/xz-file-format.txt
 
-			if (fail_if_not_detected)
-				bb_error_msg_and_die("no gzip"
-					IF_FEATURE_SEAMLESS_BZ2("/bzip2")
-					" magic");
-			xlseek(fd, -2, SEEK_CUR);
-			return fd;
-		}
-#if BB_MMU
-		xformer = unpack_bz2_stream;
-#else
-		xformer_prog = "bunzip2";
-#endif
-	} else {
-#if !BB_MMU
-		/* NOMMU version of open_transformer execs
-		 * an external unzipper that wants
-		 * file position at the start of the file */
-		xlseek(fd, -2, SEEK_CUR);
-#endif
-	}
+	/* No known magic seen */
+	if (fail_if_not_detected)
+		bb_error_msg_and_die("no gzip"
+			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
+			" magic");
+	xlseek(fd, -2, SEEK_CUR);
+	return fd;
+
+ found_magic:
+# if !BB_MMU
+	/* NOMMU version of open_transformer execs
+	 * an external unzipper that wants
+	 * file position at the start of the file */
+	xlseek(fd, -2, SEEK_CUR);
+# endif
 	open_transformer(fd, xformer, xformer_prog);
 
 	return fd;

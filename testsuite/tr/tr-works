@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_FEATURE_TR_CLASSES
+
 run_tr ()
 {
 	echo -n "echo '$1' | tr '$2' '$3': "

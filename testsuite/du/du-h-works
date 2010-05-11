@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_FEATURE_HUMAN_READABLE
+
 d=/bin
 du -h "$d" > logfile.gnu
 busybox du -h "$d" > logfile.bb

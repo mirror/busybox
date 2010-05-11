@@ -1,3 +1,5 @@
+# FEATURE: CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
+
 d=/bin
 du -l "$d" > logfile.gnu
 busybox du -l "$d" > logfile.bb

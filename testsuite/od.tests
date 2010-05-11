@@ -6,6 +6,7 @@
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
+optional DESKTOP
 testing "od -b" \
 	"od -b" \
 "\
@@ -13,5 +14,6 @@ testing "od -b" \
 0000005
 " \
 	"" "HELLO"
+SKIP=
 
 exit $FAILCOUNT

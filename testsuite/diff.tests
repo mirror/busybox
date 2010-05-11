@@ -106,6 +106,7 @@ rm -rf diff1 diff2
 mkdir diff1 diff2 diff2/subdir
 echo qwe >diff1/-
 echo asd >diff2/subdir/-
+optional FEATURE_DIFF_DIR
 testing "diff diff1 diff2/subdir" \
 	"diff -ur diff1 diff2/subdir | $TRIM_TAB" \
 "\
@@ -116,8 +117,10 @@ testing "diff diff1 diff2/subdir" \
 +asd
 " \
 	"" ""
+SKIP=
 
 # using directory structure from prev test...
+optional FEATURE_DIFF_DIR
 testing "diff dir dir2/file/-" \
 	"diff -ur diff1 diff2/subdir/- | $TRIM_TAB" \
 "\
@@ -128,10 +131,12 @@ testing "diff dir dir2/file/-" \
 +asd
 " \
 	"" ""
+SKIP=
 
 # using directory structure from prev test...
 mkdir diff1/test
 mkfifo diff2/subdir/test
+optional FEATURE_DIFF_DIR
 testing "diff of dir and fifo" \
 	"diff -ur diff1 diff2/subdir | $TRIM_TAB" \
 "\
@@ -143,10 +148,12 @@ testing "diff of dir and fifo" \
 Only in diff2/subdir: test
 " \
 	"" ""
+SKIP=
 
 # using directory structure from prev test...
 rmdir diff1/test
 echo >diff1/test
+optional FEATURE_DIFF_DIR
 testing "diff of file and fifo" \
 	"diff -ur diff1 diff2/subdir | $TRIM_TAB" \
 "\
@@ -158,9 +165,11 @@ testing "diff of file and fifo" \
 File diff2/subdir/test is not a regular file or directory and was skipped
 " \
 	"" ""
+SKIP=
 
 # using directory structure from prev test...
 mkfifo diff1/test2
+optional FEATURE_DIFF_DIR
 testing "diff -rN does not read non-regular files" \
 	"diff -urN diff1 diff2/subdir | $TRIM_TAB" \
 "\
@@ -173,6 +182,7 @@ File diff2/subdir/test is not a regular file or directory and was skipped
 File diff1/test2 is not a regular file or directory and was skipped
 " \
 	"" ""
+SKIP=
 
 # clean up
 rm -rf diff1 diff2

@@ -31,6 +31,7 @@ rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 
+optional FEATURE_LS_SORTFILES
 testing "cpio extracts zero-sized hardlinks" \
 "$ECHO -ne '$hexdump' | bzcat | cpio -i 2>&1; echo \$?;
 ls -ln cpio.testdir | $FILTER_LS" \
@@ -41,6 +42,7 @@ ls -ln cpio.testdir | $FILTER_LS" \
 -rw-r--r-- 2 $user $group 0 y
 " \
 	"" ""
+SKIP=
 
 
 test x"$SKIP_KNOWN_BUGS" = x"" && {

@@ -123,4 +123,6 @@ abc
 +456
 " \
 
+rm input.orig 2>/dev/null
+
 exit $FAILCOUNT
