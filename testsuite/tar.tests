@@ -104,7 +104,7 @@ lrwxrwxrwx input_file
 "" ""
 SKIP=
 
-optional FEATURE_TAR_LONG_OPTIONS
+optional FEATURE_TAR_CREATE FEATURE_TAR_LONG_OPTIONS
 testing "tar --overwrite" "\
 rm -rf input_* test.tar 2>/dev/null
 ln input input_hard

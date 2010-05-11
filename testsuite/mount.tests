@@ -14,13 +14,14 @@ test "`id -u`" = 0 || {
 if test x"$CONFIG_MKFS_MINIX" != x"y" \
 || test x"$CONFIG_FEATURE_MINIX2" != x"y" \
 || test x"$CONFIG_FEATURE_MOUNT_LOOP" != x"y" \
+|| test x"$CONFIG_FEATURE_MOUNT_FLAGS" != x"y" \
 || test x"$CONFIG_FEATURE_DEVFS" = x"y" \
 ; then
 	echo "SKIPPED: mount"
 	exit 0
 fi
 
-testdir=$PWD/testdir
+testdir=$PWD/mount.testdir
 
 dd if=/dev/zero of=mount.image1m count=1 bs=1M 2>/dev/null || { echo "dd error"; exit 1; }
 mkfs.minix -v mount.image1m >/dev/null 2>&1 || { echo "mkfs.minix error"; exit 1; }
