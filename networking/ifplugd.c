@@ -145,7 +145,7 @@ static int run_script(const char *action)
 
 	env_PREVIOUS = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_prev_status));
 	putenv(env_PREVIOUS);
-	env_CURRENT = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_last_status));
+	env_CURRENT = xasprintf("%s=%s", IFPLUGD_ENV_CURRENT, strstatus(G.iface_last_status));
 	putenv(env_CURRENT);
 
 	/* r < 0 - can't exec, 0 <= r < 0x180 - exited, >=0x180 - killed by sig (r-0x180) */
