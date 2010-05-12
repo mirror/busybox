@@ -1,1 +1,8 @@
-test x"`date -R`" = x"`busybox date -R`"
+dt1="`date -R`"
+# Wait for the start of next second
+dt="$dt1"
+while test x"$dt" = x"$dt1"; do
+    dt="`date -R`"
+done
+
+test x"$dt" = x"`busybox date -R`"

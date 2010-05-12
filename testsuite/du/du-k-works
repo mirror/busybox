@@ -1,4 +1,4 @@
-d=/bin
-du -k "$d" > logfile.gnu
-busybox du -k "$d" > logfile.bb
-cmp logfile.gnu logfile.bb
+dd if=/dev/zero of=file1 bs=1k count=64 2>/dev/null
+dd if=/dev/zero of=file2 bs=1k count=16 2>/dev/null
+test x"`busybox du -k .`" = x"80	." \
+  -o x"`busybox du -k .`" = x"88	." \

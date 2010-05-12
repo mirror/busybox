@@ -71,7 +71,7 @@ testing "2 bytes which are not valid unicode chars followed by left arrow key" \
 # not checked by the test), then read and execute the rest: "echo A | ..."
 # The bug was that ash was eating the beginning of "echo A" despite the pause.
 testing "Invalid unicode chars followed by a pause do not eat next chars" \
-	"{ echo -ne 'echo \xff\n'; sleep 1; echo -ne 'echo A | hexdump -C >ash.output; exit; exit; exit; exit\n'; } \
+	"{ $ECHO -ne 'echo \xff\n'; sleep 1; $ECHO -ne 'echo A | hexdump -C >ash.output; exit; exit; exit; exit\n'; } \
          | script -q -c 'ash' /dev/null >/dev/null; cat ash.output" \
 	"\
 00000000  41 0a                                             |A.|

@@ -3,4 +3,6 @@
 d=/bin
 du "$d" > logfile.gnu
 busybox du "$d" > logfile.bb
-cmp logfile.gnu logfile.bb
+cmp logfile.gnu logfile.bb && exit 0
+diff -u logfile.gnu logfile.bb
+exit 1

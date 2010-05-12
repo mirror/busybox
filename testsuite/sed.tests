@@ -110,7 +110,7 @@ testing "sed embedded NUL" "sed -e 's/woo/bang/'" "\0bang\0woo\0" "" \
 testing "sed embedded NUL g" "sed -e 's/woo/bang/g'" "bang\0bang\0" "" \
 	"woo\0woo\0"
 test x"$SKIP_KNOWN_BUGS" = x"" && {
-echo -e "/woo/a he\0llo" > sed.commands
+$ECHO -e "/woo/a he\0llo" > sed.commands
 testing "sed NUL in command" "sed -f sed.commands" "woo\nhe\0llo\n" "" "woo"
 rm sed.commands
 }
@@ -153,7 +153,7 @@ testing "sed clusternewline" \
 	"one\none\n111\n222\ntwo\ntwo" "one" "two"
 }
 testing "sed subst+write" \
-	"sed -e 's/i/z/' -e 'woutputw' input -; echo -n X; cat outputw" \
+	"sed -e 's/i/z/' -e 'woutputw' input -; $ECHO -n X; cat outputw" \
 	"thzngy\nagaznXthzngy\nagazn" "thingy" "again"
 rm outputw
 testing "sed trailing NUL" \

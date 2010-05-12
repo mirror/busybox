@@ -2,7 +2,7 @@
 
 run_tr ()
 {
-	echo -n "echo '$1' | tr '$2' '$3': "
+	$ECHO -n "echo '$1' | tr '$2' '$3': "
 	echo "$1" | $bb tr "$2" "$3"
 	echo
 }

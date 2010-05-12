@@ -1,6 +1,4 @@
 # FEATURE: CONFIG_FEATURE_HUMAN_READABLE
 
-d=/bin
-du -m "$d" > logfile.gnu
-busybox du -m "$d" > logfile.bb
-cmp logfile.gnu logfile.bb
+dd if=/dev/zero of=file bs=1M count=1 2>/dev/null
+test x"`busybox du -m .`" = x"1	."
