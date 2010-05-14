@@ -53,23 +53,32 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	strcpy(console, "/dev/tty");
-	if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
-		/* this is a serial console */
-		sprintf(console + 8, "S%d", u.sr.line);
-	} else if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
-		/* this is linux virtual tty */
-		sprintf(console + 8, "S%d" + 1, u.vt.v_active);
-	}
-
-	if (console[8]) {
-		fd = xopen(console, O_RDWR);
-		//bb_error_msg("switching to '%s'", console);
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(fd, 2);
-		while (fd > 2) close(fd--);
-		/* Some other session may have it as ctty. Steal it from them */
-		ioctl(0, TIOCSCTTY, 1);
+	fd = open(console, O_RDWR);
+	if (fd >= 0) {
+		/* We already have ctty, nothing to do */
+		close(fd);
+	} else {
+		/* We don't have ctty (or don't have "/dev/tty" node...) */
+		if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
+			/* this is a serial console */
+			sprintf(console + 8, "S%d", u.sr.line);
+		} else if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
+			/* this is linux virtual tty */
+			sprintf(console + 8, "S%d" + 1, u.vt.v_active);
+		}
+		if (console[8]) {
+			fd = xopen(console, O_RDWR);
+			//bb_error_msg("switching to '%s'", console);
+			dup2(fd, 0);
+			dup2(fd, 1);
+			dup2(fd, 2);
+			while (fd > 2)
+				close(fd--);
+			/* Some other session may have it as ctty,
+			 * steal it from them:
+			 */
+			ioctl(0, TIOCSCTTY, 1);
+		}
 	}
 
 	BB_EXECVP(argv[0], argv);
