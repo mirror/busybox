@@ -1,4 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+# bashism:
+# "read -r" without variable name reads line into $REPLY
+# without stripping whitespace.
 
 test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
@@ -7,9 +10,7 @@ cd -- "$2" || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 srctree="$1"
 
-find -type d | while read -r; do
-	d="$REPLY"
-
+find -type d | while read -r d; do
 	src="$srctree/$d/Kbuild.src"
 	dst="$d/Kbuild"
 	if test -f "$src"; then
@@ -49,7 +50,6 @@ find -type d | while read -r; do
 			mv -- "$dst.$$.tmp" "$dst"
 		fi
 	fi
-
 done
 
 # Last read failed. This is normal. Don't exit with its error code:
