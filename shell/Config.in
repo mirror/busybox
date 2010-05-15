@@ -354,9 +354,20 @@ config CTTYHACK
 	  It analyzes stdin with various ioctls, trying to determine whether
 	  it is a /dev/ttyN or /dev/ttySN (virtual terminal or serial line).
 	  If it detects one, it closes stdin/out/err and reopens that device.
-	  Then it executes given program. Usage example for /etc/inittab
-	  (for busybox init):
+	  Then it executes given program. Opening the device will make
+	  that device a controlling tty. This may require cttyhack
+	  to be a session leader.
+
+	  Example for /etc/inittab (for busybox init):
 
 	  ::respawn:/bin/cttyhack /bin/sh
+
+	  Giving controlling tty to shell running with PID 1:
+
+	  $ exec cttyhack sh
+
+	  Starting an interative shell from boot shell script:
+
+	  setsid cttyhack sh
 
 endmenu

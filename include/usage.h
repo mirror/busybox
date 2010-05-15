@@ -649,8 +649,16 @@
      "\n	-S SALT" \
 	) \
 
-#define cttyhack_trivial_usage NOUSAGE_STR
-#define cttyhack_full_usage ""
+#define cttyhack_trivial_usage \
+       "PROG ARGS"
+#define cttyhack_full_usage "\n\n" \
+       "Give PROG a controlling tty if possible." \
+     "\nExample for /etc/inittab (for busybox init):" \
+     "\n	::respawn:/bin/cttyhack /bin/sh" \
+     "\nGiving controlling tty to shell running with PID 1:" \
+     "\n	$ exec cttyhack sh" \
+     "\nStarting an interative shell from boot shell script:" \
+     "\n	setsid cttyhack sh" \
 
 #define cut_trivial_usage \
        "[OPTIONS] [FILE]..."
