@@ -413,12 +413,22 @@ static void beep(void)
 	bb_putchar('\007');
 }
 
+static void put_prompt(void)
+{
+	unsigned w;
+
+	out1str(cmdedit_prompt);
+	fflush_all();
+	cursor = 0;
+	w = cmdedit_termw; /* read volatile var once */
+	cmdedit_y = cmdedit_prmt_len / w; /* new quasireal y */
+	cmdedit_x = cmdedit_prmt_len % w;
+}
+
 /* Move back one character */
 /* (optimized for slow terminals) */
 static void input_backward(unsigned num)
 {
-	int count_y;
-
 	if (num > cursor)
 		num = cursor;
 	if (num == 0)
@@ -456,29 +466,44 @@ static void input_backward(unsigned num)
 	}
 
 	/* Need to go one or more lines up */
-//FIXME: this does not work correctly if prev line has one "unfilled" screen position
-//caused by wide unicode char not fitting in that one screen position.
-	num -= cmdedit_x;
-	{
-		unsigned w = cmdedit_termw; /* volatile var */
+	if (ENABLE_UNICODE_WIDE_WCHARS) {
+		/* With wide chars, it is hard to "backtrack"
+		 * and reliably figure out where to put cursor.
+		 * Example (<> is a wide char; # is an ordinary char, _ cursor):
+		 * |prompt: <><> |
+		 * |<><><><><><> |
+		 * |_            |
+		 * and user presses left arrow. num = 1, cmdedit_x = 0,
+		 * We need to go up one line, and then - how do we know that
+		 * we need to go *10* positions to the right? Because
+		 * |prompt: <>#<>|
+		 * |<><><>#<><><>|
+		 * |_            |
+		 * in this situation we need to go *11* positions to the right.
+		 *
+		 * A simpler thing to do is to redraw everything from the start
+		 * up to new cursor position (which is already known):
+		 */
+		unsigned sv_cursor;
+		if (cmdedit_y > 0)  /* up to start y */
+			printf("\033[%uA", cmdedit_y);
+		bb_putchar('\r');
+		cmdedit_y = 0;
+		sv_cursor = cursor;
+		put_prompt(); /* sets cursor to 0 */
+		while (cursor < sv_cursor)
+			put_cur_glyph_and_inc_cursor();
+	} else {
+		int count_y;
+		unsigned w;
+		num -= cmdedit_x;
+		w = cmdedit_termw; /* read volatile var once */
 		count_y = 1 + (num / w);
 		cmdedit_y -= count_y;
 		cmdedit_x = w * count_y - num;
+		/* go to 1st column; go up; go to correct column */
+		printf("\r" "\033[%uA" "\033[%uC", count_y, cmdedit_x);
 	}
-	/* go to 1st column; go up; go to correct column */
-	printf("\r" "\033[%uA" "\033[%uC", count_y, cmdedit_x);
-}
-
-static void put_prompt(void)
-{
-	unsigned w;
-
-	out1str(cmdedit_prompt);
-	fflush_all();
-	cursor = 0;
-	w = cmdedit_termw; /* read volatile var once */
-	cmdedit_y = cmdedit_prmt_len / w; /* new quasireal y */
-	cmdedit_x = cmdedit_prmt_len % w;
 }
 
 /* draw prompt, editor line, and clear tail */
