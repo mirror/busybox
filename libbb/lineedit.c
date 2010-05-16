@@ -282,9 +282,8 @@ static wchar_t adjust_width_and_validate_wc(wchar_t wc)
 	int w = 1;
 
 	if (unicode_status == UNICODE_ON) {
-		if (unicode_is_raw_byte(wc)
-		 || (CONFIG_LAST_SUPPORTED_WCHAR && wc > CONFIG_LAST_SUPPORTED_WCHAR)
-		) {
+		if (wc > CONFIG_LAST_SUPPORTED_WCHAR) {
+			/* note: also true for unicode_is_raw_byte(wc) */
 			goto subst;
 		}
 		w = wcwidth(wc);
