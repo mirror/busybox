@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # bashism:
 # "read -r" without variable name reads line into $REPLY
 # without stripping whitespace.
