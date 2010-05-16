@@ -25,11 +25,24 @@ int setsid_main(int argc UNUSED_PARAM, char **argv)
 	/* setsid() is allowed only when we are not a process group leader.
 	 * Otherwise our PID serves as PGID of some existing process group
 	 * and cannot be used as PGID of a new process group. */
-	if (getpgrp() == getpid())
-		if (fork_or_rexec(argv))
-			exit(EXIT_SUCCESS); /* parent */
+	if (setsid() < 0) {
+		pid_t pid = fork_or_rexec(argv);
+		if (pid != 0) {
+			/* parent */
+			/* TODO:
+			 * we can waitpid(pid, &status, 0) and then even
+			 * emulate exitcode, making the behavior consistent
+			 * in both forked and non forked cases.
+			 * However, the code is larger and upstream
+			 * does not do such trick.
+			 */
+			exit(EXIT_SUCCESS);
+		}
 
-	setsid();  /* no error possible */
+		/* child */
+		/* now there should be no error: */
+		setsid();
+	}
 
 	BB_EXECVP(argv[1], argv + 1);
 	bb_simple_perror_msg_and_die(argv[1]);
