@@ -29,11 +29,11 @@
 #endif
 
 /* The escape codes for highlighted and normal text */
-#define HIGHLIGHT "\033[7m"
-#define NORMAL "\033[0m"
-/* The escape code to clear the screen */
-#define CLEAR "\033[H\033[J"
-/* The escape code to clear to end of line */
+#define HIGHLIGHT   "\033[7m"
+#define NORMAL      "\033[0m"
+/* The escape code to home and clear to the end of screen */
+#define CLEAR       "\033[H\033[J"
+/* The escape code to clear to the end of line */
 #define CLEAR_2_EOL "\033[K"
 
 enum {

@@ -60,18 +60,18 @@ enum {
 
 /* vt102 typical ESC sequence */
 /* terminal standout start/normal ESC sequence */
-static const char SOs[] ALIGN1 = "\033[7m";
-static const char SOn[] ALIGN1 = "\033[0m";
+#define SOs "\033[7m"
+#define SOn "\033[0m"
 /* terminal bell sequence */
-static const char bell[] ALIGN1 = "\007";
+#define bell "\007"
 /* Clear-end-of-line and Clear-end-of-screen ESC sequence */
-static const char Ceol[] ALIGN1 = "\033[K";
-static const char Ceos[] ALIGN1 = "\033[J";
+#define Ceol "\033[K"
+#define Ceos "\033[J"
 /* Cursor motion arbitrary destination ESC sequence */
-static const char CMrc[] ALIGN1 = "\033[%d;%dH";
+#define CMrc "\033[%u;%uH"
 /* Cursor motion up and down ESC sequence */
-static const char CMup[] ALIGN1 = "\033[A";
-static const char CMdown[] ALIGN1 = "\n";
+#define CMup "\033[A"
+#define CMdown "\n"
 
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 // cmds modifying text[]

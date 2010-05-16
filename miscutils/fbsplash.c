@@ -359,7 +359,7 @@ int fbsplash_main(int argc UNUSED_PARAM, char **argv)
 
 	if (fifo_filename && bCursorOff) {
 		// hide cursor (BEFORE any fb ops)
-		full_write(STDOUT_FILENO, "\x1b" "[?25l", 6);
+		full_write(STDOUT_FILENO, "\033[?25l", 6);
 	}
 
 	fb_drawimage();
@@ -404,7 +404,7 @@ int fbsplash_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (bCursorOff) // restore cursor
-		full_write(STDOUT_FILENO, "\x1b" "[?25h", 6);
+		full_write(STDOUT_FILENO, "\033[?25h", 6);
 
 	return EXIT_SUCCESS;
 }

@@ -52,7 +52,8 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 	width = (unsigned)-1; // make sure first time new_width != width
 	header = NULL;
 	while (1) {
-		printf("\033[H\033[J");
+		/* home; clear to the end of screen */
+		printf("\033[H""\033[J");
 		if (!(opt & 0x2)) { // no -t
 			const unsigned time_len = sizeof("1234-67-90 23:56:89");
 			time_t t;

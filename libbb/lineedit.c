@@ -466,7 +466,7 @@ static void input_backward(unsigned num)
 		cmdedit_x = w * count_y - num;
 	}
 	/* go to 1st column; go up; go to correct column */
-	printf("\r" "\033[%dA" "\033[%dC", count_y, cmdedit_x);
+	printf("\r" "\033[%uA" "\033[%uC", count_y, cmdedit_x);
 }
 
 static void put_prompt(void)

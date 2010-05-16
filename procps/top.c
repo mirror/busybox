@@ -478,8 +478,8 @@ static unsigned long display_header(int scr_width, int *lines_rem_p)
 	snprintf(scrbuf, scr_width,
 		"Mem: %luK used, %luK free, %luK shrd, %luK buff, %luK cached",
 		used, mfree, shared, buffers, cached);
-	/* clear screen & go to top */
-	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
+	/* go to top & clear to the end of screen */
+	printf(OPT_BATCH_MODE ? "%s\n" : "\033[H\033[J%s\n", scrbuf);
 	(*lines_rem_p)--;
 
 	/* Display CPU time split as percentage of total time
@@ -518,7 +518,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 #endif
 
 	/* what info of the processes is shown */
-	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
+	printf(OPT_BATCH_MODE ? "%.*s" : "\033[7m%.*s\033[0m", scr_width,
 		"  PID  PPID USER     STAT   VSZ %MEM"
 		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
 		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
@@ -772,7 +772,7 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 	snprintf(linebuf, sizeof(linebuf),
 		"Mem total:%s anon:%s map:%s free:%s",
 		S(total), S(anon), S(map), S(mfree));
-	printf(OPT_BATCH_MODE ? "%.*s\n" : "\e[H\e[J%.*s\n", scr_width, linebuf);
+	printf(OPT_BATCH_MODE ? "%.*s\n" : "\033[H\033[J%.*s\n", scr_width, linebuf);
 
 	snprintf(linebuf, sizeof(linebuf),
 		" slab:%s buf:%s cache:%s dirty:%s write:%s",

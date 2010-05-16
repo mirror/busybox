@@ -28,11 +28,11 @@ int reset_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	if (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
 		/* See 'man 4 console_codes' for details:
-		 * "ESC c"			-- Reset
-		 * "ESC ( K"		-- Select user mapping
-		 * "ESC [ J"		-- Erase display
-		 * "ESC [ 0 m"		-- Reset all display attributes
-		 * "ESC [ ? 25 h"	-- Make cursor visible.
+		 * "ESC c"        -- Reset
+		 * "ESC ( K"      -- Select user mapping
+		 * "ESC [ J"      -- Erase to the end of screen
+		 * "ESC [ 0 m"    -- Reset all display attributes
+		 * "ESC [ ? 25 h" -- Make cursor visible
 		 */
 		printf("\033c\033(K\033[J\033[0m\033[?25h");
 		/* http://bugs.busybox.net/view.php?id=1414:
