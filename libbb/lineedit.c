@@ -42,14 +42,10 @@
 #include "libbb.h"
 #include "unicode.h"
 
-/* FIXME: obsolete CONFIG item? */
-#define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
-
 #ifdef TEST
 # define ENABLE_FEATURE_EDITING 0
 # define ENABLE_FEATURE_TAB_COMPLETION 0
 # define ENABLE_FEATURE_USERNAME_COMPLETION 0
-# define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
 #endif
 
 
@@ -97,10 +93,10 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 
 
 # if ENABLE_UNICODE_PRESERVE_BROKEN
-#  define unicode_mark_inv_wchar(wc)   ((wc) | 0x20000000)
-#  define unicode_is_inv_wchar(wc)     ((wc) & 0x20000000)
+#  define unicode_mark_raw_byte(wc)   ((wc) | 0x20000000)
+#  define unicode_is_raw_byte(wc)     ((wc) & 0x20000000)
 # else
-#  define unicode_is_inv_wchar(wc)     0
+#  define unicode_is_raw_byte(wc)     0
 # endif
 
 
@@ -240,7 +236,7 @@ static unsigned save_string(char *dst, unsigned maxsize)
 		wchar_t wc;
 		int n = srcpos;
 		while ((wc = command_ps[srcpos]) != 0
-		    && !unicode_is_inv_wchar(wc)
+		    && !unicode_is_raw_byte(wc)
 		) {
 			srcpos++;
 		}
@@ -269,15 +265,45 @@ static void BB_PUTCHAR(wchar_t c)
 	mbstate_t mbst = { 0 };
 	ssize_t len;
 
-	if (unicode_is_inv_wchar(c))
-		c = CONFIG_SUBST_WCHAR;
 	len = wcrtomb(buf, c, &mbst);
 	if (len > 0) {
 		buf[len] = '\0';
 		fputs(buf, stdout);
 	}
 }
-#else
+# if ENABLE_UNICODE_COMBINING_WCHARS || ENABLE_UNICODE_WIDE_WCHARS
+static wchar_t adjust_width_and_validate_wc(unsigned *width_adj, wchar_t wc)
+# else
+static wchar_t adjust_width_and_validate_wc(wchar_t wc)
+#  define adjust_width_and_validate_wc(width_adj, wc) \
+	((*(width_adj))++, adjust_width_and_validate_wc(wc))
+# endif
+{
+	int w = 1;
+
+	if (unicode_status == UNICODE_ON) {
+		if (unicode_is_raw_byte(wc)
+		 || (CONFIG_LAST_SUPPORTED_WCHAR && wc > CONFIG_LAST_SUPPORTED_WCHAR)
+		) {
+			goto subst;
+		}
+		w = wcwidth(wc);
+		if ((ENABLE_UNICODE_COMBINING_WCHARS && w < 0)
+		 || (!ENABLE_UNICODE_COMBINING_WCHARS && w <= 0)
+		 || (!ENABLE_UNICODE_WIDE_WCHARS && w > 1)
+		) {
+ subst:
+			w = 1;
+			wc = CONFIG_SUBST_WCHAR;
+		}
+	}
+
+# if ENABLE_UNICODE_COMBINING_WCHARS || ENABLE_UNICODE_WIDE_WCHARS
+	*width_adj += w;
+#endif
+	return wc;
+}
+#else /* !UNICODE */
 static size_t load_string(const char *src, int maxsize)
 {
 	safe_strncpy(command_ps, src, maxsize);
@@ -290,6 +316,8 @@ static void save_string(char *dst, unsigned maxsize)
 }
 # endif
 # define BB_PUTCHAR(c) bb_putchar(c)
+/* Should never be called: */
+int adjust_width_and_validate_wc(unsigned *width_adj, int wc);
 #endif
 
 
@@ -300,6 +328,8 @@ static void save_string(char *dst, unsigned maxsize)
 static void put_cur_glyph_and_inc_cursor(void)
 {
 	CHAR_T c = command_ps[cursor];
+	unsigned width = 0;
+	int ofs_to_right;
 
 	if (c == BB_NUL) {
 		/* erase character after end of input string */
@@ -307,28 +337,23 @@ static void put_cur_glyph_and_inc_cursor(void)
 	} else {
 		/* advance cursor only if we aren't at the end yet */
 		cursor++;
-		cmdedit_x++;
+		if (unicode_status == UNICODE_ON) {
+			IF_UNICODE_WIDE_WCHARS(width = cmdedit_x;)
+			c = adjust_width_and_validate_wc(&cmdedit_x, c);
+			IF_UNICODE_WIDE_WCHARS(width = cmdedit_x - width;)
+		} else {
+			cmdedit_x++;
+		}
 	}
 
-#if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-	/* Display non-printable characters in reverse */
-	if (!BB_isprint(c)) {
-		if (c >= 128)
-			c -= 128;
-		if (c < ' ')
-			c += '@';
-		if (c == 127)
-			c = '?';
-		printf("\033[7m%c\033[0m", c);
-	} else
-#endif
-	{
+	ofs_to_right = cmdedit_x - cmdedit_termw;
+	if (!ENABLE_UNICODE_WIDE_WCHARS || ofs_to_right <= 0) {
+		/* c fits on this line */
 		BB_PUTCHAR(c);
 	}
-	if (cmdedit_x >= cmdedit_termw) {
-		/* terminal is scrolled down */
-		cmdedit_y++;
-		cmdedit_x = 0;
+
+	if (ofs_to_right >= 0) {
+		/* we go to the next line */
 #if HACK_FOR_WRONG_WIDTH
 		/* This works better if our idea of term width is wrong
 		 * and it is actually wider (often happens on serial lines).
@@ -351,6 +376,14 @@ static void put_cur_glyph_and_inc_cursor(void)
 		BB_PUTCHAR(c);
 		bb_putchar('\b');
 #endif
+		cmdedit_y++;
+		if (!ENABLE_UNICODE_WIDE_WCHARS || ofs_to_right == 0) {
+			width = 0;
+		} else { /* ofs_to_right > 0 */
+			/* wide char c didn't fit on prev line */
+			BB_PUTCHAR(c);
+		}
+		cmdedit_x = width;
 	}
 }
 
@@ -389,9 +422,21 @@ static void input_backward(unsigned num)
 
 	if (num > cursor)
 		num = cursor;
-	if (!num)
+	if (num == 0)
 		return;
 	cursor -= num;
+
+	if ((ENABLE_UNICODE_COMBINING_WCHARS || ENABLE_UNICODE_WIDE_WCHARS)
+	 && unicode_status == UNICODE_ON
+	) {
+		/* correct NUM to be equal to _screen_ width */
+		int n = num;
+		num = 0;
+		while (--n >= 0)
+			adjust_width_and_validate_wc(&num, command_ps[cursor + n]);
+		if (num == 0)
+			return;
+	}
 
 	if (cmdedit_x >= num) {
 		cmdedit_x -= num;
@@ -412,6 +457,8 @@ static void input_backward(unsigned num)
 	}
 
 	/* Need to go one or more lines up */
+//FIXME: this does not work correctly if prev line has one "unfilled" screen position
+//caused by wide unicode char not fitting in that one screen position.
 	num -= cmdedit_x;
 	{
 		unsigned w = cmdedit_termw; /* volatile var */
@@ -765,21 +812,13 @@ static NOINLINE int find_match(char *matchBuf, int *len_with_quotes)
 	}
 
 	/* mask \+symbol and convert '\t' to ' ' */
-	for (i = j = 0; matchBuf[i]; i++, j++)
+	for (i = j = 0; matchBuf[i]; i++, j++) {
 		if (matchBuf[i] == '\\') {
 			collapse_pos(j, j + 1);
 			int_buf[j] |= QUOT;
 			i++;
-#if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-			if (matchBuf[i] == '\t')  /* algorithm equivalent */
-				int_buf[j] = ' ' | QUOT;
-#endif
 		}
-#if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-		else if (matchBuf[i] == '\t')
-			int_buf[j] = ' ';
-#endif
-
+	}
 	/* mask "symbols" or 'symbols' */
 	c2 = 0;
 	for (i = 0; int_buf[i]; i++) {
@@ -1774,7 +1813,7 @@ static int lineedit_read_key(char *read_key_buffer)
 # if !ENABLE_UNICODE_PRESERVE_BROKEN
 				ic = CONFIG_SUBST_WCHAR;
 # else
-				ic = unicode_mark_inv_wchar(unicode_buf[0]);
+				ic = unicode_mark_raw_byte(unicode_buf[0]);
 # endif
 			} else {
 				/* Valid unicode char, return its code */
@@ -2384,9 +2423,6 @@ int main(int argc, char **argv)
 		"% ";
 #endif
 
-#if ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT
-	setlocale(LC_ALL, "");
-#endif
 	while (1) {
 		int l;
 		l = read_line_input(prompt, buff);

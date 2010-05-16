@@ -35,6 +35,16 @@ enum {
 #  define LAST_SUPPORTED_WCHAR CONFIG_LAST_SUPPORTED_WCHAR
 # endif
 
+# if LAST_SUPPORTED_WCHAR < 0x300
+#  undef ENABLE_UNICODE_COMBINING_WCHARS
+#  define ENABLE_UNICODE_COMBINING_WCHARS 0
+# endif
+
+# if LAST_SUPPORTED_WCHAR < 0x1100
+#  undef ENABLE_UNICODE_WIDE_WCHARS
+#  define ENABLE_UNICODE_WIDE_WCHARS 0
+# endif
+
 # if LAST_SUPPORTED_WCHAR < 0x590
 #  undef  ENABLE_UNICODE_BIDI_SUPPORT
 #  define ENABLE_UNICODE_BIDI_SUPPORT 0
@@ -92,6 +102,7 @@ size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps) FAST_FUNC;
 int iswspace(wint_t wc) FAST_FUNC;
 int iswalnum(wint_t wc) FAST_FUNC;
 int iswpunct(wint_t wc) FAST_FUNC;
+int wcwidth(unsigned ucs) FAST_FUNC;
 #  if ENABLE_UNICODE_BIDI_SUPPORT
 #   undef unicode_bidi_isrtl
 int unicode_bidi_isrtl(wint_t wc) FAST_FUNC;

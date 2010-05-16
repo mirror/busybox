@@ -418,7 +418,7 @@ static int in_uint16_table(unsigned ucs, const uint16_t *table, unsigned max)
  * This implementation assumes that wchar_t characters are encoded
  * in ISO 10646.
  */
-static int wcwidth(unsigned ucs)
+int FAST_FUNC wcwidth(unsigned ucs)
 {
 # if LAST_SUPPORTED_WCHAR >= 0x300
 	/* sorted list of non-overlapping intervals of non-spacing characters */
