@@ -57,7 +57,7 @@
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
- *      special variables (done: PWD)
+ *      special variables (done: PWD, PPID, RANDOM)
  *      follow IFS rules more precisely, including update semantics
  *      export builtin should be special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
