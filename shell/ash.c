@@ -3874,9 +3874,9 @@ dowait(int wait_flags, struct job *job)
 }
 
 static int
-blocking_wait_with_raise_on_sig(struct job *job)
+blocking_wait_with_raise_on_sig(void)
 {
-	pid_t pid = dowait(DOWAIT_BLOCK, job);
+	pid_t pid = dowait(DOWAIT_BLOCK, NULL);
 	if (pid <= 0 && pending_sig)
 		raise_exception(EXSIG);
 	return pid;
@@ -4069,14 +4069,21 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 				jp->waited = 1;
 				jp = jp->prev_job;
 			}
+			blocking_wait_with_raise_on_sig();
 	/* man bash:
 	 * "When bash is waiting for an asynchronous command via
 	 * the wait builtin, the reception of a signal for which a trap
 	 * has been set will cause the wait builtin to return immediately
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
-	 * Do we do it that way? */
-			blocking_wait_with_raise_on_sig(NULL);
+	 *
+	 * blocking_wait_with_raise_on_sig raises signal handlers
+	 * if it gets no pid (pid < 0). However,
+	 * if child sends us a signal *and immediately exits*,
+	 * blocking_wait_with_raise_on_sig gets pid > 0
+	 * and does not handle pending_sig. Check this case: */
+			if (pending_sig)
+				raise_exception(EXSIG);
 		}
 	}
 
@@ -4096,7 +4103,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 			job = getjob(*argv, 0);
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING)
-			blocking_wait_with_raise_on_sig(NULL);
+			blocking_wait_with_raise_on_sig();
 		job->waited = 1;
 		retval = getstatus(job);
  repeat: ;

@@ -1,4 +1,3 @@
-# Not fixed yet
 trap "echo USR1 received" USR1
 stub() {
     echo "sleeping for $1 sec"
