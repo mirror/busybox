@@ -2589,9 +2589,7 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 /* ============ ... */
 
 
-#define IBUFSIZ COMMON_BUFSIZE
-/* buffer for top level input file */
-#define basebuf bb_common_bufsiz1
+#define IBUFSIZ (ENABLE_FEATURE_EDITING ? CONFIG_FEATURE_EDITING_MAX_LEN : 1024)
 
 /* Syntax classes */
 #define CWORD     0             /* character is nothing special */
@@ -9447,12 +9445,12 @@ preadfd(void)
 #if ENABLE_FEATURE_EDITING
  retry:
 	if (!iflag || g_parsefile->fd != STDIN_FILENO)
-		nr = nonblock_safe_read(g_parsefile->fd, buf, BUFSIZ - 1);
+		nr = nonblock_safe_read(g_parsefile->fd, buf, IBUFSIZ - 1);
 	else {
 #if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
 #endif
-		nr = read_line_input(cmdedit_prompt, buf, BUFSIZ, line_input_state);
+		nr = read_line_input(cmdedit_prompt, buf, IBUFSIZ, line_input_state);
 		if (nr == 0) {
 			/* Ctrl+C pressed */
 			if (trap[SIGINT]) {
@@ -9469,7 +9467,7 @@ preadfd(void)
 		}
 	}
 #else
-	nr = nonblock_safe_read(g_parsefile->fd, buf, BUFSIZ - 1);
+	nr = nonblock_safe_read(g_parsefile->fd, buf, IBUFSIZ - 1);
 #endif
 
 #if 0
@@ -12728,7 +12726,8 @@ static void
 init(void)
 {
 	/* from input.c: */
-	basepf.next_to_pgetc = basepf.buf = basebuf;
+	/* we will never free this */
+	basepf.next_to_pgetc = basepf.buf = ckmalloc(IBUFSIZ);
 
 	/* from trap.c: */
 	signal(SIGCHLD, SIG_DFL);

@@ -57,7 +57,7 @@
 
 /* Globals */
 struct globals {
-	char jiffy_line[sizeof(bb_common_bufsiz1)];
+	char jiffy_line[COMMON_BUFSIZE];
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
