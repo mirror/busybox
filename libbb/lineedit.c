@@ -486,15 +486,22 @@ static void input_backward(unsigned num)
 		while (cursor < sv_cursor)
 			put_cur_glyph_and_inc_cursor();
 	} else {
-		int count_y;
-		unsigned w;
+		int lines_up;
+		unsigned width;
+		/* num = chars to go back from the beginning of current line: */
 		num -= cmdedit_x;
-		w = cmdedit_termw; /* read volatile var once */
-		count_y = 1 + (num / w);
-		cmdedit_y -= count_y;
-		cmdedit_x = w * count_y - num;
-		/* go to 1st column; go up; go to correct column */
-		printf("\r" "\033[%uA" "\033[%uC", count_y, cmdedit_x);
+		width = cmdedit_termw; /* read volatile var once */
+		/* num=1...w: one line up, w+1...2w: two, etc: */
+		lines_up = 1 + (num - 1) / width;
+		cmdedit_x = (width * cmdedit_y - num) % width;
+		cmdedit_y -= lines_up;
+		/* go to 1st column; go up */
+		printf("\r" "\033[%uA", lines_up);
+		/* go to correct column.
+		 * xtarm, konsole, Linux VT interpret 0 as 1 below! wow.
+		 * Need to *make sure* we skip it if cmdedit_x == 0 */
+		if (cmdedit_x)
+			printf("\033[%uC", cmdedit_x);
 	}
 }
 
