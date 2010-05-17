@@ -1,108 +1,82 @@
-Various bits of what is known about busybox shells, in no particular order.
+http://www.opengroup.org/onlinepubs/9699919799/
+Open Group Base Specifications Issue 7
 
-2008-02-14
-ash: does not restore tty pgrp if killed by HUP. Symptom: Midnight Commander
-is backgrounded if you started ash under it, and then killed it with HUP.
 
-2007-11-23
-hush: fixed bogus glob handling; fixed exec <"$1"; added test and echo builtins
+http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap01.html
+Shell & Utilities
 
-2007-06-13
-hush: exec <"$1" doesn't do parameter subst
+It says that any of the standard utilities may be implemented
+as a regular shell built-in. It gives a list of utilities which
+are usually implemented that way (and some of them can only
+be implemented as built-ins, like "alias"):
 
-2007-05-24
-hush: environment-related memory leak plugged, with net code size
-decrease.
+alias
+bg
+cd
+command
+false
+fc
+fg
+getopts
+jobs
+kill
+newgrp
+pwd
+read
+true
+umask
+unalias
+wait
 
-2007-05-24
-hush: '( echo ${name )' will show syntax error message, but prompt
-doesn't return (need to press <enter>). Pressing Ctrl-C, <enter>,
-'( echo ${name )' again, Ctrl-C segfaults.
 
-2007-05-21
-hush: environment cannot be handled by libc routines as they are leaky
-(by API design and thus unfixable): hush will leak memory in this script,
-bash does not:
-pid=$$
-while true; do
-    unset t;
-    t=111111111111111111111111111111111111111111111111111111111111111111111111
-    export t
-    ps -o vsz,pid,comm | grep " $pid "
-done
-The fix is to not use setenv/putenv/unsetenv but manipulate env ourself. TODO.
-hush: meanwhile, first three command subst bugs mentioned below are fixed. :)
+http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+Shell Command Language
 
-2007-05-06
-hush: more bugs spotted. Comparison with bash:
-bash-3.2# echo "TEST`date;echo;echo`BEST"
-TESTSun May  6 09:21:05 CEST 2007BEST         [we dont strip eols]
-bash-3.2# echo "TEST`echo '$(echo ZZ)'`BEST"
-TEST$(echo ZZ)BEST                            [we execute inner echo]
-bash-3.2# echo "TEST`echo "'"`BEST"
-TEST'BEST                                     [we totally mess up this one]
-bash-3.2# echo `sleep 5`
-[Ctrl-C should work, Ctrl-Z should do nothing][we totally mess up this one]
-bash-3.2# if true; then
-> [Ctrl-C]
-bash-3.2#                                     [we re-issue "> "]
-bash-3.2# if echo `sleep 5`; then
-> true; fi                                    [we execute sleep before "> "]
+It says that shell must implement special built-ins. Special built-ins
+differ from regular ones by the fact that variable assignments
+done on special builtin is *PRESERVED*. That is,
 
-2007-05-04
-hush: made ctrl-Z/C work correctly for "while true; do true; done"
-(namely, it backgrounds/interrupts entire "while")
+VAR=VAL special_builtin; echo $VAR
 
-2007-05-03
-hush: new bug spotted: Ctrl-C on "while true; do true; done" doesn't
-work right:
-# while true; do true; done
-[1] 0 true <-- pressing Ctrl-C several times...
-[2] 0 true
-[3] 0 true
-Segmentation fault
+should print VAL.
 
-2007-05-03
-hush: update on "sleep 1 | exit 3; echo $?" bug.
-parse_stream_outer() repeatedly calls parse_stream().
-parse_stream() is now fixed to stop on ';' in this example,
-fixing it (parse_stream_outer() will call parse_stream() 1st time,
-execute the parse tree, call parse_stream() 2nd time and execute the tree).
-But it's not the end of story.
-In more complex situations we _must_ parse way farther before executing.
-Example #2: "{ sleep 1 | exit 3; echo $?; ...few_lines... } >file".
-Because of redirection, we cannot execute 1st pipe before we parse it all.
-We probably need to learn to store $var expressions in parse tree.
-Debug printing of parse tree would be nice too.
+(Another distinction is that an error in special built-in should
+abort the shell, but this is not such a critical difference,
+and moreover, at least bash's "set" does not follow this rule,
+which is even codified in autoconf now...).
 
-2007-04-28
-hush: Ctrl-C and Ctrl-Z for single NOFORK commands are working.
-Memory and other resource leaks (opendir) are not addressed
-(testcase is "rm -i" interrupted by ctrl-c).
+List of special builtins:
 
-2007-04-21
-hush: "sleep 5 | sleep 6" + Ctrl-Z + fg seems to work.
-"rm -i" + Ctrl-C, "sleep 5" + Ctrl-Z still doesn't work
-for SH_STANDALONE case :(
+. file
+: [argument...]
+break [n]
+continue [n]
+eval [argument...]
+exec [command [argument...]]
+exit [n]
+export name[=word]...
+export -p
+readonly name[=word]...
+readonly -p
+return [n]
+set [-abCefhmnuvx] [-o option] [argument...]
+set [+abCefhmnuvx] [+o option] [argument...]
+set -- [argument...]
+set -o
+set +o
+shift [n]
+times
+trap n [condition...]
+trap [action condition...]
+unset [-fv] name...
 
-2007-04-21
-hush: fixed non-backgrounding of "sleep 1 &" and totally broken
-"sleep 1 | sleep 2 &". Noticed a bug where successive jobs
-get numbers 1,2,3 even when job #1 has exited before job# 2 is started.
-(bash reuses #1 in this case)
+In practice, no one uses this obscure feature - none of these builtins
+gives any special reasons to play such dirty tricks.
 
-2007-04-21
-hush: "sleep 1 | exit 3; echo $?" prints 0 because $? is substituted
-_before_ pipe gets executed!! run_list_real() already has "pipe;echo"
-parsed and handed to it for execution, so it sees "pipe"; "echo 0".
+However. This section says that *function invocation* should act
+similar to special built-in. That is, variable assignments
+done on function invocation should be preserved after function invocation.
 
-2007-04-21
-hush: removed setsid() and made job control sort-of-sometimes-work.
-Ctrl-C in "rm -i" works now except for SH_STANDALONE case.
-"sleep 1 | exit 3" + "echo $?" works, "sleep 1 | exit 3; echo $?"
-shows exitcode 0 (should be 3). "sleep 1 | sleep 2 &" fails horribly.
-
-2007-04-14
-lash, hush: both do setsid() and as a result don't have ctty!
-Ctrl-C doesn't work for any child (try rm -i), etc...
-lash: bare ">file" doesn't create a file (hush works)
+This is significant: it is not unthinkable to want to run a function
+with some variables set to special values. But because of the above,
+it does not work: variable will "leak" out of the function.
