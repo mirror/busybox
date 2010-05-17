@@ -397,15 +397,8 @@ static void put_till_end_and_adv_cursor(void)
 static void goto_new_line(void)
 {
 	put_till_end_and_adv_cursor();
-	if (cmdedit_x)
+	if (cmdedit_x != 0)
 		bb_putchar('\n');
-}
-
-
-static void out1str(const char *s)
-{
-	if (s)
-		fputs(s, stdout);
 }
 
 static void beep(void)
@@ -417,7 +410,7 @@ static void put_prompt(void)
 {
 	unsigned w;
 
-	out1str(cmdedit_prompt);
+	fputs(cmdedit_prompt, stdout);
 	fflush_all();
 	cursor = 0;
 	w = cmdedit_termw; /* read volatile var once */
@@ -485,9 +478,8 @@ static void input_backward(unsigned num)
 		 * up to new cursor position (which is already known):
 		 */
 		unsigned sv_cursor;
-		if (cmdedit_y > 0)  /* up to start y */
-			printf("\033[%uA", cmdedit_y);
-		bb_putchar('\r');
+		/* go to 1st column; go up to first line */
+		printf("\r" "\033[%uA", cmdedit_y);
 		cmdedit_y = 0;
 		sv_cursor = cursor;
 		put_prompt(); /* sets cursor to 0 */
@@ -509,7 +501,7 @@ static void input_backward(unsigned num)
 /* draw prompt, editor line, and clear tail */
 static void redraw(int y, int back_cursor)
 {
-	if (y > 0)  /* up to start y */
+	if (y > 0) /* up y lines */
 		printf("\033[%uA", y);
 	bb_putchar('\r');
 	put_prompt();
@@ -1616,7 +1608,7 @@ static void ask_terminal(void)
 	pfd.events = POLLIN;
 	if (safe_poll(&pfd, 1, 0) == 0) {
 		S.sent_ESC_br6n = 1;
-		out1str("\033" "[6n");
+		fputs("\033" "[6n", stdout);
 		fflush_all(); /* make terminal see it ASAP! */
 	}
 }
