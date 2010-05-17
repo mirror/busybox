@@ -6232,10 +6232,15 @@ static struct pipe *parse_stream(char **pstring,
 		is_special = "{}<>;&|()#'" /* special outside of "str" */
 				"\\$\"" IF_HUSH_TICK("`"); /* always special */
 		/* Are { and } special here? */
-		if (ctx.command->argv /* word [word]{... */
-		 || dest.length /* word{... */
-		 || dest.o_quoted /* ""{... */
-		 || (next != ';' && next != ')' && !strchr(G.ifs, next)) /* {word */
+		if (ctx.command->argv /* word [word]{... - non-special */
+		 || dest.length       /* word{... - non-special */
+		 || dest.o_quoted     /* ""{... - non-special */
+		 || (next != ';'            /* }; - special */
+		    && next != ')'          /* }) - special */
+		    && next != '&'          /* }& and }&& ... - special */
+		    && next != '|'          /* }|| ... - special */
+		    && !strchr(G.ifs, next) /* {word - non-special */
+		    )
 		) {
 			/* They are not special, skip "{}" */
 			is_special += 2;
