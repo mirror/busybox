@@ -5,8 +5,9 @@ stub() {
     echo "$1 sec passed, sending USR1 to parent"
     kill -USR1 $$
 }
+stub 3 &
 stub 2 &
-stub 1 &
+sleep 1
 until { echo "Waiting"; wait; } do
     echo "Wait exit code: $?"
 done
