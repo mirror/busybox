@@ -8944,7 +8944,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_SPEC_REG      "return"  , returncmd  },
 	{ BUILTIN_SPEC_REG      "set"     , setcmd     },
 	{ BUILTIN_SPEC_REG      "shift"   , shiftcmd   },
+#if ENABLE_ASH_BASH_COMPAT
 	{ BUILTIN_SPEC_REG      "source"  , dotcmd     },
+#endif
 #if ENABLE_ASH_BUILTIN_TEST
 	{ BUILTIN_REGULAR       "test"    , testcmd    },
 #endif

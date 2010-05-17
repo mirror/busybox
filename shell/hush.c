@@ -673,6 +673,9 @@ static const struct built_in_command bltins1[] = {
 #endif
 	BLTIN("set"      , builtin_set     , "Set/unset positional parameters"),
 	BLTIN("shift"    , builtin_shift   , "Shift positional parameters"),
+#if ENABLE_HUSH_BASH_COMPAT
+	BLTIN("source"   , builtin_source  , "Run commands in a file"),
+#endif
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
 	BLTIN("type"     , builtin_type    , "Show command type"),
 	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
