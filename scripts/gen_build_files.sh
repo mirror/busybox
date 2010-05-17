@@ -1,7 +1,4 @@
 #!/bin/sh
-# bashism:
-# "read -r" without variable name reads line into $REPLY
-# without stripping whitespace.
 
 test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
@@ -18,7 +15,12 @@ find -type d | while read -r d; do
 
 		s=`sed -n 's@^//kbuild:@@p' -- "$srctree/$d"/*.c`
 		echo "# DO NOT EDIT. This file is generated from Kbuild.src" >"$dst.$$.tmp"
-		while read -r; do
+
+		# Why "IFS='' read -r REPLY"??
+		# This atrocity is needed to read lines without mangling.
+		# IFS='' prevents whitespace trimming,
+		# -r suppresses backslash handling.
+		while IFS='' read -r REPLY; do
 			test x"$REPLY" = x"INSERT" && REPLY="$s"
 			printf "%s\n" "$REPLY"
 		done <"$src" >>"$dst.$$.tmp"
@@ -38,7 +40,8 @@ find -type d | while read -r d; do
 
 		s=`sed -n 's@^//config:@@p' -- "$srctree/$d"/*.c`
 		echo "# DO NOT EDIT. This file is generated from Config.src" >"$dst.$$.tmp"
-		while read -r; do
+
+		while IFS='' read -r REPLY; do
 			test x"$REPLY" = x"INSERT" && REPLY="$s"
 			printf "%s\n" "$REPLY"
 		done <"$src" >>"$dst.$$.tmp"
