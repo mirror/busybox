@@ -12031,13 +12031,16 @@ dotcmd(int argc, char **argv)
 {
 	struct strlist *sp;
 	volatile struct shparam saveparam;
-	int status = 0;
 
 	for (sp = cmdenviron; sp; sp = sp->next)
 		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
+	/* "false; . empty_file; echo $?" should print 0, not 1: */
+	exitstatus = 0;
+
 	if (argv[1]) {        /* That's what SVR2 does */
 		char *fullname = find_dot_file(argv[1]);
+
 		argv += 2;
 		argc -= 2;
 		if (argc) { /* argc > 0, argv[0] != NULL */
@@ -12056,9 +12059,8 @@ dotcmd(int argc, char **argv)
 			freeparam(&shellparam);
 			shellparam = saveparam;
 		};
-		status = exitstatus;
 	}
-	return status;
+	return exitstatus;
 }
 
 static int FAST_FUNC
