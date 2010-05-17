@@ -1,0 +1,14 @@
+# Not fixed yet
+trap "echo USR1 received" USR1
+stub() {
+    echo "sleeping for $1 sec"
+    sleep $1
+    echo "$1 sec passed, sending USR1 to parent"
+    kill -USR1 $$
+}
+stub 2 &
+stub 1 &
+until { echo "Waiting"; wait; } do
+    echo "Wait exit code: $?"
+done
+echo "Wait returned 0"

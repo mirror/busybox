@@ -1,0 +1,4 @@
+# Not fixed yet
+false
+. /dev/null
+echo Done: $?
