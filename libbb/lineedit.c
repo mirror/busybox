@@ -498,8 +498,8 @@ static void input_backward(unsigned num)
 		/* go to 1st column; go up */
 		printf("\r" "\033[%uA", lines_up);
 		/* go to correct column.
-		 * xtarm, konsole, Linux VT interpret 0 as 1 below! wow.
-		 * Need to *make sure* we skip it if cmdedit_x == 0 */
+		 * xterm, konsole, Linux VT interpret 0 as 1 below! wow.
+		 * need to *make sure* we skip it if cmdedit_x == 0 */
 		if (cmdedit_x)
 			printf("\033[%uC", cmdedit_x);
 	}
