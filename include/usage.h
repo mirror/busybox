@@ -657,7 +657,7 @@
      "\n	::respawn:/bin/cttyhack /bin/sh" \
      "\nGiving controlling tty to shell running with PID 1:" \
      "\n	$ exec cttyhack sh" \
-     "\nStarting an interative shell from boot shell script:" \
+     "\nStarting interactive shell from boot shell script:" \
      "\n	setsid cttyhack sh" \
 
 #define cut_trivial_usage \

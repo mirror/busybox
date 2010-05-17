@@ -366,7 +366,7 @@ config CTTYHACK
 
 	  $ exec cttyhack sh
 
-	  Starting an interative shell from boot shell script:
+	  Starting an interactive shell from boot shell script:
 
 	  setsid cttyhack sh
 
