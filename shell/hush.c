@@ -39,21 +39,24 @@
  *
  * POSIX syntax not implemented:
  *      aliases
- *      <(list) and >(list) Process Substitution
  *      Tilde Expansion
  *
- * Bash stuff (optionally enabled):
- *      &> and >& redirection of stdout+stderr
- *      Brace Expansion
- *      reserved words: [[ ]] function select
- *      substrings ${var:1:5}
+ * Bash compat TODO:
+ *      redirection of stdout+stderr: &> and >&
+ *      brace expansion: one/{two,three,four}
+ *      reserved words: function select
+ *      advanced test: [[ ]]
+ *      substrings: ${var:1:5}
+ *      process substitution: <(list) and >(list)
+ *      =~: regex operator
  *      let EXPR [EXPR...]
  *        Each EXPR is an arithmetic expression (ARITHMETIC EVALUATION)
  *        If the last arg evaluates to 0, let returns 1; 0 otherwise.
  *        NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
  *      ((EXPR))
  *        The EXPR is evaluated according to ARITHMETIC EVALUATION.
- *        This is exactly equivalent to let "expression".
+ *        This is exactly equivalent to let "EXPR".
+ *      $[EXPR]: synonym for $((EXPR))
  *
  * TODOs:
  *      grep for "TODO" and fix (some of them are easy)
