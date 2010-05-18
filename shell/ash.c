@@ -9208,7 +9208,7 @@ evalcommand(union node *cmd, int flags)
 			}
 			/* child */
 			FORCE_INT_ON;
-			/* fall through to exec'ing exeternal program */
+			/* fall through to exec'ing external program */
 		}
 		listsetvar(varlist.list, VEXPORT|VSTACK);
 		shellexec(argv, path, cmdentry.u.index);
