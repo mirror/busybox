@@ -178,7 +178,7 @@ static NOINLINE void INET_setroute(int action, char **args)
 			int prefix_len;
 
 			prefix_len = xatoul_range(prefix+1, 0, 32);
-			mask_in_addr(rt) = htonl( ~ (0xffffffffUL >> prefix_len));
+			mask_in_addr(rt) = htonl( ~(0xffffffffUL >> prefix_len));
 			*prefix = '\0';
 #if HAVE_NEW_ADDRT
 			rt.rt_genmask.sa_family = AF_INET;

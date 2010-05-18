@@ -208,6 +208,7 @@ struct globals_misc {
 
 	/* indicates specified signal received */
 	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
+	uint8_t may_have_traps; /* 0: definitely no traps are set, 1: some traps may be set */
 	char *trap[NSIG];
 	char **trap_ptr;        /* used only by "trap hack" */
 
@@ -236,6 +237,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define optlist     (G_misc.optlist    )
 #define sigmode     (G_misc.sigmode    )
 #define gotsig      (G_misc.gotsig     )
+#define may_have_traps    (G_misc.may_have_traps   )
 #define trap        (G_misc.trap       )
 #define trap_ptr    (G_misc.trap_ptr   )
 #define random_gen  (G_misc.random_gen )
@@ -333,7 +335,7 @@ raise_interrupt(void)
 	/* Signal is not automatically unmasked after it is raised,
 	 * do it ourself - unmask all signals */
 	sigprocmask_allsigs(SIG_UNBLOCK);
-	/* pending_sig = 0; - now done in onsig() */
+	/* pending_sig = 0; - now done in signal_handler() */
 
 	ex_type = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
@@ -3268,10 +3270,10 @@ ignoresig(int signo)
 }
 
 /*
- * Signal handler. Only one usage site - in setsignal()
+ * Only one usage site - in setsignal()
  */
 static void
-onsig(int signo)
+signal_handler(int signo)
 {
 	gotsig[signo - 1] = 1;
 
@@ -3366,7 +3368,7 @@ setsignal(int signo)
 	act.sa_handler = SIG_DFL;
 	switch (new_act) {
 	case S_CATCH:
-		act.sa_handler = onsig;
+		act.sa_handler = signal_handler;
 		act.sa_flags = 0; /* matters only if !DFL and !IGN */
 		sigfillset(&act.sa_mask); /* ditto */
 		break;
@@ -8443,15 +8445,16 @@ evalsubshell(union node *n, int flags)
 	int status;
 
 	expredir(n->nredir.redirect);
-	if (!backgnd && flags & EV_EXIT && !trap[0])
+	if (!backgnd && (flags & EV_EXIT) && !may_have_traps)
 		goto nofork;
 	INT_OFF;
 	jp = makejob(/*n,*/ 1);
 	if (forkshell(jp, n, backgnd) == 0) {
+		/* child */
 		INT_ON;
 		flags |= EV_EXIT;
 		if (backgnd)
-			flags &=~ EV_TESTED;
+			flags &= ~EV_TESTED;
  nofork:
 		redirect(n->nredir.redirect, 0);
 		evaltreenr(n->nredir.n, flags);
@@ -9193,16 +9196,19 @@ evalcommand(union node *cmd, int flags)
 	}
 #endif
 		/* Fork off a child process if necessary. */
-		if (!(flags & EV_EXIT) || trap[0]) {
+		if (!(flags & EV_EXIT) || may_have_traps) {
 			INT_OFF;
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
+				/* parent */
 				exitstatus = waitforjob(jp);
 				INT_ON;
 				TRACE(("forked child exited with %d\n", exitstatus));
 				break;
 			}
+			/* child */
 			FORCE_INT_ON;
+			/* fall through to exec'ing exeternal program */
 		}
 		listsetvar(varlist.list, VEXPORT|VSTACK);
 		shellexec(argv, path, cmdentry.u.index);
@@ -12349,6 +12355,8 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				action = ckstrdup(action);
 		}
 		free(trap[signo]);
+		if (action)
+			may_have_traps = 1;
 		trap[signo] = action;
 		if (signo != 0)
 			setsignal(signo);
