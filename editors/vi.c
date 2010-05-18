@@ -793,7 +793,7 @@ static void colon(char *buf)
 	//
 
 	if (!buf[0])
-		goto vc1;
+		goto ret;
 	if (*buf == ':')
 		buf++;			// move past the ':'
 
@@ -881,7 +881,7 @@ static void colon(char *buf)
 		// don't edit, if the current file has been modified
 		if (file_modified && !useforce) {
 			status_line_bold("No write since last change (:edit! overrides)");
-			goto vc1;
+			goto ret;
 		}
 		if (args[0]) {
 			// the user supplied a file name
@@ -892,11 +892,11 @@ static void colon(char *buf)
 		} else {
 			// no user file name, no current name- punt
 			status_line_bold("No current filename");
-			goto vc1;
+			goto ret;
 		}
 
 		if (init_text_buffer(fn) < 0)
-			goto vc1;
+			goto ret;
 
 #if ENABLE_FEATURE_VI_YANKMARK
 		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
@@ -921,7 +921,7 @@ static void colon(char *buf)
 	} else if (strncmp(cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
 			status_line_bold("No address allowed on this command");
-			goto vc1;
+			goto ret;
 		}
 		if (args[0]) {
 			// user wants a new filename
@@ -967,11 +967,8 @@ static void colon(char *buf)
 			if (c_is_no_print)
 				standout_end();
 		}
-#if ENABLE_FEATURE_VI_SET
- vc2:
-#endif
 		Hit_Return();
-	} else if (strncmp(cmd, "quit", i) == 0 // Quit
+	} else if (strncmp(cmd, "quit", i) == 0 // quit
 	        || strncmp(cmd, "next", i) == 0 // edit next file
 	) {
 		int n;
@@ -981,30 +978,30 @@ static void colon(char *buf)
 				optind = save_argc;
 			}
 			editing = 0;
-			goto vc1;
+			goto ret;
 		}
 		// don't exit if the file been modified
 		if (file_modified) {
 			status_line_bold("No write since last change (:%s! overrides)",
 				 (*cmd == 'q' ? "quit" : "next"));
-			goto vc1;
+			goto ret;
 		}
 		// are there other file to edit
 		n = save_argc - optind - 1;
 		if (*cmd == 'q' && n > 0) {
 			status_line_bold("%d more file(s) to edit", n);
-			goto vc1;
+			goto ret;
 		}
 		if (*cmd == 'n' && n <= 0) {
 			status_line_bold("No more files to edit");
-			goto vc1;
+			goto ret;
 		}
 		editing = 0;
 	} else if (strncmp(cmd, "read", i) == 0) {	// read file into text[]
 		fn = args;
 		if (!fn[0]) {
 			status_line_bold("No filename given");
-			goto vc1;
+			goto ret;
 		}
 		if (b < 0) {	// no addr given- use defaults
 			q = begin_line(dot);	// assume "dot"
@@ -1018,7 +1015,7 @@ static void colon(char *buf)
 			q = text + ofs;
 		}
 		if (ch < 0)
-			goto vc1;	// nothing was inserted
+			goto ret;	// nothing was inserted
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
 		status_line("\"%s\""
@@ -1049,25 +1046,21 @@ static void colon(char *buf)
 		// only blank is regarded as args delmiter. What about tab '\t' ?
 		if (!args[0] || strcasecmp(args, "all") == 0) {
 			// print out values of all options
-			go_bottom_and_clear_to_eol();
-			printf("----------------------------------------\r\n");
 #if ENABLE_FEATURE_VI_SETOPTS
-			if (!autoindent)
-				printf("no");
-			printf("autoindent ");
-			if (!err_method)
-				printf("no");
-			printf("flash ");
-			if (!ignorecase)
-				printf("no");
-			printf("ignorecase ");
-			if (!showmatch)
-				printf("no");
-			printf("showmatch ");
-			printf("tabstop=%d ", tabstop);
+			status_line_bold(
+				"%sautoindent "
+				"%sflash "
+				"%signorecase "
+				"%sshowmatch "
+				"tabstop=%u",
+				autoindent ? "" : "no",
+				err_method ? "" : "no",
+				ignorecase ? "" : "no",
+				showmatch ? "" : "no",
+				tabstop
+			);
 #endif
-			printf("\r\n");
-			goto vc2;
+			goto ret;
 		}
 #if ENABLE_FEATURE_VI_SETOPTS
 		argp = args;
@@ -1075,19 +1068,17 @@ static void colon(char *buf)
 			if (strncmp(argp, "no", 2) == 0)
 				i = 2;		// ":set noautoindent"
 			setops(argp, "autoindent ", i, "ai", VI_AUTOINDENT);
-			setops(argp, "flash ", i, "fl", VI_ERR_METHOD);
+			setops(argp, "flash "     , i, "fl", VI_ERR_METHOD);
 			setops(argp, "ignorecase ", i, "ic", VI_IGNORECASE);
-			setops(argp, "showmatch ", i, "ic", VI_SHOWMATCH);
-			/* tabstopXXXX */
-			if (strncmp(argp + i, "tabstop=%d ", 7) == 0) {
-				sscanf(strchr(argp + i, '='), "tabstop=%d" + 7, &ch);
-				if (ch > 0 && ch <= MAX_TABSTOP)
-					tabstop = ch;
+			setops(argp, "showmatch " , i, "sm", VI_SHOWMATCH );
+			if (strncmp(argp + i, "tabstop=", 8) == 0) {
+				int t = 0;
+				sscanf(argp + i+8, "%u", &t);
+				if (t > 0 && t <= MAX_TABSTOP)
+					tabstop = t;
 			}
-			while (*argp && *argp != ' ')
-				argp++; // skip to arg delimiter (i.e. blank)
-			while (*argp && *argp == ' ')
-				argp++; // skip all delimiting blanks
+			argp = skip_non_whitespace(argp);
+			argp = skip_whitespace(argp);
 		}
 #endif /* FEATURE_VI_SETOPTS */
 #endif /* FEATURE_VI_SET */
@@ -1159,7 +1150,7 @@ static void colon(char *buf)
 #if ENABLE_FEATURE_VI_READONLY
 		if (readonly_mode && !useforce) {
 			status_line_bold("\"%s\" File is read only", fn);
-			goto vc3;
+			goto ret;
 		}
 #endif
 		// how many lines in text[]?
@@ -1196,9 +1187,6 @@ static void colon(char *buf)
 				editing = 0;
 			}
 		}
-#if ENABLE_FEATURE_VI_READONLY
- vc3:;
-#endif
 #if ENABLE_FEATURE_VI_YANKMARK
 	} else if (strncmp(cmd, "yank", i) == 0) {	// yank lines
 		if (b < 0) {	// no addr given- use defaults
@@ -1214,7 +1202,7 @@ static void colon(char *buf)
 		// cmd unknown
 		not_implemented(cmd);
 	}
- vc1:
+ ret:
 	dot = bound_dot(dot);	// make sure "dot" is valid
 	return;
 #if ENABLE_FEATURE_VI_SEARCH
