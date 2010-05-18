@@ -1,5 +1,10 @@
-# true is a regular builtin, varibale should not leak out of it
+# cat is an external program, variable should not leak out of it.
 # this currently fails with CONFIG_FEATURE_SH_NOFORK=y
+VAR=''
+VAR=val0 cat /dev/null
+echo "should be empty: '$VAR'"
+
+# true is a regular builtin, variable should not leak out of it.
 VAR=''
 VAR=val1 true
 echo "should be empty: '$VAR'"

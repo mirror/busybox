@@ -9179,12 +9179,14 @@ evalcommand(union node *cmd, int flags)
 
 	/* Execute the command. */
 	switch (cmdentry.cmdtype) {
-	default:
+	default: {
 
 #if ENABLE_FEATURE_SH_NOFORK
-/* Hmmm... shouldn't it happen somewhere in forkshell() instead?
- * Why "fork off a child process if necessary" doesn't apply to NOFORK? */
-	{
+/* (1) BUG: if variables are set, we need to fork, or save/restore them
+ *     around run_nofork_applet() call.
+ * (2) Should this check also be done in forkshell()?
+ *     (perhaps it should, so that "VAR=VAL nofork" at least avoids exec...)
+ */
 		/* find_command() encodes applet_no as (-2 - applet_no) */
 		int applet_no = (- cmdentry.u.index - 2);
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
@@ -9193,10 +9195,13 @@ evalcommand(union node *cmd, int flags)
 			exitstatus = run_nofork_applet(applet_no, argv);
 			break;
 		}
-	}
 #endif
-		/* Fork off a child process if necessary. */
+		/* Can we avoid forking off? For example, very last command
+		 * in a script or a subshell does not need forking,
+		 * we can just exec it.
+		 */
 		if (!(flags & EV_EXIT) || may_have_traps) {
+			/* No, forking off a child is necessary */
 			INT_OFF;
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
@@ -9213,7 +9218,7 @@ evalcommand(union node *cmd, int flags)
 		listsetvar(varlist.list, VEXPORT|VSTACK);
 		shellexec(argv, path, cmdentry.u.index);
 		/* NOTREACHED */
-
+	} /* default */
 	case CMDBUILTIN:
 		cmdenviron = varlist.list;
 		if (cmdenviron) {
@@ -9258,7 +9263,8 @@ evalcommand(union node *cmd, int flags)
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
 			goto raise;
 		break;
-	}
+
+	} /* switch */
 
  out:
 	popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
