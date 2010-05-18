@@ -1,4 +1,4 @@
-# redirects to closed descriptors should not leave these descriptors"
+# redirects to closed descriptors should not leave these descriptors
 # open afterwards
 echo TEST 9>/dev/null
 echo MUST ERROR OUT >&9

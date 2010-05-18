@@ -10,6 +10,6 @@ echo -e 'v=uni\x81code' >>unicode.sh
 echo -e 'echo Ok >"$v"' >>unicode.sh
 echo -e 'cat uni\x81code' >>unicode.sh
 echo -e 'cat uni?code' >>unicode.sh
-. unicode.sh
+. ./unicode.sh
 rm uni*code*
 echo Done
