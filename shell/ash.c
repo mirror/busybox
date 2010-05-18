@@ -12031,37 +12031,42 @@ find_dot_file(char *name)
 static int FAST_FUNC
 dotcmd(int argc, char **argv)
 {
+	char *fullname;
 	struct strlist *sp;
 	volatile struct shparam saveparam;
 
 	for (sp = cmdenviron; sp; sp = sp->next)
 		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
+	if (!argv[1]) {
+		/* bash says: "bash: .: filename argument required" */
+		return 2; /* bash compat */
+	}
+
 	/* "false; . empty_file; echo $?" should print 0, not 1: */
 	exitstatus = 0;
 
-	if (argv[1]) {        /* That's what SVR2 does */
-		char *fullname = find_dot_file(argv[1]);
+	fullname = find_dot_file(argv[1]);
 
-		argv += 2;
-		argc -= 2;
-		if (argc) { /* argc > 0, argv[0] != NULL */
-			saveparam = shellparam;
-			shellparam.malloced = 0;
-			shellparam.nparam = argc;
-			shellparam.p = argv;
-		};
+	argv += 2;
+	argc -= 2;
+	if (argc) { /* argc > 0, argv[0] != NULL */
+		saveparam = shellparam;
+		shellparam.malloced = 0;
+		shellparam.nparam = argc;
+		shellparam.p = argv;
+	};
 
-		setinputfile(fullname, INPUT_PUSH_FILE);
-		commandname = fullname;
-		cmdloop(0);
-		popfile();
+	setinputfile(fullname, INPUT_PUSH_FILE);
+	commandname = fullname;
+	cmdloop(0);
+	popfile();
 
-		if (argc) {
-			freeparam(&shellparam);
-			shellparam = saveparam;
-		};
-	}
+	if (argc) {
+		freeparam(&shellparam);
+		shellparam = saveparam;
+	};
+
 	return exitstatus;
 }
 

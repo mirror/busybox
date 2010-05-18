@@ -7870,21 +7870,26 @@ static int FAST_FUNC builtin_shift(char **argv)
 
 static int FAST_FUNC builtin_source(char **argv)
 {
-	char *arg_path;
+	char *arg_path, *filename;
 	FILE *input;
 	save_arg_t sv;
 #if ENABLE_HUSH_FUNCTIONS
 	smallint sv_flg;
 #endif
 
-	if (*++argv == NULL)
-		return EXIT_FAILURE;
-
-	if (strchr(*argv, '/') == NULL && (arg_path = find_in_path(*argv)) != NULL) {
-		input = fopen_for_read(arg_path);
-		free(arg_path);
-	} else
-		input = fopen_or_warn(*argv, "r");
+	arg_path = NULL;
+	filename = *++argv;
+	if (!filename) {
+		/* bash says: "bash: .: filename argument required" */
+		return 2; /* bash compat */
+	}
+	if (!strchr(filename, '/')) {
+		arg_path = find_in_path(filename);
+		if (arg_path)
+			filename = arg_path;
+	}
+	input = fopen_or_warn(filename, "r");
+	free(arg_path);
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
 		return EXIT_FAILURE;
