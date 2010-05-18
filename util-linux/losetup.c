@@ -10,44 +10,48 @@
 #include "libbb.h"
 
 int losetup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int losetup_main(int argc, char **argv)
+int losetup_main(int argc UNUSED_PARAM, char **argv)
 {
-	char dev[] = LOOP_NAME"0";
 	unsigned opt;
+	int n;
 	char *opt_o;
-	char *s;
 	unsigned long long offset = 0;
+	enum {
+		OPT_d = (1 << 0),
+		OPT_o = (1 << 1),
+		OPT_f = (1 << 2),
+	};
 
 	/* max 2 args, all opts are mutually exclusive */
 	opt_complementary = "?2:d--of:o--df:f-do";
 	opt = getopt32(argv, "do:f", &opt_o);
-	argc -= optind;
 	argv += optind;
 
-	if (opt == 0x2) // -o
+	if (opt == OPT_o)
 		offset = xatoull(opt_o);
 
-	if (opt == 0x4 && argc) // -f does not take any argument
-		bb_show_usage();
-
-	if (opt == 0x1) { // -d
-		/* detach takes exactly one argument */
-		if (argc != 1)
+	if (opt == OPT_d) {
+		/* -d BLOCKDEV */
+		if (!argv[0] || argv[1])
 			bb_show_usage();
 		if (del_loop(argv[0]))
 			bb_simple_perror_msg_and_die(argv[0]);
 		return EXIT_SUCCESS;
 	}
 
-	if (argc == 2) {
-		/* -o or no option */
-		if (set_loop(&argv[0], argv[1], offset) < 0)
-			bb_simple_perror_msg_and_die(argv[0]);
-		return EXIT_SUCCESS;
-	}
+	if (argv[0]) {
+		char *s;
 
-	if (argc == 1) {
-		/* -o or no option */
+		if (opt == OPT_f) /* -f should not have arguments */
+			bb_show_usage();
+
+		if (argv[1]) {
+			/* [-o OFS] BLOCKDEV FILE */
+			if (set_loop(&argv[0], argv[1], offset) < 0)
+				bb_simple_perror_msg_and_die(argv[0]);
+			return EXIT_SUCCESS;
+		}
+		/* [-o OFS] BLOCKDEV */
 		s = query_loop(argv[0]);
 		if (!s)
 			bb_simple_perror_msg_and_die(argv[0]);
@@ -57,23 +61,28 @@ int losetup_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	/* -o, -f or no option */
+	/* [-o OFS|-f] with no params */
+	n = 0;
 	while (1) {
+		char *s;
+		char dev[sizeof(LOOP_NAME) + sizeof(int)*3];
+
+		sprintf(dev, LOOP_NAME"%u", n);
 		s = query_loop(dev);
+		n++;
 		if (!s) {
-			if (opt == 0x4) {
+			if (n > 9 && errno && errno != ENXIO)
+				return EXIT_SUCCESS;
+			if (opt == OPT_f) {
 				puts(dev);
 				return EXIT_SUCCESS;
 			}
 		} else {
-			if (opt != 0x4)
+			if (opt != OPT_f)
 				printf("%s: %s\n", dev, s);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(s);
 		}
-
-		if (++dev[sizeof(dev) - 2] > '9')
-			break;
 	}
 	return EXIT_SUCCESS;
 }

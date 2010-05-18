@@ -56,7 +56,7 @@ char* FAST_FUNC query_loop(const char *device)
 	fd = open(device, O_RDONLY);
 	if (fd >= 0) {
 		if (ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo) == 0) {
-			dev = xasprintf("%lu %s", (long) loopinfo.lo_offset,
+			dev = xasprintf("%"OFF_FMT"u %s", (off_t) loopinfo.lo_offset,
 					(char *)loopinfo.lo_file_name);
 		}
 		close(fd);
