@@ -749,7 +749,15 @@ static const uint8_t nfs_err_stat[] = {
 	19, 20, 21, 22, 27, 28,
 	30, 63, 66, 69, 70, 71
 };
-static const uint8_t nfs_err_errnum[] = {
+#if ( \
+	EPERM | ENOENT      | EIO      | ENXIO | EACCES| EEXIST | \
+	ENODEV| ENOTDIR     | EISDIR   | EINVAL| EFBIG | ENOSPC | \
+	EROFS | ENAMETOOLONG| ENOTEMPTY| EDQUOT| ESTALE| EREMOTE) < 256
+typedef uint8_t nfs_err_type;
+#else
+typedef uint16_t nfs_err_type;
+#endif
+static const nfs_err_type nfs_err_errnum[] = {
 	EPERM , ENOENT      , EIO      , ENXIO , EACCES, EEXIST,
 	ENODEV, ENOTDIR     , EISDIR   , EINVAL, EFBIG , ENOSPC,
 	EROFS , ENAMETOOLONG, ENOTEMPTY, EDQUOT, ESTALE, EREMOTE
