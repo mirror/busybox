@@ -2647,14 +2647,12 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					end = --exp_word;
 					if (*exp_word != ':') /* not ${var::...} */
 						beg = bb_strtou(exp_word, &end, 0);
-						//bb_error_msg("beg:'%s'=%u end:'%s'", exp_word, beg, end);
+					//bb_error_msg("beg:'%s'=%u end:'%s'", exp_word, beg, end);
 					if (*end == ':') {
 						len = bb_strtou(end + 1, &end, 0);
 						//bb_error_msg("len:%u end:'%s'", len, end);
 					}
-					if (*end == '\0'
-					 && end != exp_word /* not "${var:}" */
-					) {
+					if (*end == '\0') {
 						//bb_error_msg("from val:'%s'", val);
 						if (!val || beg >= strlen(val))
 							val = "";
