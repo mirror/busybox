@@ -123,6 +123,8 @@
 #define lash_full_usage ""
 #define msh_trivial_usage NOUSAGE_STR
 #define msh_full_usage ""
+#define bash_trivial_usage NOUSAGE_STR
+#define bash_full_usage ""
 
 #define awk_trivial_usage \
        "[OPTIONS] [AWK_PROGRAM] [FILE]..."
