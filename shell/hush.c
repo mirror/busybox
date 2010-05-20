@@ -2614,8 +2614,16 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				debug_printf_expand("%s\n", val);
 			} else if (exp_op) {
 				if (exp_op == '%' || exp_op == '#') {
+	/* Standard-mandated substring removal ops:
+	 * ${parameter%word} - remove smallest suffix pattern
+	 * ${parameter%%word} - remove largest suffix pattern
+	 * ${parameter#word} - remove smallest prefix pattern
+	 * ${parameter##word} - remove largest prefix pattern
+	 *
+	 * Word is expanded to produce a glob pattern.
+	 * Then var's value is matched to it and matching part removed.
+	 */
 					if (val) {
-						/* we need to do a pattern match */
 						bool match_at_left;
 						char *loc;
 						scan_t scan = pick_scan(exp_op, *exp_word, &match_at_left);
@@ -2629,18 +2637,38 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 							*loc = '\0';
 					}
 				} else { /* one of :-=+? */
+//TODO: check validity of exp_op. Currently it can be anything.
 //TODO: handle ${VAR:N[:M]} here. N, M can be expressions similar to $((EXPR)): 2+2, 2+var etc
-					/* we need to do an expansion */
-					int exp_test = (!val || ((exp_save == ':') && !val[0]));
+	/* Standard-mandated substitution ops:
+	 * ${var?word} - indicate error if unset
+	 *      If var is unset, word (or a message indicating it is unset
+	 *      if word is null) is written to standard error
+	 *      and the shell exits with a non-zero exit status.
+	 *      Otherwise, the value of var is substituted.
+	 * ${var-word} - use default value
+	 *      If var is unset, word is substituted.
+	 * ${var=word} - assign and use default value
+	 *      If var is unset, word is assigned to var.
+	 *      In all cases, final value of var is substituted.
+	 * ${var+word} - use alternative value
+	 *      If var is unset, null is substituted.
+	 *      Otherwise, word is substituted.
+	 *
+	 * Word is subjected to tilde expansion, parameter expansion,
+	 * command substitution, and arithmetic expansion.
+	 * If word is not needed, it is not expanded.
+	 *
+	 * Colon forms (${var:-word}, ${var:=word} etc) do the same,
+	 * but also treat null var as if it is unset.
+	 */
+					int use_word = (!val || ((exp_save == ':') && !val[0]));
 					if (exp_op == '+')
-						exp_test = !exp_test;
+						use_word = !use_word;
 					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
-						(exp_save == ':') ? "true" : "false", exp_test);
-					if (exp_test) {
+						(exp_save == ':') ? "true" : "false", use_word);
+					if (use_word) {
 						if (exp_op == '?') {
 //TODO: how interactive bash aborts expansion mid-command?
-							/* ${var?[error_msg_if_unset]} */
-							/* ${var:?[error_msg_if_unset_or_null]} */
 							/* mimic bash message */
 							die_if_script("%s: %s",
 								var,
