@@ -7949,7 +7949,7 @@ static int FAST_FUNC builtin_umask(char **argv)
 			 * bash: umask: 'q': invalid symbolic mode operator
 			 * bash: umask: 999: octal number out of range
 			 */
-			bb_error_msg("umask: '%s' invalid mode", argv[0]);
+			bb_error_msg("%s: invalid mode '%s'", "umask", argv[0]);
 		}
 	} else {
 		rc = 1;
