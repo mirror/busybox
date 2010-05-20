@@ -2568,35 +2568,33 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 #endif
 		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
 		case_default: {
-			bool exp_len = false;
-			bool exp_null = false;
 			char *var = arg;
+			bool exp_len;
+			char exp_op;
 			char exp_save = exp_save; /* for compiler */
-			char exp_op = exp_op; /* for compiler */
+			char *exp_saveptr = exp_saveptr; /* points to expansion operator */
 			char *exp_word = exp_word; /* for compiler */
-			size_t exp_off = 0;
 
 			*p = '\0';
 			arg[0] = first_ch & 0x7f;
 
 			/* prepare for expansions */
+			exp_len = false;
+			exp_op = 0;
 			if (var[0] == '#') {
 				/* handle length expansion ${#var} */
 				exp_len = true;
 				++var;
 			} else {
 				/* maybe handle parameter expansion */
-				exp_off = strcspn(var, ":-=+?%#");
-				if (!var[exp_off])
-					exp_off = 0;
-				if (exp_off) {
-					exp_save = var[exp_off];
-					exp_null = exp_save == ':';
-					exp_word = var + exp_off;
-					if (exp_null)
-						++exp_word;
+				exp_saveptr = var + strcspn(var, ":-=+?%#");
+				exp_save = *exp_saveptr;
+				if (exp_save) {
+					exp_word = exp_saveptr;
+					if (exp_save == ':')
+						exp_word++;
 					exp_op = *exp_word++;
-					var[exp_off] = '\0';
+					*exp_saveptr = '\0';
 				}
 			}
 
@@ -2615,7 +2613,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				debug_printf_expand("expand: length of '%s' = ", val);
 				val = utoa(val ? strlen(val) : 0);
 				debug_printf_expand("%s\n", val);
-			} else if (exp_off) {
+			} else if (exp_op) {
 				if (exp_op == '%' || exp_op == '#') {
 					if (val) {
 						/* we need to do a pattern match */
@@ -2623,7 +2621,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						char *loc;
 						scan_t scan = pick_scan(exp_op, *exp_word, &match_at_left);
 						if (exp_op == *exp_word)	/* ## or %% */
-							++exp_word;
+							exp_word++;
 						val = dyn_val = xstrdup(val);
 						loc = scan(dyn_val, exp_word, match_at_left);
 						if (match_at_left) /* # or ## */
@@ -2631,13 +2629,14 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						else if (loc) /* % or %% and match was found */
 							*loc = '\0';
 					}
-				} else {
+				} else { /* one of :-=+? */
+//TODO: handle ${VAR:N[:M]} here. N, M can be expressions similar to $((EXPR)): 2+2, 2+var etc
 					/* we need to do an expansion */
-					int exp_test = (!val || (exp_null && !val[0]));
+					int exp_test = (!val || ((exp_save == ':') && !val[0]));
 					if (exp_op == '+')
 						exp_test = !exp_test;
 					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
-						exp_null ? "true" : "false", exp_test);
+						(exp_save == ':') ? "true" : "false", exp_test);
 					if (exp_test) {
 						if (exp_op == '?') {
 //TODO: how interactive bash aborts expansion mid-command?
@@ -2666,7 +2665,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					}
 				}
 
-				var[exp_off] = exp_save;
+				*exp_saveptr = exp_save;
 			}
 
 			arg[0] = first_ch;
