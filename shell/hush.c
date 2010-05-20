@@ -2523,7 +2523,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			 * and $IFS-splitted */
 			debug_printf_subst("SUBST '%s' first_ch %x\n", arg, first_ch);
 			G.last_exitcode = process_command_subs(&subst_result, arg);
-			debug_printf_subst("SUBST RES '%s'\n", subst_result.data);
+			debug_printf_subst("SUBST RES:%d '%s'\n", G.last_exitcode, subst_result.data);
 			val = subst_result.data;
 			goto store_val;
 #endif
@@ -4117,9 +4117,9 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 		if (argv[command->assignment_cnt] == NULL) {
 			/* Assignments, but no command */
-			/* Ensure redirects take effect. Try "a=t >file" */
+			/* Ensure redirects take effect (that is, create files).
+			 * Try "a=t >file": */
 			rcode = setup_redirects(command, squirrel);
-//FIXME: "false; q=`false`; echo $?" should print 1
 			restore_redirects(squirrel);
 			/* Set shell variables */
 			while (*argv) {
@@ -4129,6 +4129,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 				argv++;
 			}
+			/* Redirect error sets $? to 1. Othervise,
+			 * if evaluating assignment value set $?, retain it.
+			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
+			if (rcode == 0)
+				rcode = G.last_exitcode;
 			/* Do we need to flag set_local_var() errors?
 			 * "assignment to readonly var" and "putenv error"
 			 */
@@ -4186,7 +4191,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				old_vars = set_vars_and_save_old(new_env);
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
-						x->cmd, argv_expanded[1]);
+						x->b_cmd, argv_expanded[1]);
 					rcode = x->b_function(argv_expanded) & 0xff;
 					fflush_all();
 				}
@@ -6814,7 +6819,7 @@ int hush_main(int argc, char **argv)
 	struct variable *cur_var;
 
 	INIT_G();
-	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, is already done */
+	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
 #if !BB_MMU
 	G.argv0_for_re_execing = argv[0];
