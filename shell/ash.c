@@ -7547,8 +7547,10 @@ changepath(const char *new)
 		if (*old != *new) {
 			firstchange = idx;
 			if ((*old == '\0' && *new == ':')
-			 || (*old == ':' && *new == '\0'))
+			 || (*old == ':' && *new == '\0')
+			) {
 				firstchange++;
+			}
 			old = new;      /* ignore subsequent differences */
 		}
 		if (*new == '\0')
@@ -7557,7 +7559,8 @@ changepath(const char *new)
 			idx_bltin = idx;
 		if (*new == ':')
 			idx++;
-		new++, old++;
+		new++;
+		old++;
 	}
 	if (builtinloc < 0 && idx_bltin >= 0)
 		builtinloc = idx_bltin;             /* zap builtins */
@@ -7632,23 +7635,6 @@ static const char *const tokname_array[] = {
 	"\0{",
 	"\1}",
 };
-
-static const char *
-tokname(int tok)
-{
-	static char buf[16];
-
-//try this:
-//if (tok < TSEMI) return tokname_array[tok] + 1;
-//sprintf(buf, "\"%s\"", tokname_array[tok] + 1);
-//return buf;
-
-	if (tok >= TSEMI)
-		buf[0] = '"';
-	sprintf(buf + (tok >= TSEMI), "%s%c",
-			tokname_array[tok] + 1, (tok >= TSEMI ? '"' : 0));
-	return buf;
-}
 
 /* Wrapper around strcmp for qsort/bsearch/... */
 static int
@@ -10280,7 +10266,16 @@ static struct nodelist *backquotelist;
 static union node *redirnode;
 static struct heredoc *heredoc;
 
-/*
+static const char *
+tokname(char *buf, int tok)
+{
+	if (tok < TSEMI)
+		return tokname_array[tok] + 1;
+	sprintf(buf, "\"%s\"", tokname_array[tok] + 1);
+	return buf;
+}
+
+/* raise_error_unexpected_syntax:
  * Called when an unexpected token is read during the parse.  The argument
  * is the token that is expected, or -1 if more than one type of token can
  * occur at this point.
@@ -10290,11 +10285,12 @@ static void
 raise_error_unexpected_syntax(int token)
 {
 	char msg[64];
+	char buf[16];
 	int l;
 
-	l = sprintf(msg, "unexpected %s", tokname(lasttoken));
+	l = sprintf(msg, "unexpected %s", tokname(buf, lasttoken));
 	if (token >= 0)
-		sprintf(msg + l, " (expecting %s)", tokname(token));
+		sprintf(msg + l, " (expecting %s)", tokname(buf, token));
 	raise_error_syntax(msg);
 	/* NOTREACHED */
 }
@@ -10682,7 +10678,7 @@ parse_command(void)
 		n1->nbinary.ch1 = list(0);
 		got = readtoken();
 		if (got != TDO) {
-			TRACE(("expecting DO got %s %s\n", tokname(got),
+			TRACE(("expecting DO got '%s' %s\n", tokname_array[got] + 1,
 					got == TWORD ? wordtext : ""));
 			raise_error_unexpected_syntax(TDO);
 		}
@@ -11766,7 +11762,7 @@ readtoken(void)
 		pp = findkwd(wordtext);
 		if (pp) {
 			lasttoken = t = pp - tokname_array;
-			TRACE(("keyword %s recognized\n", tokname(t)));
+			TRACE(("keyword '%s' recognized\n", tokname_array[t] + 1));
 			goto out;
 		}
 	}
@@ -11787,9 +11783,9 @@ readtoken(void)
 	checkkwd = 0;
 #if DEBUG
 	if (!alreadyseen)
-		TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+		TRACE(("token '%s' %s\n", tokname_array[t] + 1, t == TWORD ? wordtext : ""));
 	else
-		TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
+		TRACE(("reread token '%s' %s\n", tokname_array[t] + 1, t == TWORD ? wordtext : ""));
 #endif
 	return t;
 }
