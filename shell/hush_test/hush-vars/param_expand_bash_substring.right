@@ -1,0 +1,29 @@
+hush: syntax error: unterminated ${name}
+hush: syntax error: unterminated ${name}
+hush: syntax error: unterminated ${name}
+hush: syntax error: unterminated ${name}
+0123456789
+1    =||
+1:1  =||
+1:1:2=||
+1::2 =||
+1    =|0123|
+1:1  =|123|
+1:1:2=|12|
+1::2 =|01|
+f    =||
+f:1  =||
+f:1:2=||
+f::2 =||
+f    =||
+f:1  =||
+f:1:2=||
+f::2 =||
+f    =|a|
+f:1  =||
+f:1:2=||
+f::2 =|a|
+f    =|0123456789|
+f:1  =|123456789|
+f:1:2=|12|
+f::2 =|01|

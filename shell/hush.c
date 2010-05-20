@@ -46,7 +46,6 @@
  *      brace expansion: one/{two,three,four}
  *      reserved words: function select
  *      advanced test: [[ ]]
- *      substrings: ${var:1:5}
  *      process substitution: <(list) and >(list)
  *      =~: regex operator
  *      let EXPR [EXPR...]
@@ -2586,7 +2585,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				var++;
 			} else {
 				/* maybe handle parameter expansion */
-				exp_saveptr = var + strcspn(var, ":-=+?%#");
+				exp_saveptr = var + strcspn(var, "%#:-=+?");
 				exp_save = *exp_saveptr;
 				if (exp_save) {
 					exp_word = exp_saveptr;
@@ -2636,9 +2635,38 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						else if (loc) /* % or %% and match was found */
 							*loc = '\0';
 					}
-				} else { /* one of :-=+? */
-//TODO: check validity of exp_op. Currently it can be anything.
-//TODO: handle ${VAR:N[:M]} here. N, M can be expressions similar to $((EXPR)): 2+2, 2+var etc
+				} else if (!strchr("%#:-=+?"+3, exp_op)) {
+#if ENABLE_HUSH_BASH_COMPAT
+	/* exp_op is ':' and next char isn't a subst operator.
+	 * Assuming it's ${var:[N][:M]} bashism.
+	 * TODO: N, M can be expressions similar to $((EXPR)): 2+2, 2+var etc
+	 */
+					char *end;
+					unsigned len = INT_MAX;
+					unsigned beg = 0;
+					end = --exp_word;
+					if (*exp_word != ':') /* not ${var::...} */
+						beg = bb_strtou(exp_word, &end, 0);
+						//bb_error_msg("beg:'%s'=%u end:'%s'", exp_word, beg, end);
+					if (*end == ':') {
+						len = bb_strtou(end + 1, &end, 0);
+						//bb_error_msg("len:%u end:'%s'", len, end);
+					}
+					if (*end == '\0'
+					 && end != exp_word /* not "${var:}" */
+					) {
+						//bb_error_msg("from val:'%s'", val);
+						if (!val || beg >= strlen(val))
+							val = "";
+						else
+							val = dyn_val = xstrndup(val + beg, len);
+						//bb_error_msg("val:'%s'", val);
+					} else
+#endif
+					{
+						die_if_script("malformed ${%s...}", var);
+					}
+				} else { /* one of "-=+?" */
 	/* Standard-mandated substitution ops:
 	 * ${var?word} - indicate error if unset
 	 *      If var is unset, word (or a message indicating it is unset
@@ -2693,7 +2721,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				}
 
 				*exp_saveptr = exp_save;
-			}
+			} /* if (exp_op) */
 
 			arg[0] = first_ch;
 #if ENABLE_HUSH_TICK
@@ -5926,14 +5954,15 @@ static int handle_dollar(o_string *as_string,
 		goto make_one_char_var;
 	case '{': {
 		bool first_char, all_digits;
-		int expansion;
+		bool in_expansion_param;
 
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 
-		/* TODO: maybe someone will try to escape the '}' */
-		expansion = 0;
+// TODO: need to handle "a=ab}; echo ${a%\}}"
+// and "a=abc; c=c; echo ${a%${c}}"
+		in_expansion_param = false;
 		first_char = true;
 		all_digits = false;
 		while (1) {
@@ -5957,45 +5986,22 @@ static int handle_dollar(o_string *as_string,
 					goto char_ok;
 			}
 
-			if (expansion < 2
-			 && (  (all_digits && !isdigit(ch))
-			    || (!all_digits && !isalnum(ch) && ch != '_')
+			if (!in_expansion_param
+			 && (  (all_digits && !isdigit(ch)) /* met non-digit: 123w */
+			    || (!all_digits && !isalnum(ch) && ch != '_') /* met non-name char: abc% */
 			    )
 			) {
 				/* handle parameter expansions
 				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 				 */
-				if (first_char)
-					goto case_default;
-				switch (ch) {
-				case ':': /* null modifier */
-					if (expansion == 0) {
-						debug_printf_parse(": null modifier\n");
-						++expansion;
-						break;
-					}
-					goto case_default;
-				case '#': /* remove prefix */
-				case '%': /* remove suffix */
-					if (expansion == 0) {
-						debug_printf_parse(": remove suffix/prefix\n");
-						expansion = 2;
-						break;
-					}
-					goto case_default;
-				case '-': /* default value */
-				case '=': /* assign default */
-				case '+': /* alternative */
-				case '?': /* error indicate */
-					debug_printf_parse(": parameter expansion\n");
-					expansion = 2;
-					break;
-				default:
-				case_default:
+				if (first_char /* bad (empty var name): "${%..." */
+				 || !strchr("%#:-=+?", ch) /* bad: "${var<bad_char>..." */
+				) {
 					syntax_error_unterm_str("${name}");
 					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
 					return 1;
 				}
+				in_expansion_param = true;
 			}
  char_ok:
 			debug_printf_parse(": '%c'\n", ch);

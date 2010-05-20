@@ -1,0 +1,46 @@
+# do all of these in subshells since it's supposed to error out
+
+export var=0123456789
+
+# first try some invalid patterns
+"$THIS_SH" -c 'echo ${:}'
+"$THIS_SH" -c 'echo ${::}'
+"$THIS_SH" -c 'echo ${:1}'
+"$THIS_SH" -c 'echo ${::1}'
+
+#this also is not valid in bash, but we accept it:
+"$THIS_SH" -c 'echo ${var:}'
+
+# then some funky ones
+# UNFIXED BUG: this should work: "$THIS_SH" -c 'echo ${?:0}'
+
+# now some valid ones
+"$THIS_SH" -c 'set --; echo "1    =|${1}|"'
+"$THIS_SH" -c 'set --; echo "1:1  =|${1:1}|"'
+"$THIS_SH" -c 'set --; echo "1:1:2=|${1:1:2}|"'
+"$THIS_SH" -c 'set --; echo "1::2 =|${1::2}|"'
+
+"$THIS_SH" -c 'set -- 0123; echo "1    =|${1}|"'
+"$THIS_SH" -c 'set -- 0123; echo "1:1  =|${1:1}|"'
+"$THIS_SH" -c 'set -- 0123; echo "1:1:2=|${1:1:2}|"'
+"$THIS_SH" -c 'set -- 0123; echo "1::2 =|${1::2}|"'
+
+"$THIS_SH" -c 'unset f; echo "f    =|$f|"'
+"$THIS_SH" -c 'unset f; echo "f:1  =|${f:1}|"'
+"$THIS_SH" -c 'unset f; echo "f:1:2=|${f:1:2}|"'
+"$THIS_SH" -c 'unset f; echo "f::2 =|${f::2}|"'
+
+"$THIS_SH" -c 'f=; echo "f    =|$f|"'
+"$THIS_SH" -c 'f=; echo "f:1  =|${f:1}|"'
+"$THIS_SH" -c 'f=; echo "f:1:2=|${f:1:2}|"'
+"$THIS_SH" -c 'f=; echo "f::2 =|${f::2}|"'
+
+"$THIS_SH" -c 'f=a; echo "f    =|$f|"'
+"$THIS_SH" -c 'f=a; echo "f:1  =|${f:1}|"'
+"$THIS_SH" -c 'f=a; echo "f:1:2=|${f:1:2}|"'
+"$THIS_SH" -c 'f=a; echo "f::2 =|${f::2}|"'
+
+"$THIS_SH" -c 'f=0123456789; echo "f    =|$f|"'
+"$THIS_SH" -c 'f=0123456789; echo "f:1  =|${f:1}|"'
+"$THIS_SH" -c 'f=0123456789; echo "f:1:2=|${f:1:2}|"'
+"$THIS_SH" -c 'f=0123456789; echo "f::2 =|${f::2}|"'
