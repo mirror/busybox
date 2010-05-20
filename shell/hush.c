@@ -7258,11 +7258,20 @@ static int FAST_FUNC builtin_printf(char **argv)
 }
 #endif
 
+static char **skip_dash_dash(char **argv)
+{
+	argv++;
+	if (argv[0] && argv[0][0] == '-' && argv[0][1] == '-' && argv[0][2] == '\0')
+		argv++;
+	return argv;
+}
+
 static int FAST_FUNC builtin_eval(char **argv)
 {
 	int rcode = EXIT_SUCCESS;
 
-	if (*++argv) {
+	argv = skip_dash_dash(argv);
+	if (*argv) {
 		char *str = expand_strvec_to_string(argv);
 		/* bash:
 		 * eval "echo Hi; done" ("done" is syntax error):
@@ -7277,7 +7286,10 @@ static int FAST_FUNC builtin_eval(char **argv)
 
 static int FAST_FUNC builtin_cd(char **argv)
 {
-	const char *newdir = argv[1];
+	const char *newdir;
+
+	argv = skip_dash_dash(argv);
+	newdir = argv[0];
 	if (newdir == NULL) {
 		/* bash does nothing (exitcode 0) if HOME is ""; if it's unset,
 		 * bash says "bash: cd: HOME not set" and does nothing
@@ -7301,7 +7313,8 @@ static int FAST_FUNC builtin_cd(char **argv)
 
 static int FAST_FUNC builtin_exec(char **argv)
 {
-	if (*++argv == NULL)
+	argv = skip_dash_dash(argv);
+	if (argv[0] == NULL)
 		return EXIT_SUCCESS; /* bash does this */
 
 	/* Careful: we can end up here after [v]fork. Do not restore
@@ -7334,12 +7347,13 @@ static int FAST_FUNC builtin_exit(char **argv)
 	 */
 
 	/* note: EXIT trap is run by hush_exit */
-	if (*++argv == NULL)
+	argv = skip_dash_dash(argv);
+	if (argv[0] == NULL)
 		hush_exit(G.last_exitcode);
 	/* mimic bash: exit 123abc == exit 255 + error msg */
 	xfunc_error_retval = 255;
 	/* bash: exit -2 == exit 254, no error msg */
-	hush_exit(xatoi(*argv) & 0xff);
+	hush_exit(xatoi(argv[0]) & 0xff);
 }
 
 static void print_escaped(const char *s)
@@ -7668,7 +7682,7 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 		"------------------\n");
 	for (x = bltins1; x != &bltins1[ARRAY_SIZE(bltins1)]; x++) {
 		if (x->b_descr)
-			printf("%s\t%s\n", x->b_cmd, x->b_descr);
+			printf("%-10s%s\n", x->b_cmd, x->b_descr);
 	}
 	bb_putchar('\n');
 	return EXIT_SUCCESS;
@@ -7851,8 +7865,9 @@ static int FAST_FUNC builtin_set(char **argv)
 static int FAST_FUNC builtin_shift(char **argv)
 {
 	int n = 1;
-	if (argv[1]) {
-		n = atoi(argv[1]);
+	argv = skip_dash_dash(argv);
+	if (argv[0]) {
+		n = atoi(argv[0]);
 	}
 	if (n >= 0 && n < G.global_argc) {
 		if (G.global_args_malloced) {
@@ -7877,12 +7892,13 @@ static int FAST_FUNC builtin_source(char **argv)
 	smallint sv_flg;
 #endif
 
-	arg_path = NULL;
-	filename = *++argv;
+	argv = skip_dash_dash(argv);
+	filename = argv[0];
 	if (!filename) {
 		/* bash says: "bash: .: filename argument required" */
 		return 2; /* bash compat */
 	}
+	arg_path = NULL;
 	if (!strchr(filename, '/')) {
 		arg_path = find_in_path(filename);
 		if (arg_path)
@@ -7920,11 +7936,12 @@ static int FAST_FUNC builtin_umask(char **argv)
 	mode_t mask;
 
 	mask = umask(0);
-	if (argv[1]) {
+	argv = skip_dash_dash(argv);
+	if (argv[0]) {
 		mode_t old_mask = mask;
 
 		mask ^= 0777;
-		rc = bb_parse_mode(argv[1], &mask);
+		rc = bb_parse_mode(argv[0], &mask);
 		mask ^= 0777;
 		if (rc == 0) {
 			mask = old_mask;
@@ -7932,7 +7949,7 @@ static int FAST_FUNC builtin_umask(char **argv)
 			 * bash: umask: 'q': invalid symbolic mode operator
 			 * bash: umask: 999: octal number out of range
 			 */
-			bb_error_msg("%s: '%s' invalid mode", argv[0], argv[1]);
+			bb_error_msg("umask: '%s' invalid mode", argv[0]);
 		}
 	} else {
 		rc = 1;
@@ -7988,7 +8005,8 @@ static int FAST_FUNC builtin_wait(char **argv)
 	int ret = EXIT_SUCCESS;
 	int status, sig;
 
-	if (*++argv == NULL) {
+	argv = skip_dash_dash(argv);
+	if (argv[0] == NULL) {
 		/* Don't care about wait results */
 		/* Note 1: must wait until there are no more children */
 		/* Note 2: must be interruptible */
