@@ -2569,7 +2569,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
 		case_default: {
 			char *var = arg;
-			bool exp_len;
+			char exp_len; /* '#' if it's ${#var} */
 			char exp_op;
 			char exp_save = exp_save; /* for compiler */
 			char *exp_saveptr = exp_saveptr; /* points to expansion operator */
@@ -2579,12 +2579,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			arg[0] = first_ch & 0x7f;
 
 			/* prepare for expansions */
-			exp_len = false;
 			exp_op = 0;
-			if (var[0] == '#') {
+			exp_len = var[0];
+			if (exp_len == '#') {
 				/* handle length expansion ${#var} */
-				exp_len = true;
-				++var;
+				var++;
 			} else {
 				/* maybe handle parameter expansion */
 				exp_saveptr = var + strcspn(var, ":-=+?%#");
@@ -2609,8 +2608,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				val = get_local_var_value(var);
 
 			/* handle any expansions */
-			if (exp_len) {
-				debug_printf_expand("expand: length of '%s' = ", val);
+			if (exp_len == '#') {
+				debug_printf_expand("expand: length(%s)=", val);
 				val = utoa(val ? strlen(val) : 0);
 				debug_printf_expand("%s\n", val);
 			} else if (exp_op) {
