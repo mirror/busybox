@@ -5767,7 +5767,9 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	}
 
 	{
-#if !BB_MMU
+#if BB_MMU
+# define as_string NULL
+#else
 		char *as_string = NULL;
 #endif
 		pipe_list = parse_stream(&as_string, input, endch);
@@ -5778,9 +5780,8 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		/* empty ()/{} or parse error? */
 		if (!pipe_list || pipe_list == ERR_PTR) {
 			/* parse_stream already emitted error msg */
-#if !BB_MMU
-			free(as_string);
-#endif
+			if (!BB_MMU)
+				free(as_string);
 			debug_printf_parse("parse_group return 1: "
 				"parse_stream returned %p\n", pipe_list);
 			return 1;
@@ -5792,6 +5793,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		debug_printf_parse("end of group, remembering as:'%s'\n",
 				command->group_as_string);
 #endif
+#undef as_string
 	}
 	debug_printf_parse("parse_group return 0\n");
 	return 0;
@@ -5893,7 +5895,7 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  * can contain arbitrary constructs, just like $(cmd).
  */
 #define DOUBLE_CLOSE_CHAR_FLAG 0x80
-static void add_till_closing_paren(o_string *dest, struct in_str *input, char end_ch)
+static void add_till_closing_bracket(o_string *dest, struct in_str *input, char end_ch)
 {
 	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG-1);
@@ -5915,7 +5917,7 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, char en
 		o_addchr(dest, ch);
 		if (ch == '(' || ch == '{') {
 			ch = (ch == '(' ? ')' : '}');
-			add_till_closing_paren(dest, input, ch);
+			add_till_closing_bracket(dest, input, ch);
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -5952,6 +5954,7 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, char en
 #if BB_MMU
 #define handle_dollar(as_string, dest, input) \
 	handle_dollar(dest, input)
+#define as_string NULL
 #endif
 static int handle_dollar(o_string *as_string,
 		o_string *dest,
@@ -6013,12 +6016,14 @@ static int handle_dollar(o_string *as_string,
 		}
 		ch |= quote_mask;
 
-		/* It's possible to just call add_till_closing_paren() at this point.
+		/* It's possible to just call add_till_closing_bracket() at this point.
 		 * However, this regresses some of our testsuite cases
 		 * which check invalid constructs like ${%}.
 		 * Oh well... let's check that the var name part is fine... */
 
 		while (1) {
+			unsigned pos;
+
 			o_addchr(dest, ch);
 			debug_printf_parse(": '%c'\n", ch);
 
@@ -6035,8 +6040,15 @@ static int handle_dollar(o_string *as_string,
 					goto bad_dollar_syntax;
 				/* Eat everything until closing '}' */
 				o_addchr(dest, ch);
-//TODO: add nommu_addchr hack here
-				add_till_closing_paren(dest, input, '}');
+				if (!BB_MMU)
+					pos = dest->length;
+				add_till_closing_bracket(dest, input, '}');
+#if !BB_MMU
+				if (as_string) {
+					o_addstr(as_string, dest->data + pos);
+					o_addchr(as_string, '}');
+				}
+#endif
 				break;
 			}
 		}
@@ -6045,9 +6057,8 @@ static int handle_dollar(o_string *as_string,
 	}
 #if ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_TICK
 	case '(': {
-# if !BB_MMU
-		int pos;
-# endif
+		unsigned pos;
+
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 # if ENABLE_SH_MATH_SUPPORT
@@ -6056,17 +6067,16 @@ static int handle_dollar(o_string *as_string,
 			nommu_addchr(as_string, ch);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(dest, /*quote_mask |*/ '+');
-#  if !BB_MMU
-			pos = dest->length;
-#  endif
-			add_till_closing_paren(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG);
-#  if !BB_MMU
+			if (!BB_MMU)
+				pos = dest->length;
+			add_till_closing_bracket(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG);
+#if !BB_MMU
 			if (as_string) {
 				o_addstr(as_string, dest->data + pos);
 				o_addchr(as_string, ')');
 				o_addchr(as_string, ')');
 			}
-#  endif
+#endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
@@ -6074,16 +6084,15 @@ static int handle_dollar(o_string *as_string,
 # if ENABLE_HUSH_TICK
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, quote_mask | '`');
-#  if !BB_MMU
-		pos = dest->length;
-#  endif
-		add_till_closing_paren(dest, input, ')');
-#  if !BB_MMU
+		if (!BB_MMU)
+			pos = dest->length;
+		add_till_closing_bracket(dest, input, ')');
+#if !BB_MMU
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
 			o_addchr(as_string, ')');
 		}
-#  endif
+#endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 # endif
 		break;
@@ -6108,11 +6117,13 @@ static int handle_dollar(o_string *as_string,
 	}
 	debug_printf_parse("handle_dollar return 0\n");
 	return 0;
+#undef as_string
 }
 
 #if BB_MMU
 #define parse_stream_dquoted(as_string, dest, input, dquote_end) \
 	parse_stream_dquoted(dest, input, dquote_end)
+#define as_string NULL
 #endif
 static int parse_stream_dquoted(o_string *as_string,
 		o_string *dest,
@@ -6176,7 +6187,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	}
 #if ENABLE_HUSH_TICK
 	if (ch == '`') {
-		//int pos = dest->length;
+		//unsigned pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, 0x80 | '`');
 		add_till_backquote(dest, input);
@@ -6194,6 +6205,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		dest->o_assignment = DEFINITELY_ASSIGNMENT;
 	}
 	goto again;
+#undef as_string
 }
 
 /*
