@@ -2403,6 +2403,23 @@ static char *expand_pseudo_dquoted(const char *str)
 	return exp_str;
 }
 
+#if ENABLE_SH_MATH_SUPPORT
+static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
+{
+	arith_eval_hooks_t hooks;
+	arith_t res;
+	char *exp_str;
+
+	hooks.lookupvar = get_local_var_value;
+	hooks.setvar = set_local_var_from_halves;
+	hooks.endofname = endofname;
+	exp_str = expand_pseudo_dquoted(arg);
+	res = arith(exp_str ? exp_str : arg, errcode_p, &hooks);
+	free(exp_str);
+	return res;
+}
+#endif
+
 /* Expand all variable references in given string, adding words to list[]
  * at n, n+1,... positions. Return updated n (so that list[n] is next one
  * to be filled). This routine is extremely tricky: has to deal with
@@ -2427,7 +2444,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		char first_ch;
 		int i;
-		char *dyn_val = NULL;
+		char *to_be_freed = NULL;
 		const char *val = NULL;
 #if ENABLE_HUSH_TICK
 		o_string subst_result = NULL_O_STRING;
@@ -2528,21 +2545,13 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 #endif
 #if ENABLE_SH_MATH_SUPPORT
 		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
-			arith_eval_hooks_t hooks;
 			arith_t res;
 			int errcode;
-			char *exp_str;
 
 			arg++; /* skip '+' */
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
-
-			exp_str = expand_pseudo_dquoted(arg);
-			hooks.lookupvar = get_local_var_value;
-			hooks.setvar = set_local_var_from_halves;
-			hooks.endofname = endofname;
-			res = arith(exp_str ? exp_str : arg, &errcode, &hooks);
-			free(exp_str);
+			res = expand_and_evaluate_arith(arg, &errcode);
 
 			if (errcode < 0) {
 				const char *msg = "error in arithmetic";
@@ -2628,8 +2637,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						scan_t scan = pick_scan(exp_op, *exp_word, &match_at_left);
 						if (exp_op == *exp_word)	/* ## or %% */
 							exp_word++;
-						val = dyn_val = xstrdup(val);
-						loc = scan(dyn_val, exp_word, match_at_left);
+						val = to_be_freed = xstrdup(val);
+						loc = scan(to_be_freed, exp_word, match_at_left);
 						if (match_at_left) /* # or ## */
 							val = loc;
 						else if (loc) /* % or %% and match was found */
@@ -2662,7 +2671,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						if (len == 0 || !val || beg >= strlen(val))
 							val = "";
 						else
-							val = dyn_val = xstrndup(val + beg, len);
+							val = to_be_freed = xstrndup(val + beg, len);
 						//bb_error_msg("val:'%s'", val);
 					} else
 #endif
@@ -2699,13 +2708,16 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 						(exp_save == ':') ? "true" : "false", use_word);
 					if (use_word) {
+						to_be_freed = expand_pseudo_dquoted(exp_word);
+						if (to_be_freed)
+							exp_word = to_be_freed;
 						if (exp_op == '?') {
-//TODO: how interactive bash aborts expansion mid-command?
 							/* mimic bash message */
 							die_if_script("%s: %s",
 								var,
 								exp_word[0] ? exp_word : "parameter null or not set"
 							);
+//TODO: how interactive bash aborts expansion mid-command?
 						} else {
 							val = exp_word;
 						}
@@ -2750,7 +2762,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		if (val) {
 			o_addQstr(output, val, strlen(val));
 		}
-		free(dyn_val);
+		free(to_be_freed);
 		/* Do the check to avoid writing to a const string */
 		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
