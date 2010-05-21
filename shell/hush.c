@@ -61,6 +61,8 @@
  *      grep for "TODO" and fix (some of them are easy)
  *      special variables (done: PWD, PPID, RANDOM)
  *      follow IFS rules more precisely, including update semantics
+ *      builtins mandated by standards we don't support:
+ *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      export builtin should be special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
  *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
