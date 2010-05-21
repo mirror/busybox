@@ -2638,11 +2638,21 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						if (exp_op == *exp_word)	/* ## or %% */
 							exp_word++;
 						val = to_be_freed = xstrdup(val);
-						loc = scan(to_be_freed, exp_word, match_at_left);
-						if (match_at_left) /* # or ## */
-							val = loc;
-						else if (loc) /* % or %% and match was found */
-							*loc = '\0';
+						{
+							char *exp_exp_word = expand_pseudo_dquoted(exp_word);
+							if (exp_exp_word)
+								exp_word = exp_exp_word;
+							loc = scan(to_be_freed, exp_word, match_at_left);
+							//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
+							//		exp_op, to_be_freed, exp_word, loc);
+							free(exp_exp_word);
+						}
+						if (loc) { /* match was found */
+							if (match_at_left) /* # or ## */
+								val = loc;
+							else /* % or %% */
+								*loc = '\0';
+						}
 					}
 				} else if (!strchr("%#:-=+?"+3, exp_op)) {
 #if ENABLE_HUSH_BASH_COMPAT
@@ -5876,20 +5886,28 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  * echo $(echo '(TEST)' BEST)           (TEST) BEST
  * echo $(echo 'TEST)' BEST)            TEST) BEST
  * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
+ *
+ * BUG: enter: echo $(( `printf '(\x28 1'` + `echo 2))` ))
+ * on the command line, press Enter. You get > prompt which is impossible
+ * to exit with ^C.
  */
-static void add_till_closing_paren(o_string *dest, struct in_str *input, bool dbl)
+#define DOUBLE_CLOSE_CHAR_FLAG 0x80
+static void add_till_closing_paren(o_string *dest, struct in_str *input, char end_ch)
 {
 	int count = 0;
+	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
+	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG-1);
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch(')');
 			/*xfunc_die(); - redundant */
 		}
-		if (ch == '(')
+		if (ch == '(' || ch == '{')
 			count++;
-		if (ch == ')') {
-			if (--count < 0) {
+		if (ch == ')' || ch == '}') {
+			count--;
+			if (count < 0 && ch == end_ch) {
 				if (!dbl)
 					break;
 				if (i_peek(input) == ')') {
@@ -5969,62 +5987,52 @@ static int handle_dollar(o_string *as_string,
 	case '@': /* args */
 		goto make_one_char_var;
 	case '{': {
-		bool first_char, all_digits;
-		bool in_expansion_param;
-
-		ch = i_getch(input);
-		nommu_addchr(as_string, ch);
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 
-// TODO: need to handle "a=ab}; echo ${a%\}}"
-// and "a=abc; c=c; echo ${a%${c}}"
-		in_expansion_param = false;
-		first_char = true;
-		all_digits = false;
+		ch = i_getch(input); /* eat '{' */
+		nommu_addchr(as_string, ch);
+
+		ch = i_getch(input); /* first char after '{' */
+		nommu_addchr(as_string, ch);
+		/* It should be ${?}, or ${#var},
+		 * or even ${?+subst} - operator acting on a special variable,
+		 * or the beginning of variable name.
+		 */
+		if (!strchr("$!?#*@_", ch) && !isalnum(ch)) { /* not one of those */
+ bad_dollar_syntax:
+			syntax_error_unterm_str("${name}");
+			debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
+			return 1;
+		}
+		ch |= quote_mask;
+
+		/* It's possible to just call add_till_closing_paren() at this point.
+		 * However, this regresses some of our testsuite cases
+		 * which check invalid constructs like ${%}.
+		 * Oh well... let's check that the var name part is fine... */
+
 		while (1) {
+			o_addchr(dest, ch);
+			debug_printf_parse(": '%c'\n", ch);
+
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
-			if (ch == '}') {
+			if (ch == '}')
 				break;
-			}
 
-			if (first_char) {
-				if (ch == '#') {
-					/* ${#var}: length of var contents */
-					goto char_ok;
-				}
-				if (isdigit(ch)) {
-					all_digits = true;
-					goto char_ok;
-				}
-				/* They're being verbose and doing ${?} */
-				if (i_peek(input) == '}' && strchr("$!?#*@_", ch))
-					goto char_ok;
-			}
-
-			if (!in_expansion_param
-			 && (  (all_digits && !isdigit(ch)) /* met non-digit: 123w */
-			    || (!all_digits && !isalnum(ch) && ch != '_') /* met non-name char: abc% */
-			    )
-			) {
+			if (!isalnum(ch) && ch != '_') {
 				/* handle parameter expansions
 				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 				 */
-				if (first_char /* bad (empty var name): "${%..." */
-				 || !strchr("%#:-=+?", ch) /* bad: "${var<bad_char>..." */
-				) {
-					syntax_error_unterm_str("${name}");
-					debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
-					return 1;
-				}
-				in_expansion_param = true;
+				if (!strchr("%#:-=+?", ch)) /* ${var<bad_char>... */
+					goto bad_dollar_syntax;
+				/* Eat everything until closing '}' */
+				o_addchr(dest, ch);
+//TODO: add nommu_addchr hack here
+				add_till_closing_paren(dest, input, '}');
+				break;
 			}
- char_ok:
-			debug_printf_parse(": '%c'\n", ch);
-			o_addchr(dest, ch | quote_mask);
-			quote_mask = 0;
-			first_char = false;
-		} /* while (1) */
+		}
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		break;
 	}
@@ -6044,7 +6052,7 @@ static int handle_dollar(o_string *as_string,
 #  if !BB_MMU
 			pos = dest->length;
 #  endif
-			add_till_closing_paren(dest, input, true);
+			add_till_closing_paren(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG);
 #  if !BB_MMU
 			if (as_string) {
 				o_addstr(as_string, dest->data + pos);
@@ -6062,7 +6070,7 @@ static int handle_dollar(o_string *as_string,
 #  if !BB_MMU
 		pos = dest->length;
 #  endif
-		add_till_closing_paren(dest, input, false);
+		add_till_closing_paren(dest, input, ')');
 #  if !BB_MMU
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
