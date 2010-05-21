@@ -2649,12 +2649,17 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						beg = bb_strtou(exp_word, &end, 0);
 					//bb_error_msg("beg:'%s'=%u end:'%s'", exp_word, beg, end);
 					if (*end == ':') {
-						len = bb_strtou(end + 1, &end, 0);
+						if (end[1] != '\0') /* not ${var:NUM:} */
+							len = bb_strtou(end + 1, &end, 0);
+						else {
+							len = 0;
+							end++;
+						}
 						//bb_error_msg("len:%u end:'%s'", len, end);
 					}
 					if (*end == '\0') {
 						//bb_error_msg("from val:'%s'", val);
-						if (!val || beg >= strlen(val))
+						if (len == 0 || !val || beg >= strlen(val))
 							val = "";
 						else
 							val = dyn_val = xstrndup(val + beg, len);
@@ -2663,6 +2668,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 #endif
 					{
 						die_if_script("malformed ${%s...}", var);
+						val = "";
 					}
 				} else { /* one of "-=+?" */
 	/* Standard-mandated substitution ops:
