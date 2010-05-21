@@ -47,5 +47,6 @@ echo ${var%\\*}
 
 a=ab}; echo ${a%\}};
 a=abc; c=c; echo ${a%${c}}
+a=ab{{c; echo ${a%`echo {{c`}
 
 echo End

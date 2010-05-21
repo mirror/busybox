@@ -45,6 +45,8 @@
  *      follow IFS rules more precisely, including update semantics
  *      builtins mandated by standards we don't support:
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
+ *      make complex ${var%...} constructs support optional
+ *      make here documents optional
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -5887,36 +5889,36 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  * echo $(echo 'TEST)' BEST)            TEST) BEST
  * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
  *
- * BUG: enter: echo $(( `printf '(\x28 1'` + `echo 2))` ))
- * on the command line, press Enter. You get > prompt which is impossible
- * to exit with ^C.
+ * Also adapted to eat ${var%...} constructs, since ... part
+ * can contain arbitrary constructs, just like $(cmd).
  */
 #define DOUBLE_CLOSE_CHAR_FLAG 0x80
 static void add_till_closing_paren(o_string *dest, struct in_str *input, char end_ch)
 {
-	int count = 0;
 	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG-1);
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
-			syntax_error_unterm_ch(')');
+			syntax_error_unterm_ch(end_ch);
 			/*xfunc_die(); - redundant */
 		}
-		if (ch == '(' || ch == '{')
-			count++;
-		if (ch == ')' || ch == '}') {
-			count--;
-			if (count < 0 && ch == end_ch) {
-				if (!dbl)
-					break;
-				if (i_peek(input) == ')') {
-					i_getch(input);
-					break;
-				}
+		if (ch == end_ch) {
+			if (!dbl)
+				break;
+			/* we look for closing )) of $((EXPR)) */
+			if (i_peek(input) == end_ch) {
+				i_getch(input); /* eat second ')' */
+				break;
 			}
 		}
 		o_addchr(dest, ch);
+		if (ch == '(' || ch == '{') {
+			ch = (ch == '(' ? ')' : '}');
+			add_till_closing_paren(dest, input, ch);
+			o_addchr(dest, ch);
+			continue;
+		}
 		if (ch == '\'') {
 			add_till_single_quote(dest, input);
 			o_addchr(dest, ch);
@@ -5924,6 +5926,11 @@ static void add_till_closing_paren(o_string *dest, struct in_str *input, char en
 		}
 		if (ch == '"') {
 			add_till_double_quote(dest, input);
+			o_addchr(dest, ch);
+			continue;
+		}
+		if (ch == '`') {
+			add_till_backquote(dest, input);
 			o_addchr(dest, ch);
 			continue;
 		}

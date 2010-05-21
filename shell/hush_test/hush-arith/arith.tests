@@ -75,11 +75,11 @@ echo 4 $(( iv &= 4 ))
 echo 29 $(( iv += (jv + 9)))
 echo 5 $(( (iv + 4) % 7 ))
 
-# unary plus, minus
+echo unary plus, minus
 echo -4 $(( +4 - 8 ))
 echo 4 $(( -4 + 8 ))
 
-# conditional expressions
+echo conditional expressions
 echo 1 $(( 4<5 ? 1 : 32))
 echo 32 $(( 4>5 ? 1 : 32))
 echo 32 $(( 4>(2+3) ? 1 : 32))
@@ -87,8 +87,11 @@ echo 1 $(( 4<(2+3) ? 1 : 32))
 echo 1 $(( (2+2)<(2+3) ? 1 : 32))
 echo 32 $(( (2+2)>(2+3) ? 1 : 32))
 
-# check that the unevaluated part of the ternary operator does not do
-# evaluation or assignment
+echo 'check that parentheses in `cmd` are interpreted correctly'
+# \x28 is '('
+echo 3 $(( ( `printf '(\x28 1'` + `echo 2\)\)` ) ))
+
+echo check that the unevaluated part of the ternary operator does not do evaluation or assignment
 x=i+=2
 y=j+=2
 #ash# declare -i i=1 j=1
@@ -109,20 +112,20 @@ echo 20 $((1 ? 20 : (x+=2)))
 echo 30 $((0 ? (y+=2) : 30))
 #ash# echo $i,$y             # ash mishandles this
 
-# check precedence of assignment vs. conditional operator
+echo check precedence of assignment vs. conditional operator
 # should be an error
 #ash# declare -i x=2
       x=2
 #ashnote# bash reports error but continues, ash aborts - using subshell to 'emulate' bash:
 (  y=$((1 ? 20 : x+=2))  )
 
-# check precedence of assignment vs. conditional operator
+echo check precedence of assignment vs. conditional operator
 #ash# declare -i x=2
       x=2
 # ash says "line NNN: syntax error: 0 ? x+=2 : 20"
 #ash# echo 20 $((0 ? x+=2 : 20))
 
-# associativity of assignment-operator operator
+echo associativity of assignment-operator operator
 #ash# declare -i i=1 j=2 k=3
 i=1
 j=2
@@ -130,7 +133,7 @@ k=3
 echo 6 $((i += j += k))
 echo 6,5,3 $i,$j,$k
 
-# octal, hex
+echo octal, hex
 echo 263 $(( 0x100 | 007 ))
 echo 255 $(( 0xff ))
 #ash# echo 255 $(( 16#ff ))
