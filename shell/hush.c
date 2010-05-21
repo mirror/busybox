@@ -37,9 +37,14 @@
  * handle the recursion implicit in the various substitutions, especially
  * across continuation lines.
  *
- * POSIX syntax not implemented:
+ * TODOs:
+ *      grep for "TODO" and fix (some of them are easy)
+ *      special variables (done: PWD, PPID, RANDOM)
+ *      tilde expansion
  *      aliases
- *      Tilde Expansion
+ *      follow IFS rules more precisely, including update semantics
+ *      builtins mandated by standards we don't support:
+ *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
@@ -49,20 +54,13 @@
  *      process substitution: <(list) and >(list)
  *      =~: regex operator
  *      let EXPR [EXPR...]
- *        Each EXPR is an arithmetic expression (ARITHMETIC EVALUATION)
- *        If the last arg evaluates to 0, let returns 1; 0 otherwise.
- *        NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
+ *          Each EXPR is an arithmetic expression (ARITHMETIC EVALUATION)
+ *          If the last arg evaluates to 0, let returns 1; 0 otherwise.
+ *          NB: let `echo 'a=a + 1'` - error (IOW: multi-word expansion is used)
  *      ((EXPR))
- *        The EXPR is evaluated according to ARITHMETIC EVALUATION.
- *        This is exactly equivalent to let "EXPR".
+ *          The EXPR is evaluated according to ARITHMETIC EVALUATION.
+ *          This is exactly equivalent to let "EXPR".
  *      $[EXPR]: synonym for $((EXPR))
- *
- * TODOs:
- *      grep for "TODO" and fix (some of them are easy)
- *      special variables (done: PWD, PPID, RANDOM)
- *      follow IFS rules more precisely, including update semantics
- *      builtins mandated by standards we don't support:
- *          [un]alias, command, fc, getopts, newgrp, readonly, times
  *      export builtin should be special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
  *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
