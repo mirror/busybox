@@ -85,6 +85,9 @@ LDLIBS="$7"
 # The --sort-section option is not supported by older versions of ld
 SORT_SECTION=`check_cc "-Wl,--sort-section,alignment" ""`
 
+# gold may not support --sort-common (yet)
+SORT_COMMON=`check_cc "-Wl,--sort-common" ""`
+
 # Static linking against glibc produces buggy executables
 # (glibc does not cope well with ld --gc-sections).
 # See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
@@ -114,7 +117,7 @@ l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
 test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 try $CC $CFLAGS $LDFLAGS \
 	-o $EXE \
-	-Wl,--sort-common \
+	$SORT_COMMON \
 	$SORT_SECTION \
 	$GC_SECTIONS \
 	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
@@ -139,7 +142,7 @@ while test "$LDLIBS"; do
 	$debug && echo "Trying -l options: '$l_list'"
 	try $CC $CFLAGS $LDFLAGS \
 		-o $EXE \
-		-Wl,--sort-common \
+		$SORT_COMMON \
 		$SORT_SECTION \
 		$GC_SECTIONS \
 		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
@@ -171,7 +174,7 @@ test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
 if ! test -f busybox_ldscript; then
     try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
-	    -Wl,--sort-common \
+	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
 	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
@@ -193,7 +196,7 @@ else
     # Hmm, "ld --sort-section alignment" should do it too.
     try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
-	    -Wl,--sort-common \
+	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
 	    -Wl,-T,busybox_ldscript \
@@ -228,7 +231,7 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    -Wl,-z,combreloc \
 	    -Wl,-soname="libbusybox.so.$BB_VER" \
 	    -Wl,--undefined=lbb_main \
-	    -Wl,--sort-common \
+	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    -Wl,--start-group $A_FILES -Wl,--end-group \
 	    $l_list \
@@ -249,7 +252,7 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
     EXE="$sharedlib_dir/busybox_unstripped"
     try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
-	    -Wl,--sort-common \
+	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
 	    -Wl,--start-group $O_FILES -Wl,--end-group \
@@ -288,7 +291,7 @@ int main(int argc, char **argv)
 	EXE="$sharedlib_dir/$name"
 	try $CC $CFLAGS $LDFLAGS "$sharedlib_dir/applet.c" \
 		-o $EXE \
-		-Wl,--sort-common \
+		$SORT_COMMON \
 		$SORT_SECTION \
 		$GC_SECTIONS \
 		-L"$sharedlib_dir" -lbusybox \
