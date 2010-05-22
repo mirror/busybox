@@ -50,6 +50,7 @@
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
+ *      subst operator: ${var/[/]expr/expr}
  *      brace expansion: one/{two,three,four}
  *      reserved words: function select
  *      advanced test: [[ ]]
@@ -1830,6 +1831,7 @@ static void o_addstr(o_string *o, const char *str)
 {
 	o_addblock(o, str, strlen(str));
 }
+
 #if !BB_MMU
 static void nommu_addchr(o_string *o, int ch)
 {
@@ -2618,7 +2620,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 			/* lookup the variable in question */
 			if (isdigit(var[0])) {
-				/* handle_dollar() should have vetted var for us */
+				/* parse_dollar() should have vetted var for us */
 				i = xatoi_u(var);
 				if (i < G.global_argc)
 					val = G.global_argv[i];
@@ -4545,11 +4547,11 @@ static void debug_print_tree(struct pipe *pi, int lvl)
 				fprintf(stderr, " group %s: (argv=%p)%s%s\n",
 						CMDTYPE[command->cmd_type],
 						argv
-#if !BB_MMU
+# if !BB_MMU
 						, " group_as_string:", command->group_as_string
-#else
+# else
 						, "", ""
-#endif
+# endif
 				);
 				debug_print_tree(command->group, lvl+1);
 				prn++;
@@ -5988,18 +5990,18 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
-#define handle_dollar(as_string, dest, input) \
-	handle_dollar(dest, input)
+#define parse_dollar(as_string, dest, input) \
+	parse_dollar(dest, input)
 #define as_string NULL
 #endif
-static int handle_dollar(o_string *as_string,
+static int parse_dollar(o_string *as_string,
 		o_string *dest,
 		struct in_str *input)
 {
 	int ch = i_peek(input);  /* first character after the $ */
 	unsigned char quote_mask = dest->o_escape ? 0x80 : 0;
 
-	debug_printf_parse("handle_dollar entered: ch='%c'\n", ch);
+	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
@@ -6047,7 +6049,7 @@ static int handle_dollar(o_string *as_string,
 		if (!strchr(_SPECIAL_VARS_STR, ch) && !isalnum(ch)) { /* not one of those */
  bad_dollar_syntax:
 			syntax_error_unterm_str("${name}");
-			debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
+			debug_printf_parse("parse_dollar return 1: unterminated ${name}\n");
 			return 1;
 		}
 		ch |= quote_mask;
@@ -6129,13 +6131,11 @@ static int handle_dollar(o_string *as_string,
 			if (!BB_MMU)
 				pos = dest->length;
 			add_till_closing_bracket(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG);
-#if !BB_MMU
 			if (as_string) {
 				o_addstr(as_string, dest->data + pos);
 				o_addchr(as_string, ')');
 				o_addchr(as_string, ')');
 			}
-#endif
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
 			break;
 		}
@@ -6146,12 +6146,10 @@ static int handle_dollar(o_string *as_string,
 		if (!BB_MMU)
 			pos = dest->length;
 		add_till_closing_bracket(dest, input, ')');
-#if !BB_MMU
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
 			o_addchr(as_string, ')');
 		}
-#endif
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 # endif
 		break;
@@ -6174,7 +6172,7 @@ static int handle_dollar(o_string *as_string,
 	default:
 		o_addQchr(dest, '$');
 	}
-	debug_printf_parse("handle_dollar return 0\n");
+	debug_printf_parse("parse_dollar return 0\n");
 	return 0;
 #undef as_string
 }
@@ -6237,9 +6235,9 @@ static int parse_stream_dquoted(o_string *as_string,
 		goto again;
 	}
 	if (ch == '$') {
-		if (handle_dollar(as_string, dest, input) != 0) {
+		if (parse_dollar(as_string, dest, input) != 0) {
 			debug_printf_parse("parse_stream_dquoted return 1: "
-					"handle_dollar returned non-0\n");
+					"parse_dollar returned non-0\n");
 			return 1;
 		}
 		goto again;
@@ -6602,9 +6600,9 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			break;
 		case '$':
-			if (handle_dollar(&ctx.as_string, &dest, input) != 0) {
+			if (parse_dollar(&ctx.as_string, &dest, input) != 0) {
 				debug_printf_parse("parse_stream parse error: "
-					"handle_dollar returned non-0\n");
+					"parse_dollar returned non-0\n");
 				goto parse_error;
 			}
 			break;
@@ -6630,19 +6628,16 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
-#if !BB_MMU
-			int pos;
-#endif
+			unsigned pos;
+
 			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(&dest, '`');
-#if !BB_MMU
 			pos = dest.length;
-#endif
 			add_till_backquote(&dest, input);
-#if !BB_MMU
+# if !BB_MMU
 			o_addstr(&ctx.as_string, dest.data + pos);
 			o_addchr(&ctx.as_string, '`');
-#endif
+# endif
 			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 			//debug_printf_subst("SUBST RES3 '%s'\n", dest.data + pos);
 			break;
