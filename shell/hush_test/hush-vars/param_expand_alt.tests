@@ -2,8 +2,8 @@
 "$THIS_SH" -c 'echo ${+}  ; echo moo'
 "$THIS_SH" -c 'echo ${:+} ; echo moo'
 
-# now some funky ones
-echo _${#+} _${#:+}
+# now some funky ones. (bash doesn't accept ${#+})
+echo _${#+}_ _${#:+}_
 
 # now some valid ones
 set --

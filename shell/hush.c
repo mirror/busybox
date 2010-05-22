@@ -179,9 +179,13 @@
 
 #define ERR_PTR ((void*)(long)1)
 
-#define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
+#define JOB_STATUS_FORMAT    "[%d] %-22s %.40s\n"
 
-#define SPECIAL_VAR_SYMBOL 3
+#define _SPECIAL_VARS_STR     "_*@$!?#"
+#define SPECIAL_VARS_STR     ("_*@$!?#" + 1)
+#define NUMERIC_SPECVARS_STR ("_*@$!?#" + 3)
+
+#define SPECIAL_VAR_SYMBOL   3
 
 struct variable;
 
@@ -2472,21 +2476,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
-		case '$': /* pid */
-			val = utoa(G.root_pid);
-			break;
-		case '!': /* bg pid */
-			val = G.last_bg_pid ? utoa(G.last_bg_pid) : (char*)"";
-			break;
-		case '?': /* exitcode */
-			val = utoa(G.last_exitcode);
-			break;
-		case '#': /* argc */
-			if (arg[1] != SPECIAL_VAR_SYMBOL)
-				/* actually, it's a ${#var} */
-				goto case_default;
-			val = utoa(G.global_argc ? G.global_argc-1 : 0);
-			break;
 		case '*':
 		case '@':
 			i = 1;
@@ -2581,27 +2570,35 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			break;
 		}
 #endif
-		default: /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
-		case_default: {
-			char *var = arg;
-			char exp_len; /* '#' if it's ${#var} */
+		default: { /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
+			char *var;
+			char first_char;
 			char exp_op;
 			char exp_save = exp_save; /* for compiler */
-			char *exp_saveptr = exp_saveptr; /* points to expansion operator */
+			char *exp_saveptr; /* points to expansion operator */
 			char *exp_word = exp_word; /* for compiler */
 
+			var = arg;
 			*p = '\0';
-			arg[0] = first_ch & 0x7f;
-
-			/* prepare for expansions */
+			exp_saveptr = arg[1] ? strchr("%#:-=+?", arg[1]) : NULL;
+			first_char = arg[0] = first_ch & 0x7f;
 			exp_op = 0;
-			exp_len = var[0];
-			if (exp_len == '#') {
+
+			if (first_char == '#' && arg[1] && !exp_saveptr) {
 				/* handle length expansion ${#var} */
 				var++;
+				exp_op = 'L';
 			} else {
 				/* maybe handle parameter expansion */
-				exp_saveptr = var + strcspn(var, "%#:-=+?");
+				if (exp_saveptr /* if 2nd char is one of expansion operators */
+				 && strchr(NUMERIC_SPECVARS_STR, first_char) /* 1st char is special variable */
+				) {
+					/* ${?:0}, ${#[:]%0} etc */
+					exp_saveptr = var + 1;
+				} else {
+					/* ${?}, ${var}, ${var:0}, ${var[:]%0} etc */
+					exp_saveptr = var+1 + strcspn(var+1, "%#:-=+?");
+				}
 				exp_op = exp_save = *exp_saveptr;
 				if (exp_op) {
 					exp_word = exp_saveptr + 1;
@@ -2616,7 +2613,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						}
 					}
 					*exp_saveptr = '\0';
-				}
+				} /* else: it's not an expansion op, but bare ${var} */
 			}
 
 			/* lookup the variable in question */
@@ -2626,11 +2623,27 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				if (i < G.global_argc)
 					val = G.global_argv[i];
 				/* else val remains NULL: $N with too big N */
-			} else
-				val = get_local_var_value(var);
+			} else {
+				switch (var[0]) {
+				case '$': /* pid */
+					val = utoa(G.root_pid);
+					break;
+				case '!': /* bg pid */
+					val = G.last_bg_pid ? utoa(G.last_bg_pid) : (char*)"";
+					break;
+				case '?': /* exitcode */
+					val = utoa(G.last_exitcode);
+					break;
+				case '#': /* argc */
+					val = utoa(G.global_argc ? G.global_argc-1 : 0);
+					break;
+				default:
+					val = get_local_var_value(var);
+				}
+			}
 
 			/* handle any expansions */
-			if (exp_len == '#') {
+			if (exp_op == 'L') {
 				debug_printf_expand("expand: length(%s)=", val);
 				val = utoa(val ? strlen(val) : 0);
 				debug_printf_expand("%s\n", val);
@@ -2761,7 +2774,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 							}
 						}
 					}
-				}
+				} /* one of "-=+?" */
 
 				*exp_saveptr = exp_save;
 			} /* if (exp_op) */
@@ -6031,7 +6044,7 @@ static int handle_dollar(o_string *as_string,
 		 * or even ${?+subst} - operator acting on a special variable,
 		 * or the beginning of variable name.
 		 */
-		if (!strchr("$!?#*@_", ch) && !isalnum(ch)) { /* not one of those */
+		if (!strchr(_SPECIAL_VARS_STR, ch) && !isalnum(ch)) { /* not one of those */
  bad_dollar_syntax:
 			syntax_error_unterm_str("${name}");
 			debug_printf_parse("handle_dollar return 1: unterminated ${name}\n");
