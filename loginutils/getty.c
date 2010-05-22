@@ -431,6 +431,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 		while (cp->eol == '\0') {
 
 			/* Do not report trivial EINTR/EIO errors. */
+			errno = EINTR; /* make read of 0 bytes be silent too */
 			if (read(STDIN_FILENO, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
 					exit(EXIT_SUCCESS);
