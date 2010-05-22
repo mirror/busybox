@@ -232,7 +232,6 @@ static void func_tty(char *buf, int size, const procps_status_t *ps)
 		snprintf(buf, size+1, "%u,%u", ps->tty_major, ps->tty_minor);
 }
 
-
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
 
 static void func_rgroup(char *buf, int size, const procps_status_t *ps)
@@ -250,9 +249,10 @@ static void func_nice(char *buf, int size, const procps_status_t *ps)
 	sprintf(buf, "%*d", size, ps->niceness);
 }
 
-#endif /* FEATURE_PS_ADDITIONAL_COLUMNS */
+#endif
 
 #if ENABLE_FEATURE_PS_TIME
+
 static void func_etime(char *buf, int size, const procps_status_t *ps)
 {
 	/* elapsed time [[dd-]hh:]mm:ss; here only mm:ss */
@@ -278,6 +278,7 @@ static void func_time(char *buf, int size, const procps_status_t *ps)
 	mm /= 60;
 	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
 }
+
 #endif
 
 #if ENABLE_SELINUX
@@ -337,11 +338,24 @@ static ps_out_t* new_out_t(void)
 static const ps_out_t* find_out_spec(const char *name)
 {
 	unsigned i;
+#if ENABLE_DESKTOP
+	char buf[ARRAY_SIZE(out_spec)*7 + 1];
+	char *p = buf;
+#endif
+
 	for (i = 0; i < ARRAY_SIZE(out_spec); i++) {
-		if (!strncmp(name, out_spec[i].name6, 6))
+		if (strncmp(name, out_spec[i].name6, 6) == 0)
 			return &out_spec[i];
+#if ENABLE_DESKTOP
+		p += sprintf(p, "%.6s,", out_spec[i].name6);
+#endif
 	}
-	bb_error_msg_and_die("bad -o argument '%s'", name);
+#if ENABLE_DESKTOP
+	p[-1] = '\0';
+	bb_error_msg_and_die("bad -o argument '%s', supported arguments: %s", name, buf);
+#else
+	bb_error_msg_and_die("bad -o argument '%s'");
+#endif
 }
 
 static void parse_o(char* opt)

@@ -3574,11 +3574,11 @@
 #if ENABLE_DESKTOP
 
 #define ps_trivial_usage \
-       ""
+       "[-o COL1,COL2=HEADER]" IF_FEATURE_SHOW_THREADS(" [-T]")
 #define ps_full_usage "\n\n" \
-       "Report process status\n" \
+       "Show list of processes\n" \
      "\nOptions:" \
-     "\n	-o col1,col2=header	Select columns for display" \
+     "\n	-o COL1,COL2=HEADER	Select columns for display" \
 	IF_FEATURE_SHOW_THREADS( \
      "\n	-T			Show threads" \
 	)
@@ -3594,7 +3594,7 @@
 #define ps_trivial_usage \
        ""
 #define ps_full_usage "\n\n" \
-       "Report process status\n" \
+       "Show list of processes\n" \
 	USAGE_PS \
 	IF_SELINUX( \
      "\n	-Z	Show selinux context" \
