@@ -1474,9 +1474,9 @@
      "\n	-m	Find processes which use same fs as FILEs" \
      "\n	-4	Search only IPv4 space" \
      "\n	-6	Search only IPv6 space" \
-     "\n	-s	Silent: just exit with 0 if any processes are found" \
-     "\n	-k	Kill found processes (otherwise display PIDs)" \
-     "\n	-SIGNAL	Signal to send (default: TERM)" \
+     "\n	-s	Don't display PIDs" \
+     "\n	-k	Kill found processes" \
+     "\n	-SIGNAL	Signal to send (default: KILL)" \
 
 #define getenforce_trivial_usage NOUSAGE_STR
 #define getenforce_full_usage ""
