@@ -171,6 +171,7 @@
 #define debug_printf_env(...)    do {} while (0)
 #define debug_printf_jobs(...)   do {} while (0)
 #define debug_printf_expand(...) do {} while (0)
+#define debug_printf_varexp(...) do {} while (0)
 #define debug_printf_glob(...)   do {} while (0)
 #define debug_printf_list(...)   do {} while (0)
 #define debug_printf_subst(...)  do {} while (0)
@@ -741,6 +742,10 @@ static const struct built_in_command bltins2[] = {
 # define DEBUG_EXPAND 1
 #else
 # define DEBUG_EXPAND 0
+#endif
+
+#ifndef debug_printf_varexp
+# define debug_printf_varexp(...) (indent(), fprintf(stderr, __VA_ARGS__))
 #endif
 
 #ifndef debug_printf_glob
@@ -1817,11 +1822,11 @@ static void o_addblock(o_string *o, const char *str, int len)
 	o->data[o->length] = '\0';
 }
 
-#if !BB_MMU
 static void o_addstr(o_string *o, const char *str)
 {
 	o_addblock(o, str, strlen(str));
 }
+#if !BB_MMU
 static void nommu_addchr(o_string *o, int ch)
 {
 	if (o)
@@ -2597,12 +2602,19 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			} else {
 				/* maybe handle parameter expansion */
 				exp_saveptr = var + strcspn(var, "%#:-=+?");
-				exp_save = *exp_saveptr;
-				if (exp_save) {
-					exp_word = exp_saveptr;
-					if (exp_save == ':')
-						exp_word++;
-					exp_op = *exp_word++;
+				exp_op = exp_save = *exp_saveptr;
+				if (exp_op) {
+					exp_word = exp_saveptr + 1;
+					if (exp_op == ':') {
+						exp_op = *exp_word++;
+						if (ENABLE_HUSH_BASH_COMPAT
+						 && (exp_op == '\0' || !strchr("%#:-=+?"+3, exp_op))
+						) {
+							/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
+							exp_op = ':';
+							exp_word--;
+						}
+					}
 					*exp_saveptr = '\0';
 				}
 			}
@@ -2656,39 +2668,42 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 								*loc = '\0';
 						}
 					}
-				} else if (!strchr("%#:-=+?"+3, exp_op)) {
+				} else if (exp_op == ':') {
 #if ENABLE_HUSH_BASH_COMPAT
-	/* exp_op is ':' and next char isn't a subst operator.
-	 * Assuming it's ${var:[N][:M]} bashism.
-	 * TODO: N, M can be expressions similar to $((EXPR)): 2+2, 2+var etc
+	/* It's ${var:N[:M]} bashism.
+	 * Note that in encoded form it has TWO parts:
+	 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
 	 */
-					char *end;
-					unsigned len = INT_MAX;
-					unsigned beg = 0;
-					end = --exp_word;
-					if (*exp_word != ':') /* not ${var::...} */
-						beg = bb_strtou(exp_word, &end, 0);
-					//bb_error_msg("beg:'%s'=%u end:'%s'", exp_word, beg, end);
-					if (*end == ':') {
-						if (end[1] != '\0') /* not ${var:NUM:} */
-							len = bb_strtou(end + 1, &end, 0);
-						else {
-							len = 0;
-							end++;
-						}
-						//bb_error_msg("len:%u end:'%s'", len, end);
-					}
-					if (*end == '\0') {
-						//bb_error_msg("from val:'%s'", val);
+					arith_t beg, len;
+					int errcode = 0;
+
+					beg = expand_and_evaluate_arith(exp_word, &errcode);
+					debug_printf_varexp("beg:'%s'=%lld\n", exp_word, (long long)beg);
+					*p++ = SPECIAL_VAR_SYMBOL;
+					exp_word = p;
+					p = strchr(p, SPECIAL_VAR_SYMBOL);
+					*p = '\0';
+					len = expand_and_evaluate_arith(exp_word, &errcode);
+					debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
+
+					if (errcode >= 0 && len >= 0) { /* bash compat: len < 0 is illegal */
+						if (beg < 0) /* bash compat */
+							beg = 0;
+						debug_printf_varexp("from val:'%s'\n", val);
 						if (len == 0 || !val || beg >= strlen(val))
 							val = "";
-						else
+						else {
+							/* Paranoia. What if user entered 9999999999999
+							 * which fits in arith_t but not int? */
+							if (len >= INT_MAX)
+								len = INT_MAX;
 							val = to_be_freed = xstrndup(val + beg, len);
-						//bb_error_msg("val:'%s'", val);
+						}
+						debug_printf_varexp("val:'%s'\n", val);
 					} else
 #endif
 					{
-						die_if_script("malformed ${%s...}", var);
+						die_if_script("malformed ${%s:...}", var);
 						val = "";
 					}
 				} else { /* one of "-=+?" */
@@ -5891,21 +5906,28 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  * echo $(echo 'TEST)' BEST)            TEST) BEST
  * echo $(echo \(\(TEST\) BEST)         ((TEST) BEST
  *
- * Also adapted to eat ${var%...} constructs, since ... part
+ * Also adapted to eat ${var%...} and $((...)) constructs, since ... part
  * can contain arbitrary constructs, just like $(cmd).
+ * In bash compat mode, it needs to also be able to stop on '}' or ':'
+ * for ${var:N[:M]} parsing.
  */
 #define DOUBLE_CLOSE_CHAR_FLAG 0x80
-static void add_till_closing_bracket(o_string *dest, struct in_str *input, char end_ch)
+static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsigned end_ch)
 {
+	int ch;
 	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
-	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG-1);
+#if ENABLE_HUSH_BASH_COMPAT
+	char end_char2 = end_ch >> 8;
+#endif
+	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG - 1);
+
 	while (1) {
-		int ch = i_getch(input);
+		ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch(end_ch);
 			/*xfunc_die(); - redundant */
 		}
-		if (ch == end_ch) {
+		if (ch == end_ch  IF_HUSH_BASH_COMPAT( || ch == end_char2)) {
 			if (!dbl)
 				break;
 			/* we look for closing )) of $((EXPR)) */
@@ -5947,6 +5969,7 @@ static void add_till_closing_bracket(o_string *dest, struct in_str *input, char 
 			continue;
 		}
 	}
+	return ch;
 }
 #endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT */
 
@@ -6033,22 +6056,45 @@ static int handle_dollar(o_string *as_string,
 				break;
 
 			if (!isalnum(ch) && ch != '_') {
+				unsigned end_ch;
+				unsigned char last_ch;
 				/* handle parameter expansions
 				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 				 */
 				if (!strchr("%#:-=+?", ch)) /* ${var<bad_char>... */
 					goto bad_dollar_syntax;
-				/* Eat everything until closing '}' */
 				o_addchr(dest, ch);
+
+				/* Eat everything until closing '}' (or ':') */
+				end_ch = '}';
+				if (ENABLE_HUSH_BASH_COMPAT
+				 && ch == ':'
+				 && !strchr("%#:-=+?"+3, i_peek(input))
+				) {
+					/* It's ${var:N[:M]} thing */
+					end_ch = '}' * 0x100 + ':';
+				}
+ again:
 				if (!BB_MMU)
 					pos = dest->length;
-				add_till_closing_bracket(dest, input, '}');
-#if !BB_MMU
+				last_ch = add_till_closing_bracket(dest, input, end_ch);
 				if (as_string) {
 					o_addstr(as_string, dest->data + pos);
-					o_addchr(as_string, '}');
+					o_addchr(as_string, last_ch);
 				}
-#endif
+
+				if (ENABLE_HUSH_BASH_COMPAT && (end_ch & 0xff00)) {
+					/* close the first block: */
+					o_addchr(dest, SPECIAL_VAR_SYMBOL);
+					/* while parsing N from ${var:N[:M]}... */
+					if ((end_ch & 0xff) == last_ch) {
+						/* ...got ':' - parse the rest */
+						end_ch = '}';
+						goto again;
+					}
+					/* ...got '}', not ':' - it's ${var:N}! emulate :999999999 */
+					o_addstr(dest, "999999999");
+				}
 				break;
 			}
 		}
