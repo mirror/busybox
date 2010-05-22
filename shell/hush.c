@@ -814,10 +814,10 @@ static void xxfree(void *ptr)
 	fdprintf(2, "free %p\n", ptr);
 	free(ptr);
 }
-#define xmalloc(s)     xxmalloc(__LINE__, s)
-#define xrealloc(p, s) xxrealloc(__LINE__, p, s)
-#define xstrdup(s)     xxstrdup(__LINE__, s)
-#define free(p)        xxfree(p)
+# define xmalloc(s)     xxmalloc(__LINE__, s)
+# define xrealloc(p, s) xxrealloc(__LINE__, p, s)
+# define xstrdup(s)     xxstrdup(__LINE__, s)
+# define free(p)        xxfree(p)
 #endif
 
 
@@ -1161,9 +1161,9 @@ static void SIGCHLD_handler(int sig UNUSED_PARAM)
 #if ENABLE_HUSH_JOB
 
 /* After [v]fork, in child: do not restore tty pgrp on xfunc death */
-#define disable_restore_tty_pgrp_on_exit() (die_sleep = 0)
+# define disable_restore_tty_pgrp_on_exit() (die_sleep = 0)
 /* After [v]fork, in parent: restore tty pgrp on xfunc death */
-#define enable_restore_tty_pgrp_on_exit()  (die_sleep = -1)
+# define enable_restore_tty_pgrp_on_exit()  (die_sleep = -1)
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
@@ -1189,8 +1189,8 @@ static void sigexit(int sig)
 }
 #else
 
-#define disable_restore_tty_pgrp_on_exit() ((void)0)
-#define enable_restore_tty_pgrp_on_exit()  ((void)0)
+# define disable_restore_tty_pgrp_on_exit() ((void)0)
+# define enable_restore_tty_pgrp_on_exit()  ((void)0)
 
 #endif
 
@@ -1522,8 +1522,8 @@ static void unset_vars(char **strings)
 }
 
 #if ENABLE_SH_MATH_SUPPORT
-#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
-#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+# define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+# define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 static char* FAST_FUNC endofname(const char *name)
 {
 	char *p;
@@ -1607,10 +1607,11 @@ static struct variable *set_vars_and_save_old(char **strings)
  */
 static int FAST_FUNC static_get(struct in_str *i)
 {
-	int ch = *i->p++;
-	if (ch != '\0')
+	int ch = *i->p;
+	if (ch != '\0') {
+		i->p++;
 		return ch;
-	i->p--;
+	}
 	return EOF;
 }
 
@@ -1662,7 +1663,7 @@ static void get_user_input(struct in_str *i)
 	const char *prompt_str;
 
 	prompt_str = setup_prompt_string(i->promptmode);
-#if ENABLE_FEATURE_EDITING
+# if ENABLE_FEATURE_EDITING
 	/* Enable command line editing only while a command line
 	 * is actually being read */
 	do {
@@ -1678,7 +1679,7 @@ static void get_user_input(struct in_str *i)
 		G.user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
 		G.user_input_buf[1] = '\0';
 	}
-#else
+# else
 	do {
 		G.flag_SIGINT = 0;
 		fputs(prompt_str, stdout);
@@ -1688,7 +1689,7 @@ static void get_user_input(struct in_str *i)
 //do we need check_and_run_traps(0)? (maybe only if stdin)
 	} while (G.flag_SIGINT);
 	i->eof_flag = (r == EOF);
-#endif
+# endif
 	i->p = G.user_input_buf;
 }
 
@@ -2221,7 +2222,7 @@ static int o_glob(o_string *o, int n)
 	return n;
 }
 
-#else
+#else /* !HUSH_BRACE_EXP */
 
 /* Helper */
 static int glob_needed(const char *s)
@@ -2298,7 +2299,7 @@ static int o_glob(o_string *o, int n)
 	return n;
 }
 
-#endif
+#endif /* !HUSH_BRACE_EXP */
 
 /* If o->o_glob == 1, glob the string so far remembered.
  * Otherwise, just finish current list[] and start new */
@@ -3033,7 +3034,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 		char *g_argv0, char **g_argv,
 		char **builtin_argv)
 {
-#define NOMMU_HACK_FMT ("-$%x:%x:%x:%x:%x:%llx" IF_HUSH_LOOPS(":%x"))
+# define NOMMU_HACK_FMT ("-$%x:%x:%x:%x:%x:%llx" IF_HUSH_LOOPS(":%x"))
 	/* delims + 2 * (number of bytes in printed hex numbers) */
 	char param_buf[sizeof(NOMMU_HACK_FMT) + 2 * (sizeof(int)*6 + sizeof(long long)*1)];
 	char *heredoc_argv[4];
@@ -3078,7 +3079,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 			, empty_trap_mask
 			IF_HUSH_LOOPS(, G.depth_of_loop)
 			);
-#undef NOMMU_HACK_FMT
+# undef NOMMU_HACK_FMT
 	/* 1:hush 2:-$<pid>:<pid>:<exitcode>:<etc...> <vars...> <funcs...>
 	 * 3:-c 4:<cmd> 5:<arg0> <argN...> 6:NULL
 	 */
