@@ -26,6 +26,26 @@ extern const char defifsvar[]; /* "IFS= \t\n" */
 
 int FAST_FUNC is_well_formed_var_name(const char *s, char terminator);
 
+/* Builtins */
+
+enum {
+	BUILTIN_READ_SILENT = 1 << 0,
+	BUILTIN_READ_RAW    = 1 << 1,
+};
+const char* FAST_FUNC
+shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
+	char       **argv,
+	const char *ifs,
+	int        read_flags,
+	const char *opt_n,
+	const char *opt_p,
+	const char *opt_t,
+	const char *opt_u
+);
+
+int FAST_FUNC
+shell_builtin_ulimit(char **argv);
+
 POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

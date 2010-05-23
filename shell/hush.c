@@ -90,8 +90,6 @@
 #endif
 
 #include "shell_common.h"
-#include "builtin_read.h"
-#include "builtin_ulimit.h"
 #include "math.h"
 #include "match.h"
 #if ENABLE_HUSH_RANDOM_SUPPORT

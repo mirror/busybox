@@ -5,8 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_ASH)      += ash.o ash_ptr_hack.o shell_common.o builtin_read.o builtin_ulimit.o
-lib-$(CONFIG_HUSH)     += hush.o match.o shell_common.o builtin_read.o builtin_ulimit.o
+lib-$(CONFIG_ASH)      += ash.o ash_ptr_hack.o shell_common.o
+lib-$(CONFIG_HUSH)     += hush.o match.o shell_common.o
 lib-$(CONFIG_CTTYHACK) += cttyhack.o
 
 lib-$(CONFIG_SH_MATH_SUPPORT) += math.o

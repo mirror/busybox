@@ -48,8 +48,6 @@
 #include <fnmatch.h>
 
 #include "shell_common.h"
-#include "builtin_read.h"
-#include "builtin_ulimit.h"
 #include "math.h"
 #if ENABLE_ASH_RANDOM_SUPPORT
 # include "random.h"
