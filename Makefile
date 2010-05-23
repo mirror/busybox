@@ -1001,8 +1001,8 @@ $(mrproper-dirs):
 mrproper: clean archmrproper $(mrproper-dirs)
 	$(call cmd,rmdirs)
 	$(call cmd,rmfiles)
-	@find -name Config.src | sed 's/.src$/.in/' | xargs -r rm -f
-	@find -name Kbuild.src | sed 's/.src$//' | xargs -r rm -f
+	@find -name Config.src | sed 's/.src$$/.in/' | xargs -r rm -f
+	@find -name Kbuild.src | sed 's/.src$$//' | xargs -r rm -f
 
 # distclean
 #
