@@ -156,6 +156,11 @@
      "\n	-r	Repetitions" \
      "\n	-n	Start new tone" \
 
+#define blkid_trivial_usage \
+       ""
+#define blkid_full_usage "\n\n" \
+       "Print UUIDs of all filesystems"
+
 #define bootchartd_trivial_usage \
        "start [PROG ARGS]|stop|init"
 #define bootchartd_full_usage "\n\n" \
@@ -1243,10 +1248,10 @@
      "\n	-H HEADS" \
      "\n	-S SECTORS" \
 
-#define blkid_trivial_usage \
-       ""
-#define blkid_full_usage "\n\n" \
-       "Print UUIDs of all filesystems"
+#define fgconsole_trivial_usage \
+	""
+#define fgconsole_full_usage "\n\n" \
+	"Get active console"
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"

@@ -12,6 +12,12 @@ config CHVT
 	  This program is used to change to another terminal.
 	  Example: chvt 4 (change to terminal /dev/tty4)
 
+config FGCONSOLE
+	bool "fgconsole"
+	default n
+	help
+	  This program prints active (foreground) console number.
+
 config CLEAR
 	bool "clear"
 	default n
