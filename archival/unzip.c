@@ -42,7 +42,7 @@ typedef union {
 	uint8_t raw[ZIP_HEADER_LEN];
 	struct {
 		uint16_t version;               /* 0-1 */
-		uint16_t flags;                 /* 2-3 */
+		uint16_t zip_flags;             /* 2-3 */
 		uint16_t method;                /* 4-5 */
 		uint16_t modtime;               /* 6-7 */
 		uint16_t moddate;               /* 8-9 */
@@ -66,7 +66,6 @@ struct BUG_zip_header_must_be_26_bytes {
 
 #define FIX_ENDIANNESS_ZIP(zip_header) do { \
 	(zip_header).formatted.version      = SWAP_LE16((zip_header).formatted.version     ); \
-	(zip_header).formatted.flags        = SWAP_LE16((zip_header).formatted.flags       ); \
 	(zip_header).formatted.method       = SWAP_LE16((zip_header).formatted.method      ); \
 	(zip_header).formatted.modtime      = SWAP_LE16((zip_header).formatted.modtime     ); \
 	(zip_header).formatted.moddate      = SWAP_LE16((zip_header).formatted.moddate     ); \
@@ -491,11 +490,11 @@ int unzip_main(int argc, char **argv)
 			bb_error_msg_and_die("unsupported method %d", zip_header.formatted.method);
 		}
 #if !ENABLE_DESKTOP
-		if (zip_header.formatted.flags & 0x0009) {
+		if (zip_header.formatted.zip_flags & SWAP_LE16(0x0009)) {
 			bb_error_msg_and_die("zip flags 1 and 8 are not supported");
 		}
 #else
-		if (zip_header.formatted.flags & 0x0001) {
+		if (zip_header.formatted.zip_flags & SWAP_LE16(0x0001)) {
 			/* 0x0001 - encrypted */
 			bb_error_msg_and_die("zip flag 1 (encryption) is not supported");
 		}
@@ -503,7 +502,7 @@ int unzip_main(int argc, char **argv)
 		{
 			cdf_header_t cdf_header;
 			cdf_offset = read_next_cdf(cdf_offset, &cdf_header);
-			if (zip_header.formatted.flags & 0x0008) {
+			if (zip_header.formatted.zip_flags & SWAP_LE16(0x0008)) {
 				/* 0x0008 - streaming. [u]cmpsize can be reliably gotten
 				 * only from Central Directory. See unzip_doc.txt */
 				zip_header.formatted.crc32    = cdf_header.formatted.crc32;
