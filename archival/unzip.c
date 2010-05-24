@@ -159,9 +159,9 @@ static uint32_t find_cdf_offset(void)
 	off_t end;
 
 	end = xlseek(zip_fd, 0, SEEK_END);
-	if (end < 1024)
-		end = 1024;
 	end -= 1024;
+	if (end < 0)
+		end = 0;
 	xlseek(zip_fd, end, SEEK_SET);
 	full_read(zip_fd, buf, 1024);
 
