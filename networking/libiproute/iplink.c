@@ -283,11 +283,98 @@ static int ipaddr_list_link(char **argv)
 	return ipaddr_list_or_flush(argv, 0);
 }
 
+#ifndef NLMSG_TAIL
+#define NLMSG_TAIL(nmsg) \
+	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
+#endif
+/* Return value becomes exitcode. It's okay to not return at all */
+static int do_change(char **argv, const unsigned rtm)
+{
+	static const char keywords[] ALIGN1 =
+		"link\0""name\0""type\0""dev\0";
+	enum {
+		ARG_link,
+		ARG_name,
+		ARG_type,
+		ARG_dev,
+	};
+	struct rtnl_handle rth;
+	struct {
+		struct nlmsghdr		n;
+		struct ifinfomsg	i;
+		char			buf[1024];
+	} req;
+	int arg;
+	char *name_str = NULL, *link_str = NULL, *type_str = NULL, *dev_str = NULL;
+
+	memset(&req, 0, sizeof(req));
+
+	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	req.n.nlmsg_flags = NLM_F_REQUEST;
+	req.n.nlmsg_type = rtm;
+	req.i.ifi_family = preferred_family;
+	if (rtm == RTM_NEWLINK)
+		req.n.nlmsg_flags |= NLM_F_CREATE|NLM_F_EXCL;
+
+	while (*argv) {
+		arg = index_in_substrings(keywords, *argv);
+		if (arg == ARG_link) {
+			NEXT_ARG();
+			link_str = *argv;
+		} else if (arg == ARG_name) {
+			NEXT_ARG();
+			name_str = *argv;
+		} else if (arg == ARG_type) {
+			NEXT_ARG();
+			type_str = *argv;
+		} else {
+			if (arg == ARG_dev) {
+				if (dev_str)
+					duparg(*argv, "dev");
+				NEXT_ARG();
+			}
+			dev_str = *argv;
+		}
+		argv++;
+	}
+	xrtnl_open(&rth);
+	ll_init_map(&rth);
+	if (type_str) {
+		struct rtattr *linkinfo = NLMSG_TAIL(&req.n);
+
+		addattr_l(&req.n, sizeof(req), IFLA_LINKINFO, NULL, 0);
+		addattr_l(&req.n, sizeof(req), IFLA_INFO_KIND, type_str,
+				strlen(type_str));
+		linkinfo->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)linkinfo;
+	}
+	if (rtm != RTM_NEWLINK) {
+		if (!dev_str)
+			return 1; /* Need a device to delete */
+		req.i.ifi_index = xll_name_to_index(dev_str);
+	} else {
+		if (!name_str)
+			name_str = dev_str;
+		if (link_str) {
+			int idx = xll_name_to_index(link_str);
+			addattr_l(&req.n, sizeof(req), IFLA_LINK, &idx, 4);
+		}
+	}
+	if (name_str) {
+		const size_t name_len = strlen(name_str) + 1;
+		if (name_len < 2 || name_len > IFNAMSIZ)
+			invarg(name_str, "name");
+		addattr_l(&req.n, sizeof(req), IFLA_IFNAME, name_str, name_len);
+	}
+	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
+		return 2;
+	return 0;
+}
+
 /* Return value becomes exitcode. It's okay to not return at all */
 int do_iplink(char **argv)
 {
 	static const char keywords[] ALIGN1 =
-		"set\0""show\0""lst\0""list\0";
+		"add\0""delete\0""set\0""show\0""lst\0""list\0";
 	int key;
 	if (!*argv)
 		return ipaddr_list_link(argv);
@@ -295,7 +382,9 @@ int do_iplink(char **argv)
 	if (key < 0)
 		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 	argv++;
-	if (key == 0) /* set */
+	if (key <= 1) /* add/delete */
+		return do_change(argv, key ? RTM_DELLINK : RTM_NEWLINK);
+	else if (key == 2) /* set */
 		return do_set(argv);
 	/* show, lst, list */
 	return ipaddr_list_link(argv);
