@@ -561,11 +561,10 @@ int do_iptunnel(char **argv)
 	static const char keywords[] ALIGN1 =
 		"add\0""change\0""delete\0""show\0""list\0""lst\0";
 	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
-	int key;
 
 	if (*argv) {
-		key = index_in_substrings(keywords, *argv);
-		if (key < 0)
+		smalluint key = index_in_substrings(keywords, *argv);
+		if (key > 5)
 			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 		argv++;
 		if (key == ARG_add)
