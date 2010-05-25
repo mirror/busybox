@@ -171,9 +171,9 @@ static int do_set(char **argv)
 	char *newname = NULL;
 	int htype, halen;
 	static const char keywords[] ALIGN1 =
-		"up\0""down\0""name\0""mtu\0""multicast\0"
+		"up\0""down\0""name\0""mtu\0""qlen\0""multicast\0"
 		"arp\0""address\0""dev\0";
-	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_multicast,
+	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_qlen, ARG_multicast,
 		ARG_arp, ARG_addr, ARG_dev };
 	static const char str_on_off[] ALIGN1 = "on\0""off\0";
 	enum { PARM_on = 0, PARM_off };
@@ -197,6 +197,11 @@ static int do_set(char **argv)
 			if (mtu != -1)
 				duparg("mtu", *argv);
 			mtu = get_unsigned(*argv, "mtu");
+		} else if (key == ARG_qlen) {
+			NEXT_ARG();
+			if (qlen != -1)
+				duparg("qlen", *argv);
+			qlen = get_unsigned(*argv, "qlen");
 		} else if (key == ARG_addr) {
 			NEXT_ARG();
 			newaddr = *argv;
