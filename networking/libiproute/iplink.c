@@ -186,56 +186,48 @@ static int do_set(char **argv)
 		if (key == ARG_up) {
 			mask |= IFF_UP;
 			flags |= IFF_UP;
-		}
-		if (key == ARG_down) {
+		} else if (key == ARG_down) {
 			mask |= IFF_UP;
 			flags &= ~IFF_UP;
-		}
-		if (key == ARG_name) {
+		} else if (key == ARG_name) {
 			NEXT_ARG();
 			newname = *argv;
-		}
-		if (key == ARG_mtu) {
+		} else if (key == ARG_mtu) {
 			NEXT_ARG();
 			if (mtu != -1)
 				duparg("mtu", *argv);
 			mtu = get_unsigned(*argv, "mtu");
-		}
-		if (key == ARG_multicast) {
-			int param;
-			NEXT_ARG();
-			mask |= IFF_MULTICAST;
-			param = index_in_strings(str_on_off, *argv);
-			if (param < 0)
-				die_must_be_on_off("multicast");
-			if (param == PARM_on)
-				flags |= IFF_MULTICAST;
-			else
-				flags &= ~IFF_MULTICAST;
-		}
-		if (key == ARG_arp) {
-			int param;
-			NEXT_ARG();
-			mask |= IFF_NOARP;
-			param = index_in_strings(str_on_off, *argv);
-			if (param < 0)
-				die_must_be_on_off("arp");
-			if (param == PARM_on)
-				flags &= ~IFF_NOARP;
-			else
-				flags |= IFF_NOARP;
-		}
-		if (key == ARG_addr) {
+		} else if (key == ARG_addr) {
 			NEXT_ARG();
 			newaddr = *argv;
-		}
-		if (key >= ARG_dev) {
+		} else if (key >= ARG_dev) {
 			if (key == ARG_dev) {
 				NEXT_ARG();
 			}
 			if (dev)
 				duparg2("dev", *argv);
 			dev = *argv;
+		} else {
+			int param;
+			NEXT_ARG();
+			param = index_in_strings(str_on_off, *argv);
+			if (key == ARG_multicast) {
+				if (param < 0)
+					die_must_be_on_off("multicast");
+				mask |= IFF_MULTICAST;
+				if (param == PARM_on)
+					flags |= IFF_MULTICAST;
+				else
+					flags &= ~IFF_MULTICAST;
+			} else if (key == ARG_arp) {
+				if (param < 0)
+					die_must_be_on_off("arp");
+				mask |= IFF_NOARP;
+				if (param == PARM_on)
+					flags &= ~IFF_NOARP;
+				else
+					flags |= IFF_NOARP;
+			}
 		}
 		argv++;
 	}
@@ -248,9 +240,11 @@ static int do_set(char **argv)
 		halen = get_address(dev, &htype);
 		if (newaddr) {
 			parse_address(dev, htype, halen, newaddr, &ifr0);
+			set_address(&ifr0, 0);
 		}
 		if (newbrd) {
 			parse_address(dev, htype, halen, newbrd, &ifr1);
+			set_address(&ifr1, 1);
 		}
 	}
 
@@ -263,14 +257,6 @@ static int do_set(char **argv)
 	}
 	if (mtu != -1) {
 		set_mtu(dev, mtu);
-	}
-	if (newaddr || newbrd) {
-		if (newbrd) {
-			set_address(&ifr1, 1);
-		}
-		if (newaddr) {
-			set_address(&ifr0, 0);
-		}
 	}
 	if (mask)
 		do_chflags(dev, flags, mask);
@@ -304,7 +290,7 @@ static int do_change(char **argv, const unsigned rtm)
 		struct ifinfomsg	i;
 		char			buf[1024];
 	} req;
-	int arg;
+	smalluint arg;
 	char *name_str = NULL, *link_str = NULL, *type_str = NULL, *dev_str = NULL;
 
 	memset(&req, 0, sizeof(req));
@@ -375,17 +361,16 @@ int do_iplink(char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"add\0""delete\0""set\0""show\0""lst\0""list\0";
-	int key;
-	if (!*argv)
-		return ipaddr_list_link(argv);
-	key = index_in_substrings(keywords, *argv);
-	if (key < 0)
-		bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
-	argv++;
-	if (key <= 1) /* add/delete */
-		return do_change(argv, key ? RTM_DELLINK : RTM_NEWLINK);
-	else if (key == 2) /* set */
-		return do_set(argv);
+	if (*argv) {
+		smalluint key = index_in_substrings(keywords, *argv);
+		if (key > 5) /* invalid argument */
+			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+		argv++;
+		if (key <= 1) /* add/delete */
+			return do_change(argv, key ? RTM_DELLINK : RTM_NEWLINK);
+		else if (key == 2) /* set */
+			return do_set(argv);
+	}
 	/* show, lst, list */
 	return ipaddr_list_link(argv);
 }
