@@ -773,21 +773,15 @@ int do_ipaddr(char **argv)
 {
 	static const char commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0""lst\0""flush\0";
-
-	int command_num = 2; /* default command is list */
-
+	smalluint cmd = 2;
 	if (*argv) {
-		command_num = index_in_substrings(commands, *argv);
-		if (command_num < 0 || command_num > 5)
-			bb_error_msg_and_die("unknown command %s", *argv);
+		cmd = index_in_substrings(commands, *argv);
+		if (cmd > 5)
+			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
 		argv++;
+		if (cmd <= 1)
+			return ipaddr_modify((cmd == 0) ? RTM_NEWADDR : RTM_DELADDR, argv);
 	}
-	if (command_num == 0) /* add */
-		return ipaddr_modify(RTM_NEWADDR, argv);
-	if (command_num == 1) /* delete */
-		return ipaddr_modify(RTM_DELADDR, argv);
-	if (command_num == 5) /* flush */
-		return ipaddr_list_or_flush(argv, 1);
 	/* 2 == list, 3 == show, 4 == lst */
-	return ipaddr_list_or_flush(argv, 0);
+	return ipaddr_list_or_flush(argv, cmd == 5);
 }
