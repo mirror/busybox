@@ -86,7 +86,7 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 		if (mkdir(path, 0777) < 0) {
 			/* If we failed for any other reason than the directory
 			 * already exists, output a diagnostic and return -1 */
-			if (errno != EEXIST
+			if ((errno != EEXIST && errno != EISDIR)
 			 || !(flags & FILEUTILS_RECUR)
 			 || ((stat(path, &st) < 0) || !S_ISDIR(st.st_mode))
 			) {
