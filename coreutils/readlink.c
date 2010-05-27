@@ -36,7 +36,6 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *buf;
 	char *fname;
-	char pathbuf[PATH_MAX];
 
 	IF_FEATURE_READLINK_FOLLOW(
 		unsigned opt;
@@ -56,7 +55,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 		logmode = LOGMODE_NONE;
 
 	if (opt & 1) { /* -f */
-		buf = realpath(fname, pathbuf);
+		buf = xmalloc_realpath(fname);
 	} else {
 		buf = xmalloc_readlink_or_warn(fname);
 	}
@@ -65,7 +64,7 @@ int readlink_main(int argc UNUSED_PARAM, char **argv)
 		return EXIT_FAILURE;
 	printf((opt & 2) ? "%s" : "%s\n", buf);
 
-	if (ENABLE_FEATURE_CLEAN_UP && !opt)
+	if (ENABLE_FEATURE_CLEAN_UP)
 		free(buf);
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
