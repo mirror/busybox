@@ -10,7 +10,6 @@ INSERT
 config INIT
 	bool "init"
 	default y
-	depends on PLATFORM_LINUX
 	select FEATURE_SYSLOG
 	help
 	  init is the first program run when the system boots.
@@ -93,7 +92,6 @@ config FEATURE_INITRD
 config HALT
 	bool "poweroff, halt, and reboot"
 	default y
-	depends on PLATFORM_LINUX
 	help
 	  Stop all processes and either halt, reboot, or power off the system.
 

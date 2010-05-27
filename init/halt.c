@@ -8,7 +8,7 @@
  */
 
 #include "libbb.h"
-#include <sys/reboot.h>
+#include "reboot.h"
 
 #if ENABLE_FEATURE_WTMP
 #include <sys/utsname.h>
@@ -34,18 +34,6 @@ static void write_wtmp(void)
 }
 #else
 #define write_wtmp() ((void)0)
-#endif
-
-#ifndef RB_HALT_SYSTEM
-#define RB_HALT_SYSTEM RB_HALT
-#endif
-
-#ifndef RB_POWERDOWN
-/* Stop system and switch power off if possible.  */
-# define RB_POWERDOWN   0x4321fedc
-#endif
-#ifndef RB_POWER_OFF
-# define RB_POWER_OFF RB_POWERDOWN
 #endif
 
 

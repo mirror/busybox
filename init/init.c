@@ -12,7 +12,6 @@
 #include "libbb.h"
 #include <syslog.h>
 #include <paths.h>
-#include <sys/reboot.h>
 #include <sys/resource.h>
 #ifdef __linux__
 #include <linux/vt.h>
@@ -20,6 +19,7 @@
 #if ENABLE_FEATURE_UTMP
 # include <utmp.h> /* DEAD_PROCESS */
 #endif
+#include "reboot.h" /* reboot() constants */
 
 /* Used only for sanitizing purposes in set_sane_term() below. On systems where
  * the baud rate is stored in a separate field, we can safely disable them. */
@@ -97,13 +97,6 @@ static const char *log_console = VC_5;
 enum {
 	L_LOG = 0x1,
 	L_CONSOLE = 0x2,
-#ifndef RB_HALT_SYSTEM
-	RB_HALT_SYSTEM = 0xcdef0123, /* FIXME: this overflows enum */
-	RB_ENABLE_CAD = 0x89abcdef,
-	RB_DISABLE_CAD = 0,
-	RB_POWER_OFF = 0x4321fedc,
-	RB_AUTOBOOT = 0x01234567,
-#endif
 };
 
 /* Print a message to the specified device.
@@ -724,10 +717,12 @@ static void restart_handler(int sig UNUSED_PARAM)
 
 		run_shutdown_and_kill_processes();
 
+#ifdef RB_ENABLE_CAD
 		/* Allow Ctrl-Alt-Del to reboot the system.
 		 * This is how kernel sets it up for init, we follow suit.
 		 */
 		reboot(RB_ENABLE_CAD); /* misnomer */
+#endif
 
 		if (open_stdio_to_tty(a->terminal)) {
 			dbg_message(L_CONSOLE, "Trying to re-exec %s", a->command);
@@ -870,9 +865,11 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		) {
 			bb_show_usage();
 		}
+#ifdef RB_DISABLE_CAD
 		/* Turn off rebooting via CTL-ALT-DEL - we get a
 		 * SIGINT on CAD so we can shut things down gracefully... */
 		reboot(RB_DISABLE_CAD); /* misnomer */
+#endif
 	}
 
 	/* Figure out where the default console should be */
@@ -895,6 +892,8 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	message(L_CONSOLE | L_LOG, "init started: %s", bb_banner);
 #endif
 
+/* struct sysinfo is linux-specific */
+#ifdef __linux__
 	/* Make sure there is enough memory to do something useful. */
 	if (ENABLE_SWAPONOFF) {
 		struct sysinfo info;
@@ -910,6 +909,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			run_actions(SYSINIT);   /* wait and removing */
 		}
 	}
+#endif
 
 	/* Check if we are supposed to be in single user mode */
 	if (argv[1]
