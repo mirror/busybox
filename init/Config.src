@@ -89,6 +89,18 @@ config FEATURE_INITRD
 	  This does not apply to initramfs, which runs /init as PID 1 and
 	  requires no special support.
 
+config INIT_TERMINAL_TYPE
+	string "Initial terminal type"
+	default "linux"
+	depends on INIT
+	help
+	  This is the initial value set by init for the TERM environment
+	  variable. This variable is used by programs which make use of
+	  extended terminal capabilities.
+
+	  Note that on Linux, init attempts to detect serial terminal and
+	  sets TERM to "vt102" if one is found.
+
 config HALT
 	bool "poweroff, halt, and reboot"
 	default y

@@ -205,7 +205,7 @@ static void console_init(void)
 	} else
 #endif
 	if (!s)
-		putenv((char*)"TERM=linux");
+		putenv((char*)"TERM=" CONFIG_INIT_TERMINAL_TYPE);
 }
 
 /* Set terminal settings to reasonable defaults.
