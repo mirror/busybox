@@ -9,12 +9,12 @@
 #include "unarchive.h"
 
 enum {
-	OPT_STDOUT = 0x1,
-	OPT_FORCE = 0x2,
-/* gunzip and bunzip2 only: */
-	OPT_VERBOSE = 0x4,
-	OPT_DECOMPRESS = 0x8,
-	OPT_TEST = 0x10,
+	OPT_STDOUT     = 1 << 0,
+	OPT_FORCE      = 1 << 1,
+	/* only some decompressors: */
+	OPT_VERBOSE    = 1 << 2,
+	OPT_DECOMPRESS = 1 << 3,
+	OPT_TEST       = 1 << 4,
 };
 
 static
@@ -333,12 +333,17 @@ IF_DESKTOP(long long) int unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "cf");
-	argv += optind;
-	/* lzmacat? */
-	if (applet_name[4] == 'c')
+	int opts = getopt32(argv, "cfvdt");
+# if ENABLE_FEATURE_LZMA_ALIAS
+	/* lzma without -d or -t? */
+	if (applet_name[2] == 'm' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
+		bb_show_usage();
+# endif
+	/* lzcat? */
+	if (applet_name[2] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
+	argv += optind;
 	return bbunpack(argv, make_new_name_unlzma, unpack_unlzma);
 }
 
@@ -346,7 +351,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 
 
 /*
- *	Uncompress applet for busybox (c) 2002 Glenn McGrath
+ * Uncompress applet for busybox (c) 2002 Glenn McGrath
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

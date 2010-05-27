@@ -197,7 +197,7 @@
 #define bunzip2_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define bunzip2_full_usage "\n\n" \
-       "Uncompress FILEs (or stdin)\n" \
+       "Decompress FILEs (or stdin)\n" \
      "\nOptions:" \
      "\n	-c	Write to stdout" \
      "\n	-f	Force" \
@@ -207,10 +207,10 @@
 #define bzip2_full_usage "\n\n" \
        "Compress FILEs (or stdin) with bzip2 algorithm\n" \
      "\nOptions:" \
-     "\n	-c	Write to stdout" \
+     "\n	-1..9	Compression level" \
      "\n	-d	Decompress" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
-     "\n	-1..-9	Compression level" \
 
 #define busybox_notes_usage \
        "Hello world!\n"
@@ -218,13 +218,14 @@
 #define lzop_trivial_usage \
        "[-cfvd123456789CF] [FILE]..."
 #define lzop_full_usage "\n\n" \
-       "	-c	Write to stdout" \
+       "Options:" \
+     "\n	-1..9	Compression level" \
+     "\n	-d	Decompress" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
      "\n	-v	Verbose" \
-     "\n	-d	Decompress" \
      "\n	-F	Don't store or verify checksum" \
      "\n	-C	Also write checksum of compressed block" \
-     "\n	-1..9	Compression level" \
 
 #define lzopcat_trivial_usage \
        "[-vCF] [FILE]..."
@@ -235,7 +236,8 @@
 #define unlzop_trivial_usage \
        "[-cfvCF] [FILE]..."
 #define unlzop_full_usage "\n\n" \
-       "	-c	Write to stdout" \
+       "Options:" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
      "\n	-v	Verbose" \
      "\n	-F	Don't store or verify checksum" \
@@ -243,20 +245,29 @@
 #define bzcat_trivial_usage \
        "FILE"
 #define bzcat_full_usage "\n\n" \
-       "Uncompress to stdout"
+       "Decompress to stdout"
 
 #define unlzma_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define unlzma_full_usage "\n\n" \
-       "Uncompress FILE (or stdin)\n" \
+       "Decompress FILE (or stdin)\n" \
      "\nOptions:" \
      "\n	-c	Write to stdout" \
      "\n	-f	Force" \
 
-#define lzmacat_trivial_usage \
+#define lzma_trivial_usage \
+       "-d [OPTIONS] [FILE]..."
+#define lzma_full_usage "\n\n" \
+       "Decompress FILE (or stdin)\n" \
+     "\nOptions:" \
+     "\n	-d	Decompress" \
+     "\n	-c	Write to stdout" \
+     "\n	-f	Force" \
+
+#define lzcat_trivial_usage \
        "FILE"
-#define lzmacat_full_usage "\n\n" \
-       "Uncompress to stdout"
+#define lzcat_full_usage "\n\n" \
+       "Decompress to stdout"
 
 #define cal_trivial_usage \
        "[-jy] [[MONTH] YEAR]"
@@ -267,11 +278,9 @@
      "\n	-y	Display the entire year" \
 
 #define cat_trivial_usage \
-       "[-u] [FILE]..."
+       "[FILE]..."
 #define cat_full_usage "\n\n" \
-       "Concatenate FILEs and print them to stdout\n" \
-     "\nOptions:" \
-     "\n	-u	Use unbuffered i/o (ignored)" \
+       "Concatenate FILEs and print them to stdout" \
 
 #define cat_example_usage \
        "$ cat /proc/uptime\n" \
@@ -1610,7 +1619,7 @@
 #define gunzip_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define gunzip_full_usage "\n\n" \
-       "Uncompress FILEs (or stdin)\n" \
+       "Decompress FILEs (or stdin)\n" \
      "\nOptions:" \
      "\n	-c	Write to stdout" \
      "\n	-f	Force" \
@@ -1628,8 +1637,8 @@
 #define gzip_full_usage "\n\n" \
        "Compress FILEs (or stdin)\n" \
      "\nOptions:" \
-     "\n	-c	Write to stdout" \
      "\n	-d	Decompress" \
+     "\n	-c	Write to stdout" \
      "\n	-f	Force" \
 
 #define gzip_example_usage \
@@ -4977,7 +4986,7 @@
 #define uncompress_trivial_usage \
        "[-cf] [FILE]..."
 #define uncompress_full_usage "\n\n" \
-       "Uncompress .Z file[s]\n" \
+       "Decompress .Z file[s]\n" \
      "\nOptions:" \
      "\n	-c	Extract to stdout" \
      "\n	-f	Overwrite an existing file" \
@@ -5224,7 +5233,7 @@
 #define zcat_trivial_usage \
        "FILE"
 #define zcat_full_usage "\n\n" \
-       "Uncompress to stdout"
+       "Decompress to stdout"
 
 #define zcip_trivial_usage \
        "[OPTIONS] IFACE SCRIPT"

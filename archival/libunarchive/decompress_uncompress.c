@@ -229,7 +229,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 						("insize:%d posbits:%d inbuf:%02X %02X %02X %02X %02X (%d)",
 						 insize, posbits, p[-1], p[0], p[1], p[2], p[3],
 						 (posbits & 07));
-					bb_error_msg("uncompress: corrupt input");
+					bb_error_msg("corrupted data");
 					goto err;
 				}
 
