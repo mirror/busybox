@@ -569,7 +569,7 @@
      "\n	-L	Follow all symlinks" \
      "\n	-H	Follow symlinks on command line" \
      "\n	-p	Preserve file attributes if possible" \
-     "\n	-f	Force overwrite" \
+     "\n	-f	Overwrite" \
      "\n	-i	Prompt before overwrite" \
      "\n	-l,-s	Create (sym)links" \
 
@@ -4988,8 +4988,8 @@
 #define uncompress_full_usage "\n\n" \
        "Decompress .Z file[s]\n" \
      "\nOptions:" \
-     "\n	-c	Extract to stdout" \
-     "\n	-f	Overwrite an existing file" \
+     "\n	-c	Write to stdout" \
+     "\n	-f	Overwrite" \
 
 #define unexpand_trivial_usage \
        "[-fa][-t N] [FILE]..."
@@ -5031,8 +5031,8 @@
        "Extract files from ZIP archives\n" \
      "\nOptions:" \
      "\n	-l	List archive contents (with -q for short form)" \
-     "\n	-n	Never overwrite existing files (default)" \
-     "\n	-o	Overwrite files without prompting" \
+     "\n	-n	Never overwrite files (default)" \
+     "\n	-o	Overwrite" \
      "\n	-p	Send output to stdout" \
      "\n	-q	Quiet" \
      "\n	-x XLST	Exclude these files" \
