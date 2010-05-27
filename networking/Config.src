@@ -43,7 +43,6 @@ config FEATURE_PREFER_IPV4_ADDRESS
 config VERBOSE_RESOLUTION_ERRORS
 	bool "Verbose resolution errors"
 	default n
-	depends on PLATFORM_LINUX #because of xsocket() in libbb/xfuncs_prinf.c
 	help
 	  Enable if you are not satisfied with simplistic
 	  "can't resolve 'hostname.com'" and want to know more.
