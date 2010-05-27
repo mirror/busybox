@@ -264,7 +264,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	while (1) {
 		/* flush away any type-ahead (as getty does) */
-		ioctl(0, TCFLSH, TCIFLUSH);
+		tcflush(0, TCIFLUSH);
 
 		if (!username[0])
 			get_username_or_die(username, sizeof(username));

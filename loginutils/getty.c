@@ -282,10 +282,8 @@ static void termios_init(struct termios *tp, int speed, struct options *op)
 	 * reads will be done in raw mode anyway. Errors will be dealt with
 	 * later on.
 	 */
-#ifdef __linux__
 	/* flush input and output queues, important for modems! */
-	ioctl(0, TCFLSH, TCIOFLUSH); /* tcflush(0, TCIOFLUSH)? - same */
-#endif
+	tcflush(0, TCIOFLUSH);
 	ispeed = ospeed = speed;
 	if (speed == B0) {
 		/* Speed was specified as "0" on command line.
@@ -299,10 +297,13 @@ static void termios_init(struct termios *tp, int speed, struct options *op)
 	cfsetispeed(tp, ispeed);
 	cfsetospeed(tp, ospeed);
 
-	tp->c_iflag = tp->c_lflag = tp->c_line = 0;
+	tp->c_iflag = tp->c_lflag = 0;
 	tp->c_oflag = OPOST | ONLCR;
 	tp->c_cc[VMIN] = 1;
 	tp->c_cc[VTIME] = 0;
+#ifdef __linux__
+	tp->c_line = 0;
+#endif
 
 	/* Optionally enable hardware flow control */
 #ifdef CRTSCTS
@@ -360,10 +361,8 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 		for (bp = buf; bp < buf + nread; bp++) {
 			if (isdigit(*bp)) {
 				speed = bcode(bp);
-				if (speed > 0) {
-					tp->c_cflag &= ~CBAUD;
-					tp->c_cflag |= speed;
-				}
+				if (speed > 0)
+					cfsetspeed(tp, speed);
 				break;
 			}
 		}
@@ -417,7 +416,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 
 	/* Flush pending input (esp. after parsing or switching the baud rate). */
 	sleep(1);
-	ioctl(0, TCFLSH, TCIFLUSH); /* tcflush(0, TCIOFLUSH)? - same */
+	tcflush(0, TCIOFLUSH);
 
 	/* Prompt for and read a login name. */
 	logname[0] = '\0';
@@ -526,7 +525,9 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 	tp->c_cc[VQUIT] = DEF_QUIT;     /* default quit */
 	tp->c_cc[VEOF] = DEF_EOF;       /* default EOF character */
 	tp->c_cc[VEOL] = DEF_EOL;
+#ifdef VSWTC
 	tp->c_cc[VSWTC] = DEF_SWITCH;   /* default switch character */
+#endif
 
 	/* Account for special characters seen in input. */
 	if (cp->eol == CR) {
@@ -572,8 +573,8 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 #endif
 
 	/* Finally, make the new settings effective */
-	/* It's tcsetattr_stdin_TCSANOW() + error check */
-	ioctl_or_perror_and_die(0, TCSETS, tp, "%s: TCSETS", op->tty);
+	if (tcsetattr_stdin_TCSANOW(tp) < 0)
+		bb_perror_msg_and_die("%s: tcsetattr", op->tty);
 }
 
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -650,8 +651,8 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * by patching the SunOS kernel variable "zsadtrlow" to a larger value;
 	 * 5 seconds seems to be a good value.
 	 */
-	/* tcgetattr() + error check */
-	ioctl_or_perror_and_die(0, TCGETS, &termios, "%s: TCGETS", options.tty);
+	if (tcgetattr(0, &termios) < 0)
+		bb_perror_msg_and_die("%s: tcgetattr", options.tty);
 
 	pid = getpid();
 #ifdef __linux__

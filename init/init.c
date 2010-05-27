@@ -14,11 +14,19 @@
 #include <paths.h>
 #include <sys/reboot.h>
 #include <sys/resource.h>
+#ifdef __linux__
 #include <linux/vt.h>
+#endif
 #if ENABLE_FEATURE_UTMP
 # include <utmp.h> /* DEAD_PROCESS */
 #endif
 
+/* Used only for sanitizing purposes in set_sane_term() below. On systems where
+ * the baud rate is stored in a separate field, we can safely disable them. */
+#ifndef CBAUD
+# define CBAUD 0
+# define CBAUDEX 0
+#endif
 
 /* Was a CONFIG_xxx option. A lot of people were building
  * not fully functional init by switching it on! */
@@ -166,7 +174,9 @@ static void message(int where, const char *fmt, ...)
 
 static void console_init(void)
 {
+#ifdef VT_OPENQRY
 	int vtno;
+#endif
 	char *s;
 
 	s = getenv("CONSOLE");
@@ -190,6 +200,7 @@ static void console_init(void)
 	}
 
 	s = getenv("TERM");
+#ifdef VT_OPENQRY
 	if (ioctl(STDIN_FILENO, VT_OPENQRY, &vtno) != 0) {
 		/* Not a linux terminal, probably serial console.
 		 * Force the TERM setting to vt102
@@ -198,7 +209,9 @@ static void console_init(void)
 			putenv((char*)"TERM=vt102");
 		if (!ENABLE_FEATURE_INIT_SYSLOG)
 			log_console = NULL;
-	} else if (!s)
+	} else
+#endif
+	if (!s)
 		putenv((char*)"TERM=linux");
 }
 
@@ -220,8 +233,10 @@ static void set_sane_term(void)
 	tty.c_cc[VSTOP] = 19;	/* C-s */
 	tty.c_cc[VSUSP] = 26;	/* C-z */
 
+#ifdef __linux__
 	/* use line discipline 0 */
 	tty.c_line = 0;
+#endif
 
 	/* Make it be sane */
 	tty.c_cflag &= CBAUD | CBAUDEX | CSIZE | CSTOPB | PARENB | PARODD;
