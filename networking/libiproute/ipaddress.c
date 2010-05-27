@@ -169,7 +169,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 			"UNKNOWN\0""NOTPRESENT\0""DOWN\0""LOWERLAYERDOWN\0"
 			"TESTING\0""DORMANT\0""UP\0";
 		printf("state %s ", nth_string(operstate_labels,
-					*(__u8 *)RTA_DATA(tb[IFLA_OPERSTATE])));
+					*(uint8_t *)RTA_DATA(tb[IFLA_OPERSTATE])));
 	}
 	if (G_filter.showqueue)
 		print_queuelen((char*)RTA_DATA(tb[IFLA_IFNAME]));
