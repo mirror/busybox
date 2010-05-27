@@ -8,10 +8,11 @@ cd -- "$2" || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 srctree="$1"
 
 find -type d | while read -r d; do
+	d="${d#./}"
 	src="$srctree/$d/Kbuild.src"
 	dst="$d/Kbuild"
 	if test -f "$src"; then
-		echo "  CHK     $dst"
+		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//kbuild:@@p' -- "$srctree/$d"/*.c`
 		echo "# DO NOT EDIT. This file is generated from Kbuild.src" >"$dst.$$.tmp"
@@ -36,7 +37,7 @@ find -type d | while read -r d; do
 	src="$srctree/$d/Config.src"
 	dst="$d/Config.in"
 	if test -f "$src"; then
-		echo "  CHK     $dst"
+		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//config:@@p' -- "$srctree/$d"/*.c`
 		echo "# DO NOT EDIT. This file is generated from Config.src" >"$dst.$$.tmp"
