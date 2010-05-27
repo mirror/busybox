@@ -333,7 +333,7 @@ IF_DESKTOP(long long) int unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
-	int opts = getopt32(argv, "cfvdt");
+	IF_FEATURE_LZMA_ALIAS(int opts =) getopt32(argv, "cfvdt");
 # if ENABLE_FEATURE_LZMA_ALIAS
 	/* lzma without -d or -t? */
 	if (applet_name[2] == 'm' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
