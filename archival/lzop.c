@@ -475,7 +475,7 @@ lzo_crc32(uint32_t c, const uint8_t* buf, unsigned len)
 
 	crc = ~c;
 	if (len != 0) do {
-	crc = G.lzo_crc32_table[((int)crc ^ *buf) & 0xff] ^ (crc >> 8);
+		crc = G.lzo_crc32_table[(uint8_t)((int)crc ^ *buf)] ^ (crc >> 8);
 		buf += 1;
 		len -= 1;
 	} while (len > 0);
