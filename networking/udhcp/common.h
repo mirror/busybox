@@ -280,13 +280,13 @@ void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
 int udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd) FAST_FUNC;
 
 int udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
-		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
+		uint32_t source_nip, int source_port,
+		uint32_t dest_nip, int dest_port, const uint8_t *dest_arp,
 		int ifindex) FAST_FUNC;
 
 int udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
-		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port) FAST_FUNC;
+		uint32_t source_nip, int source_port,
+		uint32_t dest_nip, int dest_port) FAST_FUNC;
 
 void udhcp_sp_setup(void) FAST_FUNC;
 int udhcp_sp_fd_set(fd_set *rfds, int extra_fd) FAST_FUNC;
