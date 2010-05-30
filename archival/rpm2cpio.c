@@ -68,22 +68,35 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 #else
 	/* BLOAT */
 	{
-		unsigned char magic[2];
+		unsigned char magic[8];
 		IF_DESKTOP(long long) int FAST_FUNC (*unpack)(int src_fd, int dst_fd);
 
 		xread(rpm_fd, &magic, 2);
-		unpack = unpack_gz_stream;
-		if (magic[0] != 0x1f || magic[1] != 0x8b) {
-			if (!ENABLE_FEATURE_SEAMLESS_BZ2
-			 || magic[0] != 'B' || magic[1] != 'Z'
-			) {
-				bb_error_msg_and_die("invalid gzip"
-						IF_FEATURE_SEAMLESS_BZ2("/bzip2")
-						" magic");
-			}
+		if (magic[0] == 0x1f && magic[1] == 0x8b) {
+			unpack = unpack_gz_stream;
+		} else
+		if (ENABLE_FEATURE_SEAMLESS_BZ2
+		 && magic[0] == 'B' && magic[1] == 'Z'
+		) {
 			unpack = unpack_bz2_stream;
+		} else
+		if (ENABLE_FEATURE_SEAMLESS_XZ
+		 && magic[0] == 0xfd && magic[1] == '7'
+		) {
+			/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
+			/* More info at: http://tukaani.org/xz/xz-file-format.txt */
+			xread(rpm_fd, magic + 2, 4);
+			if (strcmp((char*)magic + 2, "zXZ") != 0)
+				goto no_magic;
+			xlseek(rpm_fd, -6, SEEK_CUR);
+			unpack = unpack_xz_stream;
+		} else {
+ no_magic:
+			bb_error_msg_and_die("no gzip"
+					IF_FEATURE_SEAMLESS_BZ2("/bzip2")
+					IF_FEATURE_SEAMLESS_XZ("/xz")
+					" magic");
 		}
-
 		if (unpack(rpm_fd, STDOUT_FILENO) < 0)
 			bb_error_msg_and_die("error unpacking");
 	}
