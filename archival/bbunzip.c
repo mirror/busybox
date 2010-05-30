@@ -387,3 +387,36 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 }
 
 #endif
+
+#if ENABLE_UNXZ
+
+static
+char* make_new_name_unxz(char *filename)
+{
+	return make_new_name_generic(filename, "xz");
+}
+
+static
+IF_DESKTOP(long long) int unpack_unxz(unpack_info_t *info UNUSED_PARAM)
+{
+	return unpack_xz_stream_stdin();
+}
+
+int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int unxz_main(int argc UNUSED_PARAM, char **argv)
+{
+	int opts = getopt32(argv, "cfvdt");
+# if ENABLE_XZ
+	/* xz without -d or -t? */
+	if (applet_name[2] == '\0' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
+		bb_show_usage();
+# endif
+	/* xzcat? */
+	if (applet_name[2] == 'c')
+		option_mask32 |= OPT_STDOUT;
+
+	argv += optind;
+	return bbunpack(argv, make_new_name_unxz, unpack_unxz);
+}
+
+#endif

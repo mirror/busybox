@@ -143,6 +143,7 @@ typedef struct inflate_unzip_result {
 } inflate_unzip_result;
 
 IF_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_xz_stream_stdin(void) FAST_FUNC;
 /* lzma unpacker takes .lzma stream from offset 0 */
 IF_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
 /* the rest wants 2 first bytes already skipped by the caller */

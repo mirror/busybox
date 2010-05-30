@@ -49,6 +49,7 @@ lib-$(CONFIG_FEATURE_SEAMLESS_Z)        += open_transformer.o decompress_uncompr
 lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_unzip.o get_header_tar_gz.o
 lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o get_header_tar_bz2.o
 lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o get_header_tar_lzma.o
+lib-$(CONFIG_FEATURE_SEAMLESS_XZ)       += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += decompress_bunzip2.o
 
 ifneq ($(lib-y),)

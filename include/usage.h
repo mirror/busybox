@@ -269,6 +269,28 @@
 #define lzcat_full_usage "\n\n" \
        "Decompress to stdout"
 
+#define unxz_trivial_usage \
+       "[OPTIONS] [FILE]..."
+#define unxz_full_usage "\n\n" \
+       "Decompress FILE (or stdin)\n" \
+     "\nOptions:" \
+     "\n	-c	Write to stdout" \
+     "\n	-f	Force" \
+
+#define xz_trivial_usage \
+       "-d [OPTIONS] [FILE]..."
+#define xz_full_usage "\n\n" \
+       "Decompress FILE (or stdin)\n" \
+     "\nOptions:" \
+     "\n	-d	Decompress" \
+     "\n	-c	Write to stdout" \
+     "\n	-f	Force" \
+
+#define xzcat_trivial_usage \
+       "FILE"
+#define xzcat_full_usage "\n\n" \
+       "Decompress to stdout"
+
 #define cal_trivial_usage \
        "[-jy] [[MONTH] YEAR]"
 #define cal_full_usage "\n\n" \

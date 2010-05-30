@@ -5,6 +5,12 @@
 
 menu "Archival Utilities"
 
+config FEATURE_SEAMLESS_XZ
+	bool "Make tar, rpm, modprobe etc understand .xz data"
+	default n
+	help
+	  Make tar, rpm, modprobe etc understand .xz data.
+
 config FEATURE_SEAMLESS_LZMA
 	bool "Make tar, rpm, modprobe etc understand .lzma data"
 	default n
@@ -225,7 +231,7 @@ config FEATURE_TAR_CREATE
 config FEATURE_TAR_AUTODETECT
 	bool "Autodetect compressed tarballs"
 	default n
-	depends on TAR && (FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA)
+	depends on TAR && (FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA || FEATURE_SEAMLESS_XZ)
 	help
 	  With this option tar can automatically detect compressed
 	  tarballs. Currently it works only on files (not pipes etc).
@@ -334,6 +340,20 @@ config LZMA
 	help
 	  Enable this option if you want commands like "lzma -d" to work.
 	  IOW: you'll get lzma applet, but it will always require -d option.
+
+config UNXZ
+	bool "unxz"
+	default n
+	help
+	  unxz is a unlzma successor.
+
+config XZ
+	bool "Provide xz alias which supports only unpacking"
+	default n
+	depends on UNXZ
+	help
+	  Enable this option if you want commands like "xz -d" to work.
+	  IOW: you'll get xz applet, but it will always require -d option.
 
 config UNZIP
 	bool "unzip"
