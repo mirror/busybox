@@ -4,7 +4,6 @@
  *
  *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 #include "unarchive.h"
 
@@ -141,8 +140,7 @@ int FAST_FUNC bbunpack(char **argv,
 	return exitcode;
 }
 
-#if ENABLE_BUNZIP2 || ENABLE_UNLZMA || ENABLE_UNCOMPRESS
-
+#if ENABLE_UNCOMPRESS || ENABLE_BUNZIP2 || ENABLE_UNLZMA || ENABLE_UNXZ
 static
 char* make_new_name_generic(char *filename, const char *expected_ext)
 {
@@ -155,42 +153,40 @@ char* make_new_name_generic(char *filename, const char *expected_ext)
 	*extension = '\0';
 	return filename;
 }
-
 #endif
 
 
 /*
- *  Modified for busybox by Glenn McGrath
- *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
+ * Uncompress applet for busybox (c) 2002 Glenn McGrath
  *
- *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
-#if ENABLE_BUNZIP2
-
+#if ENABLE_UNCOMPRESS
 static
-char* make_new_name_bunzip2(char *filename)
+char* make_new_name_uncompress(char *filename)
 {
-	return make_new_name_generic(filename, "bz2");
+	return make_new_name_generic(filename, "Z");
 }
-
 static
-IF_DESKTOP(long long) int unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
 {
-	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
-}
+	IF_DESKTOP(long long) int status = -1;
 
-int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int bunzip2_main(int argc UNUSED_PARAM, char **argv)
+	if ((xread_char(STDIN_FILENO) != 0x1f) || (xread_char(STDIN_FILENO) != 0x9d)) {
+		bb_error_msg("invalid magic");
+	} else {
+		status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
+	}
+	return status;
+}
+int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int uncompress_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "cfvdt");
+	getopt32(argv, "cf");
 	argv += optind;
-	if (applet_name[2] == 'c')
-		option_mask32 |= OPT_STDOUT;
 
-	return bbunpack(argv, make_new_name_bunzip2, unpack_bunzip2);
+	return bbunpack(argv, make_new_name_uncompress, unpack_uncompress);
 }
-
 #endif
 
 
@@ -221,9 +217,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
  * See the license_msg below and the file COPYING for the software license.
  * See the file algorithm.doc for the compression algorithms and file formats.
  */
-
 #if ENABLE_GUNZIP
-
 static
 char* make_new_name_gunzip(char *filename)
 {
@@ -249,7 +243,6 @@ char* make_new_name_gunzip(char *filename)
 	}
 	return filename;
 }
-
 static
 IF_DESKTOP(long long) int unpack_gunzip(unpack_info_t *info)
 {
@@ -277,7 +270,6 @@ IF_DESKTOP(long long) int unpack_gunzip(unpack_info_t *info)
 	}
 	return status;
 }
-
 /*
  * Linux kernel build uses gzip -d -n. We accept and ignore it.
  * Man page says:
@@ -291,7 +283,6 @@ IF_DESKTOP(long long) int unpack_gunzip(unpack_info_t *info)
  * gzip: always save the original file name and time stamp (this is the default)
  * gunzip: restore the original file name and time stamp if present.
  */
-
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int gunzip_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -303,7 +294,36 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 
 	return bbunpack(argv, make_new_name_gunzip, unpack_gunzip);
 }
+#endif
 
+
+/*
+ * Modified for busybox by Glenn McGrath
+ * Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
+#if ENABLE_BUNZIP2
+static
+char* make_new_name_bunzip2(char *filename)
+{
+	return make_new_name_generic(filename, "bz2");
+}
+static
+IF_DESKTOP(long long) int unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
+{
+	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
+}
+int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int bunzip2_main(int argc UNUSED_PARAM, char **argv)
+{
+	getopt32(argv, "cfvdt");
+	argv += optind;
+	if (applet_name[2] == 'c') /* bzcat */
+		option_mask32 |= OPT_STDOUT;
+
+	return bbunpack(argv, make_new_name_bunzip2, unpack_bunzip2);
+}
 #endif
 
 
@@ -315,21 +335,17 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  *
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  */
-
 #if ENABLE_UNLZMA
-
 static
 char* make_new_name_unlzma(char *filename)
 {
 	return make_new_name_generic(filename, "lzma");
 }
-
 static
 IF_DESKTOP(long long) int unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_lzma_stream(STDIN_FILENO, STDOUT_FILENO);
 }
-
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -346,62 +362,20 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 	return bbunpack(argv, make_new_name_unlzma, unpack_unlzma);
 }
-
 #endif
 
-
-/*
- * Uncompress applet for busybox (c) 2002 Glenn McGrath
- *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- */
-
-#if ENABLE_UNCOMPRESS
-
-static
-char* make_new_name_uncompress(char *filename)
-{
-	return make_new_name_generic(filename, "Z");
-}
-
-static
-IF_DESKTOP(long long) int unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
-{
-	IF_DESKTOP(long long) int status = -1;
-
-	if ((xread_char(STDIN_FILENO) != 0x1f) || (xread_char(STDIN_FILENO) != 0x9d)) {
-		bb_error_msg("invalid magic");
-	} else {
-		status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
-	}
-	return status;
-}
-
-int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int uncompress_main(int argc UNUSED_PARAM, char **argv)
-{
-	getopt32(argv, "cf");
-	argv += optind;
-
-	return bbunpack(argv, make_new_name_uncompress, unpack_uncompress);
-}
-
-#endif
 
 #if ENABLE_UNXZ
-
 static
 char* make_new_name_unxz(char *filename)
 {
 	return make_new_name_generic(filename, "xz");
 }
-
 static
 IF_DESKTOP(long long) int unpack_unxz(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_xz_stream_stdin();
 }
-
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -418,5 +392,4 @@ int unxz_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 	return bbunpack(argv, make_new_name_unxz, unpack_unxz);
 }
-
 #endif
