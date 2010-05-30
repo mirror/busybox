@@ -194,14 +194,6 @@
      "\n	stp BRIDGE [1/yes/on|0/no/off]	STP on/off" \
 	) \
 
-#define bunzip2_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define bunzip2_full_usage "\n\n" \
-       "Decompress FILEs (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
 #define bzip2_trivial_usage \
        "[OPTIONS] [FILE]..."
 #define bzip2_full_usage "\n\n" \
@@ -241,6 +233,14 @@
      "\n	-f	Force" \
      "\n	-v	Verbose" \
      "\n	-F	Don't store or verify checksum" \
+
+#define bunzip2_trivial_usage \
+       "[OPTIONS] [FILE]..."
+#define bunzip2_full_usage "\n\n" \
+       "Decompress FILEs (or stdin)\n" \
+     "\nOptions:" \
+     "\n	-c	Write to stdout" \
+     "\n	-f	Force" \
 
 #define bzcat_trivial_usage \
        "FILE"

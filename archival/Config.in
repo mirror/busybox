@@ -327,7 +327,7 @@ config FEATURE_LZMA_FAST
 	  This option reduces decompression time by about 25% at the cost of
 	  a 1K bigger binary.
 
-config FEATURE_LZMA_ALIAS
+config LZMA
 	bool "Provide lzma alias which supports only unpacking"
 	default n
 	depends on UNLZMA
