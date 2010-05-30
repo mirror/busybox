@@ -656,7 +656,7 @@ extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST
  || ENABLE_FEATURE_SEAMLESS_BZ2 \
  || ENABLE_FEATURE_SEAMLESS_GZ \
  /* || ENABLE_FEATURE_SEAMLESS_Z */
-extern int setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/) FAST_FUNC;
+extern void setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/) FAST_FUNC;
 #else
 # define setup_unzip_on_fd(...) ((void)0)
 #endif

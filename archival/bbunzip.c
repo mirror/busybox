@@ -374,7 +374,7 @@ char* make_new_name_unxz(char *filename)
 static
 IF_DESKTOP(long long) int unpack_unxz(unpack_info_t *info UNUSED_PARAM)
 {
-	return unpack_xz_stream_stdin();
+	return unpack_xz_stream(STDIN_FILENO, STDOUT_FILENO);
 }
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)

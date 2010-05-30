@@ -305,22 +305,26 @@ void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p)
 	return buf;
 }
 
+/* Used by e.g. rpm which gives us a fd without filename,
+ * thus we can't guess the format from filename's extension.
+ */
 #if ZIPPED
-int FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
+void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 {
 	const int fail_if_not_detected = 1;
-	unsigned char magic[2];
-#if BB_MMU
+	unsigned char magic[8];
+	int offset = -2;
+# if BB_MMU
 	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
 	enum { xformer_prog = 0 };
-#else
+# else
 	enum { xformer = 0 };
 	const char *xformer_prog;
-#endif
+# endif
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
-	xread(fd, &magic, 2);
+	xread(fd, magic, 2);
 	if (ENABLE_FEATURE_SEAMLESS_GZ
 	 && magic[0] == 0x1f && magic[1] == 0x8b
 	) {
@@ -341,28 +345,41 @@ int FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 # endif
 		goto found_magic;
 	}
-// TODO: xz format support. rpm adopted it, "rpm -i FILE.rpm" badly needs this.
-// Signature: 0xFD, '7', 'z', 'X', 'Z', 0x00
-// More info at: http://tukaani.org/xz/xz-file-format.txt
+	if (ENABLE_FEATURE_SEAMLESS_XZ
+	 && magic[0] == 0xfd && magic[1] == '7'
+	) {
+		/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
+		/* More info at: http://tukaani.org/xz/xz-file-format.txt */
+		offset = -6;
+		xread(fd, magic + 2, 4);
+		if (strcmp((char*)magic + 2, "zXZ") == 0) {
+# if BB_MMU
+			xformer = unpack_xz_stream;
+# else
+			xformer_prog = "unxz";
+# endif
+			xlseek(fd, offset, SEEK_CUR);
+			goto found_magic;
+		}
+	}
 
 	/* No known magic seen */
 	if (fail_if_not_detected)
 		bb_error_msg_and_die("no gzip"
 			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
+			IF_FEATURE_SEAMLESS_XZ("/xz")
 			" magic");
-	xlseek(fd, -2, SEEK_CUR);
-	return fd;
+	xlseek(fd, offset, SEEK_CUR);
+	return;
 
  found_magic:
 # if !BB_MMU
 	/* NOMMU version of open_transformer execs
 	 * an external unzipper that wants
 	 * file position at the start of the file */
-	xlseek(fd, -2, SEEK_CUR);
+	xlseek(fd, offset, SEEK_CUR);
 # endif
 	open_transformer(fd, xformer, xformer_prog);
-
-	return fd;
 }
 #endif /* ZIPPED */
 
@@ -380,12 +397,14 @@ int FAST_FUNC open_zipped(const char *fname)
 
 	sfx = strrchr(fname, '.');
 	if (sfx) {
-		if (ENABLE_FEATURE_SEAMLESS_LZMA && strcmp(sfx, ".lzma") == 0)
+		sfx++;
+		if (ENABLE_FEATURE_SEAMLESS_LZMA && strcmp(sfx, "lzma") == 0)
 			/* .lzma has no header/signature, just trust it */
 			open_transformer(fd, unpack_lzma_stream, "unlzma");
 		else
-		if ((ENABLE_FEATURE_SEAMLESS_GZ && strcmp(sfx, ".gz") == 0)
-		 || (ENABLE_FEATURE_SEAMLESS_BZ2 && strcmp(sfx, ".bz2") == 0)
+		if ((ENABLE_FEATURE_SEAMLESS_GZ && strcmp(sfx, "gz") == 0)
+		 || (ENABLE_FEATURE_SEAMLESS_BZ2 && strcmp(sfx, "bz2") == 0)
+		 || (ENABLE_FEATURE_SEAMLESS_XZ && strcmp(sfx, "xz") == 0)
 		) {
 			setup_unzip_on_fd(fd /*, fail_if_not_detected: 1*/);
 		}

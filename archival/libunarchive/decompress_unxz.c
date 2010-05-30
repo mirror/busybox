@@ -3,7 +3,7 @@
  * by Lasse Collin <lasse.collin@tukaani.org>
  * and Igor Pavlov <http://7-zip.org/>
  *
- * See README file in unxzbz/ directory for more information.
+ * See README file in unxz/ directory for more information.
  *
  * This file is:
  * Copyright (C) 2010 Denys Vlasenko <vda.linux@googlemail.com>
@@ -48,7 +48,7 @@ static uint32_t xz_crc32(uint32_t *crc32_table,
 #include "unxz/xz_stream.h"
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_xz_stream_stdin(void)
+unpack_xz_stream(int src_fd, int dst_fd)
 {
 	struct xz_buf iobuf;
 	struct xz_dec *state;
@@ -79,7 +79,7 @@ unpack_xz_stream_stdin(void)
 		iobuf.in_pos = 0;
 		rd = IN_SIZE - insz;
 		if (rd) {
-			rd = safe_read(STDIN_FILENO, membuf + insz, rd);
+			rd = safe_read(src_fd, membuf + insz, rd);
 			if (rd < 0) {
 				bb_error_msg("read error");
 				total = -1;
@@ -94,10 +94,11 @@ unpack_xz_stream_stdin(void)
 //				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size, r);
 		outpos = iobuf.out_pos;
 		if (outpos) {
-			xwrite(STDOUT_FILENO, iobuf.out, outpos);
+			xwrite(dst_fd, iobuf.out, outpos);
 			IF_DESKTOP(total += outpos;)
 		}
 		if (r == XZ_STREAM_END
+		/* this happens even with well-formed files: */
 		 || (r == XZ_BUF_ERROR && insz == 0 && outpos == 0)
 		) {
 			break;
