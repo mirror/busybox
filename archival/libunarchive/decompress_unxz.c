@@ -12,7 +12,6 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-//#define XZ_DEBUG_MSG(...) bb_error_msg(__VA_ARGS)
 #define XZ_REALLOC_DICT_BUF(ptr, size) xrealloc(ptr, size)
 #define XZ_FUNC FAST_FUNC
 #define XZ_EXTERN static

@@ -365,16 +365,14 @@ static enum xz_ret XZ_FUNC dec_stream_header(struct xz_dec *s)
 	/*
 	 * Decode the Stream Flags field. Of integrity checks, we support
 	 * only none (Check ID = 0) and CRC32 (Check ID = 1).
+	 * We also accept CRC64 and SHA-256, but they will not be verified.
 	 */
 	if (s->temp.buf[HEADER_MAGIC_SIZE] != 0
-	 || (s->temp.buf[HEADER_MAGIC_SIZE + 1] > 1
-	     && s->temp.buf[HEADER_MAGIC_SIZE + 1] != 0x04
-	     && s->temp.buf[HEADER_MAGIC_SIZE + 1] != 0x0A
-	    )
+			|| (s->temp.buf[HEADER_MAGIC_SIZE + 1] > 1
+			    && s->temp.buf[HEADER_MAGIC_SIZE + 1] != 0x04 /* CRC64 */
+			    && s->temp.buf[HEADER_MAGIC_SIZE + 1] != 0x0A /* SHA-256 */
+			)
 	) {
-		XZ_DEBUG_MSG("unsupported stream flags %x:%x",
-			s->temp.buf[HEADER_MAGIC_SIZE],
-			s->temp.buf[HEADER_MAGIC_SIZE+1]);
 		return XZ_OPTIONS_ERROR;
 	}
 
@@ -435,10 +433,7 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 #else
 	if (s->temp.buf[1] & 0x3F)
 #endif
-	{
-		XZ_DEBUG_MSG("s->temp.buf[1] & 0x3E/3F != 0");
 		return XZ_OPTIONS_ERROR;
-	}
 
 	/* Compressed Size */
 	if (s->temp.buf[1] & 0x40) {
@@ -466,10 +461,8 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 	/* If there are two filters, the first one must be a BCJ filter. */
 	s->bcj_active = s->temp.buf[1] & 0x01;
 	if (s->bcj_active) {
-		if (s->temp.size - s->temp.pos < 2) {
-			XZ_DEBUG_MSG("temp.size - temp.pos < 2");
+		if (s->temp.size - s->temp.pos < 2)
 			return XZ_OPTIONS_ERROR;
-		}
 
 		ret = xz_dec_bcj_reset(s->bcj, s->temp.buf[s->temp.pos++]);
 		if (ret != XZ_OK)
@@ -479,10 +472,8 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 		 * We don't support custom start offset,
 		 * so Size of Properties must be zero.
 		 */
-		if (s->temp.buf[s->temp.pos++] != 0x00) {
-			XZ_DEBUG_MSG("size of properties != 0");
+		if (s->temp.buf[s->temp.pos++] != 0x00)
 			return XZ_OPTIONS_ERROR;
-		}
 	}
 #endif
 
@@ -491,16 +482,12 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 		return XZ_DATA_ERROR;
 
 	/* Filter ID = LZMA2 */
-	if (s->temp.buf[s->temp.pos++] != 0x21) {
-		XZ_DEBUG_MSG("filter ID != 0x21");
+	if (s->temp.buf[s->temp.pos++] != 0x21)
 		return XZ_OPTIONS_ERROR;
-	}
 
 	/* Size of Properties = 1-byte Filter Properties */
-	if (s->temp.buf[s->temp.pos++] != 0x01) {
-		XZ_DEBUG_MSG("size of properties != 1");
+	if (s->temp.buf[s->temp.pos++] != 0x01)
 		return XZ_OPTIONS_ERROR;
-	}
 
 	/* Filter Properties contains LZMA2 dictionary size. */
 	if (s->temp.size - s->temp.pos < 1)
@@ -512,10 +499,8 @@ static enum xz_ret XZ_FUNC dec_block_header(struct xz_dec *s)
 
 	/* The rest must be Header Padding. */
 	while (s->temp.pos < s->temp.size)
-		if (s->temp.buf[s->temp.pos++] != 0x00) {
-			XZ_DEBUG_MSG("padding is not zero-filled");
+		if (s->temp.buf[s->temp.pos++] != 0x00)
 			return XZ_OPTIONS_ERROR;
-		}
 
 	s->temp.pos = 0;
 	s->block.compressed = 0;

@@ -19,10 +19,6 @@
 #	include <stdint.h>
 #endif
 
-#ifndef XZ_DEBUG_MSG
-#	define XZ_DEBUG_MSG(...) ((void)0)
-#endif
-
 /* In Linux, this is used to make extern functions static when needed. */
 #ifndef XZ_EXTERN
 #	define XZ_EXTERN extern

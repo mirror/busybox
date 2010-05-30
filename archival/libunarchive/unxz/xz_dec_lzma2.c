@@ -1117,10 +1117,8 @@ XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_lzma2_reset(
 		struct xz_dec_lzma2 *s, uint8_t props)
 {
 	/* This limits dictionary size to 3 GiB to keep parsing simpler. */
-	if (props > 39) {
-		XZ_DEBUG_MSG("props:%d", props);
+	if (props > 39)
 		return XZ_OPTIONS_ERROR;
-	}
 
 	s->dict.size = 2 + (props & 1);
 	s->dict.size <<= (props >> 1) + 11;
