@@ -176,7 +176,7 @@ unsigned FAST_FUNC udhcp_option_idx(const char *name)
 	}
 }
 
-/* get an option with bounds checking (warning, result is not aligned). */
+/* Get an option with bounds checking (warning, result is not aligned) */
 uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 {
 	uint8_t *optionptr;
@@ -240,7 +240,7 @@ uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 	return NULL;
 }
 
-/* return the position of the 'end' option (no bounds checking) */
+/* Return the position of the 'end' option (no bounds checking) */
 int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 {
 	int i = 0;

@@ -229,37 +229,41 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 /* put all the parameters into the environment */
 static char **fill_envp(struct dhcp_packet *packet)
 {
-	int num_options = 0;
+	int envc;
 	int i;
 	char **envp, **curr;
 	const char *opt_name;
 	uint8_t *temp;
-	uint8_t over = 0;
+	uint8_t overload = 0;
 
+	/* We need 6 elements for:
+	 * "interface=IFACE"
+	 * "ip=N.N.N.N" from packet->yiaddr
+	 * "siaddr=IP" from packet->siaddr_nip (unless 0)
+	 * "boot_file=FILE" from packet->file (unless overloaded)
+	 * "sname=SERVER_HOSTNAME" from packet->sname (unless overloaded)
+	 * terminating NULL
+	 */
+	envc = 6;
+	/* +1 element for each option, +2 for subnet option: */
 	if (packet) {
 		for (i = 0; dhcp_optflags[i].code; i++) {
 			if (udhcp_get_option(packet, dhcp_optflags[i].code)) {
-				num_options++;
 				if (dhcp_optflags[i].code == DHCP_SUBNET)
-					num_options++; /* for mton */
+					envc++; /* for mton */
+				envc++;
 			}
 		}
-		if (packet->siaddr_nip)
-			num_options++;
 		temp = udhcp_get_option(packet, DHCP_OPTION_OVERLOAD);
 		if (temp)
-			over = *temp;
-		if (!(over & FILE_FIELD) && packet->file[0])
-			num_options++;
-		if (!(over & SNAME_FIELD) && packet->sname[0])
-			num_options++;
+			overload = *temp;
 	}
+	curr = envp = xzalloc(sizeof(char *) * envc);
 
-	curr = envp = xzalloc(sizeof(char *) * (num_options + 3));
 	*curr = xasprintf("interface=%s", client_config.interface);
 	putenv(*curr++);
 
-	if (packet == NULL)
+	if (!packet)
 		return envp;
 
 	*curr = xmalloc(sizeof("ip=255.255.255.255"));
@@ -274,9 +278,8 @@ static char **fill_envp(struct dhcp_packet *packet)
 			goto next;
 		*curr = xmalloc_optname_optval(temp, &dhcp_optflags[i], opt_name);
 		putenv(*curr++);
-
-		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_optflags[i].code == DHCP_SUBNET) {
+			/* Subnet option: make things like "$ip/$mask" possible */
 			uint32_t subnet;
 			move_from_unaligned32(subnet, temp);
 			*curr = xasprintf("mask=%d", mton(subnet));
@@ -291,12 +294,12 @@ static char **fill_envp(struct dhcp_packet *packet)
 		sprint_nip(*curr, "siaddr=", (uint8_t *) &packet->siaddr_nip);
 		putenv(*curr++);
 	}
-	if (!(over & FILE_FIELD) && packet->file[0]) {
+	if (!(overload & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
 		*curr = xasprintf("boot_file=%."DHCP_PKT_FILE_LEN_STR"s", packet->file);
 		putenv(*curr++);
 	}
-	if (!(over & SNAME_FIELD) && packet->sname[0]) {
+	if (!(overload & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
 		*curr = xasprintf("sname=%."DHCP_PKT_SNAME_LEN_STR"s", packet->sname);
 		putenv(*curr++);

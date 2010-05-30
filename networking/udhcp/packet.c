@@ -167,20 +167,15 @@ uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
 
 /* Construct a ip/udp header for a packet, send packet */
 int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
-		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port, const uint8_t *dest_arp,
+		uint32_t source_nip, int source_port,
+		uint32_t dest_nip, int dest_port, const uint8_t *dest_arp,
 		int ifindex)
 {
-	struct sockaddr_ll dest;
+	struct sockaddr_ll dest_sll;
 	struct ip_udp_dhcp_packet packet;
 	int fd;
 	int result = -1;
 	const char *msg;
-
-	enum {
-		IP_UPD_DHCP_SIZE = sizeof(struct ip_udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
-		UPD_DHCP_SIZE    = IP_UPD_DHCP_SIZE - offsetof(struct ip_udp_dhcp_packet, udp),
-	};
 
 	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	if (fd < 0) {
@@ -188,23 +183,24 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 		goto ret_msg;
 	}
 
-	memset(&dest, 0, sizeof(dest));
-	memset(&packet, 0, sizeof(packet));
+	memset(&dest_sll, 0, sizeof(dest_sll));
+	memset(&packet, 0, offsetof(struct ip_udp_dhcp_packet, data));
 	packet.data = *dhcp_pkt; /* struct copy */
 
-	dest.sll_family = AF_PACKET;
-	dest.sll_protocol = htons(ETH_P_IP);
-	dest.sll_ifindex = ifindex;
-	dest.sll_halen = 6;
-	memcpy(dest.sll_addr, dest_arp, 6);
-	if (bind(fd, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+	dest_sll.sll_family = AF_PACKET;
+	dest_sll.sll_protocol = htons(ETH_P_IP);
+	dest_sll.sll_ifindex = ifindex;
+	dest_sll.sll_halen = 6;
+	memcpy(dest_sll.sll_addr, dest_arp, 6);
+
+	if (bind(fd, (struct sockaddr *)&dest_sll, sizeof(dest_sll)) < 0) {
 		msg = "bind(%s)";
 		goto ret_close;
 	}
 
 	packet.ip.protocol = IPPROTO_UDP;
-	packet.ip.saddr = source_ip;
-	packet.ip.daddr = dest_ip;
+	packet.ip.saddr = source_nip;
+	packet.ip.daddr = dest_nip;
 	packet.udp.source = htons(source_port);
 	packet.udp.dest = htons(dest_port);
 	/* size, excluding IP header: */
@@ -225,7 +221,7 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 	 */
 	udhcp_dump_packet(dhcp_pkt);
 	result = sendto(fd, &packet, IP_UPD_DHCP_SIZE, 0,
-				(struct sockaddr *) &dest, sizeof(dest));
+			(struct sockaddr *) &dest_sll, sizeof(dest_sll));
 	msg = "sendto";
  ret_close:
 	close(fd);
@@ -239,17 +235,13 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 
 /* Let the kernel do all the work for packet generation */
 int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
-		uint32_t source_ip, int source_port,
-		uint32_t dest_ip, int dest_port)
+		uint32_t source_nip, int source_port,
+		uint32_t dest_nip, int dest_port)
 {
 	struct sockaddr_in client;
 	int fd;
 	int result = -1;
 	const char *msg;
-
-	enum {
-		DHCP_SIZE = sizeof(struct dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
-	};
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd < 0) {
@@ -261,7 +253,7 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(source_port);
-	client.sin_addr.s_addr = source_ip;
+	client.sin_addr.s_addr = source_nip;
 	if (bind(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
 		msg = "bind(%s)";
 		goto ret_close;
@@ -270,7 +262,7 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(dest_port);
-	client.sin_addr.s_addr = dest_ip;
+	client.sin_addr.s_addr = dest_nip;
 	if (connect(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
 		msg = "connect";
 		goto ret_close;
