@@ -155,9 +155,12 @@ IF_DESKTOP(long long) int unpack_Z_stream(int src_fd, int dst_fd) FAST_FUNC;
 /* wrapper which checks first two bytes to be "BZ" */
 IF_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
 
+char* append_ext(char *filename, const char *expected_ext) FAST_FUNC;
 int bbunpack(char **argv,
-	     char* (*make_new_name)(char *filename),
-	     IF_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)) FAST_FUNC;
+	    IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(unpack_info_t *info),
+	    char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
+	    const char *expected_ext
+) FAST_FUNC;
 
 #if BB_MMU
 void open_transformer(int fd,

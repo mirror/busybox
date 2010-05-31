@@ -1042,7 +1042,7 @@ static smallint do_lzo_decompress(void)
 	return lzo_decompress(&header);
 }
 
-static char* make_new_name_lzop(char *filename)
+static char* FAST_FUNC make_new_name_lzop(char *filename, const char *expected_ext UNUSED_PARAM)
 {
 	if (option_mask32 & OPT_DECOMPRESS) {
 		char *extension = strrchr(filename, '.');
@@ -1054,7 +1054,7 @@ static char* make_new_name_lzop(char *filename)
 	return xasprintf("%s.lzo", filename);
 }
 
-static IF_DESKTOP(long long) int pack_lzop(unpack_info_t *info UNUSED_PARAM)
+static IF_DESKTOP(long long) int FAST_FUNC pack_lzop(unpack_info_t *info UNUSED_PARAM)
 {
 	if (option_mask32 & OPT_DECOMPRESS)
 		return do_lzo_decompress();
@@ -1074,5 +1074,5 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_DECOMPRESS;
 
 	G.lzo_crc32_table = crc32_filltable(NULL, 0);
-	return bbunpack(argv, make_new_name_lzop, pack_lzop);
+	return bbunpack(argv, pack_lzop, make_new_name_lzop, /*unused:*/ NULL);
 }

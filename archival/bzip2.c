@@ -102,7 +102,7 @@ IF_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, vo
 }
 
 static
-IF_DESKTOP(long long) int compressStream(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC compressStream(unpack_info_t *info UNUSED_PARAM)
 {
 	IF_DESKTOP(long long) int total;
 	ssize_t count;
@@ -133,12 +133,6 @@ IF_DESKTOP(long long) int compressStream(unpack_info_t *info UNUSED_PARAM)
 	free(iobuf);
 #endif
 	return total;
-}
-
-static
-char* make_new_name_bzip2(char *filename)
-{
-	return xasprintf("%s.bz2", filename);
 }
 
 int bzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -181,5 +175,5 @@ int bzip2_main(int argc UNUSED_PARAM, char **argv)
 
 	argv += optind;
 	option_mask32 &= 0x7; /* ignore all except -cfv */
-	return bbunpack(argv, make_new_name_bzip2, compressStream);
+	return bbunpack(argv, compressStream, append_ext, "bz2");
 }

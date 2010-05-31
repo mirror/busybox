@@ -27,9 +27,15 @@ int open_to_or_warn(int to_fd, const char *filename, int flags, int mode)
 	return 0;
 }
 
+char* FAST_FUNC append_ext(char *filename, const char *expected_ext)
+{
+	return xasprintf("%s.%s", filename, expected_ext);
+}
+
 int FAST_FUNC bbunpack(char **argv,
-	char* (*make_new_name)(char *filename),
-	IF_DESKTOP(long long) int (*unpacker)(unpack_info_t *info)
+	IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(unpack_info_t *info),
+	char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
+	const char *expected_ext
 )
 {
 	struct stat stat_buf;
@@ -68,7 +74,7 @@ int FAST_FUNC bbunpack(char **argv,
 
 		/* Open dst if we are going to unpack to file */
 		if (filename) {
-			new_name = make_new_name(filename);
+			new_name = make_new_name(filename, expected_ext);
 			if (!new_name) {
 				bb_error_msg("%s: unknown suffix - ignored", filename);
 				goto err;
@@ -142,7 +148,7 @@ int FAST_FUNC bbunpack(char **argv,
 
 #if ENABLE_UNCOMPRESS || ENABLE_BUNZIP2 || ENABLE_UNLZMA || ENABLE_UNXZ
 static
-char* make_new_name_generic(char *filename, const char *expected_ext)
+char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 {
 	char *extension = strrchr(filename, '.');
 	if (!extension || strcmp(extension + 1, expected_ext) != 0) {
@@ -163,12 +169,7 @@ char* make_new_name_generic(char *filename, const char *expected_ext)
  */
 #if ENABLE_UNCOMPRESS
 static
-char* make_new_name_uncompress(char *filename)
-{
-	return make_new_name_generic(filename, "Z");
-}
-static
-IF_DESKTOP(long long) int unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
 {
 	IF_DESKTOP(long long) int status = -1;
 
@@ -185,7 +186,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, "cf");
 	argv += optind;
 
-	return bbunpack(argv, make_new_name_uncompress, unpack_uncompress);
+	return bbunpack(argv, unpack_uncompress, make_new_name_generic, "Z");
 }
 #endif
 
@@ -219,7 +220,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
  */
 #if ENABLE_GUNZIP
 static
-char* make_new_name_gunzip(char *filename)
+char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UNUSED_PARAM)
 {
 	char *extension = strrchr(filename, '.');
 
@@ -244,7 +245,7 @@ char* make_new_name_gunzip(char *filename)
 	return filename;
 }
 static
-IF_DESKTOP(long long) int unpack_gunzip(unpack_info_t *info)
+IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(unpack_info_t *info)
 {
 	IF_DESKTOP(long long) int status = -1;
 
@@ -292,7 +293,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[1] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
-	return bbunpack(argv, make_new_name_gunzip, unpack_gunzip);
+	return bbunpack(argv, unpack_gunzip, make_new_name_gunzip, /*unused:*/ NULL);
 }
 #endif
 
@@ -305,12 +306,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  */
 #if ENABLE_BUNZIP2
 static
-char* make_new_name_bunzip2(char *filename)
-{
-	return make_new_name_generic(filename, "bz2");
-}
-static
-IF_DESKTOP(long long) int unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
 }
@@ -322,7 +318,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[2] == 'c') /* bzcat */
 		option_mask32 |= OPT_STDOUT;
 
-	return bbunpack(argv, make_new_name_bunzip2, unpack_bunzip2);
+	return bbunpack(argv, unpack_bunzip2, make_new_name_generic, "bz2");
 }
 #endif
 
@@ -337,12 +333,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
  */
 #if ENABLE_UNLZMA
 static
-char* make_new_name_unlzma(char *filename)
-{
-	return make_new_name_generic(filename, "lzma");
-}
-static
-IF_DESKTOP(long long) int unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_lzma_stream(STDIN_FILENO, STDOUT_FILENO);
 }
@@ -360,19 +351,14 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
-	return bbunpack(argv, make_new_name_unlzma, unpack_unlzma);
+	return bbunpack(argv, unpack_unlzma, make_new_name_generic, "lzma");
 }
 #endif
 
 
 #if ENABLE_UNXZ
 static
-char* make_new_name_unxz(char *filename)
-{
-	return make_new_name_generic(filename, "xz");
-}
-static
-IF_DESKTOP(long long) int unpack_unxz(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(unpack_info_t *info UNUSED_PARAM)
 {
 	return unpack_xz_stream(STDIN_FILENO, STDOUT_FILENO);
 }
@@ -390,6 +376,6 @@ int unxz_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
-	return bbunpack(argv, make_new_name_unxz, unpack_unxz);
+	return bbunpack(argv, unpack_unxz, make_new_name_generic, "xz");
 }
 #endif

@@ -1998,13 +1998,7 @@ static void zip(ulg time_stamp)
 
 /* ======================================================================== */
 static
-char* make_new_name_gzip(char *filename)
-{
-	return xasprintf("%s.gz", filename);
-}
-
-static
-IF_DESKTOP(long long) int pack_gzip(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC pack_gzip(unpack_info_t *info UNUSED_PARAM)
 {
 	struct stat s;
 
@@ -2063,7 +2057,7 @@ static const char gzip_longopts[] ALIGN1 =
 #endif
 
 /*
- * Linux kernel build uses gzip -d -n. We accept and ignore it.
+ * Linux kernel build uses gzip -d -n. We accept and ignore -n.
  * Man page says:
  * -n --no-name
  * gzip: do not save the original file name and time stamp.
@@ -2113,5 +2107,5 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	/* Initialise the CRC32 table */
 	G1.crc_32_tab = crc32_filltable(NULL, 0);
 
-	return bbunpack(argv, make_new_name_gzip, pack_gzip);
+	return bbunpack(argv, pack_gzip, append_ext, "gz");
 }
