@@ -10,6 +10,12 @@
 
 #include "xz_private.h"
 
+/*
+ * The rest of the file is inside this ifdef. It makes things a little more
+ * convenient when building without support for any BCJ filters.
+ */
+#ifdef XZ_DEC_BCJ
+
 struct xz_dec_bcj {
 	/* Type of the BCJ filter being used */
 	enum {
@@ -331,7 +337,6 @@ static noinline_for_stack size_t XZ_FUNC bcj_sparc(
 }
 #endif
 
-#ifdef XZ_DEC_BCJ
 /*
  * Apply the selected BCJ filter. Update *pos and s->pos to match the amount
  * of data that got filtered.
@@ -388,9 +393,7 @@ static void XZ_FUNC bcj_apply(struct xz_dec_bcj *s,
 	*pos += filtered;
 	s->pos += filtered;
 }
-#endif
 
-#ifdef XZ_DEC_BCJ
 /*
  * Flush pending filtered data from temp to the output buffer.
  * Move the remaining mixture of possibly filtered and unfiltered
@@ -557,4 +560,5 @@ XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_bcj_reset(
 
 	return XZ_OK;
 }
+
 #endif

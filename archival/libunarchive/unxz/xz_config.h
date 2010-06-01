@@ -43,7 +43,7 @@
  * becomes slow.
  *
  * NOTE: System headers on GNU/Linux may #define this macro already,
- * so if you want to change it, it you need to #undef it first.
+ * so if you want to change it, you need to #undef it first.
  */
 #ifndef __always_inline
 #	ifdef __GNUC__
@@ -114,6 +114,8 @@ static inline void XZ_FUNC put_unaligned_be32(uint32_t val, uint8_t *buf)
  * little endian systems, #define get_le32(ptr) (*(const uint32_t *)(ptr))
  * could save a few bytes in code size.
  */
-#define get_le32 get_unaligned_le32
+#ifndef get_le32
+#	define get_le32 get_unaligned_le32
+#endif
 
 #endif

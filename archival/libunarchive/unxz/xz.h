@@ -31,20 +31,29 @@
 
 /**
  * enum xz_ret - Return codes
- * @XZ_OK:              Everything is OK so far. More input or more output
- *                      space is required to continue.
- * @XZ_STREAM_END:      Operation finished successfully.
- * @XZ_MEMLIMIT_ERROR:  Not enough memory was preallocated at decoder
- *                      initialization time.
- * @XZ_FORMAT_ERROR:    File format was not recognized (wrong magic bytes).
- * @XZ_OPTIONS_ERROR:   This implementation doesn't support the requested
- *                      compression options. In the decoder this means that
- *                      the header CRC32 matches, but the header itself
- *                      specifies something that we don't support.
- * @XZ_DATA_ERROR:      Compressed data is corrupt.
- * @XZ_BUF_ERROR:       Cannot make any progress. Details are slightly
- *                      different between multi-call and single-call mode;
- *                      more information below.
+ * @XZ_OK:                  Everything is OK so far. More input or more
+ *                          output space is required to continue.
+ * @XZ_STREAM_END:          Operation finished successfully.
+ * @XZ_UNSUPPORTED_CHECK:   Integrity check type is not supported. Decoding
+ *                          is still possible in multi-call mode by simply
+ *                          calling xz_dec_run() again.
+ *                          NOTE: This return value is used only if
+ *                          XZ_DEC_ANY_CHECK was defined at build time,
+ *                          which is not used in the kernel. Unsupported
+ *                          check types return XZ_OPTIONS_ERROR if
+ *                          XZ_DEC_ANY_CHECK was not defined at build time.
+ * @XZ_MEMLIMIT_ERROR:      Not enough memory was preallocated at decoder
+ *                          initialization time.
+ * @XZ_FORMAT_ERROR:        File format was not recognized (wrong magic
+ *                          bytes).
+ * @XZ_OPTIONS_ERROR:       This implementation doesn't support the requested
+ *                          compression options. In the decoder this means
+ *                          that the header CRC32 matches, but the header
+ *                          itself specifies something that we don't support.
+ * @XZ_DATA_ERROR:          Compressed data is corrupt.
+ * @XZ_BUF_ERROR:           Cannot make any progress. Details are slightly
+ *                          different between multi-call and single-call
+ *                          mode; more information below.
  *
  * In multi-call mode, XZ_BUF_ERROR is returned when two consecutive calls
  * to XZ code cannot consume any input and cannot produce any new output.
@@ -62,6 +71,7 @@
 enum xz_ret {
 	XZ_OK,
 	XZ_STREAM_END,
+	XZ_UNSUPPORTED_CHECK,
 	XZ_MEMLIMIT_ERROR,
 	XZ_FORMAT_ERROR,
 	XZ_OPTIONS_ERROR,
@@ -129,7 +139,7 @@ struct xz_dec;
  *
  * Because the output buffer is used as the workspace, streams encoded using
  * a big dictionary are not a problem in single-call. It is enough that the
- * output buffer is is big enough to hold the actual uncompressed data; it
+ * output buffer is big enough to hold the actual uncompressed data; it
  * can be smaller than the dictionary size stored in the stream headers.
  *
  * On success, xz_dec_init() returns a pointer to struct xz_dec, which is
@@ -186,23 +196,27 @@ XZ_EXTERN void XZ_FUNC xz_dec_end(struct xz_dec *s);
  * CRC32 module is used instead, and users of this module don't need to
  * care about the functions below.
  */
-#if !defined(__KERNEL__) || defined(XZ_INTERNAL_CRC32)
+#ifndef XZ_INTERNAL_CRC32
+#	ifdef __KERNEL__
+#		define XZ_INTERNAL_CRC32 0
+#	else
+#		define XZ_INTERNAL_CRC32 1
+#	endif
+#endif
+
+#if XZ_INTERNAL_CRC32
 /*
  * This must be called before any other xz_* function to initialize
  * the CRC32 lookup table.
  */
-#ifndef xz_crc32_init
-XZ_EXTERN void XZ_FUNC xz_crc32_init(uint32_t *crc32_table);
-#endif
+XZ_EXTERN void XZ_FUNC xz_crc32_init(void);
 
 /*
  * Update CRC32 value using the polynomial from IEEE-802.3. To start a new
  * calculation, the third argument must be zero. To continue the calculation,
  * the previously returned value is passed as the third argument.
  */
-#ifndef xz_crc32
-XZ_EXTERN uint32_t XZ_FUNC xz_crc32(uint32_t *crc32_table,
+XZ_EXTERN uint32_t XZ_FUNC xz_crc32(
 		const uint8_t *buf, size_t size, uint32_t crc);
-#endif
 #endif
 #endif
