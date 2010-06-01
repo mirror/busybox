@@ -521,7 +521,7 @@ check_and_close(void)
    S_ORIG is solely for reporting errors.  It should be the full format
    string argument. */
 
-static const char *
+static NOINLINE const char *
 decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 {
 	enum size_spec size_spec;

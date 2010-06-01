@@ -915,7 +915,7 @@ static bool XZ_FUNC lzma2_lzma(struct xz_dec_lzma2 *s, struct xz_buf *b)
  * Take care of the LZMA2 control layer, and forward the job of actual LZMA
  * decoding or copying of uncompressed chunks to other functions.
  */
-XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_lzma2_run(
+XZ_EXTERN NOINLINE enum xz_ret XZ_FUNC xz_dec_lzma2_run(
 		struct xz_dec_lzma2 *s, struct xz_buf *b)
 {
 	uint32_t tmp;
