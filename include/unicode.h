@@ -23,7 +23,8 @@ enum {
 
 #if !ENABLE_UNICODE_SUPPORT
 
-# define unicode_strlen(string) strlen(string)
+# define unicode_strlen(string)   strlen(string)
+# define unicode_strwidth(string) strlen(string)
 # define unicode_status UNICODE_OFF
 # define init_unicode() ((void)0)
 
@@ -49,7 +50,10 @@ enum {
 #  define ENABLE_UNICODE_BIDI_SUPPORT 0
 # endif
 
+/* Number of unicode chars. Falls back to strlen() on invalid unicode */
 size_t FAST_FUNC unicode_strlen(const char *string);
+/* Width on terminal */
+size_t FAST_FUNC unicode_strwidth(const char *string);
 enum {
 	UNI_FLAG_PAD = (1 << 0),
 };

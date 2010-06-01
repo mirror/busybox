@@ -992,7 +992,7 @@ static void showfiles(void)
 
 	/* find the longest file name - use that as the column width */
 	for (row = 0; row < nrows; row++) {
-		l = unicode_strlen(matches[row]);
+		l = unicode_strwidth(matches[row]);
 		if (column_width < l)
 			column_width = l;
 	}
@@ -1012,10 +1012,13 @@ static void showfiles(void)
 
 		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			printf("%s%-*s", matches[n],
-				(int)(column_width - unicode_strlen(matches[n])), ""
+				(int)(column_width - unicode_strwidth(matches[n])), ""
 			);
 		}
-		puts(matches[n]);
+		if (ENABLE_UNICODE_SUPPORT)
+			puts(printable_string(NULL, matches[n]));
+		else
+			puts(matches[n]);
 	}
 }
 

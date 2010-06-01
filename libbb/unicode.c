@@ -25,13 +25,15 @@ uint8_t unicode_status;
 
 void FAST_FUNC init_unicode(void)
 {
-	/* In unicode, this is a one character string */
 	static const char unicode_0x394[] = { 0xce, 0x94, 0 };
+	size_t width;
 
 	if (unicode_status != UNICODE_UNKNOWN)
 		return;
-
-	unicode_status = unicode_strlen(unicode_0x394) == 1 ? UNICODE_ON : UNICODE_OFF;
+	/* In unicode, this is a one character string */
+// can use unicode_strlen(string) too, but otherwise unicode_strlen() is unused
+	width = mbstowcs(NULL, unicode_0x394, INT_MAX);
+	unicode_status = (width == 1 ? UNICODE_ON : UNICODE_OFF);
 }
 
 #else
@@ -954,12 +956,21 @@ int FAST_FUNC unicode_bidi_is_neutral_wchar(wint_t wc)
 
 /* The rest is mostly same for libc and for "homegrown" support */
 
+#if 0 // UNUSED
 size_t FAST_FUNC unicode_strlen(const char *string)
 {
 	size_t width = mbstowcs(NULL, string, INT_MAX);
 	if (width == (size_t)-1L)
 		return strlen(string);
 	return width;
+}
+#endif
+
+size_t FAST_FUNC unicode_strwidth(const char *string)
+{
+	uni_stat_t uni_stat;
+	printable_string(&uni_stat, string);
+	return uni_stat.unicode_width;
 }
 
 static char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char *src, unsigned width, int flags)
