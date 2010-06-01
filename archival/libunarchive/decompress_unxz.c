@@ -62,14 +62,14 @@ unpack_xz_stream(int src_fd, int dst_fd)
 		OUT_SIZE = 60 * 1024,
 	};
 
+	if (!crc32_table)
+		crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
+
 	membuf = xmalloc(IN_SIZE + OUT_SIZE);
 	memset(&iobuf, 0, sizeof(iobuf));
 	iobuf.in = membuf;
 	iobuf.out = membuf + IN_SIZE;
 	iobuf.out_size = OUT_SIZE;
-
-	if (!crc32_table)
-		crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
 
 	state = xz_dec_init(64*1024); /* initial dict of 64k */
 
