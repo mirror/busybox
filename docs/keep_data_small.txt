@@ -145,6 +145,11 @@ one of above methods is not worth the resulting code obfuscation.
 If you have less than ~300 bytes of global data - don't bother.
 
 
+		Finding non-shared duplicated strings
+
+strings busybox | sort | uniq -c | sort -nr
+
+
 		gcc's data alignment problem
 
 The following attribute added in vi.c:
