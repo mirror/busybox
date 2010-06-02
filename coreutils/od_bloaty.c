@@ -502,7 +502,7 @@ check_and_close(void)
 	}
 
 	if (ferror(stdout)) {
-		bb_error_msg("write error");
+		bb_error_msg(bb_msg_write_error);
 		ioerror = 1;
 	}
 }

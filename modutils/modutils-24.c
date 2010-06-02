@@ -3529,20 +3529,18 @@ static void set_tainted(int fd, const char *m_name,
 /* Check if loading this module will taint the kernel. */
 static void check_tainted_module(struct obj_file *f, const char *m_name)
 {
-	static const char tainted_file[] ALIGN1 = TAINT_FILENAME;
-
 	int fd, kernel_has_tainted;
 	const char *ptr;
 
 	kernel_has_tainted = 1;
-	fd = open(tainted_file, O_RDWR);
+	fd = open(TAINT_FILENAME, O_RDWR);
 	if (fd < 0) {
 		if (errno == ENOENT)
 			kernel_has_tainted = 0;
 		else if (errno == EACCES)
 			kernel_has_tainted = 1;
 		else {
-			perror(tainted_file);
+			perror(TAINT_FILENAME);
 			kernel_has_tainted = 0;
 		}
 	}

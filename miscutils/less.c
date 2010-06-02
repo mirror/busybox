@@ -430,7 +430,7 @@ static void read_lines(void)
 					 * immediately */
 					eof_error = 1;
 				} else {
-					print_statusline("read error");
+					print_statusline(bb_msg_read_error);
 				}
 			}
 #if !ENABLE_FEATURE_LESS_REGEXP

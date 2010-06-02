@@ -86,7 +86,7 @@ unpack_xz_stream(int src_fd, int dst_fd)
 		if (rd) {
 			rd = safe_read(src_fd, membuf + insz, rd);
 			if (rd < 0) {
-				bb_error_msg("read error");
+				bb_error_msg(bb_msg_read_error);
 				total = -1;
 				break;
 			}

@@ -1072,7 +1072,7 @@ static int top_up(STATE_PARAM unsigned n)
 		bytebuffer_offset = 0;
 		bytebuffer_size = full_read(gunzip_src_fd, &bytebuffer[count], bytebuffer_max - count);
 		if ((int)bytebuffer_size < 0) {
-			bb_error_msg("read error");
+			bb_error_msg(bb_msg_read_error);
 			return 0;
 		}
 		bytebuffer_size += count;
