@@ -312,7 +312,11 @@ void* FAST_FUNC xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p)
 void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 {
 	const int fail_if_not_detected = 1;
-	unsigned char magic[8];
+	union {
+		uint8_t b[4];
+		uint16_t b16[2];
+		uint32_t b32[1];
+	} magic;
 	int offset = -2;
 # if BB_MMU
 	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
@@ -324,9 +328,9 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
-	xread(fd, magic, 2);
+	xread(fd, magic.b16, sizeof(magic.b16));
 	if (ENABLE_FEATURE_SEAMLESS_GZ
-	 && magic[0] == 0x1f && magic[1] == 0x8b
+	 && magic.b16[0] == GZIP_MAGIC
 	) {
 # if BB_MMU
 		xformer = unpack_gz_stream;
@@ -336,7 +340,7 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_BZ2
-	 && magic[0] == 'B' && magic[1] == 'Z'
+	 && magic.b16[0] == BZIP2_MAGIC
 	) {
 # if BB_MMU
 		xformer = unpack_bz2_stream;
@@ -346,19 +350,20 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_XZ
-	 && magic[0] == 0xfd && magic[1] == '7'
+	 && magic.b16[0] == XZ_MAGIC1
 	) {
 		/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
 		/* More info at: http://tukaani.org/xz/xz-file-format.txt */
 		offset = -6;
-		xread(fd, magic + 2, 4);
-		if (strcmp((char*)magic + 2, "zXZ") == 0) {
+		xread(fd, magic.b32, sizeof(magic.b32));
+		if (magic.b32[0] == XZ_MAGIC2) {
 # if BB_MMU
 			xformer = unpack_xz_stream;
+			/* unpack_xz_stream wants fd at position 0 */
+			xlseek(fd, offset, SEEK_CUR);
 # else
 			xformer_prog = "unxz";
 # endif
-			xlseek(fd, offset, SEEK_CUR);
 			goto found_magic;
 		}
 	}

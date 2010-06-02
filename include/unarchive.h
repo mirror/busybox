@@ -4,6 +4,22 @@
 
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
+enum {
+#if BB_BIG_ENDIAN
+	COMPRESS_MAGIC = 0x1f9d,
+	GZIP_MAGIC = 0x1f8b,
+	BZIP2_MAGIC = ('B'<<8) + 'Z',
+	XZ_MAGIC1 = (0xfd<<8) + '7',
+	XZ_MAGIC2 = ((((('z'<<8) + 'X')<<8) + 'Z')<<8) + 0,
+#else
+	COMPRESS_MAGIC = 0x9d1f,
+	GZIP_MAGIC = 0x8b1f,
+	BZIP2_MAGIC = ('Z'<<8) + 'B',
+	XZ_MAGIC1 = ('7'<<8) + 0xfd,
+	XZ_MAGIC2 = (((((0<<8) + 'Z')<<8) + 'X')<<8) + 'z',
+#endif
+};
+
 typedef struct file_header_t {
 	char *name;
 	char *link_target;

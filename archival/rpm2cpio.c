@@ -68,26 +68,31 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 #else
 	/* BLOAT */
 	{
-		unsigned char magic[8];
+		union {
+			uint8_t b[4];
+			uint16_t b16[2];
+			uint32_t b32[1];
+		} magic;
 		IF_DESKTOP(long long) int FAST_FUNC (*unpack)(int src_fd, int dst_fd);
 
-		xread(rpm_fd, &magic, 2);
-		if (magic[0] == 0x1f && magic[1] == 0x8b) {
+		xread(rpm_fd, magic.b16, sizeof(magic.b16));
+		if (magic.b16[0] == GZIP_MAGIC) {
 			unpack = unpack_gz_stream;
 		} else
 		if (ENABLE_FEATURE_SEAMLESS_BZ2
-		 && magic[0] == 'B' && magic[1] == 'Z'
+		 && magic.b16[0] == BZIP2_MAGIC
 		) {
 			unpack = unpack_bz2_stream;
 		} else
 		if (ENABLE_FEATURE_SEAMLESS_XZ
-		 && magic[0] == 0xfd && magic[1] == '7'
+		 && magic.b16[0] == XZ_MAGIC1
 		) {
 			/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
 			/* More info at: http://tukaani.org/xz/xz-file-format.txt */
-			xread(rpm_fd, magic + 2, 4);
-			if (strcmp((char*)magic + 2, "zXZ") != 0)
+			xread(rpm_fd, magic.b32, sizeof(magic.b32));
+			if (magic.b32[0] != XZ_MAGIC2)
 				goto no_magic;
+			/* unpack_xz_stream wants fd at position 0 */
 			xlseek(rpm_fd, -6, SEEK_CUR);
 			unpack = unpack_xz_stream;
 		} else {
