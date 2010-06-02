@@ -393,7 +393,7 @@ static number_t getn(const char *s)
 	if (errno != 0)
 		syntax(s, "out of range");
 
-	if (*(skip_whitespace(p)))
+	if (p == s || *(skip_whitespace(p)) != '\0')
 		syntax(s, "bad number");
 
 	return r;
