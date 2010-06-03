@@ -1070,7 +1070,7 @@ ash_vmsg(const char *msg, va_list ap)
 	if (commandname) {
 		if (strcmp(arg0, commandname))
 			fprintf(stderr, "%s: ", commandname);
-		if (!iflag || g_parsefile->fd)
+		if (!iflag || g_parsefile->fd > 0)
 			fprintf(stderr, "line %d: ", startlinno);
 	}
 	vfprintf(stderr, msg, ap);
@@ -5063,15 +5063,26 @@ static int is_hidden_fd(struct redirtab *rp, int fd)
 
 	if (fd == -1)
 		return 0;
+	/* Check open scripts' fds */
 	pf = g_parsefile;
 	while (pf) {
-		if (fd == pf->fd) {
+		/* We skip fd == 0 case because of the following case:
+		 * $ ash  # running ash interactively
+		 * $ . ./script.sh
+		 * and in script.sh: "exec 9>&0".
+		 * Even though top-level fd _is_ 0,
+		 * it's still ok to use it: "read" builtin uses it,
+		 * why should we cripple "exec" builtin?
+		 */
+		if (pf->fd > 0 && fd == pf->fd) {
 			return 1;
 		}
 		pf = pf->prev;
 	}
+
 	if (!rp)
 		return 0;
+	/* Check saved fds of redirects */
 	fd |= COPYFD_RESTORE;
 	for (i = 0; i < rp->pair_count; i++) {
 		if (rp->two_fd[i].copy == fd) {
@@ -5084,9 +5095,7 @@ static int is_hidden_fd(struct redirtab *rp, int fd)
 /*
  * Process a list of redirection commands.  If the REDIR_PUSH flag is set,
  * old file descriptors are stashed away so that the redirection can be
- * undone by calling popredir.  If the REDIR_BACKQ flag is set, then the
- * standard output, and the standard error if it becomes a duplicate of
- * stdout, is saved in memory.
+ * undone by calling popredir.
  */
 /* flags passed to redirect */
 #define REDIR_PUSH    01        /* save previous values of file descriptors */
@@ -5132,13 +5141,15 @@ redirect(union node *redir, int flags)
 	}
 
 	do {
+		int right_fd = -1;
 		fd = redir->nfile.fd;
 		if (redir->nfile.type == NTOFD || redir->nfile.type == NFROMFD) {
-			int right_fd = redir->ndup.dupfd;
+			right_fd = redir->ndup.dupfd;
+			//bb_error_msg("doing %d > %d", fd, right_fd);
 			/* redirect from/to same file descriptor? */
 			if (right_fd == fd)
 				continue;
-			/* echo >&10 and 10 is a fd opened to the sh script? */
+			/* "echo >&10" and 10 is a fd opened to a sh script? */
 			if (is_hidden_fd(sv, right_fd)) {
 				errno = EBADF; /* as if it is closed */
 				ash_msg_and_raise_error("%d: %m", right_fd);
@@ -5160,7 +5171,10 @@ redirect(union node *redir, int flags)
 #endif
 		if (need_to_remember(sv, fd)) {
 			/* Copy old descriptor */
-			i = fcntl(fd, F_DUPFD, 10);
+			/* Careful to not accidentally "save"
+			 * to the same fd as right side fd in N>&M */
+			int minfd = right_fd < 10 ? 10 : right_fd + 1;
+			i = fcntl(fd, F_DUPFD, minfd);
 /* You'd expect copy to be CLOEXECed. Currently these extra "saved" fds
  * are closed in popredir() in the child, preventing them from leaking
  * into child. (popredir() also cleans up the mess in case of failures)
@@ -12994,8 +13008,9 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		 * Ensure we don't falsely claim that 0 (stdin)
 		 * is one of stacked source fds.
 		 * Testcase: ash -c 'exec 1>&0' must not complain. */
-		if (!sflag)
-			g_parsefile->fd = -1;
+		// if (!sflag) g_parsefile->fd = -1;
+		// ^^ not necessary since now we special-case fd 0
+		// in is_hidden_fd() to not be considered "hidden fd"
 		evalstring(minusc, 0);
 	}
 
