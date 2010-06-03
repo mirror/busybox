@@ -1044,7 +1044,7 @@ struct strpush {
 struct parsefile {
 	struct parsefile *prev; /* preceding file on stack */
 	int linno;              /* current line */
-	int fd;                 /* file descriptor (or -1 if string) */
+	int pf_fd;              /* file descriptor (or -1 if string) */
 	int left_in_line;       /* number of chars left in this line */
 	int left_in_buffer;     /* number of chars left in this buffer past the line */
 	char *next_to_pgetc;    /* next char in buffer */
@@ -1070,7 +1070,7 @@ ash_vmsg(const char *msg, va_list ap)
 	if (commandname) {
 		if (strcmp(arg0, commandname))
 			fprintf(stderr, "%s: ", commandname);
-		if (!iflag || g_parsefile->fd > 0)
+		if (!iflag || g_parsefile->pf_fd > 0)
 			fprintf(stderr, "line %d: ", startlinno);
 	}
 	vfprintf(stderr, msg, ap);
@@ -5066,15 +5066,15 @@ static int is_hidden_fd(struct redirtab *rp, int fd)
 	/* Check open scripts' fds */
 	pf = g_parsefile;
 	while (pf) {
-		/* We skip fd == 0 case because of the following case:
+		/* We skip pf_fd == 0 case because of the following case:
 		 * $ ash  # running ash interactively
 		 * $ . ./script.sh
 		 * and in script.sh: "exec 9>&0".
-		 * Even though top-level fd _is_ 0,
+		 * Even though top-level pf_fd _is_ 0,
 		 * it's still ok to use it: "read" builtin uses it,
 		 * why should we cripple "exec" builtin?
 		 */
-		if (pf->fd > 0 && fd == pf->fd) {
+		if (pf->pf_fd > 0 && fd == pf->pf_fd) {
 			return 1;
 		}
 		pf = pf->prev;
@@ -9456,8 +9456,8 @@ preadfd(void)
 	g_parsefile->next_to_pgetc = buf;
 #if ENABLE_FEATURE_EDITING
  retry:
-	if (!iflag || g_parsefile->fd != STDIN_FILENO)
-		nr = nonblock_safe_read(g_parsefile->fd, buf, IBUFSIZ - 1);
+	if (!iflag || g_parsefile->pf_fd != STDIN_FILENO)
+		nr = nonblock_safe_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 	else {
 #if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
@@ -9706,7 +9706,7 @@ pushfile(void)
 
 	pf = ckzalloc(sizeof(*pf));
 	pf->prev = g_parsefile;
-	pf->fd = -1;
+	pf->pf_fd = -1;
 	/*pf->strpush = NULL; - ckzalloc did it */
 	/*pf->basestrpush.prev = NULL;*/
 	g_parsefile = pf;
@@ -9718,8 +9718,8 @@ popfile(void)
 	struct parsefile *pf = g_parsefile;
 
 	INT_OFF;
-	if (pf->fd >= 0)
-		close(pf->fd);
+	if (pf->pf_fd >= 0)
+		close(pf->pf_fd);
 	free(pf->buf);
 	while (pf->strpush)
 		popstring();
@@ -9746,9 +9746,9 @@ static void
 closescript(void)
 {
 	popallfiles();
-	if (g_parsefile->fd > 0) {
-		close(g_parsefile->fd);
-		g_parsefile->fd = 0;
+	if (g_parsefile->pf_fd > 0) {
+		close(g_parsefile->pf_fd);
+		g_parsefile->pf_fd = 0;
 	}
 }
 
@@ -9764,7 +9764,7 @@ setinputfd(int fd, int push)
 		pushfile();
 		g_parsefile->buf = NULL;
 	}
-	g_parsefile->fd = fd;
+	g_parsefile->pf_fd = fd;
 	if (g_parsefile->buf == NULL)
 		g_parsefile->buf = ckmalloc(IBUFSIZ);
 	g_parsefile->left_in_buffer = 0;
@@ -13008,7 +13008,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		 * Ensure we don't falsely claim that 0 (stdin)
 		 * is one of stacked source fds.
 		 * Testcase: ash -c 'exec 1>&0' must not complain. */
-		// if (!sflag) g_parsefile->fd = -1;
+		// if (!sflag) g_parsefile->pf_fd = -1;
 		// ^^ not necessary since now we special-case fd 0
 		// in is_hidden_fd() to not be considered "hidden fd"
 		evalstring(minusc, 0);
