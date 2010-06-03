@@ -917,7 +917,7 @@ static void process_files(void)
 			/* Or did we match the start of a numerical range? */
 			|| (sed_cmd->beg_line > 0
 			    && (sed_cmd->end_line || sed_cmd->end_match
-				  /* note: even if end numeric and is < linenum too,
+				  /* note: even if end is numeric and is < linenum too,
 				   * GNU sed matches! We match too */
 				? (sed_cmd->beg_line <= linenum)    /* N,end */
 				: (sed_cmd->beg_line == linenum)    /* N */
