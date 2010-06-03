@@ -119,10 +119,10 @@ struct globals {
 	} pipeline;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-void BUG_sed_globals_too_big(void);
+struct BUG_G_too_big {
+        char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+};
 #define INIT_G() do { \
-	if (sizeof(struct globals) > COMMON_BUFSIZE) \
-		BUG_sed_globals_too_big(); \
 	G.sed_cmd_tail = &G.sed_cmd_head; \
 } while (0)
 
@@ -385,7 +385,8 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 			break;
 		/* Comment */
 		case '#':
-			while (substr[++idx]) /*skip all*/;
+			// while (substr[++idx]) continue;
+			idx += strlen(substr + idx); // same
 			/* Fall through */
 		/* End of command */
 		case ';':
@@ -395,7 +396,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 			bb_error_msg_and_die("bad option in substitution expression");
 		}
 	}
-out:
+ out:
 	/* compile the match string into a regex */
 	if (*match != '\0') {
 		/* If match is empty, we use last regex used at runtime */
@@ -896,13 +897,32 @@ static void process_files(void)
 
 		/* Determine if this command matches this line: */
 
+		//bb_error_msg("match1:%d", sed_cmd->in_match);
+		//bb_error_msg("match2:%d", (!sed_cmd->beg_line && !sed_cmd->end_line
+		//		&& !sed_cmd->beg_match && !sed_cmd->end_match));
+		//bb_error_msg("match3:%d", (sed_cmd->beg_line > 0
+		//	&& (sed_cmd->end_line || sed_cmd->end_match
+		//	    ? (sed_cmd->beg_line <= linenum)
+		//	    : (sed_cmd->beg_line == linenum)
+		//	    )
+		//	)
+		//bb_error_msg("match4:%d", (beg_match(sed_cmd, pattern_space)));
+		//bb_error_msg("match5:%d", (sed_cmd->beg_line == -1 && next_line == NULL));
+
 		/* Are we continuing a previous multi-line match? */
 		sed_cmd->in_match = sed_cmd->in_match
 			/* Or is no range necessary? */
 			|| (!sed_cmd->beg_line && !sed_cmd->end_line
 				&& !sed_cmd->beg_match && !sed_cmd->end_match)
 			/* Or did we match the start of a numerical range? */
-			|| (sed_cmd->beg_line > 0 && (sed_cmd->beg_line <= linenum))
+			|| (sed_cmd->beg_line > 0
+			    && (sed_cmd->end_line || sed_cmd->end_match
+				  /* note: even if end numeric and is < linenum too,
+				   * GNU sed matches! We match too */
+				? (sed_cmd->beg_line <= linenum)    /* N,end */
+				: (sed_cmd->beg_line == linenum)    /* N */
+				)
+			    )
 			/* Or does this line match our begin address regex? */
 			|| (beg_match(sed_cmd, pattern_space))
 			/* Or did we match last line of input? */
@@ -976,7 +996,6 @@ static void process_files(void)
 		case 'P':
 		{
 			char *tmp = strchr(pattern_space, '\n');
-
 			if (tmp) {
 				*tmp = '\0';
 				/* TODO: explain why '\n' below */
@@ -999,11 +1018,8 @@ static void process_files(void)
 		case 'D':
 		{
 			char *tmp = strchr(pattern_space, '\n');
-
 			if (tmp) {
-				tmp = xstrdup(tmp+1);
-				free(pattern_space);
-				pattern_space = tmp;
+				overlapping_strcpy(pattern_space, tmp + 1);
 				goto restart;
 			}
 		}
@@ -1048,7 +1064,6 @@ static void process_files(void)
 		case 'r':
 		{
 			FILE *rfile;
-
 			rfile = fopen_for_read(sed_cmd->string);
 			if (rfile) {
 				char *line;
@@ -1097,12 +1112,11 @@ static void process_files(void)
 			int len;
 			/* If no next line, jump to end of script and exit. */
 			if (next_line == NULL) {
-				/* Jump to end of script and exit */
 				free(next_line);
 				next_line = NULL;
 				goto discard_line;
-			/* append next_line, read new next_line. */
 			}
+			/* Append next_line, read new next_line. */
 			len = strlen(pattern_space);
 			pattern_space = xrealloc(pattern_space, len + strlen(next_line) + 2);
 			pattern_space[len] = '\n';
@@ -1131,7 +1145,6 @@ static void process_files(void)
 		case 'y':
 		{
 			int i, j;
-
 			for (i = 0; pattern_space[i]; i++) {
 				for (j = 0; sed_cmd->string[j]; j += 2) {
 					if (pattern_space[i] == sed_cmd->string[j]) {
