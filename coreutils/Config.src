@@ -5,26 +5,13 @@
 
 menu "Coreutils"
 
-config BASENAME
-	bool "basename"
-	default n
-	help
-	  basename is used to strip the directory and suffix from filenames,
-	  leaving just the filename itself. Enable this option if you wish
-	  to enable the 'basename' utility.
+INSERT
 
 config CAL
 	bool "cal"
 	default n
 	help
 	  cal is used to display a monthly calender.
-
-config CAT
-	bool "cat"
-	default n
-	help
-	  cat is used to concatenate files and print them to the standard
-	  output. Enable this option if you wish to enable the 'cat' utility.
 
 config CATV
 	bool "catv"
@@ -99,44 +86,6 @@ config CUT
 	help
 	  cut is used to print selected parts of lines from
 	  each file to stdout.
-
-config DATE
-	bool "date"
-	default n
-	help
-	  date is used to set the system date or display the
-	  current time in the given format.
-
-config FEATURE_DATE_ISOFMT
-	bool "Enable ISO date format output (-I)"
-	default y
-	depends on DATE
-	help
-	  Enable option (-I) to output an ISO-8601 compliant
-	  date/time string.
-
-config FEATURE_DATE_NANO
-	bool "Support %[num]N nanosecond format specifier"
-	default y
-	depends on DATE
-	help
-	  Support %[num]N format specifier. Adds ~250 bytes of code.
-
-config FEATURE_DATE_COMPAT
-	bool "Support weird 'date MMDDhhmm[[YY]YY][.ss]' format"
-	default y
-	depends on DATE
-	help
-	  System time can be set by 'date -s DATE' and simply 'date DATE',
-	  but formats of DATE string are different. 'date DATE' accepts
-	  a rather weird MMDDhhmm[[YY]YY][.ss] format with completely
-	  unnatural placement of year between minutes and seconds.
-	  date -s (and other commands like touch -d) use more sensible
-	  formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
-
-	  With this option off, 'date DATE' is 'date -s DATE' support
-	  the same format. With it on, 'date DATE' additionally supports
-	  MMDDhhmm[[YY]YY][.ss] format.
 
 config DD
 	bool "dd"
@@ -711,53 +660,12 @@ config FEATURE_TEE_USE_BLOCK_IO
 	help
 	  Enable this option for a faster tee, at expense of size.
 
-config TEST
-	bool "test"
-	default n
-	help
-	  test is used to check file types and compare values,
-	  returning an appropriate exit code. The bash shell
-	  has test built in, ash can build it in optionally.
-
-config FEATURE_TEST_64
-	bool "Extend test to 64 bit"
-	default n
-	depends on TEST || ASH_BUILTIN_TEST || HUSH
-	help
-	  Enable 64-bit support in test.
-
 config TOUCH
 	bool "touch"
 	default n
 	help
 	  touch is used to create or change the access and/or
 	  modification timestamp of specified files.
-
-config TR
-	bool "tr"
-	default n
-	help
-	  tr is used to squeeze, and/or delete characters from standard
-	  input, writing to standard output.
-
-config FEATURE_TR_CLASSES
-	bool "Enable character classes (such as [:upper:])"
-	default n
-	depends on TR
-	help
-	  Enable character classes, enabling commands such as:
-	  tr [:upper:] [:lower:] to convert input into lowercase.
-
-config FEATURE_TR_EQUIV
-	bool "Enable equivalence classes"
-	default n
-	depends on TR
-	help
-	  Enable equivalence classes, which essentially add the enclosed
-	  character to the current set. For instance, tr [=a=] xyz would
-	  replace all instances of 'a' with 'xyz'. This option is mainly
-	  useful for cases when no other way of expressing a character
-	  is possible.
 
 config TRUE
 	bool "true"

@@ -19,6 +19,26 @@
  * Original copyright notice states:
  *     "This program is in the Public Domain."
  */
+
+//kbuild:lib-$(CONFIG_TEST)      += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_ASH)       += test.o test_ptr_hack.o
+//kbuild:lib-$(CONFIG_HUSH)      += test.o test_ptr_hack.o
+
+//config:config TEST
+//config:	bool "test"
+//config:	default n
+//config:	help
+//config:	  test is used to check file types and compare values,
+//config:	  returning an appropriate exit code. The bash shell
+//config:	  has test built in, ash can build it in optionally.
+//config:
+//config:config FEATURE_TEST_64
+//config:	bool "Extend test to 64 bit"
+//config:	default n
+//config:	depends on TEST || ASH_BUILTIN_TEST || HUSH
+//config:	help
+//config:	  Enable 64-bit support in test.
+
 #include "libbb.h"
 #include <setjmp.h>
 

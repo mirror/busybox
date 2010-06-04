@@ -51,6 +51,47 @@
  *    and does not support -Ins
  * -D FMT is a bbox extension for _input_ conversion of -d DATE
  */
+
+//kbuild:lib-$(CONFIG_DATE) += date.o
+
+//config:config DATE
+//config:	bool "date"
+//config:	default n
+//config:	help
+//config:	  date is used to set the system date or display the
+//config:	  current time in the given format.
+//config:
+//config:config FEATURE_DATE_ISOFMT
+//config:	bool "Enable ISO date format output (-I)"
+//config:	default y
+//config:	depends on DATE
+//config:	help
+//config:	  Enable option (-I) to output an ISO-8601 compliant
+//config:	  date/time string.
+//config:
+//config:config FEATURE_DATE_NANO
+//config:	bool "Support %[num]N nanosecond format specifier"
+//config:	default y
+//config:	depends on DATE
+//config:	help
+//config:	  Support %[num]N format specifier. Adds ~250 bytes of code.
+//config:
+//config:config FEATURE_DATE_COMPAT
+//config:	bool "Support weird 'date MMDDhhmm[[YY]YY][.ss]' format"
+//config:	default y
+//config:	depends on DATE
+//config:	help
+//config:	  System time can be set by 'date -s DATE' and simply 'date DATE',
+//config:	  but formats of DATE string are different. 'date DATE' accepts
+//config:	  a rather weird MMDDhhmm[[YY]YY][.ss] format with completely
+//config:	  unnatural placement of year between minutes and seconds.
+//config:	  date -s (and other commands like touch -d) use more sensible
+//config:	  formats (for one, ISO format YYYY-MM-DD hh:mm:ss.ssssss).
+//config:
+//config:	  With this option off, 'date DATE' is 'date -s DATE' support
+//config:	  the same format. With it on, 'date DATE' additionally supports
+//config:	  MMDDhhmm[[YY]YY][.ss] format.
+
 #include "libbb.h"
 
 enum {

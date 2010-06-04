@@ -20,6 +20,16 @@
  * 3) Save some space by using strcmp().  Calling strncmp() here was silly.
  */
 
+//kbuild:lib-$(CONFIG_BASENAME) += basename.o
+
+//config:config BASENAME
+//config:	bool "basename"
+//config:	default n
+//config:	help
+//config:	  basename is used to strip the directory and suffix from filenames,
+//config:	  leaving just the filename itself. Enable this option if you wish
+//config:	  to enable the 'basename' utility.
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
