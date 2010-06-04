@@ -115,6 +115,13 @@ config FEATURE_DATE_ISOFMT
 	  Enable option (-I) to output an ISO-8601 compliant
 	  date/time string.
 
+config FEATURE_DATE_NANO
+	bool "Support %[num]N nanosecond format specifier"
+	default y
+	depends on DATE
+	help
+	  Support %[num]N format specifier. Adds ~250 bytes of code.
+
 config FEATURE_DATE_COMPAT
 	bool "Support weird 'date MMDDhhmm[[YY]YY][.ss]' format"
 	default y
