@@ -305,11 +305,12 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		, &dhcp_verbose
 #endif
 		);
-	argv += optind;
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);
 		logmode = LOGMODE_NONE;
 	}
+	/* update argv after the possible vfork+exec in daemonize */
+	argv += optind;
 	if (opt & 2) { /* -S */
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
