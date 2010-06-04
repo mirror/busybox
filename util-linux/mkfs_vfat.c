@@ -98,8 +98,9 @@ struct msdos_volume_info { /* (offsets are relative to start of boot sector) */
 } PACKED;                         /* 05a end. Total size 26 (0x1a) bytes */
 
 struct msdos_boot_sector {
-	char     boot_jump[3];       /* 000 short or near jump instruction */
-	char     system_id[8];       /* 003 name - can be used to special case partition manager volumes */
+	/* We use strcpy to fill both, and gcc-4.4.x complains if they are separate */
+	char     boot_jump_and_sys_id[3+8]; /* 000 short or near jump instruction */
+	/*char   system_id[8];*/     /* 003 name - can be used to special case partition manager volumes */
 	uint16_t bytes_per_sect;     /* 00b bytes per logical sector */
 	uint8_t  sect_per_clust;     /* 00d sectors/cluster */
 	uint16_t reserved_sect;      /* 00e reserved sectors (sector offset of 1st FAT relative to volume start) */
@@ -457,7 +458,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 		struct msdos_boot_sector *boot_blk = (void*)buf;
 		struct fat32_fsinfo *info = (void*)(buf + bytes_per_sect);
 
-		strcpy(boot_blk->boot_jump, "\xeb\x58\x90" "mkdosfs"); // system_id[8] included :)
+		strcpy(boot_blk->boot_jump_and_sys_id, "\xeb\x58\x90" "mkdosfs");
 		STORE_LE(boot_blk->bytes_per_sect, bytes_per_sect);
 		STORE_LE(boot_blk->sect_per_clust, sect_per_clust);
 		// cast in needed on big endian to suppress a warning
