@@ -27,25 +27,25 @@
 //config:	help
 //config:	  tr is used to squeeze, and/or delete characters from standard
 //config:	  input, writing to standard output.
-
-config FEATURE_TR_CLASSES
-	bool "Enable character classes (such as [:upper:])"
-	default n
-	depends on TR
-	help
-	  Enable character classes, enabling commands such as:
-	  tr [:upper:] [:lower:] to convert input into lowercase.
-
-config FEATURE_TR_EQUIV
-	bool "Enable equivalence classes"
-	default n
-	depends on TR
-	help
-	  Enable equivalence classes, which essentially add the enclosed
-	  character to the current set. For instance, tr [=a=] xyz would
-	  replace all instances of 'a' with 'xyz'. This option is mainly
-	  useful for cases when no other way of expressing a character
-	  is possible.
+//config:
+//config:config FEATURE_TR_CLASSES
+//config:	bool "Enable character classes (such as [:upper:])"
+//config:	default n
+//config:	depends on TR
+//config:	help
+//config:	  Enable character classes, enabling commands such as:
+//config:	  tr [:upper:] [:lower:] to convert input into lowercase.
+//config:
+//config:config FEATURE_TR_EQUIV
+//config:	bool "Enable equivalence classes"
+//config:	default n
+//config:	depends on TR
+//config:	help
+//config:	  Enable equivalence classes, which essentially add the enclosed
+//config:	  character to the current set. For instance, tr [=a=] xyz would
+//config:	  replace all instances of 'a' with 'xyz'. This option is mainly
+//config:	  useful for cases when no other way of expressing a character
+//config:	  is possible.
 
 #include "libbb.h"
 
