@@ -203,5 +203,5 @@ applets/applet_tables: include/autoconf.h
 include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
 	$(srctree)/applets/usage_compressed include/usage_compressed.h applets
 
-include/applet_tables.h: $(srctree)/include/applets.h
+include/applet_tables.h: include/applets.h
 	applets/applet_tables include/applet_tables.h

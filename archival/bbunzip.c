@@ -304,6 +304,8 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+//applet:IF_BUNZIP2(APPLET(bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP, bzcat))
 #if ENABLE_BUNZIP2
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)

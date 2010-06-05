@@ -358,11 +358,16 @@ scripts_basic:
 # To avoid any implicit rule to kick in, define an empty command.
 scripts/basic/%: scripts_basic ;
 
+# This target generates Kbuild's and Config.in's from *.c files
+PHONY += gen_build_files
+gen_build_files:
+	$(Q)$(srctree)/scripts/gen_build_files.sh $(srctree) $(objtree)
+
 # bbox: we have helpers in applets/
 # we depend on scripts_basic, since scripts/basic/fixdep
 # must be built before any other host prog
 PHONY += applets_dir
-applets_dir: scripts_basic
+applets_dir: scripts_basic gen_build_files
 	$(Q)$(MAKE) $(build)=applets
 
 applets/%: applets_dir ;
@@ -376,11 +381,6 @@ ifneq ($(KBUILD_SRC),)
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/mkmakefile \
 	    $(srctree) $(objtree) $(VERSION) $(PATCHLEVEL)
 endif
-
-# This target generates Kbuild's and Config.in's from *.c files
-PHONY += gen_build_files
-gen_build_files:
-	$(Q)$(srctree)/scripts/gen_build_files.sh $(srctree) $(objtree)
 
 # To make sure we do not include .config for any of the *config targets
 # catch them early, and hand them over to scripts/kconfig/Makefile
@@ -446,7 +446,7 @@ else
 ifeq ($(KBUILD_EXTMOD),)
 # Additional helpers built in scripts/
 # Carefully list dependencies so we do not try to build scripts twice
-# in parrallel
+# in parallel
 PHONY += scripts
 scripts: gen_build_files scripts_basic include/config/MARKER
 	$(Q)$(MAKE) $(build)=$(@)

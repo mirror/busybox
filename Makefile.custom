@@ -2,7 +2,7 @@
 # Build system
 # ==========================================================================
 
-busybox.links: $(srctree)/applets/busybox.mkll $(objtree)/include/autoconf.h $(srctree)/include/applets.h
+busybox.links: $(srctree)/applets/busybox.mkll $(objtree)/include/autoconf.h include/applets.h
 	$(Q)-$(SHELL) $^ >$@
 
 .PHONY: install
