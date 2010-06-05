@@ -200,7 +200,7 @@ applets/usage: include/autoconf.h
 applets/applet_tables: include/autoconf.h
 	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -I$(srctree)/include -o applets/applet_tables applets/applet_tables.c
 
-include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
+include/usage_compressed.h: include/usage.h applets/usage
 	$(srctree)/applets/usage_compressed include/usage_compressed.h applets
 
 include/applet_tables.h: include/applets.h

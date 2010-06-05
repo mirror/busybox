@@ -15,6 +15,8 @@
 
 #define NOUSAGE_STR "\b"
 
+INSERT
+
 #define acpid_trivial_usage \
        "[-d] [-c CONFDIR] [-l LOGFILE] [-e PROC_EVENT_FILE] [EVDEV_EVENT_FILE]..."
 #define acpid_full_usage "\n\n" \
@@ -233,19 +235,6 @@
      "\n	-f	Force" \
      "\n	-v	Verbose" \
      "\n	-F	Don't store or verify checksum" \
-
-#define bunzip2_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define bunzip2_full_usage "\n\n" \
-       "Decompress FILEs (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define bzcat_trivial_usage \
-       "FILE"
-#define bzcat_full_usage "\n\n" \
-       "Decompress to stdout"
 
 #define unlzma_trivial_usage \
        "[OPTIONS] [FILE]..."

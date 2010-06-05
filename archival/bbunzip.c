@@ -304,6 +304,17 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+//usage:#define bunzip2_trivial_usage
+//usage:       "[OPTIONS] [FILE]..."
+//usage:#define bunzip2_full_usage "\n\n"
+//usage:       "Decompress FILEs (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:#define bzcat_trivial_usage
+//usage:       "FILE"
+//usage:#define bzcat_full_usage "\n\n"
+//usage:       "Decompress to stdout"
 //applet:IF_BUNZIP2(APPLET(bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 //applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP, bzcat))
 #if ENABLE_BUNZIP2

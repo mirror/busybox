@@ -118,7 +118,7 @@ disp_doc       = $($(quiet)cmd_doc)
 # sed adds newlines after "Options:" etc,
 # this is needed in order to get good BusyBox.{1,txt,html}
 docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
-		$(srctree)/include/usage.h \
+		include/usage.h \
 		$(srctree)/docs/busybox_footer.pod \
 		applets/usage_pod
 	$(disp_doc)
