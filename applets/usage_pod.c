@@ -6,11 +6,10 @@
  */
 #include <unistd.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-/* Just #include "autoconf.h" doesn't work for builds in separate
- * object directory */
 #include "autoconf.h"
 
 #define SKIP_applet_main
@@ -29,22 +28,39 @@
 # define USE_FOR_MMU(...) __VA_ARGS__
 #endif
 
-static const char usage_messages[] = ""
-#define MAKE_USAGE
 #include "usage.h"
+#define MAKE_USAGE(aname, usage) { aname, usage },
+static struct usage_data {
+        const char *aname;
+        const char *usage;
+} usage_array[] = {
 #include "applets.h"
-;
+};
+
+static int compare_func(const void *a, const void *b)
+{
+	const struct usage_data *ua = a;
+	const struct usage_data *ub = b;
+	return strcmp(ua->aname, ub->aname);
+}
 
 int main(void)
 {
-	const char *names;
-	const char *usage;
 	int col, len2;
 
+	int i;
+	int num_messages = sizeof(usage_array) / sizeof(usage_array[0]);
+
+	if (num_messages == 0)
+		return 0;
+
+	qsort(usage_array,
+		num_messages, sizeof(usage_array[0]),
+		compare_func);
+
 	col = 0;
-	names = applet_names;
-	while (*names) {
-		len2 = strlen(names) + 2;
+	for (i = 0; i < num_messages; i++) {
+		len2 = strlen(usage_array[i].aname) + 2;
 		if (col >= 76 - len2) {
 			printf(",\n");
 			col = 0;
@@ -55,29 +71,24 @@ int main(void)
 		} else {
 			printf(", ");
 		}
-		printf(names);
+		printf(usage_array[i].aname);
 		col += len2;
-		names += len2 - 1;
 	}
 	printf("\n\n");
 
 	printf("=head1 COMMAND DESCRIPTIONS\n\n");
 	printf("=over 4\n\n");
 
-	names = applet_names;
-	usage = usage_messages;
-	while (*names) {
-		if (*names >= 'a' && *names <= 'z'
-		 && *usage != NOUSAGE_STR[0]
+	for (i = 0; i < num_messages; i++) {
+		if (usage_array[i].aname[0] >= 'a' && usage_array[i].aname[0] <= 'z'
+		 && usage_array[i].usage[0] != NOUSAGE_STR[0]
 		) {
-			printf("=item B<%s>\n\n", names);
-			if (*usage)
-				printf("%s %s\n\n", names, usage);
+			printf("=item B<%s>\n\n", usage_array[i].aname);
+			if (usage_array[i].usage[0])
+				printf("%s %s\n\n", usage_array[i].aname, usage_array[i].usage);
 			else
-				printf("%s\n\n", names);
+				printf("%s\n\n", usage_array[i].aname);
 		}
-		names += strlen(names) + 1;
-		usage += strlen(usage) + 1;
 	}
 	return 0;
 }

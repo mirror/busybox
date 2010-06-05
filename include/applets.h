@@ -4,11 +4,6 @@
  *
  * If you write a new applet, you need to add an entry to this list to make
  * busybox aware of it.
- *
- * It is CRUCIAL that this listing be kept in ascii order, otherwise the binary
- * search lookup contributed by Gaute B Strokkenes stops working. If you value
- * your kneecaps, you'll be sure to *make sure* that any changes made to this
- * file result in the listing remaining in ascii order. You have been warned.
  */
 
 /*
@@ -36,16 +31,16 @@ s     - suid type:
 # define APPLET_NOFORK(name,main,l,s,name2)  name main##_main name2
 
 #elif defined(MAKE_USAGE) && ENABLE_FEATURE_VERBOSE_USAGE
-# define APPLET(name,l,s)                    name##_trivial_usage name##_full_usage "\0"
-# define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage name2##_full_usage "\0"
-# define APPLET_NOEXEC(name,main,l,s,name2)  name2##_trivial_usage name2##_full_usage "\0"
-# define APPLET_NOFORK(name,main,l,s,name2)  name2##_trivial_usage name2##_full_usage "\0"
+# define APPLET(name,l,s)                    MAKE_USAGE(#name, name##_trivial_usage name##_full_usage)
+# define APPLET_ODDNAME(name,main,l,s,name2) MAKE_USAGE(#name, name2##_trivial_usage name2##_full_usage)
+# define APPLET_NOEXEC(name,main,l,s,name2)  MAKE_USAGE(#name, name2##_trivial_usage name2##_full_usage)
+# define APPLET_NOFORK(name,main,l,s,name2)  MAKE_USAGE(#name, name2##_trivial_usage name2##_full_usage)
 
 #elif defined(MAKE_USAGE) && !ENABLE_FEATURE_VERBOSE_USAGE
-# define APPLET(name,l,s)                    name##_trivial_usage "\0"
-# define APPLET_ODDNAME(name,main,l,s,name2) name2##_trivial_usage "\0"
-# define APPLET_NOEXEC(name,main,l,s,name2)  name2##_trivial_usage "\0"
-# define APPLET_NOFORK(name,main,l,s,name2)  name2##_trivial_usage "\0"
+# define APPLET(name,l,s)                    MAKE_USAGE(#name, name##_trivial_usage)
+# define APPLET_ODDNAME(name,main,l,s,name2) MAKE_USAGE(#name, name2##_trivial_usage)
+# define APPLET_NOEXEC(name,main,l,s,name2)  MAKE_USAGE(#name, name2##_trivial_usage)
+# define APPLET_NOFORK(name,main,l,s,name2)  MAKE_USAGE(#name, name2##_trivial_usage)
 
 #elif defined(MAKE_LINKS)
 # define APPLET(name,l,c)                    LINK l name

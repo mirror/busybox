@@ -43,35 +43,30 @@
 #include "applets.h"
 #undef PROTOTYPES
 
-#if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
-/* Define usage_messages[] */
-static const char usage_messages[] ALIGN1 = ""
-# define MAKE_USAGE
-# include "usage.h"
-# include "applets.h"
-;
-# undef MAKE_USAGE
-#else
-# define usage_messages 0
-#endif /* SHOW_USAGE */
-
 
 /* Include generated applet names, pointers to <applet>_main, etc */
 #include "applet_tables.h"
 /* ...and if applet_tables generator says we have only one applet... */
 #ifdef SINGLE_APPLET_MAIN
-#undef ENABLE_FEATURE_INDIVIDUAL
-#define ENABLE_FEATURE_INDIVIDUAL 1
-#undef IF_FEATURE_INDIVIDUAL
-#define IF_FEATURE_INDIVIDUAL(...) __VA_ARGS__
+# undef ENABLE_FEATURE_INDIVIDUAL
+# define ENABLE_FEATURE_INDIVIDUAL 1
+# undef IF_FEATURE_INDIVIDUAL
+# define IF_FEATURE_INDIVIDUAL(...) __VA_ARGS__
 #endif
 
 
+#include "usage_compressed.h"
+
+#if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
+static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
+#else
+# define usage_messages 0
+#endif /* SHOW_USAGE */
+
 #if ENABLE_FEATURE_COMPRESS_USAGE
 
-#include "usage_compressed.h"
-#include "unarchive.h"
-
+static const char packed_usage[] = { PACKED_USAGE };
+# include "unarchive.h"
 static const char *unpack_usage_messages(void)
 {
 	char *outbuf = NULL;
@@ -86,19 +81,19 @@ static const char *unpack_usage_messages(void)
 	 * end up here with i != 0 on read data errors! Not trivial */
 	if (!i) {
 		/* Cannot use xmalloc: will leak bd in NOFORK case! */
-		outbuf = malloc_or_warn(SIZEOF_usage_messages);
+		outbuf = malloc_or_warn(sizeof(UNPACKED_USAGE));
 		if (outbuf)
-			read_bunzip(bd, outbuf, SIZEOF_usage_messages);
+			read_bunzip(bd, outbuf, sizeof(UNPACKED_USAGE));
 	}
 	dealloc_bunzip(bd);
 	return outbuf;
 }
-#define dealloc_usage_messages(s) free(s)
+# define dealloc_usage_messages(s) free(s)
 
 #else
 
-#define unpack_usage_messages() usage_messages
-#define dealloc_usage_messages(s) ((void)(s))
+# define unpack_usage_messages() usage_messages
+# define dealloc_usage_messages(s) ((void)(s))
 
 #endif /* FEATURE_COMPRESS_USAGE */
 
