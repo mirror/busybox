@@ -696,111 +696,76 @@ static int topmem_sort(char *a, char *b)
 	return inverted ? -n : n;
 }
 
-/* Cut "NNNN" out of "    NNNN kb" */
-static char *grab_number(char *str, const char *match, unsigned sz)
-{
-	if (strncmp(str, match, sz) == 0) {
-		str = skip_whitespace(str + sz);
-		(skip_non_whitespace(str))[0] = '\0';
-		return xstrdup(str);
-	}
-	return NULL;
-}
-
 /* display header info (meminfo / loadavg) */
 static void display_topmem_header(int scr_width, int *lines_rem_p)
 {
+	enum {
+		TOTAL = 0, MFREE, BUF, CACHE,
+		SWAPTOTAL, SWAPFREE, DIRTY,
+		MWRITE, ANON, MAP, SLAB,
+		NUM_FIELDS
+	};
+	static const char match[NUM_FIELDS][11] = {
+		"\x09" "MemTotal:",  // TOTAL
+		"\x08" "MemFree:",   // MFREE
+		"\x08" "Buffers:",   // BUF
+		"\x07" "Cached:",    // CACHE
+		"\x0a" "SwapTotal:", // SWAPTOTAL
+		"\x09" "SwapFree:",  // SWAPFREE
+		"\x06" "Dirty:",     // DIRTY
+		"\x0a" "Writeback:", // MWRITE
+		"\x0a" "AnonPages:", // ANON
+		"\x07" "Mapped:",    // MAP
+		"\x05" "Slab:",      // SLAB
+	};
+//TODO? Note that fields always appear in the above order.
+//Thus, as each new line read from /proc/meminfo, we can compare it *once*
+//with match[last_matched+1], instead of looping thru all match[i]'s.
+//If it matches, memorize its data and last_matched++ (and if == NUM_FIELDS,
+//we're done with reading /proc/meminfo!); otherwise fgets next line.
+//The code below is slower, but is robust against a case when /proc/meminfo
+//gets reordered in the future.
+	char Z[NUM_FIELDS][sizeof(long long)*3];
 	char linebuf[128];
 	unsigned i;
 	FILE *fp;
-	union {
-		struct {
-			/*  1 */ char *total;
-			/*  2 */ char *mfree;
-			/*  3 */ char *buf;
-			/*  4 */ char *cache;
-			/*  5 */ char *swaptotal;
-			/*  6 */ char *swapfree;
-			/*  7 */ char *dirty;
-			/*  8 */ char *mwrite;
-			/*  9 */ char *anon;
-			/* 10 */ char *map;
-			/* 11 */ char *slab;
-		} u;
-		char *str[11];
-	} Z;
-#define total     Z.u.total
-#define mfree     Z.u.mfree
-#define buf       Z.u.buf
-#define cache     Z.u.cache
-#define swaptotal Z.u.swaptotal
-#define swapfree  Z.u.swapfree
-#define dirty     Z.u.dirty
-#define mwrite    Z.u.mwrite
-#define anon      Z.u.anon
-#define map       Z.u.map
-#define slab      Z.u.slab
-#define str       Z.str
 
 	memset(&Z, 0, sizeof(Z));
+	for (i = 0; i < NUM_FIELDS; i++)
+		Z[i][0] = '?';
 
 	/* read memory info */
 	fp = xfopen_for_read("meminfo");
 	while (fgets(linebuf, sizeof(linebuf), fp)) {
-		char *p;
-
-#define SCAN(match, name) \
-		p = grab_number(linebuf, match, sizeof(match)-1); \
-		if (p) { name = p; continue; }
-
-		SCAN("MemTotal:", total);
-		SCAN("MemFree:", mfree);
-		SCAN("Buffers:", buf);
-		SCAN("Cached:", cache);
-		SCAN("SwapTotal:", swaptotal);
-		SCAN("SwapFree:", swapfree);
-		SCAN("Dirty:", dirty);
-		SCAN("Writeback:", mwrite);
-		SCAN("AnonPages:", anon);
-		SCAN("Mapped:", map);
-		SCAN("Slab:", slab);
-#undef SCAN
+		for (i = 0; i < NUM_FIELDS; i++) {
+			unsigned sz = (unsigned char)match[i][0];
+			if (strncmp(linebuf, match[i] + 1, sz) == 0) {
+				/* Cut "NNNN" out of "    NNNN kb" */
+				char *s = skip_whitespace(linebuf + sz);
+				skip_non_whitespace(s)[0] = '\0';
+				safe_strncpy(Z[i], s, sizeof(Z[i]));
+				break;
+			}
+		}
 	}
 	fclose(fp);
 
-#define S(s) (s ? s : "0")
 	snprintf(linebuf, sizeof(linebuf),
 		"Mem total:%s anon:%s map:%s free:%s",
-		S(total), S(anon), S(map), S(mfree));
+		Z[TOTAL], Z[ANON], Z[MAP], Z[MFREE]);
 	printf(OPT_BATCH_MODE ? "%.*s\n" : "\033[H\033[J%.*s\n", scr_width, linebuf);
 
 	snprintf(linebuf, sizeof(linebuf),
 		" slab:%s buf:%s cache:%s dirty:%s write:%s",
-		S(slab), S(buf), S(cache), S(dirty), S(mwrite));
+		Z[SLAB], Z[BUF], Z[CACHE], Z[DIRTY], Z[MWRITE]);
 	printf("%.*s\n", scr_width, linebuf);
 
 	snprintf(linebuf, sizeof(linebuf),
 		"Swap total:%s free:%s", // TODO: % used?
-		S(swaptotal), S(swapfree));
+		Z[SWAPTOTAL], Z[SWAPFREE]);
 	printf("%.*s\n", scr_width, linebuf);
 
 	(*lines_rem_p) -= 3;
-#undef S
-
-	for (i = 0; i < ARRAY_SIZE(str); i++)
-		free(str[i]);
-#undef total
-#undef free
-#undef buf
-#undef cache
-#undef swaptotal
-#undef swapfree
-#undef dirty
-#undef write
-#undef anon
-#undef map
-#undef slab
-#undef str
 }
 
 static void ulltoa6_and_space(unsigned long long ul, char buf[6])
