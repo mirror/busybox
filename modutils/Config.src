@@ -7,7 +7,7 @@ menu "Linux Module Utilities"
 
 config MODPROBE_SMALL
 	bool "Simplified modutils"
-	default n
+	default y
 	help
 	  Simplified modutils.
 
@@ -40,14 +40,14 @@ config MODPROBE_SMALL
 
 config FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE
 	bool "Accept module options on modprobe command line"
-	default n
+	default y
 	depends on MODPROBE_SMALL
 	help
 	  Allow insmod and modprobe take module options from command line.
 
 config FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
 	bool "Skip loading of already loaded modules"
-	default n
+	default y
 	depends on MODPROBE_SMALL
 	help
 	  Check if the module is already loaded.

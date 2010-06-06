@@ -7,19 +7,19 @@ menu "Debian Utilities"
 
 config MKTEMP
 	bool "mktemp"
-	default n
+	default y
 	help
 	  mktemp is used to create unique temporary files
 
 config PIPE_PROGRESS
 	bool "pipe_progress"
-	default n
+	default y
 	help
 	  Display a dot to indicate pipe activity.
 
 config RUN_PARTS
 	bool "run-parts"
-	default n
+	default y
 	help
 	  run-parts is a utility designed to run all the scripts in a directory.
 
@@ -34,14 +34,14 @@ config RUN_PARTS
 
 config FEATURE_RUN_PARTS_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on RUN_PARTS && LONG_OPTS
 	help
 	  Support long options for the run-parts applet.
 
 config FEATURE_RUN_PARTS_FANCY
 	bool "Support additional arguments"
-	default n
+	default y
 	depends on RUN_PARTS
 	help
 	  Support additional options:
@@ -50,7 +50,7 @@ config FEATURE_RUN_PARTS_FANCY
 
 config START_STOP_DAEMON
 	bool "start-stop-daemon"
-	default n
+	default y
 	help
 	  start-stop-daemon is used to control the creation and
 	  termination of system-level processes, usually the ones
@@ -58,7 +58,7 @@ config START_STOP_DAEMON
 
 config FEATURE_START_STOP_DAEMON_FANCY
 	bool "Support additional arguments"
-	default n
+	default y
 	depends on START_STOP_DAEMON
 	help
 	  Support additional arguments.
@@ -68,14 +68,14 @@ config FEATURE_START_STOP_DAEMON_FANCY
 
 config FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on START_STOP_DAEMON && LONG_OPTS
 	help
 	  Support long options for the start-stop-daemon applet.
 
 config WHICH
 	bool "which"
-	default n
+	default y
 	help
 	  which is used to find programs in your PATH and
 	  print out their pathnames.

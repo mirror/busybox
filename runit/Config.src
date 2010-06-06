@@ -7,14 +7,14 @@ menu "Runit Utilities"
 
 config RUNSV
 	bool "runsv"
-	default n
+	default y
 	help
 	  runsv starts and monitors a service and optionally an appendant log
 	  service.
 
 config RUNSVDIR
 	bool "runsvdir"
-	default n
+	default y
 	help
 	  runsvdir starts a runsv process for each subdirectory, or symlink to
 	  a directory, in the services directory dir, up to a limit of 1000
@@ -31,7 +31,7 @@ config FEATURE_RUNSVDIR_LOG
 
 config SV
 	bool "sv"
-	default n
+	default y
 	help
 	  sv reports the current status and controls the state of services
 	  monitored by the runsv supervisor.
@@ -46,7 +46,7 @@ config SV_DEFAULT_SERVICE_DIR
 
 config SVLOGD
 	bool "svlogd"
-	default n
+	default y
 	help
 	  svlogd continuously reads log data from its standard input, optionally
 	  filters log messages, and writes the data to one or more automatically
@@ -54,29 +54,33 @@ config SVLOGD
 
 config CHPST
 	bool "chpst"
-	default n
+	default y
 	help
 	  chpst changes the process state according to the given options, and
 	  execs specified program.
 
 config SETUIDGID
 	bool "setuidgid"
+	default y
 	help
 	  Sets soft resource limits as specified by options
 
 config ENVUIDGID
 	bool "envuidgid"
+	default y
 	help
 	  Sets $UID to account's uid and $GID to account's gid
 
 config ENVDIR
 	bool "envdir"
+	default y
 	help
 	  Sets various environment variables as specified by files
 	  in the given directory
 
 config SOFTLIMIT
 	bool "softlimit"
+	default y
 	help
 	  Sets soft resource limits as specified by options
 

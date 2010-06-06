@@ -57,7 +57,7 @@
 //config:
 //config:config FIND
 //config:	bool "find"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  find is used to search your system to find specified files.
 //config:
@@ -193,7 +193,7 @@
 //config:
 //config:config FEATURE_FIND_DELETE
 //config:	bool "Enable -delete: delete files/dirs"
-//config:	default n
+//config:	default y
 //config:	depends on FIND && FEATURE_FIND_DEPTH
 //config:	help
 //config:	  Support the 'find -delete' option for deleting files and directories.
@@ -223,7 +223,7 @@
 //config:
 //config:config FEATURE_FIND_LINKS
 //config:	bool "Enable -links: link count matching"
-//config:	default n
+//config:	default y
 //config:	depends on FIND
 //config:	help
 //config:	  Support the 'find -links' option for matching number of links.

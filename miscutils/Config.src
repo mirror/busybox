@@ -7,7 +7,7 @@ menu "Miscellaneous Utilities"
 
 config ADJTIMEX
 	bool "adjtimex"
-	default n
+	default y
 	help
 	  Adjtimex reads and optionally sets adjustment parameters for
 	  the Linux clock adjustment algorithm.
@@ -21,7 +21,7 @@ config BBCONFIG
 
 config BEEP
 	bool "beep"
-	default n
+	default y
 	help
 	  The beep applets beeps in a given freq/Hz.
 
@@ -43,7 +43,7 @@ config FEATURE_BEEP_LENGTH_MS
 
 config CHAT
 	bool "chat"
-	default n
+	default y
 	help
 	  Simple chat utility.
 
@@ -77,7 +77,7 @@ config FEATURE_CHAT_IMPLICIT_CR
 config FEATURE_CHAT_SWALLOW_OPTS
 	bool "Swallow options"
 	depends on CHAT
-	default n
+	default y
 	help
 	  Busybox chat require no options. To make it not fail when used
 	  in place of original chat (which has a bunch of options) turn
@@ -86,7 +86,7 @@ config FEATURE_CHAT_SWALLOW_OPTS
 config FEATURE_CHAT_SEND_ESCAPES
 	bool "Support weird SEND escapes"
 	depends on CHAT
-	default n
+	default y
 	help
 	  Original chat uses some escape sequences in SEND arguments which
 	  are not sent to device but rather performs special actions.
@@ -97,27 +97,27 @@ config FEATURE_CHAT_SEND_ESCAPES
 config FEATURE_CHAT_VAR_ABORT_LEN
 	bool "Support variable-length ABORT conditions"
 	depends on CHAT
-	default n
+	default y
 	help
 	  Original chat uses fixed 50-bytes length ABORT conditions. Say N here.
 
 config FEATURE_CHAT_CLR_ABORT
 	bool "Support revoking of ABORT conditions"
 	depends on CHAT
-	default n
+	default y
 	help
 	  Support CLR_ABORT directive.
 
 config CHRT
 	bool "chrt"
-	default n
+	default y
 	help
 	  manipulate real-time attributes of a process.
 	  This requires sched_{g,s}etparam support in your libc.
 
 config CROND
 	bool "crond"
-	default n
+	default y
 	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
@@ -132,13 +132,13 @@ config CROND
 config FEATURE_CROND_D
 	bool "Support option -d to redirect output to stderr"
 	depends on CROND
-	default n
+	default y
 	help
 	  -d sets loglevel to 0 (most verbose) and directs all output to stderr.
 
 config FEATURE_CROND_CALL_SENDMAIL
 	bool "Report command output via email (using sendmail)"
-	default n
+	default y
 	depends on CROND
 	help
 	  Command output will be sent to corresponding user via email.
@@ -152,7 +152,7 @@ config FEATURE_CROND_DIR
 
 config CRONTAB
 	bool "crontab"
-	default n
+	default y
 	select FEATURE_SUID
 	help
 	  Crontab manipulates the crontab for a particular user. Only
@@ -162,14 +162,14 @@ config CRONTAB
 
 config DC
 	bool "dc"
-	default n
+	default y
 	help
 	  Dc is a reverse-polish desk calculator which supports unlimited
 	  precision arithmetic.
 
 config FEATURE_DC_LIBM
 	bool "Enable power and exp functions (requires libm)"
-	default n
+	default y
 	depends on DC
 	help
 	  Enable power and exp functions.
@@ -196,7 +196,7 @@ config DEVFSD
 
 config DEVFSD_MODLOAD
 	bool "Adds support for MODLOAD keyword in devsfd.conf"
-	default n
+	default y
 	depends on DEVFSD
 	help
 	  This actually doesn't work with busybox modutils but needs
@@ -204,7 +204,7 @@ config DEVFSD_MODLOAD
 
 config DEVFSD_FG_NP
 	bool "Enables the -fg and -np options"
-	default n
+	default y
 	depends on DEVFSD
 	help
 	  -fg  Run the daemon in the foreground.
@@ -213,7 +213,7 @@ config DEVFSD_FG_NP
 
 config DEVFSD_VERBOSE
 	bool "Increases logging (and size)"
-	default n
+	default y
 	depends on DEVFSD
 	help
 	  Increases logging to stderr or syslog.
@@ -232,20 +232,20 @@ config FEATURE_DEVFS
 
 config DEVMEM
 	bool "devmem"
-	default n
+	default y
 	help
 	  devmem is a small program that reads and writes from physical
 	  memory using /dev/mem.
 
 config EJECT
 	bool "eject"
-	default n
+	default y
 	help
 	  Used to eject cdroms. (defaults to /dev/cdrom)
 
 config FEATURE_EJECT_SCSI
 	bool "SCSI support"
-	default n
+	default y
 	depends on EJECT
 	help
 	  Add the -s option to eject, this allows to eject SCSI-Devices and
@@ -253,7 +253,7 @@ config FEATURE_EJECT_SCSI
 
 config FBSPLASH
 	bool "fbsplash"
-	default n
+	default y
 	help
 	  Shows splash image and progress bar on framebuffer device.
 	  Can be used during boot phase of an embedded device. ~2kb.
@@ -274,49 +274,49 @@ config FBSPLASH
 
 config FLASHCP
 	bool "flashcp"
-	default n
+	default y
 	help
 	  The flashcp binary, inspired by mtd-utils as of git head 5eceb74f7.
 	  This utility is used to copy images into a MTD device.
 
 config FLASH_LOCK
 	bool "flash_lock"
-	default n
+	default y
 	help
 	  The flash_lock binary from mtd-utils as of git head 5ec0c10d0. This
 	  utility locks part or all of the flash device.
 
 config FLASH_UNLOCK
 	bool "flash_unlock"
-	default n
+	default y
 	help
 	  The flash_unlock binary from mtd-utils as of git head 5ec0c10d0. This
 	  utility unlocks part or all of the flash device.
 
 config FLASH_ERASEALL
 	bool "flash_eraseall"
-	default n
+	default y
 	help
 	  The flash_eraseall binary from mtd-utils as of git head c4c6a59eb.
 	  This utility is used to erase the whole MTD device.
 
 config IONICE
 	bool "ionice"
-	default n
+	default y
 	help
 	  Set/set program io scheduling class and priority
 	  Requires kernel >= 2.6.13
 
 config INOTIFYD
 	bool "inotifyd"
-	default n
+	default y
 	help
 	  Simple inotify daemon. Reports filesystem changes. Requires
 	  kernel >= 2.6.13
 
 config LAST
 	bool "last"
-	default n
+	default y
 	depends on FEATURE_WTMP
 	help
 	  'last' displays a list of the last users that logged into the system.
@@ -324,7 +324,7 @@ config LAST
 choice
 	prompt "Choose last implementation"
 	depends on LAST
-	default FEATURE_LAST_SMALL
+	default FEATURE_LAST_FANCY
 
 config FEATURE_LAST_SMALL
 	bool "small"
@@ -341,7 +341,7 @@ endchoice
 
 config LESS
 	bool "less"
-	default n
+	default y
 	help
 	  'less' is a pager, meaning that it displays text files. It possesses
 	  a wide array of features, and is an improvement over 'more'.
@@ -371,28 +371,28 @@ config FEATURE_LESS_FLAGS
 
 config FEATURE_LESS_MARKS
 	bool "Enable marks"
-	default n
+	default y
 	depends on LESS
 	help
 	  Marks enable positions in a file to be stored for easy reference.
 
 config FEATURE_LESS_REGEXP
 	bool "Enable regular expressions"
-	default n
+	default y
 	depends on LESS
 	help
 	  Enable regular expressions, allowing complex file searches.
 
 config FEATURE_LESS_WINCH
 	bool "Enable automatic resizing on window size changes"
-	default n
+	default y
 	depends on LESS
 	help
 	  Makes less track window size changes.
 
 config FEATURE_LESS_DASHCMD
 	bool "Enable flag changes ('-' command)"
-	default n
+	default y
 	depends on LESS
 	help
 	  This enables the ability to change command-line flags within
@@ -400,14 +400,14 @@ config FEATURE_LESS_DASHCMD
 
 config FEATURE_LESS_LINENUMS
 	bool "Enable dynamic switching of line numbers"
-	default n
+	default y
 	depends on FEATURE_LESS_DASHCMD
 	help
 	  Enable "-N" command.
 
 config HDPARM
 	bool "hdparm"
-	default n
+	default y
 	help
 	  Get/Set hard drive parameters. Primarily intended for ATA
 	  drives. Adds about 13k (or around 30k if you enable the
@@ -425,7 +425,7 @@ config FEATURE_HDPARM_GET_IDENTITY
 
 config FEATURE_HDPARM_HDIO_SCAN_HWIF
 	bool "Register an IDE interface (DANGEROUS)"
-	default n
+	default y
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -R' option to register an IDE interface.
@@ -433,7 +433,7 @@ config FEATURE_HDPARM_HDIO_SCAN_HWIF
 
 config FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	bool "Un-register an IDE interface (DANGEROUS)"
-	default n
+	default y
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -U' option to un-register an IDE interface.
@@ -441,7 +441,7 @@ config FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 
 config FEATURE_HDPARM_HDIO_DRIVE_RESET
 	bool "Perform device reset (DANGEROUS)"
-	default n
+	default y
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -w' option to perform a device reset.
@@ -449,7 +449,7 @@ config FEATURE_HDPARM_HDIO_DRIVE_RESET
 
 config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	bool "Tristate device for hotswap (DANGEROUS)"
-	default n
+	default y
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -x' option to tristate device for hotswap,
@@ -458,14 +458,14 @@ config FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 
 config FEATURE_HDPARM_HDIO_GETSET_DMA
 	bool "Get/set using_dma flag"
-	default n
+	default y
 	depends on HDPARM
 	help
 	  Enables the 'hdparm -d' option to get/set using_dma flag.
 
 config MAKEDEVS
 	bool "makedevs"
-	default n
+	default y
 	help
 	  'makedevs' is a utility used to create a batch of devices with
 	  one command.
@@ -497,25 +497,25 @@ endchoice
 
 config MAN
 	bool "man"
-	default n
+	default y
 	help
 	  Format and display manual pages.
 
 config MICROCOM
 	bool "microcom"
-	default n
+	default y
 	help
 	  The poor man's minicom utility for chatting with serial port devices.
 
 config MOUNTPOINT
 	bool "mountpoint"
-	default n
+	default y
 	help
 	  mountpoint checks if the directory is a mountpoint.
 
 config MT
 	bool "mt"
-	default n
+	default y
 	help
 	  mt is used to control tape devices. You can use the mt utility
 	  to advance or rewind a tape past a specified number of archive
@@ -523,14 +523,14 @@ config MT
 
 config RAIDAUTORUN
 	bool "raidautorun"
-	default n
+	default y
 	help
 	  raidautorun tells the kernel md driver to
 	  search and start RAID arrays.
 
 config READAHEAD
 	bool "readahead"
-	default n
+	default y
 	depends on LFS
 	help
 	  Preload the files listed on the command line into RAM cache so that
@@ -547,7 +547,7 @@ config READAHEAD
 
 config RFKILL
 	bool "rfkill"
-	default n
+	default y
 	help
 	  Enable/disable wireless devices.
 
@@ -558,7 +558,7 @@ config RFKILL
 
 config RUNLEVEL
 	bool "runlevel"
-	default n
+	default y
 	help
 	  find the current and previous system runlevel.
 
@@ -567,26 +567,26 @@ config RUNLEVEL
 
 config RX
 	bool "rx"
-	default n
+	default y
 	help
 	  Receive files using the Xmodem protocol.
 
 config SETSID
 	bool "setsid"
-	default n
+	default y
 	help
 	  setsid runs a program in a new session
 
 config STRINGS
 	bool "strings"
-	default n
+	default y
 	help
 	  strings prints the printable character sequences for each file
 	  specified.
 
 config TASKSET
 	bool "taskset"
-	default n
+	default y
 	help
 	  Retrieve or set a processes's CPU affinity.
 	  This requires sched_{g,s}etaffinity support in your libc.
@@ -602,7 +602,7 @@ config FEATURE_TASKSET_FANCY
 
 config TIME
 	bool "time"
-	default n
+	default y
 	help
 	  The time command runs the specified program with the given arguments.
 	  When the command finishes, time writes a message to standard output
@@ -610,14 +610,14 @@ config TIME
 
 config TIMEOUT
 	bool "timeout"
-	default n
+	default y
 	help
 	  Runs a program and watches it. If it does not terminate in
 	  specified number of seconds, it is sent a signal.
 
 config TTYSIZE
 	bool "ttysize"
-	default n
+	default y
 	help
 	  A replacement for "stty size". Unlike stty, can report only width,
 	  only height, or both, in any order. It also does not complain on
@@ -626,19 +626,19 @@ config TTYSIZE
 
 config VOLNAME
 	bool "volname"
-	default n
+	default y
 	help
 	  Prints a CD-ROM volume name.
 
 config WALL
 	bool "wall"
-	default n
+	default y
 	help
 	  Write a message to all users that are logged in.
 
 config WATCHDOG
 	bool "watchdog"
-	default n
+	default y
 	help
 	  The watchdog utility is used with hardware or software watchdog
 	  device drivers. It opens the specified watchdog device special file

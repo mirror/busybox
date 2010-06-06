@@ -7,7 +7,7 @@ menu "Process Utilities"
 
 config FREE
 	bool "free"
-	default n
+	default y
 	help
 	  free displays the total amount of free and used physical and swap
 	  memory in the system, as well as the buffers used by the kernel.
@@ -15,7 +15,7 @@ config FREE
 
 config FUSER
 	bool "fuser"
-	default n
+	default y
 	help
 	  fuser lists all PIDs (Process IDs) that currently have a given
 	  file open. fuser can also list all PIDs that have a given network
@@ -23,7 +23,7 @@ config FUSER
 
 config KILL
 	bool "kill"
-	default n
+	default y
 	help
 	  The command kill sends the specified signal to the specified
 	  process or process group. If no signal is specified, the TERM
@@ -31,7 +31,7 @@ config KILL
 
 config KILLALL
 	bool "killall"
-	default n
+	default y
 	depends on KILL
 	help
 	  killall sends a signal to all processes running any of the
@@ -40,38 +40,38 @@ config KILLALL
 
 config KILLALL5
 	bool "killall5"
-	default n
+	default y
 	depends on KILL
 
 config NMETER
 	bool "nmeter"
-	default n
+	default y
 	help
 	  Prints selected system stats continuously, one line per update.
 
 config PGREP
 	bool "pgrep"
-	default n
+	default y
 	help
 	  Look for processes by name.
 
 config PIDOF
 	bool "pidof"
-	default n
+	default y
 	help
 	  Pidof finds the process id's (pids) of the named programs. It prints
 	  those id's on the standard output.
 
 config FEATURE_PIDOF_SINGLE
 	bool "Enable argument for single shot (-s)"
-	default n
+	default y
 	depends on PIDOF
 	help
 	  Support argument '-s' for returning only the first pid found.
 
 config FEATURE_PIDOF_OMIT
 	bool "Enable argument for omitting pids (-o)"
-	default n
+	default y
 	depends on PIDOF
 	help
 	  Support argument '-o' for omitting the given pids in output.
@@ -80,19 +80,19 @@ config FEATURE_PIDOF_OMIT
 
 config PKILL
 	bool "pkill"
-	default n
+	default y
 	help
 	  Send signals to processes by name.
 
 config PS
 	bool "ps"
-	default n
+	default y
 	help
 	  ps gives a snapshot of the current processes.
 
 config FEATURE_PS_WIDE
 	bool "Enable wide output option (-w)"
-	default n
+	default y
 	depends on PS
 	help
 	  Support argument 'w' for wide output.
@@ -101,14 +101,14 @@ config FEATURE_PS_WIDE
 
 config FEATURE_PS_TIME
 	bool "Enable time and elapsed time output"
-	default n
+	default y
 	depends on PS && DESKTOP
 	help
 	  Support -o time and -o etime output specifiers.
 
 config FEATURE_PS_ADDITIONAL_COLUMNS
 	bool "Enable additional ps columns"
-	default n
+	default y
 	depends on PS && DESKTOP
 	help
 	  Support -o rgroup, -o ruser, -o nice output specifiers.
@@ -123,20 +123,20 @@ config FEATURE_PS_UNUSUAL_SYSTEMS
 
 config RENICE
 	bool "renice"
-	default n
+	default y
 	help
 	  Renice alters the scheduling priority of one or more running
 	  processes.
 
 config BB_SYSCTL
 	bool "sysctl"
-	default n
+	default y
 	help
 	  Configure kernel parameters at runtime.
 
 config TOP
 	bool "top"
-	default n
+	default y
 	help
 	  The top program provides a dynamic real-time view of a running
 	  system.
@@ -159,7 +159,7 @@ config FEATURE_TOP_CPU_GLOBAL_PERCENTS
 
 config FEATURE_TOP_SMP_CPU
 	bool "SMP CPU usage display ('c' key)"
-	default n
+	default y
 	depends on FEATURE_TOP_CPU_GLOBAL_PERCENTS
 	help
 	  Allow 'c' key to switch between individual/cumulative CPU stats
@@ -167,7 +167,7 @@ config FEATURE_TOP_SMP_CPU
 
 config FEATURE_TOP_DECIMALS
 	bool "Show 1/10th of a percent in CPU/mem statistics"
-	default n
+	default y
 	depends on FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	help
 	  Show 1/10th of a percent in CPU/mem statistics.
@@ -175,7 +175,7 @@ config FEATURE_TOP_DECIMALS
 
 config FEATURE_TOP_SMP_PROCESS
 	bool "Show CPU process runs on ('j' field)"
-	default n
+	default y
 	depends on TOP
 	help
 	  Show CPU where process was last found running on.
@@ -183,21 +183,21 @@ config FEATURE_TOP_SMP_PROCESS
 
 config FEATURE_TOPMEM
 	bool "Topmem command ('s' key)"
-	default n
+	default y
 	depends on TOP
 	help
 	  Enable 's' in top (gives lots of memory info).
 
 config FEATURE_SHOW_THREADS
 	bool "Support for showing threads in ps/top"
-	default n
+	default y
 	depends on PS || TOP
 	help
 	  Enables ps -T option and 'h' command in top
 
 config UPTIME
 	bool "uptime"
-	default n
+	default y
 	help
 	  uptime gives a one line display of the current time, how long
 	  the system has been running, how many users are currently logged
@@ -205,7 +205,7 @@ config UPTIME
 
 config WATCH
 	bool "watch"
-	default n
+	default y
 	help
 	  watch is used to execute a program periodically, showing
 	  output to the screen.

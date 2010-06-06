@@ -7,19 +7,19 @@ menu "Print Utilities"
 
 config LPD
 	bool "lpd"
-	default n
+	default y
 	help
 	  lpd is a print spooling daemon.
 
 config LPR
 	bool "lpr"
-	default n
+	default y
 	help
 	  lpr sends files (or standard input) to a print spooling daemon.
 
 config LPQ
 	bool "lpq"
-	default n
+	default y
 	help
 	  lpq is a print spool queue examination and manipulation program.
 

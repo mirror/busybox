@@ -24,7 +24,7 @@
 
 //config:config BASENAME
 //config:	bool "basename"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  basename is used to strip the directory and suffix from filenames,
 //config:	  leaving just the filename itself. Enable this option if you wish

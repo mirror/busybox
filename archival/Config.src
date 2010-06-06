@@ -7,25 +7,25 @@ menu "Archival Utilities"
 
 config FEATURE_SEAMLESS_XZ
 	bool "Make tar, rpm, modprobe etc understand .xz data"
-	default n
+	default y
 	help
 	  Make tar, rpm, modprobe etc understand .xz data.
 
 config FEATURE_SEAMLESS_LZMA
 	bool "Make tar, rpm, modprobe etc understand .lzma data"
-	default n
+	default y
 	help
 	  Make tar, rpm, modprobe etc understand .lzma data.
 
 config FEATURE_SEAMLESS_BZ2
 	bool "Make tar, rpm, modprobe etc understand .bz2 data"
-	default n
+	default y
 	help
 	  Make tar, rpm, modprobe etc understand .bz2 data.
 
 config FEATURE_SEAMLESS_GZ
 	bool "Make tar, rpm, modprobe etc understand .gz data"
-	default n
+	default y
 	help
 	  Make tar, rpm, modprobe etc understand .gz data.
 
@@ -37,7 +37,7 @@ config FEATURE_SEAMLESS_Z
 
 config AR
 	bool "ar"
-	default n
+	default y
 	help
 	  ar is an archival utility program used to create, modify, and
 	  extract contents from archives. An archive is a single file holding
@@ -60,7 +60,7 @@ config AR
 
 config FEATURE_AR_LONG_FILENAMES
 	bool "Support for long filenames (not needed for debs)"
-	default n
+	default y
 	depends on AR
 	help
 	  By default the ar format can only store the first 15 characters
@@ -70,14 +70,14 @@ config FEATURE_AR_LONG_FILENAMES
 
 config FEATURE_AR_CREATE
 	bool "Support archive creation"
-	default n
+	default y
 	depends on AR
 	help
 	  This enables archive creation (-c and -r) with busybox ar.
 
 config BUNZIP2
 	bool "bunzip2"
-	default n
+	default y
 	help
 	  bunzip2 is a compression utility using the Burrows-Wheeler block
 	  sorting text compression algorithm, and Huffman coding. Compression
@@ -90,7 +90,7 @@ config BUNZIP2
 
 config BZIP2
 	bool "bzip2"
-	default n
+	default y
 	help
 	  bzip2 is a compression utility using the Burrows-Wheeler block
 	  sorting text compression algorithm, and Huffman coding. Compression
@@ -103,7 +103,7 @@ config BZIP2
 
 config CPIO
 	bool "cpio"
-	default n
+	default y
 	help
 	  cpio is an archival utility program used to create, modify, and
 	  extract contents from archives.
@@ -117,7 +117,7 @@ config CPIO
 
 config FEATURE_CPIO_O
 	bool "Support for archive creation"
-	default n
+	default y
 	depends on CPIO
 	help
 	  This implementation of cpio can create cpio archives in the "newc"
@@ -125,7 +125,7 @@ config FEATURE_CPIO_O
 
 config FEATURE_CPIO_P
 	bool "Support for passthrough mode"
-	default n
+	default y
 	depends on FEATURE_CPIO_O
 	help
 	  Passthrough mode. Rarely used.
@@ -165,7 +165,7 @@ config FEATURE_DPKG_DEB_EXTRACT_ONLY
 
 config GUNZIP
 	bool "gunzip"
-	default n
+	default y
 	help
 	  gunzip is used to decompress archives created by gzip.
 	  You can use the `-t' option to test the integrity of
@@ -173,21 +173,21 @@ config GUNZIP
 
 config GZIP
 	bool "gzip"
-	default n
+	default y
 	help
 	  gzip is used to compress files.
 	  It's probably the most widely used UNIX compression program.
 
 config FEATURE_GZIP_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on GZIP && LONG_OPTS
 	help
 	  Enable use of long options, increases size by about 106 Bytes
 
 config LZOP
 	bool "lzop"
-	default n
+	default y
 	help
 	  Lzop compression/decompresion.
 
@@ -202,19 +202,19 @@ config LZOP_COMPR_HIGH
 
 config RPM2CPIO
 	bool "rpm2cpio"
-	default n
+	default y
 	help
 	  Converts an RPM file into a CPIO archive.
 
 config RPM
 	bool "rpm"
-	default n
+	default y
 	help
 	  Mini RPM applet - queries and extracts RPM packages.
 
 config TAR
 	bool "tar"
-	default n
+	default y
 	help
 	  tar is an archiving program. It's commonly used with gzip to
 	  create compressed archives. It's probably the most widely used
@@ -230,7 +230,7 @@ config FEATURE_TAR_CREATE
 
 config FEATURE_TAR_AUTODETECT
 	bool "Autodetect compressed tarballs"
-	default n
+	default y
 	depends on TAR && (FEATURE_SEAMLESS_Z || FEATURE_SEAMLESS_GZ || FEATURE_SEAMLESS_BZ2 || FEATURE_SEAMLESS_LZMA || FEATURE_SEAMLESS_XZ)
 	help
 	  With this option tar can automatically detect compressed
@@ -238,7 +238,7 @@ config FEATURE_TAR_AUTODETECT
 
 config FEATURE_TAR_FROM
 	bool "Enable -X (exclude from) and -T (include from) options)"
-	default n
+	default y
 	depends on TAR
 	help
 	  If you enable this option you'll be able to specify
@@ -246,7 +246,7 @@ config FEATURE_TAR_FROM
 
 config FEATURE_TAR_OLDGNU_COMPATIBILITY
 	bool "Support for old tar header format"
-	default N
+	default y
 	depends on TAR || DPKG
 	help
 	  This option is required to unpack archives created in
@@ -255,7 +255,7 @@ config FEATURE_TAR_OLDGNU_COMPATIBILITY
 
 config FEATURE_TAR_OLDSUN_COMPATIBILITY
 	bool "Enable untarring of tarballs with checksums produced by buggy Sun tar"
-	default N
+	default y
 	depends on TAR || DPKG
 	help
 	  This option is required to unpack archives created by some old
@@ -273,14 +273,14 @@ config FEATURE_TAR_GNU_EXTENSIONS
 
 config FEATURE_TAR_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on TAR && LONG_OPTS
 	help
 	  Enable use of long options, increases size by about 400 Bytes
 
 config FEATURE_TAR_UNAME_GNAME
 	bool "Enable use of user and group names"
-	default n
+	default y
 	depends on TAR
 	help
 	  Enables use of user and group names in tar. This affects contents
@@ -289,7 +289,7 @@ config FEATURE_TAR_UNAME_GNAME
 
 config FEATURE_TAR_NOPRESERVE_TIME
 	bool "Enable -m (do not preserve time) option"
-	default n
+	default y
 	depends on TAR
 	help
 	  With this option busybox supports GNU tar -m
@@ -312,7 +312,7 @@ config UNCOMPRESS
 
 config UNLZMA
 	bool "unlzma"
-	default n
+	default y
 	help
 	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
 	  compression algorithm, and range coding. Compression
@@ -327,7 +327,7 @@ config UNLZMA
 
 config FEATURE_LZMA_FAST
 	bool "Optimize unlzma for speed"
-	default n
+	default y
 	depends on UNLZMA
 	help
 	  This option reduces decompression time by about 25% at the cost of
@@ -335,7 +335,7 @@ config FEATURE_LZMA_FAST
 
 config LZMA
 	bool "Provide lzma alias which supports only unpacking"
-	default n
+	default y
 	depends on UNLZMA
 	help
 	  Enable this option if you want commands like "lzma -d" to work.
@@ -343,13 +343,13 @@ config LZMA
 
 config UNXZ
 	bool "unxz"
-	default n
+	default y
 	help
 	  unxz is a unlzma successor.
 
 config XZ
 	bool "Provide xz alias which supports only unpacking"
-	default n
+	default y
 	depends on UNXZ
 	help
 	  Enable this option if you want commands like "xz -d" to work.
@@ -357,7 +357,7 @@ config XZ
 
 config UNZIP
 	bool "unzip"
-	default n
+	default y
 	help
 	  unzip will list or extract files from a ZIP archive,
 	  commonly found on DOS/WIN systems. The default behavior

@@ -23,14 +23,14 @@
 
 //config:config TR
 //config:	bool "tr"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  tr is used to squeeze, and/or delete characters from standard
 //config:	  input, writing to standard output.
 //config:
 //config:config FEATURE_TR_CLASSES
 //config:	bool "Enable character classes (such as [:upper:])"
-//config:	default n
+//config:	default y
 //config:	depends on TR
 //config:	help
 //config:	  Enable character classes, enabling commands such as:
@@ -38,7 +38,7 @@
 //config:
 //config:config FEATURE_TR_EQUIV
 //config:	bool "Enable equivalence classes"
-//config:	default n
+//config:	default y
 //config:	depends on TR
 //config:	help
 //config:	  Enable equivalence classes, which essentially add the enclosed

@@ -7,79 +7,79 @@ menu "Console Utilities"
 
 config CHVT
 	bool "chvt"
-	default n
+	default y
 	help
 	  This program is used to change to another terminal.
 	  Example: chvt 4 (change to terminal /dev/tty4)
 
 config FGCONSOLE
 	bool "fgconsole"
-	default n
+	default y
 	help
 	  This program prints active (foreground) console number.
 
 config CLEAR
 	bool "clear"
-	default n
+	default y
 	help
 	  This program clears the terminal screen.
 
 config DEALLOCVT
 	bool "deallocvt"
-	default n
+	default y
 	help
 	  This program deallocates unused virtual consoles.
 
 config DUMPKMAP
 	bool "dumpkmap"
-	default n
+	default y
 	help
 	  This program dumps the kernel's keyboard translation table to
 	  stdout, in binary format. You can then use loadkmap to load it.
 
 config KBD_MODE
 	bool "kbd_mode"
-	default n
+	default y
 	help
 	  This program reports and sets keyboard mode.
 
 config LOADFONT
 	bool "loadfont"
-	default n
+	default y
 	help
 	  This program loads a console font from standard input.
 
 config LOADKMAP
 	bool "loadkmap"
-	default n
+	default y
 	help
 	  This program loads a keyboard translation table from
 	  standard input.
 
 config OPENVT
 	bool "openvt"
-	default n
+	default y
 	help
 	  This program is used to start a command on an unused
 	  virtual terminal.
 
 config RESET
 	bool "reset"
-	default n
+	default y
 	help
 	  This program is used to reset the terminal screen, if it
 	  gets messed up.
 
 config RESIZE
 	bool "resize"
-	default n
+	default y
 	help
 	  This program is used to (re)set the width and height of your current
 	  terminal.
 
 config FEATURE_RESIZE_PRINT
 	bool "Print environment variables"
-	default n
+	default y
 	depends on RESIZE
 	help
 	  Prints the newly set size (number of columns and rows) of
@@ -89,27 +89,27 @@ config FEATURE_RESIZE_PRINT
 
 config SETCONSOLE
 	bool "setconsole"
-	default n
+	default y
 	help
 	  This program redirects the system console to another device,
 	  like the current tty while logged in via telnet.
 
 config FEATURE_SETCONSOLE_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on SETCONSOLE && LONG_OPTS
 	help
 	  Support long options for the setconsole applet.
 
 config SETFONT
 	bool "setfont"
-	default n
+	default y
 	help
 	  Allows to load console screen map. Useful for i18n.
 
 config FEATURE_SETFONT_TEXTUAL_MAP
 	bool "Support reading textual screen maps"
-	default n
+	default y
 	depends on SETFONT
 	help
 	  Support reading textual screen maps.
@@ -124,20 +124,20 @@ config DEFAULT_SETFONT_DIR
 
 config SETKEYCODES
 	bool "setkeycodes"
-	default n
+	default y
 	help
 	  This program loads entries into the kernel's scancode-to-keycode
 	  map, allowing unusual keyboards to generate usable keycodes.
 
 config SETLOGCONS
 	bool "setlogcons"
-	default n
+	default y
 	help
 	  This program redirects the output console of kernel messages.
 
 config SHOWKEY
 	bool "showkey"
-	default n
+	default y
 	help
 	  Shows keys pressed.
 
@@ -146,14 +146,14 @@ comment "Common options for loadfont and setfont"
 
 config FEATURE_LOADFONT_PSF2
 	bool "Support for PSF2 console fonts"
-	default n
+	default y
 	depends on LOADFONT || SETFONT
 	help
 	  Support PSF2 console fonts.
 
 config FEATURE_LOADFONT_RAW
 	bool "Support for old (raw) console fonts"
-	default n
+	default y
 	depends on LOADFONT || SETFONT
 	help
 	  Support old (raw) console fonts.

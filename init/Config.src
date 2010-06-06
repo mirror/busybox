@@ -7,7 +7,7 @@ menu "Init Utilities"
 
 config INIT
 	bool "init"
-	default n
+	default y
 	select FEATURE_SYSLOG
 	help
 	  init is the first program run when the system boots.
@@ -21,12 +21,12 @@ config FEATURE_USE_INITTAB
 
 config FEATURE_KILL_REMOVED
 	bool "Support killing processes that have been removed from inittab"
-	default y
+	default n
 	depends on FEATURE_USE_INITTAB
 	help
 	  When respawn entries are removed from inittab and a SIGHUP is
-	  sent to init, this feature will kill the processes that have
-	  been removed.
+	  sent to init, this option will make init kill the processes
+	  that have been removed.
 
 config FEATURE_KILL_DELAY
 	int "How long to wait between TERM and KILL (0 - send TERM only)" if FEATURE_KILL_REMOVED
@@ -41,7 +41,7 @@ config FEATURE_KILL_DELAY
 
 config FEATURE_INIT_SCTTY
 	bool "Run commands with leading dash with controlling tty"
-	default n
+	default y
 	depends on INIT
 	help
 	  If this option is enabled, init will try to give a controlling
@@ -56,7 +56,7 @@ config FEATURE_INIT_SCTTY
 
 config FEATURE_INIT_SYSLOG
 	bool "Enable init to write to syslog"
-	default n
+	default y
 	depends on INIT
 
 config FEATURE_EXTRA_QUIET
@@ -68,7 +68,7 @@ config FEATURE_EXTRA_QUIET
 
 config FEATURE_INIT_COREDUMPS
 	bool "Support dumping core for child processes (debugging only)"
-	default n
+	default y
 	depends on INIT
 	help
 	  If this option is enabled and the file /.init_enable_core
@@ -89,13 +89,13 @@ config FEATURE_INITRD
 
 config HALT
 	bool "poweroff, halt, and reboot"
-	default n
+	default y
 	help
 	  Stop all processes and either halt, reboot, or power off the system.
 
 config FEATURE_CALL_TELINIT
 	bool "Call telinit on shutdown and reboot"
-	default n
+	default y
 	depends on HALT && !INIT
 	help
 	  Call an external program (normally telinit) to facilitate
@@ -115,14 +115,14 @@ config TELINIT_PATH
 
 config MESG
 	bool "mesg"
-	default n
+	default y
 	help
 	  Mesg controls access to your terminal by others. It is typically
 	  used to allow or disallow other users to write to your terminal
 
 config BOOTCHARTD
 	bool "bootchartd"
-	default n
+	default y
 	help
 	  bootchartd is commonly used to profile the boot process
 	  for the purpose of speeding it up. In this case, it is started

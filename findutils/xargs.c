@@ -21,14 +21,14 @@
 //config:
 //config:config XARGS
 //config:	bool "xargs"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  xargs is used to execute a specified command for
 //config:	  every item from standard input.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_CONFIRMATION
 //config:	bool "Enable -p: prompt and confirmation"
-//config:	default n
+//config:	default y
 //config:	depends on XARGS
 //config:	help
 //config:	  Support -p: prompt the user whether to run each command
@@ -36,14 +36,14 @@
 //config:
 //config:config FEATURE_XARGS_SUPPORT_QUOTES
 //config:	bool "Enable single and double quotes and backslash"
-//config:	default n
+//config:	default y
 //config:	depends on XARGS
 //config:	help
 //config:	  Support quoting in the input.
 //config:
 //config:config FEATURE_XARGS_SUPPORT_TERMOPT
 //config:	bool "Enable -x: exit if -s or -n is exceeded"
-//config:	default n
+//config:	default y
 //config:	depends on XARGS
 //config:	help
 //config:	  Support -x: exit if the command size (see the -s or -n option)
@@ -51,7 +51,7 @@
 //config:
 //config:config FEATURE_XARGS_SUPPORT_ZERO_TERM
 //config:	bool "Enable -0: NUL-terminated input"
-//config:	default n
+//config:	default y
 //config:	depends on XARGS
 //config:	help
 //config:	  Support -0: input items are terminated by a NUL character

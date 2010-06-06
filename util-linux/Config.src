@@ -7,7 +7,7 @@ menu "Linux System Utilities"
 
 config ACPID
 	bool "acpid"
-	default n
+	default y
 	help
 	  acpid listens to ACPI events coming either in textual form from
 	  /proc/acpi/event (though it is marked deprecated it is still widely
@@ -22,14 +22,14 @@ config ACPID
 
 config FEATURE_ACPID_COMPAT
 	bool "Accept and ignore redundant options"
-	default n
+	default y
 	depends on ACPID
 	help
 	  Accept and ignore compatibility options -g -m -s -S -v.
 
 config BLKID
 	bool "blkid"
-	default n
+	default y
 	select VOLUMEID
 	help
 	  Lists labels and UUIDs of all filesystems.
@@ -38,7 +38,7 @@ config BLKID
 
 config DMESG
 	bool "dmesg"
-	default n
+	default y
 	help
 	  dmesg is used to examine or control the kernel ring buffer. When the
 	  Linux kernel prints messages to the system log, they are stored in
@@ -71,7 +71,7 @@ config FEATURE_DMESG_PRETTY
 
 config FBSET
 	bool "fbset"
-	default n
+	default y
 	help
 	  fbset is used to show or change the settings of a Linux frame buffer
 	  device. The frame buffer device provides a simple and unique
@@ -80,7 +80,7 @@ config FBSET
 
 config FEATURE_FBSET_FANCY
 	bool "Turn on extra fbset options"
-	default n
+	default y
 	depends on FBSET
 	help
 	  This option enables extended fbset options, allowing one to set the
@@ -90,7 +90,7 @@ config FEATURE_FBSET_FANCY
 
 config FEATURE_FBSET_READMODE
 	bool "Turn on fbset readmode support"
-	default n
+	default y
 	depends on FBSET
 	help
 	  This option allows fbset to read the video mode database stored by
@@ -99,7 +99,7 @@ config FEATURE_FBSET_READMODE
 
 config FDFLUSH
 	bool "fdflush"
-	default n
+	default y
 	help
 	  fdflush is only needed when changing media on slightly-broken
 	  removable media drives. It is used to make Linux believe that a
@@ -111,13 +111,13 @@ config FDFLUSH
 
 config FDFORMAT
 	bool "fdformat"
-	default n
+	default y
 	help
 	  fdformat is used to low-level format a floppy disk.
 
 config FDISK
 	bool "fdisk"
-	default n
+	default y
 	help
 	  The fdisk utility is used to divide hard disks into one or more
 	  logical disks, which are generally called partitions. This utility
@@ -174,7 +174,7 @@ config FEATURE_OSF_LABEL
 
 config FEATURE_FDISK_ADVANCED
 	bool "Support expert mode"
-	default n
+	default y
 	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to do terribly unsafe things like
@@ -184,7 +184,7 @@ config FEATURE_FDISK_ADVANCED
 
 config FINDFS
 	bool "findfs"
-	default n
+	default y
 	select VOLUMEID
 	help
 	  Prints the name of a filesystem with given label or UUID.
@@ -193,13 +193,13 @@ config FINDFS
 
 config FLOCK
 	bool "flock"
-	default n
+	default y
 	help
 	  Manage locks from shell scripts
 
 config FREERAMDISK
 	bool "freeramdisk"
-	default n
+	default y
 	help
 	  Linux allows you to create ramdisks. This utility allows you to
 	  delete them and completely free all memory that was used for the
@@ -210,7 +210,7 @@ config FREERAMDISK
 
 config FSCK_MINIX
 	bool "fsck_minix"
-	default n
+	default y
 	help
 	  The minix filesystem is a nice, small, compact, read-write filesystem
 	  with little overhead. It is not a journaling filesystem however and
@@ -221,20 +221,17 @@ config FSCK_MINIX
 
 config MKFS_EXT2
 	bool "mkfs_ext2"
-	default n
+	default y
 	help
 	  Utility to create EXT2 filesystems.
 
 config MKFS_MINIX
 	bool "mkfs_minix"
-	default n
+	default y
 	help
 	  The minix filesystem is a nice, small, compact, read-write filesystem
 	  with little overhead. If you wish to be able to create minix
 	  filesystems this utility will do the job for you.
-
-comment "Minix filesystem support"
-	depends on FSCK_MINIX || MKFS_MINIX
 
 config FEATURE_MINIX2
 	bool "Support Minix fs v2 (fsck_minix/mkfs_minix)"
@@ -250,16 +247,17 @@ config MKFS_REISER
 	default n
 	help
 	  Utility to create ReiserFS filesystems.
+	  Note: this applet needs a lot of testing and polishing.
 
 config MKFS_VFAT
 	bool "mkfs_vfat"
-	default n
+	default y
 	help
 	  Utility to create FAT32 filesystems.
 
 config GETOPT
 	bool "getopt"
-	default n
+	default y
 	help
 	  The getopt utility is used to break up (parse) options in command
 	  lines to make it easy to write complex shell scripts that also check
@@ -277,14 +275,14 @@ config FEATURE_GETOPT_LONG
 
 config HEXDUMP
 	bool "hexdump"
-	default n
+	default y
 	help
 	  The hexdump utility is used to display binary data in a readable
 	  way that is comparable to the output from most hex editors.
 
 config FEATURE_HEXDUMP_REVERSE
 	bool "Support -R, reverse of 'hexdump -Cv'"
-	default n
+	default y
 	depends on HEXDUMP
 	help
 	  The hexdump utility is used to display binary data in an ascii
@@ -294,14 +292,14 @@ config FEATURE_HEXDUMP_REVERSE
 
 config HD
 	bool "hd"
-	default n
+	default y
 	select HEXDUMP
 	help
 	  hd is an alias to hexdump -C.
 
 config HWCLOCK
 	bool "hwclock"
-	default n
+	default y
 	help
 	  The hwclock utility is used to read and set the hardware clock
 	  on a system. This is primarily used to set the current time on
@@ -310,7 +308,7 @@ config HWCLOCK
 
 config FEATURE_HWCLOCK_LONG_OPTIONS
 	bool "Support long options (--hctosys,...)"
-	default n
+	default y
 	depends on HWCLOCK && LONG_OPTS
 	help
 	  By default, the hwclock utility only uses short options. If you
@@ -331,7 +329,7 @@ config FEATURE_HWCLOCK_ADJTIME_FHS
 
 config IPCRM
 	bool "ipcrm"
-	default n
+	default y
 	select FEATURE_SUID
 	help
 	  The ipcrm utility allows the removal of System V interprocess
@@ -340,7 +338,7 @@ config IPCRM
 
 config IPCS
 	bool "ipcs"
-	default n
+	default y
 	select FEATURE_SUID
 	help
 	  The ipcs utility is used to provide information on the currently
@@ -348,7 +346,7 @@ config IPCS
 
 config LOSETUP
 	bool "losetup"
-	default n
+	default y
 	help
 	  losetup is used to associate or detach a loop device with a regular
 	  file or block device, and to query the status of a loop device. This
@@ -356,7 +354,7 @@ config LOSETUP
 
 config LSPCI
 	bool "lspci"
-	default n
+	default y
 	help
 	  lspci is a utility for displaying information about PCI buses in the
 	  system and devices connected to them.
@@ -365,7 +363,7 @@ config LSPCI
 
 config LSUSB
 	bool "lsusb"
-	default n
+	default y
 	help
 	  lsusb is a utility for displaying information about USB buses in the
 	  system and devices connected to them.
@@ -374,7 +372,7 @@ config LSUSB
 
 config MDEV
 	bool "mdev"
-	default n
+	default y
 	help
 	  mdev is a mini-udev implementation for dynamically creating device
 	  nodes in the /dev directory.
@@ -383,7 +381,7 @@ config MDEV
 
 config FEATURE_MDEV_CONF
 	bool "Support /etc/mdev.conf"
-	default n
+	default y
 	depends on MDEV
 	help
 	  Add support for the mdev config file to control ownership and
@@ -393,7 +391,7 @@ config FEATURE_MDEV_CONF
 
 config FEATURE_MDEV_RENAME
 	bool "Support subdirs/symlinks"
-	default n
+	default y
 	depends on FEATURE_MDEV_CONF
 	help
 	  Add support for renaming devices and creating symlinks.
@@ -402,7 +400,7 @@ config FEATURE_MDEV_RENAME
 
 config FEATURE_MDEV_RENAME_REGEXP
 	bool "Support regular expressions substitutions when renaming device"
-	default n
+	default y
 	depends on FEATURE_MDEV_RENAME
 	help
 	  Add support for regular expressions substitutions when renaming
@@ -410,7 +408,7 @@ config FEATURE_MDEV_RENAME_REGEXP
 
 config FEATURE_MDEV_EXEC
 	bool "Support command execution at device addition/removal"
-	default n
+	default y
 	depends on FEATURE_MDEV_CONF
 	help
 	  This adds support for an optional field to /etc/mdev.conf for
@@ -420,7 +418,7 @@ config FEATURE_MDEV_EXEC
 
 config FEATURE_MDEV_LOAD_FIRMWARE
 	bool "Support loading of firmwares"
-	default n
+	default y
 	depends on MDEV
 	help
 	  Some devices need to load firmware before they can be usable.
@@ -431,7 +429,7 @@ config FEATURE_MDEV_LOAD_FIRMWARE
 
 config MKSWAP
 	bool "mkswap"
-	default n
+	default y
 	help
 	  The mkswap utility is used to configure a file or disk partition as
 	  Linux swap space. This allows Linux to use the entire file or
@@ -444,14 +442,14 @@ config MKSWAP
 
 config FEATURE_MKSWAP_UUID
 	bool "UUID support"
-	default n
+	default y
 	depends on MKSWAP
 	help
 	  Generate swap spaces with universally unique identifiers.
 
 config MORE
 	bool "more"
-	default n
+	default y
 	help
 	  more is a simple utility which allows you to read text one screen
 	  sized page at a time. If you want to read text that is larger than
@@ -472,137 +470,137 @@ config FEATURE_USE_TERMIOS
 
 config VOLUMEID
 	bool #No description makes it a hidden option
-	default n
+	default y
 
 config FEATURE_VOLUMEID_EXT
 	bool "Ext filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_BTRFS
 	bool "btrfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_REISERFS
 	bool "Reiser filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_FAT
 	bool "fat filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_HFS
 	bool "hfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_JFS
 	bool "jfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 ### config FEATURE_VOLUMEID_UFS
 ###	bool "ufs filesystem"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 config FEATURE_VOLUMEID_XFS
 	bool "xfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_NTFS
 	bool "ntfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_ISO9660
 	bool "iso9660 filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_UDF
 	bool "udf filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_LUKS
 	bool "luks filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_LINUXSWAP
 	bool "linux swap filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 ### config FEATURE_VOLUMEID_LVM
 ###	bool "lvm"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 config FEATURE_VOLUMEID_CRAMFS
 	bool "cramfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 ### config FEATURE_VOLUMEID_HPFS
 ###	bool "hpfs filesystem"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 config FEATURE_VOLUMEID_ROMFS
 	bool "romfs filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config FEATURE_VOLUMEID_SYSV
 	bool "sysv filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 ### config FEATURE_VOLUMEID_MINIX
 ###	bool "minix filesystem"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
@@ -610,84 +608,84 @@ config FEATURE_VOLUMEID_SYSV
 ### These only detect partition tables - not used (yet?)
 ### config FEATURE_VOLUMEID_MAC
 ###	bool "mac filesystem"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 ###
 ### config FEATURE_VOLUMEID_MSDOS
 ###	bool "msdos filesystem"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 config FEATURE_VOLUMEID_OCFS2
 	bool "ocfs2 filesystem"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 ### config FEATURE_VOLUMEID_HIGHPOINTRAID
 ###	bool "highpoint raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_ISWRAID
 ###	bool "intel raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_LSIRAID
 ###	bool "lsi raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_VIARAID
 ###	bool "via raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_SILICONRAID
 ###	bool "silicon raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_NVIDIARAID
 ###	bool "nvidia raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 ### config FEATURE_VOLUMEID_PROMISERAID
 ###	bool "promise raid"
-###	default n
+###	default y
 ###	depends on VOLUMEID
 ###	help
 ###	  TODO
 
 config FEATURE_VOLUMEID_LINUXRAID
 	bool "linuxraid"
-	default n
+	default y
 	depends on VOLUMEID
 	help
 	  TODO
 
 config MOUNT
 	bool "mount"
-	default n
+	default y
 	help
 	  All files and filesystems in Unix are arranged into one big directory
 	  tree. The 'mount' utility is used to graft a filesystem onto a
@@ -698,14 +696,14 @@ config MOUNT
 
 config FEATURE_MOUNT_FAKE
 	bool "Support option -f"
-	default n
+	default y
 	depends on MOUNT
 	help
 	  Enable support for faking a file system mount.
 
 config FEATURE_MOUNT_VERBOSE
 	bool "Support option -v"
-	default n
+	default y
 	depends on MOUNT
 	help
 	  Enable multi-level -v[vv...] verbose messages. Useful if you
@@ -726,7 +724,7 @@ config FEATURE_MOUNT_HELPERS
 
 config FEATURE_MOUNT_LABEL
 	bool "Support specifiying devices by label or UUID"
-	default n
+	default y
 	depends on MOUNT
 	select VOLUMEID
 	help
@@ -736,7 +734,7 @@ config FEATURE_MOUNT_LABEL
 
 config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"
-	default n
+	default y
 	depends on MOUNT
 	select FEATURE_HAVE_RPC
 	select FEATURE_SYSLOG
@@ -745,7 +743,7 @@ config FEATURE_MOUNT_NFS
 
 config FEATURE_MOUNT_CIFS
 	bool "Support mounting CIFS/SMB file systems"
-	default n
+	default y
 	depends on MOUNT
 	help
 	  Enable support for samba mounts.
@@ -769,7 +767,7 @@ config FEATURE_MOUNT_FSTAB
 
 config PIVOT_ROOT
 	bool "pivot_root"
-	default n
+	default y
 	help
 	  The pivot_root utility swaps the mount points for the root filesystem
 	  with some other mounted filesystem. This allows you to do all sorts
@@ -781,7 +779,7 @@ config PIVOT_ROOT
 
 config RDATE
 	bool "rdate"
-	default n
+	default y
 	help
 	  The rdate utility allows you to synchronize the date and time of your
 	  system clock with the date and time of a remote networked system using
@@ -790,38 +788,38 @@ config RDATE
 
 config RDEV
 	bool "rdev"
-	default n
+	default y
 	help
 	  Print the device node associated with the filesystem mounted at '/'.
 
 config READPROFILE
 	bool "readprofile"
-	default n
+	default y
 	help
 	  This allows you to parse /proc/profile for basic profiling.
 
 config RTCWAKE
 	bool "rtcwake"
-	default n
+	default y
 	help
 	  Enter a system sleep state until specified wakeup time.
 
 config SCRIPT
 	bool "script"
-	default n
+	default y
 	help
 	  The script makes typescript of terminal session.
 
 config SCRIPTREPLAY
 	bool "scriptreplay"
-	default n
+	default y
 	help
 	  This program replays a typescript, using timing information
 	  given by script -t.
 
 config SETARCH
 	bool "setarch"
-	default n
+	default y
 	help
 	  The linux32 utility is used to create a 32bit environment for the
 	  specified program (usually a shell). It only makes sense to have
@@ -830,7 +828,7 @@ config SETARCH
 
 config SWAPONOFF
 	bool "swaponoff"
-	default n
+	default y
 	help
 	  This option enables both the 'swapon' and the 'swapoff' utilities.
 	  Once you have created some swap space using 'mkswap', you also need
@@ -841,14 +839,14 @@ config SWAPONOFF
 
 config FEATURE_SWAPON_PRI
 	bool "Support priority option -p"
-	default n
+	default y
 	depends on SWAPONOFF
 	help
 	  Enable support for setting swap device priority in swapon.
 
 config SWITCH_ROOT
 	bool "switch_root"
-	default n
+	default y
 	help
 	  The switch_root utility is used from initramfs to select a new
 	  root device. Under initramfs, you have to use this instead of
@@ -867,7 +865,7 @@ config SWITCH_ROOT
 
 config UMOUNT
 	bool "umount"
-	default n
+	default y
 	help
 	  When you want to remove a mounted filesystem from its current mount
 	  point, for example when you are shutting down the system, the
@@ -876,7 +874,7 @@ config UMOUNT
 
 config FEATURE_UMOUNT_ALL
 	bool "Support option -a"
-	default n
+	default y
 	depends on UMOUNT
 	help
 	  Support -a option to unmount all currently mounted filesystems.
@@ -886,7 +884,7 @@ comment "Common options for mount/umount"
 
 config FEATURE_MOUNT_LOOP
 	bool "Support loopback mounts"
-	default n
+	default y
 	depends on MOUNT || UMOUNT
 	help
 	  Enabling this feature allows automatic mounting of files (containing
@@ -903,7 +901,7 @@ config FEATURE_MOUNT_LOOP
 
 config FEATURE_MOUNT_LOOP_CREATE
 	bool "Create new loopback devices if needed"
-	default n
+	default y
 	depends on FEATURE_MOUNT_LOOP
 	help
 	  Linux kernels >= 2.6.24 support unlimited loopback devices. They are

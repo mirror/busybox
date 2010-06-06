@@ -11,7 +11,7 @@ test "$DD" || DD=dd
 
 exec >"$target"
 
-echo '#define UNPACKED_USAGE \'
+echo '#define UNPACKED_USAGE "" \'
 "$loc/usage" | od -v -t x1 \
 | $SED -e 's/^[^ ]*//' \
 	-e 's/ //g' \

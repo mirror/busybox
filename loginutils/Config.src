@@ -7,7 +7,7 @@ menu "Login/Password Management Utilities"
 
 config FEATURE_SHADOWPASSWDS
 	bool "Support for shadow passwords"
-	default n
+	default y
 	help
 	  Build support for shadow password in /etc/shadow. This file is only
 	  readable by root and thus the encrypted passwords are no longer
@@ -15,7 +15,7 @@ config FEATURE_SHADOWPASSWDS
 
 config USE_BB_PWD_GRP
 	bool "Use internal password and group functions rather than system functions"
-	default n
+	default y
 	help
 	  If you leave this disabled, busybox will use the system's password
 	  and group functions. And if you are using the GNU C library
@@ -81,7 +81,7 @@ config USE_BB_CRYPT
 
 config USE_BB_CRYPT_SHA
 	bool "Enable SHA256/512 crypt functions"
-	default n
+	default y
 	depends on USE_BB_CRYPT
 	help
 	  Enable this if you have passwords starting with "$5$" or "$6$"
@@ -93,20 +93,20 @@ config USE_BB_CRYPT_SHA
 
 config ADDGROUP
 	bool "addgroup"
-	default n
+	default y
 	help
 	  Utility for creating a new group account.
 
 config FEATURE_ADDGROUP_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on ADDGROUP && LONG_OPTS
 	help
 	  Support long options for the addgroup applet.
 
 config FEATURE_ADDUSER_TO_GROUP
 	bool "Support for adding users to groups"
-	default n
+	default y
 	depends on ADDGROUP
 	help
 	  If  called  with two non-option arguments,
@@ -115,13 +115,13 @@ config FEATURE_ADDUSER_TO_GROUP
 
 config DELGROUP
 	bool "delgroup"
-	default n
+	default y
 	help
 	  Utility for deleting a group account.
 
 config FEATURE_DEL_USER_FROM_GROUP
 	bool "Support for removing users from groups"
-	default n
+	default y
 	depends on DELGROUP
 	help
 	  If called with two non-option arguments, deluser
@@ -141,13 +141,13 @@ config FEATURE_CHECK_NAMES
 
 config ADDUSER
 	bool "adduser"
-	default n
+	default y
 	help
 	  Utility for creating a new user account.
 
 config FEATURE_ADDUSER_LONG_OPTIONS
 	bool "Enable long options"
-	default n
+	default y
 	depends on ADDUSER && LONG_OPTS
 	help
 	  Support long options for the adduser applet.
@@ -170,20 +170,20 @@ config LAST_SYSTEM_ID
 
 config DELUSER
 	bool "deluser"
-	default n
+	default y
 	help
 	  Utility for deleting a user account.
 
 config GETTY
 	bool "getty"
-	default n
+	default y
 	select FEATURE_SYSLOG
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
 
 config LOGIN
 	bool "login"
-	default n
+	default y
 	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
@@ -202,7 +202,7 @@ config PAM
 config LOGIN_SCRIPTS
 	bool "Support for login scripts"
 	depends on LOGIN
-	default n
+	default y
 	help
 	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
 	  just prior to switching from root to logged-in user.
@@ -226,7 +226,7 @@ config FEATURE_SECURETTY
 
 config PASSWD
 	bool "passwd"
-	default n
+	default y
 	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
@@ -247,7 +247,7 @@ config FEATURE_PASSWD_WEAK_CHECK
 
 config CRYPTPW
 	bool "cryptpw"
-	default n
+	default y
 	help
 	  Encrypts the given password with the crypt(3) libc function
 	  using the given salt. Debian has this utility under mkpasswd
@@ -255,14 +255,14 @@ config CRYPTPW
 
 config CHPASSWD
 	bool "chpasswd"
-	default n
+	default y
 	help
 	  Reads a file of user name and password pairs from standard input
 	  and uses this information to update a group of existing users.
 
 config SU
 	bool "su"
-	default n
+	default y
 	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
@@ -284,7 +284,7 @@ config FEATURE_SU_CHECKS_SHELLS
 
 config SULOGIN
 	bool "sulogin"
-	default n
+	default y
 	select FEATURE_SYSLOG
 	help
 	  sulogin is invoked when the system goes into single user
@@ -292,7 +292,7 @@ config SULOGIN
 
 config VLOCK
 	bool "vlock"
-	default n
+	default y
 	select FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.

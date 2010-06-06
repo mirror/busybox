@@ -2,7 +2,7 @@ menu "Mail Utilities"
 
 config MAKEMIME
 	bool "makemime"
-	default n
+	default y
 	help
 	  Create MIME-formatted messages.
 
@@ -15,14 +15,14 @@ config FEATURE_MIME_CHARSET
 
 config POPMAILDIR
 	bool "popmaildir"
-	default n
+	default y
 	help
 	  Simple yet powerful POP3 mail popper. Delivers content
 	  of remote mailboxes to local Maildir.
 
 config FEATURE_POPMAILDIR_DELIVERY
 	bool "Allow message filters and custom delivery program"
-	default n
+	default y
 	depends on POPMAILDIR
 	help
 	  Allow to use a custom program to filter the content
@@ -32,7 +32,7 @@ config FEATURE_POPMAILDIR_DELIVERY
 
 config REFORMIME
 	bool "reformime"
-	default n
+	default y
 	help
 	  Parse MIME-formatted messages.
 
@@ -46,7 +46,7 @@ config FEATURE_REFORMIME_COMPAT
 
 config SENDMAIL
 	bool "sendmail"
-	default n
+	default y
 	help
 	  Barebones sendmail.
 

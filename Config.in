@@ -82,7 +82,7 @@ config SHOW_USAGE
 
 config FEATURE_VERBOSE_USAGE
 	bool "Show verbose applet usage messages"
-	default n
+	default y
 	depends on SHOW_USAGE
 	help
 	  All BusyBox applets will show more verbose help messages when
@@ -106,7 +106,7 @@ config FEATURE_COMPRESS_USAGE
 
 config FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
-	default n
+	default y
 	help
 	  Enable 'busybox --install [-s]' support. This will allow you to use
 	  busybox at runtime to create hard links or symlinks for all the
@@ -121,7 +121,7 @@ config LOCALE_SUPPORT
 
 config UNICODE_SUPPORT
 	bool "Support Unicode"
-	default n
+	default y
 	help
 	  This makes various applets aware that one byte is not
 	  one character on screen.
@@ -141,7 +141,7 @@ config UNICODE_USING_LOCALE
 
 config FEATURE_CHECK_UNICODE_IN_ENV
 	bool "Check $LANG environment variable"
-	default y
+	default n
 	depends on UNICODE_SUPPORT && !UNICODE_USING_LOCALE
 	help
 	  With this option on, Unicode support is activated
@@ -265,7 +265,7 @@ config FEATURE_CLEAN_UP
 
 config FEATURE_UTMP
 	bool "Support utmp file"
-	default n
+	default y
 	help
 	  The file /var/run/utmp is used to track who is currently logged in.
 	  With this option on, certain applets (getty, login, telnetd etc)
@@ -274,7 +274,7 @@ config FEATURE_UTMP
 
 config FEATURE_WTMP
 	bool "Support wtmp file"
-	default n
+	default y
 	select FEATURE_UTMP
 	help
 	  The file /var/run/wtmp is used to track when users have logged into
@@ -285,14 +285,14 @@ config FEATURE_WTMP
 
 config FEATURE_PIDFILE
 	bool "Support writing pidfiles"
-	default n
+	default y
 	help
 	  This option makes some applets (e.g. crond, syslogd, inetd) write
 	  a pidfile in /var/run. Some applications rely on them.
 
 config FEATURE_SUID
 	bool "Support for SUID/SGID handling"
-	default n
+	default y
 	help
 	  With this option you can install the busybox binary belonging
 	  to root with the suid bit set, and it will automatically drop
@@ -309,7 +309,7 @@ config FEATURE_SUID
 
 config FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
-	default n if FEATURE_SUID
+	default y if FEATURE_SUID
 	depends on FEATURE_SUID
 	help
 	  Allow the SUID / SGID state of an applet to be determined at runtime
@@ -528,7 +528,7 @@ config FEATURE_SHARED_BUSYBOX
 
 config LFS
 	bool "Build with Large File Support (for accessing files > 2 GB)"
-	default n
+	default y
 	select FDISK_SUPPORT_LARGE_DISKS
 	help
 	  If you want to build BusyBox with large file support, then enable

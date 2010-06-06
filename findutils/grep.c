@@ -23,7 +23,7 @@
 //config:
 //config:config GREP
 //config:	bool "grep"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  grep is used to search files for a specified pattern.
 //config:

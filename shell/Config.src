@@ -7,7 +7,7 @@ menu "Shells"
 
 choice
 	prompt "Choose which shell is aliased to 'sh' name"
-	default FEATURE_SH_IS_NONE
+	default FEATURE_SH_IS_ASH
 	help
 	  Choose which shell you want to be executed by 'sh' alias.
 	  The ash shell is the most bash compatible and full featured one.
@@ -59,7 +59,7 @@ endchoice
 
 config ASH
 	bool "ash"
-	default n
+	default y
 	depends on !NOMMU
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
@@ -91,7 +91,7 @@ config ASH_ALIAS
 
 config ASH_GETOPTS
 	bool "Builtin getopt to parse positional parameters"
-	default n
+	default y
 	depends on ASH
 	help
 	  Enable getopts builtin in the ash shell.
@@ -119,7 +119,7 @@ config ASH_BUILTIN_TEST
 
 config ASH_CMDCMD
 	bool "'command' command to override shell builtins"
-	default n
+	default y
 	depends on ASH
 	help
 	  Enable support for the ash 'command' builtin, which allows
@@ -128,7 +128,7 @@ config ASH_CMDCMD
 
 config ASH_MAIL
 	bool "Check for new mail on interactive shells"
-	default y
+	default n
 	depends on ASH
 	help
 	  Enable "check for new mail" in the ash shell.
@@ -142,7 +142,7 @@ config ASH_OPTIMIZE_FOR_SIZE
 
 config ASH_RANDOM_SUPPORT
 	bool "Pseudorandom generator and $RANDOM variable"
-	default n
+	default y
 	depends on ASH
 	help
 	  Enable pseudorandom generator and dynamic variable "$RANDOM".
@@ -153,7 +153,7 @@ config ASH_RANDOM_SUPPORT
 
 config ASH_EXPAND_PRMT
 	bool "Expand prompt string"
-	default n
+	default y
 	depends on ASH
 	help
 	  "PS#" may contain volatile content, such as backquote commands.
@@ -162,7 +162,7 @@ config ASH_EXPAND_PRMT
 
 config HUSH
 	bool "hush"
-	default n
+	default y
 	help
 	  hush is a small shell (22k). It handles the normal flow control
 	  constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
@@ -183,7 +183,7 @@ config HUSH_BASH_COMPAT
 
 config HUSH_HELP
 	bool "help builtin"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable help builtin in hush. Code size + ~1 kbyte.
@@ -200,7 +200,7 @@ config HUSH_INTERACTIVE
 
 config HUSH_JOB
 	bool "Job control"
-	default n
+	default y
 	depends on HUSH_INTERACTIVE
 	help
 	  Enable job control: Ctrl-Z backgrounds, Ctrl-C interrupts current
@@ -211,56 +211,56 @@ config HUSH_JOB
 
 config HUSH_TICK
 	bool "Process substitution"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable process substitution `command` and $(command) in hush.
 
 config HUSH_IF
 	bool "Support if/then/elif/else/fi"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable if/then/elif/else/fi in hush.
 
 config HUSH_LOOPS
 	bool "Support for, while and until loops"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable for, while and until loops in hush.
 
 config HUSH_CASE
 	bool "Support case ... esac statement"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable case ... esac statement in hush. +400 bytes.
 
 config HUSH_FUNCTIONS
 	bool "Support funcname() { commands; } syntax"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable support for shell functions in hush. +800 bytes.
 
 config HUSH_LOCAL
 	bool "Support local builtin"
-	default n
+	default y
 	depends on HUSH_FUNCTIONS
 	help
 	  Enable support for local variables in functions.
 
 config HUSH_EXPORT_N
 	bool "Support export '-n' option"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable support for export '-n' option in hush. It is a bash extension.
 
 config HUSH_RANDOM_SUPPORT
 	bool "Pseudorandom generator and $RANDOM variable"
-	default n
+	default y
 	depends on HUSH
 	help
 	  Enable pseudorandom generator and dynamic variable "$RANDOM".
@@ -298,7 +298,7 @@ config SH_MATH_SUPPORT
 
 config SH_MATH_SUPPORT_64
 	bool "Extend POSIX math support to 64 bit"
-	default n
+	default y
 	depends on SH_MATH_SUPPORT
 	help
 	  Enable 64-bit math support in the shell. This will make the shell
@@ -307,15 +307,15 @@ config SH_MATH_SUPPORT_64
 
 config FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
-	default n
-	depends on MSH || LASH || HUSH || ASH
+	default y
+	depends on HUSH || ASH
 	help
 	  Remove the busybox introduction when starting a shell.
 
 config FEATURE_SH_STANDALONE
 	bool "Standalone shell"
 	default n
-	depends on (MSH || LASH || HUSH || ASH) && FEATURE_PREFER_APPLETS
+	depends on (HUSH || ASH) && FEATURE_PREFER_APPLETS
 	help
 	  This option causes busybox shells to use busybox applets
 	  in preference to executables in the PATH whenever possible. For
@@ -348,7 +348,7 @@ config FEATURE_SH_STANDALONE
 config FEATURE_SH_NOFORK
 	bool "Run 'nofork' applets directly"
 	default n
-	depends on (MSH || LASH || HUSH || ASH) && FEATURE_PREFER_APPLETS
+	depends on (HUSH || ASH) && FEATURE_PREFER_APPLETS
 	help
 	  This option causes busybox shells [currently only ash]
 	  to not execute typical fork/exec/wait sequence, but call <applet>_main
@@ -364,7 +364,7 @@ config FEATURE_SH_NOFORK
 
 config CTTYHACK
 	bool "cttyhack"
-	default n
+	default y
 	help
 	  One common problem reported on the mailing list is "can't access tty;
 	  job control turned off" error message which typically appears when

@@ -7,7 +7,7 @@ menu "System Logging Utilities"
 
 config SYSLOGD
 	bool "syslogd"
-	default n
+	default y
 	help
 	  The syslogd utility is used to record logs of all the
 	  significant events that occur on a system. Every
@@ -22,7 +22,7 @@ config SYSLOGD
 
 config FEATURE_ROTATE_LOGFILE
 	bool "Rotate message files"
-	default n
+	default y
 	depends on SYSLOGD
 	help
 	  This enables syslogd to rotate the message files
@@ -30,7 +30,7 @@ config FEATURE_ROTATE_LOGFILE
 
 config FEATURE_REMOTE_LOG
 	bool "Remote Log support"
-	default n
+	default y
 	depends on SYSLOGD
 	help
 	  When you enable this feature, the syslogd utility can
@@ -44,7 +44,7 @@ config FEATURE_REMOTE_LOG
 
 config FEATURE_SYSLOGD_DUP
 	bool "Support -D (drop dups) option"
-	default n
+	default y
 	depends on SYSLOGD
 	help
 	  Option -D instructs syslogd to drop consecutive messages
@@ -62,7 +62,7 @@ config FEATURE_SYSLOGD_READ_BUFFER_SIZE
 
 config FEATURE_IPC_SYSLOG
 	bool "Circular Buffer support"
-	default n
+	default y
 	depends on SYSLOGD
 	help
 	  When you enable this feature, the syslogd utility will
@@ -95,7 +95,7 @@ config LOGREAD
 
 config FEATURE_LOGREAD_REDUCED_LOCKING
 	bool "Double buffering"
-	default n
+	default y
 	depends on LOGREAD
 	help
 	  'logread' ouput to slow serial terminals can have
@@ -106,7 +106,7 @@ config FEATURE_LOGREAD_REDUCED_LOCKING
 
 config KLOGD
 	bool "klogd"
-	default n
+	default y
 	help
 	  klogd is a utility which intercepts and logs all
 	  messages from the Linux kernel and sends the messages
@@ -116,7 +116,7 @@ config KLOGD
 
 config LOGGER
 	bool "logger"
-	default n
+	default y
 	select FEATURE_SYSLOG
 	help
 	    The logger utility allows you to send arbitrary text

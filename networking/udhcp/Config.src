@@ -5,14 +5,14 @@
 
 config UDHCPD
 	bool "udhcp server (udhcpd)"
-	default n
+	default y
 	help
 	  udhcpd is a DHCP server geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
 
 config DHCPRELAY
 	bool "dhcprelay"
-	default n
+	default y
 	depends on UDHCPD
 	help
 	  dhcprelay listens for dhcp requests on one or more interfaces
@@ -21,7 +21,7 @@ config DHCPRELAY
 
 config DUMPLEASES
 	bool "Lease display utility (dumpleases)"
-	default n
+	default y
 	depends on UDHCPD
 	help
 	  dumpleases displays the leases written out by the udhcpd server.
@@ -30,7 +30,7 @@ config DUMPLEASES
 
 config FEATURE_UDHCPD_WRITE_LEASES_EARLY
 	bool "Rewrite the lease file at every new acknowledge"
-	default n
+	default y
 	depends on UDHCPD
 	help
 	  If selected, udhcpd will write a new file with leases every
@@ -48,7 +48,7 @@ config DHCPD_LEASES_FILE
 
 config UDHCPC
 	bool "udhcp client (udhcpc)"
-	default n
+	default y
 	help
 	  udhcpc is a DHCP client geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
@@ -68,7 +68,7 @@ config FEATURE_UDHCPC_ARPING
 
 config FEATURE_UDHCP_PORT
 	bool "Enable '-P port' option for udhcpd and udhcpc"
-	default n
+	default y
 	depends on UDHCPD || UDHCPC
 	help
 	  At the cost of ~300 bytes, enables -P port option.
@@ -76,7 +76,7 @@ config FEATURE_UDHCP_PORT
 
 config UDHCP_DEBUG
 	int "Maximum verbosity level for udhcp applets (0..9)"
-	default 0
+	default 9
 	range 0 9
 	depends on UDHCPD || UDHCPC || DHCPRELAY
 	help
@@ -88,7 +88,7 @@ config UDHCP_DEBUG
 
 config FEATURE_UDHCP_RFC3397
 	bool "Support for RFC3397 domain search (experimental)"
-	default n
+	default y
 	depends on UDHCPD || UDHCPC
 	help
 	  If selected, both client and server will support passing of domain

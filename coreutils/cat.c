@@ -17,7 +17,7 @@
 
 //config:config CAT
 //config:	bool "cat"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  cat is used to concatenate files and print them to the standard
 //config:	  output. Enable this option if you wish to enable the 'cat' utility.

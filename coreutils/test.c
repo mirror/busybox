@@ -26,7 +26,7 @@
 
 //config:config TEST
 //config:	bool "test"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  test is used to check file types and compare values,
 //config:	  returning an appropriate exit code. The bash shell
@@ -34,7 +34,7 @@
 //config:
 //config:config FEATURE_TEST_64
 //config:	bool "Extend test to 64 bit"
-//config:	default n
+//config:	default y
 //config:	depends on TEST || ASH_BUILTIN_TEST || HUSH
 //config:	help
 //config:	  Enable 64-bit support in test.
