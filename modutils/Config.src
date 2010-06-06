@@ -5,6 +5,8 @@
 
 menu "Linux Module Utilities"
 
+INSERT
+
 config MODPROBE_SMALL
 	bool "Simplified modutils"
 	default y
