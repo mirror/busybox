@@ -5236,11 +5236,6 @@ INSERT
        "$ ls | xargs gzip\n" \
        "$ find . -name '*.c' -print | xargs rm\n"
 
-#define yes_trivial_usage \
-       "[OPTIONS] [STRING]"
-#define yes_full_usage "\n\n" \
-       "Repeatedly output a line with STRING, or 'y'"
-
 #define zcat_trivial_usage \
        "FILE"
 #define zcat_full_usage "\n\n" \
