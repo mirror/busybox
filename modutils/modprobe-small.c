@@ -685,6 +685,19 @@ The following options are useful for people managing distributions:
                         Use the file instead of the current kernel symbols
 */
 
+//usage:#if ENABLE_MODPROBE_SMALL
+//usage:#define modprobe_trivial_usage
+//usage:	"[-qfwrsv] MODULE [symbol=value]..."
+//usage:#define modprobe_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-r	Remove MODULE (stacks) or do autoclean"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-f	Force"
+//usage:     "\n	-w	Wait for unload"
+//usage:     "\n	-s	Report via syslog instead of stderr"
+//usage:#endif /* ENABLE_MODPROBE_SMALL */
+
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int modprobe_main(int argc UNUSED_PARAM, char **argv)
 {

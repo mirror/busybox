@@ -23,7 +23,7 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 	/* max 2 args, all opts are mutually exclusive */
-	opt_complementary = "?2:d--of:o--df:f-do";
+	opt_complementary = "?2:d--of:o--df:f--do";
 	opt = getopt32(argv, "do:f", &opt_o);
 	argv += optind;
 

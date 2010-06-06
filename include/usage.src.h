@@ -2148,28 +2148,6 @@ INSERT
      "\ninotifyd waits for PROG to exit." \
      "\nWhen x event happens for all FILEs, inotifyd exits." \
 
-/* 2.6 style insmod has no options and required filename
- * (not module name - .ko can't be omitted) */
-#define insmod_trivial_usage \
-	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ") \
-	IF_NOT_FEATURE_2_4_MODULES("FILE ") \
-	"[symbol=value]..."
-#define insmod_full_usage "\n\n" \
-       "Load the specified kernel modules into the kernel" \
-	IF_FEATURE_2_4_MODULES( "\n" \
-     "\nOptions:" \
-     "\n	-f	Force module to load into the wrong kernel version" \
-     "\n	-k	Make module autoclean-able" \
-     "\n	-v	Verbose" \
-     "\n	-q	Quiet" \
-     "\n	-L	Lock to prevent simultaneous loads of a module" \
-	IF_FEATURE_INSMOD_LOAD_MAP( \
-     "\n	-m	Output load map to stdout" \
-	) \
-     "\n	-o NAME	Set internal module name to NAME" \
-     "\n	-x	Don't export externs" \
-	)
-
 /* -v, -b, -c are ignored */
 #define install_trivial_usage \
 	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [SOURCE]... DEST"
@@ -2972,95 +2950,6 @@ INSERT
        "/tmp/temp.mWiLjM\n" \
        "$ ls -la /tmp/temp.mWiLjM\n" \
        "-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
-
-#define modprobe_trivial_usage \
-	IF_MODPROBE_SMALL("[-qfwrsv] MODULE [symbol=value]...") \
-	IF_NOT_MODPROBE_SMALL("[-" \
-		IF_FEATURE_2_4_MODULES("k")"nqrsv" \
-		IF_FEATURE_MODPROBE_BLACKLIST("b")"] MODULE [symbol=value]...")
-#define modprobe_full_usage "\n\n" \
-       "Options:" \
-	IF_MODPROBE_SMALL( \
-     "\n	-q	Quiet" \
-     "\n	-f	Force" \
-     "\n	-w	Wait for unload" \
-     "\n	-r	Remove module (stacks) or do autoclean" \
-     "\n	-s	Report via syslog instead of stderr" \
-     "\n	-v	Verbose" \
-	) \
-	IF_NOT_MODPROBE_SMALL( \
-	IF_FEATURE_2_4_MODULES( \
-     "\n	-k	Make module autoclean-able" \
-	) \
-     "\n	-n	Dry run" \
-     "\n	-q	Quiet" \
-     "\n	-r	Remove module (stacks) or do autoclean" \
-     "\n	-s	Report via syslog instead of stderr" \
-     "\n	-v	Verbose" \
-	IF_FEATURE_MODPROBE_BLACKLIST( \
-     "\n	-b	Apply blacklist to module names too" \
-	) \
-	)
-
-#define modprobe_notes_usage \
-"modprobe can (un)load a stack of modules, passing each module options (when\n" \
-"loading). modprobe uses a configuration file to determine what option(s) to\n" \
-"pass each module it loads.\n" \
-"\n" \
-"The configuration file is searched (in this order):\n" \
-"\n" \
-"    /etc/modprobe.conf (2.6 only)\n" \
-"    /etc/modules.conf\n" \
-"    /etc/conf.modules (deprecated)\n" \
-"\n" \
-"They all have the same syntax (see below). If none is present, it is\n" \
-"_not_ an error; each loaded module is then expected to load without\n" \
-"options. Once a file is found, the others are tested for.\n" \
-"\n" \
-"/etc/modules.conf entry format:\n" \
-"\n" \
-"  alias <alias_name> <mod_name>\n" \
-"    Makes it possible to modprobe alias_name, when there is no such module.\n" \
-"    It makes sense if your mod_name is long, or you want a more representative\n" \
-"    name for that module (eg. 'scsi' in place of 'aha7xxx').\n" \
-"    This makes it also possible to use a different set of options (below) for\n" \
-"    the module and the alias.\n" \
-"    A module can be aliased more than once.\n" \
-"\n" \
-"  options <mod_name|alias_name> <symbol=value...>\n" \
-"    When loading module mod_name (or the module aliased by alias_name), pass\n" \
-"    the \"symbol=value\" pairs as option to that module.\n" \
-"\n" \
-"Sample /etc/modules.conf file:\n" \
-"\n" \
-"  options tulip irq=3\n" \
-"  alias tulip tulip2\n" \
-"  options tulip2 irq=4 io=0x308\n" \
-"\n" \
-"Other functionality offered by 'classic' modprobe is not available in\n" \
-"this implementation.\n" \
-"\n" \
-"If module options are present both in the config file, and on the command line,\n" \
-"then the options from the command line will be passed to the module _after_\n" \
-"the options from the config file. That way, you can have defaults in the config\n" \
-"file, and override them for a specific usage from the command line.\n"
-#define modprobe_example_usage \
-       "(with the above /etc/modules.conf):\n\n" \
-       "$ modprobe tulip\n" \
-       "   will load the module 'tulip' with default option 'irq=3'\n\n" \
-       "$ modprobe tulip irq=5\n" \
-       "   will load the module 'tulip' with option 'irq=5', thus overriding the default\n\n" \
-       "$ modprobe tulip2\n" \
-       "   will load the module 'tulip' with default options 'irq=4 io=0x308',\n" \
-       "   which are the default for alias 'tulip2'\n\n" \
-       "$ modprobe tulip2 irq=8\n" \
-       "   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=8',\n" \
-       "   which are the default for alias 'tulip2' overridden by the option 'irq=8'\n\n" \
-       "   from the command line\n\n" \
-       "$ modprobe tulip2 irq=2 io=0x210\n" \
-       "   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=4 io=0x210',\n" \
-       "   which are the default for alias 'tulip2' overridden by the options 'irq=2 io=0x210'\n\n" \
-       "   from the command line\n"
 
 #define more_trivial_usage \
        "[FILE]..."

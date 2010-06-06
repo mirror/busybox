@@ -10,6 +10,28 @@
 #include "libbb.h"
 #include "modutils.h"
 
+/* 2.6 style insmod has no options and required filename
+ * (not module name - .ko can't be omitted) */
+
+//usage:#define insmod_trivial_usage
+//usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ")
+//usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
+//usage:	"[symbol=value]..."
+//usage:#define insmod_full_usage "\n\n"
+//usage:       "Load the specified kernel modules into the kernel"
+//usage:	IF_FEATURE_2_4_MODULES( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-f	Force module to load into the wrong kernel version"
+//usage:     "\n	-k	Make module autoclean-able"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-L	Lock: prevent simultaneous loads"
+//usage:	IF_FEATURE_INSMOD_LOAD_MAP(
+//usage:     "\n	-m	Output load map to stdout"
+//usage:	)
+//usage:     "\n	-x	Don't export externs"
+//usage:	)
+
 int insmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int insmod_main(int argc UNUSED_PARAM, char **argv)
 {

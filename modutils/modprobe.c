@@ -20,6 +20,104 @@
 //#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
 #define DBG(...) ((void)0)
 
+//usage:#if !ENABLE_MODPROBE_SMALL
+//usage:#define modprobe_notes_usage
+//usage:	"modprobe can (un)load a stack of modules, passing each module options (when\n"
+//usage:	"loading). modprobe uses a configuration file to determine what option(s) to\n"
+//usage:	"pass each module it loads.\n"
+//usage:	"\n"
+//usage:	"The configuration file is searched (in this order):\n"
+//usage:	"\n"
+//usage:	"    /etc/modprobe.conf (2.6 only)\n"
+//usage:	"    /etc/modules.conf\n"
+//usage:	"    /etc/conf.modules (deprecated)\n"
+//usage:	"\n"
+//usage:	"They all have the same syntax (see below). If none is present, it is\n"
+//usage:	"_not_ an error; each loaded module is then expected to load without\n"
+//usage:	"options. Once a file is found, the others are tested for.\n"
+//usage:	"\n"
+//usage:	"/etc/modules.conf entry format:\n"
+//usage:	"\n"
+//usage:	"  alias <alias_name> <mod_name>\n"
+//usage:	"    Makes it possible to modprobe alias_name, when there is no such module.\n"
+//usage:	"    It makes sense if your mod_name is long, or you want a more representative\n"
+//usage:	"    name for that module (eg. 'scsi' in place of 'aha7xxx').\n"
+//usage:	"    This makes it also possible to use a different set of options (below) for\n"
+//usage:	"    the module and the alias.\n"
+//usage:	"    A module can be aliased more than once.\n"
+//usage:	"\n"
+//usage:	"  options <mod_name|alias_name> <symbol=value...>\n"
+//usage:	"    When loading module mod_name (or the module aliased by alias_name), pass\n"
+//usage:	"    the \"symbol=value\" pairs as option to that module.\n"
+//usage:	"\n"
+//usage:	"Sample /etc/modules.conf file:\n"
+//usage:	"\n"
+//usage:	"  options tulip irq=3\n"
+//usage:	"  alias tulip tulip2\n"
+//usage:	"  options tulip2 irq=4 io=0x308\n"
+//usage:	"\n"
+//usage:	"Other functionality offered by 'classic' modprobe is not available in\n"
+//usage:	"this implementation.\n"
+//usage:	"\n"
+//usage:	"If module options are present both in the config file, and on the command line,\n"
+//usage:	"then the options from the command line will be passed to the module _after_\n"
+//usage:	"the options from the config file. That way, you can have defaults in the config\n"
+//usage:	"file, and override them for a specific usage from the command line.\n"
+//usage:#define modprobe_example_usage
+//usage:       "(with the above /etc/modules.conf):\n\n"
+//usage:       "$ modprobe tulip\n"
+//usage:       "   will load the module 'tulip' with default option 'irq=3'\n\n"
+//usage:       "$ modprobe tulip irq=5\n"
+//usage:       "   will load the module 'tulip' with option 'irq=5', thus overriding the default\n\n"
+//usage:       "$ modprobe tulip2\n"
+//usage:       "   will load the module 'tulip' with default options 'irq=4 io=0x308',\n"
+//usage:       "   which are the default for alias 'tulip2'\n\n"
+//usage:       "$ modprobe tulip2 irq=8\n"
+//usage:       "   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=8',\n"
+//usage:       "   which are the default for alias 'tulip2' overridden by the option 'irq=8'\n\n"
+//usage:       "   from the command line\n\n"
+//usage:       "$ modprobe tulip2 irq=2 io=0x210\n"
+//usage:       "   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=4 io=0x210',\n"
+//usage:       "   which are the default for alias 'tulip2' overridden by the options 'irq=2 io=0x210'\n\n"
+//usage:       "   from the command line\n"
+//usage:
+//usage:#define modprobe_trivial_usage
+//usage:	"[-alrqvs"
+//usage:	IF_FEATURE_MODPROBE_BLACKLIST("b")
+//usage:	"] MODULE [symbol=value]..."
+//usage:#define modprobe_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-a	Load multiple MODULEs"
+//usage:     "\n	-l	List (MODULE is a pattern)"
+//usage:     "\n	-r	Remove MODULE (stacks) or do autoclean"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-s	Log to syslog"
+//usage:	IF_FEATURE_MODPROBE_BLACKLIST(
+//usage:     "\n	-b	Apply blacklist to module names too"
+//usage:	)
+//usage:#endif /* !ENABLE_MODPROBE_SMALL */
+
+/* Note that usage text doesn't document various 2.4 options
+ * we pull in through INSMOD_OPTS define */
+
+#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--ar:a--lr:r--al"
+#define MODPROBE_OPTS  "alr" IF_FEATURE_MODPROBE_BLACKLIST("b")
+//#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--acr:a--lr:r--al"
+//#define MODPROBE_OPTS  "acd:lnrt:C:" IF_FEATURE_MODPROBE_BLACKLIST("b")
+enum {
+	MODPROBE_OPT_INSERT_ALL = (INSMOD_OPT_UNUSED << 0), /* a */
+	//MODPROBE_OPT_DUMP_ONLY= (INSMOD_OPT_UNUSED << x), /* c */
+	//MODPROBE_OPT_DIRNAME  = (INSMOD_OPT_UNUSED << x), /* d */
+	MODPROBE_OPT_LIST_ONLY  = (INSMOD_OPT_UNUSED << 1), /* l */
+	//MODPROBE_OPT_SHOW_ONLY= (INSMOD_OPT_UNUSED << x), /* n */
+	MODPROBE_OPT_REMOVE     = (INSMOD_OPT_UNUSED << 2), /* r */
+	//MODPROBE_OPT_RESTRICT = (INSMOD_OPT_UNUSED << x), /* t */
+	//MODPROBE_OPT_VERONLY  = (INSMOD_OPT_UNUSED << x), /* V */
+	//MODPROBE_OPT_CONFIGFILE=(INSMOD_OPT_UNUSED << x), /* C */
+	MODPROBE_OPT_BLACKLIST  = (INSMOD_OPT_UNUSED << 3) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
+};
+
 #define MODULE_FLAG_LOADED              0x0001
 #define MODULE_FLAG_NEED_DEPS           0x0002
 /* "was seen in modules.dep": */
@@ -35,32 +133,6 @@ struct module_entry { /* I'll call it ME. */
 	/* real module name is one of these. */
 //Can there really be more than one? Example from real kernel?
 	llist_t *deps; /* strings. modules we depend on */
-};
-
-/* NB: INSMOD_OPT_SILENT bit suppresses ONLY non-existent modules,
- * not deleted ones (those are still listed in modules.dep).
- * module-init-tools version 3.4:
- * # modprobe bogus
- * FATAL: Module bogus not found. [exitcode 1]
- * # modprobe -q bogus            [silent, exitcode still 1]
- * but:
- * # rm kernel/drivers/net/dummy.ko
- * # modprobe -q dummy
- * FATAL: Could not open '/lib/modules/xxx/kernel/drivers/net/dummy.ko': No such file or directory
- * [exitcode 1]
- */
-#define MODPROBE_OPTS  "acdlnrt:VC:" IF_FEATURE_MODPROBE_BLACKLIST("b")
-enum {
-	MODPROBE_OPT_INSERT_ALL = (INSMOD_OPT_UNUSED << 0), /* a */
-	MODPROBE_OPT_DUMP_ONLY  = (INSMOD_OPT_UNUSED << 1), /* c */
-	MODPROBE_OPT_D          = (INSMOD_OPT_UNUSED << 2), /* d */
-	MODPROBE_OPT_LIST_ONLY  = (INSMOD_OPT_UNUSED << 3), /* l */
-	MODPROBE_OPT_SHOW_ONLY  = (INSMOD_OPT_UNUSED << 4), /* n */
-	MODPROBE_OPT_REMOVE     = (INSMOD_OPT_UNUSED << 5), /* r */
-	MODPROBE_OPT_RESTRICT   = (INSMOD_OPT_UNUSED << 6), /* t */
-	MODPROBE_OPT_VERONLY    = (INSMOD_OPT_UNUSED << 7), /* V */
-	MODPROBE_OPT_CONFIGFILE = (INSMOD_OPT_UNUSED << 8), /* C */
-	MODPROBE_OPT_BLACKLIST  = (INSMOD_OPT_UNUSED << 9) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
 };
 
 struct globals {
@@ -264,6 +336,18 @@ static char *parse_and_add_kcmdline_module_options(char *options, const char *mo
  * -errno on open/read error,
  * errno on init_module() error
  */
+/* NB: INSMOD_OPT_SILENT bit suppresses ONLY non-existent modules,
+ * not deleted ones (those are still listed in modules.dep).
+ * module-init-tools version 3.4:
+ * # modprobe bogus
+ * FATAL: Module bogus not found. [exitcode 1]
+ * # modprobe -q bogus            [silent, exitcode still 1]
+ * but:
+ * # rm kernel/drivers/net/dummy.ko
+ * # modprobe -q dummy
+ * FATAL: Could not open '/lib/modules/xxx/kernel/drivers/net/dummy.ko': No such file or directory
+ * [exitcode 1]
+ */
 static int do_modprobe(struct module_entry *m)
 {
 	struct module_entry *m2 = m2; /* for compiler */
@@ -395,13 +479,38 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	struct module_entry *me;
 
-	opt_complementary = "q-v:v-q";
-	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS, NULL, NULL);
+	opt_complementary = MODPROBE_COMPLEMENTARY;
+	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS);
 	argv += optind;
 
-	if (opt & (MODPROBE_OPT_DUMP_ONLY | MODPROBE_OPT_LIST_ONLY |
-				MODPROBE_OPT_SHOW_ONLY))
-		bb_error_msg_and_die("not supported");
+	if (opt & MODPROBE_OPT_LIST_ONLY) {
+		char name[MODULE_NAME_LEN];
+		char *colon, *tokens[2];
+		parser_t *p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, xfopen_for_read);
+
+		while (config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
+			colon = last_char_is(tokens[0], ':');
+			if (!colon)
+				continue;
+			*colon = '\0';
+			filename2modname(tokens[0], name);
+			if (!argv[0])
+				puts(tokens[0]);
+			else {
+				int i;
+				for (i = 0; argv[i]; i++) {
+					if (fnmatch(argv[i], name, 0) == 0) {
+						puts(tokens[0]);
+					}
+				}
+			}
+		}
+		return EXIT_SUCCESS;
+	}
+
+	/* Yes, for some reason -l ignores -s... */
+	if (opt & INSMOD_OPT_SYSLOG)
+		logmode = LOGMODE_SYSLOG;
 
 	if (!argv[0]) {
 		if (opt & MODPROBE_OPT_REMOVE) {
