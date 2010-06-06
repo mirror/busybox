@@ -103,11 +103,11 @@ struct globals {
 }; //FIX_ALIASING; - large code growth
 enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define INIT_G() do { \
-	struct G_sizecheck { \
-		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
-	}; \
-} while (0)
+struct BUG_bad_size {
+	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+	char BUG_line_buf_too_small[LINE_BUF_SIZE > 80 ? 1 : -1];
+};
+#define INIT_G() do { } while (0)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )
@@ -705,7 +705,7 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 		MWRITE, ANON, MAP, SLAB,
 		NUM_FIELDS
 	};
-	static const char match[NUM_FIELDS][11] = {
+	static const char match[NUM_FIELDS][12] = {
 		"\x09" "MemTotal:",  // TOTAL
 		"\x08" "MemFree:",   // MFREE
 		"\x08" "Buffers:",   // BUF
@@ -718,52 +718,46 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 		"\x07" "Mapped:",    // MAP
 		"\x05" "Slab:",      // SLAB
 	};
-//TODO? Note that fields always appear in the above order.
-//Thus, as each new line read from /proc/meminfo, we can compare it *once*
-//with match[last_matched+1], instead of looping thru all match[i]'s.
-//If it matches, memorize its data and last_matched++ (and if == NUM_FIELDS,
-//we're done with reading /proc/meminfo!); otherwise fgets next line.
-//The code below is slower, but is robust against a case when /proc/meminfo
-//gets reordered in the future.
-	char Z[NUM_FIELDS][sizeof(long long)*3];
-	char linebuf[128];
+	char meminfo_buf[4 * 1024];
+	const char *Z[NUM_FIELDS];
 	unsigned i;
-	FILE *fp;
+	int sz;
 
-	memset(&Z, 0, sizeof(Z));
 	for (i = 0; i < NUM_FIELDS; i++)
-		Z[i][0] = '?';
+		Z[i] = "?";
 
 	/* read memory info */
-	fp = xfopen_for_read("meminfo");
-	while (fgets(linebuf, sizeof(linebuf), fp)) {
+	sz = open_read_close("meminfo", meminfo_buf, sizeof(meminfo_buf) - 1);
+	if (sz >= 0) {
+		char *p = meminfo_buf;
+		meminfo_buf[sz] = '\0';
+		/* Note that fields always appear in the match[] order */
 		for (i = 0; i < NUM_FIELDS; i++) {
-			unsigned sz = (unsigned char)match[i][0];
-			if (strncmp(linebuf, match[i] + 1, sz) == 0) {
+			char *found = strstr(p, match[i] + 1);
+			if (found) {
 				/* Cut "NNNN" out of "    NNNN kb" */
-				char *s = skip_whitespace(linebuf + sz);
-				skip_non_whitespace(s)[0] = '\0';
-				safe_strncpy(Z[i], s, sizeof(Z[i]));
-				break;
+				char *s = skip_whitespace(found + match[i][0]);
+				p = skip_non_whitespace(s);
+				*p++ = '\0';
+				Z[i] = s;
 			}
 		}
 	}
-	fclose(fp);
 
-	snprintf(linebuf, sizeof(linebuf),
+	snprintf(line_buf, LINE_BUF_SIZE,
 		"Mem total:%s anon:%s map:%s free:%s",
 		Z[TOTAL], Z[ANON], Z[MAP], Z[MFREE]);
-	printf(OPT_BATCH_MODE ? "%.*s\n" : "\033[H\033[J%.*s\n", scr_width, linebuf);
+	printf(OPT_BATCH_MODE ? "%.*s\n" : "\033[H\033[J%.*s\n", scr_width, line_buf);
 
-	snprintf(linebuf, sizeof(linebuf),
+	snprintf(line_buf, LINE_BUF_SIZE,
 		" slab:%s buf:%s cache:%s dirty:%s write:%s",
 		Z[SLAB], Z[BUF], Z[CACHE], Z[DIRTY], Z[MWRITE]);
-	printf("%.*s\n", scr_width, linebuf);
+	printf("%.*s\n", scr_width, line_buf);
 
-	snprintf(linebuf, sizeof(linebuf),
+	snprintf(line_buf, LINE_BUF_SIZE,
 		"Swap total:%s free:%s", // TODO: % used?
 		Z[SWAPTOTAL], Z[SWAPFREE]);
-	printf("%.*s\n", scr_width, linebuf);
+	printf("%.*s\n", scr_width, line_buf);
 
 	(*lines_rem_p) -= 3;
 }
