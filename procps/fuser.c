@@ -40,31 +40,6 @@ struct globals {
 #define INIT_G() do { } while (0)
 
 
-static dev_t find_socket_dev(void)
-{
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd >= 0) {
-		struct stat buf;
-		int r = fstat(fd, &buf);
-		close(fd);
-		if (r == 0)
-			return buf.st_dev;
-	}
-	return 0;
-}
-
-static char *parse_net_arg(const char *arg, unsigned *port)
-{
-	char path[20], tproto[5];
-
-	if (sscanf(arg, "%u/%4s", port, tproto) != 2)
-		return NULL;
-	sprintf(path, "/proc/net/%s", tproto);
-	if (access(path, R_OK) != 0)
-		return NULL;
-	return xstrdup(path);
-}
-
 static void add_pid(const pid_t pid)
 {
 	pid_list **curr = &G.pid_list_head;
@@ -104,8 +79,15 @@ static void scan_proc_net(const char *path, unsigned port)
 	unsigned tmp_port;
 	FILE *f;
 	struct stat st;
+	int fd;
 
-	st.st_dev = find_socket_dev();
+	/* find socket dev */
+	st.st_dev = 0;
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd >= 0) {
+		fstat(fd, &st);
+		close(fd);
+	}
 
 	f = fopen_for_read(path);
 	if (!f)
@@ -284,11 +266,15 @@ Find processes which use FILEs or PORTs
 
 	pp = argv;
 	while (*pp) {
-		char *path = parse_net_arg(*pp, &port);
-		if (path) { /* PORT/PROTO */
+		/* parse net arg */
+		char path[20], tproto[5];
+		if (sscanf(*pp, "%u/%4s", &port, tproto) != 2)
+			goto file;
+		sprintf(path, "/proc/net/%s", tproto);
+		if (access(path, R_OK) != 0) { /* PORT/PROTO */
 			scan_proc_net(path, port);
-			free(path);
 		} else { /* FILE */
+ file:
 			xstat(*pp, &st);
 			add_inode(&st);
 		}
