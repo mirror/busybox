@@ -5,58 +5,6 @@
 
 menu "Shells"
 
-choice
-	prompt "Choose which shell is aliased to 'sh' name"
-	default FEATURE_SH_IS_ASH
-	help
-	  Choose which shell you want to be executed by 'sh' alias.
-	  The ash shell is the most bash compatible and full featured one.
-
-config FEATURE_SH_IS_ASH
-	select ASH
-	bool "ash"
-	depends on !NOMMU
-
-config FEATURE_SH_IS_HUSH
-	select HUSH
-	bool "hush"
-
-config FEATURE_SH_IS_NONE
-	bool "none"
-
-endchoice
-
-choice
-	prompt "Choose which shell is aliased to 'bash' name"
-	default FEATURE_BASH_IS_NONE
-	help
-	  Choose which shell you want to be executed by 'bash' alias.
-	  The ash shell is the most bash compatible and full featured one.
-
-	  Note that selecting this option does not switch on any bash
-	  compatibility code. It merely makes it possible to install
-	  /bin/bash (sym)link and run scripts which start with
-	  #!/bin/bash line.
-
-	  Many systems use it in scripts which use bash-specific features,
-	  even simple ones like $RANDOM. Without this option, busybox
-	  can't be used for running them because it won't recongnize
-	  "bash" as a supported applet name.
-
-config FEATURE_BASH_IS_ASH
-	select ASH
-	bool "ash"
-	depends on !NOMMU
-
-config FEATURE_BASH_IS_HUSH
-	select HUSH
-	bool "hush"
-
-config FEATURE_BASH_IS_NONE
-	bool "none"
-
-endchoice
-
 config ASH
 	bool "ash"
 	default y
@@ -265,6 +213,61 @@ config HUSH_RANDOM_SUPPORT
 	help
 	  Enable pseudorandom generator and dynamic variable "$RANDOM".
 	  Each read of "$RANDOM" will generate a new pseudorandom value.
+
+
+choice
+	prompt "Choose which shell is aliased to 'sh' name"
+	default FEATURE_SH_IS_ASH
+	help
+	  Choose which shell you want to be executed by 'sh' alias.
+	  The ash shell is the most bash compatible and full featured one.
+
+# note: cannot use "select ASH" here, it breaks "amke allnoconfig"
+config FEATURE_SH_IS_ASH
+	depends on ASH
+	bool "ash"
+	depends on !NOMMU
+
+config FEATURE_SH_IS_HUSH
+	depends on HUSH
+	bool "hush"
+
+config FEATURE_SH_IS_NONE
+	bool "none"
+
+endchoice
+
+choice
+	prompt "Choose which shell is aliased to 'bash' name"
+	default FEATURE_BASH_IS_NONE
+	help
+	  Choose which shell you want to be executed by 'bash' alias.
+	  The ash shell is the most bash compatible and full featured one.
+
+	  Note that selecting this option does not switch on any bash
+	  compatibility code. It merely makes it possible to install
+	  /bin/bash (sym)link and run scripts which start with
+	  #!/bin/bash line.
+
+	  Many systems use it in scripts which use bash-specific features,
+	  even simple ones like $RANDOM. Without this option, busybox
+	  can't be used for running them because it won't recongnize
+	  "bash" as a supported applet name.
+
+config FEATURE_BASH_IS_ASH
+	depends on ASH
+	bool "ash"
+	depends on !NOMMU
+
+config FEATURE_BASH_IS_HUSH
+	depends on HUSH
+	bool "hush"
+
+config FEATURE_BASH_IS_NONE
+	bool "none"
+
+endchoice
+
 
 config LASH
 	bool "lash (deprecated: aliased to hush)"
