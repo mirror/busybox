@@ -24,12 +24,17 @@ struct kbentry {
 #define MAX_NR_KEYMAPS 256
 
 int dumpkmap_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int dumpkmap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+int dumpkmap_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct kbentry ke;
 	int i, j, fd;
 	RESERVE_CONFIG_BUFFER(flags, MAX_NR_KEYMAPS);
 
+	/* When user accidentally runs "dumpkmap FILE"
+	 * instead of "dumpkmap >FILE", we'd dump binary stuff to tty.
+	 * Let's prevent it: */
+	if (argv[1])
+		bb_show_usage();
 /*	bb_warn_ignoring_args(argv[1]);*/
 
 	fd = get_console_fd_or_die();
