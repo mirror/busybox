@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 #define PIPE_PROGRESS_SIZE 4096
@@ -17,23 +16,20 @@
 int pipe_progress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int pipe_progress_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	RESERVE_CONFIG_BUFFER(buf, PIPE_PROGRESS_SIZE);
+	char buf[PIPE_PROGRESS_SIZE];
 	time_t t = time(NULL);
-	size_t len;
+	int len;
 
-	while ((len = fread(buf, 1, PIPE_PROGRESS_SIZE, stdin)) > 0) {
+	while ((len = safe_read(STDIN_FILENO, buf, PIPE_PROGRESS_SIZE)) > 0) {
 		time_t new_time = time(NULL);
 		if (new_time != t) {
 			t = new_time;
 			fputc('.', stderr);
 		}
-		fwrite(buf, len, 1, stdout);
+		full_write(STDOUT_FILENO, buf, len);
 	}
 
 	fputc('\n', stderr);
-
-	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(buf);
 
 	return 0;
 }
