@@ -119,7 +119,7 @@ static void progress_meter(int flag)
 	if (flag == 0) {
 		/* last call to progress_meter */
 		alarm(0);
-		fputc('\n', stderr);
+		bb_putchar_stderr('\n');
 	} else {
 		if (flag == -1) { /* first call to progress_meter */
 			signal_SA_RESTART_empty_mask(SIGALRM, progress_meter);

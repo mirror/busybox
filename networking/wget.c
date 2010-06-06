@@ -55,7 +55,7 @@ static void progress_meter(int flag)
 	if (flag == 0) {
 		/* last call to progress_meter */
 		alarm(0);
-		fputc('\n', stderr);
+		bb_putchar_stderr('\n');
 		G.transferred = 0;
 	} else {
 		if (flag == -1) { /* first call to progress_meter */

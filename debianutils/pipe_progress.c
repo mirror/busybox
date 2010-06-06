@@ -24,12 +24,12 @@ int pipe_progress_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		time_t new_time = time(NULL);
 		if (new_time != t) {
 			t = new_time;
-			fputc('.', stderr);
+			bb_putchar_stderr('.');
 		}
 		full_write(STDOUT_FILENO, buf, len);
 	}
 
-	fputc('\n', stderr);
+	bb_putchar_stderr('\n');
 
 	return 0;
 }

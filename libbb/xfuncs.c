@@ -199,15 +199,9 @@ off_t FAST_FUNC fdlength(int fd)
 }
 #endif
 
-char* FAST_FUNC xmalloc_ttyname(int fd)
+int FAST_FUNC bb_putchar_stderr(char ch)
 {
-	char *buf = xzalloc(128);
-	int r = ttyname_r(fd, buf, 127);
-	if (r) {
-		free(buf);
-		buf = NULL;
-	}
-	return buf;
+	return write(STDERR_FILENO, &ch, 1);
 }
 
 static int wh_helper(int value, int def_val, const char *env_name, int *err)
@@ -249,67 +243,4 @@ int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *heigh
 int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
 {
 	return tcsetattr(STDIN_FILENO, TCSANOW, tp);
-}
-
-void FAST_FUNC generate_uuid(uint8_t *buf)
-{
-	/* http://www.ietf.org/rfc/rfc4122.txt
-	 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	 * |                          time_low                             |
-	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	 * |       time_mid                |         time_hi_and_version   |
-	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	 * |clk_seq_and_variant            |         node (0-1)            |
-	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	 * |                         node (2-5)                            |
-	 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	 * IOW, uuid has this layout:
-	 * uint32_t time_low (big endian)
-	 * uint16_t time_mid (big endian)
-	 * uint16_t time_hi_and_version (big endian)
-	 *  version is a 4-bit field:
-	 *   1 Time-based
-	 *   2 DCE Security, with embedded POSIX UIDs
-	 *   3 Name-based (MD5)
-	 *   4 Randomly generated
-	 *   5 Name-based (SHA-1)
-	 * uint16_t clk_seq_and_variant (big endian)
-	 *  variant is a 3-bit field:
-	 *   0xx Reserved, NCS backward compatibility
-	 *   10x The variant specified in rfc4122
-	 *   110 Reserved, Microsoft backward compatibility
-	 *   111 Reserved for future definition
-	 * uint8_t node[6]
-	 *
-	 * For version 4, these bits are set/cleared:
-	 * time_hi_and_version & 0x0fff | 0x4000
-	 * clk_seq_and_variant & 0x3fff | 0x8000
-	 */
-	pid_t pid;
-	int i;
-
-	i = open("/dev/urandom", O_RDONLY);
-	if (i >= 0) {
-		read(i, buf, 16);
-		close(i);
-	}
-	/* Paranoia. /dev/urandom may be missing.
-	 * rand() is guaranteed to generate at least [0, 2^15) range,
-	 * but lowest bits in some libc are not so "random".  */
-	srand(monotonic_us());
-	pid = getpid();
-	while (1) {
-		for (i = 0; i < 16; i++)
-			buf[i] ^= rand() >> 5;
-		if (pid == 0)
-			break;
-		srand(pid);
-		pid = 0;
-	}
-
-	/* version = 4 */
-	buf[4 + 2    ] = (buf[4 + 2    ] & 0x0f) | 0x40;
-	/* variant = 10x */
-	buf[4 + 2 + 2] = (buf[4 + 2 + 2] & 0x3f) | 0x80;
 }

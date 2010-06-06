@@ -676,7 +676,7 @@ static void check_match(IPos start, IPos match, int length)
 	if (verbose > 1) {
 		bb_error_msg("\\[%d,%d]", start - match, length);
 		do {
-			fputc(G1.window[start++], stderr);
+			bb_putchar_stderr(G1.window[start++]);
 		} while (--length != 0);
 	}
 }

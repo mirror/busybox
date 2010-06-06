@@ -420,7 +420,7 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 		int i;
 		for (i = 0; i < modvalue; ++i)
 			fprintf(stderr, "%d", (unsigned char)ary[i]);
-		fputc('\n', stderr);
+		bb_putchar_stderr('\n');
 	}
 }
 

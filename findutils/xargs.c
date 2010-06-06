@@ -529,11 +529,11 @@ int xargs_main(int argc, char **argv)
 		if (opt & (OPT_INTERACTIVE | OPT_VERBOSE)) {
 			for (i = 0; args[i]; i++) {
 				if (i)
-					fputc(' ', stderr);
+					bb_putchar_stderr(' ');
 				fputs(args[i], stderr);
 			}
 			if (!(opt & OPT_INTERACTIVE))
-				fputc('\n', stderr);
+				bb_putchar_stderr('\n');
 		}
 		if (!(opt & OPT_INTERACTIVE) || xargs_ask_confirmation()) {
 			child_error = xargs_exec(args);
