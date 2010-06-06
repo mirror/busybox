@@ -293,7 +293,7 @@ config FEATURE_HEXDUMP_REVERSE
 config HD
 	bool "hd"
 	default y
-	select HEXDUMP
+	depends on HEXDUMP
 	help
 	  hd is an alias to hexdump -C.
 

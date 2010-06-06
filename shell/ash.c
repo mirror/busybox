@@ -9479,7 +9479,7 @@ preadfd(void)
 		}
 	}
 #else
-	nr = nonblock_safe_read(g_parsefile->fd, buf, IBUFSIZ - 1);
+	nr = nonblock_safe_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 #endif
 
 #if 0
