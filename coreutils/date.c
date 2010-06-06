@@ -204,7 +204,11 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		xstat(filename, &statbuf);
 		ts.tv_sec = statbuf.st_mtime;
 #if ENABLE_FEATURE_DATE_NANO
-		ts.tv_nsec = statbuf.st_mtimensec; //or st_atim.tv_nsec?
+# if defined __GLIBC__ && !defined __UCLIBC__
+		ts.tv_nsec = statbuf.st_mtim.tv_nsec;
+# else
+		ts.tv_nsec = statbuf.st_mtimensec;
+# endif
 #endif
 	} else {
 #if ENABLE_FEATURE_DATE_NANO
