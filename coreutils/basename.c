@@ -5,12 +5,7 @@
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- *
  */
-
-/* BB_AUDIT SUSv3 compliant */
-/* http://www.opengroup.org/onlinepubs/007904975/utilities/basename.html */
-
 
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
@@ -19,6 +14,9 @@
  * 2) Don't check for options, as per SUSv3.
  * 3) Save some space by using strcmp().  Calling strncmp() here was silly.
  */
+
+/* BB_AUDIT SUSv3 compliant */
+/* http://www.opengroup.org/onlinepubs/007904975/utilities/basename.html */
 
 //kbuild:lib-$(CONFIG_BASENAME) += basename.o
 
@@ -40,7 +38,7 @@ int basename_main(int argc, char **argv)
 	size_t m, n;
 	char *s;
 
-	if (((unsigned int)(argc-2)) >= 2) {
+	if ((unsigned)(argc-2) >= 2) {
 		bb_show_usage();
 	}
 
@@ -50,7 +48,7 @@ int basename_main(int argc, char **argv)
 	m = strlen(s);
 	if (*++argv) {
 		n = strlen(*argv);
-		if ((m > n) && ((strcmp)(s+m-n, *argv) == 0)) {
+		if ((m > n) && (strcmp(s+m-n, *argv) == 0)) {
 			m -= n;
 			/*s[m] = '\0'; - redundant */
 		}

@@ -204,6 +204,16 @@ int FAST_FUNC bb_putchar_stderr(char ch)
 	return write(STDERR_FILENO, &ch, 1);
 }
 
+ssize_t FAST_FUNC full_write1_str(const char *str)
+{
+	return full_write(STDOUT_FILENO, str, strlen(str));
+}
+
+ssize_t FAST_FUNC full_write2_str(const char *str)
+{
+	return full_write(STDERR_FILENO, str, strlen(str));
+}
+
 static int wh_helper(int value, int def_val, const char *env_name, int *err)
 {
 	if (value == 0) {

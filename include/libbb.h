@@ -674,6 +674,8 @@ extern ssize_t safe_write(int fd, const void *buf, size_t count) FAST_FUNC;
 extern ssize_t full_write(int fd, const void *buf, size_t count) FAST_FUNC;
 extern void xwrite(int fd, const void *buf, size_t count) FAST_FUNC;
 extern void xwrite_str(int fd, const char *str) FAST_FUNC;
+extern ssize_t full_write1_str(const char *str) FAST_FUNC;
+extern ssize_t full_write2_str(const char *str) FAST_FUNC;
 extern void xopen_xwrite_close(const char* file, const char *str) FAST_FUNC;
 
 /* Close fd, but check for failures (some types of write errors) */

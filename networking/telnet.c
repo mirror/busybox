@@ -418,7 +418,7 @@ static void to_echo(void)
 		put_iac2(DONT, TELOPT_ECHO);
 
 	setConMode();
-	write_str(1, "\r\n");  /* sudden modec */
+	full_write1_str("\r\n");  /* sudden modec */
 }
 
 static void to_sga(void)
@@ -637,7 +637,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 			{
 				len = safe_read(netfd, G.buf, DATABUFSIZE);
 				if (len <= 0) {
-					write_str(1, "Connection closed by foreign host\r\n");
+					full_write1_str("Connection closed by foreign host\r\n");
 					doexit(EXIT_FAILURE);
 				}
 				TRACE(0, ("Read netfd (%d): %d\n", netfd, len));

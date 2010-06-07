@@ -98,13 +98,6 @@ static const char *unpack_usage_messages(void)
 #endif /* FEATURE_COMPRESS_USAGE */
 
 
-static void full_write2_str(const char *str)
-{
-	// This uses stdio:
-	//xwrite_str(STDERR_FILENO, str);
-	write(STDERR_FILENO, str, strlen(str));
-}
-
 void FAST_FUNC bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {

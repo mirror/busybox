@@ -7103,7 +7103,7 @@ int hush_main(int argc, char **argv)
 			break;
 #if !BB_MMU
 		case '<': /* "big heredoc" support */
-			full_write(STDOUT_FILENO, optarg, strlen(optarg));
+			full_write1_str(optarg);
 			_exit(0);
 		case '$': {
 			unsigned long long empty_trap_mask;
