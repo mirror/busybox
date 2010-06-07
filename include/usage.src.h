@@ -5097,7 +5097,7 @@ INSERT
 #define who_full_usage "\n\n" \
        "Show who is logged on\n" \
      "\nOptions:" \
-     "\n	-a	show all" \
+     "\n	-a	Show all" \
 
 #define whoami_trivial_usage \
        ""
