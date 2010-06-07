@@ -222,7 +222,7 @@ choice
 	  Choose which shell you want to be executed by 'sh' alias.
 	  The ash shell is the most bash compatible and full featured one.
 
-# note: cannot use "select ASH" here, it breaks "amke allnoconfig"
+# note: cannot use "select ASH" here, it breaks "make allnoconfig"
 config FEATURE_SH_IS_ASH
 	depends on ASH
 	bool "ash"
