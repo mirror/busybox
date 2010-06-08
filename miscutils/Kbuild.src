@@ -5,6 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
+
+INSERT
 lib-$(CONFIG_ADJTIMEX)    += adjtimex.o
 lib-$(CONFIG_BBCONFIG)    += bbconfig.o
 lib-$(CONFIG_BEEP)        += beep.o

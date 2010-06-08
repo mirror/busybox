@@ -7,6 +7,8 @@
 
 lib-y:=
 
+INSERT
+
 lib-$(CONFIG_UDHCPC)     += common.o packet.o signalpipe.o socket.o
 lib-$(CONFIG_UDHCPD)     += common.o packet.o signalpipe.o socket.o
 

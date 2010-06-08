@@ -7,6 +7,9 @@
 libs-y				+= libunarchive/
 
 lib-y:=
+
+INSERT
+
 lib-$(CONFIG_AR)		+= ar.o
 lib-$(CONFIG_CPIO)		+= cpio.o
 lib-$(CONFIG_DPKG)		+= dpkg.o

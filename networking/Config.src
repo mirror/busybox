@@ -5,6 +5,8 @@
 
 menu "Networking Utilities"
 
+INSERT
+
 config FEATURE_IPV6
 	bool "Enable IPv6 support"
 	default y

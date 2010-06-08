@@ -5,6 +5,8 @@
 
 menu "Archival Utilities"
 
+INSERT
+
 config FEATURE_SEAMLESS_XZ
 	bool "Make tar, rpm, modprobe etc understand .xz data"
 	default y

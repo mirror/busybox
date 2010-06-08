@@ -10,6 +10,9 @@ NEEDED-$(CONFIG_MKE2FS) = y
 NEEDED-$(CONFIG_TUNE2FS) = y
 
 lib-y:=
+
+INSERT
+
 lib-$(NEEDED-y) += cache.o dev.o devname.o devno.o blkid_getsize.o \
                    probe.o read.o resolve.o save.o tag.o list.o
 

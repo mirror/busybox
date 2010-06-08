@@ -5,6 +5,8 @@
 
 menu "Init Utilities"
 
+INSERT
+
 config INIT
 	bool "init"
 	default y

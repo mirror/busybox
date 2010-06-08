@@ -33,6 +33,8 @@ DPKG_FILES:= \
 	get_header_tar.o \
 	filter_accept_list_reassign.o
 
+INSERT
+
 lib-$(CONFIG_AR)                        += get_header_ar.o unpack_ar_archive.o
 lib-$(CONFIG_BUNZIP2)                   += decompress_bunzip2.o
 lib-$(CONFIG_UNLZMA)                    += decompress_unlzma.o

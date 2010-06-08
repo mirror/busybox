@@ -5,6 +5,8 @@
 
 menu "Editors"
 
+INSERT
+
 config AWK
 	bool "awk"
 	default y

@@ -5,6 +5,8 @@
 
 menu "Print Utilities"
 
+INSERT
+
 config LPD
 	bool "lpd"
 	default y

@@ -5,6 +5,8 @@
 
 menu "Linux Ext2 FS Progs"
 
+INSERT
+
 config CHATTR
 	bool "chattr"
 	default y

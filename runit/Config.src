@@ -5,6 +5,8 @@
 
 menu "Runit Utilities"
 
+INSERT
+
 config RUNSV
 	bool "runsv"
 	default y

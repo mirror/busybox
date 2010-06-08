@@ -10,5 +10,7 @@ NEEDED-$(CONFIG_MKE2FS) = y
 NEEDED-$(CONFIG_TUNE2FS) = y
 
 lib-y:=
+
+INSERT
 lib-$(NEEDED-y) += compare.o gen_uuid.o pack.o parse.o unpack.o unparse.o \
                    uuid_time.o

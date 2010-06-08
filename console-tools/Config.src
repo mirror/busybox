@@ -5,6 +5,8 @@
 
 menu "Console Utilities"
 
+INSERT
+
 config CHVT
 	bool "chvt"
 	default y

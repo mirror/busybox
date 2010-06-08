@@ -10,6 +10,9 @@ NEEDED-$(CONFIG_MKE2FS) = y
 NEEDED-$(CONFIG_TUNE2FS) = y
 
 lib-y:=
+
+INSERT
+
 lib-$(NEEDED-y) += fgetsetflags.o fgetsetversion.o pf.o iod.o mntopts.o \
            feature.o ls.o uuid.o pe.o ostype.o ps.o hashstr.o \
            parse_num.o

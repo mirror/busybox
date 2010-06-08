@@ -6,6 +6,8 @@
 menu "SELinux Utilities"
 	depends on SELINUX
 
+INSERT
+
 config CHCON
 	bool "chcon"
 	default n

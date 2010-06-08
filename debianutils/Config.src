@@ -5,6 +5,8 @@
 
 menu "Debian Utilities"
 
+INSERT
+
 config MKTEMP
 	bool "mktemp"
 	default y

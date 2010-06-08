@@ -5,6 +5,8 @@
 
 menu "Shells"
 
+INSERT
+
 config ASH
 	bool "ash"
 	default y

@@ -5,6 +5,8 @@
 
 menu "Miscellaneous Utilities"
 
+INSERT
+
 config ADJTIMEX
 	bool "adjtimex"
 	default y

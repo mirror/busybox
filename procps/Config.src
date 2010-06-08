@@ -5,6 +5,8 @@
 
 menu "Process Utilities"
 
+INSERT
+
 config FREE
 	bool "free"
 	default y

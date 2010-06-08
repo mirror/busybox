@@ -5,6 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
+
+INSERT
 lib-$(CONFIG_HALT)       += halt.o
 lib-$(CONFIG_INIT)       += init.o
 lib-$(CONFIG_MESG)       += mesg.o

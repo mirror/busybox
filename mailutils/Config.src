@@ -1,5 +1,7 @@
 menu "Mail Utilities"
 
+INSERT
+
 config MAKEMIME
 	bool "makemime"
 	default y

@@ -5,6 +5,8 @@
 
 menu "System Logging Utilities"
 
+INSERT
+
 config SYSLOGD
 	bool "syslogd"
 	default y

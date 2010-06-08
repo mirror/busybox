@@ -10,6 +10,9 @@ NEEDED-$(CONFIG_MKE2FS) = y
 NEEDED-$(CONFIG_TUNE2FS) = y
 
 lib-y:=
+
+INSERT
+
 lib-$(NEEDED-y) += gen_bitmap.o bitops.o ismounted.o mkjournal.o unix_io.o \
                    rw_bitmaps.o initialize.o bitmaps.o block.o \
                    ind_block.o inode.o freefs.o alloc_stats.o closefs.o \

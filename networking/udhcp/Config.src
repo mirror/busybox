@@ -3,6 +3,8 @@
 # see scripts/kbuild/config-language.txt.
 #
 
+INSERT
+
 config UDHCPD
 	bool "udhcp server (udhcpd)"
 	default y

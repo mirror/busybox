@@ -5,6 +5,8 @@
 
 menu "Linux System Utilities"
 
+INSERT
+
 config ACPID
 	bool "acpid"
 	default y

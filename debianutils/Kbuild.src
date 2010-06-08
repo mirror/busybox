@@ -5,6 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
+
+INSERT
 lib-$(CONFIG_MKTEMP)            += mktemp.o
 lib-$(CONFIG_PIPE_PROGRESS)     += pipe_progress.o
 lib-$(CONFIG_RUN_PARTS)         += run_parts.o
