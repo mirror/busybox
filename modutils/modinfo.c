@@ -8,7 +8,7 @@
 
 //applet:IF_MODINFO(APPLET(modinfo, _BB_DIR_SBIN, _BB_SUID_DROP))
 
-//kbuild:lib-$(CONFIG_MODINFO) += modinfo.o
+//kbuild:lib-$(CONFIG_MODINFO) += modinfo.o modutils.o
 
 //config:config MODINFO
 //config:	bool "modinfo"
