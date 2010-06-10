@@ -49,23 +49,35 @@ char* FAST_FUNC strncpy_IFNAMSIZ(char *dst, const char *src)
 }
 
 
-// Convert unsigned integer to ascii, writing into supplied buffer.
-// A truncated result contains the first few digits of the result ala strncpy.
-// Returns a pointer past last generated digit, does _not_ store NUL.
-void BUG_sizeof_unsigned_not_4(void);
+/* Convert unsigned integer to ascii, writing into supplied buffer.
+ * A truncated result contains the first few digits of the result ala strncpy.
+ * Returns a pointer past last generated digit, does _not_ store NUL.
+ */
+void BUG_sizeof(void);
 char* FAST_FUNC utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	unsigned i, out, res;
-	if (sizeof(unsigned) != 4)
-		BUG_sizeof_unsigned_not_4();
+
 	if (buflen) {
 		out = 0;
-		for (i = 1000000000; i; i /= 10) {
+		if (sizeof(n) == 4)
+		// 2^32-1 = 4294967295
+			i = 1000000000;
+#if UINT_MAX > 4294967295 /* prevents warning about "const too large" */
+		else
+		if (sizeof(n) == 8)
+		// 2^64-1 = 18446744073709551615
+			i = 10000000000000000000;
+#endif
+		else
+			BUG_sizeof();
+		for (; i; i /= 10) {
 			res = n / i;
+			n = n % i;
 			if (res || out || i == 1) {
-				if (!--buflen) break;
+				if (--buflen == 0)
+					break;
 				out++;
-				n -= res*i;
 				*buf++ = '0' + res;
 			}
 		}
@@ -76,7 +88,9 @@ char* FAST_FUNC utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 /* Convert signed integer to ascii, like utoa_to_buf() */
 char* FAST_FUNC itoa_to_buf(int n, char *buf, unsigned buflen)
 {
-	if (buflen && n < 0) {
+	if (!buflen)
+		return buf;
+	if (n < 0) {
 		n = -n;
 		*buf++ = '-';
 		buflen--;
@@ -87,16 +101,16 @@ char* FAST_FUNC itoa_to_buf(int n, char *buf, unsigned buflen)
 // The following two functions use a static buffer, so calling either one a
 // second time will overwrite previous results.
 //
-// The largest 32 bit integer is -2 billion plus null terminator, or 12 bytes.
-// It so happens that sizeof(int) * 3 is enough for 32+ bits.
+// The largest 32 bit integer is -2 billion plus NUL, or 1+10+1=12 bytes.
+// It so happens that sizeof(int) * 3 is enough for 32+ bit ints.
 // (sizeof(int) * 3 + 2 is correct for any width, even 8-bit)
 
 static char local_buf[sizeof(int) * 3];
 
-// Convert unsigned integer to ascii using a static buffer (returned).
+/* Convert unsigned integer to ascii using a static buffer (returned). */
 char* FAST_FUNC utoa(unsigned n)
 {
-	*(utoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
+	*(utoa_to_buf(n, local_buf, sizeof(local_buf) - 1)) = '\0';
 
 	return local_buf;
 }
@@ -104,7 +118,7 @@ char* FAST_FUNC utoa(unsigned n)
 /* Convert signed integer to ascii using a static buffer (returned). */
 char* FAST_FUNC itoa(int n)
 {
-	*(itoa_to_buf(n, local_buf, sizeof(local_buf))) = '\0';
+	*(itoa_to_buf(n, local_buf, sizeof(local_buf) - 1)) = '\0';
 
 	return local_buf;
 }
