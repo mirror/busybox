@@ -210,7 +210,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_DATE_NANO
 		clock_gettime(CLOCK_REALTIME, &ts);
 #else
-		time(&ts.tv_nsec);
+		time(&ts.tv_sec);
 #endif
 	}
 	localtime_r(&ts.tv_sec, &tm_time);
