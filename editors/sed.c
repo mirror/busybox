@@ -487,7 +487,7 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 static void add_cmd(const char *cmdstr)
 {
 	sed_cmd_t *sed_cmd;
-	int temp;
+	unsigned len, n;
 
 	/* Append this line to any unfinished line from last time. */
 	if (G.add_cmd_line) {
@@ -496,12 +496,14 @@ static void add_cmd(const char *cmdstr)
 		cmdstr = G.add_cmd_line = tp;
 	}
 
-	/* If this line ends with backslash, request next line. */
-	temp = strlen(cmdstr);
-	if (temp && cmdstr[--temp] == '\\') {
+	/* If this line ends with unescaped backslash, request next line. */
+	n = len = strlen(cmdstr);
+	while (n && cmdstr[n-1] == '\\')
+		n--;
+	if ((len - n) & 1) { /* if odd number of trailing backslashes */
 		if (!G.add_cmd_line)
 			G.add_cmd_line = xstrdup(cmdstr);
-		G.add_cmd_line[temp] = '\0';
+		G.add_cmd_line[len-1] = '\0';
 		return;
 	}
 
@@ -936,7 +938,15 @@ static void process_files(void)
 		/* Skip blocks of commands we didn't match */
 		if (sed_cmd->cmd == '{') {
 			if (sed_cmd->invert ? matched : !matched) {
-				while (sed_cmd->cmd != '}') {
+				unsigned nest_cnt = 0;
+				while (1) {
+					if (sed_cmd->cmd == '{')
+						nest_cnt++;
+					if (sed_cmd->cmd == '}') {
+						nest_cnt--;
+						if (nest_cnt == 0)
+							break;
+					}
 					sed_cmd = sed_cmd->next;
 					if (!sed_cmd)
 						bb_error_msg_and_die("unterminated {");
@@ -1031,7 +1041,7 @@ static void process_files(void)
 		case 'c':
 			/* Only triggers on last line of a matching range. */
 			if (!sed_cmd->in_match)
-				sed_puts(sed_cmd->string, NO_EOL_CHAR);
+				sed_puts(sed_cmd->string, '\n');
 			goto discard_line;
 
 		/* Read file, append contents to output */

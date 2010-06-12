@@ -44,10 +44,15 @@ struct dns_head {
 	uint16_t nauth;
 	uint16_t nadd;
 };
+/* Structure used to access type and class fields.
+ * They are totally unaligned, but gcc 4.3.4 thinks that pointer of type uint16_t*
+ * is 16-bit aligned and replaces 16-bit memcpy (in move_from_unaligned16 macro)
+ * with aligned halfword access on arm920t!
+ * Oh well. Slapping PACKED everywhere seems to help: */
 struct dns_prop {
-	uint16_t type;
-	uint16_t class;
-};
+	uint16_t type PACKED;
+	uint16_t class PACKED;
+} PACKED;
 /* element of known name, ip address and reversed ip address */
 struct dns_entry {
 	struct dns_entry *next;
@@ -459,7 +464,8 @@ int dnsd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned lsa_size;
 	int udps, opts;
 	uint16_t port = 53;
-	uint8_t buf[MAX_PACK_LEN + 1];
+	/* Ensure buf is 32bit aligned (we need 16bit, but 32bit can't hurt) */
+	uint8_t buf[MAX_PACK_LEN + 1] ALIGN4;
 
 	opts = getopt32(argv, "vi:c:t:p:d", &listen_interface, &fileconf, &sttl, &sport);
 	//if (opts & 0x1) // -v

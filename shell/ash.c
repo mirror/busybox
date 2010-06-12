@@ -5059,7 +5059,7 @@ static int is_hidden_fd(struct redirtab *rp, int fd)
 		return 0;
 	pf = g_parsefile;
 	while (pf) {
-		if (fd == pf->fd) {
+		if (pf->fd > 0 && fd == pf->fd) {
 			return 1;
 		}
 		pf = pf->prev;
@@ -5424,7 +5424,11 @@ rmescapes(char *str, int flag)
 		size_t fulllen = len + strlen(p) + 1;
 
 		if (flag & RMESCAPE_GROW) {
+			int strloc = str - (char *)stackblock();
 			r = makestrspace(fulllen, expdest);
+			/* p and str may be invalidated by makestrspace */
+			str = (char *)stackblock() + strloc;
+			p = str + len;
 		} else if (flag & RMESCAPE_HEAP) {
 			r = ckmalloc(fulllen);
 		} else {

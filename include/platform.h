@@ -291,10 +291,12 @@ typedef unsigned smalluint;
 #if 1 /* if needed: !defined(arch1) && !defined(arch2) */
 # define ALIGN1 __attribute__((aligned(1)))
 # define ALIGN2 __attribute__((aligned(2)))
+# define ALIGN4 __attribute__((aligned(4)))
 #else
 /* Arches which MUST have 2 or 4 byte alignment for everything are here */
 # define ALIGN1
 # define ALIGN2
+# define ALIGN4
 #endif
 
 

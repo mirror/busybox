@@ -424,7 +424,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	if (archive_handle->cpio__blocks != (off_t)-1
 	 && !(opt & CPIO_OPT_QUIET)
 	) {
-		printf("%"OFF_FMT"u blocks\n", archive_handle->cpio__blocks);
+		fprintf(stderr, "%"OFF_FMT"u blocks\n", archive_handle->cpio__blocks);
 	}
 
 	return EXIT_SUCCESS;

@@ -248,4 +248,28 @@ testing "sed beginning (^) matches only once" \
 	">/usr</>lib<\n" "" \
 	"/usr/lib\n"
 
+testing "sed c" \
+	"sed 'crepl'" \
+	"repl\nrepl\n" "" \
+	"first\nsecond\n"
+
+testing "sed nested {}s" \
+	"sed '/asd/ { p; /s/ { s/s/c/ }; p; q }'" \
+	"qwe\nasd\nacd\nacd\n" "" \
+	"qwe\nasd\nzxc\n"
+
+testing "sed a cmd ended by double backslash" \
+	"sed -e '/| one /a \\
+	| three \\\\' -e '/| one-/a \\
+	| three-* \\\\'" \
+'	| one \\
+	| three \\
+	| two \\
+' '' \
+'	| one \\
+	| two \\
+'
+
+# testing "description" "arguments" "result" "infile" "stdin"
+
 exit $FAILCOUNT
