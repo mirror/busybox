@@ -216,10 +216,7 @@ static void FAST_FUNC print_stat(char *pformat, const char m,
 			char *linkname = xmalloc_readlink_or_warn(filename);
 			if (linkname == NULL)
 				return;
-			/*printf("\"%s\" -> \"%s\"", filename, linkname); */
-			printf(pformat, filename);
-			printf(" -> ");
-			printf(pformat, linkname);
+			printf("'%s' -> '%s'", filename, linkname);
 			free(linkname);
 		} else {
 			printf(pformat, filename);
@@ -320,24 +317,28 @@ static void print_it(const char *masterformat,
 
 	b = format;
 	while (b) {
+		/* Each iteration finds next %spec,
+		 * prints preceding string and handles found %spec
+		 */
 		size_t len;
 		char *p = strchr(b, '%');
 		if (!p) {
-			/* coreutils 6.3 always prints <cr> at the end */
+			/* coreutils 6.3 always prints newline at the end */
 			/*fputs(b, stdout);*/
 			puts(b);
 			break;
 		}
-		*p++ = '\0';
-		fputs(b, stdout);
 
 		/* dest = "%<modifiers>" */
-		len = strspn(p, "#-+.I 0123456789");
-		dest[0] = '%';
-		memcpy(dest + 1, p, len);
-		dest[1 + len] = '\0';
-		p += len;
+		len = 1 + strspn(p + 1, "#-+.I 0123456789");
+		memcpy(dest, p, len);
+		dest[len] = '\0';
 
+		/* print preceding string */
+		*p = '\0';
+		fputs(b, stdout);
+
+		p += len;
 		b = p + 1;
 		switch (*p) {
 		case '\0':
@@ -508,7 +509,7 @@ static bool do_stat(const char *filename, const char *format)
 		} else {
 			if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode)) {
 				format =
-					"  File: \"%N\"\n"
+					"  File: %N\n"
 					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					"Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
 					" Device type: %t,%T\n"
@@ -516,7 +517,7 @@ static bool do_stat(const char *filename, const char *format)
 					"Access: %x\n" "Modify: %y\n" "Change: %z\n";
 			} else {
 				format =
-					"  File: \"%N\"\n"
+					"  File: %N\n"
 					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					"Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
 					"Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
@@ -531,14 +532,14 @@ static bool do_stat(const char *filename, const char *format)
 		} else {
 			if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode)) {
 				format = (option_mask32 & OPT_SELINUX ?
-					  "  File: \"%N\"\n"
+					  "  File: %N\n"
 					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					  "Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
 					  " Device type: %t,%T\n"
 					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
 					  "   S_Context: %C\n"
 					  "Access: %x\n" "Modify: %y\n" "Change: %z\n":
-					  "  File: \"%N\"\n"
+					  "  File: %N\n"
 					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					  "Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
 					  " Device type: %t,%T\n"
@@ -546,13 +547,13 @@ static bool do_stat(const char *filename, const char *format)
 					  "Access: %x\n" "Modify: %y\n" "Change: %z\n");
 			} else {
 				format = (option_mask32 & OPT_SELINUX ?
-					  "  File: \"%N\"\n"
+					  "  File: %N\n"
 					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					  "Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
 					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
 					  "S_Context: %C\n"
 					  "Access: %x\n" "Modify: %y\n" "Change: %z\n":
-					  "  File: \"%N\"\n"
+					  "  File: %N\n"
 					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
 					  "Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
 					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
@@ -601,9 +602,9 @@ static bool do_stat(const char *filename, const char *format)
 		if (S_ISLNK(statbuf.st_mode))
 			linkname = xmalloc_readlink_or_warn(filename);
 		if (linkname)
-			printf("  File: \"%s\" -> \"%s\"\n", filename, linkname);
+			printf("  File: '%s' -> '%s'\n", filename, linkname);
 		else
-			printf("  File: \"%s\"\n", filename);
+			printf("  File: '%s'\n", filename);
 
 		printf("  Size: %-10llu\tBlocks: %-10llu IO Block: %-6lu %s\n"
 		       "Device: %llxh/%llud\tInode: %-10llu  Links: %-5lu",
