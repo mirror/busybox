@@ -454,7 +454,7 @@ int xargs_main(int argc, char **argv)
 	if (opt & OPT_UPTO_SIZE) {
 		int i;
 		size_t n_chars = 0;
-		n_max_chars = xatoul_range(max_chars, 1, n_max_chars);
+		n_max_chars = xatoul_range(max_chars, 1, INT_MAX);
 		for (i = 0; argv[i]; i++) {
 			n_chars += strlen(argv[i]) + 1;
 		}
