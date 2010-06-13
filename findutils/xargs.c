@@ -89,9 +89,9 @@
 #endif
 
 /*
-   This function has special algorithm.
-   Don't use fork and include to main!
-*/
+ * This function has special algorithm.
+ * Don't use fork and include to main!
+ */
 static int xargs_exec(char **args)
 {
 	int status;
@@ -118,7 +118,7 @@ static int xargs_exec(char **args)
 
 typedef struct xlist_t {
 	struct xlist_t *link;
-	size_t length;
+	size_t length; /* length of xstr[] including NUL */
 	char xstr[1];
 } xlist_t;
 
@@ -129,7 +129,7 @@ typedef struct xlist_t {
 
 #if ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
 static xlist_t* process_stdin(xlist_t *list_arg,
-	const char *eof_str, size_t mc, char *buf)
+	const char *eof_str, size_t n_max_chars, char *buf)
 {
 #define NORM      0
 #define QUOTE     1
@@ -187,7 +187,7 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 					state = QUOTE;
 				} else {
  set:
-					if ((size_t)(p - buf) >= mc)
+					if ((size_t)(p - buf) >= n_max_chars)
 						bb_error_msg_and_die("argument line too long");
 					*p++ = c;
 				}
@@ -216,7 +216,7 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 				}
 				prev = cur;
 				line_l += length;
-				if (line_l > mc) /* limit stop memory usage */
+				if (line_l >= n_max_chars) /* limit memory usage */
 					break;
 			}
 			s = NULL;
@@ -228,7 +228,7 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 #else
 /* The variant does not support single quotes, double quotes or backslash */
 static xlist_t* process_stdin(xlist_t *list_arg,
-		const char *eof_str, size_t mc, char *buf)
+		const char *eof_str, size_t n_max_chars, char *buf)
 {
 	char eof_str_detected = 0;
 	char *s = NULL;         /* start of the word */
@@ -260,7 +260,7 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 		}
 		if (s == NULL)
 			s = p = buf;
-		if ((size_t)(p - buf) >= mc)
+		if ((size_t)(p - buf) >= n_max_chars)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = (c == EOF ? '\0' : c);
 		if (c == EOF) { /* word's delimiter or EOF detected */
@@ -282,7 +282,7 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 				}
 				prev = cur;
 				line_l += length;
-				if (line_l > mc) /* limit stop memory usage */
+				if (line_l >= n_max_chars) /* limit memory usage */
 					break;
 			}
 			s = NULL;
@@ -292,32 +292,9 @@ static xlist_t* process_stdin(xlist_t *list_arg,
 }
 #endif /* FEATURE_XARGS_SUPPORT_QUOTES */
 
-
-#if ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION
-/* Prompt the user for a response, and
-   if the user responds affirmatively, return true;
-   otherwise, return false. Uses "/dev/tty", not stdin. */
-static int xargs_ask_confirmation(void)
-{
-	FILE *tty_stream;
-	int c, savec;
-
-	tty_stream = xfopen_for_read(CURRENT_TTY);
-	fputs(" ?...", stderr);
-	fflush_all();
-	c = savec = getc(tty_stream);
-	while (c != EOF && c != '\n')
-		c = getc(tty_stream);
-	fclose(tty_stream);
-	return (savec == 'y' || savec == 'Y');
-}
-#else
-# define xargs_ask_confirmation() 1
-#endif /* FEATURE_XARGS_SUPPORT_CONFIRMATION */
-
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
 static xlist_t* process0_stdin(xlist_t *list_arg,
-		const char *eof_str UNUSED_PARAM, size_t mc, char *buf)
+		const char *eof_str UNUSED_PARAM, size_t n_max_chars, char *buf)
 {
 	char *s = NULL;         /* start of the word */
 	char *p = NULL;         /* pointer to end of the word */
@@ -341,7 +318,7 @@ static xlist_t* process0_stdin(xlist_t *list_arg,
 		}
 		if (s == NULL)
 			s = p = buf;
-		if ((size_t)(p - buf) >= mc)
+		if ((size_t)(p - buf) >= n_max_chars)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = c;
 		if (c == '\0') {   /* word's delimiter or EOF detected */
@@ -359,7 +336,7 @@ static xlist_t* process0_stdin(xlist_t *list_arg,
 			}
 			prev = cur;
 			line_l += length;
-			if (line_l > mc) /* limit stop memory usage */
+			if (line_l >= n_max_chars) /* limit memory usage */
 				break;
 			s = NULL;
 		}
@@ -367,6 +344,28 @@ static xlist_t* process0_stdin(xlist_t *list_arg,
 	return list_arg;
 }
 #endif /* FEATURE_XARGS_SUPPORT_ZERO_TERM */
+
+#if ENABLE_FEATURE_XARGS_SUPPORT_CONFIRMATION
+/* Prompt the user for a response, and
+   if the user responds affirmatively, return true;
+   otherwise, return false. Uses "/dev/tty", not stdin. */
+static int xargs_ask_confirmation(void)
+{
+	FILE *tty_stream;
+	int c, savec;
+
+	tty_stream = xfopen_for_read(CURRENT_TTY);
+	fputs(" ?...", stderr);
+	fflush_all();
+	c = savec = getc(tty_stream);
+	while (c != EOF && c != '\n')
+		c = getc(tty_stream);
+	fclose(tty_stream);
+	return (savec == 'y' || savec == 'Y');
+}
+#else
+# define xargs_ask_confirmation() 1
+#endif
 
 /* Correct regardless of combination of CONFIG_xxx */
 enum {
@@ -468,9 +467,11 @@ int xargs_main(int argc, char **argv)
 
 	if (opt & OPT_UPTO_NUMBER) {
 		n_max_arg = xatoul_range(max_args, 1, INT_MAX);
-	} else {
-		n_max_arg = n_max_chars;
+		if (n_max_arg < n_max_chars)
+			goto skip;
 	}
+	n_max_arg = n_max_chars;
+ skip:
 
 	while ((list = read_args(list, eof_str, n_max_chars, buf)) != NULL
 	 ||    !(opt & OPT_NO_EMPTY)
@@ -478,30 +479,22 @@ int xargs_main(int argc, char **argv)
 		char **args;
 		xlist_t *cur;
 		int i, n;
-		size_t n_chars = 0;
+		size_t n_chars;
 
 		opt |= OPT_NO_EMPTY;
+
+		/* take args from list, not exceeding arg and char limits */
+		n_chars = 0;
 		n = 0;
-#if ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT
-		for (cur = list; cur;) {
+		for (cur = list; cur; cur = cur->link) {
 			n_chars += cur->length;
-			n++;
-			cur = cur->link;
-			if (n_chars > n_max_chars || (n == n_max_arg && cur)) {
+			if (n_chars > n_max_chars || n >= n_max_arg) {
 				if (opt & OPT_TERMINATE)
 					bb_error_msg_and_die("argument list too long");
 				break;
 			}
-		}
-#else
-		for (cur = list; cur; cur = cur->link) {
-			n_chars += cur->length;
 			n++;
-			if (n_chars > n_max_chars || n == n_max_arg) {
-				break;
-			}
 		}
-#endif
 
 		/* allocate pointers for execvp */
 		args = xzalloc(sizeof(args[0]) * (argc + n + 1));
@@ -530,7 +523,7 @@ int xargs_main(int argc, char **argv)
 			child_error = xargs_exec(args);
 		}
 
-		/* clean up */
+		/* remove list elements which we consumed */
 		for (i = argc; args[i]; i++) {
 			cur = list;
 			list = list->link;
