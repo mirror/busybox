@@ -26,4 +26,9 @@ testing "xargs does not stop on underscore ('new' GNU behavior)" \
 	"a _ b\n" \
 	"" "a\n_\nb\n"
 
+testing "xargs -s7 can take one-char input" \
+	"xargs -s7" \
+	"a\n" \
+	"" "a\n"
+
 exit $FAILCOUNT

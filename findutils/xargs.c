@@ -122,53 +122,49 @@ typedef struct xlist_t {
 	char xstr[1];
 } xlist_t;
 
-static smallint eof_stdin_detected;
-
-#define ISBLANK(c) ((c) == ' ' || (c) == '\t')
-#define ISSPACE(c) (ISBLANK(c) || (c) == '\n' || (c) == '\r' \
-		    || (c) == '\f' || (c) == '\v')
+/* In POSIX/C locale isspace is only these chars: "\t\n\v\f\r" and space.
+ * "\t\n\v\f\r" happen to have ASCII codes 9,10,11,12,13.
+ */
+#define ISSPACE(a) ({ unsigned char xargs__isspace = (a) - 9; xargs__isspace == (' ' - 9) || xargs__isspace <= (13 - 9); })
 
 #if ENABLE_FEATURE_XARGS_SUPPORT_QUOTES
-static xlist_t *process_stdin(xlist_t *list_arg,
+static xlist_t* process_stdin(xlist_t *list_arg,
 	const char *eof_str, size_t mc, char *buf)
 {
 #define NORM      0
 #define QUOTE     1
 #define BACKSLASH 2
 #define SPACE     4
-
-	char *s = NULL;         /* start word */
-	char *p = NULL;         /* pointer to end word */
+	char *s = NULL;         /* start of the word */
+	char *p = NULL;         /* pointer to end of the word */
 	char q = '\0';          /* quote char */
 	char state = NORM;
 	char eof_str_detected = 0;
-	size_t line_l = 0;      /* size loaded args line */
-	int c;                  /* current char */
+	size_t line_l = 0;      /* size of loaded args */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	prev = cur = list_arg;
-	while (1) {
-		if (!cur) break;
+	while (cur) {
 		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
 
-	while (!eof_stdin_detected) {
-		c = getchar();
+	while (1) {
+		int c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected = 1;
 			if (s)
 				goto unexpected_eof;
 			break;
 		}
-		if (eof_str_detected)
+		if (eof_str_detected) /* skip till EOF */
 			continue;
 		if (state == BACKSLASH) {
 			state = NORM;
 			goto set;
-		} else if (state == QUOTE) {
+		}
+		if (state == QUOTE) {
 			if (c != q)
 				goto set;
 			q = '\0';
@@ -202,7 +198,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 				bb_error_msg_and_die("unmatched %s quote",
 					q == '\'' ? "single" : "double");
 			}
-			/* word loaded */
+			/* A full word is loaded */
 			if (eof_str) {
 				eof_str_detected = (strcmp(s, eof_str) == 0);
 			}
@@ -220,10 +216,8 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 				}
 				prev = cur;
 				line_l += length;
-				if (line_l > mc) {
-					/* stop memory usage :-) */
+				if (line_l > mc) /* limit stop memory usage */
 					break;
-				}
 			}
 			s = NULL;
 			state = NORM;
@@ -233,33 +227,32 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 }
 #else
 /* The variant does not support single quotes, double quotes or backslash */
-static xlist_t *process_stdin(xlist_t *list_arg,
+static xlist_t* process_stdin(xlist_t *list_arg,
 		const char *eof_str, size_t mc, char *buf)
 {
-
-	int c;                  /* current char */
 	char eof_str_detected = 0;
-	char *s = NULL;         /* start word */
-	char *p = NULL;         /* pointer to end word */
-	size_t line_l = 0;      /* size loaded args line */
+	char *s = NULL;         /* start of the word */
+	char *p = NULL;         /* pointer to end of the word */
+	size_t line_l = 0;      /* size of loaded args */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	prev = cur = list_arg;
-	while (1) {
-		if (!cur) break;
+	while (cur) {
 		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
 
-	while (!eof_stdin_detected) {
-		c = getchar();
+	while (1) {
+		int c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected = 1;
+			if (s == NULL)
+				break;
 		}
-		if (eof_str_detected)
+		if (eof_str_detected) { /* skip till EOF */
 			continue;
+		}
 		if (c == EOF || ISSPACE(c)) {
 			if (s == NULL)
 				continue;
@@ -271,7 +264,7 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 			bb_error_msg_and_die("argument line too long");
 		*p++ = (c == EOF ? '\0' : c);
 		if (c == EOF) { /* word's delimiter or EOF detected */
-			/* word loaded */
+			/* A full word is loaded */
 			if (eof_str) {
 				eof_str_detected = (strcmp(s, eof_str) == 0);
 			}
@@ -289,12 +282,10 @@ static xlist_t *process_stdin(xlist_t *list_arg,
 				}
 				prev = cur;
 				line_l += length;
-				if (line_l > mc) {
-					/* stop memory usage :-) */
+				if (line_l > mc) /* limit stop memory usage */
 					break;
-				}
-				s = NULL;
 			}
+			s = NULL;
 		}
 	}
 	return list_arg;
@@ -325,28 +316,25 @@ static int xargs_ask_confirmation(void)
 #endif /* FEATURE_XARGS_SUPPORT_CONFIRMATION */
 
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
-static xlist_t *process0_stdin(xlist_t *list_arg,
+static xlist_t* process0_stdin(xlist_t *list_arg,
 		const char *eof_str UNUSED_PARAM, size_t mc, char *buf)
 {
-	int c;                  /* current char */
-	char *s = NULL;         /* start word */
-	char *p = NULL;         /* pointer to end word */
-	size_t line_l = 0;      /* size loaded args line */
+	char *s = NULL;         /* start of the word */
+	char *p = NULL;         /* pointer to end of the word */
+	size_t line_l = 0;      /* size of loaded args */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	prev = cur = list_arg;
-	while (1) {
-		if (!cur) break;
+	while (cur) {
 		prev = cur;
 		line_l += cur->length;
 		cur = cur->link;
 	}
 
-	while (!eof_stdin_detected) {
-		c = getchar();
+	while (1) {
+		int c = getchar();
 		if (c == EOF) {
-			eof_stdin_detected = 1;
 			if (s == NULL)
 				break;
 			c = '\0';
@@ -357,7 +345,7 @@ static xlist_t *process0_stdin(xlist_t *list_arg,
 			bb_error_msg_and_die("argument line too long");
 		*p++ = c;
 		if (c == '\0') {   /* word's delimiter or EOF detected */
-			/* word loaded */
+			/* A full word is loaded */
 			size_t length = (p - buf);
 			/* Dont xzalloc - it can be quite big */
 			cur = xmalloc(offsetof(xlist_t, xstr) + length);
@@ -371,10 +359,8 @@ static xlist_t *process0_stdin(xlist_t *list_arg,
 			}
 			prev = cur;
 			line_l += length;
-			if (line_l > mc) {
-				/* stop memory usage :-) */
+			if (line_l > mc) /* limit stop memory usage */
 				break;
-			}
 			s = NULL;
 		}
 	}
@@ -412,12 +398,11 @@ enum {
 int xargs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int xargs_main(int argc, char **argv)
 {
-	char **args;
-	int i, n;
 	xlist_t *list = NULL;
-	xlist_t *cur;
 	int child_error = 0;
-	char *max_args, *max_chars;
+	char *max_args;
+	char *max_chars;
+	char *buf;
 	int n_max_arg;
 	const char *eof_str = NULL;
 	unsigned opt;
@@ -441,15 +426,12 @@ int xargs_main(int argc, char **argv)
 
 	argv += optind;
 	argc -= optind;
-	if (!argc) {
+	if (!argv[0]) {
 		/* default behavior is to echo all the filenames */
-		*argv = (char*)"echo";
+		*--argv = (char*)"echo";
 		argc++;
 	}
 
-	n_max_chars = ARG_MAX; /* might be calling sysconf(_SC_ARG_MAX) */
-	if (n_max_chars < 4*1024); /* paranoia */
-		n_max_chars = LONG_MAX;
 	/* The Open Group Base Specifications Issue 6:
 	 * "The xargs utility shall limit the command line length such that
 	 * when the command line is invoked, the combined argument
@@ -457,27 +439,32 @@ int xargs_main(int argc, char **argv)
 	 * in the System Interfaces volume of IEEE Std 1003.1-2001)
 	 * shall not exceed {ARG_MAX}-2048 bytes".
 	 */
+	n_max_chars = ARG_MAX; /* might be calling sysconf(_SC_ARG_MAX) */
+	if (n_max_chars < 4*1024); /* paranoia */
+		n_max_chars = 4*1024;
 	n_max_chars -= 2048;
 	/* Sanity check for systems with huge ARG_MAX defines (e.g., Suns which
-	 * have it at 1 meg).  Things will work fine with a large ARG_MAX but it
-	 * will probably hurt the system more than it needs to; an array of this
-	 * size is allocated.
+	 * have it at 1 meg).  Things will work fine with a large ARG_MAX
+	 * but it will probably hurt the system more than it needs to;
+	 * an array of this size is allocated.
 	 */
 	if (n_max_chars > 20 * 1024)
 		n_max_chars = 20 * 1024;
 
 	if (opt & OPT_UPTO_SIZE) {
+		int i;
 		size_t n_chars = 0;
 		n_max_chars = xatoul_range(max_chars, 1, n_max_chars);
-		for (i = 0; i < argc; i++) {
-			n_chars += strlen(*argv) + 1;
-		}
-		if (n_max_chars <= n_chars) {
-			bb_error_msg_and_die("can't fit single argument within argument list size limit");
+		for (i = 0; argv[i]; i++) {
+			n_chars += strlen(argv[i]) + 1;
 		}
 		n_max_chars -= n_chars;
+		if ((ssize_t)n_max_chars <= 0) {
+			bb_error_msg_and_die("can't fit single argument within argument list size limit");
+		}
 	}
-	max_chars = xmalloc(n_max_chars);
+
+	buf = xmalloc(n_max_chars);
 
 	if (opt & OPT_UPTO_NUMBER) {
 		n_max_arg = xatoul_range(max_args, 1, INT_MAX);
@@ -485,10 +472,14 @@ int xargs_main(int argc, char **argv)
 		n_max_arg = n_max_chars;
 	}
 
-	while ((list = read_args(list, eof_str, n_max_chars, max_chars)) != NULL ||
-		!(opt & OPT_NO_EMPTY))
-	{
+	while ((list = read_args(list, eof_str, n_max_chars, buf)) != NULL
+	 ||    !(opt & OPT_NO_EMPTY)
+	) {
+		char **args;
+		xlist_t *cur;
+		int i, n;
 		size_t n_chars = 0;
+
 		opt |= OPT_NO_EMPTY;
 		n = 0;
 #if ENABLE_FEATURE_XARGS_SUPPORT_TERMOPT
@@ -510,15 +501,14 @@ int xargs_main(int argc, char **argv)
 				break;
 			}
 		}
-#endif /* FEATURE_XARGS_SUPPORT_TERMOPT */
+#endif
 
-		/* allocate pointers for execvp:
-		   argc*arg, n*arg from stdin, NULL */
-		args = xzalloc((n + argc + 1) * sizeof(char *));
+		/* allocate pointers for execvp */
+		args = xzalloc(sizeof(args[0]) * (argc + n + 1));
 
 		/* store the command to be executed
-		   (taken from the command line) */
-		for (i = 0; i < argc; i++)
+		 * (taken from the command line) */
+		for (i = 0; argv[i]; i++)
 			args[i] = argv[i];
 		/* (taken from stdin) */
 		for (cur = list; n; cur = cur->link) {
@@ -535,6 +525,7 @@ int xargs_main(int argc, char **argv)
 			if (!(opt & OPT_INTERACTIVE))
 				bb_putchar_stderr('\n');
 		}
+
 		if (!(opt & OPT_INTERACTIVE) || xargs_ask_confirmation()) {
 			child_error = xargs_exec(args);
 		}
@@ -546,12 +537,15 @@ int xargs_main(int argc, char **argv)
 			free(cur);
 		}
 		free(args);
+
 		if (child_error > 0 && child_error != 123) {
 			break;
 		}
 	} /* while */
+
 	if (ENABLE_FEATURE_CLEAN_UP)
-		free(max_chars);
+		free(buf);
+
 	return child_error;
 }
 
