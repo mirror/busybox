@@ -150,7 +150,6 @@ static void store_param(char *s)
  * (buf has extra byte at the end to accomodate terminating NUL
  * of "tail characters" string).
  * Otherwise, the returned pointer points to NUL byte.
- * The args[] vector is NULL-terminated.
  * On entry, buf[] may contain some "seed chars" which are to become
  * the beginning of the first parameter.
  */
@@ -241,7 +240,7 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 	}
  ret:
 	*p = '\0';
-	store_param(NULL);
+	/* store_param(NULL) - caller will do it */
 	dbg_msg("return:'%s'", s);
 	return s;
 }
@@ -293,7 +292,7 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 	}
  ret:
 	*p = '\0';
-	store_param(NULL);
+	/* store_param(NULL) - caller will do it */
 	dbg_msg("return:'%s'", s);
 	return s;
 }
@@ -334,7 +333,7 @@ static char* FAST_FUNC process0_stdin(int n_max_chars, int n_max_arg, char *buf)
 	}
  ret:
 	*p = '\0';
-	store_param(NULL);
+	/* store_param(NULL) - caller will do it */
 	dbg_msg("return:'%s'", s);
 	return s;
 }
@@ -461,13 +460,10 @@ int xargs_main(int argc, char **argv)
 
 	buf = xzalloc(n_max_chars + 1);
 
+	n_max_arg = n_max_chars;
 	if (opt & OPT_UPTO_NUMBER) {
 		n_max_arg = xatou_range(max_args, 1, INT_MAX);
-		if (n_max_arg < n_max_chars)
-			goto skip;
 	}
-	n_max_arg = n_max_chars;
- skip:
 
 	/* Allocate pointers for execvp */
 	/* We can statically allocate (argc + n_max_arg + 1) elements
@@ -489,6 +485,7 @@ int xargs_main(int argc, char **argv)
 
 		G.idx = argc;
 		rem = read_args(n_max_chars, n_max_arg, buf);
+		store_param(NULL);
 
 		if (!G.args[argc]) {
 			if (*rem != '\0')
@@ -499,10 +496,11 @@ int xargs_main(int argc, char **argv)
 		opt |= OPT_NO_EMPTY;
 
 		if (opt & (OPT_INTERACTIVE | OPT_VERBOSE)) {
-			for (i = 0; G.args[i]; i++) {
-				if (i)
-					bb_putchar_stderr(' ');
-				fputs(G.args[i], stderr);
+			const char *fmt = " %s" + 1;
+			char **args = G.args;
+			for (i = 0; args[i]; i++) {
+				fprintf(stderr, fmt, args[i]);
+				fmt = " %s";
 			}
 			if (!(opt & OPT_INTERACTIVE))
 				bb_putchar_stderr('\n');
