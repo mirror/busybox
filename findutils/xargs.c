@@ -222,10 +222,10 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 					goto ret;
 				}
 			}
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
+			n_max_chars -= (p - s);
+			/* if (n_max_chars < 0) impossible */
 			s = p;
 			n_max_arg--;
 			if (n_max_arg == 0 || n_max_chars == 0) {
@@ -276,10 +276,10 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 					goto ret;
 				}
 			}
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
+			n_max_chars -= (p - s);
+			/* if (n_max_chars < 0) impossible */
 			s = p;
 			n_max_arg--;
 			if (n_max_arg == 0 || n_max_chars == 0) {
@@ -317,12 +317,12 @@ static char* FAST_FUNC process0_stdin(int n_max_chars, int n_max_arg, char *buf)
 		*p++ = c;
 		if (c == '\0') {   /* word's delimiter or EOF detected */
 			/* A full word is loaded */
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
-			n_max_arg--;
+			n_max_chars -= (p - s);
+			/* if (n_max_chars < 0) impossible */
 			s = p;
+			n_max_arg--;
 			if (n_max_arg == 0 || n_max_chars == 0) {
 				goto ret;
 			}
