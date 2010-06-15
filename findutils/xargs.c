@@ -18,7 +18,7 @@
  */
 
 //kbuild:lib-$(CONFIG_XARGS) += xargs.o
-//config:
+
 //config:config XARGS
 //config:	bool "xargs"
 //config:	default y
@@ -161,13 +161,12 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 #define QUOTE     1
 #define BACKSLASH 2
 #define SPACE     4
-	char *s;                /* start of the word */
-	char *p;                /* pointer to end of the word */
-	char q = '\0';          /* quote char */
+	char q = '\0';             /* quote char */
 	char state = NORM;
+	char *s = buf;             /* start of the word */
+	char *p = s + strlen(buf); /* end of the word */
 
-	s = buf;
-	p = s + strlen(buf);
+	buf += n_max_chars;        /* past buffer's end */
 
 	/* "goto ret" is used instead of "break" to make control flow
 	 * more obvious: */
@@ -224,17 +223,14 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 			}
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			s = p;
 			n_max_arg--;
-			if (n_max_arg == 0 || n_max_chars == 0) {
+			if (n_max_arg == 0) {
 				goto ret;
 			}
 			state = NORM;
-		} else /* state != SPACE */
-		if (p - s >= n_max_chars) {
-			dbg_msg("s:'%s' p-s:%d n_max_chars:%d", s, (int)(p-s), n_max_chars);
+		}
+		if (p == buf) {
 			goto ret;
 		}
 	}
@@ -248,11 +244,10 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 /* The variant does not support single quotes, double quotes or backslash */
 static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 {
-	char *s;                /* start of the word */
-	char *p;                /* pointer to end of the word */
+	char *s = buf;             /* start of the word */
+	char *p = s + strlen(buf); /* end of the word */
 
-	s = buf;
-	p = s + strlen(buf);
+	buf += n_max_chars;        /* past buffer's end */
 
 	while (1) {
 		int c = getchar();
@@ -278,15 +273,13 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 			}
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			s = p;
 			n_max_arg--;
-			if (n_max_arg == 0 || n_max_chars == 0) {
+			if (n_max_arg == 0) {
 				goto ret;
 			}
-		} else /* c != EOF */
-		if (p - s >= n_max_chars) {
+		}
+		if (p == buf) {
 			goto ret;
 		}
 	}
@@ -301,11 +294,10 @@ static char* FAST_FUNC process_stdin(int n_max_chars, int n_max_arg, char *buf)
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
 static char* FAST_FUNC process0_stdin(int n_max_chars, int n_max_arg, char *buf)
 {
-	char *s;                /* start of the word */
-	char *p;                /* pointer to end of the word */
+	char *s = buf;             /* start of the word */
+	char *p = s + strlen(buf); /* end of the word */
 
-	s = buf;
-	p = s + strlen(buf);
+	buf += n_max_chars;        /* past buffer's end */
 
 	while (1) {
 		int c = getchar();
@@ -319,15 +311,13 @@ static char* FAST_FUNC process0_stdin(int n_max_chars, int n_max_arg, char *buf)
 			/* A full word is loaded */
 			store_param(s);
 			dbg_msg("args[]:'%s'", s);
-			n_max_chars -= (p - s);
-			/* if (n_max_chars < 0) impossible */
 			s = p;
 			n_max_arg--;
-			if (n_max_arg == 0 || n_max_chars == 0) {
+			if (n_max_arg == 0) {
 				goto ret;
 			}
-		} else /* c != '\0' */
-		if (p - s >= n_max_chars) {
+		}
+		if (p == buf) {
 			goto ret;
 		}
 	}
