@@ -53,8 +53,10 @@
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
 
+//applet:IF_FIND(APPLET_NOEXEC(find, find, _BB_DIR_USR_BIN, _BB_SUID_DROP, find))
+
 //kbuild:lib-$(CONFIG_FIND) += find.o
-//config:
+
 //config:config FIND
 //config:	bool "find"
 //config:	default y
@@ -1044,6 +1046,92 @@ static action*** parse_params(char **argv)
 #undef ALLOC_ACTION
 }
 
+//usage:#define find_trivial_usage
+//usage:       "[PATH]... [EXPRESSION]"
+//usage:#define find_full_usage "\n\n"
+//usage:       "Search for files. The default PATH is the current directory,\n"
+//usage:       "default EXPRESSION is '-print'\n"
+//usage:     "\nEXPRESSION may consist of:"
+//usage:     "\n	-follow		Follow symlinks"
+//usage:	IF_FEATURE_FIND_XDEV(
+//usage:     "\n	-xdev		Don't descend directories on other filesystems"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MAXDEPTH(
+//usage:     "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies"
+//usage:     "\n			tests/actions to command line arguments only"
+//usage:	)
+//usage:     "\n	-mindepth N	Don't act on first N levels"
+//usage:     "\n	-name PATTERN	File name (w/o directory name) matches PATTERN"
+//usage:     "\n	-iname PATTERN	Case insensitive -name"
+//usage:	IF_FEATURE_FIND_PATH(
+//usage:     "\n	-path PATTERN	Path matches PATTERN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_REGEX(
+//usage:     "\n	-regex PATTERN	Path matches regex PATTERN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_TYPE(
+//usage:     "\n	-type X		File type is X (X is one of: f,d,l,b,c,...)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_PERM(
+//usage:     "\n	-perm NNN	Permissions match any of (+NNN), all of (-NNN),"
+//usage:     "\n			or exactly NNN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MTIME(
+//usage:     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N days"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MMIN(
+//usage:     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N minutes"
+//usage:	)
+//usage:	IF_FEATURE_FIND_NEWER(
+//usage:     "\n	-newer FILE	Modified time is more recent than FILE's"
+//usage:	)
+//usage:	IF_FEATURE_FIND_INUM(
+//usage:     "\n	-inum N		File has inode number N"
+//usage:	)
+//usage:	IF_FEATURE_FIND_USER(
+//usage:     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_GROUP(
+//usage:     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_DEPTH(
+//usage:     "\n	-depth		Process directory name after traversing it"
+//usage:	)
+//usage:	IF_FEATURE_FIND_SIZE(
+//usage:     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))"
+//usage:     "\n			+/-N: file size is bigger/smaller than N"
+//usage:	)
+//usage:	IF_FEATURE_FIND_LINKS(
+//usage:     "\n	-links N	Number of links is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N"
+//usage:	)
+//usage:     "\n	-print		Print (default and assumed)"
+//usage:	IF_FEATURE_FIND_PRINT0(
+//usage:     "\n	-print0		Delimit output with null characters rather than"
+//usage:     "\n			newlines"
+//usage:	)
+//usage:	IF_FEATURE_FIND_CONTEXT(
+//usage:     "\n	-context	File has specified security context"
+//usage:	)
+//usage:	IF_FEATURE_FIND_EXEC(
+//usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by the"
+//usage:     "\n			matching files"
+//usage:	)
+//usage:	IF_FEATURE_FIND_PRUNE(
+//usage:     "\n	-prune		Stop traversing current subtree"
+//usage:	)
+//usage:	IF_FEATURE_FIND_DELETE(
+//usage:     "\n	-delete		Delete files, turns on -depth option"
+//usage:	)
+//usage:	IF_FEATURE_FIND_PAREN(
+//usage:     "\n	(EXPR)		Group an expression"
+//usage:	)
+//usage:
+//usage:#define find_example_usage
+//usage:       "$ find / -name passwd\n"
+//usage:       "/etc/passwd\n"
 
 int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int find_main(int argc UNUSED_PARAM, char **argv)

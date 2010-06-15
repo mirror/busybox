@@ -1280,72 +1280,6 @@ INSERT
 #define findfs_example_usage \
        "$ findfs LABEL=MyDevice"
 
-#define find_trivial_usage \
-       "[PATH]... [EXPRESSION]"
-#define find_full_usage "\n\n" \
-       "Search for files. The default PATH is the current directory,\n" \
-       "default EXPRESSION is '-print'\n" \
-     "\nEXPRESSION may consist of:" \
-     "\n	-follow		Follow symlinks" \
-	IF_FEATURE_FIND_XDEV( \
-     "\n	-xdev		Don't descend directories on other filesystems") \
-	IF_FEATURE_FIND_MAXDEPTH( \
-     "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies" \
-     "\n			tests/actions to command line arguments only") \
-     "\n	-mindepth N	Don't act on first N levels" \
-     "\n	-name PATTERN	File name (w/o directory name) matches PATTERN" \
-     "\n	-iname PATTERN	Case insensitive -name" \
-	IF_FEATURE_FIND_PATH( \
-     "\n	-path PATTERN	Path matches PATTERN") \
-	IF_FEATURE_FIND_REGEX( \
-     "\n	-regex PATTERN	Path matches regex PATTERN") \
-	IF_FEATURE_FIND_TYPE( \
-     "\n	-type X		File type is X (X is one of: f,d,l,b,c,...)") \
-	IF_FEATURE_FIND_PERM( \
-     "\n	-perm NNN	Permissions match any of (+NNN), all of (-NNN)," \
-     "\n			or exactly NNN") \
-	IF_FEATURE_FIND_MTIME( \
-     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N)," \
-     "\n			or exactly N days") \
-	IF_FEATURE_FIND_MMIN( \
-     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N)," \
-     "\n			or exactly N minutes") \
-	IF_FEATURE_FIND_NEWER( \
-     "\n	-newer FILE	Modified time is more recent than FILE's") \
-	IF_FEATURE_FIND_INUM( \
-     "\n	-inum N		File has inode number N") \
-	IF_FEATURE_FIND_USER( \
-     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)") \
-	IF_FEATURE_FIND_GROUP( \
-     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)") \
-	IF_FEATURE_FIND_DEPTH( \
-     "\n	-depth		Process directory name after traversing it") \
-	IF_FEATURE_FIND_SIZE( \
-     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))" \
-     "\n			+/-N: file size is bigger/smaller than N") \
-	IF_FEATURE_FIND_LINKS( \
-     "\n	-links N	Number of links is greater than (+N), less than (-N)," \
-     "\n			or exactly N") \
-     "\n	-print		Print (default and assumed)" \
-	IF_FEATURE_FIND_PRINT0( \
-     "\n	-print0		Delimit output with null characters rather than" \
-     "\n			newlines") \
-	IF_FEATURE_FIND_CONTEXT ( \
-     "\n	-context	File has specified security context") \
-	IF_FEATURE_FIND_EXEC( \
-     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by the" \
-     "\n			matching files") \
-	IF_FEATURE_FIND_PRUNE( \
-     "\n	-prune		Stop traversing current subtree") \
-	IF_FEATURE_FIND_DELETE( \
-     "\n	-delete		Delete files, turns on -depth option") \
-	IF_FEATURE_FIND_PAREN( \
-     "\n	(EXPR)		Group an expression") \
-
-#define find_example_usage \
-       "$ find / -name passwd\n" \
-       "/etc/passwd\n"
-
 #define flash_lock_trivial_usage \
        "MTD_DEVICE OFFSET SECTORS"
 #define flash_lock_full_usage "\n\n" \
@@ -1574,58 +1508,6 @@ INSERT
      "\n	-t SEC		Terminate after SEC if no username is read" \
      "\n	-I INITSTR	Send INITSTR before anything else" \
      "\n	-H HOST		Log HOST into the utmp file as the hostname" \
-
-#define grep_trivial_usage \
-       "[-HhnlLoqvsriw" \
-       "F" \
-	IF_FEATURE_GREP_EGREP_ALIAS("E") \
-	IF_EXTRA_COMPAT("z") \
-       "] [-m N] " \
-	IF_FEATURE_GREP_CONTEXT("[-A/B/C N] ") \
-       "PATTERN/-e PATTERN.../-f FILE [FILE]..."
-#define grep_full_usage "\n\n" \
-       "Search for PATTERN in FILEs (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-H	Add 'filename:' prefix" \
-     "\n	-h	Do not add 'filename:' prefix" \
-     "\n	-n	Add 'line_no:' prefix" \
-     "\n	-l	Show only names of files that match" \
-     "\n	-L	Show only names of files that don't match" \
-     "\n	-c	Show only count of matching lines" \
-     "\n	-o	Show only the matching part of line" \
-     "\n	-q	Quiet. Return 0 if PATTERN is found, 1 otherwise" \
-     "\n	-v	Select non-matching lines" \
-     "\n	-s	Suppress open and read errors" \
-     "\n	-r	Recurse" \
-     "\n	-i	Ignore case" \
-     "\n	-w	Match whole words only" \
-     "\n	-F	PATTERN is a literal (not regexp)" \
-	IF_FEATURE_GREP_EGREP_ALIAS( \
-     "\n	-E	PATTERN is an extended regexp" \
-	) \
-	IF_EXTRA_COMPAT( \
-     "\n	-z	Input is NUL terminated" \
-	) \
-     "\n	-m N	Match up to N times per file" \
-	IF_FEATURE_GREP_CONTEXT( \
-     "\n	-A N	Print N lines of trailing context" \
-     "\n	-B N	Print N lines of leading context" \
-     "\n	-C N	Same as '-A N -B N'" \
-	) \
-     "\n	-e PTRN	Pattern to match" \
-     "\n	-f FILE	Read pattern from file" \
-
-#define grep_example_usage \
-       "$ grep root /etc/passwd\n" \
-       "root:x:0:0:root:/root:/bin/bash\n" \
-       "$ grep ^[rR]oo. /etc/passwd\n" \
-       "root:x:0:0:root:/root:/bin/bash\n"
-
-#define egrep_trivial_usage NOUSAGE_STR
-#define egrep_full_usage ""
-
-#define fgrep_trivial_usage NOUSAGE_STR
-#define fgrep_full_usage ""
 
 #define gunzip_trivial_usage \
        "[OPTIONS] [FILE]..."
@@ -5103,27 +4985,6 @@ INSERT
        ""
 #define whoami_full_usage "\n\n" \
        "Print the user name associated with the current effective user id"
-
-#define xargs_trivial_usage \
-       "[OPTIONS] [PROG ARGS]"
-#define xargs_full_usage "\n\n" \
-       "Run PROG on every item given by stdin\n" \
-     "\nOptions:" \
-	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION( \
-     "\n	-p	Ask user whether to run each command") \
-     "\n	-r	Don't run command if input is empty" \
-	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM( \
-     "\n	-0	Input is separated by NUL characters") \
-     "\n	-t	Print the command on stderr before execution" \
-     "\n	-e[STR]	STR stops input processing" \
-     "\n	-n N	Pass no more than N args to PROG" \
-     "\n	-s N	Pass command line of no more than N bytes" \
-	IF_FEATURE_XARGS_SUPPORT_TERMOPT( \
-     "\n	-x	Exit if size is exceeded") \
-
-#define xargs_example_usage \
-       "$ ls | xargs gzip\n" \
-       "$ find . -name '*.c' -print | xargs rm\n"
 
 #define zcat_trivial_usage \
        "FILE"

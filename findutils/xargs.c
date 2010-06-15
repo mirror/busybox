@@ -1,7 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Mini xargs implementation for busybox
- * Options are supported: "-prtx -n max_arg -s max_chars -e[ouf_str]"
  *
  * (C) 2002,2003 by Vladimir Oleynik <dzo@simtreas.ru>
  *
@@ -14,8 +13,9 @@
  *
  * xargs is described in the Single Unix Specification v3 at
  * http://www.opengroup.org/onlinepubs/007904975/utilities/xargs.html
- *
  */
+
+//applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, _BB_DIR_USR_BIN, _BB_SUID_DROP, xargs))
 
 //kbuild:lib-$(CONFIG_XARGS) += xargs.o
 
@@ -350,6 +350,29 @@ static int xargs_ask_confirmation(void)
 #else
 # define xargs_ask_confirmation() 1
 #endif
+
+//usage:#define xargs_trivial_usage
+//usage:       "[OPTIONS] [PROG ARGS]"
+//usage:#define xargs_full_usage "\n\n"
+//usage:       "Run PROG on every item given by stdin\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(
+//usage:     "\n	-p	Ask user whether to run each command"
+//usage:	)
+//usage:     "\n	-r	Don't run command if input is empty"
+//usage:	IF_FEATURE_XARGS_SUPPORT_ZERO_TERM(
+//usage:     "\n	-0	Input is separated by NUL characters"
+//usage:	)
+//usage:     "\n	-t	Print the command on stderr before execution"
+//usage:     "\n	-e[STR]	STR stops input processing"
+//usage:     "\n	-n N	Pass no more than N args to PROG"
+//usage:     "\n	-s N	Pass command line of no more than N bytes"
+//usage:	IF_FEATURE_XARGS_SUPPORT_TERMOPT(
+//usage:     "\n	-x	Exit if size is exceeded"
+//usage:	)
+//usage:#define xargs_example_usage
+//usage:       "$ ls | xargs gzip\n"
+//usage:       "$ find . -name '*.c' -print | xargs rm\n"
 
 /* Correct regardless of combination of CONFIG_xxx */
 enum {
