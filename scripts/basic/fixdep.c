@@ -243,22 +243,27 @@ void parse_config_file(char *map, size_t len)
 			if (!memcmp(p, "IF_NOT", 6)) goto conf7;
 		}
 		/* we have at least 3 chars because of p <= end_3 */
-		/*if (!memcmp(p, "IF_", 3)) goto conf3;*/
-		if (p[0] == 'I' && p[1] == 'F' && p[2] == '_') goto conf3;
+		/*if (!memcmp(p, "IF_", 3)) ...*/
+		if (p[0] == 'I' && p[1] == 'F' && p[2] == '_') {
+			off = 3;
+			goto conf;
+		}
 
 		/* This identifier is not interesting, skip it */
 		while (p <= end_3 && (isalnum(*p) || *p == '_'))
 			p++;
 		continue;
 
-	conf3:	off = 3;
 	conf7:	off = 7;
+	conf:
 		p += off;
 		for (q = p; q < end_3+3; q++) {
 			if (!(isalnum(*q) || *q == '_'))
 				break;
 		}
-		use_config(p, q-p);
+		if (q != p) {
+			use_config(p, q-p);
+		}
 	}
 }
 
