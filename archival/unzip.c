@@ -150,23 +150,26 @@ enum { zip_fd = 3 };
 
 
 #if ENABLE_DESKTOP
+
+#define PEEK_FROM_END 16384
+
 /* NB: does not preserve file position! */
 static uint32_t find_cdf_offset(void)
 {
-	unsigned char buf[1024];
 	cde_header_t cde_header;
 	unsigned char *p;
 	off_t end;
+	unsigned char *buf = xzalloc(PEEK_FROM_END);
 
 	end = xlseek(zip_fd, 0, SEEK_END);
-	end -= 1024;
+	end -= PEEK_FROM_END;
 	if (end < 0)
 		end = 0;
 	xlseek(zip_fd, end, SEEK_SET);
-	full_read(zip_fd, buf, 1024);
+	full_read(zip_fd, buf, PEEK_FROM_END);
 
 	p = buf;
-	while (p <= buf + 1024 - CDE_HEADER_LEN - 4) {
+	while (p <= buf + PEEK_FROM_END - CDE_HEADER_LEN - 4) {
 		if (*p != 'P') {
 			p++;
 			continue;
@@ -180,8 +183,10 @@ static uint32_t find_cdf_offset(void)
 		/* we found CDE! */
 		memcpy(cde_header.raw, p + 1, CDE_HEADER_LEN);
 		FIX_ENDIANNESS_CDE(cde_header);
+		free(buf);
 		return cde_header.formatted.cdf_offset;
 	}
+	//free(buf);
 	bb_error_msg_and_die("can't find file table");
 };
 
