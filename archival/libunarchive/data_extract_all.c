@@ -152,35 +152,32 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("unrecognized file type");
 	}
 
-	if (!(archive_handle->ah_flags & ARCHIVE_DONT_RESTORE_OWNER)) {
-#if ENABLE_FEATURE_TAR_UNAME_GNAME
-		if (!(archive_handle->ah_flags & ARCHIVE_NUMERIC_OWNER)) {
+	if (!S_ISLNK(file_header->mode)) {
+		if (!(archive_handle->ah_flags & ARCHIVE_DONT_RESTORE_OWNER)) {
 			uid_t uid = file_header->uid;
 			gid_t gid = file_header->gid;
-
-			if (file_header->tar__uname) {
+#if ENABLE_FEATURE_TAR_UNAME_GNAME
+			if (!(archive_handle->ah_flags & ARCHIVE_NUMERIC_OWNER)) {
+				if (file_header->tar__uname) {
 //TODO: cache last name/id pair?
-				struct passwd *pwd = getpwnam(file_header->tar__uname);
-				if (pwd) uid = pwd->pw_uid;
+					struct passwd *pwd = getpwnam(file_header->tar__uname);
+					if (pwd) uid = pwd->pw_uid;
+				}
+				if (file_header->tar__gname) {
+					struct group *grp = getgrnam(file_header->tar__gname);
+					if (grp) gid = grp->gr_gid;
+				}
 			}
-			if (file_header->tar__gname) {
-				struct group *grp = getgrnam(file_header->tar__gname);
-				if (grp) gid = grp->gr_gid;
-			}
+#endif
 			/* GNU tar 1.15.1 uses chown, not lchown */
 			chown(file_header->name, uid, gid);
-		} else
-#endif
-			chown(file_header->name, file_header->uid, file_header->gid);
-	}
-	if (!S_ISLNK(file_header->mode)) {
+		}
 		/* uclibc has no lchmod, glibc is even stranger -
 		 * it has lchmod which seems to do nothing!
 		 * so we use chmod... */
 		if (!(archive_handle->ah_flags & ARCHIVE_DONT_RESTORE_PERM)) {
 			chmod(file_header->name, file_header->mode);
 		}
-		/* same for utime */
 		if (archive_handle->ah_flags & ARCHIVE_RESTORE_DATE) {
 			struct timeval t[2];
 

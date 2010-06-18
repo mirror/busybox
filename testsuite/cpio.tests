@@ -40,8 +40,7 @@ ls -ln cpio.testdir | $FILTER_LS" \
 0
 -rw-r--r-- 2 $user $group 0 x
 -rw-r--r-- 2 $user $group 0 y
-" \
-	"" ""
+" "" ""
 SKIP=
 
 
@@ -56,8 +55,7 @@ cpio.testdir/x
 cpio.testdir/y
 1 blocks
 0
-" \
-	"" ""
+" "" ""
 }
 
 
@@ -83,10 +81,8 @@ ls -ln cpio.testdir2/cpio.testdir | $FILTER_LS" \
 -rw-r--r-- 2 $user $group 2 nonempty
 -rw-r--r-- 2 $user $group 2 nonempty1
 -rw-r--r-- 1 $user $group 0 solo
-" \
-	"" ""
+" "" ""
 SKIP=
-
 
 # Was trying to create "/usr/bin", correct is "usr/bin".
 rm -rf cpio.testdir
@@ -98,8 +94,24 @@ ls cpio.testdir" \
 1 blocks
 0
 usr
-" \
-	"" ""
+" "" ""
+SKIP=
+
+# chown on a link was affecting file, dropping its sgid bits
+rm -rf cpio.testdir
+optional FEATURE_CPIO_O
+mkdir cpio.testdir
+touch cpio.testdir/file
+chmod 6755 cpio.testdir/file  # set the suid/sgid bit
+ln -sf file cpio.testdir/link
+testing "cpio restores sgid bits" \
+"cd cpio.testdir && { echo file; echo link; } | cpio -ovHnewc >pack.cpio && rm ???? && cpio -idmvu <pack.cpio 2>/dev/null;
+ stat -c '%a %n' file" \
+"\
+file
+link
+6755 file
+" "" ""
 SKIP=
 
 
