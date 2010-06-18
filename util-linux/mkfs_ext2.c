@@ -140,7 +140,7 @@ static void PUT(uint64_t off, void *buf, uint32_t size)
 // only for directories, which never need i_size_high).
 //
 // Standard mke2fs creates a filesystem with 256-byte inodes if it is
-// bigger than 0.5GB. So far, we do not do this.
+// bigger than 0.5GB.
 
 // Standard mke2fs 1.41.9:
 // Usage: mke2fs [-c|-l filename] [-b block-size] [-f fragment-size]
@@ -212,8 +212,11 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	// we are register starved here
 	opt_complementary = "-1:b+:i+:I+:m+";
 	/*opts =*/ getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
-		NULL, &bs, NULL, &bpi, &user_inodesize, NULL, NULL, NULL,
-		&reserved_percent, NULL, NULL, &label, NULL, NULL, NULL, NULL, NULL, NULL);
+		/*lbfi:*/ NULL, &bs, NULL, &bpi,
+		/*IJGN:*/ &user_inodesize, NULL, NULL, NULL,
+		/*mogL:*/ &reserved_percent, NULL, NULL, &label,
+		/*MOrE:*/ NULL, NULL, NULL, NULL,
+		/*TU:*/ NULL, NULL);
 	argv += optind; // argv[0] -- device
 
 	// open the device, check the device is a block device
