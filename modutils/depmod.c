@@ -8,8 +8,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#undef _GNU_SOURCE
-#define _GNU_SOURCE
 #include "libbb.h"
 #include "modutils.h"
 #include <sys/utsname.h> /* uname() */

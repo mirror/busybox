@@ -36,12 +36,6 @@
 
 #define JOBS ENABLE_ASH_JOB_CONTROL
 
-#if DEBUG
-# ifndef _GNU_SOURCE
-#  define _GNU_SOURCE
-# endif
-#endif
-
 #include "busybox.h" /* for applet_names */
 #include <paths.h>
 #include <setjmp.h>
