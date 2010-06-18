@@ -46,6 +46,7 @@
 #include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
+#include <sys/times.h>
 
 #include "shell_common.h"
 #include "math.h"
@@ -7310,7 +7311,7 @@ shellexec(char **argv, const char *path, int idx)
 #endif
 
 	clearredir(/*drop:*/ 1);
-	envp = listvars(VEXPORT, VUNSET, 0);
+	envp = listvars(VEXPORT, VUNSET, /*end:*/ NULL);
 	if (strchr(argv[0], '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
 	 || (applet_no = find_applet_by_name(argv[0])) >= 0
@@ -12468,7 +12469,7 @@ unsetfunc(const char *name)
 	struct tblentry *cmdp;
 
 	cmdp = cmdlookup(name, 0);
-	if (cmdp!= NULL && cmdp->cmdtype == CMDFUNCTION)
+	if (cmdp != NULL && cmdp->cmdtype == CMDFUNCTION)
 		delete_cmd_entry();
 }
 
@@ -12485,7 +12486,7 @@ unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	int flag = 0;
 	int ret = 0;
 
-	while ((i = nextopt("vf")) != '\0') {
+	while ((i = nextopt("vf")) != 0) {
 		flag = i;
 	}
 
@@ -12502,11 +12503,6 @@ unsetcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	return ret & 1;
 }
 
-
-/*      setmode.c      */
-
-#include <sys/times.h>
-
 static const unsigned char timescmd_str[] ALIGN1 = {
 	' ',  offsetof(struct tms, tms_utime),
 	'\n', offsetof(struct tms, tms_stime),
@@ -12514,7 +12510,6 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 	'\n', offsetof(struct tms, tms_cstime),
 	0
 };
-
 static int FAST_FUNC
 timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
@@ -12533,14 +12528,15 @@ timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			s/60, s%60,
 			((t - s * clk_tck) * 1000) / clk_tck,
 			p[0]);
-	} while (*(p += 2));
+		p += 2;
+	} while (*p);
 
 	return 0;
 }
 
 #if ENABLE_SH_MATH_SUPPORT
 /*
- * The let builtin. partial stolen from GNU Bash, the Bourne Again SHell.
+ * The let builtin. Partially stolen from GNU Bash, the Bourne Again SHell.
  * Copyright (C) 1987, 1989, 1991 Free Software Foundation, Inc.
  *
  * Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
@@ -12559,18 +12555,6 @@ letcmd(int argc UNUSED_PARAM, char **argv)
 
 	return !i;
 }
-#endif /* SH_MATH_SUPPORT */
-
-
-/* ============ miscbltin.c
- *
- * Miscellaneous builtins.
- */
-
-#undef rflag
-
-#if defined(__GLIBC__) && __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
-typedef enum __rlimit_resource rlim_t;
 #endif
 
 /*
