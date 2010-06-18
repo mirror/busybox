@@ -97,14 +97,14 @@ usr
 " "" ""
 SKIP=
 
-# chown on a link was affecting file, dropping its sgid bits
+# chown on a link was affecting file, dropping its suid/sgid bits
 rm -rf cpio.testdir
 optional FEATURE_CPIO_O
 mkdir cpio.testdir
 touch cpio.testdir/file
-chmod 6755 cpio.testdir/file  # set the suid/sgid bit
+chmod 6755 cpio.testdir/file  # sets suid/sgid bits
 ln -sf file cpio.testdir/link
-testing "cpio restores sgid bits" \
+testing "cpio restores suid/sgid bits" \
 "cd cpio.testdir && { echo file; echo link; } | cpio -ovHnewc >pack.cpio && rm ???? && cpio -idmvu <pack.cpio 2>/dev/null;
  stat -c '%a %n' file" \
 "\
