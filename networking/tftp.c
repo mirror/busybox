@@ -24,7 +24,8 @@
 
 #define TFTP_BLKSIZE_DEFAULT       512  /* according to RFC 1350, don't change */
 #define TFTP_BLKSIZE_DEFAULT_STR "512"
-#define TFTP_TIMEOUT_MS             50
+/* Was 50 ms but users asked to bump it up a bit */
+#define TFTP_TIMEOUT_MS            100
 #define TFTP_MAXTIMEOUT_MS        2000
 #define TFTP_NUM_RETRIES            12  /* number of backed-off retries */
 
