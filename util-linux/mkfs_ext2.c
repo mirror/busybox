@@ -220,7 +220,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 	xmove_fd(xopen(argv[0], O_WRONLY), fd);
 	fstat(fd, &st);
 	if (!S_ISBLK(st.st_mode) && !(option_mask32 & OPT_F))
-		bb_error_msg_and_die("not a block device");
+		bb_error_msg_and_die("%s: not a block device", argv[0]);
 
 	// check if it is mounted
 	// N.B. what if we format a file? find_mount_point will return false negative since
