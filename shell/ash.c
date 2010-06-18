@@ -12508,7 +12508,7 @@ static const unsigned char timescmd_str[] ALIGN1 = {
 static int FAST_FUNC
 timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	long clk_tck, s, t;
+	unsigned long clk_tck, s, t;
 	const unsigned char *p;
 	struct tms buf;
 
@@ -12519,9 +12519,10 @@ timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	do {
 		t = *(clock_t *)(((char *) &buf) + p[1]);
 		s = t / clk_tck;
-		out1fmt("%ldm%ld.%.3lds%c",
-			s/60, s%60,
-			((t - s * clk_tck) * 1000) / clk_tck,
+		t = t % clk_tck;
+		out1fmt("%lum%lu.%03lus%c",
+			s / 60, s % 60,
+			(t * 1000) / clk_tck,
 			p[0]);
 		p += 2;
 	} while (*p);
