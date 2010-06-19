@@ -59,14 +59,6 @@
 //config:	  are not special.
 
 #include "libbb.h"
-/* COMPAT:  SYSV version defaults size (and has a max value of) to 470.
-   We try to make it as large as possible. */
-#if !defined(ARG_MAX) && defined(_SC_ARG_MAX)
-# define ARG_MAX sysconf(_SC_ARG_MAX)
-#endif
-#if !defined(ARG_MAX)
-# define ARG_MAX 470
-#endif
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -440,35 +432,43 @@ int xargs_main(int argc, char **argv)
 		argc++;
 	}
 
-	/* The Open Group Base Specifications Issue 6:
+	/* -s NUM default. fileutils-4.4.2 uses 128k, but I heasitate
+	 * to use such a big value - first need to change code to use
+	 * growable buffer instead of fixed one.
+	 */
+	n_max_chars = 32 * 1024;
+	/* Make smaller if system does not allow our default value.
+	 * The Open Group Base Specifications Issue 6:
 	 * "The xargs utility shall limit the command line length such that
 	 * when the command line is invoked, the combined argument
 	 * and environment lists (see the exec family of functions
 	 * in the System Interfaces volume of IEEE Std 1003.1-2001)
 	 * shall not exceed {ARG_MAX}-2048 bytes".
 	 */
-	n_max_chars = ARG_MAX; /* might be calling sysconf(_SC_ARG_MAX) */
-	if (n_max_chars < 4*1024); /* paranoia */
-		n_max_chars = 4*1024;
-	n_max_chars -= 2048;
-	/* Sanity check for systems with huge ARG_MAX defines (e.g., Suns which
-	 * have it at 1 meg).  Things will work fine with a large ARG_MAX
-	 * but it will probably hurt the system more than it needs to;
-	 * an array of this size is allocated.
-	 */
-	if (n_max_chars > 20 * 1024)
-		n_max_chars = 20 * 1024;
-
+	{
+		long arg_max = 0;
+#if defined _SC_ARG_MAX
+		arg_max = sysconf(_SC_ARG_MAX) - 2048;
+#elif defined ARG_MAX
+		arg_max = ARG_MAX - 2048;
+#endif
+		if (arg_max > 0 && n_max_chars > arg_max)
+			n_max_chars = arg_max;
+	}
 	if (opt & OPT_UPTO_SIZE) {
-		size_t n_chars = 0;
 		n_max_chars = xatou_range(max_chars, 1, INT_MAX);
+	}
+	/* Account for prepended fixed arguments */
+	{
+		size_t n_chars = 0;
 		for (i = 0; argv[i]; i++) {
 			n_chars += strlen(argv[i]) + 1;
 		}
 		n_max_chars -= n_chars;
-		if (n_max_chars <= 0) {
-			bb_error_msg_and_die("can't fit single argument within argument list size limit");
-		}
+	}
+	/* Sanity check */
+	if (n_max_chars <= 0) {
+		bb_error_msg_and_die("can't fit single argument within argument list size limit");
 	}
 
 	buf = xzalloc(n_max_chars + 1);
@@ -476,6 +476,8 @@ int xargs_main(int argc, char **argv)
 	n_max_arg = n_max_chars;
 	if (opt & OPT_UPTO_NUMBER) {
 		n_max_arg = xatou_range(max_args, 1, INT_MAX);
+		/* Not necessary, we use growable args[]: */
+		/* if (n_max_arg > n_max_chars) n_max_arg = n_max_chars */
 	}
 
 	/* Allocate pointers for execvp */
