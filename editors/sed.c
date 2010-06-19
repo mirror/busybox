@@ -1333,6 +1333,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_in_place)
 			bb_error_msg_and_die(bb_msg_requires_arg, "-i");
 		add_input_file(stdin);
+		process_files();
 	} else {
 		int i;
 		FILE *file;
@@ -1378,13 +1379,9 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			free(G.outname);
 			G.outname = NULL;
 		}
-		/* Here, to handle "sed 'cmds' nonexistent_file" case we did:
-		 * if (G.current_input_file >= G.input_file_count)
-		 *	return status;
-		 * but it's not needed since process_files() works correctly
-		 * in this case too. */
+		if (G.input_file_count > G.current_input_file)
+			process_files();
 	}
-	process_files();
 
 	return status;
 }
