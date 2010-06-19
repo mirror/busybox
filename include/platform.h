@@ -16,6 +16,7 @@
 #define HAVE_SETBIT 1
 #define HAVE_STRCASESTR 1
 #define HAVE_STRCHRNUL 1
+#define HAVE_STRSEP 1
 #define HAVE_STRSIGNAL 1
 #define HAVE_VASPRINTF 1
 
@@ -353,6 +354,7 @@ typedef unsigned smalluint;
 # undef HAVE_SETBIT
 # undef HAVE_STRCASESTR
 # undef HAVE_STRCHRNUL
+# undef HAVE_STRSEP
 # undef HAVE_STRSIGNAL
 # undef HAVE_VASPRINTF
 #endif
@@ -389,6 +391,10 @@ extern char *strcasestr(const char *s, const char *pattern) FAST_FUNC;
 
 #ifndef HAVE_STRCHRNUL
 extern char *strchrnul(const char *s, int c) FAST_FUNC;
+#endif
+
+#ifndef HAVE_STRSEP
+extern char *strsep(char **stringp, const char *delim) FAST_FUNC;
 #endif
 
 #ifndef HAVE_STRSIGNAL
