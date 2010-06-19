@@ -472,7 +472,7 @@ config FEATURE_USE_TERMIOS
 
 config VOLUMEID
 	bool #No description makes it a hidden option
-	default y
+	default n
 
 config FEATURE_VOLUMEID_EXT
 	bool "Ext filesystem"
@@ -725,7 +725,7 @@ config FEATURE_MOUNT_HELPERS
 	  The idea is to use such virtual filesystems in /etc/fstab.
 
 config FEATURE_MOUNT_LABEL
-	bool "Support specifiying devices by label or UUID"
+	bool "Support specifying devices by label or UUID"
 	default y
 	depends on MOUNT
 	select VOLUMEID
@@ -930,7 +930,7 @@ config FEATURE_MTAB_SUPPORT
 	  If you must use this, keep in mind it's inherently brittle (for
 	  example a mount under chroot won't update it), can't handle modern
 	  features like separate per-process filesystem namespaces, requires
-	  that your /etc directory be writeable, tends to get easily confused
+	  that your /etc directory be writable, tends to get easily confused
 	  by --bind or --move mounts, won't update if you rename a directory
 	  that contains a mount point, and so on. (In brief: avoid.)
 

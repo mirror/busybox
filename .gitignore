@@ -6,6 +6,7 @@
 *.o.*
 *.a
 *.s
+Kbuild
 
 #
 # Never ignore these

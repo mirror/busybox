@@ -9,11 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* for getline() [GNUism]
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
-#endif
-*/
 #include "libbb.h"
 
 /* This function reads an entire line from a text file, up to a newline

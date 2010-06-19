@@ -29,10 +29,6 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1 /* get strnlen() */
-#endif
-
 #include "e2fsck.h"	/*Put all of our defines here to clean things up*/
 
 #define _(x) x
