@@ -1217,7 +1217,7 @@ static void hush_exit(int exitcode)
 
 static int check_and_run_traps(int sig)
 {
-	static const struct timespec zero_timespec = { 0, 0 };
+	static const struct timespec zero_timespec;
 	smalluint save_rcode;
 	int last_sig = 0;
 

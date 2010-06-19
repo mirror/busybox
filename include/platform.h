@@ -168,10 +168,10 @@
 #if defined(__BIG_ENDIAN__) && __BIG_ENDIAN__
 # define BB_BIG_ENDIAN 1
 # define BB_LITTLE_ENDIAN 0
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
 # define BB_BIG_ENDIAN 1
 # define BB_LITTLE_ENDIAN 0
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#elif (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__386__)
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
 #else
