@@ -85,6 +85,11 @@ LDLIBS="$7"
 # The --sort-section option is not supported by older versions of ld
 SORT_SECTION=`check_cc "-Wl,--sort-section,alignment" ""`
 
+START_GROUP="-Wl,--start-group"
+END_GROUP="-Wl,--end-group"
+
+INFO_OPTS="-Wl,--warn-common -Wl,-Map,$EXE.map -Wl,--verbose"
+
 # gold may not support --sort-common (yet)
 SORT_COMMON=`check_cc "-Wl,--sort-common" ""`
 
@@ -114,13 +119,13 @@ LDLIBS=`echo "$LDLIBS" | xargs -n1 | sort | uniq | xargs`
 echo "Trying libraries: $LDLIBS"
 # "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
-test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
+test "x$l_list" != "x" && l_list="$START_GROUP $l_list $END_GROUP"
 try $CC $CFLAGS $LDFLAGS \
 	-o $EXE \
 	$SORT_COMMON \
 	$SORT_SECTION \
 	$GC_SECTIONS \
-	-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	$START_GROUP $O_FILES $A_FILES $END_GROUP \
 	$l_list \
 || {
     echo "Failed: $l_list"
@@ -138,14 +143,14 @@ while test "$LDLIBS"; do
 	without_one=`echo " $LDLIBS " | sed "s/ $one / /g" | xargs`
 	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
 	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
-	test x"$l_list" != x"" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
+	test x"$l_list" != x"" && l_list="$START_GROUP $l_list $END_GROUP"
 	$debug && echo "Trying -l options: '$l_list'"
 	try $CC $CFLAGS $LDFLAGS \
 		-o $EXE \
 		$SORT_COMMON \
 		$SORT_SECTION \
 		$GC_SECTIONS \
-		-Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+		$START_GROUP $O_FILES $A_FILES $END_GROUP \
 		$l_list
 	if test $? = 0; then
 	    echo " Library $one is not needed, excluding it"
@@ -169,7 +174,7 @@ done
 # Make the binary with final, minimal list of libs
 echo "Final link with: ${LDLIBS:-<none>}"
 l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
-test "x$l_list" != "x" && l_list="-Wl,--start-group $l_list -Wl,--end-group"
+test "x$l_list" != "x" && l_list="$START_GROUP $l_list $END_GROUP"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
     try $CC $CFLAGS $LDFLAGS \
@@ -177,11 +182,9 @@ if ! test -f busybox_ldscript; then
 	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
-	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	    $START_GROUP $O_FILES $A_FILES $END_GROUP \
 	    $l_list \
-	    -Wl,--warn-common \
-	    -Wl,-Map,$EXE.map \
-	    -Wl,--verbose \
+	    $INFO_OPTS \
     || {
 	cat $EXE.out
 	exit 1
@@ -200,11 +203,9 @@ else
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
 	    -Wl,-T,busybox_ldscript \
-	    -Wl,--start-group $O_FILES $A_FILES -Wl,--end-group \
+	    $START_GROUP $O_FILES $A_FILES $END_GROUP \
 	    $l_list \
-	    -Wl,--warn-common \
-	    -Wl,-Map,$EXE.map \
-	    -Wl,--verbose \
+	    $INFO_OPTS \
     || {
 	cat $EXE.out
 	exit 1
@@ -233,11 +234,9 @@ if test "$CONFIG_BUILD_LIBBUSYBOX" = y; then
 	    -Wl,--undefined=lbb_main \
 	    $SORT_COMMON \
 	    $SORT_SECTION \
-	    -Wl,--start-group $A_FILES -Wl,--end-group \
+	    $START_GROUP $A_FILES $END_GROUP \
 	    $l_list \
-	    -Wl,--warn-common \
-	    -Wl,-Map,$EXE.map \
-	    -Wl,--verbose \
+	    $INFO_OPTS \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
@@ -255,11 +254,9 @@ if test "$CONFIG_FEATURE_SHARED_BUSYBOX" = y; then
 	    $SORT_COMMON \
 	    $SORT_SECTION \
 	    $GC_SECTIONS \
-	    -Wl,--start-group $O_FILES -Wl,--end-group \
+	    $START_GROUP $O_FILES $END_GROUP \
 	    -L"$sharedlib_dir" -lbusybox \
-	    -Wl,--warn-common \
-	    -Wl,-Map,$EXE.map \
-	    -Wl,--verbose \
+	    $INFO_OPTS \
     || {
 	echo "Linking $EXE failed"
 	cat $EXE.out
