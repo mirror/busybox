@@ -32,9 +32,9 @@
 #define memeq(a, b, size) (memcmp(a, b, size) == 0)
 #define memzero(buf, size) memset(buf, 0, size)
 
-#ifndef min
+#undef min
+#undef min_t
 #define min(x, y) ((x) < (y) ? (x) : (y))
-#endif
 #define min_t(type, x, y) min(x, y)
 
 /*

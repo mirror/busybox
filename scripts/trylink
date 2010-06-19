@@ -87,7 +87,6 @@ SORT_SECTION=`check_cc "-Wl,--sort-section,alignment" ""`
 
 START_GROUP="-Wl,--start-group"
 END_GROUP="-Wl,--end-group"
-
 INFO_OPTS="-Wl,--warn-common -Wl,-Map,$EXE.map -Wl,--verbose"
 
 # gold may not support --sort-common (yet)
