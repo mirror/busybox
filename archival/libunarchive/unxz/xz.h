@@ -30,9 +30,42 @@
 #endif
 
 /**
+ * enum xz_mode - Operation mode
+ *
+ * @XZ_SINGLE:              Single-call mode. This uses less RAM than
+ *                          than multi-call modes, because the LZMA2
+ *                          dictionary doesn't need to be allocated as
+ *                          part of the decoder state. All required data
+ *                          structures are allocated at initialization,
+ *                          so xz_dec_run() cannot return XZ_MEM_ERROR.
+ * @XZ_PREALLOC:            Multi-call mode with preallocated LZMA2
+ *                          dictionary buffer. All data structures are
+ *                          allocated at initialization, so xz_dec_run()
+ *                          cannot return XZ_MEM_ERROR.
+ * @XZ_DYNALLOC:            Multi-call mode. The LZMA2 dictionary is
+ *                          allocated once the required size has been
+ *                          parsed from the stream headers. If the
+ *                          allocation fails, xz_dec_run() will return
+ *                          XZ_MEM_ERROR.
+ *
+ * It is possible to enable support only for a subset of the above
+ * modes at compile time by defining XZ_DEC_SINGLE, XZ_DEC_PREALLOC,
+ * or XZ_DEC_DYNALLOC. The xz_dec kernel module is always compiled
+ * with support for all operation modes, but the preboot code may
+ * be built with fewer features to minimize code size.
+ */
+enum xz_mode {
+	XZ_SINGLE,
+	XZ_PREALLOC,
+	XZ_DYNALLOC
+};
+
+/**
  * enum xz_ret - Return codes
  * @XZ_OK:                  Everything is OK so far. More input or more
- *                          output space is required to continue.
+ *                          output space is required to continue. This
+ *                          return code is possible only in multi-call mode
+ *                          (XZ_PREALLOC or XZ_DYNALLOC).
  * @XZ_STREAM_END:          Operation finished successfully.
  * @XZ_UNSUPPORTED_CHECK:   Integrity check type is not supported. Decoding
  *                          is still possible in multi-call mode by simply
@@ -42,8 +75,17 @@
  *                          which is not used in the kernel. Unsupported
  *                          check types return XZ_OPTIONS_ERROR if
  *                          XZ_DEC_ANY_CHECK was not defined at build time.
- * @XZ_MEMLIMIT_ERROR:      Not enough memory was preallocated at decoder
- *                          initialization time.
+ * @XZ_MEM_ERROR:           Allocating memory failed. This return code is
+ *                          possible only if the decoder was initialized
+ *                          with XZ_DYNALLOC. The amount of memory that was
+ *                          tried to be allocated was no more than the
+ *                          dict_max argument given to xz_dec_init().
+ * @XZ_MEMLIMIT_ERROR:      A bigger LZMA2 dictionary would be needed than
+ *                          allowed by the dict_max argument given to
+ *                          xz_dec_init(). This return value is possible
+ *                          only in multi-call mode (XZ_PREALLOC or
+ *                          XZ_DYNALLOC); the single-call mode (XZ_SINGLE)
+ *                          ignores the dict_max argument.
  * @XZ_FORMAT_ERROR:        File format was not recognized (wrong magic
  *                          bytes).
  * @XZ_OPTIONS_ERROR:       This implementation doesn't support the requested
@@ -72,6 +114,7 @@ enum xz_ret {
 	XZ_OK,
 	XZ_STREAM_END,
 	XZ_UNSUPPORTED_CHECK,
+	XZ_MEM_ERROR,
 	XZ_MEMLIMIT_ERROR,
 	XZ_FORMAT_ERROR,
 	XZ_OPTIONS_ERROR,
@@ -112,61 +155,67 @@ struct xz_dec;
 
 /**
  * xz_dec_init() - Allocate and initialize a XZ decoder state
+ * @mode:       Operation mode
  * @dict_max:   Maximum size of the LZMA2 dictionary (history buffer) for
- *              multi-call decoding, or special value of zero to indicate
- *              single-call decoding mode.
+ *              multi-call decoding. This is ignored in single-call mode
+ *              (mode == XZ_SINGLE). LZMA2 dictionary is always 2^n bytes
+ *              or 2^n + 2^(n-1) bytes (the latter sizes are less common
+ *              in practice), so other values for dict_max don't make sense.
+ *              In the kernel, dictionary sizes of 64 KiB, 128 KiB, 256 KiB,
+ *              512 KiB, and 1 MiB are probably the only reasonable values,
+ *              except for kernel and initramfs images where a bigger
+ *              dictionary can be fine and useful.
  *
- * If dict_max > 0, the decoder is initialized to work in multi-call mode.
- * dict_max number of bytes of memory is preallocated for the LZMA2
- * dictionary. This way there is no risk that xz_dec_run() could run out
- * of memory, since xz_dec_run() will never allocate any memory. Instead,
- * if the preallocated dictionary is too small for decoding the given input
- * stream, xz_dec_run() will return XZ_MEMLIMIT_ERROR. Thus, it is important
- * to know what kind of data will be decoded to avoid allocating excessive
- * amount of memory for the dictionary.
- *
- * LZMA2 dictionary is always 2^n bytes or 2^n + 2^(n-1) bytes (the latter
- * sizes are less common in practice). In the kernel, dictionary sizes of
- * 64 KiB, 128 KiB, 256 KiB, 512 KiB, and 1 MiB are probably the only
- * reasonable values.
- *
- * If dict_max == 0, the decoder is initialized to work in single-call mode.
- * In single-call mode, xz_dec_run() decodes the whole stream at once. The
- * caller must provide enough output space or the decoding will fail. The
- * output space is used as the dictionary buffer, which is why there is
- * no need to allocate the dictionary as part of the decoder's internal
- * state.
+ * Single-call mode (XZ_SINGLE): xz_dec_run() decodes the whole stream at
+ * once. The caller must provide enough output space or the decoding will
+ * fail. The output space is used as the dictionary buffer, which is why
+ * there is no need to allocate the dictionary as part of the decoder's
+ * internal state.
  *
  * Because the output buffer is used as the workspace, streams encoded using
- * a big dictionary are not a problem in single-call. It is enough that the
- * output buffer is big enough to hold the actual uncompressed data; it
+ * a big dictionary are not a problem in single-call mode. It is enough that
+ * the output buffer is big enough to hold the actual uncompressed data; it
  * can be smaller than the dictionary size stored in the stream headers.
  *
+ * Multi-call mode with preallocated dictionary (XZ_PREALLOC): dict_max bytes
+ * of memory is preallocated for the LZMA2 dictionary. This way there is no
+ * risk that xz_dec_run() could run out of memory, since xz_dec_run() will
+ * never allocate any memory. Instead, if the preallocated dictionary is too
+ * small for decoding the given input stream, xz_dec_run() will return
+ * XZ_MEMLIMIT_ERROR. Thus, it is important to know what kind of data will be
+ * decoded to avoid allocating excessive amount of memory for the dictionary.
+ *
+ * Multi-call mode with dynamically allocated dictionary (XZ_DYNALLOC):
+ * dict_max specifies the maximum allowed dictionary size that xz_dec_run()
+ * may allocate once it has parsed the dictionary size from the stream
+ * headers. This way excessive allocations can be avoided while still
+ * limiting the maximum memory usage to a sane value to prevent running the
+ * system out of memory when decompressing streams from untrusted sources.
+ *
  * On success, xz_dec_init() returns a pointer to struct xz_dec, which is
- * ready to be used with xz_dec_run(). On error, xz_dec_init() returns NULL.
+ * ready to be used with xz_dec_run(). If memory allocation fails,
+ * xz_dec_init() returns NULL.
  */
-XZ_EXTERN struct xz_dec * XZ_FUNC xz_dec_init(uint32_t dict_max);
+XZ_EXTERN struct xz_dec * XZ_FUNC xz_dec_init(
+		enum xz_mode mode, uint32_t dict_max);
 
 /**
  * xz_dec_run() - Run the XZ decoder
  * @s:          Decoder state allocated using xz_dec_init()
  * @b:          Input and output buffers
  *
- * In multi-call mode, this function may return any of the values listed in
- * enum xz_ret.
+ * The possible return values depend on build options and operation mode.
+ * See enum xz_ret for details.
  *
- * In single-call mode, this function never returns XZ_OK. If an error occurs
- * in single-call mode (return value is not XZ_STREAM_END), b->in_pos and
- * b->out_pos are not modified, and the contents of the output buffer from
- * b->out[b->out_pos] onward are undefined.
- *
- * NOTE: In single-call mode, the contents of the output buffer are undefined
- * also after XZ_BUF_ERROR. This is because with some filter chains, there
- * may be a second pass over the output buffer, and this pass cannot be
- * properly done if the output buffer is truncated. Thus, you cannot give
- * the single-call decoder a too small buffer and then expect to get that
- * amount valid data from the beginning of the stream. You must use the
- * multi-call decoder if you don't want to uncompress the whole stream.
+ * NOTE: If an error occurs in single-call mode (return value is not
+ * XZ_STREAM_END), b->in_pos and b->out_pos are not modified, and the
+ * contents of the output buffer from b->out[b->out_pos] onward are
+ * undefined. This is true even after XZ_BUF_ERROR, because with some filter
+ * chains, there may be a second pass over the output buffer, and this pass
+ * cannot be properly done if the output buffer is truncated. Thus, you
+ * cannot give the single-call decoder a too small buffer and then expect to
+ * get that amount valid data from the beginning of the stream. You must use
+ * the multi-call decoder if you don't want to uncompress the whole stream.
  */
 XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_run(struct xz_dec *s, struct xz_buf *b);
 

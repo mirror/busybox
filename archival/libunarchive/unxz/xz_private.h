@@ -53,6 +53,45 @@
 #	include "xz_config.h"
 #endif
 
+/* If no specific decoding mode is requested, enable support for all modes. */
+#if !defined(XZ_DEC_SINGLE) && !defined(XZ_DEC_PREALLOC) \
+		&& !defined(XZ_DEC_DYNALLOC)
+#	define XZ_DEC_SINGLE
+#	define XZ_DEC_PREALLOC
+#	define XZ_DEC_DYNALLOC
+#endif
+
+/*
+ * The DEC_IS_foo(mode) macros are used in "if" statements. If only some
+ * of the supported modes are enabled, these macros will evaluate to true or
+ * false at compile time and thus allow the compiler to omit unneeded code.
+ */
+#ifdef XZ_DEC_SINGLE
+#	define DEC_IS_SINGLE(mode) ((mode) == XZ_SINGLE)
+#else
+#	define DEC_IS_SINGLE(mode) (false)
+#endif
+
+#ifdef XZ_DEC_PREALLOC
+#	define DEC_IS_PREALLOC(mode) ((mode) == XZ_PREALLOC)
+#else
+#	define DEC_IS_PREALLOC(mode) (false)
+#endif
+
+#ifdef XZ_DEC_DYNALLOC
+#	define DEC_IS_DYNALLOC(mode) ((mode) == XZ_DYNALLOC)
+#else
+#	define DEC_IS_DYNALLOC(mode) (false)
+#endif
+
+#if !defined(XZ_DEC_SINGLE)
+#	define DEC_IS_MULTI(mode) (true)
+#elif defined(XZ_DEC_PREALLOC) || defined(XZ_DEC_DYNALLOC)
+#	define DEC_IS_MULTI(mode) ((mode) != XZ_SINGLE)
+#else
+#	define DEC_IS_MULTI(mode) (false)
+#endif
+
 /*
  * If any of the BCJ filter decoders are wanted, define XZ_DEC_BCJ.
  * XZ_DEC_BCJ is used to enable generic support for BCJ decoders.
@@ -71,7 +110,7 @@
  * before calling xz_dec_lzma2_run().
  */
 XZ_EXTERN struct xz_dec_lzma2 * XZ_FUNC xz_dec_lzma2_create(
-		uint32_t dict_max);
+		enum xz_mode mode, uint32_t dict_max);
 
 /*
  * Decode the LZMA2 properties (one byte) and reset the decoder. Return

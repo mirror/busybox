@@ -12,9 +12,10 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-#define XZ_REALLOC_DICT_BUF(ptr, size) xrealloc(ptr, size)
 #define XZ_FUNC FAST_FUNC
 #define XZ_EXTERN static
+
+#define XZ_DEC_DYNALLOC
 
 /* Skip check (rather than fail) of unsupported hash functions */
 #define XZ_DEC_ANY_CHECK  1
@@ -40,15 +41,9 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
 #define put_unaligned_le32(val, buf) move_to_unaligned16(buf, SWAP_LE32(val))
 #define put_unaligned_be32(val, buf) move_to_unaligned16(buf, SWAP_BE32(val))
 
-#include "unxz/xz.h"
-#include "unxz/xz_config.h"
-
 #include "unxz/xz_dec_bcj.c"
 #include "unxz/xz_dec_lzma2.c"
 #include "unxz/xz_dec_stream.c"
-#include "unxz/xz_lzma2.h"
-#include "unxz/xz_private.h"
-#include "unxz/xz_stream.h"
 
 IF_DESKTOP(long long) int FAST_FUNC
 unpack_xz_stream(int src_fd, int dst_fd)
@@ -57,63 +52,50 @@ unpack_xz_stream(int src_fd, int dst_fd)
 	struct xz_dec *state;
 	unsigned char *membuf;
 	IF_DESKTOP(long long) int total = 0;
-	enum {
-		IN_SIZE = 4 * 1024,
-		OUT_SIZE = 60 * 1024,
-	};
 
 	if (!crc32_table)
 		crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
 
-	membuf = xmalloc(IN_SIZE + OUT_SIZE);
+	membuf = xmalloc(2 * BUFSIZ);
 	memset(&iobuf, 0, sizeof(iobuf));
 	iobuf.in = membuf;
-	iobuf.out = membuf + IN_SIZE;
-	iobuf.out_size = OUT_SIZE;
+	iobuf.out = membuf + BUFSIZ;
+	iobuf.out_size = BUFSIZ;
 
-	state = xz_dec_init(64*1024); /* initial dict of 64k */
+	/* Limit memory usage to about 64 MiB. */
+	state = xz_dec_init(XZ_DYNALLOC, 64*1024*1024);
 
 	while (1) {
 		enum xz_ret r;
-                int insz, rd, outpos;
 
-		iobuf.in_size -= iobuf.in_pos;
-		insz = iobuf.in_size;
-		if (insz)
-			memmove(membuf, membuf + iobuf.in_pos, insz);
-		iobuf.in_pos = 0;
-		rd = IN_SIZE - insz;
-		if (rd) {
-			rd = safe_read(src_fd, membuf + insz, rd);
+		if (iobuf.in_pos == iobuf.in_size) {
+			int rd = safe_read(src_fd, membuf, BUFSIZ);
 			if (rd < 0) {
 				bb_error_msg(bb_msg_read_error);
 				total = -1;
 				break;
 			}
-			iobuf.in_size = insz + rd;
+			iobuf.in_size = rd;
+			iobuf.in_pos = 0;
 		}
 //		bb_error_msg(">in pos:%d size:%d out pos:%d size:%d",
 //				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size);
 		r = xz_dec_run(state, &iobuf);
 //		bb_error_msg("<in pos:%d size:%d out pos:%d size:%d r:%d",
 //				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size, r);
-		outpos = iobuf.out_pos;
-		if (outpos) {
-			xwrite(dst_fd, iobuf.out, outpos);
-			IF_DESKTOP(total += outpos;)
+		if (iobuf.out_pos) {
+			xwrite(dst_fd, iobuf.out, iobuf.out_pos);
+			IF_DESKTOP(total += iobuf.out_pos;)
+			iobuf.out_pos = 0;
 		}
-		if (r == XZ_STREAM_END
-		/* this happens even with well-formed files: */
-		 || (r == XZ_BUF_ERROR && insz == 0 && outpos == 0)
-		) {
+		if (r == XZ_STREAM_END) {
 			break;
 		}
 		if (r != XZ_OK && r != XZ_UNSUPPORTED_CHECK) {
-			bb_error_msg("corrupted data");
+			bb_error_msg("corrupted or unsupported data");
 			total = -1;
 			break;
 		}
-		iobuf.out_pos = 0;
 	}
 	xz_dec_end(state);
 	free(membuf);

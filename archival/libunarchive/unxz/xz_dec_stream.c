@@ -48,8 +48,8 @@ struct xz_dec {
 	/* Type of the integrity check calculated from uncompressed data */
 	enum xz_check check_type;
 
-	/* True if we are operating in single-call mode. */
-	bool single_call;
+	/* Operation mode */
+	enum xz_mode mode;
 
 	/*
 	 * True if the next call to xz_dec_run() is allowed to return
@@ -737,14 +737,14 @@ XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_run(struct xz_dec *s, struct xz_buf *b)
 	size_t out_start;
 	enum xz_ret ret;
 
-	if (s->single_call)
+	if (DEC_IS_SINGLE(s->mode))
 		xz_dec_reset(s);
 
 	in_start = b->in_pos;
 	out_start = b->out_pos;
 	ret = dec_main(s, b);
 
-	if (s->single_call) {
+	if (DEC_IS_SINGLE(s->mode)) {
 		if (ret == XZ_OK)
 			ret = b->in_pos == b->in_size
 					? XZ_DATA_ERROR : XZ_BUF_ERROR;
@@ -767,21 +767,22 @@ XZ_EXTERN enum xz_ret XZ_FUNC xz_dec_run(struct xz_dec *s, struct xz_buf *b)
 	return ret;
 }
 
-XZ_EXTERN struct xz_dec * XZ_FUNC xz_dec_init(uint32_t dict_max)
+XZ_EXTERN struct xz_dec * XZ_FUNC xz_dec_init(
+		enum xz_mode mode, uint32_t dict_max)
 {
 	struct xz_dec *s = kmalloc(sizeof(*s), GFP_KERNEL);
 	if (s == NULL)
 		return NULL;
 
-	s->single_call = dict_max == 0;
+	s->mode = mode;
 
 #ifdef XZ_DEC_BCJ
-	s->bcj = xz_dec_bcj_create(s->single_call);
+	s->bcj = xz_dec_bcj_create(DEC_IS_SINGLE(mode));
 	if (s->bcj == NULL)
 		goto error_bcj;
 #endif
 
-	s->lzma2 = xz_dec_lzma2_create(dict_max);
+	s->lzma2 = xz_dec_lzma2_create(mode, dict_max);
 	if (s->lzma2 == NULL)
 		goto error_lzma2;
 
