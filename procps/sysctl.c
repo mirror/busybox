@@ -212,6 +212,7 @@ static int sysctl_handle_preload_file(const char *filename)
 //TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
 // (but _whitespace_ from ends should be trimmed first (and we do it right))
 //TODO: "var==1" is mishandled (must use "=1" as a value, but uses "1")
+// can it be fixed by removing PARSE_COLLAPSE bit?
 	while (config_read(parser, token, 2, 2, "# \t=", PARSE_NORMAL)) {
 		char *tp;
 		sysctl_dots_to_slashes(token[0]);

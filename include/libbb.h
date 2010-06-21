@@ -1125,6 +1125,7 @@ typedef struct parser_t {
 } parser_t;
 parser_t* config_open(const char *filename) FAST_FUNC;
 parser_t* config_open2(const char *filename, FILE* FAST_FUNC (*fopen_func)(const char *path)) FAST_FUNC;
+/* delims[0] is a comment char (use '\0' to disable), the rest are token delimiters */
 int config_read(parser_t *parser, char **tokens, unsigned flags, const char *delims) FAST_FUNC;
 #define config_read(parser, tokens, max, min, str, flags) \
 	config_read(parser, tokens, ((flags) | (((min) & 0xFF) << 8) | ((max) & 0xFF)), str)
