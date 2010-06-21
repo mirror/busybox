@@ -92,7 +92,7 @@ unpack_xz_stream(int src_fd, int dst_fd)
 			break;
 		}
 		if (r != XZ_OK && r != XZ_UNSUPPORTED_CHECK) {
-			bb_error_msg("corrupted or unsupported data");
+			bb_error_msg("corrupted data");
 			total = -1;
 			break;
 		}
