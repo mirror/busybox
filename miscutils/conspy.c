@@ -62,7 +62,6 @@ struct globals {
 	int kbd_fd;
 	unsigned width;
 	unsigned height;
-	char mask;
 	char last_attr;
 	struct screen_info info;
 	struct termios term_orig;
@@ -72,6 +71,17 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
+
+enum {
+	FLAG_v,  // view only
+	FLAG_c,  // create device if need
+	FLAG_s,  // session
+	FLAG_n,  // no colors
+	FLAG_d,  // dump screen
+	FLAG_f,  // follow cursor
+};
+#define FLAG(x) (1 << FLAG_##x)
+#define BW (option_mask32 & FLAG(n))
 
 static void screen_read_close(int fd, char *data)
 {
@@ -95,7 +105,7 @@ static void screen_read_close(int fd, char *data)
 
 static void screen_char(char *data)
 {
-	if (((G.last_attr - ATTR(data)) & G.mask) != 0) {
+	if (!BW && G.last_attr != ATTR(data)) {
 		//                            BLGCRMOW
 		static const char color[8] = "04261537";
 
@@ -123,29 +133,32 @@ static void gotoxy(int row, int line)
 
 static void screen_dump(char *data)
 {
-	int space, linefeed, line, row;
+	int linefeed_cnt;
+	int line, row;
 	int linecnt = G.info.lines - G.y;
 
 	data += 2 * G.y * G.info.rows;
-	for (linefeed = line = 0; line < linecnt && line < G.height; line++) {
-		for (space = row = 0; row < G.info.rows; row++, NEXT(data)) {
+	linefeed_cnt = 0;
+	for (line = 0; line < linecnt && line < G.height; line++) {
+		int space_cnt = 0;
+		for (row = 0; row < G.info.rows; row++, NEXT(data)) {
 			unsigned tty_row = row - G.x; // if will catch row < G.x too
 
 			if (tty_row >= G.width)
 				continue;
-			space++;
-			if (((G.last_attr - ATTR(data)) & G.mask) && CHAR(data) == ' ')
+			space_cnt++;
+			if (BW && (CHAR(data) | ' ') == ' ')
 				continue;
-			while (linefeed != 0) {
+			while (linefeed_cnt != 0) {
 				bb_putchar('\r');
 				bb_putchar('\n');
-				linefeed--;
+				linefeed_cnt--;
 			}
-			while (--space)
+			while (--space_cnt)
 				bb_putchar(' ');
 			screen_char(data);
 		}
-		linefeed++;
+		linefeed_cnt++;
 	}
 }
 
@@ -173,7 +186,7 @@ static void cleanup(int code)
 		close(G.kbd_fd);
 	}
 	// Reset attributes
-	if (G.mask != 0)
+	if (!BW)
 		printf("\033[0m");
 	bb_putchar('\n');
 	if (code > 1)
@@ -234,16 +247,6 @@ static NOINLINE void start_shell_in_child(const char* tty_name)
 	}
 }
 
-enum {
-	FLAG_v,  // view only
-	FLAG_c,  // create device if need
-	FLAG_s,  // session
-	FLAG_n,  // no colors
-	FLAG_d,  // dump screen
-	FLAG_f,  // follow cursor
-};
-#define FLAG(x) (1 << FLAG_##x)
-
 int conspy_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int conspy_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -284,8 +287,6 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		sprintf(vcsa_name + sizeof("/dev/vcsa")-1, "%u", ttynum);
 	}
 	sprintf(tty_name, "%s%u", "/dev/tty", ttynum);
-	if (!(opts & FLAG(n)))
-		G.mask = 0xff;
 	if (opts & FLAG(c)) {
 		if ((opts & (FLAG(s)|FLAG(v))) != FLAG(v))
 			create_cdev_if_doesnt_exist(tty_name, makedev(4, ttynum));
