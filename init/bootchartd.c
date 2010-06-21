@@ -39,17 +39,8 @@
 //config:	default y
 //config:	depends on BOOTCHARTD
 //config:	help
-//config:	  Create extended header file compatible with "big" bootchartd.
-//config:	  "Big" bootchartd is a shell script and it dumps some
-//config:	  "convenient" info int the header, such as:
-//config:	    title = Boot chart for `hostname` (`date`)
-//config:	    system.uname = `uname -srvm`
-//config:	    system.release = `cat /etc/DISTRO-release`
-//config:	    system.cpu = `grep '^model name' /proc/cpuinfo | head -1` ($cpucount)
-//config:	    system.kernel.options = `cat /proc/cmdline`
-//config:	  This data is not mandatory for bootchart graph generation,
-//config:	  and is considered bloat. Nevertheless, this option
-//config:	  makes bootchartd applet to dump a subset of it.
+//config:	  Enable reading and parsing of $PWD/bootchartd.conf
+//config:	  and /etc/bootchartd.conf files.
 
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
