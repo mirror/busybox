@@ -197,7 +197,7 @@ static char *make_tempdir(void)
 	return tempdir;
 }
 
-static void do_logging(int sample_pariod_us)
+static void do_logging(int sample_period_us)
 {
 	//# Enable process accounting if configured
 	//if [ "$PROCESS_ACCOUNTING" = "yes" ]; then
@@ -240,7 +240,7 @@ static void do_logging(int sample_pariod_us)
 		}
 		fflush_all();
  wait_more:
-		usleep(sample_pariod_us);
+		usleep(sample_period_us);
 	}
 
 	// [ -e kernel_pacct ] && accton off
@@ -326,7 +326,7 @@ static void finalize(char *tempdir, const char *prog)
 int bootchartd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 {
-	int sample_pariod_us;
+	int sample_period_us;
 	pid_t parent_pid, logger_pid;
 	smallint cmd;
 	enum {
@@ -361,7 +361,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 	/* Here we are in START or INIT state */
 
 	/* Read config file: */
-	sample_pariod_us = 200 * 1000;
+	sample_period_us = 200 * 1000;
 	if (ENABLE_FEATURE_BOOTCHARTD_CONFIG_FILE) {
 		char* token[2];
 		parser_t *parser = config_open2("/etc/bootchartd.conf" + 5, fopen_for_read);
@@ -369,7 +369,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 			parser = config_open2("/etc/bootchartd.conf", fopen_for_read);
 		while (config_read(parser, token, 2, 0, "#=", PARSE_NORMAL & ~PARSE_COLLAPSE)) {
 			if (strcmp(token[0], "SAMPLE_PERIOD") == 0 && token[1])
-				sample_pariod_us = atof(token[1]) * 1000000;
+				sample_period_us = atof(token[1]) * 1000000;
 		}
 		config_close(parser);
 	}
@@ -400,7 +400,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 			putenv((char*)bb_PATH_root_path);
 
 		tempdir = make_tempdir();
-		do_logging(sample_pariod_us);
+		do_logging(sample_period_us);
 		finalize(tempdir, cmd == CMD_START ? argv[2] : NULL);
 		return EXIT_SUCCESS;
 	}
