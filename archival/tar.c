@@ -750,6 +750,7 @@ enum {
 	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
 	IF_FEATURE_TAR_NOPRESERVE_TIME(OPTBIT_NOPRESERVE_TIME,)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
+	IF_FEATURE_TAR_TO_COMMAND(OPTBIT_2COMMAND   ,)
 	OPTBIT_NUMERIC_OWNER,
 	OPTBIT_NOPRESERVE_PERM,
 	OPTBIT_OVERWRITE,
@@ -772,6 +773,7 @@ enum {
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NOPRESERVE_TIME = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
+	OPT_2COMMAND        = IF_FEATURE_TAR_TO_COMMAND(  (1 << OPTBIT_2COMMAND       )) + 0, // to-command
 	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
 	OPT_OVERWRITE       = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_OVERWRITE      )) + 0, // overwrite
@@ -812,6 +814,9 @@ static const char tar_longopts[] ALIGN1 =
 # endif
 # if ENABLE_FEATURE_TAR_NOPRESERVE_TIME
 	"touch\0"               No_argument       "m"
+# endif
+# if ENABLE_FEATURE_TAR_TO_COMMAND
+	"to-command\0"		Required_argument "\xfb"
 # endif
 	/* use numeric uid/gid from tar header, not textual */
 	"numeric-owner\0"       No_argument       "\xfc"
@@ -904,6 +909,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		, &tar_filename // -f filename
 		IF_FEATURE_TAR_FROM(, &(tar_handle->accept)) // T
 		IF_FEATURE_TAR_FROM(, &(tar_handle->reject)) // X
+		IF_FEATURE_TAR_TO_COMMAND(, &(tar_handle->tar__to_command)) // --to-command
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		, &excludes // --exclude
 #endif
@@ -921,6 +927,12 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & OPT_2STDOUT)
 		tar_handle->action_data = data_extract_to_stdout;
+
+	if (opt & OPT_2COMMAND) {
+		putenv((char*)"TAR_FILETYPE=f");
+		signal(SIGPIPE, SIG_IGN);
+		tar_handle->action_data = data_extract_to_command;
+	}
 
 	if (opt & OPT_KEEP_OLD)
 		tar_handle->ah_flags &= ~ARCHIVE_UNLINK_OLD;

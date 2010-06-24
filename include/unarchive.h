@@ -75,6 +75,9 @@ typedef struct archive_handle_t {
 	char* tar__longname;
 	char* tar__linkname;
 # endif
+#if ENABLE_FEATURE_TAR_TO_COMMAND
+	char* tar__to_command;
+#endif
 # if ENABLE_FEATURE_TAR_SELINUX
 	char* tar__global_sctx;
 	char* tar__next_file_sctx;
@@ -128,6 +131,7 @@ extern void unpack_ar_archive(archive_handle_t *ar_archive) FAST_FUNC;
 extern void data_skip(archive_handle_t *archive_handle) FAST_FUNC;
 extern void data_extract_all(archive_handle_t *archive_handle) FAST_FUNC;
 extern void data_extract_to_stdout(archive_handle_t *archive_handle) FAST_FUNC;
+extern void data_extract_to_command(archive_handle_t *archive_handle) FAST_FUNC;
 
 extern void header_skip(const file_header_t *file_header) FAST_FUNC;
 extern void header_list(const file_header_t *file_header) FAST_FUNC;

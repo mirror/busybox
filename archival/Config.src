@@ -280,6 +280,15 @@ config FEATURE_TAR_LONG_OPTIONS
 	help
 	  Enable use of long options, increases size by about 400 Bytes
 
+config FEATURE_TAR_TO_COMMAND
+	bool "Support for writing to an external program"
+	default y
+	depends on TAR && FEATURE_TAR_LONG_OPTIONS
+	help
+	  If you enable this option you'll be able to instruct tar to send
+	  the contents of each extracted file to the standard input of an
+	  external program.
+
 config FEATURE_TAR_UNAME_GNAME
 	bool "Enable use of user and group names"
 	default y
