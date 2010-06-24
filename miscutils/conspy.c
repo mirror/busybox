@@ -62,7 +62,7 @@ struct globals {
 	int kbd_fd;
 	unsigned width;
 	unsigned height;
-	char last_attr;
+	uint8_t last_attr;
 	int ioerror_count;
 	int key_count;
 	int escape_count;
@@ -112,17 +112,43 @@ static void screen_read_close(void)
 
 static void screen_char(char *data)
 {
-	if (!BW && G.last_attr != ATTR(data)) {
-		//                            BLGCRMOW
+	uint8_t attr = ATTR(data);
+
+	if (!BW && G.last_attr != attr) {
+// Attribute layout for VGA compatible text videobuffer:
+// blinking text
+// |red bkgd
+// ||green bkgd
+// |||blue bkgd
+// vvvv
+// 00000000 <- lsb bit on the right
+//     bold text / text 8th bit
+//      red text
+//       green text
+//        blue text
+// TODO: apparently framebuffer-based console uses different layout
+// (bug? attempt to get 8th text bit in better position?)
+// red bkgd
+// |green bkgd
+// ||blue bkgd
+// vvv
+// 00000000 <- lsb bit on the right
+//    bold text
+//     red text
+//      green text
+//       blue text
+//        text 8th bit
+		// converting RGB color bit triad to BGR:
 		static const char color[8] = "04261537";
 
+		G.last_attr = attr;
 		printf("\033[%c;4%c;3%cm",
-			(ATTR(data) & 8) ? '1'  // bold
-					 : '0', // defaults
-			color[(ATTR(data) >> 4) & 7], color[ATTR(data) & 7]);
-		G.last_attr = ATTR(data);
+			(attr & 8) ? '1' : '0', // bold text / reset all
+			color[(attr >> 4) & 7], // bkgd color
+			color[attr & 7] // text color
+		);
 	}
-	bb_putchar(CHAR(data));
+	putchar(CHAR(data));
 }
 
 #define clrscr()  printf("\033[1;1H" "\033[0J")
