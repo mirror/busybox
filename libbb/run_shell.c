@@ -86,5 +86,5 @@ void FAST_FUNC run_shell(const char *shell, int loginshell, const char *command,
 		freecon(current_sid);
 #endif
 	execv(shell, (char **) args);
-	bb_perror_msg_and_die("can't run '%s'", shell);
+	bb_perror_msg_and_die("can't execute '%s'", shell);
 }

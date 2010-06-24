@@ -89,9 +89,9 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 		pri |= (ioclass << IOPRIO_CLASS_SHIFT);
 		if (ioprio_set(IOPRIO_WHO_PROCESS, pid, pri) == -1)
 			bb_perror_msg_and_die("ioprio_%cet", 's');
-		if (*argv) {
-			BB_EXECVP(*argv, argv);
-			bb_simple_perror_msg_and_die(*argv);
+		if (argv[0]) {
+			BB_EXECVP(argv[0], argv);
+			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 		}
 	}
 

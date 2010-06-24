@@ -30,6 +30,6 @@ int chroot_main(int argc UNUSED_PARAM, char **argv)
 		argv[1] = (char *) "-i";
 	}
 
-	BB_EXECVP(*argv, argv);
-	bb_perror_msg_and_die("can't execute '%s'", *argv);
+	BB_EXECVP(argv[0], argv);
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }

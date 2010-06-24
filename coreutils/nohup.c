@@ -75,6 +75,7 @@ int nohup_main(int argc UNUSED_PARAM, char **argv)
 
 	signal(SIGHUP, SIG_IGN);
 
-	BB_EXECVP(argv[1], argv+1);
-	bb_simple_perror_msg_and_die(argv[1]);
+	argv++;
+	BB_EXECVP(argv[0], argv);
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }

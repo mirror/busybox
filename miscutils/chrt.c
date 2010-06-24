@@ -115,9 +115,9 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	if (sched_setscheduler(pid, policy, &sp) < 0)
 		bb_perror_msg_and_die("can't %cet pid %d's policy", 's', pid);
 
-	if (!*argv) /* "-p <priority> <pid> [...]" */
+	if (!argv[0]) /* "-p <priority> <pid> [...]" */
 		goto print_rt_info;
 
-	BB_EXECVP(*argv, argv);
-	bb_simple_perror_msg_and_die(*argv);
+	BB_EXECVP(argv[0], argv);
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }

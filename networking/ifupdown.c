@@ -1053,7 +1053,7 @@ static int popen2(FILE **in, FILE **out, char *command, char *param)
 		xmove_fd(infd.rd, 0);
 		xmove_fd(outfd.wr, 1);
 		BB_EXECVP(command, argv);
-		_exit(127);
+		bb_perror_msg_and_die("can't execute '%s'", command);
 	}
 	/* parent */
 	close(infd.rd);

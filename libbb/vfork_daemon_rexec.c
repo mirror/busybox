@@ -249,7 +249,7 @@ void FAST_FUNC re_exec(char **argv)
 	 * "we have (already) re-execed, don't do it again" flag */
 	argv[0][0] |= 0x80;
 	execv(bb_busybox_exec_path, argv);
-	bb_perror_msg_and_die("exec %s", bb_busybox_exec_path);
+	bb_perror_msg_and_die("can't execute '%s'", bb_busybox_exec_path);
 }
 
 pid_t FAST_FUNC fork_or_rexec(char **argv)

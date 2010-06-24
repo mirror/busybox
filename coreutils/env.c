@@ -76,11 +76,11 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 		++argv;
 	}
 
-	if (*argv) {
-		BB_EXECVP(*argv, argv);
+	if (argv[0]) {
+		BB_EXECVP(argv[0], argv);
 		/* SUSv3-mandated exit codes. */
 		xfunc_error_retval = (errno == ENOENT) ? 127 : 126;
-		bb_simple_perror_msg_and_die(*argv);
+		bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 	}
 
 	if (environ) { /* clearenv() may set environ == NULL! */

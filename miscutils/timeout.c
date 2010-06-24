@@ -111,5 +111,5 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 	argv[1] = sv2;
 #endif
 	BB_EXECVP(argv[0], argv);
-	bb_perror_msg_and_die("exec '%s'", argv[0]);
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }

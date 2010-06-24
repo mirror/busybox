@@ -98,7 +98,7 @@ static NOINLINE void vfork_child(char **argv)
 		//bb_error_msg("VT's sid %d", tcgetsid(0));
 		//bb_error_msg("VT's pgrp %d", tcgetpgrp(0));
 		BB_EXECVP(argv[0], argv);
-		bb_perror_msg_and_die("exec %s", argv[0]);
+		bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 	}
 }
 

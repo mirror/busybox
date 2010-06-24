@@ -504,7 +504,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 #else
 	BB_EXECVP(argv[0], argv);
 #endif
-	bb_perror_msg_and_die("exec '%s'", argv[0]);
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 }
 
 /*
