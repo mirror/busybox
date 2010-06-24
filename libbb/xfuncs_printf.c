@@ -323,6 +323,11 @@ void FAST_FUNC bb_unsetenv(const char *var)
 	free(tp);
 }
 
+void FAST_FUNC bb_unsetenv_and_free(char *var)
+{
+	bb_unsetenv(var);
+	free(var);
+}
 
 // Die with an error message if we can't set gid.  (Because resource limits may
 // limit this user to a given number of processes, and if that fills up the

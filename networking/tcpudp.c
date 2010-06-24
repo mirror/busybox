@@ -85,8 +85,7 @@ static void undo_xsetenv(void)
 	char **pp = env_cur = &env_var[0];
 	while (*pp) {
 		char *var = *pp;
-		bb_unsetenv(var);
-		free(var);
+		bb_unsetenv_and_free(var);
 		*pp++ = NULL;
 	}
 }

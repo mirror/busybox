@@ -264,8 +264,7 @@ static void safe_setenv(char **pvar_val, const char *var, const char *val)
 	char *var_val = *pvar_val;
 
 	if (var_val) {
-		bb_unsetenv(var_val);
-		free(var_val);
+		bb_unsetenv_and_free(var_val);
 	}
 	*pvar_val = xasprintf("%s=%s", var, val);
 	putenv(*pvar_val);

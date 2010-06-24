@@ -374,10 +374,8 @@ static void make_device(char *path, int delete)
 				putenv(s1);
 				if (system(command) == -1)
 					bb_perror_msg("can't run '%s'", command);
-				unsetenv("SUBSYSTEM");
-				free(s1);
-				unsetenv("MDEV");
-				free(s);
+				bb_unsetenv_and_free(s1);
+				bb_unsetenv_and_free(s);
 				free(command);
 			}
 

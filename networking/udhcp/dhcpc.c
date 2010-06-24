@@ -327,8 +327,7 @@ static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
 
 	for (curr = envp; *curr; curr++) {
 		log2(" %s", *curr);
-		bb_unsetenv(*curr);
-		free(*curr);
+		bb_unsetenv_and_free(*curr);
 	}
 	free(envp);
 }
