@@ -4938,7 +4938,7 @@ openredirect(union node *redir)
 		break;
 	case NFROMTO:
 		fname = redir->nfile.expfname;
-		f = open(fname, O_RDWR|O_CREAT|O_TRUNC, 0666);
+		f = open(fname, O_RDWR|O_CREAT, 0666);
 		if (f < 0)
 			goto ecreate;
 		break;
