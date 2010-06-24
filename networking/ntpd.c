@@ -603,9 +603,9 @@ reset_peer_stats(peer_t *p, double offset)
 
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
 		if (small_ofs) {
-			p->filter_datapoint[i].d_recv_time -= offset;
+			p->filter_datapoint[i].d_recv_time += offset;
 			if (p->filter_datapoint[i].d_offset != 0) {
-				p->filter_datapoint[i].d_offset -= offset;
+				p->filter_datapoint[i].d_offset += offset;
 			}
 		} else {
 			p->filter_datapoint[i].d_recv_time  = G.cur_time;
@@ -614,13 +614,12 @@ reset_peer_stats(peer_t *p, double offset)
 		}
 	}
 	if (small_ofs) {
-		p->lastpkt_recv_time -= offset;
+		p->lastpkt_recv_time += offset;
 	} else {
 		p->reachable_bits = 0;
 		p->lastpkt_recv_time = G.cur_time;
 	}
 	filter_datapoints(p); /* recalc p->filter_xxx */
-	p->next_action_time -= offset;
 	VERB5 bb_error_msg("%s->lastpkt_recv_time=%f", p->p_dotted, p->lastpkt_recv_time);
 }
 
@@ -815,11 +814,14 @@ step_time(double offset)
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		peer_t *pp = (peer_t *) item->data;
 		reset_peer_stats(pp, offset);
+		//bb_error_msg("offset:%f pp->next_action_time:%f -> %f",
+		//	offset, pp->next_action_time, pp->next_action_time + offset);
+		pp->next_action_time += offset;
 	}
 	/* Globals: */
-	G.cur_time -= offset;
-	G.last_update_recv_time -= offset;
-	G.last_script_run -= offset;
+	G.cur_time += offset;
+	G.last_update_recv_time += offset;
+	G.last_script_run += offset;
 }
 
 
