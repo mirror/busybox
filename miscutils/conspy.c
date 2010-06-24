@@ -9,9 +9,9 @@
  *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  *
- * example :	conspy num		shared access to console num
- * or		conspy -d num		screenshot of console num
- * or		conspy -cs num		poor man's GNU screen like
+ * example:     conspy num              shared access to console num
+ * or           conspy -d num           screenshot of console num
+ * or           conspy -cs num          poor man's GNU screen like
  */
 
 //applet:IF_CONSPY(APPLET(conspy, _BB_DIR_BIN, _BB_SUID_DROP))
@@ -28,7 +28,7 @@
 //config:	  or        conspy -cs num  poor man's GNU screen like
 
 //usage:#define conspy_trivial_usage
-//usage:     "[-vcsndf] [-x ROW] [-y LINE] [CONSOLE_NO]"
+//usage:	"[-vcsndf] [-x ROW] [-y LINE] [CONSOLE_NO]"
 //usage:#define conspy_full_usage "\n\n"
 //usage:     "A text-mode VNC like program for Linux virtual consoles."
 //usage:     "\nTo exit, quickly press ESC 3 times."
@@ -50,10 +50,10 @@ struct screen_info {
 	unsigned char lines, rows, cursor_x, cursor_y;
 };
 
-#define CHAR(x) ((x)[0])
-#define ATTR(x) ((x)[1])
+#define CHAR(x) ((uint8_t)((x)[0]))
+#define ATTR(x) ((uint8_t)((x)[1]))
 #define NEXT(x) ((x)+=2)
-#define DATA(x) (* (short *) (x))
+#define DATA(x) (*(uint16_t*)(x))
 
 struct globals {
 	char* data;
@@ -102,7 +102,7 @@ static void screen_read_close(void)
 			unsigned y = i - G.y; // if will catch i < G.y too
 
 			if (CHAR(data) < ' ')
-				CHAR(data) = ' ';
+				*data = ' '; // CHAR(data) = ' ';
 			if (y >= G.height || x >= G.width)
 				DATA(data) = 0;
 		}
@@ -151,8 +151,15 @@ static void screen_char(char *data)
 	putchar(CHAR(data));
 }
 
-#define clrscr()  printf("\033[1;1H" "\033[0J")
-#define curoff()  printf("\033[?25l")
+static void clrscr(void)
+{
+	printf("\033[1;1H" "\033[0J");
+}
+
+static void curoff(void)
+{
+	printf("\033[?25l");
+}
 
 static void curon(void)
 {
@@ -180,10 +187,10 @@ static void screen_dump(void)
 			if (tty_row >= G.width)
 				continue;
 			space_cnt++;
-			if (BW && (CHAR(data) | ' ') == ' ')
+			if (BW && CHAR(data) == ' ')
 				continue;
 			while (linefeed_cnt != 0) {
-				bb_putchar('\r');
+				//bb_putchar('\r'); - tty driver does it for us
 				bb_putchar('\n');
 				linefeed_cnt--;
 			}
@@ -229,12 +236,11 @@ static void cleanup(int code)
 
 static void get_initial_data(const char* vcsa_name)
 {
-	int size;
 	G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
 	xread(G.vcsa_fd, &G.info, 4);
-	G.size = size = G.info.rows * G.info.lines * 2;
+	G.size = G.info.rows * G.info.lines * 2;
 	G.width = G.height = UINT_MAX;
-	G.data = xzalloc(2 * size);
+	G.data = xzalloc(2 * G.size);
 	screen_read_close();
 }
 
@@ -280,11 +286,11 @@ static NOINLINE void start_shell_in_child(const char* tty_name)
 	}
 }
 
-int conspy_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int conspy_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int conspy_main(int argc UNUSED_PARAM, char **argv)
 {
-	char vcsa_name[sizeof("/dev/vcsa") + 2];
-	char tty_name[sizeof("/dev/tty") + 2];
+	char vcsa_name[sizeof("/dev/vcsaNN")];
+	char tty_name[sizeof("/dev/ttyNN")];
 #define keybuf bb_common_bufsiz1
 	struct termios termbuf;
 	unsigned opts;
@@ -339,7 +345,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	tcgetattr(G.kbd_fd, &G.term_orig);
 	termbuf = G.term_orig;
 	termbuf.c_iflag &= ~(BRKINT|INLCR|ICRNL|IXON|IXOFF|IUCLC|IXANY|IMAXBEL);
-	termbuf.c_oflag &= ~(OPOST);
+	//termbuf.c_oflag &= ~(OPOST); - no, we still want \n -> \r\n
 	termbuf.c_lflag &= ~(ISIG|ICANON|ECHO);
 	termbuf.c_cc[VMIN] = 1;
 	termbuf.c_cc[VTIME] = 0;
@@ -354,7 +360,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		old = G.data + G.current;
 		G.current = G.size - G.current;
 		data = G.data + G.current;
-		
+
 		// Close & re-open vcsa in case they have
 		// swapped virtual consoles
 		G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
@@ -448,7 +454,8 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 
 			// Do exit processing
 			for (i = 0; i < bytes_read; i++) {
-				if (k[i] != '\033') G.escape_count = 0;
+				if (k[i] != '\033')
+					G.escape_count = 0;
 				else if (++G.escape_count >= 3)
 					cleanup(0);
 			}
