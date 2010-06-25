@@ -509,7 +509,7 @@ include $(srctree)/Makefile.flags
 # with it and forgot to run make oldconfig.
 # If kconfig.d is missing then we are probarly in a cleaned tree so
 # we execute the config step to be sure to catch updated Kconfig files
-include/autoconf.h: .kconfig.d .config gen_build_files
+include/autoconf.h: .kconfig.d .config | gen_build_files
 	$(Q)$(MAKE) -f $(srctree)/Makefile silentoldconfig
 
 else
