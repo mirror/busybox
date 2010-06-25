@@ -222,7 +222,6 @@ static void cleanup(int code)
 	fflush_all();
 	tcsetattr(G.kbd_fd, TCSANOW, &G.term_orig);
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(ptr_to_globals);
 		close(G.kbd_fd);
 	}
 	// Reset attributes
@@ -309,6 +308,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = getopt_longopts;
 #endif
 	INIT_G();
+	strcpy(vcsa_name, "/dev/vcsa");
 
 	opt_complementary = "x+:y+"; // numeric params
 	opts = getopt32(argv, "vcsndfx:y:", &G.x, &G.y);
@@ -316,8 +316,8 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	ttynum = 0;
 	if (argv[0]) {
 		ttynum = xatou_range(argv[0], 0, 63);
+		sprintf(vcsa_name + sizeof("/dev/vcsa")-1, "%u", ttynum);
 	}
-	sprintf(vcsa_name, "/dev/vcsa%u", ttynum);
 	sprintf(tty_name, "%s%u", "/dev/tty", ttynum);
 	if (opts & FLAG(c)) {
 		if ((opts & (FLAG(s)|FLAG(v))) != FLAG(v))
@@ -329,19 +329,16 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	get_initial_data(vcsa_name);
-	G.kbd_fd = xopen(CURRENT_TTY, O_RDONLY);
 	if (opts & FLAG(d)) {
 		screen_dump();
 		bb_putchar('\n');
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(ptr_to_globals);
-			close(G.kbd_fd);
-		}
 		return 0;
 	}
 
 	bb_signals(BB_FATAL_SIGS, cleanup);
+
 	// All characters must be passed through to us unaltered
+	G.kbd_fd = xopen(CURRENT_TTY, O_RDONLY);
 	tcgetattr(G.kbd_fd, &G.term_orig);
 	termbuf = G.term_orig;
 	termbuf.c_iflag &= ~(BRKINT|INLCR|ICRNL|IXON|IXOFF|IUCLC|IXANY|IMAXBEL);
