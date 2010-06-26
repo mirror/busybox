@@ -436,9 +436,11 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* (like GNU tar 1.15.1: verbose mode outputs "dir/dir/") */
 		if (cp)
 			*cp = '\0';
-		//archive_handle->ah_flags |= ARCHIVE_EXTRACT_QUIET; // why??
 		archive_handle->action_data(archive_handle);
-		llist_add_to(&(archive_handle->passed), file_header->name);
+		if (archive_handle->accept || archive_handle->reject)
+			llist_add_to(&archive_handle->passed, file_header->name);
+		else /* Caller isn't interested in list of unpacked files */
+			free(file_header->name);
 	} else {
 		data_skip(archive_handle);
 		free(file_header->name);
@@ -446,7 +448,8 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	archive_handle->offset += file_header->size;
 
 	free(file_header->link_target);
-	/* Do not free(file_header->name)! (why?) */
+	/* Do not free(file_header->name)!
+	 * It might be inserted in archive_handle->passed - see above */
 #if ENABLE_FEATURE_TAR_UNAME_GNAME
 	free(file_header->tar__uname);
 	free(file_header->tar__gname);
