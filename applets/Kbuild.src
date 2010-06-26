@@ -38,7 +38,7 @@ include/usage_compressed.h: applets/usage $(srctree_slash)applets/usage_compress
 	$(call cmd,gen_usage_compressed)
 
 quiet_cmd_gen_applet_tables = GEN     include/applet_tables.h
-      cmd_gen_applet_tables = applets/applet_tables include/applet_tables.h
+      cmd_gen_applet_tables = applets/applet_tables include/applet_tables.h include/NUM_APPLETS.h
 
 include/applet_tables.h: applets/applet_tables
 	$(call cmd,gen_applet_tables)

@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 	}
 	printf("\n");
 
-	printf("#ifndef SKIP_definitions\n");
+	//printf("#ifndef SKIP_definitions\n");
 	printf("const char applet_names[] ALIGN1 = \"\"\n");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
@@ -123,9 +123,29 @@ int main(int argc, char **argv)
 	}
 	printf("};\n");
 #endif
-	printf("#endif /* SKIP_definitions */\n");
+	//printf("#endif /* SKIP_definitions */\n");
 	printf("\n");
 	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
+
+	if (argv[2]) {
+		char line_old[80];
+		char line_new[80];
+		FILE *fp;
+
+		line_old[0] = 0;
+		fp = fopen(argv[2], "r");
+		if (fp) {
+			fgets(line_old, sizeof(line_old), fp);
+			fclose(fp);
+		}
+		sprintf(line_new, "#define NUM_APPLETS %u\n", NUM_APPLETS);
+		if (strcmp(line_old, line_new) != 0) {
+			fp = fopen(argv[2], "w");
+			if (!fp)
+				return 1;
+			fputs(line_new, fp);
+		}
+	}
 
 	return 0;
 }

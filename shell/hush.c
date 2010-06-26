@@ -128,9 +128,7 @@
 # define USE_FOR_MMU(...)
 #endif
 
-#define SKIP_definitions 1
-#include "applet_tables.h"
-#undef SKIP_definitions
+#include "NUM_APPLETS.h"
 #if NUM_APPLETS == 1
 /* STANDALONE does not make sense, and won't compile */
 # undef CONFIG_FEATURE_SH_STANDALONE

@@ -61,7 +61,7 @@
 static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 #else
 # define usage_messages 0
-#endif /* SHOW_USAGE */
+#endif
 
 #if ENABLE_FEATURE_COMPRESS_USAGE
 
