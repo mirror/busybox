@@ -20,42 +20,19 @@
 //config:	  a memory usage statistic tool.
 
 #include "libbb.h"
-
-struct tar_header {
-	char name[100];           /*   0-99 */
-	char mode[8];             /* 100-107 */
-	char uid[8];              /* 108-115 */
-	char gid[8];              /* 116-123 */
-	char size[12];            /* 124-135 */
-	char mtime[12];           /* 136-147 */
-	char chksum[8];           /* 148-155 */
-	char typeflag;            /* 156-156 */
-	char linkname[100];       /* 157-256 */
-	/* POSIX:   "ustar" NUL "00" */
-	/* GNU tar: "ustar  " NUL */
-	/* Normally it's defined as magic[6] followed by
-	 * version[2], but we put them together to save code.
-	 */
-	char magic[8];            /* 257-264 */
-	char uname[32];           /* 265-296 */
-	char gname[32];           /* 297-328 */
-	char devmajor[8];         /* 329-336 */
-	char devminor[8];         /* 337-344 */
-	char prefix[155];         /* 345-499 */
-	char padding[12];         /* 500-512 (pad to exactly TAR_512) */
-};
+#include "unarchive.h"
 
 struct fileblock {
 	struct fileblock *next;
-	char data[512];
+	char data[TAR_BLOCK_SIZE];
 };
 
 static void writeheader(const char *path, struct stat *sb, int type)
 {
-	struct tar_header header;
+	struct tar_header_t header;
 	int i, sum;
 
-	memset(&header, 0, 512);
+	memset(&header, 0, TAR_BLOCK_SIZE);
 	strcpy(header.name, path);
 	sprintf(header.mode, "%o", sb->st_mode & 0777);
 	/* careful to not overflow fields! */
@@ -73,11 +50,11 @@ static void writeheader(const char *path, struct stat *sb, int type)
 	 * digits, followed by a NUL like the other fields... */
 	header.chksum[7] = ' ';
 	sum = ' ' * 7;
-	for (i = 0; i < 512; i++)
+	for (i = 0; i < TAR_BLOCK_SIZE; i++)
 		sum += ((unsigned char*)&header)[i];
 	sprintf(header.chksum, "%06o", sum);
 
-	xwrite(STDOUT_FILENO, &header, 512);
+	xwrite(STDOUT_FILENO, &header, TAR_BLOCK_SIZE);
 }
 
 static void archivefile(const char *path)
@@ -94,10 +71,10 @@ static void archivefile(const char *path)
 		cur = xzalloc(sizeof(*cur));
 		*prev = cur;
 		prev = &cur->next;
-		r = full_read(fd, cur->data, 512);
+		r = full_read(fd, cur->data, TAR_BLOCK_SIZE);
 		if (r > 0)
 			size += r;
-	} while (r == 512);
+	} while (r == TAR_BLOCK_SIZE);
 
 	/* write archive header */
 	fstat(fd, &s);
@@ -106,8 +83,8 @@ static void archivefile(const char *path)
 	writeheader(path, &s, '0');
 
 	/* dump file contents */
-	for (cur = start; (int)size > 0; size -= 512) {
-		xwrite(STDOUT_FILENO, cur->data, 512);
+	for (cur = start; (int)size > 0; size -= TAR_BLOCK_SIZE) {
+		xwrite(STDOUT_FILENO, cur->data, TAR_BLOCK_SIZE);
 		start = cur;
 		cur = cur->next;
 		free(start);

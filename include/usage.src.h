@@ -4273,54 +4273,6 @@ INSERT
 #define tac_full_usage "\n\n" \
 	"Concatenate FILEs and print them in reverse"
 
-#define tar_trivial_usage \
-       "-[" IF_FEATURE_TAR_CREATE("c") "xt" IF_FEATURE_SEAMLESS_GZ("z") \
-	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a") \
-	IF_FEATURE_SEAMLESS_Z("Z") IF_FEATURE_TAR_NOPRESERVE_TIME("m") "vO] " \
-	IF_FEATURE_TAR_FROM("[-X FILE] ") \
-       "[-f TARFILE] [-C DIR] [FILE]..."
-#define tar_full_usage "\n\n" \
-	IF_FEATURE_TAR_CREATE("Create, extract, ") \
-	IF_NOT_FEATURE_TAR_CREATE("Extract ") \
-       "or list files from a tar file\n" \
-     "\nOptions:" \
-	IF_FEATURE_TAR_CREATE( \
-     "\n	c	Create" \
-	) \
-     "\n	x	Extract" \
-     "\n	t	List" \
-     "\nArchive format selection:" \
-	IF_FEATURE_SEAMLESS_GZ( \
-     "\n	z	Filter the archive through gzip" \
-	) \
-	IF_FEATURE_SEAMLESS_BZ2( \
-     "\n	j	Filter the archive through bzip2" \
-	) \
-	IF_FEATURE_SEAMLESS_LZMA( \
-     "\n	a	Filter the archive through lzma" \
-	) \
-	IF_FEATURE_SEAMLESS_Z( \
-     "\n	Z	Filter the archive through compress" \
-	) \
-	IF_FEATURE_TAR_NOPRESERVE_TIME( \
-     "\n	m	Do not restore mtime" \
-	) \
-     "\nFile selection:" \
-     "\n	f	Name of TARFILE or \"-\" for stdin" \
-     "\n	O	Extract to stdout" \
-	IF_FEATURE_TAR_FROM( \
-	IF_FEATURE_TAR_LONG_OPTIONS( \
-     "\n	exclude	File to exclude" \
-	) \
-     "\n	X	File with names to exclude" \
-	) \
-     "\n	C	Change to DIR before operation" \
-     "\n	v	Verbose" \
-
-#define tar_example_usage \
-       "$ zcat /tmp/tarball.tar.gz | tar -xf -\n" \
-       "$ tar -cf /tmp/tarball.tar /usr/local\n"
-
 #define taskset_trivial_usage \
        "[-p] [MASK] [PID | PROG ARGS]"
 #define taskset_full_usage "\n\n" \
