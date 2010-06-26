@@ -17,19 +17,21 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
 	int status = -1;
 	off_t total = 0;
+	bool continue_on_write_error = 0;
 #if CONFIG_FEATURE_COPYBUF_KB <= 4
 	char buffer[CONFIG_FEATURE_COPYBUF_KB * 1024];
 	enum { buffer_size = sizeof(buffer) };
 #else
 	char *buffer;
 	int buffer_size;
-	bool continue_on_write_error = 0;
+#endif
 
 	if (size < 0) {
 		size = -size;
 		continue_on_write_error = 1;
 	}
 
+#if CONFIG_FEATURE_COPYBUF_KB > 4
 	if (size > 0 && size <= 4 * 1024)
 		goto use_small_buf;
 	/* We want page-aligned buffer, just in case kernel is clever
