@@ -265,7 +265,7 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
-	xread(fd, magic.b16, sizeof(magic.b16));
+	xread(fd, magic.b16, sizeof(magic.b16[0]));
 	if (ENABLE_FEATURE_SEAMLESS_GZ
 	 && magic.b16[0] == GZIP_MAGIC
 	) {
@@ -292,7 +292,7 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
 		/* More info at: http://tukaani.org/xz/xz-file-format.txt */
 		offset = -6;
-		xread(fd, magic.b32, sizeof(magic.b32));
+		xread(fd, magic.b32, sizeof(magic.b32[0]));
 		if (magic.b32[0] == XZ_MAGIC2) {
 # if BB_MMU
 			xformer = unpack_xz_stream;
