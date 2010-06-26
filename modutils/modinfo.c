@@ -43,7 +43,8 @@ static int display(const char *data, const char *pattern, int flag)
 	return printf("%s%c", data, (option_mask32 & OPT_0) ? '\0' : '\n');
 }
 
-static void modinfo(const char *path, struct modinfo_env *env)
+static void modinfo(const char *path, const char *version,
+			struct modinfo_env *env)
 {
 	static const char *const shortcuts[] = {
 		"filename",
@@ -62,10 +63,20 @@ static void modinfo(const char *path, struct modinfo_env *env)
 	if (tags & 1) { /* filename */
 		display(path, shortcuts[0], 1 != tags);
 	}
+
 	len = MAXINT(ssize_t);
 	the_module = xmalloc_open_zipped_read_close(path, &len);
-	if (!the_module)
-		return;
+	if (!the_module) {
+		if (path[0] == '/')
+			return;
+		/* Newer depmod puts relative paths in modules.dep */
+		path = xasprintf("%s/%s/%s", CONFIG_DEFAULT_MODULES_DIR, version, path);
+		the_module = xmalloc_open_zipped_read_close(path, &len);
+		free((char*)path);
+		if (!the_module)
+			return;
+	}
+
 	if (field)
 		tags |= OPT_F;
 	for (j = 1; (1<<j) & (OPT_TAGS + OPT_F); j++) {
@@ -109,7 +120,7 @@ int modinfo_main(int argc UNUSED_PARAM, char **argv)
 	struct modinfo_env env;
 	char name[MODULE_NAME_LEN];
 	struct utsname uts;
-	parser_t *p;
+	parser_t *parser;
 	char *colon, *tokens[2];
 	unsigned opts;
 	unsigned i;
@@ -121,14 +132,12 @@ int modinfo_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	uname(&uts);
-	p = config_open2(
-		concat_path_file(
-			concat_path_file(CONFIG_DEFAULT_MODULES_DIR, uts.release),
-			CONFIG_DEFAULT_DEPMOD_FILE),
+	parser = config_open2(
+		xasprintf("%s/%s/%s", CONFIG_DEFAULT_MODULES_DIR, uts.release, CONFIG_DEFAULT_DEPMOD_FILE),
 		xfopen_for_read
 	);
 
-	while (config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
+	while (config_read(parser, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
 		colon = last_char_is(tokens[0], ':');
 		if (colon == NULL)
 			continue;
@@ -136,15 +145,19 @@ int modinfo_main(int argc UNUSED_PARAM, char **argv)
 		filename2modname(tokens[0], name);
 		for (i = 0; argv[i]; i++) {
 			if (fnmatch(argv[i], name, 0) == 0) {
-				modinfo(tokens[0], &env);
+				modinfo(tokens[0], uts.release, &env);
 				argv[i] = (char *) "";
 			}
 		}
 	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		config_close(parser);
+
 	for (i = 0; argv[i]; i++) {
 		if (argv[i][0]) {
-			modinfo(argv[i], &env);
+			modinfo(argv[i], uts.release, &env);
 		}
 	}
+
 	return 0;
 }
