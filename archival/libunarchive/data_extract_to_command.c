@@ -108,7 +108,7 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 		close(p[0]);
 		/* Our caller is expected to do signal(SIGPIPE, SIG_IGN)
 		 * so that we don't die if child don't read all the input: */
-		bb_copyfd_exact_size(archive_handle->src_fd, p[1], file_header->size);
+		bb_copyfd_exact_size(archive_handle->src_fd, p[1], -file_header->size);
 		close(p[1]);
 
 		if (safe_waitpid(pid, &status, 0) == -1)
