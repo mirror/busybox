@@ -36,9 +36,9 @@
  * - source routing
  * - multiple DNS checks
  * Functionalty which is different from nc 1.10:
- * - Prog in '-e prog' can have prog's parameters and options.
+ * - Prog in '-e PROG' can have prog's parameters and options.
  *   Because of this -e option must be last.
- * - nc doesn't redirect stderr to the network socket for the -e prog.
+ * - nc doesn't redirect stderr to the network socket for the -e PROG.
  * - numeric addresses are printed in (), not [] (IPv6 looks better),
  *   port numbers are inside (): (1.2.3.4:5678)
  * - network read errors are reported on verbose levels > 1
@@ -49,6 +49,42 @@
  */
 
 /* done in nc.c: #include "libbb.h" */
+
+//usage:#if ENABLE_NC_110_COMPAT
+//usage:
+//usage:#define nc_trivial_usage
+//usage:       "[OPTIONS] HOST PORT  - connect"
+//usage:	IF_NC_SERVER("\n"
+//usage:       "nc [OPTIONS] -l -p PORT [HOST] [PORT]  - listen")
+//usage:#define nc_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-e PROG	Run PROG after connect (must be last)"
+//usage:	IF_NC_SERVER(
+//usage:     "\n	-l	Listen mode, for inbound connects"
+//usage:	)
+//usage:     "\n	-p PORT	Local port"
+//usage:     "\n	-s ADDR	Local address"
+//usage:     "\n	-w SEC	Timeout for connects and final net reads"
+//usage:	IF_NC_EXTRA(
+//usage:     "\n	-i SEC	Delay interval for lines sent" /* ", ports scanned" */
+//usage:	)
+//usage:     "\n	-n	Don't do DNS resolution"
+//usage:     "\n	-u	UDP mode"
+//usage:     "\n	-v	Verbose"
+//usage:	IF_NC_EXTRA(
+//usage:     "\n	-o FILE	Hex dump traffic"
+//usage:     "\n	-z	Zero-I/O mode (scanning)"
+//usage:	)
+//usage:#endif
+
+/*   "\n	-r		Randomize local and remote ports" */
+/*   "\n	-g gateway	Source-routing hop point[s], up to 8" */
+/*   "\n	-G num		Source-routing pointer: 4, 8, 12, ..." */
+/*   "\nport numbers can be individual or ranges: lo-hi [inclusive]" */
+
+/* -e PROG can take ARGS too: "nc ... -e ls -l", but we don't document it
+ * in help text: nc 1.10 does not allow that. We don't want to entice
+ * users to use this incompatibility */
 
 enum {
 	SLEAZE_PORT = 31337,               /* for UDP-scan RTT trick, change if ya want */
