@@ -1474,7 +1474,7 @@ static void send_cgi_and_exit(
 		 * in the current directory */
 		execv(argv[0], argv);
 		if (verbose)
-			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+			bb_perror_msg("can't execute '%s'", argv[0]);
  error_execing_cgi:
 		/* send to stdout
 		 * (we are CGI here, our stdout is pumped to the net) */

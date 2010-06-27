@@ -1380,7 +1380,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 			sigaction_set(SIGPIPE, &saved_pipe_handler);
 			restore_sigmask(&omask);
 			BB_EXECVP(sep->se_program, sep->se_argv);
-			bb_perror_msg_and_die("can't execute '%s'", sep->se_program);
+			bb_perror_msg("can't execute '%s'", sep->se_program);
  do_exit1:
 			/* eat packet in udp case */
 			if (sep->se_socktype != SOCK_STREAM)
