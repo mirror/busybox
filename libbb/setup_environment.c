@@ -43,7 +43,7 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 		const char *term;
 
 		/* Leave TERM unchanged. Set HOME, SHELL, USER, LOGNAME, PATH.
-		   Unset all other environment variables.  */
+		 * Unset all other environment variables.  */
 		term = getenv("TERM");
 		clearenv();
 		if (term)
@@ -57,7 +57,7 @@ void FAST_FUNC setup_environment(const char *shell, int flags, const struct pass
 		//xsetenv("SHELL",   shell);
 	} else if (flags & SETUP_ENV_CHANGEENV) {
 		/* Set HOME, SHELL, and if not becoming a super-user,
-		   USER and LOGNAME.  */
+		 * USER and LOGNAME.  */
 		if (pw->pw_uid) {
  shortcut:
 			xsetenv("USER",    pw->pw_name);

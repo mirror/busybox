@@ -1157,7 +1157,6 @@ char *bb_simplify_abs_path_inplace(char *path) FAST_FUNC;
 extern void bb_do_delay(int seconds) FAST_FUNC;
 extern void change_identity(const struct passwd *pw) FAST_FUNC;
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) NORETURN FAST_FUNC;
-extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args) FAST_FUNC;
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void) FAST_FUNC;
 extern void set_current_security_context(security_context_t sid) FAST_FUNC;
@@ -1593,12 +1592,12 @@ extern struct globals *const ptr_to_globals;
  * use bb_default_login_shell and following defines.
  * If you change LIBBB_DEFAULT_LOGIN_SHELL,
  * don't forget to change increment constant. */
-#define LIBBB_DEFAULT_LOGIN_SHELL      "-/bin/sh"
+#define LIBBB_DEFAULT_LOGIN_SHELL  "-/bin/sh"
 extern const char bb_default_login_shell[];
 /* "/bin/sh" */
-#define DEFAULT_SHELL     (bb_default_login_shell+1)
+#define DEFAULT_SHELL              (bb_default_login_shell+1)
 /* "sh" */
-#define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
+#define DEFAULT_SHELL_SHORT_NAME   (bb_default_login_shell+6)
 
 #if ENABLE_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"

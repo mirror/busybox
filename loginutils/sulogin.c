@@ -101,11 +101,9 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	shell = getenv("SUSHELL");
 	if (!shell)
 		shell = getenv("sushell");
-	if (!shell) {
-		shell = "/bin/sh";
-		if (pwd->pw_shell[0])
-			shell = pwd->pw_shell;
-	}
+	if (!shell)
+		shell = pwd->pw_shell;
+
 	/* Exec login shell with no additional parameters. Never returns. */
 	run_shell(shell, 1, NULL, NULL);
 

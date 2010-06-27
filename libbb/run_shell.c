@@ -49,15 +49,14 @@ void FAST_FUNC set_current_security_context(security_context_t sid)
 
 #endif
 
-/* Run SHELL, or DEFAULT_SHELL if SHELL is empty.
-   If COMMAND is nonzero, pass it to the shell with the -c option.
-   If ADDITIONAL_ARGS is nonzero, pass it to the shell as more
-   arguments.  */
-
+/* Run SHELL, or DEFAULT_SHELL if SHELL is "" or NULL.
+ * If COMMAND is nonzero, pass it to the shell with the -c option.
+ * If ADDITIONAL_ARGS is nonzero, pass it to the shell as more
+ * arguments.  */
 void FAST_FUNC run_shell(const char *shell, int loginshell, const char *command, const char **additional_args)
 {
 	const char **args;
-	int argno = 1;
+	int argno;
 	int additional_args_cnt = 0;
 
 	for (args = additional_args; args && *args; args++)
@@ -65,11 +64,13 @@ void FAST_FUNC run_shell(const char *shell, int loginshell, const char *command,
 
 	args = xmalloc(sizeof(char*) * (4 + additional_args_cnt));
 
-	args[0] = bb_get_last_path_component_nostrip(xstrdup(shell));
+	if (!shell || !shell[0])
+		shell = DEFAULT_SHELL;
 
+	args[0] = bb_get_last_path_component_nostrip(shell);
 	if (loginshell)
 		args[0] = xasprintf("-%s", args[0]);
-
+	argno = 1;
 	if (command) {
 		args[argno++] = "-c";
 		args[argno++] = command;
@@ -79,6 +80,7 @@ void FAST_FUNC run_shell(const char *shell, int loginshell, const char *command,
 			args[argno++] = *additional_args;
 	}
 	args[argno] = NULL;
+
 #if ENABLE_SELINUX
 	if (current_sid)
 		setexeccon(current_sid);

@@ -10,23 +10,27 @@
 
 #if ENABLE_FEATURE_SU_CHECKS_SHELLS
 /* Return 1 if SHELL is a restricted shell (one not returned by
-   getusershell), else 0, meaning it is a standard shell.  */
+ * getusershell), else 0, meaning it is a standard shell.  */
 static int restricted_shell(const char *shell)
 {
 	char *line;
+	int result = 1;
 
 	/*setusershell(); - getusershell does it itself*/
 	while ((line = getusershell()) != NULL) {
-		if (/* *line != '#' && */ strcmp(line, shell) == 0)
-			return 0;
+		if (/* *line != '#' && */ strcmp(line, shell) == 0) {
+			result = 0;
+			break;
+		}
 	}
-	endusershell();
-	return 1;
+	if (ENABLE_FEATURE_CLEAN_UP)
+		endusershell();
+	return result;
 }
 #endif
 
 #define SU_OPT_mp (3)
-#define SU_OPT_l (4)
+#define SU_OPT_l  (4)
 
 int su_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int su_main(int argc UNUSED_PARAM, char **argv)
@@ -38,7 +42,8 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *pw;
 	uid_t cur_uid = getuid();
 	const char *tty;
-	char *old_user;
+	char user_buf[64];
+	const char *old_user;
 
 	flags = getopt32(argv, "mplc:s:", &opt_command, &opt_shell);
 	//argc -= optind;
@@ -56,21 +61,18 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_SU_SYSLOG) {
-		/* The utmp entry (via getlogin) is probably the best way to identify
-		 * the user, especially if someone su's from a su-shell.
+		/* The utmp entry (via getlogin) is probably the best way to
+		 * identify the user, especially if someone su's from a su-shell.
 		 * But getlogin can fail -- usually due to lack of utmp entry.
 		 * in this case resort to getpwuid.  */
-		const char *user;
 #if ENABLE_FEATURE_UTMP
-		char user_buf[64];
-		user = user_buf;
+		old_user = user_buf;
 		if (getlogin_r(user_buf, sizeof(user_buf)) != 0)
 #endif
 		{
 			pw = getpwuid(cur_uid);
-			user = pw ? pw->pw_name : "";
+			old_user = pw ? xstrdup(pw->pw_name) : "";
 		}
-		old_user = xstrdup(user);
 		tty = xmalloc_ttyname(2);
 		if (!tty) {
 			tty = "none";
@@ -80,13 +82,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 
 	pw = xgetpwnam(opt_username);
 
-	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
-	   is a username that is retrieved via NIS (YP), but that doesn't have
-	   a default shell listed.  */
-	if (!pw->pw_shell || !pw->pw_shell[0])
-		pw->pw_shell = (char *)DEFAULT_SHELL;
-
-	if ((cur_uid == 0) || correct_password(pw)) {
+	if (cur_uid == 0 || correct_password(pw)) {
 		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'+', tty, old_user, opt_username);
@@ -99,21 +95,30 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 
 	if (ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_SU_SYSLOG) {
 		closelog();
-		free(old_user);
 	}
 
-	if (!opt_shell && (flags & SU_OPT_mp))
+	if (!opt_shell && (flags & SU_OPT_mp)) {
+		/* -s SHELL is not given, but "preserve env" opt is */
 		opt_shell = getenv("SHELL");
+	}
+
+	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
+	 * is a username that is retrieved via NIS (YP), that doesn't have
+	 * a default shell listed.  */
+	if (!pw->pw_shell || !pw->pw_shell[0])
+		pw->pw_shell = (char *)DEFAULT_SHELL;
 
 #if ENABLE_FEATURE_SU_CHECKS_SHELLS
 	if (opt_shell && cur_uid != 0 && restricted_shell(pw->pw_shell)) {
 		/* The user being su'd to has a nonstandard shell, and so is
-		   probably a uucp account or has restricted access.  Don't
-		   compromise the account by allowing access with a standard
-		   shell.  */
+		 * probably a uucp account or has restricted access.  Don't
+		 * compromise the account by allowing access with a standard
+		 * shell.  */
 		bb_error_msg("using restricted shell");
 		opt_shell = NULL;
 	}
+	/* else: user can run whatever he wants via "su -s PROG USER".
+	 * This is safe since PROG is run under user's uid/gid. */
 #endif
 	if (!opt_shell)
 		opt_shell = pw->pw_shell;
