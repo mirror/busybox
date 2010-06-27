@@ -8,10 +8,6 @@
  *   http://ace-host.stuart.id.au/russell/files/conspy.c
  *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
- *
- * example:     conspy num              shared access to console num
- * or           conspy -d num           screenshot of console num
- * or           conspy -cs num          poor man's GNU screen like
  */
 
 //applet:IF_CONSPY(APPLET(conspy, _BB_DIR_BIN, _BB_SUID_DROP))
@@ -23,12 +19,12 @@
 //config:	default n
 //config:	help
 //config:	  A text-mode VNC like program for Linux virtual terminals.
-//config:	  example : conspy num      shared access to console num
-//config:	  or        conspy -d num   screenshot of console num
-//config:	  or        conspy -cs num  poor man's GNU screen like
+//config:	  example:  conspy NUM      shared access to console num
+//config:	  or        conspy -nd NUM  screenshot of console num
+//config:	  or        conspy -cs NUM  poor man's GNU screen like
 
 //usage:#define conspy_trivial_usage
-//usage:	"[-vcsndf] [-x ROW] [-y LINE] [CONSOLE_NO]"
+//usage:	"[-vcsndf] [-x COL] [-y LINE] [CONSOLE_NO]"
 //usage:#define conspy_full_usage "\n\n"
 //usage:     "A text-mode VNC like program for Linux virtual consoles."
 //usage:     "\nTo exit, quickly press ESC 3 times."
@@ -40,14 +36,14 @@
 //usage:     "\n	-n	Black & white"
 //usage:     "\n	-d	Dump console to stdout"
 //usage:     "\n	-f	Follow cursor"
-//usage:     "\n	-x ROW	Starting row"
+//usage:     "\n	-x COL	Starting column"
 //usage:     "\n	-y LINE	Starting line"
 
 #include "libbb.h"
 #include <sys/kd.h>
 
 struct screen_info {
-	unsigned char lines, rows, cursor_x, cursor_y;
+	unsigned char lines, cols, cursor_x, cursor_y;
 };
 
 #define CHAR(x) ((uint8_t)((x)[0]))
@@ -62,20 +58,29 @@ struct globals {
 	int kbd_fd;
 	unsigned width;
 	unsigned height;
-	uint8_t last_attr;
+	unsigned col;
+	unsigned line;
 	int ioerror_count;
 	int key_count;
 	int escape_count;
 	int nokeys;
 	int current;
 	int vcsa_fd;
-	struct screen_info info;
+	uint16_t last_attr;
+	uint8_t last_bold;
+	uint8_t last_blink;
+	uint8_t last_fg;
+	uint8_t last_bg;
+	char attrbuf[sizeof("\033[0;1;5;30;40m")];
+	smallint curoff;
+	struct screen_info remote;
 	struct termios term_orig;
 };
 
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	strcpy((char*)&G.last_attr, "\xff\xff\xff\xff\xff\xff" "\033["); \
 } while (0)
 
 enum {
@@ -96,8 +101,8 @@ static void screen_read_close(void)
 
 	xread(G.vcsa_fd, data, G.size);
 	G.last_attr = 0;
-	for (i = 0; i < G.info.lines; i++) {
-		for (j = 0; j < G.info.rows; j++, NEXT(data)) {
+	for (i = 0; i < G.remote.lines; i++) {
+		for (j = 0; j < G.remote.cols; j++, NEXT(data)) {
 			unsigned x = j - G.x; // if will catch j < G.x too
 			unsigned y = i - G.y; // if will catch i < G.y too
 
@@ -140,51 +145,101 @@ static void screen_char(char *data)
 //        text 8th bit
 		// converting RGB color bit triad to BGR:
 		static const char color[8] = "04261537";
+		char *ptr;
+		uint8_t fg, bold, bg, blink;
 
 		G.last_attr = attr;
-		printf("\033[%c;4%c;3%cm",
-			(attr & 8) ? '1' : '0', // bold text / reset all
-			color[(attr >> 4) & 7], // bkgd color
-			color[attr & 7] // text color
-		);
+
+		//attr >>= 1; // for framebuffer console
+		ptr = G.attrbuf + sizeof("\033[")-1;
+		fg    = (attr & 0x07);
+		bold  = (attr & 0x08);
+		bg    = (attr & 0x70);
+		blink = (attr & 0x80);
+		if (G.last_bold > bold || G.last_blink > blink) {
+			G.last_bold = G.last_blink = 0;
+			G.last_bg = 0xff;
+			*ptr++ = '0';
+			*ptr++ = ';';
+		}
+		if (G.last_bold != bold) {
+			G.last_bold = bold;
+			*ptr++ = '1';
+			*ptr++ = ';';
+		}
+		if (G.last_blink != blink) {
+			G.last_blink = blink;
+			*ptr++ = '5';
+			*ptr++ = ';';
+		}
+		if (G.last_fg != fg) {
+			G.last_fg = fg;
+			*ptr++ = '3';
+			*ptr++ = color[fg];
+			*ptr++ = ';';
+		}
+		if (G.last_bg != bg) {
+			G.last_bg = bg;
+			*ptr++ = '4';
+			*ptr++ = color[bg >> 4];
+			*ptr++ = ';';
+		}
+		if (ptr != G.attrbuf + sizeof("\033[")-1) {
+			ptr[-1] = 'm';
+			*ptr = '\0';
+			fputs(G.attrbuf, stdout);
+		}
 	}
 	putchar(CHAR(data));
+	G.col++;
 }
 
 static void clrscr(void)
 {
-	printf("\033[1;1H" "\033[0J");
+	// Home, clear till end of src, cursor on
+	fputs("\033[1;1H" "\033[J" "\033[?25h", stdout);
+	G.curoff = G.col = G.line = 0;
 }
 
 static void curoff(void)
 {
-	printf("\033[?25l");
+	if (!G.curoff) {
+		G.curoff = 1;
+		fputs("\033[?25l", stdout);
+	}
 }
 
 static void curon(void)
 {
-	printf("\033[?25h");
+	if (G.curoff) {
+		G.curoff = 0;
+		fputs("\033[?25h", stdout);
+	}
 }
 
-static void gotoxy(int row, int line)
+static void gotoxy(int col, int line)
 {
-	printf("\033[%u;%uH", line + 1, row + 1);
+	if (G.col != col || G.line != line) {
+		G.col = col;
+		G.line = line;
+		printf("\033[%u;%uH", line + 1, col + 1);
+	}
 }
 
 static void screen_dump(void)
 {
 	int linefeed_cnt;
-	int line, row;
-	int linecnt = G.info.lines - G.y;
-	char *data = G.data + G.current + (2 * G.y * G.info.rows);
+	int line, col;
+	int linecnt = G.remote.lines - G.y;
+	char *data = G.data + G.current + (2 * G.y * G.remote.cols);
 
 	linefeed_cnt = 0;
 	for (line = 0; line < linecnt && line < G.height; line++) {
 		int space_cnt = 0;
-		for (row = 0; row < G.info.rows; row++, NEXT(data)) {
-			unsigned tty_row = row - G.x; // if will catch row < G.x too
+		for (col = 0; col < G.remote.cols; col++, NEXT(data)) {
+			unsigned tty_col = col - G.x; // if will catch col < G.x too
 
-			if (tty_row >= G.width)
+			if (tty_col >= G.width)
 				continue;
 			space_cnt++;
 			if (BW && CHAR(data) == ' ')
@@ -204,8 +259,8 @@ static void screen_dump(void)
 
 static void curmove(void)
 {
-	unsigned cx = G.info.cursor_x - G.x;
-	unsigned cy = G.info.cursor_y - G.y;
+	unsigned cx = G.remote.cursor_x - G.x;
+	unsigned cy = G.remote.cursor_y - G.y;
 
 	if (cx >= G.width || cy >= G.height) {
 		curoff();
@@ -226,7 +281,7 @@ static void cleanup(int code)
 	}
 	// Reset attributes
 	if (!BW)
-		printf("\033[0m");
+		fputs("\033[0m", stdout);
 	bb_putchar('\n');
 	if (code > 1)
 		kill_myself_with_sig(code); // does not return
@@ -236,8 +291,8 @@ static void cleanup(int code)
 static void get_initial_data(const char* vcsa_name)
 {
 	G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
-	xread(G.vcsa_fd, &G.info, 4);
-	G.size = G.info.rows * G.info.lines * 2;
+	xread(G.vcsa_fd, &G.remote, 4);
+	G.size = G.remote.cols * G.remote.lines * 2;
 	G.width = G.height = UINT_MAX;
 	G.data = xzalloc(2 * G.size);
 	screen_read_close();
@@ -354,34 +409,30 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		int i, j;
 		char *data, *old;
 
-		old = G.data + G.current;
-		G.current = G.size - G.current;
-		data = G.data + G.current;
-
 		// Close & re-open vcsa in case they have
 		// swapped virtual consoles
 		G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
-		xread(G.vcsa_fd, &G.info, 4);
-		if (G.size != (G.info.rows * G.info.lines * 2)) {
+		xread(G.vcsa_fd, &G.remote, 4);
+		if (G.size != (G.remote.cols * G.remote.lines * 2)) {
 			cleanup(1);
 		}
 		i = G.width;
 		j = G.height;
 		get_terminal_width_height(G.kbd_fd, &G.width, &G.height);
 		if ((option_mask32 & FLAG(f))) {
-			int nx = G.info.cursor_x - G.width + 1;
-			int ny = G.info.cursor_y - G.height + 1;
+			int nx = G.remote.cursor_x - G.width + 1;
+			int ny = G.remote.cursor_y - G.height + 1;
 
-			if (G.info.cursor_x < G.x) {
-				G.x = G.info.cursor_x;
+			if (G.remote.cursor_x < G.x) {
+				G.x = G.remote.cursor_x;
 				i = 0;	// force refresh
 			}
 			if (nx > G.x) {
 				G.x = nx;
 				i = 0;	// force refresh
 			}
-			if (G.info.cursor_y < G.y) {
-				G.y = G.info.cursor_y;
+			if (G.remote.cursor_y < G.y) {
+				G.y = G.remote.cursor_y;
 				i = 0;	// force refresh
 			}
 			if (ny > G.y) {
@@ -391,40 +442,43 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		// Scan console data and redraw our tty where needed
+		old = G.data + G.current;
+		G.current = G.size - G.current;
+		data = G.data + G.current;
 		screen_read_close();
 		if (i != G.width || j != G.height) {
 			clrscr();
 			screen_dump();
-		}
-		else for (i = 0; i < G.info.lines; i++) {
-			char *last = last;
-			char *first = NULL;
-			int iy = i - G.y;
+		} else {
+			// For each remote line
+			old += G.y * G.remote.cols * 2;
+			data += G.y * G.remote.cols * 2;
+			for (i = G.y; i < G.remote.lines; i++) {
+				char *first = NULL; // first char which needs updating
+				char *last = last;  // last char which needs updating
+				unsigned iy = i - G.y;
 
-			if (iy >= (int) G.height)
-				break;
-			for (j = 0; j < G.info.rows; j++) {
-				last = data;
-				if (DATA(data) != DATA(old) && iy >= 0) {
+				if (iy >= G.height)
+					break;
+				old += G.x * 2;
+				data += G.x * 2;
+				for (j = G.x; j < G.remote.cols; j++, NEXT(old), NEXT(data)) {
 					unsigned jx = j - G.x;
 
-					last = NULL;
-					if (first == NULL && jx < G.width) {
-						first = data;
-						gotoxy(jx, iy);
+					if (jx < G.width && DATA(data) != DATA(old)) {
+						last = data;
+						if (!first) {
+							first = data;
+							gotoxy(jx, iy);
+						}
 					}
 				}
-				NEXT(old);
-				NEXT(data);
+				if (first) {
+					// Rewrite updated data on the local screen
+					for (; first <= last; NEXT(first))
+						screen_char(first);
+				}
 			}
-			if (first == NULL)
-				continue;
-			if (last == NULL)
-				last = data;
-
-			// Write the data to the screen
-			for (; first < last; NEXT(first))
-				screen_char(first);
 		}
 		curmove();
 
