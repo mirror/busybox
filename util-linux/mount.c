@@ -1718,9 +1718,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	// If we know the fstype (or don't need to), jump straight
 	// to the actual mount.
-	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
+	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
 		rc = mount_it_now(mp, vfsflags, filteropts);
-	else {
+	} else {
 		// Loop through filesystem types until mount succeeds
 		// or we run out
 
@@ -1756,7 +1756,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	if (errno == EBUSY && ignore_busy)
 		return 0;
-	if (rc < 0)
+	if (rc != 0)
 		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
 	return rc;
 }
