@@ -197,7 +197,7 @@ static char *make_tempdir(void)
 	return tempdir;
 }
 
-static void do_logging(int sample_period_us)
+static void do_logging(unsigned sample_period_us)
 {
 	//# Enable process accounting if configured
 	//if [ "$PROCESS_ACCOUNTING" = "yes" ]; then
@@ -210,7 +210,7 @@ static void do_logging(int sample_period_us)
 	//FILE *proc_netdev = xfopen("proc_netdev.log", "w");
 	FILE *proc_ps = xfopen("proc_ps.log", "w");
 	int look_for_login_process = (getppid() == 1);
-	unsigned count = 60*1000*1000 / (200*1000); /* ~1 minute */
+	unsigned count = 60*1000*1000 / sample_period_us; /* ~1 minute */
 
 	while (--count && !bb_got_signal) {
 		char *p;
@@ -235,8 +235,8 @@ static void do_logging(int sample_period_us)
 			/* dump_procs saw a getty or {g,k,x}dm
 			 * stop logging in 2 seconds:
 			 */
-			if (count > 2*1000*1000 / (200*1000))
-				count = 2*1000*1000 / (200*1000);
+			if (count > 2*1000*1000 / sample_period_us)
+				count = 2*1000*1000 / sample_period_us;
 		}
 		fflush_all();
  wait_more:
@@ -325,7 +325,7 @@ static void finalize(char *tempdir, const char *prog)
 int bootchartd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 {
-	int sample_period_us;
+	unsigned sample_period_us;
 	pid_t parent_pid, logger_pid;
 	smallint cmd;
 	enum {
@@ -372,6 +372,8 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		config_close(parser);
 	}
+	if ((int)sample_period_us <= 0)
+		sample_period_us = 1; /* prevent division by 0 */
 
 	/* Create logger child: */
 	logger_pid = fork_or_rexec(argv);
