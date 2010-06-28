@@ -156,7 +156,7 @@ static int dump_procs(FILE *fp, int look_for_login_process)
 				continue;
 			p++;
 			strchrnul(p, ')')[0] = '\0';
-			/* If is gdm, kdm or a getty? */
+			/* Is it gdm, kdm or a getty? */
 			if (((p[0] == 'g' || p[0] == 'k' || p[0] == 'x') && p[1] == 'd' && p[2] == 'm')
 			 || strstr(p, "getty")
 			) {
@@ -258,13 +258,12 @@ static void finalize(char *tempdir, const char *prog)
 		fprintf(header_fp, "profile.process = %s\n", prog);
 
 	fputs("version = "BC_VERSION_STR"\n", header_fp);
-
 	if (ENABLE_FEATURE_BOOTCHARTD_BLOATED_HEADER) {
 		char *hostname;
 		char *kcmdline;
 		time_t t;
 		struct tm tm_time;
-		/* x2 for possible localized data */
+		/* x2 for possible localized weekday/month names */
 		char date_buf[sizeof("Mon Jun 21 05:29:03 CEST 2010") * 2];
 		struct utsname unamebuf;
 
@@ -313,16 +312,16 @@ static void finalize(char *tempdir, const char *prog)
 	 */
 }
 
-/* Usage:
- * bootchartd start [PROG ARGS]: start logging in background, USR1 stops it.
- *	With PROG, runs PROG, then kills background logging.
- * bootchartd stop: same as "killall -USR1 bootchartd"
- * bootchartd init: start logging in background
- *	Stop when getty/gdm is seen (if AUTO_STOP_LOGGER = yes).
- *	Meant to be used from init scripts.
- * bootchartd (pid==1): as init, but then execs $bootchart_init, /init, /sbin/init
- *	Meant to be used as kernel's init process.
- */
+//usage:#define bootchartd_trivial_usage
+//usage:       "start [PROG ARGS]|stop|init"
+//usage:#define bootchartd_full_usage "\n\n"
+//usage:       "Create /var/log/bootchart.tgz with boot chart data\n"
+//usage:     "\nOptions:"
+//usage:     "\nstart: start background logging; with PROG, run PROG, then kill logging with USR1"
+//usage:     "\nstop: send USR1 to all bootchartd processes"
+//usage:     "\ninit: start background logging; stop when getty/xdm is seen (for init scripts)"
+//usage:     "\nUnder PID 1: as init, then exec $bootchart_init, /init, /sbin/init"
+
 int bootchartd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -358,7 +357,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 		cmd = CMD_PID1;
 	}
 
-	/* Here we are in START or INIT state */
+	/* Here we are in START, INIT or CMD_PID1 state */
 
 	/* Read config file: */
 	sample_period_us = 200 * 1000;
@@ -422,7 +421,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 			execl(bootchart_init, bootchart_init, NULL);
 		execl("/init", "init", NULL);
 		execl("/sbin/init", "init", NULL);
-		bb_perror_msg_and_die("can't exec '%s'", "/sbin/init");
+		bb_perror_msg_and_die("can't execute '%s'", "/sbin/init");
 	}
 
 	if (cmd == CMD_START && argv[2]) { /* "start PROG ARGS" */
@@ -432,7 +431,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 		if (pid == 0) { /* child */
 			argv += 2;
 			execvp(argv[0], argv);
-			bb_perror_msg_and_die("can't exec '%s'", argv[0]);
+			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
 		}
 		/* parent */
 		waitpid(pid, NULL, 0);

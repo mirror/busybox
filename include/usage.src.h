@@ -163,16 +163,6 @@ INSERT
 #define blkid_full_usage "\n\n" \
        "Print UUIDs of all filesystems"
 
-#define bootchartd_trivial_usage \
-       "start [PROG ARGS]|stop|init"
-#define bootchartd_full_usage "\n\n" \
-       "Create /var/log/bootchart.tgz with boot chart data\n" \
-     "\nOptions:" \
-     "\nstart: start background logging; with PROG, run PROG, then kill logging with USR1" \
-     "\nstop: send USR1 to all bootchartd processes" \
-     "\ninit: start background logging; stop when getty/xdm is seen (for init scripts)" \
-     "\nUnder PID 1: as init, then exec $bootchart_init, /init, /sbin/init" \
-
 #define brctl_trivial_usage \
        "COMMAND [BRIDGE [INTERFACE]]"
 #define brctl_full_usage "\n\n" \

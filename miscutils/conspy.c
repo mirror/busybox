@@ -56,31 +56,33 @@ struct globals {
 	int size;
 	int x, y;
 	int kbd_fd;
-	unsigned width;
-	unsigned height;
-	unsigned col;
-	unsigned line;
+	int vcsa_fd;
 	int ioerror_count;
 	int key_count;
 	int escape_count;
 	int nokeys;
 	int current;
-	int vcsa_fd;
-	uint16_t last_attr;
-	uint8_t last_bold;
-	uint8_t last_blink;
-	uint8_t last_fg;
-	uint8_t last_bg;
-	char attrbuf[sizeof("\033[0;1;5;30;40m")];
+	// cached local tty parameters
+	unsigned width;
+	unsigned height;
+	unsigned col;
+	unsigned line;
 	smallint curoff;
+	uint8_t last_attr;
+	uint8_t force_attr_change;
+	char attrbuf[sizeof("\033[0;1;5;30;40m")];
+	// remote console
 	struct screen_info remote;
+	// saved local tty terminfo
 	struct termios term_orig;
 };
 
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	strcpy((char*)&G.last_attr, "\xff\xff\xff\xff\xff\xff" "\033["); \
+	G.attrbuf[0] = '\033'; \
+	G.attrbuf[1] = '['; \
+	G.force_attr_change = 0xff; \
 } while (0)
 
 enum {
@@ -100,7 +102,6 @@ static void screen_read_close(void)
 	char *data = G.data + G.current;
 
 	xread(G.vcsa_fd, data, G.size);
-	G.last_attr = 0;
 	for (i = 0; i < G.remote.lines; i++) {
 		for (j = 0; j < G.remote.cols; j++, NEXT(data)) {
 			unsigned x = j - G.x; // if will catch j < G.x too
@@ -117,9 +118,12 @@ static void screen_read_close(void)
 
 static void screen_char(char *data)
 {
-	uint8_t attr = ATTR(data);
+	if (!BW) {
+		uint8_t attr = ATTR(data);
+		//uint8_t attr = ATTR(data) >> 1; // for framebuffer console
+		uint8_t attr_diff = (G.last_attr ^ attr) | G.force_attr_change;
 
-	if (!BW && G.last_attr != attr) {
+		if (attr_diff) {
 // Attribute layout for VGA compatible text videobuffer:
 // blinking text
 // |red bkgd
@@ -143,51 +147,49 @@ static void screen_char(char *data)
 //      green text
 //       blue text
 //        text 8th bit
-		// converting RGB color bit triad to BGR:
-		static const char color[8] = "04261537";
-		char *ptr;
-		uint8_t fg, bold, bg, blink;
+			// converting RGB color bit triad to BGR:
+			static const char color[8] = "04261537";
+			const uint8_t fg_mask = 0x07, bold_mask  = 0x08;
+			const uint8_t bg_mask = 0x70, blink_mask = 0x80;
+			char *ptr;
 
-		G.last_attr = attr;
+			ptr = G.attrbuf + 2; /* skip "ESC [" */
 
-		//attr >>= 1; // for framebuffer console
-		ptr = G.attrbuf + sizeof("\033[")-1;
-		fg    = (attr & 0x07);
-		bold  = (attr & 0x08);
-		bg    = (attr & 0x70);
-		blink = (attr & 0x80);
-		if (G.last_bold > bold || G.last_blink > blink) {
-			G.last_bold = G.last_blink = 0;
-			G.last_bg = 0xff;
-			*ptr++ = '0';
-			*ptr++ = ';';
-		}
-		if (G.last_bold != bold) {
-			G.last_bold = bold;
-			*ptr++ = '1';
-			*ptr++ = ';';
-		}
-		if (G.last_blink != blink) {
-			G.last_blink = blink;
-			*ptr++ = '5';
-			*ptr++ = ';';
-		}
-		if (G.last_fg != fg) {
-			G.last_fg = fg;
-			*ptr++ = '3';
-			*ptr++ = color[fg];
-			*ptr++ = ';';
-		}
-		if (G.last_bg != bg) {
-			G.last_bg = bg;
-			*ptr++ = '4';
-			*ptr++ = color[bg >> 4];
-			*ptr++ = ';';
-		}
-		if (ptr != G.attrbuf + sizeof("\033[")-1) {
-			ptr[-1] = 'm';
-			*ptr = '\0';
-			fputs(G.attrbuf, stdout);
+			// (G.last_attr & ~attr) has 1 only where
+			// G.last_attr has 1 but attr has 0.
+			// Here we check whether we have transition
+			// bold->non-bold or blink->non-blink:
+			if ((G.last_attr & ~attr) & (bold_mask | blink_mask)) {
+				*ptr++ = '0'; // "reset all attrs"
+				*ptr++ = ';';
+				// must set fg & bg, maybe need to set bold or blink:
+				attr_diff = attr | ~(bold_mask | blink_mask);
+			}
+			G.force_attr_change = 0;
+			G.last_attr = attr;
+			if (attr_diff & bold_mask) {
+				*ptr++ = '1';
+				*ptr++ = ';';
+			}
+			if (attr_diff & blink_mask) {
+				*ptr++ = '5';
+				*ptr++ = ';';
+			}
+			if (attr_diff & fg_mask) {
+				*ptr++ = '3';
+				*ptr++ = color[attr & fg_mask];
+				*ptr++ = ';';
+			}
+			if (attr_diff & bg_mask) {
+				*ptr++ = '4';
+				*ptr++ = color[(attr & bg_mask) >> 4];
+				*ptr++ = ';';
+			}
+			if (ptr != G.attrbuf + 2) {
+				ptr[-1] = 'm';
+				*ptr = '\0';
+				fputs(G.attrbuf, stdout);
+			}
 		}
 	}
 	putchar(CHAR(data));
@@ -402,6 +404,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	termbuf.c_cc[VMIN] = 1;
 	termbuf.c_cc[VTIME] = 0;
 	tcsetattr(G.kbd_fd, TCSANOW, &termbuf);
+
 	poll_timeout_ms = 250;
 	while (1) {
 		struct pollfd pfd;
