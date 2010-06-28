@@ -36,16 +36,18 @@
  * - source routing
  * - multiple DNS checks
  * Functionalty which is different from nc 1.10:
- * - Prog in '-e PROG' can have prog's parameters and options.
+ * - PROG in '-e PROG' can have ARGS (and options).
  *   Because of this -e option must be last.
- * - nc doesn't redirect stderr to the network socket for the -e PROG.
+//TODO: remove -e incompatibility?
+ * - we don't redirect stderr to the network socket for the -e PROG.
+ *   (PROG can do it itself if needed, but sometimes it is NOT wanted!)
  * - numeric addresses are printed in (), not [] (IPv6 looks better),
  *   port numbers are inside (): (1.2.3.4:5678)
  * - network read errors are reported on verbose levels > 1
  *   (nc 1.10 treats them as EOF)
  * - TCP connects from wrong ip/ports (if peer ip:port is specified
  *   on the command line, but accept() says that it came from different addr)
- *   are closed, but nc doesn't exit - continues to listen/accept.
+ *   are closed, but we don't exit - we continue to listen/accept.
  */
 
 /* done in nc.c: #include "libbb.h" */
