@@ -692,9 +692,9 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 IF_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream_prime(int src_fd, int dst_fd)
 {
-	unsigned char magic[2];
-	xread(src_fd, magic, 2);
-	if (magic[0] != 'B' || magic[1] != 'Z') {
+	uint16_t magic2;
+	xread(src_fd, &magic2, 2);
+	if (magic2 != BZIP2_MAGIC) {
 		bb_error_msg_and_die("invalid magic");
 	}
 	return unpack_bz2_stream(src_fd, dst_fd);
