@@ -46,9 +46,9 @@ struct screen_info {
 	unsigned char lines, cols, cursor_x, cursor_y;
 };
 
-#define CHAR(x) ((uint8_t)((x)[0]))
-#define ATTR(x) ((uint8_t)((x)[1]))
-#define NEXT(x) ((x)+=2)
+#define CHAR(x) (*(uint8_t*)(x))
+#define ATTR(x) (((uint8_t*)(x))[1])
+#define NEXT(x) ((x) += 2)
 #define DATA(x) (*(uint16_t*)(x))
 
 struct globals {
@@ -56,25 +56,25 @@ struct globals {
 	int size;
 	int x, y;
 	int kbd_fd;
-	int vcsa_fd;
 	int ioerror_count;
 	int key_count;
 	int escape_count;
 	int nokeys;
 	int current;
+	int first_line_offset;
+	int last_attr;
 	// cached local tty parameters
 	unsigned width;
 	unsigned height;
 	unsigned col;
 	unsigned line;
-	smallint curoff;
-	uint8_t last_attr;
-	uint8_t force_attr_change;
+	smallint curoff; // unknown:0 cursor on:-1 cursor off:1
 	char attrbuf[sizeof("\033[0;1;5;30;40m")];
 	// remote console
 	struct screen_info remote;
 	// saved local tty terminfo
 	struct termios term_orig;
+	char vcsa_name[sizeof("/dev/vcsaNN")];
 };
 
 #define G (*ptr_to_globals)
@@ -82,7 +82,8 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	G.attrbuf[0] = '\033'; \
 	G.attrbuf[1] = '['; \
-	G.force_attr_change = 0xff; \
+	G.width = G.height = UINT_MAX; \
+	G.last_attr--; \
 } while (0)
 
 enum {
@@ -96,24 +97,80 @@ enum {
 #define FLAG(x) (1 << FLAG_##x)
 #define BW (option_mask32 & FLAG(n))
 
+static void clrscr(void)
+{
+	// Home, clear till end of screen
+	fputs("\033[1;1H" "\033[J", stdout);
+	G.col = G.line = 0;
+}
+
+static void set_cursor(int state)
+{
+	if (G.curoff != state) {
+		G.curoff = state;
+		fputs("\033[?25", stdout);
+		bb_putchar("h?l"[1 + state]);
+	}
+}
+
+static void gotoxy(int col, int line)
+{
+	if (G.col != col || G.line != line) {
+		G.col = col;
+		G.line = line;
+		printf("\033[%u;%uH", line + 1, col + 1);
+	}
+}
+
+static void cleanup(int code)
+{
+	set_cursor(-1); // cursor on
+	tcsetattr(G.kbd_fd, TCSANOW, &G.term_orig);
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(G.kbd_fd);
+	}
+	// Reset attributes
+	if (!BW)
+		fputs("\033[0m", stdout);
+	bb_putchar('\n');
+	if (code > 1)
+		kill_myself_with_sig(code);
+	exit(code);
+}
+
 static void screen_read_close(void)
 {
 	unsigned i, j;
-	char *data = G.data + G.current;
+	int vcsa_fd;
+	char *data;
 
-	xread(G.vcsa_fd, data, G.size);
+	// Close & re-open vcsa in case they have swapped virtual consoles
+	vcsa_fd = xopen(G.vcsa_name, O_RDONLY);
+	xread(vcsa_fd, &G.remote, 4);
+	i = G.remote.cols * 2;
+	G.first_line_offset = G.y * i;
+	i *= G.remote.lines;
+	if (G.data == NULL) {
+		G.size = i;
+		G.data = xzalloc(2 * i);
+	}
+	else if (G.size != i) {
+		cleanup(1);
+	}
+	data = G.data + G.current;
+	xread(vcsa_fd, data, G.size);
+	close(vcsa_fd);
 	for (i = 0; i < G.remote.lines; i++) {
 		for (j = 0; j < G.remote.cols; j++, NEXT(data)) {
 			unsigned x = j - G.x; // if will catch j < G.x too
 			unsigned y = i - G.y; // if will catch i < G.y too
 
 			if (CHAR(data) < ' ')
-				*data = ' '; // CHAR(data) = ' ';
+				CHAR(data) = ' ';
 			if (y >= G.height || x >= G.width)
 				DATA(data) = 0;
 		}
 	}
-	close(G.vcsa_fd);
 }
 
 static void screen_char(char *data)
@@ -121,7 +178,7 @@ static void screen_char(char *data)
 	if (!BW) {
 		uint8_t attr = ATTR(data);
 		//uint8_t attr = ATTR(data) >> 1; // for framebuffer console
-		uint8_t attr_diff = (G.last_attr ^ attr) | G.force_attr_change;
+		uint8_t attr_diff = G.last_attr ^ attr;
 
 		if (attr_diff) {
 // Attribute layout for VGA compatible text videobuffer:
@@ -153,19 +210,20 @@ static void screen_char(char *data)
 			const uint8_t bg_mask = 0x70, blink_mask = 0x80;
 			char *ptr;
 
-			ptr = G.attrbuf + 2; /* skip "ESC [" */
+			ptr = G.attrbuf + 2; // skip "ESC ["
 
 			// (G.last_attr & ~attr) has 1 only where
 			// G.last_attr has 1 but attr has 0.
 			// Here we check whether we have transition
 			// bold->non-bold or blink->non-blink:
-			if ((G.last_attr & ~attr) & (bold_mask | blink_mask)) {
+			if (G.last_attr < 0  // initial value
+			 || ((G.last_attr & ~attr) & (bold_mask | blink_mask)) != 0
+			) {
 				*ptr++ = '0'; // "reset all attrs"
 				*ptr++ = ';';
 				// must set fg & bg, maybe need to set bold or blink:
 				attr_diff = attr | ~(bold_mask | blink_mask);
 			}
-			G.force_attr_change = 0;
 			G.last_attr = attr;
 			if (attr_diff & bold_mask) {
 				*ptr++ = '1';
@@ -196,44 +254,12 @@ static void screen_char(char *data)
 	G.col++;
 }
 
-static void clrscr(void)
-{
-	// Home, clear till end of src, cursor on
-	fputs("\033[1;1H" "\033[J" "\033[?25h", stdout);
-	G.curoff = G.col = G.line = 0;
-}
-
-static void curoff(void)
-{
-	if (!G.curoff) {
-		G.curoff = 1;
-		fputs("\033[?25l", stdout);
-	}
-}
-
-static void curon(void)
-{
-	if (G.curoff) {
-		G.curoff = 0;
-		fputs("\033[?25h", stdout);
-	}
-}
-
-static void gotoxy(int col, int line)
-{
-	if (G.col != col || G.line != line) {
-		G.col = col;
-		G.line = line;
-		printf("\033[%u;%uH", line + 1, col + 1);
-	}
-}
-
 static void screen_dump(void)
 {
 	int linefeed_cnt;
 	int line, col;
 	int linecnt = G.remote.lines - G.y;
-	char *data = G.data + G.current + (2 * G.y * G.remote.cols);
+	char *data = G.data + G.current + G.first_line_offset;
 
 	linefeed_cnt = 0;
 	for (line = 0; line < linecnt && line < G.height; line++) {
@@ -263,41 +289,13 @@ static void curmove(void)
 {
 	unsigned cx = G.remote.cursor_x - G.x;
 	unsigned cy = G.remote.cursor_y - G.y;
+	int cursor = 1;
 
-	if (cx >= G.width || cy >= G.height) {
-		curoff();
-	} else {
-		curon();
+	if (cx < G.width && cy < G.height) {
 		gotoxy(cx, cy);
+		cursor = -1;
 	}
-	fflush_all();
-}
-
-static void cleanup(int code)
-{
-	curon();
-	fflush_all();
-	tcsetattr(G.kbd_fd, TCSANOW, &G.term_orig);
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		close(G.kbd_fd);
-	}
-	// Reset attributes
-	if (!BW)
-		fputs("\033[0m", stdout);
-	bb_putchar('\n');
-	if (code > 1)
-		kill_myself_with_sig(code); // does not return
-	exit(code);
-}
-
-static void get_initial_data(const char* vcsa_name)
-{
-	G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
-	xread(G.vcsa_fd, &G.remote, 4);
-	G.size = G.remote.cols * G.remote.lines * 2;
-	G.width = G.height = UINT_MAX;
-	G.data = xzalloc(2 * G.size);
-	screen_read_close();
+	set_cursor(cursor);
 }
 
 static void create_cdev_if_doesnt_exist(const char* name, dev_t dev)
@@ -345,7 +343,6 @@ static NOINLINE void start_shell_in_child(const char* tty_name)
 int conspy_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int conspy_main(int argc UNUSED_PARAM, char **argv)
 {
-	char vcsa_name[sizeof("/dev/vcsaNN")];
 	char tty_name[sizeof("/dev/ttyNN")];
 #define keybuf bb_common_bufsiz1
 	struct termios termbuf;
@@ -365,7 +362,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = getopt_longopts;
 #endif
 	INIT_G();
-	strcpy(vcsa_name, "/dev/vcsa");
+	strcpy(G.vcsa_name, "/dev/vcsa");
 
 	opt_complementary = "x+:y+"; // numeric params
 	opts = getopt32(argv, "vcsndfx:y:", &G.x, &G.y);
@@ -373,19 +370,19 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	ttynum = 0;
 	if (argv[0]) {
 		ttynum = xatou_range(argv[0], 0, 63);
-		sprintf(vcsa_name + sizeof("/dev/vcsa")-1, "%u", ttynum);
+		sprintf(G.vcsa_name + sizeof("/dev/vcsa")-1, "%u", ttynum);
 	}
 	sprintf(tty_name, "%s%u", "/dev/tty", ttynum);
 	if (opts & FLAG(c)) {
 		if ((opts & (FLAG(s)|FLAG(v))) != FLAG(v))
 			create_cdev_if_doesnt_exist(tty_name, makedev(4, ttynum));
-		create_cdev_if_doesnt_exist(vcsa_name, makedev(7, 128 + ttynum));
+		create_cdev_if_doesnt_exist(G.vcsa_name, makedev(7, 128 + ttynum));
 	}
 	if ((opts & FLAG(s)) && ttynum) {
 		start_shell_in_child(tty_name);
 	}
 
-	get_initial_data(vcsa_name);
+	screen_read_close();
 	if (opts & FLAG(d)) {
 		screen_dump();
 		bb_putchar('\n');
@@ -412,17 +409,11 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		int i, j;
 		char *data, *old;
 
-		// Close & re-open vcsa in case they have
-		// swapped virtual consoles
-		G.vcsa_fd = xopen(vcsa_name, O_RDONLY);
-		xread(G.vcsa_fd, &G.remote, 4);
-		if (G.size != (G.remote.cols * G.remote.lines * 2)) {
-			cleanup(1);
-		}
+		// in the first loop G.width = G.height = 0: refresh
 		i = G.width;
 		j = G.height;
 		get_terminal_width_height(G.kbd_fd, &G.width, &G.height);
-		if ((option_mask32 & FLAG(f))) {
+		if (option_mask32 & FLAG(f)) {
 			int nx = G.remote.cursor_x - G.width + 1;
 			int ny = G.remote.cursor_y - G.height + 1;
 
@@ -454,8 +445,8 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 			screen_dump();
 		} else {
 			// For each remote line
-			old += G.y * G.remote.cols * 2;
-			data += G.y * G.remote.cols * 2;
+			old += G.first_line_offset;
+			data += G.first_line_offset;
 			for (i = G.y; i < G.remote.lines; i++) {
 				char *first = NULL; // first char which needs updating
 				char *last = last;  // last char which needs updating
@@ -463,10 +454,8 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 
 				if (iy >= G.height)
 					break;
-				old += G.x * 2;
-				data += G.x * 2;
-				for (j = G.x; j < G.remote.cols; j++, NEXT(old), NEXT(data)) {
-					unsigned jx = j - G.x;
+				for (j = 0; j < G.remote.cols; j++, NEXT(old), NEXT(data)) {
+					unsigned jx = j - G.x; // if will catch j >= G.x too
 
 					if (jx < G.width && DATA(data) != DATA(old)) {
 						last = data;
@@ -486,6 +475,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 		curmove();
 
 		// Wait for local user keypresses
+		fflush_all();
 		pfd.fd = G.kbd_fd;
 		pfd.events = POLLIN;
 		bytes_read = 0;
@@ -532,15 +522,16 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 			else if (kbd_mode != K_XLATE && kbd_mode != K_UNICODE)
 				G.key_count = 0; // scan code mode
 			else {
-				for (i = 0; i < G.key_count && result != -1; i++)
-					result = ioctl(handle, TIOCSTI, keybuf + i);
-				G.key_count -= i;
+				char *p = keybuf;
+				for (; G.key_count != 0 && result != -1; p++, G.key_count--) {
+					result = ioctl(handle, TIOCSTI, p);
+					// If there is an application on console which reacts
+					// to keypresses, we need to make our first sleep
+					// shorter to quickly redraw whatever it printed there.
+					poll_timeout_ms = 20;
+				}
 				if (G.key_count)
-					memmove(keybuf, keybuf + i, G.key_count);
-				// If there is an application on console which reacts
-				// to keypresses, we need to make our first sleep
-				// shorter to quickly redraw whatever it printed there.
-				poll_timeout_ms = 20;
+					memmove(keybuf, p, G.key_count);
 			}
 			// Close & re-open tty in case they have
 			// swapped virtual consoles
@@ -553,5 +544,5 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 			else if (errno != EIO || ++G.ioerror_count > 4)
 				cleanup(1);
 		}
-	}
+	} /* while (1) */
 }
