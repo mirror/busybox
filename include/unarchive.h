@@ -7,16 +7,21 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 enum {
 #if BB_BIG_ENDIAN
 	COMPRESS_MAGIC = 0x1f9d,
-	GZIP_MAGIC = 0x1f8b,
-	BZIP2_MAGIC = ('B'<<8) + 'Z',
-	XZ_MAGIC1 = (0xfd<<8) + '7',
-	XZ_MAGIC2 = ((((('z'<<8) + 'X')<<8) + 'Z')<<8) + 0,
+	GZIP_MAGIC  = 0x1f8b,
+	BZIP2_MAGIC = 'B' * 256 + 'Z',
+	XZ_MAGIC1   = 0xfd * 256 + '7',
+	XZ_MAGIC2   = (('z' * 256 + 'X') * 256 + 'Z') * 256 + 0,
+	/* Different form: 32 bits, then 16 bits: */
+	XZ_MAGIC1a  = ((0xfd * 256 + '7') * 256 + 'z') * 256 + 'X',
+	XZ_MAGIC2a  = 'Z' * 256 + 0,
 #else
 	COMPRESS_MAGIC = 0x9d1f,
-	GZIP_MAGIC = 0x8b1f,
-	BZIP2_MAGIC = ('Z'<<8) + 'B',
-	XZ_MAGIC1 = ('7'<<8) + 0xfd,
-	XZ_MAGIC2 = (((((0<<8) + 'Z')<<8) + 'X')<<8) + 'z',
+	GZIP_MAGIC  = 0x8b1f,
+	BZIP2_MAGIC = 'Z' * 256 + 'B',
+	XZ_MAGIC1   = '7' * 256 + 0xfd,
+	XZ_MAGIC2   = ((0 * 256 + 'Z') * 256 + 'X') * 256 + 'z',
+	XZ_MAGIC1a  = (('X' * 256 + 'z') * 256 + '7') * 256 + 0xfd,
+	XZ_MAGIC2a  = 0 * 256 + 'Z',
 #endif
 };
 
@@ -196,7 +201,7 @@ typedef struct inflate_unzip_result {
 } inflate_unzip_result;
 
 IF_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
-/* xz unpacker takes .xz stream from offset 0 */
+/* xz unpacker takes .xz stream from offset 6 */
 IF_DESKTOP(long long) int unpack_xz_stream(int src_fd, int dst_fd) FAST_FUNC;
 /* lzma unpacker takes .lzma stream from offset 0 */
 IF_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;

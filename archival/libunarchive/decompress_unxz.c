@@ -56,9 +56,11 @@ unpack_xz_stream(int src_fd, int dst_fd)
 	if (!crc32_table)
 		crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
 
-	membuf = xmalloc(2 * BUFSIZ);
 	memset(&iobuf, 0, sizeof(iobuf));
+	/* Preload XZ file signature */
+	membuf = (void*) strcpy(xmalloc(2 * BUFSIZ), HEADER_MAGIC);
 	iobuf.in = membuf;
+	iobuf.in_size = HEADER_MAGIC_SIZE;
 	iobuf.out = membuf + BUFSIZ;
 	iobuf.out_size = BUFSIZ;
 

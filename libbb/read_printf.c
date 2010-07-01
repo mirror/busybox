@@ -296,8 +296,8 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		if (magic.b32[0] == XZ_MAGIC2) {
 # if BB_MMU
 			xformer = unpack_xz_stream;
-			/* unpack_xz_stream wants fd at position 0 */
-			xlseek(fd, offset, SEEK_CUR);
+			/* unpack_xz_stream wants fd at position 6, no need to seek */
+			//xlseek(fd, offset, SEEK_CUR);
 # else
 			xformer_prog = "unxz";
 # endif

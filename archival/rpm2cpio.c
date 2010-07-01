@@ -92,8 +92,8 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 			xread(rpm_fd, magic.b32, sizeof(magic.b32[0]));
 			if (magic.b32[0] != XZ_MAGIC2)
 				goto no_magic;
-			/* unpack_xz_stream wants fd at position 0 */
-			xlseek(rpm_fd, -6, SEEK_CUR);
+			/* unpack_xz_stream wants fd at position 6, no need to seek */
+			//xlseek(rpm_fd, -6, SEEK_CUR);
 			unpack = unpack_xz_stream;
 		} else {
  no_magic:

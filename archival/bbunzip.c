@@ -373,6 +373,15 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(unpack_info_t *info UNUSED_PARAM)
 {
+	struct {
+		uint32_t v1;
+		uint16_t v2;
+	} magic;
+	xread(STDIN_FILENO, &magic, 6);
+	if (magic.v1 != XZ_MAGIC1a || magic.v2 != XZ_MAGIC2a) {
+		bb_error_msg("invalid magic");
+		return -1;
+	}
 	return unpack_xz_stream(STDIN_FILENO, STDOUT_FILENO);
 }
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
