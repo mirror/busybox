@@ -434,7 +434,7 @@ INSERT
        "	[-/ DIR] [-n NICE] [-m BYTES] [-d BYTES] [-o N]\n" \
        "	[-p N] [-f BYTES] [-c BYTES] PROG ARGS"
 #define chpst_full_usage "\n\n" \
-       "Change the process state and run PROG\n" \
+       "Change the process state, run PROG\n" \
      "\nOptions:" \
      "\n	-u USER[:GRP]	Set uid and gid" \
      "\n	-U USER[:GRP]	Set $UID and $GID in environment" \
@@ -457,17 +457,17 @@ INSERT
 #define setuidgid_trivial_usage \
        "USER PROG ARGS"
 #define setuidgid_full_usage "\n\n" \
-       "Set uid and gid to USER's uid and gid, removing all supplementary\n" \
-       "groups and run PROG"
+       "Set uid and gid to USER's uid and gid, drop supplementary group ids,\n" \
+       "run PROG"
 #define envuidgid_trivial_usage \
        "USER PROG ARGS"
 #define envuidgid_full_usage "\n\n" \
-       "Set $UID to USER's uid and $GID to USER's gid and run PROG"
+       "Set $UID to USER's uid and $GID to USER's gid, run PROG"
 #define envdir_trivial_usage \
        "DIR PROG ARGS"
 #define envdir_full_usage "\n\n" \
        "Set various environment variables as specified by files\n" \
-       "in the directory dir and run PROG"
+       "in the directory DIR, run PROG"
 #define softlimit_trivial_usage \
        "[-a BYTES] [-m BYTES] [-d BYTES] [-s BYTES] [-l BYTES]\n" \
        "	[-f BYTES] [-c BYTES] [-r BYTES] [-o N] [-p N] [-t N]\n" \
@@ -538,23 +538,48 @@ INSERT
 #define bbconfig_trivial_usage \
        ""
 #define bbconfig_full_usage "\n\n" \
-       "Print the config file which built busybox"
+       "Print the config file used by busybox build"
 
 #define chrt_trivial_usage \
        "[OPTIONS] [PRIO] [PID | PROG ARGS]"
 #define chrt_full_usage "\n\n" \
-       "Manipulate real-time attributes of a process\n" \
+       "Change scheduling priority and class for a process\n" \
      "\nOptions:" \
      "\n	-p	Operate on PID" \
-     "\n	-r	Set SCHED_RR scheduling" \
-     "\n	-f	Set SCHED_FIFO scheduling" \
-     "\n	-o	Set SCHED_OTHER scheduling" \
-     "\n	-m	Show min and max priorities" \
+     "\n	-r	Set SCHED_RR class" \
+     "\n	-f	Set SCHED_FIFO class" \
+     "\n	-o	Set SCHED_OTHER class" \
+     "\n	-m	Show min/max priorities" \
 
 #define chrt_example_usage \
        "$ chrt -r 4 sleep 900; x=$!\n" \
        "$ chrt -f -p 3 $x\n" \
        "You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
+
+#define nice_trivial_usage \
+       "[-n ADJUST] [PROG ARGS]"
+#define nice_full_usage "\n\n" \
+       "Change scheduling priority, run PROG\n" \
+     "\nOptions:" \
+     "\n	-n ADJUST	Adjust priority by ADJUST" \
+
+#define renice_trivial_usage \
+       "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
+#define renice_full_usage "\n\n" \
+       "Change scheduling priority for a running process\n" \
+     "\nOptions:" \
+     "\n	-n	Adjust current nice value (smaller is faster)" \
+     "\n	-p	Process id(s) (default)" \
+     "\n	-g	Process group id(s)" \
+     "\n	-u	Process user name(s) and/or id(s)" \
+
+#define ionice_trivial_usage \
+	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
+#define ionice_full_usage "\n\n" \
+       "Change I/O priority and class\n" \
+     "\nOptions:" \
+     "\n	-c	Class. 1:realtime 2:best-effort 3:idle" \
+     "\n	-n	Priority" \
 
 #define cp_trivial_usage \
        "[OPTIONS] SOURCE DEST"
@@ -1299,7 +1324,7 @@ INSERT
 #define flock_trivial_usage \
        "[-sxun] FD|{FILE [-c] PROG ARGS}"
 #define flock_full_usage "\n\n" \
-       "[Un]lock file descriptor, or lock FILE and run PROG\n" \
+       "[Un]lock file descriptor, or lock FILE, run PROG\n" \
      "\nOptions:" \
      "\n	-s	Shared lock" \
      "\n	-x	Exclusive lock (default)" \
@@ -2037,14 +2062,6 @@ INSERT
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	)
-
-#define ionice_trivial_usage \
-	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
-#define ionice_full_usage "\n\n" \
-       "Change I/O scheduling class and priority\n" \
-     "\nOptions:" \
-     "\n	-c	Class. 1:realtime 2:best-effort 3:idle" \
-     "\n	-n	Priority" \
 
 /* would need to make the " | " optional depending on more than one selected: */
 #define ip_trivial_usage \
@@ -2965,13 +2982,6 @@ INSERT
      "\n	-p	Display PID/Program name for sockets" \
 	)
 
-#define nice_trivial_usage \
-       "[-n ADJUST] [PROG ARGS]"
-#define nice_full_usage "\n\n" \
-       "Run PROG with modified scheduling priority\n" \
-     "\nOptions:" \
-     "\n	-n ADJUST	Adjust priority by ADJUST" \
-
 #define nmeter_trivial_usage \
        "format_string"
 #define nmeter_full_usage "\n\n" \
@@ -3424,16 +3434,6 @@ INSERT
      "\n			Must be the last option" \
      "\n" \
      "\nOther options are silently ignored" \
-
-#define renice_trivial_usage \
-       "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
-#define renice_full_usage "\n\n" \
-       "Change priority of running processes\n" \
-     "\nOptions:" \
-     "\n	-n	Adjust current nice value (smaller is faster)" \
-     "\n	-p	Process id(s) (default)" \
-     "\n	-g	Process group id(s)" \
-     "\n	-u	Process user name(s) and/or id(s)" \
 
 #define scriptreplay_trivial_usage \
        "timingfile [typescript [divisor]]"

@@ -5,33 +5,35 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include <sched.h>
 #include "libbb.h"
 #ifndef _POSIX_PRIORITY_SCHEDULING
 #warning your system may be foobared
 #endif
+
 static const struct {
 	int policy;
-	char name[12];
+	char name[sizeof("SCHED_OTHER")];
 } policies[] = {
 	{SCHED_OTHER, "SCHED_OTHER"},
 	{SCHED_FIFO, "SCHED_FIFO"},
 	{SCHED_RR, "SCHED_RR"}
 };
 
+//TODO: add
+// -b, SCHED_BATCH
+// -i, SCHED_IDLE
+
 static void show_min_max(int pol)
 {
-	const char *fmt = "%s min/max priority\t: %d/%d\n\0%s not supported?\n";
+	const char *fmt = "%s min/max priority\t: %u/%u\n";
 	int max, min;
+
 	max = sched_get_priority_max(pol);
 	min = sched_get_priority_min(pol);
-	if (max >= 0 && min >= 0)
-		printf(fmt, policies[pol].name, min, max);
-	else {
-		fmt += 29;
-		printf(fmt, policies[pol].name);
-	}
+	if ((max|min) < 0)
+		fmt = "%s not supported\n";
+	printf(fmt, policies[pol].name, min, max);
 }
 
 #define OPT_m (1<<0)
