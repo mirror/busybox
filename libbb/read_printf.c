@@ -289,8 +289,6 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 	if (ENABLE_FEATURE_SEAMLESS_XZ
 	 && magic.b16[0] == XZ_MAGIC1
 	) {
-		/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
-		/* More info at: http://tukaani.org/xz/xz-file-format.txt */
 		offset = -6;
 		xread(fd, magic.b32, sizeof(magic.b32[0]));
 		if (magic.b32[0] == XZ_MAGIC2) {

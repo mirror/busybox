@@ -87,8 +87,6 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 		if (ENABLE_FEATURE_SEAMLESS_XZ
 		 && magic.b16[0] == XZ_MAGIC1
 		) {
-			/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
-			/* More info at: http://tukaani.org/xz/xz-file-format.txt */
 			xread(rpm_fd, magic.b32, sizeof(magic.b32[0]));
 			if (magic.b32[0] != XZ_MAGIC2)
 				goto no_magic;
