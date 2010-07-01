@@ -517,21 +517,23 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 			G.key_count += bytes_read;
 			handle = xopen(tty_name, O_WRONLY);
 			result = ioctl(handle, KDGKBMODE, &kbd_mode);
-			if (result == -1)
-				/* nothing */;
-			else if (kbd_mode != K_XLATE && kbd_mode != K_UNICODE)
-				G.key_count = 0; // scan code mode
-			else {
+			if (result >= 0) {
 				char *p = keybuf;
-				for (; G.key_count != 0 && result != -1; p++, G.key_count--) {
+
+				if (kbd_mode != K_XLATE && kbd_mode != K_UNICODE) {
+					G.key_count = 0; // scan code mode
+				}
+				for (; G.key_count != 0; p++, G.key_count--) {
 					result = ioctl(handle, TIOCSTI, p);
+					if (result < 0) {
+						memmove(keybuf, p, G.key_count);
+						break;
+					}
 					// If there is an application on console which reacts
 					// to keypresses, we need to make our first sleep
 					// shorter to quickly redraw whatever it printed there.
 					poll_timeout_ms = 20;
 				}
-				if (G.key_count)
-					memmove(keybuf, p, G.key_count);
 			}
 			// Close & re-open tty in case they have
 			// swapped virtual consoles
@@ -539,7 +541,7 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 
 			// We sometimes get spurious IO errors on the TTY
 			// as programs close and re-open it
-			if (result != -1)
+			if (result >= 0)
 				G.ioerror_count = 0;
 			else if (errno != EIO || ++G.ioerror_count > 4)
 				cleanup(1);
