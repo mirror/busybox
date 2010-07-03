@@ -65,7 +65,7 @@ static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 
 #if ENABLE_FEATURE_COMPRESS_USAGE
 
-static const char packed_usage[] = { PACKED_USAGE };
+static const char packed_usage[] ALIGN1 = { PACKED_USAGE };
 # include "unarchive.h"
 static const char *unpack_usage_messages(void)
 {

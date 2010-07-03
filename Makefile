@@ -512,6 +512,8 @@ include $(srctree)/Makefile.flags
 include/autoconf.h: .kconfig.d .config $(wildcard $(srctree)/*/*.c) $(wildcard $(srctree)/*/*/*.c) | gen_build_files
 	$(Q)$(MAKE) -f $(srctree)/Makefile silentoldconfig
 
+include/usage.h: gen_build_files
+
 else
 # Dummy target needed, because used as prerequisite
 include/autoconf.h: ;
