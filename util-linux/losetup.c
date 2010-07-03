@@ -65,9 +65,9 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	n = 0;
 	while (1) {
 		char *s;
-		char dev[sizeof(LOOP_NAME) + sizeof(int)*3];
+		char dev[LOOP_NAMESIZE];
 
-		sprintf(dev, LOOP_NAME"%u", n);
+		sprintf(dev, LOOP_FORMAT, n);
 		s = query_loop(dev);
 		n++;
 		if (!s) {

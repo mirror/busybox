@@ -1606,18 +1606,18 @@ extern const char bb_default_login_shell[];
 # define VC_3 "/dev/vc/3"
 # define VC_4 "/dev/vc/4"
 # define VC_5 "/dev/vc/5"
-#if defined(__sh__) || defined(__H8300H__) || defined(__H8300S__)
+# if defined(__sh__) || defined(__H8300H__) || defined(__H8300S__)
 /* Yes, this sucks, but both SH (including sh64) and H8 have a SCI(F) for their
    respective serial ports .. as such, we can't use the common device paths for
    these. -- PFM */
 #  define SC_0 "/dev/ttsc/0"
 #  define SC_1 "/dev/ttsc/1"
 #  define SC_FORMAT "/dev/ttsc/%d"
-#else
+# else
 #  define SC_0 "/dev/tts/0"
 #  define SC_1 "/dev/tts/1"
 #  define SC_FORMAT "/dev/tts/%d"
-#endif
+# endif
 # define VC_FORMAT "/dev/vc/%d"
 # define LOOP_FORMAT "/dev/loop/%d"
 # define LOOP_NAMESIZE (sizeof("/dev/loop/") + sizeof(int)*3 + 1)
@@ -1630,15 +1630,15 @@ extern const char bb_default_login_shell[];
 # define VC_3 "/dev/tty3"
 # define VC_4 "/dev/tty4"
 # define VC_5 "/dev/tty5"
-#if defined(__sh__) || defined(__H8300H__) || defined(__H8300S__)
+# if defined(__sh__) || defined(__H8300H__) || defined(__H8300S__)
 #  define SC_0 "/dev/ttySC0"
 #  define SC_1 "/dev/ttySC1"
 #  define SC_FORMAT "/dev/ttySC%d"
-#else
+# else
 #  define SC_0 "/dev/ttyS0"
 #  define SC_1 "/dev/ttyS1"
 #  define SC_FORMAT "/dev/ttyS%d"
-#endif
+# endif
 # define VC_FORMAT "/dev/tty%d"
 # define LOOP_FORMAT "/dev/loop%d"
 # define LOOP_NAMESIZE (sizeof("/dev/loop") + sizeof(int)*3 + 1)
