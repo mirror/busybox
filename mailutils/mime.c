@@ -288,8 +288,7 @@ static int parse(const char *boundary, char **argv)
 					xsetenv("CHARSET", charset);
 					xsetenv("ENCODING", encoding);
 					xsetenv("FILENAME", filename);
-					BB_EXECVP(argv[0], argv);
-					bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+					BB_EXECVP_or_die(argv);
 				}
 				// parent dumps to fd[1]
 				close(fd[0]);

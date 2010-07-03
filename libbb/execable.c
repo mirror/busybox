@@ -76,3 +76,11 @@ int FAST_FUNC bb_execvp(const char *file, char *const argv[])
 					argv);
 }
 #endif
+
+int FAST_FUNC BB_EXECVP_or_die(char **argv)
+{
+	BB_EXECVP(argv[0], argv);
+	/* SUSv3-mandated exit codes */
+	xfunc_error_retval = (errno == ENOENT) ? 127 : 126;
+	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+}

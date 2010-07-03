@@ -501,10 +501,10 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 #ifdef SSLSVD
 	strcpy(id, utoa(pid));
 	ssl_io(0, argv);
-#else
-	BB_EXECVP(argv[0], argv);
-#endif
 	bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+#else
+	BB_EXECVP_or_die(argv);
+#endif
 }
 
 /*

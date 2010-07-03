@@ -268,3 +268,37 @@ int FAST_FUNC tcsetattr_stdin_TCSANOW(const struct termios *tp)
 {
 	return tcsetattr(STDIN_FILENO, TCSANOW, tp);
 }
+
+pid_t FAST_FUNC safe_waitpid(pid_t pid, int *wstat, int options)
+{
+	pid_t r;
+
+	do
+		r = waitpid(pid, wstat, options);
+	while ((r == -1) && (errno == EINTR));
+	return r;
+}
+
+pid_t FAST_FUNC wait_any_nohang(int *wstat)
+{
+	return safe_waitpid(-1, wstat, WNOHANG);
+}
+
+// Wait for the specified child PID to exit, returning child's error return.
+int FAST_FUNC wait4pid(pid_t pid)
+{
+	int status;
+
+	if (pid <= 0) {
+		/*errno = ECHILD; -- wrong. */
+		/* we expect errno to be already set from failed [v]fork/exec */
+		return -1;
+	}
+	if (safe_waitpid(pid, &status, 0) == -1)
+		return -1;
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	if (WIFSIGNALED(status))
+		return WTERMSIG(status) + 0x180;
+	return 0;
+}

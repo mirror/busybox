@@ -839,6 +839,7 @@ int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
 #define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
 #endif
+int BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
 
 /* NOMMU friendy fork+exec: */
 pid_t spawn(char **argv) FAST_FUNC;

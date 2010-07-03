@@ -181,8 +181,7 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 			// this call reopens stdio fds to "/dev/null"
 			// (no daemonization is done)
 			bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO | DAEMON_ONLY_SANITIZE, NULL);
-			BB_EXECVP(argv[0], argv);
-			bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+			BB_EXECVP_or_die(argv);
 		}
 
 		// validate input.
