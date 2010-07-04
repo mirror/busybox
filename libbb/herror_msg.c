@@ -6,7 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-
 #include "libbb.h"
 
 void FAST_FUNC bb_herror_msg(const char *s, ...)
@@ -16,4 +15,14 @@ void FAST_FUNC bb_herror_msg(const char *s, ...)
 	va_start(p, s);
 	bb_verror_msg(s, p, hstrerror(h_errno));
 	va_end(p);
+}
+
+void FAST_FUNC bb_herror_msg_and_die(const char *s, ...)
+{
+	va_list p;
+
+	va_start(p, s);
+	bb_verror_msg(s, p, hstrerror(h_errno));
+	va_end(p);
+	xfunc_die();
 }
