@@ -175,7 +175,6 @@ static void pass_to_server(struct dhcp_packet *p, int packet_len, int client, in
 			struct sockaddr_in *client_addr, struct sockaddr_in *server_addr)
 {
 	int res, type;
-	struct xid_item *item;
 
 	/* check packet_type */
 	type = get_dhcp_packet_type(p);
@@ -187,7 +186,7 @@ static void pass_to_server(struct dhcp_packet *p, int packet_len, int client, in
 	}
 
 	/* create new xid entry */
-	item = xid_add(p->xid, client_addr, client);
+	xid_add(p->xid, client_addr, client);
 
 	/* forward request to LAN (server) */
 	errno = 0;

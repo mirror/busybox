@@ -127,6 +127,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		break;
 	case S_IFLNK:
 		/* Symlink */
+//TODO: what if file_header->link_target == NULL (say, corrupted tarball?)
 		res = symlink(file_header->link_target, file_header->name);
 		if ((res == -1)
 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
