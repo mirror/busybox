@@ -444,28 +444,28 @@ int ipaddr_list_or_flush(char **argv, int flush)
 	while (*argv) {
 		const smalluint key = index_in_strings(option, *argv);
 		if (key == 0) { /* to */
-				NEXT_ARG();
-				get_prefix(&G_filter.pfx, *argv, G_filter.family);
-				if (G_filter.family == AF_UNSPEC) {
-					G_filter.family = G_filter.pfx.family;
-				}
+			NEXT_ARG();
+			get_prefix(&G_filter.pfx, *argv, G_filter.family);
+			if (G_filter.family == AF_UNSPEC) {
+				G_filter.family = G_filter.pfx.family;
+			}
 		} else if (key == 1) { /* scope */
-				uint32_t scope = 0;
-				NEXT_ARG();
-				G_filter.scopemask = -1;
-				if (rtnl_rtscope_a2n(&scope, *argv)) {
-					if (strcmp(*argv, "all") != 0) {
-						invarg(*argv, "scope");
-					}
-					scope = RT_SCOPE_NOWHERE;
-					G_filter.scopemask = 0;
+			uint32_t scope = 0;
+			NEXT_ARG();
+			G_filter.scopemask = -1;
+			if (rtnl_rtscope_a2n(&scope, *argv)) {
+				if (strcmp(*argv, "all") != 0) {
+					invarg(*argv, "scope");
 				}
-				G_filter.scope = scope;
+				scope = RT_SCOPE_NOWHERE;
+				G_filter.scopemask = 0;
+			}
+			G_filter.scope = scope;
 		} else if (key == 2) { /* up */
-				G_filter.up = 1;
+			G_filter.up = 1;
 		} else if (key == 3) { /* label */
-				NEXT_ARG();
-				G_filter.label = *argv;
+			NEXT_ARG();
+			G_filter.label = *argv;
 		} else {
 			if (key == 4) /* dev */
 				NEXT_ARG();
@@ -681,7 +681,7 @@ static int ipaddr_modify(int cmd, char **argv)
 		} else if (arg == 7) { /* label */
 			NEXT_ARG();
 			l = *argv;
-			addattr_l(&req.n, sizeof(req), IFA_LABEL, l, strlen(l)+1);
+			addattr_l(&req.n, sizeof(req), IFA_LABEL, l, strlen(l) + 1);
 		} else {
 			if (arg == 8) /* local */
 				NEXT_ARG();
@@ -698,11 +698,10 @@ static int ipaddr_modify(int cmd, char **argv)
 		argv++;
 	}
 
-	// d cannot be null here, NEXT_ARG() of "dev" ensures that
-	//if (d == NULL) {
-	//	bb_error_msg(bb_msg_requires_arg, "\"dev\"");
-	//	return -1;
-	//}
+	if (!d) {
+		/* There was no "dev IFACE", but we need that */
+		bb_error_msg_and_die("need \"dev IFACE\"");
+	}
 	if (l && strncmp(d, l, strlen(d)) != 0) {
 		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s)", d, l);
 	}
