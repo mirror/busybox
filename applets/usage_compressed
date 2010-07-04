@@ -9,7 +9,7 @@ test -x "$loc/usage" || exit 1
 test "$SED" || SED=sed
 test "$DD" || DD=dd
 
-exec >"$target"
+exec >"$target.$$"
 
 echo '#define UNPACKED_USAGE "" \'
 "$loc/usage" | od -v -t x1 \
@@ -39,3 +39,9 @@ echo '#define PACKED_USAGE \'
 	-e 's/\(..\)/0x\1,/g' \
 	-e 's/$/ \\/'
 echo ''
+
+if cmp -s "$target.$$" "$target" 2>/dev/null; then
+    rm -- "$target.$$"
+else
+    mv -- "$target.$$" "$target"
+fi
