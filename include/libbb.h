@@ -841,6 +841,19 @@ int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
 #endif
 int BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
 
+/* xvfork() can't be a _function_, return after vfork mangles stack
+ * in the parent. It must be a macro. */
+#define xvfork() \
+({ \
+	pid_t bb__xvfork_pid = vfork(); \
+	if (bb__xvfork_pid < 0) \
+		bb_perror_msg_and_die("vfork"); \
+	bb__xvfork_pid; \
+})
+#if BB_MMU
+pid_t xfork(void) FAST_FUNC;
+#endif
+
 /* NOMMU friendy fork+exec: */
 pid_t spawn(char **argv) FAST_FUNC;
 pid_t xspawn(char **argv) FAST_FUNC;
@@ -886,7 +899,7 @@ int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **
  * Both of the above will redirect fd 0,1,2 to /dev/null and drop ctty
  * (will do setsid()).
  *
- * fork_or_rexec(argv) = bare-bones "fork" on MMU,
+ * fork_or_rexec(argv) = bare-bones fork on MMU,
  *      "vfork + re-exec ourself" on NOMMU. No fd redirection, no setsid().
  *      On MMU ignores argv.
  *
@@ -902,19 +915,19 @@ enum {
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
 };
 #if BB_MMU
-  pid_t fork_or_rexec(void) FAST_FUNC;
   enum { re_execed = 0 };
-# define fork_or_rexec(argv)                fork_or_rexec()
+# define fork_or_rexec(argv)                xfork()
 # define bb_daemonize_or_rexec(flags, argv) bb_daemonize_or_rexec(flags)
 # define bb_daemonize(flags)                bb_daemonize_or_rexec(flags, bogus)
 #else
+  extern bool re_execed;
   void re_exec(char **argv) NORETURN FAST_FUNC;
   pid_t fork_or_rexec(char **argv) FAST_FUNC;
-  extern bool re_execed;
   int  BUG_fork_is_unavailable_on_nommu(void) FAST_FUNC;
   int  BUG_daemon_is_unavailable_on_nommu(void) FAST_FUNC;
   void BUG_bb_daemonize_is_unavailable_on_nommu(void) FAST_FUNC;
 # define fork()          BUG_fork_is_unavailable_on_nommu()
+# define xfork()         BUG_fork_is_unavailable_on_nommu()
 # define daemon(a,b)     BUG_daemon_is_unavailable_on_nommu()
 # define bb_daemonize(a) BUG_bb_daemonize_is_unavailable_on_nommu()
 #endif

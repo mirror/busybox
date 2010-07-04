@@ -612,7 +612,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 	if (noexecute)
 		pid = -1;
 	else if ((pid = fork()) < 0) {
-		perror("fork");
+		perror("vfork"+1);
 		return errno;
 	} else if (pid == 0) {
 		if (!interactive)

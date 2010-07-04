@@ -1271,7 +1271,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 					pid = vfork();
 
 				if (pid < 0) { /* fork error */
-					bb_perror_msg("fork");
+					bb_perror_msg("vfork"+1);
 					sleep(1);
 					restore_sigmask(&omask);
 					maybe_close(accepted_fd);

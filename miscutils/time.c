@@ -372,9 +372,7 @@ static void run_command(char *const *cmd, resource_t *resp)
 	void (*quit_signal)(int);
 
 	resp->elapsed_ms = monotonic_ms();
-	pid = vfork();
-	if (pid < 0)
-		bb_perror_msg_and_die("vfork");
+	pid = xvfork();
 	if (pid == 0) {
 		/* Child */
 		BB_EXECVP_or_die((char**)cmd);

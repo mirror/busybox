@@ -427,9 +427,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (cmd == CMD_START && argv[2]) { /* "start PROG ARGS" */
-		pid_t pid = vfork();
-		if (pid < 0)
-			bb_perror_msg_and_die("vfork");
+		pid_t pid = xvfork();
 		if (pid == 0) { /* child */
 			argv += 2;
 			execvp(argv[0], argv);

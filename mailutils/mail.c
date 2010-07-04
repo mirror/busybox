@@ -54,9 +54,7 @@ void FAST_FUNC launch_helper(const char **argv)
 		+ (1 << SIGALRM)
 		, signal_handler);
 
-	G.helper_pid = vfork();
-	if (G.helper_pid < 0)
-		bb_perror_msg_and_die("vfork");
+	G.helper_pid = xvfork();
 
 	i = (!G.helper_pid) * 2; // for parent:0, for child:2
 	close(pipes[i + 1]); // 1 or 3 - closing one write end

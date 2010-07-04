@@ -82,11 +82,8 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 		memset(tar_env, 0, sizeof(tar_env));
 
 		xpipe(p);
-		pid = BB_MMU ? fork() : vfork();
-		switch (pid) {
-		case -1:
-			bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
-		case 0:
+		pid = BB_MMU ? xfork() : xvfork();
+		if (pid == 0) {
 			/* Child */
 			/* str2env(tar_env, TAR_FILETYPE, "f"); - parent should do it once */
 			oct2env(tar_env, TAR_MODE, file_header->mode);

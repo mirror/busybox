@@ -224,26 +224,12 @@ pid_t FAST_FUNC fork_or_rexec(char **argv)
 	/* Maybe we are already re-execed and come here again? */
 	if (re_execed)
 		return 0;
-	pid = vfork();
-	if (pid < 0) /* wtf? */
-		bb_perror_msg_and_die("vfork");
+	pid = xvfork();
 	if (pid) /* parent */
 		return pid;
 	/* child - re-exec ourself */
 	re_exec(argv);
 }
-#else
-/* Dance around (void)...*/
-#undef fork_or_rexec
-pid_t FAST_FUNC fork_or_rexec(void)
-{
-	pid_t pid;
-	pid = fork();
-	if (pid < 0) /* wtf? */
-		bb_perror_msg_and_die("fork");
-	return pid;
-}
-#define fork_or_rexec(argv) fork_or_rexec()
 #endif
 
 /* Due to a #define in libbb.h on MMU systems we actually have 1 argument -

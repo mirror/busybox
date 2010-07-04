@@ -3208,15 +3208,11 @@ static void setup_heredoc(struct redir_struct *redir)
 #if !BB_MMU
 	to_free = NULL;
 #endif
-	pid = vfork();
-	if (pid < 0)
-		bb_perror_msg_and_die("vfork");
+	pid = xvfork();
 	if (pid == 0) {
 		/* child */
 		disable_restore_tty_pgrp_on_exit();
-		pid = BB_MMU ? fork() : vfork();
-		if (pid < 0)
-			bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
+		pid = BB_MMU ? xfork() : xvfork();
 		if (pid != 0)
 			_exit(0);
 		/* grandchild */
@@ -4450,7 +4446,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		argv_expanded = NULL;
 		if (command->pid < 0) { /* [v]fork failed */
 			/* Clearly indicate, was it fork or vfork */
-			bb_perror_msg(BB_MMU ? "fork" : "vfork");
+			bb_perror_msg(BB_MMU ? "vfork"+1 : "vfork");
 		} else {
 			pi->alive_cmds++;
 #if ENABLE_HUSH_JOB
@@ -5586,10 +5582,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 # endif
 
 	xpipe(channel);
-	pid = BB_MMU ? fork() : vfork();
-	if (pid < 0)
-		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
-
+	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) { /* child */
 		disable_restore_tty_pgrp_on_exit();
 		/* Process substitution is not considered to be usual

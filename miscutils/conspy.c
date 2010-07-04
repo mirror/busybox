@@ -309,10 +309,7 @@ static void create_cdev_if_doesnt_exist(const char* name, dev_t dev)
 
 static NOINLINE void start_shell_in_child(const char* tty_name)
 {
-	int pid = vfork();
-	if (pid < 0) {
-		bb_perror_msg_and_die("vfork");
-	}
+	int pid = xvfork();
 	if (pid == 0) {
 		struct termios termchild;
 		char *shell = getenv("SHELL");

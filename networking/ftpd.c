@@ -632,10 +632,7 @@ popen_ls(const char *opt)
 	xpiped_pair(outfd);
 
 	/*fflush_all(); - so far we dont use stdio on output */
-	pid = BB_MMU ? fork() : vfork();
-	if (pid < 0)
-		bb_perror_msg_and_die(BB_MMU ? "fork" : "vfork");
-
+	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) {
 		/* child */
 #if !BB_MMU

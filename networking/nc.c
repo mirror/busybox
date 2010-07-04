@@ -216,10 +216,8 @@ int nc_main(int argc, char **argv)
 	if (execparam) {
 		pid_t pid;
 		/* With more than one -l, repeatedly act as server */
-		if (do_listen > 1 && (pid = vfork()) != 0) {
-			/* parent or error */
-			if (pid < 0)
-				bb_perror_msg_and_die("vfork");
+		if (do_listen > 1 && (pid = xvfork()) != 0) {
+			/* parent */
 			/* prevent zombies */
 			signal(SIGCHLD, SIG_IGN);
 			close(cfd);

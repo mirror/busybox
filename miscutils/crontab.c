@@ -20,10 +20,8 @@
 static void edit_file(const struct passwd *pas, const char *file)
 {
 	const char *ptr;
-	int pid = vfork();
+	int pid = xvfork();
 
-	if (pid < 0) /* failure */
-		bb_perror_msg_and_die("vfork");
 	if (pid) { /* parent */
 		wait4pid(pid);
 		return;
@@ -51,9 +49,7 @@ static int open_as_user(const struct passwd *pas, const char *file)
 	pid_t pid;
 	char c;
 
-	pid = vfork();
-	if (pid < 0) /* ERROR */
-		bb_perror_msg_and_die("vfork");
+	pid = xvfork();
 	if (pid) { /* PARENT */
 		if (wait4pid(pid) == 0) {
 			/* exitcode 0: child says it can read */

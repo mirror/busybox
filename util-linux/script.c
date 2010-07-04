@@ -88,10 +88,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 
 	/* TODO: SIGWINCH? pass window size changes down to slave? */
 
-	child_pid = vfork();
-	if (child_pid < 0) {
-		bb_perror_msg_and_die("vfork");
-	}
+	child_pid = xvfork();
 
 	if (child_pid) {
 		/* parent */

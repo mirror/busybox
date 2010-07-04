@@ -86,7 +86,7 @@ void exec_kernel_doc(char **svec)
 	fflush(stdout);
 	switch(pid=fork()) {
 		case -1:
-			perror("fork");
+			perror("vfork"+1);
 			exit(1);
 		case  0:
 			rflen  = strlen(getenv("SRCTREE"));
