@@ -195,7 +195,11 @@ void lbb_prepare(const char *applet
 #if ENABLE_FEATURE_INDIVIDUAL
 	/* Redundant for busybox (run_applet_and_exit covers that case)
 	 * but needed for "individual applet" mode */
-	if (argv[1] && !argv[2] && strcmp(argv[1], "--help") == 0) {
+	if (argv[1]
+	 && !argv[2]
+	 && strcmp(argv[1], "--help") == 0
+	 && strncmp(applet, "busybox", 7) != 0
+	) {
 		/* Special case. POSIX says "test --help"
 		 * should be no different from e.g. "test --foo".  */
 		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0)

@@ -99,7 +99,7 @@ SKIP=
 
 # chown on a link was affecting file, dropping its suid/sgid bits
 rm -rf cpio.testdir
-optional FEATURE_CPIO_O
+optional FEATURE_CPIO_O FEATURE_STAT_FORMAT
 mkdir cpio.testdir
 touch cpio.testdir/file
 chmod 6755 cpio.testdir/file  # sets suid/sgid bits

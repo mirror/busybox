@@ -38,6 +38,7 @@ INSERT
 lib-$(CONFIG_AR)                        += get_header_ar.o unpack_ar_archive.o
 lib-$(CONFIG_BUNZIP2)                   += decompress_bunzip2.o
 lib-$(CONFIG_UNLZMA)                    += decompress_unlzma.o
+lib-$(CONFIG_UNXZ)                      += decompress_unxz.o
 lib-$(CONFIG_CPIO)                      += get_header_cpio.o
 lib-$(CONFIG_DPKG)                      += $(DPKG_FILES)
 lib-$(CONFIG_DPKG_DEB)                  += $(DPKG_FILES)

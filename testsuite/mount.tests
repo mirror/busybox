@@ -3,7 +3,6 @@
 # Licensed under GPL v2, see file LICENSE for details.
 
 . ./testing.sh
-
 test -f "$bindir/.config" && . "$bindir/.config"
 
 test "`id -u`" = 0 || {

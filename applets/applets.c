@@ -6,8 +6,6 @@
  *
  * Licensed under GPLv2, see file License in this tarball for details.
  */
-
-#include <assert.h>
 #include "busybox.h"
 
 #if ENABLE_BUILD_LIBBUSYBOX

@@ -117,6 +117,10 @@
  * and therefore waitpid will return the same result as last time)
  */
 #define ENABLE_HUSH_FAST 0
+/* TODO: implement simplified code for users which do not need ${var%...} ops
+ * So far ${var%...} ops are always enabled:
+ */
+#define ENABLE_HUSH_DOLLAR_OPS 1
 
 
 #if BUILD_AS_NOMMU
@@ -2681,7 +2685,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						}
 					}
 				} else if (exp_op == ':') {
-#if ENABLE_HUSH_BASH_COMPAT
+#if ENABLE_HUSH_BASH_COMPAT && ENABLE_SH_MATH_SUPPORT
 	/* It's ${var:N[:M]} bashism.
 	 * Note that in encoded form it has TWO parts:
 	 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
@@ -5820,7 +5824,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* command remains "open", available for possible redirects */
 }
 
-#if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT
+#if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
 static void add_till_backquote(o_string *dest, struct in_str *input);
 /* '...' */
@@ -5921,9 +5925,9 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 {
 	int ch;
 	char dbl = end_ch & DOUBLE_CLOSE_CHAR_FLAG;
-#if ENABLE_HUSH_BASH_COMPAT
+# if ENABLE_HUSH_BASH_COMPAT
 	char end_char2 = end_ch >> 8;
-#endif
+# endif
 	end_ch &= (DOUBLE_CLOSE_CHAR_FLAG - 1);
 
 	while (1) {
@@ -5976,7 +5980,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 	}
 	return ch;
 }
-#endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT */
+#endif /* ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS */
 
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
@@ -6082,7 +6086,11 @@ static int parse_dollar(o_string *as_string,
  again:
 				if (!BB_MMU)
 					pos = dest->length;
+#if ENABLE_HUSH_DOLLAR_OPS
 				last_ch = add_till_closing_bracket(dest, input, end_ch);
+#else
+#error Simple code to only allow ${var} is not implemented
+#endif
 				if (as_string) {
 					o_addstr(as_string, dest->data + pos);
 					o_addchr(as_string, last_ch);

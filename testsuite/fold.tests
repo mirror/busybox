@@ -3,6 +3,7 @@
 # Licensed under GPL v2, see file LICENSE for details.
 
 . ./testing.sh
+test -f "$bindir/.config" && . "$bindir/.config"
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
@@ -28,9 +29,10 @@ be preserved
 is here:>\0< - they must be preserved
 " \
 
-optional UNICODE_SUPPORT
 # The text was taken from English and Ukrainian wikipedia pages
-testing "fold -sw66 with unicode input" "fold -sw66" \
+test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
+&& test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
+&& testing "fold -sw66 with unicode input" "fold -sw66" \
 	"\
 The Andromeda Galaxy (pronounced /ænˈdrɒmədə/, also known as \n\
 Messier 31, M31, or NGC224; often referred to as the Great \n\
@@ -56,6 +58,5 @@ Way.
 спіральна галактика, що знаходиться на відстані приблизно у 2,5 \
 мільйони світлових років від нашої планети у сузір'ї Андромеди. \
 На початку ХХІ ст. в центрі галактики виявлено чорну дірку."
-SKIP=
 
 exit $FAILCOUNT

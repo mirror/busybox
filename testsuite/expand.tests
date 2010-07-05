@@ -3,6 +3,7 @@
 # Licensed under GPL v2, see file LICENSE for details.
 
 . ./testing.sh
+test -f "$bindir/.config" && . "$bindir/.config"
 
 # testing "test name" "options" "expected result" "file input" "stdin"
 
@@ -12,13 +13,13 @@ testing "expand" \
 	"" \
 	"\t12345678\t12345678\n"
 
-optional UNICODE_SUPPORT
+test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
+&& test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
+&& test "$CONFIG_LAST_SUPPORTED_WCHAR" -gt "916" \
 testing "expand with unicode characher 0x394" \
 	"expand" \
 	"Δ       12345ΔΔΔ        12345678\n" \
 	"" \
 	"Δ\t12345ΔΔΔ\t12345678\n"
-SKIP=
-
 
 exit $FAILCOUNT

@@ -3,10 +3,9 @@
 # Licensed under GPL v2, see file LICENSE for details.
 
 . ./testing.sh
-
 test -f "$bindir/.config" && . "$bindir/.config"
 
-rm -rf ls.testdir >/dev/null
+rm -rf ls.testdir 2>/dev/null
 mkdir ls.testdir || exit 1
 
 # testing "test name" "command" "expected result" "file input" "stdin"
@@ -15,9 +14,10 @@ mkdir ls.testdir || exit 1
 # I suspect we might fail to skip exactly correct number of bytes
 # over broked unicode sequences.
 test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
-&& test x"$CONFIG_LOCALE_SUPPORT" != x"y" \
+&& test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"767" \
+&& test x"$CONFIG_FEATURE_LS_SORTFILES" = x"y" \
 && testing "ls unicode test with codepoints limited to 767" \
 "(cd ls.testdir && sh ../ls.mk_uni_tests) && ls -1 ls.testdir" \
 '0001_1__Some_correct_UTF-8_text___________________________________________|
@@ -134,7 +134,7 @@ test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 
 # Currently fails on "0080_4.2.2__U-000007FF_=_e0_9f_bf" line
 test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
-&& test x"$CONFIG_LOCALE_SUPPORT" != x"y" \
+&& test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
 && test x"$CONFIG_SUBST_WCHAR" = x"63" \
 && test x"$CONFIG_LAST_SUPPORTED_WCHAR" = x"0" \
 && testing "ls unicode test with unlimited codepoints" \
