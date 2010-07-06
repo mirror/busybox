@@ -54,8 +54,8 @@ typedef struct CronLine {
 	pid_t cl_Pid;           /* running pid, 0, or armed (-1)        */
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 	int cl_MailPos;         /* 'empty file' size                    */
-	smallint cl_MailFlag;   /* running pid is for mail              */
 	char *cl_MailTo;	/* whom to mail results                 */
+	smallint cl_MailFlag;   /* running pid is for mail              */
 #endif
 	/* ordered by size, not in natural order. makes code smaller: */
 	char cl_Dow[7];         /* 0-6, beginning sunday                */
@@ -166,6 +166,9 @@ static void crondlog(const char *ctl, ...)
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int crond_main(int argc UNUSED_PARAM, char **argv)
 {
+	time_t t2;
+	int rescan;
+	int sleep_time;
 	unsigned opts;
 
 	INIT_G();
@@ -195,62 +198,62 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
 	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", LogLevel);
 	SynchronizeDir();
+	write_pidfile("/var/run/crond.pid");
 
 	/* main loop - synchronize to 1 second after the minute, minimum sleep
 	 * of 1 second. */
-	{
-		time_t t1 = time(NULL);
-		int rescan = 60;
-		int sleep_time = 60;
+	t2 = time(NULL);
+	rescan = 60;
+	sleep_time = 60;
+	for (;;) {
+		time_t t1;
+		long dt;
 
-		write_pidfile("/var/run/crond.pid");
-		for (;;) {
-			time_t t2;
-			long dt;
+		t1 = t2;
+		sleep((sleep_time + 1) - (time(NULL) % sleep_time));
 
-			sleep((sleep_time + 1) - (time(NULL) % sleep_time));
+		t2 = time(NULL);
+		dt = (long)t2 - (long)t1;
 
-			t2 = time(NULL);
-			dt = (long)t2 - (long)t1;
-
-			/*
-			 * The file 'cron.update' is checked to determine new cron
-			 * jobs.  The directory is rescanned once an hour to deal
-			 * with any screwups.
-			 *
-			 * check for disparity.  Disparities over an hour either way
-			 * result in resynchronization.  A reverse-indexed disparity
-			 * less then an hour causes us to effectively sleep until we
-			 * match the original time (i.e. no re-execution of jobs that
-			 * have just been run).  A forward-indexed disparity less then
-			 * an hour causes intermediate jobs to be run, but only once
-			 * in the worst case.
-			 *
-			 * when running jobs, the inequality used is greater but not
-			 * equal to t1, and less then or equal to t2.
-			 */
-			if (--rescan == 0) {
-				rescan = 60;
-				SynchronizeDir();
+		/*
+		 * The file 'cron.update' is checked to determine new cron
+		 * jobs.  The directory is rescanned once an hour to deal
+		 * with any screwups.
+		 *
+		 * Check for time jump.  Disparities over an hour either way
+		 * result in resynchronization.  A negative disparity
+		 * less than an hour causes us to effectively sleep until we
+		 * match the original time (i.e. no re-execution of jobs that
+		 * have just been run).  A positive disparity less than
+		 * an hour causes intermediate jobs to be run, but only once
+		 * in the worst case.
+		 *
+		 * When running jobs, the inequality used is greater but not
+		 * equal to t1, and less then or equal to t2.
+		 */
+		if (--rescan == 0) {
+			rescan = 60;
+			SynchronizeDir();
+		}
+		CheckUpdates();
+		if (DebugOpt)
+			crondlog(LVL5 "wakeup dt=%ld", dt);
+		if (dt < -60 * 60 || dt > 60 * 60) {
+			crondlog(WARN9 "time disparity of %ld minutes detected", dt / 60);
+			/* and we do not run any jobs in this case */
+		} else if (dt > 0) {
+			/* Usual case: time advances forwad, as expected */
+			TestJobs(t1, t2);
+			RunJobs();
+			sleep(5);
+			if (CheckJobs() > 0) {
+				sleep_time = 10;
+			} else {
+				sleep_time = 60;
 			}
-			CheckUpdates();
-			if (DebugOpt)
-				crondlog(LVL5 "wakeup dt=%ld", dt);
-			if (dt < -60 * 60 || dt > 60 * 60) {
-				crondlog(WARN9 "time disparity of %ld minutes detected", dt / 60);
-			} else if (dt > 0) {
-				TestJobs(t1, t2);
-				RunJobs();
-				sleep(5);
-				if (CheckJobs() > 0) {
-					sleep_time = 10;
-				} else {
-					sleep_time = 60;
-				}
-			}
-			t1 = t2;
-		} /* for (;;) */
-	}
+		}
+		/* else: time jumped back, do not run any jobs */
+	} /* for (;;) */
 
 	return 0; /* not reached */
 }
@@ -277,7 +280,7 @@ static void SetEnv(struct passwd *pas)
 	safe_setenv(&env_var_user, "USER", pas->pw_name);
 	safe_setenv(&env_var_home, "HOME", pas->pw_dir);
 	/* if we want to set user's shell instead: */
-	/*safe_setenv(env_var_user, "SHELL", pas->pw_shell);*/
+	/*safe_setenv(env_var_shell, "SHELL", pas->pw_shell);*/
 #else
 	xsetenv("USER", pas->pw_name);
 	xsetenv("HOME", pas->pw_dir);
@@ -597,10 +600,10 @@ static void SynchronizeDir(void)
 }
 
 /*
- *  DeleteFile() - delete user database
+ * DeleteFile() - delete user database
  *
- *  Note: multiple entries for same user may exist if we were unable to
- *  completely delete a database due to running processes.
+ * Note: multiple entries for same user may exist if we were unable to
+ * completely delete a database due to running processes.
  */
 static void DeleteFile(const char *userName)
 {
@@ -806,14 +809,14 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 		if (mail_filename) {
 			unlink(mail_filename);
 		}
-	} else if (mail_filename) {
-		/* PARENT, FORK SUCCESS
-		 * rename mail-file based on pid of process
-		 */
-		char mailFile2[128];
-
-		snprintf(mailFile2, sizeof(mailFile2), "%s/cron.%s.%d", TMPDIR, user, pid);
-		rename(mail_filename, mailFile2); // TODO: xrename?
+	} else {
+		/* PARENT, FORK SUCCESS */
+		if (mail_filename) {
+			/* rename mail-file based on pid of process */
+			char *mailFile2 = xasprintf("%s/cron.%s.%d", TMPDIR, user, (int)pid);
+			rename(mail_filename, mailFile2); // TODO: xrename?
+			free(mailFile2);
+		}
 	}
 
 	/*
