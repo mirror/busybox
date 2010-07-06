@@ -237,7 +237,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	struct tar_header_t header;
 
 	memset(&header, 0, sizeof(header));
- 
+
 	strncpy(header.name, header_name, sizeof(header.name));
 
 	/* POSIX says to mask mode with 07777. */
