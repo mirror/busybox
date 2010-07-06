@@ -33,8 +33,7 @@ testing "unexpand case 8" "unexpand" \
 
 test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
-&& test "$CONFIG_LAST_SUPPORTED_WCHAR" -gt "916" \
-testing "unexpand with unicode characher 0x394" "unexpand" \
+&& testing "unexpand with unicode characher 0x394" "unexpand" \
 	"1ΔΔΔ5\t99999\n" "" "1ΔΔΔ5   99999\n"
 
 exit $FAILCOUNT

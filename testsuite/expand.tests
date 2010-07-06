@@ -15,8 +15,7 @@ testing "expand" \
 
 test x"$CONFIG_UNICODE_SUPPORT" = x"y" \
 && test x"$CONFIG_UNICODE_USING_LOCALE" != x"y" \
-&& test "$CONFIG_LAST_SUPPORTED_WCHAR" -gt "916" \
-testing "expand with unicode characher 0x394" \
+&& testing "expand with unicode characher 0x394" \
 	"expand" \
 	"Δ       12345ΔΔΔ        12345678\n" \
 	"" \
