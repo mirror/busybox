@@ -87,6 +87,7 @@ enum {
 
 struct globals {
 	unsigned LogLevel; /* = 8; */
+	time_t CDir_mtime;
 	const char *LogFile;
 	const char *CDir; /* = CRONTABS; */
 	CronFile *FileBase;
@@ -96,15 +97,9 @@ struct globals {
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define LogLevel           (G.LogLevel               )
-#define LogFile            (G.LogFile                )
-#define CDir               (G.CDir                   )
-#define FileBase           (G.FileBase               )
-#define env_var_user       (G.env_var_user           )
-#define env_var_home       (G.env_var_home           )
 #define INIT_G() do { \
-	LogLevel = 8; \
-	CDir = CRONTABS; \
+	G.LogLevel = 8; \
+	G.CDir = CRONTABS; \
 } while (0)
 
 
@@ -124,12 +119,12 @@ static void crondlog(const char *ctl, ...)
 	int level = (ctl[0] & 0x1f);
 
 	va_start(va, ctl);
-	if (level >= (int)LogLevel) {
+	if (level >= (int)G.LogLevel) {
 		/* Debug mode: all to (non-redirected) stderr, */
 		/* Syslog mode: all to syslog (logmode = LOGMODE_SYSLOG), */
-		if (!DebugOpt && LogFile) {
+		if (!DebugOpt && G.LogFile) {
 			/* Otherwise (log to file): we reopen log file at every write: */
-			int logfd = open3_or_warn(LogFile, O_WRONLY | O_CREAT | O_APPEND, 0666);
+			int logfd = open3_or_warn(G.LogFile, O_WRONLY | O_CREAT | O_APPEND, 0666);
 			if (logfd >= 0)
 				xmove_fd(logfd, STDERR_FILENO);
 		}
@@ -168,10 +163,10 @@ static void safe_setenv(char **pvar_val, const char *var, const char *val)
 static void SetEnv(struct passwd *pas)
 {
 #if SETENV_LEAKS
-	safe_setenv(&env_var_user, "USER", pas->pw_name);
-	safe_setenv(&env_var_home, "HOME", pas->pw_dir);
+	safe_setenv(&G.env_var_user, "USER", pas->pw_name);
+	safe_setenv(&G.env_var_home, "HOME", pas->pw_dir);
 	/* if we want to set user's shell instead: */
-	/*safe_setenv(env_var_shell, "SHELL", pas->pw_shell);*/
+	/*safe_setenv(G.env_var_shell, "SHELL", pas->pw_shell);*/
 #else
 	xsetenv("USER", pas->pw_name);
 	xsetenv("HOME", pas->pw_dir);
@@ -308,7 +303,7 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 		return;
 	}
 
-	if (DebugOpt && (LogLevel <= 5)) { /* like LVL5 */
+	if (DebugOpt && (G.LogLevel <= 5)) { /* like LVL5 */
 		/* can't use crondlog, it inserts '\n' */
 		int i;
 		for (i = 0; i < modvalue; ++i)
@@ -351,7 +346,7 @@ static void FixDayDow(CronLine *line)
  */
 static void DeleteFile(const char *userName)
 {
-	CronFile **pfile = &FileBase;
+	CronFile **pfile = &G.FileBase;
 	CronFile *file;
 
 	while ((file = *pfile) != NULL) {
@@ -462,8 +457,8 @@ static void SynchronizeFile(const char *fileName)
 		}
 		*pline = NULL;
 
-		file->cf_Next = FileBase;
-		FileBase = file;
+		file->cf_Next = G.FileBase;
+		G.FileBase = file;
 
 		if (maxLines == 0) {
 			crondlog(WARN9 "user %s: too many lines", fileName);
@@ -493,7 +488,7 @@ static void SynchronizeDir(void)
 	CronFile *file;
 	/* Attempt to delete the database. */
  again:
-	for (file = FileBase; file; file = file->cf_Next) {
+	for (file = G.FileBase; file; file = file->cf_Next) {
 		if (!file->cf_Deleted) {
 			DeleteFile(file->cf_User);
 			goto again;
@@ -509,8 +504,8 @@ static void SynchronizeDir(void)
 	 * scan directory and add associated users
 	 */
 	unlink(CRONUPDATE);
-	if (chdir(CDir) < 0) {
-		crondlog(DIE9 "chdir(%s)", CDir);
+	if (chdir(G.CDir) < 0) {
+		crondlog(DIE9 "chdir(%s)", G.CDir);
 	}
 	{
 		DIR *dir = opendir(".");
@@ -537,9 +532,8 @@ static void SynchronizeDir(void)
  * period is about a minute (one scan).  Worst case it will be one
  * hour (60 scans).
  */
-static int TestJobs(time_t t1, time_t t2)
+static void TestJobs(time_t t1, time_t t2)
 {
-	int nJobs = 0;
 	time_t t;
 
 	/* Find jobs > t1 and <= t2 */
@@ -553,7 +547,7 @@ static int TestJobs(time_t t1, time_t t2)
 			continue;
 
 		ptm = localtime(&t);
-		for (file = FileBase; file; file = file->cf_Next) {
+		for (file = G.FileBase; file; file = file->cf_Next) {
 			if (DebugOpt)
 				crondlog(LVL5 "file %s:", file->cf_User);
 			if (file->cf_Deleted)
@@ -575,13 +569,11 @@ static int TestJobs(time_t t1, time_t t2)
 					} else if (line->cl_Pid == 0) {
 						line->cl_Pid = -1;
 						file->cf_Ready = 1;
-						++nJobs;
 					}
 				}
 			}
 		}
 	}
-	return nJobs;
 }
 
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
@@ -650,7 +642,7 @@ static int CheckJobs(void)
 	CronLine *line;
 	int nStillRunning = 0;
 
-	for (file = FileBase; file; file = file->cf_Next) {
+	for (file = G.FileBase; file; file = file->cf_Next) {
 		if (file->cf_Running) {
 			file->cf_Running = 0;
 
@@ -819,7 +811,7 @@ static void RunJobs(void)
 	CronFile *file;
 	CronLine *line;
 
-	for (file = FileBase; file; file = file->cf_Next) {
+	for (file = G.FileBase; file; file = file->cf_Next) {
 		if (!file->cf_Ready)
 			continue;
 
@@ -854,9 +846,9 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "f-b:b-f:S-L:L-S" IF_FEATURE_CROND_D(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
 	opts = getopt32(argv, "l:L:fbSc:" IF_FEATURE_CROND_D("d:"),
-			&LogLevel, &LogFile, &CDir
-			IF_FEATURE_CROND_D(,&LogLevel));
-	/* both -d N and -l N set the same variable: LogLevel */
+			&G.LogLevel, &G.LogFile, &G.CDir
+			IF_FEATURE_CROND_D(,&G.LogLevel));
+	/* both -d N and -l N set the same variable: G.LogLevel */
 
 	if (!(opts & OPT_f)) {
 		/* close stdin, stdout, stderr.
@@ -864,30 +856,32 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 	}
 
-	if (!(opts & OPT_d) && LogFile == NULL) {
+	if (!(opts & OPT_d) && G.LogFile == NULL) {
 		/* logging to syslog */
 		openlog(applet_name, LOG_CONS | LOG_PID, LOG_CRON);
 		logmode = LOGMODE_SYSLOG;
 	}
 
-	xchdir(CDir);
+	xchdir(G.CDir);
 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
-	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", LogLevel);
+	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", G.LogLevel);
 	SynchronizeDir();
 	write_pidfile("/var/run/crond.pid");
 
-	/* main loop - synchronize to 1 second after the minute, minimum sleep
-	 * of 1 second. */
+	/* Main loop */
 	t2 = time(NULL);
 	rescan = 60;
 	sleep_time = 60;
 	for (;;) {
+		struct stat sbuf;
 		time_t t1;
 		long dt;
 
 		t1 = t2;
-		sleep((sleep_time + 1) - (time(NULL) % sleep_time));
+
+		/* Synchronize to 1 minute, minimum 1 second */
+		sleep(sleep_time - (time(NULL) % sleep_time) + 1);
 
 		t2 = time(NULL);
 		dt = (long)t2 - (long)t1;
@@ -908,6 +902,10 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		 * When running jobs, the inequality used is greater but not
 		 * equal to t1, and less then or equal to t2.
 		 */
+		if (stat(G.CDir, &sbuf) == 0 && G.CDir_mtime != sbuf.st_mtime) {
+			G.CDir_mtime = sbuf.st_mtime;
+			rescan = 1;
+		}
 		if (--rescan == 0) {
 			rescan = 60;
 			SynchronizeDir();
@@ -919,10 +917,9 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 			crondlog(WARN9 "time disparity of %ld minutes detected", dt / 60);
 			/* and we do not run any jobs in this case */
 		} else if (dt > 0) {
-			/* Usual case: time advances forwad, as expected */
+			/* Usual case: time advances forward, as expected */
 			TestJobs(t1, t2);
 			RunJobs();
-			sleep(5);
 			if (CheckJobs() > 0) {
 				sleep_time = 10;
 			} else {
