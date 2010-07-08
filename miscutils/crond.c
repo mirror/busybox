@@ -40,33 +40,33 @@
 
 
 typedef struct CronFile {
-	struct CronFile *cf_Next;
-	struct CronLine *cf_LineBase;
-	char *cf_User;                  /* username                     */
-	smallint cf_Ready;              /* bool: one or more jobs ready */
-	smallint cf_Running;            /* bool: one or more jobs running */
-	smallint cf_Deleted;            /* marked for deletion, ignore  */
+	struct CronFile *cf_next;
+	struct CronLine *cf_lines;
+	char *cf_username;
+	smallint cf_wants_starting;     /* bool: one or more jobs ready */
+	smallint cf_has_running;        /* bool: one or more jobs running */
+	smallint cf_deleted;            /* marked for deletion (but still has running jobs) */
 } CronFile;
 
 typedef struct CronLine {
-	struct CronLine *cl_Next;
-	char *cl_Shell;         /* shell command                        */
-	pid_t cl_Pid;           /* running pid, 0, or armed (-1)        */
+	struct CronLine *cl_next;
+	char *cl_cmd;                   /* shell command */
+	pid_t cl_pid;                   /* >0:running, <0:needs to be started in this minute, 0:dormant */
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
-	int cl_MailPos;         /* 'empty file' size                    */
-	char *cl_MailTo;	/* whom to mail results                 */
-	smallint cl_MailFlag;   /* running pid is for mail              */
+	int cl_empty_mail_size;         /* size of mail header only */
+	char *cl_mailto;                /* whom to mail results, may be NULL */
+	smallint cl_mail_result;        /* mail file is created, need to send it on completion */
 #endif
 	/* ordered by size, not in natural order. makes code smaller: */
-	char cl_Dow[7];         /* 0-6, beginning sunday                */
-	char cl_Mons[12];       /* 0-11                                 */
-	char cl_Hrs[24];        /* 0-23                                 */
-	char cl_Days[32];       /* 1-31                                 */
-	char cl_Mins[60];       /* 0-59                                 */
+	char cl_Dow[7];                 /* 0-6, beginning sunday */
+	char cl_Mons[12];               /* 0-11 */
+	char cl_Hrs[24];                /* 0-23 */
+	char cl_Days[32];               /* 1-31 */
+	char cl_Mins[60];               /* 0-59 */
 } CronLine;
 
 
-#define DaemonUid 0
+#define DAEMON_UID 0
 
 
 enum {
@@ -79,18 +79,18 @@ enum {
 	OPT_d = (1 << 6) * ENABLE_FEATURE_CROND_D,
 };
 #if ENABLE_FEATURE_CROND_D
-#define DebugOpt (option_mask32 & OPT_d)
+# define DebugOpt (option_mask32 & OPT_d)
 #else
-#define DebugOpt 0
+# define DebugOpt 0
 #endif
 
 
 struct globals {
-	unsigned LogLevel; /* = 8; */
-	time_t CDir_mtime;
-	const char *LogFile;
-	const char *CDir; /* = CRONTABS; */
-	CronFile *FileBase;
+	unsigned log_level; /* = 8; */
+	time_t crontab_dir_mtime;
+	const char *log_filename;
+	const char *crontab_dir_name; /* = CRONTABS; */
+	CronFile *cron_files;
 #if SETENV_LEAKS
 	char *env_var_user;
 	char *env_var_home;
@@ -98,8 +98,8 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
-	G.LogLevel = 8; \
-	G.CDir = CRONTABS; \
+	G.log_level = 8; \
+	G.crontab_dir_name = CRONTABS; \
 } while (0)
 
 
@@ -119,12 +119,12 @@ static void crondlog(const char *ctl, ...)
 	int level = (ctl[0] & 0x1f);
 
 	va_start(va, ctl);
-	if (level >= (int)G.LogLevel) {
+	if (level >= (int)G.log_level) {
 		/* Debug mode: all to (non-redirected) stderr, */
 		/* Syslog mode: all to syslog (logmode = LOGMODE_SYSLOG), */
-		if (!DebugOpt && G.LogFile) {
+		if (!DebugOpt && G.log_filename) {
 			/* Otherwise (log to file): we reopen log file at every write: */
-			int logfd = open3_or_warn(G.LogFile, O_WRONLY | O_CREAT | O_APPEND, 0666);
+			int logfd = open3_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
 			if (logfd >= 0)
 				xmove_fd(logfd, STDERR_FILENO);
 		}
@@ -142,49 +142,6 @@ static void crondlog(const char *ctl, ...)
 	va_end(va);
 	if (ctl[0] & 0x80)
 		exit(20);
-}
-
-#if SETENV_LEAKS
-/* We set environment *before* vfork (because we want to use vfork),
- * so we cannot use setenv() - repeated calls to setenv() may leak memory!
- * Using putenv(), and freeing memory after unsetenv() won't leak */
-static void safe_setenv(char **pvar_val, const char *var, const char *val)
-{
-	char *var_val = *pvar_val;
-
-	if (var_val) {
-		bb_unsetenv_and_free(var_val);
-	}
-	*pvar_val = xasprintf("%s=%s", var, val);
-	putenv(*pvar_val);
-}
-#endif
-
-static void SetEnv(struct passwd *pas)
-{
-#if SETENV_LEAKS
-	safe_setenv(&G.env_var_user, "USER", pas->pw_name);
-	safe_setenv(&G.env_var_home, "HOME", pas->pw_dir);
-	/* if we want to set user's shell instead: */
-	/*safe_setenv(G.env_var_shell, "SHELL", pas->pw_shell);*/
-#else
-	xsetenv("USER", pas->pw_name);
-	xsetenv("HOME", pas->pw_dir);
-#endif
-	/* currently, we use constant one: */
-	/*setenv("SHELL", DEFAULT_SHELL, 1); - done earlier */
-}
-
-static void ChangeUser(struct passwd *pas)
-{
-	/* careful: we're after vfork! */
-	change_identity(pas); /* - initgroups, setgid, setuid */
-	if (chdir(pas->pw_dir) < 0) {
-		crondlog(WARN9 "chdir(%s)", pas->pw_dir);
-		if (chdir(TMPDIR) < 0) {
-			crondlog(DIE9 "chdir(%s)", TMPDIR); /* exits */
-		}
-	}
 }
 
 static const char DowAry[] ALIGN1 =
@@ -303,7 +260,7 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 		return;
 	}
 
-	if (DebugOpt && (G.LogLevel <= 5)) { /* like LVL5 */
+	if (DebugOpt && (G.log_level <= 5)) { /* like LVL5 */
 		/* can't use crondlog, it inserts '\n' */
 		int i;
 		for (i = 0; i < modvalue; ++i)
@@ -339,48 +296,57 @@ static void FixDayDow(CronLine *line)
 }
 
 /*
- * DeleteFile() - delete user database
+ * delete_cronfile() - delete user database
  *
  * Note: multiple entries for same user may exist if we were unable to
  * completely delete a database due to running processes.
  */
-static void DeleteFile(const char *userName)
+//FIXME: we will start a new job even if the old job is running
+//if crontab was reloaded: crond thinks that "new" job is different from "old"
+//even if they are in fact completely the same. Example
+//Crontab was:
+// 0-59 * * * job1
+// 0-59 * * * long_running_job2
+//User edits crontab to:
+// 0-59 * * * job1_updated
+// 0-59 * * * long_running_job2
+//Bug: crond can now start another long_running_job2 even if old one
+//is still running.
+static void delete_cronfile(const char *userName)
 {
-	CronFile **pfile = &G.FileBase;
+	CronFile **pfile = &G.cron_files;
 	CronFile *file;
 
 	while ((file = *pfile) != NULL) {
-		if (strcmp(userName, file->cf_User) == 0) {
-			CronLine **pline = &file->cf_LineBase;
+		if (strcmp(userName, file->cf_username) == 0) {
+			CronLine **pline = &file->cf_lines;
 			CronLine *line;
 
-			file->cf_Running = 0;
-			file->cf_Deleted = 1;
+			file->cf_has_running = 0;
+			file->cf_deleted = 1;
 
 			while ((line = *pline) != NULL) {
-				if (line->cl_Pid > 0) {
-					file->cf_Running = 1;
-					pline = &line->cl_Next;
+				if (line->cl_pid > 0) {
+					file->cf_has_running = 1;
+					pline = &line->cl_next;
 				} else {
-					*pline = line->cl_Next;
-					free(line->cl_Shell);
+					*pline = line->cl_next;
+					free(line->cl_cmd);
 					free(line);
 				}
 			}
-			if (file->cf_Running == 0) {
-				*pfile = file->cf_Next;
-				free(file->cf_User);
+			if (file->cf_has_running == 0) {
+				*pfile = file->cf_next;
+				free(file->cf_username);
 				free(file);
-			} else {
-				pfile = &file->cf_Next;
+				continue;
 			}
-		} else {
-			pfile = &file->cf_Next;
 		}
+		pfile = &file->cf_next;
 	}
 }
 
-static void SynchronizeFile(const char *fileName)
+static void load_crontab(const char *fileName)
 {
 	struct parser_t *parser;
 	struct stat sbuf;
@@ -390,23 +356,26 @@ static void SynchronizeFile(const char *fileName)
 	char *mailTo = NULL;
 #endif
 
-	if (!fileName)
-		return;
+	delete_cronfile(fileName);
 
-	DeleteFile(fileName);
+	if (!getpwnam(fileName)) {
+		crondlog(LVL7 "ignoring file '%s' (no such user)", fileName);
+		return;
+	}
+
 	parser = config_open(fileName);
 	if (!parser)
 		return;
 
 	maxLines = (strcmp(fileName, "root") == 0) ? 65535 : MAXLINES;
 
-	if (fstat(fileno(parser->fp), &sbuf) == 0 && sbuf.st_uid == DaemonUid) {
+	if (fstat(fileno(parser->fp), &sbuf) == 0 && sbuf.st_uid == DAEMON_UID) {
 		CronFile *file = xzalloc(sizeof(CronFile));
 		CronLine **pline;
 		int n;
 
-		file->cf_User = xstrdup(fileName);
-		pline = &file->cf_LineBase;
+		file->cf_username = xstrdup(fileName);
+		pline = &file->cf_lines;
 
 		while (1) {
 			CronLine *line;
@@ -433,11 +402,11 @@ static void SynchronizeFile(const char *fileName)
 				continue;
 			*pline = line = xzalloc(sizeof(*line));
 			/* parse date ranges */
-			ParseField(file->cf_User, line->cl_Mins, 60, 0, NULL, tokens[0]);
-			ParseField(file->cf_User, line->cl_Hrs, 24, 0, NULL, tokens[1]);
-			ParseField(file->cf_User, line->cl_Days, 32, 0, NULL, tokens[2]);
-			ParseField(file->cf_User, line->cl_Mons, 12, -1, MonAry, tokens[3]);
-			ParseField(file->cf_User, line->cl_Dow, 7, 0, DowAry, tokens[4]);
+			ParseField(file->cf_username, line->cl_Mins, 60, 0, NULL, tokens[0]);
+			ParseField(file->cf_username, line->cl_Hrs, 24, 0, NULL, tokens[1]);
+			ParseField(file->cf_username, line->cl_Days, 32, 0, NULL, tokens[2]);
+			ParseField(file->cf_username, line->cl_Mons, 12, -1, MonAry, tokens[3]);
+			ParseField(file->cf_username, line->cl_Dow, 7, 0, DowAry, tokens[4]);
 			/*
 			 * fix days and dow - if one is not "*" and the other
 			 * is "*", the other is set to 0, and vise-versa
@@ -445,20 +414,20 @@ static void SynchronizeFile(const char *fileName)
 			FixDayDow(line);
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 			/* copy mailto (can be NULL) */
-			line->cl_MailTo = xstrdup(mailTo);
+			line->cl_mailto = xstrdup(mailTo);
 #endif
 			/* copy command */
-			line->cl_Shell = xstrdup(tokens[5]);
+			line->cl_cmd = xstrdup(tokens[5]);
 			if (DebugOpt) {
 				crondlog(LVL5 " command:%s", tokens[5]);
 			}
-			pline = &line->cl_Next;
+			pline = &line->cl_next;
 //bb_error_msg("M[%s]F[%s][%s][%s][%s][%s][%s]", mailTo, tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5]);
 		}
 		*pline = NULL;
 
-		file->cf_Next = G.FileBase;
-		G.FileBase = file;
+		file->cf_next = G.cron_files;
+		G.cron_files = file;
 
 		if (maxLines == 0) {
 			crondlog(WARN9 "user %s: too many lines", fileName);
@@ -467,7 +436,7 @@ static void SynchronizeFile(const char *fileName)
 	config_close(parser);
 }
 
-static void CheckUpdates(void)
+static void process_cron_update_file(void)
 {
 	FILE *fi;
 	char buf[256];
@@ -477,36 +446,34 @@ static void CheckUpdates(void)
 		unlink(CRONUPDATE);
 		while (fgets(buf, sizeof(buf), fi) != NULL) {
 			/* use first word only */
-			SynchronizeFile(strtok(buf, " \t\r\n"));
+			skip_non_whitespace(buf)[0] = '\0';
+			load_crontab(buf);
 		}
 		fclose(fi);
 	}
 }
 
-static void SynchronizeDir(void)
+static void rescan_crontab_dir(void)
 {
 	CronFile *file;
-	/* Attempt to delete the database. */
+
+	/* Delete all files until we only have ones with running jobs (or none) */
  again:
-	for (file = G.FileBase; file; file = file->cf_Next) {
-		if (!file->cf_Deleted) {
-			DeleteFile(file->cf_User);
+	for (file = G.cron_files; file; file = file->cf_next) {
+		if (!file->cf_deleted) {
+			delete_cronfile(file->cf_username);
 			goto again;
 		}
 	}
 
-	/*
-	 * Remove cron update file
-	 *
-	 * Re-chdir, in case directory was renamed & deleted, or otherwise
-	 * screwed up.
-	 *
-	 * scan directory and add associated users
-	 */
+	/* Remove cron update file */
 	unlink(CRONUPDATE);
-	if (chdir(G.CDir) < 0) {
-		crondlog(DIE9 "chdir(%s)", G.CDir);
+	/* Re-chdir, in case directory was renamed & deleted */
+	if (chdir(G.crontab_dir_name) < 0) {
+		crondlog(DIE9 "chdir(%s)", G.crontab_dir_name);
 	}
+
+	/* Scan directory and add associated users */
 	{
 		DIR *dir = opendir(".");
 		struct dirent *den;
@@ -517,162 +484,62 @@ static void SynchronizeDir(void)
 			if (strchr(den->d_name, '.') != NULL) {
 				continue;
 			}
-			if (getpwnam(den->d_name)) {
-				SynchronizeFile(den->d_name);
-			} else {
-				crondlog(LVL7 "ignoring %s", den->d_name);
-			}
+			load_crontab(den->d_name);
 		}
 		closedir(dir);
 	}
 }
 
-/*
- * Determine which jobs need to be run.  Under normal conditions, the
- * period is about a minute (one scan).  Worst case it will be one
- * hour (60 scans).
- */
-static void TestJobs(time_t t1, time_t t2)
+#if SETENV_LEAKS
+/* We set environment *before* vfork (because we want to use vfork),
+ * so we cannot use setenv() - repeated calls to setenv() may leak memory!
+ * Using putenv(), and freeing memory after unsetenv() won't leak */
+static void safe_setenv(char **pvar_val, const char *var, const char *val)
 {
-	time_t t;
+	char *var_val = *pvar_val;
 
-	/* Find jobs > t1 and <= t2 */
-
-	for (t = t1 - t1 % 60; t <= t2; t += 60) {
-		struct tm *ptm;
-		CronFile *file;
-		CronLine *line;
-
-		if (t <= t1)
-			continue;
-
-		ptm = localtime(&t);
-		for (file = G.FileBase; file; file = file->cf_Next) {
-			if (DebugOpt)
-				crondlog(LVL5 "file %s:", file->cf_User);
-			if (file->cf_Deleted)
-				continue;
-			for (line = file->cf_LineBase; line; line = line->cl_Next) {
-				if (DebugOpt)
-					crondlog(LVL5 " line %s", line->cl_Shell);
-				if (line->cl_Mins[ptm->tm_min] && line->cl_Hrs[ptm->tm_hour]
-				 && (line->cl_Days[ptm->tm_mday] || line->cl_Dow[ptm->tm_wday])
-				 && line->cl_Mons[ptm->tm_mon]
-				) {
-					if (DebugOpt) {
-						crondlog(LVL5 " job: %d %s",
-							(int)line->cl_Pid, line->cl_Shell);
-					}
-					if (line->cl_Pid > 0) {
-						crondlog(LVL8 "user %s: process already running: %s",
-							file->cf_User, line->cl_Shell);
-					} else if (line->cl_Pid == 0) {
-						line->cl_Pid = -1;
-						file->cf_Ready = 1;
-					}
-				}
-			}
-		}
+	if (var_val) {
+		bb_unsetenv_and_free(var_val);
 	}
+	*pvar_val = xasprintf("%s=%s", var, val);
+	putenv(*pvar_val);
 }
-
-#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
-static void
-ForkJob(const char *user, CronLine *line, int mailFd,
-		const char *prog, const char *cmd, const char *arg,
-		const char *mail_filename);
-/*
- * EndJob - called when job terminates and when mail terminates
- */
-static void EndJob(const char *user, CronLine *line)
-{
-	int mailFd;
-	char mailFile[128];
-	struct stat sbuf;
-
-	/* No job */
-	if (line->cl_Pid <= 0) {
-		line->cl_Pid = 0;
-		return;
-	}
-
-	/*
-	 * End of job and no mail file
-	 * End of sendmail job
-	 */
-	snprintf(mailFile, sizeof(mailFile), "%s/cron.%s.%d", TMPDIR, user, line->cl_Pid);
-	line->cl_Pid = 0;
-
-	if (line->cl_MailFlag == 0) {
-		return;
-	}
-	line->cl_MailFlag = 0;
-
-	/*
-	 * End of primary job - check for mail file.  If size has increased and
-	 * the file is still valid, we sendmail it.
-	 */
-	mailFd = open(mailFile, O_RDONLY);
-	unlink(mailFile);
-	if (mailFd < 0) {
-		return;
-	}
-
-	if (fstat(mailFd, &sbuf) < 0 || sbuf.st_uid != DaemonUid
-	 || sbuf.st_nlink != 0 || sbuf.st_size == line->cl_MailPos
-	 || !S_ISREG(sbuf.st_mode)
-	) {
-		close(mailFd);
-		return;
-	}
-	if (line->cl_MailTo)
-		ForkJob(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
-}
-#else
-# define EndJob(user, line)  ((line)->cl_Pid = 0)
 #endif
 
-/*
- * Check for job completion, return number of jobs still running after
- * all done.
- */
-static int CheckJobs(void)
+static void set_env_vars(struct passwd *pas)
 {
-	CronFile *file;
-	CronLine *line;
-	int nStillRunning = 0;
-
-	for (file = G.FileBase; file; file = file->cf_Next) {
-		if (file->cf_Running) {
-			file->cf_Running = 0;
-
-			for (line = file->cf_LineBase; line; line = line->cl_Next) {
-				int status, r;
-				if (line->cl_Pid <= 0)
-					continue;
-
-				r = waitpid(line->cl_Pid, &status, WNOHANG);
-				if (r < 0 || r == line->cl_Pid) {
-					EndJob(file->cf_User, line);
-					if (line->cl_Pid) {
-						file->cf_Running = 1;
-					}
-				} else if (r == 0) {
-					file->cf_Running = 1;
-				}
-			}
-		}
-		nStillRunning += file->cf_Running;
-	}
-	return nStillRunning;
+#if SETENV_LEAKS
+	safe_setenv(&G.env_var_user, "USER", pas->pw_name);
+	safe_setenv(&G.env_var_home, "HOME", pas->pw_dir);
+	/* if we want to set user's shell instead: */
+	/*safe_setenv(G.env_var_shell, "SHELL", pas->pw_shell);*/
+#else
+	xsetenv("USER", pas->pw_name);
+	xsetenv("HOME", pas->pw_dir);
+#endif
+	/* currently, we use constant one: */
+	/*setenv("SHELL", DEFAULT_SHELL, 1); - done earlier */
 }
 
-#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
+static void change_user(struct passwd *pas)
+{
+	/* careful: we're after vfork! */
+	change_identity(pas); /* - initgroups, setgid, setuid */
+	if (chdir(pas->pw_dir) < 0) {
+		crondlog(WARN9 "chdir(%s)", pas->pw_dir);
+		if (chdir(TMPDIR) < 0) {
+			crondlog(DIE9 "chdir(%s)", TMPDIR); /* exits */
+		}
+	}
+}
 
 // TODO: sendmail should be _run-time_ option, not compile-time!
+#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 
+//TODO: return pid (and stop passing line);
+// stop passing mail_filename here but process it in caller
 static void
-ForkJob(const char *user, CronLine *line, int mailFd,
+fork_job(const char *user, CronLine *line, int mailFd,
 		const char *prog, const char *cmd, const char *arg,
 		const char *mail_filename)
 {
@@ -685,13 +552,13 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 		crondlog(WARN9 "can't get uid for %s", user);
 		goto err;
 	}
-	SetEnv(pas);
+	set_env_vars(pas);
 
 	pid = vfork();
 	if (pid == 0) {
 		/* CHILD */
-		/* change running state to the user in question */
-		ChangeUser(pas);
+		/* initgroups, setgid, setuid, and chdir to home or TMPDIR */
+		change_user(pas);
 		if (DebugOpt) {
 			crondlog(LVL5 "child running %s", prog);
 		}
@@ -709,12 +576,12 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 		_exit(EXIT_SUCCESS);
 	}
 
-	line->cl_Pid = pid;
+	line->cl_pid = pid;
 	if (pid < 0) {
 		/* FORK FAILED */
 		crondlog(ERR20 "can't vfork");
  err:
-		line->cl_Pid = 0;
+		line->cl_pid = 0;
 		if (mail_filename) {
 			unlink(mail_filename);
 		}
@@ -737,62 +604,108 @@ ForkJob(const char *user, CronLine *line, int mailFd,
 	}
 }
 
-static void RunJob(const char *user, CronLine *line)
+static void start_one_job(const char *user, CronLine *line)
 {
 	char mailFile[128];
 	int mailFd = -1;
 
-	line->cl_Pid = 0;
-	line->cl_MailFlag = 0;
+	line->cl_pid = 0;
+	line->cl_mail_result = 0;
 
-	if (line->cl_MailTo) {
-		/* open mail file - owner root so nobody can screw with it. */
+	if (line->cl_mailto) {
+		/* Open mail file (owner is root so nobody can screw with it) */
 		snprintf(mailFile, sizeof(mailFile), "%s/cron.%s.%d", TMPDIR, user, getpid());
 		mailFd = open(mailFile, O_CREAT | O_TRUNC | O_WRONLY | O_EXCL | O_APPEND, 0600);
 
 		if (mailFd >= 0) {
-			line->cl_MailFlag = 1;
-			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", line->cl_MailTo,
-				line->cl_Shell);
-			line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
+			line->cl_mail_result = 1;
+			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", line->cl_mailto,
+				line->cl_cmd);
+			line->cl_empty_mail_size = lseek(mailFd, 0, SEEK_CUR);
 		} else {
 			crondlog(ERR20 "can't create mail file %s for user %s, "
 					"discarding output", mailFile, user);
 		}
 	}
 
-	ForkJob(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_Shell, mailFile);
+	fork_job(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_cmd, mailFile);
+}
+
+/*
+ * process_finished_job - called when job terminates and when mail terminates
+ */
+static void process_finished_job(const char *user, CronLine *line)
+{
+	pid_t pid;
+	int mailFd;
+	char mailFile[128];
+	struct stat sbuf;
+
+	pid = line->cl_pid;
+	line->cl_pid = 0;
+	if (pid <= 0) {
+		/* No job */
+		return;
+	}
+	if (line->cl_mail_result == 0) {
+		/* End of job and no mail file, or end of sendmail job */
+		return;
+	}
+	line->cl_mail_result = 0;
+
+	/*
+	 * End of primary job - check for mail file.
+	 * If size has changed and the file is still valid, we send it.
+	 */
+	snprintf(mailFile, sizeof(mailFile), "%s/cron.%s.%d", TMPDIR, user, (int)pid);
+	mailFd = open(mailFile, O_RDONLY);
+	unlink(mailFile);
+	if (mailFd < 0) {
+		return;
+	}
+
+	if (fstat(mailFd, &sbuf) < 0
+	 || sbuf.st_uid != DAEMON_UID
+	 || sbuf.st_nlink != 0
+	 || sbuf.st_size == line->cl_empty_mail_size
+	 || !S_ISREG(sbuf.st_mode)
+	) {
+		close(mailFd);
+		return;
+	}
+	/* if (line->cl_mailto) - always true if cl_mail_result was true */
+		fork_job(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
 }
 
 #else /* !ENABLE_FEATURE_CROND_CALL_SENDMAIL */
 
-static void RunJob(const char *user, CronLine *line)
+static void start_one_job(const char *user, CronLine *line)
 {
 	struct passwd *pas;
 	pid_t pid;
 
-	/* prepare things before vfork */
 	pas = getpwnam(user);
 	if (!pas) {
 		crondlog(WARN9 "can't get uid for %s", user);
 		goto err;
 	}
-	SetEnv(pas);
 
-	/* fork as the user in question and run program */
+	/* Prepare things before vfork */
+	set_env_vars(pas);
+
+	/* Fork as the user in question and run program */
 	pid = vfork();
 	if (pid == 0) {
 		/* CHILD */
-		/* change running state to the user in question */
-		ChangeUser(pas);
+		/* initgroups, setgid, setuid, and chdir to home or TMPDIR */
+		change_user(pas);
 		if (DebugOpt) {
 			crondlog(LVL5 "child running %s", DEFAULT_SHELL);
 		}
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
-		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_Shell, (char *) NULL);
-		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user,
-				 DEFAULT_SHELL, "-c", line->cl_Shell);
+		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_cmd, (char *) NULL);
+		crondlog(ERR20 "can't execute '%s' for user %s", DEFAULT_SHELL, user);
 		_exit(EXIT_SUCCESS);
 	}
 	if (pid < 0) {
@@ -801,35 +714,130 @@ static void RunJob(const char *user, CronLine *line)
  err:
 		pid = 0;
 	}
-	line->cl_Pid = pid;
+	line->cl_pid = pid;
 }
+
+#define process_finished_job(user, line)  ((line)->cl_pid = 0)
 
 #endif /* !ENABLE_FEATURE_CROND_CALL_SENDMAIL */
 
-static void RunJobs(void)
+/*
+ * Determine which jobs need to be run.  Under normal conditions, the
+ * period is about a minute (one scan).  Worst case it will be one
+ * hour (60 scans).
+ */
+static void flag_starting_jobs(time_t t1, time_t t2)
+{
+	time_t t;
+
+	/* Find jobs > t1 and <= t2 */
+
+	for (t = t1 - t1 % 60; t <= t2; t += 60) {
+		struct tm *ptm;
+		CronFile *file;
+		CronLine *line;
+
+		if (t <= t1)
+			continue;
+
+		ptm = localtime(&t);
+		for (file = G.cron_files; file; file = file->cf_next) {
+			if (DebugOpt)
+				crondlog(LVL5 "file %s:", file->cf_username);
+			if (file->cf_deleted)
+				continue;
+			for (line = file->cf_lines; line; line = line->cl_next) {
+				if (DebugOpt)
+					crondlog(LVL5 " line %s", line->cl_cmd);
+				if (line->cl_Mins[ptm->tm_min]
+				 && line->cl_Hrs[ptm->tm_hour]
+				 && (line->cl_Days[ptm->tm_mday] || line->cl_Dow[ptm->tm_wday])
+				 && line->cl_Mons[ptm->tm_mon]
+				) {
+					if (DebugOpt) {
+						crondlog(LVL5 " job: %d %s",
+							(int)line->cl_pid, line->cl_cmd);
+					}
+					if (line->cl_pid > 0) {
+						crondlog(LVL8 "user %s: process already running: %s",
+							file->cf_username, line->cl_cmd);
+					} else if (line->cl_pid == 0) {
+						line->cl_pid = -1;
+						file->cf_wants_starting = 1;
+					}
+				}
+			}
+		}
+	}
+}
+
+static void start_jobs(void)
 {
 	CronFile *file;
 	CronLine *line;
 
-	for (file = G.FileBase; file; file = file->cf_Next) {
-		if (!file->cf_Ready)
+	for (file = G.cron_files; file; file = file->cf_next) {
+		if (!file->cf_wants_starting)
 			continue;
 
-		file->cf_Ready = 0;
-		for (line = file->cf_LineBase; line; line = line->cl_Next) {
-			if (line->cl_Pid >= 0)
+		file->cf_wants_starting = 0;
+		for (line = file->cf_lines; line; line = line->cl_next) {
+			pid_t pid;
+			if (line->cl_pid >= 0)
 				continue;
 
-			RunJob(file->cf_User, line);
+			start_one_job(file->cf_username, line);
+			pid = line->cl_pid;
 			crondlog(LVL8 "USER %s pid %3d cmd %s",
-				file->cf_User, (int)line->cl_Pid, line->cl_Shell);
-			if (line->cl_Pid < 0) {
-				file->cf_Ready = 1;
-			} else if (line->cl_Pid > 0) {
-				file->cf_Running = 1;
+				file->cf_username, (int)pid, line->cl_cmd);
+			if (pid < 0) {
+				file->cf_wants_starting = 1;
+			}
+			if (pid > 0) {
+				file->cf_has_running = 1;
 			}
 		}
 	}
+}
+
+/*
+ * Check for job completion, return number of jobs still running after
+ * all done.
+ */
+static int check_completions(void)
+{
+	CronFile *file;
+	CronLine *line;
+	int num_still_running = 0;
+
+	for (file = G.cron_files; file; file = file->cf_next) {
+		if (!file->cf_has_running)
+			continue;
+
+		file->cf_has_running = 0;
+		for (line = file->cf_lines; line; line = line->cl_next) {
+			int r;
+
+			if (line->cl_pid <= 0)
+				continue;
+
+			r = waitpid(line->cl_pid, NULL, WNOHANG);
+			if (r < 0 || r == line->cl_pid) {
+				process_finished_job(file->cf_username, line);
+				if (line->cl_pid == 0) {
+					/* sendmail was not started for it */
+					continue;
+				}
+				/* else: sendmail was started, job is still running, fall thru */
+			}
+			/* else: r == 0: "process is still running" */
+			file->cf_has_running = 1;
+		}
+//FIXME: if !file->cf_has_running && file->deleted: delete it!
+//otherwise deleted entries will stay forever, right?
+		num_still_running += file->cf_has_running;
+	}
+	return num_still_running;
 }
 
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -846,9 +854,9 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "f-b:b-f:S-L:L-S" IF_FEATURE_CROND_D(":d-l")
 			":l+:d+"; /* -l and -d have numeric param */
 	opts = getopt32(argv, "l:L:fbSc:" IF_FEATURE_CROND_D("d:"),
-			&G.LogLevel, &G.LogFile, &G.CDir
-			IF_FEATURE_CROND_D(,&G.LogLevel));
-	/* both -d N and -l N set the same variable: G.LogLevel */
+			&G.log_level, &G.log_filename, &G.crontab_dir_name
+			IF_FEATURE_CROND_D(,&G.log_level));
+	/* both -d N and -l N set the same variable: G.log_level */
 
 	if (!(opts & OPT_f)) {
 		/* close stdin, stdout, stderr.
@@ -856,17 +864,17 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 	}
 
-	if (!(opts & OPT_d) && G.LogFile == NULL) {
+	if (!(opts & OPT_d) && G.log_filename == NULL) {
 		/* logging to syslog */
 		openlog(applet_name, LOG_CONS | LOG_PID, LOG_CRON);
 		logmode = LOGMODE_SYSLOG;
 	}
 
-	xchdir(G.CDir);
+	xchdir(G.crontab_dir_name);
 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
-	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", G.LogLevel);
-	SynchronizeDir();
+	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", G.log_level);
+	rescan_crontab_dir();
 	write_pidfile("/var/run/crond.pid");
 
 	/* Main loop */
@@ -902,15 +910,17 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		 * When running jobs, the inequality used is greater but not
 		 * equal to t1, and less then or equal to t2.
 		 */
-		if (stat(G.CDir, &sbuf) == 0 && G.CDir_mtime != sbuf.st_mtime) {
-			G.CDir_mtime = sbuf.st_mtime;
+		if (stat(G.crontab_dir_name, &sbuf) != 0)
+			sbuf.st_mtime = 0; /* force update (once) if dir was deleted */
+		if (G.crontab_dir_mtime != sbuf.st_mtime) {
+			G.crontab_dir_mtime = sbuf.st_mtime;
 			rescan = 1;
 		}
 		if (--rescan == 0) {
 			rescan = 60;
-			SynchronizeDir();
+			rescan_crontab_dir();
 		}
-		CheckUpdates();
+		process_cron_update_file();
 		if (DebugOpt)
 			crondlog(LVL5 "wakeup dt=%ld", dt);
 		if (dt < -60 * 60 || dt > 60 * 60) {
@@ -918,9 +928,10 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 			/* and we do not run any jobs in this case */
 		} else if (dt > 0) {
 			/* Usual case: time advances forward, as expected */
-			TestJobs(t1, t2);
-			RunJobs();
-			if (CheckJobs() > 0) {
+			flag_starting_jobs(t1, t2);
+			start_jobs();
+			if (check_completions() > 0) {
+				/* some jobs are still running */
 				sleep_time = 10;
 			} else {
 				sleep_time = 60;
