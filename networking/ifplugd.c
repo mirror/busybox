@@ -79,6 +79,7 @@ enum { // api mode
 	API_WLAN	= 'w',
 	API_IFF		= 'i',
 };
+static const char api_modes[] ALIGN1 = "aempwi";
 
 enum { // interface status
 	IFSTATUS_ERR = -1,
@@ -95,6 +96,7 @@ struct globals {
 	smallint iface_last_status;
 	smallint iface_prev_status;
 	smallint iface_exists;
+	smallint api_method_num;
 
 	/* Used in getopt32, must have sizeof == sizeof(int) */
 	unsigned poll_time;
@@ -107,7 +109,6 @@ struct globals {
 	const char *extra_arg;
 
 	smallint (*detect_link_func)(void);
-	smallint (*cached_detect_link_func)(void);
 };
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -239,8 +240,8 @@ static void maybe_up_new_iface(void)
 			G.iface, buf, driver_info.driver, driver_info.version);
 	}
 #endif
-
-	G.cached_detect_link_func = NULL;
+	if (G.api_method_num == 0)
+		G.detect_link_func = NULL;
 }
 
 static smallint detect_link_mii(void)
@@ -348,7 +349,7 @@ static smallint detect_link_wlan(void)
 	return IFSTATUS_UP;
 }
 
-static smallint detect_link_auto(void)
+static smallint detect_link(void)
 {
 	static const struct {
 		const char *name;
@@ -360,32 +361,6 @@ static smallint detect_link_auto(void)
 		{ "wireless extension", &detect_link_wlan    },
 		{ "IFF_RUNNING"       , &detect_link_iff     },
 	};
-	int i;
-	smallint iface_status;
-	smallint sv_logmode;
-
-	if (G.cached_detect_link_func) {
-		iface_status = G.cached_detect_link_func();
-		if (iface_status != IFSTATUS_ERR)
-			return iface_status;
-	}
-
-	sv_logmode = logmode;
-	for (i = 0; i < ARRAY_SIZE(method); i++) {
-		logmode = LOGMODE_NONE;
-		iface_status = method[i].func();
-		logmode = sv_logmode;
-		if (iface_status != IFSTATUS_ERR) {
-			G.cached_detect_link_func = method[i].func;
-			bb_error_msg("using %s detection mode", method[i].name);
-			break;
-		}
-	}
-	return iface_status;
-}
-
-static smallint detect_link(void)
-{
 	smallint status;
 
 	if (!G.iface_exists)
@@ -398,20 +373,38 @@ static smallint detect_link(void)
 	if (!(option_mask32 & FLAG_NO_AUTO))
 		up_iface();
 
+	if (!G.detect_link_func) {
+		if (G.api_method_num == 0) {
+			int i;
+			smallint sv_logmode;
+
+			sv_logmode = logmode;
+			for (i = 0; i < ARRAY_SIZE(method); i++) {
+				logmode = LOGMODE_NONE;
+				status = method[i].func();
+				logmode = sv_logmode;
+				if (status != IFSTATUS_ERR) {
+					G.detect_link_func = method[i].func;
+					bb_error_msg("using %s detection mode", method[i].name);
+					goto _2;
+				}
+			}
+			goto _1;
+		}
+		G.detect_link_func = method[G.api_method_num - 1].func;
+	}
+
 	status = G.detect_link_func();
+ _1:
 	if (status == IFSTATUS_ERR) {
 		if (option_mask32 & FLAG_IGNORE_FAIL)
 			status = IFSTATUS_DOWN;
-		if (option_mask32 & FLAG_IGNORE_FAIL_POSITIVE)
+		else if (option_mask32 & FLAG_IGNORE_FAIL_POSITIVE)
 			status = IFSTATUS_UP;
+		else if (G.api_method_num == 0)
+			bb_error_msg("can't detect link status");
 	}
-
-	if (status == IFSTATUS_ERR
-	 && G.detect_link_func == detect_link_auto
-	) {
-		bb_error_msg("can't detect link status");
-	}
-
+ _2:
 	if (status != G.iface_last_status) {
 		G.iface_prev_status = G.iface_last_status;
 		G.iface_last_status = status;
@@ -523,6 +516,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	const char *iface_status_str;
 	struct pollfd netlink_pollfd[1];
 	unsigned opts;
+	const char *api_mode_found;
 #if ENABLE_FEATURE_PIDFILE
 	char *pidfile_name;
 	pid_t pid_from_pidfile;
@@ -551,29 +545,10 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	if (pid_from_pidfile > 0 && kill(pid_from_pidfile, 0) == 0)
 		bb_error_msg_and_die("daemon already running");
 #endif
-
-	switch (G.api_mode[0]) {
-	case API_AUTO:
-		G.detect_link_func = detect_link_auto;
-		break;
-	case API_ETHTOOL:
-		G.detect_link_func = detect_link_ethtool;
-		break;
-	case API_MII:
-		G.detect_link_func = detect_link_mii;
-		break;
-	case API_PRIVATE:
-		G.detect_link_func = detect_link_priv;
-		break;
-	case API_WLAN:
-		G.detect_link_func = detect_link_wlan;
-		break;
-	case API_IFF:
-		G.detect_link_func = detect_link_iff;
-		break;
-	default:
+	api_mode_found = strchr(api_modes, G.api_mode[0]);
+	if (!api_mode_found)
 		bb_error_msg_and_die("unknown API mode '%s'", G.api_mode);
-	}
+	G.api_method_num = api_mode_found - api_modes;
 
 	if (!(opts & FLAG_NO_DAEMON))
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
