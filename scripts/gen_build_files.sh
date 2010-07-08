@@ -4,6 +4,8 @@ test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 # cd to objtree
 cd -- "$2" || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
+# In separate objtree build, include/ might not exist yet
+mkdir include 2>/dev/null
 
 srctree="$1"
 
@@ -46,10 +48,12 @@ if test x"$new" != x"$old"; then
 fi
 
 # (Re)generate */Kbuild and */Config.in
-find -type d | while read -r d; do
+{ cd -- "$srctree" && find -type d; } | while read -r d; do
 	d="${d#./}"
+
 	src="$srctree/$d/Kbuild.src"
 	dst="$d/Kbuild"
+	mkdir -p -- "$d" 2>/dev/null
 	if test -f "$src"; then
 		#echo "  CHK     $dst"
 
@@ -69,6 +73,7 @@ find -type d | while read -r d; do
 
 	src="$srctree/$d/Config.src"
 	dst="$d/Config.in"
+	mkdir -p -- "$d" 2>/dev/null
 	if test -f "$src"; then
 		#echo "  CHK     $dst"
 
