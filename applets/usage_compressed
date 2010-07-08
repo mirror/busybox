@@ -40,8 +40,4 @@ echo '#define PACKED_USAGE \'
 	-e 's/$/ \\/'
 echo ''
 
-if cmp -s "$target.$$" "$target" 2>/dev/null; then
-    rm -- "$target.$$"
-else
-    mv -- "$target.$$" "$target"
-fi
+mv -- "$target.$$" "$target"
