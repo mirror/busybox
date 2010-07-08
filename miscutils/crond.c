@@ -29,7 +29,7 @@
 # define SENDMAIL       "sendmail"
 #endif
 #ifndef SENDMAIL_ARGS
-# define SENDMAIL_ARGS  "-ti", NULL
+# define SENDMAIL_ARGS  "-ti"
 #endif
 #ifndef CRONUPDATE
 # define CRONUPDATE     "cron.update"
@@ -53,9 +53,8 @@ typedef struct CronLine {
 	char *cl_cmd;                   /* shell command */
 	pid_t cl_pid;                   /* >0:running, <0:needs to be started in this minute, 0:dormant */
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
-	int cl_empty_mail_size;         /* size of mail header only */
+	int cl_empty_mail_size;         /* size of mail header only, 0 if no mailfile */
 	char *cl_mailto;                /* whom to mail results, may be NULL */
-	smallint cl_mail_result;        /* mail file is created, need to send it on completion */
 #endif
 	/* ordered by size, not in natural order. makes code smaller: */
 	char cl_Dow[7];                 /* 0-6, beginning sunday */
@@ -536,13 +535,11 @@ static void change_user(struct passwd *pas)
 // TODO: sendmail should be _run-time_ option, not compile-time!
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 
-//TODO: return pid (and stop passing line);
-// stop passing mail_filename here but process it in caller
-static void
-fork_job(const char *user, CronLine *line, int mailFd,
-		const char *prog, const char *cmd, const char *arg,
-		const char *mail_filename)
-{
+static pid_t
+fork_job(const char *user, int mailFd,
+		const char *prog,
+		const char *shell_cmd /* if NULL, we run sendmail */
+) {
 	struct passwd *pas;
 	pid_t pid;
 
@@ -563,37 +560,25 @@ fork_job(const char *user, CronLine *line, int mailFd,
 			crondlog(LVL5 "child running %s", prog);
 		}
 		if (mailFd >= 0) {
-			xmove_fd(mailFd, mail_filename ? 1 : 0);
+			xmove_fd(mailFd, shell_cmd ? 1 : 0);
 			dup2(1, 2);
 		}
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
-		execlp(prog, prog, cmd, arg, (char *) NULL);
-		crondlog(ERR20 "can't exec, user %s cmd %s %s %s", user, prog, cmd, arg);
-		if (mail_filename) {
-			fdprintf(1, "Exec failed: %s -c %s\n", prog, arg);
+		execlp(prog, prog, (shell_cmd ? "-c" : SENDMAIL_ARGS), shell_cmd, (char *) NULL);
+		crondlog(ERR20 "can't execute '%s' for user %s", prog, user);
+		if (shell_cmd) {
+			fdprintf(1, "Exec failed: %s -c %s\n", prog, shell_cmd);
 		}
 		_exit(EXIT_SUCCESS);
 	}
 
-	line->cl_pid = pid;
 	if (pid < 0) {
 		/* FORK FAILED */
 		crondlog(ERR20 "can't vfork");
  err:
-		line->cl_pid = 0;
-		if (mail_filename) {
-			unlink(mail_filename);
-		}
-	} else {
-		/* PARENT, FORK SUCCESS */
-		if (mail_filename) {
-			/* rename mail-file based on pid of process */
-			char *mailFile2 = xasprintf("%s/cron.%s.%d", TMPDIR, user, (int)pid);
-			rename(mail_filename, mailFile2); // TODO: xrename?
-			free(mailFile2);
-		}
-	}
+		pid = 0;
+	} /* else: PARENT, FORK SUCCESS */
 
 	/*
 	 * Close the mail file descriptor.. we can't just leave it open in
@@ -602,6 +587,7 @@ fork_job(const char *user, CronLine *line, int mailFd,
 	if (mailFd >= 0) {
 		close(mailFd);
 	}
+	return pid;
 }
 
 static void start_one_job(const char *user, CronLine *line)
@@ -610,7 +596,7 @@ static void start_one_job(const char *user, CronLine *line)
 	int mailFd = -1;
 
 	line->cl_pid = 0;
-	line->cl_mail_result = 0;
+	line->cl_empty_mail_size = 0;
 
 	if (line->cl_mailto) {
 		/* Open mail file (owner is root so nobody can screw with it) */
@@ -618,7 +604,6 @@ static void start_one_job(const char *user, CronLine *line)
 		mailFd = open(mailFile, O_CREAT | O_TRUNC | O_WRONLY | O_EXCL | O_APPEND, 0600);
 
 		if (mailFd >= 0) {
-			line->cl_mail_result = 1;
 			fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", line->cl_mailto,
 				line->cl_cmd);
 			line->cl_empty_mail_size = lseek(mailFd, 0, SEEK_CUR);
@@ -628,7 +613,17 @@ static void start_one_job(const char *user, CronLine *line)
 		}
 	}
 
-	fork_job(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_cmd, mailFile);
+	line->cl_pid = fork_job(user, mailFd, DEFAULT_SHELL, line->cl_cmd);
+	if (mailFd >= 0) {
+		if (line->cl_pid <= 0) {
+			unlink(mailFile);
+		} else {
+			/* rename mail-file based on pid of process */
+			char *mailFile2 = xasprintf("%s/cron.%s.%d", TMPDIR, user, (int)line->cl_pid);
+			rename(mailFile, mailFile2); // TODO: xrename?
+			free(mailFile2);
+		}
+	}
 }
 
 /*
@@ -647,11 +642,10 @@ static void process_finished_job(const char *user, CronLine *line)
 		/* No job */
 		return;
 	}
-	if (line->cl_mail_result == 0) {
+	if (line->cl_empty_mail_size <= 0) {
 		/* End of job and no mail file, or end of sendmail job */
 		return;
 	}
-	line->cl_mail_result = 0;
 
 	/*
 	 * End of primary job - check for mail file.
@@ -673,8 +667,9 @@ static void process_finished_job(const char *user, CronLine *line)
 		close(mailFd);
 		return;
 	}
-	/* if (line->cl_mailto) - always true if cl_mail_result was true */
-		fork_job(user, line, mailFd, SENDMAIL, SENDMAIL_ARGS, NULL);
+	line->cl_empty_mail_size = 0;
+	/* if (line->cl_mailto) - always true if cl_empty_mail_size was nonzero */
+		line->cl_pid = fork_job(user, mailFd, SENDMAIL, NULL);
 }
 
 #else /* !ENABLE_FEATURE_CROND_CALL_SENDMAIL */
