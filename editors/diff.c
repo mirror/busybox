@@ -761,9 +761,9 @@ static int FAST_FUNC add_to_dirlist(const char *filename,
 {
 	struct dlist *const l = userdata;
 	const char *file = filename + l->len;
-	l->dl = xrealloc_vector(l->dl, 6, l->e);
 	while(*file == '/')
 		file++;
+	l->dl = xrealloc_vector(l->dl, 6, l->e);
 	l->dl[l->e] = xstrdup(file);
 	l->e++;
 	return TRUE;
