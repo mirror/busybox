@@ -760,9 +760,11 @@ static int FAST_FUNC add_to_dirlist(const char *filename,
 		void *userdata, int depth UNUSED_PARAM)
 {
 	struct dlist *const l = userdata;
+	const char *file = filename + l->len;
 	l->dl = xrealloc_vector(l->dl, 6, l->e);
-	/* + 1 skips "/" after dirname */
-	l->dl[l->e] = xstrdup(filename + l->len + 1);
+	while(*file == '/')
+		file++;
+	l->dl[l->e] = xstrdup(file);
 	l->e++;
 	return TRUE;
 }
