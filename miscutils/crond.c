@@ -304,13 +304,15 @@ static void FixDayDow(CronLine *line)
 //if crontab was reloaded: crond thinks that "new" job is different from "old"
 //even if they are in fact completely the same. Example
 //Crontab was:
-// 0-59 * * * job1
-// 0-59 * * * long_running_job2
+// 0-59 * * * * job1
+// 0-59 * * * * long_running_job2
 //User edits crontab to:
-// 0-59 * * * job1_updated
-// 0-59 * * * long_running_job2
+// 0-59 * * * * job1_updated
+// 0-59 * * * * long_running_job2
 //Bug: crond can now start another long_running_job2 even if old one
 //is still running.
+//OTOH most other versions of cron do not wait for job termination anyway,
+//they end up with multiple copies of jobs if they don't terminate soon enough.
 static void delete_cronfile(const char *userName)
 {
 	CronFile **pfile = &G.cron_files;
