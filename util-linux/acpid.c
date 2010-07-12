@@ -9,9 +9,25 @@
 #include "libbb.h"
 
 #include <linux/input.h>
-#ifndef SW_RFKILL_ALL
-# define SW_RFKILL_ALL 3
+#ifndef EV_SW
+# define EV_SW         0x05
 #endif
+#ifndef EV_KEY
+# define EV_KEY        0x01
+#endif
+#ifndef SW_LID
+# define SW_LID        0x00
+#endif
+#ifndef SW_RFKILL_ALL
+# define SW_RFKILL_ALL 0x03
+#endif
+#ifndef KEY_POWER
+# define KEY_POWER     116     /* SC System Power Down */
+#endif
+#ifndef KEY_SLEEP
+# define KEY_SLEEP     142     /* SC System Sleep */
+#endif
+
 
 /*
  * acpid listens to ACPI events coming either in textual form
