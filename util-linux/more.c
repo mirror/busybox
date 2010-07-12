@@ -31,7 +31,7 @@ struct globals {
 
 #define setTermSettings(fd, argp) do { \
 		if (ENABLE_FEATURE_USE_TERMIOS) tcsetattr(fd, TCSANOW, argp); \
-	} while(0)
+	} while (0)
 #define getTermSettings(fd, argp) tcgetattr(fd, argp)
 
 static void gotsig(int sig UNUSED_PARAM)
@@ -46,7 +46,7 @@ static void gotsig(int sig UNUSED_PARAM)
 int more_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int more_main(int argc UNUSED_PARAM, char **argv)
 {
-	int c = c; /* for gcc */
+	int c = c; /* for compiler */
 	int lines;
 	int input = 0;
 	int spaces = 0;
