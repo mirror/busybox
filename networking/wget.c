@@ -50,7 +50,7 @@ static void progress_meter(int flag)
 	}
 
 	bb_progress_update(&G.pmt, G.curfile, G.beg_range, G.transferred,
-			   G.chunked ? 0 : G.content_len + G.beg_range);
+			   G.chunked ? 0 : G.beg_range + G.transferred + G.content_len);
 
 	if (flag == 0) {
 		/* last call to progress_meter */
