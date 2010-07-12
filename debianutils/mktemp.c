@@ -50,7 +50,8 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "dqtp:", &path);
 
 	chp = argv[optind] ? argv[optind] : xstrdup("tmp.XXXXXX");
-	chp = concat_path_file(path, chp);
+	if (chp[0] != '/' || (opts & 8))
+		chp = concat_path_file(path, chp);
 
 	if (opts & 1) { /* -d */
 		if (mkdtemp(chp) == NULL)
