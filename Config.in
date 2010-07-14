@@ -138,6 +138,7 @@ config UNICODE_USING_LOCALE
 	help
 	  With this option on, Unicode support is implemented using libc
 	  routines. Otherwise, internal implementation is used.
+	  Internal implementation is smaller.
 
 config FEATURE_CHECK_UNICODE_IN_ENV
 	bool "Check $LANG environment variable"
