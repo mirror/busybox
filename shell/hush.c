@@ -3713,11 +3713,17 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 {
 	char **new_env;
 
-	/* Case when we are here: ... | var=val | ... */
-	if (!argv[assignment_cnt])
-		_exit(EXIT_SUCCESS);
-
 	new_env = expand_assignments(argv, assignment_cnt);
+
+	if (!argv[assignment_cnt]) {
+		/* Case when we are here: ... | var=val | ...
+		 * (note that we do not exit early, i.e., do not optimize out
+		 * expand_assignments(): think about ... | var=`sleep 1` | ...
+		 */
+		free_strings(new_env);
+		_exit(EXIT_SUCCESS);
+	}
+
 #if BB_MMU
 	set_vars_and_save_old(new_env);
 	free(new_env); /* optional */
@@ -3727,6 +3733,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	nommu_save->new_env = new_env;
 	nommu_save->old_vars = set_vars_and_save_old(new_env);
 #endif
+
 	if (argv_expanded) {
 		argv = argv_expanded;
 	} else {
@@ -4145,8 +4152,9 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
 static NOINLINE int run_pipe(struct pipe *pi)
 {
 	static const char *const null_ptr = NULL;
-	int i;
-	int nextin;
+
+	int cmd_no;
+	int next_infd;
 	struct command *command;
 	char **argv_expanded;
 	char **argv;
@@ -4160,7 +4168,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 	IF_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
-	command = &(pi->cmds[0]);
+	command = &pi->cmds[0];
 	argv_expanded = NULL;
 
 	if (pi->num_cmds != 1
@@ -4358,9 +4366,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 	/* Going to fork a child per each pipe member */
 	pi->alive_cmds = 0;
-	nextin = 0;
+	next_infd = 0;
 
-	for (i = 0; i < pi->num_cmds; i++) {
+	cmd_no = 0;
+	while (cmd_no < pi->num_cmds) {
 		struct fd_pair pipefds;
 #if !BB_MMU
 		volatile nommu_save_t nommu_save;
@@ -4369,7 +4378,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		nommu_save.argv = NULL;
 		nommu_save.argv_from_re_execing = NULL;
 #endif
-		command = &(pi->cmds[i]);
+		command = &pi->cmds[cmd_no];
+		cmd_no++;
 		if (command->argv) {
 			debug_printf_exec(": pipe member '%s' '%s'...\n",
 					command->argv[0], command->argv[1]);
@@ -4380,7 +4390,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		/* pipes are inserted between pairs of commands */
 		pipefds.rd = 0;
 		pipefds.wr = 1;
-		if ((i + 1) < pi->num_cmds)
+		if (cmd_no < pi->num_cmds)
 			xpiped_pair(pipefds);
 
 		command->pid = BB_MMU ? fork() : vfork();
@@ -4413,7 +4423,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				if (open(bb_dev_null, O_RDONLY))
 					xopen("/", O_RDONLY);
 			} else {
-				xmove_fd(nextin, 0);
+				xmove_fd(next_infd, 0);
 			}
 			xmove_fd(pipefds.wr, 1);
 			if (pipefds.rd > 1)
@@ -4460,12 +4470,12 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #endif
 		}
 
-		if (i)
-			close(nextin);
-		if ((i + 1) < pi->num_cmds)
+		if (cmd_no > 1)
+			close(next_infd);
+		if (cmd_no < pi->num_cmds)
 			close(pipefds.wr);
 		/* Pass read (output) pipe end to next iteration */
-		nextin = pipefds.rd;
+		next_infd = pipefds.rd;
 	}
 
 	if (!pi->alive_cmds) {
@@ -7153,7 +7163,7 @@ int hush_main(int argc, char **argv)
 #endif
 		case 'n':
 		case 'x':
-			if (!set_mode('-', opt))
+			if (set_mode('-', opt) == 0) /* no error */
 				break;
 		default:
 #ifndef BB_VER
