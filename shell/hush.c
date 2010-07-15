@@ -4328,9 +4328,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				}
 #endif
 			}
-#if ENABLE_FEATURE_SH_STANDALONE
  clean_up_and_ret:
-#endif
 			restore_redirects(squirrel);
 			unset_vars(new_env);
 			add_vars(old_vars);
@@ -4342,20 +4340,20 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			return rcode;
 		}
 
-#if ENABLE_FEATURE_SH_STANDALONE
-		i = find_applet_by_name(argv_expanded[0]);
-		if (i >= 0 && APPLET_IS_NOFORK(i)) {
-			rcode = setup_redirects(command, squirrel);
-			if (rcode == 0) {
-				new_env = expand_assignments(argv, command->assignment_cnt);
-				old_vars = set_vars_and_save_old(new_env);
-				debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
-					argv_expanded[0], argv_expanded[1]);
-				rcode = run_nofork_applet(i, argv_expanded);
+		if (ENABLE_FEATURE_SH_STANDALONE) {
+			int n = find_applet_by_name(argv_expanded[0]);
+			if (n >= 0 && APPLET_IS_NOFORK(n)) {
+				rcode = setup_redirects(command, squirrel);
+				if (rcode == 0) {
+					new_env = expand_assignments(argv, command->assignment_cnt);
+					old_vars = set_vars_and_save_old(new_env);
+					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
+						argv_expanded[0], argv_expanded[1]);
+					rcode = run_nofork_applet(n, argv_expanded);
+				}
+				goto clean_up_and_ret;
 			}
-			goto clean_up_and_ret;
 		}
-#endif
 		/* It is neither builtin nor applet. We must fork. */
 	}
 
