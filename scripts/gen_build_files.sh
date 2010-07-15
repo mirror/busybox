@@ -53,8 +53,8 @@ fi
 
 	src="$srctree/$d/Kbuild.src"
 	dst="$d/Kbuild"
-	mkdir -p -- "$d" 2>/dev/null
 	if test -f "$src"; then
+		mkdir -p -- "$d" 2>/dev/null
 		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//kbuild:@@p' -- "$srctree/$d"/*.c`
@@ -73,8 +73,8 @@ fi
 
 	src="$srctree/$d/Config.src"
 	dst="$d/Config.in"
-	mkdir -p -- "$d" 2>/dev/null
 	if test -f "$src"; then
+		mkdir -p -- "$d" 2>/dev/null
 		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//config:@@p' -- "$srctree/$d"/*.c`
