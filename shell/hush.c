@@ -4246,7 +4246,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 				argv++;
 			}
-			/* Redirect error sets $? to 1. Othervise,
+			/* Redirect error sets $? to 1. Otherwise,
 			 * if evaluating assignment value set $?, retain it.
 			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
 			if (rcode == 0)
