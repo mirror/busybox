@@ -70,6 +70,123 @@
 # error "Do not even bother, ash will not run on NOMMU machine"
 #endif
 
+//applet:IF_ASH(APPLET(ash, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_FEATURE_SH_IS_ASH(APPLET_ODDNAME(sh, ash, _BB_DIR_BIN, _BB_SUID_DROP, sh))
+//applet:IF_FEATURE_BASH_IS_ASH(APPLET_ODDNAME(bash, ash, _BB_DIR_BIN, _BB_SUID_DROP, bash))
+
+//kbuild:lib-$(CONFIG_ASH)      += ash.o ash_ptr_hack.o shell_common.o
+//kbuild:lib-$(CONFIG_ASH_RANDOM_SUPPORT) += random.o
+
+//config:config ASH
+//config:	bool "ash"
+//config:	default y
+//config:	depends on !NOMMU
+//config:	help
+//config:	  Tha 'ash' shell adds about 60k in the default configuration and is
+//config:	  the most complete and most pedantically correct shell included with
+//config:	  busybox. This shell is actually a derivative of the Debian 'dash'
+//config:	  shell (by Herbert Xu), which was created by porting the 'ash' shell
+//config:	  (written by Kenneth Almquist) from NetBSD.
+//config:
+//config:config ASH_BASH_COMPAT
+//config:	bool "bash-compatible extensions"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable bash-compatible extensions.
+//config:
+//config:config ASH_JOB_CONTROL
+//config:	bool "Job control"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable job control in the ash shell.
+//config:
+//config:config ASH_ALIAS
+//config:	bool "alias support"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable alias support in the ash shell.
+//config:
+//config:config ASH_GETOPTS
+//config:	bool "Builtin getopt to parse positional parameters"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable getopts builtin in the ash shell.
+//config:
+//config:config ASH_BUILTIN_ECHO
+//config:	bool "Builtin version of 'echo'"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable support for echo, builtin to ash.
+//config:
+//config:config ASH_BUILTIN_PRINTF
+//config:	bool "Builtin version of 'printf'"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable support for printf, builtin to ash.
+//config:
+//config:config ASH_BUILTIN_TEST
+//config:	bool "Builtin version of 'test'"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable support for test, builtin to ash.
+//config:
+//config:config ASH_CMDCMD
+//config:	bool "'command' command to override shell builtins"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable support for the ash 'command' builtin, which allows
+//config:	  you to run the specified command with the specified arguments,
+//config:	  even when there is an ash builtin command with the same name.
+//config:
+//config:config ASH_MAIL
+//config:	bool "Check for new mail on interactive shells"
+//config:	default n
+//config:	depends on ASH
+//config:	help
+//config:	  Enable "check for new mail" in the ash shell.
+//config:
+//config:config ASH_OPTIMIZE_FOR_SIZE
+//config:	bool "Optimize for size instead of speed"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Compile ash for reduced size at the price of speed.
+//config:
+//config:config ASH_RANDOM_SUPPORT
+//config:	bool "Pseudorandom generator and $RANDOM variable"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
+//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
+//config:	  You can reset the generator by using a specified start value.
+//config:	  After "unset RANDOM" the generator will switch off and this
+//config:	  variable will no longer have special treatment.
+//config:
+//config:config ASH_EXPAND_PRMT
+//config:	bool "Expand prompt string"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  "PS#" may contain volatile content, such as backquote commands.
+//config:	  This option recreates the prompt string from the environment
+//config:	  variable each time it is displayed.
+
+//usage:#define ash_trivial_usage NOUSAGE_STR
+//usage:#define ash_full_usage ""
+//usage:#define sh_trivial_usage NOUSAGE_STR
+//usage:#define sh_full_usage ""
+//usage:#define bash_trivial_usage NOUSAGE_STR
+//usage:#define bash_full_usage ""
+
 
 /* ============ Hash table sizes. Configurable. */
 

@@ -7,109 +7,6 @@ menu "Shells"
 
 INSERT
 
-config ASH
-	bool "ash"
-	default y
-	depends on !NOMMU
-	help
-	  Tha 'ash' shell adds about 60k in the default configuration and is
-	  the most complete and most pedantically correct shell included with
-	  busybox. This shell is actually a derivative of the Debian 'dash'
-	  shell (by Herbert Xu), which was created by porting the 'ash' shell
-	  (written by Kenneth Almquist) from NetBSD.
-
-config ASH_BASH_COMPAT
-	bool "bash-compatible extensions"
-	default y
-	depends on ASH
-	help
-	  Enable bash-compatible extensions.
-
-config ASH_JOB_CONTROL
-	bool "Job control"
-	default y
-	depends on ASH
-	help
-	  Enable job control in the ash shell.
-
-config ASH_ALIAS
-	bool "alias support"
-	default y
-	depends on ASH
-	help
-	  Enable alias support in the ash shell.
-
-config ASH_GETOPTS
-	bool "Builtin getopt to parse positional parameters"
-	default y
-	depends on ASH
-	help
-	  Enable getopts builtin in the ash shell.
-
-config ASH_BUILTIN_ECHO
-	bool "Builtin version of 'echo'"
-	default y
-	depends on ASH
-	help
-	  Enable support for echo, builtin to ash.
-
-config ASH_BUILTIN_PRINTF
-	bool "Builtin version of 'printf'"
-	default y
-	depends on ASH
-	help
-	  Enable support for printf, builtin to ash.
-
-config ASH_BUILTIN_TEST
-	bool "Builtin version of 'test'"
-	default y
-	depends on ASH
-	help
-	  Enable support for test, builtin to ash.
-
-config ASH_CMDCMD
-	bool "'command' command to override shell builtins"
-	default y
-	depends on ASH
-	help
-	  Enable support for the ash 'command' builtin, which allows
-	  you to run the specified command with the specified arguments,
-	  even when there is an ash builtin command with the same name.
-
-config ASH_MAIL
-	bool "Check for new mail on interactive shells"
-	default n
-	depends on ASH
-	help
-	  Enable "check for new mail" in the ash shell.
-
-config ASH_OPTIMIZE_FOR_SIZE
-	bool "Optimize for size instead of speed"
-	default y
-	depends on ASH
-	help
-	  Compile ash for reduced size at the price of speed.
-
-config ASH_RANDOM_SUPPORT
-	bool "Pseudorandom generator and $RANDOM variable"
-	default y
-	depends on ASH
-	help
-	  Enable pseudorandom generator and dynamic variable "$RANDOM".
-	  Each read of "$RANDOM" will generate a new pseudorandom value.
-	  You can reset the generator by using a specified start value.
-	  After "unset RANDOM" the generator will switch off and this
-	  variable will no longer have special treatment.
-
-config ASH_EXPAND_PRMT
-	bool "Expand prompt string"
-	default y
-	depends on ASH
-	help
-	  "PS#" may contain volatile content, such as backquote commands.
-	  This option recreates the prompt string from the environment
-	  variable each time it is displayed.
-
 
 choice
 	prompt "Choose which shell is aliased to 'sh' name"
@@ -284,12 +181,17 @@ config CTTYHACK
 
 	  ::respawn:/bin/cttyhack /bin/sh
 
-	  Giving controlling tty to shell running with PID 1:
-
-	  $ exec cttyhack sh
-
 	  Starting an interactive shell from boot shell script:
 
 	  setsid cttyhack sh
+
+	  Giving controlling tty to shell running with PID 1:
+
+	  # exec cttyhack sh
+
+	  Without cttyhack, you need to know exact tty name,
+	  and do something like this:
+
+	  # exec setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1'
 
 endmenu

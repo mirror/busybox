@@ -115,13 +115,6 @@ INSERT
      "\n	-s SRC_IP	Sender IP address" \
      "\n	DST_IP		Target IP address" \
 
-#define sh_trivial_usage NOUSAGE_STR
-#define sh_full_usage ""
-#define ash_trivial_usage NOUSAGE_STR
-#define ash_full_usage ""
-#define bash_trivial_usage NOUSAGE_STR
-#define bash_full_usage ""
-
 #define awk_trivial_usage \
        "[OPTIONS] [AWK_PROGRAM] [FILE]..."
 #define awk_full_usage "\n\n" \

@@ -114,7 +114,7 @@
 //config:	bool "hush"
 //config:	default y
 //config:	help
-//config:	  hush is a small shell (22k). It handles the normal flow control
+//config:	  hush is a small shell (25k). It handles the normal flow control
 //config:	  constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
 //config:	  case/esac. Redirections, here documents, $((arithmetic))
 //config:	  and functions are supported.
