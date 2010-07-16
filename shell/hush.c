@@ -224,6 +224,20 @@
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
 //config:
+//config:config LASH
+//config:	bool "lash (deprecated: aliased to hush)"
+//config:	default n
+//config:	select HUSH
+//config:	help
+//config:	  lash is deprecated and will be removed, please migrate to hush.
+//config:
+//config:config MSH
+//config:	bool "msh (deprecated: aliased to hush)"
+//config:	default n
+//config:	select HUSH
+//config:	help
+//config:	  msh is deprecated and will be removed, please migrate to hush.
+//config:
 
 //usage:#define hush_trivial_usage NOUSAGE_STR
 //usage:#define hush_full_usage ""

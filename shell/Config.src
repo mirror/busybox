@@ -62,29 +62,6 @@ config FEATURE_BASH_IS_NONE
 endchoice
 
 
-config LASH
-	bool "lash (deprecated: aliased to hush)"
-	default n
-	select HUSH
-	help
-	  lash is deprecated and will be removed, please migrate to hush.
-
-config MSH
-	bool "msh (deprecated: please use hush)"
-	default n
-	select HUSH
-	help
-	  msh is deprecated and will be removed, please migrate to hush.
-	  If there is a feature msh has but hush does not, please let us know.
-
-#	  The minix shell (adds just 30k) is quite complete and handles things
-#	  like for/do/done, case/esac and all the things you expect a Bourne
-#	  shell to do. It is not always pedantically correct about Bourne
-#	  shell grammar (try running the shell testscript "tests/sh.testcases"
-#	  on it and compare vs bash) but for most things it works quite well.
-#	  It uses only vfork, so it can be used on uClinux systems.
-
-
 config SH_MATH_SUPPORT
 	bool "POSIX math support"
 	default y
