@@ -179,6 +179,7 @@
 //config:	  "PS#" may contain volatile content, such as backquote commands.
 //config:	  This option recreates the prompt string from the environment
 //config:	  variable each time it is displayed.
+//config:
 
 //usage:#define ash_trivial_usage NOUSAGE_STR
 //usage:#define ash_full_usage ""

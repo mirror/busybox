@@ -158,40 +158,4 @@ config FEATURE_SH_NOFORK
 
 	  This feature is relatively new. Use with care.
 
-config CTTYHACK
-	bool "cttyhack"
-	default y
-	help
-	  One common problem reported on the mailing list is "can't access tty;
-	  job control turned off" error message which typically appears when
-	  one tries to use shell with stdin/stdout opened to /dev/console.
-	  This device is special - it cannot be a controlling tty.
-
-	  Proper solution is to use correct device instead of /dev/console.
-
-	  cttyhack provides "quick and dirty" solution to this problem.
-	  It analyzes stdin with various ioctls, trying to determine whether
-	  it is a /dev/ttyN or /dev/ttySN (virtual terminal or serial line).
-	  If it detects one, it closes stdin/out/err and reopens that device.
-	  Then it executes given program. Opening the device will make
-	  that device a controlling tty. This may require cttyhack
-	  to be a session leader.
-
-	  Example for /etc/inittab (for busybox init):
-
-	  ::respawn:/bin/cttyhack /bin/sh
-
-	  Starting an interactive shell from boot shell script:
-
-	  setsid cttyhack sh
-
-	  Giving controlling tty to shell running with PID 1:
-
-	  # exec cttyhack sh
-
-	  Without cttyhack, you need to know exact tty name,
-	  and do something like this:
-
-	  # exec setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1'
-
 endmenu

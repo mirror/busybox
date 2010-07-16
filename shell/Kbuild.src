@@ -8,5 +8,4 @@ lib-y:=
 
 INSERT
 
-lib-$(CONFIG_CTTYHACK) += cttyhack.o
 lib-$(CONFIG_SH_MATH_SUPPORT) += math.o
