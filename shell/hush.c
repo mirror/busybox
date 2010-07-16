@@ -532,6 +532,7 @@ struct globals {
 	smallint flag_return_in_progress;
 #endif
 	smallint fake_mode;
+	smallint x_mode;
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
 	smalluint last_exitcode;
@@ -3692,6 +3693,31 @@ static void execvp_or_die(char **argv)
 	_exit(127); /* bash compat */
 }
 
+static void dump_cmd_in_x_mode(char **argv)
+{
+	if (G.x_mode && argv) {
+		/* We want to output the line in one write op */
+		char *buf, *p;
+		int len;
+		int n;
+
+		len = 3;
+		n = 0;
+		while (argv[n])
+			len += strlen(argv[n++]) + 1;
+		buf = xmalloc(len);
+		buf[0] = '+';
+		p = buf + 1;
+		n = 0;
+		while (argv[n])
+			p += sprintf(p, " %s", argv[n++]);
+		*p++ = '\n';
+		*p = '\0';
+		fputs(buf, stderr);
+		free(buf);
+	}
+}
+
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
 	pseudo_exec_argv(argv, assignment_cnt, argv_expanded)
@@ -3714,6 +3740,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 	char **new_env;
 
 	new_env = expand_assignments(argv, assignment_cnt);
+	dump_cmd_in_x_mode(new_env);
 
 	if (!argv[assignment_cnt]) {
 		/* Case when we are here: ... | var=val | ...
@@ -3742,6 +3769,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 		nommu_save->argv = argv;
 #endif
 	}
+	dump_cmd_in_x_mode(argv);
 
 #if ENABLE_FEATURE_SH_STANDALONE || BB_MMU
 	if (strchr(argv[0], '/') != NULL)
@@ -4239,13 +4267,19 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			rcode = setup_redirects(command, squirrel);
 			restore_redirects(squirrel);
 			/* Set shell variables */
+			if (G.x_mode)
+				bb_putchar_stderr('+');
 			while (*argv) {
 				p = expand_string_to_string(*argv);
+				if (G.x_mode)
+					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
 				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 				argv++;
 			}
+			if (G.x_mode)
+				bb_putchar_stderr('\n');
 			/* Redirect error sets $? to 1. Otherwise,
 			 * if evaluating assignment value set $?, retain it.
 			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
@@ -4305,6 +4339,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			rcode = setup_redirects(command, squirrel);
 			if (rcode == 0) {
 				new_env = expand_assignments(argv, command->assignment_cnt);
+				dump_cmd_in_x_mode(new_env);
+				dump_cmd_in_x_mode(argv_expanded);
 				old_vars = set_vars_and_save_old(new_env);
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
@@ -4346,6 +4382,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				rcode = setup_redirects(command, squirrel);
 				if (rcode == 0) {
 					new_env = expand_assignments(argv, command->assignment_cnt);
+					dump_cmd_in_x_mode(new_env);
+					dump_cmd_in_x_mode(argv_expanded);
 					old_vars = set_vars_and_save_old(new_env);
 					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 						argv_expanded[0], argv_expanded[1]);
@@ -6932,7 +6970,7 @@ static int set_mode(const char cstate, const char mode)
 	int state = (cstate == '-' ? 1 : 0);
 	switch (mode) {
 		case 'n': G.fake_mode = state; break;
-		case 'x': /*G.debug_mode = state;*/ break;
+		case 'x': G.x_mode = state; break;
 		default:  return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
