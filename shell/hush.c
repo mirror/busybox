@@ -221,7 +221,8 @@
 //config:	default y
 //config:	depends on HUSH
 //config:	help
-//config:	  This instructs hush to print commands before execution. Adds ~300 bytes.
+//config:	  This instructs hush to print commands before execution.
+//config:	  Adds ~300 bytes.
 //config:
 
 //usage:#define hush_trivial_usage NOUSAGE_STR
@@ -664,7 +665,7 @@ struct globals {
 	smallint n_mode;
 #if ENABLE_HUSH_MODE_X
 	smallint x_mode;
-# define G_x_mode G.x_mode
+# define G_x_mode (G.x_mode)
 #else
 # define G_x_mode 0
 #endif
@@ -688,6 +689,7 @@ struct globals {
 	const char *cwd;
 	struct variable *top_var; /* = &G.shell_ver (set in main()) */
 	struct variable shell_ver;
+	char **expanded_assignments;
 #if ENABLE_HUSH_FUNCTIONS
 	struct function *top_func;
 # if ENABLE_HUSH_LOCAL
@@ -1459,9 +1461,23 @@ static struct variable *get_local_var(const char *name)
 
 static const char* FAST_FUNC get_local_var_value(const char *name)
 {
-	struct variable **pp = get_ptr_to_local_var(name);
-	if (pp)
-		return strchr((*pp)->varstr, '=') + 1;
+	struct variable **vpp;
+
+	if (G.expanded_assignments) {
+		char **cpp = G.expanded_assignments;
+		int len = strlen(name);
+		while (*cpp) {
+			char *cp = *cpp;
+			if (strncmp(cp, name, len) == 0 && cp[len] == '=')
+				return cp + len + 1;
+			cpp++;
+		}
+	}
+
+	vpp = get_ptr_to_local_var(name);
+	if (vpp)
+		return strchr((*vpp)->varstr, '=') + 1;
+
 	if (strcmp(name, "PPID") == 0)
 		return utoa(G.root_ppid);
 	// bash compat: UID? EUID?
@@ -3090,11 +3106,14 @@ static char* expand_strvec_to_string(char **argv)
 static char **expand_assignments(char **argv, int count)
 {
 	int i;
-	char **p = NULL;
+	char **p;
+
+	G.expanded_assignments = p = NULL;
 	/* Expand assignments into one string each */
 	for (i = 0; i < count; i++) {
-		p = add_string_to_strings(p, expand_string_to_string(argv[i]));
+		G.expanded_assignments = p = add_string_to_strings(p, expand_string_to_string(argv[i]));
 	}
+	G.expanded_assignments = NULL;
 	return p;
 }
 
@@ -4316,6 +4335,27 @@ static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
  * backgrounded: cmd &     { list } &
  * subshell:     ( list ) [&]
  */
+#if !ENABLE_HUSH_MODE_X
+#define redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel, char argv_expanded) \
+	redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel)
+#endif
+static int redirect_and_varexp_helper(char ***new_env_p, struct variable **old_vars_p, struct command *command, int squirrel[3], char **argv_expanded)
+{
+	/* setup_redirects acts on file descriptors, not FILEs.
+	 * This is perfect for work that comes after exec().
+	 * Is it really safe for inline use?  Experimentally,
+	 * things seem to work. */
+	int rcode = setup_redirects(command, squirrel);
+	if (rcode == 0) {
+		char **new_env = expand_assignments(command->argv, command->assignment_cnt);
+		*new_env_p = new_env;
+		dump_cmd_in_x_mode(new_env);
+		dump_cmd_in_x_mode(argv_expanded);
+		if (old_vars_p)
+			*old_vars_p = set_vars_and_save_old(new_env);
+	}
+	return rcode;
+}
 static NOINLINE int run_pipe(struct pipe *pi)
 {
 	static const char *const null_ptr = NULL;
@@ -4325,7 +4365,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	struct command *command;
 	char **argv_expanded;
 	char **argv;
-	char *p;
 	/* it is not always needed, but we aim to smaller code */
 	int squirrel[] = { -1, -1, -1 };
 	int rcode;
@@ -4402,19 +4441,45 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (argv[command->assignment_cnt] == NULL) {
 			/* Assignments, but no command */
 			/* Ensure redirects take effect (that is, create files).
-			 * Try "a=t >file": */
+			 * Try "a=t >file" */
+#if 0 /* A few cases in testsuite fail with this code. FIXME */
+			rcode = redirect_and_varexp_helper(&new_env, /*old_vars:*/ NULL, command, squirrel, /*argv_expanded:*/ NULL);
+			/* Set shell variables */
+			if (new_env) {
+				argv = new_env;
+				while (*argv) {
+					set_local_var(*argv, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+					/* Do we need to flag set_local_var() errors?
+					 * "assignment to readonly var" and "putenv error"
+					 */
+					argv++;
+				}
+			}
+			/* Redirect error sets $? to 1. Otherwise,
+			 * if evaluating assignment value set $?, retain it.
+			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
+			if (rcode == 0)
+				rcode = G.last_exitcode;
+			/* Exit, _skipping_ variable restoring code: */
+			goto clean_up_and_ret0;
+
+#else /* Older, bigger, but more correct code */
+
 			rcode = setup_redirects(command, squirrel);
 			restore_redirects(squirrel);
 			/* Set shell variables */
 			if (G_x_mode)
 				bb_putchar_stderr('+');
 			while (*argv) {
-				p = expand_string_to_string(*argv);
+				char *p = expand_string_to_string(*argv);
 				if (G_x_mode)
 					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
 				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+				/* Do we need to flag set_local_var() errors?
+				 * "assignment to readonly var" and "putenv error"
+				 */
 				argv++;
 			}
 			if (G_x_mode)
@@ -4424,13 +4489,11 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			 * Try "false; q=`exit 2`; echo $?" - should print 2: */
 			if (rcode == 0)
 				rcode = G.last_exitcode;
-			/* Do we need to flag set_local_var() errors?
-			 * "assignment to readonly var" and "putenv error"
-			 */
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
 			debug_leave();
 			debug_printf_exec("run_pipe: return %d\n", rcode);
 			return rcode;
+#endif
 		}
 
 		/* Expand the rest into (possibly) many strings each */
@@ -4471,16 +4534,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 					goto clean_up_and_ret1;
 				}
 			}
-			/* setup_redirects acts on file descriptors, not FILEs.
-			 * This is perfect for work that comes after exec().
-			 * Is it really safe for inline use?  Experimentally,
-			 * things seem to work. */
-			rcode = setup_redirects(command, squirrel);
+			rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, squirrel, argv_expanded);
 			if (rcode == 0) {
-				new_env = expand_assignments(argv, command->assignment_cnt);
-				dump_cmd_in_x_mode(new_env);
-				dump_cmd_in_x_mode(argv_expanded);
-				old_vars = set_vars_and_save_old(new_env);
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->b_cmd, argv_expanded[1]);
@@ -4504,9 +4559,10 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #endif
 			}
  clean_up_and_ret:
-			restore_redirects(squirrel);
 			unset_vars(new_env);
 			add_vars(old_vars);
+/* clean_up_and_ret0: */
+			restore_redirects(squirrel);
  clean_up_and_ret1:
 			free(argv_expanded);
 			IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
@@ -4518,12 +4574,8 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		if (ENABLE_FEATURE_SH_STANDALONE) {
 			int n = find_applet_by_name(argv_expanded[0]);
 			if (n >= 0 && APPLET_IS_NOFORK(n)) {
-				rcode = setup_redirects(command, squirrel);
+				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, squirrel, argv_expanded);
 				if (rcode == 0) {
-					new_env = expand_assignments(argv, command->assignment_cnt);
-					dump_cmd_in_x_mode(new_env);
-					dump_cmd_in_x_mode(argv_expanded);
-					old_vars = set_vars_and_save_old(new_env);
 					debug_printf_exec(": run_nofork_applet '%s' '%s'...\n",
 						argv_expanded[0], argv_expanded[1]);
 					rcode = run_nofork_applet(n, argv_expanded);
