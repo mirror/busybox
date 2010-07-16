@@ -119,12 +119,6 @@ INSERT
 #define sh_full_usage ""
 #define ash_trivial_usage NOUSAGE_STR
 #define ash_full_usage ""
-#define hush_trivial_usage NOUSAGE_STR
-#define hush_full_usage ""
-#define lash_trivial_usage NOUSAGE_STR
-#define lash_full_usage ""
-#define msh_trivial_usage NOUSAGE_STR
-#define msh_full_usage ""
 #define bash_trivial_usage NOUSAGE_STR
 #define bash_full_usage ""
 

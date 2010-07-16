@@ -101,6 +101,136 @@
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
 
+//applet:IF_HUSH(APPLET(hush, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_MSH(APPLET(msh, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_LASH(APPLET(lash, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, _BB_DIR_BIN, _BB_SUID_DROP, sh))
+//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, _BB_DIR_BIN, _BB_SUID_DROP, bash))
+
+//kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
+//kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
+
+//config:config HUSH
+//config:	bool "hush"
+//config:	default y
+//config:	help
+//config:	  hush is a small shell (22k). It handles the normal flow control
+//config:	  constructs such as if/then/elif/else/fi, for/in/do/done, while loops,
+//config:	  case/esac. Redirections, here documents, $((arithmetic))
+//config:	  and functions are supported.
+//config:
+//config:	  It will compile and work on no-mmu systems.
+//config:
+//config:	  It does not handle select, aliases, brace expansion,
+//config:	  tilde expansion, &>file and >&file redirection of stdout+stderr.
+//config:
+//config:config HUSH_BASH_COMPAT
+//config:	bool "bash-compatible extensions"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable bash-compatible extensions.
+//config:
+//config:config HUSH_HELP
+//config:	bool "help builtin"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable help builtin in hush. Code size + ~1 kbyte.
+//config:
+//config:config HUSH_INTERACTIVE
+//config:	bool "Interactive mode"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable interactive mode (prompt and command editing).
+//config:	  Without this, hush simply reads and executes commands
+//config:	  from stdin just like a shell script from a file.
+//config:	  No prompt, no PS1/PS2 magic shell variables.
+//config:
+//config:config HUSH_JOB
+//config:	bool "Job control"
+//config:	default y
+//config:	depends on HUSH_INTERACTIVE
+//config:	help
+//config:	  Enable job control: Ctrl-Z backgrounds, Ctrl-C interrupts current
+//config:	  command (not entire shell), fg/bg builtins work. Without this option,
+//config:	  "cmd &" still works by simply spawning a process and immediately
+//config:	  prompting for next command (or executing next command in a script),
+//config:	  but no separate process group is formed.
+//config:
+//config:config HUSH_TICK
+//config:	bool "Process substitution"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable process substitution `command` and $(command) in hush.
+//config:
+//config:config HUSH_IF
+//config:	bool "Support if/then/elif/else/fi"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable if/then/elif/else/fi in hush.
+//config:
+//config:config HUSH_LOOPS
+//config:	bool "Support for, while and until loops"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable for, while and until loops in hush.
+//config:
+//config:config HUSH_CASE
+//config:	bool "Support case ... esac statement"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable case ... esac statement in hush. +400 bytes.
+//config:
+//config:config HUSH_FUNCTIONS
+//config:	bool "Support funcname() { commands; } syntax"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable support for shell functions in hush. +800 bytes.
+//config:
+//config:config HUSH_LOCAL
+//config:	bool "Support local builtin"
+//config:	default y
+//config:	depends on HUSH_FUNCTIONS
+//config:	help
+//config:	  Enable support for local variables in functions.
+//config:
+//config:config HUSH_RANDOM_SUPPORT
+//config:	bool "Pseudorandom generator and $RANDOM variable"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
+//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
+//config:
+//config:config HUSH_EXPORT_N
+//config:	bool "Support 'export -n' option"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  export -n unexports variables. It is a bash extension.
+//config:
+//config:config HUSH_MODE_X
+//config:	bool "Support 'hush -x' option and 'set -x' command"
+//config:	default y
+//config:	depends on HUSH
+//config:	help
+//config:	  This instructs hush to print commands before execution. Adds ~300 bytes.
+//config:
+
+//usage:#define hush_trivial_usage NOUSAGE_STR
+//usage:#define hush_full_usage ""
+//usage:#define lash_trivial_usage NOUSAGE_STR
+//usage:#define lash_full_usage ""
+//usage:#define msh_trivial_usage NOUSAGE_STR
+//usage:#define msh_full_usage ""
+
 
 /* Build knobs */
 #define LEAK_HUNTING 0
@@ -531,8 +661,13 @@ struct globals {
 	 */
 	smallint flag_return_in_progress;
 #endif
-	smallint fake_mode;
+	smallint n_mode;
+#if ENABLE_HUSH_MODE_X
 	smallint x_mode;
+# define G_x_mode G.x_mode
+#else
+# define G_x_mode 0
+#endif
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
 	smalluint last_exitcode;
@@ -3693,9 +3828,10 @@ static void execvp_or_die(char **argv)
 	_exit(127); /* bash compat */
 }
 
+#if ENABLE_HUSH_MODE_X
 static void dump_cmd_in_x_mode(char **argv)
 {
-	if (G.x_mode && argv) {
+	if (G_x_mode && argv) {
 		/* We want to output the line in one write op */
 		char *buf, *p;
 		int len;
@@ -3717,6 +3853,9 @@ static void dump_cmd_in_x_mode(char **argv)
 		free(buf);
 	}
 }
+#else
+# define dump_cmd_in_x_mode(argv) ((void)0)
+#endif
 
 #if BB_MMU
 #define pseudo_exec_argv(nommu_save, argv, assignment_cnt, argv_expanded) \
@@ -4267,18 +4406,18 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			rcode = setup_redirects(command, squirrel);
 			restore_redirects(squirrel);
 			/* Set shell variables */
-			if (G.x_mode)
+			if (G_x_mode)
 				bb_putchar_stderr('+');
 			while (*argv) {
 				p = expand_string_to_string(*argv);
-				if (G.x_mode)
+				if (G_x_mode)
 					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
 						*argv, p);
 				set_local_var(p, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
 				argv++;
 			}
-			if (G.x_mode)
+			if (G_x_mode)
 				bb_putchar_stderr('\n');
 			/* Redirect error sets $? to 1. Otherwise,
 			 * if evaluating assignment value set $?, retain it.
@@ -4943,7 +5082,7 @@ static int run_and_free_list(struct pipe *pi)
 {
 	int rcode = 0;
 	debug_printf_exec("run_and_free_list entered\n");
-	if (!G.fake_mode) {
+	if (!G.n_mode) {
 		debug_printf_exec(": run_list: 1st pipe with %d cmds\n", pi->num_cmds);
 		rcode = run_list(pi);
 	}
@@ -6969,8 +7108,8 @@ static int set_mode(const char cstate, const char mode)
 {
 	int state = (cstate == '-' ? 1 : 0);
 	switch (mode) {
-		case 'n': G.fake_mode = state; break;
-		case 'x': G.x_mode = state; break;
+		case 'n': G.n_mode = state; break;
+		case 'x': IF_HUSH_MODE_X(G_x_mode = state;) break;
 		default:  return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
