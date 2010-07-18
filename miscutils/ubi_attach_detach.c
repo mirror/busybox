@@ -12,12 +12,14 @@
 //config:config UBIATTACH
 //config:	bool "ubiattach"
 //config:	default n
+//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  Attach MTD device to an UBI device.
 //config:
 //config:config UBIDETACH
 //config:	bool "ubidetach"
 //config:	default n
+//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  Detach MTD device from an UBI device.
 

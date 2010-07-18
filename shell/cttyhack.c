@@ -13,6 +13,7 @@
 //config:config CTTYHACK
 //config:	bool "cttyhack"
 //config:	default y
+//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  One common problem reported on the mailing list is "can't access tty;
 //config:	  job control turned off" error message which typically appears when

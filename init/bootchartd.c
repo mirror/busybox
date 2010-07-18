@@ -6,6 +6,7 @@
 //config:config BOOTCHARTD
 //config:	bool "bootchartd"
 //config:	default y
+//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  bootchartd is commonly used to profile the boot process
 //config:	  for the purpose of speeding it up. In this case, it is started

@@ -179,6 +179,7 @@ config DELUSER
 config GETTY
 	bool "getty"
 	default y
+	depends on PLATFORM_LINUX
 	select FEATURE_SYSLOG
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
@@ -186,6 +187,7 @@ config GETTY
 config LOGIN
 	bool "login"
 	default y
+	depends on PLATFORM_LINUX
 	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
@@ -295,6 +297,7 @@ config SULOGIN
 config VLOCK
 	bool "vlock"
 	default y
+	depends on PLATFORM_LINUX
 	select FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.

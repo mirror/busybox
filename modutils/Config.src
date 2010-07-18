@@ -4,6 +4,7 @@
 #
 
 menu "Linux Module Utilities"
+depends on PLATFORM_LINUX
 
 INSERT
 

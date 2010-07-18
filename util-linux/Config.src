@@ -10,6 +10,7 @@ INSERT
 config ACPID
 	bool "acpid"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  acpid listens to ACPI events coming either in textual form from
 	  /proc/acpi/event (though it is marked deprecated it is still widely
@@ -32,6 +33,7 @@ config FEATURE_ACPID_COMPAT
 config BLKID
 	bool "blkid"
 	default y
+	depends on PLATFORM_LINUX
 	select VOLUMEID
 	help
 	  Lists labels and UUIDs of all filesystems.
@@ -41,6 +43,7 @@ config BLKID
 config DMESG
 	bool "dmesg"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  dmesg is used to examine or control the kernel ring buffer. When the
 	  Linux kernel prints messages to the system log, they are stored in
@@ -74,6 +77,7 @@ config FEATURE_DMESG_PRETTY
 config FBSET
 	bool "fbset"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  fbset is used to show or change the settings of a Linux frame buffer
 	  device. The frame buffer device provides a simple and unique
@@ -102,6 +106,7 @@ config FEATURE_FBSET_READMODE
 config FDFLUSH
 	bool "fdflush"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  fdflush is only needed when changing media on slightly-broken
 	  removable media drives. It is used to make Linux believe that a
@@ -114,12 +119,14 @@ config FDFLUSH
 config FDFORMAT
 	bool "fdformat"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  fdformat is used to low-level format a floppy disk.
 
 config FDISK
 	bool "fdisk"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The fdisk utility is used to divide hard disks into one or more
 	  logical disks, which are generally called partitions. This utility
@@ -187,6 +194,7 @@ config FEATURE_FDISK_ADVANCED
 config FINDFS
 	bool "findfs"
 	default y
+	depends on PLATFORM_LINUX
 	select VOLUMEID
 	help
 	  Prints the name of a filesystem with given label or UUID.
@@ -202,6 +210,7 @@ config FLOCK
 config FREERAMDISK
 	bool "freeramdisk"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  Linux allows you to create ramdisks. This utility allows you to
 	  delete them and completely free all memory that was used for the
@@ -224,12 +233,14 @@ config FSCK_MINIX
 config MKFS_EXT2
 	bool "mkfs_ext2"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  Utility to create EXT2 filesystems.
 
 config MKFS_MINIX
 	bool "mkfs_minix"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The minix filesystem is a nice, small, compact, read-write filesystem
 	  with little overhead. If you wish to be able to create minix
@@ -247,6 +258,7 @@ config FEATURE_MINIX2
 config MKFS_REISER
 	bool "mkfs_reiser"
 	default n
+	depends on PLATFORM_LINUX
 	help
 	  Utility to create ReiserFS filesystems.
 	  Note: this applet needs a lot of testing and polishing.
@@ -254,6 +266,7 @@ config MKFS_REISER
 config MKFS_VFAT
 	bool "mkfs_vfat"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  Utility to create FAT32 filesystems.
 
@@ -302,6 +315,7 @@ config HD
 config HWCLOCK
 	bool "hwclock"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The hwclock utility is used to read and set the hardware clock
 	  on a system. This is primarily used to set the current time on
@@ -341,6 +355,7 @@ config IPCRM
 config IPCS
 	bool "ipcs"
 	default y
+	depends on PLATFORM_LINUX
 	select FEATURE_SUID
 	help
 	  The ipcs utility is used to provide information on the currently
@@ -349,6 +364,7 @@ config IPCS
 config LOSETUP
 	bool "losetup"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  losetup is used to associate or detach a loop device with a regular
 	  file or block device, and to query the status of a loop device. This
@@ -357,6 +373,7 @@ config LOSETUP
 config LSPCI
 	bool "lspci"
 	default y
+	#depends on PLATFORM_LINUX
 	help
 	  lspci is a utility for displaying information about PCI buses in the
 	  system and devices connected to them.
@@ -366,6 +383,7 @@ config LSPCI
 config LSUSB
 	bool "lsusb"
 	default y
+	#depends on PLATFORM_LINUX
 	help
 	  lsusb is a utility for displaying information about USB buses in the
 	  system and devices connected to them.
@@ -375,6 +393,7 @@ config LSUSB
 config MDEV
 	bool "mdev"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  mdev is a mini-udev implementation for dynamically creating device
 	  nodes in the /dev directory.
@@ -473,6 +492,7 @@ config FEATURE_USE_TERMIOS
 config MOUNT
 	bool "mount"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  All files and filesystems in Unix are arranged into one big directory
 	  tree. The 'mount' utility is used to graft a filesystem onto a
@@ -555,6 +575,7 @@ config FEATURE_MOUNT_FSTAB
 config PIVOT_ROOT
 	bool "pivot_root"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The pivot_root utility swaps the mount points for the root filesystem
 	  with some other mounted filesystem. This allows you to do all sorts
@@ -582,12 +603,14 @@ config RDEV
 config READPROFILE
 	bool "readprofile"
 	default y
+	#depends on PLATFORM_LINUX
 	help
 	  This allows you to parse /proc/profile for basic profiling.
 
 config RTCWAKE
 	bool "rtcwake"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  Enter a system sleep state until specified wakeup time.
 
@@ -607,6 +630,7 @@ config SCRIPTREPLAY
 config SETARCH
 	bool "setarch"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The linux32 utility is used to create a 32bit environment for the
 	  specified program (usually a shell). It only makes sense to have
@@ -616,6 +640,7 @@ config SETARCH
 config SWAPONOFF
 	bool "swaponoff"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  This option enables both the 'swapon' and the 'swapoff' utilities.
 	  Once you have created some swap space using 'mkswap', you also need
@@ -634,6 +659,7 @@ config FEATURE_SWAPON_PRI
 config SWITCH_ROOT
 	bool "switch_root"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  The switch_root utility is used from initramfs to select a new
 	  root device. Under initramfs, you have to use this instead of
@@ -653,6 +679,7 @@ config SWITCH_ROOT
 config UMOUNT
 	bool "umount"
 	default y
+	depends on PLATFORM_LINUX
 	help
 	  When you want to remove a mounted filesystem from its current mount
 	  point, for example when you are shutting down the system, the
