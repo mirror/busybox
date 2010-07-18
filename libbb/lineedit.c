@@ -53,17 +53,13 @@
 #if ENABLE_FEATURE_EDITING
 
 
-#define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
+#define ENABLE_USERNAME_OR_HOMEDIR \
 	(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
-#define IF_FEATURE_GETUSERNAME_AND_HOMEDIR(...)
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-#undef IF_FEATURE_GETUSERNAME_AND_HOMEDIR
-#define IF_FEATURE_GETUSERNAME_AND_HOMEDIR(...) __VA_ARGS__
+#define IF_USERNAME_OR_HOMEDIR(...)
+#if ENABLE_USERNAME_OR_HOMEDIR
+# undef IF_USERNAME_OR_HOMEDIR
+# define IF_USERNAME_OR_HOMEDIR(...) __VA_ARGS__
 #endif
-
-
-#define SEQ_CLEAR_TILL_END_OF_SCREEN "\033[J"
-//#define SEQ_CLEAR_TILL_END_OF_LINE   "\033[K"
 
 
 #undef CHAR_T
@@ -90,14 +86,16 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # define BB_isalnum(c) isalnum(c)
 # define BB_ispunct(c) ispunct(c)
 #endif
+#if ENABLE_UNICODE_PRESERVE_BROKEN
+# define unicode_mark_raw_byte(wc)   ((wc) | 0x20000000)
+# define unicode_is_raw_byte(wc)     ((wc) & 0x20000000)
+#else
+# define unicode_is_raw_byte(wc)     0
+#endif
 
 
-# if ENABLE_UNICODE_PRESERVE_BROKEN
-#  define unicode_mark_raw_byte(wc)   ((wc) | 0x20000000)
-#  define unicode_is_raw_byte(wc)     ((wc) & 0x20000000)
-# else
-#  define unicode_is_raw_byte(wc)     0
-# endif
+#define SEQ_CLEAR_TILL_END_OF_SCREEN "\033[J"
+//#define SEQ_CLEAR_TILL_END_OF_LINE   "\033[K"
 
 
 enum {
@@ -107,7 +105,7 @@ enum {
 	              : 0x7ff0
 };
 
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#if ENABLE_USERNAME_OR_HOMEDIR
 static const char null_str[] ALIGN1 = "";
 #endif
 
@@ -134,7 +132,7 @@ struct lineedit_statics {
 	int num_ok_lines; /* = 1; */
 #endif
 
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#if ENABLE_USERNAME_OR_HOMEDIR
 	char *user_buf;
 	char *home_pwd_buf; /* = (char*)null_str; */
 #endif
@@ -145,7 +143,7 @@ struct lineedit_statics {
 #endif
 
 #if ENABLE_FEATURE_EDITING_VI
-#define DELBUFSIZ 128
+# define DELBUFSIZ 128
 	CHAR_T *delptr;
 	smallint newdelflag;     /* whether delbuf should be reused yet */
 	CHAR_T delbuf[DELBUFSIZ];  /* a place to store deleted characters */
@@ -191,7 +189,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 	barrier(); \
 	cmdedit_termw = 80; \
 	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
-	IF_FEATURE_GETUSERNAME_AND_HOMEDIR(home_pwd_buf = (char*)null_str;) \
+	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \
 } while (0)
 static void deinit_S(void)
 {
@@ -200,7 +198,7 @@ static void deinit_S(void)
 	 * (otherwise it points to verbatim prompt (NOT malloced) */
 	free((char*)cmdedit_prompt);
 #endif
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#if ENABLE_USERNAME_OR_HOMEDIR
 	free(user_buf);
 	if (home_pwd_buf != null_str)
 		free(home_pwd_buf);
@@ -1669,7 +1667,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				c = *prmt_ptr++;
 
 				switch (c) {
-# if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+# if ENABLE_USERNAME_OR_HOMEDIR
 				case 'u':
 					pbuf = user_buf ? user_buf : (char*)"";
 					break;
@@ -1681,7 +1679,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				case '$':
 					c = (geteuid() == 0 ? '#' : '$');
 					break;
-# if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+# if ENABLE_USERNAME_OR_HOMEDIR
 				case 'w':
 					/* /home/user[/something] -> ~[/something] */
 					pbuf = cwd_buf;
@@ -1957,7 +1955,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	/* Now initialize things */
 	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
 	win_changed(0); /* do initial resizing */
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+#if ENABLE_USERNAME_OR_HOMEDIR
 	{
 		struct passwd *entry;
 
@@ -2379,7 +2377,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	}
 #endif
 
-/* Stop bug catching using "command_must_not_be_used" trick */
+/* End of bug-catching "command_must_not_be_used" trick */
 #undef command
 
 #if ENABLE_UNICODE_SUPPORT
@@ -2413,7 +2411,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	return len; /* can't return command_len, DEINIT_S() destroys it */
 }
 
-#else
+#else  /* !FEATURE_EDITING */
 
 #undef read_line_input
 int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
@@ -2424,7 +2422,7 @@ int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 	return strlen(command);
 }
 
-#endif  /* FEATURE_EDITING */
+#endif  /* !FEATURE_EDITING */
 
 
 /*
