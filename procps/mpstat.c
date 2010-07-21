@@ -57,7 +57,6 @@ struct stats_irqcpu {
 	char irq_name[MAX_IRQ_LEN];
 };
 
-/* Structure for CPU statistics */
 struct stats_cpu {
 	data_t cpu_user;
 	data_t cpu_nice;
@@ -70,13 +69,12 @@ struct stats_cpu {
 	data_t cpu_guest;
 };
 
-/* Struct for interrupts statistics */
 struct stats_irq {
 	data_t irq_nr;
 };
 
 
-/* Globals. Try to sort by size. */
+/* Globals. Sort by size and access frequency. */
 struct globals {
 	int interval;
 	int count;
@@ -451,11 +449,10 @@ static void get_cpu_statistics(struct stats_cpu *cpu, data_t *up, data_t *up0)
 
 		if (!starts_with_cpu(buf))
 			continue; /* not "cpu" */
-		if (buf[3] == ' ') {
-			/* "cpu " */
-			cp = cpu;
-		} else {
-			/* "cpuN" */
+
+		cp = cpu; /* for "cpu " case */
+		if (buf[3] != ' ') {
+			/* "cpuN " */
 			if (G.cpu_nr == 0
 			 || sscanf(buf + 3, "%u ", &cpu_number) != 1
 			 || cpu_number >= G.cpu_nr
@@ -465,17 +462,16 @@ static void get_cpu_statistics(struct stats_cpu *cpu, data_t *up, data_t *up0)
 			cp = &cpu[cpu_number + 1];
 		}
 
-		/* Read the jiffies, save them */
+		/* Read the counters, save them */
 		/* Not all fields have to be present */
 		memset(cp, 0, sizeof(*cp));
-		sscanf(skip_non_whitespace(buf + 3),
+		sscanf(buf, "%*s"
 			" %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u"
 			" %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u"
 			" %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u",
 			&cp->cpu_user, &cp->cpu_nice, &cp->cpu_system,
 			&cp->cpu_idle, &cp->cpu_iowait, &cp->cpu_irq,
-			&cp->cpu_softirq, &cp->cpu_steal,
-			&cp->cpu_guest
+			&cp->cpu_softirq, &cp->cpu_steal, &cp->cpu_guest
 		);
 		/*
 		 * Compute uptime in jiffies (1/HZ), it'll be the sum of
@@ -490,7 +486,7 @@ static void get_cpu_statistics(struct stats_cpu *cpu, data_t *up, data_t *up0)
 			/* "cpu " */
 			*up = sum;
 		} else {
-			/* "cpuN" */
+			/* "cpuN " */
 			if (cpu_number == 0 && *up0 != 0) {
 				/* Compute uptime of single CPU */
 				*up0 = sum;
@@ -769,7 +765,7 @@ static void print_header(struct tm *t)
 
 	strftime(cur_date, sizeof(cur_date), "%x", t);
 
-	printf("%s %s (%s) \t%s \t_%s_\t(%d CPU)\n",
+	printf("%s %s (%s)\t%s\t_%s_\t(%u CPU)\n",
 		uts.sysname, uts.release, uts.nodename, cur_date, uts.machine, G.cpu_nr);
 }
 
