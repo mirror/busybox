@@ -71,16 +71,6 @@ enum {
 # define OPTION_STR "+ansfFi:r:It:u:d:m:pqlx:M"
 #endif
 
-enum { // api mode
-	API_AUTO	= 'a',
-	API_ETHTOOL	= 'e',
-	API_MII		= 'm',
-	API_PRIVATE	= 'p',
-	API_WLAN	= 'w',
-	API_IFF		= 'i',
-};
-static const char api_modes[] ALIGN1 = "aempwi";
-
 enum { // interface status
 	IFSTATUS_ERR = -1,
 	IFSTATUS_DOWN = 0,
@@ -107,8 +97,6 @@ struct globals {
 	const char *api_mode;
 	const char *script_name;
 	const char *extra_arg;
-
-	smallint (*detect_link_func)(void);
 };
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -123,42 +111,12 @@ struct globals {
 } while (0)
 
 
-static const char *strstatus(int status)
+/* Utility routines */
+
+static void set_ifreq_to_ifname(struct ifreq *ifreq)
 {
-	if (status == IFSTATUS_ERR)
-		return "error";
-	return "down\0up" + (status * 5);
-}
-
-static int run_script(const char *action)
-{
-	char *env_PREVIOUS, *env_CURRENT;
-	char *argv[5];
-	int r;
-
-	bb_error_msg("executing '%s %s %s'", G.script_name, G.iface, action);
-
-	argv[0] = (char*) G.script_name;
-	argv[1] = (char*) G.iface;
-	argv[2] = (char*) action;
-	argv[3] = (char*) G.extra_arg;
-	argv[4] = NULL;
-
-	env_PREVIOUS = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_prev_status));
-	putenv(env_PREVIOUS);
-	env_CURRENT = xasprintf("%s=%s", IFPLUGD_ENV_CURRENT, strstatus(G.iface_last_status));
-	putenv(env_CURRENT);
-
-	/* r < 0 - can't exec, 0 <= r < 0x180 - exited, >=0x180 - killed by sig (r-0x180) */
-	r = spawn_and_wait(argv);
-
-	unsetenv(IFPLUGD_ENV_PREVIOUS);
-	unsetenv(IFPLUGD_ENV_CURRENT);
-	free(env_PREVIOUS);
-	free(env_CURRENT);
-
-	bb_error_msg("exit code: %d", r & 0xff);
-	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
+	memset(ifreq, 0, sizeof(struct ifreq));
+	strncpy_IFNAMSIZ(ifreq->ifr_name, G.iface);
 }
 
 static int network_ioctl(int request, void* data, const char *errmsg)
@@ -169,80 +127,7 @@ static int network_ioctl(int request, void* data, const char *errmsg)
 	return r;
 }
 
-static void set_ifreq_to_ifname(struct ifreq *ifreq)
-{
-	memset(ifreq, 0, sizeof(struct ifreq));
-	strncpy_IFNAMSIZ(ifreq->ifr_name, G.iface);
-}
-
-static void up_iface(void)
-{
-	struct ifreq ifrequest;
-
-	if (!G.iface_exists)
-		return;
-
-	set_ifreq_to_ifname(&ifrequest);
-	if (network_ioctl(SIOCGIFFLAGS, &ifrequest, "getting interface flags") < 0) {
-		G.iface_exists = 0;
-		return;
-	}
-
-	if (!(ifrequest.ifr_flags & IFF_UP)) {
-		ifrequest.ifr_flags |= IFF_UP;
-		/* Let user know we mess up with interface */
-		bb_error_msg("upping interface");
-		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0)
-			xfunc_die();
-	}
-
-#if 0 /* why do we mess with IP addr? It's not our business */
-	if (network_ioctl(SIOCGIFADDR, &ifrequest, "can't get interface address") < 0) {
-	} else if (ifrequest.ifr_addr.sa_family != AF_INET) {
-		bb_perror_msg("the interface is not IP-based");
-	} else {
-		((struct sockaddr_in*)(&ifrequest.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
-		network_ioctl(SIOCSIFADDR, &ifrequest, "can't set interface address");
-	}
-	network_ioctl(SIOCGIFFLAGS, &ifrequest, "can't get interface flags");
-#endif
-}
-
-static void maybe_up_new_iface(void)
-{
-	if (!(option_mask32 & FLAG_NO_AUTO))
-		up_iface();
-
-#if 0 /* bloat */
-	struct ifreq ifrequest;
-	struct ethtool_drvinfo driver_info;
-
-	set_ifreq_to_ifname(&ifrequest);
-	driver_info.cmd = ETHTOOL_GDRVINFO;
-	ifrequest.ifr_data = &driver_info;
-	if (network_ioctl(SIOCETHTOOL, &ifrequest, NULL) == 0) {
-		char buf[sizeof("/xx:xx:xx:xx:xx:xx")];
-
-		/* Get MAC */
-		buf[0] = '\0';
-		set_ifreq_to_ifname(&ifrequest);
-		if (network_ioctl(SIOCGIFHWADDR, &ifrequest, NULL) == 0) {
-			sprintf(buf, "/%02X:%02X:%02X:%02X:%02X:%02X",
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[0]),
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[1]),
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[2]),
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[3]),
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[4]),
-				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[5]));
-		}
-
-		bb_error_msg("using interface %s%s with driver<%s> (version: %s)",
-			G.iface, buf, driver_info.driver, driver_info.version);
-	}
-#endif
-	if (G.api_method_num == 0)
-		G.detect_link_func = NULL;
-}
+/* Link detection routines and table */
 
 static smallint detect_link_mii(void)
 {
@@ -349,18 +234,139 @@ static smallint detect_link_wlan(void)
 	return IFSTATUS_UP;
 }
 
+enum { // api mode
+	API_ETHTOOL, // 'e'
+	API_MII,     // 'm'
+	API_PRIVATE, // 'p'
+	API_WLAN,    // 'w'
+	API_IFF,     // 'i'
+	API_AUTO,    // 'a'
+};
+
+static const char api_modes[] ALIGN1 = "empwia";
+
+static const struct {
+	const char *name;
+	smallint (*func)(void);
+} method_table[] = {
+	{ "SIOCETHTOOL"       , &detect_link_ethtool },
+	{ "SIOCGMIIPHY"       , &detect_link_mii     },
+	{ "SIOCDEVPRIVATE"    , &detect_link_priv    },
+	{ "wireless extension", &detect_link_wlan    },
+	{ "IFF_RUNNING"       , &detect_link_iff     },
+};
+
+
+
+static const char *strstatus(int status)
+{
+	if (status == IFSTATUS_ERR)
+		return "error";
+	return "down\0up" + (status * 5);
+}
+
+static int run_script(const char *action)
+{
+	char *env_PREVIOUS, *env_CURRENT;
+	char *argv[5];
+	int r;
+
+	bb_error_msg("executing '%s %s %s'", G.script_name, G.iface, action);
+
+	argv[0] = (char*) G.script_name;
+	argv[1] = (char*) G.iface;
+	argv[2] = (char*) action;
+	argv[3] = (char*) G.extra_arg;
+	argv[4] = NULL;
+
+	env_PREVIOUS = xasprintf("%s=%s", IFPLUGD_ENV_PREVIOUS, strstatus(G.iface_prev_status));
+	putenv(env_PREVIOUS);
+	env_CURRENT = xasprintf("%s=%s", IFPLUGD_ENV_CURRENT, strstatus(G.iface_last_status));
+	putenv(env_CURRENT);
+
+	/* r < 0 - can't exec, 0 <= r < 0x180 - exited, >=0x180 - killed by sig (r-0x180) */
+	r = spawn_and_wait(argv);
+
+	unsetenv(IFPLUGD_ENV_PREVIOUS);
+	unsetenv(IFPLUGD_ENV_CURRENT);
+	free(env_PREVIOUS);
+	free(env_CURRENT);
+
+	bb_error_msg("exit code: %d", r & 0xff);
+	return (option_mask32 & FLAG_IGNORE_RETVAL) ? 0 : r;
+}
+
+static void up_iface(void)
+{
+	struct ifreq ifrequest;
+
+	if (!G.iface_exists)
+		return;
+
+	set_ifreq_to_ifname(&ifrequest);
+	if (network_ioctl(SIOCGIFFLAGS, &ifrequest, "getting interface flags") < 0) {
+		G.iface_exists = 0;
+		return;
+	}
+
+	if (!(ifrequest.ifr_flags & IFF_UP)) {
+		ifrequest.ifr_flags |= IFF_UP;
+		/* Let user know we mess up with interface */
+		bb_error_msg("upping interface");
+		if (network_ioctl(SIOCSIFFLAGS, &ifrequest, "setting interface flags") < 0)
+			xfunc_die();
+	}
+
+#if 0 /* why do we mess with IP addr? It's not our business */
+	if (network_ioctl(SIOCGIFADDR, &ifrequest, "can't get interface address") < 0) {
+	} else if (ifrequest.ifr_addr.sa_family != AF_INET) {
+		bb_perror_msg("the interface is not IP-based");
+	} else {
+		((struct sockaddr_in*)(&ifrequest.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
+		network_ioctl(SIOCSIFADDR, &ifrequest, "can't set interface address");
+	}
+	network_ioctl(SIOCGIFFLAGS, &ifrequest, "can't get interface flags");
+#endif
+}
+
+static void maybe_up_new_iface(void)
+{
+	if (!(option_mask32 & FLAG_NO_AUTO))
+		up_iface();
+
+#if 0 /* bloat */
+	struct ifreq ifrequest;
+	struct ethtool_drvinfo driver_info;
+
+	set_ifreq_to_ifname(&ifrequest);
+	driver_info.cmd = ETHTOOL_GDRVINFO;
+	ifrequest.ifr_data = &driver_info;
+	if (network_ioctl(SIOCETHTOOL, &ifrequest, NULL) == 0) {
+		char buf[sizeof("/xx:xx:xx:xx:xx:xx")];
+
+		/* Get MAC */
+		buf[0] = '\0';
+		set_ifreq_to_ifname(&ifrequest);
+		if (network_ioctl(SIOCGIFHWADDR, &ifrequest, NULL) == 0) {
+			sprintf(buf, "/%02X:%02X:%02X:%02X:%02X:%02X",
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[0]),
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[1]),
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[2]),
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[3]),
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[4]),
+				(uint8_t)(ifrequest.ifr_hwaddr.sa_data[5]));
+		}
+
+		bb_error_msg("using interface %s%s with driver<%s> (version: %s)",
+			G.iface, buf, driver_info.driver, driver_info.version);
+	}
+#endif
+	if (G.api_mode[0] == 'a')
+		G.api_method_num = API_AUTO;
+}
+
 static smallint detect_link(void)
 {
-	static const struct {
-		const char *name;
-		smallint (*func)(void);
-	} method[] = {
-		{ "SIOCETHTOOL"       , &detect_link_ethtool },
-		{ "SIOCGMIIPHY"       , &detect_link_mii     },
-		{ "SIOCDEVPRIVATE"    , &detect_link_priv    },
-		{ "wireless extension", &detect_link_wlan    },
-		{ "IFF_RUNNING"       , &detect_link_iff     },
-	};
 	smallint status;
 
 	if (!G.iface_exists)
@@ -373,38 +379,34 @@ static smallint detect_link(void)
 	if (!(option_mask32 & FLAG_NO_AUTO))
 		up_iface();
 
-	if (!G.detect_link_func) {
-		if (G.api_method_num == 0) {
-			int i;
-			smallint sv_logmode;
+	if (G.api_method_num == API_AUTO) {
+		int i;
+		smallint sv_logmode;
 
-			sv_logmode = logmode;
-			for (i = 0; i < ARRAY_SIZE(method); i++) {
-				logmode = LOGMODE_NONE;
-				status = method[i].func();
-				logmode = sv_logmode;
-				if (status != IFSTATUS_ERR) {
-					G.detect_link_func = method[i].func;
-					bb_error_msg("using %s detection mode", method[i].name);
-					goto _2;
-				}
+		sv_logmode = logmode;
+		for (i = 0; i < ARRAY_SIZE(method_table); i++) {
+			logmode = LOGMODE_NONE;
+			status = method_table[i].func();
+			logmode = sv_logmode;
+			if (status != IFSTATUS_ERR) {
+				G.api_method_num = i;
+				bb_error_msg("using %s detection mode", method_table[i].name);
+				break;
 			}
-			goto _1;
 		}
-		G.detect_link_func = method[G.api_method_num - 1].func;
+	} else {
+		status = method_table[G.api_method_num].func();
 	}
 
-	status = G.detect_link_func();
- _1:
 	if (status == IFSTATUS_ERR) {
 		if (option_mask32 & FLAG_IGNORE_FAIL)
 			status = IFSTATUS_DOWN;
 		else if (option_mask32 & FLAG_IGNORE_FAIL_POSITIVE)
 			status = IFSTATUS_UP;
-		else if (G.api_method_num == 0)
+		else if (G.api_mode[0] == 'a')
 			bb_error_msg("can't detect link status");
 	}
- _2:
+
 	if (status != G.iface_last_status) {
 		G.iface_prev_status = G.iface_last_status;
 		G.iface_last_status = status;
@@ -475,23 +477,6 @@ static NOINLINE int check_existence_through_netlink(void)
 	return G.iface_exists;
 }
 
-static NOINLINE int netlink_open(void)
-{
-	int fd;
-	struct sockaddr_nl addr;
-
-	fd = xsocket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
-
-	memset(&addr, 0, sizeof(addr));
-	addr.nl_family = AF_NETLINK;
-	addr.nl_groups = RTMGRP_LINK;
-	addr.nl_pid = getpid();
-
-	xbind(fd, (struct sockaddr*)&addr, sizeof(addr));
-
-	return fd;
-}
-
 #if ENABLE_FEATURE_PIDFILE
 static NOINLINE pid_t read_pid(const char *filename)
 {
@@ -545,6 +530,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	if (pid_from_pidfile > 0 && kill(pid_from_pidfile, 0) == 0)
 		bb_error_msg_and_die("daemon already running");
 #endif
+
 	api_mode_found = strchr(api_modes, G.api_mode[0]);
 	if (!api_mode_found)
 		bb_error_msg_and_die("unknown API mode '%s'", G.api_mode);
@@ -555,7 +541,16 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), ioctl_fd);
 	if (opts & FLAG_MONITOR) {
-		xmove_fd(netlink_open(), netlink_fd);
+		struct sockaddr_nl addr;
+		int fd = xsocket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+
+		memset(&addr, 0, sizeof(addr));
+		addr.nl_family = AF_NETLINK;
+		addr.nl_groups = RTMGRP_LINK;
+		addr.nl_pid = getpid();
+
+		xbind(fd, (struct sockaddr*)&addr, sizeof(addr));
+		xmove_fd(fd, netlink_fd);
 	}
 
 	write_pidfile(pidfile_name);
