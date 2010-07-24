@@ -4,7 +4,7 @@
 
 . ./testing.sh
 
-# testing "test name" "options" "expected result" "file input" "stdin"
+# testing "test name" "commands" "expected result" "file input" "stdin"
 
 # diff outputs date/time in the header, which should not be analysed
 # NB: sed has tab character in s command!
@@ -100,9 +100,11 @@ testing "diff always takes context from old file" \
 	"abc\na  c\ndef\n" \
 	"a c\n"
 
-# testing "test name" "options" "expected result" "file input" "stdin"
+# testing "test name" "commands" "expected result" "file input" "stdin"
 
+# clean up
 rm -rf diff1 diff2
+
 mkdir diff1 diff2 diff2/subdir
 echo qwe >diff1/-
 echo asd >diff2/subdir/-
@@ -180,6 +182,31 @@ testing "diff -rN does not read non-regular files" \
 +asd
 File diff2/subdir/test is not a regular file or directory and was skipped
 File diff1/test2 is not a regular file or directory and was skipped
+" \
+	"" ""
+SKIP=
+
+# clean up
+rm -rf diff1 diff2
+
+# NOT using directory structure from prev test...
+mkdir diff1 diff2
+echo qwe >diff1/-
+echo rty >diff2/-
+optional FEATURE_DIFF_DIR
+testing "diff diff1 diff2/" \
+	"diff -ur diff1 diff2/ | $TRIM_TAB; diff -ur .///diff1 diff2//// | $TRIM_TAB" \
+"\
+--- diff1/-
++++ diff2/-
+@@ -1 +1 @@
+-qwe
++rty
+--- .///diff1/-
++++ diff2////-
+@@ -1 +1 @@
+-qwe
++rty
 " \
 	"" ""
 SKIP=

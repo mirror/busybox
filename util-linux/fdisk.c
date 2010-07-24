@@ -2805,7 +2805,7 @@ list_devs_in_proc_partititons(void)
 				&ma, &mi, &sz, ptname) != 4)
 			continue;
 		for (s = ptname; *s; s++)
-    			continue;
+			continue;
 		/* note: excluding '0': e.g. mmcblk0 is not a partition name! */
 		if (s[-1] >= '1' && s[-1] <= '9')
 			continue;

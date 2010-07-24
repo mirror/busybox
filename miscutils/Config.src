@@ -276,28 +276,28 @@ config FBSPLASH
 
 config FLASHCP
 	bool "flashcp"
-	default y
+	default n  # doesn't build on Ubuntu 8.04
 	help
 	  The flashcp binary, inspired by mtd-utils as of git head 5eceb74f7.
 	  This utility is used to copy images into a MTD device.
 
 config FLASH_LOCK
 	bool "flash_lock"
-	default y
+	default n  # doesn't build on Ubuntu 8.04
 	help
 	  The flash_lock binary from mtd-utils as of git head 5ec0c10d0. This
 	  utility locks part or all of the flash device.
 
 config FLASH_UNLOCK
 	bool "flash_unlock"
-	default y
+	default n  # doesn't build on Ubuntu 8.04
 	help
 	  The flash_unlock binary from mtd-utils as of git head 5ec0c10d0. This
 	  utility unlocks part or all of the flash device.
 
 config FLASH_ERASEALL
 	bool "flash_eraseall"
-	default y
+	default n  # doesn't build on Ubuntu 8.04
 	help
 	  The flash_eraseall binary from mtd-utils as of git head c4c6a59eb.
 	  This utility is used to erase the whole MTD device.
@@ -311,7 +311,7 @@ config IONICE
 
 config INOTIFYD
 	bool "inotifyd"
-	default y
+	default n  # doesn't build on Knoppix 5
 	help
 	  Simple inotify daemon. Reports filesystem changes. Requires
 	  kernel >= 2.6.13
@@ -549,7 +549,7 @@ config READAHEAD
 
 config RFKILL
 	bool "rfkill"
-	default n
+	default n  # doesn't build on Ubuntu 9.04
 	help
 	  Enable/disable wireless devices.
 
@@ -588,7 +588,7 @@ config STRINGS
 
 config TASKSET
 	bool "taskset"
-	default y
+	default n  # doesn't build on some non-x86 targets (m68k)
 	help
 	  Retrieve or set a processes's CPU affinity.
 	  This requires sched_{g,s}etaffinity support in your libc.

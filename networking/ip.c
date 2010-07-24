@@ -1,14 +1,12 @@
 /* vi: set sw=4 ts=4: */
 /*
- * ip.c		"ip" utility frontend.
+ * "ip" utility frontend.
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
- * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
- *
+ * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Changes:
- *
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
  * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
@@ -24,12 +22,14 @@
  || ENABLE_FEATURE_IP_TUNNEL \
  || ENABLE_FEATURE_IP_RULE
 
-static int NORETURN ip_print_help(char **argv UNUSED_PARAM)
+static int ip_print_help(char **argv UNUSED_PARAM)
 {
 	bb_show_usage();
 }
 
-static int ip_do(int (*ip_func)(char **argv), char **argv)
+typedef int (*ip_func_ptr_t)(char**);
+
+static int ip_do(ip_func_ptr_t ip_func, char **argv)
 {
 	argv = ip_parse_common_args(argv + 1);
 	return ip_func(argv);
@@ -78,45 +78,29 @@ int ip_main(int argc UNUSED_PARAM, char **argv)
 	static const char keywords[] ALIGN1 =
 		IF_FEATURE_IP_ADDRESS("address\0")
 		IF_FEATURE_IP_ROUTE("route\0")
+		IF_FEATURE_IP_ROUTE("r\0")
 		IF_FEATURE_IP_LINK("link\0")
-		IF_FEATURE_IP_TUNNEL("tunnel\0" "tunl\0")
+		IF_FEATURE_IP_TUNNEL("tunnel\0")
+		IF_FEATURE_IP_TUNNEL("tunl\0")
 		IF_FEATURE_IP_RULE("rule\0")
 		;
-	enum {
-		IF_FEATURE_IP_ADDRESS(IP_addr,)
-		IF_FEATURE_IP_ROUTE(IP_route,)
-		IF_FEATURE_IP_LINK(IP_link,)
-		IF_FEATURE_IP_TUNNEL(IP_tunnel, IP_tunl,)
-		IF_FEATURE_IP_RULE(IP_rule,)
-		IP_none
+	static const ip_func_ptr_t ip_func_ptrs[] = {
+		ip_print_help,
+		IF_FEATURE_IP_ADDRESS(do_ipaddr,)
+		IF_FEATURE_IP_ROUTE(do_iproute,)
+		IF_FEATURE_IP_ROUTE(do_iproute,)
+		IF_FEATURE_IP_LINK(do_iplink,)
+		IF_FEATURE_IP_TUNNEL(do_iptunnel,)
+		IF_FEATURE_IP_TUNNEL(do_iptunnel,)
+		IF_FEATURE_IP_RULE(do_iprule,)
 	};
-	int (*ip_func)(char**) = ip_print_help;
+	ip_func_ptr_t ip_func;
+	int key;
 
 	argv = ip_parse_common_args(argv + 1);
-	if (*argv) {
-		int key = index_in_substrings(keywords, *argv);
-		argv++;
-#if ENABLE_FEATURE_IP_ADDRESS
-		if (key == IP_addr)
-			ip_func = do_ipaddr;
-#endif
-#if ENABLE_FEATURE_IP_ROUTE
-		if (key == IP_route)
-			ip_func = do_iproute;
-#endif
-#if ENABLE_FEATURE_IP_LINK
-		if (key == IP_link)
-			ip_func = do_iplink;
-#endif
-#if ENABLE_FEATURE_IP_TUNNEL
-		if (key == IP_tunnel || key == IP_tunl)
-			ip_func = do_iptunnel;
-#endif
-#if ENABLE_FEATURE_IP_RULE
-		if (key == IP_rule)
-			ip_func = do_iprule;
-#endif
-	}
+	key = *argv ? index_in_substrings(keywords, *argv++) : -1;
+	ip_func = ip_func_ptrs[key + 1];
+
 	return ip_func(argv);
 }
 

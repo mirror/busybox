@@ -39,7 +39,7 @@ config FEATURE_SEAMLESS_Z
 
 config AR
 	bool "ar"
-	default y
+	default n  # needs to be improved to be able to replace binutils ar
 	help
 	  ar is an archival utility program used to create, modify, and
 	  extract contents from archives. An archive is a single file holding

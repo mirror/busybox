@@ -1765,11 +1765,13 @@ static void cmdedit_setwidth(unsigned w, int redraw_flg)
 
 static void win_changed(int nsig)
 {
+	int sv_errno = errno;
 	unsigned width;
 	get_terminal_width_height(0, &width, NULL);
 	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
 	if (nsig == SIGWINCH)
 		signal(SIGWINCH, win_changed); /* rearm ourself */
+	errno = sv_errno;
 }
 
 static int lineedit_read_key(char *read_key_buffer)

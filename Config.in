@@ -15,7 +15,7 @@ menu "General Configuration"
 
 config DESKTOP
 	bool "Enable options for full-blown desktop systems"
-	default n
+	default y
 	help
 	  Enable options and features which are not essential.
 	  Select this only if you plan to use busybox on full-blown
@@ -138,6 +138,7 @@ config UNICODE_USING_LOCALE
 	help
 	  With this option on, Unicode support is implemented using libc
 	  routines. Otherwise, internal implementation is used.
+	  Internal implementation is smaller.
 
 config FEATURE_CHECK_UNICODE_IN_ENV
 	bool "Check $LANG environment variable"

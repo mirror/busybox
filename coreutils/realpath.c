@@ -23,7 +23,7 @@ int realpath_main(int argc UNUSED_PARAM, char **argv)
 
 	do {
 		char *resolved_path = xmalloc_realpath(*argv);
-	       	if (resolved_path != NULL) {
+		if (resolved_path != NULL) {
 			puts(resolved_path);
 			free(resolved_path);
 		} else {

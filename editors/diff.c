@@ -121,6 +121,7 @@ typedef struct FILE_and_pos_t {
 struct globals {
 	smallint exit_status;
 	int opt_U_context;
+	const char *other_dir;
 	char *label[2];
 	struct stat stb[2];
 };
@@ -760,9 +761,11 @@ static int FAST_FUNC add_to_dirlist(const char *filename,
 		void *userdata, int depth UNUSED_PARAM)
 {
 	struct dlist *const l = userdata;
+	const char *file = filename + l->len;
+	while (*file == '/')
+		file++;
 	l->dl = xrealloc_vector(l->dl, 6, l->e);
-	/* + 1 skips "/" after dirname */
-	l->dl[l->e] = xstrdup(filename + l->len + 1);
+	l->dl[l->e] = xstrdup(file);
 	l->e++;
 	return TRUE;
 }
@@ -778,6 +781,25 @@ static int FAST_FUNC skip_dir(const char *filename,
 		add_to_dirlist(filename, sb, userdata, depth);
 		return SKIP;
 	}
+	if (!(option_mask32 & FLAG(N))) {
+		/* -r without -N: no need to recurse into dirs
+		 * which do not exist on the "other side".
+		 * Testcase: diff -r /tmp /
+		 * (it would recurse deep into /proc without this code) */
+		struct dlist *const l = userdata;
+		filename += l->len;
+		if (filename[0]) {
+			struct stat osb;
+			char *othername = concat_path_file(G.other_dir, filename);
+			int r = stat(othername, &osb);
+			free(othername);
+			if (r != 0 || !S_ISDIR(osb.st_mode)) {
+				/* other dir doesn't have similarly named
+				 * directory, don't recurse */
+				return SKIP;
+			}
+		}
+	}
 	return TRUE;
 }
 
@@ -791,6 +813,7 @@ static void diffdir(char *p[2], const char *s_start)
 		/*list[i].s = list[i].e = 0; - memset did it */
 		/*list[i].dl = NULL; */
 
+		G.other_dir = p[1 - i];
 		/* We need to trim root directory prefix.
 		 * Using list.len to specify its length,
 		 * add_to_dirlist will remove it. */

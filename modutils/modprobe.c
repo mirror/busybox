@@ -483,6 +483,11 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, INSMOD_OPTS MODPROBE_OPTS INSMOD_ARGS);
 	argv += optind;
 
+	/* Goto modules location */
+	xchdir(CONFIG_DEFAULT_MODULES_DIR);
+	uname(&uts);
+	xchdir(uts.release);
+
 	if (opt & MODPROBE_OPT_LIST_ONLY) {
 		char name[MODULE_NAME_LEN];
 		char *colon, *tokens[2];
@@ -523,11 +528,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		}
 		return EXIT_SUCCESS;
 	}
-
-	/* Goto modules location */
-	xchdir(CONFIG_DEFAULT_MODULES_DIR);
-	uname(&uts);
-	xchdir(uts.release);
 
 	/* Retrieve module names of already loaded modules */
 	{

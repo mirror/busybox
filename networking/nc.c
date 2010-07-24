@@ -34,7 +34,7 @@
 //config:
 //config:config NC_110_COMPAT
 //config:	bool "Netcat 1.10 compatibility (+2.5k)"
-//config:	default y
+//config:	default n  # off specially for Rob
 //config:	depends on NC
 //config:	help
 //config:	  This option makes nc closely follow original nc-1.10.
