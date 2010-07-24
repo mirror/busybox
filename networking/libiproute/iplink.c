@@ -362,7 +362,7 @@ static int do_change(char **argv, const unsigned rtm)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iplink(char **argv)
+int FAST_FUNC do_iplink(char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"add\0""delete\0""set\0""show\0""lst\0""list\0";

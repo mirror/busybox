@@ -22,7 +22,7 @@ family_t preferred_family = AF_UNSPEC;
 smallint oneline;
 char _SL_;
 
-char **ip_parse_common_args(char **argv)
+char** FAST_FUNC ip_parse_common_args(char **argv)
 {
 	static const char ip_common_commands[] ALIGN1 =
 		"oneline" "\0"

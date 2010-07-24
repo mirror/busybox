@@ -22,12 +22,12 @@
  || ENABLE_FEATURE_IP_TUNNEL \
  || ENABLE_FEATURE_IP_RULE
 
-static int ip_print_help(char **argv UNUSED_PARAM)
+static int FAST_FUNC ip_print_help(char **argv UNUSED_PARAM)
 {
 	bb_show_usage();
 }
 
-typedef int (*ip_func_ptr_t)(char**);
+typedef int FAST_FUNC (*ip_func_ptr_t)(char**);
 
 static int ip_do(ip_func_ptr_t ip_func, char **argv)
 {

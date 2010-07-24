@@ -415,7 +415,7 @@ static void ipaddr_reset_filter(int _oneline)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int ipaddr_list_or_flush(char **argv, int flush)
+int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 {
 	static const char option[] ALIGN1 = "to\0""scope\0""up\0""label\0""dev\0";
 
@@ -747,7 +747,7 @@ static int ipaddr_modify(int cmd, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_ipaddr(char **argv)
+int FAST_FUNC do_ipaddr(char **argv)
 {
 	static const char commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0""lst\0""flush\0";

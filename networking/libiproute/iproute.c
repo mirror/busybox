@@ -869,7 +869,7 @@ static int iproute_get(char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iproute(char **argv)
+int FAST_FUNC do_iproute(char **argv)
 {
 	static const char ip_route_commands[] ALIGN1 =
 	/*0-3*/	"add\0""append\0""change\0""chg\0"

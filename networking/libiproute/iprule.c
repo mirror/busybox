@@ -304,7 +304,7 @@ static int iprule_modify(int cmd, char **argv)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-int do_iprule(char **argv)
+int FAST_FUNC do_iprule(char **argv)
 {
 	static const char ip_rule_commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0";
