@@ -341,7 +341,6 @@ static VALUE *eval6(void)
 		freev(i2);
 	}
 	return v;
-
 }
 
 /* Handle : operator (pattern matching).

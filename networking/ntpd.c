@@ -592,7 +592,6 @@ filter_datapoints(peer_t *p)
 			p->filter_offset, x,
 			p->filter_dispersion,
 			p->filter_jitter);
-
 }
 
 static void

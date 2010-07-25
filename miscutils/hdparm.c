@@ -730,8 +730,8 @@ static void identify(uint16_t *val)
 		if (val[MINOR] && (val[MINOR] <= MINOR_MAX)) {
 			if (like_std < 3) like_std = 3;
 			std = actual_ver[val[MINOR]];
-			if (std) printf("\n\tUsed: %s ", nth_string(minor_str, val[MINOR]));
-
+			if (std)
+				printf("\n\tUsed: %s ", nth_string(minor_str, val[MINOR]));
 		}
 		/* looks like when they up-issue the std, they obsolete one;
 		 * thus, only the newest 4 issues need be supported. (That's

@@ -359,7 +359,6 @@ int unzip_main(int argc, char **argv)
 
 			default:
 				bb_show_usage();
-
 			}
 			break;
 

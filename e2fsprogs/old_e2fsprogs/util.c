@@ -95,7 +95,6 @@ force_check:
 		bb_error_msg("%s is apparently in use by the system", device);
 		goto force_check;
 	}
-
 }
 
 void parse_journal_opts(char **journal_device, int *journal_flags,

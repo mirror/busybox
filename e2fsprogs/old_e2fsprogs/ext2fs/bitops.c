@@ -88,4 +88,3 @@ void ext2fs_warn_bitmap2(ext2fs_generic_bitmap bitmap,
 		bb_error_msg("#%lu", arg);
 #endif
 }
-

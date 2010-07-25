@@ -150,7 +150,6 @@ static void con_escape(void)
 		cookmode();
  ret:
 	bb_got_signal = 0;
-
 }
 
 static void handle_net_output(int len)

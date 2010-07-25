@@ -212,7 +212,6 @@ void generateMTFValues(EState* s)
 				wr++;
 				s->mtfFreq[j+1]++;
 			}
-
 		}
 	}
 

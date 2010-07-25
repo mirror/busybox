@@ -52,7 +52,6 @@
 
 
 enum {
-
 TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
 COLUMN_GAP      = 2,            /* includes the file type char */
 
@@ -120,7 +119,6 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 SPLIT_DIR       = 1,
 SPLIT_FILE      = 0,
 SPLIT_SUBDIR    = 2,
-
 };
 
 /* "[-]Cadil1", POSIX mandated options, busybox always supports */

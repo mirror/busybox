@@ -293,4 +293,3 @@ errcode_t ext2fs_write_bitmaps(ext2_filsys fs)
 	}
 	return 0;
 }
-

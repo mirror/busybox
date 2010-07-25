@@ -11215,7 +11215,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				}
 				IF_ASH_ALIAS(if (c != PEOA))
 					USTPUTC(c, out);
-
 			}
 			c = pgetc_fast();
 		} /* for (;;) */
@@ -12055,7 +12054,6 @@ evalcmd(int argc UNUSED_PARAM, char **argv)
 			p = grabstackstr(concat);
 		}
 		evalstring(p, ~SKIPEVAL);
-
 	}
 	return exitstatus;
 }

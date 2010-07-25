@@ -37,7 +37,6 @@ static int cmpfunc(const void *a, const void *b)
 {
 	return (((struct cut_list *) a)->startpos -
 			((struct cut_list *) b)->startpos);
-
 }
 
 static void cut_file(FILE *file, char delim, const struct cut_list *cut_lists, unsigned nlists)

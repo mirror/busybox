@@ -118,7 +118,6 @@ static void add_exclude(const char *directory)
 
 	if (directory == NULL || directory[0] != '/') {
 		bb_error_msg_and_die("full path required for exclude: %s", directory);
-
 	}
 	if (lstat(directory, &sb)) {
 		bb_error_msg("directory \"%s\" not found, ignoring", directory);

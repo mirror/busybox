@@ -168,7 +168,6 @@ int addgroup_main(int argc UNUSED_PARAM, char **argv)
 	{
 		die_if_bad_username(argv[0]);
 		new_group(argv[0], gid);
-
 	}
 	/* Reached only on success */
 	return EXIT_SUCCESS;

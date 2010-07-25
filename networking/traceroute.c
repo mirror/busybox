@@ -666,7 +666,6 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 				return (type == ICMP6_TIME_EXCEEDED ? -1 : (code<<8)+1);
 			}
 		}
-
 	}
 
 # if ENABLE_FEATURE_TRACEROUTE_VERBOSE

@@ -2043,7 +2043,6 @@ fix_partition_table_order(void)
 		fix_chain_of_logicals();
 
 	printf("Done.\n");
-
 }
 #endif
 

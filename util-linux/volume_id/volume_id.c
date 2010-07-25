@@ -195,7 +195,6 @@ int FAST_FUNC volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64
  ret:
 	volume_id_free_buffer(id);
 	return (- id->error); /* 0 or -1 */
-
 }
 
 /* open volume by device node */

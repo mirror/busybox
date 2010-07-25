@@ -4518,7 +4518,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #ifdef CMD_SINGLEWORD_NOGLOB_COND
 		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB_COND) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob_cond(argv + command->assignment_cnt);
-
 		}
 #endif
 		else {

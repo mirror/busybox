@@ -153,5 +153,4 @@ errcode_t ext2fs_get_pathname(ext2_filsys fs, ext2_ino_t dir, ext2_ino_t ino,
 	retval = ext2fs_get_pathname_int(fs, dir, ino, 32, buf, name);
 	ext2fs_free_mem(&buf);
 	return retval;
-
 }

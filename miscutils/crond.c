@@ -243,7 +243,6 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 					goto err;
 				}
 			} while (n1 != n2);
-
 		}
 		if (*ptr != ',') {
 			break;
