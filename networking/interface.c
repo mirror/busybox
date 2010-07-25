@@ -927,7 +927,6 @@ static void print_bytes_scaled(unsigned long long ull, const char *end)
 
 static void ife_print6(struct interface *ptr)
 {
-
 	FILE *f;
 	char addr6[40], devname[20];
 	struct sockaddr_in6 sap;

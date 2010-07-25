@@ -675,7 +675,6 @@ static int min_gain(unsigned ahead, unsigned lit1,
 static void better_match(const lzo_swd_p swd,
 			   unsigned *m_len, unsigned *m_off)
 {
-
 	if (*m_len <= M2_MIN_LEN)
 		return;
 
