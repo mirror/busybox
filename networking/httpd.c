@@ -277,6 +277,10 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_PROXY
 	Htaccess_Proxy *proxy;
 #endif
+#if ENABLE_FEATURE_HTTPD_GZIP
+	/* client can handle gzip / we are going to send gzip */
+	smallint content_gzip;
+#endif
 };
 #define G (*ptr_to_globals)
 #define verbose           (G.verbose          )
@@ -319,6 +323,11 @@ enum {
 #define hdr_cnt           (G.hdr_cnt          )
 #define http_error_page   (G.http_error_page  )
 #define proxy             (G.proxy            )
+#if ENABLE_FEATURE_HTTPD_GZIP
+# define content_gzip     (G.content_gzip     )
+#else
+# define content_gzip     0
+#endif
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
@@ -1027,10 +1036,14 @@ static void send_headers(int responseNum)
 #endif
 			"Last-Modified: %s\r\n%s %"OFF_FMT"u\r\n",
 				tmp_str,
-				"Content-length:",
+				content_gzip ? "Transfer-length:" : "Content-length:",
 				file_size
 		);
 	}
+
+	if (content_gzip)
+		len += sprintf(iobuf + len, "Content-Encoding: gzip\r\n");
+
 	iobuf[len++] = '\r';
 	iobuf[len++] = '\n';
 	if (infoString) {
@@ -1500,7 +1513,22 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	int fd;
 	ssize_t count;
 
-	fd = open(url, O_RDONLY);
+	if (content_gzip) {
+		/* does <url>.gz exist? Then use it instead */
+		char *gzurl = xasprintf("%s.gz", url);
+		fd = open(gzurl, O_RDONLY);
+		free(gzurl);
+		if (fd != -1) {
+			struct stat sb;
+			fstat(fd, &sb);
+			file_size = sb.st_size;
+		} else {
+			IF_FEATURE_HTTPD_GZIP(content_gzip = 0;)
+			fd = open(url, O_RDONLY);
+		}
+	} else {
+		fd = open(url, O_RDONLY);
+	}
 	if (fd < 0) {
 		if (DEBUG)
 			bb_perror_msg("can't open '%s'", url);
@@ -1583,8 +1611,11 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			url, found_mime_type);
 
 #if ENABLE_FEATURE_HTTPD_RANGES
-	if (what == SEND_BODY)
-		range_start = 0; /* err pages and ranges don't mix */
+	if (what == SEND_BODY /* err pages and ranges don't mix */
+	 || content_gzip /* we are sending compressed page: can't do ranges */  ///why?
+	) {
+		range_start = 0;
+	}
 	range_len = MAXINT(off_t);
 	if (range_start) {
 		if (!range_end) {
@@ -2045,6 +2076,23 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 						if (errno || range_end < range_start)
 							range_start = 0;
 					}
+				}
+			}
+#endif
+#if ENABLE_FEATURE_HTTPD_GZIP
+			if (STRNCASECMP(iobuf, "Accept-Encoding:") == 0) {
+				char *s = iobuf + sizeof("Accept-Encoding:")-1;
+				while (*s) {
+					///is "Accept-Encoding: compress,gzip" valid?
+					// (that is, no space after ',') -
+					// this code won't handle that
+					s = skip_whitespace(s);
+					if (STRNCASECMP(s, "gzip") == 0)
+						content_gzip = 1;
+					/* Note: we do not support "gzip;q=0"
+					 * method of _disabling_ gzip
+					 * delivery */
+					s = skip_non_whitespace(s);
 				}
 			}
 #endif
