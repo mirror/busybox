@@ -5,23 +5,20 @@
  * Copyright (C) 2002,2003 Glenn Engel <glenne@engel.org>
  * Copyright (C) 2003-2006 Vladimir Oleynik <dzo@simtreas.ru>
  *
- * simplify patch stolen from libbb without using strdup
- *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  *****************************************************************************
  *
  * Typical usage:
- *   for non root user
- * httpd -p 8080 -h $HOME/public_html
- *   or for daemon start from rc script with uid=0:
- * httpd -u www
- * This is equivalent if www user have uid=80 to
- * httpd -p 80 -u 80 -h /www -c /etc/httpd.conf -r "Web Server Authentication"
+ * For non root user:
+ *      httpd -p 8080 -h $HOME/public_html
+ * For daemon start from rc script with uid=0:
+ *      httpd -u www
+ * which is equivalent to (assuming user www has uid 80):
+ *      httpd -p 80 -u 80 -h $PWD -c /etc/httpd.conf -r "Web Server Authentication"
  *
- *
- * When an url starts by "/cgi-bin/" it is assumed to be a cgi script.  The
- * server changes directory to the location of the script and executes it
+ * When an url starts with "/cgi-bin/" it is assumed to be a cgi script.
+ * The server changes directory to the location of the script and executes it
  * after setting QUERY_STRING and other environment variables.
  *
  * Doc:
@@ -29,8 +26,8 @@
  *
  * The applet can also be invoked as an url arg decoder and html text encoder
  * as follows:
- *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
- *  bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
+ *      foo=`httpd -d $foo`             # decode "Hello%20World" as "Hello World"
+ *      bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
  * Note that url encoding for arguments is not the same as html encoding for
  * presentation.  -d decodes an url-encoded argument while -e encodes in html
  * for page display.
@@ -100,15 +97,14 @@
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 # include <sys/sendfile.h>
 #endif
-
-#define DEBUG 0
-
-#define IOBUF_SIZE 8192    /* IO buffer */
-
 /* amount of buffering in a pipe */
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096
 #endif
+
+#define DEBUG 0
+
+#define IOBUF_SIZE 8192
 #if PIPE_BUF >= IOBUF_SIZE
 # error "PIPE_BUF >= IOBUF_SIZE"
 #endif
@@ -118,6 +114,7 @@
 static const char DEFAULT_PATH_HTTPD_CONF[] ALIGN1 = "/etc";
 static const char HTTPD_CONF[] ALIGN1 = "httpd.conf";
 static const char HTTP_200[] ALIGN1 = "HTTP/1.0 200 OK\r\n";
+static const char index_html[] ALIGN1 = "index.html";
 
 typedef struct has_next_ptr {
 	struct has_next_ptr *next;
@@ -170,7 +167,6 @@ enum {
 	HTTP_PAYMENT_REQUIRED = 402,
 	HTTP_BAD_GATEWAY = 502,
 	HTTP_SERVICE_UNAVAILABLE = 503, /* overload, maintenance */
-	HTTP_RESPONSE_SETSIZE = 0xffffffff
 #endif
 };
 
@@ -230,9 +226,6 @@ static const struct {
 	{ "Service Unavailable", "" },
 #endif
 };
-
-static const char index_html[] ALIGN1 = "index.html";
-
 
 struct globals {
 	int verbose;            /* must be int (used by getopt32) */
@@ -777,7 +770,7 @@ static char *encodeString(const char *string)
 	char *p = out;
 	char ch;
 
-	while ((ch = *string++)) {
+	while ((ch = *string++) != '\0') {
 		/* very simple check for what to encode */
 		if (isalnum(ch))
 			*p++ = ch;
@@ -787,7 +780,7 @@ static char *encodeString(const char *string)
 	*p = '\0';
 	return out;
 }
-#endif          /* FEATURE_HTTPD_ENCODE_URL_STR */
+#endif
 
 /*
  * Given a URL encoded string, convert it to plain ascii.
@@ -814,12 +807,12 @@ static unsigned hex_to_bin(unsigned char c)
 	if (v <= 5)
 		return v + 10;
 	return ~0;
-}
 /* For testing:
 void t(char c) { printf("'%c'(%u) %u\n", c, c, hex_to_bin(c)); }
 int main() { t(0x10); t(0x20); t('0'); t('9'); t('A'); t('F'); t('a'); t('f');
 t('0'-1); t('9'+1); t('A'-1); t('F'+1); t('a'-1); t('f'+1); return 0; }
 */
+}
 static char *decodeString(char *orig, int option_d)
 {
 	/* note that decoded string is always shorter than original */
@@ -1964,7 +1957,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	if (http_major_version >= '0') {
 		/* Request was with "... HTTP/nXXX", and n >= 0 */
 
-		/* Read until blank line for HTTP version specified, else parse immediate */
+		/* Read until blank line */
 		while (1) {
 			if (!get_line())
 				break; /* EOF or error or empty line */
@@ -1991,9 +1984,9 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if ((STRNCASECMP(iobuf, "Content-length:") == 0)) {
 				/* extra read only for POST */
 				if (prequest != request_GET
-#if ENABLE_FEATURE_HTTPD_CGI
+# if ENABLE_FEATURE_HTTPD_CGI
 				 && prequest != request_HEAD
-#endif
+# endif
 				) {
 					tptr = skip_whitespace(iobuf + sizeof("Content-length:") - 1);
 					if (!tptr[0])
@@ -2183,9 +2176,9 @@ static void mini_httpd(int server_socket)
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
 		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
-
 		if (n < 0)
 			continue;
+
 		/* set the KEEPALIVE option to cull dead connections */
 		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
@@ -2226,9 +2219,9 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 		/* Wait for connections... */
 		fromAddr.len = LSA_SIZEOF_SA;
 		n = accept(server_socket, &fromAddr.u.sa, &fromAddr.len);
-
 		if (n < 0)
 			continue;
+
 		/* set the KEEPALIVE option to cull dead connections */
 		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
