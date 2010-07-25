@@ -18,4 +18,3 @@ then
 fi
 
 objdump -d $1 | sed -n -e '/./{H;$!d}' -e "x;/^.[0-9a-fA-F]* <$2>:/p"
-

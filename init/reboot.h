@@ -28,4 +28,3 @@
 #  define RB_POWER_OFF  RB_HALT_SYSTEM
 # endif
 #endif
-

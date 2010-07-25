@@ -126,4 +126,3 @@ int FAST_FUNC ll_proto_a2n(unsigned short *id, char *buf)
 	*id = htons(i);
 	return 0;
 }
-

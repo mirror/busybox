@@ -253,4 +253,3 @@ Tito Ragusa <farmatito@tiscali.it>
     devfsd and size optimizations in strings, openvt and deallocvt.
 
 =cut
-

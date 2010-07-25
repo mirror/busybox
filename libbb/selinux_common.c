@@ -53,4 +53,3 @@ void FAST_FUNC selinux_preserve_fcontext(int fdesc)
 	setfscreatecon_or_die(context);
 	freecon(context);
 }
-

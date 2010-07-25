@@ -133,4 +133,3 @@ Specifying the calling convention
     For example, on Windows, you may make all functions use the stdcall
     calling convention by defining XZ_FUNC=__stdcall when building and
     using the functions from XZ Embedded.
-

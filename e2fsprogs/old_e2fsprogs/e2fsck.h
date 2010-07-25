@@ -636,5 +636,3 @@ static inline int tid_geq(tid_t x, tid_t y)
 	int difference = (x - y);
 	return (difference >= 0);
 }
-
-

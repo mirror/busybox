@@ -426,5 +426,3 @@ you're having difficulty following some of the steps outlined in this
 document don't worry, the folks on the Busybox mailing list are a fairly
 good-natured bunch and will work with you to help get your patches into shape
 or help you make contributions.
-
-
