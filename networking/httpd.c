@@ -2081,18 +2081,18 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 #endif
 #if ENABLE_FEATURE_HTTPD_GZIP
 			if (STRNCASECMP(iobuf, "Accept-Encoding:") == 0) {
-				char *s = iobuf + sizeof("Accept-Encoding:")-1;
-				while (*s) {
-					///is "Accept-Encoding: compress,gzip" valid?
-					// (that is, no space after ',') -
-					// this code won't handle that
-					s = skip_whitespace(s);
-					if (STRNCASECMP(s, "gzip") == 0)
+				/* Note: we do not support "gzip;q=0"
+				 * method of _disabling_ gzip
+				 * delivery. No one uses that, though */
+				const char *s = strstr(iobuf, "gzip");
+				if (s) {
+					// want more thorough checks?
+					//if (s[-1] == ' '
+					// || s[-1] == ','
+					// || s[-1] == ':'
+					//) {
 						content_gzip = 1;
-					/* Note: we do not support "gzip;q=0"
-					 * method of _disabling_ gzip
-					 * delivery */
-					s = skip_non_whitespace(s);
+					//}
 				}
 			}
 #endif
