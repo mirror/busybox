@@ -7,7 +7,7 @@ grep -n -B1 -r $'^\t*}' . | grep -A1 '.[ch]-[0-9]*-$'
 grep -n -A1 -r $'^\t*{' . | grep -B1 '.[ch]-[0-9]*-$'
 
 # find trailing empty lines
-find -type f | xargs tail -1 | while read file; do
+find -type f | xargs tail -n1 | while read file; do
         test x"$file" = x"" && continue
         read lastline
         #echo "|$file|$lastline"
