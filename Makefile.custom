@@ -125,6 +125,7 @@ docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
 	$(Q)-mkdir -p docs
 	$(Q)-( \
 	    cat $(srctree)/docs/busybox_header.pod; \
+	    echo; \
 	    applets/usage_pod | sed 's/^[A-Za-z][A-Za-z ]*[a-z]:$$/&\n/'; \
 	    cat $(srctree)/docs/busybox_footer.pod; \
 	    ) > docs/busybox.pod
