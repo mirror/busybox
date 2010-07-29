@@ -7,15 +7,15 @@
 #include <math.h>
 
 //usage:#define dc_trivial_usage
-//usage:       "expression..."
+//usage:       "EXPRESSION..."
 //usage:
 //usage:#define dc_full_usage "\n\n"
 //usage:       "Tiny RPN calculator. Operations:\n"
 //usage:       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor,\n"
 //usage:       "p - print top of the stack (without popping),\n"
-//usage:       "f - print entire stack, o - pop the value and set output radix\n"
-//usage:       "(value must be 10, 16, 8 or 2).\n"
-//usage:       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16\n"
+//usage:       "f - print entire stack,\n"
+//usage:       "o - pop the value and set output radix (must be 10, 16, 8 or 2).\n"
+//usage:       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16"
 //usage:
 //usage:#define dc_example_usage
 //usage:       "$ dc 2 2 + p\n"
