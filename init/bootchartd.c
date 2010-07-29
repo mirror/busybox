@@ -6,7 +6,6 @@
 //config:config BOOTCHARTD
 //config:	bool "bootchartd"
 //config:	default y
-//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  bootchartd is commonly used to profile the boot process
 //config:	  for the purpose of speeding it up. In this case, it is started
@@ -46,12 +45,15 @@
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h>
-#include <sys/mount.h>
-#ifndef MS_SILENT
-# define MS_SILENT      (1 << 15)
-#endif
-#ifndef MNT_DETACH
-# define MNT_DETACH 0x00000002
+
+#ifdef __linux__
+# include <sys/mount.h>
+# ifndef MS_SILENT
+#  define MS_SILENT      (1 << 15)
+# endif
+# ifndef MNT_DETACH
+#  define MNT_DETACH 0x00000002
+# endif
 #endif
 
 #define BC_VERSION_STR "0.8"
@@ -175,6 +177,7 @@ static char *make_tempdir(void)
 	char template[] = "/tmp/bootchart.XXXXXX";
 	char *tempdir = xstrdup(mkdtemp(template));
 	if (!tempdir) {
+#ifdef __linux__
 		/* /tmp is not writable (happens when we are used as init).
 		 * Try to mount a tmpfs, them cd and lazily unmount it.
 		 * Since we unmount it at once, we can mount it anywhere.
@@ -192,6 +195,9 @@ static char *make_tempdir(void)
 		if (umount2(try_dir, MNT_DETACH) != 0) {
 			bb_perror_msg_and_die("can't %smount tmpfs", "un");
 		}
+#else
+		bb_perror_msg_and_die("can't create temporary directory");
+#endif
 	} else {
 		xchdir(tempdir);
 	}
