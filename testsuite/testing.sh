@@ -26,7 +26,7 @@
 # number of failed tests.
 
 # The "optional" function is used to skip certain tests, ala:
-#   optional CONFIG_FEATURE_THINGY
+#   optional FEATURE_THINGY
 #
 # The "optional" function checks the environment variable "OPTIONFLAGS",
 # which is either empty (in which case it always clears SKIP) or
