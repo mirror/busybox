@@ -351,7 +351,6 @@ endchoice
 config LESS
 	bool "less"
 	default y
-	depends on PLATFORM_LINUX
 	help
 	  'less' is a pager, meaning that it displays text files. It possesses
 	  a wide array of features, and is an improvement over 'more'.
