@@ -295,7 +295,6 @@ config SULOGIN
 config VLOCK
 	bool "vlock"
 	default y
-	depends on PLATFORM_LINUX
 	select FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.
