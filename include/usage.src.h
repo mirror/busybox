@@ -736,28 +736,6 @@ INSERT
        "$ date\n" \
        "Wed Apr 12 18:52:41 MDT 2000\n"
 
-#define dc_trivial_usage \
-       "expression..."
-#define dc_full_usage "\n\n" \
-       "Tiny RPN calculator. Operations:\n" \
-       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor,\n" \
-       "p - print top of the stack (without altering the stack),\n" \
-       "f - print entire stack, o - pop the value and set output radix\n" \
-       "(value must be 10 or 16).\n" \
-       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16\n" \
-
-#define dc_example_usage \
-       "$ dc 2 2 + p\n" \
-       "4\n" \
-       "$ dc 8 8 \\* 2 2 + / p\n" \
-       "16\n" \
-       "$ dc 0 1 and p\n" \
-       "0\n" \
-       "$ dc 0 1 or p\n" \
-       "1\n" \
-       "$ echo 72 9 div 8 mul p | dc\n" \
-       "64\n"
-
 #define dd_trivial_usage \
        "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
        "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")

@@ -6,7 +6,39 @@
 #include "libbb.h"
 #include <math.h>
 
-/* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
+//usage:#define dc_trivial_usage
+//usage:       "expression..."
+//usage:
+//usage:#define dc_full_usage "\n\n"
+//usage:       "Tiny RPN calculator. Operations:\n"
+//usage:       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor,\n"
+//usage:       "p - print top of the stack (without popping),\n"
+//usage:       "f - print entire stack, o - pop the value and set output radix\n"
+//usage:       "(value must be 10, 16, 8 or 2).\n"
+//usage:       "Examples: 'dc 2 2 add' -> 4, 'dc 8 8 * 2 2 + /' -> 16\n"
+//usage:
+//usage:#define dc_example_usage
+//usage:       "$ dc 2 2 + p\n"
+//usage:       "4\n"
+//usage:       "$ dc 8 8 \\* 2 2 + / p\n"
+//usage:       "16\n"
+//usage:       "$ dc 0 1 and p\n"
+//usage:       "0\n"
+//usage:       "$ dc 0 1 or p\n"
+//usage:       "1\n"
+//usage:       "$ echo 72 9 div 8 mul p | dc\n"
+//usage:       "64\n"
+
+#if 0
+typedef unsigned data_t;
+#define DATA_FMT ""
+#elif 0
+typedef unsigned long data_t;
+#define DATA_FMT "l"
+#else
+typedef unsigned long long data_t;
+#define DATA_FMT "ll"
+#endif
 
 
 struct globals {
@@ -73,29 +105,29 @@ static void divide(void)
 
 static void mod(void)
 {
-	unsigned d = pop();
+	data_t d = pop();
 
-	push((unsigned) pop() % d);
+	push((data_t) pop() % d);
 }
 
 static void and(void)
 {
-	push((unsigned) pop() & (unsigned) pop());
+	push((data_t) pop() & (data_t) pop());
 }
 
 static void or(void)
 {
-	push((unsigned) pop() | (unsigned) pop());
+	push((data_t) pop() | (data_t) pop());
 }
 
 static void eor(void)
 {
-	push((unsigned) pop() ^ (unsigned) pop());
+	push((data_t) pop() ^ (data_t) pop());
 }
 
 static void not(void)
 {
-	push(~(unsigned) pop());
+	push(~(data_t) pop());
 }
 
 static void set_output_base(void)
@@ -112,25 +144,30 @@ static void set_output_base(void)
 
 static void print_base(double print)
 {
-	unsigned x, i;
+	data_t x, i;
 
+	x = (data_t) print;
 	if (base == 10) {
-		printf("%g\n", print);
+		if (x == print) /* exactly representable as unsigned integer */
+			printf("%"DATA_FMT"u\n", x);
+		else
+			printf("%g\n", print);
 		return;
 	}
 
-	x = (unsigned)print;
 	switch (base) {
 	case 16:
-		printf("%x\n", x);
+		printf("%"DATA_FMT"x\n", x);
 		break;
 	case 8:
-		printf("%o\n", x);
+		printf("%"DATA_FMT"o\n", x);
 		break;
 	default: /* base 2 */
-		i = (unsigned)INT_MAX + 1;
+		i = MAXINT(data_t) - (MAXINT(data_t) >> 1);
+		/* i is 100000...00000 */
 		do {
-			if (x & i) break;
+			if (x & i)
+				break;
 			i >>= 1;
 		} while (i > 1);
 		do {
