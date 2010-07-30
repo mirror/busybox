@@ -13,7 +13,6 @@
 //config:config CTTYHACK
 //config:	bool "cttyhack"
 //config:	default y
-//config:	depends on PLATFORM_LINUX
 //config:	help
 //config:	  One common problem reported on the mailing list is "can't access tty;
 //config:	  job control turned off" error message which typically appears when
@@ -58,6 +57,10 @@
 //usage:     "\n	$ exec cttyhack sh"
 //usage:     "\nStarting interactive shell from boot shell script:"
 //usage:     "\n	setsid cttyhack sh"
+
+#if !defined(__linux__) && !defined(TIOCGSERIAL)
+# warning cttyhack will not be able to detect a controlling tty on this system
+#endif
 
 /* From <linux/vt.h> */
 struct vt_stat {
@@ -112,13 +115,19 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 		close(fd);
 	} else {
 		/* We don't have ctty (or don't have "/dev/tty" node...) */
-		if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
+		if (0) {}
+#ifdef TIOCGSERIAL
+		else if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
 			/* this is a serial console */
 			sprintf(console + 8, "S%d", u.sr.line);
-		} else if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
+		}
+#endif
+#ifdef __linux__
+		else if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
 			/* this is linux virtual tty */
 			sprintf(console + 8, "S%d" + 1, u.vt.v_active);
 		}
+#endif
 		if (console[8]) {
 			fd = xopen(console, O_RDWR);
 			//bb_error_msg("switching to '%s'", console);
