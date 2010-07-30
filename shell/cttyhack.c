@@ -58,7 +58,7 @@
 //usage:     "\nStarting interactive shell from boot shell script:"
 //usage:     "\n	setsid cttyhack sh"
 
-#if !defined(__linux__) && !defined(TIOCGSERIAL)
+#if !defined(__linux__) && !defined(TIOCGSERIAL) && !ENABLE_WERROR
 # warning cttyhack will not be able to detect a controlling tty on this system
 #endif
 
