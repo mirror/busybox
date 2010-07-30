@@ -163,6 +163,7 @@ static double percent_value(data_t prev, data_t curr, data_t itv)
 
 static double hz_value(data_t prev, data_t curr, data_t itv)
 {
+	//bb_error_msg("curr:%lld prev:%lld G.hz:%u", curr, prev, G.hz);
 	return ((double)overflow_safe_sub(prev, curr)) / itv * G.hz;
 }
 
@@ -413,6 +414,8 @@ static void write_stats_core(int prev, int current,
 					continue;
 				}
 			}
+			//bb_error_msg("G.st_irq[%u][%u].irq_nr:%lld - G.st_irq[%u][%u].irq_nr:%lld",
+			// current, cpu, G.st_irq[prev][cpu].irq_nr, prev, cpu, G.st_irq[current][cpu].irq_nr);
 			printf(" %9.2f\n", hz_value(G.st_irq[prev][cpu].irq_nr, G.st_irq[current][cpu].irq_nr, per_cpu_itv));
 		}
 	}
@@ -523,16 +526,23 @@ static void get_cpu_statistics(struct stats_cpu *cpu, data_t *up, data_t *up0)
 static void get_irqs_from_stat(struct stats_irq *irq)
 {
 	FILE *fp;
+	unsigned cpu;
 	char buf[1024];
+
+	for (cpu = 1; cpu <= G.cpu_nr; cpu++) {
+		irq->irq_nr = 0;
+	}
 
 	fp = fopen_for_read(PROCFS_STAT);
 	if (!fp)
 		return;
 
 	while (fgets(buf, sizeof(buf), fp)) {
-		if (strncmp(buf, "intr ", 5) == 0)
+		//bb_error_msg("/proc/stat:'%s'", buf);
+		if (strncmp(buf, "intr ", 5) == 0) {
 			/* Read total number of IRQs since system boot */
 			sscanf(buf + 5, "%"FMT_DATA"u", &irq->irq_nr);
+		}
 	}
 
 	fclose(fp);
@@ -554,12 +564,20 @@ static void get_irqs_from_interrupts(const char *fname,
 	unsigned irq;
 	int cpu_index[G.cpu_nr];
 	int iindex;
-	int len, digit;
 
-	for (cpu = 1; cpu <= G.cpu_nr; cpu++) {
-		irq_i = &G.st_irq[current][cpu];
-		irq_i->irq_nr = 0;
-	}
+// Moved to get_irqs_from_stat(), which is called once, not twice,
+// unlike get_irqs_from_interrupts().
+// Otherwise reading of /proc/softirqs
+// was resetting counts to 0 after we painstakingly collected them from
+// /proc/interrupts. Which resulted in:
+// 01:32:47 PM  CPU    intr/s
+// 01:32:47 PM  all    591.47
+// 01:32:47 PM    0      0.00 <= ???
+// 01:32:47 PM    1      0.00 <= ???
+//	for (cpu = 1; cpu <= G.cpu_nr; cpu++) {
+//		G.st_irq[current][cpu].irq_nr = 0;
+//		//bb_error_msg("G.st_irq[%u][%u].irq_nr=0", current, cpu);
+//	}
 
 	fp = fopen_for_read(fname);
 	if (!fp)
@@ -587,11 +605,15 @@ static void get_irqs_from_interrupts(const char *fname,
 	while (fgets(buf, buflen, fp)
 	 && irq < irqs_per_cpu
 	) {
+		int len;
+		char last_char;
 		char *cp;
-		/* Skip over "<irq>:" */
+
+		/* Skip over "IRQNAME:" */
 		cp = strchr(buf, ':');
 		if (!cp)
 			continue;
+		last_char = cp[-1];
 
 		ic = &per_cpu_stats[current][irq];
 		len = cp - buf;
@@ -600,7 +622,6 @@ static void get_irqs_from_interrupts(const char *fname,
 		}
 		safe_strncpy(ic->irq_name, buf, len + 1);
 		//bb_error_msg("%s: irq%d:'%s' buf:'%s'", fname, irq, ic->irq_name, buf);
-		digit = isdigit(buf[len - 1]);
 		cp++;
 
 		for (cpu = 0; cpu < iindex; cpu++) {
@@ -608,9 +629,11 @@ static void get_irqs_from_interrupts(const char *fname,
 			ic = &per_cpu_stats[current][cpu_index[cpu] * irqs_per_cpu + irq];
 			irq_i = &G.st_irq[current][cpu_index[cpu] + 1];
 			ic->interrupt = strtoul(cp, &next, 10);
-			if (digit) {
-				/* Do not count non-numerical IRQs */
+			/* Count only numerical IRQs */
+			if (isdigit(last_char)) {
 				irq_i->irq_nr += ic->interrupt;
+				//bb_error_msg("G.st_irq[%u][%u].irq_nr + %u = %lld",
+				// current, cpu_index[cpu] + 1, ic->interrupt, irq_i->irq_nr);
 			}
 			cp = next;
 		}
