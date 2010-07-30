@@ -816,45 +816,11 @@ static void print_header(struct tm *t)
 }
 
 /*
- * Get number of processors in /sys
- */
-static int get_sys_cpu_nr(void)
-{
-	DIR *dir;
-	struct dirent *d;
-	struct stat buf;
-	char line[MAX_PF_NAME];
-	int proc_nr = 0;
-
-	dir = opendir(SYSFS_DEVCPU);
-	if (!dir)
-		return 0;	/* /sys not mounted */
-
-	/* Get current file entry */
-	while ((d = readdir(dir)) != NULL) {
-		if (starts_with_cpu(d->d_name) && isdigit(d->d_name[3])) {
-			snprintf(line, MAX_PF_NAME, "%s/%s", SYSFS_DEVCPU,
-				 d->d_name);
-			line[MAX_PF_NAME - 1] = '\0';
-			/* Get information about file */
-			if (stat(line, &buf) < 0)
-				continue;
-			/* If found 'cpuN', we have one more processor */
-			if (S_ISDIR(buf.st_mode))
-				proc_nr++;
-		}
-	}
-
-	closedir(dir);
-	return proc_nr;
-}
-
-/*
  * Get number of processors in /proc/stat
  * Return value '0' means one CPU and non SMP kernel.
  * Otherwise N means N processor(s) and SMP kernel.
  */
-static int get_proc_cpu_nr(void)
+static int get_cpu_nr(void)
 {
 	FILE *fp;
 	char line[256];
@@ -879,19 +845,6 @@ static int get_proc_cpu_nr(void)
 
 	fclose(fp);
 	return proc_nr + 1;
-}
-
-static int get_cpu_nr(void)
-{
-	int n;
-
-	/* Try to use /sys, if possible */
-	n = get_sys_cpu_nr();
-	if (n == 0)
-		/* Otherwise use /proc/stat */
-		n = get_proc_cpu_nr();
-
-	return n;
 }
 
 /*
