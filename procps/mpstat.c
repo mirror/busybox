@@ -28,8 +28,16 @@
 /* Maximum number of interrupts */
 #define NR_IRQS            256
 #define NR_IRQCPU_PREALLOC 3
-#define MAX_IRQ_LEN        16
+#define MAX_IRQNAME_LEN    16
 #define MAX_PF_NAME        512
+/* sysstat 9.0.6 uses width 8, but newer code which also prints /proc/softirqs
+ * data needs more: "interrupts" in /proc/softirqs have longer names,
+ * most are up to 8 chars, one (BLOCK_IOPOLL) is even longer.
+ * We are printing headers in the " IRQNAME/s" form, experimentally
+ * anything smaller than 10 chars looks ugly for /proc/softirqs stats.
+ */
+#define INTRATE_SCRWIDTH   10
+#define INTRATE_SCRWIDTH_STR "10"
 
 /* System files */
 #define SYSFS_DEVCPU      "/sys/devices/system/cpu"
@@ -54,7 +62,7 @@ typedef long idata_t;
 
 struct stats_irqcpu {
 	unsigned interrupt;
-	char irq_name[MAX_IRQ_LEN];
+	char irq_name[MAX_IRQNAME_LEN];
 };
 
 struct stats_cpu {
@@ -195,10 +203,23 @@ static void write_irqcpu_stats(struct stats_irqcpu *per_cpu_stats[],
 
 	/* Print header */
 	printf("\n%-11s  CPU", prev_str);
-	for (j = 0; j < total_irqs; j++) {
-		p0 = &per_cpu_stats[current][j];
-		if (p0->irq_name[0] != '\0')
-			printf(" %8s/s", p0->irq_name);
+	{
+		/* A bit complex code to "buy back" space if one header is too wide.
+		 * Here's how it looks like. BLOCK_IOPOLL eating too much,
+		 * and latter headers use smaller width to compensate:
+		 * ...BLOCK/s BLOCK_IOPOLL/s TASKLET/s SCHED/s HRTIMER/s  RCU/s
+		 * ...   2.32      0.00      0.01     17.58      0.14    141.96
+		 */
+		int expected_len = 0;
+		int printed_len = 0;
+		for (j = 0; j < total_irqs; j++) {
+			p0 = &per_cpu_stats[current][j];
+			if (p0->irq_name[0] != '\0') {
+				int n = (INTRATE_SCRWIDTH-3) - (printed_len - expected_len);
+				printed_len += printf(" %*s/s", n > 0 ? n : 0, skip_whitespace(p0->irq_name));
+				expected_len += INTRATE_SCRWIDTH;
+			}
+		}
 	}
 	bb_putchar('\n');
 
@@ -247,7 +268,7 @@ static void write_irqcpu_stats(struct stats_irqcpu *per_cpu_stats[],
 					struct stats_irqcpu *p, *q;
 					p = &per_cpu_stats[current][(cpu - 1) * total_irqs + j];
 					q = &per_cpu_stats[prev][(cpu - 1) * total_irqs + offset];
-					printf(" %10.2f",
+					printf("%"INTRATE_SCRWIDTH_STR".2f",
 						(double)(p->interrupt - q->interrupt) / itv * G.hz);
 				} else {
 					printf("        N/A");
@@ -574,10 +595,11 @@ static void get_irqs_from_interrupts(const char *fname,
 
 		ic = &per_cpu_stats[current][irq];
 		len = cp - buf;
-		if (len > sizeof(ic->irq_name)) {
-			len = sizeof(ic->irq_name);
+		if (len >= sizeof(ic->irq_name)) {
+			len = sizeof(ic->irq_name) - 1;
 		}
-		safe_strncpy(ic->irq_name, buf, len);
+		safe_strncpy(ic->irq_name, buf, len + 1);
+		//bb_error_msg("%s: irq%d:'%s' buf:'%s'", fname, irq, ic->irq_name, buf);
 		digit = isdigit(buf[len - 1]);
 		cp++;
 
