@@ -954,16 +954,14 @@ int mpstat_main(int UNUSED_PARAM argc, char **argv)
 	}
 
 	if (opt & OPT_INTS) {
-		if (strcmp(opt_irq_fmt, "ALL") == 0)
-			G.options |= D_IRQ_SUM + D_IRQ_CPU + D_SOFTIRQS;
-		else if (strcmp(opt_irq_fmt, "CPU") == 0)
-			G.options |= D_IRQ_CPU;
-		else if (strcmp(opt_irq_fmt, "SUM") == 0)
-			G.options |= D_IRQ_SUM;
-		else if (strcmp(opt_irq_fmt, "SCPU") == 0)
-			G.options |= D_SOFTIRQS;
-		else
+		static const char v[] = {
+			D_IRQ_CPU, D_IRQ_SUM, D_SOFTIRQS,
+			D_IRQ_SUM + D_IRQ_CPU + D_SOFTIRQS
+		};
+		i = index_in_strings("CPU\0SUM\0SCPU\0ALL\0", opt_irq_fmt);
+		if (i == -1)
 			bb_show_usage();
+		G.options |= v[i];
 	}
 
 	if ((opt & OPT_UTIL) /* -u? */
