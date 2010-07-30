@@ -93,8 +93,9 @@ struct globals {
 	unsigned hz;
 	unsigned cpu_bitmap_len;
 	smallint p_option;
-	smallint header_done;
-	smallint avg_header_done;
+	// 9.0.6 does not do it. Try "mpstat -A 1 2" - headers are repeated!
+	//smallint header_done;
+	//smallint avg_header_done;
 	unsigned char *cpu_bitmap;      /* Bit 0: global, bit 1: 1st proc... */
 	data_t global_uptime[3];
 	data_t per_cpu_uptime[3];
@@ -206,7 +207,7 @@ static void write_irqcpu_stats(struct stats_irqcpu *per_cpu_stats[],
 	printf("\n%-11s  CPU", prev_str);
 	{
 		/* A bit complex code to "buy back" space if one header is too wide.
-		 * Here's how it looks like. BLOCK_IOPOLL eating too much,
+		 * Here's how it looks like. BLOCK_IOPOLL eats too much space,
 		 * and latter headers use smaller width to compensate:
 		 * ...BLOCK/s BLOCK_IOPOLL/s TASKLET/s SCHED/s HRTIMER/s  RCU/s
 		 * ...   2.32      0.00      0.01     17.58      0.14    141.96
@@ -328,13 +329,13 @@ static void write_stats_core(int prev, int current,
 	/* Print CPU stats */
 	if (display_opt(D_CPU)) {
 
-		/* This is done exactly once */
-		if (!G.header_done) {
+		///* This is done exactly once */
+		//if (!G.header_done) {
 			printf("\n%-11s  CPU    %%usr   %%nice    %%sys %%iowait    %%irq   %%soft  %%steal  %%guest   %%idle\n",
 				prev_str
 			);
-			G.header_done = 1;
-		}
+		//	G.header_done = 1;
+		//}
 
 		for (cpu = 0; cpu <= G.cpu_nr; cpu++) {
 			data_t per_cpu_itv;
@@ -389,11 +390,11 @@ static void write_stats_core(int prev, int current,
 	/* Print total number of IRQs per CPU */
 	if (display_opt(D_IRQ_SUM)) {
 
-		/* Print average header, this is done exactly once */
-		if (!G.avg_header_done) {
+		///* Print average header, this is done exactly once */
+		//if (!G.avg_header_done) {
 			printf("\n%-11s  CPU    intr/s\n", prev_str);
-			G.avg_header_done = 1;
-		}
+		//	G.avg_header_done = 1;
+		//}
 
 		for (cpu = 0; cpu <= G.cpu_nr; cpu++) {
 			data_t per_cpu_itv;
@@ -526,12 +527,7 @@ static void get_cpu_statistics(struct stats_cpu *cpu, data_t *up, data_t *up0)
 static void get_irqs_from_stat(struct stats_irq *irq)
 {
 	FILE *fp;
-	unsigned cpu;
 	char buf[1024];
-
-	for (cpu = 1; cpu <= G.cpu_nr; cpu++) {
-		irq->irq_nr = 0;
-	}
 
 	fp = fopen_for_read(PROCFS_STAT);
 	if (!fp)
@@ -565,8 +561,7 @@ static void get_irqs_from_interrupts(const char *fname,
 	int cpu_index[G.cpu_nr];
 	int iindex;
 
-// Moved to get_irqs_from_stat(), which is called once, not twice,
-// unlike get_irqs_from_interrupts().
+// Moved to caller.
 // Otherwise reading of /proc/softirqs
 // was resetting counts to 0 after we painstakingly collected them from
 // /proc/interrupts. Which resulted in:
@@ -756,9 +751,15 @@ static void main_loop(void)
 		if (display_opt(D_IRQ_SUM))
 			get_irqs_from_stat(G.st_irq[current]);
 
-		if (display_opt(D_IRQ_SUM | D_IRQ_CPU))
+		if (display_opt(D_IRQ_SUM | D_IRQ_CPU)) {
+			int cpu;
+			for (cpu = 1; cpu <= G.cpu_nr; cpu++) {
+				G.st_irq[current][cpu].irq_nr = 0;
+			}
+			/* accumulates .irq_nr */
 			get_irqs_from_interrupts(PROCFS_INTERRUPTS, G.st_irqcpu,
 					G.irqcpu_nr, current);
+		}
 
 		if (display_opt(D_SOFTIRQS))
 			get_irqs_from_interrupts(PROCFS_SOFTIRQS,
