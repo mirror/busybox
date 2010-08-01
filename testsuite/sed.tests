@@ -277,7 +277,7 @@ testing "sed with N skipping lines past ranges on next cmds" \
 
 testing "sed -i with address modifies all files, not only first" \
 	"cp input input2; sed -i -e '1s/foo/bar/' input input2 && cat input input2; rm input2" \
-	"bar\nbar\n" "foo\n" "foo\n"
+	"bar\nbar\n" "foo\n" ""
 
 
 # testing "description" "arguments" "result" "infile" "stdin"
