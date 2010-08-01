@@ -61,6 +61,10 @@
 #include "libbb.h"
 #include "xregex.h"
 
+enum {
+	OPT_in_place = 1 << 0,
+};
+
 /* Each sed command turns into one of these structures. */
 typedef struct sed_cmd_s {
 	/* Ordered by alignment requirements: currently 36 bytes on x86 */
@@ -938,8 +942,11 @@ static void process_files(void)
 
 		if (matched) {
 			/* once matched, "n,xxx" range is dead, disabling it */
-			if (sed_cmd->beg_line > 0)
+			if (sed_cmd->beg_line > 0
+			 && !(option_mask32 & OPT_in_place) /* but not for -i */
+			) {
 				sed_cmd->beg_line = -2;
+			}
 			sed_cmd->in_match = !(
 				/* has the ending line come, or is this a single address command? */
 				(sed_cmd->end_line ?
@@ -1270,9 +1277,6 @@ static void add_cmd_block(char *cmdstr)
 int sed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sed_main(int argc UNUSED_PARAM, char **argv)
 {
-	enum {
-		OPT_in_place = 1 << 0,
-	};
 	unsigned opt;
 	llist_t *opt_e, *opt_f;
 	int status = EXIT_SUCCESS;
@@ -1292,6 +1296,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	opt_e = opt_f = NULL;
 	opt_complementary = "e::f::" /* can occur multiple times */
 	                    "nn"; /* count -n */
+	/* -i must be first, to match OPT_in_place definition */
 	opt = getopt32(argv, "irne:f:", &opt_e, &opt_f,
 			    &G.be_quiet); /* counter for -n */
 	//argc -= optind;

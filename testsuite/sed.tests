@@ -270,10 +270,15 @@ testing "sed a cmd ended by double backslash" \
 	| two \\
 '
 
-# fisrt three lines are deleted; 4th line is matched and printed by "2,3" and by "4" ranges
+# first three lines are deleted; 4th line is matched and printed by "2,3" and by "4" ranges
 testing "sed with N skipping lines past ranges on next cmds" \
 	"sed -n '1{N;N;d};1p;2,3p;3p;4p'" \
 	"4\n4\n" "" "1\n2\n3\n4\n"
+
+testing "sed -i with address modifies all files, not only first" \
+	"cp input input2; sed -i -e '1s/foo/bar/' input input2 && cat input input2; rm input2" \
+	"bar\nbar\n" "foo\n" "foo\n"
+
 
 # testing "description" "arguments" "result" "infile" "stdin"
 
