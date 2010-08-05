@@ -1,3 +1,6 @@
 FOO='a*b\*c'
-echo "${FOO//\\*/-backslashstar-}"
+BAR=${FOO//\\*/-backslashstar-}
+echo In assignment: "$BAR"
+echo Unquoted: ${FOO//\\*/-backslashstar-}
+echo Quoted: "${FOO//\\*/-backslashstar-}"
 echo Done: $?
