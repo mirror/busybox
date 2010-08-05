@@ -90,6 +90,27 @@
 #define USE_SINGLE
 #endif
 
+/* NDS32 support */
+#if defined(__nds32__) || defined(__NDS32__)
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 4
+#define CONFIG_USE_SINGLE
+
+#if defined(__NDS32_EB__)
+#define MATCH_MACHINE(x) (x == EM_NDS32)
+#define SHT_RELM    SHT_RELA
+#define Elf32_RelM  Elf32_Rela
+#define ELFCLASSM   ELFCLASS32
+#endif
+
+#if defined(__NDS32_EL__)
+#define MATCH_MACHINE(x) (x == EM_NDS32)
+#define SHT_RELM    SHT_RELA
+#define Elf32_RelM  Elf32_Rela
+#define ELFCLASSM   ELFCLASS32
+#endif
+#endif
+
 /* blackfin */
 #if defined(BFIN)
 #define MATCH_MACHINE(x) (x == EM_BLACKFIN)
