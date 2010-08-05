@@ -1,0 +1,3 @@
+FOO='a*b\*c'
+echo "${FOO//\\*/-backslashstar-}"
+echo Done: $?

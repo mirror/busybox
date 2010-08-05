@@ -6296,19 +6296,23 @@ parse_sub_pattern(char *arg, int inquotes)
 #endif /* ENABLE_ASH_BASH_COMPAT */
 
 static const char *
-subevalvar(char *p, char *str, int strloc, int subtype,
+subevalvar(char *p, char *varname, int strloc, int subtype,
 		int startloc, int varflags, int quotes, struct strlist *var_str_list)
 {
 	struct nodelist *saveargbackq = argbackq;
 	char *startp;
 	char *loc;
 	char *rmesc, *rmescend;
+	char *str;
 	IF_ASH_BASH_COMPAT(const char *repl = NULL;)
 	IF_ASH_BASH_COMPAT(int pos, len, orig_len;)
 	int saveherefd = herefd;
 	int amount, workloc, resetloc;
 	int zero;
 	char *(*scan)(char*, char*, char*, char*, int, int);
+
+	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d",
+	//			p, varname, strloc, subtype, startloc, varflags, quotes);
 
 	herefd = -1;
 	argstr(p, (subtype != VSASSIGN && subtype != VSQUESTION) ? EXP_CASE : 0,
@@ -6320,10 +6324,14 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 	switch (subtype) {
 	case VSASSIGN:
-		setvar(str, startp, 0);
+		setvar(varname, startp, 0);
 		amount = startp - expdest;
 		STADJUST(amount, expdest);
 		return startp;
+
+	case VSQUESTION:
+		varunset(p, varname, startp, varflags);
+		/* NOTREACHED */
 
 #if ENABLE_ASH_BASH_COMPAT
 	case VSSUBSTR:
@@ -6385,11 +6393,8 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 		STADJUST(amount, expdest);
 		return loc;
 #endif
-
-	case VSQUESTION:
-		varunset(p, str, startp, varflags);
-		/* NOTREACHED */
 	}
+
 	resetloc = expdest - (char *)stackblock();
 
 	/* We'll comeback here if we grow the stack while handling
@@ -6423,13 +6428,14 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 
 		if (!repl) {
 			repl = parse_sub_pattern(str, varflags & VSQUOTE);
+			//bb_error_msg("repl:'%s'", repl);
 			if (!repl)
 				repl = nullstr;
 		}
 
 		/* If there's no pattern to match, return the expansion unmolested */
 		if (str[0] == '\0')
-			return 0;
+			return NULL;
 
 		len = 0;
 		idx = startp;
@@ -6437,6 +6443,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 		while (idx < end) {
  try_to_match:
 			loc = scanright(idx, rmesc, rmescend, str, quotes, 1);
+			//bb_error_msg("scanright('%s'):'%s'", str, loc);
 			if (!loc) {
 				/* No match, advance */
 				char *restart_detect = stackblock();
@@ -6475,6 +6482,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 				idx = loc;
 			}
 
+			//bb_error_msg("repl:'%s'", repl);
 			for (loc = (char*)repl; *loc; loc++) {
 				char *restart_detect = stackblock();
 				if (quotes && *loc == '\\') {
@@ -6510,6 +6518,7 @@ subevalvar(char *p, char *str, int strloc, int subtype,
 		STPUTC('\0', expdest);
 		startp = (char *)stackblock() + startloc;
 		memmove(startp, (char *)stackblock() + workloc, len + 1);
+		//bb_error_msg("startp:'%s'", startp);
 		amount = expdest - (startp + len);
 		STADJUST(-amount, expdest);
 		return startp;
@@ -6810,7 +6819,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		 */
 		STPUTC('\0', expdest);
 		patloc = expdest - (char *)stackblock();
-		if (NULL == subevalvar(p, /* str: */ NULL, patloc, subtype,
+		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
 				startloc, varflags,
 //TODO: | EXP_REDIR too? All other such places do it too
 				/* quotes: */ flags & (EXP_FULL | EXP_CASE),
@@ -11114,8 +11123,11 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 						USTPUTC('\\', out);
 					}
 #endif
-					if (dblquote &&	c != '\\'
-					 && c != '`' &&	c != '$'
+					/* Backslash is retained if we are in "str" and next char isn't special */
+					if (dblquote
+					 && c != '\\'
+					 && c != '`'
+					 && c != '$'
 					 && (c != '"' || eofmark != NULL)
 					) {
 						USTPUTC(CTLESC, out);
@@ -11187,7 +11199,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 					} else {
 						/*
 						 * unbalanced parens
-						 *  (don't 2nd guess - no error)
+						 * (don't 2nd guess - no error)
 						 */
 						pungetc();
 						USTPUTC(')', out);
@@ -11380,8 +11392,6 @@ parsesub: {
 	unsigned char subtype;
 	int typeloc;
 	int flags;
-	char *p;
-	static const char types[] ALIGN1 = "}-+?=";
 
 	c = pgetc();
 	if (c > 255 /* PEOA or PEOF */
@@ -11394,7 +11404,8 @@ parsesub: {
 #endif
 			USTPUTC('$', out);
 		pungetc();
-	} else if (c == '(') {  /* $(command) or $((arith)) */
+	} else if (c == '(') {
+		/* $(command) or $((arith)) */
 		if (pgetc() == '(') {
 #if ENABLE_SH_MATH_SUPPORT
 			PARSEARITH();
@@ -11406,6 +11417,7 @@ parsesub: {
 			PARSEBACKQNEW();
 		}
 	} else {
+		/* $VAR, $<specialchar>, ${...}, or PEOA/PEOF */
 		USTPUTC(CTLVAR, out);
 		typeloc = out - (char *)stackblock();
 		USTPUTC(VSNORMAL, out);
@@ -11415,76 +11427,85 @@ parsesub: {
 			if (c == '#') {
 				c = pgetc();
 				if (c == '}')
-					c = '#';
+					c = '#'; /* ${#} - same as $# */
 				else
-					subtype = VSLENGTH;
-			} else
+					subtype = VSLENGTH; /* ${#VAR} */
+			} else {
 				subtype = 0;
+			}
 		}
 		if (c <= 255 /* not PEOA or PEOF */ && is_name(c)) {
+			/* $[{[#]]NAME[}] */
 			do {
 				STPUTC(c, out);
 				c = pgetc();
 			} while (c <= 255 /* not PEOA or PEOF */ && is_in_name(c));
 		} else if (isdigit(c)) {
+			/* $[{[#]]NUM[}] */
 			do {
 				STPUTC(c, out);
 				c = pgetc();
 			} while (isdigit(c));
 		} else if (is_special(c)) {
+			/* $[{[#]]<specialchar>[}] */
 			USTPUTC(c, out);
 			c = pgetc();
 		} else {
  badsub:
 			raise_error_syntax("bad substitution");
 		}
-		if (c != '}' && subtype == VSLENGTH)
+		if (c != '}' && subtype == VSLENGTH) {
+			/* ${#VAR didn't end with } */
 			goto badsub;
+		}
 
 		STPUTC('=', out);
 		flags = 0;
 		if (subtype == 0) {
+			/* ${VAR...} but not $VAR or ${#VAR} */
+			/* c == first char after VAR */
 			switch (c) {
 			case ':':
 				c = pgetc();
 #if ENABLE_ASH_BASH_COMPAT
 				if (c == ':' || c == '$' || isdigit(c)) {
-					pungetc();
 					subtype = VSSUBSTR;
-					break;
+					pungetc();
+					break; /* "goto do_pungetc" is bigger (!) */
 				}
 #endif
 				flags = VSNUL;
 				/*FALLTHROUGH*/
-			default:
-				p = strchr(types, c);
+			default: {
+				static const char types[] ALIGN1 = "}-+?=";
+				const char *p = strchr(types, c);
 				if (p == NULL)
 					goto badsub;
 				subtype = p - types + VSNORMAL;
 				break;
+			}
 			case '%':
 			case '#': {
 				int cc = c;
-				subtype = c == '#' ? VSTRIMLEFT : VSTRIMRIGHT;
+				subtype = (c == '#' ? VSTRIMLEFT : VSTRIMRIGHT);
 				c = pgetc();
-				if (c == cc)
-					subtype++;
-				else
-					pungetc();
+				if (c != cc)
+					goto do_pungetc;
+				subtype++;
 				break;
 			}
 #if ENABLE_ASH_BASH_COMPAT
 			case '/':
 				subtype = VSREPLACE;
 				c = pgetc();
-				if (c == '/')
-					subtype++; /* VSREPLACEALL */
-				else
-					pungetc();
+				if (c != '/')
+					goto do_pungetc;
+				subtype++; /* VSREPLACEALL */
 				break;
 #endif
 			}
 		} else {
+ do_pungetc:
 			pungetc();
 		}
 		if (dblquote || arinest)
