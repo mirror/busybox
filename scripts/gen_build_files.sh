@@ -48,7 +48,7 @@ if test x"$new" != x"$old"; then
 fi
 
 # (Re)generate */Kbuild and */Config.in
-{ cd -- "$srctree" && find -type d; } | while read -r d; do
+{ cd -- "$srctree" && find . -type d; } | while read -r d; do
 	d="${d#./}"
 
 	src="$srctree/$d/Kbuild.src"

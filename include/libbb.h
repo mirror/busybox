@@ -41,16 +41,16 @@
 #include <limits.h>
 #include <sys/param.h>
 #ifdef HAVE_MNTENT_H
-#include <mntent.h>
+# include <mntent.h>
 #endif
 #ifdef HAVE_SYS_STATFS_H
-#include <sys/statfs.h>
+# include <sys/statfs.h>
 #endif
 #if ENABLE_SELINUX
-#include <selinux/selinux.h>
-#include <selinux/context.h>
-#include <selinux/flask.h>
-#include <selinux/av_permissions.h>
+# include <selinux/selinux.h>
+# include <selinux/context.h>
+# include <selinux/flask.h>
+# include <selinux/av_permissions.h>
 #endif
 #if ENABLE_LOCALE_SUPPORT
 # include <locale.h>
@@ -70,7 +70,7 @@
 #  include <shadow.h>
 # endif
 #endif
-#if defined __FreeBSD__
+#if defined __FreeBSD__ || defined __OpenBSD__
 # include <netinet/in.h>
 # include <arpa/inet.h>
 #elif defined __APPLE__

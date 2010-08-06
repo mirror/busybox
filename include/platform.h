@@ -161,7 +161,7 @@
 # define bswap_32 __bswap32
 # define bswap_16 __bswap16
 # define __BIG_ENDIAN__ (_BYTE_ORDER == _BIG_ENDIAN)
-#elif !defined __APPLE__
+#elif !defined __APPLE__ && !defined __OpenBSD__
 # include <byteswap.h>
 # include <endian.h>
 #endif
@@ -172,7 +172,13 @@
 #elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
 # define BB_BIG_ENDIAN 1
 # define BB_LITTLE_ENDIAN 0
+#elif defined(_BYTE_ORDER) && _BYTE_ORDER == _BIG_ENDIAN
+# define BB_BIG_ENDIAN 1
+# define BB_LITTLE_ENDIAN 0
 #elif (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__386__)
+# define BB_BIG_ENDIAN 0
+# define BB_LITTLE_ENDIAN 1
+#elif defined(_BYTE_ORDER) && _BYTE_ORDER == _LITTLE_ENDIAN
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
 #else
@@ -230,7 +236,7 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 /* ---- Compiler dependent settings ------------------------- */
 
 #if (defined __digital__ && defined __unix__) \
- || defined __APPLE__ || defined __FreeBSD__
+ || defined __APPLE__ || defined __FreeBSD__ || defined __OpenBSD__
 # undef HAVE_MNTENT_H
 # undef HAVE_SYS_STATFS_H
 #else
