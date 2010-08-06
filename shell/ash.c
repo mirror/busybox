@@ -6267,7 +6267,7 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 
 #if ENABLE_ASH_BASH_COMPAT
 static char *
-parse_sub_pattern(char *arg, int inquotes)
+parse_sub_pattern(char *arg, int varflags)
 {
 	char *idx, *repl = NULL;
 	unsigned char c;
@@ -6285,7 +6285,7 @@ parse_sub_pattern(char *arg, int inquotes)
 			}
 		}
 		*idx++ = c;
-		if (!inquotes && c == '\\' && arg[1] == '\\')
+		if (!(varflags & VSQUOTE) && c == '\\' && arg[1] == '\\')
 			arg++; /* skip both \\, not just first one */
 		arg++;
 	}
@@ -6427,7 +6427,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		char *idx, *end;
 
 		if (!repl) {
-			repl = parse_sub_pattern(str, varflags & VSQUOTE);
+			repl = parse_sub_pattern(str, varflags);
 			//bb_error_msg("repl:'%s'", repl);
 			if (!repl)
 				repl = nullstr;
@@ -6496,12 +6496,11 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 			}
 
 			if (subtype == VSREPLACE) {
+				//bb_error_msg("tail:'%s', quotes:%x", idx, quotes);
 				while (*idx) {
 					char *restart_detect = stackblock();
-					if (quotes && *idx == '\\') {
-						STPUTC(CTLESC, expdest);
-						len++;
-					}
+					if (quotes && (unsigned char)*idx == CTLESC)
+						idx++;
 					STPUTC(*idx, expdest);
 					if (stackblock() != restart_detect)
 						goto restart;
