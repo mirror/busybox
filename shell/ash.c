@@ -6272,6 +6272,8 @@ parse_sub_pattern(char *arg, int varflags)
 	char *idx, *repl = NULL;
 	unsigned char c;
 
+	//char *org_arg = arg;
+	//bb_error_msg("arg:'%s'", arg);
 	idx = arg;
 	while (1) {
 		c = *arg;
@@ -6290,6 +6292,7 @@ parse_sub_pattern(char *arg, int varflags)
 		arg++;
 	}
 	*idx = c; /* NUL */
+	//bb_error_msg("pattern:'%s' repl:'%s'", org_arg, repl);
 
 	return repl;
 }
@@ -6499,8 +6502,6 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 				//bb_error_msg("tail:'%s', quotes:%x", idx, quotes);
 				while (*idx) {
 					char *restart_detect = stackblock();
-					if (quotes && (unsigned char)*idx == CTLESC)
-						idx++;
 					STPUTC(*idx, expdest);
 					if (stackblock() != restart_detect)
 						goto restart;
