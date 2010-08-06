@@ -1,12 +1,12 @@
 # This testcase demonstrates that backslashes are treated differently
 # in 1st and 2nd parts of ${var/search/repl}:
-# if quoted: "${var/search/repl}", and repl contains \a (a non-special char),
-# the backslash in repl stays; if unquoted, backslash: removed
+# if quoted ("${var/search/repl}"), and repl contains \a (a non-special char),
+# the backslash in repl stays; if unquoted, backslash is removed.
 # But search part does not act like that: \a is always converted to just a,
 # even in quotes.
 #
-# bash4 (and probably bash3 too) result: "Quoted:" results are different -
-# they have extra backslash before z.
+# bash4 (and probably bash3 too): "Quoted:" results are different from
+# unquoted and assignment expansions - they have a backslash before z.
 
 v='a*b\*c'
 echo 'Source:       ' "$v"
