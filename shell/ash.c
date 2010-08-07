@@ -5687,7 +5687,7 @@ removerecordregions(int endoff)
 		return;
 
 	if (ifsfirst.endoff > endoff) {
-		while (ifsfirst.next != NULL) {
+		while (ifsfirst.next) {
 			struct ifsregion *ifsp;
 			INT_OFF;
 			ifsp = ifsfirst.next->next;
@@ -5695,9 +5695,9 @@ removerecordregions(int endoff)
 			ifsfirst.next = ifsp;
 			INT_ON;
 		}
-		if (ifsfirst.begoff > endoff)
+		if (ifsfirst.begoff > endoff) {
 			ifslastp = NULL;
-		else {
+		} else {
 			ifslastp = &ifsfirst;
 			ifsfirst.endoff = endoff;
 		}
@@ -5706,8 +5706,8 @@ removerecordregions(int endoff)
 
 	ifslastp = &ifsfirst;
 	while (ifslastp->next && ifslastp->next->begoff < endoff)
-		ifslastp=ifslastp->next;
-	while (ifslastp->next != NULL) {
+		ifslastp = ifslastp->next;
+	while (ifslastp->next) {
 		struct ifsregion *ifsp;
 		INT_OFF;
 		ifsp = ifslastp->next->next;
@@ -5884,9 +5884,9 @@ expbackq(union node *cmd, int quoted, int quotes)
 
 	if (quoted == 0)
 		recordregion(startloc, dest - (char *)stackblock(), 0);
-	TRACE(("evalbackq: size=%d: \"%.*s\"\n",
-		(dest - (char *)stackblock()) - startloc,
-		(dest - (char *)stackblock()) - startloc,
+	TRACE(("evalbackq: size:%d:'%.*s'\n",
+		(int)((dest - (char *)stackblock()) - startloc),
+		(int)((dest - (char *)stackblock()) - startloc),
 		stackblock() + startloc));
 }
 
@@ -6105,42 +6105,16 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 }
 
 static char *
-scanleft(char *startp, char *rmesc, char *rmescend UNUSED_PARAM, char *str, int quotes,
-	int zero)
+scanleft(char *startp, char *rmesc, char *rmescend UNUSED_PARAM,
+		char *pattern, int quotes, int zero)
 {
-// This commented out code was added by James Simmons <jsimmons@infradead.org>
-// as part of a larger change when he added support for ${var/a/b}.
-// However, it broke # and % operators:
-//
-//var=ababcdcd
-//                 ok       bad
-//echo ${var#ab}   abcdcd   abcdcd
-//echo ${var##ab}  abcdcd   abcdcd
-//echo ${var#a*b}  abcdcd   ababcdcd  (!)
-//echo ${var##a*b} cdcd     cdcd
-//echo ${var#?}    babcdcd  ababcdcd  (!)
-//echo ${var##?}   babcdcd  babcdcd
-//echo ${var#*}    ababcdcd babcdcd   (!)
-//echo ${var##*}
-//echo ${var%cd}   ababcd   ababcd
-//echo ${var%%cd}  ababcd   abab      (!)
-//echo ${var%c*d}  ababcd   ababcd
-//echo ${var%%c*d} abab     ababcdcd  (!)
-//echo ${var%?}    ababcdc  ababcdc
-//echo ${var%%?}   ababcdc  ababcdcd  (!)
-//echo ${var%*}    ababcdcd ababcdcd
-//echo ${var%%*}
-//
-// Commenting it back out helped. Remove it completely if it really
-// is not needed.
-
-	char *loc, *loc2; //, *full;
+	char *loc, *loc2;
 	char c;
 
 	loc = startp;
 	loc2 = rmesc;
 	do {
-		int match; // = strlen(str);
+		int match;
 		const char *s = loc2;
 
 		c = *loc2;
@@ -6148,35 +6122,22 @@ scanleft(char *startp, char *rmesc, char *rmescend UNUSED_PARAM, char *str, int 
 			*loc2 = '\0';
 			s = rmesc;
 		}
-		match = pmatch(str, s); // this line was deleted
+		match = pmatch(pattern, s);
 
-//		// chop off end if its '*'
-//		full = strrchr(str, '*');
-//		if (full && full != str)
-//			match--;
-//
-//		// If str starts with '*' replace with s.
-//		if ((*str == '*') && strlen(s) >= match) {
-//			full = xstrdup(s);
-//			strncpy(full+strlen(s)-match+1, str+1, match-1);
-//		} else
-//			full = xstrndup(str, match);
-//		match = strncmp(s, full, strlen(full));
-//		free(full);
-//
 		*loc2 = c;
-		if (match) // if (!match)
+		if (match)
 			return loc;
 		if (quotes && (unsigned char)*loc == CTLESC)
 			loc++;
 		loc++;
 		loc2++;
 	} while (c);
-	return 0;
+	return NULL;
 }
 
 static char *
-scanright(char *startp, char *rmesc, char *rmescend, char *pattern, int quotes, int match_at_start)
+scanright(char *startp, char *rmesc, char *rmescend,
+		char *pattern, int quotes, int match_at_start)
 {
 #if !ENABLE_ASH_OPTIMIZE_FOR_SIZE
 	int try2optimize = match_at_start;
@@ -6242,7 +6203,7 @@ scanright(char *startp, char *rmesc, char *rmescend, char *pattern, int quotes, 
 			}
 		}
 	}
-	return 0;
+	return NULL;
 }
 
 static void varunset(const char *, const char *, const char *, int) NORETURN;
@@ -6262,7 +6223,7 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 			msg = umsg;
 		}
 	}
-	ash_msg_and_raise_error("%.*s: %s%s", end - var - 1, var, msg, tail);
+	ash_msg_and_raise_error("%.*s: %s%s", (int)(end - var - 1), var, msg, tail);
 }
 
 #if ENABLE_ASH_BASH_COMPAT
