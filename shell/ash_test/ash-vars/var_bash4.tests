@@ -30,7 +30,7 @@ v='a\bc'
 echo 'Source:       ' "$v"
 echo 'Replace str:  ' '_\\_\z_'
 
-echo 'Pattern:      ' 'single backslash and b: "replace literal b"'
+echo 'Pattern:      ' 'single backslash and b: "replace b"'
 r=${v/\b/_\\_\z_}
 echo 'In assignment:' "$r"
 echo 'Unquoted:     '  ${v/\b/_\\_\z_}

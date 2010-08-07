@@ -6234,7 +6234,7 @@ parse_sub_pattern(char *arg, int varflags)
 	unsigned char c;
 
 	//char *org_arg = arg;
-	//bb_error_msg("arg:'%s'", arg);
+	//bb_error_msg("arg:'%s' varflags:%x", arg, varflags);
 	idx = arg;
 	while (1) {
 		c = *arg;
@@ -6248,9 +6248,20 @@ parse_sub_pattern(char *arg, int varflags)
 			}
 		}
 		*idx++ = c;
-		if (!(varflags & VSQUOTE) && c == '\\' && arg[1] == '\\')
-			arg++; /* skip both \\, not just first one */
 		arg++;
+		/*
+		 * Example: v='ab\c'; echo ${v/\\b/_\\_\z_}
+		 * The result is a_\_z_c (not a\_\_z_c)!
+		 *
+		 * Enable debug prints in this function and you'll see:
+		 * ash: arg:'\\b/_\\_z_' varflags:d
+		 * ash: pattern:'\\b' repl:'_\_z_'
+		 * That is, \\b is interpreted as \\b, but \\_ as \_!
+		 * IOW: search pattern and replace string treat backslashes
+		 * differently! That is the reason why we check repl below:
+		 */
+		if (c == '\\' && *arg == '\\' && repl && !(varflags & VSQUOTE))
+			arg++; /* skip both '\', not just first one */
 	}
 	*idx = c; /* NUL */
 	//bb_error_msg("pattern:'%s' repl:'%s'", org_arg, repl);

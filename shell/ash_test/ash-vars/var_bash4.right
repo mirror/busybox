@@ -11,7 +11,7 @@ Quoted:        a*b_\_\z_
 
 Source:        a\bc
 Replace str:   _\\_\z_
-Pattern:       single backslash and b: "replace literal b"
+Pattern:       single backslash and b: "replace b"
 In assignment: a\_\_z_c
 Unquoted:      a\_\_z_c
 Quoted:        a\_\_\z_c
