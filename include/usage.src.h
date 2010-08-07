@@ -4467,8 +4467,13 @@ INSERT
 #define tune2fs_full_usage "\n\n" \
        "Adjust filesystem options on ext[23] filesystems"
 
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+# define IF_UDHCP_VERBOSE(...) __VA_ARGS__
+#else
+# define IF_UDHCP_VERBOSE(...)
+#endif
 #define udhcpc_trivial_usage \
-       "[-fbnqvoCR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n" \
+       "[-fbnq"IF_UDHCP_VERBOSE("v")"oCR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n" \
        "	[-H HOSTNAME] [-c CID] [-V VENDOR] [-O DHCP_OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 #define udhcpc_full_usage "\n" \
 	IF_LONG_OPTS( \
@@ -4501,6 +4506,9 @@ INSERT
      "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')" \
      "\n	-c,--clientid CLIENTID	Client identifier (default own MAC)" \
      "\n	-C,--clientid-none	Don't send client identifier" \
+	IF_UDHCP_VERBOSE( \
+     "\n	-v			Verbose" \
+	) \
 	) \
 	IF_NOT_LONG_OPTS( \
      "\n	-i IFACE	Interface to use (default eth0)" \
@@ -4532,7 +4540,10 @@ INSERT
      "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')" \
      "\n	-c CLIENTID	Client identifier (default own MAC)" \
      "\n	-C		Don't send client identifier" \
-	)
+	IF_UDHCP_VERBOSE( \
+     "\n	-v		Verbose" \
+	) \
+	) \
 
 #define udhcpd_trivial_usage \
        "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [configfile]" \
