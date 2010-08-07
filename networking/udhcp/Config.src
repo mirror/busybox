@@ -85,7 +85,7 @@ config UDHCP_DEBUG
 	depends on UDHCPD || UDHCPC || DHCPRELAY
 	help
 	  Verbosity can be increased with multiple -v options.
-	  This options controls how high it can be cranked up.
+	  This option controls how high it can be cranked up.
 
 	  Bigger values result in bigger code. Levels above 1
 	  are very verbose and useful for debugging only.
