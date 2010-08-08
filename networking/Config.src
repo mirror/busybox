@@ -1013,8 +1013,8 @@ config FEATURE_WGET_LONG_OPTIONS
 	  Support long options for the wget applet.
 
 config FEATURE_WGET_TIMEOUT
-	bool "Enable timeout options"
-	default n
+	bool "Enable read timeout option -T SEC"
+	default y
 	depends on WGET
 	help
 	  Supports network read timeout for wget, so that wget will give
