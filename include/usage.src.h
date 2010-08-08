@@ -4779,10 +4779,12 @@ INSERT
 	IF_FEATURE_WGET_LONG_OPTIONS( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document FILE]\n" \
        "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
-       "	[--no-check-certificate] [-U|--user-agent AGENT] URL" \
+       "	[--no-check-certificate] [-U|--user-agent AGENT]" \
+			IF_FEATURE_WGET_TIMEOUT("[-T SEC] ") " URL" \
 	) \
 	IF_NOT_FEATURE_WGET_LONG_OPTIONS( \
-       "[-csq] [-O FILE] [-Y on/off] [-P DIR] [-U AGENT] URL" \
+       "[-csq] [-O FILE] [-Y on/off] [-P DIR] [-U AGENT]" \
+			IF_FEATURE_WGET_TIMEOUT("[-T SEC] ") " URL" \
 	)
 #define wget_full_usage "\n\n" \
        "Retrieve files via HTTP or FTP\n" \
@@ -4790,7 +4792,10 @@ INSERT
      "\n	-s	Spider mode - only check file existence" \
      "\n	-c	Continue retrieval of aborted transfer" \
      "\n	-q	Quiet" \
-     "\n	-P	Set directory prefix to DIR" \
+     "\n	-P DIR	Save to DIR (default .)" \
+	IF_FEATURE_WGET_TIMEOUT( \
+     "\n	-T SEC	Network read timeout is SEC seconds" \
+	) \
      "\n	-O FILE	Save to FILE ('-' for stdout)" \
      "\n	-U STR	Use STR for User-Agent header" \
      "\n	-Y	Use proxy ('on' or 'off')" \

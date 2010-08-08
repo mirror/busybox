@@ -3,8 +3,10 @@
  * wget - retrieve a file using HTTP or FTP
  *
  * Chip Rosenthal Covad Communications <chip@laserlink.net>
- *
  * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ *
+ * Copyright (C) 2010 Bradley M. Kuhn <bkuhn@ebb.org>
+ *   Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.
  */
 #include "libbb.h"
 
@@ -19,7 +21,7 @@ struct host_info {
 };
 
 
-/* Globals (can be accessed from signal handlers) */
+/* Globals */
 struct globals {
 	off_t content_len;        /* Content-length of the file */
 	off_t beg_range;          /* Range at which continue begins */
@@ -28,6 +30,9 @@ struct globals {
 	const char *curfile;      /* Name of current file being transferred */
 	bb_progress_t pmt;
 #endif
+#if ENABLE_FEATURE_WGET_TIMEOUT
+	unsigned timeout_seconds;
+#endif
 	smallint chunked;         /* chunked transfer encoding */
 	smallint got_clen;        /* got content-length: from server  */
 } FIX_ALIASING;
@@ -35,42 +40,51 @@ struct globals {
 struct BUG_G_too_big {
 	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 };
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	IF_FEATURE_WGET_TIMEOUT(G.timeout_seconds = 900;) \
+} while (0)
 
 
+/* Must match option string! */
+enum {
+	WGET_OPT_CONTINUE   = (1 << 0),
+	WGET_OPT_SPIDER	    = (1 << 1),
+	WGET_OPT_QUIET      = (1 << 2),
+	WGET_OPT_OUTNAME    = (1 << 3),
+	WGET_OPT_PREFIX     = (1 << 4),
+	WGET_OPT_PROXY      = (1 << 5),
+	WGET_OPT_USER_AGENT = (1 << 6),
+	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 7),
+	WGET_OPT_RETRIES    = (1 << 8),
+	WGET_OPT_PASSIVE    = (1 << 9),
+	WGET_OPT_HEADER     = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+	WGET_OPT_POST_DATA  = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
+};
+
+enum {
+	PROGRESS_START = -1,
+	PROGRESS_END   = 0,
+	PROGRESS_BUMP  = 1,
+};
 #if ENABLE_FEATURE_WGET_STATUSBAR
-
 static void progress_meter(int flag)
 {
-	/* We can be called from signal handler */
-	int save_errno = errno;
+	if (option_mask32 & WGET_OPT_QUIET)
+		return;
 
-	if (flag == -1) { /* first call to progress_meter */
+	if (flag == PROGRESS_START)
 		bb_progress_init(&G.pmt);
-	}
 
 	bb_progress_update(&G.pmt, G.curfile, G.beg_range, G.transferred,
 			   G.chunked ? 0 : G.beg_range + G.transferred + G.content_len);
 
-	if (flag == 0) {
-		/* last call to progress_meter */
-		alarm(0);
+	if (flag == PROGRESS_END) {
 		bb_putchar_stderr('\n');
 		G.transferred = 0;
-	} else {
-		if (flag == -1) { /* first call to progress_meter */
-			signal_SA_RESTART_empty_mask(SIGALRM, progress_meter);
-		}
-		alarm(1);
 	}
-
-	errno = save_errno;
 }
-
-#else /* FEATURE_WGET_STATUSBAR */
-
+#else
 static ALWAYS_INLINE void progress_meter(int flag UNUSED_PARAM) { }
-
 #endif
 
 
@@ -430,28 +444,20 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	return sfp;
 }
 
-/* Must match option string! */
-enum {
-	WGET_OPT_CONTINUE   = (1 << 0),
-	WGET_OPT_SPIDER	    = (1 << 1),
-	WGET_OPT_QUIET      = (1 << 2),
-	WGET_OPT_OUTNAME    = (1 << 3),
-	WGET_OPT_PREFIX     = (1 << 4),
-	WGET_OPT_PROXY      = (1 << 5),
-	WGET_OPT_USER_AGENT = (1 << 6),
-	WGET_OPT_RETRIES    = (1 << 7),
-	WGET_OPT_NETWORK_READ_TIMEOUT = (1 << 8),
-	WGET_OPT_PASSIVE    = (1 << 9),
-	WGET_OPT_HEADER     = (1 << 10) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-	WGET_OPT_POST_DATA  = (1 << 11) * ENABLE_FEATURE_WGET_LONG_OPTIONS,
-};
-
 static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 {
 	char buf[512];
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+# if ENABLE_FEATURE_WGET_TIMEOUT
+	unsigned second_cnt;
+# endif
+	struct pollfd polldata;
 
-	if (!(option_mask32 & WGET_OPT_QUIET))
-		progress_meter(-1);
+	polldata.fd = fileno(dfp);
+	polldata.events = POLLIN | POLLPRI;
+	ndelay(polldata.fd);
+#endif
+	progress_meter(PROGRESS_START);
 
 	if (G.chunked)
 		goto get_clen;
@@ -470,6 +476,23 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 					rdsz = (unsigned)G.content_len;
 				}
 			}
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+# if ENABLE_FEATURE_WGET_TIMEOUT
+			second_cnt = G.timeout_seconds;
+# endif
+			while (1) {
+				if (safe_poll(&polldata, 1, 1000) != 0)
+					break; /* error, EOF, or data is available */
+# if ENABLE_FEATURE_WGET_TIMEOUT
+				if (second_cnt != 0 && --second_cnt == 0) {
+					progress_meter(PROGRESS_END);
+					bb_perror_msg_and_die("download timed out");
+				}
+# endif
+				/* Needed for "stalled" indicator */
+				progress_meter(PROGRESS_BUMP);
+			}
+#endif
 			n = safe_fread(buf, rdsz, dfp);
 			if (n <= 0) {
 				if (ferror(dfp)) {
@@ -481,6 +504,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 			xwrite(output_fd, buf, n);
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			G.transferred += n;
+			progress_meter(PROGRESS_BUMP);
 #endif
 			if (G.got_clen)
 				G.content_len -= n;
@@ -499,8 +523,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		G.got_clen = 1;
 	}
 
-	if (!(option_mask32 & WGET_OPT_QUIET))
-		progress_meter(0);
+	progress_meter(PROGRESS_END);
 }
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -541,9 +564,11 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		"directory-prefix\0" Required_argument "P"
 		"proxy\0"            Required_argument "Y"
 		"user-agent\0"       Required_argument "U"
+#if ENABLE_FEATURE_WGET_TIMEOUT
+		"timeout\0"          Required_argument "T"
+#endif
 		/* Ignored: */
 		// "tries\0"            Required_argument "t"
-		// "timeout\0"          Required_argument "T"
 		/* Ignored (we always use PASV): */
 		"passive-ftp\0"      No_argument       "\xff"
 		"header\0"           Required_argument "\xfe"
@@ -559,12 +584,12 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = wget_longopts;
 #endif
 	/* server.allocated = target.allocated = NULL; */
-	opt_complementary = "-1" IF_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
-	opt = getopt32(argv, "csqO:P:Y:U:" /*ignored:*/ "t:T:",
+	opt_complementary = "-1" IF_FEATURE_WGET_TIMEOUT(":T+") IF_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
+	opt = getopt32(argv, "csqO:P:Y:U:T:" /*ignored:*/ "t:",
 				&fname_out, &dir_prefix,
 				&proxy_flag, &user_agent,
-				NULL, /* -t RETRIES */
-				NULL /* -T NETWORK_READ_TIMEOUT */
+				IF_FEATURE_WGET_TIMEOUT(&G.timeout_seconds) IF_NOT_FEATURE_WGET_TIMEOUT(NULL),
+				NULL /* -t RETRIES */
 				IF_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
 				IF_FEATURE_WGET_LONG_OPTIONS(, &post_data)
 				);
