@@ -76,7 +76,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	elapsed = monotonic_sec();
 	since_last_update = elapsed - p->lastupdate_sec;
 	/* Do not update on every call
-	 * (might be: on every network read!) */
+	 * (we can be called on every network read!) */
 	if (since_last_update == 0 && !totalsize)
 			return;
 
@@ -84,7 +84,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	ratio = 100;
 	if (beg_and_transferred < totalsize) {
 		/* Do not update on every call
-		 * (might be: on every network read!) */
+		 * (we can be called on every network read!) */
 		if (since_last_update == 0)
 			return;
 		/* long long helps to have it working even if !LFS */
@@ -118,14 +118,14 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	barlength = get_tty2_width() - 49;
 	if (barlength > 0) {
 		/* god bless gcc for variable arrays :) */
-		i = barlength * ratio / 100;
-		{
-			char buf[i+1];
-			memset(buf, '*', i);
-			buf[i] = '\0';
-			fprintf(stderr, "|%s%*s|", buf, barlength - i, "");
-		}
+		char buf[barlength + 1];
+		unsigned stars = (unsigned)barlength * ratio / (unsigned)100;
+		memset(buf, ' ', barlength);
+		buf[barlength] = '\0';
+		memset(buf, '*', stars);
+		fprintf(stderr, "|%s|", buf);
 	}
+
 	i = 0;
 	while (beg_and_transferred >= 100000) {
 		i++;
@@ -155,10 +155,10 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 			fprintf(stderr, "--:--:-- ETA");
 		} else {
 			/* to_download / (transferred/elapsed) - elapsed: */
-			int eta = (int) ((unsigned long long)to_download*elapsed/transferred - elapsed);
 			/* (long long helps to have working ETA even if !LFS) */
-			i = eta % 3600;
-			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
+			unsigned eta = (unsigned long long)to_download*elapsed/(uoff_t)transferred - elapsed;
+			unsigned secs = eta % 3600;
+			fprintf(stderr, "%02u:%02u:%02u ETA", eta / 3600, secs / 60, secs % 60);
 		}
 	}
 }

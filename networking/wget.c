@@ -455,7 +455,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
-	ndelay(polldata.fd);
+	ndelay_on(polldata.fd);
 #endif
 	progress_meter(PROGRESS_START);
 
