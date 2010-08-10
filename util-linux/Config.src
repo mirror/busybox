@@ -333,7 +333,7 @@ config FEATURE_HWCLOCK_LONG_OPTIONS
 
 config FEATURE_HWCLOCK_ADJTIME_FHS
 	bool "Use FHS /var/lib/hwclock/adjtime"
-	default y
+	default n  # util-linux-ng in Fedora 13 still uses /etc/adjtime
 	depends on HWCLOCK
 	help
 	  Starting with FHS 2.3, the adjtime state file is supposed to exist
