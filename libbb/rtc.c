@@ -22,13 +22,6 @@ int FAST_FUNC rtc_adjtime_is_utc(void)
 		char buffer[128];
 
 		while (fgets(buffer, sizeof(buffer), f)) {
-			int len = strlen(buffer);
-
-			while (len && isspace(buffer[len - 1]))
-				len--;
-
-			buffer[len] = 0;
-
 			if (strncmp(buffer, "UTC", 3) == 0) {
 				utc = 1;
 				break;
