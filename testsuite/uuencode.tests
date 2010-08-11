@@ -13,11 +13,10 @@
 #   test can create a file "actual" instead of writing to stdout
 
 # Test setup of standard input
-saved_umask=$(umask)
 umask 0
 testing "uuencode sets standard input mode correctly" \
         "uuencode foo </dev/null | head -n 1 | grep -q 666 && echo yes" "yes\n" "" ""
-umask $saved_umask
+umask 022
 
 testing "uuencode correct encoding" "uuencode bb_uuenc_test.out" \
 "begin 644 bb_uuenc_test.out\nM5&AE(&9A<W0@9W)E>2!F;W@@:G5M<&5D(&]V97(@=&AE(&QA>GD@8G)O=VX@\n%9&]G+@H\`\n\`\nend\n" \

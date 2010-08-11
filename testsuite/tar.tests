@@ -4,6 +4,12 @@
 
 . ./testing.sh
 
+unset LANG
+unset LANGUAGE
+unset LC_COLLATE
+unset LC_ALL
+umask 022
+
 rm -rf tar.tempdir 2>/dev/null
 mkdir tar.tempdir && cd tar.tempdir || exit 1
 

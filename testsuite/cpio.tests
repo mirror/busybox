@@ -4,6 +4,8 @@
 
 . ./testing.sh
 
+umask 022
+
 # ls -ln shows date. Need to remove that, it's variable.
 # sed: coalesce spaces
 # cut: remove date

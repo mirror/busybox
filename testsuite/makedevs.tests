@@ -4,6 +4,10 @@
 
 . ./testing.sh
 
+unset LANG
+unset LC_COLLATE
+unset LC_ALL
+
 # ls -ln is showing date. Need to remove that, it's variable
 # sed: (1) "maj, min" -> "maj,min" (2) coalesce spaces
 # cut: remove date
