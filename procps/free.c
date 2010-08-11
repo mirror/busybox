@@ -53,28 +53,40 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 		info.bufferram *= mem_unit;
 	}
 
-	printf("      %13s%13s%13s%13s%13s\n",
+	printf("     %13s%13s%13s%13s%13s\n",
 		"total",
 		"used",
 		"free",
 		"shared", "buffers" /* swap and total don't have these columns */
+		/* procps version 3.2.8 also shows "cached" column, but
+		 * sysinfo() does not provide this value, need to parse
+		 * /proc/meminfo instead and get "Cached: NNN kB" from there.
+		 */
 	);
-	printf("%6s%13lu%13lu%13lu%13lu%13lu\n", "Mem:",
+#define FIELDS_5 "%13lu%13lu%13lu%13lu%13lu\n"
+#define FIELDS_3 (FIELDS_5 + 2*5)
+#define FIELDS_2 (FIELDS_5 + 3*5)
+	printf("Mem: ");
+	printf(FIELDS_5,
 		info.totalram,
 		info.totalram - info.freeram,
 		info.freeram,
 		info.sharedram, info.bufferram
 	);
+	/* Show alternate, more meaningful busy/free numbers by counting
+	 * buffer cache as free memory (make it "-/+ buffers/cache"
+	 * if/when we add support for "cached" column): */
+	printf("-/+ buffers:      ");
+	printf(FIELDS_2,
+		info.totalram - info.freeram - info.bufferram,
+		info.freeram + info.bufferram
+	);
 #if BB_MMU
-	printf("%6s%13lu%13lu%13lu\n", "Swap:",
+	printf("Swap:");
+	printf(FIELDS_3,
 		info.totalswap,
 		info.totalswap - info.freeswap,
 		info.freeswap
-	);
-	printf("%6s%13lu%13lu%13lu\n", "Total:",
-		info.totalram + info.totalswap,
-		(info.totalram - info.freeram) + (info.totalswap - info.freeswap),
-		info.freeram + info.freeswap
 	);
 #endif
 	return EXIT_SUCCESS;
