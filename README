@@ -80,7 +80,7 @@ Downloading the current source code:
   The developers also have a bug and patch tracking system
   (https://bugs.busybox.net) although posting a bug/patch to the mailing list
   is generally a faster way of getting it fixed, and the complete archive of
-  what happened is the subversion changelog.
+  what happened is the git changelog.
 
   Note: if you want to compile busybox in a busybox environment you must
   select CONFIG_DESKTOP.

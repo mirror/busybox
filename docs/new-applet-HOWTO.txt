@@ -8,7 +8,7 @@ Matt Kraai - initial writeup
 Mark Whitley - the remix
 Thomas Lundquist - Trying to keep it updated.
 
-When doing this you should consider using the latest svn trunk.
+When doing this you should consider using the latest git HEAD.
 This is a good thing if you plan to getting it committed into mainline.
 
 Initial Write
@@ -169,12 +169,13 @@ Be sure to read the top of applets.h before adding your applet.
 The Grand Announcement
 ----------------------
 
-Then create a diff by adding the new files with svn (remember your libbb files)
-	svn add <where you put it>/mu.c
+Then create a diff by adding the new files to git (remember your libbb files)
+	git add <where you put it>/mu.c
 eventually also:
-	svn add libbb/function.c
+	git add libbb/function.c
 then
-	svn diff
+	git commit
+	git format-patch HEAD^
 and send it to the mailing list:
 	busybox@busybox.net
 	http://busybox.net/mailman/listinfo/busybox
