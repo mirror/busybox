@@ -2788,7 +2788,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			/* lookup the variable in question */
 			if (isdigit(var[0])) {
 				/* parse_dollar() should have vetted var for us */
-				i = xatoi_u(var);
+				i = xatoi_positive(var);
 				if (i < G.global_argc)
 					val = G.global_argv[i];
 				/* else val remains NULL: $N with too big N */

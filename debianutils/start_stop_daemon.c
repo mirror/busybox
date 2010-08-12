@@ -373,7 +373,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 
 //	IF_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
-//			retries = xatoi_u(retry_arg);
+//			retries = xatoi_positive(retry_arg);
 //	)
 	//argc -= optind;
 	argv += optind;

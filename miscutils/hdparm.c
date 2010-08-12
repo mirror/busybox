@@ -2055,8 +2055,8 @@ int hdparm_main(int argc, char **argv)
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
 			scan_hwif = parse_opts_0_INTMAX(&hwif_data);
-			hwif_ctrl = xatoi_u((argv[optind]) ? argv[optind] : "");
-			hwif_irq  = xatoi_u((argv[optind+1]) ? argv[optind+1] : "");
+			hwif_ctrl = xatoi_positive((argv[optind]) ? argv[optind] : "");
+			hwif_irq  = xatoi_positive((argv[optind+1]) ? argv[optind+1] : "");
 			/* Move past the 2 additional arguments */
 			argv += 2;
 			argc -= 2;

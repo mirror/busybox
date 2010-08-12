@@ -422,7 +422,7 @@ static s_stat* init_int(const char *param)
 	if (param[0] == '\0') {
 		s->no = 1;
 	} else {
-		int n = xatoi_u(param);
+		int n = xatoi_positive(param);
 		s->no = n + 2;
 	}
 	return (s_stat*)s;

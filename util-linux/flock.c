@@ -40,7 +40,7 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 			bb_perror_msg_and_die("can't open '%s'", argv[0]);
 		//TODO? close_on_exec_on(fd);
 	} else {
-		fd = xatoi_u(argv[0]);
+		fd = xatoi_positive(argv[0]);
 	}
 	argv++;
 

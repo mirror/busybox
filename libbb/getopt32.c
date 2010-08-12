@@ -233,7 +233,7 @@ Special characters:
 
  "a+"   A plus after a char in opt_complementary means that the parameter
         for this option is a nonnegative integer. It will be processed
-        with xatoi_u() - allowed range is 0..INT_MAX.
+        with xatoi_positive() - allowed range is 0..INT_MAX.
 
         int param;  // "unsigned param;" will also work
         opt_complementary = "p+";
@@ -579,8 +579,8 @@ getopt32(char **argv, const char *applet_opts, ...)
 				llist_add_to_end((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->param_type == PARAM_INT) {
 			if (optarg)
-//TODO: xatoi_u indirectly pulls in printf machinery
-				*(unsigned*)(on_off->optarg) = xatoi_u(optarg);
+//TODO: xatoi_positive indirectly pulls in printf machinery
+				*(unsigned*)(on_off->optarg) = xatoi_positive(optarg);
 		} else if (on_off->optarg) {
 			if (optarg)
 				*(char **)(on_off->optarg) = optarg;

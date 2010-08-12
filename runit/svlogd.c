@@ -688,10 +688,10 @@ static NOINLINE unsigned logdir_open(struct logdir *ld, const char *fn)
 				break;
 			}
 			case 'n':
-				ld->nmax = xatoi_u(&s[1]);
+				ld->nmax = xatoi_positive(&s[1]);
 				break;
 			case 'N':
-				ld->nmin = xatoi_u(&s[1]);
+				ld->nmin = xatoi_positive(&s[1]);
 				break;
 			case 't': {
 				static const struct suffix_mult mh_suffixes[] = {
@@ -981,7 +981,7 @@ int svlogd_main(int argc, char **argv)
 			linemax = 256;
 	}
 	////if (opt & 8) { // -b
-	////	buflen = xatoi_u(b);
+	////	buflen = xatoi_positive(b);
 	////	if (buflen == 0) buflen = 1024;
 	////}
 	//if (opt & 0x10) timestamp++; // -t

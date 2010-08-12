@@ -190,7 +190,7 @@ typedef unsigned long long uoff_t;
 /* While sizeof(off_t) == sizeof(int), off_t is typedef'ed to long anyway.
  * gcc will throw warnings on printf("%d", off_t). Crap... */
 typedef unsigned long uoff_t;
-#  define XATOOFF(a) xatoi_u(a)
+#  define XATOOFF(a) xatoi_positive(a)
 #  define BB_STRTOOFF bb_strtou
 #  define STRTOOFF strtol
 #  define OFF_FMT "l"
@@ -765,11 +765,16 @@ struct suffix_mult {
 };
 #include "xatonum.h"
 /* Specialized: */
+
 /* Using xatoi() instead of naive atoi() is not always convenient -
  * in many places people want *non-negative* values, but store them
  * in signed int. Therefore we need this one:
- * dies if input is not in [0, INT_MAX] range. Also will reject '-0' etc */
-int xatoi_u(const char *numstr) FAST_FUNC;
+ * dies if input is not in [0, INT_MAX] range. Also will reject '-0' etc.
+ * It should really be named xatoi_nonnegative (since it allows 0),
+ * but that would be too long.
+ */
+int xatoi_positive(const char *numstr) FAST_FUNC;
+
 /* Useful for reading port numbers */
 uint16_t xatou16(const char *numstr) FAST_FUNC;
 

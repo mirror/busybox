@@ -1210,7 +1210,7 @@ IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 		if (opt == OPT_MINDEPTH || opt == OPT_MINDEPTH + 1) {
 			if (!argp[1])
 				bb_show_usage();
-			minmaxdepth[opt - OPT_MINDEPTH] = xatoi_u(argp[1]);
+			minmaxdepth[opt - OPT_MINDEPTH] = xatoi_positive(argp[1]);
 			argp[0] = (char*)"-a";
 			argp[1] = (char*)"-a";
 			argp++;

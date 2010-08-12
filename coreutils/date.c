@@ -300,7 +300,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 			scale = 1;
 			pres = 9;
 			if (n) {
-				pres = xatoi_u(p);
+				pres = xatoi_positive(p);
 				if (pres == 0)
 					pres = 9;
 				m = 9 - pres;

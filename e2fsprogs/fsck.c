@@ -972,13 +972,13 @@ int fsck_main(int argc UNUSED_PARAM, char **argv)
 			case 'C':
 				progress = 1;
 				if (arg[++j]) { /* -Cn */
-					progress_fd = xatoi_u(&arg[j]);
+					progress_fd = xatoi_positive(&arg[j]);
 					goto next_arg;
 				}
 				/* -C n */
 				if (!*++argv)
 					bb_show_usage();
-				progress_fd = xatoi_u(*argv);
+				progress_fd = xatoi_positive(*argv);
 				goto next_arg;
 #endif
 			case 'V':

@@ -90,7 +90,7 @@ int hexdump_main(int argc, char **argv)
 			bb_dump_addfile(dumper, optarg);
 		} /* else */
 		if (ch == 'n') {
-			dumper->dump_length = xatoi_u(optarg);
+			dumper->dump_length = xatoi_positive(optarg);
 		} /* else */
 		if (ch == 's') { /* compat: -s accepts hex numbers too */
 			dumper->dump_skip = xstrtoul_range_sfx(optarg, /*base:*/ 0, /*lo:*/ 0, /*hi:*/ LONG_MAX, suffixes);

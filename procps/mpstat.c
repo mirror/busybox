@@ -930,14 +930,14 @@ int mpstat_main(int UNUSED_PARAM argc, char **argv)
 
 	if (*argv) {
 		/* Get interval */
-		G.interval = xatoi_u(*argv);
+		G.interval = xatoi_positive(*argv);
 		G.count = -1;
 		argv++;
 		if (*argv) {
 			/* Get count value */
 			if (G.interval == 0)
 				bb_show_usage();
-			G.count = xatoi_u(*argv);
+			G.count = xatoi_positive(*argv);
 			//if (*++argv)
 			//	bb_show_usage();
 		}
@@ -979,7 +979,7 @@ int mpstat_main(int UNUSED_PARAM argc, char **argv)
 				memset(G.cpu_bitmap, 0xff, G.cpu_bitmap_len);
 			} else {
 				/* Get CPU number */
-				unsigned n = xatoi_u(t);
+				unsigned n = xatoi_positive(t);
 				if (n >= G.cpu_nr)
 					bb_error_msg_and_die("not that many processors");
 				n++;

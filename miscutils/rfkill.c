@@ -53,7 +53,7 @@ int rfkill_main(int argc UNUSED_PARAM, char **argv)
 			rf_name = "uwb";
 		rf_type = index_in_strings(rfkill_types, rf_name);
 		if (rf_type < 0) {
-			rf_idx = xatoi_u(rf_name);
+			rf_idx = xatoi_positive(rf_name);
 		}
 	}
 

@@ -271,7 +271,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				}
 			}
 			arg1 = port;
-			arg2 = xatoi_u(*argv);
+			arg2 = xatoi_positive(*argv);
 			if (key == ARG_setbridgeprio) {
 				arg1 = arg2;
 				arg2 = 0;

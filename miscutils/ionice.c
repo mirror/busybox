@@ -73,7 +73,7 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!(opt & (OPT_n|OPT_c))) {
 		if (!(opt & OPT_p) && *argv)
-			pid = xatoi_u(*argv);
+			pid = xatoi_positive(*argv);
 
 		pri = ioprio_get(IOPRIO_WHO_PROCESS, pid);
 		if (pri == -1)

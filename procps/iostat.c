@@ -539,12 +539,12 @@ int iostat_main(int argc, char **argv)
 
 	if (*argv) {
 		/* Get interval */
-		interval = xatoi_u(*argv);
+		interval = xatoi_positive(*argv);
 		count = interval ? -1 : 1;
 		argv++;
 		if (*argv)
 			/* Get count value */
-			count = xatoi_u(*argv);
+			count = xatoi_positive(*argv);
 	}
 
 	/* Allocate space for device stats */

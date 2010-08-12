@@ -224,7 +224,7 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 			if (!ntok[0]) {
 				s = BOL;
 			} else {
-				s = xatoi_u(ntok);
+				s = xatoi_positive(ntok);
 				/* account for the fact that arrays are zero based, while
 				 * the user expects the first char on the line to be char #1 */
 				if (s != 0)
@@ -237,7 +237,7 @@ int cut_main(int argc UNUSED_PARAM, char **argv)
 			} else if (!ltok[0]) {
 				e = EOL;
 			} else {
-				e = xatoi_u(ltok);
+				e = xatoi_positive(ltok);
 				/* if the user specified and end position of 0,
 				 * that means "til the end of the line" */
 				if (e == 0)

@@ -135,7 +135,7 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 	while (1) {
 		char *fname;
 		int fd;
-		// int is easier than ssize_t: can use xatoi_u,
+		// int is easier than ssize_t: can use xatoi_positive,
 		// and can correctly display error returns (-1)
 		int expected_len, real_len;
 

@@ -213,7 +213,7 @@ static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf)
 	} while (!isdigit(buf[0]) || buf[3] != ' ');
 
 	buf[3] = '\0';
-	result = xatoi_u(buf);
+	result = xatoi_positive(buf);
 	buf[3] = ' ';
 	return result;
 }

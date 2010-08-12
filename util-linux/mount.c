@@ -1147,7 +1147,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				continue;
 			}
 
-			val = xatoi_u(opteq);
+			val = xatoi_positive(opteq);
 			switch (idx) {
 			case 0: // "rsize"
 				data.rsize = val;

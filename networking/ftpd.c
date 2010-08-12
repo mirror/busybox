@@ -534,7 +534,7 @@ static void
 handle_rest(void)
 {
 	/* When ftp_arg == NULL simply restart from beginning */
-	G.restart_pos = G.ftp_arg ? xatoi_u(G.ftp_arg) : 0;
+	G.restart_pos = G.ftp_arg ? xatoi_positive(G.ftp_arg) : 0;
 	WRITE_OK(FTP_RESTOK);
 }
 

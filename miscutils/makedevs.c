@@ -36,10 +36,10 @@ int makedevs_main(int argc, char **argv)
 	basedev = argv[1];
 	buf = xasprintf("%s%u", argv[1], (unsigned)-1);
 	type = argv[2];
-	Smajor = xatoi_u(argv[3]);
-	Sminor = xatoi_u(argv[4]);
-	S = xatoi_u(argv[5]);
-	E = xatoi_u(argv[6]);
+	Smajor = xatoi_positive(argv[3]);
+	Sminor = xatoi_positive(argv[4]);
+	S = xatoi_positive(argv[5]);
+	E = xatoi_positive(argv[6]);
 	nodname = argv[7] ? basedev : buf;
 
 	mode = 0660;
