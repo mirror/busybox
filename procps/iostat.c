@@ -20,8 +20,8 @@
 #include "libbb.h"
 #include <sys/utsname.h>	/* Need struct utsname */
 
-#define debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
-//#define debug(fmt, ...) ((void)0)
+//#define debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
+#define debug(fmt, ...) ((void)0)
 
 #define MAX_DEVICE_NAME		12
 #define CURRENT				0
@@ -402,6 +402,8 @@ static void do_disk_statistics(cputime_t itv)
 				continue;
 		}
 	}
+
+	fclose(fp);
 }
 
 static void dev_report(cputime_t itv)
@@ -493,7 +495,7 @@ int iostat_main(int argc, char **argv)
 {
 	int opt, dev_num;
 	unsigned interval = 0;
-	int count = 0;
+	int count;
 	cputime_t global_uptime[2] = { 0 };
 	cputime_t smp_uptime[2] = { 0 };
 	cputime_t itv;
@@ -537,10 +539,11 @@ int iostat_main(int argc, char **argv)
 		argv++;
 	}
 
+	count = 1;
 	if (*argv) {
 		/* Get interval */
 		interval = xatoi_positive(*argv);
-		count = interval ? -1 : 1;
+		count = (interval != 0 ? -1 : 1);
 		argv++;
 		if (*argv)
 			/* Get count value */
