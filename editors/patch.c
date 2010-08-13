@@ -82,6 +82,9 @@ void TOY_llist_free(void *list, void (*freeit)(void *data))
 		if (list==pop) break;
 	}
 }
+//Override bbox's names
+#define llist_pop TOY_llist_pop
+#define llist_free TOY_llist_free
 
 // Add an entry to the end off a doubly linked list
 static
@@ -292,7 +295,7 @@ static void fail_hunk(void)
 	// this file and advance to next file.
 
 	TT.state = 2;
-	TOY_llist_free(TT.current_hunk, do_line);
+	llist_free(TT.current_hunk, do_line);
 	TT.current_hunk = NULL;
 	delete_tempfile(TT.filein, TT.fileout, &TT.tempname);
 	TT.state = 0;
@@ -378,7 +381,7 @@ static int apply_one_hunk(void)
 					fdprintf(2, "NOT: %s\n", plist->data);
 
 				TT.state = 3;
-				check = TOY_llist_pop(&buf);
+				check = llist_pop(&buf);
 				check->prev->next = buf;
 				buf->prev = check->prev;
 				do_line(check);
@@ -405,13 +408,13 @@ static int apply_one_hunk(void)
 out:
 	// We have a match.  Emit changed data.
 	TT.state = "-+"[reverse];
-	TOY_llist_free(TT.current_hunk, do_line);
+	llist_free(TT.current_hunk, do_line);
 	TT.current_hunk = NULL;
 	TT.state = 1;
 done:
 	if (buf) {
 		buf->prev->next = NULL;
-		TOY_llist_free(buf, do_line);
+		llist_free(buf, do_line);
 	}
 
 	return TT.state;
