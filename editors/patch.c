@@ -227,7 +227,8 @@ struct globals {
 	long prefix;
 
 	struct double_list *current_hunk;
-	long oldline, oldlen, newline, newlen, linenum;
+	long oldline, oldlen, newline, newlen;
+	long linenum;
 	int context, state, filein, fileout, filepatch, hunknum;
 	char *tempname;
 
@@ -505,14 +506,19 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			// way the patch man page says, so you have to read the first hunk
 			// and _guess_.
 
-		// Start a new hunk?
+		// Start a new hunk?  Usually @@ -oldline,oldlen +newline,newlen @@
+		// but a missing ,value means the value is 1.
 		} else if (state == 1 && !strncmp("@@ -", patchline, 4)) {
 			int i;
+			char *s = patchline+4;
 
-			i = sscanf(patchline+4, "%ld,%ld +%ld,%ld", &TT.oldline,
-						&TT.oldlen, &TT.newline, &TT.newlen);
-			if (i != 4)
-				bb_error_msg_and_die("corrupt hunk %d at %ld", TT.hunknum, TT.linenum);
+			// Read oldline[,oldlen] +newline[,newlen]
+
+			TT.oldlen = TT.newlen = 1;
+			TT.oldline = strtol(s, &s, 10);
+			if (*s == ',') TT.oldlen=strtol(s+1, &s, 10);
+			TT.newline = strtol(s+2, &s, 10);
+			if (*s == ',') TT.newlen = strtol(s+1, &s, 10);
 
 			TT.context = 0;
 			state = 2;
@@ -520,7 +526,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			// If this is the first hunk, open the file.
 			if (TT.filein == -1) {
 				int oldsum, newsum, del = 0;
-				char *s, *name;
+				char *name;
 
  				oldsum = TT.oldline + TT.oldlen;
 				newsum = TT.newline + TT.newlen;
