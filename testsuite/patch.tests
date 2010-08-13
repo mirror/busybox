@@ -7,7 +7,7 @@
 # testing "test name" "options" "expected result" "file input" "stdin"
 
 testing "patch with old_file == new_file" \
-	'patch; echo $?; cat input' \
+	'patch 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -29,7 +29,7 @@ zxc
 " \
 
 testing "patch with nonexistent old_file" \
-	'patch; echo $?; cat input' \
+	'patch 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -51,7 +51,7 @@ zxc
 " \
 
 testing "patch -R with nonexistent old_file" \
-	'patch -R; echo $?; cat input' \
+	'patch -R 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -75,9 +75,12 @@ zxc
 testing "patch detects already applied hunk" \
 	'patch 2>&1; echo $?; cat input' \
 "\
+Possibly reversed hunk 1 at 2
+Hunk 1 FAILED 1/1.
+ abc
++def
+ 123
 patching file input
-patch: hunk #1 FAILED at 1
-patch: 1 out of 1 hunk FAILED
 1
 abc
 def

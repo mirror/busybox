@@ -1,4 +1,4 @@
-# Simple test harness infrastructurei for BusyBox
+# Simple test harness infrastructure for BusyBox
 #
 # Copyright 2005 by Rob Landley
 #
@@ -87,6 +87,7 @@ testing()
 
   $ECHO -ne "$3" > expected
   $ECHO -ne "$4" > input
+  [ -z "$VERBOSE" ] || echo "echo -ne '$4' >input"
   [ -z "$VERBOSE" ] || echo "echo -ne '$5' | $2"
   $ECHO -ne "$5" | eval "$2" > actual
   RETVAL=$?
