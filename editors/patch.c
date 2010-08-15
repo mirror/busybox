@@ -245,14 +245,16 @@ struct globals {
 
 
 //bbox had: "p:i:RN"
-#define FLAG_STR "Rup:i:x"
+#define FLAG_STR "Rup:i:Nx"
 /* FLAG_REVERSE must be == 1! Code uses this fact. */
 #define FLAG_REVERSE (1 << 0)
 #define FLAG_u       (1 << 1)
 #define FLAG_PATHLEN (1 << 2)
 #define FLAG_INPUT   (1 << 3)
+// -N: not supported yet
+#define FLAG_IGNORE  (1 << 4)
 //non-standard:
-#define FLAG_DEBUG   (1 << 4)
+#define FLAG_DEBUG   (1 << 5)
 
 // Dispose of a line of input, either by writing it out or discarding it.
 
