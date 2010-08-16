@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2006  Michael Opdenacker <michael@free-electrons.com>
  *
- * Licensed under GPLv2 or later, see file License in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "libbb.h"

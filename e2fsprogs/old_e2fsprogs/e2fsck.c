@@ -26,7 +26,7 @@
  * Journal recovery routines for the generic filesystem journaling code;
  * part of the ext2fs journaling system.
  *
- * Licensed under GPLv2 or later, see file License in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "e2fsck.h"	/*Put all of our defines here to clean things up*/

@@ -4,7 +4,7 @@
  *
  * pascal.bellard@ads-lu.com
  *
- * Licensed under GPLv2 or later, see file License in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
 #include "libbb.h"

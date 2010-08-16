@@ -7,7 +7,7 @@
  * Based on Russell Stuart's conspy.c
  *   http://ace-host.stuart.id.au/russell/files/conspy.c
  *
- * Licensed under GPLv2 or later, see file License in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 //applet:IF_CONSPY(APPLET(conspy, _BB_DIR_BIN, _BB_SUID_DROP))
