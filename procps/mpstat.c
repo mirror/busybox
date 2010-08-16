@@ -119,12 +119,6 @@ enum {
 };
 
 
-/* Does str start with "cpu"? */
-static int starts_with_cpu(const char *str)
-{
-	return !((str[0] - 'c') | (str[1] - 'p') | (str[2] - 'u'));
-}
-
 /* Is option on? */
 static ALWAYS_INLINE int display_opt(int opt)
 {
@@ -816,38 +810,6 @@ static void print_header(struct tm *t)
 }
 
 /*
- * Get number of processors in /proc/stat
- * Return value '0' means one CPU and non SMP kernel.
- * Otherwise N means N processor(s) and SMP kernel.
- */
-static int get_cpu_nr(void)
-{
-	FILE *fp;
-	char line[256];
-	int proc_nr = -1;
-
-	fp = xfopen_for_read(PROCFS_STAT);
-	while (fgets(line, sizeof(line), fp)) {
-		if (!starts_with_cpu(line)) {
-			if (proc_nr >= 0)
-				break; /* we are past "cpuN..." lines */
-			continue;
-		}
-		if (line[3] != ' ') { /* "cpuN" */
-			int num_proc;
-			if (sscanf(line + 3, "%u", &num_proc) == 1
-			 && num_proc > proc_nr
-			) {
-				proc_nr = num_proc;
-			}
-		}
-	}
-
-	fclose(fp);
-	return proc_nr + 1;
-}
-
-/*
  * Get number of interrupts available per processor
  */
 static int get_irqcpu_nr(const char *f, int max_irqs)
@@ -910,7 +872,7 @@ int mpstat_main(int UNUSED_PARAM argc, char **argv)
 	G.interval = -1;
 
 	/* Get number of processors */
-	G.cpu_nr = get_cpu_nr();
+	G.cpu_nr = get_cpu_count();
 
 	/* Get number of clock ticks per sec */
 	G.hz = get_hz();

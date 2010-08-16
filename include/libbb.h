@@ -1479,6 +1479,8 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags) FAST_FUNC;
 void read_cmdline(char *buf, int size, unsigned pid, const char *comm) FAST_FUNC;
 pid_t *find_pid_by_name(const char* procName) FAST_FUNC;
 pid_t *pidlist_reverse(pid_t *pidList) FAST_FUNC;
+int starts_with_cpu(const char *str) FAST_FUNC;
+unsigned get_cpu_count(void) FAST_FUNC;
 
 
 extern const char bb_uuenc_tbl_base64[];

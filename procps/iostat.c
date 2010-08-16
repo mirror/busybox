@@ -114,26 +114,6 @@ static void print_header(void)
 			buf, uts.machine, G.total_cpus);
 }
 
-static int get_number_of_cpus(void)
-{
-#ifdef _SC_NPROCESSORS_CONF
-	return sysconf(_SC_NPROCESSORS_CONF);
-#else
-	char buf[128];
-	int n = 0;
-	FILE *fp;
-
-	fp = xfopen_for_read("/proc/cpuinfo");
-
-	while (fgets(buf, sizeof(buf), fp))
-		if (strncmp(buf, "processor\t:", 11) == 0)
-			n++;
-
-	fclose(fp);
-	return n;
-#endif
-}
-
 static void get_localtime(struct tm *ptm)
 {
 	time_t timer;
@@ -146,12 +126,6 @@ static void print_timestamp(void)
 	char buf[20];
 	strftime(buf, sizeof(buf), "%x %X", &G.tmtime);
 	printf("%s\n", buf);
-}
-
-/* Does str start with "cpu"? */
-static int starts_with_cpu(const char *str)
-{
-	return ((str[0] - 'c') | (str[1] - 'p') | (str[2] - 'u')) == 0;
 }
 
 /* Fetch CPU statistics from /proc/stat */
@@ -509,7 +483,9 @@ int iostat_main(int argc, char **argv)
 	G.clk_tck = get_user_hz();
 
 	/* Determine number of CPUs */
-	G.total_cpus = get_number_of_cpus();
+	G.total_cpus = get_cpu_count();
+	if (G.total_cpus == 0)
+		G.total_cpus = 1;
 
 	/* Parse and process arguments */
 	/* -k and -m are mutually exclusive */
