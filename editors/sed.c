@@ -992,6 +992,8 @@ static void process_files(void)
 		}
 
 		/* actual sedding */
+		//bb_error_msg("pattern_space:'%s' next_line:'%s' cmd:%c",
+		//pattern_space, next_line, sed_cmd->cmd);
 		switch (sed_cmd->cmd) {
 
 		/* Print line number */
@@ -1118,10 +1120,16 @@ static void process_files(void)
 		{
 			int len;
 			/* If no next line, jump to end of script and exit. */
+			/* http://www.gnu.org/software/sed/manual/sed.html:
+			 * "Most versions of sed exit without printing anything
+			 * when the N command is issued on the last line of
+			 * a file. GNU sed prints pattern space before exiting
+			 * unless of course the -n command switch has been
+			 * specified. This choice is by design."
+			 */
 			if (next_line == NULL) {
-				free(next_line);
-				next_line = NULL;
-				goto discard_line;
+				//goto discard_line;
+				goto discard_commands; /* GNU behavior */
 			}
 			/* Append next_line, read new next_line. */
 			len = strlen(pattern_space);

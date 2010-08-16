@@ -80,10 +80,18 @@ test x"$SKIP_KNOWN_BUGS" = x"" && {
 # Query: how does this interact with no newline at EOF?
 testing "sed n (flushes pattern space, terminates early)" "sed -e 'n;p'" \
 	"a\nb\nb\nc\n" "" "a\nb\nc\n"
-# N does _not_ flush pattern space, therefore c is still in there @ script end.
-testing "sed N (doesn't flush pattern space when terminating)" "sed -e 'N;p'" \
-	"a\nb\na\nb\nc\n" "" "a\nb\nc\n"
 }
+# non-GNU sed: N does _not_ flush pattern space, therefore c is eaten @ script end
+# GNU sed: N flushes pattern space, therefore c is printed too @ script end
+testing "sed N (flushes pattern space (GNU behavior))" "sed -e 'N;p'" \
+	"a\nb\na\nb\nc\n" "" "a\nb\nc\n"
+
+testing "sed N test2" "sed ':a;N;s/\n/ /;ta'" \
+	"a b c\n" "" "a\nb\nc\n"
+
+testing "sed N test3" "sed 'N;s/\n/ /'" \
+	"a b\nc\n" "" "a\nb\nc\n"
+
 testing "sed address match newline" 'sed "/b/N;/b\\nc/i woo"' \
 	"a\nwoo\nb\nc\nd\n" "" "a\nb\nc\nd\n"
 
