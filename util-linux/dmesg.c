@@ -6,7 +6,7 @@
  * Copyright 2006 Rob Landley <rob@landley.net>
  * Copyright 2006 Bernhard Reutner-Fischer <rep.nop@aon.at>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include <sys/klog.h>
 #include "libbb.h"

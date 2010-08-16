@@ -1,9 +1,10 @@
 /*
-** Licensed under the GPL v2, see the file LICENSE in this tarball
-**
-** Based on nanotop.c from floppyfw project
-**
-** Contact me: vda.linux@googlemail.com */
+ * Licensed under GPLv2, see file LICENSE in this source tree.
+ *
+ * Based on nanotop.c from floppyfw project
+ *
+ * Contact me: vda.linux@googlemail.com */
+ */
 
 //TODO:
 // simplify code

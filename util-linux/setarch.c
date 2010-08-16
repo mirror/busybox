@@ -4,7 +4,7 @@
  *
  * Copyright 2002 Andi Kleen, SuSE Labs.
  *
- * Licensed under GPL v2 or later, see file LICENSE for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
 #include <sys/personality.h>

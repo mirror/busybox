@@ -7,7 +7,7 @@
  * Some helper functions from bridge-utils are
  * Copyright (C) 2000 Lennert Buytenhek
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 /* This applet currently uses only the ioctl interface and no sysfs at all.
  * At the time of this writing this was considered a feature.

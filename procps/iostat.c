@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2010 Marek Polacek <mmpolacek@gmail.com>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
 //applet:IF_IOSTAT(APPLET(iostat, _BB_DIR_BIN, _BB_SUID_DROP))

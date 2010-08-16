@@ -6,7 +6,7 @@
  * Copyright (C) 2003 by Arthur van Hoff (avh@strangeberry.com)
  * Copyright (C) 2004 by David Brownell
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /*

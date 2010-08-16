@@ -5,7 +5,7 @@
  * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
  * Copyright (C) 2008 by Tito Ragusa <farmatito@tiscali.it>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* BB_AUDIT SUSv3 compliant. */

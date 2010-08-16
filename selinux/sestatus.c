@@ -5,7 +5,7 @@
  *
  * Copyright (C) KaiGai Kohei <kaigai@ak.jp.nec.com>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

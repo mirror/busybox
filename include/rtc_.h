@@ -1,7 +1,7 @@
 /*
  * Common defines/structures/etc... for applets that need to work with the RTC.
  *
- * Licensed under the GPL-2 or later.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #ifndef BB_RTC_H

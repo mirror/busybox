@@ -3,9 +3,9 @@
  * Busybox main internal header file
  *
  * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
- * Permission has been granted to redistribute this code under the GPL.
+ * Permission has been granted to redistribute this code under GPL.
  *
- * Licensed under the GPL version 2, see the file LICENSE in this tarball.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #ifndef LIBBB_H
 #define LIBBB_H 1

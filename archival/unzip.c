@@ -7,7 +7,7 @@
  * Loosely based on original busybox unzip applet by Laurence Anderson.
  * All options and features should work in this version.
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* For reference see

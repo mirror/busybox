@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */

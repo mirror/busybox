@@ -11,7 +11,7 @@
  * Modified to be able to add or delete users, groups and users to/from groups
  * by Tito Ragusa <farmatito@tiscali.it>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

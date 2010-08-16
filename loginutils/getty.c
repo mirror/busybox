@@ -12,7 +12,7 @@
  * 1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
  * - enable hardware flow control before displaying /etc/issue
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

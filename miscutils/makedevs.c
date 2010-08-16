@@ -76,7 +76,7 @@ int makedevs_main(int argc, char **argv)
 
 #elif ENABLE_FEATURE_MAKEDEVS_TABLE
 
-/* Licensed under the GPL v2 or later, see the file LICENSE in this tarball. */
+/* Licensed under GPLv2 or later, see file LICENSE in this source tree. */
 
 int makedevs_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int makedevs_main(int argc UNUSED_PARAM, char **argv)

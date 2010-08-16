@@ -4,7 +4,7 @@
  *
  * See original copyright at the end of this file
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* BB_AUDIT SUSv3 compliant with -j and -y extensions (from util-linux). */

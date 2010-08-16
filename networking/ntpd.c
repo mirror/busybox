@@ -3,7 +3,7 @@
  *
  * Author: Adam Tkac <vonsch@gmail.com>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * Parts of OpenNTPD clock syncronization code is replaced by
  * code which is based on ntp-4.2.6, whuch carries the following

@@ -13,7 +13,7 @@
  * This version of tr is adapted from Minix tr and was modified
  * by Erik Andersen <andersen@codepoet.org> to be used in busybox.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 /* http://www.opengroup.org/onlinepubs/009695399/utilities/tr.html
  * TODO: graph, print

@@ -3,7 +3,7 @@
  * wall - write a message to all logged-in users
  * Copyright (c) 2009 Bernhard Reutner-Fischer
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

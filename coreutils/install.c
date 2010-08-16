@@ -3,7 +3,7 @@
  * Copyright (C) 2003 by Glenn McGrath
  * SELinux support: by Yuichi Nakamura <ynakam@hitachisoft.jp>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

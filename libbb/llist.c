@@ -7,7 +7,7 @@
  * Copyright (C) 2005 Bernhard Reutner-Fischer
  * Copyright (C) 2006 Rob Landley <rob@landley.net>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

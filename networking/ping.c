@@ -11,7 +11,7 @@
  * This code is derived from software contributed to Berkeley by
  * Mike Muuss.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 /* from ping6.c:
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>

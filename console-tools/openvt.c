@@ -5,7 +5,7 @@
  *  busyboxed by Quy Tonthat <quy@signal3.com>
  *  hacked by Tito <farmatito@tiscali.it>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include <linux/vt.h>

@@ -10,7 +10,7 @@
  * Written by Kayvan Aghaiepour and David MacKenzie
  * Taken from coreutils and turned into a busybox applet by Mike Frysinger
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2000,2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* BB_AUDIT SUSv3 (virtually) compliant -- uses nicer GNU format for -l. */

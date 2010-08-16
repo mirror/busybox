@@ -3,7 +3,7 @@
  *
  * Switch from rootfs to another filesystem as the root of the mount tree.
  *
- * Licensed under GPL version 2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include <sys/vfs.h>
 #include <sys/mount.h>

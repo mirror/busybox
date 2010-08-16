@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2009 by Dan Fandrich <dan@coneharvesters.com>, et. al.
  *
- * Licensed under the GPL version 2, see the file LICENSE in this tarball.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

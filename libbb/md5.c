@@ -1,16 +1,16 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  md5.c - Compute MD5 checksum of strings according to the
- *          definition of MD5 in RFC 1321 from April 1992.
+ * md5.c - Compute MD5 checksum of strings according to the
+ *         definition of MD5 in RFC 1321 from April 1992.
  *
- *  Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.
+ * Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.
  *
- *  Copyright (C) 1995-1999 Free Software Foundation, Inc.
- *  Copyright (C) 2001 Manuel Novoa III
- *  Copyright (C) 2003 Glenn L. McGrath
- *  Copyright (C) 2003 Erik Andersen
+ * Copyright (C) 1995-1999 Free Software Foundation, Inc.
+ * Copyright (C) 2001 Manuel Novoa III
+ * Copyright (C) 2003 Glenn L. McGrath
+ * Copyright (C) 2003 Erik Andersen
  *
- *  Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

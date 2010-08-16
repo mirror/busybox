@@ -79,7 +79,7 @@
  *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
  *              aaa
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
 #include <malloc.h>   /* for malloc_trim */

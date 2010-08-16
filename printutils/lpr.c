@@ -7,7 +7,7 @@
  * Original idea and code:
  *      Walter Harms <WHarms@bfs.de>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * See RFC 1179 for protocol description.
  */

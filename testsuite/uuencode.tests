@@ -2,7 +2,7 @@
 
 # unit test for uuencode to test functionality.
 # Copyright 2006 by Erik Hovland <erik@hovland.org>
-# Licensed under GPL v2, see file LICENSE for details.
+# Licensed under GPLv2, see file LICENSE in this source tree.
 
 # AUDIT: Unit tests for uuencode
 

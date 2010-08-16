@@ -9,7 +9,7 @@
  * from Red Hat.  I didn't look at their source code, but there
  * is no denying that this is a loving reimplementation
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 /* After libbb.h, because on some systems it needs other includes */

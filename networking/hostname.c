@@ -7,7 +7,7 @@
  * Adjusted by Erik Andersen <andersen@codepoet.org> to remove
  * use of long options and GNU getopt.  Improved the usage info.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

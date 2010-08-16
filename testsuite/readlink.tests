@@ -2,7 +2,7 @@
 
 # Readlink tests.
 # Copyright 2006 by Natanael Copa <n@tanael.org>
-# Licensed under GPL v2, see file LICENSE for details.
+# Licensed under GPLv2, see file LICENSE in this source tree.
 
 . ./testing.sh
 

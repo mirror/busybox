@@ -3,7 +3,7 @@
  * chrt - manipulate real-time attributes of a process
  * Copyright (c) 2006-2007 Bernhard Reutner-Fischer
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include <sched.h>
 #include "libbb.h"

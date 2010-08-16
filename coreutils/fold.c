@@ -7,7 +7,7 @@
    Modified for busybox based on coreutils v 5.0
    Copyright (C) 2003 Glenn McGrath
 
-   Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+   Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 #include "libbb.h"
 #include "unicode.h"

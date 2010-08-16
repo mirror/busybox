@@ -10,7 +10,7 @@
  *
  * Copyright (C) 2001 Hewlett-Packard Laboratories
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * This was originally written for blob and then adapted for busybox.
  */

@@ -15,12 +15,12 @@
  *  Copyright (c) 1999 by David I. Bell
  *  Permission is granted to use, distribute, or modify this source,
  *  provided that this copyright notice remains intact.
- *  Permission to distribute sash derived code under the GPL has been granted.
+ *  Permission to distribute sash derived code under GPL has been granted.
  *
  * Based in part on the tar implementation from busybox-0.28
  *  Copyright (C) 1995 Bruce Perens
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include <fnmatch.h>

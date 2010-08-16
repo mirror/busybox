@@ -13,7 +13,7 @@
  * files as well as stdin/stdout, and to generally behave itself wrt
  * command line handling.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* big objects in bss:

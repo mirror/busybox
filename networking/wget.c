@@ -3,7 +3,7 @@
  * wget - retrieve a file using HTTP or FTP
  *
  * Chip Rosenthal Covad Communications <chip@laserlink.net>
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * Copyright (C) 2010 Bradley M. Kuhn <bkuhn@ebb.org>
  *   Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.

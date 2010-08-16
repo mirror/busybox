@@ -3,7 +3,7 @@
  * modinfo - retrieve module info
  * Copyright (c) 2008 Pascal Bellard
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 //applet:IF_MODINFO(APPLET(modinfo, _BB_DIR_SBIN, _BB_SUID_DROP))

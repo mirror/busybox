@@ -5,7 +5,7 @@
  * 01 Sept 2004 - Rodney Radford <rradford@mindspring.com>
  * Adapted for busybox from util-linux-2.12a.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */

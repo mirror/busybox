@@ -6,7 +6,7 @@
  * Based on LzmaDecode.c from the LZMA SDK 4.22 (http://www.7-zip.org/)
  * Copyright (C) 1999-2005  Igor Pavlov
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 #include "unarchive.h"

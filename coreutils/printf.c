@@ -4,7 +4,7 @@
    Copyright 1999 Dave Cinege
    Portions copyright (C) 1990-1996 Free Software Foundation, Inc.
 
-   Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
+   Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
 /* Usage: printf format [argument...]

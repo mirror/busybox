@@ -1,10 +1,10 @@
 /* vi: set sw=4 ts=4: */
-/*  nc: mini-netcat - built from the ground up for LRP
+/* nc: mini-netcat - built from the ground up for LRP
  *
- *  Copyright (C) 1998, 1999  Charles P. Wright
- *  Copyright (C) 1998  Dave Cinege
+ * Copyright (C) 1998, 1999  Charles P. Wright
+ * Copyright (C) 1998  Dave Cinege
  *
- *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

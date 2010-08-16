@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2008 by  <u173034@informatik.uni-oldenburg.de>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include <sys/syscall.h>

@@ -1,14 +1,14 @@
 /* vi: set sw=4 ts=4: */
-/* Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+/* Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
- *  FIXME:
+ * FIXME:
  *    In privileged mode if uname and gname map to a uid and gid then use the
  *    mapped value instead of the uid/gid values in tar header
  *
- *  References:
+ * References:
  *    GNU tar and star man pages,
  *    Opengroup's ustar interchange format,
- *	http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
+ *    http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
  */
 
 #include "libbb.h"

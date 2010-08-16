@@ -7,7 +7,7 @@
  * Reworked by (C) 2002 Vladimir Oleynik <dzo@simtreas.ru>
  *  to correctly parse '-rwxgoa'
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* BB_AUDIT SUSv3 compliant */

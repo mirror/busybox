@@ -5,7 +5,7 @@
  * Copyright (C) 2008 Rob Landley <rob@landley.net>
  * Copyright (C) 2008 Denys Vlasenko <vda.linux@googlemail.com>
  *
- * Licensed under GPL version 2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

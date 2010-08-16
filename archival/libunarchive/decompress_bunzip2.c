@@ -6,7 +6,7 @@
    Peter Fenwick, Alistair Moffat, Radford Neal, Ian H. Witten,
    Robert Sedgewick, and Jon L. Bentley.
 
-   Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+   Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
 /*

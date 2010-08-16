@@ -8,7 +8,7 @@
  * Correct default name server display and explicit name server option
  * added by Ben Zeckel <bzeckel@hmc.edu> June 2001
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include <resolv.h>

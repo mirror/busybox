@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2002  Matt Kraai.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

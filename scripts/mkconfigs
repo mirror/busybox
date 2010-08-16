@@ -38,7 +38,7 @@ echo "\
 /*
  * busybox configuration settings.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * This file is generated automatically by scripts/mkconfigs.
  * Do not edit.

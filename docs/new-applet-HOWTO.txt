@@ -36,7 +36,7 @@ For a new applet mu, here is the code that would go in mu.c:
  *
  * Copyright (C) [YEAR] by [YOUR NAME] <YOUR EMAIL>
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

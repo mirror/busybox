@@ -6,7 +6,7 @@
  * pivot_root syscall stubbed by Erik Andersen, so it will compile
  *     regardless of the kernel being used.
  *
- * Licensed under GPL version 2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

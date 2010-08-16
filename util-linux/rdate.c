@@ -5,7 +5,7 @@
  *
  * by Sterling Huxley <sterling@europa.com>
  *
- * Licensed under GPL v2 or later, see file LICENSE for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
 #include "libbb.h"

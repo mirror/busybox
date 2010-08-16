@@ -6,7 +6,7 @@
  * Copyright (C) 2006  Bernhard Reutner-Fischer <busybox@busybox.net>
  * Copyright (C) 2008  Darius Augulis <augulis.darius@gmail.com>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

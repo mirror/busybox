@@ -4,7 +4,7 @@
  *
  * Copyright 1999 George Staikos
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * Changelog:
  * v1.01   - added -p <preload> to preload values from a file

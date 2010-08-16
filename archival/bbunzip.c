@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  Common code for gunzip-like applets
+ * Common code for gunzip-like applets
  *
- *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 #include "unarchive.h"
@@ -165,7 +165,7 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 /*
  * Uncompress applet for busybox (c) 2002 Glenn McGrath
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #if ENABLE_UNCOMPRESS
 static
@@ -206,7 +206,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
  * General cleanup to better adhere to the style guide and make use of standard
  * busybox functions by Glenn McGrath
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
  * Copyright (C) 1992-1993 Jean-loup Gailly
@@ -302,7 +302,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  * Modified for busybox by Glenn McGrath
  * Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //usage:#define bunzip2_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
@@ -342,7 +342,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
  *
  * Based on bunzip.c from busybox
  *
- * Licensed under GPL v2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #if ENABLE_UNLZMA
 static

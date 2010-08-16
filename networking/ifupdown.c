@@ -14,7 +14,7 @@
  *  (defined via CONFIG_IFUPDOWN_IFSTATE_PATH) and can be overridden by build
  *  configuration.
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"

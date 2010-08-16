@@ -6,7 +6,7 @@
  *
  * Based in part on BusyBox tar, Debian dpkg-deb and GNU ar.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * Archive creation support:
  * Copyright (C) 2010 Nokia Corporation. All rights reserved.

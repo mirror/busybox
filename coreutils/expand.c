@@ -3,7 +3,7 @@
  *
  * Copyright (C) 89, 91, 1995-2006 Free Software Foundation, Inc.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * David MacKenzie <djm@gnu.ai.mit.edu>
  *

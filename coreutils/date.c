@@ -7,7 +7,7 @@
  * iso-format handling added by Robert Griebl <griebl@gmx.de>
  * bugfixes and cleanup by Bernhard Reutner-Fischer
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
 /* This 'date' command supports only 2 time setting formats,

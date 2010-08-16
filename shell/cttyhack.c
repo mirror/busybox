@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Licensed under GPLv2
- *
  * Copyright (c) 2007 Denys Vlasenko <vda.linux@googlemail.com>
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

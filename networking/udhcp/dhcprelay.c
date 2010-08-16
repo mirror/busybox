@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /* Port to Busybox Copyright (C) 2006 Jesse Dutton <jessedutton@gmail.com>
  *
- * Licensed under GPL v2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * DHCP Relay for 'DHCPv4 Configuration of IPSec Tunnel Mode' support
  * Copyright (C) 2002 Mario Strasser <mast@gmx.net>,

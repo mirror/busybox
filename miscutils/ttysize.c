@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2007 by Denys Vlasenko <vda.linux@googlemail.com>
  *
- * Licensed under the GPL v2, see the file LICENSE in this tarball.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 

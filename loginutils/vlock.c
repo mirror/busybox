@@ -5,7 +5,7 @@
  * Copyright (C) 2000 by spoon <spoon@ix.netcom.com>
  * Written by spoon <spon@ix.netcom.com>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /* Shoutz to Michael K. Johnson <johnsonm@redhat.com>, author of the

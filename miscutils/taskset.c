@@ -3,7 +3,7 @@
  * taskset - retrieve or set a processes' CPU affinity
  * Copyright (c) 2006 Bernhard Reutner-Fischer
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 #include <sched.h>

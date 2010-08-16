@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /* Ported to busybox from mtd-utils.
  *
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
 #include <mtd/mtd-user.h>

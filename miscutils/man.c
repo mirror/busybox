@@ -1,6 +1,6 @@
 /* mini man implementation for busybox
  * Copyright (C) 2008 Denys Vlasenko <vda.linux@googlemail.com>
- * Licensed under GPLv2, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
 #include "libbb.h"
