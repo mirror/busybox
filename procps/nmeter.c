@@ -3,7 +3,7 @@
  *
  * Based on nanotop.c from floppyfw project
  *
- * Contact me: vda.linux@googlemail.com */
+ * Contact me: vda.linux@googlemail.com
  */
 
 //TODO:
