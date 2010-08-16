@@ -100,13 +100,15 @@ def
  123
 " \
 
-# Currently fails (erroneously appends second "456" line):
-false && testing "patch detects already applied hunk" \
+testing "patch detects already applied hunk at the EOF" \
 	'patch 2>&1; echo $?; cat input' \
 "\
+Possibly reversed hunk 1 at 3
+Hunk 1 FAILED 1/1.
+ abc
+ 123
++456
 patching file input
-patch: hunk #1 FAILED at 2
-patch: 1 out of 1 hunk FAILED
 1
 abc
 123
