@@ -153,7 +153,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	}
 
 	size = CONFIG_PASSWORD_MINLEN + 2*CATEGORIES;
-	for (i = 0; i <= LAST_CAT; i <<= 1)
+	for (i = 1; i <= LAST_CAT; i <<= 1)
 		if (mixed & i)
 			size -= 2;
 	if (length < size)
