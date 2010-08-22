@@ -447,10 +447,21 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	INIT_TT();
 
 	opts = getopt32(argv, FLAG_STR, &opt_p, &opt_i);
+	argv += optind;
 	reverse = opts & FLAG_REVERSE;
 	TT.prefix = (opts & FLAG_PATHLEN) ? xatoi(opt_p) : 0; // can be negative!
-	if (opts & FLAG_INPUT) TT.filepatch = xopen(opt_i, O_RDONLY);
 	TT.filein = TT.fileout = -1;
+	if (opts & FLAG_INPUT) {
+		TT.filepatch = xopen_stdin(opt_i);
+	} else {
+		if (argv[0] && argv[1]) {
+			TT.filepatch = xopen_stdin(argv[1]);
+		}
+	}
+	if (argv[0]) {
+		oldname = xstrdup(argv[0]);
+		newname = xstrdup(argv[0]);
+	}
 
 	// Loop through the lines in the patch
 	for(;;) {
@@ -498,18 +509,20 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				state = 1;
 			}
 
-			free(*name);
 			finish_oldfile();
 
-			// Trim date from end of filename (if any).  We don't care.
-			for (s = patchline+4; *s && *s!='\t'; s++)
-				if (*s=='\\' && s[1]) s++;
-			i = atoi(s);
-			if (i>1900 && i<=1970)
-				*name = xstrdup("/dev/null");
-			else {
-				*s = 0;
-				*name = xstrdup(patchline+4);
+			if (!argv[0]) {
+				free(*name);
+				// Trim date from end of filename (if any).  We don't care.
+				for (s = patchline+4; *s && *s!='\t'; s++)
+					if (*s=='\\' && s[1]) s++;
+				i = atoi(s);
+				if (i>1900 && i<=1970)
+					*name = xstrdup("/dev/null");
+				else {
+					*s = 0;
+					*name = xstrdup(patchline+4);
+				}
 			}
 
 			// We defer actually opening the file because svn produces broken
