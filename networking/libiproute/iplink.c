@@ -15,6 +15,9 @@
 #include "rt_names.h"
 #include "utils.h"
 
+#ifndef IFLA_LINKINFO
+# define IFLA_LINKINFO 18
+#endif
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
