@@ -417,6 +417,7 @@ int xopen3(const char *pathname, int flags, int mode) FAST_FUNC;
 int open_or_warn(const char *pathname, int flags) FAST_FUNC;
 int open3_or_warn(const char *pathname, int flags, int mode) FAST_FUNC;
 int open_or_warn_stdin(const char *pathname) FAST_FUNC;
+int xopen_stdin(const char *pathname) FAST_FUNC;
 void xrename(const char *oldpath, const char *newpath) FAST_FUNC;
 int rename_or_warn(const char *oldpath, const char *newpath) FAST_FUNC;
 off_t xlseek(int fd, off_t offset, int whence) FAST_FUNC;

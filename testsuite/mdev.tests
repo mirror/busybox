@@ -38,6 +38,16 @@ brw-rw---- 1 0 0 8,0 sda
 SKIP=
 
 # continuing to use directory structure from prev test
+optional STATIC FEATURE_MDEV_CONF FEATURE_LS_TIMESTAMPS FEATURE_LS_USERNAME
+testing "mdev deletes /block/sda" \
+	"env - PATH=$PATH ACTION=remove DEVPATH=/block/sda chroot mdev.testdir /mdev 2>&1;
+	ls -ln mdev.testdir/dev | $FILTER_LS" \
+"\
+" \
+	"" ""
+SKIP=
+
+# continuing to use directory structure from prev test
 rm -rf mdev.testdir/dev/*
 echo ".* 1:1 666" >mdev.testdir/etc/mdev.conf
 echo "sda 2:2 444" >>mdev.testdir/etc/mdev.conf

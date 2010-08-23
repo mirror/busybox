@@ -461,15 +461,19 @@ static int grep_file(FILE *file)
 						if (found)
 							print_line(gl->pattern, strlen(gl->pattern), linenum, ':');
 					} else while (1) {
+						unsigned start = gl->matched_range.rm_so;
 						unsigned end = gl->matched_range.rm_eo;
+						unsigned len = end - start;
 						char old = line[end];
 						line[end] = '\0';
-						print_line(line + gl->matched_range.rm_so,
-								end - gl->matched_range.rm_so,
-								linenum, ':');
+						/* Empty match is not printed: try "echo test | grep -o ''" */
+						if (len != 0)
+							print_line(line + start, len, linenum, ':');
 						if (old == '\0')
 							break;
 						line[end] = old;
+						if (len == 0)
+							end++;
 #if !ENABLE_EXTRA_COMPAT
 						if (regexec(&gl->compiled_regex, line + end,
 								1, &gl->matched_range, REG_NOTBOL) != 0)

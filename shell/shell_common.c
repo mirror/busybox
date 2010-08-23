@@ -428,9 +428,14 @@ shell_builtin_ulimit(char **argv)
 						val <<= l->factor_shift;
 					}
 //bb_error_msg("opt %c val_str:'%s' val:%lld", opt_char, val_str, (long long)val);
+					/* from man bash: "If neither -H nor -S
+					 * is specified, both the soft and hard
+					 * limits are set. */
+					if (!opts)
+						opts = OPT_hard + OPT_soft;
 					if (opts & OPT_hard)
 						limit.rlim_max = val;
-					if ((opts & OPT_soft) || opts == 0)
+					if (opts & OPT_soft)
 						limit.rlim_cur = val;
 //bb_error_msg("setrlimit(%d, %lld, %lld)", l->cmd, (long long)limit.rlim_cur, (long long)limit.rlim_max);
 					if (setrlimit(l->cmd, &limit) < 0) {

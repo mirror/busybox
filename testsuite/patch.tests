@@ -1,13 +1,13 @@
 #!/bin/sh
 # Copyright 2008 by Denys Vlasenko
-# Licensed under GPL v2, see file LICENSE for details.
+# Licensed under GPLv2, see file LICENSE in this source tree.
 
 . ./testing.sh
 
-# testing "test name" "options" "expected result" "file input" "stdin"
+# testing "test name" "command(s)" "expected result" "file input" "stdin"
 
 testing "patch with old_file == new_file" \
-	'patch; echo $?; cat input' \
+	'patch 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -29,7 +29,7 @@ zxc
 " \
 
 testing "patch with nonexistent old_file" \
-	'patch; echo $?; cat input' \
+	'patch 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -51,7 +51,7 @@ zxc
 " \
 
 testing "patch -R with nonexistent old_file" \
-	'patch -R; echo $?; cat input' \
+	'patch -R 2>&1; echo $?; cat input' \
 "\
 patching file input
 0
@@ -75,9 +75,12 @@ zxc
 testing "patch detects already applied hunk" \
 	'patch 2>&1; echo $?; cat input' \
 "\
+Possibly reversed hunk 1 at 2
+Hunk 1 FAILED 1/1.
+ abc
++def
+ 123
 patching file input
-patch: hunk #1 FAILED at 1
-patch: 1 out of 1 hunk FAILED
 1
 abc
 def
@@ -97,13 +100,15 @@ def
  123
 " \
 
-# Currently fails (erroneously appends second "456" line):
-false && testing "patch detects already applied hunk" \
+testing "patch detects already applied hunk at the EOF" \
 	'patch 2>&1; echo $?; cat input' \
 "\
+Possibly reversed hunk 1 at 3
+Hunk 1 FAILED 1/1.
+ abc
+ 123
++456
 patching file input
-patch: hunk #1 FAILED at 2
-patch: 1 out of 1 hunk FAILED
 1
 abc
 123
@@ -121,6 +126,53 @@ abc
  abc
  123
 +456
+" \
+
+# testing "test name" "command(s)" "expected result" "file input" "stdin"
+testing "patch -N ignores already applied hunk" \
+	'patch -N 2>&1; echo $?; cat input' \
+"\
+patching file input
+0
+abc
+def
+123
+" \
+"\
+abc
+def
+123
+" \
+"\
+--- input
++++ input
+@@ -1,2 +1,3 @@
+ abc
++def
+ 123
+" \
+
+# testing "test name" "command(s)" "expected result" "file input" "stdin"
+testing "patch FILE PATCH" \
+	'cat >a.patch; patch input a.patch 2>&1; echo $?; cat input; rm a.patch' \
+"\
+patching file input
+0
+abc
+def
+123
+" \
+"\
+abc
+123
+" \
+"\
+--- foo.old
++++ foo
+@@ -1,2 +1,3 @@
+ abc
++def
+ 123
 " \
 
 rm input.orig 2>/dev/null

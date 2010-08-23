@@ -4515,6 +4515,7 @@ clear_traps(void)
 			INT_ON;
 		}
 	}
+	may_have_traps = 0;
 }
 
 /* Lives far away from here, needed for forkchild */

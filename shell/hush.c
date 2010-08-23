@@ -3901,8 +3901,6 @@ static void insert_bg_job(struct pipe *pi)
 
 	if (G_interactive_fd)
 		printf("[%d] %d %s\n", job->jobid, job->cmds[0].pid, job->cmdtext);
-	/* Last command's pid goes to $! */
-	G.last_bg_pid = job->cmds[job->num_cmds - 1].pid;
 	G.last_jobid = job->jobid;
 }
 
@@ -4825,6 +4823,8 @@ static int run_list(struct pipe *pi)
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
+				/* Last command's pid goes to $! */
+				G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
 				G.last_exitcode = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 			} else {
