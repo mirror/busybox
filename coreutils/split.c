@@ -82,9 +82,7 @@ int split_main(int argc UNUSED_PARAM, char **argv)
 		int fd;
 		if (argv[1])
 			sfx = argv[1];
-		fd = open_or_warn_stdin(argv[0]);
-		if (fd == -1)
-			return EXIT_FAILURE;
+		fd = xopen_stdin(argv[0]);
 		xmove_fd(fd, STDIN_FILENO);
 	} else {
 		argv[0] = (char *) bb_msg_standard_input;
