@@ -61,7 +61,7 @@ typedef long idata_t;
 
 
 struct stats_irqcpu {
-	unsigned interrupt;
+	unsigned interrupts;
 	char irq_name[MAX_IRQNAME_LEN];
 };
 
@@ -265,7 +265,7 @@ static void write_irqcpu_stats(struct stats_irqcpu *per_cpu_stats[],
 					p = &per_cpu_stats[current][(cpu - 1) * total_irqs + j];
 					q = &per_cpu_stats[prev][(cpu - 1) * total_irqs + offset];
 					printf("%"INTRATE_SCRWIDTH_STR".2f",
-						(double)(p->interrupt - q->interrupt) / itv * G.hz);
+						(double)(p->interrupts - q->interrupts) / itv * G.hz);
 				} else {
 					printf("        N/A");
 				}
@@ -617,12 +617,12 @@ static void get_irqs_from_interrupts(const char *fname,
 			char *next;
 			ic = &per_cpu_stats[current][cpu_index[cpu] * irqs_per_cpu + irq];
 			irq_i = &G.st_irq[current][cpu_index[cpu] + 1];
-			ic->interrupt = strtoul(cp, &next, 10);
+			ic->interrupts = strtoul(cp, &next, 10);
 			/* Count only numerical IRQs */
 			if (isdigit(last_char)) {
-				irq_i->irq_nr += ic->interrupt;
+				irq_i->irq_nr += ic->interrupts;
 				//bb_error_msg("G.st_irq[%u][%u].irq_nr + %u = %lld",
-				// current, cpu_index[cpu] + 1, ic->interrupt, irq_i->irq_nr);
+				// current, cpu_index[cpu] + 1, ic->interrupts, irq_i->irq_nr);
 			}
 			cp = next;
 		}
