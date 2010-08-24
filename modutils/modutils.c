@@ -71,8 +71,7 @@ char* FAST_FUNC parse_cmdline_module_options(char **argv)
 	optlen = 0;
 	while (*++argv) {
 		options = xrealloc(options, optlen + 2 + strlen(*argv) + 2);
-		/* Spaces handled by "" pairs, but no way of escaping quotes */
-		optlen += sprintf(options + optlen, (strchr(*argv, ' ') ? "\"%s\" " : "%s "), *argv);
+		optlen += sprintf(options + optlen, "%s ", *argv);
 	}
 	return options;
 }
