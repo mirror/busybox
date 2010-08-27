@@ -1920,9 +1920,28 @@ static NOINLINE void ntp_init(char **argv)
 	if (opts & OPT_N)
 		setpriority(PRIO_PROCESS, 0, -15);
 
-	bb_signals((1 << SIGTERM) | (1 << SIGINT), record_signo);
-	/* Removed SIGHUP here: */
-	bb_signals((1 << SIGPIPE) | (1 << SIGCHLD), SIG_IGN);
+	/* If network is up, syncronization occurs in ~10 seconds.
+	 * We give "ntpd -q" a full minute to finish, then we exit.
+	 *
+	 * I tested ntpd 4.2.6p1 and apparently it never exits
+	 * (will try forever), but it does not feel right.
+	 * The goal of -q is to act like ntpdate: set time
+	 * after a reasonably small period of polling, or fail.
+	 */
+	if (opts & OPT_q)
+		alarm(60);
+
+	bb_signals(0
+		| (1 << SIGTERM)
+		| (1 << SIGINT)
+		| (1 << SIGALRM)
+		, record_signo
+	);
+	bb_signals(0
+		| (1 << SIGPIPE)
+		| (1 << SIGCHLD)
+		, SIG_IGN
+	);
 }
 
 int ntpd_main(int argc UNUSED_PARAM, char **argv) MAIN_EXTERNALLY_VISIBLE;
