@@ -942,20 +942,20 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			}
 #if ENABLE_FEATURE_TOPMEM
 			else { /* TOPMEM */
-				if (!(p->mapped_ro | p->mapped_rw))
+				if (!(p->smaps.mapped_ro | p->smaps.mapped_rw))
 					continue; /* kernel threads are ignored */
 				n = ntop;
 				/* No bug here - top and topmem are the same */
 				top = xrealloc_vector(topmem, 6, ntop++);
 				strcpy(topmem[n].comm, p->comm);
 				topmem[n].pid      = p->pid;
-				topmem[n].vsz      = p->mapped_rw + p->mapped_ro;
-				topmem[n].vszrw    = p->mapped_rw;
-				topmem[n].rss_sh   = p->shared_clean + p->shared_dirty;
-				topmem[n].rss      = p->private_clean + p->private_dirty + topmem[n].rss_sh;
-				topmem[n].dirty    = p->private_dirty + p->shared_dirty;
-				topmem[n].dirty_sh = p->shared_dirty;
-				topmem[n].stack    = p->stack;
+				topmem[n].vsz      = p->smaps.mapped_rw + p->smaps.mapped_ro;
+				topmem[n].vszrw    = p->smaps.mapped_rw;
+				topmem[n].rss_sh   = p->smaps.shared_clean + p->smaps.shared_dirty;
+				topmem[n].rss      = p->smaps.private_clean + p->smaps.private_dirty + topmem[n].rss_sh;
+				topmem[n].dirty    = p->smaps.private_dirty + p->smaps.shared_dirty;
+				topmem[n].dirty_sh = p->smaps.shared_dirty;
+				topmem[n].stack    = p->smaps.stack;
 			}
 #endif
 		} /* end of "while we read /proc" */

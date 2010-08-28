@@ -137,12 +137,9 @@ static unsigned long fast_strtoul_16(char **endptr)
 	*endptr = str; /* We skip trailing space! */
 	return n;
 }
-/* TOPMEM uses fast_strtoul_10, so... */
-# undef ENABLE_FEATURE_FAST_TOP
-# define ENABLE_FEATURE_FAST_TOP 1
 #endif
 
-#if ENABLE_FEATURE_FAST_TOP
+#if ENABLE_FEATURE_FAST_TOP || ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 /* We cut a lot of corners here for speed */
 static unsigned long fast_strtoul_10(char **endptr)
 {
@@ -174,6 +171,111 @@ static char *skip_fields(char *str, int count)
 		/* we found a space char, str points after it */
 	} while (--count);
 	return str;
+}
+#endif
+
+#if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
+int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
+		      void (*cb)(struct smaprec *, void *), void *data)
+{
+	FILE *file;
+	struct smaprec currec;
+	char filename[sizeof("/proc/%u/smaps") + sizeof(int)*3];
+	char buf[PROCPS_BUFSIZE];
+#if !ENABLE_PMAP
+	void (*cb)(struct smaprec *, void *) = NULL;
+	void *data = NULL;
+#endif
+
+	sprintf(filename, "/proc/%u/smaps", (int)pid);
+
+	file = fopen_for_read(filename);
+	if (!file)
+		return 1;
+
+	memset(&currec, 0, sizeof(currec));
+	while (fgets(buf, PROCPS_BUFSIZE, file)) {
+		// Each mapping datum has this form:
+		// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
+		// Size:                nnn kB
+		// Rss:                 nnn kB
+		// .....
+
+		char *tp = buf, *p;
+
+#define SCAN(S, X) \
+		if (strncmp(tp, S, sizeof(S)-1) == 0) {              \
+			tp = skip_whitespace(tp + sizeof(S)-1);      \
+			total->X += currec.X = fast_strtoul_10(&tp); \
+			continue;                                    \
+		}
+		if (cb) {
+			SCAN("Pss:"  , smap_pss     );
+			SCAN("Swap:" , smap_swap    );
+		}
+		SCAN("Private_Dirty:", private_dirty);
+		SCAN("Private_Clean:", private_clean);
+		SCAN("Shared_Dirty:" , shared_dirty );
+		SCAN("Shared_Clean:" , shared_clean );
+#undef SCAN
+		tp = strchr(buf, '-');
+		if (tp) {
+			// We reached next mapping - the line of this form:
+			// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
+
+			if (cb) {
+				/* If we have a previous record, there's nothing more
+				 * for it, call the callback and clear currec
+				 */
+				if (currec.smap_size)
+					cb(&currec, data);
+				free(currec.smap_name);
+			}
+			memset(&currec, 0, sizeof(currec));
+
+			*tp = ' ';
+			tp = buf;
+			currec.smap_start = fast_strtoul_16(&tp);
+			currec.smap_size = (fast_strtoul_16(&tp) - currec.smap_start) >> 10;
+
+			strncpy(currec.smap_mode, tp, sizeof(currec.smap_mode)-1);
+
+			// skipping "rw-s ADR M:m OFS "
+			tp = skip_whitespace(skip_fields(tp, 4));
+			// filter out /dev/something (something != zero)
+			if (strncmp(tp, "/dev/", 5) != 0 || strcmp(tp, "/dev/zero\n") == 0) {
+				if (currec.smap_mode[1] == 'w') {
+					currec.mapped_rw = currec.smap_size;
+					total->mapped_rw += currec.smap_size;
+				} else if (currec.smap_mode[1] == '-') {
+					currec.mapped_ro = currec.smap_size;
+					total->mapped_ro += currec.smap_size;
+				}
+			}
+
+			if (strcmp(tp, "[stack]\n") == 0)
+				total->stack += currec.smap_size;
+			if (cb) {
+				p = skip_non_whitespace(tp);
+				if (p == tp) {
+					currec.smap_name = xstrdup("  [ anon ]");
+				} else {
+					*p = '\0';
+					currec.smap_name = xstrdup(tp);
+				}
+			}
+			total->smap_size += currec.smap_size;
+		}
+	}
+	fclose(file);
+
+	if (cb) {
+		if (currec.smap_size)
+			cb(&currec, data);
+		free(currec.smap_name);
+	}
+
+	return 0;
 }
 #endif
 
@@ -365,54 +467,8 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		}
 
 #if ENABLE_FEATURE_TOPMEM
-		if (flags & (PSSCAN_SMAPS)) {
-			FILE *file;
-
-			strcpy(filename_tail, "smaps");
-			file = fopen_for_read(filename);
-			if (file) {
-				while (fgets(buf, sizeof(buf), file)) {
-					unsigned long sz;
-					char *tp;
-					char w;
-#define SCAN(str, name) \
-	if (strncmp(buf, str, sizeof(str)-1) == 0) { \
-		tp = skip_whitespace(buf + sizeof(str)-1); \
-		sp->name += fast_strtoul_10(&tp); \
-		continue; \
-	}
-					SCAN("Shared_Clean:" , shared_clean );
-					SCAN("Shared_Dirty:" , shared_dirty );
-					SCAN("Private_Clean:", private_clean);
-					SCAN("Private_Dirty:", private_dirty);
-#undef SCAN
-					// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
-					tp = strchr(buf, '-');
-					if (tp) {
-						*tp = ' ';
-						tp = buf;
-						sz = fast_strtoul_16(&tp); /* start */
-						sz = (fast_strtoul_16(&tp) - sz) >> 10; /* end - start */
-						// tp -> "rw-s" string
-						w = tp[1];
-						// skipping "rw-s ADR M:m OFS "
-						tp = skip_whitespace(skip_fields(tp, 4));
-						// filter out /dev/something (something != zero)
-						if (strncmp(tp, "/dev/", 5) != 0 || strcmp(tp, "/dev/zero\n") == 0) {
-							if (w == 'w') {
-								sp->mapped_rw += sz;
-							} else if (w == '-') {
-								sp->mapped_ro += sz;
-							}
-						}
-//else printf("DROPPING %s (%s)\n", buf, tp);
-						if (strcmp(tp, "[stack]\n") == 0)
-							sp->stack += sz;
-					}
-				}
-				fclose(file);
-			}
-		}
+		if (flags & PSSCAN_SMAPS)
+			procps_read_smaps(pid, &sp->smaps, NULL, NULL);
 #endif /* TOPMEM */
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
 		if (flags & PSSCAN_RUIDGID) {
