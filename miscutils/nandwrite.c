@@ -52,7 +52,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	int fd;
 	ssize_t cnt;
-	unsigned mtdoffset, meminfo_writesize;
+	unsigned mtdoffset, meminfo_writesize, blockstart;
 	struct mtd_info_user meminfo;
 	unsigned char *filebuf;
 	const char *opt_s = "0";
@@ -83,9 +83,21 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 
 	filebuf = xmalloc(meminfo_writesize);
 
+	blockstart = mtdoffset & ~(meminfo.erasesize - 1);
+	if (blockstart != mtdoffset) {
+		unsigned tmp;
+		/* mtdoffset is in the middle of an erase block, verify that
+		 * this block is OK. Advance mtdoffset only if this block is
+		 * bad.
+		 */
+		tmp = next_good_eraseblock(fd, &meminfo, blockstart);
+		if (tmp != blockstart) /* bad block(s), advance mtdoffset */
+			mtdoffset = tmp;
+	}
+
 	cnt = -1;
 	while (mtdoffset < meminfo.size) {
-		unsigned blockstart = mtdoffset & ~(meminfo.erasesize - 1);
+		blockstart = mtdoffset & ~(meminfo.erasesize - 1);
 		if (blockstart == mtdoffset) {
 			/* starting a new eraseblock */
 			mtdoffset = next_good_eraseblock(fd, &meminfo, blockstart);
