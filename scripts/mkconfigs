@@ -64,7 +64,8 @@ echo "\
 static const char bbconfig_config_bz2[] ALIGN1 = {"
 
 grep '^#\? \?CONFIG_' "$config" \
-| bzip2 -1 | tee z.bz2 | dd bs=2 skip=1 2>/dev/null | od -v -t x1 \
+| bzip2 -1 | dd bs=2 skip=1 2>/dev/null \
+| od -v -t x1 \
 | sed -e 's/^[^ ]*//' \
         -e 's/ //g' \
         -e '/^$/d' \
