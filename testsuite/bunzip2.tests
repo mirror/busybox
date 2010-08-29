@@ -1,6 +1,8 @@
 #!/bin/sh
 # Used by both gunzip and bunzip2 tests
 
+FAILCOUNT=0
+
 if test "${0##*/}" = "gunzip.tests"; then
     unpack=gunzip
     ext=gz
@@ -473,6 +475,7 @@ check() {
 	echo "PASS: $1"
     else
 	echo "FAIL: $1"
+	FAILCOUNT=$((FAILCOUNT + 1))
     fi
 }
 
@@ -520,5 +523,8 @@ if test "${0##*/}" = "bunzip2.tests"; then
 	echo "PASS: $unpack: test bz2 file"
     else
 	echo "FAIL: $unpack: test bz2 file"
+	FAILCOUNT=$((FAILCOUNT + 1))
     fi
 fi
+
+exit $((FAILCOUNT <= 255 ? FAILCOUNT : 255))

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+FAILCOUNT=0
+
 ext=bz2
 
 bb="busybox "
@@ -35,6 +37,7 @@ check() {
 	echo "PASS: $1"
     else
 	echo "FAIL: $1"
+	FAILCOUNT=$((FAILCOUNT + 1))
     fi
 }
 
@@ -47,3 +50,5 @@ prep; check "bzcat: dont delete src" "${bb}bzcat t2.bz2; test -f t2.bz2 && echo 
 
 )
 rm -rf testdir
+
+exit $((FAILCOUNT <= 255 ? FAILCOUNT : 255))
