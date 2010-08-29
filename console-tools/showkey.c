@@ -13,21 +13,19 @@
 // set raw tty mode
 // also used by microcom
 // libbb candidates?
-static void xget1(int fd, struct termios *t, struct termios *oldt)
+static void xget1(struct termios *t, struct termios *oldt)
 {
-	tcgetattr(fd, oldt);
+	tcgetattr(STDIN_FILENO, oldt);
 	*t = *oldt;
 	cfmakeraw(t);
 }
 
-static int xset1(int fd, struct termios *tio, const char *device)
+static void xset1(struct termios *tio)
 {
-	int ret = tcsetattr(fd, TCSAFLUSH, tio);
-
+	int ret = tcsetattr(STDIN_FILENO, TCSAFLUSH, tio);
 	if (ret) {
-		bb_perror_msg("can't tcsetattr for %s", device);
+		bb_perror_msg("can't tcsetattr for stdin");
 	}
-	return ret;
 }
 
 /*
@@ -49,7 +47,7 @@ struct globals {
 static void signal_handler(int signo)
 {
 	// restore keyboard and console settings
-	xset1(STDIN_FILENO, &tio0, "stdin");
+	xset1(&tio0);
 	xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)kbmode);
 	// alarmed? -> exit 0
 	exit(SIGALRM == signo);
@@ -79,15 +77,15 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 		, (option_mask32 & OPT_a) ? "when CTRL+D pressed" : "10s after last keypress"
 	);
 	// prepare for raw mode
-	xget1(STDIN_FILENO, &tio, &tio0);
+	xget1(&tio, &tio0);
 	// put stdin in raw mode
-	xset1(STDIN_FILENO, &tio, "stdin");
+	xset1(&tio);
 
 	if (option_mask32 & OPT_a) {
-		char c;
+		unsigned char c;
 		// just read stdin char by char
 		while (1 == safe_read(STDIN_FILENO, &c, 1)) {
-			printf("%3d 0%03o 0x%02x\r\n", c, c, c);
+			printf("%3u 0%03o 0x%02x\r\n", c, c, c);
 			if (04 /*CTRL-D*/ == c)
 				break;
 		}
@@ -114,16 +112,18 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 				// show interpreted scancodes (default) ? ->
 				} else {
 					int kc;
-					if (i+2 < n && (c & 0x7f) == 0
-						&& (buf[i+1] & 0x80) != 0
-						&& (buf[i+2] & 0x80) != 0) {
+					if (i+2 < n
+					 && (c & 0x7f) == 0
+					 && (buf[i+1] & 0x80) != 0
+					 && (buf[i+2] & 0x80) != 0
+					) {
 						kc = ((buf[i+1] & 0x7f) << 7) | (buf[i+2] & 0x7f);
 						i += 3;
 					} else {
 						kc = (c & 0x7f);
 						i++;
 					}
-					printf("keycode %3d %s", kc, (c & 0x80) ? "release" : "press");
+					printf("keycode %3u %s", kc, (c & 0x80) ? "release" : "press");
 				}
 			}
 			puts("\r");
