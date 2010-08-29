@@ -71,7 +71,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	fd = xopen(argv[0], O_RDWR);
 	xioctl(fd, MEMGETINFO, &meminfo);
 
-	mtdoffset = xatou(opt_s);
+	mtdoffset = bb_strtou(opt_s, NULL, 0);
 
 	/* Pull it into a CPU register (hopefully) - smaller code that way */
 	meminfo_writesize = meminfo.writesize;
