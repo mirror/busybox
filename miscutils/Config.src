@@ -22,6 +22,20 @@ config BBCONFIG
 	  The bbconfig applet will print the config file with which
 	  busybox was built.
 
+config FEATURE_COMPRESS_BBCONFIG
+	bool "Compress bbconfig data"
+	default y
+	depends on BBCONFIG
+	help
+	  Store bbconfig data in compressed form, uncompress them on-the-fly
+	  before output.
+
+	  If you have a really tiny busybox with few applets enabled (and
+	  bunzip2 isn't one of them), the overhead of the decompressor might
+	  be noticeable. Also, if you run executables directly from ROM
+	  and have very little memory, this might not be a win. Otherwise,
+	  you probably want this.
+
 config BEEP
 	bool "beep"
 	default y
