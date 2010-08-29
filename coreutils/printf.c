@@ -66,7 +66,7 @@ static int multiconvert(const char *arg, void *result, converter convert)
 	errno = 0;
 	convert(arg, result);
 	if (errno) {
-		bb_error_msg("%s: invalid number", arg);
+		bb_error_msg("invalid number '%s'", arg);
 		return 1;
 	}
 	return 0;
@@ -230,7 +230,7 @@ static int get_width_prec(const char *str)
 {
 	int v = bb_strtoi(str, NULL, 10);
 	if (errno) {
-		bb_error_msg("%s: invalid number", str);
+		bb_error_msg("invalid number '%s'", str);
 		v = 0;
 	}
 	return v;

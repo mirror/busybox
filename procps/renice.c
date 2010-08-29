@@ -91,7 +91,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 		} else {
 			who = bb_strtou(arg, NULL, 10);
 			if (errno) {
-				bb_error_msg("bad value: %s", arg);
+				bb_error_msg("invalid number '%s'", arg);
 				goto HAD_ERROR;
 			}
 		}

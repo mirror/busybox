@@ -422,7 +422,7 @@ shell_builtin_ulimit(char **argv)
 						else
 							val = bb_strtoull(val_str, NULL, 10);
 						if (errno) {
-							bb_error_msg("bad number");
+							bb_error_msg("invalid number '%s'", val_str);
 							return EXIT_FAILURE;
 						}
 						val <<= l->factor_shift;

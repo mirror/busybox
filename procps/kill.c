@@ -153,7 +153,7 @@ int kill_main(int argc, char **argv)
 					arg = argv[i];
 				omit = bb_strtoi(arg, NULL, 10);
 				if (errno) {
-					bb_error_msg("bad pid '%s'", arg);
+					bb_error_msg("invalid number '%s'", arg);
 					ret = 1;
 					goto resume;
 				}
@@ -211,7 +211,7 @@ int kill_main(int argc, char **argv)
 			arg++;
 		pid = bb_strtoi(arg, NULL, 10);
 		if (errno) {
-			bb_error_msg("bad pid '%s'", arg);
+			bb_error_msg("invalid number '%s'", arg);
 			errors++;
 		} else if (kill(pid, signo) != 0) {
 			bb_perror_msg("can't kill pid %d", (int)pid);

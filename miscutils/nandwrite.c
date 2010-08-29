@@ -72,6 +72,8 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	xioctl(fd, MEMGETINFO, &meminfo);
 
 	mtdoffset = bb_strtou(opt_s, NULL, 0);
+	if (errno)
+		bb_error_msg_and_die("invalid number '%s'", opt_s);
 
 	/* Pull it into a CPU register (hopefully) - smaller code that way */
 	meminfo_writesize = meminfo.writesize;
