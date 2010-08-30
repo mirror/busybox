@@ -17,7 +17,9 @@
 
 #ifndef IFLA_LINKINFO
 # define IFLA_LINKINFO 18
+# define IFLA_INFO_KIND 1
 #endif
+
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
