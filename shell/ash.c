@@ -11146,10 +11146,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 					if (dqvarnest > 0) {
 						dqvarnest--;
 					}
-					USTPUTC(CTLENDVAR, out);
-				} else {
-					USTPUTC(c, out);
+					c = CTLENDVAR;
 				}
+				USTPUTC(c, out);
 				break;
 #if ENABLE_SH_MATH_SUPPORT
 			case CLP:       /* '(' in arithmetic */
@@ -11158,25 +11157,23 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				break;
 			case CRP:       /* ')' in arithmetic */
 				if (parenlevel > 0) {
-					USTPUTC(c, out);
-					--parenlevel;
+					parenlevel--;
 				} else {
 					if (pgetc() == ')') {
 						if (--arinest == 0) {
-							USTPUTC(CTLENDARI, out);
 							syntax = prevsyntax;
 							dblquote = (syntax == DQSYNTAX);
-						} else
-							USTPUTC(')', out);
+							c = CTLENDARI;
+						}
 					} else {
 						/*
 						 * unbalanced parens
 						 * (don't 2nd guess - no error)
 						 */
 						pungetc();
-						USTPUTC(')', out);
 					}
 				}
+				USTPUTC(c, out);
 				break;
 #endif
 			case CBQUOTE:   /* '`' */
