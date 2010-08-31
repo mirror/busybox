@@ -748,13 +748,13 @@ static action*** parse_params(char **argv)
 
 	/* This is the only place in busybox where we use nested function.
 	 * So far more standard alternatives were bigger. */
-	/* Suppress a warning "func without a prototype" */
+	/* Auto decl suppresses "func without a prototype" warning: */
 	auto action* alloc_action(int sizeof_struct, action_fp f);
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
 		action *ap;
 		appp[cur_group] = xrealloc(appp[cur_group], (cur_action+2) * sizeof(*appp));
-		appp[cur_group][cur_action++] = ap = xmalloc(sizeof_struct);
+		appp[cur_group][cur_action++] = ap = xzalloc(sizeof_struct);
 		appp[cur_group][cur_action] = NULL;
 		ap->f = f;
 		IF_FEATURE_FIND_NOT( ap->invert = invert_flag; )
@@ -854,16 +854,20 @@ static action*** parse_params(char **argv)
 			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
-			ap->exec_argc = 0;
+			/*ap->exec_argc = 0; - ALLOC_ACTION did it */
 			while (1) {
 				if (!*argv) /* did not see ';' or '+' until end */
 					bb_error_msg_and_die(bb_msg_requires_arg, "-exec");
-				if (LONE_CHAR(argv[0], ';'))
+				// find -exec echo Foo ">{}<" ";"
+				// executes "echo Foo <filename>",
+				// find -exec echo Foo ">{}<" "+"
+				// executes "echo Foo <filename1> <filename2> <filename3>...".
+				// TODO (so far we treat "+" just like ";")
+				if ((argv[0][0] == ';' || argv[0][0] == '+')
+				 && argv[0][1] == '\0'
+				) {
 					break;
-				//TODO: implement {} + (like xargs)
-				// See:
-				// find findutils/ -exec echo ">"{}"<" \;
-				// find findutils/ -exec echo ">"{}"<" +
+				}
 				argv++;
 				ap->exec_argc++;
 			}
@@ -936,7 +940,7 @@ static action*** parse_params(char **argv)
 			ap = ALLOC_ACTION(perm);
 			ap->perm_char = arg1[0];
 			arg1 = plus_minus_num(arg1);
-			ap->perm_mask = 0;
+			/*ap->perm_mask = 0; - ALLOC_ACTION did it */
 			if (!bb_parse_mode(arg1, &ap->perm_mask))
 				bb_error_msg_and_die("invalid mode '%s'", arg1);
 		}
@@ -1022,7 +1026,7 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_context) {
 			action_context *ap;
 			ap = ALLOC_ACTION(context);
-			ap->context = NULL;
+			/*ap->context = NULL; - ALLOC_ACTION did it */
 			/* SELinux headers erroneously declare non-const parameter */
 			if (selinux_raw_to_trans_context((char*)arg1, &ap->context))
 				bb_simple_perror_msg(arg1);
