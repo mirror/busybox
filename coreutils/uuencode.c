@@ -11,7 +11,7 @@
 #include "libbb.h"
 
 enum {
-	SRC_BUF_SIZE = 45,  /* This *MUST* be a multiple of 3 */
+	SRC_BUF_SIZE = 15*3,  /* This *MUST* be a multiple of 3 */
 	DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 };
 
@@ -33,7 +33,7 @@ int uuencode_main(int argc UNUSED_PARAM, char **argv)
 	}
 	argv += optind;
 	if (argv[1]) {
-		src_fd = xopen(*argv, O_RDONLY);
+		src_fd = xopen(argv[0], O_RDONLY);
 		fstat(src_fd, &stat_buf);
 		mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
 		argv++;
