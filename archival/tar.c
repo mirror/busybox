@@ -572,8 +572,7 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
-	if (fstat(tbInfo.tarFd, &tbInfo.tarFileStatBuf) < 0)
-		bb_perror_msg_and_die("can't stat tar file");
+	xfstat(tbInfo.tarFd, &tbInfo.tarFileStatBuf, "can't stat tar file");
 
 #if ENABLE_FEATURE_SEAMLESS_GZ || ENABLE_FEATURE_SEAMLESS_BZ2
 	if (gzip)

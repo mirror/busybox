@@ -123,8 +123,7 @@ static int write_ar_archive(archive_handle_t *handle)
 	struct stat st;
 	archive_handle_t *out_handle;
 
-	if (fstat(handle->src_fd, &st) == -1)
-		bb_simple_perror_msg_and_die(handle->ar__name);
+	xfstat(handle->src_fd, &st, handle->ar__name);
 
 	/* if archive exists, create a new handle for output.
 	 * we create it in place of the old one.

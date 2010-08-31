@@ -15,8 +15,7 @@ static void mkswap_selinux_setcontext(int fd, const char *path)
 	if (!is_selinux_enabled())
 		return;
 
-	if (fstat(fd, &stbuf) < 0)
-		bb_perror_msg_and_die("fstat failed");
+	xfstat(fd, &stbuf, argv[0]);
 	if (S_ISREG(stbuf.st_mode)) {
 		security_context_t newcon;
 		security_context_t oldcon = NULL;

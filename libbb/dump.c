@@ -323,9 +323,7 @@ static void do_skip(priv_dumper_t *dumper, const char *fname, int statok)
 	struct stat sbuf;
 
 	if (statok) {
-		if (fstat(STDIN_FILENO, &sbuf)) {
-			bb_simple_perror_msg_and_die(fname);
-		}
+		xfstat(STDIN_FILENO, &sbuf, fname);
 		if (!(S_ISCHR(sbuf.st_mode) || S_ISBLK(sbuf.st_mode) || S_ISFIFO(sbuf.st_mode))
 		 && dumper->pub.dump_skip >= sbuf.st_size
 		) {

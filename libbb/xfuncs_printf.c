@@ -436,6 +436,16 @@ void FAST_FUNC xstat(const char *name, struct stat *stat_buf)
 		bb_perror_msg_and_die("can't stat '%s'", name);
 }
 
+void FAST_FUNC xfstat(int fd, struct stat *stat_buf, const char *errmsg)
+{
+	/* errmsg is usually a file name, but not always:
+	 * xfstat may be called in a spot where file name is no longer
+	 * available, and caller may give e.g. "can't stat input file" string.
+	 */
+	if (fstat(fd, stat_buf))
+		bb_simple_perror_msg_and_die(errmsg);
+}
+
 // selinux_or_die() - die if SELinux is disabled.
 void FAST_FUNC selinux_or_die(void)
 {

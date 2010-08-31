@@ -245,8 +245,7 @@ int mkfs_vfat_main(int argc UNUSED_PARAM, char **argv)
 	volume_id = time(NULL);
 
 	dev = xopen(device_name, O_RDWR);
-	if (fstat(dev, &st) < 0)
-		bb_simple_perror_msg_and_die(device_name);
+	xfstat(dev, &st, device_name);
 
 	//
 	// Get image size and sector size

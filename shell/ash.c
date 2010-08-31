@@ -4989,9 +4989,13 @@ noclobberopen(const char *fname)
 	 * revealed that it was a regular file, and the file has not been
 	 * replaced, return the file descriptor.
 	 */
-	if (fstat(fd, &finfo2) == 0 && !S_ISREG(finfo2.st_mode)
-	 && finfo.st_dev == finfo2.st_dev && finfo.st_ino == finfo2.st_ino)
+	if (fstat(fd, &finfo2) == 0
+	 && !S_ISREG(finfo2.st_mode)
+	 && finfo.st_dev == finfo2.st_dev
+	 && finfo.st_ino == finfo2.st_ino
+	) {
 		return fd;
+	}
 
 	/* The file has been replaced.  badness. */
 	close(fd);
