@@ -15,4 +15,4 @@
 
 #include "libbb.h"
 
-int xfunc_error_retval = EXIT_FAILURE;
+uint8_t xfunc_error_retval = EXIT_FAILURE;

@@ -881,9 +881,9 @@ int spawn_and_wait(char **argv) FAST_FUNC;
 struct nofork_save_area {
 	jmp_buf die_jmp;
 	const char *applet_name;
-	int xfunc_error_retval;
 	uint32_t option_mask32;
 	int die_sleep;
+	uint8_t xfunc_error_retval;
 	smallint saved;
 };
 void save_nofork_data(struct nofork_save_area *save) FAST_FUNC;
@@ -994,7 +994,7 @@ enum {
 extern const char *msg_eol;
 extern smallint logmode;
 extern int die_sleep;
-extern int xfunc_error_retval;
+extern uint8_t xfunc_error_retval;
 extern jmp_buf die_jmp;
 extern void xfunc_die(void) NORETURN FAST_FUNC;
 extern void bb_show_usage(void) NORETURN FAST_FUNC;
