@@ -216,9 +216,7 @@ static void parse_args(char **argv, struct options *op, char **fakehost_p)
 		ts = argv[0];   /* baud rate(s) */
 	}
 	parse_speeds(op, ts);
-
-// TODO: if applet_name is set to "getty: TTY", bb_error_msg's get simpler!
-// grep for "%s:"
+	applet_name = xasprintf("getty: %s", op->tty);
 
 	if (argv[2])
 		xsetenv("TERM", argv[2]);
@@ -240,7 +238,7 @@ static void open_tty(const char *tty)
 //		xchdir("/dev");
 //		xstat(tty, &st);
 //		if (!S_ISCHR(st.st_mode))
-//			bb_error_msg_and_die("%s: not a character device", tty);
+//			bb_error_msg_and_die("not a character device");
 
 		if (tty[0] != '/')
 			tty = xasprintf("/dev/%s", tty); /* will leak it */
@@ -434,7 +432,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 			if (read(STDIN_FILENO, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
 					exit(EXIT_SUCCESS);
-				bb_perror_msg_and_die("%s: read", op->tty);
+				bb_perror_msg_and_die(bb_msg_read_error);
 			}
 
 			/* BREAK. If we have speeds to try,
@@ -490,7 +488,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 				if (ascval < ' ') {
 					/* ignore garbage characters */
 				} else if ((int)(bp - logname) >= size_logname - 1) {
-					bb_error_msg_and_die("%s: input overrun", op->tty);
+					bb_error_msg_and_die("input overrun");
 				} else {
 					full_write(STDOUT_FILENO, &c, 1); /* echo the character */
 					*bp++ = ascval; /* and store it */
@@ -574,7 +572,7 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 
 	/* Finally, make the new settings effective */
 	if (tcsetattr_stdin_TCSANOW(tp) < 0)
-		bb_perror_msg_and_die("%s: tcsetattr", op->tty);
+		bb_perror_msg_and_die("tcsetattr");
 }
 
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -652,7 +650,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * 5 seconds seems to be a good value.
 	 */
 	if (tcgetattr(0, &termios) < 0)
-		bb_perror_msg_and_die("%s: tcgetattr", options.tty);
+		bb_perror_msg_and_die("tcgetattr");
 
 	pid = getpid();
 #ifdef __linux__
@@ -733,5 +731,5 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * and getty is not suid-root applet. */
 	/* With -n, logname == NULL, and login will ask for username instead */
 	BB_EXECLP(options.login, options.login, "--", logname, NULL);
-	bb_error_msg_and_die("%s: can't exec %s", options.tty, options.login);
+	bb_error_msg_and_die("can't execute '%s'", options.login);
 }
