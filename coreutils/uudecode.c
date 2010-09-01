@@ -77,18 +77,21 @@ static void read_stduu(FILE *src_stream, FILE *dst_stream)
 
 static void read_base64(FILE *src_stream, FILE *dst_stream)
 {
-	int term_count = 1;
+	int term_count = 0;
 
 	while (1) {
 		unsigned char translated[4];
 		int count = 0;
 
+		/* Process one group of 4 chars */
 		while (count < 4) {
 			char *table_ptr;
 			int ch;
 
 			/* Get next _valid_ character.
-			 * global vector bb_uuenc_tbl_base64[] contains this string:
+			 * bb_uuenc_tbl_base64[] contains this string:
+			 *  0         1         2         3         4         5         6
+			 *  012345678901234567890123456789012345678901234567890123456789012345
 			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n"
 			 */
 			do {
@@ -103,42 +106,38 @@ static void read_base64(FILE *src_stream, FILE *dst_stream)
 					bb_error_msg_and_die("short file");
 				}
 				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
-			} while (table_ptr == NULL);
+			} while (!table_ptr);
 
 			/* Convert encoded character to decimal */
 			ch = table_ptr - bb_uuenc_tbl_base64;
 
-			if (*table_ptr == '=') {
-				if (term_count == 0) {
-					translated[count] = '\0';
-					break;
-				}
-				term_count++;
-			} else if (*table_ptr == '\n') {
-				/* Check for terminating line */
-				if (term_count == 5) {
-					return;
-				}
-				term_count = 1;
-				continue;
-			} else {
-				translated[count] = ch;
-				count++;
+			if (ch == 65 /* '\n' */) {
+				/* Terminating "====" line? */
+				if (term_count == 4)
+					return; /* yes */
 				term_count = 0;
+				continue;
 			}
+			/* ch is 64 is char was '=', otherwise 0..63 */
+			translated[count] = ch & 63; /* 64 -> 0 */
+			if (ch == 64) {
+				term_count++;
+				break;
+			}
+			count++;
 		}
 
-		/* Merge 6 bit chars to 8 bit */
-		if (count > 1) {
+		/* Merge 6 bit chars to 8 bit.
+		 * count can be < 4 when we decode the tail:
+		 * "eQ==" -> "y", not "y NUL NUL"
+		 */
+		if (count > 1)
 			fputc(translated[0] << 2 | translated[1] >> 4, dst_stream);
-		}
-		if (count > 2) {
+		if (count > 2)
 			fputc(translated[1] << 4 | translated[2] >> 2, dst_stream);
-		}
-		if (count > 3) {
+		if (count > 3)
 			fputc(translated[2] << 6 | translated[3], dst_stream);
-		}
-	}
+	} /* while (1) */
 }
 
 #if ENABLE_UUDECODE
