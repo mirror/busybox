@@ -24,8 +24,6 @@ const char bb_banner[] ALIGN1 = BANNER;
 
 const char bb_msg_memory_exhausted[] ALIGN1 = "memory exhausted";
 const char bb_msg_invalid_date[] ALIGN1 = "invalid date '%s'";
-const char bb_msg_write_error[] ALIGN1 = "write error";
-const char bb_msg_read_error[] ALIGN1 = "read error";
 const char bb_msg_unknown[] ALIGN1 = "(unknown)";
 const char bb_msg_can_not_create_raw_socket[] ALIGN1 = "can't create raw socket";
 const char bb_msg_perm_denied_are_you_root[] ALIGN1 = "permission denied (are you root?)";
@@ -35,15 +33,8 @@ const char bb_msg_invalid_arg[] ALIGN1 = "invalid argument '%s' to '%s'";
 const char bb_msg_standard_input[] ALIGN1 = "standard input";
 const char bb_msg_standard_output[] ALIGN1 = "standard output";
 
-const char bb_str_default[] ALIGN1 = "default";
 const char bb_hexdigits_upcase[] ALIGN1 = "0123456789ABCDEF";
 
-const char bb_path_passwd_file[] ALIGN1 = "/etc/passwd";
-const char bb_path_shadow_file[] ALIGN1 = "/etc/shadow";
-const char bb_path_group_file[] ALIGN1 = "/etc/group";
-const char bb_path_gshadow_file[] ALIGN1 = "/etc/gshadow";
-const char bb_path_motd_file[] ALIGN1 = "/etc/motd";
-const char bb_dev_null[] ALIGN1 = "/dev/null";
 const char bb_busybox_exec_path[] ALIGN1 = CONFIG_BUSYBOX_EXEC_PATH;
 const char bb_default_login_shell[] ALIGN1 = LIBBB_DEFAULT_LOGIN_SHELL;
 /* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,

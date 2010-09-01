@@ -23,7 +23,7 @@ int FAST_FUNC INET_resolve(const char *name, struct sockaddr_in *s_in, int hostf
 	s_in->sin_port = 0;
 
 	/* Default is special, meaning 0.0.0.0. */
-	if (!strcmp(name, bb_str_default)) {
+	if (strcmp(name, "default") == 0) {
 		s_in->sin_addr.s_addr = INADDR_ANY;
 		return 1;
 	}
@@ -109,7 +109,7 @@ char* FAST_FUNC INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t ne
 	if (ad == INADDR_ANY) {
 		if ((numeric & 0x0FFF) == 0) {
 			if (numeric & 0x8000)
-				return xstrdup(bb_str_default);
+				return xstrdup("default");
 			return xstrdup("*");
 		}
 	}
@@ -205,7 +205,7 @@ char* FAST_FUNC INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
 	}
 	if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr)) {
 		if (numeric & 0x8000)
-			return xstrdup(bb_str_default);
+			return xstrdup("default");
 		return xstrdup("*");
 	}
 

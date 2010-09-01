@@ -64,7 +64,6 @@ lib-y += md5.o
 #lib-y += md5prime.o
 lib-y += messages.o
 lib-y += mode_string.o
-lib-y += mtab_file.o
 lib-y += obscure.o
 lib-y += parse_mode.o
 lib-y += parse_config.o

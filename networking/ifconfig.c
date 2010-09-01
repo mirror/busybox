@@ -370,7 +370,7 @@ int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 #endif
 						sai.sin_family = AF_INET;
 						sai.sin_port = 0;
-						if (!strcmp(host, bb_str_default)) {
+						if (strcmp(host, "default") == 0) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
 						}
