@@ -1061,9 +1061,16 @@ static void input_tab(smallint *lastWasTab)
 
 		/* Make a local copy of the string --
 		 * up to the position of the cursor */
+#if !ENABLE_UNICODE_SUPPORT
 		save_string(matchBuf, cursor + 1);
-#if ENABLE_UNICODE_SUPPORT
-		cursor_mb = strlen(matchBuf);
+#else
+		{
+			CHAR_T wc = command_ps[cursor];
+			command_ps[cursor] = 0;
+			save_string(matchBuf, MAX_LINELEN);
+			command_ps[cursor] = wc;
+			cursor_mb = strlen(matchBuf);
+		}
 #endif
 		tmp = matchBuf;
 
@@ -1167,7 +1174,10 @@ static void input_tab(smallint *lastWasTab)
 				sprintf(&command[cursor_mb - recalc_pos], "%s%s", tmp, matchBuf);
 				command_len = load_string(command, S.maxsize);
 				/* write out the matched command */
-				redraw(cmdedit_y, command_len - len);
+				/* paranoia: load_string can return 0 on conv error,
+				 * prevent passing len = (0 - 12) to redraw */
+				len = command_len - len;
+				redraw(cmdedit_y, len >= 0 ? len : 0);
 			}
 		}
 #endif
