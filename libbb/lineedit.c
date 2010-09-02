@@ -736,7 +736,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 		if (dirbuf[0] == '~')   /* ~/... or ~user/... */
 			dirbuf = username_path_completion(dirbuf);
 #endif
-		paths[0] = dirbuf;
+		path1[0] = dirbuf;
 	}
 
 	for (i = 0; i < npaths; i++) {
