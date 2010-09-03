@@ -924,7 +924,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '(' || int_buf[i] == '{') {
 			remove_chunk(int_buf, 0, i + 1);
-			i = -1;  /* hack increment */
+			i = -1;  /* back to square 1 */
 		}
 	}
 
@@ -1036,155 +1036,24 @@ static char *add_quote_for_spec_chars(char *found)
 /* Do TAB completion */
 static NOINLINE void input_tab(smallint *lastWasTab)
 {
+	char *chosen_match;
+	size_t len_found;
+/*	char matchBuf[MAX_LINELEN]; */
+#define matchBuf (S.input_tab__matchBuf)
+	/* Length of string used for matching */
+	unsigned match_pfx_len = match_pfx_len;
+	int find_type;
+#if ENABLE_UNICODE_SUPPORT
+	/* cursor pos in command converted to multibyte form */
+	int cursor_mb;
+#endif
 	if (!(state->flags & TAB_COMPLETION))
 		return;
 
-	if (!*lastWasTab) {
-		char *chosen_match;
-		size_t len_found;
-/*		char matchBuf[MAX_LINELEN]; */
-#define matchBuf (S.input_tab__matchBuf)
-		/* Length of string used for matching */
-		unsigned match_pfx_len = match_pfx_len;
-		int find_type;
-#if ENABLE_UNICODE_SUPPORT
-		/* cursor pos in command converted to multibyte form */
-		int cursor_mb;
-#endif
-
-		*lastWasTab = 1;
-
-		/* Make a local copy of the string --
-		 * up to the position of the cursor */
-#if !ENABLE_UNICODE_SUPPORT
-		save_string(matchBuf, cursor + 1);
-#else
-		{
-			CHAR_T wc = command_ps[cursor];
-			command_ps[cursor] = BB_NUL;
-			save_string(matchBuf, MAX_LINELEN);
-			command_ps[cursor] = wc;
-			cursor_mb = strlen(matchBuf);
-		}
-#endif
-		find_type = build_match_prefix(matchBuf);
-
-		/* Free up any memory already allocated */
-		free_tab_completion_data();
-
-#if ENABLE_FEATURE_USERNAME_COMPLETION
-		/* If the word starts with `~' and there is no slash in the word,
-		 * then try completing this word as a username. */
-		if (state->flags & USERNAME_COMPLETION)
-			if (matchBuf[0] == '~' && strchr(matchBuf, '/') == NULL)
-				match_pfx_len = complete_username(matchBuf);
-#endif
-		/* Try to match a command in $PATH, or a directory, or a file */
-		if (!matches)
-			match_pfx_len = complete_cmd_dir_file(matchBuf, find_type);
-		/* Remove duplicates */
-		if (matches) {
-			unsigned i;
-			unsigned n = 0;
-			qsort_string_vector(matches, num_matches);
-			for (i = 0; i < num_matches - 1; ++i) {
-				//if (matches[i] && matches[i+1]) { /* paranoia */
-					if (strcmp(matches[i], matches[i+1]) == 0) {
-						free(matches[i]);
-						//matches[i] = NULL; /* paranoia */
-					} else {
-						matches[n++] = matches[i];
-					}
-				//}
-			}
-			matches[n++] = matches[i];
-			num_matches = n;
-		}
-		/* Did we find exactly one match? */
-		if (num_matches != 1) { /* no */
-			char *cp;
-			beep();
-			if (!matches)
-				return; /* no matches at all */
-			/* Find common prefix */
-			chosen_match = xstrdup(matches[0]);
-			for (cp = chosen_match; *cp; cp++) {
-				unsigned n;
-				for (n = 1; n < num_matches; n++) {
-					if (matches[n][cp - chosen_match] != *cp) {
-						goto stop;
-					}
-				}
-			}
- stop:
-			if (cp == chosen_match) { /* have unique prefix? */
-				free(chosen_match); /* no */
-				return;
-			}
-			*cp = '\0';
-			cp = add_quote_for_spec_chars(chosen_match);
-			free(chosen_match);
-			chosen_match = cp;
-			len_found = strlen(chosen_match);
-		} else {                        /* exactly one match */
-			/* Next <tab> is not a double-tab */
-			*lastWasTab = 0;
-
-			chosen_match = add_quote_for_spec_chars(matches[0]);
-			len_found = strlen(chosen_match);
-			if (chosen_match[len_found-1] != '/') {
-				chosen_match[len_found] = ' ';
-				chosen_match[++len_found] = '\0';
-			}
-		}
-
-#if !ENABLE_UNICODE_SUPPORT
-		/* Have space to place the match? */
-		/* The result consists of three parts with these lengths: */
-		/* cursor + (len_found - match_pfx_len) + (command_len - cursor) */
-		/* it simplifies into: */
-		if ((int)(len_found - match_pfx_len + command_len) < S.maxsize) {
-			int pos;
-			/* save tail */
-			strcpy(matchBuf, &command_ps[cursor]);
-			/* add match and tail */
-			sprintf(&command_ps[cursor], "%s%s", chosen_match + match_pfx_len, matchBuf);
-			command_len = strlen(command_ps);
-			/* new pos */
-			pos = cursor + len_found - match_pfx_len;
-			/* write out the matched command */
-			redraw(cmdedit_y, command_len - pos);
-		}
-#else
-		{
-			char command[MAX_LINELEN];
-			int len = save_string(command, sizeof(command));
-			/* Have space to place the match? */
-			/* cursor_mb + (len_found - match_pfx_len) + (len - cursor_mb) */
-			if ((int)(len_found - match_pfx_len + len) < MAX_LINELEN) {
-				int pos;
-				/* save tail */
-				strcpy(matchBuf, &command[cursor_mb]);
-				/* where do we want to have cursor after all? */
-				strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
-				len = load_string(command, S.maxsize);
-				/* add match and tail */
-				sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, matchBuf);
-				command_len = load_string(command, S.maxsize);
-				/* write out the matched command */
-				/* paranoia: load_string can return 0 on conv error,
-				 * prevent passing pos = (0 - 12) to redraw */
-				pos = command_len - len;
-				redraw(cmdedit_y, pos >= 0 ? pos : 0);
-			}
-		}
-#endif
-		free(chosen_match);
-#undef matchBuf
-	} else {
-		/* Ok -- the last char was a TAB.  Since they
-		 * just hit TAB again, print a list of all the
-		 * available choices... */
+	if (*lastWasTab) {
+		/* The last char was a TAB too.
+		 * Print a list of all the available choices.
+		 */
 		if (num_matches > 0) {
 			/* cursor will be changed by goto_new_line() */
 			int sav_cursor = cursor;
@@ -1192,7 +1061,138 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			showfiles();
 			redraw(0, command_len - sav_cursor);
 		}
+		return;
 	}
+
+	*lastWasTab = 1;
+
+	/* Make a local copy of the string --
+	 * up to the position of the cursor */
+#if !ENABLE_UNICODE_SUPPORT
+	save_string(matchBuf, cursor + 1);
+#else
+	{
+		CHAR_T wc = command_ps[cursor];
+		command_ps[cursor] = BB_NUL;
+		save_string(matchBuf, MAX_LINELEN);
+		command_ps[cursor] = wc;
+		cursor_mb = strlen(matchBuf);
+	}
+#endif
+	find_type = build_match_prefix(matchBuf);
+
+	/* Free up any memory already allocated */
+	free_tab_completion_data();
+
+#if ENABLE_FEATURE_USERNAME_COMPLETION
+	/* If the word starts with `~' and there is no slash in the word,
+	 * then try completing this word as a username. */
+	if (state->flags & USERNAME_COMPLETION)
+		if (matchBuf[0] == '~' && strchr(matchBuf, '/') == NULL)
+			match_pfx_len = complete_username(matchBuf);
+#endif
+	/* Try to match a command in $PATH, or a directory, or a file */
+	if (!matches)
+		match_pfx_len = complete_cmd_dir_file(matchBuf, find_type);
+	/* Remove duplicates */
+	if (matches) {
+		unsigned i;
+		unsigned n = 0;
+		qsort_string_vector(matches, num_matches);
+		for (i = 0; i < num_matches - 1; ++i) {
+			//if (matches[i] && matches[i+1]) { /* paranoia */
+				if (strcmp(matches[i], matches[i+1]) == 0) {
+					free(matches[i]);
+					//matches[i] = NULL; /* paranoia */
+				} else {
+					matches[n++] = matches[i];
+				}
+			//}
+		}
+		matches[n++] = matches[i];
+		num_matches = n;
+	}
+	/* Did we find exactly one match? */
+	if (num_matches != 1) { /* no */
+		char *cp;
+		beep();
+		if (!matches)
+			return; /* no matches at all */
+		/* Find common prefix */
+		chosen_match = xstrdup(matches[0]);
+		for (cp = chosen_match; *cp; cp++) {
+			unsigned n;
+			for (n = 1; n < num_matches; n++) {
+				if (matches[n][cp - chosen_match] != *cp) {
+					goto stop;
+				}
+			}
+		}
+ stop:
+		if (cp == chosen_match) { /* have unique prefix? */
+			free(chosen_match); /* no */
+			return;
+		}
+		*cp = '\0';
+		cp = add_quote_for_spec_chars(chosen_match);
+		free(chosen_match);
+		chosen_match = cp;
+		len_found = strlen(chosen_match);
+	} else {                        /* exactly one match */
+		/* Next <tab> is not a double-tab */
+		*lastWasTab = 0;
+
+		chosen_match = add_quote_for_spec_chars(matches[0]);
+		len_found = strlen(chosen_match);
+		if (chosen_match[len_found-1] != '/') {
+			chosen_match[len_found] = ' ';
+			chosen_match[++len_found] = '\0';
+		}
+	}
+
+#if !ENABLE_UNICODE_SUPPORT
+	/* Have space to place the match? */
+	/* The result consists of three parts with these lengths: */
+	/* cursor + (len_found - match_pfx_len) + (command_len - cursor) */
+	/* it simplifies into: */
+	if ((int)(len_found - match_pfx_len + command_len) < S.maxsize) {
+		int pos;
+		/* save tail */
+		strcpy(matchBuf, &command_ps[cursor]);
+		/* add match and tail */
+		sprintf(&command_ps[cursor], "%s%s", chosen_match + match_pfx_len, matchBuf);
+		command_len = strlen(command_ps);
+		/* new pos */
+		pos = cursor + len_found - match_pfx_len;
+		/* write out the matched command */
+		redraw(cmdedit_y, command_len - pos);
+	}
+#else
+	{
+		char command[MAX_LINELEN];
+		int len = save_string(command, sizeof(command));
+		/* Have space to place the match? */
+		/* cursor_mb + (len_found - match_pfx_len) + (len - cursor_mb) */
+		if ((int)(len_found - match_pfx_len + len) < MAX_LINELEN) {
+			int pos;
+			/* save tail */
+			strcpy(matchBuf, &command[cursor_mb]);
+			/* where do we want to have cursor after all? */
+			strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
+			len = load_string(command, S.maxsize);
+			/* add match and tail */
+			sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, matchBuf);
+			command_len = load_string(command, S.maxsize);
+			/* write out the matched command */
+			/* paranoia: load_string can return 0 on conv error,
+			 * prevent passing pos = (0 - 12) to redraw */
+			pos = command_len - len;
+			redraw(cmdedit_y, pos >= 0 ? pos : 0);
+		}
+	}
+#endif
+	free(chosen_match);
+#undef matchBuf
 }
 
 #endif  /* FEATURE_TAB_COMPLETION */
