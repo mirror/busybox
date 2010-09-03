@@ -1040,7 +1040,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		return;
 
 	if (!*lastWasTab) {
-		char *tmp;
+		char *chosen_match;
 		size_t len_found;
 /*		char matchBuf[MAX_LINELEN]; */
 #define matchBuf (S.input_tab__matchBuf)
@@ -1067,8 +1067,6 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			cursor_mb = strlen(matchBuf);
 		}
 #endif
-		tmp = matchBuf;
-
 		find_type = build_match_prefix(matchBuf);
 
 		/* Free up any memory already allocated */
@@ -1104,38 +1102,39 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		}
 		/* Did we find exactly one match? */
 		if (num_matches != 1) { /* no */
-			char *tmp1;
+			char *cp;
 			beep();
 			if (!matches)
 				return; /* no matches at all */
 			/* Find common prefix */
-			tmp1 = xstrdup(matches[0]);
-			for (tmp = tmp1; *tmp; tmp++) {
+			chosen_match = xstrdup(matches[0]);
+			for (cp = chosen_match; *cp; cp++) {
 				unsigned n;
 				for (n = 1; n < num_matches; n++) {
-					if (matches[n][tmp - tmp1] != *tmp) {
+					if (matches[n][cp - chosen_match] != *cp) {
 						goto stop;
 					}
 				}
 			}
  stop:
-			if (tmp1 == tmp) { /* have unique prefix? */
-				free(tmp1); /* no */
+			if (cp == chosen_match) { /* have unique prefix? */
+				free(chosen_match); /* no */
 				return;
 			}
-			*tmp = '\0';
-			tmp = add_quote_for_spec_chars(tmp1);
-			free(tmp1);
-			len_found = strlen(tmp);
+			*cp = '\0';
+			cp = add_quote_for_spec_chars(chosen_match);
+			free(chosen_match);
+			chosen_match = cp;
+			len_found = strlen(chosen_match);
 		} else {                        /* exactly one match */
 			/* Next <tab> is not a double-tab */
 			*lastWasTab = 0;
 
-			tmp = add_quote_for_spec_chars(matches[0]);
-			len_found = strlen(tmp);
-			if (tmp[len_found-1] != '/') {
-				tmp[len_found] = ' ';
-				tmp[++len_found] = '\0';
+			chosen_match = add_quote_for_spec_chars(matches[0]);
+			len_found = strlen(chosen_match);
+			if (chosen_match[len_found-1] != '/') {
+				chosen_match[len_found] = ' ';
+				chosen_match[++len_found] = '\0';
 			}
 		}
 
@@ -1149,7 +1148,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			/* save tail */
 			strcpy(matchBuf, &command_ps[cursor]);
 			/* add match and tail */
-			sprintf(&command_ps[cursor], "%s%s", tmp + match_pfx_len, matchBuf);
+			sprintf(&command_ps[cursor], "%s%s", chosen_match + match_pfx_len, matchBuf);
 			command_len = strlen(command_ps);
 			/* new pos */
 			pos = cursor + len_found - match_pfx_len;
@@ -1167,10 +1166,10 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 				/* save tail */
 				strcpy(matchBuf, &command[cursor_mb]);
 				/* where do we want to have cursor after all? */
-				strcpy(&command[cursor_mb], tmp + match_pfx_len);
+				strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
 				len = load_string(command, S.maxsize);
 				/* add match and tail */
-				sprintf(&command[cursor_mb], "%s%s", tmp + match_pfx_len, matchBuf);
+				sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, matchBuf);
 				command_len = load_string(command, S.maxsize);
 				/* write out the matched command */
 				/* paranoia: load_string can return 0 on conv error,
@@ -1180,17 +1179,15 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			}
 		}
 #endif
-		free(tmp);
+		free(chosen_match);
 #undef matchBuf
 	} else {
 		/* Ok -- the last char was a TAB.  Since they
 		 * just hit TAB again, print a list of all the
 		 * available choices... */
-		if (matches && num_matches > 0) {
-			/* changed by goto_new_line() */
+		if (num_matches > 0) {
+			/* cursor will be changed by goto_new_line() */
 			int sav_cursor = cursor;
-
-			/* Go to the next line */
 			goto_new_line();
 			showfiles();
 			redraw(0, command_len - sav_cursor);
