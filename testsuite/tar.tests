@@ -58,15 +58,16 @@ mkdir input_dir
 ln input_hard1 input_dir
 ln input_hard2 input_dir
 chmod 550 input_dir
-tar cf test.tar input_*
+# On some filesystems, input_dir/input_hard2 is returned by readdir
+# BEFORE input_dir/input_hard1! Thats why we cant just "tar cf ... input_*":
+tar cf test.tar input_dir/input_hard* input_hard*
 tar tvf test.tar | sed "s/.*[0-9] input/input/"
 chmod 770 input_dir
 rm -rf input_*
 tar xf test.tar 2>&1
 echo Ok: $?
-ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+ls -l . input_dir/* | grep "input.*hard" | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
 ' "\
-input_dir/
 input_dir/input_hard1
 input_dir/input_hard2 -> input_dir/input_hard1
 input_hard1 -> input_dir/input_hard1
@@ -74,7 +75,6 @@ input_hard2 -> input_dir/input_hard1
 Ok: 0
 -rwxr----x input_dir/input_hard1
 -rwxr----x input_dir/input_hard2
-dr-xr-x--- input_dir
 -rwxr----x input_hard1
 -rwxr----x input_hard2
 " \
