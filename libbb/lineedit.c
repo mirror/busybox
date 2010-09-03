@@ -150,11 +150,6 @@ struct lineedit_statics {
 #if ENABLE_FEATURE_EDITING_ASK_TERMINAL
 	smallint sent_ESC_br6n;
 #endif
-
-	/* Formerly these were big buffers on stack: */
-#if ENABLE_FEATURE_TAB_COMPLETION
-	char input_tab__matchBuf[MAX_LINELEN];
-#endif
 };
 
 /* See lineedit_ptr_hack.c */
@@ -810,17 +805,17 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 }
 
 /* build_match_prefix:
- * On entry, matchBuf contains everything up to cursor at the moment <tab>
+ * On entry, match_buf contains everything up to cursor at the moment <tab>
  * was pressed. This function looks at it, figures out what part of it
  * constitutes the command/file/directory prefix to use for completion,
- * and rewrites matchBuf to contain only that part.
+ * and rewrites match_buf to contain only that part.
  */
+#define dbg_bmp 0
 /* Helpers: */
 /* QUOT is used on elements of int_buf[], which are bytes,
  * not Unicode chars. Therefore it works correctly even in Unicode mode.
  */
 #define QUOT (UCHAR_MAX+1)
-#define dbg_bmp 0
 static void remove_chunk(int16_t *int_buf, int beg, int end)
 {
 	/* beg must be <= end */
@@ -837,25 +832,29 @@ static void remove_chunk(int16_t *int_buf, int beg, int end)
 		bb_putchar('\n');
 	}
 }
-static NOINLINE int build_match_prefix(char *matchBuf)
+/* Caller ensures that match_buf points to a malloced buffer
+ * big enough to hold strlen(match_buf)*2 + 2
+ */
+static NOINLINE int build_match_prefix(char *match_buf)
 {
 	int i, j;
 	int command_mode;
-	int16_t *int_buf;
+	int16_t *int_buf = (int16_t*)match_buf;
 
-	if (dbg_bmp) printf("\n%s\n", matchBuf);
+	if (dbg_bmp) printf("\n%s\n", match_buf);
 
-	int_buf = xmalloc(sizeof(int_buf[0]) * (strlen(matchBuf) + 1));
-	i = 0;
-	while ((int_buf[i] = (unsigned char)matchBuf[i]) != '\0')
-		i++;
+	/* Copy in reverse order, since they overlap */
+	i = strlen(match_buf);
+	do {
+		int_buf[i] = (unsigned char)match_buf[i];
+		i--;
+	} while (i >= 0);
 
 	/* Mark every \c as "quoted c" */
-	for (i = j = 0; matchBuf[i]; i++, j++) {
-		if (matchBuf[i] == '\\') {
-			remove_chunk(int_buf, j, j + 1);
-			int_buf[j] |= QUOT;
-			i++;
+	for (i = 0; int_buf[i]; i++) {
+		if (int_buf[i] == '\\') {
+			remove_chunk(int_buf, i, i + 1);
+			int_buf[i] |= QUOT;
 		}
 	}
 	/* Quote-mark "chars" and 'chars', drop delimiters */
@@ -964,13 +963,12 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 		}
 	}
 
-	/* Store only match prefix */
+	/* Convert back to string of _chars_ */
 	i = 0;
-	while ((matchBuf[i] = int_buf[i]) != '\0')
+	while ((match_buf[i] = int_buf[i]) != '\0')
 		i++;
-	free(int_buf);
 
-	if (dbg_bmp) printf("final matchBuf:'%s'\n", matchBuf);
+	if (dbg_bmp) printf("final match_buf:'%s'\n", match_buf);
 
 	return command_mode;
 }
@@ -1037,9 +1035,8 @@ static char *add_quote_for_spec_chars(char *found)
 static NOINLINE void input_tab(smallint *lastWasTab)
 {
 	char *chosen_match;
+	char *match_buf;
 	size_t len_found;
-/*	char matchBuf[MAX_LINELEN]; */
-#define matchBuf (S.input_tab__matchBuf)
 	/* Length of string used for matching */
 	unsigned match_pfx_len = match_pfx_len;
 	int find_type;
@@ -1065,21 +1062,26 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	}
 
 	*lastWasTab = 1;
+	chosen_match = NULL;
 
-	/* Make a local copy of the string --
-	 * up to the position of the cursor */
+	/* Make a local copy of the string up to the position of the cursor.
+	 * build_match_prefix will expand it into int16_t's, need to allocate
+	 * twice as much as the string_len+1.
+	 * (we then also (ab)use this extra space later - see (**))
+	 */
+	match_buf = xmalloc(MAX_LINELEN * sizeof(int16_t));
 #if !ENABLE_UNICODE_SUPPORT
-	save_string(matchBuf, cursor + 1);
+	save_string(match_buf, cursor + 1); /* +1 for NUL */
 #else
 	{
 		CHAR_T wc = command_ps[cursor];
 		command_ps[cursor] = BB_NUL;
-		save_string(matchBuf, MAX_LINELEN);
+		save_string(match_buf, MAX_LINELEN);
 		command_ps[cursor] = wc;
-		cursor_mb = strlen(matchBuf);
+		cursor_mb = strlen(match_buf);
 	}
 #endif
-	find_type = build_match_prefix(matchBuf);
+	find_type = build_match_prefix(match_buf);
 
 	/* Free up any memory already allocated */
 	free_tab_completion_data();
@@ -1088,12 +1090,12 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	/* If the word starts with `~' and there is no slash in the word,
 	 * then try completing this word as a username. */
 	if (state->flags & USERNAME_COMPLETION)
-		if (matchBuf[0] == '~' && strchr(matchBuf, '/') == NULL)
-			match_pfx_len = complete_username(matchBuf);
+		if (match_buf[0] == '~' && strchr(match_buf, '/') == NULL)
+			match_pfx_len = complete_username(match_buf);
 #endif
 	/* Try to match a command in $PATH, or a directory, or a file */
 	if (!matches)
-		match_pfx_len = complete_cmd_dir_file(matchBuf, find_type);
+		match_pfx_len = complete_cmd_dir_file(match_buf, find_type);
 	/* Remove duplicates */
 	if (matches) {
 		unsigned i;
@@ -1117,7 +1119,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		char *cp;
 		beep();
 		if (!matches)
-			return; /* no matches at all */
+			goto ret; /* no matches at all */
 		/* Find common prefix */
 		chosen_match = xstrdup(matches[0]);
 		for (cp = chosen_match; *cp; cp++) {
@@ -1130,8 +1132,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		}
  stop:
 		if (cp == chosen_match) { /* have unique prefix? */
-			free(chosen_match); /* no */
-			return;
+			goto ret; /* no */
 		}
 		*cp = '\0';
 		cp = add_quote_for_spec_chars(chosen_match);
@@ -1158,9 +1159,9 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	if ((int)(len_found - match_pfx_len + command_len) < S.maxsize) {
 		int pos;
 		/* save tail */
-		strcpy(matchBuf, &command_ps[cursor]);
+		strcpy(match_buf, &command_ps[cursor]);
 		/* add match and tail */
-		sprintf(&command_ps[cursor], "%s%s", chosen_match + match_pfx_len, matchBuf);
+		sprintf(&command_ps[cursor], "%s%s", chosen_match + match_pfx_len, match_buf);
 		command_len = strlen(command_ps);
 		/* new pos */
 		pos = cursor + len_found - match_pfx_len;
@@ -1169,19 +1170,20 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	}
 #else
 	{
-		char command[MAX_LINELEN];
-		int len = save_string(command, sizeof(command));
+		/* Use 2nd half of match_buf as scratch space - see (**) */
+		char *command = match_buf + MAX_LINELEN;
+		int len = save_string(command, MAX_LINELEN);
 		/* Have space to place the match? */
 		/* cursor_mb + (len_found - match_pfx_len) + (len - cursor_mb) */
 		if ((int)(len_found - match_pfx_len + len) < MAX_LINELEN) {
 			int pos;
 			/* save tail */
-			strcpy(matchBuf, &command[cursor_mb]);
+			strcpy(match_buf, &command[cursor_mb]);
 			/* where do we want to have cursor after all? */
 			strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
 			len = load_string(command, S.maxsize);
 			/* add match and tail */
-			sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, matchBuf);
+			sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, match_buf);
 			command_len = load_string(command, S.maxsize);
 			/* write out the matched command */
 			/* paranoia: load_string can return 0 on conv error,
@@ -1191,8 +1193,9 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		}
 	}
 #endif
+ ret:
 	free(chosen_match);
-#undef matchBuf
+	free(match_buf);
 }
 
 #endif  /* FEATURE_TAB_COMPLETION */
