@@ -99,7 +99,6 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 
 
 enum {
-	/* We use int16_t for positions, need to limit line len */
 	MAX_LINELEN = CONFIG_FEATURE_EDITING_MAX_LEN < 0x7ff0
 	              ? CONFIG_FEATURE_EDITING_MAX_LEN
 	              : 0x7ff0
@@ -156,7 +155,6 @@ struct lineedit_statics {
 #if ENABLE_FEATURE_TAB_COMPLETION
 	char input_tab__matchBuf[MAX_LINELEN];
 	int16_t find_match__int_buf[MAX_LINELEN + 1]; /* need to have 9 bits at least */
-	int16_t find_match__pos_buf[MAX_LINELEN + 1];
 #endif
 };
 
@@ -824,15 +822,16 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
  */
 #define QUOT (UCHAR_MAX+1)
 #define int_buf (S.find_match__int_buf)
-#define pos_buf (S.find_match__pos_buf)
 #define dbg_bmp 0
-static void collapse_pos(int beg, int end)
+static void remove_chunk(int beg, int end)
 {
 	/* beg must be <= end */
 	if (beg == end)
 		return;
-	memmove(int_buf+beg, int_buf+end, (MAX_LINELEN+1-end) * sizeof(int_buf[0]));
-	memmove(pos_buf+beg, pos_buf+end, (MAX_LINELEN+1-end) * sizeof(pos_buf[0]));
+
+	while ((int_buf[beg] = int_buf[end]) != 0)
+		beg++, end++;
+
 	if (dbg_bmp) {
 		int i;
 		for (i = 0; int_buf[i]; i++)
@@ -846,42 +845,39 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	int command_mode;
 /*	Were local, but it used too much stack */
 /*	int16_t int_buf[MAX_LINELEN + 1]; */
-/*	int16_t pos_buf[MAX_LINELEN + 1]; */
 
 	if (dbg_bmp) printf("\n%s\n", matchBuf);
 
-	for (i = 0;; i++) {
-		int_buf[i] = (unsigned char)matchBuf[i];
-		if (int_buf[i] == 0) {
-			pos_buf[i] = -1; /* end-of-line indicator */
-			break;
-		}
-		pos_buf[i] = i;
-	}
+	i = 0;
+	while ((int_buf[i] = (unsigned char)matchBuf[i]) != '\0')
+		i++;
 
 	/* Mark every \c as "quoted c" */
 	for (i = j = 0; matchBuf[i]; i++, j++) {
 		if (matchBuf[i] == '\\') {
-			collapse_pos(j, j + 1);
+			remove_chunk(j, j + 1);
 			int_buf[j] |= QUOT;
 			i++;
 		}
 	}
-	/* Quote-mark "chars" and 'chars' */
+	/* Quote-mark "chars" and 'chars', drop delimiters */
 	{
 		int in_quote = 0;
-		for (i = 0; int_buf[i]; i++) {
+		i = 0;
+		while (int_buf[i]) {
 			int cur = int_buf[i];
+			if (!cur)
+				break;
 			if (cur == '\'' || cur == '"') {
-				if (!in_quote)
-					in_quote = cur;
-				else if (cur == in_quote)
-					in_quote = 0;
-				else
-					int_buf[i] |= QUOT;
-			} else if (in_quote && cur != '$') {
-				int_buf[i] |= QUOT;
+				if (!in_quote || (cur == in_quote)) {
+					in_quote ^= cur;
+					remove_chunk(i, i + 1);
+					continue;
+				}
 			}
+			if (in_quote)
+				int_buf[i] = cur | QUOT;
+			i++;
 		}
 	}
 
@@ -898,53 +894,39 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 			} else if (cur == '|' && prev == '>') {
 				continue;
 			}
-			collapse_pos(0, i + 1 + (cur == int_buf[i + 1]));
+			remove_chunk(0, i + 1 + (cur == int_buf[i + 1]));
 			i = -1;  /* back to square 1 */
 		}
 	}
 	/* Remove all `cmd` */
-//BUG: `cmd` should count as a word: `cmd` c<tab> should search for files c*, not commands c*
 	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '`') {
 			for (j = i + 1; int_buf[j]; j++) {
 				if (int_buf[j] == '`') {
-					collapse_pos(i, j + 1);
+					/* `cmd` should count as a word:
+					 * `cmd` c<tab> should search for files c*,
+					 * not commands c*. Therefore we don't drop
+					 * `cmd` entirely, we replace it with single `.
+					 */
+					remove_chunk(i, j);
 					goto next;
 				}
 			}
 			/* No closing ` - command mode, remove all up to ` */
-			collapse_pos(0, i + 1);
+			remove_chunk(0, i + 1);
 			break;
- next:
-			i--;  /* hack increment */
+ next: ;
 		}
 	}
 
-	/* Remove (command...(command...)...) and {command...{command...}...} */
-	{
-		int paren_lvl = 0;
-		int curly_lvl = 0;
-		for (i = 0; int_buf[i]; i++) {
-			if (int_buf[i] == '(' || int_buf[i] == '{') {
-				if (int_buf[i] == '(')
-					paren_lvl++;
-				else
-					curly_lvl++;
-				collapse_pos(0, i + 1);
-				i = -1;  /* hack increment */
-			}
-		}
-		for (i = 0; pos_buf[i] >= 0 && (paren_lvl > 0 || curly_lvl > 0); i++) {
-			if ((int_buf[i] == ')' && paren_lvl > 0)
-			 || (int_buf[i] == '}' && curly_lvl > 0)
-			) {
-				if (int_buf[i] == ')')
-					paren_lvl--;
-				else
-					curly_lvl--;
-				collapse_pos(0, i + 1);
-				i = -1;  /* hack increment */
-			}
+	/* Remove "cmd (" and "cmd {"
+	 * Example: "if { c<tab>"
+	 * In this example, c should be matched as command pfx.
+	 */
+	for (i = 0; int_buf[i]; i++) {
+		if (int_buf[i] == '(' || int_buf[i] == '{') {
+			remove_chunk(0, i + 1);
+			i = -1;  /* hack increment */
 		}
 	}
 
@@ -952,7 +934,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] != ' ')
 			break;
-	collapse_pos(0, i);
+	remove_chunk(0, i);
 
 	/* Determine completion mode */
 	command_mode = FIND_EXE_ONLY;
@@ -960,9 +942,9 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 		if (int_buf[i] == ' ' || int_buf[i] == '<' || int_buf[i] == '>') {
 			if (int_buf[i] == ' '
 			 && command_mode == FIND_EXE_ONLY
-			 && matchBuf[pos_buf[0]] == 'c'
-			 && matchBuf[pos_buf[1]] == 'd'
-//BUG: must check "cd ", not "cd"
+			 && (char)int_buf[0] == 'c'
+			 && (char)int_buf[1] == 'd'
+			 && i == 2 /* -> int_buf[2] == ' ' */
 			) {
 				command_mode = FIND_DIR_ONLY;
 			} else {
@@ -979,36 +961,20 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	for (--i; i >= 0; i--) {
 		int cur = int_buf[i];
 		if (cur == ' ' || cur == '<' || cur == '>' || cur == '|' || cur == '&') {
-			collapse_pos(0, i + 1);
+			remove_chunk(0, i + 1);
 			break;
 		}
 	}
-	/* Skip all leading unquoted ' or " */
-//BUG: bash doesn't do this
-	for (i = 0; int_buf[i] == '\'' || int_buf[i] == '"'; i++)
-		continue;
-	/* Skip quoted or unquoted // or /~ */
-//BUG: bash doesn't do this
-	while ((char)int_buf[i] == '/'
-	 && ((char)int_buf[i+1] == '/' || (char)int_buf[i+1] == '~')
-	) {
-		i++;
-	}
 
-	/* set only match and destroy quotes */
-	{
-		int pos = 0;
-		for (j = 0; pos_buf[i] >= 0; i++) {
-			matchBuf[j++] = matchBuf[pos_buf[i]];
-			pos = pos_buf[i] + 1;
-		}
-		matchBuf[j] = '\0';
-	}
+	/* Store only match prefix */
+	i = 0;
+	while ((matchBuf[i] = int_buf[i]) != '\0')
+		i++;
+	if (dbg_bmp) printf("final matchBuf:'%s'\n", matchBuf);
 
 	return command_mode;
 }
 #undef int_buf
-#undef pos_buf
 
 /*
  * Display by column (original idea from ls applet,
