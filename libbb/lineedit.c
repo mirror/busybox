@@ -154,7 +154,6 @@ struct lineedit_statics {
 	/* Formerly these were big buffers on stack: */
 #if ENABLE_FEATURE_TAB_COMPLETION
 	char input_tab__matchBuf[MAX_LINELEN];
-	int16_t find_match__int_buf[MAX_LINELEN + 1]; /* need to have 9 bits at least */
 #endif
 };
 
@@ -821,9 +820,8 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
  * not Unicode chars. Therefore it works correctly even in Unicode mode.
  */
 #define QUOT (UCHAR_MAX+1)
-#define int_buf (S.find_match__int_buf)
 #define dbg_bmp 0
-static void remove_chunk(int beg, int end)
+static void remove_chunk(int16_t *int_buf, int beg, int end)
 {
 	/* beg must be <= end */
 	if (beg == end)
@@ -843,11 +841,11 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 {
 	int i, j;
 	int command_mode;
-/*	Were local, but it used too much stack */
-/*	int16_t int_buf[MAX_LINELEN + 1]; */
+	int16_t *int_buf;
 
 	if (dbg_bmp) printf("\n%s\n", matchBuf);
 
+	int_buf = xmalloc(sizeof(int_buf[0]) * (strlen(matchBuf) + 1));
 	i = 0;
 	while ((int_buf[i] = (unsigned char)matchBuf[i]) != '\0')
 		i++;
@@ -855,7 +853,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	/* Mark every \c as "quoted c" */
 	for (i = j = 0; matchBuf[i]; i++, j++) {
 		if (matchBuf[i] == '\\') {
-			remove_chunk(j, j + 1);
+			remove_chunk(int_buf, j, j + 1);
 			int_buf[j] |= QUOT;
 			i++;
 		}
@@ -871,7 +869,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 			if (cur == '\'' || cur == '"') {
 				if (!in_quote || (cur == in_quote)) {
 					in_quote ^= cur;
-					remove_chunk(i, i + 1);
+					remove_chunk(int_buf, i, i + 1);
 					continue;
 				}
 			}
@@ -894,7 +892,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 			} else if (cur == '|' && prev == '>') {
 				continue;
 			}
-			remove_chunk(0, i + 1 + (cur == int_buf[i + 1]));
+			remove_chunk(int_buf, 0, i + 1 + (cur == int_buf[i + 1]));
 			i = -1;  /* back to square 1 */
 		}
 	}
@@ -908,12 +906,12 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 					 * not commands c*. Therefore we don't drop
 					 * `cmd` entirely, we replace it with single `.
 					 */
-					remove_chunk(i, j);
+					remove_chunk(int_buf, i, j);
 					goto next;
 				}
 			}
 			/* No closing ` - command mode, remove all up to ` */
-			remove_chunk(0, i + 1);
+			remove_chunk(int_buf, 0, i + 1);
 			break;
  next: ;
 		}
@@ -925,7 +923,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	 */
 	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '(' || int_buf[i] == '{') {
-			remove_chunk(0, i + 1);
+			remove_chunk(int_buf, 0, i + 1);
 			i = -1;  /* hack increment */
 		}
 	}
@@ -934,7 +932,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] != ' ')
 			break;
-	remove_chunk(0, i);
+	remove_chunk(int_buf, 0, i);
 
 	/* Determine completion mode */
 	command_mode = FIND_EXE_ONLY;
@@ -961,7 +959,7 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	for (--i; i >= 0; i--) {
 		int cur = int_buf[i];
 		if (cur == ' ' || cur == '<' || cur == '>' || cur == '|' || cur == '&') {
-			remove_chunk(0, i + 1);
+			remove_chunk(int_buf, 0, i + 1);
 			break;
 		}
 	}
@@ -970,11 +968,12 @@ static NOINLINE int build_match_prefix(char *matchBuf)
 	i = 0;
 	while ((matchBuf[i] = int_buf[i]) != '\0')
 		i++;
+	free(int_buf);
+
 	if (dbg_bmp) printf("final matchBuf:'%s'\n", matchBuf);
 
 	return command_mode;
 }
-#undef int_buf
 
 /*
  * Display by column (original idea from ls applet,
