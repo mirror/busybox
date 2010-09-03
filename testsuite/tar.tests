@@ -55,11 +55,13 @@ rm -rf input_* test.tar 2>/dev/null
 chmod 741 input_hard1
 ln input_hard1 input_hard2
 mkdir input_dir
-chmod 550 input_dir
 ln input_hard1 input_dir
 ln input_hard2 input_dir
+chmod 550 input_dir
 tar cf test.tar input_*
 tar tvf test.tar | sed "s/.*[0-9] input/input/"
+chmod 770 input_dir
+rm -rf input_*
 tar xf test.tar 2>&1
 echo Ok: $?
 ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
@@ -86,11 +88,13 @@ rm -rf input_* test.tar 2>/dev/null
 chmod 741 input_file
 ln -s input_file input_soft
 mkdir input_dir
-chmod 550 input_dir
 ln input_file input_dir
 ln input_soft input_dir
+chmod 550 input_dir
 tar cf test.tar input_*
 tar tvf test.tar | sed "s/.*[0-9] input/input/" | sort
+chmod 770 input_dir
+rm -rf input_*
 tar xf test.tar 2>&1
 echo Ok: $?
 ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"

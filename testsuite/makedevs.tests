@@ -4,6 +4,11 @@
 
 . ./testing.sh
 
+test x"`id -u`" = x"0" || {
+	echo "SKIPPED: makedevs (must be root to test this)"
+	exit 0
+}
+
 unset LANG
 unset LC_COLLATE
 unset LC_ALL
