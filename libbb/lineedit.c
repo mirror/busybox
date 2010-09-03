@@ -716,6 +716,7 @@ static NOINLINE void complete_cmd_dir_file(char *command, int type)
 	char **paths = path1;
 	int npaths;
 	int i;
+	unsigned pf_len;
 	char *pfind;
 	char *dirbuf = NULL;
 
@@ -738,6 +739,7 @@ static NOINLINE void complete_cmd_dir_file(char *command, int type)
 #endif
 		path1[0] = dirbuf;
 	}
+	pf_len = strlen(pfind);
 
 	for (i = 0; i < npaths; i++) {
 		DIR *dir;
@@ -756,7 +758,7 @@ static NOINLINE void complete_cmd_dir_file(char *command, int type)
 			if (!pfind[0] && DOT_OR_DOTDOT(name_found))
 				continue;
 			/* match? */
-			if (strncmp(name_found, pfind, strlen(pfind)) != 0)
+			if (strncmp(name_found, pfind, pf_len) != 0)
 				continue; /* no */
 
 			found = concat_path_file(paths[i], name_found);
@@ -812,20 +814,30 @@ static NOINLINE void complete_cmd_dir_file(char *command, int type)
 #define QUOT (UCHAR_MAX+1)
 #define int_buf (S.find_match__int_buf)
 #define pos_buf (S.find_match__pos_buf)
+#define dbg_bmp 0
 static void collapse_pos(int beg, int end)
 {
 	/* beg must be <= end */
+	if (beg == end)
+		return;
 	memmove(int_buf+beg, int_buf+end, (MAX_LINELEN+1-end) * sizeof(int_buf[0]));
 	memmove(pos_buf+beg, pos_buf+end, (MAX_LINELEN+1-end) * sizeof(pos_buf[0]));
+	if (dbg_bmp) {
+		int i;
+		for (i = 0; int_buf[i]; i++)
+			bb_putchar((unsigned char)int_buf[i]);
+		bb_putchar('\n');
+	}
 }
 static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 {
 	int i, j;
 	int command_mode;
-	int c, c2;
 /*	Were local, but it used too much stack */
 /*	int16_t int_buf[MAX_LINELEN + 1]; */
 /*	int16_t pos_buf[MAX_LINELEN + 1]; */
+
+	if (dbg_bmp) printf("\n%s\n", matchBuf);
 
 	for (i = 0;; i++) {
 		int_buf[i] = (unsigned char)matchBuf[i];
@@ -845,20 +857,21 @@ static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 		}
 	}
 	/* Quote-mark "chars" and 'chars' */
-	c2 = 0;
-	for (i = 0; int_buf[i]; i++) {
-		c = int_buf[i];
-		if (c == '\'' || c == '"') {
-			if (c2 == 0)
-				c2 = c;
-			else {
-				if (c == c2)
-					c2 = 0;
+	{
+		int in_quote = 0;
+		for (i = 0; int_buf[i]; i++) {
+			int cur = int_buf[i];
+			if (cur == '\'' || cur == '"') {
+				if (!in_quote)
+					in_quote = cur;
+				else if (cur == in_quote)
+					in_quote = 0;
 				else
 					int_buf[i] |= QUOT;
+			} else if (in_quote && cur != '$') {
+				int_buf[i] |= QUOT;
 			}
-		} else if (c2 != 0 && c != '$')
-			int_buf[i] |= QUOT;
+		}
 	}
 
 	/* Remove everything up to command delimiters:
@@ -866,64 +879,61 @@ static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 	 * but careful with '>&' '<&' '>|'
 	 */
 	for (i = 0; int_buf[i]; i++) {
-		int n;
-		c = int_buf[i];
-		c2 = int_buf[i + 1];
-		j = i ? int_buf[i - 1] : -1;
-		n = 0;
-		if (c == ';' || c == '&' || c == '|') {
-			n = 1 + (c == c2);
-			if (c == '&') {
-				if (j == '>' || j == '<')
-					n = 0;
-			} else if (c == '|' && j == '>')
-				n = 0;
-		}
-		if (n) {
-			collapse_pos(0, i + n);
-			i = -1;  /* hack increment */
+		int cur = int_buf[i];
+		if (cur == ';' || cur == '&' || cur == '|') {
+			int prev = i ? int_buf[i - 1] : 0;
+			if (cur == '&' && (prev == '>' || prev == '<')) {
+				continue;
+			} else if (cur == '|' && prev == '>') {
+				continue;
+			}
+			collapse_pos(0, i + 1 + (cur == int_buf[i + 1]));
+			i = -1;  /* back to square 1 */
 		}
 	}
 	/* Remove all `cmd` */
+//BUG: `cmd` should count as a word: `cmd` c<tab> should search for files c*, not commands c*
 	for (i = 0; int_buf[i]; i++) {
 		if (int_buf[i] == '`') {
 			for (j = i + 1; int_buf[j]; j++) {
 				if (int_buf[j] == '`') {
 					collapse_pos(i, j + 1);
-					j = 0;
-					break;
+					goto next;
 				}
 			}
-			if (j) {
-				/* No closing ` - command mode, remove all up to ` */
-				collapse_pos(0, i + 1);
-				break;
-			}
+			/* No closing ` - command mode, remove all up to ` */
+			collapse_pos(0, i + 1);
+			break;
+ next:
 			i--;  /* hack increment */
 		}
 	}
 
 	/* Remove (command...(command...)...) and {command...{command...}...} */
-	c = 0;  /* "recursive" level */
-	c2 = 0;
-	for (i = 0; int_buf[i]; i++) {
-		if (int_buf[i] == '(' || int_buf[i] == '{') {
-			if (int_buf[i] == '(')
-				c++;
-			else
-				c2++;
-			collapse_pos(0, i + 1);
-			i = -1;  /* hack increment */
+	{
+		int paren_lvl = 0;
+		int curly_lvl = 0;
+		for (i = 0; int_buf[i]; i++) {
+			if (int_buf[i] == '(' || int_buf[i] == '{') {
+				if (int_buf[i] == '(')
+					paren_lvl++;
+				else
+					curly_lvl++;
+				collapse_pos(0, i + 1);
+				i = -1;  /* hack increment */
+			}
 		}
-	}
-	for (i = 0; pos_buf[i] >= 0 && (c > 0 || c2 > 0); i++) {
-		if ((int_buf[i] == ')' && c > 0) || (int_buf[i] == '}' && c2 > 0)) {
-			if (int_buf[i] == ')')
-				c--;
-			else
-				c2--;
-			collapse_pos(0, i + 1);
-			i = -1;  /* hack increment */
+		for (i = 0; pos_buf[i] >= 0 && (paren_lvl > 0 || curly_lvl > 0); i++) {
+			if ((int_buf[i] == ')' && paren_lvl > 0)
+			 || (int_buf[i] == '}' && curly_lvl > 0)
+			) {
+				if (int_buf[i] == ')')
+					paren_lvl--;
+				else
+					curly_lvl--;
+				collapse_pos(0, i + 1);
+				i = -1;  /* hack increment */
+			}
 		}
 	}
 
@@ -931,8 +941,7 @@ static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] != ' ')
 			break;
-	if (i)
-		collapse_pos(0, i);
+	collapse_pos(0, i);
 
 	/* Determine completion mode */
 	command_mode = FIND_EXE_ONLY;
@@ -942,6 +951,7 @@ static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 			 && command_mode == FIND_EXE_ONLY
 			 && matchBuf[pos_buf[0]] == 'c'
 			 && matchBuf[pos_buf[1]] == 'd'
+//BUG: must check "cd ", not "cd"
 			) {
 				command_mode = FIND_DIR_ONLY;
 			} else {
@@ -950,36 +960,42 @@ static NOINLINE int build_match_prefix(char *matchBuf, int *len_with_quotes)
 			}
 		}
 	}
+	if (dbg_bmp) printf("command_mode(0:exe/1:dir/2:file):%d\n", command_mode);
 
 	/* Remove everything except last word */
 	for (i = 0; int_buf[i]; i++) /* quasi-strlen(int_buf) */
 		continue;
 	for (--i; i >= 0; i--) {
-		c = int_buf[i];
-		if (c == ' ' || c == '<' || c == '>' || c == '|' || c == '&') {
+		int cur = int_buf[i];
+		if (cur == ' ' || cur == '<' || cur == '>' || cur == '|' || cur == '&') {
 			collapse_pos(0, i + 1);
 			break;
 		}
 	}
 	/* Skip all leading unquoted ' or " */
+//BUG: bash doesn't do this
 	for (i = 0; int_buf[i] == '\'' || int_buf[i] == '"'; i++)
 		continue;
-	/* collapse quote or unquote // or /~ */
-	while ((int_buf[i] & ~QUOT) == '/'
-	 && ((int_buf[i+1] & ~QUOT) == '/' || (int_buf[i+1] & ~QUOT) == '~')
+	/* Skip quoted or unquoted // or /~ */
+//BUG: bash doesn't do this
+	while ((char)int_buf[i] == '/'
+	 && ((char)int_buf[i+1] == '/' || (char)int_buf[i+1] == '~')
 	) {
 		i++;
 	}
 
 	/* set only match and destroy quotes */
-	j = 0;
-	for (c = 0; pos_buf[i] >= 0; i++) {
-		matchBuf[c++] = matchBuf[pos_buf[i]];
-		j = pos_buf[i] + 1;
+	{
+		int pos = 0;
+		for (j = 0; pos_buf[i] >= 0; i++) {
+			matchBuf[j++] = matchBuf[pos_buf[i]];
+			pos = pos_buf[i] + 1;
+		}
+		matchBuf[j] = '\0';
+		/* old length matchBuf with quotes symbols */
+		*len_with_quotes = pos ? pos - pos_buf[0] : 0;
+		if (dbg_bmp) printf("len_with_quotes:%d\n", *len_with_quotes);
 	}
-	matchBuf[c] = '\0';
-	/* old length matchBuf with quotes symbols */
-	*len_with_quotes = j ? j - pos_buf[0] : 0;
 
 	return command_mode;
 }
