@@ -751,6 +751,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			continue; /* don't print an error */
 
 		while ((next = readdir(dir)) != NULL) {
+			unsigned len;
 			const char *name_found = next->d_name;
 
 			/* .../<tab>: bash 3.2.0 shows dotfiles, but not . and .. */
@@ -767,18 +768,15 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			if (stat(found, &st) && lstat(found, &st))
 				goto cont; /* hmm, remove in progress? */
 
-			/* save only name if we scan PATH */
-			if (paths[i] != dirbuf)
-				strcpy(found, name_found);
+			/* Save only name */
+			len = strlen(name_found);
+			found = xrealloc(found, len + 2); /* +2: for slash and NUL */
+			strcpy(found, name_found);
 
 			if (S_ISDIR(st.st_mode)) {
-				unsigned len1 = strlen(found);
-				/* name is a directory */
-				if (found[len1-1] != '/') {
-					found = xrealloc(found, len1 + 2);
-					found[len1] = '/';
-					found[len1 + 1] = '\0';
-				}
+				/* name is a directory, add slash */
+				found[len] = '/';
+				found[len + 1] = '\0';
 			} else {
 				/* skip files if looking for dirs only (example: cd) */
 				if (type == FIND_DIR_ONLY)
@@ -796,10 +794,8 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 	if (paths != path1) {
 		free(paths[0]); /* allocated memory is only in first member */
 		free(paths);
-	} else if (dirbuf) {
-		pf_len += strlen(dirbuf);
-		free(dirbuf);
 	}
+	free(dirbuf);
 
 	return pf_len;
 }
