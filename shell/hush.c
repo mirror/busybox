@@ -390,6 +390,7 @@ typedef struct o_string {
 	smallint o_glob;
 	/* At least some part of the string was inside '' or "",
 	 * possibly empty one: word"", wo''rd etc. */
+//TODO: rename to no_empty_expansion?
 	smallint o_quoted;
 	smallint has_empty_slot;
 	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
@@ -2018,11 +2019,10 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 {
 	while (len) {
 		o_addchr(o, *str);
-		if (*str++ == '\\'
-		 && (*str != '*' && *str != '?' && *str != '[')
-		) {
+		if (*str == '\\') {
 			o_addchr(o, '\\');
 		}
+		str++;
 		len--;
 	}
 }
@@ -2128,8 +2128,8 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 	int i = 0;
 
 	indent();
-	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d\n",
-			prefix, list, n, string_start, o->length, o->maxlen);
+	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d glob:%d quoted:%d escape:%d\n",
+			prefix, list, n, string_start, o->length, o->maxlen, o->o_glob, o->o_quoted, o->o_escape);
 	while (i < n) {
 		indent();
 		fprintf(stderr, " list[%d]=%d '%s' %p\n", i, (int)list[i],
@@ -2563,9 +2563,9 @@ static char *expand_pseudo_dquoted(const char *str)
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
 
-	if (strchr(str, '$') == NULL
+	if (!strchr(str, '$')
 #if ENABLE_HUSH_TICK
-	 && strchr(str, '`') == NULL
+	 && !strchr(str, '`')
 #endif
 	) {
 		return NULL;
@@ -2740,6 +2740,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		}
 #endif
 		default: { /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
+//TODO: move to a subroutine?
 			char *var;
 			char first_char;
 			char exp_op;
@@ -3000,18 +3001,22 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	return n;
 }
 
-static char **expand_variables(char **argv, int or_mask)
+enum {
+	EXPVAR_FLAG_GLOB = 0x200,
+	EXPVAR_FLAG_ESCAPE_VARS = 0x100,
+	EXPVAR_FLAG_SINGLEWORD = 0x80, /* must be 0x80 */
+};
+static char **expand_variables(char **argv, unsigned or_mask)
 {
 	int n;
 	char **list;
 	char **v;
 	o_string output = NULL_O_STRING;
 
-	if (or_mask & 0x100) {
-		output.o_escape = 1; /* protect against globbing for "$var" */
-		/* (unquoted $var will temporarily switch it off) */
-		output.o_glob = 1;
-	}
+	/* protect against globbing for "$var"? */
+	/* (unquoted $var will temporarily switch it off) */
+	output.o_escape = 1 & (or_mask / EXPVAR_FLAG_ESCAPE_VARS);
+	output.o_glob = 1 & (or_mask / EXPVAR_FLAG_GLOB);
 
 	n = 0;
 	v = argv;
@@ -3029,13 +3034,13 @@ static char **expand_variables(char **argv, int or_mask)
 
 static char **expand_strvec_to_strvec(char **argv)
 {
-	return expand_variables(argv, 0x100);
+	return expand_variables(argv, EXPVAR_FLAG_GLOB | EXPVAR_FLAG_ESCAPE_VARS);
 }
 
 #if ENABLE_HUSH_BASH_COMPAT
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
-	return expand_variables(argv, 0x80);
+	return expand_variables(argv, EXPVAR_FLAG_SINGLEWORD);
 }
 #endif
 
@@ -3075,15 +3080,15 @@ static char **expand_strvec_to_strvec_singleword_noglob_cond(char **argv)
 #endif
 
 /* Used for expansion of right hand of assignments */
-/* NB: should NOT do globbing! "export v=/bin/c*; env | grep ^v=" outputs
- * "v=/bin/c*" */
+/* NB: should NOT do globbing!
+ * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*" */
 static char *expand_string_to_string(const char *str)
 {
 	char *argv[2], **list;
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
-	list = expand_variables(argv, 0x80); /* 0x80: singleword expansion */
+	list = expand_variables(argv, EXPVAR_FLAG_ESCAPE_VARS | EXPVAR_FLAG_SINGLEWORD);
 	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
@@ -3099,7 +3104,7 @@ static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
 
-	list = expand_variables(argv, 0x80);
+	list = expand_variables(argv, EXPVAR_FLAG_SINGLEWORD);
 	/* Convert all NULs to spaces */
 	if (list[0]) {
 		int n = 1;

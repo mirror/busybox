@@ -31,26 +31,23 @@ char *scanleft(char *string, char *pattern, bool match_at_left)
 	char c;
 	char *loc = string;
 
-	do {
+	while (1) {
 		int match;
-		const char *s;
 
 		c = *loc;
 		if (match_at_left) {
 			*loc = '\0';
-			s = string;
-		} else
-			s = loc;
-		match = pmatch(pattern, s);
-		*loc = c;
-
+			match = pmatch(pattern, string);
+			*loc = c;
+		} else {
+			match = pmatch(pattern, loc);
+		}
 		if (match)
 			return loc;
-
+		if (!c)
+			return NULL;
 		loc++;
-	} while (c);
-
-	return NULL;
+	}
 }
 
 char *scanright(char *string, char *pattern, bool match_at_left)
@@ -60,20 +57,17 @@ char *scanright(char *string, char *pattern, bool match_at_left)
 
 	while (loc >= string) {
 		int match;
-		const char *s;
 
 		c = *loc;
 		if (match_at_left) {
 			*loc = '\0';
-			s = string;
-		} else
-			s = loc;
-		match = pmatch(pattern, s);
-		*loc = c;
-
+			match = pmatch(pattern, string);
+			*loc = c;
+		} else {
+			match = pmatch(pattern, loc);
+		}
 		if (match)
 			return loc;
-
 		loc--;
 	}
 
