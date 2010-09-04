@@ -2829,23 +2829,21 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	 * Then var's value is matched to it and matching part removed.
 	 */
 					if (val) {
-						bool match_at_left;
+						char *exp_exp_word;
 						char *loc;
-						scan_t scan = pick_scan(exp_op, *exp_word, &match_at_left);
+						unsigned scan_flags = pick_scan(exp_op, *exp_word);
 						if (exp_op == *exp_word)	/* ## or %% */
 							exp_word++;
 						val = to_be_freed = xstrdup(val);
-						{
-							char *exp_exp_word = expand_pseudo_dquoted(exp_word);
-							if (exp_exp_word)
-								exp_word = exp_exp_word;
-							loc = scan(to_be_freed, exp_word, match_at_left);
-							//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
-							//		exp_op, to_be_freed, exp_word, loc);
-							free(exp_exp_word);
-						}
+						exp_exp_word = expand_pseudo_dquoted(exp_word);
+						if (exp_exp_word)
+							exp_word = exp_exp_word;
+						loc = scan_and_match(to_be_freed, exp_word, scan_flags);
+						//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
+						//		exp_op, to_be_freed, exp_word, loc);
+						free(exp_exp_word);
 						if (loc) { /* match was found */
-							if (match_at_left) /* # or ## */
+							if (scan_flags & SCAN_MATCH_LEFT_HALF) /* # or ## */
 								val = loc;
 							else /* % or %% */
 								*loc = '\0';
