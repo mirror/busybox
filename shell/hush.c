@@ -400,8 +400,7 @@ typedef struct o_string {
 	smallint o_glob;
 	/* At least some part of the string was inside '' or "",
 	 * possibly empty one: word"", wo''rd etc. */
-//TODO: rename to no_empty_expansion?
-	smallint o_quoted;
+	smallint has_quoted_part;
 	smallint has_empty_slot;
 	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
 } o_string;
@@ -1964,7 +1963,7 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 static void o_reset_to_empty_unquoted(o_string *o)
 {
 	o->length = 0;
-	o->o_quoted = 0;
+	o->has_quoted_part = 0;
 	if (o->data)
 		o->data[0] = '\0';
 }
@@ -2088,7 +2087,7 @@ static void o_addQchr(o_string *o, int ch)
 	o->data[o->length] = '\0';
 }
 
-static void o_addQstr(o_string *o, const char *str, int len)
+static void o_addQblock(o_string *o, const char *str, int len)
 {
 	if (!o->o_escape) {
 		o_addblock(o, str, len);
@@ -2120,6 +2119,11 @@ static void o_addQstr(o_string *o, const char *str, int len)
 	}
 }
 
+static void o_addQstr(o_string *o, const char *str)
+{
+	o_addQblock(o, str, strlen(str));
+}
+
 /* A special kind of o_string for $VAR and `cmd` expansion.
  * It contains char* list[] at the beginning, which is grown in 16 element
  * increments. Actual string data starts at the next multiple of 16 * (char*).
@@ -2139,7 +2143,7 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 
 	indent();
 	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d glob:%d quoted:%d escape:%d\n",
-			prefix, list, n, string_start, o->length, o->maxlen, o->o_glob, o->o_quoted, o->o_escape);
+			prefix, list, n, string_start, o->length, o->maxlen, o->o_glob, o->has_quoted_part, o->o_escape);
 	while (i < n) {
 		indent();
 		fprintf(stderr, " list[%d]=%d '%s' %p\n", i, (int)list[i],
@@ -2544,7 +2548,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
 			if (output->o_escape || !output->o_glob)
-				o_addQstr(output, str, word_len);
+				o_addQblock(output, str, word_len);
 			else /* protect backslashes against globbing up :) */
 				o_addblock_duplicate_backslash(output, str, word_len);
 			str += word_len;
@@ -2994,7 +2998,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
 				while (1) {
-					o_addQstr(output, G.global_argv[i], strlen(G.global_argv[i]));
+					o_addQstr(output, G.global_argv[i]);
 					if (++i >= G.global_argc)
 						break;
 					o_addchr(output, '\0');
@@ -3003,7 +3007,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				}
 			} else { /* quoted $*: add as one word */
 				while (1) {
-					o_addQstr(output, G.global_argv[i], strlen(G.global_argv[i]));
+					o_addQstr(output, G.global_argv[i]);
 					if (!G.global_argv[++i])
 						break;
 					if (G.ifs[0])
@@ -3081,7 +3085,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
 		if (val && val[0]) {
-			o_addQstr(output, val, strlen(val));
+			o_addQstr(output, val);
 		}
 		free(to_be_freed);
 		/* Do the check to avoid writing to a const string */
@@ -3109,6 +3113,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	} else {
 		o_addchr(output, '\0');
 	}
+
 	return n;
 }
 
@@ -5485,7 +5490,7 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 # endif
 	const struct reserved_combo *r;
 
-	if (word->o_quoted)
+	if (word->has_quoted_part)
 		return 0;
 	r = match_reserved_word(word);
 	if (!r)
@@ -5561,7 +5566,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 	struct command *command = ctx->command;
 
 	debug_printf_parse("done_word entered: '%s' %p\n", word->data, command);
-	if (word->length == 0 && word->o_quoted == 0) {
+	if (word->length == 0 && !word->has_quoted_part) {
 		debug_printf_parse("done_word return 0: true null, ignored\n");
 		return 0;
 	}
@@ -5588,7 +5593,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 		if (ctx->pending_redirect->rd_type == REDIRECT_HEREDOC) {
 			unbackslash(ctx->pending_redirect->rd_filename);
 			/* Is it <<"HEREDOC"? */
-			if (word->o_quoted) {
+			if (word->has_quoted_part) {
 				ctx->pending_redirect->rd_dup |= HEREDOC_QUOTED;
 			}
 		}
@@ -5657,7 +5662,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 					"groups and arglists don't mix\n");
 			return 1;
 		}
-		if (word->o_quoted /* word had "xx" or 'xx' at least as part of it. */
+		if (word->has_quoted_part
 		 /* optimization: and if it's ("" or '') or ($v... or `cmd`...): */
 		 && (word->data[0] == '\0' || word->data[0] == SPECIAL_VAR_SYMBOL)
 		 /* (otherwise it's known to be not empty and is already safe) */
@@ -5685,7 +5690,7 @@ static int done_word(o_string *word, struct parse_context *ctx)
 
 #if ENABLE_HUSH_LOOPS
 	if (ctx->ctx_res_w == RES_FOR) {
-		if (word->o_quoted
+		if (word->has_quoted_part
 		 || !is_well_formed_var_name(command->argv[0], '\0')
 		) {
 			/* bash says just "not a valid identifier" */
@@ -5842,7 +5847,7 @@ static int parse_redirect(struct parse_context *ctx,
  * the redirection expression. For example:
  * echo \2>a
  * writes the character 2 into file a"
- * We are getting it right by setting ->o_quoted on any \<char>
+ * We are getting it right by setting ->has_quoted_part on any \<char>
  *
  * A -1 return means no valid number was found,
  * the caller should use the appropriate default for this redirection.
@@ -6042,7 +6047,9 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 	*pid_p = pid;
 # if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++;
-//bb_error_msg("[%d] fork in generate_stream_from_string: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
+//bb_error_msg("[%d] fork in generate_stream_from_string:"
+//		" G.count_SIGCHLD:%d G.handled_SIGCHLD:%d",
+//		getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 # endif
 	enable_restore_tty_pgrp_on_exit();
 # if !BB_MMU
@@ -6105,7 +6112,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 	debug_printf_parse("parse_group entered\n");
 #if ENABLE_HUSH_FUNCTIONS
-	if (ch == '(' && !dest->o_quoted) {
+	if (ch == '(' && !dest->has_quoted_part) {
 		if (dest->length)
 			if (done_word(dest, ctx))
 				return 1;
@@ -6140,7 +6147,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 #if 0 /* Prevented by caller */
 	if (command->argv /* word [word]{... */
 	 || dest->length /* word{... */
-	 || dest->o_quoted /* ""{... */
+	 || dest->has_quoted_part /* ""{... */
 	) {
 		syntax_error(NULL);
 		debug_printf_parse("parse_group return 1: "
@@ -6705,7 +6712,7 @@ static struct pipe *parse_stream(char **pstring,
 		redir_type redir_style;
 
 		if (is_in_dquote) {
-			/* dest.o_quoted = 1; - already is (see below) */
+			/* dest.has_quoted_part = 1; - already is (see below) */
 			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"')) {
 				goto parse_error;
 			}
@@ -6766,7 +6773,7 @@ static struct pipe *parse_stream(char **pstring,
 		/* Are { and } special here? */
 		if (ctx.command->argv /* word [word]{... - non-special */
 		 || dest.length       /* word{... - non-special */
-		 || dest.o_quoted     /* ""{... - non-special */
+		 || dest.has_quoted_part     /* ""{... - non-special */
 		 || (next != ';'            /* }; - special */
 		    && next != ')'          /* }) - special */
 		    && next != '&'          /* }& and }&& ... - special */
@@ -6830,7 +6837,7 @@ static struct pipe *parse_stream(char **pstring,
 		if (ch == '}') {
 			if (!IS_NULL_CMD(ctx.command) /* cmd } */
 			 || dest.length != 0 /* word} */
-			 || dest.o_quoted    /* ""} */
+			 || dest.has_quoted_part    /* ""} */
 			) {
 				goto ordinary_char;
 			}
@@ -6844,7 +6851,7 @@ static struct pipe *parse_stream(char **pstring,
 #if ENABLE_HUSH_CASE
 		 && (ch != ')'
 		    || ctx.ctx_res_w != RES_MATCH
-		    || (!dest.o_quoted && strcmp(dest.data, "esac") == 0)
+		    || (!dest.has_quoted_part && strcmp(dest.data, "esac") == 0)
 		    )
 #endif
 		) {
@@ -6979,7 +6986,7 @@ static struct pipe *parse_stream(char **pstring,
 				nommu_addchr(&ctx.as_string, ch);
 				/* Example: echo Hello \2>file
 				 * we need to know that word 2 is quoted */
-				dest.o_quoted = 1;
+				dest.has_quoted_part = 1;
 			}
 #if !BB_MMU
 			else {
@@ -6996,7 +7003,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			break;
 		case '\'':
-			dest.o_quoted = 1;
+			dest.has_quoted_part = 1;
 			while (1) {
 				ch = i_getch(input);
 				if (ch == EOF) {
@@ -7010,7 +7017,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			break;
 		case '"':
-			dest.o_quoted = 1;
+			dest.has_quoted_part = 1;
 			is_in_dquote ^= 1; /* invert */
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_escape ^= 1;
@@ -7101,7 +7108,7 @@ static struct pipe *parse_stream(char **pstring,
 			if (ctx.ctx_res_w == RES_MATCH
 			 && ctx.command->argv == NULL /* not (word|(... */
 			 && dest.length == 0 /* not word(... */
-			 && dest.o_quoted == 0 /* not ""(... */
+			 && dest.has_quoted_part == 0 /* not ""(... */
 			) {
 				continue;
 			}
