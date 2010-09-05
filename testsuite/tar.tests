@@ -129,6 +129,31 @@ Ok
 "Ok\n" ""
 SKIP=
 
+# Needs to be run under non-root for meaningful test
+optional FEATURE_TAR_CREATE
+testing "tar writing into read-only dir" '\
+rm -rf input_* test.tar 2>/dev/null
+mkdir input_dir
+>input_dir/input_file
+chmod 550 input_dir
+tar cf test.tar input_dir
+tar tvf test.tar | sed "s/.*[0-9] input/input/"
+chmod 770 input_dir
+rm -rf input_*
+tar xf test.tar 2>&1
+echo Ok: $?
+ls -l input_dir/* . | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+chmod 770 input_dir
+' "\
+input_dir/
+input_dir/input_file
+Ok: 0
+-rw-r--r-- input_dir/input_file
+dr-xr-x--- input_dir
+" \
+"" ""
+SKIP=
+
 cd .. && rm -rf tar.tempdir || exit 1
 
 exit $FAILCOUNT
