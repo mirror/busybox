@@ -151,7 +151,8 @@ static char *bb_stpcpy(char *p, const char *to_add)
 
 static int open_trunc_or_warn(const char *name)
 {
-	int fd = open_trunc(name);
+	/* Why O_NDELAY? */
+	int fd = open(name, O_WRONLY | O_NDELAY | O_TRUNC | O_CREAT, 0644);
 	if (fd < 0)
 		bb_perror_msg("%s: warning: cannot open %s",
 				dir, name);

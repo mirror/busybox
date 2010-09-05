@@ -66,18 +66,18 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 //extern void iopause(iopause_fd *,unsigned,struct taia *,struct taia *);
 
 extern int lock_ex(int);
-extern int lock_un(int);
+//extern int lock_un(int);
 extern int lock_exnb(int);
 
 extern int open_read(const char *);
-extern int open_excl(const char *);
-extern int open_append(const char *);
-extern int open_trunc(const char *);
 extern int open_write(const char *);
+//extern int open_excl(const char *);
+//extern int open_append(const char *);
+//extern int open_trunc(const char *);
 
-extern unsigned pmatch(const char *, const char *, unsigned);
+extern unsigned FAST_FUNC pmatch(const char *, const char *, unsigned);
 
-#define str_diff(s,t) strcmp((s), (t))
+//#define str_diff(s,t) strcmp((s), (t))
 #define str_equal(s,t) (!strcmp((s), (t)))
 
 /*

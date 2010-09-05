@@ -29,7 +29,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Dependencies on runit_lib.c removed */
 
 #include "libbb.h"
-#include <dirent.h>
 
 /*
 Five applets here: chpst, envdir, envuidgid, setuidgid, softlimit.

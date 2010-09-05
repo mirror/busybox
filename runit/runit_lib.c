@@ -198,27 +198,29 @@ void iopause(iopause_fd *x, unsigned len, struct taia *deadline, struct taia *st
 
 int lock_ex(int fd)
 {
-	return flock(fd,LOCK_EX);
+	return flock(fd, LOCK_EX);
 }
 
 int lock_exnb(int fd)
 {
-	return flock(fd,LOCK_EX | LOCK_NB);
+	return flock(fd, LOCK_EX | LOCK_NB);
 }
 
+#ifdef UNUSED
 int open_append(const char *fn)
 {
-	return open(fn, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
-}
-
-int open_read(const char *fn)
-{
-	return open(fn, O_RDONLY|O_NDELAY);
+	return open(fn, O_WRONLY | O_NDELAY | O_APPEND | O_CREAT, 0600);
 }
 
 int open_trunc(const char *fn)
 {
-	return open(fn,O_WRONLY | O_NDELAY | O_TRUNC | O_CREAT,0644);
+	return open(fn, O_WRONLY | O_NDELAY | O_TRUNC | O_CREAT, 0644);
+}
+#endif
+
+int open_read(const char *fn)
+{
+	return open(fn, O_RDONLY|O_NDELAY);
 }
 
 int open_write(const char *fn)
@@ -226,7 +228,7 @@ int open_write(const char *fn)
 	return open(fn, O_WRONLY|O_NDELAY);
 }
 
-unsigned pmatch(const char *p, const char *s, unsigned len)
+unsigned FAST_FUNC pmatch(const char *p, const char *s, unsigned len)
 {
 	for (;;) {
 		char c = *p++;
