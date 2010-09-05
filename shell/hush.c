@@ -50,7 +50,6 @@
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
- *      subst operator: ${var/[/]expr/expr}
  *      brace expansion: one/{two,three,four}
  *      reserved words: function select
  *      advanced test: [[ ]]
@@ -330,6 +329,17 @@
 #define _SPECIAL_VARS_STR     "_*@$!?#"
 #define SPECIAL_VARS_STR     ("_*@$!?#" + 1)
 #define NUMERIC_SPECVARS_STR ("_*@$!?#" + 3)
+#if ENABLE_HUSH_BASH_COMPAT
+/* Support / and // replace ops */
+/* Note that // is stored as \ in "encoded" string representation */
+# define VAR_ENCODED_SUBST_OPS      "\\/%#:-=+?"
+# define VAR_SUBST_OPS             ("\\/%#:-=+?" + 1)
+# define MINUS_PLUS_EQUAL_QUESTION ("\\/%#:-=+?" + 5)
+#else
+# define VAR_ENCODED_SUBST_OPS      "%#:-=+?"
+# define VAR_SUBST_OPS              "%#:-=+?"
+# define MINUS_PLUS_EQUAL_QUESTION ("%#:-=+?" + 3)
+#endif
 
 #define SPECIAL_VAR_SYMBOL   3
 
@@ -2600,6 +2610,60 @@ static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 }
 #endif
 
+#if ENABLE_HUSH_BASH_COMPAT
+/* ${var/[/]pattern[/repl]} helpers */
+static char *strstr_pattern(char *val, const char *pattern, int *size)
+{
+	while (1) {
+		char *end = scan_and_match(val, pattern, SCAN_MOVE_FROM_RIGHT + SCAN_MATCH_LEFT_HALF);
+		debug_printf_varexp("val:'%s' pattern:'%s' end:'%s'\n", val, pattern, end);
+		if (end) {
+			*size = end - val;
+			return val;
+		}
+		if (*val == '\0')
+			return NULL;
+		/* Optimization: if "*pat" did not match the start of "string",
+		 * we know that "tring", "ring" etc will not match too:
+		 */
+		if (pattern[0] == '*')
+			return NULL;
+		val++;
+	}
+}
+static char *replace_pattern(char *val, const char *pattern, const char *repl, char exp_op)
+{
+	char *result = NULL;
+	unsigned res_len = 0;
+	unsigned repl_len = strlen(repl);
+
+	while (1) {
+		int size;
+		char *s = strstr_pattern(val, pattern, &size);
+		if (!s)
+			break;
+
+		result = xrealloc(result, res_len + (s - val) + repl_len + 1);
+		memcpy(result + res_len, val, s - val);
+		res_len += s - val;
+		strcpy(result + res_len, repl);
+		res_len += repl_len;
+		debug_printf_varexp("val:'%s' s:'%s' result:'%s'\n", val, s, result);
+
+		val = s + size;
+		if (exp_op == '/')
+			break;
+	}
+	if (val[0] && result) {
+		result = xrealloc(result, res_len + strlen(val) + 1);
+		strcpy(result + res_len, val);
+		debug_printf_varexp("val:'%s' result:'%s'\n", val, result);
+	}
+	debug_printf_varexp("result:'%s'\n", result);
+	return result;
+}
+#endif
+
 /* Expand all variable references in given string, adding words to list[]
  * at n, n+1,... positions. Return updated n (so that list[n] is next one
  * to be filled). This routine is extremely tricky: has to deal with
@@ -2750,7 +2814,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 			var = arg;
 			*p = '\0';
-			exp_saveptr = arg[1] ? strchr("%#:-=+?", arg[1]) : NULL;
+			exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
 			first_char = arg[0] = first_ch & 0x7f;
 			exp_op = 0;
 
@@ -2767,7 +2831,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					exp_saveptr = var + 1;
 				} else {
 					/* ${?}, ${var}, ${var:0}, ${var[:]%0} etc */
-					exp_saveptr = var+1 + strcspn(var+1, "%#:-=+?");
+					exp_saveptr = var+1 + strcspn(var+1, VAR_ENCODED_SUBST_OPS);
 				}
 				exp_op = exp_save = *exp_saveptr;
 				if (exp_op) {
@@ -2775,7 +2839,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					if (exp_op == ':') {
 						exp_op = *exp_word++;
 						if (ENABLE_HUSH_BASH_COMPAT
-						 && (exp_op == '\0' || !strchr("%#:-=+?"+3, exp_op))
+						 && (exp_op == '\0' || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
 						) {
 							/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
 							exp_op = ':';
@@ -2799,7 +2863,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 					val = utoa(G.root_pid);
 					break;
 				case '!': /* bg pid */
-					val = G.last_bg_pid ? utoa(G.last_bg_pid) : (char*)"";
+					val = G.last_bg_pid ? utoa(G.last_bg_pid) : "";
 					break;
 				case '?': /* exitcode */
 					val = utoa(G.last_exitcode);
@@ -2843,13 +2907,47 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						//		exp_op, to_be_freed, exp_word, loc);
 						free(exp_exp_word);
 						if (loc) { /* match was found */
-							if (scan_flags & SCAN_MATCH_LEFT_HALF) /* # or ## */
+							if (scan_flags & SCAN_MATCH_LEFT_HALF) /* #[#] */
 								val = loc;
-							else /* % or %% */
+							else /* %[%] */
 								*loc = '\0';
 						}
 					}
-				} else if (exp_op == ':') {
+				}
+#if ENABLE_HUSH_BASH_COMPAT
+				else if (exp_op == '/' || exp_op == '\\') {
+					/* Empty variable always gives nothing: */
+					// "v=''; echo ${v/*/w}" prints ""
+					if (val && val[0]) {
+						/* It's ${var/[/]pattern[/repl]} thing */
+						char *pattern, *repl, *t;
+						pattern = expand_pseudo_dquoted(exp_word);
+						if (!pattern)
+							pattern = xstrdup(exp_word);
+						debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
+						*p++ = SPECIAL_VAR_SYMBOL;
+						exp_word = p;
+						p = strchr(p, SPECIAL_VAR_SYMBOL);
+						*p = '\0';
+						repl = expand_pseudo_dquoted(exp_word);
+						debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
+						/* HACK ALERT. We depend here on the fact that
+						 * G.global_argv and results of utoa and get_local_var_value
+						 * are actually in writable memory:
+						 * replace_pattern momentarily stores NULs there. */
+						t = (char*)val;
+						to_be_freed = replace_pattern(t,
+								pattern,
+								(repl ? repl : exp_word),
+								exp_op);
+						if (to_be_freed) /* at least one replace happened */
+							val = to_be_freed;
+						free(pattern);
+						free(repl);
+					}
+				}
+#endif
+				else if (exp_op == ':') {
 #if ENABLE_HUSH_BASH_COMPAT && ENABLE_SH_MATH_SUPPORT
 	/* It's ${var:N[:M]} bashism.
 	 * Note that in encoded form it has TWO parts:
@@ -3084,6 +3182,16 @@ static char *expand_string_to_string(const char *str)
 {
 	char *argv[2], **list;
 
+	/* This is generally an optimization, but it also
+	 * handles "", which otherwise trips over !list[0] check below.
+	 * (is this ever happens that we actually get str="" here?)
+	 */
+	if (!strchr(str, SPECIAL_VAR_SYMBOL) && !strchr(str, '\\')) {
+		//TODO: Can use on strings with \ too, just unbackslash() them?
+		debug_printf_expand("string_to_string(fast)='%s'\n", str);
+		return xstrdup(str);
+	}
+
 	argv[0] = (char*)str;
 	argv[1] = NULL;
 	list = expand_variables(argv, EXPVAR_FLAG_ESCAPE_VARS | EXPVAR_FLAG_SINGLEWORD);
@@ -3271,7 +3379,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 	*pp++ = (char *) G.argv0_for_re_execing;
 	*pp++ = param_buf;
 	for (cur = G.top_var; cur; cur = cur->next) {
-		if (cur->varstr == hush_version_str)
+		if (strcmp(cur->varstr, hush_version_str) == 0)
 			continue;
 		if (cur->flg_read_only) {
 			*pp++ = (char *) "-R";
@@ -6170,8 +6278,8 @@ static void add_till_backquote(o_string *dest, struct in_str *input)
  *
  * Also adapted to eat ${var%...} and $((...)) constructs, since ... part
  * can contain arbitrary constructs, just like $(cmd).
- * In bash compat mode, it needs to also be able to stop on '}' or ':'
- * for ${var:N[:M]} parsing.
+ * In bash compat mode, it needs to also be able to stop on ':' or '/'
+ * for ${var:N[:M]} and ${var/P[/R]} parsing.
  */
 #define DOUBLE_CLOSE_CHAR_FLAG 0x80
 static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsigned end_ch)
@@ -6323,19 +6431,30 @@ static int parse_dollar(o_string *as_string,
 				/* handle parameter expansions
 				 * http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 				 */
-				if (!strchr("%#:-=+?", ch)) /* ${var<bad_char>... */
+				if (!strchr(VAR_SUBST_OPS, ch)) /* ${var<bad_char>... */
 					goto bad_dollar_syntax;
-				o_addchr(dest, ch);
 
 				/* Eat everything until closing '}' (or ':') */
 				end_ch = '}';
 				if (ENABLE_HUSH_BASH_COMPAT
 				 && ch == ':'
-				 && !strchr("%#:-=+?"+3, i_peek(input))
+				 && !strchr(MINUS_PLUS_EQUAL_QUESTION, i_peek(input))
 				) {
 					/* It's ${var:N[:M]} thing */
 					end_ch = '}' * 0x100 + ':';
 				}
+				if (ENABLE_HUSH_BASH_COMPAT
+				 && ch == '/'
+				) {
+					/* It's ${var/[/]pattern[/repl]} thing */
+					if (i_peek(input) == '/') { /* ${var//pattern[/repl]}? */
+						i_getch(input);
+						nommu_addchr(as_string, '/');
+						ch = '\\';
+					}
+					end_ch = '}' * 0x100 + '/';
+				}
+				o_addchr(dest, ch);
  again:
 				if (!BB_MMU)
 					pos = dest->length;
@@ -6352,14 +6471,18 @@ static int parse_dollar(o_string *as_string,
 				if (ENABLE_HUSH_BASH_COMPAT && (end_ch & 0xff00)) {
 					/* close the first block: */
 					o_addchr(dest, SPECIAL_VAR_SYMBOL);
-					/* while parsing N from ${var:N[:M]}... */
+					/* while parsing N from ${var:N[:M]}
+					 * or pattern from ${var/[/]pattern[/repl]} */
 					if ((end_ch & 0xff) == last_ch) {
-						/* ...got ':' - parse the rest */
+						/* got ':' or '/'- parse the rest */
 						end_ch = '}';
 						goto again;
 					}
-					/* ...got '}', not ':' - it's ${var:N}! emulate :999999999 */
-					o_addstr(dest, "999999999");
+					/* got '}' */
+					if (end_ch == '}' * 0x100 + ':') {
+						/* it's ${var:N} - emulate :999999999 */
+						o_addstr(dest, "999999999");
+					} /* else: it's ${var/[/]pattern} */
 				}
 				break;
 			}
@@ -7186,13 +7309,6 @@ static int set_mode(const char cstate, const char mode)
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
 {
-	static const struct variable const_shell_ver = {
-		.next = NULL,
-		.varstr = (char*)hush_version_str,
-		.max_len = 1, /* 0 can provoke free(name) */
-		.flg_export = 1,
-		.flg_read_only = 1,
-	};
 	int opt;
 	unsigned builtin_argc;
 	char **e;
@@ -7205,10 +7321,18 @@ int hush_main(int argc, char **argv)
 	G.argv0_for_re_execing = argv[0];
 #endif
 	/* Deal with HUSH_VERSION */
-	G.shell_ver = const_shell_ver; /* copying struct here */
+	G.shell_ver.flg_export = 1;
+	G.shell_ver.flg_read_only = 1;
+	/* Code which handles ${var/P/R} needs writable values for all variables,
+	 * therefore we xstrdup: */
+	G.shell_ver.varstr = xstrdup(hush_version_str),
 	G.top_var = &G.shell_ver;
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
 	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
+	/* reinstate HUSH_VERSION in environment */
+	debug_printf_env("putenv '%s'\n", G.shell_ver.varstr);
+	putenv(G.shell_ver.varstr);
+
 	/* Initialize our shell local variables with the values
 	 * currently living in the environment */
 	cur_var = G.top_var;
@@ -7224,9 +7348,6 @@ int hush_main(int argc, char **argv)
 		}
 		e++;
 	}
-	/* reinstate HUSH_VERSION */
-	debug_printf_env("putenv '%s'\n", hush_version_str);
-	putenv((char *)hush_version_str);
 
 	/* Export PWD */
 	set_pwd_var(/*exp:*/ 1);
