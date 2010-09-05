@@ -2664,6 +2664,263 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 }
 #endif
 
+/* Helper:
+ * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
+ */
+static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, char **pp, char first_ch)
+{
+	const char *val = NULL;
+	char *to_be_freed = NULL;
+	char *p = *pp;
+	char *var;
+	char first_char;
+	char exp_op;
+	char exp_save = exp_save; /* for compiler */
+	char *exp_saveptr; /* points to expansion operator */
+	char *exp_word = exp_word; /* for compiler */
+
+	var = arg;
+	*p = '\0';
+	exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
+	first_char = arg[0] = first_ch & 0x7f;
+	exp_op = 0;
+
+	if (first_char == '#' && arg[1] && !exp_saveptr) {
+		/* handle length expansion ${#var} */
+		var++;
+		exp_op = 'L';
+	} else {
+		/* maybe handle parameter expansion */
+		if (exp_saveptr /* if 2nd char is one of expansion operators */
+		 && strchr(NUMERIC_SPECVARS_STR, first_char) /* 1st char is special variable */
+		) {
+			/* ${?:0}, ${#[:]%0} etc */
+			exp_saveptr = var + 1;
+		} else {
+			/* ${?}, ${var}, ${var:0}, ${var[:]%0} etc */
+			exp_saveptr = var+1 + strcspn(var+1, VAR_ENCODED_SUBST_OPS);
+		}
+		exp_op = exp_save = *exp_saveptr;
+		if (exp_op) {
+			exp_word = exp_saveptr + 1;
+			if (exp_op == ':') {
+				exp_op = *exp_word++;
+				if (ENABLE_HUSH_BASH_COMPAT
+				 && (exp_op == '\0' || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
+				) {
+					/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
+					exp_op = ':';
+					exp_word--;
+				}
+			}
+			*exp_saveptr = '\0';
+		} /* else: it's not an expansion op, but bare ${var} */
+	}
+
+	/* lookup the variable in question */
+	if (isdigit(var[0])) {
+		/* parse_dollar() should have vetted var for us */
+		int n = xatoi_positive(var);
+		if (n < G.global_argc)
+			val = G.global_argv[n];
+		/* else val remains NULL: $N with too big N */
+	} else {
+		switch (var[0]) {
+		case '$': /* pid */
+			val = utoa(G.root_pid);
+			break;
+		case '!': /* bg pid */
+			val = G.last_bg_pid ? utoa(G.last_bg_pid) : "";
+			break;
+		case '?': /* exitcode */
+			val = utoa(G.last_exitcode);
+			break;
+		case '#': /* argc */
+			val = utoa(G.global_argc ? G.global_argc-1 : 0);
+			break;
+		default:
+			val = get_local_var_value(var);
+		}
+	}
+
+	/* Handle any expansions */
+	if (exp_op == 'L') {
+		debug_printf_expand("expand: length(%s)=", val);
+		val = utoa(val ? strlen(val) : 0);
+		debug_printf_expand("%s\n", val);
+	} else if (exp_op) {
+		if (exp_op == '%' || exp_op == '#') {
+			/* Standard-mandated substring removal ops:
+			 * ${parameter%word} - remove smallest suffix pattern
+			 * ${parameter%%word} - remove largest suffix pattern
+			 * ${parameter#word} - remove smallest prefix pattern
+			 * ${parameter##word} - remove largest prefix pattern
+			 *
+			 * Word is expanded to produce a glob pattern.
+			 * Then var's value is matched to it and matching part removed.
+			 */
+			if (val && val[0]) {
+				char *exp_exp_word;
+				char *loc;
+				unsigned scan_flags = pick_scan(exp_op, *exp_word);
+				if (exp_op == *exp_word)	/* ## or %% */
+					exp_word++;
+//TODO: avoid xstrdup unless needed
+// (see HACK ALERT below)
+				val = to_be_freed = xstrdup(val);
+				exp_exp_word = expand_pseudo_dquoted(exp_word);
+				if (exp_exp_word)
+					exp_word = exp_exp_word;
+				loc = scan_and_match(to_be_freed, exp_word, scan_flags);
+				//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
+				//		exp_op, to_be_freed, exp_word, loc);
+				free(exp_exp_word);
+				if (loc) { /* match was found */
+					if (scan_flags & SCAN_MATCH_LEFT_HALF) /* #[#] */
+						val = loc;
+					else /* %[%] */
+						*loc = '\0';
+				}
+			}
+		}
+#if ENABLE_HUSH_BASH_COMPAT
+		else if (exp_op == '/' || exp_op == '\\') {
+			/* Empty variable always gives nothing: */
+			// "v=''; echo ${v/*/w}" prints ""
+			if (val && val[0]) {
+				/* It's ${var/[/]pattern[/repl]} thing */
+				char *pattern, *repl, *t;
+				pattern = expand_pseudo_dquoted(exp_word);
+				if (!pattern)
+					pattern = xstrdup(exp_word);
+				debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
+				*p++ = SPECIAL_VAR_SYMBOL;
+				exp_word = p;
+				p = strchr(p, SPECIAL_VAR_SYMBOL);
+				*p = '\0';
+				repl = expand_pseudo_dquoted(exp_word);
+				debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
+				/* HACK ALERT. We depend here on the fact that
+				 * G.global_argv and results of utoa and get_local_var_value
+				 * are actually in writable memory:
+				 * replace_pattern momentarily stores NULs there. */
+				t = (char*)val;
+				to_be_freed = replace_pattern(t,
+						pattern,
+						(repl ? repl : exp_word),
+						exp_op);
+				if (to_be_freed) /* at least one replace happened */
+					val = to_be_freed;
+				free(pattern);
+				free(repl);
+			}
+		}
+#endif
+		else if (exp_op == ':') {
+#if ENABLE_HUSH_BASH_COMPAT && ENABLE_SH_MATH_SUPPORT
+			/* It's ${var:N[:M]} bashism.
+			 * Note that in encoded form it has TWO parts:
+			 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
+			 */
+			arith_t beg, len;
+			int errcode = 0;
+
+			beg = expand_and_evaluate_arith(exp_word, &errcode);
+			debug_printf_varexp("beg:'%s'=%lld\n", exp_word, (long long)beg);
+			*p++ = SPECIAL_VAR_SYMBOL;
+			exp_word = p;
+			p = strchr(p, SPECIAL_VAR_SYMBOL);
+			*p = '\0';
+			len = expand_and_evaluate_arith(exp_word, &errcode);
+			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
+
+			if (errcode >= 0 && len >= 0) { /* bash compat: len < 0 is illegal */
+				if (beg < 0) /* bash compat */
+					beg = 0;
+				debug_printf_varexp("from val:'%s'\n", val);
+				if (len == 0 || !val || beg >= strlen(val))
+					val = "";
+				else {
+					/* Paranoia. What if user entered 9999999999999
+					 * which fits in arith_t but not int? */
+					if (len >= INT_MAX)
+						len = INT_MAX;
+					val = to_be_freed = xstrndup(val + beg, len);
+				}
+				debug_printf_varexp("val:'%s'\n", val);
+			} else
+#endif
+			{
+				die_if_script("malformed ${%s:...}", var);
+				val = "";
+			}
+		} else { /* one of "-=+?" */
+			/* Standard-mandated substitution ops:
+			 * ${var?word} - indicate error if unset
+			 *      If var is unset, word (or a message indicating it is unset
+			 *      if word is null) is written to standard error
+			 *      and the shell exits with a non-zero exit status.
+			 *      Otherwise, the value of var is substituted.
+			 * ${var-word} - use default value
+			 *      If var is unset, word is substituted.
+			 * ${var=word} - assign and use default value
+			 *      If var is unset, word is assigned to var.
+			 *      In all cases, final value of var is substituted.
+			 * ${var+word} - use alternative value
+			 *      If var is unset, null is substituted.
+			 *      Otherwise, word is substituted.
+			 *
+			 * Word is subjected to tilde expansion, parameter expansion,
+			 * command substitution, and arithmetic expansion.
+			 * If word is not needed, it is not expanded.
+			 *
+			 * Colon forms (${var:-word}, ${var:=word} etc) do the same,
+			 * but also treat null var as if it is unset.
+			 */
+			int use_word = (!val || ((exp_save == ':') && !val[0]));
+			if (exp_op == '+')
+				use_word = !use_word;
+			debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
+					(exp_save == ':') ? "true" : "false", use_word);
+			if (use_word) {
+				to_be_freed = expand_pseudo_dquoted(exp_word);
+				if (to_be_freed)
+					exp_word = to_be_freed;
+				if (exp_op == '?') {
+					/* mimic bash message */
+					die_if_script("%s: %s",
+						var,
+						exp_word[0] ? exp_word : "parameter null or not set"
+					);
+//TODO: how interactive bash aborts expansion mid-command?
+				} else {
+					val = exp_word;
+				}
+
+				if (exp_op == '=') {
+					/* ${var=[word]} or ${var:=[word]} */
+					if (isdigit(var[0]) || var[0] == '#') {
+						/* mimic bash message */
+						die_if_script("$%s: cannot assign in this way", var);
+						val = NULL;
+					} else {
+						char *new_var = xasprintf("%s=%s", var, val);
+						set_local_var(new_var, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
+					}
+				}
+			}
+		} /* one of "-=+?" */
+
+		*exp_saveptr = exp_save;
+	} /* if (exp_op) */
+
+	arg[0] = first_ch;
+
+	*pp = p;
+	*to_be_freed_pp = to_be_freed;
+	return val;
+}
+
 /* Expand all variable references in given string, adding words to list[]
  * at n, n+1,... positions. Return updated n (so that list[n] is next one
  * to be filled). This routine is extremely tricky: has to deal with
@@ -2803,255 +3060,12 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			break;
 		}
 #endif
-		default: { /* <SPECIAL_VAR_SYMBOL>varname<SPECIAL_VAR_SYMBOL> */
-//TODO: move to a subroutine?
-			char *var;
-			char first_char;
-			char exp_op;
-			char exp_save = exp_save; /* for compiler */
-			char *exp_saveptr; /* points to expansion operator */
-			char *exp_word = exp_word; /* for compiler */
-
-			var = arg;
-			*p = '\0';
-			exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
-			first_char = arg[0] = first_ch & 0x7f;
-			exp_op = 0;
-
-			if (first_char == '#' && arg[1] && !exp_saveptr) {
-				/* handle length expansion ${#var} */
-				var++;
-				exp_op = 'L';
-			} else {
-				/* maybe handle parameter expansion */
-				if (exp_saveptr /* if 2nd char is one of expansion operators */
-				 && strchr(NUMERIC_SPECVARS_STR, first_char) /* 1st char is special variable */
-				) {
-					/* ${?:0}, ${#[:]%0} etc */
-					exp_saveptr = var + 1;
-				} else {
-					/* ${?}, ${var}, ${var:0}, ${var[:]%0} etc */
-					exp_saveptr = var+1 + strcspn(var+1, VAR_ENCODED_SUBST_OPS);
-				}
-				exp_op = exp_save = *exp_saveptr;
-				if (exp_op) {
-					exp_word = exp_saveptr + 1;
-					if (exp_op == ':') {
-						exp_op = *exp_word++;
-						if (ENABLE_HUSH_BASH_COMPAT
-						 && (exp_op == '\0' || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
-						) {
-							/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
-							exp_op = ':';
-							exp_word--;
-						}
-					}
-					*exp_saveptr = '\0';
-				} /* else: it's not an expansion op, but bare ${var} */
-			}
-
-			/* lookup the variable in question */
-			if (isdigit(var[0])) {
-				/* parse_dollar() should have vetted var for us */
-				i = xatoi_positive(var);
-				if (i < G.global_argc)
-					val = G.global_argv[i];
-				/* else val remains NULL: $N with too big N */
-			} else {
-				switch (var[0]) {
-				case '$': /* pid */
-					val = utoa(G.root_pid);
-					break;
-				case '!': /* bg pid */
-					val = G.last_bg_pid ? utoa(G.last_bg_pid) : "";
-					break;
-				case '?': /* exitcode */
-					val = utoa(G.last_exitcode);
-					break;
-				case '#': /* argc */
-					val = utoa(G.global_argc ? G.global_argc-1 : 0);
-					break;
-				default:
-					val = get_local_var_value(var);
-				}
-			}
-
-			/* handle any expansions */
-			if (exp_op == 'L') {
-				debug_printf_expand("expand: length(%s)=", val);
-				val = utoa(val ? strlen(val) : 0);
-				debug_printf_expand("%s\n", val);
-			} else if (exp_op) {
-				if (exp_op == '%' || exp_op == '#') {
-	/* Standard-mandated substring removal ops:
-	 * ${parameter%word} - remove smallest suffix pattern
-	 * ${parameter%%word} - remove largest suffix pattern
-	 * ${parameter#word} - remove smallest prefix pattern
-	 * ${parameter##word} - remove largest prefix pattern
-	 *
-	 * Word is expanded to produce a glob pattern.
-	 * Then var's value is matched to it and matching part removed.
-	 */
-					if (val) {
-						char *exp_exp_word;
-						char *loc;
-						unsigned scan_flags = pick_scan(exp_op, *exp_word);
-						if (exp_op == *exp_word)	/* ## or %% */
-							exp_word++;
-						val = to_be_freed = xstrdup(val);
-						exp_exp_word = expand_pseudo_dquoted(exp_word);
-						if (exp_exp_word)
-							exp_word = exp_exp_word;
-						loc = scan_and_match(to_be_freed, exp_word, scan_flags);
-						//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
-						//		exp_op, to_be_freed, exp_word, loc);
-						free(exp_exp_word);
-						if (loc) { /* match was found */
-							if (scan_flags & SCAN_MATCH_LEFT_HALF) /* #[#] */
-								val = loc;
-							else /* %[%] */
-								*loc = '\0';
-						}
-					}
-				}
-#if ENABLE_HUSH_BASH_COMPAT
-				else if (exp_op == '/' || exp_op == '\\') {
-					/* Empty variable always gives nothing: */
-					// "v=''; echo ${v/*/w}" prints ""
-					if (val && val[0]) {
-						/* It's ${var/[/]pattern[/repl]} thing */
-						char *pattern, *repl, *t;
-						pattern = expand_pseudo_dquoted(exp_word);
-						if (!pattern)
-							pattern = xstrdup(exp_word);
-						debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
-						*p++ = SPECIAL_VAR_SYMBOL;
-						exp_word = p;
-						p = strchr(p, SPECIAL_VAR_SYMBOL);
-						*p = '\0';
-						repl = expand_pseudo_dquoted(exp_word);
-						debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
-						/* HACK ALERT. We depend here on the fact that
-						 * G.global_argv and results of utoa and get_local_var_value
-						 * are actually in writable memory:
-						 * replace_pattern momentarily stores NULs there. */
-						t = (char*)val;
-						to_be_freed = replace_pattern(t,
-								pattern,
-								(repl ? repl : exp_word),
-								exp_op);
-						if (to_be_freed) /* at least one replace happened */
-							val = to_be_freed;
-						free(pattern);
-						free(repl);
-					}
-				}
-#endif
-				else if (exp_op == ':') {
-#if ENABLE_HUSH_BASH_COMPAT && ENABLE_SH_MATH_SUPPORT
-	/* It's ${var:N[:M]} bashism.
-	 * Note that in encoded form it has TWO parts:
-	 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
-	 */
-					arith_t beg, len;
-					int errcode = 0;
-
-					beg = expand_and_evaluate_arith(exp_word, &errcode);
-					debug_printf_varexp("beg:'%s'=%lld\n", exp_word, (long long)beg);
-					*p++ = SPECIAL_VAR_SYMBOL;
-					exp_word = p;
-					p = strchr(p, SPECIAL_VAR_SYMBOL);
-					*p = '\0';
-					len = expand_and_evaluate_arith(exp_word, &errcode);
-					debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
-
-					if (errcode >= 0 && len >= 0) { /* bash compat: len < 0 is illegal */
-						if (beg < 0) /* bash compat */
-							beg = 0;
-						debug_printf_varexp("from val:'%s'\n", val);
-						if (len == 0 || !val || beg >= strlen(val))
-							val = "";
-						else {
-							/* Paranoia. What if user entered 9999999999999
-							 * which fits in arith_t but not int? */
-							if (len >= INT_MAX)
-								len = INT_MAX;
-							val = to_be_freed = xstrndup(val + beg, len);
-						}
-						debug_printf_varexp("val:'%s'\n", val);
-					} else
-#endif
-					{
-						die_if_script("malformed ${%s:...}", var);
-						val = "";
-					}
-				} else { /* one of "-=+?" */
-	/* Standard-mandated substitution ops:
-	 * ${var?word} - indicate error if unset
-	 *      If var is unset, word (or a message indicating it is unset
-	 *      if word is null) is written to standard error
-	 *      and the shell exits with a non-zero exit status.
-	 *      Otherwise, the value of var is substituted.
-	 * ${var-word} - use default value
-	 *      If var is unset, word is substituted.
-	 * ${var=word} - assign and use default value
-	 *      If var is unset, word is assigned to var.
-	 *      In all cases, final value of var is substituted.
-	 * ${var+word} - use alternative value
-	 *      If var is unset, null is substituted.
-	 *      Otherwise, word is substituted.
-	 *
-	 * Word is subjected to tilde expansion, parameter expansion,
-	 * command substitution, and arithmetic expansion.
-	 * If word is not needed, it is not expanded.
-	 *
-	 * Colon forms (${var:-word}, ${var:=word} etc) do the same,
-	 * but also treat null var as if it is unset.
-	 */
-					int use_word = (!val || ((exp_save == ':') && !val[0]));
-					if (exp_op == '+')
-						use_word = !use_word;
-					debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
-						(exp_save == ':') ? "true" : "false", use_word);
-					if (use_word) {
-						to_be_freed = expand_pseudo_dquoted(exp_word);
-						if (to_be_freed)
-							exp_word = to_be_freed;
-						if (exp_op == '?') {
-							/* mimic bash message */
-							die_if_script("%s: %s",
-								var,
-								exp_word[0] ? exp_word : "parameter null or not set"
-							);
-//TODO: how interactive bash aborts expansion mid-command?
-						} else {
-							val = exp_word;
-						}
-
-						if (exp_op == '=') {
-							/* ${var=[word]} or ${var:=[word]} */
-							if (isdigit(var[0]) || var[0] == '#') {
-								/* mimic bash message */
-								die_if_script("$%s: cannot assign in this way", var);
-								val = NULL;
-							} else {
-								char *new_var = xasprintf("%s=%s", var, val);
-								set_local_var(new_var, /*exp:*/ 0, /*lvl:*/ 0, /*ro:*/ 0);
-							}
-						}
-					}
-				} /* one of "-=+?" */
-
-				*exp_saveptr = exp_save;
-			} /* if (exp_op) */
-
-			arg[0] = first_ch;
-#if ENABLE_HUSH_TICK
- store_val:
-#endif
+		default:
+			val = expand_one_var(&to_be_freed, arg, &p, first_ch);
+ IF_HUSH_TICK(store_val:)
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val, output->o_escape);
-				if (val) {
+				if (val && val[0]) {
 					/* unquoted var's contents should be globbed, so don't escape */
 					smallint sv = output->o_escape;
 					output->o_escape = 0;
@@ -3062,10 +3076,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			} else { /* quoted $VAR, val will be appended below */
 				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val, output->o_escape);
 			}
-		} /* default: */
+			break;
+
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
-		if (val) {
+		if (val && val[0]) {
 			o_addQstr(output, val, strlen(val));
 		}
 		free(to_be_freed);
