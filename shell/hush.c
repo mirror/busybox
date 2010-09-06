@@ -2007,12 +2007,17 @@ static void o_addstr_with_NUL(o_string *o, const char *str)
 static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len)
 {
 	while (len) {
-		o_addchr(o, *str);
-		if (*str == '\\') {
-			o_addchr(o, '\\');
-		}
-		str++;
 		len--;
+		o_addchr(o, *str);
+		if (*str++ == '\\') {
+			/* \z -> \\\z; \<eol> -> \\<eol> */
+			o_addchr(o, '\\');
+			if (len) {
+				len--;
+				o_addchr(o, '\\');
+				o_addchr(o, *str++);
+			}
+		}
 	}
 }
 
@@ -2067,12 +2072,8 @@ static void o_addQchr(o_string *o, int ch)
 	o->data[o->length] = '\0';
 }
 
-static void o_addQblock(o_string *o, const char *str, int len)
+static void o_addqblock(o_string *o, const char *str, int len)
 {
-	if (!o->o_escape) {
-		o_addblock(o, str, len);
-		return;
-	}
 	while (len) {
 		char ch;
 		int sz;
@@ -2097,6 +2098,15 @@ static void o_addQblock(o_string *o, const char *str, int len)
 		o->length++;
 		o->data[o->length] = '\0';
 	}
+}
+
+static void o_addQblock(o_string *o, const char *str, int len)
+{
+	if (!o->o_escape) {
+		o_addblock(o, str, len);
+		return;
+	}
+	o_addqblock(o, str, len);
 }
 
 static void o_addQstr(o_string *o, const char *str)
@@ -2356,11 +2366,11 @@ static int glob_brace(char *pattern, o_string *o, int n)
 /* Performs globbing on last list[],
  * saving each result as a new list[].
  */
-static int o_glob(o_string *o, int n)
+static int perform_glob(o_string *o, int n)
 {
 	char *pattern, *copy;
 
-	debug_printf_glob("start o_glob: n:%d o->data:%p\n", n, o->data);
+	debug_printf_glob("start perform_glob: n:%d o->data:%p\n", n, o->data);
 	if (!o->data)
 		return o_save_ptr_helper(o, n);
 	pattern = o->data + o_get_last_ptr(o, n);
@@ -2378,7 +2388,7 @@ static int o_glob(o_string *o, int n)
 	n = glob_brace(copy, o, n);
 	free(copy);
 	if (DEBUG_GLOB)
-		debug_print_list("o_glob returning", o, n);
+		debug_print_list("perform_glob returning", o, n);
 	return n;
 }
 
@@ -2403,13 +2413,13 @@ static int glob_needed(const char *s)
 /* Performs globbing on last list[],
  * saving each result as a new list[].
  */
-static int o_glob(o_string *o, int n)
+static int perform_glob(o_string *o, int n)
 {
 	glob_t globdata;
 	int gr;
 	char *pattern;
 
-	debug_printf_glob("start o_glob: n:%d o->data:%p\n", n, o->data);
+	debug_printf_glob("start perform_glob: n:%d o->data:%p\n", n, o->data);
 	if (!o->data)
 		return o_save_ptr_helper(o, n);
 	pattern = o->data + o_get_last_ptr(o, n);
@@ -2455,7 +2465,7 @@ static int o_glob(o_string *o, int n)
 	}
 	globfree(&globdata);
 	if (DEBUG_GLOB)
-		debug_print_list("o_glob returning", o, n);
+		debug_print_list("perform_glob returning", o, n);
 	return n;
 }
 
@@ -2470,7 +2480,7 @@ static int o_save_ptr(o_string *o, int n)
 		 * (if it was requested back then when it was filled)
 		 * so don't do that again! */
 		if (!o->has_empty_slot)
-			return o_glob(o, n); /* o_save_ptr_helper is inside */
+			return perform_glob(o, n); /* o_save_ptr_helper is inside */
 	}
 	return o_save_ptr_helper(o, n);
 }
@@ -2927,15 +2937,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 						(ctx->ctx_res_w == RES_SNTX));
 				return (ctx->ctx_res_w == RES_SNTX);
 			}
-# ifdef CMD_SINGLEWORD_NOGLOB_COND
-			if (strcmp(word->data, "export") == 0
-#  if ENABLE_HUSH_LOCAL
-			 || strcmp(word->data, "local") == 0
-#  endif
-			) {
-				command->cmd_type = CMD_SINGLEWORD_NOGLOB_COND;
-			} else
-# endif
 # if ENABLE_HUSH_BASH_COMPAT
 			if (strcmp(word->data, "[[") == 0) {
 				command->cmd_type = CMD_SINGLEWORD_NOGLOB;
@@ -4371,10 +4372,19 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
-			if (output->o_escape || !output->o_glob)
-				o_addQblock(output, str, word_len);
-			else /* protect backslashes against globbing up :) */
+			if (output->o_escape)
+				o_addqblock(output, str, word_len);
+			else if (!output->o_glob)
+				o_addblock(output, str, word_len);
+			else /* if (!escape && glob) */ {
+				/* Protect backslashes against globbing up :)
+				 * Example: "v='\*'; echo b$v"
+				 */
 				o_addblock_duplicate_backslash(output, str, word_len);
+				/*/ Why can't we do it easier? */
+				/*o_addblock(output, str, word_len); - WRONG: "v='\*'; echo Z$v" prints "Z*" instead of "Z\*" */
+				/*o_addqblock(output, str, word_len); - WRONG: "v='*'; echo Z$v" prints "Z*" instead of Z* files */
+			}
 			str += word_len;
 		}
 		if (!*str)  /* EOL - do not finalize word */
@@ -4594,8 +4604,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				if (exp_op == *exp_word)	/* ## or %% */
 					exp_word++;
 //TODO: avoid xstrdup unless needed
-// (see HACK ALERT below)
+// (see HACK ALERT below for an example)
 				val = to_be_freed = xstrdup(val);
+//TODO: fix expansion rules:
 				exp_exp_word = expand_pseudo_dquoted(exp_word);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
@@ -4613,10 +4624,26 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 		}
 #if ENABLE_HUSH_BASH_COMPAT
 		else if (exp_op == '/' || exp_op == '\\') {
+			/* It's ${var/[/]pattern[/repl]} thing.
+			 * Note that in encoded form it has TWO parts:
+			 * var/pattern<SPECIAL_VAR_SYMBOL>repl<SPECIAL_VAR_SYMBOL>
+			 */
 			/* Empty variable always gives nothing: */
-			// "v=''; echo ${v/*/w}" prints ""
+			// "v=''; echo ${v/*/w}" prints "", not "w"
 			if (val && val[0]) {
 				/* It's ${var/[/]pattern[/repl]} thing */
+				/*
+				 * Pattern is taken literally, while
+				 * repl should be de-backslased and globbed
+				 * by the usual expansion rules:
+				 * >az; >bz;
+				 * v='a bz'; echo "${v/a*z/a*z}" prints "a*z"
+				 * v='a bz'; echo "${v/a*z/\z}"  prints "\z"
+				 * v='a bz'; echo ${v/a*z/a*z}   prints "az"
+				 * v='a bz'; echo ${v/a*z/\z}    prints "z"
+				 * (note that a*z _pattern_ is never globbed!)
+				 */
+//TODO: fix expansion rules:
 				char *pattern, *repl, *t;
 				pattern = expand_pseudo_dquoted(exp_word);
 				if (!pattern)
@@ -4772,7 +4799,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 
 	while ((p = strchr(arg, SPECIAL_VAR_SYMBOL)) != NULL) {
 		char first_ch;
-		int i;
 		char *to_be_freed = NULL;
 		const char *val = NULL;
 #if ENABLE_HUSH_TICK
@@ -4795,10 +4821,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
 		case '*':
-		case '@':
-			i = 1;
-			if (!G.global_argv[i])
+		case '@': {
+			int i;
+			if (!G.global_argv[1])
 				break;
+			i = 1;
 			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				smallint sv = output->o_escape;
@@ -4839,6 +4866,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				}
 			}
 			break;
+		}
 		case SPECIAL_VAR_SYMBOL: /* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
 			/* "Empty variable", used to make "" etc to not disappear */
 			arg++;
@@ -4981,41 +5009,6 @@ static char **expand_strvec_to_strvec(char **argv)
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
 	return expand_variables(argv, EXPVAR_FLAG_SINGLEWORD);
-}
-#endif
-
-#ifdef CMD_SINGLEWORD_NOGLOB_COND
-static char **expand_strvec_to_strvec_singleword_noglob_cond(char **argv)
-{
-	int n;
-	char **list;
-	char **v;
-	o_string output = NULL_O_STRING;
-
-	n = 0;
-	v = argv;
-	while (*v) {
-		int is_var = is_well_formed_var_name(*v, '=');
-		/* is_var * 0x80: singleword expansion for vars */
-		n = expand_vars_to_list(&output, n, *v, is_var * 0x80);
-
-		/* Subtle! expand_vars_to_list did not glob last word yet.
-		 * It does this only when fed with further data.
-		 * Therefore we set globbing flags AFTER it, not before:
-		 */
-
-		/* if it is not recognizably abc=...; then: */
-		output.o_escape = !is_var; /* protect against globbing for "$var" */
-		/* (unquoted $var will temporarily switch it off) */
-		output.o_glob = !is_var; /* and indeed do globbing */
-		v++;
-	}
-	debug_print_list("expand_cond", &output, n);
-
-	/* output.data (malloced in one block) gets returned in "list" */
-	list = o_finalize_list(&output, n);
-	debug_print_strings("expand_cond[1]", list);
-	return list;
 }
 #endif
 
@@ -6565,11 +6558,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 #if ENABLE_HUSH_BASH_COMPAT
 		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
-		}
-#endif
-#ifdef CMD_SINGLEWORD_NOGLOB_COND
-		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB_COND) {
-			argv_expanded = expand_strvec_to_strvec_singleword_noglob_cond(argv + command->assignment_cnt);
 		}
 #endif
 		else {
