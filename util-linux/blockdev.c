@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2010 Sergey Naumov <sknaumov@gmail.com>
  *
- * Licensed under GPLv2, see file LICENSE in this source tree.
+ * Licensed under GPLv2, see file License in this tarball for details.
  */
 
 //applet:IF_BLOCKDEV(APPLET(blockdev, _BB_DIR_SBIN, _BB_SUID_DROP))
@@ -39,7 +39,8 @@ enum {
 	ARG_NONE   = 0,
 	ARG_INT    = 1,
 	ARG_ULONG  = 2,
-	ARG_ULLONG = 3,
+	/* Yes, BLKGETSIZE64 takes pointer to uint64_t, not ullong! */
+	ARG_U64    = 3,
 	ARG_MASK   = 3,
 
 	FL_USRARG   = 4, /* argument is provided by user */
@@ -92,7 +93,7 @@ static const struct bdc bdcommands[] = {
 	},{
 		.ioc = BLKGETSIZE64,
 		.name = "getsize64",
-		.flags = ARG_ULLONG,
+		.flags = ARG_U64,
 		.argval = -1,
 	},{
 		.ioc = BLKFLSBUF,
@@ -125,55 +126,66 @@ int blockdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int blockdev_main(int argc, char **argv)
 {
 	const struct bdc *bdcmd;
-	void *ioctl_ptr;
 	int fd;
-	int iarg;
-	unsigned long lu;
-	unsigned long long llu;
+	uint64_t u64;
+	union {
+		int i;
+		unsigned long lu;
+		uint64_t u64;
+	} ioctl_val_on_stack;
 
 	if ((unsigned)(argc - 3) > 1) /* must have 2 or 3 args */
 		bb_show_usage();
 
 	bdcmd = find_cmd(*++argv);
 
-	llu = (int)bdcmd->argval;
+	u64 = (int)bdcmd->argval;
 	if (bdcmd->flags & FL_USRARG)
-		llu = xatoi_positive(*++argv);
-	lu = llu;
-	iarg = llu;
+		u64 = xatoi_positive(*++argv);
 
 	if (!*++argv || argv[1])
 		bb_show_usage();
 	fd = xopen(*argv, O_RDONLY);
 
-	ioctl_ptr = NULL;
+	ioctl_val_on_stack.u64 = u64;
+#if BB_BIG_ENDIAN
+	/* Store data properly wrt data size.
+	 * (1) It's no-op for little-endian.
+	 * (2) it's no-op for 0 and -1. Only --setro uses arg != 0 and != -1,
+	 * and it is ARG_INT. --setbsz USER_VAL is also ARG_INT.
+	 * Thus, we don't need to handle ARG_ULONG.
+	 */
 	switch (bdcmd->flags & ARG_MASK) {
 	case ARG_INT:
-		ioctl_ptr =  &iarg;
+		ioctl_val_on_stack.i = (int)u64;
 		break;
+# if 0 /* unused */
 	case ARG_ULONG:
-		ioctl_ptr = &lu;
+		ioctl_val_on_stack.lu = (unsigned long)u64;
 		break;
-	case ARG_ULLONG:
-		ioctl_ptr = &llu;
-		break;
+# endif
 	}
+#endif
 
-	if (ioctl(fd, bdcmd->ioc, ioctl_ptr) == -1)
+	if (ioctl(fd, bdcmd->ioc, &ioctl_val_on_stack.u64) == -1)
 		bb_simple_perror_msg_and_die(*argv);
 
+	/* Fetch it into register(s) */
+	u64 = ioctl_val_on_stack.u64;
+
+	/* Zero- or one-extend the value if needed, then print */
 	switch (bdcmd->flags & (ARG_MASK+FL_NORESULT)) {
 	case ARG_INT:
 		/* Smaller code when we use long long
 		 * (gcc tail-merges printf call)
 		 */
-		printf("%lld\n", (long long)iarg);
+		printf("%lld\n", (long long)(int)u64);
 		break;
 	case ARG_ULONG:
-		llu = lu;
+		u64 = (unsigned long)u64;
 		/* FALLTHROUGH */
-	case ARG_ULLONG:
-		printf("%llu\n", llu);
+	case ARG_U64:
+		printf("%llu\n", (unsigned long long)u64);
 		break;
 	}
 
