@@ -142,7 +142,7 @@ int blockdev_main(int argc, char **argv)
 	lu = llu;
 	iarg = llu;
 
-	if (!*++argv)
+	if (!*++argv || argv[1])
 		bb_show_usage();
 	fd = xopen(*argv, O_RDONLY);
 
