@@ -3174,7 +3174,7 @@ static char *fetch_till_str(o_string *as_string,
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 		if (ch == '\n'
-		/* TODO: or EOF? (heredoc delimiter may end with <eof>, not only <eol> */
+		/* TODO: or EOF? (heredoc delimiter may end with <eof>, not only <eol>) */
 		 && ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\')
 		) {
 			if (strcmp(heredoc.data + past_EOL, word) == 0) {
