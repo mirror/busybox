@@ -109,12 +109,15 @@ static const struct bdc bdcommands[] = {
 
 static const struct bdc *find_cmd(const char *s)
 {
-	int j;
-	if (*s++ == '-')
-		if (*s++ == '-')
-			for (j = 0; j < ARRAY_SIZE(bdcommands); j++)
-				if (strcmp(s, bdcommands[j].name) == 0)
-					return &bdcommands[j];
+	const struct bdc *bdcmd = bdcommands;
+	if (s[0] == '-' && s[1] == '-') {
+		s += 2;
+		do {
+			if (strcmp(s, bdcmd->name) == 0)
+				return bdcmd;
+			bdcmd++;
+		} while (bdcmd != bdcommands + ARRAY_SIZE(bdcommands));
+	}
 	bb_show_usage();
 }
 
