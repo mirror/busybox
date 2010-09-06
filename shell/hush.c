@@ -475,20 +475,10 @@ struct command {
 	smallint cmd_type;          /* CMD_xxx */
 #define CMD_NORMAL   0
 #define CMD_SUBSHELL 1
-
-/* used for "[[ EXPR ]]" */
 #if ENABLE_HUSH_BASH_COMPAT
+/* used for "[[ EXPR ]]" */
 # define CMD_SINGLEWORD_NOGLOB 2
 #endif
-
-/* used for "export noglob=* glob* a=`echo a b`" */
-//#define CMD_SINGLEWORD_NOGLOB_COND 3
-// It is hard to implement correctly, it adds significant amounts of tricky code,
-// and all this is only useful for really obscure export statements
-// almost nobody would use anyway. #ifdef CMD_SINGLEWORD_NOGLOB_COND
-// guards the code which implements it, but I have doubts it works
-// in all cases (especially with mixed globbed/non-globbed arguments)
-
 #if ENABLE_HUSH_FUNCTIONS
 # define CMD_FUNCDEF 3
 #endif
