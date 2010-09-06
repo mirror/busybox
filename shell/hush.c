@@ -3174,6 +3174,7 @@ static char *fetch_till_str(o_string *as_string,
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 		if (ch == '\n'
+		/* TODO: or EOF? (heredoc delimiter may end with <eof>, not only <eol> */
 		 && ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\')
 		) {
 			if (strcmp(heredoc.data + past_EOL, word) == 0) {
@@ -3182,7 +3183,8 @@ static char *fetch_till_str(o_string *as_string,
 				return heredoc.data;
 			}
 			do {
-				o_addchr(&heredoc, ch);
+				o_addchr(&heredoc, '\n');
+				prev = 0; /* not \ */
 				past_EOL = heredoc.length;
  jump_in:
 				do {
@@ -3196,8 +3198,12 @@ static char *fetch_till_str(o_string *as_string,
 			return NULL;
 		}
 		o_addchr(&heredoc, ch);
+		if (prev == '\\' && ch == '\\')
+			/* Correctly handle foo\\<eol> (not a line cont.) */
+			prev = 0; /* not \ */
+		else
+			prev = ch;
 		nommu_addchr(as_string, ch);
-		prev = ch;
 	}
 }
 

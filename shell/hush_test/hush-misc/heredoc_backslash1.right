@@ -1,12 +1,16 @@
 Quoted heredoc:
 a\
 	b
+a\\
+	b
  123456 -$a-\t-\\-\"-\'-\`-\--\z-\*-\?-
 	-$a-\t-\\-\"-\'-\`-\--\z-\*-\?-
 c\
 
 Unquoted heredoc:
 a	b
+a\
+	b
  123456 -qwerty-\t-\-\"-\'-`-\--\z-\*-\?-
 	-qwerty-\t-\-\"-\'-`-\--\z-\*-\?-
 cEOF2
@@ -14,12 +18,16 @@ cEOF2
 Quoted -heredoc:
 a\
 b
+a\\
+b
  123456 -$a-\t-\\-\"-\'-\`-\--\z-\*-\?-
 -$a-\t-\\-\"-\'-\`-\--\z-\*-\?-
 c\
 
 Unquoted -heredoc:
 a	b
+a\
+b
  123456 -qwerty-\t-\-\"-\'-`-\--\z-\*-\?-
 -qwerty-\t-\-\"-\'-`-\--\z-\*-\?-
 cEOF4
