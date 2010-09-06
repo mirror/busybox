@@ -4544,7 +4544,7 @@ INSERT
 	) \
 
 #define udhcpd_trivial_usage \
-       "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [configfile]" \
+       "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]" \
 
 #define udhcpd_full_usage "\n\n" \
        "DHCP server\n" \
