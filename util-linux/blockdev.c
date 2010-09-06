@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2010 Sergey Naumov <sknaumov@gmail.com>
  *
- * Licensed under GPLv2, see file License in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
 //applet:IF_BLOCKDEV(APPLET(blockdev, _BB_DIR_SBIN, _BB_SUID_DROP))

@@ -4,7 +4,7 @@
  *
  * Author: Ignacio Garcia Perez (iggarpe at gmail dot com)
  *
- * License: GPLv2 or later, see LICENSE file in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * There are some differences from the standard net-tools slattach:
  *

@@ -12,7 +12,7 @@
  *
  *  started life as a busybox implementation of udpkg
  *
- * licensed under gplv2 or later, see file license in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
 /*
