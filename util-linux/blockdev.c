@@ -17,7 +17,7 @@
 //config:	  Performs some ioctls with block devices.
 
 //usage:#define blockdev_trivial_usage
-//usage:	"OPTION [OPTARG] DEVICE"
+//usage:	"OPTION BLOCKDEV"
 //usage:#define blockdev_full_usage "\n\n"
 //usage:       "Options:"
 //usage:     "\n	--setro		Set ro"
