@@ -3162,17 +3162,20 @@ static int redirect_opt_num(o_string *o)
 static char *fetch_till_str(o_string *as_string,
 		struct in_str *input,
 		const char *word,
-		int skip_tabs)
+		int heredoc_flags)
 {
 	o_string heredoc = NULL_O_STRING;
 	int past_EOL = 0;
+	int prev = 0; /* not \ */
 	int ch;
 
 	goto jump_in;
 	while (1) {
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
-		if (ch == '\n') {
+		if (ch == '\n'
+		 && ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\')
+		) {
 			if (strcmp(heredoc.data + past_EOL, word) == 0) {
 				heredoc.data[past_EOL] = '\0';
 				debug_printf_parse("parsed heredoc '%s'\n", heredoc.data);
@@ -3185,7 +3188,7 @@ static char *fetch_till_str(o_string *as_string,
 				do {
 					ch = i_getch(input);
 					nommu_addchr(as_string, ch);
-				} while (skip_tabs && ch == '\t');
+				} while ((heredoc_flags & HEREDOC_SKIPTABS) && ch == '\t');
 			} while (ch == '\n');
 		}
 		if (ch == EOF) {
@@ -3194,6 +3197,7 @@ static char *fetch_till_str(o_string *as_string,
 		}
 		o_addchr(&heredoc, ch);
 		nommu_addchr(as_string, ch);
+		prev = ch;
 	}
 }
 
@@ -3223,7 +3227,7 @@ static int fetch_heredocs(int heredoc_cnt, struct parse_context *ctx, struct in_
 					redir->rd_type = REDIRECT_HEREDOC2;
 					/* redir->rd_dup is (ab)used to indicate <<- */
 					p = fetch_till_str(&ctx->as_string, input,
-						redir->rd_filename, redir->rd_dup & HEREDOC_SKIPTABS);
+							redir->rd_filename, redir->rd_dup);
 					if (!p) {
 						syntax_error("unexpected EOF in here document");
 						return 1;
@@ -3778,8 +3782,9 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * only when followed by one of the following characters:
 		 * $, `, ", \, or <newline>.  A double quote may be quoted
 		 * within double quotes by preceding it with a backslash."
+		 * NB: in (unquoted) heredoc, above does not apply to ".
 		 */
-		if (strchr("$`\"\\\n", next) != NULL) {
+		if (next == dquote_end || strchr("$`\\\n", next) != NULL) {
 			ch = i_getch(input);
 			if (ch != '\n') {
 				o_addqchr(dest, ch);
@@ -4412,6 +4417,7 @@ static char *expand_pseudo_dquoted(const char *str)
 	o_string dest = NULL_O_STRING;
 
 	if (!strchr(str, '$')
+	 && !strchr(str, '\\')
 #if ENABLE_HUSH_TICK
 	 && !strchr(str, '`')
 #endif
