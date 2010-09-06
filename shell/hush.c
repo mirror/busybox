@@ -7329,14 +7329,10 @@ int hush_main(int argc, char **argv)
 	 * therefore we xstrdup: */
 	G.shell_ver.varstr = xstrdup(hush_version_str),
 	G.top_var = &G.shell_ver;
+	/* Create shell local variables from the values
+	 * currently living in the environment */
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
 	unsetenv("HUSH_VERSION"); /* in case it exists in initial env */
-	/* reinstate HUSH_VERSION in environment */
-	debug_printf_env("putenv '%s'\n", G.shell_ver.varstr);
-	putenv(G.shell_ver.varstr);
-
-	/* Initialize our shell local variables with the values
-	 * currently living in the environment */
 	cur_var = G.top_var;
 	e = environ;
 	if (e) while (*e) {
@@ -7350,6 +7346,9 @@ int hush_main(int argc, char **argv)
 		}
 		e++;
 	}
+	/* (Re)insert HUSH_VERSION into env (AFTER we scanned the env!) */
+	debug_printf_env("putenv '%s'\n", G.shell_ver.varstr);
+	putenv(G.shell_ver.varstr);
 
 	/* Export PWD */
 	set_pwd_var(/*exp:*/ 1);
