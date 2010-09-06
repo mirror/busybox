@@ -102,7 +102,6 @@
 
 //applet:IF_HUSH(APPLET(hush, _BB_DIR_BIN, _BB_SUID_DROP))
 //applet:IF_MSH(APPLET(msh, _BB_DIR_BIN, _BB_SUID_DROP))
-//applet:IF_LASH(APPLET(lash, _BB_DIR_BIN, _BB_SUID_DROP))
 //applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, _BB_DIR_BIN, _BB_SUID_DROP, sh))
 //applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, _BB_DIR_BIN, _BB_SUID_DROP, bash))
 
@@ -223,13 +222,6 @@
 //config:	  This instructs hush to print commands before execution.
 //config:	  Adds ~300 bytes.
 //config:
-//config:config LASH
-//config:	bool "lash (deprecated: aliased to hush)"
-//config:	default n
-//config:	select HUSH
-//config:	help
-//config:	  lash is deprecated and will be removed, please migrate to hush.
-//config:
 //config:config MSH
 //config:	bool "msh (deprecated: aliased to hush)"
 //config:	default n
@@ -240,8 +232,6 @@
 
 //usage:#define hush_trivial_usage NOUSAGE_STR
 //usage:#define hush_full_usage ""
-//usage:#define lash_trivial_usage NOUSAGE_STR
-//usage:#define lash_full_usage ""
 //usage:#define msh_trivial_usage NOUSAGE_STR
 //usage:#define msh_full_usage ""
 
@@ -7731,15 +7721,6 @@ int hush_main(int argc, char **argv)
 	hush_exit(G.last_exitcode);
 }
 
-
-#if ENABLE_LASH
-int lash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int lash_main(int argc, char **argv)
-{
-	bb_error_msg("lash is deprecated, please use hush instead");
-	return hush_main(argc, argv);
-}
-#endif
 
 #if ENABLE_MSH
 int msh_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

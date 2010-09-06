@@ -82,7 +82,7 @@ Rob Landley suggested this:
 
   initramfs
     Busybox should have a sample initramfs build script.  This depends on
-    bbsh, mdev, and switch_root.
+    shell, mdev, and switch_root.
 
   mkdep
     Write a mkdep that doesn't segfault if there's a directory it doesn't
