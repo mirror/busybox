@@ -1792,7 +1792,7 @@ static void cmdedit_update_prompt(void)
 		G.PS2 = "> ";
 }
 
-static const char* setup_prompt_string(int promptmode)
+static const char *setup_prompt_string(int promptmode)
 {
 	const char *prompt_str;
 	debug_printf("setup_prompt_string %d ", promptmode);
@@ -2183,7 +2183,7 @@ static int o_save_ptr_helper(o_string *o, int n)
 				n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
-	list[n] = (char*)(ptrdiff_t)string_len;
+	list[n] = (char*)(uintptr_t)string_len;
 	return n + 1;
 }
 
@@ -2193,7 +2193,7 @@ static int o_get_last_ptr(o_string *o, int n)
 	char **list = (char**)o->data;
 	int string_start = ((n + 0xf) & ~0xf) * sizeof(list[0]);
 
-	return ((int)(ptrdiff_t)list[n-1]) + string_start;
+	return ((int)(uintptr_t)list[n-1]) + string_start;
 }
 
 #ifdef HUSH_BRACE_EXP
@@ -2231,9 +2231,9 @@ static const char *next_brace_sub(const char *cp)
 			cp++;
 			continue;
 		}
-		 /*{*/ if ((*cp == '}' && depth-- == 0) || (*cp == ',' && depth == 0))
+		if ((*cp == '}' && depth-- == 0) || (*cp == ',' && depth == 0))
 			break;
-		if (*cp++ == '{') /*}*/
+		if (*cp++ == '{')
 			depth++;
 	}
 
@@ -2255,7 +2255,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 	while (1) {
 		if (*begin == '\0')
 			goto simple_glob;
-		if (*begin == '{') /*}*/ {
+		if (*begin == '{') {
 			/* Find the first sub-pattern and at the same time
 			 * find the rest after the closing brace */
 			next = next_brace_sub(begin);
@@ -2263,7 +2263,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 				/* An illegal expression */
 				goto simple_glob;
 			}
-			/*{*/ if (*next == '}') {
+			if (*next == '}') {
 				/* "{abc}" with no commas - illegal
 				 * brace expr, disregard and skip it */
 				begin = next + 1;
@@ -2280,7 +2280,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 
 	/* Now find the end of the whole brace expression */
 	rest = next;
-	/*{*/ while (*rest != '}') {
+	while (*rest != '}') {
 		rest = next_brace_sub(rest);
 		if (rest == NULL) {
 			/* An illegal expression */
@@ -2316,7 +2316,7 @@ static int glob_brace(char *pattern, o_string *o, int n)
 		 * That's why we re-copy prefix every time (1st memcpy above).
 		 */
 		n = glob_brace(new_pattern_buf, o, n);
-		/*{*/ if (*next == '}') {
+		if (*next == '}') {
 			/* We saw the last entry */
 			break;
 		}
@@ -4990,7 +4990,6 @@ static char **expand_variables(char **argv, unsigned or_mask)
 {
 	int n;
 	char **list;
-	char **v;
 	o_string output = NULL_O_STRING;
 
 	/* protect against globbing for "$var"? */
@@ -4999,10 +4998,9 @@ static char **expand_variables(char **argv, unsigned or_mask)
 	output.o_glob = 1 & (or_mask / EXPVAR_FLAG_GLOB);
 
 	n = 0;
-	v = argv;
-	while (*v) {
-		n = expand_vars_to_list(&output, n, *v, (unsigned char)or_mask);
-		v++;
+	while (*argv) {
+		n = expand_vars_to_list(&output, n, *argv, (unsigned char)or_mask);
+		argv++;
 	}
 	debug_print_list("expand_variables", &output, n);
 
@@ -5672,7 +5670,7 @@ static char *find_in_path(const char *arg)
 	return ret;
 }
 
-static const struct built_in_command* find_builtin_helper(const char *name,
+static const struct built_in_command *find_builtin_helper(const char *name,
 		const struct built_in_command *x,
 		const struct built_in_command *end)
 {
@@ -5686,11 +5684,11 @@ static const struct built_in_command* find_builtin_helper(const char *name,
 	}
 	return NULL;
 }
-static const struct built_in_command* find_builtin1(const char *name)
+static const struct built_in_command *find_builtin1(const char *name)
 {
 	return find_builtin_helper(name, bltins1, &bltins1[ARRAY_SIZE(bltins1)]);
 }
-static const struct built_in_command* find_builtin(const char *name)
+static const struct built_in_command *find_builtin(const char *name)
 {
 	const struct built_in_command *x = find_builtin1(name);
 	if (x)
@@ -6360,7 +6358,7 @@ static int checkjobs(struct pipe* fg_pipe)
 }
 
 #if ENABLE_HUSH_JOB
-static int checkjobs_and_fg_shell(struct pipe* fg_pipe)
+static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
 {
 	pid_t p;
 	int rcode = checkjobs(fg_pipe);
