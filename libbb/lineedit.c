@@ -2169,7 +2169,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 
 			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
-				goto prepare_to_die;
+				goto return_error_indicator;
 			if (ic == ic_raw) { /* "cc", "dd" */
 				input_backward(cursor);
 				goto clear_to_eol;
@@ -2233,7 +2233,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 //FIXME: unicode case?
 			ic = lineedit_read_key(read_key_buffer);
 			if (errno) /* error */
-				goto prepare_to_die;
+				goto return_error_indicator;
 			if (ic < ' ' || ic > 255) {
 				beep();
 			} else {
@@ -2305,9 +2305,9 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 				 * or exit if len=0 and no chars to delete */
 				if (command_len == 0) {
 					errno = 0;
-#if ENABLE_FEATURE_EDITING_VI
- prepare_to_die:
-#endif
+
+		case -1: /* error (e.g. EIO when tty is destroyed) */
+ IF_FEATURE_EDITING_VI(return_error_indicator:)
 					break_out = command_len = -1;
 					break;
 				}
@@ -2317,7 +2317,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 //			/* Control-V -- force insert of next char */
 //			if (c == CTRL('V')) {
 //				if (safe_read(STDIN_FILENO, &c, 1) < 1)
-//					goto prepare_to_die;
+//					goto return_error_indicator;
 //				if (c == 0) {
 //					beep();
 //					break;
