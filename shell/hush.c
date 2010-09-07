@@ -1344,11 +1344,14 @@ static void hush_exit(int exitcode)
 		/* Prevent recursion:
 		 * trap "echo Hi; exit" EXIT; exit
 		 */
-		char *argv[] = { NULL, G.traps[0], NULL };
+		char *argv[3];
+		/* argv[0] is unused */
+		argv[1] = G.traps[0];
+		argv[2] = NULL;
 		G.traps[0] = NULL;
 		G.exiting = 1;
 		builtin_eval(argv);
-		free(argv[1]);
+		/* free(argv[1]); - why bother */
 	}
 
 #if ENABLE_HUSH_JOB
@@ -1376,10 +1379,12 @@ static int check_and_run_traps(int sig)
 		if (G.traps && G.traps[sig]) {
 			if (G.traps[sig][0]) {
 				/* We have user-defined handler */
-				char *argv[] = { NULL, xstrdup(G.traps[sig]), NULL };
+				char *argv[3];
+				/* argv[0] is unused */
+				argv[1] = G.traps[sig];
+				argv[2] = NULL;
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
-				free(argv[1]);
 				G.last_exitcode = save_rcode;
 			} /* else: "" trap, ignoring signal */
 			continue;
@@ -1439,13 +1444,11 @@ static const char *get_cwd(int force)
 /*
  * Shell and environment variable support
  */
-static struct variable **get_ptr_to_local_var(const char *name)
+static struct variable **get_ptr_to_local_var(const char *name, unsigned len)
 {
 	struct variable **pp;
 	struct variable *cur;
-	int len;
 
-	len = strlen(name);
 	pp = &G.top_var;
 	while ((cur = *pp) != NULL) {
 		if (strncmp(cur->varstr, name, len) == 0 && cur->varstr[len] == '=')
@@ -1455,21 +1458,13 @@ static struct variable **get_ptr_to_local_var(const char *name)
 	return NULL;
 }
 
-static struct variable *get_local_var(const char *name)
-{
-	struct variable **pp = get_ptr_to_local_var(name);
-	if (pp)
-		return *pp;
-	return NULL;
-}
-
 static const char* FAST_FUNC get_local_var_value(const char *name)
 {
 	struct variable **vpp;
+	unsigned len = strlen(name);
 
 	if (G.expanded_assignments) {
 		char **cpp = G.expanded_assignments;
-		int len = strlen(name);
 		while (*cpp) {
 			char *cp = *cpp;
 			if (strncmp(cp, name, len) == 0 && cp[len] == '=')
@@ -1478,17 +1473,16 @@ static const char* FAST_FUNC get_local_var_value(const char *name)
 		}
 	}
 
-	vpp = get_ptr_to_local_var(name);
+	vpp = get_ptr_to_local_var(name, len);
 	if (vpp)
-		return strchr((*vpp)->varstr, '=') + 1;
+		return (*vpp)->varstr + len + 1;
 
 	if (strcmp(name, "PPID") == 0)
 		return utoa(G.root_ppid);
 	// bash compat: UID? EUID?
 #if ENABLE_HUSH_RANDOM_SUPPORT
-	if (strcmp(name, "RANDOM") == 0) {
+	if (strcmp(name, "RANDOM") == 0)
 		return utoa(next_random(&G.random_gen));
-	}
 #endif
 	return NULL;
 }
@@ -1738,9 +1732,7 @@ static struct variable *set_vars_and_save_old(char **strings)
 
 		eq = strchr(*s, '=');
 		if (eq) {
-			*eq = '\0';
-			var_pp = get_ptr_to_local_var(*s);
-			*eq = '=';
+			var_pp = get_ptr_to_local_var(*s, eq - *s);
 			if (var_pp) {
 				/* Remove variable from global linked list */
 				var_p = *var_pp;
@@ -2500,33 +2492,36 @@ static char **o_finalize_list(o_string *o, int n)
 	list[--n] = NULL;
 	while (n) {
 		n--;
-		list[n] = o->data + (int)(ptrdiff_t)list[n] + string_start;
+		list[n] = o->data + (int)(uintptr_t)list[n] + string_start;
 	}
 	return list;
 }
 
-static void free_pipe_list(struct pipe *head);
+static void free_pipe_list(struct pipe *pi);
 
-/* Return code is the exit status of the pipe */
-static void free_pipe(struct pipe *pi)
+/* Returns pi->next - next pipe in the list */
+static struct pipe *free_pipe(struct pipe *pi)
 {
-	char **p;
-	struct command *command;
-	struct redir_struct *r, *rnext;
-	int a, i;
+	struct pipe *next;
+	int i;
 
-	if (pi->stopped_cmds > 0) /* why? */
-		return;
-	debug_printf_clean("run pipe: (pid %d)\n", getpid());
+	debug_printf_clean("free_pipe (pid %d)\n", getpid());
 	for (i = 0; i < pi->num_cmds; i++) {
+		struct command *command;
+		struct redir_struct *r, *rnext;
+
 		command = &pi->cmds[i];
 		debug_printf_clean("  command %d:\n", i);
 		if (command->argv) {
-			for (a = 0, p = command->argv; *p; a++, p++) {
-				debug_printf_clean("   argv[%d] = %s\n", a, *p);
+			if (DEBUG_CLEAN) {
+				int a;
+				char **p;
+				for (a = 0, p = command->argv; *p; a++, p++) {
+					debug_printf_clean("   argv[%d] = %s\n", a, *p);
+				}
 			}
 			free_strings(command->argv);
-			command->argv = NULL;
+			//command->argv = NULL;
 		}
 		/* not "else if": on syntax error, we may have both! */
 		if (command->group) {
@@ -2534,7 +2529,7 @@ static void free_pipe(struct pipe *pi)
 					command->cmd_type);
 			free_pipe_list(command->group);
 			debug_printf_clean("   end group\n");
-			command->group = NULL;
+			//command->group = NULL;
 		}
 		/* else is crucial here.
 		 * If group != NULL, child_func is meaningless */
@@ -2546,7 +2541,7 @@ static void free_pipe(struct pipe *pi)
 #endif
 #if !BB_MMU
 		free(command->group_as_string);
-		command->group_as_string = NULL;
+		//command->group_as_string = NULL;
 #endif
 		for (r = command->redirects; r; r = rnext) {
 			debug_printf_clean("   redirect %d%s",
@@ -2555,35 +2550,34 @@ static void free_pipe(struct pipe *pi)
 			if (r->rd_filename) {
 				debug_printf_clean(" fname:'%s'\n", r->rd_filename);
 				free(r->rd_filename);
-				r->rd_filename = NULL;
+				//r->rd_filename = NULL;
 			}
 			debug_printf_clean(" rd_dup:%d\n", r->rd_dup);
 			rnext = r->next;
 			free(r);
 		}
-		command->redirects = NULL;
+		//command->redirects = NULL;
 	}
 	free(pi->cmds);   /* children are an array, they get freed all at once */
-	pi->cmds = NULL;
+	//pi->cmds = NULL;
 #if ENABLE_HUSH_JOB
 	free(pi->cmdtext);
-	pi->cmdtext = NULL;
+	//pi->cmdtext = NULL;
 #endif
+
+	next = pi->next;
+	free(pi);
+	return next;
 }
 
-static void free_pipe_list(struct pipe *head)
+static void free_pipe_list(struct pipe *pi)
 {
-	struct pipe *pi, *next;
-
-	for (pi = head; pi; pi = next) {
+	while (pi) {
 #if HAS_KEYWORDS
-		debug_printf_clean(" pipe reserved word %d\n", pi->res_word);
+		debug_printf_clean("pipe reserved word %d\n", pi->res_word);
 #endif
-		free_pipe(pi);
 		debug_printf_clean("pipe followup code %d\n", pi->followup);
-		next = pi->next;
-		/*pi->next = NULL;*/
-		free(pi);
+		pi = free_pipe(pi);
 	}
 }
 
@@ -6184,15 +6178,13 @@ static void remove_bg_job(struct pipe *pi)
 static void delete_finished_bg_job(struct pipe *pi)
 {
 	remove_bg_job(pi);
-	pi->stopped_cmds = 0;
 	free_pipe(pi);
-	free(pi);
 }
 #endif /* JOB */
 
 /* Check to see if any processes have exited -- if they
  * have, figure out why and see if a job has completed */
-static int checkjobs(struct pipe* fg_pipe)
+static int checkjobs(struct pipe *fg_pipe)
 {
 	int attributes;
 	int status;
@@ -7879,13 +7871,16 @@ static void helper_export_local(char **argv, int exp, int lvl)
 {
 	do {
 		char *name = *argv;
+		char *name_end = strchrnul(name, '=');
 
 		/* So far we do not check that name is valid (TODO?) */
 
-		if (strchr(name, '=') == NULL) {
-			struct variable *var;
+		if (*name_end == '\0') {
+			struct variable *var, **vpp;
 
-			var = get_local_var(name);
+			vpp = get_ptr_to_local_var(name, name_end - name);
+			var = vpp ? *vpp : NULL;
+
 			if (exp == -1) { /* unexporting? */
 				/* export -n NAME (without =VALUE) */
 				if (var) {
