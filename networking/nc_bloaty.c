@@ -858,7 +858,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		/* Outbound connects.  Now we're more picky about args... */
 		if (!themaddr)
-			bb_error_msg_and_die("no destination");
+			bb_show_usage();
 
 		remend = *themaddr;
 		if (o_verbose)
