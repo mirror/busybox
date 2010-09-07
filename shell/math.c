@@ -122,7 +122,7 @@
 #define a_e_h_t arith_eval_hooks_t
 #define lookupvar (math_hooks->lookupvar)
 #define setvar    (math_hooks->setvar   )
-#define endofname (math_hooks->endofname)
+//#define endofname (math_hooks->endofname)
 
 #define arith_isspace(arithval) \
 	(arithval == ' ' || arithval == '\n' || arithval == '\t')
@@ -478,6 +478,18 @@ static const char op_tokens[] ALIGN1 = {
 };
 /* ptr to ")" */
 #define endexpression (&op_tokens[sizeof(op_tokens)-7])
+
+const char* FAST_FUNC
+endofname(const char *name)
+{
+	if (!is_name(*name))
+		return name;
+	while (*++name) {
+		if (!is_in_name(*name))
+			break;
+	}
+	return name;
+}
 
 arith_t
 arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)

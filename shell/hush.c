@@ -1671,24 +1671,6 @@ static void unset_vars(char **strings)
 	free(strings);
 }
 
-#if ENABLE_SH_MATH_SUPPORT
-# define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
-# define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
-static char* FAST_FUNC endofname(const char *name)
-{
-	char *p;
-
-	p = (char *) name;
-	if (!is_name(*p))
-		return p;
-	while (*++p) {
-		if (!is_in_name(*p))
-			break;
-	}
-	return p;
-}
-#endif
-
 static void FAST_FUNC set_local_var_from_halves(const char *name, const char *val)
 {
 	char *var = xasprintf("%s=%s", name, val);
@@ -4446,7 +4428,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 
 	hooks.lookupvar = get_local_var_value;
 	hooks.setvar = set_local_var_from_halves;
-	hooks.endofname = endofname;
+	//hooks.endofname = endofname;
 	exp_str = expand_pseudo_dquoted(arg);
 	res = arith(exp_str ? exp_str : arg, errcode_p, &hooks);
 	free(exp_str);

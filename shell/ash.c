@@ -1982,10 +1982,6 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 # define optindval()    (voptind.var_text + 7)
 #endif
 
-
-#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
-#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
-
 #if ENABLE_ASH_GETOPTS
 static void FAST_FUNC
 getoptsreset(const char *value)
@@ -1995,24 +1991,26 @@ getoptsreset(const char *value)
 }
 #endif
 
+/* math.h has these, otherwise define our private copies */
+#if !ENABLE_SH_MATH_SUPPORT
+#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 /*
- * Return of a legal variable name (a letter or underscore followed by zero or
- * more letters, underscores, and digits).
+ * Return the pointer to the first char which is not part of a legal variable name
+ * (a letter or underscore followed by letters, underscores, and digits).
  */
-static char* FAST_FUNC
+static const char*
 endofname(const char *name)
 {
-	char *p;
-
-	p = (char *) name;
-	if (!is_name(*p))
-		return p;
-	while (*++p) {
-		if (!is_in_name(*p))
+	if (!is_name(*name))
+		return name;
+	while (*++name) {
+		if (!is_in_name(*name))
 			break;
 	}
-	return p;
+	return name;
 }
+#endif
 
 /*
  * Compares two strings up to the first = or '\0'.  The first
@@ -2195,9 +2193,10 @@ setvareq(char *s, int flags)
 static void
 setvar(const char *name, const char *val, int flags)
 {
-	char *p, *q;
-	size_t namelen;
+	const char *q;
+	char *p;
 	char *nameeq;
+	size_t namelen;
 	size_t vallen;
 
 	q = endofname(name);
@@ -2211,12 +2210,13 @@ setvar(const char *name, const char *val, int flags)
 	} else {
 		vallen = strlen(val);
 	}
+
 	INT_OFF;
 	nameeq = ckmalloc(namelen + vallen + 2);
-	p = (char *)memcpy(nameeq, name, namelen) + namelen;
+	p = memcpy(nameeq, name, namelen) + namelen;
 	if (val) {
 		*p++ = '=';
-		p = (char *)memcpy(p, val, vallen) + vallen;
+		p = memcpy(p, val, vallen) + vallen;
 	}
 	*p = '\0';
 	setvareq(nameeq, flags | VNOSAVE);
@@ -5444,7 +5444,7 @@ ash_arith(const char *s)
 
 	math_hooks.lookupvar = lookupvar;
 	math_hooks.setvar    = setvar2;
-	math_hooks.endofname = endofname;
+	//math_hooks.endofname = endofname;
 
 	INT_OFF;
 	result = arith(s, &errcode, &math_hooks);
@@ -9405,7 +9405,7 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 static int
 goodname(const char *p)
 {
-	return !*endofname(p);
+	return endofname(p)[0] == '\0';
 }
 
 

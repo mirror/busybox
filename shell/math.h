@@ -87,14 +87,19 @@ typedef long arith_t;
 #define strto_arith_t strtoul
 #endif
 
+/* ash's and hush's endofname is the same, so... */
+# define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+# define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+const char* FAST_FUNC endofname(const char *name);
+
 typedef const char* FAST_FUNC (*arith_var_lookup_t)(const char *name);
 typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *val);
-typedef char*       FAST_FUNC (*arith_var_endofname_t)(const char *name);
+//typedef const char* FAST_FUNC (*arith_var_endofname_t)(const char *name);
 
 typedef struct arith_eval_hooks {
 	arith_var_lookup_t    lookupvar;
 	arith_var_set_t       setvar;
-	arith_var_endofname_t endofname;
+//	arith_var_endofname_t endofname;
 } arith_eval_hooks_t;
 
 arith_t arith(const char *expr, int *perrcode, arith_eval_hooks_t*);
