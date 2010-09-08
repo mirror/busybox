@@ -3839,10 +3839,10 @@ static struct pipe *parse_stream(char **pstring,
 	o_addchr(&dest, '\0');
 	dest.length = 0;
 
-	G.ifs = get_local_var_value("IFS");
-	if (G.ifs == NULL)
-		G.ifs = defifs;
-
+	/* We used to separate words on $IFS here. This was wrong.
+	 * $IFS is used only for word splitting when $var is expanded,
+	 * here we should use blank chars as separators, not $iFS
+	 */
  reset:
 #if ENABLE_HUSH_INTERACTIVE
 	input->promptmode = 0; /* PS1 */
@@ -3852,7 +3852,7 @@ static struct pipe *parse_stream(char **pstring,
 	is_in_dquote = 0;
 	heredoc_cnt = 0;
 	while (1) {
-		const char *is_ifs;
+		const char *is_blank;
 		const char *is_special;
 		int ch;
 		int next;
@@ -3922,20 +3922,20 @@ static struct pipe *parse_stream(char **pstring,
 		if (ctx.command->argv /* word [word]{... - non-special */
 		 || dest.length       /* word{... - non-special */
 		 || dest.has_quoted_part     /* ""{... - non-special */
-		 || (next != ';'            /* }; - special */
-		    && next != ')'          /* }) - special */
-		    && next != '&'          /* }& and }&& ... - special */
-		    && next != '|'          /* }|| ... - special */
-		    && !strchr(G.ifs, next) /* {word - non-special */
+		 || (next != ';'             /* }; - special */
+		    && next != ')'           /* }) - special */
+		    && next != '&'           /* }& and }&& ... - special */
+		    && next != '|'           /* }|| ... - special */
+		    && !strchr(defifs, next) /* {word - non-special */
 		    )
 		) {
 			/* They are not special, skip "{}" */
 			is_special += 2;
 		}
 		is_special = strchr(is_special, ch);
-		is_ifs = strchr(G.ifs, ch);
+		is_blank = strchr(defifs, ch);
 
-		if (!is_special && !is_ifs) { /* ordinary char */
+		if (!is_special && !is_blank) { /* ordinary char */
  ordinary_char:
 			o_addQchr(&dest, ch);
 			if ((dest.o_assignment == MAYBE_ASSIGNMENT
@@ -3948,7 +3948,7 @@ static struct pipe *parse_stream(char **pstring,
 			continue;
 		}
 
-		if (is_ifs) {
+		if (is_blank) {
 			if (done_word(&dest, &ctx)) {
 				goto parse_error;
 			}
@@ -3973,7 +3973,7 @@ static struct pipe *parse_stream(char **pstring,
 				}
 				dest.o_assignment = MAYBE_ASSIGNMENT;
 				ch = ';';
-				/* note: if (is_ifs) continue;
+				/* note: if (is_blank) continue;
 				 * will still trigger for us */
 			}
 		}
@@ -4041,7 +4041,7 @@ static struct pipe *parse_stream(char **pstring,
 			}
 		}
  skip_end_trigger:
-		if (is_ifs)
+		if (is_blank)
 			continue;
 
 		/* Catch <, > before deciding whether this word is
@@ -4348,7 +4348,7 @@ static int process_command_subs(o_string *dest, const char *s);
  * of strings. (Think VAR="a b"; echo $VAR).
  * This new list is allocated as a single malloc block.
  * NULL-terminated list of char* pointers is at the beginning of it,
- * followed by strings themself.
+ * followed by strings themselves.
  * Caller can deallocate entire list by single free(list). */
 
 /* Store given string, finalizing the word and starting new one whenever
@@ -4505,18 +4505,20 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	char *exp_saveptr; /* points to expansion operator */
 	char *exp_word = exp_word; /* for compiler */
 
+	*p = '\0'; /* replace trailing SPECIAL_VAR_SYMBOL */
 	var = arg;
-	*p = '\0';
 	exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
 	first_char = arg[0] = first_ch & 0x7f;
 	exp_op = 0;
 
-	if (first_char == '#' && arg[1] && !exp_saveptr) {
-		/* handle length expansion ${#var} */
+	if (first_char == '#'      /* ${#... */
+	 && arg[1] && !exp_saveptr /* not ${#} and not ${#<op_char>...} */
+	) {
+		/* It must be length operator: ${#var} */
 		var++;
 		exp_op = 'L';
 	} else {
-		/* maybe handle parameter expansion */
+		/* Maybe handle parameter expansion */
 		if (exp_saveptr /* if 2nd char is one of expansion operators */
 		 && strchr(NUMERIC_SPECVARS_STR, first_char) /* 1st char is special variable */
 		) {
@@ -4531,8 +4533,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			exp_word = exp_saveptr + 1;
 			if (exp_op == ':') {
 				exp_op = *exp_word++;
+//TODO: try ${var:} and ${var:bogus} in non-bash config
 				if (ENABLE_HUSH_BASH_COMPAT
-				 && (exp_op == '\0' || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
+				 && (!exp_op || !strchr(MINUS_PLUS_EQUAL_QUESTION, exp_op))
 				) {
 					/* oops... it's ${var:N[:M]}, not ${var:?xxx} or some such */
 					exp_op = ':';
@@ -4543,7 +4546,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 		} /* else: it's not an expansion op, but bare ${var} */
 	}
 
-	/* lookup the variable in question */
+	/* Look up the variable in question */
 	if (isdigit(var[0])) {
 		/* parse_dollar() should have vetted var for us */
 		int n = xatoi_positive(var);
@@ -4622,7 +4625,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				/* It's ${var/[/]pattern[/repl]} thing */
 				/*
 				 * Pattern is taken literally, while
-				 * repl should be de-backslased and globbed
+				 * repl should be unbackslashed and globbed
 				 * by the usual expansion rules:
 				 * >az; >bz;
 				 * v='a bz'; echo "${v/a*z/a*z}" prints "a*z"
@@ -4998,9 +5001,12 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 }
 #endif
 
-/* Used for expansion of right hand of assignments */
-/* NB: should NOT do globbing!
- * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*" */
+/* Used for expansion of right hand of assignments,
+ * $((...)), heredocs, variable espansion parts.
+ *
+ * NB: should NOT do globbing!
+ * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*"
+ */
 static char *expand_string_to_string(const char *str)
 {
 	char *argv[2], **list;
@@ -6412,6 +6418,13 @@ static NOINLINE int run_pipe(struct pipe *pi)
 
 	debug_printf_exec("run_pipe start: members:%d\n", pi->num_cmds);
 	debug_enter();
+
+	/* Testcase: set -- q w e; (IFS='' echo "$*"; IFS=''; echo "$*"); echo "$*"
+	 * Result should be 3 lines: q w e, qwe, q w e
+	 */
+	G.ifs = get_local_var_value("IFS");
+	if (!G.ifs)
+		G.ifs = defifs;
 
 	IF_HUSH_JOB(pi->pgrp = -1;)
 	pi->stopped_cmds = 0;
