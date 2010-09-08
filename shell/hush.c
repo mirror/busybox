@@ -4782,18 +4782,18 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
  * to be filled). This routine is extremely tricky: has to deal with
  * variables/parameters with whitespace, $* and $@, and constructs like
  * 'echo -$*-'. If you play here, you must run testsuite afterwards! */
-static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char or_mask)
+static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 {
-	/* or_mask is either 0 (normal case) or 0x80 -
+	/* output->o_expflags & EXP_FLAG_SINGLEWORD (0x80) if we are in
 	 * expansion of right-hand side of assignment == 1-element expand.
-	 * It will also do no globbing, and thus we must not backslash-quote!
 	 */
 	char ored_ch;
 	char *p;
 
 	ored_ch = 0;
 
-	debug_printf_expand("expand_vars_to_list: arg:'%s' or_mask:%x\n", arg, or_mask);
+	debug_printf_expand("expand_vars_to_list: arg:'%s' singleword:%x\n", arg,
+			!!(output->o_expflags & EXP_FLAG_SINGLEWORD));
 	debug_print_list("expand_vars_to_list", output, n);
 	n = o_save_ptr(output, n);
 	debug_print_list("expand_vars_to_list[0]", output, n);
@@ -4813,7 +4813,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
-		first_ch = arg[0] | or_mask; /* forced to "quoted" if or_mask = 0x80 */
+		first_ch = arg[0] | (output->o_expflags & EXP_FLAG_SINGLEWORD);
 		/* "$@" is special. Even if quoted, it can still
 		 * expand to nothing (not even an empty string) */
 		if ((first_ch & 0x7f) != '@')
@@ -4846,9 +4846,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 				}
 				output->o_expflags = sv;
 			} else
-			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
+			/* If EXP_FLAG_SINGLEWORD, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
-			if (first_ch == ('@'|0x80) && !or_mask) { /* quoted $@ */
+			if (first_ch == ('@'|0x80)  /* quoted $@ */
+			 && !(output->o_expflags & EXP_FLAG_SINGLEWORD)
+			) {
 				while (1) {
 					o_addQstr(output, G.global_argv[i]);
 					if (++i >= G.global_argc)
@@ -4972,17 +4974,17 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	return n;
 }
 
-static char **expand_variables(char **argv, unsigned or_mask)
+static char **expand_variables(char **argv, unsigned expflags)
 {
 	int n;
 	char **list;
 	o_string output = NULL_O_STRING;
 
-	output.o_expflags = or_mask;
+	output.o_expflags = expflags;
 
 	n = 0;
 	while (*argv) {
-		n = expand_vars_to_list(&output, n, *argv, (unsigned char)or_mask);
+		n = expand_vars_to_list(&output, n, *argv);
 		argv++;
 	}
 	debug_print_list("expand_variables", &output, n);
