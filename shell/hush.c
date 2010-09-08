@@ -380,14 +380,19 @@ enum {
 	RES_SNTX
 };
 
+enum {
+	EXP_FLAG_GLOB = 0x200,
+	EXP_FLAG_ESC_GLOB_CHARS = 0x100,
+	EXP_FLAG_SINGLEWORD = 0x80, /* must be 0x80 */
+};
+
 typedef struct o_string {
 	char *data;
 	int length; /* position where data is appended */
 	int maxlen;
 	/* Protect newly added chars against globbing
 	 * (by prepending \ to *, ?, [, \) */
-	smallint o_escape;
-	smallint o_glob;
+	int o_expflags;
 	/* At least some part of the string was inside '' or "",
 	 * possibly empty one: word"", wo''rd etc. */
 	smallint has_quoted_part;
@@ -2035,7 +2040,9 @@ static void o_addqchr(o_string *o, int ch)
 static void o_addQchr(o_string *o, int ch)
 {
 	int sz = 1;
-	if (o->o_escape && strchr("*?[\\" MAYBE_BRACES, ch)) {
+	if ((o->o_expflags & EXP_FLAG_ESC_GLOB_CHARS)
+	 && strchr("*?[\\" MAYBE_BRACES, ch)
+	) {
 		sz++;
 		o->data[o->length] = '\\';
 		o->length++;
@@ -2076,7 +2083,7 @@ static void o_addqblock(o_string *o, const char *str, int len)
 
 static void o_addQblock(o_string *o, const char *str, int len)
 {
-	if (!o->o_escape) {
+	if (!(o->o_expflags & EXP_FLAG_ESC_GLOB_CHARS)) {
 		o_addblock(o, str, len);
 		return;
 	}
@@ -2107,7 +2114,10 @@ static void debug_print_list(const char *prefix, o_string *o, int n)
 
 	indent();
 	fprintf(stderr, "%s: list:%p n:%d string_start:%d length:%d maxlen:%d glob:%d quoted:%d escape:%d\n",
-			prefix, list, n, string_start, o->length, o->maxlen, o->o_glob, o->has_quoted_part, o->o_escape);
+			prefix, list, n, string_start, o->length, o->maxlen,
+			!!(o->o_expflags & EXP_FLAG_GLOB),
+			o->has_quoted_part,
+			!!(o->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 	while (i < n) {
 		indent();
 		fprintf(stderr, " list[%d]=%d '%s' %p\n", i, (int)list[i],
@@ -2445,11 +2455,11 @@ static int perform_glob(o_string *o, int n)
 
 #endif /* !HUSH_BRACE_EXP */
 
-/* If o->o_glob == 1, glob the string so far remembered.
+/* If o->o_expflags & EXP_FLAG_GLOB, glob the string so far remembered.
  * Otherwise, just finish current list[] and start new */
 static int o_save_ptr(o_string *o, int n)
 {
-	if (o->o_glob) { /* if globbing is requested */
+	if (o->o_expflags & EXP_FLAG_GLOB) {
 		/* If o->has_empty_slot, list[n] was already globbed
 		 * (if it was requested back then when it was filled)
 		 * so don't do that again! */
@@ -3523,7 +3533,7 @@ static int parse_dollar(o_string *as_string,
 		struct in_str *input)
 {
 	int ch = i_peek(input);  /* first character after the $ */
-	unsigned char quote_mask = dest->o_escape ? 0x80 : 0;
+	unsigned char quote_mask = (dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS) ? 0x80 : 0;
 
 	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
@@ -3739,7 +3749,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
 		if (dest->o_assignment == NOT_ASSIGNMENT)
-			dest->o_escape ^= 1;
+			dest->o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
 		debug_printf_parse("parse_stream_dquoted return 0\n");
 		return 0;
 	}
@@ -3753,7 +3763,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		next = i_peek(input);
 	}
 	debug_printf_parse("\" ch=%c (%d) escape=%d\n",
-					ch, ch, dest->o_escape);
+			ch, ch, !!(dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 	if (ch == '\\') {
 		if (next == EOF) {
 			syntax_error("\\<eof>");
@@ -3828,7 +3838,7 @@ static struct pipe *parse_stream(char **pstring,
 
 	/* Double-quote state is handled in the state variable is_in_dquote.
 	 * A single-quote triggers a bypass of the main loop until its mate is
-	 * found.  When recursing, quote state is passed in via dest->o_escape.
+	 * found.  When recursing, quote state is passed in via dest->o_expflags.
 	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
 			end_trigger ? end_trigger : 'X');
@@ -3869,7 +3879,7 @@ static struct pipe *parse_stream(char **pstring,
 		}
 		ch = i_getch(input);
 		debug_printf_parse(": ch=%c (%d) escape=%d\n",
-						ch, ch, dest.o_escape);
+				ch, ch, !!(dest.o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 		if (ch == EOF) {
 			struct pipe *pi;
 
@@ -4168,7 +4178,7 @@ static struct pipe *parse_stream(char **pstring,
 			dest.has_quoted_part = 1;
 			is_in_dquote ^= 1; /* invert */
 			if (dest.o_assignment == NOT_ASSIGNMENT)
-				dest.o_escape ^= 1;
+				dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
@@ -4359,9 +4369,9 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
-			if (output->o_escape)
+			if (output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS)
 				o_addqblock(output, str, word_len);
-			else if (!output->o_glob)
+			else if (!(output->o_expflags & EXP_FLAG_GLOB))
 				o_addblock(output, str, word_len);
 			else /* if (!escape && glob) */ {
 				/* Protect backslashes against globbing up :)
@@ -4819,9 +4829,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			i = 1;
 			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
-				smallint sv = output->o_escape;
+				int sv = output->o_expflags;
 				/* unquoted var's contents should be globbed, so don't escape */
-				output->o_escape = 0;
+				output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 				while (G.global_argv[i]) {
 					n = expand_on_ifs(output, n, G.global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
@@ -4834,7 +4844,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 						debug_print_list("expand_vars_to_list[3]", output, n);
 					}
 				}
-				output->o_escape = sv;
+				output->o_expflags = sv;
 			} else
 			/* If or_mask is nonzero, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
@@ -4911,17 +4921,19 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 			val = expand_one_var(&to_be_freed, arg, &p, first_ch);
  IF_HUSH_TICK(store_val:)
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
-				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val, output->o_escape);
+				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
+						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 				if (val && val[0]) {
 					/* unquoted var's contents should be globbed, so don't escape */
-					smallint sv = output->o_escape;
-					output->o_escape = 0;
+					int sv = output->o_expflags;
+					output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
-					output->o_escape = sv;
+					output->o_expflags = sv;
 				}
 			} else { /* quoted $VAR, val will be appended below */
-				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val, output->o_escape);
+				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
+						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 			}
 			break;
 
@@ -4960,21 +4972,13 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg, char
 	return n;
 }
 
-enum {
-	EXPVAR_FLAG_GLOB = 0x200,
-	EXPVAR_FLAG_ESCAPE_VARS = 0x100,
-	EXPVAR_FLAG_SINGLEWORD = 0x80, /* must be 0x80 */
-};
 static char **expand_variables(char **argv, unsigned or_mask)
 {
 	int n;
 	char **list;
 	o_string output = NULL_O_STRING;
 
-	/* protect against globbing for "$var"? */
-	/* (unquoted $var will temporarily switch it off) */
-	output.o_escape = 1 & (or_mask / EXPVAR_FLAG_ESCAPE_VARS);
-	output.o_glob = 1 & (or_mask / EXPVAR_FLAG_GLOB);
+	output.o_expflags = or_mask;
 
 	n = 0;
 	while (*argv) {
@@ -4991,13 +4995,13 @@ static char **expand_variables(char **argv, unsigned or_mask)
 
 static char **expand_strvec_to_strvec(char **argv)
 {
-	return expand_variables(argv, EXPVAR_FLAG_GLOB | EXPVAR_FLAG_ESCAPE_VARS);
+	return expand_variables(argv, EXP_FLAG_GLOB | EXP_FLAG_ESC_GLOB_CHARS);
 }
 
 #if ENABLE_HUSH_BASH_COMPAT
 static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
 {
-	return expand_variables(argv, EXPVAR_FLAG_SINGLEWORD);
+	return expand_variables(argv, EXP_FLAG_SINGLEWORD);
 }
 #endif
 
@@ -5023,7 +5027,7 @@ static char *expand_string_to_string(const char *str)
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
-	list = expand_variables(argv, EXPVAR_FLAG_ESCAPE_VARS | EXPVAR_FLAG_SINGLEWORD);
+	list = expand_variables(argv, EXP_FLAG_ESC_GLOB_CHARS | EXP_FLAG_SINGLEWORD);
 	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
@@ -5039,7 +5043,7 @@ static char* expand_strvec_to_string(char **argv)
 {
 	char **list;
 
-	list = expand_variables(argv, EXPVAR_FLAG_SINGLEWORD);
+	list = expand_variables(argv, EXP_FLAG_SINGLEWORD);
 	/* Convert all NULs to spaces */
 	if (list[0]) {
 		int n = 1;
