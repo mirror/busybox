@@ -70,8 +70,8 @@ int tee_main(int argc, char **argv)
 	while ((c = safe_read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
 		fp = files;
 		do
-			fwrite(buf, 1, c, *fp++);
-		while (*fp);
+			fwrite(buf, 1, c, *fp);
+		while (*++fp);
 	}
 	if (c < 0) {		/* Make sure read errors are signaled. */
 		retval = EXIT_FAILURE;
@@ -81,8 +81,8 @@ int tee_main(int argc, char **argv)
 	while ((c = getchar()) != EOF) {
 		fp = files;
 		do
-			putc(c, *fp++);
-		while (*fp);
+			putc(c, *fp);
+		while (*++fp);
 	}
 #endif
 

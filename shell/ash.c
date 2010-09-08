@@ -953,7 +953,8 @@ sharg(union node *arg, FILE *fp)
 	for (p = arg->narg.text; *p; p++) {
 		switch ((unsigned char)*p) {
 		case CTLESC:
-			putc(*++p, fp);
+			p++;
+			putc(*p, fp);
 			break;
 		case CTLVAR:
 			putc('$', fp);
@@ -962,8 +963,10 @@ sharg(union node *arg, FILE *fp)
 			if (subtype == VSLENGTH)
 				putc('#', fp);
 
-			while (*p != '=')
-				putc(*p++, fp);
+			while (*p != '=') {
+				putc(*p, fp);
+				p++;
+			}
 
 			if (subtype & VSNUL)
 				putc(':', fp);

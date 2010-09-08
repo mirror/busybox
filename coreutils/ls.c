@@ -573,7 +573,8 @@ static unsigned print_name(const char *name)
 			putchar('\\');
 			len++;
 		}
-		putchar(*name++);
+		putchar(*name);
+		name++;
 	}
 	putchar('"');
 	return len;
