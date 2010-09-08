@@ -349,7 +349,7 @@ typedef struct nommu_save_t {
 } nommu_save_t;
 #endif
 
-typedef enum reserved_style {
+enum {
 	RES_NONE  = 0,
 #if ENABLE_HUSH_IF
 	RES_IF    ,
@@ -378,7 +378,7 @@ typedef enum reserved_style {
 #endif
 	RES_XXXX  ,
 	RES_SNTX
-} reserved_style;
+};
 
 typedef struct o_string {
 	char *data;
@@ -6872,7 +6872,7 @@ static int run_list(struct pipe *pi)
 	enum { cond_code = 0 };
 #endif
 #if HAS_KEYWORDS
-	smallint rword; /* enum reserved_style */
+	smallint rword;      /* RES_foo */
 	smallint last_rword; /* ditto */
 #endif
 
