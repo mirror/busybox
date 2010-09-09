@@ -3777,15 +3777,12 @@ static int parse_stream_dquoted(o_string *as_string,
 		 * NB: in (unquoted) heredoc, above does not apply to ".
 		 */
 		if (next == dquote_end || strchr("$`\\\n", next) != NULL) {
-			ch = i_getch(input);
-			if (ch != '\n') {
-				o_addqchr(dest, ch);
-				nommu_addchr(as_string, ch);
-			}
-		} else {
-			o_addqchr(dest, '\\');
-			nommu_addchr(as_string, '\\');
-		}
+			ch = i_getch(input); /* eat next */
+			if (ch == '\n')
+				goto again; /* skip \<newline> */
+		} /* else: ch remains == '\\', and we double it */
+		o_addqchr(dest, ch);
+		nommu_addchr(as_string, ch);
 		goto again;
 	}
 	if (ch == '$') {
@@ -3808,13 +3805,6 @@ static int parse_stream_dquoted(o_string *as_string,
 	}
 #endif
 	o_addQchr(dest, ch);
-	if (ch == '='
-	 && (dest->o_assignment == MAYBE_ASSIGNMENT
-	    || dest->o_assignment == WORD_IS_KEYWORD)
-	 && is_well_formed_var_name(dest->data, '=')
-	) {
-		dest->o_assignment = DEFINITELY_ASSIGNMENT;
-	}
 	goto again;
 #undef as_string
 }
