@@ -3525,16 +3525,15 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 
 /* Return code: 0 for OK, 1 for syntax error */
 #if BB_MMU
-#define parse_dollar(as_string, dest, input) \
-	parse_dollar(dest, input)
+#define parse_dollar(as_string, dest, input, quote_mask) \
+	parse_dollar(dest, input, quote_mask)
 #define as_string NULL
 #endif
 static int parse_dollar(o_string *as_string,
 		o_string *dest,
-		struct in_str *input)
+		struct in_str *input, unsigned char quote_mask)
 {
 	int ch = i_peek(input);  /* first character after the $ */
-	unsigned char quote_mask = (dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS) ? 0x80 : 0;
 
 	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
@@ -3576,17 +3575,19 @@ static int parse_dollar(o_string *as_string,
 		nommu_addchr(as_string, ch);
 
 		ch = i_getch(input); /* first char after '{' */
-		nommu_addchr(as_string, ch);
 		/* It should be ${?}, or ${#var},
 		 * or even ${?+subst} - operator acting on a special variable,
 		 * or the beginning of variable name.
 		 */
-		if (!strchr(_SPECIAL_VARS_STR, ch) && !isalnum(ch)) { /* not one of those */
+		if (ch == EOF
+		 || (!strchr(_SPECIAL_VARS_STR, ch) && !isalnum(ch)) /* not one of those */
+		) {
  bad_dollar_syntax:
 			syntax_error_unterm_str("${name}");
 			debug_printf_parse("parse_dollar return 1: unterminated ${name}\n");
 			return 1;
 		}
+		nommu_addchr(as_string, ch);
 		ch |= quote_mask;
 
 		/* It's possible to just call add_till_closing_bracket() at this point.
@@ -3785,7 +3786,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		goto again;
 	}
 	if (ch == '$') {
-		if (parse_dollar(as_string, dest, input) != 0) {
+		if (parse_dollar(as_string, dest, input, /*quote_mask:*/ 0x80) != 0) {
 			debug_printf_parse("parse_stream_dquoted return 1: "
 					"parse_dollar returned non-0\n");
 			return 1;
@@ -4135,7 +4136,7 @@ static struct pipe *parse_stream(char **pstring,
 #endif
 			break;
 		case '$':
-			if (parse_dollar(&ctx.as_string, &dest, input) != 0) {
+			if (parse_dollar(&ctx.as_string, &dest, input, /*quote_mask:*/ 0) != 0) {
 				debug_printf_parse("parse_stream parse error: "
 					"parse_dollar returned non-0\n");
 				goto parse_error;
