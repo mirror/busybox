@@ -3151,16 +3151,16 @@ static char *fetch_till_str(o_string *as_string,
 		int heredoc_flags)
 {
 	o_string heredoc = NULL_O_STRING;
-	int past_EOL = 0;
+	unsigned past_EOL;
 	int prev = 0; /* not \ */
 	int ch;
 
 	goto jump_in;
 	while (1) {
 		ch = i_getch(input);
-		nommu_addchr(as_string, ch);
-		if (ch == '\n'
-		/* TODO: or EOF? (heredoc delimiter may end with <eof>, not only <eol>) */
+		if (ch != EOF)
+			nommu_addchr(as_string, ch);
+		if ((ch == '\n' || ch == EOF)
 		 && ((heredoc_flags & HEREDOC_QUOTED) || prev != '\\')
 		) {
 			if (strcmp(heredoc.data + past_EOL, word) == 0) {
@@ -3168,28 +3168,29 @@ static char *fetch_till_str(o_string *as_string,
 				debug_printf_parse("parsed heredoc '%s'\n", heredoc.data);
 				return heredoc.data;
 			}
-			do {
-				o_addchr(&heredoc, '\n');
-				prev = 0; /* not \ */
-				past_EOL = heredoc.length;
+			while (ch == '\n') {
+				o_addchr(&heredoc, ch);
+				prev = ch;
  jump_in:
+				past_EOL = heredoc.length;
 				do {
 					ch = i_getch(input);
-					nommu_addchr(as_string, ch);
+					if (ch != EOF)
+						nommu_addchr(as_string, ch);
 				} while ((heredoc_flags & HEREDOC_SKIPTABS) && ch == '\t');
-			} while (ch == '\n');
+			}
 		}
 		if (ch == EOF) {
 			o_free_unsafe(&heredoc);
 			return NULL;
 		}
 		o_addchr(&heredoc, ch);
+		nommu_addchr(as_string, ch);
 		if (prev == '\\' && ch == '\\')
 			/* Correctly handle foo\\<eol> (not a line cont.) */
 			prev = 0; /* not \ */
 		else
 			prev = ch;
-		nommu_addchr(as_string, ch);
 	}
 }
 
@@ -3748,8 +3749,6 @@ static int parse_stream_dquoted(o_string *as_string,
 	if (ch != EOF)
 		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
-		if (dest->o_assignment == NOT_ASSIGNMENT)
-			dest->o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
 		debug_printf_parse("parse_stream_dquoted return 0\n");
 		return 0;
 	}
@@ -4159,9 +4158,10 @@ static struct pipe *parse_stream(char **pstring,
 		case '"':
 			dest.has_quoted_part = 1;
 			if (dest.o_assignment == NOT_ASSIGNMENT)
-				dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
+				dest.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
 			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"'))
 				goto parse_error;
+			dest.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
