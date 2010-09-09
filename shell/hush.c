@@ -4487,7 +4487,7 @@ static char *replace_pattern(char *val, const char *pattern, const char *repl, c
 /* Helper:
  * Handles <SPECIAL_VAR_SYMBOL>varname...<SPECIAL_VAR_SYMBOL> construct.
  */
-static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, char **pp, char first_ch)
+static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, char **pp)
 {
 	const char *val = NULL;
 	char *to_be_freed = NULL;
@@ -4498,11 +4498,13 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 	char exp_save = exp_save; /* for compiler */
 	char *exp_saveptr; /* points to expansion operator */
 	char *exp_word = exp_word; /* for compiler */
+	char arg0;
 
 	*p = '\0'; /* replace trailing SPECIAL_VAR_SYMBOL */
 	var = arg;
 	exp_saveptr = arg[1] ? strchr(VAR_ENCODED_SUBST_OPS, arg[1]) : NULL;
-	first_char = arg[0] = first_ch & 0x7f;
+	arg0 = arg[0];
+	first_char = arg[0] = arg0 & 0x7f;
 	exp_op = 0;
 
 	if (first_char == '#'      /* ${#... */
@@ -4754,7 +4756,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 		*exp_saveptr = exp_save;
 	} /* if (exp_op) */
 
-	arg[0] = first_ch;
+	arg[0] = arg0;
 
 	*pp = p;
 	*to_be_freed_pp = to_be_freed;
@@ -4771,10 +4773,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	/* output->o_expflags & EXP_FLAG_SINGLEWORD (0x80) if we are in
 	 * expansion of right-hand side of assignment == 1-element expand.
 	 */
-	char ored_ch;
+	char cant_be_null = 0; /* only bit 0x80 matters */
 	char *p;
-
-	ored_ch = 0;
 
 	debug_printf_expand("expand_vars_to_list: arg:'%s' singleword:%x\n", arg,
 			!!(output->o_expflags & EXP_FLAG_SINGLEWORD));
@@ -4797,11 +4797,17 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		arg = ++p;
 		p = strchr(p, SPECIAL_VAR_SYMBOL);
 
+		/* Fetch special var name (if it is indeed one of them)
+		 * and quote bit, force the bit on if singleword expansion -
+		 * important for not getting v=$@ expand to many words. */
 		first_ch = arg[0] | (output->o_expflags & EXP_FLAG_SINGLEWORD);
-		/* "$@" is special. Even if quoted, it can still
-		 * expand to nothing (not even an empty string) */
+
+		/* Is this variable quoted and thus expansion can't be null?
+		 * "$@" is special. Even if quoted, it can still
+		 * expand to nothing (not even an empty string),
+		 * thus it is excluded. */
 		if ((first_ch & 0x7f) != '@')
-			ored_ch |= first_ch;
+			cant_be_null |= first_ch;
 
 		switch (first_ch & 0x7f) {
 		/* Highest bit in first_ch indicates that var is double-quoted */
@@ -4811,10 +4817,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			if (!G.global_argv[1])
 				break;
 			i = 1;
-			ored_ch |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
+			cant_be_null |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				int sv = output->o_expflags;
 				/* unquoted var's contents should be globbed, so don't escape */
+//TODO: make _caller_ set EXP_FLAG_ESC_GLOB_CHARS properly
 				output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 				while (G.global_argv[i]) {
 					n = expand_on_ifs(output, n, G.global_argv[i]);
@@ -4833,7 +4840,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			/* If EXP_FLAG_SINGLEWORD, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
 			if (first_ch == ('@'|0x80)  /* quoted $@ */
-			 && !(output->o_expflags & EXP_FLAG_SINGLEWORD)
+			 && !(output->o_expflags & EXP_FLAG_SINGLEWORD) /* not v="$@" case */
 			) {
 				while (1) {
 					o_addQstr(output, G.global_argv[i]);
@@ -4843,7 +4850,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 					debug_print_list("expand_vars_to_list[4]", output, n);
 					n = o_save_ptr(output, n);
 				}
-			} else { /* quoted $*: add as one word */
+			} else { /* quoted $* (or v="$@" case): add as one word */
 				while (1) {
 					o_addQstr(output, G.global_argv[i]);
 					if (!G.global_argv[++i])
@@ -4857,11 +4864,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		case SPECIAL_VAR_SYMBOL: /* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
 			/* "Empty variable", used to make "" etc to not disappear */
 			arg++;
-			ored_ch = 0x80;
+			cant_be_null = 0x80;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': /* <SPECIAL_VAR_SYMBOL>`cmd<SPECIAL_VAR_SYMBOL> */
-			*p = '\0';
+			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			arg++;
 			/* Can't just stuff it into output o_string,
 			 * expanded result may need to be globbed
@@ -4904,7 +4911,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		}
 #endif
 		default:
-			val = expand_one_var(&to_be_freed, arg, &p, first_ch);
+			val = expand_one_var(&to_be_freed, arg, &p);
  IF_HUSH_TICK(store_val:)
 			if (!(first_ch & 0x80)) { /* unquoted $VAR */
 				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
@@ -4912,6 +4919,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 				if (val && val[0]) {
 					/* unquoted var's contents should be globbed, so don't escape */
 					int sv = output->o_expflags;
+//TODO: make _caller_ set EXP_FLAG_ESC_GLOB_CHARS properly
 					output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
@@ -4929,7 +4937,9 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			o_addQstr(output, val);
 		}
 		free(to_be_freed);
-		/* Do the check to avoid writing to a const string */
+
+		/* Restore NULL'ed SPECIAL_VAR_SYMBOL.
+		 * Do the check to avoid writing to a const string. */
 		if (*p != SPECIAL_VAR_SYMBOL)
 			*p = SPECIAL_VAR_SYMBOL;
 
@@ -4946,7 +4956,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 		o_addstr_with_NUL(output, arg);
 		debug_print_list("expand_vars_to_list[b]", output, n);
 	} else if (output->length == o_get_last_ptr(output, n) /* expansion is empty */
-	 && !(ored_ch & 0x80) /* and all vars were not quoted. */
+	 && !(cant_be_null & 0x80) /* and all vars were not quoted. */
 	) {
 		n--;
 		/* allow to reuse list[n] later without re-growth */
