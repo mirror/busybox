@@ -3833,11 +3833,9 @@ static struct pipe *parse_stream(char **pstring,
 {
 	struct parse_context ctx;
 	o_string dest = NULL_O_STRING;
-	int is_in_dquote;
 	int heredoc_cnt;
 
-	/* Double-quote state is handled in the state variable is_in_dquote.
-	 * A single-quote triggers a bypass of the main loop until its mate is
+	/* Single-quote triggers a bypass of the main loop until its mate is
 	 * found.  When recursing, quote state is passed in via dest->o_expflags.
 	 */
 	debug_printf_parse("parse_stream entered, end_trigger='%c'\n",
@@ -3851,15 +3849,17 @@ static struct pipe *parse_stream(char **pstring,
 
 	/* We used to separate words on $IFS here. This was wrong.
 	 * $IFS is used only for word splitting when $var is expanded,
-	 * here we should use blank chars as separators, not $iFS
+	 * here we should use blank chars as separators, not $IFS
 	 */
- reset:
+
+ reset: /* we come back here only on syntax errors in interactive shell */
+
 #if ENABLE_HUSH_INTERACTIVE
 	input->promptmode = 0; /* PS1 */
 #endif
-	/* dest.o_assignment = MAYBE_ASSIGNMENT; - already is */
+	if (MAYBE_ASSIGNMENT != 0)
+		dest.o_assignment = MAYBE_ASSIGNMENT;
 	initialize_context(&ctx);
-	is_in_dquote = 0;
 	heredoc_cnt = 0;
 	while (1) {
 		const char *is_blank;
@@ -3869,14 +3869,6 @@ static struct pipe *parse_stream(char **pstring,
 		int redir_fd;
 		redir_type redir_style;
 
-		if (is_in_dquote) {
-			/* dest.has_quoted_part = 1; - already is (see below) */
-			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"')) {
-				goto parse_error;
-			}
-			/* We reached closing '"' */
-			is_in_dquote = 0;
-		}
 		ch = i_getch(input);
 		debug_printf_parse(": ch=%c (%d) escape=%d\n",
 				ch, ch, !!(dest.o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
@@ -4176,9 +4168,10 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 		case '"':
 			dest.has_quoted_part = 1;
-			is_in_dquote ^= 1; /* invert */
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_expflags ^= EXP_FLAG_ESC_GLOB_CHARS;
+			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"'))
+				goto parse_error;
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
@@ -4558,7 +4551,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 
 	/* Look up the variable in question */
 	if (isdigit(var[0])) {
-		/* parse_dollar() should have vetted var for us */
+		/* parse_dollar should have vetted var for us */
 		int n = xatoi_positive(var);
 		if (n < G.global_argc)
 			val = G.global_argv[n];
