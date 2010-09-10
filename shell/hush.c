@@ -3733,14 +3733,15 @@ static int parse_dollar(o_string *as_string,
 }
 
 #if BB_MMU
-#define parse_stream_dquoted(as_string, dest, input, dquote_end) \
-	parse_stream_dquoted(dest, input, dquote_end)
+#define parse_stream_dquoted(as_string, dest, input, dquote_end, dquoted) \
+	parse_stream_dquoted(dest, input, dquote_end, dquoted)
 #define as_string NULL
 #endif
 static int parse_stream_dquoted(o_string *as_string,
 		o_string *dest,
 		struct in_str *input,
-		int dquote_end)
+		int dquote_end,
+		int dquoted)
 {
 	int ch;
 	int next;
@@ -3764,7 +3765,7 @@ static int parse_stream_dquoted(o_string *as_string,
 	}
 	debug_printf_parse("\" ch=%c (%d) escape=%d\n",
 			ch, ch, !!(dest->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
-	if (ch == '\\') {
+	if (dquoted && ch == '\\') {
 		if (next == EOF) {
 			syntax_error("\\<eof>");
 			xfunc_die();
@@ -3786,6 +3787,7 @@ static int parse_stream_dquoted(o_string *as_string,
 		goto again;
 	}
 	if (ch == '$') {
+//CHECK: 0x80? or dquoted?
 		if (parse_dollar(as_string, dest, input, /*quote_mask:*/ 0x80) != 0) {
 			debug_printf_parse("parse_stream_dquoted return 1: "
 					"parse_dollar returned non-0\n");
@@ -4160,7 +4162,7 @@ static struct pipe *parse_stream(char **pstring,
 			dest.has_quoted_part = 1;
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
-			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"'))
+			if (parse_stream_dquoted(&ctx.as_string, &dest, input, '"', /*dquoted:*/ 1))
 				goto parse_error;
 			dest.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 			break;
@@ -4385,7 +4387,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
  * Returns malloced string.
  * As an optimization, we return NULL if expansion is not needed.
  */
-static char *expand_pseudo_dquoted(const char *str)
+static char *expand_pseudo_dquoted(const char *str, int dquoted)
 {
 	char *exp_str;
 	struct in_str input;
@@ -4404,7 +4406,7 @@ static char *expand_pseudo_dquoted(const char *str)
 	 * echo $(($a + `echo 1`)) $((1 + $((2)) ))
 	 */
 	setup_string_in_str(&input, str);
-	parse_stream_dquoted(NULL, &dest, &input, EOF);
+	parse_stream_dquoted(NULL, &dest, &input, EOF, dquoted);
 	//bb_error_msg("'%s' -> '%s'", str, dest.data);
 	exp_str = expand_string_to_string(dest.data);
 	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
@@ -4422,7 +4424,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 	hooks.lookupvar = get_local_var_value;
 	hooks.setvar = set_local_var_from_halves;
 	//hooks.endofname = endofname;
-	exp_str = expand_pseudo_dquoted(arg);
+	exp_str = expand_pseudo_dquoted(arg, /*dquoted:*/ 1);
 	res = arith(exp_str ? exp_str : arg, errcode_p, &hooks);
 	free(exp_str);
 	return res;
@@ -4593,7 +4595,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 // (see HACK ALERT below for an example)
 				val = to_be_freed = xstrdup(val);
 //TODO: fix expansion rules:
-				exp_exp_word = expand_pseudo_dquoted(exp_word);
+				exp_exp_word = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
 				loc = scan_and_match(to_be_freed, exp_word, scan_flags);
@@ -4631,7 +4633,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				 */
 //TODO: fix expansion rules:
 				char *pattern, *repl, *t;
-				pattern = expand_pseudo_dquoted(exp_word);
+				pattern = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
 				if (!pattern)
 					pattern = xstrdup(exp_word);
 				debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
@@ -4639,7 +4641,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				exp_word = p;
 				p = strchr(p, SPECIAL_VAR_SYMBOL);
 				*p = '\0';
-				repl = expand_pseudo_dquoted(exp_word);
+				repl = expand_pseudo_dquoted(exp_word, /*dquoted:*/ arg0 & 0x80);
 				debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
 				/* HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
@@ -4724,7 +4726,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 					(exp_save == ':') ? "true" : "false", use_word);
 			if (use_word) {
-				to_be_freed = expand_pseudo_dquoted(exp_word);
+				to_be_freed = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
 				if (to_be_freed)
 					exp_word = to_be_freed;
 				if (exp_op == '?') {
@@ -5463,7 +5465,7 @@ static void setup_heredoc(struct redir_struct *redir)
 
 	expanded = NULL;
 	if (!(redir->rd_dup & HEREDOC_QUOTED)) {
-		expanded = expand_pseudo_dquoted(heredoc);
+		expanded = expand_pseudo_dquoted(heredoc, /*dquoted:*/ 1);
 		if (expanded)
 			heredoc = expanded;
 	}
