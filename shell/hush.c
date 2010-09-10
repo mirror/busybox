@@ -3800,8 +3800,8 @@ static int encode_string(o_string *as_string,
 			ch = i_getch(input); /* eat next */
 			if (ch == '\n')
 				goto again; /* skip \<newline> */
-		} /* else: ch remains == '\\', and we double it */
-		o_addqchr(dest, ch); /* \c if c is s glob char, else just c */
+		} /* else: ch remains == '\\', and we double it below: */
+		o_addqchr(dest, ch); /* \c if c is a glob char, else just c */
 		nommu_addchr(as_string, ch);
 		goto again;
 	}
@@ -4618,26 +4618,29 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			 * Then var's value is matched to it and matching part removed.
 			 */
 			if (val && val[0]) {
+				char *t;
 				char *exp_exp_word;
 				char *loc;
 				unsigned scan_flags = pick_scan(exp_op, *exp_word);
 				if (exp_op == *exp_word)	/* ## or %% */
 					exp_word++;
-//TODO: avoid xstrdup unless needed
-// (see HACK ALERT below for an example)
-				val = to_be_freed = xstrdup(val);
 				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
-				loc = scan_and_match(to_be_freed, exp_word, scan_flags);
+				/* HACK ALERT. We depend here on the fact that
+				 * G.global_argv and results of utoa and get_local_var_value
+				 * are actually in writable memory:
+				 * scan_and_match momentarily stores NULs there. */
+				t = (char*)val;
+				loc = scan_and_match(t, exp_word, scan_flags);
 				//bb_error_msg("op:%c str:'%s' pat:'%s' res:'%s'",
-				//		exp_op, to_be_freed, exp_word, loc);
+				//		exp_op, t, exp_word, loc);
 				free(exp_exp_word);
 				if (loc) { /* match was found */
 					if (scan_flags & SCAN_MATCH_LEFT_HALF) /* #[#] */
-						val = loc;
+						val = loc; /* take right part */
 					else /* %[%] */
-						*loc = '\0';
+						val = to_be_freed = xstrndup(val, loc - val); /* left */
 				}
 			}
 		}
@@ -4646,13 +4649,13 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			/* It's ${var/[/]pattern[/repl]} thing.
 			 * Note that in encoded form it has TWO parts:
 			 * var/pattern<SPECIAL_VAR_SYMBOL>repl<SPECIAL_VAR_SYMBOL>
+			 * and if // is used, it is encoded as \:
+			 * var\pattern<SPECIAL_VAR_SYMBOL>repl<SPECIAL_VAR_SYMBOL>
 			 */
 			/* Empty variable always gives nothing: */
 			// "v=''; echo ${v/*/w}" prints "", not "w"
 			if (val && val[0]) {
-				/* It's ${var/[/]pattern[/repl]} thing */
-				/*
-				 * Pattern is taken literally, while
+				/* pattern uses non-standard expansion.
 				 * repl should be unbackslashed and globbed
 				 * by the usual expansion rules:
 				 * >az; >bz;
@@ -7339,7 +7342,7 @@ int hush_main(int argc, char **argv)
 	/* Deal with HUSH_VERSION */
 	G.shell_ver.flg_export = 1;
 	G.shell_ver.flg_read_only = 1;
-	/* Code which handles ${var/P/R} needs writable values for all variables,
+	/* Code which handles ${var<op>...} needs writable values for all variables,
 	 * therefore we xstrdup: */
 	G.shell_ver.varstr = xstrdup(hush_version_str),
 	G.top_var = &G.shell_ver;
