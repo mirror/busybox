@@ -4335,7 +4335,7 @@ static struct pipe *parse_stream(char **pstring,
 /*** Execution routines ***/
 
 /* Expansion can recurse, need forward decls: */
-static char *expand_string_to_string(const char *str);
+static char *expand_string_to_string(const char *str, int do_unbackslash);
 static int process_command_subs(o_string *dest, const char *s);
 
 /* expand_strvec_to_strvec() takes a list of strings, expands
@@ -4387,7 +4387,7 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
  * Returns malloced string.
  * As an optimization, we return NULL if expansion is not needed.
  */
-static char *expand_pseudo_dquoted(const char *str, int dquoted)
+static char *expand_pseudo_dquoted(const char *str, int dquoted, int do_unbackslash)
 {
 	char *exp_str;
 	struct in_str input;
@@ -4408,7 +4408,7 @@ static char *expand_pseudo_dquoted(const char *str, int dquoted)
 	setup_string_in_str(&input, str);
 	parse_stream_dquoted(NULL, &dest, &input, EOF, dquoted);
 	//bb_error_msg("'%s' -> '%s'", str, dest.data);
-	exp_str = expand_string_to_string(dest.data);
+	exp_str = expand_string_to_string(dest.data, /*unbackslash:*/ do_unbackslash);
 	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
 	o_free_unsafe(&dest);
 	return exp_str;
@@ -4424,7 +4424,7 @@ static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 	hooks.lookupvar = get_local_var_value;
 	hooks.setvar = set_local_var_from_halves;
 	//hooks.endofname = endofname;
-	exp_str = expand_pseudo_dquoted(arg, /*dquoted:*/ 1);
+	exp_str = expand_pseudo_dquoted(arg, /*dquoted:*/ 1, /*unbackslash:*/ 1);
 	res = arith(exp_str ? exp_str : arg, errcode_p, &hooks);
 	free(exp_str);
 	return res;
@@ -4594,8 +4594,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 //TODO: avoid xstrdup unless needed
 // (see HACK ALERT below for an example)
 				val = to_be_freed = xstrdup(val);
-//TODO: fix expansion rules:
-				exp_exp_word = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
+				exp_exp_word = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1, /*unbackslash:*/ 1);
 				if (exp_exp_word)
 					exp_word = exp_exp_word;
 				loc = scan_and_match(to_be_freed, exp_word, scan_flags);
@@ -4631,9 +4630,8 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				 * v='a bz'; echo ${v/a*z/\z}    prints "z"
 				 * (note that a*z _pattern_ is never globbed!)
 				 */
-//TODO: fix expansion rules:
 				char *pattern, *repl, *t;
-				pattern = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
+				pattern = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 0, /*unbackslash:*/ 0);
 				if (!pattern)
 					pattern = xstrdup(exp_word);
 				debug_printf_varexp("pattern:'%s'->'%s'\n", exp_word, pattern);
@@ -4641,7 +4639,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				exp_word = p;
 				p = strchr(p, SPECIAL_VAR_SYMBOL);
 				*p = '\0';
-				repl = expand_pseudo_dquoted(exp_word, /*dquoted:*/ arg0 & 0x80);
+				repl = expand_pseudo_dquoted(exp_word, /*dquoted:*/ arg0 & 0x80, /*unbackslash:*/ 1);
 				debug_printf_varexp("repl:'%s'->'%s'\n", exp_word, repl);
 				/* HACK ALERT. We depend here on the fact that
 				 * G.global_argv and results of utoa and get_local_var_value
@@ -4726,7 +4724,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			debug_printf_expand("expand: op:%c (null:%s) test:%i\n", exp_op,
 					(exp_save == ':') ? "true" : "false", use_word);
 			if (use_word) {
-				to_be_freed = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1);
+				to_be_freed = expand_pseudo_dquoted(exp_word, /*dquoted:*/ 1, /*unbackslash:*/ 1);
 				if (to_be_freed)
 					exp_word = to_be_freed;
 				if (exp_op == '?') {
@@ -4998,30 +4996,35 @@ static char **expand_strvec_to_strvec_singleword_noglob(char **argv)
  * NB: should NOT do globbing!
  * "export v=/bin/c*; env | grep ^v=" outputs "v=/bin/c*"
  */
-static char *expand_string_to_string(const char *str)
+static char *expand_string_to_string(const char *str, int do_unbackslash)
 {
 	char *argv[2], **list;
 
+	debug_printf_expand("string_to_string<='%s'\n", str);
 	/* This is generally an optimization, but it also
 	 * handles "", which otherwise trips over !list[0] check below.
 	 * (is this ever happens that we actually get str="" here?)
 	 */
 	if (!strchr(str, SPECIAL_VAR_SYMBOL) && !strchr(str, '\\')) {
 		//TODO: Can use on strings with \ too, just unbackslash() them?
-		debug_printf_expand("string_to_string(fast)='%s'\n", str);
+		debug_printf_expand("string_to_string(fast)=>'%s'\n", str);
 		return xstrdup(str);
 	}
 
 	argv[0] = (char*)str;
 	argv[1] = NULL;
-	list = expand_variables(argv, EXP_FLAG_ESC_GLOB_CHARS | EXP_FLAG_SINGLEWORD);
+	list = expand_variables(argv, do_unbackslash
+			? EXP_FLAG_ESC_GLOB_CHARS | EXP_FLAG_SINGLEWORD
+			: EXP_FLAG_SINGLEWORD
+	);
 	if (HUSH_DEBUG)
 		if (!list[0] || list[1])
 			bb_error_msg_and_die("BUG in varexp2");
 	/* actually, just move string 2*sizeof(char*) bytes back */
 	overlapping_strcpy((char*)list, list[0]);
-	unbackslash((char*)list);
-	debug_printf_expand("string_to_string='%s'\n", (char*)list);
+	if (do_unbackslash)
+		unbackslash((char*)list);
+	debug_printf_expand("string_to_string=>'%s'\n", (char*)list);
 	return (char*)list;
 }
 
@@ -5056,7 +5059,7 @@ static char **expand_assignments(char **argv, int count)
 	G.expanded_assignments = p = NULL;
 	/* Expand assignments into one string each */
 	for (i = 0; i < count; i++) {
-		G.expanded_assignments = p = add_string_to_strings(p, expand_string_to_string(argv[i]));
+		G.expanded_assignments = p = add_string_to_strings(p, expand_string_to_string(argv[i], /*unbackslash:*/ 1));
 	}
 	G.expanded_assignments = NULL;
 	return p;
@@ -5465,7 +5468,7 @@ static void setup_heredoc(struct redir_struct *redir)
 
 	expanded = NULL;
 	if (!(redir->rd_dup & HEREDOC_QUOTED)) {
-		expanded = expand_pseudo_dquoted(heredoc, /*dquoted:*/ 1);
+		expanded = expand_pseudo_dquoted(heredoc, /*dquoted:*/ 1, /*unbackslash:*/ 1);
 		if (expanded)
 			heredoc = expanded;
 	}
@@ -5565,7 +5568,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 				continue;
 			}
 			mode = redir_table[redir->rd_type].mode;
-			p = expand_string_to_string(redir->rd_filename);
+			p = expand_string_to_string(redir->rd_filename, /*unbackslash:*/ 1);
 			openfd = open_or_warn(p, mode);
 			free(p);
 			if (openfd < 0) {
@@ -6516,7 +6519,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			if (G_x_mode)
 				bb_putchar_stderr('+');
 			while (*argv) {
-				char *p = expand_string_to_string(*argv);
+				char *p = expand_string_to_string(*argv, /*unbackslash:*/ 1);
 				if (G_x_mode)
 					fprintf(stderr, " %s", p);
 				debug_printf_exec("set shell var:'%s'->'%s'\n",
@@ -7020,7 +7023,7 @@ static int run_list(struct pipe *pi)
 			/* all prev words didn't match, does this one match? */
 			argv = pi->cmds->argv;
 			while (*argv) {
-				char *pattern = expand_string_to_string(*argv);
+				char *pattern = expand_string_to_string(*argv, /*unbackslash:*/ 1);
 				/* TODO: which FNM_xxx flags to use? */
 				cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
 				free(pattern);
