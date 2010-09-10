@@ -4417,10 +4417,6 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 #endif
 static char *encode_then_expand_string(const char *str, int process_bkslash, int do_unbackslash)
 {
-//#if !ENABLE_HUSH_BASH_COMPAT
-//	const int process_bkslash = 1;
-//	const int do_unbackslash = 1;
-//#endif
 	char *exp_str;
 	struct in_str input;
 	o_string dest = NULL_O_STRING;
