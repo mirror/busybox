@@ -4353,13 +4353,12 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
-			if (output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS)
-				o_addqblock(output, str, word_len);
-			else if (!(output->o_expflags & EXP_FLAG_GLOB))
+			if (!(output->o_expflags & EXP_FLAG_GLOB))
 				o_addblock(output, str, word_len);
-			else /* if (!escape && glob) */ {
+			else {
 				/* Protect backslashes against globbing up :)
-				 * Example: "v='\*'; echo b$v"
+				 * Example: "v='\*'; echo b$v" prints "b\*"
+				 * (and does not try to glob on "*")
 				 */
 				o_addblock_duplicate_backslash(output, str, word_len);
 				/*/ Why can't we do it easier? */
@@ -4819,10 +4818,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			i = 1;
 			cant_be_null |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
-				int sv = output->o_expflags;
-				/* unquoted var's contents should be globbed, so don't escape */
-//TODO: make _caller_ set EXP_FLAG_ESC_GLOB_CHARS properly
-				output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 				while (G.global_argv[i]) {
 					n = expand_on_ifs(output, n, G.global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
@@ -4835,7 +4830,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 						debug_print_list("expand_vars_to_list[3]", output, n);
 					}
 				}
-				output->o_expflags = sv;
 			} else
 			/* If EXP_FLAG_SINGLEWORD, we handle assignment 'a=....$@.....'
 			 * and in this case should treat it like '$*' - see 'else...' below */
@@ -4917,13 +4911,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
 						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 				if (val && val[0]) {
-					/* unquoted var's contents should be globbed, so don't escape */
-					int sv = output->o_expflags;
-//TODO: make _caller_ set EXP_FLAG_ESC_GLOB_CHARS properly
-					output->o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 					n = expand_on_ifs(output, n, val);
 					val = NULL;
-					output->o_expflags = sv;
 				}
 			} else { /* quoted $VAR, val will be appended below */
 				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
