@@ -1,3 +1,6 @@
+# This test shows a very special handling of export and local
+# builtins by bash.
+
 v="a=aa0 b=bb0"
 # only 1st arg should be expanded in multiple words
 export $v c=$v
