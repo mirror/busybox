@@ -91,15 +91,14 @@ mkdir input_dir
 ln input_file input_dir
 ln input_soft input_dir
 chmod 550 input_dir
-tar cf test.tar input_*
+tar cf test.tar input_dir/* input_[fs]*
 tar tvf test.tar | sed "s/.*[0-9] input/input/" | sort
 chmod 770 input_dir
 rm -rf input_*
 tar xf test.tar 2>&1
 echo Ok: $?
-ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
+ls -l . input_dir/* | grep "input_[fs]" | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
 ' "\
-input_dir/
 input_dir/input_file
 input_dir/input_soft -> input_file
 input_file -> input_dir/input_file
@@ -107,7 +106,6 @@ input_soft -> input_dir/input_soft
 Ok: 0
 -rwxr----x input_dir/input_file
 lrwxrwxrwx input_file
-dr-xr-x--- input_dir
 -rwxr----x input_file
 lrwxrwxrwx input_file
 " \
@@ -129,6 +127,7 @@ Ok
 "Ok\n" ""
 SKIP=
 
+test x"$SKIP_KNOWN_BUGS" = x"" && {
 # Needs to be run under non-root for meaningful test
 optional FEATURE_TAR_CREATE
 testing "tar writing into read-only dir" '\
@@ -153,6 +152,8 @@ dr-xr-x--- input_dir
 " \
 "" ""
 SKIP=
+}
+
 
 cd .. && rm -rf tar.tempdir || exit 1
 
