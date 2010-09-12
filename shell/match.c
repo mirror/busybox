@@ -27,8 +27,6 @@
 #include <fnmatch.h>
 #include "match.h"
 
-#define pmatch(a, b) !fnmatch((a), (b), 0)
-
 char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags)
 {
 	char *loc;
@@ -67,17 +65,17 @@ char* FAST_FUNC scan_and_match(char *string, const char *pattern, unsigned flags
 
 	while (loc != end) {
 		char c;
-		int match;
+		int r;
 
 		c = *loc;
 		if (flags & SCAN_MATCH_LEFT_HALF) {
 			*loc = '\0';
-			match = pmatch(pattern, string);
+			r = fnmatch(pattern, string, 0);
 			*loc = c;
 		} else {
-			match = pmatch(pattern, loc);
+			r = fnmatch(pattern, loc, 0);
 		}
-		if (match)
+		if (r == 0) /* match found */
 			return loc;
 		if (early_exit) {
 #ifdef STANDALONE
