@@ -6008,7 +6008,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		flags &= ~EXP_TILDE;
  tilde:
 		q = p;
-		if (*q == CTLESC && (flags & EXP_QWORD))
+		if ((unsigned char)*q == CTLESC && (flags & EXP_QWORD))
 			q++;
 		if (*q == '~')
 			p = exptilde(p, q, flags);
@@ -6071,8 +6071,8 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 			/* "$@" syntax adherence hack */
 			if (!inquotes
 			 && memcmp(p, dolatstr, 4) == 0
-			 && (  p[4] == CTLQUOTEMARK
-			    || (p[4] == CTLENDVAR && p[5] == CTLQUOTEMARK)
+			 && (  p[4] == (char)CTLQUOTEMARK
+			    || (p[4] == (char)CTLENDVAR && p[5] == (char)CTLQUOTEMARK)
 			    )
 			) {
 				p = evalvar(p + 1, flags, /* var_str_list: */ NULL) + 1;
@@ -6293,8 +6293,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	int zero;
 	char *(*scan)(char*, char*, char*, char*, int, int);
 
-	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d",
-	//			p, varname, strloc, subtype, startloc, varflags, quotes);
+	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d)",
+	//		p, varname, strloc, subtype, startloc, varflags, quotes);
 
 	herefd = -1;
 	argstr(p, (subtype != VSASSIGN && subtype != VSQUESTION) ? EXP_CASE : 0,
@@ -6727,8 +6727,8 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
  vsplus:
 		if (varlen < 0) {
 			argstr(
-				p, flags | EXP_TILDE |
-					(quoted ? EXP_QWORD : EXP_WORD),
+				p,
+				flags | (quoted ? EXP_TILDE|EXP_QWORD : EXP_TILDE|EXP_WORD),
 				var_str_list
 			);
 			goto end;
@@ -11039,7 +11039,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	startlinno = g_parsefile->linno;
 	bqlist = NULL;
 	quotef = 0;
-	oldstyle = 0;
 	prevsyntax = 0;
 #if ENABLE_ASH_EXPAND_PRMT
 	pssyntax = (syntax == PSSYNTAX);
@@ -11445,6 +11444,8 @@ parsesub: {
 				c = pgetc();
 #if ENABLE_ASH_BASH_COMPAT
 				if (c == ':' || c == '$' || isdigit(c)) {
+//TODO: support more general format ${v:EXPR:EXPR},
+// where EXPR follows $(()) rules
 					subtype = VSSUBSTR;
 					pungetc();
 					break; /* "goto do_pungetc" is bigger (!) */
@@ -11472,6 +11473,9 @@ parsesub: {
 			}
 #if ENABLE_ASH_BASH_COMPAT
 			case '/':
+				/* ${v/[/]pattern/repl} */
+//TODO: encode pattern and repl separately.
+// Currently ${v/$var_with_slash/repl} is horribly broken
 				subtype = VSREPLACE;
 				c = pgetc();
 				if (c != '/')
