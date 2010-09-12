@@ -1357,10 +1357,10 @@ static void hush_exit(int exitcode)
 		/* argv[0] is unused */
 		argv[1] = G.traps[0];
 		argv[2] = NULL;
-		G.traps[0] = NULL;
-		G.exiting = 1;
+		G.exiting = 1; /* prevent EXIT trap recursion */
 		builtin_eval(argv);
-		/* free(argv[1]); - why bother */
+		/* Note: G.traps[0] is not cleared!
+		 * "trap" will still show it */
 	}
 
 #if ENABLE_HUSH_JOB
@@ -7864,7 +7864,7 @@ static int FAST_FUNC builtin_exit(char **argv)
 	 * exit
 	 # EEE (then bash exits)
 	 *
-	 * we can use G.exiting = -1 as indicator "last cmd was exit"
+	 * TODO: we can use G.exiting = -1 as indicator "last cmd was exit"
 	 */
 
 	/* note: EXIT trap is run by hush_exit */
