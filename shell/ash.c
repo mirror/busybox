@@ -2433,12 +2433,13 @@ static const char *expandstr(const char *ps);
 #endif
 
 static void
-setprompt(int whichprompt)
+setprompt_if(smallint do_set, int whichprompt)
 {
 	const char *prompt;
-#if ENABLE_ASH_EXPAND_PRMT
-	struct stackmark smark;
-#endif
+	IF_ASH_EXPAND_PRMT(struct stackmark smark;)
+
+	if (!do_set)
+		return;
 
 	needprompt = 0;
 
@@ -6022,9 +6023,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		c = p[length];
 		if (c) {
 			if (!(c & 0x80)
-#if ENABLE_SH_MATH_SUPPORT
-			 || c == CTLENDARI
-#endif
+			IF_SH_MATH_SUPPORT(|| c == CTLENDARI)
 			) {
 				/* c == '=' || c == ':' || c == CTLENDARI */
 				length++;
@@ -6107,8 +6106,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 #endif
 		}
 	}
- breakloop:
-	;
+ breakloop: ;
 }
 
 static char *
@@ -11054,159 +11052,156 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	STARTSTACKSTR(out);
  loop:
 	/* For each line, until end of word */
-	{
-		CHECKEND();     /* set c to PEOF if at end of here document */
-		for (;;) {      /* until end of line or end of word */
-			CHECKSTRSPACE(4, out);  /* permit 4 calls to USTPUTC */
-			switch (SIT(c, syntax)) {
-			case CNL:       /* '\n' */
-				if (syntax == BASESYNTAX)
-					goto endword;   /* exit outer loop */
-				USTPUTC(c, out);
-				g_parsefile->linno++;
-				if (doprompt)
-					setprompt(2);
-				c = pgetc();
-				goto loop;              /* continue outer loop */
-			case CWORD:
-				USTPUTC(c, out);
-				break;
-			case CCTL:
-				if (eofmark == NULL || dblquote)
-					USTPUTC(CTLESC, out);
+	CHECKEND();     /* set c to PEOF if at end of here document */
+	for (;;) {      /* until end of line or end of word */
+		CHECKSTRSPACE(4, out);  /* permit 4 calls to USTPUTC */
+		switch (SIT(c, syntax)) {
+		case CNL:       /* '\n' */
+			if (syntax == BASESYNTAX)
+				goto endword;   /* exit outer loop */
+			USTPUTC(c, out);
+			g_parsefile->linno++;
+			setprompt_if(doprompt, 2);
+			c = pgetc();
+			goto loop;              /* continue outer loop */
+		case CWORD:
+			USTPUTC(c, out);
+			break;
+		case CCTL:
+			if (eofmark == NULL || dblquote)
+				USTPUTC(CTLESC, out);
 #if ENABLE_ASH_BASH_COMPAT
-				if (c == '\\' && bash_dollar_squote) {
-					c = decode_dollar_squote();
-					if (c & 0x100) {
-						USTPUTC('\\', out);
-						c = (unsigned char)c;
-					}
+			if (c == '\\' && bash_dollar_squote) {
+				c = decode_dollar_squote();
+				if (c & 0x100) {
+					USTPUTC('\\', out);
+					c = (unsigned char)c;
 				}
+			}
 #endif
-				USTPUTC(c, out);
-				break;
-			case CBACK:     /* backslash */
-				c = pgetc_without_PEOA();
-				if (c == PEOF) {
+			USTPUTC(c, out);
+			break;
+		case CBACK:     /* backslash */
+			c = pgetc_without_PEOA();
+			if (c == PEOF) {
+				USTPUTC(CTLESC, out);
+				USTPUTC('\\', out);
+				pungetc();
+			} else if (c == '\n') {
+				setprompt_if(doprompt, 2);
+			} else {
+#if ENABLE_ASH_EXPAND_PRMT
+				if (c == '$' && pssyntax) {
 					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
-					pungetc();
-				} else if (c == '\n') {
-					if (doprompt)
-						setprompt(2);
-				} else {
-#if ENABLE_ASH_EXPAND_PRMT
-					if (c == '$' && pssyntax) {
-						USTPUTC(CTLESC, out);
-						USTPUTC('\\', out);
-					}
+				}
 #endif
-					/* Backslash is retained if we are in "str" and next char isn't special */
-					if (dblquote
-					 && c != '\\'
-					 && c != '`'
-					 && c != '$'
-					 && (c != '"' || eofmark != NULL)
-					) {
-						USTPUTC(CTLESC, out);
-						USTPUTC('\\', out);
-					}
-					if (SIT(c, SQSYNTAX) == CCTL)
-						USTPUTC(CTLESC, out);
-					USTPUTC(c, out);
-					quotef = 1;
-				}
-				break;
-			case CSQUOTE:
-				syntax = SQSYNTAX;
- quotemark:
-				if (eofmark == NULL) {
-					USTPUTC(CTLQUOTEMARK, out);
-				}
-				break;
-			case CDQUOTE:
-				syntax = DQSYNTAX;
-				dblquote = 1;
-				goto quotemark;
-			case CENDQUOTE:
-				IF_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
-				if (eofmark != NULL && arinest == 0
-				 && varnest == 0
+				/* Backslash is retained if we are in "str" and next char isn't special */
+				if (dblquote
+				 && c != '\\'
+				 && c != '`'
+				 && c != '$'
+				 && (c != '"' || eofmark != NULL)
 				) {
-					USTPUTC(c, out);
-				} else {
-					if (dqvarnest == 0) {
-						syntax = BASESYNTAX;
-						dblquote = 0;
-					}
-					quotef = 1;
-					goto quotemark;
+					USTPUTC(CTLESC, out);
+					USTPUTC('\\', out);
 				}
-				break;
-			case CVAR:      /* '$' */
-				PARSESUB();             /* parse substitution */
-				break;
-			case CENDVAR:   /* '}' */
-				if (varnest > 0) {
-					varnest--;
-					if (dqvarnest > 0) {
-						dqvarnest--;
-					}
-					c = CTLENDVAR;
-				}
+				if (SIT(c, SQSYNTAX) == CCTL)
+					USTPUTC(CTLESC, out);
 				USTPUTC(c, out);
-				break;
-#if ENABLE_SH_MATH_SUPPORT
-			case CLP:       /* '(' in arithmetic */
-				parenlevel++;
-				USTPUTC(c, out);
-				break;
-			case CRP:       /* ')' in arithmetic */
-				if (parenlevel > 0) {
-					parenlevel--;
-				} else {
-					if (pgetc() == ')') {
-						if (--arinest == 0) {
-							syntax = prevsyntax;
-							dblquote = (syntax == DQSYNTAX);
-							c = CTLENDARI;
-						}
-					} else {
-						/*
-						 * unbalanced parens
-						 * (don't 2nd guess - no error)
-						 */
-						pungetc();
-					}
-				}
-				USTPUTC(c, out);
-				break;
-#endif
-			case CBQUOTE:   /* '`' */
-				PARSEBACKQOLD();
-				break;
-			case CENDFILE:
-				goto endword;           /* exit outer loop */
-			case CIGN:
-				break;
-			default:
-				if (varnest == 0) {
-#if ENABLE_ASH_BASH_COMPAT
-					if (c == '&') {
-						if (pgetc() == '>')
-							c = 0x100 + '>'; /* flag &> */
-						pungetc();
-					}
-#endif
-					goto endword;   /* exit outer loop */
-				}
-				IF_ASH_ALIAS(if (c != PEOA))
-					USTPUTC(c, out);
+				quotef = 1;
 			}
-			c = pgetc_fast();
-		} /* for (;;) */
-	}
+			break;
+		case CSQUOTE:
+			syntax = SQSYNTAX;
+ quotemark:
+			if (eofmark == NULL) {
+				USTPUTC(CTLQUOTEMARK, out);
+			}
+			break;
+		case CDQUOTE:
+			syntax = DQSYNTAX;
+			dblquote = 1;
+			goto quotemark;
+		case CENDQUOTE:
+			IF_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
+			if (eofmark != NULL && arinest == 0
+			 && varnest == 0
+			) {
+				USTPUTC(c, out);
+			} else {
+				if (dqvarnest == 0) {
+					syntax = BASESYNTAX;
+					dblquote = 0;
+				}
+				quotef = 1;
+				goto quotemark;
+			}
+			break;
+		case CVAR:      /* '$' */
+			PARSESUB();             /* parse substitution */
+			break;
+		case CENDVAR:   /* '}' */
+			if (varnest > 0) {
+				varnest--;
+				if (dqvarnest > 0) {
+					dqvarnest--;
+				}
+				c = CTLENDVAR;
+			}
+			USTPUTC(c, out);
+			break;
+#if ENABLE_SH_MATH_SUPPORT
+		case CLP:       /* '(' in arithmetic */
+			parenlevel++;
+			USTPUTC(c, out);
+			break;
+		case CRP:       /* ')' in arithmetic */
+			if (parenlevel > 0) {
+				parenlevel--;
+			} else {
+				if (pgetc() == ')') {
+					if (--arinest == 0) {
+						syntax = prevsyntax;
+						dblquote = (syntax == DQSYNTAX);
+						c = CTLENDARI;
+					}
+				} else {
+					/*
+					 * unbalanced parens
+					 * (don't 2nd guess - no error)
+					 */
+					pungetc();
+				}
+			}
+			USTPUTC(c, out);
+			break;
+#endif
+		case CBQUOTE:   /* '`' */
+			PARSEBACKQOLD();
+			break;
+		case CENDFILE:
+			goto endword;           /* exit outer loop */
+		case CIGN:
+			break;
+		default:
+			if (varnest == 0) {
+#if ENABLE_ASH_BASH_COMPAT
+				if (c == '&') {
+					if (pgetc() == '>')
+						c = 0x100 + '>'; /* flag &> */
+					pungetc();
+				}
+#endif
+				goto endword;   /* exit outer loop */
+			}
+			IF_ASH_ALIAS(if (c != PEOA))
+				USTPUTC(c, out);
+		}
+		c = pgetc_fast();
+	} /* for (;;) */
  endword:
+
 #if ENABLE_SH_MATH_SUPPORT
 	if (syntax == ARISYNTAX)
 		raise_error_syntax("missing '))'");
@@ -11542,16 +11537,14 @@ parsebackq: {
 		   treatment to some slashes, and then push the string and
 		   reread it as input, interpreting it normally.  */
 		char *pout;
-		int pc;
 		size_t psavelen;
 		char *pstr;
 
-
 		STARTSTACKSTR(pout);
 		for (;;) {
-			if (needprompt) {
-				setprompt(2);
-			}
+			int pc;
+
+			setprompt_if(needprompt, 2);
 			pc = pgetc();
 			switch (pc) {
 			case '`':
@@ -11561,8 +11554,7 @@ parsebackq: {
 				pc = pgetc();
 				if (pc == '\n') {
 					g_parsefile->linno++;
-					if (doprompt)
-						setprompt(2);
+					setprompt_if(doprompt, 2);
 					/*
 					 * If eating a newline, avoid putting
 					 * the newline into the new character
@@ -11725,9 +11717,7 @@ xxreadtoken(void)
 		tokpushback = 0;
 		return lasttoken;
 	}
-	if (needprompt) {
-		setprompt(2);
-	}
+	setprompt_if(needprompt, 2);
 	startlinno = g_parsefile->linno;
 	for (;;) {                      /* until token or start of word found */
 		c = pgetc_fast();
@@ -11744,8 +11734,7 @@ xxreadtoken(void)
 				break; /* return readtoken1(...) */
 			}
 			startlinno = ++g_parsefile->linno;
-			if (doprompt)
-				setprompt(2);
+			setprompt_if(doprompt, 2);
 		} else {
 			const char *p;
 
@@ -11791,9 +11780,7 @@ xxreadtoken(void)
 		tokpushback = 0;
 		return lasttoken;
 	}
-	if (needprompt) {
-		setprompt(2);
-	}
+	setprompt_if(needprompt, 2);
 	startlinno = g_parsefile->linno;
 	for (;;) {      /* until token or start of word found */
 		c = pgetc_fast();
@@ -11809,8 +11796,7 @@ xxreadtoken(void)
 		case '\\':
 			if (pgetc() == '\n') {
 				startlinno = ++g_parsefile->linno;
-				if (doprompt)
-					setprompt(2);
+				setprompt_if(doprompt, 2);
 				continue;
 			}
 			pungetc();
@@ -11936,8 +11922,7 @@ parsecmd(int interact)
 
 	tokpushback = 0;
 	doprompt = interact;
-	if (doprompt)
-		setprompt(doprompt);
+	setprompt_if(doprompt, doprompt);
 	needprompt = 0;
 	t = readtoken();
 	if (t == TEOF)
@@ -11961,10 +11946,8 @@ parseheredoc(void)
 	heredoclist = NULL;
 
 	while (here) {
-		if (needprompt) {
-			setprompt(2);
-		}
-		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
+		setprompt_if(needprompt, 2);
+		readtoken1(pgetc(), here->here->type == NHERE ? SQSYNTAX : DQSYNTAX,
 				here->eofmark, here->striptabs);
 		n = stzalloc(sizeof(struct narg));
 		n->narg.type = NARG;
