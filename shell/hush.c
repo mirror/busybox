@@ -234,6 +234,10 @@
 //usage:#define hush_full_usage ""
 //usage:#define msh_trivial_usage NOUSAGE_STR
 //usage:#define msh_full_usage ""
+//usage:#define sh_trivial_usage NOUSAGE_STR
+//usage:#define sh_full_usage ""
+//usage:#define bash_trivial_usage NOUSAGE_STR
+//usage:#define bash_full_usage ""
 
 
 /* Build knobs */
@@ -1367,9 +1371,15 @@ static void hush_exit(int exitcode)
 #endif
 }
 
+
 static int check_and_run_traps(int sig)
 {
-	static const struct timespec zero_timespec;
+	/* I want it in rodata, not in bss.
+	 * gcc 4.2.1 puts it in rodata only if it has { 0, 0 }
+	 * initializer. But other compilers may still use bss.
+	 * TODO: find more portable solution.
+	 */
+	static const struct timespec zero_timespec = { 0, 0 };
 	smalluint save_rcode;
 	int last_sig = 0;
 
@@ -3367,7 +3377,7 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 #if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
-static void add_till_backquote(o_string *dest, struct in_str *input);
+static void add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
 /* '...' */
 static void add_till_single_quote(o_string *dest, struct in_str *input)
 {
@@ -3399,7 +3409,7 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
 		}
 		o_addchr(dest, ch);
 		if (ch == '`') {
-			add_till_backquote(dest, input);
+			add_till_backquote(dest, input, /*in_dquote:*/ 1);
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -3420,26 +3430,26 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
  * Example                               Output
  * echo `echo '\'TEST\`echo ZZ\`BEST`    \TESTZZBEST
  */
-static void add_till_backquote(o_string *dest, struct in_str *input)
+static void add_till_backquote(o_string *dest, struct in_str *input, int in_dquote)
 {
 	while (1) {
 		int ch = i_getch(input);
-		if (ch == EOF) {
-			syntax_error_unterm_ch('`');
-			/*xfunc_die(); - redundant */
-		}
 		if (ch == '`')
 			return;
 		if (ch == '\\') {
-			/* \x. Copy both chars unless it is \` */
-			int ch2 = i_getch(input);
-			if (ch2 == EOF) {
-				syntax_error_unterm_ch('`');
-				/*xfunc_die(); - redundant */
+			/* \x. Copy both unless it is \`, \$, \\ and maybe \" */
+			ch = i_getch(input);
+			if (ch != '`'
+			 && ch != '$'
+			 && ch != '\\'
+			 && (!in_dquote || ch != '"')
+			) {
+				o_addchr(dest, '\\');
 			}
-			if (ch2 != '`' && ch2 != '$' && ch2 != '\\')
-				o_addchr(dest, ch);
-			ch = ch2;
+		}
+		if (ch == EOF) {
+			syntax_error_unterm_ch('`');
+			/*xfunc_die(); - redundant */
 		}
 		o_addchr(dest, ch);
 	}
@@ -3504,7 +3514,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			continue;
 		}
 		if (ch == '`') {
-			add_till_backquote(dest, input);
+			add_till_backquote(dest, input, /*in_dquote:*/ 0);
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -3818,7 +3828,7 @@ static int encode_string(o_string *as_string,
 		//unsigned pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, 0x80 | '`');
-		add_till_backquote(dest, input);
+		add_till_backquote(dest, input, /*in_dquote:*/ dquote_end == '"');
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
 		goto again;
@@ -4191,7 +4201,7 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(&dest, '`');
 			pos = dest.length;
-			add_till_backquote(&dest, input);
+			add_till_backquote(&dest, input, /*in_dquote:*/ 0);
 # if !BB_MMU
 			o_addstr(&ctx.as_string, dest.data + pos);
 			o_addchr(&ctx.as_string, '`');
