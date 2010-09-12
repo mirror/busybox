@@ -655,6 +655,7 @@ static int busybox_main(char **argv)
 			"See source distribution for full notice.\n"
 			"\n"
 			"Usage: busybox [function] [arguments]...\n"
+			"   or: busybox --list[-full]\n"
 			"   or: function [arguments]...\n"
 			"\n"
 			"\tBusyBox is a multi-call binary that combines many common Unix\n"
