@@ -635,28 +635,29 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 				goto err;
 			}
 			while (stackptr != stack) {
+				operator prev_op = *--stackptr;
 				if (op == TOK_RPAREN) {
 					/* The algorithm employed here is simple: while we don't
 					 * hit an open paren nor the bottom of the stack, pop
 					 * tokens and apply them */
-					if (stackptr[-1] == TOK_LPAREN) {
-						--stackptr;
+					if (prev_op == TOK_LPAREN) {
 						/* Any operator directly after a */
 						lasttok = TOK_NUM;
 						/* close paren should consider itself binary */
 						goto next;
 					}
 				} else {
-					operator prev_prec = PREC(stackptr[-1]);
+					operator prev_prec = PREC(prev_op);
 					convert_prec_is_assign(prec);
 					convert_prec_is_assign(prev_prec);
-					if (prev_prec < prec)
+					if (prev_prec < prec
+					 || (prev_prec == prec && is_right_associativity(prec))
+					) {
+						stackptr++;
 						break;
-					/* check right assoc */
-					if (prev_prec == prec && is_right_associativity(prec))
-						break;
+					}
 				}
-				errcode = arith_apply(*--stackptr, numstack, &numstackptr, math_hooks);
+				errcode = arith_apply(prev_op, numstack, &numstackptr, math_hooks);
 				if (errcode)
 					goto ret;
 			}
