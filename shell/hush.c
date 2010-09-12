@@ -1358,9 +1358,10 @@ static void hush_exit(int exitcode)
 		argv[1] = G.traps[0];
 		argv[2] = NULL;
 		G.exiting = 1; /* prevent EXIT trap recursion */
-		builtin_eval(argv);
 		/* Note: G.traps[0] is not cleared!
-		 * "trap" will still show it */
+		 * "trap" will still show it, if executed
+		 * in the handler */
+		builtin_eval(argv);
 	}
 
 #if ENABLE_HUSH_JOB
