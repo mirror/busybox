@@ -671,7 +671,7 @@ static int readLines(const char *file, int num)
 
 	fd = open(file, 0);
 	if (fd < 0) {
-		perror(file);
+		bb_simple_perror_msg(file);
 		return FALSE;
 	}
 
@@ -721,7 +721,7 @@ static int readLines(const char *file, int num)
 	} while (cc > 0);
 
 	if (cc < 0) {
-		perror(file);
+		bb_simple_perror_msg(file);
 		close(fd);
 		return FALSE;
 	}
@@ -761,7 +761,7 @@ static int writeLines(const char *file, int num1, int num2)
 
 	fd = creat(file, 0666);
 	if (fd < 0) {
-		perror(file);
+		bb_simple_perror_msg(file);
 		return FALSE;
 	}
 
@@ -776,7 +776,7 @@ static int writeLines(const char *file, int num1, int num2)
 
 	while (num1++ <= num2) {
 		if (full_write(fd, lp->data, lp->len) != lp->len) {
-			perror(file);
+			bb_simple_perror_msg(file);
 			close(fd);
 			return FALSE;
 		}
@@ -786,7 +786,7 @@ static int writeLines(const char *file, int num1, int num2)
 	}
 
 	if (close(fd) < 0) {
-		perror(file);
+		bb_simple_perror_msg(file);
 		return FALSE;
 	}
 

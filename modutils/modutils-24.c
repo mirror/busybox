@@ -3561,7 +3561,7 @@ static void check_tainted_module(struct obj_file *f, const char *m_name)
 		else if (errno == EACCES)
 			kernel_has_tainted = 1;
 		else {
-			perror(TAINT_FILENAME);
+			bb_simple_perror_msg(TAINT_FILENAME);
 			kernel_has_tainted = 0;
 		}
 	}
