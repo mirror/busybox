@@ -146,6 +146,13 @@
 //config:	  from stdin just like a shell script from a file.
 //config:	  No prompt, no PS1/PS2 magic shell variables.
 //config:
+//config:config HUSH_SAVEHISTORY
+//config:	bool "Save command history to .hush_history"
+//config:	default y
+//config:	depends on HUSH_INTERACTIVE && FEATURE_EDITING_SAVEHISTORY
+//config:	help
+//config:	  Enable history saving in hush.
+//config:
 //config:config HUSH_JOB
 //config:	bool "Job control"
 //config:	default y
@@ -7415,7 +7422,20 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
+# if defined MAX_HISTORY && MAX_HISTORY > 0 && ENABLE_HUSH_SAVEHISTORY
+	{
+		const char *hp = get_local_var_value("HISTFILE");
+		if (!hp) {
+			hp = get_local_var_value("HOME");
+			if (hp) {
+				G.line_input_state->hist_file = concat_path_file(hp, ".hush_history");
+				//set_local_var(xasprintf("HISTFILE=%s", ...));
+			}
+		}
+	}
+# endif
 #endif
+
 	G.global_argc = argc;
 	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
