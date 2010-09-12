@@ -4728,9 +4728,9 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				if (beg < 0) /* bash compat */
 					beg = 0;
 				debug_printf_varexp("from val:'%s'\n", val);
-				if (len == 0 || !val || beg >= strlen(val))
-					val = "";
-				else {
+				if (len == 0 || !val || beg >= strlen(val)) {
+					val = NULL;
+				} else {
 					/* Paranoia. What if user entered 9999999999999
 					 * which fits in arith_t but not int? */
 					if (len >= INT_MAX)
@@ -4742,7 +4742,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 #endif
 			{
 				die_if_script("malformed ${%s:...}", var);
-				val = "";
+				val = NULL;
 			}
 		} else { /* one of "-=+?" */
 			/* Standard-mandated substitution ops:

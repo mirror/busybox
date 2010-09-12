@@ -124,9 +124,6 @@
 #define setvar    (math_hooks->setvar   )
 //#define endofname (math_hooks->endofname)
 
-#define arith_isspace(arithval) \
-	(arithval == ' ' || arithval == '\n' || arithval == '\t')
-
 typedef unsigned char operator;
 
 /* An operator's token id is a bit of a bitfield. The lower 5 bits are the
@@ -156,7 +153,7 @@ typedef unsigned char operator;
 #define TOK_REM_ASSIGN tok_decl(3,2)
 
 /* all assign is right associativity and precedence eq, but (7+3)<<5 > 256 */
-#define convert_prec_is_assing(prec) do { if (prec == 3) prec = 2; } while (0)
+#define convert_prec_is_assign(prec) do { if (prec == 3) prec = 2; } while (0)
 
 /* conditional is right associativity too */
 #define TOK_CONDITIONAL tok_decl(4,0)
@@ -223,7 +220,7 @@ tok_have_assign(operator op)
 {
 	operator prec = PREC(op);
 
-	convert_prec_is_assing(prec);
+	convert_prec_is_assign(prec);
 	return (prec == PREC(TOK_ASSIGN) ||
 			prec == PREC_PRE || prec == PREC_POST);
 }
@@ -477,7 +474,7 @@ static const char op_tokens[] ALIGN1 = {
 	0
 };
 /* ptr to ")" */
-#define endexpression (&op_tokens[sizeof(op_tokens)-7])
+#define ptr_to_rparen (&op_tokens[sizeof(op_tokens)-7])
 
 const char* FAST_FUNC
 endofname(const char *name)
@@ -494,32 +491,36 @@ endofname(const char *name)
 arith_t
 arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 {
-	char arithval; /* Current character under analysis */
-	operator lasttok, op;
-	operator prec;
-	operator *stack, *stackptr;
-	const char *p = endexpression;
+	operator lasttok;
 	int errcode;
-	v_n_t *numstack, *numstackptr;
-	unsigned datasizes = strlen(expr) + 2;
-
+	const char *start_expr = expr = skip_whitespace(expr);
+	unsigned expr_len = strlen(expr) + 2;
 	/* Stack of integers */
 	/* The proof that there can be no more than strlen(startbuf)/2+1 integers
 	 * in any given correct or incorrect expression is left as an exercise to
 	 * the reader. */
-	numstackptr = numstack = alloca((datasizes / 2) * sizeof(numstack[0]));
+	v_n_t *const numstack = alloca((expr_len / 2) * sizeof(numstack[0]));
+	v_n_t *numstackptr = numstack;
 	/* Stack of operator tokens */
-	stackptr = stack = alloca(datasizes * sizeof(stack[0]));
+	operator *const stack = alloca(expr_len * sizeof(stack[0]));
+	operator *stackptr = stack;
 
 	*stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
-	*perrcode = errcode = 0;
+	errcode = 0;
 
 	while (1) {
+		const char *p;
+		operator op;
+		operator prec;
+		char arithval;
+
+		expr = skip_whitespace(expr);
 		arithval = *expr;
-		if (arithval == 0) {
-			if (p == endexpression) {
+		if (arithval == '\0') {
+			if (expr == start_expr) {
 				/* Null expression. */
-				return 0;
+				numstack->val = 0;
+				goto ret;
 			}
 
 			/* This is only reached after all tokens have been extracted from the
@@ -527,38 +528,29 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 			 * are to be applied in order. At the end, there should be a final
 			 * result on the integer stack */
 
-			if (expr != endexpression + 1) {
+			if (expr != ptr_to_rparen + 1) {
 				/* If we haven't done so already, */
 				/* append a closing right paren */
-				expr = endexpression;
+				expr = ptr_to_rparen;
 				/* and let the loop process it. */
 				continue;
 			}
 			/* At this point, we're done with the expression. */
-			if (numstackptr != numstack+1) {
+			if (numstackptr != numstack + 1) {
 				/* ... but if there isn't, it's bad */
- err:
-				*perrcode = -1;
-				return *perrcode;
+				goto err;
 			}
 			if (numstack->var) {
 				/* expression is $((var)) only, lookup now */
 				errcode = arith_lookup_val(numstack, math_hooks);
 			}
- ret:
-			*perrcode = errcode;
-			return numstack->val;
+			goto ret;
 		}
 
-		/* Continue processing the expression. */
-		if (arith_isspace(arithval)) {
-			/* Skip whitespace */
-			goto prologue;
-		}
 		p = endofname(expr);
 		if (p != expr) {
-			size_t var_name_size = (p-expr) + 1;  /* trailing zero */
-
+			/* Name */
+			size_t var_name_size = (p-expr) + 1;  /* +1 for NUL */
 			numstackptr->var = alloca(var_name_size);
 			safe_strncpy(numstackptr->var, expr, var_name_size);
 			expr = p;
@@ -568,36 +560,37 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 			lasttok = TOK_NUM;
 			continue;
 		}
+
 		if (isdigit(arithval)) {
+			/* Number */
 			numstackptr->var = NULL;
 			errno = 0;
-			/* call strtoul[l]: */
-			numstackptr->val = strto_arith_t(expr, (char **) &expr, 0);
+			numstackptr->val = strto_arith_t(expr, (char**) &expr, 0);
 			if (errno)
 				numstackptr->val = 0; /* bash compat */
 			goto num;
 		}
-		for (p = op_tokens; ; p++) {
-			const char *o;
 
-			if (*p == 0) {
-				/* strange operator not found */
-				goto err;
-			}
-			for (o = expr; *p && *o == *p; p++)
-				o++;
-			if (!*p) {
-				/* found */
-				expr = o - 1;
+		/* Should be an operator */
+		p = op_tokens;
+		while (1) {
+			const char *e = expr;
+			/* Compare expr to current op_tokens[] element */
+			while (*p && *e == *p)
+				p++, e++;
+			if (*p == '\0') { /* match: operator is found */
+				expr = e;
 				break;
 			}
-			/* skip tail uncompared token */
+			/* Go to next element of op_tokens[] */
 			while (*p)
 				p++;
-			/* skip zero delim */
-			p++;
+			p += 2; /* skip NUL and TOK_foo bytes */
+			if (*p == '\0') /* no next element, operator not found */
+				goto err;
 		}
-		op = p[1];
+		op = p[1]; /* fetch TOK_foo value */
+		/* NB: expr now points past the operator */
 
 		/* post grammar: a++ reduce to num */
 		if (lasttok == TOK_POST_INC || lasttok == TOK_POST_DEC)
@@ -651,13 +644,12 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 						/* Any operator directly after a */
 						lasttok = TOK_NUM;
 						/* close paren should consider itself binary */
-						goto prologue;
+						goto next;
 					}
 				} else {
 					operator prev_prec = PREC(stackptr[-1]);
-
-					convert_prec_is_assing(prec);
-					convert_prec_is_assing(prev_prec);
+					convert_prec_is_assign(prec);
+					convert_prec_is_assign(prev_prec);
 					if (prev_prec < prec)
 						break;
 					/* check right assoc */
@@ -665,7 +657,8 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 						break;
 				}
 				errcode = arith_apply(*--stackptr, numstack, &numstackptr, math_hooks);
-				if (errcode) goto ret;
+				if (errcode)
+					goto ret;
 			}
 			if (op == TOK_RPAREN) {
 				goto err;
@@ -674,9 +667,14 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 
 		/* Push this operator to the stack and remember it. */
 		*stackptr++ = lasttok = op;
- prologue:
-		++expr;
-	} /* while */
+ next: ;
+	} /* while (1) */
+
+ err:
+	numstack->val = errcode = -1;
+ ret:
+	*perrcode = errcode;
+	return numstack->val;
 }
 
 /*
