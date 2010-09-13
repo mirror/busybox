@@ -119,10 +119,9 @@
 #include "libbb.h"
 #include "math.h"
 
-#define a_e_h_t   arith_eval_hooks_t
-#define lookupvar (math_hooks->lookupvar)
-#define setvar    (math_hooks->setvar   )
-//#define endofname (math_hooks->endofname)
+#define lookupvar (math_state->lookupvar)
+#define setvar    (math_state->setvar   )
+//#define endofname (math_state->endofname)
 
 typedef unsigned char operator;
 
@@ -249,13 +248,12 @@ typedef struct chk_var_recursive_looped_t {
 static chk_var_recursive_looped_t *prev_chk_var_recursive;
 
 static int
-arith_lookup_val(v_n_t *t, a_e_h_t *math_hooks)
+arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 {
 	if (t->var) {
 		const char *p = lookupvar(t->var);
 
 		if (p) {
-			int errcode;
 			chk_var_recursive_looped_t *cur;
 			chk_var_recursive_looped_t cur_save;
 
@@ -273,10 +271,10 @@ arith_lookup_val(v_n_t *t, a_e_h_t *math_hooks)
 			cur_save.next = cur;
 			prev_chk_var_recursive = &cur_save;
 
-			t->val = arith(p, &errcode, math_hooks);
+			t->val = arith(math_state, p);
 			/* restore previous ptr after recursion */
 			prev_chk_var_recursive = cur;
-			return errcode;
+			return math_state->errcode;
 		}
 		/* allow undefined var as 0 */
 		t->val = 0;
@@ -288,13 +286,13 @@ arith_lookup_val(v_n_t *t, a_e_h_t *math_hooks)
  * stack. For an unary operator it will only change the top element, but a
  * binary operator will pop two arguments and push the result */
 static NOINLINE int
-arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hooks)
+arith_apply(arith_state_t *math_state, operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
 #define NUMPTR (*numstackptr)
 
 	v_n_t *numptr_m1;
 	arith_t numptr_val, rez;
-	int ret_arith_lookup_val;
+	int err;
 
 	/* There is no operator that can work without arguments */
 	if (NUMPTR == numstack)
@@ -302,9 +300,9 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hoo
 	numptr_m1 = NUMPTR - 1;
 
 	/* Check operand is var with noninteger value */
-	ret_arith_lookup_val = arith_lookup_val(numptr_m1, math_hooks);
-	if (ret_arith_lookup_val)
-		return ret_arith_lookup_val;
+	err = arith_lookup_val(math_state, numptr_m1);
+	if (err)
+		return err;
 
 	rez = numptr_m1->val;
 	if (op == TOK_UMINUS)
@@ -339,9 +337,9 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr, a_e_h_t *math_hoo
 		numptr_m1 = NUMPTR - 1;
 		if (op != TOK_ASSIGN) {
 			/* check operand is var with noninteger value for not '=' */
-			ret_arith_lookup_val = arith_lookup_val(numptr_m1, math_hooks);
-			if (ret_arith_lookup_val)
-				return ret_arith_lookup_val;
+			err = arith_lookup_val(math_state, numptr_m1);
+			if (err)
+				return err;
 		}
 		if (op == TOK_CONDITIONAL) {
 			numptr_m1->contidional_second_val = rez;
@@ -490,7 +488,7 @@ endofname(const char *name)
 }
 
 arith_t
-arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
+arith(arith_state_t *math_state, const char *expr)
 {
 	operator lasttok;
 	int errcode;
@@ -543,7 +541,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 			}
 			if (numstack->var) {
 				/* expression is $((var)) only, lookup now */
-				errcode = arith_lookup_val(numstack, math_hooks);
+				errcode = arith_lookup_val(math_state, numstack);
 			}
 			goto ret;
 		}
@@ -658,7 +656,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
 						break;
 					}
 				}
-				errcode = arith_apply(prev_op, numstack, &numstackptr, math_hooks);
+				errcode = arith_apply(math_state, prev_op, numstack, &numstackptr);
 				if (errcode)
 					goto ret;
 			}
@@ -675,7 +673,7 @@ arith(const char *expr, int *perrcode, a_e_h_t *math_hooks)
  err:
 	numstack->val = errcode = -1;
  ret:
-	*perrcode = errcode;
+	math_state->errcode = errcode;
 	return numstack->val;
 }
 

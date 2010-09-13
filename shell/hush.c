@@ -4463,15 +4463,16 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 #if ENABLE_SH_MATH_SUPPORT
 static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 {
-	arith_eval_hooks_t hooks;
+	arith_state_t math_state;
 	arith_t res;
 	char *exp_str;
 
-	hooks.lookupvar = get_local_var_value;
-	hooks.setvar = set_local_var_from_halves;
-	//hooks.endofname = endofname;
+	math_state.lookupvar = get_local_var_value;
+	math_state.setvar = set_local_var_from_halves;
+	//math_state.endofname = endofname;
 	exp_str = encode_then_expand_string(arg, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
-	res = arith(exp_str ? exp_str : arg, errcode_p, &hooks);
+	res = arith(&math_state, exp_str ? exp_str : arg);
+	*errcode_p = math_state.errcode;
 	free(exp_str);
 	return res;
 }

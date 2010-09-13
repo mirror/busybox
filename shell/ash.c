@@ -5442,22 +5442,21 @@ redirectsafe(union node *redir, int flags)
 static arith_t
 ash_arith(const char *s)
 {
-	arith_eval_hooks_t math_hooks;
+	arith_state_t math_state;
 	arith_t result;
-	int errcode = 0;
 
-	math_hooks.lookupvar = lookupvar;
-	math_hooks.setvar    = setvar2;
-	//math_hooks.endofname = endofname;
+	math_state.lookupvar = lookupvar;
+	math_state.setvar    = setvar2;
+	//math_state.endofname = endofname;
 
 	INT_OFF;
-	result = arith(s, &errcode, &math_hooks);
-	if (errcode < 0) {
-		if (errcode == -3)
+	result = arith(&math_state, s);
+	if (math_state.errcode < 0) {
+		if (math_state.errcode == -3)
 			ash_msg_and_raise_error("exponent less than 0");
-		if (errcode == -2)
+		if (math_state.errcode == -2)
 			ash_msg_and_raise_error("divide by zero");
-		if (errcode == -5)
+		if (math_state.errcode == -5)
 			ash_msg_and_raise_error("expression recursion loop detected");
 		raise_error_syntax(s);
 	}
