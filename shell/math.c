@@ -232,6 +232,7 @@ is_right_associative(operator prec)
 	        || prec == PREC(TOK_CONDITIONAL));
 }
 
+
 typedef struct {
 	arith_t val;
 	arith_t contidional_second_val;
@@ -240,43 +241,49 @@ typedef struct {
 			   else is variable name */
 } v_n_t;
 
-typedef struct chk_var_recursive_looped_t {
+typedef struct remembered_name {
+	struct remembered_name *next;
 	const char *var;
-	struct chk_var_recursive_looped_t *next;
-} chk_var_recursive_looped_t;
+} remembered_name;
 
-static chk_var_recursive_looped_t *prev_chk_var_recursive;
+
+static arith_t FAST_FUNC
+evaluate_string(arith_state_t *math_state, const char *expr);
 
 static int
 arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 {
 	if (t->var) {
 		const char *p = lookupvar(t->var);
-
 		if (p) {
-			chk_var_recursive_looped_t *cur;
-			chk_var_recursive_looped_t cur_save;
+			remembered_name *cur;
+			remembered_name cur_save;
 
-			/* recursively try p as expression */
-
-			for (cur = prev_chk_var_recursive; cur; cur = cur->next) {
+			/* did we already see this name?
+			 * testcase: a=b; b=a; echo $((a))
+			 */
+			for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
 				if (strcmp(cur->var, t->var) == 0) {
-					/* expression recursion loop detected */
+					/* Yes. Expression recursion loop detected */
 					return -5;
 				}
 			}
-			/* save current var name */
-			cur = prev_chk_var_recursive;
+
+			/* push current var name */
+			cur = math_state->list_of_recursed_names;
 			cur_save.var = t->var;
 			cur_save.next = cur;
-			prev_chk_var_recursive = &cur_save;
+			math_state->list_of_recursed_names = &cur_save;
 
-			t->val = arith(math_state, p);
-			/* restore previous ptr after recursion */
-			prev_chk_var_recursive = cur;
+			/* recursively evaluate p as expression */
+			t->val = evaluate_string(math_state, p);
+
+			/* pop current var name */
+			math_state->list_of_recursed_names = cur;
+
 			return math_state->errcode;
 		}
-		/* allow undefined var as 0 */
+		/* treat undefined var as 0 */
 		t->val = 0;
 	}
 	return 0;
@@ -487,8 +494,8 @@ endofname(const char *name)
 	return name;
 }
 
-arith_t
-arith(arith_state_t *math_state, const char *expr)
+static arith_t FAST_FUNC
+evaluate_string(arith_state_t *math_state, const char *expr)
 {
 	operator lasttok;
 	int errcode;
@@ -675,6 +682,13 @@ arith(arith_state_t *math_state, const char *expr)
  ret:
 	math_state->errcode = errcode;
 	return numstack->val;
+}
+
+arith_t FAST_FUNC
+arith(arith_state_t *math_state, const char *expr)
+{
+	math_state->list_of_recursed_names = NULL;
+	return evaluate_string(math_state, expr);
 }
 
 /*

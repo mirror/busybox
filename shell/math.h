@@ -95,13 +95,14 @@ typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *v
 //typedef const char* FAST_FUNC (*arith_var_endofname_t)(const char *name);
 
 typedef struct arith_state_t {
+	int                   errcode;
 	arith_var_lookup_t    lookupvar;
 	arith_var_set_t       setvar;
 //	arith_var_endofname_t endofname;
-	int                   errcode;
+	void                 *list_of_recursed_names;
 } arith_state_t;
 
-arith_t arith(arith_state_t *state, const char *expr);
+arith_t FAST_FUNC arith(arith_state_t *state, const char *expr);
 
 POP_SAVED_FUNCTION_VISIBILITY
 
