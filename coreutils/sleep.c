@@ -20,7 +20,7 @@
 
 #include "libbb.h"
 
-/* This is a NOFORK applet. Be very careful! */
+/* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells */
 
 
 #if ENABLE_FEATURE_FANCY_SLEEP || ENABLE_FEATURE_FLOAT_SLEEP
