@@ -5451,15 +5451,8 @@ ash_arith(const char *s)
 
 	INT_OFF;
 	result = arith(&math_state, s);
-	if (math_state.errcode < 0) {
-		if (math_state.errcode == -3)
-			ash_msg_and_raise_error("exponent less than 0");
-		if (math_state.errcode == -2)
-			ash_msg_and_raise_error("divide by zero");
-		if (math_state.errcode == -5)
-			ash_msg_and_raise_error("expression recursion loop detected");
-		raise_error_syntax(s);
-	}
+	if (math_state.errmsg)
+		ash_msg_and_raise_error(math_state.errmsg);
 	INT_ON;
 
 	return result;

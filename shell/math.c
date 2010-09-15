@@ -26,26 +26,26 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 /* Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
-
-   Permission is hereby granted, free of charge, to any person obtaining
-   a copy of this software and associated documentation files (the
-   "Software"), to deal in the Software without restriction, including
-   without limitation the rights to use, copy, modify, merge, publish,
-   distribute, sublicense, and/or sell copies of the Software, and to
-   permit persons to whom the Software is furnished to do so, subject to
-   the following conditions:
-
-   The above copyright notice and this permission notice shall be
-   included in all copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 /* This is my infix parser/evaluator. It is optimized for size, intended
  * as a replacement for yacc-based parsers. However, it may well be faster
@@ -60,9 +60,6 @@
  * this is based (this code differs in that it applies operators immediately
  * to the stack instead of adding them to a queue to end up with an
  * expression).
- *
- * To use the routine, call it with an expression string and error return
- * pointer
  */
 
 /*
@@ -250,7 +247,7 @@ typedef struct remembered_name {
 static arith_t FAST_FUNC
 evaluate_string(arith_state_t *math_state, const char *expr);
 
-static int
+static const char*
 arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 {
 	if (t->var) {
@@ -264,8 +261,8 @@ arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 			 */
 			for (cur = math_state->list_of_recursed_names; cur; cur = cur->next) {
 				if (strcmp(cur->var, t->var) == 0) {
-					/* Yes. Expression recursion loop detected */
-					return -5;
+					/* Yes */
+					return "expression recursion loop detected";
 				}
 			}
 
@@ -281,7 +278,7 @@ arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 			/* pop current var name */
 			math_state->list_of_recursed_names = cur;
 
-			return math_state->errcode;
+			return math_state->errmsg;
 		}
 		/* treat undefined var as 0 */
 		t->val = 0;
@@ -292,14 +289,14 @@ arith_lookup_val(arith_state_t *math_state, v_n_t *t)
 /* "Applying" a token means performing it on the top elements on the integer
  * stack. For an unary operator it will only change the top element, but a
  * binary operator will pop two arguments and push the result */
-static NOINLINE int
+static NOINLINE const char*
 arith_apply(arith_state_t *math_state, operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
 #define NUMPTR (*numstackptr)
 
 	v_n_t *numptr_m1;
 	arith_t numptr_val, rez;
-	int err;
+	const char *err;
 
 	/* There is no operator that can work without arguments */
 	if (NUMPTR == numstack)
@@ -399,13 +396,13 @@ arith_apply(arith_state_t *math_state, operator op, v_n_t *numstack, v_n_t **num
 		} else if (op == TOK_EXPONENT) {
 			arith_t c;
 			if (numptr_val < 0)
-				return -3;      /* exponent less than 0 */
+				return "exponent less than 0";
 			c = 1;
 			while (--numptr_val >= 0)
 			    c *= rez;
 			rez = c;
-		} else if (numptr_val==0)          /* zero divisor check */
-			return -2;
+		} else if (numptr_val == 0)
+			return "divide by zero";
 		else if (op == TOK_DIV || op == TOK_DIV_ASSIGN)
 			rez /= numptr_val;
 		else if (op == TOK_REM || op == TOK_REM_ASSIGN)
@@ -430,9 +427,9 @@ arith_apply(arith_state_t *math_state, operator op, v_n_t *numstack, v_n_t **num
 	numptr_m1->val = rez;
 	/* erase var name, it is just a number now */
 	numptr_m1->var = NULL;
-	return 0;
+	return NULL;
  err:
-	return -1;
+	return "arithmetic syntax error";
 #undef NUMPTR
 }
 
@@ -498,7 +495,7 @@ static arith_t FAST_FUNC
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
 	operator lasttok;
-	int errcode;
+	const char *errmsg;
 	const char *start_expr = expr = skip_whitespace(expr);
 	unsigned expr_len = strlen(expr) + 2;
 	/* Stack of integers */
@@ -512,7 +509,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	operator *stackptr = stack;
 
 	*stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
-	errcode = 0;
+	errmsg = NULL;
 
 	while (1) {
 		const char *p;
@@ -548,7 +545,7 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 			}
 			if (numstack->var) {
 				/* expression is $((var)) only, lookup now */
-				errcode = arith_lookup_val(math_state, numstack);
+				errmsg = arith_lookup_val(math_state, numstack);
 			}
 			goto ret;
 		}
@@ -663,8 +660,8 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 						break;
 					}
 				}
-				errcode = arith_apply(math_state, prev_op, numstack, &numstackptr);
-				if (errcode)
+				errmsg = arith_apply(math_state, prev_op, numstack, &numstackptr);
+				if (errmsg)
 					goto ret;
 			}
 			if (op == TOK_RPAREN) {
@@ -678,15 +675,17 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 	} /* while (1) */
 
  err:
-	numstack->val = errcode = -1;
+	numstack->val = -1;
+	errmsg = "arithmetic syntax error";
  ret:
-	math_state->errcode = errcode;
+	math_state->errmsg = errmsg;
 	return numstack->val;
 }
 
 arith_t FAST_FUNC
 arith(arith_state_t *math_state, const char *expr)
 {
+	math_state->errmsg = NULL;
 	math_state->list_of_recursed_names = NULL;
 	return evaluate_string(math_state, expr);
 }

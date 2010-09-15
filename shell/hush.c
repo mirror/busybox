@@ -4461,7 +4461,7 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 }
 
 #if ENABLE_SH_MATH_SUPPORT
-static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
+static arith_t expand_and_evaluate_arith(const char *arg, const char **errmsg_p)
 {
 	arith_state_t math_state;
 	arith_t res;
@@ -4472,8 +4472,11 @@ static arith_t expand_and_evaluate_arith(const char *arg, int *errcode_p)
 	//math_state.endofname = endofname;
 	exp_str = encode_then_expand_string(arg, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
 	res = arith(&math_state, exp_str ? exp_str : arg);
-	*errcode_p = math_state.errcode;
 	free(exp_str);
+	if (errmsg_p)
+		*errmsg_p = math_state.errmsg;
+	if (math_state.errmsg)
+		die_if_script(math_state.errmsg);
 	return res;
 }
 #endif
@@ -4714,22 +4717,26 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 			 * var:N<SPECIAL_VAR_SYMBOL>M<SPECIAL_VAR_SYMBOL>
 			 */
 			arith_t beg, len;
-			int errcode = 0;
+			const char *errmsg;
 
-			beg = expand_and_evaluate_arith(exp_word, &errcode);
+			beg = expand_and_evaluate_arith(exp_word, &errmsg);
+			if (errmsg)
+				goto arith_err;
 			debug_printf_varexp("beg:'%s'=%lld\n", exp_word, (long long)beg);
 			*p++ = SPECIAL_VAR_SYMBOL;
 			exp_word = p;
 			p = strchr(p, SPECIAL_VAR_SYMBOL);
 			*p = '\0';
-			len = expand_and_evaluate_arith(exp_word, &errcode);
+			len = expand_and_evaluate_arith(exp_word, &errmsg);
+			if (errmsg)
+				goto arith_err;
 			debug_printf_varexp("len:'%s'=%lld\n", exp_word, (long long)len);
-
-			if (errcode >= 0 && len >= 0) { /* bash compat: len < 0 is illegal */
+			if (len >= 0) { /* bash compat: len < 0 is illegal */
 				if (beg < 0) /* bash compat */
 					beg = 0;
 				debug_printf_varexp("from val:'%s'\n", val);
 				if (len == 0 || !val || beg >= strlen(val)) {
+ arith_err:
 					val = NULL;
 				} else {
 					/* Paranoia. What if user entered 9999999999999
@@ -4926,28 +4933,11 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 #if ENABLE_SH_MATH_SUPPORT
 		case '+': { /* <SPECIAL_VAR_SYMBOL>+cmd<SPECIAL_VAR_SYMBOL> */
 			arith_t res;
-			int errcode;
 
 			arg++; /* skip '+' */
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
-			res = expand_and_evaluate_arith(arg, &errcode);
-
-			if (errcode < 0) {
-				const char *msg = "error in arithmetic";
-				switch (errcode) {
-				case -3:
-					msg = "exponent less than 0";
-					break;
-				case -2:
-					msg = "divide by 0";
-					break;
-				case -5:
-					msg = "expression recursion loop detected";
-					break;
-				}
-				die_if_script(msg);
-			}
+			res = expand_and_evaluate_arith(arg, NULL);
 			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
 			sprintf(arith_buf, arith_t_fmt, res);
 			val = arith_buf;

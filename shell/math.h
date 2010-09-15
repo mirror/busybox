@@ -95,7 +95,7 @@ typedef void        FAST_FUNC (*arith_var_set_t)(const char *name, const char *v
 //typedef const char* FAST_FUNC (*arith_var_endofname_t)(const char *name);
 
 typedef struct arith_state_t {
-	int                   errcode;
+	const char           *errmsg;
 	arith_var_lookup_t    lookupvar;
 	arith_var_set_t       setvar;
 //	arith_var_endofname_t endofname;
