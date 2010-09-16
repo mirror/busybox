@@ -116,16 +116,15 @@ void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
 		SRC_BUF_SIZE = 45,  /* This *MUST* be a multiple of 3 */
 		DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 	};
-
 #define src_buf text
+	char src[SRC_BUF_SIZE];
 	FILE *fp = fp;
 	ssize_t len = len;
 	char dst_buf[DST_BUF_SIZE + 1];
 
 	if (fname) {
 		fp = (NOT_LONE_DASH(fname)) ? xfopen_for_read(fname) : (FILE *)text;
-		src_buf = bb_common_bufsiz1;
-	// N.B. strlen(NULL) segfaults!
+		src_buf = src;
 	} else if (text) {
 		// though we do not call uuencode(NULL, NULL) explicitly
 		// still we do not want to break things suddenly
