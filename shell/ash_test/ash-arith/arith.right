@@ -72,7 +72,7 @@ ghi
 ./arith.tests: line 191: arithmetic syntax error
 16 16
 ./arith.tests: line 196: arithmetic syntax error
-./arith.tests: line 197: arithmetic syntax error
+./arith.tests: line 197: malformed ?: operator
 ./arith.tests: line 198: arithmetic syntax error
 9 9
 ./arith.tests: line 205: arithmetic syntax error

@@ -4938,8 +4938,8 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			*p = '\0'; /* replace trailing <SPECIAL_VAR_SYMBOL> */
 			debug_printf_subst("ARITH '%s' first_ch %x\n", arg, first_ch);
 			res = expand_and_evaluate_arith(arg, NULL);
-			debug_printf_subst("ARITH RES '"arith_t_fmt"'\n", res);
-			sprintf(arith_buf, arith_t_fmt, res);
+			debug_printf_subst("ARITH RES '"ARITH_FMT"'\n", res);
+			sprintf(arith_buf, ARITH_FMT, res);
 			val = arith_buf;
 			break;
 		}

@@ -81,7 +81,7 @@ ghi
 hush: arithmetic syntax error
 16 16
 hush: arithmetic syntax error
-hush: arithmetic syntax error
+hush: malformed ?: operator
 hush: arithmetic syntax error
 9 9
 hush: arithmetic syntax error

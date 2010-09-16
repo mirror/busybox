@@ -5516,7 +5516,7 @@ cvtnum(arith_t num)
 	int len;
 
 	expdest = makestrspace(32, expdest);
-	len = fmtstr(expdest, 32, arith_t_fmt, num);
+	len = fmtstr(expdest, 32, ARITH_FMT, num);
 	STADJUST(len, expdest);
 	return len;
 }

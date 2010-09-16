@@ -9,19 +9,13 @@
 
 /* The math library has just one function:
  *
- * arith_t arith(arith_state_t *states, const char *expr);
+ * arith_t arith(arith_state_t *state, const char *expr);
  *
  * The expr argument is the math string to parse.  All normal expansions must
  * be done already.  i.e. no dollar symbols should be present.
  *
  * The state argument is a pointer to a struct of hooks for your shell (see below),
- * and a semi-detailed error code. Currently, those values are (for
- * compatibility, you should assume all negative values are errors):
- * 0 - no errors (yay!)
- * -1 - unspecified problem
- * -2 - divide by zero
- * -3 - exponent less than 0
- * -5 - expression recursion loop detected
+ * and an error message string (NULL if no error).
  *
  * The function returns the answer to the expression.  So if you called it
  * with the expression:
@@ -64,12 +58,6 @@
  *	the regex (in C locale): ^[a-zA-Z_][a-zA-Z_0-9]*
  */
 
-/* To make your life easier when dealing with optional 64bit math support,
- * rather than assume that the type is "signed long" and you can always
- * use "%ld" to scan/print the value, use the arith_t helper defines.  See
- * below for the exact things that are available.
- */
-
 #ifndef SHELL_MATH_H
 #define SHELL_MATH_H 1
 
@@ -77,11 +65,11 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 #if ENABLE_SH_MATH_SUPPORT_64
 typedef long long arith_t;
-#define arith_t_fmt "%lld"
+#define ARITH_FMT "%lld"
 #define strto_arith_t strtoull
 #else
 typedef long arith_t;
-#define arith_t_fmt "%ld"
+#define ARITH_FMT "%ld"
 #define strto_arith_t strtoul
 #endif
 
