@@ -1505,6 +1505,12 @@ unsigned get_cpu_count(void) FAST_FUNC;
 extern const char bb_uuenc_tbl_base64[];
 extern const char bb_uuenc_tbl_std[];
 void bb_uuencode(char *store, const void *s, int length, const char *tbl) FAST_FUNC;
+enum {
+	BASE64_FLAG_UU_STOP = 0x100,
+	/* Sign-extends to a value which never matches fgetc result: */
+	BASE64_FLAG_NO_STOP_CHAR = 0x80,
+};
+void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags);
 
 typedef struct sha1_ctx_t {
 	uint32_t hash[8];    /* 5, +3 elements for sha256 */

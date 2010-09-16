@@ -13,7 +13,7 @@
 #include "libbb.h"
 
 #if ENABLE_UUDECODE
-static void read_stduu(FILE *src_stream, FILE *dst_stream)
+static void FAST_FUNC read_stduu(FILE *src_stream, FILE *dst_stream, int flags UNUSED_PARAM)
 {
 	char *line;
 
@@ -75,71 +75,6 @@ static void read_stduu(FILE *src_stream, FILE *dst_stream)
 }
 #endif
 
-static void read_base64(FILE *src_stream, FILE *dst_stream)
-{
-	int term_count = 0;
-
-	while (1) {
-		unsigned char translated[4];
-		int count = 0;
-
-		/* Process one group of 4 chars */
-		while (count < 4) {
-			char *table_ptr;
-			int ch;
-
-			/* Get next _valid_ character.
-			 * bb_uuenc_tbl_base64[] contains this string:
-			 *  0         1         2         3         4         5         6
-			 *  012345678901234567890123456789012345678901234567890123456789012345
-			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n"
-			 */
-			do {
-				ch = fgetc(src_stream);
-				if (ch == EOF) {
-					if (ENABLE_BASE64
-					 && (!ENABLE_UUDECODE || applet_name[0] == 'b')
-					 && count == 0
-					) {
-						return;
-					}
-					bb_error_msg_and_die("short file");
-				}
-				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
-			} while (!table_ptr);
-
-			/* Convert encoded character to decimal */
-			ch = table_ptr - bb_uuenc_tbl_base64;
-
-			if (ch == 65 /* '\n' */) {
-				/* Terminating "====" line? */
-				if (term_count == 4)
-					return; /* yes */
-				term_count = 0;
-				continue;
-			}
-			/* ch is 64 is char was '=', otherwise 0..63 */
-			translated[count] = ch & 63; /* 64 -> 0 */
-			if (ch == 64) {
-				term_count++;
-				break;
-			}
-			count++;
-		}
-
-		/* Merge 6 bit chars to 8 bit.
-		 * count can be < 4 when we decode the tail:
-		 * "eQ==" -> "y", not "y NUL NUL"
-		 */
-		if (count > 1)
-			fputc(translated[0] << 2 | translated[1] >> 4, dst_stream);
-		if (count > 2)
-			fputc(translated[1] << 4 | translated[2] >> 2, dst_stream);
-		if (count > 3)
-			fputc(translated[2] << 6 | translated[3], dst_stream);
-	} /* while (1) */
-}
-
 #if ENABLE_UUDECODE
 int uudecode_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uudecode_main(int argc UNUSED_PARAM, char **argv)
@@ -158,7 +93,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Search for the start of the encoding */
 	while ((line = xmalloc_fgetline(src_stream)) != NULL) {
-		void (*decode_fn_ptr)(FILE *src, FILE *dst);
+		void FAST_FUNC (*decode_fn_ptr)(FILE *src, FILE *dst, int flags);
 		char *line_ptr;
 		FILE *dst_stream;
 		int mode;
@@ -189,7 +124,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 			fchmod(fileno(dst_stream), mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
 		free(line);
-		decode_fn_ptr(src_stream, dst_stream);
+		decode_fn_ptr(src_stream, dst_stream, /*flags:*/ BASE64_FLAG_UU_STOP + BASE64_FLAG_NO_STOP_CHAR);
 		/* fclose_if_not_stdin(src_stream); - redundant */
 		return EXIT_SUCCESS;
 	}
@@ -231,7 +166,7 @@ int base64_main(int argc UNUSED_PARAM, char **argv)
 		*--argv = (char*)"-";
 	src_stream = xfopen_stdin(argv[0]);
 	if (opts) {
-		read_base64(src_stream, stdout);
+		read_base64(src_stream, stdout, /*flags:*/ (char)EOF);
 	} else {
 		enum {
 			SRC_BUF_SIZE = 76/4*3,  /* This *MUST* be a multiple of 3 */

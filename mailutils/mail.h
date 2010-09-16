@@ -32,4 +32,3 @@ void FAST_FUNC get_cred_or_die(int fd);
 const FAST_FUNC char *command(const char *fmt, const char *param);
 
 void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol);
-void FAST_FUNC decode_base64(FILE *src_stream, FILE *dst_stream);
