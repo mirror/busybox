@@ -707,8 +707,7 @@ struct globals {
 #endif
 	const char *ifs;
 	const char *cwd;
-	struct variable *top_var; /* = &G.shell_ver (set in main()) */
-	struct variable shell_ver;
+	struct variable *top_var;
 	char **expanded_assignments;
 #if ENABLE_HUSH_FUNCTIONS
 	struct function *top_func;
@@ -7337,6 +7336,7 @@ int hush_main(int argc, char **argv)
 	unsigned builtin_argc;
 	char **e;
 	struct variable *cur_var;
+	struct variable shell_ver;
 
 	INIT_G();
 	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, it is already done */
@@ -7345,12 +7345,13 @@ int hush_main(int argc, char **argv)
 	G.argv0_for_re_execing = argv[0];
 #endif
 	/* Deal with HUSH_VERSION */
-	G.shell_ver.flg_export = 1;
-	G.shell_ver.flg_read_only = 1;
+	memset(&shell_ver, 0, sizeof(shell_ver));
+	shell_ver.flg_export = 1;
+	shell_ver.flg_read_only = 1;
 	/* Code which handles ${var<op>...} needs writable values for all variables,
 	 * therefore we xstrdup: */
-	G.shell_ver.varstr = xstrdup(hush_version_str),
-	G.top_var = &G.shell_ver;
+	shell_ver.varstr = xstrdup(hush_version_str),
+	G.top_var = &shell_ver;
 	/* Create shell local variables from the values
 	 * currently living in the environment */
 	debug_printf_env("unsetenv '%s'\n", "HUSH_VERSION");
@@ -7369,8 +7370,8 @@ int hush_main(int argc, char **argv)
 		e++;
 	}
 	/* (Re)insert HUSH_VERSION into env (AFTER we scanned the env!) */
-	debug_printf_env("putenv '%s'\n", G.shell_ver.varstr);
-	putenv(G.shell_ver.varstr);
+	debug_printf_env("putenv '%s'\n", shell_ver.varstr);
+	putenv(shell_ver.varstr);
 
 	/* Export PWD */
 	set_pwd_var(/*exp:*/ 1);
