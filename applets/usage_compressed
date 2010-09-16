@@ -9,6 +9,12 @@ test -x "$loc/usage" || exit 1
 test "$SED" || SED=sed
 test "$DD" || DD=dd
 
+true | od -v -t x1 >/dev/null
+if test $? != 0; then
+	echo 'od tool is not installed or cannot accept "-v -t x1" options'
+	exit 1
+fi
+
 exec >"$target.$$"
 
 echo '#define UNPACKED_USAGE "" \'
