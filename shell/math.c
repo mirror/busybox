@@ -652,10 +652,10 @@ evaluate_string(arith_state_t *math_state, const char *expr)
 		 * integer stack.
 		 * But for binary operators, "apply" everything on the operator
 		 * stack until we find an operator with a lesser priority than the
-		 * one we have just extracted.
+		 * one we have just extracted. If op is right-associative,
+		 * then stop "applying" on the equal priority too.
 		 * Left paren is given the lowest priority so it will never be
 		 * "applied" in this way.
-		 * if associativity is right and priority eq, applied also skip
 		 */
 		prec = PREC(op);
 		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
