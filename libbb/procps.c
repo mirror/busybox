@@ -120,7 +120,7 @@ void FAST_FUNC free_procps_scan(procps_status_t* sp)
 	free(sp);
 }
 
-#if ENABLE_FEATURE_TOPMEM
+#if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 static unsigned long fast_strtoul_16(char **endptr)
 {
 	unsigned char c;
