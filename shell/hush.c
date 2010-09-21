@@ -391,18 +391,10 @@ enum {
 	RES_SNTX
 };
 
-enum {
-	EXP_FLAG_GLOB = 0x200,
-	EXP_FLAG_ESC_GLOB_CHARS = 0x100,
-	EXP_FLAG_SINGLEWORD = 0x80, /* must be 0x80 */
-};
-
 typedef struct o_string {
 	char *data;
 	int length; /* position where data is appended */
 	int maxlen;
-	/* Protect newly added chars against globbing
-	 * (by prepending \ to *, ?, [, \) */
 	int o_expflags;
 	/* At least some part of the string was inside '' or "",
 	 * possibly empty one: word"", wo''rd etc. */
@@ -411,10 +403,18 @@ typedef struct o_string {
 	smallint o_assignment; /* 0:maybe, 1:yes, 2:no */
 } o_string;
 enum {
-	MAYBE_ASSIGNMENT = 0,
+	EXP_FLAG_SINGLEWORD     = 0x80, /* must be 0x80 */
+	EXP_FLAG_GLOB           = 0x2,
+	/* Protect newly added chars against globbing
+	 * by prepending \ to *, ?, [, \ */
+	EXP_FLAG_ESC_GLOB_CHARS = 0x1,
+};
+enum {
+	MAYBE_ASSIGNMENT      = 0,
 	DEFINITELY_ASSIGNMENT = 1,
-	NOT_ASSIGNMENT = 2,
-	WORD_IS_KEYWORD = 3, /* not assigment, but next word may be: "if v=xyz cmd;" */
+	NOT_ASSIGNMENT        = 2,
+	/* Not an assigment, but next word may be: "if v=xyz cmd;" */
+	WORD_IS_KEYWORD       = 3,
 };
 /* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
