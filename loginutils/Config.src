@@ -93,6 +93,47 @@ config USE_BB_CRYPT_SHA
 	  With this option off, login will fail password check for any
 	  user which has password encrypted with these algorithms.
 
+config ADDUSER
+	bool "adduser"
+	default y
+	help
+	  Utility for creating a new user account.
+
+config FEATURE_ADDUSER_LONG_OPTIONS
+	bool "Enable long options"
+	default y
+	depends on ADDUSER && LONG_OPTS
+	help
+	  Support long options for the adduser applet.
+
+config FEATURE_CHECK_NAMES
+	bool "Enable sanity check on user/group names in adduser and addgroup"
+	default n
+	depends on ADDUSER || ADDGROUP
+	help
+	  Enable sanity check on user and group names in adduser and addgroup.
+	  To avoid problems, the user or group name should consist only of
+	  letters, digits, underscores, periods, at signs and dashes,
+	  and not start with a dash (as defined by IEEE Std 1003.1-2001).
+	  For compatibility with Samba machine accounts "$" is also supported
+	  at the end of the user or group name.
+
+config FIRST_SYSTEM_ID
+	int "First valid system uid or gid for adduser and addgroup"
+	depends on ADDUSER || ADDGROUP
+	range 0 64900
+	default 100
+	help
+	  First valid system uid or gid for adduser and addgroup
+
+config LAST_SYSTEM_ID
+	int "Last valid system uid or gid for adduser and addgroup"
+	depends on ADDUSER || ADDGROUP
+	range 0 64900
+	default 999
+	help
+	  Last valid system uid or gid for adduser and addgroup
+
 config ADDGROUP
 	bool "addgroup"
 	default y
@@ -115,6 +156,12 @@ config FEATURE_ADDUSER_TO_GROUP
 	  addgroup will add an existing user to an
 	  existing group.
 
+config DELUSER
+	bool "deluser"
+	default y
+	help
+	  Utility for deleting a user account.
+
 config DELGROUP
 	bool "delgroup"
 	default y
@@ -128,53 +175,6 @@ config FEATURE_DEL_USER_FROM_GROUP
 	help
 	  If called with two non-option arguments, deluser
 	  or delgroup will remove an user from a specified group.
-
-config FEATURE_CHECK_NAMES
-	bool "Enable sanity check on user/group names in adduser and addgroup"
-	default n
-	depends on ADDUSER || ADDGROUP
-	help
-	  Enable sanity check on user and group names in adduser and addgroup.
-	  To avoid problems, the user or group name should consist only of
-	  letters, digits, underscores, periods, at signs and dashes,
-	  and not start with a dash (as defined by IEEE Std 1003.1-2001).
-	  For compatibility with Samba machine accounts "$" is also supported
-	  at the end of the user or group name.
-
-config ADDUSER
-	bool "adduser"
-	default y
-	help
-	  Utility for creating a new user account.
-
-config FEATURE_ADDUSER_LONG_OPTIONS
-	bool "Enable long options"
-	default y
-	depends on ADDUSER && LONG_OPTS
-	help
-	  Support long options for the adduser applet.
-
-config FIRST_SYSTEM_ID
-	int "First valid system uid or gid for adduser and addgroup"
-	depends on ADDUSER || ADDGROUP
-	range 0 64900
-	default 100
-	help
-	  First valid system uid or gid for adduser and addgroup
-
-config LAST_SYSTEM_ID
-	int "Last valid system uid or gid for adduser and addgroup"
-	depends on ADDUSER || ADDGROUP
-	range 0 64900
-	default 999
-	help
-	  Last valid system uid or gid for adduser and addgroup
-
-config DELUSER
-	bool "deluser"
-	default y
-	help
-	  Utility for deleting a user account.
 
 config GETTY
 	bool "getty"
