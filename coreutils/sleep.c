@@ -49,6 +49,9 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_FLOAT_SLEEP
 
+# if ENABLE_LOCALE_SUPPORT
+	setlocale (LC_NUMERIC, "C");
+# endif
 	duration = 0;
 	do {
 		char *arg = *argv;
@@ -62,14 +65,15 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 			d = strtod(arg, &pp);
 			if (errno || *pp)
 				bb_show_usage();
-			arg[len] = sv;
-			len--;
-			sv = arg[len];
-			arg[len] = '1';
-			duration += d * xatoul_sfx(&arg[len], sfx);
-			arg[len] = sv;
-		} else
+			arg += len;
+			*arg-- = sv;
+			sv = *arg;
+			*arg = '1';
+			duration += d * xatoul_sfx(arg, sfx);
+			*arg = sv;
+		} else {
 			duration += xatoul_sfx(arg, sfx);
+		}
 	} while (*++argv);
 
 	ts.tv_sec = MAXINT(typeof(ts.tv_sec));
