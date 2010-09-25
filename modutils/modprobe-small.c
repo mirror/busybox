@@ -18,10 +18,13 @@ extern int delete_module(const char *module, unsigned flags);
 extern int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
 
 
-#define dbg1_error_msg(...) ((void)0)
-#define dbg2_error_msg(...) ((void)0)
-//#define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)
-//#define dbg2_error_msg(...) bb_error_msg(__VA_ARGS__)
+#if 1
+# define dbg1_error_msg(...) ((void)0)
+# define dbg2_error_msg(...) ((void)0)
+#else
+# define dbg1_error_msg(...) bb_error_msg(__VA_ARGS__)
+# define dbg2_error_msg(...) bb_error_msg(__VA_ARGS__)
+#endif
 
 #define DEPFILE_BB CONFIG_DEFAULT_DEPMOD_FILE".bb"
 
@@ -579,10 +582,9 @@ static void process_module(char *name, const char *cmdline_options)
 
 	/* rmmod? unload it by name */
 	if (is_rmmod) {
-		if (delete_module(name, O_NONBLOCK | O_EXCL) != 0
-		 && !(option_mask32 & OPT_q)
-		) {
-			bb_perror_msg("remove '%s'", name);
+		if (delete_module(name, O_NONBLOCK | O_EXCL) != 0) {
+			if (!(option_mask32 & OPT_q))
+				bb_perror_msg("remove '%s'", name);
 			goto ret;
 		}
 		/* N.B. we do not stop here -
@@ -594,9 +596,9 @@ static void process_module(char *name, const char *cmdline_options)
 
 	if (!info) {
 		/* both dirscan and find_alias found nothing */
-		if (applet_name[0] != 'd') /* it wasn't depmod */
+		if (!is_rmmod && applet_name[0] != 'd') /* it wasn't rmmod or depmod */
 			bb_error_msg("module '%s' not found", name);
-//TODO: _and_die()?
+//TODO: _and_die()? or should we continue (un)loading modules listed on cmdline?
 		goto ret;
 	}
 
@@ -811,8 +813,8 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	/* Load/remove modules.
 	 * Only rmmod loops here, modprobe has only argv[0] */
 	do {
-		process_module(*argv++, options);
-	} while (*argv);
+		process_module(*argv, options);
+	} while (*++argv);
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(free(options);)
