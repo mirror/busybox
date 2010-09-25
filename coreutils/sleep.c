@@ -50,7 +50,8 @@ int sleep_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_FLOAT_SLEEP
 
 # if ENABLE_LOCALE_SUPPORT
-	setlocale (LC_NUMERIC, "C");
+	/* undo busybox.c setlocale */
+	setlocale(LC_NUMERIC, "C");
 # endif
 	duration = 0;
 	do {
