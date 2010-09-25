@@ -37,6 +37,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
 	{ OPTION_U16                              , 0x1a }, /* DHCP_MTU           */
 	{ OPTION_IP                   | OPTION_REQ, 0x1c }, /* DHCP_BROADCAST     */
+	{ OPTION_IP_PAIR | OPTION_LIST            , 0x21 }, /* DHCP_ROUTES        */
 	{ OPTION_STRING                           , 0x28 }, /* DHCP_NIS_DOMAIN    */
 	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* DHCP_NIS_SERVER    */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
@@ -54,6 +55,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_SIP_SERVERS                      , 0x78 }, /* DHCP_SIP_SERVERS   */
 #endif
 	{ OPTION_STATIC_ROUTES                    , 0x79 }, /* DHCP_STATIC_ROUTES */
+	{ OPTION_STATIC_ROUTES                    , 0xf9 }, /* DHCP_MS_STATIC_ROUTES */
 	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
 
 	/* Options below have no match in dhcp_option_strings[],
@@ -95,6 +97,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"ipttl" "\0"       /* DHCP_IP_TTL         */
 	"mtu" "\0"         /* DHCP_MTU            */
 	"broadcast" "\0"   /* DHCP_BROADCAST      */
+	"routes" "\0"      /* DHCP_ROUTES         */
 	"nisdomain" "\0"   /* DHCP_NIS_DOMAIN     */
 	"nissrv" "\0"      /* DHCP_NIS_SERVER     */
 	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
@@ -114,6 +117,7 @@ const char dhcp_option_strings[] ALIGN1 =
 // doesn't work in udhcpd.conf since OPTION_STATIC_ROUTES
 // is not handled yet by "string->option" conversion code:
 	"staticroutes" "\0"/* DHCP_STATIC_ROUTES  */
+	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
 	"wpad" "\0"        /* DHCP_WPAD           */
 	;
 

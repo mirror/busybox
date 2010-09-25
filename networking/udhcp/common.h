@@ -123,6 +123,7 @@ enum {
 //#define DHCP_IP_TTL           0x17
 //#define DHCP_MTU              0x1a
 //#define DHCP_BROADCAST        0x1c
+//#define DHCP_ROUTES           0x21
 //#define DHCP_NIS_DOMAIN       0x28
 //#define DHCP_NIS_SERVER       0x29
 //#define DHCP_NTP_SERVER       0x2a
@@ -144,6 +145,7 @@ enum {
 //#define DHCP_DOMAIN_SEARCH    0x77 /* RFC 3397. set of ASCIZ string, DNS-style compressed */
 //#define DHCP_SIP_SERVERS      0x78 /* RFC 3361. flag byte, then: 0: domain names, 1: IP addrs */
 //#define DHCP_STATIC_ROUTES    0x79 /* RFC 3442. (mask,ip,router) tuples */
+//#define DHCP_MS_STATIC_ROUTES 0xf9 /* Microsoft's pre-RFC 3442 code for 0x79? */
 //#define DHCP_WPAD             0xfc /* MSIE's Web Proxy Autodiscovery Protocol */
 #define DHCP_END                0xff
 
