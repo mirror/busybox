@@ -18,21 +18,27 @@
 INSERT
 
 #define acpid_trivial_usage \
-       "[-d] [-c CONFDIR] [-l LOGFILE] [-e PROC_EVENT_FILE] [EVDEV_EVENT_FILE]..."
+       "[-d] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"
 #define acpid_full_usage "\n\n" \
        "Listen to ACPI events and spawn specific helpers on event arrival\n" \
      "\nOptions:" \
-     "\n	-d	Don't daemonize, log to stderr" \
      "\n	-c DIR	Config directory [/etc/acpi]" \
+     "\n	-d	Don't daemonize, (implies -f)" \
      "\n	-e FILE	/proc event file [/proc/acpi/event]" \
-     "\n	-l FILE	Log file [/var/log/acpid]" \
+     "\n	-f	Run in foreground" \
+     "\n	-l FILE	Log file [/var/log/acpid.log]" \
+     "\n	-p FILE	Pid file [/var/run/acpid.pid]" \
+     "\n	-a FILE	Action file [/etc/acpid.conf]" \
+     "\n	-M FILE Map file [/etc/acpi.map]" \
 	IF_FEATURE_ACPID_COMPAT( \
      "\n\nAccept and ignore compatibility options -g -m -s -S -v" \
 	)
 
 #define acpid_example_usage \
+       "Without -e option, acpid uses all /dev/input/event* files\n" \
+       "# acpid\n" \
        "# acpid -l /var/log/my-acpi-log\n" \
-       "# acpid -d /dev/input/event*\n"
+       "# acpid -e /proc/acpi/event\n"
 
 #define addgroup_trivial_usage \
        "[-g GID] " IF_FEATURE_ADDUSER_TO_GROUP("[USER] ") "GROUP"

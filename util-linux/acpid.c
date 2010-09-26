@@ -7,27 +7,58 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
-
+#include <syslog.h>
 #include <linux/input.h>
-#ifndef EV_SW
-# define EV_SW         0x05
-#endif
-#ifndef EV_KEY
-# define EV_KEY        0x01
-#endif
-#ifndef SW_LID
-# define SW_LID        0x00
-#endif
-#ifndef SW_RFKILL_ALL
-# define SW_RFKILL_ALL 0x03
-#endif
-#ifndef KEY_POWER
-# define KEY_POWER     116     /* SC System Power Down */
-#endif
-#ifndef KEY_SLEEP
-# define KEY_SLEEP     142     /* SC System Sleep */
-#endif
 
+enum {
+	OPT_c = (1 << 0),
+	OPT_d = (1 << 1),
+	OPT_e = (1 << 2),
+	OPT_f = (1 << 3),
+	OPT_l = (1 << 4),
+	OPT_p = (1 << 5) * ENABLE_FEATURE_PIDFILE,
+	OPT_a = (1 << 6),
+	OPT_M = (1 << 7),
+};
+
+struct acpi_event {
+	const char *s_type;
+	uint16_t n_type;
+	const char *s_code;
+	uint16_t n_code;
+	uint32_t value;
+	const char *desc;
+};
+
+static const struct acpi_event f_evt_tab[] = {
+	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRF 00000080" },
+	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRB 00000080" },
+};
+
+struct acpi_action {
+	const char *key;
+	const char *action;
+};
+
+static const struct acpi_action f_act_tab[] = {
+	{ "PWRF", "PWRF/00000080" },
+	{ "LID0", "LID/00000080" },
+};
+
+struct globals {
+	struct acpi_action *act_tab;
+	int n_act;
+	struct acpi_event *evt_tab;
+	int n_evt;
+} FIX_ALIASING;
+#define G (*ptr_to_globals)
+#define	act_tab         (G.act_tab)
+#define n_act           (G.n_act  )
+#define evt_tab         (G.evt_tab)
+#define n_evt           (G.n_evt  )
+#define INIT_G() do { \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+} while (0)
 
 /*
  * acpid listens to ACPI events coming either in textual form
@@ -48,7 +79,7 @@ static void process_event(const char *event)
 	const char *args[] = { "run-parts", handler, NULL };
 
 	// debug info
-	if (option_mask32 & 8) { // -d
+	if (option_mask32 & OPT_d) {
 		bb_error_msg("%s", event);
 	}
 
@@ -60,125 +91,204 @@ static void process_event(const char *event)
 		spawn((char **)args + (0==(st.st_mode & S_IFDIR)));
 	else
 		bb_simple_perror_msg(event);
+
 	free(handler);
 }
 
-/*
- * acpid [-c conf_dir] [-l log_file] [-e proc_event_file] [evdev_event_file...]
-*/
-
-int acpid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int acpid_main(int argc, char **argv)
+static const char *find_action(struct input_event *ev, const char *buf)
 {
-	struct pollfd *pfd;
-	int i, nfd;
-	const char *opt_conf = "/etc/acpi";
-	const char *opt_input = "/proc/acpi/event";
-	const char *opt_logfile = "/var/log/acpid.log";
+	const char *action = NULL;
+	int i;
 
-	getopt32(argv, "c:e:l:d"
-		IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
-		&opt_conf, &opt_input, &opt_logfile
-		IF_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL, NULL)
-	);
-
-	// daemonize unless -d given
-	if (!(option_mask32 & 8)) { // ! -d
-		bb_daemonize_or_rexec(0, argv);
-		close(2);
-		xopen(opt_logfile, O_WRONLY | O_CREAT | O_TRUNC);
-	}
-
-	argv += optind;
-	argc -= optind;
-
-	// goto configuration directory
-	xchdir(opt_conf);
-
-	// prevent zombies
-	signal(SIGCHLD, SIG_IGN);
-
-	// no explicit evdev files given? -> use proc event interface
-	if (!*argv) {
-		// proc_event file is just a "config" :)
-		char *token[4];
-		parser_t *parser = config_open(opt_input);
-
-		// dispatch events
-		while (config_read(parser, token, 4, 4, "\0 ", PARSE_NORMAL)) {
-			char *event = xasprintf("%s/%s", token[1], token[2]);
-			process_event(event);
-			free(event);
+	// map event
+	for (i = 0; i < n_evt; i++) {
+		if (ev) {
+			if (ev->type == evt_tab[i].n_type && ev->code == evt_tab[i].n_code && ev->value == evt_tab[i].value) {
+				action = evt_tab[i].desc;
+				break;
+			}
 		}
 
-		if (ENABLE_FEATURE_CLEAN_UP)
-			config_close(parser);
-		return EXIT_SUCCESS;
+		if (buf) {
+			if (strncmp(buf, evt_tab[i].desc, strlen(buf)) == 0) {
+				action = evt_tab[i].desc;
+				break;
+			}
+		}
 	}
 
-	// evdev files given, use evdev interface
+	// get action
+	if (action) {
+		for (i = 0; i < n_act; i++) {
+			if (strstr(action, act_tab[i].key)) {
+				action = act_tab[i].action;
+				break;
+			}
+		}
+	}
 
-	// open event devices
-	pfd = xzalloc(sizeof(*pfd) * argc);
+	return action;
+}
+
+static void parse_conf_file(const char *filename)
+{
+	parser_t *parser;
+	char *tokens[2];
+
+	parser = config_open2(filename, fopen_for_read);
+
+	if (parser) {
+		while (config_read(parser, tokens, 2, 2, "# \t", PARSE_NORMAL)) {
+			act_tab = xrealloc_vector(act_tab, 1, n_act);
+			act_tab[n_act].key = xstrdup(tokens[0]);
+			act_tab[n_act].action = xstrdup(tokens[1]);
+			n_act++;
+		}
+		config_close(parser);
+	} else {
+		act_tab = (void*)f_act_tab;
+		n_act = ARRAY_SIZE(f_act_tab);
+	}
+}
+
+static void parse_map_file(const char *filename)
+{
+	parser_t *parser;
+	char *tokens[6];
+
+	parser = config_open2(filename, fopen_for_read);
+
+	if (parser) {
+		while (config_read(parser, tokens, 6, 6, "# \t", PARSE_NORMAL)) {
+			evt_tab = xrealloc_vector(evt_tab, 1, n_evt);
+			evt_tab[n_evt].s_type = xstrdup(tokens[0]);
+			evt_tab[n_evt].n_type = xstrtou(tokens[1], 16);
+			evt_tab[n_evt].s_code = xstrdup(tokens[2]);
+			evt_tab[n_evt].n_code = xatou16(tokens[3]);
+			evt_tab[n_evt].value = xatoi_positive(tokens[4]);
+			evt_tab[n_evt].desc = xstrdup(tokens[5]);
+			n_evt++;
+		}
+		config_close(parser);
+	} else {
+		evt_tab = (void*)f_evt_tab;
+		n_evt = ARRAY_SIZE(f_evt_tab);
+	}
+}
+
+/*
+ * acpid [-c conf_dir] [-r conf_file ] [-a map_file ] [-l log_file] [-e proc_event_file]
+ */
+
+int acpid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int acpid_main(int argc UNUSED_PARAM, char **argv)
+{
+	struct input_event ev;
+	int nfd;
+	int opts;
+	struct pollfd *pfd;
+	const char *opt_dir = "/etc/acpi";
+	const char *opt_input = "/dev/input/event";
+	const char *opt_logfile = "/var/log/acpid.log";
+	const char *opt_action = "/etc/acpid.conf";
+	const char *opt_map = "/etc/acpi.map";
+#if ENABLE_FEATURE_PIDFILE
+	const char *opt_pidfile = "/var/run/acpid.pid";
+#endif
+
+	INIT_G();
+
+	opt_complementary = "df:e--e";
+	opts = getopt32(argv, "c:de:fl:p:a:M:" IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
+		&opt_dir, &opt_input, &opt_logfile, &opt_pidfile, &opt_action, &opt_map
+		IF_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL)
+	);
+
+	if (!(opts & OPT_f)) {
+		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
+	}
+
+	if (!(opts & OPT_d)) {
+		openlog(applet_name, LOG_PID, LOG_DAEMON);
+		logmode = LOGMODE_SYSLOG | LOGMODE_STDIO;
+	} else {
+		xmove_fd(xopen(opt_logfile, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
+	}
+
+	parse_conf_file(opt_action);
+	parse_map_file(opt_map);
+
+	xchdir(opt_dir);
+
+	bb_signals((1 << SIGCHLD), SIG_IGN);
+	bb_signals(BB_FATAL_SIGS, record_signo);
+
+	pfd = NULL;
 	nfd = 0;
-	while (*argv) {
-		pfd[nfd].fd = open_or_warn(*argv++, O_RDONLY | O_NONBLOCK);
-		if (pfd[nfd].fd >= 0)
-			pfd[nfd++].events = POLLIN;
+	while (1) {
+		int fd;
+		char *dev_event;
+
+		dev_event = xasprintf((option_mask32 & OPT_e) ? "%s" : "%s%u", opt_input, nfd);
+		fd = open(dev_event, O_RDONLY | O_NONBLOCK);
+		if (fd < 0) {
+			if (nfd == 0)
+				bb_simple_perror_msg_and_die(dev_event);
+			break;
+		}
+		pfd = xrealloc_vector(pfd, 1, nfd);
+		pfd[nfd].fd = fd;
+		pfd[nfd].events = POLLIN;
+		nfd++;
 	}
 
-	// dispatch events
-	while (/* !bb_got_signal && */ poll(pfd, nfd, -1) > 0) {
+	write_pidfile(opt_pidfile);
+
+	while (poll(pfd, nfd, -1) > 0) {
+		int i;
 		for (i = 0; i < nfd; i++) {
-			const char *event;
-			struct input_event ev;
+			const char *event = NULL;
+
+			memset(&ev, 0, sizeof(ev));
 
 			if (!(pfd[i].revents & POLLIN))
 				continue;
 
-			if (sizeof(ev) != full_read(pfd[i].fd, &ev, sizeof(ev)))
-				continue;
-//bb_info_msg("%d: %d %d %4d", i, ev.type, ev.code, ev.value);
+			if (option_mask32 & OPT_e) {
+				char *buf;
+				int len;
 
-			// filter out unneeded events
-			if (ev.value != 1)
-				continue;
+				buf = xmalloc_reads(pfd[i].fd, NULL, NULL);
+				/* buf = "button/power PWRB 00000080 00000000" */
+				len = strlen(buf) - 9;
+				if (len >= 0)
+					buf[len] = '\0';
+				event = find_action(NULL, buf);
+			} else {
+				if (sizeof(ev) != full_read(pfd[i].fd, &ev, sizeof(ev)))
+					continue;
 
-			event = NULL;
+				if (ev.value != 1 && ev.value != 0)
+					continue;
 
-			// N.B. we will conform to /proc/acpi/event
-			// naming convention when assigning event names
-
-			// TODO: do we want other events?
-
-			// power and sleep buttons delivered as keys pressed
-			if (EV_KEY == ev.type) {
-				if (KEY_POWER == ev.code)
-					event = "PWRF/00000080";
-				else if (KEY_SLEEP == ev.code)
-					event = "SLPB/00000080";
+				event = find_action(&ev, NULL);
 			}
-			// switches
-			else if (EV_SW == ev.type) {
-				if (SW_LID == ev.code)
-					event = "LID/00000080";
-				else if (SW_RFKILL_ALL == ev.code)
-					event = "RFKILL";
-			}
-			// filter out unneeded events
 			if (!event)
 				continue;
-
 			// spawn event handler
 			process_event(event);
 		}
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		for (i = 0; i < nfd; i++)
-			close(pfd[i].fd);
+		while (nfd--) {
+			if (pfd[nfd].fd) {
+				close(pfd[nfd].fd);
+			}
+		}
 		free(pfd);
 	}
+	remove_pidfile(opt_pidfile);
 
 	return EXIT_SUCCESS;
 }
