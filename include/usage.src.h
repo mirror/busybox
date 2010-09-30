@@ -1521,12 +1521,30 @@ INSERT
 #define halt_full_usage "\n\n" \
        "Halt the system\n" \
      "\nOptions:" \
-     "\n	-d	Delay interval for halting" \
-     "\n	-n	No call to sync()" \
-     "\n	-f	Force halt (don't go through init)" \
+     "\n	-d SEC	Delay interval" \
+     "\n	-n	Do not sync" \
+     "\n	-f	Force (don't go through init)" \
 	IF_FEATURE_WTMP( \
      "\n	-w	Only write a wtmp record" \
 	)
+
+#define poweroff_trivial_usage \
+       "[-d DELAY] [-n] [-f]"
+#define poweroff_full_usage "\n\n" \
+       "Halt and shut off power\n" \
+     "\nOptions:" \
+     "\n	-d SEC	Delay interval" \
+     "\n	-n	Do not sync" \
+     "\n	-f	Force (don't go through init)" \
+
+#define reboot_trivial_usage \
+       "[-d DELAY] [-n] [-f]"
+#define reboot_full_usage "\n\n" \
+       "Reboot the system\n" \
+     "\nOptions:" \
+     "\n	-d SEC	Delay interval" \
+     "\n	-n	Do not sync" \
+     "\n	-f	Force (don't go through init)" \
 
 #define hdparm_trivial_usage \
        "[OPTIONS] [DEVICE]"
@@ -3222,15 +3240,6 @@ INSERT
        "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
        "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
 
-#define poweroff_trivial_usage \
-       "[-d DELAY] [-n] [-f]"
-#define poweroff_full_usage "\n\n" \
-       "Halt and shut off power\n" \
-     "\nOptions:" \
-     "\n	-d	Delay interval for halting" \
-     "\n	-n	Do not sync" \
-     "\n	-f	Force power off (don't go through init)" \
-
 #define printenv_trivial_usage \
        "[VARIABLE]..."
 #define printenv_full_usage "\n\n" \
@@ -3372,15 +3381,6 @@ INSERT
        "FILE..."
 #define realpath_full_usage "\n\n" \
        "Return the absolute pathnames of given FILE"
-
-#define reboot_trivial_usage \
-       "[-d DELAY] [-n] [-f]"
-#define reboot_full_usage "\n\n" \
-       "Reboot the system\n" \
-     "\nOptions:" \
-     "\n	-d	Delay interval for rebooting" \
-     "\n	-n	No call to sync()" \
-     "\n	-f	Force reboot (don't go through init)" \
 
 #define reformime_trivial_usage \
        "[OPTIONS] [FILE]..."
