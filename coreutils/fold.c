@@ -12,6 +12,8 @@
 #include "libbb.h"
 #include "unicode.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 /* Must match getopt32 call */
 #define FLAG_COUNT_BYTES        1
 #define FLAG_BREAK_SPACES       2

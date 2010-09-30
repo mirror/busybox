@@ -14,6 +14,8 @@
 
 #include "libbb.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 enum {
 	CT_UNIX2DOS = 1,
 	CT_DOS2UNIX

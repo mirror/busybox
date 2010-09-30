@@ -13,6 +13,8 @@
 
 #include "libbb.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 static const char head_opts[] ALIGN1 =
 	"n:"
 #if ENABLE_FEATURE_FANCY_HEAD

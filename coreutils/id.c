@@ -17,6 +17,8 @@
 
 #include "libbb.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 #if !ENABLE_USE_BB_PWD_GRP
 #if defined(__UCLIBC_MAJOR__) && (__UCLIBC_MAJOR__ == 0)
 #if (__UCLIBC_MINOR__ < 9) || (__UCLIBC_MINOR__ == 9 &&  __UCLIBC_SUBLEVEL__ < 30)

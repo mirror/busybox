@@ -8,6 +8,8 @@
 
 #include "libbb.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 typedef enum {
 	/* 4th letter of applet_name is... */
 	HASH_MD5 = 's', /* "md5>s<um" */

@@ -14,6 +14,8 @@
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 static const char modes_chars[] ALIGN1 = { 'p', 'c', 'u', 'b', 0, 1, 1, 2 };
 static const mode_t modes_cubp[] = { S_IFIFO, S_IFCHR, S_IFBLK };
 

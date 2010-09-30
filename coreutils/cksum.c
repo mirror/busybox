@@ -8,6 +8,8 @@
  */
 #include "libbb.h"
 
+/* This is a NOEXEC applet. Be very careful! */
+
 int cksum_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cksum_main(int argc UNUSED_PARAM, char **argv)
 {
