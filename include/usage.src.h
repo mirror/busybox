@@ -1301,7 +1301,7 @@ INSERT
      "\n	-w	Use WIDTH columns instead of 80" \
 
 #define free_trivial_usage \
-       ""
+       "" IF_DESKTOP("[-b/k/m/g]")
 #define free_full_usage "\n\n" \
        "Display the amount of free and used system memory"
 #define free_example_usage \
