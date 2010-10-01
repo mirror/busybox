@@ -11,47 +11,58 @@
 
 #include "libbb.h"
 
+struct globals {
+	unsigned mem_unit;
+#if ENABLE_DESKTOP
+	unsigned unit_steps;
+# define G_unit_steps G.unit_steps
+#else
+# define G_unit_steps 10
+#endif
+};
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
+
+
+static unsigned long long scale(unsigned long d)
+{
+	return ((unsigned long long)d * G.mem_unit) >> G_unit_steps;
+}
+
+
 int free_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 {
 	struct sysinfo info;
-	unsigned mem_unit;
+
+	INIT_G();
 
 #if ENABLE_DESKTOP
-	if (argv[1] && argv[1][0] == '-')
-		bb_show_usage();
+	G.unit_steps = 10;
+	if (argv[1] && argv[1][0] == '-') {
+		switch (argv[1][1]) {
+		case 'b':
+			G.unit_steps = 0;
+			break;
+		case 'k': /* 2^10 */
+			/* G.unit_steps = 10; - already is */
+			break;
+		case 'm': /* 2^(2*10) */
+			G.unit_steps = 20;
+			break;
+		case 'g': /* 2^(3*10) */
+			G.unit_steps = 30;
+			break;
+		default:
+			bb_show_usage();
+		}
+	}
 #endif
 
 	sysinfo(&info);
 
 	/* Kernels prior to 2.4.x will return info.mem_unit==0, so cope... */
-	mem_unit = 1;
-	if (info.mem_unit != 0) {
-		mem_unit = info.mem_unit;
-	}
-
-	/* Convert values to kbytes */
-	if (mem_unit == 1) {
-		info.totalram >>= 10;
-		info.freeram >>= 10;
-#if BB_MMU
-		info.totalswap >>= 10;
-		info.freeswap >>= 10;
-#endif
-		info.sharedram >>= 10;
-		info.bufferram >>= 10;
-	} else {
-		mem_unit >>= 10;
-		/* TODO:  Make all this stuff not overflow when mem >= 4 Tb */
-		info.totalram *= mem_unit;
-		info.freeram *= mem_unit;
-#if BB_MMU
-		info.totalswap *= mem_unit;
-		info.freeswap *= mem_unit;
-#endif
-		info.sharedram *= mem_unit;
-		info.bufferram *= mem_unit;
-	}
+	G.mem_unit = (info.mem_unit ? info.mem_unit : 1);
 
 	printf("     %13s%13s%13s%13s%13s\n",
 		"total",
@@ -63,30 +74,33 @@ int free_main(int argc UNUSED_PARAM, char **argv IF_NOT_DESKTOP(UNUSED_PARAM))
 		 * /proc/meminfo instead and get "Cached: NNN kB" from there.
 		 */
 	);
-#define FIELDS_5 "%13lu%13lu%13lu%13lu%13lu\n"
-#define FIELDS_3 (FIELDS_5 + 2*5)
-#define FIELDS_2 (FIELDS_5 + 3*5)
+
+#define FIELDS_5 "%13llu%13llu%13llu%13llu%13llu\n"
+#define FIELDS_3 (FIELDS_5 + 2*6)
+#define FIELDS_2 (FIELDS_5 + 3*6)
+
 	printf("Mem: ");
 	printf(FIELDS_5,
-		info.totalram,
-		info.totalram - info.freeram,
-		info.freeram,
-		info.sharedram, info.bufferram
+		scale(info.totalram),
+		scale(info.totalram - info.freeram),
+		scale(info.freeram),
+		scale(info.sharedram),
+		scale(info.bufferram)
 	);
 	/* Show alternate, more meaningful busy/free numbers by counting
 	 * buffer cache as free memory (make it "-/+ buffers/cache"
 	 * if/when we add support for "cached" column): */
 	printf("-/+ buffers:      ");
 	printf(FIELDS_2,
-		info.totalram - info.freeram - info.bufferram,
-		info.freeram + info.bufferram
+		scale(info.totalram - info.freeram - info.bufferram),
+		scale(info.freeram + info.bufferram)
 	);
 #if BB_MMU
 	printf("Swap:");
 	printf(FIELDS_3,
-		info.totalswap,
-		info.totalswap - info.freeswap,
-		info.freeswap
+		scale(info.totalswap),
+		scale(info.totalswap - info.freeswap),
+		scale(info.freeswap)
 	);
 #endif
 	return EXIT_SUCCESS;
