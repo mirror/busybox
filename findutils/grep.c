@@ -621,30 +621,33 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 
 	/* do normal option parsing */
 #if ENABLE_FEATURE_GREP_CONTEXT
-	int Copt;
+	int Copt, opts;
 
 	/* -H unsets -h; -C unsets -A,-B; -e,-f are lists;
 	 * -m,-A,-B,-C have numeric param */
 	opt_complementary = "H-h:C-AB:e::f::m+:A+:B+:C+";
-	getopt32(argv,
+	opts = getopt32(argv,
 		OPTSTR_GREP,
 		&pattern_head, &fopt, &max_matches,
 		&lines_after, &lines_before, &Copt);
 
-	if (option_mask32 & OPT_C) {
+	if (opts & OPT_C) {
 		/* -C unsets prev -A and -B, but following -A or -B
 		   may override it */
-		if (!(option_mask32 & OPT_A)) /* not overridden */
+		if (!(opts & OPT_A)) /* not overridden */
 			lines_after = Copt;
-		if (!(option_mask32 & OPT_B)) /* not overridden */
+		if (!(opts & OPT_B)) /* not overridden */
 			lines_before = Copt;
 	}
 	/* sanity checks */
-	if (option_mask32 & (OPT_c|OPT_q|OPT_l|OPT_L)) {
+	if (opts & (OPT_c|OPT_q|OPT_l|OPT_L)) {
 		option_mask32 &= ~OPT_n;
 		lines_before = 0;
 		lines_after = 0;
 	} else if (lines_before > 0) {
+		if (lines_before > INT_MAX / sizeof(long long))
+			lines_before = INT_MAX / sizeof(long long);
+		/* overflow in (lines_before * sizeof(x)) is prevented (above) */
 		before_buf = xzalloc(lines_before * sizeof(before_buf[0]));
 		IF_EXTRA_COMPAT(before_buf_size = xzalloc(lines_before * sizeof(before_buf_size[0]));)
 	}
