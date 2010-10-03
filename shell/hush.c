@@ -2000,26 +2000,9 @@ static void o_addstr_with_NUL(o_string *o, const char *str)
 	o_addblock(o, str, strlen(str) + 1);
 }
 
-static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len)
-{
-	while (len) {
-		len--;
-		o_addchr(o, *str);
-		if (*str++ == '\\') {
-			/* \z -> \\\z; \<eol> -> \\<eol> */
-			o_addchr(o, '\\');
-			if (len) {
-				len--;
-				o_addchr(o, '\\');
-				o_addchr(o, *str++);
-			}
-		}
-	}
-}
-
-#undef HUSH_BRACE_EXP
+#undef HUSH_BRACE_EXPANSION
 /*
- * HUSH_BRACE_EXP code needs corresponding quoting on variable expansion side.
+ * HUSH_BRACE_EXPANSION code needs corresponding quoting on variable expansion side.
  * Currently, "v='{q,w}'; echo $v" erroneously expands braces in $v.
  * Apparently, on unquoted $v bash still does globbing
  * ("v='*.txt'; echo $v" prints all .txt files),
@@ -2029,7 +2012,7 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
  * We have only second one.
  */
 
-#ifdef HUSH_BRACE_EXP
+#ifdef HUSH_BRACE_EXPANSION
 # define MAYBE_BRACES "{}"
 #else
 # define MAYBE_BRACES ""
@@ -2197,7 +2180,7 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)(uintptr_t)list[n-1]) + string_start;
 }
 
-#ifdef HUSH_BRACE_EXP
+#ifdef HUSH_BRACE_EXPANSION
 /* There in a GNU extension, GLOB_BRACE, but it is not usable:
  * first, it processes even {a} (no commas), second,
  * I didn't manage to make it return strings when they don't match
@@ -2393,7 +2376,7 @@ static int perform_glob(o_string *o, int n)
 	return n;
 }
 
-#else /* !HUSH_BRACE_EXP */
+#else /* !HUSH_BRACE_EXPANSION */
 
 /* Helper */
 static int glob_needed(const char *s)
@@ -2470,7 +2453,7 @@ static int perform_glob(o_string *o, int n)
 	return n;
 }
 
-#endif /* !HUSH_BRACE_EXP */
+#endif /* !HUSH_BRACE_EXPANSION */
 
 /* If o->o_expflags & EXP_FLAG_GLOB, glob the string so far remembered.
  * Otherwise, just finish current list[] and start new */
@@ -4387,6 +4370,24 @@ static int process_command_subs(o_string *dest, const char *s);
  * followed by strings themselves.
  * Caller can deallocate entire list by single free(list). */
 
+/* A horde of its helpers come first: */
+
+static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len)
+{
+	while (--len >= 0) {
+		o_addchr(o, *str);
+		if (*str++ == '\\') {
+			/* \z -> \\\z; \<eol> -> \\<eol> */
+			o_addchr(o, '\\');
+			if (len) {
+				len--;
+				o_addchr(o, '\\');
+				o_addchr(o, *str++);
+			}
+		}
+	}
+}
+
 /* Store given string, finalizing the word and starting new one whenever
  * we encounter IFS char(s). This is used for expanding variable values.
  * End-of-string does NOT finalize word: think about 'echo -$VAR-' */
@@ -4395,9 +4396,9 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 	while (1) {
 		int word_len = strcspn(str, G.ifs);
 		if (word_len) {
-			if (!(output->o_expflags & EXP_FLAG_GLOB))
+			if (!(output->o_expflags & EXP_FLAG_GLOB)) {
 				o_addblock(output, str, word_len);
-			else {
+			} else {
 				/* Protect backslashes against globbing up :)
 				 * Example: "v='\*'; echo b$v" prints "b\*"
 				 * (and does not try to glob on "*")
