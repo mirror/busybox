@@ -129,6 +129,13 @@
 //config:	help
 //config:	  Enable bash-compatible extensions.
 //config:
+//config:config HUSH_BRACE_EXPANSION
+//config:	bool "Brace expansion"
+//config:	default y
+//config:	depends on HUSH_BASH_COMPAT
+//config:	help
+//config:	  Enable {abc,def} extension.
+//config:
 //config:config HUSH_HELP
 //config:	bool "help builtin"
 //config:	default y
@@ -2000,7 +2007,6 @@ static void o_addstr_with_NUL(o_string *o, const char *str)
 	o_addblock(o, str, strlen(str) + 1);
 }
 
-#undef HUSH_BRACE_EXPANSION
 /*
  * HUSH_BRACE_EXPANSION code needs corresponding quoting on variable expansion side.
  * Currently, "v='{q,w}'; echo $v" erroneously expands braces in $v.
@@ -2012,7 +2018,7 @@ static void o_addstr_with_NUL(o_string *o, const char *str)
  * We have only second one.
  */
 
-#ifdef HUSH_BRACE_EXPANSION
+#if ENABLE_HUSH_BRACE_EXPANSION
 # define MAYBE_BRACES "{}"
 #else
 # define MAYBE_BRACES ""
@@ -2180,7 +2186,7 @@ static int o_get_last_ptr(o_string *o, int n)
 	return ((int)(uintptr_t)list[n-1]) + string_start;
 }
 
-#ifdef HUSH_BRACE_EXPANSION
+#if ENABLE_HUSH_BRACE_EXPANSION
 /* There in a GNU extension, GLOB_BRACE, but it is not usable:
  * first, it processes even {a} (no commas), second,
  * I didn't manage to make it return strings when they don't match
@@ -4375,8 +4381,17 @@ static int process_command_subs(o_string *dest, const char *s);
 static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len)
 {
 	while (--len >= 0) {
-		o_addchr(o, *str);
-		if (*str++ == '\\') {
+		char c = *str++;
+#if ENABLE_HUSH_BRACE_EXPANSION
+		if (c == '{' || c == '}') {
+			/* { -> \{, } -> \} */
+			o_addchr(o, '\\');
+			o_addchr(o, c);
+			continue;
+		}
+#endif
+		o_addchr(o, c);
+		if (c == '\\') {
 			/* \z -> \\\z; \<eol> -> \\<eol> */
 			o_addchr(o, '\\');
 			if (len) {
