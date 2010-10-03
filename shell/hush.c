@@ -4382,12 +4382,16 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 {
 	while (--len >= 0) {
 		char c = *str++;
+
 #if ENABLE_HUSH_BRACE_EXPANSION
 		if (c == '{' || c == '}') {
 			/* { -> \{, } -> \} */
 			o_addchr(o, '\\');
-			o_addchr(o, c);
-			continue;
+			/* And now we want to add { or } and continue:
+			 *  o_addchr(o, c);
+			 *  continue;
+			 * luckily, just falling throught achieves this.
+			 */
 		}
 #endif
 		o_addchr(o, c);
