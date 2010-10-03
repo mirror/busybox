@@ -8,6 +8,8 @@
  * Copyright (C) 2000,2001  Larry Doolittle <larry@doolittle.boa.org>
  * Copyright (C) 2008,2009  Denys Vlasenko <vda.linux@googlemail.com>
  *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ *
  * Credits:
  *      The parser routines proper are all original material, first
  *      written Dec 2000 and Jan 2001 by Larry Doolittle.  The
@@ -50,7 +52,6 @@
  *
  * Bash compat TODO:
  *      redirection of stdout+stderr: &> and >&
- *      brace expansion: one/{two,three,four}
  *      reserved words: function select
  *      advanced test: [[ ]]
  *      process substitution: <(list) and >(list)
@@ -63,7 +64,9 @@
  *          The EXPR is evaluated according to ARITHMETIC EVALUATION.
  *          This is exactly equivalent to let "EXPR".
  *      $[EXPR]: synonym for $((EXPR))
- *      export builtin should be special, its arguments are assignments
+ *
+ * Won't do:
+ *      In bash, export builtin is special, its arguments are assignments
  *          and therefore expansion of them should be "one-word" expansion:
  *              $ export i=`echo 'a  b'` # export has one arg: "i=a  b"
  *          compare with:
@@ -77,8 +80,6 @@
  *              aaa  bbb
  *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
  *              aaa
- *
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
 #include <malloc.h>   /* for malloc_trim */
