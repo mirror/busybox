@@ -1765,6 +1765,10 @@ recv_and_process_client_pkt(void /*int fd*/)
 	/* this time was obtained between poll() and recv() */
 	msg.m_rectime = d_to_lfp(G.cur_time);
 	msg.m_xmttime = d_to_lfp(gettime1900d()); /* this instant */
+	if (G.peer_cnt == 0) {
+		/* we have no peers: "stratum 1 server" mode. reftime = our own time */
+		G.reftime = G.cur_time;
+	}
 	msg.m_reftime = d_to_lfp(G.reftime);
 	msg.m_orgtime = query_xmttime;
 	msg.m_rootdelay = d_to_sfp(G.rootdelay);
@@ -1902,8 +1906,13 @@ static NOINLINE void ntp_init(char **argv)
 		bb_show_usage();
 //	if (opts & OPT_x) /* disable stepping, only slew is allowed */
 //		G.time_was_stepped = 1;
-	while (peers)
-		add_peers(llist_pop(&peers));
+	if (peers) {
+		while (peers)
+			add_peers(llist_pop(&peers));
+	} else {
+		/* -l but no peers: "stratum 1 server" mode */
+		G.stratum = 1;
+	}
 	if (!(opts & OPT_n)) {
 		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO, argv);
 		logmode = LOGMODE_NONE;
