@@ -344,14 +344,12 @@ static int apply_one_hunk(void)
 		while (plist && *plist->data == "+-"[reverse]) {
 			if (data && !strcmp(data, plist->data+1)) {
 				if (!backwarn) {
-					backwarn++;
+					backwarn = TT.linenum;
 					if (option_mask32 & FLAG_IGNORE) {
 						dummy_revert = 1;
 						reverse ^= 1;
 						continue;
 					}
-					fdprintf(2,"Possibly reversed hunk %d at %ld\n",
-						TT.hunknum, TT.linenum);
 				}
 			}
 			plist = plist->next;
@@ -363,6 +361,10 @@ static int apply_one_hunk(void)
 
 			// Does this hunk need to match EOF?
 			if (!plist && matcheof) break;
+
+			if (backwarn)
+				fdprintf(2,"Possibly reversed hunk %d at %ld\n",
+					TT.hunknum, TT.linenum);
 
 			// File ended before we found a place for this hunk.
 			fail_hunk();
@@ -592,7 +594,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 						TT.filein = xopen3(name, O_CREAT|O_EXCL|O_RDWR, 0666);
 					} else {
 						printf("patching file %s\n", name);
-						TT.filein = xopen(name, O_RDWR);
+						TT.filein = xopen(name, O_RDONLY);
 					}
 					TT.fileout = copy_tempfile(TT.filein, name, &TT.tempname);
 					TT.linenum = 0;
