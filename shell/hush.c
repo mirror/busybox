@@ -120,8 +120,8 @@
 //config:
 //config:	  It will compile and work on no-mmu systems.
 //config:
-//config:	  It does not handle select, aliases, brace expansion,
-//config:	  tilde expansion, &>file and >&file redirection of stdout+stderr.
+//config:	  It does not handle select, aliases, tilde expansion,
+//config:	  &>file and >&file redirection of stdout+stderr.
 //config:
 //config:config HUSH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
