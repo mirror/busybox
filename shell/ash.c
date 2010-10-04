@@ -12840,7 +12840,7 @@ init(void)
 	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
 	 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
 	 */
-        signal(SIGHUP, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
 
 	/* from var.c: */
 	{
