@@ -59,10 +59,11 @@
 #endif
 
 enum {
-	WC_LINES	= 0,
-	WC_WORDS	= 1,
-	WC_CHARS	= 2,
-	WC_LENGTH	= 3
+	WC_LINES  = 0,
+	WC_WORDS  = 1,
+	WC_CHARS  = 2,
+	WC_LENGTH = 3,
+	NUM_WCS   = 4,
 };
 
 int wc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -72,8 +73,8 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 	const char *start_fmt = " %9"COUNT_FMT + 1;
 	const char *fname_fmt = " %s\n";
 	COUNT_T *pcounts;
-	COUNT_T counts[4];
-	COUNT_T totals[4];
+	COUNT_T counts[NUM_WCS];
+	COUNT_T totals[NUM_WCS];
 	int num_files;
 	smallint status = EXIT_SUCCESS;
 	unsigned print_type;
@@ -99,7 +100,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 	pcounts = counts;
 
 	num_files = 0;
-	while ((arg = *argv++) != 0) {
+	while ((arg = *argv++) != NULL) {
 		FILE *fp;
 		const char *s;
 		unsigned u;
@@ -117,20 +118,20 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 		linepos = 0;
 		in_word = 0;
 
-		do {
+		while (1) {
 			int c;
 			/* Our -w doesn't match GNU wc exactly... oh well */
 
-			++counts[WC_CHARS];
 			c = getc(fp);
 			if (c == EOF) {
 				if (ferror(fp)) {
 					bb_simple_perror_msg(arg);
 					status = EXIT_FAILURE;
 				}
-				--counts[WC_CHARS];
 				goto DO_EOF;		/* Treat an EOF as '\r'. */
 			}
+			++counts[WC_CHARS];
+
 			if (isprint_asciionly(c)) {
 				++linepos;
 				if (!isspace(c)) {
@@ -167,18 +168,18 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 			if (c == EOF) {
 				break;
 			}
-		} while (1);
+		}
+
+		fclose_if_not_stdin(fp);
 
 		if (totals[WC_LENGTH] < counts[WC_LENGTH]) {
 			totals[WC_LENGTH] = counts[WC_LENGTH];
 		}
 		totals[WC_LENGTH] -= counts[WC_LENGTH];
 
-		fclose_if_not_stdin(fp);
-
  OUTPUT:
 		/* coreutils wc tries hard to print pretty columns
-		 * (saves results for all files, find max col len etc...)
+		 * (saves results for all files, finds max col len etc...)
 		 * we won't try that hard, it will bloat us too much */
 		s = start_fmt;
 		u = 0;
@@ -188,7 +189,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 				s = " %9"COUNT_FMT; /* Ok... restore the leading space. */
 			}
 			totals[u] += pcounts[u];
-		} while (++u < 4);
+		} while (++u < NUM_WCS);
 		printf(fname_fmt, arg);
 	}
 
