@@ -182,16 +182,21 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 			pager = "more";
 	}
 
-	/* Parse man.conf[ig] */
+	/* Parse man.conf[ig] or man_db.conf */
 	/* man version 1.6f uses man.config */
+	/* man-db implementation of man uses man_db.conf */
 	parser = config_open2("/etc/man.config", fopen_for_read);
 	if (!parser)
 		parser = config_open2("/etc/man.conf", fopen_for_read);
+	if (!parser)
+		parser = config_open2("/etc/man_db.conf", fopen_for_read);
 
 	while (config_read(parser, token, 2, 0, "# \t", PARSE_NORMAL)) {
 		if (!token[1])
 			continue;
-		if (strcmp("MANPATH", token[0]) == 0) {
+		if (strcmp("MANDATORY_MANPATH"+10, token[0]) == 0 /* "MANPATH"? */
+		 || strcmp("MANDATORY_MANPATH", token[0]) == 0
+		) {
 			char *path = token[1];
 			while (*path) {
 				char *next_path;
