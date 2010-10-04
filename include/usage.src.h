@@ -4459,18 +4459,6 @@ INSERT
        "# tunctl\n" \
        "# tunctl -d tun0\n"
 
-#define tune2fs_trivial_usage \
-/*     "[-c max-mounts-count] [-e errors-behavior] [-g group] " */ \
-/*     "[-i interval[d|m|w]] [-j] [-J journal-options] [-l] [-s sparse-flag] " */ \
-/*     "[-m reserved-blocks-percent] [-o [^]mount-options[,...]] " */ \
-/*     "[-r reserved-blocks-count] [-u user] [-C mount-count] " */ \
-       "[-L LABEL] " \
-/*     "[-M last-mounted-dir] [-O [^]feature[,...]] " */ \
-/*     "[-T last-check-time] [-U UUID] " */ \
-       "BLOCKDEV"
-#define tune2fs_full_usage "\n\n" \
-       "Adjust filesystem options on ext[23] filesystems"
-
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
 # define IF_UDHCP_VERBOSE(...) __VA_ARGS__
 #else
