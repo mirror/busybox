@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-/* BB_AUDIT SUSv3 _NOT_ compliant -- option -m is not currently supported. */
+/* BB_AUDIT SUSv3 compliant. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/wc.html */
 
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
@@ -18,10 +18,6 @@
  *  2) broken handling of '-' args
  *  3) no checking of ferror on EOF returns
  *  4) isprint() wasn't considered when word counting.
- *
- * TODO:
- *
- * When locale support is enabled, count multibyte chars in the '-m' case.
  *
  * NOTES:
  *
@@ -40,8 +36,8 @@
  *
  * for which 'wc -c' should output '0'.
  */
-
 #include "libbb.h"
+#include "unicode.h"
 
 #if !ENABLE_LOCALE_SUPPORT
 # undef isprint
@@ -58,12 +54,39 @@
 # define COUNT_FMT "u"
 #endif
 
+/* We support -m even when UNICODE_SUPPORT is off,
+ * we just don't advertise it in help text,
+ * since it is the same as -c in this case.
+ */
+
+//usage:#define wc_trivial_usage
+//usage:       "[-c"IF_UNICODE_SUPPORT("m")"lwL] [FILE]..."
+//usage:
+//usage:#define wc_full_usage "\n\n"
+//usage:       "Count lines, words, and bytes for each FILE (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Count bytes"
+//usage:	IF_UNICODE_SUPPORT(
+//usage:     "\n	-m	Count characters"
+//usage:	)
+//usage:     "\n	-l	Count newlines"
+//usage:     "\n	-w	Count words"
+//usage:     "\n	-L	Print longest line length"
+//usage:
+//usage:#define wc_example_usage
+//usage:       "$ wc /etc/passwd\n"
+//usage:       "     31      46    1365 /etc/passwd\n"
+
+/* Order is important if we want to be compatible with
+ * column order in "wc -cmlwL" output:
+ */
 enum {
-	WC_LINES  = 0,
-	WC_WORDS  = 1,
-	WC_CHARS  = 2,
-	WC_LENGTH = 3,
-	NUM_WCS   = 4,
+	WC_LINES    = 0,
+	WC_WORDS    = 1,
+	WC_UNICHARS = 2,
+	WC_CHARS    = 3,
+	WC_LENGTH   = 4,
+	NUM_WCS     = 5,
 };
 
 int wc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -79,7 +102,9 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 	smallint status = EXIT_SUCCESS;
 	unsigned print_type;
 
-	print_type = getopt32(argv, "lwcL");
+	init_unicode();
+
+	print_type = getopt32(argv, "lwcmL");
 
 	if (print_type == 0) {
 		print_type = (1 << WC_LINES) | (1 << WC_WORDS) | (1 << WC_CHARS);
@@ -130,9 +155,16 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 				}
 				goto DO_EOF;		/* Treat an EOF as '\r'. */
 			}
-			++counts[WC_CHARS];
 
-			if (isprint_asciionly(c)) {
+			/* Cater for -c and -m */
+			++counts[WC_CHARS];
+			if (unicode_status != UNICODE_ON /* every byte is a new char */
+			 || (c & 0xc0) != 0x80 /* it isn't a 2nd+ byte of a Unicode char */
+			) {
+				++counts[WC_UNICHARS];
+			}
+
+			if (isprint_asciionly(c)) { /* FIXME: not unicode-aware */
 				++linepos;
 				if (!isspace(c)) {
 					in_word = 1;

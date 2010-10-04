@@ -4764,21 +4764,6 @@ INSERT
      "\n" \
      "\nUse 500ms to specify period in milliseconds" \
 
-#define wc_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define wc_full_usage "\n\n" \
-       "Print line, word, and byte counts for each FILE (or stdin),\n" \
-       "and a total line if more than one FILE is specified\n" \
-     "\nOptions:" \
-     "\n	-c	Print the byte counts" \
-     "\n	-l	Print the newline counts" \
-     "\n	-L	Print the length of the longest line" \
-     "\n	-w	Print the word counts" \
-
-#define wc_example_usage \
-       "$ wc /etc/passwd\n" \
-       "     31      46    1365 /etc/passwd\n"
-
 #define wget_trivial_usage \
 	IF_FEATURE_WGET_LONG_OPTIONS( \
        "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document FILE]\n" \
