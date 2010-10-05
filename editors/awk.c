@@ -987,7 +987,6 @@ static uint32_t next_token(uint32_t expected)
 	const char *tl;
 	uint32_t tc;
 	const uint32_t *ti;
-	int l;
 
 	if (t_rollback) {
 		t_rollback = FALSE;
@@ -1053,7 +1052,7 @@ static uint32_t next_token(uint32_t expected)
 			char *pp = p;
 			t_double = my_strtod(&pp);
 			p = pp;
-			if (*pp == '.')
+			if (*p == '.')
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
 
@@ -1063,52 +1062,51 @@ static uint32_t next_token(uint32_t expected)
 			tc = 0x00000001;
 			ti = tokeninfo;
 			while (*tl) {
-				l = *tl++;
-				if (l == NTCC) {
+				int l = (unsigned char) *tl++;
+				if (l == (unsigned char) NTCC) {
 					tc <<= 1;
 					continue;
 				}
-				/* if token class is expected, token
-				 * matches and it's not a longer word,
-				 * then this is what we are looking for
+				/* if token class is expected,
+				 * token matches,
+				 * and it's not a longer word,
 				 */
 				if ((tc & (expected | TC_WORD | TC_NEWLINE))
-				 && *tl == *p && strncmp(p, tl, l) == 0
+				 && strncmp(p, tl, l) == 0
 				 && !((tc & TC_WORD) && isalnum_(p[l]))
 				) {
+					/* then this is what we are looking for */
 					t_info = *ti;
 					p += l;
-					break;
+					goto token_found;
 				}
 				ti++;
 				tl += l;
 			}
+			/* not a known token */
 
-			if (!*tl) {
-				/* it's a name (var/array/function),
-				 * otherwise it's something wrong
-				 */
-				if (!isalnum_(*p))
-					syntax_error(EMSG_UNEXP_TOKEN);
-
-				t_string = --p;
-				while (isalnum_(*++p)) {
-					p[-1] = *p;
-				}
-				p[-1] = '\0';
-				tc = TC_VARIABLE;
-				/* also consume whitespace between functionname and bracket */
-				if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
-					p = skip_spaces(p);
-				if (*p == '(') {
-					tc = TC_FUNCTION;
-				} else {
-					if (*p == '[') {
-						p++;
-						tc = TC_ARRAY;
-					}
+			/* is it a name? (var/array/function) */
+			if (!isalnum_(*p))
+				syntax_error(EMSG_UNEXP_TOKEN); /* no */
+			/* yes */
+			t_string = --p;
+			while (isalnum_(*++p)) {
+				p[-1] = *p;
+			}
+			p[-1] = '\0';
+			tc = TC_VARIABLE;
+			/* also consume whitespace between functionname and bracket */
+			if (!(expected & TC_VARIABLE) || (expected & TC_ARRAY))
+				p = skip_spaces(p);
+			if (*p == '(') {
+				tc = TC_FUNCTION;
+			} else {
+				if (*p == '[') {
+					p++;
+					tc = TC_ARRAY;
 				}
 			}
+ token_found: ;
 		}
 		g_pos = p;
 
@@ -1186,6 +1184,7 @@ static node *parse_expr(uint32_t iexp)
 	xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP | iexp;
 
 	while (!((tc = next_token(xtc)) & iexp)) {
+
 		if (glptr && (t_info == (OC_COMPARE | VV | P(39) | 2))) {
 			/* input redirection (<) attached to glptr node */
 			cn = glptr->l.n = new_node(OC_CONCAT | SS | P(37));
@@ -1522,10 +1521,10 @@ static node *mk_splitter(const char *s, tsplitter *spl)
 		regfree(re);
 		regfree(ire); // TODO: nuke ire, use re+1?
 	}
-	if (strlen(s) > 1) {
+	if (s[0] && s[1]) { /* strlen(s) > 1 */
 		mk_re_node(s, n, re);
 	} else {
-		n->info = (uint32_t) *s;
+		n->info = (uint32_t) s[0];
 	}
 
 	return n;
@@ -1582,24 +1581,22 @@ static void fsrealloc(int size)
 	if (size >= maxfields) {
 		i = maxfields;
 		maxfields = size + 16;
-		Fields = xrealloc(Fields, maxfields * sizeof(var));
+		Fields = xrealloc(Fields, maxfields * sizeof(Fields[0]));
 		for (; i < maxfields; i++) {
 			Fields[i].type = VF_SPECIAL;
 			Fields[i].string = NULL;
 		}
 	}
-
-	if (size < nfields) {
-		for (i = size; i < nfields; i++) {
-			clrvar(Fields + i);
-		}
+	/* if size < nfields, clear extra field variables */
+	for (i = size; i < nfields; i++) {
+		clrvar(Fields + i);
 	}
 	nfields = size;
 }
 
 static int awk_split(const char *s, node *spl, char **slist)
 {
-	int l, n = 0;
+	int l, n;
 	char c[4];
 	char *s1;
 	regmatch_t pmatch[2]; // TODO: why [2]? [1] is enough...
@@ -1613,6 +1610,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 	if (*getvar_s(intvar[RS]) == '\0')
 		c[2] = '\n';
 
+	n = 0;
 	if ((spl->info & OPCLSMASK) == OC_REGEXP) {  /* regex split */
 		if (!*s)
 			return n; /* "": zero fields */
@@ -1658,7 +1656,7 @@ static int awk_split(const char *s, node *spl, char **slist)
 		}
 		if (*s1)
 			n++;
-		while ((s1 = strpbrk(s1, c))) {
+		while ((s1 = strpbrk(s1, c)) != NULL) {
 			*s1++ = '\0';
 			n++;
 		}
