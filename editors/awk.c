@@ -17,9 +17,13 @@
 /* If you comment out one of these below, it will be #defined later
  * to perform debug printfs to stderr: */
 #define debug_printf_walker(...)  do {} while (0)
+#define debug_printf_eval(...)  do {} while (0)
 
 #ifndef debug_printf_walker
 # define debug_printf_walker(...) (fprintf(stderr, __VA_ARGS__))
+#endif
+#ifndef debug_printf_eval
+# define debug_printf_eval(...) (fprintf(stderr, __VA_ARGS__))
 #endif
 
 
@@ -700,14 +704,27 @@ static ALWAYS_INLINE int isalnum_(int c)
 
 static double my_strtod(char **pp)
 {
+	char *cp = *pp;
 #if ENABLE_DESKTOP
-	if ((*pp)[0] == '0'
-	 && ((((*pp)[1] | 0x20) == 'x') || isdigit((*pp)[1]))
-	) {
-		return strtoull(*pp, pp, 0);
+	if (cp[0] == '0') {
+		/* Might be hex or octal integer: 0x123abc or 07777 */
+		char c = (cp[1] | 0x20);
+		if (c == 'x' || isdigit(cp[1])) {
+			unsigned long long ull = strtoull(cp, pp, 0);
+			if (c == 'x')
+				return ull;
+			c = **pp;
+			if (!isdigit(c) && c != '.')
+				return ull;
+			/* else: it may be a floating number. Examples:
+			 * 009.123 (*pp points to '9')
+			 * 000.123 (*pp points to '.')
+			 * fall through to strtod.
+			 */
+		}
 	}
 #endif
-	return strtod(*pp, pp);
+	return strtod(cp, pp);
 }
 
 /* -------- working with variables (set/get/copy/etc) -------- */
@@ -817,17 +834,21 @@ static double getvar_i(var *v)
 		v->number = 0;
 		s = v->string;
 		if (s && *s) {
+			debug_printf_eval("getvar_i: '%s'->", s);
 			v->number = my_strtod(&s);
+			debug_printf_eval("%f (s:'%s')\n", v->number, s);
 			if (v->type & VF_USER) {
 				s = skip_spaces(s);
 				if (*s != '\0')
 					v->type &= ~VF_USER;
 			}
 		} else {
+			debug_printf_eval("getvar_i: '%s'->zero\n", s);
 			v->type &= ~VF_USER;
 		}
 		v->type |= VF_CACHED;
 	}
+	debug_printf_eval("getvar_i: %f\n", v->number);
 	return v->number;
 }
 
@@ -849,6 +870,7 @@ static var *copyvar(var *dest, const var *src)
 	if (dest != src) {
 		clrvar(dest);
 		dest->type |= (src->type & ~(VF_DONTTOUCH | VF_FSTR));
+		debug_printf_eval("copyvar: number:%f string:'%s'\n", src->number, src->string);
 		dest->number = src->number;
 		if (src->string)
 			dest->string = xstrdup(src->string);
@@ -2347,18 +2369,25 @@ static var *evaluate(node *op, var *res)
 		opn = (opinfo & OPNMASK);
 		g_lineno = op->lineno;
 		op1 = op->l.n;
+		debug_printf_eval("opinfo:%08x opn:%08x XC:%x\n", opinfo, opn, XC(opinfo & OPCLSMASK));
 
 		/* execute inevitable things */
 		if (opinfo & OF_RES1)
 			L.v = evaluate(op1, v1);
 		if (opinfo & OF_RES2)
 			R.v = evaluate(op->r.n, v1+1);
-		if (opinfo & OF_STR1)
+		if (opinfo & OF_STR1) {
 			L.s = getvar_s(L.v);
-		if (opinfo & OF_STR2)
+			debug_printf_eval("L.s:'%s'\n", L.s);
+		}
+		if (opinfo & OF_STR2) {
 			R.s = getvar_s(R.v);
-		if (opinfo & OF_NUM1)
+			debug_printf_eval("R.s:'%s'\n", R.s);
+		}
+		if (opinfo & OF_NUM1) {
 			L_d = getvar_i(L.v);
+			debug_printf_eval("L_d:%f\n", L_d);
+		}
 
 		switch (XC(opinfo & OPCLSMASK)) {
 
@@ -2526,6 +2555,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		case XC( OC_MOVE ):
+			debug_printf_eval("MOVE\n");
 			/* if source is a temporary string, jusk relink it to dest */
 //Disabled: if R.v is numeric but happens to have cached R.v->string,
 //then L.v ends up being a string, which is wrong
@@ -2777,6 +2807,7 @@ static var *evaluate(node *op, var *res)
 		case XC( OC_BINARY ):
 		case XC( OC_REPLACE ): {
 			double R_d = getvar_i(R.v);
+			debug_printf_eval("BINARY/REPLACE: R_d:%f opn:%c\n", R_d, opn);
 			switch (opn) {
 			case '+':
 				L_d += R_d;
@@ -2805,6 +2836,7 @@ static var *evaluate(node *op, var *res)
 				L_d -= (int)(L_d / R_d) * R_d;
 				break;
 			}
+			debug_printf_eval("BINARY/REPLACE result:%f\n", L_d);
 			res = setvar_i(((opinfo & OPCLSMASK) == OC_BINARY) ? res : L.v, L_d);
 			break;
 		}

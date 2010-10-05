@@ -24,6 +24,12 @@ testing "awk hex const 2" "awk '{ print or(0x80000000,1) }'" "2.14748e+09\n" "" 
 testing "awk oct const"   "awk '{ print or(01234,1) }'"      "669\n"         "" "\n"
 SKIP=
 
+# check that "hex/oct integer" heuristic doesn't kick in on 00NN.NNN
+testing "awk floating const with leading zeroes" \
+	"awk '{ printf \"%f %f\n\", \"000.123\", \"009.123\" }'" \
+	"0.123000 9.123000\n" \
+	"" "\n"
+
 # long field seps requiring regex
 testing "awk long field sep" "awk -F-- '{ print NF, length(\$NF), \$NF }'" \
 	"2 0 \n3 0 \n4 0 \n5 0 \n" \
