@@ -101,7 +101,7 @@ INSERT
        "\n	-n		Don't resolve names" \
        "\n	-i IF		Network interface" \
        "\n	-D		Read <hwaddr> from given device" \
-       "\n	-A, -p AF	Protocol family" \
+       "\n	-A,-p AF	Protocol family" \
        "\n	-H HWTYPE	Hardware address type" \
 
 #define arping_trivial_usage \
@@ -220,7 +220,7 @@ INSERT
      "\n	-F	Don't store or verify checksum" \
 
 #define unlzma_trivial_usage \
-       "[OPTIONS] [FILE]..."
+       "[-cf] [FILE]..."
 #define unlzma_full_usage "\n\n" \
        "Decompress FILE (or stdin)\n" \
      "\nOptions:" \
@@ -228,7 +228,7 @@ INSERT
      "\n	-f	Force" \
 
 #define lzma_trivial_usage \
-       "-d [OPTIONS] [FILE]..."
+       "-d [-cf] [FILE]..."
 #define lzma_full_usage "\n\n" \
        "Decompress FILE (or stdin)\n" \
      "\nOptions:" \
@@ -242,7 +242,7 @@ INSERT
        "Decompress to stdout"
 
 #define unxz_trivial_usage \
-       "[OPTIONS] [FILE]..."
+       "[-cf] [FILE]..."
 #define unxz_full_usage "\n\n" \
        "Decompress FILE (or stdin)\n" \
      "\nOptions:" \
@@ -250,7 +250,7 @@ INSERT
      "\n	-f	Force" \
 
 #define xz_trivial_usage \
-       "-d [OPTIONS] [FILE]..."
+       "-d [-cf] [FILE]..."
 #define xz_full_usage "\n\n" \
        "Decompress FILE (or stdin)\n" \
      "\nOptions:" \
@@ -534,7 +534,7 @@ INSERT
        "Print the config file used by busybox build"
 
 #define chrt_trivial_usage \
-       "[OPTIONS] [PRIO] [PID | PROG ARGS]"
+       "[-prfom] [PRIO] [PID | PROG ARGS]"
 #define chrt_full_usage "\n\n" \
        "Change scheduling priority and class for a process\n" \
      "\nOptions:" \
@@ -916,7 +916,7 @@ INSERT
      "\n			nameserver NORNAL_DNS_SERVER" \
 
 #define dos2unix_trivial_usage \
-       "[OPTIONS] [FILE]"
+       "[-ud] [FILE]"
 #define dos2unix_full_usage "\n\n" \
        "Convert FILE in-place from DOS to Unix format.\n" \
        "When no file is given, use stdin/stdout.\n" \
@@ -925,7 +925,7 @@ INSERT
      "\n	-d	unix2dos" \
 
 #define unix2dos_trivial_usage \
-       "[OPTIONS] [FILE]"
+       "[-ud] [FILE]"
 #define unix2dos_full_usage "\n\n" \
        "Convert FILE in-place from Unix to DOS format.\n" \
        "When no file is given, use stdin/stdout.\n" \
@@ -1406,8 +1406,7 @@ INSERT
        "Find processes which use FILEs or PORTs\n" \
      "\nOptions:" \
      "\n	-m	Find processes which use same fs as FILEs" \
-     "\n	-4	Search only IPv4 space" \
-     "\n	-6	Search only IPv6 space" \
+     "\n	-4,-6	Search only IPv4/IPv6 space" \
      "\n	-s	Don't display PIDs" \
      "\n	-k	Kill found processes" \
      "\n	-SIGNAL	Signal to send (default: KILL)" \
@@ -1485,7 +1484,7 @@ INSERT
      "\n	-H HOST		Log HOST into the utmp file as the hostname" \
 
 #define gunzip_trivial_usage \
-       "[OPTIONS] [FILE]..."
+       "[-cft] [FILE]..."
 #define gunzip_full_usage "\n\n" \
        "Decompress FILEs (or stdin)\n" \
      "\nOptions:" \
@@ -1501,7 +1500,7 @@ INSERT
        "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n"
 
 #define gzip_trivial_usage \
-       "[OPTIONS] [FILE]..."
+       "[-cfd] [FILE]..."
 #define gzip_full_usage "\n\n" \
        "Compress FILEs (or stdin)\n" \
      "\nOptions:" \
@@ -1703,7 +1702,7 @@ INSERT
      "\n	-i		Inetd mode" \
      "\n	-f		Don't daemonize" \
      "\n	-v[v]		Verbose" \
-     "\n	-p [IP:]PORT	Bind to ip:port (default *:80)" \
+     "\n	-p [IP:]PORT	Bind to IP:PORT (default *:80)" \
 	IF_FEATURE_HTTPD_SETUID( \
      "\n	-u USER[:GRP]	Set uid/gid after binding to port") \
 	IF_FEATURE_HTTPD_BASIC_AUTH( \
@@ -1740,13 +1739,13 @@ INSERT
        "Print information about USER or the current user\n" \
      "\nOptions:" \
 	IF_SELINUX( \
-     "\n	-Z	Print the security context" \
+     "\n	-Z	Security context" \
 	) \
-     "\n	-u	Print user ID" \
-     "\n	-g	Print group ID" \
-     "\n	-G	Print supplementary group IDs" \
-     "\n	-n	Print name instead of a number" \
-     "\n	-r	Print real user ID instead of effective ID" \
+     "\n	-u	User ID" \
+     "\n	-g	Group ID" \
+     "\n	-G	Supplementary group IDs" \
+     "\n	-n	Print names instead of numbers" \
+     "\n	-r	Print real ID instead of effective ID" \
 
 #define id_example_usage \
        "$ id\n" \
@@ -1778,10 +1777,10 @@ INSERT
 #define ifenslave_full_usage "\n\n" \
        "Configure network interfaces for parallel routing\n" \
      "\nOptions:" \
-     "\n	-c, --change-active	Change active slave" \
-     "\n	-d, --detach		Remove slave interface from bonding device" \
-     "\n	-f, --force		Force, even if interface is not Ethernet" \
-/*   "\n	-r, --receive-slave	Create a receive-only slave" */
+     "\n	-c,--change-active	Change active slave" \
+     "\n	-d,--detach		Remove slave interface from bonding device" \
+     "\n	-f,--force		Force, even if interface is not Ethernet" \
+/*   "\n	-r,--receive-slave	Create a receive-only slave" */
 
 #define ifenslave_example_usage \
        "To create a bond device, simply follow these three steps:\n" \
@@ -1826,7 +1825,7 @@ INSERT
      "\n	-k		Kill running daemon" \
 
 #define ifup_trivial_usage \
-       "[-ain"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] IFACE..."
+       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 #define ifup_full_usage "\n\n" \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
@@ -1840,7 +1839,7 @@ INSERT
      "\n	-f	Force de/configuration" \
 
 #define ifdown_trivial_usage \
-       "[-ain"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] ifaces..."
+       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 #define ifdown_full_usage "\n\n" \
        "Options:" \
      "\n	-a	De/configure all interfaces automatically" \
@@ -2327,7 +2326,7 @@ INSERT
        "root\n"
 
 #define logread_trivial_usage \
-       "[OPTIONS]"
+       "[-f]"
 #define logread_full_usage "\n\n" \
        "Show messages in syslogd's circular buffer\n" \
      "\nOptions:" \
@@ -2544,7 +2543,7 @@ INSERT
      "\nOther options are silently ignored" \
 
 #define man_trivial_usage \
-       "[OPTIONS] [MANPAGE]..."
+       "[-aw] [MANPAGE]..."
 #define man_full_usage "\n\n" \
        "Format and display manual page\n" \
      "\nOptions:" \
@@ -2561,8 +2560,8 @@ INSERT
      "\n	-V	Verify file context on disk matches defaults" \
 
 #define md5sum_trivial_usage \
-       "[OPTIONS] [FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTIONS] -c [FILE]")
+       "[FILE]..." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum -c [-sw] [FILE]")
 #define md5sum_full_usage "\n\n" \
        "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
@@ -2583,8 +2582,8 @@ INSERT
        "^D\n"
 
 #define sha1sum_trivial_usage \
-       "[OPTIONS] [FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTIONS] -c [FILE]")
+       "[FILE]..." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum -c [-sw] [FILE]")
 #define sha1sum_full_usage "\n\n" \
        "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
@@ -2595,8 +2594,8 @@ INSERT
 	)
 
 #define sha256sum_trivial_usage \
-       "[OPTIONS] [FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum [OPTIONS] -c [FILE]")
+       "[FILE]..." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum -c [-sw] [FILE]")
 #define sha256sum_full_usage "\n\n" \
        "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA256 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
@@ -2607,8 +2606,8 @@ INSERT
 	)
 
 #define sha512sum_trivial_usage \
-       "[OPTIONS] [FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum [OPTIONS] -c [FILE]")
+       "[FILE]..." \
+	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum -c [-sw] [FILE]")
 #define sha512sum_full_usage "\n\n" \
        "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA512 checksums" \
 	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
@@ -2675,7 +2674,7 @@ INSERT
 #define mkdir_full_usage "\n\n" \
        "Create DIRECTORY\n" \
      "\nOptions:" \
-     "\n	-m	Mode" \
+     "\n	-m MODE	Mode" \
      "\n	-p	No error if exists; make parent directories as needed" \
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
@@ -2690,9 +2689,9 @@ INSERT
        "$ mkdir -p /tmp/foo/bar/baz\n"
 
 #define mkfifo_trivial_usage \
-       "[OPTIONS] name"
+       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME"
 #define mkfifo_full_usage "\n\n" \
-       "Create named pipe (identical to 'mknod name p')\n" \
+       "Create named pipe\n" \
      "\nOptions:" \
      "\n	-m MODE	Mode (default a=rw)" \
 	IF_SELINUX( \
@@ -2774,25 +2773,25 @@ INSERT
      "\n	-n LBL	Volume label" \
 
 #define mknod_trivial_usage \
-       "[OPTIONS] NAME TYPE MAJOR MINOR"
+       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME TYPE MAJOR MINOR"
 #define mknod_full_usage "\n\n" \
        "Create a special file (block, character, or pipe)\n" \
      "\nOptions:" \
-     "\n	-m	Create the special file using the specified mode (default a=rw)" \
-     "\nTYPEs include:" \
-     "\n	b:	Make a block device" \
-     "\n	c or u:	Make a character device" \
-     "\n	p:	Make a named pipe (MAJOR and MINOR are ignored)" \
+     "\n	-m MODE	Creation mode (default a=rw)" \
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
-	)
+	) \
+     "\nTYPEs:" \
+     "\n	b	Block device" \
+     "\n	c or u	Character device" \
+     "\n	p	Named pipe (MAJOR and MINOR are ignored)" \
 
 #define mknod_example_usage \
        "$ mknod /dev/fd0 b 2 0\n" \
        "$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
-       "[OPTIONS] BLOCKDEV [KBYTES]"
+       "[-L LBL] BLOCKDEV [KBYTES]"
 #define mkswap_full_usage "\n\n" \
        "Prepare BLOCKDEV to be used as swap partition\n" \
      "\nOptions:" \
@@ -2914,8 +2913,8 @@ INSERT
        "setpart tell unload unlock weof wset" \
 
 #define mv_trivial_usage \
-       "[OPTIONS] SOURCE DEST\n" \
-       "or: mv [OPTIONS] SOURCE... DIRECTORY"
+       "[-fi] SOURCE DEST\n" \
+       "or: mv [-fi] SOURCE... DIRECTORY"
 #define mv_full_usage "\n\n" \
        "Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY\n" \
      "\nOptions:" \
@@ -3050,7 +3049,7 @@ INSERT
        "Change USER's password. If no USER is specified,\n" \
        "changes the password for the current user.\n" \
      "\nOptions:" \
-     "\n	-a	Algorithm to use for password (des, md5)" /* ", sha1)" */ \
+     "\n	-a ALG	Algorithm to use for password (des, md5)" /* ", sha1)" */ \
      "\n	-d	Delete password for the account" \
      "\n	-l	Lock (disable) account" \
      "\n	-u	Unlock (re-enable) account" \
@@ -3117,10 +3116,12 @@ INSERT
        "List PIDs of all processes with names that match NAMEs" \
 	USAGE_PIDOF \
 	IF_FEATURE_PIDOF_SINGLE( \
-     "\n	-s	Show only one PID") \
+     "\n	-s	Show only one PID" \
+	) \
 	IF_FEATURE_PIDOF_OMIT( \
      "\n	-o PID	Omit given pid" \
-     "\n		Use %PPID to omit pid of pidof's parent") \
+     "\n		Use %PPID to omit pid of pidof's parent" \
+	) \
 
 #define pidof_example_usage \
        "$ pidof init\n" \
@@ -3145,7 +3146,7 @@ INSERT
 #define ping_full_usage "\n\n" \
        "Send ICMP ECHO_REQUEST packets to network hosts\n" \
      "\nOptions:" \
-     "\n	-4, -6		Force IP or IPv6 name resolution" \
+     "\n	-4,-6		Force IP or IPv6 name resolution" \
      "\n	-c CNT		Send only CNT pings" \
      "\n	-s SIZE		Send SIZE data bytes in packets (default:56)" \
      "\n	-I IFACE/IP	Use interface or IP address as source" \
@@ -3437,7 +3438,7 @@ INSERT
      "\n		wimax, wwan, gps, fm" \
 
 #define rm_trivial_usage \
-       "[OPTIONS] FILE..."
+       "[-irf] FILE..."
 #define rm_full_usage "\n\n" \
        "Remove (unlink) FILEs\n" \
      "\nOptions:" \
@@ -3465,12 +3466,12 @@ INSERT
        "# rmdir /tmp/foo\n"
 
 #define rmmod_trivial_usage \
-       "[OPTIONS] [MODULE]..."
+       "[-wfa] [MODULE]..."
 #define rmmod_full_usage "\n\n" \
-       "Unload the specified kernel modules from the kernel\n" \
+       "Unload kernel modules\n" \
      "\nOptions:" \
      "\n	-w	Wait until the module is no longer used" \
-     "\n	-f	Force unloading" \
+     "\n	-f	Force unload" \
      "\n	-a	Remove all unused modules (recursively)" \
 
 #define rmmod_example_usage \
@@ -3855,9 +3856,9 @@ INSERT
        "[OPTIONS] [INPUT [PREFIX]]"
 #define split_full_usage "\n\n" \
        "Options:" \
-     "\n	-b n[k|m]	Split by bytes" \
-     "\n	-l n		Split by lines" \
-     "\n	-a n		Use n letters as suffix" \
+     "\n	-b N[k|m]	Split by N (kilo|mega)bytes" \
+     "\n	-l N		Split by N lines" \
+     "\n	-a N		Use N letters as suffix" \
 
 #define split_example_usage \
        "$ split TODO foo\n" \
@@ -4086,7 +4087,7 @@ INSERT
        "Write all buffered blocks to disk"
 
 #define fsync_trivial_usage \
-       "[OPTIONS] FILE..."
+       "[-d] FILE..."
 #define fsync_full_usage "\n\n" \
        "Write files' buffered blocks to disk\n" \
      "\nOptions:" \
@@ -4162,7 +4163,7 @@ INSERT
        "pid 1's current affinity mask: 3\n"
 
 #define tee_trivial_usage \
-       "[OPTIONS] [FILE]..."
+       "[-ai] [FILE]..."
 #define tee_full_usage "\n\n" \
        "Copy stdin to each FILE, and also to stdout\n" \
      "\nOptions:" \
@@ -4323,7 +4324,7 @@ INSERT
      "\n	-u	Access files as USER" \
 
 #define time_trivial_usage \
-       "[OPTIONS] PROG ARGS"
+       "[-v] PROG ARGS"
 #define time_full_usage "\n\n" \
        "Run PROG, display resource usage when it exits\n" \
      "\nOptions:" \
@@ -4379,7 +4380,7 @@ INSERT
        "Trace the route to HOST\n" \
      "\nOptions:" \
 	IF_TRACEROUTE6( \
-     "\n	-4, -6	Force IP or IPv6 name resolution" \
+     "\n	-4,-6	Force IP or IPv6 name resolution" \
 	) \
      "\n	-F	Set the don't fragment bit" \
      "\n	-I	Use ICMP ECHO instead of UDP datagrams" \
@@ -4702,13 +4703,15 @@ INSERT
        "Edit FILE\n" \
      "\nOptions:" \
 	IF_FEATURE_VI_COLON( \
-     "\n	-c	Initial command to run ($EXINIT also available)") \
+     "\n	-c	Initial command to run ($EXINIT also available)" \
+	) \
 	IF_FEATURE_VI_READONLY( \
-     "\n	-R	Read-only") \
+     "\n	-R	Read-only" \
+	) \
      "\n	-H	Short help regarding available features" \
 
 #define vlock_trivial_usage \
-       "[OPTIONS]"
+       "[-a]"
 #define vlock_full_usage "\n\n" \
        "Lock a virtual terminal. A password is required to unlock.\n" \
      "\nOptions:" \
