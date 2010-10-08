@@ -4268,7 +4268,7 @@ INSERT
      "\n	-u USER[:GRP]	Change to user/group after bind" \
      "\n	-c N		Handle up to N connections simultaneously" \
      "\n	-b N		Allow a backlog of approximately N TCP SYNs" \
-     "\n	-C N[:MSG]	Allow only up to N connections from the same IP" \
+     "\n	-C N[:MSG]	Allow only up to N connections from the same IP." \
      "\n			New connections from this IP address are closed" \
      "\n			immediately. MSG is written to the peer before close" \
      "\n	-h		Look up peer's hostname" \
