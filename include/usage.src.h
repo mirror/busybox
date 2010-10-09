@@ -2781,7 +2781,7 @@ INSERT
 	IF_SELINUX( \
      "\n	-Z	Set security context" \
 	) \
-     "\nTYPEs:" \
+     "\nTYPE:" \
      "\n	b	Block device" \
      "\n	c or u	Character device" \
      "\n	p	Named pipe (MAJOR and MINOR are ignored)" \

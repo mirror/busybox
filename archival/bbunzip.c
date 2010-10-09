@@ -305,7 +305,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 //usage:#define bunzip2_trivial_usage
-//usage:       "[OPTIONS] [FILE]..."
+//usage:       "[-cf] [FILE]..."
 //usage:#define bunzip2_full_usage "\n\n"
 //usage:       "Decompress FILEs (or stdin)\n"
 //usage:     "\nOptions:"

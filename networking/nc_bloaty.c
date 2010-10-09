@@ -57,7 +57,8 @@
 //usage:#define nc_trivial_usage
 //usage:       "[OPTIONS] HOST PORT  - connect"
 //usage:	IF_NC_SERVER("\n"
-//usage:       "nc [OPTIONS] -l -p PORT [HOST] [PORT]  - listen")
+//usage:       "nc [OPTIONS] -l -p PORT [HOST] [PORT]  - listen"
+//usage:	)
 //usage:#define nc_full_usage "\n\n"
 //usage:       "Options:"
 //usage:     "\n	-e PROG	Run PROG after connect (must be last)"

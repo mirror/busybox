@@ -16,7 +16,7 @@
 //usage:#define insmod_trivial_usage
 //usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ")
 //usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
-//usage:	"[symbol=value]..."
+//usage:	"[SYMBOL=VALUE]..."
 //usage:#define insmod_full_usage "\n\n"
 //usage:       "Load the specified kernel modules into the kernel"
 //usage:	IF_FEATURE_2_4_MODULES( "\n"
