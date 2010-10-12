@@ -123,6 +123,14 @@ config FEATURE_INSTALLER
 	  busybox at runtime to create hard links or symlinks for all the
 	  applets that are compiled into busybox.
 
+config INSTALL_NO_USR
+	bool "Don't use /usr"
+	default n
+	depends on FEATURE_INSTALLER
+	help
+	  Disable use of /usr. busybox --install will install applets
+	  only to /bin and /sbin, never to /usr/bin or /usr/sbin.
+
 config LOCALE_SUPPORT
 	bool "Enable locale support (system needs locale for this to work)"
 	default n
@@ -275,15 +283,6 @@ config FEATURE_CLEAN_UP
 	  Don't enable this unless you have a really good reason to clean
 	  things up manually.
 
-config FEATURE_UTMP
-	bool "Support utmp file"
-	default y
-	help
-	  The file /var/run/utmp is used to track who is currently logged in.
-	  With this option on, certain applets (getty, login, telnetd etc)
-	  will create and delete entries there.
-	  "who" applet requires this option.
-
 config FEATURE_WTMP
 	bool "Support wtmp file"
 	default y
@@ -294,6 +293,15 @@ config FEATURE_WTMP
 	  With this option on, certain applets (getty, login, telnetd etc)
 	  will append new entries there.
 	  "last" applet requires this option.
+
+config FEATURE_UTMP
+	bool "Support utmp file"
+	default y
+	help
+	  The file /var/run/utmp is used to track who is currently logged in.
+	  With this option on, certain applets (getty, login, telnetd etc)
+	  will create and delete entries there.
+	  "who" applet requires this option.
 
 config FEATURE_PIDFILE
 	bool "Support writing pidfiles"
@@ -307,14 +315,19 @@ config FEATURE_SUID
 	default y
 	help
 	  With this option you can install the busybox binary belonging
-	  to root with the suid bit set, and it will automatically drop
-	  priviledges for applets that don't need root access.
+	  to root with the suid bit set, enabling some applets to perform
+	  root-level operations even when run by ordinary users
+	  (for example, mounting of user mounts in fstab needs this).
+
+	  Busybox will automatically drop priviledges for applets
+	  that don't need root access.
 
 	  If you are really paranoid and don't want to do this, build two
 	  busybox binaries with different applets in them (and the appropriate
 	  symlinks pointing to each binary), and only set the suid bit on the
-	  one that needs it. The applets currently marked to need the suid bit
-	  are:
+	  one that needs it.
+
+	  The applets currently marked to need the suid bit are:
 
 	  crontab, dnsd, findfs, ipcrm, ipcs, login, passwd, ping, su,
 	  traceroute, vlock.
@@ -651,20 +664,13 @@ endchoice
 
 endmenu
 
-menu 'Installation Options'
-
-config INSTALL_NO_USR
-	bool "Don't use /usr"
-	default n
-	help
-	  Disable use of /usr. Don't activate this option if you don't know
-	  that you really want this behaviour.
+menu 'Installation Options ("make install" behavior)'
 
 choice
-	prompt "Applets links"
+	prompt "What kind of applet links to install"
 	default INSTALL_APPLET_SYMLINKS
 	help
-	  Choose how you install applets links.
+	  Choose what kind of links to applets are created by "make install".
 
 config INSTALL_APPLET_SYMLINKS
 	bool "as soft-links"
@@ -688,8 +694,9 @@ config INSTALL_APPLET_DONT
 	bool "not installed"
 	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE || FEATURE_PREFER_APPLETS
 	help
-	  Do not install applet links. Useful when using the -install feature
-	  or a standalone shell for rescue purposes.
+	  Do not install applet links. Useful when you plan to use
+	  busybox --install for installing links, or plan to use
+	  a standalone shell and thus don't need applet links.
 
 endchoice
 
@@ -713,8 +720,8 @@ config INSTALL_SH_APPLET_HARDLINK
 config INSTALL_SH_APPLET_SCRIPT_WRAPPER
 	bool "as script wrapper"
 	help
-	  Install /bin/sh applet as script wrapper that call the busybox
-	  binary.
+	  Install /bin/sh applet as script wrapper that calls
+	  the busybox binary.
 
 endchoice
 

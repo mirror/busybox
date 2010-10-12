@@ -16,8 +16,13 @@ typedef enum bb_install_loc_t {
 	_BB_DIR_ROOT = 0,
 	_BB_DIR_BIN,
 	_BB_DIR_SBIN,
+#if ENABLE_INSTALL_NO_USR
+	_BB_DIR_USR_BIN  = _BB_DIR_BIN,
+	_BB_DIR_USR_SBIN = _BB_DIR_SBIN,
+#else
 	_BB_DIR_USR_BIN,
-	_BB_DIR_USR_SBIN
+	_BB_DIR_USR_SBIN,
+#endif
 } bb_install_loc_t;
 
 typedef enum bb_suid_t {

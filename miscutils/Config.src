@@ -136,7 +136,6 @@ config CHRT
 config CROND
 	bool "crond"
 	default y
-	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
 	  Crond is a background daemon that parses individual crontab

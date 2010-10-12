@@ -804,7 +804,7 @@ config TELNETD
 
 		  mount -t devpts devpts /dev/pts
 
-	  You need to be sure that Busybox has LOGIN and
+	  You need to be sure that busybox has LOGIN and
 	  FEATURE_SUID enabled. And finally, you should make
 	  certain that Busybox has been installed setuid root:
 

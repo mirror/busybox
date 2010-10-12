@@ -592,9 +592,11 @@ static const char usr_sbin[] ALIGN1 = "/usr/sbin/";
 static const char *const install_dir[] = {
 	&usr_bin [8], /* "/" */
 	&usr_bin [4], /* "/bin/" */
-	&usr_sbin[4], /* "/sbin/" */
-	usr_bin,
-	usr_sbin
+	&usr_sbin[4]  /* "/sbin/" */
+# if !ENABLE_INSTALL_NO_USR
+	,usr_bin
+	,usr_sbin
+# endif
 };
 
 
