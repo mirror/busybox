@@ -7,6 +7,24 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_MESG(APPLET(mesg, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MESG) += mesg.o
+
+//config:config MESG
+//config:	bool "mesg"
+//config:	default y
+//config:	help
+//config:	  Mesg controls access to your terminal by others. It is typically
+//config:	  used to allow or disallow other users to write to your terminal
+
+//usage:#define mesg_trivial_usage
+//usage:       "[y|n]"
+//usage:#define mesg_full_usage "\n\n"
+//usage:       "Control write access to your terminal\n"
+//usage:       "	y	Allow write access to your terminal\n"
+//usage:       "	n	Disallow write access to your terminal"
+
 #include "libbb.h"
 
 #ifdef USE_TTY_GROUP

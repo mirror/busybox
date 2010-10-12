@@ -1515,36 +1515,6 @@ INSERT
        "$ ls -la /tmp/busybox*\n" \
        "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
-#define halt_trivial_usage \
-       "[-d DELAY] [-n] [-f]" IF_FEATURE_WTMP(" [-w]")
-#define halt_full_usage "\n\n" \
-       "Halt the system\n" \
-     "\nOptions:" \
-     "\n	-d SEC	Delay interval" \
-     "\n	-n	Do not sync" \
-     "\n	-f	Force (don't go through init)" \
-	IF_FEATURE_WTMP( \
-     "\n	-w	Only write a wtmp record" \
-	)
-
-#define poweroff_trivial_usage \
-       "[-d DELAY] [-n] [-f]"
-#define poweroff_full_usage "\n\n" \
-       "Halt and shut off power\n" \
-     "\nOptions:" \
-     "\n	-d SEC	Delay interval" \
-     "\n	-n	Do not sync" \
-     "\n	-f	Force (don't go through init)" \
-
-#define reboot_trivial_usage \
-       "[-d DELAY] [-n] [-f]"
-#define reboot_full_usage "\n\n" \
-       "Reboot the system\n" \
-     "\nOptions:" \
-     "\n	-d SEC	Delay interval" \
-     "\n	-n	Do not sync" \
-     "\n	-f	Force (don't go through init)" \
-
 #define hdparm_trivial_usage \
        "[OPTIONS] [DEVICE]"
 #define hdparm_full_usage "\n\n" \
@@ -1862,138 +1832,6 @@ INSERT
      "\n	-q N    Socket listen queue (default: 128)" \
      "\n	-R N	Pause services after N connects/min" \
      "\n		(default: 0 - disabled)" \
-
-#define init_trivial_usage \
-       ""
-#define init_full_usage "\n\n" \
-       "Init is the parent of all processes"
-
-#define init_notes_usage \
-"This version of init is designed to be run only by the kernel.\n" \
-"\n" \
-"BusyBox init doesn't support multiple runlevels. The runlevels field of\n" \
-"the /etc/inittab file is completely ignored by BusyBox init. If you want\n" \
-"runlevels, use sysvinit.\n" \
-"\n" \
-"BusyBox init works just fine without an inittab. If no inittab is found,\n" \
-"it has the following default behavior:\n" \
-"\n" \
-"	::sysinit:/etc/init.d/rcS\n" \
-"	::askfirst:/bin/sh\n" \
-"	::ctrlaltdel:/sbin/reboot\n" \
-"	::shutdown:/sbin/swapoff -a\n" \
-"	::shutdown:/bin/umount -a -r\n" \
-"	::restart:/sbin/init\n" \
-"\n" \
-"if it detects that /dev/console is _not_ a serial console, it will also run:\n" \
-"\n" \
-"	tty2::askfirst:/bin/sh\n" \
-"	tty3::askfirst:/bin/sh\n" \
-"	tty4::askfirst:/bin/sh\n" \
-"\n" \
-"If you choose to use an /etc/inittab file, the inittab entry format is as follows:\n" \
-"\n" \
-"	<id>:<runlevels>:<action>:<process>\n" \
-"\n" \
-"	<id>:\n" \
-"\n" \
-"		WARNING: This field has a non-traditional meaning for BusyBox init!\n" \
-"		The id field is used by BusyBox init to specify the controlling tty for\n" \
-"		the specified process to run on. The contents of this field are\n" \
-"		appended to \"/dev/\" and used as-is. There is no need for this field to\n" \
-"		be unique, although if it isn't you may have strange results. If this\n" \
-"		field is left blank, the controlling tty is set to the console. Also\n" \
-"		note that if BusyBox detects that a serial console is in use, then only\n" \
-"		entries whose controlling tty is either the serial console or /dev/null\n" \
-"		will be run. BusyBox init does nothing with utmp. We don't need no\n" \
-"		stinkin' utmp.\n" \
-"\n" \
-"	<runlevels>:\n" \
-"\n" \
-"		The runlevels field is completely ignored.\n" \
-"\n" \
-"	<action>:\n" \
-"\n" \
-"		Valid actions include: sysinit, respawn, askfirst, wait,\n" \
-"		once, restart, ctrlaltdel, and shutdown.\n" \
-"\n" \
-"		The available actions can be classified into two groups: actions\n" \
-"		that are run only once, and actions that are re-run when the specified\n" \
-"		process exits.\n" \
-"\n" \
-"		Run only-once actions:\n" \
-"\n" \
-"			'sysinit' is the first item run on boot. init waits until all\n" \
-"			sysinit actions are completed before continuing. Following the\n" \
-"			completion of all sysinit actions, all 'wait' actions are run.\n" \
-"			'wait' actions, like 'sysinit' actions, cause init to wait until\n" \
-"			the specified task completes. 'once' actions are asynchronous,\n" \
-"			therefore, init does not wait for them to complete. 'restart' is\n" \
-"			the action taken to restart the init process. By default this should\n" \
-"			simply run /sbin/init, but can be a script which runs pivot_root or it\n" \
-"			can do all sorts of other interesting things. The 'ctrlaltdel' init\n" \
-"			actions are run when the system detects that someone on the system\n" \
-"			console has pressed the CTRL-ALT-DEL key combination. Typically one\n" \
-"			wants to run 'reboot' at this point to cause the system to reboot.\n" \
-"			Finally the 'shutdown' action specifies the actions to taken when\n" \
-"			init is told to reboot. Unmounting filesystems and disabling swap\n" \
-"			is a very good here.\n" \
-"\n" \
-"		Run repeatedly actions:\n" \
-"\n" \
-"			'respawn' actions are run after the 'once' actions. When a process\n" \
-"			started with a 'respawn' action exits, init automatically restarts\n" \
-"			it. Unlike sysvinit, BusyBox init does not stop processes from\n" \
-"			respawning out of control. The 'askfirst' actions acts just like\n" \
-"			respawn, except that before running the specified process it\n" \
-"			displays the line \"Please press Enter to activate this console.\"\n" \
-"			and then waits for the user to press enter before starting the\n" \
-"			specified process.\n" \
-"\n" \
-"		Unrecognized actions (like initdefault) will cause init to emit an\n" \
-"		error message, and then go along with its business. All actions are\n" \
-"		run in the order they appear in /etc/inittab.\n" \
-"\n" \
-"	<process>:\n" \
-"\n" \
-"		Specifies the process to be executed and its command line.\n" \
-"\n" \
-"Example /etc/inittab file:\n" \
-"\n" \
-"	# This is run first except when booting in single-user mode\n" \
-"	#\n" \
-"	::sysinit:/etc/init.d/rcS\n" \
-"	\n" \
-"	# /bin/sh invocations on selected ttys\n" \
-"	#\n" \
-"	# Start an \"askfirst\" shell on the console (whatever that may be)\n" \
-"	::askfirst:-/bin/sh\n" \
-"	# Start an \"askfirst\" shell on /dev/tty2-4\n" \
-"	tty2::askfirst:-/bin/sh\n" \
-"	tty3::askfirst:-/bin/sh\n" \
-"	tty4::askfirst:-/bin/sh\n" \
-"	\n" \
-"	# /sbin/getty invocations for selected ttys\n" \
-"	#\n" \
-"	tty4::respawn:/sbin/getty 38400 tty4\n" \
-"	tty5::respawn:/sbin/getty 38400 tty5\n" \
-"	\n" \
-"	\n" \
-"	# Example of how to put a getty on a serial line (for a terminal)\n" \
-"	#\n" \
-"	#::respawn:/sbin/getty -L ttyS0 9600 vt100\n" \
-"	#::respawn:/sbin/getty -L ttyS1 9600 vt100\n" \
-"	#\n" \
-"	# Example how to put a getty on a modem line\n" \
-"	#::respawn:/sbin/getty 57600 ttyS2\n" \
-"	\n" \
-"	# Stuff to do when restarting the init process\n" \
-"	::restart:/sbin/init\n" \
-"	\n" \
-"	# Stuff to do before rebooting\n" \
-"	::ctrlaltdel:/sbin/reboot\n" \
-"	::shutdown:/bin/umount -a -r\n" \
-"	::shutdown:/sbin/swapoff -a\n"
 
 #define inotifyd_trivial_usage \
 	"PROG FILE1[:MASK]..."
@@ -2650,13 +2488,6 @@ INSERT
        "entry is matched, devices are created with default 0:0 660. (Make\n" \
        "the last line match .* to override this.)\n\n" \
 	)
-
-#define mesg_trivial_usage \
-       "[y|n]"
-#define mesg_full_usage "\n\n" \
-       "Control write access to your terminal\n" \
-       "	y	Allow write access to your terminal\n" \
-       "	n	Disallow write access to your terminal"
 
 #define microcom_trivial_usage \
        "[-d DELAY] [-t TIMEOUT] [-s SPEED] [-X] TTY"

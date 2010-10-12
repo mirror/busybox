@@ -3,6 +3,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_BOOTCHARTD(APPLET(bootchartd, _BB_DIR_SBIN, _BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_BOOTCHARTD) += bootchartd.o
+
 //config:config BOOTCHARTD
 //config:	bool "bootchartd"
 //config:	default y

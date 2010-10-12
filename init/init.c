@@ -9,6 +9,237 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_INIT(APPLET(init, _BB_DIR_SBIN, _BB_SUID_DROP))
+//applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, _BB_DIR_ROOT, _BB_SUID_DROP, linuxrc))
+
+//kbuild:lib-$(CONFIG_INIT) += init.o
+
+//config:config INIT
+//config:	bool "init"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  init is the first program run when the system boots.
+//config:
+//config:config FEATURE_USE_INITTAB
+//config:	bool "Support reading an inittab file"
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  Allow init to read an inittab file when the system boot.
+//config:
+//config:config FEATURE_KILL_REMOVED
+//config:	bool "Support killing processes that have been removed from inittab"
+//config:	default n
+//config:	depends on FEATURE_USE_INITTAB
+//config:	help
+//config:	  When respawn entries are removed from inittab and a SIGHUP is
+//config:	  sent to init, this option will make init kill the processes
+//config:	  that have been removed.
+//config:
+//config:config FEATURE_KILL_DELAY
+//config:	int "How long to wait between TERM and KILL (0 - send TERM only)" if FEATURE_KILL_REMOVED
+//config:	range 0 1024
+//config:	default 0
+//config:	depends on FEATURE_KILL_REMOVED
+//config:	help
+//config:	  With nonzero setting, init sends TERM, forks, child waits N
+//config:	  seconds, sends KILL and exits. Setting it too high is unwise
+//config:	  (child will hang around for too long and could actually kill
+//config:	  the wrong process!)
+//config:
+//config:config FEATURE_INIT_SCTTY
+//config:	bool "Run commands with leading dash with controlling tty"
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  If this option is enabled, init will try to give a controlling
+//config:	  tty to any command which has leading hyphen (often it's "-/bin/sh").
+//config:	  More precisely, init will do "ioctl(STDIN_FILENO, TIOCSCTTY, 0)".
+//config:	  If device attached to STDIN_FILENO can be a ctty but is not yet
+//config:	  a ctty for other session, it will become this process' ctty.
+//config:	  This is not the traditional init behavour, but is often what you want
+//config:	  in an embedded system where the console is only accessed during
+//config:	  development or for maintenance.
+//config:	  NB: using cttyhack applet may work better.
+//config:
+//config:config FEATURE_INIT_SYSLOG
+//config:	bool "Enable init to write to syslog"
+//config:	default y
+//config:	depends on INIT
+//config:
+//config:config FEATURE_EXTRA_QUIET
+//config:	bool "Be _extra_ quiet on boot"
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  Prevent init from logging some messages to the console during boot.
+//config:
+//config:config FEATURE_INIT_COREDUMPS
+//config:	bool "Support dumping core for child processes (debugging only)"
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  If this option is enabled and the file /.init_enable_core
+//config:	  exists, then init will call setrlimit() to allow unlimited
+//config:	  core file sizes. If this option is disabled, processes
+//config:	  will not generate any core files.
+//config:
+//config:config FEATURE_INITRD
+//config:	bool "Support running init from within an initrd (not initramfs)"
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  Legacy support for running init under the old-style initrd. Allows
+//config:	  the name linuxrc to act as init, and it doesn't assume init is PID 1.
+//config:
+//config:	  This does not apply to initramfs, which runs /init as PID 1 and
+//config:	  requires no special support.
+//config:
+//config:config INIT_TERMINAL_TYPE
+//config:	string "Initial terminal type"
+//config:	default "linux"
+//config:	depends on INIT
+//config:	help
+//config:	  This is the initial value set by init for the TERM environment
+//config:	  variable. This variable is used by programs which make use of
+//config:	  extended terminal capabilities.
+//config:
+//config:	  Note that on Linux, init attempts to detect serial terminal and
+//config:	  sets TERM to "vt102" if one is found.
+
+//usage:#define init_trivial_usage
+//usage:       ""
+//usage:#define init_full_usage "\n\n"
+//usage:       "Init is the parent of all processes"
+//usage:
+//usage:#define init_notes_usage
+//usage:	"This version of init is designed to be run only by the kernel.\n"
+//usage:	"\n"
+//usage:	"BusyBox init doesn't support multiple runlevels. The runlevels field of\n"
+//usage:	"the /etc/inittab file is completely ignored by BusyBox init. If you want\n"
+//usage:	"runlevels, use sysvinit.\n"
+//usage:	"\n"
+//usage:	"BusyBox init works just fine without an inittab. If no inittab is found,\n"
+//usage:	"it has the following default behavior:\n"
+//usage:	"\n"
+//usage:	"	::sysinit:/etc/init.d/rcS\n"
+//usage:	"	::askfirst:/bin/sh\n"
+//usage:	"	::ctrlaltdel:/sbin/reboot\n"
+//usage:	"	::shutdown:/sbin/swapoff -a\n"
+//usage:	"	::shutdown:/bin/umount -a -r\n"
+//usage:	"	::restart:/sbin/init\n"
+//usage:	"\n"
+//usage:	"if it detects that /dev/console is _not_ a serial console, it will also run:\n"
+//usage:	"\n"
+//usage:	"	tty2::askfirst:/bin/sh\n"
+//usage:	"	tty3::askfirst:/bin/sh\n"
+//usage:	"	tty4::askfirst:/bin/sh\n"
+//usage:	"\n"
+//usage:	"If you choose to use an /etc/inittab file, the inittab entry format is as follows:\n"
+//usage:	"\n"
+//usage:	"	<id>:<runlevels>:<action>:<process>\n"
+//usage:	"\n"
+//usage:	"	<id>:\n"
+//usage:	"\n"
+//usage:	"		WARNING: This field has a non-traditional meaning for BusyBox init!\n"
+//usage:	"		The id field is used by BusyBox init to specify the controlling tty for\n"
+//usage:	"		the specified process to run on. The contents of this field are\n"
+//usage:	"		appended to \"/dev/\" and used as-is. There is no need for this field to\n"
+//usage:	"		be unique, although if it isn't you may have strange results. If this\n"
+//usage:	"		field is left blank, the controlling tty is set to the console. Also\n"
+//usage:	"		note that if BusyBox detects that a serial console is in use, then only\n"
+//usage:	"		entries whose controlling tty is either the serial console or /dev/null\n"
+//usage:	"		will be run. BusyBox init does nothing with utmp. We don't need no\n"
+//usage:	"		stinkin' utmp.\n"
+//usage:	"\n"
+//usage:	"	<runlevels>:\n"
+//usage:	"\n"
+//usage:	"		The runlevels field is completely ignored.\n"
+//usage:	"\n"
+//usage:	"	<action>:\n"
+//usage:	"\n"
+//usage:	"		Valid actions include: sysinit, respawn, askfirst, wait,\n"
+//usage:	"		once, restart, ctrlaltdel, and shutdown.\n"
+//usage:	"\n"
+//usage:	"		The available actions can be classified into two groups: actions\n"
+//usage:	"		that are run only once, and actions that are re-run when the specified\n"
+//usage:	"		process exits.\n"
+//usage:	"\n"
+//usage:	"		Run only-once actions:\n"
+//usage:	"\n"
+//usage:	"			'sysinit' is the first item run on boot. init waits until all\n"
+//usage:	"			sysinit actions are completed before continuing. Following the\n"
+//usage:	"			completion of all sysinit actions, all 'wait' actions are run.\n"
+//usage:	"			'wait' actions, like 'sysinit' actions, cause init to wait until\n"
+//usage:	"			the specified task completes. 'once' actions are asynchronous,\n"
+//usage:	"			therefore, init does not wait for them to complete. 'restart' is\n"
+//usage:	"			the action taken to restart the init process. By default this should\n"
+//usage:	"			simply run /sbin/init, but can be a script which runs pivot_root or it\n"
+//usage:	"			can do all sorts of other interesting things. The 'ctrlaltdel' init\n"
+//usage:	"			actions are run when the system detects that someone on the system\n"
+//usage:	"			console has pressed the CTRL-ALT-DEL key combination. Typically one\n"
+//usage:	"			wants to run 'reboot' at this point to cause the system to reboot.\n"
+//usage:	"			Finally the 'shutdown' action specifies the actions to taken when\n"
+//usage:	"			init is told to reboot. Unmounting filesystems and disabling swap\n"
+//usage:	"			is a very good here.\n"
+//usage:	"\n"
+//usage:	"		Run repeatedly actions:\n"
+//usage:	"\n"
+//usage:	"			'respawn' actions are run after the 'once' actions. When a process\n"
+//usage:	"			started with a 'respawn' action exits, init automatically restarts\n"
+//usage:	"			it. Unlike sysvinit, BusyBox init does not stop processes from\n"
+//usage:	"			respawning out of control. The 'askfirst' actions acts just like\n"
+//usage:	"			respawn, except that before running the specified process it\n"
+//usage:	"			displays the line \"Please press Enter to activate this console.\"\n"
+//usage:	"			and then waits for the user to press enter before starting the\n"
+//usage:	"			specified process.\n"
+//usage:	"\n"
+//usage:	"		Unrecognized actions (like initdefault) will cause init to emit an\n"
+//usage:	"		error message, and then go along with its business. All actions are\n"
+//usage:	"		run in the order they appear in /etc/inittab.\n"
+//usage:	"\n"
+//usage:	"	<process>:\n"
+//usage:	"\n"
+//usage:	"		Specifies the process to be executed and its command line.\n"
+//usage:	"\n"
+//usage:	"Example /etc/inittab file:\n"
+//usage:	"\n"
+//usage:	"	# This is run first except when booting in single-user mode\n"
+//usage:	"	#\n"
+//usage:	"	::sysinit:/etc/init.d/rcS\n"
+//usage:	"	\n"
+//usage:	"	# /bin/sh invocations on selected ttys\n"
+//usage:	"	#\n"
+//usage:	"	# Start an \"askfirst\" shell on the console (whatever that may be)\n"
+//usage:	"	::askfirst:-/bin/sh\n"
+//usage:	"	# Start an \"askfirst\" shell on /dev/tty2-4\n"
+//usage:	"	tty2::askfirst:-/bin/sh\n"
+//usage:	"	tty3::askfirst:-/bin/sh\n"
+//usage:	"	tty4::askfirst:-/bin/sh\n"
+//usage:	"	\n"
+//usage:	"	# /sbin/getty invocations for selected ttys\n"
+//usage:	"	#\n"
+//usage:	"	tty4::respawn:/sbin/getty 38400 tty4\n"
+//usage:	"	tty5::respawn:/sbin/getty 38400 tty5\n"
+//usage:	"	\n"
+//usage:	"	\n"
+//usage:	"	# Example of how to put a getty on a serial line (for a terminal)\n"
+//usage:	"	#\n"
+//usage:	"	#::respawn:/sbin/getty -L ttyS0 9600 vt100\n"
+//usage:	"	#::respawn:/sbin/getty -L ttyS1 9600 vt100\n"
+//usage:	"	#\n"
+//usage:	"	# Example how to put a getty on a modem line\n"
+//usage:	"	#::respawn:/sbin/getty 57600 ttyS2\n"
+//usage:	"	\n"
+//usage:	"	# Stuff to do when restarting the init process\n"
+//usage:	"	::restart:/sbin/init\n"
+//usage:	"	\n"
+//usage:	"	# Stuff to do before rebooting\n"
+//usage:	"	::ctrlaltdel:/sbin/reboot\n"
+//usage:	"	::shutdown:/bin/umount -a -r\n"
+//usage:	"	::shutdown:/sbin/swapoff -a\n"
+
 #include "libbb.h"
 #include <syslog.h>
 #include <paths.h>
