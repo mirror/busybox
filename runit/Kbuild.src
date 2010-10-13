@@ -8,10 +8,10 @@ lib-y:=
 
 INSERT
 
-lib-$(CONFIG_RUNSV) += runsv.o runit_lib.o
-lib-$(CONFIG_RUNSVDIR) += runsvdir.o runit_lib.o
-lib-$(CONFIG_SV) += sv.o runit_lib.o
-lib-$(CONFIG_SVLOGD) += svlogd.o runit_lib.o
+lib-$(CONFIG_RUNSV) += runsv.o
+lib-$(CONFIG_RUNSVDIR) += runsvdir.o
+lib-$(CONFIG_SV) += sv.o
+lib-$(CONFIG_SVLOGD) += svlogd.o
 lib-$(CONFIG_CHPST) += chpst.o
 
 lib-$(CONFIG_ENVDIR) += chpst.o

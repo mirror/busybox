@@ -524,7 +524,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 	}
 	svd[0].fdlock = xopen3("log/supervise/lock"+4,
 			O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
-	if (lock_exnb(svd[0].fdlock) == -1)
+	if (flock(svd[0].fdlock, LOCK_EX | LOCK_NB) == -1)
 		fatal_cannot("lock supervise/lock");
 	close_on_exec_on(svd[0].fdlock);
 	if (haslog) {
@@ -548,7 +548,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 		}
 		svd[1].fdlock = xopen3("log/supervise/lock",
 				O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
-		if (lock_ex(svd[1].fdlock) == -1)
+		if (flock(svd[1].fdlock, LOCK_EX) == -1)
 			fatal_cannot("lock log/supervise/lock");
 		close_on_exec_on(svd[1].fdlock);
 	}
@@ -618,7 +618,7 @@ int runsv_main(int argc UNUSED_PARAM, char **argv)
 				pidchanged = 1;
 				svd[0].ctrl &= ~C_TERM;
 				if (svd[0].state != S_FINISH) {
-					fd = open_read("finish");
+					fd = open("finish", O_RDONLY|O_NDELAY);
 					if (fd != -1) {
 						close(fd);
 						svd[0].state = S_FINISH;

@@ -176,6 +176,9 @@ struct globals {
 #define INIT_G() do { } while (0)
 
 
+#define str_equal(s,t) (!strcmp((s), (t)))
+
+
 static void fatal_cannot(const char *m1) NORETURN;
 static void fatal_cannot(const char *m1)
 {
@@ -221,7 +224,7 @@ static int svstatus_get(void)
 {
 	int fd, r;
 
-	fd = open_write("supervise/ok");
+	fd = open("supervise/ok", O_WRONLY|O_NDELAY);
 	if (fd == -1) {
 		if (errno == ENODEV) {
 			*acts == 'x' ? ok("runsv not running")
@@ -232,7 +235,7 @@ static int svstatus_get(void)
 		return -1;
 	}
 	close(fd);
-	fd = open_read("supervise/status");
+	fd = open("supervise/status", O_RDONLY|O_NDELAY);
 	if (fd == -1) {
 		warn("can't open supervise/status");
 		return -1;
@@ -397,7 +400,7 @@ static int control(const char *a)
 	if (svstatus.want == *a)
 		return 0;
 */
-	fd = open_write("supervise/control");
+	fd = open("supervise/control", O_WRONLY|O_NDELAY);
 	if (fd == -1) {
 		if (errno != ENODEV)
 			warn("can't open supervise/control");
@@ -446,7 +449,7 @@ int sv_main(int argc UNUSED_PARAM, char **argv)
 
 	tnow = time(NULL) + 0x400000000000000aULL;
 	tstart = tnow;
-	curdir = open_read(".");
+	curdir = open(".", O_RDONLY|O_NDELAY);
 	if (curdir == -1)
 		fatal_cannot("open current directory");
 
