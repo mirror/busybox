@@ -56,6 +56,10 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	const uint32_t *words = buffer;
 
 #if MD5_SIZE_VS_SPEED > 0
+	/* Before we start, one word to the strange constants.
+	   They are defined in RFC 1321 as
+	   T[i] = (int)(4294967296.0 * fabs(sin(i))), i=1..64
+	 */
 	static const uint32_t C_array[] = {
 		/* round 1 */
 		0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
@@ -93,15 +97,13 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		4, 11, 16, 23,
 		6, 10, 15, 21
 	};
-# endif	/* MD5_SIZE_VS_SPEED > 1 */
+# endif
 #endif
 	uint32_t A = ctx->A;
 	uint32_t B = ctx->B;
 	uint32_t C = ctx->C;
 	uint32_t D = ctx->D;
 
-	/* Process all bytes in the buffer with 64 bytes in each round of
-	   the loop.  */
 	uint32_t *cwp = correct_words;
 	uint32_t A_save = A;
 	uint32_t B_save = B;
@@ -149,7 +151,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		C = B;
 		B = temp;
 	}
-# else
+# else /* MD5_SIZE_VS_SPEED == 2 */
 	pc = C_array;
 	pp = P_array;
 	ps = S_array;
@@ -193,15 +195,17 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		C = B;
 		B = temp;
 	}
+# endif
 
-# endif /* MD5_SIZE_VS_SPEED > 2 */
-#else
+#else /* MD5_SIZE_VS_SPEED == 0 or 1 */
+
 	/* First round: using the given function, the context and a constant
-	   the next context is computed.  Because the algorithms processing
+	   the next context is computed.  Because the algorithm's processing
 	   unit is a 32-bit word and it is determined to work on words in
 	   little endian byte order we perhaps have to change the byte order
 	   before the computation.  To reduce the work for the next steps
 	   we store the swapped words in the array CORRECT_WORDS.  */
+# undef OP
 # define OP(a, b, c, d, s, T) \
 	do { \
 		a += FF(b, c, d) + (*cwp++ = SWAP_LE32(*words)) + T; \
@@ -210,16 +214,11 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		a += b; \
 	} while (0)
 
-	/* Before we start, one word to the strange constants.
-	   They are defined in RFC 1321 as
-	   T[i] = (int)(4294967296.0 * fabs(sin(i))), i=1..64
-	 */
-
 # if MD5_SIZE_VS_SPEED == 1
 	const uint32_t *pc;
 	const char *pp;
 	int i;
-# endif	/* MD5_SIZE_VS_SPEED */
+# endif
 
 	/* Round 1.  */
 # if MD5_SIZE_VS_SPEED == 1
@@ -247,7 +246,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(D, A, B, C, 12, 0xfd987193);
 	OP(C, D, A, B, 17, 0xa679438e);
 	OP(B, C, D, A, 22, 0x49b40821);
-# endif /* MD5_SIZE_VS_SPEED == 1 */
+# endif
 
 	/* For the second to fourth round we have the possibly swapped words
 	   in CORRECT_WORDS.  Redefine the macro to take an additional first
@@ -286,7 +285,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(FG, D, A, B, C, 2, 9, 0xfcefa3f8);
 	OP(FG, C, D, A, B, 7, 14, 0x676f02d9);
 	OP(FG, B, C, D, A, 12, 20, 0x8d2a4c8a);
-# endif /* MD5_SIZE_VS_SPEED == 1 */
+# endif
 
 	/* Round 3.  */
 # if MD5_SIZE_VS_SPEED == 1
@@ -313,7 +312,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(FH, D, A, B, C, 12, 11, 0xe6db99e5);
 	OP(FH, C, D, A, B, 15, 16, 0x1fa27cf8);
 	OP(FH, B, C, D, A, 2, 23, 0xc4ac5665);
-# endif /* MD5_SIZE_VS_SPEED == 1 */
+# endif
 
 	/* Round 4.  */
 # if MD5_SIZE_VS_SPEED == 1
@@ -340,8 +339,8 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	OP(FI, D, A, B, C, 11, 10, 0xbd3af235);
 	OP(FI, C, D, A, B, 2, 15, 0x2ad7d2bb);
 	OP(FI, B, C, D, A, 9, 21, 0xeb86d391);
-# endif	/* MD5_SIZE_VS_SPEED == 1 */
-#endif	/* MD5_SIZE_VS_SPEED > 1 */
+# endif
+#endif
 
 	/* Add the starting values of the context.  */
 	A += A_save;
@@ -395,6 +394,7 @@ void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
  */
 void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 {
+	uint64_t total;
 	char *buf = ctx->buffer;
 	int i;
 
@@ -402,12 +402,16 @@ void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 	buf[ctx->buflen++] = 0x80;
 	memset(buf + ctx->buflen, 0, 128 - ctx->buflen);
 
-	/* Put the 64-bit file length in *bits* at the end of the buffer.  */
-	ctx->total <<= 3;
+	/* Put the 64-bit file length, expressed in *bits*,
+	 * at the end of the buffer.
+	 */
+	total = ctx->total << 3;
 	if (ctx->buflen > 56)
 		buf += 64;
-	for (i = 0; i < 8; i++)
-		buf[56 + i] = ctx->total >> (i*8);
+	for (i = 0; i < 8; i++) {
+		buf[56 + i] = total;
+		total >>= 8;
+	}
 
 	/* Process last bytes.  */
 	if (buf != ctx->buffer)
