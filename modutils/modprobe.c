@@ -8,17 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-/* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
- * we expect the full dependency list to be specified in modules.dep.
- * Older versions would only export the direct dependency list.
- */
-#include "libbb.h"
-#include "modutils.h"
-#include <sys/utsname.h>
-#include <fnmatch.h>
-
-//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
-#define DBG(...) ((void)0)
+//applet:IF_MODPROBE(APPLET(modprobe, _BB_DIR_SBIN, _BB_SUID_DROP))
 
 //usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define modprobe_notes_usage
@@ -97,6 +87,19 @@
 //usage:     "\n	-b	Apply blacklist to module names too"
 //usage:	)
 //usage:#endif /* !ENABLE_MODPROBE_SMALL */
+
+#include "libbb.h"
+#include "modutils.h"
+#include <sys/utsname.h>
+#include <fnmatch.h>
+
+//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
+#define DBG(...) ((void)0)
+
+/* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
+ * we expect the full dependency list to be specified in modules.dep.
+ * Older versions would only export the direct dependency list.
+ */
 
 /* Note that usage text doesn't document various 2.4 options
  * we pull in through INSMOD_OPTS define */

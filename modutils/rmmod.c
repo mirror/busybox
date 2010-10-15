@@ -8,6 +8,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_RMMOD(APPLET(rmmod, _BB_DIR_SBIN, _BB_SUID_DROP))
+
 #include "libbb.h"
 #include "modutils.h"
 
