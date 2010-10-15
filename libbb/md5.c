@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
- * md5.c - Compute MD5 checksum of strings according to the
- *         definition of MD5 in RFC 1321 from April 1992.
+ * Compute MD5 checksum of strings according to the
+ * definition of MD5 in RFC 1321 from April 1992.
  *
  * Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.
  *
@@ -34,7 +34,6 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 	ctx->C = 0x98badcfe;
 	ctx->D = 0x10325476;
 	ctx->total = 0;
-	ctx->buflen = 0;
 }
 
 /* These are the four functions used in the four steps of the MD5 algorithm
@@ -355,35 +354,39 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 	ctx->D = D;
 }
 
+/* The size of filled part of ctx->buffer: */
+#define BUFLEN(ctx) (((unsigned)ctx->total) & 63)
+
 /* Feed data through a temporary buffer to call md5_hash_aligned_block()
  * with chunks of data that are 4-byte aligned and a multiple of 64 bytes.
  * This function's internal buffer remembers previous data until it has 64
  * bytes worth to pass on.  Call md5_end() to flush this buffer. */
 void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 {
-	char *buf = (char *)buffer;
+	const char *buf = buffer;
+	unsigned buflen = BUFLEN(ctx);
 
-	/* RFC 1321 specifies the possible length of the file up to 2^64 bits,
+	/* RFC 1321 specifies the possible length of the file up to 2^64 bits.
 	 * Here we only track the number of bytes.  */
 	ctx->total += len;
 
 	/* Process all input. */
-	while (len) {
-		unsigned i = 64 - ctx->buflen;
-
-		/* Copy data into aligned buffer. */
+	while (1) {
+		unsigned i = 64 - buflen;
 		if (i > len)
 			i = len;
-		memcpy(ctx->buffer + ctx->buflen, buf, i);
+		/* Copy data into aligned buffer. */
+		memcpy(ctx->buffer + buflen, buf, i);
 		len -= i;
-		ctx->buflen += i;
 		buf += i;
-
-		/* When buffer fills up, process it. */
-		if (ctx->buflen == 64) {
-			md5_hash_block(ctx->buffer, ctx);
-			ctx->buflen = 0;
-		}
+		buflen += i;
+		/* clever way to do "if (buflen != 64) break; ... ; buflen = 0;" */
+		buflen -= 64;
+		if (buflen != 0)
+			break;
+		/* Buffer is filled up, process it. */
+		md5_hash_block(ctx->buffer, ctx);
+		/*buflen = 0; - already is */
 	}
 }
 
@@ -396,18 +399,19 @@ void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 {
 	uint64_t total;
 	char *buf = ctx->buffer;
-	int i;
+	unsigned i;
+	unsigned buflen = BUFLEN(ctx);
 
 	/* Pad data to block size.  */
-	buf[ctx->buflen++] = 0x80;
-	memset(buf + ctx->buflen, 0, 128 - ctx->buflen);
+	buf[buflen++] = 0x80;
+	memset(buf + buflen, 0, 128 - buflen);
 
 	/* Put the 64-bit file length, expressed in *bits*,
 	 * at the end of the buffer.
 	 */
+	/* clever way to do "if (buflen > 56) buf += 64": */
+	buf += ((buflen + 7) & 64);
 	total = ctx->total << 3;
-	if (ctx->buflen > 56)
-		buf += 64;
 	for (i = 0; i < 8; i++) {
 		buf[56 + i] = total;
 		total >>= 8;

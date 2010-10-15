@@ -1540,7 +1540,6 @@ typedef struct md5_ctx_t {
 	uint32_t C;
 	uint32_t D;
 	uint64_t total;
-	uint32_t buflen;
 	char buffer[128];
 } md5_ctx_t;
 #else
