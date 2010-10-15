@@ -702,46 +702,6 @@ INSERT
        "$ echo \"Hello world\" | cut -f 2 -d ' '\n" \
        "world\n"
 
-#define date_trivial_usage \
-       "[OPTIONS] [+FMT] [TIME]"
-#define date_full_usage "\n\n" \
-       "Display time (using +FMT), or set time\n" \
-     "\nOptions:" \
-	IF_NOT_LONG_OPTS( \
-     "\n	[-s] TIME	Set time to TIME" \
-     "\n	-u		Work in UTC (don't convert to local time)" \
-     "\n	-R		Output RFC-2822 compliant date string" \
-	) IF_LONG_OPTS( \
-     "\n	[-s,--set] TIME	Set time to TIME" \
-     "\n	-u,--utc	Work in UTC (don't convert to local time)" \
-     "\n	-R,--rfc-2822	Output RFC-2822 compliant date string" \
-	) \
-	IF_FEATURE_DATE_ISOFMT( \
-     "\n	-I[SPEC]	Output ISO-8601 compliant date string" \
-     "\n			SPEC='date' (default) for date only," \
-     "\n			'hours', 'minutes', or 'seconds' for date and" \
-     "\n			time to the indicated precision" \
-	) IF_NOT_LONG_OPTS( \
-     "\n	-r FILE		Display last modification time of FILE" \
-     "\n	-d TIME		Display TIME, not 'now'" \
-	) IF_LONG_OPTS( \
-     "\n	-r,--reference FILE	Display last modification time of FILE" \
-     "\n	-d,--date TIME	Display TIME, not 'now'" \
-	) \
-	IF_FEATURE_DATE_ISOFMT( \
-     "\n	-D FMT		Use FMT for -d TIME conversion" \
-	) \
-     "\n" \
-     "\nRecognized TIME formats:" \
-     "\n	hh:mm[:ss]" \
-     "\n	[YYYY.]MM.DD-hh:mm[:ss]" \
-     "\n	YYYY-MM-DD hh:mm[:ss]" \
-     "\n	[[[[[YY]YY]MM]DD]hh]mm[.ss]" \
-
-#define date_example_usage \
-       "$ date\n" \
-       "Wed Apr 12 18:52:41 MDT 2000\n"
-
 #define dd_trivial_usage \
        "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
        "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
