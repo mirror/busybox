@@ -10,6 +10,11 @@
 
 //applet:IF_DEPMOD(APPLET(depmod, _BB_DIR_SBIN, _BB_SUID_DROP))
 
+//usage:#if !ENABLE_MODPROBE_SMALL
+//usage:#define depmod_trivial_usage NOUSAGE_STR
+//usage:#define depmod_full_usage ""
+//usage:#endif
+
 #include "libbb.h"
 #include "modutils.h"
 #include <sys/utsname.h> /* uname() */

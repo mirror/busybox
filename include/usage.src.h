@@ -751,9 +751,6 @@ INSERT
 #define deluser_full_usage "\n\n" \
        "Delete USER from the system"
 
-#define depmod_trivial_usage NOUSAGE_STR
-#define depmod_full_usage ""
-
 #define devmem_trivial_usage \
 	"ADDRESS [WIDTH [VALUE]]"
 
@@ -2251,11 +2248,6 @@ INSERT
      "\n	-l	List long flag names" \
      "\n	-v	List the file's version/generation number" \
 
-#define lsmod_trivial_usage \
-       ""
-#define lsmod_full_usage "\n\n" \
-       "List the currently loaded kernel modules"
-
 #define lspci_trivial_usage \
        "[-mk]"
 #define lspci_full_usage "\n\n" \
@@ -3255,18 +3247,6 @@ INSERT
 
 #define rmdir_example_usage \
        "# rmdir /tmp/foo\n"
-
-#define rmmod_trivial_usage \
-       "[-wfa] [MODULE]..."
-#define rmmod_full_usage "\n\n" \
-       "Unload kernel modules\n" \
-     "\nOptions:" \
-     "\n	-w	Wait until the module is no longer used" \
-     "\n	-f	Force unload" \
-     "\n	-a	Remove all unused modules (recursively)" \
-
-#define rmmod_example_usage \
-       "$ rmmod tulip\n"
 
 #define route_trivial_usage \
        "[{add|del|delete}]"

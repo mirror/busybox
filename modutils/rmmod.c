@@ -10,6 +10,19 @@
 
 //applet:IF_RMMOD(APPLET(rmmod, _BB_DIR_SBIN, _BB_SUID_DROP))
 
+//usage:#if !ENABLE_MODPROBE_SMALL
+//usage:#define rmmod_trivial_usage
+//usage:       "[-wfa] [MODULE]..."
+//usage:#define rmmod_full_usage "\n\n"
+//usage:       "Unload kernel modules\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-w	Wait until the module is no longer used"
+//usage:     "\n	-f	Force unload"
+//usage:     "\n	-a	Remove all unused modules (recursively)"
+//usage:#define rmmod_example_usage
+//usage:       "$ rmmod tulip\n"
+//usage:#endif
+
 #include "libbb.h"
 #include "modutils.h"
 

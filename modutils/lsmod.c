@@ -10,6 +10,13 @@
 
 //applet:IF_LSMOD(APPLET(lsmod, _BB_DIR_SBIN, _BB_SUID_DROP))
 
+//usage:#if !ENABLE_MODPROBE_SMALL
+//usage:#define lsmod_trivial_usage
+//usage:       ""
+//usage:#define lsmod_full_usage "\n\n"
+//usage:       "List the currently loaded kernel modules"
+//usage:#endif
+
 #include "libbb.h"
 #include "unicode.h"
 

@@ -15,6 +15,7 @@
 /* 2.6 style insmod has no options and required filename
  * (not module name - .ko can't be omitted) */
 
+//usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define insmod_trivial_usage
 //usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ")
 //usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
@@ -33,6 +34,7 @@
 //usage:	)
 //usage:     "\n	-x	Don't export externs"
 //usage:	)
+//usage:#endif
 
 int insmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int insmod_main(int argc UNUSED_PARAM, char **argv)

@@ -694,6 +694,46 @@ The following options are useful for people managing distributions:
 */
 
 //usage:#if ENABLE_MODPROBE_SMALL
+
+//usage:#define depmod_trivial_usage NOUSAGE_STR
+//usage:#define depmod_full_usage ""
+
+//usage:#define lsmod_trivial_usage
+//usage:       ""
+//usage:#define lsmod_full_usage "\n\n"
+//usage:       "List the currently loaded kernel modules"
+
+//usage:#define insmod_trivial_usage
+//usage:	IF_FEATURE_2_4_MODULES("[OPTIONS] MODULE ")
+//usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
+//usage:	"[SYMBOL=VALUE]..."
+//usage:#define insmod_full_usage "\n\n"
+//usage:       "Load the specified kernel modules into the kernel"
+//usage:	IF_FEATURE_2_4_MODULES( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-f	Force module to load into the wrong kernel version"
+//usage:     "\n	-k	Make module autoclean-able"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-L	Lock: prevent simultaneous loads"
+//usage:	IF_FEATURE_INSMOD_LOAD_MAP(
+//usage:     "\n	-m	Output load map to stdout"
+//usage:	)
+//usage:     "\n	-x	Don't export externs"
+//usage:	)
+
+//usage:#define rmmod_trivial_usage
+//usage:       "[-wfa] [MODULE]..."
+//usage:#define rmmod_full_usage "\n\n"
+//usage:       "Unload kernel modules\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-w	Wait until the module is no longer used"
+//usage:     "\n	-f	Force unload"
+//usage:     "\n	-a	Remove all unused modules (recursively)"
+//usage:
+//usage:#define rmmod_example_usage
+//usage:       "$ rmmod tulip\n"
+
 //usage:#define modprobe_trivial_usage
 //usage:	"[-qfwrsv] MODULE [symbol=value]..."
 //usage:#define modprobe_full_usage "\n\n"
@@ -704,7 +744,8 @@ The following options are useful for people managing distributions:
 //usage:     "\n	-f	Force"
 //usage:     "\n	-w	Wait for unload"
 //usage:     "\n	-s	Report via syslog instead of stderr"
-//usage:#endif /* ENABLE_MODPROBE_SMALL */
+
+//usage:#endif
 
 int modprobe_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int modprobe_main(int argc UNUSED_PARAM, char **argv)
