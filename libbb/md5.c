@@ -49,11 +49,8 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 #define rotl32(w, s) (((w) << (s)) | ((w) >> (32 - (s))))
 
 /* Hash a single block, 64 bytes long and 4-byte aligned. */
-static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
+static void md5_hash_block(md5_ctx_t *ctx)
 {
-	uint32_t correct_words[16];
-	const uint32_t *words = buffer;
-
 #if MD5_SIZE_VS_SPEED > 0
 	/* Before we start, one word to the strange constants.
 	   They are defined in RFC 1321 as
@@ -98,12 +95,13 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	};
 # endif
 #endif
+	const uint32_t *words = (const void*) ctx->buffer;
+
 	uint32_t A = ctx->A;
 	uint32_t B = ctx->B;
 	uint32_t C = ctx->C;
 	uint32_t D = ctx->D;
 
-	uint32_t *cwp = correct_words;
 	uint32_t A_save = A;
 	uint32_t B_save = B;
 	uint32_t C_save = C;
@@ -116,9 +114,10 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	int i;
 	uint32_t temp;
 
+# if BB_BIG_ENDIAN
 	for (i = 0; i < 16; i++)
-		cwp[i] = SWAP_LE32(words[i]);
-	words += 16;
+		words[i] = SWAP_LE32(words[i]);
+# endif
 
 # if MD5_SIZE_VS_SPEED > 2
 	pc = C_array;
@@ -142,7 +141,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 		case 3:
 			temp += FI(B, C, D);
 		}
-		temp += cwp[(int) (*pp++)] + *pc++;
+		temp += words[(int) (*pp++)] + *pc++;
 		temp = rotl32(temp, ps[i & 3]);
 		temp += B;
 		A = D;
@@ -156,7 +155,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	ps = S_array;
 
 	for (i = 0; i < 16; i++) {
-		temp = A + FF(B, C, D) + cwp[(int) (*pp++)] + *pc++;
+		temp = A + FF(B, C, D) + words[(int) (*pp++)] + *pc++;
 		temp = rotl32(temp, ps[i & 3]);
 		temp += B;
 		A = D;
@@ -166,7 +165,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	}
 	ps += 4;
 	for (i = 0; i < 16; i++) {
-		temp = A + FG(B, C, D) + cwp[(int) (*pp++)] + *pc++;
+		temp = A + FG(B, C, D) + words[(int) (*pp++)] + *pc++;
 		temp = rotl32(temp, ps[i & 3]);
 		temp += B;
 		A = D;
@@ -176,7 +175,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	}
 	ps += 4;
 	for (i = 0; i < 16; i++) {
-		temp = A + FH(B, C, D) + cwp[(int) (*pp++)] + *pc++;
+		temp = A + FH(B, C, D) + words[(int) (*pp++)] + *pc++;
 		temp = rotl32(temp, ps[i & 3]);
 		temp += B;
 		A = D;
@@ -186,7 +185,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	}
 	ps += 4;
 	for (i = 0; i < 16; i++) {
-		temp = A + FI(B, C, D) + cwp[(int) (*pp++)] + *pc++;
+		temp = A + FI(B, C, D) + words[(int) (*pp++)] + *pc++;
 		temp = rotl32(temp, ps[i & 3]);
 		temp += B;
 		A = D;
@@ -203,12 +202,12 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 	   unit is a 32-bit word and it is determined to work on words in
 	   little endian byte order we perhaps have to change the byte order
 	   before the computation.  To reduce the work for the next steps
-	   we store the swapped words in the array CORRECT_WORDS.  */
+	   we save swapped words in WORDS array.  */
 # undef OP
 # define OP(a, b, c, d, s, T) \
 	do { \
-		a += FF(b, c, d) + (*cwp++ = SWAP_LE32(*words)) + T; \
-		++words; \
+		a += FF(b, c, d) + (*words IF_BIG_ENDIAN(= SWAP_LE32(*words))) + T; \
+		words++; \
 		a = rotl32(a, s); \
 		a += b; \
 	} while (0)
@@ -248,7 +247,7 @@ static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 # endif
 
 	/* For the second to fourth round we have the possibly swapped words
-	   in CORRECT_WORDS.  Redefine the macro to take an additional first
+	   in WORDS.  Redefine the macro to take an additional first
 	   argument specifying the function to use.  */
 # undef OP
 # define OP(f, a, b, c, d, k, s, T) \
@@ -385,7 +384,7 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 		if (buflen != 0)
 			break;
 		/* Buffer is filled up, process it. */
-		md5_hash_block(ctx, ctx->buffer);
+		md5_hash_block(ctx);
 		/*buflen = 0; - already is */
 	}
 }
@@ -398,29 +397,29 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
 	uint64_t total;
-	char *buf = ctx->buffer;
 	unsigned i;
 	unsigned buflen = BUFLEN(ctx);
 
 	/* Pad data to block size.  */
-	buf[buflen++] = 0x80;
-	memset(buf + buflen, 0, 128 - buflen);
+	ctx->buffer[buflen++] = 0x80;
+	memset(ctx->buffer + buflen, 0, 64 - buflen);
+
+	if (buflen > 56) {
+		md5_hash_block(ctx);
+		memset(ctx->buffer, 0, 64);
+	}
 
 	/* Put the 64-bit file length, expressed in *bits*,
 	 * at the end of the buffer.
 	 */
-	/* clever way to do "if (buflen > 56) buf += 64": */
-	buf += ((buflen + 7) & 64);
 	total = ctx->total << 3;
 	for (i = 0; i < 8; i++) {
-		buf[56 + i] = total;
+		ctx->buffer[56 + i] = total;
 		total >>= 8;
 	}
 
 	/* Process last bytes.  */
-	if (buf != ctx->buffer)
-		md5_hash_block(ctx, ctx->buffer);
-	md5_hash_block(ctx, buf);
+	md5_hash_block(ctx);
 
 	/* The MD5 result is in little endian byte order.
 	 * We (ab)use the fact that A-D are consecutive in memory.

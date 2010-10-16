@@ -197,6 +197,8 @@
 # define SWAP_LE16(x) bswap_16(x)
 # define SWAP_LE32(x) bswap_32(x)
 # define SWAP_LE64(x) bswap_64(x)
+# define IF_BIG_ENDIAN(...) __VA_ARGS__
+# define IF_LITTLE_ENDIAN(...)
 #else
 # define SWAP_BE16(x) bswap_16(x)
 # define SWAP_BE32(x) bswap_32(x)
@@ -204,6 +206,8 @@
 # define SWAP_LE16(x) (x)
 # define SWAP_LE32(x) (x)
 # define SWAP_LE64(x) (x)
+# define IF_BIG_ENDIAN(...)
+# define IF_LITTLE_ENDIAN(...) __VA_ARGS__
 #endif
 
 /* ---- Unaligned access ------------------------------------ */
