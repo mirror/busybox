@@ -1524,8 +1524,8 @@ static char FAST_FUNC filter_rename_config(archive_handle_t *archive_handle)
 		buf = xmalloc(4096);
 		md5_begin(&md5);
 		while ((count = safe_read(fd, buf, 4096)) > 0)
-			md5_hash(buf, count, &md5);
-		md5_end(buf, &md5); /* using buf as result storage */
+			md5_hash(&md5, buf, count);
+		md5_end(&md5, buf); /* using buf as result storage */
 		close(fd);
 
 		md5line = xmalloc(16 * 2 + 2 + strlen(name_ptr) + 1);

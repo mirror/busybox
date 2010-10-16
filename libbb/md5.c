@@ -49,7 +49,7 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 #define rotl32(w, s) (((w) << (s)) | ((w) >> (32 - (s))))
 
 /* Hash a single block, 64 bytes long and 4-byte aligned. */
-static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
+static void md5_hash_block(md5_ctx_t *ctx, const void *buffer)
 {
 	uint32_t correct_words[16];
 	const uint32_t *words = buffer;
@@ -361,7 +361,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
  * with chunks of data that are 4-byte aligned and a multiple of 64 bytes.
  * This function's internal buffer remembers previous data until it has 64
  * bytes worth to pass on.  Call md5_end() to flush this buffer. */
-void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
+void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 {
 	const char *buf = buffer;
 	unsigned buflen = BUFLEN(ctx);
@@ -385,7 +385,7 @@ void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 		if (buflen != 0)
 			break;
 		/* Buffer is filled up, process it. */
-		md5_hash_block(ctx->buffer, ctx);
+		md5_hash_block(ctx, ctx->buffer);
 		/*buflen = 0; - already is */
 	}
 }
@@ -395,7 +395,7 @@ void FAST_FUNC md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
  * endian byte order, so that a byte-wise output yields to the wanted
  * ASCII representation of the message digest.
  */
-void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
+void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
 	uint64_t total;
 	char *buf = ctx->buffer;
@@ -419,8 +419,8 @@ void FAST_FUNC md5_end(void *resbuf, md5_ctx_t *ctx)
 
 	/* Process last bytes.  */
 	if (buf != ctx->buffer)
-		md5_hash_block(ctx->buffer, ctx);
-	md5_hash_block(buf, ctx);
+		md5_hash_block(ctx, ctx->buffer);
+	md5_hash_block(ctx, buf);
 
 	/* The MD5 result is in little endian byte order.
 	 * We (ab)use the fact that A-D are consecutive in memory.

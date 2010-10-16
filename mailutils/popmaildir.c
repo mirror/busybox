@@ -109,9 +109,9 @@ int popmaildir_main(int argc UNUSED_PARAM, char **argv)
 				s[1] = '\0';
 			// get md5 sum of "<stamp>password" string
 			md5_begin(&md5.ctx);
-			md5_hash(buf, strlen(buf), &md5.ctx);
-			md5_hash(G.pass, strlen(G.pass), &md5.ctx);
-			md5_end(res, &md5.ctx);
+			md5_hash(&md5.ctx, buf, strlen(buf));
+			md5_hash(&md5.ctx, G.pass, strlen(G.pass));
+			md5_end(&md5.ctx, res);
 			*bin2hex(md5.hex, (char*)res, 16) = '\0';
 			// APOP
 			s = xasprintf("%s %s", G.user, md5.hex);

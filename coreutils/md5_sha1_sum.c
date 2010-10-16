@@ -43,7 +43,7 @@ static uint8_t *hash_file(const char *filename /*, hash_algo_t hash_algo*/)
 	} context;
 	uint8_t *hash_value = NULL;
 	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
-	void FAST_FUNC (*update)(const void*, size_t, void*);
+	void FAST_FUNC (*update)(void*, const void*, size_t);
 	void FAST_FUNC (*final)(void*, void*);
 	hash_algo_t hash_algo = applet_name[3];
 
@@ -78,11 +78,11 @@ static uint8_t *hash_file(const char *filename /*, hash_algo_t hash_algo*/)
 	}
 
 	while (0 < (count = safe_read(src_fd, in_buf, 4096))) {
-		update(in_buf, count, &context);
+		update(&context, in_buf, count);
 	}
 
 	if (count == 0) {
-		final(in_buf, &context);
+		final(&context, in_buf);
 		hash_value = hash_bin_to_hex(in_buf, hash_len);
 	}
 

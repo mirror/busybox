@@ -1519,8 +1519,8 @@ typedef struct sha1_ctx_t {
 	void (*process_block)(struct sha1_ctx_t*) FAST_FUNC;
 } sha1_ctx_t;
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
-void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx) FAST_FUNC;
-void sha1_end(void *resbuf, sha1_ctx_t *ctx) FAST_FUNC;
+void sha1_hash(sha1_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
+void sha1_end(sha1_ctx_t *ctx, void *resbuf) FAST_FUNC;
 typedef struct sha1_ctx_t sha256_ctx_t;
 void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 #define sha256_hash sha1_hash
@@ -1531,8 +1531,8 @@ typedef struct sha512_ctx_t {
 	uint8_t wbuffer[128]; /* NB: always correctly aligned for uint64_t */
 } sha512_ctx_t;
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
-void sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx) FAST_FUNC;
-void sha512_end(void *resbuf, sha512_ctx_t *ctx) FAST_FUNC;
+void sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
+void sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
 #if 1
 typedef struct md5_ctx_t {
 	uint32_t A;
@@ -1551,8 +1551,8 @@ typedef struct md5_ctx_t {
 } md5_ctx_t;
 #endif
 void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
-void md5_hash(const void *data, size_t length, md5_ctx_t *ctx) FAST_FUNC;
-void md5_end(void *resbuf, md5_ctx_t *ctx) FAST_FUNC;
+void md5_hash(md5_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
+void md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
 
 
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;

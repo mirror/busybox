@@ -361,7 +361,7 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 
 
 /* Used also for sha256 */
-void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
+void FAST_FUNC sha1_hash(sha1_ctx_t *ctx, const void *buffer, size_t len)
 {
 	unsigned in_buf = ctx->total64 & 63;
 	unsigned add = 64 - in_buf;
@@ -380,7 +380,7 @@ void FAST_FUNC sha1_hash(const void *buffer, size_t len, sha1_ctx_t *ctx)
 	memcpy(ctx->wbuffer + in_buf, buffer, len);
 }
 
-void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
+void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 {
 	unsigned in_buf = ctx->total64[0] & 127;
 	unsigned add = 128 - in_buf;
@@ -406,7 +406,7 @@ void FAST_FUNC sha512_hash(const void *buffer, size_t len, sha512_ctx_t *ctx)
 
 
 /* Used also for sha256 */
-void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
+void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 {
 	unsigned pad, in_buf;
 
@@ -442,7 +442,7 @@ void FAST_FUNC sha1_end(void *resbuf, sha1_ctx_t *ctx)
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * in_buf);
 }
 
-void FAST_FUNC sha512_end(void *resbuf, sha512_ctx_t *ctx)
+void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 {
 	unsigned pad, in_buf;
 
