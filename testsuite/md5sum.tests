@@ -18,24 +18,16 @@ fi
 sum="$1"
 expected="$2"
 
-mkdir testdir 2>/dev/null
+text="The quick brown fox jumps over the lazy dog"
+text=`yes "$text" | head -c 9999`
 
 result=`(
-cd testdir || { echo "cannot cd testdir!" >&2; exit 1; }
-
-text="The quick brown fox jumps over the lazy dog"
-
 n=0
 while test $n -le 999; do
-	yes "$text" | head -c $n | "$sum"
+	echo "$text" | head -c $n | "$sum"
 	: $((n++))
 done | "$sum"
-
 )`
-
-rm -rf testdir
-
-FAILCOUNT=0
 
 if test x"$result" = x"$expected  -"; then
     echo "PASS: $sum"

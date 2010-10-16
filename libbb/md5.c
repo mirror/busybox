@@ -354,8 +354,8 @@ static void md5_hash_block(md5_ctx_t *ctx)
 	ctx->D = D;
 }
 
-/* The size of filled part of ctx->buffer: */
-#define BUFLEN(ctx) (((unsigned)ctx->total) & 63)
+/* The first unused position in ctx->buffer: */
+#define BUFPOS(ctx) (((unsigned)ctx->total) & 63)
 
 /* Feed data through a temporary buffer to call md5_hash_aligned_block()
  * with chunks of data that are 4-byte aligned and a multiple of 64 bytes.
@@ -363,31 +363,52 @@ static void md5_hash_block(md5_ctx_t *ctx)
  * bytes worth to pass on.  Call md5_end() to flush this buffer. */
 void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 {
-	const char *buf = buffer;
-	unsigned buflen = BUFLEN(ctx);
+#if 1
+	/* Tiny bit smaller code */
+	unsigned bufpos = BUFPOS(ctx);
 
 	/* RFC 1321 specifies the possible length of the file up to 2^64 bits.
 	 * Here we only track the number of bytes.  */
 	ctx->total += len;
 
-	/* Process all input. */
 	while (1) {
-		unsigned i = 64 - buflen;
-		if (i > len)
-			i = len;
+		unsigned remaining = 64 - bufpos;
+		if (remaining > len)
+			remaining = len;
 		/* Copy data into aligned buffer. */
-		memcpy(ctx->buffer + buflen, buf, i);
-		len -= i;
-		buf += i;
-		buflen += i;
-		/* clever way to do "if (buflen != 64) break; ... ; buflen = 0;" */
-		buflen -= 64;
-		if (buflen != 0)
+		memcpy(ctx->buffer + bufpos, buffer, remaining);
+		len -= remaining;
+		buffer = (const char *)buffer + remaining;
+		bufpos += remaining;
+		/* clever way to do "if (bufpos != 64) break; ... ; bufpos = 0;" */
+		bufpos -= 64;
+		if (bufpos != 0)
 			break;
 		/* Buffer is filled up, process it. */
 		md5_hash_block(ctx);
-		/*buflen = 0; - already is */
+		/*bufpos = 0; - already is */
 	}
+#else
+	unsigned bufpos = BUFPOS(ctx);
+	unsigned add = 64 - bufpos;
+
+	/* RFC 1321 specifies the possible length of the file up to 2^64 bits.
+	 * Here we only track the number of bytes.  */
+	ctx->total += len;
+
+	/* Hash whole blocks */
+	while (len >= add) {
+		memcpy(ctx->buffer + bufpos, buffer, add);
+		buffer = (const char *)buffer + add;
+		len -= add;
+		add = 64;
+		bufpos = 0;
+		md5_hash_block(ctx);
+	}
+
+	/* Save last, partial blosk */
+	memcpy(ctx->buffer + bufpos, buffer, len);
+#endif
 }
 
 /* Process the remaining bytes in the buffer and put result from CTX
@@ -399,13 +420,13 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
 	uint64_t total;
 	unsigned i;
-	unsigned buflen = BUFLEN(ctx);
+	unsigned bufpos = BUFPOS(ctx);
 
 	/* Pad data to block size.  */
-	ctx->buffer[buflen++] = 0x80;
-	memset(ctx->buffer + buflen, 0, 64 - buflen);
+	ctx->buffer[bufpos++] = 0x80;
+	memset(ctx->buffer + bufpos, 0, 64 - bufpos);
 
-	if (buflen > 56) {
+	if (bufpos > 56) {
 		md5_hash_block(ctx);
 		memset(ctx->buffer, 0, 64);
 	}
