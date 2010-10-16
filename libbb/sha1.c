@@ -38,18 +38,18 @@
 //#define rotl32(x,n) (((x) << (n)) | ((x) >> (32 - (n))))
 static ALWAYS_INLINE uint32_t rotl32(uint32_t x, unsigned n)
 {
-        return (x << n) | (x >> (32 - n));
+	return (x << n) | (x >> (32 - n));
 }
 //#define rotr32(x,n) (((x) >> (n)) | ((x) << (32 - (n))))
 static ALWAYS_INLINE uint32_t rotr32(uint32_t x, unsigned n)
 {
-        return (x >> n) | (x << (32 - n));
+	return (x >> n) | (x << (32 - n));
 }
 /* rotr64 in needed for sha512 only: */
 //#define rotr64(x,n) (((x) >> (n)) | ((x) << (64 - (n))))
 static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
 {
-        return (x >> n) | (x << (64 - n));
+	return (x >> n) | (x << (64 - n));
 }
 #if BB_LITTLE_ENDIAN
 /* ALWAYS_INLINE below would hurt code size, using plain inline: */
