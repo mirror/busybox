@@ -245,6 +245,7 @@ static void md5_hash_block(md5_ctx_t *ctx)
 	OP(C, D, A, B, 17, 0xa679438e);
 	OP(B, C, D, A, 22, 0x49b40821);
 # endif
+	words -= 16;
 
 	/* For the second to fourth round we have the possibly swapped words
 	   in WORDS.  Redefine the macro to take an additional first
@@ -252,7 +253,7 @@ static void md5_hash_block(md5_ctx_t *ctx)
 # undef OP
 # define OP(f, a, b, c, d, k, s, T) \
 	do { \
-		a += f(b, c, d) + correct_words[k] + T; \
+		a += f(b, c, d) + words[k] + T; \
 		a = rotl32(a, s); \
 		a += b; \
 	} while (0)
