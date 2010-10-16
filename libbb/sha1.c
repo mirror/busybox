@@ -30,11 +30,29 @@
 
 #include "libbb.h"
 
-#define rotl32(x,n) (((x) << (n)) | ((x) >> (32 - (n))))
-#define rotr32(x,n) (((x) >> (n)) | ((x) << (32 - (n))))
-/* for sha512: */
-#define rotr64(x,n) (((x) >> (n)) | ((x) << (64 - (n))))
+/* gcc 4.2.1 optimizes rotr64 better with inline than with macro
+ * (for rotX32, there is no difference). Why? My guess is that
+ * macro requires clever common subexpression elimination heuristics
+ * in gcc, while inline basically forces it to happen.
+ */
+//#define rotl32(x,n) (((x) << (n)) | ((x) >> (32 - (n))))
+static ALWAYS_INLINE uint32_t rotl32(uint32_t x, unsigned n)
+{
+        return (x << n) | (x >> (32 - n));
+}
+//#define rotr32(x,n) (((x) >> (n)) | ((x) << (32 - (n))))
+static ALWAYS_INLINE uint32_t rotr32(uint32_t x, unsigned n)
+{
+        return (x >> n) | (x << (32 - n));
+}
+/* rotr64 in needed for sha512 only: */
+//#define rotr64(x,n) (((x) >> (n)) | ((x) << (64 - (n))))
+static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
+{
+        return (x >> n) | (x << (64 - n));
+}
 #if BB_LITTLE_ENDIAN
+/* ALWAYS_INLINE below would hurt code size, using plain inline: */
 static inline uint64_t hton64(uint64_t v)
 {
 	return (((uint64_t)htonl(v)) << 32) | htonl(v >> 32);
@@ -43,14 +61,6 @@ static inline uint64_t hton64(uint64_t v)
 #define hton64(v) (v)
 #endif
 #define ntoh64(v) hton64(v)
-
-/* To check alignment gcc has an appropriate operator.  Other
-   compilers don't.  */
-#if defined(__GNUC__) && __GNUC__ >= 2
-# define UNALIGNED_P(p,type) (((uintptr_t) p) % __alignof__(type) != 0)
-#else
-# define UNALIGNED_P(p,type) (((uintptr_t) p) % sizeof(type) != 0)
-#endif
 
 
 /* Some arch headers have conflicting defines */
@@ -65,11 +75,8 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	uint32_t W[80], a, b, c, d, e;
 	const uint32_t *words = (uint32_t*) ctx->wbuffer;
 
-	for (t = 0; t < 16; ++t) {
-		W[t] = ntohl(*words);
-		words++;
-	}
-
+	for (t = 0; t < 16; ++t)
+		W[t] = ntohl(words[t]);
 	for (/*t = 16*/; t < 80; ++t) {
 		uint32_t T = W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16];
 		W[t] = rotl32(T, 1);
@@ -190,11 +197,8 @@ static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 #define R1(x) (rotr32(x, 17) ^ rotr32(x, 19) ^ (x >> 10))
 
 	/* Compute the message schedule according to FIPS 180-2:6.2.2 step 2.  */
-	for (t = 0; t < 16; ++t) {
-		W[t] = ntohl(*words);
-		words++;
-	}
-
+	for (t = 0; t < 16; ++t)
+		W[t] = ntohl(words[t]);
 	for (/*t = 16*/; t < 64; ++t)
 		W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
 
@@ -269,10 +273,8 @@ static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 #define R1(x) (rotr64(x, 19) ^ rotr64(x, 61) ^ (x >> 6))
 
 	/* Compute the message schedule according to FIPS 180-2:6.3.2 step 2.  */
-	for (t = 0; t < 16; ++t) {
-		W[t] = ntoh64(*words);
-		words++;
-	}
+	for (t = 0; t < 16; ++t)
+		W[t] = ntoh64(words[t]);
 	for (/*t = 16*/; t < 80; ++t)
 		W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
 
@@ -363,18 +365,19 @@ void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 /* Used also for sha256 */
 void FAST_FUNC sha1_hash(sha1_ctx_t *ctx, const void *buffer, size_t len)
 {
-#if 0
 	unsigned bufpos = ctx->total64 & 63;
-	unsigned add = 64 - bufpos;
+	unsigned remaining;
 
 	ctx->total64 += len;
+#if 0
+	remaining = 64 - bufpos;
 
 	/* Hash whole blocks */
-	while (len >= add) {
-		memcpy(ctx->wbuffer + bufpos, buffer, add);
-		buffer = (const char *)buffer + add;
-		len -= add;
-		add = 64;
+	while (len >= remaining) {
+		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
+		buffer = (const char *)buffer + remaining;
+		len -= remaining;
+		remaining = 64;
 		bufpos = 0;
 		ctx->process_block(ctx);
 	}
@@ -383,12 +386,8 @@ void FAST_FUNC sha1_hash(sha1_ctx_t *ctx, const void *buffer, size_t len)
 	memcpy(ctx->wbuffer + bufpos, buffer, len);
 #else
 	/* Tiny bit smaller code */
-	unsigned bufpos = ctx->total64 & 63;
-
-	ctx->total64 += len;
-
 	while (1) {
-		unsigned remaining = 64 - bufpos;
+		remaining = 64 - bufpos;
 		if (remaining > len)
 			remaining = len;
 		/* Copy data into aligned buffer */
@@ -409,28 +408,8 @@ void FAST_FUNC sha1_hash(sha1_ctx_t *ctx, const void *buffer, size_t len)
 
 void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 {
-#if 0
 	unsigned bufpos = ctx->total64[0] & 127;
-	unsigned add = 128 - bufpos;
-
-	ctx->total64[0] += len;
-	if (ctx->total64[0] < len)
-		ctx->total64[1]++;
-
-	/* Hash whole blocks */
-	while (len >= add) {
-		memcpy(ctx->wbuffer + bufpos, buffer, add);
-		buffer = (const char *)buffer + add;
-		len -= add;
-		add = 128;
-		bufpos = 0;
-		sha512_process_block128(ctx);
-	}
-
-	/* Save last, partial blosk */
-	memcpy(ctx->wbuffer + bufpos, buffer, len);
-#else
-	unsigned bufpos = ctx->total64[0] & 127;
+	unsigned remaining;
 
 	/* First increment the byte count.  FIPS 180-2 specifies the possible
 	   length of the file up to 2^128 _bits_.
@@ -438,12 +417,27 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 	ctx->total64[0] += len;
 	if (ctx->total64[0] < len)
 		ctx->total64[1]++;
+#if 0
+	remaining = 128 - bufpos;
 
+	/* Hash whole blocks */
+	while (len >= remaining) {
+		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
+		buffer = (const char *)buffer + remaining;
+		len -= remaining;
+		remaining = 128;
+		bufpos = 0;
+		sha512_process_block128(ctx);
+	}
+
+	/* Save last, partial blosk */
+	memcpy(ctx->wbuffer + bufpos, buffer, len);
+#else
 	while (1) {
-		unsigned remaining = 128 - bufpos;
+		remaining = 128 - bufpos;
 		if (remaining > len)
 			remaining = len;
-		/* Copy data into aligned buffer. */
+		/* Copy data into aligned buffer */
 		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
 		len -= remaining;
 		buffer = (const char *)buffer + remaining;
@@ -452,7 +446,7 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 		bufpos -= 128;
 		if (bufpos != 0)
 			break;
-		/* Buffer is filled up, process it. */
+		/* Buffer is filled up, process it */
 		sha512_process_block128(ctx);
 		/*bufpos = 0; - already is */
 	}
