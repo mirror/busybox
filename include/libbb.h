@@ -1514,7 +1514,7 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags);
 
 typedef struct sha1_ctx_t {
 	uint32_t hash[8];    /* 5, +3 elements for sha256 */
-	uint64_t total64;
+	uint64_t total64;    /* must be directly after hash[] */
 	uint8_t wbuffer[64]; /* NB: always correctly aligned for uint64_t */
 	void (*process_block)(struct sha1_ctx_t*) FAST_FUNC;
 } sha1_ctx_t;
@@ -1527,7 +1527,7 @@ void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
 #define sha256_end sha1_end
 typedef struct sha512_ctx_t {
 	uint64_t hash[8];
-	uint64_t total64[2];
+	uint64_t total64[2];  /* must be directly after hash[] */
 	uint8_t wbuffer[128]; /* NB: always correctly aligned for uint64_t */
 } sha512_ctx_t;
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;

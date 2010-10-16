@@ -329,7 +329,9 @@ static const uint32_t init256[] = {
 	0x510e527f,
 	0x9b05688c,
 	0x1f83d9ab,
-	0x5be0cd19
+	0x5be0cd19,
+	0,
+	0,
 };
 static const uint32_t init512_lo[] = {
 	0xf3bcc908,
@@ -339,7 +341,9 @@ static const uint32_t init512_lo[] = {
 	0xade682d1,
 	0x2b3e6c1f,
 	0xfb41bd6b,
-	0x137e2179
+	0x137e2179,
+	0,
+	0,
 };
 
 /* Initialize structure containing state of computation.
@@ -347,7 +351,7 @@ static const uint32_t init512_lo[] = {
 void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 {
 	memcpy(ctx->hash, init256, sizeof(init256));
-	ctx->total64 = 0;
+	/*ctx->total64 = 0; - done by extending init256 with two 32-bit zeros */
 	ctx->process_block = sha256_process_block64;
 }
 
@@ -356,9 +360,10 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 {
 	int i;
-	for (i = 0; i < 8; i++)
+	/* Two extra iterations zero out ctx->total64[] */
+	for (i = 0; i < 8+2; i++)
 		ctx->hash[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
-	ctx->total64[0] = ctx->total64[1] = 0;
+	/*ctx->total64[0] = ctx->total64[1] = 0; - already done */
 }
 
 
