@@ -64,7 +64,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
 		/* round 2 */
 		0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
-		0xd62f105d, 0x2441453, 0xd8a1e681, 0xe7d3fbc8,
+		0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
 		0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
 		0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
 		/* round 3 */
@@ -86,28 +86,21 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		5, 8, 11, 14, 1, 4, 7, 10, 13, 0, 3, 6, 9, 12, 15, 2,	/* 3 */
 		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9	/* 4 */
 	};
-# if MD5_SIZE_VS_SPEED > 1
+#endif
+	const uint32_t *words = (const void*) ctx->wbuffer;
+	uint32_t A = ctx->A;
+	uint32_t B = ctx->B;
+	uint32_t C = ctx->C;
+	uint32_t D = ctx->D;
+
+#if MD5_SIZE_VS_SPEED >= 2  /* 2 or 3 */
+
 	static const char S_array[] ALIGN1 = {
 		7, 12, 17, 22,
 		5, 9, 14, 20,
 		4, 11, 16, 23,
 		6, 10, 15, 21
 	};
-# endif
-#endif
-	const uint32_t *words = (const void*) ctx->wbuffer;
-
-	uint32_t A = ctx->A;
-	uint32_t B = ctx->B;
-	uint32_t C = ctx->C;
-	uint32_t D = ctx->D;
-
-	uint32_t A_save = A;
-	uint32_t B_save = B;
-	uint32_t C_save = C;
-	uint32_t D_save = D;
-
-#if MD5_SIZE_VS_SPEED > 1
 	const uint32_t *pc;
 	const char *pp;
 	const char *ps;
@@ -119,7 +112,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		words[i] = SWAP_LE32(words[i]);
 # endif
 
-# if MD5_SIZE_VS_SPEED > 2
+# if MD5_SIZE_VS_SPEED == 3
 	pc = C_array;
 	pp = P_array;
 	ps = S_array - 4;
@@ -149,7 +142,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		C = B;
 		B = temp;
 	}
-# else /* MD5_SIZE_VS_SPEED == 2 */
+# else  /* MD5_SIZE_VS_SPEED == 2 */
 	pc = C_array;
 	pp = P_array;
 	ps = S_array;
@@ -194,8 +187,23 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		B = temp;
 	}
 # endif
+	/* Add checksum to the starting values */
+	ctx->A += A;
+	ctx->B += B;
+	ctx->C += C;
+	ctx->D += D;
 
-#else /* MD5_SIZE_VS_SPEED == 0 or 1 */
+#else  /* MD5_SIZE_VS_SPEED == 0 or 1 */
+
+	uint32_t A_save = A;
+	uint32_t B_save = B;
+	uint32_t C_save = C;
+	uint32_t D_save = D;
+# if MD5_SIZE_VS_SPEED == 1
+	const uint32_t *pc;
+	const char *pp;
+	int i;
+# endif
 
 	/* First round: using the given function, the context and a constant
 	   the next context is computed.  Because the algorithm's processing
@@ -212,13 +220,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		a += b; \
 	} while (0)
 
-# if MD5_SIZE_VS_SPEED == 1
-	const uint32_t *pc;
-	const char *pp;
-	int i;
-# endif
-
-	/* Round 1.  */
+	/* Round 1 */
 # if MD5_SIZE_VS_SPEED == 1
 	pc = C_array;
 	for (i = 0; i < 4; i++) {
@@ -258,7 +260,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		a += b; \
 	} while (0)
 
-	/* Round 2.  */
+	/* Round 2 */
 # if MD5_SIZE_VS_SPEED == 1
 	pp = P_array;
 	for (i = 0; i < 4; i++) {
@@ -286,7 +288,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 	OP(FG, B, C, D, A, 12, 20, 0x8d2a4c8a);
 # endif
 
-	/* Round 3.  */
+	/* Round 3 */
 # if MD5_SIZE_VS_SPEED == 1
 	for (i = 0; i < 4; i++) {
 		OP(FH, A, B, C, D, (int) (*pp++), 4, *pc++);
@@ -313,7 +315,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 	OP(FH, B, C, D, A, 2, 23, 0xc4ac5665);
 # endif
 
-	/* Round 4.  */
+	/* Round 4 */
 # if MD5_SIZE_VS_SPEED == 1
 	for (i = 0; i < 4; i++) {
 		OP(FI, A, B, C, D, (int) (*pp++), 6, *pc++);
@@ -339,19 +341,12 @@ static void md5_process_block64(md5_ctx_t *ctx)
 	OP(FI, C, D, A, B, 2, 15, 0x2ad7d2bb);
 	OP(FI, B, C, D, A, 9, 21, 0xeb86d391);
 # endif
+	/* Add checksum to the starting values */
+	ctx->A = A_save + A;
+	ctx->B = B_save + B;
+	ctx->C = C_save + C;
+	ctx->D = D_save + D;
 #endif
-
-	/* Add the starting values of the context.  */
-	A += A_save;
-	B += B_save;
-	C += C_save;
-	D += D_save;
-
-	/* Put checksum in context given as argument.  */
-	ctx->A = A;
-	ctx->B = B;
-	ctx->C = C;
-	ctx->D = D;
 }
 
 /* Feed data through a temporary buffer to call md5_hash_aligned_block()
