@@ -4116,12 +4116,13 @@ INSERT
 //TODO: add options and keyboard commands
 
 #define touch_trivial_usage \
-       "[-c] [-d DATE] FILE [FILE]..."
+       "[-c] [-d DATE] [-r FILE] FILE [FILE]..."
 #define touch_full_usage "\n\n" \
        "Update the last-modified date on the given FILE[s]\n" \
      "\nOptions:" \
      "\n	-c	Don't create files" \
      "\n	-d DT	Date/time to use" \
+     "\n	-r FILE	Use FILE's date/time" \
 
 #define touch_example_usage \
        "$ ls -l /tmp/foo\n" \
