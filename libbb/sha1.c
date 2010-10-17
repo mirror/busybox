@@ -462,17 +462,15 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 /* Used also for sha256 */
 void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 {
-	unsigned pad, bufpos;
+	unsigned bufpos = ctx->total64 & 63;
 
-	bufpos = ctx->total64 & 63;
 	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
 	ctx->wbuffer[bufpos++] = 0x80;
 
 	/* This loop iterates either once or twice, no more, no less */
 	while (1) {
-		pad = 64 - bufpos;
+		unsigned pad = 64 - bufpos;
 		memset(ctx->wbuffer + bufpos, 0, pad);
-		bufpos = 0;
 		/* Do we have enough space for the length count? */
 		if (pad >= 8) {
 			/* Store the 64-bit counter of bits in the buffer in BE format */
@@ -484,6 +482,7 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 		ctx->process_block(ctx);
 		if (pad >= 8)
 			break;
+		bufpos = 0;
 	}
 
 	bufpos = (ctx->process_block == sha1_process_block64) ? 5 : 8;
@@ -498,18 +497,14 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 
 void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 {
-	unsigned pad, bufpos;
+	unsigned bufpos = ctx->total64[0] & 127;
 
-	bufpos = ctx->total64[0] & 127;
-	/* Pad the buffer to the next 128-byte boundary with 0x80,0,0,0...
-	 * (FIPS 180-2:5.1.2)
-	 */
+	/* Pad the buffer to the next 128-byte boundary with 0x80,0,0,0... */
 	ctx->wbuffer[bufpos++] = 0x80;
 
 	while (1) {
-		pad = 128 - bufpos;
+		unsigned pad = 128 - bufpos;
 		memset(ctx->wbuffer + bufpos, 0, pad);
-		bufpos = 0;
 		if (pad >= 16) {
 			/* Store the 128-bit counter of bits in the buffer in BE format */
 			uint64_t t;
@@ -523,6 +518,7 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 		sha512_process_block128(ctx);
 		if (pad >= 16)
 			break;
+		bufpos = 0;
 	}
 
 	if (BB_LITTLE_ENDIAN) {

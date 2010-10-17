@@ -418,30 +418,29 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
  */
 void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
-	uint64_t total;
-	unsigned i;
 	unsigned bufpos = BUFPOS(ctx);
-
-	/* Pad data to block size.  */
+	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
 	ctx->buffer[bufpos++] = 0x80;
-	memset(ctx->buffer + bufpos, 0, 64 - bufpos);
 
-	if (bufpos > 56) {
+	/* This loop iterates either once or twice, no more, no less */
+	while (1) {
+		unsigned remaining = 64 - bufpos;
+		memset(ctx->buffer + bufpos, 0, remaining);
+		/* Do we have enough space for the length count? */
+		if (remaining >= 8) {
+			/* Store the 64-bit counter of bits in the buffer in BE format */
+			uint64_t t = ctx->total << 3;
+			unsigned i;
+			for (i = 0; i < 8; i++) {
+				ctx->buffer[56 + i] = t;
+				t >>= 8;
+			}
+		}
 		md5_hash_block(ctx);
-		memset(ctx->buffer, 0, 64);
+		if (remaining >= 8)
+			break;
+		bufpos = 0;
 	}
-
-	/* Put the 64-bit file length, expressed in *bits*,
-	 * at the end of the buffer.
-	 */
-	total = ctx->total << 3;
-	for (i = 0; i < 8; i++) {
-		ctx->buffer[56 + i] = total;
-		total >>= 8;
-	}
-
-	/* Process last bytes.  */
-	md5_hash_block(ctx);
 
 	/* The MD5 result is in little endian byte order.
 	 * We (ab)use the fact that A-D are consecutive in memory.
