@@ -1539,8 +1539,8 @@ typedef struct md5_ctx_t {
 	uint32_t B;
 	uint32_t C;
 	uint32_t D;
-	uint64_t total;
-	char buffer[64];
+	uint64_t total64;
+	char wbuffer[64];
 } md5_ctx_t;
 #else
 /* libbb/md5prime.c uses a bit different one: */

@@ -469,10 +469,10 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 
 	/* This loop iterates either once or twice, no more, no less */
 	while (1) {
-		unsigned pad = 64 - bufpos;
-		memset(ctx->wbuffer + bufpos, 0, pad);
+		unsigned remaining = 64 - bufpos;
+		memset(ctx->wbuffer + bufpos, 0, remaining);
 		/* Do we have enough space for the length count? */
-		if (pad >= 8) {
+		if (remaining >= 8) {
 			/* Store the 64-bit counter of bits in the buffer in BE format */
 			uint64_t t = ctx->total64 << 3;
 			t = hton64(t);
@@ -480,7 +480,7 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
 		}
 		ctx->process_block(ctx);
-		if (pad >= 8)
+		if (remaining >= 8)
 			break;
 		bufpos = 0;
 	}
@@ -503,9 +503,9 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 	ctx->wbuffer[bufpos++] = 0x80;
 
 	while (1) {
-		unsigned pad = 128 - bufpos;
-		memset(ctx->wbuffer + bufpos, 0, pad);
-		if (pad >= 16) {
+		unsigned remaining = 128 - bufpos;
+		memset(ctx->wbuffer + bufpos, 0, remaining);
+		if (remaining >= 16) {
 			/* Store the 128-bit counter of bits in the buffer in BE format */
 			uint64_t t;
 			t = ctx->total64[0] << 3;
@@ -516,7 +516,7 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 			*(uint64_t *) (&ctx->wbuffer[128 - 16]) = t;
 		}
 		sha512_process_block128(ctx);
-		if (pad >= 16)
+		if (remaining >= 16)
 			break;
 		bufpos = 0;
 	}

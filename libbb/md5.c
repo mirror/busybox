@@ -33,7 +33,7 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 	ctx->B = 0xefcdab89;
 	ctx->C = 0x98badcfe;
 	ctx->D = 0x10325476;
-	ctx->total = 0;
+	ctx->total64 = 0;
 }
 
 /* These are the four functions used in the four steps of the MD5 algorithm
@@ -48,8 +48,8 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 
 #define rotl32(w, s) (((w) << (s)) | ((w) >> (32 - (s))))
 
-/* Hash a single block, 64 bytes long and 4-byte aligned. */
-static void md5_hash_block(md5_ctx_t *ctx)
+/* Hash a single block, 64 bytes long and 4-byte aligned */
+static void md5_process_block64(md5_ctx_t *ctx)
 {
 #if MD5_SIZE_VS_SPEED > 0
 	/* Before we start, one word to the strange constants.
@@ -95,7 +95,7 @@ static void md5_hash_block(md5_ctx_t *ctx)
 	};
 # endif
 #endif
-	const uint32_t *words = (const void*) ctx->buffer;
+	const uint32_t *words = (const void*) ctx->wbuffer;
 
 	uint32_t A = ctx->A;
 	uint32_t B = ctx->B;
@@ -354,29 +354,41 @@ static void md5_hash_block(md5_ctx_t *ctx)
 	ctx->D = D;
 }
 
-/* The first unused position in ctx->buffer: */
-#define BUFPOS(ctx) (((unsigned)ctx->total) & 63)
-
 /* Feed data through a temporary buffer to call md5_hash_aligned_block()
  * with chunks of data that are 4-byte aligned and a multiple of 64 bytes.
  * This function's internal buffer remembers previous data until it has 64
  * bytes worth to pass on.  Call md5_end() to flush this buffer. */
 void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 {
-#if 1
-	/* Tiny bit smaller code */
-	unsigned bufpos = BUFPOS(ctx);
+	unsigned bufpos = ctx->total64 & 63;
+	unsigned remaining;
 
 	/* RFC 1321 specifies the possible length of the file up to 2^64 bits.
 	 * Here we only track the number of bytes.  */
-	ctx->total += len;
+	ctx->total64 += len;
+#if 0
+	remaining = 64 - bufpos;
 
+	/* Hash whole blocks */
+	while (len >= remaining) {
+		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
+		buffer = (const char *)buffer + remaining;
+		len -= remaining;
+		remaining = 64;
+		bufpos = 0;
+		md5_process_block64(ctx);
+	}
+
+	/* Save last, partial blosk */
+	memcpy(ctx->wbuffer + bufpos, buffer, len);
+#else
+	/* Tiny bit smaller code */
 	while (1) {
-		unsigned remaining = 64 - bufpos;
+		remaining = 64 - bufpos;
 		if (remaining > len)
 			remaining = len;
-		/* Copy data into aligned buffer. */
-		memcpy(ctx->buffer + bufpos, buffer, remaining);
+		/* Copy data into aligned buffer */
+		memcpy(ctx->wbuffer + bufpos, buffer, remaining);
 		len -= remaining;
 		buffer = (const char *)buffer + remaining;
 		bufpos += remaining;
@@ -384,30 +396,10 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
 		bufpos -= 64;
 		if (bufpos != 0)
 			break;
-		/* Buffer is filled up, process it. */
-		md5_hash_block(ctx);
+		/* Buffer is filled up, process it */
+		md5_process_block64(ctx);
 		/*bufpos = 0; - already is */
 	}
-#else
-	unsigned bufpos = BUFPOS(ctx);
-	unsigned add = 64 - bufpos;
-
-	/* RFC 1321 specifies the possible length of the file up to 2^64 bits.
-	 * Here we only track the number of bytes.  */
-	ctx->total += len;
-
-	/* Hash whole blocks */
-	while (len >= add) {
-		memcpy(ctx->buffer + bufpos, buffer, add);
-		buffer = (const char *)buffer + add;
-		len -= add;
-		add = 64;
-		bufpos = 0;
-		md5_hash_block(ctx);
-	}
-
-	/* Save last, partial blosk */
-	memcpy(ctx->buffer + bufpos, buffer, len);
 #endif
 }
 
@@ -418,25 +410,25 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
  */
 void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
-	unsigned bufpos = BUFPOS(ctx);
+	unsigned bufpos = ctx->total64 & 63;
 	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
-	ctx->buffer[bufpos++] = 0x80;
+	ctx->wbuffer[bufpos++] = 0x80;
 
 	/* This loop iterates either once or twice, no more, no less */
 	while (1) {
 		unsigned remaining = 64 - bufpos;
-		memset(ctx->buffer + bufpos, 0, remaining);
+		memset(ctx->wbuffer + bufpos, 0, remaining);
 		/* Do we have enough space for the length count? */
 		if (remaining >= 8) {
 			/* Store the 64-bit counter of bits in the buffer in BE format */
-			uint64_t t = ctx->total << 3;
+			uint64_t t = ctx->total64 << 3;
 			unsigned i;
 			for (i = 0; i < 8; i++) {
-				ctx->buffer[56 + i] = t;
+				ctx->wbuffer[56 + i] = t;
 				t >>= 8;
 			}
 		}
-		md5_hash_block(ctx);
+		md5_process_block64(ctx);
 		if (remaining >= 8)
 			break;
 		bufpos = 0;
