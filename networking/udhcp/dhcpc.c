@@ -89,6 +89,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 
 	/* option points to OPT_DATA, need to go back and get OPT_LEN */
 	len = option[OPT_LEN - OPT_DATA];
+
 	type = optflag->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
 	upper_length = len_of_option_as_string[type] * ((unsigned)len / (unsigned)optlen);
@@ -97,17 +98,16 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 	dest += sprintf(ret, "%s=", opt_name);
 
 	while (len >= optlen) {
+		unsigned ip_ofs = 0;
+
 		switch (type) {
 		case OPTION_IP_PAIR:
 			dest += sprint_nip(dest, "", option);
 			*dest++ = '/';
-			option += 4;
-			optlen = 4;
+			ip_ofs = 4;
+			/* fall through */
 		case OPTION_IP:
-			dest += sprint_nip(dest, "", option);
-// TODO: it can be a list only if (optflag->flags & OPTION_LIST).
-// Should we bail out/warn if we see multi-ip option which is
-// not allowed to be such? For example, DHCP_BROADCAST...
+			dest += sprint_nip(dest, "", option + ip_ofs);
 			break;
 //		case OPTION_BOOLEAN:
 //			dest += sprintf(dest, *option ? "yes" : "no");
@@ -218,7 +218,10 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 		} /* switch */
 		option += optlen;
 		len -= optlen;
-		if (len <= 0)
+// TODO: it can be a list only if (optflag->flags & OPTION_LIST).
+// Should we bail out/warn if we see multi-ip option which is
+// not allowed to be such (for example, DHCP_BROADCAST)? -
+		if (len <= 0 /* || !(optflag->flags & OPTION_LIST) */)
 			break;
 		*dest++ = ' ';
 		*dest = '\0';
