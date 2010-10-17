@@ -69,7 +69,9 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			}
 		}
 		else if (existing_sb.st_mtime >= file_header->mtime) {
-			if (!(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
+			if (!(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
+			 && !S_ISDIR(file_header->mode)
+			) {
 				bb_error_msg("%s not created: newer or "
 					"same age file exists", file_header->name);
 			}
