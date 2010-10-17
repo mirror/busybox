@@ -87,7 +87,7 @@ static void md5_process_block64(md5_ctx_t *ctx)
 		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9	/* 4 */
 	};
 #endif
-	const uint32_t *words = (const void*) ctx->wbuffer;
+	uint32_t *words = (void*) ctx->wbuffer;
 	uint32_t A = ctx->A;
 	uint32_t B = ctx->B;
 	uint32_t C = ctx->C;
