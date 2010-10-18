@@ -370,7 +370,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		if (cpio_fmt[0] != 'n') /* we _require_ "-H newc" */
 			bb_show_usage();
 		if (opt & CPIO_OPT_FILE) {
-			xmove_fd(xopen3(cpio_filename, O_WRONLY | O_CREAT | O_TRUNC, 0666), STDOUT_FILENO);
+			xmove_fd(xopen(cpio_filename, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
 		}
  dump:
 		return cpio_o();

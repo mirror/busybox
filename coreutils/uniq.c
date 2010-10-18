@@ -52,8 +52,8 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 			if (output[0] != '-' || output[1]) {
 				// Won't work with "uniq - FILE" and closed stdin:
 				//close(STDOUT_FILENO);
-				//xopen3(output, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-				xmove_fd(xopen3(output, O_WRONLY | O_CREAT | O_TRUNC, 0666), STDOUT_FILENO);
+				//xopen(output, O_WRONLY | O_CREAT | O_TRUNC);
+				xmove_fd(xopen(output, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
 			}
 		}
 	}

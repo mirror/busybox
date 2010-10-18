@@ -134,7 +134,7 @@ int FAST_FUNC xopen3(const char *pathname, int flags, int mode)
 	return ret;
 }
 
-// Die if we can't open an existing file and return a fd.
+// Die if we can't open a file and return a fd.
 int FAST_FUNC xopen(const char *pathname, int flags)
 {
 	return xopen3(pathname, flags, 0666);
