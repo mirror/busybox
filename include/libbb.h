@@ -37,8 +37,6 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
-/* Try to pull in PATH_MAX */
-#include <limits.h>
 #include <sys/param.h>
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
@@ -252,6 +250,11 @@ typedef unsigned long uoff_t;
 extern int *const bb_errno;
 #undef errno
 #define errno (*bb_errno)
+#endif
+
+#if !(ULONG_MAX > 0xffffffff)
+/* Only 32-bit CPUs need this, 64-bit ones use inlined version */
+uint64_t bb_bswap_64(uint64_t x) FAST_FUNC;
 #endif
 
 unsigned long long monotonic_ns(void) FAST_FUNC;

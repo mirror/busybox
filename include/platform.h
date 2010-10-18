@@ -150,6 +150,7 @@
 
 /* ---- Endian Detection ------------------------------------ */
 
+#include <limits.h>
 #if defined(__digital__) && defined(__unix__)
 # include <sex.h>
 #elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
@@ -189,6 +190,10 @@
 # error "Can't determine endianness"
 #endif
 
+#if ULONG_MAX > 0xffffffff
+# define bb_bswap_64(x) bswap_64(x)
+#endif
+
 /* SWAP_LEnn means "convert CPU<->little_endian by swapping bytes" */
 #if BB_BIG_ENDIAN
 # define SWAP_BE16(x) (x)
@@ -196,13 +201,13 @@
 # define SWAP_BE64(x) (x)
 # define SWAP_LE16(x) bswap_16(x)
 # define SWAP_LE32(x) bswap_32(x)
-# define SWAP_LE64(x) bswap_64(x)
+# define SWAP_LE64(x) bb_bswap_64(x)
 # define IF_BIG_ENDIAN(...) __VA_ARGS__
 # define IF_LITTLE_ENDIAN(...)
 #else
 # define SWAP_BE16(x) bswap_16(x)
 # define SWAP_BE32(x) bswap_32(x)
-# define SWAP_BE64(x) bswap_64(x)
+# define SWAP_BE64(x) bb_bswap_64(x)
 # define SWAP_LE16(x) (x)
 # define SWAP_LE32(x) (x)
 # define SWAP_LE64(x) (x)

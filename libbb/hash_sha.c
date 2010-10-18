@@ -51,16 +51,6 @@ static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
 {
 	return (x >> n) | (x << (64 - n));
 }
-#if BB_LITTLE_ENDIAN
-/* ALWAYS_INLINE below sometimes hurts code size, using plain inline: */
-static inline uint64_t hton64(uint64_t v)
-{
-	return SWAP_BE64(v);
-}
-#else
-#define hton64(v) (v)
-#endif
-#define ntoh64(v) hton64(v)
 
 
 /* Some arch headers have conflicting defines */
@@ -274,7 +264,7 @@ static void FAST_FUNC sha512_process_block128(sha512_ctx_t *ctx)
 
 	/* Compute the message schedule according to FIPS 180-2:6.3.2 step 2.  */
 	for (t = 0; t < 16; ++t)
-		W[t] = ntoh64(words[t]);
+		W[t] = SWAP_BE64(words[t]);
 	for (/*t = 16*/; t < 80; ++t)
 		W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
 
@@ -475,7 +465,7 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 		if (remaining >= 8) {
 			/* Store the 64-bit counter of bits in the buffer in BE format */
 			uint64_t t = ctx->total64 << 3;
-			t = hton64(t);
+			t = SWAP_BE64(t);
 			/* wbuffer is suitably aligned for this */
 			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
 		}
@@ -509,10 +499,10 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 			/* Store the 128-bit counter of bits in the buffer in BE format */
 			uint64_t t;
 			t = ctx->total64[0] << 3;
-			t = hton64(t);
+			t = SWAP_BE64(t);
 			*(uint64_t *) (&ctx->wbuffer[128 - 8]) = t;
 			t = (ctx->total64[1] << 3) | (ctx->total64[0] >> 61);
-			t = hton64(t);
+			t = SWAP_BE64(t);
 			*(uint64_t *) (&ctx->wbuffer[128 - 16]) = t;
 		}
 		sha512_process_block128(ctx);
@@ -524,7 +514,7 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 	if (BB_LITTLE_ENDIAN) {
 		unsigned i;
 		for (i = 0; i < ARRAY_SIZE(ctx->hash); ++i)
-			ctx->hash[i] = hton64(ctx->hash[i]);
+			ctx->hash[i] = SWAP_BE64(ctx->hash[i]);
 	}
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
 }

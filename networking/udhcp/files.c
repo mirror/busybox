@@ -11,16 +11,6 @@
 #include "common.h"
 #include "dhcpd.h"
 
-#if BB_LITTLE_ENDIAN
-static inline uint64_t hton64(uint64_t v)
-{
-        return SWAP_BE64(v);
-}
-#else
-#define hton64(v) (v)
-#endif
-#define ntoh64(v) hton64(v)
-
 /* on these functions, make sure your datatype matches */
 static int FAST_FUNC read_str(const char *line, void *arg)
 {
@@ -140,7 +130,7 @@ void FAST_FUNC write_leases(void)
 
 	curr = written_at = time(NULL);
 
-	written_at = hton64(written_at);
+	written_at = SWAP_BE64(written_at);
 	full_write(fd, &written_at, sizeof(written_at));
 
 	for (i = 0; i < server_config.max_leases; i++) {
@@ -190,7 +180,7 @@ void FAST_FUNC read_leases(const char *file)
 
 	if (full_read(fd, &written_at, sizeof(written_at)) != sizeof(written_at))
 		goto ret;
-	written_at = ntoh64(written_at);
+	written_at = SWAP_BE64(written_at);
 
 	time_passed = time(NULL) - written_at;
 	/* Strange written_at, or lease file from old version of udhcpd

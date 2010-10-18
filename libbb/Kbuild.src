@@ -14,6 +14,7 @@ lib-y += appletlib.o
 lib-y += ask_confirmation.o
 lib-y += bb_askpass.o
 lib-y += bb_basename.o
+lib-y += bb_bswap_64.o
 lib-y += bb_do_delay.o
 lib-y += bb_pwd.o
 lib-y += bb_qsort.o

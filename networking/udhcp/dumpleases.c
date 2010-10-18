@@ -6,17 +6,6 @@
 #include "dhcpd.h"
 #include "unicode.h"
 
-#if BB_LITTLE_ENDIAN
-static inline uint64_t hton64(uint64_t v)
-{
-        return SWAP_BE64(v);
-}
-#else
-#define hton64(v) (v)
-#endif
-#define ntoh64(v) hton64(v)
-
-
 int dumpleases_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -54,7 +43,7 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	/*     "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 */
 
 	xread(fd, &written_at, sizeof(written_at));
-	written_at = ntoh64(written_at);
+	written_at = SWAP_BE64(written_at);
 	curr = time(NULL);
 	if (curr < written_at)
 		written_at = curr; /* lease file from future! :) */
