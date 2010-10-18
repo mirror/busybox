@@ -1540,7 +1540,7 @@ typedef struct md5_ctx_t {
 	uint32_t C;
 	uint32_t D;
 	uint64_t total64;
-	char wbuffer[64];
+	char wbuffer[64]; /* NB: always correctly aligned for uint64_t */
 } md5_ctx_t;
 #else
 /* libbb/md5prime.c uses a bit different one: */

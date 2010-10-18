@@ -14,7 +14,7 @@
 #if BB_LITTLE_ENDIAN
 static inline uint64_t hton64(uint64_t v)
 {
-        return (((uint64_t)htonl(v)) << 32) | htonl(v >> 32);
+        return SWAP_BE64(v);
 }
 #else
 #define hton64(v) (v)

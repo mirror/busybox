@@ -52,10 +52,10 @@ static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
 	return (x >> n) | (x << (64 - n));
 }
 #if BB_LITTLE_ENDIAN
-/* ALWAYS_INLINE below would hurt code size, using plain inline: */
+/* ALWAYS_INLINE below sometimes hurts code size, using plain inline: */
 static inline uint64_t hton64(uint64_t v)
 {
-	return (((uint64_t)htonl(v)) << 32) | htonl(v >> 32);
+	return SWAP_BE64(v);
 }
 #else
 #define hton64(v) (v)
@@ -76,7 +76,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	const uint32_t *words = (uint32_t*) ctx->wbuffer;
 
 	for (t = 0; t < 16; ++t)
-		W[t] = ntohl(words[t]);
+		W[t] = SWAP_BE32(words[t]);
 	for (/*t = 16*/; t < 80; ++t) {
 		uint32_t T = W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16];
 		W[t] = rotl32(T, 1);
@@ -198,7 +198,7 @@ static void FAST_FUNC sha256_process_block64(sha256_ctx_t *ctx)
 
 	/* Compute the message schedule according to FIPS 180-2:6.2.2 step 2.  */
 	for (t = 0; t < 16; ++t)
-		W[t] = ntohl(words[t]);
+		W[t] = SWAP_BE32(words[t]);
 	for (/*t = 16*/; t < 64; ++t)
 		W[t] = R1(W[t - 2]) + W[t - 7] + R0(W[t - 15]) + W[t - 16];
 
@@ -490,7 +490,7 @@ void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 	if (BB_LITTLE_ENDIAN) {
 		unsigned i;
 		for (i = 0; i < bufpos; ++i)
-			ctx->hash[i] = htonl(ctx->hash[i]);
+			ctx->hash[i] = SWAP_BE32(ctx->hash[i]);
 	}
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * bufpos);
 }
