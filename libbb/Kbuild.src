@@ -60,7 +60,6 @@ lib-y += login.o
 lib-y += make_directory.o
 lib-y += makedev.o
 lib-y += match_fstype.o
-lib-y += hash_md5.o
 # Alternative (disabled) implementation
 #lib-y += hash_md5prime.o
 lib-y += hash_sha.o
