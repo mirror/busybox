@@ -415,9 +415,9 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 		memset(ctx->wbuffer + bufpos, 0, remaining);
 		/* Do we have enough space for the length count? */
 		if (remaining >= 8) {
-			/* Store the 64-bit counter of bits in the buffer in BE format */
+			/* Store the 64-bit counter of bits in the buffer in LE format */
 			uint64_t t = ctx->total64 << 3;
-			t = SWAP_BE64(t);
+			t = SWAP_LE64(t);
 			/* wbuffer is suitably aligned for this */
 			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
 		}
