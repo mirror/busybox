@@ -60,7 +60,6 @@
 #define OPT_f	(1 << 3)
 #define OPT_l	(1 << 4)
 
-#define NAND_MAX_OOBSIZE 256
 /* helper for writing out 0xff for bad blocks pad */
 static void dump_bad(struct mtd_info_user *meminfo, unsigned len, int oob)
 {
@@ -103,7 +102,7 @@ int nandwrite_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 {
 	/* Buffer for OOB data */
-	unsigned char oobbuf[NAND_MAX_OOBSIZE];
+	unsigned char *oobbuf;
 	unsigned opts;
 	int fd;
 	ssize_t cnt;
@@ -135,10 +134,6 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	fd = xopen(argv[0], O_RDWR);
 	xioctl(fd, MEMGETINFO, &meminfo);
 
-	oob.start  = 0;
-	oob.length = meminfo.oobsize;
-	oob.ptr    = oobbuf;
-
 	mtdoffset = xstrtou(opt_s, 0);
 	if (IS_NANDDUMP && (opts & OPT_l)) {
 		unsigned length = xstrtou(opt_l, 0);
@@ -153,6 +148,11 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("start address is not page aligned");
 
 	filebuf = xmalloc(meminfo_writesize);
+	oobbuf = xmalloc(meminfo.oobsize);
+
+	oob.start  = 0;
+	oob.length = meminfo.oobsize;
+	oob.ptr    = oobbuf;
 
 	blockstart = mtdoffset & ~(meminfo.erasesize - 1);
 	if (blockstart != mtdoffset) {
