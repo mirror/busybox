@@ -412,7 +412,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_SORT_BIG
 	/* Open output file _after_ we read all input ones */
 	if (option_mask32 & FLAG_o)
-		xmove_fd(xopen(str_o, O_WRONLY), STDOUT_FILENO);
+		xmove_fd(xopen(str_o, O_WRONLY|O_CREAT|O_TRUNC), STDOUT_FILENO);
 #endif
 	flag = (option_mask32 & FLAG_z) ? '\0' : '\n';
 	for (i = 0; i < linecount; i++)
