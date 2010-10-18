@@ -1,5 +1,73 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * Utility routines.
+ *
+ * Copyright (C) 2010 Denys Vlasenko
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this source tree.
+ */
+
+#include "libbb.h"
+
+/* gcc 4.2.1 optimizes rotr64 better with inline than with macro
+ * (for rotX32, there is no difference). Why? My guess is that
+ * macro requires clever common subexpression elimination heuristics
+ * in gcc, while inline basically forces it to happen.
+ */
+//#define rotl32(x,n) (((x) << (n)) | ((x) >> (32 - (n))))
+static ALWAYS_INLINE uint32_t rotl32(uint32_t x, unsigned n)
+{
+	return (x << n) | (x >> (32 - n));
+}
+//#define rotr32(x,n) (((x) >> (n)) | ((x) << (32 - (n))))
+static ALWAYS_INLINE uint32_t rotr32(uint32_t x, unsigned n)
+{
+	return (x >> n) | (x << (32 - n));
+}
+/* rotr64 in needed for sha512 only: */
+//#define rotr64(x,n) (((x) >> (n)) | ((x) << (64 - (n))))
+static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
+{
+	return (x >> n) | (x << (64 - n));
+}
+
+
+typedef struct common64_ctx_t {
+	char wbuffer[64]; /* NB: always correctly aligned for uint64_t */
+	uint64_t total64;
+} common64_ctx_t;
+
+typedef void FAST_FUNC process_block64_func(void*);
+
+static void FAST_FUNC common64_end(void *vctx, process_block64_func process_block64, int swap_needed)
+{
+	common64_ctx_t *ctx = vctx;
+	unsigned bufpos = ctx->total64 & 63;
+	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
+	ctx->wbuffer[bufpos++] = 0x80;
+
+	/* This loop iterates either once or twice, no more, no less */
+	while (1) {
+		unsigned remaining = 64 - bufpos;
+		memset(ctx->wbuffer + bufpos, 0, remaining);
+		/* Do we have enough space for the length count? */
+		if (remaining >= 8) {
+			/* Store the 64-bit counter of bits in the buffer */
+			uint64_t t = ctx->total64 << 3;
+			if (swap_needed)
+				t = bb_bswap_64(t);
+			/* wbuffer is suitably aligned for this */
+			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
+		}
+		process_block64(ctx);
+		if (remaining >= 8)
+			break;
+		bufpos = 0;
+	}
+}
+
+
+/*
  * Based on shasum from http://www.netsw.org/crypto/hash/
  * Majorly hacked up to use Dr Brian Gladman's sha1 code
  *
@@ -27,31 +95,6 @@
  * and replace "4096" with something like "2000 + time(NULL) % 2097",
  * then rebuild and compare "shaNNNsum bigfile" results.
  */
-
-#include "libbb.h"
-
-/* gcc 4.2.1 optimizes rotr64 better with inline than with macro
- * (for rotX32, there is no difference). Why? My guess is that
- * macro requires clever common subexpression elimination heuristics
- * in gcc, while inline basically forces it to happen.
- */
-//#define rotl32(x,n) (((x) << (n)) | ((x) >> (32 - (n))))
-static ALWAYS_INLINE uint32_t rotl32(uint32_t x, unsigned n)
-{
-	return (x << n) | (x >> (32 - n));
-}
-//#define rotr32(x,n) (((x) >> (n)) | ((x) << (32 - (n))))
-static ALWAYS_INLINE uint32_t rotr32(uint32_t x, unsigned n)
-{
-	return (x >> n) | (x << (32 - n));
-}
-/* rotr64 in needed for sha512 only: */
-//#define rotr64(x,n) (((x) >> (n)) | ((x) << (64 - (n))))
-static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
-{
-	return (x >> n) | (x << (64 - n));
-}
-
 
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
@@ -308,6 +351,8 @@ void FAST_FUNC sha1_begin(sha1_ctx_t *ctx)
 }
 
 static const uint32_t init256[] = {
+	0,
+	0,
 	0x6a09e667,
 	0xbb67ae85,
 	0x3c6ef372,
@@ -316,10 +361,10 @@ static const uint32_t init256[] = {
 	0x9b05688c,
 	0x1f83d9ab,
 	0x5be0cd19,
-	0,
-	0,
 };
 static const uint32_t init512_lo[] = {
+	0,
+	0,
 	0xf3bcc908,
 	0x84caa73b,
 	0xfe94f82b,
@@ -328,16 +373,14 @@ static const uint32_t init512_lo[] = {
 	0x2b3e6c1f,
 	0xfb41bd6b,
 	0x137e2179,
-	0,
-	0,
 };
 
 /* Initialize structure containing state of computation.
    (FIPS 180-2:5.3.2)  */
 void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 {
-	memcpy(ctx->hash, init256, sizeof(init256));
-	/*ctx->total64 = 0; - done by extending init256 with two 32-bit zeros */
+	memcpy(&ctx->total64, init256, sizeof(init256));
+	/*ctx->total64 = 0; - done by prepending two 32-bit zeros to init256 */
 	ctx->process_block = sha256_process_block64;
 }
 
@@ -346,9 +389,10 @@ void FAST_FUNC sha256_begin(sha256_ctx_t *ctx)
 void FAST_FUNC sha512_begin(sha512_ctx_t *ctx)
 {
 	int i;
-	/* Two extra iterations zero out ctx->total64[] */
-	for (i = 0; i < 8+2; i++)
-		ctx->hash[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
+	/* Two extra iterations zero out ctx->total64[2] */
+	uint64_t *tp = ctx->total64;
+	for (i = 0; i < 2+8; i++)
+		tp[i] = ((uint64_t)(init256[i]) << 32) + init512_lo[i];
 	/*ctx->total64[0] = ctx->total64[1] = 0; - already done */
 }
 
@@ -448,37 +492,19 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 /* Used also for sha256 */
 void FAST_FUNC sha1_end(sha1_ctx_t *ctx, void *resbuf)
 {
-	unsigned bufpos = ctx->total64 & 63;
+	unsigned hash_size;
 
-	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
-	ctx->wbuffer[bufpos++] = 0x80;
+	/* SHA stores total in BE, need to swap on LE arches: */
+	common64_end(ctx, (process_block64_func*) ctx->process_block, /*swap_needed:*/ BB_LITTLE_ENDIAN);
 
-	/* This loop iterates either once or twice, no more, no less */
-	while (1) {
-		unsigned remaining = 64 - bufpos;
-		memset(ctx->wbuffer + bufpos, 0, remaining);
-		/* Do we have enough space for the length count? */
-		if (remaining >= 8) {
-			/* Store the 64-bit counter of bits in the buffer in BE format */
-			uint64_t t = ctx->total64 << 3;
-			t = SWAP_BE64(t);
-			/* wbuffer is suitably aligned for this */
-			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
-		}
-		ctx->process_block(ctx);
-		if (remaining >= 8)
-			break;
-		bufpos = 0;
-	}
-
-	bufpos = (ctx->process_block == sha1_process_block64) ? 5 : 8;
+	hash_size = (ctx->process_block == sha1_process_block64) ? 5 : 8;
 	/* This way we do not impose alignment constraints on resbuf: */
 	if (BB_LITTLE_ENDIAN) {
 		unsigned i;
-		for (i = 0; i < bufpos; ++i)
+		for (i = 0; i < hash_size; ++i)
 			ctx->hash[i] = SWAP_BE32(ctx->hash[i]);
 	}
-	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * bufpos);
+	memcpy(resbuf, ctx->hash, sizeof(ctx->hash[0]) * hash_size);
 }
 
 void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
@@ -566,7 +592,7 @@ void FAST_FUNC md5_begin(md5_ctx_t *ctx)
 #define FI(b, c, d) (c ^ (b | ~d))
 
 /* Hash a single block, 64 bytes long and 4-byte aligned */
-static void md5_process_block64(md5_ctx_t *ctx)
+static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 {
 #if MD5_SIZE_VS_SPEED > 0
 	/* Before we start, one word to the strange constants.
@@ -927,27 +953,8 @@ void FAST_FUNC md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len)
  */
 void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 {
-	unsigned bufpos = ctx->total64 & 63;
-	/* Pad the buffer to the next 64-byte boundary with 0x80,0,0,0... */
-	ctx->wbuffer[bufpos++] = 0x80;
-
-	/* This loop iterates either once or twice, no more, no less */
-	while (1) {
-		unsigned remaining = 64 - bufpos;
-		memset(ctx->wbuffer + bufpos, 0, remaining);
-		/* Do we have enough space for the length count? */
-		if (remaining >= 8) {
-			/* Store the 64-bit counter of bits in the buffer in LE format */
-			uint64_t t = ctx->total64 << 3;
-			t = SWAP_LE64(t);
-			/* wbuffer is suitably aligned for this */
-			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
-		}
-		md5_process_block64(ctx);
-		if (remaining >= 8)
-			break;
-		bufpos = 0;
-	}
+	/* MD5 stores total in LE, need to swap on BE arches: */
+	common64_end(ctx, (process_block64_func*) md5_process_block64, /*swap_needed:*/ BB_BIG_ENDIAN);
 
 	/* The MD5 result is in little endian byte order.
 	 * We (ab)use the fact that A-D are consecutive in memory.
