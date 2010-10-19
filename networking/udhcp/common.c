@@ -69,7 +69,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
 	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
-//FIXME: handling of this option is not exactly correct:
+	/* not really a string */
 	{ OPTION_STRING                           , 0x3d }, /* DHCP_CLIENT_ID     */
 	{ 0, 0 } /* zeroed terminating entry */
 };

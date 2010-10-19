@@ -772,7 +772,7 @@ static void client_background(void)
 //usage:#endif
 //usage:#define udhcpc_trivial_usage
 //usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oCR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
-//usage:       "	[-H HOSTNAME] [-c CID] [-V VENDOR] [-O DHCP_OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
+//usage:       "	[-H HOSTNAME] [-V VENDOR] [-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 //usage:#define udhcpc_full_usage "\n"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-i,--interface IFACE	Interface to use (default eth0)"
@@ -796,14 +796,14 @@ static void client_background(void)
 //usage:	IF_FEATURE_UDHCPC_ARPING(
 //usage:     "\n	-a,--arping		Use arping to validate offered address"
 //usage:	)
-//usage:     "\n	-O,--request-option OPT	Request DHCP option OPT (cumulative)"
+//usage:     "\n	-O,--request-option OPT	Request option OPT from server (cumulative)"
 //usage:     "\n	-o,--no-default-options	Don't request any options (unless -O is given)"
 //usage:     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)"
+//usage:     "\n				Examples: -x hostname:bbox -x 61:0100ffee11cc55"
 //usage:     "\n	-F,--fqdn NAME		Ask server to update DNS mapping for NAME"
 //usage:     "\n	-H,-h,--hostname NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')"
-//usage:     "\n	-c,--clientid CLIENTID	Client identifier (default own MAC)"
-//usage:     "\n	-C,--clientid-none	Don't send client identifier"
+//usage:     "\n	-C,--clientid-none	Don't send MAC as client identifier"
 //usage:	IF_UDHCP_VERBOSE(
 //usage:     "\n	-v			Verbose"
 //usage:	)
@@ -816,8 +816,9 @@ static void client_background(void)
 //usage:     "\n	-t N		Send up to N discover packets"
 //usage:     "\n	-T N		Pause between packets (default 3 seconds)"
 //usage:     "\n	-A N		Wait N seconds (default 20) after failure"
-//usage:     "\n	-x OPT:VAL	Include option OPT in sent packets"
-//usage:     "\n	-O OPT		Request DHCP option OPT (cumulative)"
+//usage:     "\n	-x OPT:VAL	Include option OPT in sent packets (cumulative)"
+//usage:     "\n			Examples: -x hostname:bbox -x 61:0100ffee11cc55"
+//usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
 //usage:     "\n	-o		Don't request any options (unless -O is given)"
 //usage:     "\n	-f		Run in foreground"
 //usage:	USE_FOR_MMU(
@@ -836,8 +837,7 @@ static void client_background(void)
 //usage:     "\n	-F NAME		Ask server to update DNS mapping for NAME"
 //usage:     "\n	-H,-h NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')"
-//usage:     "\n	-c CLIENTID	Client identifier (default own MAC)"
-//usage:     "\n	-C		Don't send client identifier"
+//usage:     "\n	-C		Don't send MAC as client identifier"
 //usage:	IF_UDHCP_VERBOSE(
 //usage:     "\n	-v		Verbose"
 //usage:	)
@@ -847,7 +847,7 @@ int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 {
 	uint8_t *temp, *message;
-	const char *str_c, *str_V, *str_h, *str_F, *str_r;
+	const char *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	llist_t *list_O = NULL;
 	llist_t *list_x = NULL;
@@ -870,7 +870,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_LONG_OPTS
 	static const char udhcpc_longopts[] ALIGN1 =
-		"clientid\0"       Required_argument "c"
 		"clientid-none\0"  No_argument       "C"
 		"vendorclass\0"    Required_argument "V"
 		"hostname\0"       Required_argument "H"
@@ -896,29 +895,28 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 	enum {
-		OPT_c = 1 << 0,
-		OPT_C = 1 << 1,
-		OPT_V = 1 << 2,
-		OPT_H = 1 << 3,
-		OPT_h = 1 << 4,
-		OPT_F = 1 << 5,
-		OPT_i = 1 << 6,
-		OPT_n = 1 << 7,
-		OPT_p = 1 << 8,
-		OPT_q = 1 << 9,
-		OPT_R = 1 << 10,
-		OPT_r = 1 << 11,
-		OPT_s = 1 << 12,
-		OPT_T = 1 << 13,
-		OPT_t = 1 << 14,
-		OPT_S = 1 << 15,
-		OPT_A = 1 << 16,
-		OPT_O = 1 << 17,
-		OPT_o = 1 << 18,
-		OPT_x = 1 << 19,
-		OPT_f = 1 << 20,
+		OPT_C = 1 << 0,
+		OPT_V = 1 << 1,
+		OPT_H = 1 << 2,
+		OPT_h = 1 << 3,
+		OPT_F = 1 << 4,
+		OPT_i = 1 << 5,
+		OPT_n = 1 << 6,
+		OPT_p = 1 << 7,
+		OPT_q = 1 << 8,
+		OPT_R = 1 << 9,
+		OPT_r = 1 << 10,
+		OPT_s = 1 << 11,
+		OPT_T = 1 << 12,
+		OPT_t = 1 << 13,
+		OPT_S = 1 << 14,
+		OPT_A = 1 << 15,
+		OPT_O = 1 << 16,
+		OPT_o = 1 << 17,
+		OPT_x = 1 << 18,
+		OPT_f = 1 << 19,
 /* The rest has variable bit positions, need to be clever */
-		OPTBIT_f = 20,
+		OPTBIT_f = 19,
 		USE_FOR_MMU(             OPTBIT_b,)
 		IF_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
 		IF_FEATURE_UDHCP_PORT(   OPTBIT_P,)
@@ -935,19 +933,19 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	str_V = "udhcp "BB_VER;
 
 	/* Parse command line */
-	/* Cc: mutually exclusive; O,x: list; -T,-t,-A take numeric param */
-	opt_complementary = "c--C:C--c:O::x::T+:t+:A+"
+	/* O,x: list; -T,-t,-A take numeric param */
+	opt_complementary = "O::x::T+:t+:A+"
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
 		":vv"
 #endif
 		;
 	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
-	opt = getopt32(argv, "c:CV:H:h:F:i:np:qRr:s:T:t:SA:O:ox:f"
+	opt = getopt32(argv, "CV:H:h:F:i:np:qRr:s:T:t:SA:O:ox:f"
 		USE_FOR_MMU("b")
 		IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
 		"v"
-		, &str_c, &str_V, &str_h, &str_h, &str_F
+		, &str_V, &str_h, &str_h, &str_F
 		, &client_config.interface, &client_config.pidfile, &str_r /* i,p */
 		, &client_config.script /* s */
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
@@ -1009,10 +1007,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		return 1;
 	}
 
-	if (opt & OPT_c) {
-		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
-	} else if (!(opt & OPT_C)) {
-		/* not set and not suppressed, set the default client ID */
+	if (!(opt & OPT_C) && !udhcp_find_option(client_config.options, DHCP_CLIENT_ID)) {
+		/* not suppressed and not set, set the default client ID */
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
 		client_config.clientid[OPT_DATA] = 1; /* type: ethernet */
 		memcpy(client_config.clientid + OPT_DATA+1, client_config.client_mac, 6);
