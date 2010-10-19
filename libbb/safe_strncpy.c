@@ -20,8 +20,13 @@ char* FAST_FUNC safe_strncpy(char *dst, const char *src, size_t size)
 /* Like strcpy but can copy overlapping strings. */
 void FAST_FUNC overlapping_strcpy(char *dst, const char *src)
 {
-	while ((*dst = *src) != '\0') {
-		dst++;
-		src++;
+	/* Cheap optimization for dst == src case -
+	 * better to have it here than in many callers.
+	 */
+	if (dst != src) {
+		while ((*dst = *src) != '\0') {
+			dst++;
+			src++;
+		}
 	}
 }

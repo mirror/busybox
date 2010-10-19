@@ -132,7 +132,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 	int i = 0;
 	char *opt_c;
 	int opt;
-	int used = 0;
+	int used;
 
 	opt = getopt32(argv, "c:n", &opt_c);
 	if (opt & OPT_LEVEL) {
@@ -159,6 +159,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 
 	syslog(LOG_NOTICE, "klogd started: %s", bb_banner);
 
+	used = 0;
 	while (!bb_got_signal) {
 		int n;
 		int priority;
@@ -175,22 +176,22 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		start[n] = '\0';
 
-		/* klogctl buffer parsing modelled after code in dmesg.c */
 		/* Process each newline-terminated line in the buffer */
 		start = log_buffer;
 		while (1) {
 			char *newline = strchrnul(start, '\n');
 
 			if (*newline == '\0') {
-				/* This line is incomplete... */
-				if (start != log_buffer) {
-					/* move it to the front of the buffer */
-					overlapping_strcpy(log_buffer, start);
-					used = newline - start;
-					/* don't log it yet */
+				/* This line is incomplete */
+
+				/* move it to the front of the buffer */
+				overlapping_strcpy(log_buffer, start);
+				used = newline - start;
+				if (used < KLOGD_LOGBUF_SIZE-1) {
+					/* buffer isn't full */
 					break;
 				}
-				/* ...but if buffer is full, log it anyway */
+				/* buffer is full, log it anyway */
 				used = 0;
 				newline = NULL;
 			} else {
