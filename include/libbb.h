@@ -1515,44 +1515,28 @@ enum {
 };
 void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags);
 
-#if 1
 typedef struct md5_ctx_t {
-	char wbuffer[64]; /* NB: always correctly aligned for uint64_t */
-	uint64_t total64;
-	uint32_t A;
-	uint32_t B;
-	uint32_t C;
-	uint32_t D;
-} md5_ctx_t;
-#else
-/* libbb/md5prime.c uses a bit different one: */
-typedef struct md5_ctx_t {
-	uint32_t state[4];	/* state (ABCD) */
-	uint32_t count[2];	/* number of bits, modulo 2^64 (lsb first) */
-	unsigned char buffer[64];	/* input buffer */
-} md5_ctx_t;
-#endif
-void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
-void md5_hash(md5_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
-void md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
-typedef struct sha1_ctx_t {
-	uint8_t wbuffer[64]; /* NB: always correctly aligned for uint64_t */
+	uint8_t wbuffer[64]; /* always correctly aligned for uint64_t */
+	void (*process_block)(struct md5_ctx_t*) FAST_FUNC;
 	uint64_t total64;    /* must be directly before hash[] */
-	uint32_t hash[8];    /* 5, +3 elements for sha256 */
-	void (*process_block)(struct sha1_ctx_t*) FAST_FUNC;
-} sha1_ctx_t;
-void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
-void sha1_hash(sha1_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
-void sha1_end(sha1_ctx_t *ctx, void *resbuf) FAST_FUNC;
-typedef struct sha1_ctx_t sha256_ctx_t;
-void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
-#define sha256_hash sha1_hash
-#define sha256_end sha1_end
+	uint32_t hash[8];    /* 4 elements for md5, 5 for sha1, 8 for sha256 */
+} md5_ctx_t;
+typedef struct md5_ctx_t sha1_ctx_t;
+typedef struct md5_ctx_t sha256_ctx_t;
 typedef struct sha512_ctx_t {
 	uint64_t total64[2];  /* must be directly before hash[] */
 	uint64_t hash[8];
-	uint8_t wbuffer[128]; /* NB: always correctly aligned for uint64_t */
+	uint8_t wbuffer[128]; /* always correctly aligned for uint64_t */
 } sha512_ctx_t;
+void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
+void md5_hash(md5_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
+void md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
+void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
+#define sha1_hash md5_hash
+void sha1_end(sha1_ctx_t *ctx, void *resbuf) FAST_FUNC;
+void sha256_begin(sha256_ctx_t *ctx) FAST_FUNC;
+#define sha256_hash md5_hash
+#define sha256_end  sha1_end
 void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
 void sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
 void sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
