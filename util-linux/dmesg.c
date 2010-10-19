@@ -45,20 +45,25 @@ int dmesg_main(int argc UNUSED_PARAM, char **argv)
 	if (len == 0)
 		return EXIT_SUCCESS;
 
-	/* Skip <#> at the start of lines, and make sure we end with a newline */
 
 	if (ENABLE_FEATURE_DMESG_PRETTY) {
 		int last = '\n';
 		int in = 0;
 
-		do {
-			if (last == '\n' && buf[in] == '<')
+		/* Skip <#> at the start of lines */
+		while (1) {
+			if (last == '\n' && buf[in] == '<') {
 				in += 3;
-			else {
-				last = buf[in++];
-				bb_putchar(last);
+				if (in >= len)
+					break;
 			}
-		} while (in < len);
+			last = buf[in];
+			putchar(last);
+			in++;
+			if (in >= len)
+				break;
+		}
+		/* Make sure we end with a newline */
 		if (last != '\n')
 			bb_putchar('\n');
 	} else {
