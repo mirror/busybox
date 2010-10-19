@@ -461,9 +461,7 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 	/* MD5 stores total in LE, need to swap on BE arches: */
 	common64_end(ctx, /*swap_needed:*/ BB_BIG_ENDIAN);
 
-	/* The MD5 result is in little endian byte order.
-	 * We (ab)use the fact that A-D are consecutive in memory.
-	 */
+	/* The MD5 result is in little endian byte order */
 #if BB_BIG_ENDIAN
 	ctx->hash[0] = SWAP_LE32(ctx->hash[0]);
 	ctx->hash[1] = SWAP_LE32(ctx->hash[1]);
