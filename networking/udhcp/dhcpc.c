@@ -928,6 +928,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	uint8_t *temp, *message;
 	const char *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
+	void *clientid_mac_ptr;
 	llist_t *list_O = NULL;
 	llist_t *list_x = NULL;
 	int tryagain_timeout = 20;
@@ -1004,7 +1005,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_UDHCP_PORT(   OPT_P = 1 << OPTBIT_P,)
 	};
 
-	/* Default options. */
+	/* Default options */
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 	client_config.interface = "eth0";
@@ -1086,11 +1087,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		return 1;
 	}
 
+	clientid_mac_ptr = NULL;
 	if (!(opt & OPT_C) && !udhcp_find_option(client_config.options, DHCP_CLIENT_ID)) {
 		/* not suppressed and not set, set the default client ID */
 		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
 		client_config.clientid[OPT_DATA] = 1; /* type: ethernet */
-		memcpy(client_config.clientid + OPT_DATA+1, client_config.client_mac, 6);
+		clientid_mac_ptr = client_config.clientid + OPT_DATA+1;
+		memcpy(clientid_mac_ptr, client_config.client_mac, 6);
 	}
 	if (str_V[0] != '\0')
 		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
@@ -1173,10 +1176,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			 * or if the status of the bridge changed).
 			 * Refresh ifindex and client_mac:
 			 */
-			udhcp_read_interface(client_config.interface,
-				&client_config.ifindex,
-				NULL,
-				client_config.client_mac);
+			if (udhcp_read_interface(client_config.interface,
+					&client_config.ifindex,
+					NULL,
+					client_config.client_mac)
+			) {
+				return 1; /* iface is gone? */
+			}
+			if (clientid_mac_ptr)
+				memcpy(clientid_mac_ptr, client_config.client_mac, 6);
 
 			/* We will restart the wait in any case */
 			already_waited_sec = 0;
