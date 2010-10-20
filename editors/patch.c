@@ -17,7 +17,6 @@
  * -o outfile output here instead of in place
  * -r rejectfile write rejected hunks to this file
  *
- * -E remove empty files --remove-empty-files
  * -f force (no questions asked)
  * -F fuzz (number, default 2)
  * [file] which file to patch
@@ -42,7 +41,7 @@ config PATCH
 	  hunks to stderr, and exits with nonzero status if any hunks fail.
 
 	  A file compared against /dev/null (or with a date <= the epoch) is
-	  created/deleted as appropriate.
+	  created or deleted if -E or --remove-empty-files set.
 */
 #include "libbb.h"
 
@@ -243,15 +242,16 @@ struct globals {
 } while (0)
 
 
-#define FLAG_STR "Rup:i:Nx"
+#define FLAG_STR "Rup:i:NEx"
 /* FLAG_REVERSE must be == 1! Code uses this fact. */
 #define FLAG_REVERSE (1 << 0)
 #define FLAG_u       (1 << 1)
 #define FLAG_PATHLEN (1 << 2)
 #define FLAG_INPUT   (1 << 3)
 #define FLAG_IGNORE  (1 << 4)
+#define FLAG_RMEMPTY (1 << 5)
 //non-standard:
-#define FLAG_DEBUG   (1 << 5)
+#define FLAG_DEBUG   (1 << 6)
 
 // Dispose of a line of input, either by writing it out or discarding it.
 
@@ -551,7 +551,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 			// If this is the first hunk, open the file.
 			if (TT.filein == -1) {
-				int oldsum, newsum, del = 0;
+				int oldsum, newsum, empty = 0;
 				char *name;
 
 				oldsum = TT.oldline + TT.oldlen;
@@ -564,7 +564,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				if (!strcmp(name, "/dev/null") || !(reverse ? oldsum : newsum))
 				{
 					name = reverse ? newname : oldname;
-					del++;
+					empty++;
 				}
 
 				// handle -p path truncation.
@@ -576,10 +576,17 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 					}
 				}
 
-				if (del) {
-					printf("removing %s\n", name);
-					xunlink(name);
+				if (empty) {
+					// File is empty after the patches have been applied
 					state = 0;
+					if (option_mask32 & FLAG_RMEMPTY) {
+						// If flag -E or --remove-empty-files is set
+						printf("removing %s\n", name);
+						xunlink(name);
+					} else {
+						printf("patching file %s\n", name);
+						xclose(xopen(name, O_WRONLY | O_TRUNC));
+					}
 				// If we've got a file to open, do so.
 				} else if (!(option_mask32 & FLAG_PATHLEN) || i <= TT.prefix) {
 					// If the old file was null, we're creating a new one.
