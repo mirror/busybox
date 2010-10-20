@@ -362,12 +362,6 @@ static void add_client_options(struct dhcp_packet *packet)
 	int i, end, len;
 
 	udhcp_add_simple_option(packet, DHCP_MAX_SIZE, htons(IP_UDP_DHCP_SIZE));
-	if (client_config.hostname)
-		udhcp_add_binary_option(packet, client_config.hostname);
-	if (client_config.fqdn)
-		udhcp_add_binary_option(packet, client_config.fqdn);
-	if (client_config.vendorclass)
-		udhcp_add_binary_option(packet, client_config.vendorclass);
 
 	/* Add a "param req" option with the list of options we'd like to have
 	 * from stubborn DHCP servers. Pull the data from the struct in common.c.
@@ -389,6 +383,13 @@ static void add_client_options(struct dhcp_packet *packet)
 		packet->options[end + OPT_LEN] = len;
 		packet->options[end + OPT_DATA + len] = DHCP_END;
 	}
+
+	if (client_config.vendorclass)
+		udhcp_add_binary_option(packet, client_config.vendorclass);
+	if (client_config.hostname)
+		udhcp_add_binary_option(packet, client_config.hostname);
+	if (client_config.fqdn)
+		udhcp_add_binary_option(packet, client_config.fqdn);
 
 	/* Add -x options if any */
 	{
@@ -431,7 +432,7 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
 }
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
-static int send_discover(uint32_t xid, uint32_t requested)
+static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
@@ -459,7 +460,7 @@ static int send_discover(uint32_t xid, uint32_t requested)
 /* RFC 2131 3.1 paragraph 3:
  * "The client _broadcasts_ a DHCPREQUEST message..."
  */
-static int send_select(uint32_t xid, uint32_t server, uint32_t requested)
+static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 	struct in_addr addr;
@@ -542,7 +543,7 @@ static int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Broadcast a DHCP decline message */
-static int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
+static NOINLINE int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
@@ -1356,7 +1357,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		/* TODO: why we don't just fetch server's IP from IP header? */
 				temp = udhcp_get_option(&packet, DHCP_SERVER_ID);
 				if (!temp) {
-					bb_error_msg("no server ID in message");
+					bb_error_msg("no server ID, ignoring packet");
 					continue;
 					/* still selecting - this server looks bad */
 				}
