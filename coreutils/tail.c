@@ -346,6 +346,7 @@ int tail_main(int argc, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(fds);
+		free(tailbuf);
 	}
 	return G.status;
 }
