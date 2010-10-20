@@ -777,7 +777,6 @@ static void client_background(void)
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-i,--interface IFACE	Interface to use (default eth0)"
 //usage:     "\n	-p,--pidfile FILE	Create pidfile"
-//usage:     "\n	-r,--request IP		IP address to request"
 //usage:     "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-t,--retries N		Send up to N discover packets"
 //usage:     "\n	-T,--timeout N		Pause between packets (default 3 seconds)"
@@ -786,10 +785,10 @@ static void client_background(void)
 //usage:	USE_FOR_MMU(
 //usage:     "\n	-b,--background		Background if lease is not obtained"
 //usage:	)
-//usage:     "\n	-S,--syslog		Log to syslog too"
 //usage:     "\n	-n,--now		Exit if lease is not obtained"
 //usage:     "\n	-q,--quit		Exit after obtaining lease"
 //usage:     "\n	-R,--release		Release IP on exit"
+//usage:     "\n	-S,--syslog		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
 //usage:     "\n	-P,--client-port N	Use port N (default 68)"
 //usage:	)
@@ -798,8 +797,12 @@ static void client_background(void)
 //usage:	)
 //usage:     "\n	-O,--request-option OPT	Request option OPT from server (cumulative)"
 //usage:     "\n	-o,--no-default-options	Don't request any options (unless -O is given)"
+//usage:     "\n	-r,--request IP		Request this IP address"
 //usage:     "\n	-x OPT:VAL		Include option OPT in sent packets (cumulative)"
-//usage:     "\n				Examples: -x hostname:bbox -x 61:0100ffee11cc55"
+//usage:     "\n				Examples of string, numeric, and hex byte opts:"
+//usage:     "\n				-x hostname:bbox - option 12"
+//usage:     "\n				-x lease:3600 - option 51 (lease time)"
+//usage:     "\n				-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
 //usage:     "\n	-F,--fqdn NAME		Ask server to update DNS mapping for NAME"
 //usage:     "\n	-H,-h,--hostname NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')"
@@ -811,29 +814,32 @@ static void client_background(void)
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	-i IFACE	Interface to use (default eth0)"
 //usage:     "\n	-p FILE		Create pidfile"
-//usage:     "\n	-r IP		IP address to request"
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-t N		Send up to N discover packets"
 //usage:     "\n	-T N		Pause between packets (default 3 seconds)"
 //usage:     "\n	-A N		Wait N seconds (default 20) after failure"
-//usage:     "\n	-x OPT:VAL	Include option OPT in sent packets (cumulative)"
-//usage:     "\n			Examples: -x hostname:bbox -x 61:0100ffee11cc55"
-//usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
-//usage:     "\n	-o		Don't request any options (unless -O is given)"
 //usage:     "\n	-f		Run in foreground"
 //usage:	USE_FOR_MMU(
 //usage:     "\n	-b		Background if lease is not obtained"
 //usage:	)
-//usage:     "\n	-S		Log to syslog too"
 //usage:     "\n	-n		Exit if lease is not obtained"
 //usage:     "\n	-q		Exit after obtaining lease"
 //usage:     "\n	-R		Release IP on exit"
+//usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
 //usage:     "\n	-P N		Use port N (default 68)"
 //usage:	)
 //usage:	IF_FEATURE_UDHCPC_ARPING(
 //usage:     "\n	-a		Use arping to validate offered address"
 //usage:	)
+//usage:     "\n	-O OPT		Request option OPT from server (cumulative)"
+//usage:     "\n	-o		Don't request any options (unless -O is given)"
+//usage:     "\n	-r IP		Request this IP address"
+//usage:     "\n	-x OPT:VAL	Include option OPT in sent packets (cumulative)"
+//usage:     "\n			Examples of string, numeric, and hex byte opts:"
+//usage:     "\n			-x hostname:bbox - option 12"
+//usage:     "\n			-x lease:3600 - option 51 (lease time)"
+//usage:     "\n			-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
 //usage:     "\n	-F NAME		Ask server to update DNS mapping for NAME"
 //usage:     "\n	-H,-h NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')"
