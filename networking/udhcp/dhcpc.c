@@ -1167,6 +1167,16 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		 * resend discover/renew/whatever
 		 */
 		if (retval == 0) {
+			/* When running on a bridge, the ifindex may have changed
+			 * (e.g. if member interfaces were added/removed
+			 * or if the status of the bridge changed).
+			 * Refresh ifindex and client_mac:
+			 */
+			udhcp_read_interface(client_config.interface,
+				&client_config.ifindex,
+				NULL,
+				client_config.client_mac);
+
 			/* We will restart the wait in any case */
 			already_waited_sec = 0;
 
