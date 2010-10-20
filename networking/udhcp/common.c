@@ -68,9 +68,10 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_IP                               , 0x32 }, /* DHCP_REQUESTED_IP  */
 	{ OPTION_U8                               , 0x35 }, /* DHCP_MESSAGE_TYPE  */
 	{ OPTION_U16                              , 0x39 }, /* DHCP_MAX_SIZE      */
-	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
-	/* not really a string */
-	{ OPTION_STRING                           , 0x3d }, /* DHCP_CLIENT_ID     */
+//looks like these opts will work just fine even without these defs:
+//	{ OPTION_STRING                           , 0x3c }, /* DHCP_VENDOR        */
+//	/* not really a string: */
+//	{ OPTION_STRING                           , 0x3d }, /* DHCP_CLIENT_ID     */
 	{ 0, 0 } /* zeroed terminating entry */
 };
 
