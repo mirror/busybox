@@ -247,14 +247,12 @@ static void FAST_FUNC print_stat(char *pformat, const char m,
 		strcat(pformat, "lu");
 		printf(pformat, (unsigned long) statbuf->st_uid);
 	} else if (m == 'U') {
-		setpwent();
 		pw_ent = getpwuid(statbuf->st_uid);
 		printfs(pformat, (pw_ent != NULL) ? pw_ent->pw_name : "UNKNOWN");
 	} else if (m == 'g') {
 		strcat(pformat, "lu");
 		printf(pformat, (unsigned long) statbuf->st_gid);
 	} else if (m == 'G') {
-		setgrent();
 		gw_ent = getgrgid(statbuf->st_gid);
 		printfs(pformat, (gw_ent != NULL) ? gw_ent->gr_name : "UNKNOWN");
 	} else if (m == 't') {
@@ -591,20 +589,20 @@ static bool do_stat(const char *filename, const char *format)
 # endif
 	} else {
 		char *linkname = NULL;
-
 		struct passwd *pw_ent;
 		struct group *gw_ent;
-		setgrent();
+
 		gw_ent = getgrgid(statbuf.st_gid);
-		setpwent();
 		pw_ent = getpwuid(statbuf.st_uid);
 
 		if (S_ISLNK(statbuf.st_mode))
 			linkname = xmalloc_readlink_or_warn(filename);
-		if (linkname)
+		if (linkname) {
 			printf("  File: '%s' -> '%s'\n", filename, linkname);
-		else
+			free(linkname);
+		} else {
 			printf("  File: '%s'\n", filename);
+		}
 
 		printf("  Size: %-10llu\tBlocks: %-10llu IO Block: %-6lu %s\n"
 		       "Device: %llxh/%llud\tInode: %-10llu  Links: %-5lu",
