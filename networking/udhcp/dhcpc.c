@@ -346,31 +346,34 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 /* Initialize the packet with the proper defaults */
 static void init_packet(struct dhcp_packet *packet, char type)
 {
+	/* Fill in: op, htype, hlen, cookie fields; message type option: */
 	udhcp_init_header(packet, type);
+
+	packet->xid = random_xid();
+
 	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
 		udhcp_add_binary_option(packet, client_config.clientid);
-	if (client_config.hostname)
-		udhcp_add_binary_option(packet, client_config.hostname);
-	if (client_config.fqdn)
-		udhcp_add_binary_option(packet, client_config.fqdn);
-	if (type != DHCPDECLINE
-	 && type != DHCPRELEASE
-	 && client_config.vendorclass
-	) {
-		udhcp_add_binary_option(packet, client_config.vendorclass);
-	}
 }
 
 static void add_client_options(struct dhcp_packet *packet)
 {
+	uint8_t c;
+	int i, end, len;
+
+	udhcp_add_simple_option(packet, DHCP_MAX_SIZE, htons(IP_UDP_DHCP_SIZE));
+	if (client_config.hostname)
+		udhcp_add_binary_option(packet, client_config.hostname);
+	if (client_config.fqdn)
+		udhcp_add_binary_option(packet, client_config.fqdn);
+	if (client_config.vendorclass)
+		udhcp_add_binary_option(packet, client_config.vendorclass);
+
 	/* Add a "param req" option with the list of options we'd like to have
 	 * from stubborn DHCP servers. Pull the data from the struct in common.c.
 	 * No bounds checking because it goes towards the head of the packet. */
-	uint8_t c;
-	int end = udhcp_end_option(packet->options);
-	int i, len = 0;
-
+	end = udhcp_end_option(packet->options);
+	len = 0;
 	for (i = 0; (c = dhcp_optflags[i].code) != 0; i++) {
 		if ((   (dhcp_optflags[i].flags & OPTION_REQ)
 		     && !client_config.no_default_options
@@ -432,13 +435,20 @@ static int send_discover(uint32_t xid, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
+	/* Fill in: op, htype, hlen, cookie, chaddr fields,
+	 * random xid field (we override it below),
+	 * client-id option (unless -C), message type option:
+	 */
 	init_packet(&packet, DHCPDISCOVER);
+
 	packet.xid = xid;
 	if (requested)
 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
-	/* Explicitly saying that we want RFC-compliant packets helps
-	 * some buggy DHCP servers to NOT send bigger packets */
-	udhcp_add_simple_option(&packet, DHCP_MAX_SIZE, htons(576));
+
+	/* Add options: maxsize,
+	 * optionally: hostname, fqdn, vendorclass,
+	 * "param req" option according to -O, options specified with -x
+	 */
 	add_client_options(&packet);
 
 	bb_info_msg("Sending discover...");
@@ -454,10 +464,33 @@ static int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 	struct dhcp_packet packet;
 	struct in_addr addr;
 
+/*
+ * RFC 2131 4.3.2 DHCPREQUEST message
+ * ...
+ * If the DHCPREQUEST message contains a 'server identifier'
+ * option, the message is in response to a DHCPOFFER message.
+ * Otherwise, the message is a request to verify or extend an
+ * existing lease. If the client uses a 'client identifier'
+ * in a DHCPREQUEST message, it MUST use that same 'client identifier'
+ * in all subsequent messages. If the client included a list
+ * of requested parameters in a DHCPDISCOVER message, it MUST
+ * include that list in all subsequent messages.
+ */
+	/* Fill in: op, htype, hlen, cookie, chaddr fields,
+	 * random xid field (we override it below),
+	 * client-id option (unless -C), message type option:
+	 */
 	init_packet(&packet, DHCPREQUEST);
+
 	packet.xid = xid;
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
+
+	/* Add options: maxsize,
+	 * optionally: hostname, fqdn, vendorclass,
+	 * "param req" option according to -O, and options specified with -x
+	 */
 	add_client_options(&packet);
 
 	addr.s_addr = requested;
@@ -470,9 +503,33 @@ static int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
 
+/*
+ * RFC 2131 4.3.2 DHCPREQUEST message
+ * ...
+ * DHCPREQUEST generated during RENEWING state:
+ *
+ * 'server identifier' MUST NOT be filled in, 'requested IP address'
+ * option MUST NOT be filled in, 'ciaddr' MUST be filled in with
+ * client's IP address. In this situation, the client is completely
+ * configured, and is trying to extend its lease. This message will
+ * be unicast, so no relay agents will be involved in its
+ * transmission.  Because 'giaddr' is therefore not filled in, the
+ * DHCP server will trust the value in 'ciaddr', and use it when
+ * replying to the client.
+ */
+	/* Fill in: op, htype, hlen, cookie, chaddr fields,
+	 * random xid field (we override it below),
+	 * client-id option (unless -C), message type option:
+	 */
 	init_packet(&packet, DHCPREQUEST);
+
 	packet.xid = xid;
 	packet.ciaddr = ciaddr;
+
+	/* Add options: maxsize,
+	 * optionally: hostname, fqdn, vendorclass,
+	 * "param req" option according to -O, and options specified with -x
+	 */
 	add_client_options(&packet);
 
 	bb_info_msg("Sending renew...");
@@ -489,9 +546,20 @@ static int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
+	/* Fill in: op, htype, hlen, cookie, chaddr, random xid fields,
+	 * client-id option (unless -C), message type option:
+	 */
 	init_packet(&packet, DHCPDECLINE);
+
+	/* RFC 2131 says DHCPDECLINE's xid is randomly selected by client,
+	 * but in case the server is buggy and wants DHCPDECLINE's xid
+	 * to match the xid which started entire handshake,
+	 * we use the same xid we used in initial DHCPDISCOVER:
+	 */
 	packet.xid = xid;
+	/* DHCPDECLINE uses "requested ip", not ciaddr, to store offered IP */
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending decline...");
@@ -504,8 +572,12 @@ static int send_release(uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
 
+	/* Fill in: op, htype, hlen, cookie, chaddr, random xid fields,
+	 * client-id option (unless -C), message type option:
+	 */
 	init_packet(&packet, DHCPRELEASE);
-	packet.xid = random_xid();
+
+	/* DHCPRELEASE uses ciaddr, not "requested ip", to store IP being released */
 	packet.ciaddr = ciaddr;
 
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
@@ -1254,7 +1326,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Ignore packets that aren't for us */
 		if (packet.hlen != 6
-		 || memcmp(packet.chaddr, client_config.client_mac, 6)
+		 || memcmp(packet.chaddr, client_config.client_mac, 6) != 0
 		) {
 //FIXME: need to also check that last 10 bytes are zero
 			log1("chaddr does not match, ignoring packet"); // log2?
@@ -1280,7 +1352,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 				/* it IS unaligned sometimes, don't "optimize" */
 				move_from_unaligned32(server_addr, temp);
-				xid = packet.xid;
+				/*xid = packet.xid; - already is */
 				requested_ip = packet.yiaddr;
 
 				/* enter requesting state */
