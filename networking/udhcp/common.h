@@ -63,14 +63,14 @@ struct udp_dhcp_packet {
 } PACKED;
 
 enum {
-	IP_UPD_DHCP_SIZE = sizeof(struct ip_udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
-	UPD_DHCP_SIZE    = sizeof(struct udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+	IP_UDP_DHCP_SIZE = sizeof(struct ip_udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
+	UDP_DHCP_SIZE    = sizeof(struct udp_dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
 	DHCP_SIZE        = sizeof(struct dhcp_packet) - CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS,
 };
 
 /* Let's see whether compiler understood us right */
 struct BUG_bad_sizeof_struct_ip_udp_dhcp_packet {
-	char c[IP_UPD_DHCP_SIZE == 576 ? 1 : -1];
+	char c[IP_UDP_DHCP_SIZE == 576 ? 1 : -1];
 };
 
 
