@@ -2788,7 +2788,7 @@ INSERT
        "Address:    127.0.0.1\n"
 
 #define ntpd_trivial_usage \
-	"[-dnqwl] [-S PROG] [-p PEER]..."
+	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l")"] [-S PROG] [-p PEER]..."
 #define ntpd_full_usage "\n\n" \
        "NTP client/server\n" \
      "\nOptions:" \
@@ -2797,7 +2797,9 @@ INSERT
      "\n	-q	Quit after clock is set" \
      "\n	-N	Run at high priority" \
      "\n	-w	Do not set time (only query peers), implies -n" \
+	IF_FEATURE_NTPD_SERVER( \
      "\n	-l	Run as server on port 123" \
+	) \
      "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
 

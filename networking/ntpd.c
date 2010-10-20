@@ -49,7 +49,7 @@
 /* High-level description of the algorithm:
  *
  * We start running with very small poll_exp, BURSTPOLL,
- * in order to quickly accumulate INITIAL_SAMLPES datapoints
+ * in order to quickly accumulate INITIAL_SAMPLES datapoints
  * for each peer. Then, time is stepped if the offset is larger
  * than STEP_THRESHOLD, otherwise it isn't; anyway, we enlarge
  * poll_exp to MINPOLL and enter frequency measurement step:
@@ -77,7 +77,7 @@
 
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
-#define INITIAL_SAMLPES 4       /* how many samples do we want for init */
+#define INITIAL_SAMPLES 4       /* how many samples do we want for init */
 
 /* Clock discipline parameters and constants */
 
@@ -1972,14 +1972,14 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 	idx2peer = xzalloc(sizeof(idx2peer[0]) * cnt);
 	pfd = xzalloc(sizeof(pfd[0]) * cnt);
 
-	/* Countdown: we never sync before we sent INITIAL_SAMLPES+1
+	/* Countdown: we never sync before we sent INITIAL_SAMPLES+1
 	 * packets to each peer.
 	 * NB: if some peer is not responding, we may end up sending
 	 * fewer packets to it and more to other peers.
-	 * NB2: sync usually happens using INITIAL_SAMLPES packets,
+	 * NB2: sync usually happens using INITIAL_SAMPLES packets,
 	 * since last reply does not come back instantaneously.
 	 */
-	cnt = G.peer_cnt * (INITIAL_SAMLPES + 1);
+	cnt = G.peer_cnt * (INITIAL_SAMPLES + 1);
 
 	while (!bb_got_signal) {
 		llist_t *item;
