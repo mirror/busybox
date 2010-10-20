@@ -123,7 +123,7 @@ static void crondlog(const char *ctl, ...)
 		/* Syslog mode: all to syslog (logmode = LOGMODE_SYSLOG), */
 		if (!DebugOpt && G.log_filename) {
 			/* Otherwise (log to file): we reopen log file at every write: */
-			int logfd = open3_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
+			int logfd = open_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND);
 			if (logfd >= 0)
 				xmove_fd(logfd, STDERR_FILENO);
 		}
