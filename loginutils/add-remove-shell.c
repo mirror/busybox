@@ -63,11 +63,19 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 	orig_fp = fopen_for_read(orig_fn);
 
 	new_fn = xasprintf("%s.tmp", orig_fn);
-	xmove_fd(xopen(new_fn, O_WRONLY | O_CREAT | O_EXCL), STDOUT_FILENO);
+	/*
+	 * O_TRUNC or O_EXCL? At the first glance, O_EXCL looks better,
+	 * since it prevents races. But: (1) it requires a retry loop,
+	 * (2) if /etc/shells.tmp is *stale*, then retry loop
+	 * with O_EXCL will never succeed - it should have a timeout,
+	 * after which it should revert to O_TRUNC.
+	 * For now, I settle for O_TRUNC instead.
+	 */
+	xmove_fd(xopen(new_fn, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
 
 	/* TODO:
 	struct stat sb;
-	fstat(fileno(orig_fp), &sb);
+	xfstat(fileno(orig_fp), &sb);
 	xfchown(STDOUT_FILENO, sb.st_uid, sb.st_gid);
 	xfchmod(STDOUT_FILENO, sb.st_mode);
 	*/
