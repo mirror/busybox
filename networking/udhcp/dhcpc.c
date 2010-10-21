@@ -432,6 +432,7 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
 }
 
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
+/* NOINLINE: limit stack usage in caller */
 static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 {
 	struct dhcp_packet packet;
@@ -460,6 +461,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
 /* RFC 2131 3.1 paragraph 3:
  * "The client _broadcasts_ a DHCPREQUEST message..."
  */
+/* NOINLINE: limit stack usage in caller */
 static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
@@ -500,7 +502,8 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
 }
 
 /* Unicast or broadcast a DHCP renew message */
-static int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
+/* NOINLINE: limit stack usage in caller */
+static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 {
 	struct dhcp_packet packet;
 
@@ -543,6 +546,7 @@ static int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Broadcast a DHCP decline message */
+/* NOINLINE: limit stack usage in caller */
 static NOINLINE int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
@@ -588,6 +592,7 @@ static int send_release(uint32_t server, uint32_t ciaddr)
 }
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
+/* NOINLINE: limit stack usage in caller */
 static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 {
 	int bytes;
