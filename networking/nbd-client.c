@@ -46,7 +46,9 @@ int nbdclient_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int nbdclient_main(int argc, char **argv)
 {
 	unsigned long timeout = 0;
+#if BB_MMU
 	int nofork = 0;
+#endif
 	char *host, *port, *device;
 	struct nbd_header_t {
 		uint64_t magic1; // "NBDMAGIC"
