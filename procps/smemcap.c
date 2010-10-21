@@ -125,5 +125,8 @@ int smemcap_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	}
 
+	if (ENABLE_FEATURE_CLEAN_UP)
+		closedir(d);
+
 	return EXIT_SUCCESS;
 }
