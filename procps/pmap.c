@@ -44,7 +44,7 @@ enum {
 
 static void print_smaprec(struct smaprec *currec, void *data)
 {
-	unsigned opt = (unsigned)data;
+	unsigned opt = (uintptr_t)data;
 
 	printf("%0" AFMT "lx ", currec->smap_start);
 
@@ -74,7 +74,7 @@ static int procps_get_maps(pid_t pid, unsigned opt)
 
 	memset(&total, 0, sizeof(total));
 
-	ret = procps_read_smaps(pid, &total, print_smaprec, (void*)opt);
+	ret = procps_read_smaps(pid, &total, print_smaprec, (void*)(uintptr_t)opt);
 	if (ret)
 		return ret;
 
