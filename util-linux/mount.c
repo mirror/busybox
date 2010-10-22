@@ -775,78 +775,52 @@ static char *nfs_strerror(int status)
 
 static bool_t xdr_fhandle(XDR *xdrs, fhandle objp)
 {
-	if (!xdr_opaque(xdrs, objp, FHSIZE))
-		 return FALSE;
-	return TRUE;
+	return xdr_opaque(xdrs, objp, FHSIZE);
 }
 
 static bool_t xdr_fhstatus(XDR *xdrs, fhstatus *objp)
 {
 	if (!xdr_u_int(xdrs, &objp->fhs_status))
 		 return FALSE;
-	switch (objp->fhs_status) {
-	case 0:
-		if (!xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle))
-			 return FALSE;
-		break;
-	default:
-		break;
-	}
+	if (objp->fhs_status == 0)
+		return xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle);
 	return TRUE;
 }
 
 static bool_t xdr_dirpath(XDR *xdrs, dirpath *objp)
 {
-	if (!xdr_string(xdrs, objp, MNTPATHLEN))
-		 return FALSE;
-	return TRUE;
+	return xdr_string(xdrs, objp, MNTPATHLEN);
 }
 
 static bool_t xdr_fhandle3(XDR *xdrs, fhandle3 *objp)
 {
-	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val,
-				(unsigned int *) &objp->fhandle3_len,
-				FHSIZE3)
-	) {
-		 return FALSE;
-	}
-	return TRUE;
+	return xdr_bytes(xdrs, (char **)&objp->fhandle3_val,
+			   (unsigned int *) &objp->fhandle3_len,
+			   FHSIZE3);
 }
 
 static bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
 {
 	if (!xdr_fhandle3(xdrs, &objp->fhandle))
 		return FALSE;
-	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val),
-				&(objp->auth_flavours.auth_flavours_len),
-				~0,
-				sizeof(int),
-				(xdrproc_t) xdr_int)
-	) {
-		return FALSE;
-	}
-	return TRUE;
+	return xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val),
+			   &(objp->auth_flavours.auth_flavours_len),
+			   ~0,
+			   sizeof(int),
+			   (xdrproc_t) xdr_int);
 }
 
 static bool_t xdr_mountstat3(XDR *xdrs, mountstat3 *objp)
 {
-	if (!xdr_enum(xdrs, (enum_t *) objp))
-		 return FALSE;
-	return TRUE;
+	return xdr_enum(xdrs, (enum_t *) objp);
 }
 
 static bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
 {
 	if (!xdr_mountstat3(xdrs, &objp->fhs_status))
 		return FALSE;
-	switch (objp->fhs_status) {
-	case MNT_OK:
-		if (!xdr_mountres3_ok(xdrs, &objp->mountres3_u.mountinfo))
-			 return FALSE;
-		break;
-	default:
-		break;
-	}
+	if (objp->fhs_status == MNT_OK)
+		return xdr_mountres3_ok(xdrs, &objp->mountres3_u.mountinfo);
 	return TRUE;
 }
 
