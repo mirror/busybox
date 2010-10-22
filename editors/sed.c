@@ -1370,9 +1370,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			G.outname = xasprintf("%sXXXXXX", argv[i]);
-			nonstdoutfd = mkstemp(G.outname);
-			if (-1 == nonstdoutfd)
-				bb_perror_msg_and_die("can't create temp file %s", G.outname);
+			nonstdoutfd = xmkstemp(G.outname);
 			G.nonstdout = xfdopen_for_write(nonstdoutfd);
 
 			/* Set permissions/owner of output file */

@@ -159,9 +159,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 		// if data file is stdin, we need to dump it first
 		if (LONE_DASH(*argv)) {
 			strcpy(tempfile, "/tmp/lprXXXXXX");
-			dfd = mkstemp(tempfile);
-			if (dfd < 0)
-				bb_perror_msg_and_die("mkstemp");
+			dfd = xmkstemp(tempfile);
 			bb_copyfd_eof(STDIN_FILENO, dfd);
 			xlseek(dfd, 0, SEEK_SET);
 			*argv = (char*)bb_msg_standard_input;

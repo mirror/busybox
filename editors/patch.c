@@ -200,8 +200,7 @@ int copy_tempfile(int fdin, char *name, char **tempname)
 	int fd;
 
 	*tempname = xasprintf("%sXXXXXX", name);
-	fd = mkstemp(*tempname);
-	if(-1 == fd) bb_perror_msg_and_die("no temp file");
+	fd = xmkstemp(*tempname);
 
 	// Set permissions of output file
 	fstat(fdin, &statbuf);

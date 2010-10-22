@@ -41,12 +41,10 @@ static void convert(char *fn, int conv_type)
 		fstat(fileno(in), &st);
 
 		temp_fn = xasprintf("%sXXXXXX", resolved_fn);
-		i = mkstemp(temp_fn);
-		if (i == -1
-		 || fchmod(i, st.st_mode) == -1
-		) {
+		i = xmkstemp(temp_fn);
+		if (fchmod(i, st.st_mode) == -1)
 			bb_simple_perror_msg_and_die(temp_fn);
-		}
+
 		out = xfdopen_for_write(i);
 	}
 

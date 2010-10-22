@@ -240,6 +240,14 @@ off_t FAST_FUNC xlseek(int fd, off_t offset, int whence)
 	return off;
 }
 
+int FAST_FUNC xmkstemp(char *template)
+{
+	int fd = mkstemp(template);
+	if (fd < 0)
+		bb_perror_msg_and_die("can't create temp file '%s'", template);
+	return fd;
+}
+
 // Die with supplied filename if this FILE* has ferror set.
 void FAST_FUNC die_if_ferror(FILE *fp, const char *fn)
 {

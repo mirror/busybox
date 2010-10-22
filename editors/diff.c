@@ -685,9 +685,8 @@ static int diffreg(char *file[2])
 		 */
 		if (lseek(fd, 0, SEEK_SET) == -1 && errno == ESPIPE) {
 			char name[] = "/tmp/difXXXXXX";
-			int fd_tmp = mkstemp(name);
-			if (fd_tmp < 0)
-				bb_perror_msg_and_die("mkstemp");
+			int fd_tmp = xmkstemp(name);
+
 			unlink(name);
 			if (bb_copyfd_eof(fd, fd_tmp) < 0)
 				xfunc_die();
