@@ -283,88 +283,80 @@ enum {
 #define	OC_B	OC_BUILTIN
 
 static const char tokenlist[] ALIGN1 =
-	"\1("       NTC
-	"\1)"       NTC
-	"\1/"       NTC                                 /* REGEXP */
-	"\2>>"      "\1>"       "\1|"       NTC         /* OUTRDR */
-	"\2++"      "\2--"      NTC                     /* UOPPOST */
-	"\2++"      "\2--"      "\1$"       NTC         /* UOPPRE1 */
-	"\2=="      "\1="       "\2+="      "\2-="      /* BINOPX */
-	"\2*="      "\2/="      "\2%="      "\2^="
-	"\1+"       "\1-"       "\3**="     "\2**"
-	"\1/"       "\1%"       "\1^"       "\1*"
-	"\2!="      "\2>="      "\2<="      "\1>"
-	"\1<"       "\2!~"      "\1~"       "\2&&"
-	"\2||"      "\1?"       "\1:"       NTC
-	"\2in"      NTC
-	"\1,"       NTC
-	"\1|"       NTC
-	"\1+"       "\1-"       "\1!"       NTC         /* UOPPRE2 */
-	"\1]"       NTC
-	"\1{"       NTC
-	"\1}"       NTC
-	"\1;"       NTC
-	"\1\n"      NTC
-	"\2if"      "\2do"      "\3for"     "\5break"   /* STATX */
-	"\10continue"           "\6delete"  "\5print"
-	"\6printf"  "\4next"    "\10nextfile"
-	"\6return"  "\4exit"    NTC
-	"\5while"   NTC
-	"\4else"    NTC
+	"\1("         NTC
+	"\1)"         NTC
+	"\1/"         NTC                                   /* REGEXP */
+	"\2>>"        "\1>"         "\1|"       NTC         /* OUTRDR */
+	"\2++"        "\2--"        NTC                     /* UOPPOST */
+	"\2++"        "\2--"        "\1$"       NTC         /* UOPPRE1 */
+	"\2=="        "\1="         "\2+="      "\2-="      /* BINOPX */
+	"\2*="        "\2/="        "\2%="      "\2^="
+	"\1+"         "\1-"         "\3**="     "\2**"
+	"\1/"         "\1%"         "\1^"       "\1*"
+	"\2!="        "\2>="        "\2<="      "\1>"
+	"\1<"         "\2!~"        "\1~"       "\2&&"
+	"\2||"        "\1?"         "\1:"       NTC
+	"\2in"        NTC
+	"\1,"         NTC
+	"\1|"         NTC
+	"\1+"         "\1-"         "\1!"       NTC         /* UOPPRE2 */
+	"\1]"         NTC
+	"\1{"         NTC
+	"\1}"         NTC
+	"\1;"         NTC
+	"\1\n"        NTC
+	"\2if"        "\2do"        "\3for"     "\5break"   /* STATX */
+	"\10continue" "\6delete"    "\5print"
+	"\6printf"    "\4next"      "\10nextfile"
+	"\6return"    "\4exit"      NTC
+	"\5while"     NTC
+	"\4else"      NTC
 
-	"\3and"     "\5compl"   "\6lshift"  "\2or"
-	"\6rshift"  "\3xor"
-	"\5close"   "\6system"  "\6fflush"  "\5atan2"   /* BUILTIN */
-	"\3cos"     "\3exp"     "\3int"     "\3log"
-	"\4rand"    "\3sin"     "\4sqrt"    "\5srand"
-	"\6gensub"  "\4gsub"    "\5index"   "\6length"
-	"\5match"   "\5split"   "\7sprintf" "\3sub"
-	"\6substr"  "\7systime" "\10strftime" "\6mktime"
-	"\7tolower" "\7toupper" NTC
-	"\7getline" NTC
-	"\4func"    "\10function"   NTC
-	"\5BEGIN"   NTC
-	"\3END"     "\0"
+	"\3and"       "\5compl"     "\6lshift"  "\2or"
+	"\6rshift"    "\3xor"
+	"\5close"     "\6system"    "\6fflush"  "\5atan2"   /* BUILTIN */
+	"\3cos"       "\3exp"       "\3int"     "\3log"
+	"\4rand"      "\3sin"       "\4sqrt"    "\5srand"
+	"\6gensub"    "\4gsub"      "\5index"   "\6length"
+	"\5match"     "\5split"     "\7sprintf" "\3sub"
+	"\6substr"    "\7systime"   "\10strftime" "\6mktime"
+	"\7tolower"   "\7toupper"   NTC
+	"\7getline"   NTC
+	"\4func"      "\10function" NTC
+	"\5BEGIN"     NTC
+	"\3END"
+	/* compiler adds trailing "\0" */
 	;
 
 static const uint32_t tokeninfo[] = {
 	0,
 	0,
 	OC_REGEXP,
-	xS|'a',     xS|'w',     xS|'|',
-	OC_UNARY|xV|P(9)|'p',       OC_UNARY|xV|P(9)|'m',
-	OC_UNARY|xV|P(9)|'P',       OC_UNARY|xV|P(9)|'M',
-	    OC_FIELD|xV|P(5),
-	OC_COMPARE|VV|P(39)|5,      OC_MOVE|VV|P(74),
-	    OC_REPLACE|NV|P(74)|'+',    OC_REPLACE|NV|P(74)|'-',
-	OC_REPLACE|NV|P(74)|'*',    OC_REPLACE|NV|P(74)|'/',
-	    OC_REPLACE|NV|P(74)|'%',    OC_REPLACE|NV|P(74)|'&',
-	OC_BINARY|NV|P(29)|'+',     OC_BINARY|NV|P(29)|'-',
-	    OC_REPLACE|NV|P(74)|'&',    OC_BINARY|NV|P(15)|'&',
-	OC_BINARY|NV|P(25)|'/',     OC_BINARY|NV|P(25)|'%',
-	    OC_BINARY|NV|P(15)|'&',     OC_BINARY|NV|P(25)|'*',
-	OC_COMPARE|VV|P(39)|4,      OC_COMPARE|VV|P(39)|3,
-	    OC_COMPARE|VV|P(39)|0,      OC_COMPARE|VV|P(39)|1,
-	OC_COMPARE|VV|P(39)|2,      OC_MATCH|Sx|P(45)|'!',
-	    OC_MATCH|Sx|P(45)|'~',      OC_LAND|Vx|P(55),
-	OC_LOR|Vx|P(59),            OC_TERNARY|Vx|P(64)|'?',
-	    OC_COLON|xx|P(67)|':',
-	OC_IN|SV|P(49),
+	xS|'a',                  xS|'w',                  xS|'|',
+	OC_UNARY|xV|P(9)|'p',    OC_UNARY|xV|P(9)|'m',
+	OC_UNARY|xV|P(9)|'P',    OC_UNARY|xV|P(9)|'M',    OC_FIELD|xV|P(5),
+	OC_COMPARE|VV|P(39)|5,   OC_MOVE|VV|P(74),        OC_REPLACE|NV|P(74)|'+', OC_REPLACE|NV|P(74)|'-',
+	OC_REPLACE|NV|P(74)|'*', OC_REPLACE|NV|P(74)|'/', OC_REPLACE|NV|P(74)|'%', OC_REPLACE|NV|P(74)|'&',
+	OC_BINARY|NV|P(29)|'+',  OC_BINARY|NV|P(29)|'-',  OC_REPLACE|NV|P(74)|'&', OC_BINARY|NV|P(15)|'&',
+	OC_BINARY|NV|P(25)|'/',  OC_BINARY|NV|P(25)|'%',  OC_BINARY|NV|P(15)|'&',  OC_BINARY|NV|P(25)|'*',
+	OC_COMPARE|VV|P(39)|4,   OC_COMPARE|VV|P(39)|3,   OC_COMPARE|VV|P(39)|0,   OC_COMPARE|VV|P(39)|1,
+	OC_COMPARE|VV|P(39)|2,   OC_MATCH|Sx|P(45)|'!',   OC_MATCH|Sx|P(45)|'~',   OC_LAND|Vx|P(55),
+	OC_LOR|Vx|P(59),         OC_TERNARY|Vx|P(64)|'?', OC_COLON|xx|P(67)|':',
+	OC_IN|SV|P(49), /* in */
 	OC_COMMA|SS|P(80),
 	OC_PGETLINE|SV|P(37),
-	OC_UNARY|xV|P(19)|'+',      OC_UNARY|xV|P(19)|'-',
-	    OC_UNARY|xV|P(19)|'!',
+	OC_UNARY|xV|P(19)|'+',   OC_UNARY|xV|P(19)|'-',   OC_UNARY|xV|P(19)|'!',
+	0, /* ] */
 	0,
 	0,
 	0,
-	0,
-	0,
-	ST_IF,          ST_DO,          ST_FOR,         OC_BREAK,
-	OC_CONTINUE,                    OC_DELETE|Vx,   OC_PRINT,
-	OC_PRINTF,      OC_NEXT,        OC_NEXTFILE,
-	OC_RETURN|Vx,   OC_EXIT|Nx,
+	0, /* \n */
+	ST_IF,        ST_DO,        ST_FOR,      OC_BREAK,
+	OC_CONTINUE,  OC_DELETE|Vx, OC_PRINT,
+	OC_PRINTF,    OC_NEXT,      OC_NEXTFILE,
+	OC_RETURN|Vx, OC_EXIT|Nx,
 	ST_WHILE,
-	0,
+	0, /* else */
 
 	OC_B|B_an|P(0x83), OC_B|B_co|P(0x41), OC_B|B_ls|P(0x83), OC_B|B_or|P(0x83),
 	OC_B|B_rs|P(0x83), OC_B|B_xo|P(0x83),
@@ -376,9 +368,9 @@ static const uint32_t tokeninfo[] = {
 	OC_B|B_ss|P(0x8f), OC_FBLTIN|F_ti,    OC_B|B_ti|P(0x0b), OC_B|B_mt|P(0x0b),
 	OC_B|B_lo|P(0x49), OC_B|B_up|P(0x49),
 	OC_GETLINE|SV|P(0),
-	0,	0,
+	0,	           0,
 	0,
-	0
+	0 /* END */
 };
 
 /* internal variable names and their initial values       */
@@ -1836,6 +1828,8 @@ static int awk_getline(rstream *rsm, var *v)
 	int fd, so, eo, r, rp;
 	char c, *m, *s;
 
+	debug_printf_eval("entered %s()\n", __func__);
+
 	/* we're using our own buffer since we need access to accumulating
 	 * characters
 	 */
@@ -1921,6 +1915,8 @@ static int awk_getline(rstream *rsm, var *v)
 	rsm->adv = a + eo;
 	rsm->pos = p - eo;
 	rsm->size = size;
+
+	debug_printf_eval("returning from %s(): %d\n", __func__, r);
 
 	return r;
 }
@@ -2347,6 +2343,8 @@ static var *evaluate(node *op, var *res)
 	if (!op)
 		return setvar_s(res, NULL);
 
+	debug_printf_eval("entered %s()\n", __func__);
+
 	v1 = nvalloc(2);
 
 	while (op) {
@@ -2367,7 +2365,7 @@ static var *evaluate(node *op, var *res)
 		opn = (opinfo & OPNMASK);
 		g_lineno = op->lineno;
 		op1 = op->l.n;
-		debug_printf_eval("opinfo:%08x opn:%08x XC:%x\n", opinfo, opn, XC(opinfo & OPCLSMASK));
+		debug_printf_eval("opinfo:%08x opn:%08x\n", opinfo, opn);
 
 		/* execute inevitable things */
 		if (opinfo & OF_RES1)
@@ -2387,6 +2385,7 @@ static var *evaluate(node *op, var *res)
 			debug_printf_eval("L_d:%f\n", L_d);
 		}
 
+		debug_printf_eval("switch(0x%x)\n", XC(opinfo & OPCLSMASK));
 		switch (XC(opinfo & OPCLSMASK)) {
 
 		/* -- iterative node type -- */
@@ -2642,8 +2641,6 @@ static var *evaluate(node *op, var *res)
 
 		/* simple builtins */
 		case XC( OC_FBLTIN ): {
-			int i;
-			rstream *rsm;
 			double R_d = R_d; /* for compiler */
 
 			switch (opn) {
@@ -2709,26 +2706,37 @@ static var *evaluate(node *op, var *res)
 				if (!op1) {
 					fflush(stdout);
 				} else if (L.s && *L.s) {
-					rsm = newfile(L.s);
+					rstream *rsm = newfile(L.s);
 					fflush(rsm->F);
 				} else {
 					fflush_all();
 				}
 				break;
 
-			case F_cl:
-				i = 0;
+			case F_cl: {
+				rstream *rsm;
+				int err = 0;
 				rsm = (rstream *)hash_search(fdhash, L.s);
+				debug_printf_eval("OC_FBLTIN F_cl rsm:%p\n", rsm);
 				if (rsm) {
-					i = rsm->is_pipe ? pclose(rsm->F) : fclose(rsm->F);
+					debug_printf_eval("OC_FBLTIN F_cl "
+						"rsm->is_pipe:%d, ->F:%p\n",
+						rsm->is_pipe, rsm->F);
+					/* Can be NULL if open failed. Example:
+					 * getline line <"doesnt_exist";
+					 * close("doesnt_exist"); <--- here rsm->F is NULL
+					 */
+					if (rsm->F)
+						err = rsm->is_pipe ? pclose(rsm->F) : fclose(rsm->F);
 					free(rsm->buffer);
 					hash_remove(fdhash, L.s);
 				}
-				if (i != 0)
+				if (err)
 					setvar_i(intvar[ERRNO], errno);
-				R_d = (double)i;
+				R_d = (double)err;
 				break;
 			}
+			} /* switch */
 			setvar_i(res, R_d);
 			break;
 		}
@@ -2877,6 +2885,7 @@ static var *evaluate(node *op, var *res)
 	} /* while (op) */
 
 	nvfree(v1);
+	debug_printf_eval("returning from %s(): %p\n", __func__, res);
 	return res;
 #undef fnargs
 #undef seed
@@ -2919,18 +2928,19 @@ static int is_assignment(const char *expr)
 {
 	char *exprc, *s, *s0, *s1;
 
-	exprc = xstrdup(expr);
-	if (!isalnum_(*exprc) || (s = strchr(exprc, '=')) == NULL) {
-		free(exprc);
+	if (!isalnum_(*expr) || (s0 = strchr(expr, '=')) == NULL) {
 		return FALSE;
 	}
 
+	exprc = xstrdup(expr);
+	s0 = exprc + (s0 - expr);
 	*s++ = '\0';
-	s0 = s1 = s;
+
+	s = s1 = s0;
 	while (*s)
 		*s1++ = nextchar(&s);
-
 	*s1 = '\0';
+
 	setvar_u(newvar(exprc), s0);
 	free(exprc);
 	return TRUE;
