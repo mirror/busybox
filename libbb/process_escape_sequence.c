@@ -18,18 +18,8 @@
 
 char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 {
-	/* bash builtin "echo -e '\ec'" interprets \e as ESC,
-	 * but coreutils "/bin/echo -e '\ec'" does not.
-	 * manpages tend to support coreutils way.
-	 * Update: coreutils added support for \e on 28 Oct 2009. */
-	static const char charmap[] ALIGN1 = {
-		'a',  'b', 'e', 'f',  'n',  'r',  't',  'v',  '\\', 0,
-		'\a', '\b', 27, '\f', '\n', '\r', '\t', '\v', '\\', '\\' };
-
-	const char *p;
 	const char *q;
 	unsigned num_digits;
-	unsigned r;
 	unsigned n;
 	unsigned base;
 
@@ -37,18 +27,17 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 	base = 8;
 	q = *ptr;
 
-#if WANT_HEX_ESCAPES
-	if (*q == 'x') {
+	if (WANT_HEX_ESCAPES && *q == 'x') {
 		++q;
 		base = 16;
 		++num_digits;
 	}
-#endif
 
 	/* bash requires leading 0 in octal escapes:
 	 * \02 works, \2 does not (prints \ and 2).
 	 * We treat \2 as a valid octal escape sequence. */
 	do {
+		unsigned r;
 #if !WANT_HEX_ESCAPES
 		unsigned d = (unsigned char)(*q) - '0';
 #else
@@ -60,8 +49,9 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 			if (WANT_HEX_ESCAPES && base == 16) {
 				--num_digits;
 				if (num_digits == 0) {
-					/* \x<bad_char> */
-					--q; /* go back to x */
+					/* \x<bad_char>: return '\',
+					 * leave ptr pointing to x */
+					return '\\';
 				}
 			}
 			break;
@@ -76,20 +66,30 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 		++q;
 	} while (++num_digits < 3);
 
-	if (num_digits == 0) {	/* mnemonic escape sequence? */
-		p = charmap;
+	if (num_digits == 0) {
+		/* Not octal or hex escape sequence.
+		 * Is it one-letter one? */
+
+		/* bash builtin "echo -e '\ec'" interprets \e as ESC,
+		 * but coreutils "/bin/echo -e '\ec'" does not.
+		 * Manpages tend to support coreutils way.
+		 * Update: coreutils added support for \e on 28 Oct 2009. */
+		static const char charmap[] ALIGN1 = {
+			'a',  'b', 'e', 'f',  'n',  'r',  't',  'v',  '\\',
+			'\a', '\b', 27, '\f', '\n', '\r', '\t', '\v', '\\',
+		};
+		const char *p = charmap;
 		do {
 			if (*p == *q) {
 				q++;
 				break;
 			}
-		} while (*++p);
-		/* p points to found escape char or NUL,
+		} while (*++p != '\\');
+		/* p points to found escape char or '\',
 		 * advance it and find what it translates to.
-		 * Note that unrecognized sequence \z returns '\'
-		 * and leaves ptr pointing to z. */
-		p += sizeof(charmap) / 2;
-		n = *p;
+		 * Note that \NUL and unrecognized sequence \z return '\'
+		 * and leave ptr pointing to NUL or z. */
+		n = p[sizeof(charmap) / 2];
 	}
 
 	*ptr = q;

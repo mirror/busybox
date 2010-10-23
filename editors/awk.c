@@ -684,8 +684,11 @@ static char nextchar(char **s)
 	pps = *s;
 	if (c == '\\')
 		c = bb_process_escape_sequence((const char**)s);
-	if (c == '\\' && *s == pps)
-		c = *(*s)++;
+	if (c == '\\' && *s == pps) { /* unrecognized \z? */
+		c = *(*s); /* yes, fetch z */
+		if (c)
+			(*s)++; /* advance unless z = NUL */
+	}
 	return c;
 }
 
@@ -1007,9 +1010,10 @@ static uint32_t next_token(uint32_t expected)
 			/* it's a string */
 			t_string = s = ++p;
 			while (*p != '\"') {
-				char *pp = p;
+				char *pp;
 				if (*p == '\0' || *p == '\n')
 					syntax_error(EMSG_UNEXP_EOS);
+				pp = p;
 				*s++ = nextchar(&pp);
 				p = pp;
 			}
@@ -2926,22 +2930,21 @@ static int awk_exit(int r)
  * otherwise return 0 */
 static int is_assignment(const char *expr)
 {
-	char *exprc, *s, *s0, *s1;
+	char *exprc, *val, *s, *s1;
 
-	if (!isalnum_(*expr) || (s0 = strchr(expr, '=')) == NULL) {
+	if (!isalnum_(*expr) || (val = strchr(expr, '=')) == NULL) {
 		return FALSE;
 	}
 
 	exprc = xstrdup(expr);
-	s0 = exprc + (s0 - expr);
-	*s++ = '\0';
+	val = exprc + (val - expr);
+	*val++ = '\0';
 
-	s = s1 = s0;
-	while (*s)
-		*s1++ = nextchar(&s);
-	*s1 = '\0';
+	s = s1 = val;
+	while ((*s1 = nextchar(&s)) != '\0')
+		s1++;
 
-	setvar_u(newvar(exprc), s0);
+	setvar_u(newvar(exprc), val);
 	free(exprc);
 	return TRUE;
 }
