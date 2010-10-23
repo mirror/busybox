@@ -324,6 +324,7 @@ extern void bb_copyfd_exact_size(int fd1, int fd2, off_t size) FAST_FUNC;
 /* this helper yells "short read!" if param is not -1 */
 extern void complain_copyfd_and_die(off_t sz) NORETURN FAST_FUNC;
 extern char bb_process_escape_sequence(const char **ptr) FAST_FUNC;
+char* strcpy_and_process_escape_sequences(char *dst, const char *src) FAST_FUNC;
 /* xxxx_strip version can modify its parameter:
  * "/"        -> "/"
  * "abc"      -> "abc"

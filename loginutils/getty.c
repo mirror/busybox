@@ -188,21 +188,9 @@ static void parse_args(char **argv, struct options *op, char **fakehost_p)
 		&(op->login), &op->timeout);
 	argv += optind;
 	if (op->flags & F_INITSTRING) {
-		const char *p = op->initstring;
-		char *q;
-
-		op->initstring = q = xstrdup(p);
-		/* copy optarg into op->initstring decoding \ddd
-		   octal codes into chars */
-		while (*p) {
-			if (*p == '\\') {
-				p++;
-				*q++ = bb_process_escape_sequence(&p);
-			} else {
-				*q++ = *p++;
-			}
-		}
-		*q = '\0';
+		op->initstring = xstrdup(op->initstring);
+		/* decode \ddd octal codes into chars */
+		strcpy_and_process_escape_sequences((char*)op->initstring, op->initstring);
 	}
 	op->flags ^= F_ISSUE;           /* invert flag "show /etc/issue" */
 	debug("after getopt\n");

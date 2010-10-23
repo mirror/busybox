@@ -122,16 +122,14 @@ static double my_xstrtod(const char *arg)
 	return result;
 }
 
-static void print_esc_string(char *str)
+static void print_esc_string(const char *str)
 {
-	while (*str) {
-		if (*str == '\\') {
-			str++;
-			bb_putchar(bb_process_escape_sequence((const char **)&str));
-		} else {
-			bb_putchar(*str);
-			str++;
-		}
+	char c;
+	while ((c = *str) != '\0') {
+		str++;
+		if (c == '\\')
+			c = bb_process_escape_sequence(&str);
+		putchar(c);
 	}
 }
 
@@ -344,7 +342,7 @@ static char **print_formatted(char *f, char **argv, int *conv_err)
 			f--;
 			break;
 		default:
-			bb_putchar(*f);
+			putchar(*f);
 		}
 	}
 

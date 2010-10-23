@@ -187,19 +187,7 @@ again:
 
 #if 0 /* unused so far */
 		if (flags & PARSE_ESCAPE) {
-			const char *from;
-			char *to;
-
-			from = to = tokens[t];
-			while (*from) {
-				if (*from == '\\') {
-					from++;
-					*to++ = bb_process_escape_sequence(&from);
-				} else {
-					*to++ = *from++;
-				}
-			}
-			*to = '\0';
+			strcpy_and_process_escape_sequences(tokens[t], tokens[t]);
 		}
 #endif
 		/* Skip possible delimiters */

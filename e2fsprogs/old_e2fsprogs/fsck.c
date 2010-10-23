@@ -349,15 +349,7 @@ static void parse_escape(char *word)
 	if (!word)
 		return;
 
-	for (p = q = word; *p; q++) {
-		c = *p++;
-		if (c != '\\') {
-			*q = c;
-		} else {
-			*q = bb_process_escape_sequence(&p);
-		}
-	}
-	*q = 0;
+	strcpy_and_process_escape_sequences(word, word);
 }
 
 static void free_instance(struct fsck_instance *i)
