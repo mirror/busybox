@@ -539,7 +539,7 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 				W[cnt] = W[cnt+16] = rotl32(W[cnt+13] ^ W[cnt+8] ^ W[cnt+2] ^ W[cnt], 1);
 				work += W[cnt];
 			}
-			work = e + work + rotl32(a, 5) + rconsts[i];
+			work += e + rotl32(a, 5) + rconsts[i];
 
 			/* Rotate by one for next time */
 			e = d;
