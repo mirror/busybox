@@ -473,20 +473,13 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 
 
 /*
- * Based on shasum from http://www.netsw.org/crypto/hash/
- * Majorly hacked up to use Dr Brian Gladman's sha1 code
+ * SHA1 part is:
+ * Copyright 2007 Rob Landley <rob@landley.net>
  *
- * Copyright (C) 2002 Dr Brian Gladman <brg@gladman.me.uk>, Worcester, UK.
- * Copyright (C) 2003 Glenn L. McGrath
- * Copyright (C) 2003 Erik Andersen
+ * Based on the public domain SHA-1 in C by Steve Reid <steve@edmweb.com>
+ * from http://www.mirrors.wiretapped.net/security/cryptography/hashes/sha1/
  *
- * Licensed under GPLv2 or later, see file LICENSE in this source tree.
- *
- * ---------------------------------------------------------------------------
- * Issue Date: 10/11/2002
- *
- * This is a byte oriented version of SHA1 that operates on arrays of bytes
- * stored in memory. It runs at 22 cycles per byte on a Pentium P4 processor
+ * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * ---------------------------------------------------------------------------
  *
@@ -503,16 +496,18 @@ void FAST_FUNC md5_end(md5_ctx_t *ctx, void *resbuf)
 
 static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 {
-	unsigned t;
-	uint32_t W[80], a, b, c, d, e;
-	const uint32_t *words = (uint32_t*) ctx->wbuffer;
+	static const uint32_t rconsts[] = {
+		0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6
+	};
+	int i, j;
+	int cnt;
+	uint32_t W[16+16];
+	uint32_t a, b, c, d, e;
 
-	for (t = 0; t < 16; ++t)
-		W[t] = SWAP_BE32(words[t]);
-	for (/*t = 16*/; t < 80; ++t) {
-		uint32_t T = W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16];
-		W[t] = rotl32(T, 1);
-	}
+	/* On-stack work buffer frees up one register in the main loop
+	 * which otherwise will be needed to hold ctx pointer */
+	for (i = 0; i < 16; i++)
+		W[i] = W[i+16] = SWAP_BE32(((uint32_t*)ctx->wbuffer)[i]);
 
 	a = ctx->hash[0];
 	b = ctx->hash[1];
@@ -520,39 +515,41 @@ static void FAST_FUNC sha1_process_block64(sha1_ctx_t *ctx)
 	d = ctx->hash[3];
 	e = ctx->hash[4];
 
-#undef ch
-#undef parity
-#undef maj
-#undef rnd
-#define ch(x,y,z)        ((z) ^ ((x) & ((y) ^ (z))))
-#define parity(x,y,z)    ((x) ^ (y) ^ (z))
-#define maj(x,y,z)       (((x) & (y)) | ((z) & ((x) | (y))))
-/* A normal version as set out in the FIPS.  */
-#define rnd(f,k) \
-	do { \
-		uint32_t T = a; \
-		a = rotl32(a, 5) + f(b, c, d) + e + k + W[t]; \
-		e = d; \
-		d = c; \
-		c = rotl32(b, 30); \
-		b = T; \
-	} while (0)
+	/* 4 rounds of 20 operations each */
+	cnt = 0;
+	for (i = 0; i < 4; i++) {
+		j = 19;
+		do {
+			uint32_t work;
 
-	for (t = 0; t < 20; ++t)
-		rnd(ch, 0x5a827999);
+			work = c ^ d;
+			if (i == 0) {
+				work = (work & b) ^ d;
+				if (j <= 3)
+					goto ge16;
+				/* Used to do SWAP_BE32 here, but this
+				 * requires ctx (see comment above) */
+				work += W[cnt];
+			} else {
+				if (i == 2)
+					work = ((b | c) & d) | (b & c);
+				else /* i = 1 or 3 */
+					work ^= b;
+ ge16:
+				W[cnt] = W[cnt+16] = rotl32(W[cnt+13] ^ W[cnt+8] ^ W[cnt+2] ^ W[cnt], 1);
+				work += W[cnt];
+			}
+			work = e + work + rotl32(a, 5) + rconsts[i];
 
-	for (/*t = 20*/; t < 40; ++t)
-		rnd(parity, 0x6ed9eba1);
-
-	for (/*t = 40*/; t < 60; ++t)
-		rnd(maj, 0x8f1bbcdc);
-
-	for (/*t = 60*/; t < 80; ++t)
-		rnd(parity, 0xca62c1d6);
-#undef ch
-#undef parity
-#undef maj
-#undef rnd
+			/* Rotate by one for next time */
+			e = d;
+			d = c;
+			c = /* b = */ rotl32(b, 30);
+			b = a;
+			a = work;
+			cnt = (cnt + 1) & 15;
+		} while (--j >= 0);
+	}
 
 	ctx->hash[0] += a;
 	ctx->hash[1] += b;
