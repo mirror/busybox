@@ -101,7 +101,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_ALL)
 			bb_error_msg_and_die("can't open '%s'", bb_path_mtab_file);
 	} else {
-		while (getmntent_r(fp, &me, buf, PATH_MAX * 2 + 128)) {
+		while (getmntent_r(fp, &me, buf, 4096)) {
 			/* Match fstype if passed */
 			if (!match_fstype(&me, fstype))
 				continue;
