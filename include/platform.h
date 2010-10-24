@@ -264,15 +264,6 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 
 /* ---- Miscellaneous --------------------------------------- */
 
-#if defined(__GNU_LIBRARY__) && __GNU_LIBRARY__ < 5 && \
-	!defined(__dietlibc__) && \
-	!defined(_NEWLIB_VERSION) && \
-	!(defined __digital__ && defined __unix__)
-# error "Sorry, this libc version is not supported :("
-#endif
-
-/* Don't perpetuate e2fsck crap into the headers.  Clean up e2fsck instead. */
-
 #if defined __GLIBC__ || defined __UCLIBC__ \
  || defined __dietlibc__ || defined _NEWLIB_VERSION
 # include <features.h>
