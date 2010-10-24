@@ -463,7 +463,11 @@ static void set_sane_term(void)
 #endif
 
 	/* Make it be sane */
-	tty.c_cflag &= CBAUD | CBAUDEX | CSIZE | CSTOPB | PARENB | PARODD;
+#ifndef CRTSCTS
+# define CRTSCTS 0
+#endif
+	/* added CRTSCTS to fix Debian bug 528560 */
+	tty.c_cflag &= CBAUD | CBAUDEX | CSIZE | CSTOPB | PARENB | PARODD | CRTSCTS;
 	tty.c_cflag |= CREAD | HUPCL | CLOCAL;
 
 	/* input modes */
@@ -473,8 +477,7 @@ static void set_sane_term(void)
 	tty.c_oflag = OPOST | ONLCR;
 
 	/* local modes */
-	tty.c_lflag =
-		ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+	tty.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
 
 	tcsetattr_stdin_TCSANOW(&tty);
 }
