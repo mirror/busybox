@@ -524,9 +524,7 @@ static const char EMSG_TOO_FEW_ARGS[] ALIGN1 = "Too few arguments for builtin";
 static const char EMSG_NOT_ARRAY[] ALIGN1 = "Not an array";
 static const char EMSG_POSSIBLE_ERROR[] ALIGN1 = "Possible syntax error";
 static const char EMSG_UNDEF_FUNC[] ALIGN1 = "Call to undefined function";
-#if !ENABLE_FEATURE_AWK_LIBM
 static const char EMSG_NO_MATH[] ALIGN1 = "Math support is not compiled in";
-#endif
 
 static void zero_out_var(var *vp)
 {
@@ -700,8 +698,7 @@ static ALWAYS_INLINE int isalnum_(int c)
 static double my_strtod(char **pp)
 {
 	char *cp = *pp;
-#if ENABLE_DESKTOP
-	if (cp[0] == '0') {
+	if (ENABLE_DESKTOP && cp[0] == '0') {
 		/* Might be hex or octal integer: 0x123abc or 07777 */
 		char c = (cp[1] | 0x20);
 		if (c == 'x' || isdigit(cp[1])) {
@@ -718,7 +715,6 @@ static double my_strtod(char **pp)
 			 */
 		}
 	}
-#endif
 	return strtod(cp, pp);
 }
 
@@ -2168,11 +2164,10 @@ static NOINLINE var *exec_builtin(node *op, var *res)
 	switch (info) {
 
 	case B_a2:
-#if ENABLE_FEATURE_AWK_LIBM
-		setvar_i(res, atan2(getvar_i(av[0]), getvar_i(av[1])));
-#else
-		syntax_error(EMSG_NO_MATH);
-#endif
+		if (ENABLE_FEATURE_AWK_LIBM)
+			setvar_i(res, atan2(getvar_i(av[0]), getvar_i(av[1])));
+		else
+			syntax_error(EMSG_NO_MATH);
 		break;
 
 	case B_sp: {
@@ -2655,35 +2650,40 @@ static var *evaluate(node *op, var *res)
 			case F_rn:
 				R_d = (double)rand() / (double)RAND_MAX;
 				break;
-#if ENABLE_FEATURE_AWK_LIBM
+
 			case F_co:
-				R_d = cos(L_d);
-				break;
+				if (ENABLE_FEATURE_AWK_LIBM) {
+					R_d = cos(L_d);
+					break;
+				}
 
 			case F_ex:
-				R_d = exp(L_d);
-				break;
+				if (ENABLE_FEATURE_AWK_LIBM) {
+					R_d = exp(L_d);
+					break;
+				}
 
 			case F_lg:
-				R_d = log(L_d);
-				break;
+				if (ENABLE_FEATURE_AWK_LIBM) {
+					R_d = log(L_d);
+					break;
+				}
 
 			case F_si:
-				R_d = sin(L_d);
-				break;
+				if (ENABLE_FEATURE_AWK_LIBM) {
+					R_d = sin(L_d);
+					break;
+				}
 
 			case F_sq:
-				R_d = sqrt(L_d);
-				break;
-#else
-			case F_co:
-			case F_ex:
-			case F_lg:
-			case F_si:
-			case F_sq:
+				if (ENABLE_FEATURE_AWK_LIBM) {
+					R_d = sqrt(L_d);
+					break;
+				}
+
 				syntax_error(EMSG_NO_MATH);
 				break;
-#endif
+
 			case F_sr:
 				R_d = (double)seed;
 				seed = op1 ? (unsigned)L_d : (unsigned)time(NULL);
@@ -2834,11 +2834,10 @@ static var *evaluate(node *op, var *res)
 				L_d /= R_d;
 				break;
 			case '&':
-#if ENABLE_FEATURE_AWK_LIBM
-				L_d = pow(L_d, R_d);
-#else
-				syntax_error(EMSG_NO_MATH);
-#endif
+				if (ENABLE_FEATURE_AWK_LIBM)
+					L_d = pow(L_d, R_d);
+				else
+					syntax_error(EMSG_NO_MATH);
 				break;
 			case '%':
 				if (R_d == 0)
