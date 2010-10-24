@@ -660,7 +660,9 @@ static struct init_action *mark_terminated(pid_t pid)
 				return a;
 			}
 		}
-		update_utmp(pid, DEAD_PROCESS, /*tty_name:*/ NULL, /*username:*/ NULL, /*hostname:*/ NULL);
+		update_utmp(pid, DEAD_PROCESS, /*tty_name:*/ NULL,
+				/*username:*/ NULL,
+				/*hostname:*/ NULL);
 	}
 	return NULL;
 }
@@ -1086,8 +1088,6 @@ static int check_delayed_sigs(void)
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc UNUSED_PARAM, char **argv)
 {
-	die_sleep = 30 * 24*60*60; /* if xmalloc would ever die... */
-
 	if (argv[1] && strcmp(argv[1], "-q") == 0) {
 		return kill(1, SIGHUP);
 	}
@@ -1105,6 +1105,15 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		reboot(RB_DISABLE_CAD); /* misnomer */
 #endif
 	}
+
+	/* If, say, xmalloc would ever die, we don't want to oops kernel
+	 * by exiting.
+	 * NB: we set die_sleep *after* PID 1 check and bb_show_usage.
+	 * Otherwise, for example, "init u" ("please rexec yourself"
+	 * command for sysvinit) will show help text (which isn't too bad),
+	 * *and sleep forever* (which is bad!)
+	 */
+	die_sleep = 30 * 24*60*60;
 
 	/* Figure out where the default console should be */
 	console_init();
@@ -1173,7 +1182,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 			/* SELinux in enforcing mode but load_policy failed */
 			message(L_CONSOLE, "can't load SELinux Policy. "
 				"Machine is in enforcing mode. Halting now.");
-			exit(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 	}
 #endif
