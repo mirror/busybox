@@ -991,7 +991,7 @@ clean: archclean $(clean-dirs)
 
 PHONY += doc-clean
 doc-clean: rm-files := docs/busybox.pod \
-		  docs/BusyBox.html docs/BusyBox.1 docs/BusyBox.txt
+		  docs/BusyBox.html docs/busybox.1 docs/BusyBox.txt
 doc-clean:
 	$(call cmd,rmfiles)
 
