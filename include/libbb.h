@@ -746,7 +746,7 @@ char *itoa(int n) FAST_FUNC;
 char *utoa_to_buf(unsigned n, char *buf, unsigned buflen) FAST_FUNC;
 char *itoa_to_buf(int n, char *buf, unsigned buflen) FAST_FUNC;
 /* Intelligent formatters of bignums */
-void smart_ulltoa4(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
+void smart_ulltoa4(unsigned long long ul, char buf[4], const char *scale) FAST_FUNC;
 void smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
 /* If block_size == 0, display size without fractional part,
  * else display (size * block_size) with one decimal digit.
@@ -1543,7 +1543,10 @@ void sha512_begin(sha512_ctx_t *ctx) FAST_FUNC;
 void sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
 void sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
 
-
+/* TODO: add global crc32_table pointer and create
+ * LE and BE functions to calculate crc32 over given bytes.
+ * Currently we have about five reimplementations...
+ */
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;
 
 typedef struct masks_labels_t {
