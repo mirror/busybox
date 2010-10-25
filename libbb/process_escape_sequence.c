@@ -75,8 +75,8 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 		 * Manpages tend to support coreutils way.
 		 * Update: coreutils added support for \e on 28 Oct 2009. */
 		static const char charmap[] ALIGN1 = {
-			'a',  'b', 'e', 'f',  'n',  'r',  't',  'v',  '\\',
-			'\a', '\b', 27, '\f', '\n', '\r', '\t', '\v', '\\',
+			'a',  'b', 'e', 'f',  'n',  'r',  't',  'v',  '\\', '\0',
+			'\a', '\b', 27, '\f', '\n', '\r', '\t', '\v', '\\', '\\',
 		};
 		const char *p = charmap;
 		do {
@@ -84,8 +84,8 @@ char FAST_FUNC bb_process_escape_sequence(const char **ptr)
 				q++;
 				break;
 			}
-		} while (*++p != '\\');
-		/* p points to found escape char or '\',
+		} while (*++p != '\0');
+		/* p points to found escape char or NUL,
 		 * advance it and find what it translates to.
 		 * Note that \NUL and unrecognized sequence \z return '\'
 		 * and leave ptr pointing to NUL or z. */
