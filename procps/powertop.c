@@ -82,7 +82,6 @@ struct globals {
 	ullong last_usage[MAX_CSTATE_COUNT];
 	ullong start_duration[MAX_CSTATE_COUNT];
 	ullong last_duration[MAX_CSTATE_COUNT];
-	char cstate_names[MAX_CSTATE_COUNT][16];
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios init_settings;
 #endif
@@ -806,22 +805,19 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 		if (totalevents == 0 && G.maxcstate <= 1) {
 			/* This should not happen */
-			sprintf(cstate_lines[5], "< Detailed C-state information is not "
-				"available.>\n");
+			strcpy(cstate_lines[0], "C-state information is not available\n");
 		} else {
 			double percentage;
-			double newticks;
+			unsigned newticks;
 
 			newticks = G.total_cpus * DEFAULT_SLEEP * FREQ_ACPI_1000 - totalticks;
-
 			/* Handle rounding errors: do not display negative values */
-			if (newticks < 0)
+			if ((int)newticks < 0)
 				newticks = 0;
 
 			sprintf(cstate_lines[0], "Cn\t\t  Avg residency\n");
 			percentage = newticks * 100.0 / (G.total_cpus * DEFAULT_SLEEP * FREQ_ACPI_1000);
-			sprintf(cstate_lines[1], "C0 (cpu running)        (%4.1f%%)\n",
-				percentage);
+			sprintf(cstate_lines[1], "C0 (cpu running)        (%4.1f%%)\n",	percentage);
 
 			/* Compute values for individual C-states */
 			for (i = 0; i < MAX_CSTATE_COUNT; i++) {
@@ -831,11 +827,8 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 						/ (cur_usage[i] - G.last_usage[i] + 0.1) / FREQ_ACPI;
 					percentage = (cur_duration[i] - G.last_duration[i]) * 100
 						/ (G.total_cpus * DEFAULT_SLEEP * FREQ_ACPI_1000);
-
-					if (!G.cstate_names[i][0])
-						sprintf(G.cstate_names[i], "C%u", i + 1);
-					sprintf(cstate_lines[i + 2], "%s\t\t%5.1fms (%4.1f%%)\n",
-						G.cstate_names[i], slept, percentage);
+					sprintf(cstate_lines[i + 2], "C%u\t\t%5.1fms (%4.1f%%)\n",
+						i + 1, slept, percentage);
 					//if (maxsleep < slept)
 					//	maxsleep = slept;
 				}
@@ -844,7 +837,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 		for (i = 0; i < MAX_CSTATE_COUNT + 2; i++)
 			if (cstate_lines[i][0])
-				printf("%s", cstate_lines[i]);
+				fputs(cstate_lines[i], stdout);
 
 		i = process_timer_stats();
 #if ENABLE_FEATURE_POWERTOP_PROCIRQ
