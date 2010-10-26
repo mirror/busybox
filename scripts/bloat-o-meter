@@ -63,7 +63,7 @@ def getsizes(file):
         else:
             sym[name] = {"addr" : value, "size":  size}
             lut[(value, size)] = 0
-    for addr, sz in alias.iterkeys():
+    for addr, sz in iter(alias.keys()):
         # If the non-GLOBAL sym has an implementation elsewhere then
         # it's an alias, disregard it.
         if not (addr, sz) in lut:
@@ -92,7 +92,7 @@ if flag_timing:
 grow, shrink, add, remove, up, down = 0, 0, 0, 0, 0, 0
 delta, common = [], {}
 
-for name in old.iterkeys():
+for name in iter(old.keys()):
     if name in new:
         common[name] = 1
 
