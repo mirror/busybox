@@ -19,7 +19,7 @@
 //config:	help
 //config:	  Analyze power consumption on Intel-based laptops
 
-// XXX This should de configurable
+// XXX This should be configurable
 #define ENABLE_FEATURE_POWERTOP_PROCIRQ 1
 
 #include "libbb.h"
@@ -39,7 +39,7 @@
 
 /* Frequency of the ACPI timer */
 #define FREQ_ACPI          3579.545
-#define FREQ_ACPI_1000     3579545
+#define FREQ_ACPI_1000	   3579545
 
 /* Max filename length of entry in /sys/devices subsystem */
 #define BIG_SYSNAME_LEN    16
@@ -62,12 +62,11 @@ struct irqdata {
 #endif
 
 struct globals {
+	struct line *lines; /* the most often used member */
 	int lines_cnt;
 	int lines_cumulative_count;
-	int linesize;
 	int maxcstate;
 	unsigned total_cpus;
-	struct line *lines;
 	smallint cant_enable_timer_stats;
 #if ENABLE_FEATURE_POWERTOP_PROCIRQ
 # if BLOATY_HPET_IRQ_NUM_DETECTION
@@ -120,15 +119,16 @@ static int write_str_to_file(const char *fname, const char *str)
 #define start_timer()	write_str_to_file("/proc/timer_stats", "1\n")
 #define stop_timer()	write_str_to_file("/proc/timer_stats", "0\n")
 
-static void NOINLINE clear_lines(void)
+static NOINLINE void clear_lines(void)
 {
 	int i;
-	for (i = 0; i < G.lines_cnt; i++)
-		free(G.lines[i].string);
-	free(G.lines);
-	G.lines_cnt = 0;
-	G.linesize = 0;
-	G.lines = NULL;
+	if (G.lines) {
+		for (i = 0; i < G.lines_cnt; i++)
+			free(G.lines[i].string);
+		free(G.lines);
+		G.lines_cnt = 0;
+		G.lines = NULL;
+	}
 }
 
 static void update_lines_cumulative_count(void)
@@ -220,7 +220,7 @@ static void save_line(const char *string, int count)
 	}
 
 	/* Add new line */
-	G.lines = xrealloc_vector(G.lines, 1, G.lines_cnt);
+	G.lines = xrealloc_vector(G.lines, 4, G.lines_cnt);
 	G.lines[G.lines_cnt].string = xstrdup(string);
 	G.lines[G.lines_cnt].count = count;
 	/*G.lines[G.lines_cnt].disk_count = 0;*/
@@ -298,7 +298,7 @@ static int save_irq_count(int irq, ullong count)
 }
 
 /* Read /proc/interrupts, save IRQ counts and IRQ description */
-static void process_irq_count_deltas(void)
+static void process_irq_counts(void)
 {
 	FILE *fp;
 	char buf[128];
@@ -399,8 +399,120 @@ static void process_irq_count_deltas(void)
 	fclose(fp);
 }
 #else /* !ENABLE_FEATURE_POWERTOP_PROCIRQ */
-# define process_irq_count_deltas()  ((void)0)
+# define process_irq_counts()  ((void)0)
 #endif
+
+static NOINLINE int process_timer_stats(void)
+{
+	char buf[128];
+	char line[15 + 3 + 128];
+	int n;
+	ullong totalticks;
+	FILE *fp;
+
+	buf[0] = '\0';
+	totalticks = 0;
+
+	fp = NULL;
+	if (!G.cant_enable_timer_stats)
+		fp = fopen_for_read("/proc/timer_stats");
+	if (fp) {
+// Example file contents:
+// Timer Stats Version: v0.2
+// Sample period: 1.329 s
+//    76,     0 swapper          hrtimer_start_range_ns (tick_sched_timer)
+//    88,     0 swapper          hrtimer_start_range_ns (tick_sched_timer)
+//    24,  3787 firefox          hrtimer_start_range_ns (hrtimer_wakeup)
+//   46D,  1136 kondemand/1      do_dbs_timer (delayed_work_timer_fn)
+// ...
+//     1,  1656 Xorg             hrtimer_start_range_ns (hrtimer_wakeup)
+//     1,  2159 udisks-daemon    hrtimer_start_range_ns (hrtimer_wakeup)
+// 331 total events, 249.059 events/sec
+		while (fgets(buf, sizeof(buf), fp)) {
+			const char *count, *process, *func;
+			char *p;
+			int cnt;
+
+			count = skip_whitespace(buf);
+			p = strchr(count, ',');
+			if (!p)
+				continue;
+			*p++ = '\0';
+			if (strcmp(strchrnul(count, ' '), " total events") == 0)
+				break;
+			p = skip_whitespace(p); /* points to pid */
+
+/* Find char ' ', then eat remaining spaces */
+#define ADVANCE(p) do {           \
+	(p) = strchr((p), ' ');   \
+	if (!(p))                 \
+		continue;         \
+	*(p) = '\0';              \
+	(p)++;                    \
+	(p) = skip_whitespace(p); \
+} while (0)
+			/* Get process name */
+			ADVANCE(p);
+			process = p;
+			/* Get function */
+			ADVANCE(p);
+			func = p;
+#undef ADVANCE
+			//if (strcmp(process, "swapper") == 0
+			// && strcmp(func, "hrtimer_start_range_ns (tick_sched_timer)\n") == 0
+			//) {
+			//	process = "[kernel scheduler]";
+			//	func = "Load balancing tick";
+			//}
+
+			if (strncmp(func, "tick_nohz_", 10) == 0)
+				continue;
+			if (strncmp(func, "tick_setup_sched_timer", 20) == 0)
+				continue;
+			//if (strcmp(process, "powertop") == 0)
+			//	continue;
+
+			if (strcmp(process, "insmod") == 0)
+				process = "[kernel module]";
+			if (strcmp(process, "modprobe") == 0)
+				process = "[kernel module]";
+			if (strcmp(process, "swapper") == 0)
+				process = "<kernel core>";
+
+			strchrnul(p, '\n')[0] = '\0';
+
+			{
+				char *tmp;
+				cnt = bb_strtoull(count, &tmp, 10);
+				p = tmp;
+			}
+			while (*p != '\0') {
+				if (*p++ == 'D') /* deferred */
+					goto skip;
+			}
+
+			//if (strchr(process, '['))
+				sprintf(line, "%15.15s : %s", process, func);
+			//else
+			//	sprintf(line, "%s", process);
+			save_line(line, cnt);
+ skip: ;
+		}
+		fclose(fp);
+	}
+
+	n = 0;
+#if ENABLE_FEATURE_POWERTOP_PROCIRQ
+	if (strstr(buf, "total events")) {
+		n = bb_strtoull(buf, NULL, 10) / G.total_cpus;
+		if (n > 0 && n < G.interrupt_0) {
+			sprintf(line, "    <interrupt> : %s", "extra timer interrupt");
+			save_line(line, G.interrupt_0 - n);
+		}
+	}
+#endif
+	return n;
+}
 
 #ifdef __i386__
 /*
@@ -428,7 +540,7 @@ static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 }
 #endif
 
-static void NOINLINE print_intel_cstates(void)
+static NOINLINE void print_intel_cstates(void)
 {
 #ifdef __i386__
 	int bios_table[8] = { 0 };
@@ -462,7 +574,7 @@ static void NOINLINE print_intel_cstates(void)
 
 		/*
 		 * Every C-state has its own stateN directory, that
-		 * contains a `time' and a `usage' file.
+		 * contains a 'time' and a 'usage' file.
 		 */
 		while ((d = readdir(dir)) != NULL) {
 			FILE *fp;
@@ -525,25 +637,6 @@ static void NOINLINE print_intel_cstates(void)
 #endif
 }
 
-static void print_header(void)
-{
-	printf(
-		/* Clear the screen */
-		"\033[H\033[J"
-		/* Print the header */
-		"\033[7m%.*s\033[0m", 79, "PowerTOP (C) 2007 Intel Corporation\n"
-	);
-}
-
-static void show_cstates(char cstate_lines[][64])
-{
-	int i;
-
-	for (i = 0; i < 10; i++)
-		if ((cstate_lines[i][0]))
-			printf("%s", cstate_lines[i]);
-}
-
 static void show_timerstats(void)
 {
 	unsigned lines;
@@ -556,19 +649,26 @@ static void show_timerstats(void)
 
 	if (!G.cant_enable_timer_stats) {
 		int i, n = 0;
+		char strbuf6[6];
 
+		strbuf6[5] = '\0';
 		puts("\nTop causes for wakeups:");
 		for (i = 0; i < G.lines_cnt; i++) {
 			if ((G.lines[i].count > 0 /*|| G.lines[i].disk_count > 0*/)
 			 && n++ < lines
 			) {
-				char c = ' ';
-				/*if (G.lines[i].disk_count)
+				/* NB: upstream powertop prints "(wakeups/sec)",
+				 * we print just "(wakeup counts)".
+				 */
+				/*char c = ' ';
+				if (G.lines[i].disk_count)
 					c = 'D';*/
-				printf(" %5.1f%% (%5.1f)%c  %s\n",
-						G.lines[i].count * 100.0 / G.lines_cumulative_count,
-						G.lines[i].count * 1.0 / DEFAULT_SLEEP, c,
-						G.lines[i].string);
+				smart_ulltoa5(G.lines[i].count, strbuf6, " KMGTPEZY");
+				printf(/*" %5.1f%% (%s)%c  %s\n"*/
+					" %5.1f%% (%s)   %s\n",
+					G.lines[i].count * 100.0 / G.lines_cumulative_count,
+					strbuf6, /*c,*/
+					G.lines[i].string);
 			}
 		}
 	} else {
@@ -606,8 +706,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 {
 	ullong cur_usage[MAX_CSTATE_COUNT];
 	ullong cur_duration[MAX_CSTATE_COUNT];
-	char cstate_lines[12][64];
-	char buf[128];
+	char cstate_lines[MAX_CSTATE_COUNT + 2][64];
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios new_settings;
 	struct pollfd pfd[1];
@@ -644,7 +743,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 #endif
 
 	/* Collect initial data */
-	process_irq_count_deltas();
+	process_irq_counts();
 
 	/* Read initial usage and duration */
 	read_cstate_counts(G.start_usage, G.start_duration);
@@ -660,10 +759,9 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 	/* The main loop */
 	for (;;) {
-		/*double maxsleep = 0.0;*/
+		//double maxsleep = 0.0;
 		ullong totalticks, totalevents;
 		int i;
-		FILE *fp;
 
 		G.cant_enable_timer_stats |= start_timer(); /* 1 on error */
 #if !ENABLE_FEATURE_USE_TERMIOS
@@ -682,7 +780,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 		G.cant_enable_timer_stats |= stop_timer(); /* 1 on error */
 
 		clear_lines();
-		process_irq_count_deltas();
+		process_irq_counts();
 
 		/* Clear the stats */
 		memset(cur_duration, 0, sizeof(cur_duration));
@@ -700,8 +798,8 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 			}
 		}
 
-		/* Show title bar */
-		print_header();
+		/* Clear the screen */
+		printf("\033[H\033[J");
 
 		/* Clear C-state lines */
 		memset(&cstate_lines, 0, sizeof(cstate_lines));
@@ -711,7 +809,6 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 			sprintf(cstate_lines[5], "< Detailed C-state information is not "
 				"available.>\n");
 		} else {
-			double slept;
 			double percentage;
 			double newticks;
 
@@ -721,7 +818,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 			if (newticks < 0)
 				newticks = 0;
 
-			sprintf(cstate_lines[0], "Cn\t          Avg residency\n");
+			sprintf(cstate_lines[0], "Cn\t\t  Avg residency\n");
 			percentage = newticks * 100.0 / (G.total_cpus * DEFAULT_SLEEP * FREQ_ACPI_1000);
 			sprintf(cstate_lines[1], "C0 (cpu running)        (%4.1f%%)\n",
 				percentage);
@@ -729,6 +826,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 			/* Compute values for individual C-states */
 			for (i = 0; i < MAX_CSTATE_COUNT; i++) {
 				if (cur_usage[i] != 0) {
+					double slept;
 					slept = (cur_duration[i] - G.last_duration[i])
 						/ (cur_usage[i] - G.last_usage[i] + 0.1) / FREQ_ACPI;
 					percentage = (cur_duration[i] - G.last_duration[i]) * 100
@@ -736,125 +834,35 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 					if (!G.cstate_names[i][0])
 						sprintf(G.cstate_names[i], "C%u", i + 1);
-					sprintf(cstate_lines[i + 2], "%s\t%5.1fms (%4.1f%%)\n",
+					sprintf(cstate_lines[i + 2], "%s\t\t%5.1fms (%4.1f%%)\n",
 						G.cstate_names[i], slept, percentage);
-					/*if (maxsleep < slept)
-						maxsleep = slept;*/
+					//if (maxsleep < slept)
+					//	maxsleep = slept;
 				}
 			}
 		}
 
-		/* Display C-states */
-		show_cstates(cstate_lines);
+		for (i = 0; i < MAX_CSTATE_COUNT + 2; i++)
+			if (cstate_lines[i][0])
+				printf("%s", cstate_lines[i]);
 
-		/* Do timer_stats info */
-		buf[0] = '\0';
-		totalticks = 0;
-
-		fp = NULL;
-		if (!G.cant_enable_timer_stats)
-			fp = fopen_for_read("/proc/timer_stats");
-		if (fp) {
-// Examlpe file contents:
-// Timer Stats Version: v0.2
-// Sample period: 1.329 s
-//    76,     0 swapper          hrtimer_start_range_ns (tick_sched_timer)
-//    88,     0 swapper          hrtimer_start_range_ns (tick_sched_timer)
-//    24,  3787 firefox          hrtimer_start_range_ns (hrtimer_wakeup)
-//   46D,  1136 kondemand/1      do_dbs_timer (delayed_work_timer_fn)
-// ...
-//     1,  1656 Xorg             hrtimer_start_range_ns (hrtimer_wakeup)
-//     1,  2159 udisks-daemon    hrtimer_start_range_ns (hrtimer_wakeup)
-// 331 total events, 249.059 events/sec
-			while (fgets(buf, sizeof(buf), fp)) {
-				const char *count, *process, *func;
-				char *p;
-				char line[512];
-				int cnt = 0;
-// TODO: optimize
-				if (strstr(buf, "total events"))
-					break;
-				count = skip_whitespace(buf);
-				p = strchr(count, ',');
-				if (!p)
-					continue;
-				*p++ = '\0';
-				p = skip_whitespace(p); /* points to pid */
-
-/* Find char ' ', then eat remaining spaces */
-#define ADVANCE(p) do {           \
-	(p) = strchr((p), ' ');   \
-	if (!(p))                 \
-		continue;         \
-	*(p) = '\0';              \
-	(p)++;                    \
-	(p) = skip_whitespace(p); \
-} while (0)
-				/* Get process name */
-				ADVANCE(p);
-				process = p;
-
-				/* Get function */
-				ADVANCE(p);
-				func = p;
-
-				if (strcmp(process, "swapper") == 0
-				 && strcmp(func, "hrtimer_start_range_ns (tick_sched_timer)\n") == 0
-				) {
-					process = "[kernel scheduler]";
-					func = "Load balancing tick";
-				}
-
-				if (strcmp(process, "insmod") == 0)
-					process = "[kernel module]";
-				if (strcmp(process, "modprobe") == 0)
-					process = "[kernel module]";
-				if (strcmp(process, "swapper") == 0)
-					process = "[kernel core]";
-
-				if (strncmp(func, "tick_nohz_", 10) == 0)
-					continue;
-				if (strncmp(func, "tick_setup_sched_timer", 20) == 0)
-					continue;
-				if (strcmp(process, "powertop") == 0)
-					continue;
-
-				strchrnul(p, '\n')[0] = '\0';
-
-				cnt = bb_strtoull(count, &p, 10);
-				while (*p != '\0') {
-					if (*p++ == 'D')
-						goto skip;
-				}
-
-				if (strchr(process, '['))
-					sprintf(line, "%s %s", process, func);
-				else
-					sprintf(line, "%s", process);
-				save_line(line, cnt);
- skip: ;
-			}
-			fclose(fp);
-		}
-
+		i = process_timer_stats();
 #if ENABLE_FEATURE_POWERTOP_PROCIRQ
-		if (strstr(buf, "total events")) {
-			int n = bb_strtoull(buf, NULL, 10) / G.total_cpus;
-
-			if (totalevents == 0) {
-				/* No C-state info available, use timerstats */
-				totalevents = n * G.total_cpus + G.total_interrupt;
-				if (n < 0)
-					totalevents += G.interrupt_0 - n;
-			}
-			if (n > 0 && n < G.interrupt_0)
-				save_line("[extra timer interrupt]", G.interrupt_0 - n);
+		if (totalevents == 0) {
+			/* No C-state info available, use timerstats */
+			totalevents = i * G.total_cpus + G.total_interrupt;
+			if (i < 0)
+				totalevents += G.interrupt_0 - i;
 		}
 #endif
-		if (totalevents != 0)
-			printf("\n\033[1mWakeups-from-idle per second : %4.1f\tinterval:"
-				"%ds\n\033[0m",
-				(double)totalevents / DEFAULT_SLEEP / G.total_cpus, DEFAULT_SLEEP);
+		/* Upstream powertop prints wakeups per sec per CPU,
+		 * we print just raw wakeup counts.
+		 */
+//TODO: show real seconds (think about manual refresh)
+		printf("\nWakeups-from-idle in %u seconds: %llu\n",
+			DEFAULT_SLEEP,
+			totalevents
+		);
 
 		update_lines_cumulative_count();
 		sort_lines();
