@@ -2695,18 +2695,6 @@ INSERT
        "ras3 reset retension rewind rewoffline seek setblk setdensity\n" \
        "setpart tell unload unlock weof wset" \
 
-#define mv_trivial_usage \
-       "[-fi] SOURCE DEST\n" \
-       "or: mv [-fi] SOURCE... DIRECTORY"
-#define mv_full_usage "\n\n" \
-       "Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY\n" \
-     "\nOptions:" \
-     "\n	-f	Don't prompt before overwriting" \
-     "\n	-i	Interactive, prompt before overwrite" \
-
-#define mv_example_usage \
-       "$ mv /tmp/foo /bin/bar\n"
-
 #define nameif_trivial_usage \
        "[-s] [-c FILE] [{IFNAME MACADDR}]"
 #define nameif_full_usage "\n\n" \
