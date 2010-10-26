@@ -376,7 +376,7 @@ static void process_irq_counts(void)
 		name = p;
 		strchrnul(name, '\n')[0] = '\0';
 		/* Save description of the interrupt */
-		if (nr < 20000)
+		if (nr >= 20000)
 			sprintf(irq_desc, "   <kernel IPI> : %s", name);
 		else
 			sprintf(irq_desc, "    <interrupt> : %s", name);
