@@ -689,8 +689,8 @@ static void show_timerstats(void)
 // no ACPI power usage estimate available
 //
 // Top causes for wakeups:
-//   32.4% ( 26.7)       <interrupt> : extra timer interrupt 
-//   29.0% ( 23.9)     <kernel core> : hrtimer_start_range_ns (tick_sched_timer) 
+//   32.4% ( 26.7)       <interrupt> : extra timer interrupt
+//   29.0% ( 23.9)     <kernel core> : hrtimer_start_range_ns (tick_sched_timer)
 //    9.0% (  7.5)     <kernel core> : hrtimer_start (tick_sched_timer)
 //    6.5% (  5.3)       <interrupt> : ata_piix
 //    5.0% (  4.1)             inetd : hrtimer_start_range_ns (hrtimer_wakeup)
