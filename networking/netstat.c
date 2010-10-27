@@ -17,16 +17,37 @@
 #include "libbb.h"
 #include "inet_common.h"
 
+//usage:#define netstat_trivial_usage
+//usage:       "[-"IF_ROUTE("r")"al] [-tuwx] [-en"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
+//usage:#define netstat_full_usage "\n\n"
+//usage:       "Display networking information\n"
+//usage:     "\nOptions:"
+//usage:	IF_ROUTE(
+//usage:     "\n	-r	Routing table"
+//usage:	)
+//usage:     "\n	-a	All sockets"
+//usage:     "\n	-l	Listening sockets"
+//usage:     "\n		Else: connected sockets"
+//usage:     "\n	-t	TCP sockets"
+//usage:     "\n	-u	UDP sockets"
+//usage:     "\n	-w	Raw sockets"
+//usage:     "\n	-x	Unix sockets"
+//usage:     "\n		Else: all socket types"
+//usage:     "\n	-e	Other/more information"
+//usage:     "\n	-n	Don't resolve names"
+//usage:	IF_FEATURE_NETSTAT_WIDE(
+//usage:     "\n	-W	Wide display"
+//usage:	)
+//usage:	IF_FEATURE_NETSTAT_PRG(
+//usage:     "\n	-p	Show PID/program name for sockets"
+//usage:	)
+
 #define NETSTAT_OPTS "laentuwx" \
 	IF_ROUTE(               "r") \
 	IF_FEATURE_NETSTAT_WIDE("W") \
 	IF_FEATURE_NETSTAT_PRG( "p")
 
 enum {
-	OPTBIT_KEEP_OLD = 7,
-	IF_ROUTE(               OPTBIT_ROUTE,)
-	IF_FEATURE_NETSTAT_WIDE(OPTBIT_WIDE ,)
-	IF_FEATURE_NETSTAT_PRG( OPTBIT_PRG  ,)
 	OPT_sock_listen = 1 << 0, // l
 	OPT_sock_all    = 1 << 1, // a
 	OPT_extended    = 1 << 2, // e
@@ -35,6 +56,10 @@ enum {
 	OPT_sock_udp    = 1 << 5, // u
 	OPT_sock_raw    = 1 << 6, // w
 	OPT_sock_unix   = 1 << 7, // x
+	OPTBIT_x        = 7,
+	IF_ROUTE(               OPTBIT_ROUTE,)
+	IF_FEATURE_NETSTAT_WIDE(OPTBIT_WIDE ,)
+	IF_FEATURE_NETSTAT_PRG( OPTBIT_PRG  ,)
 	OPT_route       = IF_ROUTE(               (1 << OPTBIT_ROUTE)) + 0, // r
 	OPT_wide        = IF_FEATURE_NETSTAT_WIDE((1 << OPTBIT_WIDE )) + 0, // W
 	OPT_prg         = IF_FEATURE_NETSTAT_PRG( (1 << OPTBIT_PRG  )) + 0, // p
@@ -220,7 +245,7 @@ static long extract_socket_inode(const char *lname)
 
 static int FAST_FUNC file_act(const char *fileName,
 		struct stat *statbuf UNUSED_PARAM,
-		void *userData,
+		void *pid_slash_progname,
 		int depth UNUSED_PARAM)
 {
 	char *linkname;
@@ -231,7 +256,7 @@ static int FAST_FUNC file_act(const char *fileName,
 		inode = extract_socket_inode(linkname);
 		free(linkname);
 		if (inode >= 0)
-			prg_cache_add(inode, (char *)userData);
+			prg_cache_add(inode, (char *)pid_slash_progname);
 	}
 	return TRUE;
 }
@@ -241,16 +266,16 @@ static int FAST_FUNC dir_act(const char *fileName,
 		void *userData UNUSED_PARAM,
 		int depth)
 {
-	const char *shortName;
-	char *p, *q;
+	const char *pid;
+	char *p, *pid_slash_progname;
 	char cmdline_buf[512];
 	int i;
 
 	if (depth == 0) /* "/proc" itself */
 		return TRUE; /* continue looking one level below /proc */
 
-	shortName = fileName + sizeof("/proc/")-1; /* point after "/proc/" */
-	if (!isdigit(shortName[0])) /* skip /proc entries whic aren't processes */
+	pid = fileName + sizeof("/proc/")-1; /* point after "/proc/" */
+	if (!isdigit(pid[0])) /* skip /proc entries which aren't processes */
 		return SKIP;
 
 	p = concat_path_file(fileName, "cmdline"); /* "/proc/PID/cmdline" */
@@ -259,20 +284,19 @@ static int FAST_FUNC dir_act(const char *fileName,
 	if (i < 0)
 		return FALSE;
 	cmdline_buf[i] = '\0';
-	q = concat_path_file(shortName, bb_basename(cmdline_buf)); /* "PID/argv0" */
 
 	/* go through all files in /proc/PID/fd */
+	pid_slash_progname = concat_path_file(pid, bb_basename(cmdline_buf)); /* "PID/argv0" */
 	p = concat_path_file(fileName, "fd");
 	i = recursive_action(p, ACTION_RECURSE | ACTION_QUIET,
-				file_act, NULL, (void *)q, 0);
-
+				file_act, NULL, (void *)pid_slash_progname, 0);
 	free(p);
-	free(q);
+	free(pid_slash_progname);
 
 	if (!i)
-		return FALSE;	/* signal permissions error to caller */
+		return FALSE; /* signal permissions error to caller */
 
-	return SKIP;		/* caller should not recurse further into this dir. */
+	return SKIP; /* caller should not recurse further into this dir */
 }
 
 static void prg_cache_load(void)
@@ -624,25 +648,23 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Option string must match NETSTAT_xxx constants */
 	opt = getopt32(argv, NETSTAT_OPTS);
-	if (opt & 0x1) { // -l
+	if (opt & OPT_sock_listen) { // -l
 		flags &= ~NETSTAT_CONNECTED;
 		flags |= NETSTAT_LISTENING;
 	}
-	if (opt & 0x2) flags |= NETSTAT_LISTENING | NETSTAT_CONNECTED; // -a
-	//if (opt & 0x4) // -e
-	if (opt & 0x8) flags |= NETSTAT_NUMERIC; // -n
-	//if (opt & 0x10) // -t: NETSTAT_TCP
-	//if (opt & 0x20) // -u: NETSTAT_UDP
-	//if (opt & 0x40) // -w: NETSTAT_RAW
-	//if (opt & 0x80) // -x: NETSTAT_UNIX
-	if (opt & OPT_route) { // -r
+	if (opt & OPT_sock_all) flags |= NETSTAT_LISTENING | NETSTAT_CONNECTED; // -a
+	//if (opt & OPT_extended) // -e
+	if (opt & OPT_noresolve) flags |= NETSTAT_NUMERIC; // -n
+	//if (opt & OPT_sock_tcp) // -t: NETSTAT_TCP
+	//if (opt & OPT_sock_udp) // -u: NETSTAT_UDP
+	//if (opt & OPT_sock_raw) // -w: NETSTAT_RAW
+	//if (opt & OPT_sock_unix) // -x: NETSTAT_UNIX
 #if ENABLE_ROUTE
+	if (opt & OPT_route) { // -r
 		bb_displayroutes(flags & NETSTAT_NUMERIC, !(opt & OPT_extended));
 		return 0;
-#else
-		bb_show_usage();
-#endif
 	}
+#endif
 	if (opt & OPT_wide) { // -W
 		net_conn_line = PRINT_NET_CONN_WIDE;
 		net_conn_line_header = PRINT_NET_CONN_HEADER_WIDE;
