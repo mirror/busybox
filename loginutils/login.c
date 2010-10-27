@@ -364,6 +364,10 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		if (++count == 3) {
 			syslog(LOG_WARNING, "invalid password for '%s'%s",
 						username, fromhost);
+
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(fromhost);
+
 			return EXIT_FAILURE;
 		}
 		username[0] = '\0';
@@ -400,6 +404,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	if (pw->pw_uid == 0)
 		syslog(LOG_INFO, "root login%s", fromhost);
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(fromhost);
 
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
