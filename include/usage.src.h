@@ -2709,27 +2709,6 @@ INSERT
        " or\n" \
        "$ nameif -c /etc/my_mactab_file\n" \
 
-#define netstat_trivial_usage \
-       "[-laentuwxr"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
-#define netstat_full_usage "\n\n" \
-       "Display networking information\n" \
-     "\nOptions:" \
-     "\n	-l	Display listening server sockets" \
-     "\n	-a	Display all sockets (default: connected)" \
-     "\n	-e	Display other/more information" \
-     "\n	-n	Don't resolve names" \
-     "\n	-t	Tcp sockets" \
-     "\n	-u	Udp sockets" \
-     "\n	-w	Raw sockets" \
-     "\n	-x	Unix sockets" \
-     "\n	-r	Display routing table" \
-	IF_FEATURE_NETSTAT_WIDE( \
-     "\n	-W	Display with no column truncation" \
-	) \
-	IF_FEATURE_NETSTAT_PRG( \
-     "\n	-p	Display PID/Program name for sockets" \
-	)
-
 #define nmeter_trivial_usage \
        "format_string"
 #define nmeter_full_usage "\n\n" \

@@ -649,8 +649,9 @@ static void reset_term(void)
 static void sig_catcher(int sig UNUSED_PARAM)
 {
 	reset_term();
-	exit(EXIT_FAILURE);
+	_exit(EXIT_FAILURE);
 }
+
 #endif /* FEATURE_USE_TERMIOS */
 
 /*
