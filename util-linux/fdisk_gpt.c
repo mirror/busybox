@@ -46,8 +46,6 @@ static unsigned int n_parts;
 static unsigned int part_array_len;
 static unsigned int part_entry_len;
 
-static uint32_t *crc32_table;
-
 static inline gpt_partition *
 gpt_part(int i)
 {
@@ -61,12 +59,7 @@ gpt_part(int i)
 static uint32_t
 gpt_crc32(void *buf, int len)
 {
-	uint32_t crc = 0xffffffff;
-
-	for (; len > 0; len--, buf++) {
-		crc = crc32_table[(crc ^ *((char *)buf)) & 0xff] ^ (crc >> 8);
-	}
-	return crc ^ 0xffffffff;
+	return 0xffffffff ^ crc32_block_endian0(0xffffffff, buf, len, global_crc32_table);
 }
 
 static void
@@ -160,8 +153,8 @@ check_gpt_label(void)
 		return 0;
 	}
 
-	if (!crc32_table) {
-		crc32_table = crc32_filltable(NULL, 0);
+	if (!global_crc32_table) {
+		global_crc32_table = crc32_filltable(NULL, 0);
 	}
 
 	crc = SWAP_LE32(gpt_hdr->hdr_crc32);

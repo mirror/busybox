@@ -340,7 +340,7 @@ struct globals {
 	ulg bits_sent;			/* bit length of the compressed data */
 #endif
 
-	uint32_t *crc_32_tab;
+	/*uint32_t *crc_32_tab;*/
 	uint32_t crc;	/* shift register contents */
 };
 
@@ -393,15 +393,9 @@ static void put_32bit(ulg n)
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
-static uint32_t updcrc(uch * s, unsigned n)
+static void updcrc(uch * s, unsigned n)
 {
-	uint32_t c = G1.crc;
-	while (n) {
-		c = G1.crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
-		n--;
-	}
-	G1.crc = c;
-	return c;
+	G1.crc = crc32_block_endian0(G1.crc, s, n, global_crc32_table /*G1.crc_32_tab*/);
 }
 
 
@@ -2104,8 +2098,8 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	ALLOC(uch, G1.window, 2L * WSIZE);
 	ALLOC(ush, G1.prev, 1L << BITS);
 
-	/* Initialise the CRC32 table */
-	G1.crc_32_tab = crc32_filltable(NULL, 0);
+	/* Initialize the CRC32 table */
+	global_crc32_table = crc32_filltable(NULL, 0);
 
 	return bbunpack(argv, pack_gzip, append_ext, "gz");
 }

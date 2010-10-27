@@ -22,17 +22,9 @@
 
 /* We use our own crc32 function */
 #define XZ_INTERNAL_CRC32 0
-static uint32_t *crc32_table;
 static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
 {
-	crc = ~crc;
-
-	while (size != 0) {
-		crc = crc32_table[*buf++ ^ (crc & 0xFF)] ^ (crc >> 8);
-		--size;
-	}
-
-	return ~crc;
+	return ~crc32_block_endian0(~crc, buf, size, global_crc32_table);
 }
 
 /* We use arch-optimized unaligned accessors */
@@ -53,8 +45,8 @@ unpack_xz_stream(int src_fd, int dst_fd)
 	unsigned char *membuf;
 	IF_DESKTOP(long long) int total = 0;
 
-	if (!crc32_table)
-		crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
+	if (!global_crc32_table)
+		global_crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
 
 	memset(&iobuf, 0, sizeof(iobuf));
 	/* Preload XZ file signature */

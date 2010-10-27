@@ -18,7 +18,6 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 	off_t length, filesize;
 	int bytes_read;
 	int exit_code = EXIT_SUCCESS;
-	uint8_t *cp;
 
 #if ENABLE_DESKTOP
 	getopt32(argv, ""); /* coreutils 6.9 compat */
@@ -39,11 +38,7 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 
 #define read_buf bb_common_bufsiz1
 		while ((bytes_read = safe_read(fd, read_buf, sizeof(read_buf))) > 0) {
-			cp = (uint8_t *) read_buf;
-			length += bytes_read;
-			do {
-				crc = (crc << 8) ^ crc32_table[(crc >> 24) ^ *cp++];
-			} while (--bytes_read);
+			crc = crc32_block_endian1(crc, read_buf, bytes_read, crc32_table);
 		}
 		close(fd);
 

@@ -925,10 +925,7 @@ static int inflate_block(STATE_PARAM smallint *e)
 /* Two callsites, both in inflate_get_next_window */
 static void calculate_gunzip_crc(STATE_PARAM_ONLY)
 {
-	unsigned n;
-	for (n = 0; n < gunzip_outbuf_count; n++) {
-		gunzip_crc = gunzip_crc_table[((int) gunzip_crc ^ (gunzip_window[n])) & 0xff] ^ (gunzip_crc >> 8);
-	}
+	gunzip_crc = crc32_block_endian0(gunzip_crc, gunzip_window, gunzip_outbuf_count, gunzip_crc_table);
 	gunzip_bytes_out += gunzip_outbuf_count;
 }
 

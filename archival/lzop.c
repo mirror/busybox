@@ -393,7 +393,7 @@ typedef struct header_t {
 } header_t;
 
 struct globals {
-	const uint32_t *lzo_crc32_table;
+	/*const uint32_t *lzo_crc32_table;*/
 	chksum_t chksum_in;
 	chksum_t chksum_out;
 } FIX_ALIASING;
@@ -468,19 +468,10 @@ lzo_adler32(uint32_t adler, const uint8_t* buf, unsigned len)
 static FAST_FUNC uint32_t
 lzo_crc32(uint32_t c, const uint8_t* buf, unsigned len)
 {
-	uint32_t crc;
+	//if (buf == NULL) - impossible
+	//	return 0;
 
-	if (buf == NULL)
-		return 0;
-
-	crc = ~c;
-	if (len != 0) do {
-		crc = G.lzo_crc32_table[(uint8_t)((int)crc ^ *buf)] ^ (crc >> 8);
-		buf += 1;
-		len -= 1;
-	} while (len > 0);
-
-	return ~crc;
+	return ~crc32_block_endian0(~c, buf, len, global_crc32_table);
 }
 
 /**********************************************************************/
@@ -679,8 +670,7 @@ static NOINLINE smallint lzo_compress(const header_t *h)
 		if (dst_len < src_len) {
 			/* write checksum of compressed block */
 			if (h->flags & F_ADLER32_C)
-				write32(lzo_adler32(ADLER32_INIT_VALUE, b2,
-							dst_len));
+				write32(lzo_adler32(ADLER32_INIT_VALUE, b2, dst_len));
 			if (h->flags & F_CRC32_C)
 				write32(lzo_crc32(CRC32_INIT_VALUE, b2, dst_len));
 			/* write compressed block data */
@@ -1080,6 +1070,6 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[0] == 'u')
 		option_mask32 |= OPT_DECOMPRESS;
 
-	G.lzo_crc32_table = crc32_filltable(NULL, 0);
+	global_crc32_table = crc32_filltable(NULL, 0);
 	return bbunpack(argv, pack_lzop, make_new_name_lzop, /*unused:*/ NULL);
 }
