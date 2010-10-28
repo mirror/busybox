@@ -94,8 +94,10 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 #endif
 
 
-#define SEQ_CLEAR_TILL_END_OF_SCREEN "\033[J"
-//#define SEQ_CLEAR_TILL_END_OF_LINE   "\033[K"
+#define ESC "\033"
+
+#define SEQ_CLEAR_TILL_END_OF_SCREEN  ESC"[J"
+//#define SEQ_CLEAR_TILL_END_OF_LINE  ESC"[K"
 
 
 enum {
@@ -446,7 +448,7 @@ static void input_backward(unsigned num)
 			} while (--num);
 			return;
 		}
-		printf("\033[%uD", num);
+		printf(ESC"[%uD", num);
 		return;
 	}
 
@@ -471,7 +473,7 @@ static void input_backward(unsigned num)
 		 */
 		unsigned sv_cursor;
 		/* go to 1st column; go up to first line */
-		printf("\r" "\033[%uA", cmdedit_y);
+		printf("\r" ESC"[%uA", cmdedit_y);
 		cmdedit_y = 0;
 		sv_cursor = cursor;
 		put_prompt(); /* sets cursor to 0 */
@@ -488,12 +490,12 @@ static void input_backward(unsigned num)
 		cmdedit_x = (width * cmdedit_y - num) % width;
 		cmdedit_y -= lines_up;
 		/* go to 1st column; go up */
-		printf("\r" "\033[%uA", lines_up);
+		printf("\r" ESC"[%uA", lines_up);
 		/* go to correct column.
 		 * xterm, konsole, Linux VT interpret 0 as 1 below! wow.
 		 * need to *make sure* we skip it if cmdedit_x == 0 */
 		if (cmdedit_x)
-			printf("\033[%uC", cmdedit_x);
+			printf(ESC"[%uC", cmdedit_x);
 	}
 }
 
@@ -501,7 +503,7 @@ static void input_backward(unsigned num)
 static void redraw(int y, int back_cursor)
 {
 	if (y > 0) /* up y lines */
-		printf("\033[%uA", y);
+		printf(ESC"[%uA", y);
 	bb_putchar('\r');
 	put_prompt();
 	put_till_end_and_adv_cursor();
@@ -1626,7 +1628,7 @@ static void ask_terminal(void)
 	pfd.events = POLLIN;
 	if (safe_poll(&pfd, 1, 0) == 0) {
 		S.sent_ESC_br6n = 1;
-		fputs("\033" "[6n", stdout);
+		fputs(ESC"[6n", stdout);
 		fflush_all(); /* make terminal see it ASAP! */
 	}
 }
@@ -2074,7 +2076,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		case CTRL('L'):
 		vi_case(CTRL('L')|VI_CMDMODE_BIT:)
 			/* Control-l -- clear screen */
-			printf("\033[H"); /* cursor to top,left */
+			printf(ESC"[H"); /* cursor to top,left */
 			redraw(0, command_len - cursor);
 			break;
 #if MAX_HISTORY > 0

@@ -43,6 +43,9 @@
 #include "libbb.h"
 #include <sys/kd.h>
 
+
+#define ESC "\033"
+
 struct screen_info {
 	unsigned char lines, cols, cursor_x, cursor_y;
 };
@@ -70,7 +73,7 @@ struct globals {
 	unsigned col;
 	unsigned line;
 	smallint curoff; // unknown:0 cursor on:-1 cursor off:1
-	char attrbuf[sizeof("\033[0;1;5;30;40m")];
+	char attrbuf[sizeof(ESC"[0;1;5;30;40m")];
 	// remote console
 	struct screen_info remote;
 	// saved local tty terminfo
@@ -101,7 +104,7 @@ enum {
 static void clrscr(void)
 {
 	// Home, clear till end of screen
-	fputs("\033[1;1H" "\033[J", stdout);
+	fputs(ESC"[1;1H" ESC"[J", stdout);
 	G.col = G.line = 0;
 }
 
@@ -109,7 +112,7 @@ static void set_cursor(int state)
 {
 	if (G.curoff != state) {
 		G.curoff = state;
-		fputs("\033[?25", stdout);
+		fputs(ESC"[?25", stdout);
 		bb_putchar("h?l"[1 + state]);
 	}
 }
@@ -119,7 +122,7 @@ static void gotoxy(int col, int line)
 	if (G.col != col || G.line != line) {
 		G.col = col;
 		G.line = line;
-		printf("\033[%u;%uH", line + 1, col + 1);
+		printf(ESC"[%u;%uH", line + 1, col + 1);
 	}
 }
 
@@ -132,7 +135,7 @@ static void cleanup(int code)
 	}
 	// Reset attributes
 	if (!BW)
-		fputs("\033[0m", stdout);
+		fputs(ESC"[0m", stdout);
 	bb_putchar('\n');
 	if (code > 1)
 		kill_myself_with_sig(code);

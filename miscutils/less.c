@@ -28,13 +28,15 @@
 #include "xregex.h"
 #endif
 
+
+#define ESC "\033"
 /* The escape codes for highlighted and normal text */
-#define HIGHLIGHT   "\033[7m"
-#define NORMAL      "\033[0m"
+#define HIGHLIGHT   ESC"[7m"
+#define NORMAL      ESC"[0m"
 /* The escape code to home and clear to the end of screen */
-#define CLEAR       "\033[H\033[J"
+#define CLEAR       ESC"[H\033[J"
 /* The escape code to clear to the end of line */
-#define CLEAR_2_EOL "\033[K"
+#define CLEAR_2_EOL ESC"[K"
 
 enum {
 /* Absolute max of lines eaten */
@@ -165,12 +167,12 @@ static void set_tty_cooked(void)
    top-left corner of the console */
 static void move_cursor(int line, int row)
 {
-	printf("\033[%u;%uH", line, row);
+	printf(ESC"[%u;%uH", line, row);
 }
 
 static void clear_line(void)
 {
-	printf("\033[%u;0H" CLEAR_2_EOL, max_displayed_line + 2);
+	printf(ESC"[%u;0H" CLEAR_2_EOL, max_displayed_line + 2);
 }
 
 static void print_hilite(const char *str)

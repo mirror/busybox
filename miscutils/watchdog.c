@@ -24,7 +24,7 @@ static void watchdog_shutdown(int sig UNUSED_PARAM)
 	write(3, &V, 1);  /* Magic, see watchdog-api.txt in kernel */
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(3);
-	exit(EXIT_SUCCESS);
+	_exit(EXIT_SUCCESS);
 }
 
 int watchdog_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
