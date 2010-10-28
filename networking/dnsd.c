@@ -388,7 +388,7 @@ static int process_packet(struct dns_entry *conf_data,
 	query_len = strlen(query_string) + 1;
 	/* may be unaligned! */
 	unaligned_type_class = (void *)(query_string + query_len);
-	query_len += sizeof(unaligned_type_class);
+	query_len += sizeof(*unaligned_type_class);
 	/* where to append answer block */
 	answb = (void *)(unaligned_type_class + 1);
 
