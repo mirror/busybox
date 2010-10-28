@@ -332,7 +332,7 @@ static void append_mount_options(char **oldopts, const char *newopts)
 }
 
 // Use the mount_options list to parse options into flags.
-// Also return list of unrecognized options if unrecognized != NULL
+// Also update list of unrecognized options if unrecognized != NULL
 static long parse_mount_options(char *options, char **unrecognized)
 {
 	long flags = MS_SILENT;
@@ -348,25 +348,35 @@ static long parse_mount_options(char *options, char **unrecognized)
 // FIXME: use hasmntopt()
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
-			if (!strcasecmp(option_str, options)) {
+			if (strcasecmp(option_str, options) == 0) {
 				long fl = mount_options[i];
-				if (fl < 0) flags &= fl;
-				else flags |= fl;
-				break;
+				if (fl < 0)
+					flags &= fl;
+				else
+					flags |= fl;
+				goto found;
 			}
 			option_str += strlen(option_str) + 1;
 		}
-		// If unrecognized not NULL, append unrecognized mount options
-		if (unrecognized && i == ARRAY_SIZE(mount_options)) {
+		// We did not recognize this option.
+		// If "unrecognized" is not NULL, append option there.
+		// Note that we should not append *empty* option -
+		// in this case we want to pass NULL, not "", to "data"
+		// parameter of mount(2) syscall.
+		// This is crucial for filesystems that don't accept
+		// any arbitrary mount options, like cgroup fs:
+		// "mount -t cgroup none /mnt"
+		if (options[0] && unrecognized) {
 			// Add it to strflags, to pass on to kernel
-			i = *unrecognized ? strlen(*unrecognized) : 0;
-			*unrecognized = xrealloc(*unrecognized, i + strlen(options) + 2);
+			char *p = *unrecognized;
+			unsigned len = p ? strlen(p) : 0;
+			*unrecognized = p = xrealloc(p, len + strlen(options) + 2);
 
 			// Comma separated if it's not the first one
-			if (i) (*unrecognized)[i++] = ',';
-			strcpy((*unrecognized)+i, options);
+			if (len) p[len++] = ',';
+			strcpy(p + len, options);
 		}
-
+ found:
 		if (!comma)
 			break;
 		// Advance to next option
