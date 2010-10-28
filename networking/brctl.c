@@ -184,7 +184,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 						tabs = 1;
 					printf("\t\t%s\n", ifname);
 				}
-				if (!tabs)	/* bridge has no interfaces */
+				if (!tabs)  /* bridge has no interfaces */
 					bb_putchar('\n');
 			}
 			goto done;

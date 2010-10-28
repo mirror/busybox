@@ -110,7 +110,7 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 			 * the offset is changed as well.  This isn't pretty,
 			 * but it's easy.
 			 */
-#define	TYPE_OFFSET	7
+#define TYPE_OFFSET 7
 			{
 				char x_or_d;
 				if (base == 16) {
@@ -130,19 +130,19 @@ odoffset(dumper_t *dumper, int argc, char ***argvp)
 }
 
 static const char *const add_strings[] = {
-	"16/1 \"%3_u \" \"\\n\"",				/* a */
-	"8/2 \" %06o \" \"\\n\"",				/* B, o */
-	"16/1 \"%03o \" \"\\n\"",				/* b */
-	"16/1 \"%3_c \" \"\\n\"",				/* c */
-	"8/2 \"  %05u \" \"\\n\"",				/* d */
-	"4/4 \"     %010u \" \"\\n\"",			/* D */
-	"2/8 \"          %21.14e \" \"\\n\"",	/* e (undocumented in od), F */
-	"4/4 \" %14.7e \" \"\\n\"",				/* f */
-	"4/4 \"       %08x \" \"\\n\"",			/* H, X */
-	"8/2 \"   %04x \" \"\\n\"",				/* h, x */
-	"4/4 \"    %11d \" \"\\n\"",			/* I, L, l */
-	"8/2 \" %6d \" \"\\n\"",				/* i */
-	"4/4 \"    %011o \" \"\\n\"",			/* O */
+	"16/1 \"%3_u \" \"\\n\"",              /* a */
+	"8/2 \" %06o \" \"\\n\"",              /* B, o */
+	"16/1 \"%03o \" \"\\n\"",              /* b */
+	"16/1 \"%3_c \" \"\\n\"",              /* c */
+	"8/2 \"  %05u \" \"\\n\"",             /* d */
+	"4/4 \"     %010u \" \"\\n\"",         /* D */
+	"2/8 \"          %21.14e \" \"\\n\"",  /* e (undocumented in od), F */
+	"4/4 \" %14.7e \" \"\\n\"",            /* f */
+	"4/4 \"       %08x \" \"\\n\"",        /* H, X */
+	"8/2 \"   %04x \" \"\\n\"",            /* h, x */
+	"4/4 \"    %11d \" \"\\n\"",           /* I, L, l */
+	"8/2 \" %6d \" \"\\n\"",               /* i */
+	"4/4 \"    %011o \" \"\\n\"",          /* O */
 };
 
 static const char od_opts[] ALIGN1 = "aBbcDdeFfHhIiLlOoXxv";

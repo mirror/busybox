@@ -124,7 +124,7 @@ static void run_login_script(struct passwd *pw, char *full_tty)
 		xsetenv("LOGIN_UID", utoa(pw->pw_uid));
 		xsetenv("LOGIN_GID", utoa(pw->pw_gid));
 		xsetenv("LOGIN_SHELL", pw->pw_shell);
-		spawn_and_wait(t_argv);	/* NOMMU-friendly */
+		spawn_and_wait(t_argv); /* NOMMU-friendly */
 		unsetenv("LOGIN_TTY");
 		unsetenv("LOGIN_USER");
 		unsetenv("LOGIN_UID");
@@ -245,7 +245,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Let's find out and memorize our tty */
 	if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) || !isatty(STDERR_FILENO))
-		return EXIT_FAILURE;		/* Must be a terminal */
+		return EXIT_FAILURE;  /* Must be a terminal */
 	full_tty = xmalloc_ttyname(STDIN_FILENO);
 	if (!full_tty)
 		full_tty = xstrdup("UNKNOWN");

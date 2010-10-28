@@ -22,7 +22,7 @@ static void check_selinux_update_passwd(const char *username)
 	char *seuser;
 
 	if (getuid() != (uid_t)0 || is_selinux_enabled() == 0)
-		return;		/* No need to check */
+		return;  /* No need to check */
 
 	if (getprevcon_raw(&context) < 0)
 		bb_perror_msg_and_die("getprevcon failed");

@@ -18,9 +18,9 @@ enum {
 	HASH_SHA512 = '5',
 };
 
-#define FLAG_SILENT	1
-#define FLAG_CHECK	2
-#define FLAG_WARN	4
+#define FLAG_SILENT  1
+#define FLAG_CHECK   2
+#define FLAG_WARN    4
 
 /* This might be useful elsewhere */
 static unsigned char *hash_bin_to_hex(unsigned char *hash_value,

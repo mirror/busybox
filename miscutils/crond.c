@@ -35,7 +35,7 @@
 # define CRONUPDATE     "cron.update"
 #endif
 #ifndef MAXLINES
-# define MAXLINES       256	/* max lines in non-root crontabs */
+# define MAXLINES       256  /* max lines in non-root crontabs */
 #endif
 
 
@@ -170,7 +170,7 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 
 		/* Handle numeric digit or symbol or '*' */
 		if (*ptr == '*') {
-			n1 = 0;		/* everything will be filled */
+			n1 = 0;  /* everything will be filled */
 			n2 = modvalue - 1;
 			skip = 1;
 			++ptr;

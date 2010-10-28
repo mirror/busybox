@@ -50,7 +50,7 @@ static NOINLINE bool may_wakeup(const char *rtcname)
 static NOINLINE void setup_alarm(int fd, time_t *wakeup, time_t rtc_time)
 {
 	struct tm *ptm;
-	struct linux_rtc_wkalrm	wake;
+	struct linux_rtc_wkalrm wake;
 
 	/* The wakeup time is in POSIX time (more or less UTC).
 	 * Ideally RTCs use that same time; but PCs can't do that

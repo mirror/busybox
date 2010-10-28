@@ -413,7 +413,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case SIGTERM:
 			bb_info_msg("Received SIGTERM");
 			goto ret0;
-		case 0:	/* no signal: read a packet */
+		case 0: /* no signal: read a packet */
 			break;
 		default: /* signal or error (probably EINTR): back to select */
 			continue;

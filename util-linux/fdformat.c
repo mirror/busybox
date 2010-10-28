@@ -36,7 +36,7 @@ struct format_descr {
 	unsigned int device,head,track;
 };
 #define FDFMTBEG _IO(2,0x47)
-#define	FDFMTTRK _IOW(2,0x48, struct format_descr)
+#define FDFMTTRK _IOW(2,0x48, struct format_descr)
 #define FDFMTEND _IO(2,0x49)
 #define FDGETPRM _IOR(2, 0x04, struct floppy_struct)
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */

@@ -65,7 +65,7 @@ int ext2fs_test_bit(unsigned int nr, const void * addr)
 	return (mask & *ADDR);
 }
 
-#endif	/* !_EXT2_HAVE_ASM_BITOPS_ */
+#endif  /* !_EXT2_HAVE_ASM_BITOPS_ */
 
 void ext2fs_warn_bitmap(errcode_t errcode, unsigned long arg,
 			const char *description)

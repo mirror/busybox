@@ -68,7 +68,7 @@ aa:      85.1% -- replaced with aa.gz
  */
 #define SMALL_MEM
 
-#ifndef	INBUFSIZ
+#ifndef INBUFSIZ
 #  ifdef SMALL_MEM
 #    define INBUFSIZ  0x2000	/* input buffer size */
 #  else
@@ -76,7 +76,7 @@ aa:      85.1% -- replaced with aa.gz
 #  endif
 #endif
 
-#ifndef	OUTBUFSIZ
+#ifndef OUTBUFSIZ
 #  ifdef SMALL_MEM
 #    define OUTBUFSIZ   8192	/* output buffer size */
 #  else

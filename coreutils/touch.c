@@ -97,7 +97,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		parse_datestr(date_str, &tm_time);
 
 		/* Correct any day of week and day of year etc. fields */
-		tm_time.tm_isdst = -1;	/* Be sure to recheck dst */
+		tm_time.tm_isdst = -1;  /* Be sure to recheck dst */
 		t = validate_tm_time(date_str, &tm_time);
 
 		timebuf[1].tv_sec = timebuf[0].tv_sec = t;

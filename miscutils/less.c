@@ -21,7 +21,7 @@
  *   redirected input has been read from stdin
  */
 
-#include <sched.h>	/* sched_yield() */
+#include <sched.h>  /* sched_yield() */
 
 #include "libbb.h"
 #if ENABLE_FEATURE_LESS_REGEXP
@@ -477,7 +477,7 @@ static void m_status_print(void)
 {
 	int percentage;
 
-	if (less_gets_pos >= 0)	/* don't touch statusline while input is done! */
+	if (less_gets_pos >= 0) /* don't touch statusline while input is done! */
 		return;
 
 	clear_line();
@@ -503,7 +503,7 @@ static void status_print(void)
 {
 	const char *p;
 
-	if (less_gets_pos >= 0)	/* don't touch statusline while input is done! */
+	if (less_gets_pos >= 0) /* don't touch statusline while input is done! */
 		return;
 
 	/* Change the status if flags have been set */

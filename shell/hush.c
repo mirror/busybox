@@ -2765,7 +2765,7 @@ static const struct reserved_combo* match_reserved_word(o_string *word)
 	};
 	const struct reserved_combo *r;
 
-	for (r = reserved_list;	r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
+	for (r = reserved_list; r < reserved_list + ARRAY_SIZE(reserved_list); r++) {
 		if (strcmp(word->data, r->literal) == 0)
 			return r;
 	}
@@ -4660,7 +4660,7 @@ static NOINLINE const char *expand_one_var(char **to_be_freed_pp, char *arg, cha
 				char *exp_exp_word;
 				char *loc;
 				unsigned scan_flags = pick_scan(exp_op, *exp_word);
-				if (exp_op == *exp_word)	/* ## or %% */
+				if (exp_op == *exp_word)  /* ## or %% */
 					exp_word++;
 				exp_exp_word = encode_then_expand_string(exp_word, /*process_bkslash:*/ 1, /*unbackslash:*/ 1);
 				if (exp_exp_word)

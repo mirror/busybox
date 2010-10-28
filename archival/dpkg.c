@@ -866,7 +866,7 @@ static void write_status_file(deb_file_t **deb_file)
 					write_flag = TRUE;
 					fputs("\n", new_status_file);
 				}
-				else if	(strcmp("config-files", name_hashtable[state_status]) == 0) {
+				else if (strcmp("config-files", name_hashtable[state_status]) == 0) {
 					/* only change the status line */
 					while (1) {
 						char *field_name;

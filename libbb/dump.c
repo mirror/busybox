@@ -4,7 +4,7 @@
  * based on code from util-linux v 2.11l
  *
  * Copyright (c) 1989
- *	The Regents of the University of California.  All rights reserved.
+ * The Regents of the University of California.  All rights reserved.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
@@ -208,7 +208,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 					pr->bcnt = fu->bcnt;
 				} else if (sokay == USEPREC) {
 					pr->bcnt = prec;
-				} else {	/* NOTOKAY */
+				} else {   /* NOTOKAY */
 					bb_error_msg_and_die("%%s requires a precision or a byte count");
 				}
 			} else if (*p1 == '_') {
@@ -467,7 +467,7 @@ static void bpad(PR *pr)
 
 static const char conv_str[] ALIGN1 =
 	"\0\\0\0"
-	"\007\\a\0"				/* \a */
+	"\007\\a\0"  /* \a */
 	"\b\\b\0"
 	"\f\\b\0"
 	"\n\\n\0"

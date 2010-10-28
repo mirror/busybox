@@ -45,7 +45,7 @@ int parse_main(int argc UNUSED_PARAM, char **argv)
 Typical usage:
 
 ----- CUT -----
-	char *t[3];	// tokens placeholder
+	char *t[3];  // tokens placeholder
 	parser_t *p = config_open(filename);
 	if (p) {
 		// parse line-by-line

@@ -1745,7 +1745,7 @@ static void process_dev(char *devname)
 		if (-1 == read(fd, buf, sizeof(buf)))
 			bb_perror_msg("read of 512 bytes failed");
 	}
-#endif	/* HDIO_DRIVE_CMD */
+#endif  /* HDIO_DRIVE_CMD */
 	if (getset_mult || get_identity) {
 		multcount = -1;
 		if (ioctl(fd, HDIO_GET_MULTCOUNT, &multcount)) {

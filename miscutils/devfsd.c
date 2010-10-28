@@ -75,7 +75,7 @@
 
 /* Various defines taken from linux/devfs_fs.h */
 #define DEVFSD_PROTOCOL_REVISION_KERNEL  5
-#define	DEVFSD_IOCTL_BASE	'd'
+#define DEVFSD_IOCTL_BASE	'd'
 /*  These are the various ioctls  */
 #define DEVFSDIOC_GET_PROTO_REV         _IOR(DEVFSD_IOCTL_BASE, 0, int)
 #define DEVFSDIOC_SET_EVENT_MASK        _IOW(DEVFSD_IOCTL_BASE, 2, int)

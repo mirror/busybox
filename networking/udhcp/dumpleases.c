@@ -18,9 +18,9 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 	struct in_addr addr;
 
 	enum {
-		OPT_a	= 0x1,	// -a
-		OPT_r	= 0x2,	// -r
-		OPT_f	= 0x4,	// -f
+		OPT_a = 0x1, // -a
+		OPT_r = 0x2, // -r
+		OPT_f = 0x4, // -f
 	};
 #if ENABLE_LONG_OPTS
 	static const char dumpleases_longopts[] ALIGN1 =

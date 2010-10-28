@@ -469,7 +469,7 @@ static bool do_statfs(const char *filename, const char *format)
 	if (scontext)
 		freecon(scontext);
 # endif
-#endif	/* FEATURE_STAT_FORMAT */
+#endif  /* FEATURE_STAT_FORMAT */
 	return 1;
 }
 
@@ -635,7 +635,7 @@ static bool do_stat(const char *filename, const char *format)
 		       human_time(statbuf.st_mtime),
 		       human_time(statbuf.st_ctime));
 	}
-#endif	/* FEATURE_STAT_FORMAT */
+#endif  /* FEATURE_STAT_FORMAT */
 	return 1;
 }
 

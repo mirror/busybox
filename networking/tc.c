@@ -1,10 +1,10 @@
 /* vi: set sw=4 ts=4: */
 /*
- * tc.c		"tc" utility frontend.
+ * "tc" utility frontend.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
- * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+ * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Bernhard Reutner-Fischer adjusted for busybox
  */

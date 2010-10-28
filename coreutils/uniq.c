@@ -86,7 +86,7 @@ int uniq_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			free(cur_line);
-			++dups;	 /* testing for overflow seems excessive */
+			++dups;  /* testing for overflow seems excessive */
 		}
 
 		if (old_line) {

@@ -21,7 +21,7 @@
 #endif
 
 /* taken from linux/sockios.h */
-#define SIOCSIFNAME	0x8923		/* set interface name */
+#define SIOCSIFNAME  0x8923  /* set interface name */
 
 /* Exits on error */
 static int get_ctl_fd(void)

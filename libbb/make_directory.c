@@ -44,7 +44,7 @@ int FAST_FUNC bb_make_directory(char *path, long mode, int flags)
 	while (1) {
 		c = '\0';
 
-		if (flags & FILEUTILS_RECUR) {	/* Get the parent */
+		if (flags & FILEUTILS_RECUR) {  /* Get the parent */
 			/* Bypass leading non-'/'s and then subsequent '/'s */
 			while (*s) {
 				if (*s == '/') {

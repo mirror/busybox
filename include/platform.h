@@ -4,7 +4,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-#ifndef	BB_PLATFORM_H
+#ifndef BB_PLATFORM_H
 #define BB_PLATFORM_H 1
 
 /* Assume all these functions exist by default.  Platforms where it is not

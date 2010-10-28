@@ -30,7 +30,7 @@ int mkfifo_main(int argc UNUSED_PARAM, char **argv)
 
 	do {
 		if (mkfifo(*argv, mode) < 0) {
-			bb_simple_perror_msg(*argv);	/* Avoid multibyte problems. */
+			bb_simple_perror_msg(*argv);  /* Avoid multibyte problems. */
 			retval = EXIT_FAILURE;
 		}
 	} while (*++argv);

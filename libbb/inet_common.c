@@ -218,4 +218,4 @@ char* FAST_FUNC INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
 	return xstrdup(name);
 }
 
-#endif		/* CONFIG_FEATURE_IPV6 */
+#endif  /* CONFIG_FEATURE_IPV6 */

@@ -17,8 +17,8 @@ typedef struct ino_dev_hash_bucket_struct {
 	char name[1];
 } ino_dev_hashtable_bucket_t;
 
-#define HASH_SIZE	311		/* Should be prime */
-#define hash_inode(i)	((i) % HASH_SIZE)
+#define HASH_SIZE      311   /* Should be prime */
+#define hash_inode(i)  ((i) % HASH_SIZE)
 
 /* array of [HASH_SIZE] elements */
 static ino_dev_hashtable_bucket_t **ino_dev_hashtable;

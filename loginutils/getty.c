@@ -387,7 +387,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 		struct options *op, struct chardata *cp)
 {
 	char *bp;
-	char c;				/* input character, full eight bits */
+	char c;                         /* input character, full eight bits */
 	char ascval;                    /* low 7 bits of input character */
 	int bits;                       /* # of "1" bits per character */
 	int mask;                       /* mask with 1 bit up */
@@ -580,7 +580,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	chardata = init_chardata;
 
 	memset(&options, 0, sizeof(options));
-	options.login =	_PATH_LOGIN;    /* default login program */
+	options.login = _PATH_LOGIN;    /* default login program */
 	options.tty = "tty1";           /* default tty line */
 	options.initstring = "";        /* modem init string */
 #ifdef ISSUE

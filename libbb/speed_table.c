@@ -29,12 +29,12 @@ static const struct speed_map speeds[] = {
 	{B2400, 2400},
 	{B4800, 4800},
 	{B9600, 9600},
-#ifdef	B19200
+#ifdef B19200
 	{B19200, 19200},
 #elif defined(EXTA)
 	{EXTA, 19200},
 #endif
-#ifdef	B38400
+#ifdef B38400
 	{B38400, 38400/256 + 0x8000U},
 #elif defined(EXTB)
 	{EXTB, 38400/256 + 0x8000U},

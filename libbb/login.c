@@ -30,7 +30,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 	time(&t);
 	uname(&uts);
 
-	puts("\r");	/* start a new line */
+	puts("\r");  /* start a new line */
 
 	fp = fopen_for_read(issue_file);
 	if (!fp)

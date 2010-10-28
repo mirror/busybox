@@ -28,7 +28,7 @@
 
 #define ATTR_VOLUME     8
 
-#define	NUM_FATS        2
+#define NUM_FATS        2
 
 /* FAT32 filesystem looks like this:
  * sector -nn...-1: "hidden" sectors, all sectors before this partition

@@ -189,12 +189,12 @@ int ether_wake_main(int argc UNUSED_PARAM, char **argv)
 	unsigned flags;
 	unsigned char wol_passwd[6];
 	int wol_passwd_sz = 0;
-	int s;						/* Raw socket */
+	int s;  /* Raw socket */
 	int pktsize;
 	unsigned char outpack[1000];
 
 	struct ether_addr eaddr;
-	struct whereto_t whereto;	/* who to wake up */
+	struct whereto_t whereto;  /* who to wake up */
 
 	/* handle misc user options */
 	opt_complementary = "=1";

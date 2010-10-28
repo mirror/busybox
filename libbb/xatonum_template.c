@@ -41,7 +41,7 @@ unsigned type FAST_FUNC xstrtou(_range_sfx)(const char *numstr, int base,
 	if (errno || numstr == e)
 		goto inval; /* error / no digits / illegal trailing chars */
 
-	errno = old_errno;	/* Ok.  So restore errno. */
+	errno = old_errno;  /* Ok.  So restore errno. */
 
 	/* Do optional suffix parsing.  Allow 'empty' suffix tables.
 	 * Note that we also allow nul suffixes with associated multipliers,

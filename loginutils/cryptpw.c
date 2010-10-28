@@ -104,7 +104,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	xmove_fd(fd, STDIN_FILENO);
 
 	puts(pw_encrypt(
-		argv[0]	? argv[0] : (
+		argv[0] ? argv[0] : (
 			/* Only mkpasswd, and only from tty, prompts.
 			 * Otherwise it is a plain read. */
 			(isatty(STDIN_FILENO) && applet_name[0] == 'm')

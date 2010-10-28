@@ -11,8 +11,8 @@
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>
 
-#define	ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
-#define	ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
+#define ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
+#define ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
 
 // from e2fsprogs
 #define s_reserved_gdt_blocks s_padding1

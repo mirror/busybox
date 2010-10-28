@@ -43,7 +43,6 @@ typedef enum type_id {
 static int remove_ids(type_id type, int argc, char **argv)
 {
 	unsigned long id;
-	int ret = 0;		/* silence gcc */
 	int nb_errors = 0;
 	union semun arg;
 
@@ -55,6 +54,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 			bb_error_msg("invalid id: %s", argv[0]);
 			nb_errors++;
 		} else {
+			int ret = 0;
 			if (type == SEM)
 				ret = semctl(id, 0, IPC_RMID, arg);
 			else if (type == MSG)
@@ -92,14 +92,13 @@ int ipcrm_main(int argc, char **argv)
 		type_id what = 0; /* silence gcc */
 		char w;
 
-		w=argv[1][0];
+		w = argv[1][0];
 		if ( ((w == 'm' && argv[1][1] == 's' && argv[1][2] == 'g')
 		       || (argv[1][0] == 's'
-		           && ((w=argv[1][1]) == 'h' || w == 'e')
+		           && ((w = argv[1][1]) == 'h' || w == 'e')
 		           && argv[1][2] == 'm')
 		     ) && argv[1][3] == '\0'
 		) {
-
 			if (argc < 3)
 				bb_show_usage();
 

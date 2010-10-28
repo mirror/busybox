@@ -1110,16 +1110,16 @@ static void set_mode(const struct mode_info *info, int reversed,
 		if (reversed)
 			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
 		else
-			mode->c_cflag =	(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
+			mode->c_cflag = (mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
 	} else if (info == &mode_info[IDX_oddp]) {
 		if (reversed)
 			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
 		else
-			mode->c_cflag =	(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
+			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
 	} else if (info == &mode_info[IDX_nl]) {
 		if (reversed) {
 			mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
-			mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
+			mode->c_oflag = (mode->c_oflag | ONLCR) & ~OCRNL & ~ONLRET;
 		} else {
 			mode->c_iflag = mode->c_iflag & ~ICRNL;
 			if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;

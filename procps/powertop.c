@@ -39,7 +39,7 @@
 
 /* Frequency of the ACPI timer */
 #define FREQ_ACPI          3579.545
-#define FREQ_ACPI_1000	   3579545
+#define FREQ_ACPI_1000     3579545
 
 /* Max filename length of entry in /sys/devices subsystem */
 #define BIG_SYSNAME_LEN    16
@@ -115,8 +115,8 @@ static int write_str_to_file(const char *fname, const char *str)
 }
 
 /* Make it more readable */
-#define start_timer()	write_str_to_file("/proc/timer_stats", "1\n")
-#define stop_timer()	write_str_to_file("/proc/timer_stats", "0\n")
+#define start_timer() write_str_to_file("/proc/timer_stats", "1\n")
+#define stop_timer()  write_str_to_file("/proc/timer_stats", "0\n")
 
 static NOINLINE void clear_lines(void)
 {
@@ -362,7 +362,7 @@ static void process_irq_counts(void)
 		}
 		/*   0:  143646045  153901007   IO-APIC-edge      timer
 		 * NMI:          1          2   Non-maskable interrupts
-		 *		                ^
+		 *                              ^
 		 */
 		if (nr < 20000) {
 			/* Skip to the interrupt name, e.g. 'timer' */
@@ -539,9 +539,9 @@ static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 }
 #endif
 
+#ifdef __i386__
 static NOINLINE void print_intel_cstates(void)
 {
-#ifdef __i386__
 	int bios_table[8] = { 0 };
 	int nbios = 0;
 	DIR *cpudir;
@@ -628,13 +628,15 @@ static NOINLINE void print_intel_cstates(void)
 
 	/* Print BIOS C-States */
 	printf("Your BIOS reports the following C-states: ");
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < ARRAY_SIZE(bios_table); i++)
 		if (bios_table[i])
 			printf("C%u ", i);
 
 	bb_putchar('\n');
-#endif
 }
+#else
+# define print_intel_cstates(void) ((void)0)
+#endif
 
 static void show_timerstats(void)
 {
@@ -817,7 +819,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 
 			sprintf(cstate_lines[0], "Cn\t\t  Avg residency\n");
 			percentage = newticks * 100.0 / (G.total_cpus * DEFAULT_SLEEP * FREQ_ACPI_1000);
-			sprintf(cstate_lines[1], "C0 (cpu running)        (%4.1f%%)\n",	percentage);
+			sprintf(cstate_lines[1], "C0 (cpu running)        (%4.1f%%)\n", percentage);
 
 			/* Compute values for individual C-states */
 			for (i = 0; i < MAX_CSTATE_COUNT; i++) {

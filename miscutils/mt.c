@@ -108,7 +108,7 @@ int mt_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[2])
 		op.mt_count = xatoi_positive(argv[2]);
 	else
-		op.mt_count = 1;		/* One, not zero, right? */
+		op.mt_count = 1;  /* One, not zero, right? */
 
 	switch (opcode_value[idx]) {
 		case MTWEOF:

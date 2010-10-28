@@ -29,10 +29,10 @@
 
 
 /* Default input buffer size */
-#define	IBUFSIZ	2048
+#define IBUFSIZ 2048
 
 /* Default output buffer size */
-#define	OBUFSIZ	2048
+#define OBUFSIZ 2048
 
 /* Defines for third byte of header */
 #define BIT_MASK        0x1f    /* Mask for 'number of compresssion bits'       */

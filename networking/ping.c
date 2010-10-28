@@ -297,11 +297,11 @@ void BUG_ping_globals_too_big(void);
 } while (0)
 
 
-#define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
-#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
-#define	SET(bit)	(A(bit) |= B(bit))
-#define	CLR(bit)	(A(bit) &= (~B(bit)))
-#define	TST(bit)	(A(bit) & B(bit))
+#define A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
+#define B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
+#define SET(bit)	(A(bit) |= B(bit))
+#define CLR(bit)	(A(bit) &= (~B(bit)))
+#define TST(bit)	(A(bit) & B(bit))
 
 /**************************************************************************/
 

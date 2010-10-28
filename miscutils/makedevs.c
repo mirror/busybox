@@ -121,7 +121,7 @@ int makedevs_main(int argc UNUSED_PARAM, char **argv)
 
 		if ((2 > sscanf(line, "%40s %c %o %40s %40s %u %u %u %u %u",
 					name, &type, &mode, user, group,
-					&major,	&minor, &start, &increment, &count))
+					&major, &minor, &start, &increment, &count))
 		 || ((unsigned)(major | minor | start | count | increment) > 255)
 		) {
 			bb_error_msg("invalid line %d: '%s'", linenum, line);

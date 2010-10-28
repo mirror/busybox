@@ -6,7 +6,7 @@
  *
  * Based on code from util-linux v 2.12r
  * Copyright (c) 1980
- *	The Regents of the University of California.  All rights reserved.
+ * The Regents of the University of California.  All rights reserved.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */

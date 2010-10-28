@@ -644,7 +644,7 @@ static const struct address_family_t addr_inet = {
 	methods
 };
 
-#endif	/* if ENABLE_FEATURE_IFUPDOWN_IPV4 */
+#endif  /* if ENABLE_FEATURE_IFUPDOWN_IPV4 */
 
 /* Returns pointer to the next word, or NULL.
  * In 1st case, advances *buf to the word after this one.

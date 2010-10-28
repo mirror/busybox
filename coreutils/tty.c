@@ -16,10 +16,10 @@ int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tty_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *s;
-	IF_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
+	IF_INCLUDE_SUSv2(int silent;)  /* Note: No longer relevant in SUSv3. */
 	int retval;
 
-	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
+	xfunc_error_retval = 2;  /* SUSv3 requires > 1 for error. */
 
 	IF_INCLUDE_SUSv2(silent = getopt32(argv, "s");)
 	IF_INCLUDE_SUSv2(argv += optind;)

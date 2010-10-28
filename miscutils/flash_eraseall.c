@@ -14,10 +14,10 @@
 #include <mtd/mtd-user.h>
 #include <linux/jffs2.h>
 
-#define OPTION_J	(1 << 0)
-#define OPTION_Q	(1 << 1)
-#define IS_NAND		(1 << 2)
-#define BBTEST		(1 << 3)
+#define OPTION_J  (1 << 0)
+#define OPTION_Q  (1 << 1)
+#define IS_NAND   (1 << 2)
+#define BBTEST    (1 << 3)
 
 /* mtd/jffs2-user.h used to have this atrocity:
 extern int target_endian;

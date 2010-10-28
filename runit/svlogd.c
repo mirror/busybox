@@ -1114,7 +1114,8 @@ int svlogd_main(int argc, char **argv)
 		/* Search for '\n' (in fact, np already holds the result) */
 		linelen = stdin_cnt;
 		if (np) {
- print_to_nl:		/* NB: starting from here lineptr may point
+ print_to_nl:
+			/* NB: starting from here lineptr may point
 			 * farther out into line[] */
 			linelen = np - lineptr + 1;
 		}

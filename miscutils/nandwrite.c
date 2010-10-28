@@ -53,12 +53,12 @@
 #define IS_NANDDUMP  (ENABLE_NANDDUMP && (!ENABLE_NANDWRITE || (applet_name[4] == 'd')))
 #define IS_NANDWRITE (ENABLE_NANDWRITE && (!ENABLE_NANDDUMP || (applet_name[4] != 'd')))
 
-#define OPT_p	(1 << 0) /* nandwrite only */
-#define OPT_o	(1 << 0) /* nanddump only */
-#define OPT_s	(1 << 1)
-#define OPT_b	(1 << 2)
-#define OPT_f	(1 << 3)
-#define OPT_l	(1 << 4)
+#define OPT_p  (1 << 0) /* nandwrite only */
+#define OPT_o  (1 << 0) /* nanddump only */
+#define OPT_s  (1 << 1)
+#define OPT_b  (1 << 2)
+#define OPT_f  (1 << 3)
+#define OPT_l  (1 << 4)
 
 /* helper for writing out 0xff for bad blocks pad */
 static void dump_bad(struct mtd_info_user *meminfo, unsigned len, int oob)

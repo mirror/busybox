@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 // default timeout: 45 sec
-#define	DEFAULT_CHAT_TIMEOUT 45*1000
+#define DEFAULT_CHAT_TIMEOUT 45*1000
 // max length of "abort string",
 // i.e. device reply which causes termination
 #define MAX_ABORT_LEN 50

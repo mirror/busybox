@@ -50,7 +50,7 @@ int rmdir_main(int argc UNUSED_PARAM, char **argv)
 				if ((flags & IGNORE_NON_EMPTY) && errno == ENOTEMPTY)
 					break;
 #endif
-				bb_perror_msg("'%s'", path);	/* Match gnu rmdir msg. */
+				bb_perror_msg("'%s'", path);  /* Match gnu rmdir msg. */
 				status = EXIT_FAILURE;
 			} else if (flags & PARENTS) {
 				/* Note: path was not "" since rmdir succeeded. */

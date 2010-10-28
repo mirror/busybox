@@ -53,8 +53,8 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long val,
 	u = unit_chars;
 
 	if (display_unit) {
-		val += display_unit/2;	/* Deal with rounding */
-		val /= display_unit;	/* Don't combine with the line above! */
+		val += display_unit/2;  /* Deal with rounding */
+		val /= display_unit;    /* Don't combine with the line above! */
 		/* will just print it as ulonglong (below) */
 	} else {
 		while ((val >= 1024)

@@ -28,9 +28,9 @@
 #include "libbb.h"
 
 #ifdef USE_TTY_GROUP
-#define S_IWGRP_OR_S_IWOTH	S_IWGRP
+#define S_IWGRP_OR_S_IWOTH  S_IWGRP
 #else
-#define S_IWGRP_OR_S_IWOTH	(S_IWGRP | S_IWOTH)
+#define S_IWGRP_OR_S_IWOTH  (S_IWGRP | S_IWOTH)
 #endif
 
 int mesg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

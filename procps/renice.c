@@ -32,7 +32,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 	static const char Xetpriority_msg[] ALIGN1 = "%cetpriority";
 
 	int retval = EXIT_SUCCESS;
-	int which = PRIO_PROCESS;	/* Default 'which' value. */
+	int which = PRIO_PROCESS;  /* Default 'which' value. */
 	int use_relative = 0;
 	int adjustment, new_priority;
 	unsigned who;
@@ -57,7 +57,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 			arg += 2;
 	}
 
-	if (!arg) {				/* No args?  Then show usage. */
+	if (!arg) {  /* No args?  Then show usage. */
 		bb_show_usage();
 	}
 
@@ -100,7 +100,7 @@ int renice_main(int argc UNUSED_PARAM, char **argv)
 		if (use_relative) {
 			int old_priority;
 
-			errno = 0;	 /* Needed for getpriority error detection. */
+			errno = 0;  /* Needed for getpriority error detection. */
 			old_priority = getpriority(which, who);
 			if (errno) {
 				bb_perror_msg(Xetpriority_msg, 'g');

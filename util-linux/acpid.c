@@ -52,7 +52,7 @@ struct globals {
 	int n_evt;
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
-#define	act_tab         (G.act_tab)
+#define act_tab         (G.act_tab)
 #define n_act           (G.n_act  )
 #define evt_tab         (G.evt_tab)
 #define n_evt           (G.n_evt  )

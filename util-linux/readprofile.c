@@ -97,7 +97,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		to_write = sizeof(int);
 		if (!optMult)
-			to_write = 1;	/* sth different from sizeof(int) */
+			to_write = 1;  /* sth different from sizeof(int) */
 
 		fd = xopen(defaultpro, O_WRONLY);
 		xwrite(fd, &multiplier, to_write);
@@ -179,7 +179,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 		if (*mode != 'T' && *mode != 't'
 		 && *mode != 'W' && *mode != 'w'
 		) {
-			break;	/* only text is profiled */
+			break;  /* only text is profiled */
 		}
 
 		if (indx >= len / sizeof(*buf))
