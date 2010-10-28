@@ -44,7 +44,7 @@
 #define RETVAL_LAST_BLOCK               (-1)
 #define RETVAL_NOT_BZIP_DATA            (-2)
 #define RETVAL_UNEXPECTED_INPUT_EOF     (-3)
-#define RETVAL_SHORT_WRITE              (-4)
+//#define RETVAL_SHORT_WRITE              (-4)
 #define RETVAL_DATA_ERROR               (-5)
 #define RETVAL_OUT_OF_MEMORY            (-6)
 #define RETVAL_OBSOLETE_INPUT           (-7)
@@ -584,8 +584,8 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 /* Because bunzip2 is used for help text unpacking, and because bb_show_usage()
    should work for NOFORK applets too, we must be extremely careful to not leak
    any allocations! */
-int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf,
-						int len)
+int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
+		const void *inbuf, int len)
 {
 	bunzip_data *bd;
 	unsigned i;
@@ -606,9 +606,11 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *in
 	if (-1 == in_fd) {
 		/* in this case, bd->inbuf is read-only */
 		bd->inbuf = (void*)inbuf; /* cast away const-ness */
-		bd->inbufCount = len;
-	} else
+	} else {
 		bd->inbuf = (unsigned char *)(bd + 1);
+		memcpy(bd->inbuf, inbuf, len);
+	}
+	bd->inbufCount = len;
 
 	/* Init the CRC32 table (big endian) */
 	crc32_filltable(bd->crc32Table, 1);
@@ -652,37 +654,59 @@ IF_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream(int src_fd, int dst_fd)
 {
 	IF_DESKTOP(long long total_written = 0;)
+		bunzip_data *bd;
 	char *outbuf;
-	bunzip_data *bd;
 	int i;
+	unsigned len;
 
 	outbuf = xmalloc(IOBUF_SIZE);
-	i = start_bunzip(&bd, src_fd, NULL, 0);
-	if (!i) {
-		for (;;) {
-			i = read_bunzip(bd, outbuf, IOBUF_SIZE);
-			if (i <= 0) break;
-			if (i != full_write(dst_fd, outbuf, i)) {
-				i = RETVAL_SHORT_WRITE;
-				break;
+	len = 0;
+	while (1) { /* "Process one BZ... stream" loop */
+
+		i = start_bunzip(&bd, src_fd, outbuf + 2, len);
+
+		if (i == 0) {
+			while (1) { /* "Produce some output bytes" loop */
+				i = read_bunzip(bd, outbuf, IOBUF_SIZE);
+				if (i <= 0)
+					break;
+				if (i != full_write(dst_fd, outbuf, i)) {
+					bb_error_msg("short write");
+					goto release_mem;
+				}
+				IF_DESKTOP(total_written += i;)
 			}
-			IF_DESKTOP(total_written += i;)
 		}
-	}
 
-	/* Check CRC and release memory */
-
-	if (i == RETVAL_LAST_BLOCK) {
+		if (i != RETVAL_LAST_BLOCK) {
+			bb_error_msg("bunzip error %d", i);
+			break;
+		}
 		if (bd->headerCRC != bd->totalCRC) {
 			bb_error_msg("CRC error");
-		} else {
-			i = RETVAL_OK;
+			break;
 		}
-	} else if (i == RETVAL_SHORT_WRITE) {
-		bb_error_msg("short write");
-	} else {
-		bb_error_msg("bunzip error %d", i);
+
+		/* Successfully unpacked one BZ stream */
+		i = RETVAL_OK;
+
+		/* Do we have "BZ..." after last processed byte?
+		 * pbzip2 (parallelized bzip2) produces such files.
+		 */
+		len = bd->inbufCount - bd->inbufPos;
+		memcpy(outbuf, &bd->inbuf[bd->inbufPos], len);
+		if (len < 2) {
+			if (safe_read(src_fd, outbuf + len, 2 - len) != 2 - len)
+				break;
+			len = 2;
+		}
+		if (*(uint16_t*)outbuf != BZIP2_MAGIC) /* "BZ"? */
+			break;
+		dealloc_bunzip(bd);
+		len -= 2;
 	}
+
+ release_mem:
 	dealloc_bunzip(bd);
 	free(outbuf);
 

@@ -193,7 +193,7 @@ extern const llist_t *find_list_entry2(const llist_t *list, const char *filename
 
 /* A bit of bunzip2 internals are exposed for compressed help support: */
 typedef struct bunzip_data bunzip_data;
-int start_bunzip(bunzip_data **bdp, int in_fd, const unsigned char *inbuf, int len) FAST_FUNC;
+int start_bunzip(bunzip_data **bdp, int in_fd, const void *inbuf, int len) FAST_FUNC;
 int read_bunzip(bunzip_data *bd, char *outbuf, int len) FAST_FUNC;
 void dealloc_bunzip(bunzip_data *bd) FAST_FUNC;
 

@@ -15,7 +15,7 @@ int bbconfig_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	bunzip_data *bd;
 	int i = start_bunzip(&bd,
 			/* src_fd: */ -1,
-			/* inbuf:  */ (void *)bbconfig_config_bz2,
+			/* inbuf:  */ bbconfig_config_bz2,
 			/* len:    */ sizeof(bbconfig_config_bz2));
 	/* read_bunzip can longjmp to start_bunzip, and ultimately
 	 * end up here with i != 0 on read data errors! Not trivial */
