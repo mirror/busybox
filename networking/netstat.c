@@ -395,11 +395,14 @@ struct inet_params {
 static int scan_inet_proc_line(struct inet_params *param, char *line)
 {
 	int num;
-	char local_addr[64], rem_addr[64];
+	/* IPv6 /proc files use 32-char hex representation
+	 * of IPv6 address, followed by :PORT_IN_HEX
+	 */
+	char local_addr[33], rem_addr[33]; /* 32 + 1 for NUL */
 
 	num = sscanf(line,
-			"%*d: %64[0-9A-Fa-f]:%X "
-			"%64[0-9A-Fa-f]:%X %X "
+			"%*d: %32[0-9A-Fa-f]:%X "
+			"%32[0-9A-Fa-f]:%X %X "
 			"%lX:%lX %*X:%*X "
 			"%*X %d %*d %ld ",
 			local_addr, &param->local_port,
