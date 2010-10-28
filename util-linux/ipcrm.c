@@ -40,7 +40,7 @@ typedef enum type_id {
 	MSG
 } type_id;
 
-static int remove_ids(type_id type, int argc, char **argv)
+static int remove_ids(type_id type, char **argv)
 {
 	unsigned long id;
 	int nb_errors = 0;
@@ -48,7 +48,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 
 	arg.val = 0;
 
-	while (argc) {
+	while (argv[0]) {
 		id = bb_strtoul(argv[0], NULL, 10);
 		if (errno || id > INT_MAX) {
 			bb_error_msg("invalid id: %s", argv[0]);
@@ -67,7 +67,6 @@ static int remove_ids(type_id type, int argc, char **argv)
 				nb_errors++;
 			}
 		}
-		argc--;
 		argv++;
 	}
 
@@ -109,7 +108,7 @@ int ipcrm_main(int argc, char **argv)
 			else if (w == 'e')
 				what = SEM;
 
-			if (remove_ids(what, argc-2, &argv[2]))
+			if (remove_ids(what, &argv[2]))
 				fflush_stdout_and_exit(EXIT_FAILURE);
 			printf("resource(s) deleted\n");
 			return 0;
