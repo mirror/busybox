@@ -55,11 +55,10 @@ gpt_part(int i)
 	return (gpt_partition *)&part_array[i * part_entry_len];
 }
 
-/* TODO: move to libbb */
 static uint32_t
 gpt_crc32(void *buf, int len)
 {
-	return 0xffffffff ^ crc32_block_endian0(0xffffffff, buf, len, global_crc32_table);
+	return ~crc32_block_endian0(0xffffffff, buf, len, global_crc32_table);
 }
 
 static void
