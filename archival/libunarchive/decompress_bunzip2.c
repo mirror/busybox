@@ -151,8 +151,8 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 static int get_next_block(bunzip_data *bd)
 {
 	struct group_data *hufGroup;
-	int dbufCount, nextSym, dbufSize, groupCount, *base, *limit, selector,
-		i, j, k, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
+	int dbufCount, dbufSize, groupCount, *base, *limit, selector,
+		i, j, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
 	uint32_t *dbuf;
 	unsigned origPtr;
@@ -161,9 +161,12 @@ static int get_next_block(bunzip_data *bd)
 	dbufSize = bd->dbufSize;
 	selectors = bd->selectors;
 
+/* In bbox, we are ok with aborting through setjmp which is set up in start_bunzip */
+#if 0
 	/* Reset longjmp I/O error handling */
 	i = setjmp(bd->jmpbuf);
 	if (i) return i;
+#endif
 
 	/* Read in header signature and CRC, then validate signature.
 	   (last block signature means CRC is for whole file, return now) */
@@ -185,16 +188,23 @@ static int get_next_block(bunzip_data *bd)
 	   symbols to deal with, and writes a sparse bitfield indicating which
 	   values were present.  We make a translation table to convert the symbols
 	   back to the corresponding bytes. */
-	t = get_bits(bd, 16);
 	symTotal = 0;
-	for (i = 0; i < 16; i++) {
-		if (t & (1 << (15-i))) {
-			k = get_bits(bd, 16);
-			for (j = 0; j < 16; j++)
-				if (k & (1 << (15-j)))
-					symToByte[symTotal++] = (16*i) + j;
+	i = 0;
+	t = get_bits(bd, 16);
+	do {
+		if (t & (1 << 15)) {
+			unsigned inner_map = get_bits(bd, 16);
+			do {
+				if (inner_map & (1 << 15))
+					symToByte[symTotal++] = i;
+				inner_map <<= 1;
+				i++;
+			} while (i & 15);
+			i -= 16;
 		}
-	}
+		t <<= 1;
+		i += 16;
+	} while (i < 256);
 
 	/* How many different Huffman coding groups does this block use? */
 	groupCount = get_bits(bd, 3);
@@ -205,20 +215,24 @@ static int get_next_block(bunzip_data *bd)
 	   group.  Read in the group selector list, which is stored as MTF encoded
 	   bit runs.  (MTF=Move To Front, as each value is used it's moved to the
 	   start of the list.) */
+	for (i = 0; i < groupCount; i++)
+		mtfSymbol[i] = i;
 	nSelectors = get_bits(bd, 15);
-	if (!nSelectors) return RETVAL_DATA_ERROR;
-	for (i = 0; i < groupCount; i++) mtfSymbol[i] = i;
+	if (!nSelectors)
+		return RETVAL_DATA_ERROR;
 	for (i = 0; i < nSelectors; i++) {
-
+		uint8_t tmp_byte;
 		/* Get next value */
-		for (j = 0; get_bits(bd, 1); j++)
-			if (j >= groupCount) return RETVAL_DATA_ERROR;
-
+		int n = 0;
+		while (get_bits(bd, 1)) {
+			if (n >= groupCount) return RETVAL_DATA_ERROR;
+			n++;
+		}
 		/* Decode MTF to get the next selector */
-		uc = mtfSymbol[j];
-		for (; j; j--)
-			mtfSymbol[j] = mtfSymbol[j-1];
-		mtfSymbol[0] = selectors[i] = uc;
+		tmp_byte = mtfSymbol[n];
+		while (--n >= 0)
+			mtfSymbol[n + 1] = mtfSymbol[n];
+		mtfSymbol[0] = selectors[i] = tmp_byte;
 	}
 
 	/* Read the Huffman coding tables for each group, which code for symTotal
@@ -239,20 +253,21 @@ static int get_next_block(bunzip_data *bd)
 		t = get_bits(bd, 5) - 1;
 		for (i = 0; i < symCount; i++) {
 			for (;;) {
+				int two_bits;
 				if ((unsigned)t > (MAX_HUFCODE_BITS-1))
 					return RETVAL_DATA_ERROR;
 
 				/* If first bit is 0, stop.  Else second bit indicates whether
 				   to increment or decrement the value.  Optimization: grab 2
 				   bits and unget the second if the first was 0. */
-				k = get_bits(bd, 2);
-				if (k < 2) {
+				two_bits = get_bits(bd, 2);
+				if (two_bits < 2) {
 					bd->inbufBitCount++;
 					break;
 				}
 
 				/* Add one if second bit 1, else subtract 1.  Avoids if/else */
-				t += (((k+1) & 2) - 1);
+				t += (((two_bits+1) & 2) - 1);
 			}
 
 			/* Correct for the initial -1, to get the final symbol length */
@@ -282,17 +297,18 @@ static int get_next_block(bunzip_data *bd)
 
 		/* Note that minLen can't be smaller than 1, so we adjust the base
 		   and limit array pointers so we're not always wasting the first
-		   entry.  We do this again when using them (during symbol decoding).*/
+		   entry.  We do this again when using them (during symbol decoding). */
 		base = hufGroup->base - 1;
 		limit = hufGroup->limit - 1;
 
 		/* Calculate permute[].  Concurently, initialize temp[] and limit[]. */
 		pp = 0;
 		for (i = minLen; i <= maxLen; i++) {
+			int k;
 			temp[i] = limit[i] = 0;
-			for (t = 0; t < symCount; t++)
-				if (length[t] == i)
-					hufGroup->permute[pp++] = t;
+			for (k = 0; k < symCount; k++)
+				if (length[k] == i)
+					hufGroup->permute[pp++] = k;
 		}
 
 		/* Count symbols coded for at each bit length */
@@ -305,8 +321,10 @@ static int get_next_block(bunzip_data *bd)
 		 * base[] (number of symbols to ignore at each bit length, which is
 		 * limit minus the cumulative count of symbols coded for already). */
 		pp = t = 0;
-		for (i = minLen; i < maxLen; i++) {
-			pp += temp[i];
+		for (i = minLen; i < maxLen;) {
+			unsigned temp_i = temp[i];
+
+			pp += temp_i;
 
 			/* We read the largest possible symbol size and then unget bits
 			   after determining how many we need, and those extra bits could
@@ -316,8 +334,8 @@ static int get_next_block(bunzip_data *bd)
 			   don't affect the value>limit[length] comparison. */
 			limit[i] = (pp << (maxLen - i)) - 1;
 			pp <<= 1;
-			t += temp[i];
-			base[i+1] = pp - t;
+			t += temp_i;
+			base[++i] = pp - t;
 		}
 		limit[maxLen+1] = INT_MAX; /* Sentinel value for reading next sym. */
 		limit[maxLen] = pp + temp[maxLen] - 1;
@@ -329,9 +347,9 @@ static int get_next_block(bunzip_data *bd)
 	   and run length encoding, saving the result into dbuf[dbufCount++] = uc */
 
 	/* Initialize symbol occurrence counters and symbol Move To Front table */
-	memset(byteCount, 0, sizeof(byteCount)); /* smaller, maybe slower? */
+	/*memset(byteCount, 0, sizeof(byteCount)); - smaller, but slower */
 	for (i = 0; i < 256; i++) {
-		//byteCount[i] = 0;
+		byteCount[i] = 0;
 		mtfSymbol[i] = (uint8_t)i;
 	}
 
@@ -339,6 +357,7 @@ static int get_next_block(bunzip_data *bd)
 
 	runPos = dbufCount = selector = 0;
 	for (;;) {
+		int nextSym;
 
 		/* Fetch next Huffman coding group from list. */
 		symCount = GROUP_SIZE - 1;
@@ -346,44 +365,49 @@ static int get_next_block(bunzip_data *bd)
 		hufGroup = bd->groups + selectors[selector++];
 		base = hufGroup->base - 1;
 		limit = hufGroup->limit - 1;
- continue_this_group:
 
+ continue_this_group:
 		/* Read next Huffman-coded symbol. */
 
 		/* Note: It is far cheaper to read maxLen bits and back up than it is
-		   to read minLen bits and then an additional bit at a time, testing
+		   to read minLen bits and then add additional bit at a time, testing
 		   as we go.  Because there is a trailing last block (with file CRC),
 		   there is no danger of the overread causing an unexpected EOF for a
-		   valid compressed file.  As a further optimization, we do the read
-		   inline (falling back to a call to get_bits if the buffer runs
-		   dry).  The following (up to got_huff_bits:) is equivalent to
-		   j = get_bits(bd, hufGroup->maxLen);
+		   valid compressed file.
 		 */
-		while ((int)(bd->inbufBitCount) < hufGroup->maxLen) {
-			if (bd->inbufPos == bd->inbufCount) {
-				j = get_bits(bd, hufGroup->maxLen);
-				goto got_huff_bits;
-			}
-			bd->inbufBits = (bd->inbufBits << 8) | bd->inbuf[bd->inbufPos++];
-			bd->inbufBitCount += 8;
-		};
-		bd->inbufBitCount -= hufGroup->maxLen;
-		j = (bd->inbufBits >> bd->inbufBitCount) & ((1 << hufGroup->maxLen) - 1);
-
- got_huff_bits:
-
-		/* Figure how how many bits are in next symbol and unget extras */
+		if (1) {
+			/* As a further optimization, we do the read inline
+			   (falling back to a call to get_bits if the buffer runs dry).
+			 */
+			int new_cnt;
+			while ((new_cnt = bd->inbufBitCount - hufGroup->maxLen) < 0) {
+				/* bd->inbufBitCount < hufGroup->maxLen */
+				if (bd->inbufPos == bd->inbufCount) {
+					nextSym = get_bits(bd, hufGroup->maxLen);
+					goto got_huff_bits;
+				}
+				bd->inbufBits = (bd->inbufBits << 8) | bd->inbuf[bd->inbufPos++];
+				bd->inbufBitCount += 8;
+			};
+			bd->inbufBitCount = new_cnt; /* "bd->inbufBitCount -= hufGroup->maxLen;" */
+			nextSym = (bd->inbufBits >> new_cnt) & ((1 << hufGroup->maxLen) - 1);
+ got_huff_bits: ;
+		} else { /* unoptimized equivalent */
+			nextSym = get_bits(bd, hufGroup->maxLen);
+		}
+		/* Figure how many bits are in next symbol and unget extras */
 		i = hufGroup->minLen;
-		while (j > limit[i]) ++i;
-		bd->inbufBitCount += (hufGroup->maxLen - i);
+		while (nextSym > limit[i]) ++i;
+		j = hufGroup->maxLen - i;
+		if (j < 0)
+			return RETVAL_DATA_ERROR;
+		bd->inbufBitCount += j;
 
 		/* Huffman decode value to get nextSym (with bounds checking) */
-		if (i > hufGroup->maxLen)
+		nextSym = (nextSym >> j) - base[i];
+		if ((unsigned)nextSym >= MAX_SYMBOLS)
 			return RETVAL_DATA_ERROR;
-		j = (j >> (hufGroup->maxLen - i)) - base[i];
-		if ((unsigned)j >= MAX_SYMBOLS)
-			return RETVAL_DATA_ERROR;
-		nextSym = hufGroup->permute[j];
+		nextSym = hufGroup->permute[nextSym];
 
 		/* We have now decoded the symbol, which indicates either a new literal
 		   byte, or a repeated run of the most recent literal byte.  First,
@@ -392,7 +416,7 @@ static int get_next_block(bunzip_data *bd)
 		if ((unsigned)nextSym <= SYMBOL_RUNB) { /* RUNA or RUNB */
 
 			/* If this is the start of a new run, zero out counter */
-			if (!runPos) {
+			if (runPos == 0) {
 				runPos = 1;
 				t = 0;
 			}
@@ -413,13 +437,13 @@ static int get_next_block(bunzip_data *bd)
 		   how many times to repeat the last literal, so append that many
 		   copies to our buffer of decoded symbols (dbuf) now.  (The last
 		   literal used is the one at the head of the mtfSymbol array.) */
-		if (runPos) {
-			runPos = 0;
+		if (runPos != 0) {
+			uint8_t tmp_byte;
 			if (dbufCount + t >= dbufSize) return RETVAL_DATA_ERROR;
-
-			uc = symToByte[mtfSymbol[0]];
-			byteCount[uc] += t;
-			while (t--) dbuf[dbufCount++] = uc;
+			tmp_byte = symToByte[mtfSymbol[0]];
+			byteCount[tmp_byte] += t;
+			while (--t >= 0) dbuf[dbufCount++] = tmp_byte;
+			runPos = 0;
 		}
 
 		/* Is this the terminating symbol? */
@@ -448,12 +472,12 @@ static int get_next_block(bunzip_data *bd)
 
 		/* We have our literal byte.  Save it into dbuf. */
 		byteCount[uc]++;
-		dbuf[dbufCount++] = (unsigned)uc;
+		dbuf[dbufCount++] = (uint32_t)uc;
 
 		/* Skip group initialization if we're not done with this group.  Done
 		 * this way to avoid compiler warning. */
  end_of_huffman_loop:
-		if (symCount--) goto continue_this_group;
+		if (--symCount >= 0) goto continue_this_group;
 	}
 
 	/* At this point, we've read all the Huffman-coded symbols (and repeated
@@ -466,16 +490,17 @@ static int get_next_block(bunzip_data *bd)
 	/* Turn byteCount into cumulative occurrence counts of 0 to n-1. */
 	j = 0;
 	for (i = 0; i < 256; i++) {
-		k = j + byteCount[i];
+		int tmp_count = j + byteCount[i];
 		byteCount[i] = j;
-		j = k;
+		j = tmp_count;
 	}
 
 	/* Figure out what order dbuf would be in if we sorted it. */
 	for (i = 0; i < dbufCount; i++) {
-		uc = (uint8_t)dbuf[i];
-		dbuf[byteCount[uc]] |= (i << 8);
-		byteCount[uc]++;
+		uint8_t tmp_byte = (uint8_t)dbuf[i];
+		int tmp_count = byteCount[tmp_byte];
+		dbuf[tmp_count] |= (i << 8);
+		byteCount[tmp_byte] = tmp_count + 1;
 	}
 
 	/* Decode first byte by hand to initialize "previous" byte.  Note that it
