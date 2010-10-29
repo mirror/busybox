@@ -18,7 +18,7 @@
 //config:	  Per-processor statistics
 
 #include "libbb.h"
-#include <sys/utsname.h>	/* struct utsname */
+#include <sys/utsname.h>  /* struct utsname */
 
 //#define debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
 #define debug(fmt, ...) ((void)0)
@@ -634,7 +634,7 @@ static void get_irqs_from_interrupts(const char *fname,
 	while (irq < irqs_per_cpu) {
 		/* Number of interrupts per CPU has changed */
 		ic = &per_cpu_stats[current][irq];
-		ic->irq_name[0] = '\0';	/* False interrupt */
+		ic->irq_name[0] = '\0'; /* False interrupt */
 		irq++;
 	}
 }
@@ -820,7 +820,7 @@ static int get_irqcpu_nr(const char *f, int max_irqs)
 	unsigned irq;
 
 	fp = fopen_for_read(f);
-	if (!fp)		/* No interrupts file */
+	if (!fp)  /* No interrupts file */
 		return 0;
 
 	linelen = INTERRUPTS_LINE + 16 * G.cpu_nr;
@@ -858,10 +858,10 @@ int mpstat_main(int UNUSED_PARAM argc, char **argv)
 	char *opt_set_cpu;
 	int i, opt;
 	enum {
-		OPT_ALL    = 1 << 0,	/* -A */
-		OPT_INTS   = 1 << 1,	/* -I */
-		OPT_SETCPU = 1 << 2,	/* -P */
-		OPT_UTIL   = 1 << 3,	/* -u */
+		OPT_ALL    = 1 << 0, /* -A */
+		OPT_INTS   = 1 << 1, /* -I */
+		OPT_SETCPU = 1 << 2, /* -P */
+		OPT_UTIL   = 1 << 3, /* -u */
 	};
 
 	/* Dont buffer data if redirected to a pipe */

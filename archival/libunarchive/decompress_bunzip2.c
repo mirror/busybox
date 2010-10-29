@@ -86,8 +86,8 @@ struct bunzip_data {
 
 	/* Big things go last (register-relative addressing can be larger for big offsets) */
 	uint32_t crc32Table[256];
-	unsigned char selectors[32768];			/* nSelectors=15 bits */
-	struct group_data groups[MAX_GROUPS];	/* Huffman coding tables */
+	unsigned char selectors[32768];  /* nSelectors=15 bits */
+	struct group_data groups[MAX_GROUPS];  /* Huffman coding tables */
 };
 /* typedef struct bunzip_data bunzip_data; -- done in .h file */
 

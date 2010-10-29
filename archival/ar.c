@@ -179,17 +179,17 @@ static void FAST_FUNC header_verbose_list_ar(const file_header_t *file_header)
 	);
 }
 
-#define AR_OPT_VERBOSE		(1 << 0)
-#define AR_OPT_PRESERVE_DATE	(1 << 1)
+#define AR_OPT_VERBOSE          (1 << 0)
+#define AR_OPT_PRESERVE_DATE    (1 << 1)
 /* "ar r" implies create, but warns about it. c suppresses warning.
  * bbox accepts but ignores it: */
-#define AR_OPT_CREATE		(1 << 2)
+#define AR_OPT_CREATE           (1 << 2)
 
-#define AR_CMD_PRINT		(1 << 3)
-#define FIRST_CMD AR_CMD_PRINT
-#define AR_CMD_LIST		(1 << 4)
-#define AR_CMD_EXTRACT		(1 << 5)
-#define AR_CMD_INSERT		(1 << 6)
+#define AR_CMD_PRINT            (1 << 3)
+#define FIRST_CMD               AR_CMD_PRINT
+#define AR_CMD_LIST             (1 << 4)
+#define AR_CMD_EXTRACT          (1 << 5)
+#define AR_CMD_INSERT           (1 << 6)
 
 int ar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ar_main(int argc UNUSED_PARAM, char **argv)

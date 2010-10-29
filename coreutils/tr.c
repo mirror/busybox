@@ -203,7 +203,7 @@ static unsigned expand(const char *arg, char **buffer_p)
 				buffer[pos++] = *arg; /* copy CHAR */
 				if (!arg[0] || arg[1] != '=' || arg[2] != ']')
 					bb_show_usage();
-				arg += 3;	/* skip CHAR=] */
+				arg += 3;  /* skip CHAR=] */
 				continue;
 			}
 			/* The rest of "[xyz..." cases is treated as normal
@@ -258,9 +258,9 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 	char *invec  = vector + ASCII;
 	char *outvec = vector + ASCII * 2;
 
-#define TR_OPT_complement	(3 << 0)
-#define TR_OPT_delete		(1 << 2)
-#define TR_OPT_squeeze_reps	(1 << 3)
+#define TR_OPT_complement   (3 << 0)
+#define TR_OPT_delete       (1 << 2)
+#define TR_OPT_squeeze_reps (1 << 3)
 
 	for (i = 0; i < ASCII; i++) {
 		vector[i] = i;

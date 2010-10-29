@@ -91,7 +91,7 @@ static int sysctl_act_on_setting(char *setting)
 			retval = EXIT_FAILURE;
 			goto end;
 		}
-		value = cptr + 1;	/* point to the value in name=value */
+		value = cptr + 1;  /* point to the value in name=value */
 		if (setting == cptr || !*value) {
 			bb_error_msg("error: malformed setting '%s'", outname);
 			retval = EXIT_FAILURE;

@@ -18,7 +18,7 @@
    02111-1307 USA.  */
 
 /*
- *	POSIX Standard: 9.2.2 User Database Access	<pwd.h>
+ * POSIX Standard: 9.2.2 User Database Access	<pwd.h>
  */
 
 #ifndef BB_PWD_H

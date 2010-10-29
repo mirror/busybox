@@ -153,7 +153,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 					bb_simple_perror_msg(arg);
 					status = EXIT_FAILURE;
 				}
-				goto DO_EOF;		/* Treat an EOF as '\r'. */
+				goto DO_EOF;  /* Treat an EOF as '\r'. */
 			}
 
 			/* Cater for -c and -m */
@@ -179,7 +179,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 				 */
 				if (c == '\t') {
 					linepos = (linepos | 7) + 1;
-				} else {			/* '\n', '\r', '\f', or '\v' */
+				} else {  /* '\n', '\r', '\f', or '\v' */
  DO_EOF:
 					if (linepos > counts[WC_LENGTH]) {
 						counts[WC_LENGTH] = linepos;
@@ -230,7 +230,7 @@ int wc_main(int argc UNUSED_PARAM, char **argv)
 	 * effect of trashing the totals array after outputting it, but that's
 	 * irrelavent since we no longer need it. */
 	if (num_files > 1) {
-		num_files = 0;				/* Make sure we don't get here again. */
+		num_files = 0;  /* Make sure we don't get here again. */
 		arg = "total";
 		pcounts = totals;
 		--argv;

@@ -196,9 +196,9 @@ sha_crypt(/*const*/ char *key_data, /*const*/ char *salt_data)
 //TODO: replace with something like
 //	bb_uuencode(cp, src, length, bb_uuenc_tbl_XXXbase64);
 #define b64_from_24bit(B2, B1, B0, N) \
-do {							\
-	unsigned w = ((B2) << 16) | ((B1) << 8) | (B0);	\
-	resptr = to64(resptr, w, N);			\
+do { \
+	unsigned w = ((B2) << 16) | ((B1) << 8) | (B0); \
+	resptr = to64(resptr, w, N); \
 } while (0)
 	if (is_sha512 == '5') {
 		unsigned i = 0;

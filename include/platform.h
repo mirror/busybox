@@ -155,7 +155,7 @@
 # include <sex.h>
 #elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
    || defined(__APPLE__)
-# include <sys/resource.h>	/* rlimit */
+# include <sys/resource.h>  /* rlimit */
 # include <machine/endian.h>
 # define bswap_64 __bswap64
 # define bswap_32 __bswap32

@@ -18,14 +18,14 @@
 //config:	  Report CPU and I/O statistics
 
 #include "libbb.h"
-#include <sys/utsname.h>	/* Need struct utsname */
+#include <sys/utsname.h>  /* Need struct utsname */
 
 //#define debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
 #define debug(fmt, ...) ((void)0)
 
-#define MAX_DEVICE_NAME		12
-#define CURRENT				0
-#define LAST				1
+#define MAX_DEVICE_NAME 12
+#define CURRENT          0
+#define LAST             1
 
 #if 1
 typedef unsigned long long cputime_t;
@@ -327,7 +327,7 @@ static void do_disk_statistics(cputime_t itv)
 	int i = 0;
 	char buf[128];
 	unsigned major, minor;
-	unsigned long wr_ops, dummy;	/* %*lu for suppres the conversion wouldn't work */
+	unsigned long wr_ops, dummy; /* %*lu for suppress the conversion wouldn't work */
 	unsigned long long rd_sec_or_wr_ops;
 	unsigned long long rd_sec_or_dummy, wr_sec_or_dummy, wr_sec;
 	struct stats_dev sd;

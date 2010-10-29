@@ -26,7 +26,7 @@ enum {
 
 struct fb_bitfield {
 	uint32_t offset;                /* beginning of bitfield */
-	uint32_t length;		/* length of bitfield */
+	uint32_t length;                /* length of bitfield */
 	uint32_t msb_right;             /* !=0: Most significant bit is right */
 };
 struct fb_var_screeninfo {
@@ -52,7 +52,7 @@ struct fb_var_screeninfo {
 	uint32_t height;                /* height of picture in mm */
 	uint32_t width;                 /* width of picture in mm */
 
-	uint32_t accel_flags;		/* acceleration flags (hints) */
+	uint32_t accel_flags;           /* acceleration flags (hints) */
 
 	/* Timing: All values in pixclocks, except pixclock (of course) */
 	uint32_t pixclock;              /* pixel clock in ps (pico seconds) */
@@ -317,7 +317,7 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 		}
 		case 4:
 		case 5:
-		case 6:	{
+		case 6: {
 			static const uint32_t syncs[] = {FB_SYNC_VERT_HIGH_ACT, FB_SYNC_HOR_HIGH_ACT, FB_SYNC_COMP_HIGH_ACT};
 			ss(&base->sync, syncs[i-4], p, "low");
 //bb_info_msg("SYNC[%s]", p);

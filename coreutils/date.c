@@ -278,7 +278,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		/* Correct any day of week and day of year etc. fields */
-		tm_time.tm_isdst = -1;	/* Be sure to recheck dst */
+		tm_time.tm_isdst = -1;  /* Be sure to recheck dst */
 		ts.tv_sec = validate_tm_time(date_str, &tm_time);
 
 		maybe_set_utc(opt);

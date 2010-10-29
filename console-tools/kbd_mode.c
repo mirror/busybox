@@ -16,9 +16,9 @@ int kbd_mode_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
 		SCANCODE  = (1 << 0),
-		ASCII	  = (1 << 1),
+		ASCII     = (1 << 1),
 		MEDIUMRAW = (1 << 2),
-		UNICODE	  = (1 << 3),
+		UNICODE   = (1 << 3),
 	};
 	int fd;
 	unsigned opt;

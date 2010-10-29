@@ -35,9 +35,9 @@ int rmmod_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse command line. */
 	n = getopt32(argv, "wfas"); // -s ignored
 	argv += optind;
-	if (n & 1)	// --wait
+	if (n & 1)  // --wait
 		flags &= ~O_NONBLOCK;
-	if (n & 2)	// --force
+	if (n & 2)  // --force
 		flags |= O_TRUNC;
 	if (n & 4) {
 		/* Unload _all_ unused modules via NULL delete_module() call */

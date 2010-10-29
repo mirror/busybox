@@ -37,12 +37,12 @@ int GETXXKEY_R_FUNC(GETXXKEY_R_KEYTYPE key,
 	while (1) {
 		rv = bb__pgsreader(GETXXKEY_R_PARSER, resultbuf, buffer, buflen, stream);
 		if (!rv) {
-			if (GETXXKEY_R_TEST(resultbuf)) { /* Found key? */
+			if (GETXXKEY_R_TEST(resultbuf)) { /* found key? */
 				*result = resultbuf;
 				break;
 			}
 		} else {
-			if (rv == ENOENT) {	/* end-of-file encountered. */
+			if (rv == ENOENT) {  /* EOF encountered */
 				rv = 0;
 			}
 			break;

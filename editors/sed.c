@@ -117,9 +117,9 @@ struct globals {
 	char *add_cmd_line;
 
 	struct pipeline {
-		char *buf;	/* Space to hold string */
-		int idx;	/* Space used */
-		int len;	/* Space allocated */
+		char *buf;  /* Space to hold string */
+		int idx;    /* Space used */
+		int len;    /* Space allocated */
 	} pipeline;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)

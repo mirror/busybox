@@ -52,8 +52,8 @@ enum {
 static char key_separator;
 
 static struct sort_key {
-	struct sort_key *next_key;	/* linked list */
-	unsigned range[4];	/* start word, start char, end word, end char */
+	struct sort_key *next_key;  /* linked list */
+	unsigned range[4];          /* start word, start char, end word, end char */
 	unsigned flags;
 } *key_list;
 

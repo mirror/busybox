@@ -92,7 +92,7 @@ int mv_main(int argc, char **argv)
 			    || (flags & OPT_FILEUTILS_INTERACTIVE))
 			) {
 				if (fprintf(stderr, "mv: overwrite '%s'? ", dest) < 0) {
-					goto RET_1;	/* Ouch! fprintf failed! */
+					goto RET_1;  /* Ouch! fprintf failed! */
 				}
 				if (!bb_ask_confirmation()) {
 					goto RET_0;

@@ -16,9 +16,9 @@ struct globals {
 	struct termios tio, tio0;
 };
 #define G (*ptr_to_globals)
-#define kbmode	(G.kbmode)
-#define tio	(G.tio)
-#define tio0	(G.tio0)
+#define kbmode (G.kbmode)
+#define tio    (G.tio)
+#define tio0   (G.tio0)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
@@ -46,9 +46,9 @@ int showkey_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int showkey_main(int argc UNUSED_PARAM, char **argv)
 {
 	enum {
-		OPT_a = (1<<0),	// display the decimal/octal/hex values of the keys
-		OPT_k = (1<<1),	// display only the interpreted keycodes (default)
-		OPT_s = (1<<2),	// display only the raw scan-codes
+		OPT_a = (1<<0), // display the decimal/octal/hex values of the keys
+		OPT_k = (1<<1), // display only the interpreted keycodes (default)
+		OPT_s = (1<<2), // display only the raw scan-codes
 	};
 
 	INIT_G();

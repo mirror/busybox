@@ -699,7 +699,7 @@ int netstat_main(int argc UNUSED_PARAM, char **argv)
 		flags |= opt;
 	}
 	if (flags & (NETSTAT_TCP|NETSTAT_UDP|NETSTAT_RAW)) {
-		printf("Active Internet connections ");	/* xxx */
+		printf("Active Internet connections "); /* xxx */
 
 		if ((flags & (NETSTAT_LISTENING|NETSTAT_CONNECTED)) == (NETSTAT_LISTENING|NETSTAT_CONNECTED))
 			printf("(servers and established)");

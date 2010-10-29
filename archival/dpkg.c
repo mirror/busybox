@@ -939,8 +939,8 @@ static int package_satisfies_dependency(int package, int depend_type)
 		return 0;
 
 	switch (depend_type) {
-	case EDGE_PRE_DEPENDS:	return get_status(status_num, 3) == search_name_hashtable("installed");
-	case EDGE_DEPENDS:	return get_status(status_num, 1) == search_name_hashtable("install");
+	case EDGE_PRE_DEPENDS: return get_status(status_num, 3) == search_name_hashtable("installed");
+	case EDGE_DEPENDS:     return get_status(status_num, 1) == search_name_hashtable("install");
 	}
 	return 0;
 }
@@ -967,7 +967,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 		conflicts[conflicts_num] = package_num;
 		conflicts_num++;
 		/* add provides to conflicts list */
-		for (j = 0; j <	package_hashtable[package_num]->num_of_edges; j++) {
+		for (j = 0; j < package_hashtable[package_num]->num_of_edges; j++) {
 			if (package_hashtable[package_num]->edge[j]->type == EDGE_PROVIDES) {
 				const int conflicts_package_num = search_package_hashtable(
 					package_hashtable[package_num]->edge[j]->name,
@@ -1067,12 +1067,13 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 
 			if (package_edge->type == EDGE_OR_PRE_DEPENDS
 			 || package_edge->type == EDGE_OR_DEPENDS
-			) {	/* start an EDGE_OR_ list */
+			) {
+				/* start an EDGE_OR_ list */
 				number_of_alternatives = package_edge->version;
 				root_of_alternatives = package_edge;
 				continue;
 			}
-			if (number_of_alternatives == 0) {	/* not in the middle of an EDGE_OR_ list */
+			if (number_of_alternatives == 0) {  /* not in the middle of an EDGE_OR_ list */
 				number_of_alternatives = 1;
 				root_of_alternatives = NULL;
 			}

@@ -26,8 +26,8 @@
 #include "libbb.h"
 #include <mtd/ubi-user.h>
 
-#define OPTION_M	(1 << 0)
-#define OPTION_D	(1 << 1)
+#define OPTION_M  (1 << 0)
+#define OPTION_D  (1 << 1)
 
 #define do_attach (ENABLE_UBIATTACH && \
 		(!ENABLE_UBIDETACH || (applet_name[3] == 'a')))

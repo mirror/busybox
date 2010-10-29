@@ -17,14 +17,14 @@ extern smallint oneline;
 extern char _SL_;
 
 #ifndef IPPROTO_ESP
-#define IPPROTO_ESP	50
+#define IPPROTO_ESP  50
 #endif
 #ifndef IPPROTO_AH
-#define IPPROTO_AH	51
+#define IPPROTO_AH  51
 #endif
 
 #define SPRINT_BSIZE 64
-#define SPRINT_BUF(x)	char x[SPRINT_BSIZE]
+#define SPRINT_BUF(x)  char x[SPRINT_BSIZE]
 
 extern void incomplete_command(void) NORETURN;
 

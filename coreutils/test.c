@@ -49,9 +49,9 @@
  * state. */
 
 /* test(1) accepts the following grammar:
-	oexpr	::= aexpr | aexpr "-o" oexpr ;
-	aexpr	::= nexpr | nexpr "-a" aexpr ;
-	nexpr	::= primary | "!" primary
+	oexpr   ::= aexpr | aexpr "-o" oexpr ;
+	aexpr   ::= nexpr | nexpr "-a" aexpr ;
+	nexpr   ::= primary | "!" primary
 	primary ::= unary-operator operand
 		| operand binary-operator operand
 		| operand

@@ -277,10 +277,10 @@ enum {
 
 /* tokens and their corresponding info values */
 
-#define	NTC     "\377"  /* switch to next token class (tc<<1) */
-#define	NTCC    '\377'
+#define NTC     "\377"  /* switch to next token class (tc<<1) */
+#define NTCC    '\377'
 
-#define	OC_B	OC_BUILTIN
+#define OC_B  OC_BUILTIN
 
 static const char tokenlist[] ALIGN1 =
 	"\1("         NTC
@@ -368,7 +368,7 @@ static const uint32_t tokeninfo[] = {
 	OC_B|B_ss|P(0x8f), OC_FBLTIN|F_ti,    OC_B|B_ti|P(0x0b), OC_B|B_mt|P(0x0b),
 	OC_B|B_lo|P(0x49), OC_B|B_up|P(0x49),
 	OC_GETLINE|SV|P(0),
-	0,	           0,
+	0,                 0,
 	0,
 	0 /* END */
 };
@@ -380,7 +380,7 @@ enum {
 	ORS,        RS,         RT,         FILENAME,
 	SUBSEP,     F0,         ARGIND,     ARGC,
 	ARGV,       ERRNO,      FNR,        NR,
-	NF,         IGNORECASE,	ENVIRON,    NUM_INTERNAL_VARS
+	NF,         IGNORECASE, ENVIRON,    NUM_INTERNAL_VARS
 };
 
 static const char vNames[] ALIGN1 =
@@ -2335,7 +2335,7 @@ static var *evaluate(node *op, var *res)
 #define fnargs (G.evaluate__fnargs)
 /* seed is initialized to 1 */
 #define seed   (G.evaluate__seed)
-#define	sreg   (G.evaluate__sreg)
+#define sreg   (G.evaluate__sreg)
 
 	var *v1;
 
@@ -2611,7 +2611,7 @@ static var *evaluate(node *op, var *res)
 						rsm->F = popen(L.s, "r");
 						rsm->is_pipe = TRUE;
 					} else {
-						rsm->F = fopen_for_read(L.s);		/* not xfopen! */
+						rsm->F = fopen_for_read(L.s);  /* not xfopen! */
 					}
 				}
 			} else {

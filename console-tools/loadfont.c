@@ -136,7 +136,7 @@ static void do_loadfont(int fd, unsigned char *inbuf, int height, int width, int
  * Example:
  * At the font position for a capital A-ring glyph, we
  * may have:
- *	00C5,212B,FFFE,0041,030A,FFFF
+ *   00C5,212B,FFFE,0041,030A,FFFF
  * Some font positions may be described by sequences only,
  * namely when there is no precomposed Unicode value for the glyph.
  */
@@ -159,7 +159,7 @@ static void do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize,
 	int glyph;
 	uint16_t unicode;
 
-	maxct = tailsz;	/* more than enough */
+	maxct = tailsz; /* more than enough */
 	up = xmalloc(maxct * sizeof(*up));
 
 	for (glyph = 0; glyph < fontsize; glyph++) {
@@ -255,10 +255,10 @@ static void do_load(int fd, unsigned char *buffer, size_t len)
 	} else
 #endif
 #if ENABLE_FEATURE_LOADFONT_RAW
-	if (len == 9780) {	/* file with three code pages? */
+	if (len == 9780) {  /* file with three code pages? */
 		charsize = height = 16;
 		font += 40;
-	} else if ((len & 0377) == 0) {		/* bare font */
+	} else if ((len & 0377) == 0) {  /* bare font */
 		charsize = height = len / 256;
 	} else
 #endif

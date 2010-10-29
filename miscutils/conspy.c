@@ -420,19 +420,19 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 
 			if (G.remote.cursor_x < G.x) {
 				G.x = G.remote.cursor_x;
-				i = 0;	// force refresh
+				i = 0; // force refresh
 			}
 			if (nx > G.x) {
 				G.x = nx;
-				i = 0;	// force refresh
+				i = 0; // force refresh
 			}
 			if (G.remote.cursor_y < G.y) {
 				G.y = G.remote.cursor_y;
-				i = 0;	// force refresh
+				i = 0; // force refresh
 			}
 			if (ny > G.y) {
 				G.y = ny;
-				i = 0;	// force refresh
+				i = 0; // force refresh
 			}
 		}
 

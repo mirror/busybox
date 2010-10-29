@@ -141,7 +141,7 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 		if (ptr[1] == SB && ptr[2] == TELOPT_NAWS) {
 			struct winsize ws;
 			if ((ptr+8) >= end)
-				break;	/* incomplete, can't process */
+				break;  /* incomplete, can't process */
 			ws.ws_col = (ptr[3] << 8) | ptr[4];
 			ws.ws_row = (ptr[5] << 8) | ptr[6];
 			ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
@@ -273,8 +273,8 @@ make_new_session(
 		static const char iacs_to_send[] ALIGN1 = {
 			IAC, DO, TELOPT_ECHO,
 			IAC, DO, TELOPT_NAWS,
-		/* This requires telnetd.ctrlSQ.patch (incomplete) */
-		/*	IAC, DO, TELOPT_LFLOW, */
+			/* This requires telnetd.ctrlSQ.patch (incomplete) */
+			/*IAC, DO, TELOPT_LFLOW,*/
 			IAC, WILL, TELOPT_ECHO,
 			IAC, WILL, TELOPT_SGA
 		};

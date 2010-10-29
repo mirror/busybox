@@ -18,7 +18,7 @@
    02111-1307 USA.
  */
 /*
- *	POSIX Standard: 9.2.1 Group Database Access	<grp.h>
+ * POSIX Standard: 9.2.1 Group Database Access	<grp.h>
  */
 #ifndef BB_GRP_H
 #define BB_GRP_H 1

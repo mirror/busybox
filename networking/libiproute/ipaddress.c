@@ -1,13 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * ipaddress.c		"ip address".
- *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
- * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+ * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Changes:
- *	Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
+ * Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
  */
 
 #include <fnmatch.h>
@@ -20,7 +18,7 @@
 
 #ifndef IFF_LOWER_UP
 /* from linux/if.h */
-#define IFF_LOWER_UP	0x10000		/* driver signals L1 up*/
+#define IFF_LOWER_UP  0x10000  /* driver signals L1 up */
 #endif
 
 struct filter_t {
@@ -365,7 +363,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 
 struct nlmsg_list {
 	struct nlmsg_list *next;
-	struct nlmsghdr	  h;
+	struct nlmsghdr   h;
 };
 
 static int print_selected_addrinfo(int ifindex, struct nlmsg_list *ainfo)

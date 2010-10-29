@@ -89,7 +89,7 @@
 //UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
 
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
-#define BURSTPOLL       0	/* initial poll */
+#define BURSTPOLL       0       /* initial poll */
 #define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
 #define BIGPOLL         10      /* drop to lower poll at any trouble (10: 17 min) */
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
@@ -865,7 +865,7 @@ fit(peer_t *p, double rd)
 		VERB3 bb_error_msg("peer %s unfit for selection: unreachable", p->p_dotted);
 		return 0;
 	}
-#if 0	/* we filter out such packets earlier */
+#if 0 /* we filter out such packets earlier */
 	if ((p->lastpkt_status & LI_ALARM) == LI_ALARM
 	 || p->lastpkt_stratum >= MAXSTRAT
 	) {
@@ -2110,7 +2110,7 @@ direct_freq(double fp_offset)
 }
 
 static void
-set_freq(double	freq) /* frequency update */
+set_freq(double freq) /* frequency update */
 {
 	char tbuf[80];
 

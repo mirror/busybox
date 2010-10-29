@@ -295,7 +295,7 @@ struct globals {
 	struct rlimit rlim_ofile;
 	servtab_t *serv_list;
 	int global_queuelen;
-	int maxsock;		/* max fd# in allsock, -1: unknown */
+	int maxsock;         /* max fd# in allsock, -1: unknown */
 	/* whenever maxsock grows, prev_maxsock is set to new maxsock,
 	 * but if maxsock is set to -1, prev_maxsock is not changed */
 	int prev_maxsock;

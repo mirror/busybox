@@ -15,9 +15,9 @@
 /* After libbb.h, because on some systems it needs other includes */
 #include <arpa/inet.h>
 
-#define CLASS_A_NETMASK	ntohl(0xFF000000)
-#define CLASS_B_NETMASK	ntohl(0xFFFF0000)
-#define CLASS_C_NETMASK	ntohl(0xFFFFFF00)
+#define CLASS_A_NETMASK ntohl(0xFF000000)
+#define CLASS_B_NETMASK ntohl(0xFFFF0000)
+#define CLASS_C_NETMASK ntohl(0xFFFFFF00)
 
 static unsigned long get_netmask(unsigned long ipaddr)
 {

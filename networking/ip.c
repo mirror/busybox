@@ -1,13 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /*
- * "ip" utility frontend.
- *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Changes:
- * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
+ * Rani Assaf <rani@magic.metawire.com> 980929: resolve addresses
  * Bernhard Reutner-Fischer rewrote to use index_in_substr_array
  */
 

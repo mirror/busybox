@@ -134,15 +134,14 @@ void generateMTFValues(EState* s)
 	 * holds the original block data.
 	 *
 	 * The first thing to do is generate the MTF values,
-	 * and put them in
-	 *	((uint16_t*)s->arr1)[0 .. s->nblock-1].
+	 * and put them in ((uint16_t*)s->arr1)[0 .. s->nblock-1].
+	 *
 	 * Because there are strictly fewer or equal MTF values
 	 * than block values, ptr values in this area are overwritten
 	 * with MTF values only when they are no longer needed.
 	 *
 	 * The final compressed bitstream is generated into the
-	 * area starting at
-	 *	&((uint8_t*)s->arr2)[s->nblock]
+	 * area starting at &((uint8_t*)s->arr2)[s->nblock]
 	 *
 	 * These storage aliases are set up in bzCompressInit(),
 	 * except for the last one, which is arranged in
@@ -459,7 +458,7 @@ void sendMTFValues(EState* s)
 	}
 
 	AssertH(nGroups < 8, 3002);
-	AssertH(nSelectors < 32768 && nSelectors <= (2 + (900000 / BZ_G_SIZE)),	3003);
+	AssertH(nSelectors < 32768 && nSelectors <= (2 + (900000 / BZ_G_SIZE)), 3003);
 
 	/*--- Compute MTF values for the selectors. ---*/
 	{

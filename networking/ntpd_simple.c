@@ -870,7 +870,7 @@ static NOINLINE void ntp_init(char **argv)
 		int prec = 0;
 		int b;
 # if 0
-		struct timespec	tp;
+		struct timespec tp;
 		/* We can use sys_clock_getres but assuming 10ms tick should be fine */
 		clock_getres(CLOCK_REALTIME, &tp);
 		tp.tv_sec = 0;

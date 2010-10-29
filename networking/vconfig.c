@@ -47,8 +47,8 @@ struct vlan_ioctl_args {
 	short vlan_qos;
 };
 
-#define VLAN_GROUP_ARRAY_LEN 4096
-#define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options */
+#define VLAN_GROUP_ARRAY_LEN  4096
+#define SIOCSIFVLAN           0x8983  /* Set 802.1Q VLAN options */
 
 /* On entry, table points to the length of the current string
  * plus NUL terminator plus data length for the subsequent entry.

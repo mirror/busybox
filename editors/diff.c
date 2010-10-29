@@ -230,7 +230,7 @@ static int search(const int *c, int k, int y, const struct cand *list)
 {
 	int i, j;
 
-	if (list[c[k]].y < y)	/* quick look for typical case */
+	if (list[c[k]].y < y)  /* quick look for typical case */
 		return k + 1;
 
 	for (i = 0, j = k + 1;;) {

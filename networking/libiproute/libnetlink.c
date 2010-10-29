@@ -74,8 +74,8 @@ int FAST_FUNC rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, in
 	struct iovec iov[2] = { { &nlh, sizeof(nlh) }, { req, len } };
 	struct msghdr msg = {
 		(void*)&nladdr, sizeof(nladdr),
-		iov,	2,
-		NULL,	0,
+		iov,  2,
+		NULL, 0,
 		0
 	};
 
@@ -108,8 +108,8 @@ static int rtnl_dump_filter(struct rtnl_handle *rth,
 
 		struct msghdr msg = {
 			(void*)&nladdr, sizeof(nladdr),
-			&iov,	1,
-			NULL,	0,
+			&iov, 1,
+			NULL, 0,
 			0
 		};
 
@@ -214,8 +214,8 @@ int FAST_FUNC rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n,
 	char   *buf = xmalloc(8*1024); /* avoid big stack buffer */
 	struct msghdr msg = {
 		(void*)&nladdr, sizeof(nladdr),
-		&iov,	1,
-		NULL,	0,
+		&iov, 1,
+		NULL, 0,
 		0
 	};
 

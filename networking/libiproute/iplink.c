@@ -296,9 +296,9 @@ static int do_change(char **argv, const unsigned rtm)
 	};
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr		n;
-		struct ifinfomsg	i;
-		char			buf[1024];
+		struct nlmsghdr  n;
+		struct ifinfomsg i;
+		char             buf[1024];
 	} req;
 	smalluint arg;
 	char *name_str = NULL, *link_str = NULL, *type_str = NULL, *dev_str = NULL;

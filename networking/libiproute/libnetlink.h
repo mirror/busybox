@@ -11,11 +11,11 @@
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 struct rtnl_handle {
-	int			fd;
-	struct sockaddr_nl	local;
-	struct sockaddr_nl	peer;
-	uint32_t		seq;
-	uint32_t		dump;
+	int                fd;
+	struct sockaddr_nl local;
+	struct sockaddr_nl peer;
+	uint32_t           seq;
+	uint32_t           dump;
 };
 
 extern void xrtnl_open(struct rtnl_handle *rth) FAST_FUNC;

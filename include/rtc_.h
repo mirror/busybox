@@ -35,9 +35,9 @@ struct linux_rtc_time {
 };
 
 struct linux_rtc_wkalrm {
-	unsigned char enabled;	/* 0 = alarm disabled, 1 = alarm enabled */
+	unsigned char enabled;  /* 0 = alarm disabled, 1 = alarm enabled */
 	unsigned char pending;  /* 0 = alarm not pending, 1 = alarm pending */
-	struct linux_rtc_time time;	/* time the alarm is set to */
+	struct linux_rtc_time time;  /* time the alarm is set to */
 };
 
 /*

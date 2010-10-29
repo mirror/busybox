@@ -1,19 +1,16 @@
 /* vi: set sw=4 ts=4: */
 /*
- * iproute.c		"ip route".
- *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
- * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
- *
+ * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Changes:
  *
- * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
+ * Rani Assaf <rani@magic.metawire.com> 980929: resolve addresses
  * Kunihiro Ishiguro <kunihiro@zebra.org> 001102: rtnh_ifindex was not initialized
  */
 
-#include "ip_common.h"	/* #include "libbb.h" is inside */
+#include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
 #include "utils.h"
 
@@ -327,9 +324,9 @@ IF_FEATURE_IP_RULE(ARG_table,)
 	};
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr		n;
-		struct rtmsg		r;
-		char			buf[1024];
+		struct nlmsghdr n;
+		struct rtmsg    r;
+		char            buf[1024];
 	} req;
 	char mxbuf[256];
 	struct rtattr * mxrta = (void*)mxbuf;

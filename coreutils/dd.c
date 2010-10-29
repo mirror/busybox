@@ -24,7 +24,7 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ "b", 512 },
 	{ "kD", 1000 },
 	{ "k", 1024 },
-	{ "K", 1024 },	/* compat with coreutils dd */
+	{ "K", 1024 },  /* compat with coreutils dd */
 	{ "MD", 1000000 },
 	{ "M", 1048576 },
 	{ "GD", 1000000000 },

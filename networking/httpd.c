@@ -231,7 +231,7 @@ struct globals {
 	int verbose;            /* must be int (used by getopt32) */
 	smallint flg_deny_all;
 
-	unsigned rmt_ip;	/* used for IP-based allow/deny rules */
+	unsigned rmt_ip;        /* used for IP-based allow/deny rules */
 	time_t last_mod;
 	char *rmt_ip_str;       /* for $REMOTE_ADDR and $REMOTE_PORT */
 	const char *bind_addr_or_port;
@@ -267,7 +267,7 @@ struct globals {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	Htaccess *script_i;     /* config script interpreters */
 #endif
-	char *iobuf;	        /* [IOBUF_SIZE] */
+	char *iobuf;            /* [IOBUF_SIZE] */
 #define hdr_buf bb_common_bufsiz1
 	char *hdr_ptr;
 	int hdr_cnt;

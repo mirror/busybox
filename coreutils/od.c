@@ -4,7 +4,7 @@
  * Based on code from util-linux v 2.11l
  *
  * Copyright (c) 1990
- *	The Regents of the University of California.  All rights reserved.
+ * The Regents of the University of California.  All rights reserved.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
@@ -174,7 +174,7 @@ int od_main(int argc, char **argv)
 				bb_dump_add(dumper, "\"         \"");
 			}
 			bb_dump_add(dumper, add_strings[(int)od_o2si[(p - od_opts)]]);
-		} else {	/* P, p, s, w, or other unhandled */
+		} else {  /* P, p, s, w, or other unhandled */
 			bb_show_usage();
 		}
 	}

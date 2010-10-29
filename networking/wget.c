@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  * Copyright (C) 2010 Bradley M. Kuhn <bkuhn@ebb.org>
- *   Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.
+ * Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.
  */
 #include "libbb.h"
 
@@ -48,7 +48,7 @@ struct BUG_G_too_big {
 /* Must match option string! */
 enum {
 	WGET_OPT_CONTINUE   = (1 << 0),
-	WGET_OPT_SPIDER	    = (1 << 1),
+	WGET_OPT_SPIDER     = (1 << 1),
 	WGET_OPT_QUIET      = (1 << 2),
 	WGET_OPT_OUTNAME    = (1 << 3),
 	WGET_OPT_PREFIX     = (1 << 4),
@@ -785,7 +785,7 @@ However, in real world it was observed that some web servers
 */
 		case 204:
 			break;
-		case 300:	/* redirection */
+		case 300:  /* redirection */
 		case 301:
 		case 302:
 		case 303:
