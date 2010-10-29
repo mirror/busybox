@@ -492,15 +492,20 @@ static int get_next_block(bunzip_data *bd)
 int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const uint32_t *dbuf;
-	int pos, current, previous, gotcount;
+	int pos, current, previous, out_count;
+	uint32_t CRC;
 
-	/* If last read was short due to end of file, return last block now */
-	if (bd->writeCount < 0) return bd->writeCount;
+	/* If we already have error/end indicator, return it */
+	if (bd->writeCount < 0)
+		return bd->writeCount;
 
-	gotcount = 0;
+	out_count = 0;
 	dbuf = bd->dbuf;
+
+	/* Register-cached state (hopefully): */
 	pos = bd->writePos;
 	current = bd->writeCurrent;
+	CRC = bd->writeCRC; /* small loss on x86-32 (not enough regs), win on x86-64 */
 
 	/* We will always have pending decoded data to write into the output
 	   buffer unless this is the very first call (in which case we haven't
@@ -514,8 +519,8 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 		/* Loop outputting bytes */
 		for (;;) {
 
-			/* If the output buffer is full, snapshot state and return */
-			if (gotcount >= len) {
+			/* If the output buffer is full, save cached state and return */
+			if (out_count >= len) {
 				/* Unlikely branch.
 				 * Use of "goto" instead of keeping code here
 				 * helps compiler to realize this. */
@@ -523,17 +528,16 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 			}
 
 			/* Write next byte into output buffer, updating CRC */
-			outbuf[gotcount++] = current;
-			bd->writeCRC = (bd->writeCRC << 8)
-				^ bd->crc32Table[(bd->writeCRC >> 24) ^ current];
+			outbuf[out_count++] = current;
+			CRC = (CRC << 8) ^ bd->crc32Table[(CRC >> 24) ^ current];
 
 			/* Loop now if we're outputting multiple copies of this byte */
 			if (bd->writeCopies) {
 				/* Unlikely branch */
 				/*--bd->writeCopies;*/
 				/*continue;*/
-				/* Same, but (ab)using other existing --writeCopies operation.
-				 * Luckily, this also compiles into just one branch insn: */
+				/* Same, but (ab)using other existing --writeCopies operation
+				 * (and this if() compiles into just test+branch pair): */
 				goto dec_writeCopies;
 			}
  decode_next_byte:
@@ -549,7 +553,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 			/* After 3 consecutive copies of the same byte, the 4th
 			 * is a repeat count.  We count down from 4 instead
 			 * of counting up because testing for non-zero is faster */
-			if (--bd->writeRunCountdown) {
+			if (--bd->writeRunCountdown != 0) {
 				if (current != previous)
 					bd->writeRunCountdown = 4;
 			} else {
@@ -568,11 +572,11 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 		} /* for(;;) */
 
 		/* Decompression of this input block completed successfully */
-		bd->writeCRC = ~bd->writeCRC;
-		bd->totalCRC = ((bd->totalCRC << 1) | (bd->totalCRC >> 31)) ^ bd->writeCRC;
+		bd->writeCRC = CRC = ~CRC;
+		bd->totalCRC = ((bd->totalCRC << 1) | (bd->totalCRC >> 31)) ^ CRC;
 
-		/* If this block had a CRC error, force file level CRC error. */
-		if (bd->writeCRC != bd->headerCRC) {
+		/* If this block had a CRC error, force file level CRC error */
+		if (CRC != bd->headerCRC) {
 			bd->totalCRC = bd->headerCRC + 1;
 			return RETVAL_LAST_BLOCK;
 		}
@@ -581,23 +585,26 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 	/* Refill the intermediate buffer by Huffman-decoding next block of input */
 	{
 		int r = get_next_block(bd);
-		if (r) {
+		if (r) { /* error/end */
 			bd->writeCount = r;
-			return (r != RETVAL_LAST_BLOCK) ? r : gotcount;
+			return (r != RETVAL_LAST_BLOCK) ? r : out_count;
 		}
 	}
 
-	bd->writeCRC = ~0;
+	CRC = ~0;
 	pos = bd->writePos;
 	current = bd->writeCurrent;
 	goto decode_next_byte;
 
  outbuf_full:
-	/* Output buffer is full, snapshot state and return */
+	/* Output buffer is full, save cached state and return */
 	bd->writePos = pos;
 	bd->writeCurrent = current;
+	bd->writeCRC = CRC;
+
 	bd->writeCopies++;
-	return gotcount;
+
+	return out_count;
 }
 
 /* Allocate the structure, read file header.  If in_fd==-1, inbuf must contain
