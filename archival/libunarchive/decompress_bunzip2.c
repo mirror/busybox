@@ -20,6 +20,17 @@
 	the Burrows-Wheeler transformation.  Much of that time is delay
 	resulting from cache misses.
 
+	(2010 update by vda: profiled "bzcat <84mbyte.bz2 >/dev/null"
+	on x86-64 CPU with L2 > 1M: get_next_block is hotter than read_bunzip:
+	%time seconds   calls function
+	71.01   12.69     444 get_next_block
+	28.65    5.12   93065 read_bunzip
+	00.22    0.04 7736490 get_bits
+	00.11    0.02      47 dealloc_bunzip
+	00.00    0.00   93018 full_write
+	...)
+
+
 	I would ask that anyone benefiting from this work, especially those
 	using it in commercial products, consider making a donation to my local
 	non-profit hospice organization (www.hospiceacadiana.com) in the name of
