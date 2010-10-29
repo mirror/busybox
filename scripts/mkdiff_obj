@@ -39,8 +39,8 @@ while IFS='' read -r oname; do
 		continue
 	fi
 	diff -q -- "$1/$oname" "$2/$oname" >/dev/null && continue
-	(cd "$1"; objdump -dr "$oname" | filter >"$oname.disasm")
-	(cd "$2"; objdump -dr "$oname" | filter >"$oname.disasm")
+	(cd "$1" && { size "$oname"; objdump -dr "$oname" | filter; } >"$oname.disasm")
+	(cd "$2" && { size "$oname"; objdump -dr "$oname" | filter; } >"$oname.disasm")
 	diff -u -- "$1/$oname.disasm" "$2/$oname.disasm"
 done
 )
