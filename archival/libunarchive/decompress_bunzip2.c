@@ -488,18 +488,21 @@ static int get_next_block(bunzip_data *bd)
    data are written to outbuf.  Return value is number of bytes written or
    error (all errors are negative numbers).  If out_fd!=-1, outbuf and len
    are ignored, data is written to out_fd and return is RETVAL_OK or error.
+
+   NB: read_bunzip returns < 0 on error, or the number of *unfilled* bytes
+   in outbuf. IOW: on EOF returns len ("all bytes are not filled"), not 0.
+   (Why? This allows to get rid of one local variable)
 */
 int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
 	const uint32_t *dbuf;
-	int pos, current, previous, out_count;
+	int pos, current, previous;
 	uint32_t CRC;
 
 	/* If we already have error/end indicator, return it */
 	if (bd->writeCount < 0)
 		return bd->writeCount;
 
-	out_count = 0;
 	dbuf = bd->dbuf;
 
 	/* Register-cached state (hopefully): */
@@ -520,7 +523,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 		for (;;) {
 
 			/* If the output buffer is full, save cached state and return */
-			if (out_count >= len) {
+			if (--len < 0) {
 				/* Unlikely branch.
 				 * Use of "goto" instead of keeping code here
 				 * helps compiler to realize this. */
@@ -528,7 +531,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 			}
 
 			/* Write next byte into output buffer, updating CRC */
-			outbuf[out_count++] = current;
+			*outbuf++ = current;
 			CRC = (CRC << 8) ^ bd->crc32Table[(CRC >> 24) ^ current];
 
 			/* Loop now if we're outputting multiple copies of this byte */
@@ -587,7 +590,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 		int r = get_next_block(bd);
 		if (r) { /* error/end */
 			bd->writeCount = r;
-			return (r != RETVAL_LAST_BLOCK) ? r : out_count;
+			return (r != RETVAL_LAST_BLOCK) ? r : len;
 		}
 	}
 
@@ -604,7 +607,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 
 	bd->writeCopies++;
 
-	return out_count;
+	return 0;
 }
 
 /* Allocate the structure, read file header.  If in_fd==-1, inbuf must contain
@@ -698,7 +701,10 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 		if (i == 0) {
 			while (1) { /* "Produce some output bytes" loop */
 				i = read_bunzip(bd, outbuf, IOBUF_SIZE);
-				if (i <= 0)
+				if (i < 0) /* error? */
+					break;
+				i = IOBUF_SIZE - i; /* number of bytes produced */
+				if (i == 0) /* EOF? */
 					break;
 				if (i != full_write(dst_fd, outbuf, i)) {
 					bb_error_msg("short write");
