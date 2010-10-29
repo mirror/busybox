@@ -16,7 +16,7 @@
 	function, and various other tweaks.  In (limited) tests, approximately
 	20% faster than bzcat on x86 and about 10% faster on arm.
 
-	Note that about 2/3 of the time is spent in read_unzip() reversing
+	Note that about 2/3 of the time is spent in read_bunzip() reversing
 	the Burrows-Wheeler transformation.  Much of that time is delay
 	resulting from cache misses.
 
@@ -70,23 +70,25 @@ struct bunzip_data {
 	/* I/O tracking data (file handles, buffers, positions, etc.) */
 	unsigned inbufBitCount, inbufBits;
 	int in_fd, out_fd, inbufCount, inbufPos /*, outbufPos*/;
-	unsigned char *inbuf /*,*outbuf*/;
+	uint8_t *inbuf /*,*outbuf*/;
 
 	/* State for interrupting output loop */
-	int writeCopies, writePos, writeRunCountdown, writeCount, writeCurrent;
+	int writeCopies, writePos, writeRunCountdown, writeCount;
+	int writeCurrent; /* actually a uint8_t */
 
 	/* The CRC values stored in the block header and calculated from the data */
 	uint32_t headerCRC, totalCRC, writeCRC;
 
 	/* Intermediate buffer and its size (in bytes) */
-	unsigned *dbuf, dbufSize;
+	uint32_t *dbuf;
+	unsigned dbufSize;
 
 	/* For I/O error handling */
 	jmp_buf jmpbuf;
 
 	/* Big things go last (register-relative addressing can be larger for big offsets) */
 	uint32_t crc32Table[256];
-	unsigned char selectors[32768];  /* nSelectors=15 bits */
+	uint8_t selectors[32768];  /* nSelectors=15 bits */
 	struct group_data groups[MAX_GROUPS];  /* Huffman coding tables */
 };
 /* typedef struct bunzip_data bunzip_data; -- done in .h file */
@@ -94,14 +96,15 @@ struct bunzip_data {
 
 /* Return the next nnn bits of input.  All reads from the compressed input
    are done through this function.  All reads are big endian */
-
 static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 {
 	unsigned bits = 0;
+	/* Cache bd->inbufBitCount in a CPU register (hopefully): */
+	int bit_count = bd->inbufBitCount;
 
 	/* If we need to get more data from the byte buffer, do so.  (Loop getting
 	   one byte at a time to enforce endianness and avoid unaligned access.) */
-	while ((int)(bd->inbufBitCount) < bits_wanted) {
+	while (bit_count < bits_wanted) {
 
 		/* If we need to read more data from file into byte buffer, do so */
 		if (bd->inbufPos == bd->inbufCount) {
@@ -113,33 +116,35 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
 		}
 
 		/* Avoid 32-bit overflow (dump bit buffer to top of output) */
-		if (bd->inbufBitCount >= 24) {
-			bits = bd->inbufBits & ((1 << bd->inbufBitCount) - 1);
-			bits_wanted -= bd->inbufBitCount;
+		if (bit_count >= 24) {
+			bits = bd->inbufBits & ((1 << bit_count) - 1);
+			bits_wanted -= bit_count;
 			bits <<= bits_wanted;
-			bd->inbufBitCount = 0;
+			bit_count = 0;
 		}
 
 		/* Grab next 8 bits of input from buffer. */
 		bd->inbufBits = (bd->inbufBits << 8) | bd->inbuf[bd->inbufPos++];
-		bd->inbufBitCount += 8;
+		bit_count += 8;
 	}
 
 	/* Calculate result */
-	bd->inbufBitCount -= bits_wanted;
-	bits |= (bd->inbufBits >> bd->inbufBitCount) & ((1 << bits_wanted) - 1);
+	bit_count -= bits_wanted;
+	bd->inbufBitCount = bit_count;
+	bits |= (bd->inbufBits >> bit_count) & ((1 << bits_wanted) - 1);
 
 	return bits;
 }
 
-/* Unpacks the next block and sets up for the inverse burrows-wheeler step. */
+/* Unpacks the next block and sets up for the inverse Burrows-Wheeler step. */
 static int get_next_block(bunzip_data *bd)
 {
 	struct group_data *hufGroup;
 	int dbufCount, nextSym, dbufSize, groupCount, *base, *limit, selector,
 		i, j, k, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
-	unsigned char uc, symToByte[256], mtfSymbol[256], *selectors;
-	unsigned *dbuf, origPtr;
+	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
+	uint32_t *dbuf;
+	unsigned origPtr;
 
 	dbuf = bd->dbuf;
 	dbufSize = bd->dbufSize;
@@ -200,7 +205,8 @@ static int get_next_block(bunzip_data *bd)
 
 		/* Decode MTF to get the next selector */
 		uc = mtfSymbol[j];
-		for (;j;j--) mtfSymbol[j] = mtfSymbol[j-1];
+		for (; j; j--)
+			mtfSymbol[j] = mtfSymbol[j-1];
 		mtfSymbol[0] = selectors[i] = uc;
 	}
 
@@ -208,7 +214,7 @@ static int get_next_block(bunzip_data *bd)
 	   literal symbols, plus two run symbols (RUNA, RUNB) */
 	symCount = symTotal + 2;
 	for (j = 0; j < groupCount; j++) {
-		unsigned char length[MAX_SYMBOLS];
+		uint8_t length[MAX_SYMBOLS];
 		/* 8 bits is ALMOST enough for temp[], see below */
 		unsigned temp[MAX_HUFCODE_BITS+1];
 		int minLen, maxLen, pp;
@@ -315,7 +321,7 @@ static int get_next_block(bunzip_data *bd)
 	memset(byteCount, 0, sizeof(byteCount)); /* smaller, maybe slower? */
 	for (i = 0; i < 256; i++) {
 		//byteCount[i] = 0;
-		mtfSymbol[i] = (unsigned char)i;
+		mtfSymbol[i] = (uint8_t)i;
 	}
 
 	/* Loop through compressed symbols. */
@@ -456,7 +462,7 @@ static int get_next_block(bunzip_data *bd)
 
 	/* Figure out what order dbuf would be in if we sorted it. */
 	for (i = 0; i < dbufCount; i++) {
-		uc = (unsigned char)(dbuf[i] & 0xff);
+		uc = (uint8_t)dbuf[i];
 		dbuf[byteCount[uc]] |= (i << 8);
 		byteCount[uc]++;
 	}
@@ -465,10 +471,11 @@ static int get_next_block(bunzip_data *bd)
 	   doesn't get output, and if the first three characters are identical
 	   it doesn't qualify as a run (hence writeRunCountdown=5). */
 	if (dbufCount) {
+		uint32_t tmp;
 		if ((int)origPtr >= dbufCount) return RETVAL_DATA_ERROR;
-		bd->writePos = dbuf[origPtr];
-		bd->writeCurrent = (unsigned char)(bd->writePos & 0xff);
-		bd->writePos >>= 8;
+		tmp = dbuf[origPtr];
+		bd->writeCurrent = (uint8_t)tmp;
+		bd->writePos = (tmp >> 8);
 		bd->writeRunCountdown = 5;
 	}
 	bd->writeCount = dbufCount;
@@ -476,7 +483,7 @@ static int get_next_block(bunzip_data *bd)
 	return RETVAL_OK;
 }
 
-/* Undo burrows-wheeler transform on intermediate buffer to produce output.
+/* Undo Burrows-Wheeler transform on intermediate buffer to produce output.
    If start_bunzip was initialized with out_fd=-1, then up to len bytes of
    data are written to outbuf.  Return value is number of bytes written or
    error (all errors are negative numbers).  If out_fd!=-1, outbuf and len
@@ -484,7 +491,7 @@ static int get_next_block(bunzip_data *bd)
 */
 int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 {
-	const unsigned *dbuf;
+	const uint32_t *dbuf;
 	int pos, current, previous, gotcount;
 
 	/* If last read was short due to end of file, return last block now */
@@ -500,6 +507,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 	   Huffman-decoded a block into the intermediate buffer yet). */
 	if (bd->writeCopies) {
 
+ dec_writeCopies:
 		/* Inside the loop, writeCopies means extra copies (beyond 1) */
 		--bd->writeCopies;
 
@@ -508,10 +516,10 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 
 			/* If the output buffer is full, snapshot state and return */
 			if (gotcount >= len) {
-				bd->writePos = pos;
-				bd->writeCurrent = current;
-				bd->writeCopies++;
-				return len;
+				/* Unlikely branch.
+				 * Use of "goto" instead of keeping code here
+				 * helps compiler to realize this. */
+				goto outbuf_full;
 			}
 
 			/* Write next byte into output buffer, updating CRC */
@@ -521,15 +529,21 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 
 			/* Loop now if we're outputting multiple copies of this byte */
 			if (bd->writeCopies) {
-				--bd->writeCopies;
-				continue;
+				/* Unlikely branch */
+				/*--bd->writeCopies;*/
+				/*continue;*/
+				/* Same, but (ab)using other existing --writeCopies operation.
+				 * Luckily, this also compiles into just one branch insn: */
+				goto dec_writeCopies;
 			}
  decode_next_byte:
-			if (!bd->writeCount--) break;
+			if (--bd->writeCount < 0)
+				break; /* input block is fully consumed, need next one */
+
 			/* Follow sequence vector to undo Burrows-Wheeler transform */
 			previous = current;
 			pos = dbuf[pos];
-			current = pos & 0xff;
+			current = (uint8_t)pos;
 			pos >>= 8;
 
 			/* After 3 consecutive copies of the same byte, the 4th
@@ -539,7 +553,7 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 				if (current != previous)
 					bd->writeRunCountdown = 4;
 			} else {
-
+				/* Unlikely branch */
 				/* We have a repeated run, this byte indicates the count */
 				bd->writeCopies = current;
 				current = previous;
@@ -551,9 +565,9 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 				/* Subtract the 1 copy we'd output anyway to get extras */
 				--bd->writeCopies;
 			}
-		}
+		} /* for(;;) */
 
-		/* Decompression of this block completed successfully */
+		/* Decompression of this input block completed successfully */
 		bd->writeCRC = ~bd->writeCRC;
 		bd->totalCRC = ((bd->totalCRC << 1) | (bd->totalCRC >> 31)) ^ bd->writeCRC;
 
@@ -565,16 +579,25 @@ int FAST_FUNC read_bunzip(bunzip_data *bd, char *outbuf, int len)
 	}
 
 	/* Refill the intermediate buffer by Huffman-decoding next block of input */
-	/* (previous is just a convenient unused temp variable here) */
-	previous = get_next_block(bd);
-	if (previous) {
-		bd->writeCount = previous;
-		return (previous != RETVAL_LAST_BLOCK) ? previous : gotcount;
+	{
+		int r = get_next_block(bd);
+		if (r) {
+			bd->writeCount = r;
+			return (r != RETVAL_LAST_BLOCK) ? r : gotcount;
+		}
 	}
+
 	bd->writeCRC = ~0;
 	pos = bd->writePos;
 	current = bd->writeCurrent;
 	goto decode_next_byte;
+
+ outbuf_full:
+	/* Output buffer is full, snapshot state and return */
+	bd->writePos = pos;
+	bd->writeCurrent = current;
+	bd->writeCopies++;
+	return gotcount;
 }
 
 /* Allocate the structure, read file header.  If in_fd==-1, inbuf must contain
@@ -607,7 +630,7 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
 		/* in this case, bd->inbuf is read-only */
 		bd->inbuf = (void*)inbuf; /* cast away const-ness */
 	} else {
-		bd->inbuf = (unsigned char *)(bd + 1);
+		bd->inbuf = (uint8_t*)(bd + 1);
 		memcpy(bd->inbuf, inbuf, len);
 	}
 	bd->inbufCount = len;
@@ -634,7 +657,7 @@ int FAST_FUNC start_bunzip(bunzip_data **bdp, int in_fd,
 	bd->dbufSize = 100000 * (i - h0);
 
 	/* Cannot use xmalloc - may leak bd in NOFORK case! */
-	bd->dbuf = malloc_or_warn(bd->dbufSize * sizeof(int));
+	bd->dbuf = malloc_or_warn(bd->dbufSize * sizeof(bd->dbuf[0]));
 	if (!bd->dbuf) {
 		free(bd);
 		xfunc_die();
