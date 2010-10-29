@@ -153,6 +153,7 @@ static int get_next_block(bunzip_data *bd)
 	struct group_data *hufGroup;
 	int dbufCount, dbufSize, groupCount, *base, *limit, selector,
 		i, j, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
+	int runCnt = runCnt; /* for compiler */
 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
 	uint32_t *dbuf;
 	unsigned origPtr;
@@ -242,19 +243,19 @@ static int get_next_block(bunzip_data *bd)
 		uint8_t length[MAX_SYMBOLS];
 		/* 8 bits is ALMOST enough for temp[], see below */
 		unsigned temp[MAX_HUFCODE_BITS+1];
-		int minLen, maxLen, pp;
+		int minLen, maxLen, pp, len_m1;
 
 		/* Read Huffman code lengths for each symbol.  They're stored in
 		   a way similar to mtf; record a starting value for the first symbol,
-		   and an offset from the previous value for everys symbol after that.
+		   and an offset from the previous value for every symbol after that.
 		   (Subtracting 1 before the loop and then adding it back at the end is
 		   an optimization that makes the test inside the loop simpler: symbol
 		   length 0 becomes negative, so an unsigned inequality catches it.) */
-		t = get_bits(bd, 5) - 1;
+		len_m1 = get_bits(bd, 5) - 1;
 		for (i = 0; i < symCount; i++) {
 			for (;;) {
 				int two_bits;
-				if ((unsigned)t > (MAX_HUFCODE_BITS-1))
+				if ((unsigned)len_m1 > (MAX_HUFCODE_BITS-1))
 					return RETVAL_DATA_ERROR;
 
 				/* If first bit is 0, stop.  Else second bit indicates whether
@@ -267,11 +268,11 @@ static int get_next_block(bunzip_data *bd)
 				}
 
 				/* Add one if second bit 1, else subtract 1.  Avoids if/else */
-				t += (((two_bits+1) & 2) - 1);
+				len_m1 += (((two_bits+1) & 2) - 1);
 			}
 
 			/* Correct for the initial -1, to get the final symbol length */
-			length[i] = t + 1;
+			length[i] = len_m1 + 1;
 		}
 
 		/* Find largest and smallest lengths in this group */
@@ -337,8 +338,8 @@ static int get_next_block(bunzip_data *bd)
 			t += temp_i;
 			base[++i] = pp - t;
 		}
-		limit[maxLen+1] = INT_MAX; /* Sentinel value for reading next sym. */
 		limit[maxLen] = pp + temp[maxLen] - 1;
+		limit[maxLen+1] = INT_MAX; /* Sentinel value for reading next sym. */
 		base[minLen] = 0;
 	}
 
@@ -418,7 +419,7 @@ static int get_next_block(bunzip_data *bd)
 			/* If this is the start of a new run, zero out counter */
 			if (runPos == 0) {
 				runPos = 1;
-				t = 0;
+				runCnt = 0;
 			}
 
 			/* Neat trick that saves 1 symbol: instead of or-ing 0 or 1 at
@@ -428,7 +429,7 @@ static int get_next_block(bunzip_data *bd)
 			   the basic or 0/1 method (except all bits 0, which would use no
 			   symbols, but a run of length 0 doesn't mean anything in this
 			   context).  Thus space is saved. */
-			t += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
+			runCnt += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
 			if (runPos < dbufSize) runPos <<= 1;
 			goto end_of_huffman_loop;
 		}
@@ -439,10 +440,10 @@ static int get_next_block(bunzip_data *bd)
 		   literal used is the one at the head of the mtfSymbol array.) */
 		if (runPos != 0) {
 			uint8_t tmp_byte;
-			if (dbufCount + t >= dbufSize) return RETVAL_DATA_ERROR;
+			if (dbufCount + runCnt >= dbufSize) return RETVAL_DATA_ERROR;
 			tmp_byte = symToByte[mtfSymbol[0]];
-			byteCount[tmp_byte] += t;
-			while (--t >= 0) dbuf[dbufCount++] = tmp_byte;
+			byteCount[tmp_byte] += runCnt;
+			while (--runCnt >= 0) dbuf[dbufCount++] = (uint32_t)tmp_byte;
 			runPos = 0;
 		}
 
