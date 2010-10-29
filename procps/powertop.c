@@ -635,7 +635,7 @@ static NOINLINE void print_intel_cstates(void)
 	bb_putchar('\n');
 }
 #else
-# define print_intel_cstates(void) ((void)0)
+# define print_intel_cstates() ((void)0)
 #endif
 
 static void show_timerstats(void)
