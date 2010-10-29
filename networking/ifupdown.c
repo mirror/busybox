@@ -164,7 +164,7 @@ static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
 	return NULL;
 }
 
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 static int count_netmask_bits(const char *dotted_quad)
 {
 //	int result;
@@ -195,7 +195,7 @@ static int count_netmask_bits(const char *dotted_quad)
 	}
 	return result;
 }
-#endif
+# endif
 
 static char *parse(const char *command, struct interface_defn_t *ifd)
 {
@@ -258,17 +258,17 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 				varvalue = get_var(command, nextpercent - command, ifd);
 
 				if (varvalue) {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 					/* "hwaddress <class> <address>":
 					 * unlike ifconfig, ip doesnt want <class>
 					 * (usually "ether" keyword). Skip it. */
 					if (strncmp(command, "hwaddress", 9) == 0) {
 						varvalue = skip_whitespace(skip_non_whitespace(varvalue));
 					}
-#endif
+# endif
 					addstr(&result, varvalue, strlen(varvalue));
 				} else {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 					/* Sigh...  Add a special case for 'ip' to convert from
 					 * dotted quad to bit count style netmasks.  */
 					if (strncmp(command, "bnmask", 6) == 0) {
@@ -284,7 +284,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 							}
 						}
 					}
-#endif
+# endif
 					okay[opt_depth - 1] = 0;
 				}
 
@@ -329,56 +329,64 @@ static int execute(const char *command, struct interface_defn_t *ifd, execfn *ex
 	}
 	return 1;
 }
-#endif
+
+#endif /* FEATURE_IFUPDOWN_IPV4 || FEATURE_IFUPDOWN_IPV6 */
+
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV6
+
 static int FAST_FUNC loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
 	result = execute("ip addr add ::1 dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
 	return ((result == 2) ? 2 : 0);
-#else
+# else
 	return execute("ifconfig %iface% add ::1", ifd, exec);
-#endif
+# endif
 }
 
 static int FAST_FUNC loopback_down6(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	return execute("ip link set %iface% down", ifd, exec);
-#else
+# else
 	return execute("ifconfig %iface% del ::1", ifd, exec);
-#endif
+# endif
+}
+
+static int FAST_FUNC manual_up_down6(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
+{
+	return 1;
 }
 
 static int FAST_FUNC static_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr add %address%/%netmask% dev %iface%[[ label %label%]]", ifd, exec);
 	result += execute("ip link set[[ mtu %mtu%]][[ addr %hwaddress%]] %iface% up", ifd, exec);
 	/* Was: "[[ ip ....%gateway% ]]". Removed extra spaces w/o checking */
 	result += execute("[[ip route add ::/0 via %gateway%]]", ifd, exec);
-#else
+# else
 	result = execute("ifconfig %iface%[[ media %media%]][[ hw %hwaddress%]][[ mtu %mtu%]] up", ifd, exec);
 	result += execute("ifconfig %iface% add %address%/%netmask%", ifd, exec);
 	result += execute("[[route -A inet6 add ::/0 gw %gateway%]]", ifd, exec);
-#endif
+# endif
 	return ((result == 3) ? 3 : 0);
 }
 
 static int FAST_FUNC static_down6(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	return execute("ip link set %iface% down", ifd, exec);
-#else
+# else
 	return execute("ifconfig %iface% down", ifd, exec);
-#endif
+# endif
 }
 
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 static int FAST_FUNC v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
@@ -394,14 +402,15 @@ static int FAST_FUNC v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
 {
 	return execute("ip tunnel del %iface%", ifd, exec);
 }
-#endif
+# endif
 
 static const struct method_t methods6[] = {
-#if ENABLE_FEATURE_IFUPDOWN_IP
-	{ "v4tunnel", v4tunnel_up, v4tunnel_down, },
-#endif
-	{ "static", static_up6, static_down6, },
-	{ "loopback", loopback_up6, loopback_down6, },
+# if ENABLE_FEATURE_IFUPDOWN_IP
+	{ "v4tunnel" , v4tunnel_up     , v4tunnel_down   , },
+# endif
+	{ "static"   , static_up6      , static_down6    , },
+	{ "manual"   , manual_up_down6 , manual_up_down6 , },
+	{ "loopback" , loopback_up6    , loopback_down6  , },
 };
 
 static const struct address_family_t addr_inet6 = {
@@ -409,43 +418,46 @@ static const struct address_family_t addr_inet6 = {
 	ARRAY_SIZE(methods6),
 	methods6
 };
+
 #endif /* FEATURE_IFUPDOWN_IPV6 */
 
+
 #if ENABLE_FEATURE_IFUPDOWN_IPV4
+
 static int FAST_FUNC loopback_up(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
 	result = execute("ip addr add 127.0.0.1/8 dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
 	return ((result == 2) ? 2 : 0);
-#else
+# else
 	return execute("ifconfig %iface% 127.0.0.1 up", ifd, exec);
-#endif
+# endif
 }
 
 static int FAST_FUNC loopback_down(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	int result;
 	result = execute("ip addr flush dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% down", ifd, exec);
 	return ((result == 2) ? 2 : 0);
-#else
+# else
 	return execute("ifconfig %iface% 127.0.0.1 down", ifd, exec);
-#endif
+# endif
 }
 
 static int FAST_FUNC static_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr add %address%/%bnmask%[[ broadcast %broadcast%]] "
 			"dev %iface%[[ peer %pointopoint%]][[ label %label%]]", ifd, exec);
 	result += execute("ip link set[[ mtu %mtu%]][[ addr %hwaddress%]] %iface% up", ifd, exec);
 	result += execute("[[ip route add default via %gateway% dev %iface%]]", ifd, exec);
 	return ((result == 3) ? 3 : 0);
-#else
+# else
 	/* ifconfig said to set iface up before it processes hw %hwaddress%,
 	 * which then of course fails. Thus we run two separate ifconfig */
 	result = execute("ifconfig %iface%[[ hw %hwaddress%]][[ media %media%]][[ mtu %mtu%]] up",
@@ -455,26 +467,26 @@ static int FAST_FUNC static_up(struct interface_defn_t *ifd, execfn *exec)
 				ifd, exec);
 	result += execute("[[route add default gw %gateway% %iface%]]", ifd, exec);
 	return ((result == 3) ? 3 : 0);
-#endif
+# endif
 }
 
 static int FAST_FUNC static_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
-#if ENABLE_FEATURE_IFUPDOWN_IP
+# if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr flush dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% down", ifd, exec);
-#else
+# else
 	/* result = execute("[[route del default gw %gateway% %iface%]]", ifd, exec); */
 	/* Bringing the interface down deletes the routes in itself.
 	   Otherwise this fails if we reference 'gateway' when using this from dhcp_down */
 	result = 1;
 	result += execute("ifconfig %iface% down", ifd, exec);
-#endif
+# endif
 	return ((result == 2) ? 2 : 0);
 }
 
-#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
+# if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 struct dhcp_client_t {
 	const char *name;
 	const char *startcmd;
@@ -500,21 +512,21 @@ static const struct dhcp_client_t ext_dhcp_clients[] = {
 		"kill `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
 	},
 };
-#endif /* ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
+# endif /* FEATURE_IFUPDOWN_EXTERNAL_DHCPC */
 
-#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
+# if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	unsigned i;
-#if ENABLE_FEATURE_IFUPDOWN_IP
+#  if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
 	if (!execute("ip link set[[ addr %hwaddress%]] %iface% up", ifd, exec))
 		return 0;
-#else
+#  else
 	/* needed if we have hwaddress on dhcp iface */
 	if (!execute("ifconfig %iface%[[ hw %hwaddress%]] up", ifd, exec))
 		return 0;
-#endif
+#  endif
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
 		if (exists_execable(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
@@ -522,31 +534,31 @@ static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 	bb_error_msg("no dhcp clients found");
 	return 0;
 }
-#elif ENABLE_UDHCPC
+# elif ENABLE_UDHCPC
 static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-#if ENABLE_FEATURE_IFUPDOWN_IP
+#  if ENABLE_FEATURE_IFUPDOWN_IP
 	/* ip doesn't up iface when it configures it (unlike ifconfig) */
 	if (!execute("ip link set[[ addr %hwaddress%]] %iface% up", ifd, exec))
 		return 0;
-#else
+#  else
 	/* needed if we have hwaddress on dhcp iface */
 	if (!execute("ifconfig %iface%[[ hw %hwaddress%]] up", ifd, exec))
 		return 0;
-#endif
+#  endif
 	return execute("udhcpc " UDHCPC_CMD_OPTIONS " -p /var/run/udhcpc.%iface%.pid "
 			"-i %iface%[[ -H %hostname%]][[ -c %client%]][[ -s %script%]][[ %udhcpc_opts%]]",
 			ifd, exec);
 }
-#else
+# else
 static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd UNUSED_PARAM,
 		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
 }
-#endif
+# endif
 
-#if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
+# if ENABLE_FEATURE_IFUPDOWN_EXTERNAL_DHCP
 static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result = 0;
@@ -569,7 +581,7 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	result += static_down(ifd, exec);
 	return ((result == 3) ? 3 : 0);
 }
-#elif ENABLE_UDHCPC
+# elif ENABLE_UDHCPC
 static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
@@ -586,13 +598,13 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	result += static_down(ifd, exec);
 	return ((result == 3) ? 3 : 0);
 }
-#else
+# else
 static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd UNUSED_PARAM,
 		execfn *exec UNUSED_PARAM)
 {
 	return 0; /* no dhcp support */
 }
-#endif
+# endif
 
 static int FAST_FUNC manual_up_down(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
 {
@@ -644,7 +656,8 @@ static const struct address_family_t addr_inet = {
 	methods
 };
 
-#endif  /* if ENABLE_FEATURE_IFUPDOWN_IPV4 */
+#endif  /* FEATURE_IFUPDOWN_IPV4 */
+
 
 /* Returns pointer to the next word, or NULL.
  * In 1st case, advances *buf to the word after this one.
