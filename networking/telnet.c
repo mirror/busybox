@@ -603,39 +603,39 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	signal(SIGINT, record_signo);
 
-	ufds[0].fd = 0; ufds[1].fd = netfd;
-	ufds[0].events = ufds[1].events = POLLIN;
+	ufds[0].fd = STDIN_FILENO;
+	ufds[0].events = POLLIN;
+	ufds[1].fd = netfd;
+	ufds[1].events = POLLIN;
 
 	while (1) {
-		switch (poll(ufds, 2, -1)) {
-		case 0:
-			/* timeout */
-		case -1:
+		if (poll(ufds, 2, -1) < 0) {
 			/* error, ignore and/or log something, bay go to loop */
 			if (bb_got_signal)
 				con_escape();
 			else
 				sleep(1);
-			break;
-		default:
+			continue;
+		}
 
-			if (ufds[0].revents) {
-				len = safe_read(STDIN_FILENO, G.buf, DATABUFSIZE);
-				if (len <= 0)
-					doexit(EXIT_SUCCESS);
-				TRACE(0, ("Read con: %d\n", len));
-				handle_net_output(len);
-			}
+// FIXME: reads can block. Need full bidirectional buffering.
 
-			if (ufds[1].revents) {
-				len = safe_read(netfd, G.buf, DATABUFSIZE);
-				if (len <= 0) {
-					full_write1_str("Connection closed by foreign host\r\n");
-					doexit(EXIT_FAILURE);
-				}
-				TRACE(0, ("Read netfd (%d): %d\n", netfd, len));
-				handle_net_input(len);
+		if (ufds[0].revents) {
+			len = safe_read(STDIN_FILENO, G.buf, DATABUFSIZE);
+			if (len <= 0)
+				doexit(EXIT_SUCCESS);
+			TRACE(0, ("Read con: %d\n", len));
+			handle_net_output(len);
+		}
+
+		if (ufds[1].revents) {
+			len = safe_read(netfd, G.buf, DATABUFSIZE);
+			if (len <= 0) {
+				full_write1_str("Connection closed by foreign host\r\n");
+				doexit(EXIT_FAILURE);
 			}
+			TRACE(0, ("Read netfd (%d): %d\n", netfd, len));
+			handle_net_input(len);
 		}
 	} /* while (1) */
 }
