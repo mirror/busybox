@@ -662,6 +662,7 @@ STATIC_OSF void bsd_select(void);
 STATIC_OSF void xbsd_print_disklabel(int);
 #include "fdisk_osf.c"
 
+STATIC_GPT void gpt_list_table(int xtra);
 #include "fdisk_gpt.c"
 
 #if ENABLE_FEATURE_SGI_LABEL || ENABLE_FEATURE_SUN_LABEL
