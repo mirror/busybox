@@ -1,7 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * iplink.c "ip link".
- *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
