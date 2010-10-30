@@ -630,10 +630,9 @@ static bool do_stat(const char *filename, const char *format)
 # if ENABLE_SELINUX
 		printf("   S_Context: %lc\n", *scontext);
 # endif
-		printf("Access: %s\n" "Modify: %s\n" "Change: %s\n",
-		       human_time(statbuf.st_atime),
-		       human_time(statbuf.st_mtime),
-		       human_time(statbuf.st_ctime));
+		printf("Access: %s\n", human_time(statbuf.st_atime));
+		printf("Modify: %s\n", human_time(statbuf.st_mtime));
+		printf("Change: %s\n", human_time(statbuf.st_ctime));
 	}
 #endif  /* FEATURE_STAT_FORMAT */
 	return 1;
