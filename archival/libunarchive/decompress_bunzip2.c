@@ -55,7 +55,7 @@
 #define RETVAL_LAST_BLOCK               (-1)
 #define RETVAL_NOT_BZIP_DATA            (-2)
 #define RETVAL_UNEXPECTED_INPUT_EOF     (-3)
-//#define RETVAL_SHORT_WRITE              (-4)
+#define RETVAL_SHORT_WRITE              (-4)
 #define RETVAL_DATA_ERROR               (-5)
 #define RETVAL_OUT_OF_MEMORY            (-6)
 #define RETVAL_OBSOLETE_INPUT           (-7)
@@ -745,6 +745,7 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 					break;
 				if (i != full_write(dst_fd, outbuf, i)) {
 					bb_error_msg("short write");
+					i = RETVAL_SHORT_WRITE;
 					goto release_mem;
 				}
 				IF_DESKTOP(total_written += i;)
