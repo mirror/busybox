@@ -724,7 +724,7 @@ IF_DESKTOP(long long) int FAST_FUNC
 unpack_bz2_stream(int src_fd, int dst_fd)
 {
 	IF_DESKTOP(long long total_written = 0;)
-		bunzip_data *bd;
+	bunzip_data *bd;
 	char *outbuf;
 	int i;
 	unsigned len;
