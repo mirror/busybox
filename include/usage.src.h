@@ -2044,9 +2044,6 @@ INSERT
 #define linux64_trivial_usage NOUSAGE_STR
 #define linux64_full_usage ""
 
-#define linuxrc_trivial_usage NOUSAGE_STR
-#define linuxrc_full_usage ""
-
 #define setarch_trivial_usage \
        "personality PROG ARGS"
 #define setarch_full_usage "\n\n" \
