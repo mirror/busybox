@@ -25,7 +25,7 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 /* FIXME: Stop using this non-standard feature */
 #ifndef FNM_LEADING_DIR
 # define FNM_LEADING_DIR 0

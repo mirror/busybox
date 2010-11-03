@@ -4,12 +4,12 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 /* transformer(), more than meets the eye */
 /*
  * On MMU machine, the transform_prog is removed by macro magic
- * in include/unarchive.h. On NOMMU, transformer is removed.
+ * in include/archive.h. On NOMMU, transformer is removed.
  */
 void FAST_FUNC open_transformer(int fd,
 	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd),

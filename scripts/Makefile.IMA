@@ -85,8 +85,8 @@ lib-y:=
 include archival/Kbuild
 lib-all-y += $(patsubst %,archival/%,$(sort $(lib-y)))
 lib-y:=
-include archival/libunarchive/Kbuild
-lib-all-y += $(patsubst %,archival/libunarchive/%,$(sort $(lib-y)))
+include archival/libarchive/Kbuild
+lib-all-y += $(patsubst %,archival/libarchive/%,$(sort $(lib-y)))
 lib-y:=
 include applets/Kbuild
 lib-all-y += $(patsubst %,applets/%,$(sort $(lib-y)))

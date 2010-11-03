@@ -18,7 +18,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 #include "ar.h"
 
 #if ENABLE_FEATURE_AR_CREATE

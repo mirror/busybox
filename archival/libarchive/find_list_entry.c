@@ -7,7 +7,7 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 /* Find a string in a shell pattern list */
 const llist_t* FAST_FUNC find_list_entry(const llist_t *list, const char *filename)

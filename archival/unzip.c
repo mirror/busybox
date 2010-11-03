@@ -20,7 +20,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 enum {
 #if BB_BIG_ENDIAN

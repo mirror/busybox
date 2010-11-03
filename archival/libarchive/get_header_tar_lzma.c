@@ -7,7 +7,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 char FAST_FUNC get_header_tar_lzma(archive_handle_t *archive_handle)
 {

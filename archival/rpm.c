@@ -8,7 +8,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 #include "rpm.h"
 
 #define RPM_CHAR_TYPE           1

@@ -4,7 +4,7 @@
 #include "libbb.h"
 #include "bbconfigopts.h"
 #if ENABLE_FEATURE_COMPRESS_BBCONFIG
-# include "unarchive.h"
+# include "archive.h"
 # include "bbconfigopts_bz2.h"
 #endif
 

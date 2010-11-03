@@ -6,7 +6,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 /* Accept any non-null name, its not really a filter at all */
 char FAST_FUNC filter_accept_all(archive_handle_t *archive_handle)

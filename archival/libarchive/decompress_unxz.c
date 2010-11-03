@@ -10,7 +10,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 #define XZ_FUNC FAST_FUNC
 #define XZ_EXTERN static

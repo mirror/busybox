@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 char FAST_FUNC get_header_tar_gz(archive_handle_t *archive_handle)
 {

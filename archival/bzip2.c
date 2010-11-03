@@ -8,7 +8,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 #define CONFIG_BZIP2_FEATURE_SPEED 1
 
@@ -33,14 +33,14 @@
 /* Takes ~300 bytes, detects corruption caused by bad RAM etc */
 #define BZ_LIGHT_DEBUG 0
 
-#include "bz/bzlib.h"
+#include "libarchive/bz/bzlib.h"
 
-#include "bz/bzlib_private.h"
+#include "libarchive/bz/bzlib_private.h"
 
-#include "bz/blocksort.c"
-#include "bz/bzlib.c"
-#include "bz/compress.c"
-#include "bz/huffman.c"
+#include "libarchive/bz/blocksort.c"
+#include "libarchive/bz/bzlib.c"
+#include "libarchive/bz/compress.c"
+#include "libarchive/bz/huffman.c"
 
 /* No point in being shy and having very small buffer here.
  * bzip2 internal buffers are much bigger anyway, hundreds of kbytes.

@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 void FAST_FUNC seek_by_jump(int fd, off_t amount)
 {

@@ -15,7 +15,7 @@
 )
 
 #if ZIPPED
-# include "unarchive.h"
+# include "archive.h"
 #endif
 
 

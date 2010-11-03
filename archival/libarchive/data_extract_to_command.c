@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 enum {
 	//TAR_FILETYPE,

@@ -5,7 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 enum {
 	OPT_STDOUT     = 1 << 0,

@@ -12,7 +12,7 @@
  *
  */
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 /* GNU cpio 2.9 --help (abridged):
 

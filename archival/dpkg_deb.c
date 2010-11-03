@@ -5,7 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 #define DPKG_DEB_OPT_CONTENTS         1
 #define DPKG_DEB_OPT_CONTROL          2

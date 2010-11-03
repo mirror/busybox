@@ -26,7 +26,7 @@
 */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 #include "liblzo_interface.h"
 
 /* lzo-2.03/src/lzo_ptr.h */

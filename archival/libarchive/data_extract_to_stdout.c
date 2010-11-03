@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "unarchive.h"
+#include "archive.h"
 
 void FAST_FUNC data_extract_to_stdout(archive_handle_t *archive_handle)
 {
