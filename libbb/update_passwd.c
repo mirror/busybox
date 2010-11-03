@@ -58,7 +58,7 @@ static void check_selinux_update_passwd(const char *username)
  6) delete a user from a group: update_passwd(FILE, GROUP, NULL, MEMBER)
     only if CONFIG_FEATURE_DEL_USER_FROM_GROUP=y and member != NULL
 
- 7) change user's passord: update_passwd(FILE, USER, NEW_PASSWD, NULL)
+ 7) change user's password: update_passwd(FILE, USER, NEW_PASSWD, NULL)
     only if CONFIG_PASSWD=y and applet_name[0] == 'p' like in passwd
     or if CONFIG_CHPASSWD=y and applet_name[0] == 'c' like in chpasswd
 
