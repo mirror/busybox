@@ -169,7 +169,7 @@ static void read_cstate_counts(ullong *usage, ullong *duration)
 		if (len < 3 || len > BIG_SYSNAME_LEN)
 			continue;
 
-		sprintf(buf, "/proc/acpi/processor/%s/power", d->d_name);
+		sprintf(buf, "%s/%s/power", "/proc/acpi/processor", d->d_name);
 		fp = fopen_for_read(buf);
 		if (!fp)
 			continue;
@@ -321,28 +321,17 @@ static void process_irq_counts(void)
 		/*  0:  143646045  153901007   IO-APIC-edge      timer
 		 *   ^
 		 */
+		*p = '\0';
 		/* Deal with non-maskable interrupts -- make up fake numbers */
-		nr = -1;
-		if (buf[0] != ' ' && !isdigit(buf[0])) {
-//TODO: optimize
-			if (strncmp(buf, "NMI:", 4) == 0)
-				nr = 20000;
-			if (strncmp(buf, "RES:", 4) == 0)
-				nr = 20001;
-			if (strncmp(buf, "CAL:", 4) == 0)
-				nr = 20002;
-			if (strncmp(buf, "TLB:", 4) == 0)
-				nr = 20003;
-			if (strncmp(buf, "TRM:", 4) == 0)
-				nr = 20004;
-			if (strncmp(buf, "THR:", 4) == 0)
-				nr = 20005;
-			if (strncmp(buf, "SPU:", 4) == 0)
-				nr = 20006;
+		nr = index_in_strings("NMI\0RES\nCAL\0TLB\0TRM\0THR\0SPU\0", buf);
+		if (nr != -1) {
+			nr += 20000;
 		} else {
 			/* bb_strtou doesn't eat leading spaces, using strtoul */
 			nr = strtoul(buf, NULL, 10);
 		}
+		*p = ':';
+
 		if (nr == -1)
 			continue;
 
@@ -430,33 +419,31 @@ static NOINLINE int process_timer_stats(void)
 		while (fgets(buf, sizeof(buf), fp)) {
 			const char *count, *process, *func;
 			char *p;
-			int cnt;
+			int idx;
 
 			count = skip_whitespace(buf);
+			if (strcmp(strchrnul(count, ' '), " total events") == 0)
+				break;
 			p = strchr(count, ',');
 			if (!p)
 				continue;
 			*p++ = '\0';
-			if (strcmp(strchrnul(count, ' '), " total events") == 0)
-				break;
-			p = skip_whitespace(p); /* points to pid */
-
-/* Find char ' ', then eat remaining spaces */
-#define ADVANCE(p) do {           \
-	(p) = strchr((p), ' ');   \
-	if (!(p))                 \
-		continue;         \
-	*(p) = '\0';              \
-	(p)++;                    \
-	(p) = skip_whitespace(p); \
-} while (0)
-			/* Get process name */
-			ADVANCE(p);
-			process = p;
-			/* Get function */
-			ADVANCE(p);
+			if (strchr(count, 'D'))
+				continue; /* deferred */
+			p = skip_whitespace(p); /* points to pid now */
+			process = NULL;
+ get_func_name:
+			p = strchr(p, ' ');
+			if (!p)
+				continue;
+			*p++ = '\0';
+			p = skip_whitespace(p);
+			if (process == NULL) {
+				process = p;
+				goto get_func_name;
+			}
 			func = p;
-#undef ADVANCE
+
 			//if (strcmp(process, "swapper") == 0
 			// && strcmp(func, "hrtimer_start_range_ns (tick_sched_timer)\n") == 0
 			//) {
@@ -471,38 +458,29 @@ static NOINLINE int process_timer_stats(void)
 			//if (strcmp(process, "powertop") == 0)
 			//	continue;
 
-			if (strcmp(process, "insmod") == 0)
-				process = "[kernel module]";
-			if (strcmp(process, "modprobe") == 0)
-				process = "[kernel module]";
-			if (strcmp(process, "swapper") == 0)
-				process = "<kernel core>";
+			idx = index_in_strings("insmod\0modprobe\0swapper\0", process);
+			if (idx != -1) {
+				process = idx < 2 ? "[kernel module]" : "<kernel core>";
+			}
 
 			strchrnul(p, '\n')[0] = '\0';
 
-			{
-				char *tmp;
-				cnt = bb_strtoull(count, &tmp, 10);
-				p = tmp;
-			}
-			while (*p != '\0') {
-				if (*p++ == 'D') /* deferred */
-					goto skip;
-			}
+			// 46D\01136\0kondemand/1\0do_dbs_timer (delayed_work_timer_fn)
+			// ^          ^            ^
+			// count      process      func
 
 			//if (strchr(process, '['))
 				sprintf(line, "%15.15s : %s", process, func);
 			//else
 			//	sprintf(line, "%s", process);
-			save_line(line, cnt);
- skip: ;
+			save_line(line, bb_strtoull(count, NULL, 10));
 		}
 		fclose(fp);
 	}
 
 	n = 0;
 #if ENABLE_FEATURE_POWERTOP_PROCIRQ
-	if (strstr(buf, "total events")) {
+	if (strstr(buf, " total events")) {
 		n = bb_strtoull(buf, NULL, 10) / G.total_cpus;
 		if (n > 0 && n < G.interrupt_0) {
 			sprintf(line, "    <interrupt> : %s", "extra timer interrupt");
@@ -566,7 +544,7 @@ static NOINLINE void print_intel_cstates(void)
 		if (!isdigit(d->d_name[3]))
 			continue;
 
-		len = sprintf(fname, "/sys/devices/system/cpu/%s/cpuidle", d->d_name);
+		len = sprintf(fname, "%s/%s/cpuidle", "/sys/devices/system/cpu", d->d_name);
 		dir = opendir(fname);
 		if (!dir)
 			continue;
