@@ -323,18 +323,16 @@ static void process_irq_counts(void)
 		 */
 		*p = '\0';
 		/* Deal with non-maskable interrupts -- make up fake numbers */
-		nr = index_in_strings("NMI\0RES\nCAL\0TLB\0TRM\0THR\0SPU\0", buf);
-		if (nr != -1) {
+		nr = index_in_strings("NMI\0RES\0CAL\0TLB\0TRM\0THR\0SPU\0", buf);
+		if (nr >= 0) {
 			nr += 20000;
 		} else {
 			/* bb_strtou doesn't eat leading spaces, using strtoul */
+			errno = 0;
 			nr = strtoul(buf, NULL, 10);
+			if (errno)
+				continue;
 		}
-		*p = ':';
-
-		if (nr == -1)
-			continue;
-
 		p++;
 		/*  0:  143646045  153901007   IO-APIC-edge      timer
 		 *    ^
