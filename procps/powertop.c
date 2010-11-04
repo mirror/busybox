@@ -420,12 +420,12 @@ static NOINLINE int process_timer_stats(void)
 			int idx;
 
 			count = skip_whitespace(buf);
-			if (strcmp(strchrnul(count, ' '), " total events") == 0)
-				break;
 			p = strchr(count, ',');
 			if (!p)
 				continue;
 			*p++ = '\0';
+			if (strcmp(skip_non_whitespace(count), " total events") == 0)
+				break;
 			if (strchr(count, 'D'))
 				continue; /* deferred */
 			p = skip_whitespace(p); /* points to pid now */
