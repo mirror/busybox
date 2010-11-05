@@ -182,7 +182,7 @@ static const unsigned opt_flags[] = {
 	LIST_INO,                   /* i */
 	LIST_LONG | STYLE_LONG,     /* l - remember LS_DISP_HR in mask! */
 	LIST_SHORT | STYLE_SINGLE,  /* 1 */
-	0,                          /* g (don't show group) - handled via OPT_g */
+	0,                          /* g (don't show owner) - handled via OPT_g */
 	LIST_ID_NUMERIC,            /* n */
 	LIST_BLOCKS,                /* s */
 	DISP_ROWS,                  /* x */
@@ -620,7 +620,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 	if (all_fmt & LIST_ID_NAME) {
 		if (option_mask32 & OPT_g) {
 			column += printf("%-8.8s ",
-				get_cached_username(dn->dstat.st_uid));
+				get_cached_groupname(dn->dstat.st_gid));
 		} else {
 			column += printf("%-8.8s %-8.8s ",
 				get_cached_username(dn->dstat.st_uid),
@@ -630,7 +630,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 #endif
 	if (all_fmt & LIST_ID_NUMERIC) {
 		if (option_mask32 & OPT_g)
-			column += printf("%-8u ", (int) dn->dstat.st_uid);
+			column += printf("%-8u ", (int) dn->dstat.st_gid);
 		else
 			column += printf("%-8u %-8u ",
 					(int) dn->dstat.st_uid,
