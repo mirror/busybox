@@ -399,6 +399,7 @@ static NOINLINE int process_timer_stats(void)
 	buf[0] = '\0';
 	totalticks = 0;
 
+	n = 0;
 	fp = NULL;
 	if (!G.cant_enable_timer_stats)
 		fp = fopen_for_read("/proc/timer_stats");
@@ -418,14 +419,24 @@ static NOINLINE int process_timer_stats(void)
 			const char *count, *process, *func;
 			char *p;
 			int idx;
+			unsigned cnt;
 
 			count = skip_whitespace(buf);
 			p = strchr(count, ',');
 			if (!p)
 				continue;
 			*p++ = '\0';
-			if (strcmp(skip_non_whitespace(count), " total events") == 0)
+			cnt = bb_strtou(count, NULL, 10);
+			if (strcmp(skip_non_whitespace(count), " total events") == 0) {
+#if ENABLE_FEATURE_POWERTOP_PROCIRQ
+				n = cnt / G.total_cpus;
+				if (n > 0 && n < G.interrupt_0) {
+					sprintf(line, "    <interrupt> : %s", "extra timer interrupt");
+					save_line(line, G.interrupt_0 - n);
+				}
+#endif
 				break;
+			}
 			if (strchr(count, 'D'))
 				continue; /* deferred */
 			p = skip_whitespace(p); /* points to pid now */
@@ -471,21 +482,11 @@ static NOINLINE int process_timer_stats(void)
 				sprintf(line, "%15.15s : %s", process, func);
 			//else
 			//	sprintf(line, "%s", process);
-			save_line(line, bb_strtoull(count, NULL, 10));
+			save_line(line, cnt);
 		}
 		fclose(fp);
 	}
 
-	n = 0;
-#if ENABLE_FEATURE_POWERTOP_PROCIRQ
-	if (strstr(buf, " total events")) {
-		n = bb_strtoull(buf, NULL, 10) / G.total_cpus;
-		if (n > 0 && n < G.interrupt_0) {
-			sprintf(line, "    <interrupt> : %s", "extra timer interrupt");
-			save_line(line, G.interrupt_0 - n);
-		}
-	}
-#endif
 	return n;
 }
 
