@@ -53,7 +53,7 @@ int deluser_main(int argc, char **argv)
 			xgetgrnam(name); /* bail out if GROUP is wrong */
 			if (!member) {
 				/* "delgroup GROUP".
-				 * If user with tha same name exists,
+				 * If user with the same name exists,
 				 * bail out.
 				 */
 //BUG: check should be done by GID, not by matching name!
