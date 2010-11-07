@@ -48,21 +48,21 @@ int deluser_main(int argc, char **argv)
 			if (ENABLE_FEATURE_SHADOWPASSWDS)
 				sfile = bb_path_shadow_file;
 		} else {
+			struct group *gr;
  do_delgroup:
 			/* "delgroup GROUP" or "delgroup USER GROUP" */
-			xgetgrnam(name); /* bail out if GROUP is wrong */
+			gr = xgetgrnam(name); /* bail out if GROUP is wrong */
 			if (!member) {
-				/* "delgroup GROUP".
-				 * If user with the same name exists,
-				 * bail out.
-				 */
-//BUG: check should be done by GID, not by matching name!
-//1. find GROUP's GID
-//2. check that /etc/passwd doesn't have lines of the form
-//   user:pwd:uid:GID:...
-//3. bail out if at least one such line exists
-				if (getpwnam(name) != NULL)
-					bb_error_msg_and_die("'%s' still has '%s' as their primary group!", name, name);
+				/* "delgroup GROUP" */
+				struct passwd *pw;
+				struct passwd pwent;
+				/* Check if the group is in use */
+#define passwd_buf bb_common_bufsiz1
+				while (!getpwent_r(&pwent, passwd_buf, sizeof(passwd_buf), &pw)) {
+					if (pwent.pw_gid == gr->gr_gid)
+						bb_error_msg_and_die("'%s' still has '%s' as their primary group!", pwent.pw_name, name);
+				}
+				//endpwent();
 			}
 			pfile = bb_path_group_file;
 			if (ENABLE_FEATURE_SHADOWPASSWDS)
