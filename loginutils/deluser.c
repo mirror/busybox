@@ -23,7 +23,7 @@ int deluser_main(int argc, char **argv)
 	/* Name of shadow or gshadow file */
 	const char *sfile;
 	/* Are we deluser or delgroup? */
-	bool do_deluser = (ENABLE_DELUSER && (!ENABLE_DELGROUP || applet_name[3] == 'u'));
+	int do_deluser = (ENABLE_DELUSER && (!ENABLE_DELGROUP || applet_name[3] == 'u'));
 
 	if (geteuid() != 0)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
@@ -51,7 +51,13 @@ int deluser_main(int argc, char **argv)
 			struct group *gr;
  do_delgroup:
 			/* "delgroup GROUP" or "delgroup USER GROUP" */
-			gr = xgetgrnam(name); /* bail out if GROUP is wrong */
+			if (do_deluser < 0) { /* delgroup after deluser? */
+				gr = getgrnam(name);
+				if (!gr)
+					return EXIT_SUCCESS;
+			} else {
+				gr = xgetgrnam(name); /* bail out if GROUP is wrong */
+			}
 			if (!member) {
 				/* "delgroup GROUP" */
 				struct passwd *pw;
@@ -79,13 +85,15 @@ int deluser_main(int argc, char **argv)
 			}
 		} while (ENABLE_FEATURE_SHADOWPASSWDS && pfile);
 
-		if (ENABLE_DELGROUP && do_deluser) {
+		if (ENABLE_DELGROUP && do_deluser > 0) {
 			/* "deluser USER" also should try to delete
 			 * same-named group. IOW: do "delgroup USER"
 			 */
-//TODO: check how it actually works in upstream.
-//I suspect it is only done if group has no more members.
-			do_deluser = 0;
+// On debian deluser is a perl script that calls userdel.
+// From man userdel:
+//  If USERGROUPS_ENAB is defined to yes in /etc/login.defs, userdel will
+//  delete the group with the same name as the user.
+			do_deluser = -1;
 			goto do_delgroup;
 		}
 		return EXIT_SUCCESS;
