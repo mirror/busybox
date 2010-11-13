@@ -103,14 +103,13 @@ void FAST_FUNC bb_show_usage(void)
 	if (ENABLE_SHOW_USAGE) {
 #ifdef SINGLE_APPLET_STR
 		/* Imagine that this applet is "true". Dont suck in printf! */
-		const char *p;
-		const char *usage_string = p = unpack_usage_messages();
+		const char *usage_string = unpack_usage_messages();
 
-		if (*p == '\b') {
+		if (*usage_string == '\b') {
 			full_write2_str("No help available.\n\n");
 		} else {
 			full_write2_str("Usage: "SINGLE_APPLET_STR" ");
-			full_write2_str(p);
+			full_write2_str(usage_string);
 			full_write2_str("\n\n");
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
