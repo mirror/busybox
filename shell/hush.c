@@ -507,6 +507,7 @@ struct command {
 # define CMD_FUNCDEF 3
 #endif
 
+	smalluint cmd_exitcode;
 	/* if non-NULL, this "command" is { list }, ( list ), or a compound statement */
 	struct pipe *group;
 #if !BB_MMU
@@ -637,6 +638,43 @@ struct function {
 #endif
 
 
+/* set -/+o OPT support. (TODO: make it optional)
+ * bash supports the following opts:
+ * allexport       off
+ * braceexpand     on
+ * emacs           on
+ * errexit         off
+ * errtrace        off
+ * functrace       off
+ * hashall         on
+ * histexpand      off
+ * history         on
+ * ignoreeof       off
+ * interactive-comments    on
+ * keyword         off
+ * monitor         on
+ * noclobber       off
+ * noexec          off
+ * noglob          off
+ * nolog           off
+ * notify          off
+ * nounset         off
+ * onecmd          off
+ * physical        off
+ * pipefail        off
+ * posix           off
+ * privileged      off
+ * verbose         off
+ * vi              off
+ * xtrace          off
+ */
+static const char o_opt_strings[] ALIGN1 = "pipefail\0";
+enum {
+	OPT_O_PIPEFAIL,
+	NUM_OPT_O
+};
+
+
 /* "Globals" within this file */
 /* Sorted roughly by size (smaller offsets == smaller code) */
 struct globals {
@@ -675,6 +713,7 @@ struct globals {
 	int last_jobid;
 	pid_t saved_tty_pgrp;
 	struct pipe *job_list;
+	char o_opt[NUM_OPT_O];
 # define G_saved_tty_pgrp (G.saved_tty_pgrp)
 #else
 # define G_saved_tty_pgrp 0
@@ -6315,24 +6354,23 @@ static int checkjobs(struct pipe *fg_pipe)
 				if (fg_pipe->cmds[i].pid != childpid)
 					continue;
 				if (dead) {
+					int ex;
 					fg_pipe->cmds[i].pid = 0;
 					fg_pipe->alive_cmds--;
-					if (i == fg_pipe->num_cmds - 1) {
-						/* last process gives overall exitstatus */
-						rcode = WEXITSTATUS(status);
-						/* bash prints killer signal's name for *last*
-						 * process in pipe (prints just newline for SIGINT).
-						 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
-						 */
-						if (WIFSIGNALED(status)) {
-							int sig = WTERMSIG(status);
+					ex = WEXITSTATUS(status);
+					/* bash prints killer signal's name for *last*
+					 * process in pipe (prints just newline for SIGINT).
+					 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
+					 */
+					if (WIFSIGNALED(status)) {
+						int sig = WTERMSIG(status);
+						if (i == fg_pipe->num_cmds-1)
 							printf("%s\n", sig == SIGINT ? "" : get_signame(sig));
-							/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
-							 * Maybe we need to use sig | 128? */
-							rcode = sig + 128;
-						}
-						IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
+						/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
+						 * Maybe we need to use sig | 128? */
+						ex = sig + 128;
 					}
+					fg_pipe->cmds[i].cmd_exitcode = ex;
 				} else {
 					fg_pipe->cmds[i].is_stopped = 1;
 					fg_pipe->stopped_cmds++;
@@ -6341,6 +6379,15 @@ static int checkjobs(struct pipe *fg_pipe)
 						fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
 				if (fg_pipe->alive_cmds == fg_pipe->stopped_cmds) {
 					/* All processes in fg pipe have exited or stopped */
+					i = fg_pipe->num_cmds;
+					while (--i >= 0) {
+						rcode = fg_pipe->cmds[i].cmd_exitcode;
+						/* usually last process gives overall exitstatus,
+						 * but with "set -o pipefail", last *failed* process does */
+						if (G.o_opt[OPT_O_PIPEFAIL] == 0 || rcode != 0)
+							break;
+					}
+					IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
 /* Note: *non-interactive* bash does not continue if all processes in fg pipe
  * are stopped. Testcase: "cat | cat" in a script (not on command line!)
  * and "killall -STOP cat" */
@@ -7340,13 +7387,41 @@ static void set_fatal_handlers(void)
 }
 #endif
 
-static int set_mode(const char cstate, const char mode)
+static int set_mode(int state, char mode, const char *o_opt)
 {
-	int state = (cstate == '-' ? 1 : 0);
+	int idx;
 	switch (mode) {
-		case 'n': G.n_mode = state; break;
-		case 'x': IF_HUSH_MODE_X(G_x_mode = state;) break;
-		default:  return EXIT_FAILURE;
+	case 'n':
+		G.n_mode = state;
+		break;
+	case 'x':
+		IF_HUSH_MODE_X(G_x_mode = state;)
+		break;
+	case 'o':
+		if (!o_opt) {
+			/* "set -+o" without parameter.
+			 * in bash, set -o produces this output:
+			 *  pipefail        off
+			 * and set +o:
+			 *  set +o pipefail
+			 * We always use the second form.
+			 */
+			const char *p = o_opt_strings;
+			idx = 0;
+			while (*p) {
+				printf("set %co %s\n", (G.o_opt[idx] ? '-' : '+'), p);
+				idx++;
+				p += strlen(p) + 1;
+			}
+			break;
+		}
+		idx = index_in_strings(o_opt_strings, o_opt);
+		if (idx >= 0) {
+			G.o_opt[idx] = state;
+			break;
+		}
+	default:
+		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 }
@@ -7586,7 +7661,7 @@ int hush_main(int argc, char **argv)
 #endif
 		case 'n':
 		case 'x':
-			if (set_mode('-', opt) == 0) /* no error */
+			if (set_mode(1, opt, NULL) == 0) /* no error */
 				break;
 		default:
 #ifndef BB_VER
@@ -8376,15 +8451,18 @@ static int FAST_FUNC builtin_set(char **argv)
 	}
 
 	do {
-		if (!strcmp(arg, "--")) {
+		if (strcmp(arg, "--") == 0) {
 			++argv;
 			goto set_argv;
 		}
 		if (arg[0] != '+' && arg[0] != '-')
 			break;
-		for (n = 1; arg[n]; ++n)
-			if (set_mode(arg[0], arg[n]))
+		for (n = 1; arg[n]; ++n) {
+			if (set_mode((arg[0] == '-'), arg[n], argv[1]))
 				goto error;
+			if (arg[n] == 'o' && argv[1])
+				argv++;
+		}
 	} while ((arg = *++argv) != NULL);
 	/* Now argv[0] is 1st argument */
 
