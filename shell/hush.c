@@ -6309,7 +6309,8 @@ static int checkjobs(struct pipe *fg_pipe)
 #endif
 		/* Were we asked to wait for fg pipe? */
 		if (fg_pipe) {
-			for (i = 0; i < fg_pipe->num_cmds; i++) {
+			i = fg_pipe->num_cmds;
+			while (--i >= 0) {
 				debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
 				if (fg_pipe->cmds[i].pid != childpid)
 					continue;
@@ -6338,19 +6339,19 @@ static int checkjobs(struct pipe *fg_pipe)
 				}
 				debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
 						fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
-				if (fg_pipe->alive_cmds - fg_pipe->stopped_cmds <= 0) {
+				if (fg_pipe->alive_cmds == fg_pipe->stopped_cmds) {
 					/* All processes in fg pipe have exited or stopped */
 /* Note: *non-interactive* bash does not continue if all processes in fg pipe
  * are stopped. Testcase: "cat | cat" in a script (not on command line!)
  * and "killall -STOP cat" */
 					if (G_interactive_fd) {
 #if ENABLE_HUSH_JOB
-						if (fg_pipe->alive_cmds)
+						if (fg_pipe->alive_cmds != 0)
 							insert_bg_job(fg_pipe);
 #endif
 						return rcode;
 					}
-					if (!fg_pipe->alive_cmds)
+					if (fg_pipe->alive_cmds == 0)
 						return rcode;
 				}
 				/* There are still running processes in the fg pipe */
