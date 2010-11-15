@@ -1336,7 +1336,7 @@ static void save_history(char *str)
 	int fd;
 	int len, len2;
 
-	fd = open(state->hist_file, O_WRONLY | O_CREAT | O_APPEND, 0666);
+	fd = open(state->hist_file, O_WRONLY | O_CREAT | O_APPEND, 0600);
 	if (fd < 0)
 		return;
 	xlseek(fd, 0, SEEK_END); /* paranoia */
@@ -1351,10 +1351,8 @@ static void save_history(char *str)
 	/* did we write so much that history file needs trimming? */
 	state->cnt_history_in_file++;
 	if (state->cnt_history_in_file > MAX_HISTORY * 4) {
-		FILE *fp;
 		char *new_name;
 		line_input_t *st_temp;
-		int i;
 
 		/* we may have concurrently written entries from others.
 		 * load them */
@@ -1364,8 +1362,12 @@ static void save_history(char *str)
 
 		/* write out temp file and replace hist_file atomically */
 		new_name = xasprintf("%s.%u.new", state->hist_file, (int) getpid());
-		fp = fopen_for_write(new_name);
-		if (fp) {
+		fd = open(state->hist_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		if (fd >= 0) {
+			FILE *fp;
+			int i;
+
+			fp = xfdopen_for_write(fd);
 			for (i = 0; i < st_temp->cnt_history; i++)
 				fprintf(fp, "%s\n", st_temp->history[i]);
 			fclose(fp);
