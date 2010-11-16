@@ -173,6 +173,9 @@ sub add_mod_deps
 
 	$depth .= " ";
 	warn "${depth}loading deps of module: $this_module\n" if $verbose;
+	if (length($depth) > 50) {
+		die "too much recursion (circular dependencies in modules?)";
+	}
 
 	foreach my $md (keys %{$mod->{$this_module}}) {
 		add_mod_deps ($depth, $mod, $mod2, $module, $md);
