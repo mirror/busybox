@@ -9,43 +9,54 @@ mkdir include 2>/dev/null
 
 srctree="$1"
 
+status() { printf '  %-8s%s\n' "$1" "$2"; }
+gen() { status "GEN" "$@"; }
+chk() { status "CHK" "$@"; }
+
+generate()
+{
+	local src="$1" dst="$2" header="$3" insert="$4"
+	#chk "${dst}"
+	(
+		echo "${header}"
+		if grep -qs '^INSERT$' "${src}"; then
+			sed -n '1,/^INSERT$/p' "${src}"
+			echo "${insert}"
+			sed -n '/^INSERT$/,$p' "${src}"
+		else
+			if [ -n "${insert}" ]; then
+				echo "ERROR: INSERT line missing in: ${src}" 1>&2
+			fi
+			cat "${src}"
+		fi
+	) | sed '/^INSERT$/d' > "${dst}.tmp"
+	if ! cmp -s "${dst}" "${dst}.tmp"; then
+		gen "${dst}"
+		mv "${dst}.tmp" "${dst}"
+	else
+		rm -f "${dst}.tmp"
+	fi
+}
+
 # (Re)generate include/applets.h
-src="$srctree/include/applets.src.h"
-dst="include/applets.h"
 s=`sed -n 's@^//applet:@@p' -- "$srctree"/*/*.c "$srctree"/*/*/*.c`
-old=`cat "$dst" 2>/dev/null`
-# Why "IFS='' read -r REPLY"??
-# This atrocity is needed to read lines without mangling.
-# IFS='' prevents whitespace trimming,
-# -r suppresses backslash handling.
-new=`echo "/* DO NOT EDIT. This file is generated from applets.src.h */"
-while IFS='' read -r REPLY; do
-	test x"$REPLY" = x"INSERT" && REPLY="$s"
-	printf "%s\n" "$REPLY"
-done <"$src"`
-if test x"$new" != x"$old"; then
-	echo "  GEN     $dst"
-	printf "%s\n" "$new" >"$dst"
-fi
+generate \
+	"$srctree/include/applets.src.h" \
+	"include/applets.h" \
+	"/* DO NOT EDIT. This file is generated from applets.src.h */" \
+	"${s}"
 
 # (Re)generate include/usage.h
-src="$srctree/include/usage.src.h"
-dst="include/usage.h"
 # We add line continuation backslash after each line,
 # and insert empty line before each line which doesn't start
 # with space or tab
 # (note: we need to use \\\\ because of ``)
 s=`sed -n -e 's@^//usage:\([ \t].*\)$@\1 \\\\@p' -e 's@^//usage:\([^ \t].*\)$@\n\1 \\\\@p' -- "$srctree"/*/*.c "$srctree"/*/*/*.c`
-old=`cat "$dst" 2>/dev/null`
-new=`echo "/* DO NOT EDIT. This file is generated from usage.src.h */"
-while IFS='' read -r REPLY; do
-	test x"$REPLY" = x"INSERT" && REPLY="$s"
-	printf "%s\n" "$REPLY"
-done <"$src"`
-if test x"$new" != x"$old"; then
-	echo "  GEN     $dst"
-	printf "%s\n" "$new" >"$dst"
-fi
+generate \
+	"$srctree/include/usage.src.h" \
+	"include/usage.h" \
+	"/* DO NOT EDIT. This file is generated from usage.src.h */" \
+	"${s}"
 
 # (Re)generate */Kbuild and */Config.in
 { cd -- "$srctree" && find . -type d; } | while read -r d; do
@@ -55,42 +66,25 @@ fi
 	dst="$d/Kbuild"
 	if test -f "$src"; then
 		mkdir -p -- "$d" 2>/dev/null
-		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//kbuild:@@p' -- "$srctree/$d"/*.c`
-
-		old=`cat "$dst" 2>/dev/null`
-		new=`echo "# DO NOT EDIT. This file is generated from Kbuild.src"
-		while IFS='' read -r REPLY; do
-			test x"$REPLY" = x"INSERT" && REPLY="$s"
-			printf "%s\n" "$REPLY"
-		done <"$src"`
-		if test x"$new" != x"$old"; then
-			echo "  GEN     $dst"
-			printf "%s\n" "$new" >"$dst"
-		fi
+		generate \
+			"${src}" "${dst}" \
+			"# DO NOT EDIT. This file is generated from Kbuild.src" \
+			"${s}"
 	fi
 
 	src="$srctree/$d/Config.src"
 	dst="$d/Config.in"
 	if test -f "$src"; then
 		mkdir -p -- "$d" 2>/dev/null
-		#echo "  CHK     $dst"
 
 		s=`sed -n 's@^//config:@@p' -- "$srctree/$d"/*.c`
-
-		old=`cat "$dst" 2>/dev/null`
-		new=`echo "# DO NOT EDIT. This file is generated from Config.src"
-		while IFS='' read -r REPLY; do
-			test x"$REPLY" = x"INSERT" && REPLY="$s"
-			printf "%s\n" "$REPLY"
-		done <"$src"`
-		if test x"$new" != x"$old"; then
-			echo "  GEN     $dst"
-			printf "%s\n" "$new" >"$dst"
-		fi
+		generate \
+			"${src}" "${dst}" \
+			"# DO NOT EDIT. This file is generated from Config.src" \
+			"${s}"
 	fi
 done
 
-# Last read failed. This is normal. Don't exit with its error code:
 exit 0
