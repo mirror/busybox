@@ -673,9 +673,19 @@ struct function {
  * vi              off
  * xtrace          off
  */
-static const char o_opt_strings[] ALIGN1 = "pipefail\0";
+static const char o_opt_strings[] ALIGN1 =
+	"pipefail\0"
+	"noexec\0"
+#if ENABLE_HUSH_MODE_X
+	"xtrace\0"
+#endif
+	;
 enum {
 	OPT_O_PIPEFAIL,
+	OPT_O_NOEXEC,
+#if ENABLE_HUSH_MODE_X
+	OPT_O_XTRACE,
+#endif
 	NUM_OPT_O
 };
 
@@ -734,10 +744,8 @@ struct globals {
 	 */
 	smallint flag_return_in_progress;
 #endif
-	smallint n_mode;
 #if ENABLE_HUSH_MODE_X
-	smallint x_mode;
-# define G_x_mode (G.x_mode)
+# define G_x_mode (G.o_opt[OPT_O_XTRACE])
 #else
 # define G_x_mode 0
 #endif
@@ -7304,7 +7312,7 @@ static int run_and_free_list(struct pipe *pi)
 {
 	int rcode = 0;
 	debug_printf_exec("run_and_free_list entered\n");
-	if (!G.n_mode) {
+	if (!G.o_opt[OPT_O_NOEXEC]) {
 		debug_printf_exec(": run_list: 1st pipe with %d cmds\n", pi->num_cmds);
 		rcode = run_list(pi);
 	}
@@ -7407,7 +7415,7 @@ static int set_mode(int state, char mode, const char *o_opt)
 	int idx;
 	switch (mode) {
 	case 'n':
-		G.n_mode = state;
+		G.o_opt[OPT_O_NOEXEC] = state;
 		break;
 	case 'x':
 		IF_HUSH_MODE_X(G_x_mode = state;)
