@@ -33,8 +33,6 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	int retval = 0;
 
-	xfunc_error_retval = 2;	/* 1 is returned if files are different. */
-
 	opt_complementary = "-1"
 			IF_DESKTOP(":?4")
 			IF_NOT_DESKTOP(":?2")
@@ -43,8 +41,6 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	filename1 = *argv;
-	fp1 = xfopen_stdin(filename1);
-
 	if (*++argv) {
 		filename2 = *argv;
 		if (ENABLE_DESKTOP && *++argv) {
@@ -55,6 +51,10 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
+	xfunc_error_retval = 2;  /* missing file results in exitcode 2 */
+	if (opt & CMP_OPT_s)
+		logmode = 0;  /* -s suppresses open error messages */
+	fp1 = xfopen_stdin(filename1);
 	fp2 = xfopen_stdin(filename2);
 	if (fp1 == fp2) {		/* Paranoia check... stdin == stdin? */
 		/* Note that we don't bother reading stdin.  Neither does gnu wc.
@@ -63,6 +63,7 @@ int cmp_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		return 0;
 	}
+	logmode = LOGMODE_STDIO;
 
 	if (opt & CMP_OPT_l)
 		fmt = fmt_l_opt;
