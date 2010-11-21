@@ -75,7 +75,7 @@ zxc
 testing "patch detects already applied hunk" \
 	'patch 2>&1; echo $?; cat input' \
 "\
-Possibly reversed hunk 1 at 2
+Possibly reversed hunk 1 at 4
 Hunk 1 FAILED 1/1.
  abc
 +def
@@ -103,7 +103,7 @@ def
 testing "patch detects already applied hunk at the EOF" \
 	'patch 2>&1; echo $?; cat input' \
 "\
-Possibly reversed hunk 1 at 3
+Possibly reversed hunk 1 at 4
 Hunk 1 FAILED 1/1.
  abc
  123

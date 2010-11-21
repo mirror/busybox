@@ -1,8 +1,7 @@
-/* Adapted from toybox's patch. */
-
 /* vi: set sw=4 ts=4:
  *
- * patch.c - Apply a "universal" diff.
+ * Apply a "universal" diff.
+ * Adapted from toybox's patch implementation.
  *
  * Copyright 2007 Rob Landley <rob@landley.net>
  *
@@ -20,29 +19,41 @@
  * -f force (no questions asked)
  * -F fuzz (number, default 2)
  * [file] which file to patch
+ */
 
-USE_PATCH(NEWTOY(patch, USE_TOYBOX_DEBUG("x")"up#i:R", TOYFLAG_USR|TOYFLAG_BIN))
+//applet:IF_PATCH(APPLET(patch, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 
-config PATCH
-	bool "patch"
-	default y
-	help
-	  usage: patch [-i file] [-p depth] [-Ru]
+//kbuild:lib-$(CONFIG_PATCH) += patch.o
 
-	  Apply a unified diff to one or more files.
+//config:config PATCH
+//config:	bool "patch"
+//config:	default y
+//config:	help
+//config:	  Apply a unified diff formatted patch.
 
-	  -i	Input file (defaults=stdin)
-	  -p	number of '/' to strip from start of file paths (default=all)
-	  -R	Reverse patch.
-	  -u	Ignored (only handles "unified" diffs)
+//usage:#define patch_trivial_usage
+//usage:       "[OPTIONS] [ORIGFILE [PATCHFILE]]"
+//usage:#define patch_full_usage "\n\n"
+//usage:	IF_LONG_OPTS(
+//usage:       "	-p,--strip N		Strip N leading components from file names"
+//usage:     "\n	-i,--input DIFF		Read DIFF instead of stdin"
+//usage:     "\n	-R,--reverse		Reverse patch"
+//usage:     "\n	-N,--forward		Ignore already applied patches"
+//usage:     "\n	--dry-run		Don't actually change files"
+//usage:     "\n	-E,--remove-empty-files	Remove output files if they become empty"
+//usage:	)
+//usage:	IF_NOT_LONG_OPTS(
+//usage:       "	-p N	Strip N leading components from file names"
+//usage:     "\n	-i DIFF	Read DIFF instead of stdin"
+//usage:     "\n	-R	Reverse patch"
+//usage:     "\n	-N	Ignore already applied patches"
+//usage:     "\n	-E	Remove output files if they become empty"
+//usage:	)
+//usage:
+//usage:#define patch_example_usage
+//usage:       "$ patch -p1 < example.diff\n"
+//usage:       "$ patch -p0 -i example.diff"
 
-	  This version of patch only handles unified diffs, and only modifies
-	  a file when all all hunks to that file apply.  Patch prints failed
-	  hunks to stderr, and exits with nonzero status if any hunks fail.
-
-	  A file compared against /dev/null (or with a date <= the epoch) is
-	  created or deleted if -E or --remove-empty-files set.
-*/
 #include "libbb.h"
 
 struct double_list {
@@ -101,125 +112,6 @@ struct double_list *dlist_add(struct double_list **list, char *data)
 	return line;
 }
 
-// Ensure entire path exists.
-// If mode != -1 set permissions on newly created dirs.
-// Requires that path string be writable (for temporary null terminators).
-static
-void xmkpath(char *path, int mode)
-{
-	char *p, old;
-	mode_t mask;
-	int rc;
-	struct stat st;
-
-	for (p = path; ; p++) {
-		if (!*p || *p == '/') {
-			old = *p;
-			*p = rc = 0;
-			if (stat(path, &st) || !S_ISDIR(st.st_mode)) {
-				if (mode != -1) {
-					mask = umask(0);
-					rc = mkdir(path, mode);
-					umask(mask);
-				} else rc = mkdir(path, 0777);
-			}
-			*p = old;
-			if(rc) bb_perror_msg_and_die("mkpath '%s'", path);
-		}
-		if (!*p) break;
-	}
-}
-
-// Slow, but small.
-static
-char *get_rawline(int fd, long *plen, char end)
-{
-	char c, *buf = NULL;
-	long len = 0;
-
-	for (;;) {
-		if (1>read(fd, &c, 1)) break;
-		if (!(len & 63)) buf=xrealloc(buf, len+65);
-		if ((buf[len++]=c) == end) break;
-	}
-	if (buf) buf[len]=0;
-	if (plen) *plen = len;
-
-	return buf;
-}
-
-static
-char *get_line(int fd)
-{
-	long len;
-	char *buf = get_rawline(fd, &len, '\n');
-
-	if (buf && buf[--len]=='\n') buf[len]=0;
-
-	return buf;
-}
-
-// Copy the rest of in to out and close both files.
-static
-void xsendfile(int in, int out)
-{
-	long len;
-	char buf[4096];
-
-	if (in<0) return;
-	for (;;) {
-		len = safe_read(in, buf, 4096);
-		if (len<1) break;
-		xwrite(out, buf, len);
-	}
-}
-
-// Copy the rest of the data and replace the original with the copy.
-static
-void replace_tempfile(int fdin, int fdout, char **tempname)
-{
-	char *temp = xstrdup(*tempname);
-
-	temp[strlen(temp)-6]=0;
-	if (fdin != -1) {
-		xsendfile(fdin, fdout);
-		xclose(fdin);
-	}
-	xclose(fdout);
-	rename(*tempname, temp);
-	free(*tempname);
-	free(temp);
-	*tempname = NULL;
-}
-
-// Open a temporary file to copy an existing file into.
-static
-int copy_tempfile(int fdin, char *name, char **tempname)
-{
-	struct stat statbuf;
-	int fd;
-
-	*tempname = xasprintf("%sXXXXXX", name);
-	fd = xmkstemp(*tempname);
-
-	// Set permissions of output file
-	fstat(fdin, &statbuf);
-	fchmod(fd, statbuf.st_mode);
-
-	return fd;
-}
-
-// Abort the copy and delete the temporary file.
-static
-void delete_tempfile(int fdin, int fdout, char **tempname)
-{
-	close(fdin);
-	close(fdout);
-	unlink(*tempname);
-	free(*tempname);
-	*tempname = NULL;
-}
-
 
 
 struct globals {
@@ -229,7 +121,7 @@ struct globals {
 	struct double_list *current_hunk;
 	long oldline, oldlen, newline, newlen;
 	long linenum;
-	int context, state, filein, fileout, filepatch, hunknum;
+	int context, state, filein, fileout, hunknum;
 	char *tempname;
 
 	// was toys.foo:
@@ -263,7 +155,7 @@ struct globals {
 
 static void do_line(void *data)
 {
-	struct double_list *dlist = (struct double_list *)data;
+	struct double_list *dlist = data;
 
 	if (TT.state>1 && *dlist->data != TT.state)
 		fdprintf(TT.state == 2 ? 2 : TT.fileout,
@@ -272,19 +164,36 @@ static void do_line(void *data)
 	if (PATCH_DEBUG) fdprintf(2, "DO %d: %s\n", TT.state, dlist->data);
 
 	free(dlist->data);
-	free(data);
+	free(dlist);
 }
 
 static void finish_oldfile(void)
 {
-	if (TT.tempname) replace_tempfile(TT.filein, TT.fileout, &TT.tempname);
+	if (TT.tempname) {
+		// Copy the rest of the data and replace the original with the copy.
+		char *temp;
+
+		if (TT.filein != -1) {
+			bb_copyfd_eof(TT.filein, TT.fileout);
+			xclose(TT.filein);
+		}
+		xclose(TT.fileout);
+
+		temp = xstrdup(TT.tempname);
+		temp[strlen(temp) - 6] = '\0';
+		rename(TT.tempname, temp);
+		free(temp);
+
+		free(TT.tempname);
+		TT.tempname = NULL;
+	}
 	TT.fileout = TT.filein = -1;
 }
 
 static void fail_hunk(void)
 {
 	if (!TT.current_hunk) return;
-	TT.current_hunk->prev->next = 0;
+	TT.current_hunk->prev->next = NULL;
 
 	fdprintf(2, "Hunk %d FAILED %ld/%ld.\n", TT.hunknum, TT.oldline, TT.newline);
 	TT.exitval = 1;
@@ -295,7 +204,14 @@ static void fail_hunk(void)
 	TT.state = 2;
 	llist_free(TT.current_hunk, do_line);
 	TT.current_hunk = NULL;
-	delete_tempfile(TT.filein, TT.fileout, &TT.tempname);
+
+	// Abort the copy and delete the temporary file.
+	close(TT.filein);
+	close(TT.fileout);
+	unlink(TT.tempname);
+	free(TT.tempname);
+	TT.tempname = NULL;
+
 	TT.state = 0;
 }
 
@@ -334,7 +250,7 @@ static int apply_one_hunk(void)
 	plist = TT.current_hunk;
 	buf = NULL;
 	if (TT.context) for (;;) {
-		char *data = get_line(TT.filein);
+		char *data = xmalloc_reads(TT.filein, NULL, NULL);
 
 		TT.linenum++;
 
@@ -368,7 +284,9 @@ static int apply_one_hunk(void)
 			// File ended before we found a place for this hunk.
 			fail_hunk();
 			goto done;
-		} else if (PATCH_DEBUG) fdprintf(2, "IN: %s\n", data);
+		}
+
+		if (PATCH_DEBUG) fdprintf(2, "IN: %s\n", data);
 		check = dlist_add(&buf, data);
 
 		// Compare this line with next expected line of hunk.
@@ -398,8 +316,8 @@ static int apply_one_hunk(void)
 
 				// If we've reached the end of the buffer without confirming a
 				// match, read more lines.
-				if (check==buf) {
-					buf = 0;
+				if (check == buf) {
+					buf = NULL;
 					break;
 				}
 				check = buf;
@@ -453,10 +371,10 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	TT.prefix = (opts & FLAG_PATHLEN) ? xatoi(opt_p) : 0; // can be negative!
 	TT.filein = TT.fileout = -1;
 	if (opts & FLAG_INPUT) {
-		TT.filepatch = xopen_stdin(opt_i);
+		xmove_fd(xopen_stdin(opt_i), STDIN_FILENO);
 	} else {
 		if (argv[0] && argv[1]) {
-			TT.filepatch = xopen_stdin(argv[1]);
+			xmove_fd(xopen_stdin(argv[1]), STDIN_FILENO);
 		}
 	}
 	if (argv[0]) {
@@ -468,7 +386,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	for(;;) {
 		char *patchline;
 
-		patchline = get_line(TT.filepatch);
+		patchline = xmalloc_fgetline(stdin);
 		if (!patchline) break;
 
 		// Other versions of patch accept damaged patches,
@@ -588,13 +506,15 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 					}
 				// If we've got a file to open, do so.
 				} else if (!(option_mask32 & FLAG_PATHLEN) || i <= TT.prefix) {
+					struct stat statbuf;
+
 					// If the old file was null, we're creating a new one.
 					if (!strcmp(oldname, "/dev/null") || !oldsum) {
 						printf("creating %s\n", name);
 						s = strrchr(name, '/');
 						if (s) {
 							*s = 0;
-							xmkpath(name, -1);
+							bb_make_directory(name, -1, FILEUTILS_RECUR);
 							*s = '/';
 						}
 						TT.filein = xopen(name, O_CREAT|O_EXCL|O_RDWR);
@@ -602,7 +522,13 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 						printf("patching file %s\n", name);
 						TT.filein = xopen(name, O_RDONLY);
 					}
-					TT.fileout = copy_tempfile(TT.filein, name, &TT.tempname);
+
+					TT.tempname = xasprintf("%sXXXXXX", name);
+					TT.fileout = xmkstemp(TT.tempname);
+					// Set permissions of output file
+					fstat(TT.filein, &statbuf);
+					fchmod(TT.fileout, statbuf.st_mode);
+
 					TT.linenum = 0;
 					TT.hunknum = 0;
 				}
@@ -620,7 +546,6 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	finish_oldfile();
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		close(TT.filepatch);
 		free(oldname);
 		free(newname);
 	}
