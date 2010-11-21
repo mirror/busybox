@@ -56,62 +56,50 @@
 
 #include "libbb.h"
 
+
+// libbb candidate?
+
 struct double_list {
 	struct double_list *next;
 	struct double_list *prev;
 	char *data;
 };
 
-// Return the first item from the list, advancing the list (which must be called
-// as &list)
-static
-void *TOY_llist_pop(void *list)
-{
-	// I'd use a void ** for the argument, and even accept the typecast in all
-	// callers as documentation you need the &, except the stupid compiler
-	// would then scream about type-punned pointers.  Screw it.
-	void **llist = (void **)list;
-	void **next = (void **)*llist;
-	*llist = *next;
-
-	return (void *)next;
-}
-
 // Free all the elements of a linked list
-// if freeit!=NULL call freeit() on each element before freeing it.
+// Call freeit() on each element before freeing it.
 static
-void TOY_llist_free(void *list, void (*freeit)(void *data))
+void dlist_free(struct double_list *list, void (*freeit)(void *data))
 {
 	while (list) {
-		void *pop = TOY_llist_pop(&list);
-		if (freeit) freeit(pop);
-		else free(pop);
-
-		// End doubly linked list too.
-		if (list==pop) break;
+		void *pop = list;
+		list = list->next;
+		freeit(pop);
+		// Bail out also if list is circular.
+		if (list == pop) break;
 	}
 }
-//Override bbox's names
-#define llist_pop TOY_llist_pop
-#define llist_free TOY_llist_free
 
-// Add an entry to the end off a doubly linked list
+// Add an entry before "list" element in (circular) doubly linked list
 static
 struct double_list *dlist_add(struct double_list **list, char *data)
 {
-	struct double_list *line = xmalloc(sizeof(struct double_list));
+	struct double_list *llist;
+	struct double_list *line = xmalloc(sizeof(*line));
 
 	line->data = data;
-	if (*list) {
-		line->next = *list;
-		line->prev = (*list)->prev;
-		(*list)->prev->next = line;
-		(*list)->prev = line;
-	} else *list = line->next = line->prev = line;
+	llist = *list;
+	if (llist) {
+		struct double_list *p;
+		line->next = llist;
+		p = line->prev = llist->prev;
+		// (list is circular, we assume p is never NULL)
+		p->next = line;
+		llist->prev = line;
+	} else
+		*list = line->next = line->prev = line;
 
 	return line;
 }
-
 
 
 struct globals {
@@ -119,12 +107,13 @@ struct globals {
 	long prefix;
 
 	struct double_list *current_hunk;
+
 	long oldline, oldlen, newline, newlen;
 	long linenum;
-	int context, state, filein, fileout, hunknum;
+	int context, state, hunknum;
+	int filein, fileout;
 	char *tempname;
 
-	// was toys.foo:
 	int exitval;
 };
 #define TT (*ptr_to_globals)
@@ -193,7 +182,6 @@ static void finish_oldfile(void)
 static void fail_hunk(void)
 {
 	if (!TT.current_hunk) return;
-	TT.current_hunk->prev->next = NULL;
 
 	fdprintf(2, "Hunk %d FAILED %ld/%ld.\n", TT.hunknum, TT.oldline, TT.newline);
 	TT.exitval = 1;
@@ -202,7 +190,8 @@ static void fail_hunk(void)
 	// this file and advance to next file.
 
 	TT.state = 2;
-	llist_free(TT.current_hunk, do_line);
+	TT.current_hunk->prev->next = NULL;
+	dlist_free(TT.current_hunk, do_line);
 	TT.current_hunk = NULL;
 
 	// Abort the copy and delete the temporary file.
@@ -308,7 +297,8 @@ static int apply_one_hunk(void)
 					fdprintf(2, "NOT: %s\n", plist->data);
 
 				TT.state = 3;
-				check = llist_pop(&buf);
+				check = buf;
+				buf = buf->next;
 				check->prev->next = buf;
 				buf->prev = check->prev;
 				do_line(check);
@@ -335,13 +325,13 @@ static int apply_one_hunk(void)
 out:
 	// We have a match.  Emit changed data.
 	TT.state = "-+"[reverse ^ dummy_revert];
-	llist_free(TT.current_hunk, do_line);
+	dlist_free(TT.current_hunk, do_line);
 	TT.current_hunk = NULL;
 	TT.state = 1;
 done:
 	if (buf) {
 		buf->prev->next = NULL;
-		llist_free(buf, do_line);
+		dlist_free(buf, do_line);
 	}
 
 	return TT.state;
