@@ -87,4 +87,5 @@ generate \
 	fi
 done
 
+# Last read failed. This is normal. Don't exit with its error code:
 exit 0
