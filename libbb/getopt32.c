@@ -115,7 +115,7 @@ const char *opt_complementary
         found.
 
  "ww"   Adjacent double options have a counter associated which indicates
-        the number of occurences of the option.
+        the number of occurrences of the option.
         For example the ps applet needs:
         if w is given once, GNU ps sets the width to 132,
         if w is given more than once, it is "unlimited"
