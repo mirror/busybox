@@ -60,12 +60,6 @@ config ED
 	  Small, simple, evil. Part of SUSv3. If you're not already using
 	  this, you don't need it.
 
-config PATCH
-	bool "patch"
-	default y
-	help
-	  Apply a unified diff formatted patch.
-
 config SED
 	bool "sed"
 	default y

@@ -2817,29 +2817,6 @@ INSERT
      "\n	-m	Use MD5 encryption instead of DES" \
 	)
 
-#define patch_trivial_usage \
-       "[OPTIONS] [ORIGFILE [PATCHFILE]]"
-#define patch_full_usage "\n\n" \
-	IF_LONG_OPTS( \
-       "	-p,--strip N		Strip N leading components from file names" \
-     "\n	-i,--input DIFF		Read DIFF instead of stdin" \
-     "\n	-R,--reverse		Reverse patch" \
-     "\n	-N,--forward		Ignore already applied patches" \
-     "\n	--dry-run		Don't actually change files" \
-     "\n	-E,--remove-empty-files	Remove output files if they become empty" \
-	) \
-	IF_NOT_LONG_OPTS( \
-       "	-p N	Strip N leading components from file names" \
-     "\n	-i DIFF	Read DIFF instead of stdin" \
-     "\n	-R	Reverse patch" \
-     "\n	-N	Ignore already applied patches" \
-     "\n	-E	Remove output files if they become empty" \
-	)
-
-#define patch_example_usage \
-       "$ patch -p1 < example.diff\n" \
-       "$ patch -p0 -i example.diff"
-
 #define pgrep_trivial_usage \
        "[-flnovx] [-s SID|-P PPID|PATTERN]"
 #define pgrep_full_usage "\n\n" \
