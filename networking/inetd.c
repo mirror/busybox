@@ -778,6 +778,12 @@ static servtab_t *parse_one_line(void)
 	argc = 0;
 	while ((arg = token[6+argc]) != NULL && argc < MAXARGV)
 		sep->se_argv[argc++] = xstrdup(arg);
+	/* Some inetd.conf files have no argv's, not even argv[0].
+	 * Fix them up.
+	 * (Technically, programs can be execed with argv[0] = NULL,
+	 * but many programs do not like that at all) */
+	if (argc == 0)
+		sep->se_argv[0] = xstrdup(sep->se_program);
 
 	/* catch mixups. "<service> stream udp ..." == wtf */
 	if (sep->se_socktype == SOCK_STREAM) {
