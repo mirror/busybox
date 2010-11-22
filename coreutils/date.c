@@ -250,6 +250,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 		ts.tv_sec = statbuf.st_mtime;
 #if ENABLE_FEATURE_DATE_NANO
 		ts.tv_nsec = statbuf.st_mtim.tv_nsec;
+		/* some toolchains use .st_mtimensec instead of st_mtim.tv_nsec */
 #endif
 	} else {
 #if ENABLE_FEATURE_DATE_NANO
