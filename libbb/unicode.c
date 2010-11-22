@@ -1006,7 +1006,7 @@ static char* FAST_FUNC unicode_conv_to_printable2(uni_stat_t *stats, const char 
 			}
 		}
 		if (stats)
-			stats->byte_count = stats->unicode_count = (d - dst);
+			stats->byte_count = stats->unicode_count = stats->unicode_width = (d - dst);
 		return dst;
 	}
 

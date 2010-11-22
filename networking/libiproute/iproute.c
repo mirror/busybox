@@ -791,8 +791,8 @@ static int iproute_get(char **argv)
 				}
 				req.r.rtm_dst_len = addr.bitlen;
 			}
-			argv++;
 		}
+		argv++;
 	}
 
 	if (req.r.rtm_dst_len == 0) {
