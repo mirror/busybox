@@ -543,7 +543,6 @@ struct command {
 #define IS_NULL_CMD(cmd) \
 	(!(cmd)->group && !(cmd)->argv && !(cmd)->redirects)
 
-
 struct pipe {
 	struct pipe *next;
 	int num_cmds;               /* total number of commands in pipe */
@@ -2622,6 +2621,94 @@ static void free_pipe_list(struct pipe *pi)
 
 /*** Parsing routines ***/
 
+#ifndef debug_print_tree
+static void debug_print_tree(struct pipe *pi, int lvl)
+{
+	static const char *const PIPE[] = {
+		[PIPE_SEQ] = "SEQ",
+		[PIPE_AND] = "AND",
+		[PIPE_OR ] = "OR" ,
+		[PIPE_BG ] = "BG" ,
+	};
+	static const char *RES[] = {
+		[RES_NONE ] = "NONE" ,
+# if ENABLE_HUSH_IF
+		[RES_IF   ] = "IF"   ,
+		[RES_THEN ] = "THEN" ,
+		[RES_ELIF ] = "ELIF" ,
+		[RES_ELSE ] = "ELSE" ,
+		[RES_FI   ] = "FI"   ,
+# endif
+# if ENABLE_HUSH_LOOPS
+		[RES_FOR  ] = "FOR"  ,
+		[RES_WHILE] = "WHILE",
+		[RES_UNTIL] = "UNTIL",
+		[RES_DO   ] = "DO"   ,
+		[RES_DONE ] = "DONE" ,
+# endif
+# if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
+		[RES_IN   ] = "IN"   ,
+# endif
+# if ENABLE_HUSH_CASE
+		[RES_CASE ] = "CASE" ,
+		[RES_CASE_IN ] = "CASE_IN" ,
+		[RES_MATCH] = "MATCH",
+		[RES_CASE_BODY] = "CASE_BODY",
+		[RES_ESAC ] = "ESAC" ,
+# endif
+		[RES_XXXX ] = "XXXX" ,
+		[RES_SNTX ] = "SNTX" ,
+	};
+	static const char *const CMDTYPE[] = {
+		"{}",
+		"()",
+		"[noglob]",
+# if ENABLE_HUSH_FUNCTIONS
+		"func()",
+# endif
+	};
+
+	int pin, prn;
+
+	pin = 0;
+	while (pi) {
+		fprintf(stderr, "%*spipe %d res_word=%s followup=%d %s\n", lvl*2, "",
+				pin, RES[pi->res_word], pi->followup, PIPE[pi->followup]);
+		prn = 0;
+		while (prn < pi->num_cmds) {
+			struct command *command = &pi->cmds[prn];
+			char **argv = command->argv;
+
+			fprintf(stderr, "%*s cmd %d assignment_cnt:%d",
+					lvl*2, "", prn,
+					command->assignment_cnt);
+			if (command->group) {
+				fprintf(stderr, " group %s: (argv=%p)%s%s\n",
+						CMDTYPE[command->cmd_type],
+						argv
+# if !BB_MMU
+						, " group_as_string:", command->group_as_string
+# else
+						, "", ""
+# endif
+				);
+				debug_print_tree(command->group, lvl+1);
+				prn++;
+				continue;
+			}
+			if (argv) while (*argv) {
+				fprintf(stderr, " '%s'", *argv);
+				argv++;
+			}
+			fprintf(stderr, "\n");
+			prn++;
+		}
+		pi = pi->next;
+		pin++;
+	}
+}
+#endif /* debug_print_tree */
+
 static struct pipe *new_pipe(void)
 {
 	struct pipe *pi;
@@ -4011,15 +4098,16 @@ static struct pipe *parse_stream(char **pstring,
 				goto parse_error;
 			}
 			if (ch == '\n') {
-#if ENABLE_HUSH_CASE
-				/* "case ... in <newline> word) ..." -
-				 * newlines are ignored (but ';' wouldn't be) */
-				if (ctx.command->argv == NULL
-				 && ctx.ctx_res_w == RES_MATCH
+				/* Is this a case when newline is simply ignored?
+				 * Some examples:
+				 * "cmd | <newline> cmd ..."
+				 * "case ... in <newline> word) ..."
+				 */
+				if (IS_NULL_CMD(ctx.command)
+				 && dest.length == 0 && !dest.has_quoted_part
 				) {
 					continue;
 				}
-#endif
 				/* Treat newline as a command separator. */
 				done_pipe(&ctx, PIPE_SEQ);
 				debug_printf_parse("heredoc_cnt:%d\n", heredoc_cnt);
@@ -4151,6 +4239,31 @@ static struct pipe *parse_stream(char **pstring,
 			if (parse_redirect(&ctx, redir_fd, redir_style, input))
 				goto parse_error;
 			continue; /* back to top of while (1) */
+		case '#':
+			if (dest.length == 0 && !dest.has_quoted_part) {
+				/* skip "#comment" */
+				while (1) {
+					ch = i_peek(input);
+					if (ch == EOF || ch == '\n')
+						break;
+					i_getch(input);
+					/* note: we do not add it to &ctx.as_string */
+				}
+				nommu_addchr(&ctx.as_string, '\n');
+				continue; /* back to top of while (1) */
+			}
+			break;
+		case '\\':
+			if (next == '\n') {
+				/* It's "\<newline>" */
+#if !BB_MMU
+				/* Remove trailing '\' from ctx.as_string */
+				ctx.as_string.data[--ctx.as_string.length] = '\0';
+#endif
+				ch = i_getch(input); /* eat it */
+				continue; /* back to top of while (1) */
+			}
+			break;
 		}
 
 		if (dest.o_assignment == MAYBE_ASSIGNMENT
@@ -4165,19 +4278,8 @@ static struct pipe *parse_stream(char **pstring,
 		/* Note: nommu_addchr(&ctx.as_string, ch) is already done */
 
 		switch (ch) {
-		case '#':
-			if (dest.length == 0) {
-				while (1) {
-					ch = i_peek(input);
-					if (ch == EOF || ch == '\n')
-						break;
-					i_getch(input);
-					/* note: we do not add it to &ctx.as_string */
-				}
-				nommu_addchr(&ctx.as_string, '\n');
-			} else {
-				o_addQchr(&dest, ch);
-			}
+		case '#': /* non-comment #: "echo a#b" etc */
+			o_addQchr(&dest, ch);
 			break;
 		case '\\':
 			if (next == EOF) {
@@ -4185,21 +4287,14 @@ static struct pipe *parse_stream(char **pstring,
 				xfunc_die();
 			}
 			ch = i_getch(input);
-			if (ch != '\n') {
-				o_addchr(&dest, '\\');
-				/*nommu_addchr(&ctx.as_string, '\\'); - already done */
-				o_addchr(&dest, ch);
-				nommu_addchr(&ctx.as_string, ch);
-				/* Example: echo Hello \2>file
-				 * we need to know that word 2 is quoted */
-				dest.has_quoted_part = 1;
-			}
-#if !BB_MMU
-			else {
-				/* It's "\<newline>". Remove trailing '\' from ctx.as_string */
-				ctx.as_string.data[--ctx.as_string.length] = '\0';
-			}
-#endif
+			/* note: ch != '\n' (that case does not reach this place) */
+			o_addchr(&dest, '\\');
+			/*nommu_addchr(&ctx.as_string, '\\'); - already done */
+			o_addchr(&dest, ch);
+			nommu_addchr(&ctx.as_string, ch);
+			/* Example: echo Hello \2>file
+			 * we need to know that word 2 is quoted */
+			dest.has_quoted_part = 1;
 			break;
 		case '$':
 			if (parse_dollar(&ctx.as_string, &dest, input, /*quote_mask:*/ 0) != 0) {
@@ -6868,94 +6963,6 @@ static NOINLINE int run_pipe(struct pipe *pi)
 	debug_printf_exec("run_pipe return -1 (%u children started)\n", pi->alive_cmds);
 	return -1;
 }
-
-#ifndef debug_print_tree
-static void debug_print_tree(struct pipe *pi, int lvl)
-{
-	static const char *const PIPE[] = {
-		[PIPE_SEQ] = "SEQ",
-		[PIPE_AND] = "AND",
-		[PIPE_OR ] = "OR" ,
-		[PIPE_BG ] = "BG" ,
-	};
-	static const char *RES[] = {
-		[RES_NONE ] = "NONE" ,
-# if ENABLE_HUSH_IF
-		[RES_IF   ] = "IF"   ,
-		[RES_THEN ] = "THEN" ,
-		[RES_ELIF ] = "ELIF" ,
-		[RES_ELSE ] = "ELSE" ,
-		[RES_FI   ] = "FI"   ,
-# endif
-# if ENABLE_HUSH_LOOPS
-		[RES_FOR  ] = "FOR"  ,
-		[RES_WHILE] = "WHILE",
-		[RES_UNTIL] = "UNTIL",
-		[RES_DO   ] = "DO"   ,
-		[RES_DONE ] = "DONE" ,
-# endif
-# if ENABLE_HUSH_LOOPS || ENABLE_HUSH_CASE
-		[RES_IN   ] = "IN"   ,
-# endif
-# if ENABLE_HUSH_CASE
-		[RES_CASE ] = "CASE" ,
-		[RES_CASE_IN ] = "CASE_IN" ,
-		[RES_MATCH] = "MATCH",
-		[RES_CASE_BODY] = "CASE_BODY",
-		[RES_ESAC ] = "ESAC" ,
-# endif
-		[RES_XXXX ] = "XXXX" ,
-		[RES_SNTX ] = "SNTX" ,
-	};
-	static const char *const CMDTYPE[] = {
-		"{}",
-		"()",
-		"[noglob]",
-# if ENABLE_HUSH_FUNCTIONS
-		"func()",
-# endif
-	};
-
-	int pin, prn;
-
-	pin = 0;
-	while (pi) {
-		fprintf(stderr, "%*spipe %d res_word=%s followup=%d %s\n", lvl*2, "",
-				pin, RES[pi->res_word], pi->followup, PIPE[pi->followup]);
-		prn = 0;
-		while (prn < pi->num_cmds) {
-			struct command *command = &pi->cmds[prn];
-			char **argv = command->argv;
-
-			fprintf(stderr, "%*s cmd %d assignment_cnt:%d",
-					lvl*2, "", prn,
-					command->assignment_cnt);
-			if (command->group) {
-				fprintf(stderr, " group %s: (argv=%p)%s%s\n",
-						CMDTYPE[command->cmd_type],
-						argv
-# if !BB_MMU
-						, " group_as_string:", command->group_as_string
-# else
-						, "", ""
-# endif
-				);
-				debug_print_tree(command->group, lvl+1);
-				prn++;
-				continue;
-			}
-			if (argv) while (*argv) {
-				fprintf(stderr, " '%s'", *argv);
-				argv++;
-			}
-			fprintf(stderr, "\n");
-			prn++;
-		}
-		pi = pi->next;
-		pin++;
-	}
-}
-#endif /* debug_print_tree */
 
 /* NB: called by pseudo_exec, and therefore must not modify any
  * global data until exec/_exit (we can be a child after vfork!) */
