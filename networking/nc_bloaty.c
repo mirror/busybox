@@ -766,7 +766,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, "hnp:s:uvw:" IF_NC_SERVER("l")
 			IF_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &o_wait
-			IF_NC_EXTRA(, &str_i, &str_o, &o_verbose));
+			IF_NC_EXTRA(, &str_i, &str_o), &o_verbose);
 	argv += optind;
 #if ENABLE_NC_EXTRA
 	if (option_mask32 & OPT_i) /* line-interval time */
