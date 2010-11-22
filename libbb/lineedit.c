@@ -584,6 +584,12 @@ static void input_forward(void)
 
 #if ENABLE_FEATURE_TAB_COMPLETION
 
+//FIXME:
+//needs to be more clever: currently it thinks that "foo\ b<TAB>
+//matches the file named "foo bar", which is untrue.
+//Also, perhaps "foo b<TAB> needs to complete to "foo bar" <cursor>,
+//not "foo bar <cursor>...
+
 static void free_tab_completion_data(void)
 {
 	if (matches) {
@@ -601,7 +607,7 @@ static void add_match(char *matched)
 	num_matches++;
 }
 
-#if ENABLE_FEATURE_USERNAME_COMPLETION
+# if ENABLE_FEATURE_USERNAME_COMPLETION
 /* Replace "~user/..." with "/homedir/...".
  * The parameter is malloced, free it or return it
  * unchanged if no user is matched.
@@ -657,7 +663,7 @@ static NOINLINE unsigned complete_username(const char *ud)
 
 	return 1 + userlen;
 }
-#endif  /* FEATURE_USERNAME_COMPLETION */
+# endif  /* FEATURE_USERNAME_COMPLETION */
 
 enum {
 	FIND_EXE_ONLY = 0,
@@ -734,10 +740,10 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 		pfind++;
 		/* dirbuf = ".../.../.../" */
 		dirbuf = xstrndup(command, pfind - command);
-#if ENABLE_FEATURE_USERNAME_COMPLETION
+# if ENABLE_FEATURE_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')   /* ~/... or ~user/... */
 			dirbuf = username_path_completion(dirbuf);
-#endif
+# endif
 		path1[0] = dirbuf;
 	}
 	pf_len = strlen(pfind);
@@ -1015,13 +1021,18 @@ static void showfiles(void)
 	}
 }
 
-static char *add_quote_for_spec_chars(char *found)
+static const char *is_special_char(char c)
+{
+	return strchr(" `\"#$%^&*()=+{}[]:;'|\\<>", c);
+}
+
+static char *quote_special_chars(char *found)
 {
 	int l = 0;
 	char *s = xzalloc((strlen(found) + 1) * 2);
 
 	while (*found) {
-		if (strchr(" `\"#$%^&*()=+{}[]:;'|\\<>", *found))
+		if (is_special_char(*found))
 			s[l++] = '\\';
 		s[l++] = *found++;
 	}
@@ -1038,10 +1049,10 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	/* Length of string used for matching */
 	unsigned match_pfx_len = match_pfx_len;
 	int find_type;
-#if ENABLE_UNICODE_SUPPORT
+# if ENABLE_UNICODE_SUPPORT
 	/* cursor pos in command converted to multibyte form */
 	int cursor_mb;
-#endif
+# endif
 	if (!(state->flags & TAB_COMPLETION))
 		return;
 
@@ -1068,9 +1079,9 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 	 * (we then also (ab)use this extra space later - see (**))
 	 */
 	match_buf = xmalloc(MAX_LINELEN * sizeof(int16_t));
-#if !ENABLE_UNICODE_SUPPORT
+# if !ENABLE_UNICODE_SUPPORT
 	save_string(match_buf, cursor + 1); /* +1 for NUL */
-#else
+# else
 	{
 		CHAR_T wc = command_ps[cursor];
 		command_ps[cursor] = BB_NUL;
@@ -1078,26 +1089,37 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		command_ps[cursor] = wc;
 		cursor_mb = strlen(match_buf);
 	}
-#endif
+# endif
 	find_type = build_match_prefix(match_buf);
 
 	/* Free up any memory already allocated */
 	free_tab_completion_data();
 
-#if ENABLE_FEATURE_USERNAME_COMPLETION
-	/* If the word starts with `~' and there is no slash in the word,
+# if ENABLE_FEATURE_USERNAME_COMPLETION
+	/* If the word starts with ~ and there is no slash in the word,
 	 * then try completing this word as a username. */
 	if (state->flags & USERNAME_COMPLETION)
 		if (match_buf[0] == '~' && strchr(match_buf, '/') == NULL)
 			match_pfx_len = complete_username(match_buf);
-#endif
-	/* Try to match a command in $PATH, or a directory, or a file */
+# endif
+	/* If complete_username() did not match,
+	 * try to match a command in $PATH, or a directory, or a file */
 	if (!matches)
 		match_pfx_len = complete_cmd_dir_file(match_buf, find_type);
+
+	/* Account for backslashes which will be inserted
+	 * by quote_special_chars() later */
+	{
+		const char *e = match_buf + strlen(match_buf);
+		const char *s = e - match_pfx_len;
+		while (s < e)
+			if (is_special_char(*s++))
+				match_pfx_len++;
+	}
+
 	/* Remove duplicates */
 	if (matches) {
-		unsigned i;
-		unsigned n = 0;
+		unsigned i, n = 0;
 		qsort_string_vector(matches, num_matches);
 		for (i = 0; i < num_matches - 1; ++i) {
 			//if (matches[i] && matches[i+1]) { /* paranoia */
@@ -1112,6 +1134,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		matches[n++] = matches[i];
 		num_matches = n;
 	}
+
 	/* Did we find exactly one match? */
 	if (num_matches != 1) { /* no */
 		char *cp;
@@ -1133,7 +1156,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			goto ret; /* no */
 		}
 		*cp = '\0';
-		cp = add_quote_for_spec_chars(chosen_match);
+		cp = quote_special_chars(chosen_match);
 		free(chosen_match);
 		chosen_match = cp;
 		len_found = strlen(chosen_match);
@@ -1141,7 +1164,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		/* Next <tab> is not a double-tab */
 		*lastWasTab = 0;
 
-		chosen_match = add_quote_for_spec_chars(matches[0]);
+		chosen_match = quote_special_chars(matches[0]);
 		len_found = strlen(chosen_match);
 		if (chosen_match[len_found-1] != '/') {
 			chosen_match[len_found] = ' ';
@@ -1149,7 +1172,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		}
 	}
 
-#if !ENABLE_UNICODE_SUPPORT
+# if !ENABLE_UNICODE_SUPPORT
 	/* Have space to place the match? */
 	/* The result consists of three parts with these lengths: */
 	/* cursor + (len_found - match_pfx_len) + (command_len - cursor) */
@@ -1166,7 +1189,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 		/* write out the matched command */
 		redraw(cmdedit_y, command_len - pos);
 	}
-#else
+# else
 	{
 		/* Use 2nd half of match_buf as scratch space - see (**) */
 		char *command = match_buf + MAX_LINELEN;
@@ -1190,7 +1213,7 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			redraw(cmdedit_y, pos >= 0 ? pos : 0);
 		}
 	}
-#endif
+# endif
  ret:
 	free(chosen_match);
 	free(match_buf);
