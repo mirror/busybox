@@ -712,11 +712,11 @@ struct globals {
 	int last_jobid;
 	pid_t saved_tty_pgrp;
 	struct pipe *job_list;
-	char o_opt[NUM_OPT_O];
 # define G_saved_tty_pgrp (G.saved_tty_pgrp)
 #else
 # define G_saved_tty_pgrp 0
 #endif
+	char o_opt[NUM_OPT_O];
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
@@ -4500,7 +4500,9 @@ static struct pipe *parse_stream(char **pstring,
 	expand_string_to_string(str)
 #endif
 static char *expand_string_to_string(const char *str, int do_unbackslash);
+#if ENABLE_HUSH_TICK
 static int process_command_subs(o_string *dest, const char *s);
+#endif
 
 /* expand_strvec_to_strvec() takes a list of strings, expands
  * all variable references within and returns a pointer to
@@ -6579,7 +6581,7 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
  * subshell:     ( list ) [&]
  */
 #if !ENABLE_HUSH_MODE_X
-#define redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel, char argv_expanded) \
+#define redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel, argv_expanded) \
 	redirect_and_varexp_helper(new_env_p, old_vars_p, command, squirrel)
 #endif
 static int redirect_and_varexp_helper(char ***new_env_p,

@@ -18,6 +18,11 @@ fi
 sum="$1"
 expected="$2"
 
+test -f "$bindir/.config" && . "$bindir/.config"
+
+test x"$CONFIG_FEATURE_FANCY_HEAD" != x"y" \
+&& { echo "SKIPPED: $sum"; exit 0; }
+
 text="The quick brown fox jumps over the lazy dog"
 text=`yes "$text" | head -c 9999`
 

@@ -16,9 +16,9 @@ enum {
 	OPT_e = (1 << 2),
 	OPT_f = (1 << 3),
 	OPT_l = (1 << 4),
-	OPT_p = (1 << 5) * ENABLE_FEATURE_PIDFILE,
-	OPT_a = (1 << 6),
-	OPT_M = (1 << 7),
+	OPT_a = (1 << 5),
+	OPT_M = (1 << 6),
+	OPT_p = (1 << 7) * ENABLE_FEATURE_PIDFILE,
 };
 
 struct acpi_event {
@@ -199,8 +199,9 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	opt_complementary = "df:e--e";
-	opts = getopt32(argv, "c:de:fl:p:a:M:" IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
-		&opt_dir, &opt_input, &opt_logfile, &opt_pidfile, &opt_action, &opt_map
+	opts = getopt32(argv, "c:de:fl:a:M:" IF_FEATURE_PIDFILE("p:") IF_FEATURE_ACPID_COMPAT("g:m:s:S:v"),
+		&opt_dir, &opt_input, &opt_logfile, &opt_action, &opt_map
+		IF_FEATURE_PIDFILE(, &opt_pidfile)
 		IF_FEATURE_ACPID_COMPAT(, NULL, NULL, NULL, NULL)
 	);
 

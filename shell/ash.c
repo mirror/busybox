@@ -43,7 +43,9 @@
 #include <sys/times.h>
 
 #include "shell_common.h"
-#include "math.h"
+#if ENABLE_SH_MATH_SUPPORT
+# include "math.h"
+#endif
 #if ENABLE_ASH_RANDOM_SUPPORT
 # include "random.h"
 #else
@@ -5510,6 +5512,11 @@ static struct arglist exparg;
 /*
  * Our own itoa().
  */
+#if !ENABLE_SH_MATH_SUPPORT
+/* cvtnum() is used even if math support is off (to prepare $? values and such) */
+typedef long arith_t;
+# define ARITH_FMT "%ld"
+#endif
 static int
 cvtnum(arith_t num)
 {

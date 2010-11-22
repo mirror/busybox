@@ -158,6 +158,7 @@ lib-$(CONFIG_RTCWAKE) += rtc.o
 
 lib-$(CONFIG_IOSTAT) += get_cpu_count.o
 lib-$(CONFIG_MPSTAT) += get_cpu_count.o
+lib-$(CONFIG_POWERTOP) += get_cpu_count.o
 
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't
 # require regex.h to be in the include dir even if we don't need it thereby
