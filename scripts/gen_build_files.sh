@@ -18,9 +18,10 @@ generate()
 	local src="$1" dst="$2" header="$3" insert="$4"
 	#chk "${dst}"
 	(
-		# need to use printf: different shells have inconsistent
-		# rules re handling of "\n" in their params,
-		# and ${insert} definitely contains "\n"
+		# Need to use printf: different shells have inconsistent
+		# rules re handling of "\n" in echo params,
+		# and ${insert} definitely contains "\n".
+		# Therefore, echo "${header}" would not work:
 		printf "%s\n" "${header}"
 		if grep -qs '^INSERT$' "${src}"; then
 			sed -n '1,/^INSERT$/p' "${src}"
