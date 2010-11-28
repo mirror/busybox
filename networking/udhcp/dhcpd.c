@@ -133,7 +133,10 @@ static uint32_t select_lease_time(struct dhcp_packet *packet)
 
 /* We got a DHCP DISCOVER. Send an OFFER. */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE void send_offer(struct dhcp_packet *oldpacket, uint32_t static_lease_nip, struct dyn_lease *lease)
+static NOINLINE void send_offer(struct dhcp_packet *oldpacket,
+		uint32_t static_lease_nip,
+		struct dyn_lease *lease,
+		uint8_t *requested_ip_opt)
 {
 	struct dhcp_packet packet;
 	uint32_t lease_time_sec;
@@ -147,7 +150,6 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket, uint32_t static_l
 	if (!static_lease_nip) {
 		/* We have no static lease for client's chaddr */
 		uint32_t req_nip;
-		uint8_t *req_ip_opt;
 		const char *p_host_name;
 
 		if (lease) {
@@ -158,9 +160,9 @@ static NOINLINE void send_offer(struct dhcp_packet *oldpacket, uint32_t static_l
 			packet.yiaddr = lease->lease_nip;
 		}
 		/* Or: if client has requested an IP */
-		else if ((req_ip_opt = udhcp_get_option(oldpacket, DHCP_REQUESTED_IP)) != NULL
+		else if (requested_ip_opt != NULL
 		 /* (read IP) */
-		 && (move_from_unaligned32(req_nip, req_ip_opt), 1)
+		 && (move_from_unaligned32(req_nip, requested_ip_opt), 1)
 		 /* and the IP is in the lease range */
 		 && ntohl(req_nip) >= server_config.start_ip
 		 && ntohl(req_nip) <= server_config.end_ip
@@ -283,16 +285,12 @@ struct dyn_lease *g_leases;
 int udhcpd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 {
-	fd_set rfds;
 	int server_socket = -1, retval, max_sock;
-	struct dhcp_packet packet;
 	uint8_t *state;
-	uint32_t static_lease_nip;
 	unsigned timeout_end;
 	unsigned num_ips;
 	unsigned opt;
 	struct option_set *option;
-	struct dyn_lease *lease, fake_lease;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 
 #if ENABLE_FEATURE_UDHCP_PORT
@@ -372,11 +370,15 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 	timeout_end = monotonic_sec() + server_config.auto_time;
 	while (1) { /* loop until universe collapses */
+		fd_set rfds;
+		struct dhcp_packet packet;
 		int bytes;
 		struct timeval tv;
 		uint8_t *server_id_opt;
-		uint8_t *requested_opt;
+		uint8_t *requested_ip_opt;
 		uint32_t requested_nip = requested_nip; /* for compiler */
+		uint32_t static_lease_nip;
+		struct dyn_lease *lease, fake_lease;
 
 		if (server_socket < 0) {
 			server_socket = udhcp_listen_socket(/*INADDR_ANY,*/ SERVER_PORT,
@@ -443,6 +445,18 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			continue;
 		}
 
+		/* Get SERVER_ID if present */
+		server_id_opt = udhcp_get_option(&packet, DHCP_SERVER_ID);
+		if (server_id_opt) {
+			uint32_t server_id_net;
+			move_from_unaligned32(server_id_net, server_id_opt);
+			if (server_id_net != server_config.server_nip) {
+				/* client talks to somebody else */
+				log1("server ID doesn't match, ignoring");
+				continue;
+			}
+		}
+
 		/* Look for a static/dynamic lease */
 		static_lease_nip = get_static_nip_by_mac(server_config.static_leases, &packet.chaddr);
 		if (static_lease_nip) {
@@ -455,20 +469,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			lease = find_lease_by_mac(packet.chaddr);
 		}
 
-		/* Get REQUESTED_IP and SERVER_ID if present */
-		server_id_opt = udhcp_get_option(&packet, DHCP_SERVER_ID);
-		if (server_id_opt) {
-			uint32_t server_id_net;
-			move_from_unaligned32(server_id_net, server_id_opt);
-			if (server_id_net != server_config.server_nip) {
-				/* client talks to somebody else */
-				log1("server ID doesn't match, ignoring");
-				continue;
-			}
-		}
-		requested_opt = udhcp_get_option(&packet, DHCP_REQUESTED_IP);
-		if (requested_opt) {
-			move_from_unaligned32(requested_nip, requested_opt);
+		/* Get REQUESTED_IP if present */
+		requested_ip_opt = udhcp_get_option(&packet, DHCP_REQUESTED_IP);
+		if (requested_ip_opt) {
+			move_from_unaligned32(requested_nip, requested_ip_opt);
 		}
 
 		switch (state[0]) {
@@ -476,7 +480,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		case DHCPDISCOVER:
 			log1("Received DISCOVER");
 
-			send_offer(&packet, static_lease_nip, lease);
+			send_offer(&packet, static_lease_nip, lease, requested_ip_opt);
 			break;
 
 		case DHCPREQUEST:
@@ -567,7 +571,7 @@ o DHCPREQUEST generated during REBINDING state:
    A DHCP server MAY extend a client's lease only if it has local
    administrative authority to do so.
 */
-			if (!requested_opt) {
+			if (!requested_ip_opt) {
 				requested_nip = packet.ciaddr;
 				if (requested_nip == 0) {
 					log1("no requested IP and no ciaddr, ignoring");
@@ -603,7 +607,7 @@ o DHCPREQUEST generated during REBINDING state:
 			 */
 			log1("Received DECLINE");
 			if (server_id_opt
-			 && requested_opt
+			 && requested_ip_opt
 			 && lease  /* chaddr matches this lease */
 			 && requested_nip == lease->lease_nip
 			) {
