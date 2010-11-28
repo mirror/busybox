@@ -245,9 +245,15 @@
 //config:	  msh is deprecated and will be removed, please migrate to hush.
 //config:
 
-//usage:#define hush_trivial_usage NOUSAGE_STR
+/* -i (interactive) and -s (read stdin) are also accepted,
+ * but currently do nothing, therefore aren't shown in help.
+ * NOMMU-specific options are not meant to be used by users,
+ * therefore we don't show them either.
+ */
+//usage:#define hush_trivial_usage
+//usage:       "[-nx] [-c SCRIPT]"
 //usage:#define hush_full_usage ""
-//usage:#define msh_trivial_usage NOUSAGE_STR
+//usage:#define msh_trivial_usage hush_trivial_usage
 //usage:#define msh_full_usage ""
 //usage:#define sh_trivial_usage NOUSAGE_STR
 //usage:#define sh_full_usage ""
