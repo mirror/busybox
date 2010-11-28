@@ -448,9 +448,9 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		/* Get SERVER_ID if present */
 		server_id_opt = udhcp_get_option(&packet, DHCP_SERVER_ID);
 		if (server_id_opt) {
-			uint32_t server_id_net;
-			move_from_unaligned32(server_id_net, server_id_opt);
-			if (server_id_net != server_config.server_nip) {
+			uint32_t server_id_network_order;
+			move_from_unaligned32(server_id_network_order, server_id_opt);
+			if (server_id_network_order != server_config.server_nip) {
 				/* client talks to somebody else */
 				log1("server ID doesn't match, ignoring");
 				continue;
@@ -584,11 +584,15 @@ o DHCPREQUEST generated during REBINDING state:
 				send_ACK(&packet, lease->lease_nip);
 				break;
 			}
-			if (server_id_opt) {
-				/* client was talking specifically to us.
-				 * "No, we don't have this IP for you". */
+			/* No lease for this MAC, or lease IP != requested IP */
+
+			if (server_id_opt    /* client is in SELECTING state */
+			 || requested_ip_opt /* client is in INIT-REBOOT state */
+			) {
+				/* "No, we don't have this IP for you" */
 				send_NAK(&packet);
-			}
+			} /* else: client is in RENEWING or REBINDING, do not answer */
+
 			break;
 
 		case DHCPDECLINE:
