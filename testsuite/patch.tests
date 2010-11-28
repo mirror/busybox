@@ -175,6 +175,43 @@ abc
  123
 " \
 
+# testing "test name" "command(s)" "expected result" "file input" "stdin"
+testing "patch at the beginning" \
+	'patch 2>&1; cat input' \
+"\
+patching file input
+111changed
+444
+555
+666
+777
+888
+999
+" \
+"\
+111
+222
+333
+444
+555
+666
+777
+888
+999
+" \
+"\
+--- input
++++ input
+@@ -1,6 +1,4 @@
+-111
+-222
+-333
++111changed
+ 444
+ 555
+ 666
+" \
+
 rm input.orig 2>/dev/null
 
 exit $FAILCOUNT

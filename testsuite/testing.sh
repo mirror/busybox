@@ -87,6 +87,7 @@ testing()
 
   $ECHO -ne "$3" > expected
   $ECHO -ne "$4" > input
+  [ -z "$VERBOSE" ] || echo ======================
   [ -z "$VERBOSE" ] || echo "echo -ne '$4' >input"
   [ -z "$VERBOSE" ] || echo "echo -ne '$5' | $2"
   $ECHO -ne "$5" | eval "$2" > actual
