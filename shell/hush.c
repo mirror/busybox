@@ -733,6 +733,11 @@ struct globals {
 # define G_saved_tty_pgrp 0
 #endif
 	char o_opt[NUM_OPT_O];
+#if ENABLE_HUSH_MODE_X
+# define G_x_mode (G.o_opt[OPT_O_XTRACE])
+#else
+# define G_x_mode 0
+#endif
 	smallint flag_SIGINT;
 #if ENABLE_HUSH_LOOPS
 	smallint flag_break_continue;
@@ -743,11 +748,6 @@ struct globals {
 	 * 1: return is invoked, skip all till end of func
 	 */
 	smallint flag_return_in_progress;
-#endif
-#if ENABLE_HUSH_MODE_X
-# define G_x_mode (G.o_opt[OPT_O_XTRACE])
-#else
-# define G_x_mode 0
 #endif
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
