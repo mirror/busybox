@@ -684,29 +684,6 @@ config FEATURE_NTPD_SERVER
 	  Make ntpd usable as a NTP server. If you disable this option
 	  ntpd will be usable only as a NTP client.
 
-config PING
-	bool "ping"
-	default y
-	depends on PLATFORM_LINUX
-	help
-	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
-	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
-
-config PING6
-	bool "ping6"
-	default y
-	depends on FEATURE_IPV6 && PING
-	help
-	  This will give you a ping that can talk IPv6.
-
-config FEATURE_FANCY_PING
-	bool "Enable fancy ping output"
-	default y
-	depends on PING
-	help
-	  Make the output from the ping applet include statistics, and at the
-	  same time provide full support for ICMP packets.
-
 config PSCAN
 	bool "pscan"
 	default y

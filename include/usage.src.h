@@ -2859,61 +2859,6 @@ INSERT
 	IF_FEATURE_PIDOF_OMIT( \
        "$ pidof /bin/sh -o %PPID\n20351 5950")
 
-#if !ENABLE_FEATURE_FANCY_PING
-#define ping_trivial_usage \
-       "host"
-#define ping_full_usage "\n\n" \
-       "Send ICMP ECHO_REQUEST packets to network hosts"
-#define ping6_trivial_usage \
-       "host"
-#define ping6_full_usage "\n\n" \
-       "Send ICMP ECHO_REQUEST packets to network hosts"
-#else
-#define ping_trivial_usage \
-       "[OPTIONS] HOST"
-#define ping_full_usage "\n\n" \
-       "Send ICMP ECHO_REQUEST packets to network hosts\n" \
-     "\nOptions:" \
-     "\n	-4,-6		Force IP or IPv6 name resolution" \
-     "\n	-c CNT		Send only CNT pings" \
-     "\n	-s SIZE		Send SIZE data bytes in packets (default:56)" \
-     "\n	-I IFACE/IP	Use interface or IP address as source" \
-     "\n	-W SEC		Seconds to wait for the first response (default:10)" \
-     "\n			(after all -c CNT packets are sent)" \
-     "\n	-w SEC		Seconds until ping exits (default:infinite)" \
-     "\n			(can exit earlier with -c CNT)" \
-     "\n	-q		Quiet, only displays output at start" \
-     "\n			and when finished" \
-
-#define ping6_trivial_usage \
-       "[OPTIONS] HOST"
-#define ping6_full_usage "\n\n" \
-       "Send ICMP ECHO_REQUEST packets to network hosts\n" \
-     "\nOptions:" \
-     "\n	-c CNT		Send only CNT pings" \
-     "\n	-s SIZE		Send SIZE data bytes in packets (default:56)" \
-     "\n	-I IFACE/IP	Use interface or IP address as source" \
-     "\n	-q		Quiet, only displays output at start" \
-     "\n			and when finished" \
-
-#endif
-#define ping_example_usage \
-       "$ ping localhost\n" \
-       "PING slag (127.0.0.1): 56 data bytes\n" \
-       "64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms\n" \
-       "\n" \
-       "--- debian ping statistics ---\n" \
-       "1 packets transmitted, 1 packets received, 0% packet loss\n" \
-       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
-#define ping6_example_usage \
-       "$ ping6 ip6-localhost\n" \
-       "PING ip6-localhost (::1): 56 data bytes\n" \
-       "64 bytes from ::1: icmp6_seq=0 ttl=64 time=20.1 ms\n" \
-       "\n" \
-       "--- ip6-localhost ping statistics ---\n" \
-       "1 packets transmitted, 1 packets received, 0% packet loss\n" \
-       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
-
 #define pipe_progress_trivial_usage NOUSAGE_STR
 #define pipe_progress_full_usage ""
 

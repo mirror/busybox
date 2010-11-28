@@ -29,6 +29,92 @@
 #include <netinet/ip_icmp.h>
 #include "libbb.h"
 
+//config:config PING
+//config:	bool "ping"
+//config:	default y
+//config:	depends on PLATFORM_LINUX
+//config:	help
+//config:	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
+//config:	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
+//config:
+//config:config PING6
+//config:	bool "ping6"
+//config:	default y
+//config:	depends on FEATURE_IPV6 && PING
+//config:	help
+//config:	  This will give you a ping that can talk IPv6.
+//config:
+//config:config FEATURE_FANCY_PING
+//config:	bool "Enable fancy ping output"
+//config:	default y
+//config:	depends on PING
+//config:	help
+//config:	  Make the output from the ping applet include statistics, and at the
+//config:	  same time provide full support for ICMP packets.
+
+//applet:IF_PING(APPLET(ping, _BB_DIR_BIN, _BB_SUID_MAYBE))
+//applet:IF_PING6(APPLET(ping6, _BB_DIR_BIN, _BB_SUID_MAYBE))
+
+//kbuild:lib-$(CONFIG_PING)  += ping.o
+//kbuild:lib-$(CONFIG_PING6) += ping.o
+
+//usage:#if !ENABLE_FEATURE_FANCY_PING
+//usage:# define ping_trivial_usage
+//usage:       "HOST"
+//usage:# define ping_full_usage "\n\n"
+//usage:       "Send ICMP ECHO_REQUEST packets to network hosts"
+//usage:# define ping6_trivial_usage
+//usage:       "HOST"
+//usage:# define ping6_full_usage "\n\n"
+//usage:       "Send ICMP ECHO_REQUEST packets to network hosts"
+//usage:#else
+//usage:# define ping_trivial_usage
+//usage:       "[OPTIONS] HOST"
+//usage:# define ping_full_usage "\n\n"
+//usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-4,-6		Force IP or IPv6 name resolution"
+//usage:     "\n	-c CNT		Send only CNT pings"
+//usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default:56)"
+//usage:     "\n	-t TTL		Set TTL"
+//usage:     "\n	-I IFACE/IP	Use interface or IP address as source"
+//usage:     "\n	-W SEC		Seconds to wait for the first response (default:10)"
+//usage:     "\n			(after all -c CNT packets are sent)"
+//usage:     "\n	-w SEC		Seconds until ping exits (default:infinite)"
+//usage:     "\n			(can exit earlier with -c CNT)"
+//usage:     "\n	-q		Quiet, only displays output at start"
+//usage:     "\n			and when finished"
+//usage:
+//usage:# define ping6_trivial_usage
+//usage:       "[OPTIONS] HOST"
+//usage:# define ping6_full_usage "\n\n"
+//usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c CNT		Send only CNT pings"
+//usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default:56)"
+//usage:     "\n	-I IFACE/IP	Use interface or IP address as source"
+//usage:     "\n	-q		Quiet, only displays output at start"
+//usage:     "\n			and when finished"
+//usage:
+//usage:#endif
+//usage:
+//usage:#define ping_example_usage
+//usage:       "$ ping localhost\n"
+//usage:       "PING slag (127.0.0.1): 56 data bytes\n"
+//usage:       "64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms\n"
+//usage:       "\n"
+//usage:       "--- debian ping statistics ---\n"
+//usage:       "1 packets transmitted, 1 packets received, 0% packet loss\n"
+//usage:       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
+//usage:#define ping6_example_usage
+//usage:       "$ ping6 ip6-localhost\n"
+//usage:       "PING ip6-localhost (::1): 56 data bytes\n"
+//usage:       "64 bytes from ::1: icmp6_seq=0 ttl=64 time=20.1 ms\n"
+//usage:       "\n"
+//usage:       "--- ip6-localhost ping statistics ---\n"
+//usage:       "1 packets transmitted, 1 packets received, 0% packet loss\n"
+//usage:       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
+
 #if ENABLE_PING6
 # include <netinet/icmp6.h>
 /* I see RENUMBERED constants in bits/in.h - !!?
@@ -223,17 +309,18 @@ static int common_ping_main(sa_family_t af, char **argv)
 
 /* Full(er) version */
 
-#define OPT_STRING ("qvc:s:w:W:I:4" IF_PING6("6"))
+#define OPT_STRING ("qvc:s:t:w:W:I:4" IF_PING6("6"))
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,
 	OPT_c = 1 << 2,
 	OPT_s = 1 << 3,
-	OPT_w = 1 << 4,
-	OPT_W = 1 << 5,
-	OPT_I = 1 << 6,
-	OPT_IPV4 = 1 << 7,
-	OPT_IPV6 = (1 << 8) * ENABLE_PING6,
+	OPT_t = 1 << 4,
+	OPT_w = 1 << 5,
+	OPT_W = 1 << 6,
+	OPT_I = 1 << 7,
+	OPT_IPV4 = 1 << 8,
+	OPT_IPV6 = (1 << 9) * ENABLE_PING6,
 };
 
 
@@ -244,6 +331,7 @@ struct globals {
 	len_and_sockaddr *source_lsa;
 	unsigned datalen;
 	unsigned pingcount; /* must be int-sized */
+	unsigned opt_ttl;
 	unsigned long ntransmitted, nreceived, nrepeats;
 	uint16_t myid;
 	unsigned tmin, tmax; /* in us */
@@ -275,6 +363,7 @@ struct globals {
 #define nreceived    (G.nreceived   )
 #define nrepeats     (G.nrepeats    )
 #define pingcount    (G.pingcount   )
+#define opt_ttl      (G.opt_ttl     )
 #define myid         (G.myid        )
 #define tmin         (G.tmin        )
 #define tmax         (G.tmax        )
@@ -586,6 +675,10 @@ static void ping4(len_and_sockaddr *lsa)
 	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
+	if (opt_ttl != 0)
+		//setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, &opt_ttl, sizeof(opt_ttl));
+		setsockopt(pingsock, IPPROTO_IP, IP_TTL, &opt_ttl, sizeof(opt_ttl));
+
 	signal(SIGINT, print_stats_and_exit);
 
 	/* start the ping's going ... */
@@ -735,9 +828,9 @@ static int common_ping_main(int opt, char **argv)
 
 	INIT_G();
 
-	/* exactly one argument needed; -v and -q don't mix; -c NUM, -w NUM, -W NUM */
-	opt_complementary = "=1:q--v:v--q:c+:w+:W+";
-	opt |= getopt32(argv, OPT_STRING, &pingcount, &str_s, &deadline, &timeout, &str_I);
+	/* exactly one argument needed; -v and -q don't mix; -c NUM, -t NUM, -w NUM, -W NUM */
+	opt_complementary = "=1:q--v:v--q:c+:t+:w+:W+";
+	opt |= getopt32(argv, OPT_STRING, &pingcount, &str_s, &opt_ttl, &deadline, &timeout, &str_I);
 	if (opt & OPT_s)
 		datalen = xatou16(str_s); // -s
 	if (opt & OPT_I) { // -I
