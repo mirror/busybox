@@ -268,8 +268,7 @@ static int doexec(char **proggie)
 	dup2(0, 1);
 	/* dup2(0, 2); - do we *really* want this? NO!
 	 * exec'ed prog can do it yourself, if needed */
-	execvp(proggie[0], proggie);
-	bb_perror_msg_and_die("can't execute '%s'", proggie[0]);
+	BB_EXECVP_or_die(proggie);
 }
 
 /* connect_w_timeout:
