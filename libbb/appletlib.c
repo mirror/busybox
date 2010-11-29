@@ -812,7 +812,7 @@ int main(int argc UNUSED_PARAM, char **argv)
 
 #if defined(SINGLE_APPLET_MAIN)
 	/* Only one applet is selected in .config */
-	if (strncmp(argv[0], "busybox", 7) == 0) {
+	if (argv[1] && strncmp(argv[0], "busybox", 7) == 0) {
 		/* "busybox <applet> <params>" should still work as expected */
 		argv++;
 	}
