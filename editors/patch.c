@@ -238,7 +238,7 @@ static int apply_one_hunk(void)
 	// complete hunk.
 	plist = TT.current_hunk;
 	buf = NULL;
-	if (TT.context) for (;;) {
+	if (reverse ? TT.oldlen : TT.newlen) for (;;) {
 		char *data = xmalloc_reads(TT.filein, NULL, NULL);
 
 		TT.linenum++;
@@ -352,6 +352,8 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 	int reverse, state = 0;
 	char *oldname = NULL, *newname = NULL;
 	char *opt_p, *opt_i;
+	long oldlen = oldlen; /* for compiler */
+	long newlen = newlen; /* for compiler */
 
 	INIT_TT();
 
@@ -391,8 +393,8 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			if (*patchline==' ' || *patchline=='+' || *patchline=='-') {
 				dlist_add(&TT.current_hunk, patchline);
 
-				if (*patchline != '+') TT.oldlen--;
-				if (*patchline != '-') TT.newlen--;
+				if (*patchline != '+') oldlen--;
+				if (*patchline != '-') newlen--;
 
 				// Context line?
 				if (*patchline==' ' && state==2) TT.context++;
@@ -400,7 +402,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 				// If we've consumed all expected hunk lines, apply the hunk.
 
-				if (!TT.oldlen && !TT.newlen) state = apply_one_hunk();
+				if (!oldlen && !newlen) state = apply_one_hunk();
 				continue;
 			}
 			fail_hunk();
@@ -447,11 +449,14 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 			// Read oldline[,oldlen] +newline[,newlen]
 
-			TT.oldlen = TT.newlen = 1;
+			TT.oldlen = oldlen = TT.newlen = newlen = 1;
 			TT.oldline = strtol(s, &s, 10);
-			if (*s == ',') TT.oldlen=strtol(s+1, &s, 10);
+			if (*s == ',') TT.oldlen = oldlen = strtol(s+1, &s, 10);
 			TT.newline = strtol(s+2, &s, 10);
-			if (*s == ',') TT.newlen = strtol(s+1, &s, 10);
+			if (*s == ',') TT.newlen = newlen = strtol(s+1, &s, 10);
+
+			if (oldlen < 1 && newlen < 1)
+				bb_error_msg_and_die("Really? %s", patchline);
 
 			TT.context = 0;
 			state = 2;
@@ -461,8 +466,8 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				int oldsum, newsum, empty = 0;
 				char *name;
 
-				oldsum = TT.oldline + TT.oldlen;
-				newsum = TT.newline + TT.newlen;
+				oldsum = TT.oldline + oldlen;
+				newsum = TT.newline + newlen;
 
 				name = reverse ? oldname : newname;
 
