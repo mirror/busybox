@@ -675,9 +675,11 @@ static void ping4(len_and_sockaddr *lsa)
 	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
-	if (opt_ttl != 0)
-		//setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, &opt_ttl, sizeof(opt_ttl));
+	if (opt_ttl != 0) {
 		setsockopt(pingsock, IPPROTO_IP, IP_TTL, &opt_ttl, sizeof(opt_ttl));
+		/* above doesnt affect packets sent to bcast IP, so... */
+		setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, &opt_ttl, sizeof(opt_ttl));
+	}
 
 	signal(SIGINT, print_stats_and_exit);
 
