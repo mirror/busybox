@@ -42,7 +42,9 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *pw;
 	uid_t cur_uid = getuid();
 	const char *tty;
+#if ENABLE_FEATURE_UTMP
 	char user_buf[64];
+#endif
 	const char *old_user;
 
 	flags = getopt32(argv, "mplc:s:", &opt_command, &opt_shell);
