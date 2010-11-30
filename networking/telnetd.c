@@ -314,6 +314,8 @@ make_new_session(
 	/* Restore default signal handling ASAP */
 	bb_signals((1 << SIGCHLD) + (1 << SIGPIPE), SIG_DFL);
 
+	pid = getpid();
+
 	if (ENABLE_FEATURE_UTMP) {
 		len_and_sockaddr *lsa = get_peer_lsa(sock);
 		char *hostname = NULL;
@@ -335,7 +337,6 @@ make_new_session(
 	xopen(tty_name, O_RDWR); /* becomes our ctty */
 	xdup2(0, 1);
 	xdup2(0, 2);
-	pid = getpid();
 	tcsetpgrp(0, pid); /* switch this tty's process group to us */
 
 	/* The pseudo-terminal allocated to the client is configured to operate
