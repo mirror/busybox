@@ -74,7 +74,6 @@ lib-$(CONFIG_SYNC)      += sync.o
 lib-$(CONFIG_TAC)       += tac.o
 lib-$(CONFIG_TAIL)      += tail.o
 lib-$(CONFIG_TEE)       += tee.o
-lib-$(CONFIG_TOUCH)     += touch.o
 lib-$(CONFIG_TRUE)      += true.o
 lib-$(CONFIG_TTY)       += tty.o
 lib-$(CONFIG_UNAME)     += uname.o

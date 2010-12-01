@@ -4005,22 +4005,6 @@ INSERT
        "and display a screenful of them." \
 //TODO: add options and keyboard commands
 
-#define touch_trivial_usage \
-       "[-c] [-d DATE] [-r FILE] FILE [FILE]..."
-#define touch_full_usage "\n\n" \
-       "Update the last-modified date on the given FILE[s]\n" \
-     "\nOptions:" \
-     "\n	-c	Don't create files" \
-     "\n	-d DT	Date/time to use" \
-     "\n	-r FILE	Use FILE's date/time" \
-
-#define touch_example_usage \
-       "$ ls -l /tmp/foo\n" \
-       "/bin/ls: /tmp/foo: No such file or directory\n" \
-       "$ touch /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo\n"
-
 #define tr_trivial_usage \
        "[-cds] STRING1 [STRING2]"
 #define tr_full_usage "\n\n" \

@@ -661,13 +661,6 @@ config FEATURE_TEE_USE_BLOCK_IO
 	help
 	  Enable this option for a faster tee, at expense of size.
 
-config TOUCH
-	bool "touch"
-	default y
-	help
-	  touch is used to create or change the access and/or
-	  modification timestamp of specified files.
-
 config TRUE
 	bool "true"
 	default y
