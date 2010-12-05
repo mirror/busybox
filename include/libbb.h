@@ -1426,6 +1426,7 @@ typedef struct procps_status_t {
 	char *argv0;
 	char *exe;
 	IF_SELINUX(char *context;)
+	IF_FEATURE_SHOW_THREADS(unsigned main_thread_pid;)
 	/* Everything below must contain no ptrs to malloc'ed data:
 	 * it is memset(0) for each process in procps_scan() */
 	unsigned long vsz, rss; /* we round it to kbytes */

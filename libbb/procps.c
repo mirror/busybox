@@ -302,6 +302,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 				goto got_entry;
 			closedir(sp->task_dir);
 			sp->task_dir = NULL;
+			sp->main_thread_pid = 0;
 		}
 #endif
 		entry = readdir(sp->dir);
@@ -321,6 +322,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			char task_dir[sizeof("/proc/%u/task") + sizeof(int)*3];
 			sprintf(task_dir, "/proc/%u/task", pid);
 			sp->task_dir = xopendir(task_dir);
+			sp->main_thread_pid = pid;
 			continue;
 		}
 #endif
