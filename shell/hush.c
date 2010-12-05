@@ -82,7 +82,11 @@
  *              aaa
  */
 #include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
-#include <malloc.h>   /* for malloc_trim */
+#if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
+	|| defined(__APPLE__) \
+    )
+# include <malloc.h>   /* for malloc_trim */
+#endif
 #include <glob.h>
 /* #include <dmalloc.h> */
 #if ENABLE_HUSH_CASE

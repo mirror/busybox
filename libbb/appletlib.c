@@ -28,7 +28,11 @@
  */
 #include "busybox.h"
 #include <assert.h>
-#include <malloc.h>
+#if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
+        || defined(__APPLE__) \
+    )
+# include <malloc.h> /* for mallopt */
+#endif
 /* Try to pull in PAGE_SIZE */
 #ifdef __linux__
 # include <sys/user.h>
