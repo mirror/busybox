@@ -111,10 +111,11 @@ static void maybe_free_buffers(void)
 static void out_char(char c)
 {
 	G.cur_x++;
+	if (G.cur_x > G.output_width)
+		return;
 	if (G.cur_x == G.output_width)
 		c = '+';
-	if (G.cur_x <= G.output_width)
-		putchar(c);
+	putchar(c);
 }
 
 /* NB: this function is never called with "bad" chars
