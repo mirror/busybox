@@ -61,7 +61,7 @@ typedef struct child {
 #define first_3  "-+-"
 
 struct globals {
-	/* 0-based. IOW: the number of chars we printer on current line */
+	/* 0-based. IOW: the number of chars we printed on current line */
 	unsigned cur_x;
 	unsigned output_width;
 
@@ -94,16 +94,6 @@ static void ensure_buffer_capacity(int bufindex)
 		G.more = xrealloc(G.more, G.capacity * sizeof(G.more[0]));
 	}
 }
-
-#if ENABLE_FEATURE_CLEAN_UP
-static void maybe_free_buffers(void)
-{
-	free(G.width);
-	free(G.more);
-}
-#else
-# define maybe_free_buffers() ((void)0)
-#endif
 
 /* NB: this function is never called with "bad" chars
  * (control chars or chars >= 0x7f)
@@ -385,12 +375,11 @@ int pstree_main(int argc UNUSED_PARAM, char **argv)
 
 	get_terminal_width_height(1, &G.output_width, NULL);
 
+	opt_complementary = "?1";
 	getopt32(argv, "p");
 	argv += optind;
 
 	if (argv[0]) {
-		if (argv[1])
-			bb_show_usage();
 		if (argv[0][0] >= '0' && argv[0][0] <= '9') {
 			pid = xatoi(argv[0]);
 		} else {
@@ -409,6 +398,9 @@ int pstree_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 
-	maybe_free_buffers();
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(G.width);
+		free(G.more);
+	}
 	return 0;
 }
