@@ -234,7 +234,7 @@ static int wh_helper(int value, int def_val, const char *env_name, int *err)
 		char *s = getenv(env_name);
 		if (s) {
 			value = atoi(s);
-			/* If LINES/COLUMNS are set, pretent that there is
+			/* If LINES/COLUMNS are set, pretend that there is
 			 * no error getting w/h, this prevents some ugly
 			 * cursor tricks by our callers */
 			*err = 0;
