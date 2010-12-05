@@ -61,16 +61,17 @@ typedef struct child {
 #define first_3  "-+-"
 
 struct globals {
-	PROC *list;
+	/* 0-based. IOW: the number of chars we printer on current line */
+	unsigned cur_x;
+	unsigned output_width;
 
 	/* The buffers will be dynamically increased in size as needed */
 	unsigned capacity;
-	int *width;
-	int *more;
+	unsigned *width;
+	uint8_t *more;
 
-// Disabled, since code is broken anyway and needs fixing
-//	unsigned output_width;
-	unsigned cur_x;
+	PROC *list;
+
 	smallint dumped; /* used by dump_by_user */
 };
 #define G (*ptr_to_globals)
@@ -83,8 +84,7 @@ struct globals {
  * Allocates additional buffer space for width and more as needed.
  * The first call will allocate the first buffer.
  *
- * bufindex  the index that will be used after the call
- *           to this function.
+ * bufindex  the index that will be used after the call to this function.
  */
 static void ensure_buffer_capacity(int bufindex)
 {
@@ -111,10 +111,10 @@ static void maybe_free_buffers(void)
 static void out_char(char c)
 {
 	G.cur_x++;
-//	if (G.cur_x <= G.output_width)
+	if (G.cur_x == G.output_width)
+		c = '+';
+	if (G.cur_x <= G.output_width)
 		putchar(c);
-//	else if (G.cur_x == G.output_width - 1)
-//		putchar('+');
 }
 
 /* NB: this function is never called with "bad" chars
@@ -129,7 +129,7 @@ static void out_string(const char *str)
 static void out_newline(void)
 {
 	putchar('\n');
-	G.cur_x = 1;
+	G.cur_x = 0;
 }
 
 static PROC *find_proc(pid_t pid)
@@ -249,6 +249,7 @@ dump_tree(PROC *current, int level, int rep, int leaf, int last, int closing)
 {
 	CHILD *walk, *next, **scan;
 	int lvl, i, add, offset, count, comm_len, first;
+	char tmp[sizeof(int)*3 + 4];
 
 	if (!current)
 		return;
@@ -275,17 +276,15 @@ dump_tree(PROC *current, int level, int rep, int leaf, int last, int closing)
 		}
 	}
 
-	if (rep < 2)
-		add = 0;
-	else {
-		add = printf("%d", rep) + 2;
-		out_string("*[");
+	add = 0;
+	if (rep > 1) {
+		add += sprintf(tmp, "%d*[", rep);
+		out_string(tmp);
 	}
 	comm_len = out_args(current->comm);
 	if (option_mask32 /*& OPT_PID*/) {
-		out_char('(');
-		comm_len += printf("%d", (int)current->pid) + 2;
-		out_char(')');
+		comm_len += sprintf(tmp, "(%d)", (int)current->pid);
+		out_string(tmp);
 	}
 	offset = G.cur_x;
 
@@ -298,12 +297,12 @@ dump_tree(PROC *current, int level, int rep, int leaf, int last, int closing)
 	G.more[level] = !last;
 
 	G.width[level] = comm_len + G.cur_x - offset + add;
-//	if (G.cur_x >= G.output_width) {
-//		out_string(first_3);
-//		out_char('+');
-//		out_newline();
-//		return;
-//	}
+	if (G.cur_x >= G.output_width) {
+		//out_string(first_3); - why? it won't print anything
+		//out_char('+');
+		out_newline();
+		return;
+	}
 
 	first = 1;
 	for (walk = current->children; walk; walk = next) {
@@ -382,9 +381,8 @@ int pstree_main(int argc UNUSED_PARAM, char **argv)
 	long uid = 0;
 
 	INIT_G();
-	G.cur_x = 1;
 
-//	get_terminal_width_height(1, &G.output_width, NULL);
+	get_terminal_width_height(1, &G.output_width, NULL);
 
 	getopt32(argv, "p");
 	argv += optind;
