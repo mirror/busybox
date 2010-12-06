@@ -15,7 +15,7 @@ var_service/dhcp_if -
 controls a udhcpc instance which provides dhpc-assigned IP
 address on interface named "if". Copy/rename this directory as needed to run
 udhcpc on other interfaces (var_service/dhcp_if/run script uses _foo suffix
-or the parent directory as interface name). When IP address is obtained or lost,
+of the parent directory as interface name). When IP address is obtained or lost,
 var_service/dhcp_if/dhcp_handler is run. It saves new config data to
 /var/run/service/fw/dhcp_if.ipconf and (re)starts /var/service/fw service.
 This example can be used as a template for other dynamic network link services
