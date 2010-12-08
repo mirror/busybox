@@ -192,11 +192,12 @@ config FEATURE_TOPMEM
 	  Enable 's' in top (gives lots of memory info).
 
 config FEATURE_SHOW_THREADS
-	bool "Support for showing threads in ps/top"
+	bool "Support for showing threads in ps/pstree/top"
 	default y
-	depends on PS || TOP
+	depends on PS || TOP || PSTREE
 	help
-	  Enables ps -T option and 'h' command in top
+	  Enables the ps -T option, showing of threads in pstree,
+	  and 'h' command in top.
 
 config UPTIME
 	bool "uptime"
