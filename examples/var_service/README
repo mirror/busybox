@@ -33,7 +33,7 @@ service. Basically, an example of watchdog service for networks
 which are not reliable and need babysitting.
 
 var_service/fw -
-An *one-shot* service which reconfigures network based on current known state
+A *one-shot* service which reconfigures network based on current known state
 of ALL interfaces. Uses conf/*.ipconf (static config) and /var/run/service/fw/*.ipconf
 (dynamic config from dhcp/ppp/vpn/etc) to determine what to do.
 One-shot-ness of this service means that it shuts itself off after single run.
