@@ -6,6 +6,40 @@
  * Contact me: vda.linux@googlemail.com
  */
 
+//config:config NMETER
+//config:	bool "nmeter"
+//config:	default y
+//config:	help
+//config:	  Prints selected system stats continuously, one line per update.
+
+//applet:IF_NMETER(APPLET(nmeter, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_NMETER) += nmeter.o
+
+//usage:#define nmeter_trivial_usage
+//usage:       "[-d MSEC] FORMAT_STRING"
+//usage:#define nmeter_full_usage "\n\n"
+//usage:       "Monitor system in real time"
+//usage:     "\n"
+//usage:     "\n -d MSEC	Milliseconds between updates (default:1000)"
+//usage:     "\n"
+//usage:     "\nFormat specifiers:"
+//usage:     "\n %Nc or %[cN]	Monitor CPU. N - bar size (default:10)"
+//usage:     "\n		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)"
+//usage:     "\n %[niface]	Monitor network interface 'iface'"
+//usage:     "\n %m		Monitor allocated memory"
+//usage:     "\n %[mf]		Monitor free memory"
+//usage:     "\n %[mt]		Monitor total memory"
+//usage:     "\n %s		Monitor allocated swap"
+//usage:     "\n %f		Monitor number of used file descriptors"
+//usage:     "\n %Ni		Monitor total/specific IRQ rate"
+//usage:     "\n %x		Monitor context switch rate"
+//usage:     "\n %p		Monitor forks"
+//usage:     "\n %[pn]		Monitor # of processes"
+//usage:     "\n %b		Monitor block io"
+//usage:     "\n %Nt		Show time (with N decimal points)"
+//usage:     "\n %r		Print <cr> instead of <lf> at EOL"
+
 //TODO:
 // simplify code
 // /proc/locks
@@ -769,6 +803,7 @@ static void FAST_FUNC collect_info(s_stat *s)
 
 typedef s_stat* init_func(const char *param);
 
+// Deprecated %NNNd is to be removed, -d MSEC supersedes it
 static const char options[] ALIGN1 = "ncmsfixptbdr";
 static init_func *const init_functions[] = {
 	init_if,
@@ -792,23 +827,28 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	s_stat *first = NULL;
 	s_stat *last = NULL;
 	s_stat *s;
+	char *opt_d;
 	char *cur, *prev;
 
 	INIT_G();
 
 	xchdir("/proc");
 
-	if (!argv[1])
-		bb_show_usage();
-
 	if (open_read_close("version", buf, sizeof(buf)-1) > 0) {
 		buf[sizeof(buf)-1] = '\0';
 		is26 = (strstr(buf, " 2.4.") == NULL);
 	}
 
-	// Can use argv[1] directly, but this will mess up
+	if (getopt32(argv, "d:", &opt_d))
+		init_delay(opt_d);
+	argv += optind;
+
+	if (!argv[0])
+		bb_show_usage();
+
+	// Can use argv[0] directly, but this will mess up
 	// parameters as seen by e.g. ps. Making a copy...
-	cur = xstrdup(argv[1]);
+	cur = xstrdup(argv[0]);
 	while (1) {
 		char *param, *p;
 		prev = cur;

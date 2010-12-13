@@ -1577,8 +1577,8 @@ INSERT
      "\n	-c		One-byte character display" \
      "\n	-C		Canonical hex+ASCII, 16 bytes per line" \
      "\n	-d		Two-byte decimal display" \
-     "\n	-e FORMAT STRING" \
-     "\n	-f FORMAT FILE" \
+     "\n	-e FORMAT_STRING" \
+     "\n	-f FORMAT_FILE" \
      "\n	-n LENGTH	Interpret only LENGTH bytes of input" \
      "\n	-o		Two-byte octal display" \
      "\n	-s OFFSET	Skip OFFSET bytes" \
@@ -2705,31 +2705,6 @@ INSERT
        "$ nameif -s dmz0 00:A0:C9:8C:F6:3F\n" \
        " or\n" \
        "$ nameif -c /etc/my_mactab_file\n" \
-
-#define nmeter_trivial_usage \
-       "format_string"
-#define nmeter_full_usage "\n\n" \
-       "Monitor system in real time\n\n" \
-       "Format specifiers:\n" \
-       " %Nc or %[cN]	Monitor CPU. N - bar size, default 10\n" \
-       "		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)\n" \
-       " %[niface]	Monitor network interface 'iface'\n" \
-       " %m		Monitor allocated memory\n" \
-       " %[mf]		Monitor free memory\n" \
-       " %[mt]		Monitor total memory\n" \
-       " %s		Monitor allocated swap\n" \
-       " %f		Monitor number of used file descriptors\n" \
-       " %Ni		Monitor total/specific IRQ rate\n" \
-       " %x		Monitor context switch rate\n" \
-       " %p		Monitor forks\n" \
-       " %[pn]		Monitor # of processes\n" \
-       " %b		Monitor block io\n" \
-       " %Nt		Show time (with N decimal points)\n" \
-       " %Nd		Milliseconds between updates (default:1000)\n" \
-       " %r		Print <cr> instead of <lf> at EOL" \
-
-#define nmeter_example_usage \
-       "nmeter '%250d%t %20c int %i bio %b mem %m forks%p'"
 
 #define nohup_trivial_usage \
        "PROG ARGS"
