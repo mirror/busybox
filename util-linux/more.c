@@ -191,9 +191,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 			}
 			/* My small mind cannot fathom backspaces and UTF-8 */
 			putchar(c);
-
-			if (ferror(stdout)) /* if tty was destroyed (closed xterm, etc) */
-				goto end;
+			die_if_ferror_stdout(); /* if tty was destroyed (closed xterm, etc) */
 		}
 		fclose(file);
 		fflush_all();
