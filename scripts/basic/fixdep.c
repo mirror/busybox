@@ -329,7 +329,7 @@ void parse_dep_file(void *map, size_t len)
 	clear_config();
 
 	while (m < end) {
-		while (m < end && (*m == ' ' || *m == '\\' || *m == '\n'))
+		while (m < end && (*m == ' ' || *m == '\\' || *m == '\n' || *m == '\r'))
 			m++;
 		p = m;
 		while (p < end && *p != ' ') p++;
