@@ -7013,27 +7013,30 @@ static int run_list(struct pipe *pi)
 
 #if ENABLE_HUSH_LOOPS
 	/* Check syntax for "for" */
-	for (struct pipe *cpipe = pi; cpipe; cpipe = cpipe->next) {
-		if (cpipe->res_word != RES_FOR && cpipe->res_word != RES_IN)
-			continue;
-		/* current word is FOR or IN (BOLD in comments below) */
-		if (cpipe->next == NULL) {
-			syntax_error("malformed for");
-			debug_leave();
-			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
-			return 1;
-		}
-		/* "FOR v; do ..." and "for v IN a b; do..." are ok */
-		if (cpipe->next->res_word == RES_DO)
-			continue;
-		/* next word is not "do". It must be "in" then ("FOR v in ...") */
-		if (cpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
-		 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
-		) {
-			syntax_error("malformed for");
-			debug_leave();
-			debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
-			return 1;
+	{
+		struct pipe *cpipe;
+		for (cpipe = pi; cpipe; cpipe = cpipe->next) {
+			if (cpipe->res_word != RES_FOR && cpipe->res_word != RES_IN)
+				continue;
+			/* current word is FOR or IN (BOLD in comments below) */
+			if (cpipe->next == NULL) {
+				syntax_error("malformed for");
+				debug_leave();
+				debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
+				return 1;
+			}
+			/* "FOR v; do ..." and "for v IN a b; do..." are ok */
+			if (cpipe->next->res_word == RES_DO)
+				continue;
+			/* next word is not "do". It must be "in" then ("FOR v in ...") */
+			if (cpipe->res_word == RES_IN /* "for v IN a b; not_do..."? */
+			 || cpipe->next->res_word != RES_IN /* FOR v not_do_and_not_in..."? */
+			) {
+				syntax_error("malformed for");
+				debug_leave();
+				debug_printf_exec("run_list lvl %d return 1\n", G.run_list_level);
+				return 1;
+			}
 		}
 	}
 #endif
