@@ -184,15 +184,20 @@ SPLIT_FILE      = 0,
 SPLIT_SUBDIR    = 2,
 };
 
-/* "[-]Cadil1", POSIX mandated options, busybox always supports */
-/* "[-]gnsx", POSIX non-mandated options, busybox always supports */
-/* "[-]Q" GNU option? busybox always supports */
-/* "[-]Ak" GNU options, busybox always supports */
-/* "[-]FLRctur", POSIX mandated options, busybox optionally supports */
-/* "[-]p", POSIX non-mandated options, busybox optionally supports */
-/* "[-]SXvThw", GNU options, busybox optionally supports */
-/* "[-]K", SELinux mandated options, busybox optionally supports */
-/* "[-]e", I think we made this one up */
+/* -Cadil1  Std options, busybox always supports */
+/* -gnsxA   Std options, busybox always supports */
+/* -Q       GNU option? busybox always supports */
+/* -k       SELinux option, busybox always supports (ignores if !SELinux) */
+/*          Std has -k which means "show sizes in kbytes" */
+/* -FLRctur Std options, busybox optionally supports */
+/* -p       Std option, busybox optionally supports */
+/*          Not fully compatible - we show not only '/' but other chars too */
+/* -SXvhTw  GNU options, busybox optionally supports */
+/*          -T TABWIDTH is ignored (we don't use tabs on output) */
+/* -K       SELinux mandated options, busybox optionally supports */
+/* -e       I think we made this one up (looks similar to GNU --full-time) */
+/* Std opts we do not support: */
+/* -H       Follow the links on command line only */
 static const char ls_options[] ALIGN1 =
 	"Cadil1gnsxQAk" /* 13 opts, total 13 */
 	IF_FEATURE_LS_TIMESTAMPS("cetu") /* 4, 17 */
@@ -229,7 +234,7 @@ enum {
 		+ 2 * ENABLE_SELINUX
 		+ 2 * ENABLE_FEATURE_AUTOWIDTH,
 	OPT_F     = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
-	OPT_color = 1 << OPTBIT_color,
+	OPT_color = (1 << OPTBIT_color),
 };
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
@@ -248,10 +253,10 @@ static const unsigned opt_flags[] = {
 	DISP_HIDDEN,                 /* A */
 	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
-	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),   /* c */
+	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME), /* c */
 	LIST_FULLTIME,               /* e */
-	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME,   /* t */
-	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME),   /* u */
+	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME, /* t */
+	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME), /* u */
 #endif
 #if ENABLE_FEATURE_LS_SORTFILES
 	SORT_SIZE,                   /* S */
@@ -274,8 +279,6 @@ static const unsigned opt_flags[] = {
 #endif
 #if ENABLE_SELINUX
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
-#endif
-#if ENABLE_SELINUX
 	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
 #endif
 	(1U<<31)
@@ -1041,18 +1044,20 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	/* process options */
 	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
 	opt_complementary =
+		/* -e implies -l */
+		"el"
 		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
 		 * in some pairs of opts, only last one takes effect:
 		 */
-		IF_FEATURE_LS_TIMESTAMPS(IF_FEATURE_LS_SORTFILES("t-S:S-t")) /* time/size */
+		IF_FEATURE_LS_TIMESTAMPS(IF_FEATURE_LS_SORTFILES(":t-S:S-t")) /* time/size */
 		// ":H-L:L-H:" - we don't have -H
 		// ":m-l:l-m:" - we don't have -m
 		":C-xl:x-Cl:l-xC" /* bycols/bylines/long */
 		":C-1:1-C" /* bycols/oneline */
 		":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
 		":c-u:u-c" /* mtime/atime */
-		/* -T NUM, -w NUM: */
-		IF_FEATURE_AUTOWIDTH(":T+:w+");
+		/* -w NUM: */
+		IF_FEATURE_AUTOWIDTH(":w+");
 	opt = getopt32(argv, ls_options
 		IF_FEATURE_AUTOWIDTH(, NULL, &terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
@@ -1109,7 +1114,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			all_fmt = (all_fmt & ~SORT_MASK) | SORT_ATIME;
 	}
 	if ((all_fmt & STYLE_MASK) != STYLE_LONG) /* only for long list */
-		all_fmt &= ~(LIST_ID_NUMERIC|LIST_FULLTIME|LIST_ID_NAME|LIST_ID_NUMERIC);
+		all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME|LIST_FULLTIME);
 	if (ENABLE_FEATURE_LS_USERNAME)
 		if ((all_fmt & STYLE_MASK) == STYLE_LONG && (all_fmt & LIST_ID_NUMERIC))
 			all_fmt &= ~LIST_ID_NAME; /* don't list names if numeric uid */
