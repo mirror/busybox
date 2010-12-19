@@ -2173,67 +2173,6 @@ INSERT
      "\n	-h	Print banner page too" \
      "\n	-V	Verbose" \
 
-#define ls_trivial_usage \
-       "[-1Aa" IF_FEATURE_LS_TIMESTAMPS("c") "Cd" \
-	IF_FEATURE_LS_TIMESTAMPS("e") IF_FEATURE_LS_FILETYPES("F") "iln" \
-	IF_FEATURE_LS_FILETYPES("p") IF_FEATURE_LS_FOLLOWLINKS("L") \
-	IF_FEATURE_LS_RECURSIVE("R") IF_FEATURE_LS_SORTFILES("rS") "s" \
-	IF_FEATURE_AUTOWIDTH("T") IF_FEATURE_LS_TIMESTAMPS("tu") \
-	IF_FEATURE_LS_SORTFILES("v") IF_FEATURE_AUTOWIDTH("w") "x" \
-	IF_FEATURE_LS_SORTFILES("X") IF_FEATURE_HUMAN_READABLE("h") "k" \
-	IF_SELINUX("K") "] [FILE]..."
-#define ls_full_usage "\n\n" \
-       "List directory contents\n" \
-     "\nOptions:" \
-     "\n	-1	List in a single column" \
-     "\n	-A	Don't list . and .." \
-     "\n	-a	Don't hide entries starting with ." \
-     "\n	-C	List by columns" \
-	IF_FEATURE_LS_TIMESTAMPS( \
-     "\n	-c	With -l: sort by ctime") \
-	IF_FEATURE_LS_COLOR( \
-     "\n	--color[={always,never,auto}]	Control coloring") \
-     "\n	-d	List directory entries instead of contents" \
-	IF_FEATURE_LS_TIMESTAMPS( \
-     "\n	-e	List full date and time") \
-	IF_FEATURE_LS_FILETYPES( \
-     "\n	-F	Append indicator (one of */=@|) to entries") \
-     "\n	-i	List inode numbers" \
-     "\n	-l	Long listing format" \
-     "\n	-n	List numeric UIDs and GIDs instead of names" \
-	IF_FEATURE_LS_FILETYPES( \
-     "\n	-p	Append indicator (one of /=@|) to entries") \
-	IF_FEATURE_LS_FOLLOWLINKS( \
-     "\n	-L	List entries pointed to by symlinks") \
-	IF_FEATURE_LS_RECURSIVE( \
-     "\n	-R	Recurse") \
-	IF_FEATURE_LS_SORTFILES( \
-     "\n	-r	Sort in reverse order") \
-	IF_FEATURE_LS_SORTFILES( \
-     "\n	-S	Sort by file size") \
-     "\n	-s	List the size of each file, in blocks" \
-	IF_FEATURE_AUTOWIDTH( \
-     "\n	-T N	Assume tabstop every N columns") \
-	IF_FEATURE_LS_TIMESTAMPS( \
-     "\n	-t	With -l: sort by modification time") \
-	IF_FEATURE_LS_TIMESTAMPS( \
-     "\n	-u	With -l: sort by access time") \
-	IF_FEATURE_LS_SORTFILES( \
-     "\n	-v	Sort by version") \
-	IF_FEATURE_AUTOWIDTH( \
-     "\n	-w N	Assume the terminal is N columns wide") \
-     "\n	-x	List by lines" \
-	IF_FEATURE_LS_SORTFILES( \
-     "\n	-X	Sort by extension") \
-	IF_FEATURE_HUMAN_READABLE( \
-     "\n	-h	List sizes in human readable format (1K 243M 2G)") \
-	IF_SELINUX( \
-     "\n	-k	List security context") \
-	IF_SELINUX( \
-     "\n	-K	List security context in long format") \
-	IF_SELINUX( \
-     "\n	-Z	List security context and permission") \
-
 #define lsattr_trivial_usage \
        "[-Radlv] [FILE]..."
 #define lsattr_full_usage "\n\n" \

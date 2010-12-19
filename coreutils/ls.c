@@ -29,6 +29,70 @@
  * [2009-03]
  * ls sorts listing now, and supports almost all options.
  */
+
+//usage:#define ls_trivial_usage
+//usage:	"[-1AaCxd"
+//usage:	IF_FEATURE_LS_FOLLOWLINKS("L")
+//usage:	IF_FEATURE_LS_RECURSIVE("R")
+//usage:	IF_FEATURE_LS_FILETYPES("Fp") "lins"
+//usage:	IF_FEATURE_LS_TIMESTAMPS("e")
+//usage:	IF_FEATURE_HUMAN_READABLE("h")
+//usage:	IF_FEATURE_LS_SORTFILES("rSXv")
+//usage:	IF_FEATURE_LS_TIMESTAMPS("ctu")
+//usage:	IF_SELINUX("kKZ") "]"
+//usage:	IF_FEATURE_AUTOWIDTH(" -w WIDTH") " [FILE]..."
+//usage:#define ls_full_usage "\n\n"
+//usage:       "List directory contents\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-1	List in a single column"
+//usage:     "\n	-A	Don't list . and .."
+//usage:     "\n	-a	Don't hide entries starting with ."
+//usage:     "\n	-C	List by columns"
+//usage:     "\n	-x	List by lines"
+//usage:     "\n	-d	List directory entries instead of contents"
+//usage:	IF_FEATURE_LS_FOLLOWLINKS(
+//usage:     "\n	-L	List entries pointed to by symlinks"
+//usage:	)
+//usage:	IF_FEATURE_LS_RECURSIVE(
+//usage:     "\n	-R	Recurse"
+//usage:	)
+//usage:	IF_FEATURE_LS_FILETYPES(
+//usage:     "\n	-F	Append indicator (one of */=@|) to entries"
+//usage:     "\n	-p	Append indicator (one of /=@|) to entries"
+//usage:	)
+//usage:     "\n	-l	Long listing format"
+//usage:     "\n	-i	List inode numbers"
+//usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
+//usage:     "\n	-s	List the size of each file, in blocks"
+//usage:	IF_FEATURE_LS_TIMESTAMPS(
+//usage:     "\n	-e	List full date and time"
+//usage:	)
+//usage:	IF_FEATURE_HUMAN_READABLE(
+//usage:     "\n	-h	List sizes in human readable format (1K 243M 2G)"
+//usage:	)
+//usage:	IF_FEATURE_LS_SORTFILES(
+//usage:     "\n	-r	Sort in reverse order"
+//usage:     "\n	-S	Sort by file size"
+//usage:     "\n	-X	Sort by extension"
+//usage:     "\n	-v	Sort by version"
+//usage:	)
+//usage:	IF_FEATURE_LS_TIMESTAMPS(
+//usage:     "\n	-c	With -l: sort by ctime"
+//usage:     "\n	-t	With -l: sort by modification time"
+//usage:     "\n	-u	With -l: sort by access time"
+//usage:	)
+//usage:	IF_SELINUX(
+//usage:     "\n	-k	List security context"
+//usage:     "\n	-K	List security context in long format"
+//usage:     "\n	-Z	List security context and permission"
+//usage:	)
+//usage:	IF_FEATURE_AUTOWIDTH(
+//usage:     "\n	-w N	Assume the terminal is N columns wide"
+//usage:	)
+//usage:	IF_FEATURE_LS_COLOR(
+//usage:     "\n	--color[={always,never,auto}]	Control coloring"
+//usage:	)
+
 #include "libbb.h"
 #include "unicode.h"
 
@@ -53,7 +117,6 @@
 
 enum {
 TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
-COLUMN_GAP      = 2,            /* includes the file type char */
 
 /* what is the overall style of the listing */
 STYLE_COLUMNAR  = 1 << 21,      /* many records per line */
@@ -241,7 +304,6 @@ struct globals {
 	smallint exit_code;
 	unsigned all_fmt;
 #if ENABLE_FEATURE_AUTOWIDTH
-	unsigned tabstops; // = COLUMN_GAP;
 	unsigned terminal_width; // = TERMINAL_WIDTH;
 #endif
 #if ENABLE_FEATURE_LS_TIMESTAMPS
@@ -258,11 +320,9 @@ enum { show_color = 0 };
 #define exit_code       (G.exit_code     )
 #define all_fmt         (G.all_fmt       )
 #if ENABLE_FEATURE_AUTOWIDTH
-# define tabstops       (G.tabstops      )
 # define terminal_width (G.terminal_width)
 #else
 enum {
-	tabstops = COLUMN_GAP,
 	terminal_width = TERMINAL_WIDTH,
 };
 #endif
@@ -270,7 +330,6 @@ enum {
 #define INIT_G() do { \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
-	IF_FEATURE_AUTOWIDTH(tabstops = COLUMN_GAP;) \
 	IF_FEATURE_AUTOWIDTH(terminal_width = TERMINAL_WIDTH;) \
 	IF_FEATURE_LS_TIMESTAMPS(time(&current_time_t);) \
 } while (0)
@@ -732,8 +791,8 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 static void showfiles(struct dnode **dn, unsigned nfiles)
 {
 	unsigned i, ncols, nrows, row, nc;
-	unsigned column = 0;
-	unsigned nexttab = 0;
+	unsigned column;
+	unsigned nexttab;
 	unsigned column_width = 0; /* used only by STYLE_COLUMNAR */
 
 	if (all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
@@ -745,7 +804,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 			if (column_width < len)
 				column_width = len;
 		}
-		column_width += tabstops +
+		column_width += 1 +
 			IF_SELINUX( ((all_fmt & LIST_CONTEXT) ? 33 : 0) + )
 				((all_fmt & LIST_INO) ? 8 : 0) +
 				((all_fmt & LIST_BLOCKS) ? 5 : 0);
@@ -761,6 +820,8 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 		ncols = 1;
 	}
 
+	column = 0;
+	nexttab = 0;
 	for (row = 0; row < nrows; row++) {
 		for (nc = 0; nc < ncols; nc++) {
 			/* reach into the array based on the column and row */
@@ -771,8 +832,8 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 			if (i < nfiles) {
 				if (column > 0) {
 					nexttab -= column;
-					printf("%*s", nexttab, "");
-					column += nexttab;
+					printf("%*s ", nexttab, "");
+					column += nexttab + 1;
 				}
 				nexttab = column + column_width;
 				column += list_single(dn[i]);
@@ -993,7 +1054,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		/* -T NUM, -w NUM: */
 		IF_FEATURE_AUTOWIDTH(":T+:w+");
 	opt = getopt32(argv, ls_options
-		IF_FEATURE_AUTOWIDTH(, &tabstops, &terminal_width)
+		IF_FEATURE_AUTOWIDTH(, NULL, &terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
 	for (i = 0; opt_flags[i] != (1U<<31); i++) {
