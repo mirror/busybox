@@ -32,7 +32,7 @@
 
 //usage:#define ls_trivial_usage
 //usage:	"[-1AaCxd"
-//usage:	IF_FEATURE_LS_FOLLOWLINKS("L")
+//usage:	IF_FEATURE_LS_FOLLOWLINKS("LH")
 //usage:	IF_FEATURE_LS_RECURSIVE("R")
 //usage:	IF_FEATURE_LS_FILETYPES("Fp") "lins"
 //usage:	IF_FEATURE_LS_TIMESTAMPS("e")
@@ -51,7 +51,8 @@
 //usage:     "\n	-x	List by lines"
 //usage:     "\n	-d	List directory entries instead of contents"
 //usage:	IF_FEATURE_LS_FOLLOWLINKS(
-//usage:     "\n	-L	List entries pointed to by symlinks"
+//usage:     "\n	-L	Follow symlinks"
+//usage:     "\n	-H	Follow symlinks on command line only"
 //usage:	)
 //usage:	IF_FEATURE_LS_RECURSIVE(
 //usage:     "\n	-R	Recurse"
@@ -118,11 +119,11 @@
 enum {
 TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
 
-/* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 21,      /* many records per line */
-STYLE_LONG      = 2 << 21,      /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 21,      /* one record per line */
-STYLE_MASK      = STYLE_SINGLE,
+SPLIT_DIR       = 1,
+SPLIT_FILE      = 0,
+SPLIT_SUBDIR    = 2,
+
+/* Bits in all_fmt: */
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
@@ -152,44 +153,41 @@ DISP_RECURSIVE  = 1 << 19,      /* show directory and everything below it */
 DISP_ROWS       = 1 << 20,      /* print across rows */
 DISP_MASK       = ((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1),
 
-/* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
-SORT_FORWARD    = 0,            /* sort in reverse order */
-SORT_REVERSE    = 1 << 27,      /* sort in reverse order */
-
-SORT_NAME       = 0,            /* sort by file name */
-SORT_SIZE       = 1 << 28,      /* sort by file size */
-SORT_ATIME      = 2 << 28,      /* sort by last access time */
-SORT_CTIME      = 3 << 28,      /* sort by last change time */
-SORT_MTIME      = 4 << 28,      /* sort by last modification time */
-SORT_VERSION    = 5 << 28,      /* sort by version */
-SORT_EXT        = 6 << 28,      /* sort by file name extension */
-SORT_DIR        = 7 << 28,      /* sort by file or directory */
-SORT_MASK       = (7 << 28) * ENABLE_FEATURE_LS_SORTFILES,
+/* what is the overall style of the listing */
+STYLE_COLUMNAR  = 1 << 21,      /* many records per line */
+STYLE_LONG      = 2 << 21,      /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 21,      /* one record per line */
+STYLE_MASK      = STYLE_SINGLE,
 
 /* which of the three times will be used */
 TIME_CHANGE     = (1 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
 TIME_ACCESS     = (1 << 24) * ENABLE_FEATURE_LS_TIMESTAMPS,
 TIME_MASK       = (3 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
 
-FOLLOW_LINKS    = (1 << 25) * ENABLE_FEATURE_LS_FOLLOWLINKS,
+/* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
+SORT_REVERSE    = 1 << 25,
 
-LS_DISP_HR      = (1 << 26) * ENABLE_FEATURE_HUMAN_READABLE,
+SORT_NAME       = 0,            /* sort by file name */
+SORT_SIZE       = 1 << 26,      /* sort by file size */
+SORT_ATIME      = 2 << 26,      /* sort by last access time */
+SORT_CTIME      = 3 << 26,      /* sort by last change time */
+SORT_MTIME      = 4 << 26,      /* sort by last modification time */
+SORT_VERSION    = 5 << 26,      /* sort by version */
+SORT_EXT        = 6 << 26,      /* sort by file name extension */
+SORT_DIR        = 7 << 26,      /* sort by file or directory */
+SORT_MASK       = (7 << 26) * ENABLE_FEATURE_LS_SORTFILES,
 
 LIST_SHORT      = LIST_FILENAME,
 LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
                   LIST_DATE_TIME | LIST_FILENAME | LIST_SYMLINK,
-
-SPLIT_DIR       = 1,
-SPLIT_FILE      = 0,
-SPLIT_SUBDIR    = 2,
 };
 
 /* -Cadil1  Std options, busybox always supports */
 /* -gnsxA   Std options, busybox always supports */
-/* -Q       GNU option? busybox always supports */
+/* -Q       GNU option, busybox always supports */
 /* -k       SELinux option, busybox always supports (ignores if !SELinux) */
 /*          Std has -k which means "show sizes in kbytes" */
-/* -FLRctur Std options, busybox optionally supports */
+/* -FLHRctur Std options, busybox optionally supports */
 /* -p       Std option, busybox optionally supports */
 /*          Not fully compatible - we show not only '/' but other chars too */
 /* -SXvhTw  GNU options, busybox optionally supports */
@@ -199,15 +197,15 @@ SPLIT_SUBDIR    = 2,
 /* Std opts we do not support: */
 /* -H       Follow the links on command line only */
 static const char ls_options[] ALIGN1 =
-	"Cadil1gnsxQAk" /* 13 opts, total 13 */
+	"Cadil1gnsxQAk"      /* 13 opts, total 13 */
 	IF_FEATURE_LS_TIMESTAMPS("cetu") /* 4, 17 */
 	IF_FEATURE_LS_SORTFILES("SXrv")  /* 4, 21 */
 	IF_FEATURE_LS_FILETYPES("Fp")    /* 2, 23 */
-	IF_FEATURE_LS_FOLLOWLINKS("L")   /* 1, 24 */
-	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 25 */
-	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 26 */
-	IF_SELINUX("KZ") /* 2, 28 */
-	IF_FEATURE_AUTOWIDTH("T:w:") /* 2, 30 */
+	IF_FEATURE_LS_RECURSIVE("R")     /* 1, 24 */
+	IF_SELINUX("KZ")                 /* 2, 26 */
+	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 28 */
+	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 29 */
+	IF_FEATURE_AUTOWIDTH("T:w:")     /* 2, 31 */
 	;
 enum {
 	//OPT_C = (1 << 0),
@@ -223,27 +221,55 @@ enum {
 	OPT_Q = (1 << 10),
 	//OPT_A = (1 << 11),
 	//OPT_k = (1 << 12),
-	OPTBIT_F = 13
-		+ 4 * ENABLE_FEATURE_LS_TIMESTAMPS
-		+ 4 * ENABLE_FEATURE_LS_SORTFILES,
-	OPTBIT_color = OPTBIT_F
-		+ 2 * ENABLE_FEATURE_LS_FILETYPES
-		+ 1 * ENABLE_FEATURE_LS_FOLLOWLINKS
-		+ 1 * ENABLE_FEATURE_LS_RECURSIVE
-		+ 1 * ENABLE_FEATURE_HUMAN_READABLE
-		+ 2 * ENABLE_SELINUX
-		+ 2 * ENABLE_FEATURE_AUTOWIDTH,
-	OPT_F     = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
-	OPT_color = (1 << OPTBIT_color),
+
+	OPTBIT_c = 13,
+	OPTBIT_e,
+	OPTBIT_t,
+	OPTBIT_u,
+	OPTBIT_S = OPTBIT_c + 4 * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPTBIT_X, /* 18 */
+	OPTBIT_r,
+	OPTBIT_v,
+	OPTBIT_F = OPTBIT_S + 4 * ENABLE_FEATURE_LS_SORTFILES,
+	OPTBIT_p, /* 22 */
+	OPTBIT_R = OPTBIT_F + 2 * ENABLE_FEATURE_LS_FILETYPES,
+	OPTBIT_K = OPTBIT_R + 1 * ENABLE_FEATURE_LS_RECURSIVE,
+	OPTBIT_Z, /* 25 */
+	OPTBIT_L = OPTBIT_K + 2 * ENABLE_SELINUX,
+	OPTBIT_H, /* 27 */
+	OPTBIT_h = OPTBIT_L + 1 * ENABLE_FEATURE_LS_FOLLOWLINKS,
+	OPTBIT_T = OPTBIT_h + 2 * ENABLE_FEATURE_HUMAN_READABLE,
+	OPTBIT_w, /* 30 */
+	OPTBIT_color = OPTBIT_T + 2 * ENABLE_FEATURE_AUTOWIDTH,
+
+	OPT_c = (1 << OPTBIT_c) * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPT_e = (1 << OPTBIT_e) * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPT_t = (1 << OPTBIT_t) * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPT_u = (1 << OPTBIT_u) * ENABLE_FEATURE_LS_TIMESTAMPS,
+	OPT_S = (1 << OPTBIT_S) * ENABLE_FEATURE_LS_SORTFILES,
+	OPT_X = (1 << OPTBIT_X) * ENABLE_FEATURE_LS_SORTFILES,
+	OPT_r = (1 << OPTBIT_r) * ENABLE_FEATURE_LS_SORTFILES,
+	OPT_v = (1 << OPTBIT_v) * ENABLE_FEATURE_LS_SORTFILES,
+	OPT_F = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
+	OPT_p = (1 << OPTBIT_p) * ENABLE_FEATURE_LS_FILETYPES,
+	OPT_R = (1 << OPTBIT_R) * ENABLE_FEATURE_LS_RECURSIVE,
+	OPT_K = (1 << OPTBIT_K) * ENABLE_SELINUX,
+	OPT_Z = (1 << OPTBIT_Z) * ENABLE_SELINUX,
+	OPT_L = (1 << OPTBIT_L) * ENABLE_FEATURE_LS_FOLLOWLINKS,
+	OPT_H = (1 << OPTBIT_H) * ENABLE_FEATURE_LS_FOLLOWLINKS,
+	OPT_h = (1 << OPTBIT_h) * ENABLE_FEATURE_HUMAN_READABLE,
+	OPT_T = (1 << OPTBIT_T) * ENABLE_FEATURE_AUTOWIDTH,
+	OPT_w = (1 << OPTBIT_w) * ENABLE_FEATURE_AUTOWIDTH,
+	OPT_color = (1 << OPTBIT_color) * ENABLE_FEATURE_LS_COLOR,
 };
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
-static const unsigned opt_flags[] = {
+static const uint32_t opt_flags[] = {
 	LIST_SHORT | STYLE_COLUMNAR, /* C */
 	DISP_HIDDEN | DISP_DOT,      /* a */
 	DISP_NOLIST,                 /* d */
 	LIST_INO,                    /* i */
-	LIST_LONG | STYLE_LONG,      /* l - remember LS_DISP_HR in mask! */
+	LIST_LONG | STYLE_LONG,      /* l */
 	LIST_SHORT | STYLE_SINGLE,   /* 1 */
 	0,                           /* g (don't show owner) - handled via OPT_g */
 	LIST_ID_NUMERIC,             /* n */
@@ -268,23 +294,15 @@ static const unsigned opt_flags[] = {
 	LIST_FILETYPE | LIST_EXEC,   /* F */
 	LIST_FILETYPE,               /* p */
 #endif
-#if ENABLE_FEATURE_LS_FOLLOWLINKS
-	FOLLOW_LINKS,                /* L */
-#endif
 #if ENABLE_FEATURE_LS_RECURSIVE
 	DISP_RECURSIVE,              /* R */
-#endif
-#if ENABLE_FEATURE_HUMAN_READABLE
-	LS_DISP_HR,                  /* h */
 #endif
 #if ENABLE_SELINUX
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
 	LIST_MODEBITS|LIST_ID_NAME|LIST_CONTEXT, /* Z */
 #endif
-	(1U<<31)
-	/* options after Z are not processed through opt_flags:
-	 * T, w - ignored
-	 */
+	(1U << 31)
+	/* options after Z are not processed through opt_flags */
 };
 
 
@@ -344,7 +362,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 	struct dnode *cur;
 	IF_SELINUX(security_context_t sid = NULL;)
 
-	if ((all_fmt & FOLLOW_LINKS) || force_follow) {
+	if ((option_mask32 & OPT_L) || force_follow) {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled())  {
 			 getfilecon(fullname, &sid);
@@ -699,7 +717,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 					(int) major(dn->dstat.st_rdev),
 					(int) minor(dn->dstat.st_rdev));
 		} else {
-			if (all_fmt & LS_DISP_HR) {
+			if (option_mask32 & OPT_h) {
 				column += printf("%"HUMAN_READABLE_MAX_WIDTH_STR"s ",
 					/* print st_size, show one fractional, use suffixes */
 					make_human_readable_str(dn->dstat.st_size, 1, 0)
@@ -887,12 +905,6 @@ static void showdirs(struct dnode **dn, int first)
 	struct dnode **subdnp;
 	struct dnode **dnd;
 
-	/* Never happens:
-	if (dn == NULL || ndirs < 1) {
-		return;
-	}
-	*/
-
 	for (; *dn; dn++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
 			if (!first)
@@ -1031,8 +1043,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
-	all_fmt = LIST_SHORT |
-		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
+	all_fmt = LIST_SHORT | (ENABLE_FEATURE_LS_SORTFILES * SORT_NAME);
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* obtain the terminal width */
@@ -1050,8 +1061,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		 * in some pairs of opts, only last one takes effect:
 		 */
 		IF_FEATURE_LS_TIMESTAMPS(IF_FEATURE_LS_SORTFILES(":t-S:S-t")) /* time/size */
-		// ":H-L:L-H:" - we don't have -H
-		// ":m-l:l-m:" - we don't have -m
+		// ":m-l:l-m" - we don't have -m
+		IF_FEATURE_LS_FOLLOWLINKS(":H-L:L-H")
 		":C-xl:x-Cl:l-xC" /* bycols/bylines/long */
 		":C-1:1-C" /* bycols/oneline */
 		":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
@@ -1062,9 +1073,9 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_AUTOWIDTH(, NULL, &terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
-	for (i = 0; opt_flags[i] != (1U<<31); i++) {
+	for (i = 0; opt_flags[i] != (1U << 31); i++) {
 		if (opt & (1 << i)) {
-			unsigned flags = opt_flags[i];
+			uint32_t flags = opt_flags[i];
 
 			if (flags & STYLE_MASK)
 				all_fmt &= ~STYLE_MASK;
@@ -1134,9 +1145,11 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	dn = NULL;
 	nfiles = 0;
 	do {
-		/* NB: follow links on command line unless -l, -s or -F */
 		cur = my_stat(*argv, *argv,
+			/* follow links on command line unless -l, -s or -F: */
 			!((all_fmt & (STYLE_LONG|LIST_BLOCKS)) || (option_mask32 & OPT_F))
+			/* ... or if -H: */
+			|| (option_mask32 & OPT_H)
 		);
 		argv++;
 		if (!cur)
