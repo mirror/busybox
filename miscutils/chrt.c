@@ -53,23 +53,25 @@ int chrt_main(int argc UNUSED_PARAM, char **argv)
 	const char *current_new;
 	int policy = SCHED_RR;
 
-	/* at least 1 arg; only one policy accepted */
-	opt_complementary = "-1:r--fo:f--ro:o--rf";
+	/* only one policy accepted */
+	opt_complementary = "r--fo:f--ro:o--rf";
 	opt = getopt32(argv, "+mprfo");
+	if (opt & OPT_m) { /* print min/max and exit */
+		show_min_max(SCHED_FIFO);
+		show_min_max(SCHED_RR);
+		show_min_max(SCHED_OTHER);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
+	}
 	if (opt & OPT_r)
 		policy = SCHED_RR;
 	if (opt & OPT_f)
 		policy = SCHED_FIFO;
 	if (opt & OPT_o)
 		policy = SCHED_OTHER;
-	if (opt & OPT_m) { /* print min/max */
-		show_min_max(SCHED_FIFO);
-		show_min_max(SCHED_RR);
-		show_min_max(SCHED_OTHER);
-		fflush_stdout_and_exit(EXIT_SUCCESS);
-	}
 
 	argv += optind;
+	if (!argv[0])
+		bb_show_usage();
 	if (opt & OPT_p) {
 		pid_str = *argv++;
 		if (*argv) { /* "-p <priority> <pid> [...]" */
