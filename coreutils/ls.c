@@ -155,15 +155,17 @@ enum {
 	OPT_Q = (1 << 10),
 	//OPT_A = (1 << 11),
 	//OPT_k = (1 << 12),
-	OPTBIT_color = 13
+	OPTBIT_F = 13
 		+ 4 * ENABLE_FEATURE_LS_TIMESTAMPS
-		+ 4 * ENABLE_FEATURE_LS_SORTFILES
+		+ 4 * ENABLE_FEATURE_LS_SORTFILES,
+	OPTBIT_color = OPTBIT_F
 		+ 2 * ENABLE_FEATURE_LS_FILETYPES
 		+ 1 * ENABLE_FEATURE_LS_FOLLOWLINKS
 		+ 1 * ENABLE_FEATURE_LS_RECURSIVE
 		+ 1 * ENABLE_FEATURE_HUMAN_READABLE
 		+ 2 * ENABLE_SELINUX
 		+ 2 * ENABLE_FEATURE_AUTOWIDTH,
+	OPT_F     = (1 << OPTBIT_F) * ENABLE_FEATURE_LS_FILETYPES,
 	OPT_color = 1 << OPTBIT_color,
 };
 
@@ -1066,8 +1068,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	dn = NULL;
 	nfiles = 0;
 	do {
-		/* NB: follow links on command line unless -l or -s */
-		cur = my_stat(*argv, *argv, !(all_fmt & (STYLE_LONG|LIST_BLOCKS)));
+		/* NB: follow links on command line unless -l, -s or -F */
+		cur = my_stat(*argv, *argv,
+			!((all_fmt & (STYLE_LONG|LIST_BLOCKS)) || (option_mask32 & OPT_F))
+		);
 		argv++;
 		if (!cur)
 			continue;
