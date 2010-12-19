@@ -56,7 +56,7 @@ TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
 COLUMN_GAP      = 2,            /* includes the file type char */
 
 /* what is the overall style of the listing */
-STYLE_COLUMNS   = 1 << 21,      /* fill columns */
+STYLE_COLUMNAR  = 1 << 21,      /* many records per line */
 STYLE_LONG      = 2 << 21,      /* one record per line, extended info */
 STYLE_SINGLE    = 3 << 21,      /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
@@ -167,52 +167,45 @@ enum {
 	OPT_color = 1 << OPTBIT_color,
 };
 
-enum {
-	LIST_MASK_TRIGGER	= 0,
-	STYLE_MASK_TRIGGER	= STYLE_MASK,
-	DISP_MASK_TRIGGER	= DISP_ROWS,
-	SORT_MASK_TRIGGER	= SORT_MASK,
-};
-
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
 static const unsigned opt_flags[] = {
-	LIST_SHORT | STYLE_COLUMNS, /* C */
-	DISP_HIDDEN | DISP_DOT,     /* a */
-	DISP_NOLIST,                /* d */
-	LIST_INO,                   /* i */
-	LIST_LONG | STYLE_LONG,     /* l - remember LS_DISP_HR in mask! */
-	LIST_SHORT | STYLE_SINGLE,  /* 1 */
-	0,                          /* g (don't show owner) - handled via OPT_g */
-	LIST_ID_NUMERIC,            /* n */
-	LIST_BLOCKS,                /* s */
-	DISP_ROWS,                  /* x */
-	0,                          /* Q (quote filename) - handled via OPT_Q */
-	DISP_HIDDEN,                /* A */
+	LIST_SHORT | STYLE_COLUMNAR, /* C */
+	DISP_HIDDEN | DISP_DOT,      /* a */
+	DISP_NOLIST,                 /* d */
+	LIST_INO,                    /* i */
+	LIST_LONG | STYLE_LONG,      /* l - remember LS_DISP_HR in mask! */
+	LIST_SHORT | STYLE_SINGLE,   /* 1 */
+	0,                           /* g (don't show owner) - handled via OPT_g */
+	LIST_ID_NUMERIC,             /* n */
+	LIST_BLOCKS,                 /* s */
+	LIST_SHORT | DISP_ROWS | STYLE_COLUMNAR, /* x */
+	0,                           /* Q (quote filename) - handled via OPT_Q */
+	DISP_HIDDEN,                 /* A */
 	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),   /* c */
-	LIST_FULLTIME,              /* e */
+	LIST_FULLTIME,               /* e */
 	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME,   /* t */
 	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME),   /* u */
 #endif
 #if ENABLE_FEATURE_LS_SORTFILES
-	SORT_SIZE,                  /* S */
-	SORT_EXT,                   /* X */
-	SORT_REVERSE,               /* r */
-	SORT_VERSION,               /* v */
+	SORT_SIZE,                   /* S */
+	SORT_EXT,                    /* X */
+	SORT_REVERSE,                /* r */
+	SORT_VERSION,                /* v */
 #endif
 #if ENABLE_FEATURE_LS_FILETYPES
-	LIST_FILETYPE | LIST_EXEC,  /* F */
-	LIST_FILETYPE,              /* p */
+	LIST_FILETYPE | LIST_EXEC,   /* F */
+	LIST_FILETYPE,               /* p */
 #endif
 #if ENABLE_FEATURE_LS_FOLLOWLINKS
-	FOLLOW_LINKS,               /* L */
+	FOLLOW_LINKS,                /* L */
 #endif
 #if ENABLE_FEATURE_LS_RECURSIVE
-	DISP_RECURSIVE,             /* R */
+	DISP_RECURSIVE,              /* R */
 #endif
 #if ENABLE_FEATURE_HUMAN_READABLE
-	LS_DISP_HR,                 /* h */
+	LS_DISP_HR,                  /* h */
 #endif
 #if ENABLE_SELINUX
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
@@ -547,7 +540,7 @@ static unsigned calc_name_len(const char *name)
 
 
 /* Return the number of used columns.
- * Note that only STYLE_COLUMNS uses return value.
+ * Note that only STYLE_COLUMNAR uses return value.
  * STYLE_SINGLE and STYLE_LONG don't care.
  * coreutils 7.2 also supports:
  * ls -b (--escape) = octal escapes (although it doesn't look like working)
@@ -581,7 +574,7 @@ static unsigned print_name(const char *name)
 }
 
 /* Return the number of used columns.
- * Note that only STYLE_COLUMNS uses return value,
+ * Note that only STYLE_COLUMNAR uses return value,
  * STYLE_SINGLE and STYLE_LONG don't care.
  */
 static NOINLINE unsigned list_single(const struct dnode *dn)
@@ -739,7 +732,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 	unsigned i, ncols, nrows, row, nc;
 	unsigned column = 0;
 	unsigned nexttab = 0;
-	unsigned column_width = 0; /* used only by STYLE_COLUMNS */
+	unsigned column_width = 0; /* used only by STYLE_COLUMNAR */
 
 	if (all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
 		ncols = 1;
@@ -1005,21 +998,15 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & (1 << i)) {
 			unsigned flags = opt_flags[i];
 
-			if (flags & LIST_MASK_TRIGGER)
-				all_fmt &= ~LIST_MASK;
-			if (flags & STYLE_MASK_TRIGGER)
+			if (flags & STYLE_MASK)
 				all_fmt &= ~STYLE_MASK;
-			if (flags & SORT_MASK_TRIGGER)
+			if (flags & SORT_MASK)
 				all_fmt &= ~SORT_MASK;
-			if (flags & DISP_MASK_TRIGGER)
-				all_fmt &= ~DISP_MASK;
 			if (flags & TIME_MASK)
 				all_fmt &= ~TIME_MASK;
+
 			if (flags & LIST_CONTEXT)
 				all_fmt |= STYLE_SINGLE;
-			/* huh?? opt cannot be 'l' */
-			//if (LS_DISP_HR && opt == 'l')
-			//	all_fmt &= ~LS_DISP_HR;
 			all_fmt |= flags;
 		}
 	}
@@ -1066,7 +1053,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	/* choose a display format if one was not already specified by an option */
 	if (!(all_fmt & STYLE_MASK))
-		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
+		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNAR : STYLE_SINGLE);
 
 	argv += optind;
 	if (!argv[0])
