@@ -1,7 +1,16 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * helper routines
+ *
+ * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
+ *
+ * Licensed under GPLv2, see file LICENSE in this source tree.
+ */
 
 struct globals {
 	pid_t helper_pid;
 	unsigned timeout;
+	unsigned verbose;
 	unsigned opts;
 	char *user;
 	char *pass;
@@ -12,6 +21,7 @@ struct globals {
 
 #define G (*ptr_to_globals)
 #define timeout         (G.timeout  )
+#define verbose         (G.verbose  )
 #define opts            (G.opts     )
 //#define user            (G.user     )
 //#define pass            (G.pass     )
@@ -26,9 +36,9 @@ struct globals {
 
 //char FAST_FUNC *parse_url(char *url, char **user, char **pass);
 
-void FAST_FUNC launch_helper(const char **argv);
-void FAST_FUNC get_cred_or_die(int fd);
+void launch_helper(const char **argv) FAST_FUNC;
+void get_cred_or_die(int fd) FAST_FUNC;
 
-const FAST_FUNC char *command(const char *fmt, const char *param);
+char *send_mail_command(const char *fmt, const char *param) FAST_FUNC;
 
-void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol);
+void encode_base64(char *fname, const char *text, const char *eol) FAST_FUNC;

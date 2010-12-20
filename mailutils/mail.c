@@ -75,13 +75,16 @@ void FAST_FUNC launch_helper(const char **argv)
 	atexit(kill_helper);
 }
 
-const FAST_FUNC char *command(const char *fmt, const char *param)
+char* FAST_FUNC send_mail_command(const char *fmt, const char *param)
 {
-	const char *msg = fmt;
+	char *msg;
 	if (timeout)
 		alarm(timeout);
-	if (msg) {
+	msg = (char*)fmt;
+	if (fmt) {
 		msg = xasprintf(fmt, param);
+		if (verbose)
+			bb_error_msg("send:'%s'", msg);
 		printf("%s\r\n", msg);
 	}
 	fflush_all();
@@ -90,7 +93,7 @@ const FAST_FUNC char *command(const char *fmt, const char *param)
 
 // NB: parse_url can modify url[] (despite const), but only if '@' is there
 /*
-static char FAST_FUNC *parse_url(char *url, char **user, char **pass)
+static char* FAST_FUNC parse_url(char *url, char **user, char **pass)
 {
 	// parse [user[:pass]@]host
 	// return host

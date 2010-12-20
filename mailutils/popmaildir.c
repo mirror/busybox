@@ -14,9 +14,10 @@
 
 static void pop3_checkr(const char *fmt, const char *param, char **ret)
 {
-	const char *msg = command(fmt, param);
+	char *msg = send_mail_command(fmt, param);
 	char *answer = xmalloc_fgetline(stdin);
 	if (answer && '+' == answer[0]) {
+		free(msg);
 		if (timeout)
 			alarm(0);
 		if (ret) {
@@ -27,7 +28,7 @@ static void pop3_checkr(const char *fmt, const char *param, char **ret)
 			free(answer);
 		return;
 	}
-	bb_error_msg_and_die("%s failed: %s", msg, answer);
+	bb_error_msg_and_die("%s failed, reply was: %s", msg, answer);
 }
 
 static void pop3_check(const char *fmt, const char *param)

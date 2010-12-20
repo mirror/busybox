@@ -99,6 +99,28 @@ Content-Transfer-Encoding: 7bit
 ...random junk added by mailing list robots and such...
 */
 
+/* man makemime:
+
+ * -c TYPE: create a (non-multipart) MIME section with Content-Type: TYPE
+ * makemime -c TYPE [-e ENCODING] [-o OUTFILE] [-C CHARSET] [-N NAME] [-a HEADER...] FILE
+ * The -C option sets the MIME charset attribute for text/plain content.
+ * The -N option sets the name attribute for Content-Type:
+ * Encoding must be one of the following: 7bit, 8bit, quoted-printable, or base64.
+
+ * -m multipart/TYPE: create a multipart MIME collection with Content-Type: multipart/TYPE
+ * makemime -m multipart/TYPE [-e ENCODING] [-o OUTFILE] [-a HEADER...] FILE
+ * Type must be either "multipart/mixed", "multipart/alternative", or some other MIME multipart content type.
+ * Additionally, encoding can only be "7bit" or "8bit", and will default to "8bit" if not specified.
+ * Finally, filename must be a MIME-formatted section, NOT a regular file.
+ * The -m option creates an initial multipart MIME collection, that contains only one MIME section, taken from filename.
+ * The collection is written to standard output, or the pipe or to outputfile.
+
+ * -j FILE1: add a section to a multipart MIME collection
+ * makemime -j FILE1 [-o OUTFILE] FILE2
+ * FILE1 must be a MIME collection that was previously created by the -m option.
+ * FILE2 must be a MIME section that was previously created by the -c option.
+ * The -j options adds the MIME section in FILE2 to the MIME collection in FILE1.
+ */
 int makemime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int makemime_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -107,14 +129,14 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 #define boundary opt_output
 
 	enum {
-		OPT_c = 1 << 0,         // Content-Type:
+		OPT_c = 1 << 0,         // create (non-multipart) section
 		OPT_e = 1 << 1,         // Content-Transfer-Encoding. Ignored. Assumed base64
 		OPT_o = 1 << 2,         // output to
 		OPT_C = 1 << 3,         // charset
 		OPT_N = 1 << 4,         // COMPAT
 		OPT_a = 1 << 5,         // additional headers
-		OPT_m = 1 << 6,         // COMPAT
-		OPT_j = 1 << 7,         // COMPAT
+		//OPT_m = 1 << 6,         // create mutipart section
+		//OPT_j = 1 << 7,         // join section to multipart section
 	};
 
 	INIT_G();
@@ -122,8 +144,8 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 	// parse options
 	opt_complementary = "a::";
 	opts = getopt32(argv,
-		"c:e:o:C:N:a:m:j:",
-		&G.content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers, NULL, NULL
+		"c:e:o:C:N:a", //:m:j:",
+		&G.content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
 	);
 	//argc -= optind;
 	argv += optind;

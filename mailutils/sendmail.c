@@ -6,6 +6,38 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define sendmail_trivial_usage
+//usage:       "[OPTIONS] [RECIPIENT_EMAIL]..."
+//usage:#define sendmail_full_usage "\n\n"
+//usage:       "Read email from stdin and send it\n"
+//usage:     "\nStandard options:"
+//usage:     "\n	-t		Read additional recipients from message body"
+//usage:     "\n	-f SENDER	Sender (required)"
+//usage:     "\n	-o OPTIONS	Various options. -oi implied, others are ignored"
+//usage:     "\n	-i		-oi synonym. implied and ignored"
+//usage:     "\n"
+//usage:     "\nBusybox specific options:"
+//usage:     "\n	-v		Verbose"
+//usage:     "\n	-w SECS		Network timeout"
+//usage:     "\n	-H 'PROG ARGS'	Run connection helper"
+//usage:     "\n			Examples:"
+//usage:     "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp"
+//usage:     "\n				-connect smtp.gmail.com:25' <email.txt"
+//usage:     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]"
+//usage:     "\n			-H 'exec openssl s_client -quiet -tls1"
+//usage:     "\n				-connect smtp.gmail.com:465' <email.txt"
+//usage:     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]"
+//usage:     "\n	-S HOST[:PORT]	Server"
+//usage:     "\n	-au<username>	Username for AUTH LOGIN"
+//usage:     "\n	-ap<password>	Password for AUTH LOGIN"
+//usage:     "\n	-am<method>	Authentication method. Ignored. LOGIN is implied"
+//usage:     "\n"
+//usage:     "\nOther options are silently ignored; -oi -t is implied"
+//usage:	IF_MAKEMIME(
+//usage:     "\nUse makemime applet to create message with attachments"
+//usage:	)
+
 #include "libbb.h"
 #include "mail.h"
 
@@ -13,23 +45,35 @@
 // set to 0 to not limit
 #define MAX_HEADERS 256
 
+static void send_r_n(const char *s)
+{
+	if (verbose)
+		bb_error_msg("send:'%s'", s);
+	printf("%s\r\n", s);
+}
+
 static int smtp_checkp(const char *fmt, const char *param, int code)
 {
 	char *answer;
-	const char *msg = command(fmt, param);
+	char *msg = send_mail_command(fmt, param);
 	// read stdin
-	// if the string has a form \d\d\d- -- read next string. E.g. EHLO response
+	// if the string has a form NNN- -- read next string. E.g. EHLO response
 	// parse first bytes to a number
 	// if code = -1 then just return this number
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
-	while ((answer = xmalloc_fgetline(stdin)) != NULL)
+	while ((answer = xmalloc_fgetline(stdin)) != NULL) {
+//		if (verbose)
+			bb_error_msg("recv:'%.*s' %d", (int)(strchrnul(answer, '\r') - answer), answer, verbose);
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
+		free(answer);
+	}
 	if (answer) {
 		int n = atoi(answer);
 		if (timeout)
 			alarm(0);
+		free(msg);
 		free(answer);
 		if (-1 == code || n == code)
 			return n;
@@ -86,6 +130,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		OPT_H = 1 << 5,         // use external connection helper
 		OPT_S = 1 << 6,         // specify connection string
 		OPT_a = 1 << 7,         // authentication tokens
+		OPT_v = 1 << 8,         // verbosity
 	};
 
 	// init global variables
@@ -96,12 +141,13 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	G.fp0 = xfdopen_for_read(3);
 
 	// parse options
-	// -f is required. -H and -S are mutually exclusive
-	opt_complementary = "f:w+:H--S:S--H:a::";
+	// -v is a counter, -f is required. -H and -S are mutually exclusive, -a is a list
+	opt_complementary = "vv:f:w+:H--S:S--H:a::";
 	// N.B. since -H and -S are mutually exclusive they do not interfere in opt_connect
 	// -a is for ssmtp (http://downloads.openwrt.org/people/nico/man/man8/ssmtp.8.html) compatibility,
 	// it is still under development.
-	opts = getopt32(argv, "tf:o:iw:H:S:a::", &opt_from, NULL, &timeout, &opt_connect, &opt_connect, &list);
+	opts = getopt32(argv, "tf:o:iw:H:S:a::v", &opt_from, NULL,
+			&timeout, &opt_connect, &opt_connect, &list, &verbose);
 	//argc -= optind;
 	argv += optind;
 
@@ -214,7 +260,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			if ('.' == s[0] /*&& '\0' == s[1] */)
 				printf(".");
 			// dump read line
-			printf("%s\r\n", s);
+			send_r_n(s);
 			free(s);
 			continue;
 		}
@@ -261,14 +307,14 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 				goto bail;
 			// dump the headers
 			while (list) {
-				printf("%s\r\n", (char *) llist_pop(&list));
+				send_r_n((char *) llist_pop(&list));
 			}
 			// stop analyzing headers
 			code++;
 			// N.B. !s means: we read nothing, and nothing to be read in the future.
 			// just dump empty line and break the loop
 			if (!s) {
-				puts("\r");
+				send_r_n("");
 				break;
 			}
 			// go dump message body
