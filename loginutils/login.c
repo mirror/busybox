@@ -217,6 +217,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	const char *failed_msg;
 	struct passwd pwdstruct;
 	char pwdbuf[256];
+	char **pamenv;
 #endif
 
 	username[0] = '\0';
@@ -399,6 +400,16 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	setup_environment(shell,
 			(!(opt & LOGIN_OPT_p) * SETUP_ENV_CLEARENV) + SETUP_ENV_CHANGEENV,
 			pw);
+
+#if ENABLE_PAM
+	/* Modules such as pam_env will setup the PAM environment,
+	 * which should be copied into the new environment. */
+	pamenv = pam_getenvlist(pamh);
+	if (pamenv) while (*pamenv) {
+		putenv(*pamenv);
+		pamenv++;
+	}
+#endif
 
 	motd();
 
