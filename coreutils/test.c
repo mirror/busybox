@@ -878,7 +878,10 @@ int test_main(int argc, char **argv)
 	res = !oexpr(check_operator(*args));
 
 	if (*args != NULL && *++args != NULL) {
-		/* TODO: example when this happens? */
+		/* Examples:
+		 * test 3 -lt 5 6
+		 * test -t 1 2
+		 */
 		bb_error_msg("%s: unknown operand", *args);
 		res = 2;
 	}
