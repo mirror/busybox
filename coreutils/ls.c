@@ -135,51 +135,48 @@ LIST_ID_NAME    = 1 << 4,
 LIST_ID_NUMERIC = 1 << 5,
 LIST_CONTEXT    = 1 << 6,
 LIST_SIZE       = 1 << 7,
-//LIST_DEV        = 1 << 8, - unused, synonym to LIST_SIZE
-LIST_DATE_TIME  = 1 << 9,
-LIST_FULLTIME   = 1 << 10,
-LIST_FILENAME   = 1 << 11,
-LIST_SYMLINK    = 1 << 12,
-LIST_FILETYPE   = 1 << 13,
-LIST_EXEC       = 1 << 14,
+LIST_DATE_TIME  = 1 << 8,
+LIST_FULLTIME   = 1 << 9,
+LIST_SYMLINK    = 1 << 10,
+LIST_FILETYPE   = 1 << 11,
+LIST_EXEC       = 1 << 12,
 LIST_MASK       = (LIST_EXEC << 1) - 1,
 
 /* what files will be displayed */
-DISP_DIRNAME    = 1 << 15,      /* 2 or more items? label directories */
-DISP_HIDDEN     = 1 << 16,      /* show filenames starting with . */
-DISP_DOT        = 1 << 17,      /* show . and .. */
-DISP_NOLIST     = 1 << 18,      /* show directory as itself, not contents */
-DISP_RECURSIVE  = 1 << 19,      /* show directory and everything below it */
-DISP_ROWS       = 1 << 20,      /* print across rows */
+DISP_DIRNAME    = 1 << 13,      /* 2 or more items? label directories */
+DISP_HIDDEN     = 1 << 14,      /* show filenames starting with . */
+DISP_DOT        = 1 << 15,      /* show . and .. */
+DISP_NOLIST     = 1 << 16,      /* show directory as itself, not contents */
+DISP_RECURSIVE  = 1 << 17,      /* show directory and everything below it */
+DISP_ROWS       = 1 << 18,      /* print across rows */
 DISP_MASK       = ((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1),
 
 /* what is the overall style of the listing */
-STYLE_COLUMNAR  = 1 << 21,      /* many records per line */
-STYLE_LONG      = 2 << 21,      /* one record per line, extended info */
-STYLE_SINGLE    = 3 << 21,      /* one record per line */
+STYLE_COLUMNAR  = 1 << 19,      /* many records per line */
+STYLE_LONG      = 2 << 19,      /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 19,      /* one record per line */
 STYLE_MASK      = STYLE_SINGLE,
 
 /* which of the three times will be used */
-TIME_CHANGE     = (1 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
-TIME_ACCESS     = (1 << 24) * ENABLE_FEATURE_LS_TIMESTAMPS,
-TIME_MASK       = (3 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
+TIME_CHANGE     = (1 << 21) * ENABLE_FEATURE_LS_TIMESTAMPS,
+TIME_ACCESS     = (1 << 22) * ENABLE_FEATURE_LS_TIMESTAMPS,
+TIME_MASK       = (3 << 21) * ENABLE_FEATURE_LS_TIMESTAMPS,
 
 /* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
-SORT_REVERSE    = 1 << 25,
+SORT_REVERSE    = 1 << 23,
 
 SORT_NAME       = 0,            /* sort by file name */
-SORT_SIZE       = 1 << 26,      /* sort by file size */
-SORT_ATIME      = 2 << 26,      /* sort by last access time */
-SORT_CTIME      = 3 << 26,      /* sort by last change time */
-SORT_MTIME      = 4 << 26,      /* sort by last modification time */
-SORT_VERSION    = 5 << 26,      /* sort by version */
-SORT_EXT        = 6 << 26,      /* sort by file name extension */
-SORT_DIR        = 7 << 26,      /* sort by file or directory */
-SORT_MASK       = (7 << 26) * ENABLE_FEATURE_LS_SORTFILES,
+SORT_SIZE       = 1 << 24,      /* sort by file size */
+SORT_ATIME      = 2 << 24,      /* sort by last access time */
+SORT_CTIME      = 3 << 24,      /* sort by last change time */
+SORT_MTIME      = 4 << 24,      /* sort by last modification time */
+SORT_VERSION    = 5 << 24,      /* sort by version */
+SORT_EXT        = 6 << 24,      /* sort by file name extension */
+SORT_DIR        = 7 << 24,      /* sort by file or directory */
+SORT_MASK       = (7 << 24) * ENABLE_FEATURE_LS_SORTFILES,
 
-LIST_SHORT      = LIST_FILENAME,
 LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
-                  LIST_DATE_TIME | LIST_FILENAME | LIST_SYMLINK,
+                  LIST_DATE_TIME | LIST_SYMLINK,
 };
 
 /* -Cadil1  Std options, busybox always supports */
@@ -265,16 +262,16 @@ enum {
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
 static const uint32_t opt_flags[] = {
-	LIST_SHORT | STYLE_COLUMNAR, /* C */
+	STYLE_COLUMNAR,		     /* C */
 	DISP_HIDDEN | DISP_DOT,      /* a */
 	DISP_NOLIST,                 /* d */
 	LIST_INO,                    /* i */
 	LIST_LONG | STYLE_LONG,      /* l */
-	LIST_SHORT | STYLE_SINGLE,   /* 1 */
+	STYLE_SINGLE,                /* 1 */
 	0,                           /* g (don't show owner) - handled via OPT_g */
 	LIST_ID_NUMERIC,             /* n */
 	LIST_BLOCKS,                 /* s */
-	LIST_SHORT | DISP_ROWS | STYLE_COLUMNAR, /* x */
+	DISP_ROWS | STYLE_COLUMNAR,  /* x */
 	0,                           /* Q (quote filename) - handled via OPT_Q */
 	DISP_HIDDEN,                 /* A */
 	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
@@ -711,7 +708,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 					(int) dn->dstat.st_uid,
 					(int) dn->dstat.st_gid);
 	}
-	if (all_fmt & (LIST_SIZE /*|LIST_DEV*/ )) {
+	if (all_fmt & LIST_SIZE) {
 		if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
 			column += printf("%4u, %3u ",
 					(int) major(dn->dstat.st_rdev),
@@ -759,20 +756,20 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 		freecon(dn->sid);
 	}
 #endif
-	if (all_fmt & LIST_FILENAME) {
+
 #if ENABLE_FEATURE_LS_COLOR
-		if (show_color) {
-			info.st_mode = 0; /* for fgcolor() */
-			lstat(dn->fullname, &info);
-			printf("\033[%u;%um", bold(info.st_mode),
-					fgcolor(info.st_mode));
-		}
-#endif
-		column += print_name(dn->name);
-		if (show_color) {
-			printf("\033[0m");
-		}
+	if (show_color) {
+		info.st_mode = 0; /* for fgcolor() */
+		lstat(dn->fullname, &info);
+		printf("\033[%u;%um", bold(info.st_mode),
+			fgcolor(info.st_mode));
 	}
+#endif
+	column += print_name(dn->name);
+	if (show_color) {
+		printf("\033[0m");
+	}
+
 	if (all_fmt & LIST_SYMLINK) {
 		if (S_ISLNK(dn->dstat.st_mode) && lpath) {
 			printf(" -> ");
@@ -1043,7 +1040,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	init_unicode();
 
-	all_fmt = LIST_SHORT | (ENABLE_FEATURE_LS_SORTFILES * SORT_NAME);
+	all_fmt = ENABLE_FEATURE_LS_SORTFILES * SORT_NAME;
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* obtain the terminal width */
