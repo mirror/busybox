@@ -63,7 +63,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	// if code != -1 then checks whether the number equals the code
 	// if not equal -> die saying msg
 	while ((answer = xmalloc_fgetline(stdin)) != NULL) {
-//		if (verbose)
+		if (verbose)
 			bb_error_msg("recv:'%.*s' %d", (int)(strchrnul(answer, '\r') - answer), answer, verbose);
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
