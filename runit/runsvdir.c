@@ -312,8 +312,11 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 						last_mtime = s.st_mtime;
 						last_dev = s.st_dev;
 						last_ino = s.st_ino;
-						//if (now <= mtime)
-						//	sleep(1);
+						/* if the svdir changed this very second, wait until the
+						 * next second, because we won't be able to detect more
+						 * changes within this second */
+						while (time(NULL) == last_mtime)
+							usleep(100000);
 						need_rescan = do_rescan();
 						while (fchdir(curdir) == -1) {
 							warn2_cannot("change directory, pausing", "");

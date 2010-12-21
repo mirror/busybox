@@ -56,6 +56,11 @@ s     - suid type:
 # define APPLET_NOFORK(name,main,l,s,name2)  { #name, #main, l, s, 1, 1 },
 #endif
 
+#if ENABLE_INSTALL_NO_USR
+# define _BB_DIR_USR_BIN _BB_DIR_BIN
+# define _BB_DIR_USR_SBIN _BB_DIR_SBIN
+#endif
+
 
 INSERT
 IF_TEST(APPLET_NOFORK([,  test, _BB_DIR_USR_BIN, _BB_SUID_DROP, test))
