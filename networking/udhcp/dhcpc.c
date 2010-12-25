@@ -926,6 +926,10 @@ static void client_background(void)
 //usage:     "\n	-v		Verbose"
 //usage:	)
 //usage:	)
+//usage:     "\nSignals:"
+//usage:     "\n	USR1	Renew current lease"
+//usage:     "\n	USR2	Release current lease"
+
 
 int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
