@@ -13063,7 +13063,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
-	if (/* argv[0] && */ argv[0][0] == '-')
+	if (argv[0] && argv[0][0] == '-')
 		isloginsh = 1;
 	if (isloginsh) {
 		state = 1;
