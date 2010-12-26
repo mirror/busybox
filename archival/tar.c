@@ -882,7 +882,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
 		"tt:vv:" // count -t,-v
-		"?:" // bail out with usage instead of error return
 		"X::T::" // cumulative lists
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		"\xff::" // cumulative lists for --exclude
