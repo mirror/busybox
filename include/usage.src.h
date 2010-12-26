@@ -592,35 +592,6 @@ INSERT
      "\n	-i	Prompt before overwrite" \
      "\n	-l,-s	Create (sym)links" \
 
-#define cpio_trivial_usage \
-       "[-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]") \
-       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")
-#define cpio_full_usage "\n\n" \
-       "Extract or list files from a cpio archive" \
-	IF_FEATURE_CPIO_O(", or" \
-     "\ncreate an archive" IF_FEATURE_CPIO_P(" (-o) or copy files (-p)") \
-		" using file list on stdin" \
-	) \
-     "\n" \
-     "\nMain operation mode:" \
-     "\n	-t	List" \
-     "\n	-i	Extract" \
-	IF_FEATURE_CPIO_O( \
-     "\n	-o	Create (requires -H newc)" \
-	) \
-	IF_FEATURE_CPIO_P( \
-     "\n	-p DIR	Copy files to DIR" \
-	) \
-     "\nOptions:" \
-     "\n	-d	Make leading directories" \
-     "\n	-m	Preserve mtime" \
-     "\n	-v	Verbose" \
-     "\n	-u	Overwrite" \
-     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file" \
-	IF_FEATURE_CPIO_O( \
-     "\n	-H newc	Archive format" \
-	) \
-
 #define crond_trivial_usage \
        "-fbS -l N " IF_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
 #define crond_full_usage "\n\n" \
