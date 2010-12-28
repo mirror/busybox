@@ -10,6 +10,20 @@
 
 //applet:IF_MODPROBE(APPLET(modprobe, _BB_DIR_SBIN, _BB_SUID_DROP))
 
+#include "libbb.h"
+#include "modutils.h"
+#include <sys/utsname.h>
+#include <fnmatch.h>
+
+//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
+#define DBG(...) ((void)0)
+
+/* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
+ * we expect the full dependency list to be specified in modules.dep.
+ * Older versions would only export the direct dependency list.
+ */
+
+
 //usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define modprobe_notes_usage
 //usage:	"modprobe can (un)load a stack of modules, passing each module options (when\n"
@@ -72,51 +86,27 @@
 //usage:       "   from the command line\n"
 //usage:
 //usage:#define modprobe_trivial_usage
-//usage:	"[-alrqvs" IF_FEATURE_MODPROBE_BLACKLIST("b") "]"
-//usage:	IF_LONG_OPTS(" [--show-depends]") " MODULE [symbol=value]..."
+//usage:	"[-alrqvsD" IF_FEATURE_MODPROBE_BLACKLIST("b") "]"
+//usage:	" MODULE [symbol=value]..."
 //usage:#define modprobe_full_usage "\n\n"
 //usage:       "Options:"
-//usage:     "\n	-a		Load multiple MODULEs"
-//usage:     "\n	-l		List (MODULE is a pattern)"
-//usage:     "\n	-r		Remove MODULE (stacks) or do autoclean"
-//usage:     "\n	-q		Quiet"
-//usage:     "\n	-v		Verbose"
-//usage:     "\n	-s		Log to syslog"
+//usage:     "\n	-a	Load multiple MODULEs"
+//usage:     "\n	-l	List (MODULE is a pattern)"
+//usage:     "\n	-r	Remove MODULE (stacks) or do autoclean"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-s	Log to syslog"
+//usage:     "\n	-D	Show dependencies"
 //usage:	IF_FEATURE_MODPROBE_BLACKLIST(
-//usage:     "\n	-b		Apply blacklist to module names too"
-//usage:	)
-//usage:	IF_LONG_OPTS(
-//usage:     "\n	--show-depends	Show dependencies"
+//usage:     "\n	-b	Apply blacklist to module names too"
 //usage:	)
 //usage:#endif /* !ENABLE_MODPROBE_SMALL */
 
-#include "libbb.h"
-#include "modutils.h"
-#include <sys/utsname.h>
-#include <fnmatch.h>
-
-//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
-#define DBG(...) ((void)0)
-
-/* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
- * we expect the full dependency list to be specified in modules.dep.
- * Older versions would only export the direct dependency list.
- */
-
-
 /* Note that usage text doesn't document various 2.4 options
  * we pull in through INSMOD_OPTS define */
-#define MODPROBE_OPTS  "alr" IF_FEATURE_MODPROBE_BLACKLIST("b")
-#undef SD
-#if ENABLE_LONG_OPTS
-static const char modprobe_longopts[] ALIGN1 =
-        "show-depends\0" No_argument "\xff"
-        ;
-# define SD "\xff"
-#else
-# define SD ""
-#endif
-#define MODPROBE_COMPLEMENTARY ("q-v:v-q:l--ar"SD":a--lr"SD":r--al"SD IF_LONG_OPTS(":\xff--arl"))
+#define MODPROBE_OPTS  "alrD" IF_FEATURE_MODPROBE_BLACKLIST("b")
+/* -a and -D _are_ in fact compatible */
+#define MODPROBE_COMPLEMENTARY ("q-v:v-q:l--arD:r--alD:a--lr:D--rl")
 //#define MODPROBE_OPTS  "acd:lnrt:C:" IF_FEATURE_MODPROBE_BLACKLIST("b")
 //#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--acr:a--lr:r--al"
 enum {
@@ -128,11 +118,28 @@ enum {
 	OPT_REMOVE       = (INSMOD_OPT_UNUSED << 2), /* r */
 	//OPT_RESTRICT   = (INSMOD_OPT_UNUSED << x), /* t */
 	//OPT_VERONLY    = (INSMOD_OPT_UNUSED << x), /* V */
-	//OPT_CONFIGFILE =(INSMOD_OPT_UNUSED << x), /* C */
-	OPT_BLACKLIST    = (INSMOD_OPT_UNUSED << 3) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
-	OPTBIT_SHOW_DEPS = (3 + ENABLE_FEATURE_MODPROBE_BLACKLIST),
-	OPT_SHOW_DEPS    = (INSMOD_OPT_UNUSED << OPTBIT_SHOW_DEPS) * ENABLE_LONG_OPTS,
+	//OPT_CONFIGFILE = (INSMOD_OPT_UNUSED << x), /* C */
+	OPT_SHOW_DEPS    = (INSMOD_OPT_UNUSED << 3), /* D */
+	OPT_BLACKLIST    = (INSMOD_OPT_UNUSED << 4) * ENABLE_FEATURE_MODPROBE_BLACKLIST,
 };
+#if ENABLE_LONG_OPTS
+static const char modprobe_longopts[] ALIGN1 =
+	/* nobody asked for long opts (yet) */
+	// "all\0"          No_argument "a"
+	// "list\0"         No_argument "l"
+	// "remove\0"       No_argument "r"
+	// "quiet\0"        No_argument "q"
+	// "verbose\0"      No_argument "v"
+	// "syslog\0"       No_argument "s"
+	/* module-init-tools 3.11.1 has only long opt --show-depends
+	 * but no short -D, we provide long opt for scripts which
+	 * were written for 3.11.1: */
+	"show-depends\0" No_argument "D"
+	// IF_FEATURE_MODPROBE_BLACKLIST(
+	// "use-blacklist\0" No_argument "b"
+	// )
+	;
+#endif
 
 #define MODULE_FLAG_LOADED              0x0001
 #define MODULE_FLAG_NEED_DEPS           0x0002
@@ -370,8 +377,6 @@ static char *parse_and_add_kcmdline_module_options(char *options, const char *mo
  */
 static int do_modprobe(struct module_entry *m)
 {
-	struct module_entry *m2 = m2; /* for compiler */
-	char *fn, *options;
 	int rc, first;
 	llist_t *l;
 
@@ -392,15 +397,12 @@ static int do_modprobe(struct module_entry *m)
 	first = 1;
 	rc = 0;
 	while (m->deps) {
+		struct module_entry *m2;
+		char *fn, *options;
+
 		rc = 0;
 		fn = llist_pop(&m->deps); /* we leak it */
 		m2 = get_or_add_modentry(fn);
-
-		if (option_mask32 & OPT_SHOW_DEPS) {
-			printf("insmod %s/%s/%s\n", CONFIG_DEFAULT_MODULES_DIR,
-				G.uts.release, fn);
-			continue;
-		}
 
 		if (option_mask32 & OPT_REMOVE) {
 			/* modprobe -r */
@@ -422,16 +424,27 @@ static int do_modprobe(struct module_entry *m)
 			continue;
 		}
 
-		if (m2->flags & MODULE_FLAG_LOADED) {
-			DBG("%s is already loaded, skipping", fn);
-			continue;
-		}
-
 		options = m2->options;
 		m2->options = NULL;
 		options = parse_and_add_kcmdline_module_options(options, m2->modname);
 		if (m == m2)
 			options = gather_options_str(options, G.cmdline_mopts);
+
+		if (option_mask32 & OPT_SHOW_DEPS) {
+			printf(options ? "insmod %s/%s/%s %s\n"
+					: "insmod %s/%s/%s\n",
+				CONFIG_DEFAULT_MODULES_DIR, G.uts.release, fn,
+				options);
+			free(options);
+			continue;
+		}
+
+		if (m2->flags & MODULE_FLAG_LOADED) {
+			DBG("%s is already loaded, skipping", fn);
+			free(options);
+			continue;
+		}
+
 		rc = bb_init_module(fn, options);
 		DBG("loaded %s '%s', rc:%d", fn, options, rc);
 		if (rc == EEXIST)
