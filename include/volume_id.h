@@ -28,3 +28,4 @@ void display_uuid_cache(void);
  *    *fsname is replaced if device with such UUID or LABEL is found
  */
 int resolve_mount_spec(char **fsname);
+int add_to_uuid_cache(const char *device);

@@ -65,10 +65,12 @@ int FAST_FUNC volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/)
 	volume_id_set_uuid(id, es->uuid, UUID_DCE);
 	dbg("ext: label '%s' uuid '%s'", id->label, id->uuid);
 
-//	if ((le32_to_cpu(es->feature_compat) & EXT3_FEATURE_COMPAT_HAS_JOURNAL) != 0)
-//		id->type = "ext3";
-//	else
-//		id->type = "ext2";
+#if ENABLE_FEATURE_BLKID_TYPE
+	if ((le32_to_cpu(es->feature_compat) & EXT3_FEATURE_COMPAT_HAS_JOURNAL) != 0)
+		id->type = "ext3";
+	else
+		id->type = "ext2";
+#endif
 
 	return 0;
 }

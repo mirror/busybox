@@ -13,8 +13,13 @@
 //TODO: extend to take BLOCKDEV args, and show TYPE="fstype"
 
 int blkid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int blkid_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+int blkid_main(int argc UNUSED_PARAM, char **argv)
 {
+	while (*++argv) {
+		/* Note: bogus device names don't cause any error messages */
+		add_to_uuid_cache(*argv);
+	}
+
 	display_uuid_cache();
 	return 0;
 }

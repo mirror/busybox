@@ -40,6 +40,13 @@ config BLKID
 	  WARNING:
 	  With all submodules selected, it will add ~8k to busybox.
 
+config FEATURE_BLKID_TYPE
+	bool "Print filesystem type"
+	default n
+	depends on BLKID
+	help
+	  Show TYPE="filesystem type"
+
 config DMESG
 	bool "dmesg"
 	default y
