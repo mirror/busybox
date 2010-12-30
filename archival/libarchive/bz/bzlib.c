@@ -361,7 +361,6 @@ int BZ2_bzCompress(bz_stream *strm, int action)
 
 
 /*---------------------------------------------------*/
-#if ENABLE_FEATURE_CLEAN_UP
 static
 void BZ2_bzCompressEnd(bz_stream *strm)
 {
@@ -372,9 +371,8 @@ void BZ2_bzCompressEnd(bz_stream *strm)
 	free(s->arr2);
 	free(s->ftab);
 	free(s->crc32table);
-	free(strm->state);
+	free(s);
 }
-#endif
 
 
 /*---------------------------------------------------*/

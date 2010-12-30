@@ -128,10 +128,12 @@ IF_DESKTOP(long long) int FAST_FUNC compressStream(unpack_info_t *info UNUSED_PA
 			break;
 	}
 
-#if ENABLE_FEATURE_CLEAN_UP
+	/* Can't be conditional on ENABLE_FEATURE_CLEAN_UP -
+	 * we are called repeatedly
+	 */
 	BZ2_bzCompressEnd(strm);
 	free(iobuf);
-#endif
+
 	return total;
 }
 
