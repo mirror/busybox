@@ -7,6 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//config:config FEATURE_RTMINMAX
+//config:	bool "Support RTMIN[+n] and RTMAX[-n] signal names"
+//config:	default y
+//config:	help
+//config:	  Support RTMIN[+n] and RTMAX[-n] signal names
+//config:	  in kill, killall etc. This costs ~250 bytes.
+
 #include "libbb.h"
 
 /* Believe it or not, but some arches have more than 32 SIGs!
@@ -134,20 +141,45 @@ int FAST_FUNC get_signum(const char *name)
 		if (strcasecmp(name, signals[i]) == 0)
 			return i;
 
-#if ENABLE_DESKTOP && (defined(SIGIOT) || defined(SIGIO))
+#if ENABLE_DESKTOP
+# if defined(SIGIOT) || defined(SIGIO)
 	/* SIGIO[T] are aliased to other names,
 	 * thus cannot be stored in the signals[] array.
 	 * Need special code to recognize them */
 	if ((name[0] | 0x20) == 'i' && (name[1] | 0x20) == 'o') {
-#ifdef SIGIO
+#  ifdef SIGIO
 		if (!name[2])
 			return SIGIO;
-#endif
-#ifdef SIGIOT
+#  endif
+#  ifdef SIGIOT
 		if ((name[2] | 0x20) == 't' && !name[3])
 			return SIGIOT;
-#endif
+#  endif
 	}
+# endif
+#endif
+
+#if ENABLE_FEATURE_RTMINMAX
+# if defined(SIGRTMIN) && defined(SIGRTMAX)
+	if (strncasecmp(name, "RTMAX", 5) == 0) {
+		if (!name[5])
+			return SIGRTMAX;
+		if (name[5] == '-') {
+			i = bb_strtou(name + 6, NULL, 10);
+			if (!errno && i <= SIGRTMAX - SIGRTMIN)
+				return SIGRTMAX - i;
+		}
+	}
+	if (strncasecmp(name, "RTMIN", 5) == 0) {
+		if (!name[5])
+			return SIGRTMIN;
+		if (name[5] == '+') {
+			i = bb_strtou(name + 6, NULL, 10);
+			if (!errno && i <= SIGRTMAX - SIGRTMIN)
+				return SIGRTMIN + i;
+		}
+	}
+# endif
 #endif
 
 	return -1;

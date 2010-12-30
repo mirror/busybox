@@ -135,7 +135,7 @@ config FEATURE_NON_POSIX_CP
 	  and create a regular file. This does not conform to POSIX,
 	  but prevents a symlink attack.
 	  Similarly, "cp file device" will not send file's data
-	  to the device.
+	  to the device. (To do that, use "cat file >device")
 
 config FEATURE_VERBOSE_CP_MESSAGE
 	bool "Give more precise messages when copy fails (cp, mv etc)"
