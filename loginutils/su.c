@@ -8,6 +8,16 @@
 #include "libbb.h"
 #include <syslog.h>
 
+//usage:#define su_trivial_usage
+//usage:       "[OPTIONS] [-] [USER]"
+//usage:#define su_full_usage "\n\n"
+//usage:       "Run shell under USER (by default, root)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-,-l	Clear environment, run shell as login shell"
+//usage:     "\n	-p,-m	Do not set new $HOME, $SHELL, $USER, $LOGNAME"
+//usage:     "\n	-c CMD	Command to pass to 'sh -c'"
+//usage:     "\n	-s SH	Shell to use instead of user's default"
+
 #if ENABLE_FEATURE_SU_CHECKS_SHELLS
 /* Return 1 if SHELL is a restricted shell (one not returned by
  * getusershell), else 0, meaning it is a standard shell.  */

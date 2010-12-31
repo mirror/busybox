@@ -3524,15 +3524,6 @@ INSERT
      "\n	-g		Print in stty-readable form" \
      "\n	[SETTING]	See manpage" \
 
-#define su_trivial_usage \
-       "[OPTIONS] [-] [USERNAME]"
-#define su_full_usage "\n\n" \
-       "Change user id or become root\n" \
-     "\nOptions:" \
-     "\n	-p,-m	Preserve environment" \
-     "\n	-c CMD	Command to pass to 'sh -c'" \
-     "\n	-s SH	Shell to use instead of default shell" \
-
 #define sulogin_trivial_usage \
        "[-t N] [TTY]"
 #define sulogin_full_usage "\n\n" \
