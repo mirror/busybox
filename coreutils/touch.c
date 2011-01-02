@@ -120,9 +120,10 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 		struct tm tm_time;
 		time_t t;
 
-		//time(&t);
-		//localtime_r(&t, &tm_time);
-		memset(&tm_time, 0, sizeof(tm_time));
+		//memset(&tm_time, 0, sizeof(tm_time));
+		/* Better than memset: makes "HH:MM" dates meaningful */
+		time(&t);
+		localtime_r(&t, &tm_time);
 		parse_datestr(date_str, &tm_time);
 
 		/* Correct any day of week and day of year etc. fields */
