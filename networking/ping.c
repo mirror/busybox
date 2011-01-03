@@ -52,6 +52,7 @@
 //config:	  Make the output from the ping applet include statistics, and at the
 //config:	  same time provide full support for ICMP packets.
 
+/* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore _BB_SUID_MAYBE: */
 //applet:IF_PING(APPLET(ping, _BB_DIR_BIN, _BB_SUID_MAYBE))
 //applet:IF_PING6(APPLET(ping6, _BB_DIR_BIN, _BB_SUID_MAYBE))
 

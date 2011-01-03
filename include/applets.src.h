@@ -16,6 +16,8 @@ s     - suid type:
         and is run by non-root (applet_main() will not be called at all)
         _BB_SUID_DROP: will drop suid prior to applet_main()
         _BB_SUID_MAYBE: neither of the above
+        (every instance of _BB_SUID_REQUIRE and _BB_SUID_MAYBE
+        needs to be justified in comment)
 */
 
 #if defined(PROTOTYPES)
@@ -100,6 +102,7 @@ IF_COMM(APPLET(comm, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_CP(APPLET_NOEXEC(cp, cp, _BB_DIR_BIN, _BB_SUID_DROP, cp))
 IF_CPIO(APPLET(cpio, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_CROND(APPLET(crond, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to change /var/spool/cron* files: */
 IF_CRONTAB(APPLET(crontab, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
 IF_CRYPTPW(APPLET(cryptpw, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_CUT(APPLET_NOEXEC(cut, cut, _BB_DIR_USR_BIN, _BB_SUID_DROP, cut))
@@ -115,6 +118,7 @@ IF_DHCPRELAY(APPLET(dhcprelay, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
 IF_DIFF(APPLET(diff, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_DIRNAME(APPLET_NOFORK(dirname, dirname, _BB_DIR_USR_BIN, _BB_SUID_DROP, dirname))
 IF_DMESG(APPLET(dmesg, _BB_DIR_BIN, _BB_SUID_DROP))
+/* Why _BB_SUID_REQUIRE? */
 IF_DNSD(APPLET(dnsd, _BB_DIR_USR_SBIN, _BB_SUID_REQUIRE))
 IF_HOSTNAME(APPLET_ODDNAME(dnsdomainname, hostname, _BB_DIR_BIN, _BB_SUID_DROP, dnsdomainname))
 IF_DOS2UNIX(APPLET_NOEXEC(dos2unix, dos2unix, _BB_DIR_USR_BIN, _BB_SUID_DROP, dos2unix))
@@ -142,6 +146,7 @@ IF_FDFLUSH(APPLET_ODDNAME(fdflush, freeramdisk, _BB_DIR_BIN, _BB_SUID_DROP, fdfl
 IF_FDFORMAT(APPLET(fdformat, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_FDISK(APPLET(fdisk, _BB_DIR_SBIN, _BB_SUID_DROP))
 IF_FGCONSOLE(APPLET(fgconsole, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+/* Benefits from suid root: better access to /dev/BLOCKDEVs: */
 IF_FINDFS(APPLET(findfs, _BB_DIR_SBIN, _BB_SUID_MAYBE))
 IF_FLASH_ERASEALL(APPLET(flash_eraseall, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
 IF_FLASH_LOCK(APPLET_ODDNAME(flash_lock, flash_lock_unlock, _BB_DIR_USR_SBIN, _BB_SUID_DROP, flash_lock))
@@ -193,7 +198,9 @@ IF_IP(APPLET(ip, _BB_DIR_BIN, _BB_SUID_DROP))
 #endif
 IF_IPADDR(APPLET(ipaddr, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_IPCALC(APPLET(ipcalc, _BB_DIR_BIN, _BB_SUID_DROP))
+/* Why _BB_SUID_REQUIRE? On Fedora, it isn't suid root */
 IF_IPCRM(APPLET(ipcrm, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
+/* Why _BB_SUID_REQUIRE? On Fedora, it isn't suid root */
 IF_IPCS(APPLET(ipcs, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
 IF_IPLINK(APPLET(iplink, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_IPROUTE(APPLET(iproute, _BB_DIR_BIN, _BB_SUID_DROP))
@@ -214,6 +221,7 @@ IF_LOAD_POLICY(APPLET(load_policy, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
 IF_LOADFONT(APPLET(loadfont, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
 IF_LOADKMAP(APPLET(loadkmap, _BB_DIR_SBIN, _BB_SUID_DROP))
 IF_LOGGER(APPLET(logger, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to change uid and gid: */
 IF_LOGIN(APPLET(login, _BB_DIR_BIN, _BB_SUID_REQUIRE))
 IF_LOGNAME(APPLET_NOFORK(logname, logname, _BB_DIR_USR_BIN, _BB_SUID_DROP, logname))
 IF_LOGREAD(APPLET(logread, _BB_DIR_SBIN, _BB_SUID_DROP))
@@ -250,6 +258,10 @@ IF_CRYPTPW(APPLET_ODDNAME(mkpasswd, cryptpw, _BB_DIR_USR_BIN, _BB_SUID_DROP, mkp
 IF_MKSWAP(APPLET(mkswap, _BB_DIR_SBIN, _BB_SUID_DROP))
 IF_MKTEMP(APPLET(mktemp, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_MORE(APPLET(more, _BB_DIR_BIN, _BB_SUID_DROP))
+/* On full-blown systems, requires suid for user mounts.
+ * But it's not unthinkable to have it available in non-suid flavor on some systems,
+ * for viewing mount table.
+ * Therefore we use _BB_SUID_MAYBE instead of _BB_SUID_REQUIRE: */
 IF_MOUNT(APPLET(mount, _BB_DIR_BIN, IF_DESKTOP(_BB_SUID_MAYBE) IF_NOT_DESKTOP(_BB_SUID_DROP)))
 IF_MOUNTPOINT(APPLET(mountpoint, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_MT(APPLET(mt, _BB_DIR_BIN, _BB_SUID_DROP))
@@ -264,6 +276,7 @@ IF_NTPD(APPLET(ntpd, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
 IF_OD(APPLET(od, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_OPENVT(APPLET(openvt, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 //IF_PARSE(APPLET(parse, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to change /etc/{passwd,shadow}: */
 IF_PASSWD(APPLET(passwd, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
 IF_PGREP(APPLET(pgrep, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_PIDOF(APPLET(pidof, _BB_DIR_BIN, _BB_SUID_DROP))
@@ -323,7 +336,7 @@ IF_SHA256SUM(APPLET_NOEXEC(sha256sum, md5_sha1_sum, _BB_DIR_USR_BIN, _BB_SUID_DR
 IF_SHA512SUM(APPLET_NOEXEC(sha512sum, md5_sha1_sum, _BB_DIR_USR_BIN, _BB_SUID_DROP, sha512sum))
 IF_SHOWKEY(APPLET(showkey, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_SLATTACH(APPLET(slattach, _BB_DIR_SBIN, _BB_SUID_DROP))
-/* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells */
+/* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells: */
 IF_SLEEP(APPLET(sleep, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_SOFTLIMIT(APPLET_ODDNAME(softlimit, chpst, _BB_DIR_USR_BIN, _BB_SUID_DROP, softlimit))
 IF_SORT(APPLET_NOEXEC(sort, sort, _BB_DIR_USR_BIN, _BB_SUID_DROP, sort))
@@ -332,6 +345,7 @@ IF_START_STOP_DAEMON(APPLET_ODDNAME(start-stop-daemon, start_stop_daemon, _BB_DI
 IF_STAT(APPLET(stat, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_STRINGS(APPLET(strings, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_STTY(APPLET(stty, _BB_DIR_BIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to change uid and gid: */
 IF_SU(APPLET(su, _BB_DIR_BIN, _BB_SUID_REQUIRE))
 IF_SULOGIN(APPLET(sulogin, _BB_DIR_SBIN, _BB_SUID_DROP))
 IF_SUM(APPLET(sum, _BB_DIR_USR_BIN, _BB_SUID_DROP))
@@ -361,6 +375,7 @@ IF_TIME(APPLET(time, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_TIMEOUT(APPLET(timeout, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_TOP(APPLET(top, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_TR(APPLET(tr, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+/* Needs socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), therefore _BB_SUID_MAYBE: */
 IF_TRACEROUTE(APPLET(traceroute, _BB_DIR_USR_BIN, _BB_SUID_MAYBE))
 IF_TRACEROUTE6(APPLET(traceroute6, _BB_DIR_USR_BIN, _BB_SUID_MAYBE))
 IF_TRUE(APPLET_NOFORK(true, true, _BB_DIR_BIN, _BB_SUID_DROP, true))
@@ -387,8 +402,10 @@ IF_UUDECODE(APPLET(uudecode, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_UUENCODE(APPLET(uuencode, _BB_DIR_USR_BIN, _BB_SUID_DROP))
 IF_VCONFIG(APPLET(vconfig, _BB_DIR_SBIN, _BB_SUID_DROP))
 IF_VI(APPLET(vi, _BB_DIR_BIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to change uid and gid: */
 IF_VLOCK(APPLET(vlock, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
 IF_VOLNAME(APPLET(volname, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+/* Needs to be run by root or be suid root - needs to write to /dev/TTY: */
 IF_WALL(APPLET(wall, _BB_DIR_USR_BIN, _BB_SUID_REQUIRE))
 IF_WATCH(APPLET(watch, _BB_DIR_BIN, _BB_SUID_DROP))
 IF_WATCHDOG(APPLET(watchdog, _BB_DIR_SBIN, _BB_SUID_DROP))
