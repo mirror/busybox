@@ -161,22 +161,31 @@ int FAST_FUNC get_signum(const char *name)
 
 #if ENABLE_FEATURE_RTMINMAX
 # if defined(SIGRTMIN) && defined(SIGRTMAX)
-	if (strncasecmp(name, "RTMAX", 5) == 0) {
-		if (!name[5])
-			return SIGRTMAX;
-		if (name[5] == '-') {
-			i = bb_strtou(name + 6, NULL, 10);
-			if (!errno && i <= SIGRTMAX - SIGRTMIN)
-				return SIGRTMAX - i;
-		}
-	}
+/* libc may use some rt sigs for pthreads and therefore "remap" SIGRTMIN/MAX,
+ * but we want to use "raw" SIGRTMIN/MAX. Underscored names, if exist, provide
+ * them. If they don't exist, fall back to non-underscored ones: */
+#  if !defined(__SIGRTMIN)
+#   define __SIGRTMIN SIGRTMIN
+#  endif
+#  if !defined(__SIGRTMAX)
+#   define __SIGRTMAX SIGRTMAX
+#  endif
 	if (strncasecmp(name, "RTMIN", 5) == 0) {
 		if (!name[5])
-			return SIGRTMIN;
+			return __SIGRTMIN;
 		if (name[5] == '+') {
 			i = bb_strtou(name + 6, NULL, 10);
-			if (!errno && i <= SIGRTMAX - SIGRTMIN)
-				return SIGRTMIN + i;
+			if (!errno && i <= __SIGRTMAX - __SIGRTMIN)
+				return __SIGRTMIN + i;
+		}
+	}
+	else if (strncasecmp(name, "RTMAX", 5) == 0) {
+		if (!name[5])
+			return __SIGRTMAX;
+		if (name[5] == '-') {
+			i = bb_strtou(name + 6, NULL, 10);
+			if (!errno && i <= __SIGRTMAX - __SIGRTMIN)
+				return __SIGRTMAX - i;
 		}
 	}
 # endif
