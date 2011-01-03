@@ -124,6 +124,16 @@ static const char signals[][7] = {
 #ifdef SIGSYS
 	[SIGSYS   ] = "SYS",
 #endif
+#if ENABLE_FEATURE_RTMINMAX
+# ifdef __SIGRTMIN
+	[__SIGRTMIN] = "RTMIN",
+# endif
+// This makes array about x2 bigger.
+// More compact approach is to special-case SIGRTMAX in print_signames()
+//# ifdef __SIGRTMAX
+//	[__SIGRTMAX] = "RTMAX",
+//# endif
+#endif
 };
 
 // Convert signal name to number.
@@ -216,6 +226,11 @@ void FAST_FUNC print_signames(void)
 	for (signo = 1; signo < ARRAY_SIZE(signals); signo++) {
 		const char *name = signals[signo];
 		if (name[0])
-			puts(name);
+			printf("%2u) %s\n", signo, name);
 	}
+#if ENABLE_FEATURE_RTMINMAX
+# ifdef __SIGRTMAX
+	printf("%2u) %s\n", __SIGRTMAX, "RTMAX");
+# endif
+#endif
 }
