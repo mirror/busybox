@@ -154,6 +154,7 @@ static unsigned long fast_strtoul_10(char **endptr)
 	return n;
 }
 
+# if ENABLE_FEATURE_FAST_TOP
 static long fast_strtol_10(char **endptr)
 {
 	if (**endptr != '-')
@@ -162,6 +163,7 @@ static long fast_strtol_10(char **endptr)
 	(*endptr)++;
 	return - (long)fast_strtoul_10(endptr);
 }
+# endif
 
 static char *skip_fields(char *str, int count)
 {
@@ -450,7 +452,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 //FIXME: is it safe to assume this field exists?
 			sp->last_seen_on_cpu = fast_strtoul_10(&cp);
 # endif
-#endif /* end of !ENABLE_FEATURE_TOP_SMP_PROCESS */
+#endif /* FEATURE_FAST_TOP */
 
 #if ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS
 			sp->niceness = tasknice;
