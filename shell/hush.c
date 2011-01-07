@@ -4140,7 +4140,16 @@ static struct pipe *parse_stream(char **pstring,
 				if (IS_NULL_CMD(ctx.command)
 				 && dest.length == 0 && !dest.has_quoted_part
 				) {
-					continue;
+					/* This newline can be ignored. But...
+					 * without the below check, interactive shell
+					 * will ignore even lines with bare <newline>,
+					 * and show the continuation prompt:
+					 * ps1_prompt$ <enter>
+					 * ps2> _   <=== wrong prompt, should be ps1
+					 */
+					struct pipe *pi = ctx.list_head;
+					if (pi->num_cmds != 0)
+						continue;
 				}
 				/* Treat newline as a command separator. */
 				done_pipe(&ctx, PIPE_SEQ);
