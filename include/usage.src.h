@@ -1394,23 +1394,6 @@ INSERT
 #define getsebool_full_usage "\n\n" \
        "	-a	Show all selinux booleans"
 
-#define getty_trivial_usage \
-       "[OPTIONS] BAUD_RATE TTY [TERMTYPE]"
-#define getty_full_usage "\n\n" \
-       "Open a tty, prompt for a login name, then invoke /bin/login\n" \
-     "\nOptions:" \
-     "\n	-h		Enable hardware (RTS/CTS) flow control" \
-     "\n	-i		Don't display /etc/issue before running login" \
-     "\n	-L		Local line, don't do carrier detect" \
-     "\n	-m		Get baud rate from modem's CONNECT status message" \
-     "\n	-w		Wait for a CR or LF before sending /etc/issue" \
-     "\n	-n		Don't prompt the user for a login name" \
-     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue" \
-     "\n	-l LOGIN	Invoke LOGIN instead of /bin/login" \
-     "\n	-t SEC		Terminate after SEC if no username is read" \
-     "\n	-I INITSTR	Send INITSTR before anything else" \
-     "\n	-H HOST		Log HOST into the utmp file as the hostname" \
-
 #define gunzip_trivial_usage \
        "[-cft] [FILE]..."
 #define gunzip_full_usage "\n\n" \
