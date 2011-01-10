@@ -78,7 +78,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	/* Do not update on every call
 	 * (we can be called on every network read!) */
 	if (since_last_update == 0 && !totalsize)
-			return;
+		return;
 
 	beg_and_transferred = beg_range + transferred;
 	ratio = 100;
