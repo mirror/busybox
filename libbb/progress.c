@@ -93,22 +93,9 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 
 #if ENABLE_UNICODE_SUPPORT
 	init_unicode();
-	/* libbb candidate? */
 	{
-		wchar_t wbuf21[21];
-		char *buf = xstrdup(curfile);
-		unsigned len;
-
-		/* trim to 20 wide chars max (sets wbuf21[20] to 0)
-		 * also, in case mbstowcs fails, we at least
-		 * dont get garbage */
-		memset(wbuf21, 0, sizeof(wbuf21));
-		/* convert to wide chars, no more than 20 */
-		len = mbstowcs(wbuf21, curfile, 20); /* NB: may return -1 */
-		/* back to multibyte; cant overflow */
-		wcstombs(buf, wbuf21, INT_MAX);
-		len = (len > 20) ? 0 : 20 - len;
-		fprintf(stderr, "\r%s%*s%4u%% ", buf, len, "", ratio);
+		char *buf = unicode_conv_to_printable_fixedwidth(NULL, curfile, 20);
+		fprintf(stderr, "\r%s%4u%% ", buf, ratio);
 		free(buf);
 	}
 #else
@@ -158,7 +145,8 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 			/* (long long helps to have working ETA even if !LFS) */
 			unsigned eta = (unsigned long long)to_download*elapsed/(uoff_t)transferred - elapsed;
 			unsigned secs = eta % 3600;
-			fprintf(stderr, "%02u:%02u:%02u ETA", eta / 3600, secs / 60, secs % 60);
+			unsigned hours = eta / 3600;
+			fprintf(stderr, "%02u:%02u:%02u ETA", hours, secs / 60, secs % 60);
 		}
 	}
 }
