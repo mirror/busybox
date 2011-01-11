@@ -87,7 +87,8 @@ int lsmod_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			// N.B. token[3] is either '-' (module is not used by others)
 			// or comma-separated list ended by comma
 			// so trimming the trailing char is just what we need!
-			token[3][strlen(token[3])-1] = '\0';
+			if (token[3][0])
+				token[3][strlen(token[3]) - 1] = '\0';
 # if ENABLE_UNICODE_SUPPORT
 			{
 				uni_stat_t uni_stat;
