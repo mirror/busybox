@@ -94,7 +94,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 #if ENABLE_UNICODE_SUPPORT
 	init_unicode();
 	{
-		char *buf = unicode_conv_to_printable_fixedwidth(NULL, curfile, 20);
+		char *buf = unicode_conv_to_printable_fixedwidth(/*NULL,*/ curfile, 20);
 		fprintf(stderr, "\r%s%4u%% ", buf, ratio);
 		free(buf);
 	}
