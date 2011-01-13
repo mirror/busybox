@@ -3826,14 +3826,6 @@ INSERT
        "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n" \
        "Defaults: SECS: 10, SIG: TERM." \
 
-#define top_trivial_usage \
-       "[-b] [-nCOUNT] [-dSECONDS]" IF_FEATURE_TOPMEM(" [-m]")
-#define top_full_usage "\n\n" \
-       "Provide a view of process activity in real time.\n" \
-       "Read the status of all processes from /proc each SECONDS\n" \
-       "and display a screenful of them." \
-//TODO: add options and keyboard commands
-
 #define tr_trivial_usage \
        "[-cds] STRING1 [STRING2]"
 #define tr_full_usage "\n\n" \

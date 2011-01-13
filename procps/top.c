@@ -833,6 +833,35 @@ enum {
 		| PSSCAN_COMM,
 };
 
+//usage:#if ENABLE_FEATURE_SHOW_THREADS || ENABLE_FEATURE_TOP_SMP_CPU
+//usage:# define IF_SHOW_THREADS_OR_TOP_SMP(...) __VA_ARGS__
+//usage:#else
+//usage:# define IF_SHOW_THREADS_OR_TOP_SMP(...)
+//usage:#endif
+//usage:#define top_trivial_usage
+//usage:       "[-b] [-nCOUNT] [-dSECONDS]" IF_FEATURE_TOPMEM(" [-m]")
+//usage:#define top_full_usage "\n\n"
+//usage:       "Provide a view of process activity in real time."
+//usage:   "\n""Read the status of all processes from /proc each SECONDS"
+//usage:   "\n""and display a screenful of them."
+//usage:   "\n""Keys:"
+//usage:   "\n""	N/M"
+//usage:                IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE("/P")
+//usage:                IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE("/T")
+//usage:           ": " IF_FEATURE_TOPMEM("show CPU usage, ") "sort by pid/mem"
+//usage:                IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE("/cpu")
+//usage:                IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE("/time")
+//usage:	IF_FEATURE_TOPMEM(
+//usage:   "\n""	S: show memory, R: reverse memory sort"
+//usage:	)
+//usage:	IF_SHOW_THREADS_OR_TOP_SMP(
+//usage:   "\n""	"
+//usage:                IF_FEATURE_SHOW_THREADS("H: toggle threads")
+//usage:                IF_FEATURE_SHOW_THREADS(IF_FEATURE_TOP_SMP_CPU(", "))
+//usage:                IF_FEATURE_TOP_SMP_CPU("1: toggle SMP")
+//usage:	)
+//usage:   "\n""	Q,^C: exit"
+
 int top_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int top_main(int argc UNUSED_PARAM, char **argv)
 {
