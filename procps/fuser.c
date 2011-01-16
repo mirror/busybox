@@ -35,7 +35,7 @@ typedef struct pid_list {
 struct globals {
 	pid_list *pid_list_head;
 	inode_list *inode_list_head;
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 

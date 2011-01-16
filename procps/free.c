@@ -19,7 +19,7 @@ struct globals {
 #else
 # define G_unit_steps 10
 #endif
-};
+} FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
