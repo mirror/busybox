@@ -199,7 +199,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		uint16_t magic2;
 
  autodetect:
-		magic2 = *(uint16_t*)tar.name;
+		magic2 = *(bb__aliased_uint16_t*)tar.name;
 		/* tar gz/bz autodetect: check for gz/bz2 magic.
 		 * If we see the magic, and it is the very first block,
 		 * we can switch to get_header_tar_gz/bz2/lzma().
