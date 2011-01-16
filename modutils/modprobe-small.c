@@ -844,13 +844,15 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		void *map;
 
 		len = MAXINT(ssize_t);
-		map = xmalloc_xopen_read_close(*argv, &len);
+		map = xmalloc_open_zipped_read_close(*argv, &len);
 		if (init_module(map, len,
 			IF_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE(options ? options : "")
 			IF_NOT_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE("")
-				) != 0)
+			) != 0
+		) {
 			bb_error_msg_and_die("can't insert '%s': %s",
 					*argv, moderror(errno));
+		}
 		return 0;
 	}
 

@@ -1522,6 +1522,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			struct stat sb;
 			fstat(fd, &sb);
 			file_size = sb.st_size;
+			last_mod = sb.st_mtime;
 		} else {
 			IF_FEATURE_HTTPD_GZIP(content_gzip = 0;)
 			fd = open(url, O_RDONLY);

@@ -308,16 +308,12 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* -L makes sense only with -o or -p */
 
 #if !ENABLE_FEATURE_CPIO_O
-	/* no parameters */
-	opt_complementary = "=0";
 	opt = getopt32(argv, OPTION_STR, &cpio_filename);
 	argv += optind;
 	if (opt & CPIO_OPT_FILE) { /* -F */
 		xmove_fd(xopen(cpio_filename, O_RDONLY), STDIN_FILENO);
 	}
 #else
-	/* _exactly_ one parameter for -p, thus <= 1 param if -p is allowed */
-	opt_complementary = ENABLE_FEATURE_CPIO_P ? "?1" : "=0";
 	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
 	argv += optind;
 	if ((opt & (CPIO_OPT_FILE|CPIO_OPT_CREATE)) == CPIO_OPT_FILE) { /* -F without -o */
