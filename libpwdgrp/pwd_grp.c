@@ -20,16 +20,6 @@
 #include "libbb.h"
 #include <assert.h>
 
-#ifndef _PATH_SHADOW
-#define _PATH_SHADOW	"/etc/shadow"
-#endif
-#ifndef _PATH_PASSWD
-#define _PATH_PASSWD	"/etc/passwd"
-#endif
-#ifndef _PATH_GROUP
-#define _PATH_GROUP	"/etc/group"
-#endif
-
 /**********************************************************************/
 /* Sizes for statically allocated buffers. */
 

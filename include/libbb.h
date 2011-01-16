@@ -68,6 +68,19 @@
 #  include <shadow.h>
 # endif
 #endif
+/* Just in case libc doesn't define some of these... */
+#ifndef _PATH_PASSWD
+#define _PATH_PASSWD  "/etc/passwd"
+#endif
+#ifndef _PATH_GROUP
+#define _PATH_GROUP   "/etc/group"
+#endif
+#ifndef _PATH_SHADOW
+#define _PATH_SHADOW  "/etc/shadow"
+#endif
+#ifndef _PATH_GSHADOW
+#define _PATH_GSHADOW "/etc/gshadow"
+#endif
 #if defined __FreeBSD__ || defined __OpenBSD__
 # include <netinet/in.h>
 # include <arpa/inet.h>
@@ -1604,10 +1617,10 @@ extern const char bb_path_wtmp_file[];
  * get the list of currently mounted filesystems */
 #define bb_path_mtab_file IF_FEATURE_MTAB_SUPPORT("/etc/mtab")IF_NOT_FEATURE_MTAB_SUPPORT("/proc/mounts")
 
-#define bb_path_passwd_file "/etc/passwd"
-#define bb_path_shadow_file "/etc/shadow"
-#define bb_path_gshadow_file "/etc/gshadow"
-#define bb_path_group_file "/etc/group"
+#define bb_path_passwd_file  _PATH_PASSWD
+#define bb_path_group_file   _PATH_GROUP
+#define bb_path_shadow_file  _PATH_SHADOW
+#define bb_path_gshadow_file _PATH_GSHADOW
 
 #define bb_path_motd_file "/etc/motd"
 
