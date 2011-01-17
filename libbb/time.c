@@ -91,7 +91,13 @@ void FAST_FUNC parse_datestr(const char *date_str, struct tm *ptm)
 		 * .SS  Seconds, a number from 0 to 61 (with leap seconds)
 		 * Everything but the minutes is optional
 		 *
-		 * This coincides with the format of "touch -t TIME"
+		 * "touch -t DATETIME" format: [[[[[YY]YY]MM]DD]hh]mm[.ss]
+		 * Some, but not all, Unix "date DATETIME" commands
+		 * move [[YY]YY] past minutes mm field (!).
+		 * Coreutils date does it, and SUS mandates it.
+		 * (date -s DATETIME does not support this format. lovely!)
+		 * In bbox, this format is special-cased in date applet
+		 * (IOW: this function assumes "touch -t" format).
 		 */
 		unsigned cur_year = ptm->tm_year;
 		int len = strchrnul(date_str, '.') - date_str;
