@@ -18,6 +18,8 @@ s     - suid type:
         _BB_SUID_MAYBE: neither of the above
         (every instance of _BB_SUID_REQUIRE and _BB_SUID_MAYBE
         needs to be justified in comment)
+        NB: please update FEATURE_SUID help text whenever you add/remove
+        _BB_SUID_REQUIRE or _BB_SUID_MAYBE applet.
 */
 
 #if defined(PROTOTYPES)

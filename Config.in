@@ -328,10 +328,18 @@ config FEATURE_SUID
 	  symlinks pointing to each binary), and only set the suid bit on the
 	  one that needs it.
 
-	  The applets currently marked to need the suid bit are:
+	  The applets which require root rights (need suid bit or
+	  to be run by root) and will refuse to execute otherwise:
+	  crontab, login, passwd, su, vlock, wall.
 
-	  crontab, dnsd, findfs, ipcrm, ipcs, login, passwd, ping, su,
-	  traceroute, vlock.
+	  The applets which will use root rights if they have them
+	  (via suid bit, or because run by root), but would try to work
+	  without root right nevertheless:
+	  findfs, ping[6], traceroute[6], mount.
+
+	  Note that if you DONT select this option, but DO make busybox
+	  suid root, ALL applets will run under root, which is a huge
+	  security hole (think "cp /some/file /etc/passwd").
 
 config FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"

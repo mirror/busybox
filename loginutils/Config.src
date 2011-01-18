@@ -186,7 +186,6 @@ config GETTY
 config LOGIN
 	bool "login"
 	default y
-	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
 	  login is used when signing onto a system.
@@ -229,7 +228,6 @@ config FEATURE_SECURETTY
 config PASSWD
 	bool "passwd"
 	default y
-	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
 	  passwd changes passwords for user and group accounts. A normal user
@@ -265,7 +263,6 @@ config CHPASSWD
 config SU
 	bool "su"
 	default y
-	select FEATURE_SUID
 	select FEATURE_SYSLOG
 	help
 	  su is used to become another user during a login session.
@@ -295,7 +292,6 @@ config SULOGIN
 config VLOCK
 	bool "vlock"
 	default y
-	select FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.
 
