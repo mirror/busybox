@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_MESG(APPLET(mesg, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_MESG(APPLET(mesg, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_MESG) += mesg.o
 

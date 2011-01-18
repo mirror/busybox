@@ -26,7 +26,7 @@
 //config:	  touch is used to create or change the access and/or
 //config:	  modification timestamp of specified files.
 
-//applet:IF_TOUCH(APPLET_NOFORK(touch, touch, _BB_DIR_BIN, _BB_SUID_DROP, touch))
+//applet:IF_TOUCH(APPLET_NOFORK(touch, touch, BB_DIR_BIN, BB_SUID_DROP, touch))
 
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 

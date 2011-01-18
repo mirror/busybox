@@ -6,7 +6,7 @@
  */
 #include "libbb.h"
 
-//applet:IF_CTTYHACK(APPLET(cttyhack, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_CTTYHACK(APPLET(cttyhack, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_CTTYHACK) += cttyhack.o
 

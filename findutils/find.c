@@ -53,7 +53,7 @@
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
 
-//applet:IF_FIND(APPLET_NOEXEC(find, find, _BB_DIR_USR_BIN, _BB_SUID_DROP, find))
+//applet:IF_FIND(APPLET_NOEXEC(find, find, BB_DIR_USR_BIN, BB_SUID_DROP, find))
 
 //kbuild:lib-$(CONFIG_FIND) += find.o
 

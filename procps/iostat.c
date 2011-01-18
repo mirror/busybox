@@ -7,7 +7,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_IOSTAT(APPLET(iostat, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_IOSTAT(APPLET(iostat, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_IOSTAT) += iostat.o
 

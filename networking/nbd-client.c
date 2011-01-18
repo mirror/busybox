@@ -7,7 +7,7 @@
 #include <netinet/tcp.h>
 #include <linux/fs.h>
 
-//applet:IF_NBDCLIENT(APPLET_ODDNAME(nbd-client, nbdclient, _BB_DIR_USR_SBIN, _BB_SUID_DROP, nbdclient))
+//applet:IF_NBDCLIENT(APPLET_ODDNAME(nbd-client, nbdclient, BB_DIR_USR_SBIN, BB_SUID_DROP, nbdclient))
 
 //kbuild:lib-$(CONFIG_NBDCLIENT) += nbd-client.o
 

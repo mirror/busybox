@@ -10,7 +10,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_CONSPY(APPLET(conspy, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_CONSPY(APPLET(conspy, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_CONSPY) += conspy.o
 

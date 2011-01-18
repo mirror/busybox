@@ -9,8 +9,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_INIT(APPLET(init, _BB_DIR_SBIN, _BB_SUID_DROP))
-//applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, _BB_DIR_ROOT, _BB_SUID_DROP, linuxrc))
+//applet:IF_INIT(APPLET(init, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, BB_DIR_ROOT, BB_SUID_DROP, linuxrc))
 
 //kbuild:lib-$(CONFIG_INIT) += init.o
 

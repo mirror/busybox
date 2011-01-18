@@ -315,8 +315,8 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "FILE"
 //usage:#define bzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
-//applet:IF_BUNZIP2(APPLET(bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP))
-//applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, _BB_DIR_USR_BIN, _BB_SUID_DROP, bzcat))
+//applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
 #if ENABLE_BUNZIP2
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)

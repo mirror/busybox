@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_MODPROBE(APPLET(modprobe, _BB_DIR_SBIN, _BB_SUID_DROP))
+//applet:IF_MODPROBE(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
 
 #include "libbb.h"
 #include "modutils.h"

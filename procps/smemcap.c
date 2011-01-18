@@ -8,7 +8,7 @@
  herein by reference.
 */
 
-//applet:IF_SMEMCAP(APPLET(smemcap, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_SMEMCAP(APPLET(smemcap, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SMEMCAP) += smemcap.o
 

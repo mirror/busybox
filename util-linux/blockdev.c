@@ -6,7 +6,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_BLOCKDEV(APPLET(blockdev, _BB_DIR_SBIN, _BB_SUID_DROP))
+//applet:IF_BLOCKDEV(APPLET(blockdev, BB_DIR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_BLOCKDEV) += blockdev.o
 

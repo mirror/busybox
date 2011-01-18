@@ -12,7 +12,7 @@
 //config:	help
 //config:	  Prints selected system stats continuously, one line per update.
 
-//applet:IF_NMETER(APPLET(nmeter, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_NMETER(APPLET(nmeter, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_NMETER) += nmeter.o
 

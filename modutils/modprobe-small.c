@@ -8,11 +8,11 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_MODPROBE_SMALL(APPLET(modprobe, _BB_DIR_SBIN, _BB_SUID_DROP))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, _BB_DIR_SBIN, _BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, _BB_DIR_SBIN, _BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, _BB_DIR_SBIN, _BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, _BB_DIR_SBIN, _BB_SUID_DROP, modprobe))
+//applet:IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
 
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */

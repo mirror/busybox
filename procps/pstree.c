@@ -16,7 +16,7 @@
 //config:	help
 //config:	  Display a tree of processes.
 
-//applet:IF_PSTREE(APPLET(pstree, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_PSTREE(APPLET(pstree, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_PSTREE) += pstree.o
 

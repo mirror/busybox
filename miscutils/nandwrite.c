@@ -8,8 +8,8 @@
  * TODO: add support for large (>4GB) MTD devices
  */
 
-//applet:IF_NANDWRITE(APPLET(nandwrite, _BB_DIR_USR_SBIN, _BB_SUID_DROP))
-//applet:IF_NANDWRITE(APPLET_ODDNAME(nanddump, nandwrite, _BB_DIR_USR_SBIN, _BB_SUID_DROP, nanddump))
+//applet:IF_NANDWRITE(APPLET(nandwrite, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_NANDWRITE(APPLET_ODDNAME(nanddump, nandwrite, BB_DIR_USR_SBIN, BB_SUID_DROP, nanddump))
 
 //kbuild:lib-$(CONFIG_NANDWRITE) += nandwrite.o
 //kbuild:lib-$(CONFIG_NANDDUMP) += nandwrite.o

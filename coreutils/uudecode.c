@@ -132,7 +132,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
-//applet:IF_BASE64(APPLET(base64, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_BASE64(APPLET(base64, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_BASE64) += uudecode.o
 

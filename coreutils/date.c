@@ -19,7 +19,7 @@
 /* Input parsing code is always bulky - used heavy duty libc stuff as
    much as possible, missed out a lot of bounds checking */
 
-//applet:IF_DATE(APPLET(date, _BB_DIR_BIN, _BB_SUID_DROP))
+//applet:IF_DATE(APPLET(date, BB_DIR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_DATE) += date.o
 

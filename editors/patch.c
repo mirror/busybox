@@ -21,7 +21,7 @@
  * [file] which file to patch
  */
 
-//applet:IF_PATCH(APPLET(patch, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_PATCH(APPLET(patch, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_PATCH) += patch.o
 

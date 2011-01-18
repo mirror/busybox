@@ -6,7 +6,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_MODINFO(APPLET(modinfo, _BB_DIR_SBIN, _BB_SUID_DROP))
+//applet:IF_MODINFO(APPLET(modinfo, BB_DIR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_MODINFO) += modinfo.o modutils.o
 

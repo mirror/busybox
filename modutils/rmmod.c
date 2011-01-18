@@ -8,7 +8,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_RMMOD(APPLET(rmmod, _BB_DIR_SBIN, _BB_SUID_DROP))
+//applet:IF_RMMOD(APPLET(rmmod, BB_DIR_SBIN, BB_SUID_DROP))
 
 //usage:#if !ENABLE_MODPROBE_SMALL
 //usage:#define rmmod_trivial_usage

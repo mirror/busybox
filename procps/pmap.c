@@ -8,7 +8,7 @@
  * for details.
  */
 
-//applet:IF_PMAP(APPLET(pmap, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+//applet:IF_PMAP(APPLET(pmap, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_PMAP)     += pmap.o
 
 //config:config PMAP

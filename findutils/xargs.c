@@ -15,7 +15,7 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/xargs.html
  */
 
-//applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, _BB_DIR_USR_BIN, _BB_SUID_DROP, xargs))
+//applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, BB_DIR_USR_BIN, BB_SUID_DROP, xargs))
 
 //kbuild:lib-$(CONFIG_XARGS) += xargs.o
 

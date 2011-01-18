@@ -13,22 +13,22 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* order matters: used as index into "install_dir[]" in appletlib.c */
 typedef enum bb_install_loc_t {
-	_BB_DIR_ROOT = 0,
-	_BB_DIR_BIN,
-	_BB_DIR_SBIN,
+	BB_DIR_ROOT = 0,
+	BB_DIR_BIN,
+	BB_DIR_SBIN,
 #if ENABLE_INSTALL_NO_USR
-	_BB_DIR_USR_BIN  = _BB_DIR_BIN,
-	_BB_DIR_USR_SBIN = _BB_DIR_SBIN,
+	BB_DIR_USR_BIN  = BB_DIR_BIN,
+	BB_DIR_USR_SBIN = BB_DIR_SBIN,
 #else
-	_BB_DIR_USR_BIN,
-	_BB_DIR_USR_SBIN,
+	BB_DIR_USR_BIN,
+	BB_DIR_USR_SBIN,
 #endif
 } bb_install_loc_t;
 
 typedef enum bb_suid_t {
-	_BB_SUID_DROP = 0,
-	_BB_SUID_MAYBE,
-	_BB_SUID_REQUIRE
+	BB_SUID_DROP = 0,
+	BB_SUID_MAYBE,
+	BB_SUID_REQUIRE
 } bb_suid_t;
 
 

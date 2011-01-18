@@ -7,9 +7,9 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_HALT(APPLET(halt, _BB_DIR_SBIN, _BB_SUID_DROP))
-//applet:IF_HALT(APPLET_ODDNAME(poweroff, halt, _BB_DIR_SBIN, _BB_SUID_DROP, poweroff))
-//applet:IF_HALT(APPLET_ODDNAME(reboot, halt, _BB_DIR_SBIN, _BB_SUID_DROP, reboot))
+//applet:IF_HALT(APPLET(halt, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_HALT(APPLET_ODDNAME(poweroff, halt, BB_DIR_SBIN, BB_SUID_DROP, poweroff))
+//applet:IF_HALT(APPLET_ODDNAME(reboot, halt, BB_DIR_SBIN, BB_SUID_DROP, reboot))
 
 //kbuild:lib-$(CONFIG_HALT) += halt.o
 

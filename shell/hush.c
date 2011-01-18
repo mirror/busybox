@@ -105,10 +105,10 @@
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
 
-//applet:IF_HUSH(APPLET(hush, _BB_DIR_BIN, _BB_SUID_DROP))
-//applet:IF_MSH(APPLET(msh, _BB_DIR_BIN, _BB_SUID_DROP))
-//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, _BB_DIR_BIN, _BB_SUID_DROP, sh))
-//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, _BB_DIR_BIN, _BB_SUID_DROP, bash))
+//applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_MSH(APPLET(msh, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, BB_DIR_BIN, BB_SUID_DROP, sh))
+//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, bash))
 
 //kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
 //kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o

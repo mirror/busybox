@@ -3,8 +3,8 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_UBIATTACH(APPLET_ODDNAME(ubiattach, ubi_attach_detach, _BB_DIR_USR_SBIN, _BB_SUID_DROP, ubiattach))
-//applet:IF_UBIDETACH(APPLET_ODDNAME(ubidetach, ubi_attach_detach, _BB_DIR_USR_SBIN, _BB_SUID_DROP, ubidetach))
+//applet:IF_UBIATTACH(APPLET_ODDNAME(ubiattach, ubi_attach_detach, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiattach))
+//applet:IF_UBIDETACH(APPLET_ODDNAME(ubidetach, ubi_attach_detach, BB_DIR_USR_SBIN, BB_SUID_DROP, ubidetach))
 
 //kbuild:lib-$(CONFIG_UBIATTACH)   += ubi_attach_detach.o
 //kbuild:lib-$(CONFIG_UBIDETACH)   += ubi_attach_detach.o

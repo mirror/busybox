@@ -161,7 +161,7 @@ algorithm in busybox.c and the Gods of BusyBox smite you. Yea, verily:
 Be sure to read the top of applets.src.h before adding your applet.
 
 	/* all programs above here are alphabetically "less than" 'mu' */
-	IF_MU(APPLET(mu, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+	IF_MU(APPLET(mu, BB_DIR_USR_BIN, BB_SUID_DROP))
 	/* all programs below here are alphabetically "greater than" 'mu' */
 
 
