@@ -14,6 +14,7 @@
 #define HAVE_MEMRCHR 1
 #define HAVE_MKDTEMP 1
 #define HAVE_SETBIT 1
+#define HAVE_SIGHANDLER_T 1
 #define HAVE_STRCASESTR 1
 #define HAVE_STRCHRNUL 1
 #define HAVE_STRSEP 1
@@ -253,6 +254,7 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
  || defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__
 # undef HAVE_MNTENT_H
 # undef HAVE_SYS_STATFS_H
+# undef HAVE_SIGHANDLER_T
 #else
 # define HAVE_MNTENT_H 1
 # define HAVE_SYS_STATFS_H 1
@@ -394,6 +396,10 @@ extern char *mkdtemp(char *template) FAST_FUNC;
 #ifndef HAVE_SETBIT
 # define setbit(a, b)  ((a)[(b) >> 3] |= 1 << ((b) & 7))
 # define clrbit(a, b)  ((a)[(b) >> 3] &= ~(1 << ((b) & 7)))
+#endif
+
+#ifndef HAVE_SIGHANDLER_T
+typedef void (*sighandler_t)(int);
 #endif
 
 #ifndef HAVE_STRCASESTR
