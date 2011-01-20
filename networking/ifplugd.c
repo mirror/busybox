@@ -133,7 +133,8 @@ static smallint detect_link_mii(void)
 {
 	/* char buffer instead of bona-fide struct avoids aliasing warning */
 	char buf[sizeof(struct ifreq)];
-	struct ifreq *ifreq = (void *)buf;
+	struct ifreq *const ifreq = (void *)buf;
+
 	struct mii_ioctl_data *mii = (void *)&ifreq->ifr_data;
 
 	set_ifreq_to_ifname(ifreq);
@@ -155,7 +156,8 @@ static smallint detect_link_priv(void)
 {
 	/* char buffer instead of bona-fide struct avoids aliasing warning */
 	char buf[sizeof(struct ifreq)];
-	struct ifreq *ifreq = (void *)buf;
+	struct ifreq *const ifreq = (void *)buf;
+
 	struct mii_ioctl_data *mii = (void *)&ifreq->ifr_data;
 
 	set_ifreq_to_ifname(ifreq);
