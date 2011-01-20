@@ -751,7 +751,8 @@ print(int read_len, const struct sockaddr *from, const struct sockaddr *to)
 		} else
 #endif
 		{
-			read_len -= ((struct ip*)recv_pkt)->ip_hl << 2;
+			struct ip *ip4packet = (struct ip*)recv_pkt;
+			read_len -= ip4packet->ip_hl << 2;
 		}
 		printf(" %d bytes to %s", read_len, ina);
 		free(ina);
