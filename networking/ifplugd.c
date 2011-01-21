@@ -131,18 +131,21 @@ static int network_ioctl(int request, void* data, const char *errmsg)
 
 static smallint detect_link_mii(void)
 {
-	struct ifreq ifreq;
-	struct mii_ioctl_data *mii = (void *)&ifreq.ifr_data;
+	/* char buffer instead of bona-fide struct avoids aliasing warning */
+	char buf[sizeof(struct ifreq)];
+	struct ifreq *const ifreq = (void *)buf;
 
-	set_ifreq_to_ifname(&ifreq);
+	struct mii_ioctl_data *mii = (void *)&ifreq->ifr_data;
 
-	if (network_ioctl(SIOCGMIIPHY, &ifreq, "SIOCGMIIPHY") < 0) {
+	set_ifreq_to_ifname(ifreq);
+
+	if (network_ioctl(SIOCGMIIPHY, ifreq, "SIOCGMIIPHY") < 0) {
 		return IFSTATUS_ERR;
 	}
 
 	mii->reg_num = 1;
 
-	if (network_ioctl(SIOCGMIIREG, &ifreq, "SIOCGMIIREG") < 0) {
+	if (network_ioctl(SIOCGMIIREG, ifreq, "SIOCGMIIREG") < 0) {
 		return IFSTATUS_ERR;
 	}
 
@@ -151,18 +154,21 @@ static smallint detect_link_mii(void)
 
 static smallint detect_link_priv(void)
 {
-	struct ifreq ifreq;
-	struct mii_ioctl_data *mii = (void *)&ifreq.ifr_data;
+	/* char buffer instead of bona-fide struct avoids aliasing warning */
+	char buf[sizeof(struct ifreq)];
+	struct ifreq *const ifreq = (void *)buf;
 
-	set_ifreq_to_ifname(&ifreq);
+	struct mii_ioctl_data *mii = (void *)&ifreq->ifr_data;
 
-	if (network_ioctl(SIOCDEVPRIVATE, &ifreq, "SIOCDEVPRIVATE") < 0) {
+	set_ifreq_to_ifname(ifreq);
+
+	if (network_ioctl(SIOCDEVPRIVATE, ifreq, "SIOCDEVPRIVATE") < 0) {
 		return IFSTATUS_ERR;
 	}
 
 	mii->reg_num = 1;
 
-	if (network_ioctl(SIOCDEVPRIVATE+1, &ifreq, "SIOCDEVPRIVATE+1") < 0) {
+	if (network_ioctl(SIOCDEVPRIVATE+1, ifreq, "SIOCDEVPRIVATE+1") < 0) {
 		return IFSTATUS_ERR;
 	}
 

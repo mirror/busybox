@@ -36,42 +36,45 @@
 
 int FAST_FUNC udhcp_read_interface(const char *interface, int *ifindex, uint32_t *nip, uint8_t *mac)
 {
+	/* char buffer instead of bona-fide struct avoids aliasing warning */
+	char ifr_buf[sizeof(struct ifreq)];
+	struct ifreq *const ifr = (void *)ifr_buf;
+
 	int fd;
-	struct ifreq ifr;
 	struct sockaddr_in *our_ip;
 
-	memset(&ifr, 0, sizeof(ifr));
+	memset(ifr, 0, sizeof(*ifr));
 	fd = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
-	ifr.ifr_addr.sa_family = AF_INET;
-	strncpy_IFNAMSIZ(ifr.ifr_name, interface);
+	ifr->ifr_addr.sa_family = AF_INET;
+	strncpy_IFNAMSIZ(ifr->ifr_name, interface);
 	if (nip) {
-		if (ioctl_or_perror(fd, SIOCGIFADDR, &ifr,
+		if (ioctl_or_perror(fd, SIOCGIFADDR, ifr,
 			"is interface %s up and configured?", interface)
 		) {
 			close(fd);
 			return -1;
 		}
-		our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
+		our_ip = (struct sockaddr_in *) &ifr->ifr_addr;
 		*nip = our_ip->sin_addr.s_addr;
 		log1("IP %s", inet_ntoa(our_ip->sin_addr));
 	}
 
 	if (ifindex) {
-		if (ioctl_or_warn(fd, SIOCGIFINDEX, &ifr) != 0) {
+		if (ioctl_or_warn(fd, SIOCGIFINDEX, ifr) != 0) {
 			close(fd);
 			return -1;
 		}
-		log1("Adapter index %d", ifr.ifr_ifindex);
-		*ifindex = ifr.ifr_ifindex;
+		log1("Adapter index %d", ifr->ifr_ifindex);
+		*ifindex = ifr->ifr_ifindex;
 	}
 
 	if (mac) {
-		if (ioctl_or_warn(fd, SIOCGIFHWADDR, &ifr) != 0) {
+		if (ioctl_or_warn(fd, SIOCGIFHWADDR, ifr) != 0) {
 			close(fd);
 			return -1;
 		}
-		memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
+		memcpy(mac, ifr->ifr_hwaddr.sa_data, 6);
 		log1("MAC %02x:%02x:%02x:%02x:%02x:%02x",
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
