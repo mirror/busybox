@@ -218,14 +218,15 @@
 
 /* ---- Unaligned access ------------------------------------ */
 
+typedef int      bb__aliased_int      FIX_ALIASING;
+typedef uint16_t bb__aliased_uint16_t FIX_ALIASING;
+typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
+
 /* NB: unaligned parameter should be a pointer, aligned one -
  * a lvalue. This makes it more likely to not swap them by mistake
  */
 #if defined(i386) || defined(__x86_64__) || defined(__powerpc__)
 # include <stdint.h>
-typedef int      bb__aliased_int      FIX_ALIASING;
-typedef uint16_t bb__aliased_uint16_t FIX_ALIASING;
-typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 # define move_from_unaligned_int(v, intp) ((v) = *(bb__aliased_int*)(intp))
 # define move_from_unaligned16(v, u16p) ((v) = *(bb__aliased_uint16_t*)(u16p))
 # define move_from_unaligned32(v, u32p) ((v) = *(bb__aliased_uint32_t*)(u32p))
