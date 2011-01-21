@@ -125,6 +125,23 @@ log message, you can use a pattern like this instead
 -*: *: pid *
 */
 
+//usage:#define svlogd_trivial_usage
+//usage:       "[-ttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."
+//usage:#define svlogd_full_usage "\n\n"
+//usage:       "Continuously read log data from stdin and write to rotated log files in DIRs"
+//usage:   "\n"
+//usage:   "\n""DIR/config file modifies behavior:"
+//usage:   "\n""sSIZE - when to rotate logs"
+//usage:   "\n""nNUM - number of files to retain"
+/*usage:   "\n""NNUM - min number files to retain" - confusing */
+/*usage:   "\n""tSEC - rotate file if it get SEC seconds old" - confusing */
+//usage:   "\n""!PROG - process rotated log with PROG"
+/*usage:   "\n""uIPADDR - send log over UDP" - unsupported */
+/*usage:   "\n""UIPADDR - send log over UDP and DONT log" - unsupported */
+/*usage:   "\n""pPFX - prefix each line with PFX" - unsupported */
+//usage:   "\n""+,-PATTERN - (de)select line for logging"
+//usage:   "\n""E,ePATTERN - (de)select line for stderr"
+
 #include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"

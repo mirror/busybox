@@ -3538,13 +3538,6 @@ INSERT
        "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n" \
        "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service" \
 
-#define svlogd_trivial_usage \
-       "[-ttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."
-#define svlogd_full_usage "\n\n" \
-       "Continuously read log data from stdin, optionally\n" \
-       "filter log messages, and write the data to one or more automatically\n" \
-       "rotated logs" \
-
 #define swapoff_trivial_usage \
        "[-a] [DEVICE]"
 #define swapoff_full_usage "\n\n" \
