@@ -1595,25 +1595,6 @@ INSERT
      "\n	-e STRING	HTML encode STRING" \
      "\n	-d STRING	URL decode STRING" \
 
-#define hwclock_trivial_usage \
-	IF_FEATURE_HWCLOCK_LONG_OPTIONS( \
-       "[-r|--show] [-s|--hctosys] [-w|--systohc]" \
-       " [-l|--localtime] [-u|--utc]" \
-       " [-f FILE]" \
-	) \
-	IF_NOT_FEATURE_HWCLOCK_LONG_OPTIONS( \
-       "[-r] [-s] [-w] [-l] [-u] [-f FILE]" \
-	)
-#define hwclock_full_usage "\n\n" \
-       "Query and set hardware clock (RTC)\n" \
-     "\nOptions:" \
-     "\n	-r	Show hardware clock time" \
-     "\n	-s	Set system time from hardware clock" \
-     "\n	-w	Set hardware clock to system time" \
-     "\n	-u	Hardware clock is in UTC" \
-     "\n	-l	Hardware clock is in local time" \
-     "\n	-f FILE	Use specified device (e.g. /dev/rtc2)" \
-
 #define id_trivial_usage \
        "[OPTIONS] [USER]"
 #define id_full_usage "\n\n" \
