@@ -58,9 +58,16 @@ static FILE *dbf;
  * and for line editing at the same time.
  */
 
-/* I doubt there are systems which still need this */
+/* I doubt there are systems which still... */
+/* ...have only uppercase: */
 #undef HANDLE_ALLCAPS
+/* ...use # and @ for backspace and line erase: */
 #undef ANCIENT_BS_KILL_CHARS
+/* It actually makes sense (tries to guess parity by looking at 7th bit)
+ * but it's broken, and interferes with non-ASCII login names
+ * (yes, I did receive complains from real users):
+ */
+#undef BROKEN_PARITY_DETECTION_CODE
 
 #undef  _PATH_LOGIN
 #define _PATH_LOGIN "/bin/login"
@@ -108,8 +115,11 @@ struct options {
 /* Storage for things detected while the login name was read. */
 struct chardata {
 	unsigned char erase;    /* erase character */
+#ifdef ANCIENT_BS_KILL_CHARS
 	unsigned char kill;     /* kill character */
+#endif
 	unsigned char eol;      /* end-of-line character */
+#ifdef BROKEN_PARITY_DETECTION_CODE
 	unsigned char parity;   /* what parity did we see */
 	/* (parity & 1): saw odd parity char with 7th bit set */
 	/* (parity & 2): saw even parity char with 7th bit set */
@@ -117,7 +127,8 @@ struct chardata {
 	/* parity == 1: probably 7-bit, odd parity? */
 	/* parity == 2: probably 7-bit, even parity? */
 	/* parity == 3: definitely 8 bit, no parity! */
-	/* Hmm... with any value of "parity" 8 bit, no parity is possible */
+	/* Hmm... with any value of parity "8 bit, no parity" is possible */
+#endif
 #ifdef HANDLE_ALLCAPS
 	unsigned char capslock; /* upper case without lower case */
 #endif
@@ -126,9 +137,13 @@ struct chardata {
 /* Initial values for the above. */
 static const struct chardata init_chardata = {
 	DEF_ERASE,                              /* default erase character */
+#ifdef ANCIENT_BS_KILL_CHARS
 	DEF_KILL,                               /* default kill character */
+#endif
 	13,                                     /* default eol char */
+#ifdef BROKEN_PARITY_DETECTION_CODE
 	0,                                      /* space parity */
+#endif
 #ifdef HANDLE_ALLCAPS
 	0,                                      /* no capslock */
 #endif
@@ -137,21 +152,23 @@ static const struct chardata init_chardata = {
 #define line_buf bb_common_bufsiz1
 
 //usage:#define getty_trivial_usage
-//usage:       "[OPTIONS] BAUD_RATE TTY [TERMTYPE]"
+//usage:       "[OPTIONS] BAUD_RATE[,BAUD_RATE]... TTY [TERMTYPE]"
 //usage:#define getty_full_usage "\n\n"
 //usage:       "Open a tty, prompt for a login name, then invoke /bin/login\n"
 //usage:     "\nOptions:"
 //usage:     "\n	-h		Enable hardware (RTS/CTS) flow control"
 //usage:     "\n	-i		Don't display /etc/issue"
-//usage:     "\n	-L		Local line, don't do carrier detect"
+//usage:     "\n	-L		Local line, set CLOCAL on it"
 //usage:     "\n	-m		Get baud rate from modem's CONNECT status message"
-//usage:     "\n	-w		Wait for a CR or LF before sending /etc/issue"
-//usage:     "\n	-n		Don't prompt the user for a login name"
+//usage:     "\n	-w		Wait for CR or LF before sending /etc/issue"
+//usage:     "\n	-n		Don't prompt for a login name"
 //usage:     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue"
 //usage:     "\n	-l LOGIN	Invoke LOGIN instead of /bin/login"
 //usage:     "\n	-t SEC		Terminate after SEC if no username is read"
 //usage:     "\n	-I INITSTR	Send INITSTR before anything else"
 //usage:     "\n	-H HOST		Log HOST into the utmp file as the hostname"
+//usage:     "\n"
+//usage:     "\nBAUD_RATE of 0 leaves it unchanged"
 
 static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
 #define F_INITSTRING    (1 << 0)   /* -I */
@@ -259,29 +276,27 @@ static void open_tty(const char *tty)
 /* termios_init - initialize termios settings */
 static void termios_init(struct termios *tp, int speed)
 {
-	speed_t ispeed, ospeed;
+	/* Flush input and output queues, important for modems! */
+	/* TODO: sleep(1)? Users report lost chars, and I hesitate
+	 * to use tcdrain here instead of tcflush */
+	tcflush(0, TCIOFLUSH);
+
+	/* Set speed if it wasn't specified as "0" on command line. */
+	if (speed != B0) {
+		cfsetispeed(tp, speed);
+		cfsetospeed(tp, speed);
+	}
 	/*
 	 * Initial termios settings: 8-bit characters, raw-mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
 	 * reads will be done in raw mode anyway. Errors will be dealt with
 	 * later on.
 	 */
-	/* flush input and output queues, important for modems! */
-	tcflush(0, TCIOFLUSH);
-	ispeed = ospeed = speed;
-	if (speed == B0) {
-		/* Speed was specified as "0" on command line.
-		 * Just leave it unchanged */
-		ispeed = cfgetispeed(tp);
-		ospeed = cfgetospeed(tp);
-	}
 	tp->c_cflag = CS8 | HUPCL | CREAD;
 	if (option_mask32 & F_LOCAL)
 		tp->c_cflag |= CLOCAL;
-	cfsetispeed(tp, ispeed);
-	cfsetospeed(tp, ospeed);
-
-	tp->c_iflag = tp->c_lflag = 0;
+	tp->c_iflag = 0;
+	tp->c_lflag = 0;
 	tp->c_oflag = OPOST | ONLCR;
 	tp->c_cc[VMIN] = 1;
 	tp->c_cc[VTIME] = 0;
@@ -388,14 +403,14 @@ static char *get_logname(char *logname, unsigned size_logname,
 	char *bp;
 	char c;                         /* input character, full eight bits */
 	char ascval;                    /* low 7 bits of input character */
-	int bits;                       /* # of "1" bits per character */
-	int mask;                       /* mask with 1 bit up */
+#ifdef BROKEN_PARITY_DETECTION_CODE
 	static const char erase[][3] = {/* backspace-space-backspace */
 		"\010\040\010",                 /* space parity */
 		"\010\040\010",                 /* odd parity */
 		"\210\240\210",                 /* even parity */
 		"\010\040\010",                 /* 8 bit no parity */
 	};
+#endif
 
 	/* NB: *cp is pre-initialized with init_chardata */
 
@@ -406,14 +421,13 @@ static char *get_logname(char *logname, unsigned size_logname,
 	/* Prompt for and read a login name. */
 	logname[0] = '\0';
 	while (!logname[0]) {
-		/* Write issue file and prompt, with "parity" bit == 0. */
+		/* Write issue file and prompt. */
 		do_prompt(op);
 
 		/* Read name, watch for break, parity, erase, kill, end-of-line. */
 		bp = logname;
 		cp->eol = '\0';
-		while (cp->eol == '\0') {
-
+		while (1) {
 			/* Do not report trivial EINTR/EIO errors. */
 			errno = EINTR; /* make read of 0 bytes be silent too */
 			if (read(STDIN_FILENO, &c, 1) < 1) {
@@ -427,10 +441,11 @@ static char *get_logname(char *logname, unsigned size_logname,
 			if (c == '\0' && op->numspeed > 1)
 				return NULL;
 
+#ifdef BROKEN_PARITY_DETECTION_CODE
 			/* Do parity bit handling. */
-			if (!(option_mask32 & F_LOCAL) && (c & 0x80)) {       /* "parity" bit on? */
-				bits = 1;
-				mask = 1;
+			if (!(option_mask32 & F_LOCAL) && (c & 0x80)) { /* "parity" bit on? */
+				int bits = 1;
+				int mask = 1;
 				while (mask & 0x7f) {
 					if (mask & c)
 						bits++; /* count "1" bits */
@@ -439,15 +454,18 @@ static char *get_logname(char *logname, unsigned size_logname,
 				/* ... |= 2 - even, 1 - odd */
 				cp->parity |= 2 - (bits & 1);
 			}
+			ascval = c & 0x7f;
+#else
+			ascval = c;
+#endif
 
 			/* Do erase, kill and end-of-line processing. */
-			ascval = c & 0x7f;
 			switch (ascval) {
 			case CR:
 			case NL:
 				*bp = '\0';             /* terminate logname */
 				cp->eol = ascval;       /* set end-of-line char */
-				break;
+				goto got_logname;
 			case BS:
 			case DEL:
 #ifdef ANCIENT_BS_KILL_CHARS
@@ -455,17 +473,25 @@ static char *get_logname(char *logname, unsigned size_logname,
 #endif
 				cp->erase = ascval;     /* set erase character */
 				if (bp > logname) {
+#ifdef BROKEN_PARITY_DETECTION_CODE
 					full_write(STDOUT_FILENO, erase[cp->parity], 3);
+#else
+					full_write(STDOUT_FILENO, "\010 \010", 3);
+#endif
 					bp--;
 				}
 				break;
 			case CTL('U'):
 #ifdef ANCIENT_BS_KILL_CHARS
 			case '@':
-#endif
 				cp->kill = ascval;      /* set kill character */
+#endif
 				while (bp > logname) {
+#ifdef BROKEN_PARITY_DETECTION_CODE
 					full_write(STDOUT_FILENO, erase[cp->parity], 3);
+#else
+					full_write(STDOUT_FILENO, "\010 \010", 3);
+#endif
 					bp--;
 				}
 				break;
@@ -474,19 +500,18 @@ static char *get_logname(char *logname, unsigned size_logname,
 			default:
 				if (ascval < ' ') {
 					/* ignore garbage characters */
-				} else if ((int)(bp - logname) >= size_logname - 1) {
-					bb_error_msg_and_die("input overrun");
-				} else {
+				} else if ((int)(bp - logname) < size_logname - 1) {
 					full_write(STDOUT_FILENO, &c, 1); /* echo the character */
 					*bp++ = ascval; /* and store it */
 				}
 				break;
 			}
-		}
-	}
-	/* Handle names with upper case and no lower case. */
+		} /* end of get char loop */
+ got_logname: ;
+	} /* while logname is empty */
 
 #ifdef HANDLE_ALLCAPS
+	/* Handle names with upper case and no lower case. */
 	cp->capslock = all_is_upcase(logname);
 	if (cp->capslock) {
 		for (bp = logname; *bp; bp++)
@@ -520,8 +545,13 @@ static void termios_final(struct termios *tp, struct chardata *cp)
 		tp->c_oflag |= ONLCR;   /* map NL in output to CR-NL */
 	}
 	tp->c_cc[VERASE] = cp->erase;   /* set erase character */
+#ifdef ANCIENT_BS_KILL_CHARS
 	tp->c_cc[VKILL] = cp->kill;     /* set kill character */
+#else
+	tp->c_cc[VKILL] = DEF_KILL;     /* set kill character */
+#endif
 
+#ifdef BROKEN_PARITY_DETECTION_CODE
 	/* Account for the presence or absence of parity bits in input. */
 	switch (cp->parity) {
 	case 0:                                 /* space (always 0) parity */
@@ -542,17 +572,19 @@ static void termios_final(struct termios *tp, struct chardata *cp)
 // Entire parity detection madness here just begs for deletion...
 		break;
 	}
+#endif
 
-	/* Account for upper case without lower case. */
 #ifdef HANDLE_ALLCAPS
+	/* Account for upper case without lower case. */
 	if (cp->capslock) {
 		tp->c_iflag |= IUCLC;
 		tp->c_lflag |= XCASE;
 		tp->c_oflag |= OLCUC;
 	}
 #endif
-	/* Optionally enable hardware flow control */
+
 #ifdef CRTSCTS
+	/* Optionally enable hardware flow control */
 	if (option_mask32 & F_RTSCTS)
 		tp->c_cflag |= CRTSCTS;
 #endif
@@ -685,7 +717,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 
 	logname = NULL;
 	if (!(option_mask32 & F_NOPROMPT)) {
-		/* NB:termios_init already set line speed
+		/* NB: termios_init already set line speed
 		 * to options.speeds[0] */
 		int baud_index = 0;
 
