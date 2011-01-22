@@ -268,7 +268,7 @@ static void open_tty(const char *tty)
 		 * Standard input should already be connected to an open port. Make
 		 * sure it is open for read/write.
 		 */
-		if ((fcntl(0, F_GETFL) & O_RDWR) != O_RDWR)
+		if ((fcntl(0, F_GETFL) & (O_RDWR|O_RDONLY|O_WRONLY)) != O_RDWR)
 			bb_error_msg_and_die("stdin is not open for read/write");
 	}
 }
