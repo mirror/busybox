@@ -25,19 +25,25 @@
 #include "libbb.h"
 
 /* Turn on nonblocking I/O on a fd */
-int FAST_FUNC ndelay_on(int fd)
+void FAST_FUNC ndelay_on(int fd)
 {
-	return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+	int flags = fcntl(fd, F_GETFL);
+	if (flags & O_NONBLOCK)
+		return;
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-int FAST_FUNC ndelay_off(int fd)
+void FAST_FUNC ndelay_off(int fd)
 {
-	return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
+	int flags = fcntl(fd, F_GETFL);
+	if (!(flags & O_NONBLOCK))
+		return;
+	fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
 }
 
-int FAST_FUNC close_on_exec_on(int fd)
+void FAST_FUNC close_on_exec_on(int fd)
 {
-	return fcntl(fd, F_SETFD, FD_CLOEXEC);
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
 char* FAST_FUNC strncpy_IFNAMSIZ(char *dst, const char *src)

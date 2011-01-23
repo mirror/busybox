@@ -348,9 +348,9 @@ extern char *bb_get_last_path_component_strip(char *path) FAST_FUNC;
 /* "abc/def/" -> "" and it never modifies 'path' */
 extern char *bb_get_last_path_component_nostrip(const char *path) FAST_FUNC;
 
-int ndelay_on(int fd) FAST_FUNC;
-int ndelay_off(int fd) FAST_FUNC;
-int close_on_exec_on(int fd) FAST_FUNC;
+void ndelay_on(int fd) FAST_FUNC;
+void ndelay_off(int fd) FAST_FUNC;
+void close_on_exec_on(int fd) FAST_FUNC;
 void xdup2(int, int) FAST_FUNC;
 void xmove_fd(int, int) FAST_FUNC;
 
