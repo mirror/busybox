@@ -275,10 +275,13 @@ static void open_tty(const char *tty)
 /* initialize termios settings */
 static void termios_init(struct termios *tp, int speed)
 {
-	/* Flush input and output queues, important for modems! */
-	/* TODO: sleep(1)? Users report lost chars, and I hesitate
-	 * to use tcdrain here instead of tcflush */
-	tcflush(0, TCIOFLUSH);
+	/* Flush input and output queues, important for modems!
+	 * Users report losing previously queued output chars, and I hesitate
+	 * to use tcdrain here instead of tcflush - I imagine it can block.
+	 * Using small sleep instead.
+	 */
+	usleep(100*1000); /* 0.1 sec */
+	tcflush(STDIN_FILENO, TCIOFLUSH);
 
 	/* Set speed if it wasn't specified as "0" on command line. */
 	if (speed != B0)
@@ -402,8 +405,8 @@ static char *get_logname(char *logname, unsigned size_logname,
 	/* NB: *cp is pre-initialized with init_chardata */
 
 	/* Flush pending input (esp. after parsing or switching the baud rate). */
-	sleep(1);
-	tcflush(0, TCIOFLUSH);
+	usleep(100*1000); /* 0.1 sec */
+	tcflush(STDIN_FILENO, TCIOFLUSH);
 
 	/* Prompt for and read a login name. */
 	logname[0] = '\0';
@@ -659,7 +662,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * by patching the SunOS kernel variable "zsadtrlow" to a larger value;
 	 * 5 seconds seems to be a good value.
 	 */
-	if (tcgetattr(0, &termios) < 0)
+	if (tcgetattr(STDIN_FILENO, &termios) < 0)
 		bb_perror_msg_and_die("tcgetattr");
 
 	pid = getpid();
@@ -667,9 +670,9 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 // FIXME: do we need this? Otherwise "-" case seems to be broken...
 	// /* Forcibly make fd 0 our controlling tty, even if another session
 	//  * has it as a ctty. (Another session loses ctty). */
-	// ioctl(0, TIOCSCTTY, (void*)1);
+	// ioctl(STDIN_FILENO, TIOCSCTTY, (void*)1);
 	/* Make ourself a foreground process group within our session */
-	tcsetpgrp(0, pid);
+	tcsetpgrp(STDIN_FILENO, pid);
 #endif
 
 	/* Update the utmp file. This tty is ours now! */
