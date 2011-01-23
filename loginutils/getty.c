@@ -1,8 +1,7 @@
 /* vi: set sw=4 ts=4: */
-/* agetty.c - another getty program for Linux. By W. Z. Venema 1989
+/* Based on agetty - another getty program for Linux. By W. Z. Venema 1989
  * Ported to Linux by Peter Orbaek <poe@daimi.aau.dk>
- * This program is freely distributable. The entire man-page used to
- * be here. Now read the real man-page agetty.8 instead.
+ * This program is freely distributable.
  *
  * option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
  *
@@ -184,7 +183,7 @@ static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
 #define F_NOPROMPT      (1 << 10)  /* -n */
 
 
-/* bcode - convert speed string to speed code; return <= 0 on failure */
+/* convert speed string to speed code; return <= 0 on failure */
 static int bcode(const char *s)
 {
 	int value = bb_strtou(s, NULL, 10); /* yes, int is intended! */
@@ -193,7 +192,7 @@ static int bcode(const char *s)
 	return tty_value_to_baud(value);
 }
 
-/* parse_speeds - parse alternate baud rates */
+/* parse alternate baud rates */
 static void parse_speeds(struct options *op, char *arg)
 {
 	char *cp;
@@ -212,7 +211,7 @@ static void parse_speeds(struct options *op, char *arg)
 	debug("exiting parse_speeds\n");
 }
 
-/* parse_args - parse command-line arguments */
+/* parse command-line arguments */
 static void parse_args(char **argv, struct options *op, char **fakehost_p)
 {
 	char *ts;
@@ -247,7 +246,7 @@ static void parse_args(char **argv, struct options *op, char **fakehost_p)
 	debug("exiting parse_args\n");
 }
 
-/* open_tty - set up tty as standard { input, output, error } */
+/* set up tty as standard input, output, error */
 static void open_tty(const char *tty)
 {
 	/* Set up new standard input, unless we are given an already opened port. */
@@ -273,7 +272,7 @@ static void open_tty(const char *tty)
 	}
 }
 
-/* termios_init - initialize termios settings */
+/* initialize termios settings */
 static void termios_init(struct termios *tp, int speed)
 {
 	/* Flush input and output queues, important for modems! */
@@ -282,10 +281,9 @@ static void termios_init(struct termios *tp, int speed)
 	tcflush(0, TCIOFLUSH);
 
 	/* Set speed if it wasn't specified as "0" on command line. */
-	if (speed != B0) {
-		cfsetispeed(tp, speed);
-		cfsetospeed(tp, speed);
-	}
+	if (speed != B0)
+		cfsetspeed(tp, speed);
+
 	/*
 	 * Initial termios settings: 8-bit characters, raw-mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
@@ -315,7 +313,7 @@ static void termios_init(struct termios *tp, int speed)
 	debug("term_io 2\n");
 }
 
-/* auto_baud - extract baud rate from modem status message */
+/* extract baud rate from modem status message */
 static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 {
 	int speed;
@@ -373,19 +371,8 @@ static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 	tcsetattr_stdin_TCSANOW(tp);
 }
 
-/* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
-static void do_prompt(struct options *op)
-{
-#ifdef ISSUE
-	if (!(option_mask32 & F_NOISSUE))
-		print_login_issue(op->issue, op->tty);
-#endif
-	print_login_prompt();
-}
-
 #ifdef HANDLE_ALLCAPS
-/* all_is_upcase - string contains upper case without lower case */
-/* returns 1 if true, 0 if false */
+/* does string contain upper case without lower case? */
 static int all_is_upcase(const char *s)
 {
 	while (*s)
@@ -395,7 +382,7 @@ static int all_is_upcase(const char *s)
 }
 #endif
 
-/* get_logname - get user name, establish parity, speed, erase, kill, eol;
+/* get user name, establish parity, speed, erase, kill, eol;
  * return NULL on BREAK, logname on success */
 static char *get_logname(char *logname, unsigned size_logname,
 		struct options *op, struct chardata *cp)
@@ -422,7 +409,11 @@ static char *get_logname(char *logname, unsigned size_logname,
 	logname[0] = '\0';
 	while (!logname[0]) {
 		/* Write issue file and prompt. */
-		do_prompt(op);
+#ifdef ISSUE
+		if (!(option_mask32 & F_NOISSUE))
+			print_login_issue(op->issue, op->tty);
+#endif
+		print_login_prompt();
 
 		/* Read name, watch for break, parity, erase, kill, end-of-line. */
 		bp = logname;
@@ -522,7 +513,7 @@ static char *get_logname(char *logname, unsigned size_logname,
 	return logname;
 }
 
-/* termios_final - set the final tty mode bits */
+/* set the final tty mode bits */
 static void termios_final(struct termios *tp, struct chardata *cp)
 {
 	/* General terminal-independent stuff. */
@@ -730,8 +721,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			/* we are here only if options.numspeed > 1 */
 			baud_index = (baud_index + 1) % options.numspeed;
-			cfsetispeed(&termios, options.speeds[baud_index]);
-			cfsetospeed(&termios, options.speeds[baud_index]);
+			cfsetspeed(&termios, options.speeds[baud_index]);
 			tcsetattr_stdin_TCSANOW(&termios);
 		}
 	}
