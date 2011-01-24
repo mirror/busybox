@@ -1004,8 +1004,9 @@ static void display_speed(const struct termios *mode, int fancy)
 	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
 	unsigned long ispeed, ospeed;
 
-	ospeed = ispeed = cfgetispeed(mode);
-	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
+	ispeed = cfgetispeed(mode);
+	ospeed = cfgetospeed(mode);
+	if (ispeed == 0 || ispeed == ospeed) {
 		ispeed = ospeed;                /* in case ispeed was 0 */
 		//________ 0123 4 5 6 7 8 9
 		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
@@ -1024,7 +1025,7 @@ static void do_display(const struct termios *mode, int all)
 	display_speed(mode, 1);
 	if (all)
 		display_window_size(1);
-#ifdef HAVE_C_LINE
+#ifdef __linux__
 	wrapf("line = %u;\n", mode->c_line);
 #else
 	newline();
@@ -1357,7 +1358,7 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		switch (param) {
-#ifdef HAVE_C_LINE
+#ifdef __linux__
 		case param_line:
 # ifndef TIOCGWINSZ
 			xatoul_range_sfx(argnext, 1, INT_MAX, stty_suffixes);
@@ -1461,7 +1462,7 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		switch (param) {
-#ifdef HAVE_C_LINE
+#ifdef __linux__
 		case param_line:
 			mode.c_line = xatoul_sfx(argnext, stty_suffixes);
 			stty_state |= STTY_require_set_attr;
