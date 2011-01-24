@@ -375,7 +375,7 @@ static char *get_logname(void)
 
 	/* Flush pending input (esp. after parsing or switching the baud rate) */
 	usleep(100*1000); /* 0.1 sec */
-	tcflush(STDIN_FILENO, TCIOFLUSH);
+	tcflush(STDIN_FILENO, TCIFLUSH);
 
 	/* Prompt for and read a login name */
 	G.line_buf[0] = '\0';
