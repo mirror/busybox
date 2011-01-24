@@ -1297,7 +1297,7 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name) FAST
 void reset_ino_dev_hashtable(void) FAST_FUNC;
 #ifdef __GLIBC__
 /* At least glibc has horrendously large inline for this, so wrap it */
-unsigned long long bb_makedev(unsigned int major, unsigned int minor) FAST_FUNC;
+unsigned long long bb_makedev(unsigned major, unsigned minor) FAST_FUNC;
 #undef makedev
 #define makedev(a,b) bb_makedev(a,b)
 #endif
