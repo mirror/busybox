@@ -1,15 +1,23 @@
 /* vi: set sw=4 ts=4: */
-/* Based on agetty - another getty program for Linux. By W. Z. Venema 1989
+/*
+ * Based on agetty - another getty program for Linux. By W. Z. Venema 1989
  * Ported to Linux by Peter Orbaek <poe@daimi.aau.dk>
  * This program is freely distributable.
  *
  * option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
  *
  * 1999-02-22 Arkadiusz Mickiewicz <misiek@misiek.eu.org>
- * - added Native Language Support
+ * - Added Native Language Support
  *
  * 1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
- * - enable hardware flow control before displaying /etc/issue
+ * - Enabled hardware flow control before displaying /etc/issue
+ *
+ * 2011-01 Venys Vlasenko
+ * - Removed parity detection code. It can't work reliably:
+ * if all chars received have bit 7 cleared and odd (or even) parity,
+ * it is impossible to determine whether other side is 8-bit,no-parity
+ * or 7-bit,odd(even)-parity. It also interferes with non-ASCII usernames.
+ * - From now on, we assume that parity is correctly set.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
@@ -23,13 +31,7 @@
 # define IUCLC 0
 #endif
 
-/*
- * Some heuristics to find out what environment we are in: if it is not
- * System V, assume it is SunOS 4.
- */
-#ifdef LOGIN_PROCESS                    /* defined in System V utmp.h */
-# include <sys/utsname.h>
-#else /* if !sysV style, wtmp/utmp code is off */
+#ifndef LOGIN_PROCESS
 # undef ENABLE_FEATURE_UTMP
 # undef ENABLE_FEATURE_WTMP
 # define ENABLE_FEATURE_UTMP 0
@@ -37,7 +39,7 @@
 #endif
 
 
-/* The following is used for understandable diagnostics. */
+/* The following is used for understandable diagnostics */
 #ifdef DEBUGGING
 static FILE *dbf;
 # define DEBUGTERM "/dev/ttyp0"
@@ -64,14 +66,14 @@ static FILE *dbf;
  */
 #define ISSUE "/etc/issue"
 
-/* Some shorthands for control characters. */
+/* Some shorthands for control characters */
 #define CTL(x)          ((x) ^ 0100)    /* Assumes ASCII dialect */
 #define CR              CTL('M')        /* carriage return */
 #define NL              CTL('J')        /* line feed */
 #define BS              CTL('H')        /* back space */
 #define DEL             CTL('?')        /* delete */
 
-/* Defaults for line-editing etc. characters; you may want to change this. */
+/* Defaults for line-editing etc. characters; you may want to change this */
 #define DEF_ERASE       DEL             /* default erase character */
 #define DEF_INTR        CTL('C')        /* default interrupt character */
 #define DEF_QUIT        CTL('\\')       /* default quit char */
@@ -81,23 +83,22 @@ static FILE *dbf;
 #define DEF_SWITCH      0               /* default switch char */
 
 /*
- * When multiple baud rates are specified on the command line, the first one
- * we will try is the first one specified.
+ * When multiple baud rates are specified on the command line,
+ * the first one we will try is the first one specified.
  */
 #define MAX_SPEED       10              /* max. nr. of baud rates */
 
 struct globals {
 	unsigned timeout;               /* time-out period */
 	const char *login;              /* login program */
+	const char *fakehost;
 	const char *tty;                /* name of tty */
 	const char *initstring;         /* modem init string */
 	const char *issue;              /* alternative issue file */
 	int numspeed;                   /* number of baud rates to try */
 	int speeds[MAX_SPEED];          /* baud rates to be tried */
+	unsigned char eol;              /* end-of-line char seen (CR or NL) */
 	struct termios termios;         /* terminal mode bits */
-	/* Storage for things detected while the login name was read. */
-	unsigned char erase;            /* erase character */
-	unsigned char eol;              /* end-of-line character */
 	char line_buf[128];
 };
 
@@ -168,14 +169,14 @@ static void parse_speeds(char *arg)
 }
 
 /* parse command-line arguments */
-static void parse_args(char **argv, char **fakehost_p)
+static void parse_args(char **argv)
 {
 	char *ts;
 	int flags;
 
 	opt_complementary = "-2:t+"; /* at least 2 args; -t N */
 	flags = getopt32(argv, opt_string,
-		&G.initstring, fakehost_p, &G.issue,
+		&G.initstring, &G.fakehost, &G.issue,
 		&G.login, &G.timeout
 	);
 	if (flags & F_INITSTRING) {
@@ -206,17 +207,17 @@ static void parse_args(char **argv, char **fakehost_p)
 /* set up tty as standard input, output, error */
 static void open_tty(void)
 {
-	/* Set up new standard input, unless we are given an already opened port. */
+	/* Set up new standard input, unless we are given an already opened port */
 	if (NOT_LONE_DASH(G.tty)) {
 		if (G.tty[0] != '/')
 			G.tty = xasprintf("/dev/%s", G.tty); /* will leak it */
 
-		/* Open the tty as standard input. */
+		/* Open the tty as standard input */
 		debug("open(2)\n");
 		close(0);
 		xopen(G.tty, O_RDWR | O_NONBLOCK); /* uses fd 0 */
 
-		/* Set proper protections and ownership. */
+		/* Set proper protections and ownership */
 		fchown(0, 0, 0);        /* 0:0 */
 		fchmod(0, 0620);        /* crw--w---- */
 	} else {
@@ -229,7 +230,13 @@ static void open_tty(void)
 	}
 }
 
-/* initialize termios settings */
+/* We manipulate termios this way:
+ * - first, we read existing termios settings
+ * - termios_init modifies some parts and sets it
+ * - auto_baud and/or BREAK processing can set different speed and set termios
+ * - termios_final again modifies some parts and sets termios before
+ *   execing login
+ */
 static void termios_init(int speed)
 {
 	/* Flush input and output queues, important for modems!
@@ -240,7 +247,7 @@ static void termios_init(int speed)
 	usleep(100*1000); /* 0.1 sec */
 	tcflush(STDIN_FILENO, TCIOFLUSH);
 
-	/* Set speed if it wasn't specified as "0" on command line. */
+	/* Set speed if it wasn't specified as "0" on command line */
 	if (speed != B0)
 		cfsetspeed(&G.termios, speed);
 
@@ -271,13 +278,44 @@ static void termios_init(int speed)
 	debug("term_io 2\n");
 }
 
+static void termios_final(void)
+{
+	/* General terminal-independent stuff */
+	G.termios.c_iflag |= IXON | IXOFF;    /* 2-way flow control */
+	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
+	/* no longer in lflag: | ECHOCTL | ECHOPRT */
+	G.termios.c_oflag |= OPOST;
+	/* G.termios.c_cflag = 0; */
+	G.termios.c_cc[VINTR] = DEF_INTR;
+	G.termios.c_cc[VQUIT] = DEF_QUIT;
+	G.termios.c_cc[VEOF] = DEF_EOF;
+	G.termios.c_cc[VEOL] = DEF_EOL;
+#ifdef VSWTC
+	G.termios.c_cc[VSWTC] = DEF_SWITCH;
+#endif
+
+	/* Account for special characters seen in input */
+	if (G.eol == CR) {
+		G.termios.c_iflag |= ICRNL;   /* map CR in input to NL */
+		/* already done by termios_init */
+		/* G.termios.c_oflag |= ONLCR; map NL in output to CR-NL */
+	}
+	G.termios.c_cc[VKILL] = DEF_KILL;
+
+#ifdef CRTSCTS
+	/* Optionally enable hardware flow control */
+	if (option_mask32 & F_RTSCTS)
+		G.termios.c_cflag |= CRTSCTS;
+#endif
+
+	/* Finally, make the new settings effective */
+	if (tcsetattr_stdin_TCSANOW(&G.termios) < 0)
+		bb_perror_msg_and_die("tcsetattr");
+}
+
 /* extract baud rate from modem status message */
 static void auto_baud(void)
 {
-	int speed;
-	int vmin;
-	unsigned iflag;
-	char *bp;
 	int nread;
 
 	/*
@@ -296,12 +334,9 @@ static void auto_baud(void)
 	 */
 
 	/*
-	 * Use 7-bit characters, don't block if input queue is empty. Errors will
-	 * be dealt with later on.
+	 * Don't block if input queue is empty.
+	 * Errors will be dealt with later on.
 	 */
-	iflag = G.termios.c_iflag;
-	G.termios.c_iflag |= ISTRIP;    /* enable 8th-bit stripping */
-	vmin = G.termios.c_cc[VMIN];
 	G.termios.c_cc[VMIN] = 0;       /* don't block if queue empty */
 	tcsetattr_stdin_TCSANOW(&G.termios);
 
@@ -312,6 +347,8 @@ static void auto_baud(void)
 	sleep(1);
 	nread = safe_read(STDIN_FILENO, G.line_buf, sizeof(G.line_buf) - 1);
 	if (nread > 0) {
+		int speed;
+		char *bp;
 		G.line_buf[nread] = '\0';
 		for (bp = G.line_buf; bp < G.line_buf + nread; bp++) {
 			if (isdigit(*bp)) {
@@ -323,38 +360,38 @@ static void auto_baud(void)
 		}
 	}
 
-	/* Restore terminal settings. Errors will be dealt with later on. */
-	G.termios.c_iflag = iflag;
-	G.termios.c_cc[VMIN] = vmin;
+	/* Restore terminal settings. Errors will be dealt with later on */
+	G.termios.c_cc[VMIN] = 1; /* restore to value set by termios_init */
 	tcsetattr_stdin_TCSANOW(&G.termios);
 }
 
 /* get user name, establish parity, speed, erase, kill, eol;
- * return NULL on BREAK, logname on success */
+ * return NULL on BREAK, logname on success
+ */
 static char *get_logname(void)
 {
 	char *bp;
 	char c;
 
-	/* Flush pending input (esp. after parsing or switching the baud rate). */
+	/* Flush pending input (esp. after parsing or switching the baud rate) */
 	usleep(100*1000); /* 0.1 sec */
 	tcflush(STDIN_FILENO, TCIOFLUSH);
 
-	/* Prompt for and read a login name. */
+	/* Prompt for and read a login name */
 	G.line_buf[0] = '\0';
 	while (!G.line_buf[0]) {
-		/* Write issue file and prompt. */
+		/* Write issue file and prompt */
 #ifdef ISSUE
 		if (!(option_mask32 & F_NOISSUE))
 			print_login_issue(G.issue, G.tty);
 #endif
 		print_login_prompt();
 
-		/* Read name, watch for break, parity, erase, kill, end-of-line. */
+		/* Read name, watch for break, parity, erase, kill, end-of-line */
 		bp = G.line_buf;
 		G.eol = '\0';
 		while (1) {
-			/* Do not report trivial EINTR/EIO errors. */
+			/* Do not report trivial EINTR/EIO errors */
 			errno = EINTR; /* make read of 0 bytes be silent too */
 			if (read(STDIN_FILENO, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
@@ -367,7 +404,7 @@ static char *get_logname(void)
 			if (c == '\0' && G.numspeed > 1)
 				return NULL;
 
-			/* Do erase, kill and end-of-line processing. */
+			/* Do erase, kill and end-of-line processing */
 			switch (c) {
 			case CR:
 			case NL:
@@ -376,7 +413,7 @@ static char *get_logname(void)
 				goto got_logname;
 			case BS:
 			case DEL:
-				G.erase = c;
+				G.termios.c_cc[VERASE] = c;
 				if (bp > G.line_buf) {
 					full_write(STDOUT_FILENO, "\010 \010", 3);
 					bp--;
@@ -407,61 +444,22 @@ static char *get_logname(void)
 	return G.line_buf;
 }
 
-/* set the final tty mode bits */
-static void termios_final(void)
-{
-	/* General terminal-independent stuff. */
-	G.termios.c_iflag |= IXON | IXOFF;    /* 2-way flow control */
-	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
-	/* no longer in lflag: | ECHOCTL | ECHOPRT */
-	G.termios.c_oflag |= OPOST;
-	/* G.termios.c_cflag = 0; */
-	G.termios.c_cc[VINTR] = DEF_INTR;     /* default interrupt */
-	G.termios.c_cc[VQUIT] = DEF_QUIT;     /* default quit */
-	G.termios.c_cc[VEOF] = DEF_EOF;       /* default EOF character */
-	G.termios.c_cc[VEOL] = DEF_EOL;
-#ifdef VSWTC
-	G.termios.c_cc[VSWTC] = DEF_SWITCH;   /* default switch character */
-#endif
-
-	/* Account for special characters seen in input. */
-	if (G.eol == CR) {
-		G.termios.c_iflag |= ICRNL;   /* map CR in input to NL */
-		G.termios.c_oflag |= ONLCR;   /* map NL in output to CR-NL */
-	}
-	G.termios.c_cc[VERASE] = G.erase;     /* set erase character */
-	G.termios.c_cc[VKILL] = DEF_KILL;     /* set kill character */
-
-#ifdef CRTSCTS
-	/* Optionally enable hardware flow control */
-	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS;
-#endif
-
-	/* Finally, make the new settings effective */
-	if (tcsetattr_stdin_TCSANOW(&G.termios) < 0)
-		bb_perror_msg_and_die("tcsetattr");
-}
-
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
 	pid_t pid;
-	char *fakehost = NULL;    /* Fake hostname for ut_host */
 	char *logname;
 
 	INIT_G();
 	G.login = _PATH_LOGIN;    /* default login program */
-	G.initstring = "";        /* modem init string */
 #ifdef ISSUE
 	G.issue = ISSUE;          /* default issue file */
 #endif
-	G.erase = DEF_ERASE;
 	G.eol = CR;
 
-	/* Parse command-line arguments. */
-	parse_args(argv, &fakehost);
+	/* Parse command-line arguments */
+	parse_args(argv);
 
 	logmode = LOGMODE_NONE;
 
@@ -524,9 +522,9 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* Update the utmp file. This tty is ours now! */
-	update_utmp(pid, LOGIN_PROCESS, G.tty, "LOGIN", fakehost);
+	update_utmp(pid, LOGIN_PROCESS, G.tty, "LOGIN", G.fakehost);
 
-	/* Initialize the termios settings (raw mode, eight-bit, blocking i/o). */
+	/* Initialize the termios settings (raw mode, eight-bit, blocking i/o) */
 	debug("calling termios_init\n");
 	termios_init(G.speeds[0]);
 
@@ -563,30 +561,30 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		int baud_index = 0;
 
 		while (1) {
-			/* Read the login name. */
+			/* Read the login name */
 			debug("reading login name\n");
 			logname = get_logname();
 			if (logname)
 				break;
-			/* We are here only if G.numspeed > 1. */
+			/* We are here only if G.numspeed > 1 */
 			baud_index = (baud_index + 1) % G.numspeed;
 			cfsetspeed(&G.termios, G.speeds[baud_index]);
 			tcsetattr_stdin_TCSANOW(&G.termios);
 		}
 	}
 
-	/* Disable timer. */
+	/* Disable timer */
 	alarm(0);
 
-	/* Finalize the termios settings. */
+	/* Finalize the termios settings */
 	termios_final();
 
-	/* Now the newline character should be properly written. */
+	/* Now the newline character should be properly written */
 	full_write(STDOUT_FILENO, "\n", 1);
 
-	/* Let the login program take care of password validation. */
+	/* Let the login program take care of password validation */
 	/* We use PATH because we trust that root doesn't set "bad" PATH,
-	 * and getty is not suid-root applet. */
+	 * and getty is not suid-root applet */
 	/* With -n, logname == NULL, and login will ask for username instead */
 	BB_EXECLP(G.login, G.login, "--", logname, NULL);
 	bb_error_msg_and_die("can't execute '%s'", G.login);
