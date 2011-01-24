@@ -59,6 +59,10 @@
 #if defined(VEOL2) && !defined(CEOL2)
 # define CEOL2 _POSIX_VDISABLE
 #endif
+/* glibc-2.12.1 uses only VSWTC name */
+#if defined(VSWTC) && !defined(VSWTCH)
+# define VSWTCH VSWTC
+#endif
 /* ISC renamed swtch to susp for termios, but we'll accept either name */
 #if defined(VSUSP) && !defined(VSWTCH)
 # define VSWTCH VSUSP
@@ -221,6 +225,9 @@
 #ifndef XCASE
 # define XCASE 0
 #endif
+#ifndef IUTF8
+# define IUTF8 0
+#endif
 
 /* Which speeds to set */
 enum speed_setting {
@@ -347,6 +354,9 @@ static const char mode_name[] =
 #endif
 #if IMAXBEL
 	MI_ENTRY("imaxbel",  input,       SANE_SET   | REV,  IMAXBEL,    0 )
+#endif
+#if IUTF8
+	MI_ENTRY("iutf8",    input,       SANE_UNSET | REV,  IUTF8,      0 )
 #endif
 	MI_ENTRY("opost",    output,      SANE_SET   | REV,  OPOST,      0 )
 #if OLCUC
@@ -501,6 +511,9 @@ static const struct mode_info mode_info[] = {
 #endif
 #if IMAXBEL
 	MI_ENTRY("imaxbel",  input,       SANE_SET   | REV,  IMAXBEL,    0 )
+#endif
+#if IUTF8
+	MI_ENTRY("iutf8",    input,       SANE_UNSET | REV,  IUTF8,      0 )
 #endif
 	MI_ENTRY("opost",    output,      SANE_SET   | REV,  OPOST,      0 )
 #if OLCUC
