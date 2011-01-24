@@ -262,9 +262,12 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 # undef HAVE_PTSNAME_R
 # undef HAVE_SYS_STATFS_H
 # undef HAVE_SIGHANDLER_T
+# undef HAVE_XTABS
+# undef HAVE_FDPRINTF
 #else
 # define HAVE_MNTENT_H 1
 # define HAVE_SYS_STATFS_H 1
+# define HAVE_XTABS 1
 #endif
 
 /*----- Kernel versioning ------------------------------------*/

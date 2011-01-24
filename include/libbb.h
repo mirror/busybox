@@ -38,12 +38,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/param.h>
-#ifndef HAVE_CLEARENV
-# define clearenv() do { if (environ) environ[0] = NULL; } while (0)
-#endif
-#ifndef HAVE_FDATASYNC
-# define fdatasync fsync
-#endif
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
 #endif
@@ -102,6 +96,15 @@
 #  define socklen_t bb_socklen_t
    typedef unsigned socklen_t;
 # endif
+#endif
+#ifndef HAVE_CLEARENV
+# define clearenv() do { if (environ) environ[0] = NULL; } while (0)
+#endif
+#ifndef HAVE_FDATASYNC
+# define fdatasync fsync
+#endif
+#ifndef HAVE_XTABS
+# define XTABS TAB3
 #endif
 
 
