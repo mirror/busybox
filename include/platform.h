@@ -10,9 +10,12 @@
 /* Assume all these functions exist by default.  Platforms where it is not
  * true will #undef them below.
  */
+#define HAVE_CLEARENV 1
+#define HAVE_FDATASYNC 1
 #define HAVE_FDPRINTF 1
 #define HAVE_MEMRCHR 1
 #define HAVE_MKDTEMP 1
+#define HAVE_PTSNAME_R 1
 #define HAVE_SETBIT 1
 #define HAVE_SIGHANDLER_T 1
 #define HAVE_STRCASESTR 1
@@ -253,7 +256,10 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 #if (defined __digital__ && defined __unix__) \
  || defined __APPLE__ \
  || defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__
+# undef HAVE_CLEARENV
+# undef HAVE_FDATASYNC
 # undef HAVE_MNTENT_H
+# undef HAVE_PTSNAME_R
 # undef HAVE_SYS_STATFS_H
 # undef HAVE_SIGHANDLER_T
 #else

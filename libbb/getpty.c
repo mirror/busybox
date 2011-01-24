@@ -19,7 +19,7 @@ int FAST_FUNC xgetpty(char *line)
 	if (p > 0) {
 		grantpt(p); /* chmod+chown corresponding slave pty */
 		unlockpt(p); /* (what does this do?) */
-#if 0 /* if ptsname_r is not available... */
+#ifndef HAVE_PTSNAME_R
 		const char *name;
 		name = ptsname(p); /* find out the name of slave pty */
 		if (!name) {

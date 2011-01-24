@@ -38,6 +38,12 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/param.h>
+#ifndef HAVE_CLEARENV
+# define clearenv() do { if (environ) environ[0] = NULL; } while (0)
+#endif
+#ifndef HAVE_FDATASYNC
+# define fdatasync fsync
+#endif
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
 #endif
