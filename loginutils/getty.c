@@ -68,19 +68,16 @@ static FILE *dbf;
 
 /* Some shorthands for control characters */
 #define CTL(x)          ((x) ^ 0100)    /* Assumes ASCII dialect */
-#define CR              CTL('M')        /* carriage return */
-#define NL              CTL('J')        /* line feed */
 #define BS              CTL('H')        /* back space */
 #define DEL             CTL('?')        /* delete */
 
 /* Defaults for line-editing etc. characters; you may want to change this */
-#define DEF_ERASE       DEL             /* default erase character */
 #define DEF_INTR        CTL('C')        /* default interrupt character */
 #define DEF_QUIT        CTL('\\')       /* default quit char */
 #define DEF_KILL        CTL('U')        /* default kill char */
 #define DEF_EOF         CTL('D')        /* default EOF char */
 #define DEF_EOL         '\n'
-#define DEF_SWITCH      0               /* default switch char */
+#define DEF_SWITCH      0               /* default switch char (none) */
 
 /*
  * When multiple baud rates are specified on the command line,
@@ -293,9 +290,12 @@ static void termios_final(void)
 #ifdef VSWTC
 	G.termios.c_cc[VSWTC] = DEF_SWITCH;
 #endif
+#ifdef VSWTCH
+	G.termios.c_cc[VSWTCH] = DEF_SWITCH;
+#endif
 
 	/* Account for special characters seen in input */
-	if (G.eol == CR) {
+	if (G.eol == '\r') {
 		G.termios.c_iflag |= ICRNL;   /* map CR in input to NL */
 		/* already done by termios_init */
 		/* G.termios.c_oflag |= ONLCR; map NL in output to CR-NL */
@@ -406,8 +406,8 @@ static char *get_logname(void)
 
 			/* Do erase, kill and end-of-line processing */
 			switch (c) {
-			case CR:
-			case NL:
+			case '\r':
+			case '\n':
 				*bp = '\0';
 				G.eol = c;
 				goto got_logname;
@@ -456,7 +456,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 #ifdef ISSUE
 	G.issue = ISSUE;          /* default issue file */
 #endif
-	G.eol = CR;
+	G.eol = '\r';
 
 	/* Parse command-line arguments */
 	parse_args(argv);
@@ -545,7 +545,6 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	/* Optionally wait for CR or LF before writing /etc/issue */
 	if (option_mask32 & F_WAITCRLF) {
 		char ch;
-
 		debug("waiting for cr-lf\n");
 		while (safe_read(STDIN_FILENO, &ch, 1) == 1) {
 			debug("read %x\n", (unsigned char)ch);
