@@ -59,7 +59,6 @@ lib-y += llist.o
 lib-y += login.o
 lib-y += make_directory.o
 lib-y += makedev.o
-lib-y += match_fstype.o
 lib-y += hash_md5_sha.o
 # Alternative (disabled) MD5 implementation
 #lib-y += hash_md5prime.o
@@ -119,6 +118,8 @@ lib-y += xgetcwd.o
 lib-y += xgethostbyname.o
 lib-y += xreadlink.o
 lib-y += xrealloc_vector.o
+
+lib-$(CONFIG_PLATFORM_LINUX) += match_fstype.o
 
 lib-$(CONFIG_FEATURE_UTMP) += utmp.o
 
