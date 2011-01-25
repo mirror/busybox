@@ -19,9 +19,9 @@
  *
  * Sept 2008: Vineet Gupta <vineet.gupta@arc.com>
  * Added Support for reporting SMP Information
- * - CPU where Process was last seen running
+ * - CPU where process was last seen running
  *   (to see effect of sched_setaffinity() etc)
- * - CPU Time Split (idle/IO/wait etc) PER CPU
+ * - CPU time split (idle/IO/wait etc) per CPU
  *
  * Copyright (c) 1992 Branko Lankester
  * Copyright (c) 1992 Roger Binns
@@ -30,14 +30,24 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-/* Howto snapshot /proc for debugging top problems:
+/* How to snapshot /proc for debugging top problems:
  * for f in /proc/[0-9]*""/stat; do
  *         n=${f#/proc/}
  *         n=${n%/stat}_stat
  *         cp $f $n
  * done
- * cp /proc/stat /proc/meminfo .
+ * cp /proc/stat /proc/meminfo /proc/loadavg .
  * top -bn1 >top.out
+ *
+ * ...and how to run top on it on another machine:
+ * rm -rf proc; mkdir proc
+ * for f in [0-9]*_stat; do
+ *         p=${f%_stat}
+ *         mkdir -p proc/$p
+ *         cp $f proc/$p/stat
+ * done
+ * cp stat meminfo loadavg proc
+ * chroot . ./top -bn1 >top1.out
  */
 
 #include "libbb.h"
@@ -528,7 +538,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 
 	/* what info of the processes is shown */
 	printf(OPT_BATCH_MODE ? "%.*s" : "\033[7m%.*s\033[0m", scr_width,
-		"  PID  PPID USER     STAT   VSZ %MEM"
+		"  PID  PPID USER     STAT   VSZ %VSZ"
 		IF_FEATURE_TOP_SMP_PROCESS(" CPU")
 		IF_FEATURE_TOP_CPU_USAGE_PERCENTAGE(" %CPU")
 		" COMMAND");
@@ -546,7 +556,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 # define FMT "%4u%%"
 #endif
 	/*
-	 * MEM% = s->vsz/MemTotal
+	 * %VSZ = s->vsz/MemTotal
 	 */
 	pmem_shift = BITS_PER_INT-11;
 	pmem_scale = UPSCALE*(1U<<(BITS_PER_INT-11)) / total_memory;
@@ -606,7 +616,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 			sprintf(vsz_str_buf, "%6ldm", s->vsz/1024);
 		else
 			sprintf(vsz_str_buf, "%7ld", s->vsz);
-		/* PID PPID USER STAT VSZ %MEM [%CPU] COMMAND */
+		/* PID PPID USER STAT VSZ %VSZ [%CPU] COMMAND */
 		col = snprintf(line_buf, scr_width,
 				"\n" "%5u%6u %-8.8s %s%s" FMT
 				IF_FEATURE_TOP_SMP_PROCESS(" %3d")
