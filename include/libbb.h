@@ -1217,6 +1217,12 @@ extern void selinux_preserve_fcontext(int fdesc) FAST_FUNC;
 #endif
 extern void selinux_or_die(void) FAST_FUNC;
 
+
+/* systemd support */
+#define SD_LISTEN_FDS_START 3
+int sd_listen_fds(void);
+
+
 /* setup_environment:
  * if chdir pw->pw_dir: ok: else if to_tmp == 1: goto /tmp else: goto / or die
  * if clear_env = 1: cd(pw->pw_dir), clear environment, then set
