@@ -30,6 +30,15 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+/* Howto snapshot /proc for debugging top problems:
+ * for f in /proc/[0-9]*""/stat; do
+ *         n=${f#/proc/}
+ *         n=${n%/stat}_stat
+ *         cp $f $n
+ * done
+ * cp /proc/stat /proc/meminfo .
+ * top -bn1 >top.out
+ */
 
 #include "libbb.h"
 
@@ -546,7 +555,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		pmem_scale /= 4;
 		pmem_shift -= 2;
 	}
-	pmem_half = (1U << pmem_shift) / (ENABLE_FEATURE_TOP_DECIMALS? 20 : 2);
+	pmem_half = (1U << pmem_shift) / (ENABLE_FEATURE_TOP_DECIMALS ? 20 : 2);
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	busy_jifs = cur_jif.busy - prev_jif.busy;
 	/* This happens if there were lots of short-lived processes
@@ -577,7 +586,7 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 		pcpu_scale /= 4;
 		pcpu_shift -= 2;
 	}
-	pcpu_half = (1U << pcpu_shift) / (ENABLE_FEATURE_TOP_DECIMALS? 20 : 2);
+	pcpu_half = (1U << pcpu_shift) / (ENABLE_FEATURE_TOP_DECIMALS ? 20 : 2);
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
 
