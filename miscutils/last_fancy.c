@@ -8,7 +8,6 @@
  */
 
 #include "libbb.h"
-#include <utmp.h>
 
 /* NB: ut_name and ut_user are the same field, use only one name (ut_user)
  * to reduce confusion */

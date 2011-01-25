@@ -284,17 +284,6 @@ config FEATURE_CLEAN_UP
 	  Don't enable this unless you have a really good reason to clean
 	  things up manually.
 
-config FEATURE_WTMP
-	bool "Support wtmp file"
-	default y
-	select FEATURE_UTMP
-	help
-	  The file /var/run/wtmp is used to track when users have logged into
-	  and logged out of the system.
-	  With this option on, certain applets (getty, login, telnetd etc)
-	  will append new entries there.
-	  "last" applet requires this option.
-
 config FEATURE_UTMP
 	bool "Support utmp file"
 	default y
@@ -303,6 +292,17 @@ config FEATURE_UTMP
 	  With this option on, certain applets (getty, login, telnetd etc)
 	  will create and delete entries there.
 	  "who" applet requires this option.
+
+config FEATURE_WTMP
+	bool "Support wtmp file"
+	default y
+	depends on FEATURE_UTMP
+	help
+	  The file /var/run/wtmp is used to track when users have logged into
+	  and logged out of the system.
+	  With this option on, certain applets (getty, login, telnetd etc)
+	  will append new entries there.
+	  "last" applet requires this option.
 
 config FEATURE_PIDFILE
 	bool "Support writing pidfiles"

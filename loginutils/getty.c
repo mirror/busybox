@@ -24,9 +24,6 @@
 
 #include "libbb.h"
 #include <syslog.h>
-#if ENABLE_FEATURE_UTMP
-# include <utmp.h> /* LOGIN_PROCESS */
-#endif
 #ifndef IUCLC
 # define IUCLC 0
 #endif

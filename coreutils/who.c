@@ -19,7 +19,6 @@
 /* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
 
 #include "libbb.h"
-#include <utmp.h>
 
 static void idle_string(char *str6, time_t t)
 {

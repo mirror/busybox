@@ -4,9 +4,6 @@
  */
 #include "libbb.h"
 #include <syslog.h>
-#if ENABLE_FEATURE_UTMP
-# include <utmp.h> /* USER_PROCESS */
-#endif
 #include <sys/resource.h>
 
 #if ENABLE_SELINUX

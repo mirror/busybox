@@ -78,11 +78,11 @@ static void addgroup_wrapper(struct passwd *p, const char *group_name)
 	free(cmd);
 }
 
-static void passwd_wrapper(const char *login) NORETURN;
+static void passwd_wrapper(const char *login_name) NORETURN;
 
-static void passwd_wrapper(const char *login)
+static void passwd_wrapper(const char *login_name)
 {
-	BB_EXECLP("passwd", "passwd", login, NULL);
+	BB_EXECLP("passwd", "passwd", login_name, NULL);
 	bb_error_msg_and_die("can't execute passwd, you must set password manually");
 }
 

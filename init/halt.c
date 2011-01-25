@@ -74,7 +74,6 @@
 
 #if ENABLE_FEATURE_WTMP
 #include <sys/utsname.h>
-#include <utmp.h>
 
 static void write_wtmp(void)
 {

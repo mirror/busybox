@@ -31,10 +31,6 @@
 #endif
 #include <arpa/telnet.h>
 
-#if ENABLE_FEATURE_UTMP
-# include <utmp.h> /* LOGIN_PROCESS */
-#endif
-
 
 struct tsession {
 	struct tsession *next;

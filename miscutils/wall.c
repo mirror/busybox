@@ -7,7 +7,6 @@
  */
 
 #include "libbb.h"
-#include <utmp.h>
 
 int wall_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int wall_main(int argc UNUSED_PARAM, char **argv)

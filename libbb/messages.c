@@ -48,15 +48,16 @@ const int const_int_1 = 1;
  * and it will end up in bss */
 const int const_int_0 = 0;
 
-#include <utmp.h>
+#if ENABLE_FEATURE_WTMP
 /* This is usually something like "/var/adm/wtmp" or "/var/log/wtmp" */
 const char bb_path_wtmp_file[] ALIGN1 =
-#if defined _PATH_WTMP
+# if defined _PATH_WTMP
 	_PATH_WTMP;
-#elif defined WTMP_FILE
+# elif defined WTMP_FILE
 	WTMP_FILE;
-#else
-#error unknown path to wtmp file
+# else
+#  error unknown path to wtmp file
+# endif
 #endif
 
 /* We use it for "global" data via *(struct global*)&bb_common_bufsiz1.

@@ -4944,6 +4944,8 @@ stoppedjobs(void)
  * Code for dealing with input/output redirection.
  */
 
+#undef EMPTY
+#undef CLOSED
 #define EMPTY -2                /* marks an unused slot in redirtab */
 #define CLOSED -3               /* marks a slot of previously-closed fd */
 

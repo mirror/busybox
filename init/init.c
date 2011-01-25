@@ -115,9 +115,6 @@
 #ifdef __linux__
 #include <linux/vt.h>
 #endif
-#if ENABLE_FEATURE_UTMP
-# include <utmp.h> /* DEAD_PROCESS */
-#endif
 #include "reboot.h" /* reboot() constants */
 
 /* Used only for sanitizing purposes in set_sane_term() below. On systems where

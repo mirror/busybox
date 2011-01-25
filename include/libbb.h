@@ -50,6 +50,9 @@
 # include <selinux/flask.h>
 # include <selinux/av_permissions.h>
 #endif
+#if ENABLE_FEATURE_UTMP
+# include <utmp.h>
+#endif
 #if ENABLE_LOCALE_SUPPORT
 # include <locale.h>
 #else

@@ -12,7 +12,6 @@
  * initially busyboxified by Bernhard Reutner-Fischer
  */
 #include "libbb.h"
-#include <utmp.h>
 
 int runlevel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int runlevel_main(int argc UNUSED_PARAM, char **argv)
