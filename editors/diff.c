@@ -794,7 +794,9 @@ static int FAST_FUNC skip_dir(const char *filename,
 			free(othername);
 			if (r != 0 || !S_ISDIR(osb.st_mode)) {
 				/* other dir doesn't have similarly named
-				 * directory, don't recurse */
+				 * directory, don't recurse; return 1 upon
+				 * exit, just like diffutils' diff */
+				exit_status |= 1;
 				return SKIP;
 			}
 		}
@@ -846,9 +848,10 @@ static void diffdir(char *p[2], const char *s_start)
 			break;
 		pos = !dp[0] ? 1 : (!dp[1] ? -1 : strcmp(dp[0], dp[1]));
 		k = pos > 0;
-		if (pos && !(option_mask32 & FLAG(N)))
+		if (pos && !(option_mask32 & FLAG(N))) {
 			printf("Only in %s: %s\n", p[k], dp[k]);
-		else {
+			exit_status |= 1;
+		} else {
 			char *fullpath[2], *path[2]; /* if -N */
 
 			for (i = 0; i < 2; i++) {
