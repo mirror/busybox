@@ -258,13 +258,34 @@ static void termios_init(int speed)
 	if (speed != B0)
 		cfsetspeed(&G.termios, speed);
 
-	/* Initial termios settings: 8-bit characters, raw-mode, blocking i/o.
+	/* Initial termios settings: 8-bit characters, raw mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
-	 * reads will be done in raw mode anyway. Errors will be dealt with
-	 * later on.
+	 * reads will be done in raw mode anyway.
 	 */
-	/* 8 bits; hang up (drop DTR) on last close; enable receive */
-	G.termios.c_cflag = CS8 | HUPCL | CREAD;
+	/* Clear all bits except: */
+	G.termios.c_cflag &= (0
+		/* 2 stop bits (1 otherwise)
+		 * Enable parity bit (both on input and output)
+		 * Odd parity (else even)
+		 */
+		| CSTOPB | PARENB | PARODD
+#ifdef CBAUDEX
+		| CMSPAR  /* mark or space parity */
+#endif
+		| CBAUD   /* (output) baud rate */
+#ifdef CBAUDEX
+		| CBAUDEX /* (output) baud rate */
+#endif
+#ifdef CIBAUD
+		| CIBAUD   /* input baud rate */
+#endif
+#ifdef CRTSCTS
+		| CRTSCTS /* flow control using RTS/CTS pins */
+#endif
+		| CLOCAL
+	);
+	/* Set: 8 bits; hang up (drop DTR) on last close; enable receive */
+	G.termios.c_cflag |= CS8 | HUPCL | CREAD;
 	if (option_mask32 & F_LOCAL) {
 		/* ignore Carrier Detect pin:
 		 * opens don't block when CD is low,
@@ -274,13 +295,8 @@ static void termios_init(int speed)
 	}
 #ifdef CRTSCTS
 	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
+		G.termios.c_cflag |= CRTSCTS;
 #endif
-	/* Other bits in c_cflag:
-	 * CSTOPB 2 stop bits (1 otherwise)
-	 * PARENB Enable parity bit (both on input and output)
-	 * PARODD Odd parity (else even)
-	 */
 	G.termios.c_iflag = 0;
 	G.termios.c_lflag = 0;
 	/* non-raw output; add CR to each NL */
@@ -415,7 +431,7 @@ static void auto_baud(void)
 		}
 	}
 
-	/* Restore terminal settings. Errors will be dealt with later on */
+	/* Restore terminal settings */
 	G.termios.c_cc[VMIN] = 1; /* restore to value set by termios_init */
 	set_termios();
 }
