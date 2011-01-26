@@ -286,7 +286,9 @@ static void termios_final(void)
 	if (G.eol == '\r') {
 		G.termios.c_iflag |= ICRNL; /* map CR on input to NL */
 	}
-	/* non-raw input; enable SIGINT/QUIT/ec sigs; echo; echo NL on kill char;
+	/* non-raw input; enable SIGINT/QUIT/etc sigs; echo;
+	 * echo erase character as BS-space-BS;
+	 * echo NL on kill char;
 	 * erase entire line via BS-space-BS on kill char */
 	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
 	/* echo ctrl chars as ^c; (what is ECHOPRT?) */
