@@ -83,11 +83,14 @@ static void fb_open(const char *strfb_device)
 
 	// map the device in memory
 	G.addr = mmap(NULL,
-			G.scr_var.xres * G.scr_var.yres
+			G.scr_var.xres * G.scr_var.yres_virtual
 			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
+
+	// point to the start of the visible screen
+	G.addr += G.scr_var.yoffset * G.scr_fix.line_length + G.scr_var.xoffset * BYTES_PER_PIXEL;
 	close(fbfd);
 }
 
