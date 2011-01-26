@@ -345,7 +345,7 @@ static const char mode_name[] =
 	MI_ENTRY("icrnl",    input,       SANE_SET   | REV,  ICRNL,      0 )
 	MI_ENTRY("ixon",     input,       REV,               IXON,       0 )
 	MI_ENTRY("ixoff",    input,       SANE_UNSET | REV,  IXOFF,      0 )
-	MI_ENTRY("tandem",   input,       REV        | OMIT, IXOFF,      0 )
+	MI_ENTRY("tandem",   input,       OMIT       | REV,  IXOFF,      0 )
 #if IUCLC
 	MI_ENTRY("iuclc",    input,       SANE_UNSET | REV,  IUCLC,      0 )
 #endif
@@ -425,7 +425,7 @@ static const char mode_name[] =
 #endif
 	MI_ENTRY("echo",     local,       SANE_SET   | REV,  ECHO,       0 )
 	MI_ENTRY("echoe",    local,       SANE_SET   | REV,  ECHOE,      0 )
-	MI_ENTRY("crterase", local,       REV        | OMIT, ECHOE,      0 )
+	MI_ENTRY("crterase", local,       OMIT       | REV,  ECHOE,      0 )
 	MI_ENTRY("echok",    local,       SANE_SET   | REV,  ECHOK,      0 )
 	MI_ENTRY("echonl",   local,       SANE_UNSET | REV,  ECHONL,     0 )
 	MI_ENTRY("noflsh",   local,       SANE_UNSET | REV,  NOFLSH,     0 )
@@ -437,15 +437,15 @@ static const char mode_name[] =
 #endif
 #if ECHOPRT
 	MI_ENTRY("echoprt",  local,       SANE_UNSET | REV,  ECHOPRT,    0 )
-	MI_ENTRY("prterase", local,       REV | OMIT,        ECHOPRT,    0 )
+	MI_ENTRY("prterase", local,       OMIT       | REV,  ECHOPRT,    0 )
 #endif
 #if ECHOCTL
 	MI_ENTRY("echoctl",  local,       SANE_SET   | REV,  ECHOCTL,    0 )
-	MI_ENTRY("ctlecho",  local,       REV        | OMIT, ECHOCTL,    0 )
+	MI_ENTRY("ctlecho",  local,       OMIT       | REV,  ECHOCTL,    0 )
 #endif
 #if ECHOKE
 	MI_ENTRY("echoke",   local,       SANE_SET   | REV,  ECHOKE,     0 )
-	MI_ENTRY("crtkill",  local,       REV        | OMIT, ECHOKE,     0 )
+	MI_ENTRY("crtkill",  local,       OMIT       | REV,  ECHOKE,     0 )
 #endif
 	;
 
@@ -502,7 +502,7 @@ static const struct mode_info mode_info[] = {
 	MI_ENTRY("icrnl",    input,       SANE_SET   | REV,  ICRNL,      0 )
 	MI_ENTRY("ixon",     input,       REV,               IXON,       0 )
 	MI_ENTRY("ixoff",    input,       SANE_UNSET | REV,  IXOFF,      0 )
-	MI_ENTRY("tandem",   input,       REV        | OMIT, IXOFF,      0 )
+	MI_ENTRY("tandem",   input,       OMIT       | REV,  IXOFF,      0 )
 #if IUCLC
 	MI_ENTRY("iuclc",    input,       SANE_UNSET | REV,  IUCLC,      0 )
 #endif
@@ -582,7 +582,7 @@ static const struct mode_info mode_info[] = {
 #endif
 	MI_ENTRY("echo",     local,       SANE_SET   | REV,  ECHO,       0 )
 	MI_ENTRY("echoe",    local,       SANE_SET   | REV,  ECHOE,      0 )
-	MI_ENTRY("crterase", local,       REV        | OMIT, ECHOE,      0 )
+	MI_ENTRY("crterase", local,       OMIT       | REV,  ECHOE,      0 )
 	MI_ENTRY("echok",    local,       SANE_SET   | REV,  ECHOK,      0 )
 	MI_ENTRY("echonl",   local,       SANE_UNSET | REV,  ECHONL,     0 )
 	MI_ENTRY("noflsh",   local,       SANE_UNSET | REV,  NOFLSH,     0 )
@@ -594,15 +594,15 @@ static const struct mode_info mode_info[] = {
 #endif
 #if ECHOPRT
 	MI_ENTRY("echoprt",  local,       SANE_UNSET | REV,  ECHOPRT,    0 )
-	MI_ENTRY("prterase", local,       REV | OMIT,        ECHOPRT,    0 )
+	MI_ENTRY("prterase", local,       OMIT       | REV,  ECHOPRT,    0 )
 #endif
 #if ECHOCTL
 	MI_ENTRY("echoctl",  local,       SANE_SET   | REV,  ECHOCTL,    0 )
-	MI_ENTRY("ctlecho",  local,       REV        | OMIT, ECHOCTL,    0 )
+	MI_ENTRY("ctlecho",  local,       OMIT       | REV,  ECHOCTL,    0 )
 #endif
 #if ECHOKE
 	MI_ENTRY("echoke",   local,       SANE_SET   | REV,  ECHOKE,     0 )
-	MI_ENTRY("crtkill",  local,       REV        | OMIT, ECHOKE,     0 )
+	MI_ENTRY("crtkill",  local,       OMIT       | REV,  ECHOKE,     0 )
 #endif
 };
 
