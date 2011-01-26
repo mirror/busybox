@@ -106,15 +106,15 @@ struct globals {
 //usage:#define getty_full_usage "\n\n"
 //usage:       "Open a tty, prompt for a login name, then invoke /bin/login\n"
 //usage:     "\nOptions:"
-//usage:     "\n	-h		Enable hardware (RTS/CTS) flow control"
-//usage:     "\n	-i		Don't display /etc/issue"
-//usage:     "\n	-L		Local line, set CLOCAL on it"
+//usage:     "\n	-h		Enable hardware RTS/CTS flow control"
+//usage:     "\n	-L		Set CLOCAL (ignore Carrier Detect state)"
 //usage:     "\n	-m		Get baud rate from modem's CONNECT status message"
+//usage:     "\n	-n		Don't prompt for login name"
 //usage:     "\n	-w		Wait for CR or LF before sending /etc/issue"
-//usage:     "\n	-n		Don't prompt for a login name"
+//usage:     "\n	-i		Don't display /etc/issue"
 //usage:     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue"
 //usage:     "\n	-l LOGIN	Invoke LOGIN instead of /bin/login"
-//usage:     "\n	-t SEC		Terminate after SEC if no username is read"
+//usage:     "\n	-t SEC		Terminate after SEC if no login name is read"
 //usage:     "\n	-I INITSTR	Send INITSTR before anything else"
 //usage:     "\n	-H HOST		Log HOST into the utmp file as the hostname"
 //usage:     "\n"
@@ -251,20 +251,27 @@ static void termios_init(int speed)
 	 * reads will be done in raw mode anyway. Errors will be dealt with
 	 * later on.
 	 */
+	/* 8 bits; hangup (drop DTR) on last close; enable receive */
 	G.termios.c_cflag = CS8 | HUPCL | CREAD;
-	if (option_mask32 & F_LOCAL)
+	if (option_mask32 & F_LOCAL) {
+		/* ignore Carrier Detect pin:
+		 * opens don't block when CD is low,
+		 * losing CD doesn't hang up processes whose ctty is this tty
+		 */
 		G.termios.c_cflag |= CLOCAL;
-	G.termios.c_iflag = 0;
-	G.termios.c_lflag = 0;
-	G.termios.c_oflag = OPOST | ONLCR;
-	G.termios.c_cc[VMIN] = 1;
-	G.termios.c_cc[VTIME] = 0;
-#ifdef __linux__
-	G.termios.c_line = 0;
-#endif
+	}
 #ifdef CRTSCTS
 	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS;
+		G.termios.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
+#endif
+	G.termios.c_iflag = 0;
+	G.termios.c_lflag = 0;
+	/* non-raw output; add CR to each NL */
+	G.termios.c_oflag = OPOST | ONLCR;
+	G.termios.c_cc[VMIN] = 1; /* block reads if < 1 char is available */
+	G.termios.c_cc[VTIME] = 0; /* no timeout (reads block forever) */
+#ifdef __linux__
+	G.termios.c_line = 0;
 #endif
 
 	tcsetattr_stdin_TCSANOW(&G.termios);
@@ -274,12 +281,17 @@ static void termios_init(int speed)
 
 static void termios_final(void)
 {
-	/* General terminal-independent stuff */
-	G.termios.c_iflag |= IXON | IXOFF;    /* 2-way flow control */
+	/* software flow control on output; and on input */
+	G.termios.c_iflag |= IXON | IXOFF;
+	if (G.eol == '\r') {
+		G.termios.c_iflag |= ICRNL; /* map CR on input to NL */
+	}
+	/* non-raw input; enable SIGINT/QUIT/ec sigs; echo; echo NL on kill char;
+	 * erase entire line via BS-space-BS on kill char */
 	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
-	/* no longer in lflag: | ECHOCTL | ECHOPRT */
-	G.termios.c_oflag |= OPOST;
-	/* G.termios.c_cflag = 0; */
+	/* echo ctrl chars as ^c; (what is ECHOPRT?) */
+	/* no longer in c_lflag: | ECHOCTL | ECHOPRT */
+
 	G.termios.c_cc[VINTR] = DEF_INTR;
 	G.termios.c_cc[VQUIT] = DEF_QUIT;
 	G.termios.c_cc[VEOF] = DEF_EOF;
@@ -290,22 +302,8 @@ static void termios_final(void)
 #ifdef VSWTCH
 	G.termios.c_cc[VSWTCH] = DEF_SWITCH;
 #endif
-
-	/* Account for special characters seen in input */
-	if (G.eol == '\r') {
-		G.termios.c_iflag |= ICRNL;   /* map CR in input to NL */
-		/* already done by termios_init */
-		/* G.termios.c_oflag |= ONLCR; map NL in output to CR-NL */
-	}
 	G.termios.c_cc[VKILL] = DEF_KILL;
 
-#ifdef CRTSCTS
-	/* Optionally enable hardware flow control */
-	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS;
-#endif
-
-	/* Finally, make the new settings effective */
 	if (tcsetattr_stdin_TCSANOW(&G.termios) < 0)
 		bb_perror_msg_and_die("tcsetattr");
 }
@@ -330,11 +328,7 @@ static void auto_baud(void)
 	 * modem status messages is enabled.
 	 */
 
-	/*
-	 * Don't block if input queue is empty.
-	 * Errors will be dealt with later on.
-	 */
-	G.termios.c_cc[VMIN] = 0;       /* don't block if queue empty */
+	G.termios.c_cc[VMIN] = 0; /* don't block reads (min read is 0 chars) */
 	tcsetattr_stdin_TCSANOW(&G.termios);
 
 	/*
@@ -538,6 +532,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Set the optional timer */
 	alarm(G.timeout); /* if 0, alarm is not set */
+//BUG: death by signal won't restore termios
 
 	/* Optionally wait for CR or LF before writing /etc/issue */
 	if (option_mask32 & F_WAITCRLF) {

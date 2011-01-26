@@ -53,6 +53,7 @@ int resize_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	 */
 	fprintf(stderr, ESC"7" ESC"[r" ESC"[999;999H" ESC"[6n");
 	alarm(3); /* Just in case terminal won't answer */
+//BUG: death by signal won't restore termios
 	scanf(ESC"[%hu;%huR", &w.ws_row, &w.ws_col);
 	fprintf(stderr, ESC"8");
 
