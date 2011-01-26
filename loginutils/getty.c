@@ -291,7 +291,7 @@ static void termios_init(int speed)
 	}
 #ifdef CRTSCTS
 	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS;
+		G.termios.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
 #endif
 	G.termios.c_iflag = 0;
 	G.termios.c_lflag = 0;
