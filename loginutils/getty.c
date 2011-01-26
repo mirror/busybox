@@ -269,7 +269,7 @@ static void termios_init(int speed)
 		 * Odd parity (else even)
 		 */
 		| CSTOPB | PARENB | PARODD
-#ifdef CBAUDEX
+#ifdef CMSPAR
 		| CMSPAR  /* mark or space parity */
 #endif
 		| CBAUD   /* (output) baud rate */
