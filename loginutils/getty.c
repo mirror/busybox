@@ -279,10 +279,6 @@ static void termios_init(int speed)
 #ifdef CIBAUD
 		| CIBAUD   /* input baud rate */
 #endif
-#ifdef CRTSCTS
-		| CRTSCTS /* flow control using RTS/CTS pins */
-#endif
-		| CLOCAL
 	);
 	/* Set: 8 bits; hang up (drop DTR) on last close; enable receive */
 	G.termios.c_cflag |= CS8 | HUPCL | CREAD;
