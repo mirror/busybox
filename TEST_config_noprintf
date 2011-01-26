@@ -211,7 +211,6 @@ CONFIG_FALSE=y
 # CONFIG_ID is not set
 # CONFIG_INSTALL is not set
 # CONFIG_FEATURE_INSTALL_LONG_OPTIONS is not set
-# CONFIG_LENGTH is not set
 # CONFIG_LN is not set
 # CONFIG_LOGNAME is not set
 # CONFIG_LS is not set
