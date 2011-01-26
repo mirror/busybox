@@ -264,10 +264,17 @@ static void termios_init(int speed)
 	if (option_mask32 & F_RTSCTS)
 		G.termios.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
 #endif
+	/* Other bits in c_cflag:
+	 * CSTOPB 2 stop bits (1 otherwise)
+	 * PARENB Enable parity bit
+	 * PARODD Use odd parity (else even)
+	 * LOBLK  Block job control output (??)
+	 */
 	G.termios.c_iflag = 0;
 	G.termios.c_lflag = 0;
 	/* non-raw output; add CR to each NL */
 	G.termios.c_oflag = OPOST | ONLCR;
+
 	G.termios.c_cc[VMIN] = 1; /* block reads if < 1 char is available */
 	G.termios.c_cc[VTIME] = 0; /* no timeout (reads block forever) */
 #ifdef __linux__
@@ -281,18 +288,55 @@ static void termios_init(int speed)
 
 static void termios_final(void)
 {
-	/* software flow control on output; and on input */
+	/* software flow control on output (stop sending if XOFF is recvd);
+	 * and on input (send XOFF when buffer is full)
+	 */
 	G.termios.c_iflag |= IXON | IXOFF;
 	if (G.eol == '\r') {
 		G.termios.c_iflag |= ICRNL; /* map CR on input to NL */
 	}
-	/* non-raw input; enable SIGINT/QUIT/etc sigs; echo;
-	 * echo erase character as BS-space-BS;
-	 * echo NL on kill char;
-	 * erase entire line via BS-space-BS on kill char */
+	/* Other bits in c_iflag:
+	 * IXANY   Any recvd char enables output (any char is also a XON)
+	 * INPCK   Enable parity check
+	 * IGNPAR  Ignore parity errors (drop bad bytes)
+	 * PARMRK  Mark parity errors with 0xff, 0x00 prefix
+	 *         (else bad byte is received as 0x00)
+	 * ISTRIP  Strip parity bit
+	 * IGNBRK  Ignore break condition
+	 * BRKINT  Send SIGINT on break - maybe set this?
+	 * INLCR   Map NL to CR
+	 * IGNCR   Ignore CR
+	 * ICRNL   Map CR to NL
+	 * IUCLC   Map uppercase to lowercase
+	 * IMAXBEL Echo BEL on input line too long
+	 * IUTF8   [Appears to affect tty's idea of char widths,
+	 *         observed to improve backspacing through Unicode chars]
+         */
+
+	/* line buffered input (NL or EOL or EOF chars end a line);
+	 * recognize INT/QUIT/SUSP chars;
+	 * echo input chars;
+	 * echo BS-SP-BS on erase character;
+	 * echo kill char specially, not as ^c (ECHOKE controls how exactly);
+	 * erase all input via BS-SP-BS on kill char (else go to next line)
+	 */
 	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
-	/* echo ctrl chars as ^c; (what is ECHOPRT?) */
-	/* no longer in c_lflag: | ECHOCTL | ECHOPRT */
+	/* Other bits in c_lflag:
+	 * XCASE   Map uppercase to \lowercase [tried, doesn't work]
+	 * ECHONL  Echo NL even if ECHO is not set
+	 * NOFLSH  Don't flush input buffer after interrupt or quit chars
+	 * IEXTEN  Enable extended functions (??)
+	 *         [glibc says it enables c_cc[LNEXT] "enter literal char"
+	 *         and c_cc[VDISCARD] "toggle discard buffered output" chars]
+	 * ECHOCTL Echo ctrl chars as ^c (else don't echo) - maybe set this?
+	 * ECHOPRT On erase, echo erased chars
+	 *         [qwe<BS><BS><BS> input looks like "qwe\ewq/" on screen]
+	 * FLUSHO  Output being flushed (c_cc[VDISCARD] is in effect)
+	 * PENDIN  Retype pending input at next read or input char
+	 *         (c_cc[VREPRINT] is being processes)
+	 * TOSTOP  Send SIGTTOU for background output
+	 *         (why "stty sane" unsets this bit?)
+	 */
 
 	G.termios.c_cc[VINTR] = DEF_INTR;
 	G.termios.c_cc[VQUIT] = DEF_QUIT;
@@ -305,6 +349,14 @@ static void termios_final(void)
 	G.termios.c_cc[VSWTCH] = DEF_SWITCH;
 #endif
 	G.termios.c_cc[VKILL] = DEF_KILL;
+	/* Other control chars:
+	 * VEOL2
+	 * VERASE, VWERASE - (word) erase. we may set VERASE in get_logname
+	 * VREPRINT - reprint current input buffer
+	 * VLNEXT, VDISCARD, VSTATUS
+	 * VSUSP, VDSUSP - send (delayed) SIGTSTP
+	 * VSTART, VSTOP - chars used for IXON/IXOFF
+	 */
 
 	if (tcsetattr_stdin_TCSANOW(&G.termios) < 0)
 		bb_perror_msg_and_die("tcsetattr");
