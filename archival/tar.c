@@ -720,11 +720,16 @@ static void handle_SIGCHLD(int status)
 #endif
 
 //usage:#define tar_trivial_usage
-//usage:       "-[" IF_FEATURE_TAR_CREATE("c") "xt" IF_FEATURE_SEAMLESS_GZ("z")
-//usage:	IF_FEATURE_SEAMLESS_BZ2("j") IF_FEATURE_SEAMLESS_LZMA("a")
-//usage:	IF_FEATURE_SEAMLESS_Z("Z") IF_FEATURE_TAR_NOPRESERVE_TIME("m") "vO] "
-//usage:	IF_FEATURE_TAR_FROM("[-X FILE] ")
-//usage:       "[-f TARFILE] [-C DIR] [FILE]..."
+//usage:	"-[" IF_FEATURE_TAR_CREATE("c") "xt"
+//usage:	IF_FEATURE_SEAMLESS_Z("Z")
+//usage:	IF_FEATURE_SEAMLESS_GZ("z")
+//usage:	IF_FEATURE_SEAMLESS_BZ2("j")
+//usage:	IF_FEATURE_SEAMLESS_LZMA("a")
+//usage:	IF_FEATURE_TAR_CREATE("h")
+//usage:	IF_FEATURE_TAR_NOPRESERVE_TIME("m")
+//usage:	"vO] "
+//usage:	IF_FEATURE_TAR_FROM("[-X FILE] [-T FILE] ")
+//usage:	"[-f TARFILE] [-C DIR] [FILE]..."
 //usage:#define tar_full_usage "\n\n"
 //usage:	IF_FEATURE_TAR_CREATE("Create, extract, ")
 //usage:	IF_NOT_FEATURE_TAR_CREATE("Extract ")
@@ -739,6 +744,9 @@ static void handle_SIGCHLD(int status)
 //usage:     "\n	f	Name of TARFILE ('-' for stdin/out)"
 //usage:     "\n	C	Change to DIR before operation"
 //usage:     "\n	v	Verbose"
+//usage:	IF_FEATURE_SEAMLESS_Z(
+//usage:     "\n	Z	(De)compress using compress"
+//usage:	)
 //usage:	IF_FEATURE_SEAMLESS_GZ(
 //usage:     "\n	z	(De)compress using gzip"
 //usage:	)
@@ -747,9 +755,6 @@ static void handle_SIGCHLD(int status)
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_LZMA(
 //usage:     "\n	a	(De)compress using lzma"
-//usage:	)
-//usage:	IF_FEATURE_SEAMLESS_Z(
-//usage:     "\n	Z	(De)compress using compress"
 //usage:	)
 //usage:     "\n	O	Extract to stdout"
 //usage:	IF_FEATURE_TAR_CREATE(
