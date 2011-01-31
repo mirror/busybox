@@ -43,7 +43,7 @@ struct mntent* FAST_FUNC find_mount_point(const char *name, int subdir_too)
 		/* rootfs mount in Linux 2.6 exists always,
 		 * and it makes sense to always ignore it.
 		 * Otherwise people can't reference their "real" root! */
-		if (strcmp(mountEntry->mnt_fsname, "rootfs") == 0)
+		if (ENABLE_FEATURE_SKIP_ROOTFS && strcmp(mountEntry->mnt_fsname, "rootfs") == 0)
 			continue;
 
 		if (strcmp(name, mountEntry->mnt_dir) == 0

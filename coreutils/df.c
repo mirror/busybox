@@ -160,7 +160,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			/* GNU coreutils 6.10 skips certain mounts, try to be compatible.  */
-			if (strcmp(device, "rootfs") == 0)
+			if (ENABLE_FEATURE_SKIP_ROOTFS && strcmp(device, "rootfs") == 0)
 				continue;
 
 #ifdef WHY_WE_DO_IT_FOR_DEV_ROOT_ONLY

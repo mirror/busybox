@@ -161,6 +161,25 @@ config FEATURE_COPYBUF_KB
 	  Bigger buffers will be allocated with mmap, with fallback to 4 kb
 	  stack buffer if mmap fails.
 
+config FEATURE_SKIP_ROOTFS
+	bool "Skip rootfs in mount table"
+	default y
+	help
+	  Ignore rootfs entry in mount table.
+
+	  In Linux, kernel has a special filesystem, rootfs, which is initially
+	  mounted on /. It contains initramfs data, if kernel is configured
+	  to have one. Usually, another file system is mounted over / early
+	  in boot process, and therefore most tools which manipulate
+	  mount table, such as df, will skip rootfs entry.
+
+	  However, some systems do not mount anything on /.
+	  If you need to configure busybox for one of these systems,
+	  you may find useful to turn this option off to make df show
+	  initramfs statistic.
+
+	  Otherwise, choose Y.
+
 config MONOTONIC_SYSCALL
 	bool "Use clock_gettime(CLOCK_MONOTONIC) syscall"
 	default n
