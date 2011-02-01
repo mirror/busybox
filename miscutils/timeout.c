@@ -83,7 +83,7 @@ int timeout_main(int argc UNUSED_PARAM, char **argv)
 		bb_daemonize_or_rexec(0, argv);
 		/* Here we are grandchild. Sleep, then kill grandparent */
  grandchild:
-		/* Just sleep(NUGE_NUM); kill(parent) may kill wrong process! */
+		/* Just sleep(HUGE_NUM); kill(parent) may kill wrong process! */
 		while (1) {
 			sleep(1);
 			if (--timeout <= 0)

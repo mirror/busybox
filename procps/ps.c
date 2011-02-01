@@ -18,15 +18,34 @@ enum { MAX_WIDTH = 2*1024 };
 
 #include <sys/times.h> /* for times() */
 #ifndef AT_CLKTCK
-#define AT_CLKTCK 17
+# define AT_CLKTCK 17
 #endif
 
-
+/* TODO:
+ * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ps.html
+ * specifies (for XSI-conformant systems) following default columns
+ * (l and f mark columns shown with -l and -f respectively):
+ * F     l   Flags (octal and additive) associated with the process (??)
+ * S     l   The state of the process
+ * UID   f,l The user ID; the login name is printed with -f
+ * PID       The process ID
+ * PPID  f,l The parent process
+ * C     f,l Processor utilization
+ * PRI   l   The priority of the process; higher numbers mean lower priority
+ * NI    l   Nice value
+ * ADDR  l   The address of the process
+ * SZ    l   The size in blocks of the core image of the process
+ * WCHAN l   The event for which the process is waiting or sleeping
+ * STIME f   Starting time of the process
+ * TTY       The controlling terminal for the process
+ * TIME      The cumulative execution time for the process
+ * CMD       The command name; the full command line is shown with -f
+ */
 #if ENABLE_SELINUX
-#define SELINUX_O_PREFIX "label,"
-#define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" IF_FEATURE_PS_TIME(",time") ",args")
+# define SELINUX_O_PREFIX "label,"
+# define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" IF_FEATURE_PS_TIME(",time") ",args")
 #else
-#define DEFAULT_O_STR    ("pid,user" IF_FEATURE_PS_TIME(",time") ",args")
+# define DEFAULT_O_STR    ("pid,user" IF_FEATURE_PS_TIME(",time") ",args")
 #endif
 
 typedef struct {
@@ -68,7 +87,8 @@ static ptrdiff_t find_elf_note(ptrdiff_t findme)
 {
 	ptrdiff_t *ep = (ptrdiff_t *) environ;
 
-	while (*ep++);
+	while (*ep++)
+		continue;
 	while (*ep) {
 		if (ep[0] == findme) {
 			return ep[1];
@@ -182,6 +202,11 @@ static void func_group(char *buf, int size, const procps_status_t *ps)
 static void func_comm(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, ps->comm, size+1);
+}
+
+static void func_stat(char *buf, int size, const procps_status_t *ps)
+{
+	safe_strncpy(buf, ps->state, size+1);
 }
 
 static void func_args(char *buf, int size, const procps_status_t *ps)
@@ -300,7 +325,7 @@ static void func_pcpu(char *buf, int size, const procps_status_t *ps)
 */
 
 static const ps_out_t out_spec[] = {
-// Mandated by POSIX:
+/* Mandated by http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ps.html: */
 	{ 8                  , "user"  ,"USER"   ,func_user  ,PSSCAN_UIDGID  },
 	{ 8                  , "group" ,"GROUP"  ,func_group ,PSSCAN_UIDGID  },
 	{ 16                 , "comm"  ,"COMMAND",func_comm  ,PSSCAN_COMM    },
@@ -322,7 +347,8 @@ static const ps_out_t out_spec[] = {
 #endif
 	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
-// Not mandated by POSIX, but useful:
+/* Not mandated, but useful: */
+	{ 4                  , "stat"  ,"STAT"   ,func_stat  ,PSSCAN_STAT    },
 	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS     },
 #if ENABLE_SELINUX
 	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT },
