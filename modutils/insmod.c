@@ -59,7 +59,7 @@ int insmod_main(int argc UNUSED_PARAM, char **argv)
 	if (!filename)
 		bb_show_usage();
 
-	rc = bb_init_module(filename, parse_cmdline_module_options(argv));
+	rc = bb_init_module(filename, parse_cmdline_module_options(argv, /*quote_spaces:*/ 0));
 	if (rc)
 		bb_error_msg("can't insert '%s': %s", filename, moderror(rc));
 

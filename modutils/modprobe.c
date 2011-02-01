@@ -589,7 +589,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 		/* First argument is module name, rest are parameters */
 		DBG("probing just module %s", *argv);
 		add_probe(argv[0]);
-		G.cmdline_mopts = parse_cmdline_module_options(argv);
+		G.cmdline_mopts = parse_cmdline_module_options(argv, /*quote_spaces:*/ 1);
 	}
 
 	/* Happens if all requested modules are already loaded */
