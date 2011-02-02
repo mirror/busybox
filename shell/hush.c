@@ -6615,7 +6615,7 @@ static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
  * cmd ; ...   { list } ; ...
  * cmd && ...  { list } && ...
  * cmd || ...  { list } || ...
- * If it is, then we can run cmd as a builtin, NOFORK [do we do this?],
+ * If it is, then we can run cmd as a builtin, NOFORK,
  * or (if SH_STANDALONE) an applet, and we can run the { list }
  * with run_list. If it isn't one of these, we fork and exec cmd.
  *
@@ -6797,13 +6797,12 @@ static NOINLINE int run_pipe(struct pipe *pi)
 		}
 
 		/* Expand the rest into (possibly) many strings each */
-		if (0) {}
 #if ENABLE_HUSH_BASH_COMPAT
-		else if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
+		if (command->cmd_type == CMD_SINGLEWORD_NOGLOB) {
 			argv_expanded = expand_strvec_to_strvec_singleword_noglob(argv + command->assignment_cnt);
-		}
+		} else
 #endif
-		else {
+		{
 			argv_expanded = expand_strvec_to_strvec(argv + command->assignment_cnt);
 		}
 
@@ -6865,7 +6864,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			return rcode;
 		}
 
-		if (ENABLE_FEATURE_SH_STANDALONE) {
+		if (ENABLE_FEATURE_SH_NOFORK) {
 			int n = find_applet_by_name(argv_expanded[0]);
 			if (n >= 0 && APPLET_IS_NOFORK(n)) {
 				rcode = redirect_and_varexp_helper(&new_env, &old_vars, command, squirrel, argv_expanded);
