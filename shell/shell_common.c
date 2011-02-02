@@ -368,9 +368,9 @@ shell_builtin_ulimit(char **argv)
 #endif
 	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
 
-        argc = 1;
-        while (argv[argc])
-                argc++;
+	argc = 1;
+	while (argv[argc])
+		argc++;
 
 	opts = 0;
 	while (1) {

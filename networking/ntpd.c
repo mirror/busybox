@@ -882,7 +882,7 @@ fit(peer_t *p, double rd)
 //	/* Do we have a loop? */
 //	if (p->refid == p->dstaddr || p->refid == s.refid)
 //		return 0;
-        return 1;
+	return 1;
 }
 static peer_t*
 select_and_cluster(void)

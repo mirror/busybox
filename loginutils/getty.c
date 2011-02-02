@@ -334,7 +334,7 @@ static void termios_final(void)
 	 * IMAXBEL Echo BEL on input line too long
 	 * IUTF8   Appears to affect tty's idea of char widths,
 	 *         observed to improve backspacing through Unicode chars
-         */
+	 */
 
 	/* line buffered input (NL or EOL or EOF chars end a line);
 	 * recognize INT/QUIT/SUSP chars;

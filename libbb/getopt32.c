@@ -80,9 +80,9 @@ const char *applet_long_options
         This struct allows you to define long options:
 
         static const char applet_longopts[] ALIGN1 =
-		//"name\0" has_arg val
-		"verbose\0" No_argument "v"
-		;
+                //"name\0" has_arg val
+                "verbose\0" No_argument "v"
+                ;
         applet_long_options = applet_longopts;
 
         The last member of struct option (val) typically is set to
@@ -226,7 +226,7 @@ Special characters:
         if specified together.  In this case you must set
         opt_complementary = "b--cf:c--bf:f--bc".  If two of the
         mutually exclusive options are found, getopt32 will call
-	bb_show_usage() and die.
+        bb_show_usage() and die.
 
  "x--x" Variation of the above, it means that -x option should occur
         at most once.

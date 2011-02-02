@@ -52,9 +52,9 @@ httpd_ssi.c -o httpd_ssi
 
 static char* skip_whitespace(char *s)
 {
-        while (*s == ' ' || *s == '\t') ++s;
+	while (*s == ' ' || *s == '\t') ++s;
 
-        return s;
+	return s;
 }
 
 static char line[64 * 1024];
