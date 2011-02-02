@@ -867,14 +867,16 @@ int exists_execable(const char *filename) FAST_FUNC;
  * but it may exec busybox and call applet instead of searching PATH.
  */
 #if ENABLE_FEATURE_PREFER_APPLETS
-int bb_execvp(const char *file, char *const argv[]) FAST_FUNC;
-#define BB_EXECVP(prog,cmd) bb_execvp(prog,cmd)
+int BB_EXECVP(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECLP(prog,cmd,...) \
-	execlp((find_applet_by_name(prog) >= 0) ? CONFIG_BUSYBOX_EXEC_PATH : prog, \
-		cmd, __VA_ARGS__)
+	do { \
+		if (find_applet_by_name(prog) >= 0) \
+			execlp(bb_busybox_exec_path, cmd, __VA_ARGS__); \
+		execlp(prog, cmd, __VA_ARGS__); \
+	} while (0)
 #else
 #define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
-#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd, __VA_ARGS__)
+#define BB_EXECLP(prog,cmd,...) execlp(prog,cmd,__VA_ARGS__)
 #endif
 int BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
 

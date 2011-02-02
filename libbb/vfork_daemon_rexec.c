@@ -182,17 +182,17 @@ int FAST_FUNC spawn_and_wait(char **argv)
 	int a = find_applet_by_name(argv[0]);
 
 	if (a >= 0 && (APPLET_IS_NOFORK(a)
-#if BB_MMU
+# if BB_MMU
 			|| APPLET_IS_NOEXEC(a) /* NOEXEC trick needs fork() */
-#endif
+# endif
 	)) {
-#if BB_MMU
+# if BB_MMU
 		if (APPLET_IS_NOFORK(a))
-#endif
+# endif
 		{
 			return run_nofork_applet(a, argv);
 		}
-#if BB_MMU
+# if BB_MMU
 		/* MMU only */
 		/* a->noexec is true */
 		rc = fork();
@@ -201,7 +201,7 @@ int FAST_FUNC spawn_and_wait(char **argv)
 		/* child */
 		xfunc_error_retval = EXIT_FAILURE;
 		run_applet_no_and_exit(a, argv);
-#endif
+# endif
 	}
 #endif /* FEATURE_PREFER_APPLETS */
 	rc = spawn(argv);

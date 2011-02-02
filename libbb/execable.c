@@ -68,12 +68,12 @@ int FAST_FUNC exists_execable(const char *filename)
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS
-/* just like the real execvp, but try to launch an applet named 'file' first
- */
-int FAST_FUNC bb_execvp(const char *file, char *const argv[])
+/* just like the real execvp, but try to launch an applet named 'file' first */
+int FAST_FUNC BB_EXECVP(const char *file, char *const argv[])
 {
-	return execvp(find_applet_by_name(file) >= 0 ? bb_busybox_exec_path : file,
-					argv);
+	if (find_applet_by_name(file) >= 0)
+		execvp(bb_busybox_exec_path, argv);
+	return execvp(file, argv);
 }
 #endif
 
