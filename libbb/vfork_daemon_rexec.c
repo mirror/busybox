@@ -68,17 +68,22 @@ pid_t FAST_FUNC xspawn(char **argv)
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS
-void FAST_FUNC save_nofork_data(struct nofork_save_area *save)
+struct nofork_save_area {
+	jmp_buf die_jmp;
+	const char *applet_name;
+	uint32_t option_mask32;
+	int die_sleep;
+	uint8_t xfunc_error_retval;
+};
+static void save_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&save->die_jmp, &die_jmp, sizeof(die_jmp));
 	save->applet_name = applet_name;
 	save->xfunc_error_retval = xfunc_error_retval;
 	save->option_mask32 = option_mask32;
 	save->die_sleep = die_sleep;
-	save->saved = 1;
 }
-
-void FAST_FUNC restore_nofork_data(struct nofork_save_area *save)
+static void restore_nofork_data(struct nofork_save_area *save)
 {
 	memcpy(&die_jmp, &save->die_jmp, sizeof(die_jmp));
 	applet_name = save->applet_name;
@@ -87,18 +92,16 @@ void FAST_FUNC restore_nofork_data(struct nofork_save_area *save)
 	die_sleep = save->die_sleep;
 }
 
-int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv)
+int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 {
 	int rc, argc;
+	struct nofork_save_area old;
+
+	save_nofork_data(&old);
 
 	applet_name = APPLET_NAME(applet_no);
 
 	xfunc_error_retval = EXIT_FAILURE;
-
-	/* Special flag for xfunc_die(). If xfunc will "die"
-	 * in NOFORK applet, xfunc_die() sees negative
-	 * die_sleep and longjmp here instead. */
-	die_sleep = -1;
 
 	/* In case getopt() or getopt32() was already called:
 	 * reset the libc getopt() function, which keeps internal state.
@@ -129,6 +132,11 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 	while (argv[argc])
 		argc++;
 
+	/* Special flag for xfunc_die(). If xfunc will "die"
+	 * in NOFORK applet, xfunc_die() sees negative
+	 * die_sleep and longjmp here instead. */
+	die_sleep = -1;
+
 	rc = setjmp(die_jmp);
 	if (!rc) {
 		/* Some callers (xargs)
@@ -137,15 +145,6 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
 		/* Finally we can call NOFORK applet's main() */
 		rc = applet_main[applet_no](argc, tmp_argv);
-
-	/* The whole reason behind nofork_save_area is that <applet>_main
-	 * may exit non-locally! For example, in hush Ctrl-Z tries
-	 * (modulo bugs) to dynamically create a child (backgrounded task)
-	 * if it detects that Ctrl-Z was pressed when a NOFORK was running.
-	 * Testcase: interactive "rm -i".
-	 * Don't fool yourself into thinking "and <applet>_main() returns
-	 * quickly here" and removing "useless" nofork_save_area code. */
-
 	} else { /* xfunc died in NOFORK applet */
 		/* in case they meant to return 0... */
 		if (rc == -2222)
@@ -153,7 +152,7 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 	}
 
 	/* Restoring some globals */
-	restore_nofork_data(old);
+	restore_nofork_data(&old);
 
 	/* Other globals can be simply reset to defaults */
 #ifdef __GLIBC__
@@ -163,15 +162,6 @@ int FAST_FUNC run_nofork_applet_prime(struct nofork_save_area *old, int applet_n
 #endif
 
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
-}
-
-int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
-{
-	struct nofork_save_area old;
-
-	/* Saving globals */
-	save_nofork_data(&old);
-	return run_nofork_applet_prime(&old, applet_no, argv);
 }
 #endif /* FEATURE_PREFER_APPLETS */
 

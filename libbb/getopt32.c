@@ -531,7 +531,7 @@ getopt32(char **argv, const char *applet_opts, ...)
 
 	/* In case getopt32 was already called:
 	 * reset the libc getopt() function, which keeps internal state.
-	 * run_nofork_applet_prime() does this, but we might end up here
+	 * run_nofork_applet() does this, but we might end up here
 	 * also via gunzip_main() -> gzip_main(). Play safe.
 	 */
 #ifdef __GLIBC__

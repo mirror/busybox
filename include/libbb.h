@@ -911,19 +911,8 @@ pid_t wait_any_nohang(int *wstat) FAST_FUNC;
 int wait4pid(pid_t pid) FAST_FUNC;
 /* Same as wait4pid(spawn(argv)), but with NOFORK/NOEXEC if configured: */
 int spawn_and_wait(char **argv) FAST_FUNC;
-struct nofork_save_area {
-	jmp_buf die_jmp;
-	const char *applet_name;
-	uint32_t option_mask32;
-	int die_sleep;
-	uint8_t xfunc_error_retval;
-	smallint saved;
-};
-void save_nofork_data(struct nofork_save_area *save) FAST_FUNC;
-void restore_nofork_data(struct nofork_save_area *save) FAST_FUNC;
 /* Does NOT check that applet is NOFORK, just blindly runs it */
 int run_nofork_applet(int applet_no, char **argv) FAST_FUNC;
-int run_nofork_applet_prime(struct nofork_save_area *old, int applet_no, char **argv) FAST_FUNC;
 
 /* Helpers for daemonization.
  *
