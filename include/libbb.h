@@ -1393,12 +1393,14 @@ enum {
 };
 line_input_t *new_line_input_t(int flags) FAST_FUNC;
 /* So far static: void free_line_input_t(line_input_t *n) FAST_FUNC; */
-/* maxsize must be >= 2.
+/*
+ * maxsize must be >= 2.
  * Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
  */
+/* NB: ash has timeout code which can be moved into read_line_input, if needed */
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state) FAST_FUNC;
 #else
 #define MAX_HISTORY 0

@@ -97,6 +97,14 @@
 //config:	help
 //config:	  Enable bash-compatible extensions.
 //config:
+//config:config ASH_IDLE_TIMEOUT
+//config:	bool "Idle timeout variable"
+//config:	default n
+//config:	depends on ASH
+//config:	help
+//config:	  Enables bash-like auto-logout after "$TMOUT" seconds
+//config:	  of idle time.
+//config:
 //config:config ASH_JOB_CONTROL
 //config:	bool "Job control"
 //config:	default y
@@ -12048,6 +12056,23 @@ evalcmd(int argc UNUSED_PARAM, char **argv)
 	return exitstatus;
 }
 
+#if ENABLE_ASH_IDLE_TIMEOUT
+static smallint timed_out;
+
+static void alrm_sighandler(int sig UNUSED_PARAM)
+{
+	/* Close stdin, making interactive command reading stop.
+	 * Otherwise, timeout doesn't trigger until <Enter> is pressed.
+	 */
+	int sv = errno;
+	close(0);
+	open("/dev/null", O_RDONLY);
+	errno = sv;
+
+	timed_out = 1;
+}
+#endif
+
 /*
  * Read and execute commands.
  * "Top" is nonzero for the top level command loop;
@@ -12064,6 +12089,20 @@ cmdloop(int top)
 	TRACE(("cmdloop(%d) called\n", top));
 	for (;;) {
 		int skip;
+#if ENABLE_ASH_IDLE_TIMEOUT
+		int tmout_seconds = 0;
+
+		if (top && iflag) {
+			const char *tmout_var = lookupvar("TMOUT");
+			if (tmout_var) {
+				tmout_seconds = atoi(tmout_var);
+				if (tmout_seconds > 0) {
+					signal(SIGALRM, alrm_sighandler);
+					alarm(tmout_seconds);
+				}
+			}
+		}
+#endif
 
 		setstackmark(&smark);
 #if JOBS
@@ -12076,6 +12115,14 @@ cmdloop(int top)
 			chkmail();
 		}
 		n = parsecmd(inter);
+#if ENABLE_ASH_IDLE_TIMEOUT
+		if (timed_out) {
+			printf("\007timed out waiting for input: auto-logout\n");
+			break;
+		}
+		if (tmout_seconds > 0)
+			alarm(0);
+#endif
 #if DEBUG
 		if (DEBUG > 2 && debug && (n != NODE_EOF))
 			showtree(n);
