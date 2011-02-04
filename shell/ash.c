@@ -105,7 +105,7 @@
 //config:	  Enable job control in the ash shell.
 //config:
 //config:config ASH_ALIAS
-//config:	bool "alias support"
+//config:	bool "Alias support"
 //config:	default y
 //config:	depends on ASH
 //config:	help
@@ -116,28 +116,28 @@
 //config:	default y
 //config:	depends on ASH
 //config:	help
-//config:	  Enable getopts builtin in the ash shell.
+//config:	  Enable support for getopts builtin in ash.
 //config:
 //config:config ASH_BUILTIN_ECHO
 //config:	bool "Builtin version of 'echo'"
 //config:	default y
 //config:	depends on ASH
 //config:	help
-//config:	  Enable support for echo, builtin to ash.
+//config:	  Enable support for echo builtin in ash.
 //config:
 //config:config ASH_BUILTIN_PRINTF
 //config:	bool "Builtin version of 'printf'"
 //config:	default y
 //config:	depends on ASH
 //config:	help
-//config:	  Enable support for printf, builtin to ash.
+//config:	  Enable support for printf builtin in ash.
 //config:
 //config:config ASH_BUILTIN_TEST
 //config:	bool "Builtin version of 'test'"
 //config:	default y
 //config:	depends on ASH
 //config:	help
-//config:	  Enable support for test, builtin to ash.
+//config:	  Enable support for test builtin in ash.
 //config:
 //config:config ASH_CMDCMD
 //config:	bool "'command' command to override shell builtins"
@@ -153,7 +153,7 @@
 //config:	default n
 //config:	depends on ASH
 //config:	help
-//config:	  Enable "check for new mail" in the ash shell.
+//config:	  Enable "check for new mail" function in the ash shell.
 //config:
 //config:config ASH_OPTIMIZE_FOR_SIZE
 //config:	bool "Optimize for size instead of speed"
@@ -1880,7 +1880,9 @@ change_lc_ctype(const char *value)
 #endif
 #if ENABLE_ASH_MAIL
 static void chkmail(void);
-static void changemail(const char *) FAST_FUNC;
+static void changemail(const char *var_value) FAST_FUNC;
+#else
+# define chkmail()  ((void)0)
 #endif
 static void changepath(const char *) FAST_FUNC;
 #if ENABLE_ASH_RANDOM_SUPPORT
@@ -9563,9 +9565,9 @@ preadfd(void)
 	if (!iflag || g_parsefile->pf_fd != STDIN_FILENO)
 		nr = nonblock_safe_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 	else {
-#if ENABLE_FEATURE_TAB_COMPLETION
+# if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
-#endif
+# endif
 		nr = read_line_input(cmdedit_prompt, buf, IBUFSIZ, line_input_state);
 		if (nr == 0) {
 			/* Ctrl+C pressed */
@@ -9586,8 +9588,7 @@ preadfd(void)
 	nr = nonblock_safe_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 #endif
 
-#if 0
-/* nonblock_safe_read() handles this problem */
+#if 0 /* disabled: nonblock_safe_read() handles this problem */
 	if (nr < 0) {
 		if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
 			int flags = fcntl(0, F_GETFL);
@@ -12072,9 +12073,7 @@ cmdloop(int top)
 		inter = 0;
 		if (iflag && top) {
 			inter++;
-#if ENABLE_ASH_MAIL
 			chkmail();
-#endif
 		}
 		n = parsecmd(inter);
 #if DEBUG
