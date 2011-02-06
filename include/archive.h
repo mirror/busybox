@@ -8,22 +8,22 @@ enum {
 #if BB_BIG_ENDIAN
 	COMPRESS_MAGIC = 0x1f9d,
 	GZIP_MAGIC  = 0x1f8b,
-	BZIP2_MAGIC = 'B' * 256 + 'Z',
+	BZIP2_MAGIC = 256 * 'B' + 'Z',
 	/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
 	/* More info at: http://tukaani.org/xz/xz-file-format.txt */
-	XZ_MAGIC1   = 0xfd * 256 + '7',
-	XZ_MAGIC2   = (('z' * 256 + 'X') * 256 + 'Z') * 256 + 0,
+	XZ_MAGIC1   = 256 * 0xfd + '7',
+	XZ_MAGIC2   = 256 * (256 * (256 * 'z' + 'X') + 'Z') + 0,
 	/* Different form: 32 bits, then 16 bits: */
-	XZ_MAGIC1a  = ((0xfd * 256 + '7') * 256 + 'z') * 256 + 'X',
-	XZ_MAGIC2a  = 'Z' * 256 + 0,
+	XZ_MAGIC1a  = 256 * (256 * (256 * 0xfd + '7') + 'z') + 'X',
+	XZ_MAGIC2a  = 256 * 'Z' + 0,
 #else
 	COMPRESS_MAGIC = 0x9d1f,
 	GZIP_MAGIC  = 0x8b1f,
-	BZIP2_MAGIC = 'Z' * 256 + 'B',
-	XZ_MAGIC1   = '7' * 256 + 0xfd,
-	XZ_MAGIC2   = ((0 * 256 + 'Z') * 256 + 'X') * 256 + 'z',
-	XZ_MAGIC1a  = (('X' * 256 + 'z') * 256 + '7') * 256 + 0xfd,
-	XZ_MAGIC2a  = 0 * 256 + 'Z',
+	BZIP2_MAGIC = 'B' + 'Z' * 256,
+	XZ_MAGIC1   = 0xfd + '7' * 256,
+	XZ_MAGIC2   = 'z' + ('X' + ('Z' + 0 * 256) * 256) * 256,
+	XZ_MAGIC1a  = 0xfd + ('7' + ('z' + 'X' * 256) * 256) * 256,
+	XZ_MAGIC2a  = 'Z' + 0 * 256,
 #endif
 };
 
