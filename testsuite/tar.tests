@@ -154,7 +154,7 @@ dr-xr-x--- input_dir
 SKIP=
 }
 
-# Had a bug where on extrace autodetect first "switched off" -z
+# Had a bug where on extract autodetect first "switched off" -z
 # and then failed to recognize .tgz extension
 testing "tar extract tgz" "\
 dd count=1 bs=1M if=/dev/zero of=F0 2>/dev/null
