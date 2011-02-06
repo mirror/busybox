@@ -419,16 +419,18 @@ static void print_stats_and_exit(int junk UNUSED_PARAM)
 	exit(nreceived == 0 || (deadline && nreceived < pingcount));
 }
 
-static void sendping_tail(void (*sp)(int), const void *pkt, int size_pkt)
+static void sendping_tail(void (*sp)(int), int size_pkt)
 {
 	int sz;
 
 	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
 	ntransmitted++;
 
+	size_pkt += datalen;
+
 	/* sizeof(pingaddr) can be larger than real sa size, but I think
 	 * it doesn't matter */
-	sz = xsendto(pingsock, pkt, size_pkt, &pingaddr.sa, sizeof(pingaddr));
+	sz = xsendto(pingsock, G.snd_packet, size_pkt, &pingaddr.sa, sizeof(pingaddr));
 	if (sz != size_pkt)
 		bb_error_msg_and_die(bb_msg_write_error);
 
@@ -479,7 +481,7 @@ static void sendping4(int junk UNUSED_PARAM)
 
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, datalen + ICMP_MINLEN);
 
-	sendping_tail(sendping4, pkt, datalen + ICMP_MINLEN);
+	sendping_tail(sendping4, ICMP_MINLEN);
 }
 #if ENABLE_PING6
 static void sendping6(int junk UNUSED_PARAM)
@@ -498,7 +500,7 @@ static void sendping6(int junk UNUSED_PARAM)
 
 	//TODO? pkt->icmp_cksum = in_cksum(...);
 
-	sendping_tail(sendping6, pkt, datalen + sizeof(struct icmp6_hdr));
+	sendping_tail(sendping6, sizeof(struct icmp6_hdr));
 }
 #endif
 
