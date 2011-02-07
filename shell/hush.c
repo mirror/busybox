@@ -1418,6 +1418,7 @@ static void sigexit(int sig)
 static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
+	fflush_all();
 	if (G.exiting <= 0 && G.traps && G.traps[0] && G.traps[0][0]) {
 		/* Prevent recursion:
 		 * trap "echo Hi; exit" EXIT; exit
@@ -6105,10 +6106,13 @@ static void exec_builtin(char ***to_free,
 		char **argv)
 {
 #if BB_MMU
-	int rcode = x->b_function(argv);
+	int rcode;
+	fflush_all();
+	rcode = x->b_function(argv);
 	fflush_all();
 	_exit(rcode);
 #else
+	fflush_all();
 	/* On NOMMU, we must never block!
 	 * Example: { sleep 99 | read line; } & echo Ok
 	 */
@@ -6832,6 +6836,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				if (!funcp) {
 					debug_printf_exec(": builtin '%s' '%s'...\n",
 						x->b_cmd, argv_expanded[1]);
+					fflush_all();
 					rcode = x->b_function(argv_expanded) & 0xff;
 					fflush_all();
 				}
@@ -7641,6 +7646,7 @@ int hush_main(int argc, char **argv)
 					G.global_argc -= builtin_argc; /* skip [BARGV...] "" */
 					G.global_argv += builtin_argc;
 					G.global_argv[-1] = NULL; /* replace "" */
+					fflush_all();
 					G.last_exitcode = x->b_function(argv + optind - 1);
 				}
 				goto final_return;

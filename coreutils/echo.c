@@ -29,46 +29,42 @@
 
 /* NB: can be used by shell even if not enabled as applet */
 
+/*
+ * NB2: we don't use stdio, we need better error handing.
+ * Examples include writing into non-opened stdout and error on write.
+ *
+ * With stdio, output gets shoveled into stdout buffer, and even
+ * fflush cannot clear it out. It seems that even if libc receives
+ * EBADF on write attempts, it feels determined to output data no matter what.
+ * If echo is called by shell, it will try writing again later, and possibly
+ * will clobber future output. Not good.
+ *
+ * Solaris has fpurge which discards buffered input. glibc has __fpurge.
+ * But this function is not standard.
+ */
+
 int echo_main(int argc UNUSED_PARAM, char **argv)
 {
+	char **pp;
 	const char *arg;
+	char *out;
+	char *buffer;
+	unsigned buflen;
+	int r;
 #if !ENABLE_FEATURE_FANCY_ECHO
 	enum {
 		eflag = '\\',
 		nflag = 1,  /* 1 -- print '\n' */
 	};
 
-	/* We must check that stdout is not closed.
-	 * The reason for this is highly non-obvious.
-	 * echo_main is used from shell. Shell must correctly handle "echo foo"
-	 * if stdout is closed. With stdio, output gets shoveled into
-	 * stdout buffer, and even fflush cannot clear it out. It seems that
-	 * even if libc receives EBADF on write attempts, it feels determined
-	 * to output data no matter what. So it will try later,
-	 * and possibly will clobber future output. Not good. */
-// TODO: check fcntl() & O_ACCMODE == O_WRONLY or O_RDWR?
-	if (fcntl(1, F_GETFL) == -1)
-		return 1; /* match coreutils 6.10 (sans error msg to stderr) */
-	//if (dup2(1, 1) != 1) - old way
-	//	return 1;
-
-	arg = *++argv;
-	if (!arg)
-		goto newline_ret;
+	argv++;
 #else
 	const char *p;
 	char nflag = 1;
 	char eflag = 0;
 
-	/* We must check that stdout is not closed. */
-	if (fcntl(1, F_GETFL) == -1)
-		return 1;
-
-	while (1) {
-		arg = *++argv;
-		if (!arg)
-			goto newline_ret;
-		if (*arg != '-')
+	while ((arg = *++argv) != NULL) {
+		if (!arg || arg[0] != '-')
 			break;
 
 		/* If it appears that we are handling options, then make sure
@@ -77,7 +73,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		p = arg + 1;
 		if (!*p)	/* A single '-', so echo it. */
-			goto just_echo;
+			break;
 
 		do {
 			if (!strrchr("neE", *p))
@@ -95,19 +91,27 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 	}
  just_echo:
 #endif
-	while (1) {
-		/* arg is already == *argv and isn't NULL */
+
+	buflen = 1;
+	pp = argv;
+	while ((arg = *pp) != NULL) {
+		buflen += strlen(arg) + 1;
+		pp++;
+	}
+	out = buffer = xmalloc(buflen);
+
+	while ((arg = *argv) != NULL) {
 		int c;
 
 		if (!eflag) {
 			/* optimization for very common case */
-			fputs(arg, stdout);
+			out = stpcpy(out, arg);
 		} else while ((c = *arg++)) {
 			if (c == eflag) {	/* Check for escape seq. */
 				if (*arg == 'c') {
 					/* '\c' means cancel newline and
 					 * ignore all subsequent chars. */
-					goto ret;
+					goto do_write;
 				}
 #if !ENABLE_FEATURE_FANCY_ECHO
 				/* SUSv3 specifies that octal escapes must begin with '0'. */
@@ -127,21 +131,26 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 					c = bb_process_escape_sequence(&arg);
 				}
 			}
-			bb_putchar(c);
+			*out++ = c;
 		}
 
-		arg = *++argv;
-		if (!arg)
+		if (!*++argv)
 			break;
-		bb_putchar(' ');
+		*out++ = ' ';
 	}
 
- newline_ret:
 	if (nflag) {
-		bb_putchar('\n');
+		*out++ = '\n';
 	}
- ret:
-	return fflush_all();
+
+ do_write:
+	r = full_write(STDOUT_FILENO, buffer, out - buffer);
+	free(buffer);
+	if (r < 0) {
+		bb_perror_msg(bb_msg_write_error);
+		return 1;
+	}
+	return 0;
 }
 
 /*-
