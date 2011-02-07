@@ -362,7 +362,7 @@ typedef unsigned smalluint;
 
 #endif
 
-#if defined(__GLIBC__)
+#if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L) || defined(__GLIBC__)
 # define fdprintf dprintf
 #endif
 

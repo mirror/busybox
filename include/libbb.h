@@ -33,6 +33,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#ifndef major
+# include <sys/sysmacros.h>
+#endif
 #include <sys/wait.h>
 #include <termios.h>
 #include <time.h>
