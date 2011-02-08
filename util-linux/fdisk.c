@@ -548,7 +548,7 @@ read_line(const char *prompt)
 {
 	int sz;
 
-	sz = read_line_input(prompt, line_buffer, sizeof(line_buffer), NULL);
+	sz = read_line_input(NULL, prompt, line_buffer, sizeof(line_buffer), /*timeout*/ -1);
 	if (sz <= 0)
 		exit(EXIT_SUCCESS); /* Ctrl-D or Ctrl-C */
 

@@ -1403,12 +1403,11 @@ line_input_t *new_line_input_t(int flags) FAST_FUNC;
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
  */
-/* NB: ash has timeout code which can be moved into read_line_input, if needed */
-int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state) FAST_FUNC;
+int read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout) FAST_FUNC;
 #else
 #define MAX_HISTORY 0
 int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;
-#define read_line_input(prompt, command, maxsize, state) \
+#define read_line_input(state, prompt, command, maxsize, timeout) \
 	read_line_input(prompt, command, maxsize)
 #endif
 

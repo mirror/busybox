@@ -1809,10 +1809,9 @@ static void win_changed(int nsig)
 	errno = sv_errno;
 }
 
-static int lineedit_read_key(char *read_key_buffer)
+static int lineedit_read_key(char *read_key_buffer, int timeout)
 {
 	int64_t ic;
-	int timeout = -1;
 #if ENABLE_UNICODE_SUPPORT
 	char unicode_buf[MB_CUR_MAX + 1];
 	int unicode_idx = 0;
@@ -1917,7 +1916,7 @@ static int isrtl_str(void)
  * 0  on ctrl-C (the line entered is still returned in 'command'),
  * >0 length of input string, including terminating '\n'
  */
-int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, line_input_t *st)
+int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout)
 {
 	int len;
 #if ENABLE_FEATURE_TAB_COMPLETION
@@ -1991,7 +1990,6 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
 	tcsetattr_stdin_TCSANOW(&new_settings);
 
-	/* Now initialize things */
 	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
 	win_changed(0); /* do initial resizing */
 #if ENABLE_USERNAME_OR_HOMEDIR
@@ -2033,7 +2031,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		int32_t ic, ic_raw;
 
 		fflush_all();
-		ic = ic_raw = lineedit_read_key(read_key_buffer);
+		ic = ic_raw = lineedit_read_key(read_key_buffer, timeout);
 
 #if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
@@ -2194,7 +2192,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 		case 'd'|VI_CMDMODE_BIT: {
 			int nc, sc;
 
-			ic = lineedit_read_key(read_key_buffer);
+			ic = lineedit_read_key(read_key_buffer, timeout);
 			if (errno) /* error */
 				goto return_error_indicator;
 			if (ic == ic_raw) { /* "cc", "dd" */
@@ -2258,7 +2256,7 @@ int FAST_FUNC read_line_input(const char *prompt, char *command, int maxsize, li
 			break;
 		case 'r'|VI_CMDMODE_BIT:
 //FIXME: unicode case?
-			ic = lineedit_read_key(read_key_buffer);
+			ic = lineedit_read_key(read_key_buffer, timeout);
 			if (errno) /* error */
 				goto return_error_indicator;
 			if (ic < ' ' || ic > 255) {
