@@ -39,7 +39,6 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <time.h>
-#include <unistd.h>
 #include <sys/param.h>
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
