@@ -354,7 +354,6 @@ config FEATURE_HWCLOCK_ADJTIME_FHS
 config IPCRM
 	bool "ipcrm"
 	default y
-	select FEATURE_SUID
 	help
 	  The ipcrm utility allows the removal of System V interprocess
 	  communication (IPC) objects and the associated data structures
@@ -364,7 +363,6 @@ config IPCS
 	bool "ipcs"
 	default y
 	depends on PLATFORM_LINUX
-	select FEATURE_SUID
 	help
 	  The ipcs utility is used to provide information on the currently
 	  allocated System V interprocess (IPC) objects in the system.

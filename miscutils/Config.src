@@ -170,7 +170,6 @@ config FEATURE_CROND_DIR
 config CRONTAB
 	bool "crontab"
 	default y
-	select FEATURE_SUID
 	help
 	  Crontab manipulates the crontab for a particular user. Only
 	  the superuser may specify a different user and/or crontab directory.

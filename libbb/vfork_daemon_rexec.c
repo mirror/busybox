@@ -52,6 +52,7 @@ pid_t FAST_FUNC spawn(char **argv)
 	 * Interested party can wait on pid and learn exit code.
 	 * If 111 - then it (most probably) failed to exec */
 	if (failed) {
+		safe_waitpid(pid, NULL, 0); /* prevent zombie */
 		errno = failed;
 		return -1;
 	}
