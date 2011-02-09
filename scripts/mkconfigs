@@ -42,7 +42,7 @@ echo "\
  */
 static const char bbconfig_config[] ALIGN1 ="
 
-grep '^#\? \?CONFIG_' "$config" \
+grep -e '^# CONFIG_' -e '^CONFIG_' "$config" \
 | sed -e 's/\"/\\\"/g' -e 's/^/"/' -e 's/$/\\n"/'
 
 echo ";"
