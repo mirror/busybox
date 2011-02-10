@@ -43,17 +43,15 @@ struct globals {
 	__u32 filter_proto;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
+struct BUG_G_too_big {
+        char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+};
 #define filter_ifindex (G.filter_ifindex)
 #define filter_qdisc (G.filter_qdisc)
 #define filter_parent (G.filter_parent)
 #define filter_prio (G.filter_prio)
 #define filter_proto (G.filter_proto)
-
-void BUG_tc_globals_too_big(void);
-#define INIT_G() do { \
-	if (sizeof(G) > COMMON_BUFSIZE) \
-		BUG_tc_globals_too_big(); \
-} while (0)
+#define INIT_G() do { } while (0)
 
 /* Allocates a buffer containing the name of a class id.
  * The caller must free the returned memory.  */
