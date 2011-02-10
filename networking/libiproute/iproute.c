@@ -190,6 +190,8 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	}
 
 	if (G_filter.flushb) {
+		struct nlmsghdr *fn;
+
 		/* We are creating route flush commands */
 
 		if (r->rtm_family == AF_INET6
@@ -201,12 +203,11 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 			return 0;
 		}
 
-		struct nlmsghdr *fn;
 		if (NLMSG_ALIGN(G_filter.flushp) + n->nlmsg_len > G_filter.flushe) {
 			if (flush_update())
 				bb_error_msg_and_die("flush");
 		}
-		fn = (struct nlmsghdr*)(G_filter.flushb + NLMSG_ALIGN(G_filter.flushp));
+		fn = (void*)(G_filter.flushb + NLMSG_ALIGN(G_filter.flushp));
 		memcpy(fn, n, n->nlmsg_len);
 		fn->nlmsg_type = RTM_DELROUTE;
 		fn->nlmsg_flags = NLM_F_REQUEST;
