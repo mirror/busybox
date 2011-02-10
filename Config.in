@@ -126,7 +126,6 @@ config FEATURE_INSTALLER
 config INSTALL_NO_USR
 	bool "Don't use /usr"
 	default n
-	depends on FEATURE_INSTALLER
 	help
 	  Disable use of /usr. busybox --install and "make install"
 	  will install applets only to /bin and /sbin,
@@ -701,7 +700,6 @@ config INSTALL_APPLET_SCRIPT_WRAPPERS
 
 config INSTALL_APPLET_DONT
 	bool "not installed"
-	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE || FEATURE_PREFER_APPLETS
 	help
 	  Do not install applet links. Useful when you plan to use
 	  busybox --install for installing links, or plan to use
