@@ -128,6 +128,7 @@ static void strip_ipv6_scope_id(char *host)
 	overlapping_strcpy(scope, cp);
 }
 
+#if 0 /* were needed when we used signal-driven progress bar */
 /* Read NMEMB bytes into PTR from STREAM.  Returns the number of bytes read,
  * and a short count if an eof or non-interrupt error is encountered.  */
 static size_t safe_fread(void *ptr, size_t nmemb, FILE *stream)
@@ -160,6 +161,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 	return ret;
 }
+#endif
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 /* Base64-encode character string. */
@@ -495,7 +497,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 				progress_meter(PROGRESS_BUMP);
 			}
 #endif
-			n = safe_fread(G.wget_buf, rdsz, dfp);
+			n = fread(G.wget_buf, 1, rdsz, dfp);
 			if (n <= 0) {
 				if (ferror(dfp)) {
 					/* perror will not work: ferror doesn't set errno */
@@ -515,9 +517,9 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		if (!G.chunked)
 			break;
 
-		safe_fgets(G.wget_buf, sizeof(G.wget_buf), dfp); /* This is a newline */
+		fgets(G.wget_buf, sizeof(G.wget_buf), dfp); /* This is a newline */
  get_clen:
-		safe_fgets(G.wget_buf, sizeof(G.wget_buf), dfp);
+		fgets(G.wget_buf, sizeof(G.wget_buf), dfp);
 		G.content_len = STRTOOFF(G.wget_buf, NULL, 16);
 		/* FIXME: error check? */
 		if (G.content_len == 0)
