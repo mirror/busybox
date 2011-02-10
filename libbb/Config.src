@@ -156,7 +156,7 @@ config FEATURE_COPYBUF_KB
 	range 1 1024
 	default 4
 	help
-	  Size of buffer used by cp, mv, install etc.
+	  Size of buffer used by cp, mv, install, wget etc.
 	  Buffers which are 4 kb or less will be allocated on stack.
 	  Bigger buffers will be allocated with mmap, with fallback to 4 kb
 	  stack buffer if mmap fails.
