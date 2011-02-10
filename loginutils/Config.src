@@ -181,7 +181,19 @@ config GETTY
 	default y
 	select FEATURE_SYSLOG
 	help
-	  getty lets you log in on a tty, it is normally invoked by init.
+	  getty lets you log in on a tty. It is normally invoked by init.
+
+	  Note that you can save a few bytes by disabling it and
+	  using login applet directly.
+	  If you need to reset tty attributes before calling login,
+	  this script approximates getty:
+
+	  exec </dev/$1 >/dev/$1 2>&1 || exit 1
+	  stty sane; stty ispeed 38400; stty ospeed 38400
+	  reset
+	  printf "%s login: " "`hostname`"
+	  read -r login
+	  exec /bin/login "$login"
 
 config LOGIN
 	bool "login"
