@@ -60,9 +60,16 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p)
 	p->inited = 1;
 }
 
+/* File already had beg_size bytes.
+ * Then we started downloading.
+ * We downloaded "transferred" bytes so far.
+ * Download is expected to stop when total size (beg_size + transferred)
+ * will be "totalsize" bytes.
+ * If totalsize == 0, then it is unknown.
+ */
 void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		const char *curfile,
-		uoff_t beg_range,
+		uoff_t beg_size,
 		uoff_t transferred,
 		uoff_t totalsize)
 {
@@ -72,32 +79,53 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	int barlength;
 	int kiloscale;
 
-	/* totalsize == 0 if it is unknown */
-
-	beg_and_transferred = beg_range + transferred;
+	beg_and_transferred = beg_size + transferred;
 
 	elapsed = monotonic_sec();
 	since_last_update = elapsed - p->lastupdate_sec;
-	/* Do not update on every call
-	 * (we can be called on every network read!) */
+	/*
+	 * Do not update on every call
+	 * (we can be called on every network read!)
+	 */
 	if (since_last_update == 0 && beg_and_transferred < totalsize)
 		return;
 
-	/* Scale sizes down if they are close to overflowing.
-	 * If off_t is only 32 bits, this allows calculations
-	 * like (100 * transferred / totalsize) without risking overflow.
-	 * Introduced error is < 0.1%
-	 */
 	kiloscale = 0;
-	if (totalsize >= (1 << 20)) {
-		totalsize >>= 10;
-		beg_range >>= 10;
-		transferred >>= 10;
-		beg_and_transferred >>= 10;
-		kiloscale++;
+	/*
+	 * Scale sizes down if they are close to overflowing.
+	 * This allows calculations like (100 * transferred / totalsize)
+	 * without risking overflow: we guarantee 10 highest bits to be 0.
+	 * Introduced error is less than 1 / 2^12 ~= 0.025%
+	 */
+	if (ULONG_MAX > 0xffffffff || sizeof(off_t) == 4 || sizeof(off_t) != 8) {
+		/*
+		 * 64-bit CPU || small off_t: in either case,
+		 * >> is cheap, single-word operation.
+		 * ... || strange off_t: also use this code (it is safe,
+		 * even if suboptimal), because 32/64 optimized one
+		 * works only for 64-bit off_t.
+		 */
+		if (totalsize >= (1 << 22)) {
+			totalsize >>= 10;
+			beg_size >>= 10;
+			transferred >>= 10;
+			beg_and_transferred >>= 10;
+			kiloscale = 1;
+		}
+	} else {
+		/* 32-bit CPU and 64-bit off_t.
+		 * Pick a shift (40 bits) which is easier to do on 32-bit CPU.
+		 */
+		if (totalsize >= (uoff_t)(1ULL << 54)) {
+			totalsize = (uint32_t)(totalsize >> 32) >> 8;
+			beg_size = (uint32_t)(beg_size >> 32) >> 8;
+			transferred = (uint32_t)(transferred >> 32) >> 8;
+			beg_and_transferred = (uint32_t)(beg_and_transferred >> 32) >> 8;
+			kiloscale = 4;
+		}
 	}
 
-	if (beg_and_transferred >= totalsize)
+	if (beg_and_transferred > totalsize)
 		beg_and_transferred = totalsize;
 
 	ratio = 100 * beg_and_transferred / totalsize;
@@ -124,14 +152,14 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	}
 
 	while (beg_and_transferred >= 100000) {
-		kiloscale++;
 		beg_and_transferred >>= 10;
+		kiloscale++;
 	}
 	/* see http://en.wikipedia.org/wiki/Tera */
 	fprintf(stderr, "%6u%c ", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
 #define beg_and_transferred dont_use_beg_and_transferred_below()
 
-	if (transferred > p->lastsize) {
+	if (transferred != p->lastsize) {
 		p->lastupdate_sec = elapsed;
 		p->lastsize = transferred;
 		if (since_last_update >= STALLTIME) {
@@ -141,20 +169,27 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		}
 		since_last_update = 0; /* we are un-stalled now */
 	}
+
 	elapsed -= p->start_sec; /* now it's "elapsed since start" */
 
 	if (since_last_update >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
+	} else if (!totalsize || !transferred || (int)elapsed <= 0) {
+		fprintf(stderr, "--:--:-- ETA");
 	} else {
-		uoff_t to_download = totalsize - beg_range;
-		if (!totalsize || (int)elapsed <= 0 || transferred > to_download) {
-			fprintf(stderr, "--:--:-- ETA");
-		} else {
-			/* to_download / (transferred/elapsed) - elapsed: */
-			unsigned eta = to_download * elapsed / transferred - elapsed;
-			unsigned secs = eta % 3600;
-			unsigned hours = eta / 3600;
-			fprintf(stderr, "%02u:%02u:%02u ETA", hours, secs / 60, secs % 60);
-		}
+		unsigned eta, secs, hours;
+
+		totalsize -= beg_size; /* now it's "total to upload" */
+
+		/* Estimated remaining time =
+		 * estimated_sec_to_dl_totalsize_bytes - elapsed_sec =
+		 * totalsize / average_bytes_sec_so_far - elapsed =
+		 * totalsize / (transferred/elapsed) - elapsed =
+		 * totalsize * elapsed / transferred - elapsed
+		 */
+		eta = totalsize * elapsed / transferred - elapsed;
+		secs = eta % 3600;
+		hours = eta / 3600;
+		fprintf(stderr, "%02u:%02u:%02u ETA", hours, secs / 60, secs % 60);
 	}
 }

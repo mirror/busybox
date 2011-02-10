@@ -10,6 +10,10 @@
  */
 #include "libbb.h"
 
+//#define log_io(...) bb_error_msg(__VA_ARGS__)
+#define log_io(...) ((void)0)
+
+
 struct host_info {
 	// May be used if we ever will want to free() all xstrdup()s...
 	/* char *allocated; */
@@ -197,25 +201,39 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 	return fp;
 }
 
+/* Returns '\n' if it was seen, else '\0'. Trims at first '\r' or '\n' */
+static char fgets_and_trim(FILE *fp)
+{
+	char c;
+	char *buf_ptr;
+
+	if (fgets(G.wget_buf, sizeof(G.wget_buf) - 1, fp) == NULL)
+		bb_perror_msg_and_die("error getting response");
+
+	buf_ptr = strchrnul(G.wget_buf, '\n');
+	c = *buf_ptr;
+	*buf_ptr = '\0';
+	buf_ptr = strchrnul(G.wget_buf, '\r');
+	*buf_ptr = '\0';
+
+	log_io("< %s", G.wget_buf);
+
+	return c;
+}
+
 static int ftpcmd(const char *s1, const char *s2, FILE *fp)
 {
 	int result;
 	if (s1) {
-		if (!s2) s2 = "";
+		if (!s2)
+			s2 = "";
 		fprintf(fp, "%s%s\r\n", s1, s2);
 		fflush(fp);
+		log_io("> %s%s", s1, s2);
 	}
 
 	do {
-		char *buf_ptr;
-
-		if (fgets(G.wget_buf, sizeof(G.wget_buf)-2, fp) == NULL) {
-			bb_perror_msg_and_die("error getting response");
-		}
-		buf_ptr = strstr(G.wget_buf, "\r\n");
-		if (buf_ptr) {
-			*buf_ptr = '\0';
-		}
+		fgets_and_trim(fp);
 	} while (!isdigit(G.wget_buf[0]) || G.wget_buf[3] != ' ');
 
 	G.wget_buf[3] = '\0';
@@ -284,7 +302,7 @@ static void parse_url(char *src_url, struct host_info *h)
 	sp = h->host;
 }
 
-static char *gethdr(FILE *fp /*, int *istrunc*/)
+static char *gethdr(FILE *fp)
 {
 	char *s, *hdrval;
 	int c;
@@ -292,19 +310,16 @@ static char *gethdr(FILE *fp /*, int *istrunc*/)
 	/* *istrunc = 0; */
 
 	/* retrieve header line */
-	if (fgets(G.wget_buf, sizeof(G.wget_buf), fp) == NULL)
-		return NULL;
+	c = fgets_and_trim(fp);
 
-	/* see if we are at the end of the headers */
-	for (s = G.wget_buf; *s == '\r'; ++s)
-		continue;
-	if (*s == '\n')
+	/* end of the headers? */
+	if (G.wget_buf[0] == '\0')
 		return NULL;
 
 	/* convert the header name to lower case */
 	for (s = G.wget_buf; isalnum(*s) || *s == '-' || *s == '.'; ++s) {
 		/* tolower for "A-Z", no-op for "0-9a-z-." */
-		*s = (*s | 0x20);
+		*s |= 0x20;
 	}
 
 	/* verify we are at the end of the header name */
@@ -315,20 +330,12 @@ static char *gethdr(FILE *fp /*, int *istrunc*/)
 	*s++ = '\0';
 	hdrval = skip_whitespace(s);
 
-	/* locate the end of header */
-	while (*s && *s != '\r' && *s != '\n')
-		++s;
-
-	/* end of header found */
-	if (*s) {
-		*s = '\0';
-		return hdrval;
+	if (c != '\n') {
+		/* Rats! The buffer isn't big enough to hold the entire header value */
+		while (c = getc(fp), c != EOF && c != '\n')
+			continue;
 	}
 
-	/* Rats! The buffer isn't big enough to hold the entire header value */
-	while (c = getc(fp), c != EOF && c != '\n')
-		continue;
-	/* *istrunc = 1; */
 	return hdrval;
 }
 
@@ -520,9 +527,9 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		if (!G.chunked)
 			break;
 
-		fgets(G.wget_buf, sizeof(G.wget_buf), dfp); /* This is a newline */
+		fgets_and_trim(dfp); /* This is a newline */
  get_clen:
-		fgets(G.wget_buf, sizeof(G.wget_buf), dfp);
+		fgets_and_trim(dfp);
 		G.content_len = STRTOOFF(G.wget_buf, NULL, 16);
 		/* FIXME: error check? */
 		if (G.content_len == 0)
@@ -757,8 +764,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		 * Retrieve HTTP response line and check for "200" status code.
 		 */
  read_response:
-		if (fgets(G.wget_buf, sizeof(G.wget_buf), sfp) == NULL)
-			bb_error_msg_and_die("no response from server");
+		fgets_and_trim(sfp);
 
 		str = G.wget_buf;
 		str = skip_non_whitespace(str);
