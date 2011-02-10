@@ -62,35 +62,45 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p)
 
 void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		const char *curfile,
-		off_t beg_range,
-		off_t transferred,
-		off_t totalsize)
+		uoff_t beg_range,
+		uoff_t transferred,
+		uoff_t totalsize)
 {
 	uoff_t beg_and_transferred;
 	unsigned since_last_update, elapsed;
 	unsigned ratio;
-	int barlength, i;
+	int barlength;
+	int kiloscale;
 
 	/* totalsize == 0 if it is unknown */
+
+	beg_and_transferred = beg_range + transferred;
 
 	elapsed = monotonic_sec();
 	since_last_update = elapsed - p->lastupdate_sec;
 	/* Do not update on every call
 	 * (we can be called on every network read!) */
-	if (since_last_update == 0 && !totalsize)
+	if (since_last_update == 0 && beg_and_transferred < totalsize)
 		return;
 
-	beg_and_transferred = beg_range + transferred;
-	ratio = 100;
-	if (beg_and_transferred < totalsize) {
-		/* Do not update on every call
-		 * (we can be called on every network read!) */
-		if (since_last_update == 0)
-			return;
-		/* long long helps to have it working even if !LFS */
-		ratio = 100ULL * beg_and_transferred / (uoff_t)totalsize;
+	/* Scale sizes down if they are close to overflowing.
+	 * If off_t is only 32 bits, this allows calculations
+	 * like (100 * transferred / totalsize) without risking overflow.
+	 * Introduced error is < 0.1%
+	 */
+	kiloscale = 0;
+	if (totalsize >= (1 << 20)) {
+		totalsize >>= 10;
+		beg_range >>= 10;
+		transferred >>= 10;
+		beg_and_transferred >>= 10;
+		kiloscale++;
 	}
 
+	if (beg_and_transferred >= totalsize)
+		beg_and_transferred = totalsize;
+
+	ratio = 100 * beg_and_transferred / totalsize;
 #if ENABLE_UNICODE_SUPPORT
 	init_unicode();
 	{
@@ -106,21 +116,20 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	if (barlength > 0) {
 		/* god bless gcc for variable arrays :) */
 		char buf[barlength + 1];
-		unsigned stars = (unsigned)barlength * ratio / (unsigned)100;
+		unsigned stars = (unsigned)barlength * beg_and_transferred / totalsize;
 		memset(buf, ' ', barlength);
 		buf[barlength] = '\0';
 		memset(buf, '*', stars);
 		fprintf(stderr, "|%s|", buf);
 	}
 
-	i = 0;
 	while (beg_and_transferred >= 100000) {
-		i++;
+		kiloscale++;
 		beg_and_transferred >>= 10;
 	}
 	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6u%c ", (unsigned)beg_and_transferred, " kMGTPEZY"[i]);
-#define beg_and_transferred dont_use_beg_and_transferred_below
+	fprintf(stderr, "%6u%c ", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
+#define beg_and_transferred dont_use_beg_and_transferred_below()
 
 	if (transferred > p->lastsize) {
 		p->lastupdate_sec = elapsed;
@@ -137,13 +146,12 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	if (since_last_update >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
 	} else {
-		off_t to_download = totalsize - beg_range;
-		if (!totalsize || transferred <= 0 || (int)elapsed <= 0 || transferred > to_download) {
+		uoff_t to_download = totalsize - beg_range;
+		if (!totalsize || (int)elapsed <= 0 || transferred > to_download) {
 			fprintf(stderr, "--:--:-- ETA");
 		} else {
 			/* to_download / (transferred/elapsed) - elapsed: */
-			/* (long long helps to have working ETA even if !LFS) */
-			unsigned eta = (unsigned long long)to_download*elapsed/(uoff_t)transferred - elapsed;
+			unsigned eta = to_download * elapsed / transferred - elapsed;
 			unsigned secs = eta % 3600;
 			unsigned hours = eta / 3600;
 			fprintf(stderr, "%02u:%02u:%02u ETA", hours, secs / 60, secs % 60);
