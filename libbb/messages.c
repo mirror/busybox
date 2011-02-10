@@ -22,7 +22,7 @@
 const char bb_banner[] ALIGN1 = BANNER;
 
 
-const char bb_msg_memory_exhausted[] ALIGN1 = "memory exhausted";
+const char bb_msg_memory_exhausted[] ALIGN1 = "out of memory";
 const char bb_msg_invalid_date[] ALIGN1 = "invalid date '%s'";
 const char bb_msg_unknown[] ALIGN1 = "(unknown)";
 const char bb_msg_can_not_create_raw_socket[] ALIGN1 = "can't create raw socket";
