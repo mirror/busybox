@@ -189,8 +189,8 @@ config GETTY
 	  this script approximates getty:
 
 	  exec </dev/$1 >/dev/$1 2>&1 || exit 1
-	  stty sane; stty ispeed 38400; stty ospeed 38400
 	  reset
+	  stty sane; stty ispeed 38400; stty ospeed 38400
 	  printf "%s login: " "`hostname`"
 	  read -r login
 	  exec /bin/login "$login"
