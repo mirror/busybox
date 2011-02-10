@@ -156,7 +156,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		kiloscale++;
 	}
 	/* see http://en.wikipedia.org/wiki/Tera */
-	fprintf(stderr, "%6u%c ", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
+	fprintf(stderr, "%6u%c", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
 #define beg_and_transferred dont_use_beg_and_transferred_below()
 
 	if (transferred != p->lastsize) {
@@ -173,9 +173,9 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	elapsed -= p->start_sec; /* now it's "elapsed since start" */
 
 	if (since_last_update >= STALLTIME) {
-		fprintf(stderr, " - stalled -");
+		fprintf(stderr, "  - stalled -");
 	} else if (!totalsize || !transferred || (int)elapsed <= 0) {
-		fprintf(stderr, "--:--:-- ETA");
+		fprintf(stderr, " --:--:-- ETA");
 	} else {
 		unsigned eta, secs, hours;
 
@@ -188,8 +188,10 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		 * totalsize * elapsed / transferred - elapsed
 		 */
 		eta = totalsize * elapsed / transferred - elapsed;
+		if (eta >= 1000*60*60)
+			eta = 1000*60*60 - 1;
 		secs = eta % 3600;
 		hours = eta / 3600;
-		fprintf(stderr, "%02u:%02u:%02u ETA", hours, secs / 60, secs % 60);
+		fprintf(stderr, "%3u:%02u:%02u ETA", hours, secs / 60, secs % 60);
 	}
 }
