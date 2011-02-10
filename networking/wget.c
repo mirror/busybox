@@ -510,8 +510,11 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 			G.transferred += n;
 			progress_meter(PROGRESS_BUMP);
 #endif
-			if (G.got_clen)
+			if (G.got_clen) {
 				G.content_len -= n;
+				if (G.content_len == 0)
+					break;
+			}
 		}
 
 		if (!G.chunked)
@@ -709,6 +712,11 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n",
 			target.host, user_agent);
 
+		/* Ask server to close the connection as soon as we are done
+		 * (IOW: we do not intend to send more requests)
+		 */
+		fprintf(sfp, "Connection: close\r\n");
+
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 		if (target.user) {
 			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6,
@@ -722,22 +730,25 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 
 		if (G.beg_range)
 			fprintf(sfp, "Range: bytes=%"OFF_FMT"u-\r\n", G.beg_range);
+
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 		if (extra_headers)
 			fputs(extra_headers, sfp);
 
 		if (opt & WGET_OPT_POST_DATA) {
 			char *estr = URL_escape(post_data);
-			fprintf(sfp, "Content-Type: application/x-www-form-urlencoded\r\n");
-			fprintf(sfp, "Content-Length: %u\r\n" "\r\n" "%s",
-					(int) strlen(estr), estr);
-			/*fprintf(sfp, "Connection: Keep-Alive\r\n\r\n");*/
-			/*fprintf(sfp, "%s\r\n", estr);*/
+			fprintf(sfp,
+				"Content-Type: application/x-www-form-urlencoded\r\n"
+				"Content-Length: %u\r\n"
+				"\r\n"
+				"%s",
+				(int) strlen(estr), estr
+			);
 			free(estr);
 		} else
 #endif
-		{ /* If "Connection:" is needed, document why */
-			fprintf(sfp, /* "Connection: close\r\n" */ "\r\n");
+		{
+			fprintf(sfp, "\r\n");
 		}
 
 		fflush(sfp);
