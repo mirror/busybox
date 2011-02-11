@@ -556,9 +556,8 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		}
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 		clearerr(dfp);
-		ndelay_off(polldata.fd);
+		ndelay_off(polldata.fd); /* else fgets can get very unhappy */
 #endif
-
 		if (!G.chunked)
 			break;
 
@@ -572,6 +571,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 		G.got_clen = 1;
 	}
 
+	G.chunked = 0; /* make progress meter show 100% even for chunked */
 	progress_meter(PROGRESS_END);
 }
 
