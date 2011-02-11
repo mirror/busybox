@@ -466,6 +466,14 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
+
+	/* Must use nonblocking I/O, otherwise fread will loop
+	 * and *block* until it reads full buffer,
+	 * which messes up progress bar and/or timing out.
+	 * Because of nonblocking I/O, we need to dance
+	 * very carefully around EAGAIN. See explanation at
+	 * clearerr() call.
+	 */
 	ndelay_on(polldata.fd);
 #endif
 	progress_meter(PROGRESS_START);
@@ -504,7 +512,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 				/* Needed for "stalled" indicator */
 				progress_meter(PROGRESS_BUMP);
 			}
-#endif
+
 			/* fread internally uses read loop, which in our case
 			 * is usually exited when we get EAGAIN.
 			 * In this case, libc sets error marker on the stream.
@@ -515,6 +523,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 			 */
 			clearerr(dfp);
 			errno = 0;
+#endif
 			n = fread(G.wget_buf, 1, rdsz, dfp);
 			/* man fread:
 			 * If error occurs, or EOF is reached, the return value
