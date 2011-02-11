@@ -1584,8 +1584,9 @@ int print_flags_separated(const int *masks, const char *labels,
 int print_flags(const masks_labels_t *ml, int flags) FAST_FUNC;
 
 typedef struct bb_progress_t {
-	off_t lastsize;
-	unsigned lastupdate_sec;
+	unsigned last_size;
+	unsigned last_update_sec;
+	unsigned last_change_sec;
 	unsigned start_sec;
 	const char *curfile;
 } bb_progress_t;

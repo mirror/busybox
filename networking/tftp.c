@@ -119,7 +119,7 @@ static void tftp_progress_done(void)
 	if (is_bb_progress_inited(&G.pmt)) {
 		tftp_progress_update();
 		bb_putchar_stderr('\n');
-		bb_progress_free(p);
+		bb_progress_free(&G.pmt);
 	}
 }
 #else

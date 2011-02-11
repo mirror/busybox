@@ -61,8 +61,9 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p, const char *curfile)
 	p->curfile = curfile;
 #endif
 	p->start_sec = monotonic_sec();
-	p->lastupdate_sec = p->start_sec;
-	p->lastsize = 0;
+	p->last_update_sec = p->start_sec;
+	p->last_change_sec = p->start_sec;
+	p->last_size = 0;
 }
 
 /* File already had beg_size bytes.
@@ -79,12 +80,15 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 {
 	uoff_t beg_and_transferred;
 	unsigned since_last_update, elapsed;
-	unsigned ratio;
 	int barlength;
 	int kiloscale;
 
+	//transferred = 1234; /* use for stall detection testing */
+	//totalsize = 0; /* use for unknown size download testing */
+
 	elapsed = monotonic_sec();
-	since_last_update = elapsed - p->lastupdate_sec;
+	since_last_update = elapsed - p->last_update_sec;
+	p->last_update_sec = elapsed;
 
 	if (totalsize != 0 && transferred >= totalsize - beg_size) {
 		/* Last call. Do not skip this update */
@@ -131,23 +135,27 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		}
 	}
 
+	if (ENABLE_UNICODE_SUPPORT)
+		fprintf(stderr, "\r%s", p->curfile);
+	else
+		fprintf(stderr, "\r%-20.20s", p->curfile);
+
 	beg_and_transferred = beg_size + transferred;
 
-	ratio = 100 * beg_and_transferred / totalsize;
-	if (ENABLE_UNICODE_SUPPORT)
-		fprintf(stderr, "\r%s%4u%% ", p->curfile, ratio);
-	else
-		fprintf(stderr, "\r%-20.20s%4u%% ", p->curfile, ratio);
+	if (totalsize != 0) {
+		unsigned ratio = 100 * beg_and_transferred / totalsize;
+		fprintf(stderr, "%4u%%", ratio);
 
-	barlength = get_tty2_width() - 49;
-	if (barlength > 0) {
-		/* god bless gcc for variable arrays :) */
-		char buf[barlength + 1];
-		unsigned stars = (unsigned)barlength * beg_and_transferred / totalsize;
-		memset(buf, ' ', barlength);
-		buf[barlength] = '\0';
-		memset(buf, '*', stars);
-		fprintf(stderr, "|%s|", buf);
+		barlength = get_tty2_width() - 49;
+		if (barlength > 0) {
+			/* god bless gcc for variable arrays :) */
+			char buf[barlength + 1];
+			unsigned stars = (unsigned)barlength * beg_and_transferred / totalsize;
+			memset(buf, ' ', barlength);
+			buf[barlength] = '\0';
+			memset(buf, '*', stars);
+			fprintf(stderr, " |%s|", buf);
+		}
 	}
 
 	while (beg_and_transferred >= 100000) {
@@ -158,9 +166,10 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	fprintf(stderr, "%6u%c", (unsigned)beg_and_transferred, " kMGTPEZY"[kiloscale]);
 #define beg_and_transferred dont_use_beg_and_transferred_below()
 
-	if (transferred != p->lastsize) {
-		p->lastupdate_sec = elapsed;
-		p->lastsize = transferred;
+	since_last_update = elapsed - p->last_change_sec;
+	if ((unsigned)transferred != p->last_size) {
+		p->last_change_sec = elapsed;
+		p->last_size = (unsigned)transferred;
 		if (since_last_update >= STALLTIME) {
 			/* We "cut out" these seconds from elapsed time
 			 * by adjusting start time */
@@ -173,7 +182,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 
 	if (since_last_update >= STALLTIME) {
 		fprintf(stderr, "  - stalled -");
-	} else if (!totalsize || !transferred || (int)elapsed <= 0) {
+	} else if (!totalsize || !transferred || (int)elapsed < 0) {
 		fprintf(stderr, " --:--:-- ETA");
 	} else {
 		unsigned eta, secs, hours;
