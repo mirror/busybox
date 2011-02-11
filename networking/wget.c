@@ -466,15 +466,6 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
-
-	/* Must use nonblocking I/O, otherwise fread will loop
-	 * and *block* until it reads full buffer,
-	 * which messes up progress bar and/or timing out.
-	 * Because of nonblocking I/O, we need to dance
-	 * very carefully around EAGAIN. See explanation at
-	 * clearerr() call.
-	 */
-	ndelay_on(polldata.fd);
 #endif
 	progress_meter(PROGRESS_START);
 
@@ -483,6 +474,17 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	/* Loops only if chunked */
 	while (1) {
+
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+		/* Must use nonblocking I/O, otherwise fread will loop
+		 * and *block* until it reads full buffer,
+		 * which messes up progress bar and/or timeout logic.
+		 * Because of nonblocking I/O, we need to dance
+		 * very carefully around EAGAIN. See explanation at
+		 * clearerr() call.
+		 */
+		ndelay_on(polldata.fd);
+#endif
 		while (1) {
 			int n;
 			unsigned rdsz;
@@ -552,11 +554,15 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 					break;
 			}
 		}
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+		clearerr(dfp);
+		ndelay_off(polldata.fd);
+#endif
 
 		if (!G.chunked)
 			break;
 
-		fgets_and_trim(dfp); /* This is a newline */
+		fgets_and_trim(dfp); /* Eat empty line */
  get_clen:
 		fgets_and_trim(dfp);
 		G.content_len = STRTOOFF(G.wget_buf, NULL, 16);
