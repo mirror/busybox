@@ -79,16 +79,20 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	int barlength;
 	int kiloscale;
 
-	beg_and_transferred = beg_size + transferred;
-
 	elapsed = monotonic_sec();
 	since_last_update = elapsed - p->lastupdate_sec;
-	/*
-	 * Do not update on every call
-	 * (we can be called on every network read!)
-	 */
-	if (since_last_update == 0 && beg_and_transferred < totalsize)
+
+	if (totalsize != 0 && transferred >= totalsize - beg_size) {
+		/* Last call. Do not skip this update */
+		transferred = totalsize - beg_size; /* sanitize just in case */
+	}
+	else if (since_last_update == 0) {
+		/*
+		 * Do not update on every call
+		 * (we can be called on every network read!)
+		 */
 		return;
+	}
 
 	kiloscale = 0;
 	/*
@@ -101,32 +105,29 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		/*
 		 * 64-bit CPU || small off_t: in either case,
 		 * >> is cheap, single-word operation.
-		 * ... || strange off_t: also use this code (it is safe,
-		 * even if suboptimal), because 32/64 optimized one
-		 * works only for 64-bit off_t.
+		 * ... || strange off_t: also use this code
+		 * (it is safe, just suboptimal wrt code size),
+		 * because 32/64 optimized one works only for 64-bit off_t.
 		 */
 		if (totalsize >= (1 << 22)) {
 			totalsize >>= 10;
 			beg_size >>= 10;
 			transferred >>= 10;
-			beg_and_transferred >>= 10;
 			kiloscale = 1;
 		}
 	} else {
 		/* 32-bit CPU and 64-bit off_t.
-		 * Pick a shift (40 bits) which is easier to do on 32-bit CPU.
+		 * Use a 40-bit shift, it is easier to do on 32-bit CPU.
 		 */
 		if (totalsize >= (uoff_t)(1ULL << 54)) {
 			totalsize = (uint32_t)(totalsize >> 32) >> 8;
 			beg_size = (uint32_t)(beg_size >> 32) >> 8;
 			transferred = (uint32_t)(transferred >> 32) >> 8;
-			beg_and_transferred = (uint32_t)(beg_and_transferred >> 32) >> 8;
 			kiloscale = 4;
 		}
 	}
 
-	if (beg_and_transferred > totalsize)
-		beg_and_transferred = totalsize;
+	beg_and_transferred = beg_size + transferred;
 
 	ratio = 100 * beg_and_transferred / totalsize;
 #if ENABLE_UNICODE_SUPPORT
@@ -163,7 +164,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		p->lastupdate_sec = elapsed;
 		p->lastsize = transferred;
 		if (since_last_update >= STALLTIME) {
-			/* We "cut off" these seconds from elapsed time
+			/* We "cut out" these seconds from elapsed time
 			 * by adjusting start time */
 			p->start_sec += since_last_update;
 		}
