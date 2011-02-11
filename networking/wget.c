@@ -487,6 +487,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 					rdsz = (unsigned)G.content_len;
 				}
 			}
+
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 # if ENABLE_FEATURE_WGET_TIMEOUT
 			second_cnt = G.timeout_seconds;
@@ -497,22 +498,41 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 # if ENABLE_FEATURE_WGET_TIMEOUT
 				if (second_cnt != 0 && --second_cnt == 0) {
 					progress_meter(PROGRESS_END);
-					bb_perror_msg_and_die("download timed out");
+					bb_error_msg_and_die("download timed out");
 				}
 # endif
 				/* Needed for "stalled" indicator */
 				progress_meter(PROGRESS_BUMP);
 			}
 #endif
+			/* fread internally uses read loop, which in our case
+			 * is usually exited when we get EAGAIN.
+			 * In this case, libc sets error marker on the stream.
+			 * Need to clear it before next fread to avoid possible
+			 * rare false positive ferror below. Rare because usually
+			 * fread gets more than zero bytes, and we don't fall
+			 * into if (n <= 0) ...
+			 */
+			clearerr(dfp);
+			errno = 0;
 			n = fread(G.wget_buf, 1, rdsz, dfp);
+			/* man fread:
+			 * If error occurs, or EOF is reached, the return value
+			 * is a short item count (or zero).
+			 * fread does not distinguish between EOF and error.
+			 */
 			if (n <= 0) {
-				if (ferror(dfp)) {
-					/* perror will not work: ferror doesn't set errno */
-					bb_error_msg_and_die(bb_msg_read_error);
-				}
-				break;
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+				if (errno == EAGAIN) /* poll lied, there is no data? */
+					continue; /* yes */
+#endif
+				if (ferror(dfp))
+					bb_perror_msg_and_die(bb_msg_read_error);
+				break; /* EOF, not error */
 			}
+
 			xwrite(output_fd, G.wget_buf, n);
+
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			G.transferred += n;
 			progress_meter(PROGRESS_BUMP);
