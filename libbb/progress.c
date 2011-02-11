@@ -52,12 +52,17 @@ static unsigned int get_tty2_width(void)
 	return width;
 }
 
-void FAST_FUNC bb_progress_init(bb_progress_t *p)
+void FAST_FUNC bb_progress_init(bb_progress_t *p, const char *curfile)
 {
+#if ENABLE_UNICODE_SUPPORT
+	init_unicode();
+	p->curfile = unicode_conv_to_printable_fixedwidth(/*NULL,*/ curfile, 20);
+#else
+	p->curfile = curfile;
+#endif
 	p->start_sec = monotonic_sec();
 	p->lastupdate_sec = p->start_sec;
 	p->lastsize = 0;
-	p->inited = 1;
 }
 
 /* File already had beg_size bytes.
@@ -68,7 +73,6 @@ void FAST_FUNC bb_progress_init(bb_progress_t *p)
  * If totalsize == 0, then it is unknown.
  */
 void FAST_FUNC bb_progress_update(bb_progress_t *p,
-		const char *curfile,
 		uoff_t beg_size,
 		uoff_t transferred,
 		uoff_t totalsize)
@@ -130,16 +134,10 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 	beg_and_transferred = beg_size + transferred;
 
 	ratio = 100 * beg_and_transferred / totalsize;
-#if ENABLE_UNICODE_SUPPORT
-	init_unicode();
-	{
-		char *buf = unicode_conv_to_printable_fixedwidth(/*NULL,*/ curfile, 20);
-		fprintf(stderr, "\r%s%4u%% ", buf, ratio);
-		free(buf);
-	}
-#else
-	fprintf(stderr, "\r%-20.20s%4u%% ", curfile, ratio);
-#endif
+	if (ENABLE_UNICODE_SUPPORT)
+		fprintf(stderr, "\r%s%4u%% ", p->curfile, ratio);
+	else
+		fprintf(stderr, "\r%-20.20s%4u%% ", p->curfile, ratio);
 
 	barlength = get_tty2_width() - 49;
 	if (barlength > 0) {

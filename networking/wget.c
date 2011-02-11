@@ -81,9 +81,9 @@ static void progress_meter(int flag)
 		return;
 
 	if (flag == PROGRESS_START)
-		bb_progress_init(&G.pmt);
+		bb_progress_init(&G.pmt, G.curfile);
 
-	bb_progress_update(&G.pmt, G.curfile, G.beg_range, G.transferred,
+	bb_progress_update(&G.pmt, G.beg_range, G.transferred,
 			   G.chunked ? 0 : G.beg_range + G.transferred + G.content_len);
 
 	if (flag == PROGRESS_END) {

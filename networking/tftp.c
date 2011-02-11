@@ -107,19 +107,19 @@ struct BUG_G_too_big {
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
 static void tftp_progress_update(void)
 {
-	bb_progress_update(&G.pmt, G.file, 0, G.pos, G.size);
+	bb_progress_update(&G.pmt, 0, G.pos, G.size);
 }
 static void tftp_progress_init(void)
 {
-	bb_progress_init(&G.pmt);
+	bb_progress_init(&G.pmt, G.file);
 	tftp_progress_update();
 }
 static void tftp_progress_done(void)
 {
-	if (G.pmt.inited) {
+	if (is_bb_progress_inited(&G.pmt)) {
 		tftp_progress_update();
 		bb_putchar_stderr('\n');
-		G.pmt.inited = 0;
+		bb_progress_free(p);
 	}
 }
 #else
@@ -445,7 +445,7 @@ static int tftp_protocol(
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
 		if (ENABLE_TFTP && remote_file) /* tftp */
 			G.pos = (block_nr - 1) * (uoff_t)blksize;
-		if (G.pmt.inited)
+		if (is_bb_progress_inited(&G.pmt))
 			tftp_progress_update();
 #endif
 		/* Was it final ACK? then exit */

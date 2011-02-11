@@ -1587,14 +1587,20 @@ typedef struct bb_progress_t {
 	off_t lastsize;
 	unsigned lastupdate_sec;
 	unsigned start_sec;
-	smallint inited;
+	const char *curfile;
 } bb_progress_t;
 
-void bb_progress_init(bb_progress_t *p) FAST_FUNC;
-void bb_progress_update(bb_progress_t *p, const char *curfile,
+#define is_bb_progress_inited(p) ((p)->curfile != NULL)
+#define bb_progress_free(p) do { \
+	if (ENABLE_UNICODE_SUPPORT) free((char*)((p)->curfile)); \
+	(p)->curfile = NULL; \
+} while (0)
+void bb_progress_init(bb_progress_t *p, const char *curfile) FAST_FUNC;
+void bb_progress_update(bb_progress_t *p,
 			uoff_t beg_range,
 			uoff_t transferred,
 			uoff_t totalsize) FAST_FUNC;
+
 
 extern const char *applet_name;
 
