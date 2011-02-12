@@ -374,8 +374,12 @@ IF_FEATURE_FIND_LINKS(  ACTS(links, char links_char; int links_count;))
 struct globals {
 	IF_FEATURE_FIND_XDEV(dev_t *xdev_dev;)
 	IF_FEATURE_FIND_XDEV(int xdev_count;)
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	int minmaxdepth[2];
+#endif
 	action ***actions;
-	bool need_print;
+	smallint need_print;
+	smallint xdev_on;
 	recurse_flags_t recurse_flags;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -384,7 +388,8 @@ struct globals {
 		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
 	}; \
 	/* we have to zero it out because of NOEXEC */ \
-	memset(&G, 0, offsetof(struct globals, need_print)); \
+	memset(&G, 0, sizeof(G)); \
+	IF_FEATURE_FIND_MAXDEPTH(G.minmaxdepth[1] = INT_MAX;) \
 	G.need_print = 1; \
 	G.recurse_flags = ACTION_RECURSE; \
 } while (0)
@@ -682,16 +687,15 @@ ACTF(links)
 
 static int FAST_FUNC fileAction(const char *fileName,
 		struct stat *statbuf,
-		void *userData IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM),
+		void *userData UNUSED_PARAM,
 		int depth IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
 {
 	int r;
-#if ENABLE_FEATURE_FIND_MAXDEPTH
-#define minmaxdepth ((int*)userData)
 
-	if (depth < minmaxdepth[0])
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+	if (depth < G.minmaxdepth[0])
 		return TRUE; /* skip this, continue recursing */
-	if (depth > minmaxdepth[1])
+	if (depth > G.minmaxdepth[1])
 		return SKIP; /* stop recursing */
 #endif
 
@@ -702,7 +706,7 @@ static int FAST_FUNC fileAction(const char *fileName,
 
 #if ENABLE_FEATURE_FIND_MAXDEPTH
 	if (S_ISDIR(statbuf->st_mode)) {
-		if (depth == minmaxdepth[1])
+		if (depth == G.minmaxdepth[1])
 			return SKIP;
 	}
 #endif
@@ -725,7 +729,6 @@ static int FAST_FUNC fileAction(const char *fileName,
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
 	return (r & SKIP) ? SKIP : TRUE;
-#undef minmaxdepth
 }
 
 
@@ -770,6 +773,9 @@ static const char* plus_minus_num(const char* str)
 static action*** parse_params(char **argv)
 {
 	enum {
+	                        OPT_FOLLOW     ,
+	IF_FEATURE_FIND_XDEV(   OPT_XDEV       ,)
+	IF_FEATURE_FIND_DEPTH(  OPT_DEPTH      ,)
 	                        PARM_a         ,
 	                        PARM_o         ,
 	IF_FEATURE_FIND_NOT(	PARM_char_not  ,)
@@ -784,7 +790,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
 	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
 	IF_FEATURE_FIND_PAREN(  PARM_char_brace,)
-	/* All options starting from here require argument */
+	/* All options/actions starting from here require argument */
 	                        PARM_name      ,
 	                        PARM_iname     ,
 	IF_FEATURE_FIND_PATH(   PARM_path      ,)
@@ -800,24 +806,28 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_SIZE(   PARM_size      ,)
 	IF_FEATURE_FIND_CONTEXT(PARM_context   ,)
 	IF_FEATURE_FIND_LINKS(  PARM_links     ,)
+	IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,OPT_MAXDEPTH,)
 	};
 
 	static const char params[] ALIGN1 =
-	                         "-a\0"
-	                         "-o\0"
+	                        "-follow\0"
+	IF_FEATURE_FIND_XDEV(   "-xdev\0"                 )
+	IF_FEATURE_FIND_DEPTH(  "-depth\0"                )
+	                        "-a\0"
+	                        "-o\0"
 	IF_FEATURE_FIND_NOT(    "!\0"       )
 #if ENABLE_DESKTOP
-	                         "-and\0"
-	                         "-or\0"
-	IF_FEATURE_FIND_NOT(	 "-not\0"    )
+	                        "-and\0"
+	                        "-or\0"
+	IF_FEATURE_FIND_NOT(	"-not\0"    )
 #endif
-	                         "-print\0"
+	                        "-print\0"
 	IF_FEATURE_FIND_PRINT0( "-print0\0" )
 	IF_FEATURE_FIND_PRUNE(  "-prune\0"  )
 	IF_FEATURE_FIND_DELETE( "-delete\0" )
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
 	IF_FEATURE_FIND_PAREN(  "(\0"       )
-	/* All options starting from here require argument */
+	/* All options/actions starting from here require argument */
 	                         "-name\0"
 	                         "-iname\0"
 	IF_FEATURE_FIND_PATH(   "-path\0"   )
@@ -833,6 +843,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_SIZE(   "-size\0"   )
 	IF_FEATURE_FIND_CONTEXT("-context\0")
 	IF_FEATURE_FIND_LINKS(  "-links\0"  )
+	IF_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
 	;
 
 	action*** appp;
@@ -860,27 +871,13 @@ static action*** parse_params(char **argv)
 
 	appp = xzalloc(2 * sizeof(appp[0])); /* appp[0],[1] == NULL */
 
-/* Actions have side effects and return a true or false value
- * We implement: -print, -print0, -exec
- *
- * The rest are tests.
- *
- * Tests and actions are grouped by operators
- * ( expr )              Force precedence
- * ! expr                True if expr is false
- * -not expr             Same as ! expr
- * expr1 [-a[nd]] expr2  And; expr2 is not evaluated if expr1 is false
- * expr1 -o[r] expr2     Or; expr2 is not evaluated if expr1 is true
- * expr1 , expr2         List; both expr1 and expr2 are always evaluated
- * We implement: (), -a, -o
- */
 	while (*argv) {
 		const char *arg = argv[0];
 		int parm = index_in_strings(params, arg);
 		const char *arg1 = argv[1];
 
 		if (parm >= PARM_name) {
-			/* All options starting from -name require argument */
+			/* All options/actions starting from -name require argument */
 			if (!arg1)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			argv++;
@@ -889,8 +886,37 @@ static action*** parse_params(char **argv)
 		/* We can use big switch() here, but on i386
 		 * it doesn't give smaller code. Other arches? */
 
-	/* --- Operators --- */
-		if (parm == PARM_a IF_DESKTOP(|| parm == PARM_and)) {
+/* Options always return true. They always take effect
+ * rather than being processed only when their place in the
+ * expression is reached.
+ */
+		/* Options */
+#if ENABLE_FEATURE_FIND_XDEV
+		if (parm == OPT_XDEV) {
+			G.xdev_on = 1;
+		}
+#endif
+#if ENABLE_FEATURE_FIND_MAXDEPTH
+		else if (parm == OPT_MINDEPTH || parm == OPT_MINDEPTH + 1) {
+			G.minmaxdepth[parm - OPT_MINDEPTH] = xatoi_positive(arg1);
+		}
+#endif
+#if ENABLE_FEATURE_FIND_DEPTH
+		else if (parm == OPT_DEPTH) {
+			G.recurse_flags |= ACTION_DEPTHFIRST;
+		}
+#endif
+/* Actions are grouped by operators
+ * ( expr )              Force precedence
+ * ! expr                True if expr is false
+ * -not expr             Same as ! expr
+ * expr1 [-a[nd]] expr2  And; expr2 is not evaluated if expr1 is false
+ * expr1 -o[r] expr2     Or; expr2 is not evaluated if expr1 is true
+ * expr1 , expr2         List; both expr1 and expr2 are always evaluated
+ * We implement: (), -a, -o
+ */
+		/* Operators */
+		else if (parm == PARM_a IF_DESKTOP(|| parm == PARM_and)) {
 			/* no further special handling required */
 		}
 		else if (parm == PARM_o IF_DESKTOP(|| parm == PARM_or)) {
@@ -907,8 +933,7 @@ static action*** parse_params(char **argv)
 			invert_flag ^= 1;
 		}
 #endif
-
-	/* --- Tests and actions --- */
+		/* Actions */
 		else if (parm == PARM_print) {
 			G.need_print = 0;
 			(void) ALLOC_ACTION(print);
@@ -1014,10 +1039,10 @@ static action*** parse_params(char **argv)
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PERM
-/* -perm mode   File's permission bits are exactly mode (octal or symbolic).
+/* -perm BITS   File's mode bits are exactly BITS (octal or symbolic).
  *              Symbolic modes use mode 0 as a point of departure.
- * -perm -mode  All of the permission bits mode are set for the file.
- * -perm +mode  Any of the permission bits mode are set for the file.
+ * -perm -BITS  All of the BITS are set in file's mode.
+ * -perm +BITS  At least one of the BITS is set in file's mode.
  */
 		else if (parm == PARM_perm) {
 			action_perm *ap;
@@ -1137,111 +1162,56 @@ static action*** parse_params(char **argv)
 int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int find_main(int argc UNUSED_PARAM, char **argv)
 {
-	static const char options[] ALIGN1 =
-	                 "-follow\0"
-IF_FEATURE_FIND_XDEV(    "-xdev\0"                 )
-IF_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
-IF_FEATURE_FIND_DEPTH(   "-depth\0"                )
-	;
-	enum {
-	                 OPT_FOLLOW,
-IF_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
-IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
-IF_FEATURE_FIND_DEPTH(   OPT_DEPTH   ,)
-	};
-
-	char *arg;
-	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
-#if ENABLE_FEATURE_FIND_MAXDEPTH
-	int minmaxdepth[2] = { 0, INT_MAX };
-#else
-#define minmaxdepth NULL
-#endif
 
 	INIT_G();
 
-	for (firstopt = 1; argv[firstopt]; firstopt++) {
+	argv++;
+	for (firstopt = 0; argv[firstopt]; firstopt++) {
 		if (argv[firstopt][0] == '-')
 			break;
 		if (ENABLE_FEATURE_FIND_NOT && LONE_CHAR(argv[firstopt], '!'))
 			break;
-#if ENABLE_FEATURE_FIND_PAREN
-		if (LONE_CHAR(argv[firstopt], '('))
+		if (ENABLE_FEATURE_FIND_PAREN && LONE_CHAR(argv[firstopt], '('))
 			break;
-#endif
 	}
-	if (firstopt == 1) {
-		argv[0] = (char*)".";
-		argv--;
+	if (firstopt == 0) {
+		*--argv = (char*)".";
 		firstopt++;
 	}
 
-/* All options always return true. They always take effect
- * rather than being processed only when their place in the
- * expression is reached.
- * We implement: -follow, -xdev, -mindepth, -maxdepth, -depth
- */
-	/* Process options, and replace them with -a */
-	/* (-a will be ignored by recursive parser later) */
-	argp = &argv[firstopt];
-	while ((arg = argp[0]) != NULL) {
-		int opt = index_in_strings(options, arg);
-		if (opt == OPT_FOLLOW) {
-			G.recurse_flags |= ACTION_FOLLOWLINKS | ACTION_DANGLING_OK;
-			argp[0] = (char*)"-a";
-		}
-#if ENABLE_FEATURE_FIND_XDEV
-		if (opt == OPT_XDEV) {
-			struct stat stbuf;
-			if (!G.xdev_count) {
-				G.xdev_count = firstopt - 1;
-				G.xdev_dev = xzalloc(G.xdev_count * sizeof(G.xdev_dev[0]));
-				for (i = 1; i < firstopt; i++) {
-					/* not xstat(): shouldn't bomb out on
-					 * "find not_exist exist -xdev" */
-					if (stat(argv[i], &stbuf) == 0)
-						G.xdev_dev[i-1] = stbuf.st_dev;
-					/* else G.xdev_dev[i-1] stays 0 and
-					 * won't match any real device dev_t */
-				}
-			}
-			argp[0] = (char*)"-a";
-		}
-#endif
-#if ENABLE_FEATURE_FIND_MAXDEPTH
-		if (opt == OPT_MINDEPTH || opt == OPT_MINDEPTH + 1) {
-			if (!argp[1])
-				bb_show_usage();
-			minmaxdepth[opt - OPT_MINDEPTH] = xatoi_positive(argp[1]);
-			argp[0] = (char*)"-a";
-			argp++;
-			argp[0] = (char*)"-a";
-		}
-#endif
-#if ENABLE_FEATURE_FIND_DEPTH
-		if (opt == OPT_DEPTH) {
-			G.recurse_flags |= ACTION_DEPTHFIRST;
-			argp[0] = (char*)"-a";
-		}
-#endif
-		argp++;
-	}
-
 	G.actions = parse_params(&argv[firstopt]);
+	argv[firstopt] = NULL;
 
-	for (i = 1; i < firstopt; i++) {
+#if ENABLE_FEATURE_FIND_XDEV
+	if (G.xdev_on) {
+		struct stat stbuf;
+
+		G.xdev_count = firstopt;
+		G.xdev_dev = xzalloc(G.xdev_count * sizeof(G.xdev_dev[0]));
+		for (i = 0; argv[i]; i++) {
+			/* not xstat(): shouldn't bomb out on
+			 * "find not_exist exist -xdev" */
+			if (stat(argv[i], &stbuf) == 0)
+				G.xdev_dev[i] = stbuf.st_dev;
+			/* else G.xdev_dev[i] stays 0 and
+			 * won't match any real device dev_t
+			 */
+		}
+	}
+#endif
+
+	for (i = 0; argv[i]; i++) {
 		if (!recursive_action(argv[i],
 				G.recurse_flags,/* flags */
 				fileAction,     /* file action */
 				fileAction,     /* dir action */
-#if ENABLE_FEATURE_FIND_MAXDEPTH
-				minmaxdepth,    /* user data */
-#else
 				NULL,           /* user data */
-#endif
-				0))             /* depth */
+				0)              /* depth */
+		) {
 			status = EXIT_FAILURE;
+		}
 	}
+
 	return status;
 }
