@@ -33,7 +33,7 @@
 //config:	  If you plan to use busybox daemons on a system where daemons
 //config:	  are controlled by systemd, enable this option.
 //config:	  If you don't use systemd, it is still safe to enable it,
-//config:	  but yhe downside is increased code size.
+//config:	  but the downside is increased code size.
 
 //kbuild:lib-$(CONFIG_FEATURE_SYSTEMD) += systemd_support.o
 
