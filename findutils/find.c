@@ -1067,6 +1067,9 @@ static action*** parse_params(char **argv)
 //usage:	IF_FEATURE_FIND_PAREN(
 //usage:     "\n	( ACTIONS )	Group actions for -o / -a"
 //usage:	)
+//usage:	IF_FEATURE_FIND_NOT(
+//usage:     "\n	! ACT		Invert ACT's success/failure"
+//usage:	)
 //usage:     "\n	ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
 //usage:     "\n	ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
 //usage:     "\n			Note: -a has higher priority than -o"
