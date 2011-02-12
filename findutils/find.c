@@ -1044,7 +1044,7 @@ static action*** parse_params(char **argv)
 }
 
 //usage:#define find_trivial_usage
-//usage:       "[OPTIONS] [PATH]... [ACTIONS]"
+//usage:       "[PATH]... [OPTIONS] [ACTIONS]"
 //usage:#define find_full_usage "\n\n"
 //usage:       "Search for files and perform actions on them.\n"
 //usage:       "First failed action stops processing of current file.\n"
