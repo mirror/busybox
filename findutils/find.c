@@ -273,27 +273,27 @@
 //usage:	)
 //usage:	IF_FEATURE_FIND_PERM(
 //usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
-//usage:     "\n			or exactly MASK bits are set in mode bits"
+//usage:     "\n			or exactly MASK bits are set in file's mode"
 //usage:	)
 //usage:	IF_FEATURE_FIND_MTIME(
-//usage:     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N),"
-//usage:     "\n			or exactly N days"
+//usage:     "\n	-mtime DAYS	mtime is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N days in the past"
 //usage:	)
 //usage:	IF_FEATURE_FIND_MMIN(
-//usage:     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N),"
-//usage:     "\n			or exactly N minutes"
+//usage:     "\n	-mmin MINS	mtime is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N minutes in the past"
 //usage:	)
 //usage:	IF_FEATURE_FIND_NEWER(
-//usage:     "\n	-newer FILE	Modified time is more recent than FILE's"
+//usage:     "\n	-newer FILE	mtime is more recent than FILE's"
 //usage:	)
 //usage:	IF_FEATURE_FIND_INUM(
 //usage:     "\n	-inum N		File has inode number N"
 //usage:	)
 //usage:	IF_FEATURE_FIND_USER(
-//usage:     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)"
+//usage:     "\n	-user NAME/ID	File is owned by given user"
 //usage:	)
 //usage:	IF_FEATURE_FIND_GROUP(
-//usage:     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)"
+//usage:     "\n	-group NAME/ID	File is owned by given group"
 //usage:	)
 //usage:	IF_FEATURE_FIND_SIZE(
 //usage:     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))"
