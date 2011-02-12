@@ -112,11 +112,11 @@
 //config:	  This option allows find to restrict searches to a single filesystem.
 //config:
 //config:config FEATURE_FIND_MAXDEPTH
-//config:	bool "Enable -maxdepth N"
+//config:	bool "Enable -mindepth N and -maxdepth N"
 //config:	default y
 //config:	depends on FIND
 //config:	help
-//config:	  This option enables -maxdepth N option.
+//config:	  This option enables -mindepth N and -maxdepth N option.
 //config:
 //config:config FEATURE_FIND_NEWER
 //config:	bool "Enable -newer: compare file modification times"
@@ -124,7 +124,7 @@
 //config:	depends on FIND
 //config:	help
 //config:	  Support the 'find -newer' option for finding any files which have
-//config:	  a modified time that is more recent than the specified FILE.
+//config:	  modification time that is more recent than the specified FILE.
 //config:
 //config:config FEATURE_FIND_INUM
 //config:	bool "Enable -inum: inode number matching"
@@ -684,7 +684,6 @@ static action*** parse_params(char **argv)
 #endif
 	                        PARM_print     ,
 	IF_FEATURE_FIND_PRINT0( PARM_print0    ,)
-	IF_FEATURE_FIND_DEPTH(  PARM_depth     ,)
 	IF_FEATURE_FIND_PRUNE(  PARM_prune     ,)
 	IF_FEATURE_FIND_DELETE( PARM_delete    ,)
 	IF_FEATURE_FIND_EXEC(   PARM_exec      ,)
@@ -718,7 +717,6 @@ static action*** parse_params(char **argv)
 #endif
 	                         "-print\0"
 	IF_FEATURE_FIND_PRINT0( "-print0\0" )
-	IF_FEATURE_FIND_DEPTH(  "-depth\0"  )
 	IF_FEATURE_FIND_PRUNE(  "-prune\0"  )
 	IF_FEATURE_FIND_DELETE( "-delete\0" )
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
@@ -739,7 +737,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_SIZE(   "-size\0"   )
 	IF_FEATURE_FIND_CONTEXT("-context\0")
 	IF_FEATURE_FIND_LINKS(  "-links\0"  )
-	                         ;
+	;
 
 	action*** appp;
 	unsigned cur_group = 0;
@@ -828,11 +826,6 @@ static action*** parse_params(char **argv)
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
-#if ENABLE_FEATURE_FIND_DEPTH
-		else if (parm == PARM_depth) {
-			G.recurse_flags |= ACTION_DEPTHFIRST;
-		}
-#endif
 #if ENABLE_FEATURE_FIND_PRUNE
 		else if (parm == PARM_prune) {
 			IF_FEATURE_FIND_NOT( invert_flag = 0; )
@@ -859,9 +852,9 @@ static action*** parse_params(char **argv)
 				if (!*argv) /* did not see ';' or '+' until end */
 					bb_error_msg_and_die(bb_msg_requires_arg, "-exec");
 				// find -exec echo Foo ">{}<" ";"
-				// executes "echo Foo <filename>",
+				// executes "echo Foo >FILENAME<",
 				// find -exec echo Foo ">{}<" "+"
-				// executes "echo Foo <filename1> <filename2> <filename3>...".
+				// executes "echo Foo FILENAME1 FILENAME2 FILENAME3...".
 				// TODO (so far we treat "+" just like ";")
 				if ((argv[0][0] == ';' || argv[0][0] == '+')
 				 && argv[0][1] == '\0'
@@ -1051,34 +1044,46 @@ static action*** parse_params(char **argv)
 }
 
 //usage:#define find_trivial_usage
-//usage:       "[PATH]... [EXPRESSION]"
+//usage:       "[OPTIONS] [PATH]... [ACTION]..."
 //usage:#define find_full_usage "\n\n"
-//usage:       "Search for files. The default PATH is the current directory,\n"
-//usage:       "default EXPRESSION is '-print'\n"
-//usage:     "\nEXPRESSION may consist of:"
+//usage:       "Search for files and perform actions on them.\n"
+//usage:       "First failed action stops processing of current file.\n"
+//usage:       "Defaults: PATH is current directory, action is '-print'\n"
+//usage:     "\nOptions:"
 //usage:     "\n	-follow		Follow symlinks"
 //usage:	IF_FEATURE_FIND_XDEV(
 //usage:     "\n	-xdev		Don't descend directories on other filesystems"
 //usage:	)
 //usage:	IF_FEATURE_FIND_MAXDEPTH(
 //usage:     "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies"
-//usage:     "\n			tests/actions to command line arguments only"
-//usage:	)
+//usage:     "\n			actions to command line arguments only"
 //usage:     "\n	-mindepth N	Don't act on first N levels"
-//usage:     "\n	-name PATTERN	File name (w/o directory name) matches PATTERN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_DEPTH(
+//usage:     "\n	-depth		Act on directory *after* traversing it"
+//usage:	)
+//usage:     "\n"
+//usage:	IF_FEATURE_FIND_PAREN(
+//usage:     "\n    ( ACTIONS )		Group actions for -o / -a"
+//usage:	)
+//usage:     "\n    ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
+//usage:     "\n    ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
+//usage:     "\n			Note: -a has higher priority than -o"
+//usage:     "\nActions:"
+//usage:     "\n	-name PATTERN	Match file name (w/o directory name) to PATTERN"
 //usage:     "\n	-iname PATTERN	Case insensitive -name"
 //usage:	IF_FEATURE_FIND_PATH(
-//usage:     "\n	-path PATTERN	Path matches PATTERN"
+//usage:     "\n	-path PATTERN	Match path to PATTERN"
 //usage:	)
 //usage:	IF_FEATURE_FIND_REGEX(
-//usage:     "\n	-regex PATTERN	Path matches regex PATTERN"
+//usage:     "\n	-regex PATTERN	Match path to regex PATTERN"
 //usage:	)
 //usage:	IF_FEATURE_FIND_TYPE(
-//usage:     "\n	-type X		File type is X (X is one of: f,d,l,b,c,...)"
+//usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,...)"
 //usage:	)
 //usage:	IF_FEATURE_FIND_PERM(
-//usage:     "\n	-perm NNN	Permissions match any of (+NNN), all of (-NNN),"
-//usage:     "\n			or exactly NNN"
+//usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
+//usage:     "\n			or exactly MASK bits are set in mode bits"
 //usage:	)
 //usage:	IF_FEATURE_FIND_MTIME(
 //usage:     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N),"
@@ -1100,9 +1105,6 @@ static action*** parse_params(char **argv)
 //usage:	IF_FEATURE_FIND_GROUP(
 //usage:     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)"
 //usage:	)
-//usage:	IF_FEATURE_FIND_DEPTH(
-//usage:     "\n	-depth		Process directory name after traversing it"
-//usage:	)
 //usage:	IF_FEATURE_FIND_SIZE(
 //usage:     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))"
 //usage:     "\n			+/-N: file size is bigger/smaller than N"
@@ -1111,26 +1113,23 @@ static action*** parse_params(char **argv)
 //usage:     "\n	-links N	Number of links is greater than (+N), less than (-N),"
 //usage:     "\n			or exactly N"
 //usage:	)
-//usage:     "\n	-print		Print (default and assumed)"
-//usage:	IF_FEATURE_FIND_PRINT0(
-//usage:     "\n	-print0		Delimit output with null characters rather than"
-//usage:     "\n			newlines"
-//usage:	)
 //usage:	IF_FEATURE_FIND_CONTEXT(
-//usage:     "\n	-context	File has specified security context"
+//usage:     "\n	-context CTX	File has specified security context"
 //usage:	)
-//usage:	IF_FEATURE_FIND_EXEC(
-//usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by the"
-//usage:     "\n			matching files"
+//usage:     "\n    If none of the following actions is specified, -print is assumed"
+//usage:     "\n	-print		Print file name"
+//usage:	IF_FEATURE_FIND_PRINT0(
+//usage:     "\n	-print0		Print file name, NUL terminated"
 //usage:	)
 //usage:	IF_FEATURE_FIND_PRUNE(
-//usage:     "\n	-prune		Stop traversing current subtree"
+//usage:     "\n	-prune		If current file is directory, don't descend into it"
+//usage:	)
+//usage:	IF_FEATURE_FIND_EXEC(
+//usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by"
+//usage:     "\n			file name. Fails if CMD exits with nonzero"
 //usage:	)
 //usage:	IF_FEATURE_FIND_DELETE(
-//usage:     "\n	-delete		Delete files, turns on -depth option"
-//usage:	)
-//usage:	IF_FEATURE_FIND_PAREN(
-//usage:     "\n	(EXPR)		Group an expression"
+//usage:     "\n	-delete		Delete current file/directory. Turns on -depth option"
 //usage:	)
 //usage:
 //usage:#define find_example_usage
@@ -1141,14 +1140,16 @@ int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int find_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char options[] ALIGN1 =
-	                  "-follow\0"
-IF_FEATURE_FIND_XDEV(    "-xdev\0"    )
+	                 "-follow\0"
+IF_FEATURE_FIND_XDEV(    "-xdev\0"                 )
 IF_FEATURE_FIND_MAXDEPTH("-mindepth\0""-maxdepth\0")
-	                  ;
+IF_FEATURE_FIND_DEPTH(   "-depth\0"                )
+	;
 	enum {
-	                  OPT_FOLLOW,
+	                 OPT_FOLLOW,
 IF_FEATURE_FIND_XDEV(    OPT_XDEV    ,)
 IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
+IF_FEATURE_FIND_DEPTH(   OPT_DEPTH   ,)
 	};
 
 	char *arg;
@@ -1181,12 +1182,12 @@ IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 /* All options always return true. They always take effect
  * rather than being processed only when their place in the
  * expression is reached.
- * We implement: -follow, -xdev, -maxdepth
+ * We implement: -follow, -xdev, -mindepth, -maxdepth, -depth
  */
 	/* Process options, and replace then with -a */
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
-	while ((arg = argp[0])) {
+	while ((arg = argp[0]) != NULL) {
 		int opt = index_in_strings(options, arg);
 		if (opt == OPT_FOLLOW) {
 			G.recurse_flags |= ACTION_FOLLOWLINKS | ACTION_DANGLING_OK;
@@ -1216,8 +1217,14 @@ IF_FEATURE_FIND_MAXDEPTH(OPT_MINDEPTH,)
 				bb_show_usage();
 			minmaxdepth[opt - OPT_MINDEPTH] = xatoi_positive(argp[1]);
 			argp[0] = (char*)"-a";
-			argp[1] = (char*)"-a";
 			argp++;
+			argp[0] = (char*)"-a";
+		}
+#endif
+#if ENABLE_FEATURE_FIND_DEPTH
+		if (opt == OPT_DEPTH) {
+			G.recurse_flags |= ACTION_DEPTHFIRST;
+			argp[0] = (char*)"-a";
 		}
 #endif
 		argp++;
