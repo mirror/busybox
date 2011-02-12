@@ -1044,7 +1044,7 @@ static action*** parse_params(char **argv)
 }
 
 //usage:#define find_trivial_usage
-//usage:       "[OPTIONS] [PATH]... [ACTION]..."
+//usage:       "[OPTIONS] [PATH]... [ACTIONS]"
 //usage:#define find_full_usage "\n\n"
 //usage:       "Search for files and perform actions on them.\n"
 //usage:       "First failed action stops processing of current file.\n"
@@ -1063,13 +1063,13 @@ static action*** parse_params(char **argv)
 //usage:     "\n	-depth		Act on directory *after* traversing it"
 //usage:	)
 //usage:     "\n"
-//usage:	IF_FEATURE_FIND_PAREN(
-//usage:     "\n    ( ACTIONS )		Group actions for -o / -a"
-//usage:	)
-//usage:     "\n    ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
-//usage:     "\n    ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
-//usage:     "\n			Note: -a has higher priority than -o"
 //usage:     "\nActions:"
+//usage:	IF_FEATURE_FIND_PAREN(
+//usage:     "\n	( ACTIONS )	Group actions for -o / -a"
+//usage:	)
+//usage:     "\n	ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
+//usage:     "\n	ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
+//usage:     "\n			Note: -a has higher priority than -o"
 //usage:     "\n	-name PATTERN	Match file name (w/o directory name) to PATTERN"
 //usage:     "\n	-iname PATTERN	Case insensitive -name"
 //usage:	IF_FEATURE_FIND_PATH(
@@ -1119,7 +1119,7 @@ static action*** parse_params(char **argv)
 //usage:	IF_FEATURE_FIND_PRUNE(
 //usage:     "\n	-prune		If current file is directory, don't descend into it"
 //usage:	)
-//usage:     "\n    If none of the following actions is specified, -print is assumed"
+//usage:     "\nIf none of the following actions is specified, -print is assumed"
 //usage:     "\n	-print		Print file name"
 //usage:	IF_FEATURE_FIND_PRINT0(
 //usage:     "\n	-print0		Print file name, NUL terminated"
