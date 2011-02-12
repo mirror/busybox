@@ -1116,13 +1116,13 @@ static action*** parse_params(char **argv)
 //usage:	IF_FEATURE_FIND_CONTEXT(
 //usage:     "\n	-context CTX	File has specified security context"
 //usage:	)
+//usage:	IF_FEATURE_FIND_PRUNE(
+//usage:     "\n	-prune		If current file is directory, don't descend into it"
+//usage:	)
 //usage:     "\n    If none of the following actions is specified, -print is assumed"
 //usage:     "\n	-print		Print file name"
 //usage:	IF_FEATURE_FIND_PRINT0(
 //usage:     "\n	-print0		Print file name, NUL terminated"
-//usage:	)
-//usage:	IF_FEATURE_FIND_PRUNE(
-//usage:     "\n	-prune		If current file is directory, don't descend into it"
 //usage:	)
 //usage:	IF_FEATURE_FIND_EXEC(
 //usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by"
