@@ -717,7 +717,7 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 			G.beg_range = xlseek(output_fd, 0, SEEK_END);
 		}
 		/* File doesn't exist. We do not create file here yet.
-		 * We are not sure it exists on remove side */
+		 * We are not sure it exists on remote side */
 	}
 
 	redir_limit = 5;
