@@ -53,10 +53,6 @@
  * diff -u /tmp/std_find /tmp/bb_find && echo Identical
  */
 
-//applet:IF_FIND(APPLET_NOEXEC(find, find, BB_DIR_USR_BIN, BB_SUID_DROP, find))
-
-//kbuild:lib-$(CONFIG_FIND) += find.o
-
 //config:config FIND
 //config:	bool "find"
 //config:	default y
@@ -229,6 +225,106 @@
 //config:	depends on FIND
 //config:	help
 //config:	  Support the 'find -links' option for matching number of links.
+
+//applet:IF_FIND(APPLET_NOEXEC(find, find, BB_DIR_USR_BIN, BB_SUID_DROP, find))
+
+//kbuild:lib-$(CONFIG_FIND) += find.o
+
+//usage:#define find_trivial_usage
+//usage:       "[PATH]... [OPTIONS] [ACTIONS]"
+//usage:#define find_full_usage "\n\n"
+//usage:       "Search for files and perform actions on them.\n"
+//usage:       "First failed action stops processing of current file.\n"
+//usage:       "Defaults: PATH is current directory, action is '-print'\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-follow		Follow symlinks"
+//usage:	IF_FEATURE_FIND_XDEV(
+//usage:     "\n	-xdev		Don't descend directories on other filesystems"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MAXDEPTH(
+//usage:     "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies"
+//usage:     "\n			actions to command line arguments only"
+//usage:     "\n	-mindepth N	Don't act on first N levels"
+//usage:	)
+//usage:	IF_FEATURE_FIND_DEPTH(
+//usage:     "\n	-depth		Act on directory *after* traversing it"
+//usage:	)
+//usage:     "\n"
+//usage:     "\nActions:"
+//usage:	IF_FEATURE_FIND_PAREN(
+//usage:     "\n	( ACTIONS )	Group actions for -o / -a"
+//usage:	)
+//usage:	IF_FEATURE_FIND_NOT(
+//usage:     "\n	! ACT		Invert ACT's success/failure"
+//usage:	)
+//usage:     "\n	ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
+//usage:     "\n	ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
+//usage:     "\n			Note: -a has higher priority than -o"
+//usage:     "\n	-name PATTERN	Match file name (w/o directory name) to PATTERN"
+//usage:     "\n	-iname PATTERN	Case insensitive -name"
+//usage:	IF_FEATURE_FIND_PATH(
+//usage:     "\n	-path PATTERN	Match path to PATTERN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_REGEX(
+//usage:     "\n	-regex PATTERN	Match path to regex PATTERN"
+//usage:	)
+//usage:	IF_FEATURE_FIND_TYPE(
+//usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,...)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_PERM(
+//usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
+//usage:     "\n			or exactly MASK bits are set in mode bits"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MTIME(
+//usage:     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N days"
+//usage:	)
+//usage:	IF_FEATURE_FIND_MMIN(
+//usage:     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N minutes"
+//usage:	)
+//usage:	IF_FEATURE_FIND_NEWER(
+//usage:     "\n	-newer FILE	Modified time is more recent than FILE's"
+//usage:	)
+//usage:	IF_FEATURE_FIND_INUM(
+//usage:     "\n	-inum N		File has inode number N"
+//usage:	)
+//usage:	IF_FEATURE_FIND_USER(
+//usage:     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_GROUP(
+//usage:     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)"
+//usage:	)
+//usage:	IF_FEATURE_FIND_SIZE(
+//usage:     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))"
+//usage:     "\n			+/-N: file size is bigger/smaller than N"
+//usage:	)
+//usage:	IF_FEATURE_FIND_LINKS(
+//usage:     "\n	-links N	Number of links is greater than (+N), less than (-N),"
+//usage:     "\n			or exactly N"
+//usage:	)
+//usage:	IF_FEATURE_FIND_CONTEXT(
+//usage:     "\n	-context CTX	File has specified security context"
+//usage:	)
+//usage:	IF_FEATURE_FIND_PRUNE(
+//usage:     "\n	-prune		If current file is directory, don't descend into it"
+//usage:	)
+//usage:     "\nIf none of the following actions is specified, -print is assumed"
+//usage:     "\n	-print		Print file name"
+//usage:	IF_FEATURE_FIND_PRINT0(
+//usage:     "\n	-print0		Print file name, NUL terminated"
+//usage:	)
+//usage:	IF_FEATURE_FIND_EXEC(
+//usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by"
+//usage:     "\n			file name. Fails if CMD exits with nonzero"
+//usage:	)
+//usage:	IF_FEATURE_FIND_DELETE(
+//usage:     "\n	-delete		Delete current file/directory. Turns on -depth option"
+//usage:	)
+//usage:
+//usage:#define find_example_usage
+//usage:       "$ find / -name passwd\n"
+//usage:       "/etc/passwd\n"
 
 #include <fnmatch.h>
 #include "libbb.h"
@@ -815,20 +911,16 @@ static action*** parse_params(char **argv)
 	/* --- Tests and actions --- */
 		else if (parm == PARM_print) {
 			G.need_print = 0;
-			/* GNU find ignores '!' here: "find ! -print" */
-			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (parm == PARM_print0) {
 			G.need_print = 0;
-			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PRUNE
 		else if (parm == PARM_prune) {
-			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			(void) ALLOC_ACTION(prune);
 		}
 #endif
@@ -844,7 +936,6 @@ static action*** parse_params(char **argv)
 			int i;
 			action_exec *ap;
 			G.need_print = 0;
-			IF_FEATURE_FIND_NOT( invert_flag = 0; )
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			/*ap->exec_argc = 0; - ALLOC_ACTION did it */
@@ -1043,102 +1134,6 @@ static action*** parse_params(char **argv)
 #undef ALLOC_ACTION
 }
 
-//usage:#define find_trivial_usage
-//usage:       "[PATH]... [OPTIONS] [ACTIONS]"
-//usage:#define find_full_usage "\n\n"
-//usage:       "Search for files and perform actions on them.\n"
-//usage:       "First failed action stops processing of current file.\n"
-//usage:       "Defaults: PATH is current directory, action is '-print'\n"
-//usage:     "\nOptions:"
-//usage:     "\n	-follow		Follow symlinks"
-//usage:	IF_FEATURE_FIND_XDEV(
-//usage:     "\n	-xdev		Don't descend directories on other filesystems"
-//usage:	)
-//usage:	IF_FEATURE_FIND_MAXDEPTH(
-//usage:     "\n	-maxdepth N	Descend at most N levels. -maxdepth 0 applies"
-//usage:     "\n			actions to command line arguments only"
-//usage:     "\n	-mindepth N	Don't act on first N levels"
-//usage:	)
-//usage:	IF_FEATURE_FIND_DEPTH(
-//usage:     "\n	-depth		Act on directory *after* traversing it"
-//usage:	)
-//usage:     "\n"
-//usage:     "\nActions:"
-//usage:	IF_FEATURE_FIND_PAREN(
-//usage:     "\n	( ACTIONS )	Group actions for -o / -a"
-//usage:	)
-//usage:	IF_FEATURE_FIND_NOT(
-//usage:     "\n	! ACT		Invert ACT's success/failure"
-//usage:	)
-//usage:     "\n	ACT1 [-a] ACT2	If ACT1 fails, stop, else do ACT2"
-//usage:     "\n	ACT1 -o ACT2	If ACT1 succeeds, stop, else do ACT2"
-//usage:     "\n			Note: -a has higher priority than -o"
-//usage:     "\n	-name PATTERN	Match file name (w/o directory name) to PATTERN"
-//usage:     "\n	-iname PATTERN	Case insensitive -name"
-//usage:	IF_FEATURE_FIND_PATH(
-//usage:     "\n	-path PATTERN	Match path to PATTERN"
-//usage:	)
-//usage:	IF_FEATURE_FIND_REGEX(
-//usage:     "\n	-regex PATTERN	Match path to regex PATTERN"
-//usage:	)
-//usage:	IF_FEATURE_FIND_TYPE(
-//usage:     "\n	-type X		File type is X (one of: f,d,l,b,c,...)"
-//usage:	)
-//usage:	IF_FEATURE_FIND_PERM(
-//usage:     "\n	-perm MASK	At least one mask bit (+MASK), all bits (-MASK),"
-//usage:     "\n			or exactly MASK bits are set in mode bits"
-//usage:	)
-//usage:	IF_FEATURE_FIND_MTIME(
-//usage:     "\n	-mtime DAYS	Modified time is greater than (+N), less than (-N),"
-//usage:     "\n			or exactly N days"
-//usage:	)
-//usage:	IF_FEATURE_FIND_MMIN(
-//usage:     "\n	-mmin MINS	Modified time is greater than (+N), less than (-N),"
-//usage:     "\n			or exactly N minutes"
-//usage:	)
-//usage:	IF_FEATURE_FIND_NEWER(
-//usage:     "\n	-newer FILE	Modified time is more recent than FILE's"
-//usage:	)
-//usage:	IF_FEATURE_FIND_INUM(
-//usage:     "\n	-inum N		File has inode number N"
-//usage:	)
-//usage:	IF_FEATURE_FIND_USER(
-//usage:     "\n	-user NAME	File is owned by user NAME (numeric user ID allowed)"
-//usage:	)
-//usage:	IF_FEATURE_FIND_GROUP(
-//usage:     "\n	-group NAME	File belongs to group NAME (numeric group ID allowed)"
-//usage:	)
-//usage:	IF_FEATURE_FIND_SIZE(
-//usage:     "\n	-size N[bck]	File size is N (c:bytes,k:kbytes,b:512 bytes(def.))"
-//usage:     "\n			+/-N: file size is bigger/smaller than N"
-//usage:	)
-//usage:	IF_FEATURE_FIND_LINKS(
-//usage:     "\n	-links N	Number of links is greater than (+N), less than (-N),"
-//usage:     "\n			or exactly N"
-//usage:	)
-//usage:	IF_FEATURE_FIND_CONTEXT(
-//usage:     "\n	-context CTX	File has specified security context"
-//usage:	)
-//usage:	IF_FEATURE_FIND_PRUNE(
-//usage:     "\n	-prune		If current file is directory, don't descend into it"
-//usage:	)
-//usage:     "\nIf none of the following actions is specified, -print is assumed"
-//usage:     "\n	-print		Print file name"
-//usage:	IF_FEATURE_FIND_PRINT0(
-//usage:     "\n	-print0		Print file name, NUL terminated"
-//usage:	)
-//usage:	IF_FEATURE_FIND_EXEC(
-//usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by"
-//usage:     "\n			file name. Fails if CMD exits with nonzero"
-//usage:	)
-//usage:	IF_FEATURE_FIND_DELETE(
-//usage:     "\n	-delete		Delete current file/directory. Turns on -depth option"
-//usage:	)
-//usage:
-//usage:#define find_example_usage
-//usage:       "$ find / -name passwd\n"
-//usage:       "/etc/passwd\n"
-
 int find_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int find_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1187,7 +1182,7 @@ IF_FEATURE_FIND_DEPTH(   OPT_DEPTH   ,)
  * expression is reached.
  * We implement: -follow, -xdev, -mindepth, -maxdepth, -depth
  */
-	/* Process options, and replace then with -a */
+	/* Process options, and replace them with -a */
 	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
 	while ((arg = argp[0]) != NULL) {
