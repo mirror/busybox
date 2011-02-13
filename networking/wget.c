@@ -140,41 +140,6 @@ static void strip_ipv6_scope_id(char *host)
 	overlapping_strcpy(scope, cp);
 }
 
-#if 0 /* were needed when we used signal-driven progress bar */
-/* Read NMEMB bytes into PTR from STREAM.  Returns the number of bytes read,
- * and a short count if an eof or non-interrupt error is encountered.  */
-static size_t safe_fread(void *ptr, size_t nmemb, FILE *stream)
-{
-	size_t ret;
-	char *p = (char*)ptr;
-
-	do {
-		clearerr(stream);
-		errno = 0;
-		ret = fread(p, 1, nmemb, stream);
-		p += ret;
-		nmemb -= ret;
-	} while (nmemb && ferror(stream) && errno == EINTR);
-
-	return p - (char*)ptr;
-}
-
-/* Read a line or SIZE-1 bytes into S, whichever is less, from STREAM.
- * Returns S, or NULL if an eof or non-interrupt error is encountered.  */
-static char *safe_fgets(char *s, int size, FILE *stream)
-{
-	char *ret;
-
-	do {
-		clearerr(stream);
-		errno = 0;
-		ret = fgets(s, size, stream);
-	} while (ret == NULL && ferror(stream) && errno == EINTR);
-
-	return ret;
-}
-#endif
-
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 /* Base64-encode character string. */
 static char *base64enc(const char *str)
@@ -631,7 +596,7 @@ static int download_one_url(const char *url)
 	/* If there was no -O FILE, guess output filename */
 	output_fd = -1;
 	fname_out_alloc = NULL;
-	if (!G.fname_out) {
+	if (!(option_mask32 & WGET_OPT_OUTNAME)) {
 		G.fname_out = bb_get_last_path_component_nostrip(target.path);
 		/* handle "wget http://kernel.org//" */
 		if (G.fname_out[0] == '/' || !G.fname_out[0])
@@ -865,27 +830,18 @@ However, in real world it was observed that some web servers
 	}
 
 	free(lsa);
-	free(server.allocated);
-	free(target.allocated);
 
-	if (option_mask32 & WGET_OPT_SPIDER) {
-		free(fname_out_alloc);
-		fclose(sfp);
-		return EXIT_SUCCESS;
+	if (!(option_mask32 & WGET_OPT_SPIDER)) {
+		if (output_fd < 0) {
+			int o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
+			/* compat with wget: -O FILE can overwrite */
+			if (option_mask32 & WGET_OPT_OUTNAME)
+				o_flags = O_WRONLY | O_CREAT | O_TRUNC;
+			output_fd = xopen(G.fname_out, o_flags);
+		}
+		retrieve_file_data(dfp, output_fd);
+		xclose(output_fd);
 	}
-
-	if (output_fd < 0) {
-		int o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
-		/* compat with wget: -O FILE can overwrite */
-		if (option_mask32 & WGET_OPT_OUTNAME)
-			o_flags = O_WRONLY | O_CREAT | O_TRUNC;
-		output_fd = xopen(G.fname_out, o_flags);
-	}
-
-	free(fname_out_alloc);
-
-	retrieve_file_data(dfp, output_fd);
-	xclose(output_fd);
 
 	if (dfp != sfp) {
 		/* It's ftp. Close data connection properly */
@@ -895,6 +851,10 @@ However, in real world it was observed that some web servers
 		/* ftpcmd("QUIT", NULL, sfp); - why bother? */
 	}
 	fclose(sfp);
+
+	free(server.allocated);
+	free(target.allocated);
+	free(fname_out_alloc);
 
 	return EXIT_SUCCESS;
 }
