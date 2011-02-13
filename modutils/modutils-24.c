@@ -2444,14 +2444,12 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 			bb_error_msg_and_die("symbol for parameter %s not found", param);
 
 		/* Number of parameters */
+		min = max = 1;
 		if (isdigit(*pinfo)) {
-			min = strtoul(pinfo, &pinfo, 10);
+			min = max = strtoul(pinfo, &pinfo, 10);
 			if (*pinfo == '-')
 				max = strtoul(pinfo + 1, &pinfo, 10);
-			else
-				max = min;
-		} else
-			min = max = 1;
+		}
 
 		contents = f->sections[sym->secidx]->contents;
 		loc = contents + sym->value;
@@ -2473,7 +2471,8 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 		/* Parse parameter values */
 		n = 0;
 		p = val;
-		while (*p != 0) {
+		while (*p) {
+			char sv_ch;
 			char *endp;
 
 			if (++n > max)
@@ -2482,21 +2481,25 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 			switch (*pinfo) {
 			case 's':
 				len = strcspn(p, ",");
-				p[len] = 0;
+				sv_ch = p[len];
+				p[len] = '\0';
 				obj_string_patch(f, sym->secidx,
 						 loc - contents, p);
 				loc += tgt_sizeof_char_p;
 				p += len;
+				*p = sv_ch;
 				break;
 			case 'c':
 				len = strcspn(p, ",");
-				p[len] = 0;
+				sv_ch = p[len];
+				p[len] = '\0';
 				if (len >= charssize)
 					bb_error_msg_and_die("string too long for %s (max %ld)", param,
 							     charssize - 1);
 				strcpy((char *) loc, p);
 				loc += charssize;
 				p += len;
+				*p = sv_ch;
 				break;
 			case 'b':
 				*loc++ = strtoul(p, &endp, 0);
