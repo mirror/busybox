@@ -2451,26 +2451,6 @@ INSERT
      "\nOptions:" \
      "\n	-L LBL	Label" \
 
-#define mktemp_trivial_usage \
-       "[-dt] [-p DIR] [TEMPLATE]"
-#define mktemp_full_usage "\n\n" \
-       "Create a temporary file with name based on TEMPLATE and print its name.\n" \
-       "TEMPLATE must end with XXXXXX (e.g. [/dir/]nameXXXXXX).\n" \
-     "\nOptions:" \
-     "\n	-d	Make a directory instead of a file" \
-/*   "\n	-q	Fail silently if an error occurs" - we ignore it */ \
-     "\n	-t	Generate a path rooted in temporary directory" \
-     "\n	-p DIR	Use DIR as a temporary directory (implies -t)" \
-     "\n" \
-     "\nFor -t or -p, directory is chosen as follows:" \
-     "\n$TMPDIR if set, else -p DIR, else /tmp" \
-
-#define mktemp_example_usage \
-       "$ mktemp /tmp/temp.XXXXXX\n" \
-       "/tmp/temp.mWiLjM\n" \
-       "$ ls -la /tmp/temp.mWiLjM\n" \
-       "-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
-
 #define more_trivial_usage \
        "[FILE]..."
 #define more_full_usage "\n\n" \

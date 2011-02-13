@@ -31,6 +31,25 @@
  *        -p; else /tmp [deprecated]
  */
 
+//usage:#define mktemp_trivial_usage
+//usage:       "[-dt] [-p DIR] [TEMPLATE]"
+//usage:#define mktemp_full_usage "\n\n"
+//usage:       "Create a temporary file with name based on TEMPLATE and print its name.\n"
+//usage:       "TEMPLATE must end with XXXXXX (e.g. [/dir/]nameXXXXXX).\n"
+//usage:       "Without TEMPLATE, -t tmp.XXXXXX is assumed.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-d	Make directory, not file"
+////usage:   "\n	-q	Fail silently on errors" - we ignore this opt
+//usage:     "\n	-t	Prepend base directory name to TEMPLATE"
+//usage:     "\n	-p DIR	Use DIR as a base directory (implies -t)"
+//usage:     "\n"
+//usage:     "\nBase directory is: -p DIR, else $TMPDIR, else /tmp"
+//usage:
+//usage:#define mktemp_example_usage
+//usage:       "$ mktemp /tmp/temp.XXXXXX\n"
+//usage:       "/tmp/temp.mWiLjM\n"
+//usage:       "$ ls -la /tmp/temp.mWiLjM\n"
+//usage:       "-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
 
 #include "libbb.h"
 
@@ -40,20 +59,33 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 	const char *path;
 	char *chp;
 	unsigned opts;
+	enum {
+		OPT_d = 1 << 0,
+		OPT_q = 1 << 1,
+		OPT_t = 1 << 2,
+		OPT_p = 1 << 3,
+	};
 
 	path = getenv("TMPDIR");
 	if (!path || path[0] == '\0')
 		path = "/tmp";
 
-	/* -q and -t are ignored */
+	/* -q is ignored */
 	opt_complementary = "?1"; /* 1 argument max */
 	opts = getopt32(argv, "dqtp:", &path);
 
-	chp = argv[optind] ? argv[optind] : xstrdup("tmp.XXXXXX");
-	if (!strchr(chp, '/') || (opts & 8))
+	chp = argv[optind];
+	if (!chp) {
+		/* GNU coreutils 8.4:
+		 * bare "mktemp" -> "mktemp -t tmp.XXXXXX"
+		 */
+		chp = xstrdup("tmp.XXXXXX");
+		opts |= OPT_t;
+	}
+	if (opts & (OPT_t|OPT_p))
 		chp = concat_path_file(path, chp);
 
-	if (opts & 1) { /* -d */
+	if (opts & OPT_d) {
 		if (mkdtemp(chp) == NULL)
 			return EXIT_FAILURE;
 	} else {
