@@ -466,7 +466,10 @@ config PIE
 	default n
 	depends on !STATIC
 	help
-	  (TODO: what is it and why/when is it useful?)
+	  Hardened code option. PIE binaries are loaded at a different
+	  address at each invocation. This has some overhead,
+	  particularly on x86-32 which is short on registers.
+
 	  Most people will leave this set to 'N'.
 
 config NOMMU
