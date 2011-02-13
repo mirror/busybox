@@ -18,6 +18,7 @@
 #define HAVE_PTSNAME_R 1
 #define HAVE_SETBIT 1
 #define HAVE_SIGHANDLER_T 1
+#define HAVE_STPCPY 1
 #define HAVE_STRCASESTR 1
 #define HAVE_STRCHRNUL 1
 #define HAVE_STRSEP 1
@@ -356,6 +357,8 @@ typedef unsigned smalluint;
 #  define ADJ_TICK MOD_CLKB
 # endif
 
+# undef HAVE_STPCPY
+
 #else
 
 # define bb_setpgrp() setpgrp()
@@ -376,6 +379,7 @@ typedef unsigned smalluint;
 # undef HAVE_MEMRCHR
 # undef HAVE_MKDTEMP
 # undef HAVE_SETBIT
+# undef HAVE_STPCPY
 # undef HAVE_STRCASESTR
 # undef HAVE_STRCHRNUL
 # undef HAVE_STRSEP
@@ -411,6 +415,10 @@ extern char *mkdtemp(char *template) FAST_FUNC;
 
 #ifndef HAVE_SIGHANDLER_T
 typedef void (*sighandler_t)(int);
+#endif
+
+#ifndef HAVE_STPCPY
+extern char *stpcpy(char *p, const char *to_add) FAST_FUNC;
 #endif
 
 #ifndef HAVE_STRCASESTR

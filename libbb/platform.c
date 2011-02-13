@@ -134,3 +134,14 @@ char* FAST_FUNC strsep(char **stringp, const char *delim)
 	return start;
 }
 #endif
+
+#ifndef HAVE_STPCPY
+char* FAST_FUNC stpcpy(char *p, const char *to_add)
+{
+	while ((*p = *to_add) != '\0') {
+		p++;
+		to_add++;
+	}
+	return p;
+}
+#endif
