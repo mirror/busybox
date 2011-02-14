@@ -805,6 +805,7 @@ However, in real world it was observed that some web servers
 					parse_url(str, &target);
 					if (!use_proxy) {
 						free(server.allocated);
+						server.allocated = NULL;
 						server.host = target.host;
 						/* strip_ipv6_scope_id(target.host); - no! */
 						/* we assume remote never gives us IPv6 addr with scope id */
