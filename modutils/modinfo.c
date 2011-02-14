@@ -23,9 +23,9 @@
 
 
 enum {
-	OPT_TAGS = (1 << 6) - 1,
-	OPT_F = (1 << 6), /* field name */
-	OPT_0 = (1 << 7),  /* \0 as separator */
+	OPT_TAGS = (1 << 8) - 1,
+	OPT_F = (1 << 8), /* field name */
+	OPT_0 = (1 << 9),  /* \0 as separator */
 };
 
 struct modinfo_env {
@@ -53,6 +53,8 @@ static void modinfo(const char *path, const char *version,
 		"license",
 		"vermagic",
 		"parm",
+		"firmware",
+		"depends",
 	};
 	size_t len;
 	int j, length;
