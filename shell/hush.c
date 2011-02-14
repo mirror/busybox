@@ -6504,13 +6504,15 @@ static int checkjobs(struct pipe *fg_pipe)
 					fg_pipe->alive_cmds--;
 					ex = WEXITSTATUS(status);
 					/* bash prints killer signal's name for *last*
-					 * process in pipe (prints just newline for SIGINT).
+					 * process in pipe (prints just newline for SIGINT/SIGPIPE).
 					 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
 					 */
 					if (WIFSIGNALED(status)) {
 						int sig = WTERMSIG(status);
 						if (i == fg_pipe->num_cmds-1)
-							printf("%s\n", sig == SIGINT ? "" : get_signame(sig));
+							/* TODO: use strsignal() instead for bash compat? but that's bloat... */
+							printf("%s\n", sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
+						/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
 						/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
 						 * Maybe we need to use sig | 128? */
 						ex = sig + 128;

@@ -3892,6 +3892,7 @@ sprint_status(char *s, int status, int sigonly)
 #endif
 		}
 		st &= 0x7f;
+//TODO: use bbox's get_signame? strsignal adds ~600 bytes to text+rodata
 		col = fmtstr(s, 32, strsignal(st));
 		if (WCOREDUMP(status)) {
 			col += fmtstr(s + col, 16, " (core dumped)");
