@@ -44,6 +44,8 @@ struct globals {
 #if ENABLE_FEATURE_WGET_TIMEOUT
 	unsigned timeout_seconds;
 #endif
+	int output_fd;
+	int o_flags;
 	smallint chunked;         /* chunked transfer encoding */
 	smallint got_clen;        /* got content-length: from server  */
 	/* Local downloads do benefit from big buffer.
@@ -90,8 +92,11 @@ static void progress_meter(int flag)
 	if (flag == PROGRESS_START)
 		bb_progress_init(&G.pmt, G.curfile);
 
-	bb_progress_update(&G.pmt, G.beg_range, G.transferred,
-			   G.chunked ? 0 : G.beg_range + G.transferred + G.content_len);
+	bb_progress_update(&G.pmt,
+			G.beg_range,
+			G.transferred,
+			(G.chunked || !G.got_clen) ? 0 : G.beg_range + G.transferred + G.content_len
+	);
 
 	if (flag == PROGRESS_END) {
 		bb_progress_free(&G.pmt);
@@ -430,7 +435,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	return sfp;
 }
 
-static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
+static void NOINLINE retrieve_file_data(FILE *dfp)
 {
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 # if ENABLE_FEATURE_WGET_TIMEOUT
@@ -516,7 +521,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 				break; /* EOF, not error */
 			}
 
-			xwrite(output_fd, G.wget_buf, n);
+			xwrite(G.output_fd, G.wget_buf, n);
 
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			G.transferred += n;
@@ -546,7 +551,8 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 	}
 
 	/* Draw full bar and free its resources */
-	G.chunked = 0; /* makes it show 100% even for chunked download */
+	G.chunked = 0;  /* makes it show 100% even for chunked download */
+	G.got_clen = 1; /* makes it show 100% even for download of (formerly) unknown size */
 	progress_meter(PROGRESS_END);
 }
 
@@ -554,7 +560,6 @@ static int download_one_url(const char *url)
 {
 	bool use_proxy;                 /* Use proxies if env vars are set  */
 	int redir_limit;
-	int output_fd;
 	len_and_sockaddr *lsa;
 	FILE *sfp;                      /* socket to web/ftp server         */
 	FILE *dfp;                      /* socket to ftp server (data)      */
@@ -574,11 +579,9 @@ static int download_one_url(const char *url)
 	use_proxy = (strcmp(G.proxy_flag, "off") != 0);
 	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
-		if (proxy && proxy[0]) {
+		use_proxy = (proxy && proxy[0]);
+		if (use_proxy)
 			parse_url(proxy, &server);
-		} else {
-			use_proxy = 0;
-		}
 	}
 	if (!use_proxy) {
 		server.port = target.port;
@@ -594,7 +597,6 @@ static int download_one_url(const char *url)
 		strip_ipv6_scope_id(target.host);
 
 	/* If there was no -O FILE, guess output filename */
-	output_fd = -1;
 	fname_out_alloc = NULL;
 	if (!(option_mask32 & WGET_OPT_OUTNAME)) {
 		G.fname_out = bb_get_last_path_component_nostrip(target.path);
@@ -604,22 +606,17 @@ static int download_one_url(const char *url)
 		/* -P DIR is considered only if there was no -O FILE */
 		if (G.dir_prefix)
 			G.fname_out = fname_out_alloc = concat_path_file(G.dir_prefix, G.fname_out);
-	} else {
-		if (LONE_DASH(G.fname_out)) {
-			/* -O - */
-			output_fd = 1;
-			option_mask32 &= ~WGET_OPT_CONTINUE;
-		}
 	}
 #if ENABLE_FEATURE_WGET_STATUSBAR
 	G.curfile = bb_get_last_path_component_nostrip(G.fname_out);
 #endif
 
 	/* Determine where to start transfer */
+	G.beg_range = 0;
 	if (option_mask32 & WGET_OPT_CONTINUE) {
-		output_fd = open(G.fname_out, O_WRONLY);
-		if (output_fd >= 0) {
-			G.beg_range = xlseek(output_fd, 0, SEEK_END);
+		G.output_fd = open(G.fname_out, O_WRONLY);
+		if (G.output_fd >= 0) {
+			G.beg_range = xlseek(G.output_fd, 0, SEEK_END);
 		}
 		/* File doesn't exist. We do not create file here yet.
 		 * We are not sure it exists on remote side */
@@ -634,7 +631,9 @@ static int download_one_url(const char *url)
 		free(s);
 	}
  establish_session:
-	G.chunked = G.got_clen = 0;
+	/*G.content_len = 0; - redundant, got_clen = 0 is enough */
+	G.got_clen = 0;
+	G.chunked = 0;
 	if (use_proxy || !target.is_ftp) {
 		/*
 		 *  HTTP session
@@ -833,15 +832,13 @@ However, in real world it was observed that some web servers
 	free(lsa);
 
 	if (!(option_mask32 & WGET_OPT_SPIDER)) {
-		if (output_fd < 0) {
-			int o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
-			/* compat with wget: -O FILE can overwrite */
-			if (option_mask32 & WGET_OPT_OUTNAME)
-				o_flags = O_WRONLY | O_CREAT | O_TRUNC;
-			output_fd = xopen(G.fname_out, o_flags);
+		if (G.output_fd < 0)
+			G.output_fd = xopen(G.fname_out, G.o_flags);
+		retrieve_file_data(dfp);
+		if (!(option_mask32 & WGET_OPT_OUTNAME)) {
+			xclose(G.output_fd);
+			G.output_fd = -1;
 		}
-		retrieve_file_data(dfp, output_fd);
-		xclose(output_fd);
 	}
 
 	if (dfp != sfp) {
@@ -928,6 +925,17 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 #endif
+
+	G.output_fd = -1;
+	G.o_flags = O_WRONLY | O_CREAT | O_TRUNC | O_EXCL;
+	if (G.fname_out) { /* -O FILE ? */
+		if (LONE_DASH(G.fname_out)) { /* -O - ? */
+			G.output_fd = 1;
+			option_mask32 &= ~WGET_OPT_CONTINUE;
+		}
+		/* compat with wget: -O FILE can overwrite */
+		G.o_flags = O_WRONLY | O_CREAT | O_TRUNC;
+	}
 
 	exitcode = 0;
 	while (*argv)
