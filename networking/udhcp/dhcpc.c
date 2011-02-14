@@ -714,22 +714,25 @@ static int udhcp_raw_socket(int ifindex)
 	 *
 	 * TODO: make conditional?
 	 */
-#define SERVER_AND_CLIENT_PORTS  ((67 << 16) + 68)
 	static const struct sock_filter filter_instr[] = {
-		/* check for udp */
+		/* load 9th byte (protocol) */
 		BPF_STMT(BPF_LD|BPF_B|BPF_ABS, 9),
-		BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, IPPROTO_UDP, 2, 0),     /* L5, L1, is UDP? */
-		/* ugly check for arp on ethernet-like and IPv4 */
-		BPF_STMT(BPF_LD|BPF_W|BPF_ABS, 2),                      /* L1: */
-		BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 0x08000604, 3, 4),      /* L3, L4 */
-		/* skip IP header */
-		BPF_STMT(BPF_LDX|BPF_B|BPF_MSH, 0),                     /* L5: */
-		/* check udp source and destination ports */
-		BPF_STMT(BPF_LD|BPF_W|BPF_IND, 0),
-		BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, SERVER_AND_CLIENT_PORTS, 0, 1),	/* L3, L4 */
-		/* returns */
-		BPF_STMT(BPF_RET|BPF_K, 0x0fffffff ),                   /* L3: pass */
-		BPF_STMT(BPF_RET|BPF_K, 0),                             /* L4: reject */
+		/* jump to L1 if it is IPPROTO_UDP, else to L4 */
+		BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, IPPROTO_UDP, 0, 6),
+		/* L1: load halfword from offset 6 (flags and frag offset) */
+		BPF_STMT(BPF_LD|BPF_H|BPF_ABS, 6),
+		/* jump to L4 if any bits in frag offset field are set, else to L2 */
+		BPF_JUMP(BPF_JMP|BPF_JSET|BPF_K, 0x1fff, 4, 0),
+		/* L2: skip IP header (load index reg with header len) */
+		BPF_STMT(BPF_LDX|BPF_B|BPF_MSH, 0),
+		/* load udp destination port from halfword[header_len + 2] */
+		BPF_STMT(BPF_LD|BPF_H|BPF_IND, 2),
+		/* jump to L3 if udp dport is CLIENT_PORT, else to L4 */
+		BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 68, 0, 1),
+		/* L3: accept packet */
+		BPF_STMT(BPF_RET|BPF_K, 0xffffffff),
+		/* L4: discard packet */
+		BPF_STMT(BPF_RET|BPF_K, 0),
 	};
 	static const struct sock_fprog filter_prog = {
 		.len = sizeof(filter_instr) / sizeof(filter_instr[0]),
@@ -742,18 +745,19 @@ static int udhcp_raw_socket(int ifindex)
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 	log1("Got raw socket fd %d", fd); //log2?
 
-	if (SERVER_PORT == 67 && CLIENT_PORT == 68) {
-		/* Use only if standard ports are in use */
+	sock.sll_family = AF_PACKET;
+	sock.sll_protocol = htons(ETH_P_IP);
+	sock.sll_ifindex = ifindex;
+	xbind(fd, (struct sockaddr *) &sock, sizeof(sock));
+
+	if (CLIENT_PORT == 68) {
+		/* Use only if standard port is in use */
 		/* Ignoring error (kernel may lack support for this) */
 		if (setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &filter_prog,
 				sizeof(filter_prog)) >= 0)
 			log1("Attached filter to raw socket fd %d", fd); // log?
 	}
 
-	sock.sll_family = AF_PACKET;
-	sock.sll_protocol = htons(ETH_P_IP);
-	sock.sll_ifindex = ifindex;
-	xbind(fd, (struct sockaddr *) &sock, sizeof(sock));
 	log1("Created raw socket");
 
 	return fd;
