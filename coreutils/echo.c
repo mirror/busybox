@@ -50,7 +50,6 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 	char *out;
 	char *buffer;
 	unsigned buflen;
-	int r;
 #if !ENABLE_FEATURE_FANCY_ECHO
 	enum {
 		eflag = '\\',
@@ -59,40 +58,40 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 
 	argv++;
 #else
-	const char *p;
 	char nflag = 1;
 	char eflag = 0;
 
 	while ((arg = *++argv) != NULL) {
-		if (!arg || arg[0] != '-')
-			break;
+		char n, e;
+
+		if (arg[0] != '-')
+			break; /* not an option arg, echo it */
 
 		/* If it appears that we are handling options, then make sure
 		 * that all of the options specified are actually valid.
 		 * Otherwise, the string should just be echoed.
 		 */
-		p = arg + 1;
-		if (!*p)	/* A single '-', so echo it. */
-			break;
-
+		arg++;
+		n = nflag;
+		e = eflag;
 		do {
-			if (!strrchr("neE", *p))
+			if (*arg == 'n')
+				n = 0;
+			else if (*arg == 'e')
+				e = '\\';
+			else if (*arg != 'E') {
+				/* "-ccc" arg with one of c's invalid, echo it */
+				/* arg consisting from just "-" also handled here */
 				goto just_echo;
-		} while (*++p);
-
-		/* All of the options in this arg are valid, so handle them. */
-		p = arg + 1;
-		do {
-			if (*p == 'n')
-				nflag = 0;
-			if (*p == 'e')
-				eflag = '\\';
-		} while (*++p);
+			}
+		} while (*++arg);
+		nflag = n;
+		eflag = e;
 	}
  just_echo:
 #endif
 
-	buflen = 1;
+	buflen = 0;
 	pp = argv;
 	while ((arg = *pp) != NULL) {
 		buflen += strlen(arg) + 1;
@@ -106,29 +105,32 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 		if (!eflag) {
 			/* optimization for very common case */
 			out = stpcpy(out, arg);
-		} else while ((c = *arg++)) {
-			if (c == eflag) {	/* Check for escape seq. */
+		} else
+		while ((c = *arg++) != '\0') {
+			if (c == eflag) {
+				/* This is an "\x" sequence */
+
 				if (*arg == 'c') {
-					/* '\c' means cancel newline and
+					/* "\c" means cancel newline and
 					 * ignore all subsequent chars. */
 					goto do_write;
 				}
-#if !ENABLE_FEATURE_FANCY_ECHO
-				/* SUSv3 specifies that octal escapes must begin with '0'. */
-				if ( ((int)(unsigned char)(*arg) - '0') >= 8) /* '8' or bigger */
-#endif
-				{
-					/* Since SUSv3 mandates a first digit of 0, 4-digit octals
-					* of the form \0### are accepted. */
-					if (*arg == '0') {
-						/* NB: don't turn "...\0" into "...\" */
-						if (arg[1] && ((unsigned char)(arg[1]) - '0') < 8) {
-							arg++;
-						}
+				/* Since SUSv3 mandates a first digit of 0, 4-digit octals
+				* of the form \0### are accepted. */
+				if (*arg == '0') {
+					if ((unsigned char)(arg[1] - '0') < 8) {
+						/* 2nd char is 0..7: skip leading '0' */
+						arg++;
 					}
-					/* bb_process_escape_sequence handles NUL correctly
-					 * ("...\" case). */
-					c = bb_process_escape_sequence(&arg);
+				}
+				/* bb_process_escape_sequence handles NUL correctly
+				 * ("...\" case). */
+				{
+					/* optimization: don't force arg to be on-stack,
+					 * use another variable for that. ~30 bytes win */
+					const char *z = arg;
+					c = bb_process_escape_sequence(&z);
+					arg = z;
 				}
 			}
 			*out++ = c;
@@ -144,16 +146,18 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 	}
 
  do_write:
-	r = full_write(STDOUT_FILENO, buffer, out - buffer);
+	/* Careful to error out on partial writes too (think ENOSPC!) */
+	errno = 0;
+	/*r =*/ full_write(STDOUT_FILENO, buffer, out - buffer);
 	free(buffer);
-	if (r < 0) {
+	if (/*WRONG:r < 0*/ errno) {
 		bb_perror_msg(bb_msg_write_error);
 		return 1;
 	}
 	return 0;
 }
 
-/*-
+/*
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
@@ -239,7 +243,7 @@ int echo_main(int argc, char **argv)
 			goto just_echo;
 
 		do {
-			if (!strrchr("neE", *p))
+			if (!strchr("neE", *p))
 				goto just_echo;
 		} while (*++p);
 
@@ -265,27 +269,23 @@ int echo_main(int argc, char **argv)
 			/* optimization for very common case */
 			p += strlen(arg);
 		} else while ((c = *arg++)) {
-			if (c == eflag) {	/* Check for escape seq. */
+			if (c == eflag) {
+				/* This is an "\x" sequence */
+
 				if (*arg == 'c') {
-					/* '\c' means cancel newline and
+					/* "\c" means cancel newline and
 					 * ignore all subsequent chars. */
 					cur_io->iov_len = p - (char*)cur_io->iov_base;
 					cur_io++;
 					goto ret;
 				}
-#if !ENABLE_FEATURE_FANCY_ECHO
-				/* SUSv3 specifies that octal escapes must begin with '0'. */
-				if ( (((unsigned char)*arg) - '1') >= 7)
-#endif
-				{
-					/* Since SUSv3 mandates a first digit of 0, 4-digit octals
-					* of the form \0### are accepted. */
-					if (*arg == '0' && ((unsigned char)(arg[1]) - '0') < 8) {
-						arg++;
-					}
-					/* bb_process_escape_sequence can handle nul correctly */
-					c = bb_process_escape_sequence( (void*) &arg);
+				/* Since SUSv3 mandates a first digit of 0, 4-digit octals
+				* of the form \0### are accepted. */
+				if (*arg == '0' && (unsigned char)(arg[1] - '0') < 8) {
+					arg++;
 				}
+				/* bb_process_escape_sequence can handle nul correctly */
+				c = bb_process_escape_sequence( (void*) &arg);
 			}
 			*p++ = c;
 		}
