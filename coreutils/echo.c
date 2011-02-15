@@ -97,7 +97,7 @@ int echo_main(int argc UNUSED_PARAM, char **argv)
 		buflen += strlen(arg) + 1;
 		pp++;
 	}
-	out = buffer = xmalloc(buflen);
+	out = buffer = xmalloc(buflen + 1); /* +1 is needed for "no args" case */
 
 	while ((arg = *argv) != NULL) {
 		int c;
