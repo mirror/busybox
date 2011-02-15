@@ -530,9 +530,13 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	xchdir(G.uts.release);
 
 	if (opt & OPT_LIST_ONLY) {
+		int i;
 		char name[MODULE_NAME_LEN];
 		char *colon, *tokens[2];
 		parser_t *p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, xfopen_for_read);
+
+		for (i = 0; argv[i]; i++)
+			replace(argv[i], '-', '_');
 
 		while (config_read(p, tokens, 2, 1, "# \t", PARSE_NORMAL)) {
 			colon = last_char_is(tokens[0], ':');
@@ -543,7 +547,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			if (!argv[0])
 				puts(tokens[0]);
 			else {
-				int i;
 				for (i = 0; argv[i]; i++) {
 					if (fnmatch(argv[i], name, 0) == 0) {
 						puts(tokens[0]);
