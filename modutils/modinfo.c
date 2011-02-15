@@ -44,7 +44,7 @@ static int display(const char *data, const char *pattern, int flag)
 }
 
 static void modinfo(const char *path, const char *version,
-			struct modinfo_env *env)
+			const struct modinfo_env *env)
 {
 	static const char *const shortcuts[] = {
 		"filename",
@@ -82,11 +82,13 @@ static void modinfo(const char *path, const char *version,
 	if (field)
 		tags |= OPT_F;
 	for (j = 1; (1<<j) & (OPT_TAGS + OPT_F); j++) {
-		const char *pattern = field;
-		if ((1<<j) & OPT_TAGS)
-			pattern = shortcuts[j];
+		const char *pattern;
+
 		if (!((1<<j) & tags))
 			continue;
+		pattern = field;
+		if ((1<<j) & OPT_TAGS)
+			pattern = shortcuts[j];
 		length = strlen(pattern);
 		ptr = the_module;
 		while (1) {
