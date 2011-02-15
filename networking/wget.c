@@ -941,5 +941,8 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 	while (*argv)
 		exitcode |= download_one_url(*argv++);
 
+	if (G.output_fd >= 0)
+		xclose(G.output_fd);
+
 	return exitcode;
 }
