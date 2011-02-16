@@ -556,7 +556,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 	progress_meter(PROGRESS_END);
 }
 
-static int download_one_url(const char *url)
+static void download_one_url(const char *url)
 {
 	bool use_proxy;                 /* Use proxies if env vars are set  */
 	int redir_limit;
@@ -853,8 +853,6 @@ However, in real world it was observed that some web servers
 	free(server.allocated);
 	free(target.allocated);
 	free(fname_out_alloc);
-
-	return EXIT_SUCCESS;
 }
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -885,7 +883,6 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		;
 #endif
 
-	int exitcode;
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	llist_t *headers_llist = NULL;
 #endif
@@ -937,12 +934,11 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		G.o_flags = O_WRONLY | O_CREAT | O_TRUNC;
 	}
 
-	exitcode = 0;
 	while (*argv)
-		exitcode |= download_one_url(*argv++);
+		download_one_url(*argv++);
 
 	if (G.output_fd >= 0)
 		xclose(G.output_fd);
 
-	return exitcode;
+	return EXIT_SUCCESS;
 }
