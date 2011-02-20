@@ -26,7 +26,8 @@
 //usage:     "\n	--getss		Get sector size"
 //usage:     "\n	--getbsz	Get block size"
 //usage:     "\n	--setbsz BYTES	Set block size"
-//usage:     "\n	--getsize	Get device size in 512-byte sectors"
+//usage:     "\n	--getsz		Get device size in 512-byte sectors"
+/*//usage:     "\n	--getsize	Get device size in sectors (deprecated)"*/
 //usage:     "\n	--getsize64	Get device size in bytes"
 //usage:     "\n	--flushbufs	Flush buffers"
 //usage:     "\n	--rereadpt	Reread partition table"
@@ -45,6 +46,7 @@ enum {
 
 	FL_USRARG   = 4, /* argument is provided by user */
 	FL_NORESULT = 8,
+	FL_SCALE512 = 16,
 };
 
 struct bdc {
@@ -86,6 +88,11 @@ static const struct bdc bdcommands[] = {
 		.flags = ARG_INT + FL_NORESULT + FL_USRARG,
 		.argval = 0,
 	},{
+		.ioc = BLKGETSIZE64,
+		.name = "getsz",
+		.flags = ARG_U64 + FL_SCALE512,
+		.argval = -1,
+	},{
 		.ioc = BLKGETSIZE,
 		.name = "getsize",
 		.flags = ARG_ULONG,
@@ -123,7 +130,7 @@ static const struct bdc *find_cmd(const char *s)
 }
 
 int blockdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int blockdev_main(int argc, char **argv)
+int blockdev_main(int argc UNUSED_PARAM, char **argv)
 {
 	const struct bdc *bdcmd;
 	int fd;
@@ -134,18 +141,20 @@ int blockdev_main(int argc, char **argv)
 		uint64_t u64;
 	} ioctl_val_on_stack;
 
-	if ((unsigned)(argc - 3) > 1) /* must have 2 or 3 args */
+	argv++;
+	if (!argv[0] || !argv[1]) /* must have at least 2 args */
 		bb_show_usage();
 
-	bdcmd = find_cmd(*++argv);
+	bdcmd = find_cmd(*argv);
 
 	u64 = (int)bdcmd->argval;
 	if (bdcmd->flags & FL_USRARG)
 		u64 = xatoi_positive(*++argv);
 
-	if (!*++argv || argv[1])
+	argv++;
+	if (!argv[0] || argv[1])
 		bb_show_usage();
-	fd = xopen(*argv, O_RDONLY);
+	fd = xopen(argv[0], O_RDONLY);
 
 	ioctl_val_on_stack.u64 = u64;
 #if BB_BIG_ENDIAN
@@ -172,6 +181,9 @@ int blockdev_main(int argc, char **argv)
 
 	/* Fetch it into register(s) */
 	u64 = ioctl_val_on_stack.u64;
+
+	if (bdcmd->flags & FL_SCALE512)
+		u64 >>= 9;
 
 	/* Zero- or one-extend the value if needed, then print */
 	switch (bdcmd->flags & (ARG_MASK+FL_NORESULT)) {
