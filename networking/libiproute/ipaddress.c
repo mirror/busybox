@@ -162,6 +162,8 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		printf("master %s ", ll_idx_n2a(*(int*)RTA_DATA(tb[IFLA_MASTER]), b1));
 	}
 #endif
+/* IFLA_OPERSTATE was added to kernel with the same commit as IFF_DORMANT */
+#ifdef IFF_DORMANT
 	if (tb[IFLA_OPERSTATE]) {
 		static const char operstate_labels[] ALIGN1 =
 			"UNKNOWN\0""NOTPRESENT\0""DOWN\0""LOWERLAYERDOWN\0"
@@ -169,6 +171,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		printf("state %s ", nth_string(operstate_labels,
 					*(uint8_t *)RTA_DATA(tb[IFLA_OPERSTATE])));
 	}
+#endif
 	if (G_filter.showqueue)
 		print_queuelen((char*)RTA_DATA(tb[IFLA_IFNAME]));
 
