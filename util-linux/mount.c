@@ -1129,6 +1129,9 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				continue;
 			case 20: // "addr" - ignore
 				continue;
+			case -1: // unknown
+				if (vfsflags & MS_REMOUNT)
+					continue;
 			}
 
 			val = xatoi_positive(opteq);
