@@ -206,9 +206,27 @@ int kill_main(int argc, char **argv)
 
 	/* Looks like they want to do a kill. Do that */
 	while (arg) {
-		/* Support shell 'space' trick */
-		if (arg[0] == ' ')
-			arg++;
+#if ENABLE_ASH || ENABLE_HUSH
+		/*
+		 * We need to support shell's "hack formats" of
+		 * " -PRGP_ID" (yes, with a leading space)
+		 * and " PID1 PID2 PID3" (with degenerate case "")
+		 */
+		while (*arg != '\0') {
+			char *end;
+			if (*arg == ' ')
+				arg++;
+			pid = bb_strtoi(arg, &end, 10);
+			if (errno && (errno != EINVAL || *end != ' ')) {
+				bb_error_msg("invalid number '%s'", arg);
+				errors++;
+			} else if (kill(pid, signo) != 0) {
+				bb_perror_msg("can't kill pid %d", (int)pid);
+				errors++;
+			}
+			arg = end; /* can only point to ' ' or '\0' now */
+		}
+#else
 		pid = bb_strtoi(arg, NULL, 10);
 		if (errno) {
 			bb_error_msg("invalid number '%s'", arg);
@@ -217,6 +235,7 @@ int kill_main(int argc, char **argv)
 			bb_perror_msg("can't kill pid %d", (int)pid);
 			errors++;
 		}
+#endif
 		arg = *++argv;
 	}
 	return errors;

@@ -3783,18 +3783,51 @@ setjobctl(int on)
 static int FAST_FUNC
 killcmd(int argc, char **argv)
 {
-	int i = 1;
 	if (argv[1] && strcmp(argv[1], "-l") != 0) {
+		int i = 1;
 		do {
 			if (argv[i][0] == '%') {
-				struct job *jp = getjob(argv[i], 0);
-				unsigned pid = jp->ps[0].ps_pid;
-				/* Enough space for ' -NNN<nul>' */
-				argv[i] = alloca(sizeof(int)*3 + 3);
-				/* kill_main has matching code to expect
-				 * leading space. Needed to not confuse
-				 * negative pids with "kill -SIGNAL_NO" syntax */
-				sprintf(argv[i], " -%u", pid);
+				/*
+				 * "kill %N" - job kill
+				 * Converting to pgrp / pid kill
+				 */
+				struct job *jp;
+				char *dst;
+				int j, n;
+
+				jp = getjob(argv[i], 0);
+				/*
+				 * In jobs started under job control, we signal
+				 * entire process group by kill -PGRP_ID.
+				 * This happens, f.e., in interactive shell.
+				 *
+				 * Otherwise, we signal each child via
+				 * kill PID1 PID2 PID3.
+				 * Testcases:
+				 * sh -c 'sleep 1|sleep 1 & kill %1'
+				 * sh -c 'true|sleep 2 & sleep 1; kill %1'
+				 * sh -c 'true|sleep 1 & sleep 2; kill %1'
+				 */
+				n = jp->nprocs; /* can't be 0 (I hope) */
+				if (jp->jobctl)
+					n = 1;
+				dst = alloca(n * sizeof(int)*4);
+				argv[i] = dst;
+				for (j = 0; j < n; j++) {
+					struct procstat *ps = &jp->ps[j];
+					/* Skip non-running and not-stopped members
+					 * (i.e. dead members) of the job
+					 */
+					if (ps->ps_status != -1 && !WIFSTOPPED(ps->ps_status))
+						continue;
+					/*
+					 * kill_main has matching code to expect
+					 * leading space. Needed to not confuse
+					 * negative pids with "kill -SIGNAL_NO" syntax
+					 */
+					dst += sprintf(dst, jp->jobctl ? " -%u" : " %u", (int)ps->ps_pid);
+				}
+				*dst = '\0';
 			}
 		} while (argv[++i]);
 	}
@@ -4227,8 +4260,9 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 					break;
 				job = job->prev_job;
 			}
-		} else
+		} else {
 			job = getjob(*argv, 0);
+		}
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING)
 			blocking_wait_with_raise_on_sig();
@@ -4724,7 +4758,7 @@ forkchild(struct job *jp, union node *n, int mode)
 #if JOBS
 	/* do job control only in root shell */
 	doing_jobctl = 0;
-	if (mode != FORK_NOJOB && jp->jobctl && !oldlvl) {
+	if (mode != FORK_NOJOB && jp->jobctl && oldlvl == 0) {
 		pid_t pgrp;
 
 		if (jp->nprocs == 0)
@@ -4750,7 +4784,7 @@ forkchild(struct job *jp, union node *n, int mode)
 				ash_msg_and_raise_error("can't open '%s'", bb_dev_null);
 		}
 	}
-	if (!oldlvl) {
+	if (oldlvl == 0) {
 		if (iflag) { /* why if iflag only? */
 			setsignal(SIGINT);
 			setsignal(SIGTERM);
