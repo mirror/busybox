@@ -393,7 +393,7 @@ void FAST_FUNC parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, in
 		if (rta->rta_type <= max) {
 			tb[rta->rta_type] = rta;
 		}
-		rta = RTA_NEXT(rta,len);
+		rta = RTA_NEXT(rta, len);
 	}
 	if (len) {
 		bb_error_msg("deficit %d, rta_len=%d!", len, rta->rta_len);

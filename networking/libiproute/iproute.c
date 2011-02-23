@@ -82,7 +82,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 {
 	struct rtmsg *r = NLMSG_DATA(n);
 	int len = n->nlmsg_len;
-	struct rtattr * tb[RTA_MAX+1];
+	struct rtattr *tb[RTA_MAX+1];
 	char abuf[256];
 	inet_prefix dst;
 	inet_prefix src;
@@ -159,7 +159,20 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	}
 
 	memset(tb, 0, sizeof(tb));
+	memset(&src, 0, sizeof(src));
+	memset(&dst, 0, sizeof(dst));
 	parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
+
+	if (tb[RTA_SRC]) {
+		src.bitlen = r->rtm_src_len;
+		src.bytelen = (r->rtm_family == AF_INET6 ? 16 : 4);
+		memcpy(src.data, RTA_DATA(tb[RTA_SRC]), src.bytelen);
+	}
+	if (tb[RTA_DST]) {
+		dst.bitlen = r->rtm_dst_len;
+		dst.bytelen = (r->rtm_family == AF_INET6 ? 16 : 4);
+		memcpy(dst.data, RTA_DATA(tb[RTA_DST]), dst.bytelen);
+	}
 
 	if (G_filter.rdst.family
 	 && inet_addr_match(&dst, &G_filter.rdst, G_filter.rdst.bitlen)
@@ -426,7 +439,8 @@ IF_FEATURE_IP_RULE(ARG_table,)
 				NEXT_ARG();
 			}
 			if ((**argv < '0' || **argv > '9')
-			 && rtnl_rtntype_a2n(&type, *argv) == 0) {
+			 && rtnl_rtntype_a2n(&type, *argv) == 0
+			) {
 				NEXT_ARG();
 				req.r.rtm_type = type;
 				ok |= type_ok;
