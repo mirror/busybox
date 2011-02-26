@@ -32,7 +32,7 @@
 //config:config PING
 //config:	bool "ping"
 //config:	default y
-//config:	depends on PLATFORM_LINUX
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
 //config:	  elicit an ICMP ECHO_RESPONSE from a host or gateway.

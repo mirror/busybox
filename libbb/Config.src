@@ -183,7 +183,7 @@ config FEATURE_SKIP_ROOTFS
 config MONOTONIC_SYSCALL
 	bool "Use clock_gettime(CLOCK_MONOTONIC) syscall"
 	default n
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Use clock_gettime(CLOCK_MONOTONIC) syscall for measuring
 	  time intervals (time, ping, traceroute etc need this).

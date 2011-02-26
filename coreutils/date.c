@@ -42,7 +42,8 @@
 //config:config FEATURE_DATE_NANO
 //config:	bool "Support %[num]N nanosecond format specifier"
 //config:	default n
-//config:	depends on DATE && PLATFORM_LINUX # syscall(__NR_clock_gettime)
+//config:	depends on DATE  # syscall(__NR_clock_gettime)
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Support %[num]N format specifier. Adds ~250 bytes of code.
 //config:

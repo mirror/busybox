@@ -591,7 +591,7 @@ config FEATURE_SPLIT_FANCY
 config STAT
 	bool "stat"
 	default y
-	depends on PLATFORM_LINUX # statfs()
+	select PLATFORM_LINUX # statfs()
 	help
 	  display file or filesystem status.
 

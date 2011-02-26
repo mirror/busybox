@@ -119,7 +119,8 @@ config KLOGD
 config FEATURE_KLOGD_KLOGCTL
 	bool "Use the klogctl() interface"
 	default y
-	depends on KLOGD && PLATFORM_LINUX
+	depends on KLOGD
+	select PLATFORM_LINUX
 	help
 	  The klogd applet supports two interfaces for reading
 	  kernel messages. Linux provides the klogctl() interface

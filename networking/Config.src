@@ -51,21 +51,21 @@ config VERBOSE_RESOLUTION_ERRORS
 config ARP
 	bool "arp"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Manipulate the system ARP cache.
 
 config ARPING
 	bool "arping"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Ping hosts by ARP packets.
 
 config BRCTL
 	bool "brctl"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Manage ethernet bridges.
 	  Supports addbr/delbr and addif/delif.
@@ -98,7 +98,7 @@ config DNSD
 config ETHER_WAKE
 	bool "ether-wake"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Send a magic packet to wake up sleeping machines.
 
@@ -281,7 +281,7 @@ config FEATURE_HTTPD_GZIP
 config IFCONFIG
 	bool "ifconfig"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Ifconfig is used to configure the kernel-resident network interfaces.
 
@@ -329,7 +329,7 @@ config FEATURE_IFCONFIG_BROADCAST_PLUS
 config IFENSLAVE
 	bool "ifenslave"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Userspace application to bind several interfaces
 	  to a logical interface (use with kernel bonding driver).
@@ -337,7 +337,7 @@ config IFENSLAVE
 config IFPLUGD
 	bool "ifplugd"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Network interface plug detection daemon.
 
@@ -379,7 +379,8 @@ config FEATURE_IFUPDOWN_IP
 config FEATURE_IFUPDOWN_IP_BUILTIN
 	bool "Use busybox ip applet"
 	default y
-	depends on FEATURE_IFUPDOWN_IP && PLATFORM_LINUX
+	depends on FEATURE_IFUPDOWN_IP
+	select PLATFORM_LINUX
 	select IP
 	select FEATURE_IP_ADDRESS
 	select FEATURE_IP_LINK
@@ -498,7 +499,7 @@ config FEATURE_INETD_RPC
 config IP
 	bool "ip"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  The "ip" applet is a TCP/IP interface configuration and routing
 	  utility. You generally don't need "ip" to use busybox with
@@ -614,7 +615,7 @@ config FEATURE_IPCALC_LONG_OPTIONS
 config NAMEIF
 	bool "nameif"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	select FEATURE_SYSLOG
 	help
 	  nameif is used to rename network interface by its MAC address.
@@ -643,7 +644,7 @@ config FEATURE_NAMEIF_EXTENDED
 config NETSTAT
 	bool "netstat"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  netstat prints information about the Linux networking subsystem.
 
@@ -672,7 +673,7 @@ config NSLOOKUP
 config NTPD
 	bool "ntpd"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  The NTP client/server daemon.
 
@@ -693,14 +694,14 @@ config PSCAN
 config ROUTE
 	bool "route"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Route displays or manipulates the kernel's IP routing tables.
 
 config SLATTACH
 	bool "slattach"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  slattach is a small utility to attach network interfaces to serial
 	  lines.
@@ -887,7 +888,7 @@ config TFTP_DEBUG
 config TRACEROUTE
 	bool "traceroute"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Utility to trace the route of IP packets.
 
@@ -924,7 +925,7 @@ config FEATURE_TRACEROUTE_USE_ICMP
 config TUNCTL
 	bool "tunctl"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  tunctl creates or deletes tun devices.
 
@@ -957,7 +958,7 @@ config UDPSVD
 config VCONFIG
 	bool "vconfig"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Creates, removes, and configures VLAN interfaces
 
@@ -1004,7 +1005,7 @@ config FEATURE_WGET_TIMEOUT
 config ZCIP
 	bool "zcip"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	select FEATURE_SYSLOG
 	help
 	  ZCIP provides ZeroConf IPv4 address selection, according to RFC 3927.

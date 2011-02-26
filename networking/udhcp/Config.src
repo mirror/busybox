@@ -8,7 +8,7 @@ INSERT
 config UDHCPD
 	bool "udhcp server (udhcpd)"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  udhcpd is a DHCP server geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
@@ -66,7 +66,7 @@ config DHCPD_LEASES_FILE
 config UDHCPC
 	bool "udhcp client (udhcpc)"
 	default y
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  udhcpc is a DHCP client geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.

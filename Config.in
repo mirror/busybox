@@ -385,7 +385,7 @@ config FEATURE_SUID_CONFIG_QUIET
 config SELINUX
 	bool "Support NSA Security Enhanced Linux"
 	default n
-	depends on PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
 	  Enable support for SELinux in applets ls, ps, and id. Also provide
 	  the option of compiling in SELinux applets.
