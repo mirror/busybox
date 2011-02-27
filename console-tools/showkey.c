@@ -56,36 +56,44 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 	// FIXME: aks are all mutually exclusive
 	getopt32(argv, "aks");
 
-	// get keyboard settings
-	xioctl(STDIN_FILENO, KDGKBMODE, &kbmode);
-	printf("kb mode was %s\n\nPress any keys. Program terminates %s\n\n",
-		kbmode == K_RAW ? "RAW" :
-			(kbmode == K_XLATE ? "XLATE" :
-				(kbmode == K_MEDIUMRAW ? "MEDIUMRAW" :
-					(kbmode == K_UNICODE ? "UNICODE" : "UNKNOWN")))
-		, (option_mask32 & OPT_a) ? "on EOF (ctrl-D)" : "10s after last keypress"
-	);
-
 	// prepare for raw mode
 	xget1(&tio, &tio0);
 	// put stdin in raw mode
 	xset1(&tio);
 
+#define press_keys "Press any keys, program terminates %s:\r\n\n"
+
 	if (option_mask32 & OPT_a) {
+		// just read stdin char by char
 		unsigned char c;
 
-		// just read stdin char by char
+		printf(press_keys, "on EOF (ctrl-D)");
+
+		// read and show byte values
 		while (1 == read(STDIN_FILENO, &c, 1)) {
 			printf("%3u 0%03o 0x%02x\r\n", c, c, c);
 			if (04 /*CTRL-D*/ == c)
 				break;
 		}
+
 	} else {
+		// we assume a PC keyboard
+		xioctl(STDIN_FILENO, KDGKBMODE, &kbmode);
+		printf("Keyboard mode was %s.\r\n\n",
+			kbmode == K_RAW ? "RAW" :
+				(kbmode == K_XLATE ? "XLATE" :
+					(kbmode == K_MEDIUMRAW ? "MEDIUMRAW" :
+						(kbmode == K_UNICODE ? "UNICODE" : "UNKNOWN")))
+		);
+
 		// set raw keyboard mode
 		xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)((option_mask32 & OPT_k) ? K_MEDIUMRAW : K_RAW));
 
 		// we should exit on any signal; signals should interrupt read
 		bb_signals_recursive_norestart(BB_FATAL_SIGS, record_signo);
+
+		// inform user that program ends after time of inactivity
+		printf(press_keys, "10s after last keypress");
 
 		// read and show scancodes
 		while (!bb_got_signal) {
@@ -94,6 +102,7 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 
 			// setup 10s watchdog
 			alarm(10);
+
 			// read scancodes
 			n = read(STDIN_FILENO, buf, sizeof(buf));
 			i = 0;
@@ -121,11 +130,13 @@ int showkey_main(int argc UNUSED_PARAM, char **argv)
 			}
 			puts("\r");
 		}
+
+		// restore keyboard mode
+		xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)kbmode);
 	}
 
-	// restore keyboard and console settings
+	// restore console settings
 	xset1(&tio0);
-	xioctl(STDIN_FILENO, KDSKBMODE, (void *)(ptrdiff_t)kbmode);
 
 	return EXIT_SUCCESS;
 }
