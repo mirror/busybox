@@ -67,15 +67,24 @@ static void passwd_study(struct passwd *p)
 
 static void addgroup_wrapper(struct passwd *p, const char *group_name)
 {
-	char *cmd;
+	char *argv[5];
 
-	if (group_name) /* Add user to existing group */
-		cmd = xasprintf("addgroup '%s' '%s'", p->pw_name, group_name);
-	else    /* Add user to his own group with the first free gid found in passwd_study */
-		cmd = xasprintf("addgroup -g %u '%s'", (unsigned)p->pw_gid, p->pw_name);
-	/* Warning: to be compatible with external addgroup programs we should use --gid instead */
-	system(cmd);
-	free(cmd);
+	argv[0] = (char*)"addgroup";
+	if (group_name) {
+		/* Add user to existing group */
+		argv[1] = p->pw_name;
+		argv[2] = (char*)group_name;
+		argv[3] = NULL;
+	} else {
+		/* Add user to his own group with the first free gid found in passwd_study */
+//TODO: to be compatible with external addgroup programs we should use --gid instead...
+		argv[1] = (char*)"-g";
+		argv[2] = utoa(p->pw_gid);
+		argv[3] = p->pw_name;
+		argv[4] = NULL;
+	}
+
+	spawn_and_wait(argv);
 }
 
 static void passwd_wrapper(const char *login_name) NORETURN;
