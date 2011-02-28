@@ -279,6 +279,61 @@ enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_b
 #define fslist            (G.fslist           )
 #define getmntent_buf     (G.getmntent_buf    )
 
+#if ENABLE_FEATURE_MTAB_SUPPORT
+/*
+ * update_mtab_entry_on_move() is used to update entry in case of mount --move.
+ * we are looking for existing entries mnt_dir which is equal to mnt_fsname of
+ * input mntent and replace it by new one.
+ */
+static void FAST_FUNC update_mtab_entry_on_move(const struct mntent *mp)
+{
+	struct mntent *entries, *m;
+	int i, count;
+	FILE *mountTable;
+
+	mountTable = setmntent(bb_path_mtab_file, "r");
+	if (!mountTable) {
+		bb_perror_msg(bb_path_mtab_file);
+		return;
+	}
+
+	entries = NULL;
+	count = 0;
+	while ((m = getmntent(mountTable)) != NULL) {
+		entries = xrealloc_vector(entries, 3, count);
+		entries[count].mnt_fsname = xstrdup(m->mnt_fsname);
+		entries[count].mnt_dir = xstrdup(m->mnt_dir);
+		entries[count].mnt_type = xstrdup(m->mnt_type);
+		entries[count].mnt_opts = xstrdup(m->mnt_opts);
+		entries[count].mnt_freq = m->mnt_freq;
+		entries[count].mnt_passno = m->mnt_passno;
+		count++;
+	}
+	endmntent(mountTable);
+
+	mountTable = setmntent(bb_path_mtab_file, "w");
+	if (mountTable) {
+		for (i = 0; i < count; i++) {
+			if (strcmp(entries[i].mnt_dir, mp->mnt_fsname) != 0)
+				addmntent(mountTable, &entries[i]);
+			else
+				addmntent(mountTable, mp);
+		}
+		endmntent(mountTable);
+	} else if (errno != EROFS)
+		bb_perror_msg(bb_path_mtab_file);
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		for (i = 0; i < count; i++) {
+			free(entries[i].mnt_fsname);
+			free(entries[i].mnt_dir);
+			free(entries[i].mnt_type);
+			free(entries[i].mnt_opts);
+		}
+		free(entries);
+	}
+}
+#endif
 
 #if ENABLE_FEATURE_MOUNT_VERBOSE
 static int verbose_mount(const char *source, const char *target,
@@ -496,12 +551,11 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 		int i;
 
 		if (!mountTable) {
-			bb_error_msg("no %s", bb_path_mtab_file);
+			bb_perror_msg(bb_path_mtab_file);
 			goto ret;
 		}
 
 		// Add vfs string flags
-
 		for (i = 0; mount_options[i] != MS_REMOUNT; i++) {
 			if (mount_options[i] > 0 && (mount_options[i] & vfsflags))
 				append_mount_options(&(mp->mnt_opts), option_str);
@@ -509,24 +563,28 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 		}
 
 		// Remove trailing / (if any) from directory we mounted on
-
 		i = strlen(mp->mnt_dir) - 1;
-		if (i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = '\0';
+		while (i > 0 && mp->mnt_dir[i] == '/')
+			mp->mnt_dir[i] = '\0';
 
 		// Convert to canonical pathnames as needed
-
 		mp->mnt_dir = bb_simplify_path(mp->mnt_dir);
-		fsname = 0;
+		fsname = NULL;
 		if (!mp->mnt_type || !*mp->mnt_type) { // bind mount
 			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_type = (char*)"bind";
 		}
 		mp->mnt_freq = mp->mnt_passno = 0;
 
-		// Write and close.
-
-		addmntent(mountTable, mp);
+		// Write and close
+#if ENABLE_FEATURE_MTAB_SUPPORT
+		if (vfsflags & MS_MOVE)
+			update_mtab_entry_on_move(mp);
+		else
+#endif
+			addmntent(mountTable, mp);
 		endmntent(mountTable);
+
 		if (ENABLE_FEATURE_CLEAN_UP) {
 			free(mp->mnt_dir);
 			free(fsname);
