@@ -192,6 +192,8 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 /* -KZ      SELinux mandated options, busybox optionally supports */
 /*          (coreutils 8.4 has no -K, remove it?) */
 /* -e       I think we made this one up (looks similar to GNU --full-time) */
+/* We already used up all 32 bits, if we need to add more, candidates for removal: */
+/* -K, -T, -e (add --full-time instead) */
 static const char ls_options[] ALIGN1 =
 	"Cadil1gnsxQAk"      /* 13 opts, total 13 */
 	IF_FEATURE_LS_TIMESTAMPS("cetu") /* 4, 17 */
@@ -202,7 +204,7 @@ static const char ls_options[] ALIGN1 =
 	IF_FEATURE_LS_FOLLOWLINKS("LH")  /* 2, 28 */
 	IF_FEATURE_HUMAN_READABLE("h")   /* 1, 29 */
 	IF_FEATURE_AUTOWIDTH("T:w:")     /* 2, 31 */
-	;
+	/* with --color, we use all 32 bits */;
 enum {
 	//OPT_C = (1 << 0),
 	//OPT_a = (1 << 1),
@@ -267,7 +269,7 @@ static const uint32_t opt_flags[] = {
 	LIST_INO,                    /* i */
 	LIST_LONG | STYLE_LONG,      /* l */
 	STYLE_SINGLE,                /* 1 */
-	0,                           /* g (don't show owner) - handled via OPT_g */
+	LIST_LONG | STYLE_LONG,      /* g (don't show owner) - handled via OPT_g. assumes l */
 	LIST_ID_NUMERIC | LIST_LONG | STYLE_LONG, /* n (assumes l) */
 	LIST_BLOCKS,                 /* s */
 	DISP_ROWS | STYLE_COLUMNAR,  /* x */
@@ -733,9 +735,12 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 			ttime = dn->dstat.st_ctime;
 		filetime = ctime(&ttime);
 		/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
-		if (all_fmt & LIST_FULLTIME)
+		if (all_fmt & LIST_FULLTIME) { /* -e */
+			/* Note: coreutils 8.4 ls --full-time prints:
+			 * 2009-07-13 17:49:27.000000000 +0200
+			 */
 			column += printf("%.24s ", filetime);
-		else { /* LIST_DATE_TIME */
+		} else { /* LIST_DATE_TIME */
 			/* current_time_t ~== time(NULL) */
 			time_t age = current_time_t - ttime;
 			printf("%.6s ", filetime + 4); /* "Jun 30" */
@@ -1086,7 +1091,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 #if ENABLE_FEATURE_LS_COLOR
-	/* find color bit value - last position for short getopt */
+	/* set show_color = 1/0 */
 	if (ENABLE_FEATURE_LS_COLOR_IS_DEFAULT && isatty(STDOUT_FILENO)) {
 		char *p = getenv("LS_COLORS");
 		/* LS_COLORS is unset, or (not empty && not "none") ? */
