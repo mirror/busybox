@@ -565,7 +565,7 @@ static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
 		// Remove trailing / (if any) from directory we mounted on
 		i = strlen(mp->mnt_dir) - 1;
 		while (i > 0 && mp->mnt_dir[i] == '/')
-			mp->mnt_dir[i] = '\0';
+			mp->mnt_dir[i--] = '\0';
 
 		// Convert to canonical pathnames as needed
 		mp->mnt_dir = bb_simplify_path(mp->mnt_dir);
