@@ -542,8 +542,6 @@ getopt32(char **argv, const char *applet_opts, ...)
 #endif
 	/* optarg = NULL; opterr = 0; optopt = 0; - do we need this?? */
 
-	pargv = NULL;
-
 	/* Note: just "getopt() <= 0" will not work well for
 	 * "fake" short options, like this one:
 	 * wget $'-\203' "Test: test" http://kernel.org/
@@ -574,19 +572,16 @@ getopt32(char **argv, const char *applet_opts, ...)
 		flags ^= trigger;
 		if (on_off->counter)
 			(*(on_off->counter))++;
-		if (on_off->param_type == PARAM_LIST) {
-			if (optarg)
+		if (optarg) {
+			if (on_off->param_type == PARAM_LIST) {
 				llist_add_to_end((llist_t **)(on_off->optarg), optarg);
-		} else if (on_off->param_type == PARAM_INT) {
-			if (optarg)
+			} else if (on_off->param_type == PARAM_INT) {
 //TODO: xatoi_positive indirectly pulls in printf machinery
 				*(unsigned*)(on_off->optarg) = xatoi_positive(optarg);
-		} else if (on_off->optarg) {
-			if (optarg)
+			} else if (on_off->optarg) {
 				*(char **)(on_off->optarg) = optarg;
+			}
 		}
-		if (pargv != NULL)
-			break;
 	}
 
 	/* check depending requires for given options */
