@@ -683,8 +683,9 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 
 	if (all_fmt & LIST_INO)
 		column += printf("%7llu ", (long long) dn->dstat.st_ino);
+//TODO: -h should affect -s too:
 	if (all_fmt & LIST_BLOCKS)
-		column += printf("%4"OFF_FMT"u ", (off_t) (dn->dstat.st_blocks >> 1));
+		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dstat.st_blocks >> 1));
 	if (all_fmt & LIST_MODEBITS)
 		column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
 	if (all_fmt & LIST_NLINKS)
