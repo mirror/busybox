@@ -118,6 +118,8 @@ typedef struct archive_handle_t {
 #define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
 #define ARCHIVE_NUMERIC_OWNER       (1 << 7)
 #define ARCHIVE_O_TRUNC             (1 << 8)
+/* Archiver specific. */
+#define ARCHIVE_TAR__TRUNC_WARNED   (1 << 9)
 
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */

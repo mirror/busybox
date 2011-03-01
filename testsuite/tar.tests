@@ -168,6 +168,23 @@ Ok
 " \
 "" ""
 
+# On extract, everything up to and including last ".." component is stripped
+testing "tar strips /../ on extract" "\
+rm -rf input_* test.tar 2>/dev/null
+mkdir input_dir
+echo Ok >input_dir/file
+tar cf test.tar ./../tar.tempdir/input_dir/../input_dir 2>&1
+rm -rf input_* 2>/dev/null
+tar -vxf test.tar 2>&1
+cat input_dir/file 2>&1
+" "\
+tar: removing leading './../tar.tempdir/input_dir/../'
+input_dir/
+input_dir/file
+Ok
+" \
+"" ""
+
 
 cd .. && rm -rf tar.tempdir || exit 1
 

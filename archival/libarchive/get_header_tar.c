@@ -422,11 +422,28 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		p_linkname = NULL;
 	}
 #endif
-	if (strncmp(file_header->name, "/../"+1, 3) == 0
-	 || strstr(file_header->name, "/../")
-	) {
-		bb_error_msg_and_die("name with '..' encountered: '%s'",
-				file_header->name);
+
+	/* Everything up to and including last ".." component is stripped */
+	cp = file_header->name;
+	while (1) {
+		char *cp2;
+		if (strncmp(cp, "/../"+1, 3) == 0) {
+			cp += 3;
+			continue;
+		}
+		cp2 = strstr(cp, "/../");
+		if (cp2) {
+			cp = cp2 + 4;
+			continue;
+		}
+		break;
+	}
+	if (cp != file_header->name) {
+		if (!(archive_handle->ah_flags & ARCHIVE_TAR__TRUNC_WARNED)) {
+			archive_handle->ah_flags |= ARCHIVE_TAR__TRUNC_WARNED;
+			bb_error_msg("removing leading '%.*s'", (int)(cp - file_header->name), file_header->name);
+		}
+		overlapping_strcpy(file_header->name, cp);
 	}
 
 	/* Strip trailing '/' in directories */
