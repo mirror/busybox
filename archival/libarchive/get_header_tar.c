@@ -18,6 +18,35 @@ typedef uint32_t aliased_uint32_t FIX_ALIASING;
 typedef off_t    aliased_off_t    FIX_ALIASING;
 
 
+const char* FAST_FUNC strip_unsafe_prefix(const char *str)
+{
+	const char *cp = str;
+	while (1) {
+		char *cp2;
+		if (*cp == '/') {
+			cp++;
+			continue;
+		}
+		if (strncmp(cp, "/../"+1, 3) == 0) {
+			cp += 3;
+			continue;
+		}
+		cp2 = strstr(cp, "/../");
+		if (!cp2)
+			break;
+		cp = cp2 + 4;
+	}
+	if (cp != str) {
+		static smallint warned = 0;
+		if (!warned) {
+			warned = 1;
+			bb_error_msg("removing leading '%.*s' from member names",
+				(int)(cp - str), str);
+		}
+	}
+	return cp;
+}
+
 /* NB: _DESTROYS_ str[len] character! */
 static unsigned long long getOctal(char *str, int len)
 {
@@ -424,27 +453,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 #endif
 
 	/* Everything up to and including last ".." component is stripped */
-	cp = file_header->name;
-	while (1) {
-		char *cp2;
-		if (strncmp(cp, "/../"+1, 3) == 0) {
-			cp += 3;
-			continue;
-		}
-		cp2 = strstr(cp, "/../");
-		if (cp2) {
-			cp = cp2 + 4;
-			continue;
-		}
-		break;
-	}
-	if (cp != file_header->name) {
-		if (!(archive_handle->ah_flags & ARCHIVE_TAR__TRUNC_WARNED)) {
-			archive_handle->ah_flags |= ARCHIVE_TAR__TRUNC_WARNED;
-			bb_error_msg("removing leading '%.*s'", (int)(cp - file_header->name), file_header->name);
-		}
-		overlapping_strcpy(file_header->name, cp);
-	}
+	overlapping_strcpy(file_header->name, strip_unsafe_prefix(file_header->name));
 
 	/* Strip trailing '/' in directories */
 	/* Must be done after mode is set as '/' is used to check if it's a directory */

@@ -118,8 +118,6 @@ typedef struct archive_handle_t {
 #define ARCHIVE_DONT_RESTORE_PERM   (1 << 6)
 #define ARCHIVE_NUMERIC_OWNER       (1 << 7)
 #define ARCHIVE_O_TRUNC             (1 << 8)
-/* Archiver specific. */
-#define ARCHIVE_TAR__TRUNC_WARNED   (1 << 9)
 
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
@@ -161,37 +159,39 @@ typedef struct unpack_info_t {
 	time_t mtime;
 } unpack_info_t;
 
-extern archive_handle_t *init_handle(void) FAST_FUNC;
+archive_handle_t *init_handle(void) FAST_FUNC;
 
-extern char filter_accept_all(archive_handle_t *archive_handle) FAST_FUNC;
-extern char filter_accept_list(archive_handle_t *archive_handle) FAST_FUNC;
-extern char filter_accept_list_reassign(archive_handle_t *archive_handle) FAST_FUNC;
-extern char filter_accept_reject_list(archive_handle_t *archive_handle) FAST_FUNC;
+char filter_accept_all(archive_handle_t *archive_handle) FAST_FUNC;
+char filter_accept_list(archive_handle_t *archive_handle) FAST_FUNC;
+char filter_accept_list_reassign(archive_handle_t *archive_handle) FAST_FUNC;
+char filter_accept_reject_list(archive_handle_t *archive_handle) FAST_FUNC;
 
-extern void unpack_ar_archive(archive_handle_t *ar_archive) FAST_FUNC;
+void unpack_ar_archive(archive_handle_t *ar_archive) FAST_FUNC;
 
-extern void data_skip(archive_handle_t *archive_handle) FAST_FUNC;
-extern void data_extract_all(archive_handle_t *archive_handle) FAST_FUNC;
-extern void data_extract_to_stdout(archive_handle_t *archive_handle) FAST_FUNC;
-extern void data_extract_to_command(archive_handle_t *archive_handle) FAST_FUNC;
+void data_skip(archive_handle_t *archive_handle) FAST_FUNC;
+void data_extract_all(archive_handle_t *archive_handle) FAST_FUNC;
+void data_extract_to_stdout(archive_handle_t *archive_handle) FAST_FUNC;
+void data_extract_to_command(archive_handle_t *archive_handle) FAST_FUNC;
 
-extern void header_skip(const file_header_t *file_header) FAST_FUNC;
-extern void header_list(const file_header_t *file_header) FAST_FUNC;
-extern void header_verbose_list(const file_header_t *file_header) FAST_FUNC;
+void header_skip(const file_header_t *file_header) FAST_FUNC;
+void header_list(const file_header_t *file_header) FAST_FUNC;
+void header_verbose_list(const file_header_t *file_header) FAST_FUNC;
 
-extern char get_header_ar(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_cpio(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_tar(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_tar_bz2(archive_handle_t *archive_handle) FAST_FUNC;
-extern char get_header_tar_lzma(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_ar(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_cpio(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_tar(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_tar_gz(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_tar_bz2(archive_handle_t *archive_handle) FAST_FUNC;
+char get_header_tar_lzma(archive_handle_t *archive_handle) FAST_FUNC;
 
-extern void seek_by_jump(int fd, off_t amount) FAST_FUNC;
-extern void seek_by_read(int fd, off_t amount) FAST_FUNC;
+void seek_by_jump(int fd, off_t amount) FAST_FUNC;
+void seek_by_read(int fd, off_t amount) FAST_FUNC;
 
-extern void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
-extern const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;
-extern const llist_t *find_list_entry2(const llist_t *list, const char *filename) FAST_FUNC;
+const char *strip_unsafe_prefix(const char *str) FAST_FUNC;
+
+void data_align(archive_handle_t *archive_handle, unsigned boundary) FAST_FUNC;
+const llist_t *find_list_entry(const llist_t *list, const char *filename) FAST_FUNC;
+const llist_t *find_list_entry2(const llist_t *list, const char *filename) FAST_FUNC;
 
 /* A bit of bunzip2 internals are exposed for compressed help support: */
 typedef struct bunzip_data bunzip_data;

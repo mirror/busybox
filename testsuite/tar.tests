@@ -178,7 +178,7 @@ rm -rf input_* 2>/dev/null
 tar -vxf test.tar 2>&1
 cat input_dir/file 2>&1
 " "\
-tar: removing leading './../tar.tempdir/input_dir/../'
+tar: removing leading './../tar.tempdir/input_dir/../' from member names
 input_dir/
 input_dir/file
 Ok
