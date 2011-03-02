@@ -1220,13 +1220,13 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 				/* ifup */
 				if (iface_state) {
 					bb_error_msg("interface %s already configured", iface);
-					continue;
+					goto next;
 				}
 			} else {
 				/* ifdown */
 				if (!iface_state) {
 					bb_error_msg("interface %s not configured", iface);
-					continue;
+					goto next;
 				}
 			}
 			llist_free(state_list, free);
@@ -1316,6 +1316,9 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 			fclose(state_fp);
 			llist_free(state_list, free);
 		}
+ next:
+		free(iface);
+		free(liface);
 	}
 
 	return any_failures;

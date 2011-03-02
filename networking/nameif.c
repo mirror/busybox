@@ -156,7 +156,7 @@ int nameif_main(int argc, char **argv)
 
 	if (argc) {
 		while (*argv) {
-			char *ifname = xstrdup(*argv++);
+			char *ifname = *argv++;
 			prepend_new_eth_table(&clist, ifname, *argv++);
 		}
 	} else {
