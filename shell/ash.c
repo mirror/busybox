@@ -3539,12 +3539,12 @@ set_curjob(struct job *jp, unsigned mode)
 
 	/* first remove from list */
 	jpp = curp = &curjob;
-	do {
+	while (1) {
 		jp1 = *jpp;
 		if (jp1 == jp)
 			break;
 		jpp = &jp1->prev_job;
-	} while (1);
+	}
 	*jpp = jp1->prev_job;
 
 	/* Then re-insert in correct position */
@@ -3560,14 +3560,14 @@ set_curjob(struct job *jp, unsigned mode)
 	case CUR_RUNNING:
 		/* newly created job or backgrounded job,
 		   put after all stopped jobs. */
-		do {
+		while (1) {
 			jp1 = *jpp;
 #if JOBS
 			if (!jp1 || jp1->state != JOBSTOPPED)
 #endif
 				break;
 			jpp = &jp1->prev_job;
-		} while (1);
+		}
 		/* FALLTHROUGH */
 #if JOBS
 	case CUR_STOPPED:
@@ -3740,7 +3740,7 @@ setjobctl(int on)
 			goto out;
 		/* fd is a tty at this point */
 		close_on_exec_on(fd);
-		do { /* while we are in the background */
+		while (1) { /* while we are in the background */
 			pgrp = tcgetpgrp(fd);
 			if (pgrp < 0) {
  out:
@@ -3751,7 +3751,7 @@ setjobctl(int on)
 			if (pgrp == getpgrp())
 				break;
 			killpg(0, SIGTTIN);
-		} while (1);
+		}
 		initialpgrp = pgrp;
 
 		setsignal(SIGTSTP);
@@ -5970,7 +5970,7 @@ expari(int quotes)
 	p = expdest - 1;
 	*p = '\0';
 	p--;
-	do {
+	while (1) {
 		int esc;
 
 		while ((unsigned char)*p != CTLARI) {
@@ -5988,7 +5988,7 @@ expari(int quotes)
 		}
 
 		p -= esc + 1;
-	} while (1);
+	}
 
 	begoff = p - start;
 

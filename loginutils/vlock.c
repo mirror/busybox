@@ -93,16 +93,17 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 	term.c_lflag &= ~(ECHO | ECHOCTL);
 	tcsetattr_stdin_TCSANOW(&term);
 
-	do {
+	while (1) {
 		printf("Virtual console%s locked by %s.\n",
-				option_mask32 /*o_lock_all*/ ? "s" : "",
-				pw->pw_name);
+				/* "s" if -a, else "": */ "s" + !option_mask32,
+				pw->pw_name
+		);
 		if (correct_password(pw)) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
 		puts("Password incorrect");
-	} while (1);
+	}
 
 #ifdef __linux__
 	ioctl(STDIN_FILENO, VT_SETMODE, &ovtm);

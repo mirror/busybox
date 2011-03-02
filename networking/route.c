@@ -605,7 +605,7 @@ static void INET6_displayroutes(void)
 		set_flags(flags, (iflags & IPV6_MASK));
 
 		r = 0;
-		do {
+		while (1) {
 			inet_pton(AF_INET6, addr6x + r,
 					  (struct sockaddr *) &snaddr6.sin6_addr);
 			snaddr6.sin6_family = AF_INET6;
@@ -624,7 +624,7 @@ static void INET6_displayroutes(void)
 				free(naddr6);
 				break;
 			}
-		} while (1);
+		}
 	}
 	fclose(fp);
 }

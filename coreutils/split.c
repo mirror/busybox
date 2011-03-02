@@ -32,7 +32,7 @@ static char *next_file(char *old, unsigned suffix_len)
 	unsigned i = 1;
 	char *curr;
 
-	do {
+	while (1) {
 		curr = old + end - i;
 		if (*curr < 'z') {
 			*curr += 1;
@@ -43,7 +43,7 @@ static char *next_file(char *old, unsigned suffix_len)
 			return NULL;
 		}
 		*curr = 'a';
-	} while (1);
+	}
 
 	return old;
 }
