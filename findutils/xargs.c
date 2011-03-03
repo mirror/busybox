@@ -15,10 +15,6 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/xargs.html
  */
 
-//applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, BB_DIR_USR_BIN, BB_SUID_DROP, xargs))
-
-//kbuild:lib-$(CONFIG_XARGS) += xargs.o
-
 //config:config XARGS
 //config:	bool "xargs"
 //config:	default y
@@ -58,6 +54,10 @@
 //config:	  instead of whitespace, and the quotes and backslash
 //config:	  are not special.
 
+//applet:IF_XARGS(APPLET_NOEXEC(xargs, xargs, BB_DIR_USR_BIN, BB_SUID_DROP, xargs))
+
+//kbuild:lib-$(CONFIG_XARGS) += xargs.o
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */
@@ -89,7 +89,9 @@ struct globals {
 	int idx;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	G.eof_str = NULL; /* need to clear by hand because we are NOEXEC applet */ \
+} while (0)
 
 
 /*
@@ -412,7 +414,12 @@ int xargs_main(int argc, char **argv)
 
 	INIT_G();
 
-	G.eof_str = NULL;
+#if ENABLE_DESKTOP && ENABLE_LONG_OPTS
+	/* For example, Fedora's build system uses --no-run-if-empty */
+	applet_long_options =
+		"no-run-if-empty\0" No_argument "r"
+		;
+#endif
 	opt = getopt32(argv, OPTION_STR, &max_args, &max_chars, &G.eof_str, &G.eof_str);
 
 	/* -E ""? You may wonder why not just omit -E?
