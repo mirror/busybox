@@ -198,7 +198,6 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	};
 	char *fromhost;
 	char username[USERNAME_SIZE];
-	const char *shell;
 	int run_by_root;
 	unsigned opt;
 	int count = 0;
@@ -391,10 +390,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		run_login_script(pw, full_tty);
 
 	change_identity(pw);
-	shell = pw->pw_shell;
-	if (!shell || !shell[0])
-		shell = DEFAULT_SHELL;
-	setup_environment(shell,
+	setup_environment(pw->pw_shell,
 			(!(opt & LOGIN_OPT_p) * SETUP_ENV_CLEARENV) + SETUP_ENV_CHANGEENV,
 			pw);
 
@@ -442,7 +438,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGINT, SIG_DFL);
 
 	/* Exec login shell with no additional parameters */
-	run_shell(shell, 1, NULL, NULL);
+	run_shell(pw->pw_shell, 1, NULL, NULL);
 
 	/* return EXIT_FAILURE; - not reached */
 }

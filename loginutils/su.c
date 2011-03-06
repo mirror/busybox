@@ -114,20 +114,14 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		opt_shell = getenv("SHELL");
 	}
 
-	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
-	 * is a username that is retrieved via NIS (YP), that doesn't have
-	 * a default shell listed.  */
-	if (!pw->pw_shell || !pw->pw_shell[0])
-		pw->pw_shell = (char *)DEFAULT_SHELL;
-
 #if ENABLE_FEATURE_SU_CHECKS_SHELLS
-	if (opt_shell && cur_uid != 0 && restricted_shell(pw->pw_shell)) {
+	if (opt_shell && cur_uid != 0 && pw->pw_shell && restricted_shell(pw->pw_shell)) {
 		/* The user being su'd to has a nonstandard shell, and so is
 		 * probably a uucp account or has restricted access.  Don't
 		 * compromise the account by allowing access with a standard
 		 * shell.  */
 		bb_error_msg("using restricted shell");
-		opt_shell = NULL;
+		opt_shell = NULL; /* ignore -s PROG */
 	}
 	/* else: user can run whatever he wants via "su -s PROG USER".
 	 * This is safe since PROG is run under user's uid/gid. */
