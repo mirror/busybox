@@ -133,7 +133,7 @@ void delete_eth_table(ethtable_t *ch);
 #endif
 
 int nameif_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int nameif_main(int argc, char **argv)
+int nameif_main(int argc UNUSED_PARAM, char **argv)
 {
 	ethtable_t *clist = NULL;
 	const char *fname = "/etc/mactab";
@@ -148,17 +148,15 @@ int nameif_main(int argc, char **argv)
 		 * can't hurt. 2>/dev/null if you don't like it: */
 		logmode |= LOGMODE_SYSLOG;
 	}
-	argc -= optind;
 	argv += optind;
 
-	if (argc & 1)
-		bb_show_usage();
-
-	if (argc) {
-		while (*argv) {
-			char *ifname = *argv++;
-			prepend_new_eth_table(&clist, ifname, *argv++);
-		}
+	if (argv[0]) {
+		do {
+			if (!argv[1])
+				bb_show_usage();
+			prepend_new_eth_table(&clist, argv[0], argv[1]);
+			argv += 2;
+		} while (*argv);
 	} else {
 		parser = config_open(fname);
 		while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL))
@@ -174,7 +172,7 @@ int nameif_main(int argc, char **argv)
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED
 		struct ethtool_drvinfo drvinfo;
 #endif
-		if (parser->lineno < 2)
+		if (parser->lineno <= 2)
 			continue; /* Skip the first two lines */
 
 		/* Find the current interface name and copy it to ifr.ifr_name */
