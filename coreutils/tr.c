@@ -324,5 +324,11 @@ int tr_main(int argc UNUSED_PARAM, char **argv)
 		str2[out_index++] = last = coded;
 	}
 
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(vector);
+		free(str2);
+		free(str1);
+	}
+
 	return EXIT_SUCCESS;
 }
