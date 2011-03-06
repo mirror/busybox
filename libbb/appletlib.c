@@ -713,12 +713,23 @@ static int busybox_main(char **argv)
 	if (ENABLE_FEATURE_INSTALLER && strcmp(argv[1], "--install") == 0) {
 		int use_symbolic_links;
 		const char *busybox;
+
 		busybox = xmalloc_readlink(bb_busybox_exec_path);
-		if (!busybox)
-			busybox = bb_busybox_exec_path;
-		/* busybox --install [-s] [DIR]: */
-		/* -s: make symlinks */
-		/* DIR: directory to install links to */
+		if (!busybox) {
+			/* bb_busybox_exec_path is usually "/proc/self/exe".
+			 * In chroot, readlink("/proc/self/exe") usually fails.
+			 * In such case, better use argv[0] as symlink target
+			 * if it is a full path name.
+			 */
+			if (argv[0][0] == '/')
+				busybox = argv[0];
+			else
+				busybox = bb_busybox_exec_path;
+		}
+		/* busybox --install [-s] [DIR]:
+		 * -s: make symlinks
+		 * DIR: directory to install links to
+		 */
 		use_symbolic_links = (argv[2] && strcmp(argv[2], "-s") == 0 && argv++);
 		install_links(busybox, use_symbolic_links, argv[2]);
 		return 0;
