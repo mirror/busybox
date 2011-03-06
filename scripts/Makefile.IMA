@@ -9,7 +9,10 @@ objtree		:= $(CURDIR)
 src		:= $(srctree)
 obj		:= $(objtree)
 
-# Look for make include files relative to root of kernel src
+# Make generated files
+DUMMY := $(shell $(Q)$(srctree)/scripts/gen_build_files.sh $(srctree) $(objtree) >&2)
+
+# Look for make include files relative to root of src
 MAKEFLAGS += --include-dir=$(srctree)
 
 default: busybox
@@ -120,6 +123,9 @@ lib-all-y += $(patsubst %,modutils/%,$(sort $(lib-y)))
 lib-y:=
 include miscutils/Kbuild
 lib-all-y += $(patsubst %,miscutils/%,$(sort $(lib-y)))
+lib-y:=
+include mailutils/Kbuild
+lib-all-y += $(patsubst %,mailutils/%,$(sort $(lib-y)))
 lib-y:=
 include coreutils/libcoreutils/Kbuild
 lib-all-y += $(patsubst %,coreutils/libcoreutils/%,$(sort $(lib-y)))

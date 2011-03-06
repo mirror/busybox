@@ -87,7 +87,7 @@ struct globals {
 	const char *login;              /* login program */
 	const char *fakehost;
 	const char *tty;                /* name of tty */
-	const char *initstring;         /* modem init string */
+	char *initstring;               /* modem init string */
 	const char *issue;              /* alternative issue file */
 	int numspeed;                   /* number of baud rates to try */
 	int speeds[MAX_SPEED];          /* baud rates to be tried */
@@ -176,7 +176,7 @@ static void parse_args(char **argv)
 	if (flags & F_INITSTRING) {
 		G.initstring = xstrdup(G.initstring);
 		/* decode \ddd octal codes into chars */
-		strcpy_and_process_escape_sequences((char*)G.initstring, G.initstring);
+		strcpy_and_process_escape_sequences(G.initstring, G.initstring);
 	}
 	argv += optind;
 	debug("after getopt\n");
