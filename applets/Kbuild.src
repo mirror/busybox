@@ -42,3 +42,6 @@ quiet_cmd_gen_applet_tables = GEN     include/applet_tables.h
 
 include/applet_tables.h: applets/applet_tables
 	$(call cmd,gen_applet_tables)
+
+include/NUM_APPLETS.h: applets/applet_tables
+	$(call cmd,gen_applet_tables)
