@@ -2546,20 +2546,6 @@ INSERT
        "ras3 reset retension rewind rewoffline seek setblk setdensity\n" \
        "setpart tell unload unlock weof wset" \
 
-#define nameif_trivial_usage \
-       "[-s] [-c FILE] [{IFNAME MACADDR}]"
-#define nameif_full_usage "\n\n" \
-       "Rename network interface while it in the down state\n" \
-     "\nOptions:" \
-     "\n	-c FILE		Use configuration file (default: /etc/mactab)" \
-     "\n	-s		Use syslog (LOCAL0 facility)" \
-     "\n	IFNAME MACADDR	new_interface_name interface_mac_address" \
-
-#define nameif_example_usage \
-       "$ nameif -s dmz0 00:A0:C9:8C:F6:3F\n" \
-       " or\n" \
-       "$ nameif -c /etc/my_mactab_file\n" \
-
 #define nohup_trivial_usage \
        "PROG ARGS"
 #define nohup_full_usage "\n\n" \
