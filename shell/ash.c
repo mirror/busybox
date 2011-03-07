@@ -7396,8 +7396,6 @@ static int builtinloc = -1;     /* index in path of %builtin, or -1 */
 static void
 tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **envp)
 {
-	int repeated = 0;
-
 #if ENABLE_FEATURE_SH_STANDALONE
 	if (applet_no >= 0) {
 		if (APPLET_IS_NOEXEC(applet_no)) {
@@ -7421,25 +7419,36 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **
 #else
 	execve(cmd, argv, envp);
 #endif
-	if (repeated) {
+	if (cmd == (char*) bb_busybox_exec_path) {
+		/* We already visited ENOEXEC branch below, don't do it again */
+//TODO: try execve(initial_argv0_of_shell, argv, envp) before giving up?
 		free(argv);
 		return;
 	}
 	if (errno == ENOEXEC) {
+		/* Run "cmd" as a shell script:
+		 * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
+		 * "If the execve() function fails with ENOEXEC, the shell
+		 * shall execute a command equivalent to having a shell invoked
+		 * with the command name as its first operand,
+		 * with any remaining arguments passed to the new shell"
+		 *
+		 * That is, do not use $SHELL, user's shell, or /bin/sh;
+		 * just call ourselves.
+		 */
 		char **ap;
 		char **new;
 
 		for (ap = argv; *ap; ap++)
 			continue;
-		ap = new = ckmalloc((ap - argv + 2) * sizeof(ap[0]));
-		ap[1] = cmd;
-		ap[0] = cmd = (char *)DEFAULT_SHELL;
-		ap += 2;
-		argv++;
-		while ((*ap++ = *argv++) != NULL)
+		new = ckmalloc((ap - argv + 2) * sizeof(new[0]));
+		new[0] = (char*) "ash";
+		new[1] = cmd;
+		ap = new + 2;
+		while ((*ap++ = *++argv) != NULL)
 			continue;
+		cmd = (char*) bb_busybox_exec_path;
 		argv = new;
-		repeated++;
 		goto repeat;
 	}
 }
