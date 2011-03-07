@@ -255,14 +255,21 @@
  * therefore we don't show them either.
  */
 //usage:#define hush_trivial_usage
-//usage:       "[-nx] [-c SCRIPT]"
-//usage:#define hush_full_usage ""
+//usage:	"[-nx] [-c 'SCRIPT' [ARG0 [ARGS]] / SCRIPT_FILE [ARGS]]"
+//usage:#define hush_full_usage "\n\n"
+//usage:	"Unix shell interpreter"
+
 //usage:#define msh_trivial_usage hush_trivial_usage
-//usage:#define msh_full_usage ""
-//usage:#define sh_trivial_usage NOUSAGE_STR
-//usage:#define sh_full_usage ""
-//usage:#define bash_trivial_usage NOUSAGE_STR
-//usage:#define bash_full_usage ""
+//usage:#define msh_full_usage hush_full_usage
+
+//usage:#if ENABLE_FEATURE_SH_IS_HUSH
+//usage:# define sh_trivial_usage hush_trivial_usage
+//usage:# define sh_full_usage    hush_full_usage
+//usage:#endif
+//usage:#if ENABLE_FEATURE_BASH_IS_HUSH
+//usage:# define bash_trivial_usage hush_trivial_usage
+//usage:# define bash_full_usage    hush_full_usage
+//usage:#endif
 
 
 /* Build knobs */

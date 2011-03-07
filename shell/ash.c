@@ -190,13 +190,6 @@
 //config:	  variable each time it is displayed.
 //config:
 
-//usage:#define ash_trivial_usage NOUSAGE_STR
-//usage:#define ash_full_usage ""
-//usage:#define sh_trivial_usage NOUSAGE_STR
-//usage:#define sh_full_usage ""
-//usage:#define bash_trivial_usage NOUSAGE_STR
-//usage:#define bash_full_usage ""
-
 
 /* ============ Hash table sizes. Configurable. */
 
@@ -10155,6 +10148,7 @@ setoption(int flag, int val)
 	/* NOTREACHED */
 }
 static int
+
 options(int cmdline)
 {
 	char *p;
@@ -10180,7 +10174,7 @@ options(int cmdline)
 					else if (*argptr == NULL)
 						setparam(argptr);
 				}
-				break;    /* "-" or  "--" terminates options */
+				break;    /* "-" or "--" terminates options */
 			}
 		}
 		/* first char was + or - */
@@ -10282,10 +10276,10 @@ setcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	if (!argv[1])
 		return showvars(nullstr, 0, VUNSET);
+
 	INT_OFF;
-	retval = 1;
-	if (!options(0)) { /* if no parse error... */
-		retval = 0;
+	retval = options(/*cmdline:*/ 0);
+	if (retval == 0) { /* if no parse error... */
 		optschanged();
 		if (*argptr != NULL) {
 			setparam(argptr);
@@ -12938,13 +12932,31 @@ init(void)
 		setvar("PPID", utoa(getppid()), 0);
 
 		p = lookupvar("PWD");
-		if (p)
+		if (p) {
 			if (*p != '/' || stat(p, &st1) || stat(".", &st2)
-			 || st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
+			 || st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino
+			) {
 				p = '\0';
+			}
+		}
 		setpwd(p, 0);
 	}
 }
+
+
+//usage:#define ash_trivial_usage
+//usage:	"[-/+OPTCHARS] [-/+o OPTNAME]... [-c 'SCRIPT' [ARG0 [ARGS]] / SCRIPT_FILE [ARGS]]"
+//usage:#define ash_full_usage "\n\n"
+//usage:	"Unix shell interpreter"
+
+//usage:#if ENABLE_FEATURE_SH_IS_ASH
+//usage:# define sh_trivial_usage ash_trivial_usage
+//usage:# define sh_full_usage    ash_full_usage
+//usage:#endif
+//usage:#if ENABLE_FEATURE_BASH_IS_ASH
+//usage:# define bash_trivial_usage ash_trivial_usage
+//usage:# define bash_full_usage    ash_full_usage
+//usage:#endif
 
 /*
  * Process the shell command line arguments.
@@ -12963,7 +12975,7 @@ procargs(char **argv)
 	for (i = 0; i < NOPTS; i++)
 		optlist[i] = 2;
 	argptr = xargv;
-	if (options(1)) {
+	if (options(/*cmdline:*/ 1)) {
 		/* it already printed err message */
 		raise_exception(EXERROR);
 	}
