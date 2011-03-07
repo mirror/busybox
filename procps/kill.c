@@ -219,6 +219,7 @@ int kill_main(int argc, char **argv)
 			pid = bb_strtoi(arg, &end, 10);
 			if (errno && (errno != EINVAL || *end != ' ')) {
 				bb_error_msg("invalid number '%s'", arg);
+				*end = '\0';
 				errors++;
 			} else if (kill(pid, signo) != 0) {
 				bb_perror_msg("can't kill pid %d", (int)pid);
