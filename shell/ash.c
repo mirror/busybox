@@ -10148,7 +10148,6 @@ setoption(int flag, int val)
 	/* NOTREACHED */
 }
 static int
-
 options(int cmdline)
 {
 	char *p;
