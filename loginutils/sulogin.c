@@ -88,8 +88,8 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		if (r == 0) {
 			break;
 		}
-		bb_do_delay(FAIL_DELAY);
-		bb_error_msg("login incorrect");
+		bb_do_delay(LOGIN_FAIL_DELAY);
+		bb_info_msg("Login incorrect");
 	}
 	memset(cp, 0, strlen(cp));
 //	signal(SIGALRM, SIG_DFL);

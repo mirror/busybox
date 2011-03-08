@@ -355,7 +355,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 #endif /* ENABLE_PAM */
  auth_failed:
 		opt &= ~LOGIN_OPT_f;
-		bb_do_delay(FAIL_DELAY);
+		bb_do_delay(LOGIN_FAIL_DELAY);
 		/* TODO: doesn't sound like correct English phrase to me */
 		puts("Login incorrect");
 		if (++count == 3) {

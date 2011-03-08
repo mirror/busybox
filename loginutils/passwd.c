@@ -28,7 +28,7 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 		if (strcmp(encrypted, pw->pw_passwd) != 0) {
 			syslog(LOG_WARNING, "incorrect password for %s",
 				pw->pw_name);
-			bb_do_delay(FAIL_DELAY);
+			bb_do_delay(LOGIN_FAIL_DELAY);
 			puts("Incorrect password");
 			goto err_ret;
 		}

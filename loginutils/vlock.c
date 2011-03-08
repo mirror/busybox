@@ -101,8 +101,8 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 		if (correct_password(pw)) {
 			break;
 		}
-		bb_do_delay(FAIL_DELAY);
-		puts("Password incorrect");
+		bb_do_delay(LOGIN_FAIL_DELAY);
+		puts("Incorrect password");
 	}
 
 #ifdef __linux__
