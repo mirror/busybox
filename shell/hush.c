@@ -255,7 +255,7 @@
  * therefore we don't show them either.
  */
 //usage:#define hush_trivial_usage
-//usage:	"[-nx] [-c 'SCRIPT' [ARG0 [ARGS]] / SCRIPT_FILE [ARGS]]"
+//usage:	"[-nx] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
 //usage:#define hush_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
 
