@@ -99,8 +99,12 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 			close(p[1]);
 			xdup2(p[0], STDIN_FILENO);
 			signal(SIGPIPE, SIG_DFL);
-			execl(DEFAULT_SHELL, DEFAULT_SHELL_SHORT_NAME, "-c", archive_handle->tar__to_command, NULL);
-			bb_perror_msg_and_die("can't execute '%s'", DEFAULT_SHELL);
+			execl(archive_handle->tar__to_command_shell,
+				archive_handle->tar__to_command_shell,
+				"-c",
+				archive_handle->tar__to_command,
+				NULL);
+			bb_perror_msg_and_die("can't execute '%s'", archive_handle->tar__to_command_shell);
 		}
 		close(p[0]);
 		/* Our caller is expected to do signal(SIGPIPE, SIG_IGN)

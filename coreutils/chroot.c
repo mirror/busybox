@@ -23,11 +23,9 @@ int chroot_main(int argc UNUSED_PARAM, char **argv)
 	++argv;
 	if (!*argv) { /* no 2nd param (PROG), use shell */
 		argv -= 2;
-		argv[0] = getenv("SHELL");
-		if (!argv[0]) {
-			argv[0] = (char *) DEFAULT_SHELL;
-		}
-		argv[1] = (char *) "-i";
+		argv[0] = (char *) get_shell_name();
+		argv[1] = (char *) "-i"; /* GNU coreutils 8.4 compat */
+		/*argv[2] = NULL; - already is */
 	}
 
 	BB_EXECVP_or_die(argv);

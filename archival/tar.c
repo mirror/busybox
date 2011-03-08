@@ -970,6 +970,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		putenv((char*)"TAR_FILETYPE=f");
 		signal(SIGPIPE, SIG_IGN);
 		tar_handle->action_data = data_extract_to_command;
+		IF_FEATURE_TAR_TO_COMMAND(tar_handle->tar__to_command_shell = xstrdup(get_shell_name());)
 	}
 
 	if (opt & OPT_KEEP_OLD)

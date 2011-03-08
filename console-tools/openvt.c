@@ -144,9 +144,7 @@ int openvt_main(int argc UNUSED_PARAM, char **argv)
 
 	if (!argv[0]) {
 		argv--;
-		argv[0] = getenv("SHELL");
-		if (!argv[0])
-			argv[0] = (char *) DEFAULT_SHELL;
+		argv[0] = (char *) get_shell_name();
 		/*argv[1] = NULL; - already is */
 	}
 

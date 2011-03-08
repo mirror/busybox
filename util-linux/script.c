@@ -65,10 +65,7 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & OPT_q)) {
 		printf("Script started, file is %s\n", fname);
 	}
-	shell = getenv("SHELL");
-	if (shell == NULL) {
-		shell = DEFAULT_SHELL;
-	}
+	shell = get_shell_name();
 
 	pty = xgetpty(pty_line);
 

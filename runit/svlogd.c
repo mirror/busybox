@@ -187,6 +187,7 @@ struct globals {
 	unsigned nearest_rotate;
 
 	void* (*memRchr)(const void *, int, size_t);
+	char *shell;
 
 	smallint exitasap;
 	smallint rotateasap;
@@ -382,6 +383,9 @@ static void processorstart(struct logdir *ld)
 	/* vfork'ed child trashes this byte, save... */
 	sv_ch = ld->fnsave[26];
 
+	if (!G.shell)
+		G.shell = xstrdup(get_shell_name());
+
 	while ((pid = vfork()) == -1)
 		pause2cannot("vfork for processor", ld->name);
 	if (!pid) {
@@ -416,8 +420,7 @@ static void processorstart(struct logdir *ld)
 		fd = xopen("newstate", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
 		xmove_fd(fd, 5);
 
-// getenv("SHELL")?
-		execl(DEFAULT_SHELL, DEFAULT_SHELL_SHORT_NAME, "-c", ld->processor, (char*) NULL);
+		execl(G.shell, G.shell, "-c", ld->processor, (char*) NULL);
 		bb_perror_msg_and_die(FATAL"can't %s processor %s", "run", ld->name);
 	}
 	ld->fnsave[26] = sv_ch; /* ...restore */

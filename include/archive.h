@@ -84,6 +84,7 @@ typedef struct archive_handle_t {
 # endif
 #if ENABLE_FEATURE_TAR_TO_COMMAND
 	char* tar__to_command;
+	const char* tar__to_command_shell;
 #endif
 # if ENABLE_FEATURE_TAR_SELINUX
 	char* tar__global_sctx;
