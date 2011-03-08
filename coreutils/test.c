@@ -45,7 +45,7 @@
 /* This is a NOFORK applet. Be very careful! */
 
 /* test_main() is called from shells, and we need to be extra careful here.
- * This is true regardless of PREFER_APPLETS and STANDALONE_SHELL
+ * This is true regardless of PREFER_APPLETS and SH_STANDALONE
  * state. */
 
 /* test(1) accepts the following grammar:
