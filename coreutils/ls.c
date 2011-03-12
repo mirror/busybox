@@ -1,6 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * tiny-ls.c version 0.1.0: A minimalist 'ls'
  * Copyright (C) 1996 Brian Candler <B.Candler@pobox.com>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
@@ -1145,7 +1144,10 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		cur = my_stat(*argv, *argv,
 			/* follow links on command line unless -l, -s or -F: */
-			!((all_fmt & (STYLE_LONG|LIST_BLOCKS)) || (option_mask32 & OPT_F))
+			!((all_fmt & STYLE_MASK) == STYLE_LONG
+			  || (all_fmt & LIST_BLOCKS)
+			  || (option_mask32 & OPT_F)
+			)
 			/* ... or if -H: */
 			|| (option_mask32 & OPT_H)
 		);
