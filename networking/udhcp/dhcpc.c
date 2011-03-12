@@ -407,10 +407,18 @@ static ALWAYS_INLINE uint32_t random_xid(void)
 /* Initialize the packet with the proper defaults */
 static void init_packet(struct dhcp_packet *packet, char type)
 {
+	uint16_t secs;
+
 	/* Fill in: op, htype, hlen, cookie fields; message type option: */
 	udhcp_init_header(packet, type);
 
 	packet->xid = random_xid();
+
+	client_config.last_secs = monotonic_sec();
+	if (client_config.first_secs == 0)
+		client_config.first_secs = client_config.last_secs;
+	secs = client_config.last_secs - client_config.first_secs;
+	packet->secs = htons(secs);
 
 	memcpy(packet->chaddr, client_config.client_mac, 6);
 	if (client_config.clientid)
@@ -848,6 +856,7 @@ static void change_listen_mode(int new_mode)
 	/* else LISTEN_NONE: sockfd stays closed */
 }
 
+/* Called only on SIGUSR1 */
 static void perform_renew(void)
 {
 	bb_info_msg("Performing a DHCP renew");
@@ -1260,6 +1269,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			case BOUND:
 				/* 1/2 lease passed, enter renewing state */
 				state = RENEWING;
+				client_config.first_secs = 0; /* make secs field count from 0 */
 				change_listen_mode(LISTEN_KERNEL);
 				log1("Entering renew state");
 				/* fall right through */
@@ -1299,6 +1309,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				bb_info_msg("Lease lost, entering init state");
 				udhcp_run_script(NULL, "deconfig");
 				state = INIT_SELECTING;
+				client_config.first_secs = 0; /* make secs field count from 0 */
 				/*timeout = 0; - already is */
 				packet_num = 0;
 				continue;
@@ -1315,6 +1326,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		/* note: udhcp_sp_read checks FD_ISSET before reading */
 		switch (udhcp_sp_read(&rfds)) {
 		case SIGUSR1:
+			client_config.first_secs = 0; /* make secs field count from 0 */
 			perform_renew();
 			if (state == RENEW_REQUESTED)
 				goto case_RENEW_REQUESTED;
@@ -1446,6 +1458,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 							udhcp_run_script(NULL, "deconfig");
 						change_listen_mode(LISTEN_RAW);
 						state = INIT_SELECTING;
+						client_config.first_secs = 0; /* make secs field count from 0 */
 						requested_ip = 0;
 						timeout = tryagain_timeout;
 						packet_num = 0;
@@ -1493,6 +1506,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				change_listen_mode(LISTEN_RAW);
 				sleep(3); /* avoid excessive network traffic */
 				state = INIT_SELECTING;
+				client_config.first_secs = 0; /* make secs field count from 0 */
 				requested_ip = 0;
 				timeout = 0;
 				packet_num = 0;
