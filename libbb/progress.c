@@ -127,10 +127,12 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		/* 32-bit CPU and 64-bit off_t.
 		 * Use a 40-bit shift, it is easier to do on 32-bit CPU.
 		 */
-		if (totalsize >= (uoff_t)(1ULL << 54)) {
-			totalsize = (uint32_t)(totalsize >> 32) >> 8;
-			beg_size = (uint32_t)(beg_size >> 32) >> 8;
-			transferred = (uint32_t)(transferred >> 32) >> 8;
+/* ONE suppresses "warning: shift count >= width of type" */
+#define ONE (sizeof(off_t) > 4)
+		if (totalsize >= (uoff_t)(1ULL << 54*ONE)) {
+			totalsize = (uint32_t)(totalsize >> 32*ONE) >> 8;
+			beg_size = (uint32_t)(beg_size >> 32*ONE) >> 8;
+			transferred = (uint32_t)(transferred >> 32*ONE) >> 8;
 			kiloscale = 4;
 		}
 	}
