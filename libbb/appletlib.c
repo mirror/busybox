@@ -721,10 +721,9 @@ static int busybox_main(char **argv)
 			 * In such case, better use argv[0] as symlink target
 			 * if it is a full path name.
 			 */
-			if (argv[0][0] == '/')
-				busybox = argv[0];
-			else
-				busybox = bb_busybox_exec_path;
+			if (argv[0][0] != '/')
+				bb_error_msg_and_die("'%s' is not an absolute path", argv[0]);
+			busybox = argv[0];
 		}
 		/* busybox --install [-s] [DIR]:
 		 * -s: make symlinks
