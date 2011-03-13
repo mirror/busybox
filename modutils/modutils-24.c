@@ -2474,6 +2474,7 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 		n = 0;
 		p = val;
 		while (*p != 0) {
+			char sv_ch;
 			char *endp;
 
 			if (++n > max)
@@ -2482,14 +2483,17 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 			switch (*pinfo) {
 			case 's':
 				len = strcspn(p, ",");
+				sv_ch = p[len];
 				p[len] = 0;
 				obj_string_patch(f, sym->secidx,
 						 loc - contents, p);
 				loc += tgt_sizeof_char_p;
 				p += len;
+				*p = sv_ch;
 				break;
 			case 'c':
 				len = strcspn(p, ",");
+				sv_ch = p[len];
 				p[len] = 0;
 				if (len >= charssize)
 					bb_error_msg_and_die("string too long for %s (max %ld)", param,
@@ -2497,6 +2501,7 @@ new_process_module_arguments(struct obj_file *f, const char *options)
 				strcpy((char *) loc, p);
 				loc += charssize;
 				p += len;
+				*p = sv_ch;
 				break;
 			case 'b':
 				*loc++ = strtoul(p, &endp, 0);

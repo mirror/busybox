@@ -446,7 +446,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 {
-	char buf[512];
+	char buf[4*1024]; /* made bigger to speed up local xfers */
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 # if ENABLE_FEATURE_WGET_TIMEOUT
 	unsigned second_cnt;
@@ -455,7 +455,6 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
-	ndelay_on(polldata.fd);
 #endif
 	progress_meter(PROGRESS_START);
 
@@ -464,6 +463,10 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 
 	/* Loops only if chunked */
 	while (1) {
+
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+		ndelay_on(polldata.fd);
+#endif
 		while (1) {
 			int n;
 			unsigned rdsz;
@@ -493,22 +496,46 @@ static void NOINLINE retrieve_file_data(FILE *dfp, int output_fd)
 				progress_meter(PROGRESS_BUMP);
 			}
 #endif
+			/* fread internally uses read loop, which in our case
+			 * is usually exited when we get EAGAIN.
+			 * In this case, libc sets error marker on the stream.
+			 * Need to clear it before next fread to avoid possible
+			 * rare false positive ferror below. Rare because usually
+			 * fread gets more than zero bytes, and we don't fall
+			 * into if (n <= 0) ...
+			 */
+			clearerr(dfp);
+			errno = 0;
 			n = safe_fread(buf, rdsz, dfp);
+			/* man fread:
+			 * If error occurs, or EOF is reached, the return value
+			 * is a short item count (or zero).
+			 * fread does not distinguish between EOF and error.
+			 */
 			if (n <= 0) {
-				if (ferror(dfp)) {
-					/* perror will not work: ferror doesn't set errno */
-					bb_error_msg_and_die(bb_msg_read_error);
-				}
-				break;
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+				if (errno == EAGAIN) /* poll lied, there is no data? */
+					continue; /* yes */
+#endif
+				if (ferror(dfp))
+					bb_perror_msg_and_die(bb_msg_read_error);
+				break; /* EOF, not error */
 			}
+
 			xwrite(output_fd, buf, n);
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			G.transferred += n;
 			progress_meter(PROGRESS_BUMP);
 #endif
-			if (G.got_clen)
+			if (G.got_clen) {
 				G.content_len -= n;
+				if (G.content_len == 0)
+					break;
+			}
 		}
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+		ndelay_off(polldata.fd);
+#endif
 
 		if (!G.chunked)
 			break;
@@ -706,6 +733,11 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n",
 			target.host, user_agent);
 
+		/* Ask server to close the connection as soon as we are done
+		 * (IOW: we do not intend to send more requests)
+		 */
+		fprintf(sfp, "Connection: close\r\n");
+
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 		if (target.user) {
 			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6,
@@ -719,22 +751,25 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 
 		if (G.beg_range)
 			fprintf(sfp, "Range: bytes=%"OFF_FMT"u-\r\n", G.beg_range);
+
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 		if (extra_headers)
 			fputs(extra_headers, sfp);
 
 		if (opt & WGET_OPT_POST_DATA) {
 			char *estr = URL_escape(post_data);
-			fprintf(sfp, "Content-Type: application/x-www-form-urlencoded\r\n");
-			fprintf(sfp, "Content-Length: %u\r\n" "\r\n" "%s",
-					(int) strlen(estr), estr);
-			/*fprintf(sfp, "Connection: Keep-Alive\r\n\r\n");*/
-			/*fprintf(sfp, "%s\r\n", estr);*/
+			fprintf(sfp,
+				"Content-Type: application/x-www-form-urlencoded\r\n"
+				"Content-Length: %u\r\n"
+				"\r\n"
+				"%s",
+				(int) strlen(estr), estr
+			);
 			free(estr);
 		} else
 #endif
-		{ /* If "Connection:" is needed, document why */
-			fprintf(sfp, /* "Connection: close\r\n" */ "\r\n");
+		{
+			fprintf(sfp, "\r\n");
 		}
 
 		fflush(sfp);
