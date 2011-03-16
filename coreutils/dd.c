@@ -397,5 +397,11 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
  out_status:
 	dd_output_status(0);
 
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(obuf);
+		if (flags & FLAG_TWOBUFS)
+			free(ibuf);
+	}
+
 	return exitcode;
 }
