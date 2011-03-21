@@ -414,6 +414,7 @@ static void init_exec(const char *command)
 		char *word, *next;
 		int i = 0;
 		next = strcpy(buf, command - dash); /* command including "-" */
+		command = next + dash;
 		while ((word = strsep(&next, " \t")) != NULL) {
 			if (*word != '\0') { /* not two spaces/tabs together? */
 				cmd[i] = word;
