@@ -40,8 +40,12 @@ int ln_main(int argc, char **argv)
 	last = argv[argc - 1];
 	argv += optind;
 
-	if (argc == optind + 1) {
+	if (!argv[1]) {
+		/* "ln PATH/TO/FILE" -> "ln PATH/TO/FILE FILE" */
 		*--argv = last;
+		/* xstrdup is needed: "ln -s PATH/TO/FILE/" is equivalent to
+		 * "ln -s PATH/TO/FILE/ FILE", not "ln -s PATH/TO/FILE FILE"
+		 */
 		last = bb_get_last_path_component_strip(xstrdup(last));
 	}
 
