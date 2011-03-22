@@ -66,7 +66,7 @@ static int print_host(const char *hostname, const char *header)
 	// hint.ai_flags = AI_CANONNAME;
 	rc = getaddrinfo(hostname, NULL /*service*/, &hint, &result);
 
-	if (!rc) {
+	if (rc == 0) {
 		struct addrinfo *cur = result;
 		unsigned cnt = 0;
 
@@ -94,7 +94,7 @@ static int print_host(const char *hostname, const char *header)
 		bb_error_msg("can't resolve '%s'", hostname);
 #endif
 	}
-	if (ENABLE_FEATURE_CLEAN_UP)
+	if (ENABLE_FEATURE_CLEAN_UP && result)
 		freeaddrinfo(result);
 	return (rc != 0);
 }

@@ -164,17 +164,17 @@ char* FAST_FUNC INET_rresolve(struct sockaddr_in *s_in, int numeric, uint32_t ne
 
 int FAST_FUNC INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 {
-	struct addrinfo req, *ai;
+	struct addrinfo req, *ai = NULL;
 	int s;
 
-	memset(&req, '\0', sizeof req);
+	memset(&req, 0, sizeof(req));
 	req.ai_family = AF_INET6;
 	s = getaddrinfo(name, NULL, &req, &ai);
-	if (s) {
+	if (s != 0) {
 		bb_error_msg("getaddrinfo: %s: %d", name, s);
 		return -1;
 	}
-	memcpy(sin6, ai->ai_addr, sizeof(struct sockaddr_in6));
+	memcpy(sin6, ai->ai_addr, sizeof(*sin6));
 	freeaddrinfo(ai);
 	return 0;
 }
@@ -209,9 +209,11 @@ char* FAST_FUNC INET6_rresolve(struct sockaddr_in6 *sin6, int numeric)
 		return xstrdup("*");
 	}
 
-	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6),
-				name, sizeof(name), NULL, 0, 0);
-	if (s) {
+	s = getnameinfo((struct sockaddr *) sin6, sizeof(*sin6),
+				name, sizeof(name),
+				/*serv,servlen:*/ NULL, 0,
+				0);
+	if (s != 0) {
 		bb_error_msg("getnameinfo failed");
 		return NULL;
 	}

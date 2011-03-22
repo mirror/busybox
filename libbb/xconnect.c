@@ -255,7 +255,7 @@ IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
 
 	memset(&hint, 0 , sizeof(hint));
 	hint.ai_family = af;
-	/* Needed. Or else we will get each address thrice (or more)
+	/* Need SOCK_STREAM, or else we get each address thrice (or more)
 	 * for each possible socket type (tcp,udp,raw...): */
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_flags = ai_flags & ~DIE_ON_ERROR;
@@ -285,7 +285,8 @@ IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
  set_port:
 	set_nport(r, htons(port));
  ret:
-	freeaddrinfo(result);
+	if (result)
+		freeaddrinfo(result);
 	return r;
 }
 #if !ENABLE_FEATURE_IPV6
