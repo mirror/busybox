@@ -7,16 +7,28 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_MESG(APPLET(mesg, BB_DIR_USR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_MESG) += mesg.o
-
 //config:config MESG
 //config:	bool "mesg"
 //config:	default y
 //config:	help
 //config:	  Mesg controls access to your terminal by others. It is typically
 //config:	  used to allow or disallow other users to write to your terminal
+//config:
+//config:config FEATURE_MESG_ENABLE_ONLY_GROUP
+//config:	bool "Enable writing to tty only by group, not by everybody"
+//config:	default y
+//config:	depends on MESG
+//config:	help
+//config:	  Usually, ttys are owned by group "tty", and "write" tool is
+//config:	  setgid to this group. This way, "mesg y" only needs to enable
+//config:	  "write by owning group" bit in tty mode.
+//config:
+//config:	  If you set this option to N, "mesg y" will enable writing
+//config:	  by anybody at all. This is not recommended.
+
+//applet:IF_MESG(APPLET(mesg, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MESG) += mesg.o
 
 //usage:#define mesg_trivial_usage
 //usage:       "[y|n]"
@@ -27,7 +39,7 @@
 
 #include "libbb.h"
 
-#ifdef USE_TTY_GROUP
+#if ENABLE_FEATURE_MESG_ENABLE_ONLY_GROUP
 #define S_IWGRP_OR_S_IWOTH  S_IWGRP
 #else
 #define S_IWGRP_OR_S_IWOTH  (S_IWGRP | S_IWOTH)
@@ -37,30 +49,28 @@ int mesg_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mesg_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct stat sb;
-	const char *tty;
+	mode_t m;
 	char c = 0;
 
 	argv++;
 
-	if (!argv[0]
-	 || (!argv[1] && ((c = argv[0][0]) == 'y' || c == 'n'))
+	if (argv[0]
+	 && (argv[1] || ((c = argv[0][0]) != 'y' && c != 'n'))
 	) {
-		tty = xmalloc_ttyname(STDERR_FILENO);
-		if (tty == NULL) {
-			tty = "ttyname";
-		} else if (stat(tty, &sb) == 0) {
-			mode_t m;
-			if (c == 0) {
-				puts((sb.st_mode & (S_IWGRP|S_IWOTH)) ? "is y" : "is n");
-				return EXIT_SUCCESS;
-			}
-			m = (c == 'y') ? sb.st_mode | S_IWGRP_OR_S_IWOTH
-			               : sb.st_mode & ~(S_IWGRP|S_IWOTH);
-			if (chmod(tty, m) == 0) {
-				return EXIT_SUCCESS;
-			}
-		}
-		bb_simple_perror_msg_and_die(tty);
+		bb_show_usage();
 	}
-	bb_show_usage();
+
+	if (!isatty(STDERR_FILENO))
+		bb_error_msg_and_die("not a tty");
+
+	xfstat(STDERR_FILENO, &sb, "stderr");
+	if (c == 0) {
+		puts((sb.st_mode & (S_IWGRP|S_IWOTH)) ? "is y" : "is n");
+		return EXIT_SUCCESS;
+	}
+	m = (c == 'y') ? sb.st_mode | S_IWGRP_OR_S_IWOTH
+	               : sb.st_mode & ~(S_IWGRP|S_IWOTH);
+	if (fchmod(STDERR_FILENO, m) != 0)
+		bb_perror_nomsg_and_die();
+	return EXIT_SUCCESS;
 }
