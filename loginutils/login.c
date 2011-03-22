@@ -278,6 +278,14 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 			failed_msg = "set_item(TTY)";
 			goto pam_auth_failed;
 		}
+		/* set RHOST */
+		if (opt_host) {
+			pamret = pam_set_item(pamh, PAM_RHOST, opt_host);
+			if (pamret != PAM_SUCCESS) {
+				failed_msg = "set_item(RHOST)";
+				goto pam_auth_failed;
+			}
+		}
 		pamret = pam_authenticate(pamh, 0);
 		if (pamret != PAM_SUCCESS) {
 			failed_msg = "authenticate";
