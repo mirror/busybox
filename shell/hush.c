@@ -81,7 +81,6 @@
  *              $ "export" i=`echo 'aaa  bbb'`; echo "$i"
  *              aaa
  */
-#include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
 #if !(defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) \
 	|| defined(__APPLE__) \
     )
@@ -93,6 +92,8 @@
 # include <fnmatch.h>
 #endif
 
+#include "busybox.h"  /* for APPLET_IS_NOFORK/NOEXEC */
+#include "unicode.h"
 #include "shell_common.h"
 #include "math.h"
 #include "match.h"
@@ -104,14 +105,6 @@
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
-
-//applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_MSH(APPLET(msh, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, BB_DIR_BIN, BB_SUID_DROP, sh))
-//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, bash))
-
-//kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
-//kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
 
 //config:config HUSH
 //config:	bool "hush"
@@ -248,6 +241,14 @@
 //config:	help
 //config:	  msh is deprecated and will be removed, please migrate to hush.
 //config:
+
+//applet:IF_HUSH(APPLET(hush, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_MSH(APPLET(msh, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_FEATURE_SH_IS_HUSH(APPLET_ODDNAME(sh, hush, BB_DIR_BIN, BB_SUID_DROP, sh))
+//applet:IF_FEATURE_BASH_IS_HUSH(APPLET_ODDNAME(bash, hush, BB_DIR_BIN, BB_SUID_DROP, bash))
+
+//kbuild:lib-$(CONFIG_HUSH) += hush.o match.o shell_common.o
+//kbuild:lib-$(CONFIG_HUSH_RANDOM_SUPPORT) += random.o
 
 /* -i (interactive) and -s (read stdin) are also accepted,
  * but currently do nothing, therefore aren't shown in help.
@@ -1906,6 +1907,12 @@ static void get_user_input(struct in_str *i)
 	/* Enable command line editing only while a command line
 	 * is actually being read */
 	do {
+		/* Unicode support should be activated even if LANG is set
+		 * _during_ shell execution, not only if it was set when
+		 * shell was started. Therefore, re-check LANG every time:
+		 */
+		reinit_unicode(get_local_var_value("LANG"));
+
 		G.flag_SIGINT = 0;
 		/* buglet: SIGINT will not make new prompt to appear _at once_,
 		 * only after <Enter>. (^C will work) */
