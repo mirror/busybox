@@ -192,7 +192,7 @@ static const int32_t mount_options[] = {
 		/* "unbindable"  */ MS_UNBINDABLE,
 		/* "rshared"     */ MS_SHARED|MS_RECURSIVE,
 		/* "rslave"      */ MS_SLAVE|MS_RECURSIVE,
-		/* "rprivate"    */ MS_SLAVE|MS_RECURSIVE,
+		/* "rprivate"    */ MS_PRIVATE|MS_RECURSIVE,
 		/* "runbindable" */ MS_UNBINDABLE|MS_RECURSIVE,
 	)
 
