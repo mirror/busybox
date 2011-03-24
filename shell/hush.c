@@ -1095,17 +1095,10 @@ static void syntax_error_unterm_str(unsigned lineno, const char *s)
 	die_if_script(lineno, "syntax error: unterminated %s", s);
 }
 
-/* It so happens that all such cases are totally fatal
- * even if shell is interactive: EOF while looking for closing
- * delimiter. There is nowhere to read stuff from after that,
- * it's EOF! The only choice is to terminate.
- */
-static void syntax_error_unterm_ch(unsigned lineno, char ch) NORETURN;
 static void syntax_error_unterm_ch(unsigned lineno, char ch)
 {
 	char msg[2] = { ch, '\0' };
 	syntax_error_unterm_str(lineno, msg);
-	xfunc_die();
 }
 
 static void syntax_error_unexpected_ch(unsigned lineno, int ch)
@@ -3539,39 +3532,40 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 
 #if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
-static void add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
+static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
 /* '...' */
-static void add_till_single_quote(o_string *dest, struct in_str *input)
+static int add_till_single_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch('\'');
-			/*xfunc_die(); - redundant */
+			return 0;
 		}
 		if (ch == '\'')
-			return;
+			return 1;
 		o_addchr(dest, ch);
 	}
 }
 /* "...\"...`..`...." - do we need to handle "...$(..)..." too? */
-static void add_till_double_quote(o_string *dest, struct in_str *input)
+static int add_till_double_quote(o_string *dest, struct in_str *input)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch('"');
-			/*xfunc_die(); - redundant */
+			return 0;
 		}
 		if (ch == '"')
-			return;
+			return 1;
 		if (ch == '\\') {  /* \x. Copy both chars. */
 			o_addchr(dest, ch);
 			ch = i_getch(input);
 		}
 		o_addchr(dest, ch);
 		if (ch == '`') {
-			add_till_backquote(dest, input, /*in_dquote:*/ 1);
+			if (!add_till_backquote(dest, input, /*in_dquote:*/ 1))
+				return 0;
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -3592,12 +3586,12 @@ static void add_till_double_quote(o_string *dest, struct in_str *input)
  * Example                               Output
  * echo `echo '\'TEST\`echo ZZ\`BEST`    \TESTZZBEST
  */
-static void add_till_backquote(o_string *dest, struct in_str *input, int in_dquote)
+static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote)
 {
 	while (1) {
 		int ch = i_getch(input);
 		if (ch == '`')
-			return;
+			return 1;
 		if (ch == '\\') {
 			/* \x. Copy both unless it is \`, \$, \\ and maybe \" */
 			ch = i_getch(input);
@@ -3611,7 +3605,7 @@ static void add_till_backquote(o_string *dest, struct in_str *input, int in_dquo
 		}
 		if (ch == EOF) {
 			syntax_error_unterm_ch('`');
-			/*xfunc_die(); - redundant */
+			return 0;
 		}
 		o_addchr(dest, ch);
 	}
@@ -3647,7 +3641,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 		ch = i_getch(input);
 		if (ch == EOF) {
 			syntax_error_unterm_ch(end_ch);
-			/*xfunc_die(); - redundant */
+			return 0;
 		}
 		if (ch == end_ch  IF_HUSH_BASH_COMPAT( || ch == end_char2)) {
 			if (!dbl)
@@ -3661,22 +3655,26 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 		o_addchr(dest, ch);
 		if (ch == '(' || ch == '{') {
 			ch = (ch == '(' ? ')' : '}');
-			add_till_closing_bracket(dest, input, ch);
+			if (!add_till_closing_bracket(dest, input, ch))
+				return 0;
 			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '\'') {
-			add_till_single_quote(dest, input);
+			if (!add_till_single_quote(dest, input))
+				return 0;
 			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '"') {
-			add_till_double_quote(dest, input);
+			if (!add_till_double_quote(dest, input))
+				return 0;
 			o_addchr(dest, ch);
 			continue;
 		}
 		if (ch == '`') {
-			add_till_backquote(dest, input, /*in_dquote:*/ 0);
+			if (!add_till_backquote(dest, input, /*in_dquote:*/ 0))
+				return 0;
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -3685,7 +3683,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			ch = i_getch(input);
 			if (ch == EOF) {
 				syntax_error_unterm_ch(')');
-				/*xfunc_die(); - redundant */
+				return 0;
 			}
 			o_addchr(dest, ch);
 			continue;
@@ -3756,8 +3754,8 @@ static int parse_dollar(o_string *as_string,
 		) {
  bad_dollar_syntax:
 			syntax_error_unterm_str("${name}");
-			debug_printf_parse("parse_dollar return 1: unterminated ${name}\n");
-			return 1;
+			debug_printf_parse("parse_dollar return 0: unterminated ${name}\n");
+			return 0;
 		}
 		nommu_addchr(as_string, ch);
 		ch |= quote_mask;
@@ -3813,6 +3811,8 @@ static int parse_dollar(o_string *as_string,
 					pos = dest->length;
 #if ENABLE_HUSH_DOLLAR_OPS
 				last_ch = add_till_closing_bracket(dest, input, end_ch);
+				if (last_ch == 0) /* error? */
+					return 0;
 #else
 #error Simple code to only allow ${var} is not implemented
 #endif
@@ -3857,7 +3857,8 @@ static int parse_dollar(o_string *as_string,
 			o_addchr(dest, /*quote_mask |*/ '+');
 			if (!BB_MMU)
 				pos = dest->length;
-			add_till_closing_bracket(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG);
+			if (!add_till_closing_bracket(dest, input, ')' | DOUBLE_CLOSE_CHAR_FLAG))
+				return 0; /* error */
 			if (as_string) {
 				o_addstr(as_string, dest->data + pos);
 				o_addchr(as_string, ')');
@@ -3872,7 +3873,8 @@ static int parse_dollar(o_string *as_string,
 		o_addchr(dest, quote_mask | '`');
 		if (!BB_MMU)
 			pos = dest->length;
-		add_till_closing_bracket(dest, input, ')');
+		if (!add_till_closing_bracket(dest, input, ')'))
+			return 0; /* error */
 		if (as_string) {
 			o_addstr(as_string, dest->data + pos);
 			o_addchr(as_string, ')');
@@ -3899,8 +3901,8 @@ static int parse_dollar(o_string *as_string,
 	default:
 		o_addQchr(dest, '$');
 	}
-	debug_printf_parse("parse_dollar return 0\n");
-	return 0;
+	debug_printf_parse("parse_dollar return 1 (ok)\n");
+	return 1;
 #undef as_string
 }
 
@@ -3941,13 +3943,13 @@ static int encode_string(o_string *as_string,
 	if (ch != EOF)
 		nommu_addchr(as_string, ch);
 	if (ch == dquote_end) { /* may be only '"' or EOF */
-		debug_printf_parse("encode_string return 0\n");
-		return 0;
+		debug_printf_parse("encode_string return 1 (ok)\n");
+		return 1;
 	}
 	/* note: can't move it above ch == dquote_end check! */
 	if (ch == EOF) {
 		syntax_error_unterm_ch('"');
-		/*xfunc_die(); - redundant */
+		return 0; /* error */
 	}
 	next = '\0';
 	if (ch != '\n') {
@@ -3978,10 +3980,10 @@ static int encode_string(o_string *as_string,
 		goto again;
 	}
 	if (ch == '$') {
-		if (parse_dollar(as_string, dest, input, /*quote_mask:*/ 0x80) != 0) {
-			debug_printf_parse("encode_string return 1: "
-					"parse_dollar returned non-0\n");
-			return 1;
+		if (!parse_dollar(as_string, dest, input, /*quote_mask:*/ 0x80)) {
+			debug_printf_parse("encode_string return 0: "
+					"parse_dollar returned 0 (error)\n");
+			return 0;
 		}
 		goto again;
 	}
@@ -3990,7 +3992,8 @@ static int encode_string(o_string *as_string,
 		//unsigned pos = dest->length;
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		o_addchr(dest, 0x80 | '`');
-		add_till_backquote(dest, input, /*in_dquote:*/ dquote_end == '"');
+		if (!add_till_backquote(dest, input, /*in_dquote:*/ dquote_end == '"'))
+			return 0; /* error */
 		o_addchr(dest, SPECIAL_VAR_SYMBOL);
 		//debug_printf_subst("SUBST RES3 '%s'\n", dest->data + pos);
 		goto again;
@@ -4061,8 +4064,8 @@ static struct pipe *parse_stream(char **pstring,
 			/* end_trigger == '}' case errors out earlier,
 			 * checking only ')' */
 			if (end_trigger == ')') {
-				syntax_error_unterm_ch('('); /* exits */
-				/* goto parse_error; */
+				syntax_error_unterm_ch('(');
+				goto parse_error;
 			}
 
 			if (done_word(&dest, &ctx)) {
@@ -4353,9 +4356,9 @@ static struct pipe *parse_stream(char **pstring,
 			dest.has_quoted_part = 1;
 			break;
 		case '$':
-			if (parse_dollar(&ctx.as_string, &dest, input, /*quote_mask:*/ 0) != 0) {
+			if (!parse_dollar(&ctx.as_string, &dest, input, /*quote_mask:*/ 0)) {
 				debug_printf_parse("parse_stream parse error: "
-					"parse_dollar returned non-0\n");
+					"parse_dollar returned 0 (error)\n");
 				goto parse_error;
 			}
 			break;
@@ -4365,7 +4368,7 @@ static struct pipe *parse_stream(char **pstring,
 				ch = i_getch(input);
 				if (ch == EOF) {
 					syntax_error_unterm_ch('\'');
-					/*xfunc_die(); - redundant */
+					goto parse_error;
 				}
 				nommu_addchr(&ctx.as_string, ch);
 				if (ch == '\'')
@@ -4377,7 +4380,7 @@ static struct pipe *parse_stream(char **pstring,
 			dest.has_quoted_part = 1;
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
-			if (encode_string(&ctx.as_string, &dest, input, '"', /*process_bkslash:*/ 1))
+			if (!encode_string(&ctx.as_string, &dest, input, '"', /*process_bkslash:*/ 1))
 				goto parse_error;
 			dest.o_expflags &= ~EXP_FLAG_ESC_GLOB_CHARS;
 			break;
@@ -4388,7 +4391,8 @@ static struct pipe *parse_stream(char **pstring,
 			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(&dest, '`');
 			pos = dest.length;
-			add_till_backquote(&dest, input, /*in_dquote:*/ 0);
+			if (!add_till_backquote(&dest, input, /*in_dquote:*/ 0))
+				goto parse_error;
 # if !BB_MMU
 			o_addstr(&ctx.as_string, dest.data + pos);
 			o_addchr(&ctx.as_string, '`');
@@ -4664,6 +4668,7 @@ static char *encode_then_expand_string(const char *str, int process_bkslash, int
 	 */
 	setup_string_in_str(&input, str);
 	encode_string(NULL, &dest, &input, EOF, process_bkslash);
+//TODO: error check (encode_string returns 0 on error)?
 	//bb_error_msg("'%s' -> '%s'", str, dest.data);
 	exp_str = expand_string_to_string(dest.data, /*unbackslash:*/ do_unbackslash);
 	//bb_error_msg("'%s' -> '%s'", dest.data, exp_str);
@@ -8625,6 +8630,8 @@ static int FAST_FUNC builtin_source(char **argv)
 #endif
 	save_and_replace_G_args(&sv, argv);
 
+//TODO: syntax errors in sourced file should never abort the "calling" script.
+//Try: bash -c '. ./bad_file; echo YES'
 	parse_and_run_file(input);
 	fclose(input);
 
