@@ -2482,7 +2482,7 @@ INSERT
      "\n	[r]slave	Convert [recursively] to a slave subtree" \
      "\n	[r]private	Convert [recursively] to a private subtree" \
      "\n	[un]bindable	Make mount point [un]able to be bind mounted" \
-     "\n	bind		Bind a file or directory to another location" \
+     "\n	[r]bind		Bind a file or directory [recursively] to another location" \
      "\n	move		Relocate an existing mount point" \
 	) \
      "\n	remount		Remount a mounted filesystem, changing flags" \

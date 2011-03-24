@@ -181,6 +181,7 @@ static const int32_t mount_options[] = {
 		/* "relatime"    */ MS_RELATIME,
 		/* "norelatime"  */ ~MS_RELATIME,
 		/* "loud"        */ ~MS_SILENT,
+		/* "rbind"       */ MS_BIND|MS_RECURSIVE,
 
 		// action flags
 		/* "union"       */ MS_UNION,
@@ -236,6 +237,7 @@ static const char mount_option_str[] =
 		"relatime\0"
 		"norelatime\0"
 		"loud\0"
+		"rbind\0"
 
 		// action flags
 		"union\0"
