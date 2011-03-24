@@ -5554,6 +5554,10 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 		debug_printf_exec("parse_and_run_stream: run_and_free_list\n");
 		run_and_free_list(pipe_list);
 		empty = 0;
+#if ENABLE_HUSH_FUNCTIONS
+		if (G.flag_return_in_progress == 1)
+			break;
+#endif
 	}
 }
 
