@@ -1065,6 +1065,7 @@ static void send_headers(int responseNum)
 static void send_headers_and_exit(int responseNum) NORETURN;
 static void send_headers_and_exit(int responseNum)
 {
+	IF_FEATURE_HTTPD_GZIP(content_gzip = 0;)
 	send_headers(responseNum);
 	log_and_exit();
 }
