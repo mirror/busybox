@@ -7,13 +7,19 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+
+#undef ARRAY_SIZE
+#define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
 
 #include "../include/autoconf.h"
-#include "../include/busybox.h"
+#include "../include/applet_metadata.h"
 
 struct bb_applet {
 	const char *name;
