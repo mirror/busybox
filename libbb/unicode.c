@@ -23,12 +23,13 @@ uint8_t unicode_status;
 
 /* Unicode support using libc locale support. */
 
-void FAST_FUNC reinit_unicode(const char *LANG UNUSED_PARAM)
+void FAST_FUNC reinit_unicode(const char *LANG)
 {
 	static const char unicode_0x394[] = { 0xce, 0x94, 0 };
 	size_t width;
 
-//TODO: call setlocale(LC_ALL, LANG) here?
+//TODO: avoid repeated calls by caching last string?
+	setlocale(LC_ALL, (LANG && LANG[0]) ? LANG : "C");
 
 	/* In unicode, this is a one character string */
 // can use unicode_strlen(string) too, but otherwise unicode_strlen() is unused
@@ -39,7 +40,7 @@ void FAST_FUNC reinit_unicode(const char *LANG UNUSED_PARAM)
 void FAST_FUNC init_unicode(void)
 {
 	if (unicode_status == UNICODE_UNKNOWN)
-		reinit_unicode(NULL /*getenv("LANG")*/);
+		reinit_unicode(getenv("LANG"));
 }
 
 #else
