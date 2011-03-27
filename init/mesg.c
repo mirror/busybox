@@ -60,17 +60,17 @@ int mesg_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	}
 
-	if (!isatty(STDERR_FILENO))
+	if (!isatty(STDIN_FILENO))
 		bb_error_msg_and_die("not a tty");
 
-	xfstat(STDERR_FILENO, &sb, "stderr");
+	xfstat(STDIN_FILENO, &sb, "stderr");
 	if (c == 0) {
 		puts((sb.st_mode & (S_IWGRP|S_IWOTH)) ? "is y" : "is n");
 		return EXIT_SUCCESS;
 	}
 	m = (c == 'y') ? sb.st_mode | S_IWGRP_OR_S_IWOTH
 	               : sb.st_mode & ~(S_IWGRP|S_IWOTH);
-	if (fchmod(STDERR_FILENO, m) != 0)
+	if (fchmod(STDIN_FILENO, m) != 0)
 		bb_perror_nomsg_and_die();
 	return EXIT_SUCCESS;
 }
