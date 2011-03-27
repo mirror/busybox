@@ -7,6 +7,19 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define rpm_trivial_usage
+//usage:       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
+//usage:#define rpm_full_usage "\n\n"
+//usage:       "Manipulate RPM packages\n"
+//usage:     "\nCommands:"
+//usage:     "\n	-i	Install package"
+//usage:     "\n	-qp	Query package"
+//usage:     "\nOptions:"
+//usage:     "\n	-i	Show information"
+//usage:     "\n	-l	List contents"
+//usage:     "\n	-d	List documents"
+//usage:     "\n	-c	List config files"
+
 #include "libbb.h"
 #include "archive.h"
 #include "rpm.h"

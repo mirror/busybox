@@ -6,6 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define rpm2cpio_trivial_usage
+//usage:       "package.rpm"
+//usage:#define rpm2cpio_full_usage "\n\n"
+//usage:       "Output a cpio archive of the rpm file"
+
 #include "libbb.h"
 #include "archive.h"
 #include "rpm.h"

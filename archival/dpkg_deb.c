@@ -4,6 +4,21 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define dpkg_deb_trivial_usage
+//usage:       "[-cefxX] FILE [argument"
+//usage:#define dpkg_deb_full_usage "\n\n"
+//usage:       "Perform actions on Debian packages (.debs)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	List contents of filesystem tree"
+//usage:     "\n	-e	Extract control files to [argument] directory"
+//usage:     "\n	-f	Display control field name starting with [argument]"
+//usage:     "\n	-x	Extract packages filesystem tree to directory"
+//usage:     "\n	-X	Verbose extract"
+//usage:
+//usage:#define dpkg_deb_example_usage
+//usage:       "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
+
 #include "libbb.h"
 #include "archive.h"
 

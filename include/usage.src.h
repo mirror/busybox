@@ -74,17 +74,6 @@ INSERT
      "\n	-t TICK	Microseconds per tick, usually 10000" \
      "\n	-p TCONST" \
 
-#define ar_trivial_usage \
-       "[-o] [-v] [-p] [-t] [-x] ARCHIVE FILES"
-#define ar_full_usage "\n\n" \
-       "Extract or list FILES from an ar archive\n" \
-     "\nOptions:" \
-     "\n	-o	Preserve original dates" \
-     "\n	-p	Extract to stdout" \
-     "\n	-t	List" \
-     "\n	-x	Extract" \
-     "\n	-v	Verbose" \
-
 #define arp_trivial_usage \
      "\n[-vn]	[-H HWTYPE] [-i IF] -a [HOSTNAME]" \
      "\n[-v]		    [-i IF] -d HOSTNAME [pub]" \
@@ -179,89 +168,8 @@ INSERT
      "\n	stp BRIDGE [1/yes/on|0/no/off]	STP on/off" \
 	) \
 
-#define bzip2_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define bzip2_full_usage "\n\n" \
-       "Compress FILEs (or stdin) with bzip2 algorithm\n" \
-     "\nOptions:" \
-     "\n	-1..9	Compression level" \
-     "\n	-d	Decompress" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
 #define busybox_notes_usage \
        "Hello world!\n"
-
-#define lzop_trivial_usage \
-       "[-cfvd123456789CF] [FILE]..."
-#define lzop_full_usage "\n\n" \
-       "Options:" \
-     "\n	-1..9	Compression level" \
-     "\n	-d	Decompress" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-     "\n	-v	Verbose" \
-     "\n	-F	Don't store or verify checksum" \
-     "\n	-C	Also write checksum of compressed block" \
-
-#define lzopcat_trivial_usage \
-       "[-vCF] [FILE]..."
-#define lzopcat_full_usage "\n\n" \
-       "	-v	Verbose" \
-     "\n	-F	Don't store or verify checksum" \
-
-#define unlzop_trivial_usage \
-       "[-cfvCF] [FILE]..."
-#define unlzop_full_usage "\n\n" \
-       "Options:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-     "\n	-v	Verbose" \
-     "\n	-F	Don't store or verify checksum" \
-
-#define unlzma_trivial_usage \
-       "[-cf] [FILE]..."
-#define unlzma_full_usage "\n\n" \
-       "Decompress FILE (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define lzma_trivial_usage \
-       "-d [-cf] [FILE]..."
-#define lzma_full_usage "\n\n" \
-       "Decompress FILE (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-d	Decompress" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define lzcat_trivial_usage \
-       "FILE"
-#define lzcat_full_usage "\n\n" \
-       "Decompress to stdout"
-
-#define unxz_trivial_usage \
-       "[-cf] [FILE]..."
-#define unxz_full_usage "\n\n" \
-       "Decompress FILE (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define xz_trivial_usage \
-       "-d [-cf] [FILE]..."
-#define xz_full_usage "\n\n" \
-       "Decompress FILE (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-d	Decompress" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define xzcat_trivial_usage \
-       "FILE"
-#define xzcat_full_usage "\n\n" \
-       "Decompress to stdout"
 
 #define cal_trivial_usage \
        "[-jy] [[MONTH] YEAR]"
@@ -861,48 +769,6 @@ INSERT
      "\n	-u	dos2unix" \
      "\n	-d	unix2dos" \
 
-#define dpkg_trivial_usage \
-       "[-ilCPru] [-F OPT] PACKAGE"
-#define dpkg_full_usage "\n\n" \
-       "Install, remove and manage Debian packages\n" \
-     "\nOptions:" \
-	IF_LONG_OPTS( \
-     "\n	-i,--install	Install the package" \
-     "\n	-l,--list	List of installed packages" \
-     "\n	--configure	Configure an unpackaged package" \
-     "\n	-P,--purge	Purge all files of a package" \
-     "\n	-r,--remove	Remove all but the configuration files for a package" \
-     "\n	--unpack	Unpack a package, but don't configure it" \
-     "\n	--force-depends	Ignore dependency problems" \
-     "\n	--force-confnew	Overwrite existing config files when installing" \
-     "\n	--force-confold	Keep old config files when installing" \
-	) \
-	IF_NOT_LONG_OPTS( \
-     "\n	-i		Install the package" \
-     "\n	-l		List of installed packages" \
-     "\n	-C		Configure an unpackaged package" \
-     "\n	-P		Purge all files of a package" \
-     "\n	-r		Remove all but the configuration files for a package" \
-     "\n	-u		Unpack a package, but don't configure it" \
-     "\n	-F depends	Ignore dependency problems" \
-     "\n	-F confnew	Overwrite existing config files when installing" \
-     "\n	-F confold	Keep old config files when installing" \
-	)
-
-#define dpkg_deb_trivial_usage \
-       "[-cefxX] FILE [argument]"
-#define dpkg_deb_full_usage "\n\n" \
-       "Perform actions on Debian packages (.debs)\n" \
-     "\nOptions:" \
-     "\n	-c	List contents of filesystem tree" \
-     "\n	-e	Extract control files to [argument] directory" \
-     "\n	-f	Display control field name starting with [argument]" \
-     "\n	-x	Extract packages filesystem tree to directory" \
-     "\n	-X	Verbose extract" \
-
-#define dpkg_deb_example_usage \
-       "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
-
 #define du_trivial_usage \
        "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
 #define du_full_usage "\n\n" \
@@ -1376,38 +1242,6 @@ INSERT
        "-a or getsebool boolean..."
 #define getsebool_full_usage "\n\n" \
        "	-a	Show all selinux booleans"
-
-#define gunzip_trivial_usage \
-       "[-cft] [FILE]..."
-#define gunzip_full_usage "\n\n" \
-       "Decompress FILEs (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-     "\n	-t	Test file integrity" \
-
-#define gunzip_example_usage \
-       "$ ls -la /tmp/BusyBox*\n" \
-       "-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz\n" \
-       "$ gunzip /tmp/BusyBox-0.43.tar.gz\n" \
-       "$ ls -la /tmp/BusyBox*\n" \
-       "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n"
-
-#define gzip_trivial_usage \
-       "[-cfd] [FILE]..."
-#define gzip_full_usage "\n\n" \
-       "Compress FILEs (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-d	Decompress" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Force" \
-
-#define gzip_example_usage \
-       "$ ls -la /tmp/busybox*\n" \
-       "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox.tar\n" \
-       "$ gzip /tmp/busybox.tar\n" \
-       "$ ls -la /tmp/busybox*\n" \
-       "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define hdparm_trivial_usage \
        "[OPTIONS] [DEVICE]"
@@ -2945,24 +2779,6 @@ INSERT
      "\n	-e	Display other/more information" \
      "\n	-A inet" IF_FEATURE_IPV6("{6}") "	Select address family" \
 
-#define rpm_trivial_usage \
-       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
-#define rpm_full_usage "\n\n" \
-       "Manipulate RPM packages\n" \
-     "\nCommands:" \
-     "\n	-i	Install package" \
-     "\n	-qp	Query package" \
-     "\nOptions:" \
-     "\n	-i	Show information" \
-     "\n	-l	List contents" \
-     "\n	-d	List documents" \
-     "\n	-c	List config files" \
-
-#define rpm2cpio_trivial_usage \
-       "package.rpm"
-#define rpm2cpio_full_usage "\n\n" \
-       "Output a cpio archive of the rpm file"
-
 #define rtcwake_trivial_usage \
        "[-a | -l | -u] [-d DEV] [-m MODE] [-s SEC | -t TIME]"
 #define rtcwake_full_usage "\n\n" \
@@ -3899,14 +3715,6 @@ INSERT
        "$ uname -a\n" \
        "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
 
-#define uncompress_trivial_usage \
-       "[-cf] [FILE]..."
-#define uncompress_full_usage "\n\n" \
-       "Decompress .Z file[s]\n" \
-     "\nOptions:" \
-     "\n	-c	Write to stdout" \
-     "\n	-f	Overwrite" \
-
 #define unexpand_trivial_usage \
        "[-fa][-t N] [FILE]..."
 #define unexpand_full_usage "\n\n" \
@@ -3940,19 +3748,6 @@ INSERT
        "a\n" \
        "b\n" \
        "c\n"
-
-#define unzip_trivial_usage \
-       "[-opts[modifiers]] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
-#define unzip_full_usage "\n\n" \
-       "Extract files from ZIP archives\n" \
-     "\nOptions:" \
-     "\n	-l	List archive contents (with -q for short form)" \
-     "\n	-n	Never overwrite files (default)" \
-     "\n	-o	Overwrite" \
-     "\n	-p	Send output to stdout" \
-     "\n	-q	Quiet" \
-     "\n	-x XLST	Exclude these files" \
-     "\n	-d DIR	Extract files into DIR" \
 
 #define uptime_trivial_usage \
        ""
@@ -4086,11 +3881,6 @@ INSERT
        ""
 #define whoami_full_usage "\n\n" \
        "Print the user name associated with the current effective user id"
-
-#define zcat_trivial_usage \
-       "FILE"
-#define zcat_full_usage "\n\n" \
-       "Decompress to stdout"
 
 #define zcip_trivial_usage \
        "[OPTIONS] IFACE SCRIPT"

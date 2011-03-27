@@ -167,6 +167,15 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define uncompress_trivial_usage
+//usage:       "[-cf] [FILE]..."
+//usage:#define uncompress_full_usage "\n\n"
+//usage:       "Decompress .Z file[s]\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Overwrite"
+
 #if ENABLE_UNCOMPRESS
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
@@ -218,6 +227,28 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
  * See the license_msg below and the file COPYING for the software license.
  * See the file algorithm.doc for the compression algorithms and file formats.
  */
+
+//usage:#define gunzip_trivial_usage
+//usage:       "[-cft] [FILE]..."
+//usage:#define gunzip_full_usage "\n\n"
+//usage:       "Decompress FILEs (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:     "\n	-t	Test file integrity"
+//usage:
+//usage:#define gunzip_example_usage
+//usage:       "$ ls -la /tmp/BusyBox*\n"
+//usage:       "-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz\n"
+//usage:       "$ gunzip /tmp/BusyBox-0.43.tar.gz\n"
+//usage:       "$ ls -la /tmp/BusyBox*\n"
+//usage:       "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n"
+//usage:
+//usage:#define zcat_trivial_usage
+//usage:       "FILE"
+//usage:#define zcat_full_usage "\n\n"
+//usage:       "Decompress to stdout"
+
 #if ENABLE_GUNZIP
 static
 char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UNUSED_PARAM)
@@ -344,6 +375,51 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define unlzma_trivial_usage
+//usage:       "[-cf] [FILE]..."
+//usage:#define unlzma_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define lzma_trivial_usage
+//usage:       "-d [-cf] [FILE]..."
+//usage:#define lzma_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-d	Decompress"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define lzcat_trivial_usage
+//usage:       "FILE"
+//usage:#define lzcat_full_usage "\n\n"
+//usage:       "Decompress to stdout"
+//usage:
+//usage:#define unxz_trivial_usage
+//usage:       "[-cf] [FILE]..."
+//usage:#define unxz_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define xz_trivial_usage
+//usage:       "-d [-cf] [FILE]..."
+//usage:#define xz_full_usage "\n\n"
+//usage:       "Decompress FILE (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-d	Decompress"
+//usage:     "\n	-c	Write to stdout"
+//usage:     "\n	-f	Force"
+//usage:
+//usage:#define xzcat_trivial_usage
+//usage:       "FILE"
+//usage:#define xzcat_full_usage "\n\n"
+//usage:       "Decompress to stdout"
+
 #if ENABLE_UNLZMA
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
