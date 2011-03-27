@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define loadkmap_trivial_usage
+//usage:       "< keymap"
+//usage:#define loadkmap_full_usage "\n\n"
+//usage:       "Load a binary keyboard translation table from stdin\n"
+/* //usage:     "\n	-C TTY	Affect TTY instead of /dev/tty" */
+//usage:
+//usage:#define loadkmap_example_usage
+//usage:       "$ loadkmap < /etc/i18n/lang-keymap\n"
+
 #include "libbb.h"
 
 #define BINARY_KEYMAP_MAGIC "bkeymap"

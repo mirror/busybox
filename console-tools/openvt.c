@@ -8,6 +8,19 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define openvt_trivial_usage
+//usage:       "[-c N] [-sw] [PROG ARGS]"
+//usage:#define openvt_full_usage "\n\n"
+//usage:       "Start PROG on a new virtual terminal\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c N	Use specified VT"
+//usage:     "\n	-s	Switch to the VT"
+/* //usage:     "\n	-l	Run PROG as login shell (by prepending '-')" */
+//usage:     "\n	-w	Wait for PROG to exit"
+//usage:
+//usage:#define openvt_example_usage
+//usage:       "openvt 2 /bin/ash\n"
+
 #include <linux/vt.h>
 #include "libbb.h"
 

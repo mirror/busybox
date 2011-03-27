@@ -403,20 +403,10 @@ INSERT
        "# ls -l /bin/ls\n" \
        "-rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*\n"
 
-#define chvt_trivial_usage \
-       "N"
-#define chvt_full_usage "\n\n" \
-       "Change the foreground virtual terminal to /dev/ttyN"
-
 #define cksum_trivial_usage \
        "FILES..."
 #define cksum_full_usage "\n\n" \
        "Calculate the CRC32 checksums of FILES"
-
-#define clear_trivial_usage \
-       ""
-#define clear_full_usage "\n\n" \
-       "Clear screen"
 
 #define cmp_trivial_usage \
        "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
@@ -614,11 +604,6 @@ INSERT
        "4+0 records in\n" \
        "4+0 records out\n"
 
-#define deallocvt_trivial_usage \
-       "[N]"
-#define deallocvt_full_usage "\n\n" \
-       "Deallocate unused virtual terminal /dev/ttyN"
-
 #define delgroup_trivial_usage \
 	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
 #define delgroup_full_usage "\n\n" \
@@ -805,13 +790,6 @@ INSERT
        "12      ./docs/CVS\n" \
        "104     ./docs\n" \
        "2417    .\n"
-
-#define dumpkmap_trivial_usage \
-       "> keymap"
-#define dumpkmap_full_usage "\n\n" \
-       "Print a binary keyboard translation table to stdout"
-#define dumpkmap_example_usage \
-       "$ dumpkmap > keymap\n"
 
 #define dumpleases_trivial_usage \
        "[-r|-a] [-f LEASEFILE]"
@@ -1036,11 +1014,6 @@ INSERT
      "\n	-C CYLINDERS	Set number of cylinders/heads/sectors" \
      "\n	-H HEADS" \
      "\n	-S SECTORS" \
-
-#define fgconsole_trivial_usage \
-	""
-#define fgconsole_full_usage "\n\n" \
-	"Get active console"
 
 #define findfs_trivial_usage \
        "LABEL=label or UUID=uuid"
@@ -1712,17 +1685,6 @@ INSERT
        "	[[i|o]seq] [[i|o]key KEY] [[i|o]csum]\n" \
        "	[ttl TTL] [tos TOS] [[no]pmtudisc] [dev PHYS_DEV]" \
 
-#define kbd_mode_trivial_usage \
-       "[-a|k|s|u] [-C TTY]"
-#define kbd_mode_full_usage "\n\n" \
-       "Report or set the keyboard mode\n" \
-     "\nOptions:" \
-     "\n	-a	Default (ASCII)" \
-     "\n	-k	Medium-raw (keyboard)" \
-     "\n	-s	Raw (scancode)" \
-     "\n	-u	Unicode (utf-8)" \
-     "\n	-C TTY	Affect TTY instead of /dev/tty" \
-
 #define kill_trivial_usage \
        "[-l] [-SIG] PID..."
 #define kill_full_usage "\n\n" \
@@ -1821,24 +1783,6 @@ INSERT
 
 #define load_policy_trivial_usage NOUSAGE_STR
 #define load_policy_full_usage ""
-
-#define loadfont_trivial_usage \
-       "< font"
-#define loadfont_full_usage "\n\n" \
-       "Load a console font from stdin" \
-/*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
-
-#define loadfont_example_usage \
-       "$ loadfont < /etc/i18n/fontname\n"
-
-#define loadkmap_trivial_usage \
-       "< keymap"
-#define loadkmap_full_usage "\n\n" \
-       "Load a binary keyboard translation table from stdin\n" \
-/*   "\n	-C TTY	Affect TTY instead of /dev/tty" */ \
-
-#define loadkmap_example_usage \
-       "$ loadkmap < /etc/i18n/lang-keymap\n"
 
 #define logger_trivial_usage \
        "[OPTIONS] [MESSAGE]"
@@ -2405,19 +2349,6 @@ INSERT
        "Write an unambiguous representation, octal bytes by default, of FILE\n" \
        "(or stdin) to stdout"
 
-#define openvt_trivial_usage \
-       "[-c N] [-sw] [PROG ARGS]"
-#define openvt_full_usage "\n\n" \
-       "Start PROG on a new virtual terminal\n" \
-     "\nOptions:" \
-     "\n	-c N	Use specified VT" \
-     "\n	-s	Switch to the VT" \
-/*   "\n	-l	Run PROG as login shell (by prepending '-')" */ \
-     "\n	-w	Wait for PROG to exit" \
-
-#define openvt_example_usage \
-       "openvt 2 /bin/ash\n"
-
 /*
 #define parse_trivial_usage \
        "[-n MAXTOKENS] [-m MINTOKENS] [-d DELIMS] [-f FLAGS] FILE..."
@@ -2704,16 +2635,6 @@ INSERT
 #define scriptreplay_full_usage "\n\n" \
        "Play back typescripts, using timing information"
 
-#define reset_trivial_usage \
-       ""
-#define reset_full_usage "\n\n" \
-       "Reset the screen"
-
-#define resize_trivial_usage \
-       ""
-#define resize_full_usage "\n\n" \
-       "Resize the screen"
-
 #define restorecon_trivial_usage \
        "[-iFnRv] [-e EXCLUDEDIR]... [-o FILE] [-f FILE]"
 #define restorecon_full_usage "\n\n" \
@@ -2926,13 +2847,6 @@ INSERT
        "	-v	Verbose" \
      "\n	-b	Display current state of booleans" \
 
-#define setconsole_trivial_usage \
-       "[-r" IF_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
-#define setconsole_full_usage "\n\n" \
-       "Redirect system console output to DEVICE (default: /dev/tty)\n" \
-     "\nOptions:" \
-     "\n	-r	Reset output to /dev/console" \
-
 #define setenforce_trivial_usage \
        "[Enforcing | Permissive | 1 | 0]"
 #define setenforce_full_usage ""
@@ -2972,22 +2886,6 @@ INSERT
 #define setfont_example_usage \
        "$ setfont -m koi8-r /etc/i18n/fontname\n"
 
-#define setkeycodes_trivial_usage \
-       "SCANCODE KEYCODE..."
-#define setkeycodes_full_usage "\n\n" \
-       "Set entries into the kernel's scancode-to-keycode map,\n" \
-       "allowing unusual keyboards to generate usable keycodes.\n\n" \
-       "SCANCODE may be either xx or e0xx (hexadecimal),\n" \
-       "and KEYCODE is given in decimal." \
-
-#define setkeycodes_example_usage \
-       "$ setkeycodes e030 127\n"
-
-#define setlogcons_trivial_usage \
-       "N"
-#define setlogcons_full_usage "\n\n" \
-       "Redirect the kernel output to console N (0 for current)"
-
 #define setsebool_trivial_usage \
        "boolean value"
 
@@ -3011,15 +2909,6 @@ INSERT
      "\n	-W	Display with no host column truncation" \
      "\n	-f FILE Read from FILE instead of /var/log/wtmp" \
 	)
-
-#define showkey_trivial_usage \
-       "[-a | -k | -s]"
-#define showkey_full_usage "\n\n" \
-       "Show keys pressed\n" \
-     "\nOptions:" \
-     "\n	-a	Display decimal/octal/hex values of the keys" \
-     "\n	-k	Display interpreted keycodes (default)" \
-     "\n	-s	Display raw scan-codes" \
 
 #define slattach_trivial_usage \
        "[-cehmLF] [-s SPEED] [-p PROTOCOL] DEVICE"

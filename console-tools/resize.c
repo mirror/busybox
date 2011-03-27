@@ -7,6 +7,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 /* no options, no getopt */
+
+//usage:#define resize_trivial_usage
+//usage:       ""
+//usage:#define resize_full_usage "\n\n"
+//usage:       "Resize the screen"
+
 #include "libbb.h"
 
 #define ESC "\033"

@@ -8,6 +8,18 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define kbd_mode_trivial_usage
+//usage:       "[-a|k|s|u] [-C TTY]"
+//usage:#define kbd_mode_full_usage "\n\n"
+//usage:       "Report or set the keyboard mode\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Default (ASCII)"
+//usage:     "\n	-k	Medium-raw (keyboard)"
+//usage:     "\n	-s	Raw (scancode)"
+//usage:     "\n	-u	Unicode (utf-8)"
+//usage:     "\n	-C TTY	Affect TTY instead of /dev/tty"
+
 #include "libbb.h"
 #include <linux/kd.h>
 

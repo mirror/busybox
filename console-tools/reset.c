@@ -11,6 +11,11 @@
 /* BTW, which "standard" package has this utility? It doesn't seem
  * to be ncurses, coreutils, console-tools... then what? */
 
+//usage:#define reset_trivial_usage
+//usage:       ""
+//usage:#define reset_full_usage "\n\n"
+//usage:       "Reset the screen"
+
 #include "libbb.h"
 
 #define ESC "\033"

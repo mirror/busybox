@@ -7,6 +7,15 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define showkey_trivial_usage
+//usage:       "[-a | -k | -s]"
+//usage:#define showkey_full_usage "\n\n"
+//usage:       "Show keys pressed\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Display decimal/octal/hex values of the keys"
+//usage:     "\n	-k	Display interpreted keycodes (default)"
+//usage:     "\n	-s	Display raw scan-codes"
+
 #include "libbb.h"
 #include <linux/kd.h>
 

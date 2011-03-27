@@ -9,6 +9,14 @@
  */
 /* no options, no getopt */
 
+//usage:#define dumpkmap_trivial_usage
+//usage:       "> keymap"
+//usage:#define dumpkmap_full_usage "\n\n"
+//usage:       "Print a binary keyboard translation table to stdout"
+//usage:
+//usage:#define dumpkmap_example_usage
+//usage:       "$ dumpkmap > keymap\n"
+
 #include "libbb.h"
 
 /* From <linux/kd.h> */

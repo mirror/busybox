@@ -7,6 +7,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define fgconsole_trivial_usage
+//usage:	""
+//usage:#define fgconsole_full_usage "\n\n"
+//usage:	"Get active console"
+
 #include "libbb.h"
 
 /* From <linux/vt.h> */

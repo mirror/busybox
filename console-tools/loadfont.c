@@ -9,6 +9,16 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define loadfont_trivial_usage
+//usage:       "< font"
+//usage:#define loadfont_full_usage "\n\n"
+//usage:       "Load a console font from stdin"
+/* //usage:     "\n	-C TTY	Affect TTY instead of /dev/tty" */
+//usage:
+//usage:#define loadfont_example_usage
+//usage:       "$ loadfont < /etc/i18n/fontname\n"
+
 #include "libbb.h"
 #include <sys/kd.h>
 

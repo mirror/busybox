@@ -9,6 +9,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define setlogcons_trivial_usage
+//usage:       "N"
+//usage:#define setlogcons_full_usage "\n\n"
+//usage:       "Redirect the kernel output to console N (0 for current)"
+
 #include "libbb.h"
 
 int setlogcons_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
