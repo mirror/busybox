@@ -27,10 +27,6 @@
 /* If you want logging messages on /tmp/fbsplash.log... */
 #define DEBUG 0
 
-#define BYTES_PER_PIXEL 2
-
-typedef unsigned short DATA;
-
 struct globals {
 #if DEBUG
 	bool bdebug_messages;	// enable/disable logging
@@ -41,6 +37,7 @@ struct globals {
 	const char *image_filename;
 	struct fb_var_screeninfo scr_var;
 	struct fb_fix_screeninfo scr_fix;
+	unsigned bytes_per_pixel;
 };
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -67,7 +64,7 @@ struct globals {
 
 
 /**
- *	Open and initialize the framebuffer device
+ * Open and initialize the framebuffer device
  * \param *strfb_device pointer to framebuffer device
  */
 static void fb_open(const char *strfb_device)
@@ -78,62 +75,98 @@ static void fb_open(const char *strfb_device)
 	xioctl(fbfd, FBIOGET_VSCREENINFO, &G.scr_var);
 	xioctl(fbfd, FBIOGET_FSCREENINFO, &G.scr_fix);
 
-	if (G.scr_var.bits_per_pixel != 16)
-		bb_error_msg_and_die("only 16 bpp is supported");
+	if (G.scr_var.bits_per_pixel < 16 || G.scr_var.bits_per_pixel > 32)
+		bb_error_msg_and_die("unsupported %u bpp", (int)G.scr_var.bits_per_pixel);
+	G.bytes_per_pixel = (G.scr_var.bits_per_pixel + 7) >> 3;
 
 	// map the device in memory
 	G.addr = mmap(NULL,
-			G.scr_var.xres * G.scr_var.yres_virtual
-			* BYTES_PER_PIXEL /*(G.scr_var.bits_per_pixel / 8)*/,
+			G.scr_var.xres * G.scr_var.yres * G.bytes_per_pixel,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
 
 	// point to the start of the visible screen
-	G.addr += G.scr_var.yoffset * G.scr_fix.line_length + G.scr_var.xoffset * BYTES_PER_PIXEL;
+	G.addr += G.scr_var.yoffset * G.scr_fix.line_length + G.scr_var.xoffset * G.bytes_per_pixel;
 	close(fbfd);
 }
 
 
 /**
- *	Draw hollow rectangle on framebuffer
+ * Return pixel value of the passed RGB color
+ */
+static unsigned fb_pixel_value(unsigned r, unsigned g, unsigned b)
+{
+	if (G.bytes_per_pixel == 2) {
+		r >>= 3;  // 5-bit red
+		g >>= 2;  // 6-bit green
+		b >>= 3;  // 5-bit blue
+		return b + (g << 5) + (r << (5+6));
+	}
+	// RGB 888
+	return b + (g << 8) + (r << 16);
+}
+
+/**
+ * Draw pixel on framebuffer
+ */
+static void fb_write_pixel(unsigned char *addr, unsigned pixel)
+{
+	switch (G.bytes_per_pixel) {
+	case 2:
+		*(uint16_t *)addr = pixel;
+		break;
+	case 4:
+		*(uint32_t *)addr = pixel;
+		break;
+	default: // 24 bits per pixel
+		addr[0] = pixel;
+		addr[1] = pixel >> 8;
+		addr[2] = pixel >> 16;
+	}
+}
+
+
+/**
+ * Draw hollow rectangle on framebuffer
  */
 static void fb_drawrectangle(void)
 {
 	int cnt;
-	DATA thispix;
-	DATA *ptr1, *ptr2;
+	unsigned thispix;
+	unsigned char *ptr1, *ptr2;
 	unsigned char nred = G.nbar_colr/2;
 	unsigned char ngreen =  G.nbar_colg/2;
 	unsigned char nblue = G.nbar_colb/2;
 
-	nred   >>= 3;  // 5-bit red
-	ngreen >>= 2;  // 6-bit green
-	nblue  >>= 3;  // 5-bit blue
-	thispix = nblue + (ngreen << 5) + (nred << (5+6));
+	thispix = fb_pixel_value(nred, ngreen, nblue);
 
 	// horizontal lines
-	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
-	ptr2 = (DATA*)(G.addr + ((G.nbar_posy + G.nbar_height - 1) * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
+	ptr1 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
+	ptr2 = G.addr + ((G.nbar_posy + G.nbar_height - 1) * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
 	cnt = G.nbar_width - 1;
 	do {
-		*ptr1++ = thispix;
-		*ptr2++ = thispix;
+		fb_write_pixel(ptr1, thispix);
+		fb_write_pixel(ptr2, thispix);
+		ptr1 += G.bytes_per_pixel;
+		ptr2 += G.bytes_per_pixel;
 	} while (--cnt >= 0);
 
 	// vertical lines
-	ptr1 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * BYTES_PER_PIXEL);
-	ptr2 = (DATA*)(G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * BYTES_PER_PIXEL);
+	ptr1 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
+	ptr2 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * G.bytes_per_pixel;
 	cnt = G.nbar_height - 1;
 	do {
-		*ptr1 = thispix; ptr1 += G.scr_var.xres;
-		*ptr2 = thispix; ptr2 += G.scr_var.xres;
+		fb_write_pixel(ptr1, thispix);
+		fb_write_pixel(ptr2, thispix);
+		ptr1 += G.scr_var.xres * G.bytes_per_pixel;
+		ptr2 += G.scr_var.xres * G.bytes_per_pixel;
 	} while (--cnt >= 0);
 }
 
 
 /**
- *	Draw filled rectangle on framebuffer
+ * Draw filled rectangle on framebuffer
  * \param nx1pos,ny1pos upper left position
  * \param nx2pos,ny2pos down right position
  * \param nred,ngreen,nblue rgb color
@@ -142,21 +175,19 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	unsigned char nred, unsigned char ngreen, unsigned char nblue)
 {
 	int cnt1, cnt2, nypos;
-	DATA thispix;
-	DATA *ptr;
+	unsigned thispix;
+	unsigned char *ptr;
 
-	nred   >>= 3;  // 5-bit red
-	ngreen >>= 2;  // 6-bit green
-	nblue  >>= 3;  // 5-bit blue
-	thispix = nblue + (ngreen << 5) + (nred << (5+6));
+	thispix = fb_pixel_value(nred, ngreen, nblue);
 
 	cnt1 = ny2pos - ny1pos;
 	nypos = ny1pos;
 	do {
-		ptr = (DATA*)(G.addr + (nypos * G.scr_var.xres + nx1pos) * BYTES_PER_PIXEL);
+		ptr = G.addr + (nypos * G.scr_var.xres + nx1pos) * G.bytes_per_pixel;
 		cnt2 = nx2pos - nx1pos;
 		do {
-			*ptr++ = thispix;
+			fb_write_pixel(ptr, thispix);
+			ptr += G.bytes_per_pixel;
 		} while (--cnt2 >= 0);
 
 		nypos++;
@@ -165,7 +196,7 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 
 
 /**
- *	Draw a progress bar on framebuffer
+ * Draw a progress bar on framebuffer
  * \param percent percentage of loading
  */
 static void fb_drawprogressbar(unsigned percent)
@@ -215,7 +246,7 @@ static void fb_drawprogressbar(unsigned percent)
 
 
 /**
- *	Draw image from PPM file
+ * Draw image from PPM file
  */
 static void fb_drawimage(void)
 {
@@ -276,18 +307,16 @@ static void fb_drawimage(void)
 		height = G.scr_var.yres;
 	for (j = 0; j < height; j++) {
 		unsigned char *pixel;
-		DATA *src;
+		unsigned char *src;
 
 		if (fread(pixline, 1, line_size, theme_file) != line_size)
 			bb_error_msg_and_die("bad PPM file '%s'", G.image_filename);
 		pixel = pixline;
-		src = (DATA *)(G.addr + j * G.scr_fix.line_length);
+		src = G.addr + j * G.scr_fix.line_length;
 		for (i = 0; i < width; i++) {
-			unsigned thispix;
-			thispix = (((unsigned)pixel[0] << 8) & 0xf800)
-				| (((unsigned)pixel[1] << 3) & 0x07e0)
-				| (((unsigned)pixel[2] >> 3));
-			*src++ = thispix;
+			unsigned thispix = fb_pixel_value(pixel[0], pixel[1], pixel[2]);
+			fb_write_pixel(src, thispix);
+			src += G.bytes_per_pixel;
 			pixel += 3;
 		}
 	}
@@ -297,7 +326,7 @@ static void fb_drawimage(void)
 
 
 /**
- *	Parse configuration file
+ * Parse configuration file
  * \param *cfg_filename name of the configuration file
  */
 static void init(const char *cfg_filename)
