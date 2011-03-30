@@ -4529,13 +4529,9 @@ static struct pipe *parse_stream(char **pstring,
 			}
 			IF_HAS_KEYWORDS(pctx = p2;)
 		} while (HAS_KEYWORDS && pctx);
-		/* Free text, clear all dest fields */
-		o_free(&dest);
 
+		o_free(&dest);
 		G.last_exitcode = 1;
-		/* If we are not in top-level parse, we return,
-		 * our caller will propagate error.
-		 */
 #if !BB_MMU
 		if (pstring)
 			*pstring = NULL;
