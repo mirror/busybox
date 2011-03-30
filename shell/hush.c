@@ -445,8 +445,6 @@ enum {
 /* Used for initialization: o_string foo = NULL_O_STRING; */
 #define NULL_O_STRING { NULL }
 
-/* I can almost use ordinary FILE*.  Is open_memstream() universally
- * available?  Where is it documented? */
 typedef struct in_str {
 	const char *p;
 	/* eof_flag=1: last char in ->p is really an EOF */
@@ -455,6 +453,7 @@ typedef struct in_str {
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
+	int last_char;
 	FILE *file;
 	int (*get) (struct in_str *) FAST_FUNC;
 	int (*peek) (struct in_str *) FAST_FUNC;
@@ -1077,22 +1076,22 @@ static void die_if_script(unsigned lineno, const char *fmt, ...)
 		xfunc_die();
 }
 
-static void syntax_error(unsigned lineno, const char *msg)
+static void syntax_error(unsigned lineno UNUSED_PARAM, const char *msg)
 {
 	if (msg)
-		die_if_script(lineno, "syntax error: %s", msg);
+		bb_error_msg("syntax error: %s", msg);
 	else
-		die_if_script(lineno, "syntax error", NULL);
+		bb_error_msg("syntax error");
 }
 
-static void syntax_error_at(unsigned lineno, const char *msg)
+static void syntax_error_at(unsigned lineno UNUSED_PARAM, const char *msg)
 {
-	die_if_script(lineno, "syntax error at '%s'", msg);
+	bb_error_msg("syntax error at '%s'", msg);
 }
 
-static void syntax_error_unterm_str(unsigned lineno, const char *s)
+static void syntax_error_unterm_str(unsigned lineno UNUSED_PARAM, const char *s)
 {
-	die_if_script(lineno, "syntax error: unterminated %s", s);
+	bb_error_msg("syntax error: unterminated %s", s);
 }
 
 static void syntax_error_unterm_ch(unsigned lineno, char ch)
@@ -1101,12 +1100,12 @@ static void syntax_error_unterm_ch(unsigned lineno, char ch)
 	syntax_error_unterm_str(lineno, msg);
 }
 
-static void syntax_error_unexpected_ch(unsigned lineno, int ch)
+static void syntax_error_unexpected_ch(unsigned lineno UNUSED_PARAM, int ch)
 {
 	char msg[2];
 	msg[0] = ch;
 	msg[1] = '\0';
-	die_if_script(lineno, "syntax error: unexpected %s", ch == EOF ? "EOF" : msg);
+	bb_error_msg("syntax error: unexpected %s", ch == EOF ? "EOF" : msg);
 }
 
 #if HUSH_DEBUG < 2
@@ -1843,6 +1842,7 @@ static int FAST_FUNC static_get(struct in_str *i)
 	int ch = *i->p;
 	if (ch != '\0') {
 		i->p++;
+		i->last_char = ch;
 		return ch;
 	}
 	return EOF;
@@ -1964,6 +1964,7 @@ static int FAST_FUNC file_get(struct in_str *i)
 		do ch = fgetc(i->file); while (ch == '\0');
 	}
 	debug_printf("file_get: got '%c' %d\n", ch, ch);
+	i->last_char = ch;
 	return ch;
 }
 
@@ -4008,7 +4009,7 @@ static int encode_string(o_string *as_string,
  * Scan input until EOF or end_trigger char.
  * Return a list of pipes to execute, or NULL on EOF
  * or if end_trigger character is met.
- * On syntax error, exit is shell is not interactive,
+ * On syntax error, exit if shell is not interactive,
  * reset parsing machinery and start parsing anew,
  * or return ERR_PTR.
  */
@@ -4036,8 +4037,6 @@ static struct pipe *parse_stream(char **pstring,
 	 * $IFS is used only for word splitting when $var is expanded,
 	 * here we should use blank chars as separators, not $IFS
 	 */
-
- reset: /* we come back here only on syntax errors in interactive shell */
 
 	if (MAYBE_ASSIGNMENT != 0)
 		dest.o_assignment = MAYBE_ASSIGNMENT;
@@ -4532,20 +4531,17 @@ static struct pipe *parse_stream(char **pstring,
 		} while (HAS_KEYWORDS && pctx);
 		/* Free text, clear all dest fields */
 		o_free(&dest);
+
+		G.last_exitcode = 1;
 		/* If we are not in top-level parse, we return,
 		 * our caller will propagate error.
 		 */
-		if (end_trigger != ';') {
 #if !BB_MMU
-			if (pstring)
-				*pstring = NULL;
+		if (pstring)
+			*pstring = NULL;
 #endif
-			debug_leave();
-			return ERR_PTR;
-		}
-		/* Discard cached input, force prompt */
-		input->p = NULL;
-		goto reset;
+		debug_leave();
+		return ERR_PTR;
 	}
 }
 
@@ -5550,8 +5546,24 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 			inp->promptmode = 0; /* PS1 */
 #endif
 		pipe_list = parse_stream(NULL, inp, end_trigger);
-		if (!pipe_list) { /* EOF */
-			if (empty)
+		if (!pipe_list || pipe_list == ERR_PTR) { /* EOF/error */
+			/* If we are in "big" script
+			 * (not in `cmd` or something similar)...
+			 */
+			if (pipe_list == ERR_PTR && end_trigger == ';') {
+				/* Discard cached input (rest of line) */
+				int ch = inp->last_char;
+				while (ch != EOF && ch != '\n') {
+					//bb_error_msg("Discarded:'%c'", ch);
+					ch = i_getch(inp);
+				}
+				/* Force prompt */
+				inp->p = NULL;
+				/* This stream isn't empty */
+				empty = 0;
+				continue;
+			}
+			if (!pipe_list && empty)
 				G.last_exitcode = 0;
 			break;
 		}
@@ -8630,8 +8642,6 @@ static int FAST_FUNC builtin_source(char **argv)
 #endif
 	save_and_replace_G_args(&sv, argv);
 
-//TODO: syntax errors in sourced file should never abort the "calling" script.
-//Try: bash -c '. ./bad_file; echo YES'
 	parse_and_run_file(input);
 	fclose(input);
 
