@@ -39,6 +39,29 @@
 //config:	help
 //config:	  Enable 64-bit support in test.
 
+/* "test --help" does not print help (POSIX compat), only "[ --help" does.
+ * We display "<applet> EXPRESSION ]" here (not "<applet> EXPRESSION")
+ * Unfortunately, it screws up generated BusyBox.html. TODO. */
+//usage:#define test_trivial_usage
+//usage:       "EXPRESSION ]"
+//usage:#define test_full_usage "\n\n"
+//usage:       "Check file types, compare values etc. Return a 0/1 exit code\n"
+//usage:       "depending on logical value of EXPRESSION"
+//usage:
+//usage:#define test_example_usage
+//usage:       "$ test 1 -eq 2\n"
+//usage:       "$ echo $?\n"
+//usage:       "1\n"
+//usage:       "$ test 1 -eq 1\n"
+//usage:       "$ echo $?\n"
+//usage:       "0\n"
+//usage:       "$ [ -d /etc ]\n"
+//usage:       "$ echo $?\n"
+//usage:       "0\n"
+//usage:       "$ [ -d /junk ]\n"
+//usage:       "$ echo $?\n"
+//usage:       "1\n"
+
 #include "libbb.h"
 #include <setjmp.h>
 

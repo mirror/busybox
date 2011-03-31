@@ -48,6 +48,23 @@
  *  Fix handling of -a to not print "unknown", add -o and -i support.
  */
 
+//usage:#define uname_trivial_usage
+//usage:       "[-amnrspv]"
+//usage:#define uname_full_usage "\n\n"
+//usage:       "Print system information\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Print all"
+//usage:     "\n	-m	The machine (hardware) type"
+//usage:     "\n	-n	Hostname"
+//usage:     "\n	-r	OS release"
+//usage:     "\n	-s	OS name (default)"
+//usage:     "\n	-p	Processor type"
+//usage:     "\n	-v	OS version"
+//usage:
+//usage:#define uname_example_usage
+//usage:       "$ uname -a\n"
+//usage:       "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
+
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h>

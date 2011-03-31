@@ -20,6 +20,15 @@
  * a diagnostic message and an error return.
  */
 
+//usage:#define logname_trivial_usage
+//usage:       ""
+//usage:#define logname_full_usage "\n\n"
+//usage:       "Print the name of the current user"
+//usage:
+//usage:#define logname_example_usage
+//usage:       "$ logname\n"
+//usage:       "root\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

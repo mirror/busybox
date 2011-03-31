@@ -7,6 +7,15 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define comm_trivial_usage
+//usage:       "[-123] FILE1 FILE2"
+//usage:#define comm_full_usage "\n\n"
+//usage:       "Compare FILE1 with FILE2\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-1	Suppress lines unique to FILE1"
+//usage:     "\n	-2	Suppress lines unique to FILE2"
+//usage:     "\n	-3	Suppress lines common to both files"
+
 #include "libbb.h"
 
 #define COMM_OPT_1 (1 << 0)

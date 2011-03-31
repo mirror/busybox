@@ -15,6 +15,18 @@
  * Size reduction.
  */
 
+//usage:#define rm_trivial_usage
+//usage:       "[-irf] FILE..."
+//usage:#define rm_full_usage "\n\n"
+//usage:       "Remove (unlink) FILEs\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-i	Always prompt before removing"
+//usage:     "\n	-f	Never prompt"
+//usage:     "\n	-R,-r	Recurse"
+//usage:
+//usage:#define rm_example_usage
+//usage:       "$ rm -rf /tmp/foo\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

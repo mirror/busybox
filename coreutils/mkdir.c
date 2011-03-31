@@ -19,6 +19,25 @@
 /* Nov 28, 2006      Yoshinori Sato <ysato@users.sourceforge.jp>: Add SELinux Support.
  */
 
+//usage:#define mkdir_trivial_usage
+//usage:       "[OPTIONS] DIRECTORY..."
+//usage:#define mkdir_full_usage "\n\n"
+//usage:       "Create DIRECTORY\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-m MODE	Mode"
+//usage:     "\n	-p	No error if exists; make parent directories as needed"
+//usage:	IF_SELINUX(
+//usage:     "\n	-Z	Set security context"
+//usage:	)
+//usage:
+//usage:#define mkdir_example_usage
+//usage:       "$ mkdir /tmp/foo\n"
+//usage:       "$ mkdir /tmp/foo\n"
+//usage:       "/tmp/foo: File exists\n"
+//usage:       "$ mkdir /tmp/foo/bar/baz\n"
+//usage:       "/tmp/foo/bar/baz: No such file or directory\n"
+//usage:       "$ mkdir -p /tmp/foo/bar/baz\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

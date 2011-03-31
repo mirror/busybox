@@ -24,6 +24,31 @@
  * 7) lseek attempted when count==0 even if arg was +0 (from top)
  */
 
+//usage:#define tail_trivial_usage
+//usage:       "[OPTIONS] [FILE]..."
+//usage:#define tail_full_usage "\n\n"
+//usage:       "Print last 10 lines of each FILE (or stdin) to stdout.\n"
+//usage:       "With more than one FILE, precede each with a filename header.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-f		Print data as file grows"
+//usage:	IF_FEATURE_FANCY_TAIL(
+//usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
+//usage:	)
+//usage:     "\n	-n N[kbm]	Print last N lines"
+//usage:	IF_FEATURE_FANCY_TAIL(
+//usage:     "\n	-c N[kbm]	Print last N bytes"
+//usage:     "\n	-q		Never print headers"
+//usage:     "\n	-v		Always print headers"
+//usage:     "\n"
+//usage:     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)."
+//usage:     "\nIf N starts with a '+', output begins with the Nth item from the start"
+//usage:     "\nof each file, not from the end."
+//usage:	)
+//usage:
+//usage:#define tail_example_usage
+//usage:       "$ tail -n 1 /etc/resolv.conf\n"
+//usage:       "nameserver 10.0.0.1\n"
+
 #include "libbb.h"
 
 static const struct suffix_mult tail_suffixes[] = {

@@ -16,6 +16,15 @@
  *
  * Major size reduction... over 50% (>1.5k) on i386.
  */
+
+//usage:#define cal_trivial_usage
+//usage:       "[-jy] [[MONTH] YEAR]"
+//usage:#define cal_full_usage "\n\n"
+//usage:       "Display a calendar\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-j	Use julian dates"
+//usage:     "\n	-y	Display the entire year"
+
 #include "libbb.h"
 #include "unicode.h"
 

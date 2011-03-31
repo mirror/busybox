@@ -6,6 +6,24 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+/* -v, -b, -c are ignored */
+//usage:#define install_trivial_usage
+//usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [SOURCE]... DEST"
+//usage:#define install_full_usage "\n\n"
+//usage:       "Copy files and set attributes\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Just copy (default)"
+//usage:     "\n	-d	Create directories"
+//usage:     "\n	-D	Create leading target directories"
+//usage:     "\n	-s	Strip symbol table"
+//usage:     "\n	-p	Preserve date"
+//usage:     "\n	-o USER	Set ownership"
+//usage:     "\n	-g GRP	Set group ownership"
+//usage:     "\n	-m MODE	Set permissions"
+//usage:	IF_SELINUX(
+//usage:     "\n	-Z	Set security context"
+//usage:	)
+
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
 

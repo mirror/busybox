@@ -12,6 +12,24 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
 
+//usage:#define dos2unix_trivial_usage
+//usage:       "[-ud] [FILE]"
+//usage:#define dos2unix_full_usage "\n\n"
+//usage:       "Convert FILE in-place from DOS to Unix format.\n"
+//usage:       "When no file is given, use stdin/stdout.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-u	dos2unix"
+//usage:     "\n	-d	unix2dos"
+//usage:
+//usage:#define unix2dos_trivial_usage
+//usage:       "[-ud] [FILE]"
+//usage:#define unix2dos_full_usage "\n\n"
+//usage:       "Convert FILE in-place from Unix to DOS format.\n"
+//usage:       "When no file is given, use stdin/stdout.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-u	dos2unix"
+//usage:     "\n	-d	unix2dos"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

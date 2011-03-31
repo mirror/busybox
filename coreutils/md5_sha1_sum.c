@@ -6,6 +6,64 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define md5sum_trivial_usage
+//usage:       "[FILE]..."
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum -c [-sw] [FILE]")
+//usage:#define md5sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Check sums against given list"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
+//usage:
+//usage:#define md5sum_example_usage
+//usage:       "$ md5sum < busybox\n"
+//usage:       "6fd11e98b98a58f64ff3398d7b324003\n"
+//usage:       "$ md5sum busybox\n"
+//usage:       "6fd11e98b98a58f64ff3398d7b324003  busybox\n"
+//usage:       "$ md5sum -c -\n"
+//usage:       "6fd11e98b98a58f64ff3398d7b324003  busybox\n"
+//usage:       "busybox: OK\n"
+//usage:       "^D\n"
+//usage:
+//usage:#define sha1sum_trivial_usage
+//usage:       "[FILE]..."
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum -c [-sw] [FILE]")
+//usage:#define sha1sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Check sums against given list"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
+//usage:
+//usage:#define sha256sum_trivial_usage
+//usage:       "[FILE]..."
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum -c [-sw] [FILE]")
+//usage:#define sha256sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA256 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Check sums against given list"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
+//usage:
+//usage:#define sha512sum_trivial_usage
+//usage:       "[FILE]..."
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum -c [-sw] [FILE]")
+//usage:#define sha512sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA512 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Check sums against given list"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

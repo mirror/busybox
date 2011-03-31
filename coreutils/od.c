@@ -11,6 +11,11 @@
  * Original copyright notice is retained at the end of this file.
  */
 
+//usage:#define od_trivial_usage
+//usage:       "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
+//usage:#define od_full_usage "\n\n"
+//usage:       "Write an unambiguous representation, octal bytes by default, of FILE\n"
+//usage:       "(or stdin) to stdout"
 
 #include "libbb.h"
 #if ENABLE_DESKTOP

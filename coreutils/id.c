@@ -15,6 +15,24 @@
  * Added -G option Tito Ragusa (C) 2008 for SUSv3.
  */
 
+//usage:#define id_trivial_usage
+//usage:       "[OPTIONS] [USER]"
+//usage:#define id_full_usage "\n\n"
+//usage:       "Print information about USER or the current user\n"
+//usage:     "\nOptions:"
+//usage:	IF_SELINUX(
+//usage:     "\n	-Z	Security context"
+//usage:	)
+//usage:     "\n	-u	User ID"
+//usage:     "\n	-g	Group ID"
+//usage:     "\n	-G	Supplementary group IDs"
+//usage:     "\n	-n	Print names instead of numbers"
+//usage:     "\n	-r	Print real ID instead of effective ID"
+//usage:
+//usage:#define id_example_usage
+//usage:       "$ id\n"
+//usage:       "uid=1000(andersen) gid=1000(andersen)\n"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

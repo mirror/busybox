@@ -10,6 +10,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define realpath_trivial_usage
+//usage:       "FILE..."
+//usage:#define realpath_full_usage "\n\n"
+//usage:       "Return the absolute pathnames of given FILE"
+
 #include "libbb.h"
 
 int realpath_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

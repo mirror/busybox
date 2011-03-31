@@ -10,6 +10,16 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/true.html */
 
+//usage:#define true_trivial_usage
+//usage:       ""
+//usage:#define true_full_usage "\n\n"
+//usage:       "Return an exit code of TRUE (0)"
+//usage:
+//usage:#define true_example_usage
+//usage:       "$ true\n"
+//usage:       "$ echo $?\n"
+//usage:       "0\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

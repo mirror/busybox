@@ -16,6 +16,11 @@
  * http://www.uclibc.org/lists/busybox/2003-July/008813.html
  */
 
+//usage:#define tac_trivial_usage
+//usage:	"[FILE]..."
+//usage:#define tac_full_usage "\n\n"
+//usage:	"Concatenate FILEs and print them in reverse"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

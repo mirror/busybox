@@ -23,6 +23,43 @@
  * 4) Fixed busybox bug #1284 involving long overflow with human_readable.
  */
 
+//usage:#define du_trivial_usage
+//usage:       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
+//usage:#define du_full_usage "\n\n"
+//usage:       "Summarize disk space used for each FILE and/or directory.\n"
+//usage:       "Disk space is printed in units of "
+//usage:	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024")
+//usage:	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512")
+//usage:       " bytes.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Show file sizes too"
+//usage:     "\n	-L	Follow all symlinks"
+//usage:     "\n	-H	Follow symlinks on command line"
+//usage:     "\n	-d N	Limit output to directories (and files with -a) of depth < N"
+//usage:     "\n	-c	Show grand total"
+//usage:     "\n	-l	Count sizes many times if hard linked"
+//usage:     "\n	-s	Display only a total for each argument"
+//usage:     "\n	-x	Skip directories on different filesystems"
+//usage:	IF_FEATURE_HUMAN_READABLE(
+//usage:     "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G )"
+//usage:     "\n	-m	Sizes in megabytes"
+//usage:	)
+//usage:     "\n	-k	Sizes in kilobytes"
+//usage:			IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)")
+//usage:
+//usage:#define du_example_usage
+//usage:       "$ du\n"
+//usage:       "16      ./CVS\n"
+//usage:       "12      ./kernel-patches/CVS\n"
+//usage:       "80      ./kernel-patches\n"
+//usage:       "12      ./tests/CVS\n"
+//usage:       "36      ./tests\n"
+//usage:       "12      ./scripts/CVS\n"
+//usage:       "16      ./scripts\n"
+//usage:       "12      ./docs/CVS\n"
+//usage:       "104     ./docs\n"
+//usage:       "2417    .\n"
+
 #include "libbb.h"
 
 enum {

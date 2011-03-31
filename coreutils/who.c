@@ -18,6 +18,13 @@
  */
 /* BB_AUDIT SUSv3 _NOT_ compliant -- missing options -b, -d, -l, -m, -p, -q, -r, -s, -t, -T, -u; Missing argument 'file'.  */
 
+//usage:#define who_trivial_usage
+//usage:       "[-a]"
+//usage:#define who_full_usage "\n\n"
+//usage:       "Show who is logged on\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Show all"
+
 #include "libbb.h"
 
 static void idle_string(char *str6, time_t t)

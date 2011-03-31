@@ -10,6 +10,24 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
+//usage:#define uniq_trivial_usage
+//usage:       "[-cdu][-f,s,w N] [INPUT [OUTPUT]]"
+//usage:#define uniq_full_usage "\n\n"
+//usage:       "Discard duplicate lines\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Prefix lines by the number of occurrences"
+//usage:     "\n	-d	Only print duplicate lines"
+//usage:     "\n	-u	Only print unique lines"
+//usage:     "\n	-f N	Skip first N fields"
+//usage:     "\n	-s N	Skip first N chars (after any skipped fields)"
+//usage:     "\n	-w N	Compare N characters in line"
+//usage:
+//usage:#define uniq_example_usage
+//usage:       "$ echo -e \"a\\na\\nb\\nc\\nc\\na\" | sort | uniq\n"
+//usage:       "a\n"
+//usage:       "b\n"
+//usage:       "c\n"
+
 #include "libbb.h"
 
 int uniq_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

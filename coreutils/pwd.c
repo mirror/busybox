@@ -7,6 +7,15 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define pwd_trivial_usage
+//usage:       ""
+//usage:#define pwd_full_usage "\n\n"
+//usage:       "Print the full filename of the current working directory"
+//usage:
+//usage:#define pwd_example_usage
+//usage:       "$ pwd\n"
+//usage:       "/root\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

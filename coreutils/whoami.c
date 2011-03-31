@@ -9,6 +9,11 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
+//usage:#define whoami_trivial_usage
+//usage:       ""
+//usage:#define whoami_full_usage "\n\n"
+//usage:       "Print the user name associated with the current effective user id"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

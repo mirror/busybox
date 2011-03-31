@@ -9,6 +9,19 @@
  * SUSv3 requirements:
  * http://www.opengroup.org/onlinepubs/009695399/utilities/split.html
  */
+
+//usage:#define split_trivial_usage
+//usage:       "[OPTIONS] [INPUT [PREFIX]]"
+//usage:#define split_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-b N[k|m]	Split by N (kilo|mega)bytes"
+//usage:     "\n	-l N		Split by N lines"
+//usage:     "\n	-a N		Use N letters as suffix"
+//usage:
+//usage:#define split_example_usage
+//usage:       "$ split TODO foo\n"
+//usage:       "$ cat TODO | split -a 2 -l 2 TODO_\n"
+
 #include "libbb.h"
 
 static const struct suffix_mult split_suffices[] = {

@@ -6,6 +6,16 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define seq_trivial_usage
+//usage:       "[-w] [-s SEP] [FIRST [INC]] LAST"
+//usage:#define seq_full_usage "\n\n"
+//usage:       "Print numbers from FIRST to LAST, in steps of INC.\n"
+//usage:       "FIRST, INC default to 1.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-w	Pad to last with leading zeros"
+//usage:     "\n	-s SEP	String separator"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

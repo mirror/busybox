@@ -6,6 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define cksum_trivial_usage
+//usage:       "FILES..."
+//usage:#define cksum_full_usage "\n\n"
+//usage:       "Calculate the CRC32 checksums of FILES"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

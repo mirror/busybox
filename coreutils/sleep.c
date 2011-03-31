@@ -18,6 +18,21 @@
  * time suffixes for seconds, minutes, hours, and days.
  */
 
+//usage:#define sleep_trivial_usage
+//usage:	IF_FEATURE_FANCY_SLEEP("[") "N" IF_FEATURE_FANCY_SLEEP("]...")
+//usage:#define sleep_full_usage "\n\n"
+//usage:	IF_NOT_FEATURE_FANCY_SLEEP("Pause for N seconds")
+//usage:	IF_FEATURE_FANCY_SLEEP(
+//usage:       "Pause for a time equal to the total of the args given, where each arg can\n"
+//usage:       "have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays")
+//usage:
+//usage:#define sleep_example_usage
+//usage:       "$ sleep 2\n"
+//usage:       "[2 second delay results]\n"
+//usage:	IF_FEATURE_FANCY_SLEEP(
+//usage:       "$ sleep 1d 3h 22m 8s\n"
+//usage:       "[98528 second delay results]\n")
+
 #include "libbb.h"
 
 /* Do not make this applet NOFORK. It breaks ^C-ing of pauses in shells */

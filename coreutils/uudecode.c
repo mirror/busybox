@@ -10,6 +10,18 @@
  * Bugs: the spec doesn't mention anything about "`\n`\n" prior to the
  * "end" line
  */
+
+//usage:#define uudecode_trivial_usage
+//usage:       "[-o OUTFILE] [INFILE]"
+//usage:#define uudecode_full_usage "\n\n"
+//usage:       "Uudecode a file\n"
+//usage:       "Finds outfile name in uuencoded source unless -o is given"
+//usage:
+//usage:#define uudecode_example_usage
+//usage:       "$ uudecode -o busybox busybox.uu\n"
+//usage:       "$ ls -l busybox\n"
+//usage:       "-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox\n"
+
 #include "libbb.h"
 
 #if ENABLE_UUDECODE

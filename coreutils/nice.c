@@ -7,6 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define nice_trivial_usage
+//usage:       "[-n ADJUST] [PROG ARGS]"
+//usage:#define nice_full_usage "\n\n"
+//usage:       "Change scheduling priority, run PROG\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n ADJUST	Adjust priority by ADJUST"
+
 #include <sys/resource.h>
 #include "libbb.h"
 

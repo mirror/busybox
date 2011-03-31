@@ -8,6 +8,20 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define uuencode_trivial_usage
+//usage:       "[-m] [INFILE] STORED_FILENAME"
+//usage:#define uuencode_full_usage "\n\n"
+//usage:       "Uuencode a file to stdout\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-m	Use base64 encoding per RFC1521"
+//usage:
+//usage:#define uuencode_example_usage
+//usage:       "$ uuencode busybox busybox\n"
+//usage:       "begin 755 busybox\n"
+//usage:       "<encoded file snipped>\n"
+//usage:       "$ uudecode busybox busybox > busybox.uu\n"
+//usage:       "$\n"
+
 #include "libbb.h"
 
 enum {

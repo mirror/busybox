@@ -9,6 +9,24 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
+//usage:#define mknod_trivial_usage
+//usage:       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME TYPE MAJOR MINOR"
+//usage:#define mknod_full_usage "\n\n"
+//usage:       "Create a special file (block, character, or pipe)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-m MODE	Creation mode (default a=rw)"
+//usage:	IF_SELINUX(
+//usage:     "\n	-Z	Set security context"
+//usage:	)
+//usage:     "\nTYPE:"
+//usage:     "\n	b	Block device"
+//usage:     "\n	c or u	Character device"
+//usage:     "\n	p	Named pipe (MAJOR and MINOR are ignored)"
+//usage:
+//usage:#define mknod_example_usage
+//usage:       "$ mknod /dev/fd0 b 2 0\n"
+//usage:       "$ mknod -m 644 /tmp/pipe p\n"
+
 #include <sys/sysmacros.h>  // For makedev
 
 #include "libbb.h"

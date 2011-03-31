@@ -10,6 +10,19 @@
 /* BB_AUDIT SUSv4 compliant */
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/tty.html */
 
+//usage:#define tty_trivial_usage
+//usage:       ""
+//usage:#define tty_full_usage "\n\n"
+//usage:       "Print file name of stdin's terminal"
+//usage:	IF_INCLUDE_SUSv2( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-s	Print nothing, only return exit status"
+//usage:	)
+//usage:
+//usage:#define tty_example_usage
+//usage:       "$ tty\n"
+//usage:       "/dev/tty2\n"
+
 #include "libbb.h"
 
 int tty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

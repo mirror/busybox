@@ -10,6 +10,32 @@
 /* BB_AUDIT SUSv3 defects - none? */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chown.html */
 
+//usage:#define chown_trivial_usage
+//usage:       "[-RhLHP"IF_DESKTOP("cvf")"]... OWNER[<.|:>[GROUP]] FILE..."
+//usage:#define chown_full_usage "\n\n"
+//usage:       "Change the owner and/or group of each FILE to OWNER and/or GROUP\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-R	Recurse"
+//usage:     "\n	-h	Affect symlinks instead of symlink targets"
+//usage:     "\n	-L	Traverse all symlinks to directories"
+//usage:     "\n	-H	Traverse symlinks on command line only"
+//usage:     "\n	-P	Don't traverse symlinks (default)"
+//usage:	IF_DESKTOP(
+//usage:     "\n	-c	List changed files"
+//usage:     "\n	-v	List all files"
+//usage:     "\n	-f	Hide errors"
+//usage:	)
+//usage:
+//usage:#define chown_example_usage
+//usage:       "$ ls -l /tmp/foo\n"
+//usage:       "-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n"
+//usage:       "$ chown root /tmp/foo\n"
+//usage:       "$ ls -l /tmp/foo\n"
+//usage:       "-r--r--r--    1 root     andersen        0 Apr 12 18:25 /tmp/foo\n"
+//usage:       "$ chown root.root /tmp/foo\n"
+//usage:       "ls -l /tmp/foo\n"
+//usage:       "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

@@ -8,6 +8,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define printenv_trivial_usage
+//usage:       "[VARIABLE]..."
+//usage:#define printenv_full_usage "\n\n"
+//usage:       "Print environment VARIABLEs.\n"
+//usage:       "If no VARIABLE specified, print all."
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

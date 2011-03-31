@@ -118,18 +118,6 @@ INSERT
      "\n	-F SEP		Use SEP as field separator" \
      "\n	-f FILE		Read program from FILE" \
 
-#define basename_trivial_usage \
-       "FILE [SUFFIX]"
-#define basename_full_usage "\n\n" \
-       "Strip directory path and .SUFFIX from FILE\n"
-#define basename_example_usage \
-       "$ basename /usr/local/bin/foo\n" \
-       "foo\n" \
-       "$ basename /usr/local/bin/\n" \
-       "bin\n" \
-       "$ basename /foo/bar.txt .txt\n" \
-       "bar"
-
 #define beep_trivial_usage \
        "-f FREQ -l LEN -d DELAY -r COUNT -n"
 #define beep_full_usage "\n\n" \
@@ -170,32 +158,6 @@ INSERT
 
 #define busybox_notes_usage \
        "Hello world!\n"
-
-#define cal_trivial_usage \
-       "[-jy] [[MONTH] YEAR]"
-#define cal_full_usage "\n\n" \
-       "Display a calendar\n" \
-     "\nOptions:" \
-     "\n	-j	Use julian dates" \
-     "\n	-y	Display the entire year" \
-
-#define cat_trivial_usage \
-       "[FILE]..."
-#define cat_full_usage "\n\n" \
-       "Concatenate FILEs and print them to stdout" \
-
-#define cat_example_usage \
-       "$ cat /proc/uptime\n" \
-       "110716.72 17.67"
-
-#define catv_trivial_usage \
-       "[-etv] [FILE]..."
-#define catv_full_usage "\n\n" \
-       "Display nonprinting characters as ^x or M-x\n" \
-     "\nOptions:" \
-     "\n	-e	End each line with $" \
-     "\n	-t	Show tabs as ^I" \
-     "\n	-v	Don't use ^x or M-x escapes" \
 
 #define chat_trivial_usage \
        "EXPECT [SEND [EXPECT [SEND...]]]"
@@ -261,75 +223,6 @@ INSERT
      "\n	-R	Recurse" \
 	)
 
-#define chmod_trivial_usage \
-       "[-R"IF_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
-#define chmod_full_usage "\n\n" \
-       "Each MODE is one or more of the letters ugoa, one of the\n" \
-       "symbols +-= and one or more of the letters rwxst\n" \
-     "\nOptions:" \
-     "\n	-R	Recurse" \
-	IF_DESKTOP( \
-     "\n	-c	List changed files" \
-     "\n	-v	List all files" \
-     "\n	-f	Hide errors" \
-	)
-#define chmod_example_usage \
-       "$ ls -l /tmp/foo\n" \
-       "-rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n" \
-       "$ chmod u+x /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*\n" \
-       "$ chmod 444 /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
-
-#define chgrp_trivial_usage \
-       "[-RhLHP"IF_DESKTOP("cvf")"]... GROUP FILE..."
-#define chgrp_full_usage "\n\n" \
-       "Change the group membership of each FILE to GROUP\n" \
-     "\nOptions:" \
-     "\n	-R	Recurse" \
-     "\n	-h	Affect symlinks instead of symlink targets" \
-     "\n	-L	Traverse all symlinks to directories" \
-     "\n	-H	Traverse symlinks on command line only" \
-     "\n	-P	Don't traverse symlinks (default)" \
-	IF_DESKTOP( \
-     "\n	-c	List changed files" \
-     "\n	-v	Verbose" \
-     "\n	-f	Hide errors" \
-	)
-#define chgrp_example_usage \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n" \
-       "$ chgrp root /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo\n"
-
-#define chown_trivial_usage \
-       "[-RhLHP"IF_DESKTOP("cvf")"]... OWNER[<.|:>[GROUP]] FILE..."
-#define chown_full_usage "\n\n" \
-       "Change the owner and/or group of each FILE to OWNER and/or GROUP\n" \
-     "\nOptions:" \
-     "\n	-R	Recurse" \
-     "\n	-h	Affect symlinks instead of symlink targets" \
-     "\n	-L	Traverse all symlinks to directories" \
-     "\n	-H	Traverse symlinks on command line only" \
-     "\n	-P	Don't traverse symlinks (default)" \
-	IF_DESKTOP( \
-     "\n	-c	List changed files" \
-     "\n	-v	List all files" \
-     "\n	-f	Hide errors" \
-	)
-#define chown_example_usage \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n" \
-       "$ chown root /tmp/foo\n" \
-       "$ ls -l /tmp/foo\n" \
-       "-r--r--r--    1 root     andersen        0 Apr 12 18:25 /tmp/foo\n" \
-       "$ chown root.root /tmp/foo\n" \
-       "ls -l /tmp/foo\n" \
-       "-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
-
 #define chpst_trivial_usage \
        "[-vP012] [-u USER[:GRP]] [-U USER[:GRP]] [-e DIR]\n" \
        "	[-/ DIR] [-n NICE] [-m BYTES] [-d BYTES] [-o N]\n" \
@@ -391,23 +284,6 @@ INSERT
      "\n	-t N		Limit CPU time, process receives" \
      "\n			a SIGXCPU after N seconds" \
 
-#define chroot_trivial_usage \
-       "NEWROOT [PROG ARGS]"
-#define chroot_full_usage "\n\n" \
-       "Run PROG with root directory set to NEWROOT"
-#define chroot_example_usage \
-       "$ ls -l /bin/ls\n" \
-       "lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -> /BusyBox\n" \
-       "# mount /dev/hdc1 /mnt -t minix\n" \
-       "# chroot /mnt\n" \
-       "# ls -l /bin/ls\n" \
-       "-rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*\n"
-
-#define cksum_trivial_usage \
-       "FILES..."
-#define cksum_full_usage "\n\n" \
-       "Calculate the CRC32 checksums of FILES"
-
 #define cmp_trivial_usage \
        "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
 #define cmp_full_usage "\n\n" \
@@ -416,15 +292,6 @@ INSERT
      "\n	-l	Write the byte numbers (decimal) and values (octal)" \
      "\n		for all differing bytes" \
      "\n	-s	Quiet" \
-
-#define comm_trivial_usage \
-       "[-123] FILE1 FILE2"
-#define comm_full_usage "\n\n" \
-       "Compare FILE1 with FILE2\n" \
-     "\nOptions:" \
-     "\n	-1	Suppress lines unique to FILE1" \
-     "\n	-2	Suppress lines unique to FILE2" \
-     "\n	-3	Suppress lines common to both files" \
 
 #define bbconfig_trivial_usage \
        ""
@@ -447,13 +314,6 @@ INSERT
        "$ chrt -f -p 3 $x\n" \
        "You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
 
-#define nice_trivial_usage \
-       "[-n ADJUST] [PROG ARGS]"
-#define nice_full_usage "\n\n" \
-       "Change scheduling priority, run PROG\n" \
-     "\nOptions:" \
-     "\n	-n ADJUST	Adjust priority by ADJUST" \
-
 #define renice_trivial_usage \
        "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
 #define renice_full_usage "\n\n" \
@@ -471,24 +331,6 @@ INSERT
      "\nOptions:" \
      "\n	-c	Class. 1:realtime 2:best-effort 3:idle" \
      "\n	-n	Priority" \
-
-#define cp_trivial_usage \
-       "[OPTIONS] SOURCE DEST"
-#define cp_full_usage "\n\n" \
-       "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY\n" \
-     "\nOptions:" \
-     "\n	-a	Same as -dpR" \
-	IF_SELINUX( \
-     "\n	-c	Preserve security context" \
-	) \
-     "\n	-R,-r	Recurse" \
-     "\n	-d,-P	Preserve symlinks (default if -R)" \
-     "\n	-L	Follow all symlinks" \
-     "\n	-H	Follow symlinks on command line" \
-     "\n	-p	Preserve file attributes if possible" \
-     "\n	-f	Overwrite" \
-     "\n	-i	Prompt before overwrite" \
-     "\n	-l,-s	Create (sym)links" \
 
 #define crond_trivial_usage \
        "-fbS -l N " IF_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
@@ -553,57 +395,6 @@ INSERT
      "\n	-S SALT" \
 	) \
 
-#define cut_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define cut_full_usage "\n\n" \
-       "Print selected fields from each input FILE to stdout\n" \
-     "\nOptions:" \
-     "\n	-b LIST	Output only bytes from LIST" \
-     "\n	-c LIST	Output only characters from LIST" \
-     "\n	-d CHAR	Use CHAR instead of tab as the field delimiter" \
-     "\n	-s	Output only the lines containing delimiter" \
-     "\n	-f N	Print only these fields" \
-     "\n	-n	Ignored" \
-
-#define cut_example_usage \
-       "$ echo \"Hello world\" | cut -f 1 -d ' '\n" \
-       "Hello\n" \
-       "$ echo \"Hello world\" | cut -f 2 -d ' '\n" \
-       "world\n"
-
-#define dd_trivial_usage \
-       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
-       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
-#define dd_full_usage "\n\n" \
-       "Copy a file with converting and formatting\n" \
-     "\nOptions:" \
-     "\n	if=FILE		Read from FILE instead of stdin" \
-     "\n	of=FILE		Write to FILE instead of stdout" \
-     "\n	bs=N		Read and write N bytes at a time" \
-	IF_FEATURE_DD_IBS_OBS( \
-     "\n	ibs=N		Read N bytes at a time" \
-	) \
-	IF_FEATURE_DD_IBS_OBS( \
-     "\n	obs=N		Write N bytes at a time" \
-	) \
-     "\n	count=N		Copy only N input blocks" \
-     "\n	skip=N		Skip N input blocks" \
-     "\n	seek=N		Skip N output blocks" \
-	IF_FEATURE_DD_IBS_OBS( \
-     "\n	conv=notrunc	Don't truncate output file" \
-     "\n	conv=noerror	Continue after read errors" \
-     "\n	conv=sync	Pad blocks with zeros" \
-     "\n	conv=fsync	Physically write data out before finishing" \
-	) \
-     "\n" \
-     "\nNumbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024)," \
-     "\nMD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)" \
-
-#define dd_example_usage \
-       "$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4\n" \
-       "4+0 records in\n" \
-       "4+0 records out\n"
-
 #define delgroup_trivial_usage \
 	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
 #define delgroup_full_usage "\n\n" \
@@ -639,41 +430,6 @@ INSERT
      "\n		don't poll for events" \
 	)
 
-#define df_trivial_usage \
-	"[-Pk" \
-	IF_FEATURE_HUMAN_READABLE("mh") \
-	IF_FEATURE_DF_FANCY("ai] [-B SIZE") \
-	"] [FILESYSTEM]..."
-#define df_full_usage "\n\n" \
-       "Print filesystem usage statistics\n" \
-     "\nOptions:" \
-     "\n	-P	POSIX output format" \
-     "\n	-k	1024-byte blocks (default)" \
-	IF_FEATURE_HUMAN_READABLE( \
-     "\n	-m	1M-byte blocks" \
-     "\n	-h	Human readable (e.g. 1K 243M 2G)" \
-	) \
-	IF_FEATURE_DF_FANCY( \
-     "\n	-a	Show all filesystems" \
-     "\n	-i	Inodes" \
-     "\n	-B SIZE	Blocksize" \
-	) \
-
-#define df_example_usage \
-       "$ df\n" \
-       "Filesystem           1K-blocks      Used Available Use% Mounted on\n" \
-       "/dev/sda3              8690864   8553540    137324  98% /\n" \
-       "/dev/sda1                64216     36364     27852  57% /boot\n" \
-       "$ df /dev/sda3\n" \
-       "Filesystem           1K-blocks      Used Available Use% Mounted on\n" \
-       "/dev/sda3              8690864   8553540    137324  98% /\n" \
-       "$ POSIXLY_CORRECT=sure df /dev/sda3\n" \
-       "Filesystem         512B-blocks      Used Available Use% Mounted on\n" \
-       "/dev/sda3             17381728  17107080    274648  98% /\n" \
-       "$ POSIXLY_CORRECT=yep df -P /dev/sda3\n" \
-       "Filesystem          512-blocks      Used Available Capacity Mounted on\n" \
-       "/dev/sda3             17381728  17107080    274648      98% /\n"
-
 #define dhcprelay_trivial_usage \
        "CLIENT_IFACE[,CLIENT_IFACE2]... SERVER_IFACE [SERVER_IP]"
 #define dhcprelay_full_usage "\n\n" \
@@ -701,16 +457,6 @@ INSERT
      "\n	-U	Output LINES lines of context" \
      "\n	-w	Ignore all whitespace" \
 
-#define dirname_trivial_usage \
-       "FILENAME"
-#define dirname_full_usage "\n\n" \
-       "Strip non-directory suffix from FILENAME"
-#define dirname_example_usage \
-       "$ dirname /tmp/foo\n" \
-       "/tmp\n" \
-       "$ dirname /tmp/foo/\n" \
-       "/tmp\n"
-
 #define dmesg_trivial_usage \
        "[-c] [-n LEVEL] [-s SIZE]"
 #define dmesg_full_usage "\n\n" \
@@ -735,61 +481,6 @@ INSERT
      "\n		to use /etc/resolv.conf with two nameserver lines:" \
      "\n			nameserver DNSD_SERVER" \
      "\n			nameserver NORNAL_DNS_SERVER" \
-
-#define dos2unix_trivial_usage \
-       "[-ud] [FILE]"
-#define dos2unix_full_usage "\n\n" \
-       "Convert FILE in-place from DOS to Unix format.\n" \
-       "When no file is given, use stdin/stdout.\n" \
-     "\nOptions:" \
-     "\n	-u	dos2unix" \
-     "\n	-d	unix2dos" \
-
-#define unix2dos_trivial_usage \
-       "[-ud] [FILE]"
-#define unix2dos_full_usage "\n\n" \
-       "Convert FILE in-place from Unix to DOS format.\n" \
-       "When no file is given, use stdin/stdout.\n" \
-     "\nOptions:" \
-     "\n	-u	dos2unix" \
-     "\n	-d	unix2dos" \
-
-#define du_trivial_usage \
-       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
-#define du_full_usage "\n\n" \
-       "Summarize disk space used for each FILE and/or directory.\n" \
-       "Disk space is printed in units of " \
-	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024") \
-	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512") \
-       " bytes.\n" \
-     "\nOptions:" \
-     "\n	-a	Show file sizes too" \
-     "\n	-L	Follow all symlinks" \
-     "\n	-H	Follow symlinks on command line" \
-     "\n	-d N	Limit output to directories (and files with -a) of depth < N" \
-     "\n	-c	Show grand total" \
-     "\n	-l	Count sizes many times if hard linked" \
-     "\n	-s	Display only a total for each argument" \
-     "\n	-x	Skip directories on different filesystems" \
-	IF_FEATURE_HUMAN_READABLE( \
-     "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G )" \
-     "\n	-m	Sizes in megabytes" \
-	) \
-     "\n	-k	Sizes in kilobytes" \
-			IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)") \
-
-#define du_example_usage \
-       "$ du\n" \
-       "16      ./CVS\n" \
-       "12      ./kernel-patches/CVS\n" \
-       "80      ./kernel-patches\n" \
-       "12      ./tests/CVS\n" \
-       "36      ./tests\n" \
-       "12      ./scripts/CVS\n" \
-       "16      ./scripts\n" \
-       "12      ./docs/CVS\n" \
-       "104     ./docs\n" \
-       "2417    .\n"
 
 #define dumpleases_trivial_usage \
        "[-r|-a] [-f LEASEFILE]"
@@ -829,26 +520,6 @@ INSERT
      "\n	-L file		Set badblocks list" \
 */
 
-#define echo_trivial_usage \
-	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG]..."
-#define echo_full_usage "\n\n" \
-       "Print the specified ARGs to stdout" \
-	IF_FEATURE_FANCY_ECHO( "\n" \
-     "\nOptions:" \
-     "\n	-n	Suppress trailing newline" \
-     "\n	-e	Interpret backslash escapes (i.e., \\t=tab)" \
-     "\n	-E	Don't interpret backslash escapes (default)" \
-	)
-#define echo_example_usage \
-       "$ echo \"Erik is cool\"\n" \
-       "Erik is cool\n" \
-	IF_FEATURE_FANCY_ECHO("$ echo -e \"Erik\\nis\\ncool\"\n" \
-       "Erik\n" \
-       "is\n" \
-       "cool\n" \
-       "$ echo \"Erik\\nis\\ncool\"\n" \
-       "Erik\\nis\\ncool\n")
-
 #define eject_trivial_usage \
        "[-t] [-T] [DEVICE]"
 #define eject_full_usage "\n\n" \
@@ -863,15 +534,6 @@ INSERT
 #define ed_trivial_usage ""
 #define ed_full_usage ""
 
-#define env_trivial_usage \
-       "[-iu] [-] [name=value]... [PROG ARGS]"
-#define env_full_usage "\n\n" \
-       "Print the current environment or run PROG after setting up\n" \
-       "the specified environment\n" \
-     "\nOptions:" \
-     "\n	-, -i	Start with an empty environment" \
-     "\n	-u	Remove variable from the environment" \
-
 #define ether_wake_trivial_usage \
        "[-b] [-i iface] [-p aa:bb:cc:dd[:ee:ff]] MAC"
 #define ether_wake_full_usage "\n\n" \
@@ -883,55 +545,6 @@ INSERT
      "\n	-i iface	Interface to use (default eth0)" \
      "\n	-p pass		Append four or six byte password PW to the packet" \
 
-#define expand_trivial_usage \
-       "[-i] [-t N] [FILE]..."
-#define expand_full_usage "\n\n" \
-       "Convert tabs to spaces, writing to stdout\n" \
-     "\nOptions:" \
-	IF_FEATURE_EXPAND_LONG_OPTIONS( \
-     "\n	-i,--initial	Don't convert tabs after non blanks" \
-     "\n	-t,--tabs=N	Tabstops every N chars" \
-	) \
-	IF_NOT_FEATURE_EXPAND_LONG_OPTIONS( \
-     "\n	-i	Don't convert tabs after non blanks" \
-     "\n	-t	Tabstops every N chars" \
-	)
-
-#define expr_trivial_usage \
-       "EXPRESSION"
-#define expr_full_usage "\n\n" \
-       "Print the value of EXPRESSION to stdout\n" \
-    "\n" \
-       "EXPRESSION may be:\n" \
-       "	ARG1 | ARG2	ARG1 if it is neither null nor 0, otherwise ARG2\n" \
-       "	ARG1 & ARG2	ARG1 if neither argument is null or 0, otherwise 0\n" \
-       "	ARG1 < ARG2	1 if ARG1 is less than ARG2, else 0. Similarly:\n" \
-       "	ARG1 <= ARG2\n" \
-       "	ARG1 = ARG2\n" \
-       "	ARG1 != ARG2\n" \
-       "	ARG1 >= ARG2\n" \
-       "	ARG1 > ARG2\n" \
-       "	ARG1 + ARG2	Sum of ARG1 and ARG2. Similarly:\n" \
-       "	ARG1 - ARG2\n" \
-       "	ARG1 * ARG2\n" \
-       "	ARG1 / ARG2\n" \
-       "	ARG1 % ARG2\n" \
-       "	STRING : REGEXP		Anchored pattern match of REGEXP in STRING\n" \
-       "	match STRING REGEXP	Same as STRING : REGEXP\n" \
-       "	substr STRING POS LENGTH Substring of STRING, POS counted from 1\n" \
-       "	index STRING CHARS	Index in STRING where any CHARS is found, or 0\n" \
-       "	length STRING		Length of STRING\n" \
-       "	quote TOKEN		Interpret TOKEN as a string, even if\n" \
-       "				it is a keyword like 'match' or an\n" \
-       "				operator like '/'\n" \
-       "	(EXPRESSION)		Value of EXPRESSION\n" \
-       "\n" \
-       "Beware that many operators need to be escaped or quoted for shells.\n" \
-       "Comparisons are arithmetic if both ARGs are numbers, else\n" \
-       "lexicographical. Pattern matches return the string matched between\n" \
-       "\\( and \\) or null; if \\( and \\) are not used, they return the number\n" \
-       "of characters matched or 0."
-
 #define fakeidentd_trivial_usage \
        "[-fiw] [-b ADDR] [STRING]"
 #define fakeidentd_full_usage "\n\n" \
@@ -942,16 +555,6 @@ INSERT
      "\n	-w	Inetd 'wait' mode" \
      "\n	-b ADDR	Bind to specified address" \
      "\n	STRING	Ident answer string (default: nobody)" \
-
-#define false_trivial_usage \
-       ""
-#define false_full_usage "\n\n" \
-       "Return an exit code of FALSE (1)"
-
-#define false_example_usage \
-       "$ false\n" \
-       "$ echo $?\n" \
-       "1\n"
 
 #define fbsplash_trivial_usage \
        "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
@@ -1057,15 +660,6 @@ INSERT
      "\n	-x	Exclusive lock (default)" \
      "\n	-u	Unlock FD" \
      "\n	-n	Fail rather than wait" \
-
-#define fold_trivial_usage \
-       "[-bs] [-w WIDTH] [FILE]..."
-#define fold_full_usage "\n\n" \
-       "Wrap input lines in each FILE (or stdin), writing to stdout\n" \
-     "\nOptions:" \
-     "\n	-b	Count bytes rather than columns" \
-     "\n	-s	Break at spaces" \
-     "\n	-w	Use WIDTH columns instead of 80" \
 
 #define free_trivial_usage \
        "" IF_DESKTOP("[-b/k/m/g]")
@@ -1267,51 +861,6 @@ INSERT
      "\n	-Z	Disable Seagate auto-powersaving mode" \
      "\n	-z	Reread partition table" \
 
-#define head_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define head_full_usage "\n\n" \
-       "Print first 10 lines of each FILE (or stdin) to stdout.\n" \
-       "With more than one FILE, precede each with a filename header.\n" \
-     "\nOptions:" \
-     "\n	-n N[kbm]	Print first N lines" \
-	IF_FEATURE_FANCY_HEAD( \
-     "\n	-c N[kbm]	Print first N bytes" \
-     "\n	-q		Never print headers" \
-     "\n	-v		Always print headers" \
-	) \
-     "\n" \
-     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)." \
-
-#define head_example_usage \
-       "$ head -n 2 /etc/passwd\n" \
-       "root:x:0:0:root:/root:/bin/bash\n" \
-       "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
-
-#define tail_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define tail_full_usage "\n\n" \
-       "Print last 10 lines of each FILE (or stdin) to stdout.\n" \
-       "With more than one FILE, precede each with a filename header.\n" \
-     "\nOptions:" \
-     "\n	-f		Print data as file grows" \
-	IF_FEATURE_FANCY_TAIL( \
-     "\n	-s SECONDS	Wait SECONDS between reads with -f" \
-	) \
-     "\n	-n N[kbm]	Print last N lines" \
-	IF_FEATURE_FANCY_TAIL( \
-     "\n	-c N[kbm]	Print last N bytes" \
-     "\n	-q		Never print headers" \
-     "\n	-v		Always print headers" \
-     "\n" \
-     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)." \
-     "\nIf N starts with a '+', output begins with the Nth item from the start" \
-     "\nof each file, not from the end." \
-	) \
-
-#define tail_example_usage \
-       "$ tail -n 1 /etc/resolv.conf\n" \
-       "nameserver 10.0.0.1\n"
-
 #define hexdump_trivial_usage \
        "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
 #define hexdump_full_usage "\n\n" \
@@ -1335,11 +884,6 @@ INSERT
        "FILE..."
 #define hd_full_usage "\n\n" \
        "hd is an alias for hexdump -C"
-
-#define hostid_trivial_usage \
-       ""
-#define hostid_full_usage "\n\n" \
-       "Print out a unique 32-bit identifier for the machine"
 
 #define hostname_trivial_usage \
        "[OPTIONS] [HOSTNAME | -F FILE]"
@@ -1384,24 +928,6 @@ INSERT
      "\n	-m STRING	MD5 crypt STRING") \
      "\n	-e STRING	HTML encode STRING" \
      "\n	-d STRING	URL decode STRING" \
-
-#define id_trivial_usage \
-       "[OPTIONS] [USER]"
-#define id_full_usage "\n\n" \
-       "Print information about USER or the current user\n" \
-     "\nOptions:" \
-	IF_SELINUX( \
-     "\n	-Z	Security context" \
-	) \
-     "\n	-u	User ID" \
-     "\n	-g	Group ID" \
-     "\n	-G	Supplementary group IDs" \
-     "\n	-n	Print names instead of numbers" \
-     "\n	-r	Print real ID instead of effective ID" \
-
-#define id_example_usage \
-       "$ id\n" \
-       "uid=1000(andersen) gid=1000(andersen)\n"
 
 #define ifconfig_trivial_usage \
 	IF_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
@@ -1541,24 +1067,6 @@ INSERT
      "\n" \
      "\ninotifyd waits for PROG to exit." \
      "\nWhen x event happens for all FILEs, inotifyd exits." \
-
-/* -v, -b, -c are ignored */
-#define install_trivial_usage \
-	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [SOURCE]... DEST"
-#define install_full_usage "\n\n" \
-       "Copy files and set attributes\n" \
-     "\nOptions:" \
-     "\n	-c	Just copy (default)" \
-     "\n	-d	Create directories" \
-     "\n	-D	Create leading target directories" \
-     "\n	-s	Strip symbol table" \
-     "\n	-p	Preserve date" \
-     "\n	-o USER	Set ownership" \
-     "\n	-g GRP	Set group ownership" \
-     "\n	-m MODE	Set permissions" \
-	IF_SELINUX( \
-     "\n	-Z	Set security context" \
-	)
 
 /* would need to make the " | " optional depending on more than one selected: */
 #define ip_trivial_usage \
@@ -1732,15 +1240,6 @@ INSERT
      "\n	-c N	Only messages with level < N are printed to console" \
      "\n	-n	Run in foreground" \
 
-#define length_trivial_usage \
-       "STRING"
-#define length_full_usage "\n\n" \
-       "Print STRING's length"
-
-#define length_example_usage \
-       "$ length Hello\n" \
-       "5\n"
-
 #define less_trivial_usage \
        "[-EMNmh~I?] [FILE]..."
 #define less_full_usage "\n\n" \
@@ -1765,22 +1264,6 @@ INSERT
        "	linux32		Set 32bit uname emulation\n" \
        "	linux64		Set 64bit uname emulation" \
 
-#define ln_trivial_usage \
-       "[OPTIONS] TARGET... LINK|DIR"
-#define ln_full_usage "\n\n" \
-       "Create a link LINK or DIR/TARGET to the specified TARGET(s)\n" \
-     "\nOptions:" \
-     "\n	-s	Make symlinks instead of hardlinks" \
-     "\n	-f	Remove existing destinations" \
-     "\n	-n	Don't dereference symlinks - treat like normal file" \
-     "\n	-b	Make a backup of the target (if exists) before link operation" \
-     "\n	-S suf	Use suffix instead of ~ when making backup files" \
-
-#define ln_example_usage \
-       "$ ln -s BusyBox /tmp/ls\n" \
-       "$ ls -l /tmp/ls\n" \
-       "lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n"
-
 #define load_policy_trivial_usage NOUSAGE_STR
 #define load_policy_full_usage ""
 
@@ -1804,14 +1287,6 @@ INSERT
      "\n	-f	Don't authenticate (user already authenticated)" \
      "\n	-h	Name of the remote host" \
      "\n	-p	Preserve environment" \
-
-#define logname_trivial_usage \
-       ""
-#define logname_full_usage "\n\n" \
-       "Print the name of the current user"
-#define logname_example_usage \
-       "$ logname\n" \
-       "root\n"
 
 #define logread_trivial_usage \
        "[-f]"
@@ -1981,64 +1456,6 @@ INSERT
      "\n	-p	Use prefix to speed translations" \
      "\n	-V	Verify file context on disk matches defaults" \
 
-#define md5sum_trivial_usage \
-       "[FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum -c [-sw] [FILE]")
-#define md5sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums" \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
-     "\nOptions:" \
-     "\n	-c	Check sums against given list" \
-     "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted checksum lines" \
-	)
-
-#define md5sum_example_usage \
-       "$ md5sum < busybox\n" \
-       "6fd11e98b98a58f64ff3398d7b324003\n" \
-       "$ md5sum busybox\n" \
-       "6fd11e98b98a58f64ff3398d7b324003  busybox\n" \
-       "$ md5sum -c -\n" \
-       "6fd11e98b98a58f64ff3398d7b324003  busybox\n" \
-       "busybox: OK\n" \
-       "^D\n"
-
-#define sha1sum_trivial_usage \
-       "[FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum -c [-sw] [FILE]")
-#define sha1sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums" \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
-     "\nOptions:" \
-     "\n	-c	Check sums against given list" \
-     "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted checksum lines" \
-	)
-
-#define sha256sum_trivial_usage \
-       "[FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha256sum -c [-sw] [FILE]")
-#define sha256sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA256 checksums" \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
-     "\nOptions:" \
-     "\n	-c	Check sums against given list" \
-     "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted checksum lines" \
-	)
-
-#define sha512sum_trivial_usage \
-       "[FILE]..." \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha512sum -c [-sw] [FILE]")
-#define sha512sum_full_usage "\n\n" \
-       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA512 checksums" \
-	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n" \
-     "\nOptions:" \
-     "\n	-c	Check sums against given list" \
-     "\n	-s	Don't output anything, status code shows success" \
-     "\n	-w	Warn about improperly formatted checksum lines" \
-	)
-
 #define mdev_trivial_usage \
        "[-s]"
 #define mdev_full_usage "\n\n" \
@@ -2083,35 +1500,6 @@ INSERT
      "\n	-t	Exit if both stdin and TTY are silent for TIMEOUT ms" \
      "\n	-s	Set serial line to SPEED" \
      "\n	-X	Disable special meaning of NUL and Ctrl-X from stdin" \
-
-#define mkdir_trivial_usage \
-       "[OPTIONS] DIRECTORY..."
-#define mkdir_full_usage "\n\n" \
-       "Create DIRECTORY\n" \
-     "\nOptions:" \
-     "\n	-m MODE	Mode" \
-     "\n	-p	No error if exists; make parent directories as needed" \
-	IF_SELINUX( \
-     "\n	-Z	Set security context" \
-	)
-
-#define mkdir_example_usage \
-       "$ mkdir /tmp/foo\n" \
-       "$ mkdir /tmp/foo\n" \
-       "/tmp/foo: File exists\n" \
-       "$ mkdir /tmp/foo/bar/baz\n" \
-       "/tmp/foo/bar/baz: No such file or directory\n" \
-       "$ mkdir -p /tmp/foo/bar/baz\n"
-
-#define mkfifo_trivial_usage \
-       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME"
-#define mkfifo_full_usage "\n\n" \
-       "Create named pipe\n" \
-     "\nOptions:" \
-     "\n	-m MODE	Mode (default a=rw)" \
-	IF_SELINUX( \
-     "\n	-Z	Set security context" \
-	)
 
 #define mkfs_ext2_trivial_usage \
        "[-Fn] " \
@@ -2186,24 +1574,6 @@ INSERT
      "\n	-v	Verbose" \
 /*   "\n	-I	Allow to use entire disk device (e.g. /dev/hda)" */ \
      "\n	-n LBL	Volume label" \
-
-#define mknod_trivial_usage \
-       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME TYPE MAJOR MINOR"
-#define mknod_full_usage "\n\n" \
-       "Create a special file (block, character, or pipe)\n" \
-     "\nOptions:" \
-     "\n	-m MODE	Creation mode (default a=rw)" \
-	IF_SELINUX( \
-     "\n	-Z	Set security context" \
-	) \
-     "\nTYPE:" \
-     "\n	b	Block device" \
-     "\n	c or u	Character device" \
-     "\n	p	Named pipe (MAJOR and MINOR are ignored)" \
-
-#define mknod_example_usage \
-       "$ mknod /dev/fd0 b 2 0\n" \
-       "$ mknod -m 644 /tmp/pipe p\n"
 
 #define mkswap_trivial_usage \
        "[-L LBL] BLOCKDEV [KBYTES]"
@@ -2307,13 +1677,6 @@ INSERT
        "ras3 reset retension rewind rewoffline seek setblk setdensity\n" \
        "setpart tell unload unlock weof wset" \
 
-#define nohup_trivial_usage \
-       "PROG ARGS"
-#define nohup_full_usage "\n\n" \
-       "Run PROG immune to hangups, with output to a non-tty"
-#define nohup_example_usage \
-       "$ nohup make &"
-
 #define nslookup_trivial_usage \
        "[HOST] [SERVER]"
 #define nslookup_full_usage "\n\n" \
@@ -2342,12 +1705,6 @@ INSERT
 	) \
      "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins" \
      "\n	-p PEER	Obtain time from PEER (may be repeated)" \
-
-#define od_trivial_usage \
-       "[-aBbcDdeFfHhIiLlOovXx] " IF_DESKTOP("[-t TYPE] ") "[FILE]"
-#define od_full_usage "\n\n" \
-       "Write an unambiguous representation, octal bytes by default, of FILE\n" \
-       "(or stdin) to stdout"
 
 /*
 #define parse_trivial_usage \
@@ -2477,21 +1834,6 @@ INSERT
        "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
        "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
 
-#define printenv_trivial_usage \
-       "[VARIABLE]..."
-#define printenv_full_usage "\n\n" \
-       "Print environment VARIABLEs.\n" \
-       "If no VARIABLE specified, print all."
-
-#define printf_trivial_usage \
-       "FORMAT [ARGUMENT]..."
-#define printf_full_usage "\n\n" \
-       "Format and print ARGUMENT(s) according to FORMAT,\n" \
-       "where FORMAT controls the output exactly as in C printf"
-#define printf_example_usage \
-       "$ printf \"Val=%d\\n\" 5\n" \
-       "Val=5\n"
-
 
 #if ENABLE_DESKTOP
 
@@ -2552,14 +1894,6 @@ INSERT
      "\n	-t	Timeout (default 5000 ms)" \
      "\n	-T	Minimum rtt (default 5 ms, increase for congested hosts)" \
 
-#define pwd_trivial_usage \
-       ""
-#define pwd_full_usage "\n\n" \
-       "Print the full filename of the current working directory"
-#define pwd_example_usage \
-       "$ pwd\n" \
-       "/root\n"
-
 #define raidautorun_trivial_usage \
        "DEVICE"
 #define raidautorun_full_usage "\n\n" \
@@ -2588,17 +1922,6 @@ INSERT
 #define readahead_full_usage "\n\n" \
        "Preload FILEs to RAM"
 
-#define readlink_trivial_usage \
-	IF_FEATURE_READLINK_FOLLOW("[-fnv] ") "FILE"
-#define readlink_full_usage "\n\n" \
-       "Display the value of a symlink" \
-	IF_FEATURE_READLINK_FOLLOW( "\n" \
-     "\nOptions:" \
-     "\n	-f	Canonicalize by following all symlinks" \
-     "\n	-n	Don't add newline" \
-     "\n	-v	Verbose" \
-	) \
-
 #define readprofile_trivial_usage \
        "[OPTIONS]"
 #define readprofile_full_usage "\n\n" \
@@ -2613,11 +1936,6 @@ INSERT
      "\n	-s		Print individual counters within functions" \
      "\n	-r		Reset all the counters (root only)" \
      "\n	-n		Disable byte order auto-detection" \
-
-#define realpath_trivial_usage \
-       "FILE..."
-#define realpath_full_usage "\n\n" \
-       "Return the absolute pathnames of given FILE"
 
 #define reformime_trivial_usage \
        "[OPTIONS] [FILE]..."
@@ -2662,34 +1980,6 @@ INSERT
      "\n" \
      "\n	TYPE: all, wlan(wifi), bluetooth, uwb(ultrawideband)," \
      "\n		wimax, wwan, gps, fm" \
-
-#define rm_trivial_usage \
-       "[-irf] FILE..."
-#define rm_full_usage "\n\n" \
-       "Remove (unlink) FILEs\n" \
-     "\nOptions:" \
-     "\n	-i	Always prompt before removing" \
-     "\n	-f	Never prompt" \
-     "\n	-R,-r	Recurse" \
-
-#define rm_example_usage \
-       "$ rm -rf /tmp/foo\n"
-
-#define rmdir_trivial_usage \
-       "[OPTIONS] DIRECTORY..."
-#define rmdir_full_usage "\n\n" \
-       "Remove DIRECTORY if it is empty\n" \
-     "\nOptions:" \
-	IF_FEATURE_RMDIR_LONG_OPTIONS( \
-     "\n	-p|--parents	Include parents" \
-     "\n	--ignore-fail-on-non-empty" \
-	) \
-	IF_NOT_FEATURE_RMDIR_LONG_OPTIONS( \
-     "\n	-p	Include parents" \
-	)
-
-#define rmdir_example_usage \
-       "# rmdir /tmp/foo\n"
 
 #define route_trivial_usage \
        "[{add|del|delete}]"
@@ -2832,15 +2122,6 @@ INSERT
 #define selinuxenabled_trivial_usage NOUSAGE_STR
 #define selinuxenabled_full_usage ""
 
-#define seq_trivial_usage \
-       "[-w] [-s SEP] [FIRST [INC]] LAST"
-#define seq_full_usage "\n\n" \
-       "Print numbers from FIRST to LAST, in steps of INC.\n" \
-       "FIRST, INC default to 1.\n" \
-     "\nOptions:" \
-     "\n	-w	Pad to last with leading zeros" \
-     "\n	-s SEP	String separator" \
-
 #define sestatus_trivial_usage \
        "[-vb]"
 #define sestatus_full_usage "\n\n" \
@@ -2924,80 +2205,6 @@ INSERT
      "\n	-L	Enable 3-wire operation" \
      "\n	-F	Disable RTS/CTS flow control" \
 
-#define sleep_trivial_usage \
-	IF_FEATURE_FANCY_SLEEP("[") "N" IF_FEATURE_FANCY_SLEEP("]...")
-#define sleep_full_usage "\n\n" \
-	IF_NOT_FEATURE_FANCY_SLEEP("Pause for N seconds") \
-	IF_FEATURE_FANCY_SLEEP( \
-       "Pause for a time equal to the total of the args given, where each arg can\n" \
-       "have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays")
-#define sleep_example_usage \
-       "$ sleep 2\n" \
-       "[2 second delay results]\n" \
-	IF_FEATURE_FANCY_SLEEP( \
-       "$ sleep 1d 3h 22m 8s\n" \
-       "[98528 second delay results]\n")
-
-#define sort_trivial_usage \
-       "[-nru" \
-	IF_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR") \
-       "] [FILE]..."
-#define sort_full_usage "\n\n" \
-       "Sort lines of text\n" \
-     "\nOptions:" \
-	IF_FEATURE_SORT_BIG( \
-     "\n	-b	Ignore leading blanks" \
-     "\n	-c	Check whether input is sorted" \
-     "\n	-d	Dictionary order (blank or alphanumeric only)" \
-     "\n	-f	Ignore case" \
-     "\n	-g	General numerical sort" \
-     "\n	-i	Ignore unprintable characters" \
-     "\n	-k	Sort key" \
-     "\n	-M	Sort month" \
-	) \
-     "\n	-n	Sort numbers" \
-	IF_FEATURE_SORT_BIG( \
-     "\n	-o	Output to file" \
-     "\n	-k	Sort by key" \
-     "\n	-t CHAR	Key separator" \
-	) \
-     "\n	-r	Reverse sort order" \
-	IF_FEATURE_SORT_BIG( \
-     "\n	-s	Stable (don't sort ties alphabetically)" \
-	) \
-     "\n	-u	Suppress duplicate lines" \
-	IF_FEATURE_SORT_BIG( \
-     "\n	-z	Lines are terminated by NUL, not newline" \
-     "\n	-mST	Ignored for GNU compatibility") \
-
-#define sort_example_usage \
-       "$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
-       "a\n" \
-       "b\n" \
-       "c\n" \
-       "d\n" \
-       "e\n" \
-       "f\n" \
-	IF_FEATURE_SORT_BIG( \
-		"$ echo -e \"c 3\\nb 2\\nd 2\" | $SORT -k 2,2n -k 1,1r\n" \
-		"d 2\n" \
-		"b 2\n" \
-		"c 3\n" \
-	) \
-       ""
-
-#define split_trivial_usage \
-       "[OPTIONS] [INPUT [PREFIX]]"
-#define split_full_usage "\n\n" \
-       "Options:" \
-     "\n	-b N[k|m]	Split by N (kilo|mega)bytes" \
-     "\n	-l N		Split by N lines" \
-     "\n	-a N		Use N letters as suffix" \
-
-#define split_example_usage \
-       "$ split TODO foo\n" \
-       "$ cat TODO | split -a 2 -l 2 TODO_\n"
-
 #define start_stop_daemon_trivial_usage \
        "[OPTIONS] [-S|-K] ... [-- ARGS...]"
 #define start_stop_daemon_full_usage "\n\n" \
@@ -3061,66 +2268,6 @@ INSERT
      "\n	-q		Quiet" \
 	) \
 
-#define stat_trivial_usage \
-       "[OPTIONS] FILE..."
-#define stat_full_usage "\n\n" \
-       "Display file (default) or filesystem status\n" \
-     "\nOptions:" \
-	IF_FEATURE_STAT_FORMAT( \
-     "\n	-c fmt	Use the specified format" \
-	) \
-     "\n	-f	Display filesystem status" \
-     "\n	-L	Follow links" \
-     "\n	-t	Display info in terse form" \
-	IF_SELINUX( \
-     "\n	-Z	Print security context" \
-	) \
-	IF_FEATURE_STAT_FORMAT( \
-       "\n\nValid format sequences for files:\n" \
-       " %a	Access rights in octal\n" \
-       " %A	Access rights in human readable form\n" \
-       " %b	Number of blocks allocated (see %B)\n" \
-       " %B	The size in bytes of each block reported by %b\n" \
-       " %d	Device number in decimal\n" \
-       " %D	Device number in hex\n" \
-       " %f	Raw mode in hex\n" \
-       " %F	File type\n" \
-       " %g	Group ID of owner\n" \
-       " %G	Group name of owner\n" \
-       " %h	Number of hard links\n" \
-       " %i	Inode number\n" \
-       " %n	File name\n" \
-       " %N	File name, with -> TARGET if symlink\n" \
-       " %o	I/O block size\n" \
-       " %s	Total size, in bytes\n" \
-       " %t	Major device type in hex\n" \
-       " %T	Minor device type in hex\n" \
-       " %u	User ID of owner\n" \
-       " %U	User name of owner\n" \
-       " %x	Time of last access\n" \
-       " %X	Time of last access as seconds since Epoch\n" \
-       " %y	Time of last modification\n" \
-       " %Y	Time of last modification as seconds since Epoch\n" \
-       " %z	Time of last change\n" \
-       " %Z	Time of last change as seconds since Epoch\n" \
-       "\nValid format sequences for file systems:\n" \
-       " %a	Free blocks available to non-superuser\n" \
-       " %b	Total data blocks in file system\n" \
-       " %c	Total file nodes in file system\n" \
-       " %d	Free file nodes in file system\n" \
-       " %f	Free blocks in file system\n" \
-	IF_SELINUX( \
-       " %C	Security context in selinux\n" \
-	) \
-       " %i	File System ID in hex\n" \
-       " %l	Maximum length of filenames\n" \
-       " %n	File name\n" \
-       " %s	Block size (for faster transfer)\n" \
-       " %S	Fundamental block size (for block counts)\n" \
-       " %t	Type in hex\n" \
-       " %T	Type in human readable form" \
-	) \
-
 #define strings_trivial_usage \
        "[-afo] [-n LEN] [FILE]..."
 #define strings_full_usage "\n\n" \
@@ -3131,31 +2278,12 @@ INSERT
      "\n	-n LEN	At least LEN characters form a string (default 4)" \
      "\n	-o	Precede strings with decimal offsets" \
 
-#define stty_trivial_usage \
-       "[-a|g] [-F DEVICE] [SETTING]..."
-#define stty_full_usage "\n\n" \
-       "Without arguments, prints baud rate, line discipline,\n" \
-       "and deviations from stty sane\n" \
-     "\nOptions:" \
-     "\n	-F DEVICE	Open device instead of stdin" \
-     "\n	-a		Print all current settings in human-readable form" \
-     "\n	-g		Print in stty-readable form" \
-     "\n	[SETTING]	See manpage" \
-
 #define sulogin_trivial_usage \
        "[-t N] [TTY]"
 #define sulogin_full_usage "\n\n" \
        "Single user login\n" \
      "\nOptions:" \
      "\n	-t N	Timeout" \
-
-#define sum_trivial_usage \
-       "[-rs] [FILE]..."
-#define sum_full_usage "\n\n" \
-       "Checksum and count the blocks in a file\n" \
-     "\nOptions:" \
-     "\n	-r	Use BSD sum algorithm (1K blocks)" \
-     "\n	-s	Use System V sum algorithm (512byte blocks)" \
 
 #define sv_trivial_usage \
        "[-v] [-w SEC] CMD SERVICE_DIR..."
@@ -3198,18 +2326,6 @@ INSERT
        "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n" \
      "\nOptions:" \
      "\n	-c DEV	Reopen stdio to DEV after switch" \
-
-#define sync_trivial_usage \
-       ""
-#define sync_full_usage "\n\n" \
-       "Write all buffered blocks to disk"
-
-#define fsync_trivial_usage \
-       "[-d] FILE..."
-#define fsync_full_usage "\n\n" \
-       "Write files' buffered blocks to disk\n" \
-     "\nOptions:" \
-     "\n	-d	Avoid syncing metadata"
 
 #define sysctl_trivial_usage \
        "[OPTIONS] [VALUE]..."
@@ -3257,11 +2373,6 @@ INSERT
        "$ syslogd -R masterlog:514\n" \
        "$ syslogd -R 192.168.1.1:601\n"
 
-#define tac_trivial_usage \
-	"[FILE]..."
-#define tac_full_usage "\n\n" \
-	"Concatenate FILEs and print them in reverse"
-
 #define taskset_trivial_usage \
        "[-p] [MASK] [PID | PROG ARGS]"
 #define taskset_full_usage "\n\n" \
@@ -3279,19 +2390,6 @@ INSERT
        "pid 6671's new affinity mask: 1\n" \
        "$ taskset -p 1\n" \
        "pid 1's current affinity mask: 3\n"
-
-#define tee_trivial_usage \
-       "[-ai] [FILE]..."
-#define tee_full_usage "\n\n" \
-       "Copy stdin to each FILE, and also to stdout\n" \
-     "\nOptions:" \
-     "\n	-a	Append to the given FILEs, don't overwrite" \
-     "\n	-i	Ignore interrupt signals (SIGINT)" \
-
-#define tee_example_usage \
-       "$ echo \"Hello\" | tee /tmp/foo\n" \
-       "$ cat /tmp/foo\n" \
-       "Hello\n"
 
 #if ENABLE_FEATURE_TELNET_AUTOLOGIN
 #define telnet_trivial_usage \
@@ -3329,28 +2427,6 @@ INSERT
      "\n	-S		Log to syslog (implied by -i or without -F and -w)" \
 	) \
 	)
-
-/* "test --help" does not print help (POSIX compat), only "[ --help" does.
- * We display "<applet> EXPRESSION ]" here (not "<applet> EXPRESSION")
- * Unfortunately, it screws up generated BusyBox.html. TODO. */
-#define test_trivial_usage \
-       "EXPRESSION ]"
-#define test_full_usage "\n\n" \
-       "Check file types, compare values etc. Return a 0/1 exit code\n" \
-       "depending on logical value of EXPRESSION"
-#define test_example_usage \
-       "$ test 1 -eq 2\n" \
-       "$ echo $?\n" \
-       "1\n" \
-       "$ test 1 -eq 1\n" \
-       "$ echo $?\n" \
-       "0\n" \
-       "$ [ -d /etc ]\n" \
-       "$ echo $?\n" \
-       "0\n" \
-       "$ [ -d /junk ]\n" \
-       "$ echo $?\n" \
-       "1\n"
 
 #define tc_trivial_usage \
 	/*"[OPTIONS] "*/"OBJECT CMD [dev STRING]"
@@ -3454,19 +2530,6 @@ INSERT
        "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n" \
        "Defaults: SECS: 10, SIG: TERM." \
 
-#define tr_trivial_usage \
-       "[-cds] STRING1 [STRING2]"
-#define tr_full_usage "\n\n" \
-       "Translate, squeeze, or delete characters from stdin, writing to stdout\n" \
-     "\nOptions:" \
-     "\n	-c	Take complement of STRING1" \
-     "\n	-d	Delete input characters coded STRING1" \
-     "\n	-s	Squeeze multiple output characters of STRING2 into one character" \
-
-#define tr_example_usage \
-       "$ echo \"gdkkn vnqkc\" | tr [a-y] [b-z]\n" \
-       "hello world\n"
-
 #define traceroute_trivial_usage \
        "[-"IF_TRACEROUTE6("46")"FIldnrv] [-f 1ST_TTL] [-m MAXTTL] [-p PORT] [-q PROBES]\n" \
        "	[-s SRC_IP] [-t TOS] [-w WAIT_SEC] [-g GATEWAY] [-i IFACE]\n" \
@@ -3511,27 +2574,6 @@ INSERT
      "\n	-s	IP address to use as the source address" \
      "\n	-t	Type-of-service in probe packets (default 0)" \
      "\n	-w	Time in seconds to wait for a response (default 3)" \
-
-#define true_trivial_usage \
-       ""
-#define true_full_usage "\n\n" \
-       "Return an exit code of TRUE (0)"
-#define true_example_usage \
-       "$ true\n" \
-       "$ echo $?\n" \
-       "0\n"
-
-#define tty_trivial_usage \
-       ""
-#define tty_full_usage "\n\n" \
-       "Print file name of stdin's terminal" \
-	IF_INCLUDE_SUSv2( "\n" \
-     "\nOptions:" \
-     "\n	-s	Print nothing, only return exit status" \
-	)
-#define tty_example_usage \
-       "$ tty\n" \
-       "/dev/tty2\n"
 
 #define ttysize_trivial_usage \
        "[w] [h]"
@@ -3587,57 +2629,6 @@ INSERT
 #define umount_example_usage \
        "$ umount /dev/hdc1\n"
 
-#define uname_trivial_usage \
-       "[-amnrspv]"
-#define uname_full_usage "\n\n" \
-       "Print system information\n" \
-     "\nOptions:" \
-     "\n	-a	Print all" \
-     "\n	-m	The machine (hardware) type" \
-     "\n	-n	Hostname" \
-     "\n	-r	OS release" \
-     "\n	-s	OS name (default)" \
-     "\n	-p	Processor type" \
-     "\n	-v	OS version" \
-
-#define uname_example_usage \
-       "$ uname -a\n" \
-       "Linux debian 2.4.23 #2 Tue Dec 23 17:09:10 MST 2003 i686 GNU/Linux\n"
-
-#define unexpand_trivial_usage \
-       "[-fa][-t N] [FILE]..."
-#define unexpand_full_usage "\n\n" \
-       "Convert spaces to tabs, writing to stdout\n" \
-     "\nOptions:" \
-	IF_FEATURE_UNEXPAND_LONG_OPTIONS( \
-     "\n	-a,--all	Convert all blanks" \
-     "\n	-f,--first-only	Convert only leading blanks" \
-     "\n	-t,--tabs=N	Tabstops every N chars" \
-	) \
-	IF_NOT_FEATURE_UNEXPAND_LONG_OPTIONS( \
-     "\n	-a	Convert all blanks" \
-     "\n	-f	Convert only leading blanks" \
-     "\n	-t N	Tabstops every N chars" \
-	)
-
-#define uniq_trivial_usage \
-       "[-cdu][-f,s,w N] [INPUT [OUTPUT]]"
-#define uniq_full_usage "\n\n" \
-       "Discard duplicate lines\n" \
-     "\nOptions:" \
-     "\n	-c	Prefix lines by the number of occurrences" \
-     "\n	-d	Only print duplicate lines" \
-     "\n	-u	Only print unique lines" \
-     "\n	-f N	Skip first N fields" \
-     "\n	-s N	Skip first N chars (after any skipped fields)" \
-     "\n	-w N	Compare N characters in line" \
-
-#define uniq_example_usage \
-       "$ echo -e \"a\\na\\nb\\nc\\nc\\na\" | sort | uniq\n" \
-       "a\n" \
-       "b\n" \
-       "c\n"
-
 #define uptime_trivial_usage \
        ""
 #define uptime_full_usage "\n\n" \
@@ -3646,40 +2637,6 @@ INSERT
 #define uptime_example_usage \
        "$ uptime\n" \
        "  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00\n"
-
-#define usleep_trivial_usage \
-       "N"
-#define usleep_full_usage "\n\n" \
-       "Pause for N microseconds"
-
-#define usleep_example_usage \
-       "$ usleep 1000000\n" \
-       "[pauses for 1 second]\n"
-
-#define uudecode_trivial_usage \
-       "[-o OUTFILE] [INFILE]"
-#define uudecode_full_usage "\n\n" \
-       "Uudecode a file\n" \
-       "Finds outfile name in uuencoded source unless -o is given"
-
-#define uudecode_example_usage \
-       "$ uudecode -o busybox busybox.uu\n" \
-       "$ ls -l busybox\n" \
-       "-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox\n"
-
-#define uuencode_trivial_usage \
-       "[-m] [INFILE] STORED_FILENAME"
-#define uuencode_full_usage "\n\n" \
-       "Uuencode a file to stdout\n" \
-     "\nOptions:" \
-     "\n	-m	Use base64 encoding per RFC1521" \
-
-#define uuencode_example_usage \
-       "$ uuencode busybox busybox\n" \
-       "begin 755 busybox\n" \
-       "<encoded file snipped>\n" \
-       "$ uudecode busybox busybox > busybox.uu\n" \
-       "$\n"
 
 #define vconfig_trivial_usage \
        "COMMAND [OPTIONS]"
@@ -3758,18 +2715,6 @@ INSERT
 #define which_example_usage \
        "$ which login\n" \
        "/bin/login\n"
-
-#define who_trivial_usage \
-       "[-a]"
-#define who_full_usage "\n\n" \
-       "Show who is logged on\n" \
-     "\nOptions:" \
-     "\n	-a	Show all" \
-
-#define whoami_trivial_usage \
-       ""
-#define whoami_full_usage "\n\n" \
-       "Print the user name associated with the current effective user id"
 
 #define zcip_trivial_usage \
        "[OPTIONS] IFACE SCRIPT"

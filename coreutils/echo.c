@@ -23,6 +23,27 @@
  *    The previous version did not allow 4-digit octals.
  */
 
+//usage:#define echo_trivial_usage
+//usage:	IF_FEATURE_FANCY_ECHO("[-neE] ") "[ARG]..."
+//usage:#define echo_full_usage "\n\n"
+//usage:       "Print the specified ARGs to stdout"
+//usage:	IF_FEATURE_FANCY_ECHO( "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n	Suppress trailing newline"
+//usage:     "\n	-e	Interpret backslash escapes (i.e., \\t=tab)"
+//usage:     "\n	-E	Don't interpret backslash escapes (default)"
+//usage:	)
+//usage:
+//usage:#define echo_example_usage
+//usage:       "$ echo \"Erik is cool\"\n"
+//usage:       "Erik is cool\n"
+//usage:	IF_FEATURE_FANCY_ECHO("$ echo -e \"Erik\\nis\\ncool\"\n"
+//usage:       "Erik\n"
+//usage:       "is\n"
+//usage:       "cool\n"
+//usage:       "$ echo \"Erik\\nis\\ncool\"\n"
+//usage:       "Erik\\nis\\ncool\n")
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

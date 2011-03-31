@@ -8,6 +8,39 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define dd_trivial_usage
+//usage:       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n"
+//usage:       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
+//usage:#define dd_full_usage "\n\n"
+//usage:       "Copy a file with converting and formatting\n"
+//usage:     "\nOptions:"
+//usage:     "\n	if=FILE		Read from FILE instead of stdin"
+//usage:     "\n	of=FILE		Write to FILE instead of stdout"
+//usage:     "\n	bs=N		Read and write N bytes at a time"
+//usage:	IF_FEATURE_DD_IBS_OBS(
+//usage:     "\n	ibs=N		Read N bytes at a time"
+//usage:	)
+//usage:	IF_FEATURE_DD_IBS_OBS(
+//usage:     "\n	obs=N		Write N bytes at a time"
+//usage:	)
+//usage:     "\n	count=N		Copy only N input blocks"
+//usage:     "\n	skip=N		Skip N input blocks"
+//usage:     "\n	seek=N		Skip N output blocks"
+//usage:	IF_FEATURE_DD_IBS_OBS(
+//usage:     "\n	conv=notrunc	Don't truncate output file"
+//usage:     "\n	conv=noerror	Continue after read errors"
+//usage:     "\n	conv=sync	Pad blocks with zeros"
+//usage:     "\n	conv=fsync	Physically write data out before finishing"
+//usage:	)
+//usage:     "\n"
+//usage:     "\nNumbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),"
+//usage:     "\nMD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)"
+//usage:
+//usage:#define dd_example_usage
+//usage:       "$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4\n"
+//usage:       "4+0 records in\n"
+//usage:       "4+0 records out\n"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

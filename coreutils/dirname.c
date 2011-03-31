@@ -10,6 +10,17 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/dirname.html */
 
+//usage:#define dirname_trivial_usage
+//usage:       "FILENAME"
+//usage:#define dirname_full_usage "\n\n"
+//usage:       "Strip non-directory suffix from FILENAME"
+//usage:
+//usage:#define dirname_example_usage
+//usage:       "$ dirname /tmp/foo\n"
+//usage:       "/tmp\n"
+//usage:       "$ dirname /tmp/foo/\n"
+//usage:       "/tmp\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

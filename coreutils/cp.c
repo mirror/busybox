@@ -15,6 +15,24 @@
  * Size reduction.
  */
 
+//usage:#define cp_trivial_usage
+//usage:       "[OPTIONS] SOURCE DEST"
+//usage:#define cp_full_usage "\n\n"
+//usage:       "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Same as -dpR"
+//usage:	IF_SELINUX(
+//usage:     "\n	-c	Preserve security context"
+//usage:	)
+//usage:     "\n	-R,-r	Recurse"
+//usage:     "\n	-d,-P	Preserve symlinks (default if -R)"
+//usage:     "\n	-L	Follow all symlinks"
+//usage:     "\n	-H	Follow symlinks on command line"
+//usage:     "\n	-p	Preserve file attributes if possible"
+//usage:     "\n	-f	Overwrite"
+//usage:     "\n	-i	Prompt before overwrite"
+//usage:     "\n	-l,-s	Create (sym)links"
+
 #include "libbb.h"
 #include "libcoreutils/coreutils.h"
 

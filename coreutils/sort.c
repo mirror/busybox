@@ -12,6 +12,54 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
  */
 
+//usage:#define sort_trivial_usage
+//usage:       "[-nru"
+//usage:	IF_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR")
+//usage:       "] [FILE]..."
+//usage:#define sort_full_usage "\n\n"
+//usage:       "Sort lines of text\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_SORT_BIG(
+//usage:     "\n	-b	Ignore leading blanks"
+//usage:     "\n	-c	Check whether input is sorted"
+//usage:     "\n	-d	Dictionary order (blank or alphanumeric only)"
+//usage:     "\n	-f	Ignore case"
+//usage:     "\n	-g	General numerical sort"
+//usage:     "\n	-i	Ignore unprintable characters"
+//usage:     "\n	-k	Sort key"
+//usage:     "\n	-M	Sort month"
+//usage:	)
+//usage:     "\n	-n	Sort numbers"
+//usage:	IF_FEATURE_SORT_BIG(
+//usage:     "\n	-o	Output to file"
+//usage:     "\n	-k	Sort by key"
+//usage:     "\n	-t CHAR	Key separator"
+//usage:	)
+//usage:     "\n	-r	Reverse sort order"
+//usage:	IF_FEATURE_SORT_BIG(
+//usage:     "\n	-s	Stable (don't sort ties alphabetically)"
+//usage:	)
+//usage:     "\n	-u	Suppress duplicate lines"
+//usage:	IF_FEATURE_SORT_BIG(
+//usage:     "\n	-z	Lines are terminated by NUL, not newline"
+//usage:     "\n	-mST	Ignored for GNU compatibility")
+//usage:
+//usage:#define sort_example_usage
+//usage:       "$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n"
+//usage:       "a\n"
+//usage:       "b\n"
+//usage:       "c\n"
+//usage:       "d\n"
+//usage:       "e\n"
+//usage:       "f\n"
+//usage:	IF_FEATURE_SORT_BIG(
+//usage:		"$ echo -e \"c 3\\nb 2\\nd 2\" | $SORT -k 2,2n -k 1,1r\n"
+//usage:		"d 2\n"
+//usage:		"b 2\n"
+//usage:		"c 3\n"
+//usage:	)
+//usage:       ""
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

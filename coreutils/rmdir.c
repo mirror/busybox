@@ -10,6 +10,22 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/rmdir.html */
 
+//usage:#define rmdir_trivial_usage
+//usage:       "[OPTIONS] DIRECTORY..."
+//usage:#define rmdir_full_usage "\n\n"
+//usage:       "Remove DIRECTORY if it is empty\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_RMDIR_LONG_OPTIONS(
+//usage:     "\n	-p|--parents	Include parents"
+//usage:     "\n	--ignore-fail-on-non-empty"
+//usage:	)
+//usage:	IF_NOT_FEATURE_RMDIR_LONG_OPTIONS(
+//usage:     "\n	-p	Include parents"
+//usage:	)
+//usage:
+//usage:#define rmdir_example_usage
+//usage:       "# rmdir /tmp/foo\n"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */

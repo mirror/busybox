@@ -10,6 +10,15 @@
 /* See "Cat -v considered harmful" at
  * http://cm.bell-labs.com/cm/cs/doc/84/kp.ps.gz */
 
+//usage:#define catv_trivial_usage
+//usage:       "[-etv] [FILE]..."
+//usage:#define catv_full_usage "\n\n"
+//usage:       "Display nonprinting characters as ^x or M-x\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-e	End each line with $"
+//usage:     "\n	-t	Show tabs as ^I"
+//usage:     "\n	-v	Don't use ^x or M-x escapes"
+
 #include "libbb.h"
 
 int catv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

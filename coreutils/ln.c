@@ -11,6 +11,22 @@
 /* BB_AUDIT GNU options missing: -d, -F, -i, and -v. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/ln.html */
 
+//usage:#define ln_trivial_usage
+//usage:       "[OPTIONS] TARGET... LINK|DIR"
+//usage:#define ln_full_usage "\n\n"
+//usage:       "Create a link LINK or DIR/TARGET to the specified TARGET(s)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-s	Make symlinks instead of hardlinks"
+//usage:     "\n	-f	Remove existing destinations"
+//usage:     "\n	-n	Don't dereference symlinks - treat like normal file"
+//usage:     "\n	-b	Make a backup of the target (if exists) before link operation"
+//usage:     "\n	-S suf	Use suffix instead of ~ when making backup files"
+//usage:
+//usage:#define ln_example_usage
+//usage:       "$ ln -s BusyBox /tmp/ls\n"
+//usage:       "$ ls -l /tmp/ls\n"
+//usage:       "lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -> BusyBox*\n"
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */

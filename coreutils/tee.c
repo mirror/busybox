@@ -10,6 +10,19 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */
 
+//usage:#define tee_trivial_usage
+//usage:       "[-ai] [FILE]..."
+//usage:#define tee_full_usage "\n\n"
+//usage:       "Copy stdin to each FILE, and also to stdout\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Append to the given FILEs, don't overwrite"
+//usage:     "\n	-i	Ignore interrupt signals (SIGINT)"
+//usage:
+//usage:#define tee_example_usage
+//usage:       "$ echo \"Hello\" | tee /tmp/foo\n"
+//usage:       "$ cat /tmp/foo\n"
+//usage:       "Hello\n"
+
 #include "libbb.h"
 
 int tee_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

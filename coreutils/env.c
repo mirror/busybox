@@ -31,6 +31,15 @@
 
 /* This is a NOEXEC applet. Be very careful! */
 
+//usage:#define env_trivial_usage
+//usage:       "[-iu] [-] [name=value]... [PROG ARGS]"
+//usage:#define env_full_usage "\n\n"
+//usage:       "Print the current environment or run PROG after setting up\n"
+//usage:       "the specified environment\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-, -i	Start with an empty environment"
+//usage:     "\n	-u	Remove variable from the environment"
+
 #include "libbb.h"
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS

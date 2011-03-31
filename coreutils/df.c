@@ -22,6 +22,41 @@
  * Implement -P and -B; better coreutils compat; cleanup
  */
 
+//usage:#define df_trivial_usage
+//usage:	"[-Pk"
+//usage:	IF_FEATURE_HUMAN_READABLE("mh")
+//usage:	IF_FEATURE_DF_FANCY("ai] [-B SIZE")
+//usage:	"] [FILESYSTEM]..."
+//usage:#define df_full_usage "\n\n"
+//usage:       "Print filesystem usage statistics\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-P	POSIX output format"
+//usage:     "\n	-k	1024-byte blocks (default)"
+//usage:	IF_FEATURE_HUMAN_READABLE(
+//usage:     "\n	-m	1M-byte blocks"
+//usage:     "\n	-h	Human readable (e.g. 1K 243M 2G)"
+//usage:	)
+//usage:	IF_FEATURE_DF_FANCY(
+//usage:     "\n	-a	Show all filesystems"
+//usage:     "\n	-i	Inodes"
+//usage:     "\n	-B SIZE	Blocksize"
+//usage:	)
+//usage:
+//usage:#define df_example_usage
+//usage:       "$ df\n"
+//usage:       "Filesystem           1K-blocks      Used Available Use% Mounted on\n"
+//usage:       "/dev/sda3              8690864   8553540    137324  98% /\n"
+//usage:       "/dev/sda1                64216     36364     27852  57% /boot\n"
+//usage:       "$ df /dev/sda3\n"
+//usage:       "Filesystem           1K-blocks      Used Available Use% Mounted on\n"
+//usage:       "/dev/sda3              8690864   8553540    137324  98% /\n"
+//usage:       "$ POSIXLY_CORRECT=sure df /dev/sda3\n"
+//usage:       "Filesystem         512B-blocks      Used Available Use% Mounted on\n"
+//usage:       "/dev/sda3             17381728  17107080    274648  98% /\n"
+//usage:       "$ POSIXLY_CORRECT=yep df -P /dev/sda3\n"
+//usage:       "Filesystem          512-blocks      Used Available Capacity Mounted on\n"
+//usage:       "/dev/sda3             17381728  17107080    274648      98% /\n"
+
 #include <mntent.h>
 #include <sys/vfs.h>
 #include "libbb.h"

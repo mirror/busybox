@@ -47,6 +47,19 @@
 //config:	  useful for cases when no other way of expressing a character
 //config:	  is possible.
 
+//usage:#define tr_trivial_usage
+//usage:       "[-cds] STRING1 [STRING2]"
+//usage:#define tr_full_usage "\n\n"
+//usage:       "Translate, squeeze, or delete characters from stdin, writing to stdout\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Take complement of STRING1"
+//usage:     "\n	-d	Delete input characters coded STRING1"
+//usage:     "\n	-s	Squeeze multiple output characters of STRING2 into one character"
+//usage:
+//usage:#define tr_example_usage
+//usage:       "$ echo \"gdkkn vnqkc\" | tr [a-y] [b-z]\n"
+//usage:       "hello world\n"
+
 #include "libbb.h"
 
 enum {

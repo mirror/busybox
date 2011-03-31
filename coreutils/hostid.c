@@ -9,6 +9,11 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
+//usage:#define hostid_trivial_usage
+//usage:       ""
+//usage:#define hostid_full_usage "\n\n"
+//usage:       "Print out a unique 32-bit identifier for the machine"
+
 #include "libbb.h"
 
 /* This is a NOFORK applet. Be very careful! */
