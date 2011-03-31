@@ -1412,6 +1412,7 @@ static void save_history(char *str)
 		 * load them */
 		st_temp = new_line_input_t(state->flags);
 		st_temp->hist_file = state->hist_file;
+		st_temp->max_history = state->max_history;
 		load_history(st_temp);
 
 		/* write out temp file and replace hist_file atomically */
