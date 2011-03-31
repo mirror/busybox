@@ -13143,10 +13143,9 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if (iflag) {
 		const char *hp = lookupvar("HISTFILE");
-
-		if (hp == NULL) {
+		if (!hp) {
 			hp = lookupvar("HOME");
-			if (hp != NULL) {
+			if (hp) {
 				char *defhp = concat_path_file(hp, ".ash_history");
 				setvar("HISTFILE", defhp, 0);
 				free(defhp);
@@ -13195,6 +13194,10 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 			const char *hp = lookupvar("HISTFILE");
 			if (hp)
 				line_input_state->hist_file = hp;
+# if ENABLE_FEATURE_SH_HISTFILESIZE
+			hp = lookupvar("HISTFILESIZE");
+			line_input_state->max_history = size_from_HISTFILESIZE(hp);
+# endif
 		}
 #endif
  state4: /* XXX ??? - why isn't this before the "if" statement */

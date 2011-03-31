@@ -80,11 +80,12 @@ config FEATURE_EDITING_VI
 
 config FEATURE_EDITING_HISTORY
 	int "History size"
-	range 0 99999
+	# Don't allow way too big values here, code uses fixed "char *history[N]" struct member
+	range 0 9999
 	default 255
 	depends on FEATURE_EDITING
 	help
-	  Specify command history size.
+	  Specify command history size (0 - disable).
 
 config FEATURE_EDITING_SAVEHISTORY
 	bool "History saving"

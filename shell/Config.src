@@ -136,4 +136,14 @@ config FEATURE_SH_NOFORK
 	  This feature is relatively new. Use with care. Report bugs
 	  to project mailing list.
 
+config FEATURE_SH_HISTFILESIZE
+	bool "Use $HISTFILESIZE"
+	default y
+	depends on HUSH || ASH
+	help
+	  This option makes busybox shells to use $HISTFILESIZE variable
+	  to set shell history size. Note that its max value is capped
+	  by "History size" setting in library tuning section.
+
+
 endmenu

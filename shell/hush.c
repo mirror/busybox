@@ -7614,6 +7614,10 @@ int hush_main(int argc, char **argv)
 				//set_local_var(xasprintf("HISTFILE=%s", ...));
 			}
 		}
+# if ENABLE_FEATURE_SH_HISTFILESIZE
+		hp = get_local_var_value("HISTFILESIZE");
+		G.line_input_state->max_history = size_from_HISTFILESIZE(hp);
+# endif
 	}
 # endif
 #endif

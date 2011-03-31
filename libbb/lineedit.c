@@ -1243,11 +1243,25 @@ line_input_t* FAST_FUNC new_line_input_t(int flags)
 {
 	line_input_t *n = xzalloc(sizeof(*n));
 	n->flags = flags;
+	n->max_history = MAX_HISTORY;
 	return n;
 }
 
 
 #if MAX_HISTORY > 0
+
+unsigned size_from_HISTFILESIZE(const char *hp)
+{
+	int size = MAX_HISTORY;
+	if (hp) {
+		size = atoi(hp);
+		if (size <= 0)
+			return 1;
+		if (size > MAX_HISTORY)
+			return MAX_HISTORY;
+	}
+	return size;
+}
 
 static void save_command_ps_at_cur_history(void)
 {
@@ -1339,7 +1353,7 @@ static void load_history(line_input_t *st_parm)
 			temp_h[idx] = line;
 			st_parm->cnt_history_in_file++;
 			idx++;
-			if (idx == MAX_HISTORY)
+			if (idx == st_parm->max_history)
 				idx = 0;
 		}
 		fclose(fp);
@@ -1348,18 +1362,18 @@ static void load_history(line_input_t *st_parm)
 		if (st_parm->cnt_history_in_file) {
 			while (temp_h[idx] == NULL) {
 				idx++;
-				if (idx == MAX_HISTORY)
+				if (idx == st_parm->max_history)
 					idx = 0;
 			}
 		}
 
 		/* copy temp_h[] to st_parm->history[] */
-		for (i = 0; i < MAX_HISTORY;) {
+		for (i = 0; i < st_parm->max_history;) {
 			line = temp_h[idx];
 			if (!line)
 				break;
 			idx++;
-			if (idx == MAX_HISTORY)
+			if (idx == st_parm->max_history)
 				idx = 0;
 			line_len = strlen(line);
 			if (line_len >= MAX_LINELEN)
@@ -1390,7 +1404,7 @@ static void save_history(char *str)
 
 	/* did we write so much that history file needs trimming? */
 	state->cnt_history_in_file++;
-	if (state->cnt_history_in_file > MAX_HISTORY * 4) {
+	if (state->cnt_history_in_file > state->max_history * 4) {
 		char *new_name;
 		line_input_t *st_temp;
 
@@ -1436,20 +1450,20 @@ static void remember_in_history(char *str)
 	if (i && strcmp(state->history[i-1], str) == 0)
 		return;
 
-	free(state->history[MAX_HISTORY]); /* redundant, paranoia */
-	state->history[MAX_HISTORY] = NULL; /* redundant, paranoia */
+	free(state->history[state->max_history]); /* redundant, paranoia */
+	state->history[state->max_history] = NULL; /* redundant, paranoia */
 
 	/* If history[] is full, remove the oldest command */
-	/* we need to keep history[MAX_HISTORY] empty, hence >=, not > */
-	if (i >= MAX_HISTORY) {
+	/* we need to keep history[state->max_history] empty, hence >=, not > */
+	if (i >= state->max_history) {
 		free(state->history[0]);
-		for (i = 0; i < MAX_HISTORY-1; i++)
+		for (i = 0; i < state->max_history-1; i++)
 			state->history[i] = state->history[i+1];
-		/* i == MAX_HISTORY-1 */
+		/* i == state->max_history-1 */
 	}
-	/* i <= MAX_HISTORY-1 */
+	/* i <= state->max_history-1 */
 	state->history[i++] = xstrdup(str);
-	/* i <= MAX_HISTORY */
+	/* i <= state->max_history */
 	state->cur_history = i;
 	state->cnt_history = i;
 # if MAX_HISTORY > 0 && ENABLE_FEATURE_EDITING_SAVEHISTORY
@@ -1970,7 +1984,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		maxsize = MAX_LINELEN;
 	S.maxsize = maxsize;
 
-	/* With null flags, no other fields are ever used */
+	/* With zero flags, no other fields are ever used */
 	state = st ? st : (line_input_t*) &const_int_0;
 #if MAX_HISTORY > 0
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
@@ -2022,7 +2036,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #endif
 
 #if 0
-	for (i = 0; i <= MAX_HISTORY; i++)
+	for (i = 0; i <= state->max_history; i++)
 		bb_error_msg("history[%d]:'%s'", i, state->history[i]);
 	bb_error_msg("cur_history:%d cnt_history:%d", state->cur_history, state->cnt_history);
 #endif
