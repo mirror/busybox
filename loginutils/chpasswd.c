@@ -7,6 +7,20 @@
  */
 #include "libbb.h"
 
+//usage:#define chpasswd_trivial_usage
+//usage:	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
+//usage:#define chpasswd_full_usage "\n\n"
+//usage:       "Read user:password from stdin and update /etc/passwd\n"
+//usage:     "\nOptions:"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	-e,--encrypted	Supplied passwords are in encrypted form"
+//usage:     "\n	-m,--md5	Use MD5 encryption instead of DES"
+//usage:	)
+//usage:	IF_NOT_LONG_OPTS(
+//usage:     "\n	-e	Supplied passwords are in encrypted form"
+//usage:     "\n	-m	Use MD5 encryption instead of DES"
+//usage:	)
+
 #if ENABLE_LONG_OPTS
 static const char chpasswd_longopts[] ALIGN1 =
 	"encrypted\0" No_argument "e"

@@ -21,6 +21,19 @@
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
+//usage:#define vi_trivial_usage
+//usage:       "[OPTIONS] [FILE]..."
+//usage:#define vi_full_usage "\n\n"
+//usage:       "Edit FILE\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_VI_COLON(
+//usage:     "\n	-c	Initial command to run ($EXINIT also available)"
+//usage:	)
+//usage:	IF_FEATURE_VI_READONLY(
+//usage:     "\n	-R	Read-only"
+//usage:	)
+//usage:     "\n	-H	Short help regarding available features"
+
 #include "libbb.h"
 
 /* the CRASHME code is unmaintained, and doesn't currently build */

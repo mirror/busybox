@@ -5,6 +5,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define sulogin_trivial_usage
+//usage:       "[-t N] [TTY]"
+//usage:#define sulogin_full_usage "\n\n"
+//usage:       "Single user login\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-t N	Timeout"
+
 #include "libbb.h"
 #include <syslog.h>
 

@@ -7,6 +7,33 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define makemime_trivial_usage
+//usage:       "[OPTIONS] [FILE]..."
+//usage:#define makemime_full_usage "\n\n"
+//usage:       "Create multipart MIME-encoded message from FILEs\n"
+/* //usage:    "Transfer encoding is base64, disposition is inline (not attachment)\n" */
+//usage:     "\nOptions:"
+//usage:     "\n	-o FILE	Output. Default: stdout"
+//usage:     "\n	-a HDR	Add header. Examples:"
+//usage:     "\n		\"From: user@host.org\", \"Date: `date -R`\""
+//usage:     "\n	-c CT	Content type. Default: text/plain"
+//usage:     "\n	-C CS   Charset. Default: " CONFIG_FEATURE_MIME_CHARSET
+/* //usage:  "\n	-e ENC	Transfer encoding. Ignored. base64 is assumed" */
+//usage:     "\n"
+//usage:     "\nOther options are silently ignored"
+
+//usage:#define reformime_trivial_usage
+//usage:       "[OPTIONS] [FILE]..."
+//usage:#define reformime_full_usage "\n\n"
+//usage:       "Parse MIME-encoded message\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-x PREFIX	Extract content of MIME sections to files"
+//usage:     "\n	-X PROG ARGS	Filter content of MIME sections through PROG"
+//usage:     "\n			Must be the last option"
+//usage:     "\n"
+//usage:     "\nOther options are silently ignored"
+
 #include "libbb.h"
 #include "mail.h"
 

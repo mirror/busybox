@@ -10,6 +10,15 @@
 /* BB_AUDIT SUSv3 (virtually) compliant -- uses nicer GNU format for -l. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cmp.html */
 
+//usage:#define cmp_trivial_usage
+//usage:       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
+//usage:#define cmp_full_usage "\n\n"
+//usage:       "Compare FILE1 with FILE2 (or stdin)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-l	Write the byte numbers (decimal) and values (octal)"
+//usage:     "\n		for all differing bytes"
+//usage:     "\n	-s	Quiet"
+
 #include "libbb.h"
 
 static const char fmt_eof[] ALIGN1 = "cmp: EOF on %s\n";

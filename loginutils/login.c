@@ -2,6 +2,16 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define login_trivial_usage
+//usage:       "[-p] [-h HOST] [[-f] USER]"
+//usage:#define login_full_usage "\n\n"
+//usage:       "Begin a new session on the system\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-f	Don't authenticate (user already authenticated)"
+//usage:     "\n	-h	Name of the remote host"
+//usage:     "\n	-p	Preserve environment"
+
 #include "libbb.h"
 #include <syslog.h>
 #include <sys/resource.h>

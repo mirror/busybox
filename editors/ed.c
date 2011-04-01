@@ -7,6 +7,9 @@
  * The "ed" built-in command (much simplified)
  */
 
+//usage:#define ed_trivial_usage ""
+//usage:#define ed_full_usage ""
+
 #include "libbb.h"
 
 typedef struct LINE {

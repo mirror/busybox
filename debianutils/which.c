@@ -10,6 +10,15 @@
  * Based on which from debianutils
  */
 
+//usage:#define which_trivial_usage
+//usage:       "[COMMAND]..."
+//usage:#define which_full_usage "\n\n"
+//usage:       "Locate a COMMAND"
+//usage:
+//usage:#define which_example_usage
+//usage:       "$ which login\n"
+//usage:       "/bin/login\n"
+
 #include "libbb.h"
 
 int which_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

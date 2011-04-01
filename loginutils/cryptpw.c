@@ -10,6 +10,45 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define cryptpw_trivial_usage
+//usage:       "[OPTIONS] [PASSWORD] [SALT]"
+/* We do support -s, we just don't mention it */
+//usage:#define cryptpw_full_usage "\n\n"
+//usage:       "Crypt the PASSWORD using crypt(3)\n"
+//usage:     "\nOptions:"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	-P,--password-fd=N	Read password from fd N"
+/* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
+//usage:     "\n	-m,--method=TYPE	Encryption method TYPE"
+//usage:     "\n	-S,--salt=SALT"
+//usage:	)
+//usage:	IF_NOT_LONG_OPTS(
+//usage:     "\n	-P N	Read password from fd N"
+/* //usage:  "\n	-s	Use stdin; like -P0" */
+//usage:     "\n	-m TYPE	Encryption method TYPE"
+//usage:     "\n	-S SALT"
+//usage:	)
+
+/* mkpasswd is an alias to cryptpw */
+//usage:#define mkpasswd_trivial_usage
+//usage:       "[OPTIONS] [PASSWORD] [SALT]"
+/* We do support -s, we just don't mention it */
+//usage:#define mkpasswd_full_usage "\n\n"
+//usage:       "Crypt the PASSWORD using crypt(3)\n"
+//usage:     "\nOptions:"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	-P,--password-fd=N	Read password from fd N"
+/* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
+//usage:     "\n	-m,--method=TYPE	Encryption method TYPE"
+//usage:     "\n	-S,--salt=SALT"
+//usage:	)
+//usage:	IF_NOT_LONG_OPTS(
+//usage:     "\n	-P N	Read password from fd N"
+/* //usage:  "\n	-s	Use stdin; like -P0" */
+//usage:     "\n	-m TYPE	Encryption method TYPE"
+//usage:     "\n	-S SALT"
+//usage:	)
+
 #include "libbb.h"
 
 /* Debian has 'mkpasswd' utility, manpage says:

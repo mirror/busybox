@@ -76,6 +76,28 @@
  * 6n words for files of length n.
  */
 
+//usage:#define diff_trivial_usage
+//usage:       "[-abBdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
+//usage:#define diff_full_usage "\n\n"
+//usage:       "Compare files line by line and output the differences between them.\n"
+//usage:       "This implementation supports unified diffs only.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Treat all files as text"
+//usage:     "\n	-b	Ignore changes in the amount of whitespace"
+//usage:     "\n	-B	Ignore changes whose lines are all blank"
+//usage:     "\n	-d	Try hard to find a smaller set of changes"
+//usage:     "\n	-i	Ignore case differences"
+//usage:     "\n	-L	Use LABEL instead of the filename in the unified header"
+//usage:     "\n	-N	Treat absent files as empty"
+//usage:     "\n	-q	Output only whether files differ"
+//usage:     "\n	-r	Recurse"
+//usage:     "\n	-S	Start with FILE when comparing directories"
+//usage:     "\n	-T	Make tabs line up by prefixing a tab when necessary"
+//usage:     "\n	-s	Report when two files are the same"
+//usage:     "\n	-t	Expand tabs to spaces in output"
+//usage:     "\n	-U	Output LINES lines of context"
+//usage:     "\n	-w	Ignore all whitespace"
+
 #include "libbb.h"
 
 #if 0

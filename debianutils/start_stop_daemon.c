@@ -56,6 +56,69 @@ Misc options:
         -v,--verbose            Verbose
 */
 
+//usage:#define start_stop_daemon_trivial_usage
+//usage:       "[OPTIONS] [-S|-K] ... [-- ARGS...]"
+//usage:#define start_stop_daemon_full_usage "\n\n"
+//usage:       "Search for matching processes, and then\n"
+//usage:       "-K: stop all matching processes.\n"
+//usage:       "-S: start a process unless a matching process is found.\n"
+//usage:	IF_FEATURE_START_STOP_DAEMON_LONG_OPTIONS(
+//usage:     "\nProcess matching:"
+//usage:     "\n	-u,--user USERNAME|UID	Match only this user's processes"
+//usage:     "\n	-n,--name NAME		Match processes with NAME"
+//usage:     "\n				in comm field in /proc/PID/stat"
+//usage:     "\n	-x,--exec EXECUTABLE	Match processes with this command"
+//usage:     "\n				in /proc/PID/cmdline"
+//usage:     "\n	-p,--pidfile FILE	Match a process with PID from the file"
+//usage:     "\n	All specified conditions must match"
+//usage:     "\n-S only:"
+//usage:     "\n	-x,--exec EXECUTABLE	Program to run"
+//usage:     "\n	-a,--startas NAME	Zeroth argument"
+//usage:     "\n	-b,--background		Background"
+//usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
+//usage:     "\n	-N,--nicelevel N	Change nice level"
+//usage:	)
+//usage:     "\n	-c,--chuid USER[:[GRP]]	Change to user/group"
+//usage:     "\n	-m,--make-pidfile	Write PID to the pidfile specified by -p"
+//usage:     "\n-K only:"
+//usage:     "\n	-s,--signal SIG		Signal to send"
+//usage:     "\n	-t,--test		Match only, exit with 0 if a process is found"
+//usage:     "\nOther:"
+//usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
+//usage:     "\n	-o,--oknodo		Exit with status 0 if nothing is done"
+//usage:     "\n	-v,--verbose		Verbose"
+//usage:	)
+//usage:     "\n	-q,--quiet		Quiet"
+//usage:	)
+//usage:	IF_NOT_FEATURE_START_STOP_DAEMON_LONG_OPTIONS(
+//usage:     "\nProcess matching:"
+//usage:     "\n	-u USERNAME|UID	Match only this user's processes"
+//usage:     "\n	-n NAME		Match processes with NAME"
+//usage:     "\n			in comm field in /proc/PID/stat"
+//usage:     "\n	-x EXECUTABLE	Match processes with this command"
+//usage:     "\n			command in /proc/PID/cmdline"
+//usage:     "\n	-p FILE		Match a process with PID from the file"
+//usage:     "\n	All specified conditions must match"
+//usage:     "\n-S only:"
+//usage:     "\n	-x EXECUTABLE	Program to run"
+//usage:     "\n	-a NAME		Zeroth argument"
+//usage:     "\n	-b		Background"
+//usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
+//usage:     "\n	-N N		Change nice level"
+//usage:	)
+//usage:     "\n	-c USER[:[GRP]]	Change to user/group"
+//usage:     "\n	-m		Write PID to the pidfile specified by -p"
+//usage:     "\n-K only:"
+//usage:     "\n	-s SIG		Signal to send"
+//usage:     "\n	-t		Match only, exit with 0 if a process is found"
+//usage:     "\nOther:"
+//usage:	IF_FEATURE_START_STOP_DAEMON_FANCY(
+//usage:     "\n	-o		Exit with status 0 if nothing is done"
+//usage:     "\n	-v		Verbose"
+//usage:	)
+//usage:     "\n	-q		Quiet"
+//usage:	)
+
 #include <sys/resource.h>
 
 /* Override ENABLE_FEATURE_PIDFILE */

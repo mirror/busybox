@@ -2,6 +2,18 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define passwd_trivial_usage
+//usage:       "[OPTIONS] [USER]"
+//usage:#define passwd_full_usage "\n\n"
+//usage:       "Change USER's password. If no USER is specified,\n"
+//usage:       "changes the password for the current user.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a ALG	Algorithm to use for password (des, md5)" /* ", sha1)" */
+//usage:     "\n	-d	Delete password for the account"
+//usage:     "\n	-l	Lock (disable) account"
+//usage:     "\n	-u	Unlock (re-enable) account"
+
 #include "libbb.h"
 #include <syslog.h>
 

@@ -34,6 +34,20 @@
  * It doesn't guess filesystem types from on-disk format.
  */
 
+//usage:#define fsck_trivial_usage
+//usage:       "[-ANPRTV] [-C FD] [-t FSTYPE] [FS_OPTS] [BLOCKDEV]..."
+//usage:#define fsck_full_usage "\n\n"
+//usage:       "Check and repair filesystems\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-A	Walk /etc/fstab and check all filesystems"
+//usage:     "\n	-N	Don't execute, just show what would be done"
+//usage:     "\n	-P	With -A, check filesystems in parallel"
+//usage:     "\n	-R	With -A, skip the root filesystem"
+//usage:     "\n	-T	Don't show title on startup"
+//usage:     "\n	-V	Verbose"
+//usage:     "\n	-C n	Write status information to specified filedescriptor"
+//usage:     "\n	-t TYPE	List of filesystem types to check"
+
 #include "libbb.h"
 
 /* "progress indicator" code is somewhat buggy and ext[23] specific.

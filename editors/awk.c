@@ -7,6 +7,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define awk_trivial_usage
+//usage:       "[OPTIONS] [AWK_PROGRAM] [FILE]..."
+//usage:#define awk_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-v VAR=VAL	Set variable"
+//usage:     "\n	-F SEP		Use SEP as field separator"
+//usage:     "\n	-f FILE		Read program from FILE"
+
 #include "libbb.h"
 #include "xregex.h"
 #include <math.h>

@@ -9,6 +9,18 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  *
  */
+
+//usage:#define deluser_trivial_usage
+//usage:       "USER"
+//usage:#define deluser_full_usage "\n\n"
+//usage:       "Delete USER from the system"
+
+//usage:#define delgroup_trivial_usage
+//usage:	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
+//usage:#define delgroup_full_usage "\n\n"
+//usage:       "Delete group GROUP from the system"
+//usage:	IF_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
+
 #include "libbb.h"
 
 int deluser_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

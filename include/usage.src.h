@@ -40,28 +40,6 @@ INSERT
        "# acpid -l /var/log/my-acpi-log\n" \
        "# acpid -e /proc/acpi/event\n"
 
-#define addgroup_trivial_usage \
-       "[-g GID] " IF_FEATURE_ADDUSER_TO_GROUP("[USER] ") "GROUP"
-#define addgroup_full_usage "\n\n" \
-       "Add a group " IF_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n" \
-     "\nOptions:" \
-     "\n	-g GID	Group id" \
-     "\n	-S	Create a system group" \
-
-#define adduser_trivial_usage \
-       "[OPTIONS] USER"
-#define adduser_full_usage "\n\n" \
-       "Add a user\n" \
-     "\nOptions:" \
-     "\n	-h DIR		Home directory" \
-     "\n	-g GECOS	GECOS field" \
-     "\n	-s SHELL	Login shell" \
-     "\n	-G GRP		Add user to existing group" \
-     "\n	-S		Create a system user" \
-     "\n	-D		Don't assign a password" \
-     "\n	-H		Don't create home directory" \
-     "\n	-u UID		User id" \
-
 #define adjtimex_trivial_usage \
        "[-q] [-o OFF] [-f FREQ] [-p TCONST] [-t TICK]"
 #define adjtimex_full_usage "\n\n" \
@@ -109,14 +87,6 @@ INSERT
      "\n	-I IFACE	Interface to use (default eth0)" \
      "\n	-s SRC_IP	Sender IP address" \
      "\n	DST_IP		Target IP address" \
-
-#define awk_trivial_usage \
-       "[OPTIONS] [AWK_PROGRAM] [FILE]..."
-#define awk_full_usage "\n\n" \
-       "Options:" \
-     "\n	-v VAR=VAL	Set variable" \
-     "\n	-F SEP		Use SEP as field separator" \
-     "\n	-f FILE		Read program from FILE" \
 
 #define beep_trivial_usage \
        "-f FREQ -l LEN -d DELAY -r COUNT -n"
@@ -166,30 +136,6 @@ INSERT
        "A script consists of one or more \"expect-send\" pairs of strings,\n" \
        "each pair is a pair of arguments. Example:\n" \
        "chat '' ATZ OK ATD123456 CONNECT '' ogin: pppuser word: ppppass '~'" \
-
-#define chattr_trivial_usage \
-       "[-R] [-+=AacDdijsStTu] [-v VERSION] [FILE]..."
-#define chattr_full_usage "\n\n" \
-       "Change file attributes on an ext2 fs\n" \
-     "\nModifiers:" \
-     "\n	-	Remove attributes" \
-     "\n	+	Add attributes" \
-     "\n	=	Set attributes" \
-     "\nAttributes:" \
-     "\n	A	Don't track atime" \
-     "\n	a	Append mode only" \
-     "\n	c	Enable compress" \
-     "\n	D	Write dir contents synchronously" \
-     "\n	d	Don't backup with dump" \
-     "\n	i	Cannot be modified (immutable)" \
-     "\n	j	Write all data to journal first" \
-     "\n	s	Zero disk storage when deleted" \
-     "\n	S	Write file contents synchronously" \
-     "\n	t	Disable tail-merging of partial blocks with other files" \
-     "\n	u	Allow file to be undeleted" \
-     "\nOptions:" \
-     "\n	-R	Recurse" \
-     "\n	-v	Set the file's version/generation number" \
 
 #define chcon_trivial_usage \
        "[OPTIONS] CONTEXT FILE..." \
@@ -284,15 +230,6 @@ INSERT
      "\n	-t N		Limit CPU time, process receives" \
      "\n			a SIGXCPU after N seconds" \
 
-#define cmp_trivial_usage \
-       "[-l] [-s] FILE1 [FILE2" IF_DESKTOP(" [SKIP1 [SKIP2]]") "]"
-#define cmp_full_usage "\n\n" \
-       "Compare FILE1 with FILE2 (or stdin)\n" \
-     "\nOptions:" \
-     "\n	-l	Write the byte numbers (decimal) and values (octal)" \
-     "\n		for all differing bytes" \
-     "\n	-s	Quiet" \
-
 #define bbconfig_trivial_usage \
        ""
 #define bbconfig_full_usage "\n\n" \
@@ -355,57 +292,6 @@ INSERT
      "\n	-r	Delete crontab" \
      "\n	FILE	Replace crontab by FILE ('-': stdin)" \
 
-#define cryptpw_trivial_usage \
-       "[OPTIONS] [PASSWORD] [SALT]"
-/* We do support -s, we just don't mention it */
-#define cryptpw_full_usage "\n\n" \
-       "Crypt the PASSWORD using crypt(3)\n" \
-     "\nOptions:" \
-	IF_LONG_OPTS( \
-     "\n	-P,--password-fd=N	Read password from fd N" \
-/*   "\n	-s,--stdin		Use stdin; like -P0" */ \
-     "\n	-m,--method=TYPE	Encryption method TYPE" \
-     "\n	-S,--salt=SALT" \
-	) \
-	IF_NOT_LONG_OPTS( \
-     "\n	-P N	Read password from fd N" \
-/*   "\n	-s	Use stdin; like -P0" */ \
-     "\n	-m TYPE	Encryption method TYPE" \
-     "\n	-S SALT" \
-	) \
-
-/* mkpasswd is an alias to cryptpw */
-
-#define mkpasswd_trivial_usage \
-       "[OPTIONS] [PASSWORD] [SALT]"
-/* We do support -s, we just don't mention it */
-#define mkpasswd_full_usage "\n\n" \
-       "Crypt the PASSWORD using crypt(3)\n" \
-     "\nOptions:" \
-	IF_LONG_OPTS( \
-     "\n	-P,--password-fd=N	Read password from fd N" \
-/*   "\n	-s,--stdin		Use stdin; like -P0" */ \
-     "\n	-m,--method=TYPE	Encryption method TYPE" \
-     "\n	-S,--salt=SALT" \
-	) \
-	IF_NOT_LONG_OPTS( \
-     "\n	-P N	Read password from fd N" \
-/*   "\n	-s	Use stdin; like -P0" */ \
-     "\n	-m TYPE	Encryption method TYPE" \
-     "\n	-S SALT" \
-	) \
-
-#define delgroup_trivial_usage \
-	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
-#define delgroup_full_usage "\n\n" \
-       "Delete group GROUP from the system" \
-	IF_FEATURE_DEL_USER_FROM_GROUP(" or user USER from group GROUP")
-
-#define deluser_trivial_usage \
-       "USER"
-#define deluser_full_usage "\n\n" \
-       "Delete USER from the system"
-
 #define devmem_trivial_usage \
 	"ADDRESS [WIDTH [VALUE]]"
 
@@ -434,28 +320,6 @@ INSERT
        "CLIENT_IFACE[,CLIENT_IFACE2]... SERVER_IFACE [SERVER_IP]"
 #define dhcprelay_full_usage "\n\n" \
        "Relay DHCP requests between clients and server" \
-
-#define diff_trivial_usage \
-       "[-abBdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
-#define diff_full_usage "\n\n" \
-       "Compare files line by line and output the differences between them.\n" \
-       "This implementation supports unified diffs only.\n" \
-     "\nOptions:" \
-     "\n	-a	Treat all files as text" \
-     "\n	-b	Ignore changes in the amount of whitespace" \
-     "\n	-B	Ignore changes whose lines are all blank" \
-     "\n	-d	Try hard to find a smaller set of changes" \
-     "\n	-i	Ignore case differences" \
-     "\n	-L	Use LABEL instead of the filename in the unified header" \
-     "\n	-N	Treat absent files as empty" \
-     "\n	-q	Output only whether files differ" \
-     "\n	-r	Recurse" \
-     "\n	-S	Start with FILE when comparing directories" \
-     "\n	-T	Make tabs line up by prefixing a tab when necessary" \
-     "\n	-s	Report when two files are the same" \
-     "\n	-t	Expand tabs to spaces in output" \
-     "\n	-U	Output LINES lines of context" \
-     "\n	-w	Ignore all whitespace" \
 
 #define dmesg_trivial_usage \
        "[-c] [-n LEVEL] [-s SIZE]"
@@ -530,9 +394,6 @@ INSERT
 	) \
      "\n	-t	Close tray" \
      "\n	-T	Open/close tray (toggle)" \
-
-#define ed_trivial_usage ""
-#define ed_full_usage ""
 
 #define ether_wake_trivial_usage \
        "[-b] [-i iface] [-p aa:bb:cc:dd[:ee:ff]] MAC"
@@ -678,20 +539,6 @@ INSERT
        "Free all memory used by the specified ramdisk"
 #define freeramdisk_example_usage \
        "$ freeramdisk /dev/ram2\n"
-
-#define fsck_trivial_usage \
-       "[-ANPRTV] [-C FD] [-t FSTYPE] [FS_OPTS] [BLOCKDEV]..."
-#define fsck_full_usage "\n\n" \
-       "Check and repair filesystems\n" \
-     "\nOptions:" \
-     "\n	-A	Walk /etc/fstab and check all filesystems" \
-     "\n	-N	Don't execute, just show what would be done" \
-     "\n	-P	With -A, check filesystems in parallel" \
-     "\n	-R	With -A, skip the root filesystem" \
-     "\n	-T	Don't show title on startup" \
-     "\n	-V	Verbose" \
-     "\n	-C n	Write status information to specified filedescriptor" \
-     "\n	-t TYPE	List of filesystem types to check" \
 
 #define fsck_minix_trivial_usage \
        "[-larvsmf] BLOCKDEV"
@@ -1279,15 +1126,6 @@ INSERT
 #define logger_example_usage \
        "$ logger \"hello\"\n"
 
-#define login_trivial_usage \
-       "[-p] [-h HOST] [[-f] USER]"
-#define login_full_usage "\n\n" \
-       "Begin a new session on the system\n" \
-     "\nOptions:" \
-     "\n	-f	Don't authenticate (user already authenticated)" \
-     "\n	-h	Name of the remote host" \
-     "\n	-p	Preserve environment" \
-
 #define logread_trivial_usage \
        "[-f]"
 #define logread_full_usage "\n\n" \
@@ -1343,17 +1181,6 @@ INSERT
      "\n	-m	Send mail on completion" \
      "\n	-h	Print banner page too" \
      "\n	-V	Verbose" \
-
-#define lsattr_trivial_usage \
-       "[-Radlv] [FILE]..."
-#define lsattr_full_usage "\n\n" \
-       "List file attributes on an ext2 fs\n" \
-     "\nOptions:" \
-     "\n	-R	Recurse" \
-     "\n	-a	Don't hide entries starting with ." \
-     "\n	-d	List directory entries instead of contents" \
-     "\n	-l	List long flag names" \
-     "\n	-v	List the file's version/generation number" \
 
 #define lspci_trivial_usage \
        "[-mk]"
@@ -1423,21 +1250,6 @@ INSERT
        "/dev/hda\n" \
        "/dev/hda[0-15]\n"
 #endif
-
-#define makemime_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define makemime_full_usage "\n\n" \
-       "Create multipart MIME-encoded message from FILEs\n" \
-/*     "Transfer encoding is base64, disposition is inline (not attachment)\n" */ \
-     "\nOptions:" \
-     "\n	-o FILE	Output. Default: stdout" \
-     "\n	-a HDR	Add header. Examples:" \
-     "\n		\"From: user@host.org\", \"Date: `date -R`\"" \
-     "\n	-c CT	Content type. Default: text/plain" \
-     "\n	-C CS   Charset. Default: " CONFIG_FEATURE_MIME_CHARSET \
-/*   "\n	-e ENC	Transfer encoding. Ignored. base64 is assumed" */ \
-     "\n" \
-     "\nOther options are silently ignored" \
 
 #define man_trivial_usage \
        "[-aw] [MANPAGE]..."
@@ -1712,31 +1524,6 @@ INSERT
 #define parse_full_usage ""
 */
 
-#define passwd_trivial_usage \
-       "[OPTIONS] [USER]"
-#define passwd_full_usage "\n\n" \
-       "Change USER's password. If no USER is specified,\n" \
-       "changes the password for the current user.\n" \
-     "\nOptions:" \
-     "\n	-a ALG	Algorithm to use for password (des, md5)" /* ", sha1)" */ \
-     "\n	-d	Delete password for the account" \
-     "\n	-l	Lock (disable) account" \
-     "\n	-u	Unlock (re-enable) account" \
-
-#define chpasswd_trivial_usage \
-	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
-#define chpasswd_full_usage "\n\n" \
-       "Read user:password from stdin and update /etc/passwd\n" \
-     "\nOptions:" \
-	IF_LONG_OPTS( \
-     "\n	-e,--encrypted	Supplied passwords are in encrypted form" \
-     "\n	-m,--md5	Use MD5 encryption instead of DES" \
-	) \
-	IF_NOT_LONG_OPTS( \
-     "\n	-e	Supplied passwords are in encrypted form" \
-     "\n	-m	Use MD5 encryption instead of DES" \
-	)
-
 #define pgrep_trivial_usage \
        "[-flnovx] [-s SID|-P PPID|PATTERN]"
 #define pgrep_full_usage "\n\n" \
@@ -1779,9 +1566,6 @@ INSERT
 	IF_FEATURE_PIDOF_OMIT( \
        "$ pidof /bin/sh -o %PPID\n20351 5950")
 
-#define pipe_progress_trivial_usage NOUSAGE_STR
-#define pipe_progress_full_usage ""
-
 #define pivot_root_trivial_usage \
        "NEW_ROOT PUT_OLD"
 #define pivot_root_full_usage "\n\n" \
@@ -1801,38 +1585,6 @@ INSERT
      "\n	-x	Match whole name (not substring)" \
      "\n	-s	Match session ID (0 for current)" \
      "\n	-P	Match parent process ID" \
-
-#define popmaildir_trivial_usage \
-       "[OPTIONS] MAILDIR [CONN_HELPER ARGS]"
-#define popmaildir_full_usage "\n\n" \
-       "Fetch content of remote mailbox to local maildir\n" \
-     "\nOptions:" \
-/*   "\n	-b		Binary mode. Ignored" */ \
-/*   "\n	-d		Debug. Ignored" */ \
-/*   "\n	-m		Show used memory. Ignored" */ \
-/*   "\n	-V		Show version. Ignored" */ \
-/*   "\n	-c		Use tcpclient. Ignored" */ \
-/*   "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" */ \
-     "\n	-s		Skip authorization" \
-     "\n	-T		Get messages with TOP instead of RETR" \
-     "\n	-k		Keep retrieved messages on the server" \
-     "\n	-t SEC		Network timeout" \
-	IF_FEATURE_POPMAILDIR_DELIVERY( \
-     "\n	-F \"PROG ARGS\"	Filter program (may be repeated)" \
-     "\n	-M \"PROG ARGS\"	Delivery program" \
-	) \
-     "\n" \
-     "\nFetch from plain POP3 server:" \
-     "\npopmaildir -k DIR nc pop3.server.com 110 <user_and_pass.txt" \
-     "\nFetch from SSLed POP3 server and delete fetched emails:" \
-     "\npopmaildir DIR -- openssl s_client -quiet -connect pop3.server.com:995 <user_and_pass.txt"
-/*   "\n	-R BYTES	Remove old messages on the server >= BYTES. Ignored" */
-/*   "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" */
-/*   "\n	-L BYTES	Don't retrieve new messages >= BYTES. Ignored" */
-/*   "\n	-H LINES	Type first LINES of a message. Ignored" */
-#define popmaildir_example_usage \
-       "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n" \
-       "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
 
 
 #if ENABLE_DESKTOP
@@ -1937,17 +1689,6 @@ INSERT
      "\n	-r		Reset all the counters (root only)" \
      "\n	-n		Disable byte order auto-detection" \
 
-#define reformime_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define reformime_full_usage "\n\n" \
-       "Parse MIME-encoded message\n" \
-     "\nOptions:" \
-     "\n	-x PREFIX	Extract content of MIME sections to files" \
-     "\n	-X PROG ARGS	Filter content of MIME sections through PROG" \
-     "\n			Must be the last option" \
-     "\n" \
-     "\nOther options are silently ignored" \
-
 #define scriptreplay_trivial_usage \
        "timingfile [typescript [divisor]]"
 #define scriptreplay_full_usage "\n\n" \
@@ -2034,32 +1775,6 @@ INSERT
      "\n	-l RNG	Levelrange" \
 	)
 
-#define run_parts_trivial_usage \
-       "[-t] "IF_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
-#define run_parts_full_usage "\n\n" \
-       "Run a bunch of scripts in DIRECTORY\n" \
-     "\nOptions:" \
-     "\n	-t	Print what would be run, but don't actually run anything" \
-     "\n	-a ARG	Pass ARG as argument for every program" \
-     "\n	-u MASK	Set the umask to MASK before running every program" \
-	IF_FEATURE_RUN_PARTS_FANCY( \
-     "\n	-l	Print names of all matching files even if they are not executable" \
-	)
-
-#define run_parts_example_usage \
-       "$ run-parts -a start /etc/init.d\n" \
-       "$ run-parts -a stop=now /etc/init.d\n\n" \
-       "Let's assume you have a script foo/dosomething:\n" \
-       "#!/bin/sh\n" \
-       "for i in $*; do eval $i; done; unset i\n" \
-       "case \"$1\" in\n" \
-       "start*) echo starting something;;\n" \
-       "stop*) set -x; shutdown -h $stop;;\n" \
-       "esac\n\n" \
-       "Running this yields:\n" \
-       "$run-parts -a stop=+4m foo/\n" \
-       "+ shutdown -h +4m"
-
 #define runlevel_trivial_usage \
        "[FILE]"
 #define runlevel_full_usage "\n\n" \
@@ -2101,23 +1816,6 @@ INSERT
 	IF_SCRIPTREPLAY( \
      "\n	-t	Send timing to stderr" \
 	)
-
-#define sed_trivial_usage \
-       "[-efinr] SED_CMD [FILE]..."
-#define sed_full_usage "\n\n" \
-       "Options:" \
-     "\n	-e CMD	Add CMD to sed commands to be executed" \
-     "\n	-f FILE	Add FILE contents to sed commands to be executed" \
-     "\n	-i	Edit files in-place (else sends result to stdout)" \
-     "\n	-n	Suppress automatic printing of pattern space" \
-     "\n	-r	Use extended regex syntax" \
-     "\n" \
-     "\nIf no -e or -f, the first non-option argument is the sed command string." \
-     "\nRemaining arguments are input files (stdin if none)."
-
-#define sed_example_usage \
-       "$ echo \"foo\" | sed -e 's/f[a-zA-Z]o/bar/g'\n" \
-       "bar\n"
 
 #define selinuxenabled_trivial_usage NOUSAGE_STR
 #define selinuxenabled_full_usage ""
@@ -2205,69 +1903,6 @@ INSERT
      "\n	-L	Enable 3-wire operation" \
      "\n	-F	Disable RTS/CTS flow control" \
 
-#define start_stop_daemon_trivial_usage \
-       "[OPTIONS] [-S|-K] ... [-- ARGS...]"
-#define start_stop_daemon_full_usage "\n\n" \
-       "Search for matching processes, and then\n" \
-       "-K: stop all matching processes.\n" \
-       "-S: start a process unless a matching process is found.\n" \
-	IF_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
-     "\nProcess matching:" \
-     "\n	-u,--user USERNAME|UID	Match only this user's processes" \
-     "\n	-n,--name NAME		Match processes with NAME" \
-     "\n				in comm field in /proc/PID/stat" \
-     "\n	-x,--exec EXECUTABLE	Match processes with this command" \
-     "\n				in /proc/PID/cmdline" \
-     "\n	-p,--pidfile FILE	Match a process with PID from the file" \
-     "\n	All specified conditions must match" \
-     "\n-S only:" \
-     "\n	-x,--exec EXECUTABLE	Program to run" \
-     "\n	-a,--startas NAME	Zeroth argument" \
-     "\n	-b,--background		Background" \
-	IF_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-N,--nicelevel N	Change nice level" \
-	) \
-     "\n	-c,--chuid USER[:[GRP]]	Change to user/group" \
-     "\n	-m,--make-pidfile	Write PID to the pidfile specified by -p" \
-     "\n-K only:" \
-     "\n	-s,--signal SIG		Signal to send" \
-     "\n	-t,--test		Match only, exit with 0 if a process is found" \
-     "\nOther:" \
-	IF_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-o,--oknodo		Exit with status 0 if nothing is done" \
-     "\n	-v,--verbose		Verbose" \
-	) \
-     "\n	-q,--quiet		Quiet" \
-	) \
-	IF_NOT_FEATURE_START_STOP_DAEMON_LONG_OPTIONS( \
-     "\nProcess matching:" \
-     "\n	-u USERNAME|UID	Match only this user's processes" \
-     "\n	-n NAME		Match processes with NAME" \
-     "\n			in comm field in /proc/PID/stat" \
-     "\n	-x EXECUTABLE	Match processes with this command" \
-     "\n			command in /proc/PID/cmdline" \
-     "\n	-p FILE		Match a process with PID from the file" \
-     "\n	All specified conditions must match" \
-     "\n-S only:" \
-     "\n	-x EXECUTABLE	Program to run" \
-     "\n	-a NAME		Zeroth argument" \
-     "\n	-b		Background" \
-	IF_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-N N		Change nice level" \
-	) \
-     "\n	-c USER[:[GRP]]	Change to user/group" \
-     "\n	-m		Write PID to the pidfile specified by -p" \
-     "\n-K only:" \
-     "\n	-s SIG		Signal to send" \
-     "\n	-t		Match only, exit with 0 if a process is found" \
-     "\nOther:" \
-	IF_FEATURE_START_STOP_DAEMON_FANCY( \
-     "\n	-o		Exit with status 0 if nothing is done" \
-     "\n	-v		Verbose" \
-	) \
-     "\n	-q		Quiet" \
-	) \
-
 #define strings_trivial_usage \
        "[-afo] [-n LEN] [FILE]..."
 #define strings_full_usage "\n\n" \
@@ -2277,13 +1912,6 @@ INSERT
      "\n	-f	Precede strings with filenames" \
      "\n	-n LEN	At least LEN characters form a string (default 4)" \
      "\n	-o	Precede strings with decimal offsets" \
-
-#define sulogin_trivial_usage \
-       "[-t N] [TTY]"
-#define sulogin_full_usage "\n\n" \
-       "Single user login\n" \
-     "\nOptions:" \
-     "\n	-t N	Timeout" \
 
 #define sv_trivial_usage \
        "[-v] [-w SEC] CMD SERVICE_DIR..."
@@ -2650,26 +2278,6 @@ INSERT
      "\n	set_ingress_map	[vlan-name] [skb_priority] [vlan_qos]" \
      "\n	set_name_type	[name-type]" \
 
-#define vi_trivial_usage \
-       "[OPTIONS] [FILE]..."
-#define vi_full_usage "\n\n" \
-       "Edit FILE\n" \
-     "\nOptions:" \
-	IF_FEATURE_VI_COLON( \
-     "\n	-c	Initial command to run ($EXINIT also available)" \
-	) \
-	IF_FEATURE_VI_READONLY( \
-     "\n	-R	Read-only" \
-	) \
-     "\n	-H	Short help regarding available features" \
-
-#define vlock_trivial_usage \
-       "[-a]"
-#define vlock_full_usage "\n\n" \
-       "Lock a virtual terminal. A password is required to unlock.\n" \
-     "\nOptions:" \
-     "\n	-a	Lock all VTs" \
-
 #define volname_trivial_usage \
        "[DEVICE]"
 #define volname_full_usage "\n\n" \
@@ -2707,14 +2315,6 @@ INSERT
      "\n	-F	Run in foreground" \
      "\n" \
      "\nUse 500ms to specify period in milliseconds" \
-
-#define which_trivial_usage \
-       "[COMMAND]..."
-#define which_full_usage "\n\n" \
-       "Locate a COMMAND"
-#define which_example_usage \
-       "$ which login\n" \
-       "/bin/login\n"
 
 #define zcip_trivial_usage \
        "[OPTIONS] IFACE SCRIPT"

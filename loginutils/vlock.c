@@ -15,6 +15,13 @@
 /* Fixed by Erik Andersen to do passwords the tinylogin way...
  * It now works with md5, sha1, etc passwords. */
 
+//usage:#define vlock_trivial_usage
+//usage:       "[-a]"
+//usage:#define vlock_full_usage "\n\n"
+//usage:       "Lock a virtual terminal. A password is required to unlock.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Lock all VTs"
+
 #include "libbb.h"
 
 #ifdef __linux__

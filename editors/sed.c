@@ -58,6 +58,23 @@
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
 
+//usage:#define sed_trivial_usage
+//usage:       "[-efinr] SED_CMD [FILE]..."
+//usage:#define sed_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-e CMD	Add CMD to sed commands to be executed"
+//usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
+//usage:     "\n	-i	Edit files in-place (else sends result to stdout)"
+//usage:     "\n	-n	Suppress automatic printing of pattern space"
+//usage:     "\n	-r	Use extended regex syntax"
+//usage:     "\n"
+//usage:     "\nIf no -e or -f, the first non-option argument is the sed command string."
+//usage:     "\nRemaining arguments are input files (stdin if none)."
+//usage:
+//usage:#define sed_example_usage
+//usage:       "$ echo \"foo\" | sed -e 's/f[a-zA-Z]o/bar/g'\n"
+//usage:       "bar\n"
+
 #include "libbb.h"
 #include "xregex.h"
 

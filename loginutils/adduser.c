@@ -7,6 +7,21 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define adduser_trivial_usage
+//usage:       "[OPTIONS] USER"
+//usage:#define adduser_full_usage "\n\n"
+//usage:       "Add a user\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-h DIR		Home directory"
+//usage:     "\n	-g GECOS	GECOS field"
+//usage:     "\n	-s SHELL	Login shell"
+//usage:     "\n	-G GRP		Add user to existing group"
+//usage:     "\n	-S		Create a system user"
+//usage:     "\n	-D		Don't assign a password"
+//usage:     "\n	-H		Don't create home directory"
+//usage:     "\n	-u UID		User id"
+
 #include "libbb.h"
 
 #if CONFIG_LAST_SYSTEM_ID < CONFIG_FIRST_SYSTEM_ID

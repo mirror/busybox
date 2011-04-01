@@ -9,6 +9,40 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define popmaildir_trivial_usage
+//usage:       "[OPTIONS] MAILDIR [CONN_HELPER ARGS]"
+//usage:#define popmaildir_full_usage "\n\n"
+//usage:       "Fetch content of remote mailbox to local maildir\n"
+//usage:     "\nOptions:"
+/* //usage:  "\n	-b		Binary mode. Ignored" */
+/* //usage:  "\n	-d		Debug. Ignored" */
+/* //usage:  "\n	-m		Show used memory. Ignored" */
+/* //usage:  "\n	-V		Show version. Ignored" */
+/* //usage:  "\n	-c		Use tcpclient. Ignored" */
+/* //usage:  "\n	-a		Use APOP protocol. Implied. If server supports APOP -> use it" */
+//usage:     "\n	-s		Skip authorization"
+//usage:     "\n	-T		Get messages with TOP instead of RETR"
+//usage:     "\n	-k		Keep retrieved messages on the server"
+//usage:     "\n	-t SEC		Network timeout"
+//usage:	IF_FEATURE_POPMAILDIR_DELIVERY(
+//usage:     "\n	-F \"PROG ARGS\"	Filter program (may be repeated)"
+//usage:     "\n	-M \"PROG ARGS\"	Delivery program"
+//usage:	)
+//usage:     "\n"
+//usage:     "\nFetch from plain POP3 server:"
+//usage:     "\npopmaildir -k DIR nc pop3.server.com 110 <user_and_pass.txt"
+//usage:     "\nFetch from SSLed POP3 server and delete fetched emails:"
+//usage:     "\npopmaildir DIR -- openssl s_client -quiet -connect pop3.server.com:995 <user_and_pass.txt"
+/* //usage:  "\n	-R BYTES	Remove old messages on the server >= BYTES. Ignored" */
+/* //usage:  "\n	-Z N1-N2	Remove messages from N1 to N2 (dangerous). Ignored" */
+/* //usage:  "\n	-L BYTES	Don't retrieve new messages >= BYTES. Ignored" */
+/* //usage:  "\n	-H LINES	Type first LINES of a message. Ignored" */
+//usage:
+//usage:#define popmaildir_example_usage
+//usage:       "$ popmaildir -k ~/Maildir -- nc pop.drvv.ru 110 [<password_file]\n"
+//usage:       "$ popmaildir ~/Maildir -- openssl s_client -quiet -connect pop.gmail.com:995 [<password_file]\n"
+
 #include "libbb.h"
 #include "mail.h"
 
