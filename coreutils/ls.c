@@ -43,9 +43,9 @@
 //usage:#define ls_full_usage "\n\n"
 //usage:       "List directory contents\n"
 //usage:     "\nOptions:"
-//usage:     "\n	-1	List in a single column"
-//usage:     "\n	-A	Don't list . and .."
-//usage:     "\n	-a	Don't hide entries starting with ."
+//usage:     "\n	-1	One column output"
+//usage:     "\n	-a	Include entries which start with ."
+//usage:     "\n	-A	Like -a, but exclude . and .."
 //usage:     "\n	-C	List by columns"
 //usage:     "\n	-x	List by lines"
 //usage:     "\n	-d	List directory entries instead of contents"
@@ -63,7 +63,7 @@
 //usage:     "\n	-l	Long listing format"
 //usage:     "\n	-i	List inode numbers"
 //usage:     "\n	-n	List numeric UIDs and GIDs instead of names"
-//usage:     "\n	-s	List the size of each file, in blocks"
+//usage:     "\n	-s	List allocated blocks"
 //usage:	IF_FEATURE_LS_TIMESTAMPS(
 //usage:     "\n	-e	List full date and time"
 //usage:	)
@@ -72,14 +72,14 @@
 //usage:	)
 //usage:	IF_FEATURE_LS_SORTFILES(
 //usage:     "\n	-r	Sort in reverse order"
-//usage:     "\n	-S	Sort by file size"
+//usage:     "\n	-S	Sort by size"
 //usage:     "\n	-X	Sort by extension"
 //usage:     "\n	-v	Sort by version"
 //usage:	)
 //usage:	IF_FEATURE_LS_TIMESTAMPS(
 //usage:     "\n	-c	With -l: sort by ctime"
-//usage:     "\n	-t	With -l: sort by modification time"
-//usage:     "\n	-u	With -l: sort by access time"
+//usage:     "\n	-t	With -l: sort by mtime"
+//usage:     "\n	-u	With -l: sort by atime"
 //usage:	)
 //usage:	IF_SELINUX(
 //usage:     "\n	-k	List security context"
