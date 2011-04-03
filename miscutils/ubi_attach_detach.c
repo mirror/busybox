@@ -102,11 +102,11 @@
 //usage:     "\n	-n VOLID	Volume ID"
 //usage:
 //usage:#define ubirsvol_trivial_usage
-//usage:       "UBI_DEVICE -N NAME -s SIZE"
+//usage:       "UBI_DEVICE -n VOLID -s SIZE"
 //usage:#define ubirsvol_full_usage "\n\n"
 //usage:       "Resize UBI Volume\n"
 //usage:     "\nOptions:"
-//usage:     "\n	-N NAME		Volume name"
+//usage:     "\n	-n VOLID	Volume ID to resize"
 //usage:     "\n	-s SIZE		Size in bytes"
 
 int ubi_tools_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
