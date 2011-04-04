@@ -286,6 +286,12 @@ static const struct limits limits_tbl[] = {
 #ifdef RLIMIT_LOCKS
 	{ RLIMIT_LOCKS,		0,	'w',	"locks" },
 #endif
+#ifdef RLIMIT_NICE
+	{ RLIMIT_NICE,		0,	'e',	"scheduling priority" },
+#endif
+#ifdef RLIMIT_RTPRIO
+	{ RLIMIT_RTPRIO,	0,	'r',	"real-time priority" },
+#endif
 };
 
 enum {
@@ -327,6 +333,12 @@ static const char ulimit_opt_string[] = "-HSa"
 #endif
 #ifdef RLIMIT_LOCKS
 			"w::"
+#endif
+#ifdef RLIMIT_NICE
+			"e::"
+#endif
+#ifdef RLIMIT_RTPRIO
+			"r::"
 #endif
 			;
 
