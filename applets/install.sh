@@ -74,12 +74,12 @@ for i in $h; do
 			echo "#!/bin/busybox" > $prefix$i
 			chmod +x $prefix/$i
 		fi
-		echo "	$prefix$i"
+		echo "	$prefix/$i"
 	else
 		if [ "$2" = "--hardlinks" ]; then
 			bb_path="$prefix/bin/busybox"
 		else
-			case "$appdir" in
+			case "/$appdir" in
 			/)
 				bb_path="bin/busybox"
 			;;
@@ -92,17 +92,21 @@ for i in $h; do
 			/usr/bin|/usr/sbin)
 				bb_path="../../bin/busybox"
 			;;
+			/root) # root/linuxrc (?!)
+				bb_path="bin/busybox"
+				i=$(basename $i)
+			;;
 			*)
 			echo "Unknown installation directory: $appdir"
 			exit 1
 			;;
 			esac
 		fi
-		if [ "$noclobber" = "0" ] || [ ! -e "$prefix$i" ]; then
-			echo "  $prefix$i -> $bb_path"
-			ln $linkopts $bb_path $prefix$i || exit 1
+		if [ "$noclobber" = "0" ] || [ ! -e "$prefix/$i" ]; then
+			echo "  $prefix/$i -> $bb_path"
+			ln $linkopts $bb_path $prefix/$i || exit 1
 		else
-			echo "  $prefix$i already exists"
+			echo "  $prefix/$i already exists"
 		fi
 	fi
 done
