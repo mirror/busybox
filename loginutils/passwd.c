@@ -184,8 +184,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 		 * strdup'ing to avoid nasty surprizes */
 		newp = xstrdup(&pw->pw_passwd[1]);
 	} else if (opt & OPT_delete) {
-		//newp = xstrdup("");
-		newp = (char*)"";
+		newp = (char*)""; //xstrdup("");
 	}
 
 	rlimit_fsize.rlim_cur = rlimit_fsize.rlim_max = 512L * 30000;
@@ -201,7 +200,11 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	filename = bb_path_shadow_file;
 	rc = update_passwd(bb_path_shadow_file, name, newp, NULL);
-	if (rc == 0) /* no lines updated, no errors detected */
+	if (rc > 0)
+		/* password in /etc/shadow was updated */
+		newp = (char*) "x"; //xstrdup("x");
+	if (rc >= 0)
+		/* 0 = /etc/shadow missing (not an error), >0 = passwd changed in /etc/shadow */
 #endif
 	{
 		filename = bb_path_passwd_file;

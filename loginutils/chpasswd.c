@@ -67,7 +67,10 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		 * we try to find & change his passwd in /etc/passwd */
 #if ENABLE_FEATURE_SHADOWPASSWDS
 		rc = update_passwd(bb_path_shadow_file, name, pass, NULL);
-		if (rc == 0) /* no lines updated, no errors detected */
+		if (rc > 0) /* password in /etc/shadow was updated */
+			pass = (char*)"x";
+		if (rc >= 0)
+			/* 0 = /etc/shadow missing (not an error), >0 = passwd changed in /etc/shadow */
 #endif
 			rc = update_passwd(bb_path_passwd_file, name, pass, NULL);
 		/* LOGMODE_BOTH logs to syslog also */
