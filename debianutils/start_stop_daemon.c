@@ -337,11 +337,17 @@ static int do_stop(void)
 		goto ret;
 	}
 	for (p = G.found_procs; p; p = p->next) {
-		if (TEST || kill(p->pid, signal_nr) == 0) {
+		if (kill(p->pid, TEST ? 0 : signal_nr) == 0) {
 			killed++;
 		} else {
-			p->pid = 0;
 			bb_perror_msg("warning: killing process %u", (unsigned)p->pid);
+			p->pid = 0;
+			if (TEST) {
+				/* Example: -K --test --pidfile PIDFILE detected
+				 * that PIDFILE's pid doesn't exist */
+				killed = -1;
+				goto ret;
+			}
 		}
 	}
 	if (!QUIET && killed) {
