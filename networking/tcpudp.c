@@ -387,7 +387,7 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 		 * already bound in parent! This seems to work in Linux.
 		 * (otherwise we can move socket to fd #0 only if bind succeeds) */
 		close(0);
-		set_nport(localp, htons(local_port));
+		set_nport(&localp->u.sa, htons(local_port));
 		xmove_fd(xsocket(localp->u.sa.sa_family, SOCK_DGRAM, 0), 0);
 		setsockopt_reuseaddr(0); /* crucial */
 		xbind(0, &localp->u.sa, localp->len);

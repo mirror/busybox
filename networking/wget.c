@@ -407,7 +407,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	str = strrchr(G.wget_buf, ',');
 	if (!str) goto pasv_error;
 	port += xatou_range(str+1, 0, 255) * 256;
-	set_nport(lsa, htons(port));
+	set_nport(&lsa->u.sa, htons(port));
 
 	*dfpp = open_socket(lsa);
 

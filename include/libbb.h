@@ -589,7 +589,7 @@ len_and_sockaddr* xhost_and_af2sockaddr(const char *host, int port, sa_family_t 
 /* Assign sin[6]_port member if the socket is an AF_INET[6] one,
  * otherwise no-op. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
-void set_nport(len_and_sockaddr *lsa, unsigned port) FAST_FUNC;
+void set_nport(struct sockaddr *sa, unsigned port) FAST_FUNC;
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
 int get_nport(const struct sockaddr *sa) FAST_FUNC;
 /* Reverse DNS. Returns NULL on failure. */

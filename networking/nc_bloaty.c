@@ -386,10 +386,10 @@ create new one, and bind() it. TODO */
 				if (port == 0) {
 					/* "nc -nl -p LPORT RHOST" (w/o RPORT!):
 					 * we should accept any remote port */
-					set_nport(&remend, 0); /* blot out remote port# */
+					set_nport(&remend.u.sa, 0); /* blot out remote port# */
 				}
 				r = memcmp(&remend.u.sa, &themaddr->u.sa, remend.len);
-				set_nport(&remend, sv_port); /* restore */
+				set_nport(&remend.u.sa, sv_port); /* restore */
 				if (r != 0) {
 					/* nc 1.10 bails out instead, and its error message
 					 * is not suppressed by o_verbose */
@@ -486,7 +486,7 @@ static int udptest(void)
 	 us to hang forever, and hit it */
 		o_wait = 5;                     /* enough that we'll notice?? */
 		rr = xsocket(ouraddr->u.sa.sa_family, SOCK_STREAM, 0);
-		set_nport(themaddr, htons(SLEAZE_PORT));
+		set_nport(&themaddr->u.sa, htons(SLEAZE_PORT));
 		connect_w_timeout(rr);
 		/* don't need to restore themaddr's port, it's not used anymore */
 		close(rr);
@@ -813,7 +813,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 				(themaddr ? themaddr->u.sa.sa_family : AF_UNSPEC),
 				x);
 		if (o_lport)
-			set_nport(ouraddr, htons(o_lport));
+			set_nport(&ouraddr->u.sa, htons(o_lport));
 	}
 	xmove_fd(x, netfd);
 	setsockopt_reuseaddr(netfd);

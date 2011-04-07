@@ -134,16 +134,18 @@ int FAST_FUNC get_nport(const struct sockaddr *sa)
 	return -1;
 }
 
-void FAST_FUNC set_nport(len_and_sockaddr *lsa, unsigned port)
+void FAST_FUNC set_nport(struct sockaddr *sa, unsigned port)
 {
 #if ENABLE_FEATURE_IPV6
-	if (lsa->u.sa.sa_family == AF_INET6) {
-		lsa->u.sin6.sin6_port = port;
+	if (sa->sa_family == AF_INET6) {
+		struct sockaddr_in6 *sin6 = (void*) sa;
+		sin6->sin6_port = port;
 		return;
 	}
 #endif
-	if (lsa->u.sa.sa_family == AF_INET) {
-		lsa->u.sin.sin_port = port;
+	if (sa->sa_family == AF_INET) {
+		struct sockaddr_in *sin = (void*) sa;
+		sin->sin_port = port;
 		return;
 	}
 	/* What? UNIX socket? IPX?? :) */
@@ -283,7 +285,7 @@ IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
 	memcpy(&r->u.sa, used_res->ai_addr, used_res->ai_addrlen);
 
  set_port:
-	set_nport(r, htons(port));
+	set_nport(&r->u.sa, htons(port));
  ret:
 	if (result)
 		freeaddrinfo(result);
@@ -369,7 +371,7 @@ static int create_and_bind_or_die(const char *bindaddr, int port, int sock_type)
 		fd = xsocket(lsa->u.sa.sa_family, sock_type, 0);
 	} else {
 		fd = xsocket_type(&lsa, IF_FEATURE_IPV6(AF_UNSPEC,) sock_type);
-		set_nport(lsa, htons(port));
+		set_nport(&lsa->u.sa, htons(port));
 	}
 	setsockopt_reuseaddr(fd);
 	xbind(fd, &lsa->u.sa, lsa->len);

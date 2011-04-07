@@ -433,7 +433,7 @@ bind_for_passive_mode(void)
 	G.pasv_listen_fd = fd = xsocket(G.local_addr->u.sa.sa_family, SOCK_STREAM, 0);
 	setsockopt_reuseaddr(fd);
 
-	set_nport(G.local_addr, 0);
+	set_nport(&G.local_addr->u.sa, 0);
 	xbind(fd, &G.local_addr->u.sa, G.local_addr->len);
 	xlisten(fd, 1);
 	getsockname(fd, &G.local_addr->u.sa, &G.local_addr->len);
@@ -542,7 +542,7 @@ handle_port(void)
 	G.port_addr = xdotted2sockaddr(raw, port);
 #else
 	G.port_addr = get_peer_lsa(STDIN_FILENO);
-	set_nport(G.port_addr, htons(port));
+	set_nport(&G.port_addr->u.sa, htons(port));
 #endif
 	WRITE_OK(FTP_PORTOK);
 }

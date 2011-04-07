@@ -151,7 +151,7 @@ TODO2: need to stop ignoring IP address in PASV response.
 	*buf_ptr = '\0';
 	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
 
-	set_nport(lsa, htons(port_num));
+	set_nport(&lsa->u.sa, htons(port_num));
 	return xconnect_stream(lsa);
 }
 

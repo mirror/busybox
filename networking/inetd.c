@@ -501,7 +501,7 @@ static void prepare_socket_fd(servtab_t *sep)
 
 		/* zero out the port for all RPC services; let bind()
 		 * find one. */
-		set_nport(sep->se_lsa, 0);
+		set_nport(&sep->se_lsa->u.sa, 0);
 
 		/* for RPC services, attempt to use a reserved port
 		 * if they are going to be running as root. */
@@ -959,7 +959,7 @@ static void reread_config_file(int sig UNUSED_PARAM)
 			}
 			if (LONE_CHAR(sep->se_local_hostname, '*')) {
 				lsa = xzalloc_lsa(sep->se_family);
-				set_nport(lsa, port);
+				set_nport(&lsa->u.sa, port);
 			} else {
 				lsa = host_and_af2sockaddr(sep->se_local_hostname,
 						ntohs(port), sep->se_family);

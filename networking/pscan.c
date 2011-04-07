@@ -76,7 +76,7 @@ int pscan_main(int argc UNUSED_PARAM, char **argv)
 		DMSG("rtt %u", rtt_4);
 
 		/* The SOCK_STREAM socket type is implemented on the TCP/IP protocol. */
-		set_nport(lsap, htons(port));
+		set_nport(&lsap->u.sa, htons(port));
 		s = xsocket(lsap->u.sa.sa_family, SOCK_STREAM, 0);
 		/* We need unblocking socket so we don't need to wait for ETIMEOUT. */
 		/* Nonblocking connect typically "fails" with errno == EINPROGRESS */

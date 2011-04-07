@@ -482,7 +482,7 @@ send_probe(int seq, int ttl)
 		if (!(option_mask32 & OPT_USE_ICMP)) {
 			out = outdata;
 			len -= sizeof(*outudp);
-			set_nport(dest_lsa, htons(port + seq));
+			set_nport(&dest_lsa->u.sa, htons(port + seq));
 		}
 	}
 
@@ -1018,10 +1018,10 @@ common_traceroute_main(int op, char **argv)
 		int probe_fd = xsocket(af, SOCK_DGRAM, 0);
 		if (op & OPT_DEVICE)
 			setsockopt_bindtodevice(probe_fd, device);
-		set_nport(dest_lsa, htons(1025));
+		set_nport(&dest_lsa->u.sa, htons(1025));
 		/* dummy connect. makes kernel pick source IP (and port) */
 		xconnect(probe_fd, &dest_lsa->u.sa, dest_lsa->len);
-		set_nport(dest_lsa, htons(port));
+		set_nport(&dest_lsa->u.sa, htons(port));
 
 		/* read IP and port */
 		source_lsa = get_sock_lsa(probe_fd);
@@ -1031,7 +1031,7 @@ common_traceroute_main(int op, char **argv)
 		close(probe_fd);
 
 		/* bind our sockets to this IP (but not port) */
-		set_nport(source_lsa, 0);
+		set_nport(&source_lsa->u.sa, 0);
 		xbind(sndsock, &source_lsa->u.sa, source_lsa->len);
 		xbind(rcvsock, &source_lsa->u.sa, source_lsa->len);
 
