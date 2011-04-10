@@ -52,6 +52,13 @@ config FEATURE_SYSLOGD_DUP
 	  Option -D instructs syslogd to drop consecutive messages
 	  which are totally the same.
 
+config FEATURE_SYSLOGD_CFG
+	bool "Support syslog.conf"
+	default y
+	depends on SYSLOGD
+	help
+	  Supports restricted syslogd config.
+
 config FEATURE_SYSLOGD_READ_BUFFER_SIZE
 	int "Read buffer size in bytes"
 	default 256
