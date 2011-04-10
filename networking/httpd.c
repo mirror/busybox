@@ -21,6 +21,10 @@
  * The server changes directory to the location of the script and executes it
  * after setting QUERY_STRING and other environment variables.
  *
+ * If directory URL is given, no index.html is found and CGI support is enabled,
+ * cgi-bin/index.cgi will be run. Directory to list is ../$QUERY_STRING.
+ * See httpd_indexcgi.c for an example GCI code.
+ *
  * Doc:
  * "CGI Environment Variables": http://hoohoo.ncsa.uiuc.edu/cgi/env.html
  *
@@ -71,7 +75,7 @@
  *     D:2.3.4.        # deny from 2.3.4.0 - 2.3.4.255
  *     A:*             # (optional line added for clarity)
  *
- * If a sub directory contains a config file it is parsed and merged with
+ * If a sub directory contains config file, it is parsed and merged with
  * any existing settings as if it was appended to the original configuration.
  *
  * subdir paths are relative to the containing subdir and thus cannot
