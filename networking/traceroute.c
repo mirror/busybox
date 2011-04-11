@@ -210,6 +210,51 @@
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
+//usage:#define traceroute_trivial_usage
+//usage:       "[-"IF_TRACEROUTE6("46")"FIldnrv] [-f 1ST_TTL] [-m MAXTTL] [-p PORT] [-q PROBES]\n"
+//usage:       "	[-s SRC_IP] [-t TOS] [-w WAIT_SEC] [-g GATEWAY] [-i IFACE]\n"
+//usage:       "	[-z PAUSE_MSEC] HOST [BYTES]"
+//usage:#define traceroute_full_usage "\n\n"
+//usage:       "Trace the route to HOST\n"
+//usage:     "\nOptions:"
+//usage:	IF_TRACEROUTE6(
+//usage:     "\n	-4,-6	Force IP or IPv6 name resolution"
+//usage:	)
+//usage:     "\n	-F	Set the don't fragment bit"
+//usage:     "\n	-I	Use ICMP ECHO instead of UDP datagrams"
+//usage:     "\n	-l	Display the TTL value of the returned packet"
+//usage:     "\n	-d	Set SO_DEBUG options to socket"
+//usage:     "\n	-n	Print numeric addresses"
+//usage:     "\n	-r	Bypass routing tables, send directly to HOST"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-m	Max time-to-live (max number of hops)"
+//usage:     "\n	-p	Base UDP port number used in probes"
+//usage:     "\n		(default 33434)"
+//usage:     "\n	-q	Number of probes per TTL (default 3)"
+//usage:     "\n	-s	IP address to use as the source address"
+//usage:     "\n	-t	Type-of-service in probe packets (default 0)"
+//usage:     "\n	-w	Time in seconds to wait for a response (default 3)"
+//usage:     "\n	-g	Loose source route gateway (8 max)"
+//usage:
+//usage:#define traceroute6_trivial_usage
+//usage:       "[-dnrv] [-m MAXTTL] [-p PORT] [-q PROBES]\n"
+//usage:       "	[-s SRC_IP] [-t TOS] [-w WAIT_SEC] [-i IFACE]\n"
+//usage:       "	HOST [BYTES]"
+//usage:#define traceroute6_full_usage "\n\n"
+//usage:       "Trace the route to HOST\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-d	Set SO_DEBUG options to socket"
+//usage:     "\n	-n	Print numeric addresses"
+//usage:     "\n	-r	Bypass routing tables, send directly to HOST"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-m	Max time-to-live (max number of hops)"
+//usage:     "\n	-p	Base UDP port number used in probes"
+//usage:     "\n		(default is 33434)"
+//usage:     "\n	-q	Number of probes per TTL (default 3)"
+//usage:     "\n	-s	IP address to use as the source address"
+//usage:     "\n	-t	Type-of-service in probe packets (default 0)"
+//usage:     "\n	-w	Time in seconds to wait for a response (default 3)"
+
 #define TRACEROUTE_SO_DEBUG 0
 
 /* TODO: undefs were uncommented - ??! we have config system for that! */

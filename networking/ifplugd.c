@@ -6,6 +6,32 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define ifplugd_trivial_usage
+//usage:       "[OPTIONS]"
+//usage:#define ifplugd_full_usage "\n\n"
+//usage:       "Network interface plug detection daemon\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n		Don't daemonize"
+//usage:     "\n	-s		Don't log to syslog"
+//usage:     "\n	-i IFACE	Interface"
+//usage:     "\n	-f/-F		Treat link detection error as link down/link up"
+//usage:     "\n			(otherwise exit on error)"
+//usage:     "\n	-a		Don't up interface at each link probe"
+//usage:     "\n	-M		Monitor creation/destruction of interface"
+//usage:     "\n			(otherwise it must exist)"
+//usage:     "\n	-r PROG		Script to run"
+//usage:     "\n	-x ARG		Extra argument for script"
+//usage:     "\n	-I		Don't exit on nonzero exit code from script"
+//usage:     "\n	-p		Don't run script on daemon startup"
+//usage:     "\n	-q		Don't run script on daemon quit"
+//usage:     "\n	-l		Run script on startup even if no cable is detected"
+//usage:     "\n	-t SECS		Poll time in seconds"
+//usage:     "\n	-u SECS		Delay before running script after link up"
+//usage:     "\n	-d SECS		Delay after link down"
+//usage:     "\n	-m MODE		API mode (mii, priv, ethtool, wlan, iff, auto)"
+//usage:     "\n	-k		Kill running daemon"
+
 #include "libbb.h"
 
 #include "fix_u32.h"

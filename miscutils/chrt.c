@@ -5,6 +5,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define chrt_trivial_usage
+//usage:       "[-prfom] [PRIO] [PID | PROG ARGS]"
+//usage:#define chrt_full_usage "\n\n"
+//usage:       "Change scheduling priority and class for a process\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-p	Operate on PID"
+//usage:     "\n	-r	Set SCHED_RR class"
+//usage:     "\n	-f	Set SCHED_FIFO class"
+//usage:     "\n	-o	Set SCHED_OTHER class"
+//usage:     "\n	-m	Show min/max priorities"
+//usage:
+//usage:#define chrt_example_usage
+//usage:       "$ chrt -r 4 sleep 900; x=$!\n"
+//usage:       "$ chrt -f -p 3 $x\n"
+//usage:       "You need CAP_SYS_NICE privileges to set scheduling attributes of a process"
+
 #include <sched.h>
 #include "libbb.h"
 #ifndef _POSIX_PRIORITY_SCHEDULING

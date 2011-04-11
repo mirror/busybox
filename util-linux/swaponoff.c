@@ -7,6 +7,23 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define swapon_trivial_usage
+//usage:       "[-a]" IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
+//usage:#define swapon_full_usage "\n\n"
+//usage:       "Start swapping on DEVICE\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Start swapping on all swap devices"
+//usage:	IF_FEATURE_SWAPON_PRI(
+//usage:     "\n	-p PRI	Set swap device priority"
+//usage:	)
+//usage:
+//usage:#define swapoff_trivial_usage
+//usage:       "[-a] [DEVICE]"
+//usage:#define swapoff_full_usage "\n\n"
+//usage:       "Stop swapping on DEVICE\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Stop swapping on all swap devices"
+
 #include "libbb.h"
 #include <mntent.h>
 #include <sys/swap.h>

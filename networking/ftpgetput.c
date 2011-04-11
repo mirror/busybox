@@ -13,6 +13,44 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define ftpget_trivial_usage
+//usage:       "[OPTIONS] HOST [LOCAL_FILE] REMOTE_FILE"
+//usage:#define ftpget_full_usage "\n\n"
+//usage:       "Retrieve a remote file via FTP\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
+//usage:     "\n	-c,--continue	Continue previous transfer"
+//usage:     "\n	-v,--verbose	Verbose"
+//usage:     "\n	-u,--username	Username"
+//usage:     "\n	-p,--password	Password"
+//usage:     "\n	-P,--port	Port number"
+//usage:	)
+//usage:	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS(
+//usage:     "\n	-c	Continue previous transfer"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-u	Username"
+//usage:     "\n	-p	Password"
+//usage:     "\n	-P	Port number"
+//usage:	)
+//usage:
+//usage:#define ftpput_trivial_usage
+//usage:       "[OPTIONS] HOST [REMOTE_FILE] LOCAL_FILE"
+//usage:#define ftpput_full_usage "\n\n"
+//usage:       "Store a local file on a remote machine via FTP\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
+//usage:     "\n	-v,--verbose	Verbose"
+//usage:     "\n	-u,--username	Username"
+//usage:     "\n	-p,--password	Password"
+//usage:     "\n	-P,--port	Port number"
+//usage:	)
+//usage:	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS(
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-u	Username"
+//usage:     "\n	-p	Password"
+//usage:     "\n	-P	Port number"
+//usage:	)
+
 #include "libbb.h"
 
 struct globals {

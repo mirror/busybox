@@ -15,6 +15,14 @@
  * This was originally written for blob and then adapted for busybox.
  */
 
+//usage:#define rx_trivial_usage
+//usage:       "FILE"
+//usage:#define rx_full_usage "\n\n"
+//usage:       "Receive a file using the xmodem protocol"
+//usage:
+//usage:#define rx_example_usage
+//usage:       "$ rx /tmp/foo\n"
+
 #include "libbb.h"
 
 #define SOH 0x01

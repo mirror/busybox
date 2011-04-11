@@ -10,6 +10,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define flash_eraseall_trivial_usage
+//usage:       "[-jq] MTD_DEVICE"
+//usage:#define flash_eraseall_full_usage "\n\n"
+//usage:       "Erase an MTD device\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-j	Format the device for jffs2"
+//usage:     "\n	-q	Don't display progress messages"
+
 #include "libbb.h"
 #include <mtd/mtd-user.h>
 #include <linux/jffs2.h>

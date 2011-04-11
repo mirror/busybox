@@ -9,6 +9,53 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#if ENABLE_DESKTOP
+//usage:
+//usage:#define ps_trivial_usage
+//usage:       "[-o COL1,COL2=HEADER]" IF_FEATURE_SHOW_THREADS(" [-T]")
+//usage:#define ps_full_usage "\n\n"
+//usage:       "Show list of processes\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-o COL1,COL2=HEADER	Select columns for display"
+//usage:	IF_FEATURE_SHOW_THREADS(
+//usage:     "\n	-T			Show threads"
+//usage:	)
+//usage:
+//usage:#else /* !ENABLE_DESKTOP */
+//usage:
+//usage:#if !ENABLE_SELINUX && !ENABLE_FEATURE_PS_WIDE
+//usage:#define USAGE_PS "\nThis version of ps accepts no options"
+//usage:#else
+//usage:#define USAGE_PS "\nOptions:"
+//usage:#endif
+//usage:
+//usage:#define ps_trivial_usage
+//usage:       ""
+//usage:#define ps_full_usage "\n\n"
+//usage:       "Show list of processes\n"
+//usage:	USAGE_PS
+//usage:	IF_SELINUX(
+//usage:     "\n	-Z	Show selinux context"
+//usage:	)
+//usage:	IF_FEATURE_PS_WIDE(
+//usage:     "\n	w	Wide output"
+//usage:	)
+//usage:
+//usage:#endif /* ENABLE_DESKTOP */
+//usage:
+//usage:#define ps_example_usage
+//usage:       "$ ps\n"
+//usage:       "  PID  Uid      Gid State Command\n"
+//usage:       "    1 root     root     S init\n"
+//usage:       "    2 root     root     S [kflushd]\n"
+//usage:       "    3 root     root     S [kupdate]\n"
+//usage:       "    4 root     root     S [kpiod]\n"
+//usage:       "    5 root     root     S [kswapd]\n"
+//usage:       "  742 andersen andersen S [bash]\n"
+//usage:       "  743 andersen andersen S -bash\n"
+//usage:       "  745 root     root     S [getty]\n"
+//usage:       " 2990 andersen andersen R ps\n"
+
 #include "libbb.h"
 
 /* Absolute maximum on output line length */

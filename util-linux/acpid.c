@@ -6,6 +6,30 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define acpid_trivial_usage
+//usage:       "[-d] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"
+//usage:#define acpid_full_usage "\n\n"
+//usage:       "Listen to ACPI events and spawn specific helpers on event arrival\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c DIR	Config directory [/etc/acpi]"
+//usage:     "\n	-d	Don't daemonize, (implies -f)"
+//usage:     "\n	-e FILE	/proc event file [/proc/acpi/event]"
+//usage:     "\n	-f	Run in foreground"
+//usage:     "\n	-l FILE	Log file [/var/log/acpid.log]"
+//usage:     "\n	-p FILE	Pid file [/var/run/acpid.pid]"
+//usage:     "\n	-a FILE	Action file [/etc/acpid.conf]"
+//usage:     "\n	-M FILE Map file [/etc/acpi.map]"
+//usage:	IF_FEATURE_ACPID_COMPAT(
+//usage:     "\n\nAccept and ignore compatibility options -g -m -s -S -v"
+//usage:	)
+//usage:
+//usage:#define acpid_example_usage
+//usage:       "Without -e option, acpid uses all /dev/input/event* files\n"
+//usage:       "# acpid\n"
+//usage:       "# acpid -l /var/log/my-acpi-log\n"
+//usage:       "# acpid -e /proc/acpi/event\n"
+
 #include "libbb.h"
 #include <syslog.h>
 #include <linux/input.h>

@@ -11,6 +11,19 @@
  *
  * initially busyboxified by Bernhard Reutner-Fischer
  */
+ 
+//usage:#define runlevel_trivial_usage
+//usage:       "[FILE]"
+//usage:#define runlevel_full_usage "\n\n"
+//usage:       "Find the current and previous system runlevel\n"
+//usage:       "\n"
+//usage:       "If no utmp FILE exists or if no runlevel record can be found,\n"
+//usage:       "print \"unknown\""
+//usage:
+//usage:#define runlevel_example_usage
+//usage:       "$ runlevel /var/run/utmp\n"
+//usage:       "N 2"
+
 #include "libbb.h"
 
 int runlevel_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

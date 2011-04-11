@@ -7,6 +7,24 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define losetup_trivial_usage
+//usage:       "[-o OFS] LOOPDEV FILE - associate loop devices\n"
+//usage:       "	losetup -d LOOPDEV - disassociate\n"
+//usage:       "	losetup [-f] - show"
+//usage:#define losetup_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-o OFS	Start OFS bytes into FILE"
+//usage:     "\n	-f	Show first free loop device"
+//usage:
+//usage:#define losetup_notes_usage
+//usage:       "No arguments will display all current associations.\n"
+//usage:       "One argument (losetup /dev/loop1) will display the current association\n"
+//usage:       "(if any), or disassociate it (with -d). The display shows the offset\n"
+//usage:       "and filename of the file the loop device is currently bound to.\n\n"
+//usage:       "Two arguments (losetup /dev/loop1 file.img) create a new association,\n"
+//usage:       "with an optional offset (-o 12345). Encryption is not yet supported.\n"
+//usage:       "losetup -f will show the first loop free loop device\n\n"
+
 #include "libbb.h"
 
 int losetup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

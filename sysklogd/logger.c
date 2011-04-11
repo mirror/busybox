@@ -7,6 +7,18 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define logger_trivial_usage
+//usage:       "[OPTIONS] [MESSAGE]"
+//usage:#define logger_full_usage "\n\n"
+//usage:       "Write MESSAGE (or stdin) to syslog\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-s	Log to stderr as well as the system log"
+//usage:     "\n	-t TAG	Log using the specified tag (defaults to user name)"
+//usage:     "\n	-p PRIO	Priority (numeric or facility.level pair)"
+//usage:
+//usage:#define logger_example_usage
+//usage:       "$ logger \"hello\"\n"
+
 /*
  * Done in syslogd_and_logger.c:
 #include "libbb.h"

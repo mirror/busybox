@@ -7,6 +7,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define ionice_trivial_usage
+//usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
+//usage:#define ionice_full_usage "\n\n"
+//usage:       "Change I/O priority and class\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Class. 1:realtime 2:best-effort 3:idle"
+//usage:     "\n	-n	Priority"
+
 #include <sys/syscall.h>
 #include <asm/unistd.h>
 #include "libbb.h"

@@ -9,6 +9,18 @@
 
 /* getopt not needed */
 
+//usage:#define free_trivial_usage
+//usage:       "" IF_DESKTOP("[-b/k/m/g]")
+//usage:#define free_full_usage "\n\n"
+//usage:       "Display the amount of free and used system memory"
+//usage:
+//usage:#define free_example_usage
+//usage:       "$ free\n"
+//usage:       "              total         used         free       shared      buffers\n"
+//usage:       "  Mem:       257628       248724         8904        59644        93124\n"
+//usage:       " Swap:       128516         8404       120112\n"
+//usage:       "Total:       386144       257128       129016\n"
+
 #include "libbb.h"
 
 struct globals {

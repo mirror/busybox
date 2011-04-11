@@ -17,6 +17,22 @@
  * the first porting of oao' scdns to busybox also.
  */
 
+//usage:#define dnsd_trivial_usage
+//usage:       "[-dvs] [-c CONFFILE] [-t TTL_SEC] [-p PORT] [-i ADDR]"
+//usage:#define dnsd_full_usage "\n\n"
+//usage:       "Small static DNS server daemon\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c FILE	Config file"
+//usage:     "\n	-t SEC	TTL"
+//usage:     "\n	-p PORT	Listen on PORT"
+//usage:     "\n	-i ADDR	Listen on ADDR"
+//usage:     "\n	-d	Daemonize"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-s	Send successful replies only. Use this if you want"
+//usage:     "\n		to use /etc/resolv.conf with two nameserver lines:"
+//usage:     "\n			nameserver DNSD_SERVER"
+//usage:     "\n			nameserver NORNAL_DNS_SERVER"
+
 #include "libbb.h"
 #include <syslog.h>
 

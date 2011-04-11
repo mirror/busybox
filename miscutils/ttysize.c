@@ -9,6 +9,12 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define ttysize_trivial_usage
+//usage:       "[w] [h]"
+//usage:#define ttysize_full_usage "\n\n"
+//usage:       "Print dimension(s) of stdin's terminal, on error return 80x25"
+
 #include "libbb.h"
 
 int ttysize_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

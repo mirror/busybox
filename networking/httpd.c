@@ -97,6 +97,32 @@
  */
  /* TODO: use TCP_CORK, parse_config() */
 
+//usage:#define httpd_trivial_usage
+//usage:       "[-ifv[v]]"
+//usage:       " [-c CONFFILE]"
+//usage:       " [-p [IP:]PORT]"
+//usage:	IF_FEATURE_HTTPD_SETUID(" [-u USER[:GRP]]")
+//usage:	IF_FEATURE_HTTPD_BASIC_AUTH(" [-r REALM]")
+//usage:       " [-h HOME]\n"
+//usage:       "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING"
+//usage:#define httpd_full_usage "\n\n"
+//usage:       "Listen for incoming HTTP requests\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-i		Inetd mode"
+//usage:     "\n	-f		Don't daemonize"
+//usage:     "\n	-v[v]		Verbose"
+//usage:     "\n	-p [IP:]PORT	Bind to IP:PORT (default *:80)"
+//usage:	IF_FEATURE_HTTPD_SETUID(
+//usage:     "\n	-u USER[:GRP]	Set uid/gid after binding to port")
+//usage:	IF_FEATURE_HTTPD_BASIC_AUTH(
+//usage:     "\n	-r REALM	Authentication Realm for Basic Authentication")
+//usage:     "\n	-h HOME		Home directory (default .)"
+//usage:     "\n	-c FILE		Configuration file (default {/etc,HOME}/httpd.conf)"
+//usage:	IF_FEATURE_HTTPD_AUTH_MD5(
+//usage:     "\n	-m STRING	MD5 crypt STRING")
+//usage:     "\n	-e STRING	HTML encode STRING"
+//usage:     "\n	-d STRING	URL decode STRING"
+
 #include "libbb.h"
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 # include <sys/sendfile.h>

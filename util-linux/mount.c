@@ -16,6 +16,66 @@
 // singlemount() can loop through /etc/filesystems for fstype detection.
 // mount_it_now() does the actual mount.
 //
+
+//usage:#define mount_trivial_usage
+//usage:       "[OPTIONS] [-o OPTS] DEVICE NODE"
+//usage:#define mount_full_usage "\n\n"
+//usage:       "Mount a filesystem. Filesystem autodetection requires /proc.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a		Mount all filesystems in fstab"
+//usage:	IF_FEATURE_MOUNT_FAKE(
+//usage:	IF_FEATURE_MTAB_SUPPORT(
+//usage:     "\n	-f		Update /etc/mtab, but don't mount"
+//usage:	)
+//usage:	IF_NOT_FEATURE_MTAB_SUPPORT(
+//usage:     "\n	-f		Dry run"
+//usage:	)
+//usage:	)
+//usage:	IF_FEATURE_MOUNT_HELPERS(
+//usage:     "\n	-i		Don't run mount helper"
+//usage:	)
+//usage:	IF_FEATURE_MTAB_SUPPORT(
+//usage:     "\n	-n		Don't update /etc/mtab"
+//usage:	)
+//usage:     "\n	-r		Read-only mount"
+//usage:     "\n	-w		Read-write mount (default)"
+//usage:     "\n	-t FSTYPE	Filesystem type"
+//usage:     "\n	-O OPT		Mount only filesystems with option OPT (-a only)"
+//usage:     "\n-o OPT:"
+//usage:	IF_FEATURE_MOUNT_LOOP(
+//usage:     "\n	loop		Ignored (loop devices are autodetected)"
+//usage:	)
+//usage:	IF_FEATURE_MOUNT_FLAGS(
+//usage:     "\n	[a]sync		Writes are [a]synchronous"
+//usage:     "\n	[no]atime	Disable/enable updates to inode access times"
+//usage:     "\n	[no]diratime	Disable/enable atime updates to directories"
+//usage:     "\n	[no]relatime	Disable/enable atime updates relative to modification time"
+//usage:     "\n	[no]dev		(Dis)allow use of special device files"
+//usage:     "\n	[no]exec	(Dis)allow use of executable files"
+//usage:     "\n	[no]suid	(Dis)allow set-user-id-root programs"
+//usage:     "\n	[r]shared	Convert [recursively] to a shared subtree"
+//usage:     "\n	[r]slave	Convert [recursively] to a slave subtree"
+//usage:     "\n	[r]private	Convert [recursively] to a private subtree"
+//usage:     "\n	[un]bindable	Make mount point [un]able to be bind mounted"
+//usage:     "\n	[r]bind		Bind a file or directory [recursively] to another location"
+//usage:     "\n	move		Relocate an existing mount point"
+//usage:	)
+//usage:     "\n	remount		Remount a mounted filesystem, changing flags"
+//usage:     "\n	ro/rw		Same as -r/-w"
+//usage:     "\n"
+//usage:     "\nThere are filesystem-specific -o flags."
+//usage:
+//usage:#define mount_example_usage
+//usage:       "$ mount\n"
+//usage:       "/dev/hda3 on / type minix (rw)\n"
+//usage:       "proc on /proc type proc (rw)\n"
+//usage:       "devpts on /dev/pts type devpts (rw)\n"
+//usage:       "$ mount /dev/fd0 /mnt -t msdos -o ro\n"
+//usage:       "$ mount /tmp/diskimage /opt -t ext2 -o loop\n"
+//usage:       "$ mount cd_image.iso mydir\n"
+//usage:#define mount_notes_usage
+//usage:       "Returns 0 for success, number of failed mounts for -a, or errno for one mount."
+
 #include <mntent.h>
 #include <syslog.h>
 #include <sys/mount.h>

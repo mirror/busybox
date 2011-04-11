@@ -12,6 +12,21 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
+//usage:#define fbset_trivial_usage
+//usage:       "[OPTIONS] [MODE]"
+//usage:#define fbset_full_usage "\n\n"
+//usage:       "Show and modify frame buffer settings"
+//usage:
+//usage:#define fbset_example_usage
+//usage:       "$ fbset\n"
+//usage:       "mode \"1024x768-76\"\n"
+//usage:       "	# D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz\n"
+//usage:       "	geometry 1024 768 1024 768 16\n"
+//usage:       "	timings 12714 128 32 16 4 128 4\n"
+//usage:       "	accel false\n"
+//usage:       "	rgba 5/11,6/5,5/0,0/0\n"
+//usage:       "endmode\n"
+
 #include "libbb.h"
 
 #define DEFAULTFBDEV  FB_0

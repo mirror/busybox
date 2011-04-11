@@ -6,6 +6,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define lspci_trivial_usage
+//usage:       "[-mk]"
+//usage:#define lspci_full_usage "\n\n"
+//usage:       "List all PCI devices"
+//usage:     "\n"
+//usage:     "\n	-m	Parseable output"
+//usage:     "\n	-k	Show driver"
+
 #include "libbb.h"
 
 enum {

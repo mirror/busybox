@@ -3,6 +3,18 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define mt_trivial_usage
+//usage:       "[-f device] opcode value"
+//usage:#define mt_full_usage "\n\n"
+//usage:       "Control magnetic tape drive operation\n"
+//usage:       "\n"
+//usage:       "Available Opcodes:\n"
+//usage:       "\n"
+//usage:       "bsf bsfm bsr bss datacompression drvbuffer eof eom erase\n"
+//usage:       "fsf fsfm fsr fss load lock mkpart nop offline ras1 ras2\n"
+//usage:       "ras3 reset retension rewind rewoffline seek setblk setdensity\n"
+//usage:       "setpart tell unload unlock weof wset"
+
 #include "libbb.h"
 #include <sys/mtio.h>
 

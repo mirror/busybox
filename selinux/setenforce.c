@@ -7,6 +7,10 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define setenforce_trivial_usage
+//usage:       "[Enforcing | Permissive | 1 | 0]"
+//usage:#define setenforce_full_usage ""
+
 #include "libbb.h"
 
 /* These strings are arranged so that odd ones

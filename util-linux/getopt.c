@@ -31,6 +31,54 @@
  *
  */
 
+//usage:#define getopt_trivial_usage
+//usage:       "[OPTIONS]"
+//usage:#define getopt_full_usage "\n\n"
+//usage:       "Options:"
+//usage:	IF_LONG_OPTS(
+//usage:     "\n	-a,--alternative		Allow long options starting with single -"
+//usage:     "\n	-l,--longoptions=longopts	Long options to be recognized"
+//usage:     "\n	-n,--name=progname		The name under which errors are reported"
+//usage:     "\n	-o,--options=optstring		Short options to be recognized"
+//usage:     "\n	-q,--quiet			Disable error reporting by getopt(3)"
+//usage:     "\n	-Q,--quiet-output		No normal output"
+//usage:     "\n	-s,--shell=shell		Set shell quoting conventions"
+//usage:     "\n	-T,--test			Test for getopt(1) version"
+//usage:     "\n	-u,--unquoted			Don't quote the output"
+//usage:	)
+//usage:	IF_NOT_LONG_OPTS(
+//usage:     "\n	-a		Allow long options starting with single -"
+//usage:     "\n	-l longopts	Long options to be recognized"
+//usage:     "\n	-n progname	The name under which errors are reported"
+//usage:     "\n	-o optstring	Short options to be recognized"
+//usage:     "\n	-q		Disable error reporting by getopt(3)"
+//usage:     "\n	-Q		No normal output"
+//usage:     "\n	-s shell	Set shell quoting conventions"
+//usage:     "\n	-T		Test for getopt(1) version"
+//usage:     "\n	-u		Don't quote the output"
+//usage:	)
+//usage:
+//usage:#define getopt_example_usage
+//usage:       "$ cat getopt.test\n"
+//usage:       "#!/bin/sh\n"
+//usage:       "GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n"
+//usage:       "       -n 'example.busybox' -- \"$@\"`\n"
+//usage:       "if [ $? != 0 ]; then exit 1; fi\n"
+//usage:       "eval set -- \"$GETOPT\"\n"
+//usage:       "while true; do\n"
+//usage:       " case $1 in\n"
+//usage:       "   -a|--a-long) echo \"Option a\"; shift;;\n"
+//usage:       "   -b|--b-long) echo \"Option b, argument '$2'\"; shift 2;;\n"
+//usage:       "   -c|--c-long)\n"
+//usage:       "     case \"$2\" in\n"
+//usage:       "       \"\") echo \"Option c, no argument\"; shift 2;;\n"
+//usage:       "       *)  echo \"Option c, argument '$2'\"; shift 2;;\n"
+//usage:       "     esac;;\n"
+//usage:       "   --) shift; break;;\n"
+//usage:       "   *) echo \"Internal error!\"; exit 1;;\n"
+//usage:       " esac\n"
+//usage:       "done\n"
+
 #include <getopt.h>
 #include "libbb.h"
 

@@ -11,6 +11,19 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define crond_trivial_usage
+//usage:       "-fbS -l N " IF_FEATURE_CROND_D("-d N ") "-L LOGFILE -c DIR"
+//usage:#define crond_full_usage "\n\n"
+//usage:       "	-f	Foreground"
+//usage:     "\n	-b	Background (default)"
+//usage:     "\n	-S	Log to syslog (default)"
+//usage:     "\n	-l	Set log level. 0 is the most verbose, default 8"
+//usage:	IF_FEATURE_CROND_D(
+//usage:     "\n	-d	Set log level, log to stderr"
+//usage:	)
+//usage:     "\n	-L	Log to file"
+//usage:     "\n	-c	Working dir"
+
 #include "libbb.h"
 #include <syslog.h>
 

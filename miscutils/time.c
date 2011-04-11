@@ -9,6 +9,13 @@
    Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
 */
 
+//usage:#define time_trivial_usage
+//usage:       "[-v] PROG ARGS"
+//usage:#define time_full_usage "\n\n"
+//usage:       "Run PROG, display resource usage when it exits\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-v	Verbose"
+
 #include "libbb.h"
 
 /* Information on the resources used by a child process.  */

@@ -21,6 +21,19 @@
  *   "exit" (or just close fifo) - well you guessed it.
  */
 
+//usage:#define fbsplash_trivial_usage
+//usage:       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
+//usage:#define fbsplash_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-s	Image"
+//usage:     "\n	-c	Hide cursor"
+//usage:     "\n	-d	Framebuffer device (default /dev/fb0)"
+//usage:     "\n	-i	Config file (var=value):"
+//usage:     "\n			BAR_LEFT,BAR_TOP,BAR_WIDTH,BAR_HEIGHT"
+//usage:     "\n			BAR_R,BAR_G,BAR_B"
+//usage:     "\n	-f	Control pipe (else exit after drawing image)"
+//usage:     "\n			commands: 'NN' (% for progress bar) or 'exit'"
+
 #include "libbb.h"
 #include <linux/fb.h>
 

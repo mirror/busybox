@@ -10,6 +10,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define readahead_trivial_usage
+//usage:       "[FILE]..."
+//usage:#define readahead_full_usage "\n\n"
+//usage:       "Preload FILEs to RAM"
+
 #include "libbb.h"
 
 int readahead_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

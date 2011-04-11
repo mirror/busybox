@@ -17,6 +17,34 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define ifup_trivial_usage
+//usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
+//usage:#define ifup_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-a	De/configure all interfaces automatically"
+//usage:     "\n	-i FILE	Use FILE for interface definitions"
+//usage:     "\n	-n	Print out what would happen, but don't do it"
+//usage:	IF_FEATURE_IFUPDOWN_MAPPING(
+//usage:     "\n		(note: doesn't disable mappings)"
+//usage:     "\n	-m	Don't run any mappings"
+//usage:	)
+//usage:     "\n	-v	Print out what would happen before doing it"
+//usage:     "\n	-f	Force de/configuration"
+//usage:
+//usage:#define ifdown_trivial_usage
+//usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
+//usage:#define ifdown_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-a	De/configure all interfaces automatically"
+//usage:     "\n	-i FILE	Use FILE for interface definitions"
+//usage:     "\n	-n	Print out what would happen, but don't do it"
+//usage:	IF_FEATURE_IFUPDOWN_MAPPING(
+//usage:     "\n		(note: doesn't disable mappings)"
+//usage:     "\n	-m	Don't run any mappings"
+//usage:	)
+//usage:     "\n	-v	Print out what would happen before doing it"
+//usage:     "\n	-f	Force de/configuration"
+
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h>

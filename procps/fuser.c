@@ -7,6 +7,17 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define fuser_trivial_usage
+//usage:       "[OPTIONS] FILE or PORT/PROTO"
+//usage:#define fuser_full_usage "\n\n"
+//usage:       "Find processes which use FILEs or PORTs\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-m	Find processes which use same fs as FILEs"
+//usage:     "\n	-4,-6	Search only IPv4/IPv6 space"
+//usage:     "\n	-s	Don't display PIDs"
+//usage:     "\n	-k	Kill found processes"
+//usage:     "\n	-SIGNAL	Signal to send (default: KILL)"
+
 #include "libbb.h"
 
 #define MAX_LINE 255

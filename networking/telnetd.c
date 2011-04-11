@@ -20,6 +20,28 @@
  * Vladimir Oleynik <dzo@simtreas.ru> 2001
  * Set process group corrections, initial busybox port
  */
+
+//usage:#define telnetd_trivial_usage
+//usage:       "[OPTIONS]"
+//usage:#define telnetd_full_usage "\n\n"
+//usage:       "Handle incoming telnet connections"
+//usage:	IF_NOT_FEATURE_TELNETD_STANDALONE(" via inetd") "\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-l LOGIN	Exec LOGIN on connect"
+//usage:     "\n	-f ISSUE_FILE	Display ISSUE_FILE instead of /etc/issue"
+//usage:     "\n	-K		Close connection as soon as login exits"
+//usage:     "\n			(normally wait until all programs close slave pty)"
+//usage:	IF_FEATURE_TELNETD_STANDALONE(
+//usage:     "\n	-p PORT		Port to listen on"
+//usage:     "\n	-b ADDR[:PORT]	Address to bind to"
+//usage:     "\n	-F		Run in foreground"
+//usage:     "\n	-i		Inetd mode"
+//usage:	IF_FEATURE_TELNETD_INETD_WAIT(
+//usage:     "\n	-w SEC		Inetd 'wait' mode, linger time SEC"
+//usage:     "\n	-S		Log to syslog (implied by -i or without -F and -w)"
+//usage:	)
+//usage:	)
+
 #define DEBUG 0
 
 #include "libbb.h"

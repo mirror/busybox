@@ -87,6 +87,19 @@
  * enforced (but it's not much fun on a character device :-).
  */
 
+//usage:#define fsck_minix_trivial_usage
+//usage:       "[-larvsmf] BLOCKDEV"
+//usage:#define fsck_minix_full_usage "\n\n"
+//usage:       "Check MINIX filesystem\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-l	List all filenames"
+//usage:     "\n	-r	Perform interactive repairs"
+//usage:     "\n	-a	Perform automatic repairs"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-s	Output superblock information"
+//usage:     "\n	-m	Show \"mode not cleared\" warnings"
+//usage:     "\n	-f	Force file system check"
+
 #include <mntent.h>
 #include "libbb.h"
 #include "minix.h"

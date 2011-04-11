@@ -14,6 +14,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define more_trivial_usage
+//usage:       "[FILE]..."
+//usage:#define more_full_usage "\n\n"
+//usage:       "View FILE (or stdin) one screenful at a time"
+//usage:
+//usage:#define more_example_usage
+//usage:       "$ dmesg | more\n"
+
 #include "libbb.h"
 
 /* Support for FEATURE_USE_TERMIOS */

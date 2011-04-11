@@ -19,6 +19,16 @@
  *   following IDs (if any).  Multiple switches are allowed.
  */
 
+//usage:#define renice_trivial_usage
+//usage:       "{{-n INCREMENT} | PRIORITY} [[-p | -g | -u] ID...]"
+//usage:#define renice_full_usage "\n\n"
+//usage:       "Change scheduling priority for a running process\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n	Adjust current nice value (smaller is faster)"
+//usage:     "\n	-p	Process id(s) (default)"
+//usage:     "\n	-g	Process group id(s)"
+//usage:     "\n	-u	Process user name(s) and/or id(s)"
+
 #include "libbb.h"
 #include <sys/resource.h>
 

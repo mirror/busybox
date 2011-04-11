@@ -10,6 +10,16 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define crontab_trivial_usage
+//usage:       "[-c DIR] [-u USER] [-ler]|[FILE]"
+//usage:#define crontab_full_usage "\n\n"
+//usage:       "	-c	Crontab directory"
+//usage:     "\n	-u	User"
+//usage:     "\n	-l	List crontab"
+//usage:     "\n	-e	Edit crontab"
+//usage:     "\n	-r	Delete crontab"
+//usage:     "\n	FILE	Replace crontab by FILE ('-': stdin)"
+
 #include "libbb.h"
 
 #define CRONTABS        CONFIG_FEATURE_CROND_DIR "/crontabs"

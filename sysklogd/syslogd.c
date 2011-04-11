@@ -13,6 +13,33 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define syslogd_trivial_usage
+//usage:       "[OPTIONS]"
+//usage:#define syslogd_full_usage "\n\n"
+//usage:       "System logging utility.\n"
+//usage:       "This version of syslogd ignores /etc/syslog.conf\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n		Run in foreground"
+//usage:     "\n	-O FILE		Log to given file (default:/var/log/messages)"
+//usage:     "\n	-l N		Set local log level"
+//usage:     "\n	-S		Smaller logging output"
+//usage:	IF_FEATURE_ROTATE_LOGFILE(
+//usage:     "\n	-s SIZE		Max size (KB) before rotate (default:200KB, 0=off)"
+//usage:     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)")
+//usage:	IF_FEATURE_REMOTE_LOG(
+//usage:     "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)"
+//usage:     "\n	-L		Log locally and via network (default is network only if -R)")
+//usage:	IF_FEATURE_SYSLOGD_DUP(
+//usage:     "\n	-D		Drop duplicates")
+//usage:	IF_FEATURE_IPC_SYSLOG(
+//usage:     "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
+/* NB: -Csize shouldn't have space (because size is optional) */
+/* //usage:  "\n	-m MIN		Minutes between MARK lines (default:20, 0=off)" */
+//usage:
+//usage:#define syslogd_example_usage
+//usage:       "$ syslogd -R masterlog:514\n"
+//usage:       "$ syslogd -R 192.168.1.1:601\n"
+
 /*
  * Done in syslogd_and_logger.c:
 #include "libbb.h"

@@ -5,6 +5,16 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define switch_root_trivial_usage
+//usage:       "[-c /dev/console] NEW_ROOT NEW_INIT [ARGS]"
+//usage:#define switch_root_full_usage "\n\n"
+//usage:       "Free initramfs and switch to another root fs:\n"
+//usage:       "chroot to NEW_ROOT, delete all in /, move NEW_ROOT to /,\n"
+//usage:       "execute NEW_INIT. PID must be 1. NEW_ROOT must be a mountpoint.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c DEV	Reopen stdio to DEV after switch"
+
 #include <sys/vfs.h>
 #include <sys/mount.h>
 #include "libbb.h"

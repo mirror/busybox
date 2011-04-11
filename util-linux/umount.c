@@ -7,6 +7,28 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define umount_trivial_usage
+//usage:       "[OPTIONS] FILESYSTEM|DIRECTORY"
+//usage:#define umount_full_usage "\n\n"
+//usage:       "Unmount file systems\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_UMOUNT_ALL(
+//usage:     "\n	-a	Unmount all file systems" IF_FEATURE_MTAB_SUPPORT(" in /etc/mtab")
+//usage:	)
+//usage:	IF_FEATURE_MTAB_SUPPORT(
+//usage:     "\n	-n	Don't erase /etc/mtab entries"
+//usage:	)
+//usage:     "\n	-r	Try to remount devices as read-only if mount is busy"
+//usage:     "\n	-l	Lazy umount (detach filesystem)"
+//usage:     "\n	-f	Force umount (i.e., unreachable NFS server)"
+//usage:	IF_FEATURE_MOUNT_LOOP(
+//usage:     "\n	-d	Free loop device if it has been used"
+//usage:	)
+//usage:
+//usage:#define umount_example_usage
+//usage:       "$ umount /dev/hdc1\n"
+
 #include <mntent.h>
 #include <sys/mount.h>
 #include "libbb.h"

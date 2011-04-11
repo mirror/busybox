@@ -9,6 +9,18 @@
 
 /* BB_AUDIT SUSv3 N/A */
 
+//usage:#define vconfig_trivial_usage
+//usage:       "COMMAND [OPTIONS]"
+//usage:#define vconfig_full_usage "\n\n"
+//usage:       "Create and remove virtual ethernet devices\n"
+//usage:     "\nOptions:"
+//usage:     "\n	add		[interface-name] [vlan_id]"
+//usage:     "\n	rem		[vlan-name]"
+//usage:     "\n	set_flag	[interface-name] [flag-num] [0 | 1]"
+//usage:     "\n	set_egress_map	[vlan-name] [skb_priority] [vlan_qos]"
+//usage:     "\n	set_ingress_map	[vlan-name] [skb_priority] [vlan_qos]"
+//usage:     "\n	set_name_type	[name-type]"
+
 #include "libbb.h"
 #include <net/if.h>
 

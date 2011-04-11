@@ -6,6 +6,35 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define pgrep_trivial_usage
+//usage:       "[-flnovx] [-s SID|-P PPID|PATTERN]"
+//usage:#define pgrep_full_usage "\n\n"
+//usage:       "Display process(es) selected by regex PATTERN\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-l	Show command name too"
+//usage:     "\n	-f	Match against entire command line"
+//usage:     "\n	-n	Show the newest process only"
+//usage:     "\n	-o	Show the oldest process only"
+//usage:     "\n	-v	Negate the match"
+//usage:     "\n	-x	Match whole name (not substring)"
+//usage:     "\n	-s	Match session ID (0 for current)"
+//usage:     "\n	-P	Match parent process ID"
+//usage:
+//usage:#define pkill_trivial_usage
+//usage:       "[-l|-SIGNAL] [-fnovx] [-s SID|-P PPID|PATTERN]"
+//usage:#define pkill_full_usage "\n\n"
+//usage:       "Send a signal to process(es) selected by regex PATTERN\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-l	List all signals"
+//usage:     "\n	-f	Match against entire command line"
+//usage:     "\n	-n	Signal the newest process only"
+//usage:     "\n	-o	Signal the oldest process only"
+//usage:     "\n	-v	Negate the match"
+//usage:     "\n	-x	Match whole name (not substring)"
+//usage:     "\n	-s	Match session ID (0 for current)"
+//usage:     "\n	-P	Match parent process ID"
+
 #include "libbb.h"
 #include "xregex.h"
 

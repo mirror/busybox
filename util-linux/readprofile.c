@@ -32,6 +32,21 @@
  * Paul Mundt <lethal@linux-sh.org>.
  */
 
+//usage:#define readprofile_trivial_usage
+//usage:       "[OPTIONS]"
+//usage:#define readprofile_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-m mapfile	(Default: /boot/System.map)"
+//usage:     "\n	-p profile	(Default: /proc/profile)"
+//usage:     "\n	-M NUM		Set the profiling multiplier to NUM"
+//usage:     "\n	-i		Print only info about the sampling step"
+//usage:     "\n	-v		Verbose"
+//usage:     "\n	-a		Print all symbols, even if count is 0"
+//usage:     "\n	-b		Print individual histogram-bin counts"
+//usage:     "\n	-s		Print individual counters within functions"
+//usage:     "\n	-r		Reset all the counters (root only)"
+//usage:     "\n	-n		Disable byte order auto-detection"
+
 #include "libbb.h"
 #include <sys/utsname.h>
 

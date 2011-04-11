@@ -6,6 +6,18 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define pscan_trivial_usage
+//usage:       "[-cb] [-p MIN_PORT] [-P MAX_PORT] [-t TIMEOUT] [-T MIN_RTT] HOST"
+//usage:#define pscan_full_usage "\n\n"
+//usage:       "Scan a host, print all open ports\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-c	Show closed ports too"
+//usage:     "\n	-b	Show blocked ports too"
+//usage:     "\n	-p	Scan from this port (default 1)"
+//usage:     "\n	-P	Scan up to this port (default 1024)"
+//usage:     "\n	-t	Timeout (default 5000 ms)"
+//usage:     "\n	-T	Minimum rtt (default 5 ms, increase for congested hosts)"
+
 #include "libbb.h"
 
 /* debugging */

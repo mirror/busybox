@@ -29,6 +29,43 @@
  * - don't know how to retrieve ORIGDST for udp.
  */
 
+//usage:#define tcpsvd_trivial_usage
+//usage:       "[-hEv] [-c N] [-C N[:MSG]] [-b N] [-u USER] [-l NAME] IP PORT PROG"
+/* with not-implemented options: */
+/* //usage:    "[-hpEvv] [-c N] [-C N[:MSG]] [-b N] [-u USER] [-l NAME] [-i DIR|-x CDB] [-t SEC] IP PORT PROG" */
+//usage:#define tcpsvd_full_usage "\n\n"
+//usage:       "Create TCP socket, bind to IP:PORT and listen\n"
+//usage:       "for incoming connection. Run PROG for each connection.\n"
+//usage:     "\n	IP		IP to listen on. '0' = all"
+//usage:     "\n	PORT		Port to listen on"
+//usage:     "\n	PROG ARGS	Program to run"
+//usage:     "\n	-l NAME		Local hostname (else looks up local hostname in DNS)"
+//usage:     "\n	-u USER[:GRP]	Change to user/group after bind"
+//usage:     "\n	-c N		Handle up to N connections simultaneously"
+//usage:     "\n	-b N		Allow a backlog of approximately N TCP SYNs"
+//usage:     "\n	-C N[:MSG]	Allow only up to N connections from the same IP."
+//usage:     "\n			New connections from this IP address are closed"
+//usage:     "\n			immediately. MSG is written to the peer before close"
+//usage:     "\n	-h		Look up peer's hostname"
+//usage:     "\n	-E		Don't set up environment variables"
+//usage:     "\n	-v		Verbose"
+//usage:
+//usage:#define udpsvd_trivial_usage
+//usage:       "[-hEv] [-c N] [-u USER] [-l NAME] IP PORT PROG"
+//usage:#define udpsvd_full_usage "\n\n"
+//usage:       "Create UDP socket, bind to IP:PORT and wait\n"
+//usage:       "for incoming packets. Run PROG for each packet,\n"
+//usage:       "redirecting all further packets with same peer ip:port to it.\n"
+//usage:     "\n	IP		IP to listen on. '0' = all"
+//usage:     "\n	PORT		Port to listen on"
+//usage:     "\n	PROG ARGS	Program to run"
+//usage:     "\n	-l NAME		Local hostname (else looks up local hostname in DNS)"
+//usage:     "\n	-u USER[:GRP]	Change to user/group after bind"
+//usage:     "\n	-c N		Handle up to N connections simultaneously"
+//usage:     "\n	-h		Look up peer's hostname"
+//usage:     "\n	-E		Don't set up environment variables"
+//usage:     "\n	-v		Verbose"
+
 #include "libbb.h"
 
 /* Wants <limits.h> etc, thus included after libbb.h: */

@@ -11,6 +11,20 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define nslookup_trivial_usage
+//usage:       "[HOST] [SERVER]"
+//usage:#define nslookup_full_usage "\n\n"
+//usage:       "Query the nameserver for the IP address of the given HOST\n"
+//usage:       "optionally using a specified DNS server"
+//usage:
+//usage:#define nslookup_example_usage
+//usage:       "$ nslookup localhost\n"
+//usage:       "Server:     default\n"
+//usage:       "Address:    default\n"
+//usage:       "\n"
+//usage:       "Name:       debian\n"
+//usage:       "Address:    127.0.0.1\n"
+
 #include <resolv.h>
 #include "libbb.h"
 

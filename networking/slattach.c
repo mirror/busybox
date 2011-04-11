@@ -13,6 +13,20 @@
  * - The -F options allows disabling of RTS/CTS flow control.
  */
 
+//usage:#define slattach_trivial_usage
+//usage:       "[-cehmLF] [-s SPEED] [-p PROTOCOL] DEVICE"
+//usage:#define slattach_full_usage "\n\n"
+//usage:       "Attach network interface(s) to serial line(s)\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-p PROT	Set protocol (slip, cslip, slip6, clisp6 or adaptive)"
+//usage:     "\n	-s SPD	Set line speed"
+//usage:     "\n	-e	Exit after initializing device"
+//usage:     "\n	-h	Exit when the carrier is lost"
+//usage:     "\n	-c PROG	Run PROG when the line is hung up"
+//usage:     "\n	-m	Do NOT initialize the line in raw 8 bits mode"
+//usage:     "\n	-L	Enable 3-wire operation"
+//usage:     "\n	-F	Disable RTS/CTS flow control"
+
 #include "libbb.h"
 #include "libiproute/utils.h" /* invarg() */
 

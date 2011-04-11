@@ -3,6 +3,17 @@
  *
  * This is free software, licensed under the GNU General Public License v2.
  */
+
+//usage:#define flock_trivial_usage
+//usage:       "[-sxun] FD|{FILE [-c] PROG ARGS}"
+//usage:#define flock_full_usage "\n\n"
+//usage:       "[Un]lock file descriptor, or lock FILE, run PROG\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-s	Shared lock"
+//usage:     "\n	-x	Exclusive lock (default)"
+//usage:     "\n	-u	Unlock FD"
+//usage:     "\n	-n	Fail rather than wait"
+
 #include <sys/file.h>
 #include "libbb.h"
 

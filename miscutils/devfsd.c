@@ -53,6 +53,22 @@
     The postal address is:
       Richard Gooch, c/o ATNF, P. O. Box 76, Epping, N.S.W., 2121, Australia.
 */
+
+//usage:#define devfsd_trivial_usage
+//usage:       "mntpnt [-v]" IF_DEVFSD_FG_NP("[-fg][-np]")
+//usage:#define devfsd_full_usage "\n\n"
+//usage:       "Manage devfs permissions and old device name symlinks\n"
+//usage:     "\nOptions:"
+//usage:     "\n	mntpnt	The mount point where devfs is mounted"
+//usage:     "\n	-v	Print the protocol version numbers for devfsd"
+//usage:     "\n		and the kernel-side protocol version and exit"
+//usage:	IF_DEVFSD_FG_NP(
+//usage:     "\n	-fg	Run in foreground"
+//usage:     "\n	-np	Exit after parsing the configuration file"
+//usage:     "\n		and processing synthetic REGISTER events,"
+//usage:     "\n		don't poll for events"
+//usage:	)
+
 #include "libbb.h"
 #include "xregex.h"
 #include <syslog.h>

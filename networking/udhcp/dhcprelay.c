@@ -9,6 +9,12 @@
  *                   Netbeat AG
  * Upstream has GPL v2 or later
  */
+
+//usage:#define dhcprelay_trivial_usage
+//usage:       "CLIENT_IFACE[,CLIENT_IFACE2]... SERVER_IFACE [SERVER_IP]"
+//usage:#define dhcprelay_full_usage "\n\n"
+//usage:       "Relay DHCP requests between clients and server"
+
 #include "common.h"
 
 #define SERVER_PORT    67

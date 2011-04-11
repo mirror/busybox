@@ -6,6 +6,15 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define wall_trivial_usage
+//usage:	"[FILE]"
+//usage:#define wall_full_usage "\n\n"
+//usage:	"Write content of FILE or stdin to all logged-in users"
+//usage:
+//usage:#define wall_sample_usage
+//usage:	"echo foo | wall\n"
+//usage:	"wall ./mymessage"
+
 #include "libbb.h"
 
 int wall_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

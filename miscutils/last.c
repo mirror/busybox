@@ -7,6 +7,17 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define last_trivial_usage
+//usage:       ""IF_FEATURE_LAST_FANCY("[-HW] [-f FILE]")
+//usage:#define last_full_usage "\n\n"
+//usage:       "Show listing of the last users that logged into the system"
+//usage:	IF_FEATURE_LAST_FANCY( "\n"
+//usage:     "\nOptions:"
+/* //usage:  "\n	-H	Show header line" */
+//usage:     "\n	-W	Display with no host column truncation"
+//usage:     "\n	-f FILE Read from FILE instead of /var/log/wtmp"
+//usage:	)
+
 #include "libbb.h"
 
 /* NB: ut_name and ut_user are the same field, use only one name (ut_user)

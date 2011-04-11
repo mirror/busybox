@@ -4,6 +4,14 @@
  *  Copyright (C) 2008, BusyBox Team. -solar 4/26/08
  */
 
+//usage:#define devmem_trivial_usage
+//usage:	"ADDRESS [WIDTH [VALUE]]"
+//usage:#define devmem_full_usage "\n\n"
+//usage:       "Read/write from physical address\n"
+//usage:     "\n	ADDRESS	Address to act upon"
+//usage:     "\n	WIDTH	Width (8/16/...)"
+//usage:     "\n	VALUE	Data to be written"
+
 #include "libbb.h"
 
 int devmem_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

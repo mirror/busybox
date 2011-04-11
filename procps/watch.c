@@ -11,6 +11,20 @@
 /* BB_AUDIT SUSv3 N/A */
 /* BB_AUDIT GNU defects -- only option -n is supported. */
 
+//usage:#define watch_trivial_usage
+//usage:       "[-n SEC] [-t] PROG ARGS"
+//usage:#define watch_full_usage "\n\n"
+//usage:       "Run PROG periodically\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n	Loop period in seconds (default 2)"
+//usage:     "\n	-t	Don't print header"
+//usage:
+//usage:#define watch_example_usage
+//usage:       "$ watch date\n"
+//usage:       "Mon Dec 17 10:31:40 GMT 2000\n"
+//usage:       "Mon Dec 17 10:31:42 GMT 2000\n"
+//usage:       "Mon Dec 17 10:31:44 GMT 2000"
+
 #include "libbb.h"
 
 // procps 2.0.18:

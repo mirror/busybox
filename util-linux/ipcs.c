@@ -8,6 +8,22 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define ipcs_trivial_usage
+//usage:       "[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
+//usage:#define ipcs_full_usage "\n\n"
+//usage:       "	-i	Show specific resource"
+//usage:     "\nResource specification:"
+//usage:     "\n	-m	Shared memory segments"
+//usage:     "\n	-q	Message queues"
+//usage:     "\n	-s	Semaphore arrays"
+//usage:     "\n	-a	All (default)"
+//usage:     "\nOutput format:"
+//usage:     "\n	-t	Time"
+//usage:     "\n	-c	Creator"
+//usage:     "\n	-p	Pid"
+//usage:     "\n	-l	Limits"
+//usage:     "\n	-u	Summary"
+
 /* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */
 /* X/OPEN tells us to use <sys/{types,ipc,msg}.h> for msgctl() */
 /* X/OPEN tells us to use <sys/{types,ipc,shm}.h> for shmctl() */

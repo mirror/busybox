@@ -6,6 +6,19 @@
 *
 * Licensed under GPLv2 or later, see file LICENSE in this source tree.
 */
+
+//usage:#define rfkill_trivial_usage
+//usage:       "COMMAND [INDEX|TYPE]"
+//usage:#define rfkill_full_usage "\n\n"
+//usage:       "Enable/disable wireless devices\n"
+//usage:       "\nCommands:"
+//usage:     "\n	list [INDEX|TYPE]	List current state"
+//usage:     "\n	block INDEX|TYPE	Disable device"
+//usage:     "\n	unblock INDEX|TYPE	Enable device"
+//usage:     "\n"
+//usage:     "\n	TYPE: all, wlan(wifi), bluetooth, uwb(ultrawideband),"
+//usage:     "\n		wimax, wwan, gps, fm"
+
 #include "libbb.h"
 #include <linux/rfkill.h>
 

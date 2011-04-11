@@ -21,6 +21,22 @@
  *
  */
 
+//usage:#if ENABLE_FEATURE_TELNET_AUTOLOGIN
+//usage:#define telnet_trivial_usage
+//usage:       "[-a] [-l USER] HOST [PORT]"
+//usage:#define telnet_full_usage "\n\n"
+//usage:       "Connect to telnet server\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Automatic login with $USER variable"
+//usage:     "\n	-l USER	Automatic login as USER"
+//usage:
+//usage:#else
+//usage:#define telnet_trivial_usage
+//usage:       "HOST [PORT]"
+//usage:#define telnet_full_usage "\n\n"
+//usage:       "Connect to telnet server"
+//usage:#endif
+
 #include <arpa/telnet.h>
 #include <netinet/in.h>
 #include "libbb.h"

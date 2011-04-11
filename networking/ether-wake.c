@@ -64,6 +64,16 @@
  *   filter.  That configuration consumes more power.
 */
 
+//usage:#define ether_wake_trivial_usage
+//usage:       "[-b] [-i iface] [-p aa:bb:cc:dd[:ee:ff]] MAC"
+//usage:#define ether_wake_full_usage "\n\n"
+//usage:       "Send a magic packet to wake up sleeping machines.\n"
+//usage:       "MAC must be a station address (00:11:22:33:44:55) or\n"
+//usage:       "a hostname with a known 'ethers' entry.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-b		Send wake-up packet to the broadcast address"
+//usage:     "\n	-i iface	Interface to use (default eth0)"
+//usage:     "\n	-p pass		Append four or six byte password PW to the packet"
 
 #include <netpacket/packet.h>
 #include <net/ethernet.h>

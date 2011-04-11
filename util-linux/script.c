@@ -10,6 +10,19 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define script_trivial_usage
+//usage:       "[-afq" IF_SCRIPTREPLAY("t") "] [-c PROG] [OUTFILE]"
+//usage:#define script_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-a	Append output"
+//usage:     "\n	-c PROG	Run PROG, not shell"
+//usage:     "\n	-f	Flush output after each write"
+//usage:     "\n	-q	Quiet"
+//usage:	IF_SCRIPTREPLAY(
+//usage:     "\n	-t	Send timing to stderr"
+//usage:	)
+
 #include "libbb.h"
 
 int script_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

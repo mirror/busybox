@@ -7,6 +7,45 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define mkfs_ext2_trivial_usage
+//usage:       "[-Fn] "
+/* //usage:    "[-c|-l filename] " */
+//usage:       "[-b BLK_SIZE] "
+/* //usage:    "[-f fragment-size] [-g blocks-per-group] " */
+//usage:       "[-i INODE_RATIO] [-I INODE_SIZE] "
+/* //usage:    "[-j] [-J journal-options] [-N number-of-inodes] " */
+//usage:       "[-m RESERVED_PERCENT] "
+/* //usage:    "[-o creator-os] [-O feature[,...]] [-q] " */
+/* //usage:    "[r fs-revision-level] [-E extended-options] [-v] [-F] " */
+//usage:       "[-L LABEL] "
+/* //usage:    "[-M last-mounted-directory] [-S] [-T filesystem-type] " */
+//usage:       "BLOCKDEV [KBYTES]"
+//usage:#define mkfs_ext2_full_usage "\n\n"
+//usage:       "	-b BLK_SIZE	Block size, bytes"
+/* //usage:  "\n	-c		Check device for bad blocks" */
+/* //usage:  "\n	-E opts		Set extended options" */
+/* //usage:  "\n	-f size		Fragment size in bytes" */
+//usage:     "\n	-F		Force"
+/* //usage:  "\n	-g N		Number of blocks in a block group" */
+//usage:     "\n	-i RATIO	Max number of files is filesystem_size / RATIO"
+//usage:     "\n	-I BYTES	Inode size (min 128)"
+/* //usage:  "\n	-j		Create a journal (ext3)" */
+/* //usage:  "\n	-J opts		Set journal options (size/device)" */
+/* //usage:  "\n	-l file		Read bad blocks list from file" */
+//usage:     "\n	-L LBL		Volume label"
+//usage:     "\n	-m PERCENT	Percent of blocks to reserve for admin"
+/* //usage:  "\n	-M dir		Set last mounted directory" */
+//usage:     "\n	-n		Dry run"
+/* //usage:  "\n	-N N		Number of inodes to create" */
+/* //usage:  "\n	-o os		Set the 'creator os' field" */
+/* //usage:  "\n	-O features	Dir_index/filetype/has_journal/journal_dev/sparse_super" */
+/* //usage:  "\n	-q		Quiet" */
+/* //usage:  "\n	-r rev		Set filesystem revision" */
+/* //usage:  "\n	-S		Write superblock and group descriptors only" */
+/* //usage:  "\n	-T fs-type	Set usage type (news/largefile/largefile4)" */
+/* //usage:  "\n	-v		Verbose" */
+
 #include "libbb.h"
 #include <linux/fs.h>
 #include <linux/ext2_fs.h>

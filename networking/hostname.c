@@ -9,6 +9,25 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define hostname_trivial_usage
+//usage:       "[OPTIONS] [HOSTNAME | -F FILE]"
+//usage:#define hostname_full_usage "\n\n"
+//usage:       "Get or set hostname or DNS domain name\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-s	Short"
+//usage:     "\n	-i	Addresses for the hostname"
+//usage:     "\n	-d	DNS domain name"
+//usage:     "\n	-f	Fully qualified domain name"
+//usage:     "\n	-F FILE	Use FILE's content as hostname"
+//usage:
+//usage:#define hostname_example_usage
+//usage:       "$ hostname\n"
+//usage:       "sage\n"
+//usage:
+//usage:#define dnsdomainname_trivial_usage NOUSAGE_STR
+//usage:#define dnsdomainname_full_usage ""
+
 #include "libbb.h"
 
 static void do_sethostname(char *s, int isfile)

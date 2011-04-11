@@ -8,6 +8,16 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define ipcrm_trivial_usage
+//usage:       "[-MQS key] [-mqs id]"
+//usage:#define ipcrm_full_usage "\n\n"
+//usage:       "Upper-case options MQS remove an object by shmkey value.\n"
+//usage:       "Lower-case options remove an object by shmid value.\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-mM	Remove memory segment after last detach"
+//usage:     "\n	-qQ	Remove message queue"
+//usage:     "\n	-sS	Remove semaphore"
+
 #include "libbb.h"
 
 /* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */

@@ -21,6 +21,18 @@
  *   redirected input has been read from stdin
  */
 
+//usage:#define less_trivial_usage
+//usage:       "[-EMNmh~I?] [FILE]..."
+//usage:#define less_full_usage "\n\n"
+//usage:       "View FILE (or stdin) one screenful at a time\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-E	Quit once the end of a file is reached"
+//usage:     "\n	-M,-m	Display status line with line numbers"
+//usage:     "\n		and percentage through the file"
+//usage:     "\n	-N	Prefix line number to each line"
+//usage:     "\n	-I	Ignore case in all searches"
+//usage:     "\n	-~	Suppress ~s displayed past the end of the file"
+
 #include <sched.h>  /* sched_yield() */
 
 #include "libbb.h"

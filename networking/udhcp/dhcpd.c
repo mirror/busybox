@@ -20,6 +20,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+//usage:#define udhcpd_trivial_usage
+//usage:       "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]"
+//usage:#define udhcpd_full_usage "\n\n"
+//usage:       "DHCP server\n"
+//usage:     "\n	-f	Run in foreground"
+//usage:     "\n	-S	Log to syslog too"
+//usage:	IF_FEATURE_UDHCP_PORT(
+//usage:     "\n	-P N	Use port N (default 67)"
+//usage:	)
+
 #include <syslog.h>
 #include "common.h"
 #include "dhcpc.h"

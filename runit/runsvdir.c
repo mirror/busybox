@@ -28,6 +28,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
+//usage:#define runsvdir_trivial_usage
+//usage:       "[-P] [-s SCRIPT] DIR"
+//usage:#define runsvdir_full_usage "\n\n"
+//usage:       "Start a runsv process for each subdirectory. If it exits, restart it.\n"
+//usage:     "\n	-P		Put each runsv in a new session"
+//usage:     "\n	-s SCRIPT	Run SCRIPT <signo> after signal is processed"
+
 #include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"

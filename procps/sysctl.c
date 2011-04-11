@@ -11,6 +11,25 @@
  * v1.01.1 - busybox applet aware by <solar@gentoo.org>
  */
 
+//usage:#define sysctl_trivial_usage
+//usage:       "[OPTIONS] [VALUE]..."
+//usage:#define sysctl_full_usage "\n\n"
+//usage:       "Configure kernel parameters at runtime\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-n	Don't print key names"
+//usage:     "\n	-e	Don't warn about unknown keys"
+//usage:     "\n	-w	Change sysctl setting"
+//usage:     "\n	-p FILE	Load sysctl settings from FILE (default /etc/sysctl.conf)"
+//usage:     "\n	-a	Display all values"
+//usage:     "\n	-A	Display all values in table form"
+//usage:
+//usage:#define sysctl_example_usage
+//usage:       "sysctl [-n] [-e] variable...\n"
+//usage:       "sysctl [-n] [-e] -w variable=value...\n"
+//usage:       "sysctl [-n] [-e] -a\n"
+//usage:       "sysctl [-n] [-e] -p file	(default /etc/sysctl.conf)\n"
+//usage:       "sysctl [-n] [-e] -A\n"
+
 #include "libbb.h"
 
 enum {

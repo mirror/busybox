@@ -7,6 +7,11 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define blkid_trivial_usage
+//usage:       ""
+//usage:#define blkid_full_usage "\n\n"
+//usage:       "Print UUIDs of all filesystems"
+
 #include "libbb.h"
 #include "volume_id.h"
 

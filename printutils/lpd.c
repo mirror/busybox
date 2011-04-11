@@ -70,6 +70,17 @@
  * mv -f ./"$DATAFILE" save/
  */
 
+//usage:#define lpd_trivial_usage
+//usage:       "SPOOLDIR [HELPER [ARGS]]"
+//usage:#define lpd_full_usage "\n\n"
+//usage:       "SPOOLDIR must contain (symlinks to) device nodes or directories"
+//usage:     "\nwith names matching print queue names. In the first case, jobs are"
+//usage:     "\nsent directly to the device. Otherwise each job is stored in queue"
+//usage:     "\ndirectory and HELPER program is called. Name of file to print"
+//usage:     "\nis passed in $DATAFILE variable."
+//usage:     "\nExample:"
+//usage:     "\n	tcpsvd -E 0 515 softlimit -m 999999 lpd /var/spool ./print"
+
 #include "libbb.h"
 
 // strip argument of bad chars

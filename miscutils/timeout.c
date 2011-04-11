@@ -28,6 +28,12 @@
  * rewrite  14-11-2008 vda
  */
 
+//usage:#define timeout_trivial_usage
+//usage:       "[-t SECS] [-s SIG] PROG ARGS"
+//usage:#define timeout_full_usage "\n\n"
+//usage:       "Runs PROG. Sends SIG to it if it is not gone in SECS seconds.\n"
+//usage:       "Defaults: SECS: 10, SIG: TERM."
+
 #include "libbb.h"
 
 int timeout_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

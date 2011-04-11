@@ -15,6 +15,15 @@
 
 /* getopt not needed */
 
+//usage:#define uptime_trivial_usage
+//usage:       ""
+//usage:#define uptime_full_usage "\n\n"
+//usage:       "Display the time since the last boot"
+//usage:
+//usage:#define uptime_example_usage
+//usage:       "$ uptime\n"
+//usage:       "  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00\n"
+
 #include "libbb.h"
 
 #ifndef FSHIFT

@@ -6,6 +6,10 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define selinuxenabled_trivial_usage NOUSAGE_STR
+//usage:#define selinuxenabled_full_usage ""
+
 #include "libbb.h"
 
 int selinuxenabled_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

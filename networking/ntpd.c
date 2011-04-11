@@ -27,6 +27,23 @@
  *                                                                     *
  ***********************************************************************
  */
+
+//usage:#define ntpd_trivial_usage
+//usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l")"] [-S PROG] [-p PEER]..."
+//usage:#define ntpd_full_usage "\n\n"
+//usage:       "NTP client/server\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-d	Verbose"
+//usage:     "\n	-n	Do not daemonize"
+//usage:     "\n	-q	Quit after clock is set"
+//usage:     "\n	-N	Run at high priority"
+//usage:     "\n	-w	Do not set time (only query peers), implies -n"
+//usage:	IF_FEATURE_NTPD_SERVER(
+//usage:     "\n	-l	Run as server on port 123"
+//usage:	)
+//usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
+//usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
+
 #include "libbb.h"
 #include <math.h>
 #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */

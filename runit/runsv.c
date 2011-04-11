@@ -28,6 +28,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
 /* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
+//usage:#define runsv_trivial_usage
+//usage:       "DIR"
+//usage:#define runsv_full_usage "\n\n"
+//usage:       "Start and monitor a service and optionally an appendant log service"
+
 #include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"

@@ -11,6 +11,33 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//usage:#define ipcalc_trivial_usage
+//usage:       "[OPTIONS] ADDRESS[[/]NETMASK] [NETMASK]"
+//usage:#define ipcalc_full_usage "\n\n"
+//usage:       "Calculate IP network settings from a IP address\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_IPCALC_LONG_OPTIONS(
+//usage:     "\n	-b,--broadcast	Display calculated broadcast address"
+//usage:     "\n	-n,--network	Display calculated network address"
+//usage:     "\n	-m,--netmask	Display default netmask for IP"
+//usage:	IF_FEATURE_IPCALC_FANCY(
+//usage:     "\n	-p,--prefix	Display the prefix for IP/NETMASK"
+//usage:     "\n	-h,--hostname	Display first resolved host name"
+//usage:     "\n	-s,--silent	Don't ever display error messages"
+//usage:	)
+//usage:	)
+//usage:	IF_NOT_FEATURE_IPCALC_LONG_OPTIONS(
+//usage:     "\n	-b	Display calculated broadcast address"
+//usage:     "\n	-n	Display calculated network address"
+//usage:     "\n	-m	Display default netmask for IP"
+//usage:	IF_FEATURE_IPCALC_FANCY(
+//usage:     "\n	-p	Display the prefix for IP/NETMASK"
+//usage:     "\n	-h	Display first resolved host name"
+//usage:     "\n	-s	Don't ever display error messages"
+//usage:	)
+//usage:	)
+
 #include "libbb.h"
 /* After libbb.h, because on some systems it needs other includes */
 #include <arpa/inet.h>

@@ -11,6 +11,58 @@
  * hdparm.c - Command line interface to get/set hard disk parameters
  *          - by Mark Lord (C) 1994-2002 -- freely distributable
  */
+
+//usage:#define hdparm_trivial_usage
+//usage:       "[OPTIONS] [DEVICE]"
+//usage:#define hdparm_full_usage "\n\n"
+//usage:       "Options:"
+//usage:     "\n	-a	Get/set fs readahead"
+//usage:     "\n	-A	Set drive read-lookahead flag (0/1)"
+//usage:     "\n	-b	Get/set bus state (0 == off, 1 == on, 2 == tristate)"
+//usage:     "\n	-B	Set Advanced Power Management setting (1-255)"
+//usage:     "\n	-c	Get/set IDE 32-bit IO setting"
+//usage:     "\n	-C	Check IDE power mode status"
+//usage:	IF_FEATURE_HDPARM_HDIO_GETSET_DMA(
+//usage:     "\n	-d	Get/set using_dma flag")
+//usage:     "\n	-D	Enable/disable drive defect-mgmt"
+//usage:     "\n	-f	Flush buffer cache for device on exit"
+//usage:     "\n	-g	Display drive geometry"
+//usage:     "\n	-h	Display terse usage information"
+//usage:	IF_FEATURE_HDPARM_GET_IDENTITY(
+//usage:     "\n	-i	Display drive identification")
+//usage:	IF_FEATURE_HDPARM_GET_IDENTITY(
+//usage:     "\n	-I	Detailed/current information directly from drive")
+//usage:     "\n	-k	Get/set keep_settings_over_reset flag (0/1)"
+//usage:     "\n	-K	Set drive keep_features_over_reset flag (0/1)"
+//usage:     "\n	-L	Set drive doorlock (0/1) (removable harddisks only)"
+//usage:     "\n	-m	Get/set multiple sector count"
+//usage:     "\n	-n	Get/set ignore-write-errors flag (0/1)"
+//usage:     "\n	-p	Set PIO mode on IDE interface chipset (0,1,2,3,4,...)"
+//usage:     "\n	-P	Set drive prefetch count"
+/* //usage:  "\n	-q	Change next setting quietly" - not supported ib bbox */
+//usage:     "\n	-Q	Get/set DMA tagged-queuing depth (if supported)"
+//usage:     "\n	-r	Get/set readonly flag (DANGEROUS to set)"
+//usage:	IF_FEATURE_HDPARM_HDIO_SCAN_HWIF(
+//usage:     "\n	-R	Register an IDE interface (DANGEROUS)")
+//usage:     "\n	-S	Set standby (spindown) timeout"
+//usage:     "\n	-t	Perform device read timings"
+//usage:     "\n	-T	Perform cache read timings"
+//usage:     "\n	-u	Get/set unmaskirq flag (0/1)"
+//usage:	IF_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(
+//usage:     "\n	-U	Unregister an IDE interface (DANGEROUS)")
+//usage:     "\n	-v	Defaults; same as -mcudkrag for IDE drives"
+//usage:     "\n	-V	Display program version and exit immediately"
+//usage:	IF_FEATURE_HDPARM_HDIO_DRIVE_RESET(
+//usage:     "\n	-w	Perform device reset (DANGEROUS)")
+//usage:     "\n	-W	Set drive write-caching flag (0/1) (DANGEROUS)"
+//usage:	IF_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(
+//usage:     "\n	-x	Tristate device for hotswap (0/1) (DANGEROUS)")
+//usage:     "\n	-X	Set IDE xfer mode (DANGEROUS)"
+//usage:     "\n	-y	Put IDE drive in standby mode"
+//usage:     "\n	-Y	Put IDE drive to sleep"
+//usage:     "\n	-Z	Disable Seagate auto-powersaving mode"
+//usage:     "\n	-z	Reread partition table"
+
 #include "libbb.h"
 /* must be _after_ libbb.h: */
 #include <linux/hdreg.h>

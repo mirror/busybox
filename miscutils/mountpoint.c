@@ -9,6 +9,22 @@
  * Based on sysvinit's mountpoint
  */
 
+//usage:#define mountpoint_trivial_usage
+//usage:       "[-q] <[-dn] DIR | -x DEVICE>"
+//usage:#define mountpoint_full_usage "\n\n"
+//usage:       "Check if the directory is a mountpoint\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-d	Print major/minor device number of the filesystem"
+//usage:     "\n	-n	Print device name of the filesystem"
+//usage:     "\n	-x	Print major/minor device number of the blockdevice"
+//usage:
+//usage:#define mountpoint_example_usage
+//usage:       "$ mountpoint /proc\n"
+//usage:       "/proc is not a mountpoint\n"
+//usage:       "$ mountpoint /sys\n"
+//usage:       "/sys is a mountpoint\n"
+
 #include "libbb.h"
 
 int mountpoint_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

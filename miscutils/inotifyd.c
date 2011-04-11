@@ -27,6 +27,33 @@
  * See below for mask names explanation.
  */
 
+//usage:#define inotifyd_trivial_usage
+//usage:	"PROG FILE1[:MASK]..."
+//usage:#define inotifyd_full_usage "\n\n"
+//usage:       "Run PROG on filesystem changes."
+//usage:     "\nWhen a filesystem event matching MASK occurs on FILEn,"
+//usage:     "\nPROG ACTUAL_EVENTS FILEn [SUBFILE] is run."
+//usage:     "\nEvents:"
+//usage:     "\n	a	File is accessed"
+//usage:     "\n	c	File is modified"
+//usage:     "\n	e	Metadata changed"
+//usage:     "\n	w	Writable file is closed"
+//usage:     "\n	0	Unwritable file is closed"
+//usage:     "\n	r	File is opened"
+//usage:     "\n	D	File is deleted"
+//usage:     "\n	M	File is moved"
+//usage:     "\n	u	Backing fs is unmounted"
+//usage:     "\n	o	Event queue overflowed"
+//usage:     "\n	x	File can't be watched anymore"
+//usage:     "\nIf watching a directory:"
+//usage:     "\n	m	Subfile is moved into dir"
+//usage:     "\n	y	Subfile is moved out of dir"
+//usage:     "\n	n	Subfile is created"
+//usage:     "\n	d	Subfile is deleted"
+//usage:     "\n"
+//usage:     "\ninotifyd waits for PROG to exit."
+//usage:     "\nWhen x event happens for all FILEs, inotifyd exits."
+
 #include "libbb.h"
 #include <sys/inotify.h>
 

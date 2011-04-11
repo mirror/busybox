@@ -9,6 +9,17 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define watchdog_trivial_usage
+//usage:       "[-t N[ms]] [-T N[ms]] [-F] DEV"
+//usage:#define watchdog_full_usage "\n\n"
+//usage:       "Periodically write to watchdog device DEV\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-T N	Reboot after N seconds if not reset (default 60)"
+//usage:     "\n	-t N	Reset every N seconds (default 30)"
+//usage:     "\n	-F	Run in foreground"
+//usage:     "\n"
+//usage:     "\nUse 500ms to specify period in milliseconds"
+
 #include "libbb.h"
 #include "linux/types.h" /* for __u32 */
 #include "linux/watchdog.h"

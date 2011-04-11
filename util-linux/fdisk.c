@@ -7,6 +7,28 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+/* Looks like someone forgot to add this to config system */
+//usage:#ifndef ENABLE_FEATURE_FDISK_BLKSIZE
+//usage:# define ENABLE_FEATURE_FDISK_BLKSIZE 0
+//usage:# define IF_FEATURE_FDISK_BLKSIZE(a)
+//usage:#endif
+//usage:
+//usage:#define fdisk_trivial_usage
+//usage:       "[-ul" IF_FEATURE_FDISK_BLKSIZE("s") "] "
+//usage:       "[-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
+//usage:#define fdisk_full_usage "\n\n"
+//usage:       "Change partition table\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-u		Start and End are in sectors (instead of cylinders)"
+//usage:     "\n	-l		Show partition table for each DISK, then exit"
+//usage:	IF_FEATURE_FDISK_BLKSIZE(
+//usage:     "\n	-s		Show partition sizes in kb for each DISK, then exit"
+//usage:	)
+//usage:     "\n	-b 2048		(for certain MO disks) use 2048-byte sectors"
+//usage:     "\n	-C CYLINDERS	Set number of cylinders/heads/sectors"
+//usage:     "\n	-H HEADS"
+//usage:     "\n	-S SECTORS"
+
 #ifndef _LARGEFILE64_SOURCE
 /* For lseek64 */
 # define _LARGEFILE64_SOURCE

@@ -8,6 +8,12 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//usage:#define sestatus_trivial_usage
+//usage:       "[-vb]"
+//usage:#define sestatus_full_usage "\n\n"
+//usage:       "	-v	Verbose"
+//usage:     "\n	-b	Display current state of booleans"
+
 #include "libbb.h"
 
 extern char *selinux_mnt;

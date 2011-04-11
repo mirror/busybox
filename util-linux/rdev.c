@@ -9,6 +9,15 @@
  *
  */
 
+//usage:#define rdev_trivial_usage
+//usage:       ""
+//usage:#define rdev_full_usage "\n\n"
+//usage:       "Print the device node associated with the filesystem mounted at '/'"
+//usage:
+//usage:#define rdev_example_usage
+//usage:       "$ rdev\n"
+//usage:       "/dev/mtdblock9 /\n"
+
 #include "libbb.h"
 
 int rdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

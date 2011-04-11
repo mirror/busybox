@@ -7,6 +7,41 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define mdev_trivial_usage
+//usage:       "[-s]"
+//usage:#define mdev_full_usage "\n\n"
+//usage:       "	-s	Scan /sys and populate /dev during system boot\n"
+//usage:       "\n"
+//usage:       "It can be run by kernel as a hotplug helper. To activate it:\n"
+//usage:       " echo /sbin/mdev > /proc/sys/kernel/hotplug\n"
+//usage:	IF_FEATURE_MDEV_CONF(
+//usage:       "It uses /etc/mdev.conf with lines\n"
+//usage:       "[-]DEVNAME UID:GID PERM"
+//usage:			IF_FEATURE_MDEV_RENAME(" [>|=PATH]")
+//usage:			IF_FEATURE_MDEV_EXEC(" [@|$|*PROG]")
+//usage:	)
+//usage:
+//usage:#define mdev_notes_usage ""
+//usage:	IF_FEATURE_MDEV_CONFIG(
+//usage:       "The mdev config file contains lines that look like:\n"
+//usage:       "  hd[a-z][0-9]* 0:3 660\n\n"
+//usage:       "That's device name (with regex match), uid:gid, and permissions.\n\n"
+//usage:	IF_FEATURE_MDEV_EXEC(
+//usage:       "Optionally, that can be followed (on the same line) by a special character\n"
+//usage:       "and a command line to run after creating/before deleting the corresponding\n"
+//usage:       "device(s). The environment variable $MDEV indicates the active device node\n"
+//usage:       "(which is useful if it's a regex match). For example:\n\n"
+//usage:       "  hdc root:cdrom 660  *ln -s $MDEV cdrom\n\n"
+//usage:       "The special characters are @ (run after creating), $ (run before deleting),\n"
+//usage:       "and * (run both after creating and before deleting). The commands run in\n"
+//usage:       "the /dev directory, and use system() which calls /bin/sh.\n\n"
+//usage:	)
+//usage:       "Config file parsing stops on the first matching line. If no config\n"
+//usage:       "entry is matched, devices are created with default 0:0 660. (Make\n"
+//usage:       "the last line match .* to override this.)\n\n"
+//usage:	)
+
 #include "libbb.h"
 #include "xregex.h"
 

@@ -13,6 +13,17 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 
+//usage:#define eject_trivial_usage
+//usage:       "[-t] [-T] [DEVICE]"
+//usage:#define eject_full_usage "\n\n"
+//usage:       "Eject DEVICE or default /dev/cdrom\n"
+//usage:     "\nOptions:"
+//usage:	IF_FEATURE_EJECT_SCSI(
+//usage:     "\n	-s	SCSI device"
+//usage:	)
+//usage:     "\n	-t	Close tray"
+//usage:     "\n	-T	Open/close tray (toggle)"
+
 #include <sys/mount.h>
 #include "libbb.h"
 /* Must be after libbb.h: they need size_t */

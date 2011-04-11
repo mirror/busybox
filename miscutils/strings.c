@@ -7,6 +7,16 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//usage:#define strings_trivial_usage
+//usage:       "[-afo] [-n LEN] [FILE]..."
+//usage:#define strings_full_usage "\n\n"
+//usage:       "Display printable strings in a binary file\n"
+//usage:     "\nOptions:"
+//usage:     "\n	-a	Scan whole file (default)"
+//usage:     "\n	-f	Precede strings with filenames"
+//usage:     "\n	-n LEN	At least LEN characters form a string (default 4)"
+//usage:     "\n	-o	Precede strings with decimal offsets"
+
 #include "libbb.h"
 
 #define WHOLE_FILE    1

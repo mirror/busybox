@@ -8,6 +8,12 @@
  * Also for use in uClibc (http://uclibc.org/) licensed under LGPLv2.1 or later.
  */
 
+/*
+//usage:#define parse_trivial_usage
+//usage:       "[-n MAXTOKENS] [-m MINTOKENS] [-d DELIMS] [-f FLAGS] FILE..."
+//usage:#define parse_full_usage ""
+*/
+
 #include "libbb.h"
 
 #if defined ENABLE_PARSE && ENABLE_PARSE

@@ -7,6 +7,23 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+
+//usage:#define mkfs_vfat_trivial_usage
+//usage:       "[-v] [-n LABEL] BLOCKDEV [KBYTES]"
+/* Accepted but ignored:
+       "[-c] [-C] [-I] [-l bad-block-file] [-b backup-boot-sector] "
+       "[-m boot-msg-file] [-i volume-id] "
+       "[-s sectors-per-cluster] [-S logical-sector-size] [-f number-of-FATs] "
+       "[-h hidden-sectors] [-F fat-size] [-r root-dir-entries] [-R reserved-sectors] "
+*/
+//usage:#define mkfs_vfat_full_usage "\n\n"
+//usage:       "Make a FAT32 filesystem\n"
+//usage:     "\nOptions:"
+/* //usage:  "\n	-c	Check device for bad blocks" */
+//usage:     "\n	-v	Verbose"
+/* //usage:  "\n	-I	Allow to use entire disk device (e.g. /dev/hda)" */
+//usage:     "\n	-n LBL	Volume label"
+
 #include "libbb.h"
 
 #include <linux/hdreg.h> /* HDIO_GETGEO */
