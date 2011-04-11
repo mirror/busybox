@@ -51,6 +51,11 @@ int basename_main(int argc, char **argv)
 	size_t m, n;
 	char *s;
 
+	if (argv[1] && strcmp(argv[1], "--") == 0) {
+		argv++;
+		argc--;
+	}
+
 	if ((unsigned)(argc-2) >= 2) {
 		bb_show_usage();
 	}
