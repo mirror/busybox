@@ -504,16 +504,17 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 		poll_timeout_ms = 250;
+		if (option_mask32 & FLAG(v)) continue;
 
 		// Insert all keys pressed into the virtual console's input
 		// buffer.  Don't do this if the virtual console is in scan
 		// code mode - giving ASCII characters to a program expecting
 		// scan codes will confuse it.
-		if (!(option_mask32 & FLAG(v)) && G.escape_count == 0) {
+		G.key_count += bytes_read;
+		if (G.escape_count == 0) {
 			int handle, result;
 			long kbd_mode;
 
-			G.key_count += bytes_read;
 			handle = xopen(tty_name, O_WRONLY);
 			result = ioctl(handle, KDGKBMODE, &kbd_mode);
 			if (result >= 0) {
