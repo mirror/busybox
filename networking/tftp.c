@@ -455,6 +455,7 @@ static int tftp_protocol(
 				finished = 1;
 			}
 			cp += len;
+			IF_FEATURE_TFTP_PROGRESS_BAR(G.pos += len;)
 		}
  send_pkt:
 		/* Send packet */
@@ -476,8 +477,6 @@ static int tftp_protocol(
 		xsendto(socket_fd, xbuf, send_len, &peer_lsa->u.sa, peer_lsa->len);
 
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
-		if (ENABLE_TFTP && remote_file) /* tftp */
-			G.pos = (block_nr - 1) * (uoff_t)blksize;
 		if (is_bb_progress_inited(&G.pmt))
 			tftp_progress_update();
 #endif
@@ -621,6 +620,7 @@ static int tftp_protocol(
 				if (sz != blksize) {
 					finished = 1;
 				}
+				IF_FEATURE_TFTP_PROGRESS_BAR(G.pos += sz;)
 				continue; /* send ACK */
 			}
 /* Disabled to cope with servers with Sorcerer's Apprentice Syndrome */
