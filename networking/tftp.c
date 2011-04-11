@@ -53,6 +53,7 @@
 //usage:     "\n	-l	Log to syslog (inetd mode requires this)"
 
 #include "libbb.h"
+#include <syslog.h>
 
 #if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
 
