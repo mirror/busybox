@@ -385,9 +385,15 @@ static void parse_syslogdcfg(const char *file)
 			cur_selector = next_selector;
 		} while (cur_selector);
 
-		/* check whether current file name was mentioned in previous rules.
-		 * temporarily use cur_rule as iterator, but *pp_rule still points to
-		 * currently processing rule entry.
+		/* check whether current file name was mentioned in previous rules or
+		 * as global logfile (G.logFile).
+		 */
+		if (strcmp(G.logFile.path, tok[1]) == 0) {
+			cur_rule->file = &G.logFile;
+			goto found;
+		}
+		/* temporarily use cur_rule as iterator, but *pp_rule still points
+		 * to currently processing rule entry.
 		 * NOTE: *pp_rule points to the current (and last in the list) rule.
 		 */
 		for (cur_rule = G.log_rules; cur_rule != *pp_rule; cur_rule = cur_rule->next) {
