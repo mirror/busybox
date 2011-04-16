@@ -661,6 +661,12 @@ static void download_one_url(const char *url)
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 		if (target.user) {
+//TODO: URL-decode "user:password" string before base64-encoding:
+//wget http://test:my%20pass@example.com should send
+// Authorization: Basic dGVzdDpteSBwYXNz
+//which decodes to "test:my pass", instead of what we send now:
+// Authorization: Basic dGVzdDpteSUyMHBhc3M=
+//Can reuse decodeString() from httpd.c
 			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6,
 				base64enc(target.user));
 		}
