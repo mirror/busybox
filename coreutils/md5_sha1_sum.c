@@ -107,6 +107,9 @@ static uint8_t *hash_file(const char *filename)
 
 	src_fd = open_or_warn_stdin(filename);
 	if (src_fd < 0) {
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			RELEASE_CONFIG_BUFFER(in_buf);
+		}
 		return NULL;
 	}
 
