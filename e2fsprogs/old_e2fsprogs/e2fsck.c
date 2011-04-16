@@ -582,7 +582,7 @@ static dnode_t *dict_first(dict_t *dict)
 
 /*
  * Return the given node's successor node---the node which has the
- * next key in the the left to right ordering. If the node has
+ * next key in the left to right ordering. If the node has
  * no successor, a null pointer is returned rather than a pointer to
  * the nil node.
  */

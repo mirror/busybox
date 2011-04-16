@@ -15,7 +15,7 @@
  *	string, placing the result in <name>.  <dir> is the containing
  *	directory inode, and <ino> is the inode number itself.  If
  *	<ino> is zero, then ext2fs_get_pathname will return pathname
- *	of the the directory <dir>.
+ *	of the directory <dir>.
  *
  */
 

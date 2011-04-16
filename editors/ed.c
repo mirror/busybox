@@ -454,7 +454,7 @@ static void subCommand(const char *cmd, int num1, int num2)
 
 		/*
 		 * The new string is larger, so allocate a new line
-		 * structure and use that.  Link it in in place of
+		 * structure and use that.  Link it in place of
 		 * the old line structure.
 		 */
 		nlp = xmalloc(sizeof(LINE) + lp->len + deltaLen);

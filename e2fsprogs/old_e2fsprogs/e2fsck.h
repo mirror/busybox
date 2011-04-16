@@ -258,7 +258,7 @@ The following defines are used in the 'flags' field of a dx_dirblock_info
 #define PR_1_SET_IMAGIC    0x01002F  /* Imagic flag set on an inode when filesystem doesn't support it */
 #define PR_1_SET_IMMUTABLE            0x010030  /* Immutable flag set on a device or socket inode */
 #define PR_1_COMPR_SET                0x010031  /* Compression flag set on a non-compressed filesystem */
-#define PR_1_SET_NONZSIZE             0x010032  /* Non-zero size on on device, fifo or socket inode */
+#define PR_1_SET_NONZSIZE             0x010032  /* Non-zero size on device, fifo or socket inode */
 #define PR_1_FS_REV_LEVEL             0x010033  /* Filesystem revision is 0, but feature flags are set */
 #define PR_1_JOURNAL_INODE_NOT_CLEAR  0x010034  /* Journal inode not in use, needs clearing */
 #define PR_1_JOURNAL_BAD_MODE         0x010035  /* Journal inode has wrong mode */

@@ -82,7 +82,7 @@ static void output_ar_header(archive_handle_t *handle)
 }
 
 /*
- * when replacing files in an existing archive, copy from the the
+ * when replacing files in an existing archive, copy from the
  * original archive those files that are to be left intact
  */
 static void FAST_FUNC copy_data(archive_handle_t *handle)

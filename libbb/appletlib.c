@@ -442,7 +442,7 @@ static void parse_config_file(void)
 					sct->m_mode |= mode_mask[(q - mode_chars) - i];
 				}
 
-				/* Now get the the user/group info. */
+				/* Now get the user/group info. */
 
 				s = skip_whitespace(e);
 
