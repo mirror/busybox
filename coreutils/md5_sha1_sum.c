@@ -100,22 +100,18 @@ static uint8_t *hash_file(const char *filename)
 		md5_ctx_t md5;
 	} context;
 	uint8_t *hash_value = NULL;
-	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
 	void FAST_FUNC (*update)(void*, const void*, size_t);
 	void FAST_FUNC (*final)(void*, void*);
 	char hash_algo;
 
 	src_fd = open_or_warn_stdin(filename);
 	if (src_fd < 0) {
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			RELEASE_CONFIG_BUFFER(in_buf);
-		}
 		return NULL;
 	}
 
 	hash_algo = applet_name[3];
 
-	/* figure specific hash algorithims */
+	/* figure specific hash algorithms */
 	if (ENABLE_MD5SUM && hash_algo == HASH_MD5) {
 		md5_begin(&context.md5);
 		update = (void*)md5_hash;
@@ -140,16 +136,17 @@ static uint8_t *hash_file(const char *filename)
 		xfunc_die(); /* can't reach this */
 	}
 
-	while ((count = safe_read(src_fd, in_buf, 4096)) > 0) {
-		update(&context, in_buf, count);
+	{
+		RESERVE_CONFIG_UBUFFER(in_buf, 4096);
+		while ((count = safe_read(src_fd, in_buf, 4096)) > 0) {
+			update(&context, in_buf, count);
+		}
+		if (count == 0) {
+			final(&context, in_buf);
+			hash_value = hash_bin_to_hex(in_buf, hash_len);
+		}
+		RELEASE_CONFIG_BUFFER(in_buf);
 	}
-
-	if (count == 0) {
-		final(&context, in_buf);
-		hash_value = hash_bin_to_hex(in_buf, hash_len);
-	}
-
-	RELEASE_CONFIG_BUFFER(in_buf);
 
 	if (src_fd != STDIN_FILENO) {
 		close(src_fd);
