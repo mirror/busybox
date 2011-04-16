@@ -33,6 +33,8 @@
 //usage:     "\n	-D		Drop duplicates")
 //usage:	IF_FEATURE_IPC_SYSLOG(
 //usage:     "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
+//usage:	IF_FEATURE_SYSLOGD_CFG(
+//usage:     "\n	-f FILE		Use FILE as config (default is /etc/syslog.conf)")
 /* NB: -Csize shouldn't have space (because size is optional) */
 /* //usage:  "\n	-m MIN		Minutes between MARK lines (default:20, 0=off)" */
 //usage:
@@ -284,10 +286,8 @@ static void parse_syslogdcfg(const char *file)
 		logRule_t *cur_rule;
 
 		/* unexpected trailing token? */
-		if (tok[2]) {
-			t = tok[2];
+		if (tok[2])
 			goto cfgerr;
-		}
 
 		cur_rule = *pp_rule = xzalloc(sizeof(*cur_rule));
 
@@ -307,10 +307,8 @@ static void parse_syslogdcfg(const char *file)
 				*next_selector++ = '\0';
 
 			t = strchr(cur_selector, '.');
-			if (!t) {
-				t = cur_selector;
+			if (!t)
 				goto cfgerr;
-			}
 			*t++ = '\0'; /* separate facility from priority */
 
 			negated_prio = 0;
@@ -414,7 +412,7 @@ static void parse_syslogdcfg(const char *file)
 	return;
 
  cfgerr:
-	bb_error_msg_and_die("bad line %d: wrong token '%s'", parser->lineno, t);
+	bb_error_msg_and_die("error in '%s' at line %d", file, parser->lineno);
 }
 #endif
 

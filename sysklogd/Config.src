@@ -57,7 +57,7 @@ config FEATURE_SYSLOGD_CFG
 	default y
 	depends on SYSLOGD
 	help
-	  Supports restricted syslogd config.
+	  Supports restricted syslogd config. See docs/syslog.conf.txt
 
 config FEATURE_SYSLOGD_READ_BUFFER_SIZE
 	int "Read buffer size in bytes"

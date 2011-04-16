@@ -44,8 +44,12 @@ char* FAST_FUNC bb_get_chunk_with_continuation(FILE *file, int *end, int *lineno
 			idx -= 2;
 		}
 	}
-	if (end)
+	if (end) {
 		*end = idx;
+		/* handle corner case when the file is not ended with '\n' */
+		if (ch == EOF && lineno != NULL)
+			(*lineno)++;
+	}
 	if (linebuf) {
 		// huh, does fgets discard prior data on error like this?
 		// I don't think so....
