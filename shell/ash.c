@@ -3491,13 +3491,18 @@ setsignal(int signo)
 	switch (new_act) {
 	case S_CATCH:
 		act.sa_handler = signal_handler;
-		act.sa_flags = 0; /* matters only if !DFL and !IGN */
-		sigfillset(&act.sa_mask); /* ditto */
 		break;
 	case S_IGN:
 		act.sa_handler = SIG_IGN;
 		break;
 	}
+
+	/* flags and mask matter only if !DFL and !IGN, but we do it
+	 * for all cases for more deterministic behavior:
+	 */
+	act.sa_flags = 0;
+	sigfillset(&act.sa_mask);
+
 	sigaction_set(signo, &act);
 
 	*t = new_act;
