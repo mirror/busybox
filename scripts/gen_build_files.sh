@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Note: was using sed OPTS CMD -- FILES
+# but users complain that many sed implementations
+# are misinterpreting --.
+
 test $# -ge 2 || { echo "Syntax: $0 SRCTREE OBJTREE"; exit 1; }
 
 # cd to objtree
@@ -43,7 +47,7 @@ generate()
 }
 
 # (Re)generate include/applets.h
-s=`sed -n 's@^//applet:@@p' -- "$srctree"/*/*.c "$srctree"/*/*/*.c`
+s=`sed -n 's@^//applet:@@p' "$srctree"/*/*.c "$srctree"/*/*/*.c`
 generate \
 	"$srctree/include/applets.src.h" \
 	"include/applets.h" \
@@ -55,7 +59,7 @@ generate \
 # and insert empty line before each line which doesn't start
 # with space or tab
 # (note: we need to use \\\\ because of ``)
-s=`sed -n -e 's@^//usage:\([ \t].*\)$@\1 \\\\@p' -e 's@^//usage:\([^ \t].*\)$@\n\1 \\\\@p' -- "$srctree"/*/*.c "$srctree"/*/*/*.c`
+s=`sed -n -e 's@^//usage:\([ \t].*\)$@\1 \\\\@p' -e 's@^//usage:\([^ \t].*\)$@\n\1 \\\\@p' "$srctree"/*/*.c "$srctree"/*/*/*.c`
 generate \
 	"$srctree/include/usage.src.h" \
 	"include/usage.h" \
@@ -71,7 +75,7 @@ generate \
 	if test -f "$src"; then
 		mkdir -p -- "$d" 2>/dev/null
 
-		s=`sed -n 's@^//kbuild:@@p' -- "$srctree/$d"/*.c`
+		s=`sed -n 's@^//kbuild:@@p' "$srctree/$d"/*.c`
 		generate \
 			"${src}" "${dst}" \
 			"# DO NOT EDIT. This file is generated from Kbuild.src" \
@@ -83,7 +87,7 @@ generate \
 	if test -f "$src"; then
 		mkdir -p -- "$d" 2>/dev/null
 
-		s=`sed -n 's@^//config:@@p' -- "$srctree/$d"/*.c`
+		s=`sed -n 's@^//config:@@p' "$srctree/$d"/*.c`
 		generate \
 			"${src}" "${dst}" \
 			"# DO NOT EDIT. This file is generated from Config.src" \
