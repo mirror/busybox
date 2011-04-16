@@ -32,7 +32,7 @@
  */
 #include <net/if.h>
 #include <net/if_arp.h>
-#if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined(_NEWLIB_VERSION)
+#ifndef __UCLIBC__
 # include <net/ethernet.h>
 #else
 # include <linux/if_ether.h>
