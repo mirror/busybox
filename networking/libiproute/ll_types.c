@@ -7,6 +7,7 @@
  *
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
+#include <sys/socket.h> /* linux/if_arp.h needs it on some systems */
 #include <arpa/inet.h>
 #include <linux/if_arp.h>
 
