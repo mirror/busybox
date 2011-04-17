@@ -3,6 +3,8 @@
  * Released under the terms of the GNU GPL v2.0.
  */
 
+#define _XOPEN_SOURCE 700
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
