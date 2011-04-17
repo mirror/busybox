@@ -12,7 +12,7 @@
  */
 #define HAVE_CLEARENV 1
 #define HAVE_FDATASYNC 1
-#define HAVE_FDPRINTF 1
+#define HAVE_DPRINTF 1
 #define HAVE_MEMRCHR 1
 #define HAVE_MKDTEMP 1
 #define HAVE_PTSNAME_R 1
@@ -264,7 +264,7 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 # undef HAVE_SYS_STATFS_H
 # undef HAVE_SIGHANDLER_T
 # undef HAVE_XTABS
-# undef HAVE_FDPRINTF
+# undef HAVE_DPRINTF
 #else
 # define HAVE_MNTENT_H 1
 # define HAVE_SYS_STATFS_H 1
@@ -332,11 +332,6 @@ typedef unsigned smalluint;
 # define USE_FOR_MMU(...) __VA_ARGS__
 #endif
 
-/* Don't use lchown with glibc older than 2.1.x */
-#if defined(__GLIBC__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1
-# define lchown chown
-#endif
-
 #if defined(__digital__) && defined(__unix__)
 
 # include <standards.h>
@@ -366,16 +361,14 @@ typedef unsigned smalluint;
 #endif
 
 #include <unistd.h>
-#if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L) || defined(__GLIBC__)
-# define fdprintf dprintf
-#endif
+#define fdprintf dprintf
 
 #if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
 #endif
 
 #if defined(__WATCOMC__)
-# undef HAVE_FDPRINTF
+# undef HAVE_DPRINTF
 # undef HAVE_MEMRCHR
 # undef HAVE_MKDTEMP
 # undef HAVE_SETBIT
@@ -396,8 +389,8 @@ typedef unsigned smalluint;
  * These must come after all the HAVE_* macros are defined (or not)
  */
 
-#ifndef HAVE_FDPRINTF
-extern int fdprintf(int fd, const char *format, ...);
+#ifndef HAVE_DPRINTF
+extern int dprintf(int fd, const char *format, ...);
 #endif
 
 #ifndef HAVE_MEMRCHR
