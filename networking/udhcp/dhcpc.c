@@ -300,6 +300,14 @@ static char **fill_envp(struct dhcp_packet *packet)
 	uint8_t *temp;
 	uint8_t overload = 0;
 
+#define BITMAP unsigned
+#define BBITS (sizeof(BITMAP) * 8)
+#define BMASK(i) (1 << (i & (sizeof(BITMAP) * 8 - 1)))
+#define FOUND_OPTS(i) (found_opts[(unsigned)i / BBITS])
+	BITMAP found_opts[256 / BBITS];
+
+	memset(found_opts, 0, sizeof(found_opts));
+
 	/* We need 6 elements for:
 	 * "interface=IFACE"
 	 * "ip=N.N.N.N" from packet->yiaddr
@@ -311,18 +319,21 @@ static char **fill_envp(struct dhcp_packet *packet)
 	envc = 6;
 	/* +1 element for each option, +2 for subnet option: */
 	if (packet) {
-		for (i = 0; dhcp_optflags[i].code; i++) {
-			if (udhcp_get_option(packet, dhcp_optflags[i].code)) {
-				if (dhcp_optflags[i].code == DHCP_SUBNET)
+		/* note: do not search for "pad" (0) and "end" (255) options */
+		for (i = 1; i < 255; i++) {
+			temp = udhcp_get_option(packet, i);
+			if (temp) {
+				if (i == DHCP_OPTION_OVERLOAD)
+					overload = *temp;
+				else if (i == DHCP_SUBNET)
 					envc++; /* for mton */
 				envc++;
+				/*if (i != DHCP_MESSAGE_TYPE)*/
+				FOUND_OPTS(i) |= BMASK(i);
 			}
 		}
-		temp = udhcp_get_option(packet, DHCP_OPTION_OVERLOAD);
-		if (temp)
-			overload = *temp;
 	}
-	curr = envp = xzalloc(sizeof(char *) * envc);
+	curr = envp = xzalloc(sizeof(envp[0]) * envc);
 
 	*curr = xasprintf("interface=%s", client_config.interface);
 	putenv(*curr++);
@@ -337,12 +348,16 @@ static char **fill_envp(struct dhcp_packet *packet)
 	opt_name = dhcp_option_strings;
 	i = 0;
 	while (*opt_name) {
-		temp = udhcp_get_option(packet, dhcp_optflags[i].code);
-		if (!temp)
+		uint8_t code = dhcp_optflags[i].code;
+		BITMAP *found_ptr = &FOUND_OPTS(code);
+		BITMAP found_mask = BMASK(code);
+		if (!(*found_ptr & found_mask))
 			goto next;
+		*found_ptr &= ~found_mask; /* leave only unknown options */
+		temp = udhcp_get_option(packet, code);
 		*curr = xmalloc_optname_optval(temp, &dhcp_optflags[i], opt_name);
 		putenv(*curr++);
-		if (dhcp_optflags[i].code == DHCP_SUBNET) {
+		if (code == DHCP_SUBNET) {
 			/* Subnet option: make things like "$ip/$mask" possible */
 			uint32_t subnet;
 			move_from_unaligned32(subnet, temp);
@@ -367,6 +382,28 @@ static char **fill_envp(struct dhcp_packet *packet)
 		/* watch out for invalid packets */
 		*curr = xasprintf("sname=%."DHCP_PKT_SNAME_LEN_STR"s", packet->sname);
 		putenv(*curr++);
+	}
+	/* Handle unknown options */
+	for (i = 0; i < 256;) {
+		BITMAP bitmap = FOUND_OPTS(i);
+		if (!bitmap) {
+			i += BBITS;
+			continue;
+		}
+		if (bitmap & BMASK(i)) {
+			unsigned len, ofs;
+
+			temp = udhcp_get_option(packet, i);
+			/* udhcp_get_option returns ptr to data portion,
+			 * need to go back to get len
+			 */
+			len = temp[-OPT_DATA + OPT_LEN];
+			*curr = xmalloc(sizeof("optNNN=") + 1 + len*2);
+			ofs = sprintf(*curr, "opt%u=", i);
+			bin2hex(*curr + ofs, (void*) temp, len)[0] = '\0';
+			putenv(*curr++);
+		}
+		i++;
 	}
 	return envp;
 }
