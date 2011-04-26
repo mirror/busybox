@@ -107,17 +107,26 @@
 //usage:#define ubirmvol_trivial_usage
 //usage:       "UBI_DEVICE -n VOLID"
 //usage:#define ubirmvol_full_usage "\n\n"
-//usage:       "Remove UBI Volume\n"
+//usage:       "Remove UBI volume\n"
 //usage:     "\nOptions:"
 //usage:     "\n	-n VOLID	Volume ID"
 //usage:
 //usage:#define ubirsvol_trivial_usage
 //usage:       "UBI_DEVICE -n VOLID -s SIZE"
 //usage:#define ubirsvol_full_usage "\n\n"
-//usage:       "Resize UBI Volume\n"
+//usage:       "Resize UBI volume\n"
 //usage:     "\nOptions:"
 //usage:     "\n	-n VOLID	Volume ID to resize"
 //usage:     "\n	-s SIZE		Size in bytes"
+//usage:
+//usage:#define ubiupdatevol_trivial_usage
+//usage:       "UBI_DEVICE [IMG_FILE]"
+//usage:#define ubiupdatevol_full_usage "\n\n"
+//usage:       "Update UBI volume\n"
+//usage:     "\nOptions:"
+//usage:     "\n      -t      Truncate UBI volume"
+//usage:     "\n      -s SIZE Bytes in input (if reading stdin)"
+
 
 int ubi_tools_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
