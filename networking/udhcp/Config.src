@@ -113,6 +113,14 @@ config FEATURE_UDHCP_RFC3397
 	  search lists via option 119, specified in RFC 3397,
 	  and SIP servers option 120, specified in RFC 3361.
 
+config FEATURE_UDHCP_8021Q
+	bool "Support for 802.1Q VLAN parameters"
+	default y
+	depends on UDHCPD || UDHCPC
+	help
+	  If selected, both client and server will support passing of VLAN
+	  ID and priority via options 132 and 133 as per 802.1Q.
+
 config UDHCPC_DEFAULT_SCRIPT
 	string "Absolute path to config script"
 	default "/usr/share/udhcpc/default.script"
