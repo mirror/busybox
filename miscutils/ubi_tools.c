@@ -52,12 +52,12 @@
 //applet:IF_UBIRSVOL(APPLET_ODDNAME(ubirsvol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubirsvol))
 //applet:IF_UBIUPDATEVOL(APPLET_ODDNAME(ubiupdatevol, ubi_tools, BB_DIR_USR_SBIN, BB_SUID_DROP, ubiupdatevol))
 
-//kbuild:lib-$(CONFIG_UBIATTACH) += ubi_attach_detach.o
-//kbuild:lib-$(CONFIG_UBIDETACH) += ubi_attach_detach.o
-//kbuild:lib-$(CONFIG_UBIMKVOL)  += ubi_attach_detach.o
-//kbuild:lib-$(CONFIG_UBIRMVOL)  += ubi_attach_detach.o
-//kbuild:lib-$(CONFIG_UBIRSVOL)  += ubi_attach_detach.o
-//kbuild:lib-$(CONFIG_UBIUPDATEVOL) += ubi_attach_detach.o
+//kbuild:lib-$(CONFIG_UBIATTACH) += ubi_tools.o
+//kbuild:lib-$(CONFIG_UBIDETACH) += ubi_tools.o
+//kbuild:lib-$(CONFIG_UBIMKVOL)  += ubi_tools.o
+//kbuild:lib-$(CONFIG_UBIRMVOL)  += ubi_tools.o
+//kbuild:lib-$(CONFIG_UBIRSVOL)  += ubi_tools.o
+//kbuild:lib-$(CONFIG_UBIUPDATEVOL) += ubi_tools.o
 
 #include "libbb.h"
 #include <mtd/ubi-user.h>
