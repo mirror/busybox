@@ -2846,13 +2846,37 @@ open_list_and_close(const char *device, int user_specified)
 	close_dev_fd();
 }
 
+/* Is it a whole disk? The digit check is still useful
+   for Xen devices for example. */
+static int is_whole_disk(const char *disk)
+{
+	unsigned len;
+	int fd = open(disk, O_RDONLY);
+
+	if (fd != -1) {
+		struct hd_geometry geometry;
+		int err = ioctl(fd, HDIO_GETGEO, &geometry);
+		close(fd);
+		if (!err)
+			return (geometry.start == 0);
+	}
+
+	/* Treat "nameN" as a partition name, not whole disk */
+	/* note: mmcblk0 should work from the geometry check above */
+	len = strlen(disk);
+	if (len != 0 && isdigit(disk[len - 1]))
+		return 0;
+
+	return 1;
+}
+
 /* for fdisk -l: try all things in /proc/partitions
    that look like a partition name (do not end in a digit) */
 static void
 list_devs_in_proc_partititons(void)
 {
 	FILE *procpt;
-	char line[100], ptname[100], devname[120], *s;
+	char line[100], ptname[100], devname[120];
 	int ma, mi, sz;
 
 	procpt = fopen_or_warn("/proc/partitions", "r");
@@ -2861,13 +2885,10 @@ list_devs_in_proc_partititons(void)
 		if (sscanf(line, " %u %u %u %[^\n ]",
 				&ma, &mi, &sz, ptname) != 4)
 			continue;
-		for (s = ptname; *s; s++)
-			continue;
-		/* note: excluding '0': e.g. mmcblk0 is not a partition name! */
-		if (s[-1] >= '1' && s[-1] <= '9')
-			continue;
+
 		sprintf(devname, "/dev/%s", ptname);
-		open_list_and_close(devname, 0);
+		if (is_whole_disk(devname))
+			open_list_and_close(devname, 0);
 	}
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(procpt);
