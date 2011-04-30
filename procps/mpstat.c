@@ -36,11 +36,10 @@
  * We are printing headers in the " IRQNAME/s" form, experimentally
  * anything smaller than 10 chars looks ugly for /proc/softirqs stats.
  */
-#define INTRATE_SCRWIDTH   10
+#define INTRATE_SCRWIDTH      10
 #define INTRATE_SCRWIDTH_STR "10"
 
 /* System files */
-#define SYSFS_DEVCPU      "/sys/devices/system/cpu"
 #define PROCFS_STAT       "/proc/stat"
 #define PROCFS_INTERRUPTS "/proc/interrupts"
 #define PROCFS_SOFTIRQS   "/proc/softirqs"
