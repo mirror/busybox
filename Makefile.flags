@@ -58,14 +58,14 @@ CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 
 #CFLAGS += $(call cc-option,-Wconversion,)
 
 ifneq ($(CONFIG_DEBUG),y)
-CFLAGS += $(call cc-option,-Os,)
+CFLAGS += $(call cc-option,-Os,$(call cc-option,-O2,))
 else
 CFLAGS += $(call cc-option,-g,)
 #CFLAGS += "-D_FORTIFY_SOURCE=2"
 ifeq ($(CONFIG_DEBUG_PESSIMIZE),y)
 CFLAGS += $(call cc-option,-O0,)
 else
-CFLAGS += $(call cc-option,-Os,)
+CFLAGS += $(call cc-option,-Os,$(call cc-option,-O2,))
 endif
 endif
 
