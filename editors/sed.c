@@ -218,8 +218,9 @@ static char *copy_parsing_escapes(const char *string, int len)
 	char *dest = xmalloc(len + 1);
 
 	parse_escapes(dest, string, len, 'n', '\n');
-	/* GNU sed also recognizes \t */
+	/* GNU sed also recognizes \t and \r */
 	parse_escapes(dest, dest, strlen(dest), 't', '\t');
+	parse_escapes(dest, dest, strlen(dest), 'r', '\r');
 	return dest;
 }
 
