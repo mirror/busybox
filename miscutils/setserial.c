@@ -687,7 +687,7 @@ static void serial_set(char **arg, int opts)
 		case CMD_SPD_SHI:
 		case CMD_SPD_WARP:
 		case CMD_SPD_CUST:
-			serinfo.flags &= ASYNC_SPD_MASK;
+			serinfo.flags &= ~ASYNC_SPD_MASK;
 			/* fallthrough */
 		case CMD_FLAG_SAK:
 		case CMD_FLAG_FOURPORT:
