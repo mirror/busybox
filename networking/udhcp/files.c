@@ -80,9 +80,9 @@ static const struct config_keyword keywords[] = {
 	/* keywords with no defaults must be last! */
 	{"option"       , udhcp_str2optset, &server_config.options      , ""},
 	{"opt"          , udhcp_str2optset, &server_config.options      , ""},
-	{"notify_file"  , read_str        , &server_config.notify_file  , ""},
-	{"sname"        , read_str        , &server_config.sname        , ""},
-	{"boot_file"    , read_str        , &server_config.boot_file    , ""},
+	{"notify_file"  , read_str        , &server_config.notify_file  , NULL},
+	{"sname"        , read_str        , &server_config.sname        , NULL},
+	{"boot_file"    , read_str        , &server_config.boot_file    , NULL},
 	{"static_lease" , read_staticlease, &server_config.static_leases, ""},
 };
 enum { KWS_WITH_DEFAULTS = ARRAY_SIZE(keywords) - 6 };
