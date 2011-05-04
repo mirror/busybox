@@ -125,7 +125,7 @@ typedef struct archive_handle_t {
 #define TAR_BLOCK_SIZE 512
 #define NAME_SIZE      100
 #define NAME_SIZE_STR "100"
-typedef struct tar_header_t {       /* byte offset */
+typedef struct tar_header_t {     /* byte offset */
 	char name[NAME_SIZE];     /*   0-99 */
 	char mode[8];             /* 100-107 */
 	char uid[8];              /* 108-115 */

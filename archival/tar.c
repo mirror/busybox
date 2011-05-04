@@ -264,7 +264,8 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	PUT_OCTAL(header.uid, statbuf->st_uid);
 	PUT_OCTAL(header.gid, statbuf->st_gid);
 	memset(header.size, '0', sizeof(header.size)-1); /* Regular file size is handled later */
-	PUT_OCTAL(header.mtime, statbuf->st_mtime);
+	/* users report that files with negative st_mtime cause trouble, so: */
+	PUT_OCTAL(header.mtime, statbuf->st_mtime >= 0 ? statbuf->st_mtime : 0);
 
 	/* Enter the user and group names */
 	safe_strncpy(header.uname, get_cached_username(statbuf->st_uid), sizeof(header.uname));
@@ -316,15 +317,42 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	} else if (S_ISFIFO(statbuf->st_mode)) {
 		header.typeflag = FIFOTYPE;
 	} else if (S_ISREG(statbuf->st_mode)) {
-		if (sizeof(statbuf->st_size) > 4
-		 && statbuf->st_size > (off_t)0777777777777LL
+		/* header.size field is 12 bytes long */
+		/* Does octal-encoded size fit? */
+		uoff_t filesize = statbuf->st_size;
+		if (sizeof(filesize) <= 4
+		 || filesize <= (uoff_t)0777777777777LL
 		) {
+			PUT_OCTAL(header.size, filesize);
+		}
+		/* Does base256-encoded size fit?
+		 * It always does unless off_t is wider than 64 bits.
+		 */
+		else if (ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+#if ULLONG_MAX > 0xffffffffffffffffLL /* 2^64-1 */
+		 && (filesize <= 0x3fffffffffffffffffffffffLL)
+#endif
+		) {
+	                /* GNU tar uses "base-256 encoding" for very large numbers.
+	                 * Encoding is binary, with highest bit always set as a marker
+	                 * and sign in next-highest bit:
+	                 * 80 00 .. 00 - zero
+	                 * bf ff .. ff - largest positive number
+	                 * ff ff .. ff - minus 1
+	                 * c0 00 .. 00 - smallest negative number
+			 */
+			char *p8 = header.size + sizeof(header.size);
+			do {
+				*--p8 = (uint8_t)filesize;
+				filesize >>= 8;
+			} while (p8 != header.size);
+			*p8 |= 0x80;
+		} else {
 			bb_error_msg_and_die("can't store file '%s' "
 				"of size %"OFF_FMT"u, aborting",
 				fileName, statbuf->st_size);
 		}
 		header.typeflag = REGTYPE;
-		PUT_OCTAL(header.size, statbuf->st_size);
 	} else {
 		bb_error_msg("%s: unknown file type", fileName);
 		return FALSE;
