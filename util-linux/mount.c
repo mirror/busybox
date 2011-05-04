@@ -1195,7 +1195,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	noac = 0;
 	nordirplus = 0;
 	retry = 10000;		/* 10000 minutes ~ 1 week */
-	tcp = 0;
+	tcp = 1;			/* nfs-utils uses tcp per default */
 
 	mountprog = MOUNTPROG;
 	mountvers = 0;
