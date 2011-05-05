@@ -398,18 +398,23 @@ static len_and_sockaddr* dup_sockaddr(const len_and_sockaddr *lsa)
 
 
 static int
-wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to)
+wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to, unsigned *timestamp_us, int *left_ms)
 {
 	struct pollfd pfd[1];
 	int read_len = 0;
 
 	pfd[0].fd = rcvsock;
 	pfd[0].events = POLLIN;
-	if (safe_poll(pfd, 1, waittime * 1000) > 0) {
+	if (*left_ms >= 0 && safe_poll(pfd, 1, *left_ms) > 0) {
+		unsigned t;
+
 		read_len = recv_from_to(rcvsock,
 				recv_pkt, sizeof(recv_pkt),
-				/*flags:*/ 0,
+				/*flags:*/ MSG_DONTWAIT,
 				&from_lsa->u.sa, to, from_lsa->len);
+		t = monotonic_us();
+		*left_ms -= (t - *timestamp_us) / 1000;
+		*timestamp_us = t;
 	}
 
 	return read_len;
@@ -730,7 +735,7 @@ packet_ok(int read_len, len_and_sockaddr *from_lsa,
 			type, pr_type(type), icp->icmp6_code);
 
 		read_len -= sizeof(struct icmp6_hdr);
-		for (i = 0; i < read_len ; i++) {
+		for (i = 0; i < read_len; i++) {
 			if (i % 16 == 0)
 				printf("%04x:", i);
 			if (i % 4 == 0)
@@ -819,7 +824,6 @@ print_delta_ms(unsigned t1p, unsigned t2p)
 static int
 common_traceroute_main(int op, char **argv)
 {
-	int i;
 	int minpacket;
 	int tos = 0;
 	int max_ttl = 30;
@@ -973,6 +977,7 @@ common_traceroute_main(int op, char **argv)
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE && defined IP_OPTIONS
 		if (lsrr > 0) {
 			unsigned char optlist[MAX_IPOPTLEN];
+			unsigned size;
 
 			/* final hop */
 			gwlist[lsrr] = dest_lsa->u.sin.sin_addr.s_addr;
@@ -982,14 +987,14 @@ common_traceroute_main(int op, char **argv)
 			optlist[0] = IPOPT_NOP;
 			/* loose source route option */
 			optlist[1] = IPOPT_LSRR;
-			i = lsrr * sizeof(gwlist[0]);
-			optlist[2] = i + 3;
+			size = lsrr * sizeof(gwlist[0]);
+			optlist[2] = size + 3;
 			/* pointer to LSRR addresses */
 			optlist[3] = IPOPT_MINOFF;
-			memcpy(optlist + 4, gwlist, i);
+			memcpy(optlist + 4, gwlist, size);
 
 			if (setsockopt(sndsock, IPPROTO_IP, IP_OPTIONS,
-					(char *)optlist, i + sizeof(gwlist[0])) < 0) {
+					(char *)optlist, size + sizeof(gwlist[0])) < 0) {
 				bb_perror_msg_and_die("IP_OPTIONS");
 			}
 		}
@@ -1103,28 +1108,34 @@ common_traceroute_main(int op, char **argv)
 		int unreachable = 0; /* counter */
 		int gotlastaddr = 0; /* flags */
 		int got_there = 0;
-		int first = 1;
 
 		printf("%2d", ttl);
 		for (probe = 0; probe < nprobes; ++probe) {
 			int read_len;
 			unsigned t1;
 			unsigned t2;
+			int left_ms;
 			struct ip *ip;
 
-			if (!first && pausemsecs > 0)
-				usleep(pausemsecs * 1000);
 			fflush_all();
+			if (probe != 0 && pausemsecs > 0)
+				usleep(pausemsecs * 1000);
 
-			t1 = monotonic_us();
 			send_probe(++seq, ttl);
+			t2 = t1 = monotonic_us();
 
-			first = 0;
-			while ((read_len = wait_for_reply(from_lsa, to)) != 0) {
-				t2 = monotonic_us();
-				i = packet_ok(read_len, from_lsa, to, seq);
+			left_ms = waittime * 1000;
+			while ((read_len = wait_for_reply(from_lsa, to, &t2, &left_ms)) != 0) {
+				int icmp_code;
+
+				/* Recv'ed a packet, or read error */
+				/* t2 = monotonic_us() - set by wait_for_reply */
+
+				if (read_len < 0)
+					continue;
+				icmp_code = packet_ok(read_len, from_lsa, to, seq);
 				/* Skip short packet */
-				if (i == 0)
+				if (icmp_code == 0)
 					continue;
 
 				if (!gotlastaddr
@@ -1143,10 +1154,10 @@ common_traceroute_main(int op, char **argv)
 						printf(" (%d)", ip->ip_ttl);
 
 				/* time exceeded in transit */
-				if (i == -1)
+				if (icmp_code == -1)
 					break;
-				i--;
-				switch (i) {
+				icmp_code--;
+				switch (icmp_code) {
 #if ENABLE_TRACEROUTE6
 				case ICMP6_DST_UNREACH_NOPORT << 8:
 					got_there = 1;
@@ -1219,16 +1230,18 @@ common_traceroute_main(int op, char **argv)
 					++unreachable;
 					break;
 				default:
-					printf(" !<%d>", i);
+					printf(" !<%d>", icmp_code);
 					++unreachable;
 					break;
 				}
 				break;
-			}
+			} /* while (wait and read a packet) */
+
 			/* there was no packet at all? */
 			if (read_len == 0)
 				printf("  *");
-		}
+		} /* for (nprobes) */
+
 		bb_putchar('\n');
 		if (got_there
 		 || (unreachable > 0 && unreachable >= nprobes - 1)
