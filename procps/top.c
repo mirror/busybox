@@ -856,24 +856,22 @@ enum {
 #if ENABLE_FEATURE_USE_TERMIOS
 static unsigned handle_input(unsigned scan_mask, unsigned interval)
 {
-	unsigned char c, *p, buf[64];
-	int len;
+	unsigned char c;
 	struct pollfd pfd[1];
 
 	pfd[0].fd = 0;
 	pfd[0].events = POLLIN;
-	if (safe_poll(pfd, 1, interval * 1000) <= 0)
-		return scan_mask;
 
-	len = safe_read(STDIN_FILENO, &buf, sizeof(buf)-1);
-	if (len <= 0) { /* error/EOF? */
-		option_mask32 |= OPT_EOF;
-		return scan_mask;
-	}
+	while (1) {
+		if (safe_poll(pfd, 1, interval * 1000) <= 0)
+			return scan_mask;
+		interval = 0;
 
-	buf[len] = 0;
-	p = buf;
-	while ((c = *p++) != 0) {
+		if (safe_read(STDIN_FILENO, &c, 1) != 1) { /* error/EOF? */
+			option_mask32 |= OPT_EOF;
+			return scan_mask;
+		}
+
 		if (c == initial_settings.c_cc[VINTR])
 			return EXIT_MASK;
 		if (c == initial_settings.c_cc[VEOF])
@@ -881,9 +879,11 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 		c |= 0x20; /* lowercase */
 		if (c == 'q')
 			return EXIT_MASK;
+
 		if (c == 'n') {
 			IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 			sort_function[0] = pid_sort;
+			continue;
 		}
 		if (c == 'm') {
 			IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
@@ -892,12 +892,14 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 			sort_function[1] = pcpu_sort;
 			sort_function[2] = time_sort;
 # endif
+			continue;
 		}
 # if ENABLE_FEATURE_SHOW_THREADS
 		if (c == 'h'
 		 IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
 		) {
 			scan_mask ^= PSSCAN_TASKS;
+			continue;
 		}
 # endif
 # if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -906,12 +908,14 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 			sort_function[0] = pcpu_sort;
 			sort_function[1] = mem_sort;
 			sort_function[2] = time_sort;
+			continue;
 		}
 		if (c == 't') {
 			IF_FEATURE_TOPMEM(scan_mask = TOP_MASK;)
 			sort_function[0] = time_sort;
 			sort_function[1] = mem_sort;
 			sort_function[2] = pcpu_sort;
+			continue;
 		}
 #  if ENABLE_FEATURE_TOPMEM
 		if (c == 's') {
@@ -920,10 +924,13 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 			prev_hist = NULL;
 			prev_hist_count = 0;
 			sort_field = (sort_field + 1) % NUM_SORT_FIELD;
+			continue;
 		}
 #  endif
-		if (c == 'r')
+		if (c == 'r') {
 			inverted ^= 1;
+			continue;
+		}
 #  if ENABLE_FEATURE_TOP_SMP_CPU
 		/* procps-2.0.18 uses 'C', 3.2.7 uses '1' */
 		if (c == 'c' || c == '1') {
@@ -940,9 +947,11 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 			num_cpus = 0;
 			smp_cpu_info = !smp_cpu_info;
 			get_jiffy_counts();
+			continue;
 		}
 #  endif
 # endif
+		break; /* unknown key -> force refresh */
 	}
 
 	return scan_mask;
@@ -991,7 +1000,9 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
  * echo sss | ./busybox top
  * - shows memory screen
  * echo sss | ./busybox top -bn1 >mem
- * - saves memory screen - the *whole* list, not first NROWS porcesses!
+ * - saves memory screen - the *whole* list, not first NROWS processes!
+ * echo .m.s.s.s.s.s.s.q | ./busybox top -b >z
+ * - saves several different screens, and exits
  *
  * TODO: -i STRING param as a better alternative?
  */
@@ -1165,8 +1176,8 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #if !ENABLE_FEATURE_USE_TERMIOS
 		sleep(interval);
 #else
-		if (option_mask32 & (OPT_b|OPT_EOF))
-			 /* batch mode, or EOF on stdin ("top </dev/null") */
+		if (option_mask32 & OPT_EOF)
+			/* EOF on stdin ("top </dev/null") */
 			sleep(interval);
 		else
 			scan_mask = handle_input(scan_mask, interval);
