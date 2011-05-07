@@ -24,8 +24,6 @@
 #define debug(fmt, ...) ((void)0)
 
 #define MAX_DEVICE_NAME 12
-#define CURRENT          0
-#define LAST             1
 
 #if 1
 typedef unsigned long long cputime_t;
@@ -39,17 +37,32 @@ typedef long icputime_t;
 # define CPUTIME_MAX (~0UL)
 #endif
 
-struct stats_cpu {
-	cputime_t cpu_user;
-	cputime_t cpu_nice;
-	cputime_t cpu_system;
-	cputime_t cpu_idle;
-	cputime_t cpu_iowait;
-	cputime_t cpu_steal;
-	cputime_t cpu_irq;
-	cputime_t cpu_softirq;
-	cputime_t cpu_guest;
+enum {
+	STATS_CPU_USER,
+	STATS_CPU_NICE,
+	STATS_CPU_SYSTEM,
+	STATS_CPU_IDLE,
+	STATS_CPU_IOWAIT,
+	STATS_CPU_IRQ,
+	STATS_CPU_SOFTIRQ,
+	STATS_CPU_STEAL,
+	STATS_CPU_GUEST,
+
+	GLOBAL_UPTIME,
+	SMP_UPTIME,
+
+	N_STATS_CPU,
 };
+
+typedef struct {
+	cputime_t vector[N_STATS_CPU];
+} stats_cpu_t;
+
+typedef struct {
+	stats_cpu_t *prev;
+	stats_cpu_t *curr;
+	cputime_t itv;
+} stats_cpu_pair_t;
 
 struct stats_dev {
 	char dname[MAX_DEVICE_NAME];
@@ -59,24 +72,24 @@ struct stats_dev {
 	unsigned long wr_ops;
 };
 
-/* List of devices entered on the command line */
-struct device_list {
-	char dname[MAX_DEVICE_NAME];
-};
-
 /* Globals. Sort by size and access frequency. */
 struct globals {
 	smallint show_all;
-	unsigned devlist_i;             /* Index to the list of devices */
 	unsigned total_cpus;            /* Number of CPUs */
 	unsigned clk_tck;               /* Number of clock ticks per second */
-	struct device_list *dlist;
+	llist_t *dev_list;              /* List of devices entered on the command line */
 	struct stats_dev *saved_stats_dev;
 	struct tm tmtime;
+	struct {
+		const char *str;
+		unsigned div;
+	} unit;
 };
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	G.unit.str = "Blk"; \
+	G.unit.div = 1; \
 } while (0)
 
 /* Must match option string! */
@@ -104,12 +117,12 @@ static void print_header(void)
 	char buf[16];
 	struct utsname uts;
 
-	if (uname(&uts) < 0)
-		bb_perror_msg_and_die("uname");
+	uname(&uts); /* never fails */
 
+	/* Date representation for the current locale */
 	strftime(buf, sizeof(buf), "%x", &G.tmtime);
 
-	printf("%s %s (%s) \t%s \t_%s_\t(%d CPU)\n\n",
+	printf("%s %s (%s) \t%s \t_%s_\t(%u CPU)\n\n",
 			uts.sysname, uts.release, uts.nodename,
 			buf, uts.machine, G.total_cpus);
 }
@@ -124,6 +137,8 @@ static void get_localtime(struct tm *ptm)
 static void print_timestamp(void)
 {
 	char buf[20];
+	/* %x: date representation for the current locale */
+	/* %X: time representation for the current locale */
 	strftime(buf, sizeof(buf), "%x %X", &G.tmtime);
 	printf("%s\n", buf);
 }
@@ -131,14 +146,12 @@ static void print_timestamp(void)
 static cputime_t get_smp_uptime(void)
 {
 	FILE *fp;
-	char buf[sizeof(long)*3 * 2 + 4];
 	unsigned long sec, dec;
 
 	fp = xfopen_for_read("/proc/uptime");
 
-	if (fgets(buf, sizeof(buf), fp))
-		if (sscanf(buf, "%lu.%lu", &sec, &dec) != 2)
-			bb_error_msg_and_die("can't read /proc/uptime");
+	if (fscanf(fp, "%lu.%lu", &sec, &dec) != 2)
+		bb_error_msg_and_die("can't read '%s'", "/proc/uptime");
 
 	fclose(fp);
 
@@ -146,10 +159,10 @@ static cputime_t get_smp_uptime(void)
 }
 
 /* Fetch CPU statistics from /proc/stat */
-static void get_cpu_statistics(struct stats_cpu *sc)
+static void get_cpu_statistics(stats_cpu_t *sc)
 {
 	FILE *fp;
-	char buf[1024];
+	char buf[1024], *ibuf = buf + 4;
 
 	fp = xfopen_for_read("/proc/stat");
 
@@ -157,28 +170,25 @@ static void get_cpu_statistics(struct stats_cpu *sc)
 
 	while (fgets(buf, sizeof(buf), fp)) {
 		/* Does the line starts with "cpu "? */
-		if (starts_with_cpu(buf) && buf[3] == ' ') {
-			sscanf(buf + 4 + 1,
-				"%"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u %"
-				FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u %"FMT_DATA"u",
-				&sc->cpu_user, &sc->cpu_nice, &sc->cpu_system,
-				&sc->cpu_idle, &sc->cpu_iowait, &sc->cpu_irq,
-				&sc->cpu_softirq, &sc->cpu_steal, &sc->cpu_guest);
+		if (!starts_with_cpu(buf) || buf[3] != ' ') {
+			continue;
 		}
+		for (int i = STATS_CPU_USER; i <= STATS_CPU_GUEST; i++) {
+			ibuf = skip_whitespace(ibuf);
+			sscanf(ibuf, "%"FMT_DATA"u", &sc->vector[i]);
+			if (i != STATS_CPU_GUEST) {
+				sc->vector[GLOBAL_UPTIME] += sc->vector[i];
+			}
+			ibuf = skip_non_whitespace(ibuf);
+		}
+		break;
+	}
+
+	if (this_is_smp()) {
+		sc->vector[SMP_UPTIME] = get_smp_uptime();
 	}
 
 	fclose(fp);
-}
-
-/*
- * Obtain current uptime in jiffies.
- * Uptime is sum of individual CPUs' uptimes.
- */
-static cputime_t get_uptime(const struct stats_cpu *sc)
-{
-	/* NB: Don't include cpu_guest, it is already in cpu_user */
-	return sc->cpu_user + sc->cpu_nice + sc->cpu_system + sc->cpu_idle +
-		+ sc->cpu_iowait + sc->cpu_irq + sc->cpu_steal + sc->cpu_softirq;
 }
 
 static ALWAYS_INLINE cputime_t get_interval(cputime_t old, cputime_t new)
@@ -219,65 +229,51 @@ static double percent_value(cputime_t prev, cputime_t curr, cputime_t itv)
 	return ((double)overflow_safe_sub(prev, curr)) / itv * 100;
 }
 
-static void print_stats_cpu_struct(const struct stats_cpu *p,
-		const struct stats_cpu *c, cputime_t itv)
+static void print_stats_cpu_struct(stats_cpu_pair_t *stats)
 {
+	cputime_t *p = stats->prev->vector;
+	cputime_t *c = stats->curr->vector;
 	printf("         %6.2f  %6.2f  %6.2f  %6.2f  %6.2f  %6.2f\n",
-		percent_value(p->cpu_user   , c->cpu_user   , itv),
-		percent_value(p->cpu_nice   , c->cpu_nice   , itv),
-		percent_value(p->cpu_system + p->cpu_softirq + p->cpu_irq,
-			c->cpu_system + c->cpu_softirq + c->cpu_irq, itv),
-		percent_value(p->cpu_iowait , c->cpu_iowait , itv),
-		percent_value(p->cpu_steal  , c->cpu_steal  , itv),
-		percent_value(p->cpu_idle   , c->cpu_idle   , itv)
+		percent_value(p[STATS_CPU_USER]  , c[STATS_CPU_USER]  , stats->itv),
+		percent_value(p[STATS_CPU_NICE]  , c[STATS_CPU_NICE]  , stats->itv),
+		percent_value(p[STATS_CPU_SYSTEM] + p[STATS_CPU_SOFTIRQ] + p[STATS_CPU_IRQ],
+			c[STATS_CPU_SYSTEM] + c[STATS_CPU_SOFTIRQ] + c[STATS_CPU_IRQ], stats->itv),
+		percent_value(p[STATS_CPU_IOWAIT], c[STATS_CPU_IOWAIT], stats->itv),
+		percent_value(p[STATS_CPU_STEAL] , c[STATS_CPU_STEAL] , stats->itv),
+		percent_value(p[STATS_CPU_IDLE]  , c[STATS_CPU_IDLE]  , stats->itv)
 	);
 }
 
 static void print_stats_dev_struct(const struct stats_dev *p,
 		const struct stats_dev *c, cputime_t itv)
 {
-	int unit = 1;
-
-	if (option_mask32 & OPT_k)
-		unit = 2;
-	else if (option_mask32 & OPT_m)
-		unit = 2048;
-
 	if (option_mask32 & OPT_z)
 		if (p->rd_ops == c->rd_ops && p->wr_ops == c->wr_ops)
 			return;
 
-	printf("%-13s", c->dname);
-	printf(" %8.2f %12.2f %12.2f %10llu %10llu \n",
+	printf("%-13s %8.2f %12.2f %12.2f %10llu %10llu \n", c->dname,
 		percent_value(p->rd_ops + p->wr_ops ,
 		/**/		  c->rd_ops + c->wr_ops , itv),
-		percent_value(p->rd_sectors, c->rd_sectors, itv) / unit,
-		percent_value(p->wr_sectors, c->wr_sectors, itv) / unit,
-		(c->rd_sectors - p->rd_sectors) / unit,
-		(c->wr_sectors - p->wr_sectors) / unit);
+		percent_value(p->rd_sectors, c->rd_sectors, itv) / G.unit.div,
+		percent_value(p->wr_sectors, c->wr_sectors, itv) / G.unit.div,
+		(c->rd_sectors - p->rd_sectors) / G.unit.div,
+		(c->wr_sectors - p->wr_sectors) / G.unit.div);
 }
 
-static void cpu_report(const struct stats_cpu *last,
-		const struct stats_cpu *cur,
-		cputime_t itv)
+static void cpu_report(stats_cpu_pair_t *stats)
 {
 	/* Always print a header */
 	puts("avg-cpu:  %user   %nice %system %iowait  %steal   %idle");
 
 	/* Print current statistics */
-	print_stats_cpu_struct(last, cur, itv);
+	print_stats_cpu_struct(stats);
 }
 
 static void print_devstat_header(void)
 {
-	printf("Device:            tps");
-
-	if (option_mask32 & OPT_m)
-		puts("    MB_read/s    MB_wrtn/s    MB_read    MB_wrtn");
-	else if (option_mask32 & OPT_k)
-		puts("    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn");
-	else
-		puts("   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn");
+	printf("Device:%15s%6s%s/s%6s%s/s%6s%s%6s%s\n", "tps",
+		G.unit.str, "_read", G.unit.str, "_wrtn",
+		G.unit.str, "_read", G.unit.str, "_wrtn");
 }
 
 /*
@@ -287,37 +283,6 @@ static int is_partition(const char *dev)
 {
 	/* Ok, this is naive... */
 	return ((dev[0] - 's') | (dev[1] - 'd') | (dev[2] - 'a')) == 0 && isdigit(dev[3]);
-}
-
-/*
- * Return number of numbers on cmdline.
- * Reasonable values are only 0 (no interval/count specified),
- * 1 (interval specified) and 2 (both interval and count specified)
- */
-static int numbers_on_cmdline(int argc, char *argv[])
-{
-	int sum = 0;
-
-	if (isdigit(argv[argc-1][0]))
-		sum++;
-	if (argc > 2 && isdigit(argv[argc-2][0]))
-		sum++;
-
-	return sum;
-}
-
-static int is_dev_in_dlist(const char *dev)
-{
-	int i;
-
-	/* Go through the device list */
-	for (i = 0; i < G.devlist_i; i++)
-		if (strcmp(G.dlist[i].dname, dev) == 0)
-			/* Found a match */
-			return 1;
-
-	/* No match found */
-	return 0;
 }
 
 static void do_disk_statistics(cputime_t itv)
@@ -356,7 +321,7 @@ static void do_disk_statistics(cputime_t itv)
 			break;
 		}
 
-		if (!G.devlist_i && !is_partition(sd.dname)) {
+		if (!G.dev_list && !is_partition(sd.dname)) {
 			/* User didn't specify device */
 			if (!G.show_all && !sd.rd_ops && !sd.wr_ops) {
 				/* Don't print unused device */
@@ -367,7 +332,7 @@ static void do_disk_statistics(cputime_t itv)
 			i++;
 		} else {
 			/* Is device in device list? */
-			if (is_dev_in_dlist(sd.dname)) {
+			if (llist_find_str(G.dev_list, sd.dname)) {
 				/* Print current statistics */
 				print_stats_dev_struct(&G.saved_stats_dev[i], &sd, itv);
 				G.saved_stats_dev[i] = sd;
@@ -387,28 +352,6 @@ static void dev_report(cputime_t itv)
 
 	/* Fetch current disk statistics */
 	do_disk_statistics(itv);
-}
-
-static void save_to_devlist(const char *dname)
-{
-	int i;
-	struct device_list *tmp = G.dlist;
-
-	if (strncmp(dname, "/dev/", 5) == 0)
-		/* We'll ignore prefix '/dev/' */
-		dname += 5;
-
-	/* Go through the list */
-	for (i = 0; i < G.devlist_i; i++, tmp++)
-		if (strcmp(tmp->dname, dname) == 0)
-			/* Already in the list */
-			return;
-
-	/* Add device name to the list */
-	strncpy(tmp->dname, dname, MAX_DEVICE_NAME - 1);
-
-	/* Update device list index */
-	G.devlist_i++;
 }
 
 static unsigned get_number_of_devices(void)
@@ -440,18 +383,6 @@ static unsigned get_number_of_devices(void)
 	return n;
 }
 
-static int number_of_ALL_on_cmdline(char **argv)
-{
-	int alls = 0;
-
-	/* Iterate over cmd line arguments, count "ALL" */
-	while (*argv)
-		if (strcmp(*argv++, "ALL") == 0)
-			alls++;
-
-	return alls;
-}
-
 //usage:#define iostat_trivial_usage
 //usage:       "[-c] [-d] [-t] [-z] [-k|-m] [ALL|BLOCKDEV...] [INTERVAL [COUNT]]"
 //usage:#define iostat_full_usage "\n\n"
@@ -465,19 +396,17 @@ static int number_of_ALL_on_cmdline(char **argv)
 //usage:     "\n	-m	Use Mb/s"
 
 int iostat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int iostat_main(int argc, char **argv)
+int iostat_main(int argc UNUSED_PARAM, char **argv)
 {
 	int opt, dev_num;
-	unsigned interval = 0;
+	unsigned interval;
 	int count;
-	cputime_t global_uptime[2] = { 0 };
-	cputime_t smp_uptime[2] = { 0 };
-	cputime_t itv;
-	struct stats_cpu stats_cur, stats_last;
+	stats_cpu_t stats_data[2];
+	smallint current_stats;
 
 	INIT_G();
 
-	memset(&stats_last, 0, sizeof(stats_last));
+	memset(&stats_data, 0, sizeof(stats_data));
 
 	/* Get number of clock ticks per sec */
 	G.clk_tck = get_user_hz();
@@ -496,26 +425,24 @@ int iostat_main(int argc, char **argv)
 		opt |= OPT_c + OPT_d;
 
 	argv += optind;
-	argc -= optind;
-
-	dev_num = argc - numbers_on_cmdline(argc, argv);
-	/* We don't want to allocate space for 'ALL' */
-	dev_num -= number_of_ALL_on_cmdline(argv);
-	if (dev_num > 0)
-		/* Make space for device list */
-		G.dlist = xzalloc(sizeof(G.dlist[0]) * dev_num);
 
 	/* Store device names into device list */
+	dev_num = 0;
 	while (*argv && !isdigit(*argv[0])) {
 		if (strcmp(*argv, "ALL") != 0) {
 			/* If not ALL, save device name */
-			save_to_devlist(*argv);
+			char *dev_name = skip_dev_pfx(*argv);
+			if (!llist_find_str(G.dev_list, dev_name)) {
+				llist_add_to(&G.dev_list, dev_name);
+				dev_num++;
+			}
 		} else {
 			G.show_all = 1;
 		}
 		argv++;
 	}
 
+	interval = 0;
 	count = 1;
 	if (*argv) {
 		/* Get interval */
@@ -534,28 +461,46 @@ int iostat_main(int argc, char **argv)
 		);
 	}
 
+	if (opt & OPT_m) {
+		G.unit.str = " MB";
+		G.unit.div = 2048;
+	}
+
+	if (opt & OPT_k) {
+		G.unit.str = " kB";
+		G.unit.div = 2;
+	}
+
+	get_localtime(&G.tmtime);
+
 	/* Display header */
 	print_header();
 
+	current_stats = 0;
 	/* Main loop */
 	for (;;) {
+		stats_cpu_pair_t stats;
+
+		stats.prev = &stats_data[current_stats ^ 1];
+		stats.curr = &stats_data[current_stats];
+
 		/* Fill the time structure */
 		get_localtime(&G.tmtime);
 
 		/* Fetch current CPU statistics */
-		get_cpu_statistics(&stats_cur);
-
-		/* Fetch current uptime */
-		global_uptime[CURRENT] = get_uptime(&stats_cur);
+		get_cpu_statistics(stats.curr);
 
 		/* Get interval */
-		itv = get_interval(global_uptime[LAST], global_uptime[CURRENT]);
+		stats.itv = get_interval(
+			stats.prev->vector[GLOBAL_UPTIME],
+			stats.curr->vector[GLOBAL_UPTIME]
+		);
 
 		if (opt & OPT_t)
 			print_timestamp();
 
 		if (opt & OPT_c) {
-			cpu_report(&stats_last, &stats_cur, itv);
+			cpu_report(&stats);
 			if (opt & OPT_d)
 				/* Separate outputs by a newline */
 				bb_putchar('\n');
@@ -563,32 +508,31 @@ int iostat_main(int argc, char **argv)
 
 		if (opt & OPT_d) {
 			if (this_is_smp()) {
-				smp_uptime[CURRENT] = get_smp_uptime();
-				itv = get_interval(smp_uptime[LAST], smp_uptime[CURRENT]);
-				smp_uptime[LAST] = smp_uptime[CURRENT];
+				stats.itv = get_interval(
+					stats.prev->vector[SMP_UPTIME],
+					stats.curr->vector[SMP_UPTIME]
+				);
 			}
-			dev_report(itv);
+			dev_report(stats.itv);
 		}
+
+		bb_putchar('\n');
 
 		if (count > 0) {
 			if (--count == 0)
 				break;
 		}
 
-		/* Backup current stats */
-		global_uptime[LAST] = global_uptime[CURRENT];
-		stats_last = stats_cur;
+		/* Swap stats */
+		current_stats ^= 1;
 
-		bb_putchar('\n');
 		sleep(interval);
 	}
 
-	bb_putchar('\n');
-
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(&G);
-		free(G.dlist);
+		llist_free(G.dev_list, NULL);
 		free(G.saved_stats_dev);
+		free(&G);
 	}
 
 	return EXIT_SUCCESS;
