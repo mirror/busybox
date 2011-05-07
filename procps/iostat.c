@@ -128,6 +128,23 @@ static void print_timestamp(void)
 	printf("%s\n", buf);
 }
 
+static cputime_t get_smp_uptime(void)
+{
+	FILE *fp;
+	char buf[sizeof(long)*3 * 2 + 4];
+	unsigned long sec, dec;
+
+	fp = xfopen_for_read("/proc/uptime");
+
+	if (fgets(buf, sizeof(buf), fp))
+		if (sscanf(buf, "%lu.%lu", &sec, &dec) != 2)
+			bb_error_msg_and_die("can't read /proc/uptime");
+
+	fclose(fp);
+
+	return (cputime_t)sec * G.clk_tck + dec * G.clk_tck / 100;
+}
+
 /* Fetch CPU statistics from /proc/stat */
 static void get_cpu_statistics(struct stats_cpu *sc)
 {
@@ -151,23 +168,6 @@ static void get_cpu_statistics(struct stats_cpu *sc)
 	}
 
 	fclose(fp);
-}
-
-static cputime_t get_smp_uptime(void)
-{
-	FILE *fp;
-	char buf[sizeof(long)*3 * 2 + 4];
-	unsigned long sec, dec;
-
-	fp = xfopen_for_read("/proc/uptime");
-
-	if (fgets(buf, sizeof(buf), fp))
-		if (sscanf(buf, "%lu.%lu", &sec, &dec) != 2)
-			bb_error_msg_and_die("can't read /proc/uptime");
-
-	fclose(fp);
-
-	return (cputime_t)sec * G.clk_tck + dec * G.clk_tck / 100;
 }
 
 /*
@@ -507,11 +507,12 @@ int iostat_main(int argc, char **argv)
 
 	/* Store device names into device list */
 	while (*argv && !isdigit(*argv[0])) {
-		if (strcmp(*argv, "ALL") != 0)
+		if (strcmp(*argv, "ALL") != 0) {
 			/* If not ALL, save device name */
 			save_to_devlist(*argv);
-		else
+		} else {
 			G.show_all = 1;
+		}
 		argv++;
 	}
 
