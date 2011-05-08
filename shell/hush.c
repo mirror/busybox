@@ -1379,6 +1379,11 @@ enum {
 #endif
 };
 
+static void sigprocmask_set(sigset_t *set)
+{
+	sigprocmask(SIG_SETMASK, set, NULL);
+}
+
 #if ENABLE_HUSH_FAST
 static void SIGCHLD_handler(int sig UNUSED_PARAM)
 {
@@ -5378,18 +5383,15 @@ static void reset_traps_to_defaults(void)
 	 * Stupid. It can be done with *single* &= op, but we can't use
 	 * the fact that G.blocked_set is implemented as a bitmask
 	 * in libc... */
-	mask = (SPECIAL_INTERACTIVE_SIGS >> 1);
-	sig = 1;
-	while (1) {
+	mask = SPECIAL_INTERACTIVE_SIGS;
+	sig = 0;
+	while ((mask >>= 1) != 0) {
+		sig++;
 		if (mask & 1) {
 			/* Careful. Only if no trap or trap is not "" */
 			if (!G.traps || !G.traps[sig] || G.traps[sig][0])
 				sigdelset(&G.blocked_set, sig);
 		}
-		mask >>= 1;
-		if (!mask)
-			break;
-		sig++;
 	}
 	/* Our homegrown sig mask is saner to work with :) */
 	G.non_DFL_mask &= ~SPECIAL_INTERACTIVE_SIGS;
@@ -5411,7 +5413,7 @@ static void reset_traps_to_defaults(void)
 			continue;
 		sigdelset(&G.blocked_set, sig);
 	}
-	sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+	sigprocmask_set(&G.blocked_set);
 }
 
 #else /* !BB_MMU */
@@ -5541,7 +5543,7 @@ static void re_execute_shell(char ***to_free, const char *s,
 
  do_exec:
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
-	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+	sigprocmask_set(&G.inherited_set);
 	execve(bb_busybox_exec_path, argv, pp);
 	/* Fallback. Useful for init=/bin/hush usage etc */
 	if (argv[0][0] == '/')
@@ -6195,7 +6197,7 @@ static void execvp_or_die(char **argv) NORETURN;
 static void execvp_or_die(char **argv)
 {
 	debug_printf_exec("execing '%s'\n", argv[0]);
-	sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+	sigprocmask_set(&G.inherited_set);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't execute '%s'", argv[0]);
 	_exit(127); /* bash compat */
@@ -6327,7 +6329,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 # endif
 			/* Re-exec ourselves */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
-			sigprocmask(SIG_SETMASK, &G.inherited_set, NULL);
+			sigprocmask_set(&G.inherited_set);
 			execv(bb_busybox_exec_path, argv);
 			/* If they called chroot or otherwise made the binary no longer
 			 * executable, fall through */
@@ -7435,83 +7437,88 @@ static void init_sigmasks(void)
 {
 	unsigned sig;
 	unsigned mask;
-	sigset_t old_blocked_set;
-
-	if (!G.inherited_set_is_saved) {
-		sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
-		G.inherited_set = G.blocked_set;
-	}
-	old_blocked_set = G.blocked_set;
-
-	mask = (1 << SIGQUIT);
-	if (G_interactive_fd) {
-		mask = (1 << SIGQUIT) | SPECIAL_INTERACTIVE_SIGS;
-		if (G_saved_tty_pgrp) /* we have ctty, job control sigs work */
-			mask |= SPECIAL_JOB_SIGS;
-	}
-	G.non_DFL_mask = mask;
-
-	sig = 0;
-	while (mask) {
-		if (mask & 1)
-			sigaddset(&G.blocked_set, sig);
-		mask >>= 1;
-		sig++;
-	}
-	sigdelset(&G.blocked_set, SIGCHLD);
-
-	if (memcmp(&old_blocked_set, &G.blocked_set, sizeof(old_blocked_set)) != 0)
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
 
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
 #if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
-	if (!G.inherited_set_is_saved)
+#endif
+	if (!G.inherited_set_is_saved) {
+#if ENABLE_HUSH_FAST
 		signal(SIGCHLD, SIGCHLD_handler);
 #else
-	if (!G.inherited_set_is_saved)
 		signal(SIGCHLD, SIG_DFL);
 #endif
+		sigprocmask(SIG_SETMASK, NULL, &G.blocked_set);
+		G.inherited_set = G.blocked_set;
+	}
+
+	/* Which signals are shell-special? */
+	mask = (1 << SIGQUIT);
+	if (G_interactive_fd) {
+		mask |= SPECIAL_INTERACTIVE_SIGS;
+		if (G_saved_tty_pgrp) /* we have ctty, job control sigs work */
+			mask |= SPECIAL_JOB_SIGS;
+	}
+	G.non_DFL_mask = mask;
+
+	/* Block them. And unblock SIGCHLD */
+	sig = 0;
+	while ((mask >>= 1) != 0) {
+		sig++;
+		if (mask & 1)
+			sigaddset(&G.blocked_set, sig);
+	}
+	sigdelset(&G.blocked_set, SIGCHLD);
+
+	if (memcmp(&G.inherited_set, &G.blocked_set, sizeof(G.inherited_set)) != 0)
+		sigprocmask_set(&G.blocked_set);
 
 	G.inherited_set_is_saved = 1;
 }
 
 #if ENABLE_HUSH_JOB
 /* helper */
-static void maybe_set_to_sigexit(int sig)
+/* Set handlers to restore tty pgrp and exit */
+static void set_fatal_handlers_to_sigexit(void)
 {
 	void (*handler)(int);
+	unsigned fatal_sigs, sig;
+
+	/* We will restore tty pgrp on these signals */
+	fatal_sigs = 0
+		+ (1 << SIGILL ) * HUSH_DEBUG
+		+ (1 << SIGFPE ) * HUSH_DEBUG
+		+ (1 << SIGBUS ) * HUSH_DEBUG
+		+ (1 << SIGSEGV) * HUSH_DEBUG
+		+ (1 << SIGTRAP) * HUSH_DEBUG
+		+ (1 << SIGABRT)
+	/* bash 3.2 seems to handle these just like 'fatal' ones */
+		+ (1 << SIGPIPE)
+		+ (1 << SIGALRM)
+	/* if we are interactive, SIGHUP, SIGTERM and SIGINT are masked.
+	 * if we aren't interactive... but in this case
+	 * we never want to restore pgrp on exit, and this fn is not called */
+		/*+ (1 << SIGHUP )*/
+		/*+ (1 << SIGTERM)*/
+		/*+ (1 << SIGINT )*/
+	;
+
 	/* non_DFL_mask'ed signals are, well, masked,
 	 * no need to set handler for them.
 	 */
-	if (!((G.non_DFL_mask >> sig) & 1)) {
+	fatal_sigs &= ~G.non_DFL_mask;
+
+        /* For each sig in fatal_sigs... */
+	sig = 0;
+	while ((fatal_sigs >>= 1) != 0) {
+		sig++;
+		if (!(fatal_sigs & 1))
+			continue;
 		handler = signal(sig, sigexit);
 		if (handler == SIG_IGN) /* oops... restore back to IGN! */
 			signal(sig, handler);
 	}
-}
-/* Set handlers to restore tty pgrp and exit */
-static void set_fatal_handlers(void)
-{
-	/* We _must_ restore tty pgrp on fatal signals */
-	if (HUSH_DEBUG) {
-		maybe_set_to_sigexit(SIGILL );
-		maybe_set_to_sigexit(SIGFPE );
-		maybe_set_to_sigexit(SIGBUS );
-		maybe_set_to_sigexit(SIGSEGV);
-		maybe_set_to_sigexit(SIGTRAP);
-	} /* else: hush is perfect. what SEGV? */
-	maybe_set_to_sigexit(SIGABRT);
-	/* bash 3.2 seems to handle these just like 'fatal' ones */
-	maybe_set_to_sigexit(SIGPIPE);
-	maybe_set_to_sigexit(SIGALRM);
-	/* if we are interactive, SIGHUP, SIGTERM and SIGINT are masked.
-	 * if we aren't interactive... but in this case
-	 * we never want to restore pgrp on exit, and this fn is not called */
-	/*maybe_set_to_sigexit(SIGHUP );*/
-	/*maybe_set_to_sigexit(SIGTERM);*/
-	/*maybe_set_to_sigexit(SIGINT );*/
 }
 #endif
 
@@ -7769,7 +7776,7 @@ int hush_main(int argc, char **argv)
 						sigaddset(&G.blocked_set, sig);
 					}
 				}
-				sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+				sigprocmask_set(&G.blocked_set);
 			}
 # if ENABLE_HUSH_LOOPS
 			optarg++;
@@ -7910,7 +7917,7 @@ int hush_main(int argc, char **argv)
 
 		if (G_saved_tty_pgrp) {
 			/* Set other signals to restore saved_tty_pgrp */
-			set_fatal_handlers();
+			set_fatal_handlers_to_sigexit();
 			/* Put ourselves in our own process group
 			 * (bash, too, does this only if ctty is available) */
 			bb_setpgrp(); /* is the same as setpgid(our_pid, our_pid); */
@@ -8301,7 +8308,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 				sigdelset(&G.blocked_set, sig);
 			}
 		}
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		sigprocmask_set(&G.blocked_set);
 		return ret;
 	}
 
@@ -8858,7 +8865,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 		 * $
 		 */
 		sigaddset(&G.blocked_set, SIGCHLD);
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		sigprocmask_set(&G.blocked_set);
 		while (1) {
 			checkjobs(NULL);
 			if (errno == ECHILD)
@@ -8875,7 +8882,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 			}
 		}
 		sigdelset(&G.blocked_set, SIGCHLD);
-		sigprocmask(SIG_SETMASK, &G.blocked_set, NULL);
+		sigprocmask_set(&G.blocked_set);
 		return ret;
 	}
 
