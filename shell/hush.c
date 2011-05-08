@@ -795,8 +795,15 @@ struct globals {
 	/* which signals have non-DFL handler (even with no traps set)? */
 	unsigned non_DFL_mask;
 	char **traps; /* char *traps[NSIG] */
-	sigset_t blocked_set;
+	/* Signal mask on the entry to the (top-level) shell. Never modified. */
 	sigset_t inherited_set;
+	/* Starts equal to inherited_set,
+	 * but shell-special signals are added and SIGCHLD is removed.
+	 * When a trap is set/cleared, signal is added to/removed from it:
+	 */
+	sigset_t blocked_set;
+	/* Used by read() */
+	sigset_t detected_set;
 #if HUSH_DEBUG
 	unsigned long memleak_value;
 	int debug_indent;
@@ -1476,6 +1483,17 @@ static int check_and_run_traps(int sig)
 		goto got_sig;
 
 	while (1) {
+		if (!sigisemptyset(&G.detected_set)) {
+			sig = 0;
+			do {
+				sig++;
+				if (sigismember(&G.detected_set, sig)) {
+					sigdelset(&G.detected_set, sig);
+					goto got_sig;
+				}
+			} while (sig < NSIG);
+		}
+
 		sig = sigtimedwait(&G.blocked_set, NULL, &zero_timespec);
 		if (sig <= 0)
 			break;
@@ -8484,6 +8502,32 @@ static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 	return EXIT_SUCCESS;
 }
 
+/* Interruptibility of read builtin in bash
+ * (tested on bash-4.2.8 by sending signals (not by ^C)):
+ *
+ * Empty trap makes read ignore corresponding signal, for any signal.
+ *
+ * SIGINT:
+ * - terminates non-interactive shell;
+ * - interrupts read in interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to command prompt in interactive shell;
+ * - executes trap and returns to read in non-interactive shell;
+ * SIGTERM:
+ * - is ignored (does not interrupt) read in interactive shell;
+ * - terminates non-interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ * SIGHUP:
+ * - terminates shell (regardless of interactivity);
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ */
+/* helper */
+static void record_signal(int sig)
+{
+	sigaddset(&G.detected_set, sig);
+}
 static int FAST_FUNC builtin_read(char **argv)
 {
 	const char *r;
@@ -8491,7 +8535,9 @@ static int FAST_FUNC builtin_read(char **argv)
 	char *opt_p = NULL;
 	char *opt_t = NULL;
 	char *opt_u = NULL;
+	const char *ifs;
 	int read_flags;
+	sigset_t saved_blkd_set;
 
 	/* "!": do not abort on errors.
 	 * Option string must start with "sr" to match BUILTIN_READ_xxx
@@ -8500,16 +8546,64 @@ static int FAST_FUNC builtin_read(char **argv)
 	if (read_flags == (uint32_t)-1)
 		return EXIT_FAILURE;
 	argv += optind;
+	ifs = get_local_var_value("IFS"); /* can be NULL */
+
+ again:
+	/* We need to temporarily unblock and record signals around read */
+
+	saved_blkd_set = G.blocked_set;
+	{
+		unsigned sig;
+		struct sigaction sa, old_sa;
+
+		memset(&sa, 0, sizeof(sa));
+		sigfillset(&sa.sa_mask);
+		/*sa.sa_flags = 0;*/
+		sa.sa_handler = record_signal;
+
+		sig = 0;
+		do {
+			sig++;
+			if (sigismember(&G.blocked_set, sig)) {
+				char *sig_trap = (G.traps && G.traps[sig]) ? G.traps[sig] : NULL;
+				/* If has a nonempty trap... */
+				if ((sig_trap && sig_trap[0])
+				/* ...or has no trap and is SIGINT or SIGHUP */
+				 || (!sig_trap && (sig == SIGINT || sig == SIGHUP))
+				) {
+					sigaction(sig, &sa, &old_sa);
+					if (old_sa.sa_handler == SIG_IGN) /* oops... restore back to IGN! */
+						sigaction_set(sig, &old_sa);
+					else
+						sigdelset(&G.blocked_set, sig);
+				}
+			}
+		} while (sig < NSIG-1);
+	}
+
+	if (memcmp(&saved_blkd_set, &G.blocked_set, sizeof(saved_blkd_set)) != 0)
+		sigprocmask_set(&G.blocked_set);
 
 	r = shell_builtin_read(set_local_var_from_halves,
 		argv,
-		get_local_var_value("IFS"), /* can be NULL */
+		ifs,
 		read_flags,
 		opt_n,
 		opt_p,
 		opt_t,
 		opt_u
 	);
+
+	if (memcmp(&saved_blkd_set, &G.blocked_set, sizeof(saved_blkd_set)) != 0) {
+		G.blocked_set = saved_blkd_set;
+		sigprocmask_set(&G.blocked_set);
+	}
+
+	if ((uintptr_t)r == 1 && errno == EINTR) {
+		unsigned sig = check_and_run_traps(0);
+		if (sig && sig != SIGINT)
+			goto again;
+	}
 
 	if ((uintptr_t)r > 1) {
 		bb_error_msg("%s", r);

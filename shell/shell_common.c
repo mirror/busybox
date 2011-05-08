@@ -36,6 +36,10 @@ int FAST_FUNC is_well_formed_var_name(const char *s, char terminator)
 
 /* read builtin */
 
+/* Needs to be interruptible: shell mush handle traps and shell-special signals
+ * while inside read. To implement this, be sure to not loop on EINTR
+ * and return errno == EINTR reliably.
+ */
 //TODO: use more efficient setvar() which takes a pointer to malloced "VAR=VAL"
 //string. hush naturally has it, and ash has setvareq().
 //Here we can simply store "VAR=" at buffer start and store read data directly
@@ -51,6 +55,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	const char *opt_u
 )
 {
+	unsigned err;
 	unsigned end_ms; /* -t TIMEOUT */
 	int fd; /* -u FD */
 	int nchars; /* -n NUM */
@@ -61,6 +66,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	int bufpos; /* need to be able to hold -1 */
 	int startword;
 	smallint backslash;
+
+	errno = err = 0;
 
 	pp = argv;
 	while (*pp) {
@@ -153,6 +160,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	do {
 		char c;
 
+		errno = 0;
+
 		if (end_ms) {
 			int timeout;
 			struct pollfd pfd[1];
@@ -161,8 +170,9 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 			pfd[0].events = POLLIN;
 			timeout = end_ms - (unsigned)monotonic_ms();
 			if (timeout <= 0 /* already late? */
-			 || safe_poll(pfd, 1, timeout) != 1 /* no? wait... */
+			 || poll(pfd, 1, timeout) != 1 /* no? wait... */
 			) { /* timed out! */
+				err = errno;
 				retval = (const char *)(uintptr_t)1;
 				goto ret;
 			}
@@ -170,7 +180,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 
 		if ((bufpos & 0xff) == 0)
 			buffer = xrealloc(buffer, bufpos + 0x100);
-		if (nonblock_immune_read(fd, &buffer[bufpos], 1) != 1) {
+		if (nonblock_immune_read(fd, &buffer[bufpos], 1, /*loop_on_EINTR:*/ 0) != 1) {
+			err = errno;
 			retval = (const char *)(uintptr_t)1;
 			break;
 		}
@@ -240,6 +251,8 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	free(buffer);
 	if (read_flags & BUILTIN_READ_SILENT)
 		tcsetattr(fd, TCSANOW, &old_tty);
+
+	errno = err;
 	return retval;
 }
 
