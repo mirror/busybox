@@ -283,7 +283,7 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 				char *buf;
 				int len;
 
-				buf = xmalloc_reads(pfd[i].fd, NULL, NULL);
+				buf = xmalloc_reads(pfd[i].fd, NULL);
 				/* buf = "button/power PWRB 00000080 00000000" */
 				len = strlen(buf) - 9;
 				if (len >= 0)

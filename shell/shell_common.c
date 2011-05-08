@@ -170,7 +170,7 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 
 		if ((bufpos & 0xff) == 0)
 			buffer = xrealloc(buffer, bufpos + 0x100);
-		if (nonblock_safe_read(fd, &buffer[bufpos], 1) != 1) {
+		if (nonblock_immune_read(fd, &buffer[bufpos], 1) != 1) {
 			retval = (const char *)(uintptr_t)1;
 			break;
 		}

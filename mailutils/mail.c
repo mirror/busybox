@@ -172,8 +172,8 @@ void FAST_FUNC get_cred_or_die(int fd)
 		G.user = xstrdup(bb_ask(fd, /* timeout: */ 0, "User: "));
 		G.pass = xstrdup(bb_ask(fd, /* timeout: */ 0, "Password: "));
 	} else {
-		G.user = xmalloc_reads(fd, /* pfx: */ NULL, /* maxsize: */ NULL);
-		G.pass = xmalloc_reads(fd, /* pfx: */ NULL, /* maxsize: */ NULL);
+		G.user = xmalloc_reads(fd, /* maxsize: */ NULL);
+		G.pass = xmalloc_reads(fd, /* maxsize: */ NULL);
 	}
 	if (!G.user || !*G.user || !G.pass)
 		bb_error_msg_and_die("no username or password");

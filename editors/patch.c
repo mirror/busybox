@@ -239,7 +239,7 @@ static int apply_one_hunk(void)
 	plist = TT.current_hunk;
 	buf = NULL;
 	if (reverse ? TT.oldlen : TT.newlen) for (;;) {
-		char *data = xmalloc_reads(TT.filein, NULL, NULL);
+		char *data = xmalloc_reads(TT.filein, NULL);
 
 		TT.linenum++;
 

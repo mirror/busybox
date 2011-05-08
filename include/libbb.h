@@ -672,7 +672,7 @@ void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) F
 
 
 extern ssize_t safe_read(int fd, void *buf, size_t count) FAST_FUNC;
-extern ssize_t nonblock_safe_read(int fd, void *buf, size_t count) FAST_FUNC;
+extern ssize_t nonblock_immune_read(int fd, void *buf, size_t count) FAST_FUNC;
 // NB: will return short read on error, not -1,
 // if some data was read before error occurred
 extern ssize_t full_read(int fd, void *buf, size_t count) FAST_FUNC;
@@ -683,7 +683,7 @@ extern ssize_t open_read_close(const char *filename, void *buf, size_t maxsz) FA
 // Reads one line a-la fgets (but doesn't save terminating '\n').
 // Reads byte-by-byte. Useful when it is important to not read ahead.
 // Bytes are appended to pfx (which must be malloced, or NULL).
-extern char *xmalloc_reads(int fd, char *pfx, size_t *maxsz_p) FAST_FUNC;
+extern char *xmalloc_reads(int fd, size_t *maxsz_p) FAST_FUNC;
 /* Reads block up to *maxsz_p (default: INT_MAX - 4095) */
 extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Returns NULL if file can't be opened (default max size: INT_MAX - 4095) */
