@@ -1319,6 +1319,8 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  *    "echo $$; sleep 5 & wait; ls -l" + "kill -INT <pid>"
  *    Example 3: this does not wait 5 sec, but executes ls:
  *    "sleep 5; ls -l" + press ^C
+ *    Example 4: this does not wait and does not execute ls:
+ *    "sleep 5 & wait; ls -l" + press ^C
  *
  * (What happens to signals which are IGN on shell start?)
  * (What happens with signal mask on shell start?)
@@ -1471,13 +1473,13 @@ static int check_and_run_traps(int sig)
 	int last_sig = 0;
 
 	if (sig)
-		goto jump_in;
+		goto got_sig;
+
 	while (1) {
 		sig = sigtimedwait(&G.blocked_set, NULL, &zero_timespec);
 		if (sig <= 0)
 			break;
- jump_in:
-		last_sig = sig;
+ got_sig:
 		if (G.traps && G.traps[sig]) {
 			if (G.traps[sig][0]) {
 				/* We have user-defined handler */
@@ -1488,6 +1490,7 @@ static int check_and_run_traps(int sig)
 				save_rcode = G.last_exitcode;
 				builtin_eval(argv);
 				G.last_exitcode = save_rcode;
+				last_sig = sig;
 			} /* else: "" trap, ignoring signal */
 			continue;
 		}
@@ -1503,6 +1506,7 @@ static int check_and_run_traps(int sig)
 			/* Builtin was ^C'ed, make it look prettier: */
 			bb_putchar('\n');
 			G.flag_SIGINT = 1;
+			last_sig = sig;
 			break;
 #if ENABLE_HUSH_JOB
 		case SIGHUP: {
@@ -1521,6 +1525,11 @@ static int check_and_run_traps(int sig)
 #endif
 		default: /* ignored: */
 			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
+			/* note:
+			 * we dont do 'last_sig = sig' here -> NOT returning this sig.
+			 * example: wait is not interrupted by TERM
+			 * in interactive shell, because TERM is ignored.
+			 */
 			break;
 		}
 	}
@@ -1921,11 +1930,18 @@ static void get_user_input(struct in_str *i)
 # else
 	do {
 		G.flag_SIGINT = 0;
-		fputs(prompt_str, stdout);
+		if (i->last_char == '\0' || i->last_char == '\n') {
+			/* Why check_and_run_traps here? Try this interactively:
+			 * $ trap 'echo INT' INT; (sleep 2; kill -INT $$) &
+			 * $ <[enter], repeatedly...>
+			 * Without check_and_run_traps, handler never runs.
+			 */
+			check_and_run_traps(0);
+			fputs(prompt_str, stdout);
+		}
 		fflush_all();
 		G.user_input_buf[0] = r = fgetc(i->file);
 		/*G.user_input_buf[1] = '\0'; - already is and never changed */
-//do we need check_and_run_traps(0)? (maybe only if stdin)
 	} while (G.flag_SIGINT);
 	i->eof_flag = (r == EOF);
 # endif
@@ -3322,6 +3338,7 @@ static char *fetch_till_str(o_string *as_string,
 	int ch;
 
 	goto jump_in;
+
 	while (1) {
 		ch = i_getch(input);
 		if (ch != EOF)
