@@ -402,7 +402,14 @@ int fbset_main(int argc, char **argv)
 	argv++;
 	argc--;
 	for (; argc > 0 && (thisarg = *argv) != NULL; argc--, argv++) {
-		if (thisarg[0] == '-') for (i = 0; i < ARRAY_SIZE(g_cmdoptions); i++) {
+		if (thisarg[0] != '-') {
+			if (!ENABLE_FEATURE_FBSET_READMODE || argc != 1)
+				bb_show_usage();
+			mode = thisarg;
+			options |= OPT_READMODE;
+			goto contin;
+		}
+		for (i = 0; i < ARRAY_SIZE(g_cmdoptions); i++) {
 			if (strcmp(thisarg + 1, g_cmdoptions[i].name) != 0)
 				continue;
 			if (argc <= g_cmdoptions[i].param_count)
@@ -471,10 +478,7 @@ int fbset_main(int argc, char **argv)
 			argv += g_cmdoptions[i].param_count;
 			goto contin;
 		}
-		if (!ENABLE_FEATURE_FBSET_READMODE || argc != 1)
-			bb_show_usage();
-		mode = *argv;
-		options |= OPT_READMODE;
+		bb_show_usage();
  contin: ;
 	}
 
