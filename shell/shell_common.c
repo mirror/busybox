@@ -159,32 +159,40 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 	bufpos = 0;
 	do {
 		char c;
+		struct pollfd pfd[1];
+		int timeout;
 
-		errno = 0;
+		if ((bufpos & 0xff) == 0)
+			buffer = xrealloc(buffer, bufpos + 0x100);
 
+		timeout = -1;
 		if (end_ms) {
-			int timeout;
-			struct pollfd pfd[1];
-
-			pfd[0].fd = fd;
-			pfd[0].events = POLLIN;
 			timeout = end_ms - (unsigned)monotonic_ms();
-			if (timeout <= 0 /* already late? */
-			 || poll(pfd, 1, timeout) != 1 /* no? wait... */
-			) { /* timed out! */
-				err = errno;
+			if (timeout <= 0) { /* already late? */
 				retval = (const char *)(uintptr_t)1;
 				goto ret;
 			}
 		}
 
-		if ((bufpos & 0xff) == 0)
-			buffer = xrealloc(buffer, bufpos + 0x100);
-		if (nonblock_immune_read(fd, &buffer[bufpos], 1, /*loop_on_EINTR:*/ 0) != 1) {
+		/* We must poll even if timeout is -1:
+		 * we want to be interrupted if signal arrives,
+		 * regardless of SA_RESTART-ness of that signal!
+		 */
+		errno = 0;
+		pfd[0].fd = fd;
+		pfd[0].events = POLLIN;
+		if (poll(pfd, 1, timeout) != 1) {
+			/* timed out, or EINTR */
+			err = errno;
+			retval = (const char *)(uintptr_t)1;
+			goto ret;
+		}
+		if (read(fd, &buffer[bufpos], 1) != 1) {
 			err = errno;
 			retval = (const char *)(uintptr_t)1;
 			break;
 		}
+
 		c = buffer[bufpos];
 		if (c == '\0')
 			continue;

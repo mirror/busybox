@@ -792,8 +792,13 @@ struct globals {
 	unsigned handled_SIGCHLD;
 	smallint we_have_children;
 #endif
-	/* which signals have non-DFL handler (even with no traps set)? */
-	unsigned non_DFL_mask;
+	/* Which signals have non-DFL handler (even with no traps set)?
+	 * Set at the start to:
+	 * (SIGQUIT + maybe SPECIAL_INTERACTIVE_SIGS + maybe SPECIAL_JOB_SIGS)
+	 * SPECIAL_INTERACTIVE_SIGS are cleared after fork.
+	 * Other than these two times, never modified.
+	 */
+	unsigned special_sig_mask;
 	char **traps; /* char *traps[NSIG] */
 	/* Signal mask on the entry to the (top-level) shell. Never modified. */
 	sigset_t inherited_set;
@@ -1341,11 +1346,11 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * After each pipe execution, we extract any pending signals via sigtimedwait()
  * and act on them.
  *
- * unsigned non_DFL_mask: a mask of such "special" signals
+ * unsigned special_sig_mask: a mask of such "special" signals
  * sigset_t blocked_set:  current blocked signal set
  *
  * "trap - SIGxxx":
- *    clear bit in blocked_set unless it is also in non_DFL_mask
+ *    clear bit in blocked_set unless it is also in special_sig_mask
  * "trap 'cmd' SIGxxx":
  *    set bit in blocked_set (even if 'cmd' is '')
  * after [v]fork, if we plan to be a shell:
@@ -5376,7 +5381,7 @@ static void reset_traps_to_defaults(void)
 	 * Testcase: (while :; do :; done) + ^Z should background.
 	 * Same goes for SIGTERM, SIGHUP, SIGINT.
 	 */
-	if (!G.traps && !(G.non_DFL_mask & SPECIAL_INTERACTIVE_SIGS))
+	if (!G.traps && !(G.special_sig_mask & SPECIAL_INTERACTIVE_SIGS))
 		return; /* already no traps and no SPECIAL_INTERACTIVE_SIGS */
 
 	/* Switching off SPECIAL_INTERACTIVE_SIGS.
@@ -5394,10 +5399,10 @@ static void reset_traps_to_defaults(void)
 		}
 	}
 	/* Our homegrown sig mask is saner to work with :) */
-	G.non_DFL_mask &= ~SPECIAL_INTERACTIVE_SIGS;
+	G.special_sig_mask &= ~SPECIAL_INTERACTIVE_SIGS;
 
 	/* Resetting all traps to default except empty ones */
-	mask = G.non_DFL_mask;
+	mask = G.special_sig_mask;
 	if (G.traps) for (sig = 0; sig < NSIG; sig++, mask >>= 1) {
 		if (!G.traps[sig] || !G.traps[sig][0])
 			continue;
@@ -7440,9 +7445,6 @@ static void init_sigmasks(void)
 
 	/* POSIX allows shell to re-enable SIGCHLD
 	 * even if it was SIG_IGN on entry */
-#if ENABLE_HUSH_FAST
-	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
-#endif
 	if (!G.inherited_set_is_saved) {
 #if ENABLE_HUSH_FAST
 		signal(SIGCHLD, SIGCHLD_handler);
@@ -7460,7 +7462,7 @@ static void init_sigmasks(void)
 		if (G_saved_tty_pgrp) /* we have ctty, job control sigs work */
 			mask |= SPECIAL_JOB_SIGS;
 	}
-	G.non_DFL_mask = mask;
+	G.special_sig_mask = mask;
 
 	/* Block them. And unblock SIGCHLD */
 	sig = 0;
@@ -7504,10 +7506,10 @@ static void set_fatal_handlers_to_sigexit(void)
 		/*+ (1 << SIGINT )*/
 	;
 
-	/* non_DFL_mask'ed signals are, well, masked,
+	/* special_sig_mask'ed signals are, well, masked,
 	 * no need to set handler for them.
 	 */
-	fatal_sigs &= ~G.non_DFL_mask;
+	fatal_sigs &= ~G.special_sig_mask;
 
         /* For each sig in fatal_sigs... */
 	sig = 0;
@@ -7571,8 +7573,11 @@ int hush_main(int argc, char **argv)
 	struct variable *shell_ver;
 
 	INIT_G();
-	if (EXIT_SUCCESS) /* if EXIT_SUCCESS == 0, it is already done */
+	if (EXIT_SUCCESS != 0) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
+#if ENABLE_HUSH_FAST
+	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
+#endif
 #if !BB_MMU
 	G.argv0_for_re_execing = argv[0];
 #endif
@@ -8303,7 +8308,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 				/* There was a trap handler, we are removing it
 				 * (if sig has non-DFL handling,
 				 * we don't need to do anything) */
-				if (sig < 32 && (G.non_DFL_mask & (1 << sig)))
+				if (sig < sizeof(G.special_sig_mask)*8 && (G.special_sig_mask & (1 << sig)))
 					continue;
 				sigdelset(&G.blocked_set, sig);
 			}
@@ -8565,7 +8570,7 @@ static int FAST_FUNC builtin_read(char **argv)
 
 		memset(&sa, 0, sizeof(sa));
 		sigfillset(&sa.sa_mask);
-		/*sa.sa_flags = 0;*/
+		sa.sa_flags = SA_RESTART;
 		sa.sa_handler = record_signal;
 
 		sig = 0;
