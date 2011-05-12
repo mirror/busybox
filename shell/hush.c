@@ -1456,13 +1456,15 @@ static void record_pending_signo(int sig)
 static void sigexit(int sig) NORETURN;
 static void sigexit(int sig)
 {
-	/* Disable all signals: job control, SIGPIPE, etc. */
-	sigprocmask_allsigs(SIG_BLOCK);
-
 	/* Careful: we can end up here after [v]fork. Do not restore
 	 * tty pgrp then, only top-level shell process does that */
-	if (G_saved_tty_pgrp && getpid() == G.root_pid)
+	if (G_saved_tty_pgrp && getpid() == G.root_pid) {
+		/* Disable all signals: job control, SIGPIPE, etc.
+		 * Mostly paranoid measure, to prevent infinite SIGTTOU.
+		 */
+		sigprocmask_allsigs(SIG_BLOCK);
 		tcsetpgrp(G_interactive_fd, G_saved_tty_pgrp);
+	}
 
 	/* Not a signal, just exit */
 	if (sig <= 0)
