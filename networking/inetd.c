@@ -1164,12 +1164,17 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	sigaddset(&sa.sa_mask, SIGALRM);
 	sigaddset(&sa.sa_mask, SIGCHLD);
 	sigaddset(&sa.sa_mask, SIGHUP);
+//FIXME: explain why no SA_RESTART
+//FIXME: retry_network_setup is unsafe to run in signal handler (many reasons)!
 	sa.sa_handler = retry_network_setup;
 	sigaction_set(SIGALRM, &sa);
+//FIXME: reread_config_file is unsafe to run in signal handler(many reasons)!
 	sa.sa_handler = reread_config_file;
 	sigaction_set(SIGHUP, &sa);
+//FIXME: reap_child is unsafe to run in signal handler (uses stdio)!
 	sa.sa_handler = reap_child;
 	sigaction_set(SIGCHLD, &sa);
+//FIXME: clean_up_and_exit is unsafe to run in signal handler (uses stdio)!
 	sa.sa_handler = clean_up_and_exit;
 	sigaction_set(SIGTERM, &sa);
 	sa.sa_handler = clean_up_and_exit;
