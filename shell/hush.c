@@ -1489,15 +1489,16 @@ static sighandler_t pick_sighandler(unsigned sig)
 			handler = sigexit;
 #endif
 		/* sig has special handling? */
-		else if (G.special_sig_mask & sigmask)
+		else if (G.special_sig_mask & sigmask) {
 			handler = record_pending_signo;
-			/* TTIN/TTOU/TSTS can't be set to record_pending_signo
+			/* TTIN/TTOU/TSTP can't be set to record_pending_signo
 			 * in order to ignore them: they will be raised
 			 * in an endless loop when we try to do some
 			 * terminal ioctls! We do have to _ignore_ these.
 			 */
 			if (SPECIAL_JOBSTOP_SIGS & sigmask)
 				handler = SIG_IGN;
+		}
 	}
 	return handler;
 }
