@@ -39,7 +39,7 @@
 //usage:	IF_FEATURE_LS_SORTFILES("rSXv")
 //usage:	IF_FEATURE_LS_TIMESTAMPS("ctu")
 //usage:	IF_SELINUX("kKZ") "]"
-//usage:	IF_FEATURE_AUTOWIDTH(" -w WIDTH") " [FILE]..."
+//usage:	IF_FEATURE_AUTOWIDTH(" [-w WIDTH]") " [FILE]..."
 //usage:#define ls_full_usage "\n\n"
 //usage:       "List directory contents\n"
 //usage:     "\nOptions:"
