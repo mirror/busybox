@@ -7,23 +7,6 @@
 #ifndef BB_PLATFORM_H
 #define BB_PLATFORM_H 1
 
-/* Assume all these functions exist by default.  Platforms where it is not
- * true will #undef them below.
- */
-#define HAVE_CLEARENV 1
-#define HAVE_FDATASYNC 1
-#define HAVE_DPRINTF 1
-#define HAVE_MEMRCHR 1
-#define HAVE_MKDTEMP 1
-#define HAVE_PTSNAME_R 1
-#define HAVE_SETBIT 1
-#define HAVE_SIGHANDLER_T 1
-#define HAVE_STPCPY 1
-#define HAVE_STRCASESTR 1
-#define HAVE_STRCHRNUL 1
-#define HAVE_STRSEP 1
-#define HAVE_STRSIGNAL 1
-#define HAVE_VASPRINTF 1
 
 /* Convenience macros to test the version of gcc. */
 #undef __GNUC_PREREQ
@@ -40,10 +23,6 @@
 #  define __restrict
 # endif
 #endif
-
-/* Define macros for some gcc attributes.  This permits us to use the
-   macros freely, and know that they will come into play for the
-   version of gcc in which they are supported.  */
 
 #if !__GNUC_PREREQ(2,7)
 # ifndef __attribute__
@@ -98,7 +77,7 @@
 #endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
-   forces a symbol global.  */
+ * forces a symbol global.  */
 #if __GNUC_PREREQ(4,1)
 # define EXTERNALLY_VISIBLE __attribute__(( visibility("default") ))
 //__attribute__ ((__externally_visible__))
@@ -114,19 +93,11 @@
 #endif
 
 /* We use __extension__ in some places to suppress -pedantic warnings
-   about GCC extensions.  This feature didn't work properly before
-   gcc 2.8.  */
+ * about GCC extensions.  This feature didn't work properly before
+ * gcc 2.8.  */
 #if !__GNUC_PREREQ(2,8)
 # ifndef __extension__
 #  define __extension__
-# endif
-#endif
-
-/* gcc-2.95 had no va_copy but only __va_copy. */
-#if !__GNUC_PREREQ(3,0)
-# include <stdarg.h>
-# if !defined va_copy && defined __va_copy
-#  define va_copy(d,s) __va_copy((d),(s))
 # endif
 #endif
 
@@ -152,6 +123,15 @@
 # define PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 # define POP_SAVED_FUNCTION_VISIBILITY
 #endif
+
+/* gcc-2.95 had no va_copy but only __va_copy. */
+#if !__GNUC_PREREQ(3,0)
+# include <stdarg.h>
+# if !defined va_copy && defined __va_copy
+#  define va_copy(d,s) __va_copy((d),(s))
+# endif
+#endif
+
 
 /* ---- Endian Detection ------------------------------------ */
 
@@ -220,6 +200,7 @@
 # define IF_LITTLE_ENDIAN(...) __VA_ARGS__
 #endif
 
+
 /* ---- Unaligned access ------------------------------------ */
 
 #include <stdint.h>
@@ -252,37 +233,9 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
 } while (0)
 #endif
 
-/* ---- Compiler dependent settings ------------------------- */
 
-#if (defined __digital__ && defined __unix__) \
- || defined __APPLE__ \
- || defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__
-# undef HAVE_CLEARENV
-# undef HAVE_FDATASYNC
-# undef HAVE_MNTENT_H
-# undef HAVE_PTSNAME_R
-# undef HAVE_SYS_STATFS_H
-# undef HAVE_SIGHANDLER_T
-# undef HAVE_XTABS
-# undef HAVE_DPRINTF
-#else
-# define HAVE_MNTENT_H 1
-# define HAVE_SYS_STATFS_H 1
-# define HAVE_XTABS 1
-#endif
+/* ---- Size-saving "small" ints (arch-dependent) ----------- */
 
-/*----- Kernel versioning ------------------------------------*/
-
-#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-
-/* ---- Miscellaneous --------------------------------------- */
-
-#if defined __GLIBC__ || defined __UCLIBC__ \
- || defined __dietlibc__ || defined _NEWLIB_VERSION
-# include <features.h>
-#endif
-
-/* Size-saving "small" ints (arch-dependent) */
 #if defined(i386) || defined(__x86_64__) || defined(__mips__) || defined(__cris__)
 /* add other arches which benefit from this... */
 typedef signed char smallint;
@@ -302,7 +255,34 @@ typedef unsigned smalluint;
 # include <stdbool.h>
 #endif
 
-/* Try to defeat gcc's alignment of "char message[]"-like data */
+
+/*----- Kernel versioning ------------------------------------*/
+
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+
+
+/* ---- Miscellaneous --------------------------------------- */
+
+#if defined __GLIBC__ \
+ || defined __UCLIBC__ \
+ || defined __dietlibc__ \
+ || defined _NEWLIB_VERSION
+# include <features.h>
+#endif
+
+/* Define bb_setpgrp */
+#if defined(__digital__) && defined(__unix__)
+/* use legacy setpgrp(pid_t, pid_t) for now.  move to platform.c */
+# define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me, __me); } while (0)
+#else
+# define bb_setpgrp() setpgrp()
+#endif
+
+/* fdprintf is more readable, we used it before dprintf was standardized */
+#include <unistd.h>
+#define fdprintf dprintf
+
+/* Useful for defeating gcc's alignment of "char message[]"-like data */
 #if 1 /* if needed: !defined(arch1) && !defined(arch2) */
 # define ALIGN1 __attribute__((aligned(1)))
 # define ALIGN2 __attribute__((aligned(2)))
@@ -314,8 +294,7 @@ typedef unsigned smalluint;
 # define ALIGN4
 #endif
 
-
-/* uclibc does not implement daemon() for no-mmu systems.
+/*
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
  * For earlier versions there is no reliable way to check if we are building
  * for a mmu-less system.
@@ -333,12 +312,9 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__digital__) && defined(__unix__)
-
 # include <standards.h>
 # include <inttypes.h>
 # define PRIu32 "u"
-/* use legacy setpgrp(pid_t,pid_t) for now.  move to platform.c */
-# define bb_setpgrp() do { pid_t __me = getpid(); setpgrp(__me, __me); } while (0)
 # if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
 #  define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
 # endif
@@ -351,17 +327,31 @@ typedef unsigned smalluint;
 # if !defined ADJ_TICK && defined MOD_CLKB
 #  define ADJ_TICK MOD_CLKB
 # endif
-
-# undef HAVE_STPCPY
-
-#else
-
-# define bb_setpgrp() setpgrp()
-
 #endif
 
-#include <unistd.h>
-#define fdprintf dprintf
+
+/* ---- Who misses what? ------------------------------------ */
+
+/* Assume all these functions exist by default.  Platforms where it is not
+ * true will #undef them below.
+ */
+#define HAVE_CLEARENV 1
+#define HAVE_FDATASYNC 1
+#define HAVE_DPRINTF 1
+#define HAVE_MEMRCHR 1
+#define HAVE_MKDTEMP 1
+#define HAVE_PTSNAME_R 1
+#define HAVE_SETBIT 1
+#define HAVE_SIGHANDLER_T 1
+#define HAVE_STPCPY 1
+#define HAVE_STRCASESTR 1
+#define HAVE_STRCHRNUL 1
+#define HAVE_STRSEP 1
+#define HAVE_STRSIGNAL 1
+#define HAVE_VASPRINTF 1
+#define HAVE_MNTENT_H 1
+#define HAVE_SYS_STATFS_H 1
+#define HAVE_XTABS 1
 
 #if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
@@ -382,6 +372,23 @@ typedef unsigned smalluint;
 
 #if defined(__FreeBSD__)
 # undef HAVE_STRCHRNUL
+#endif
+
+#if (defined __digital__ && defined __unix__) \
+ || defined __APPLE__ \
+ || defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__
+# undef HAVE_CLEARENV
+# undef HAVE_FDATASYNC
+# undef HAVE_MNTENT_H
+# undef HAVE_PTSNAME_R
+# undef HAVE_SYS_STATFS_H
+# undef HAVE_SIGHANDLER_T
+# undef HAVE_XTABS
+# undef HAVE_DPRINTF
+#endif
+
+#if defined(__digital__) && defined(__unix__)
+# undef HAVE_STPCPY
 #endif
 
 /*

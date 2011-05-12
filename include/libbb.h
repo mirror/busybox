@@ -20,6 +20,12 @@
 #include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
+#if defined __UCLIBC__ /* TODO: and glibc? */
+/* use inlined versions of these: */
+# define sigfillset(s)    __sigfillset(s)
+# define sigemptyset(s)   __sigemptyset(s)
+# define sigisemptyset(s) __sigisemptyset(s)
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
