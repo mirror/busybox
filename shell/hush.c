@@ -815,6 +815,7 @@ struct globals {
 	unsigned long memleak_value;
 	int debug_indent;
 #endif
+	struct sigaction sa;
 	char user_input_buf[ENABLE_FEATURE_EDITING ? CONFIG_FEATURE_EDITING_MAX_LEN : 2];
 };
 #define G (*ptr_to_globals)
@@ -823,6 +824,9 @@ struct globals {
  * is global, thus "G." prefix is a useful hint */
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	/* memset(&G.sa, 0, sizeof(G.sa)); */  \
+	sigfillset(&G.sa.sa_mask); \
+	G.sa.sa_flags = SA_RESTART; \
 } while (0)
 
 
@@ -1414,9 +1418,6 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * Standard says "When a subshell is entered, traps that are not being ignored
  * are set to the default actions". bash interprets it so that traps which
  * are set to '' (ignore) are NOT reset to defaults. We do the same.
- *
- * TODO: don't use signal() to install sighandlers: need to mask ALL signals
- * while handler runs. I saw signal nesting in one strace, race window isn't small.
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -1442,6 +1443,24 @@ static void record_pending_signo(int sig)
 //bb_error_msg("[%d] SIGCHLD_handler: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 	}
 #endif
+}
+
+static sighandler_t install_sighandler(int sig, sighandler_t handler)
+{
+	struct sigaction old_sa;
+
+	/* We could use signal() to install handlers... almost:
+	 * except that we need to mask ALL signals while handlers run.
+	 * I saw signal nesting in strace, race window isn't small.
+	 * SA_RESTART is also needed, but in Linux, signal()
+	 * sets SA_RESTART too.
+	 */
+	/* memset(&G.sa, 0, sizeof(G.sa)); - already done */
+	/* sigfillset(&G.sa.sa_mask);      - already done */
+	/* G.sa.sa_flags = SA_RESTART;     - already done */
+	G.sa.sa_handler = handler;
+	sigaction(sig, &G.sa, &old_sa);
+	return old_sa.sa_handler;
 }
 
 #if ENABLE_HUSH_JOB
@@ -5451,7 +5470,7 @@ static void switch_off_special_sigs(unsigned mask)
 			G.traps[sig] = NULL;
 		}
 		/* We are here only if no trap or trap was not '' */
-		signal(sig, SIG_DFL);
+		install_sighandler(sig, SIG_DFL);
 	}
 }
 
@@ -5496,7 +5515,7 @@ static void reset_traps_to_defaults(void)
 		/* There is no signal for trap 0 (EXIT) */
 		if (sig == 0)
 			continue;
-		signal(sig, pick_sighandler(sig));
+		install_sighandler(sig, pick_sighandler(sig));
 	}
 }
 
@@ -7524,7 +7543,7 @@ static void install_sighandlers(unsigned mask)
 		sig++;
 		if (!(mask & 1))
 			continue;
-		old_handler = signal(sig, pick_sighandler(sig));
+		old_handler = install_sighandler(sig, pick_sighandler(sig));
 		/* POSIX allows shell to re-enable SIGCHLD
 		 * even if it was SIG_IGN on entry.
 		 * Therefore we skip IGN check for it:
@@ -7533,7 +7552,7 @@ static void install_sighandlers(unsigned mask)
 			continue;
 		if (old_handler == SIG_IGN) {
 			/* oops... restore back to IGN, and record this fact */
-			signal(sig, old_handler);
+			install_sighandler(sig, old_handler);
 			if (!G.traps)
 				G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
 			free(G.traps[sig]);
@@ -7854,7 +7873,7 @@ int hush_main(int argc, char **argv)
 				for (sig = 1; sig < NSIG; sig++) {
 					if (empty_trap_mask & (1LL << sig)) {
 						G.traps[sig] = xzalloc(1); /* == xstrdup(""); */
-						signal(sig, SIG_IGN);
+						install_sighandler(sig, SIG_IGN);
 					}
 				}
 			}
@@ -8389,7 +8408,7 @@ static int FAST_FUNC builtin_trap(char **argv)
 			else
 				/* We are removing trap handler */
 				handler = pick_sighandler(sig);
-			signal(sig, handler);
+			install_sighandler(sig, handler);
 		}
 		return ret;
 	}
