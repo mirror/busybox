@@ -805,9 +805,9 @@ struct globals {
 	unsigned special_sig_mask;
 #if ENABLE_HUSH_JOB
 	unsigned fatal_sig_mask;
-#define G_fatal_sig_mask G.fatal_sig_mask
+# define G_fatal_sig_mask G.fatal_sig_mask
 #else
-#define G_fatal_sig_mask 0
+# define G_fatal_sig_mask 0
 #endif
 	char **traps; /* char *traps[NSIG] */
 	sigset_t pending_set;
@@ -1414,6 +1414,9 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * Standard says "When a subshell is entered, traps that are not being ignored
  * are set to the default actions". bash interprets it so that traps which
  * are set to '' (ignore) are NOT reset to defaults. We do the same.
+ *
+ * TODO: don't use signal() to install sighandlers: need to mask ALL signals
+ * while handler runs. I saw signal nesting in one strace, race window isn't small.
  */
 enum {
 	SPECIAL_INTERACTIVE_SIGS = 0
@@ -1486,12 +1489,13 @@ static sighandler_t pick_sighandler(unsigned sig)
 		unsigned sigmask = (1 << sig);
 
 #if ENABLE_HUSH_JOB
-		/* sig is fatal? */
+		/* is sig fatal? */
 		if (G_fatal_sig_mask & sigmask)
 			handler = sigexit;
+		else
 #endif
 		/* sig has special handling? */
-		else if (G.special_sig_mask & sigmask) {
+		if (G.special_sig_mask & sigmask) {
 			handler = record_pending_signo;
 			/* TTIN/TTOU/TSTP can't be set to record_pending_signo
 			 * in order to ignore them: they will be raised
@@ -5604,9 +5608,6 @@ static void re_execute_shell(char ***to_free, const char *s,
 	 * _inside_ group (just before echo 1), it works.
 	 *
 	 * I conclude it means we don't need to pass active traps here.
-	 * Even if we would use signal handlers instead of signal masking
-	 * in order to implement trap handling,
-	 * exec syscall below resets signals to SIG_DFL for us.
 	 */
 	*pp++ = (char *) "-c";
 	*pp++ = (char *) s;
@@ -5623,7 +5624,9 @@ static void re_execute_shell(char ***to_free, const char *s,
 
  do_exec:
 	debug_printf_exec("re_execute_shell pid:%d cmd:'%s'\n", getpid(), s);
-	switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
+	/* Don't propagate SIG_IGN to the child */
+	if (SPECIAL_JOBSTOP_SIGS != 0)
+		switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
 	execve(bb_busybox_exec_path, argv, pp);
 	/* Fallback. Useful for init=/bin/hush usage etc */
 	if (argv[0][0] == '/')
@@ -6277,7 +6280,9 @@ static void execvp_or_die(char **argv) NORETURN;
 static void execvp_or_die(char **argv)
 {
 	debug_printf_exec("execing '%s'\n", argv[0]);
-	switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
+	/* Don't propagate SIG_IGN to the child */
+	if (SPECIAL_JOBSTOP_SIGS != 0)
+		switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
 	execvp(argv[0], argv);
 	bb_perror_msg("can't execute '%s'", argv[0]);
 	_exit(127); /* bash compat */
@@ -6409,7 +6414,9 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 # endif
 			/* Re-exec ourselves */
 			debug_printf_exec("re-execing applet '%s'\n", argv[0]);
-			switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
+			/* Don't propagate SIG_IGN to the child */
+			if (SPECIAL_JOBSTOP_SIGS != 0)
+				switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
 			execv(bb_busybox_exec_path, argv);
 			/* If they called chroot or otherwise made the binary no longer
 			 * executable, fall through */
