@@ -51,14 +51,14 @@
 //usage:     "\n	-d	List directory entries instead of contents"
 //usage:	IF_FEATURE_LS_FOLLOWLINKS(
 //usage:     "\n	-L	Follow symlinks"
-//usage:     "\n	-H	Follow symlinks on command line only"
+//usage:     "\n	-H	Follow symlinks on command line"
 //usage:	)
 //usage:	IF_FEATURE_LS_RECURSIVE(
 //usage:     "\n	-R	Recurse"
 //usage:	)
 //usage:	IF_FEATURE_LS_FILETYPES(
+//usage:     "\n	-p	Append / to dir entries"
 //usage:     "\n	-F	Append indicator (one of */=@|) to entries"
-//usage:     "\n	-p	Append indicator (one of /=@|) to entries"
 //usage:	)
 //usage:     "\n	-l	Long listing format"
 //usage:     "\n	-i	List inode numbers"
@@ -137,9 +137,9 @@ LIST_SIZE       = 1 << 7,
 LIST_DATE_TIME  = 1 << 8,
 LIST_FULLTIME   = 1 << 9,
 LIST_SYMLINK    = 1 << 10,
-LIST_FILETYPE   = 1 << 11,
-LIST_EXEC       = 1 << 12,
-LIST_MASK       = (LIST_EXEC << 1) - 1,
+LIST_FILETYPE   = 1 << 11, /* show / suffix for dirs */
+LIST_CLASSIFY   = 1 << 12, /* requires LIST_FILETYPE, also show *,|,@,= suffixes */
+LIST_MASK       = (LIST_CLASSIFY << 1) - 1,
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 13,      /* 2 or more items? label directories */
@@ -288,7 +288,7 @@ static const uint32_t opt_flags[] = {
 	SORT_VERSION,                /* v */
 #endif
 #if ENABLE_FEATURE_LS_FILETYPES
-	LIST_FILETYPE | LIST_EXEC,   /* F */
+	LIST_FILETYPE | LIST_CLASSIFY, /* F */
 	LIST_FILETYPE,               /* p */
 #endif
 #if ENABLE_FEATURE_LS_RECURSIVE
@@ -396,8 +396,8 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
  *  3/7:multiplexed char/block device)
  * and we use 0 for unknown and 15 for executables (see below) */
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
-#define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-#define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
+/*                       un  fi chr -   dir -  blk  -  file -  link - sock -   - exe */
+#define APPCHAR(mode)   ("\0""|""\0""\0""/""\0""\0""\0""\0""\0""@""\0""=""\0""\0""\0" [TYPEINDEX(mode)])
 /* 036 black foreground              050 black background
    037 red foreground                051 red background
    040 green foreground              052 green background
@@ -408,7 +408,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
    045 gray foreground               057 white background
 */
 #define COLOR(mode) ( \
-	/*un  fi  chr     dir     blk     file    link    sock        exe */ \
+	/*un  fi  chr  -  dir  -  blk  -  file -  link -  sock -   -  exe */ \
 	"\037\043\043\045\042\045\043\043\000\045\044\045\043\045\045\040" \
 	[TYPEINDEX(mode)])
 /* Select normal (0) [actually "reset all"] or bold (1)
@@ -417,7 +417,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
  * Note: coreutils 6.9 uses inverted red for setuid binaries.
  */
 #define ATTR(mode) ( \
-	/*un fi chr   dir   blk   file  link  sock     exe */ \
+	/*un fi chr - dir - blk - file- link- sock- -  exe */ \
 	"\01\00\01\07\01\07\01\07\00\07\01\07\01\07\07\01" \
 	[TYPEINDEX(mode)])
 
@@ -444,7 +444,7 @@ static char append_char(mode_t mode)
 		return '\0';
 	if (S_ISDIR(mode))
 		return '/';
-	if (!(all_fmt & LIST_EXEC))
+	if (!(all_fmt & LIST_CLASSIFY))
 		return '\0';
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return '*';
