@@ -260,7 +260,7 @@ typedef void (*hush_sighandler_t)(int);
  * therefore we don't show them either.
  */
 //usage:#define hush_trivial_usage
-//usage:	"[-nx] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
+//usage:	"[-nxl] [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]"
 //usage:#define hush_full_usage "\n\n"
 //usage:	"Unix shell interpreter"
 
@@ -1493,8 +1493,8 @@ static sighandler_t pick_sighandler(unsigned sig)
 			handler = record_pending_signo;
 			/* TTIN/TTOU/TSTS can't be set to record_pending_signo
 			 * in order to ignore them: they will be raised
-			 * in an endless loop then when we try to do some
-			 * terminal ioctls! We do nave to _ignore_ these.
+			 * in an endless loop when we try to do some
+			 * terminal ioctls! We do have to _ignore_ these.
 			 */
 			if (SPECIAL_JOBSTOP_SIGS & sigmask)
 				handler = SIG_IGN;
@@ -1508,9 +1508,6 @@ static void hush_exit(int exitcode)
 {
 	fflush_all();
 	if (G.exiting <= 0 && G.traps && G.traps[0] && G.traps[0][0]) {
-		/* Prevent recursion:
-		 * trap "echo Hi; exit" EXIT; exit
-		 */
 		char *argv[3];
 		/* argv[0] is unused */
 		argv[1] = G.traps[0];
@@ -5474,7 +5471,8 @@ static void reset_traps_to_defaults(void)
 	G_fatal_sig_mask = 0;
 #endif
 	G.special_sig_mask &= ~SPECIAL_INTERACTIVE_SIGS;
-	/* SIGQUIT and maybe SPECIAL_JOBSTOP_SIGS remain set in G.special_sig_mask */
+	/* SIGQUIT,SIGCHLD and maybe SPECIAL_JOBSTOP_SIGS
+	 * remain set in G.special_sig_mask */
 
 	if (!G.traps)
 		return;
@@ -5537,7 +5535,6 @@ static void re_execute_shell(char ***to_free, const char *s,
 		for (sig = 1; sig < NSIG; sig++) {
 			if (G.traps[sig] && !G.traps[sig][0])
 				empty_trap_mask |= 1LL << sig;
-///vda: optimize
 		}
 	}
 
@@ -7540,9 +7537,6 @@ static void install_special_sighandlers(void)
 {
 	unsigned mask;
 
-	if (G.special_sig_mask != 0)
-		return;
-
 	/* Which signals are shell-special? */
 	mask = (1 << SIGQUIT) | (1 << SIGCHLD);
 	if (G_interactive_fd) {
@@ -7550,9 +7544,12 @@ static void install_special_sighandlers(void)
 		if (G_saved_tty_pgrp) /* we have ctty, job control sigs work */
 			mask |= SPECIAL_JOBSTOP_SIGS;
 	}
-	G.special_sig_mask = mask;
-
-	install_sighandlers(mask);
+	/* Careful, do not re-install handlers we already installed */
+	if (G.special_sig_mask != mask) {
+		unsigned diff = mask & ~G.special_sig_mask;
+		G.special_sig_mask = mask;
+		install_sighandlers(diff);
+	}
 }
 
 #if ENABLE_HUSH_JOB
@@ -7573,17 +7570,14 @@ static void install_fatal_sighandlers(void)
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
 		+ (1 << SIGPIPE)
 		+ (1 << SIGALRM)
-	/* if we are interactive, SIGHUP, SIGTERM and SIGINT are masked.
+	/* if we are interactive, SIGHUP, SIGTERM and SIGINT are special sigs.
 	 * if we aren't interactive... but in this case
-	 * we never want to restore pgrp on exit, and this fn is not called */
+	 * we never want to restore pgrp on exit, and this fn is not called
+	 */
 		/*+ (1 << SIGHUP )*/
 		/*+ (1 << SIGTERM)*/
 		/*+ (1 << SIGINT )*/
 	;
-	/* special_sig_mask'ed signals are set to record_pending_signo
-	 * no need to set handler for them.
-	 */
-	/*mask &= ~G.special_sig_mask; - they never overlap */
 	G_fatal_sig_mask = mask;
 
 	install_sighandlers(mask);
@@ -7632,6 +7626,10 @@ static int set_mode(int state, char mode, const char *o_opt)
 int hush_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hush_main(int argc, char **argv)
 {
+	enum {
+		OPT_login = (1 << 0),
+	};
+	unsigned flags;
 	int opt;
 	unsigned builtin_argc;
 	char **e;
@@ -7735,8 +7733,6 @@ int hush_main(int argc, char **argv)
 # endif
 #endif
 
-	G.global_argc = argc;
-	G.global_argv = argv;
 	/* Initialize some more globals to non-zero values */
 	cmdedit_update_prompt();
 
@@ -7752,14 +7748,14 @@ int hush_main(int argc, char **argv)
 	 * "sh -c <cmds>" or login shell's /etc/profile and friends.
 	 * If we later decide that we are interactive, we run install_special_sighandlers()
 	 * in order to intercept (more) signals.
-//FIXME: re-running is currently most likely broken, it's a no-op.
 	 */
 
 	/* Parse options */
 	/* http://www.opengroup.org/onlinepubs/9699919799/utilities/sh.html */
+	flags = (argv[0] && argv[0][0] == '-') ? OPT_login : 0;
 	builtin_argc = 0;
 	while (1) {
-		opt = getopt(argc, argv, "+c:xins"
+		opt = getopt(argc, argv, "+c:xinsl"
 #if !BB_MMU
 				"<:$:R:V:"
 # if ENABLE_HUSH_FUNCTIONS
@@ -7820,6 +7816,9 @@ int hush_main(int argc, char **argv)
 			/* "-s" means "read from stdin", but this is how we always
 			 * operate, so simply do nothing here. */
 			break;
+		case 'l':
+			flags |= OPT_login;
+			break;
 #if !BB_MMU
 		case '<': /* "big heredoc" support */
 			full_write1_str(optarg);
@@ -7843,7 +7842,6 @@ int hush_main(int argc, char **argv)
 				install_special_sighandlers();
 				G.traps = xzalloc(sizeof(G.traps[0]) * NSIG);
 				for (sig = 1; sig < NSIG; sig++) {
-///vda: fixme: more efficient code
 					if (empty_trap_mask & (1LL << sig)) {
 						G.traps[sig] = xzalloc(1); /* == xstrdup(""); */
 						signal(sig, SIG_IGN);
@@ -7886,13 +7884,18 @@ int hush_main(int argc, char **argv)
 		}
 	} /* option parsing loop */
 
+	/* Skip options. Try "hush -l": $1 should not be "-l"! */
+	G.global_argc = argc - (optind - 1);
+	G.global_argv = argv + (optind - 1);
+	G.global_argv[0] = argv[0];
+
 	if (!G.root_pid) {
 		G.root_pid = getpid();
 		G.root_ppid = getppid();
 	}
 
 	/* If we are login shell... */
-	if (argv[0] && argv[0][0] == '-') {
+	if (flags & OPT_login) {
 		FILE *input;
 		debug_printf("sourcing /etc/profile\n");
 		input = fopen_for_read("/etc/profile");
@@ -7911,17 +7914,17 @@ int hush_main(int argc, char **argv)
 		 */
 	}
 
-	if (argv[optind]) {
+	if (G.global_argv[1]) {
 		FILE *input;
 		/*
 		 * "bash <script>" (which is never interactive (unless -i?))
 		 * sources $BASH_ENV here (without scanning $PATH).
 		 * If called as sh, does the same but with $ENV.
 		 */
-		debug_printf("running script '%s'\n", argv[optind]);
-		G.global_argv = argv + optind;
-		G.global_argc = argc - optind;
-		input = xfopen_for_read(argv[optind]);
+		G.global_argc--;
+		G.global_argv++;
+		debug_printf("running script '%s'\n", G.global_argv[0]);
+		input = xfopen_for_read(G.global_argv[0]);
 		close_on_exec_on(fileno(input));
 		install_special_sighandlers();
 		parse_and_run_file(input);
@@ -7984,7 +7987,7 @@ int hush_main(int argc, char **argv)
 			}
 		}
 
-		/* Block some signals */
+		/* Install more signal handlers */
 		install_special_sighandlers();
 
 		if (G_saved_tty_pgrp) {
