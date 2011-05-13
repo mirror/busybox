@@ -118,11 +118,11 @@
 enum {
 TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
 
-SPLIT_DIR       = 1,
 SPLIT_FILE      = 0,
+SPLIT_DIR       = 1,
 SPLIT_SUBDIR    = 2,
 
-/* Bits in all_fmt: */
+/* Bits in G.all_fmt: */
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
@@ -304,25 +304,63 @@ static const uint32_t opt_flags[] = {
 
 
 /*
- * a directory entry and its stat info are stored here
+ * a directory entry and its stat info
  */
 struct dnode {
-	const char *name;       /* the dir entry name */
-	const char *fullname;   /* the dir entry name */
-	struct dnode *next;     /* point at the next node */
-	smallint fname_allocated;
-	struct stat dstat;      /* the file stat info */
+	const char *name;       /* usually basename, but think "ls -l dir/file" */
+	const char *fullname;   /* full name (usable for stat etc) */
+	struct dnode *dn_next;  /* for linked list */
 	IF_SELINUX(security_context_t sid;)
+	smallint fname_allocated;
+
+	/* Used to avoid re-doing [l]stat at printout stage
+	 * if we already collected needed data in scan stage:
+	 */
+	mode_t    dn_mode_lstat;   /* obtained with lstat, or 0 */
+	mode_t    dn_mode_stat;    /* obtained with stat, or 0 */
+
+//	struct stat dstat;
+// struct stat is huge. We don't need it in full.
+// At least we don't need st_dev and st_blksize,
+// but there are invisible fields as well
+// (such as nanosecond-resolution timespamps)
+// and padding, which we also don't want to store.
+// We also can pre-parse dev_t dn_rdev (in glibc, it's huge).
+// On 32-bit uclibc: dnode size went from 112 to 84 bytes
+//
+	/* Same names as in struct stat, but with dn_ instead of st_ pfx: */
+	mode_t    dn_mode; /* obtained with lstat OR stat, depending on -L etc */
+	off_t     dn_size;
+#if ENABLE_FEATURE_LS_TIMESTAMPS || ENABLE_FEATURE_LS_SORTFILES
+	time_t    dn_atime;
+	time_t    dn_mtime;
+	time_t    dn_ctime;
+#endif
+	ino_t     dn_ino;
+	blkcnt_t  dn_blocks;
+	nlink_t   dn_nlink;
+	uid_t     dn_uid;
+	gid_t     dn_gid;
+	int       dn_rdev_maj;
+	int       dn_rdev_min;
+//	dev_t     dn_dev;
+//	blksize_t dn_blksize;
 };
 
 struct globals {
 #if ENABLE_FEATURE_LS_COLOR
 	smallint show_color;
+# define G_show_color (G.show_color)
+#else
+# define G_show_color 0
 #endif
 	smallint exit_code;
 	unsigned all_fmt;
 #if ENABLE_FEATURE_AUTOWIDTH
-	unsigned terminal_width; // = TERMINAL_WIDTH;
+	unsigned terminal_width;
+# define G_terminal_width (G.terminal_width)
+#else
+# define G_terminal_width TERMINAL_WIDTH
 #endif
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	/* Do time() just once. Saves one syscall per file for "ls -l" */
@@ -330,64 +368,67 @@ struct globals {
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#if ENABLE_FEATURE_LS_COLOR
-# define show_color     (G.show_color    )
-#else
-enum { show_color = 0 };
-#endif
-#define exit_code       (G.exit_code     )
-#define all_fmt         (G.all_fmt       )
-#if ENABLE_FEATURE_AUTOWIDTH
-# define terminal_width (G.terminal_width)
-#else
-enum {
-	terminal_width = TERMINAL_WIDTH,
-};
-#endif
-#define current_time_t (G.current_time_t)
 #define INIT_G() do { \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
-	IF_FEATURE_AUTOWIDTH(terminal_width = TERMINAL_WIDTH;) \
-	IF_FEATURE_LS_TIMESTAMPS(time(&current_time_t);) \
+	IF_FEATURE_AUTOWIDTH(G_terminal_width = TERMINAL_WIDTH;) \
+	IF_FEATURE_LS_TIMESTAMPS(time(&G.current_time_t);) \
 } while (0)
 
 
 static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
 {
-	struct stat dstat;
+	struct stat statbuf;
 	struct dnode *cur;
-	IF_SELINUX(security_context_t sid = NULL;)
+
+	cur = xzalloc(sizeof(*cur));
+	cur->fullname = fullname;
+	cur->name = name;
 
 	if ((option_mask32 & OPT_L) || force_follow) {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled())  {
-			 getfilecon(fullname, &sid);
+			 getfilecon(fullname, &cur->sid);
 		}
 #endif
-		if (stat(fullname, &dstat)) {
+		if (stat(fullname, &statbuf)) {
 			bb_simple_perror_msg(fullname);
-			exit_code = EXIT_FAILURE;
-			return 0;
+			G.exit_code = EXIT_FAILURE;
+			free(cur);
+			return NULL;
 		}
+		cur->dn_mode_stat = statbuf.st_mode;
 	} else {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled()) {
-			lgetfilecon(fullname, &sid);
+			lgetfilecon(fullname, &cur->sid);
 		}
 #endif
-		if (lstat(fullname, &dstat)) {
+		if (lstat(fullname, &statbuf)) {
 			bb_simple_perror_msg(fullname);
-			exit_code = EXIT_FAILURE;
-			return 0;
+			G.exit_code = EXIT_FAILURE;
+			free(cur);
+			return NULL;
 		}
+		cur->dn_mode_lstat = statbuf.st_mode;
 	}
 
-	cur = xmalloc(sizeof(*cur));
-	cur->fullname = fullname;
-	cur->name = name;
-	cur->dstat = dstat;
-	IF_SELINUX(cur->sid = sid;)
+	/* cur->dstat = statbuf: */
+	cur->dn_mode   = statbuf.st_mode  ;
+	cur->dn_size   = statbuf.st_size  ;
+#if ENABLE_FEATURE_LS_TIMESTAMPS || ENABLE_FEATURE_LS_SORTFILES
+	cur->dn_atime  = statbuf.st_atime ;
+	cur->dn_mtime  = statbuf.st_mtime ;
+	cur->dn_ctime  = statbuf.st_ctime ;
+#endif
+	cur->dn_ino    = statbuf.st_ino   ;
+	cur->dn_blocks = statbuf.st_blocks;
+	cur->dn_nlink  = statbuf.st_nlink ;
+	cur->dn_uid    = statbuf.st_uid   ;
+	cur->dn_gid    = statbuf.st_gid   ;
+	cur->dn_rdev_maj = major(statbuf.st_rdev);
+	cur->dn_rdev_min = minor(statbuf.st_rdev);
+
 	return cur;
 }
 
@@ -437,14 +478,14 @@ static char bold(mode_t mode)
 }
 #endif
 
-#if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
+#if ENABLE_FEATURE_LS_FILETYPES
 static char append_char(mode_t mode)
 {
-	if (!(all_fmt & LIST_FILETYPE))
+	if (!(G.all_fmt & LIST_FILETYPE))
 		return '\0';
 	if (S_ISDIR(mode))
 		return '/';
-	if (!(all_fmt & LIST_CLASSIFY))
+	if (!(G.all_fmt & LIST_CLASSIFY))
 		return '\0';
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return '*';
@@ -464,12 +505,14 @@ static unsigned count_dirs(struct dnode **dn, int which)
 		const char *name;
 
 		all++;
-		if (!S_ISDIR((*dn)->dstat.st_mode))
+		if (!S_ISDIR((*dn)->dn_mode))
 			continue;
+
 		name = (*dn)->name;
 		if (which != SPLIT_SUBDIR /* if not requested to skip . / .. */
 		 /* or if it's not . or .. */
-		 || name[0] != '.' || (name[1] && (name[1] != '.' || name[2]))
+		 || name[0] != '.'
+		 || (name[1] && (name[1] != '.' || name[2]))
 		) {
 			dirs++;
 		}
@@ -524,18 +567,22 @@ static struct dnode **splitdnarray(struct dnode **dn, int which)
 
 	/* copy the entrys into the file or dir array */
 	for (d = 0; *dn; dn++) {
-		if (S_ISDIR((*dn)->dstat.st_mode)) {
+		if (S_ISDIR((*dn)->dn_mode)) {
 			const char *name;
 
-			if (!(which & (SPLIT_DIR|SPLIT_SUBDIR)))
+			if (which == SPLIT_FILE)
 				continue;
+
 			name = (*dn)->name;
-			if ((which & SPLIT_DIR)
-			 || name[0]!='.' || (name[1] && (name[1]!='.' || name[2]))
+			if ((which & SPLIT_DIR) /* any dir... */
+			/* ... or not . or .. */
+			 || name[0] != '.'
+			 || (name[1] && (name[1] != '.' || name[2]))
 			) {
 				dnp[d++] = *dn;
 			}
-		} else if (!(which & (SPLIT_DIR|SPLIT_SUBDIR))) {
+		} else
+		if (which == SPLIT_FILE) {
 			dnp[d++] = *dn;
 		}
 	}
@@ -547,22 +594,22 @@ static int sortcmp(const void *a, const void *b)
 {
 	struct dnode *d1 = *(struct dnode **)a;
 	struct dnode *d2 = *(struct dnode **)b;
-	unsigned sort_opts = all_fmt & SORT_MASK;
+	unsigned sort_opts = G.all_fmt & SORT_MASK;
 	off_t dif;
 
 	dif = 0; /* assume SORT_NAME */
 	// TODO: use pre-initialized function pointer
 	// instead of branch forest
 	if (sort_opts == SORT_SIZE) {
-		dif = (d2->dstat.st_size - d1->dstat.st_size);
+		dif = (d2->dn_size - d1->dn_size);
 	} else if (sort_opts == SORT_ATIME) {
-		dif = (d2->dstat.st_atime - d1->dstat.st_atime);
+		dif = (d2->dn_atime - d1->dn_atime);
 	} else if (sort_opts == SORT_CTIME) {
-		dif = (d2->dstat.st_ctime - d1->dstat.st_ctime);
+		dif = (d2->dn_ctime - d1->dn_ctime);
 	} else if (sort_opts == SORT_MTIME) {
-		dif = (d2->dstat.st_mtime - d1->dstat.st_mtime);
+		dif = (d2->dn_mtime - d1->dn_mtime);
 	} else if (sort_opts == SORT_DIR) {
-		dif = S_ISDIR(d2->dstat.st_mode) - S_ISDIR(d1->dstat.st_mode);
+		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
 		/* } else if (sort_opts == SORT_VERSION) { */
 		/* } else if (sort_opts == SORT_EXT) { */
 	}
@@ -583,7 +630,7 @@ static int sortcmp(const void *a, const void *b)
 		}
 	}
 
-	return (all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
+	return (G.all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
 }
 
 static void dnsort(struct dnode **dn, int size)
@@ -661,84 +708,84 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 	unsigned column = 0;
 	char *lpath;
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-	struct stat info;
+	struct stat statbuf;
 	char append;
 #endif
 
 #if ENABLE_FEATURE_LS_FILETYPES
-	append = append_char(dn->dstat.st_mode);
+	append = append_char(dn->dn_mode);
 #endif
 
 	/* Do readlink early, so that if it fails, error message
 	 * does not appear *inside* the "ls -l" line */
 	lpath = NULL;
-	if (all_fmt & LIST_SYMLINK)
-		if (S_ISLNK(dn->dstat.st_mode))
+	if (G.all_fmt & LIST_SYMLINK)
+		if (S_ISLNK(dn->dn_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
 
-	if (all_fmt & LIST_INO)
-		column += printf("%7llu ", (long long) dn->dstat.st_ino);
+	if (G.all_fmt & LIST_INO)
+		column += printf("%7llu ", (long long) dn->dn_ino);
 //TODO: -h should affect -s too:
-	if (all_fmt & LIST_BLOCKS)
-		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dstat.st_blocks >> 1));
-	if (all_fmt & LIST_MODEBITS)
-		column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
-	if (all_fmt & LIST_NLINKS)
-		column += printf("%4lu ", (long) dn->dstat.st_nlink);
-	if (all_fmt & LIST_ID_NUMERIC) {
+	if (G.all_fmt & LIST_BLOCKS)
+		column += printf("%6"OFF_FMT"u ", (off_t) (dn->dn_blocks >> 1));
+	if (G.all_fmt & LIST_MODEBITS)
+		column += printf("%-10s ", (char *) bb_mode_string(dn->dn_mode));
+	if (G.all_fmt & LIST_NLINKS)
+		column += printf("%4lu ", (long) dn->dn_nlink);
+	if (G.all_fmt & LIST_ID_NUMERIC) {
 		if (option_mask32 & OPT_g)
-			column += printf("%-8u ", (int) dn->dstat.st_gid);
+			column += printf("%-8u ", (int) dn->dn_gid);
 		else
 			column += printf("%-8u %-8u ",
-					(int) dn->dstat.st_uid,
-					(int) dn->dstat.st_gid);
+					(int) dn->dn_uid,
+					(int) dn->dn_gid);
 	}
 #if ENABLE_FEATURE_LS_USERNAME
-	else if (all_fmt & LIST_ID_NAME) {
+	else if (G.all_fmt & LIST_ID_NAME) {
 		if (option_mask32 & OPT_g) {
 			column += printf("%-8.8s ",
-				get_cached_groupname(dn->dstat.st_gid));
+				get_cached_groupname(dn->dn_gid));
 		} else {
 			column += printf("%-8.8s %-8.8s ",
-				get_cached_username(dn->dstat.st_uid),
-				get_cached_groupname(dn->dstat.st_gid));
+				get_cached_username(dn->dn_uid),
+				get_cached_groupname(dn->dn_gid));
 		}
 	}
 #endif
-	if (all_fmt & LIST_SIZE) {
-		if (S_ISBLK(dn->dstat.st_mode) || S_ISCHR(dn->dstat.st_mode)) {
+	if (G.all_fmt & LIST_SIZE) {
+		if (S_ISBLK(dn->dn_mode) || S_ISCHR(dn->dn_mode)) {
 			column += printf("%4u, %3u ",
-					(int) major(dn->dstat.st_rdev),
-					(int) minor(dn->dstat.st_rdev));
+					dn->dn_rdev_maj,
+					dn->dn_rdev_min);
 		} else {
 			if (option_mask32 & OPT_h) {
 				column += printf("%"HUMAN_READABLE_MAX_WIDTH_STR"s ",
-					/* print st_size, show one fractional, use suffixes */
-					make_human_readable_str(dn->dstat.st_size, 1, 0)
+					/* print size, show one fractional, use suffixes */
+					make_human_readable_str(dn->dn_size, 1, 0)
 				);
 			} else {
-				column += printf("%9"OFF_FMT"u ", (off_t) dn->dstat.st_size);
+				column += printf("%9"OFF_FMT"u ", dn->dn_size);
 			}
 		}
 	}
 #if ENABLE_FEATURE_LS_TIMESTAMPS
-	if (all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
+	if (G.all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
 		char *filetime;
-		time_t ttime = dn->dstat.st_mtime;
-		if (all_fmt & TIME_ACCESS)
-			ttime = dn->dstat.st_atime;
-		if (all_fmt & TIME_CHANGE)
-			ttime = dn->dstat.st_ctime;
+		time_t ttime = dn->dn_mtime;
+		if (G.all_fmt & TIME_ACCESS)
+			ttime = dn->dn_atime;
+		if (G.all_fmt & TIME_CHANGE)
+			ttime = dn->dn_ctime;
 		filetime = ctime(&ttime);
 		/* filetime's format: "Wed Jun 30 21:49:08 1993\n" */
-		if (all_fmt & LIST_FULLTIME) { /* -e */
+		if (G.all_fmt & LIST_FULLTIME) { /* -e */
 			/* Note: coreutils 8.4 ls --full-time prints:
 			 * 2009-07-13 17:49:27.000000000 +0200
 			 */
 			column += printf("%.24s ", filetime);
 		} else { /* LIST_DATE_TIME */
-			/* current_time_t ~== time(NULL) */
-			time_t age = current_time_t - ttime;
+			/* G.current_time_t ~== time(NULL) */
+			time_t age = G.current_time_t - ttime;
 			printf("%.6s ", filetime + 4); /* "Jun 30" */
 			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 				/* hh:mm if less than 6 months old */
@@ -751,48 +798,52 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 	}
 #endif
 #if ENABLE_SELINUX
-	if (all_fmt & LIST_CONTEXT) {
+	if (G.all_fmt & LIST_CONTEXT) {
 		column += printf("%-32s ", dn->sid ? dn->sid : "unknown");
 		freecon(dn->sid);
 	}
 #endif
 
 #if ENABLE_FEATURE_LS_COLOR
-	if (show_color) {
-		info.st_mode = 0;
-		lstat(dn->fullname, &info);
-		printf("\033[%u;%um", bold(info.st_mode),
-			fgcolor(info.st_mode));
+	if (G_show_color) {
+		mode_t mode = dn->dn_mode_lstat;
+		if (!mode)
+			if (lstat(dn->fullname, &statbuf) == 0)
+				mode = statbuf.st_mode;
+		printf("\033[%u;%um", bold(mode), fgcolor(mode));
 	}
 #endif
 	column += print_name(dn->name);
-	if (show_color) {
+	if (G_show_color) {
 		printf("\033[0m");
 	}
 
 	if (lpath) {
 		printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
-		info.st_mode = 0;
-		stat(dn->fullname, &info);
+		if ((G.all_fmt & LIST_FILETYPE) || G_show_color) {
+			mode_t mode = dn->dn_mode_stat;
+			if (!mode)
+				if (stat(dn->fullname, &statbuf) == 0)
+					mode = statbuf.st_mode;
 # if ENABLE_FEATURE_LS_FILETYPES
-		append = append_char(info.st_mode);
+			append = append_char(mode);
 # endif
-#endif
-#if ENABLE_FEATURE_LS_COLOR
-		if (show_color) {
-			printf("\033[%u;%um", bold(info.st_mode),
-				   fgcolor(info.st_mode));
+# if ENABLE_FEATURE_LS_COLOR
+			if (G_show_color) {
+				printf("\033[%u;%um", bold(mode), fgcolor(mode));
+			}
+# endif
 		}
 #endif
 		column += print_name(lpath) + 4;
-		if (show_color) {
+		free(lpath);
+		if (G_show_color) {
 			printf("\033[0m");
 		}
-		free(lpath);
 	}
 #if ENABLE_FEATURE_LS_FILETYPES
-	if (all_fmt & LIST_FILETYPE) {
+	if (G.all_fmt & LIST_FILETYPE) {
 		if (append) {
 			putchar(append);
 			column++;
@@ -810,7 +861,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 	unsigned nexttab;
 	unsigned column_width = 0; /* used only by STYLE_COLUMNAR */
 
-	if (all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
+	if (G.all_fmt & STYLE_LONG) { /* STYLE_LONG or STYLE_SINGLE */
 		ncols = 1;
 	} else {
 		/* find the longest file name, use that as the column width */
@@ -820,10 +871,10 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 				column_width = len;
 		}
 		column_width += 1 +
-			IF_SELINUX( ((all_fmt & LIST_CONTEXT) ? 33 : 0) + )
-				((all_fmt & LIST_INO) ? 8 : 0) +
-				((all_fmt & LIST_BLOCKS) ? 5 : 0);
-		ncols = (int) (terminal_width / column_width);
+			IF_SELINUX( ((G.all_fmt & LIST_CONTEXT) ? 33 : 0) + )
+				((G.all_fmt & LIST_INO) ? 8 : 0) +
+				((G.all_fmt & LIST_BLOCKS) ? 5 : 0);
+		ncols = (unsigned)G_terminal_width / column_width;
 	}
 
 	if (ncols > 1) {
@@ -840,7 +891,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 	for (row = 0; row < nrows; row++) {
 		for (nc = 0; nc < ncols; nc++) {
 			/* reach into the array based on the column and row */
-			if (all_fmt & DISP_ROWS)
+			if (G.all_fmt & DISP_ROWS)
 				i = (row * ncols) + nc;	/* display across row */
 			else
 				i = (nc * nrows) + row;	/* display by column */
@@ -877,7 +928,7 @@ static off_t calculate_blocks(struct dnode **dn)
 	if (dn) {
 		while (*dn) {
 			/* st_blocks is in 512 byte blocks */
-			blocks += (*dn)->dstat.st_blocks;
+			blocks += (*dn)->dn_blocks;
 			dn++;
 		}
 	}
@@ -901,7 +952,7 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 	*nfiles_p = 0;
 	dir = warn_opendir(path);
 	if (dir == NULL) {
-		exit_code = EXIT_FAILURE;
+		G.exit_code = EXIT_FAILURE;
 		return NULL;	/* could not open the dir */
 	}
 	dn = NULL;
@@ -912,11 +963,11 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 		/* are we going to list the file- it may be . or .. or a hidden file */
 		if (entry->d_name[0] == '.') {
 			if ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))
-			 && !(all_fmt & DISP_DOT)
+			 && !(G.all_fmt & DISP_DOT)
 			) {
 				continue;
 			}
-			if (!(all_fmt & DISP_HIDDEN))
+			if (!(G.all_fmt & DISP_HIDDEN))
 				continue;
 		}
 		fullname = concat_path_file(path, entry->d_name);
@@ -926,7 +977,7 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 			continue;
 		}
 		cur->fname_allocated = 1;
-		cur->next = dn;
+		cur->dn_next = dn;
 		dn = cur;
 		nfiles++;
 	}
@@ -942,7 +993,7 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 	dnp = dnalloc(nfiles);
 	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
 		dnp[i] = dn;	/* save pointer to node in array */
-		dn = dn->next;
+		dn = dn->dn_next;
 		if (!dn)
 			break;
 	}
@@ -957,7 +1008,7 @@ static void showdirs(struct dnode **dn, int first)
 	struct dnode **subdnp;
 
 	for (; *dn; dn++) {
-		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
+		if (G.all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
 			if (!first)
 				bb_putchar('\n');
 			first = 0;
@@ -965,7 +1016,7 @@ static void showdirs(struct dnode **dn, int first)
 		}
 		subdnp = list_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
-		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
+		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG)
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
 #endif
 		if (nfiles > 0) {
@@ -973,7 +1024,7 @@ static void showdirs(struct dnode **dn, int first)
 			dnsort(subdnp, nfiles);
 			showfiles(subdnp, nfiles);
 			if (ENABLE_FEATURE_LS_RECURSIVE
-			 && (all_fmt & DISP_RECURSIVE)
+			 && (G.all_fmt & DISP_RECURSIVE)
 			) {
 				struct dnode **dnd;
 				unsigned dndirs;
@@ -1031,13 +1082,13 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	init_unicode();
 
 	if (ENABLE_FEATURE_LS_SORTFILES)
-		all_fmt = SORT_NAME;
+		G.all_fmt = SORT_NAME;
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* obtain the terminal width */
-	get_terminal_width_height(STDIN_FILENO, &terminal_width, NULL);
+	get_terminal_width_height(STDIN_FILENO, &G_terminal_width, NULL);
 	/* go one less... */
-	terminal_width--;
+	G_terminal_width--;
 #endif
 
 	/* process options */
@@ -1058,7 +1109,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		/* -w NUM: */
 		IF_FEATURE_AUTOWIDTH(":w+");
 	opt = getopt32(argv, ls_options
-		IF_FEATURE_AUTOWIDTH(, NULL, &terminal_width)
+		IF_FEATURE_AUTOWIDTH(, NULL, &G_terminal_width)
 		IF_FEATURE_LS_COLOR(, &color_opt)
 	);
 	for (i = 0; opt_flags[i] != (1U << 31); i++) {
@@ -1066,27 +1117,27 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			uint32_t flags = opt_flags[i];
 
 			if (flags & STYLE_MASK)
-				all_fmt &= ~STYLE_MASK;
+				G.all_fmt &= ~STYLE_MASK;
 			if (flags & SORT_MASK)
-				all_fmt &= ~SORT_MASK;
+				G.all_fmt &= ~SORT_MASK;
 			if (flags & TIME_MASK)
-				all_fmt &= ~TIME_MASK;
+				G.all_fmt &= ~TIME_MASK;
 
-			all_fmt |= flags;
+			G.all_fmt |= flags;
 		}
 	}
 
 #if ENABLE_FEATURE_LS_COLOR
-	/* set show_color = 1/0 */
+	/* set G_show_color = 1/0 */
 	if (ENABLE_FEATURE_LS_COLOR_IS_DEFAULT && isatty(STDOUT_FILENO)) {
 		char *p = getenv("LS_COLORS");
 		/* LS_COLORS is unset, or (not empty && not "none") ? */
 		if (!p || (p[0] && strcmp(p, "none") != 0))
-			show_color = 1;
+			G_show_color = 1;
 	}
 	if (opt & OPT_color) {
 		if (color_opt[0] == 'n')
-			show_color = 0;
+			G_show_color = 0;
 		else switch (index_in_substrings(color_str, color_opt)) {
 		case 3:
 		case 4:
@@ -1095,34 +1146,34 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		case 0:
 		case 1:
 		case 2:
-				show_color = 1;
+				G_show_color = 1;
 			}
 		}
 	}
 #endif
 
 	/* sort out which command line options take precedence */
-	if (ENABLE_FEATURE_LS_RECURSIVE && (all_fmt & DISP_NOLIST))
-		all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
+	if (ENABLE_FEATURE_LS_RECURSIVE && (G.all_fmt & DISP_NOLIST))
+		G.all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
 	if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
-		if (all_fmt & TIME_CHANGE)
-			all_fmt = (all_fmt & ~SORT_MASK) | SORT_CTIME;
-		if (all_fmt & TIME_ACCESS)
-			all_fmt = (all_fmt & ~SORT_MASK) | SORT_ATIME;
+		if (G.all_fmt & TIME_CHANGE)
+			G.all_fmt = (G.all_fmt & ~SORT_MASK) | SORT_CTIME;
+		if (G.all_fmt & TIME_ACCESS)
+			G.all_fmt = (G.all_fmt & ~SORT_MASK) | SORT_ATIME;
 	}
-	if ((all_fmt & STYLE_MASK) != STYLE_LONG) /* not -l? */
-		all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME|LIST_FULLTIME);
+	if ((G.all_fmt & STYLE_MASK) != STYLE_LONG) /* not -l? */
+		G.all_fmt &= ~(LIST_ID_NUMERIC|LIST_ID_NAME|LIST_FULLTIME);
 
 	/* choose a display format if one was not already specified by an option */
-	if (!(all_fmt & STYLE_MASK))
-		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNAR : STYLE_SINGLE);
+	if (!(G.all_fmt & STYLE_MASK))
+		G.all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNAR : STYLE_SINGLE);
 
 	argv += optind;
 	if (!argv[0])
 		*--argv = (char*)".";
 
 	if (argv[1])
-		all_fmt |= DISP_DIRNAME; /* 2 or more items? label directories */
+		G.all_fmt |= DISP_DIRNAME; /* 2 or more items? label directories */
 
 	/* stuff the command line file names into a dnode array */
 	dn = NULL;
@@ -1130,8 +1181,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	do {
 		cur = my_stat(*argv, *argv,
 			/* follow links on command line unless -l, -s or -F: */
-			!((all_fmt & STYLE_MASK) == STYLE_LONG
-			  || (all_fmt & LIST_BLOCKS)
+			!((G.all_fmt & STYLE_MASK) == STYLE_LONG
+			  || (G.all_fmt & LIST_BLOCKS)
 			  || (option_mask32 & OPT_F)
 			)
 			/* ... or if -H: */
@@ -1141,15 +1192,15 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		argv++;
 		if (!cur)
 			continue;
-		cur->fname_allocated = 0;
-		cur->next = dn;
+		/*cur->fname_allocated = 0; - already is */
+		cur->dn_next = dn;
 		dn = cur;
 		nfiles++;
 	} while (*argv);
 
 	/* nfiles _may_ be 0 here - try "ls doesnt_exist" */
 	if (nfiles == 0)
-		return exit_code;
+		return G.exit_code;
 
 	/* now that we know how many files there are
 	 * allocate memory for an array to hold dnode pointers
@@ -1157,12 +1208,12 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	dnp = dnalloc(nfiles);
 	for (i = 0; /* i < nfiles - detected via !dn below */; i++) {
 		dnp[i] = dn;	/* save pointer to node in array */
-		dn = dn->next;
+		dn = dn->dn_next;
 		if (!dn)
 			break;
 	}
 
-	if (all_fmt & DISP_NOLIST) {
+	if (G.all_fmt & DISP_NOLIST) {
 		dnsort(dnp, nfiles);
 		showfiles(dnp, nfiles);
 	} else {
@@ -1183,7 +1234,8 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 				free(dnd);
 		}
 	}
+
 	if (ENABLE_FEATURE_CLEAN_UP)
 		dfree(dnp);
-	return exit_code;
+	return G.exit_code;
 }
