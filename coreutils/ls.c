@@ -326,7 +326,7 @@ struct dnode {
 // (such as nanosecond-resolution timespamps)
 // and padding, which we also don't want to store.
 // We also can pre-parse dev_t dn_rdev (in glibc, it's huge).
-// On 32-bit uclibc: dnode size went from 112 to 84 bytes
+// On 32-bit uclibc: dnode size went from 112 to 84 bytes.
 //
 	/* Same names as in struct stat, but with dn_ instead of st_ pfx: */
 	mode_t    dn_mode; /* obtained with lstat OR stat, depending on -L etc */
@@ -376,61 +376,8 @@ struct globals {
 } while (0)
 
 
-static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
-{
-	struct stat statbuf;
-	struct dnode *cur;
+/*** Output code ***/
 
-	cur = xzalloc(sizeof(*cur));
-	cur->fullname = fullname;
-	cur->name = name;
-
-	if ((option_mask32 & OPT_L) || force_follow) {
-#if ENABLE_SELINUX
-		if (is_selinux_enabled())  {
-			 getfilecon(fullname, &cur->sid);
-		}
-#endif
-		if (stat(fullname, &statbuf)) {
-			bb_simple_perror_msg(fullname);
-			G.exit_code = EXIT_FAILURE;
-			free(cur);
-			return NULL;
-		}
-		cur->dn_mode_stat = statbuf.st_mode;
-	} else {
-#if ENABLE_SELINUX
-		if (is_selinux_enabled()) {
-			lgetfilecon(fullname, &cur->sid);
-		}
-#endif
-		if (lstat(fullname, &statbuf)) {
-			bb_simple_perror_msg(fullname);
-			G.exit_code = EXIT_FAILURE;
-			free(cur);
-			return NULL;
-		}
-		cur->dn_mode_lstat = statbuf.st_mode;
-	}
-
-	/* cur->dstat = statbuf: */
-	cur->dn_mode   = statbuf.st_mode  ;
-	cur->dn_size   = statbuf.st_size  ;
-#if ENABLE_FEATURE_LS_TIMESTAMPS || ENABLE_FEATURE_LS_SORTFILES
-	cur->dn_atime  = statbuf.st_atime ;
-	cur->dn_mtime  = statbuf.st_mtime ;
-	cur->dn_ctime  = statbuf.st_ctime ;
-#endif
-	cur->dn_ino    = statbuf.st_ino   ;
-	cur->dn_blocks = statbuf.st_blocks;
-	cur->dn_nlink  = statbuf.st_nlink ;
-	cur->dn_uid    = statbuf.st_uid   ;
-	cur->dn_gid    = statbuf.st_gid   ;
-	cur->dn_rdev_maj = major(statbuf.st_rdev);
-	cur->dn_rdev_min = minor(statbuf.st_rdev);
-
-	return cur;
-}
 
 /* FYI type values: 1:fifo 2:char 4:dir 6:blk 8:file 10:link 12:socket
  * (various wacky OSes: 13:Sun door 14:BSD whiteout 5:XENIX named file
@@ -493,155 +440,6 @@ static char append_char(mode_t mode)
 }
 #endif
 
-static unsigned count_dirs(struct dnode **dn, int which)
-{
-	unsigned dirs, all;
-
-	if (!dn)
-		return 0;
-
-	dirs = all = 0;
-	for (; *dn; dn++) {
-		const char *name;
-
-		all++;
-		if (!S_ISDIR((*dn)->dn_mode))
-			continue;
-
-		name = (*dn)->name;
-		if (which != SPLIT_SUBDIR /* if not requested to skip . / .. */
-		 /* or if it's not . or .. */
-		 || name[0] != '.'
-		 || (name[1] && (name[1] != '.' || name[2]))
-		) {
-			dirs++;
-		}
-	}
-	return which != SPLIT_FILE ? dirs : all - dirs;
-}
-
-/* get memory to hold an array of pointers */
-static struct dnode **dnalloc(unsigned num)
-{
-	if (num < 1)
-		return NULL;
-
-	num++; /* so that we have terminating NULL */
-	return xzalloc(num * sizeof(struct dnode *));
-}
-
-#if ENABLE_FEATURE_LS_RECURSIVE
-static void dfree(struct dnode **dnp)
-{
-	unsigned i;
-
-	if (dnp == NULL)
-		return;
-
-	for (i = 0; dnp[i]; i++) {
-		struct dnode *cur = dnp[i];
-		if (cur->fname_allocated)
-			free((char*)cur->fullname);
-		free(cur);
-	}
-	free(dnp);
-}
-#else
-#define dfree(...) ((void)0)
-#endif
-
-/* Returns NULL-terminated malloced vector of pointers (or NULL) */
-static struct dnode **splitdnarray(struct dnode **dn, int which)
-{
-	unsigned dncnt, d;
-	struct dnode **dnp;
-
-	if (dn == NULL)
-		return NULL;
-
-	/* count how many dirs or files there are */
-	dncnt = count_dirs(dn, which);
-
-	/* allocate a file array and a dir array */
-	dnp = dnalloc(dncnt);
-
-	/* copy the entrys into the file or dir array */
-	for (d = 0; *dn; dn++) {
-		if (S_ISDIR((*dn)->dn_mode)) {
-			const char *name;
-
-			if (which == SPLIT_FILE)
-				continue;
-
-			name = (*dn)->name;
-			if ((which & SPLIT_DIR) /* any dir... */
-			/* ... or not . or .. */
-			 || name[0] != '.'
-			 || (name[1] && (name[1] != '.' || name[2]))
-			) {
-				dnp[d++] = *dn;
-			}
-		} else
-		if (which == SPLIT_FILE) {
-			dnp[d++] = *dn;
-		}
-	}
-	return dnp;
-}
-
-#if ENABLE_FEATURE_LS_SORTFILES
-static int sortcmp(const void *a, const void *b)
-{
-	struct dnode *d1 = *(struct dnode **)a;
-	struct dnode *d2 = *(struct dnode **)b;
-	unsigned sort_opts = G.all_fmt & SORT_MASK;
-	off_t dif;
-
-	dif = 0; /* assume SORT_NAME */
-	// TODO: use pre-initialized function pointer
-	// instead of branch forest
-	if (sort_opts == SORT_SIZE) {
-		dif = (d2->dn_size - d1->dn_size);
-	} else if (sort_opts == SORT_ATIME) {
-		dif = (d2->dn_atime - d1->dn_atime);
-	} else if (sort_opts == SORT_CTIME) {
-		dif = (d2->dn_ctime - d1->dn_ctime);
-	} else if (sort_opts == SORT_MTIME) {
-		dif = (d2->dn_mtime - d1->dn_mtime);
-	} else if (sort_opts == SORT_DIR) {
-		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
-		/* } else if (sort_opts == SORT_VERSION) { */
-		/* } else if (sort_opts == SORT_EXT) { */
-	}
-	if (dif == 0) {
-		/* sort by name, or tie_breaker for other sorts */
-		if (ENABLE_LOCALE_SUPPORT)
-			dif = strcoll(d1->name, d2->name);
-		else
-			dif = strcmp(d1->name, d2->name);
-	}
-
-	/* Make dif fit into an int */
-	if (sizeof(dif) > sizeof(int)) {
-		enum { BITS_TO_SHIFT = 8 * (sizeof(dif) - sizeof(int)) };
-		/* shift leaving only "int" worth of bits */
-		if (dif != 0) {
-			dif = 1 | (int)((uoff_t)dif >> BITS_TO_SHIFT);
-		}
-	}
-
-	return (G.all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
-}
-
-static void dnsort(struct dnode **dn, int size)
-{
-	qsort(dn, size, sizeof(*dn), sortcmp);
-}
-#else
-#define dnsort(dn, size) ((void)0)
-#endif
-
-
 static unsigned calc_name_len(const char *name)
 {
 	unsigned len;
@@ -663,7 +461,6 @@ static unsigned calc_name_len(const char *name)
 	}
 	return len;
 }
-
 
 /* Return the number of used columns.
  * Note that only STYLE_COLUMNAR uses return value.
@@ -703,7 +500,7 @@ static unsigned print_name(const char *name)
  * Note that only STYLE_COLUMNAR uses return value,
  * STYLE_SINGLE and STYLE_LONG don't care.
  */
-static NOINLINE unsigned list_single(const struct dnode *dn)
+static NOINLINE unsigned display_single(const struct dnode *dn)
 {
 	unsigned column = 0;
 	char *lpath;
@@ -854,7 +651,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 	return column;
 }
 
-static void showfiles(struct dnode **dn, unsigned nfiles)
+static void display_files(struct dnode **dn, unsigned nfiles)
 {
 	unsigned i, ncols, nrows, row, nc;
 	unsigned column;
@@ -902,7 +699,7 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 					column += nexttab + 1;
 				}
 				nexttab = column + column_width;
-				column += list_single(dn[i]);
+				column += display_single(dn[i]);
 			}
 		}
 		putchar('\n');
@@ -911,38 +708,214 @@ static void showfiles(struct dnode **dn, unsigned nfiles)
 }
 
 
-#if ENABLE_DESKTOP
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/ls.html
- * If any of the -l, -n, -s options is specified, each list
- * of files within the directory shall be preceded by a
- * status line indicating the number of file system blocks
- * occupied by files in the directory in 512-byte units if
- * the -k option is not specified, or 1024-byte units if the
- * -k option is specified, rounded up to the next integral
- * number of units.
- */
-/* by Jorgen Overgaard (jorgen AT antistaten.se) */
-static off_t calculate_blocks(struct dnode **dn)
+/*** Dir scanning code ***/
+
+static struct dnode *my_stat(const char *fullname, const char *name, int force_follow)
 {
-	uoff_t blocks = 1;
-	if (dn) {
-		while (*dn) {
-			/* st_blocks is in 512 byte blocks */
-			blocks += (*dn)->dn_blocks;
-			dn++;
+	struct stat statbuf;
+	struct dnode *cur;
+
+	cur = xzalloc(sizeof(*cur));
+	cur->fullname = fullname;
+	cur->name = name;
+
+	if ((option_mask32 & OPT_L) || force_follow) {
+#if ENABLE_SELINUX
+		if (is_selinux_enabled())  {
+			 getfilecon(fullname, &cur->sid);
+		}
+#endif
+		if (stat(fullname, &statbuf)) {
+			bb_simple_perror_msg(fullname);
+			G.exit_code = EXIT_FAILURE;
+			free(cur);
+			return NULL;
+		}
+		cur->dn_mode_stat = statbuf.st_mode;
+	} else {
+#if ENABLE_SELINUX
+		if (is_selinux_enabled()) {
+			lgetfilecon(fullname, &cur->sid);
+		}
+#endif
+		if (lstat(fullname, &statbuf)) {
+			bb_simple_perror_msg(fullname);
+			G.exit_code = EXIT_FAILURE;
+			free(cur);
+			return NULL;
+		}
+		cur->dn_mode_lstat = statbuf.st_mode;
+	}
+
+	/* cur->dstat = statbuf: */
+	cur->dn_mode   = statbuf.st_mode  ;
+	cur->dn_size   = statbuf.st_size  ;
+#if ENABLE_FEATURE_LS_TIMESTAMPS || ENABLE_FEATURE_LS_SORTFILES
+	cur->dn_atime  = statbuf.st_atime ;
+	cur->dn_mtime  = statbuf.st_mtime ;
+	cur->dn_ctime  = statbuf.st_ctime ;
+#endif
+	cur->dn_ino    = statbuf.st_ino   ;
+	cur->dn_blocks = statbuf.st_blocks;
+	cur->dn_nlink  = statbuf.st_nlink ;
+	cur->dn_uid    = statbuf.st_uid   ;
+	cur->dn_gid    = statbuf.st_gid   ;
+	cur->dn_rdev_maj = major(statbuf.st_rdev);
+	cur->dn_rdev_min = minor(statbuf.st_rdev);
+
+	return cur;
+}
+
+static unsigned count_dirs(struct dnode **dn, int which)
+{
+	unsigned dirs, all;
+
+	if (!dn)
+		return 0;
+
+	dirs = all = 0;
+	for (; *dn; dn++) {
+		const char *name;
+
+		all++;
+		if (!S_ISDIR((*dn)->dn_mode))
+			continue;
+
+		name = (*dn)->name;
+		if (which != SPLIT_SUBDIR /* if not requested to skip . / .. */
+		 /* or if it's not . or .. */
+		 || name[0] != '.'
+		 || (name[1] && (name[1] != '.' || name[2]))
+		) {
+			dirs++;
+		}
+	}
+	return which != SPLIT_FILE ? dirs : all - dirs;
+}
+
+/* get memory to hold an array of pointers */
+static struct dnode **dnalloc(unsigned num)
+{
+	if (num < 1)
+		return NULL;
+
+	num++; /* so that we have terminating NULL */
+	return xzalloc(num * sizeof(struct dnode *));
+}
+
+#if ENABLE_FEATURE_LS_RECURSIVE
+static void dfree(struct dnode **dnp)
+{
+	unsigned i;
+
+	if (dnp == NULL)
+		return;
+
+	for (i = 0; dnp[i]; i++) {
+		struct dnode *cur = dnp[i];
+		if (cur->fname_allocated)
+			free((char*)cur->fullname);
+		free(cur);
+	}
+	free(dnp);
+}
+#else
+#define dfree(...) ((void)0)
+#endif
+
+/* Returns NULL-terminated malloced vector of pointers (or NULL) */
+static struct dnode **splitdnarray(struct dnode **dn, int which)
+{
+	unsigned dncnt, d;
+	struct dnode **dnp;
+
+	if (dn == NULL)
+		return NULL;
+
+	/* count how many dirs or files there are */
+	dncnt = count_dirs(dn, which);
+
+	/* allocate a file array and a dir array */
+	dnp = dnalloc(dncnt);
+
+	/* copy the entrys into the file or dir array */
+	for (d = 0; *dn; dn++) {
+		if (S_ISDIR((*dn)->dn_mode)) {
+			const char *name;
+
+			if (which == SPLIT_FILE)
+				continue;
+
+			name = (*dn)->name;
+			if ((which & SPLIT_DIR) /* any dir... */
+			/* ... or not . or .. */
+			 || name[0] != '.'
+			 || (name[1] && (name[1] != '.' || name[2]))
+			) {
+				dnp[d++] = *dn;
+			}
+		} else
+		if (which == SPLIT_FILE) {
+			dnp[d++] = *dn;
+		}
+	}
+	return dnp;
+}
+
+#if ENABLE_FEATURE_LS_SORTFILES
+static int sortcmp(const void *a, const void *b)
+{
+	struct dnode *d1 = *(struct dnode **)a;
+	struct dnode *d2 = *(struct dnode **)b;
+	unsigned sort_opts = G.all_fmt & SORT_MASK;
+	off_t dif;
+
+	dif = 0; /* assume SORT_NAME */
+	// TODO: use pre-initialized function pointer
+	// instead of branch forest
+	if (sort_opts == SORT_SIZE) {
+		dif = (d2->dn_size - d1->dn_size);
+	} else if (sort_opts == SORT_ATIME) {
+		dif = (d2->dn_atime - d1->dn_atime);
+	} else if (sort_opts == SORT_CTIME) {
+		dif = (d2->dn_ctime - d1->dn_ctime);
+	} else if (sort_opts == SORT_MTIME) {
+		dif = (d2->dn_mtime - d1->dn_mtime);
+	} else if (sort_opts == SORT_DIR) {
+		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
+		/* } else if (sort_opts == SORT_VERSION) { */
+		/* } else if (sort_opts == SORT_EXT) { */
+	}
+	if (dif == 0) {
+		/* sort by name, or tie_breaker for other sorts */
+		if (ENABLE_LOCALE_SUPPORT)
+			dif = strcoll(d1->name, d2->name);
+		else
+			dif = strcmp(d1->name, d2->name);
+	}
+
+	/* Make dif fit into an int */
+	if (sizeof(dif) > sizeof(int)) {
+		enum { BITS_TO_SHIFT = 8 * (sizeof(dif) - sizeof(int)) };
+		/* shift leaving only "int" worth of bits */
+		if (dif != 0) {
+			dif = 1 | (int)((uoff_t)dif >> BITS_TO_SHIFT);
 		}
 	}
 
-	/* Even though standard says use 512 byte blocks, coreutils use 1k */
-	/* Actually, we round up by calculating (blocks + 1) / 2,
-	 * "+ 1" was done when we initialized blocks to 1 */
-	return blocks >> 1;
+	return (G.all_fmt & SORT_REVERSE) ? -(int)dif : (int)dif;
 }
+
+static void dnsort(struct dnode **dn, int size)
+{
+	qsort(dn, size, sizeof(*dn), sortcmp);
+}
+#else
+#define dnsort(dn, size) ((void)0)
 #endif
 
-
 /* Returns NULL-terminated malloced vector of pointers (or NULL) */
-static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
+static struct dnode **scan_one_dir(const char *path, unsigned *nfiles_p)
 {
 	struct dnode *dn, *cur, **dnp;
 	struct dirent *entry;
@@ -1001,8 +974,36 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 	return dnp;
 }
 
+#if ENABLE_DESKTOP
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/ls.html
+ * If any of the -l, -n, -s options is specified, each list
+ * of files within the directory shall be preceded by a
+ * status line indicating the number of file system blocks
+ * occupied by files in the directory in 512-byte units if
+ * the -k option is not specified, or 1024-byte units if the
+ * -k option is specified, rounded up to the next integral
+ * number of units.
+ */
+/* by Jorgen Overgaard (jorgen AT antistaten.se) */
+static off_t calculate_blocks(struct dnode **dn)
+{
+	uoff_t blocks = 1;
+	if (dn) {
+		while (*dn) {
+			/* st_blocks is in 512 byte blocks */
+			blocks += (*dn)->dn_blocks;
+			dn++;
+		}
+	}
 
-static void showdirs(struct dnode **dn, int first)
+	/* Even though standard says use 512 byte blocks, coreutils use 1k */
+	/* Actually, we round up by calculating (blocks + 1) / 2,
+	 * "+ 1" was done when we initialized blocks to 1 */
+	return blocks >> 1;
+}
+#endif
+
+static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 {
 	unsigned nfiles;
 	struct dnode **subdnp;
@@ -1014,7 +1015,7 @@ static void showdirs(struct dnode **dn, int first)
 			first = 0;
 			printf("%s:\n", (*dn)->fullname);
 		}
-		subdnp = list_dir((*dn)->fullname, &nfiles);
+		subdnp = scan_one_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
 		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG)
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
@@ -1022,7 +1023,8 @@ static void showdirs(struct dnode **dn, int first)
 		if (nfiles > 0) {
 			/* list all files at this level */
 			dnsort(subdnp, nfiles);
-			showfiles(subdnp, nfiles);
+			display_files(subdnp, nfiles);
+
 			if (ENABLE_FEATURE_LS_RECURSIVE
 			 && (G.all_fmt & DISP_RECURSIVE)
 			) {
@@ -1033,7 +1035,7 @@ static void showdirs(struct dnode **dn, int first)
 				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
 				if (dndirs > 0) {
 					dnsort(dnd, dndirs);
-					showdirs(dnd, 0);
+					scan_and_display_dirs_recur(dnd, 0);
 					/* free the array of dnode pointers to the dirs */
 					free(dnd);
 				}
@@ -1215,7 +1217,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 	if (G.all_fmt & DISP_NOLIST) {
 		dnsort(dnp, nfiles);
-		showfiles(dnp, nfiles);
+		display_files(dnp, nfiles);
 	} else {
 		dnd = splitdnarray(dnp, SPLIT_DIR);
 		dnf = splitdnarray(dnp, SPLIT_FILE);
@@ -1223,13 +1225,13 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
 			dnsort(dnf, dnfiles);
-			showfiles(dnf, dnfiles);
+			display_files(dnf, dnfiles);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnf);
 		}
 		if (dndirs > 0) {
 			dnsort(dnd, dndirs);
-			showdirs(dnd, dnfiles == 0);
+			scan_and_display_dirs_recur(dnd, dnfiles == 0);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnd);
 		}
