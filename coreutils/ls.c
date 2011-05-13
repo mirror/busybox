@@ -659,16 +659,11 @@ static unsigned print_name(const char *name)
 static NOINLINE unsigned list_single(const struct dnode *dn)
 {
 	unsigned column = 0;
-	char *lpath = lpath; /* for compiler */
+	char *lpath;
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
 	struct stat info;
 	char append;
 #endif
-
-	/* Never happens:
-	if (dn->fullname == NULL)
-		return 0;
-	*/
 
 #if ENABLE_FEATURE_LS_FILETYPES
 	append = append_char(dn->dstat.st_mode);
@@ -676,6 +671,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 
 	/* Do readlink early, so that if it fails, error message
 	 * does not appear *inside* the "ls -l" line */
+	lpath = NULL;
 	if (all_fmt & LIST_SYMLINK)
 		if (S_ISLNK(dn->dstat.st_mode))
 			lpath = xmalloc_readlink_or_warn(dn->fullname);
@@ -763,7 +759,7 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 
 #if ENABLE_FEATURE_LS_COLOR
 	if (show_color) {
-		info.st_mode = 0; /* for fgcolor() */
+		info.st_mode = 0;
 		lstat(dn->fullname, &info);
 		printf("\033[%u;%um", bold(info.st_mode),
 			fgcolor(info.st_mode));
@@ -774,29 +770,26 @@ static NOINLINE unsigned list_single(const struct dnode *dn)
 		printf("\033[0m");
 	}
 
-	if (all_fmt & LIST_SYMLINK) {
-		if (S_ISLNK(dn->dstat.st_mode) && lpath) {
-			printf(" -> ");
+	if (lpath) {
+		printf(" -> ");
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
+		info.st_mode = 0;
+		stat(dn->fullname, &info);
+# if ENABLE_FEATURE_LS_FILETYPES
+		append = append_char(info.st_mode);
+# endif
+#endif
 #if ENABLE_FEATURE_LS_COLOR
-			info.st_mode = 0; /* for fgcolor() */
-#endif
-			if (stat(dn->fullname, &info) == 0) {
-				append = append_char(info.st_mode);
-			}
-#endif
-#if ENABLE_FEATURE_LS_COLOR
-			if (show_color) {
-				printf("\033[%u;%um", bold(info.st_mode),
-					   fgcolor(info.st_mode));
-			}
-#endif
-			column += print_name(lpath) + 4;
-			if (show_color) {
-				printf("\033[0m");
-			}
-			free(lpath);
+		if (show_color) {
+			printf("\033[%u;%um", bold(info.st_mode),
+				   fgcolor(info.st_mode));
 		}
+#endif
+		column += print_name(lpath) + 4;
+		if (show_color) {
+			printf("\033[0m");
+		}
+		free(lpath);
 	}
 #if ENABLE_FEATURE_LS_FILETYPES
 	if (all_fmt & LIST_FILETYPE) {
@@ -902,9 +895,7 @@ static struct dnode **list_dir(const char *, unsigned *);
 static void showdirs(struct dnode **dn, int first)
 {
 	unsigned nfiles;
-	unsigned dndirs;
 	struct dnode **subdnp;
-	struct dnode **dnd;
 
 	for (; *dn; dn++) {
 		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
@@ -925,6 +916,8 @@ static void showdirs(struct dnode **dn, int first)
 			if (ENABLE_FEATURE_LS_RECURSIVE
 			 && (all_fmt & DISP_RECURSIVE)
 			) {
+				struct dnode **dnd;
+				unsigned dndirs;
 				/* recursive - list the sub-dirs */
 				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
 				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
@@ -949,11 +942,6 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 	struct dirent *entry;
 	DIR *dir;
 	unsigned i, nfiles;
-
-	/* Never happens:
-	if (path == NULL)
-		return NULL;
-	*/
 
 	*nfiles_p = 0;
 	dir = warn_opendir(path);
@@ -1150,6 +1138,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 			)
 			/* ... or if -H: */
 			|| (option_mask32 & OPT_H)
+			/* ... or if -L, but my_stat always follows links if -L */
 		);
 		argv++;
 		if (!cur)
