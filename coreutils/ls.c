@@ -910,8 +910,15 @@ static void dnsort(struct dnode **dn, int size)
 {
 	qsort(dn, size, sizeof(*dn), sortcmp);
 }
+
+static void sort_and_display_files(struct dnode **dn, unsigned nfiles)
+{
+	dnsort(dn, nfiles);
+	display_files(dn, nfiles);
+}
 #else
-#define dnsort(dn, size) ((void)0)
+# define dnsort(dn, size) ((void)0)
+# define sort_and_display_files(dn, nfiles) display_files(dn, nfiles)
 #endif
 
 /* Returns NULL-terminated malloced vector of pointers (or NULL) */
@@ -1022,8 +1029,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 #endif
 		if (nfiles > 0) {
 			/* list all files at this level */
-			dnsort(subdnp, nfiles);
-			display_files(subdnp, nfiles);
+			sort_and_display_files(subdnp, nfiles);
 
 			if (ENABLE_FEATURE_LS_RECURSIVE
 			 && (G.all_fmt & DISP_RECURSIVE)
@@ -1216,16 +1222,14 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (G.all_fmt & DISP_NOLIST) {
-		dnsort(dnp, nfiles);
-		display_files(dnp, nfiles);
+		sort_and_display_files(dnp, nfiles);
 	} else {
 		dnd = splitdnarray(dnp, SPLIT_DIR);
 		dnf = splitdnarray(dnp, SPLIT_FILE);
 		dndirs = count_dirs(dnp, SPLIT_DIR);
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
-			dnsort(dnf, dnfiles);
-			display_files(dnf, dnfiles);
+			sort_and_display_files(dnf, dnfiles);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnf);
 		}
