@@ -797,7 +797,7 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 
 	display_topmem_header(scr_width, &lines_rem);
 	strcpy(line_buf, HDR_STR " COMMAND");
-	line_buf[5 + sort_field * 6] = '*';
+	line_buf[11 + sort_field * 6] = '<';
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, line_buf);
 	lines_rem--;
 
