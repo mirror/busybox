@@ -890,51 +890,6 @@ static off_t calculate_blocks(struct dnode **dn)
 #endif
 
 
-static struct dnode **list_dir(const char *, unsigned *);
-
-static void showdirs(struct dnode **dn, int first)
-{
-	unsigned nfiles;
-	struct dnode **subdnp;
-
-	for (; *dn; dn++) {
-		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
-			if (!first)
-				bb_putchar('\n');
-			first = 0;
-			printf("%s:\n", (*dn)->fullname);
-		}
-		subdnp = list_dir((*dn)->fullname, &nfiles);
-#if ENABLE_DESKTOP
-		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
-			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
-#endif
-		if (nfiles > 0) {
-			/* list all files at this level */
-			dnsort(subdnp, nfiles);
-			showfiles(subdnp, nfiles);
-			if (ENABLE_FEATURE_LS_RECURSIVE
-			 && (all_fmt & DISP_RECURSIVE)
-			) {
-				struct dnode **dnd;
-				unsigned dndirs;
-				/* recursive - list the sub-dirs */
-				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
-				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
-				if (dndirs > 0) {
-					dnsort(dnd, dndirs);
-					showdirs(dnd, 0);
-					/* free the array of dnode pointers to the dirs */
-					free(dnd);
-				}
-			}
-			/* free the dnodes and the fullname mem */
-			dfree(subdnp);
-		}
-	}
-}
-
-
 /* Returns NULL-terminated malloced vector of pointers (or NULL) */
 static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 {
@@ -993,6 +948,49 @@ static struct dnode **list_dir(const char *path, unsigned *nfiles_p)
 	}
 
 	return dnp;
+}
+
+
+static void showdirs(struct dnode **dn, int first)
+{
+	unsigned nfiles;
+	struct dnode **subdnp;
+
+	for (; *dn; dn++) {
+		if (all_fmt & (DISP_DIRNAME | DISP_RECURSIVE)) {
+			if (!first)
+				bb_putchar('\n');
+			first = 0;
+			printf("%s:\n", (*dn)->fullname);
+		}
+		subdnp = list_dir((*dn)->fullname, &nfiles);
+#if ENABLE_DESKTOP
+		if ((all_fmt & STYLE_MASK) == STYLE_LONG)
+			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
+#endif
+		if (nfiles > 0) {
+			/* list all files at this level */
+			dnsort(subdnp, nfiles);
+			showfiles(subdnp, nfiles);
+			if (ENABLE_FEATURE_LS_RECURSIVE
+			 && (all_fmt & DISP_RECURSIVE)
+			) {
+				struct dnode **dnd;
+				unsigned dndirs;
+				/* recursive - list the sub-dirs */
+				dnd = splitdnarray(subdnp, SPLIT_SUBDIR);
+				dndirs = count_dirs(subdnp, SPLIT_SUBDIR);
+				if (dndirs > 0) {
+					dnsort(dnd, dndirs);
+					showdirs(dnd, 0);
+					/* free the array of dnode pointers to the dirs */
+					free(dnd);
+				}
+			}
+			/* free the dnodes and the fullname mem */
+			dfree(subdnp);
+		}
+	}
 }
 
 
