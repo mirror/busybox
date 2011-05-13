@@ -19,7 +19,7 @@
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-P,--password-fd=N	Read password from fd N"
 /* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
-//usage:     "\n	-m,--method=TYPE	Encryption method TYPE"
+//usage:     "\n	-m,--method=TYPE	Encryption method"
 //usage:     "\n	-S,--salt=SALT"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
@@ -39,7 +39,7 @@
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-P,--password-fd=N	Read password from fd N"
 /* //usage:  "\n	-s,--stdin		Use stdin; like -P0" */
-//usage:     "\n	-m,--method=TYPE	Encryption method TYPE"
+//usage:     "\n	-m,--method=TYPE	Encryption method"
 //usage:     "\n	-S,--salt=SALT"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
@@ -92,11 +92,9 @@ to cryptpw. -a option (alias for -m) came from cryptpw.
 int cryptpw_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
-	/* $N$ + sha_salt_16_bytes + NUL */
-	char salt[3 + 16 + 1];
+	char salt[MAX_PW_SALT_LEN];
 	char *salt_ptr;
 	const char *opt_m, *opt_S;
-	int len;
 	int fd;
 
 #if ENABLE_LONG_OPTS
@@ -121,24 +119,9 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0] && !opt_S)
 		opt_S = argv[1];
 
-	len = 2/2;
-	salt_ptr = salt;
-	if (opt_m[0] != 'd') { /* not des */
-		len = 8/2; /* so far assuming md5 */
-		*salt_ptr++ = '$';
-		*salt_ptr++ = '1';
-		*salt_ptr++ = '$';
-#if !ENABLE_USE_BB_CRYPT || ENABLE_USE_BB_CRYPT_SHA
-		if (opt_m[0] == 's') { /* sha */
-			salt[1] = '5' + (strcmp(opt_m, "sha512") == 0);
-			len = 16/2;
-		}
-#endif
-	}
+	salt_ptr = crypt_make_pw_salt(salt, opt_m);
 	if (opt_S)
-		safe_strncpy(salt_ptr, opt_S, sizeof(salt) - 3);
-	else
-		crypt_make_salt(salt_ptr, len, 0);
+		safe_strncpy(salt_ptr, opt_S, sizeof(salt) - (sizeof("$N$")-1));
 
 	xmove_fd(fd, STDIN_FILENO);
 

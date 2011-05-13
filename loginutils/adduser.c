@@ -82,21 +82,23 @@ static void passwd_study(struct passwd *p)
 
 static void addgroup_wrapper(struct passwd *p, const char *group_name)
 {
-	char *argv[5];
+	char *argv[6];
 
 	argv[0] = (char*)"addgroup";
 	if (group_name) {
 		/* Add user to existing group */
-		argv[1] = p->pw_name;
-		argv[2] = (char*)group_name;
-		argv[3] = NULL;
+		argv[1] = (char*)"--";
+		argv[2] = p->pw_name;
+		argv[3] = (char*)group_name;
+		argv[4] = NULL;
 	} else {
 		/* Add user to his own group with the first free gid found in passwd_study */
 //TODO: to be compatible with external addgroup programs we should use --gid instead...
 		argv[1] = (char*)"-g";
 		argv[2] = utoa(p->pw_gid);
-		argv[3] = p->pw_name;
-		argv[4] = NULL;
+		argv[3] = (char*)"--";
+		argv[4] = p->pw_name;
+		argv[5] = NULL;
 	}
 
 	spawn_and_wait(argv);
@@ -106,7 +108,7 @@ static void passwd_wrapper(const char *login_name) NORETURN;
 
 static void passwd_wrapper(const char *login_name)
 {
-	BB_EXECLP("passwd", "passwd", login_name, NULL);
+	BB_EXECLP("passwd", "passwd", "--", login_name, NULL);
 	bb_error_msg_and_die("can't execute passwd, you must set password manually");
 }
 

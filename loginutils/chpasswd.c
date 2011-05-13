@@ -37,9 +37,8 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 	char *name, *pass;
 	char salt[sizeof("$N$XXXXXXXX")];
 	int opt, rc;
-	int rnd = rnd; /* we *want* it to be non-initialized! */
 
-	if (getuid())
+	if (getuid() != 0)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
 	opt_complementary = "m--e:e--m";
@@ -55,10 +54,12 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		xuname2uid(name); /* dies if there is no such user */
 
 		if (!(opt & OPT_ENC)) {
-			rnd = crypt_make_salt(salt, 1, rnd);
+			crypt_make_salt(salt, 1);
 			if (opt & OPT_MD5) {
-				strcpy(salt, "$1$");
-				rnd = crypt_make_salt(salt + 3, 4, rnd);
+				salt[0] = '$';
+				salt[1] = '1';
+				salt[2] = '$';
+				crypt_make_salt(salt + 3, 4);
 			}
 			pass = pw_encrypt(pass, salt, 0);
 		}

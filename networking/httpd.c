@@ -2424,7 +2424,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 		salt[0] = '$';
 		salt[1] = '1';
 		salt[2] = '$';
-		crypt_make_salt(salt + 3, 4, 0);
+		crypt_make_salt(salt + 3, 4);
 		puts(pw_encrypt(pass, salt, 1));
 		return 0;
 	}

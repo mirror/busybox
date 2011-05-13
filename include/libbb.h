@@ -1259,14 +1259,19 @@ extern int correct_password(const struct passwd *pw) FAST_FUNC;
 #endif
 extern char *pw_encrypt(const char *clear, const char *salt, int cleanup) FAST_FUNC;
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp) FAST_FUNC;
-/* rnd is additional random input. New one is returned.
+/*
+ * rnd is additional random input. New one is returned.
  * Useful if you call crypt_make_salt many times in a row:
  * rnd = crypt_make_salt(buf1, 4, 0);
  * rnd = crypt_make_salt(buf2, 4, rnd);
  * rnd = crypt_make_salt(buf3, 4, rnd);
  * (otherwise we risk having same salt generated)
  */
-extern int crypt_make_salt(char *p, int cnt, int rnd) FAST_FUNC;
+extern int crypt_make_salt(char *p, int cnt /*, int rnd*/) FAST_FUNC;
+/* "$N$" + sha_salt_16_bytes + NUL */
+#define MAX_PW_SALT_LEN (3 + 16 + 1)
+extern char* crypt_make_pw_salt(char p[MAX_PW_SALT_LEN], const char *algo) FAST_FUNC;
+
 
 /* Returns number of lines changed, or -1 on error */
 #if !(ENABLE_FEATURE_ADDUSER_TO_GROUP || ENABLE_FEATURE_DEL_USER_FROM_GROUP)
