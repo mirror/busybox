@@ -6,13 +6,13 @@
 //usage:#define passwd_trivial_usage
 //usage:       "[OPTIONS] [USER]"
 //usage:#define passwd_full_usage "\n\n"
-//usage:       "Change USER's password. If no USER is specified,\n"
-//usage:       "changes the password for the current user.\n"
+//usage:       "Change USER's password (default: current user)"
+//usage:     "\n"
 //usage:     "\nOptions:"
 //usage:     "\n	-a ALG	Encryption method"
-//usage:     "\n	-d	Delete password for the account"
+//usage:     "\n	-d	Set password to ''"
 //usage:     "\n	-l	Lock (disable) account"
-//usage:     "\n	-u	Unlock (re-enable) account"
+//usage:     "\n	-u	Unlock (enable) account"
 
 #include "libbb.h"
 #include <syslog.h>
