@@ -251,7 +251,7 @@ void sendMTFValues(EState* s)
 {
 	int32_t v, t, i, j, gs, ge, totc, bt, bc, iter;
 	int32_t nSelectors, alphaSize, minLen, maxLen, selCtr;
-	int32_t nGroups, nBytes;
+	int32_t nGroups;
 
 	/*
 	 * uint8_t len[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
@@ -512,7 +512,6 @@ void sendMTFValues(EState* s)
 			}
 		}
 
-		nBytes = s->numZ;
 		bsW(s, 16, inUse16);
 
 		inUse16 <<= (sizeof(int)*8 - 16); /* move 15th bit into sign bit */
@@ -528,7 +527,6 @@ void sendMTFValues(EState* s)
 	}
 
 	/*--- Now the selectors. ---*/
-	nBytes = s->numZ;
 	bsW(s, 3, nGroups);
 	bsW(s, 15, nSelectors);
 	for (i = 0; i < nSelectors; i++) {
@@ -538,8 +536,6 @@ void sendMTFValues(EState* s)
 	}
 
 	/*--- Now the coding tables. ---*/
-	nBytes = s->numZ;
-
 	for (t = 0; t < nGroups; t++) {
 		int32_t curr = s->len[t][0];
 		bsW(s, 5, curr);
@@ -551,7 +547,6 @@ void sendMTFValues(EState* s)
 	}
 
 	/*--- And finally, the block data proper ---*/
-	nBytes = s->numZ;
 	selCtr = 0;
 	gs = 0;
 	while (1) {

@@ -99,7 +99,7 @@ static NOINLINE int bb_dump_size(FS *fs)
 static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 {
 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
-	PR *pr, **nextpr = NULL;
+	PR *pr;
 	FU *fu;
 	char *p1, *p2, *p3;
 	char savech, *fmtp;
@@ -111,15 +111,12 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 		 * break each format unit into print units; each
 		 * conversion character gets its own.
 		 */
-		for (nconv = 0, fmtp = fu->fmt; *fmtp; nextpr = &pr->nextpr) {
+		for (nconv = 0, fmtp = fu->fmt; *fmtp; ) {
 			/* NOSTRICT */
 			/* DBU:[dvae@cray.com] zalloc so that forward ptrs start out NULL*/
 			pr = xzalloc(sizeof(PR));
 			if (!fu->nextpr)
 				fu->nextpr = pr;
-			/* ignore nextpr -- its unused inside the loop and is
-			 * uninitialized 1st time through.
-			 */
 
 			/* skip preceding text and up to the next % sign */
 			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1)

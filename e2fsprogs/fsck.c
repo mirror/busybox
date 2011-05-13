@@ -317,7 +317,6 @@ static void load_fs_info(const char *filename)
 {
 	FILE *fstab;
 	struct mntent mte;
-	struct fs_info *fs;
 
 	fstab = setmntent(filename, "r");
 	if (!fstab) {
@@ -330,7 +329,7 @@ static void load_fs_info(const char *filename)
 		//bb_info_msg("CREATE[%s][%s][%s][%s][%d]", mte.mnt_fsname, mte.mnt_dir,
 		//	mte.mnt_type, mte.mnt_opts,
 		//	mte.mnt_passno);
-		fs = create_fs_device(mte.mnt_fsname, mte.mnt_dir,
+		create_fs_device(mte.mnt_fsname, mte.mnt_dir,
 			mte.mnt_type, mte.mnt_opts,
 			mte.mnt_passno);
 	}

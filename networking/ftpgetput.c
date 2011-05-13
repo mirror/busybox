@@ -60,7 +60,7 @@ struct globals {
 	FILE *control_stream;
 	int verbose_flag;
 	int do_continue;
-	char buf[1]; /* actually [BUFSZ] */
+	char buf[4]; /* actually [BUFSZ] */
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { BUFSZ = COMMON_BUFSIZE - offsetof(struct globals, buf) };
@@ -105,7 +105,7 @@ static int ftpcmd(const char *s1, const char *s2)
 	}
 
 	do {
-		strcpy(buf, "EOF");
+		strcpy(buf, "EOF"); /* for ftp_die */
 		if (fgets(buf, BUFSZ - 2, control_stream) == NULL) {
 			ftp_die(NULL);
 		}
@@ -316,7 +316,6 @@ static const char ftpgetput_longopts[] ALIGN1 =
 int ftpgetput_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned opt;
 	const char *port = "ftp";
 	/* socket to ftp server */
 
@@ -345,7 +344,7 @@ int ftpgetput_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = ftpgetput_longopts;
 #endif
 	opt_complementary = "-2:vv:cc"; /* must have 2 to 3 params; -v and -c count */
-	opt = getopt32(argv, "cvu:p:P:", &user, &password, &port,
+	getopt32(argv, "cvu:p:P:", &user, &password, &port,
 					&verbose_flag, &do_continue);
 	argv += optind;
 

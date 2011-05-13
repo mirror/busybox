@@ -393,11 +393,9 @@ static NOINLINE int process_timer_stats(void)
 	char buf[128];
 	char line[15 + 3 + 128];
 	int n;
-	ullong totalticks;
 	FILE *fp;
 
 	buf[0] = '\0';
-	totalticks = 0;
 
 	n = 0;
 	fp = NULL;

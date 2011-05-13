@@ -437,7 +437,6 @@ static int control(const char *a)
 int sv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sv_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned opt;
 	char *x;
 	char *action;
 	const char *varservice = CONFIG_SV_DEFAULT_SERVICE_DIR;
@@ -458,7 +457,7 @@ int sv_main(int argc UNUSED_PARAM, char **argv)
 	if (x) waitsec = xatou(x);
 
 	opt_complementary = "w+:vv"; /* -w N, -v is a counter */
-	opt = getopt32(argv, "w:v", &waitsec, &verbose);
+	getopt32(argv, "w:v", &waitsec, &verbose);
 	argv += optind;
 	action = *argv++;
 	if (!action || !*argv) bb_show_usage();

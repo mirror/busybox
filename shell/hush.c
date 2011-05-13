@@ -4517,11 +4517,11 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 #if ENABLE_HUSH_TICK
 		case '`': {
-			unsigned pos;
+			USE_FOR_NOMMU(unsigned pos;)
 
 			o_addchr(&dest, SPECIAL_VAR_SYMBOL);
 			o_addchr(&dest, '`');
-			pos = dest.length;
+			USE_FOR_NOMMU(pos = dest.length;)
 			if (!add_till_backquote(&dest, input, /*in_dquote:*/ 0))
 				goto parse_error;
 # if !BB_MMU
