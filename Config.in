@@ -248,8 +248,9 @@ config UNICODE_PRESERVE_BROKEN
 	default n
 	depends on UNICODE_SUPPORT
 	help
-	  With this option on, invalid UTF-8 bytes are not substituted
-	  with the selected substitution character.
+	  With this option on, on line-editing input (such as used by shells)
+	  invalid UTF-8 bytes are not substituted with the selected
+	  substitution character.
 	  For example, this means that entering 'l', 's', ' ', 0xff, [Enter]
 	  at shell prompt will list file named 0xff (single char name
 	  with char value 255), not file named '?'.
@@ -342,7 +343,7 @@ config FEATURE_SUID
 
 config FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
-	default y if FEATURE_SUID
+	default y
 	depends on FEATURE_SUID
 	help
 	  Allow the SUID / SGID state of an applet to be determined at runtime
