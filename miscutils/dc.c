@@ -11,7 +11,7 @@
 //usage:
 //usage:#define dc_full_usage "\n\n"
 //usage:       "Tiny RPN calculator. Operations:\n"
-//usage:       "+, add, -, sub, *, mul, /, div, %, mod, **, exp, and, or, not, eor,\n"
+//usage:       "+, add, -, sub, *, mul, /, div, %, mod, "IF_FEATURE_DC_LIBM("**, exp, ")"and, or, not, eor,\n"
 //usage:       "p - print top of the stack (without popping),\n"
 //usage:       "f - print entire stack,\n"
 //usage:       "o - pop the value and set output radix (must be 10, 16, 8 or 2).\n"
