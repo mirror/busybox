@@ -236,8 +236,7 @@ IF_FEATURE_SUID(static uid_t ruid;)  /* real uid */
 /* applets[] is const, so we have to define this "override" structure */
 static struct BB_suid_config {
 	int m_applet;
-	uid_t m_uid;
-	gid_t m_gid;
+	struct bb_uidgid_t m_ugid;
 	mode_t m_mode;
 	struct BB_suid_config *m_next;
 } *suid_config;
@@ -295,8 +294,6 @@ static const unsigned short mode_mask[] ALIGN2 = {
 	0,          S_IXOTH,            S_IXOTH,    0	/* other */
 };
 
-#define parse_error(x)  do { errmsg = x; goto pe_label; } while (0)
-
 static void parse_config_file(void)
 {
 	struct BB_suid_config *sct_head;
@@ -312,8 +309,6 @@ static void parse_config_file(void)
 	char buffer[256];
 	struct stat st;
 
-	assert(!suid_config); /* Should be set to NULL by bss init. */
-
 	ruid = getuid();
 	if (ruid == 0) /* run by root - don't need to even read config file */
 		return;
@@ -322,7 +317,7 @@ static void parse_config_file(void)
 	 || !S_ISREG(st.st_mode)                /* Not a regular file? */
 	 || (st.st_uid != 0)                    /* Not owned by root? */
 	 || (st.st_mode & (S_IWGRP | S_IWOTH))  /* Writable by non-root? */
-	 || !(f = fopen_for_read(config_file))      /* Cannot open? */
+	 || !(f = fopen_for_read(config_file))  /* Cannot open? */
 	) {
 		return;
 	}
@@ -335,10 +330,11 @@ static void parse_config_file(void)
 		s = buffer;
 
 		if (!fgets(s, sizeof(buffer), f)) { /* Are we done? */
-// why?
-			if (ferror(f)) {   /* Make sure it wasn't a read error. */
-				parse_error("reading");
-			}
+			// Looks like bloat
+			//if (ferror(f)) {   /* Make sure it wasn't a read error. */
+			//	errmsg = "reading";
+			//	goto pe_label;
+			//}
 			fclose(f);
 			suid_config = sct_head;	/* Success, so set the pointer. */
 			return;
@@ -355,7 +351,8 @@ static void parse_config_file(void)
 		 * we do err on the side of caution.  Besides, the line would be
 		 * too long if it did end with a newline. */
 		if (!strchr(s, '\n') && !feof(f)) {
-			parse_error("line too long");
+			errmsg = "line too long";
+			goto pe_label;
 		}
 
 		/* Trim leading and trailing whitespace, ignoring comments, and
@@ -376,7 +373,8 @@ static void parse_config_file(void)
 			 || e[1] /* Trailing characters? */
 			 || !*(s = get_trimmed_slice(s+1, e)) /* Missing name? */
 			) {
-				parse_error("section header");
+				errmsg = "section header";
+				goto pe_label;
 			}
 			/* Right now we only have one section so just check it.
 			 * If more sections are added in the future, please don't
@@ -406,7 +404,8 @@ static void parse_config_file(void)
 				s = get_trimmed_slice(s, e);
 			}
 			if (!e || !*s) {	/* Missing '=' or empty key. */
-				parse_error("keyword");
+				errmsg = "keyword";
+				goto pe_label;
 			}
 
 			/* Ok, we have an applet name.  Process the rhs if this
@@ -419,9 +418,9 @@ static void parse_config_file(void)
 				 * The last config line for each applet will be the
 				 * one used since we insert at the head of the list.
 				 * I suppose this could be considered a feature. */
-				sct = xmalloc(sizeof(struct BB_suid_config));
+				sct = xzalloc(sizeof(*sct));
 				sct->m_applet = applet_no;
-				sct->m_mode = 0;
+				/*sct->m_mode = 0;*/
 				sct->m_next = sct_head;
 				sct_head = sct;
 
@@ -436,7 +435,8 @@ static void parse_config_file(void)
 					const char *q;
 					q = strchrnul(mode_chars + 5*i, *e++);
 					if (!*q) {
-						parse_error("mode");
+						errmsg = "mode";
+						goto pe_label;
 					}
 					/* Adjust by -i to account for nul. */
 					sct->m_mode |= mode_mask[(q - mode_chars) - i];
@@ -449,29 +449,14 @@ static void parse_config_file(void)
 				/* Note: we require whitespace between the mode and the
 				 * user/group info. */
 				if ((s == e) || !(e = strchr(s, '.'))) {
-					parse_error("<uid>.<gid>");
-				}
-				*e++ = '\0';
-
-				/* We can't use get_ug_id here since it would exit()
-				 * if a uid or gid was not found.  Oh well... */
-				sct->m_uid = bb_strtoul(s, NULL, 10);
-				if (errno) {
-					struct passwd *pwd = getpwnam(s);
-					if (!pwd) {
-						parse_error("user");
-					}
-					sct->m_uid = pwd->pw_uid;
+					errmsg = "uid.gid";
+					goto pe_label;
 				}
 
-				sct->m_gid = bb_strtoul(e, NULL, 10);
-				if (errno) {
-					struct group *grp;
-					grp = getgrnam(e);
-					if (!grp) {
-						parse_error("group");
-					}
-					sct->m_gid = grp->gr_gid;
+				*e++ = ':'; /* get_uidgid doesn't understand user.group */
+				if (get_uidgid(&sct->m_ugid, s, /*allow_numeric:*/ 1) == 0) {
+					errmsg = "unknown user/group";
+					goto pe_label;
 				}
 			}
 			continue;
@@ -485,14 +470,14 @@ static void parse_config_file(void)
 		 * We may want to simply ignore such lines in case they
 		 * are used in some future version of busybox. */
 		if (!section) {
-			parse_error("keyword outside section");
+			errmsg = "keyword outside section";
+			goto pe_label;
 		}
 
 	} /* while (1) */
 
  pe_label:
-	fprintf(stderr, "Parse error in %s, line %d: %s\n",
-			config_file, lc, errmsg);
+	bb_error_msg("parse error in %s, line %u: %s", config_file, lc, errmsg);
 
 	fclose(f);
 	/* Release any allocated memory before returning. */
@@ -532,10 +517,10 @@ static void check_suid(int applet_no)
 		goto check_need_suid;
  found:
 		m = sct->m_mode;
-		if (sct->m_uid == ruid)
+		if (sct->m_ugid.uid == ruid)
 			/* same uid */
 			m >>= 6;
-		else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))
+		else if ((sct->m_ugid.gid == rgid) || ingroup(ruid, sct->m_ugid.gid))
 			/* same group / in group */
 			m >>= 3;
 
@@ -544,7 +529,7 @@ static void check_suid(int applet_no)
 
 		/* _both_ sgid and group_exec have to be set for setegid */
 		if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP))
-			rgid = sct->m_gid;
+			rgid = sct->m_ugid.gid;
 		/* else (no setegid) we will set egid = rgid */
 
 		/* We set effective AND saved ids. If saved-id is not set
@@ -555,7 +540,7 @@ static void check_suid(int applet_no)
 		/* do we have to set effective uid? */
 		uid = ruid;
 		if (sct->m_mode & S_ISUID)
-			uid = sct->m_uid;
+			uid = sct->m_ugid.uid;
 		/* else (no seteuid) we will set euid = ruid */
 
 		if (setresuid(-1, uid, uid))

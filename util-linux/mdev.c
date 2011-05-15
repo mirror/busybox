@@ -292,7 +292,7 @@ static void make_device(char *path, int delete)
 			 * the rest the line unless keep_matching == 1 */
 
 			/* 2nd field: uid:gid - device ownership */
-			if (get_uidgid(&ugid, tokens[1], 1) == 0)
+			if (get_uidgid(&ugid, tokens[1], /*allow_numeric:*/ 1) == 0)
 				bb_error_msg("unknown user/group %s on line %d", tokens[1], parser->lineno);
 
 			/* 3rd field: mode - device permissions */
