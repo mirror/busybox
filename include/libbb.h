@@ -987,9 +987,13 @@ extern uint32_t option_mask32;
 extern uint32_t getopt32(char **argv, const char *applet_opts, ...) FAST_FUNC;
 
 
+/* Having next pointer as a first member allows easy creation
+ * of "llist-compatible" structs, and using llist_FOO functions
+ * on them.
+ */
 typedef struct llist_t {
-	char *data;
 	struct llist_t *link;
+	char *data;
 } llist_t;
 void llist_add_to(llist_t **old_head, void *data) FAST_FUNC;
 void llist_add_to_end(llist_t **list_head, void *data) FAST_FUNC;
