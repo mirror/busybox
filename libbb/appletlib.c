@@ -440,19 +440,18 @@ static void parse_config_file(void)
 				/* Now get the user/group info. */
 
 				s = skip_whitespace(e);
-				if (*s == '\0')
-					s = strcpy(buffer, "0.0");
-
-				/* We require whitespace between mode and USER.GROUP */
-				if ((s == e) || !(e = strchr(s, '.'))) {
-					errmsg = "uid.gid";
-					goto pe_label;
-				}
-
-				*e = ':'; /* get_uidgid needs USER:GROUP syntax */
-				if (get_uidgid(&sct->m_ugid, s, /*allow_numeric:*/ 1) == 0) {
-					errmsg = "unknown user/group";
-					goto pe_label;
+				/* Default is 0.0, else parse USER.GROUP: */
+				if (*s) {
+					/* We require whitespace between mode and USER.GROUP */
+					if ((s == e) || !(e = strchr(s, '.'))) {
+						errmsg = "uid.gid";
+						goto pe_label;
+					}
+					*e = ':'; /* get_uidgid needs USER:GROUP syntax */
+					if (get_uidgid(&sct->m_ugid, s, /*allow_numeric:*/ 1) == 0) {
+						errmsg = "unknown user/group";
+						goto pe_label;
+					}
 				}
 			}
 			continue;
