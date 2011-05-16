@@ -281,21 +281,11 @@ static char *get_trimmed_slice(char *s, char *e)
 	return skip_whitespace(s);
 }
 
-/* Don't depend on the tools to combine strings. */
-static const char config_file[] ALIGN1 = "/etc/busybox.conf";
-
-/* We don't supply a value for the nul, so an index adjustment is
- * necessary below.  Also, we use unsigned short here to save some
- * space even though these are really mode_t values. */
-static const unsigned short mode_mask[] ALIGN2 = {
-	/*  SST     sst                 xxx         --- */
-	S_ISUID,    S_ISUID|S_IXUSR,    S_IXUSR,    0,	/* user */
-	S_ISGID,    S_ISGID|S_IXGRP,    S_IXGRP,    0,	/* group */
-	0,          S_IXOTH,            S_IXOTH,    0	/* other */
-};
-
 static void parse_config_file(void)
 {
+	/* Don't depend on the tools to combine strings. */
+	static const char config_file[] ALIGN1 = "/etc/busybox.conf";
+
 	struct suid_config_t *sct_head;
 	int applet_no;
 	FILE *f;
@@ -411,7 +401,7 @@ static void parse_config_file(void)
 			 * up when the busybox configuration is changed. */
 			applet_no = find_applet_by_name(s);
 			if (applet_no >= 0) {
-				int i;
+				unsigned i;
 				struct suid_config_t *sct;
 
 				/* Note: We currently don't check for duplicates!
@@ -429,17 +419,24 @@ static void parse_config_file(void)
 				e = skip_whitespace(e+1);
 
 				for (i = 0; i < 3; i++) {
-					/* There are 4 chars + 1 nul for each of user/group/other. */
-					static const char mode_chars[] ALIGN1 = "Ssx-\0" "Ssx-\0" "Ttx-";
-
-					const char *q;
-					q = strchrnul(mode_chars + 5*i, *e++);
-					if (!*q) {
+					/* There are 4 chars for each of user/group/other.
+					 * "x-xx" instead of "x-" are to make
+					 * "idx > 3" check catch invalid chars.
+					 */
+					static const char mode_chars[] ALIGN1 = "Ssx-" "Ssx-" "x-xx";
+					static const unsigned short mode_mask[] ALIGN2 = {
+						S_ISUID, S_ISUID|S_IXUSR, S_IXUSR, 0, /* Ssx- */
+						S_ISGID, S_ISGID|S_IXGRP, S_IXGRP, 0, /* Ssx- */
+						                          S_IXOTH, 0  /*   x- */
+					};
+					const char *q = strchrnul(mode_chars + 4*i, *e);
+					unsigned idx = q - (mode_chars + 4*i);
+					if (idx > 3) {
 						errmsg = "mode";
 						goto pe_label;
 					}
-					/* Adjust by -i to account for nul. */
-					sct->m_mode |= mode_mask[(q - mode_chars) - i];
+					sct->m_mode |= mode_mask[q - mode_chars];
+					e++;
 				}
 
 				/* Now get the user/group info. */
@@ -512,6 +509,7 @@ static void check_suid(int applet_no)
 		}
 		goto check_need_suid;
  found:
+		/* Is this user allowed to run this applet? */
 		m = sct->m_mode;
 		if (sct->m_ugid.uid == ruid)
 			/* same uid */
@@ -519,28 +517,31 @@ static void check_suid(int applet_no)
 		else if ((sct->m_ugid.gid == rgid) || ingroup(ruid, sct->m_ugid.gid))
 			/* same group / in group */
 			m >>= 3;
-
-		if (!(m & S_IXOTH))           /* is x bit not set ? */
+		if (!(m & S_IXOTH)) /* is x bit not set? */
 			bb_error_msg_and_die("you have no permission to run this applet!");
 
-		/* _both_ sgid and group_exec have to be set for setegid */
-		if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP))
-			rgid = sct->m_ugid.gid;
-		/* else (no setegid) we will set egid = rgid */
-
 		/* We set effective AND saved ids. If saved-id is not set
-		 * like we do below, seteiud(0) can still later succeed! */
+		 * like we do below, seteuid(0) can still later succeed! */
+
+		/* Are we directed to change gid
+		 * (APPLET = *s* USER.GROUP or APPLET = *S* USER.GROUP)?
+		 */
+		if (sct->m_mode & S_ISGID)
+			rgid = sct->m_ugid.gid;
+		/* else: we will set egid = rgid, thus dropping sgid effect */
 		if (setresgid(-1, rgid, rgid))
 			bb_perror_msg_and_die("setresgid");
 
-		/* do we have to set effective uid? */
+		/* Are we directed to change uid
+		 * (APPLET = s** USER.GROUP or APPLET = S** USER.GROUP)?
+		 */
 		uid = ruid;
 		if (sct->m_mode & S_ISUID)
 			uid = sct->m_ugid.uid;
-		/* else (no seteuid) we will set euid = ruid */
-
+		/* else: we will set euid = ruid, thus dropping suid effect */
 		if (setresuid(-1, uid, uid))
 			bb_perror_msg_and_die("setresuid");
+
 		goto ret;
 	}
 #   if !ENABLE_FEATURE_SUID_CONFIG_QUIET

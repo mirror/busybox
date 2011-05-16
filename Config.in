@@ -350,7 +350,15 @@ config FEATURE_SUID_CONFIG
 	  by checking /etc/busybox.conf. (This is sort of a poor man's sudo.)
 	  The format of this file is as follows:
 
-	  <applet> = [Ssx-][Ssx-][x-] (<username>|<uid>).(<groupname>|<gid>)
+	  APPLET = [Ssx-][Ssx-][x-] USER.GROUP
+
+	  s: This user/group are allowed to execute APPLET.
+	     APPLET will run under USER or GROUP.
+	  x: User/group/others are allowed to execute APPLET.
+	     No UID/GID change will be done when it is run.
+	  S: This user/group are NOT allowed to execute APPLET.
+	     APPLET will run under USER or GROUP.
+	  -: User/group/others are not allowed to execute APPLET.
 
 	  An example might help:
 
