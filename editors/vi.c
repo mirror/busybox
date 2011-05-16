@@ -1688,12 +1688,16 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
 		}
 	} else {
+#if ENABLE_FEATURE_VI_SETOPTS
 		// insert a char into text[]
 		char *sp;		// "save p"
+#endif
 
 		if (c == 13)
 			c = '\n';	// translate \r to \n
+#if ENABLE_FEATURE_VI_SETOPTS
 		sp = p;			// remember addr of insert
+#endif
 		p += 1 + stupid_insert(p, c);	// insert the char
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (showmatch && strchr(")]}", *sp) != NULL) {
