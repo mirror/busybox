@@ -350,15 +350,17 @@ config FEATURE_SUID_CONFIG
 	  by checking /etc/busybox.conf. (This is sort of a poor man's sudo.)
 	  The format of this file is as follows:
 
-	  APPLET = [Ssx-][Ssx-][x-] USER.GROUP
+	  APPLET = [Ssx-][Ssx-][x-] [USER.GROUP]
 
-	  s: This user/group are allowed to execute APPLET.
+	  s: USER or GROUP is allowed to execute APPLET.
+	     APPLET will run under USER or GROUP
+	     (reagardless of who's running it).
+	  S: USER or GROUP is NOT allowed to execute APPLET.
 	     APPLET will run under USER or GROUP.
-	  x: User/group/others are allowed to execute APPLET.
+	     This option is not very sensical.
+	  x: USER/GROUP/others are allowed to execute APPLET.
 	     No UID/GID change will be done when it is run.
-	  S: This user/group are NOT allowed to execute APPLET.
-	     APPLET will run under USER or GROUP.
-	  -: User/group/others are not allowed to execute APPLET.
+	  -: USER/GROUP/others are not allowed to execute APPLET.
 
 	  An example might help:
 
@@ -368,7 +370,8 @@ config FEATURE_SUID_CONFIG
 	  su = ssx        # exactly the same
 
 	  mount = sx- root.disk # applet mount can be run by root and members
-	                        # of group disk and runs with euid=0
+	                        # of group disk (but not anyone else)
+	                        # and runs with euid=0 (egid is not changed)
 
 	  cp = --- # disable applet cp for everyone
 

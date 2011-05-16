@@ -261,9 +261,7 @@ static int ingroup(uid_t u, gid_t g)
 	return 0;
 }
 
-/* This should probably be a libbb routine.  In that case,
- * I'd probably rename it to something like bb_trimmed_slice.
- */
+/* libbb candidate */
 static char *get_trimmed_slice(char *s, char *e)
 {
 	/* First, consider the value at e to be nul and back up until we
@@ -442,15 +440,16 @@ static void parse_config_file(void)
 				/* Now get the user/group info. */
 
 				s = skip_whitespace(e);
+				if (*s == '\0')
+					s = strcpy(buffer, "0.0");
 
-				/* Note: we require whitespace between the mode and the
-				 * user/group info. */
+				/* We require whitespace between mode and USER.GROUP */
 				if ((s == e) || !(e = strchr(s, '.'))) {
 					errmsg = "uid.gid";
 					goto pe_label;
 				}
 
-				*e = ':'; /* get_uidgid doesn't understand user.group */
+				*e = ':'; /* get_uidgid needs USER:GROUP syntax */
 				if (get_uidgid(&sct->m_ugid, s, /*allow_numeric:*/ 1) == 0) {
 					errmsg = "unknown user/group";
 					goto pe_label;
@@ -518,7 +517,7 @@ static void check_suid(int applet_no)
 			/* same group / in group */
 			m >>= 3;
 		if (!(m & S_IXOTH)) /* is x bit not set? */
-			bb_error_msg_and_die("you have no permission to run this applet!");
+			bb_error_msg_and_die("you have no permission to run this applet");
 
 		/* We set effective AND saved ids. If saved-id is not set
 		 * like we do below, seteuid(0) can still later succeed! */
