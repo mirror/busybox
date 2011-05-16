@@ -1745,7 +1745,7 @@ static NOINLINE void
 recv_and_process_client_pkt(void /*int fd*/)
 {
 	ssize_t          size;
-	uint8_t          version;
+	//uint8_t          version;
 	len_and_sockaddr *to;
 	struct sockaddr  *from;
 	msg_t            msg;
@@ -1793,7 +1793,7 @@ recv_and_process_client_pkt(void /*int fd*/)
 	msg.m_rootdelay = d_to_sfp(G.rootdelay);
 //simple code does not do this, fix simple code!
 	msg.m_rootdisp = d_to_sfp(G.rootdisp);
-	version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */
+	//version = (query_status & VERSION_MASK); /* ... >> VERSION_SHIFT - done below instead */
 	msg.m_refid = G.refid; // (version > (3 << VERSION_SHIFT)) ? G.refid : G.refid3;
 
 	/* We reply from the local address packet was sent to,
