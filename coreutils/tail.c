@@ -59,7 +59,8 @@ static const struct suffix_mult tail_suffixes[] = {
 };
 
 struct globals {
-	bool status;
+	bool from_top;
+	bool exitcode;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 
@@ -85,7 +86,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	r = full_read(fd, buf, count);
 	if (r < 0) {
 		bb_perror_msg(bb_msg_read_error);
-		G.status = EXIT_FAILURE;
+		G.exitcode = EXIT_FAILURE;
 	}
 
 	return r;
@@ -99,7 +100,7 @@ static unsigned eat_num(const char *p)
 		p++;
 	else if (*p == '+') {
 		p++;
-		G.status = 1; /* mark that we saw "+" */
+		G.from_top = 1;
 	}
 	return xatou_sfx(p, tail_suffixes);
 }
@@ -109,7 +110,6 @@ int tail_main(int argc, char **argv)
 {
 	unsigned count = 10;
 	unsigned sleep_period = 1;
-	bool from_top;
 	const char *str_c, *str_n;
 
 	char *tailbuf;
@@ -152,8 +152,6 @@ int tail_main(int argc, char **argv)
 #endif
 	argc -= optind;
 	argv += optind;
-	from_top = G.status; /* 1 if there was "-c +N" or "-n +N" */
-	G.status = EXIT_SUCCESS;
 
 	/* open all the files */
 	fds = xmalloc(sizeof(fds[0]) * (argc + 1));
@@ -171,7 +169,7 @@ int tail_main(int argc, char **argv)
 	do {
 		int fd = open_or_warn_stdin(argv[i]);
 		if (fd < 0 && !FOLLOW_RETRY) {
-			G.status = EXIT_FAILURE;
+			G.exitcode = EXIT_FAILURE;
 			continue;
 		}
 		fds[nfiles] = fd;
@@ -183,15 +181,19 @@ int tail_main(int argc, char **argv)
 
 	/* prepare the buffer */
 	tailbufsize = BUFSIZ;
-	if (!from_top && COUNT_BYTES) {
+	if (!G.from_top && COUNT_BYTES) {
 		if (tailbufsize < count + BUFSIZ) {
 			tailbufsize = count + BUFSIZ;
 		}
 	}
-	tailbuf = xmalloc(tailbufsize);
+	/* tail -c1024m REGULAR_FILE doesn't really need 1G mem block.
+	 * (In fact, it doesn't need ANY memory). So delay allocation.
+	 */
+	tailbuf = NULL;
 
 	/* tail the files */
-	fmt = header_fmt_str + 1; /* skip header leading newline on first output */
+
+	fmt = header_fmt_str + 1; /* skip leading newline in the header on the first output */
 	i = 0;
 	do {
 		char *buf;
@@ -209,7 +211,7 @@ int tail_main(int argc, char **argv)
 			fmt = header_fmt_str;
 		}
 
-		if (!from_top) {
+		if (!G.from_top) {
 			off_t current = lseek(fd, 0, SEEK_END);
 			if (current > 0) {
 				unsigned off;
@@ -242,6 +244,9 @@ int tail_main(int argc, char **argv)
 			}
 		}
 
+		if (!tailbuf)
+			tailbuf = xmalloc(tailbufsize);
+
 		buf = tailbuf;
 		taillen = 0;
 		/* "We saw 1st line/byte".
@@ -249,7 +254,7 @@ int tail_main(int argc, char **argv)
 		seen = 1;
 		newlines_seen = 0;
 		while ((nread = tail_read(fd, buf, tailbufsize-taillen)) > 0) {
-			if (from_top) {
+			if (G.from_top) {
 				int nwrite = nread;
 				if (seen < count) {
 					/* We need to skip a few more bytes/lines */
@@ -313,7 +318,7 @@ int tail_main(int argc, char **argv)
 				buf = tailbuf + taillen;
 			}
 		} /* while (tail_read() > 0) */
-		if (!from_top) {
+		if (!G.from_top) {
 			xwrite(STDOUT_FILENO, tailbuf, taillen);
 		}
 	} while (++i < nfiles);
@@ -368,10 +373,11 @@ int tail_main(int argc, char **argv)
 				xwrite(STDOUT_FILENO, tailbuf, nread);
 			}
 		} while (++i < nfiles);
-	}
+	} /* while (1) */
+
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(fds);
 		free(tailbuf);
 	}
-	return G.status;
+	return G.exitcode;
 }
