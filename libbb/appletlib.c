@@ -563,8 +563,8 @@ static void check_suid(int applet_no)
 		xsetgid(rgid);  /* drop all privileges */
 		xsetuid(ruid);
 	}
- ret: ;
 #  if ENABLE_FEATURE_SUID_CONFIG
+ ret: ;
 	llist_free((llist_t*)suid_config, NULL);
 #  endif
 }

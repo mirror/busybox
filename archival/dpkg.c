@@ -702,28 +702,21 @@ static unsigned get_status(const unsigned status_node, const int num)
 
 static void set_status(const unsigned status_node_num, const char *new_value, const int position)
 {
-	const unsigned new_value_len = strlen(new_value);
 	const unsigned new_value_num = search_name_hashtable(new_value);
 	unsigned want = get_status(status_node_num, 1);
 	unsigned flag = get_status(status_node_num, 2);
 	unsigned status = get_status(status_node_num, 3);
-	int want_len = strlen(name_hashtable[want]);
-	int flag_len = strlen(name_hashtable[flag]);
-	int status_len = strlen(name_hashtable[status]);
 	char *new_status;
 
 	switch (position) {
 		case 1:
 			want = new_value_num;
-			want_len = new_value_len;
 			break;
 		case 2:
 			flag = new_value_num;
-			flag_len = new_value_len;
 			break;
 		case 3:
 			status = new_value_num;
-			status_len = new_value_len;
 			break;
 		default:
 			bb_error_msg_and_die("DEBUG ONLY: this shouldnt happen");
