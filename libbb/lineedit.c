@@ -41,6 +41,10 @@
  */
 #include "libbb.h"
 #include "unicode.h"
+#ifndef _POSIX_VDISABLE
+# define _POSIX_VDISABLE '\0'
+#endif
+
 
 #ifdef TEST
 # define ENABLE_FEATURE_EDITING 0
@@ -184,6 +188,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
 	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \
 } while (0)
+
 static void deinit_S(void)
 {
 #if ENABLE_FEATURE_EDITING_FANCY_PROMPT
@@ -1676,7 +1681,7 @@ static void ask_terminal(void)
 	 * write(1, "~/srcdevel/bbox/fix/busybox.t4 # ", 33) = 33
 	 * poll([{fd=0, events=POLLIN}], 1, 0) = 0 (Timeout)  <-- no input exists
 	 * write(1, "\33[6n", 4) = 4  <-- send the ESC sequence, quick!
-	 * poll([{fd=0, events=POLLIN}], 1, 4294967295) = 1 ([{fd=0, revents=POLLIN}])
+	 * poll([{fd=0, events=POLLIN}], 1, -1) = 1 ([{fd=0, revents=POLLIN}])
 	 * read(0, "\n", 1)      = 1  <-- oh crap, user's input got in first
 	 */
 	struct pollfd pfd;
@@ -1834,10 +1839,11 @@ static void win_changed(int nsig)
 {
 	int sv_errno = errno;
 	unsigned width;
+
 	get_terminal_width_height(0, &width, NULL);
-	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
-	if (nsig == SIGWINCH)
-		signal(SIGWINCH, win_changed); /* rearm ourself */
+//FIXME: cmdedit_setwidth() -> redraw() -> printf() -> KABOOM! (we are in signal handler!)
+	cmdedit_setwidth(width, /*redraw_flg:*/ nsig);
+
 	errno = sv_errno;
 }
 
@@ -2016,14 +2022,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
 	/* Turn off CTRL-C, so we can trap it */
-#ifndef _POSIX_VDISABLE
-# define _POSIX_VDISABLE '\0'
-#endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
 	tcsetattr_stdin_TCSANOW(&new_settings);
 
-	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
-	win_changed(0); /* do initial resizing */
 #if ENABLE_USERNAME_OR_HOMEDIR
 	{
 		struct passwd *entry;
@@ -2045,6 +2046,11 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	/* Print out the command prompt, optionally ask where cursor is */
 	parse_and_put_prompt(prompt);
 	ask_terminal();
+
+	/* Install window resize handler (NB: after *all* init is complete) */
+//FIXME: save entire sigaction!
+	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
+	win_changed(0); /* get initial window size */
 
 	read_key_buffer[0] = 0;
 	while (1) {
