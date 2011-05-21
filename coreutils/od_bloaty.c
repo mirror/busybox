@@ -13,43 +13,24 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
-
+   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
 /* Written by Jim Meyering.  */
+/* Busyboxed by Denys Vlasenko, based on od.c from coreutils-5.2.1 */
 
-/* Busyboxed by Denys Vlasenko
+//usage:#if ENABLE_DESKTOP
+//usage:#define od_trivial_usage
+//usage:       "[-abcdfhilovxs] [-t TYPE] [-A RADIX] [-N SIZE] [-j SKIP] [-S MINSTR] [-w WIDTH] [FILE...]"
+// We don't support:
+// ... [FILE] [[+]OFFSET[.][b]]
+// Support is buggy for:
+// od --traditional [OPTION]... [FILE] [[+]OFFSET[.][b] [+][LABEL][.][b]]
 
-Based on od.c from coreutils-5.2.1
-Top bloat sources:
+//usage:#define od_full_usage "\n\n"
+//usage:       "Print FILEs (or stdin) unambiguously, as octal bytes by default"
+//usage:#endif
 
-00000073 t parse_old_offset
-0000007b t get_lcm
-00000090 r long_options
-00000092 t print_named_ascii
-000000bf t print_ascii
-00000168 t write_block
-00000366 t decode_format_string
-00000a71 T od_main
-
-Tested for compat with coreutils 6.3
-using this script. Minor differences fixed.
-
-#!/bin/sh
-echo STD
-time /path/to/coreutils/od \
-...params... \
->std
-echo Exit code $?
-echo BBOX
-time ./busybox od \
-...params... \
->bbox
-echo Exit code $?
-diff -u -a std bbox >bbox.diff || { echo Different!; sleep 1; }
-
-*/
-
-#include "libbb.h"
+/* #include "libbb.h" - done in od.c */
 
 #define assert(a) ((void)0)
 
@@ -214,7 +195,7 @@ static const unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] ALIGN1
 
 #define MAX_FP_TYPE_SIZE sizeof(longdouble_t)
 static const unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] ALIGN1 = {
-	/* gcc seems to allow repeated indexes. Last one stays */
+	/* gcc seems to allow repeated indexes. Last one wins */
 	[sizeof(longdouble_t)] = FLOAT_LONG_DOUBLE,
 	[sizeof(double)] = FLOAT_DOUBLE,
 	[sizeof(float)] = FLOAT_SINGLE
@@ -376,7 +357,7 @@ print_named_ascii(size_t n_bytes, const char *block,
 	};
 	// buf[N] pos:  01234 56789
 	char buf[12] = "   x\0 0xx\0";
-	// actually "   x\0 xxx\0", but I want to share the string with below.
+	// actually "   x\0 xxx\0", but want to share string with print_ascii.
 	// [12] because we take three 32bit stack slots anyway, and
 	// gcc is too dumb to initialize with constant stores,
 	// it copies initializer from rodata. Oh well.
@@ -954,42 +935,6 @@ get_lcm(void)
 	return l_c_m;
 }
 
-#if ENABLE_LONG_OPTS
-/* If S is a valid traditional offset specification with an optional
-   leading '+' return nonzero and set *OFFSET to the offset it denotes.  */
-
-static int
-parse_old_offset(const char *s, off_t *offset)
-{
-	static const struct suffix_mult Bb[] = {
-		{ "B", 1024 },
-		{ "b", 512 },
-		{ "", 0 }
-	};
-	char *p;
-	int radix;
-
-	/* Skip over any leading '+'. */
-	if (s[0] == '+') ++s;
-
-	/* Determine the radix we'll use to interpret S.  If there is a '.',
-	 * it's decimal, otherwise, if the string begins with '0X'or '0x',
-	 * it's hexadecimal, else octal.  */
-	p = strchr(s, '.');
-	radix = 8;
-	if (p) {
-		p[0] = '\0'; /* cheating */
-		radix = 10;
-	} else if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-		radix = 16;
-
-	*offset = xstrtooff_sfx(s, radix, Bb);
-	if (p) p[0] = '.';
-
-	return (*offset >= 0);
-}
-#endif
-
 /* Read a chunk of size BYTES_PER_BLOCK from the input files, write the
    formatted block to standard output, and repeat until the specified
    maximum number of bytes has been read or until all input has been
@@ -1172,8 +1117,45 @@ dump_strings(off_t address, off_t end_offset)
 	check_and_close();
 }
 
+#if ENABLE_LONG_OPTS
+/* If S is a valid traditional offset specification with an optional
+   leading '+' return nonzero and set *OFFSET to the offset it denotes.  */
+
+static int
+parse_old_offset(const char *s, off_t *offset)
+{
+	static const struct suffix_mult Bb[] = {
+		{ "B", 1024 },
+		{ "b", 512 },
+		{ "", 0 }
+	};
+	char *p;
+	int radix;
+
+	/* Skip over any leading '+'. */
+	if (s[0] == '+') ++s;
+	if (!isdigit(s[0])) return 0; /* not a number */
+
+	/* Determine the radix we'll use to interpret S.  If there is a '.',
+	 * it's decimal, otherwise, if the string begins with '0X'or '0x',
+	 * it's hexadecimal, else octal.  */
+	p = strchr(s, '.');
+	radix = 8;
+	if (p) {
+		p[0] = '\0'; /* cheating */
+		radix = 10;
+	} else if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+		radix = 16;
+
+	*offset = xstrtooff_sfx(s, radix, Bb);
+	if (p) p[0] = '.';
+
+	return (*offset >= 0);
+}
+#endif
+
 int od_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int od_main(int argc, char **argv)
+int od_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const struct suffix_mult bkm[] = {
 		{ "b", 512 },
@@ -1245,7 +1227,6 @@ int od_main(int argc, char **argv)
 		// but in coreutils 6.3 it was renamed and now has
 		// _mandatory_ parameter
 		&str_A, &str_N, &str_j, &lst_t, &str_S, &bytes_per_block);
-	argc -= optind;
 	argv += optind;
 	if (opt & OPT_A) {
 		static const char doxn[] ALIGN1 = "doxn";
@@ -1288,7 +1269,6 @@ int od_main(int argc, char **argv)
 	if (opt & OPT_x) decode_format_string("x2");
 	if (opt & OPT_s) decode_format_string("d2");
 	if (opt & OPT_S) {
-		string_min = 3;
 		string_min = xstrtou_sfx(str_S, 0, bkm);
 		flag_dump_strings = 1;
 	}
@@ -1301,7 +1281,7 @@ int od_main(int argc, char **argv)
 	/* If the --traditional option is used, there may be from
 	 * 0 to 3 remaining command line arguments;  handle each case
 	 * separately.
-	 * od [file] [[+]offset[.][b] [[+]label[.][b]]]
+	 * od [FILE] [[+]OFFSET[.][b] [[+]LABEL[.][b]]]
 	 * The offset and pseudo_start have the same syntax.
 	 *
 	 * FIXME: POSIX 1003.1-2001 with XSI requires support for the
@@ -1311,48 +1291,47 @@ int od_main(int argc, char **argv)
 	if (opt & OPT_traditional) {
 		off_t o1, o2;
 
-		if (argc == 1) {
-			if (parse_old_offset(argv[0], &o1)) {
-				n_bytes_to_skip = o1;
-				--argc;
-				++argv;
+		if (argv[0]) {
+			if (!argv[1]) { /* one arg */
+				if (parse_old_offset(argv[0], &o1)) {
+					/* od --traditional OFFSET */
+					n_bytes_to_skip = o1;
+					argv++;
+				}
+				/* od --traditional FILE */
+			} else if (!argv[2]) { /* two args */
+				if (parse_old_offset(argv[0], &o1)
+				 && parse_old_offset(argv[1], &o2)
+				) {
+					/* od --traditional OFFSET LABEL */
+					n_bytes_to_skip = o1;
+					flag_pseudo_start = 1;
+					pseudo_start = o2;
+					argv += 2;
+				} else if (parse_old_offset(argv[1], &o2)) {
+					/* od --traditional FILE OFFSET */
+					n_bytes_to_skip = o2;
+					argv[1] = NULL;
+				} else {
+					bb_error_msg_and_die("invalid second argument '%s'", argv[1]);
+				}
+			} else if (!argv[3]) { /* three args */
+				if (parse_old_offset(argv[1], &o1)
+				 && parse_old_offset(argv[2], &o2)
+				) {
+					/* od --traditional FILE OFFSET LABEL */
+					n_bytes_to_skip = o1;
+					flag_pseudo_start = 1;
+					pseudo_start = o2;
+					argv[1] = NULL;
+				} else {
+					bb_error_msg_and_die("the last two arguments must be offsets");
+				}
+			} else { /* >3 args */
+				bb_error_msg_and_die("too many arguments");
 			}
-		} else if (argc == 2) {
-			if (parse_old_offset(argv[0], &o1)
-			 && parse_old_offset(argv[1], &o2)
-			) {
-				n_bytes_to_skip = o1;
-				flag_pseudo_start = 1;
-				pseudo_start = o2;
-				argv += 2;
-				argc -= 2;
-			} else if (parse_old_offset(argv[1], &o2)) {
-				n_bytes_to_skip = o2;
-				--argc;
-				argv[1] = argv[0];
-				++argv;
-			} else {
-				bb_error_msg_and_die("invalid second operand "
-					"in compatibility mode '%s'", argv[1]);
-			}
-		} else if (argc == 3) {
-			if (parse_old_offset(argv[1], &o1)
-			 && parse_old_offset(argv[2], &o2)
-			) {
-				n_bytes_to_skip = o1;
-				flag_pseudo_start = 1;
-				pseudo_start = o2;
-				argv[2] = argv[0];
-				argv += 2;
-				argc -= 2;
-			} else {
-				bb_error_msg_and_die("in compatibility mode "
-					"the last two arguments must be offsets");
-			}
-		} else if (argc > 3)	{
-			bb_error_msg_and_die("compatibility mode supports "
-				"at most three arguments");
 		}
+		/* else: od --traditional (without args) */
 
 		if (flag_pseudo_start) {
 			if (format_address == format_address_none) {
@@ -1368,7 +1347,7 @@ int od_main(int argc, char **argv)
 	if (limit_bytes_to_format) {
 		end_offset = n_bytes_to_skip + max_bytes_to_format;
 		if (end_offset < n_bytes_to_skip)
-			bb_error_msg_and_die("skip-bytes + read-bytes is too large");
+			bb_error_msg_and_die("SKIP + SIZE is too large");
 	}
 
 	if (n_specs == 0) {
@@ -1380,7 +1359,7 @@ int od_main(int argc, char **argv)
 	   set the global pointer FILE_LIST so that it
 	   references the null-terminated list of one name: "-".  */
 	file_list = bb_argv_dash;
-	if (argc > 0) {
+	if (argv[0]) {
 		/* Set the global pointer FILE_LIST so that it
 		   references the first file-argument on the command-line.  */
 		file_list = (char const *const *) argv;
