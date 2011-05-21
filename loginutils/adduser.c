@@ -95,12 +95,14 @@ static void addgroup_wrapper(struct passwd *p, const char *group_name)
 	} else {
 		/* Add user to his own group with the first free gid
 		 * found in passwd_study.
-		 * We try to use --gid, not -g, because "standard" addgroup
-		 * has no such short option, it has only long --gid.
 		 */
-#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS
+#if ENABLE_FEATURE_ADDGROUP_LONG_OPTIONS || !ENABLE_ADDGROUP
+		/* We try to use --gid, not -g, because "standard" addgroup
+		 * has no short option -g, it has only long --gid.
+		 */
 		argv[1] = (char*)"--gid";
 #else
+		/* Breaks if system in fact does NOT use busybox addgroup */
 		argv[1] = (char*)"-g";
 #endif
 		argv[2] = utoa(p->pw_gid);
