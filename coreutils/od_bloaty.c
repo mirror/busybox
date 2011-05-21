@@ -546,7 +546,6 @@ decode_one_format(const char *s_orig, const char *s, struct tspec *tspec)
 	unsigned field_width = 0;
 	int pos;
 
-
 	switch (*s) {
 	case 'd':
 	case 'o':
@@ -916,9 +915,9 @@ write_block(off_t current_offset, size_t n_bytes,
 			(*spec[i].print_function) (n_bytes, curr_block, spec[i].fmt_string);
 			if (spec[i].hexl_mode_trailer) {
 				/* space-pad out to full line width, then dump the trailer */
-				int datum_width = width_bytes[spec[i].size];
-				int blank_fields = (bytes_per_block - n_bytes) / datum_width;
-				int field_width = spec[i].field_width + 1;
+				unsigned datum_width = width_bytes[spec[i].size];
+				unsigned blank_fields = (bytes_per_block - n_bytes) / datum_width;
+				unsigned field_width = spec[i].field_width + 1;
 				printf("%*s", blank_fields * field_width, "");
 				dump_hexl_mode_trailer(n_bytes, curr_block);
 			}
@@ -983,7 +982,7 @@ dump(off_t current_offset, off_t end_offset)
 	int idx;
 	size_t n_bytes_read;
 
-	block[0] = xmalloc(2*bytes_per_block);
+	block[0] = xmalloc(2 * bytes_per_block);
 	block[1] = block[0] + bytes_per_block;
 
 	idx = 0;
@@ -994,16 +993,14 @@ dump(off_t current_offset, off_t end_offset)
 				n_bytes_read = 0;
 				break;
 			}
-			n_needed = MIN(end_offset - current_offset,
-				(off_t) bytes_per_block);
+			n_needed = MIN(end_offset - current_offset, (off_t) bytes_per_block);
 			read_block(n_needed, block[idx], &n_bytes_read);
 			if (n_bytes_read < bytes_per_block)
 				break;
 			assert(n_bytes_read == bytes_per_block);
-			write_block(current_offset, n_bytes_read,
-			       block[!idx], block[idx]);
+			write_block(current_offset, n_bytes_read, block[idx ^ 1], block[idx]);
 			current_offset += n_bytes_read;
-			idx = !idx;
+			idx ^= 1;
 		}
 	} else {
 		while (1) {
@@ -1011,10 +1008,9 @@ dump(off_t current_offset, off_t end_offset)
 			if (n_bytes_read < bytes_per_block)
 				break;
 			assert(n_bytes_read == bytes_per_block);
-			write_block(current_offset, n_bytes_read,
-			       block[!idx], block[idx]);
+			write_block(current_offset, n_bytes_read, block[idx ^ 1], block[idx]);
 			current_offset += n_bytes_read;
-			idx = !idx;
+			idx ^= 1;
 		}
 	}
 
@@ -1030,7 +1026,7 @@ dump(off_t current_offset, off_t end_offset)
 
 		memset(block[idx] + n_bytes_read, 0, bytes_to_write - n_bytes_read);
 		write_block(current_offset, bytes_to_write,
-				   block[!idx], block[idx]);
+				   block[idx ^ 1], block[idx]);
 		current_offset += n_bytes_read;
 	}
 
