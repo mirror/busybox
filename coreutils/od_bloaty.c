@@ -1183,12 +1183,15 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		"read-bytes\0"        Required_argument "N"
 		"format\0"            Required_argument "t"
 		"output-duplicates\0" No_argument       "v"
+		/* Yes, it's true: -S NUM, but --strings[=NUM]!
+		 * that is, NUM is mandatory for -S but optional for --strings!
+		 */
 		"strings\0"           Optional_argument "S"
 		"width\0"             Optional_argument "w"
 		"traditional\0"       No_argument       "\xff"
 		;
 #endif
-	char *str_A, *str_N, *str_j, *str_S;
+	const char *str_A, *str_N, *str_j, *str_S = "3";
 	llist_t *lst_t = NULL;
 	unsigned opt;
 	int l_c_m;
