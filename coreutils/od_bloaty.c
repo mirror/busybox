@@ -18,6 +18,11 @@
 /* Written by Jim Meyering.  */
 /* Busyboxed by Denys Vlasenko, based on od.c from coreutils-5.2.1 */
 
+
+/* #include "libbb.h" - done in od.c */
+#define assert(a) ((void)0)
+
+
 //usage:#if ENABLE_DESKTOP
 //usage:#define od_trivial_usage
 //usage:       "[-abcdfhilovxs] [-t TYPE] [-A RADIX] [-N SIZE] [-j SKIP] [-S MINSTR] [-w WIDTH] [FILE...]"
@@ -30,9 +35,39 @@
 //usage:       "Print FILEs (or stdin) unambiguously, as octal bytes by default"
 //usage:#endif
 
-/* #include "libbb.h" - done in od.c */
+enum {
+	OPT_A = 1 << 0,
+	OPT_N = 1 << 1,
+	OPT_a = 1 << 2,
+	OPT_b = 1 << 3,
+	OPT_c = 1 << 4,
+	OPT_d = 1 << 5,
+	OPT_f = 1 << 6,
+	OPT_h = 1 << 7,
+	OPT_i = 1 << 8,
+	OPT_j = 1 << 9,
+	OPT_l = 1 << 10,
+	OPT_o = 1 << 11,
+	OPT_t = 1 << 12,
+	/* When zero and two or more consecutive blocks are equal, format
+	   only the first block and output an asterisk alone on the following
+	   line to indicate that identical blocks have been elided: */
+	OPT_v = 1 << 13,
+	OPT_x = 1 << 14,
+	OPT_s = 1 << 15,
+	OPT_S = 1 << 16,
+	OPT_w = 1 << 17,
+	OPT_traditional = (1 << 18) * ENABLE_LONG_OPTS,
+};
 
-#define assert(a) ((void)0)
+#define OD_GETOPT32() getopt32(argv, \
+	"A:N:abcdfhij:lot:vxsS:w::", \
+	/* -w with optional param */ \
+	/* -S was -s and also had optional parameter */ \
+	/* but in coreutils 6.3 it was renamed and now has */ \
+	/* _mandatory_ parameter */ \
+	&str_A, &str_N, &str_j, &lst_t, &str_S, &bytes_per_block)
+
 
 /* Check for 0x7f is a coreutils 6.3 addition */
 #define ISPRINT(c) (((c)>=' ') && (c) != 0x7f)
@@ -139,15 +174,7 @@ struct ERR_width_bytes_has_bad_size {
 	char ERR_width_bytes_has_bad_size[ARRAY_SIZE(width_bytes) == N_SIZE_SPECS ? 1 : -1];
 };
 
-static smallint flag_dump_strings;
-/* Non-zero if an old-style 'pseudo-address' was specified.  */
-static smallint flag_pseudo_start;
-static smallint limit_bytes_to_format;
-/* When zero and two or more consecutive blocks are equal, format
-   only the first block and output an asterisk alone on the following
-   line to indicate that identical blocks have been elided.  */
-static smallint verbose;
-static smallint ioerror;
+static smallint exit_code;
 
 static size_t string_min;
 
@@ -160,7 +187,11 @@ static struct tspec *spec;
 static void (*format_address)(off_t, char);
 /* The difference between the old-style pseudo starting address and
    the number of bytes to skip.  */
+#if ENABLE_LONG_OPTS
 static off_t pseudo_offset;
+#else
+enum { pseudo_offset = 0 };
+#endif
 /* When zero, MAX_BYTES_TO_FORMAT and END_OFFSET are ignored, and all
    input is formatted.  */
 
@@ -453,10 +484,10 @@ open_next_file(void)
 		if (in_stream) {
 			break;
 		}
-		ioerror = 1;
+		exit_code = 1;
 	}
 
-	if (limit_bytes_to_format && !flag_dump_strings)
+	if ((option_mask32 & (OPT_N|OPT_S)) == OPT_N)
 		setbuf(in_stream, NULL);
 }
 
@@ -476,7 +507,7 @@ check_and_close(void)
 					? bb_msg_standard_input
 					: file_list[-1]
 			);
-			ioerror = 1;
+			exit_code = 1;
 		}
 		fclose_if_not_stdin(in_stream);
 		in_stream = NULL;
@@ -484,7 +515,7 @@ check_and_close(void)
 
 	if (ferror(stdout)) {
 		bb_error_msg(bb_msg_write_error);
-		ioerror = 1;
+		exit_code = 1;
 	}
 }
 
@@ -762,7 +793,7 @@ skip(off_t n_skip)
 				/* take "check & close / open_next" route */
 			} else {
 				if (fseeko(in_stream, n_skip, SEEK_CUR) != 0)
-					ioerror = 1;
+					exit_code = 1;
 				return;
 			}
 		} else {
@@ -863,7 +894,8 @@ write_block(off_t current_offset, size_t n_bytes,
 	static char prev_pair_equal = 0;
 	size_t i;
 
-	if (!verbose && !first
+	if (!(option_mask32 & OPT_v)
+	 && !first
 	 && n_bytes == bytes_per_block
 	 && memcmp(prev_block, curr_block, bytes_per_block) == 0
 	) {
@@ -956,7 +988,7 @@ dump(off_t current_offset, off_t end_offset)
 	block[1] = block[0] + bytes_per_block;
 
 	idx = 0;
-	if (limit_bytes_to_format) {
+	if (option_mask32 & OPT_N) {
 		while (1) {
 			size_t n_needed;
 			if (current_offset >= end_offset) {
@@ -1005,7 +1037,7 @@ dump(off_t current_offset, off_t end_offset)
 
 	format_address(current_offset, '\n');
 
-	if (limit_bytes_to_format && current_offset >= end_offset)
+	if ((option_mask32 & OPT_N) && current_offset >= end_offset)
 		check_and_close();
 
 	free(block[0]);
@@ -1066,10 +1098,10 @@ dump_strings(off_t address, off_t end_offset)
 
 		/* See if the next 'string_min' chars are all printing chars.  */
  tryline:
-		if (limit_bytes_to_format && (end_offset - string_min <= address))
+		if ((option_mask32 & OPT_N) && (end_offset - string_min <= address))
 			break;
 		i = 0;
-		while (!limit_bytes_to_format || address < end_offset) {
+		while (!(option_mask32 & OPT_N) || address < end_offset) {
 			if (i == bufsize) {
 				bufsize += bufsize/8;
 				buf = xrealloc(buf, bufsize);
@@ -1163,27 +1195,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		{ "m", 1024*1024 },
 		{ "", 0 }
 	};
-	enum {
-		OPT_A = 1 << 0,
-		OPT_N = 1 << 1,
-		OPT_a = 1 << 2,
-		OPT_b = 1 << 3,
-		OPT_c = 1 << 4,
-		OPT_d = 1 << 5,
-		OPT_f = 1 << 6,
-		OPT_h = 1 << 7,
-		OPT_i = 1 << 8,
-		OPT_j = 1 << 9,
-		OPT_l = 1 << 10,
-		OPT_o = 1 << 11,
-		OPT_t = 1 << 12,
-		OPT_v = 1 << 13,
-		OPT_x = 1 << 14,
-		OPT_s = 1 << 15,
-		OPT_S = 1 << 16,
-		OPT_w = 1 << 17,
-		OPT_traditional = (1 << 18) * ENABLE_LONG_OPTS,
-	};
 #if ENABLE_LONG_OPTS
 	static const char od_longopts[] ALIGN1 =
 		"skip-bytes\0"        Required_argument "j"
@@ -1200,9 +1211,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *lst_t = NULL;
 	unsigned opt;
 	int l_c_m;
-	/* The old-style 'pseudo starting address' to be printed in parentheses
-	   after any true address.  */
-	off_t pseudo_start = pseudo_start; // for gcc
 	/* The number of input bytes to skip before formatting and writing.  */
 	off_t n_bytes_to_skip = 0;
 	/* The offset of the first byte after the last byte to be formatted.  */
@@ -1214,19 +1222,13 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	format_address = format_address_std;
 	address_base_char = 'o';
 	address_pad_len_char = '7';
-	/* flag_dump_strings = 0; - already is */
 
 	/* Parse command line */
 	opt_complementary = "w+:t::"; /* -w N, -t is a list */
 #if ENABLE_LONG_OPTS
 	applet_long_options = od_longopts;
 #endif
-	opt = getopt32(argv, "A:N:abcdfhij:lot:vxsS:"
-		"w::", // -w with optional param
-		// -S was -s and also had optional parameter
-		// but in coreutils 6.3 it was renamed and now has
-		// _mandatory_ parameter
-		&str_A, &str_N, &str_j, &lst_t, &str_S, &bytes_per_block);
+	opt = OD_GETOPT32();
 	argv += optind;
 	if (opt & OPT_A) {
 		static const char doxn[] ALIGN1 = "doxn";
@@ -1248,7 +1250,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		address_pad_len_char = doxn_address_pad_len_char[pos];
 	}
 	if (opt & OPT_N) {
-		limit_bytes_to_format = 1;
 		max_bytes_to_format = xstrtooff_sfx(str_N, 0, bkm);
 	}
 	if (opt & OPT_a) decode_format_string("a");
@@ -1261,22 +1262,18 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm);
 	if (opt & OPT_l) decode_format_string("d4");
 	if (opt & OPT_o) decode_format_string("o2");
-	//if (opt & OPT_t)...
 	while (lst_t) {
 		decode_format_string(llist_pop(&lst_t));
 	}
-	if (opt & OPT_v) verbose = 1;
 	if (opt & OPT_x) decode_format_string("x2");
 	if (opt & OPT_s) decode_format_string("d2");
 	if (opt & OPT_S) {
 		string_min = xstrtou_sfx(str_S, 0, bkm);
-		flag_dump_strings = 1;
 	}
-	//if (opt & OPT_w)...
-	//if (opt & OPT_traditional)...
 
-	if (flag_dump_strings && n_specs > 0)
-		bb_error_msg_and_die("no type may be specified when dumping strings");
+	// Bloat:
+	//if ((option_mask32 & OPT_S) && n_specs > 0)
+	//	bb_error_msg_and_die("no type may be specified when dumping strings");
 
 	/* If the --traditional option is used, there may be from
 	 * 0 to 3 remaining command line arguments;  handle each case
@@ -1289,9 +1286,10 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_LONG_OPTS
 	if (opt & OPT_traditional) {
-		off_t o1, o2;
-
 		if (argv[0]) {
+			off_t pseudo_start = -1;
+			off_t o1, o2;
+
 			if (!argv[1]) { /* one arg */
 				if (parse_old_offset(argv[0], &o1)) {
 					/* od --traditional OFFSET */
@@ -1305,7 +1303,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 				) {
 					/* od --traditional OFFSET LABEL */
 					n_bytes_to_skip = o1;
-					flag_pseudo_start = 1;
 					pseudo_start = o2;
 					argv += 2;
 				} else if (parse_old_offset(argv[1], &o2)) {
@@ -1321,7 +1318,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 				) {
 					/* od --traditional FILE OFFSET LABEL */
 					n_bytes_to_skip = o1;
-					flag_pseudo_start = 1;
 					pseudo_start = o2;
 					argv[1] = NULL;
 				} else {
@@ -1330,21 +1326,23 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 			} else { /* >3 args */
 				bb_error_msg_and_die("too many arguments");
 			}
+
+			if (pseudo_start >= 0) {
+				if (format_address == format_address_none) {
+					address_base_char = 'o';
+					address_pad_len_char = '7';
+					format_address = format_address_paren;
+				} else {
+					format_address = format_address_label;
+				}
+				pseudo_offset = pseudo_start - n_bytes_to_skip;
+			}
 		}
 		/* else: od --traditional (without args) */
-
-		if (flag_pseudo_start) {
-			if (format_address == format_address_none) {
-				address_base_char = 'o';
-				address_pad_len_char = '7';
-				format_address = format_address_paren;
-			} else
-				format_address = format_address_label;
-		}
 	}
 #endif
 
-	if (limit_bytes_to_format) {
+	if (option_mask32 & OPT_N) {
 		end_offset = n_bytes_to_skip + max_bytes_to_format;
 		if (end_offset < n_bytes_to_skip)
 			bb_error_msg_and_die("SKIP + SIZE is too large");
@@ -1352,7 +1350,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 
 	if (n_specs == 0) {
 		decode_format_string("o2");
-		n_specs = 1;
+		/*n_specs = 1; - done by decode_format_string */
 	}
 
 	/* If no files were listed on the command line,
@@ -1365,16 +1363,14 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		file_list = (char const *const *) argv;
 	}
 
-	/* open the first input file */
+	/* Open the first input file */
 	open_next_file();
-	/* skip over any unwanted header bytes */
+	/* Skip over any unwanted header bytes */
 	skip(n_bytes_to_skip);
 	if (!in_stream)
 		return EXIT_FAILURE;
 
-	pseudo_offset = (flag_pseudo_start ? pseudo_start - n_bytes_to_skip : 0);
-
-	/* Compute output block length.  */
+	/* Compute output block length */
 	l_c_m = get_lcm();
 
 	if (opt & OPT_w) { /* -w: width */
@@ -1396,7 +1392,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	if (flag_dump_strings)
+	if (option_mask32 & OPT_S)
 		dump_strings(n_bytes_to_skip, end_offset);
 	else
 		dump(n_bytes_to_skip, end_offset);
@@ -1404,5 +1400,5 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (fclose(stdin) == EOF)
 		bb_perror_msg_and_die(bb_msg_standard_input);
 
-	return ioerror;
+	return exit_code;
 }
