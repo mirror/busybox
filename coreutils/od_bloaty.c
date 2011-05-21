@@ -70,7 +70,7 @@ enum {
 
 
 /* Check for 0x7f is a coreutils 6.3 addition */
-#define ISPRINT(c) (((c)>=' ') && (c) != 0x7f)
+#define ISPRINT(c) (((c) >= ' ') && (c) < 0x7f)
 
 typedef long double longdouble_t;
 typedef unsigned long long ulonglong_t;
@@ -176,7 +176,7 @@ struct ERR_width_bytes_has_bad_size {
 
 static smallint exit_code;
 
-static size_t string_min;
+static unsigned string_min;
 
 /* An array of specs describing how to format each input block.  */
 static size_t n_specs;
@@ -514,8 +514,7 @@ check_and_close(void)
 	}
 
 	if (ferror(stdout)) {
-		bb_error_msg(bb_msg_write_error);
-		exit_code = 1;
+		bb_error_msg_and_die(bb_msg_write_error);
 	}
 }
 
@@ -1043,29 +1042,6 @@ dump(off_t current_offset, off_t end_offset)
 	free(block[0]);
 }
 
-/* Read a single byte into *C from the concatenation of the input files
-   named in the global array FILE_LIST.  On the first call to this
-   function, the global variable IN_STREAM is expected to be an open
-   stream associated with the input file INPUT_FILENAME.  If IN_STREAM
-   is at end-of-file, close it and update the global variables IN_STREAM
-   and INPUT_FILENAME so they correspond to the next file in the list.
-   Then try to read a byte from the newly opened file.  Repeat if
-   necessary until EOF is reached for the last file in FILE_LIST, then
-   set *C to EOF and return.  Subsequent calls do likewise.  */
-
-static void
-read_char(int *c)
-{
-	while (in_stream) { /* !EOF */
-		*c = fgetc(in_stream);
-		if (*c != EOF)
-			return;
-		check_and_close();
-		open_next_file();
-	}
-	*c = EOF;
-}
-
 /* Read N bytes into BLOCK from the concatenation of the input files
    named in the global array FILE_LIST.  On the first call to this
    function, the global variable IN_STREAM is expected to be an open
@@ -1089,8 +1065,8 @@ read_char(int *c)
 static void
 dump_strings(off_t address, off_t end_offset)
 {
-	size_t bufsize = MAX(100, string_min);
-	char *buf = xmalloc(bufsize);
+	unsigned bufsize = MAX(100, string_min);
+	unsigned char *buf = xmalloc(bufsize);
 
 	while (1) {
 		size_t i;
@@ -1106,11 +1082,17 @@ dump_strings(off_t address, off_t end_offset)
 				bufsize += bufsize/8;
 				buf = xrealloc(buf, bufsize);
 			}
-			read_char(&c);
-			if (c < 0) { /* EOF */
-				free(buf);
-				return;
+
+			while (in_stream) { /* !EOF */
+				c = fgetc(in_stream);
+				if (c != EOF)
+					goto got_char;
+				check_and_close();
+				open_next_file();
 			}
+			/* EOF */
+			goto ret;
+ got_char:
 			address++;
 			if (!c)
 				break;
@@ -1122,8 +1104,7 @@ dump_strings(off_t address, off_t end_offset)
 		if (i < string_min)		/* Too short! */
 			goto tryline;
 
-		/* If we get here, the string is all printable and NUL-terminated,
-		 * so print it.  It is all in 'buf' and 'i' is its length.  */
+		/* If we get here, the string is all printable and NUL-terminated */
 		buf[i] = 0;
 		format_address(address - i - 1, ' ');
 
@@ -1144,9 +1125,9 @@ dump_strings(off_t address, off_t end_offset)
 
 	/* We reach this point only if we search through
 	   (max_bytes_to_format - string_min) bytes before reaching EOF.  */
-	free(buf);
-
 	check_and_close();
+ ret:
+	free(buf);
 }
 
 #if ENABLE_LONG_OPTS
@@ -1397,7 +1378,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	else
 		dump(n_bytes_to_skip, end_offset);
 
-	if (fclose(stdin) == EOF)
+	if (fclose(stdin))
 		bb_perror_msg_and_die(bb_msg_standard_input);
 
 	return exit_code;
