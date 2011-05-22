@@ -7,7 +7,3 @@
 lib-y:=
 
 INSERT
-lib-$(CONFIG_MAKEMIME)     += mime.o mail.o
-lib-$(CONFIG_POPMAILDIR)   += popmaildir.o mail.o
-lib-$(CONFIG_REFORMIME)    += mime.o mail.o
-lib-$(CONFIG_SENDMAIL)     += sendmail.o mail.o

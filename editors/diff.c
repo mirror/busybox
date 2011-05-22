@@ -101,9 +101,9 @@
 #include "libbb.h"
 
 #if 0
-//#define dbg_error_msg(...) bb_error_msg(__VA_ARGS__)
+# define dbg_error_msg(...) bb_error_msg(__VA_ARGS__)
 #else
-#define dbg_error_msg(...) ((void)0)
+# define dbg_error_msg(...) ((void)0)
 #endif
 
 enum {                  /* print_status() and diffreg() return values */

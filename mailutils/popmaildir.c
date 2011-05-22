@@ -10,6 +10,8 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//kbuild:lib-$(CONFIG_POPMAILDIR) += popmaildir.o mail.o
+
 //usage:#define popmaildir_trivial_usage
 //usage:       "[OPTIONS] MAILDIR [CONN_HELPER ARGS]"
 //usage:#define popmaildir_full_usage "\n\n"
