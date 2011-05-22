@@ -264,6 +264,7 @@
 //usage:     "\n	-iname PATTERN	Case insensitive -name"
 //usage:	IF_FEATURE_FIND_PATH(
 //usage:     "\n	-path PATTERN	Match path to PATTERN"
+//usage:     "\n	-ipath PATTERN	Case insensitive -path"
 //usage:	)
 //usage:	IF_FEATURE_FIND_REGEX(
 //usage:     "\n	-regex PATTERN	Match path to regex PATTERN"
@@ -352,7 +353,7 @@ typedef struct {
 
                         ACTS(print)
                         ACTS(name,  const char *pattern; bool iname;)
-IF_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern;))
+IF_FEATURE_FIND_PATH(   ACTS(path,  const char *pattern; bool ipath;))
 IF_FEATURE_FIND_REGEX(  ACTS(regex, regex_t compiled_pattern;))
 IF_FEATURE_FIND_PRINT0( ACTS(print0))
 IF_FEATURE_FIND_TYPE(   ACTS(type,  int type_mask;))
@@ -494,7 +495,7 @@ ACTF(name)
 #if ENABLE_FEATURE_FIND_PATH
 ACTF(path)
 {
-	return fnmatch(ap->pattern, fileName, 0) == 0;
+	return fnmatch(ap->pattern, fileName, (ap->ipath ? FNM_CASEFOLD : 0)) == 0;
 }
 #endif
 #if ENABLE_FEATURE_FIND_REGEX
@@ -794,6 +795,7 @@ static action*** parse_params(char **argv)
 	                        PARM_name      ,
 	                        PARM_iname     ,
 	IF_FEATURE_FIND_PATH(   PARM_path      ,)
+	IF_FEATURE_FIND_PATH(   PARM_ipath     ,)
 	IF_FEATURE_FIND_REGEX(  PARM_regex     ,)
 	IF_FEATURE_FIND_TYPE(   PARM_type      ,)
 	IF_FEATURE_FIND_PERM(   PARM_perm      ,)
@@ -831,6 +833,7 @@ static action*** parse_params(char **argv)
 	                         "-name\0"
 	                         "-iname\0"
 	IF_FEATURE_FIND_PATH(   "-path\0"   )
+	IF_FEATURE_FIND_PATH(   "-ipath\0"  )
 	IF_FEATURE_FIND_REGEX(  "-regex\0"  )
 	IF_FEATURE_FIND_TYPE(   "-type\0"   )
 	IF_FEATURE_FIND_PERM(   "-perm\0"   )
@@ -1018,10 +1021,11 @@ static action*** parse_params(char **argv)
 			ap->iname = (parm == PARM_iname);
 		}
 #if ENABLE_FEATURE_FIND_PATH
-		else if (parm == PARM_path) {
+		else if (parm == PARM_path || parm == PARM_ipath) {
 			action_path *ap;
 			ap = ALLOC_ACTION(path);
 			ap->pattern = arg1;
+			ap->ipath = (parm == PARM_ipath);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_REGEX
