@@ -330,7 +330,11 @@
 #include <fnmatch.h>
 #include "libbb.h"
 #if ENABLE_FEATURE_FIND_REGEX
-#include "xregex.h"
+# include "xregex.h"
+#endif
+/* GNUism: */
+#ifndef FNM_CASEFOLD
+# define FNM_CASEFOLD 0
 #endif
 
 /* This is a NOEXEC applet. Be very careful! */
@@ -474,6 +478,22 @@ static int exec_actions(action ***appp, const char *fileName, const struct stat 
 }
 
 
+#if !FNM_CASEFOLD
+static char *strcpy_upcase(char *dst, const char *src)
+{
+	char *d = dst;
+	while (1) {
+		unsigned char ch = *src++;
+		if (ch >= 'a' && ch <= 'z')
+			ch -= ('a' - 'A');
+		*d++ = ch;
+		if (ch == '\0')
+			break;
+	}
+	return dst;
+}
+#endif
+
 ACTF(name)
 {
 	const char *tmp = bb_basename(fileName);
@@ -489,13 +509,25 @@ ACTF(name)
 	 * but somewhere between 4.1.20 and 4.4.0 GNU find stopped using it.
 	 * find -name '*foo' should match .foo too:
 	 */
+#if FNM_CASEFOLD
 	return fnmatch(ap->pattern, tmp, (ap->iname ? FNM_CASEFOLD : 0)) == 0;
+#else
+	if (ap->iname)
+		tmp = strcpy_upcase(alloca(strlen(tmp) + 1), tmp);
+	return fnmatch(ap->pattern, tmp, 0) == 0;
+#endif
 }
 
 #if ENABLE_FEATURE_FIND_PATH
 ACTF(path)
 {
+# if FNM_CASEFOLD
 	return fnmatch(ap->pattern, fileName, (ap->ipath ? FNM_CASEFOLD : 0)) == 0;
+# else
+	if (ap->ipath)
+		fileName = strcpy_upcase(alloca(strlen(fileName) + 1), fileName);
+	return fnmatch(ap->pattern, fileName, 0) == 0;
+# endif
 }
 #endif
 #if ENABLE_FEATURE_FIND_REGEX

@@ -6,8 +6,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 #include "libbb.h"
+
+const char* FAST_FUNC bb_basename(const char *name)
+{
+	const char *cp = strrchr(name, '/');
+	if (cp)
+		return cp + 1;
+	return name;
+}
+
 /*
  * "/"        -> "/"
  * "abc"      -> "abc"
