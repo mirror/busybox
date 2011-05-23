@@ -356,6 +356,7 @@ extern void bb_copyfd_exact_size(int fd1, int fd2, off_t size) FAST_FUNC;
 /* "short" copy can be detected by return value < size */
 /* this helper yells "short read!" if param is not -1 */
 extern void complain_copyfd_and_die(off_t sz) NORETURN FAST_FUNC;
+
 extern char bb_process_escape_sequence(const char **ptr) FAST_FUNC;
 char* strcpy_and_process_escape_sequences(char *dst, const char *src) FAST_FUNC;
 /* xxxx_strip version can modify its parameter:
@@ -364,9 +365,13 @@ char* strcpy_and_process_escape_sequences(char *dst, const char *src) FAST_FUNC;
  * "abc/def"  -> "def"
  * "abc/def/" -> "def" !!
  */
-extern char *bb_get_last_path_component_strip(char *path) FAST_FUNC;
+char *bb_get_last_path_component_strip(char *path) FAST_FUNC;
 /* "abc/def/" -> "" and it never modifies 'path' */
-extern char *bb_get_last_path_component_nostrip(const char *path) FAST_FUNC;
+char *bb_get_last_path_component_nostrip(const char *path) FAST_FUNC;
+/* Simpler version: does not special case "/" string */
+const char *bb_basename(const char *name) FAST_FUNC;
+/* NB: can violate const-ness (similarly to strchr) */
+char *last_char_is(const char *s, int c) FAST_FUNC;
 
 void ndelay_on(int fd) FAST_FUNC;
 void ndelay_off(int fd) FAST_FUNC;
@@ -1192,10 +1197,8 @@ void config_close(parser_t *parser) FAST_FUNC;
  * If path is NULL, it is assumed to be "/".
  * filename should not be NULL. */
 char *concat_path_file(const char *path, const char *filename) FAST_FUNC;
+/* Returns NULL on . and .. */
 char *concat_subpath_file(const char *path, const char *filename) FAST_FUNC;
-const char *bb_basename(const char *name) FAST_FUNC;
-/* NB: can violate const-ness (similarly to strchr) */
-char *last_char_is(const char *s, int c) FAST_FUNC;
 
 
 int bb_make_directory(char *path, long mode, int flags) FAST_FUNC;
