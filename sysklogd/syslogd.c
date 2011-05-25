@@ -16,26 +16,33 @@
 //usage:#define syslogd_trivial_usage
 //usage:       "[OPTIONS]"
 //usage:#define syslogd_full_usage "\n\n"
-//usage:       "System logging utility.\n"
-//usage:       "This version of syslogd ignores /etc/syslog.conf\n"
+//usage:       "System logging utility\n"
+//usage:	IF_NOT_FEATURE_SYSLOGD_CFG(
+//usage:       "(this version of syslogd ignores /etc/syslog.conf)\n"
+//usage:	)
 //usage:     "\nOptions:"
 //usage:     "\n	-n		Run in foreground"
-//usage:     "\n	-O FILE		Log to given file (default:/var/log/messages)"
-//usage:     "\n	-l N		Set local log level"
-//usage:     "\n	-S		Smaller logging output"
+//usage:     "\n	-O FILE		Log to FILE (default:/var/log/messages)"
+//usage:     "\n	-l N		Log only messages more urgent than prio N (1-8)"
+//usage:     "\n	-S		Smaller output"
 //usage:	IF_FEATURE_ROTATE_LOGFILE(
-//usage:     "\n	-s SIZE		Max size (KB) before rotate (default:200KB, 0=off)"
-//usage:     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)")
+//usage:     "\n	-s SIZE		Max size (KB) before rotation (default:200KB, 0=off)"
+//usage:     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)"
+//usage:	)
 //usage:	IF_FEATURE_REMOTE_LOG(
 //usage:     "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)"
-//usage:     "\n	-L		Log locally and via network (default is network only if -R)")
+//usage:     "\n	-L		Log locally and via network (default is network only if -R)"
+//usage:	)
 //usage:	IF_FEATURE_SYSLOGD_DUP(
-//usage:     "\n	-D		Drop duplicates")
+//usage:     "\n	-D		Drop duplicates"
+//usage:	)
 //usage:	IF_FEATURE_IPC_SYSLOG(
-//usage:     "\n	-C[size(KiB)]	Log to shared mem buffer (read it using logread)")
-//usage:	IF_FEATURE_SYSLOGD_CFG(
-//usage:     "\n	-f FILE		Use FILE as config (default is /etc/syslog.conf)")
 /* NB: -Csize shouldn't have space (because size is optional) */
+//usage:     "\n	-C[size_kb]	Log to shared mem buffer (use logread to read it)"
+//usage:	)
+//usage:	IF_FEATURE_SYSLOGD_CFG(
+//usage:     "\n	-f FILE		Use FILE as config (default:/etc/syslog.conf)"
+//usage:	)
 /* //usage:  "\n	-m MIN		Minutes between MARK lines (default:20, 0=off)" */
 //usage:
 //usage:#define syslogd_example_usage
