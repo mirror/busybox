@@ -41,6 +41,6 @@ int setconsole_main(int argc UNUSED_PARAM, char **argv)
 			device = DEV_CONSOLE;
 	}
 
-	xioctl(xopen(device, O_RDONLY), TIOCCONS, NULL);
+	xioctl(xopen(device, O_WRONLY), TIOCCONS, NULL);
 	return EXIT_SUCCESS;
 }
