@@ -299,7 +299,7 @@ int fuser_main(int argc UNUSED_PARAM, char **argv)
 
 		strcpy(path, "/proc/net/");
 		if (sscanf(*pp, "%u/%4s", &port, path + sizeof("/proc/net/")-1) == 2
-		 && access(path, R_OK) != 0
+		 && access(path, R_OK) == 0
 		) {
 			/* PORT/PROTO */
 			scan_proc_net_or_maps(path, port);
