@@ -40,7 +40,6 @@
 //usage:     "\n	-R	Recurse"
 //usage:	)
 
-#include <getopt.h>
 #include <selinux/context.h>
 
 #include "libbb.h"

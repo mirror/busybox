@@ -25,7 +25,7 @@
  *   Added NLS support (partly written by Arkadiusz Mickiewicz
  *     <misiek@misiek.eu.org>)
  * Ported to Busybox - Alfred M. Szmidt <ams@trillian.itslinux.org>
- *  Removed --version/-V and --help/-h in
+ *  Removed --version/-V and --help/-h
  *  Removed parse_error(), using bb_error_msg() from Busybox instead
  *  Replaced our_malloc with xmalloc and our_realloc with xrealloc
  *
@@ -79,7 +79,9 @@
 //usage:       " esac\n"
 //usage:       "done\n"
 
-#include <getopt.h>
+#if ENABLE_FEATURE_GETOPT_LONG
+# include <getopt.h>
+#endif
 #include "libbb.h"
 
 /* NON_OPT is the code that is returned when a non-option is found in '+'

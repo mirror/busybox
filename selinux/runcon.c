@@ -50,7 +50,6 @@
 //usage:     "\n	-l RNG	Levelrange"
 //usage:	)
 
-#include <getopt.h>
 #include <selinux/context.h>
 #include <selinux/flask.h>
 
