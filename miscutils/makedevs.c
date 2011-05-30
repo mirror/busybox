@@ -38,7 +38,7 @@
 //usage:#define makedevs_full_usage "\n\n"
 //usage:       "Create a range of special files as specified in a device table.\n"
 //usage:       "Device table entries take the form of:\n"
-//usage:       "<type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>\n"
+//usage:       "<name> <type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>\n"
 //usage:       "Where name is the file name, type can be one of:\n"
 //usage:       "	f	Regular file\n"
 //usage:       "	d	Directory\n"
