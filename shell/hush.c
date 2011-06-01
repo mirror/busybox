@@ -7500,7 +7500,7 @@ static int run_list(struct pipe *pi)
 		/* Beware of "while false; true; do ..."! */
 		if (pi->next
 		 && (pi->next->res_word == RES_DO || pi->next->res_word == RES_DONE)
-		/* (the second check above is needed for "while ...; do \n done" case) */
+		 /* check for RES_DONE is needed for "while ...; do \n done" case */
 		) {
 			if (rword == RES_WHILE) {
 				if (rcode) {
