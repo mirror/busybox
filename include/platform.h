@@ -391,6 +391,12 @@ typedef unsigned smalluint;
 # undef HAVE_STPCPY
 #endif
 
+#if defined(ANDROID)
+# undef HAVE_DPRINTF
+# undef HAVE_STPCPY
+# undef HAVE_STRCHRNUL
+#endif
+
 /*
  * Now, define prototypes for all the functions defined in platform.c
  * These must come after all the HAVE_* macros are defined (or not)
