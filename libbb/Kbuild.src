@@ -63,7 +63,6 @@ lib-y += hash_md5_sha.o
 #lib-y += hash_md5prime.o
 lib-y += messages.o
 lib-y += mode_string.o
-lib-y += obscure.o
 lib-y += parse_mode.o
 lib-y += parse_config.o
 lib-y += perror_msg.o
@@ -137,7 +136,7 @@ lib-$(CONFIG_ADDUSER) += update_passwd.o
 lib-$(CONFIG_DELGROUP) += update_passwd.o
 lib-$(CONFIG_DELUSER) += update_passwd.o
 
-lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o
+lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o obscure.o
 lib-$(CONFIG_CHPASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CRYPTPW) += pw_encrypt.o
 lib-$(CONFIG_SULOGIN) += pw_encrypt.o
