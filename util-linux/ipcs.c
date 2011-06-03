@@ -55,11 +55,11 @@
 #define SHM_INFO        14
 struct shm_info {
 	int used_ids;
-	ulong shm_tot;		/* total allocated shm */
-	ulong shm_rss;		/* total resident shm */
-	ulong shm_swp;		/* total swapped shm */
-	ulong swap_attempts;
-	ulong swap_successes;
+	unsigned long shm_tot;		/* total allocated shm */
+	unsigned long shm_rss;		/* total resident shm */
+	unsigned long shm_swp;		/* total swapped shm */
+	unsigned long swap_attempts;
+	unsigned long swap_successes;
 };
 #endif
 
@@ -267,7 +267,7 @@ static NOINLINE void do_sem(void)
 	struct passwd *pw;
 	union semun arg;
 
-	arg.array = (ushort *) (void *) &seminfo;
+	arg.array = (unsigned short *) (void *) &seminfo;
 	maxid = semctl(0, 0, SEM_INFO, arg);
 	if (maxid < 0) {
 		printf("kernel not configured for %s\n", "semaphores");
@@ -277,7 +277,7 @@ static NOINLINE void do_sem(void)
 	switch (format) {
 	case LIMITS:
 		printf("------ Semaphore %s --------\n", "Limits");
-		arg.array = (ushort *) (void *) &seminfo;	/* damn union */
+		arg.array = (unsigned short *) (void *) &seminfo;	/* damn union */
 		if ((semctl(0, 0, IPC_INFO, arg)) < 0)
 			return;
 		printf("max number of arrays = %d\n"
