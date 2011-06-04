@@ -1134,8 +1134,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		client_config.no_default_options = 1;
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
-		unsigned n = udhcp_option_idx(optstr);
-		n = dhcp_optflags[n].code;
+		unsigned n = bb_strtou(optstr, NULL, 0);
+		if (errno || n > 254) {
+			n = udhcp_option_idx(optstr);
+			n = dhcp_optflags[n].code;
+		}
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
 	}
 	while (list_x) {
