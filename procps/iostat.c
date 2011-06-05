@@ -7,23 +7,24 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_IOSTAT(APPLET(iostat, BB_DIR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_IOSTAT) += iostat.o
-
 //config:config IOSTAT
 //config:	bool "iostat"
 //config:	default y
 //config:	help
 //config:	  Report CPU and I/O statistics
 
+//applet:IF_IOSTAT(APPLET(iostat, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IOSTAT) += iostat.o
+
 #include "libbb.h"
-#include <sys/utsname.h>  /* Need struct utsname */
+#include <sys/utsname.h>  /* struct utsname */
 
 //#define debug(fmt, ...) fprintf(stderr, fmt, ## __VA_ARGS__)
 #define debug(fmt, ...) ((void)0)
 
 #define MAX_DEVICE_NAME 12
+#define MAX_DEVICE_NAME_STR "12"
 
 #if 1
 typedef unsigned long long cputime_t;
@@ -64,21 +65,27 @@ typedef struct {
 	cputime_t itv;
 } stats_cpu_pair_t;
 
-struct stats_dev {
-	char dname[MAX_DEVICE_NAME];
+typedef struct {
 	unsigned long long rd_sectors;
 	unsigned long long wr_sectors;
 	unsigned long rd_ops;
 	unsigned long wr_ops;
-};
+} stats_dev_data_t;
+
+typedef struct stats_dev {
+	struct stats_dev *next;
+	char dname[MAX_DEVICE_NAME + 1];
+	stats_dev_data_t prev_data;
+	stats_dev_data_t curr_data;
+} stats_dev_t;
 
 /* Globals. Sort by size and access frequency. */
 struct globals {
 	smallint show_all;
 	unsigned total_cpus;            /* Number of CPUs */
 	unsigned clk_tck;               /* Number of clock ticks per second */
-	llist_t *dev_list;              /* List of devices entered on the command line */
-	struct stats_dev *saved_stats_dev;
+	llist_t *dev_name_list;         /* List of devices entered on the command line */
+	stats_dev_t *stats_dev_list;
 	struct tm tmtime;
 	struct {
 		const char *str;
@@ -114,7 +121,7 @@ static ALWAYS_INLINE int this_is_smp(void)
 
 static void print_header(void)
 {
-	char buf[16];
+	char buf[32];
 	struct utsname uts;
 
 	uname(&uts); /* never fails */
@@ -136,7 +143,7 @@ static void get_localtime(struct tm *ptm)
 
 static void print_timestamp(void)
 {
-	char buf[20];
+	char buf[64];
 	/* %x: date representation for the current locale */
 	/* %X: time representation for the current locale */
 	strftime(buf, sizeof(buf), "%x %X", &G.tmtime);
@@ -162,18 +169,22 @@ static cputime_t get_smp_uptime(void)
 static void get_cpu_statistics(stats_cpu_t *sc)
 {
 	FILE *fp;
-	char buf[1024], *ibuf = buf + 4;
+	char buf[1024];
 
 	fp = xfopen_for_read("/proc/stat");
 
 	memset(sc, 0, sizeof(*sc));
 
 	while (fgets(buf, sizeof(buf), fp)) {
-		/* Does the line starts with "cpu "? */
+		int i;
+		char *ibuf;
+
+		/* Does the line start with "cpu "? */
 		if (!starts_with_cpu(buf) || buf[3] != ' ') {
 			continue;
 		}
-		for (int i = STATS_CPU_USER; i <= STATS_CPU_GUEST; i++) {
+		ibuf = buf + 4;
+		for (i = STATS_CPU_USER; i <= STATS_CPU_GUEST; i++) {
 			ibuf = skip_whitespace(ibuf);
 			sscanf(ibuf, "%"FMT_DATA"u", &sc->vector[i]);
 			if (i != STATS_CPU_GUEST) {
@@ -233,7 +244,7 @@ static void print_stats_cpu_struct(stats_cpu_pair_t *stats)
 {
 	cputime_t *p = stats->prev->vector;
 	cputime_t *c = stats->curr->vector;
-	printf("         %6.2f  %6.2f  %6.2f  %6.2f  %6.2f  %6.2f\n",
+	printf("        %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f\n",
 		percent_value(p[STATS_CPU_USER]  , c[STATS_CPU_USER]  , stats->itv),
 		percent_value(p[STATS_CPU_NICE]  , c[STATS_CPU_NICE]  , stats->itv),
 		percent_value(p[STATS_CPU_SYSTEM] + p[STATS_CPU_SOFTIRQ] + p[STATS_CPU_IRQ],
@@ -242,22 +253,6 @@ static void print_stats_cpu_struct(stats_cpu_pair_t *stats)
 		percent_value(p[STATS_CPU_STEAL] , c[STATS_CPU_STEAL] , stats->itv),
 		percent_value(p[STATS_CPU_IDLE]  , c[STATS_CPU_IDLE]  , stats->itv)
 	);
-}
-
-static void print_stats_dev_struct(const struct stats_dev *p,
-		const struct stats_dev *c, cputime_t itv)
-{
-	if (option_mask32 & OPT_z)
-		if (p->rd_ops == c->rd_ops && p->wr_ops == c->wr_ops)
-			return;
-
-	printf("%-13s %8.2f %12.2f %12.2f %10llu %10llu \n", c->dname,
-		percent_value(p->rd_ops + p->wr_ops ,
-		/**/		  c->rd_ops + c->wr_ops , itv),
-		percent_value(p->rd_sectors, c->rd_sectors, itv) / G.unit.div,
-		percent_value(p->wr_sectors, c->wr_sectors, itv) / G.unit.div,
-		(c->rd_sectors - p->rd_sectors) / G.unit.div,
-		(c->wr_sectors - p->wr_sectors) / G.unit.div);
 }
 
 static void cpu_report(stats_cpu_pair_t *stats)
@@ -269,11 +264,31 @@ static void cpu_report(stats_cpu_pair_t *stats)
 	print_stats_cpu_struct(stats);
 }
 
+static void print_stats_dev_struct(stats_dev_t *stats_dev, cputime_t itv)
+{
+	stats_dev_data_t *p = &stats_dev->prev_data;
+	stats_dev_data_t *c = &stats_dev->curr_data;
+	if (option_mask32 & OPT_z)
+		if (p->rd_ops == c->rd_ops && p->wr_ops == c->wr_ops)
+			return;
+
+	printf("%-13s %8.2f %12.2f %12.2f %10llu %10llu\n",
+		stats_dev->dname,
+		percent_value(p->rd_ops + p->wr_ops, c->rd_ops + c->wr_ops, itv),
+		percent_value(p->rd_sectors, c->rd_sectors, itv) / G.unit.div,
+		percent_value(p->wr_sectors, c->wr_sectors, itv) / G.unit.div,
+		(c->rd_sectors - p->rd_sectors) / G.unit.div,
+		(c->wr_sectors - p->wr_sectors) / G.unit.div
+	);
+}
+
 static void print_devstat_header(void)
 {
-	printf("Device:%15s%6s%s/s%6s%s/s%6s%s%6s%s\n", "tps",
+	printf("Device:%15s%6s%s/s%6s%s/s%6s%s%6s%s\n",
+		"tps",
 		G.unit.str, "_read", G.unit.str, "_wrtn",
-		G.unit.str, "_read", G.unit.str, "_wrtn");
+		G.unit.str, "_read", G.unit.str, "_wrtn"
+	);
 }
 
 /*
@@ -285,61 +300,81 @@ static int is_partition(const char *dev)
 	return ((dev[0] - 's') | (dev[1] - 'd') | (dev[2] - 'a')) == 0 && isdigit(dev[3]);
 }
 
+static stats_dev_t *stats_dev_find_or_new(const char *dev_name)
+{
+	stats_dev_t **curr = &G.stats_dev_list;
+
+	while (*curr != NULL) {
+		if (strcmp((*curr)->dname, dev_name) == 0)
+			return *curr;
+		curr = &(*curr)->next;
+	}
+
+	*curr = xzalloc(sizeof(stats_dev_t));
+	strncpy((*curr)->dname, dev_name, MAX_DEVICE_NAME);
+	return *curr;
+}
+
+static void stats_dev_free(stats_dev_t *stats_dev)
+{
+	if (stats_dev) {
+		stats_dev_free(stats_dev->next);
+		free(stats_dev);
+	}
+}
+
 static void do_disk_statistics(cputime_t itv)
 {
+	char buf[128];
+	char dev_name[MAX_DEVICE_NAME + 1];
+	unsigned long long rd_sec_or_dummy;
+	unsigned long long wr_sec_or_dummy;
+	stats_dev_data_t *curr_data;
+	stats_dev_t *stats_dev;
 	FILE *fp;
 	int rc;
-	int i = 0;
-	char buf[128];
-	unsigned major, minor;
-	unsigned long wr_ops, dummy; /* %*lu for suppress the conversion wouldn't work */
-	unsigned long long rd_sec_or_wr_ops;
-	unsigned long long rd_sec_or_dummy, wr_sec_or_dummy, wr_sec;
-	struct stats_dev sd;
 
 	fp = xfopen_for_read("/proc/diskstats");
-
 	/* Read and possibly print stats from /proc/diskstats */
 	while (fgets(buf, sizeof(buf), fp)) {
-		rc = sscanf(buf, "%u %u %s %lu %llu %llu %llu %lu %lu %llu %lu %lu %lu %lu",
-			&major, &minor, sd.dname, &sd.rd_ops,
-			&rd_sec_or_dummy, &rd_sec_or_wr_ops, &wr_sec_or_dummy,
-			&wr_ops, &dummy, &wr_sec, &dummy, &dummy, &dummy, &dummy);
-
-		switch (rc) {
-		case 14:
-			sd.wr_ops = wr_ops;
-			sd.rd_sectors = rd_sec_or_wr_ops;
-			sd.wr_sectors = wr_sec;
-			break;
-		case 7:
-			sd.rd_sectors = rd_sec_or_dummy;
-			sd.wr_ops = (unsigned long)rd_sec_or_wr_ops;
-			sd.wr_sectors = wr_sec_or_dummy;
-			break;
-		default:
-			break;
+		sscanf(buf, "%*s %*s %"MAX_DEVICE_NAME_STR"s", dev_name);
+		if (G.dev_name_list) {
+			/* Is device name in list? */
+			if (!llist_find_str(G.dev_name_list, dev_name))
+				continue;
+		} else if (is_partition(dev_name)) {
+			continue;
 		}
 
-		if (!G.dev_list && !is_partition(sd.dname)) {
-			/* User didn't specify device */
-			if (!G.show_all && !sd.rd_ops && !sd.wr_ops) {
-				/* Don't print unused device */
-				continue;
-			}
-			print_stats_dev_struct(&G.saved_stats_dev[i], &sd, itv);
-			G.saved_stats_dev[i] = sd;
-			i++;
-		} else {
-			/* Is device in device list? */
-			if (llist_find_str(G.dev_list, sd.dname)) {
-				/* Print current statistics */
-				print_stats_dev_struct(&G.saved_stats_dev[i], &sd, itv);
-				G.saved_stats_dev[i] = sd;
-				i++;
-			} else
-				continue;
+		stats_dev = stats_dev_find_or_new(dev_name);
+		curr_data = &stats_dev->curr_data;
+
+		rc = sscanf(buf, "%*s %*s %*s %lu %llu %llu %llu %lu %*s %llu",
+			&curr_data->rd_ops,
+			&rd_sec_or_dummy,
+			&curr_data->rd_sectors,
+			&wr_sec_or_dummy,
+			&curr_data->wr_ops,
+			&curr_data->wr_sectors);
+		if (rc != 6) {
+			curr_data->rd_sectors = rd_sec_or_dummy;
+			curr_data->wr_sectors = wr_sec_or_dummy;
+			//curr_data->rd_ops = ;
+			curr_data->wr_ops = (unsigned long)curr_data->rd_sectors;
 		}
+
+		if (!G.dev_name_list /* User didn't specify device */
+		 && !G.show_all
+		 && curr_data->rd_ops == 0
+		 && curr_data->wr_ops == 0
+		) {
+			/* Don't print unused device */
+			continue;
+		}
+
+		/* Print current statistics */
+		print_stats_dev_struct(stats_dev, itv);
+		stats_dev->prev_data = *curr_data;
 	}
 
 	fclose(fp);
@@ -352,35 +387,6 @@ static void dev_report(cputime_t itv)
 
 	/* Fetch current disk statistics */
 	do_disk_statistics(itv);
-}
-
-static unsigned get_number_of_devices(void)
-{
-	FILE *fp;
-	char buf[128];
-	int rv;
-	unsigned n = 0;
-	unsigned long rd_ops, wr_ops;
-	char dname[MAX_DEVICE_NAME];
-
-	fp = xfopen_for_read("/proc/diskstats");
-
-	while (fgets(buf, sizeof(buf), fp)) {
-		rv = sscanf(buf, "%*d %*d %s %lu %*u %*u %*u %lu",
-				dname, &rd_ops, &wr_ops);
-		if (rv == 2 || is_partition(dname))
-			/* A partition */
-			continue;
-		if (!rd_ops && !wr_ops) {
-			/* Unused device */
-			if (!G.show_all)
-				continue;
-		}
-		n++;
-	}
-
-	fclose(fp);
-	return n;
 }
 
 //usage:#define iostat_trivial_usage
@@ -398,7 +404,7 @@ static unsigned get_number_of_devices(void)
 int iostat_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int iostat_main(int argc UNUSED_PARAM, char **argv)
 {
-	int opt, dev_num;
+	int opt;
 	unsigned interval;
 	int count;
 	stats_cpu_t stats_data[2];
@@ -427,14 +433,12 @@ int iostat_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	/* Store device names into device list */
-	dev_num = 0;
 	while (*argv && !isdigit(*argv[0])) {
 		if (strcmp(*argv, "ALL") != 0) {
 			/* If not ALL, save device name */
 			char *dev_name = skip_dev_pfx(*argv);
-			if (!llist_find_str(G.dev_list, dev_name)) {
-				llist_add_to(&G.dev_list, dev_name);
-				dev_num++;
+			if (!llist_find_str(G.dev_name_list, dev_name)) {
+				llist_add_to(&G.dev_name_list, dev_name);
 			}
 		} else {
 			G.show_all = 1;
@@ -452,13 +456,6 @@ int iostat_main(int argc UNUSED_PARAM, char **argv)
 		if (*argv)
 			/* Get count value */
 			count = xatoi_positive(*argv);
-	}
-
-	/* Allocate space for device stats */
-	if (opt & OPT_d) {
-		G.saved_stats_dev = xzalloc(sizeof(G.saved_stats_dev[0]) *
-				(dev_num ? dev_num : get_number_of_devices())
-		);
 	}
 
 	if (opt & OPT_m) {
@@ -530,8 +527,8 @@ int iostat_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		llist_free(G.dev_list, NULL);
-		free(G.saved_stats_dev);
+		llist_free(G.dev_name_list, NULL);
+		stats_dev_free(G.stats_dev_list);
 		free(&G);
 	}
 
