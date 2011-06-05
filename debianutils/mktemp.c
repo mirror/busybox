@@ -37,7 +37,6 @@
 //usage:       "Create a temporary file with name based on TEMPLATE and print its name.\n"
 //usage:       "TEMPLATE must end with XXXXXX (e.g. [/dir/]nameXXXXXX).\n"
 //usage:       "Without TEMPLATE, -t tmp.XXXXXX is assumed.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Make directory, not file"
 ////usage:   "\n	-q	Fail silently on errors" - we ignore this opt
 //usage:     "\n	-t	Prepend base directory name to TEMPLATE"

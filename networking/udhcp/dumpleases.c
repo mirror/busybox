@@ -7,7 +7,6 @@
 //usage:       "[-r|-a] [-f LEASEFILE]"
 //usage:#define dumpleases_full_usage "\n\n"
 //usage:       "Display DHCP leases granted by udhcpd\n"
-//usage:     "\nOptions:"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-f,--file=FILE	Lease file"
 //usage:     "\n	-r,--remaining	Show remaining time"

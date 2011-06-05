@@ -20,8 +20,7 @@
 //usage:#define ifup_trivial_usage
 //usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 //usage:#define ifup_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-a	De/configure all interfaces automatically"
+//usage:       "	-a	De/configure all interfaces automatically"
 //usage:     "\n	-i FILE	Use FILE for interface definitions"
 //usage:     "\n	-n	Print out what would happen, but don't do it"
 //usage:	IF_FEATURE_IFUPDOWN_MAPPING(
@@ -34,8 +33,7 @@
 //usage:#define ifdown_trivial_usage
 //usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 //usage:#define ifdown_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-a	De/configure all interfaces automatically"
+//usage:       "	-a	De/configure all interfaces automatically"
 //usage:     "\n	-i FILE	Use FILE for interface definitions"
 //usage:     "\n	-n	Print out what would happen, but don't do it"
 //usage:	IF_FEATURE_IFUPDOWN_MAPPING(

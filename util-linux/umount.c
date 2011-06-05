@@ -12,7 +12,6 @@
 //usage:       "[OPTIONS] FILESYSTEM|DIRECTORY"
 //usage:#define umount_full_usage "\n\n"
 //usage:       "Unmount file systems\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_UMOUNT_ALL(
 //usage:     "\n	-a	Unmount all file systems" IF_FEATURE_MTAB_SUPPORT(" in /etc/mtab")
 //usage:	)

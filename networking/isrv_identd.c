@@ -11,7 +11,6 @@
 //usage:       "[-fiw] [-b ADDR] [STRING]"
 //usage:#define fakeidentd_full_usage "\n\n"
 //usage:       "Provide fake ident (auth) service\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Run in foreground"
 //usage:     "\n	-i	Inetd mode"
 //usage:     "\n	-w	Inetd 'wait' mode"

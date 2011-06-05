@@ -15,7 +15,6 @@
 //usage:       "[-n SEC] [-t] PROG ARGS"
 //usage:#define watch_full_usage "\n\n"
 //usage:       "Run PROG periodically\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n	Loop period in seconds (default 2)"
 //usage:     "\n	-t	Don't print header"
 //usage:

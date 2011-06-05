@@ -21,7 +21,6 @@
 //usage:     "\n[-v]	[-H HWTYPE] [-i IF] -Ds HOSTNAME IFACE [netmask MASK] pub"
 //usage:#define arp_full_usage "\n\n"
 //usage:       "Manipulate ARP cache\n"
-//usage:     "\nOptions:"
 //usage:       "\n	-a		Display (all) hosts"
 //usage:       "\n	-s		Set new ARP entry"
 //usage:       "\n	-d		Delete a specified entry"

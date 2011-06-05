@@ -23,7 +23,6 @@
 //usage:       "[OPTIONS] DIRECTORY..."
 //usage:#define mkdir_full_usage "\n\n"
 //usage:       "Create DIRECTORY\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m MODE	Mode"
 //usage:     "\n	-p	No error if exists; make parent directories as needed"
 //usage:	IF_SELINUX(

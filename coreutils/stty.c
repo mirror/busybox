@@ -26,7 +26,6 @@
 //usage:#define stty_full_usage "\n\n"
 //usage:       "Without arguments, prints baud rate, line discipline,\n"
 //usage:       "and deviations from stty sane\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-F DEVICE	Open device instead of stdin"
 //usage:     "\n	-a		Print all current settings in human-readable form"
 //usage:     "\n	-g		Print in stty-readable form"

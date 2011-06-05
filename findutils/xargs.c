@@ -349,7 +349,6 @@ static int xargs_ask_confirmation(void)
 //usage:       "[OPTIONS] [PROG ARGS]"
 //usage:#define xargs_full_usage "\n\n"
 //usage:       "Run PROG on every item given by stdin\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_XARGS_SUPPORT_CONFIRMATION(
 //usage:     "\n	-p	Ask user whether to run each command"
 //usage:	)

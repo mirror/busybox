@@ -14,7 +14,6 @@
 //usage:       "[-ai] [FILE]..."
 //usage:#define tee_full_usage "\n\n"
 //usage:       "Copy stdin to each FILE, and also to stdout\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Append to the given FILEs, don't overwrite"
 //usage:     "\n	-i	Ignore interrupt signals (SIGINT)"
 //usage:

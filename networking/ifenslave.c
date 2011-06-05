@@ -102,7 +102,6 @@
 //usage:       "[-cdf] MASTER_IFACE SLAVE_IFACE..."
 //usage:#define ifenslave_full_usage "\n\n"
 //usage:       "Configure network interfaces for parallel routing\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c,--change-active	Change active slave"
 //usage:     "\n	-d,--detach		Remove slave interface from bonding device"
 //usage:     "\n	-f,--force		Force, even if interface is not Ethernet"

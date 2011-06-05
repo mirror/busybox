@@ -15,7 +15,6 @@
 //usage:       "[-q] [-o OFF] [-f FREQ] [-p TCONST] [-t TICK]"
 //usage:#define adjtimex_full_usage "\n\n"
 //usage:       "Read and optionally set system timebase parameters. See adjtimex(2)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-o OFF	Time offset, microseconds"
 //usage:     "\n	-f FREQ	Frequency adjust, integer kernel units (65536 is 1ppm)"

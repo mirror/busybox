@@ -32,7 +32,6 @@
 //usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l")"] [-S PROG] [-p PEER]..."
 //usage:#define ntpd_full_usage "\n\n"
 //usage:       "NTP client/server\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Verbose"
 //usage:     "\n	-n	Do not daemonize"
 //usage:     "\n	-q	Quit after clock is set"

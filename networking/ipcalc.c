@@ -16,7 +16,6 @@
 //usage:       "[OPTIONS] ADDRESS[[/]NETMASK] [NETMASK]"
 //usage:#define ipcalc_full_usage "\n\n"
 //usage:       "Calculate IP network settings from a IP address\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_IPCALC_LONG_OPTIONS(
 //usage:     "\n	-b,--broadcast	Display calculated broadcast address"
 //usage:     "\n	-n,--network	Display calculated network address"

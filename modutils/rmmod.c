@@ -15,7 +15,6 @@
 //usage:       "[-wfa] [MODULE]..."
 //usage:#define rmmod_full_usage "\n\n"
 //usage:       "Unload kernel modules\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-w	Wait until the module is no longer used"
 //usage:     "\n	-f	Force unload"
 //usage:     "\n	-a	Remove all unused modules (recursively)"

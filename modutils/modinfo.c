@@ -108,8 +108,7 @@ static void modinfo(const char *path, const char *version,
 //usage:#define modinfo_trivial_usage
 //usage:       "[-adlp0] [-F keyword] MODULE"
 //usage:#define modinfo_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-a		Shortcut for '-F author'"
+//usage:       "	-a		Shortcut for '-F author'"
 //usage:     "\n	-d		Shortcut for '-F description'"
 //usage:     "\n	-l		Shortcut for '-F license'"
 //usage:     "\n	-p		Shortcut for '-F parm'"

@@ -8,7 +8,6 @@
 //usage:#define passwd_full_usage "\n\n"
 //usage:       "Change USER's password (default: current user)"
 //usage:     "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a ALG	Encryption method"
 //usage:     "\n	-d	Set password to ''"
 //usage:     "\n	-l	Lock (disable) account"

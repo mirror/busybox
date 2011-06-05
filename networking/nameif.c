@@ -61,7 +61,6 @@
 //usage:     "\n	[mac=]XX:XX:XX:XX:XX:XX"
 //usage:	)
 //usage:     "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c FILE	Configuration file (default: /etc/mactab)"
 //usage:     "\n	-s	Log to syslog"
 //usage:

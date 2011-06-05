@@ -21,7 +21,6 @@
 //usage:       "[-jy] [[MONTH] YEAR]"
 //usage:#define cal_full_usage "\n\n"
 //usage:       "Display a calendar\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-j	Use julian dates"
 //usage:     "\n	-y	Display the entire year"
 

@@ -12,7 +12,6 @@
 //usage:       "[OPTIONS] [-] [USER]"
 //usage:#define su_full_usage "\n\n"
 //usage:       "Run shell under USER (by default, root)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-,-l	Clear environment, run shell as login shell"
 //usage:     "\n	-p,-m	Do not set new $HOME, $SHELL, $USER, $LOGNAME"
 //usage:     "\n	-c CMD	Command to pass to 'sh -c'"

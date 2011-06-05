@@ -15,8 +15,7 @@
 //usage:#define hdparm_trivial_usage
 //usage:       "[OPTIONS] [DEVICE]"
 //usage:#define hdparm_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-a	Get/set fs readahead"
+//usage:       "	-a	Get/set fs readahead"
 //usage:     "\n	-A	Set drive read-lookahead flag (0/1)"
 //usage:     "\n	-b	Get/set bus state (0 == off, 1 == on, 2 == tristate)"
 //usage:     "\n	-B	Set Advanced Power Management setting (1-255)"

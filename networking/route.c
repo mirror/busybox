@@ -29,7 +29,6 @@
 //usage:       "[{add|del|delete}]"
 //usage:#define route_full_usage "\n\n"
 //usage:       "Edit kernel routing tables\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n	Don't resolve names"
 //usage:     "\n	-e	Display other/more information"
 //usage:     "\n	-A inet" IF_FEATURE_IPV6("{6}") "	Select address family"

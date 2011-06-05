@@ -13,7 +13,6 @@
 //usage:       "[-v] PROG ARGS"
 //usage:#define time_full_usage "\n\n"
 //usage:       "Run PROG, display resource usage when it exits\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-v	Verbose"
 
 #include "libbb.h"

@@ -13,7 +13,6 @@
 //usage:       "[-t N[ms]] [-T N[ms]] [-F] DEV"
 //usage:#define watchdog_full_usage "\n\n"
 //usage:       "Periodically write to watchdog device DEV\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-T N	Reboot after N seconds if not reset (default 60)"
 //usage:     "\n	-t N	Reset every N seconds (default 30)"
 //usage:     "\n	-F	Run in foreground"

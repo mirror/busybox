@@ -27,7 +27,6 @@
 //usage:       "[OPTIONS] IFACE SCRIPT"
 //usage:#define zcip_full_usage "\n\n"
 //usage:       "Manage a ZeroConf IPv4 link-local address\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f		Run in foreground"
 //usage:     "\n	-q		Quit after obtaining address"
 //usage:     "\n	-r 169.254.x.x	Request this address first"

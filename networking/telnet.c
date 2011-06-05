@@ -26,7 +26,6 @@
 //usage:       "[-a] [-l USER] HOST [PORT]"
 //usage:#define telnet_full_usage "\n\n"
 //usage:       "Connect to telnet server\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Automatic login with $USER variable"
 //usage:     "\n	-l USER	Automatic login as USER"
 //usage:

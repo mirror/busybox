@@ -98,7 +98,6 @@
 //usage:       "[OPTIONS] [+FMT] [TIME]"
 //usage:#define date_full_usage "\n\n"
 //usage:       "Display time (using +FMT), or set time\n"
-//usage:     "\nOptions:"
 //usage:	IF_NOT_LONG_OPTS(
 //usage:     "\n	[-s] TIME	Set time to TIME"
 //usage:     "\n	-u		Work in UTC (don't convert to local time)"

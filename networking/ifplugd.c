@@ -11,7 +11,6 @@
 //usage:       "[OPTIONS]"
 //usage:#define ifplugd_full_usage "\n\n"
 //usage:       "Network interface plug detection daemon\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n		Don't daemonize"
 //usage:     "\n	-s		Don't log to syslog"
 //usage:     "\n	-i IFACE	Interface"

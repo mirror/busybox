@@ -7,7 +7,6 @@
 //usage:       "[-p] [-h HOST] [[-f] USER]"
 //usage:#define login_full_usage "\n\n"
 //usage:       "Begin a new session on the system\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Don't authenticate (user already authenticated)"
 //usage:     "\n	-h	Name of the remote host"
 //usage:     "\n	-p	Preserve environment"

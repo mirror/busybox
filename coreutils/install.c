@@ -11,7 +11,6 @@
 //usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [SOURCE]... DEST"
 //usage:#define install_full_usage "\n\n"
 //usage:       "Copy files and set attributes\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Just copy (default)"
 //usage:     "\n	-d	Create directories"
 //usage:     "\n	-D	Create leading target directories"

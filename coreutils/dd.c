@@ -13,7 +13,6 @@
 //usage:       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
 //usage:#define dd_full_usage "\n\n"
 //usage:       "Copy a file with converting and formatting\n"
-//usage:     "\nOptions:"
 //usage:     "\n	if=FILE		Read from FILE instead of stdin"
 //usage:     "\n	of=FILE		Write to FILE instead of stdout"
 //usage:     "\n	bs=N		Read and write N bytes at a time"

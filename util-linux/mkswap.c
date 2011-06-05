@@ -10,7 +10,6 @@
 //usage:       "[-L LBL] BLOCKDEV [KBYTES]"
 //usage:#define mkswap_full_usage "\n\n"
 //usage:       "Prepare BLOCKDEV to be used as swap partition\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-L LBL	Label"
 
 #include "libbb.h"

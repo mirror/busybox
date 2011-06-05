@@ -759,7 +759,6 @@ static void handle_SIGCHLD(int status)
 //usage:	)
 //usage:     "\n	x	Extract"
 //usage:     "\n	t	List"
-//usage:     "\nOptions:"
 //usage:     "\n	f	Name of TARFILE ('-' for stdin/out)"
 //usage:     "\n	C	Change to DIR before operation"
 //usage:     "\n	v	Verbose"

@@ -19,8 +19,7 @@
 //usage:#define blockdev_trivial_usage
 //usage:	"OPTION BLOCKDEV"
 //usage:#define blockdev_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	--setro		Set ro"
+//usage:       "	--setro		Set ro"
 //usage:     "\n	--setrw		Set rw"
 //usage:     "\n	--getro		Get ro"
 //usage:     "\n	--getss		Get sector size"

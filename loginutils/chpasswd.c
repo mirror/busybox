@@ -11,7 +11,6 @@
 //usage:	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
 //usage:#define chpasswd_full_usage "\n\n"
 //usage:       "Read user:password from stdin and update /etc/passwd\n"
-//usage:     "\nOptions:"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-e,--encrypted	Supplied passwords are in encrypted form"
 //usage:     "\n	-m,--md5	Use MD5 encryption instead of DES"

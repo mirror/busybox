@@ -34,9 +34,8 @@
 //usage:#define getopt_trivial_usage
 //usage:       "[OPTIONS]"
 //usage:#define getopt_full_usage "\n\n"
-//usage:       "Options:"
 //usage:	IF_LONG_OPTS(
-//usage:     "\n	-a,--alternative		Allow long options starting with single -"
+//usage:       "	-a,--alternative		Allow long options starting with single -"
 //usage:     "\n	-l,--longoptions=longopts	Long options to be recognized"
 //usage:     "\n	-n,--name=progname		The name under which errors are reported"
 //usage:     "\n	-o,--options=optstring		Short options to be recognized"
@@ -47,7 +46,7 @@
 //usage:     "\n	-u,--unquoted			Don't quote the output"
 //usage:	)
 //usage:	IF_NOT_LONG_OPTS(
-//usage:     "\n	-a		Allow long options starting with single -"
+//usage:       "	-a		Allow long options starting with single -"
 //usage:     "\n	-l longopts	Long options to be recognized"
 //usage:     "\n	-n progname	The name under which errors are reported"
 //usage:     "\n	-o optstring	Short options to be recognized"

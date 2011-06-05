@@ -19,7 +19,6 @@
 //usage:       "[OPTIONS] [USER]"
 //usage:#define id_full_usage "\n\n"
 //usage:       "Print information about USER or the current user\n"
-//usage:     "\nOptions:"
 //usage:	IF_SELINUX(
 //usage:     "\n	-Z	Security context"
 //usage:	)

@@ -25,7 +25,6 @@
 //usage:       "[-i] [-t N] [FILE]..."
 //usage:#define expand_full_usage "\n\n"
 //usage:       "Convert tabs to spaces, writing to stdout\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_EXPAND_LONG_OPTIONS(
 //usage:     "\n	-i,--initial	Don't convert tabs after non blanks"
 //usage:     "\n	-t,--tabs=N	Tabstops every N chars"
@@ -39,7 +38,6 @@
 //usage:       "[-fa][-t N] [FILE]..."
 //usage:#define unexpand_full_usage "\n\n"
 //usage:       "Convert spaces to tabs, writing to stdout\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_UNEXPAND_LONG_OPTIONS(
 //usage:     "\n	-a,--all	Convert all blanks"
 //usage:     "\n	-f,--first-only	Convert only leading blanks"

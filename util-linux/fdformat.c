@@ -9,7 +9,6 @@
 //usage:       "[-n] DEVICE"
 //usage:#define fdformat_full_usage "\n\n"
 //usage:       "Format floppy disk\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n	Don't verify after format"
 
 #include "libbb.h"

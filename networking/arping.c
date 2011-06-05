@@ -10,7 +10,6 @@
 //usage:       "[-fqbDUA] [-c CNT] [-w TIMEOUT] [-I IFACE] [-s SRC_IP] DST_IP"
 //usage:#define arping_full_usage "\n\n"
 //usage:       "Send ARP requests/replies\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f		Quit on first ARP reply"
 //usage:     "\n	-q		Quiet"
 //usage:     "\n	-b		Keep broadcasting, don't go unicast"

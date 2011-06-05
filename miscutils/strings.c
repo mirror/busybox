@@ -11,7 +11,6 @@
 //usage:       "[-afo] [-n LEN] [FILE]..."
 //usage:#define strings_full_usage "\n\n"
 //usage:       "Display printable strings in a binary file\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Scan whole file (default)"
 //usage:     "\n	-f	Precede strings with filenames"
 //usage:     "\n	-n LEN	At least LEN characters form a string (default 4)"

@@ -16,7 +16,6 @@
 //usage:       "[OPTIONS] MAILDIR [CONN_HELPER ARGS]"
 //usage:#define popmaildir_full_usage "\n\n"
 //usage:       "Fetch content of remote mailbox to local maildir\n"
-//usage:     "\nOptions:"
 /* //usage:  "\n	-b		Binary mode. Ignored" */
 /* //usage:  "\n	-d		Debug. Ignored" */
 /* //usage:  "\n	-m		Show used memory. Ignored" */

@@ -39,7 +39,6 @@
 //usage:     "\n	S	Write file contents synchronously"
 //usage:     "\n	t	Disable tail-merging of partial blocks with other files"
 //usage:     "\n	u	Allow file to be undeleted"
-//usage:     "\nOptions:"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-v	Set the file's version/generation number"
 

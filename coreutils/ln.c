@@ -15,7 +15,6 @@
 //usage:       "[OPTIONS] TARGET... LINK|DIR"
 //usage:#define ln_full_usage "\n\n"
 //usage:       "Create a link LINK or DIR/TARGET to the specified TARGET(s)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Make symlinks instead of hardlinks"
 //usage:     "\n	-f	Remove existing destinations"
 //usage:     "\n	-n	Don't dereference symlinks - treat like normal file"

@@ -12,7 +12,6 @@
 //usage:#define readlink_full_usage "\n\n"
 //usage:       "Display the value of a symlink"
 //usage:	IF_FEATURE_READLINK_FOLLOW( "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Canonicalize by following all symlinks"
 //usage:     "\n	-n	Don't add newline"
 //usage:     "\n	-v	Verbose"

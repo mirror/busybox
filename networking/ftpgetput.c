@@ -17,7 +17,6 @@
 //usage:       "[OPTIONS] HOST [LOCAL_FILE] REMOTE_FILE"
 //usage:#define ftpget_full_usage "\n\n"
 //usage:       "Retrieve a remote file via FTP\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
 //usage:     "\n	-c,--continue	Continue previous transfer"
 //usage:     "\n	-v,--verbose	Verbose"
@@ -37,7 +36,6 @@
 //usage:       "[OPTIONS] HOST [REMOTE_FILE] LOCAL_FILE"
 //usage:#define ftpput_full_usage "\n\n"
 //usage:       "Store a local file on a remote machine via FTP\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
 //usage:     "\n	-v,--verbose	Verbose"
 //usage:     "\n	-u,--username	Username"

@@ -132,12 +132,11 @@ Content-Transfer-Encoding: 7bit
 //usage:#define makemime_full_usage "\n\n"
 //usage:       "Create multipart MIME-encoded message from FILEs\n"
 /* //usage:    "Transfer encoding is base64, disposition is inline (not attachment)\n" */
-//usage:     "\nOptions:"
 //usage:     "\n	-o FILE	Output. Default: stdout"
 //usage:     "\n	-a HDR	Add header. Examples:"
 //usage:     "\n		\"From: user@host.org\", \"Date: `date -R`\""
 //usage:     "\n	-c CT	Content type. Default: text/plain"
-//usage:     "\n	-C CS   Charset. Default: " CONFIG_FEATURE_MIME_CHARSET
+//usage:     "\n	-C CS	Charset. Default: " CONFIG_FEATURE_MIME_CHARSET
 /* //usage:  "\n	-e ENC	Transfer encoding. Ignored. base64 is assumed" */
 //usage:     "\n"
 //usage:     "\nOther options are silently ignored"

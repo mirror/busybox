@@ -25,7 +25,6 @@
 //usage:       "[-EMNmh~I?] [FILE]..."
 //usage:#define less_full_usage "\n\n"
 //usage:       "View FILE (or stdin) one screenful at a time\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-E	Quit once the end of a file is reached"
 //usage:     "\n	-M,-m	Display status line with line numbers"
 //usage:     "\n		and percentage through the file"

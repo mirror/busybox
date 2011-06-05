@@ -21,7 +21,6 @@
 //usage:       "[OPTIONS] [-o OPTS] DEVICE NODE"
 //usage:#define mount_full_usage "\n\n"
 //usage:       "Mount a filesystem. Filesystem autodetection requires /proc.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a		Mount all filesystems in fstab"
 //usage:	IF_FEATURE_MOUNT_FAKE(
 //usage:	IF_FEATURE_MTAB_SUPPORT(

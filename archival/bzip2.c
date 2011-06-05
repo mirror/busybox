@@ -11,7 +11,6 @@
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define bzip2_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin) with bzip2 algorithm\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-1..9	Compression level"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"

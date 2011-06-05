@@ -14,7 +14,6 @@
 //usage:     "\nCommands:"
 //usage:     "\n	-i	Install package"
 //usage:     "\n	-qp	Query package"
-//usage:     "\nOptions:"
 //usage:     "\n	-i	Show information"
 //usage:     "\n	-l	List contents"
 //usage:     "\n	-d	List documents"

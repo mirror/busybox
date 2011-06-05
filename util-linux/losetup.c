@@ -12,8 +12,7 @@
 //usage:       "	losetup -d LOOPDEV - disassociate\n"
 //usage:       "	losetup [-f] - show"
 //usage:#define losetup_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-o OFS	Start OFS bytes into FILE"
+//usage:       "	-o OFS	Start OFS bytes into FILE"
 //usage:     "\n	-f	Show first free loop device"
 //usage:
 //usage:#define losetup_notes_usage

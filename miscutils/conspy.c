@@ -30,7 +30,6 @@
 //usage:     "A text-mode VNC like program for Linux virtual consoles."
 //usage:     "\nTo exit, quickly press ESC 3 times."
 //usage:     "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-v	Don't send keystrokes to the console"
 //usage:     "\n	-c	Create missing devices in /dev"
 //usage:     "\n	-s	Open a SHELL session"

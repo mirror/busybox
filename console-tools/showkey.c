@@ -11,7 +11,6 @@
 //usage:       "[-a | -k | -s]"
 //usage:#define showkey_full_usage "\n\n"
 //usage:       "Show keys pressed\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Display decimal/octal/hex values of the keys"
 //usage:     "\n	-k	Display interpreted keycodes (default)"
 //usage:     "\n	-s	Display raw scan-codes"

@@ -11,7 +11,6 @@
 //usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
 //usage:#define ionice_full_usage "\n\n"
 //usage:       "Change I/O priority and class\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Class. 1:realtime 2:best-effort 3:idle"
 //usage:     "\n	-n	Priority"
 

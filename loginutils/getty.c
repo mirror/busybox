@@ -105,7 +105,6 @@ struct globals {
 //usage:       "[OPTIONS] BAUD_RATE[,BAUD_RATE]... TTY [TERMTYPE]"
 //usage:#define getty_full_usage "\n\n"
 //usage:       "Open a tty, prompt for a login name, then invoke /bin/login\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-h		Enable hardware RTS/CTS flow control"
 //usage:     "\n	-L		Set CLOCAL (ignore Carrier Detect state)"
 //usage:     "\n	-m		Get baud rate from modem's CONNECT status message"

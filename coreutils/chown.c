@@ -14,7 +14,6 @@
 //usage:       "[-RhLHP"IF_DESKTOP("cvf")"]... OWNER[<.|:>[GROUP]] FILE..."
 //usage:#define chown_full_usage "\n\n"
 //usage:       "Change the owner and/or group of each FILE to OWNER and/or GROUP\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
 //usage:     "\n	-L	Traverse all symlinks to directories"

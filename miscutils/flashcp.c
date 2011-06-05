@@ -11,7 +11,6 @@
 //usage:       "-v FILE MTD_DEVICE"
 //usage:#define flashcp_full_usage "\n\n"
 //usage:       "Copy an image to MTD device\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-v	Verbose"
 
 #include "libbb.h"

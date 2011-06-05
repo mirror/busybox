@@ -18,7 +18,6 @@
 //usage:       "[-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
 //usage:#define fdisk_full_usage "\n\n"
 //usage:       "Change partition table\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-u		Start and End are in sectors (instead of cylinders)"
 //usage:     "\n	-l		Show partition table for each DISK, then exit"
 //usage:	IF_FEATURE_FDISK_BLKSIZE(

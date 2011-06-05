@@ -30,7 +30,6 @@
 //usage:	IF_FEATURE_IFCONFIG_STATUS("[-a]") " interface [address]"
 //usage:#define ifconfig_full_usage "\n\n"
 //usage:       "Configure a network interface\n"
-//usage:     "\nOptions:"
 //usage:     "\n"
 //usage:	IF_FEATURE_IPV6(
 //usage:       "	[add ADDRESS[/PREFIXLEN]]\n")

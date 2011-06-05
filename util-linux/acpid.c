@@ -11,7 +11,6 @@
 //usage:       "[-d] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"
 //usage:#define acpid_full_usage "\n\n"
 //usage:       "Listen to ACPI events and spawn specific helpers on event arrival\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c DIR	Config directory [/etc/acpi]"
 //usage:     "\n	-d	Don't daemonize, (implies -f)"
 //usage:     "\n	-e FILE	/proc event file [/proc/acpi/event]"

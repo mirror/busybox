@@ -34,7 +34,6 @@
 //usage:       "[-c]" IF_DESKTOP(" [-d DATE] [-r FILE]") " FILE [FILE]..."
 //usage:#define touch_full_usage "\n\n"
 //usage:       "Update the last-modified date on the given FILE[s]\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Don't create files"
 //usage:	IF_DESKTOP(
 //usage:     "\n	-d DT	Date/time to use"

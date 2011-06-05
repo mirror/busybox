@@ -72,7 +72,6 @@
 //usage:       "PATTERN/-e PATTERN.../-f FILE [FILE]..."
 //usage:#define grep_full_usage "\n\n"
 //usage:       "Search for PATTERN in FILEs (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-H	Add 'filename:' prefix"
 //usage:     "\n	-h	Do not add 'filename:' prefix"
 //usage:     "\n	-n	Add 'line_no:' prefix"

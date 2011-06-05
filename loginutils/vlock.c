@@ -19,7 +19,6 @@
 //usage:       "[-a]"
 //usage:#define vlock_full_usage "\n\n"
 //usage:       "Lock a virtual terminal. A password is required to unlock.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Lock all VTs"
 
 #include "libbb.h"

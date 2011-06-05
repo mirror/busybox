@@ -13,7 +13,6 @@
 //usage:       "[-q] <[-dn] DIR | -x DEVICE>"
 //usage:#define mountpoint_full_usage "\n\n"
 //usage:       "Check if the directory is a mountpoint\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-q	Quiet"
 //usage:     "\n	-d	Print major/minor device number of the filesystem"
 //usage:     "\n	-n	Print device name of the filesystem"

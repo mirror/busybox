@@ -34,7 +34,6 @@
 //usage:       "[-t] "IF_FEATURE_RUN_PARTS_FANCY("[-l] ")"[-a ARG] [-u MASK] DIRECTORY"
 //usage:#define run_parts_full_usage "\n\n"
 //usage:       "Run a bunch of scripts in DIRECTORY\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-t	Print what would be run, but don't actually run anything"
 //usage:     "\n	-a ARG	Pass ARG as argument for every program"
 //usage:     "\n	-u MASK	Set the umask to MASK before running every program"

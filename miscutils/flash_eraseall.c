@@ -14,7 +14,6 @@
 //usage:       "[-jq] MTD_DEVICE"
 //usage:#define flash_eraseall_full_usage "\n\n"
 //usage:       "Erase an MTD device\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-j	Format the device for jffs2"
 //usage:     "\n	-q	Don't display progress messages"
 

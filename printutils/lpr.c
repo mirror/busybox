@@ -17,8 +17,7 @@
 /* -C CLASS exists too, not shown.
  * CLASS is supposed to be printed on banner page, if one is requested */
 //usage:#define lpr_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-P	lp service to connect to (else uses $PRINTER)"
+//usage:       "	-P	lp service to connect to (else uses $PRINTER)"
 //usage:     "\n	-m	Send mail on completion"
 //usage:     "\n	-h	Print banner page too"
 //usage:     "\n	-V	Verbose"
@@ -26,8 +25,7 @@
 //usage:#define lpq_trivial_usage
 //usage:       "[-P queue[@host[:port]]] [-U USERNAME] [-d JOBID]... [-fs]"
 //usage:#define lpq_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-P	lp service to connect to (else uses $PRINTER)"
+//usage:       "	-P	lp service to connect to (else uses $PRINTER)"
 //usage:     "\n	-d	Delete jobs"
 //usage:     "\n	-f	Force any waiting job to be printed"
 //usage:     "\n	-s	Short display"

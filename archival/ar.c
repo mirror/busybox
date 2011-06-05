@@ -21,7 +21,6 @@
 //usage:       "[-o] [-v] [-p] [-t] [-x] ARCHIVE FILES"
 //usage:#define ar_full_usage "\n\n"
 //usage:       "Extract or list FILES from an ar archive\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-o	Preserve original dates"
 //usage:     "\n	-p	Extract to stdout"
 //usage:     "\n	-t	List"

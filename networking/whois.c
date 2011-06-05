@@ -24,7 +24,6 @@
 //usage:       "[-h SERVER] [-p PORT] NAME..."
 //usage:#define whois_full_usage "\n\n"
 //usage:       "Query WHOIS info about NAME\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-h,-p	Server to query"
 
 #include "libbb.h"

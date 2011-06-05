@@ -14,7 +14,6 @@
 //usage:       "[-cdu][-f,s,w N] [INPUT [OUTPUT]]"
 //usage:#define uniq_full_usage "\n\n"
 //usage:       "Discard duplicate lines\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Prefix lines by the number of occurrences"
 //usage:     "\n	-d	Only print duplicate lines"
 //usage:     "\n	-u	Only print unique lines"

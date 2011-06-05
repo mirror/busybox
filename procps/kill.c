@@ -12,7 +12,6 @@
 //usage:       "[-l] [-SIG] PID..."
 //usage:#define kill_full_usage "\n\n"
 //usage:       "Send a signal (default: TERM) to given PIDs\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l	List all signal names and numbers"
 /* //usage:  "\n	-s SIG	Yet another way of specifying SIG" */
 //usage:
@@ -30,7 +29,6 @@
 //usage:       "[-l] [-q] [-SIG] PROCESS_NAME..."
 //usage:#define killall_full_usage "\n\n"
 //usage:       "Send a signal (default: TERM) to given processes\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l	List all signal names and numbers"
 /* //usage:  "\n	-s SIG	Yet another way of specifying SIG" */
 //usage:     "\n	-q	Don't complain if no processes were killed"
@@ -42,7 +40,6 @@
 //usage:       "[-l] [-SIG] [-o PID]..."
 //usage:#define killall5_full_usage "\n\n"
 //usage:       "Send a signal (default: TERM) to all processes outside current session\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l	List all signal names and numbers"
 //usage:     "\n	-o PID	Don't signal this PID"
 /* //usage:  "\n	-s SIG	Yet another way of specifying SIG" */

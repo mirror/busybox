@@ -11,8 +11,7 @@
 //usage:#define beep_trivial_usage
 //usage:       "-f FREQ -l LEN -d DELAY -r COUNT -n"
 //usage:#define beep_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-f	Frequency in Hz"
+//usage:       "	-f	Frequency in Hz"
 //usage:     "\n	-l	Length in ms"
 //usage:     "\n	-d	Delay in ms"
 //usage:     "\n	-r	Repetitions"

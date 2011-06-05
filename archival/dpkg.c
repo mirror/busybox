@@ -32,7 +32,6 @@
 //usage:       "[-ilCPru] [-F OPT] PACKAGE"
 //usage:#define dpkg_full_usage "\n\n"
 //usage:       "Install, remove and manage Debian packages\n"
-//usage:     "\nOptions:"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-i,--install	Install the package"
 //usage:     "\n	-l,--list	List of installed packages"

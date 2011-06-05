@@ -17,7 +17,6 @@
 //usage:       "[-rs] [FILE]..."
 //usage:#define sum_full_usage "\n\n"
 //usage:       "Checksum and count the blocks in a file\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-r	Use BSD sum algorithm (1K blocks)"
 //usage:     "\n	-s	Use System V sum algorithm (512byte blocks)"
 

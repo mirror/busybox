@@ -10,7 +10,6 @@
 //usage:       "[-p] [MASK] [PID | PROG ARGS]"
 //usage:#define taskset_full_usage "\n\n"
 //usage:       "Set or get CPU affinity\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p	Operate on an existing PID"
 //usage:
 //usage:#define taskset_example_usage

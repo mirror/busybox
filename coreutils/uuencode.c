@@ -12,7 +12,6 @@
 //usage:       "[-m] [INFILE] STORED_FILENAME"
 //usage:#define uuencode_full_usage "\n\n"
 //usage:       "Uuencode a file to stdout\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m	Use base64 encoding per RFC1521"
 //usage:
 //usage:#define uuencode_example_usage

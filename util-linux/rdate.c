@@ -12,7 +12,6 @@
 //usage:       "[-sp] HOST"
 //usage:#define rdate_full_usage "\n\n"
 //usage:       "Get and possibly set the system date and time from a remote HOST\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Set the system date and time (default)"
 //usage:     "\n	-p	Print the date and time"
 

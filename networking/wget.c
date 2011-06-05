@@ -22,7 +22,6 @@
 //usage:	)
 //usage:#define wget_full_usage "\n\n"
 //usage:       "Retrieve files via HTTP or FTP\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Spider mode - only check file existence"
 //usage:     "\n	-c	Continue retrieval of aborted transfer"
 //usage:     "\n	-q	Quiet"

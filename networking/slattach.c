@@ -17,7 +17,6 @@
 //usage:       "[-cehmLF] [-s SPEED] [-p PROTOCOL] DEVICE"
 //usage:#define slattach_full_usage "\n\n"
 //usage:       "Attach network interface(s) to serial line(s)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p PROT	Set protocol (slip, cslip, slip6, clisp6 or adaptive)"
 //usage:     "\n	-s SPD	Set line speed"
 //usage:     "\n	-e	Exit after initializing device"

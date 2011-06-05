@@ -38,7 +38,6 @@
 //usage:       "[-ANPRTV] [-C FD] [-t FSTYPE] [FS_OPTS] [BLOCKDEV]..."
 //usage:#define fsck_full_usage "\n\n"
 //usage:       "Check and repair filesystems\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-A	Walk /etc/fstab and check all filesystems"
 //usage:     "\n	-N	Don't execute, just show what would be done"
 //usage:     "\n	-P	With -A, check filesystems in parallel"

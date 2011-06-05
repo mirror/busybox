@@ -14,7 +14,6 @@
 //usage:       "[-f device] ([-t name] | -d name)" IF_FEATURE_TUNCTL_UG(" [-u owner] [-g group] [-b]")
 //usage:#define tunctl_full_usage "\n\n"
 //usage:       "Create or delete tun interfaces\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f name		tun device (/dev/net/tun)"
 //usage:     "\n	-t name		Create iface 'name'"
 //usage:     "\n	-d name		Delete iface 'name'"

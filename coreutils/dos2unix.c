@@ -17,7 +17,6 @@
 //usage:#define dos2unix_full_usage "\n\n"
 //usage:       "Convert FILE in-place from DOS to Unix format.\n"
 //usage:       "When no file is given, use stdin/stdout.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-u	dos2unix"
 //usage:     "\n	-d	unix2dos"
 //usage:
@@ -26,7 +25,6 @@
 //usage:#define unix2dos_full_usage "\n\n"
 //usage:       "Convert FILE in-place from Unix to DOS format.\n"
 //usage:       "When no file is given, use stdin/stdout.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-u	dos2unix"
 //usage:     "\n	-d	unix2dos"
 

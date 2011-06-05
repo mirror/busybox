@@ -19,7 +19,6 @@
 //usage:#define chmod_full_usage "\n\n"
 //usage:       "Each MODE is one or more of the letters ugoa, one of the\n"
 //usage:       "symbols +-= and one or more of the letters rwxst\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-R	Recurse"
 //usage:	IF_DESKTOP(
 //usage:     "\n	-c	List changed files"

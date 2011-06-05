@@ -22,7 +22,6 @@
 //usage:       "[-a]"
 //usage:#define who_full_usage "\n\n"
 //usage:       "Show who is logged on\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Show all"
 
 #include "libbb.h"

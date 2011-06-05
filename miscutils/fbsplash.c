@@ -24,8 +24,7 @@
 //usage:#define fbsplash_trivial_usage
 //usage:       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
 //usage:#define fbsplash_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-s	Image"
+//usage:       "	-s	Image"
 //usage:     "\n	-c	Hide cursor"
 //usage:     "\n	-d	Framebuffer device (default /dev/fb0)"
 //usage:     "\n	-i	Config file (var=value):"

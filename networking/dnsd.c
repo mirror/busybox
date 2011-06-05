@@ -21,7 +21,6 @@
 //usage:       "[-dvs] [-c CONFFILE] [-t TTL_SEC] [-p PORT] [-i ADDR]"
 //usage:#define dnsd_full_usage "\n\n"
 //usage:       "Small static DNS server daemon\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c FILE	Config file"
 //usage:     "\n	-t SEC	TTL"
 //usage:     "\n	-p PORT	Listen on PORT"

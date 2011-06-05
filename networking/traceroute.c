@@ -216,7 +216,6 @@
 //usage:       "	[-z PAUSE_MSEC] HOST [BYTES]"
 //usage:#define traceroute_full_usage "\n\n"
 //usage:       "Trace the route to HOST\n"
-//usage:     "\nOptions:"
 //usage:	IF_TRACEROUTE6(
 //usage:     "\n	-4,-6	Force IP or IPv6 name resolution"
 //usage:	)
@@ -242,7 +241,6 @@
 //usage:       "	HOST [BYTES]"
 //usage:#define traceroute6_full_usage "\n\n"
 //usage:       "Trace the route to HOST\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Set SO_DEBUG options to socket"
 //usage:     "\n	-n	Print numeric addresses"
 //usage:     "\n	-r	Bypass routing tables, send directly to HOST"

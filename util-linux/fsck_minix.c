@@ -91,7 +91,6 @@
 //usage:       "[-larvsmf] BLOCKDEV"
 //usage:#define fsck_minix_full_usage "\n\n"
 //usage:       "Check MINIX filesystem\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l	List all filenames"
 //usage:     "\n	-r	Perform interactive repairs"
 //usage:     "\n	-a	Perform automatic repairs"

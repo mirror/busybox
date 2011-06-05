@@ -236,7 +236,6 @@
 //usage:       "Search for files and perform actions on them.\n"
 //usage:       "First failed action stops processing of current file.\n"
 //usage:       "Defaults: PATH is current directory, action is '-print'\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-follow		Follow symlinks"
 //usage:	IF_FEATURE_FIND_XDEV(
 //usage:     "\n	-xdev		Don't descend directories on other filesystems"

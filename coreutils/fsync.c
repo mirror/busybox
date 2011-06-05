@@ -11,7 +11,6 @@
 //usage:       "[-d] FILE..."
 //usage:#define fsync_full_usage "\n\n"
 //usage:       "Write files' buffered blocks to disk\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Avoid syncing metadata"
 
 #include "libbb.h"

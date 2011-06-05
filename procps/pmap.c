@@ -8,22 +8,22 @@
  * for details.
  */
 
-//applet:IF_PMAP(APPLET(pmap, BB_DIR_USR_BIN, BB_SUID_DROP))
-//kbuild:lib-$(CONFIG_PMAP)     += pmap.o
-
 //config:config PMAP
 //config:       bool "pmap"
 //config:       default y
 //config:       help
 //config:         Display processes' memory mappings.
 
+//applet:IF_PMAP(APPLET(pmap, BB_DIR_USR_BIN, BB_SUID_DROP))
+//kbuild:lib-$(CONFIG_PMAP) += pmap.o
+
 //usage:#define pmap_trivial_usage
-//usage:       "[-x][-q] PID"
+//usage:       "[-xq] PID"
 //usage:#define pmap_full_usage "\n\n"
-//usage:       "Display detailed precesses' memory usage\n"
-//usage:       "\nOptions:"
-//usage:       "\n     -x              show details"
-//usage:       "\n     -q              quiet"
+//usage:       "Display detailed process memory usage"
+//usage:     "\n"
+//usage:     "\n	-x	Show details"
+//usage:     "\n	-q	Quiet"
 
 #include "libbb.h"
 

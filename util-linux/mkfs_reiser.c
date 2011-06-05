@@ -11,7 +11,6 @@
 //usage:       "[-f] [-l LABEL] BLOCKDEV [4K-BLOCKS]"
 //usage:#define mkfs_reiser_full_usage "\n\n"
 //usage:       "Make a ReiserFS V3 filesystem\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-l LBL	Volume label"
 

@@ -21,7 +21,6 @@
 //usage:       "or: mv [-fin] SOURCE... DIRECTORY"
 //usage:#define mv_full_usage "\n\n"
 //usage:       "Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Don't prompt before overwriting"
 //usage:     "\n	-i	Interactive, prompt before overwrite"
 //usage:     "\n	-n	Don't overwrite an existing file"

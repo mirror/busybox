@@ -21,7 +21,6 @@
 //usage:       "[-c N] [-n]"
 //usage:#define klogd_full_usage "\n\n"
 //usage:       "Kernel logger\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c N	Print to console messages more urgent than prio N (1-8)"
 //usage:     "\n	-n	Run in foreground"
 

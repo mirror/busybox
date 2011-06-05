@@ -212,8 +212,8 @@ struct serial_struct {
 //usage:#define setserial_trivial_usage
 //usage:	"[-gabGvzV] DEVICE [PARAMETER [ARG]]..."
 //usage:#define setserial_full_usage "\n\n"
-//usage:	"Request or set Linux serial port information\n\n"
-//usage:	"Options:\n"
+//usage:	"Request or set Linux serial port information\n"
+//usage:	"\n"
 //usage:	"	-g	Interpret parameters as list of devices for reporting"
 //usage:	"	-a	Print all available information\n"
 //usage:	"	-b	Print summary information\n"

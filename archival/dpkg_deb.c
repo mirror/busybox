@@ -9,7 +9,6 @@
 //usage:       "[-cefxX] FILE [argument"
 //usage:#define dpkg_deb_full_usage "\n\n"
 //usage:       "Perform actions on Debian packages (.debs)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	List contents of filesystem tree"
 //usage:     "\n	-e	Extract control files to [argument] directory"
 //usage:     "\n	-f	Display control field name starting with [argument]"

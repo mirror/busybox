@@ -18,7 +18,6 @@
 //usage:       "] [FILE]..."
 //usage:#define sort_full_usage "\n\n"
 //usage:       "Sort lines of text\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-b	Ignore leading blanks"
 //usage:     "\n	-c	Check whether input is sorted"

@@ -158,7 +158,6 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 //usage:	"[-d] [FILE]"
 //usage:#define base64_full_usage "\n\n"
 //usage:       "Base64 encode or decode FILE to standard output"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Decode data"
 ////usage:     "\n	-w COL	Wrap lines at COL (default 76, 0 disables)"
 ////usage:     "\n	-i	When decoding, ignore non-alphabet characters"

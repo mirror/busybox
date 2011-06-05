@@ -13,7 +13,6 @@
 //usage:       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME TYPE MAJOR MINOR"
 //usage:#define mknod_full_usage "\n\n"
 //usage:       "Create a special file (block, character, or pipe)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m MODE	Creation mode (default a=rw)"
 //usage:	IF_SELINUX(
 //usage:     "\n	-Z	Set security context"

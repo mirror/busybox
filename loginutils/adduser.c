@@ -12,7 +12,6 @@
 //usage:       "[OPTIONS] USER"
 //usage:#define adduser_full_usage "\n\n"
 //usage:       "Add a user\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-h DIR		Home directory"
 //usage:     "\n	-g GECOS	GECOS field"
 //usage:     "\n	-s SHELL	Login shell"

@@ -13,7 +13,6 @@
 //usage:       "[-f]"
 //usage:#define logread_full_usage "\n\n"
 //usage:       "Show messages in syslogd's circular buffer\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f	Output data as log grows"
 
 #include "libbb.h"

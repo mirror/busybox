@@ -60,8 +60,7 @@
 //usage:       "nc [OPTIONS] -l -p PORT [HOST] [PORT]  - listen"
 //usage:	)
 //usage:#define nc_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-e PROG	Run PROG after connect (must be last)"
+//usage:       "	-e PROG	Run PROG after connect (must be last)"
 //usage:	IF_NC_SERVER(
 //usage:     "\n	-l	Listen mode, for inbound connects"
 //usage:	)

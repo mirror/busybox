@@ -327,7 +327,6 @@ static void finalize(char *tempdir, const char *prog)
 //usage:       "start [PROG ARGS]|stop|init"
 //usage:#define bootchartd_full_usage "\n\n"
 //usage:       "Create /var/log/bootchart.tgz with boot chart data\n"
-//usage:     "\nOptions:"
 //usage:     "\nstart: start background logging; with PROG, run PROG, then kill logging with USR1"
 //usage:     "\nstop: send USR1 to all bootchartd processes"
 //usage:     "\ninit: start background logging; stop when getty/xdm is seen (for init scripts)"

@@ -23,7 +23,6 @@
 //usage:       "[OPTIONS] HOST [PORT]"
 //usage:#define tftp_full_usage "\n\n"
 //usage:       "Transfer a file from/to tftp server\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l FILE	Local FILE"
 //usage:     "\n	-r FILE	Remote FILE"
 //usage:	IF_FEATURE_TFTP_GET(
@@ -46,7 +45,6 @@
 //usage:       "	69 dgram udp nowait root tftpd tftpd -l /files/to/serve\n"
 //usage:       "It also can be ran from udpsvd:\n"
 //usage:       "	udpsvd -vE 0.0.0.0 69 tftpd /files/to/serve\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-r	Prohibit upload"
 //usage:     "\n	-c	Allow file creation via upload"
 //usage:     "\n	-u	Access files as USER"

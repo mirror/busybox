@@ -37,7 +37,6 @@
 //usage:       "[-E extended-options] device"
 //usage:#define e2fsck_full_usage "\n\n"
 //usage:       "Check ext2/ext3 file system\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p		Automatic repair (no questions)"
 //usage:     "\n	-n		Make no changes to the filesystem"
 //usage:     "\n	-y		Assume 'yes' to all questions"

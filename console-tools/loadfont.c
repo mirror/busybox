@@ -23,7 +23,6 @@
 //usage:       "FONT [-m MAPFILE] [-C TTY]"
 //usage:#define setfont_full_usage "\n\n"
 //usage:       "Load a console font\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m MAPFILE	Load console screen map"
 //usage:     "\n	-C TTY		Affect TTY instead of /dev/tty"
 //usage:

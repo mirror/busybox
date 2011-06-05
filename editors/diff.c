@@ -81,7 +81,6 @@
 //usage:#define diff_full_usage "\n\n"
 //usage:       "Compare files line by line and output the differences between them.\n"
 //usage:       "This implementation supports unified diffs only.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Treat all files as text"
 //usage:     "\n	-b	Ignore changes in the amount of whitespace"
 //usage:     "\n	-B	Ignore changes whose lines are all blank"

@@ -15,7 +15,6 @@
 //usage:#define tty_full_usage "\n\n"
 //usage:       "Print file name of stdin's terminal"
 //usage:	IF_INCLUDE_SUSv2( "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Print nothing, only return exit status"
 //usage:	)
 //usage:

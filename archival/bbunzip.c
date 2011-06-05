@@ -172,7 +172,6 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //usage:       "[-cf] [FILE]..."
 //usage:#define uncompress_full_usage "\n\n"
 //usage:       "Decompress .Z file[s]\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Overwrite"
 
@@ -232,7 +231,6 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[-cft] [FILE]..."
 //usage:#define gunzip_full_usage "\n\n"
 //usage:       "Decompress FILEs (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-t	Test file integrity"
@@ -339,7 +337,6 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[-cf] [FILE]..."
 //usage:#define bunzip2_full_usage "\n\n"
 //usage:       "Decompress FILEs (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:#define bzcat_trivial_usage
@@ -380,7 +377,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[-cf] [FILE]..."
 //usage:#define unlzma_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:
@@ -388,7 +384,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "-d [-cf] [FILE]..."
 //usage:#define lzma_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
@@ -402,7 +397,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[-cf] [FILE]..."
 //usage:#define unxz_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:
@@ -410,7 +404,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "-d [-cf] [FILE]..."
 //usage:#define xz_full_usage "\n\n"
 //usage:       "Decompress FILE (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"

@@ -393,7 +393,6 @@ static void dev_report(cputime_t itv)
 //usage:       "[-c] [-d] [-t] [-z] [-k|-m] [ALL|BLOCKDEV...] [INTERVAL [COUNT]]"
 //usage:#define iostat_full_usage "\n\n"
 //usage:       "Report CPU and I/O statistics\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Show CPU utilization"
 //usage:     "\n	-d	Show device utilization"
 //usage:     "\n	-t	Print current time"

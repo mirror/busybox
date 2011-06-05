@@ -12,7 +12,6 @@
 //usage:       "[-d DELAY] [-t TIMEOUT] [-s SPEED] [-X] TTY"
 //usage:#define microcom_full_usage "\n\n"
 //usage:       "Copy bytes for stdin to TTY and from TTY to stdout\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Wait up to DELAY ms for TTY output before sending every"
 //usage:     "\n		next byte to it"
 //usage:     "\n	-t	Exit if both stdin and TTY are silent for TIMEOUT ms"

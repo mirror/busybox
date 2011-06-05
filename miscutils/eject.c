@@ -17,7 +17,6 @@
 //usage:       "[-t] [-T] [DEVICE]"
 //usage:#define eject_full_usage "\n\n"
 //usage:       "Eject DEVICE or default /dev/cdrom\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_EJECT_SCSI(
 //usage:     "\n	-s	SCSI device"
 //usage:	)

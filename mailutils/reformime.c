@@ -234,7 +234,6 @@ static int parse(const char *boundary, char **argv)
 //usage:       "[OPTIONS]"
 //usage:#define reformime_full_usage "\n\n"
 //usage:       "Parse MIME-encoded message on stdin\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-x PREFIX	Extract content of MIME sections to files"
 //usage:     "\n	-X PROG ARGS	Filter content of MIME sections through PROG"
 //usage:     "\n			Must be the last option"

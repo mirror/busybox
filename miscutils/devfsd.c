@@ -58,7 +58,6 @@
 //usage:       "mntpnt [-v]" IF_DEVFSD_FG_NP("[-fg][-np]")
 //usage:#define devfsd_full_usage "\n\n"
 //usage:       "Manage devfs permissions and old device name symlinks\n"
-//usage:     "\nOptions:"
 //usage:     "\n	mntpnt	The mount point where devfs is mounted"
 //usage:     "\n	-v	Print the protocol version numbers for devfsd"
 //usage:     "\n		and the kernel-side protocol version and exit"

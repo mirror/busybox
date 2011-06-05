@@ -14,7 +14,6 @@
 //usage:       "[OPTIONS] DIRECTORY..."
 //usage:#define rmdir_full_usage "\n\n"
 //usage:       "Remove DIRECTORY if it is empty\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_RMDIR_LONG_OPTIONS(
 //usage:     "\n	-p|--parents	Include parents"
 //usage:     "\n	--ignore-fail-on-non-empty"

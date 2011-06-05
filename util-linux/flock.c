@@ -8,7 +8,6 @@
 //usage:       "[-sxun] FD|{FILE [-c] PROG ARGS}"
 //usage:#define flock_full_usage "\n\n"
 //usage:       "[Un]lock file descriptor, or lock FILE, run PROG\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Shared lock"
 //usage:     "\n	-x	Exclusive lock (default)"
 //usage:     "\n	-u	Unlock FD"

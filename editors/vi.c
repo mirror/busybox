@@ -25,7 +25,6 @@
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define vi_full_usage "\n\n"
 //usage:       "Edit FILE\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_VI_COLON(
 //usage:     "\n	-c	Initial command to run ($EXINIT also available)"
 //usage:	)

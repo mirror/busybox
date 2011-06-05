@@ -7,8 +7,7 @@
 //usage:       "[-aw] [MANPAGE]..."
 //usage:#define man_full_usage "\n\n"
 //usage:       "Format and display manual page\n"
-//usage:     "\nOptions:"
-//usage:     "\n	-a      Display all pages"
+//usage:     "\n	-a	Display all pages"
 //usage:     "\n	-w	Show page locations"
 
 #include "libbb.h"

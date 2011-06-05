@@ -19,7 +19,6 @@
 //usage:       "[-irf] FILE..."
 //usage:#define rm_full_usage "\n\n"
 //usage:       "Remove (unlink) FILEs\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-i	Always prompt before removing"
 //usage:     "\n	-f	Never prompt"
 //usage:     "\n	-R,-r	Recurse"

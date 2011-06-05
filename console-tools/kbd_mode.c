@@ -13,7 +13,6 @@
 //usage:       "[-a|k|s|u] [-C TTY]"
 //usage:#define kbd_mode_full_usage "\n\n"
 //usage:       "Report or set the keyboard mode\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Default (ASCII)"
 //usage:     "\n	-k	Medium-raw (keyboard)"
 //usage:     "\n	-s	Raw (scancode)"

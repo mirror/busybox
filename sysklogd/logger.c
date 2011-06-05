@@ -11,7 +11,6 @@
 //usage:       "[OPTIONS] [MESSAGE]"
 //usage:#define logger_full_usage "\n\n"
 //usage:       "Write MESSAGE (or stdin) to syslog\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Log to stderr as well as the system log"
 //usage:     "\n	-t TAG	Log using the specified tag (defaults to user name)"
 //usage:     "\n	-p PRIO	Priority (numeric or facility.level pair)"

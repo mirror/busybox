@@ -22,7 +22,6 @@
 //usage:       "	21 stream tcp nowait root ftpd ftpd /files/to/serve\n"
 //usage:       "It also can be ran from tcpsvd:\n"
 //usage:       "	tcpsvd -vE 0.0.0.0 21 ftpd /files/to/serve\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-w	Allow upload"
 //usage:     "\n	-v	Log errors to stderr. -vv: verbose log"
 //usage:     "\n	-S	Log errors to syslog. -SS: verbose log"

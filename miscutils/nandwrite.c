@@ -32,7 +32,6 @@
 //usage:	"[-p] [-s ADDR] MTD_DEVICE [FILE]"
 //usage:#define nandwrite_full_usage "\n\n"
 //usage:	"Write to the specified MTD device\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p	Pad to page size"
 //usage:     "\n	-s ADDR	Start address"
 
@@ -40,7 +39,6 @@
 //usage:	"[-o] [-b] [-s ADDR] [-f FILE] MTD_DEVICE"
 //usage:#define nanddump_full_usage "\n\n"
 //usage:	"Dump the sepcified MTD device\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-o	Omit oob data"
 //usage:     "\n	-b	Omit bad block from the dump"
 //usage:     "\n	-s ADDR	Start address"

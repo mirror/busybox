@@ -11,7 +11,6 @@
 //usage:       "[OPTIONS] FILE or PORT/PROTO"
 //usage:#define fuser_full_usage "\n\n"
 //usage:       "Find processes which use FILEs or PORTs\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m	Find processes which use same fs as FILEs"
 //usage:     "\n	-4,-6	Search only IPv4/IPv6 space"
 //usage:     "\n	-s	Don't display PIDs"

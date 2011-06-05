@@ -19,7 +19,6 @@
 //usage:       "[OPTIONS] SOURCE DEST"
 //usage:#define cp_full_usage "\n\n"
 //usage:       "Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Same as -dpR"
 //usage:	IF_SELINUX(
 //usage:     "\n	-c	Preserve security context"

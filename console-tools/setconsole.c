@@ -12,7 +12,6 @@
 //usage:       "[-r" IF_FEATURE_SETCONSOLE_LONG_OPTIONS("|--reset") "] [DEVICE]"
 //usage:#define setconsole_full_usage "\n\n"
 //usage:       "Redirect system console output to DEVICE (default: /dev/tty)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-r	Reset output to /dev/console"
 
 #include "libbb.h"

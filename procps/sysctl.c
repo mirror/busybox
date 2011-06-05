@@ -15,7 +15,6 @@
 //usage:       "[OPTIONS] [VALUE]..."
 //usage:#define sysctl_full_usage "\n\n"
 //usage:       "Configure kernel parameters at runtime\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n	Don't print key names"
 //usage:     "\n	-e	Don't warn about unknown keys"
 //usage:     "\n	-w	Change sysctl setting"

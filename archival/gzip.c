@@ -43,7 +43,6 @@ aa:      85.1% -- replaced with aa.gz
 //usage:       "[-cfd] [FILE]..."
 //usage:#define gzip_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"

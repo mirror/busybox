@@ -14,7 +14,6 @@
 //usage:       "[OPTIONS] [HOSTNAME | -F FILE]"
 //usage:#define hostname_full_usage "\n\n"
 //usage:       "Get or set hostname or DNS domain name\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-s	Short"
 //usage:     "\n	-i	Addresses for the hostname"
 //usage:     "\n	-d	DNS domain name"

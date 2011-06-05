@@ -14,7 +14,6 @@
 //usage:       "[-bs] [-w WIDTH] [FILE]..."
 //usage:#define fold_full_usage "\n\n"
 //usage:       "Wrap input lines in each FILE (or stdin), writing to stdout\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-b	Count bytes rather than columns"
 //usage:     "\n	-s	Break at spaces"
 //usage:     "\n	-w	Use WIDTH columns instead of 80"

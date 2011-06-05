@@ -36,7 +36,6 @@
 //usage:#define env_full_usage "\n\n"
 //usage:       "Print the current environment or run PROG after setting up\n"
 //usage:       "the specified environment\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-, -i	Start with an empty environment"
 //usage:     "\n	-u	Remove variable from the environment"
 

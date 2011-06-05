@@ -23,7 +23,6 @@
 //usage:       "[-opts[modifiers]] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
 //usage:#define unzip_full_usage "\n\n"
 //usage:       "Extract files from ZIP archives\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-l	List archive contents (with -q for short form)"
 //usage:     "\n	-n	Never overwrite files (default)"
 //usage:     "\n	-o	Overwrite"

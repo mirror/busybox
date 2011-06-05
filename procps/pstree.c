@@ -24,7 +24,6 @@
 //usage:	"[-p] [PID|USER]"
 //usage:#define pstree_full_usage "\n\n"
 //usage:       "Display process tree, optionally start from USER or PID\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p	Show pids"
 
 #include "libbb.h"

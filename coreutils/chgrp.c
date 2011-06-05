@@ -15,7 +15,6 @@
 //usage:       "[-RhLHP"IF_DESKTOP("cvf")"]... GROUP FILE..."
 //usage:#define chgrp_full_usage "\n\n"
 //usage:       "Change the group membership of each FILE to GROUP\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
 //usage:     "\n	-L	Traverse all symlinks to directories"

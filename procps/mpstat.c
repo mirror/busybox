@@ -844,7 +844,6 @@ static int get_irqcpu_nr(const char *f, int max_irqs)
 //usage:       "[-A] [-I SUM|CPU|ALL|SCPU] [-u] [-P num|ALL] [INTERVAL [COUNT]]"
 //usage:#define mpstat_full_usage "\n\n"
 //usage:       "Per-processor statistics\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-A			Same as -I ALL -u -P ALL"
 //usage:     "\n	-I SUM|CPU|ALL|SCPU	Report interrupt statistics"
 //usage:     "\n	-P num|ALL		Processor to monitor"

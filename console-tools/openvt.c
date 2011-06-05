@@ -12,7 +12,6 @@
 //usage:       "[-c N] [-sw] [PROG ARGS]"
 //usage:#define openvt_full_usage "\n\n"
 //usage:       "Start PROG on a new virtual terminal\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c N	Use specified VT"
 //usage:     "\n	-s	Switch to the VT"
 /* //usage:     "\n	-l	Run PROG as login shell (by prepending '-')" */

@@ -14,7 +14,6 @@
 //usage:       "[-m MODE] " IF_SELINUX("[-Z] ") "NAME"
 //usage:#define mkfifo_full_usage "\n\n"
 //usage:       "Create named pipe\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m MODE	Mode (default a=rw)"
 //usage:	IF_SELINUX(
 //usage:     "\n	-Z	Set security context"

@@ -28,7 +28,6 @@
 //usage:#define echo_full_usage "\n\n"
 //usage:       "Print the specified ARGs to stdout"
 //usage:	IF_FEATURE_FANCY_ECHO( "\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n	Suppress trailing newline"
 //usage:     "\n	-e	Interpret backslash escapes (i.e., \\t=tab)"
 //usage:     "\n	-E	Don't interpret backslash escapes (default)"

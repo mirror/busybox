@@ -15,7 +15,6 @@
 //usage:       "[-o COL1,COL2=HEADER]" IF_FEATURE_SHOW_THREADS(" [-T]")
 //usage:#define ps_full_usage "\n\n"
 //usage:       "Show list of processes\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-o COL1,COL2=HEADER	Select columns for display"
 //usage:	IF_FEATURE_SHOW_THREADS(
 //usage:     "\n	-T			Show threads"
@@ -26,7 +25,6 @@
 //usage:#if !ENABLE_SELINUX && !ENABLE_FEATURE_PS_WIDE
 //usage:#define USAGE_PS "\nThis version of ps accepts no options"
 //usage:#else
-//usage:#define USAGE_PS "\nOptions:"
 //usage:#endif
 //usage:
 //usage:#define ps_trivial_usage

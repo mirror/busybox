@@ -43,7 +43,6 @@
 //usage:       "[-d DELAY] [-n] [-f]" IF_FEATURE_WTMP(" [-w]")
 //usage:#define halt_full_usage "\n\n"
 //usage:       "Halt the system\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d SEC	Delay interval"
 //usage:     "\n	-n	Do not sync"
 //usage:     "\n	-f	Force (don't go through init)"
@@ -55,7 +54,6 @@
 //usage:       "[-d DELAY] [-n] [-f]"
 //usage:#define poweroff_full_usage "\n\n"
 //usage:       "Halt and shut off power\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d SEC	Delay interval"
 //usage:     "\n	-n	Do not sync"
 //usage:     "\n	-f	Force (don't go through init)"
@@ -64,7 +62,6 @@
 //usage:       "[-d DELAY] [-n] [-f]"
 //usage:#define reboot_full_usage "\n\n"
 //usage:       "Reboot the system\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d SEC	Delay interval"
 //usage:     "\n	-n	Do not sync"
 //usage:     "\n	-f	Force (don't go through init)"

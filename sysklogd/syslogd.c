@@ -20,7 +20,6 @@
 //usage:	IF_NOT_FEATURE_SYSLOGD_CFG(
 //usage:       "(this version of syslogd ignores /etc/syslog.conf)\n"
 //usage:	)
-//usage:     "\nOptions:"
 //usage:     "\n	-n		Run in foreground"
 //usage:     "\n	-O FILE		Log to FILE (default:/var/log/messages)"
 //usage:     "\n	-l N		Log only messages more urgent than prio N (1-8)"

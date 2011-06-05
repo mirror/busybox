@@ -12,7 +12,6 @@
 //usage:#define last_full_usage "\n\n"
 //usage:       "Show listing of the last users that logged into the system"
 //usage:	IF_FEATURE_LAST_FANCY( "\n"
-//usage:     "\nOptions:"
 /* //usage:  "\n	-H	Show header line" */
 //usage:     "\n	-W	Display with no host column truncation"
 //usage:     "\n	-f FILE Read from FILE instead of /var/log/wtmp"

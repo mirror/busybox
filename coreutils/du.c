@@ -31,7 +31,6 @@
 //usage:	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024")
 //usage:	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512")
 //usage:       " bytes.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a	Show file sizes too"
 //usage:     "\n	-L	Follow all symlinks"
 //usage:     "\n	-H	Follow symlinks on command line"

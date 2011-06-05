@@ -263,7 +263,6 @@ static void set_system_clock_timezone(int utc)
 //usage:	)
 //usage:#define hwclock_full_usage "\n\n"
 //usage:       "Query and set hardware clock (RTC)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-r	Show hardware clock time"
 //usage:     "\n	-s	Set system time from hardware clock"
 //usage:     "\n	-w	Set hardware clock from system time"

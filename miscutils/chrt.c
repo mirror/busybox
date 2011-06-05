@@ -10,7 +10,6 @@
 //usage:       "[-prfom] [PRIO] [PID | PROG ARGS]"
 //usage:#define chrt_full_usage "\n\n"
 //usage:       "Change scheduling priority and class for a process\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-p	Operate on PID"
 //usage:     "\n	-r	Set SCHED_RR class"
 //usage:     "\n	-f	Set SCHED_FIFO class"

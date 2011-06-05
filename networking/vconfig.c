@@ -13,7 +13,6 @@
 //usage:       "COMMAND [OPTIONS]"
 //usage:#define vconfig_full_usage "\n\n"
 //usage:       "Create and remove virtual ethernet devices\n"
-//usage:     "\nOptions:"
 //usage:     "\n	add		[interface-name] [vlan_id]"
 //usage:     "\n	rem		[vlan-name]"
 //usage:     "\n	set_flag	[interface-name] [flag-num] [0 | 1]"

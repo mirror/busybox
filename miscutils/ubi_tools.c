@@ -81,7 +81,6 @@
 //usage:       "-m MTD_NUM [-d UBI_NUM] UBI_CTRL_DEV"
 //usage:#define ubiattach_full_usage "\n\n"
 //usage:       "Attach MTD device to UBI\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-m MTD_NUM	MTD device number to attach"
 //usage:     "\n	-d UBI_NUM	UBI device number to assign"
 //usage:
@@ -89,14 +88,12 @@
 //usage:       "-d UBI_NUM UBI_CTRL_DEV"
 //usage:#define ubidetach_full_usage "\n\n"
 //usage:       "Detach MTD device from UBI\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-d UBI_NUM	UBI device number"
 //usage:
 //usage:#define ubimkvol_trivial_usage
 //usage:       "UBI_DEVICE -N NAME -s SIZE"
 //usage:#define ubimkvol_full_usage "\n\n"
 //usage:       "Create UBI volume\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-a ALIGNMENT	Volume alignment (default 1)"
 //usage:     "\n	-n VOLID	Volume ID, if not specified, it"
 //usage:     "\n			will be assigned automatically"
@@ -108,14 +105,12 @@
 //usage:       "UBI_DEVICE -n VOLID"
 //usage:#define ubirmvol_full_usage "\n\n"
 //usage:       "Remove UBI volume\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n VOLID	Volume ID"
 //usage:
 //usage:#define ubirsvol_trivial_usage
 //usage:       "UBI_DEVICE -n VOLID -s SIZE"
 //usage:#define ubirsvol_full_usage "\n\n"
 //usage:       "Resize UBI volume\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-n VOLID	Volume ID to resize"
 //usage:     "\n	-s SIZE		Size in bytes"
 //usage:
@@ -123,9 +118,8 @@
 //usage:       "UBI_DEVICE [IMG_FILE]"
 //usage:#define ubiupdatevol_full_usage "\n\n"
 //usage:       "Update UBI volume\n"
-//usage:     "\nOptions:"
-//usage:     "\n      -t      Truncate UBI volume"
-//usage:     "\n      -s SIZE Bytes in input (if reading stdin)"
+//usage:     "\n	-t	Truncate UBI volume"
+//usage:     "\n	-s SIZE	Bytes in input (if reading stdin)"
 
 
 int ubi_tools_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

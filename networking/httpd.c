@@ -107,7 +107,6 @@
 //usage:       "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING"
 //usage:#define httpd_full_usage "\n\n"
 //usage:       "Listen for incoming HTTP requests\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-i		Inetd mode"
 //usage:     "\n	-f		Don't daemonize"
 //usage:     "\n	-v[v]		Verbose"

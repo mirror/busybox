@@ -13,7 +13,6 @@
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define cut_full_usage "\n\n"
 //usage:       "Print selected fields from each input FILE to stdout\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-b LIST	Output only bytes from LIST"
 //usage:     "\n	-c LIST	Output only characters from LIST"
 //usage:     "\n	-d CHAR	Use CHAR instead of tab as the field delimiter"

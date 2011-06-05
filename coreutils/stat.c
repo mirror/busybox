@@ -17,7 +17,6 @@
 //usage:       "[OPTIONS] FILE..."
 //usage:#define stat_full_usage "\n\n"
 //usage:       "Display file (default) or filesystem status\n"
-//usage:     "\nOptions:"
 //usage:	IF_FEATURE_STAT_FORMAT(
 //usage:     "\n	-c fmt	Use the specified format"
 //usage:	)

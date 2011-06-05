@@ -29,7 +29,6 @@
 //usage:#define tail_full_usage "\n\n"
 //usage:       "Print last 10 lines of each FILE (or stdin) to stdout.\n"
 //usage:       "With more than one FILE, precede each with a filename header.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-f		Print data as file grows"
 //usage:	IF_FEATURE_FANCY_TAIL(
 //usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"

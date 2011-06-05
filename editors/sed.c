@@ -59,8 +59,7 @@
 //usage:#define sed_trivial_usage
 //usage:       "[-efinr] SED_CMD [FILE]..."
 //usage:#define sed_full_usage "\n\n"
-//usage:       "Options:"
-//usage:     "\n	-e CMD	Add CMD to sed commands to be executed"
+//usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
 //usage:     "\n	-i	Edit files in-place (else sends result to stdout)"
 //usage:     "\n	-n	Suppress automatic printing of pattern space"

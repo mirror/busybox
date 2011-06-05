@@ -42,7 +42,6 @@
 //usage:	IF_FEATURE_AUTOWIDTH(" [-w WIDTH]") " [FILE]..."
 //usage:#define ls_full_usage "\n\n"
 //usage:       "List directory contents\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-1	One column output"
 //usage:     "\n	-a	Include entries which start with ."
 //usage:     "\n	-A	Like -a, but exclude . and .."

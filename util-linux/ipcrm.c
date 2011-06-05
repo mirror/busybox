@@ -13,7 +13,6 @@
 //usage:#define ipcrm_full_usage "\n\n"
 //usage:       "Upper-case options MQS remove an object by shmkey value.\n"
 //usage:       "Lower-case options remove an object by shmid value.\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-mM	Remove memory segment after last detach"
 //usage:     "\n	-qQ	Remove message queue"
 //usage:     "\n	-sS	Remove semaphore"

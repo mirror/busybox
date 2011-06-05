@@ -18,7 +18,6 @@
 */
 //usage:#define mkfs_vfat_full_usage "\n\n"
 //usage:       "Make a FAT32 filesystem\n"
-//usage:     "\nOptions:"
 /* //usage:  "\n	-c	Check device for bad blocks" */
 //usage:     "\n	-v	Verbose"
 /* //usage:  "\n	-I	Allow to use entire disk device (e.g. /dev/hda)" */

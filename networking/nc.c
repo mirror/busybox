@@ -49,7 +49,7 @@
 //usage:#if !ENABLE_NC_110_COMPAT
 //usage:
 //usage:#if ENABLE_NC_SERVER || ENABLE_NC_EXTRA
-//usage:#define NC_OPTIONS_STR "\n\nOptions:"
+//usage:#define NC_OPTIONS_STR "\n"
 //usage:#else
 //usage:#define NC_OPTIONS_STR
 //usage:#endif

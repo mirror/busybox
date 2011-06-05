@@ -13,7 +13,6 @@
 //usage:       "[-bcCdefnosvx" IF_FEATURE_HEXDUMP_REVERSE("R") "] [FILE]..."
 //usage:#define hexdump_full_usage "\n\n"
 //usage:       "Display FILEs (or stdin) in a user specified format\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-b		One-byte octal display"
 //usage:     "\n	-c		One-byte character display"
 //usage:     "\n	-C		Canonical hex+ASCII, 16 bytes per line"

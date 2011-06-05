@@ -29,7 +29,6 @@
 //usage:	"] [FILESYSTEM]..."
 //usage:#define df_full_usage "\n\n"
 //usage:       "Print filesystem usage statistics\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-P	POSIX output format"
 //usage:     "\n	-k	1024-byte blocks (default)"
 //usage:	IF_FEATURE_HUMAN_READABLE(

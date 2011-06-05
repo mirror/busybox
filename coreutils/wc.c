@@ -64,7 +64,6 @@
 //usage:
 //usage:#define wc_full_usage "\n\n"
 //usage:       "Count lines, words, and bytes for each FILE (or stdin)\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-c	Count bytes"
 //usage:	IF_UNICODE_SUPPORT(
 //usage:     "\n	-m	Count characters"

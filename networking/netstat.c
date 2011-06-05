@@ -21,7 +21,6 @@
 //usage:       "[-"IF_ROUTE("r")"al] [-tuwx] [-en"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
 //usage:#define netstat_full_usage "\n\n"
 //usage:       "Display networking information\n"
-//usage:     "\nOptions:"
 //usage:	IF_ROUTE(
 //usage:     "\n	-r	Routing table"
 //usage:	)

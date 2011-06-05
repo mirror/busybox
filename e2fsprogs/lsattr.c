@@ -22,7 +22,6 @@
 //usage:       "[-Radlv] [FILE]..."
 //usage:#define lsattr_full_usage "\n\n"
 //usage:       "List file attributes on an ext2 fs\n"
-//usage:     "\nOptions:"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-a	Don't hide entries starting with ."
 //usage:     "\n	-d	List directory entries instead of contents"
