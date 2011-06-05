@@ -25,6 +25,7 @@
 //usage:#if !ENABLE_SELINUX && !ENABLE_FEATURE_PS_WIDE
 //usage:#define USAGE_PS "\nThis version of ps accepts no options"
 //usage:#else
+//usage:#define USAGE_PS ""
 //usage:#endif
 //usage:
 //usage:#define ps_trivial_usage
