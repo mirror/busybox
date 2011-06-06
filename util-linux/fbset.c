@@ -385,7 +385,7 @@ int fbset_main(int argc, char **argv)
 		OPT_CHANGE   = (1 << 0),
 		OPT_SHOW     = (1 << 1),
 		OPT_READMODE = (1 << 2),
-		OPT_ALL      = (1 << 9),
+		OPT_ALL      = (1 << 3),
 	};
 	struct fb_var_screeninfo var_old, var_set;
 	int fh, i;
@@ -490,6 +490,7 @@ int fbset_main(int argc, char **argv)
 		if (!read_mode_db(&var_old, modefile, mode)) {
 			bb_error_msg_and_die("unknown video mode '%s'", mode);
 		}
+		options |= OPT_CHANGE;
 #endif
 	}
 
