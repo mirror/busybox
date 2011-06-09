@@ -121,20 +121,20 @@ struct ethtool_drvinfo {
 };
 
 struct ethtool_cmd {
-	__u32   cmd;
-	__u32   supported;      /* Features this interface supports */
-	__u32   advertising;    /* Features this interface advertises */
-	__u16   speed;          /* The forced speed, 10Mb, 100Mb, gigabit */
-	__u8    duplex;         /* Duplex, half or full */
-	__u8    port;           /* Which connector port */
-	__u8    phy_address;
-	__u8    transceiver;    /* Which transceiver to use */
-	__u8    autoneg;        /* Enable or disable autonegotiation */
-	__u32   maxtxpkt;       /* Tx pkts before generating tx int */
-	__u32   maxrxpkt;       /* Rx pkts before generating rx int */
-	__u16   speed_hi;
-	__u16   reserved2;
-	__u32   reserved[3];
+	uint32_t   cmd;
+	uint32_t   supported;      /* Features this interface supports */
+	uint32_t   advertising;    /* Features this interface advertises */
+	uint16_t   speed;          /* The forced speed, 10Mb, 100Mb, gigabit */
+	uint8_t    duplex;         /* Duplex, half or full */
+	uint8_t    port;           /* Which connector port */
+	uint8_t    phy_address;
+	uint8_t    transceiver;    /* Which transceiver to use */
+	uint8_t    autoneg;        /* Enable or disable autonegotiation */
+	uint32_t   maxtxpkt;       /* Tx pkts before generating tx int */
+	uint32_t   maxrxpkt;       /* Rx pkts before generating rx int */
+	uint16_t   speed_hi;
+	uint16_t   reserved2;
+	uint32_t   reserved[3];
 };
 
 #define ETHTOOL_GSET      0x00000001 /* Get settings. */
