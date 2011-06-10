@@ -46,18 +46,14 @@
 //usage:       "	[mem_start NN] [io_addr NN] [irq NN]\n")
 //usage:       "	[up|down] ..."
 
+#include "libbb.h"
+#include "inet_common.h"
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
-#if defined(__GLIBC__) && __GLIBC__ >=2 && __GLIBC_MINOR__ >= 1
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
-#else
-#include <sys/types.h>
-#include <netinet/if_ether.h>
+#ifdef HAVE_NET_ETHERNET_H
+# include <net/ethernet.h>
 #endif
-#include "libbb.h"
-#include "inet_common.h"
 
 #if ENABLE_FEATURE_IFCONFIG_SLIP
 # include <net/if_slip.h>

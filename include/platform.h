@@ -332,8 +332,8 @@ typedef unsigned smalluint;
 
 /* ---- Who misses what? ------------------------------------ */
 
-/* Assume all these functions exist by default.  Platforms where it is not
- * true will #undef them below.
+/* Assume all these functions and header files exist by default.
+ * Platforms where it is not true will #undef them below.
  */
 #define HAVE_CLEARENV 1
 #define HAVE_FDATASYNC 1
@@ -349,9 +349,14 @@ typedef unsigned smalluint;
 #define HAVE_STRSEP 1
 #define HAVE_STRSIGNAL 1
 #define HAVE_VASPRINTF 1
-#define HAVE_MNTENT_H 1
-#define HAVE_SYS_STATFS_H 1
 #define HAVE_XTABS 1
+#define HAVE_MNTENT_H 1
+#define HAVE_NET_ETHERNET_H 1
+#define HAVE_SYS_STATFS_H 1
+
+#if defined(__GLIBC__) && (__GLIBC__ < 2 || __GLIBC_MINOR__ < 1)
+# undef HAVE_NET_ETHERNET_H
+#endif
 
 #if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
@@ -368,6 +373,7 @@ typedef unsigned smalluint;
 # undef HAVE_STRSEP
 # undef HAVE_STRSIGNAL
 # undef HAVE_VASPRINTF
+# undef HAVE_NET_ETHERNET_H
 #endif
 
 #if defined(__FreeBSD__)
@@ -395,6 +401,7 @@ typedef unsigned smalluint;
 # undef HAVE_DPRINTF
 # undef HAVE_STPCPY
 # undef HAVE_STRCHRNUL
+# undef HAVE_NET_ETHERNET_H
 #endif
 
 /*

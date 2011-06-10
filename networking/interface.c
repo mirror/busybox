@@ -30,15 +30,14 @@
  *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu
  *			(default AF was wrong)
  */
-#include <net/if.h>
-#include <net/if_arp.h>
-#ifndef __UCLIBC__
-# include <net/ethernet.h>
-#else
-# include <linux/if_ether.h>
-#endif
+
 #include "libbb.h"
 #include "inet_common.h"
+#include <net/if.h>
+#include <net/if_arp.h>
+#ifdef HAVE_NET_ETHERNET_H
+# include <net/ethernet.h>
+#endif
 
 #if ENABLE_FEATURE_HWIB
 /* #include <linux/if_infiniband.h> */

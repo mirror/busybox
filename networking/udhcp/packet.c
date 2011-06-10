@@ -6,18 +6,11 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
-#include <netinet/in.h>
-#if (defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
-# include <netpacket/packet.h>
-# include <net/ethernet.h>
-#else
-# include <asm/types.h>
-# include <linux/if_packet.h>
-# include <linux/if_ether.h>
-#endif
-
 #include "common.h"
 #include "dhcpd.h"
+#include <netinet/in.h>
+#include <netinet/if_ether.h>
+#include <netpacket/packet.h>
 
 void FAST_FUNC udhcp_init_header(struct dhcp_packet *packet, char type)
 {

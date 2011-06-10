@@ -74,12 +74,10 @@
 //usage:     "\n	-i iface	Interface to use (default eth0)"
 //usage:     "\n	-p pass		Append four or six byte password PW to the packet"
 
+#include "libbb.h"
 #include <netpacket/packet.h>
-#include <net/ethernet.h>
 #include <netinet/ether.h>
 #include <linux/if.h>
-
-#include "libbb.h"
 
 /* Note: PF_INET, SOCK_DGRAM, IPPROTO_UDP would allow SIOCGIFHWADDR to
  * work as non-root, but we need SOCK_PACKET to specify the Ethernet
