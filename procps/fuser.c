@@ -271,7 +271,7 @@ Find processes which use FILEs or PORTs
 		if (sscanf(*pp, "%u/%4s", &port, tproto) != 2)
 			goto file;
 		sprintf(path, "/proc/net/%s", tproto);
-		if (access(path, R_OK) != 0) { /* PORT/PROTO */
+		if (access(path, R_OK) == 0) { /* PORT/PROTO */
 			scan_proc_net(path, port);
 		} else { /* FILE */
  file:
