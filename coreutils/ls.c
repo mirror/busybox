@@ -182,11 +182,10 @@ LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
 /* -Q       GNU option, busybox always supports */
 /* -k       SELinux option, busybox always supports (ignores if !SELinux) */
 /*          Std has -k which means "show sizes in kbytes" */
-/* -FLHRctur Std options, busybox optionally supports */
-/* -p       Std option, busybox optionally supports */
-/*          Not fully compatible - we show not only '/' but other chars too */
+/* -LHRctur Std options, busybox optionally supports */
+/* -Fp      Std options, busybox optionally supports */
 /* -SXvhTw  GNU options, busybox optionally supports */
-/*          -T TABWIDTH is ignored (we don't use tabs on output) */
+/* -T WIDTH Ignored (we don't use tabs on output) */
 /* -KZ      SELinux mandated options, busybox optionally supports */
 /*          (coreutils 8.4 has no -K, remove it?) */
 /* -e       I think we made this one up (looks similar to GNU --full-time) */
