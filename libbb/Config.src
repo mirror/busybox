@@ -191,8 +191,8 @@ config FEATURE_SKIP_ROOTFS
 
 	  However, some systems do not mount anything on /.
 	  If you need to configure busybox for one of these systems,
-	  you may find useful to turn this option off to make df show
-	  initramfs statistic.
+	  you may find it useful to turn this option off to make df show
+	  initramfs statistics.
 
 	  Otherwise, choose Y.
 
