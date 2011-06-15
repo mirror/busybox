@@ -170,8 +170,11 @@
 #include "libbb.h"
 
 #if ENABLE_FEATURE_INETD_RPC
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
+# if defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
+#  error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support"
+# endif
+# include <rpc/rpc.h>
+# include <rpc/pmap_clnt.h>
 #endif
 
 #if !BB_MMU
