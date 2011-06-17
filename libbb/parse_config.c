@@ -104,6 +104,44 @@ void FAST_FUNC config_close(parser_t *parser)
 	}
 }
 
+/* This function reads an entire line from a text file, up to a newline
+ * or NUL byte, exclusive.  It returns a malloc'ed char*.
+ * *lineno is incremented for each line.
+ * Trailing '\' is recognized as line continuation.
+ * Returns NULL if EOF/error.
+ */
+static char* get_line_with_continuation(FILE *file, int *lineno)
+{
+	int ch;
+	unsigned idx = 0;
+	char *linebuf = NULL;
+
+	while ((ch = getc(file)) != EOF) {
+		/* grow the line buffer as necessary */
+		if (!(idx & 0xff))
+			linebuf = xrealloc(linebuf, idx + 0x101);
+		if (ch == '\n')
+			ch = '\0';
+		linebuf[idx] = (char) ch;
+		if (ch == '\0') {
+			(*lineno)++;
+			if (idx == 0 || linebuf[idx-1] != '\\')
+				break;
+			idx--; /* go back to '/' */
+			continue;
+		}
+		idx++;
+	}
+	if (ch == EOF) {
+		/* handle corner case when the file is not ended with '\n' */
+		(*lineno)++;
+		if (linebuf)
+			linebuf[idx] = '\0';
+	}
+	return linebuf;
+}
+
+
 /*
 0. If parser is NULL return 0.
 1. Read a line from config file. If nothing to read then return 0.
@@ -132,27 +170,23 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 {
 	char *line;
 	int ntokens, mintokens;
-	int t, len;
+	int t;
+
+	if (!parser)
+		return 0;
 
 	ntokens = (uint8_t)flags;
 	mintokens = (uint8_t)(flags >> 8);
-
-	if (parser == NULL)
-		return 0;
 
 again:
 	memset(tokens, 0, sizeof(tokens[0]) * ntokens);
 	config_free_data(parser);
 
 	/* Read one line (handling continuations with backslash) */
-	line = bb_get_chunk_with_continuation(parser->fp, &len, &parser->lineno);
+	line = get_line_with_continuation(parser->fp, &parser->lineno);
 	if (line == NULL)
 		return 0;
 	parser->line = line;
-
-	/* Strip trailing line-feed if any */
-	if (len && line[len-1] == '\n')
-		line[len-1] = '\0';
 
 	/* Skip token in the start of line? */
 	if (flags & PARSE_TRIM)

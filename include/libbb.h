@@ -730,8 +730,12 @@ extern void xclose(int fd) FAST_FUNC;
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file) FAST_FUNC;
 
+/* Reads a line from a text file, up to a newline or NUL byte, inclusive.
+ * Returns malloc'ed char*. If end is NULL '\n' isn't considered
+ * end of line. If end isn't NULL, length of the chunk is stored in it.
+ * Returns NULL if EOF/error.
+ */
 extern char *bb_get_chunk_from_file(FILE *file, int *end) FAST_FUNC;
-extern char *bb_get_chunk_with_continuation(FILE *file, int *end, int *lineno) FAST_FUNC;
 /* Reads up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string) FAST_FUNC RETURNS_MALLOC;
 /* Same, with limited max size, and returns the length (excluding NUL): */
