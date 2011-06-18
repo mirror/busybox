@@ -566,18 +566,47 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 {
 	int sz;
-	char filename[sizeof("/proc//cmdline") + sizeof(int)*3];
+	char filename[sizeof("/proc/%u/cmdline") + sizeof(int)*3];
 
 	sprintf(filename, "/proc/%u/cmdline", pid);
 	sz = open_read_close(filename, buf, col - 1);
 	if (sz > 0) {
+		const char *base;
+		int comm_len;
+
 		buf[sz] = '\0';
 		while (--sz >= 0 && buf[sz] == '\0')
 			continue;
-		do {
+		base = bb_basename(buf); /* before we replace argv0's NUL with space */
+		while (sz >= 0) {
 			if ((unsigned char)(buf[sz]) < ' ')
 				buf[sz] = ' ';
-		} while (--sz >= 0);
+			sz--;
+		}
+
+		/* If comm differs from argv0, prepend "{comm} ".
+		 * It allows to see thread names set by prctl(PR_SET_NAME).
+		 */
+		if (base[0] == '-') /* "-sh" (login shell)? */
+			base++;
+		comm_len = strlen(comm);
+		/* Why compare up to comm_len, not COMM_LEN-1?
+		 * Well, some processes rewrite argv, and use _spaces_ there
+		 * while rewriting. (KDE is observed to do it).
+		 * I prefer to still treat argv0 "process foo bar"
+		 * as 'equal' to comm "process".
+		 */
+		if (strncmp(base, comm, comm_len) != 0) {
+			comm_len += 3;
+			if (col > comm_len)
+				memmove(buf + comm_len, buf, col - comm_len);
+			snprintf(buf, col, "{%s}", comm);
+			if (col <= comm_len)
+				return;
+			buf[comm_len - 1] = ' ';
+			buf[col - 1] = '\0';
+		}
+
 	} else {
 		snprintf(buf, col, "[%s]", comm);
 	}
