@@ -64,7 +64,6 @@ lib-y += hash_md5_sha.o
 lib-y += messages.o
 lib-y += mode_string.o
 lib-y += parse_mode.o
-lib-y += parse_config.o
 lib-y += perror_msg.o
 lib-y += perror_nomsg.o
 lib-y += perror_nomsg_and_die.o

@@ -681,9 +681,6 @@ config EFENCE
 
 endchoice
 
-### config PARSE
-###	bool "Uniform config file parser debugging applet: parse"
-
 endmenu
 
 menu 'Installation Options ("make install" behavior)'

@@ -8,11 +8,27 @@
  * Also for use in uClibc (http://uclibc.org/) licensed under LGPLv2.1 or later.
  */
 
-/*
+/* Uncomment to enable test applet */
+////config:config PARSE
+////config:	bool "Uniform config file parser debugging applet: parse"
+////config:	default n
+////config:	help
+////config:	  Typical usage of parse API:
+////config:		char *t[3];
+////config:		parser_t *p = config_open(filename);
+////config:		while (config_read(p, t, 3, 0, delimiters, flags)) { // 1..3 tokens
+////config:			bb_error_msg("TOKENS: '%s''%s''%s'", t[0], t[1], t[2]);
+////config:		}
+////config:		config_close(p);
+
+////applet:IF_PARSE(APPLET(parse, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-y += parse_config.o
+
 //usage:#define parse_trivial_usage
-//usage:       "[-n MAXTOKENS] [-m MINTOKENS] [-d DELIMS] [-f FLAGS] FILE..."
-//usage:#define parse_full_usage ""
-*/
+//usage:       "[-x] [-n MAXTOKENS] [-m MINTOKENS] [-d DELIMS] [-f FLAGS] FILE..."
+//usage:#define parse_full_usage "\n\n"
+//usage:       "	-x	Suppress output (for benchmarking)"
 
 #include "libbb.h"
 
@@ -21,51 +37,33 @@ int parse_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int parse_main(int argc UNUSED_PARAM, char **argv)
 {
 	const char *delims = "# \t";
+	char **t;
 	unsigned flags = PARSE_NORMAL;
 	int mintokens = 0, ntokens = 128;
+	unsigned noout;
 
 	opt_complementary = "-1:n+:m+:f+";
-	getopt32(argv, "n:m:d:f:", &ntokens, &mintokens, &delims, &flags);
+	noout = 1 & getopt32(argv, "xn:m:d:f:", &ntokens, &mintokens, &delims, &flags);
 	//argc -= optind;
 	argv += optind;
+
+	t = xmalloc(sizeof(t[0]) * ntokens);
 	while (*argv) {
+		int n;
 		parser_t *p = config_open(*argv);
-		if (p) {
-			int n;
-			char **t = xmalloc(sizeof(char *) * ntokens);
-			while ((n = config_read(p, t, ntokens, mintokens, delims, flags)) != 0) {
+		while ((n = config_read(p, t, ntokens, mintokens, delims, flags)) != 0) {
+			if (!noout) {
 				for (int i = 0; i < n; ++i)
 					printf("[%s]", t[i]);
 				puts("");
 			}
-			config_close(p);
 		}
+		config_close(p);
 		argv++;
 	}
 	return EXIT_SUCCESS;
 }
 #endif
-
-/*
-
-Typical usage:
-
------ CUT -----
-	char *t[3];  // tokens placeholder
-	parser_t *p = config_open(filename);
-	if (p) {
-		// parse line-by-line
-		while (config_read(p, t, 3, 0, delimiters, flags)) { // 1..3 tokens
-			// use tokens
-			bb_error_msg("TOKENS: [%s][%s][%s]", t[0], t[1], t[2]);
-		}
-		...
-		// free parser
-		config_close(p);
-	}
------ CUT -----
-
-*/
 
 parser_t* FAST_FUNC config_open2(const char *filename, FILE* FAST_FUNC (*fopen_func)(const char *path))
 {
