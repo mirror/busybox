@@ -1545,13 +1545,6 @@ enum {
 	PSSCAN_NICE     = (1 << 20) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
 	PSSCAN_RUIDGID  = (1 << 21) * ENABLE_FEATURE_PS_ADDITIONAL_COLUMNS,
 	PSSCAN_TASKS	= (1 << 22) * ENABLE_FEATURE_SHOW_THREADS,
-	/* These are all retrieved from proc/NN/stat in one go: */
-	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
-	/**/            | PSSCAN_COMM | PSSCAN_STATE
-	/**/            | PSSCAN_VSZ | PSSCAN_RSS
-	/**/            | PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
-	/**/            | PSSCAN_TTY | PSSCAN_NICE
-	/**/            | PSSCAN_CPU
 };
 //procps_status_t* alloc_procps_scan(void) FAST_FUNC;
 void free_procps_scan(procps_status_t* sp) FAST_FUNC;

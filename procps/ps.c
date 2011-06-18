@@ -87,13 +87,6 @@ enum { MAX_WIDTH = 2*1024 };
  * TIME      The cumulative execution time for the process
  * CMD       The command name; the full command line is shown with -f
  */
-#if ENABLE_SELINUX
-# define SELINUX_O_PREFIX "label,"
-# define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" IF_FEATURE_PS_TIME(",time") ",args")
-#else
-# define DEFAULT_O_STR    ("pid,user" IF_FEATURE_PS_TIME(",time") ",args")
-#endif
-
 typedef struct {
 	uint16_t width;
 	char name6[6];
@@ -113,7 +106,6 @@ struct globals {
 	unsigned kernel_HZ;
 	unsigned long long seconds_since_boot;
 #endif
-	char default_o[sizeof(DEFAULT_O_STR)];
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define out                (G.out               )
@@ -124,7 +116,6 @@ struct globals {
 #define terminal_width     (G.terminal_width    )
 #define kernel_HZ          (G.kernel_HZ         )
 #define seconds_since_boot (G.seconds_since_boot)
-#define default_o          (G.default_o         )
 #define INIT_G() do { } while (0)
 
 #if ENABLE_FEATURE_PS_TIME
@@ -250,7 +241,7 @@ static void func_comm(char *buf, int size, const procps_status_t *ps)
 	safe_strncpy(buf, ps->comm, size+1);
 }
 
-static void func_stat(char *buf, int size, const procps_status_t *ps)
+static void func_state(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, ps->state, size+1);
 }
@@ -394,7 +385,7 @@ static const ps_out_t out_spec[] = {
 	{ 6                  , "tty"   ,"TT"     ,func_tty   ,PSSCAN_TTY     },
 	{ 4                  , "vsz"   ,"VSZ"    ,func_vsz   ,PSSCAN_VSZ     },
 /* Not mandated, but useful: */
-	{ 4                  , "stat"  ,"STAT"   ,func_stat  ,PSSCAN_STAT    },
+	{ 4                  , "stat"  ,"STAT"   ,func_state ,PSSCAN_STATE   },
 	{ 4                  , "rss"   ,"RSS"    ,func_rss   ,PSSCAN_RSS     },
 #if ENABLE_SELINUX
 	{ 35                 , "label" ,"LABEL"  ,func_label ,PSSCAN_CONTEXT },
@@ -531,11 +522,19 @@ static void format_process(const procps_status_t *ps)
 	printf("%.*s\n", terminal_width, buffer);
 }
 
+#if ENABLE_SELINUX
+# define SELINUX_O_PREFIX "label,"
+# define DEFAULT_O_STR    (SELINUX_O_PREFIX "pid,user" IF_FEATURE_PS_TIME(",time") ",args")
+#else
+# define DEFAULT_O_STR    ("pid,user" IF_FEATURE_PS_TIME(",time") ",args")
+#endif
+
 int ps_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ps_main(int argc UNUSED_PARAM, char **argv)
 {
 	procps_status_t *p;
 	llist_t* opt_o = NULL;
+	char default_o[sizeof(DEFAULT_O_STR)];
 	int opt;
 	enum {
 		OPT_Z = (1 << 0),
@@ -573,7 +572,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 			parse_o(llist_pop(&opt_o));
 		} while (opt_o);
 	} else {
-		/* Below: parse_o() needs char*, NOT const char*... */
+		/* Below: parse_o() needs char*, NOT const char*, can't give it default_o */
 #if ENABLE_SELINUX
 		if (!(opt & OPT_Z) || !is_selinux_enabled()) {
 			/* no -Z or no SELinux: do not show LABEL */

@@ -357,7 +357,14 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			sp->gid = sb.st_gid;
 		}
 
-		if (flags & PSSCAN_STAT) {
+		/* These are all retrieved from proc/NN/stat in one go: */
+		if (flags & (PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
+			| PSSCAN_COMM | PSSCAN_STATE
+			| PSSCAN_VSZ | PSSCAN_RSS
+			| PSSCAN_STIME | PSSCAN_UTIME | PSSCAN_START_TIME
+			| PSSCAN_TTY | PSSCAN_NICE
+			| PSSCAN_CPU)
+		) {
 			char *cp, *comm1;
 			int tty;
 #if !ENABLE_FEATURE_FAST_TOP
