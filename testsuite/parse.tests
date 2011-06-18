@@ -96,6 +96,7 @@ cat >$FILE.res <<EOF
 [option][dns][129.219.13.81]
 [option][domain][local]
 [option][lease][864000]
+[option][0x08][01020304]
 EOF
 
 testing "parse udhcpd.conf from examples" \
