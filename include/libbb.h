@@ -160,6 +160,44 @@ int sysinfo(struct sysinfo* info);
 #endif
 
 
+/* Busybox does not use threads, we can speed up stdio.
+ * But don't define foo to foo_unlocked if foo_unlocked
+ * is a macro (it might be defined back to foo!).
+ */
+#ifndef getc_unlocked
+# undef  getc
+# define getc(stream) getc_unlocked(stream)
+#endif
+#ifndef getchar_unlocked
+# undef  getchar
+# define getchar() getchar_unlocked()
+#endif
+#ifndef putc_unlocked
+# undef  putc
+# define putc(c, stream) putc_unlocked(c, stream)
+#endif
+#ifndef putchar_unlocked
+# undef  putchar
+# define putchar(c) putchar_unlocked(c)
+#endif
+#ifndef fgetc_unlocked
+# undef  fgetc
+# define fgetc(stream) fgetc_unlocked(stream)
+#endif
+#ifndef fputc_unlocked
+# undef  fputc
+# define fputc(c, stream) fputc_unlocked(c, stream)
+#endif
+#ifndef fgets_unlocked
+# undef  fgets
+# define fgets(s, n, stream) fgets_unlocked(s, n, stream)
+#endif
+#ifndef fputs_unlocked
+# undef  fputs
+# define fputs(s, stream) fputs_unlocked(s, stream)
+#endif
+
+
 /* Make all declarations hidden (-fvisibility flag only affects definitions) */
 /* (don't include system headers after this until corresponding pop!) */
 PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
