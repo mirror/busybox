@@ -1184,8 +1184,9 @@ enum {
 };
 typedef struct parser_t {
 	FILE *fp;
-	char *line;
 	char *data;
+	char *line, *nline;
+	size_t line_alloc, nline_alloc;
 	int lineno;
 } parser_t;
 parser_t* config_open(const char *filename) FAST_FUNC;
