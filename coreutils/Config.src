@@ -276,12 +276,6 @@ config HOSTID
 	  hostid prints the numeric identifier (in hexadecimal) for
 	  the current host.
 
-config ID
-	bool "id"
-	default y
-	help
-	  id displays the current user and group ID names.
-
 config INSTALL
 	bool "install"
 	default y

@@ -15,6 +15,24 @@
  * Added -G option Tito Ragusa (C) 2008 for SUSv3.
  */
 
+//config:config ID
+//config:	bool "id"
+//config:	default y
+//config:	help
+//config:	  id displays the current user and group ID names.
+
+//config:config GROUPS
+//config:	bool "groups"
+//config:	default y
+//config:	help
+//config:	  Print the group names associated with current user id.
+
+//kbuild:lib-$(CONFIG_GROUPS) += id.o
+//kbuild:lib-$(CONFIG_ID)     += id.o
+
+//applet:IF_GROUPS(APPLET_ODDNAME(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
+//applet:IF_ID(APPLET_NOEXEC(id, id, BB_DIR_USR_BIN, BB_SUID_DROP, id))
+
 //usage:#define id_trivial_usage
 //usage:       "[OPTIONS] [USER]"
 //usage:#define id_full_usage "\n\n"
@@ -31,6 +49,15 @@
 //usage:#define id_example_usage
 //usage:       "$ id\n"
 //usage:       "uid=1000(andersen) gid=1000(andersen)\n"
+
+//usage:#define groups_trivial_usage
+//usage:       "[USER]"
+//usage:#define groups_full_usage "\n\n"
+//usage:       "Print the group memberships of USER or for the current process"
+//usage:
+//usage:#define groups_example_usage
+//usage:       "$ groups\n"
+//usage:       "andersen lp dialout cdrom floppy\n"
 
 #include "libbb.h"
 
@@ -135,11 +162,16 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_SELINUX
 	security_context_t scontext = NULL;
 #endif
-	/* Don't allow -n -r -nr -ug -rug -nug -rnug -uZ -gZ -GZ*/
-	/* Don't allow more than one username */
-	opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG"
+
+	if (ENABLE_GROUPS && (!ENABLE_ID || applet_name[0] == 'g')) {
+		option_mask32 = opt = getopt32(argv, "") | JUST_ALL_GROUPS | NAME_NOT_NUMBER;
+	} else {
+		/* Don't allow -n -r -nr -ug -rug -nug -rnug -uZ -gZ -GZ*/
+		/* Don't allow more than one username */
+		opt_complementary = "?1:u--g:g--u:G--u:u--G:g--G:G--g:r?ugG:n?ugG"
 			 IF_SELINUX(":u--Z:Z--u:g--Z:Z--g:G--Z:Z--G");
-	opt = getopt32(argv, "rnugG" IF_SELINUX("Z"));
+		opt = getopt32(argv, "rnugG" IF_SELINUX("Z"));
+	}
 
 	username = argv[optind];
 	if (username) {
