@@ -359,6 +359,16 @@ typedef unsigned smalluint;
 # undef HAVE_NET_ETHERNET_H
 #endif
 
+#if defined(__UCLIBC_MAJOR__)
+# if __UCLIBC_MAJOR__ == 0 \
+  && (   __UCLIBC_MINOR__ < 9 \
+     || (__UCLIBC_MINOR__ == 9 && __UCLIBC_SUBLEVEL__ < 31) \
+     )
+#  undef HAVE_STRVERSCMP
+# endif
+#endif
+
+
 #if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
 #endif

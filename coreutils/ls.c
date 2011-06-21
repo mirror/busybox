@@ -886,7 +886,7 @@ static int sortcmp(const void *a, const void *b)
 	if (sort_opts == SORT_DIR) {
 		dif = S_ISDIR(d2->dn_mode) - S_ISDIR(d1->dn_mode);
 	} else
-#ifdef HAVE_STRVERSCMP && HAVE_STRVERSCMP == 1
+#if defined(HAVE_STRVERSCMP) && HAVE_STRVERSCMP == 1
 	if (sort_opts == SORT_VERSION) {
 		dif = strverscmp(d1->name, d2->name);
 	} else
