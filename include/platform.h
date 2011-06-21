@@ -348,6 +348,7 @@ typedef unsigned smalluint;
 #define HAVE_STRCHRNUL 1
 #define HAVE_STRSEP 1
 #define HAVE_STRSIGNAL 1
+#define HAVE_STRVERSCMP 1
 #define HAVE_VASPRINTF 1
 #define HAVE_XTABS 1
 #define HAVE_MNTENT_H 1
@@ -372,6 +373,7 @@ typedef unsigned smalluint;
 # undef HAVE_STRCHRNUL
 # undef HAVE_STRSEP
 # undef HAVE_STRSIGNAL
+# undef HAVE_STRVERSCMP
 # undef HAVE_VASPRINTF
 # undef HAVE_NET_ETHERNET_H
 #endif
@@ -389,18 +391,21 @@ typedef unsigned smalluint;
 # undef HAVE_PTSNAME_R
 # undef HAVE_SYS_STATFS_H
 # undef HAVE_SIGHANDLER_T
+# undef HAVE_STRVERSCMP
 # undef HAVE_XTABS
 # undef HAVE_DPRINTF
 #endif
 
 #if defined(__digital__) && defined(__unix__)
 # undef HAVE_STPCPY
+# undef HAVE_STRVERSCMP
 #endif
 
 #if defined(ANDROID)
 # undef HAVE_DPRINTF
 # undef HAVE_STPCPY
 # undef HAVE_STRCHRNUL
+# undef HAVE_STRVERSCMP
 # undef HAVE_NET_ETHERNET_H
 #endif
 
