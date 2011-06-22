@@ -30,8 +30,8 @@
 //kbuild:lib-$(CONFIG_GROUPS) += id.o
 //kbuild:lib-$(CONFIG_ID)     += id.o
 
-//applet:IF_GROUPS(APPLET_ODDNAME(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
-//applet:IF_ID(APPLET_NOEXEC(id, id, BB_DIR_USR_BIN, BB_SUID_DROP, id))
+//applet:IF_GROUPS(APPLET_NOEXEC(groups, id, BB_DIR_USR_BIN, BB_SUID_DROP, groups))
+//applet:IF_ID(    APPLET_NOEXEC(id,     id, BB_DIR_USR_BIN, BB_SUID_DROP, id    ))
 
 //usage:#define id_trivial_usage
 //usage:       "[OPTIONS] [USER]"
@@ -164,7 +164,13 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	if (ENABLE_GROUPS && (!ENABLE_ID || applet_name[0] == 'g')) {
-		option_mask32 = opt = getopt32(argv, "") | JUST_ALL_GROUPS | NAME_NOT_NUMBER;
+		/* TODO: coreutils groups prepend "USER : " prefix,
+		 * and accept many usernames. Example:
+		 * # groups root root
+		 * root : root
+		 * root : root
+		 */
+		opt = option_mask32 = getopt32(argv, "") | JUST_ALL_GROUPS | NAME_NOT_NUMBER;
 	} else {
 		/* Don't allow -n -r -nr -ug -rug -nug -rnug -uZ -gZ -GZ*/
 		/* Don't allow more than one username */
