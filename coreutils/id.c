@@ -117,7 +117,7 @@ static int print_user(uid_t id, const char *prefix)
 
 /* On error set *n < 0 and return >= 0
  * If *n is too small, update it and return < 0
- *  (ok to trash groups[] in both cases)
+ * (ok to trash groups[] in both cases)
  * Otherwise fill in groups[] and return >= 0
  */
 static int get_groups(const char *username, gid_t rgid, gid_t *groups, int *n)
@@ -131,20 +131,19 @@ static int get_groups(const char *username, gid_t rgid, gid_t *groups, int *n)
 		m = getgrouplist(username, rgid, groups, n);
 		/* I guess *n < 0 might indicate error. Anyway,
 		 * malloc'ing -1 bytes won't be good, so: */
-		//if (*n < 0)
-		//	return 0;
-		//return m;
-		//commented out here, happens below anyway
-	} else {
-		/* On error -1 is returned, which ends up in *n */
-		int nn = getgroups(*n, groups);
-		/* 0: nn <= *n, groups[] was big enough; -1 otherwise */
-		m = - (nn > *n);
-		*n = nn;
+		if (*n < 0)
+			return 0;
+		return m;
 	}
-	if (*n < 0)
-		return 0; /* error, don't return < 0! */
-	return m;
+
+	*n = getgroups(*n, groups);
+	if (*n >= 0)
+		return *n;
+	/* Error */
+	if (errno == EINVAL) /* *n is too small? */
+		*n = getgroups(0, groups); /* get needed *n */
+	/* if *n >= 0, return -1 (got new *n), else return 0 (error): */
+	return -(*n >= 0);
 }
 
 int id_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
@@ -214,11 +213,11 @@ int id_main(int argc UNUSED_PARAM, char **argv)
 		/* We are supplying largish buffer, trying
 		 * to not run get_groups() twice. That might be slow
 		 * ("user database in remote SQL server" case) */
-		groups = xmalloc(64 * sizeof(gid_t));
+		groups = xmalloc(64 * sizeof(groups[0]));
 		n = 64;
 		if (get_groups(username, rgid, groups, &n) < 0) {
 			/* Need bigger buffer after all */
-			groups = xrealloc(groups, n * sizeof(gid_t));
+			groups = xrealloc(groups, n * sizeof(groups[0]));
 			get_groups(username, rgid, groups, &n);
 		}
 		if (n > 0) {
