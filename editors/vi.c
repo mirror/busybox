@@ -21,6 +21,134 @@
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
+//config:config VI
+//config:	bool "vi"
+//config:	default y
+//config:	help
+//config:	  'vi' is a text editor. More specifically, it is the One True
+//config:	  text editor <grin>. It does, however, have a rather steep
+//config:	  learning curve. If you are not already comfortable with 'vi'
+//config:	  you may wish to use something else.
+//config:
+//config:config FEATURE_VI_MAX_LEN
+//config:	int "Maximum screen width in vi"
+//config:	range 256 16384
+//config:	default 4096
+//config:	depends on VI
+//config:	help
+//config:	  Contrary to what you may think, this is not eating much.
+//config:	  Make it smaller than 4k only if you are very limited on memory.
+//config:
+//config:config FEATURE_VI_8BIT
+//config:	bool "Allow vi to display 8-bit chars (otherwise shows dots)"
+//config:	default n
+//config:	depends on VI
+//config:	help
+//config:	  If your terminal can display characters with high bit set,
+//config:	  you may want to enable this. Note: vi is not Unicode-capable.
+//config:	  If your terminal combines several 8-bit bytes into one character
+//config:	  (as in Unicode mode), this will not work properly.
+//config:
+//config:config FEATURE_VI_COLON
+//config:	bool "Enable \":\" colon commands (no \"ex\" mode)"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Enable a limited set of colon commands for vi. This does not
+//config:	  provide an "ex" mode.
+//config:
+//config:config FEATURE_VI_YANKMARK
+//config:	bool "Enable yank/put commands and mark cmds"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  This will enable you to use yank and put, as well as mark in
+//config:	  busybox vi.
+//config:
+//config:config FEATURE_VI_SEARCH
+//config:	bool "Enable search and replace cmds"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Select this if you wish to be able to do search and replace in
+//config:	  busybox vi.
+//config:
+//config:config FEATURE_VI_REGEX_SEARCH
+//config:	bool "Enable regex in search and replace"
+//config:	default n   # Uses GNU regex, which may be unavailable. FIXME
+//config:	depends on FEATURE_VI_SEARCH
+//config:	help
+//config:	  Use extended regex search.
+//config:
+//config:config FEATURE_VI_USE_SIGNALS
+//config:	bool "Catch signals"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Selecting this option will make busybox vi signal aware. This will
+//config:	  make busybox vi support SIGWINCH to deal with Window Changes, catch
+//config:	  Ctrl-Z and Ctrl-C and alarms.
+//config:
+//config:config FEATURE_VI_DOT_CMD
+//config:	bool "Remember previous cmd and \".\" cmd"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Make busybox vi remember the last command and be able to repeat it.
+//config:
+//config:config FEATURE_VI_READONLY
+//config:	bool "Enable -R option and \"view\" mode"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Enable the read-only command line option, which allows the user to
+//config:	  open a file in read-only mode.
+//config:
+//config:config FEATURE_VI_SETOPTS
+//config:	bool "Enable set-able options, ai ic showmatch"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Enable the editor to set some (ai, ic, showmatch) options.
+//config:
+//config:config FEATURE_VI_SET
+//config:	bool "Support for :set"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Support for ":set".
+//config:
+//config:config FEATURE_VI_WIN_RESIZE
+//config:	bool "Handle window resize"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Make busybox vi behave nicely with terminals that get resized.
+//config:
+//config:config FEATURE_VI_ASK_TERMINAL
+//config:	bool "Use 'tell me cursor position' ESC sequence to measure window"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
+//config:	  this option makes vi perform a last-ditch effort to find it:
+//config:	  vi positions cursor to 999,999 and asks terminal to report real
+//config:	  cursor position using "ESC [ 6 n" escape sequence, then reads stdin.
+//config:
+//config:	  This is not clean but helps a lot on serial lines and such.
+//config:
+//config:config FEATURE_VI_OPTIMIZE_CURSOR
+//config:	bool "Optimize cursor movement"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  This will make the cursor movement faster, but requires more memory
+//config:	  and it makes the applet a tiny bit larger.
+
+//applet:IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_VI) += vi.o
+
 //usage:#define vi_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define vi_full_usage "\n\n"
@@ -33,6 +161,7 @@
 //usage:	)
 //usage:     "\n	-H	Short help regarding available features"
 
+#include <regex.h>
 #include "libbb.h"
 
 /* the CRASHME code is unmaintained, and doesn't currently build */
@@ -366,7 +495,6 @@ static void Hit_Return(void);
 
 #if ENABLE_FEATURE_VI_SEARCH
 static char *char_search(char *, const char *, int, int);	// search for pattern starting at p
-static int mycmp(const char *, const char *, int);	// string cmp based in "ignorecase"
 #endif
 #if ENABLE_FEATURE_VI_COLON
 static char *get_one_address(char *, int *);	// get colon addr, if present
@@ -1561,48 +1689,16 @@ static char *new_screen(int ro, int co)
 }
 
 #if ENABLE_FEATURE_VI_SEARCH
-static int mycmp(const char *s1, const char *s2, int len)
-{
-	if (ENABLE_FEATURE_VI_SETOPTS && ignorecase) {
-		return strncasecmp(s1, s2, len);
-	}
-	return strncmp(s1, s2, len);
-}
+
+# if ENABLE_FEATURE_VI_REGEX_SEARCH
 
 // search for pattern starting at p
 static char *char_search(char *p, const char *pat, int dir, int range)
 {
-#ifndef REGEX_SEARCH
-	char *start, *stop;
-	int len;
-
-	len = strlen(pat);
-	if (dir == FORWARD) {
-		stop = end - 1;	// assume range is p - end-1
-		if (range == LIMITED)
-			stop = next_line(p);	// range is to next line
-		for (start = p; start < stop; start++) {
-			if (mycmp(start, pat, len) == 0) {
-				return start;
-			}
-		}
-	} else if (dir == BACK) {
-		stop = text;	// assume range is text - p
-		if (range == LIMITED)
-			stop = prev_line(p);	// range is to prev line
-		for (start = p - len; start >= stop; start--) {
-			if (mycmp(start, pat, len) == 0) {
-				return start;
-			}
-		}
-	}
-	// pattern not found
-	return NULL;
-#else /* REGEX_SEARCH */
 	char *q;
 	struct re_pattern_buffer preg;
 	int i;
-	int size, range;
+	int size;
 
 	re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
 	preg.translate = 0;
@@ -1625,7 +1721,7 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 	// RANGE could be negative if we are searching backwards
 	range = q - p;
 
-	q = re_compile_pattern(pat, strlen(pat), &preg);
+	q = (char *)re_compile_pattern(pat, strlen(pat), (struct re_pattern_buffer *)&preg);
 	if (q != 0) {
 		// The pattern was not compiled
 		status_line_bold("bad search pattern: \"%s\": %s", pat, q);
@@ -1659,8 +1755,53 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 		p = p - i;
 	}
 	return p;
-#endif /* REGEX_SEARCH */
 }
+
+# else
+
+#  if ENABLE_FEATURE_VI_SETOPTS
+static int mycmp(const char *s1, const char *s2, int len)
+{
+	if (ignorecase) {
+		return strncasecmp(s1, s2, len);
+	}
+	return strncmp(s1, s2, len);
+}
+#  else
+#   define mycmp strncmp
+#  endif
+
+static char *char_search(char *p, const char *pat, int dir, int range)
+{
+	char *start, *stop;
+	int len;
+
+	len = strlen(pat);
+	if (dir == FORWARD) {
+		stop = end - 1;	// assume range is p - end-1
+		if (range == LIMITED)
+			stop = next_line(p);	// range is to next line
+		for (start = p; start < stop; start++) {
+			if (mycmp(start, pat, len) == 0) {
+				return start;
+			}
+		}
+	} else if (dir == BACK) {
+		stop = text;	// assume range is text - p
+		if (range == LIMITED)
+			stop = prev_line(p);	// range is to prev line
+		for (start = p - len; start >= stop; start--) {
+			if (mycmp(start, pat, len) == 0) {
+				return start;
+			}
+		}
+	}
+	// pattern not found
+	return NULL;
+}
+
+# endif
+
 #endif /* FEATURE_VI_SEARCH */
 
 static char *char_insert(char *p, char c) // insert the char c at 'p'
@@ -2022,8 +2163,8 @@ static void show_help(void)
 	"\n\tNamed buffers with \"x"
 #endif
 #if ENABLE_FEATURE_VI_READONLY
-	"\n\tReadonly if vi is called as \"view\""
-	"\n\tReadonly with -R command line arg"
+	//not implemented: "\n\tReadonly if vi is called as \"view\""
+	//redundant: usage text says this too: "\n\tReadonly with -R command line arg"
 #endif
 #if ENABLE_FEATURE_VI_SET
 	"\n\tSome colon mode commands with \':\'"

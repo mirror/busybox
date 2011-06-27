@@ -399,7 +399,6 @@ IF_USLEEP(APPLET_NOFORK(usleep, usleep, BB_DIR_BIN, BB_SUID_DROP, usleep))
 IF_UUDECODE(APPLET(uudecode, BB_DIR_USR_BIN, BB_SUID_DROP))
 IF_UUENCODE(APPLET(uuencode, BB_DIR_USR_BIN, BB_SUID_DROP))
 IF_VCONFIG(APPLET(vconfig, BB_DIR_SBIN, BB_SUID_DROP))
-IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
 /* Needs to be run by root or be suid root - needs to change uid and gid: */
 IF_VLOCK(APPLET(vlock, BB_DIR_USR_BIN, BB_SUID_REQUIRE))
 IF_VOLNAME(APPLET(volname, BB_DIR_USR_BIN, BB_SUID_DROP))
