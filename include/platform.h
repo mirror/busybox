@@ -350,6 +350,7 @@ typedef unsigned smalluint;
 #define HAVE_STRSIGNAL 1
 #define HAVE_STRVERSCMP 1
 #define HAVE_VASPRINTF 1
+#define HAVE_GETLINE 1
 #define HAVE_XTABS 1
 #define HAVE_MNTENT_H 1
 #define HAVE_NET_ETHERNET_H 1
@@ -468,6 +469,10 @@ extern char *strsep(char **stringp, const char *delim) FAST_FUNC;
 
 #ifndef HAVE_VASPRINTF
 extern int vasprintf(char **string_ptr, const char *format, va_list p) FAST_FUNC;
+#endif
+
+#ifndef HAVE_GETLINE
+extern ssize_t getline(char **lineptr, size_t *n, FILE *stream) FAST_FUNC;
 #endif
 
 #endif

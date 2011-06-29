@@ -145,3 +145,32 @@ char* FAST_FUNC stpcpy(char *p, const char *to_add)
 	return p;
 }
 #endif
+
+#ifndef HAVE_GETLINE
+ssize_t FAST_FUNC getline(char **lineptr, size_t *n, FILE *stream)
+{
+	int ch;
+	char *line = *lineptr;
+	size_t alloced = *n;
+	size_t len = 0;
+
+	do {
+		ch = fgetc(stream);
+		if (ch == EOF)
+			break;
+		if (len + 1 >= alloced) {
+			alloced += alloced/4 + 64;
+			line = xrealloc(line, alloced);
+		}
+		line[len++] = ch;
+	} while (ch != '\n');
+
+	if (len == 0)
+		return -1;
+
+	line[len] = '\0';
+	*lineptr = line;
+	*n = alloced;
+	return len;
+}
+#endif
