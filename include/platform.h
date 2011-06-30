@@ -350,15 +350,13 @@ typedef unsigned smalluint;
 #define HAVE_STRSIGNAL 1
 #define HAVE_STRVERSCMP 1
 #define HAVE_VASPRINTF 1
+#define HAVE_UNLOCKED_STDIO 1
+#define HAVE_UNLOCKED_LINE_OPS 1
 #define HAVE_GETLINE 1
 #define HAVE_XTABS 1
 #define HAVE_MNTENT_H 1
 #define HAVE_NET_ETHERNET_H 1
 #define HAVE_SYS_STATFS_H 1
-
-#if defined(__GLIBC__) && (__GLIBC__ < 2 || __GLIBC_MINOR__ < 1)
-# undef HAVE_NET_ETHERNET_H
-#endif
 
 #if defined(__UCLIBC_MAJOR__)
 # if __UCLIBC_MAJOR__ == 0 \
@@ -368,7 +366,6 @@ typedef unsigned smalluint;
 #  undef HAVE_STRVERSCMP
 # endif
 #endif
-
 
 #if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
@@ -387,6 +384,8 @@ typedef unsigned smalluint;
 # undef HAVE_STRSIGNAL
 # undef HAVE_STRVERSCMP
 # undef HAVE_VASPRINTF
+# undef HAVE_UNLOCKED_STDIO
+# undef HAVE_UNLOCKED_LINE_OPS
 # undef HAVE_NET_ETHERNET_H
 #endif
 
@@ -424,6 +423,7 @@ typedef unsigned smalluint;
 # undef HAVE_STPCPY
 # undef HAVE_STRCHRNUL
 # undef HAVE_STRVERSCMP
+# undef HAVE_UNLOCKED_LINE_OPS
 # undef HAVE_NET_ETHERNET_H
 #endif
 

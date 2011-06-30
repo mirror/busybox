@@ -161,23 +161,27 @@ int sysinfo(struct sysinfo* info);
 
 
 /* Busybox does not use threads, we can speed up stdio. */
-#undef  getc
-#define getc(stream) getc_unlocked(stream)
-#undef  getchar
-#define getchar() getchar_unlocked()
-#undef  putc
-#define putc(c, stream) putc_unlocked(c, stream)
-#undef  putchar
-#define putchar(c) putchar_unlocked(c)
-#undef  fgetc
-#define fgetc(stream) getc_unlocked(stream)
-#undef  fputc
-#define fputc(c, stream) putc_unlocked(c, stream)
+#ifdef HAVE_UNLOCKED_STDIO
+# undef  getc
+# define getc(stream) getc_unlocked(stream)
+# undef  getchar
+# define getchar() getchar_unlocked()
+# undef  putc
+# define putc(c, stream) putc_unlocked(c, stream)
+# undef  putchar
+# define putchar(c) putchar_unlocked(c)
+# undef  fgetc
+# define fgetc(stream) getc_unlocked(stream)
+# undef  fputc
+# define fputc(c, stream) putc_unlocked(c, stream)
+#endif
 /* Above functions are required by POSIX.1-2008, below ones are extensions */
-#undef  fgets
-#define fgets(s, n, stream) fgets_unlocked(s, n, stream)
-#undef  fputs
-#define fputs(s, stream) fputs_unlocked(s, stream)
+#ifdef HAVE_UNLOCKED_LINE_OPS
+# undef  fgets
+# define fgets(s, n, stream) fgets_unlocked(s, n, stream)
+# undef  fputs
+# define fputs(s, stream) fputs_unlocked(s, stream)
+#endif
 
 
 /* Make all declarations hidden (-fvisibility flag only affects definitions) */
