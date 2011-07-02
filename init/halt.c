@@ -154,11 +154,13 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 				/* runlevels:
 				 * 0 == shutdown
 				 * 6 == reboot */
-				rc = execlp(CONFIG_TELINIT_PATH,
+				execlp(CONFIG_TELINIT_PATH,
 						CONFIG_TELINIT_PATH,
 						which == 2 ? "6" : "0",
 						(char *)NULL
 				);
+				perror_msg_and_die("can't execute '%s'",
+						CONFIG_TELINIT_PATH);
 			}
 		}
 	} else {
