@@ -268,8 +268,8 @@ static void set_system_clock_timezone(int utc)
 //usage:     "\n	-w	Set hardware clock from system time"
 //usage:     "\n	-t	Set in-kernel timezone, correct system time"
 //usage:     "\n		if hardware clock is in local time"
-//usage:     "\n	-u	Hardware clock is in UTC"
-//usage:     "\n	-l	Hardware clock is in local time"
+//usage:     "\n	-u	Assume hardware clock is kept in UTC"
+//usage:     "\n	-l	Assume hardware clock is kept in local time"
 //usage:     "\n	-f FILE	Use specified device (e.g. /dev/rtc2)"
 
 #define HWCLOCK_OPT_LOCALTIME   0x01
