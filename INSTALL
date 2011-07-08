@@ -70,7 +70,9 @@ create a known starting point.
 Other starting configurations (mostly used for testing purposes) include
 "make allbareconfig" (enables all applets but disables all optional features),
 "make allyesconfig" (enables absolutely everything including debug features),
-and "make randconfig" (produce a random configuration).
+and "make randconfig" (produce a random configuration).  The configs/ directory
+contains a number of additional configuration files ending in _defconfig which
+are useful in specific cases.  "make help" will list them.
 
 Configuring BusyBox produces a file ".config", which can be saved for future
 use.  Run "make oldconfig" to bring a .config file from an older version of
