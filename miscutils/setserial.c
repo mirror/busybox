@@ -11,7 +11,7 @@
 //config:config SETSERIAL
 //config:	bool "setserial"
 //config:	default y
-//config:	depends on PLATFORM_LINUX
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Retrieve or set Linux serial port.
 

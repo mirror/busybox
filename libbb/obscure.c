@@ -109,10 +109,12 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	if (string_checker(new_p, pw->pw_name)) {
 		return "similar to username";
 	}
+#ifndef __BIONIC__
 	/* no gecos as-is, as sub-string, reversed, capitalized, doubled */
 	if (pw->pw_gecos[0] && string_checker(new_p, pw->pw_gecos)) {
 		return "similar to gecos";
 	}
+#endif
 	/* hostname as-is, as sub-string, reversed, capitalized, doubled */
 	hostname = safe_gethostname();
 	i = string_checker(new_p, hostname);
