@@ -159,7 +159,7 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 						which == 2 ? "6" : "0",
 						(char *)NULL
 				);
-				perror_msg_and_die("can't execute '%s'",
+				bb_perror_msg_and_die("can't execute '%s'",
 						CONFIG_TELINIT_PATH);
 			}
 		}
