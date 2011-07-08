@@ -12,7 +12,7 @@
 //usage:#define lspci_full_usage "\n\n"
 //usage:       "List all PCI devices"
 //usage:     "\n"
-//usage:     "\n	-m	Parseable output"
+//usage:     "\n	-m	Parsable output"
 //usage:     "\n	-k	Show driver"
 
 #include "libbb.h"

@@ -97,7 +97,7 @@ first argument to determine which applet to behave as, for example
 "./busybox cat LICENSE".  (Running the busybox applet with no arguments gives
 a list of all enabled applets.) The standalone shell can also call busybox
 applets without links to busybox under other names in the filesystem.  You can
-also configure a standaone install capability into the busybox base applet,
+also configure a standalone install capability into the busybox base applet,
 and then install such links at runtime with one of "busybox --install" (for
 hardlinks) or "busybox --install -s" (for symlinks).
 

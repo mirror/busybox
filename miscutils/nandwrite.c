@@ -38,7 +38,7 @@
 //usage:#define nanddump_trivial_usage
 //usage:	"[-o] [-b] [-s ADDR] [-f FILE] MTD_DEVICE"
 //usage:#define nanddump_full_usage "\n\n"
-//usage:	"Dump the sepcified MTD device\n"
+//usage:	"Dump the specified MTD device\n"
 //usage:     "\n	-o	Omit oob data"
 //usage:     "\n	-b	Omit bad block from the dump"
 //usage:     "\n	-s ADDR	Start address"

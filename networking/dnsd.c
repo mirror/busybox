@@ -30,7 +30,7 @@
 //usage:     "\n	-s	Send successful replies only. Use this if you want"
 //usage:     "\n		to use /etc/resolv.conf with two nameserver lines:"
 //usage:     "\n			nameserver DNSD_SERVER"
-//usage:     "\n			nameserver NORNAL_DNS_SERVER"
+//usage:     "\n			nameserver NORMAL_DNS_SERVER"
 
 #include "libbb.h"
 #include <syslog.h>
