@@ -116,7 +116,7 @@
 
 /* Make all declarations hidden (-fvisibility flag only affects definitions) */
 /* (don't include system headers after this until corresponding pop!) */
-#if __GNUC_PREREQ(4,1)
+#if __GNUC_PREREQ(4,1) && !defined(__CYGWIN__)
 # define PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN _Pragma("GCC visibility push(hidden)")
 # define POP_SAVED_FUNCTION_VISIBILITY              _Pragma("GCC visibility pop")
 #else
@@ -329,6 +329,10 @@ typedef unsigned smalluint;
 # endif
 #endif
 
+#if defined(__CYGWIN__)
+# define MAXSYMLINKS SYMLOOP_MAX
+#endif
+
 
 /* ---- Who misses what? ------------------------------------ */
 
@@ -387,6 +391,15 @@ typedef unsigned smalluint;
 # undef HAVE_UNLOCKED_STDIO
 # undef HAVE_UNLOCKED_LINE_OPS
 # undef HAVE_NET_ETHERNET_H
+#endif
+
+#if defined(__CYGWIN__)
+# undef HAVE_CLEARENV
+# undef HAVE_FDPRINTF
+# undef HAVE_MEMRCHR
+# undef HAVE_PTSNAME_R
+# undef HAVE_STRVERSCMP
+# undef HAVE_UNLOCKED_LINE_OPS
 #endif
 
 /* These BSD-derived OSes share many similarities */
