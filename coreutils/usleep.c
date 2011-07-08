@@ -29,9 +29,7 @@ int usleep_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 	}
 
-	if (usleep(xatou(argv[1]))) {
-		bb_perror_nomsg_and_die();
-	}
+	usleep(xatou(argv[1]));
 
 	return EXIT_SUCCESS;
 }
