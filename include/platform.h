@@ -266,6 +266,7 @@ typedef unsigned smalluint;
 #if defined __GLIBC__ \
  || defined __UCLIBC__ \
  || defined __dietlibc__ \
+ || defined __BIONIC__ \
  || defined _NEWLIB_VERSION
 # include <features.h>
 #endif
@@ -492,7 +493,8 @@ extern int vasprintf(char **string_ptr, const char *format, va_list p) FAST_FUNC
 #endif
 
 #ifndef HAVE_GETLINE
-#include <stdio.h> /* for FILE */
+# include <stdio.h> /* for FILE */
+# include <sys/types.h> /* size_t */
 extern ssize_t getline(char **lineptr, size_t *n, FILE *stream) FAST_FUNC;
 #endif
 

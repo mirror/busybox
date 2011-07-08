@@ -693,10 +693,12 @@ static bool diff(FILE* fp[2], char *file[2])
 
 static int diffreg(char *file[2])
 {
-	FILE *fp[2] = { stdin, stdin };
+	FILE *fp[2];
 	bool binary = false, differ = false;
 	int status = STATUS_SAME, i;
 
+	fp[0] = stdin;
+	fp[1] = stdin;
 	for (i = 0; i < 2; i++) {
 		int fd = open_or_warn_stdin(file[i]);
 		if (fd == -1)

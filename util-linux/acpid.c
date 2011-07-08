@@ -33,6 +33,25 @@
 #include <syslog.h>
 #include <linux/input.h>
 
+#ifndef EV_SW
+# define EV_SW         0x05
+#endif
+#ifndef EV_KEY
+# define EV_KEY        0x01
+#endif
+#ifndef SW_LID
+# define SW_LID        0x00
+#endif
+#ifndef SW_RFKILL_ALL
+# define SW_RFKILL_ALL 0x03
+#endif
+#ifndef KEY_POWER
+# define KEY_POWER      116     /* SC System Power Down */
+#endif
+#ifndef KEY_SLEEP
+# define KEY_SLEEP      142     /* SC System Sleep */
+#endif
+
 enum {
 	OPT_c = (1 << 0),
 	OPT_d = (1 << 1),

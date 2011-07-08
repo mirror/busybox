@@ -25,11 +25,18 @@
 #include "libbb.h"
 #include <mntent.h>
 #include <sys/swap.h>
+#ifndef __BIONIC__
+# include <sys/swap.h>
+#endif
 
 #if ENABLE_FEATURE_MOUNT_LABEL
 # include "volume_id.h"
 #else
 # define resolve_mount_spec(fsname) ((void)0)
+#endif
+
+#ifndef MNTTYPE_SWAP
+# define MNTTYPE_SWAP "swap"
 #endif
 
 #if ENABLE_FEATURE_SWAPON_PRI

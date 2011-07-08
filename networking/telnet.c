@@ -40,10 +40,25 @@
 #include <netinet/in.h>
 #include "libbb.h"
 
+#ifdef __BIONIC__
+/* should be in arpa/telnet.h */
+# define IAC         255  /* interpret as command: */
+# define DONT        254  /* you are not to use option */
+# define DO          253  /* please, you use option */
+# define WONT        252  /* I won't use option */
+# define WILL        251  /* I will use option */
+# define SB          250  /* interpret as subnegotiation */
+# define SE          240  /* end sub negotiation */
+# define TELOPT_ECHO   1  /* echo */
+# define TELOPT_SGA    3  /* suppress go ahead */
+# define TELOPT_TTYPE 24  /* terminal type */
+# define TELOPT_NAWS  31  /* window size */
+#endif
+
 #ifdef DOTRACE
-#define TRACE(x, y) do { if (x) printf y; } while (0)
+# define TRACE(x, y) do { if (x) printf y; } while (0)
 #else
-#define TRACE(x, y)
+# define TRACE(x, y)
 #endif
 
 enum {
