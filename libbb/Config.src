@@ -94,6 +94,14 @@ config FEATURE_EDITING_SAVEHISTORY
 	help
 	  Enable history saving in shells.
 
+config FEATURE_REVERSE_SEARCH
+	bool "Reverse history search"
+	default y
+	depends on FEATURE_EDITING_SAVEHISTORY
+	help
+	  Enable readline-like Ctrl-R combination for reverse history search.
+	  Increases code by about 0.5k.
+
 config FEATURE_TAB_COMPLETION
 	bool "Tab completion"
 	default y

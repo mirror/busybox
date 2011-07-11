@@ -207,18 +207,21 @@ static void deinit_S(void)
 
 
 #if ENABLE_UNICODE_SUPPORT
-static size_t load_string(const char *src, int maxsize)
+static size_t load_string(const char *src)
 {
 	if (unicode_status == UNICODE_ON) {
-		ssize_t len = mbstowcs(command_ps, src, maxsize - 1);
+		ssize_t len = mbstowcs(command_ps, src, S.maxsize - 1);
 		if (len < 0)
 			len = 0;
 		command_ps[len] = BB_NUL;
 		return len;
 	} else {
 		unsigned i = 0;
-		while ((command_ps[i] = src[i]) != 0)
+		while (src[i] && i < S.maxsize - 1) {
+			command_ps[i] = src[i];
 			i++;
+		}
+		command_ps[i] = BB_NUL;
 		return i;
 	}
 }
@@ -319,9 +322,9 @@ static wchar_t adjust_width_and_validate_wc(wchar_t wc)
 	return wc;
 }
 #else /* !UNICODE */
-static size_t load_string(const char *src, int maxsize)
+static size_t load_string(const char *src)
 {
-	safe_strncpy(command_ps, src, maxsize);
+	safe_strncpy(command_ps, src, S.maxsize);
 	return strlen(command_ps);
 }
 # if ENABLE_FEATURE_TAB_COMPLETION
@@ -1224,10 +1227,10 @@ static NOINLINE void input_tab(smallint *lastWasTab)
 			strcpy(match_buf, &command[cursor_mb]);
 			/* where do we want to have cursor after all? */
 			strcpy(&command[cursor_mb], chosen_match + match_pfx_len);
-			len = load_string(command, S.maxsize);
+			len = load_string(command);
 			/* add match and tail */
 			sprintf(&command[cursor_mb], "%s%s", chosen_match + match_pfx_len, match_buf);
-			command_len = load_string(command, S.maxsize);
+			command_len = load_string(command);
 			/* write out the matched command */
 			/* paranoia: load_string can return 0 on conv error,
 			 * prevent passing pos = (0 - 12) to redraw */
@@ -1948,6 +1951,140 @@ static int isrtl_str(void)
 #undef CTRL
 #define CTRL(a) ((a) & ~0x40)
 
+enum {
+	VI_CMDMODE_BIT = 0x40000000,
+	/* 0x80000000 bit flags KEYCODE_xxx */
+};
+
+#if ENABLE_FEATURE_REVERSE_SEARCH
+/* Mimic readline Ctrl-R reverse history search.
+ * When invoked, it shows the following prompt:
+ * (reverse-i-search)'': user_input [cursor pos unchanged by Ctrl-R]
+ * and typing results in search being performed:
+ * (reverse-i-search)'tmp': cd /tmp [cursor under t in /tmp]
+ * Search is performed by looking at progressively older lines in history.
+ * Ctrl-R again searches for the next match in history.
+ * Backspace deletes last matched char.
+ * Control keys exit search and return to normal editing (at current history line).
+ */
+static int32_t reverse_i_search(void)
+{
+	char match_buf[128]; /* for user input */
+	char read_key_buffer[KEYCODE_BUFFER_SIZE];
+	const char *matched_history_line;
+	const char *saved_prompt;
+	int32_t ic;
+
+	matched_history_line = NULL;
+	read_key_buffer[0] = 0;
+	match_buf[0] = '\0';
+
+	/* Save and replace the prompt */
+	saved_prompt = cmdedit_prompt;
+	goto set_prompt;
+
+	while (1) {
+		int h;
+		unsigned match_buf_len = strlen(match_buf);
+
+		fflush_all();
+//FIXME: correct timeout?
+		ic = lineedit_read_key(read_key_buffer, -1);
+
+		switch (ic) {
+		case CTRL('R'): /* searching for the next match */
+			break;
+
+		case '\b':
+		case '\x7f':
+			/* Backspace */
+			if (unicode_status == UNICODE_ON) {
+				while (match_buf_len != 0) {
+					uint8_t c = match_buf[--match_buf_len];
+					if ((c & 0xc0) != 0x80) /* start of UTF-8 char? */
+						break; /* yes */
+				}
+			} else {
+				if (match_buf_len != 0)
+					match_buf_len--;
+			}
+			match_buf[match_buf_len] = '\0';
+			break;
+
+		default:
+			if (ic < ' '
+			 || (!ENABLE_UNICODE_SUPPORT && ic >= 256)
+			 || (ENABLE_UNICODE_SUPPORT && ic >= VI_CMDMODE_BIT)
+			) {
+				goto ret;
+			}
+
+			/* Append this char */
+#if ENABLE_UNICODE_SUPPORT
+			if (unicode_status == UNICODE_ON) {
+				mbstate_t mbstate = { 0 };
+				char buf[MB_CUR_MAX + 1];
+				int len = wcrtomb(buf, ic, &mbstate);
+				if (len > 0) {
+					buf[len] = '\0';
+					if (match_buf_len + len < sizeof(match_buf))
+						strcpy(match_buf + match_buf_len, buf);
+				}
+			} else
+#endif
+			if (match_buf_len < sizeof(match_buf) - 1) {
+				match_buf[match_buf_len] = ic;
+				match_buf[match_buf_len + 1] = '\0';
+			}
+			break;
+		} /* switch (ic) */
+
+		/* Search in history for match_buf */
+		h = state->cur_history;
+		if (ic == CTRL('R'))
+			h--;
+		while (h >= 0) {
+			if (state->history[h]) {
+				char *match = strstr(state->history[h], match_buf);
+				if (match) {
+					state->cur_history = h;
+					matched_history_line = state->history[h];
+					command_len = load_string(matched_history_line);
+					cursor = match - matched_history_line;
+//FIXME: cursor position for Unicode case
+
+					free((char*)cmdedit_prompt);
+ set_prompt:
+					cmdedit_prompt = xasprintf("(reverse-i-search)'%s': ", match_buf);
+					cmdedit_prmt_len = strlen(cmdedit_prompt);
+					goto do_redraw;
+				}
+			}
+			h--;
+		}
+
+		/* Not found */
+		match_buf[match_buf_len] = '\0';
+		beep();
+		continue;
+
+ do_redraw:
+		redraw(cmdedit_y, command_len - cursor);
+	} /* while (1) */
+
+ ret:
+	if (matched_history_line)
+		command_len = load_string(matched_history_line);
+
+	free((char*)cmdedit_prompt);
+	cmdedit_prompt = saved_prompt;
+	cmdedit_prmt_len = strlen(cmdedit_prompt);
+	redraw(cmdedit_y, command_len - cursor);
+
+	return ic;
+}
+#endif
+
 /* maxsize must be >= 2.
  * Returns:
  * -1 on read errors or EOF, or on bare Ctrl-D,
@@ -2062,15 +2199,14 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 		 * clutters the big switch a bit, but keeps all the code
 		 * in one place.
 		 */
-		enum {
-			VI_CMDMODE_BIT = 0x40000000,
-			/* 0x80000000 bit flags KEYCODE_xxx */
-		};
 		int32_t ic, ic_raw;
 
 		fflush_all();
 		ic = ic_raw = lineedit_read_key(read_key_buffer, timeout);
 
+#if ENABLE_FEATURE_REVERSE_SEARCH
+ again:
+#endif
 #if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
 		if (vi_cmdmode) {
@@ -2174,6 +2310,11 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			while (cursor > 0 && !BB_isspace(command_ps[cursor-1]))
 				input_backspace();
 			break;
+#if ENABLE_FEATURE_REVERSE_SEARCH
+		case CTRL('R'):
+			ic = ic_raw = reverse_i_search();
+			goto again;
+#endif
 
 #if ENABLE_FEATURE_EDITING_VI
 		case 'i'|VI_CMDMODE_BIT:
@@ -2327,7 +2468,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			/* Rewrite the line with the selected history item */
 			/* change command */
 			command_len = load_string(state->history[state->cur_history] ?
-					state->history[state->cur_history] : "", maxsize);
+					state->history[state->cur_history] : "");
 			/* redraw and go to eol (bol, in vi) */
 			redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
 			break;
