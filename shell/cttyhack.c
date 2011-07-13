@@ -146,7 +146,9 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 			goto ret;
 		} while (0);
 
-		fd = xopen(console, O_RDWR);
+		fd = open_or_warn(console, O_RDWR);
+		if (fd < 0)
+			goto ret;
 		//bb_error_msg("switching to '%s'", console);
 		dup2(fd, 0);
 		dup2(fd, 1);
