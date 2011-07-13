@@ -14,18 +14,22 @@
 //config:	bool "cttyhack"
 //config:	default y
 //config:	help
-//config:	  One common problem reported on the mailing list is "can't access tty;
-//config:	  job control turned off" error message which typically appears when
-//config:	  one tries to use shell with stdin/stdout opened to /dev/console.
+//config:	  One common problem reported on the mailing list is the "can't
+//config:	  access tty; job control turned off" error message, which typically
+//config:	  appears when one tries to use a shell with stdin/stdout on
+//config:	  /dev/console.
 //config:	  This device is special - it cannot be a controlling tty.
 //config:
-//config:	  Proper solution is to use correct device instead of /dev/console.
+//config:	  The proper solution is to use the correct device instead of
+//config:	  /dev/console.
 //config:
-//config:	  cttyhack provides "quick and dirty" solution to this problem.
+//config:	  cttyhack provides a "quick and dirty" solution to this problem.
 //config:	  It analyzes stdin with various ioctls, trying to determine whether
 //config:	  it is a /dev/ttyN or /dev/ttySN (virtual terminal or serial line).
-//config:	  If it detects one, it closes stdin/out/err and reopens that device.
-//config:	  Then it executes given program. Opening the device will make
+//config:	  On Linux it also checks sysfs for a pointer to the active console.
+//config:	  If cttyhack is able to find the real console device, it closes
+//config:	  stdin/out/err and reopens that device.
+//config:	  Then it executes the given program. Opening the device will make
 //config:	  that device a controlling tty. This may require cttyhack
 //config:	  to be a session leader.
 //config:
@@ -115,33 +119,46 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 		close(fd);
 	} else {
 		/* We don't have ctty (or don't have "/dev/tty" node...) */
-		if (0) {}
-#ifdef TIOCGSERIAL
-		else if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
-			/* this is a serial console */
-			sprintf(console + 8, "S%d", u.sr.line);
-		}
-#endif
+		do {
 #ifdef __linux__
-		else if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
-			/* this is linux virtual tty */
-			sprintf(console + 8, "S%d" + 1, u.vt.v_active);
-		}
+			int s = open_read_close("/sys/class/tty/console/active",
+				console + 5, sizeof(console) - 5 - 1);
+			if (s > 0) {
+				/* found active console via sysfs (Linux 2.6.38+) */
+				console[5 + s] = '\0';
+				break;
+			}
+
+			if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
+				/* this is linux virtual tty */
+				sprintf(console + 8, "S%d" + 1, u.vt.v_active);
+				break;
+			}
 #endif
-		if (console[8]) {
-			fd = xopen(console, O_RDWR);
-			//bb_error_msg("switching to '%s'", console);
-			dup2(fd, 0);
-			dup2(fd, 1);
-			dup2(fd, 2);
-			while (fd > 2)
-				close(fd--);
-			/* Some other session may have it as ctty,
-			 * steal it from them:
-			 */
-			ioctl(0, TIOCSCTTY, 1);
-		}
+#ifdef TIOCGSERIAL
+			if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
+				/* this is a serial console, asuming it is named /dev/ttySn */
+				sprintf(console + 8, "S%d", u.sr.line);
+				break;
+			}
+#endif
+			/* nope, could not find it */
+			goto ret;
+		} while (0);
+
+		fd = xopen(console, O_RDWR);
+		//bb_error_msg("switching to '%s'", console);
+		dup2(fd, 0);
+		dup2(fd, 1);
+		dup2(fd, 2);
+		while (fd > 2)
+			close(fd--);
+		/* Some other session may have it as ctty,
+		 * steal it from them:
+		 */
+		ioctl(0, TIOCSCTTY, 1);
 	}
 
+ret:
 	BB_EXECVP_or_die(argv);
 }
