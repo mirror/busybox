@@ -201,7 +201,6 @@ enum action { OPEN_MAIN, TRY_ONLY, CREATE_EMPTY_DOS, CREATE_EMPTY_SUN };
 static void update_units(void);
 #if ENABLE_FEATURE_FDISK_WRITABLE
 static void change_units(void);
-static void reread_partition_table(int leave);
 static void delete_partition(int i);
 static unsigned get_partition(int warn, unsigned max);
 static void list_types(const char *const *sys);
@@ -2553,7 +2552,6 @@ write_table(void)
 				ptes[3].changed = 1;
 		for (i = 3; i < g_partitions; i++) {
 			struct pte *pe = &ptes[i];
-
 			if (pe->changed) {
 				write_part_table_flag(pe->sectorbuffer);
 				write_sector(pe->offset_from_dev_start, pe->sectorbuffer);
@@ -2565,27 +2563,24 @@ write_table(void)
 		sgi_write_table();
 	}
 	else if (LABEL_IS_SUN) {
-		int needw = 0;
-
-		for (i = 0; i < 8; i++)
-			if (ptes[i].changed)
-				needw = 1;
-		if (needw)
-			sun_write_table();
+		for (i = 0; i < 8; i++) {
+			if (ptes[i].changed) {
+				sun_write_table();
+				break;
+			}
+		}
 	}
 
-	printf("The partition table has been altered!\n\n");
-	reread_partition_table(1);
-}
+	printf(
+		"The partition table has been altered.\n"
+		"Calling ioctl(BLKRRPART) to re-read partition table.\n"
+	);
 
-static void
-reread_partition_table(int leave)
-{
-	int i;
-
-	printf("Calling ioctl() to re-read partition table\n");
 	sync();
-	/* sleep(2); Huh? */
+	/* Users with slow external USB disks on a 320MHz ARM system (year 2011)
+	 * report that sleep is needed, otherwise BLKRRPART may fail with -EIO:
+	 */
+	sleep(1);
 	i = ioctl_or_perror(dev_fd, BLKRRPART, NULL,
 			"WARNING: rereading partition table "
 			"failed, kernel still uses old table");
@@ -2597,11 +2592,9 @@ reread_partition_table(int leave)
 		"information\n");
 #endif
 
-	if (leave) {
-		if (ENABLE_FEATURE_CLEAN_UP)
-			close_dev_fd();
-		exit(i != 0);
-	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close_dev_fd();
+	exit(i != 0);
 }
 #endif /* FEATURE_FDISK_WRITABLE */
 
@@ -3100,7 +3093,7 @@ int fdisk_main(int argc UNUSED_PARAM, char **argv)
 			verify();
 			break;
 		case 'w':
-			write_table();          /* does not return */
+			write_table();  /* does not return */
 			break;
 #if ENABLE_FEATURE_FDISK_ADVANCED
 		case 'x':
