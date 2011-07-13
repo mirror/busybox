@@ -122,10 +122,12 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 		do {
 #ifdef __linux__
 			int s = open_read_close("/sys/class/tty/console/active",
-				console + 5, sizeof(console) - 5 - 1);
+				console + 5, sizeof(console) - 5);
 			if (s > 0) {
-				/* found active console via sysfs (Linux 2.6.38+) */
-				console[5 + s] = '\0';
+				/* found active console via sysfs (Linux 2.6.38+)
+				 * sysfs string looks like "ttyS0\n" so zap the newline:
+				 */
+				console[4 + s] = '\0';
 				break;
 			}
 
