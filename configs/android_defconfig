@@ -62,7 +62,24 @@ CONFIG_FEATURE_SYSLOG=y
 # CONFIG_FEATURE_SHARED_BUSYBOX is not set
 # CONFIG_LFS is not set
 CONFIG_CROSS_COMPILER_PREFIX="arm-eabi-"
-CONFIG_EXTRA_CFLAGS="-I$A/system/core/include -I$A/bionic/libc/arch-arm/include -I$A/bionic/libc/include -I$A/bionic/libc/kernel/common -I$A/bionic/libc/kernel/arch-arm -I$A/bionic/libm/include -I$A/bionic/libm/include/arch/arm -include $A/system/core/include/arch/linux-arm/AndroidConfig.h -I$A/system/core/include/arch/linux-arm/ -DANDROID -DSK_RELEASE -nostdlib -fno-exceptions -Wno-multichar -msoft-float -fpic -ffunction-sections -funwind-tables -fstack-protector -fno-short-enums -march=armv7-a -mfloat-abi=softfp -mfpu=neon -mthumb-interwork -fmessage-length=0 -W -Wall -Wno-unused -Winit-self -Wpointer-arith -Werror=return-type -Werror=non-virtual-dtor -Werror=address -Werror=sequence-point -Wstrict-aliasing=2 -finline-functions -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -mthumb -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -Wno-undef -Wno-shadow"
+#
+# Removed:
+# warning flags:
+# -Wno-multichar -W -Wall -Wno-unused -Winit-self -Wpointer-arith
+# -Werror=return-type -Werror=non-virtual-dtor -Werror=address
+# -Werror=sequence-point -Wstrict-aliasing=2 -Wno-undef -Wno-shadow
+# bbox already adds these:
+# -ffunction-sections -fomit-frame-pointer
+# should be not needed, or even increases code size:
+# -finline-functions -fno-inline-functions-called-once -finline-limit=64
+# -fstack-protector -fno-strict-aliasing -fno-exceptions -funwind-tables
+# -fmessage-length=0 (only affects error message format)
+# todo: do we need these? -
+# -fno-short-enums
+# -fgcse-after-reload
+# -frerun-cse-after-loop
+# -frename-registers
+CONFIG_EXTRA_CFLAGS="-I$A/system/core/include -I$A/bionic/libc/arch-arm/include -I$A/bionic/libc/include -I$A/bionic/libc/kernel/common -I$A/bionic/libc/kernel/arch-arm -I$A/bionic/libm/include -I$A/bionic/libm/include/arch/arm -include $A/system/core/include/arch/linux-arm/AndroidConfig.h -I$A/system/core/include/arch/linux-arm/ -DANDROID -DSK_RELEASE -nostdlib -march=armv7-a -msoft-float -mfloat-abi=softfp -mfpu=neon -mthumb -mthumb-interwork -fpic -fno-short-enums -fgcse-after-reload -frerun-cse-after-loop -frename-registers"
 
 #
 # Debugging Options
