@@ -214,7 +214,10 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
 		}
 		n++;
 		/* Try to decipher "ESC [ NNN ; NNN R" sequence */
-		if ((ENABLE_FEATURE_EDITING_ASK_TERMINAL || ENABLE_FEATURE_VI_ASK_TERMINAL)
+		if ((ENABLE_FEATURE_EDITING_ASK_TERMINAL
+		    || ENABLE_FEATURE_VI_ASK_TERMINAL
+		    || ENABLE_FEATURE_LESS_ASK_TERMINAL
+		    )
 		 && n >= 5
 		 && buffer[0] == '['
 		 && buffer[n-1] == 'R'

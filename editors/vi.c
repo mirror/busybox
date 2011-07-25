@@ -132,8 +132,8 @@
 //config:	help
 //config:	  If terminal size can't be retrieved and $LINES/$COLUMNS are not set,
 //config:	  this option makes vi perform a last-ditch effort to find it:
-//config:	  vi positions cursor to 999,999 and asks terminal to report real
-//config:	  cursor position using "ESC [ 6 n" escape sequence, then reads stdin.
+//config:	  position cursor to 999,999 and ask terminal to report real
+//config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
 //config:
 //config:	  This is not clean but helps a lot on serial lines and such.
 //config:
