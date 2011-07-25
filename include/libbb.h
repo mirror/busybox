@@ -52,6 +52,10 @@
 #ifdef HAVE_SYS_STATFS_H
 # include <sys/statfs.h>
 #endif
+/* struct sysinfo is linux-specific */
+#ifdef __linux__
+# include <sys/sysinfo.h>
+#endif
 #if ENABLE_SELINUX
 # include <selinux/selinux.h>
 # include <selinux/context.h>
@@ -133,25 +137,6 @@ int klogctl(int type, char *b, int len);
 #if !defined __FreeBSD__
 char *dirname(char *path);
 #endif
-/* Include our own copy of struct sysinfo to avoid binary compatibility
- * problems with Linux 2.4, which changed things.  Grumble, grumble. */
-struct sysinfo {
-	long uptime;			/* Seconds since boot */
-	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
-	unsigned long totalram;		/* Total usable main memory size */
-	unsigned long freeram;		/* Available memory size */
-	unsigned long sharedram;	/* Amount of shared memory */
-	unsigned long bufferram;	/* Memory used by buffers */
-	unsigned long totalswap;	/* Total swap space size */
-	unsigned long freeswap;		/* swap space still available */
-	unsigned short procs;		/* Number of current processes */
-	unsigned short pad;			/* Padding needed for m68k */
-	unsigned long totalhigh;	/* Total high memory size */
-	unsigned long freehigh;		/* Available high memory size */
-	unsigned int mem_unit;		/* Memory unit size in bytes */
-	char _f[20 - 2 * sizeof(long) - sizeof(int)]; /* Padding: libc5 uses this.. */
-};
-int sysinfo(struct sysinfo* info);
 #ifndef PATH_MAX
 # define PATH_MAX 256
 #endif
