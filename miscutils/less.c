@@ -1530,6 +1530,9 @@ static void keypress_process(int keypress)
 		break;
 #endif
 	case 'r': case 'R':
+		/* TODO: (1) also bind ^R, ^L to this?
+		 * (2) re-measure window size?
+		 */
 		buffer_print();
 		break;
 	/*case 'R':
