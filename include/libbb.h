@@ -52,10 +52,12 @@
 #ifdef HAVE_SYS_STATFS_H
 # include <sys/statfs.h>
 #endif
-/* struct sysinfo is linux-specific */
-#ifdef __linux__
-# include <sys/sysinfo.h>
-#endif
+/* Don't do this here:
+ * #include <sys/sysinfo.h>
+ * Some linux/ includes pull in conflicting definition
+ * of struct sysinfo (only in some toolchanins), which breaks build.
+ * Include sys/sysinfo.h only in those files which need it.
+ */
 #if ENABLE_SELINUX
 # include <selinux/selinux.h>
 # include <selinux/context.h>

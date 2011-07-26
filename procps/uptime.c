@@ -25,6 +25,10 @@
 //usage:       "  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00\n"
 
 #include "libbb.h"
+#ifdef __linux__
+# include <sys/sysinfo.h>
+#endif
+
 
 #ifndef FSHIFT
 # define FSHIFT 16              /* nr of bits of precision */

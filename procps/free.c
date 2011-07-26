@@ -22,6 +22,9 @@
 //usage:       "Total:       386144       257128       129016\n"
 
 #include "libbb.h"
+#ifdef __linux__
+# include <sys/sysinfo.h>
+#endif
 
 struct globals {
 	unsigned mem_unit;

@@ -113,7 +113,8 @@
 #include <paths.h>
 #include <sys/resource.h>
 #ifdef __linux__
-#include <linux/vt.h>
+# include <linux/vt.h>
+# include <sys/sysinfo.h>
 #endif
 #include "reboot.h" /* reboot() constants */
 

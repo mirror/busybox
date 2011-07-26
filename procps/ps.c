@@ -62,6 +62,9 @@ enum { MAX_WIDTH = 2*1024 };
 
 #if ENABLE_DESKTOP
 
+#ifdef __linux__
+# include <sys/sysinfo.h>
+#endif
 #include <sys/times.h> /* for times() */
 #ifndef AT_CLKTCK
 # define AT_CLKTCK 17
