@@ -348,10 +348,20 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	/* Set bits 12-15 of the files mode */
 	/* (typeflag was not trashed because chksum does not use getOctal) */
 	switch (tar.typeflag) {
-	/* busybox identifies hard links as being regular files with 0 size and a link name */
-	case '1':
+	case '1': /* hardlink */
+		/* we mark hardlinks as regular files with zero size and a link name */
 		file_header->mode |= S_IFREG;
-		break;
+		/* on size of link fields from star(4)
+		 * ... For tar archives written by pre POSIX.1-1988
+		 * implementations, the size field usually contains the size of
+		 * the file and needs to be ignored as no data may follow this
+		 * header type.  For POSIX.1- 1988 compliant archives, the size
+		 * field needs to be 0.  For POSIX.1-2001 compliant archives,
+		 * the size field may be non zero, indicating that file data is
+		 * included in the archive.
+		 * i.e; always assume this is zero for safety.
+		 */
+		goto size0;
 	case '7':
 	/* case 0: */
 	case '0':
