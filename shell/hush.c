@@ -2281,7 +2281,7 @@ static void o_addqblock(o_string *o, const char *str, int len)
 			ordinary_cnt = len;
 		o_addblock(o, str, ordinary_cnt);
 		if (ordinary_cnt == len)
-			return;
+			return; /* NUL is already added by o_addblock */
 		str += ordinary_cnt;
 		len -= ordinary_cnt + 1; /* we are processing + 1 char below */
 
@@ -2295,8 +2295,8 @@ static void o_addqblock(o_string *o, const char *str, int len)
 		o_grow_by(o, sz);
 		o->data[o->length] = ch;
 		o->length++;
-		o->data[o->length] = '\0';
 	}
+	o->data[o->length] = '\0';
 }
 
 static void o_addQblock(o_string *o, const char *str, int len)
@@ -2385,6 +2385,7 @@ static int o_save_ptr_helper(o_string *o, int n)
 				n, string_len, string_start);
 		o->has_empty_slot = 0;
 	}
+	o->has_quoted_part = 0;
 	list[n] = (char*)(uintptr_t)string_len;
 	return n + 1;
 }
@@ -4754,8 +4755,13 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 static int expand_on_ifs(o_string *output, int n, const char *str)
 {
 	while (1) {
-		int word_len = strcspn(str, G.ifs);
+		int word_len;
+
+		if (!*str)  /* EOL - do not finalize word */
+			break;
+		word_len = strcspn(str, G.ifs);
 		if (word_len) {
+			/* We have WORD_LEN leading non-IFS chars */
 			if (!(output->o_expflags & EXP_FLAG_GLOB)) {
 				o_addblock(output, str, word_len);
 			} else {
@@ -4769,13 +4775,25 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 				/*o_addqblock(output, str, word_len); - WRONG: "v='*'; echo Z$v" prints "Z*" instead of Z* files */
 			}
 			str += word_len;
+			if (!*str)  /* EOL - do not finalize word */
+				break;
+			goto finalize; /* optimization (can just fall thru) */
 		}
-		if (!*str)  /* EOL - do not finalize word */
-			break;
-		o_addchr(output, '\0');
-		debug_print_list("expand_on_ifs", output, n);
-		n = o_save_ptr(output, n);
-		str += strspn(str, G.ifs); /* skip ifs chars */
+		/* Case "v=' a'; echo ''$v": we do need to finalize empty word */
+		if (output->has_quoted_part
+		/* Case "v=' a'; echo $v":
+		 * here nothing precedes the space in $v expansion,
+		 * therefore we should not finish the word
+		 * (IOW: if there *is* word to finalize, only then do it)
+		 */
+		 || (output->length && output->data[output->length - 1])
+		) {
+ finalize:
+			o_addchr(output, '\0');
+			debug_print_list("expand_on_ifs", output, n);
+			n = o_save_ptr(output, n);
+		}
+		str += strspn(str, G.ifs); /* skip IFS chars */
 	}
 	debug_print_list("expand_on_ifs[1]", output, n);
 	return n;
@@ -5270,11 +5288,13 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 					if (G.ifs[0])
 						o_addchr(output, G.ifs[0]);
 				}
+				output->has_quoted_part = 1;
 			}
 			break;
 		}
 		case SPECIAL_VAR_SYMBOL: /* <SPECIAL_VAR_SYMBOL><SPECIAL_VAR_SYMBOL> */
 			/* "Empty variable", used to make "" etc to not disappear */
+			output->has_quoted_part = 1;
 			arg++;
 			cant_be_null = 0x80;
 			break;
@@ -5316,6 +5336,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 					val = NULL;
 				}
 			} else { /* quoted $VAR, val will be appended below */
+				output->has_quoted_part = 1;
 				debug_printf_expand("quoted '%s', output->o_escape:%d\n", val,
 						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 			}
