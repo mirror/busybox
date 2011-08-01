@@ -3265,14 +3265,6 @@ static int done_word(o_string *word, struct parse_context *ctx)
 			) {
 				p += 3;
 			}
-			if (p == word->data || p[0] != '\0') {
-				/* saw no "$@", or not only "$@" but some
-				 * real text is there too */
-				/* insert "empty variable" reference, this makes
-				 * e.g. "", $empty"" etc to not disappear */
-				o_addchr(word, SPECIAL_VAR_SYMBOL);
-				o_addchr(word, SPECIAL_VAR_SYMBOL);
-			}
 		}
 		command->argv = add_string_to_strings(command->argv, xstrdup(word->data));
 		debug_print_strings("word appended to argv", command->argv);
@@ -4516,20 +4508,30 @@ static struct pipe *parse_stream(char **pstring,
 			break;
 		case '\'':
 			dest.has_quoted_part = 1;
-			while (1) {
-				ch = i_getch(input);
-				if (ch == EOF) {
-					syntax_error_unterm_ch('\'');
-					goto parse_error;
+			if (next == '\'' && !ctx.pending_redirect) {
+ insert_empty_quoted_str_marker:
+				nommu_addchr(&ctx.as_string, next);
+				i_getch(input); /* eat second ' */
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+				o_addchr(&dest, SPECIAL_VAR_SYMBOL);
+			} else {
+				while (1) {
+					ch = i_getch(input);
+					if (ch == EOF) {
+						syntax_error_unterm_ch('\'');
+						goto parse_error;
+					}
+					nommu_addchr(&ctx.as_string, ch);
+					if (ch == '\'')
+						break;
+					o_addqchr(&dest, ch);
 				}
-				nommu_addchr(&ctx.as_string, ch);
-				if (ch == '\'')
-					break;
-				o_addqchr(&dest, ch);
 			}
 			break;
 		case '"':
 			dest.has_quoted_part = 1;
+			if (next == '"' && !ctx.pending_redirect)
+				goto insert_empty_quoted_str_marker;
 			if (dest.o_assignment == NOT_ASSIGNMENT)
 				dest.o_expflags |= EXP_FLAG_ESC_GLOB_CHARS;
 			if (!encode_string(&ctx.as_string, &dest, input, '"', /*process_bkslash:*/ 1))
@@ -4751,9 +4753,14 @@ static void o_addblock_duplicate_backslash(o_string *o, const char *str, int len
 
 /* Store given string, finalizing the word and starting new one whenever
  * we encounter IFS char(s). This is used for expanding variable values.
- * End-of-string does NOT finalize word: think about 'echo -$VAR-' */
-static int expand_on_ifs(o_string *output, int n, const char *str)
+ * End-of-string does NOT finalize word: think about 'echo -$VAR-'.
+ * Return in *ended_with_ifs:
+ * 1 - ended with IFS char, else 0 (this includes case of empty str).
+ */
+static int expand_on_ifs(int *ended_with_ifs, o_string *output, int n, const char *str)
 {
+	int last_is_ifs = 0;
+
 	while (1) {
 		int word_len;
 
@@ -4774,27 +4781,36 @@ static int expand_on_ifs(o_string *output, int n, const char *str)
 				/*o_addblock(output, str, word_len); - WRONG: "v='\*'; echo Z$v" prints "Z*" instead of "Z\*" */
 				/*o_addqblock(output, str, word_len); - WRONG: "v='*'; echo Z$v" prints "Z*" instead of Z* files */
 			}
+			last_is_ifs = 0;
 			str += word_len;
 			if (!*str)  /* EOL - do not finalize word */
 				break;
-			goto finalize; /* optimization (can just fall thru) */
 		}
-		/* Case "v=' a'; echo ''$v": we do need to finalize empty word */
+
+		/* We know str here points to at least one IFS char */
+		last_is_ifs = 1;
+		str += strspn(str, G.ifs); /* skip IFS chars */
+		if (!*str)  /* EOL - do not finalize word */
+			break;
+
+		/* Start new word... but not always! */
+		/* Case "v=' a'; echo ''$v": we do need to finalize empty word: */
 		if (output->has_quoted_part
 		/* Case "v=' a'; echo $v":
 		 * here nothing precedes the space in $v expansion,
 		 * therefore we should not finish the word
-		 * (IOW: if there *is* word to finalize, only then do it)
+		 * (IOW: if there *is* word to finalize, only then do it):
 		 */
-		 || (output->length && output->data[output->length - 1])
+		 || (n > 0 && output->data[output->length - 1])
 		) {
- finalize:
 			o_addchr(output, '\0');
 			debug_print_list("expand_on_ifs", output, n);
 			n = o_save_ptr(output, n);
 		}
-		str += strspn(str, G.ifs); /* skip IFS chars */
 	}
+
+	if (ended_with_ifs)
+		*ended_with_ifs = last_is_ifs;
 	debug_print_list("expand_on_ifs[1]", output, n);
 	return n;
 }
@@ -5209,6 +5225,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	 * expansion of right-hand side of assignment == 1-element expand.
 	 */
 	char cant_be_null = 0; /* only bit 0x80 matters */
+	int ended_in_ifs = 0;  /* did last unquoted expansion end with IFS chars? */
 	char *p;
 
 	debug_printf_expand("expand_vars_to_list: arg:'%s' singleword:%x\n", arg,
@@ -5227,6 +5244,13 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 #if ENABLE_SH_MATH_SUPPORT
 		char arith_buf[sizeof(arith_t)*3 + 2];
 #endif
+
+		if (ended_in_ifs) {
+			o_addchr(output, '\0');
+			n = o_save_ptr(output, n);
+			ended_in_ifs = 0;
+		}
+
 		o_addblock(output, arg, p - arg);
 		debug_print_list("expand_vars_to_list[1]", output, n);
 		arg = ++p;
@@ -5255,7 +5279,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 			cant_be_null |= first_ch; /* do it for "$@" _now_, when we know it's not empty */
 			if (!(first_ch & 0x80)) { /* unquoted $* or $@ */
 				while (G.global_argv[i]) {
-					n = expand_on_ifs(output, n, G.global_argv[i]);
+					n = expand_on_ifs(NULL, output, n, G.global_argv[i]);
 					debug_printf_expand("expand_vars_to_list: argv %d (last %d)\n", i, G.global_argc - 1);
 					if (G.global_argv[i++][0] && G.global_argv[i]) {
 						/* this argv[] is not empty and not last:
@@ -5332,7 +5356,7 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 				debug_printf_expand("unquoted '%s', output->o_escape:%d\n", val,
 						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 				if (val && val[0]) {
-					n = expand_on_ifs(output, n, val);
+					n = expand_on_ifs(&ended_in_ifs, output, n, val);
 					val = NULL;
 				}
 			} else { /* quoted $VAR, val will be appended below */
@@ -5361,6 +5385,10 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 	} /* end of "while (SPECIAL_VAR_SYMBOL is found) ..." */
 
 	if (arg[0]) {
+		if (ended_in_ifs) {
+			o_addchr(output, '\0');
+			n = o_save_ptr(output, n);
+		}
 		debug_print_list("expand_vars_to_list[a]", output, n);
 		/* this part is literal, and it was already pre-quoted
 		 * if needed (much earlier), do not use o_addQstr here! */
