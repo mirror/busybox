@@ -467,13 +467,17 @@ getopt32(char **argv, const char *applet_opts, ...)
 		}
 		for (on_off = complementary; on_off->opt_char; on_off++)
 			if (on_off->opt_char == *s)
-				break;
+				goto found_opt;
+		/* Without this, diagnostic of such bugs is not easy */
+		bb_error_msg_and_die("NO OPT %c!", *s);
+ found_opt:
 		if (c == ':' && s[2] == ':') {
 			on_off->param_type = PARAM_LIST;
 			continue;
 		}
 		if (c == '+' && (s[2] == ':' || s[2] == '\0')) {
 			on_off->param_type = PARAM_INT;
+			s++;
 			continue;
 		}
 		if (c == ':' || c == '\0') {

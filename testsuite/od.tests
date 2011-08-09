@@ -16,7 +16,7 @@ testing "od -b" \
 	"" "HELLO"
 SKIP=
 
-optional DESKTOP
+optional DESKTOP LONG_OPTS
 testing "od -b --traditional" \
 	"od -b --traditional" \
 "\
@@ -26,7 +26,7 @@ testing "od -b --traditional" \
 	"" "HELLO"
 SKIP=
 
-optional DESKTOP
+optional DESKTOP LONG_OPTS
 testing "od -b --traditional FILE" \
 	"od -b --traditional input" \
 "\

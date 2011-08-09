@@ -5,4 +5,17 @@ while test x"$dt" = x"$dt1"; do
     dt="`date -R`"
 done
 
-test x"$dt" = x"`busybox date -R`"
+bdt=`busybox date -R`
+bdt=`busybox date -R`
+bdt=`busybox date -R`
+bdt=`busybox date -R`
+bdt=`busybox date -R`
+
+# Wtih !FEATURE_DATE_NANO, that is, with time()
+# instead of clock_gettime(), seconds transition
+# may not happen at _exactly_ the same moment,
+# but can be delayed. Several busybox date -R
+# invocations above are meant to deal with this.
+# (two were enough for me, but I added more just in case).
+
+test x"$dt" = x"$bdt"

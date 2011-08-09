@@ -156,6 +156,7 @@ SKIP=
 
 # Had a bug where on extract autodetect first "switched off" -z
 # and then failed to recognize .tgz extension
+optional FEATURE_TAR_CREATE FEATURE_SEAMLESS_GZ
 testing "tar extract tgz" "\
 dd count=1 bs=1M if=/dev/zero of=F0 2>/dev/null
 tar -czf F0.tgz F0
@@ -167,8 +168,10 @@ F0
 Ok
 " \
 "" ""
+SKIP=
 
 # On extract, everything up to and including last ".." component is stripped
+optional FEATURE_TAR_CREATE
 testing "tar strips /../ on extract" "\
 rm -rf input_* test.tar 2>/dev/null
 mkdir input_dir
@@ -184,6 +187,7 @@ input_dir/file
 Ok
 " \
 "" ""
+SKIP=
 
 
 cd .. && rm -rf tar.tempdir || exit 1

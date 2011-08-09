@@ -256,7 +256,8 @@ mkdir ls.testdir || exit 1
 
 # testing "test name" "command" "expected result" "file input" "stdin"
 
-testing "ls symlink_to_dir" \
+test x"$CONFIG_FEATURE_LS_SORTFILES" = x"y" \
+&& testing "ls symlink_to_dir" \
 "touch ls.testdir/A ls.testdir/B; ln -s ls.testdir ls.link; ls ls.link; ls -1 ls.link/; ls -1 ls.link; rm -f ls.link" \
 "A\nB\nA\nB\nA\nB\n" \
 "" ""

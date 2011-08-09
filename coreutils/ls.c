@@ -1111,7 +1111,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 	IF_FEATURE_LS_COLOR(applet_long_options = ls_longopts;)
 	opt_complementary =
 		/* -e implies -l */
-		"el"
+		IF_FEATURE_LS_TIMESTAMPS("el")
 		/* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ls.html:
 		 * in some pairs of opts, only last one takes effect:
 		 */
@@ -1121,7 +1121,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 		":C-xl:x-Cl:l-xC" /* bycols/bylines/long */
 		":C-1:1-C" /* bycols/oneline */
 		":x-1:1-x" /* bylines/oneline (not in SuS, but in GNU coreutils 8.4) */
-		":c-u:u-c" /* mtime/atime */
+		IF_FEATURE_LS_TIMESTAMPS(":c-u:u-c") /* mtime/atime */
 		/* -w NUM: */
 		IF_FEATURE_AUTOWIDTH(":w+");
 	opt = getopt32(argv, ls_options

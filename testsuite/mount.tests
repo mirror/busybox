@@ -46,6 +46,7 @@ rm mount.image1m
 
 
 # Bug: mount.shared1 directory shows no files (has to show files a and b)
+optional FEATURE_LS_RECURSIVE
 testing "mount bind+rshared" "\
 mkdir -p mount.dir mount.shared1 mount.shared2
 touch mount.dir/a mount.dir/b
@@ -80,5 +81,6 @@ a
 b
 " \
 	"" ""
+SKIP=
 
 exit $FAILCOUNT
