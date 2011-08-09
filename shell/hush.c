@@ -5519,12 +5519,6 @@ static char **expand_assignments(char **argv, int count)
 }
 
 
-#if BB_MMU
-/* never called */
-void re_execute_shell(char ***to_free, const char *s,
-		char *g_argv0, char **g_argv,
-		char **builtin_argv) NORETURN;
-
 static void switch_off_special_sigs(unsigned mask)
 {
 	unsigned sig = 0;
@@ -5543,6 +5537,12 @@ static void switch_off_special_sigs(unsigned mask)
 		install_sighandler(sig, SIG_DFL);
 	}
 }
+
+#if BB_MMU
+/* never called */
+void re_execute_shell(char ***to_free, const char *s,
+		char *g_argv0, char **g_argv,
+		char **builtin_argv) NORETURN;
 
 static void reset_traps_to_defaults(void)
 {

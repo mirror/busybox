@@ -201,6 +201,7 @@ enum action { OPEN_MAIN, TRY_ONLY, CREATE_EMPTY_DOS, CREATE_EMPTY_SUN };
 static void update_units(void);
 #if ENABLE_FEATURE_FDISK_WRITABLE
 static void change_units(void);
+static void reread_partition_table(int leave);
 static void delete_partition(int i);
 static unsigned get_partition(int warn, unsigned max);
 static void list_types(const char *const *sys);
@@ -2542,6 +2543,35 @@ new_partition(void)
 }
 
 static void
+reread_partition_table(int leave)
+{
+	int i;
+
+	printf("Calling ioctl() to re-read partition table\n");
+	sync();
+	/* Users with slow external USB disks on a 320MHz ARM system (year 2011)
+	 * report that sleep is needed, otherwise BLKRRPART may fail with -EIO:
+	 */
+	sleep(1);
+	i = ioctl_or_perror(dev_fd, BLKRRPART, NULL,
+			"WARNING: rereading partition table "
+			"failed, kernel still uses old table");
+#if 0
+	if (dos_changed)
+		printf(
+		"\nWARNING: If you have created or modified any DOS 6.x\n"
+		"partitions, please see the fdisk manual page for additional\n"
+		"information\n");
+#endif
+
+	if (leave) {
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close_dev_fd();
+		exit(i != 0);
+	}
+}
+
+static void
 write_table(void)
 {
 	int i;
@@ -2571,30 +2601,8 @@ write_table(void)
 		}
 	}
 
-	printf(
-		"The partition table has been altered.\n"
-		"Calling ioctl(BLKRRPART) to re-read partition table.\n"
-	);
-
-	sync();
-	/* Users with slow external USB disks on a 320MHz ARM system (year 2011)
-	 * report that sleep is needed, otherwise BLKRRPART may fail with -EIO:
-	 */
-	sleep(1);
-	i = ioctl_or_perror(dev_fd, BLKRRPART, NULL,
-			"WARNING: rereading partition table "
-			"failed, kernel still uses old table");
-#if 0
-	if (dos_changed)
-		printf(
-		"\nWARNING: If you have created or modified any DOS 6.x\n"
-		"partitions, please see the fdisk manual page for additional\n"
-		"information\n");
-#endif
-
-	if (ENABLE_FEATURE_CLEAN_UP)
-		close_dev_fd();
-	exit(i != 0);
+	printf("The partition table has been altered.\n");
+	reread_partition_table(1);
 }
 #endif /* FEATURE_FDISK_WRITABLE */
 
