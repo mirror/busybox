@@ -82,6 +82,5 @@ lib-$(CONFIG_USLEEP)    += usleep.o
 lib-$(CONFIG_UUDECODE)  += uudecode.o
 lib-$(CONFIG_UUENCODE)  += uuencode.o
 lib-$(CONFIG_WC)        += wc.o
-lib-$(CONFIG_WHO)       += who.o
 lib-$(CONFIG_WHOAMI)    += whoami.o
 lib-$(CONFIG_YES)       += yes.o
