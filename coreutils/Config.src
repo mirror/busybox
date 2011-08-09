@@ -725,13 +725,6 @@ config FEATURE_WC_LARGE
 	help
 	  Use "unsigned long long" in wc for counter variables.
 
-config WHO
-	bool "who"
-	default y
-	depends on FEATURE_UTMP
-	help
-	  who is used to show who is logged on.
-
 config WHOAMI
 	bool "whoami"
 	default y
