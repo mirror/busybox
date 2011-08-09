@@ -194,15 +194,6 @@ config FEATURE_SHOW_THREADS
 	  Enables the ps -T option, showing of threads in pstree,
 	  and 'h' command in top.
 
-config UPTIME
-	bool "uptime"
-	default y
-	select PLATFORM_LINUX #sysinfo()
-	help
-	  uptime gives a one line display of the current time, how long
-	  the system has been running, how many users are currently logged
-	  on, and the system load averages for the past 1, 5, and 15 minutes.
-
 config WATCH
 	bool "watch"
 	default y

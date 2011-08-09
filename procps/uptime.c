@@ -7,13 +7,28 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-/* This version of uptime doesn't display the number of users on the system,
- * since busybox init doesn't mess with utmp.  For folks using utmp that are
- * just dying to have # of users reported, feel free to write it as some type
- * of CONFIG_FEATURE_UTMP_SUPPORT #define
+/* 2011		Pere Orga <gotrunks@gmail.com>
+ *
+ * Added FEATURE_UPTIME_UTMP_SUPPORT flag.
  */
 
 /* getopt not needed */
+
+//config:config UPTIME
+//config:	bool "uptime"
+//config:	default y
+//config:	select PLATFORM_LINUX #sysinfo()
+//config:	help
+//config:	  uptime gives a one line display of the current time, how long
+//config:	  the system has been running, how many users are currently logged
+//config:	  on, and the system load averages for the past 1, 5, and 15 minutes.
+//config:
+//config:config FEATURE_UPTIME_UTMP_SUPPORT
+//config:	bool "Support for showing the number of users"
+//config:	default y
+//config:	depends on UPTIME && FEATURE_UTMP
+//config:	help
+//config:	  Makes uptime display the number of users currently logged on.
 
 //usage:#define uptime_trivial_usage
 //usage:       ""
@@ -63,6 +78,18 @@ int uptime_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		printf("%2d:%02d, ", uphours, upminutes);
 	else
 		printf("%d min, ", upminutes);
+
+#if ENABLE_FEATURE_UPTIME_UTMP_SUPPORT
+{
+	struct utmp *ut;
+	int users = 0;
+	while ((ut = getutent())) {
+		if ((ut->ut_type == USER_PROCESS) && (ut->ut_name[0] != '\0'))
+			users++;
+	}
+	printf("%d users,  ", users);
+}
+#endif
 
 	printf("load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n",
 			LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]),
