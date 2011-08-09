@@ -212,7 +212,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			{
 				uni_stat_t uni_stat;
 				char *uni_dev = unicode_conv_to_printable(&uni_stat, device);
-				if (uni_stat.unicode_width > 20) {
+				if (uni_stat.unicode_width > 20 && !(opt & OPT_POSIX)) {
 					printf("%s\n%20s", uni_dev, "");
 				} else {
 					printf("%s%*s", uni_dev, 20 - (int)uni_stat.unicode_width, "");
@@ -220,7 +220,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 				free(uni_dev);
 			}
 #else
-			if (printf("\n%-20s" + 1, device) > 20)
+			if (printf("\n%-20s" + 1, device) > 20 && !(opt & OPT_POSIX))
 				    printf("\n%-20s", "");
 #endif
 
