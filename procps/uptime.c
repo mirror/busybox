@@ -48,15 +48,15 @@
 #ifndef FSHIFT
 # define FSHIFT 16              /* nr of bits of precision */
 #endif
-#define FIXED_1         (1<<FSHIFT)     /* 1.0 as fixed-point */
-#define LOAD_INT(x) ((x) >> FSHIFT)
-#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+#define FIXED_1      (1 << FSHIFT)     /* 1.0 as fixed-point */
+#define LOAD_INT(x)  (unsigned)((x) >> FSHIFT)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1 - 1)) * 100)
 
 
 int uptime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uptime_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	int updays, uphours, upminutes;
+	unsigned updays, uphours, upminutes;
 	struct sysinfo info;
 	struct tm *current_time;
 	time_t current_secs;
@@ -66,32 +66,32 @@ int uptime_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	sysinfo(&info);
 
-	printf(" %02d:%02d:%02d up ",
+	printf(" %02u:%02u:%02u up ",
 			current_time->tm_hour, current_time->tm_min, current_time->tm_sec);
-	updays = (int) info.uptime / (60*60*24);
+	updays = (unsigned) info.uptime / (unsigned)(60*60*24);
 	if (updays)
-		printf("%d day%s, ", updays, (updays != 1) ? "s" : "");
-	upminutes = (int) info.uptime / 60;
-	uphours = (upminutes / 60) % 24;
+		printf("%u day%s, ", updays, (updays != 1) ? "s" : "");
+	upminutes = (unsigned) info.uptime / (unsigned)60;
+	uphours = (upminutes / (unsigned)60) % (unsigned)24;
 	upminutes %= 60;
 	if (uphours)
-		printf("%2d:%02d, ", uphours, upminutes);
+		printf("%2u:%02u", uphours, upminutes);
 	else
-		printf("%d min, ", upminutes);
+		printf("%u min", upminutes);
 
 #if ENABLE_FEATURE_UPTIME_UTMP_SUPPORT
-{
-	struct utmp *ut;
-	int users = 0;
-	while ((ut = getutent())) {
-		if ((ut->ut_type == USER_PROCESS) && (ut->ut_name[0] != '\0'))
-			users++;
+	{
+		struct utmp *ut;
+		unsigned users = 0;
+		while ((ut = getutent()) != NULL) {
+			if ((ut->ut_type == USER_PROCESS) && (ut->ut_name[0] != '\0'))
+				users++;
+		}
+		printf(",  %u users", users);
 	}
-	printf("%d users,  ", users);
-}
 #endif
 
-	printf("load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n",
+	printf(",  load average: %u.%02u, %u.%02u, %u.%02u\n",
 			LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]),
 			LOAD_INT(info.loads[1]), LOAD_FRAC(info.loads[1]),
 			LOAD_INT(info.loads[2]), LOAD_FRAC(info.loads[2]));
