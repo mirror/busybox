@@ -336,6 +336,9 @@
 # define FNM_CASEFOLD 0
 #endif
 
+#define dbg(...) ((void)0)
+/* #define dbg(...) bb_error_msg(__VA_ARGS__) */
+
 /* This is a NOEXEC applet. Be very careful! */
 
 
@@ -469,10 +472,12 @@ static int exec_actions(action ***appp, const char *fileName, const struct stat 
 #if ENABLE_FEATURE_FIND_NOT
 			if (ap->invert) rc ^= TRUE;
 #endif
+			dbg("grp %d action %d rc:0x%x", cur_group, cur_action, rc);
 			if (rc & TRUE) /* current group failed, try next */
 				break;
 		}
 	}
+	dbg("returning:0x%x", rc ^ TRUE);
 	return rc ^ TRUE; /* restore TRUE bit */
 }
 
@@ -910,6 +915,8 @@ static action*** parse_params(char **argv)
 		int parm = index_in_strings(params, arg);
 		const char *arg1 = argv[1];
 
+		dbg("arg:'%s' arg1:'%s' parm:%d PARM_type:%d", arg, arg1, parm, PARM_type);
+
 		if (parm >= PARM_name) {
 			/* All options/actions starting from -name require argument */
 			if (!arg1)
@@ -925,18 +932,22 @@ static action*** parse_params(char **argv)
  * expression is reached.
  */
 		/* Options */
+		if (0) { }
 #if ENABLE_FEATURE_FIND_XDEV
-		if (parm == OPT_XDEV) {
+		else if (parm == OPT_XDEV) {
+			dbg("%d", __LINE__);
 			G.xdev_on = 1;
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MAXDEPTH
 		else if (parm == OPT_MINDEPTH || parm == OPT_MINDEPTH + 1) {
+			dbg("%d", __LINE__);
 			G.minmaxdepth[parm - OPT_MINDEPTH] = xatoi_positive(arg1);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_DEPTH
 		else if (parm == OPT_DEPTH) {
+			dbg("%d", __LINE__);
 			G.recurse_flags |= ACTION_DEPTHFIRST;
 		}
 #endif
@@ -951,9 +962,11 @@ static action*** parse_params(char **argv)
  */
 		/* Operators */
 		else if (parm == PARM_a IF_DESKTOP(|| parm == PARM_and)) {
+			dbg("%d", __LINE__);
 			/* no further special handling required */
 		}
 		else if (parm == PARM_o IF_DESKTOP(|| parm == PARM_or)) {
+			dbg("%d", __LINE__);
 			/* start new OR group */
 			cur_group++;
 			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
@@ -965,26 +978,31 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_char_not IF_DESKTOP(|| parm == PARM_not)) {
 			/* also handles "find ! ! -name 'foo*'" */
 			invert_flag ^= 1;
+			dbg("invert_flag:%d", invert_flag);
 		}
 #endif
 		/* Actions */
 		else if (parm == PARM_print) {
+			dbg("%d", __LINE__);
 			G.need_print = 0;
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (parm == PARM_print0) {
+			dbg("%d", __LINE__);
 			G.need_print = 0;
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PRUNE
 		else if (parm == PARM_prune) {
+			dbg("%d", __LINE__);
 			(void) ALLOC_ACTION(prune);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_DELETE
 		else if (parm == PARM_delete) {
+			dbg("%d", __LINE__);
 			G.need_print = 0;
 			G.recurse_flags |= ACTION_DEPTHFIRST;
 			(void) ALLOC_ACTION(delete);
@@ -994,6 +1012,7 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_exec) {
 			int i;
 			action_exec *ap;
+			dbg("%d", __LINE__);
 			G.need_print = 0;
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
@@ -1028,6 +1047,7 @@ static action*** parse_params(char **argv)
 			char **endarg;
 			unsigned nested = 1;
 
+			dbg("%d", __LINE__);
 			endarg = argv;
 			while (1) {
 				if (!*++endarg)
@@ -1047,6 +1067,7 @@ static action*** parse_params(char **argv)
 #endif
 		else if (parm == PARM_name || parm == PARM_iname) {
 			action_name *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(name);
 			ap->pattern = arg1;
 			ap->iname = (parm == PARM_iname);
@@ -1054,6 +1075,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_PATH
 		else if (parm == PARM_path || parm == PARM_ipath) {
 			action_path *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(path);
 			ap->pattern = arg1;
 			ap->ipath = (parm == PARM_ipath);
@@ -1062,6 +1084,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_REGEX
 		else if (parm == PARM_regex) {
 			action_regex *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(regex);
 			xregcomp(&ap->compiled_pattern, arg1, 0 /*cflags*/);
 		}
@@ -1071,6 +1094,7 @@ static action*** parse_params(char **argv)
 			action_type *ap;
 			ap = ALLOC_ACTION(type);
 			ap->type_mask = find_type(arg1);
+			dbg("created:type mask:%x", ap->type_mask);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PERM
@@ -1081,6 +1105,7 @@ static action*** parse_params(char **argv)
  */
 		else if (parm == PARM_perm) {
 			action_perm *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(perm);
 			ap->perm_char = arg1[0];
 			arg1 = plus_minus_num(arg1);
@@ -1092,6 +1117,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_MTIME
 		else if (parm == PARM_mtime) {
 			action_mtime *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(mtime);
 			ap->mtime_char = arg1[0];
 			ap->mtime_days = xatoul(plus_minus_num(arg1));
@@ -1100,6 +1126,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_MMIN
 		else if (parm == PARM_mmin) {
 			action_mmin *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(mmin);
 			ap->mmin_char = arg1[0];
 			ap->mmin_mins = xatoul(plus_minus_num(arg1));
@@ -1109,6 +1136,7 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_newer) {
 			struct stat stat_newer;
 			action_newer *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(newer);
 			xstat(arg1, &stat_newer);
 			ap->newer_mtime = stat_newer.st_mtime;
@@ -1117,6 +1145,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_INUM
 		else if (parm == PARM_inum) {
 			action_inum *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(inum);
 			ap->inode_num = xatoul(arg1);
 		}
@@ -1124,6 +1153,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_USER
 		else if (parm == PARM_user) {
 			action_user *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(user);
 			ap->uid = bb_strtou(arg1, NULL, 10);
 			if (errno)
@@ -1133,6 +1163,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_GROUP
 		else if (parm == PARM_group) {
 			action_group *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(group);
 			ap->gid = bb_strtou(arg1, NULL, 10);
 			if (errno)
@@ -1161,6 +1192,7 @@ static action*** parse_params(char **argv)
 				{ "", 0 }
 			};
 			action_size *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(size);
 			ap->size_char = arg1[0];
 			ap->size = XATOU_SFX(plus_minus_num(arg1), find_suffixes);
@@ -1169,6 +1201,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_CONTEXT
 		else if (parm == PARM_context) {
 			action_context *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(context);
 			/*ap->context = NULL; - ALLOC_ACTION did it */
 			/* SELinux headers erroneously declare non-const parameter */
@@ -1179,6 +1212,7 @@ static action*** parse_params(char **argv)
 #if ENABLE_FEATURE_FIND_LINKS
 		else if (parm == PARM_links) {
 			action_links *ap;
+			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(links);
 			ap->links_char = arg1[0];
 			ap->links_count = xatoul(plus_minus_num(arg1));
@@ -1190,6 +1224,7 @@ static action*** parse_params(char **argv)
 		}
 		argv++;
 	}
+	dbg("exiting %s", __func__);
 	return appp;
 #undef ALLOC_ACTION
 }
