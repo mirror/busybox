@@ -269,13 +269,6 @@ config FEATURE_FANCY_HEAD
 	help
 	  This enables the head options (-c, -q, and -v).
 
-config HOSTID
-	bool "hostid"
-	default y
-	help
-	  hostid prints the numeric identifier (in hexadecimal) for
-	  the current host.
-
 config INSTALL
 	bool "install"
 	default y

@@ -36,7 +36,6 @@ lib-$(CONFIG_FALSE)     += false.o
 lib-$(CONFIG_FOLD)      += fold.o
 lib-$(CONFIG_FSYNC)     += fsync.o
 lib-$(CONFIG_HEAD)      += head.o
-lib-$(CONFIG_HOSTID)    += hostid.o
 lib-$(CONFIG_INSTALL)   += install.o
 #lib-$(CONFIG_LENGTH)    += length.o
 lib-$(CONFIG_LN)        += ln.o
