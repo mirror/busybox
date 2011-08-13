@@ -16,7 +16,7 @@
 
 //config:config CONSPY
 //config:	bool "conspy"
-//config:	default n
+//config:	default y
 //config:	select PLATFORM_LINUX
 //config:	help
 //config:	  A text-mode VNC like program for Linux virtual terminals.
