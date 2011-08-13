@@ -114,7 +114,8 @@ int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 #if !ENABLE_FEATURE_SWAPON_PRI
 	ret = getopt32(argv, "a");
 #else
-	opt_complementary = "p+";
+	if (applet_name[5] == 'n')
+		opt_complementary = "p+";
 	ret = getopt32(argv, (applet_name[5] == 'n') ? "ap:" : "a", &g_flags);
 
 	if (ret & 2) { // -p
