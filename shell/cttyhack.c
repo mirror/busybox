@@ -139,7 +139,7 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 #endif
 #ifdef TIOCGSERIAL
 			if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
-				/* this is a serial console, asuming it is named /dev/ttySn */
+				/* this is a serial console; assuming it is named /dev/ttySn */
 				sprintf(console + 8, "S%d", u.sr.line);
 				break;
 			}
