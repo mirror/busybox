@@ -990,7 +990,8 @@ static int64_t less_getch(int pos)
 	 */
 	if (key >= 0 && key < ' ' && key != 0x0d && key != 8)
 		goto again;
-	return key;
+
+	return key64;
 }
 
 static char* less_gets(int sz)
