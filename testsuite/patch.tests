@@ -212,6 +212,21 @@ patching file input
  666
 " \
 
+# Currently fails
+# testing "test name" "command(s)" "expected result" "file input" "stdin"
+testing "patch creates new file" \
+	'patch 2>&1; echo $?; cat testfile; rm testfile' \
+"\
+creating testfile
+0
+qwerty
+" "" "\
+--- /dev/null
++++ testfile
+@@ -0,0 +1 @@
++qwerty
+"
+
 rm input.orig 2>/dev/null
 
 exit $FAILCOUNT
