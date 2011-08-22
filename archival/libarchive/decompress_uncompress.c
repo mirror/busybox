@@ -164,7 +164,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 		if (insize < (int) (IBUFSIZ + 64) - IBUFSIZ) {
 			rsize = safe_read(fd_in, inbuf + insize, IBUFSIZ);
 			if (rsize < 0)
-				bb_error_msg(bb_msg_read_error);
+				bb_error_msg_and_die(bb_msg_read_error);
 			insize += rsize;
 		}
 
