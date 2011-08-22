@@ -70,8 +70,7 @@ struct double_list {
 
 // Free all the elements of a linked list
 // Call freeit() on each element before freeing it.
-static
-void dlist_free(struct double_list *list, void (*freeit)(void *data))
+static void dlist_free(struct double_list *list, void (*freeit)(void *data))
 {
 	while (list) {
 		void *pop = list;
@@ -83,8 +82,7 @@ void dlist_free(struct double_list *list, void (*freeit)(void *data))
 }
 
 // Add an entry before "list" element in (circular) doubly linked list
-static
-struct double_list *dlist_add(struct double_list **list, char *data)
+static struct double_list *dlist_add(struct double_list **list, char *data)
 {
 	struct double_list *llist;
 	struct double_list *line = xmalloc(sizeof(*line));
@@ -232,7 +230,7 @@ static int apply_one_hunk(void)
 		else matcheof = 0;
 		if (PATCH_DEBUG) fdprintf(2, "HUNK:%s\n", plist->data);
 	}
-	matcheof = matcheof < TT.context;
+	matcheof = !matcheof || matcheof < TT.context;
 
 	if (PATCH_DEBUG) fdprintf(2,"MATCHEOF=%c\n", matcheof ? 'Y' : 'N');
 

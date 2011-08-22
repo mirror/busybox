@@ -212,7 +212,6 @@ patching file input
  666
 " \
 
-# Currently fails
 # testing "test name" "command(s)" "expected result" "file input" "stdin"
 testing "patch creates new file" \
 	'patch 2>&1; echo $?; cat testfile; rm testfile' \
