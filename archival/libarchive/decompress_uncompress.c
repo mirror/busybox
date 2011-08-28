@@ -163,7 +163,8 @@ unpack_Z_stream(int fd_in, int fd_out)
 
 		if (insize < (int) (IBUFSIZ + 64) - IBUFSIZ) {
 			rsize = safe_read(fd_in, inbuf + insize, IBUFSIZ);
-//error check??
+			if (rsize < 0)
+				bb_error_msg_and_die(bb_msg_read_error);
 			insize += rsize;
 		}
 
@@ -195,6 +196,8 @@ unpack_Z_stream(int fd_in, int fd_out)
 
 
 			if (oldcode == -1) {
+				if (code >= 256)
+					bb_error_msg_and_die("corrupted data"); /* %ld", code); */
 				oldcode = code;
 				finchar = (int) oldcode;
 				outbuf[outpos++] = (unsigned char) finchar;
@@ -239,6 +242,8 @@ unpack_Z_stream(int fd_in, int fd_out)
 
 			/* Generate output characters in reverse order */
 			while ((long) code >= (long) 256) {
+				if (stackp <= &htabof(0))
+					bb_error_msg_and_die("corrupted data");
 				*--stackp = tab_suffixof(code);
 				code = tab_prefixof(code);
 			}
@@ -263,8 +268,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 						}
 
 						if (outpos >= OBUFSIZ) {
-							full_write(fd_out, outbuf, outpos);
-//error check??
+							xwrite(fd_out, outbuf, outpos);
 							IF_DESKTOP(total_written += outpos;)
 							outpos = 0;
 						}
@@ -292,8 +296,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 	} while (rsize > 0);
 
 	if (outpos > 0) {
-		full_write(fd_out, outbuf, outpos);
-//error check??
+		xwrite(fd_out, outbuf, outpos);
 		IF_DESKTOP(total_written += outpos;)
 	}
 

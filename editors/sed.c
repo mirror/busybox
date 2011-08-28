@@ -75,6 +75,13 @@
 #include "libbb.h"
 #include "xregex.h"
 
+#if 0
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
+
 enum {
 	OPT_in_place = 1 << 0,
 };
@@ -89,6 +96,7 @@ typedef struct sed_cmd_s {
 	regex_t *end_match;     /* sed -e '/match/,/end_match/cmd' */
 	regex_t *sub_match;     /* For 's/sub_match/string/' */
 	int beg_line;           /* 'sed 1p'   0 == apply commands to all lines */
+	int beg_line_orig;      /* copy of the above, needed for -i */
 	int end_line;           /* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
 
 	FILE *sw_file;          /* File (sw) command writes to, -1 for none. */
@@ -123,7 +131,7 @@ struct globals {
 	regex_t *previous_regex_ptr;
 
 	/* linked list of sed commands */
-	sed_cmd_t sed_cmd_head, *sed_cmd_tail;
+	sed_cmd_t *sed_cmd_head, **sed_cmd_tail;
 
 	/* Linked list of append lines */
 	llist_t *append_head;
@@ -148,7 +156,7 @@ struct BUG_G_too_big {
 #if ENABLE_FEATURE_CLEAN_UP
 static void sed_free_and_close_stuff(void)
 {
-	sed_cmd_t *sed_cmd = G.sed_cmd_head.next;
+	sed_cmd_t *sed_cmd = G.sed_cmd_head;
 
 	llist_free(G.append_head, free);
 
@@ -599,6 +607,7 @@ static void add_cmd(const char *cmdstr)
 
 		/* first part (if present) is an address: either a '$', a number or a /regex/ */
 		cmdstr += get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+		sed_cmd->beg_line_orig = sed_cmd->beg_line;
 
 		/* second part (if present) will begin with a comma */
 		if (*cmdstr == ',') {
@@ -630,8 +639,8 @@ static void add_cmd(const char *cmdstr)
 		cmdstr = parse_cmd_args(sed_cmd, cmdstr);
 
 		/* Add the command to the command array */
-		G.sed_cmd_tail->next = sed_cmd;
-		G.sed_cmd_tail = G.sed_cmd_tail->next;
+		*G.sed_cmd_tail = sed_cmd;
+		G.sed_cmd_tail = &sed_cmd->next;
 	}
 
 	/* If we glued multiple lines together, free the memory. */
@@ -777,7 +786,7 @@ static sed_cmd_t *branch_to(char *label)
 {
 	sed_cmd_t *sed_cmd;
 
-	for (sed_cmd = G.sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
+	for (sed_cmd = G.sed_cmd_head; sed_cmd; sed_cmd = sed_cmd->next) {
 		if (sed_cmd->cmd == ':' && sed_cmd->string && !strcmp(sed_cmd->string, label)) {
 			return sed_cmd;
 		}
@@ -953,24 +962,24 @@ static void process_files(void)
 
 	/* For every line, go through all the commands */
  restart:
-	for (sed_cmd = G.sed_cmd_head.next; sed_cmd; sed_cmd = sed_cmd->next) {
+	for (sed_cmd = G.sed_cmd_head; sed_cmd; sed_cmd = sed_cmd->next) {
 		int old_matched, matched;
 
 		old_matched = sed_cmd->in_match;
 
 		/* Determine if this command matches this line: */
 
-		//bb_error_msg("match1:%d", sed_cmd->in_match);
-		//bb_error_msg("match2:%d", (!sed_cmd->beg_line && !sed_cmd->end_line
-		//		&& !sed_cmd->beg_match && !sed_cmd->end_match));
-		//bb_error_msg("match3:%d", (sed_cmd->beg_line > 0
-		//	&& (sed_cmd->end_line || sed_cmd->end_match
-		//	    ? (sed_cmd->beg_line <= linenum)
-		//	    : (sed_cmd->beg_line == linenum)
-		//	    )
-		//	)
-		//bb_error_msg("match4:%d", (beg_match(sed_cmd, pattern_space)));
-		//bb_error_msg("match5:%d", (sed_cmd->beg_line == -1 && next_line == NULL));
+		dbg("match1:%d", sed_cmd->in_match);
+		dbg("match2:%d", (!sed_cmd->beg_line && !sed_cmd->end_line
+				&& !sed_cmd->beg_match && !sed_cmd->end_match));
+		dbg("match3:%d", (sed_cmd->beg_line > 0
+			&& (sed_cmd->end_line || sed_cmd->end_match
+			    ? (sed_cmd->beg_line <= linenum)
+			    : (sed_cmd->beg_line == linenum)
+			    )
+			));
+		dbg("match4:%d", (beg_match(sed_cmd, pattern_space)));
+		dbg("match5:%d", (sed_cmd->beg_line == -1 && next_line == NULL));
 
 		/* Are we continuing a previous multi-line match? */
 		sed_cmd->in_match = sed_cmd->in_match
@@ -981,7 +990,14 @@ static void process_files(void)
 			|| (sed_cmd->beg_line > 0
 			    && (sed_cmd->end_line || sed_cmd->end_match
 				  /* note: even if end is numeric and is < linenum too,
-				   * GNU sed matches! We match too */
+				   * GNU sed matches! We match too, therefore we don't
+				   * check here that linenum <= end.
+				   * Example:
+				   * printf '1\n2\n3\n4\n' | sed -n '1{N;N;d};1p;2,3p;3p;4p'
+				   * first three input lines are deleted;
+				   * 4th line is matched and printed
+				   * by "2,3" (!) and by "4" ranges
+				   */
 				? (sed_cmd->beg_line <= linenum)    /* N,end */
 				: (sed_cmd->beg_line == linenum)    /* N */
 				)
@@ -994,16 +1010,14 @@ static void process_files(void)
 		/* Snapshot the value */
 		matched = sed_cmd->in_match;
 
-		//bb_error_msg("cmd:'%c' matched:%d beg_line:%d end_line:%d linenum:%d",
-		//sed_cmd->cmd, matched, sed_cmd->beg_line, sed_cmd->end_line, linenum);
+		dbg("cmd:'%c' matched:%d beg_line:%d end_line:%d linenum:%d",
+			sed_cmd->cmd, matched, sed_cmd->beg_line, sed_cmd->end_line, linenum);
 
 		/* Is this line the end of the current match? */
 
 		if (matched) {
 			/* once matched, "n,xxx" range is dead, disabling it */
-			if (sed_cmd->beg_line > 0
-			 && !(option_mask32 & OPT_in_place) /* but not for -i */
-			) {
+			if (sed_cmd->beg_line > 0) {
 				sed_cmd->beg_line = -2;
 			}
 			sed_cmd->in_match = !(
@@ -1017,7 +1031,8 @@ static void process_files(void)
 				/* or does this line matches our last address regex */
 				|| (sed_cmd->end_match && old_matched
 				     && (regexec(sed_cmd->end_match,
-				                 pattern_space, 0, NULL, 0) == 0))
+				                 pattern_space, 0, NULL, 0) == 0)
+				)
 			);
 		}
 
@@ -1407,11 +1422,12 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 		add_input_file(stdin);
 	} else {
 		int i;
-		FILE *file;
 
 		for (i = 0; argv[i]; i++) {
 			struct stat statbuf;
 			int nonstdoutfd;
+			FILE *file;
+			sed_cmd_t *sed_cmd;
 
 			if (LONE_DASH(argv[i]) && !(opt & OPT_in_place)) {
 				add_input_file(stdin);
@@ -1423,10 +1439,12 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 				status = EXIT_FAILURE;
 				continue;
 			}
+			add_input_file(file);
 			if (!(opt & OPT_in_place)) {
-				add_input_file(file);
 				continue;
 			}
+
+			/* -i: process each FILE separately: */
 
 			G.outname = xasprintf("%sXXXXXX", argv[i]);
 			nonstdoutfd = xmkstemp(G.outname);
@@ -1438,15 +1456,20 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			 * but GNU sed 4.2.1 does not preserve them either */
 			fchmod(nonstdoutfd, statbuf.st_mode);
 			fchown(nonstdoutfd, statbuf.st_uid, statbuf.st_gid);
-			add_input_file(file);
+
 			process_files();
 			fclose(G.nonstdout);
-
 			G.nonstdout = stdout;
+
 			/* unlink(argv[i]); */
 			xrename(G.outname, argv[i]);
 			free(G.outname);
 			G.outname = NULL;
+
+			/* Re-enable disabled range matches */
+			for (sed_cmd = G.sed_cmd_head; sed_cmd; sed_cmd = sed_cmd->next) {
+				sed_cmd->beg_line = sed_cmd->beg_line_orig;
+			}
 		}
 		/* Here, to handle "sed 'cmds' nonexistent_file" case we did:
 		 * if (G.current_input_file >= G.input_file_count)

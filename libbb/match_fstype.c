@@ -10,6 +10,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+#ifdef HAVE_MNTENT_H
+
 #include "libbb.h"
 
 int FAST_FUNC match_fstype(const struct mntent *mt, const char *t_fstype)
@@ -40,3 +42,5 @@ int FAST_FUNC match_fstype(const struct mntent *mt, const char *t_fstype)
 
 	return !match;
 }
+
+#endif /* HAVE_MNTENT_H */

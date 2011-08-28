@@ -417,6 +417,8 @@ typedef unsigned smalluint;
 # undef HAVE_STRVERSCMP
 # undef HAVE_XTABS
 # undef HAVE_DPRINTF
+# undef HAVE_UNLOCKED_STDIO
+# undef HAVE_UNLOCKED_LINE_OPS
 #endif
 
 #if defined(__FreeBSD__)

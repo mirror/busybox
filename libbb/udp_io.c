@@ -13,7 +13,7 @@
  * We don't check for errors here. Not supported == won't be used
  */
 void FAST_FUNC
-socket_want_pktinfo(int fd)
+socket_want_pktinfo(int fd UNUSED_PARAM)
 {
 #ifdef IP_PKTINFO
 	setsockopt(fd, IPPROTO_IP, IP_PKTINFO, &const_int_1, sizeof(int));

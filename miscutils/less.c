@@ -721,8 +721,8 @@ static void print_found(const char *line)
 	while (match_status == 0) {
 		char *new = xasprintf("%s%.*s"HIGHLIGHT"%.*s"NORMAL,
 				growline ? growline : "",
-				match_structs.rm_so, str,
-				match_structs.rm_eo - match_structs.rm_so,
+				(int)match_structs.rm_so, str,
+				(int)(match_structs.rm_eo - match_structs.rm_so),
 						str + match_structs.rm_so);
 		free(growline);
 		growline = new;
@@ -990,7 +990,8 @@ static int64_t less_getch(int pos)
 	 */
 	if (key >= 0 && key < ' ' && key != 0x0d && key != 8)
 		goto again;
-	return key;
+
+	return key64;
 }
 
 static char* less_gets(int sz)
