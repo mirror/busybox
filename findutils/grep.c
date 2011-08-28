@@ -562,20 +562,20 @@ static char *add_grep_list_data(char *pattern)
 
 static void load_regexes_from_file(llist_t *fopt)
 {
-	char *line;
-	FILE *f;
-
 	while (fopt) {
+		char *line;
+		FILE *fp;
 		llist_t *cur = fopt;
 		char *ffile = cur->data;
 
 		fopt = cur->link;
 		free(cur);
-		f = xfopen_stdin(ffile);
-		while ((line = xmalloc_fgetline(f)) != NULL) {
+		fp = xfopen_stdin(ffile);
+		while ((line = xmalloc_fgetline(fp)) != NULL) {
 			llist_add_to(&pattern_head,
 				new_grep_list_data(line, ALLOCATED));
 		}
+		fclose_if_not_stdin(fp);
 	}
 }
 
@@ -659,15 +659,19 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	invert_search = ((option_mask32 & OPT_v) != 0); /* 0 | 1 */
 
-	if (pattern_head != NULL) {
-		/* convert char **argv to grep_list_data_t */
+	{	/* convert char **argv to grep_list_data_t */
 		llist_t *cur;
-
 		for (cur = pattern_head; cur; cur = cur->link)
 			cur->data = new_grep_list_data(cur->data, 0);
 	}
-	if (option_mask32 & OPT_f)
+	if (option_mask32 & OPT_f) {
 		load_regexes_from_file(fopt);
+		if (!pattern_head) { /* -f EMPTY_FILE? */
+			/* GNU grep treats it as "nothing matches" */
+			llist_add_to(&pattern_head, new_grep_list_data((char*) "", 0));
+			invert_search ^= 1;
+		}
+	}
 
 	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && applet_name[0] == 'f')
 		option_mask32 |= OPT_F;
