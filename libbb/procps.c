@@ -284,27 +284,25 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 void BUG_comm_size(void);
 procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 {
-	struct dirent *entry;
-	char buf[PROCPS_BUFSIZE];
-	char filename[sizeof("/proc//cmdline") + sizeof(int)*3];
-	char *filename_tail;
-	long tasknice;
-	unsigned pid;
-	int n;
-	struct stat sb;
-
 	if (!sp)
 		sp = alloc_procps_scan();
 
 	for (;;) {
+		struct dirent *entry;
+		char buf[PROCPS_BUFSIZE];
+		long tasknice;
+		unsigned pid;
+		int n;
+		char filename[sizeof("/proc/%u/task/%u/cmdline") + sizeof(int)*3 * 2];
+		char *filename_tail;
+
 #if ENABLE_FEATURE_SHOW_THREADS
-		if ((flags & PSSCAN_TASKS) && sp->task_dir) {
+		if (sp->task_dir) {
 			entry = readdir(sp->task_dir);
 			if (entry)
 				goto got_entry;
 			closedir(sp->task_dir);
 			sp->task_dir = NULL;
-			sp->main_thread_pid = 0;
 		}
 #endif
 		entry = readdir(sp->dir);
@@ -321,9 +319,9 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			/* We found another /proc/PID. Do not use it,
 			 * there will be /proc/PID/task/PID (same PID!),
 			 * so just go ahead and dive into /proc/PID/task. */
-			char task_dir[sizeof("/proc/%u/task") + sizeof(int)*3];
-			sprintf(task_dir, "/proc/%u/task", pid);
-			sp->task_dir = xopendir(task_dir);
+			sprintf(filename, "/proc/%u/task", pid);
+			/* Note: if opendir fails, we just go to next /proc/XXX */
+			sp->task_dir = opendir(filename);
 			sp->main_thread_pid = pid;
 			continue;
 		}
@@ -347,9 +345,15 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 		}
 #endif
 
-		filename_tail = filename + sprintf(filename, "/proc/%u/", pid);
+#if ENABLE_FEATURE_SHOW_THREADS
+		if (sp->task_dir)
+			filename_tail = filename + sprintf(filename, "/proc/%u/task/%u/", sp->main_thread_pid, pid);
+		else
+#endif
+			filename_tail = filename + sprintf(filename, "/proc/%u/", pid);
 
 		if (flags & PSSCAN_UIDGID) {
+			struct stat sb;
 			if (stat(filename, &sb))
 				continue; /* process probably exited */
 			/* Effective UID/GID, not real */
