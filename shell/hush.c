@@ -1541,6 +1541,10 @@ static sighandler_t pick_sighandler(unsigned sig)
 static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
+#if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
+	save_history(G.line_input_state);
+#endif
+
 	fflush_all();
 	if (G.exiting <= 0 && G.traps && G.traps[0] && G.traps[0][0]) {
 		char *argv[3];

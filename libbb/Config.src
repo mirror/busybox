@@ -94,6 +94,13 @@ config FEATURE_EDITING_SAVEHISTORY
 	help
 	  Enable history saving in shells.
 
+config FEATURE_EDITING_SAVE_ON_EXIT
+	bool "Save history on shell exit, not after every command"
+	default n
+	depends on FEATURE_EDITING_SAVEHISTORY
+	help
+	  Save history on shell exit, not after every command.
+
 config FEATURE_REVERSE_SEARCH
 	bool "Reverse history search"
 	default y

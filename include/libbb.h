@@ -1421,6 +1421,12 @@ typedef struct line_input_t {
 	int cur_history;
 	int max_history; /* must never be <= 0 */
 #  if ENABLE_FEATURE_EDITING_SAVEHISTORY
+	/* meaning of this field depends on FEATURE_EDITING_SAVE_ON_EXIT:
+	 * if !FEATURE_EDITING_SAVE_ON_EXIT: "how many lines are
+	 * in on-disk history"
+	 * if FEATURE_EDITING_SAVE_ON_EXIT: "how many in-memory lines are
+	 * also in on-disk history (and thus need to be skipped on save)"
+	 */
 	unsigned cnt_history_in_file;
 	const char *hist_file;
 #  endif
@@ -1446,6 +1452,9 @@ line_input_t *new_line_input_t(int flags) FAST_FUNC;
  * >0 length of input string, including terminating '\n'
  */
 int read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout) FAST_FUNC;
+# if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
+void save_history(line_input_t *st);
+# endif
 #else
 #define MAX_HISTORY 0
 int read_line_input(const char* prompt, char* command, int maxsize) FAST_FUNC;

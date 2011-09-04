@@ -12888,6 +12888,10 @@ exitshell(void)
 	char *p;
 	int status;
 
+#if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
+	save_history(line_input_state);
+#endif
+
 	status = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
 	if (setjmp(loc.loc)) {
