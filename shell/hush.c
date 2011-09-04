@@ -7820,7 +7820,7 @@ int hush_main(int argc, char **argv)
 	 */
 
 #if ENABLE_FEATURE_EDITING
-	G.line_input_state = new_line_input_t(FOR_SHELL & ~SAVE_HISTORY);
+	G.line_input_state = new_line_input_t(FOR_SHELL);
 #endif
 
 	/* Initialize some more globals to non-zero values */
@@ -8105,7 +8105,6 @@ int hush_main(int argc, char **argv)
 			}
 			if (hp) {
 				G.line_input_state->hist_file = hp;
-				G.line_input_state->flags |= SAVE_HISTORY;
 				//set_local_var(xasprintf("HISTFILE=%s", ...));
 			}
 #  if ENABLE_FEATURE_SH_HISTFILESIZE

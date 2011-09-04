@@ -1402,8 +1402,6 @@ void save_history(line_input_t *st)
 {
 	FILE *fp;
 
-	if (!(st->flags & SAVE_HISTORY))
-		return;
 	if (!st->hist_file)
 		return;
 	if (st->cnt_history <= st->cnt_history_in_file)
@@ -1447,8 +1445,6 @@ static void save_history(char *str)
 	int fd;
 	int len, len2;
 
-	if (!(state->flags & SAVE_HISTORY))
-		return;
 	if (!state->hist_file)
 		return;
 
@@ -2188,7 +2184,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	state = st ? st : (line_input_t*) &const_int_0;
 #if MAX_HISTORY > 0
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	if ((state->flags & SAVE_HISTORY) && state->hist_file)
+	if (state->hist_file)
 		if (state->cnt_history == 0)
 			load_history(state);
 # endif
