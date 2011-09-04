@@ -1425,7 +1425,7 @@ static void save_history(char *str)
 
 		/* write out temp file and replace hist_file atomically */
 		new_name = xasprintf("%s.%u.new", state->hist_file, (int) getpid());
-		fd = open(state->hist_file, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		fd = open(new_name, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 		if (fd >= 0) {
 			FILE *fp;
 			int i;
@@ -1475,7 +1475,7 @@ static void remember_in_history(char *str)
 	/* i <= state->max_history */
 	state->cur_history = i;
 	state->cnt_history = i;
-# if MAX_HISTORY > 0 && ENABLE_FEATURE_EDITING_SAVEHISTORY
+# if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if ((state->flags & SAVE_HISTORY) && state->hist_file)
 		save_history(str);
 # endif

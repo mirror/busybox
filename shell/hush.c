@@ -7816,23 +7816,7 @@ int hush_main(int argc, char **argv)
 	 */
 
 #if ENABLE_FEATURE_EDITING
-	G.line_input_state = new_line_input_t(FOR_SHELL);
-# if defined MAX_HISTORY && MAX_HISTORY > 0 && ENABLE_HUSH_SAVEHISTORY
-	{
-		const char *hp = get_local_var_value("HISTFILE");
-		if (!hp) {
-			hp = get_local_var_value("HOME");
-			if (hp) {
-				G.line_input_state->hist_file = concat_path_file(hp, ".hush_history");
-				//set_local_var(xasprintf("HISTFILE=%s", ...));
-			}
-		}
-# if ENABLE_FEATURE_SH_HISTFILESIZE
-		hp = get_local_var_value("HISTFILESIZE");
-		G.line_input_state->max_history = size_from_HISTFILESIZE(hp);
-# endif
-	}
-# endif
+	G.line_input_state = new_line_input_t(FOR_SHELL & ~SAVE_HISTORY);
 #endif
 
 	/* Initialize some more globals to non-zero values */
@@ -8104,6 +8088,28 @@ int hush_main(int argc, char **argv)
 		/* -1 is special - makes xfuncs longjmp, not exit
 		 * (we reset die_sleep = 0 whereever we [v]fork) */
 		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
+
+# if ENABLE_HUSH_SAVEHISTORY && MAX_HISTORY > 0
+		{
+			const char *hp = get_local_var_value("HISTFILE");
+			if (!hp) {
+				hp = get_local_var_value("HOME");
+				if (hp)
+					hp = concat_path_file(hp, ".hush_history");
+			} else {
+				hp = xstrdup(hp);
+			}
+			if (hp) {
+				G.line_input_state->hist_file = hp;
+				G.line_input_state->flags |= SAVE_HISTORY;
+				//set_local_var(xasprintf("HISTFILE=%s", ...));
+			}
+#  if ENABLE_FEATURE_SH_HISTFILESIZE
+			hp = get_local_var_value("HISTFILESIZE");
+			G.line_input_state->max_history = size_from_HISTFILESIZE(hp);
+#  endif
+		}
+# endif
 	} else {
 		install_special_sighandlers();
 	}
