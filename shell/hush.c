@@ -7817,20 +7817,24 @@ int hush_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_EDITING
 	G.line_input_state = new_line_input_t(FOR_SHELL);
-# if defined MAX_HISTORY && MAX_HISTORY > 0 && ENABLE_HUSH_SAVEHISTORY
+# if MAX_HISTORY > 0 && ENABLE_HUSH_SAVEHISTORY
 	{
 		const char *hp = get_local_var_value("HISTFILE");
 		if (!hp) {
 			hp = get_local_var_value("HOME");
-			if (hp) {
-				G.line_input_state->hist_file = concat_path_file(hp, ".hush_history");
-				//set_local_var(xasprintf("HISTFILE=%s", ...));
-			}
+			if (hp)
+				hp = concat_path_file(hp, ".hush_history");
+		} else {
+			hp = xstrdup(hp);
 		}
-# if ENABLE_FEATURE_SH_HISTFILESIZE
+		if (hp) {
+			G.line_input_state->hist_file = hp;
+			//set_local_var(xasprintf("HISTFILE=%s", ...));
+		}
+#  if ENABLE_FEATURE_SH_HISTFILESIZE
 		hp = get_local_var_value("HISTFILESIZE");
 		G.line_input_state->max_history = size_from_HISTFILESIZE(hp);
-# endif
+#  endif
 	}
 # endif
 #endif
