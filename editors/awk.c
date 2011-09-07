@@ -2627,7 +2627,7 @@ static var *evaluate(node *op, var *res)
 				rsm = iF;
 			}
 
-			if (!rsm->F) {
+			if (!rsm || !rsm->F) {
 				setvar_i(intvar[ERRNO], errno);
 				setvar_i(res, -1);
 				break;
@@ -2961,7 +2961,7 @@ static rstream *next_input_file(void)
 #define rsm          (G.next_input_file__rsm)
 #define files_happen (G.next_input_file__files_happen)
 
-	FILE *F = NULL;
+	FILE *F;
 	const char *fname, *ind;
 
 	if (rsm.F)
@@ -2969,19 +2969,21 @@ static rstream *next_input_file(void)
 	rsm.F = NULL;
 	rsm.pos = rsm.adv = 0;
 
-	do {
+	for (;;) {
 		if (getvar_i(intvar[ARGIND])+1 >= getvar_i(intvar[ARGC])) {
 			if (files_happen)
 				return NULL;
 			fname = "-";
 			F = stdin;
-		} else {
-			ind = getvar_s(incvar(intvar[ARGIND]));
-			fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
-			if (fname && *fname && !is_assignment(fname))
-				F = xfopen_stdin(fname);
+			break;
 		}
-	} while (!F);
+		ind = getvar_s(incvar(intvar[ARGIND]));
+		fname = getvar_s(findvar(iamarray(intvar[ARGV]), ind));
+		if (fname && *fname && !is_assignment(fname)) {
+			F = xfopen_stdin(fname);
+			break;
+		}
+	}
 
 	files_happen = TRUE;
 	setvar_s(intvar[FILENAME], fname);
