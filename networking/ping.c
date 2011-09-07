@@ -149,31 +149,6 @@ enum {
 	PINGINTERVAL = 1, /* 1 second */
 };
 
-/* Common routines */
-
-static int in_cksum(unsigned short *buf, int sz)
-{
-	int nleft = sz;
-	int sum = 0;
-	unsigned short *w = buf;
-	unsigned short ans = 0;
-
-	while (nleft > 1) {
-		sum += *w++;
-		nleft -= 2;
-	}
-
-	if (nleft == 1) {
-		*(unsigned char *) (&ans) = *(unsigned char *) w;
-		sum += ans;
-	}
-
-	sum = (sum >> 16) + (sum & 0xFFFF);
-	sum += (sum >> 16);
-	ans = ~sum;
-	return ans;
-}
-
 #if !ENABLE_FEATURE_FANCY_PING
 
 /* Simple version */
@@ -201,7 +176,7 @@ static void ping4(len_and_sockaddr *lsa)
 	pkt = (struct icmp *) G.packet;
 	memset(pkt, 0, sizeof(G.packet));
 	pkt->icmp_type = ICMP_ECHO;
-	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(G.packet));
+	pkt->icmp_cksum = inet_cksum((uint16_t *) pkt, sizeof(G.packet));
 
 	xsendto(pingsock, G.packet, DEFDATALEN + ICMP_MINLEN, &lsa->u.sa, lsa->len);
 
@@ -493,7 +468,7 @@ static void sendping4(int junk UNUSED_PARAM)
 		/* No hton: we'll read it back on the same machine */
 		*(uint32_t*)&pkt->icmp_dun = monotonic_us();
 
-	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, datalen + ICMP_MINLEN);
+	pkt->icmp_cksum = inet_cksum((uint16_t *) pkt, datalen + ICMP_MINLEN);
 
 	sendping_tail(sendping4, ICMP_MINLEN);
 }
@@ -512,7 +487,7 @@ static void sendping6(int junk UNUSED_PARAM)
 	/*if (datalen >= 4)*/
 		*(uint32_t*)(&pkt->icmp6_data8[4]) = monotonic_us();
 
-	//TODO? pkt->icmp_cksum = in_cksum(...);
+	//TODO? pkt->icmp_cksum = inet_cksum(...);
 
 	sendping_tail(sendping6, sizeof(struct icmp6_hdr));
 }

@@ -129,35 +129,6 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 	return bytes;
 }
 
-uint16_t FAST_FUNC udhcp_checksum(void *addr, int count)
-{
-	/* Compute Internet Checksum for "count" bytes
-	 * beginning at location "addr".
-	 */
-	int32_t sum = 0;
-	uint16_t *source = (uint16_t *) addr;
-
-	while (count > 1)  {
-		/*  This is the inner loop */
-		sum += *source++;
-		count -= 2;
-	}
-
-	/*  Add left-over byte, if any */
-	if (count > 0) {
-		/* Make sure that the left-over byte is added correctly both
-		 * with little and big endian hosts */
-		uint16_t tmp = 0;
-		*(uint8_t*)&tmp = *(uint8_t*)source;
-		sum += tmp;
-	}
-	/*  Fold 32-bit sum to 16 bits */
-	while (sum >> 16)
-		sum = (sum & 0xffff) + (sum >> 16);
-
-	return ~sum;
-}
-
 /* Construct a ip/udp header for a packet, send packet */
 int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_nip, int source_port,
@@ -212,13 +183,14 @@ int FAST_FUNC udhcp_send_raw_packet(struct dhcp_packet *dhcp_pkt,
 	packet.udp.len = htons(UDP_DHCP_SIZE - padding);
 	/* for UDP checksumming, ip.len is set to UDP packet len */
 	packet.ip.tot_len = packet.udp.len;
-	packet.udp.check = udhcp_checksum(&packet, IP_UDP_DHCP_SIZE - padding);
+	packet.udp.check = inet_cksum((uint16_t *)&packet,
+			IP_UDP_DHCP_SIZE - padding);
 	/* but for sending, it is set to IP packet len */
 	packet.ip.tot_len = htons(IP_UDP_DHCP_SIZE - padding);
 	packet.ip.ihl = sizeof(packet.ip) >> 2;
 	packet.ip.version = IPVERSION;
 	packet.ip.ttl = IPDEFTTL;
-	packet.ip.check = udhcp_checksum(&packet.ip, sizeof(packet.ip));
+	packet.ip.check = inet_cksum((uint16_t *)&packet.ip, sizeof(packet.ip));
 
 	udhcp_dump_packet(dhcp_pkt);
 	result = sendto(fd, &packet, IP_UDP_DHCP_SIZE - padding, /*flags:*/ 0,
