@@ -21,8 +21,12 @@ uint16_t FAST_FUNC inet_cksum(uint16_t *addr, int nleft)
 	}
 
 	/* Mop up an odd byte, if necessary */
-	if (nleft)
-		sum += *(uint8_t*)addr;
+	if (nleft == 1) {
+		if (BB_LITTLE_ENDIAN)
+			sum += *(uint8_t*)addr;
+		else
+			sum += *(uint8_t*)addr << 8;
+	}
 
 	/* Add back carry outs from top 16 bits to low 16 bits */
 	sum = (sum >> 16) + (sum & 0xffff);     /* add hi 16 to low 16 */
