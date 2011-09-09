@@ -277,8 +277,6 @@ int FAST_FUNC udhcp_str2nip(const char *str, void *arg);
 /* 2nd param is "struct option_set**" */
 int FAST_FUNC udhcp_str2optset(const char *str, void *arg);
 
-uint16_t udhcp_checksum(void *addr, int count) FAST_FUNC;
-
 void udhcp_init_header(struct dhcp_packet *packet, char type) FAST_FUNC;
 
 int udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd) FAST_FUNC;
