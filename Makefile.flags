@@ -97,7 +97,12 @@ CFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_CFLAGS)))
 #"))
 endif
 
+ifneq ($(CONFIG_CROSS_COMPILER_PREFIX),"arm-linux-androideabi-")
 LDLIBS += m crypt
+else
+# Android libc has no crypt. TODO: make a generic CONFIG_LINK_WITH_CRYPT option?
+LDLIBS += m
+endif
 
 ifeq ($(CONFIG_PAM),y)
 LDLIBS += pam pam_misc
