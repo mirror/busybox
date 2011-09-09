@@ -235,7 +235,7 @@ static void unzip_create_leading_dirs(const char *fn)
 	/* Create all leading directories */
 	char *name = xstrdup(fn);
 	if (bb_make_directory(dirname(name), 0777, FILEUTILS_RECUR)) {
-		bb_error_msg_and_die("exiting"); /* bb_make_directory is noisy */
+		xfunc_die(); /* bb_make_directory is noisy */
 	}
 	free(name);
 }
@@ -595,7 +595,7 @@ int unzip_main(int argc, char **argv)
 					}
 					unzip_create_leading_dirs(dst_fn);
 					if (bb_make_directory(dst_fn, dir_mode, 0)) {
-						bb_error_msg_and_die("exiting");
+						xfunc_die();
 					}
 				} else {
 					if (!S_ISDIR(stat_buf.st_mode)) {
@@ -619,6 +619,7 @@ int unzip_main(int argc, char **argv)
 							i = 'y';
 						} else {
 							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
+							fflush_all();
 							if (!fgets(key_buf, sizeof(key_buf), stdin)) {
 								bb_perror_msg_and_die("can't read input");
 							}
