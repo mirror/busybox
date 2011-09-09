@@ -3063,7 +3063,6 @@ static void refresh(int full_screen)
 //----- Execute a Vi Command -----------------------------------
 static void do_cmd(int c)
 {
-	const char *msg = msg; // for compiler
 	char *p, *q, *save_dot;
 	char buf[12];
 	int dir;
@@ -3072,8 +3071,8 @@ static void do_cmd(int c)
 
 //	c1 = c; // quiet the compiler
 //	cnt = yf = 0; // quiet the compiler
-//	msg = p = q = save_dot = buf; // quiet the compiler
-	memset(buf, '\0', 12);
+//	p = q = save_dot = buf; // quiet the compiler
+	memset(buf, '\0', sizeof(buf));
 
 	show_status_line();
 
@@ -3189,19 +3188,18 @@ static void do_cmd(int c)
 	case KEYCODE_LEFT:	// cursor key Left
 	case 8:		// ctrl-H- move left    (This may be ERASE char)
 	case 0x7f:	// DEL- move left   (This may be ERASE char)
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_left();
+		do {
+			dot_left();
+		} while (--cmdcnt > 0);
 		break;
 	case 10:			// Newline ^J
 	case 'j':			// j- goto next line, same col
 	case KEYCODE_DOWN:	// cursor key Down
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_next();		// go to next B-o-l
-		dot = move_to_col(dot, ccol + offset);	// try stay in same col
+		do {
+			dot_next();		// go to next B-o-l
+			// try stay in same col
+			dot = move_to_col(dot, ccol + offset);
+		} while (--cmdcnt > 0);
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
 	case 18:			// ctrl-R  force redraw
@@ -3214,11 +3212,10 @@ static void do_cmd(int c)
 		break;
 	case 13:			// Carriage Return ^M
 	case '+':			// +- goto next line
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_next();
-		dot_skip_over_ws();
+		do {
+			dot_next();
+			dot_skip_over_ws();
+		} while (--cmdcnt > 0);
 		break;
 	case 21:			// ctrl-U  scroll up   half screen
 		dot_scroll((rows - 2) / 2, -1);
@@ -3236,10 +3233,9 @@ static void do_cmd(int c)
 	case ' ':			// move right
 	case 'l':			// move right
 	case KEYCODE_RIGHT:	// Cursor Key Right
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_right();
+		do {
+			dot_right();
+		} while (--cmdcnt > 0);
 		break;
 #if ENABLE_FEATURE_VI_YANKMARK
 	case '"':			// "- name a register to use for Delete/Yank
@@ -3321,11 +3317,12 @@ static void do_cmd(int c)
 #endif /* FEATURE_VI_YANKMARK */
 	case '$':			// $- goto end of line
 	case KEYCODE_END:		// Cursor Key End
-		if (--cmdcnt > 0) {
+		for (;;) {
+			dot = end_line(dot);
+			if (--cmdcnt > 0)
+				break;
 			dot_next();
-			do_cmd(c);
 		}
-		dot = end_line(dot);
 		break;
 	case '%':			// %- find matching char of pair () [] {}
 		for (q = dot; q < end && *q != '\n'; q++) {
@@ -3350,38 +3347,35 @@ static void do_cmd(int c)
 		//
 		//**** fall through to ... ';'
 	case ';':			// ;- look at rest of line for last forward char
-		if (--cmdcnt > 0) {
-			do_cmd(';');
-		}
-		if (last_forward_char == 0)
-			break;
-		q = dot + 1;
-		while (q < end - 1 && *q != '\n' && *q != last_forward_char) {
-			q++;
-		}
-		if (*q == last_forward_char)
-			dot = q;
+		do {
+			if (last_forward_char == 0)
+				break;
+			q = dot + 1;
+			while (q < end - 1 && *q != '\n' && *q != last_forward_char) {
+				q++;
+			}
+			if (*q == last_forward_char)
+				dot = q;
+		} while (--cmdcnt > 0);
 		break;
 	case ',':           // repeat latest 'f' in opposite direction
-		if (--cmdcnt > 0) {
-			do_cmd(',');
-		}
 		if (last_forward_char == 0)
 			break;
-		q = dot - 1;
-		while (q >= text && *q != '\n' && *q != last_forward_char) {
-			q--;
-		}
-		if (q >= text && *q == last_forward_char)
-			dot = q;
+		do {
+			q = dot - 1;
+			while (q >= text && *q != '\n' && *q != last_forward_char) {
+				q--;
+			}
+			if (q >= text && *q == last_forward_char)
+				dot = q;
+		} while (--cmdcnt > 0);
 		break;
 
 	case '-':			// -- goto prev line
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_prev();
-		dot_skip_over_ws();
+		do {
+			dot_prev();
+			dot_skip_over_ws();
+		} while (--cmdcnt > 0);
 		break;
 #if ENABLE_FEATURE_VI_DOT_CMD
 	case '.':			// .- repeat the last modifying command
@@ -3413,9 +3407,6 @@ static void do_cmd(int c)
 		// user changed mind and erased the "/"-  do nothing
 		break;
 	case 'N':			// N- backward search for last pattern
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
 		dir = BACK;		// assume BACKWARD search
 		p = dot - 1;
 		if (last_search_pattern[0] == '?') {
@@ -3427,41 +3418,41 @@ static void do_cmd(int c)
 	case 'n':			// n- repeat search for last pattern
 		// search rest of text[] starting at next char
 		// if search fails return orignal "p" not the "p+1" address
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
+		do {
+			const char *msg;
  dc3:
-		dir = FORWARD;	// assume FORWARD search
-		p = dot + 1;
-		if (last_search_pattern[0] == '?') {
-			dir = BACK;
-			p = dot - 1;
-		}
- dc4:
-		q = char_search(p, last_search_pattern + 1, dir, FULL);
-		if (q != NULL) {
-			dot = q;	// good search, update "dot"
-			msg = "";
-			goto dc2;
-		}
-		// no pattern found between "dot" and "end"- continue at top
-		p = text;
-		if (dir == BACK) {
-			p = end - 1;
-		}
-		q = char_search(p, last_search_pattern + 1, dir, FULL);
-		if (q != NULL) {	// found something
-			dot = q;	// found new pattern- goto it
-			msg = "search hit BOTTOM, continuing at TOP";
-			if (dir == BACK) {
-				msg = "search hit TOP, continuing at BOTTOM";
+			dir = FORWARD;	// assume FORWARD search
+			p = dot + 1;
+			if (last_search_pattern[0] == '?') {
+				dir = BACK;
+				p = dot - 1;
 			}
-		} else {
-			msg = "Pattern not found";
-		}
+ dc4:
+			q = char_search(p, last_search_pattern + 1, dir, FULL);
+			if (q != NULL) {
+				dot = q;	// good search, update "dot"
+				msg = NULL;
+				goto dc2;
+			}
+			// no pattern found between "dot" and "end"- continue at top
+			p = text;
+			if (dir == BACK) {
+				p = end - 1;
+			}
+			q = char_search(p, last_search_pattern + 1, dir, FULL);
+			if (q != NULL) {	// found something
+				dot = q;	// found new pattern- goto it
+				msg = "search hit BOTTOM, continuing at TOP";
+				if (dir == BACK) {
+					msg = "search hit TOP, continuing at BOTTOM";
+				}
+			} else {
+				msg = "Pattern not found";
+			}
  dc2:
-		if (*msg)
-			status_line_bold("%s", msg);
+			if (msg)
+				status_line_bold("%s", msg);
+		} while (--cmdcnt > 0);
 		break;
 	case '{':			// {- move backward paragraph
 		q = char_search(dot, "\n\n", BACK, FULL);
@@ -3580,18 +3571,17 @@ static void do_cmd(int c)
 	case 'B':			// B- back a blank-delimited Word
 	case 'E':			// E- end of a blank-delimited word
 	case 'W':			// W- forward a blank-delimited word
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
 		dir = FORWARD;
 		if (c == 'B')
 			dir = BACK;
-		if (c == 'W' || isspace(dot[dir])) {
-			dot = skip_thing(dot, 1, dir, S_TO_WS);
-			dot = skip_thing(dot, 2, dir, S_OVER_WS);
-		}
-		if (c != 'W')
-			dot = skip_thing(dot, 1, dir, S_BEFORE_WS);
+		do {
+			if (c == 'W' || isspace(dot[dir])) {
+				dot = skip_thing(dot, 1, dir, S_TO_WS);
+				dot = skip_thing(dot, 2, dir, S_OVER_WS);
+			}
+			if (c != 'W')
+				dot = skip_thing(dot, 1, dir, S_BEFORE_WS);
+		} while (--cmdcnt > 0);
 		break;
 	case 'C':			// C- Change to e-o-l
 	case 'D':			// D- delete to e-o-l
@@ -3642,20 +3632,19 @@ static void do_cmd(int c)
 	case 'i':			// i- insert before current char
 	case KEYCODE_INSERT:	// Cursor Key Insert
  dc_i:
-		cmd_mode = 1;	// start insrting
+		cmd_mode = 1;	// start inserting
 		break;
 	case 'J':			// J- join current and next lines together
-		if (--cmdcnt > 1) {
-			do_cmd(c);
-		}
-		dot_end();		// move to NL
-		if (dot < end - 1) {	// make sure not last char in text[]
-			*dot++ = ' ';	// replace NL with space
-			file_modified++;
-			while (isblank(*dot)) {	// delete leading WS
-				dot_delete();
+		do {
+			dot_end();		// move to NL
+			if (dot < end - 1) {	// make sure not last char in text[]
+				*dot++ = ' ';	// replace NL with space
+				file_modified++;
+				while (isblank(*dot)) {	// delete leading WS
+					dot_delete();
+				}
 			}
-		}
+		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
 		break;
 	case 'L':			// L- goto bottom line on screen
@@ -3699,20 +3688,19 @@ static void do_cmd(int c)
 	case 'X':			// X- delete char before dot
 	case 'x':			// x- delete the current char
 	case 's':			// s- substitute the current char
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
 		dir = 0;
 		if (c == 'X')
 			dir = -1;
-		if (dot[dir] != '\n') {
-			if (c == 'X')
-				dot--;	// delete prev char
-			dot = yank_delete(dot, dot, 0, YANKDEL);	// delete char
-		}
-		if (c == 's')
-			goto dc_i;	// start insrting
+		do {
+			if (dot[dir] != '\n') {
+				if (c == 'X')
+					dot--;	// delete prev char
+				dot = yank_delete(dot, dot, 0, YANKDEL);	// delete char
+			}
+		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
+		if (c == 's')
+			goto dc_i;	// start inserting
 		break;
 	case 'Z':			// Z- if modified, {write}; exit
 		// ZZ means to save file (if necessary), then exit
@@ -3743,23 +3731,22 @@ static void do_cmd(int c)
 		break;
 	case 'b':			// b- back a word
 	case 'e':			// e- end of word
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
 		dir = FORWARD;
 		if (c == 'b')
 			dir = BACK;
-		if ((dot + dir) < text || (dot + dir) > end - 1)
-			break;
-		dot += dir;
-		if (isspace(*dot)) {
-			dot = skip_thing(dot, (c == 'e') ? 2 : 1, dir, S_OVER_WS);
-		}
-		if (isalnum(*dot) || *dot == '_') {
-			dot = skip_thing(dot, 1, dir, S_END_ALNUM);
-		} else if (ispunct(*dot)) {
-			dot = skip_thing(dot, 1, dir, S_END_PUNCT);
-		}
+		do {
+			if ((dot + dir) < text || (dot + dir) > end - 1)
+				break;
+			dot += dir;
+			if (isspace(*dot)) {
+				dot = skip_thing(dot, (c == 'e') ? 2 : 1, dir, S_OVER_WS);
+			}
+			if (isalnum(*dot) || *dot == '_') {
+				dot = skip_thing(dot, 1, dir, S_END_ALNUM);
+			} else if (ispunct(*dot)) {
+				dot = skip_thing(dot, 1, dir, S_END_PUNCT);
+			}
+		} while (--cmdcnt > 0);
 		break;
 	case 'c':			// c- change something
 	case 'd':			// d- delete something
@@ -3844,11 +3831,10 @@ static void do_cmd(int c)
 	}
 	case 'k':			// k- goto prev line, same col
 	case KEYCODE_UP:		// cursor key Up
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		dot_prev();
-		dot = move_to_col(dot, ccol + offset);	// try stay in same col
+		do {
+			dot_prev();
+			dot = move_to_col(dot, ccol + offset);	// try stay in same col
+		} while (--cmdcnt > 0);
 		break;
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
@@ -3866,19 +3852,18 @@ static void do_cmd(int c)
 		last_forward_char = 0;
 		break;
 	case 'w':			// w- forward a word
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		if (isalnum(*dot) || *dot == '_') {	// we are on ALNUM
-			dot = skip_thing(dot, 1, FORWARD, S_END_ALNUM);
-		} else if (ispunct(*dot)) {	// we are on PUNCT
-			dot = skip_thing(dot, 1, FORWARD, S_END_PUNCT);
-		}
-		if (dot < end - 1)
-			dot++;		// move over word
-		if (isspace(*dot)) {
-			dot = skip_thing(dot, 2, FORWARD, S_OVER_WS);
-		}
+		do {
+			if (isalnum(*dot) || *dot == '_') {	// we are on ALNUM
+				dot = skip_thing(dot, 1, FORWARD, S_END_ALNUM);
+			} else if (ispunct(*dot)) {	// we are on PUNCT
+				dot = skip_thing(dot, 1, FORWARD, S_END_PUNCT);
+			}
+			if (dot < end - 1)
+				dot++;		// move over word
+			if (isspace(*dot)) {
+				dot = skip_thing(dot, 2, FORWARD, S_OVER_WS);
+			}
+		} while (--cmdcnt > 0);
 		break;
 	case 'z':			// z-
 		c1 = get_one_char();	// get the replacement char
@@ -3894,17 +3879,16 @@ static void do_cmd(int c)
 		dot = move_to_col(dot, cmdcnt - 1);	// try to move to column
 		break;
 	case '~':			// ~- flip the case of letters   a-z -> A-Z
-		if (--cmdcnt > 0) {
-			do_cmd(c);
-		}
-		if (islower(*dot)) {
-			*dot = toupper(*dot);
-			file_modified++;
-		} else if (isupper(*dot)) {
-			*dot = tolower(*dot);
-			file_modified++;
-		}
-		dot_right();
+		do {
+			if (islower(*dot)) {
+				*dot = toupper(*dot);
+				file_modified++;
+			} else if (isupper(*dot)) {
+				*dot = tolower(*dot);
+				file_modified++;
+			}
+			dot_right();
+		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
 		break;
 		//----- The Cursor and Function Keys -----------------------------
