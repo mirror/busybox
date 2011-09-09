@@ -187,6 +187,16 @@ config FEATURE_GZIP_LONG_OPTIONS
 	help
 	  Enable use of long options, increases size by about 106 Bytes
 
+config GZIP_BIG_MEM
+       bool "Trade memory for gzip speed"
+       default n
+       depends on GZIP
+       help
+         Enable big memory options for gzip, including larger I/O
+         buffers and bigger hash tables.  Faster, but uses at least
+         twice as much memory.  Select if speed is more important than
+         memory use.
+
 config LZOP
 	bool "lzop"
 	default y

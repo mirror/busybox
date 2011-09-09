@@ -81,7 +81,11 @@ aa:      85.1% -- replaced with aa.gz
 
 /* ===========================================================================
  */
-#define SMALL_MEM
+#if ENABLE_GZIP_BIG_MEM
+# define BIG_MEM
+#else
+# define SMALL_MEM
+#endif
 
 #ifndef INBUFSIZ
 #  ifdef SMALL_MEM
