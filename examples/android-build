@@ -2,9 +2,10 @@
 # Build Busybox against Android's bionic
 # Originally by Dan Fandrich
 #
-# Configure with android_defconfig
+# Configure with "make android_defconfig"
+#
 # This file has been tested on Android Froyo (the lack of ttyname_r in
-# the must be patched around) and Gingerbread.
+# the android libc must be patched around) and Gingerbread.
 
 # Point this to the Android root directory; it's used in the defconfig CFLAGS
 export A="$HOME/android"

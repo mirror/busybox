@@ -1,3 +1,5 @@
+# Run "make android2_defconfig", then "make".
+#
 # Tested with the standalone toolchain from ndk r6:
 # android-ndk-r6/build/tools/make-standalone-toolchain.sh --platform=android-8
 #
