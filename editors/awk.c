@@ -238,6 +238,9 @@ typedef struct tsplitter_s {
  * For builtins it has different meaning: n n s3 s2 s1 v3 v2 v1,
  * n - min. number of args, vN - resolve Nth arg to var, sN - resolve to string
  */
+#undef P
+#undef PRIMASK
+#undef PRIMASK2
 #define P(x)      (x << 24)
 #define PRIMASK   0x7F000000
 #define PRIMASK2  0x7E000000
