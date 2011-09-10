@@ -202,4 +202,7 @@ end d
 " \
 	"" ""
 
+testing "awk handles empty ()" \
+	"awk 'BEGIN {print()}' 2>&1" "awk: cmd. line:1: Empty sequence\n" "" ""
+
 exit $FAILCOUNT
