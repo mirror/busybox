@@ -60,7 +60,6 @@
 
 #include "libbb.h"
 #include "modutils.h"
-#include <libgen.h>
 #include <sys/utsname.h>
 
 #if ENABLE_FEATURE_INSMOD_LOADINKMEM
