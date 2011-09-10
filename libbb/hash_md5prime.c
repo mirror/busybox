@@ -59,7 +59,7 @@
  * Completely removed static PADDING array.
  *
  * Reintroduced the loop unrolling in md5_transform and added the
- * MD5_SIZE_VS_SPEED option for configurability.  Define below as:
+ * MD5_SMALL option for configurability.  Define below as:
  *       0    fully unrolled loops
  *       1    partially unrolled (4 ops per loop)
  *       2    no unrolling -- introduces the need to swap 4 variables (slow)
@@ -75,12 +75,12 @@
 #include "libbb.h"
 
 /* 1: fastest, 3: smallest */
-#if CONFIG_MD5_SIZE_VS_SPEED < 1
-# define MD5_SIZE_VS_SPEED 1
-#elif CONFIG_MD5_SIZE_VS_SPEED > 3
-# define MD5_SIZE_VS_SPEED 3
+#if CONFIG_MD5_SMALL < 1
+# define MD5_SMALL 1
+#elif CONFIG_MD5_SMALL > 3
+# define MD5_SMALL 3
 #else
-# define MD5_SIZE_VS_SPEED CONFIG_MD5_SIZE_VS_SPEED
+# define MD5_SMALL CONFIG_MD5_SMALL
 #endif
 
 #if BB_LITTLE_ENDIAN
@@ -152,7 +152,7 @@ memcpy32_le2cpu(uint32_t *output, const unsigned char *input, unsigned len)
 static void md5_transform(uint32_t state[4], const unsigned char block[64])
 {
 	uint32_t a, b, c, d, x[16];
-#if MD5_SIZE_VS_SPEED > 1
+#if MD5_SMALL > 1
 	uint32_t temp;
 	const unsigned char *ps;
 
@@ -162,9 +162,9 @@ static void md5_transform(uint32_t state[4], const unsigned char block[64])
 		4, 11, 16, 23,
 		6, 10, 15, 21
 	};
-#endif /* MD5_SIZE_VS_SPEED > 1 */
+#endif /* MD5_SMALL > 1 */
 
-#if MD5_SIZE_VS_SPEED > 0
+#if MD5_SMALL > 0
 	const uint32_t *pc;
 	const unsigned char *pp;
 	int i;
@@ -198,7 +198,7 @@ static void md5_transform(uint32_t state[4], const unsigned char block[64])
 		0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9  /* 4 */
 	};
 
-#endif /* MD5_SIZE_VS_SPEED > 0 */
+#endif /* MD5_SMALL > 0 */
 
 	memcpy32_le2cpu(x, block, 64);
 
@@ -207,7 +207,7 @@ static void md5_transform(uint32_t state[4], const unsigned char block[64])
 	c = state[2];
 	d = state[3];
 
-#if MD5_SIZE_VS_SPEED > 2
+#if MD5_SMALL > 2
 	pc = C;
 	pp = P;
 	ps = S - 4;
@@ -233,7 +233,7 @@ static void md5_transform(uint32_t state[4], const unsigned char block[64])
 		temp += b;
 		a = d; d = c; c = b; b = temp;
 	}
-#elif MD5_SIZE_VS_SPEED > 1
+#elif MD5_SMALL > 1
 	pc = C;
 	pp = P;
 	ps = S;
@@ -260,7 +260,7 @@ static void md5_transform(uint32_t state[4], const unsigned char block[64])
 		II(a, b, c, d, x[*pp], ps[i & 0x3], *pc); pp++; pc++;
 		temp = d; d = c; c = b; b = a; a = temp;
 	}
-#elif MD5_SIZE_VS_SPEED > 0
+#elif MD5_SMALL > 0
 	pc = C;
 	pp = P;
 	/* Round 1 */

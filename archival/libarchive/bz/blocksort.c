@@ -385,7 +385,7 @@ int mainGtU(
  * but speeds up compression 10% overall
  */
 
-#if CONFIG_BZIP2_FEATURE_SPEED >= 1
+#if CONFIG_BZIP2_FAST >= 1
 
 #define TIMES_8(code) \
 	code; code; code; code; \
@@ -496,7 +496,7 @@ void mainSimpleSort(uint32_t* ptr,
 			i++;
 
 /* 1.5% overall speedup, +290 bytes */
-#if CONFIG_BZIP2_FEATURE_SPEED >= 3
+#if CONFIG_BZIP2_FAST >= 3
 			/*-- copy 2 --*/
 			if (i > hi) break;
 			v = ptr[i];
@@ -750,7 +750,7 @@ void mainSort(EState* state,
 	j = block[0] << 8;
 	i = nblock - 1;
 /* 3%, +300 bytes */
-#if CONFIG_BZIP2_FEATURE_SPEED >= 2
+#if CONFIG_BZIP2_FAST >= 2
 	for (; i >= 3; i -= 4) {
 		quadrant[i] = 0;
 		j = (j >> 8) | (((uint16_t)block[i]) << 8);
@@ -787,7 +787,7 @@ void mainSort(EState* state,
 
 	s = block[0] << 8;
 	i = nblock - 1;
-#if CONFIG_BZIP2_FEATURE_SPEED >= 2
+#if CONFIG_BZIP2_FAST >= 2
 	for (; i >= 3; i -= 4) {
 		s = (s >> 8) | (block[i] << 8);
 		j = ftab[s] - 1;

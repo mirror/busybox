@@ -48,7 +48,7 @@ in the file LICENSE.
 
 
 /* 90 bytes, 0.3% of overall compress speed */
-#if CONFIG_BZIP2_FEATURE_SPEED >= 1
+#if CONFIG_BZIP2_FAST >= 1
 
 /* macro works better than inline (gcc 4.2.1) */
 #define DOWNHEAP1(heap, weight, Heap) \

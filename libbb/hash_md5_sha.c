@@ -104,12 +104,12 @@ static void FAST_FUNC common64_end(md5_ctx_t *ctx, int swap_needed)
  */
 
 /* 0: fastest, 3: smallest */
-#if CONFIG_MD5_SIZE_VS_SPEED < 0
-# define MD5_SIZE_VS_SPEED 0
-#elif CONFIG_MD5_SIZE_VS_SPEED > 3
-# define MD5_SIZE_VS_SPEED 3
+#if CONFIG_MD5_SMALL < 0
+# define MD5_SMALL 0
+#elif CONFIG_MD5_SMALL > 3
+# define MD5_SMALL 3
 #else
-# define MD5_SIZE_VS_SPEED CONFIG_MD5_SIZE_VS_SPEED
+# define MD5_SMALL CONFIG_MD5_SMALL
 #endif
 
 /* These are the four functions used in the four steps of the MD5 algorithm
@@ -129,7 +129,7 @@ static void FAST_FUNC common64_end(md5_ctx_t *ctx, int swap_needed)
 /* Hash a single block, 64 bytes long and 4-byte aligned */
 static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 {
-#if MD5_SIZE_VS_SPEED > 0
+#if MD5_SMALL > 0
 	/* Before we start, one word to the strange constants.
 	   They are defined in RFC 1321 as
 	   T[i] = (int)(4294967296.0 * fabs(sin(i))), i=1..64
@@ -157,7 +157,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 		0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 	};
 	static const char P_array[] ALIGN1 = {
-# if MD5_SIZE_VS_SPEED > 1
+# if MD5_SMALL > 1
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, /* 1 */
 # endif
 		1, 6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, /* 2 */
@@ -171,7 +171,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	uint32_t C = ctx->hash[2];
 	uint32_t D = ctx->hash[3];
 
-#if MD5_SIZE_VS_SPEED >= 2  /* 2 or 3 */
+#if MD5_SMALL >= 2  /* 2 or 3 */
 
 	static const char S_array[] ALIGN1 = {
 		7, 12, 17, 22,
@@ -190,7 +190,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 		words[i] = SWAP_LE32(words[i]);
 # endif
 
-# if MD5_SIZE_VS_SPEED == 3
+# if MD5_SMALL == 3
 	pc = C_array;
 	pp = P_array;
 	ps = S_array - 4;
@@ -220,7 +220,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 		C = B;
 		B = temp;
 	}
-# else  /* MD5_SIZE_VS_SPEED == 2 */
+# else  /* MD5_SMALL == 2 */
 	pc = C_array;
 	pp = P_array;
 	ps = S_array;
@@ -271,13 +271,13 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	ctx->hash[2] += C;
 	ctx->hash[3] += D;
 
-#else  /* MD5_SIZE_VS_SPEED == 0 or 1 */
+#else  /* MD5_SMALL == 0 or 1 */
 
 	uint32_t A_save = A;
 	uint32_t B_save = B;
 	uint32_t C_save = C;
 	uint32_t D_save = D;
-# if MD5_SIZE_VS_SPEED == 1
+# if MD5_SMALL == 1
 	const uint32_t *pc;
 	const char *pp;
 	int i;
@@ -299,7 +299,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	} while (0)
 
 	/* Round 1 */
-# if MD5_SIZE_VS_SPEED == 1
+# if MD5_SMALL == 1
 	pc = C_array;
 	for (i = 0; i < 4; i++) {
 		OP(A, B, C, D, 7, *pc++);
@@ -339,7 +339,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 	} while (0)
 
 	/* Round 2 */
-# if MD5_SIZE_VS_SPEED == 1
+# if MD5_SMALL == 1
 	pp = P_array;
 	for (i = 0; i < 4; i++) {
 		OP(FG, A, B, C, D, (int) (*pp++), 5, *pc++);
@@ -367,7 +367,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 # endif
 
 	/* Round 3 */
-# if MD5_SIZE_VS_SPEED == 1
+# if MD5_SMALL == 1
 	for (i = 0; i < 4; i++) {
 		OP(FH, A, B, C, D, (int) (*pp++), 4, *pc++);
 		OP(FH, D, A, B, C, (int) (*pp++), 11, *pc++);
@@ -394,7 +394,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 # endif
 
 	/* Round 4 */
-# if MD5_SIZE_VS_SPEED == 1
+# if MD5_SMALL == 1
 	for (i = 0; i < 4; i++) {
 		OP(FI, A, B, C, D, (int) (*pp++), 6, *pc++);
 		OP(FI, D, A, B, C, (int) (*pp++), 10, *pc++);

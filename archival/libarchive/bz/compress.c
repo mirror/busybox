@@ -61,7 +61,7 @@ void bsFinishWrite(EState* s)
 /*---------------------------------------------------*/
 static
 /* Helps only on level 5, on other levels hurts. ? */
-#if CONFIG_BZIP2_FEATURE_SPEED >= 5
+#if CONFIG_BZIP2_FAST >= 5
 ALWAYS_INLINE
 #endif
 void bsW(EState* s, int32_t n, uint32_t v)
@@ -331,7 +331,7 @@ void sendMTFValues(EState* s)
 			for (v = 0; v < alphaSize; v++)
 				s->rfreq[t][v] = 0;
 
-#if CONFIG_BZIP2_FEATURE_SPEED >= 5
+#if CONFIG_BZIP2_FAST >= 5
 		/*
 		 * Set up an auxiliary length table which is used to fast-track
 		 * the common case (nGroups == 6).
@@ -361,7 +361,7 @@ void sendMTFValues(EState* s)
 			 */
 			for (t = 0; t < nGroups; t++)
 				cost[t] = 0;
-#if CONFIG_BZIP2_FEATURE_SPEED >= 5
+#if CONFIG_BZIP2_FAST >= 5
 			if (nGroups == 6 && 50 == ge-gs+1) {
 				/*--- fast track the common case ---*/
 				register uint32_t cost01, cost23, cost45;
@@ -420,7 +420,7 @@ void sendMTFValues(EState* s)
 			 * Increment the symbol frequencies for the selected table.
 			 */
 /* 1% faster compress. +800 bytes */
-#if CONFIG_BZIP2_FEATURE_SPEED >= 4
+#if CONFIG_BZIP2_FAST >= 4
 			if (nGroups == 6 && 50 == ge-gs+1) {
 				/*--- fast track the common case ---*/
 #define BZ_ITUR(nn) s->rfreq[bt][mtfv[gs + (nn)]]++

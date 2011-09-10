@@ -183,7 +183,7 @@ typedef struct EState {
 	/* stack-saving measures: these can be local, but they are too big */
 	int32_t  sendMTFValues__code [BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
 	int32_t  sendMTFValues__rfreq[BZ_N_GROUPS][BZ_MAX_ALPHA_SIZE];
-#if CONFIG_BZIP2_FEATURE_SPEED >= 5
+#if CONFIG_BZIP2_FAST >= 5
 	/* second dimension: only 3 needed; 4 makes index calculations faster */
 	uint32_t sendMTFValues__len_pack[BZ_MAX_ALPHA_SIZE][4];
 #endif
