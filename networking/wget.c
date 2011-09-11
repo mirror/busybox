@@ -298,8 +298,13 @@ static void parse_url(const char *src_url, struct host_info *h)
 
 	sp = strrchr(h->host, '@');
 	if (sp != NULL) {
-		h->user = h->host;
+		// URL-decode "user:password" string before base64-encoding:
+		// wget http://test:my%20pass@example.com should send
+		// Authorization: Basic dGVzdDpteSBwYXNz
+		// which decodes to "test:my pass".
+		// Standard wget and curl do this too.
 		*sp = '\0';
+		h->user = percent_decode_in_place(h->host, /*strict:*/ 0);
 		h->host = sp + 1;
 	}
 
@@ -660,12 +665,6 @@ static void download_one_url(const char *url)
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 		if (target.user) {
-//TODO: URL-decode "user:password" string before base64-encoding:
-//wget http://test:my%20pass@example.com should send
-// Authorization: Basic dGVzdDpteSBwYXNz
-//which decodes to "test:my pass", instead of what we send now:
-// Authorization: Basic dGVzdDpteSUyMHBhc3M=
-//Can reuse decodeString() from httpd.c
 			fprintf(sfp, "Proxy-Authorization: Basic %s\r\n"+6,
 				base64enc(target.user));
 		}

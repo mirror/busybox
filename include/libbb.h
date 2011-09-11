@@ -1578,6 +1578,15 @@ int starts_with_cpu(const char *str) FAST_FUNC;
 unsigned get_cpu_count(void) FAST_FUNC;
 
 
+/* Use strict=1 if you process input from untrusted source:
+ * it will return NULL on invalid %xx (bad hex chars)
+ * and str + 1 if decoded char is / or NUL.
+ * In non-strict mode, it always succeeds (returns str),
+ * and also it additionally decoded '+' to space.
+ */
+char *percent_decode_in_place(char *str, int strict) FAST_FUNC;
+
+
 extern const char bb_uuenc_tbl_base64[];
 extern const char bb_uuenc_tbl_std[];
 void bb_uuencode(char *store, const void *s, int length, const char *tbl) FAST_FUNC;

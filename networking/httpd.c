@@ -820,78 +820,6 @@ static char *encodeString(const char *string)
 }
 #endif
 
-/*
- * Given a URL encoded string, convert it to plain ascii.
- * Since decoding always makes strings smaller, the decode is done in-place.
- * Thus, callers should xstrdup() the argument if they do not want the
- * argument modified.  The return is the original pointer, allowing this
- * function to be easily used as arguments to other functions.
- *
- * string    The first string to decode.
- * option_d  1 if called for httpd -d
- *
- * Returns a pointer to the decoded string (same as input).
- */
-static unsigned hex_to_bin(unsigned char c)
-{
-	unsigned v;
-
-	v = c - '0';
-	if (v <= 9)
-		return v;
-	/* c | 0x20: letters to lower case, non-letters
-	 * to (potentially different) non-letters */
-	v = (unsigned)(c | 0x20) - 'a';
-	if (v <= 5)
-		return v + 10;
-	return ~0;
-/* For testing:
-void t(char c) { printf("'%c'(%u) %u\n", c, c, hex_to_bin(c)); }
-int main() { t(0x10); t(0x20); t('0'); t('9'); t('A'); t('F'); t('a'); t('f');
-t('0'-1); t('9'+1); t('A'-1); t('F'+1); t('a'-1); t('f'+1); return 0; }
-*/
-}
-static char *decodeString(char *orig, int option_d)
-{
-	/* note that decoded string is always shorter than original */
-	char *string = orig;
-	char *ptr = string;
-	char c;
-
-	while ((c = *ptr++) != '\0') {
-		unsigned v;
-
-		if (option_d && c == '+') {
-			*string++ = ' ';
-			continue;
-		}
-		if (c != '%') {
-			*string++ = c;
-			continue;
-		}
-		v = hex_to_bin(ptr[0]);
-		if (v > 15) {
- bad_hex:
-			if (!option_d)
-				return NULL;
-			*string++ = '%';
-			continue;
-		}
-		v = (v * 16) | hex_to_bin(ptr[1]);
-		if (v > 255)
-			goto bad_hex;
-		if (!option_d && (v == '/' || v == '\0')) {
-			/* caller takes it as indication of invalid
-			 * (dangerous wrt exploits) chars */
-			return orig + 1;
-		}
-		*string++ = v;
-		ptr += 2;
-	}
-	*string = '\0';
-	return orig;
-}
-
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 /*
  * Decode a base64 data stream as per rfc1521.
@@ -1949,7 +1877,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 
 	/* Decode URL escape sequences */
-	tptr = decodeString(urlcopy, 0);
+	tptr = percent_decode_in_place(urlcopy, /*strict:*/ 1);
 	if (tptr == NULL)
 		send_headers_and_exit(HTTP_BAD_REQUEST);
 	if (tptr == urlcopy + 1) {
@@ -2408,7 +2336,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 			, &verbose
 		);
 	if (opt & OPT_DECODE_URL) {
-		fputs(decodeString(url_for_decode, 1), stdout);
+		fputs(percent_decode_in_place(url_for_decode, /*strict:*/ 0), stdout);
 		return 0;
 	}
 #if ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
