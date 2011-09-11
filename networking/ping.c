@@ -613,7 +613,7 @@ static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 	}
 }
 #if ENABLE_PING6
-static void unpack6(char *packet, int sz, /*struct sockaddr_in6 *from,*/ int hoplimit)
+static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit)
 {
 	struct icmp6_hdr *icmppkt;
 	char buf[INET6_ADDRSTRLEN];
@@ -633,7 +633,7 @@ static void unpack6(char *packet, int sz, /*struct sockaddr_in6 *from,*/ int hop
 		if (sz >= sizeof(struct icmp6_hdr) + sizeof(uint32_t))
 			tp = (uint32_t *) &icmppkt->icmp6_data8[4];
 		unpack_tail(sz, tp,
-			inet_ntop(AF_INET6, &pingaddr.sin6.sin6_addr,
+			inet_ntop(AF_INET6, &from->sin6_addr,
 					buf, sizeof(buf)),
 			recv_seq, hoplimit);
 	} else if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST) {
@@ -783,7 +783,7 @@ static void ping6(len_and_sockaddr *lsa)
 				move_from_unaligned_int(hoplimit, CMSG_DATA(mp));
 			}
 		}
-		unpack6(G.rcv_packet, c, /*&from,*/ hoplimit);
+		unpack6(G.rcv_packet, c, &from, hoplimit);
 		if (pingcount && nreceived >= pingcount)
 			break;
 	}
