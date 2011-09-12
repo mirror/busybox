@@ -1164,7 +1164,7 @@ extern int del_loop(const char *device) FAST_FUNC;
 /* If *devname is not NULL, use that name, otherwise try to find free one,
  * malloc and return it in *devname.
  * return value: 1: read-only loopdev was setup, 0: rw, < 0: error */
-extern int set_loop(char **devname, const char *file, unsigned long long offset) FAST_FUNC;
+extern int set_loop(char **devname, const char *file, unsigned long long offset, int ro) FAST_FUNC;
 
 /* Like bb_ask below, but asks on stdin with no timeout.  */
 char *bb_ask_stdin(const char * prompt) FAST_FUNC;
