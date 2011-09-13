@@ -26,7 +26,7 @@
  * add_input_file() adds a FILE* to the list of input files.  We need to
  * know all input sources ahead of time to find the last line for the $ match.
  *
- * process_files() does actual sedding, reading data lines from each input FILE *
+ * process_files() does actual sedding, reading data lines from each input FILE*
  * (which could be stdin) and applying the sed command list (sed_cmd_head) to
  * each of the resulting lines.
  *
@@ -57,7 +57,8 @@
  */
 
 //usage:#define sed_trivial_usage
-//usage:       "[-efinr] SED_CMD [FILE]..."
+//usage:       "[-inr] [-f FILE]... [-e CMD]... [FILE]...\n"
+//usage:       "or: sed [-inr] CMD [FILE]..."
 //usage:#define sed_full_usage "\n\n"
 //usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
