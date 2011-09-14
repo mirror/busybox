@@ -205,6 +205,17 @@ config LOGIN
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
+config LOGIN_SESSION_AS_CHILD
+	bool "Run logged in session in a child process"
+	default y if PAM
+	depends on LOGIN
+	help
+	  Run the logged in session in a child process.  This allows
+	  login to clean up things such as utmp entries or PAM sessions
+	  when the login session is complete.  If you use PAM, you
+	  almost always would want this to be set to Y, else PAM session
+	  will not be cleaned up.
+
 config PAM
 	bool "Support for PAM (Pluggable Authentication Modules)"
 	default n

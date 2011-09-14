@@ -41,8 +41,6 @@ enum {
 	TTYNAME_SIZE = 32,
 };
 
-static char* short_tty;
-
 #if ENABLE_FEATURE_NOLOGIN
 static void die_if_nologin(void)
 {
@@ -74,7 +72,7 @@ static void die_if_nologin(void)
 #endif
 
 #if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
-static int check_securetty(void)
+static int check_securetty(const char *short_tty)
 {
 	char *buf = (char*)"/etc/securetty"; /* any non-NULL is ok */
 	parser_t *parser = config_open2("/etc/securetty", fopen_for_read);
@@ -89,7 +87,7 @@ static int check_securetty(void)
 	return buf != NULL;
 }
 #else
-static ALWAYS_INLINE int check_securetty(void) { return 1; }
+static ALWAYS_INLINE int check_securetty(const char *short_tty UNUSED_PARAM) { return 1; }
 #endif
 
 #if ENABLE_SELINUX
@@ -141,6 +139,29 @@ static void run_login_script(struct passwd *pw, char *full_tty)
 #else
 void run_login_script(struct passwd *pw, char *full_tty);
 #endif
+
+#if ENABLE_LOGIN_SESSION_AS_CHILD && ENABLE_PAM
+static void login_pam_end(pam_handle_t *pamh)
+{
+	int pamret;
+
+	pamret = pam_setcred(pamh, PAM_DELETE_CRED);
+	if (pamret != PAM_SUCCESS) {
+		bb_error_msg("pam_%s failed: %s (%d)", "setcred",
+			pam_strerror(pamh, pamret), pamret);
+	}
+	pamret = pam_close_session(pamh, 0);
+	if (pamret != PAM_SUCCESS) {
+		bb_error_msg("pam_%s failed: %s (%d)", "close_session",
+			pam_strerror(pamh, pamret), pamret);
+	}
+	pamret = pam_end(pamh, pamret);
+	if (pamret != PAM_SUCCESS) {
+		bb_error_msg("pam_%s failed: %s (%d)", "end",
+			pam_strerror(pamh, pamret), pamret);
+	}
+}
+#endif /* ENABLE_PAM */
 
 static void get_username_or_die(char *buf, int size_buf)
 {
@@ -214,6 +235,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	char *opt_host = NULL;
 	char *opt_user = opt_user; /* for compiler */
 	char *full_tty;
+	char *short_tty;
 	IF_SELINUX(security_context_t user_sid = NULL;)
 #if ENABLE_PAM
 	int pamret;
@@ -223,6 +245,9 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd pwdstruct;
 	char pwdbuf[256];
 	char **pamenv;
+#endif
+#if ENABLE_LOGIN_SESSION_AS_CHILD
+	pid_t child_pid;
 #endif
 
 	username[0] = '\0';
@@ -359,7 +384,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & LOGIN_OPT_f)
 			break; /* -f USER: success without asking passwd */
 
-		if (pw->pw_uid == 0 && !check_securetty())
+		if (pw->pw_uid == 0 && !check_securetty(short_tty))
 			goto auth_failed;
 
 		/* Don't check the password if password entry is empty (!) */
@@ -393,7 +418,23 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (pw->pw_uid != 0)
 		die_if_nologin();
 
-	IF_SELINUX(initselinux(username, full_tty, &user_sid));
+
+#if ENABLE_LOGIN_SESSION_AS_CHILD
+	child_pid = vfork();
+	if (child_pid != 0) {
+		if (child_pid < 0)
+			bb_perror_msg("vfork");
+		else {
+			if (safe_waitpid(child_pid, NULL, 0) == -1)
+				bb_perror_msg("waitpid");
+			update_utmp(child_pid, DEAD_PROCESS, NULL, NULL, NULL);
+		}
+		IF_PAM(login_pam_end(pamh);)
+		return 0;
+	}
+#endif
+
+	IF_SELINUX(initselinux(username, full_tty, &user_sid);)
 
 	/* Try these, but don't complain if they fail.
 	 * _f_chown is safe wrt race t=ttyname(0);...;chown(t); */

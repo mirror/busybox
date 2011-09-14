@@ -66,6 +66,7 @@ struct globals {
 #define names (G.names)
 #define cur   (G.cur  )
 #define cmd   (G.cmd  )
+#define INIT_G() do { } while (0)
 
 enum { NUM_CMD = (COMMON_BUFSIZE - sizeof(G)) / sizeof(cmd[0]) - 1 };
 
@@ -142,6 +143,8 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 	llist_t *arg_list = NULL;
 	unsigned n;
 	int ret;
+
+	INIT_G();
 
 #if ENABLE_FEATURE_RUN_PARTS_LONG_OPTIONS
 	applet_long_options = runparts_longopts;
