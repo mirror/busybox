@@ -1414,7 +1414,7 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 				bb_error_msg("non-root must run services as himself");
 				goto do_exit1;
 			}
-			if (pwd->pw_uid) {
+			if (pwd->pw_uid != 0) {
 				if (sep->se_group)
 					pwd->pw_gid = grp->gr_gid;
 				/* initgroups, setgid, setuid: */

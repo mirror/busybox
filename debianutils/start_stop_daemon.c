@@ -502,8 +502,16 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_c) {
 		struct bb_uidgid_t ugid = { -1, -1 };
 		parse_chown_usergroup_or_die(&ugid, chuid);
-		if (ugid.gid != (gid_t) -1) xsetgid(ugid.gid);
-		if (ugid.uid != (uid_t) -1) xsetuid(ugid.uid);
+		if (ugid.uid != (uid_t) -1) {
+			struct passwd *pw = xgetpwuid(ugid.uid);
+			if (ugid.gid != (gid_t) -1)
+				pw->pw_gid = ugid.gid;
+			/* initgroups, setgid, setuid: */
+			change_identity(pw);
+		} else if (ugid.gid != (gid_t) -1) {
+			xsetgid(ugid.gid);
+			setgroups(1, &ugid.gid);
+		}
 	}
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 	if (opt & OPT_NICELEVEL) {
