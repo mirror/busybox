@@ -405,19 +405,18 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_e)
 		edir(env_dir);
 
-	// FIXME: chrooted jail must have /etc/passwd if we move this after chroot!
-	// OTOH chroot fails for non-roots!
-	// SOLUTION: cache uid/gid before chroot, apply uid/gid after
+	if (opt & (OPT_u|OPT_U)) {
+		xget_uidgid(&ugid, set_user);
+	}
+
 	if (opt & OPT_U) {
-		xget_uidgid(&ugid, env_user);
 		xsetenv("GID", utoa(ugid.gid));
 		xsetenv("UID", utoa(ugid.uid));
 	}
 
-	if (opt & OPT_u) {
-		xget_uidgid(&ugid, set_user);
-	}
-
+	// chrooted jail must have /etc/passwd if we move this after chroot.
+	// OTOH chroot fails for non-roots.
+	// Solution: cache uid/gid before chroot, apply uid/gid after.
 	if (opt & OPT_root) {
 		xchdir(root);
 		xchroot(".");
