@@ -26,18 +26,18 @@
 //usage:     "\n			Examples:"
 //usage:     "\n			-H 'exec openssl s_client -quiet -tls1 -starttls smtp"
 //usage:     "\n				-connect smtp.gmail.com:25' <email.txt"
-//usage:     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]"
+//usage:     "\n				[4<username_and_passwd.txt | -auUSER -apPASS]"
 //usage:     "\n			-H 'exec openssl s_client -quiet -tls1"
 //usage:     "\n				-connect smtp.gmail.com:465' <email.txt"
-//usage:     "\n				[4<username_and_passwd.txt | -au<username> -ap<password>]"
+//usage:     "\n				[4<username_and_passwd.txt | -auUSER -apPASS]"
 //usage:     "\n	-S HOST[:PORT]	Server"
-//usage:     "\n	-au<username>	Username for AUTH LOGIN"
-//usage:     "\n	-ap<password>	Password for AUTH LOGIN"
-//usage:     "\n	-am<method>	Authentication method. Ignored. LOGIN is implied"
+//usage:     "\n	-auUSER		Username for AUTH LOGIN"
+//usage:     "\n	-apPASS 	Password for AUTH LOGIN"
+////usage:     "\n	-amMETHOD	Authentication method. Ignored. LOGIN is implied"
 //usage:     "\n"
 //usage:     "\nOther options are silently ignored; -oi -t is implied"
 //usage:	IF_MAKEMIME(
-//usage:     "\nUse makemime applet to create message with attachments"
+//usage:     "\nUse makemime to create emails with attachments"
 //usage:	)
 
 #include "libbb.h"
@@ -66,7 +66,7 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 	// if not equal -> die saying msg
 	while ((answer = xmalloc_fgetline(stdin)) != NULL) {
 		if (verbose)
-			bb_error_msg("recv:'%.*s' %d", (int)(strchrnul(answer, '\r') - answer), answer, verbose);
+			bb_error_msg("recv:'%.*s'", (int)(strchrnul(answer, '\r') - answer), answer);
 		if (strlen(answer) <= 3 || '-' != answer[3])
 			break;
 		free(answer);
@@ -75,10 +75,11 @@ static int smtp_checkp(const char *fmt, const char *param, int code)
 		int n = atoi(answer);
 		if (timeout)
 			alarm(0);
-		free(msg);
 		free(answer);
-		if (-1 == code || n == code)
+		if (-1 == code || n == code) {
+			free(msg);
 			return n;
+		}
 	}
 	bb_error_msg_and_die("%s failed", msg);
 }
@@ -176,11 +177,35 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		const char *args[] = { "sh", "-c", opt_connect, NULL };
 		// plug it in
 		launch_helper(args);
-	// vanilla connection
+		// Now:
+		// our stdout will go to helper's stdin,
+		// helper's stdout will be available on our stdin.
+
+		// Wait for initial server message.
+		// If helper (such as openssl) invokes STARTTLS, the initial 220
+		// is swallowed by helper (and not repeated after TLS is initiated).
+		// We will send NOOP cmd to server and check the response.
+		// We should get 220+250 on plain connection, 250 on STARTTLSed session.
+		//
+		// The problem here is some servers delay initial 220 message,
+		// and consider client to be a spammer if it starts sending cmds
+		// before 220 reached it. The code below is unsafe in this regard:
+		// in non-STARTTLSed case, we potentially send NOOP before 220
+		// is sent by server.
+		// Ideas? (--delay SECS opt? --assume-starttls-helper opt?)
+		code = smtp_check("NOOP", -1);
+		if (code == 220)
+			// we got 220 - this is not STARTTLSed connection,
+			// eat 250 response to our NOOP
+			smtp_check(NULL, 250);
+		else
+		if (code != 250)
+			bb_error_msg_and_die("SMTP init failed");
 	} else {
+		// vanilla connection
 		int fd;
 		// host[:port] not explicitly specified? -> use $SMTPHOST
-		// no $SMTPHOST ? -> use localhost
+		// no $SMTPHOST? -> use localhost
 		if (!(opts & OPT_S)) {
 			opt_connect = getenv("SMTPHOST");
 			if (!opt_connect)
@@ -191,25 +216,14 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		// and make ourselves a simple IO filter
 		xmove_fd(fd, STDIN_FILENO);
 		xdup2(STDIN_FILENO, STDOUT_FILENO);
-	}
-	// N.B. from now we know nothing about network :)
 
-	// wait for initial server OK
-	// N.B. if we used openssl the initial 220 answer is already swallowed during openssl TLS init procedure
-	// so we need to kick the server to see whether we are ok
-	code = smtp_check("NOOP", -1);
-	// 220 on plain connection, 250 on openssl-helped TLS session
-	if (220 == code)
-		smtp_check(NULL, 250); // reread the code to stay in sync
-	else if (250 != code)
-		bb_error_msg_and_die("INIT failed");
+		// Wait for initial server 220 message
+		smtp_check(NULL, 220);
+	}
 
 	// we should start with modern EHLO
-	if (250 != smtp_checkp("EHLO %s", domain, -1)) {
+	if (250 != smtp_checkp("EHLO %s", domain, -1))
 		smtp_checkp("HELO %s", domain, 250);
-	}
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(domain);
 
 	// perform authentication
 	if (opts & OPT_a) {
@@ -224,7 +238,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	// set sender
-	// N.B. we have here a very loosely defined algotythm
+	// N.B. we have here a very loosely defined algorythm
 	// since sendmail historically offers no means to specify secrets on cmdline.
 	// 1) server can require no authentication ->
 	//	we must just provide a (possibly fake) reply address.
@@ -241,8 +255,6 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	//	G.user = xuid2uname(getuid());
 	//	opt_from = xasprintf("%s@%s", G.user, domain);
 	//}
-	//if (ENABLE_FEATURE_CLEAN_UP)
-	//	free(domain);
 	smtp_checkp("MAIL FROM:<%s>", opt_from, 250);
 
 	// process message
@@ -272,26 +284,26 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
 			rcptto(sane_address(s+3));
 			goto addheader;
+		}
 		// Bcc: header adds blind copy (hidden) recipient
-		} else if (0 == strncasecmp("Bcc:", s, 4)) {
+		if (0 == strncasecmp("Bcc:", s, 4)) {
 			rcptto(sane_address(s+4));
 			free(s);
 			// N.B. Bcc: vanishes from headers!
-
-		// other headers go verbatim
-
-		// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
-		// Continuation is denoted by prefixing additional lines with whitespace(s).
-		// Thanks (stefan.seyfried at googlemail.com) for pointing this out.
-		} else if (strchr(s, ':') || (list && skip_whitespace(s) != s)) {
+		} else
+		if (strchr(s, ':') || (list && skip_whitespace(s) != s)) {
+			// other headers go verbatim
+			// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
+			// Continuation is denoted by prefixing additional lines with whitespace(s).
+			// Thanks (stefan.seyfried at googlemail.com) for pointing this out.
  addheader:
 			// N.B. we allow MAX_HEADERS generic headers at most to prevent attacks
 			if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
 				goto bail;
 			llist_add_to_end(&list, s);
-		// a line without ":" (an empty line too, by definition) doesn't look like a valid header
-		// so stop "analyze headers" mode
 		} else {
+			// a line without ":" (an empty line too, by definition) doesn't look like a valid header
+			// so stop "analyze headers" mode
  reenter:
 			// put recipients specified on cmdline
 			while (*argv) {
