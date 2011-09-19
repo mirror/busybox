@@ -8,19 +8,91 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
+//config:config MDEV
+//config:	bool "mdev"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  mdev is a mini-udev implementation for dynamically creating device
+//config:	  nodes in the /dev directory.
+//config:
+//config:	  For more information, please see docs/mdev.txt
+//config:
+//config:config FEATURE_MDEV_CONF
+//config:	bool "Support /etc/mdev.conf"
+//config:	default y
+//config:	depends on MDEV
+//config:	help
+//config:	  Add support for the mdev config file to control ownership and
+//config:	  permissions of the device nodes.
+//config:
+//config:	  For more information, please see docs/mdev.txt
+//config:
+//config:config FEATURE_MDEV_RENAME
+//config:	bool "Support subdirs/symlinks"
+//config:	default y
+//config:	depends on FEATURE_MDEV_CONF
+//config:	help
+//config:	  Add support for renaming devices and creating symlinks.
+//config:
+//config:	  For more information, please see docs/mdev.txt
+//config:
+//config:config FEATURE_MDEV_RENAME_REGEXP
+//config:	bool "Support regular expressions substitutions when renaming device"
+//config:	default y
+//config:	depends on FEATURE_MDEV_RENAME
+//config:	help
+//config:	  Add support for regular expressions substitutions when renaming
+//config:	  device.
+//config:
+//config:config FEATURE_MDEV_EXEC
+//config:	bool "Support command execution at device addition/removal"
+//config:	default y
+//config:	depends on FEATURE_MDEV_CONF
+//config:	help
+//config:	  This adds support for an optional field to /etc/mdev.conf for
+//config:	  executing commands when devices are created/removed.
+//config:
+//config:	  For more information, please see docs/mdev.txt
+//config:
+//config:config FEATURE_MDEV_LOAD_FIRMWARE
+//config:	bool "Support loading of firmwares"
+//config:	default y
+//config:	depends on MDEV
+//config:	help
+//config:	  Some devices need to load firmware before they can be usable.
+//config:
+//config:	  These devices will request userspace look up the files in
+//config:	  /lib/firmware/ and if it exists, send it to the kernel for
+//config:	  loading into the hardware.
+
+//applet:IF_MDEV(APPLET(mdev, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MDEV) += mdev.o
+
 //usage:#define mdev_trivial_usage
 //usage:       "[-s]"
 //usage:#define mdev_full_usage "\n\n"
-//usage:       "	-s	Scan /sys and populate /dev during system boot\n"
+//usage:       "mdev -s is to be run during boot to scan /sys and populate /dev.\n"
 //usage:       "\n"
-//usage:       "It can be run by kernel as a hotplug helper. To activate it:\n"
-//usage:       " echo /sbin/mdev > /proc/sys/kernel/hotplug\n"
+//usage:       "Bare mdev is a kernel hotplug helper. To activate it:\n"
+//usage:       "	echo /sbin/mdev >/proc/sys/kernel/hotplug\n"
 //usage:	IF_FEATURE_MDEV_CONF(
+//usage:       "\n"
 //usage:       "It uses /etc/mdev.conf with lines\n"
-//usage:       "[-]DEVNAME UID:GID PERM"
-//usage:			IF_FEATURE_MDEV_RENAME(" [>|=PATH]")
+//usage:       "	[-]DEVNAME UID:GID PERM"
+//usage:			IF_FEATURE_MDEV_RENAME(" [>|=PATH]|[!]")
 //usage:			IF_FEATURE_MDEV_EXEC(" [@|$|*PROG]")
+//usage:       "\n"
+//usage:       "where DEVNAME is device name regex, @major,minor[-minor2], or\n"
+//usage:       "environment variable regex. A common use of the latter is\n"
+//usage:       "to load modules for hotplugged devices:\n"
+//usage:       "	$MODALIAS=.* 0:0 660 @modprobe \"$MODALIAS\"\n"
 //usage:	)
+//usage:       "\n"
+//usage:       "If /dev/mdev.seq file exists, mdev will wait for its value\n"
+//usage:       "to match $SEQNUM variable. This prevents plug/unplug races.\n"
+//usage:       "To activate this feature, create empty /dev/mdev.seq at boot."
 //usage:
 //usage:#define mdev_notes_usage ""
 //usage:	IF_FEATURE_MDEV_CONFIG(
@@ -64,9 +136,9 @@
  * If /etc/mdev.conf exists, it may modify /dev/device_name's properties.
  * /etc/mdev.conf file format:
  *
- * [-][subsystem/]device  user:grp  mode  [>|=path] [@|$|*command args...]
- * [-]@maj,min[-min2]     user:grp  mode  [>|=path] [@|$|*command args...]
- * [-]$envvar=val         user:grp  mode  [>|=path] [@|$|*command args...]
+ * [-][subsystem/]device  user:grp  mode  [>|=path]|[!] [@|$|*command args...]
+ * [-]@maj,min[-min2]     user:grp  mode  [>|=path]|[!] [@|$|*command args...]
+ * [-]$envvar=val         user:grp  mode  [>|=path]|[!] [@|$|*command args...]
  *
  * Leading minus in 1st field means "don't stop on this line", otherwise
  * search is stopped after the matching line is encountered.

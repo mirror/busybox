@@ -404,64 +404,6 @@ config LSUSB
 
 	  This version uses sysfs (/sys/bus/usb/devices) only.
 
-config MDEV
-	bool "mdev"
-	default y
-	select PLATFORM_LINUX
-	help
-	  mdev is a mini-udev implementation for dynamically creating device
-	  nodes in the /dev directory.
-
-	  For more information, please see docs/mdev.txt
-
-config FEATURE_MDEV_CONF
-	bool "Support /etc/mdev.conf"
-	default y
-	depends on MDEV
-	help
-	  Add support for the mdev config file to control ownership and
-	  permissions of the device nodes.
-
-	  For more information, please see docs/mdev.txt
-
-config FEATURE_MDEV_RENAME
-	bool "Support subdirs/symlinks"
-	default y
-	depends on FEATURE_MDEV_CONF
-	help
-	  Add support for renaming devices and creating symlinks.
-
-	  For more information, please see docs/mdev.txt
-
-config FEATURE_MDEV_RENAME_REGEXP
-	bool "Support regular expressions substitutions when renaming device"
-	default y
-	depends on FEATURE_MDEV_RENAME
-	help
-	  Add support for regular expressions substitutions when renaming
-	  device.
-
-config FEATURE_MDEV_EXEC
-	bool "Support command execution at device addition/removal"
-	default y
-	depends on FEATURE_MDEV_CONF
-	help
-	  This adds support for an optional field to /etc/mdev.conf for
-	  executing commands when devices are created/removed.
-
-	  For more information, please see docs/mdev.txt
-
-config FEATURE_MDEV_LOAD_FIRMWARE
-	bool "Support loading of firmwares"
-	default y
-	depends on MDEV
-	help
-	  Some devices need to load firmware before they can be usable.
-
-	  These devices will request userspace look up the files in
-	  /lib/firmware/ and if it exists, send it to the kernel for
-	  loading into the hardware.
-
 config MKSWAP
 	bool "mkswap"
 	default y

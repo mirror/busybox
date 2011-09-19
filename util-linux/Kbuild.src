@@ -26,7 +26,6 @@ lib-$(CONFIG_IPCS)              += ipcs.o
 lib-$(CONFIG_LOSETUP)           += losetup.o
 lib-$(CONFIG_LSPCI)             += lspci.o
 lib-$(CONFIG_LSUSB)             += lsusb.o
-lib-$(CONFIG_MDEV)              += mdev.o
 lib-$(CONFIG_MKFS_EXT2)         += mkfs_ext2.o
 lib-$(CONFIG_MKFS_MINIX)        += mkfs_minix.o
 lib-$(CONFIG_MKFS_REISER)       += mkfs_reiser.o
