@@ -433,6 +433,7 @@ struct BUG_G_too_big {
 #define hwif_data          (G.hwif_data              )
 #define hwif_ctrl          (G.hwif_ctrl              )
 #define hwif_irq           (G.hwif_irq               )
+#define INIT_G() do { } while (0)
 
 
 /* Busybox messages and functions */
@@ -2058,6 +2059,8 @@ int hdparm_main(int argc, char **argv)
 {
 	int c;
 	int flagcount = 0;
+
+	INIT_G();
 
 	while ((c = getopt(argc, argv, hdparm_options)) >= 0) {
 		flagcount++;

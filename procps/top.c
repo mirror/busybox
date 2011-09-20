@@ -126,7 +126,6 @@ struct BUG_bad_size {
 	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 	char BUG_line_buf_too_small[LINE_BUF_SIZE > 80 ? 1 : -1];
 };
-#define INIT_G() do { } while (0)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )
@@ -143,6 +142,7 @@ struct BUG_bad_size {
 #define num_cpus         (G.num_cpus          )
 #define total_pcpu       (G.total_pcpu        )
 #define line_buf         (G.line_buf          )
+#define INIT_G() do { } while (0)
 
 enum {
 	OPT_d = (1 << 0),

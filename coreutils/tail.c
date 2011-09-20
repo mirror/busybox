@@ -62,6 +62,7 @@ struct globals {
 	bool exitcode;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
 
 static void tail_xprint_header(const char *fmt, const char *filename)
 {
@@ -119,6 +120,8 @@ int tail_main(int argc, char **argv)
 
 	int *fds;
 	const char *fmt;
+
+	INIT_G();
 
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 	/* Allow legacy syntax of an initial numeric option without -n. */

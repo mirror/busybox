@@ -339,6 +339,7 @@ enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_b
 #endif
 #define fslist            (G.fslist           )
 #define getmntent_buf     (G.getmntent_buf    )
+#define INIT_G() do { } while (0)
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
 /*
@@ -1943,6 +1944,8 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	IF_NOT_DESKTOP(const int nonroot = 0;)
 
 	IF_DESKTOP(int nonroot = ) sanitize_env_if_suid();
+
+	INIT_G();
 
 	// Parse long options, like --bind and --move.  Note that -o option
 	// and --option are synonymous.  Yes, this means --remount,rw works.

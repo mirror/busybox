@@ -75,8 +75,7 @@ struct globals {
 #define logpipe     (G.logpipe     )
 #define pfd         (G.pfd         )
 #define stamplog    (G.stamplog    )
-#define INIT_G() do { \
-} while (0)
+#define INIT_G() do { } while (0)
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {

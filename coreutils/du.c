@@ -88,6 +88,7 @@ struct globals {
 	dev_t dir_dev;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
 
 
 static void print(unsigned long size, const char *filename)
@@ -192,6 +193,8 @@ int du_main(int argc UNUSED_PARAM, char **argv)
 	unsigned long total;
 	int slink_depth_save;
 	unsigned opt;
+
+	INIT_G();
 
 #if ENABLE_FEATURE_HUMAN_READABLE
 	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(G.disp_hr = 1024;)

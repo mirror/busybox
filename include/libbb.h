@@ -684,10 +684,13 @@ void *malloc_or_warn(size_t size) FAST_FUNC RETURNS_MALLOC;
 void *xmalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
 void *xzalloc(size_t size) FAST_FUNC RETURNS_MALLOC;
 void *xrealloc(void *old, size_t size) FAST_FUNC;
-/* After xrealloc_vector(v, 4, idx) it's ok to use
+/* After v = xrealloc_vector(v, SHIFT, idx) it's ok to use
  * at least v[idx] and v[idx+1], for all idx values.
- * shift specifies how many new elements are added (1: 2, 2: 4... 8: 256...)
- * when all elements are used up. New elements are zeroed out. */
+ * SHIFT specifies how many new elements are added (1:2, 2:4, ..., 8:256...)
+ * when all elements are used up. New elements are zeroed out.
+ * xrealloc_vector(v, SHIFT, idx) *MUST* be called with consecutive IDXs -
+ * skipping an index is a bad bug - it may miss a realloc!
+ */
 #define xrealloc_vector(vector, shift, idx) \
 	xrealloc_vector_helper((vector), (sizeof((vector)[0]) << 8) + (shift), (idx))
 void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) FAST_FUNC;

@@ -48,6 +48,7 @@ struct globals {
 #else
 #define g_flags 0
 #endif
+#define INIT_G() do { } while (0)
 
 static int swap_enable_disable(char *device)
 {
@@ -110,6 +111,8 @@ int swap_on_off_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 {
 	int ret;
+
+	INIT_G();
 
 #if !ENABLE_FEATURE_SWAPON_PRI
 	ret = getopt32(argv, "a");

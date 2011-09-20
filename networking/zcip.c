@@ -91,6 +91,7 @@ struct globals {
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define saddr    (G.saddr   )
 #define eth_addr (G.eth_addr)
+#define INIT_G() do { } while (0)
 
 
 /**
@@ -223,6 +224,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 #define verbose    (L.verbose   )
 
 	memset(&L, 0, sizeof(L));
+	INIT_G();
 
 #define FOREGROUND (opts & 1)
 #define QUIT       (opts & 2)

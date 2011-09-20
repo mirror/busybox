@@ -100,6 +100,7 @@ struct globals {
 	char **args;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
 
 /* forward declarations */
 static VALUE *eval(void);
@@ -518,6 +519,8 @@ int expr_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int expr_main(int argc UNUSED_PARAM, char **argv)
 {
 	VALUE *v;
+
+	INIT_G();
 
 	xfunc_error_retval = 2; /* coreutils compat */
 	G.args = argv + 1;
