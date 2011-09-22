@@ -40,7 +40,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 /* Constants for Huffman coding */
 #define MAX_GROUPS          6

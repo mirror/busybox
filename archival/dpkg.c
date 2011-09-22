@@ -57,7 +57,7 @@
 
 #include "libbb.h"
 #include <fnmatch.h>
-#include "archive.h"
+#include "bb_archive.h"
 
 /* note: if you vary hash_prime sizes be aware,
  * 1) tweaking these will have a big effect on how much memory this program uses.

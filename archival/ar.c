@@ -28,7 +28,7 @@
 //usage:     "\n	-v	Verbose"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 #include "ar.h"
 
 #if ENABLE_FEATURE_AR_CREATE

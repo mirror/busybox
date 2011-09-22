@@ -44,7 +44,7 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 /* FIXME: Stop using this non-standard feature */
 #ifndef FNM_LEADING_DIR
 # define FNM_LEADING_DIR 0

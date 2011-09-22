@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 /* transformer(), more than meets the eye */
 /*

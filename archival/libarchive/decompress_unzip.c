@@ -35,7 +35,7 @@
 
 #include <setjmp.h>
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 typedef struct huft_t {
 	unsigned char e;	/* number of extra bits or operation */

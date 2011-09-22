@@ -15,7 +15,7 @@
 )
 
 #if ZIPPED
-# include "archive.h"
+# include "bb_archive.h"
 #endif
 
 

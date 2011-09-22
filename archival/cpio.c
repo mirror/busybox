@@ -12,7 +12,7 @@
  *
  */
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 //usage:#define cpio_trivial_usage
 //usage:       "[-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]")

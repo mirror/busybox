@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 /*  If we are reading through a pipe, or from stdin then we can't lseek,
  *  we must read and discard the data to skip over it.

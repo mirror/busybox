@@ -32,7 +32,7 @@
 //usage:     "\n	-d DIR	Extract files into DIR"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 enum {
 #if BB_BIG_ENDIAN

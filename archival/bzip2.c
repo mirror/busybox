@@ -17,7 +17,7 @@
 //usage:     "\n	-f	Force"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 #define CONFIG_BZIP2_FAST 1
 

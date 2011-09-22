@@ -13,7 +13,7 @@
 //usage:       "Output a cpio archive of the rpm file"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 #include "rpm.h"
 
 enum { rpm_fd = STDIN_FILENO };

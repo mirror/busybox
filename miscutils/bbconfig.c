@@ -10,7 +10,7 @@
 #include "libbb.h"
 #include "bbconfigopts.h"
 #if ENABLE_FEATURE_COMPRESS_BBCONFIG
-# include "archive.h"
+# include "bb_archive.h"
 # include "bbconfigopts_bz2.h"
 #endif
 

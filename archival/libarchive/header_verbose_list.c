@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 void FAST_FUNC header_verbose_list(const file_header_t *file_header)
 {

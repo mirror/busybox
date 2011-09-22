@@ -25,7 +25,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 
 /* Default input buffer size */

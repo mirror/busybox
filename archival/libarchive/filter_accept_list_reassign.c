@@ -6,7 +6,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 /* Built and used only if ENABLE_DPKG || ENABLE_DPKG_DEB */
 

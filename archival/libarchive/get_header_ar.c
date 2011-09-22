@@ -5,7 +5,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 #include "ar.h"
 
 static unsigned read_num(const char *str, int base)

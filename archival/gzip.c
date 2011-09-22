@@ -55,7 +55,7 @@ aa:      85.1% -- replaced with aa.gz
 //usage:       "-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 
 /* ===========================================================================

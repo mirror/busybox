@@ -51,7 +51,7 @@
 //usage:     "\n	-F	Don't store or verify checksum"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 #include "liblzo_interface.h"
 
 /* lzo-2.03/src/lzo_ptr.h */

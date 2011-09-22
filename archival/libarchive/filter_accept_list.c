@@ -6,7 +6,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 /*
  * Accept names that are in the accept list, ignoring reject list.

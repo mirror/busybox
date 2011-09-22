@@ -20,7 +20,7 @@
 //usage:     "\n	-c	List config files"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 #include "rpm.h"
 
 #define RPM_CHAR_TYPE           1

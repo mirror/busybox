@@ -4,7 +4,7 @@
  */
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 archive_handle_t* FAST_FUNC init_handle(void)
 {

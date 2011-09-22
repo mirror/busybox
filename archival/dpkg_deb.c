@@ -19,7 +19,7 @@
 //usage:       "$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
 #include "libbb.h"
-#include "archive.h"
+#include "bb_archive.h"
 
 #define DPKG_DEB_OPT_CONTENTS         1
 #define DPKG_DEB_OPT_CONTROL          2

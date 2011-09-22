@@ -62,7 +62,7 @@ static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 #if ENABLE_FEATURE_COMPRESS_USAGE
 
 static const char packed_usage[] ALIGN1 = { PACKED_USAGE };
-# include "archive.h"
+# include "bb_archive.h"
 static const char *unpack_usage_messages(void)
 {
 	char *outbuf = NULL;
