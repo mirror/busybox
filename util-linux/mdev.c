@@ -93,26 +93,6 @@
 //usage:       "If /dev/mdev.seq file exists, mdev will wait for its value\n"
 //usage:       "to match $SEQNUM variable. This prevents plug/unplug races.\n"
 //usage:       "To activate this feature, create empty /dev/mdev.seq at boot."
-//usage:
-//usage:#define mdev_notes_usage ""
-//usage:	IF_FEATURE_MDEV_CONFIG(
-//usage:       "The mdev config file contains lines that look like:\n"
-//usage:       "  hd[a-z][0-9]* 0:3 660\n\n"
-//usage:       "That's device name (with regex match), uid:gid, and permissions.\n\n"
-//usage:	IF_FEATURE_MDEV_EXEC(
-//usage:       "Optionally, that can be followed (on the same line) by a special character\n"
-//usage:       "and a command line to run after creating/before deleting the corresponding\n"
-//usage:       "device(s). The environment variable $MDEV indicates the active device node\n"
-//usage:       "(which is useful if it's a regex match). For example:\n\n"
-//usage:       "  hdc root:cdrom 660  *ln -s $MDEV cdrom\n\n"
-//usage:       "The special characters are @ (run after creating), $ (run before deleting),\n"
-//usage:       "and * (run both after creating and before deleting). The commands run in\n"
-//usage:       "the /dev directory, and use system() which calls /bin/sh.\n\n"
-//usage:	)
-//usage:       "Config file parsing stops on the first matching line. If no config\n"
-//usage:       "entry is matched, devices are created with default 0:0 660. (Make\n"
-//usage:       "the last line match .* to override this.)\n\n"
-//usage:	)
 
 #include "libbb.h"
 #include "xregex.h"
@@ -134,20 +114,11 @@
  * (todo: explain "delete" and $FIRMWARE)
  *
  * If /etc/mdev.conf exists, it may modify /dev/device_name's properties.
- * /etc/mdev.conf file format:
- *
- * [-][subsystem/]device  user:grp  mode  [>|=path]|[!] [@|$|*command args...]
- * [-]@maj,min[-min2]     user:grp  mode  [>|=path]|[!] [@|$|*command args...]
- * [-]$envvar=val         user:grp  mode  [>|=path]|[!] [@|$|*command args...]
  *
  * Leading minus in 1st field means "don't stop on this line", otherwise
  * search is stopped after the matching line is encountered.
  *
- * The device name or "subsystem/device" combo is matched against 1st field
- * (which is a regex), or maj,min is matched against 1st field,
- * or specified environment variable (as regex) is matched against 1st field.
- *
- * $envvar=val format is useful for loading modules for hot-plugged devices
+ * $envvar=regex format is useful for loading modules for hot-plugged devices
  * which do not have driver loaded yet. In this case /sys/class/.../dev
  * does not exist, but $MODALIAS is set to needed module's name
  * (actually, an alias to it) by kernel. This rule instructs mdev
