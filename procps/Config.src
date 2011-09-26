@@ -90,11 +90,19 @@ config PS
 config FEATURE_PS_WIDE
 	bool "Enable wide output option (-w)"
 	default y
-	depends on PS
+	depends on PS && !DESKTOP
 	help
 	  Support argument 'w' for wide output.
 	  If given once, 132 chars are printed, and if given more
 	  than once, the length is unlimited.
+
+config FEATURE_PS_LONG
+	bool "Enable long output option (-l)"
+	default y
+	depends on PS && !DESKTOP
+	help
+	  Support argument 'l' for long output.
+	  Adds fields PPID, RSS, START, TIME & TTY
 
 config FEATURE_PS_TIME
 	bool "Enable time and elapsed time output"
