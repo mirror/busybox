@@ -676,21 +676,23 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			| PSSCAN_VSZ | PSSCAN_RSS;
 /* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ps.html
  * mandates for -l:
- * -F     Flags associated with the process (?)
- * S      The state of the process
+ * -F     Flags (?)
+ * S      State
  * UID,PID,PPID
- * -C     Processor utilization for scheduling
+ * -C     CPU usage
  * -PRI   The priority of the process; higher numbers mean lower priority
- * -NI    Nice value; used in priority computation
- * -ADDR  The address of the process
- * SZ     The size in blocks of the core image of the process
+ * -NI    Nice value
+ * -ADDR  The address of the process (?)
+ * SZ     The size in blocks of the core image
  * -WCHAN The event for which the process is waiting or sleeping
  * TTY
- * TIME   The cumulative execution time for the process
+ * TIME   The cumulative execution time
  * CMD
- * We don't show fileds marked with '-'. We show VSZ and RSS instead of SZ
+ * We don't show fields marked with '-'.
+ * We show VSZ and RSS instead of SZ.
+ * We also show STIME (standard says that -f shows it, -l doesn't).
  */
-		puts("S   UID   PID  PPID   VSZ   RSS TTY   TIME     CMD");
+		puts("S   UID   PID  PPID   VSZ   RSS TTY   STIME TIME     CMD");
 		now = time(NULL);
 		sysinfo(&info);
 	}
@@ -719,7 +721,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			buf6[5] = '\0';
 #if ENABLE_FEATURE_PS_LONG
 			if (opts & OPT_l) {
-				char bufr[6], strt[6];
+				char bufr[6], stime_str[6];
 				char tty[2 * sizeof(int)*3 + 2];
 				char *endp;
 				unsigned sut = (p->stime + p->utime) / 100;
@@ -731,7 +733,10 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				bufr[5] = '\0';
 
 				if (p->tty_major == 136)
-					endp = stpcpy(tty, "pts/");
+					/* It should be pts/N, not ptsN, but N > 9
+					 * will overflow field width...
+					 */
+					endp = stpcpy(tty, "pts");
 				else
 				if (p->tty_major == 4) {
 					endp = stpcpy(tty, "tty");
@@ -744,12 +749,12 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 					endp = tty + sprintf(tty, "%d:", p->tty_major);
 				strcpy(endp, utoa(p->tty_minor));
 
-				strftime(strt, 6, (elapsed >= (24 * 60 * 60)) ? "%b%d" : "%H:%M", tm);
-				strt[5] = '\0';
-				//            S  UID PID PPID VSZ RSS TTY TIME           CMD
-				len = printf("%c %5u %5u %5u %5s %5s %-5s %02u:%02u:%02u ",
+				strftime(stime_str, 6, (elapsed >= (24 * 60 * 60)) ? "%b%d" : "%H:%M", tm);
+				stime_str[5] = '\0';
+				//            S  UID PID PPID VSZ RSS TTY STIME TIME        CMD
+				len = printf("%c %5u %5u %5u %5s %5s %-5s %s %02u:%02u:%02u ",
 					p->state[0], p->uid, p->pid, p->ppid, buf6, bufr, tty,
-					sut / 3600, (sut % 3600) / 60, sut % 60);
+					stime_str, sut / 3600, (sut % 3600) / 60, sut % 60);
 			} else
 #endif
 			{
