@@ -693,8 +693,10 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  * We also show STIME (standard says that -f shows it, -l doesn't).
  */
 		puts("S   UID   PID  PPID   VSZ   RSS TTY   STIME TIME     CMD");
+#if ENABLE_FEATURE_PS_LONG
 		now = time(NULL);
 		sysinfo(&info);
+#endif
 	}
 	else {
 		puts("  PID USER       VSZ STAT COMMAND");
