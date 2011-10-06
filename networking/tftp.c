@@ -813,7 +813,8 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 		goto err;
 	}
 	mode = local_file + strlen(local_file) + 1;
-	if (mode >= block_buf + result || strcmp(mode, "octet") != 0) {
+	/* RFC 1350 says mode string is case independent */
+	if (mode >= block_buf + result || strcasecmp(mode, "octet") != 0) {
 		goto err;
 	}
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE
