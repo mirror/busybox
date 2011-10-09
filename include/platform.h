@@ -366,7 +366,7 @@ typedef unsigned smalluint;
 #if defined(__UCLIBC_MAJOR__)
 # if __UCLIBC_MAJOR__ == 0 \
   && (   __UCLIBC_MINOR__ < 9 \
-     || (__UCLIBC_MINOR__ == 9 && __UCLIBC_SUBLEVEL__ < 31) \
+     || (__UCLIBC_MINOR__ == 9 && __UCLIBC_SUBLEVEL__ < 32) \
      )
 #  undef HAVE_STRVERSCMP
 # endif
