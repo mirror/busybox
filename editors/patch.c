@@ -474,19 +474,21 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 				// We're deleting oldname if new file is /dev/null (before -p)
 				// or if new hunk is empty (zero context) after patching
-				if (!strcmp(name, "/dev/null") || !(reverse ? oldsum : newsum))
-				{
+				if (!strcmp(name, "/dev/null") || !(reverse ? oldsum : newsum)) {
 					name = reverse ? newname : oldname;
 					empty++;
 				}
 
 				// handle -p path truncation.
-				for (i=0, s = name; *s;) {
-					if ((option_mask32 & FLAG_PATHLEN) && TT.prefix == i) break;
-					if (*(s++)=='/') {
-						name = s;
-						i++;
-					}
+				for (i = 0, s = name; *s;) {
+					if ((option_mask32 & FLAG_PATHLEN) && TT.prefix == i)
+						break;
+					if (*s++ != '/')
+						continue;
+					while (*s == '/')
+						s++;
+					i++;
+					name = s;
 				}
 
 				if (empty) {
