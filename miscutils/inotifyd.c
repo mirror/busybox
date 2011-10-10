@@ -33,6 +33,7 @@
 //usage:       "Run PROG on filesystem changes."
 //usage:     "\nWhen a filesystem event matching MASK occurs on FILEn,"
 //usage:     "\nPROG ACTUAL_EVENTS FILEn [SUBFILE] is run."
+//usage:     "\nIf PROG is -, events are sent to stdout."
 //usage:     "\nEvents:"
 //usage:     "\n	a	File is accessed"
 //usage:     "\n	c	File is modified"
@@ -177,12 +178,20 @@ int inotifyd_main(int argc, char **argv)
 						*s++ = mask_names[i];
 				}
 				*s = '\0';
-//				bb_error_msg("exec %s %08X\t%s\t%s\t%s", args[0],
-//					ie->mask, events, watches[ie->wd], ie->len ? ie->name : "");
-				args[1] = events;
-				args[2] = watches[ie->wd];
-				args[3] = ie->len ? ie->name : NULL;
-				spawn_and_wait((char **)args);
+				if (LONE_CHAR(args[0], '-')) {
+					/* "inotifyd - FILE": built-in echo */
+					printf(ie->len ? "%s\t%s\t%s\n" : "%s\t%s\n", events,
+							watches[ie->wd],
+							ie->name);
+					fflush(stdout);
+				} else {
+//					bb_error_msg("exec %s %08X\t%s\t%s\t%s", args[0],
+//						ie->mask, events, watches[ie->wd], ie->len ? ie->name : "");
+					args[1] = events;
+					args[2] = watches[ie->wd];
+					args[3] = ie->len ? ie->name : NULL;
+					spawn_and_wait((char **)args);
+				}
 				// we are done if all files got final x event
 				if (ie->mask & 0x8000) {
 					if (--argc <= 0)
