@@ -248,6 +248,7 @@ struct option_set *udhcp_find_option(struct option_set *opt_list, uint8_t code) 
 /*** Logging ***/
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
+# define IF_UDHCP_VERBOSE(...) __VA_ARGS__
 extern unsigned dhcp_verbose;
 # define log1(...) do { if (dhcp_verbose >= 1) bb_info_msg(__VA_ARGS__); } while (0)
 # if CONFIG_UDHCP_DEBUG >= 2
@@ -263,6 +264,7 @@ void udhcp_dump_packet(struct dhcp_packet *packet) FAST_FUNC;
 #  define log3(...) ((void)0)
 # endif
 #else
+# define IF_UDHCP_VERBOSE(...)
 # define udhcp_dump_packet(...) ((void)0)
 # define log1(...) ((void)0)
 # define log2(...) ((void)0)

@@ -314,9 +314,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	opt = getopt32(argv, "fSv"
 		IF_FEATURE_UDHCP_PORT("P:", &str_P)
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-		, &dhcp_verbose
-#endif
+		IF_UDHCP_VERBOSE(, &dhcp_verbose)
 		);
 	if (!(opt & 1)) { /* no -f */
 		bb_daemonize_or_rexec(0, argv);

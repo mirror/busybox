@@ -1077,11 +1077,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Parse command line */
 	/* O,x: list; -T,-t,-A take numeric param */
-	opt_complementary = "O::x::T+:t+:A+"
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-		":vv"
-#endif
-		;
+	opt_complementary = "O::x::T+:t+:A+" IF_UDHCP_VERBOSE(":vv") ;
 	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
 	opt = getopt32(argv, "CV:H:h:F:i:np:qRr:s:T:t:SA:O:ox:fB"
 		USE_FOR_MMU("b")
@@ -1095,9 +1091,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		, &list_O
 		, &list_x
 		IF_FEATURE_UDHCP_PORT(, &str_P)
-#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
-		, &dhcp_verbose
-#endif
+		IF_UDHCP_VERBOSE(, &dhcp_verbose)
 		);
 	if (opt & (OPT_h|OPT_H))
 		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
