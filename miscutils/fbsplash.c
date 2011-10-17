@@ -74,6 +74,43 @@ struct globals {
 #define DEBUG_MESSAGE(...) ((void)0)
 #endif
 
+/**
+ * Configure palette for RGB:332
+ */
+static void fb_setpal(int fd)
+{
+	struct fb_cmap cmap;
+	/* fb colors are 16 bit */
+	unsigned short red[256], green[256], blue[256];
+	unsigned i;
+
+	/* RGB:332 */
+	for (i = 0; i < 256; i++) {
+		/* Color is encoded in pixel value as rrrgggbb.
+		 * 3-bit color is mapped to 16-bit one as:
+		 * 000 -> 00000000 00000000
+		 * 001 -> 00100100 10010010
+		 * ...
+		 * 011 -> 01101101 10110110
+		 * 100 -> 10010010 01001001
+		 * ...
+		 * 111 -> 11111111 11111111
+		 */
+		red[i]   = (( i >> 5       ) * 0x9249) >> 2; // rrr * 00 10010010 01001001 >> 2
+		green[i] = (((i >> 2) & 0x7) * 0x9249) >> 2; // ggg * 00 10010010 01001001 >> 2
+		/* 2-bit color is easier: */
+		blue[i]  =  ( i       & 0x3) * 0x5555; // bb * 01010101 01010101
+	}
+
+	cmap.start = 0;
+	cmap.len   = 256;
+	cmap.red   = red;
+	cmap.green = green;
+	cmap.blue  = blue;
+	cmap.transp = 0;
+
+	xioctl(fd, FBIOPUTCMAP, &cmap);
+}
 
 /**
  * Open and initialize the framebuffer device
@@ -87,8 +124,21 @@ static void fb_open(const char *strfb_device)
 	xioctl(fbfd, FBIOGET_VSCREENINFO, &G.scr_var);
 	xioctl(fbfd, FBIOGET_FSCREENINFO, &G.scr_fix);
 
-	if (G.scr_var.bits_per_pixel < 16 || G.scr_var.bits_per_pixel > 32)
+	switch (G.scr_var.bits_per_pixel) {
+	case 8:
+		fb_setpal(fbfd);
+		break;
+
+	case 16:
+	case 24:
+	case 32:
+		break;
+
+	default:
 		bb_error_msg_and_die("unsupported %u bpp", (int)G.scr_var.bits_per_pixel);
+		break;
+	}
+
 	G.bytes_per_pixel = (G.scr_var.bits_per_pixel + 7) >> 3;
 
 	// map the device in memory
@@ -109,11 +159,17 @@ static void fb_open(const char *strfb_device)
  */
 static unsigned fb_pixel_value(unsigned r, unsigned g, unsigned b)
 {
+	if (G.bytes_per_pixel == 1) {
+		r = r        & 0xe0; // 3-bit red
+		g = (g >> 3) & 0x1c; // 3-bit green
+		b =  b >> 6;         // 2-bit blue
+		return r + g + b;
+	}
 	if (G.bytes_per_pixel == 2) {
-		r >>= 3;  // 5-bit red
-		g >>= 2;  // 6-bit green
-		b >>= 3;  // 5-bit blue
-		return b + (g << 5) + (r << (5+6));
+		r = (r & 0xf8) << 8; // 5-bit red
+		g = (g & 0xfc) << 3; // 6-bit green
+		b =  b >> 3;         // 5-bit blue
+		return r + g + b;
 	}
 	// RGB 888
 	return b + (g << 8) + (r << 16);
@@ -125,6 +181,9 @@ static unsigned fb_pixel_value(unsigned r, unsigned g, unsigned b)
 static void fb_write_pixel(unsigned char *addr, unsigned pixel)
 {
 	switch (G.bytes_per_pixel) {
+	case 1:
+		*addr = pixel;
+		break;
 	case 2:
 		*(uint16_t *)addr = pixel;
 		break;
