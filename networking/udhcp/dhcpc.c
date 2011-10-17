@@ -1355,9 +1355,23 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		switch (udhcp_sp_read(&rfds)) {
 		case SIGUSR1:
 			client_config.first_secs = 0; /* make secs field count from 0 */
+			already_waited_sec = 0;
 			perform_renew();
-			if (state == RENEW_REQUESTED)
+			if (state == RENEW_REQUESTED) {
+				/* We might be either on the same network
+				 * (in which case renew might work),
+				 * or we might be on a completely different one
+				 * (in which case renew won't ever succeed).
+				 * For the second case, must make sure timeout
+				 * is not too big, or else we can send
+				 * futile renew requests for hours.
+				 * (Ab)use -A TIMEOUT value (usually 20 sec)
+				 * as a cap on the timeout.
+				 */
+				if (timeout > tryagain_timeout)
+					timeout = tryagain_timeout;
 				goto case_RENEW_REQUESTED;
+			}
 			/* Start things over */
 			packet_num = 0;
 			/* Kill any timeouts, user wants this to hurry along */
