@@ -213,14 +213,15 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
  */
 static void fb_drawprogressbar(unsigned percent)
 {
-	int i, left_x, top_y, width, height;
+	int left_x, top_y, pos_x;
+	unsigned width, height;
 
 	// outer box
 	left_x = G.nbar_posx;
 	top_y = G.nbar_posy;
 	width = G.nbar_width - 1;
 	height = G.nbar_height - 1;
-	if ((height | width) < 0)
+	if ((int)(height | width) < 0)
 		return;
 	// NB: "width" of 1 actually makes rect with width of 2!
 	fb_drawrectangle();
@@ -230,30 +231,37 @@ static void fb_drawprogressbar(unsigned percent)
 	top_y++;
 	width -= 2;
 	height -= 2;
-	if ((height | width) < 0)
+	if ((int)(height | width) < 0)
 		return;
-	fb_drawfullrectangle(
-			left_x,	top_y,
-					left_x + width, top_y + height,
-			G.nbar_colr, G.nbar_colg, G.nbar_colb);
 
+	pos_x = left_x;
 	if (percent > 0) {
+		int y;
+		unsigned i;
+
 		// actual progress bar
-		width = width * percent / 100;
+		pos_x += (unsigned)(width * percent) / 100;
+
+		y = top_y;
 		i = height;
 		if (height == 0)
 			height++; // divide by 0 is bad
 		while (i >= 0) {
 			// draw one-line thick "rectangle"
 			// top line will have gray lvl 200, bottom one 100
-			unsigned gray_level = 100 + i*100/height;
+			unsigned gray_level = 100 + i*100 / height;
 			fb_drawfullrectangle(
-					left_x, top_y, left_x + width, top_y,
+					left_x, y, pos_x, y,
 					gray_level, gray_level, gray_level);
-			top_y++;
+			y++;
 			i--;
 		}
 	}
+
+	fb_drawfullrectangle(
+			pos_x, top_y,
+			left_x + width, top_y + height,
+			G.nbar_colr, G.nbar_colg, G.nbar_colb);
 }
 
 
