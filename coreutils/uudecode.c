@@ -125,10 +125,11 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 		mode = bb_strtou(line_ptr, NULL, 8);
 		if (outname == NULL) {
 			outname = strchr(line_ptr, ' ');
-			if ((outname == NULL) || (*outname == '\0')) {
+			if (!outname)
 				break;
-			}
 			outname++;
+			if (!outname[0])
+				break;
 		}
 		dst_stream = stdout;
 		if (NOT_LONE_DASH(outname)) {
