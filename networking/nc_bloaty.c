@@ -428,8 +428,7 @@ create new one, and bind() it. TODO */
 
 		rr = getsockopt(netfd, IPPROTO_IP, IP_OPTIONS, optbuf, &x);
 		if (rr >= 0 && x) {    /* we've got options, lessee em... */
-			bin2hex(bigbuf_net, optbuf, x);
-			bigbuf_net[2*x] = '\0';
+			*bin2hex(bigbuf_net, optbuf, x) = '\0';
 			fprintf(stderr, "IP options: %s\n", bigbuf_net);
 		}
 #endif
