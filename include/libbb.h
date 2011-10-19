@@ -814,9 +814,9 @@ void smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_F
 const char *make_human_readable_str(unsigned long long size,
 		unsigned long block_size, unsigned long display_unit) FAST_FUNC;
 /* Put a string of hex bytes ("1b2e66fe"...), return advanced pointer */
-char *bin2hex(char *buf, const char *cp, int count) FAST_FUNC;
+char *bin2hex(char *dst, const char *src, int count) FAST_FUNC;
 /* Reverse */
-char* hex2bin(char *dst, const char *str, int count) FAST_FUNC;
+char* hex2bin(char *dst, const char *src, int count) FAST_FUNC;
 
 /* Generate a UUID */
 void generate_uuid(uint8_t *buf) FAST_FUNC;

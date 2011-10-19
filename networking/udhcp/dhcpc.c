@@ -100,6 +100,7 @@ static const uint8_t len_of_option_as_string[] = {
 	[OPTION_IP              ] = sizeof("255.255.255.255 "),
 	[OPTION_IP_PAIR         ] = sizeof("255.255.255.255 ") * 2,
 	[OPTION_STATIC_ROUTES   ] = sizeof("255.255.255.255/32 255.255.255.255 "),
+	[OPTION_6RD             ] = sizeof("32 128 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 255.255.255.255 "),
 	[OPTION_STRING          ] = 1,
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_DNS_STRING      ] = 1, /* unused */
@@ -121,6 +122,24 @@ static const uint8_t len_of_option_as_string[] = {
 static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 {
 	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
+}
+
+static int sprint_nip6(char *dest, const char *pre, const uint8_t *ip)
+{
+	char hexstrbuf[16 * 2];
+	bin2hex(hexstrbuf, (void*)ip, 16);
+	return sprintf(dest, "%s"
+		"%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s",
+		pre,
+		hexstrbuf + 0 * 4,
+		hexstrbuf + 1 * 4,
+		hexstrbuf + 2 * 4,
+		hexstrbuf + 3 * 4,
+		hexstrbuf + 4 * 4,
+		hexstrbuf + 5 * 4,
+		hexstrbuf + 6 * 4,
+		hexstrbuf + 7 * 4
+	);
 }
 
 /* really simple implementation, just count the bits */
@@ -147,7 +166,8 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 
 	type = optflag->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
-	upper_length = len_of_option_as_string[type] * ((unsigned)len / (unsigned)optlen);
+	upper_length = len_of_option_as_string[type]
+		* ((unsigned)(len + optlen - 1) / (unsigned)optlen);
 
 	dest = ret = xmalloc(upper_length + strlen(opt_name) + 2);
 	dest += sprintf(ret, "%s=", opt_name);
@@ -228,6 +248,62 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 				dest += sprint_nip(dest, "", option);
 				option += 4;
 				len -= 4;
+			}
+
+			return ret;
+		}
+		case OPTION_6RD: {
+			/* Option binary format (see RFC 5969):
+			 * 0                   1                   2                   3
+			 * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+			 * |  OPTION_6RD   | option-length |  IPv4MaskLen  |  6rdPrefixLen |
+			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+			 * |                                                               |
+			 * |                           6rdPrefix                           |
+			 * |                          (16 octets)                          |
+			 * |                                                               |
+			 * |                                                               |
+			 * |                                                               |
+			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+			 * |                     6rdBRIPv4Address(es)                      |
+			 * .                                                               .
+			 * .                                                               .
+			 * .                                                               .
+			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+			 *
+			 * We convert it to a string
+			 * "IPv4MaskLen 6rdPrefixLen 6rdPrefix 6rdBRIPv4Address..."
+			 */
+
+			/* Sanity check: ensure that our length is at least 22 bytes, that
+			 * IPv4MaskLen <= 32,
+			 * 6rdPrefixLen <= 128,
+			 * 6rdPrefixLen + (32 - IPv4MaskLen) <= 128
+			 * (2nd condition need no check - it follows from 1st and 3rd).
+			 * If any of these requirements is not fulfilled, return with empty
+			 * value.
+			 */
+			if (len >= 22
+			 && option[0] <= 32
+			 && (option[1] + 32 - option[0]) <= 128
+			) {
+				/* IPv4MaskLen */
+				dest += sprintf(dest, "%u ", *option++);
+				/* 6rdPrefixLen */
+				dest += sprintf(dest, "%u ", *option++);
+				/* 6rdPrefix */
+				dest += sprint_nip6(dest, "", option);
+				option += 16;
+				len -= 1 + 1 + 16;
+				/* 6rdBRIPv4Address(es) */
+				while (1) {
+					dest += sprint_nip(dest, " ", option);
+					option += 4;
+					len -= 4;
+					if (len < 0)
+						break;
+				}
 			}
 
 			return ret;
@@ -394,7 +470,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 			len = temp[-OPT_DATA + OPT_LEN];
 			*curr = xmalloc(sizeof("optNNN=") + 1 + len*2);
 			ofs = sprintf(*curr, "opt%u=", i);
-			bin2hex(*curr + ofs, (void*) temp, len)[0] = '\0';
+			*bin2hex(*curr + ofs, (void*) temp, len) = '\0';
 			putenv(*curr++);
 		}
 		i++;
