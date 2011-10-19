@@ -87,7 +87,6 @@ struct mapping_defn_t {
 
 	char *script;
 
-	int max_mappings;
 	int n_mappings;
 	char **mapping;
 };
@@ -102,7 +101,6 @@ struct interface_defn_t {
 	const struct method_t *method;
 
 	char *iface;
-	int max_options;
 	int n_options;
 	struct variable_t *option;
 };
@@ -136,6 +134,16 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
+
+
+static const char keywords_up_down[] ALIGN1 =
+	"up\0"
+	"down\0"
+	"pre-up\0"
+	"pre-down\0"
+	"post-up\0"
+	"post-down\0"
+;
 
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
@@ -803,7 +811,6 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				currmap->match = xrealloc_vector(currmap->match, 4, currmap->n_matches);
 				currmap->match[currmap->n_matches++] = xstrdup(first_word);
 			}
-			/*currmap->max_mappings = 0; - done by xzalloc */
 			/*currmap->n_mappings = 0;*/
 			/*currmap->mapping = NULL;*/
 			/*currmap->script = NULL;*/
@@ -888,25 +895,16 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				if (rest_of_line[0] == '\0')
 					bb_error_msg_and_die("option with empty value \"%s\"", buf);
 
-				if (strcmp(first_word, "up") != 0
-				 && strcmp(first_word, "down") != 0
-				 && strcmp(first_word, "pre-up") != 0
-				 && strcmp(first_word, "pre-down") != 0
-				 && strcmp(first_word, "post-up") != 0
-				 && strcmp(first_word, "post-down") != 0
-				) {
+				/* If not one of "up", "down",... words... */
+				if (index_in_strings(keywords_up_down, first_word) < 0) {
 					int i;
 					for (i = 0; i < currif->n_options; i++) {
 						if (strcmp(currif->option[i].name, first_word) == 0)
 							bb_error_msg_and_die("duplicate option \"%s\"", buf);
 					}
 				}
-				if (currif->n_options >= currif->max_options) {
-					currif->max_options += 10;
-					currif->option = xrealloc(currif->option,
-						sizeof(*currif->option) * currif->max_options);
-				}
 				debug_noise("\t%s=%s\n", first_word, rest_of_line);
+				currif->option = xrealloc_vector(currif->option, 4, currif->n_options);
 				currif->option[currif->n_options].name = xstrdup(first_word);
 				currif->option[currif->n_options].value = xstrdup(rest_of_line);
 				currif->n_options++;
@@ -918,11 +916,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 						bb_error_msg_and_die("duplicate script in mapping \"%s\"", buf);
 					currmap->script = xstrdup(next_word(&rest_of_line));
 				} else if (strcmp(first_word, "map") == 0) {
-					if (currmap->n_mappings >= currmap->max_mappings) {
-						currmap->max_mappings = currmap->max_mappings * 2 + 1;
-						currmap->mapping = xrealloc(currmap->mapping,
-							sizeof(char *) * currmap->max_mappings);
-					}
+					currmap->mapping = xrealloc_vector(currmap->mapping, 2, currmap->n_mappings);
 					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&rest_of_line));
 					currmap->n_mappings++;
 				} else {
@@ -986,13 +980,7 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 	pp = G.my_environ;
 
 	for (i = 0; i < iface->n_options; i++) {
-		if (strcmp(iface->option[i].name, "up") == 0
-		 || strcmp(iface->option[i].name, "down") == 0
-		 || strcmp(iface->option[i].name, "pre-up") == 0
-		 || strcmp(iface->option[i].name, "pre-down") == 0
-		 || strcmp(iface->option[i].name, "post-up") == 0
-		 || strcmp(iface->option[i].name, "post-down") == 0
-		) {
+		if (index_in_strings(keywords_up_down, iface->option[i].name) >= 0) {
 			continue;
 		}
 		*pp++ = setlocalenv("IF_%s=%s", iface->option[i].name, iface->option[i].value);
