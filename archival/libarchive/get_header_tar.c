@@ -79,10 +79,10 @@ static unsigned long long getOctal(char *str, int len)
 		 *
 		 * NB: tarballs with NEGATIVE unix times encoded that way were seen!
 		 */
-		v = first;
-		/* Sign-extend using 6th bit: */
-		v <<= sizeof(unsigned long long)*8 - 7;
-		v = (long long)v >> (sizeof(unsigned long long)*8 - 7);
+		/* Sign-extend 7bit 'first' to 64bit 'v' (that is, using 6th bit as sign): */
+		first <<= 1;
+		first >>= 1; /* now 7th bit = 6th bit */
+		v = first;   /* sign-extend 8 bits to 64 */
 		while (--len != 0)
 			v = (v << 8) + (unsigned char) *str++;
 	}
