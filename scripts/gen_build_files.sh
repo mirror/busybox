@@ -27,11 +27,11 @@ generate()
 		# rules re handling of "\n" in echo params.
 		printf "%s\n" "${header}"
 		# print everything up to INSERT line
-		sed -n '/^INSERT$/q;1,/^INSERT$/p' "${src}"
+		sed -n '/^INSERT$/ q; p' "${src}"
 		# copy stdin to stdout
 		cat
 		# print everything after INSERT line
-		sed -n '/^INSERT$/{:l;n;p;bl}' "${src}"
+		sed -n '/^INSERT$/ { :l; n; p; bl }' "${src}"
 	} >"${dst}.tmp"
 	if ! cmp -s "${dst}" "${dst}.tmp"; then
 		gen "${dst}"
