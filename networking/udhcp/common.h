@@ -104,7 +104,7 @@ enum {
 /* DHCP option codes (partial list). See RFC 2132 and
  * http://www.iana.org/assignments/bootp-dhcp-parameters/
  * Commented out options are handled by common option machinery,
- * uncommented ones have spacial cases (grep for them to see).
+ * uncommented ones have special cases (grep for them to see).
  */
 #define DHCP_PADDING            0x00
 #define DHCP_SUBNET             0x01
