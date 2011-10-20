@@ -124,13 +124,13 @@ static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
-static int sprint_nip6(char *dest, const char *pre, const uint8_t *ip)
+static int sprint_nip6(char *dest, /*const char *pre,*/ const uint8_t *ip)
 {
 	char hexstrbuf[16 * 2];
 	bin2hex(hexstrbuf, (void*)ip, 16);
-	return sprintf(dest, "%s"
+	return sprintf(dest, /* "%s" */
 		"%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s",
-		pre,
+		/* pre, */
 		hexstrbuf + 0 * 4,
 		hexstrbuf + 1 * 4,
 		hexstrbuf + 2 * 4,
@@ -293,7 +293,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 				/* 6rdPrefixLen */
 				dest += sprintf(dest, "%u ", *option++);
 				/* 6rdPrefix */
-				dest += sprint_nip6(dest, "", option);
+				dest += sprint_nip6(dest, /* "", */ option);
 				option += 16;
 				len -= 1 + 1 + 16;
 				/* 6rdBRIPv4Address(es) */
