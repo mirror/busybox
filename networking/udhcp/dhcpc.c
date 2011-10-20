@@ -1533,7 +1533,25 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		case INIT_SELECTING:
 			/* Must be a DHCPOFFER to one of our xid's */
 			if (*message == DHCPOFFER) {
-		/* TODO: why we don't just fetch server's IP from IP header? */
+/* What exactly is server's IP? There are several values.
+ * Example DHCP offer captured with tchdump:
+ *
+ * 10.34.25.254:67 > 10.34.25.202:68 // IP header's src
+ * BOOTP fields:
+ * Your-IP 10.34.25.202
+ * Server-IP 10.34.32.125   // "next server" IP
+ * Gateway-IP 10.34.25.254  // relay's address (if DHCP relays are in use)
+ * DHCP options:
+ * DHCP-Message Option 53, length 1: Offer
+ * Server-ID Option 54, length 4: 10.34.255.7       // "server ID"
+ * Default-Gateway Option 3, length 4: 10.34.25.254 // router
+ *
+ * We think that real server IP (one to use in renew/release)
+ * is one in Server-ID option. But I am not 100% sure.
+ * IP header's src and Gateway-IP (same in this exaqmple)
+ * might work too.
+ * "Next server" and router are definitely wrong ones to use, though...
+ */
 				temp = udhcp_get_option(&packet, DHCP_SERVER_ID);
 				if (!temp) {
 					bb_error_msg("no server ID, ignoring packet");
