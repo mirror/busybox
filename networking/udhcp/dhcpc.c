@@ -161,8 +161,8 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 	int len, type, optlen;
 	char *dest, *ret;
 
-	/* option points to OPT_DATA, need to go back and get OPT_LEN */
-	len = option[OPT_LEN - OPT_DATA];
+	/* option points to OPT_DATA, need to go back to get OPT_LEN */
+	len = option[-OPT_DATA + OPT_LEN];
 
 	type = optflag->flags & OPTION_TYPE_MASK;
 	optlen = dhcp_option_lengths[type];
@@ -252,39 +252,29 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 
 			return ret;
 		}
-		case OPTION_6RD: {
+		case OPTION_6RD:
 			/* Option binary format (see RFC 5969):
-			 * 0                   1                   2                   3
-			 * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+			 *  0                   1                   2                   3
+			 *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 			 * |  OPTION_6RD   | option-length |  IPv4MaskLen  |  6rdPrefixLen |
 			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-			 * |                                                               |
 			 * |                           6rdPrefix                           |
-			 * |                          (16 octets)                          |
-			 * |                                                               |
-			 * |                                                               |
-			 * |                                                               |
+			 * ...                        (16 octets)                        ...
 			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-			 * |                     6rdBRIPv4Address(es)                      |
-			 * .                                                               .
-			 * .                                                               .
-			 * .                                                               .
+			 * ...                   6rdBRIPv4Address(es)                    ...
 			 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-			 *
 			 * We convert it to a string
 			 * "IPv4MaskLen 6rdPrefixLen 6rdPrefix 6rdBRIPv4Address..."
-			 */
-
-			/* Sanity check: ensure that our length is at least 22 bytes, that
+			 *
+			 * Sanity check: ensure that our length is at least 22 bytes, that
 			 * IPv4MaskLen <= 32,
 			 * 6rdPrefixLen <= 128,
 			 * 6rdPrefixLen + (32 - IPv4MaskLen) <= 128
 			 * (2nd condition need no check - it follows from 1st and 3rd).
-			 * If any of these requirements is not fulfilled, return with empty
-			 * value.
+			 * Else, return envvar with empty value ("optname=")
 			 */
-			if (len >= 22
+			if (len >= (1 + 1 + 16 + 4)
 			 && option[0] <= 32
 			 && (option[1] + 32 - option[0]) <= 128
 			) {
@@ -295,19 +285,20 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 				/* 6rdPrefix */
 				dest += sprint_nip6(dest, /* "", */ option);
 				option += 16;
-				len -= 1 + 1 + 16;
-				/* 6rdBRIPv4Address(es) */
+				len -= 1 + 1 + 16 + 4;
+				/* "+ 4" above corresponds to the length of IPv4 addr
+				 * we consume in the loop below */
 				while (1) {
+					/* 6rdBRIPv4Address(es) */
 					dest += sprint_nip(dest, " ", option);
 					option += 4;
-					len -= 4;
+					len -= 4; /* do we have yet another 4+ bytes? */
 					if (len < 0)
-						break;
+						break; /* no */
 				}
 			}
 
 			return ret;
-		}
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		case OPTION_DNS_STRING:
 			/* unpack option into dest; use ret for prefix (i.e., "optname=") */
@@ -347,6 +338,10 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			return ret;
 #endif
 		} /* switch */
+
+		/* If we are here, try to format any remaining data
+		 * in the option as another, similarly-formatted option
+		 */
 		option += optlen;
 		len -= optlen;
 // TODO: it can be a list only if (optflag->flags & OPTION_LIST).
@@ -356,7 +351,8 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			break;
 		*dest++ = ' ';
 		*dest = '\0';
-	}
+	} /* while */
+
 	return ret;
 }
 
