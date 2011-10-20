@@ -802,7 +802,8 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	bytes = ntohs(packet.ip.tot_len);
 
 	/* make sure its the right packet for us, and that it passes sanity checks */
-	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION
+	if (packet.ip.protocol != IPPROTO_UDP
+	 || packet.ip.version != IPVERSION
 	 || packet.ip.ihl != (sizeof(packet.ip) >> 2)
 	 || packet.udp.dest != htons(CLIENT_PORT)
 	/* || bytes > (int) sizeof(packet) - can't happen */
@@ -831,15 +832,17 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 		return -2;
 	}
 
-	memcpy(dhcp_pkt, &packet.data, bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
-
-	if (dhcp_pkt->cookie != htonl(DHCP_MAGIC)) {
+	if (packet.data.cookie != htonl(DHCP_MAGIC)) {
 		bb_info_msg("Packet with bad magic, ignoring");
 		return -2;
 	}
+
 	log1("Got valid DHCP packet");
-	udhcp_dump_packet(dhcp_pkt);
-	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
+	udhcp_dump_packet(&packet.data);
+
+	bytes -= sizeof(packet.ip) + sizeof(packet.udp);
+	memcpy(dhcp_pkt, &packet.data, bytes);
+	return bytes;
 }
 
 
