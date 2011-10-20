@@ -173,16 +173,13 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 	dest += sprintf(ret, "%s=", opt_name);
 
 	while (len >= optlen) {
-		unsigned ip_ofs = 0;
-
 		switch (type) {
+		case OPTION_IP:
 		case OPTION_IP_PAIR:
 			dest += sprint_nip(dest, "", option);
-			*dest++ = '/';
-			ip_ofs = 4;
-			/* fall through */
-		case OPTION_IP:
-			dest += sprint_nip(dest, "", option + ip_ofs);
+			if (type == OPTION_IP)
+				break;
+			dest += sprint_nip(dest, "/", option + 4);
 			break;
 //		case OPTION_BOOLEAN:
 //			dest += sprintf(dest, *option ? "yes" : "no");
@@ -204,10 +201,14 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 			dest += sprintf(dest, type == OPTION_U32 ? "%lu" : "%ld", (unsigned long) ntohl(val_u32));
 			break;
 		}
+		/* Note: options which use 'return' instead of 'break'
+		 * (for example, OPTION_STRING) skip the code which handles
+		 * the case of list of options.
+		 */
 		case OPTION_STRING:
 			memcpy(dest, option, len);
 			dest[len] = '\0';
-			return ret;	 /* Short circuit this case */
+			return ret;
 		case OPTION_STATIC_ROUTES: {
 			/* Option binary format:
 			 * mask [one byte, 0..32]
@@ -347,7 +348,7 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 // TODO: it can be a list only if (optflag->flags & OPTION_LIST).
 // Should we bail out/warn if we see multi-ip option which is
 // not allowed to be such (for example, DHCP_BROADCAST)? -
-		if (len <= 0 /* || !(optflag->flags & OPTION_LIST) */)
+		if (len < optlen /* || !(optflag->flags & OPTION_LIST) */)
 			break;
 		*dest++ = ' ';
 		*dest = '\0';

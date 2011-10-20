@@ -36,6 +36,9 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_STRING                           , 0x11 }, /* DHCP_ROOT_PATH     */
 	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
 	{ OPTION_U16                              , 0x1a }, /* DHCP_MTU           */
+//TODO: why do we request DHCP_BROADCAST? Can't we assume that
+//in the unlikely case it is different from typical N.N.255.255,
+//server would let us know anyway?
 	{ OPTION_IP                   | OPTION_REQ, 0x1c }, /* DHCP_BROADCAST     */
 	{ OPTION_IP_PAIR | OPTION_LIST            , 0x21 }, /* DHCP_ROUTES        */
 	{ OPTION_STRING                           , 0x28 }, /* DHCP_NIS_DOMAIN    */
