@@ -1404,13 +1404,15 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Specifying both -a and -g is an error */
 	if ((stty_state & (STTY_verbose_output | STTY_recoverable_output)) ==
-		(STTY_verbose_output | STTY_recoverable_output))
-		bb_error_msg_and_die("verbose and stty-readable output styles are mutually exclusive");
-	/* Specifying -a or -g with non-options is an error */
-	if (!(stty_state & STTY_noargs)
-	 && (stty_state & (STTY_verbose_output | STTY_recoverable_output))
+		(STTY_verbose_output | STTY_recoverable_output)
 	) {
-		bb_error_msg_and_die("modes may not be set when specifying an output style");
+		bb_error_msg_and_die("-a and -g are mutually exclusive");
+	}
+	/* Specifying -a or -g with non-options is an error */
+	if ((stty_state & (STTY_verbose_output | STTY_recoverable_output))
+	 && !(stty_state & STTY_noargs)
+	) {
+		bb_error_msg_and_die("modes may not be set when -a or -g is used");
 	}
 
 	/* Now it is safe to start doing things */
