@@ -24,7 +24,6 @@
 
 #include "libbb.h"
 #include <mntent.h>
-#include <sys/swap.h>
 #ifndef __BIONIC__
 # include <sys/swap.h>
 #endif
