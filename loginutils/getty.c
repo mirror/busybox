@@ -254,7 +254,6 @@ static void init_tty_attrs(int speed)
 	alarm(5);
 	tcdrain(STDIN_FILENO);
 	alarm(0);
-	signal(SIGALRM, SIG_DFL); /* do not break -t TIMEOUT! */
 
 	/* Flush input and output queues, important for modems! */
 	tcflush(STDIN_FILENO, TCIOFLUSH);
