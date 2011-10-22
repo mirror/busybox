@@ -41,6 +41,13 @@ enum {
 	TTYNAME_SIZE = 32,
 };
 
+struct globals {
+	struct termios tty_attrs;
+} FIX_ALIASING;
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
+
+
 #if ENABLE_FEATURE_NOLOGIN
 static void die_if_nologin(void)
 {
@@ -206,15 +213,21 @@ static void motd(void)
 
 static void alarm_handler(int sig UNUSED_PARAM)
 {
-	/* This is the escape hatch!  Poor serial line users and the like
+	/* This is the escape hatch! Poor serial line users and the like
 	 * arrive here when their connection is broken.
 	 * We don't want to block here */
-	ndelay_on(1);
-	printf("\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
+	ndelay_on(STDOUT_FILENO);
+	/* Test for correct attr restoring:
+	 * run "getty 0 -" from a shell, enter bogus username, stop at
+	 * password prompt, let it time out. Without the tcsetattr below,
+	 * when you are back at shell prompt, echo will be still off.
+	 */
+	tcsetattr_stdin_TCSANOW(&G.tty_attrs);
+	printf("\r\nLogin timed out after %u seconds\r\n", TIMEOUT);
 	fflush_all();
 	/* unix API is brain damaged regarding O_NONBLOCK,
 	 * we should undo it, or else we can affect other processes */
-	ndelay_off(1);
+	ndelay_off(STDOUT_FILENO);
 	_exit(EXIT_SUCCESS);
 }
 
@@ -250,9 +263,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	pid_t child_pid;
 #endif
 
-	username[0] = '\0';
-	signal(SIGALRM, alarm_handler);
-	alarm(TIMEOUT);
+	INIT_G();
 
 	/* More of suid paranoia if called by non-root: */
 	/* Clear dangerous stuff, set PATH */
@@ -264,6 +275,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	 * (The name of the function is misleading. Not daemonizing here.) */
 	bb_daemonize_or_rexec(DAEMON_ONLY_SANITIZE | DAEMON_CLOSE_EXTRA_FDS, NULL);
 
+	username[0] = '\0';
 	opt = getopt32(argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
 		if (!run_by_root)
@@ -274,9 +286,19 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0]) /* user from command line (getty) */
 		safe_strncpy(username, argv[0], sizeof(username));
 
-	/* Let's find out and memorize our tty */
-	if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) || !isatty(STDERR_FILENO))
+	/* Save tty attributes - and by doing it, check that it's indeed a tty */
+	if (tcgetattr(STDIN_FILENO, &G.tty_attrs) < 0
+	 || !isatty(STDOUT_FILENO)
+	 /*|| !isatty(STDERR_FILENO) - no, guess some people might want to redirect this */
+	) {
 		return EXIT_FAILURE;  /* Must be a terminal */
+	}
+
+	/* We install timeout handler only _after_ we saved G.tty_attrs */
+	signal(SIGALRM, alarm_handler);
+	alarm(TIMEOUT);
+
+	/* Find out and memorize our tty name */
 	full_tty = xmalloc_ttyname(STDIN_FILENO);
 	if (!full_tty)
 		full_tty = xstrdup("UNKNOWN");
@@ -391,7 +413,10 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		if (!pw->pw_passwd[0])
 			break;
  fake_it:
-		/* authorization takes place here */
+		/* Password reading and authorization takes place here.
+		 * Note that reads (in no-echo mode) trash tty attributes.
+		 * If we get interrupted by SIGALRM, we need to restore attrs.
+		 */
 		if (correct_password(pw))
 			break;
 #endif /* ENABLE_PAM */

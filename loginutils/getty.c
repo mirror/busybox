@@ -83,16 +83,16 @@ static FILE *dbf;
 #define MAX_SPEED       10              /* max. nr. of baud rates */
 
 struct globals {
-	unsigned timeout;               /* time-out period */
+	unsigned timeout;
 	const char *login;              /* login program */
 	const char *fakehost;
-	const char *tty;                /* name of tty */
+	const char *tty_name;
 	char *initstring;               /* modem init string */
 	const char *issue;              /* alternative issue file */
 	int numspeed;                   /* number of baud rates to try */
 	int speeds[MAX_SPEED];          /* baud rates to be tried */
 	unsigned char eol;              /* end-of-line char seen (CR or NL) */
-	struct termios termios;         /* terminal mode bits */
+	struct termios tty_attrs;
 	char line_buf[128];
 };
 
@@ -181,15 +181,14 @@ static void parse_args(char **argv)
 	debug("after getopt\n");
 
 	/* We loosen up a bit and accept both "baudrate tty" and "tty baudrate" */
-	G.tty = argv[0];        /* tty name */
-	ts = argv[1];           /* baud rate(s) */
+	G.tty_name = argv[0];
+	ts = argv[1];            /* baud rate(s) */
 	if (isdigit(argv[0][0])) {
 		/* A number first, assume it's a speed (BSD style) */
-		G.tty = ts;     /* tty name is in argv[1] */
-		ts = argv[0];   /* baud rate(s) */
+		G.tty_name = ts; /* tty name is in argv[1] */
+		ts = argv[0];    /* baud rate(s) */
 	}
 	parse_speeds(ts);
-	applet_name = xasprintf("getty: %s", G.tty);
 
 	if (argv[2])
 		xsetenv("TERM", argv[2]);
@@ -201,42 +200,49 @@ static void parse_args(char **argv)
 static void open_tty(void)
 {
 	/* Set up new standard input, unless we are given an already opened port */
-	if (NOT_LONE_DASH(G.tty)) {
-		if (G.tty[0] != '/')
-			G.tty = xasprintf("/dev/%s", G.tty); /* will leak it */
+	if (NOT_LONE_DASH(G.tty_name)) {
+		if (G.tty_name[0] != '/')
+			G.tty_name = xasprintf("/dev/%s", G.tty_name); /* will leak it */
 
 		/* Open the tty as standard input */
 		debug("open(2)\n");
 		close(0);
-		xopen(G.tty, O_RDWR | O_NONBLOCK); /* uses fd 0 */
+		xopen(G.tty_name, O_RDWR | O_NONBLOCK); /* uses fd 0 */
 
 		/* Set proper protections and ownership */
 		fchown(0, 0, 0);        /* 0:0 */
 		fchmod(0, 0620);        /* crw--w---- */
 	} else {
+		char *n;
 		/*
-		 * Standard input should already be connected to an open port. Make
-		 * sure it is open for read/write.
+		 * Standard input should already be connected to an open port.
+		 * Make sure it is open for read/write.
 		 */
 		if ((fcntl(0, F_GETFL) & (O_RDWR|O_RDONLY|O_WRONLY)) != O_RDWR)
 			bb_error_msg_and_die("stdin is not open for read/write");
+
+		/* Try to get real tty name instead of "-" */
+		n = xmalloc_ttyname(0);
+		if (n)
+			G.tty_name = n;
 	}
+	applet_name = xasprintf("getty: %s", skip_dev_pfx(G.tty_name));
 }
 
-static void set_termios(void)
+static void set_tty_attrs(void)
 {
-	if (tcsetattr_stdin_TCSANOW(&G.termios) < 0)
+	if (tcsetattr_stdin_TCSANOW(&G.tty_attrs) < 0)
 		bb_perror_msg_and_die("tcsetattr");
 }
 
-/* We manipulate termios this way:
- * - first, we read existing termios settings
- * - termios_init modifies some parts and sets it
- * - auto_baud and/or BREAK processing can set different speed and set termios
- * - termios_final again modifies some parts and sets termios before
+/* We manipulate tty_attrs this way:
+ * - first, we read existing tty_attrs
+ * - init_tty_attrs modifies some parts and sets it
+ * - auto_baud and/or BREAK processing can set different speed and set tty attrs
+ * - finalize_tty_attrs again modifies some parts and sets tty attrs before
  *   execing login
  */
-static void termios_init(int speed)
+static void init_tty_attrs(int speed)
 {
 	/* Try to drain output buffer, with 5 sec timeout.
 	 * Added on request from users of ~600 baud serial interface
@@ -255,14 +261,14 @@ static void termios_init(int speed)
 
 	/* Set speed if it wasn't specified as "0" on command line */
 	if (speed != B0)
-		cfsetspeed(&G.termios, speed);
+		cfsetspeed(&G.tty_attrs, speed);
 
-	/* Initial termios settings: 8-bit characters, raw mode, blocking i/o.
+	/* Initial settings: 8-bit characters, raw mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
 	 * reads will be done in raw mode anyway.
 	 */
 	/* Clear all bits except: */
-	G.termios.c_cflag &= (0
+	G.tty_attrs.c_cflag &= (0
 		/* 2 stop bits (1 otherwise)
 		 * Enable parity bit (both on input and output)
 		 * Odd parity (else even)
@@ -280,42 +286,42 @@ static void termios_init(int speed)
 #endif
 	);
 	/* Set: 8 bits; hang up (drop DTR) on last close; enable receive */
-	G.termios.c_cflag |= CS8 | HUPCL | CREAD;
+	G.tty_attrs.c_cflag |= CS8 | HUPCL | CREAD;
 	if (option_mask32 & F_LOCAL) {
 		/* ignore Carrier Detect pin:
 		 * opens don't block when CD is low,
 		 * losing CD doesn't hang up processes whose ctty is this tty
 		 */
-		G.termios.c_cflag |= CLOCAL;
+		G.tty_attrs.c_cflag |= CLOCAL;
 	}
 #ifdef CRTSCTS
 	if (option_mask32 & F_RTSCTS)
-		G.termios.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
+		G.tty_attrs.c_cflag |= CRTSCTS; /* flow control using RTS/CTS pins */
 #endif
-	G.termios.c_iflag = 0;
-	G.termios.c_lflag = 0;
+	G.tty_attrs.c_iflag = 0;
+	G.tty_attrs.c_lflag = 0;
 	/* non-raw output; add CR to each NL */
-	G.termios.c_oflag = OPOST | ONLCR;
+	G.tty_attrs.c_oflag = OPOST | ONLCR;
 
-	G.termios.c_cc[VMIN] = 1; /* block reads if < 1 char is available */
-	G.termios.c_cc[VTIME] = 0; /* no timeout (reads block forever) */
+	G.tty_attrs.c_cc[VMIN] = 1; /* block reads if < 1 char is available */
+	G.tty_attrs.c_cc[VTIME] = 0; /* no timeout (reads block forever) */
 #ifdef __linux__
-	G.termios.c_line = 0;
+	G.tty_attrs.c_line = 0;
 #endif
 
-	set_termios();
+	set_tty_attrs();
 
 	debug("term_io 2\n");
 }
 
-static void termios_final(void)
+static void finalize_tty_attrs(void)
 {
 	/* software flow control on output (stop sending if XOFF is recvd);
 	 * and on input (send XOFF when buffer is full)
 	 */
-	G.termios.c_iflag |= IXON | IXOFF;
+	G.tty_attrs.c_iflag |= IXON | IXOFF;
 	if (G.eol == '\r') {
-		G.termios.c_iflag |= ICRNL; /* map CR on input to NL */
+		G.tty_attrs.c_iflag |= ICRNL; /* map CR on input to NL */
 	}
 	/* Other bits in c_iflag:
 	 * IXANY   Any recvd char enables output (any char is also a XON)
@@ -342,7 +348,7 @@ static void termios_final(void)
 	 * echo kill char specially, not as ^c (ECHOKE controls how exactly);
 	 * erase all input via BS-SP-BS on kill char (else go to next line)
 	 */
-	G.termios.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
+	G.tty_attrs.c_lflag |= ICANON | ISIG | ECHO | ECHOE | ECHOK | ECHOKE;
 	/* Other bits in c_lflag:
 	 * XCASE   Map uppercase to \lowercase [tried, doesn't work]
 	 * ECHONL  Echo NL even if ECHO is not set
@@ -360,17 +366,17 @@ static void termios_final(void)
 	 *         (why "stty sane" unsets this bit?)
 	 */
 
-	G.termios.c_cc[VINTR] = DEF_INTR;
-	G.termios.c_cc[VQUIT] = DEF_QUIT;
-	G.termios.c_cc[VEOF] = DEF_EOF;
-	G.termios.c_cc[VEOL] = DEF_EOL;
+	G.tty_attrs.c_cc[VINTR] = DEF_INTR;
+	G.tty_attrs.c_cc[VQUIT] = DEF_QUIT;
+	G.tty_attrs.c_cc[VEOF] = DEF_EOF;
+	G.tty_attrs.c_cc[VEOL] = DEF_EOL;
 #ifdef VSWTC
-	G.termios.c_cc[VSWTC] = DEF_SWITCH;
+	G.tty_attrs.c_cc[VSWTC] = DEF_SWITCH;
 #endif
 #ifdef VSWTCH
-	G.termios.c_cc[VSWTCH] = DEF_SWITCH;
+	G.tty_attrs.c_cc[VSWTCH] = DEF_SWITCH;
 #endif
-	G.termios.c_cc[VKILL] = DEF_KILL;
+	G.tty_attrs.c_cc[VKILL] = DEF_KILL;
 	/* Other control chars:
 	 * VEOL2
 	 * VERASE, VWERASE - (word) erase. we may set VERASE in get_logname
@@ -380,7 +386,7 @@ static void termios_final(void)
 	 * VSTART, VSTOP - chars used for IXON/IXOFF
 	 */
 
-	set_termios();
+	set_tty_attrs();
 }
 
 /* extract baud rate from modem status message */
@@ -403,8 +409,8 @@ static void auto_baud(void)
 	 * modem status messages is enabled.
 	 */
 
-	G.termios.c_cc[VMIN] = 0; /* don't block reads (min read is 0 chars) */
-	set_termios();
+	G.tty_attrs.c_cc[VMIN] = 0; /* don't block reads (min read is 0 chars) */
+	set_tty_attrs();
 
 	/*
 	 * Wait for a while, then read everything the modem has said so far and
@@ -420,15 +426,15 @@ static void auto_baud(void)
 			if (isdigit(*bp)) {
 				speed = bcode(bp);
 				if (speed > 0)
-					cfsetspeed(&G.termios, speed);
+					cfsetspeed(&G.tty_attrs, speed);
 				break;
 			}
 		}
 	}
 
 	/* Restore terminal settings */
-	G.termios.c_cc[VMIN] = 1; /* restore to value set by termios_init */
-	set_termios();
+	G.tty_attrs.c_cc[VMIN] = 1; /* restore to value set by init_tty_attrs */
+	set_tty_attrs();
 }
 
 /* get user name, establish parity, speed, erase, kill, eol;
@@ -449,7 +455,7 @@ static char *get_logname(void)
 		/* Write issue file and prompt */
 #ifdef ISSUE
 		if (!(option_mask32 & F_NOISSUE))
-			print_login_issue(G.issue, G.tty);
+			print_login_issue(G.issue, G.tty_name);
 #endif
 		print_login_prompt();
 
@@ -479,7 +485,7 @@ static char *get_logname(void)
 				goto got_logname;
 			case BS:
 			case DEL:
-				G.termios.c_cc[VERASE] = c;
+				G.tty_attrs.c_cc[VERASE] = c;
 				if (bp > G.line_buf) {
 					full_write(STDOUT_FILENO, "\010 \010", 3);
 					bp--;
@@ -510,11 +516,17 @@ static char *get_logname(void)
 	return G.line_buf;
 }
 
+static void alarm_handler(int sig UNUSED_PARAM)
+{
+	finalize_tty_attrs();
+	_exit(EXIT_SUCCESS);
+}
+
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc UNUSED_PARAM, char **argv)
 {
 	int n;
-	pid_t pid;
+	pid_t pid, tsid;
 	char *logname;
 
 	INIT_G();
@@ -527,14 +539,35 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse command-line arguments */
 	parse_args(argv);
 
-	logmode = LOGMODE_NONE;
+	/* Create new session and pgrp, lose controlling tty */
+	pid = setsid();  /* this also gives us our pid :) */
+	if (pid < 0) {
+		int fd;
+		/* :(
+		 * docs/ctty.htm says:
+		 * "This is allowed only when the current process
+		 *  is not a process group leader".
+		 * Thus, setsid() will fail if we _already_ are
+		 * a session leader - which is quite possible for getty!
+		 */
+		pid = getpid();
+		if (getsid(0) != pid)
+			bb_perror_msg_and_die("setsid");
+		/* Looks like we are already a session leader.
+		 * In this case (setsid failed) we may still have ctty,
+		 * and it may be different from tty we need to control!
+		 * If we still have ctty, on Linux ioctl(TIOCSCTTY)
+		 * (which we are going to call a bit later) always fails.
+		 * Try to drop ctty now to prevent that.
+		 */
+		fd = open("/dev/tty", O_RDWR);
+		if (fd >= 0) {
+			ioctl(fd, TIOCNOTTY);
+			close(fd);
+		}
+	}
 
-	/* Create new session, lose controlling tty, if any */
-	/* docs/ctty.htm says:
-	 * "This is allowed only when the current process
-	 *  is not a process group leader" - is this a problem? */
-	setsid();
-	/* close stdio, and stray descriptors, just in case */
+	/* Close stdio, and stray descriptors, just in case */
 	n = xopen(bb_dev_null, O_RDWR);
 	/* dup2(n, 0); - no, we need to handle "getty - 9600" too */
 	xdup2(n, 1);
@@ -558,13 +591,25 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	/* Open the tty as standard input, if it is not "-" */
-	/* If it's not "-" and not taken yet, it will become our ctty */
 	debug("calling open_tty\n");
 	open_tty();
-	ndelay_off(0);
+	ndelay_off(STDIN_FILENO);
 	debug("duping\n");
-	xdup2(0, 1);
-	xdup2(0, 2);
+	xdup2(STDIN_FILENO, 1);
+	xdup2(STDIN_FILENO, 2);
+
+	/* Steal ctty if we don't have it yet */
+	tsid = tcgetsid(STDIN_FILENO);
+	if (tsid < 0 || pid != tsid) {
+		if (ioctl(STDIN_FILENO, TIOCSCTTY, /*force:*/ (long)1) < 0)
+			bb_perror_msg_and_die("TIOCSCTTY");
+	}
+
+#ifdef __linux__
+	/* Make ourself a foreground process group within our session */
+	if (tcsetpgrp(STDIN_FILENO, pid) < 0)
+		bb_perror_msg_and_die("tcsetpgrp");
+#endif
 
 	/*
 	 * The following ioctl will fail if stdin is not a tty, but also when
@@ -574,25 +619,15 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	 * by patching the SunOS kernel variable "zsadtrlow" to a larger value;
 	 * 5 seconds seems to be a good value.
 	 */
-	if (tcgetattr(STDIN_FILENO, &G.termios) < 0)
+	if (tcgetattr(STDIN_FILENO, &G.tty_attrs) < 0)
 		bb_perror_msg_and_die("tcgetattr");
 
-	pid = getpid();
-#ifdef __linux__
-// FIXME: do we need this? Otherwise "-" case seems to be broken...
-	// /* Forcibly make fd 0 our controlling tty, even if another session
-	//  * has it as a ctty. (Another session loses ctty). */
-	// ioctl(STDIN_FILENO, TIOCSCTTY, (void*)1);
-	/* Make ourself a foreground process group within our session */
-	tcsetpgrp(STDIN_FILENO, pid);
-#endif
-
 	/* Update the utmp file. This tty is ours now! */
-	update_utmp(pid, LOGIN_PROCESS, G.tty, "LOGIN", G.fakehost);
+	update_utmp(pid, LOGIN_PROCESS, G.tty_name, "LOGIN", G.fakehost);
 
-	/* Initialize the termios settings (raw mode, eight-bit, blocking i/o) */
-	debug("calling termios_init\n");
-	termios_init(G.speeds[0]);
+	/* Initialize tty attrs (raw mode, eight-bit, blocking i/o) */
+	debug("calling init_tty_attrs\n");
+	init_tty_attrs(G.speeds[0]);
 
 	/* Write the modem init string and DON'T flush the buffers */
 	if (option_mask32 & F_INITSTRING) {
@@ -606,8 +641,8 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		auto_baud();
 
 	/* Set the optional timer */
+	signal(SIGALRM, alarm_handler);
 	alarm(G.timeout); /* if 0, alarm is not set */
-//BUG: death by signal won't restore termios
 
 	/* Optionally wait for CR or LF before writing /etc/issue */
 	if (option_mask32 & F_WAITCRLF) {
@@ -622,7 +657,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 
 	logname = NULL;
 	if (!(option_mask32 & F_NOPROMPT)) {
-		/* NB: termios_init already set line speed
+		/* NB: init_tty_attrs already set line speed
 		 * to G.speeds[0] */
 		int baud_index = 0;
 
@@ -634,16 +669,15 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			/* We are here only if G.numspeed > 1 */
 			baud_index = (baud_index + 1) % G.numspeed;
-			cfsetspeed(&G.termios, G.speeds[baud_index]);
-			set_termios();
+			cfsetspeed(&G.tty_attrs, G.speeds[baud_index]);
+			set_tty_attrs();
 		}
 	}
 
 	/* Disable timer */
 	alarm(0);
 
-	/* Finalize the termios settings */
-	termios_final();
+	finalize_tty_attrs();
 
 	/* Now the newline character should be properly written */
 	full_write(STDOUT_FILENO, "\n", 1);

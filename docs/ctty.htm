@@ -279,6 +279,7 @@ and inspect it by
 Again, if TOSTOP is set but the background process ignores or blocks
 the SIGTTOU signal, or if its process group is orphaned (see below),
 then the write() returns an EIO error, and no signal is sent.
+[vda: correction. SUS says that if SIGTTOU is blocked/ignored, write succeeds. ]
 <p>
 </p><h3>Orphaned process groups</h3>
 
