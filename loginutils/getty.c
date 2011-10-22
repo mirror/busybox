@@ -556,10 +556,12 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		 * In this case (setsid failed) we may still have ctty,
 		 * and it may be different from tty we need to control!
 		 * If we still have ctty, on Linux ioctl(TIOCSCTTY)
-		 * (which we are going to call a bit later) always fails.
-		 * Try to drop ctty now to prevent that.
+		 * (which we are going to use a bit later) always fails -
+		 * even if we try to take ctty which is already ours!
+		 * Try to drop old ctty now to prevent that.
+		 * Use O_NONBLOCK: old ctty may be a serial line.
 		 */
-		fd = open("/dev/tty", O_RDWR);
+		fd = open("/dev/tty", O_RDWR | O_NONBLOCK);
 		if (fd >= 0) {
 			ioctl(fd, TIOCNOTTY);
 			close(fd);
