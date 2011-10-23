@@ -1548,7 +1548,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
  *
  * We think that real server IP (one to use in renew/release)
  * is one in Server-ID option. But I am not 100% sure.
- * IP header's src and Gateway-IP (same in this exaqmple)
+ * IP header's src and Gateway-IP (same in this example)
  * might work too.
  * "Next server" and router are definitely wrong ones to use, though...
  */

@@ -465,6 +465,7 @@ static char *get_logname(void)
 			/* Do not report trivial EINTR/EIO errors */
 			errno = EINTR; /* make read of 0 bytes be silent too */
 			if (read(STDIN_FILENO, &c, 1) < 1) {
+				finalize_tty_attrs();
 				if (errno == EINTR || errno == EIO)
 					exit(EXIT_SUCCESS);
 				bb_perror_msg_and_die(bb_msg_read_error);
@@ -497,6 +498,7 @@ static char *get_logname(void)
 				}
 				break;
 			case CTL('D'):
+				finalize_tty_attrs();
 				exit(EXIT_SUCCESS);
 			default:
 				if ((unsigned char)c < ' ') {
