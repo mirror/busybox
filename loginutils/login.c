@@ -443,7 +443,6 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	if (pw->pw_uid != 0)
 		die_if_nologin();
 
-
 #if ENABLE_LOGIN_SESSION_AS_CHILD
 	child_pid = vfork();
 	if (child_pid != 0) {

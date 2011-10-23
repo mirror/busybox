@@ -63,18 +63,8 @@ static FILE *dbf;
  */
 #define ISSUE "/etc/issue"
 
-/* Some shorthands for control characters */
-#define CTL(x)          ((x) ^ 0100)    /* Assumes ASCII dialect */
-#define BS              CTL('H')        /* back space */
-#define DEL             CTL('?')        /* delete */
-
-/* Defaults for line-editing etc. characters; you may want to change this */
-#define DEF_INTR        CTL('C')        /* default interrupt character */
-#define DEF_QUIT        CTL('\\')       /* default quit char */
-#define DEF_KILL        CTL('U')        /* default kill char */
-#define DEF_EOF         CTL('D')        /* default EOF char */
-#define DEF_EOL         '\n'
-#define DEF_SWITCH      0               /* default switch char (none) */
+/* Macro to build Ctrl-LETTER. Assumes ASCII dialect */
+#define CTL(x)          ((x) ^ 0100)
 
 /*
  * When multiple baud rates are specified on the command line,
@@ -365,17 +355,17 @@ static void finalize_tty_attrs(void)
 	 *         (why "stty sane" unsets this bit?)
 	 */
 
-	G.tty_attrs.c_cc[VINTR] = DEF_INTR;
-	G.tty_attrs.c_cc[VQUIT] = DEF_QUIT;
-	G.tty_attrs.c_cc[VEOF] = DEF_EOF;
-	G.tty_attrs.c_cc[VEOL] = DEF_EOL;
+	G.tty_attrs.c_cc[VINTR] = CTL('C');
+	G.tty_attrs.c_cc[VQUIT] = CTL('\\');
+	G.tty_attrs.c_cc[VEOF] = CTL('D');
+	G.tty_attrs.c_cc[VEOL] = '\n';
 #ifdef VSWTC
-	G.tty_attrs.c_cc[VSWTC] = DEF_SWITCH;
+	G.tty_attrs.c_cc[VSWTC] = 0;
 #endif
 #ifdef VSWTCH
-	G.tty_attrs.c_cc[VSWTCH] = DEF_SWITCH;
+	G.tty_attrs.c_cc[VSWTCH] = 0;
 #endif
-	G.tty_attrs.c_cc[VKILL] = DEF_KILL;
+	G.tty_attrs.c_cc[VKILL] = CTL('U');
 	/* Other control chars:
 	 * VEOL2
 	 * VERASE, VWERASE - (word) erase. we may set VERASE in get_logname
@@ -386,6 +376,9 @@ static void finalize_tty_attrs(void)
 	 */
 
 	set_tty_attrs();
+
+	/* Now the newline character should be properly written */
+	full_write(STDOUT_FILENO, "\n", 1);
 }
 
 /* extract baud rate from modem status message */
@@ -449,8 +442,7 @@ static char *get_logname(void)
 	tcflush(STDIN_FILENO, TCIFLUSH);
 
 	/* Prompt for and read a login name */
-	G.line_buf[0] = '\0';
-	while (!G.line_buf[0]) {
+	do {
 		/* Write issue file and prompt */
 #ifdef ISSUE
 		if (!(option_mask32 & F_NOISSUE))
@@ -458,9 +450,8 @@ static char *get_logname(void)
 #endif
 		print_login_prompt();
 
-		/* Read name, watch for break, parity, erase, kill, end-of-line */
+		/* Read name, watch for break, erase, kill, end-of-line */
 		bp = G.line_buf;
-		G.eol = '\0';
 		while (1) {
 			/* Do not report trivial EINTR/EIO errors */
 			errno = EINTR; /* make read of 0 bytes be silent too */
@@ -471,20 +462,14 @@ static char *get_logname(void)
 				bb_perror_msg_and_die(bb_msg_read_error);
 			}
 
-			/* BREAK. If we have speeds to try,
-			 * return NULL (will switch speeds and return here) */
-			if (c == '\0' && G.numspeed > 1)
-				return NULL;
-
-			/* Do erase, kill and end-of-line processing */
 			switch (c) {
 			case '\r':
 			case '\n':
 				*bp = '\0';
 				G.eol = c;
 				goto got_logname;
-			case BS:
-			case DEL:
+			case CTL('H'):
+			case 0x7f:
 				G.tty_attrs.c_cc[VERASE] = c;
 				if (bp > G.line_buf) {
 					full_write(STDOUT_FILENO, "\010 \010", 3);
@@ -497,9 +482,16 @@ static char *get_logname(void)
 					bp--;
 				}
 				break;
+			case CTL('C'):
 			case CTL('D'):
 				finalize_tty_attrs();
 				exit(EXIT_SUCCESS);
+			case '\0':
+				/* BREAK. If we have speeds to try,
+				 * return NULL (will switch speeds and return here) */
+				if (G.numspeed > 1)
+					return NULL;
+				/* fall through and ignore it */
 			default:
 				if ((unsigned char)c < ' ') {
 					/* ignore garbage characters */
@@ -512,7 +504,7 @@ static char *get_logname(void)
 			}
 		} /* end of get char loop */
  got_logname: ;
-	} /* while logname is empty */
+	} while (G.line_buf[0] == '\0');  /* while logname is empty */
 
 	return G.line_buf;
 }
@@ -681,9 +673,6 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	alarm(0);
 
 	finalize_tty_attrs();
-
-	/* Now the newline character should be properly written */
-	full_write(STDOUT_FILENO, "\n", 1);
 
 	/* Let the login program take care of password validation */
 	/* We use PATH because we trust that root doesn't set "bad" PATH,
