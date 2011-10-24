@@ -254,13 +254,6 @@ typedef unsigned long uoff_t;
 #undef SKIP
 #define SKIP	((int) 2)
 
-/* for mtab.c */
-#define MTAB_GETMOUNTPT '1'
-#define MTAB_GETDEVICE  '2'
-
-#define BUF_SIZE        8192
-#define EXPAND_ALLOC    1024
-
 /* Macros for min/max.  */
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
