@@ -164,7 +164,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 	// parse options
 	opt_complementary = "a::";
 	opts = getopt32(argv,
-		"c:e:o:C:N:a", //:m:j:",
+		"c:e:o:C:N:a:", //:m:j:",
 		&G.content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
 	);
 	//argc -= optind;
