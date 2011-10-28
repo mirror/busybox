@@ -73,23 +73,23 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
 }
 
 /*
- * Decode base64 encoded stream.
- * Can stop on EOF, specified char, or on uuencode-style "====" line:
- * flags argument controls it.
+ * Decode base64 encoded string. Stops on '\0'.
+ *
+ * Returns: pointer to the undecoded part of source.
+ * If points to '\0', then the source was fully decoded.
+ * (*dst): advanced past the last written byte.
  */
-void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
+const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 {
-/* Note that EOF _can_ be passed as exit_char too */
-#define exit_char    ((int)(signed char)flags)
-#define uu_style_end (flags & BASE64_FLAG_UU_STOP)
-
-	int term_count = 0;
+	char *dst = *pp_dst;
+	const char *src_tail;
 
 	while (1) {
 		unsigned char translated[4];
 		int count = 0;
 
 		/* Process one group of 4 chars */
+		src_tail = src;
 		while (count < 4) {
 			char *table_ptr;
 			int ch;
@@ -101,11 +101,20 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n"
 			 */
 			do {
-				ch = fgetc(src_stream);
-				if (ch == exit_char && count == 0)
-					return;
-				if (ch == EOF)
-					bb_error_msg_and_die("truncated base64 input");
+				ch = *src;
+				if (ch == '\0') {
+					if (count == 0) {
+						/* Example:
+						 * If we decode "QUJD <NUL>", we want
+						 * to return ptr to NUL, not to ' ',
+						 * because we did fully decode
+						 * the string (to "ABC").
+						 */
+						src_tail = src;
+					}
+					goto ret;
+				}
+				src++;
 				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
 //TODO: add BASE64_FLAG_foo to die on bad char?
 //Note that then we may need to still allow '\r' (for mail processing)
@@ -114,21 +123,15 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 			/* Convert encoded character to decimal */
 			ch = table_ptr - bb_uuenc_tbl_base64;
 
-			if (ch == 65 /* '\n' */) {
-				/* Terminating "====" line? */
-				if (uu_style_end && term_count == 4)
-					return; /* yes */
-				term_count = 0;
+			if (ch == 65) {  /* '\n' */
 				continue;
 			}
 			/* ch is 64 if char was '=', otherwise 0..63 */
 			translated[count] = ch & 63; /* 64 -> 0 */
-			if (ch == 64) {
-				term_count++;
+			if (ch == 64) {  /* '=' */
 				break;
 			}
 			count++;
-			term_count = 0;
 		}
 
 		/* Merge 6 bit chars to 8 bit.
@@ -136,10 +139,82 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 		 * "eQ==" -> "y", not "y NUL NUL"
 		 */
 		if (count > 1)
-			fputc(translated[0] << 2 | translated[1] >> 4, dst_stream);
+			*dst++ = translated[0] << 2 | translated[1] >> 4;
 		if (count > 2)
-			fputc(translated[1] << 4 | translated[2] >> 2, dst_stream);
+			*dst++ = translated[1] << 4 | translated[2] >> 2;
 		if (count > 3)
-			fputc(translated[2] << 6 | translated[3], dst_stream);
+			*dst++ = translated[2] << 6 | translated[3];
 	} /* while (1) */
+ ret:
+	*pp_dst = dst;
+	return src_tail;
+}
+
+/*
+ * Decode base64 encoded stream.
+ * Can stop on EOF, specified char, or on uuencode-style "====" line:
+ * flags argument controls it.
+ */
+void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
+{
+/* Note that EOF _can_ be passed as exit_char too */
+#define exit_char    ((int)(signed char)flags)
+#define uu_style_end (flags & BASE64_FLAG_UU_STOP)
+
+	/* uuencoded files have 61 byte lines. Use 64 byte buffer
+	 * to process line at a time.
+	 */
+	enum { BUFFER_SIZE = 64 };
+
+	char in_buf[BUFFER_SIZE + 2];
+	char out_buf[BUFFER_SIZE / 4 * 3 + 2];
+	char *out_tail;
+	const char *in_tail;
+	int term_seen = 0;
+	int in_count = 0;
+
+	while (1) {
+		while (in_count < BUFFER_SIZE) {
+			int ch = fgetc(src_stream);
+			if (ch == exit_char) {
+				if (in_count == 0)
+					return;
+				term_seen = 1;
+				break;
+			}
+			if (ch == EOF) {
+				term_seen = 1;
+				break;
+			}
+			/* Prevent "====" line to be split: stop if we see '\n'.
+			 * We can also skip other whitespace and skirt the problem
+			 * of files with NULs by stopping on any control char or space:
+			 */
+			if (ch <= ' ')
+				break;
+			in_buf[in_count++] = ch;
+		}
+		in_buf[in_count] = '\0';
+
+		/* Did we encounter "====" line? */
+		if (uu_style_end && strcmp(in_buf, "====") == 0)
+			return;
+
+		out_tail = out_buf;
+		in_tail = decode_base64(&out_tail, in_buf);
+
+                fwrite(out_buf, (out_tail - out_buf), 1, dst_stream);
+
+		if (term_seen) {
+			/* Did we consume ALL characters? */
+			if (*in_tail == '\0')
+				return;
+			/* No */
+			bb_error_msg_and_die("truncated base64 input");
+		}
+
+		/* It was partial decode */
+		in_count = strlen(in_tail);
+		memmove(in_buf, in_tail, in_count);
+	}
 }
