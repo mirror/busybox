@@ -433,7 +433,7 @@ typedef unsigned smalluint;
 # undef HAVE_STPCPY
 #endif
 
-#if defined(ANDROID)
+#if defined(ANDROID) || defined(__ANDROID__)
 # undef HAVE_DPRINTF
 # undef HAVE_GETLINE
 # undef HAVE_STPCPY

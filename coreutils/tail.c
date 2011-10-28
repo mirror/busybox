@@ -203,7 +203,7 @@ int tail_main(int argc, char **argv)
 		int fd = fds[i];
 
 		if (ENABLE_FEATURE_FANCY_TAIL && fd < 0)
-			continue; /* may happen with -E */
+			continue; /* may happen with -F */
 
 		if (nfiles > header_threshhold) {
 			tail_xprint_header(fmt, argv[i]);
@@ -252,14 +252,14 @@ int tail_main(int argc, char **argv)
 		 * Used only by +N code ("start from Nth", 1-based): */
 		seen = 1;
 		newlines_seen = 0;
-		while ((nread = tail_read(fd, buf, tailbufsize-taillen)) > 0) {
+		while ((nread = tail_read(fd, buf, tailbufsize - taillen)) > 0) {
 			if (G.from_top) {
 				int nwrite = nread;
 				if (seen < count) {
 					/* We need to skip a few more bytes/lines */
 					if (COUNT_BYTES) {
 						nwrite -= (count - seen);
-						seen = count;
+						seen += nread;
 					} else {
 						char *s = buf;
 						do {
