@@ -11,7 +11,7 @@
  *
  * initially busyboxified by Bernhard Reutner-Fischer
  */
- 
+
 //usage:#define runlevel_trivial_usage
 //usage:       "[FILE]"
 //usage:#define runlevel_full_usage "\n\n"

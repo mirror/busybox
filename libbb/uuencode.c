@@ -203,7 +203,7 @@ void FAST_FUNC read_base64(FILE *src_stream, FILE *dst_stream, int flags)
 		out_tail = out_buf;
 		in_tail = decode_base64(&out_tail, in_buf);
 
-                fwrite(out_buf, (out_tail - out_buf), 1, dst_stream);
+		fwrite(out_buf, (out_tail - out_buf), 1, dst_stream);
 
 		if (term_seen) {
 			/* Did we consume ALL characters? */

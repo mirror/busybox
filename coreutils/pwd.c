@@ -43,7 +43,7 @@ static int logical_getcwd(void)
 		if (*p == '.')
 			p++; /* we found "/.." */
 		if (*p == '\0' || *p == '/')
-    			return 0; /* "/./" or "/../" component: bad */
+			return 0; /* "/./" or "/../" component: bad */
 	}
 
 	if (stat(wd, &st1) != 0)
