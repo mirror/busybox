@@ -594,6 +594,14 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
 			}
 			/* newFile == "f.0" now */
 			rename(log_file->path, newFile);
+			/* Incredibly, if F and F.0 are hardlinks, POSIX
+			 * _demands_ that rename returns 0 but does not
+			 * remove F!!!
+			 * (hardlinked F/F.0 pair was observed after
+			 * power failure during rename()).
+			 * Ensure old file is gone:
+			 */
+			unlink(log_file->path);
 #ifdef SYSLOGD_WRLOCK
 			fl.l_type = F_UNLCK;
 			fcntl(log_file->fd, F_SETLKW, &fl);
