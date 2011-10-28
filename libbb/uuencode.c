@@ -10,7 +10,7 @@
 #include "libbb.h"
 
 /* Conversion table.  for base 64 */
-const char bb_uuenc_tbl_base64[65 + 2] ALIGN1 = {
+const char bb_uuenc_tbl_base64[65 + 1] ALIGN1 = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -20,7 +20,7 @@ const char bb_uuenc_tbl_base64[65 + 2] ALIGN1 = {
 	'w', 'x', 'y', 'z', '0', '1', '2', '3',
 	'4', '5', '6', '7', '8', '9', '+', '/',
 	'=' /* termination character */,
-	'\n', '\0' /* needed for uudecode.c */
+	'\0' /* needed for uudecode.c only */
 };
 
 const char bb_uuenc_tbl_std[65] ALIGN1 = {
@@ -77,7 +77,7 @@ void FAST_FUNC bb_uuencode(char *p, const void *src, int length, const char *tbl
  *
  * Returns: pointer to the undecoded part of source.
  * If points to '\0', then the source was fully decoded.
- * (*dst): advanced past the last written byte.
+ * (*pp_dst): advanced past the last written byte.
  */
 const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 {
@@ -85,10 +85,10 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 	const char *src_tail;
 
 	while (1) {
-		unsigned char translated[4];
+		unsigned char six_bit[4];
 		int count = 0;
 
-		/* Process one group of 4 chars */
+		/* Fetch up to four 6-bit values */
 		src_tail = src;
 		while (count < 4) {
 			char *table_ptr;
@@ -97,8 +97,8 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 			/* Get next _valid_ character.
 			 * bb_uuenc_tbl_base64[] contains this string:
 			 *  0         1         2         3         4         5         6
-			 *  012345678901234567890123456789012345678901234567890123456789012345
-			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n"
+			 *  01234567890123456789012345678901234567890123456789012345678901234
+			 * "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 			 */
 			do {
 				ch = *src;
@@ -117,33 +117,37 @@ const char* FAST_FUNC decode_base64(char **pp_dst, const char *src)
 				src++;
 				table_ptr = strchr(bb_uuenc_tbl_base64, ch);
 //TODO: add BASE64_FLAG_foo to die on bad char?
-//Note that then we may need to still allow '\r' (for mail processing)
 			} while (!table_ptr);
 
 			/* Convert encoded character to decimal */
 			ch = table_ptr - bb_uuenc_tbl_base64;
 
-			if (ch == 65) {  /* '\n' */
-				continue;
-			}
 			/* ch is 64 if char was '=', otherwise 0..63 */
-			translated[count] = ch & 63; /* 64 -> 0 */
-			if (ch == 64) {  /* '=' */
+			if (ch == 64)
 				break;
-			}
+			six_bit[count] = ch;
 			count++;
 		}
 
-		/* Merge 6 bit chars to 8 bit.
+		/* Transform 6-bit values to 8-bit ones.
 		 * count can be < 4 when we decode the tail:
-		 * "eQ==" -> "y", not "y NUL NUL"
+		 * "eQ==" -> "y", not "y NUL NUL".
+		 * Note that (count > 1) is always true,
+		 * "x===" encoding is not valid:
+		 * even a single zero byte encodes as "AA==".
+		 * However, with current logic we come here with count == 1
+		 * when we decode "==" tail.
 		 */
 		if (count > 1)
-			*dst++ = translated[0] << 2 | translated[1] >> 4;
+			*dst++ = six_bit[0] << 2 | six_bit[1] >> 4;
 		if (count > 2)
-			*dst++ = translated[1] << 4 | translated[2] >> 2;
+			*dst++ = six_bit[1] << 4 | six_bit[2] >> 2;
 		if (count > 3)
-			*dst++ = translated[2] << 6 | translated[3];
+			*dst++ = six_bit[2] << 6 | six_bit[3];
+		/* Note that if we decode "AA==" and ate first '=',
+		 * we just decoded one char (count == 2) and now we'll
+		 * do the loop once more to decode second '='.
+		 */
 	} /* while (1) */
  ret:
 	*pp_dst = dst;
