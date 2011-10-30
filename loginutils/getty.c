@@ -266,7 +266,9 @@ static void init_tty_attrs(int speed)
 #ifdef CMSPAR
 		| CMSPAR  /* mark or space parity */
 #endif
+#ifdef CBAUD
 		| CBAUD   /* (output) baud rate */
+#endif
 #ifdef CBAUDEX
 		| CBAUDEX /* (output) baud rate */
 #endif
