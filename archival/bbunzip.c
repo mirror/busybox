@@ -103,7 +103,9 @@ int FAST_FUNC bbunpack(char **argv,
 		status = unpacker(&info);
 		if (status < 0)
 			exitcode = 1;
-		xclose(STDOUT_FILENO); /* with error check! */
+
+		if (!(option_mask32 & OPT_STDOUT))
+			xclose(STDOUT_FILENO); /* with error check! */
 
 		if (filename) {
 			char *del = new_name;
@@ -142,6 +144,9 @@ int FAST_FUNC bbunpack(char **argv,
 				free(new_name);
 		}
 	} while (*argv && *++argv);
+
+	if (option_mask32 & OPT_STDOUT)
+		xclose(STDOUT_FILENO); /* with error check! */
 
 	return exitcode;
 }

@@ -752,7 +752,14 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 			}
 		}
 
-		if (i != RETVAL_LAST_BLOCK) {
+		if (i != RETVAL_LAST_BLOCK
+		/* Observed case when i == RETVAL_OK:
+		 * "bzcat z.bz2", where "z.bz2" is a bzipped zero-length file
+		 * (to be exact, z.bz2 is exactly these 14 bytes:
+		 * 42 5a 68 39 17 72 45 38  50 90 00 00 00 00).
+		 */
+		 && i != RETVAL_OK
+		) {
 			bb_error_msg("bunzip error %d", i);
 			break;
 		}
