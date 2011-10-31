@@ -117,7 +117,24 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 		/* We don't have ctty (or don't have "/dev/tty" node...) */
 		do {
 #ifdef __linux__
-			int s;
+			/* Note that this method does not use _stdin_.
+			 * Thus, "cttyhack </dev/something" can't be used.
+			 * However, this method is more reliable than
+			 * TIOCGSERIAL check, which assumes that all
+			 * serial lines follow /dev/ttySn convention -
+			 * which is not always the case.
+			 * Therefore, we use this methos first:
+			 */
+			int s = open_read_close("/sys/class/tty/console/active",
+				console + 5, sizeof(console) - 5);
+			if (s > 0) {
+				/* found active console via sysfs (Linux 2.6.38+)
+				 * sysfs string looks like "ttyS0\n" so zap the newline:
+				 */
+				console[4 + s] = '\0';
+				break;
+			}
+
 			if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
 				/* this is linux virtual tty */
 				sprintf(console + 8, "S%u" + 1, (int)u.vt.v_active);
@@ -128,18 +145,6 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 			if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
 				/* this is a serial console; assuming it is named /dev/ttySn */
 				sprintf(console + 8, "S%u", (int)u.sr.line);
-				break;
-			}
-#endif
-#ifdef __linux__
-			/* Note that this method is not related to _stdin_ */
-			s = open_read_close("/sys/class/tty/console/active",
-				console + 5, sizeof(console) - 5);
-			if (s > 0) {
-				/* found active console via sysfs (Linux 2.6.38+)
-				 * sysfs string looks like "ttyS0\n" so zap the newline:
-				 */
-				console[4 + s] = '\0';
 				break;
 			}
 #endif
