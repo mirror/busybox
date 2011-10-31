@@ -50,9 +50,12 @@
 //config:
 //config:	  # exec setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1'
 //config:
+//config:	  Starting getty on a controlling tty from a shell script:
+//config:
+//config:	  # getty 115200 $(cttyhack)
 
 //usage:#define cttyhack_trivial_usage
-//usage:       "PROG ARGS"
+//usage:       "[PROG ARGS]"
 //usage:#define cttyhack_full_usage "\n\n"
 //usage:       "Give PROG a controlling tty if possible."
 //usage:     "\nExample for /etc/inittab (for busybox init):"
@@ -108,20 +111,29 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 		char paranoia[sizeof(struct serial_struct) * 3];
 	} u;
 
-	if (!*++argv) {
-		bb_show_usage();
-	}
-
 	strcpy(console, "/dev/tty");
 	fd = open(console, O_RDWR);
-	if (fd >= 0) {
-		/* We already have ctty, nothing to do */
-		close(fd);
-	} else {
+	if (fd < 0) {
 		/* We don't have ctty (or don't have "/dev/tty" node...) */
 		do {
 #ifdef __linux__
-			int s = open_read_close("/sys/class/tty/console/active",
+			int s;
+			if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
+				/* this is linux virtual tty */
+				sprintf(console + 8, "S%u" + 1, (int)u.vt.v_active);
+				break;
+			}
+#endif
+#ifdef TIOCGSERIAL
+			if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
+				/* this is a serial console; assuming it is named /dev/ttySn */
+				sprintf(console + 8, "S%u", (int)u.sr.line);
+				break;
+			}
+#endif
+#ifdef __linux__
+			/* Note that this method is not related to _stdin_ */
+			s = open_read_close("/sys/class/tty/console/active",
 				console + 5, sizeof(console) - 5);
 			if (s > 0) {
 				/* found active console via sysfs (Linux 2.6.38+)
@@ -130,39 +142,35 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 				console[4 + s] = '\0';
 				break;
 			}
-
-			if (ioctl(0, VT_GETSTATE, &u.vt) == 0) {
-				/* this is linux virtual tty */
-				sprintf(console + 8, "S%d" + 1, u.vt.v_active);
-				break;
-			}
-#endif
-#ifdef TIOCGSERIAL
-			if (ioctl(0, TIOCGSERIAL, &u.sr) == 0) {
-				/* this is a serial console; assuming it is named /dev/ttySn */
-				sprintf(console + 8, "S%d", u.sr.line);
-				break;
-			}
 #endif
 			/* nope, could not find it */
-			goto ret;
+			console[0] = '\0';
 		} while (0);
+	}
 
+	argv++;
+	if (!argv[0]) {
+		if (!console[0])
+			return EXIT_FAILURE;
+		puts(console);
+		return EXIT_SUCCESS;
+	}
+
+	if (fd < 0) {
 		fd = open_or_warn(console, O_RDWR);
 		if (fd < 0)
 			goto ret;
-		//bb_error_msg("switching to '%s'", console);
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(fd, 2);
-		while (fd > 2)
-			close(fd--);
-		/* Some other session may have it as ctty,
-		 * steal it from them:
-		 */
-		ioctl(0, TIOCSCTTY, 1);
 	}
-
-ret:
+	//bb_error_msg("switching to '%s'", console);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
+	while (fd > 2)
+		close(fd--);
+	/* Some other session may have it as ctty,
+	 * try to steal it from them:
+	 */
+	ioctl(0, TIOCSCTTY, 1);
+ ret:
 	BB_EXECVP_or_die(argv);
 }
