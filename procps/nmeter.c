@@ -274,30 +274,56 @@ static int rdval_loadavg(const char* p, ullong *vec, ...)
 //   1  2 3   4	 5        6(rd)  7      8     9     10(wr) 11     12 13     14
 //   3  0 hda 51292 14441 841783 926052 25717 79650 843256 3029804 0 148459 3956933
 //   3  1 hda1 0 0 0 0 <- ignore if only 4 fields
+// Linux 3.0 (maybe earlier) started printing full stats for hda1 too.
+// Had to add code which skips such devices.
 static int rdval_diskstats(const char* p, ullong *vec)
 {
-	ullong rd = rd; // for compiler
-	int indexline = 0;
+	char devname[32];
+	unsigned devname_len = 0;
+	int value_idx = 0;
+
 	vec[0] = 0;
 	vec[1] = 0;
 	while (1) {
-		indexline++;
-		while (*p == ' ' || *p == '\t') p++;
-		if (*p == '\0') break;
+		value_idx++;
+		while (*p == ' ' || *p == '\t')
+			p++;
+		if (*p == '\0')
+			break;
 		if (*p == '\n') {
-			indexline = 0;
+			value_idx = 0;
 			p++;
 			continue;
 		}
-		if (indexline == 6) {
-			rd = strtoull(p, NULL, 10);
-		} else if (indexline == 10) {
-			vec[0] += rd;  // TODO: *sectorsize (don't know how to find out sectorsize)
+		if (value_idx == 3) {
+			char *end = strchrnul(p, ' ');
+			/* If this a hda1-like device (same prefix as last one + digit)? */
+			if (devname_len && strncmp(devname, p, devname_len) == 0 && isdigit(p[devname_len])) {
+				p = end;
+				goto skip_line; /* skip entire line */
+			}
+			/* It is not. Remember the name for future checks */
+			devname_len = end - p;
+			if (devname_len > sizeof(devname)-1)
+				devname_len = sizeof(devname)-1;
+			strncpy(devname, p, devname_len);
+			/* devname[devname_len] = '\0'; - not really needed */
+			p = end;
+		} else
+		if (value_idx == 6) {
+			// TODO: *sectorsize (don't know how to find out sectorsize)
+			vec[0] += strtoull(p, NULL, 10);
+		} else
+		if (value_idx == 10) {
+			// TODO: *sectorsize (don't know how to find out sectorsize)
 			vec[1] += strtoull(p, NULL, 10);
-			while (*p != '\n' && *p != '\0') p++;
+ skip_line:
+			while (*p != '\n' && *p != '\0')
+				p++;
 			continue;
 		}
-		while (*p > ' ') p++; // skip over value
+		while ((unsigned char)(*p) > ' ') // skip over value
+			p++;
 	}
 	return 0;
 }
