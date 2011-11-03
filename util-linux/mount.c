@@ -522,12 +522,13 @@ static llist_t *get_block_backed_filesystems(void)
 
 		while ((buf = xmalloc_fgetline(f)) != NULL) {
 			if (strncmp(buf, "nodev", 5) == 0 && isspace(buf[5]))
-				continue;
+				goto next;
 			fs = skip_whitespace(buf);
 			if (*fs == '#' || *fs == '*' || !*fs)
-				continue;
+				goto next;
 
 			llist_add_to_end(&list, xstrdup(fs));
+ next:
 			free(buf);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
