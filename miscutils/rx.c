@@ -172,6 +172,7 @@ static int receive(/*int read_fd, */int file_fd)
 			/* a repeat of the last block is ok, just ignore it. */
 			/* this also ignores the initial block 0 which is */
 			/* meta data. */
+			blockLength = 0;
 			goto next;
 		}
 		if (blockNo != (wantBlockNo & 0xff)) {
