@@ -38,7 +38,7 @@
 //usage:	)
 //usage:     "\n	-r		Read-only mount"
 //usage:     "\n	-w		Read-write mount (default)"
-//usage:     "\n	-t FSTYPE	Filesystem type"
+//usage:     "\n	-t FSTYPE[,...]	Filesystem type(s)"
 //usage:     "\n	-O OPT		Mount only filesystems with option OPT (-a only)"
 //usage:     "\n-o OPT:"
 //usage:	IF_FEATURE_MOUNT_LOOP(
@@ -1827,7 +1827,16 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// If we know the fstype (or don't need to), jump straight
 	// to the actual mount.
 	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
-		rc = mount_it_now(mp, vfsflags, filteropts);
+		char *next;
+		for (;;) {
+			next = mp->mnt_type ? strchr(mp->mnt_type, ',') : NULL;
+			if (next)
+				*next = '\0';
+			rc = mount_it_now(mp, vfsflags, filteropts);
+			if (rc == 0 || !next)
+				break;
+			mp->mnt_type = next + 1;
+		}
 	} else {
 		// Loop through filesystem types until mount succeeds
 		// or we run out
@@ -1844,7 +1853,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 			rc = mount_it_now(mp, vfsflags, filteropts);
-			if (!rc)
+			if (rc == 0)
 				break;
 		}
 	}
