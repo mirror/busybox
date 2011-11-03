@@ -1358,25 +1358,37 @@ enum {
 	KEYCODE_DELETE   =  -9,
 	KEYCODE_PAGEUP   = -10,
 	KEYCODE_PAGEDOWN = -11,
-
-	KEYCODE_CTRL_UP    = KEYCODE_UP    & ~0x40,
-	KEYCODE_CTRL_DOWN  = KEYCODE_DOWN  & ~0x40,
+	// -12 is reserved for Alt/Ctrl/Shift-TAB
+#if 0
+	KEYCODE_FUN1     = -13,
+	KEYCODE_FUN2     = -14,
+	KEYCODE_FUN3     = -15,
+	KEYCODE_FUN4     = -16,
+	KEYCODE_FUN5     = -17,
+	KEYCODE_FUN6     = -18,
+	KEYCODE_FUN7     = -19,
+	KEYCODE_FUN8     = -20,
+	KEYCODE_FUN9     = -21,
+	KEYCODE_FUN10    = -22,
+	KEYCODE_FUN11    = -23,
+	KEYCODE_FUN12    = -24,
+#endif
+	/* Be sure that last defined value is small enough
+	 * to not interfere with Alt/Ctrl/Shift bits.
+	 * So far we do not exceed -31 (0xfff..fffe1),
+	 * which gives us three upper bits in LSB to play with.
+	 */
+	//KEYCODE_SHIFT_TAB  = (-12)         & ~0x80,
+	//KEYCODE_SHIFT_...  = KEYCODE_...   & ~0x80,
+	//KEYCODE_CTRL_UP    = KEYCODE_UP    & ~0x40,
+	//KEYCODE_CTRL_DOWN  = KEYCODE_DOWN  & ~0x40,
 	KEYCODE_CTRL_RIGHT = KEYCODE_RIGHT & ~0x40,
 	KEYCODE_CTRL_LEFT  = KEYCODE_LEFT  & ~0x40,
-#if 0
-	KEYCODE_FUN1     = -12,
-	KEYCODE_FUN2     = -13,
-	KEYCODE_FUN3     = -14,
-	KEYCODE_FUN4     = -15,
-	KEYCODE_FUN5     = -16,
-	KEYCODE_FUN6     = -17,
-	KEYCODE_FUN7     = -18,
-	KEYCODE_FUN8     = -19,
-	KEYCODE_FUN9     = -20,
-	KEYCODE_FUN10    = -21,
-	KEYCODE_FUN11    = -22,
-	KEYCODE_FUN12    = -23,
-#endif
+	//KEYCODE_ALT_UP     = KEYCODE_UP    & ~0x20,
+	//KEYCODE_ALT_DOWN   = KEYCODE_DOWN  & ~0x20,
+	KEYCODE_ALT_RIGHT  = KEYCODE_RIGHT & ~0x20,
+	KEYCODE_ALT_LEFT   = KEYCODE_LEFT  & ~0x20,
+
 	KEYCODE_CURSOR_POS = -0x100, /* 0xfff..fff00 */
 	/* How long is the longest ESC sequence we know?
 	 * We want it big enough to be able to contain
