@@ -108,12 +108,10 @@ static int receive(/*int read_fd, */int file_fd)
 			}
 		}
 		/* Write previously received block */
-		if (blockLength) {
-			errno = 0;
-			if (full_write(file_fd, blockBuf, blockLength) != blockLength) {
-				bb_perror_msg("can't write to file");
-				goto fatal;
-			}
+		errno = 0;
+		if (full_write(file_fd, blockBuf, blockLength) != blockLength) {
+			bb_perror_msg(bb_msg_write_error);
+			goto fatal;
 		}
 
 		timeout = TIMEOUT;
@@ -155,15 +153,11 @@ static int receive(/*int read_fd, */int file_fd)
 			blockBuf[i] = cc;
 		}
 
+		cksum_or_crc = read_byte(TIMEOUT);
+		if (cksum_or_crc < 0)
+			goto timeout;
 		if (do_crc) {
-			cksum_or_crc = read_byte(TIMEOUT);
-			if (cksum_or_crc < 0)
-				goto timeout;
 			cksum_or_crc = (cksum_or_crc << 8) | read_byte(TIMEOUT);
-			if (cksum_or_crc < 0)
-				goto timeout;
-		} else {
-			cksum_or_crc = read_byte(TIMEOUT);
 			if (cksum_or_crc < 0)
 				goto timeout;
 		}
