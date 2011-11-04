@@ -1520,8 +1520,10 @@ static void remember_in_history(char *str)
 		for (i = 0; i < state->max_history-1; i++)
 			state->history[i] = state->history[i+1];
 		/* i == state->max_history-1 */
-		if (ENABLE_FEATURE_EDITING_SAVE_ON_EXIT && state->cnt_history_in_file)
+# if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
+		if (state->cnt_history_in_file)
 			state->cnt_history_in_file--;
+# endif
 	}
 	/* i <= state->max_history-1 */
 	state->history[i++] = xstrdup(str);
