@@ -81,7 +81,6 @@ void FAST_FUNC udhcp_dump_packet(struct dhcp_packet *packet)
 int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 {
 	int bytes;
-	unsigned char *vendor;
 
 	memset(packet, 0, sizeof(*packet));
 	bytes = safe_read(fd, packet, sizeof(*packet));
@@ -90,41 +89,14 @@ int FAST_FUNC udhcp_recv_kernel_packet(struct dhcp_packet *packet, int fd)
 		return bytes; /* returns -1 */
 	}
 
-	if (packet->cookie != htonl(DHCP_MAGIC)) {
+	if (bytes < offsetof(struct dhcp_packet, options)
+	 || packet->cookie != htonl(DHCP_MAGIC)
+	) {
 		bb_info_msg("Packet with bad magic, ignoring");
 		return -2;
 	}
 	log1("Received a packet");
 	udhcp_dump_packet(packet);
-
-	if (packet->op == BOOTREQUEST) {
-		vendor = udhcp_get_option(packet, DHCP_VENDOR);
-		if (vendor) {
-#if 0
-			static const char broken_vendors[][8] = {
-				"MSFT 98",
-				""
-			};
-			int i;
-			for (i = 0; broken_vendors[i][0]; i++) {
-				if (vendor[OPT_LEN - OPT_DATA] == (uint8_t)strlen(broken_vendors[i])
-				 && strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - OPT_DATA]) == 0
-				) {
-					log1("Broken client (%s), forcing broadcast replies",
-						broken_vendors[i]);
-					packet->flags |= htons(BROADCAST_FLAG);
-				}
-			}
-#else
-			if (vendor[OPT_LEN - OPT_DATA] == (uint8_t)(sizeof("MSFT 98")-1)
-			 && memcmp(vendor, "MSFT 98", sizeof("MSFT 98")-1) == 0
-			) {
-				log1("Broken client (%s), forcing broadcast replies", "MSFT 98");
-				packet->flags |= htons(BROADCAST_FLAG);
-			}
-#endif
-		}
-	}
 
 	return bytes;
 }
