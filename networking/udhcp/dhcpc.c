@@ -800,7 +800,6 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 	struct ip_udp_dhcp_packet packet;
 	uint16_t check;
 
-	memset(&packet, 0, sizeof(packet));
 	bytes = safe_read(fd, &packet, sizeof(packet));
 	if (bytes < 0) {
 		log1("Packet read error, ignoring");
@@ -858,7 +857,7 @@ static NOINLINE int udhcp_recv_raw_packet(struct dhcp_packet *dhcp_pkt, int fd)
 		return -2;
 	}
 
-	log1("Got valid DHCP packet");
+	log1("Received a packet");
 	udhcp_dump_packet(&packet.data);
 
 	bytes -= sizeof(packet.ip) + sizeof(packet.udp);
