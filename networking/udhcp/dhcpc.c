@@ -29,7 +29,7 @@
 #include <netpacket/packet.h>
 #include <linux/filter.h>
 
-/* struct client_config_t client_config is in bb_common_bufsiz1 */
+/* "struct client_config_t client_config" is in bb_common_bufsiz1 */
 
 
 #if ENABLE_LONG_OPTS
@@ -598,6 +598,12 @@ static void add_client_options(struct dhcp_packet *packet)
 //		if (client_config.boot_file)
 //			strncpy((char*)packet->file, client_config.boot_file, sizeof(packet->file) - 1);
 	}
+
+	// This will be needed if we remove -V VENDOR_STR in favor of
+	// -x vendor:VENDOR_STR
+	//if (!udhcp_find_option(packet.options, DHCP_VENDOR))
+	//	/* not set, set the default vendor ID */
+	//	...add (DHCP_VENDOR, "udhcp "BB_VER) opt...
 }
 
 /* RFC 2131
@@ -1086,7 +1092,6 @@ static void client_background(void)
 //usage:     "\n				-x lease:3600 - option 51 (lease time)"
 //usage:     "\n				-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
 //usage:     "\n	-F,--fqdn NAME		Ask server to update DNS mapping for NAME"
-//usage:     "\n	-H,-h,--hostname NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V,--vendorclass VENDOR	Vendor identifier (default 'udhcp VERSION')"
 //usage:     "\n	-C,--clientid-none	Don't send MAC as client identifier"
 //usage:	IF_UDHCP_VERBOSE(
@@ -1124,7 +1129,6 @@ static void client_background(void)
 //usage:     "\n			-x lease:3600 - option 51 (lease time)"
 //usage:     "\n			-x 0x3d:0100BEEFC0FFEE - option 61 (client id)"
 //usage:     "\n	-F NAME		Ask server to update DNS mapping for NAME"
-//usage:     "\n	-H,-h NAME	Send NAME as client hostname (default none)"
 //usage:     "\n	-V VENDOR	Vendor identifier (default 'udhcp VERSION')"
 //usage:     "\n	-C		Don't send MAC as client identifier"
 //usage:	IF_UDHCP_VERBOSE(
@@ -1187,8 +1191,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
 		);
-	if (opt & (OPT_h|OPT_H))
+	if (opt & (OPT_h|OPT_H)) {
+		//msg added 2011-11
+		bb_error_msg("option -h NAME is deprecated, use -x hostname:NAME");
 		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
+	}
 	if (opt & OPT_F) {
 		/* FQDN option format: [0x51][len][flags][0][0]<fqdn> */
 		client_config.fqdn = alloc_dhcp_option(DHCP_FQDN, str_F, 3);
@@ -1249,8 +1256,16 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		clientid_mac_ptr = client_config.clientid + OPT_DATA+1;
 		memcpy(clientid_mac_ptr, client_config.client_mac, 6);
 	}
-	if (str_V[0] != '\0')
+	if (str_V[0] != '\0') {
+		// can drop -V, str_V, client_config.vendorclass,
+		// but need to add "vendor" to the list of recognized
+		// string opts for this to work;
+		// and need to tweak add_client_options() too...
+		// ...so the question is, should we?
+		//bb_error_msg("option -V VENDOR is deprecated, use -x vendor:VENDOR");
 		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
+	}
+
 #if !BB_MMU
 	/* on NOMMU reexec (i.e., background) early */
 	if (!(opt & OPT_f)) {
