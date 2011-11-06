@@ -499,9 +499,6 @@ static void udhcp_run_script(struct dhcp_packet *packet, const char *name)
 	char **envp, **curr;
 	char *argv[3];
 
-	if (client_config.script == NULL)
-		return;
-
 	envp = fill_envp(packet);
 
 	/* call script */
@@ -1009,7 +1006,7 @@ static void perform_renew(void)
 	}
 }
 
-static void perform_release(uint32_t requested_ip, uint32_t server_addr)
+static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 {
 	char buffer[sizeof("255.255.255.255")];
 	struct in_addr temp_addr;
@@ -1154,15 +1151,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	uint32_t server_addr = server_addr; /* for compiler */
 	uint32_t requested_ip = 0;
 	uint32_t xid = 0;
-	uint32_t lease_seconds = 0; /* can be given as 32-bit quantity */
 	int packet_num;
 	int timeout; /* must be signed */
 	unsigned already_waited_sec;
 	unsigned opt;
 	int max_fd;
 	int retval;
-	struct timeval tv;
-	struct dhcp_packet packet;
 	fd_set rfds;
 
 	/* Default options */
@@ -1302,6 +1296,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	 * "continue" statements in code below jump to the top of the loop.
 	 */
 	for (;;) {
+		struct timeval tv;
+		struct dhcp_packet packet;
 		/* silence "uninitialized!" warning */
 		unsigned timestamp_before_wait = timestamp_before_wait;
 
@@ -1349,7 +1345,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					NULL,
 					client_config.client_mac)
 			) {
-				return 1; /* iface is gone? */
+				goto ret0; /* iface is gone? */
 			}
 			if (clientid_mac_ptr)
 				memcpy(clientid_mac_ptr, client_config.client_mac, 6);
@@ -1486,13 +1482,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			timeout = 0;
 			continue;
 		case SIGUSR2:
-			perform_release(requested_ip, server_addr);
+			perform_release(server_addr, requested_ip);
 			timeout = INT_MAX;
 			continue;
 		case SIGTERM:
 			bb_info_msg("Received SIGTERM");
-			if (opt & OPT_R) /* release on quit */
-				perform_release(requested_ip, server_addr);
 			goto ret0;
 		}
 
@@ -1589,6 +1583,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		case RENEW_REQUESTED:
 		case REBINDING:
 			if (*message == DHCPACK) {
+				uint32_t lease_seconds;
+				struct in_addr temp_addr;
+
 				temp = udhcp_get_option(&packet, DHCP_LEASE_TIME);
 				if (!temp) {
 					bb_error_msg("no lease time with ACK, using 1 hour lease");
@@ -1597,9 +1594,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					/* it IS unaligned sometimes, don't "optimize" */
 					move_from_unaligned32(lease_seconds, temp);
 					lease_seconds = ntohl(lease_seconds);
-					lease_seconds &= 0x0fffffff; /* paranoia: must not be prone to overflows */
-					if (lease_seconds < 10) /* and not too small */
-						lease_seconds = 10;
+					/* paranoia: must not be too small and not prone to overflows */
+					if (lease_seconds < 0x10)
+						lease_seconds = 0x10;
+					if (lease_seconds >= 0x10000000)
+						lease_seconds = 0x0fffffff;
 				}
 #if ENABLE_FEATURE_UDHCPC_ARPING
 				if (opt & OPT_a) {
@@ -1637,20 +1636,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 #endif
 				/* enter bound state */
 				timeout = lease_seconds / 2;
-				{
-					struct in_addr temp_addr;
-					temp_addr.s_addr = packet.yiaddr;
-					bb_info_msg("Lease of %s obtained, lease time %u",
-						inet_ntoa(temp_addr), (unsigned)lease_seconds);
-				}
+			        temp_addr.s_addr = packet.yiaddr;
+				bb_info_msg("Lease of %s obtained, lease time %u",
+					inet_ntoa(temp_addr), (unsigned)lease_seconds);
 				requested_ip = packet.yiaddr;
 				udhcp_run_script(&packet, state == REQUESTING ? "bound" : "renew");
 
 				state = BOUND;
 				change_listen_mode(LISTEN_NONE);
 				if (opt & OPT_q) { /* quit after lease */
-					if (opt & OPT_R) /* release on quit */
-						perform_release(requested_ip, server_addr);
 					goto ret0;
 				}
 				/* future renew failures should not exit (JM) */
@@ -1688,6 +1682,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	} /* for (;;) - main loop ends */
 
  ret0:
+	if (opt & OPT_R) /* release on quit */
+		perform_release(server_addr, requested_ip);
 	retval = 0;
  ret:
 	/*if (client_config.pidfile) - remove_pidfile has its own check */
