@@ -182,7 +182,7 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 		uint32_t source_nip, int source_port,
 		uint32_t dest_nip, int dest_port)
 {
-	struct sockaddr_in client;
+	struct sockaddr_in sa;
 	unsigned padding;
 	int fd;
 	int result = -1;
@@ -195,26 +195,25 @@ int FAST_FUNC udhcp_send_kernel_packet(struct dhcp_packet *dhcp_pkt,
 	}
 	setsockopt_reuseaddr(fd);
 
-	memset(&client, 0, sizeof(client));
-	client.sin_family = AF_INET;
-	client.sin_port = htons(source_port);
-	client.sin_addr.s_addr = source_nip;
-	if (bind(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
+	memset(&sa, 0, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(source_port);
+	sa.sin_addr.s_addr = source_nip;
+	if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		msg = "bind(%s)";
 		goto ret_close;
 	}
 
-	memset(&client, 0, sizeof(client));
-	client.sin_family = AF_INET;
-	client.sin_port = htons(dest_port);
-	client.sin_addr.s_addr = dest_nip;
-	if (connect(fd, (struct sockaddr *)&client, sizeof(client)) == -1) {
+	memset(&sa, 0, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(dest_port);
+	sa.sin_addr.s_addr = dest_nip;
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		msg = "connect";
 		goto ret_close;
 	}
 
 	udhcp_dump_packet(dhcp_pkt);
-
 	padding = DHCP_OPTIONS_BUFSIZE - 1 - udhcp_end_option(dhcp_pkt->options);
 	result = safe_write(fd, dhcp_pkt, DHCP_SIZE - padding);
 	msg = "write";
