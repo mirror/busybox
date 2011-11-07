@@ -92,16 +92,20 @@ int FAST_FUNC d6_send_raw_packet(
 	/* size, excluding IP header: */
 	packet.udp.len = htons(sizeof(struct udphdr) + d6_pkt_size);
 	packet.ip6.ip6_plen = packet.udp.len;
-	/* UDP checksum skips first four bytes of IP header.
-	 * IPv6 'hop limit' field should be 0.
-	 * 'next header' field should be summed as if it is in a different
-	 * position, therefore we write its value into ip6_hlim:
+	/*
+	 * Someone was smoking weed (at least) while inventing UDP checksumming:
+	 * UDP checksum skips first four bytes of IPv6 header.
+	 * 'next header' field should be summed as if it is one more byte
+	 * to the right, therefore we write its value (IPPROTO_UDP)
+	 * into ip6_hlim, and its 'real' location remains zero-filled for now.
 	 */
 	packet.ip6.ip6_hlim = IPPROTO_UDP;
-	packet.udp.check = inet_cksum((uint16_t *)&packet + 2,
-				offsetof(struct ip6_udp_d6_packet, data) - 4 + d6_pkt_size);
+	packet.udp.check = inet_cksum(
+				(uint16_t *)&packet + 2,
+				offsetof(struct ip6_udp_d6_packet, data) - 4 + d6_pkt_size
+	);
 	/* fix 'hop limit' and 'next header' after UDP checksumming */
-	packet.ip6.ip6_hlim = 8;
+	packet.ip6.ip6_hlim = 1; /* observed Windows machines to use hlim=1 */
 	packet.ip6.ip6_nxt = IPPROTO_UDP;
 
 	d6_dump_packet(d6_pkt);
