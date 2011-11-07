@@ -54,10 +54,10 @@ struct udp_d6_packet {
 /*** Options ***/
 
 struct d6_option {
-	uint8_t code;
 	uint8_t code_hi;
-	uint8_t len;
+	uint8_t code;
 	uint8_t len_hi;
+	uint8_t len;
 	uint8_t data[1];
 } PACKED;
 

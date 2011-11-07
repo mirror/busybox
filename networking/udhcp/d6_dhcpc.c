@@ -97,20 +97,20 @@ static void *d6_find_option(uint8_t *option, uint8_t *option_end, unsigned code)
 	int len_m4 = option_end - option - 4;
 	while (len_m4 >= 0) {
 		/* Next option's len is too big? */
-		if (option[2] > len_m4)
+		if (option[3] > len_m4)
 			return NULL; /* yes. bogus packet! */
 		/* So far we treat any opts with code >255
 		 * or len >255 as bogus, and stop at once.
 		 * This simplifies big-endian handling.
 		 */
-		if (option[1] != 0 || option[3] != 0)
+		if (option[0] != 0 || option[2] != 0)
 			return NULL;
 		/* Option seems to be valid */
 		/* Does its code match? */
-		if (option[0] == code)
+		if (option[1] == code)
 			return option; /* yes! */
-		option += option[2] + 4;
-		len_m4 -= option[2] + 4;
+		option += option[3] + 4;
+		len_m4 -= option[3] + 4;
 	}
 	return NULL;
 }
@@ -120,7 +120,7 @@ static void *d6_copy_option(uint8_t *option, uint8_t *option_end, unsigned code)
 	uint8_t *opt = d6_find_option(option, option_end, code);
 	if (!opt)
 		return opt;
-	return memcpy(xmalloc(opt[2] + 4), opt, opt[2] + 4);
+	return memcpy(xmalloc(opt[3] + 4), opt, opt[3] + 4);
 }
 
 static void *d6_store_blob(void *dst, const void *src, unsigned len)
@@ -920,8 +920,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		clientid = xzalloc(2+2+2+2+6);
 		clientid->code = D6_OPT_CLIENTID;
 		clientid->len = 2+2+6;
-		clientid->data[0] = 3; /* DUID-LL */
-		clientid->data[2] = 1; /* ethernet */
+		clientid->data[1] = 3; /* DUID-LL */
+		clientid->data[3] = 1; /* ethernet */
 		clientid_mac_ptr = clientid->data + 2+2;
 		memcpy(clientid_mac_ptr, client_config.client_mac, 6);
 		client_config.clientid = (void*)clientid;
