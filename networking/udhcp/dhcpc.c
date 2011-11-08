@@ -46,7 +46,6 @@ static const char udhcpc_longopts[] ALIGN1 =
 	"request\0"        Required_argument "r"
 	"script\0"         Required_argument "s"
 	"timeout\0"        Required_argument "T"
-	"version\0"        No_argument       "v"
 	"retries\0"        Required_argument "t"
 	"tryagain\0"       Required_argument "A"
 	"syslog\0"         No_argument       "S"
@@ -1183,7 +1182,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		, &list_x
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
-		);
+	);
 	if (opt & (OPT_h|OPT_H)) {
 		//msg added 2011-11
 		bb_error_msg("option -h NAME is deprecated, use -x hostname:NAME");

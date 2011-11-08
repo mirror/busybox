@@ -38,7 +38,7 @@
 
 
 #if ENABLE_LONG_OPTS
-static const char udhcpc_longopts[] ALIGN1 =
+static const char udhcpc6_longopts[] ALIGN1 =
 	"interface\0"      Required_argument "i"
 	"now\0"            No_argument       "n"
 	"pidfile\0"        Required_argument "p"
@@ -47,7 +47,6 @@ static const char udhcpc_longopts[] ALIGN1 =
 	"request\0"        Required_argument "r"
 	"script\0"         Required_argument "s"
 	"timeout\0"        Required_argument "T"
-	"version\0"        No_argument       "v"
 	"retries\0"        Required_argument "t"
 	"tryagain\0"       Required_argument "A"
 	"syslog\0"         No_argument       "S"
@@ -55,7 +54,6 @@ static const char udhcpc_longopts[] ALIGN1 =
 	"no-default-options\0" No_argument   "o"
 	"foreground\0"     No_argument       "f"
 	"background\0"     No_argument       "b"
-	"broadcast\0"      No_argument       "B"
 ///	IF_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
 	IF_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
 	;
@@ -77,9 +75,8 @@ enum {
 	OPT_o = 1 << 12,
 	OPT_x = 1 << 13,
 	OPT_f = 1 << 14,
-	OPT_B = 1 << 15,
 /* The rest has variable bit positions, need to be clever */
-	OPTBIT_B = 15,
+	OPTBIT_f = 14,
 	USE_FOR_MMU(             OPTBIT_b,)
 	///IF_FEATURE_UDHCPC_ARPING(OPTBIT_a,)
 	IF_FEATURE_UDHCP_PORT(   OPTBIT_P,)
@@ -751,7 +748,7 @@ static void client_background(void)
 //usage:# define IF_UDHCP_VERBOSE(...)
 //usage:#endif
 //usage:#define udhcpc6_trivial_usage
-//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oRB] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
+//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oR] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
 //usage:       "	[-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
 //usage:#define udhcpc6_full_usage "\n"
 //usage:	IF_LONG_OPTS(
@@ -771,7 +768,7 @@ static void client_background(void)
 //usage:     "\n	-R,--release		Release IP on exit"
 //usage:     "\n	-S,--syslog		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P,--client-port N	Use port N (default 68)"
+//usage:     "\n	-P,--client-port N	Use port N (default 546)"
 //usage:	)
 ////usage:	IF_FEATURE_UDHCPC_ARPING(
 ////usage:     "\n	-a,--arping		Use arping to validate offered address"
@@ -805,7 +802,7 @@ static void client_background(void)
 //usage:     "\n	-R		Release IP on exit"
 //usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P N		Use port N (default 68)"
+//usage:     "\n	-P N		Use port N (default 546)"
 //usage:	)
 ////usage:	IF_FEATURE_UDHCPC_ARPING(
 ////usage:     "\n	-a		Use arping to validate offered address"
@@ -859,8 +856,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse command line */
 	/* O,x: list; -T,-t,-A take numeric param */
 	opt_complementary = "O::x::T+:t+:A+" IF_UDHCP_VERBOSE(":vv") ;
-	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
-	opt = getopt32(argv, "i:np:qRr:s:T:t:SA:O:ox:fB"
+	IF_LONG_OPTS(applet_long_options = udhcpc6_longopts;)
+	opt = getopt32(argv, "i:np:qRr:s:T:t:SA:O:ox:f"
 		USE_FOR_MMU("b")
 		///IF_FEATURE_UDHCPC_ARPING("a")
 		IF_FEATURE_UDHCP_PORT("P:")
@@ -872,7 +869,7 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		, &list_x
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
-		);
+	);
 	requested_ipv6 = NULL;
 	if (opt & OPT_r) {
 		if (inet_pton(AF_INET6, str_r, &ipv6_buf) <= 0)
