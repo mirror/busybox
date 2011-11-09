@@ -253,11 +253,19 @@ void FAST_FUNC bb_daemonize_or_rexec(int flags, char **argv)
 	if (!(flags & DAEMON_ONLY_SANITIZE)) {
 		if (fork_or_rexec(argv))
 			exit(EXIT_SUCCESS); /* parent */
-		/* if daemonizing, make sure we detach from stdio & ctty */
+		/* if daemonizing, detach from stdio & ctty */
 		setsid();
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
+		if (flags & DAEMON_DOUBLE_FORK) {
+			/* On Linux, session leader can acquire ctty
+			 * unknowingly, by opening a tty.
+			 * Prevent this: stop being a session leader.
+			 */
+			if (fork_or_rexec(argv))
+				exit(EXIT_SUCCESS); /* parent */
+		}
 	}
 	while (fd > 2) {
 		close(fd--);

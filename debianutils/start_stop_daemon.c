@@ -474,7 +474,7 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 	*--argv = startas;
 	if (opt & OPT_BACKGROUND) {
 #if BB_MMU
-		bb_daemonize(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS);
+		bb_daemonize(DAEMON_DEVNULL_STDIO + DAEMON_CLOSE_EXTRA_FDS + DAEMON_DOUBLE_FORK);
 		/* DAEMON_DEVNULL_STDIO is superfluous -
 		 * it's always done by bb_daemonize() */
 #else

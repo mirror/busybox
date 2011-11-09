@@ -966,6 +966,7 @@ enum {
 	DAEMON_DEVNULL_STDIO = 2,
 	DAEMON_CLOSE_EXTRA_FDS = 4,
 	DAEMON_ONLY_SANITIZE = 8, /* internal use */
+	DAEMON_DOUBLE_FORK = 16, /* double fork to avoid controlling tty */
 };
 #if BB_MMU
   enum { re_execed = 0 };
