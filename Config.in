@@ -83,20 +83,21 @@ config FEATURE_BUFFERS_GO_IN_BSS
 endchoice
 
 config SHOW_USAGE
-	bool "Show terse applet usage messages"
+	bool "Show applet usage messages"
 	default y
 	help
-	  All BusyBox applets will show help messages when invoked with
-	  wrong arguments. You can turn off printing these terse usage
-	  messages if you say no here.
-	  This will save you up to 7k.
+	  Enabling this option, BusyBox applets will show terse help messages
+	  when invoked with wrong arguments.
+	  If you do not want to show any (helpful) usage message when
+	  issuing wrong command syntax, you can say 'N' here,
+	  saving approximately 7k.
 
 config FEATURE_VERBOSE_USAGE
 	bool "Show verbose applet usage messages"
 	default y
 	depends on SHOW_USAGE
 	help
-	  All BusyBox applets will show more verbose help messages when
+	  All BusyBox applets will show verbose help messages when
 	  busybox is invoked with --help. This will add a lot of text to the
 	  busybox binary. In the default configuration, this will add about
 	  13k, but it can add much more depending on your configuration.
@@ -106,8 +107,8 @@ config FEATURE_COMPRESS_USAGE
 	default y
 	depends on SHOW_USAGE
 	help
-	  Store usage messages in compressed form, uncompress them on-the-fly
-	  when <applet> --help is called.
+	  Store usage messages in .bz compressed form, uncompress them
+	  on-the-fly when <applet> --help is called.
 
 	  If you have a really tiny busybox with few applets enabled (and
 	  bunzip2 isn't one of them), the overhead of the decompressor might
