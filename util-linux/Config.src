@@ -485,13 +485,18 @@ config FEATURE_MOUNT_LABEL
 	  This also enables label or uuid support for swapon.
 
 config FEATURE_MOUNT_NFS
-	bool "Support mounting NFS file systems"
-	default y
+	bool "Support mounting NFS file systems on Linux < 2.6.23"
+	default n
 	depends on MOUNT
 	select FEATURE_HAVE_RPC
 	select FEATURE_SYSLOG
 	help
-	  Enable mounting of NFS file systems.
+	  Enable mounting of NFS file systems on Linux kernels prior
+	  to version 2.6.23. Note that in this case mounting of NFS
+	  over IPv6 will not be possible.
+
+	  Note that this option links in RPC support from libc,
+	  which is rather large (~10 kbytes on uclibc).
 
 config FEATURE_MOUNT_CIFS
 	bool "Support mounting CIFS/SMB file systems"

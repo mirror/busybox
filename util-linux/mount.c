@@ -1144,7 +1144,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	pathname = s + 1;
 	*s = '\0';
 	/* Ignore all but first hostname in replicated mounts
-	   until they can be fully supported. (mack@sgi.com) */
+	 * until they can be fully supported. (mack@sgi.com) */
 	s = strchr(hostname, ',');
 	if (s) {
 		*s = '\0';
@@ -1683,7 +1683,6 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 
 	/* Perform actual mount */
  do_mount:
-	mp->mnt_type = (char*)"nfs";
 	retval = mount_it_now(mp, vfsflags, (char*)&data);
 	goto ret;
 
@@ -1708,8 +1707,43 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 
 #else // !ENABLE_FEATURE_MOUNT_NFS
 
-// Never called. Call should be optimized out.
-int nfsmount(struct mntent *mp, long vfsflags, char *filteropts);
+/* Linux 2.6.23+ supports nfs mounts with options passed as a string.
+ * For older kernels, you must build busybox with ENABLE_FEATURE_MOUNT_NFS.
+ * (However, note that then you lose any chances that NFS over IPv6 would work).
+ */
+static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+{
+	len_and_sockaddr *lsa;
+	char *opts;
+	char *end;
+	char *dotted;
+	int ret;
+
+# if ENABLE_FEATURE_IPV6
+	end = strchr(mp->mnt_fsname, ']');
+	if (end && end[1] == ':')
+		end++;
+	else
+# endif
+		/* mount_main() guarantees that ':' is there */
+		end = strchr(mp->mnt_fsname, ':');
+
+	*end = '\0';
+	lsa = xdotted2sockaddr(mp->mnt_fsname, /*port:*/ 0);
+	*end = ':';
+	dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
+	if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
+	opts = xasprintf("%s%saddr=%s",
+		filteropts ? filteropts : "",
+		filteropts ? "," : "",
+		dotted
+	);
+	if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
+	ret = mount_it_now(mp, vfsflags, opts);
+	if (ENABLE_FEATURE_CLEAN_UP) free(opts);
+
+	return ret;
+}
 
 #endif // !ENABLE_FEATURE_MOUNT_NFS
 
@@ -1800,10 +1834,11 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// Might this be an NFS filesystem?
-	if (ENABLE_FEATURE_MOUNT_NFS
-	 && (!mp->mnt_type || strcmp(mp->mnt_type, "nfs") == 0)
+	if ((!mp->mnt_type || strncmp(mp->mnt_type, "nfs", 3) == 0)
 	 && strchr(mp->mnt_fsname, ':') != NULL
 	) {
+		if (!mp->mnt_type)
+			mp->mnt_type = (char*)"nfs";
 		rc = nfsmount(mp, vfsflags, filteropts);
 		goto report_error;
 	}
