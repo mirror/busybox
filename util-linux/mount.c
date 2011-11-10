@@ -1729,7 +1729,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		end = strchr(mp->mnt_fsname, ':');
 
 	*end = '\0';
-	lsa = xdotted2sockaddr(mp->mnt_fsname, /*port:*/ 0);
+	lsa = xhost2sockaddr(mp->mnt_fsname, /*port:*/ 0);
 	*end = ':';
 	dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 	if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
