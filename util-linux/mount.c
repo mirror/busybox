@@ -820,31 +820,31 @@ enum {
  */
 
 struct nfs2_fh {
-	char                    data[32];
+	char            data[32];
 };
 struct nfs3_fh {
-	unsigned short          size;
-	unsigned char           data[64];
+	unsigned short  size;
+	unsigned char   data[64];
 };
 
 struct nfs_mount_data {
-	int		version;		/* 1 */
-	int		fd;			/* 1 */
-	struct nfs2_fh	old_root;		/* 1 */
-	int		flags;			/* 1 */
-	int		rsize;			/* 1 */
-	int		wsize;			/* 1 */
-	int		timeo;			/* 1 */
-	int		retrans;		/* 1 */
-	int		acregmin;		/* 1 */
-	int		acregmax;		/* 1 */
-	int		acdirmin;		/* 1 */
-	int		acdirmax;		/* 1 */
-	struct sockaddr_in addr;		/* 1 */
-	char		hostname[256];		/* 1 */
-	int		namlen;			/* 2 */
-	unsigned int	bsize;			/* 3 */
-	struct nfs3_fh	root;			/* 4 */
+	int		version;	/* 1 */
+	int		fd;		/* 1 */
+	struct nfs2_fh	old_root;	/* 1 */
+	int		flags;		/* 1 */
+	int		rsize;		/* 1 */
+	int		wsize;		/* 1 */
+	int		timeo;		/* 1 */
+	int		retrans;	/* 1 */
+	int		acregmin;	/* 1 */
+	int		acregmax;	/* 1 */
+	int		acdirmin;	/* 1 */
+	int		acdirmax;	/* 1 */
+	struct sockaddr_in addr;	/* 1 */
+	char		hostname[256];	/* 1 */
+	int		namlen;		/* 2 */
+	unsigned int	bsize;		/* 3 */
+	struct nfs3_fh	root;		/* 4 */
 };
 
 /* bits in the flags field */
@@ -859,6 +859,7 @@ enum {
 	NFS_MOUNT_VER3 = 0x0080,	/* 3 */
 	NFS_MOUNT_KERBEROS = 0x0100,	/* 3 */
 	NFS_MOUNT_NONLM = 0x0200,	/* 3 */
+	NFS_MOUNT_NOACL = 0x0800,	/* 4 */
 	NFS_MOUNT_NORDIRPLUS = 0x4000
 };
 
@@ -1123,6 +1124,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	int noac;
 	int nordirplus;
 	int nolock;
+	int noacl;
 
 	find_kernel_nfs_mount_version();
 
@@ -1195,6 +1197,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 	nolock = 0;
 	noac = 0;
 	nordirplus = 0;
+	noacl = 0;
 	retry = 10000;		/* 10000 minutes ~ 1 week */
 	tcp = 1;			/* nfs-utils uses tcp per default */
 
@@ -1333,7 +1336,8 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				"tcp\0"
 				"udp\0"
 				"lock\0"
-				"rdirplus\0";
+				"rdirplus\0"
+			  	"acl\0";
 			int val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
@@ -1383,6 +1387,9 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 			case 11: //rdirplus
 				nordirplus = !val;
 				break;
+			case 12: // acl
+			  	noacl = !val;
+				break;
 			default:
 				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
 				goto fail;
@@ -1396,7 +1403,8 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		| (posix ? NFS_MOUNT_POSIX : 0)
 		| (nocto ? NFS_MOUNT_NOCTO : 0)
 		| (noac ? NFS_MOUNT_NOAC : 0)
-		| (nordirplus ? NFS_MOUNT_NORDIRPLUS : 0);
+		| (nordirplus ? NFS_MOUNT_NORDIRPLUS : 0)
+	  	| (noacl ? NFS_MOUNT_NOACL : 0);
 	if (nfs_mount_version >= 2)
 		data.flags |= (tcp ? NFS_MOUNT_TCP : 0);
 	if (nfs_mount_version >= 3)
