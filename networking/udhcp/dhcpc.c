@@ -123,24 +123,6 @@ static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
-static int sprint_nip6(char *dest, /*const char *pre,*/ const uint8_t *ip)
-{
-	char hexstrbuf[16 * 2];
-	bin2hex(hexstrbuf, (void*)ip, 16);
-	return sprintf(dest, /* "%s" */
-		"%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s",
-		/* pre, */
-		hexstrbuf + 0 * 4,
-		hexstrbuf + 1 * 4,
-		hexstrbuf + 2 * 4,
-		hexstrbuf + 3 * 4,
-		hexstrbuf + 4 * 4,
-		hexstrbuf + 5 * 4,
-		hexstrbuf + 6 * 4,
-		hexstrbuf + 7 * 4
-	);
-}
-
 /* really simple implementation, just count the bits */
 static int mton(uint32_t mask)
 {

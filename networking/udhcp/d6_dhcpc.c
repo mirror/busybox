@@ -129,32 +129,114 @@ static void *d6_store_blob(void *dst, const void *src, unsigned len)
 
 /*** Script execution code ***/
 
-/* put all the parameters into the environment */
-static char **fill_envp(struct d6_packet *packet
-    UNUSED_PARAM
-)
+static char** new_env(void)
 {
-	int envc;
+	client6_data.env_ptr = xrealloc_vector(client6_data.env_ptr, 3, client6_data.env_idx);
+	return &client6_data.env_ptr[client6_data.env_idx++];
+}
+
+/* put all the parameters into the environment */
+static void option_to_env(uint8_t *option, uint8_t *option_end)
+{
+	/* "length minus 4" */
+	int len_m4 = option_end - option - 4;
+	while (len_m4 >= 0) {
+		uint32_t v32;
+		char ipv6str[sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")];
+
+		if (option[0] != 0 || option[2] != 0)
+			break;
+
+		switch (option[1]) {
+		//case D6_OPT_CLIENTID:
+		//case D6_OPT_SERVERID:
+		case D6_OPT_IA_NA:
+		case D6_OPT_IA_PD:
+			option_to_env(option + 16, option + 4 + option[3]);
+			break;
+		//case D6_OPT_IA_TA:
+		case D6_OPT_IAADDR:
+/*   0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |          OPTION_IAADDR        |          option-len           |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                                                               |
+ * |                         IPv6 address                          |
+ * |                                                               |
+ * |                                                               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                      preferred-lifetime                       |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                        valid-lifetime                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+			sprint_nip6(ipv6str, option + 4);
+			*new_env() = xasprintf("ipv6=%s", ipv6str);
+
+			move_from_unaligned32(v32, option + 4 + 16 + 4);
+			*new_env() = xasprintf("lease=%u", (unsigned)v32);
+			break;
+
+		//case D6_OPT_ORO:
+		//case D6_OPT_PREFERENCE:
+		//case D6_OPT_ELAPSED_TIME:
+		//case D6_OPT_RELAY_MSG:
+		//case D6_OPT_AUTH:
+		//case D6_OPT_UNICAST:
+		//case D6_OPT_STATUS_CODE:
+		//case D6_OPT_RAPID_COMMIT:
+		//case D6_OPT_USER_CLASS:
+		//case D6_OPT_VENDOR_CLASS:
+		//case D6_OPT_VENDOR_OPTS:
+		//case D6_OPT_INTERFACE_ID:
+		//case D6_OPT_RECONF_MSG:
+		//case D6_OPT_RECONF_ACCEPT:
+
+		case D6_OPT_IAPREFIX:
+/*  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |        OPTION_IAPREFIX        |         option-length         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                      preferred-lifetime                       |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                        valid-lifetime                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * | prefix-length |                                               |
+ * +-+-+-+-+-+-+-+-+          IPv6 prefix                          |
+ * |                           (16 octets)                         |
+ * |                                                               |
+ * |               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |               |
+ * +-+-+-+-+-+-+-+-+
+ */
+			//move_from_unaligned32(v32, option + 4 + 4);
+			//*new_env() = xasprintf("lease=%u", (unsigned)v32);
+
+			sprint_nip6(ipv6str, option + 4 + 4 + 1);
+			*new_env() = xasprintf("ipv6prefix=%s/%u", ipv6str, (unsigned)(option[4 + 4]));
+		}
+		option += 4 + option[3];
+		len_m4 -= 4 + option[3];
+	}
+}
+
+static char **fill_envp(struct d6_packet *packet)
+{
 	char **envp, **curr;
 
-#define BITMAP unsigned
-#define BBITS (sizeof(BITMAP) * 8)
-#define BMASK(i) (1 << (i & (sizeof(BITMAP) * 8 - 1)))
-#define FOUND_OPTS(i) (found_opts[(unsigned)i / BBITS])
-	///BITMAP found_opts[256 / BBITS];
+	client6_data.env_ptr = NULL;
+	client6_data.env_idx = 0;
 
-	///memset(found_opts, 0, sizeof(found_opts));
+	*new_env() = xasprintf("interface=%s", client_config.interface);
 
-	/* We need 2 elements for:
-	 * "interface=IFACE"
-	 * terminating NULL
-	 */
-	envc = 2;
+	if (packet)
+		option_to_env(packet->d6_options, packet->d6_options + sizeof(packet->d6_options));
 
-	curr = envp = xzalloc(sizeof(envp[0]) * envc);
-
-	*curr = xasprintf("interface=%s", client_config.interface);
-	putenv(*curr++);
+	envp = curr = client6_data.env_ptr;
+	while (*curr)
+		putenv(*curr++);
 
 	return envp;
 }
@@ -1329,19 +1411,19 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 				free(client6_data.ia_na);
 				client6_data.ia_na = d6_copy_option(packet.d6_options, packet_end, D6_OPT_IA_NA);
 				if (!client6_data.ia_na) {
-					bb_error_msg("no lease time, ignoring packet");
+					bb_error_msg("no %s option, ignoring packet", "IA_NA");
 					continue;
 				}
 				if (client6_data.ia_na->len < (4 + 4 + 4) + (2 + 2 + 16 + 4 + 4)) {
 					bb_error_msg("IA_NA option is too short:%d bytes", client6_data.ia_na->len);
 					continue;
 				}
-				iaaddr = d6_find_option(client6_data.ia_na->data,
+				iaaddr = d6_find_option(client6_data.ia_na->data + 4 + 4 + 4,
 						client6_data.ia_na->data + client6_data.ia_na->len,
 						D6_OPT_IAADDR
 				);
 				if (!iaaddr) {
-					bb_error_msg("no lease time, ignoring packet");
+					bb_error_msg("no %s option, ignoring packet", "IAADDR");
 					continue;
 				}
 				if (iaaddr->len < (16 + 4 + 4)) {
