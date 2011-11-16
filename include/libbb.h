@@ -211,7 +211,7 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 # if ULONG_MAX > 0xffffffff
 /* "long" is long enough on this system */
 typedef unsigned long uoff_t;
-#  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
+#  define XATOOFF(a) xatoul_range((a), 0, LONG_MAX)
 /* usage: sz = BB_STRTOOFF(s, NULL, 10); if (errno || sz < 0) die(); */
 #  define BB_STRTOOFF bb_strtoul
 #  define STRTOOFF strtoul
@@ -220,7 +220,7 @@ typedef unsigned long uoff_t;
 # else
 /* "long" is too short, need "long long" */
 typedef unsigned long long uoff_t;
-#  define XATOOFF(a) xatoull_range(a, 0, LLONG_MAX)
+#  define XATOOFF(a) xatoull_range((a), 0, LLONG_MAX)
 #  define BB_STRTOOFF bb_strtoull
 #  define STRTOOFF strtoull
 #  define OFF_FMT "ll"
@@ -237,7 +237,7 @@ typedef unsigned long uoff_t;
 #  define OFF_FMT "l"
 # else
 typedef unsigned long uoff_t;
-#  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
+#  define XATOOFF(a) xatoul_range((a), 0, LONG_MAX)
 #  define BB_STRTOOFF bb_strtoul
 #  define STRTOOFF strtol
 #  define OFF_FMT "l"
