@@ -245,6 +245,12 @@ typedef unsigned long uoff_t;
 #endif
 /* scary. better ideas? (but do *test* them first!) */
 #define OFF_T_MAX  ((off_t)~((off_t)1 << (sizeof(off_t)*8-1)))
+/* Users report bionic to use 32-bit off_t even if LARGEFILE support is requested.
+ * We misdetected that. Don't let it build:
+ */
+struct BUG_off_t_size_is_misdetected {
+	char BUG_off_t_size_is_misdetected[sizeof(off_t) == sizeof(uoff_t) ? 1 : -1];
+};
 
 /* Some useful definitions */
 #undef FALSE
