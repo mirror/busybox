@@ -71,7 +71,8 @@ static NOINLINE int bb_dump_size(FS *fs)
 			 * skip any special chars -- save precision in
 			 * case it's a %s format.
 			 */
-			while (strchr(index_str + 1, *++fmt));
+			while (strchr(index_str + 1, *++fmt))
+				continue;
 			if (*fmt == '.' && isdigit(*++fmt)) {
 				prec = atoi(fmt);
 				while (isdigit(*++fmt))
@@ -99,8 +100,8 @@ static NOINLINE int bb_dump_size(FS *fs)
 static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 {
 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
-	PR *pr;
 	FU *fu;
+	PR *pr;
 	char *p1, *p2, *p3;
 	char savech, *fmtp;
 	const char *byte_count_str;
@@ -292,16 +293,18 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 	 * interprets any data at all, and has no iteration count,
 	 * repeat it as necessary.
 	 *
-	 * if, rep count is greater than 1, no trailing whitespace
+	 * if rep count is greater than 1, no trailing whitespace
 	 * gets output from the last iteration of the format unit.
 	 */
 	for (fu = fs->nextfu; fu; fu = fu->nextfu) {
-		if (!fu->nextfu && fs->bcnt < dumper->blocksize
-		 && !(fu->flags & F_SETREP) && fu->bcnt
+		if (!fu->nextfu
+		 && fs->bcnt < dumper->blocksize
+		 && !(fu->flags & F_SETREP)
+		 && fu->bcnt
 		) {
 			fu->reps += (dumper->blocksize - fs->bcnt) / fu->bcnt;
 		}
-		if (fu->reps > 1) {
+		if (fu->reps > 1 && fu->nextpr) {
 			for (pr = fu->nextpr;; pr = pr->nextpr)
 				if (!pr->nextpr)
 					break;
@@ -721,7 +724,7 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 	p = fmt;
 	for (;;) {
 		p = skip_whitespace(p);
-		if (!*p) {
+		if (*p == '\0') {
 			break;
 		}
 
@@ -749,7 +752,7 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 
 		/* skip slash and trailing white space */
 		if (*p == '/') {
-			p = skip_whitespace(++p);
+			p = skip_whitespace(p + 1);
 		}
 
 		/* byte count */
@@ -763,7 +766,7 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 			}
 			tfu->bcnt = atoi(savep);
 			/* skip trailing white space */
-			p = skip_whitespace(++p);
+			p = skip_whitespace(p + 1);
 		}
 
 		/* format */
@@ -771,7 +774,7 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 			bb_error_msg_and_die("bad format {%s}", fmt);
 		}
 		for (savep = ++p; *p != '"';) {
-			if (*p++ == 0) {
+			if (*p++ == '\0') {
 				bb_error_msg_and_die("bad format {%s}", fmt);
 			}
 		}
@@ -782,7 +785,7 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 
 		/* alphabetic escape sequences have to be done in place */
 		for (p2 = p1;; ++p1, ++p2) {
-			if (!*p1) {
+			if (*p1 == '\0') {
 				*p2 = *p1;
 				break;
 			}
