@@ -119,7 +119,7 @@ static char* FAST_FUNC parse_url(char *url, char **user, char **pass)
 void FAST_FUNC encode_base64(char *fname, const char *text, const char *eol)
 {
 	enum {
-		SRC_BUF_SIZE = 45,  /* This *MUST* be a multiple of 3 */
+		SRC_BUF_SIZE = 57,  /* This *MUST* be a multiple of 3 */
 		DST_BUF_SIZE = 4 * ((SRC_BUF_SIZE + 2) / 3),
 	};
 #define src_buf text
