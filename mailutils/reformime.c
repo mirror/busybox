@@ -1,6 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * makemime: create MIME-encoded message
  * reformime: parse MIME-encoded message
  *
  * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
