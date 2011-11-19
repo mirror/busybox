@@ -293,7 +293,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 				continue; // N.B. Bcc: vanishes from headers!
 			}
 		}
-		if (strchr(s, ':') || (list && isspace(s))) {
+		if (strchr(s, ':') || (list && isspace(s[0]))) {
 			// other headers go verbatim
 			// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
 			// Continuation is denoted by prefixing additional lines with whitespace(s).
