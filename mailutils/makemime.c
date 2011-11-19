@@ -146,6 +146,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 {
 	llist_t *opt_headers = NULL, *l;
 	const char *opt_output;
+	const char *content_type = "application/octet-stream";
 #define boundary opt_output
 
 	enum {
@@ -165,7 +166,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "a::";
 	opts = getopt32(argv,
 		"c:e:o:C:N:a:", //:m:j:",
-		&G.content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
+		&content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
 	);
 	//argc -= optind;
 	argv += optind;
@@ -202,7 +203,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 			"Content-Disposition: inline; filename=\"%s\"\n"
 			"Content-Transfer-Encoding: base64\n"
 			, boundary
-			, G.content_type
+			, content_type
 			, G.opt_charset
 			, bb_get_last_path_component_strip(*argv)
 		);
