@@ -539,3 +539,22 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 
 	return retval;
 }
+
+/* note: ip is a pointer to an IPv6 in network order, possibly misaliged */
+int FAST_FUNC sprint_nip6(char *dest, /*const char *pre,*/ const uint8_t *ip)
+{
+	char hexstrbuf[16 * 2];
+	bin2hex(hexstrbuf, (void*)ip, 16);
+	return sprintf(dest, /* "%s" */
+		"%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s",
+		/* pre, */
+		hexstrbuf + 0 * 4,
+		hexstrbuf + 1 * 4,
+		hexstrbuf + 2 * 4,
+		hexstrbuf + 3 * 4,
+		hexstrbuf + 4 * 4,
+		hexstrbuf + 5 * 4,
+		hexstrbuf + 6 * 4,
+		hexstrbuf + 7 * 4
+	);
+}

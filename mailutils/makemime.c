@@ -1,7 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
  * makemime: create MIME-encoded message
- * reformime: parse MIME-encoded message
  *
  * Copyright (C) 2008 by Vladimir Dronnikov <dronnikov@gmail.com>
  *
@@ -135,19 +134,42 @@ Content-Transfer-Encoding: 7bit
 //usage:     "\n	-o FILE	Output. Default: stdout"
 //usage:     "\n	-a HDR	Add header. Examples:"
 //usage:     "\n		\"From: user@host.org\", \"Date: `date -R`\""
-//usage:     "\n	-c CT	Content type. Default: text/plain"
+//usage:     "\n	-c CT	Content type. Default: application/octet-stream"
 //usage:     "\n	-C CS	Charset. Default: " CONFIG_FEATURE_MIME_CHARSET
 /* //usage:  "\n	-e ENC	Transfer encoding. Ignored. base64 is assumed" */
 //usage:     "\n"
 //usage:     "\nOther options are silently ignored"
+
+/*
+ * -c [Content-Type] should create just one MIME section
+ * with "Content-Type:", "Content-Transfer-Encoding:", and HDR from "-a HDR".
+ * NB: without "Content-Disposition:" auto-added, unlike we do now
+ * NB2: -c has *optional* param which nevertheless _can_ be specified after a space :(
+ *
+ * -m [multipart/mixed] should create multipart MIME section
+ * with "Content-Type:", "Content-Transfer-Encoding:", and HDR from "-a HDR",
+ * and add FILE to it _verbatim_:
+ *  HEADERS
+ *
+ *  --=_1_1321709112_1605
+ *  FILE_CONTENTS
+ *  --=_1_1321709112_1605
+ * without any encoding of FILE_CONTENTS. (Basically, it expects that FILE
+ * is the result of "makemime -c").
+ *
+ * -j MULTIPART_FILE1 SINGLE_FILE2 should output MULTIPART_FILE1 + SINGLE_FILE2
+ *
+ * Our current behavior is a mutant "-m + -c + -j" one: we create multipart MIME
+ * and we put "-c" encoded FILEs into many multipart sections.
+ */
 
 int makemime_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int makemime_main(int argc UNUSED_PARAM, char **argv)
 {
 	llist_t *opt_headers = NULL, *l;
 	const char *opt_output;
+	const char *content_type = "application/octet-stream";
 #define boundary opt_output
-
 	enum {
 		OPT_c = 1 << 0,         // create (non-multipart) section
 		OPT_e = 1 << 1,         // Content-Transfer-Encoding. Ignored. Assumed base64
@@ -164,8 +186,8 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 	// parse options
 	opt_complementary = "a::";
 	opts = getopt32(argv,
-		"c:e:o:C:N:a:", //:m:j:",
-		&G.content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
+		"c:e:o:C:N:a:", // "m:j:",
+		&content_type, NULL, &opt_output, &G.opt_charset, NULL, &opt_headers //, NULL, NULL
 	);
 	//argc -= optind;
 	argv += optind;
@@ -202,7 +224,7 @@ int makemime_main(int argc UNUSED_PARAM, char **argv)
 			"Content-Disposition: inline; filename=\"%s\"\n"
 			"Content-Transfer-Encoding: base64\n"
 			, boundary
-			, G.content_type
+			, content_type
 			, G.opt_charset
 			, bb_get_last_path_component_strip(*argv)
 		);

@@ -123,24 +123,6 @@ static int sprint_nip(char *dest, const char *pre, const uint8_t *ip)
 	return sprintf(dest, "%s%u.%u.%u.%u", pre, ip[0], ip[1], ip[2], ip[3]);
 }
 
-static int sprint_nip6(char *dest, /*const char *pre,*/ const uint8_t *ip)
-{
-	char hexstrbuf[16 * 2];
-	bin2hex(hexstrbuf, (void*)ip, 16);
-	return sprintf(dest, /* "%s" */
-		"%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s:%.4s",
-		/* pre, */
-		hexstrbuf + 0 * 4,
-		hexstrbuf + 1 * 4,
-		hexstrbuf + 2 * 4,
-		hexstrbuf + 3 * 4,
-		hexstrbuf + 4 * 4,
-		hexstrbuf + 5 * 4,
-		hexstrbuf + 6 * 4,
-		hexstrbuf + 7 * 4
-	);
-}
-
 /* really simple implementation, just count the bits */
 static int mton(uint32_t mask)
 {
@@ -744,7 +726,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 #if ENABLE_FEATURE_UDHCPC_ARPING
 /* Broadcast a DHCP decline message */
 /* NOINLINE: limit stack usage in caller */
-static NOINLINE int send_decline(uint32_t xid, uint32_t server, uint32_t requested)
+static NOINLINE int send_decline(/*uint32_t xid,*/ uint32_t server, uint32_t requested)
 {
 	struct dhcp_packet packet;
 
@@ -753,12 +735,14 @@ static NOINLINE int send_decline(uint32_t xid, uint32_t server, uint32_t request
 	 */
 	init_packet(&packet, DHCPDECLINE);
 
+#if 0
 	/* RFC 2131 says DHCPDECLINE's xid is randomly selected by client,
 	 * but in case the server is buggy and wants DHCPDECLINE's xid
 	 * to match the xid which started entire handshake,
 	 * we use the same xid we used in initial DHCPDISCOVER:
 	 */
 	packet.xid = xid;
+#endif
 	/* DHCPDECLINE uses "requested ip", not ciaddr, to store offered IP */
 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
 
@@ -1149,7 +1133,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	int discover_retries = 3;
 	uint32_t server_addr = server_addr; /* for compiler */
 	uint32_t requested_ip = 0;
-	uint32_t xid = 0;
+	uint32_t xid = xid; /* for compiler */
 	int packet_num;
 	int timeout; /* must be signed */
 	unsigned already_waited_sec;
@@ -1538,7 +1522,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 
 		switch (state) {
 		case INIT_SELECTING:
-			/* Must be a DHCPOFFER to one of our xid's */
+			/* Must be a DHCPOFFER */
 			if (*message == DHCPOFFER) {
 /* What exactly is server's IP? There are several values.
  * Example DHCP offer captured with tchdump:
@@ -1618,7 +1602,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					) {
 						bb_info_msg("Offered address is in use "
 							"(got ARP reply), declining");
-						send_decline(xid, server_addr, packet.yiaddr);
+						send_decline(/*xid,*/ server_addr, packet.yiaddr);
 
 						if (state != REQUESTING)
 							udhcp_run_script(NULL, "deconfig");
@@ -1655,6 +1639,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 					opt = ((opt & ~OPT_b) | OPT_f);
 				}
 #endif
+				/* make future renew packets use different xid */
+				/* xid = random_xid(); ...but why bother? */
 				already_waited_sec = 0;
 				continue; /* back to main loop */
 			}

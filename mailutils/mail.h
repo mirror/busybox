@@ -16,22 +16,15 @@ struct globals {
 	char *pass;
 	FILE *fp0; // initial stdin
 	char *opt_charset;
-	char *content_type;
 };
 
 #define G (*ptr_to_globals)
 #define timeout         (G.timeout  )
 #define verbose         (G.verbose  )
 #define opts            (G.opts     )
-//#define user            (G.user     )
-//#define pass            (G.pass     )
-//#define fp0             (G.fp0      )
-//#define opt_charset     (G.opt_charset)
-//#define content_type    (G.content_type)
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	G.opt_charset = (char *)CONFIG_FEATURE_MIME_CHARSET; \
-	G.content_type = (char *)"text/plain"; \
 } while (0)
 
 //char FAST_FUNC *parse_url(char *url, char **user, char **pass);

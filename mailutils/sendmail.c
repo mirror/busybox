@@ -281,17 +281,19 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 		// analyze headers
 		// To: or Cc: headers add recipients
-		if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
-			rcptto(sane_address(s+3));
-			goto addheader;
+		if (opts & OPT_t) {
+			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
+				rcptto(sane_address(s+3));
+				goto addheader;
+			}
+			// Bcc: header adds blind copy (hidden) recipient
+			if (0 == strncasecmp("Bcc:", s, 4)) {
+				rcptto(sane_address(s+4));
+				free(s);
+				continue; // N.B. Bcc: vanishes from headers!
+			}
 		}
-		// Bcc: header adds blind copy (hidden) recipient
-		if (0 == strncasecmp("Bcc:", s, 4)) {
-			rcptto(sane_address(s+4));
-			free(s);
-			// N.B. Bcc: vanishes from headers!
-		} else
-		if (strchr(s, ':') || (list && skip_whitespace(s) != s)) {
+		if (strchr(s, ':') || (list && isspace(s[0]))) {
 			// other headers go verbatim
 			// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
 			// Continuation is denoted by prefixing additional lines with whitespace(s).

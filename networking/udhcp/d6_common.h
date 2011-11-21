@@ -81,11 +81,16 @@ struct d6_option {
 #define D6_OPT_RECONF_MSG    19
 #define D6_OPT_RECONF_ACCEPT 20
 
+#define D6_OPT_IA_PD         25
+#define D6_OPT_IAPREFIX      26
+
 /*** Other shared functions ***/
 
 struct client6_data_t {
 	struct d6_option *server_id;
 	struct d6_option *ia_na;
+	char **env_ptr;
+	unsigned env_idx;
 };
 
 #define client6_data (*(struct client6_data_t*)(&bb_common_bufsiz1[COMMON_BUFSIZE - sizeof(struct client6_data_t)]))
