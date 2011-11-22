@@ -384,6 +384,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 			goto dump;
 		}
 		/* parent */
+		USE_FOR_NOMMU(argv[-optind][0] &= 0x7f); /* undo fork_or_rexec() damage */
 		xchdir(*argv++);
 		close(pp.wr);
 		xmove_fd(pp.rd, STDIN_FILENO);
