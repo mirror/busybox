@@ -3319,7 +3319,7 @@ static void do_cmd(int c)
 	case KEYCODE_END:		// Cursor Key End
 		for (;;) {
 			dot = end_line(dot);
-			if (--cmdcnt > 0)
+			if (--cmdcnt <= 0)
 				break;
 			dot_next();
 		}
