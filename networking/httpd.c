@@ -54,6 +54,8 @@
  * /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
  * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
+ * /adm:root:*       # or user root, pwd from /etc/passwd on urls starting with /adm/
+ * /wiki:*:*         # or any user from /etc/passwd with according pwd on urls starting with /wiki/
  * .au:audio/basic   # additional mime type for audio.au files
  * *.php:/path/php   # run xxx.php through an interpreter
  *
@@ -123,6 +125,14 @@
 //usage:     "\n	-d STRING	URL decode STRING"
 
 #include "libbb.h"
+#if ENABLE_PAM
+/* PAM may include <locale.h>. We may need to undefine bbox's stub define: */
+# undef setlocale
+/* For some obscure reason, PAM is not in pam/xxx, but in security/xxx.
+ * Apparently they like to confuse people. */
+# include <security/pam_appl.h>
+# include <security/pam_misc.h>
+#endif
 #if ENABLE_FEATURE_HTTPD_USE_SENDFILE
 # include <sys/sendfile.h>
 #endif
@@ -1658,6 +1668,56 @@ static int checkPermIP(void)
 }
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+
+# if ENABLE_FEATURE_HTTPD_AUTH_MD5 && ENABLE_PAM
+struct pam_userinfo {
+	const char *name;
+	const char *pw;
+};
+
+static int pam_talker(int num_msg,
+		const struct pam_message **msg,
+		struct pam_response **resp,
+		void *appdata_ptr)
+{
+	int i;
+	struct pam_userinfo *userinfo = (struct pam_userinfo *) appdata_ptr;
+	struct pam_response *response;
+
+	if (!resp || !msg || !userinfo)
+		return PAM_CONV_ERR;
+
+	/* allocate memory to store response */
+	response = xzalloc(num_msg * sizeof(*response));
+
+	/* copy values */
+	for (i = 0; i < num_msg; i++) {
+		const char *s;
+
+		switch (msg[i]->msg_style) {
+		case PAM_PROMPT_ECHO_ON:
+			s = userinfo->name;
+			break;
+		case PAM_PROMPT_ECHO_OFF:
+			s = userinfo->pw;
+			break;
+	        case PAM_ERROR_MSG:
+        	case PAM_TEXT_INFO:
+        		s = "";
+			break;
+		default:
+			free(response);
+			return PAM_CONV_ERR;
+		}
+		response[i].resp = xstrdup(s);
+		if (PAM_SUCCESS != 0)
+			response[i].resp_retcode = PAM_SUCCESS;
+	}
+	*resp = response;
+	return PAM_SUCCESS;
+}
+# endif
+
 /*
  * Config file entries are of the form "/<path>:<user>:<passwd>".
  * If config file has no prefix match for path, access is allowed.
@@ -1667,7 +1727,7 @@ static int checkPermIP(void)
  *
  * Returns 1 if user_and_passwd is OK.
  */
-static int check_user_passwd(const char *path, const char *user_and_passwd)
+static int check_user_passwd(const char *path, char *user_and_passwd)
 {
 	Htaccess *cur;
 	const char *prev = NULL;
@@ -1675,6 +1735,7 @@ static int check_user_passwd(const char *path, const char *user_and_passwd)
 	for (cur = g_auth; cur; cur = cur->next) {
 		const char *dir_prefix;
 		size_t len;
+		int r;
 
 		dir_prefix = cur->before_colon;
 
@@ -1690,7 +1751,8 @@ static int check_user_passwd(const char *path, const char *user_and_passwd)
 		len = strlen(dir_prefix);
 		if (len != 1 /* dir_prefix "/" matches all, don't need to check */
 		 && (strncmp(dir_prefix, path, len) != 0
-		    || (path[len] != '/' && path[len] != '\0'))
+		    || (path[len] != '/' && path[len] != '\0')
+		    )
 		) {
 			continue;
 		}
@@ -1699,38 +1761,95 @@ static int check_user_passwd(const char *path, const char *user_and_passwd)
 		prev = dir_prefix;
 
 		if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
-			char *md5_passwd;
+			char *colon_after_user;
+			const char *passwd;
 
-			md5_passwd = strchr(cur->after_colon, ':');
-			if (md5_passwd && md5_passwd[1] == '$' && md5_passwd[2] == '1'
-			 && md5_passwd[3] == '$' && md5_passwd[4]
-			) {
-				char *encrypted;
-				int r, user_len_p1;
+			colon_after_user = strchr(user_and_passwd, ':');
+			if (!colon_after_user)
+				goto bad_input;
+			passwd = strchr(cur->after_colon, ':');
+			if (!passwd)
+				goto bad_input;
+			passwd++;
+			if (passwd[0] == '*') {
+# if ENABLE_PAM
+				struct pam_userinfo userinfo;
+				struct pam_conv conv_info = { &pam_talker, (void *) &userinfo };
+				pam_handle_t *pamh;
 
-				md5_passwd++;
-				user_len_p1 = md5_passwd - cur->after_colon;
-				/* comparing "user:" */
-				if (strncmp(cur->after_colon, user_and_passwd, user_len_p1) != 0) {
+				/* compare "user:" */
+				if (cur->after_colon[0] != '*'
+				 && strncmp(cur->after_colon, user_and_passwd, colon_after_user - user_and_passwd + 1) != 0
+				) {
 					continue;
 				}
+				/* this cfg entry is '*' or matches username from peer */
+				*colon_after_user = '\0';
+				userinfo.name = user_and_passwd;
+				userinfo.pw = colon_after_user + 1;
+				r = pam_start("httpd", user_and_passwd, &conv_info, &pamh) != PAM_SUCCESS
+				 || pam_authenticate(pamh, PAM_DISALLOW_NULL_AUTHTOK) != PAM_SUCCESS
+				 || pam_acct_mgmt(pamh, PAM_DISALLOW_NULL_AUTHTOK)    != PAM_SUCCESS
+				;
+				pam_end(pamh, PAM_SUCCESS);
+				*colon_after_user = ':';
+				goto end_check_passwd;
+# else
+#  if ENABLE_FEATURE_SHADOWPASSWDS
+				/* Using _r function to avoid pulling in static buffers */
+				struct spwd spw;
+				char buffer[256];
+#  endif
+				struct passwd *pw;
 
-				encrypted = pw_encrypt(
-					user_and_passwd + user_len_p1 /* cleartext pwd from user */,
-					md5_passwd /*salt */, 1 /* cleanup */);
-				r = strcmp(encrypted, md5_passwd);
-				free(encrypted);
-				if (r == 0)
-					goto set_remoteuser_var; /* Ok */
+				*colon_after_user = '\0';
+				pw = getpwnam(user_and_passwd);
+				*colon_after_user = ':';
+				if (!pw || !pw->pw_passwd)
+					continue;
+				passwd = pw->pw_passwd;
+#  if ENABLE_FEATURE_SHADOWPASSWDS
+				if ((passwd[0] == 'x' || passwd[0] == '*') && !passwd[1]) {
+					/* getspnam_r may return 0 yet set result to NULL.
+					 * At least glibc 2.4 does this. Be extra paranoid here. */
+					struct spwd *result = NULL;
+					r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
+					if (r == 0 && result)
+						passwd = result->sp_pwdp;
+				}
+#  endif
+# endif /* ENABLE_PAM */
+			}
+
+			/* compare "user:" */
+			if (cur->after_colon[0] != '*'
+			 && strncmp(cur->after_colon, user_and_passwd, colon_after_user - user_and_passwd + 1) != 0
+			) {
 				continue;
 			}
+			/* this cfg entry is '*' or matches username from peer */
+
+			/* encrypt pwd from peer and check match with local one */
+			{
+				char *encrypted = pw_encrypt(
+					/* pwd: */  colon_after_user + 1,
+					/* salt: */ passwd,
+					/* cleanup: */ 0
+				);
+				r = strcmp(encrypted, passwd);
+				free(encrypted);
+				goto end_check_passwd;
+			}
+ bad_input: ;
 		}
 
 		/* Comparing plaintext "user:pass" in one go */
-		if (strcmp(cur->after_colon, user_and_passwd) == 0) {
- set_remoteuser_var:
+		r = strcmp(cur->after_colon, user_and_passwd);
+ end_check_passwd:
+		if (r == 0) {
 			remoteuser = xstrndup(user_and_passwd,
-					strchrnul(user_and_passwd, ':') - user_and_passwd);
+				strchrnul(user_and_passwd, ':') - user_and_passwd
+			);
 			return 1; /* Ok */
 		}
 	} /* for */
@@ -2067,10 +2186,10 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	}
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	/* Case: no "Authorization:" was seen, but page does require passwd.
+	/* Case: no "Authorization:" was seen, but page might require passwd.
 	 * Check that with dummy user:pass */
 	if (authorized < 0)
-		authorized = check_user_passwd(urlcopy, ":");
+		authorized = check_user_passwd(urlcopy, (char *) "");
 	if (!authorized)
 		send_headers_and_exit(HTTP_UNAUTHORIZED);
 #endif
@@ -2353,7 +2472,7 @@ int httpd_main(int argc UNUSED_PARAM, char **argv)
 		salt[1] = '1';
 		salt[2] = '$';
 		crypt_make_salt(salt + 3, 4);
-		puts(pw_encrypt(pass, salt, 1));
+		puts(pw_encrypt(pass, salt, /*cleanup:*/ 0));
 		return 0;
 	}
 #endif
