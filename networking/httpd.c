@@ -1763,6 +1763,9 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 		if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
 			char *colon_after_user;
 			const char *passwd;
+# if ENABLE_FEATURE_SHADOWPASSWDS && !ENABLE_PAM
+			char sp_buf[256];
+# endif
 
 			colon_after_user = strchr(user_and_passwd, ':');
 			if (!colon_after_user)
@@ -1787,18 +1790,19 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 				*colon_after_user = '\0';
 				userinfo.name = user_and_passwd;
 				userinfo.pw = colon_after_user + 1;
-				r = pam_start("httpd", user_and_passwd, &conv_info, &pamh) != PAM_SUCCESS
-				 || pam_authenticate(pamh, PAM_DISALLOW_NULL_AUTHTOK) != PAM_SUCCESS
-				 || pam_acct_mgmt(pamh, PAM_DISALLOW_NULL_AUTHTOK)    != PAM_SUCCESS
-				;
-				pam_end(pamh, PAM_SUCCESS);
+				r = pam_start("httpd", user_and_passwd, &conv_info, &pamh) != PAM_SUCCESS;
+				if (r == 0) {
+					r = pam_authenticate(pamh, PAM_DISALLOW_NULL_AUTHTOK) != PAM_SUCCESS
+					 || pam_acct_mgmt(pamh, PAM_DISALLOW_NULL_AUTHTOK)    != PAM_SUCCESS
+					;
+					pam_end(pamh, PAM_SUCCESS);
+				}
 				*colon_after_user = ':';
 				goto end_check_passwd;
 # else
 #  if ENABLE_FEATURE_SHADOWPASSWDS
 				/* Using _r function to avoid pulling in static buffers */
 				struct spwd spw;
-				char buffer[256];
 #  endif
 				struct passwd *pw;
 
@@ -1813,7 +1817,7 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 					/* getspnam_r may return 0 yet set result to NULL.
 					 * At least glibc 2.4 does this. Be extra paranoid here. */
 					struct spwd *result = NULL;
-					r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
+					r = getspnam_r(pw->pw_name, &spw, sp_buf, sizeof(sp_buf), &result);
 					if (r == 0 && result)
 						passwd = result->sp_pwdp;
 				}
