@@ -12,9 +12,10 @@ enum {
 	/* .xz signature: 0xfd, '7', 'z', 'X', 'Z', 0x00 */
 	/* More info at: http://tukaani.org/xz/xz-file-format.txt */
 	XZ_MAGIC1   = 256 * 0xfd + '7',
-	XZ_MAGIC2   = 256 * (256 * (256 * 'z' + 'X') + 'Z') + 0,
+	XZ_MAGIC2   = 256 * (unsigned)(256 * (256 * 'z' + 'X') + 'Z') + 0,
 	/* Different form: 32 bits, then 16 bits: */
-	XZ_MAGIC1a  = 256 * (256 * (256 * 0xfd + '7') + 'z') + 'X',
+	/* (unsigned) cast suppresses "integer overflow in expression" warning */
+	XZ_MAGIC1a  = 256 * (unsigned)(256 * (256 * 0xfd + '7') + 'z') + 'X',
 	XZ_MAGIC2a  = 256 * 'Z' + 0,
 #else
 	COMPRESS_MAGIC = 0x9d1f,
