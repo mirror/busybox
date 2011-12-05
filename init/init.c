@@ -523,15 +523,17 @@ static struct init_action *mark_terminated(pid_t pid)
 	struct init_action *a;
 
 	if (pid > 0) {
+		update_utmp(pid, DEAD_PROCESS,
+				/*tty_name:*/ NULL,
+				/*username:*/ NULL,
+				/*hostname:*/ NULL
+		);
 		for (a = init_action_list; a; a = a->next) {
 			if (a->pid == pid) {
 				a->pid = 0;
 				return a;
 			}
 		}
-		update_utmp(pid, DEAD_PROCESS, /*tty_name:*/ NULL,
-				/*username:*/ NULL,
-				/*hostname:*/ NULL);
 	}
 	return NULL;
 }
