@@ -114,12 +114,12 @@ uuidcache_check_device(const char *device,
 	return TRUE;
 }
 
-static void
+static struct uuidCache_s*
 uuidcache_init(void)
 {
 	dbg("DBG: uuidCache=%x, uuidCache");
 	if (uuidCache)
-		return;
+		return uuidCache;
 
 	/* We were scanning /proc/partitions
 	 * and /proc/sys/dev/cdrom/info here.
@@ -137,6 +137,8 @@ uuidcache_init(void)
 		NULL, /* dir_action */
 		NULL, /* userData */
 		0 /* depth */);
+
+	return uuidCache;
 }
 
 #define UUID   1
@@ -148,9 +150,7 @@ get_spec_by_x(int n, const char *t, int *majorPtr, int *minorPtr)
 {
 	struct uuidCache_s *uc;
 
-	uuidcache_init();
-	uc = uuidCache;
-
+	uc = uuidcache_init();
 	while (uc) {
 		switch (n) {
 		case UUID:
@@ -217,22 +217,21 @@ get_spec_by_volume_label(const char *s, int *major, int *minor)
 /* Used by blkid */
 void display_uuid_cache(void)
 {
-	struct uuidCache_s *u;
+	struct uuidCache_s *uc;
 
-	uuidcache_init();
-	u = uuidCache;
-	while (u) {
-		printf("%s:", u->device);
-		if (u->label[0])
-			printf(" LABEL=\"%s\"", u->label);
-		if (u->uc_uuid[0])
-			printf(" UUID=\"%s\"", u->uc_uuid);
+	uc = uuidcache_init();
+	while (uc) {
+		printf("%s:", uc->device);
+		if (uc->label[0])
+			printf(" LABEL=\"%s\"", uc->label);
+		if (uc->uc_uuid[0])
+			printf(" UUID=\"%s\"", uc->uc_uuid);
 #if ENABLE_FEATURE_BLKID_TYPE
-	if (u->type)
-		printf(" TYPE=\"%s\"", u->type);
+	if (uc->type)
+		printf(" TYPE=\"%s\"", uc->type);
 #endif
 		bb_putchar('\n');
-		u = u->next;
+		uc = uc->next;
 	}
 }
 
@@ -265,8 +264,7 @@ char *get_devname_from_label(const char *spec)
 {
 	struct uuidCache_s *uc;
 
-	uuidcache_init();
-	uc = uuidCache;
+	uc = uuidcache_init();
 	while (uc) {
 		if (uc->label[0] && strcmp(spec, uc->label) == 0) {
 			return xstrdup(uc->device);
@@ -280,8 +278,7 @@ char *get_devname_from_uuid(const char *spec)
 {
 	struct uuidCache_s *uc;
 
-	uuidcache_init();
-	uc = uuidCache;
+	uc = uuidcache_init();
 	while (uc) {
 		/* case of hex numbers doesn't matter */
 		if (strcasecmp(spec, uc->uc_uuid) == 0) {
