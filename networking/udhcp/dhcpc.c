@@ -135,6 +135,63 @@ static int mton(uint32_t mask)
 	return i;
 }
 
+/* Check if a given label represents a valid DNS label
+ * Return pointer to the first character after the label upon success,
+ * NULL otherwise.
+ * See RFC1035, 2.3.1
+ */
+/* We don't need to be particularly anal. For example, allowing _, hyphen
+ * at the end, or leading and trailing dots would be ok, since it
+ * can't be used for attacks. (Leading hyphen can be, if someone uses
+ * cmd "$hostname"
+ * in the script: then hostname may be treated as an option)
+ */
+static const char *valid_domain_label(const char *label)
+{
+	unsigned char ch;
+	unsigned pos = 0;
+
+	for (;;) {
+		ch = *label;
+		if ((ch|0x20) < 'a' || (ch|0x20) > 'z') {
+			if (pos == 0) {
+				/* label must begin with letter */
+				return NULL;
+			}
+			if (ch < '0' || ch > '9') {
+				if (ch == '\0' || ch == '.')
+					return label;
+				/* DNS allows only '-', but we are more permissive */
+				if (ch != '-' && ch != '_')
+					return NULL;
+			}
+		}
+		label++;
+		pos++;
+		//Do we want this?
+		//if (pos > 63) /* NS_MAXLABEL; labels must be 63 chars or less */
+		//	return NULL;
+	}
+}
+
+/* Check if a given name represents a valid DNS name */
+/* See RFC1035, 2.3.1 */
+static int good_hostname(const char *name)
+{
+	//const char *start = name;
+
+	for (;;) {
+		name = valid_domain_label(name);
+		if (!name)
+			return 0;
+		if (!name[0])
+			return 1;
+			//Do we want this?
+			//return ((name - start) < 1025); /* NS_MAXDNAME */
+		name++;
+	}
+}
+
 /* Create "opt_name=opt_value" string */
 static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_optflag *optflag, const char *opt_name)
 {
@@ -187,8 +244,11 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
 		 * the case of list of options.
 		 */
 		case OPTION_STRING:
+		case OPTION_STRING_HOST:
 			memcpy(dest, option, len);
 			dest[len] = '\0';
+			if (type == OPTION_STRING_HOST && !good_hostname(dest))
+				safe_strncpy(dest, "bad", len);
 			return ret;
 		case OPTION_STATIC_ROUTES: {
 			/* Option binary format:
@@ -368,6 +428,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 	/* +1 element for each option, +2 for subnet option: */
 	if (packet) {
 		/* note: do not search for "pad" (0) and "end" (255) options */
+//TODO: change logic to scan packet _once_
 		for (i = 1; i < 255; i++) {
 			temp = udhcp_get_option(packet, i);
 			if (temp) {

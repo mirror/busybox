@@ -80,6 +80,9 @@ enum {
 	OPTION_IP = 1,
 	OPTION_IP_PAIR,
 	OPTION_STRING,
+	/* Opts of STRING_HOST type will be sanitized before they are passed
+	 * to udhcpc script's environment: */
+	OPTION_STRING_HOST,
 //	OPTION_BOOLEAN,
 	OPTION_U8,
 	OPTION_U16,

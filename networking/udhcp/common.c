@@ -29,9 +29,9 @@ const struct dhcp_optflag dhcp_optflags[] = {
 //	{ OPTION_IP | OPTION_LIST                 , 0x07 }, /* DHCP_LOG_SERVER    */
 //	{ OPTION_IP | OPTION_LIST                 , 0x08 }, /* DHCP_COOKIE_SERVER */
 	{ OPTION_IP | OPTION_LIST                 , 0x09 }, /* DHCP_LPR_SERVER    */
-	{ OPTION_STRING               | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
+	{ OPTION_STRING_HOST          | OPTION_REQ, 0x0c }, /* DHCP_HOST_NAME     */
 	{ OPTION_U16                              , 0x0d }, /* DHCP_BOOT_SIZE     */
-	{ OPTION_STRING               | OPTION_REQ, 0x0f }, /* DHCP_DOMAIN_NAME   */
+	{ OPTION_STRING_HOST          | OPTION_REQ, 0x0f }, /* DHCP_DOMAIN_NAME   */
 	{ OPTION_IP                               , 0x10 }, /* DHCP_SWAP_SERVER   */
 	{ OPTION_STRING                           , 0x11 }, /* DHCP_ROOT_PATH     */
 	{ OPTION_U8                               , 0x17 }, /* DHCP_IP_TTL        */
@@ -41,7 +41,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 //server would let us know anyway?
 	{ OPTION_IP                   | OPTION_REQ, 0x1c }, /* DHCP_BROADCAST     */
 	{ OPTION_IP_PAIR | OPTION_LIST            , 0x21 }, /* DHCP_ROUTES        */
-	{ OPTION_STRING                           , 0x28 }, /* DHCP_NIS_DOMAIN    */
+	{ OPTION_STRING_HOST                      , 0x28 }, /* DHCP_NIS_DOMAIN    */
 	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* DHCP_NIS_SERVER    */
 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
 	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
@@ -49,7 +49,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
 	{ OPTION_STRING                           , 0x38 }, /* DHCP_ERR_MESSAGE   */
 //TODO: must be combined with 'sname' and 'file' handling:
-	{ OPTION_STRING                           , 0x42 }, /* DHCP_TFTP_SERVER_NAME */
+	{ OPTION_STRING_HOST                      , 0x42 }, /* DHCP_TFTP_SERVER_NAME */
 	{ OPTION_STRING                           , 0x43 }, /* DHCP_BOOT_FILE     */
 //TODO: not a string, but a set of LASCII strings:
 //	{ OPTION_STRING                           , 0x4D }, /* DHCP_USER_CLASS    */
@@ -148,6 +148,7 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
 	[OPTION_IP_PAIR] = 8,
 //	[OPTION_BOOLEAN] = 1,
 	[OPTION_STRING] =  1,  /* ignored by udhcp_str2optset */
+	[OPTION_STRING_HOST] = 1,  /* ignored by udhcp_str2optset */
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_DNS_STRING] = 1,  /* ignored by both udhcp_str2optset and xmalloc_optname_optval */
 	[OPTION_SIP_SERVERS] = 1,
@@ -417,7 +418,9 @@ static NOINLINE void attach_option(
 			/* actually 255 is ok too, but adding a space can overlow it */
 
 			existing->data = xrealloc(existing->data, OPT_DATA + 1 + old_len + length);
-			if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING) {
+			if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING
+			 || (optflag->flags & OPTION_TYPE_MASK) == OPTION_STRING_HOST
+			) {
 				/* add space separator between STRING options in a list */
 				existing->data[OPT_DATA + old_len] = ' ';
 				old_len++;
@@ -481,6 +484,7 @@ int FAST_FUNC udhcp_str2optset(const char *const_str, void *arg)
 				retval = udhcp_str2nip(val, buffer + 4);
 			break;
 		case OPTION_STRING:
+		case OPTION_STRING_HOST:
 #if ENABLE_FEATURE_UDHCP_RFC3397
 		case OPTION_DNS_STRING:
 #endif
