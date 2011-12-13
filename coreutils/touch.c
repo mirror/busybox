@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m, -r, -t not supported. */
+/* BB_AUDIT SUSv3 _NOT_ compliant -- options -a, -m not supported. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/touch.html */
 
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
@@ -31,12 +31,13 @@
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 
 //usage:#define touch_trivial_usage
-//usage:       "[-c]" IF_DESKTOP(" [-d DATE] [-r FILE]") " FILE [FILE]..."
+//usage:       "[-c]" IF_DESKTOP(" [-d DATE] [-t DATE] [-r FILE]") " FILE [FILE]..."
 //usage:#define touch_full_usage "\n\n"
 //usage:       "Update the last-modified date on the given FILE[s]\n"
 //usage:     "\n	-c	Don't create files"
 //usage:	IF_DESKTOP(
 //usage:     "\n	-d DT	Date/time to use"
+//usage:     "\n	-t DT	Date/time to use"
 //usage:     "\n	-r FILE	Use FILE's date/time"
 //usage:	)
 //usage:
