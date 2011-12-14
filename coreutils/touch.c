@@ -25,17 +25,24 @@
 //config:	help
 //config:	  touch is used to create or change the access and/or
 //config:	  modification timestamp of specified files.
+//config:
+//config:config FEATURE_TOUCH_SUSV3
+//config:	bool "Add support for SUSV3 features (-d -t -r)"
+//config:	default y
+//config:	depends on TOUCH
+//config:	help
+//config:	  Enable touch to use a reference file or a given date/time argument.
 
 //applet:IF_TOUCH(APPLET_NOFORK(touch, touch, BB_DIR_BIN, BB_SUID_DROP, touch))
 
 //kbuild:lib-$(CONFIG_TOUCH) += touch.o
 
 //usage:#define touch_trivial_usage
-//usage:       "[-c]" IF_DESKTOP(" [-d DATE] [-t DATE] [-r FILE]") " FILE [FILE]..."
+//usage:       "[-c]" IF_FEATURE_TOUCH_SUSV3(" [-d DATE] [-t DATE] [-r FILE]") " FILE..."
 //usage:#define touch_full_usage "\n\n"
 //usage:       "Update the last-modified date on the given FILE[s]\n"
 //usage:     "\n	-c	Don't create files"
-//usage:	IF_DESKTOP(
+//usage:	IF_FEATURE_TOUCH_SUSV3(
 //usage:     "\n	-d DT	Date/time to use"
 //usage:     "\n	-t DT	Date/time to use"
 //usage:     "\n	-r FILE	Use FILE's date/time"
@@ -72,7 +79,7 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 	int fd;
 	int status = EXIT_SUCCESS;
 	int opts;
-#if ENABLE_DESKTOP
+#if ENABLE_FEATURE_TOUCH_SUSV3
 # if ENABLE_LONG_OPTS
 	static const char touch_longopts[] ALIGN1 =
 		/* name, has_arg, val */
@@ -91,17 +98,17 @@ int touch_main(int argc UNUSED_PARAM, char **argv)
 # define timebuf        ((struct timeval*)NULL)
 #endif
 
-#if ENABLE_DESKTOP && ENABLE_LONG_OPTS
+#if ENABLE_FEATURE_TOUCH_SUSV3 && ENABLE_LONG_OPTS
 	applet_long_options = touch_longopts;
 #endif
 	/* -d and -t both set time. In coreutils,
 	 * accepted data format differs a bit between -d and -t.
 	 * We accept the same formats for both */
-	opts = getopt32(argv, "c" IF_DESKTOP("r:d:t:")
+	opts = getopt32(argv, "c" IF_FEATURE_TOUCH_SUSV3("r:d:t:")
 				/*ignored:*/ "fma"
-				IF_DESKTOP(, &reference_file)
-				IF_DESKTOP(, &date_str)
-				IF_DESKTOP(, &date_str)
+				IF_FEATURE_TOUCH_SUSV3(, &reference_file)
+				IF_FEATURE_TOUCH_SUSV3(, &date_str)
+				IF_FEATURE_TOUCH_SUSV3(, &date_str)
 	);
 
 	opts &= 1; /* only -c bit is left */
