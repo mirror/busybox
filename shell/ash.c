@@ -7435,6 +7435,12 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **
 		 *
 		 * That is, do not use $SHELL, user's shell, or /bin/sh;
 		 * just call ourselves.
+		 *
+		 * Note that bash reads ~80 chars of the file, and if it sees
+		 * a zero byte before it sees newline, it doesn't try to
+		 * interpret it, but fails with "cannot execute binary file"
+		 * message. For one, it prevents atempts to interpret
+		 * foreign ELF binaries as shell scripts.
 		 */
 		char **ap;
 		char **new;
