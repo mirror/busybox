@@ -2012,30 +2012,36 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	/* Algorithm stolen from libbb bb_simplify_path(),
 	 * but don't strdup, retain trailing slash, protect root */
 	urlp = tptr = urlcopy;
-	do {
+	for (;;) {
 		if (*urlp == '/') {
 			/* skip duplicate (or initial) slash */
 			if (*tptr == '/') {
-				continue;
+				goto next_char;
 			}
 			if (*tptr == '.') {
-				/* skip extra "/./" */
-				if (tptr[1] == '/' || !tptr[1]) {
-					continue;
-				}
-				/* "..": be careful */
-				if (tptr[1] == '.' && (tptr[2] == '/' || !tptr[2])) {
-					++tptr;
-					if (urlp == urlcopy) /* protect root */
+				if (tptr[1] == '.' && (tptr[2] == '/' || tptr[2] == '\0')) {
+					/* "..": be careful */
+					/* protect root */
+					if (urlp == urlcopy)
 						send_headers_and_exit(HTTP_BAD_REQUEST);
-					while (*--urlp != '/') /* omit previous dir */;
+					/* omit previous dir */
+					while (*--urlp != '/')
 						continue;
+					/* skip to "./" or ".<NUL>" */
+					tptr++;
+				}
+				if (tptr[1] == '/' || tptr[1] == '\0') {
+					/* skip extra "/./" */
+					goto next_char;
 				}
 			}
 		}
 		*++urlp = *tptr;
-	} while (*++tptr);
-	*++urlp = '\0';       /* terminate after last character */
+		if (*urlp == '\0')
+			break;
+ next_char:
+		tptr++;
+	}
 
 	/* If URL is a directory, add '/' */
 	if (urlp[-1] != '/') {
