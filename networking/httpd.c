@@ -1302,7 +1302,7 @@ static void send_cgi_and_exit(
 	while ((script = strchr(script + 1, '/')) != NULL) {
 		int dir;
 		*script = '\0';
-		dir = is_directory(url + 1, /*followlinks:*/ 1, NULL);
+		dir = is_directory(url + 1, /*followlinks:*/ 1);
 		*script = '/';
 		if (!dir) {
 			/* not directory, found script.cgi/PATH_INFO */
@@ -2048,7 +2048,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 
 	/* If URL is a directory, add '/' */
 	if (urlp[-1] != '/') {
-		if (is_directory(urlcopy + 1, 1, NULL)) {
+		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			found_moved_temporarily = urlcopy;
 		}
 	}
@@ -2062,7 +2062,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	while (ip_allowed && (tptr = strchr(tptr + 1, '/')) != NULL) {
 		/* have path1/path2 */
 		*tptr = '\0';
-		if (is_directory(urlcopy + 1, 1, NULL)) {
+		if (is_directory(urlcopy + 1, /*followlinks:*/ 1)) {
 			/* may have subdir config */
 			parse_conf(urlcopy + 1, SUBDIR_PARSE);
 			ip_allowed = checkPermIP();

@@ -69,8 +69,8 @@ int ln_main(int argc, char **argv)
 		src = last;
 
 		if (is_directory(src,
-		                (opts & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
-		                NULL)
+		                (opts & LN_NODEREFERENCE) ^ LN_NODEREFERENCE
+		                )
 		) {
 			src_name = xstrdup(*argv);
 			src = concat_path_file(src, bb_get_last_path_component_strip(src_name));

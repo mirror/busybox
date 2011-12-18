@@ -314,7 +314,7 @@ extern char *strrstr(const char *haystack, const char *needle) FAST_FUNC;
 
 //TODO: supply a pointer to char[11] buffer (avoid statics)?
 extern const char *bb_mode_string(mode_t mode) FAST_FUNC;
-extern int is_directory(const char *name, int followLinks, struct stat *statBuf) FAST_FUNC;
+extern int is_directory(const char *name, int followLinks) FAST_FUNC;
 enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 	FILEUTILS_PRESERVE_STATUS = 1 << 0, /* -p */
 	FILEUTILS_DEREFERENCE     = 1 << 1, /* !-d */
