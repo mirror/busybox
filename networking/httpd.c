@@ -1265,18 +1265,21 @@ static void setenv1(const char *name, const char *value)
  *
  * Parameters:
  * const char *url              The requested URL (with leading /).
+ * const char *orig_uri         The original URI before rewriting (if any)
  * int post_len                 Length of the POST body.
  * const char *cookie           For set HTTP_COOKIE.
  * const char *content_type     For set CONTENT_TYPE.
  */
 static void send_cgi_and_exit(
 		const char *url,
+		const char *orig_uri,
 		const char *request,
 		int post_len,
 		const char *cookie,
 		const char *content_type) NORETURN;
 static void send_cgi_and_exit(
 		const char *url,
+		const char *orig_uri,
 		const char *request,
 		int post_len,
 		const char *cookie,
@@ -1314,9 +1317,9 @@ static void send_cgi_and_exit(
 	setenv1("PATH_INFO", script);   /* set to /PATH_INFO or "" */
 	setenv1("REQUEST_METHOD", request);
 	if (g_query) {
-		putenv(xasprintf("%s=%s?%s", "REQUEST_URI", url, g_query));
+		putenv(xasprintf("%s=%s?%s", "REQUEST_URI", orig_uri, g_query));
 	} else {
-		setenv1("REQUEST_URI", url);
+		setenv1("REQUEST_URI", orig_uri);
 	}
 	if (script != NULL)
 		*script = '\0';         /* cut off /PATH_INFO */
@@ -2248,12 +2251,20 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			/* protect listing "cgi-bin/" */
 			send_headers_and_exit(HTTP_FORBIDDEN);
 		}
-		send_cgi_and_exit(urlcopy, prequest, length, cookie, content_type);
+		send_cgi_and_exit(urlcopy, urlcopy, prequest, length, cookie, content_type);
 	}
 #endif
 
-	if (urlp[-1] == '/')
+	if (urlp[-1] == '/') {
+		/* When index_page string is appended to <dir>/ URL, it overwrites
+		 * the query string. If we fall back to call /cgi-bin/index.cgi,
+		 * query string would be lost and not available to the CGI.
+		 * Work around it by making a deep copy.
+		 */
+		if (ENABLE_FEATURE_HTTPD_CGI)
+			g_query = xstrdup(g_query); /* ok for NULL too */
 		strcpy(urlp, index_page);
+	}
 	if (stat(tptr, &sb) == 0) {
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 		char *suffix = strrchr(tptr, '.');
@@ -2261,7 +2272,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			Htaccess *cur;
 			for (cur = script_i; cur; cur = cur->next) {
 				if (strcmp(cur->before_colon + 1, suffix) == 0) {
-					send_cgi_and_exit(urlcopy, prequest, length, cookie, content_type);
+					send_cgi_and_exit(urlcopy, urlcopy, prequest, length, cookie, content_type);
 				}
 			}
 		}
@@ -2274,9 +2285,8 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 		/* It's a dir URL and there is no index.html
 		 * Try cgi-bin/index.cgi */
 		if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
-			urlp[0] = '\0';
-			g_query = urlcopy;
-			send_cgi_and_exit("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
+			urlp[0] = '\0'; /* remove index_page */
+			send_cgi_and_exit("/cgi-bin/index.cgi", urlcopy, prequest, length, cookie, content_type);
 		}
 	}
 	/* else fall through to send_file, it errors out if open fails: */
