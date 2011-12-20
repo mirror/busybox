@@ -132,7 +132,7 @@ Content-Transfer-Encoding: 7bit
 //usage:       "Create multipart MIME-encoded message from FILEs\n"
 /* //usage:    "Transfer encoding is base64, disposition is inline (not attachment)\n" */
 //usage:     "\n	-o FILE	Output. Default: stdout"
-//usage:     "\n	-a HDR	Add header. Examples:"
+//usage:     "\n	-a HDR	Add header(s). Examples:"
 //usage:     "\n		\"From: user@host.org\", \"Date: `date -R`\""
 //usage:     "\n	-c CT	Content type. Default: application/octet-stream"
 //usage:     "\n	-C CS	Charset. Default: " CONFIG_FEATURE_MIME_CHARSET
@@ -142,12 +142,12 @@ Content-Transfer-Encoding: 7bit
 
 /*
  * -c [Content-Type] should create just one MIME section
- * with "Content-Type:", "Content-Transfer-Encoding:", and HDR from "-a HDR".
+ * with "Content-Type:", "Content-Transfer-Encoding:", and HDRs from "-a HDR".
  * NB: without "Content-Disposition:" auto-added, unlike we do now
  * NB2: -c has *optional* param which nevertheless _can_ be specified after a space :(
  *
  * -m [multipart/mixed] should create multipart MIME section
- * with "Content-Type:", "Content-Transfer-Encoding:", and HDR from "-a HDR",
+ * with "Content-Type:", "Content-Transfer-Encoding:", and HDRs from "-a HDR",
  * and add FILE to it _verbatim_:
  *  HEADERS
  *
