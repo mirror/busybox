@@ -165,13 +165,15 @@ int kill_main(int argc, char **argv)
 		/* Stop all processes */
 		kill(-1, SIGSTOP);
 		/* Signal all processes except those in our session */
-		while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID))) {
+		while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID)) != NULL) {
 			int i;
 
 			if (p->sid == (unsigned)sid
 			 || p->pid == (unsigned)pid
-			 || p->pid == 1)
+			 || p->pid == 1
+			) {
 				continue;
+			}
 
 			/* All remaining args must be -o PID options.
 			 * Check p->pid against them. */
@@ -255,9 +257,10 @@ int kill_main(int argc, char **argv)
 			pid = bb_strtoi(arg, &end, 10);
 			if (errno && (errno != EINVAL || *end != ' ')) {
 				bb_error_msg("invalid number '%s'", arg);
-				*end = '\0';
 				errors++;
-			} else if (kill(pid, signo) != 0) {
+				break;
+			}
+			if (kill(pid, signo) != 0) {
 				bb_perror_msg("can't kill pid %d", (int)pid);
 				errors++;
 			}
