@@ -23,8 +23,6 @@
 /**********************************************************************/
 /* Sizes for statically allocated buffers. */
 
-/* If you change these values, also change _SC_GETPW_R_SIZE_MAX and
- * _SC_GETGR_R_SIZE_MAX in libc/unistd/sysconf.c to match */
 #define PWD_BUFFER_SIZE 256
 #define GRP_BUFFER_SIZE 256
 
@@ -49,46 +47,24 @@ static int FAST_FUNC bb__parsespent(void *sp, char *line);
 
 struct statics {
 	/* Smaller things first */
-	struct passwd getpwuid_resultbuf;
-	struct group getgrgid_resultbuf;
-	struct passwd getpwnam_resultbuf;
-	struct group getgrnam_resultbuf;
+	/* It's ok to use one buffer for getpwuid and getpwnam. Manpage says:
+	 * "The return value may point to a static area, and may be overwritten
+	 * by subsequent calls to getpwent(), getpwnam(), or getpwuid()."
+	 */
+	struct passwd getpw_resultbuf;
+	struct group getgr_resultbuf;
 
-	char getpwuid_buffer[PWD_BUFFER_SIZE];
-	char getgrgid_buffer[GRP_BUFFER_SIZE];
-	char getpwnam_buffer[PWD_BUFFER_SIZE];
-	char getgrnam_buffer[GRP_BUFFER_SIZE];
-#if 0
-	struct passwd fgetpwent_resultbuf;
-	struct group fgetgrent_resultbuf;
-	struct spwd fgetspent_resultbuf;
-	char fgetpwent_buffer[PWD_BUFFER_SIZE];
-	char fgetgrent_buffer[GRP_BUFFER_SIZE];
-	char fgetspent_buffer[PWD_BUFFER_SIZE];
-#endif
+	char getpw_buffer[PWD_BUFFER_SIZE];
+	char getgr_buffer[GRP_BUFFER_SIZE];
 #if 0 //ENABLE_USE_BB_SHADOW
-	struct spwd getspuid_resultbuf;
-	struct spwd getspnam_resultbuf;
-	char getspuid_buffer[PWD_BUFFER_SIZE];
-	char getspnam_buffer[PWD_BUFFER_SIZE];
+	struct spwd getsp_resultbuf;
+	char getsp_buffer[PWD_BUFFER_SIZE];
 #endif
 // Not converted - too small to bother
 //pthread_mutex_t mylock = PTHREAD_MUTEX_INITIALIZER;
 //FILE *pwf /*= NULL*/;
 //FILE *grf /*= NULL*/;
 //FILE *spf /*= NULL*/;
-#if 0
-	struct passwd getpwent_pwd;
-	struct group getgrent_gr;
-	char getpwent_line_buff[PWD_BUFFER_SIZE];
-	char getgrent_line_buff[GRP_BUFFER_SIZE];
-#endif
-#if 0 //ENABLE_USE_BB_SHADOW
-	struct spwd getspent_spwd;
-	struct spwd sgetspent_spwd;
-	char getspent_line_buff[PWD_BUFFER_SIZE];
-	char sgetspent_line_buff[PWD_BUFFER_SIZE];
-#endif
 };
 
 static struct statics *ptr_to_statics;
@@ -182,22 +158,22 @@ int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 struct passwd *fgetpwent(FILE *stream)
 {
 	struct statics *S;
-	struct passwd *resultbuf = RESULTBUF(fgetpwent);
-	char *buffer = BUFFER(fgetpwent);
+	struct passwd *resultbuf = RESULTBUF(getpw);
+	char *buffer = BUFFER(getpw);
 	struct passwd *result;
 
-	fgetpwent_r(stream, resultbuf, buffer, sizeof(BUFFER(fgetpwent)), &result);
+	fgetpwent_r(stream, resultbuf, buffer, sizeof(BUFFER(getpw)), &result);
 	return result;
 }
 
 struct group *fgetgrent(FILE *stream)
 {
 	struct statics *S;
-	struct group *resultbuf = RESULTBUF(fgetgrent);
-	char *buffer = BUFFER(fgetgrent);
+	struct group *resultbuf = RESULTBUF(getgr);
+	char *buffer = BUFFER(getgr);
 	struct group *result;
 
-	fgetgrent_r(stream, resultbuf, buffer, sizeof(BUFFER(fgetgrent)), &result);
+	fgetgrent_r(stream, resultbuf, buffer, sizeof(BUFFER(getgr)), &result);
 	return result;
 }
 #endif
@@ -207,11 +183,11 @@ struct group *fgetgrent(FILE *stream)
 struct spwd *fgetspent(FILE *stream)
 {
 	struct statics *S;
-	struct spwd *resultbuf = RESULTBUF(fgetspent);
-	char *buffer = BUFFER(fgetspent);
+	struct spwd *resultbuf = RESULTBUF(getsp);
+	char *buffer = BUFFER(getsp);
 	struct spwd *result;
 
-	fgetspent_r(stream, resultbuf, buffer, sizeof(BUFFER(fgetspent)), &result);
+	fgetspent_r(stream, resultbuf, buffer, sizeof(BUFFER(getsp)), &result);
 	return result;
 }
 #endif
@@ -299,11 +275,11 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 struct passwd *getpwuid(uid_t uid)
 {
 	struct statics *S;
-	struct passwd *resultbuf = RESULTBUF(getpwuid);
-	char *buffer = BUFFER(getpwuid);
+	struct passwd *resultbuf = RESULTBUF(getpw);
+	char *buffer = BUFFER(getpw);
 	struct passwd *result;
 
-	getpwuid_r(uid, resultbuf, buffer, sizeof(BUFFER(getpwuid)), &result);
+	getpwuid_r(uid, resultbuf, buffer, sizeof(BUFFER(getpw)), &result);
 	return result;
 }
 
@@ -311,11 +287,11 @@ struct passwd *getpwuid(uid_t uid)
 struct group *getgrgid(gid_t gid)
 {
 	struct statics *S;
-	struct group *resultbuf = RESULTBUF(getgrgid);
-	char *buffer = BUFFER(getgrgid);
+	struct group *resultbuf = RESULTBUF(getgr);
+	char *buffer = BUFFER(getgr);
 	struct group *result;
 
-	getgrgid_r(gid, resultbuf, buffer, sizeof(BUFFER(getgrgid)), &result);
+	getgrgid_r(gid, resultbuf, buffer, sizeof(BUFFER(getgr)), &result);
 	return result;
 }
 
@@ -346,11 +322,11 @@ int getspuid_r(uid_t uid, struct spwd *__restrict resultbuf,
 struct spwd *getspuid(uid_t uid)
 {
 	struct statics *S;
-	struct spwd *resultbuf = RESULTBUF(getspuid);
-	char *buffer = BUFFER(getspuid);
+	struct spwd *resultbuf = RESULTBUF(getsp);
+	char *buffer = BUFFER(getsp);
 	struct spwd *result;
 
-	getspuid_r(uid, resultbuf, buffer, sizeof(BUFFER(getspuid)), &result);
+	getspuid_r(uid, resultbuf, buffer, sizeof(BUFFER(getsp)), &result);
 	return result;
 }
 #endif
@@ -359,11 +335,11 @@ struct spwd *getspuid(uid_t uid)
 struct passwd *getpwnam(const char *name)
 {
 	struct statics *S;
-	struct passwd *resultbuf = RESULTBUF(getpwnam);
-	char *buffer = BUFFER(getpwnam);
+	struct passwd *resultbuf = RESULTBUF(getpw);
+	char *buffer = BUFFER(getpw);
 	struct passwd *result;
 
-	getpwnam_r(name, resultbuf, buffer, sizeof(BUFFER(getpwnam)), &result);
+	getpwnam_r(name, resultbuf, buffer, sizeof(BUFFER(getpw)), &result);
 	return result;
 }
 
@@ -371,11 +347,11 @@ struct passwd *getpwnam(const char *name)
 struct group *getgrnam(const char *name)
 {
 	struct statics *S;
-	struct group *resultbuf = RESULTBUF(getgrnam);
-	char *buffer = BUFFER(getgrnam);
+	struct group *resultbuf = RESULTBUF(getgr);
+	char *buffer = BUFFER(getgr);
 	struct group *result;
 
-	getgrnam_r(name, resultbuf, buffer, sizeof(BUFFER(getgrnam)), &result);
+	getgrnam_r(name, resultbuf, buffer, sizeof(BUFFER(getgr)), &result);
 	return result;
 }
 
@@ -383,11 +359,11 @@ struct group *getgrnam(const char *name)
 struct spwd *getspnam(const char *name)
 {
 	struct statics *S;
-	struct spwd *resultbuf = RESULTBUF(getspnam);
-	char *buffer = BUFFER(getspnam);
+	struct spwd *resultbuf = RESULTBUF(getsp);
+	char *buffer = BUFFER(getsp);
 	struct spwd *result;
 
-	getspnam_r(name, resultbuf, buffer, sizeof(BUFFER(getspnam)), &result);
+	getspnam_r(name, resultbuf, buffer, sizeof(BUFFER(getsp)), &result);
 	return result;
 }
 #endif
