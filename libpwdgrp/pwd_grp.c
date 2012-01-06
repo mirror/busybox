@@ -441,6 +441,7 @@ int getpwent_r(struct passwd *__restrict resultbuf,
 			rv = errno;
 			goto ERR;
 		}
+		close_on_exec_on(fileno(pwf));
 	}
 
 	rv = bb__pgsreader(bb__parsepwent, resultbuf, buffer, buflen, pwf);
@@ -488,6 +489,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 			rv = errno;
 			goto ERR;
 		}
+		close_on_exec_on(fileno(grf));
 	}
 
 	rv = bb__pgsreader(bb__parsegrent, resultbuf, buffer, buflen, grf);
@@ -536,6 +538,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 			rv = errno;
 			goto ERR;
 		}
+		close_on_exec_on(fileno(spf));
 	}
 
 	rv = bb__pgsreader(bb__parsespent, resultbuf, buffer, buflen, spf);
