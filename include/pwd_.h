@@ -30,7 +30,7 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
  * We will use libc-defined structures, but will #define function names
  * so that function calls are directed to bb_internal_XXX replacements
  */
-
+#undef endpwent
 #define setpwent    bb_internal_setpwent
 #define endpwent    bb_internal_endpwent
 #define getpwent    bb_internal_getpwent
