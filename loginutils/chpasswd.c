@@ -20,6 +20,8 @@
 //usage:     "\n	-m	Use MD5 encryption instead of DES"
 //usage:	)
 
+//TODO: implement -c ALGO
+
 #if ENABLE_LONG_OPTS
 static const char chpasswd_longopts[] ALIGN1 =
 	"encrypted\0" No_argument "e"

@@ -105,7 +105,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = mkpasswd_longopts;
 #endif
 	fd = STDIN_FILENO;
-	opt_m = "d";
+	opt_m = CONFIG_FEATURE_DEFAULT_PASSWD_ALGO;
 	opt_S = NULL;
 	/* at most two non-option arguments; -P NUM */
 	opt_complementary = "?2:P+";

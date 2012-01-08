@@ -283,6 +283,13 @@ config CHPASSWD
 	  Reads a file of user name and password pairs from standard input
 	  and uses this information to update a group of existing users.
 
+config FEATURE_DEFAULT_PASSWD_ALGO
+	string "Default password encryption method (passwd -a, cryptpw -m parameter)"
+	default "des"
+	depends on PASSWD || CRYPTPW
+	help
+	  Possible choices are "d[es]", "m[d5]", "s[ha256]" or "sha512".
+
 config SU
 	bool "su"
 	default y
