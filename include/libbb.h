@@ -51,6 +51,12 @@
 #include <termios.h>
 #include <time.h>
 #include <sys/param.h>
+#include <pwd.h>
+#include <grp.h>
+#if defined(ANDROID) || defined(__ANDROID__)
+# define endpwent() ((void)0)
+# define endgrent() ((void)0)
+#endif
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
 #endif
@@ -80,8 +86,6 @@
 #ifdef DMALLOC
 # include <dmalloc.h>
 #endif
-#include <pwd.h>
-#include <grp.h>
 #if ENABLE_FEATURE_SHADOWPASSWDS
 # if !ENABLE_USE_BB_SHADOW
 /* If using busybox's shadow implementation, do not include the shadow.h

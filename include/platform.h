@@ -334,11 +334,6 @@ typedef unsigned smalluint;
 # define MAXSYMLINKS SYMLOOP_MAX
 #endif
 
-#if defined(ANDROID) || defined(__ANDROID__)
-# define endpwent() ((void)0)
-# define endgrent() ((void)0)
-#endif
-
 
 /* ---- Who misses what? ------------------------------------ */
 
