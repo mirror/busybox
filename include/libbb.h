@@ -53,6 +53,14 @@
 #include <sys/param.h>
 #include <pwd.h>
 #include <grp.h>
+#if ENABLE_FEATURE_SHADOWPASSWDS
+# if !ENABLE_USE_BB_SHADOW
+/* If using busybox's shadow implementation, do not include the shadow.h
+ * header as the toolchain may not provide it at all.
+ */
+#  include <shadow.h>
+# endif
+#endif
 #if defined(ANDROID) || defined(__ANDROID__)
 # define endpwent() ((void)0)
 # define endgrent() ((void)0)
@@ -85,14 +93,6 @@
 #endif
 #ifdef DMALLOC
 # include <dmalloc.h>
-#endif
-#if ENABLE_FEATURE_SHADOWPASSWDS
-# if !ENABLE_USE_BB_SHADOW
-/* If using busybox's shadow implementation, do not include the shadow.h
- * header as the toolchain may not provide it at all.
- */
-#  include <shadow.h>
-# endif
 #endif
 /* Just in case libc doesn't define some of these... */
 #ifndef _PATH_PASSWD
