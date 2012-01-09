@@ -8,13 +8,13 @@
  */
 
 //usage:#define acpid_trivial_usage
-//usage:       "[-d] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"
+//usage:       "[-df] [-c CONFDIR] [-l LOGFILE] [-a ACTIONFILE] [-M MAPFILE] [-e PROC_EVENT_FILE] [-p PIDFILE]"
 //usage:#define acpid_full_usage "\n\n"
 //usage:       "Listen to ACPI events and spawn specific helpers on event arrival\n"
-//usage:     "\n	-c DIR	Config directory [/etc/acpi]"
-//usage:     "\n	-d	Don't daemonize, (implies -f)"
-//usage:     "\n	-e FILE	/proc event file [/proc/acpi/event]"
+//usage:     "\n	-d	Log to stderr, not log file (implies -f)"
 //usage:     "\n	-f	Run in foreground"
+//usage:     "\n	-c DIR	Config directory [/etc/acpi]"
+//usage:     "\n	-e FILE	/proc event file [/proc/acpi/event]"
 //usage:     "\n	-l FILE	Log file [/var/log/acpid.log]"
 //usage:     "\n	-p FILE	Pid file [/var/run/acpid.pid]"
 //usage:     "\n	-a FILE	Action file [/etc/acpid.conf]"
@@ -225,7 +225,6 @@ static void parse_map_file(const char *filename)
 int acpid_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int acpid_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct input_event ev;
 	int nfd;
 	int opts;
 	struct pollfd *pfd;
@@ -248,15 +247,21 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 	);
 
 	if (!(opts & OPT_f)) {
+		/* No -f "Foreground", we go to background */
 		bb_daemonize_or_rexec(DAEMON_CLOSE_EXTRA_FDS, argv);
 	}
 
 	if (!(opts & OPT_d)) {
+		/* No -d "Debug", we log to log file.
+		 * This includes any output from children.
+		 */
+		xmove_fd(xopen(opt_logfile, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
+		xdup2(STDOUT_FILENO, STDERR_FILENO);
+		/* Also, acpid's messages (but not children) will go to syslog too */
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG | LOGMODE_STDIO;
-	} else {
-		xmove_fd(xopen(opt_logfile, O_WRONLY | O_CREAT | O_TRUNC), STDOUT_FILENO);
 	}
+	/* else: -d "Debug", log is not redirected */
 
 	parse_conf_file(opt_action);
 	parse_map_file(opt_map);
@@ -272,13 +277,14 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 		int fd;
 		char *dev_event;
 
-		dev_event = xasprintf((option_mask32 & OPT_e) ? "%s" : "%s%u", opt_input, nfd);
+		dev_event = xasprintf((opts & OPT_e) ? "%s" : "%s%u", opt_input, nfd);
 		fd = open(dev_event, O_RDONLY | O_NONBLOCK);
 		if (fd < 0) {
 			if (nfd == 0)
 				bb_simple_perror_msg_and_die(dev_event);
 			break;
 		}
+		free(dev_event);
 		pfd = xrealloc_vector(pfd, 1, nfd);
 		pfd[nfd].fd = fd;
 		pfd[nfd].events = POLLIN;
@@ -287,16 +293,26 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 
 	write_pidfile(opt_pidfile);
 
-	while (poll(pfd, nfd, -1) > 0) {
+	while (safe_poll(pfd, nfd, -1) > 0) {
 		int i;
 		for (i = 0; i < nfd; i++) {
-			const char *event = NULL;
+			const char *event;
 
-			memset(&ev, 0, sizeof(ev));
+			if (!(pfd[i].revents & POLLIN)) {
+				if (pfd[i].revents == 0)
+					continue; /* this fd has nothing */
 
-			if (!(pfd[i].revents & POLLIN))
-				continue;
+				/* Likely POLLERR, POLLHUP, POLLNVAL.
+				 * Do not listen on this fd anymore.
+				 */
+				close(pfd[i].fd);
+				nfd--;
+				for (; i < nfd; i++)
+					pfd[i].fd = pfd[i + 1].fd;
+				break; /* do poll() again */
+			}
 
+			event = NULL;
 			if (option_mask32 & OPT_e) {
 				char *buf;
 				int len;
@@ -307,7 +323,10 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 				if (len >= 0)
 					buf[len] = '\0';
 				event = find_action(NULL, buf);
+				free(buf);
 			} else {
+				struct input_event ev;
+
 				if (sizeof(ev) != full_read(pfd[i].fd, &ev, sizeof(ev)))
 					continue;
 
@@ -324,11 +343,8 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) {
-		while (nfd--) {
-			if (pfd[nfd].fd) {
-				close(pfd[nfd].fd);
-			}
-		}
+		while (nfd--)
+			close(pfd[nfd].fd);
 		free(pfd);
 	}
 	remove_pidfile(opt_pidfile);
