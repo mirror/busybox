@@ -206,7 +206,8 @@ static void parse_next_rule(void)
 		char *tokens[4];
 		char *val;
 
-		if (!config_read(G.parser, tokens, 4, 3, "# \t", PARSE_NORMAL))
+		/* No PARSE_EOL_COMMENTS, because command may contain '#' chars */
+		if (!config_read(G.parser, tokens, 4, 3, "# \t", PARSE_NORMAL & ~PARSE_EOL_COMMENTS))
 			break;
 
 		/* Fields: [-]regex uid:gid mode [alias] [cmd] */

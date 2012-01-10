@@ -204,7 +204,7 @@ int FAST_FUNC config_read(parser_t *parser, char **tokens, unsigned flags, const
 			line += strcspn(line, delims[0] ? delims : delims + 1);
 		} else {
 			/* Combining, find comment char if any */
-			line = strchrnul(line, delims[0]);
+			line = strchrnul(line, PARSE_EOL_COMMENTS ? delims[0] : '\0');
 
 			/* Trim any extra delimiters from the end */
 			if (flags & PARSE_TRIM) {
