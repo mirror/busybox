@@ -282,7 +282,7 @@ static int index_of_next_unescaped_regexp_delim(int delimiter, const char *str)
 static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 {
 	const char *cmdstr_ptr = cmdstr;
-	char delimiter;
+	unsigned char delimiter;
 	int idx = 0;
 
 	/* verify that the 's' or 'y' is followed by something.  That something
@@ -297,7 +297,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 
 	/* save the replacement string */
 	cmdstr_ptr += idx + 1;
-	idx = index_of_next_unescaped_regexp_delim(-delimiter, cmdstr_ptr);
+	idx = index_of_next_unescaped_regexp_delim(- (int)delimiter, cmdstr_ptr);
 	*replace = copy_parsing_escapes(cmdstr_ptr, idx);
 
 	return ((cmdstr_ptr - cmdstr) + idx);
@@ -322,10 +322,11 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 		char *temp;
 
 		delimiter = '/';
-		if (*my_str == '\\') delimiter = *++pos;
+		if (*my_str == '\\')
+			delimiter = *++pos;
 		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
 		temp = copy_parsing_escapes(pos, next);
-		*regex = xmalloc(sizeof(regex_t));
+		*regex = xzalloc(sizeof(regex_t));
 		xregcomp(*regex, temp, G.regex_type|REG_NEWLINE);
 		free(temp);
 		/* Move position to next character after last delimiter */
@@ -434,8 +435,10 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 	/* compile the match string into a regex */
 	if (*match != '\0') {
 		/* If match is empty, we use last regex used at runtime */
-		sed_cmd->sub_match = xmalloc(sizeof(regex_t));
+		sed_cmd->sub_match = xzalloc(sizeof(regex_t));
+		dbg("xregcomp('%s',%x)", match, cflags);
 		xregcomp(sed_cmd->sub_match, match, cflags);
+		dbg("regcomp ok");
 	}
 	free(match);
 
@@ -717,8 +720,12 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 	G.previous_regex_ptr = current_regex;
 
 	/* Find the first match */
-	if (REG_NOMATCH == regexec(current_regex, line, 10, G.regmatch, 0))
+	dbg("matching '%s'", line);
+	if (REG_NOMATCH == regexec(current_regex, line, 10, G.regmatch, 0)) {
+		dbg("no match");
 		return 0;
+	}
+	dbg("match");
 
 	/* Initialize temporary output buffer. */
 	G.pipeline.buf = xmalloc(PIPE_GROW);
@@ -730,9 +737,10 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		int i;
 
 		/* Work around bug in glibc regexec, demonstrated by:
-		   echo " a.b" | busybox sed 's [^ .]* x g'
-		   The match_count check is so not to break
-		   echo "hi" | busybox sed 's/^/!/g' */
+		 * echo " a.b" | busybox sed 's [^ .]* x g'
+		 * The match_count check is so not to break
+		 * echo "hi" | busybox sed 's/^/!/g'
+		 */
 		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
 			pipe_putc(*line++);
 			continue;
@@ -763,11 +771,14 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		altered++;
 
 		/* if we're not doing this globally, get out now */
-		if (sed_cmd->which_match)
+		if (sed_cmd->which_match != 0)
+			break;
+
+		if (*line == '\0')
 			break;
 
 //maybe (G.regmatch[0].rm_eo ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
-	} while (*line && regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
+	} while (regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
 
 	/* Copy rest of string into output pipeline */
 	while (1) {
@@ -1067,8 +1078,8 @@ static void process_files(void)
 		}
 
 		/* actual sedding */
-		//bb_error_msg("pattern_space:'%s' next_line:'%s' cmd:%c",
-		//pattern_space, next_line, sed_cmd->cmd);
+		dbg("pattern_space:'%s' next_line:'%s' cmd:%c",
+				pattern_space, next_line, sed_cmd->cmd);
 		switch (sed_cmd->cmd) {
 
 		/* Print line number */
@@ -1115,6 +1126,7 @@ static void process_files(void)
 		case 's':
 			if (!do_subst_command(sed_cmd, &pattern_space))
 				break;
+			dbg("do_subst_command succeeeded:'%s'", pattern_space);
 			substituted |= 1;
 
 			/* handle p option */
