@@ -294,8 +294,10 @@ static void init_tty_attrs(int speed)
 	/* non-raw output; add CR to each NL */
 	G.tty_attrs.c_oflag = OPOST | ONLCR;
 
-	G.tty_attrs.c_cc[VMIN] = 1; /* block reads if < 1 char is available */
-	G.tty_attrs.c_cc[VTIME] = 0; /* no timeout (reads block forever) */
+	/* reads would block only if < 1 char is available */
+	G.tty_attrs.c_cc[VMIN] = 1;
+	/* no timeout (reads block forever) */
+	G.tty_attrs.c_cc[VTIME] = 0;
 #ifdef __linux__
 	G.tty_attrs.c_line = 0;
 #endif

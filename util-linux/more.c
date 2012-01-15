@@ -85,8 +85,7 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 		cin_fileno = fileno(cin);
 		getTermSettings(cin_fileno, &initial_settings);
 		new_settings = initial_settings;
-		new_settings.c_lflag &= ~ICANON;
-		new_settings.c_lflag &= ~ECHO;
+		new_settings.c_lflag &= ~(ICANON | ECHO);
 		new_settings.c_cc[VMIN] = 1;
 		new_settings.c_cc[VTIME] = 0;
 		setTermSettings(cin_fileno, &new_settings);

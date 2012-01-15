@@ -2304,7 +2304,7 @@ static void rawmode(void)
 {
 	tcgetattr(0, &term_orig);
 	term_vi = term_orig;
-	term_vi.c_lflag &= (~ICANON & ~ECHO);	// leave ISIG ON- allow intr's
+	term_vi.c_lflag &= (~ICANON & ~ECHO);	// leave ISIG on - allow intr's
 	term_vi.c_iflag &= (~IXON & ~ICRNL);
 	term_vi.c_oflag &= (~ONLCR);
 	term_vi.c_cc[VMIN] = 1;
