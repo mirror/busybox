@@ -138,7 +138,13 @@ shell_builtin_read(void FAST_FUNC (*setvar)(const char *name, const char *val),
 		old_tty = tty;
 		if (nchars) {
 			tty.c_lflag &= ~ICANON;
-			tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
+			// Setting it to more than 1 breaks poll():
+			// it blocks even if there's data. !??
+			//tty.c_cc[VMIN] = nchars < 256 ? nchars : 255;
+			/* reads would block only if < 1 char is available */
+			tty.c_cc[VMIN] = 1;
+			/* no timeout (reads block forever) */
+			tty.c_cc[VTIME] = 0;
 		}
 		if (read_flags & BUILTIN_READ_SILENT) {
 			tty.c_lflag &= ~(ECHO | ECHOK | ECHONL);

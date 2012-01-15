@@ -2206,14 +2206,17 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 #define command command_must_not_be_used
 
 	new_settings = initial_settings;
-	new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
-	/* Turn off echoing and CTRL-C, so we can trap it */
-	new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
-	/* Hmm, in linux c_cc[] is not parsed if ICANON is off */
+	/* ~ICANON: unbuffered input (most c_cc[] are disabled, VMIN/VTIME are enabled) */
+	/* ~ECHO, ~ECHONL: turn off echoing, including newline echoing */
+	/* ~ISIG: turn off INTR (ctrl-C), QUIT, SUSP */
+	new_settings.c_lflag &= ~(ICANON | ECHO | ECHONL | ISIG);
+	/* reads would block only if < 1 char is available */
 	new_settings.c_cc[VMIN] = 1;
+	/* no timeout (reads block forever) */
 	new_settings.c_cc[VTIME] = 0;
-	/* Turn off CTRL-C, so we can trap it */
-	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
+	/* Should be not needed if ISIG is off: */
+	/* Turn off CTRL-C */
+	/* new_settings.c_cc[VINTR] = _POSIX_VDISABLE; */
 	tcsetattr_stdin_TCSANOW(&new_settings);
 
 #if ENABLE_USERNAME_OR_HOMEDIR
