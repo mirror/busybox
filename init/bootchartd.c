@@ -208,20 +208,19 @@ static char *make_tempdir(void)
 	return tempdir;
 }
 
-static void do_logging(unsigned sample_period_us)
+static void do_logging(unsigned sample_period_us, int process_accounting)
 {
-	//# Enable process accounting if configured
-	//if [ "$PROCESS_ACCOUNTING" = "yes" ]; then
-	//	[ -e kernel_pacct ] || : > kernel_pacct
-	//	accton kernel_pacct
-	//fi
-
 	FILE *proc_stat = xfopen("proc_stat.log", "w");
 	FILE *proc_diskstats = xfopen("proc_diskstats.log", "w");
 	//FILE *proc_netdev = xfopen("proc_netdev.log", "w");
 	FILE *proc_ps = xfopen("proc_ps.log", "w");
 	int look_for_login_process = (getppid() == 1);
 	unsigned count = 60*1000*1000 / sample_period_us; /* ~1 minute */
+
+	if (process_accounting) {
+		close(xopen("kernel_pacct", O_WRONLY | O_CREAT | O_TRUNC));
+		acct("kernel_pacct");
+	}
 
 	while (--count && !bb_got_signal) {
 		char *p;
@@ -253,17 +252,18 @@ static void do_logging(unsigned sample_period_us)
  wait_more:
 		usleep(sample_period_us);
 	}
-
-	// [ -e kernel_pacct ] && accton off
 }
 
-static void finalize(char *tempdir, const char *prog)
+static void finalize(char *tempdir, const char *prog, int process_accounting)
 {
 	//# Stop process accounting if configured
 	//local pacct=
 	//[ -e kernel_pacct ] && pacct=kernel_pacct
 
 	FILE *header_fp = xfopen("header", "w");
+
+	if (process_accounting)
+		acct(NULL);
 
 	if (prog)
 		fprintf(header_fp, "profile.process = %s\n", prog);
@@ -307,7 +307,7 @@ static void finalize(char *tempdir, const char *prog)
 	fclose(header_fp);
 
 	/* Package log files */
-	system("tar -zcf /var/log/bootchart.tgz header *.log"); // + $pacct
+	system(xasprintf("tar -zcf /var/log/bootlog.tgz header %s *.log", process_accounting ? "kernel_pacct" : ""));
 	/* Clean up (if we are not in detached tmpfs) */
 	if (tempdir) {
 		unlink("header");
@@ -315,6 +315,8 @@ static void finalize(char *tempdir, const char *prog)
 		unlink("proc_diskstats.log");
 		//unlink("proc_netdev.log");
 		unlink("proc_ps.log");
+		if (process_accounting)
+			unlink("kernel_pacct");
 		rmdir(tempdir);
 	}
 
@@ -338,6 +340,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned sample_period_us;
 	pid_t parent_pid, logger_pid;
 	smallint cmd;
+	int process_accounting;
 	enum {
 		CMD_STOP = 0,
 		CMD_START,
@@ -371,6 +374,7 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Read config file: */
 	sample_period_us = 200 * 1000;
+	process_accounting = 0;
 	if (ENABLE_FEATURE_BOOTCHARTD_CONFIG_FILE) {
 		char* token[2];
 		parser_t *parser = config_open2("/etc/bootchartd.conf" + 5, fopen_for_read);
@@ -379,11 +383,16 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 		while (config_read(parser, token, 2, 0, "#=", PARSE_NORMAL & ~PARSE_COLLAPSE)) {
 			if (strcmp(token[0], "SAMPLE_PERIOD") == 0 && token[1])
 				sample_period_us = atof(token[1]) * 1000000;
+			if (strcmp(token[0], "PROCESS_ACCOUNTING") == 0 && token[1]
+			 && (strcmp(token[1], "on") == 0 || strcmp(token[1], "yes") == 0)
+			) {
+				process_accounting = 1;
+			}
 		}
 		config_close(parser);
+		if ((int)sample_period_us <= 0)
+			sample_period_us = 1; /* prevent division by 0 */
 	}
-	if ((int)sample_period_us <= 0)
-		sample_period_us = 1; /* prevent division by 0 */
 
 	/* Create logger child: */
 	logger_pid = fork_or_rexec(argv);
@@ -411,8 +420,8 @@ int bootchartd_main(int argc UNUSED_PARAM, char **argv)
 			putenv((char*)bb_PATH_root_path);
 
 		tempdir = make_tempdir();
-		do_logging(sample_period_us);
-		finalize(tempdir, cmd == CMD_START ? argv[2] : NULL);
+		do_logging(sample_period_us, process_accounting);
+		finalize(tempdir, cmd == CMD_START ? argv[2] : NULL, process_accounting);
 		return EXIT_SUCCESS;
 	}
 
