@@ -30,7 +30,8 @@ struct mntent* FAST_FUNC find_mount_point(const char *name, int subdir_too)
 
 	devno_of_name = s.st_dev;
 	block_dev = 0;
-	if (S_ISBLK(s.st_mode)) {
+	/* Why S_ISCHR? - UBI volumes use char devices, not block */
+	if (S_ISBLK(s.st_mode) || S_ISCHR(s.st_mode)) {
 		devno_of_name = s.st_rdev;
 		block_dev = 1;
 	}
