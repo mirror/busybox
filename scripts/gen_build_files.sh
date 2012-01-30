@@ -52,14 +52,17 @@ sed -n 's@^//applet:@@p' "$srctree"/*/*.c "$srctree"/*/*/*.c \
 # We add line continuation backslash after each line,
 # and insert empty line before each line which doesn't start
 # with space or tab
-sed -n -e 's@^//usage:\([ \t].*\)$@\1 \\@p' -e 's@^//usage:\([^ \t].*\)$@\n\1 \\@p' "$srctree"/*/*.c "$srctree"/*/*/*.c \
+sed -n -e 's@^//usage:\([ \t].*\)$@\1 \\@p' -e 's@^//usage:\([^ \t].*\)$@\n\1 \\@p' \
+	"$srctree"/*/*.c "$srctree"/*/*/*.c \
 | generate \
 	"$srctree/include/usage.src.h" \
 	"include/usage.h" \
 	"/* DO NOT EDIT. This file is generated from usage.src.h */"
 
 # (Re)generate */Kbuild and */Config.in
-{ cd -- "$srctree" && find . -type d; } | while read -r d; do
+# We skip .dotdirs - makes git/svn/etc users happier
+{ cd -- "$srctree" && find . -type d -not '(' -name '.?*' -prune ')'; } \
+| while read -r d; do
 	d="${d#./}"
 
 	src="$srctree/$d/Kbuild.src"
