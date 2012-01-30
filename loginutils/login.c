@@ -342,14 +342,16 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 				goto pam_auth_failed;
 			}
 		}
-		pamret = pam_authenticate(pamh, 0);
-		if (pamret != PAM_SUCCESS) {
-			failed_msg = "authenticate";
-			goto pam_auth_failed;
-			/* TODO: or just "goto auth_failed"
-			 * since user seems to enter wrong password
-			 * (in this case pamret == 7)
-			 */
+		if (!(opt & LOGIN_OPT_f)) {
+			pamret = pam_authenticate(pamh, 0);
+			if (pamret != PAM_SUCCESS) {
+				failed_msg = "authenticate";
+				goto pam_auth_failed;
+				/* TODO: or just "goto auth_failed"
+				 * since user seems to enter wrong password
+				 * (in this case pamret == 7)
+				 */
+			}
 		}
 		/* check that the account is healthy */
 		pamret = pam_acct_mgmt(pamh, 0);
