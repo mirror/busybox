@@ -278,7 +278,6 @@ struct globals {
 	smallint cmd_mode;       // 0=command  1=insert 2=replace
 	int file_modified;       // buffer contents changed (counter, not flag!)
 	int last_file_modified;  // = -1;
-	int fn_start;            // index of first cmd line file name
 	int save_argc;           // how many file names on cmd line
 	int cmdcnt;              // repetition count
 	unsigned rows, columns;	 // the terminal screen is this size
@@ -363,7 +362,6 @@ struct globals {
 #define cmd_mode                (G.cmd_mode           )
 #define file_modified           (G.file_modified      )
 #define last_file_modified      (G.last_file_modified )
-#define fn_start                (G.fn_start           )
 #define save_argc               (G.save_argc          )
 #define cmdcnt                  (G.cmdcnt             )
 #define rows                    (G.rows               )
@@ -599,9 +597,10 @@ int vi_main(int argc, char **argv)
 	}
 
 	// The argv array can be used by the ":next"  and ":rewind" commands
-	// save optind.
-	fn_start = optind;	// remember first file name for :next and :rew
+	argv += optind;
+	argc -= optind;
 	save_argc = argc;
+	optind = 0;
 
 	//----- This is the main file handling loop --------------
 	while (1) {
@@ -1021,7 +1020,7 @@ static void colon(char *buf)
 	} else if (strncmp(cmd, "edit", i) == 0) {	// Edit a file
 		// don't edit, if the current file has been modified
 		if (file_modified && !useforce) {
-			status_line_bold("No write since last change (:edit! overrides)");
+			status_line_bold("No write since last change (:%s! overrides)", cmd);
 			goto ret;
 		}
 		if (args[0]) {
@@ -1111,11 +1110,12 @@ static void colon(char *buf)
 		Hit_Return();
 	} else if (strncmp(cmd, "quit", i) == 0 // quit
 	        || strncmp(cmd, "next", i) == 0 // edit next file
+	        || strncmp(cmd, "prev", i) == 0 // edit previous file
 	) {
 		int n;
 		if (useforce) {
-			// force end of argv list
 			if (*cmd == 'q') {
+				// force end of argv list
 				optind = save_argc;
 			}
 			editing = 0;
@@ -1123,8 +1123,7 @@ static void colon(char *buf)
 		}
 		// don't exit if the file been modified
 		if (file_modified) {
-			status_line_bold("No write since last change (:%s! overrides)",
-				 (*cmd == 'q' ? "quit" : "next"));
+			status_line_bold("No write since last change (:%s! overrides)", cmd);
 			goto ret;
 		}
 		// are there other file to edit
@@ -1136,6 +1135,14 @@ static void colon(char *buf)
 		if (*cmd == 'n' && n <= 0) {
 			status_line_bold("No more files to edit");
 			goto ret;
+		}
+		if (*cmd == 'p') {
+			// are there previous files to edit
+			if (optind < 1) {
+				status_line_bold("No previous files to edit");
+				goto ret;
+			}
+			optind -= 2;
 		}
 		editing = 0;
 	} else if (strncmp(cmd, "read", i) == 0) {	// read file into text[]
@@ -1172,10 +1179,10 @@ static void colon(char *buf)
 		}
 	} else if (strncmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (file_modified && !useforce) {
-			status_line_bold("No write since last change (:rewind! overrides)");
+			status_line_bold("No write since last change (:%s! overrides)", cmd);
 		} else {
 			// reset the filenames to edit
-			optind = fn_start - 1;
+			optind = -1; /* start from 0th file */
 			editing = 0;
 		}
 #if ENABLE_FEATURE_VI_SET
@@ -3507,7 +3514,7 @@ static void do_cmd(int c)
 		 || strncmp(p, "q!", cnt) == 0   // delete lines
 		) {
 			if (file_modified && p[1] != '!') {
-				status_line_bold("No write since last change (:quit! overrides)");
+				status_line_bold("No write since last change (:%s! overrides)", p);
 			} else {
 				editing = 0;
 			}
