@@ -805,7 +805,7 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "-1";
 	/* only -q (quiet) and -r (rmmod),
 	 * the rest are accepted and ignored (compat) */
-	getopt32(argv, "qrfsvw");
+	getopt32(argv, "qrfsvwb");
 	argv += optind;
 
 	/* are we rmmod? -> simulate modprobe -r */

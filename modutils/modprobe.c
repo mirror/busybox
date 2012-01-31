@@ -101,12 +101,15 @@
 //usage:	)
 //usage:#endif /* !ENABLE_MODPROBE_SMALL */
 
-/* Note that usage text doesn't document various 2.4 options
- * we pull in through INSMOD_OPTS define */
-#define MODPROBE_OPTS  "alrD" IF_FEATURE_MODPROBE_BLACKLIST("b")
+/* Note: usage text doesn't document various 2.4 options
+ * we pull in through INSMOD_OPTS define
+ * Note2: -b is always accepted, but if !FEATURE_MODPROBE_BLACKLIST,
+ * it is a no-op.
+ */
+#define MODPROBE_OPTS  "alrDb"
 /* -a and -D _are_ in fact compatible */
 #define MODPROBE_COMPLEMENTARY ("q-v:v-q:l--arD:r--alD:a--lr:D--rl")
-//#define MODPROBE_OPTS  "acd:lnrt:C:" IF_FEATURE_MODPROBE_BLACKLIST("b")
+//#define MODPROBE_OPTS  "acd:lnrt:C:b"
 //#define MODPROBE_COMPLEMENTARY "q-v:v-q:l--acr:a--lr:r--al"
 enum {
 	OPT_INSERT_ALL   = (INSMOD_OPT_UNUSED << 0), /* a */
@@ -133,10 +136,8 @@ static const char modprobe_longopts[] ALIGN1 =
 	/* module-init-tools 3.11.1 has only long opt --show-depends
 	 * but no short -D, we provide long opt for scripts which
 	 * were written for 3.11.1: */
-	"show-depends\0" No_argument "D"
-	// IF_FEATURE_MODPROBE_BLACKLIST(
+	"show-depends\0"     No_argument "D"
 	// "use-blacklist\0" No_argument "b"
-	// )
 	;
 #endif
 
