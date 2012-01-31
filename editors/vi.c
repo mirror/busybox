@@ -1040,13 +1040,13 @@ static void colon(char *buf)
 			goto ret;
 
 #if ENABLE_FEATURE_VI_YANKMARK
-		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
+		if (Ureg >= 0 && Ureg < 28) {
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
-			reg[Ureg]= 0;
+			reg[Ureg] = NULL;
 		}
-		if (YDreg >= 0 && YDreg < 28 && reg[YDreg] != 0) {
+		if (YDreg >= 0 && YDreg < 28) {
 			free(reg[YDreg]);	//   free default yank/delete register
-			reg[YDreg]= 0;
+			reg[YDreg] = NULL;
 		}
 #endif
 		// how many lines in text[]?
@@ -1225,51 +1225,53 @@ static void colon(char *buf)
 #endif /* FEATURE_VI_SET */
 #if ENABLE_FEATURE_VI_SEARCH
 	} else if (cmd[0] == 's') {	// substitute a pattern with a replacement pattern
-		char *ls, *F, *R;
-		int gflag;
+		char *F, *R, *flags;
+		size_t len_F, len_R;
+		int gflag;		// global replace flag
 
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
-		// replace the cmd line delimiters "/" with NULLs
-		gflag = 0;		// global replace flag
+		// replace the cmd line delimiters "/" with NULs
 		c = orig_buf[1];	// what is the delimiter
 		F = orig_buf + 2;	// start of "find"
 		R = strchr(F, c);	// middle delimiter
 		if (!R)
 			goto colon_s_fail;
+		len_F = R - F;
 		*R++ = '\0';	// terminate "find"
-		buf1 = strchr(R, c);
-		if (!buf1)
+		flags = strchr(R, c);
+		if (!flags)
 			goto colon_s_fail;
-		*buf1++ = '\0';	// terminate "replace"
-		if (*buf1 == 'g') {	// :s/foo/bar/g
-			buf1++;
-			gflag++;	// turn on gflag
-		}
+		len_R = flags - R;
+		*flags++ = '\0';	// terminate "replace"
+		gflag = *flags;
+
 		q = begin_line(q);
 		if (b < 0) {	// maybe :s/foo/bar/
-			q = begin_line(dot);	// start with cur line
-			b = count_lines(text, q);	// cur line number
+			q = begin_line(dot);      // start with cur line
+			b = count_lines(text, q); // cur line number
 		}
 		if (e < 0)
 			e = b;		// maybe :.s/foo/bar/
+
 		for (i = b; i <= e; i++) {	// so, :20,23 s \0 find \0 replace \0
-			ls = q;		// orig line start
+			char *ls = q;		// orig line start
+			char *found;
  vc4:
-			buf1 = char_search(q, F, FORWARD, LIMITED);	// search cur line only for "find"
-			if (buf1) {
+			found = char_search(q, F, FORWARD, LIMITED);	// search cur line only for "find"
+			if (found) {
 				uintptr_t bias;
 				// we found the "find" pattern - delete it
-				text_hole_delete(buf1, buf1 + strlen(F) - 1);
+				text_hole_delete(found, found + len_F - 1);
 				// inset the "replace" patern
-				bias = string_insert(buf1, R);	// insert the string
-				buf1 += bias;
+				bias = string_insert(found, R);	// insert the string
+				found += bias;
 				ls += bias;
 				/*q += bias; - recalculated anyway */
 				// check for "global"  :s/foo/bar/g
-				if (gflag == 1) {
-					if ((buf1 + strlen(R)) < end_line(ls)) {
-						q = buf1 + strlen(R);
+				if (gflag == 'g') {
+					if ((found + len_R) < end_line(ls)) {
+						q = found + len_R;
 						goto vc4;	// don't let q move past cur line
 					}
 				}
@@ -2073,6 +2075,14 @@ static uintptr_t text_hole_make(char *p, int size)	// at "p", make a 'size' byte
 		dot         += bias;
 		end         += bias;
 		p           += bias;
+#if ENABLE_FEATURE_VI_YANKMARK
+		{
+			int i;
+			for (i = 0; i < ARRAY_SIZE(mark); i++)
+				if (mark[i])
+					mark[i] += bias;
+		}
+#endif
 		text = new_text;
 	}
 	memmove(p + size, p, end - size - p);
@@ -3305,7 +3315,7 @@ static void do_cmd(int c)
 		end_cmd_q();	// stop adding to q
 		break;
 	case 'U':			// U- Undo; replace current line with original version
-		if (reg[Ureg] != 0) {
+		if (reg[Ureg] != NULL) {
 			p = begin_line(dot);
 			q = end_line(dot);
 			p = text_hole_delete(p, q);	// delete cur line
