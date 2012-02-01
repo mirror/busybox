@@ -199,14 +199,22 @@ config FEATURE_HTTPD_BASIC_AUTH
 	help
 	  Utilizes password settings from /etc/httpd.conf for basic
 	  authentication on a per url basis.
+	  Example for httpd.conf file:
+	  /adm:toor:PaSsWd
 
 config FEATURE_HTTPD_AUTH_MD5
 	bool "Support MD5 crypted passwords for http Authentication"
 	default y
 	depends on FEATURE_HTTPD_BASIC_AUTH
 	help
-	  Enables basic per URL authentication from /etc/httpd.conf
-	  using md5 passwords.
+	  Enables encrypted passwords, and wildcard user/passwords
+	  in httpd.conf file.
+	  User '*' means 'any system user name is ok',
+	  password of '*' means 'use system password for this user'
+	  Examples:
+	  /adm:toor:$1$P/eKnWXS$aI1aPGxT.dJD5SzqAKWrF0
+	  /adm:root:*
+	  /wiki:*:*
 
 config FEATURE_HTTPD_CGI
 	bool "Support Common Gateway Interface (CGI)"
@@ -223,8 +231,8 @@ config FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	help
 	  This option enables support for running scripts through an
 	  interpreter. Turn this on if you want PHP scripts to work
-	  properly. You need to supply an additional line in your httpd
-	  config file:
+	  properly. You need to supply an additional line in your
+	  httpd.conf file:
 	  *.php:/path/to/your/php
 
 config FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV

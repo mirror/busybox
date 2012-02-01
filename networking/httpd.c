@@ -1776,6 +1776,16 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 			colon_after_user = strchr(user_and_passwd, ':');
 			if (!colon_after_user)
 				goto bad_input;
+
+			/* compare "user:" */
+			if (cur->after_colon[0] != '*'
+			 && strncmp(cur->after_colon, user_and_passwd,
+					colon_after_user - user_and_passwd + 1) != 0
+			) {
+				continue;
+			}
+			/* this cfg entry is '*' or matches username from peer */
+
 			passwd = strchr(cur->after_colon, ':');
 			if (!passwd)
 				goto bad_input;
@@ -1786,13 +1796,6 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 				struct pam_conv conv_info = { &pam_talker, (void *) &userinfo };
 				pam_handle_t *pamh;
 
-				/* compare "user:" */
-				if (cur->after_colon[0] != '*'
-				 && strncmp(cur->after_colon, user_and_passwd, colon_after_user - user_and_passwd + 1) != 0
-				) {
-					continue;
-				}
-				/* this cfg entry is '*' or matches username from peer */
 				*colon_after_user = '\0';
 				userinfo.name = user_and_passwd;
 				userinfo.pw = colon_after_user + 1;
@@ -1828,31 +1831,32 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 						passwd = result->sp_pwdp;
 				}
 #  endif
+				/* In this case, passwd is ALWAYS encrypted:
+				 * it came from /etc/passwd or /etc/shadow!
+				 */
+				goto check_encrypted;
 # endif /* ENABLE_PAM */
 			}
+			/* Else: passwd is from httpd.conf, it is either plaintext or encrypted */
 
-			/* compare "user:" */
-			if (cur->after_colon[0] != '*'
-			 && strncmp(cur->after_colon, user_and_passwd, colon_after_user - user_and_passwd + 1) != 0
-			) {
-				continue;
-			}
-			/* this cfg entry is '*' or matches username from peer */
-
-			/* encrypt pwd from peer and check match with local one */
-			{
-				char *encrypted = pw_encrypt(
-					/* pwd: */  colon_after_user + 1,
+			if (passwd[0] == '$' && isdigit(passwd[1])) {
+				char *encrypted;
+ check_encrypted:
+				/* encrypt pwd from peer and check match with local one */
+				encrypted = pw_encrypt(
+					/* pwd (from peer): */  colon_after_user + 1,
 					/* salt: */ passwd,
 					/* cleanup: */ 0
 				);
 				r = strcmp(encrypted, passwd);
 				free(encrypted);
-				goto end_check_passwd;
+			} else {
+				/* local passwd is from httpd.conf and it's plaintext */
+				r = strcmp(colon_after_user + 1, passwd);
 			}
- bad_input: ;
+			goto end_check_passwd;
 		}
-
+ bad_input:
 		/* Comparing plaintext "user:pass" in one go */
 		r = strcmp(cur->after_colon, user_and_passwd);
  end_check_passwd:
