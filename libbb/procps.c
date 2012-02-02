@@ -198,7 +198,7 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 	memset(&currec, 0, sizeof(currec));
 	while (fgets(buf, PROCPS_BUFSIZE, file)) {
 		// Each mapping datum has this form:
-		// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
+		// f7d29000-f7d39000 rw-s FILEOFS M:m INODE FILENAME
 		// Size:                nnn kB
 		// Rss:                 nnn kB
 		// .....
@@ -223,7 +223,7 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 		tp = strchr(buf, '-');
 		if (tp) {
 			// We reached next mapping - the line of this form:
-			// f7d29000-f7d39000 rw-s ADR M:m OFS FILE
+			// f7d29000-f7d39000 rw-s FILEOFS M:m INODE FILENAME
 
 			if (cb) {
 				/* If we have a previous record, there's nothing more
@@ -242,7 +242,7 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 
 			strncpy(currec.smap_mode, tp, sizeof(currec.smap_mode)-1);
 
-			// skipping "rw-s ADR M:m OFS "
+			// skipping "rw-s FILEOFS M:m INODE "
 			tp = skip_whitespace(skip_fields(tp, 4));
 			// filter out /dev/something (something != zero)
 			if (strncmp(tp, "/dev/", 5) != 0 || strcmp(tp, "/dev/zero\n") == 0) {
