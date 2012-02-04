@@ -610,7 +610,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 				int seqlen;
 				char seqbuf[sizeof(int)*3 + 2];
 
-				seqlen = open_read_close("mdev.seq", seqbuf, sizeof(seqbuf-1));
+				seqlen = open_read_close("mdev.seq", seqbuf, sizeof(seqbuf) - 1);
 				if (seqlen < 0) {
 					seq = NULL;
 					break;

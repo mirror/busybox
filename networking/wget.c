@@ -552,6 +552,7 @@ static void download_one_url(const char *url)
 	FILE *dfp;                      /* socket to ftp server (data)      */
 	char *proxy = NULL;
 	char *fname_out_alloc;
+	char *redirected_path = NULL;
 	struct host_info server;
 	struct host_info target;
 
@@ -794,8 +795,8 @@ However, in real world it was observed that some web servers
 					bb_error_msg_and_die("too many redirections");
 				fclose(sfp);
 				if (str[0] == '/') {
-					free(target.allocated);
-					target.path = target.allocated = xstrdup(str+1);
+					free(redirected_path);
+					target.path = redirected_path = xstrdup(str+1);
 					/* lsa stays the same: it's on the same server */
 				} else {
 					parse_url(str, &target);
@@ -850,6 +851,7 @@ However, in real world it was observed that some web servers
 	free(server.allocated);
 	free(target.allocated);
 	free(fname_out_alloc);
+	free(redirected_path);
 }
 
 int wget_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

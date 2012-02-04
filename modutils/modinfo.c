@@ -13,6 +13,7 @@
 //config:config MODINFO
 //config:	bool "modinfo"
 //config:	default y
+//config:	select PLATFORM_LINUX
 //config:	help
 //config:	  Show information about a Linux Kernel module
 
