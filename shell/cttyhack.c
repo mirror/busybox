@@ -123,15 +123,22 @@ int cttyhack_main(int argc UNUSED_PARAM, char **argv)
 			 * TIOCGSERIAL check, which assumes that all
 			 * serial lines follow /dev/ttySn convention -
 			 * which is not always the case.
-			 * Therefore, we use this methos first:
+			 * Therefore, we use this method first:
 			 */
 			int s = open_read_close("/sys/class/tty/console/active",
 				console + 5, sizeof(console) - 5);
 			if (s > 0) {
-				/* found active console via sysfs (Linux 2.6.38+)
-				 * sysfs string looks like "ttyS0\n" so zap the newline:
+				char *last;
+				/* Found active console via sysfs (Linux 2.6.38+).
+				 * It looks like "[tty0 ]ttyS0\n" so zap the newline:
 				 */
 				console[4 + s] = '\0';
+				/* If there are multiple consoles,
+				 * take the last one:
+				 */
+				last = strrchr(console + 5, ' ');
+				if (last)
+					overlapping_strcpy(console + 5, last + 1);
 				break;
 			}
 
