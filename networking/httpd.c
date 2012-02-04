@@ -1623,7 +1623,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 					break; /* fall back to read/write loop */
 				goto fin;
 			}
-			IF_FEATURE_HTTPD_RANGES(range_len -= sz;)
+			IF_FEATURE_HTTPD_RANGES(range_len -= count;)
 			if (count == 0 || range_len == 0)
 				log_and_exit();
 		}
