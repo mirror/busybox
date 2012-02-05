@@ -268,8 +268,12 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 
 	xchdir(opt_dir);
 
+	/* We spawn children but don't wait for them. Prevent zombies: */
 	bb_signals((1 << SIGCHLD), SIG_IGN);
-	bb_signals(BB_FATAL_SIGS, record_signo);
+	// If you enable this, (1) explain why, (2)
+	// make sure while(poll) loop below is still interruptible
+	// by SIGTERM et al:
+	//bb_signals(BB_FATAL_SIGS, record_signo);
 
 	pfd = NULL;
 	nfd = 0;
@@ -337,7 +341,7 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (!event)
 				continue;
-			// spawn event handler
+			/* spawn event handler */
 			process_event(event);
 		}
 	}
