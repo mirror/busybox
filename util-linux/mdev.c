@@ -565,8 +565,12 @@ static void make_device(char *path, int delete)
 				chown(node_name, rule->ugid.uid, rule->ugid.gid);
 			}
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
-				if (aliaslink == '>')
+				if (aliaslink == '>') {
+//TODO: on devtmpfs, device_name already exists and symlink() fails.
+//End result is that instead of symlink, we have two nodes.
+//What should be done?
 					symlink(node_name, device_name);
+				}
 			}
 		}
 
