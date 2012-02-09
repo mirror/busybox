@@ -568,12 +568,7 @@ enum {
  * and if kernel doesn't support it, fall back to IPv4.
  * This is useful if you plan to bind to resulting local lsa.
  */
-#if ENABLE_FEATURE_IPV6
 int xsocket_type(len_and_sockaddr **lsap, int af, int sock_type) FAST_FUNC;
-#else
-int xsocket_type(len_and_sockaddr **lsap, int sock_type) FAST_FUNC;
-#define xsocket_type(lsap, af, sock_type) xsocket_type((lsap), (sock_type))
-#endif
 int xsocket_stream(len_and_sockaddr **lsap) FAST_FUNC;
 /* Create server socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
