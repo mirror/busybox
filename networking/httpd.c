@@ -348,7 +348,7 @@ struct globals {
 #define range_len         (G.range_len        )
 #else
 enum {
-	range_start = 0,
+	range_start = -1,
 	range_end = MAXINT(off_t) - 1,
 	range_len = MAXINT(off_t),
 };
@@ -370,6 +370,7 @@ enum {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
+	IF_FEATURE_HTTPD_RANGES(range_start = -1;) \
 	bind_addr_or_port = "80"; \
 	index_page = index_html; \
 	file_size = -1; \
@@ -1589,10 +1590,10 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	if (what == SEND_BODY /* err pages and ranges don't mix */
 	 || content_gzip /* we are sending compressed page: can't do ranges */  ///why?
 	) {
-		range_start = 0;
+		range_start = -1;
 	}
 	range_len = MAXINT(off_t);
-	if (range_start) {
+	if (range_start >= 0) {
 		if (!range_end) {
 			range_end = file_size - 1;
 		}
@@ -1600,7 +1601,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 		 || lseek(fd, range_start, SEEK_SET) != range_start
 		) {
 			lseek(fd, 0, SEEK_SET);
-			range_start = 0;
+			range_start = -1;
 		} else {
 			range_len = range_end - range_start + 1;
 			send_headers(HTTP_PARTIAL_CONTENT);
@@ -2168,11 +2169,11 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 					s += sizeof("bytes=")-1;
 					range_start = BB_STRTOOFF(s, &s, 10);
 					if (s[0] != '-' || range_start < 0) {
-						range_start = 0;
+						range_start = -1;
 					} else if (s[1]) {
 						range_end = BB_STRTOOFF(s+1, NULL, 10);
 						if (errno || range_end < range_start)
-							range_start = 0;
+							range_start = -1;
 					}
 				}
 			}
