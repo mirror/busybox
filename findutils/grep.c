@@ -85,6 +85,7 @@
 //usage:     "\n	-r	Recurse"
 //usage:     "\n	-i	Ignore case"
 //usage:     "\n	-w	Match whole words only"
+//usage:     "\n	-x	Match whole lines only"
 //usage:     "\n	-F	PATTERN is a literal (not regexp)"
 //usage:	IF_FEATURE_GREP_EGREP_ALIAS(
 //usage:     "\n	-E	PATTERN is an extended regexp"
@@ -113,7 +114,7 @@
 //usage:#define fgrep_full_usage ""
 
 #define OPTSTR_GREP \
-	"lnqvscFiHhe:f:Lorm:w" \
+	"lnqvscFiHhe:f:Lorm:wx" \
 	IF_FEATURE_GREP_CONTEXT("A:B:C:") \
 	IF_FEATURE_GREP_EGREP_ALIAS("E") \
 	IF_EXTRA_COMPAT("z") \
@@ -138,6 +139,7 @@ enum {
 	OPTBIT_r, /* recurse dirs */
 	OPTBIT_m, /* -m MAX_MATCHES */
 	OPTBIT_w, /* -w whole word match */
+	OPTBIT_x, /* -x whole line match */
 	IF_FEATURE_GREP_CONTEXT(    OPTBIT_A ,) /* -A NUM: after-match context */
 	IF_FEATURE_GREP_CONTEXT(    OPTBIT_B ,) /* -B NUM: before-match context */
 	IF_FEATURE_GREP_CONTEXT(    OPTBIT_C ,) /* -C NUM: -A and -B combined */
@@ -160,6 +162,7 @@ enum {
 	OPT_r = 1 << OPTBIT_r,
 	OPT_m = 1 << OPTBIT_m,
 	OPT_w = 1 << OPTBIT_w,
+	OPT_x = 1 << OPTBIT_x,
 	OPT_A = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_A)) + 0,
 	OPT_B = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_B)) + 0,
 	OPT_C = IF_FEATURE_GREP_CONTEXT(    (1 << OPTBIT_C)) + 0,
@@ -370,9 +373,12 @@ static int grep_file(FILE *file)
 							&gl->matched_range) >= 0
 #endif
 				) {
-					if (!(option_mask32 & OPT_w))
+					if (option_mask32 & OPT_x) {
+						found = (gl->matched_range.rm_so == 0
+						         && line[gl->matched_range.rm_eo] == '\0');
+					} else if (!(option_mask32 & OPT_w)) {
 						found = 1;
-					else {
+					} else {
 						char c = ' ';
 						if (gl->matched_range.rm_so)
 							c = line[gl->matched_range.rm_so - 1];
