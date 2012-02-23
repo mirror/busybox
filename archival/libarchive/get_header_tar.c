@@ -90,23 +90,20 @@ static unsigned long long getOctal(char *str, int len)
 }
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
 
-#if ENABLE_FEATURE_TAR_SELINUX
-/* Scan a PAX header for SELinux contexts, via "RHT.security.selinux" keyword.
- * This is what Red Hat's patched version of tar uses.
- */
-# define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
-static char *get_selinux_sctx_from_pax_hdr(archive_handle_t *archive_handle, unsigned sz)
+/* "global" is 0 or 1 */
+static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int global)
 {
 	char *buf, *p;
-	char *result;
+	unsigned blk_sz;
 
-	p = buf = xmalloc(sz + 1);
+	blk_sz = (sz + 511) & (~511);
+	p = buf = xmalloc(blk_sz + 1);
+	xread(archive_handle->src_fd, buf, blk_sz);
+	archive_handle->offset += blk_sz;
+
 	/* prevent bb_strtou from running off the buffer */
 	buf[sz] = '\0';
-	xread(archive_handle->src_fd, buf, sz);
-	archive_handle->offset += sz;
 
-	result = NULL;
 	while (sz != 0) {
 		char *end, *value;
 		unsigned len;
@@ -133,19 +130,33 @@ static char *get_selinux_sctx_from_pax_hdr(archive_handle_t *archive_handle, uns
 		 * (we do not bother to check that it *was* a newline)
 		 */
 		p[-1] = '\0';
-		/* Is it selinux security context? */
 		value = end + 1;
+
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+		if (!global && strncmp(value, "path=", sizeof("path=") - 1) == 0) {
+			value += sizeof("path=") - 1;
+			free(archive_handle->tar__longname);
+			archive_handle->tar__longname = xstrdup(value);
+			continue;
+		}
+#endif
+
+#if ENABLE_FEATURE_TAR_SELINUX
+		/* Scan for SELinux contexts, via "RHT.security.selinux" keyword.
+		 * This is what Red Hat's patched version of tar uses.
+		 */
+# define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
 		if (strncmp(value, SELINUX_CONTEXT_KEYWORD"=", sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1) == 0) {
 			value += sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1;
-			result = xstrdup(value);
-			break;
+			free(archive_handle->tar__sctx[global]);
+			archive_handle->tar__sctx[global] = xstrdup(value);
+			continue;
 		}
+#endif
 	}
 
 	free(buf);
-	return result;
 }
-#endif
 
 char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 {
@@ -418,12 +429,14 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	case 'S':	/* Sparse file */
 	case 'V':	/* Volume header */
 #endif
-#if !ENABLE_FEATURE_TAR_SELINUX
 	case 'g':	/* pax global header */
-	case 'x':	/* pax extended header */
-#else
+	case 'x': {	/* pax extended header */
+		if ((uoff_t)file_header->size > 0xfffff) /* paranoia */
+			goto skip_ext_hdr;
+		process_pax_hdr(archive_handle, file_header->size, (tar.typeflag == 'g'));
+		goto again_after_align;
+	}
  skip_ext_hdr:
-#endif
 	{
 		off_t sz;
 		bb_error_msg("warning: skipping header '%c'", tar.typeflag);
@@ -435,18 +448,6 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		/* return get_header_tar(archive_handle); */
 		goto again_after_align;
 	}
-#if ENABLE_FEATURE_TAR_SELINUX
-	case 'g':	/* pax global header */
-	case 'x': {	/* pax extended header */
-		char **pp;
-		if ((uoff_t)file_header->size > 0xfffff) /* paranoia */
-			goto skip_ext_hdr;
-		pp = (tar.typeflag == 'g') ? &archive_handle->tar__global_sctx : &archive_handle->tar__next_file_sctx;
-		free(*pp);
-		*pp = get_selinux_sctx_from_pax_hdr(archive_handle, file_header->size);
-		goto again;
-	}
-#endif
 	default:
 		bb_error_msg_and_die("unknown typeflag: 0x%x", tar.typeflag);
 	}

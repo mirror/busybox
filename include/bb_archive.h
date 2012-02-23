@@ -77,19 +77,20 @@ typedef struct archive_handle_t {
 	off_t offset;
 
 	/* Archiver specific. Can make it a union if it ever gets big */
+#define PAX_NEXT_FILE 0
+#define PAX_GLOBAL    1
 #if ENABLE_TAR || ENABLE_DPKG || ENABLE_DPKG_DEB
 	smallint tar__end;
 # if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	char* tar__longname;
 	char* tar__linkname;
 # endif
-#if ENABLE_FEATURE_TAR_TO_COMMAND
+# if ENABLE_FEATURE_TAR_TO_COMMAND
 	char* tar__to_command;
 	const char* tar__to_command_shell;
-#endif
+# endif
 # if ENABLE_FEATURE_TAR_SELINUX
-	char* tar__global_sctx;
-	char* tar__next_file_sctx;
+	char* tar__sctx[2];
 # endif
 #endif
 #if ENABLE_CPIO || ENABLE_RPM2CPIO || ENABLE_RPM

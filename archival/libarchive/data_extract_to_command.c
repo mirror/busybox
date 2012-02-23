@@ -64,13 +64,13 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 	file_header_t *file_header = archive_handle->file_header;
 
 #if 0 /* do we need this? ENABLE_FEATURE_TAR_SELINUX */
-	char *sctx = archive_handle->tar__next_file_sctx;
+	char *sctx = archive_handle->tar__sctx[PAX_NEXT_FILE];
 	if (!sctx)
-		sctx = archive_handle->tar__global_sctx;
+		sctx = archive_handle->tar__sctx[PAX_GLOBAL];
 	if (sctx) { /* setfscreatecon is 4 syscalls, avoid if possible */
 		setfscreatecon(sctx);
-		free(archive_handle->tar__next_file_sctx);
-		archive_handle->tar__next_file_sctx = NULL;
+		free(archive_handle->tar__sctx[PAX_NEXT_FILE]);
+		archive_handle->tar__sctx[PAX_NEXT_FILE] = NULL;
 	}
 #endif
 
