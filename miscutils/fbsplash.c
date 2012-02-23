@@ -143,7 +143,7 @@ static void fb_open(const char *strfb_device)
 
 	// map the device in memory
 	G.addr = mmap(NULL,
-			G.scr_var.xres * G.scr_var.yres * G.bytes_per_pixel,
+		        G.scr_var.yres * G.scr_fix.line_length,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");
@@ -213,8 +213,8 @@ static void fb_drawrectangle(void)
 	thispix = fb_pixel_value(nred, ngreen, nblue);
 
 	// horizontal lines
-	ptr1 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
-	ptr2 = G.addr + ((G.nbar_posy + G.nbar_height - 1) * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
+	ptr1 = G.addr + G.nbar_posy * G.scr_fix.line_length + G.nbar_posx * G.bytes_per_pixel;
+	ptr2 = G.addr + (G.nbar_posy + G.nbar_height - 1) * G.scr_fix.line_length + G.nbar_posx * G.bytes_per_pixel;
 	cnt = G.nbar_width - 1;
 	do {
 		fb_write_pixel(ptr1, thispix);
@@ -224,14 +224,14 @@ static void fb_drawrectangle(void)
 	} while (--cnt >= 0);
 
 	// vertical lines
-	ptr1 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx) * G.bytes_per_pixel;
-	ptr2 = G.addr + (G.nbar_posy * G.scr_var.xres + G.nbar_posx + G.nbar_width - 1) * G.bytes_per_pixel;
+	ptr1 = G.addr + G.nbar_posy * G.scr_fix.line_length + G.nbar_posx * G.bytes_per_pixel;
+	ptr2 = G.addr + G.nbar_posy * G.scr_fix.line_length + (G.nbar_posx + G.nbar_width - 1) * G.bytes_per_pixel;
 	cnt = G.nbar_height - 1;
 	do {
 		fb_write_pixel(ptr1, thispix);
 		fb_write_pixel(ptr2, thispix);
-		ptr1 += G.scr_var.xres * G.bytes_per_pixel;
-		ptr2 += G.scr_var.xres * G.bytes_per_pixel;
+		ptr1 += G.scr_fix.line_length;
+		ptr2 += G.scr_fix.line_length;
 	} while (--cnt >= 0);
 }
 
@@ -254,7 +254,7 @@ static void fb_drawfullrectangle(int nx1pos, int ny1pos, int nx2pos, int ny2pos,
 	cnt1 = ny2pos - ny1pos;
 	nypos = ny1pos;
 	do {
-		ptr = G.addr + (nypos * G.scr_var.xres + nx1pos) * G.bytes_per_pixel;
+		ptr = G.addr + nypos * G.scr_fix.line_length + nx1pos * G.bytes_per_pixel;
 		cnt2 = nx2pos - nx1pos;
 		do {
 			fb_write_pixel(ptr, thispix);
