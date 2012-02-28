@@ -127,7 +127,8 @@ static unsigned long fast_strtoul_16(char **endptr)
 	char *str = *endptr;
 	unsigned long n = 0;
 
-	while ((c = *str++) != ' ') {
+	/* need to stop on both ' ' and '\n' */
+	while ((c = *str++) > ' ') {
 		c = ((c|0x20) - '0');
 		if (c > 9)
 			// c = c + '0' - 'a' + 10:
