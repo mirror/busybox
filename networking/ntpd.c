@@ -111,8 +111,8 @@
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
 /* Actively lower poll when we see such big offsets.
  * With STEP_THRESHOLD = 0.125, it means we try to sync more aggressively
- * if offset increases over 0.03 sec */
-#define POLLDOWN_OFFSET (STEP_THRESHOLD / 4)
+ * if offset increases over ~0.04 sec */
+#define POLLDOWN_OFFSET (STEP_THRESHOLD / 3)
 #define MINDISP         0.01    /* minimum dispersion (sec) */
 #define MAXDISP         16      /* maximum dispersion (sec) */
 #define MAXSTRAT        16      /* maximum stratum (infinity metric) */
@@ -127,9 +127,9 @@
  * we grow a counter: += MINPOLL. When it goes over POLLADJ_LIMIT,
  * we poll_exp++. If offset isn't small, counter -= poll_exp*2,
  * and when it goes below -POLLADJ_LIMIT, we poll_exp--
- * (bumped from 30 to 36 since otherwise I often see poll_exp going *2* steps down)
+ * (bumped from 30 to 40 since otherwise I often see poll_exp going *2* steps down)
  */
-#define POLLADJ_LIMIT   36
+#define POLLADJ_LIMIT   40
 /* If offset < POLLADJ_GATE * discipline_jitter, then we can increase
  * poll interval (we think we can't improve timekeeping
  * by staying at smaller poll).
@@ -622,7 +622,11 @@ reset_peer_stats(peer_t *p, double offset)
 		if (small_ofs) {
 			p->filter_datapoint[i].d_recv_time += offset;
 			if (p->filter_datapoint[i].d_offset != 0) {
-				p->filter_datapoint[i].d_offset += offset;
+				p->filter_datapoint[i].d_offset -= offset;
+				//bb_error_msg("p->filter_datapoint[%d].d_offset %f -> %f",
+				//	i,
+				//	p->filter_datapoint[i].d_offset + offset,
+				//	p->filter_datapoint[i].d_offset);
 			}
 		} else {
 			p->filter_datapoint[i].d_recv_time  = G.cur_time;
@@ -808,22 +812,24 @@ step_time(double offset)
 {
 	llist_t *item;
 	double dtime;
-	struct timeval tv;
-	char buf[80];
+	struct timeval tvc, tvn;
+	char buf[sizeof("yyyy-mm-dd hh:mm:ss") + /*paranoia:*/ 4];
 	time_t tval;
 
-	gettimeofday(&tv, NULL); /* never fails */
-	dtime = offset + tv.tv_sec;
-	dtime += 1.0e-6 * tv.tv_usec;
-	d_to_tv(dtime, &tv);
-
-	if (settimeofday(&tv, NULL) == -1)
+	gettimeofday(&tvc, NULL); /* never fails */
+	dtime = tvc.tv_sec + (1.0e-6 * tvc.tv_usec) + offset;
+	d_to_tv(dtime, &tvn);
+	if (settimeofday(&tvn, NULL) == -1)
 		bb_perror_msg_and_die("settimeofday");
 
-	tval = tv.tv_sec;
-	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
-
-	bb_error_msg("setting clock to %s (offset %fs)", buf, offset);
+	VERB2 {
+		tval = tvc.tv_sec;
+		strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&tval));
+		bb_error_msg("current time is %s.%06u", buf, (unsigned)tvc.tv_usec);
+	}
+	tval = tvn.tv_sec;
+	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&tval));
+	bb_error_msg("setting time to %s.%06u (offset %+fs)", buf, (unsigned)tvn.tv_usec, offset);
 
 	/* Correct various fields which contain time-relative values: */
 
