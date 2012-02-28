@@ -127,11 +127,11 @@ static unsigned long fast_strtoul_16(char **endptr)
 	char *str = *endptr;
 	unsigned long n = 0;
 
-	/* need to stop on both ' ' and '\n' */
+	/* Need to stop on both ' ' and '\n' */
 	while ((c = *str++) > ' ') {
 		c = ((c|0x20) - '0');
 		if (c > 9)
-			// c = c + '0' - 'a' + 10:
+			/* c = c + '0' - 'a' + 10: */
 			c = c - ('a' - '0' - 10);
 		n = n*16 + c;
 	}
@@ -144,11 +144,12 @@ static unsigned long fast_strtoul_16(char **endptr)
 /* We cut a lot of corners here for speed */
 static unsigned long fast_strtoul_10(char **endptr)
 {
-	char c;
+	unsigned char c;
 	char *str = *endptr;
 	unsigned long n = *str - '0';
 
-	while ((c = *++str) != ' ')
+	/* Need to stop on both ' ' and '\n' */
+	while ((c = *++str) > ' ')
 		n = n*10 + (c - '0');
 
 	*endptr = str + 1; /* We skip trailing space! */
