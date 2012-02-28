@@ -91,7 +91,7 @@ struct globals {
 #define INIT_G() do { } while (0)
 
 
-static void print(unsigned long size, const char *filename)
+static void print(unsigned long long size, const char *filename)
 {
 	/* TODO - May not want to defer error checking here. */
 #if ENABLE_FEATURE_HUMAN_READABLE
@@ -105,15 +105,15 @@ static void print(unsigned long size, const char *filename)
 		size++;
 		size >>= 1;
 	}
-	printf("%lu\t%s\n", size, filename);
+	printf("%llu\t%s\n", size, filename);
 #endif
 }
 
 /* tiny recursive du */
-static unsigned long du(const char *filename)
+static unsigned long long du(const char *filename)
 {
 	struct stat statbuf;
-	unsigned long sum;
+	unsigned long long sum;
 
 	if (lstat(filename, &statbuf) != 0) {
 		bb_simple_perror_msg(filename);
@@ -190,7 +190,7 @@ static unsigned long du(const char *filename)
 int du_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int du_main(int argc UNUSED_PARAM, char **argv)
 {
-	unsigned long total;
+	unsigned long long total;
 	int slink_depth_save;
 	unsigned opt;
 
