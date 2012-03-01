@@ -129,6 +129,9 @@
 //usage:     "\n	[YYYY.]MM.DD-hh:mm[:ss]"
 //usage:     "\n	YYYY-MM-DD hh:mm[:ss]"
 //usage:     "\n	[[[[[YY]YY]MM]DD]hh]mm[.ss]"
+//usage:	IF_FEATURE_DATE_COMPAT(
+//usage:     "\n	'date TIME' form accepts MMDDhhmm[[YY]YY][.ss] instead"
+//usage:	)
 //usage:
 //usage:#define date_example_usage
 //usage:       "$ date\n"
