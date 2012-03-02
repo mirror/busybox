@@ -276,11 +276,12 @@ struct globals {
 	unsigned verbose;
 	unsigned peer_cnt;
 	/* refid: 32-bit code identifying the particular server or reference clock
-	 *  in stratum 0 packets this is a four-character ASCII string,
-	 *  called the kiss code, used for debugging and monitoring
-	 *  in stratum 1 packets this is a four-character ASCII string
-	 *  assigned to the reference clock by IANA. Example: "GPS "
-	 *  in stratum 2+ packets, it's IPv4 address or 4 first bytes of MD5 hash of IPv6
+	 * in stratum 0 packets this is a four-character ASCII string,
+	 * called the kiss code, used for debugging and monitoring
+	 * in stratum 1 packets this is a four-character ASCII string
+	 * assigned to the reference clock by IANA. Example: "GPS "
+	 * in stratum 2+ packets, it's IPv4 address or 4 first bytes
+	 * of MD5 hash of IPv6
 	 */
 	uint32_t refid;
 	uint8_t  ntp_status;
@@ -289,27 +290,35 @@ struct globals {
 	 * mains-frequency clock incrementing at 60 Hz is 16 ms, even when the
 	 * system clock hardware representation is to the nanosecond.
 	 *
-	 * Delays, jitters of various kinds are clamper down to precision.
+	 * Delays, jitters of various kinds are clamped down to precision.
 	 *
 	 * If precision_sec is too large, discipline_jitter gets clamped to it
-	 * and if offset is much smaller than discipline_jitter, poll interval
-	 * grows even though we really can benefit from staying at smaller one,
-	 * collecting non-lagged datapoits and correcting the offset.
+	 * and if offset is smaller than discipline_jitter * POLLADJ_GATE, poll
+	 * interval grows even though we really can benefit from staying at
+	 * smaller one, collecting non-lagged datapoits and correcting offset.
 	 * (Lagged datapoits exist when poll_exp is large but we still have
 	 * systematic offset error - the time distance between datapoints
-	 * is significat and older datapoints have smaller offsets.
+	 * is significant and older datapoints have smaller offsets.
 	 * This makes our offset estimation a bit smaller than reality)
 	 * Due to this effect, setting G_precision_sec close to
 	 * STEP_THRESHOLD isn't such a good idea - offsets may grow
 	 * too big and we will step. I observed it with -6.
 	 *
-	 * OTOH, setting precision too small would result in futile attempts
-	 * to syncronize to the unachievable precision.
+	 * OTOH, setting precision_sec far too small would result in futile
+	 * attempts to syncronize to an unachievable precision.
 	 *
 	 * -6 is 1/64 sec, -7 is 1/128 sec and so on.
+	 * -8 is 1/256 ~= 0.003906 (worked well for me --vda)
+	 * -9 is 1/512 ~= 0.001953 (let's try this for some time)
 	 */
-#define G_precision_exp  -8
-#define G_precision_sec  (1.0 / (1 << (- G_precision_exp)))
+#define G_precision_exp  -9
+	/*
+	 * G_precision_exp is used only for construction outgoing packets.
+	 * It's ok to set G_precision_sec to a slightly different value
+	 * (One which is "nicer looking" in logs).
+	 * Exact value would be (1.0 / (1 << (- G_precision_exp))):
+	 */
+#define G_precision_sec  0.002
 	uint8_t  stratum;
 	/* Bool. After set to 1, never goes back to 0: */
 	smallint initial_poll_complete;
@@ -1334,8 +1343,10 @@ update_local_clock(peer_t *p)
 		 * weighted offset differences. Used by the poll adjust code.
 		 */
 		etemp = SQUARE(G.discipline_jitter);
-		dtemp = SQUARE(MAXD(fabs(offset - G.last_update_offset), G_precision_sec));
+		dtemp = SQUARE(offset - G.last_update_offset);
 		G.discipline_jitter = SQRT(etemp + (dtemp - etemp) / AVG);
+		if (G.discipline_jitter < G_precision_sec)
+			G.discipline_jitter = G_precision_sec;
 		VERB3 bb_error_msg("discipline jitter=%f", G.discipline_jitter);
 
 		switch (G.discipline_state) {
@@ -1495,8 +1506,8 @@ update_local_clock(peer_t *p)
 	}
 #endif
 	G.kernel_freq_drift = tmx.freq / 65536;
-	VERB2 bb_error_msg("update peer:%s, offset:%+f, clock drift:%+ld ppm",
-			p->p_dotted, G.last_update_offset, G.kernel_freq_drift);
+	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+ld ppm",
+			p->p_dotted, G.last_update_offset, G.discipline_jitter, G.kernel_freq_drift);
 
 	return 1; /* "ok to increase poll interval" */
 }
