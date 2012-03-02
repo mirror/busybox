@@ -1506,8 +1506,8 @@ update_local_clock(peer_t *p)
 	}
 #endif
 	G.kernel_freq_drift = tmx.freq / 65536;
-	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+ld ppm",
-			p->p_dotted, G.last_update_offset, G.discipline_jitter, G.kernel_freq_drift);
+	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+.3f ppm",
+			p->p_dotted, G.last_update_offset, G.discipline_jitter, (double)tmx.freq / 65536);
 
 	return 1; /* "ok to increase poll interval" */
 }
