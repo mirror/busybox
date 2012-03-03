@@ -2086,7 +2086,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Here we may block */
 		VERB2 {
-			if (i > ENABLE_FEATURE_NTPD_SERVER) {
+			if (i > (ENABLE_FEATURE_NTPD_SERVER && G.listen_fd != -1)) {
 				/* We wait for at least one reply.
 				 * Poll for it, without wasting time for message.
 				 * Since replies often come under 1 second, this also
