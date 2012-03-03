@@ -107,7 +107,10 @@
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
 #define BURSTPOLL       0       /* initial poll */
 #define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
-#define BIGPOLL         10      /* drop to lower poll at any trouble (10: 17 min) */
+/* If offset > discipline_jitter * POLLADJ_GATE, and poll interval is >= 2^BIGPOLL,
+ * then it is decreased _at once_. (If < 2^BIGPOLL, it will be decreased _eventually_).
+ */
+#define BIGPOLL         10      /* 2^10 sec ~= 17 min */
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
 /* Actively lower poll when we see such big offsets.
  * With STEP_THRESHOLD = 0.125, it means we try to sync more aggressively
@@ -124,13 +127,13 @@
 
 /* Poll-adjust threshold.
  * When we see that offset is small enough compared to discipline jitter,
- * we grow a counter: += MINPOLL. When it goes over POLLADJ_LIMIT,
+ * we grow a counter: += MINPOLL. When counter goes over POLLADJ_LIMIT,
  * we poll_exp++. If offset isn't small, counter -= poll_exp*2,
- * and when it goes below -POLLADJ_LIMIT, we poll_exp--
- * (bumped from 30 to 40 since otherwise I often see poll_exp going *2* steps down)
+ * and when it goes below -POLLADJ_LIMIT, we poll_exp--.
+ * (Bumped from 30 to 40 since otherwise I often see poll_exp going *2* steps down)
  */
 #define POLLADJ_LIMIT   40
-/* If offset < POLLADJ_GATE * discipline_jitter, then we can increase
+/* If offset < discipline_jitter * POLLADJ_GATE, then we decide to increase
  * poll interval (we think we can't improve timekeeping
  * by staying at smaller poll).
  */
@@ -732,6 +735,12 @@ send_query_to_peer(peer_t *p)
 		free(local_lsa);
 	}
 
+	/* Emit message _before_ attempted send. Think of a very short
+	 * roundtrip networks: we need to go back to recv loop ASAP,
+	 * to reduce delay. Printing messages after send works against that.
+	 */
+	VERB1 bb_error_msg("sending query to %s", p->p_dotted);
+
 	/*
 	 * Send out a random 64-bit number as our transmit time.  The NTP
 	 * server will copy said number into the originate field on the
@@ -759,7 +768,6 @@ send_query_to_peer(peer_t *p)
 	}
 
 	p->reachable_bits <<= 1;
-	VERB1 bb_error_msg("sent query to %s", p->p_dotted);
 	set_next(p, RESPONSE_INTERVAL);
 }
 
@@ -2077,8 +2085,23 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		timeout++; /* (nextaction - G.cur_time) rounds down, compensating */
 
 		/* Here we may block */
-		VERB2 bb_error_msg("poll %us, sockets:%u, poll interval:%us", timeout, i, 1 << G.poll_exp);
+		VERB2 {
+			if (i > ENABLE_FEATURE_NTPD_SERVER) {
+				/* We wait for at least one reply.
+				 * Poll for it, without wasting time for message.
+				 * Since replies often come under 1 second, this also
+				 * reduces clutter in logs.
+				 */
+				nfds = poll(pfd, i, 1000);
+				if (nfds != 0)
+					goto did_poll;
+				if (--timeout <= 0)
+					goto did_poll;
+			}
+			bb_error_msg("poll %us, sockets:%u, poll interval:%us", timeout, i, 1 << G.poll_exp);
+		}
 		nfds = poll(pfd, i, timeout * 1000);
+ did_poll:
 		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0) {
 			if (G.script_name && G.cur_time - G.last_script_run > 11*60) {
