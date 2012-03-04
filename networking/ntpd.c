@@ -138,6 +138,7 @@
  * by staying at smaller poll).
  */
 #define POLLADJ_GATE    4
+#define TIMECONST_HACK_GATE 2
 /* Compromise Allan intercept (sec). doc uses 1500, std ntpd uses 512 */
 #define ALLAN           512
 /* PLL loop gain */
@@ -339,6 +340,7 @@ struct globals {
 	double   last_update_offset;    // c.last
 	double   last_update_recv_time; // s.t
 	double   discipline_jitter;     // c.jitter
+	double   offset_to_jitter_ratio;
 	//double   cluster_offset;        // s.offset
 	//double   cluster_jitter;        // s.jitter
 #if !USING_KERNEL_PLL_LOOP
@@ -1337,7 +1339,8 @@ update_local_clock(peer_t *p)
 			return 1; /* "ok to increase poll interval" */
 		}
 #endif
-		set_new_values(STATE_SYNC, /*offset:*/ 0, recv_time);
+		offset = 0;
+		set_new_values(STATE_SYNC, offset, recv_time);
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
 
@@ -1355,6 +1358,7 @@ update_local_clock(peer_t *p)
 		G.discipline_jitter = SQRT(etemp + (dtemp - etemp) / AVG);
 		if (G.discipline_jitter < G_precision_sec)
 			G.discipline_jitter = G_precision_sec;
+		G.offset_to_jitter_ratio = fabs(offset) / G.discipline_jitter;
 		VERB3 bb_error_msg("discipline jitter=%f", G.discipline_jitter);
 
 		switch (G.discipline_state) {
@@ -1443,7 +1447,7 @@ update_local_clock(peer_t *p)
 
 	/* We are in STATE_SYNC now, but did not do adjtimex yet.
 	 * (Any other state does not reach this, they all return earlier)
-	 * By this time, freq_drift and G.last_update_offset are set
+	 * By this time, freq_drift and offset are set
 	 * to values suitable for adjtimex.
 	 */
 #if !USING_KERNEL_PLL_LOOP
@@ -1482,40 +1486,42 @@ update_local_clock(peer_t *p)
 	tmx.modes = ADJ_FREQUENCY | ADJ_OFFSET;
 	/* 65536 is one ppm */
 	tmx.freq = G.discipline_freq_drift * 65536e6;
-	tmx.offset = G.last_update_offset * 1000000; /* usec */
 #endif
 	tmx.modes = ADJ_OFFSET | ADJ_STATUS | ADJ_TIMECONST;// | ADJ_MAXERROR | ADJ_ESTERROR;
-	tmx.offset = (G.last_update_offset * 1000000); /* usec */
-			/* + (G.last_update_offset < 0 ? -0.5 : 0.5) - too small to bother */
+	tmx.offset = (offset * 1000000); /* usec */
 	tmx.status = STA_PLL;
 	if (G.ntp_status & LI_PLUSSEC)
 		tmx.status |= STA_INS;
 	if (G.ntp_status & LI_MINUSSEC)
 		tmx.status |= STA_DEL;
+
 	tmx.constant = G.poll_exp - 4;
-	//tmx.esterror = (u_int32)(clock_jitter * 1e6);
-	//tmx.maxerror = (u_int32)((sys_rootdelay / 2 + sys_rootdisp) * 1e6);
+	/* EXPERIMENTAL.
+	 * The below if statement should be unnecessary, but...
+	 * It looks like Linux kernel's PLL is far too gentle in changing
+	 * tmx.freq in response to clock offset. Offset keeps growing
+	 * and eventually we fall back to smaller poll intervals.
+	 * We can make correction more agressive (about x2) by supplying
+	 * PLL time constant which is one less than the real one.
+	 * To be on a safe side, let's do it only if offset is significantly
+	 * larger than jitter.
+	 */
+	if (tmx.constant > 0 && G.offset_to_jitter_ratio > TIMECONST_HACK_GATE)
+		tmx.constant--;
+
+	//tmx.esterror = (uint32_t)(clock_jitter * 1e6);
+	//tmx.maxerror = (uint32_t)((sys_rootdelay / 2 + sys_rootdisp) * 1e6);
 	rc = adjtimex(&tmx);
 	if (rc < 0)
 		bb_perror_msg_and_die("adjtimex");
 	/* NB: here kernel returns constant == G.poll_exp, not == G.poll_exp - 4.
 	 * Not sure why. Perhaps it is normal.
 	 */
-	VERB3 bb_error_msg("adjtimex:%d freq:%ld offset:%+ld constant:%ld status:0x%x",
-				rc, tmx.freq, tmx.offset, tmx.constant, tmx.status);
-#if 0
-	VERB3 {
-		/* always gives the same output as above msg */
-		memset(&tmx, 0, sizeof(tmx));
-		if (adjtimex(&tmx) < 0)
-			bb_perror_msg_and_die("adjtimex");
-		VERB3 bb_error_msg("c adjtimex freq:%ld offset:%+ld constant:%ld status:0x%x",
-				tmx.freq, tmx.offset, tmx.constant, tmx.status);
-	}
-#endif
+	VERB3 bb_error_msg("adjtimex:%d freq:%ld offset:%+ld status:0x%x",
+				rc, tmx.freq, tmx.offset, tmx.status);
 	G.kernel_freq_drift = tmx.freq / 65536;
-	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+.3f ppm",
-			p->p_dotted, G.last_update_offset, G.discipline_jitter, (double)tmx.freq / 65536);
+	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+.3f ppm, tc:%d",
+			p->p_dotted, offset, G.discipline_jitter, (double)tmx.freq / 65536, (int)tmx.constant);
 
 	return 1; /* "ok to increase poll interval" */
 }
@@ -1651,7 +1657,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	if (!p->reachable_bits) {
 		/* 1st datapoint ever - replicate offset in every element */
 		int i;
-		for (i = 1; i < NUM_DATAPOINTS; i++) {
+		for (i = 0; i < NUM_DATAPOINTS; i++) {
 			p->filter_datapoint[i].d_offset = datapoint->d_offset;
 		}
 	}
@@ -1706,7 +1712,7 @@ recv_and_process_peer_pkt(peer_t *p)
 					? "grows" : "falls"
 			);
 		}
-		if (rc > 0 && fabs(q->filter_offset) < POLLADJ_GATE * G.discipline_jitter) {
+		if (rc > 0 && G.offset_to_jitter_ratio < POLLADJ_GATE) {
 			/* was += G.poll_exp but it is a bit
 			 * too optimistic for my taste at high poll_exp's */
 			G.polladj_count += MINPOLL;
