@@ -340,7 +340,10 @@ struct globals {
 	double   last_update_offset;    // c.last
 	double   last_update_recv_time; // s.t
 	double   discipline_jitter;     // c.jitter
-	double   offset_to_jitter_ratio;
+	/* Since we only compare it with ints, can simplify code
+	 * by not making this variable floating point:
+	 */
+	unsigned offset_to_jitter_ratio;
 	//double   cluster_offset;        // s.offset
 	//double   cluster_jitter;        // s.jitter
 #if !USING_KERNEL_PLL_LOOP
@@ -1339,7 +1342,7 @@ update_local_clock(peer_t *p)
 			return 1; /* "ok to increase poll interval" */
 		}
 #endif
-		offset = 0;
+		abs_offset = offset = 0;
 		set_new_values(STATE_SYNC, offset, recv_time);
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
@@ -1356,10 +1359,6 @@ update_local_clock(peer_t *p)
 		etemp = SQUARE(G.discipline_jitter);
 		dtemp = SQUARE(offset - G.last_update_offset);
 		G.discipline_jitter = SQRT(etemp + (dtemp - etemp) / AVG);
-		if (G.discipline_jitter < G_precision_sec)
-			G.discipline_jitter = G_precision_sec;
-		G.offset_to_jitter_ratio = fabs(offset) / G.discipline_jitter;
-		VERB3 bb_error_msg("discipline jitter=%f", G.discipline_jitter);
 
 		switch (G.discipline_state) {
 		case STATE_NSET:
@@ -1436,6 +1435,10 @@ update_local_clock(peer_t *p)
 		}
 	}
 
+	if (G.discipline_jitter < G_precision_sec)
+		G.discipline_jitter = G_precision_sec;
+	G.offset_to_jitter_ratio = abs_offset / G.discipline_jitter;
+
 	G.reftime = G.cur_time;
 	G.ntp_status = p->lastpkt_status;
 	G.refid = p->lastpkt_refid;
@@ -1473,7 +1476,7 @@ update_local_clock(peer_t *p)
 		memset(&tmx, 0, sizeof(tmx));
 		if (adjtimex(&tmx) < 0)
 			bb_perror_msg_and_die("adjtimex");
-		VERB3 bb_error_msg("p adjtimex freq:%ld offset:%+ld constant:%ld status:0x%x",
+		bb_error_msg("p adjtimex freq:%ld offset:%+ld constant:%ld status:0x%x",
 				tmx.freq, tmx.offset, tmx.constant, tmx.status);
 	}
 
@@ -1506,7 +1509,7 @@ update_local_clock(peer_t *p)
 	 * To be on a safe side, let's do it only if offset is significantly
 	 * larger than jitter.
 	 */
-	if (tmx.constant > 0 && G.offset_to_jitter_ratio > TIMECONST_HACK_GATE)
+	if (tmx.constant > 0 && G.offset_to_jitter_ratio >= TIMECONST_HACK_GATE)
 		tmx.constant--;
 
 	//tmx.esterror = (uint32_t)(clock_jitter * 1e6);
@@ -1520,7 +1523,7 @@ update_local_clock(peer_t *p)
 	VERB3 bb_error_msg("adjtimex:%d freq:%ld offset:%+ld status:0x%x",
 				rc, tmx.freq, tmx.offset, tmx.status);
 	G.kernel_freq_drift = tmx.freq / 65536;
-	VERB2 bb_error_msg("update peer:%s, offset:%+f, jitter:%f, clock drift:%+.3f ppm, tc:%d",
+	VERB2 bb_error_msg("update from:%s offset:%+f jitter:%f clock drift:%+.3fppm tc:%d",
 			p->p_dotted, offset, G.discipline_jitter, (double)tmx.freq / 65536, (int)tmx.constant);
 
 	return 1; /* "ok to increase poll interval" */
@@ -1705,14 +1708,7 @@ recv_and_process_peer_pkt(peer_t *p)
 		 * is increased, otherwise it is decreased. A bit of hysteresis
 		 * helps calm the dance. Works best using burst mode.
 		 */
-		VERB4 if (rc > 0) {
-			bb_error_msg("offset:%+f POLLADJ_GATE*discipline_jitter:%f poll:%s",
-				q->filter_offset, POLLADJ_GATE * G.discipline_jitter,
-				fabs(q->filter_offset) < POLLADJ_GATE * G.discipline_jitter
-					? "grows" : "falls"
-			);
-		}
-		if (rc > 0 && G.offset_to_jitter_ratio < POLLADJ_GATE) {
+		if (rc > 0 && G.offset_to_jitter_ratio <= POLLADJ_GATE) {
 			/* was += G.poll_exp but it is a bit
 			 * too optimistic for my taste at high poll_exp's */
 			G.polladj_count += MINPOLL;
