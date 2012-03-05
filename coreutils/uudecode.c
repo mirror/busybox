@@ -15,7 +15,7 @@
 //usage:       "[-o OUTFILE] [INFILE]"
 //usage:#define uudecode_full_usage "\n\n"
 //usage:       "Uudecode a file\n"
-//usage:       "Finds outfile name in uuencoded source unless -o is given"
+//usage:       "Finds OUTFILE in uuencoded source unless -o is given"
 //usage:
 //usage:#define uudecode_example_usage
 //usage:       "$ uudecode -o busybox busybox.uu\n"
