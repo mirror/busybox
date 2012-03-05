@@ -26,11 +26,7 @@
 //usage:#define du_trivial_usage
 //usage:       "[-aHLdclsx" IF_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
 //usage:#define du_full_usage "\n\n"
-//usage:       "Summarize disk space used for each FILE and/or directory.\n"
-//usage:       "Disk space is printed in units of "
-//usage:	IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024")
-//usage:	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512")
-//usage:       " bytes.\n"
+//usage:       "Summarize disk space used for each FILE and/or directory\n"
 //usage:     "\n	-a	Show file sizes too"
 //usage:     "\n	-L	Follow all symlinks"
 //usage:     "\n	-H	Follow symlinks on command line"
@@ -43,8 +39,10 @@
 //usage:     "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G)"
 //usage:     "\n	-m	Sizes in megabytes"
 //usage:	)
-//usage:     "\n	-k	Sizes in kilobytes"
-//usage:			IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)")
+//usage:     "\n	-k	Sizes in kilobytes" IF_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(" (default)")
+//usage:	IF_NOT_FEATURE_DU_DEFAULT_BLOCKSIZE_1K(
+//usage:     "\n		Default unit is 512 bytes"
+//usage:	)
 //usage:
 //usage:#define du_example_usage
 //usage:       "$ du\n"
