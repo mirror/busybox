@@ -40,7 +40,7 @@
 //usage:     "\n	-s	Display only a total for each argument"
 //usage:     "\n	-x	Skip directories on different filesystems"
 //usage:	IF_FEATURE_HUMAN_READABLE(
-//usage:     "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G )"
+//usage:     "\n	-h	Sizes in human readable format (e.g., 1K 243M 2G)"
 //usage:     "\n	-m	Sizes in megabytes"
 //usage:	)
 //usage:     "\n	-k	Sizes in kilobytes"
