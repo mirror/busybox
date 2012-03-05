@@ -31,7 +31,8 @@ Options controlling process matching
 [TODO: can PROCESS_NAME be a full pathname? Should we require full match then
 with /proc/$PID/exe or argv[0] (comm can't be matched, it never contains path)]
         -x,--exec EXECUTABLE    Look for processes that were started with this
-                                command in /proc/$PID/cmdline.
+                                command in /proc/$PID/exe and /proc/$PID/cmdline
+                                (/proc/$PID/cmdline is a bbox extension)
                                 Unlike -n, we match against the full path:
                                 "ntpd" != "./ntpd" != "/path/to/ntpd"
         -p,--pidfile PID_FILE   Look for processes with PID from this file
@@ -68,7 +69,7 @@ Misc options:
 //usage:     "\n	-n,--name NAME		Match processes with NAME"
 //usage:     "\n				in comm field in /proc/PID/stat"
 //usage:     "\n	-x,--exec EXECUTABLE	Match processes with this command"
-//usage:     "\n				in /proc/PID/cmdline"
+//usage:     "\n				in /proc/PID/{exe,cmdline}"
 //usage:     "\n	-p,--pidfile FILE	Match a process with PID from the file"
 //usage:     "\n	All specified conditions must match"
 //usage:     "\n-S only:"
@@ -198,8 +199,18 @@ static int pid_is_exec(pid_t pid)
 {
 	ssize_t bytes;
 	char buf[sizeof("/proc/%u/cmdline") + sizeof(int)*3];
+	char *procname, *exelink;
+	int match;
 
-	sprintf(buf, "/proc/%u/cmdline", (unsigned)pid);
+	procname = buf + sprintf(buf, "/proc/%u/exe", (unsigned)pid) - 3;
+
+	exelink = xmalloc_readlink(buf);
+	match = (exelink && strcmp(execname, exelink) == 0);
+	free(exelink);
+	if (match)
+		return match;
+
+	strcpy(procname, "cmdline");
 	bytes = open_read_close(buf, G.execname_cmpbuf, G.execname_sizeof);
 	if (bytes > 0) {
 		G.execname_cmpbuf[bytes] = '\0';
