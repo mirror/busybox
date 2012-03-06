@@ -170,6 +170,25 @@ Ok
 "" ""
 SKIP=
 
+# Do we detect XZ-compressed data (even w/o .tar.xz or txz extension)?
+# (the uuencoded hello_world.txz contains one empty file named "hello_world")
+optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_XZ
+testing "tar extract txz" "\
+uudecode -o input && tar tf input && echo Ok
+" "\
+hello_world
+Ok
+" \
+"" "\
+begin-base64 644 hello_world.txz
+/Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4AX/AEldADQZSe6ODIZQ3rSQ8kAJ
+SnMPTX+XWGKW3Yu/Rwqg4Ik5wqgQKgVH97J8yA8IvZ4ahaCQogUNHRkXibr2
+Q615wcb2G7fJU49AhWAAAAAAUA8gu9DyXfAAAWWADAAAAB5FXGCxxGf7AgAA
+AAAEWVo=
+====
+"
+SKIP=
+
 # On extract, everything up to and including last ".." component is stripped
 optional FEATURE_TAR_CREATE
 testing "tar strips /../ on extract" "\
