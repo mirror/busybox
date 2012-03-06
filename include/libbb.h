@@ -713,6 +713,14 @@ extern void *xmalloc_read(int fd, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 /* Never returns NULL */
 extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
+
+#define SEAMLESS_COMPRESSION (0 \
+ || ENABLE_FEATURE_SEAMLESS_XZ \
+ || ENABLE_FEATURE_SEAMLESS_LZMA \
+ || ENABLE_FEATURE_SEAMLESS_BZ2 \
+ || ENABLE_FEATURE_SEAMLESS_GZ \
+ || ENABLE_FEATURE_SEAMLESS_Z)
+
 /* Autodetects gzip/bzip2 formats. fd may be in the middle of the file! */
 #if ENABLE_FEATURE_SEAMLESS_LZMA \
  || ENABLE_FEATURE_SEAMLESS_BZ2 \

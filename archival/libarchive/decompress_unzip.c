@@ -1182,33 +1182,37 @@ static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 }
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
+unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info)
 {
 	uint32_t v32;
-	IF_DESKTOP(long long) int n;
+	IF_DESKTOP(long long) int total, n;
 	DECLARE_STATE;
 
-	n = 0;
+	total = 0;
 
 	ALLOC_STATE;
 	to_read = -1;
 //	bytebuffer_max = 0x8000;
 	bytebuffer = xmalloc(bytebuffer_max);
-	gunzip_src_fd = in;
+	gunzip_src_fd = src_fd;
 
  again:
 	if (!check_header_gzip(PASS_STATE info)) {
 		bb_error_msg("corrupted data");
-		n = -1;
+		total = -1;
 		goto ret;
 	}
-	n += inflate_unzip_internal(PASS_STATE in, out);
-	if (n < 0)
+
+	n = inflate_unzip_internal(PASS_STATE src_fd, dst_fd);
+	if (n < 0) {
+		total = -1;
 		goto ret;
+	}
+	total += n;
 
 	if (!top_up(PASS_STATE 8)) {
 		bb_error_msg("corrupted data");
-		n = -1;
+		total = -1;
 		goto ret;
 	}
 
@@ -1216,7 +1220,7 @@ unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
 	v32 = buffer_read_le_u32(PASS_STATE_ONLY);
 	if ((~gunzip_crc) != v32) {
 		bb_error_msg("crc error");
-		n = -1;
+		total = -1;
 		goto ret;
 	}
 
@@ -1224,7 +1228,7 @@ unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
 	v32 = buffer_read_le_u32(PASS_STATE_ONLY);
 	if ((uint32_t)gunzip_bytes_out != v32) {
 		bb_error_msg("incorrect length");
-		n = -1;
+		total = -1;
 	}
 
 	if (!top_up(PASS_STATE 2))
@@ -1242,7 +1246,7 @@ unpack_gz_stream_with_info(int in, int out, unpack_info_t *info)
  ret:
 	free(bytebuffer);
 	DEALLOC_STATE;
-	return n;
+	return total;
 }
 
 IF_DESKTOP(long long) int FAST_FUNC

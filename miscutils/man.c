@@ -30,16 +30,6 @@ echo ".pl \n(nlu+10"
 
 */
 
-#if ENABLE_FEATURE_SEAMLESS_LZMA
-#define Z_SUFFIX ".lzma"
-#elif ENABLE_FEATURE_SEAMLESS_BZ2
-#define Z_SUFFIX ".bz2"
-#elif ENABLE_FEATURE_SEAMLESS_GZ
-#define Z_SUFFIX ".gz"
-#else
-#define Z_SUFFIX ""
-#endif
-
 static int show_manpage(const char *pager, char *man_filename, int man, int level);
 
 static int run_pipe(const char *pager, char *man_filename, int man, int level)
@@ -102,7 +92,7 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 
 		/* Links do not have .gz extensions, even if manpage
 		 * is compressed */
-		man_filename = xasprintf("%s/%s" Z_SUFFIX, man_filename, linkname);
+		man_filename = xasprintf("%s/%s", man_filename, linkname);
 		free(line);
 		/* Note: we leak "new" man_filename string as well... */
 		if (show_manpage(pager, man_filename, man, level + 1))
@@ -124,32 +114,37 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 	return 1;
 }
 
-/* man_filename is of the form "/dir/dir/dir/name.s" Z_SUFFIX */
+/* man_filename is of the form "/dir/dir/dir/name.s" */
 static int show_manpage(const char *pager, char *man_filename, int man, int level)
 {
+#if SEAMLESS_COMPRESSION
+	/* We leak this allocation... */
+	char *filename_with_zext = xasprintf("%s.lzma", man_filename);
+	char *ext = strrchr(filename_with_zext, '.') + 1;
+#endif
+
 #if ENABLE_FEATURE_SEAMLESS_LZMA
+	if (run_pipe(pager, filename_with_zext, man, level))
+		return 1;
+#endif
+#if ENABLE_FEATURE_SEAMLESS_XZ
+	strcpy(ext, "xz");
 	if (run_pipe(pager, man_filename, man, level))
 		return 1;
 #endif
-
 #if ENABLE_FEATURE_SEAMLESS_BZ2
-#if ENABLE_FEATURE_SEAMLESS_LZMA
-	strcpy(strrchr(man_filename, '.') + 1, "bz2");
-#endif
+	strcpy(ext, "bz2");
 	if (run_pipe(pager, man_filename, man, level))
 		return 1;
 #endif
-
 #if ENABLE_FEATURE_SEAMLESS_GZ
-#if ENABLE_FEATURE_SEAMLESS_LZMA || ENABLE_FEATURE_SEAMLESS_BZ2
-	strcpy(strrchr(man_filename, '.') + 1, "gz");
-#endif
+	strcpy(ext, "gz");
 	if (run_pipe(pager, man_filename, man, level))
 		return 1;
 #endif
 
-#if ENABLE_FEATURE_SEAMLESS_LZMA || ENABLE_FEATURE_SEAMLESS_BZ2 || ENABLE_FEATURE_SEAMLESS_GZ
-	*strrchr(man_filename, '.') = '\0';
+#if SEAMLESS_COMPRESSION
+	ext[-1] = '\0';
 #endif
 	if (run_pipe(pager, man_filename, man, level))
 		return 1;
@@ -262,7 +257,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 				/* Search for cat, then man page */
 				while (cat0man1 < 2) {
 					int found_here;
-					man_filename = xasprintf("%s/%s%.*s/%s.%.*s" Z_SUFFIX,
+					man_filename = xasprintf("%s/%s%.*s/%s.%.*s",
 							cur_path,
 							"cat\0man" + (cat0man1 * 4),
 							sect_len, cur_sect,

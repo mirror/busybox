@@ -73,7 +73,7 @@
  */
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_Z_stream(int fd_in, int fd_out)
+unpack_Z_stream(int src_fd, int dst_fd)
 {
 	IF_DESKTOP(long long total_written = 0;)
 	IF_DESKTOP(long long) int retval = -1;
@@ -105,14 +105,14 @@ unpack_Z_stream(int fd_in, int fd_out)
 
 	inbuf = xzalloc(IBUFSIZ + 64);
 	outbuf = xzalloc(OBUFSIZ + 2048);
-	htab = xzalloc(HSIZE);  /* wsn't zeroed out before, maybe can xmalloc? */
+	htab = xzalloc(HSIZE);  /* wasn't zeroed out before, maybe can xmalloc? */
 	codetab = xzalloc(HSIZE * sizeof(codetab[0]));
 
 	insize = 0;
 
 	/* xread isn't good here, we have to return - caller may want
 	 * to do some cleanup (e.g. delete incomplete unpacked file etc) */
-	if (full_read(fd_in, inbuf, 1) != 1) {
+	if (full_read(src_fd, inbuf, 1) != 1) {
 		bb_error_msg("short read");
 		goto err;
 	}
@@ -162,7 +162,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 		}
 
 		if (insize < (int) (IBUFSIZ + 64) - IBUFSIZ) {
-			rsize = safe_read(fd_in, inbuf + insize, IBUFSIZ);
+			rsize = safe_read(src_fd, inbuf + insize, IBUFSIZ);
 			if (rsize < 0)
 				bb_error_msg_and_die(bb_msg_read_error);
 			insize += rsize;
@@ -268,7 +268,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 						}
 
 						if (outpos >= OBUFSIZ) {
-							xwrite(fd_out, outbuf, outpos);
+							xwrite(dst_fd, outbuf, outpos);
 							IF_DESKTOP(total_written += outpos;)
 							outpos = 0;
 						}
@@ -296,7 +296,7 @@ unpack_Z_stream(int fd_in, int fd_out)
 	} while (rsize > 0);
 
 	if (outpos > 0) {
-		xwrite(fd_out, outbuf, outpos);
+		xwrite(dst_fd, outbuf, outpos);
 		IF_DESKTOP(total_written += outpos;)
 	}
 
