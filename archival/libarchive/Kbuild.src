@@ -28,10 +28,13 @@ COMMON_FILES:= \
 	init_handle.o
 
 DPKG_FILES:= \
-	get_header_ar.o \
 	unpack_ar_archive.o \
+	filter_accept_list_reassign.o \
+	get_header_ar.o \
 	get_header_tar.o \
-	filter_accept_list_reassign.o
+	get_header_tar_gz.o \
+	get_header_tar_bz2.o \
+	get_header_tar_lzma.o \
 
 INSERT
 
@@ -51,9 +54,9 @@ lib-$(CONFIG_UNZIP)                     += decompress_gunzip.o
 lib-$(CONFIG_LZOP)                      += lzo1x_1.o lzo1x_1o.o lzo1x_d.o
 lib-$(CONFIG_LZOP_COMPR_HIGH)           += lzo1x_9x.o
 lib-$(CONFIG_FEATURE_SEAMLESS_Z)        += open_transformer.o decompress_uncompress.o
-lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_gunzip.o get_header_tar_gz.o
-lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o get_header_tar_bz2.o
-lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o get_header_tar_lzma.o
+lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_gunzip.o
+lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o
+lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o
 lib-$(CONFIG_FEATURE_SEAMLESS_XZ)       += open_transformer.o decompress_unxz.o
 lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += decompress_bunzip2.o
 lib-$(CONFIG_FEATURE_COMPRESS_BBCONFIG) += decompress_bunzip2.o
