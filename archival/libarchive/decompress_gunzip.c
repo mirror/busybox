@@ -1188,8 +1188,26 @@ unpack_gz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 	IF_DESKTOP(long long) int total, n;
 	DECLARE_STATE;
 
+#if !ENABLE_FEATURE_SEAMLESS_Z
 	if (check_signature16(aux, src_fd, GZIP_MAGIC))
 		return -1;
+#else
+	if (aux && aux->check_signature) {
+		uint16_t magic2;
+
+		if (full_read(STDIN_FILENO, &magic2, 2) != 2) {
+ bad_magic:
+			bb_error_msg("invalid magic");
+			return -1;
+		}
+		if (magic2 == COMPRESS_MAGIC) {
+			aux->check_signature = 0;
+			return unpack_Z_stream(aux, src_fd, dst_fd);
+		}
+		if (magic2 != GZIP_MAGIC)
+			goto bad_magic;
+	}
+#endif
 
 	total = 0;
 

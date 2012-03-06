@@ -32,10 +32,10 @@ config FEATURE_SEAMLESS_GZ
 	  Make tar, rpm, modprobe etc understand .gz data.
 
 config FEATURE_SEAMLESS_Z
-	bool "Make tar and gunzip understand .Z data"
+	bool "tar, rpm, modprobe etc understand .Z data"
 	default n
 	help
-	  Make tar and gunzip understand .Z data.
+	  Make tar, rpm, modprobe etc understand .Z data.
 
 config AR
 	bool "ar"

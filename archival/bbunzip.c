@@ -274,29 +274,7 @@ char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UN
 static
 IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_aux_data_t *aux)
 {
-	IF_DESKTOP(long long) int status = -1;
-	uint16_t magic2;
-
-//TODO: fold below into unpack_gz_stream? Then the whole level of indirection
-// unpack_FOO() -> unpack_FOO_stream can be collapsed in this module!
-
-	aux->check_signature = 0; /* we will check it here, not in unpack_*_stream */
-
-	if (full_read(STDIN_FILENO, &magic2, 2) != 2)
-		goto bad_magic;
-	if (ENABLE_FEATURE_SEAMLESS_Z && magic2 == COMPRESS_MAGIC) {
-		status = unpack_Z_stream(aux, STDIN_FILENO, STDOUT_FILENO);
-	} else if (magic2 == GZIP_MAGIC) {
-		status = unpack_gz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
-	} else {
- bad_magic:
-		bb_error_msg("invalid magic");
-		/* status is still == -1 */
-	}
-	if (status < 0) {
-		bb_error_msg("error inflating");
-	}
-	return status;
+	return unpack_gz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 }
 /*
  * Linux kernel build uses gzip -d -n. We accept and ignore it.
