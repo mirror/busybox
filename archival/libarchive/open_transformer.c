@@ -27,6 +27,32 @@ int FAST_FUNC check_signature16(transformer_aux_data_t *aux, int src_fd, unsigne
 	return 0;
 }
 
+void check_errors_in_children(int signo)
+{
+	int status;
+
+	if (!signo) {
+		/* block waiting for any child */
+		if (wait(&status) < 0)
+			return; /* probably there are no children */
+		goto check_status;
+	}
+
+	/* Wait for any child without blocking */
+	for (;;) {
+		if (wait_any_nohang(&status) < 0)
+			/* wait failed?! I'm confused... */
+			return;
+ check_status:
+		if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+			/* this child exited with 0 */
+			continue;
+		/* Cannot happen?
+		if (!WIFSIGNALED(status) && !WIFEXITED(status)) ???; */
+		bb_got_signal = 1;
+	}
+}
+
 /* transformer(), more than meets the eye */
 #if BB_MMU
 void FAST_FUNC open_transformer(int fd,

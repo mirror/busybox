@@ -690,29 +690,6 @@ static llist_t *append_file_list_to_list(llist_t *list)
 # define append_file_list_to_list(x) 0
 #endif
 
-#ifdef CHECK_FOR_CHILD_EXITCODE
-/* Looks like it isn't needed - tar detects malformed (truncated)
- * archive if e.g. bunzip2 fails */
-static int child_error;
-
-static void handle_SIGCHLD(int status)
-{
-	/* Actually, 'status' is a signo. We reuse it for other needs */
-
-	/* Wait for any child without blocking */
-	if (wait_any_nohang(&status) < 0)
-		/* wait failed?! I'm confused... */
-		return;
-
-	if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-		/* child exited with 0 */
-		return;
-	/* Cannot happen?
-	if (!WIFSIGNALED(status) && !WIFEXITED(status)) return; */
-	child_error = 1;
-}
-#endif
-
 //usage:#define tar_trivial_usage
 //usage:	"-[" IF_FEATURE_TAR_CREATE("c") "xt"
 //usage:	IF_FEATURE_SEAMLESS_Z("Z")
@@ -1059,10 +1036,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
-#ifdef CHECK_FOR_CHILD_EXITCODE
-	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
-	signal(SIGCHLD, handle_SIGCHLD);
-#endif
+	//if (SEAMLESS_COMPRESSION || OPT_COMPRESS)
+	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
+	//	signal(SIGCHLD, check_errors_in_children);
 
 	/* Create an archive */
 	if (opt & OPT_CREATE) {
@@ -1118,9 +1094,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP /* && tar_handle->src_fd != STDIN_FILENO */)
 		close(tar_handle->src_fd);
 
-#ifdef CHECK_FOR_CHILD_EXITCODE
-	return bb_got_signal;
-#else
+	if (SEAMLESS_COMPRESSION || OPT_COMPRESS) {
+		check_errors_in_children(0);
+		return bb_got_signal;
+	}
 	return EXIT_SUCCESS;
-#endif
 }

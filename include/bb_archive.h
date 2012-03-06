@@ -224,6 +224,7 @@ int bbunpack(char **argv,
 	    const char *expected_ext
 ) FAST_FUNC;
 
+void check_errors_in_children(int signo);
 #if BB_MMU
 void open_transformer(int fd,
 	int check_signature,

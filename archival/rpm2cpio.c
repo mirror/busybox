@@ -42,26 +42,6 @@ static unsigned skip_header(void)
 	return sizeof(header) + len;
 }
 
-#if SEAMLESS_COMPRESSION
-static void handle_SIGCHLD(int signo UNUSED_PARAM)
-{
-	int status;
-
-	/* Wait for any child without blocking */
-	for (;;) {
-		if (wait_any_nohang(&status) < 0)
-			/* wait failed?! I'm confused... */
-			return;
-		if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-			/* this child exited with 0 */
-			continue;
-		/* Cannot happen?
-		if (!WIFSIGNALED(status) && !WIFEXITED(status)) ???; */
-		bb_got_signal = 1;
-	}
-}
-#endif
-
 /* No getopt required */
 int rpm2cpio_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
@@ -86,10 +66,9 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* Skip the main header */
 	skip_header();
 
-#if SEAMLESS_COMPRESSION
-	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
-	signal(SIGCHLD, handle_SIGCHLD);
-#endif
+	//if (SEAMLESS_COMPRESSION)
+	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
+	//	signal(SIGCHLD, check_errors_in_children);
 
 	/* This works, but doesn't report uncompress errors (they happen in child) */
 	setup_unzip_on_fd(rpm_fd, /*fail_if_not_detected:*/ 1);
@@ -100,9 +79,9 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 		close(rpm_fd);
 	}
 
-#if SEAMLESS_COMPRESSION
-	return bb_got_signal;
-#else
+	if (SEAMLESS_COMPRESSION) {
+		check_errors_in_children(0);
+		return bb_got_signal;
+	}
 	return EXIT_SUCCESS;
-#endif
 }
