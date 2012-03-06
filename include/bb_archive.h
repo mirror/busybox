@@ -156,12 +156,6 @@ struct BUG_tar_header {
 
 
 
-/* Info struct unpackers can fill out to inform users of thing like
- * timestamps of unpacked files */
-typedef struct unpack_info_t {
-	time_t mtime;
-} unpack_info_t;
-
 archive_handle_t *init_handle(void) FAST_FUNC;
 
 char filter_accept_all(archive_handle_t *archive_handle) FAST_FUNC;
@@ -204,39 +198,45 @@ int start_bunzip(bunzip_data **bdp, int in_fd, const void *inbuf, int len) FAST_
 int read_bunzip(bunzip_data *bd, char *outbuf, int len) FAST_FUNC;
 void dealloc_bunzip(bunzip_data *bd) FAST_FUNC;
 
-typedef struct inflate_unzip_result {
-	off_t bytes_out;
-	uint32_t crc;
-} inflate_unzip_result;
+/* Meaning and direction (input/output) of the fields are transformer-specific */
+typedef struct transformer_aux_data_t {
+	smallint check_signature; /* most often referenced member */
+	off_t    bytes_out;
+	off_t    bytes_in;  /* used in unzip code only: needs to know packed size */
+	uint32_t crc32;
+	time_t   mtime;     /* gunzip code may set this on exit */
+} transformer_aux_data_t;
 
-IF_DESKTOP(long long) int inflate_unzip(inflate_unzip_result *res, off_t compr_size, int src_fd, int dst_fd) FAST_FUNC;
-/* xz unpacker takes .xz stream from offset 6 */
-IF_DESKTOP(long long) int unpack_xz_stream(int src_fd, int dst_fd) FAST_FUNC;
-/* lzma unpacker takes .lzma stream from offset 0 */
-IF_DESKTOP(long long) int unpack_lzma_stream(int src_fd, int dst_fd) FAST_FUNC;
-/* the rest wants 2 first bytes already skipped by the caller */
-IF_DESKTOP(long long) int unpack_bz2_stream(int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_gz_stream(int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_Z_stream(int src_fd, int dst_fd) FAST_FUNC;
-/* wrapper which checks first two bytes to be "BZ" */
-IF_DESKTOP(long long) int unpack_bz2_stream_prime(int src_fd, int dst_fd) FAST_FUNC;
+void init_transformer_aux_data(transformer_aux_data_t *aux) FAST_FUNC;
+int FAST_FUNC check_signature16(transformer_aux_data_t *aux, int src_fd, unsigned magic16) FAST_FUNC;
+
+IF_DESKTOP(long long) int inflate_unzip(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_gz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_bz2_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_lzma_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd) FAST_FUNC;
 
 char* append_ext(char *filename, const char *expected_ext) FAST_FUNC;
 int bbunpack(char **argv,
-	    IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(unpack_info_t *info),
+	    IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_aux_data_t *aux),
 	    char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
 	    const char *expected_ext
 ) FAST_FUNC;
 
 #if BB_MMU
 void open_transformer(int fd,
-	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd)) FAST_FUNC;
-#define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transformer)
+	int check_signature,
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+) FAST_FUNC;
+#define open_transformer_with_sig(fd, transformer, transform_prog) open_transformer((fd), 1, (transformer))
+#define open_transformer_with_no_sig(fd, transformer)              open_transformer((fd), 0, (transformer))
 #else
-void open_transformer(int src_fd, const char *transform_prog) FAST_FUNC;
-#define open_transformer(fd, transformer, transform_prog) open_transformer(fd, transform_prog)
+void open_transformer(int fd, const char *transform_prog) FAST_FUNC;
+#define open_transformer_with_sig(fd, transformer, transform_prog) open_transformer((fd), (transform_prog))
+/* open_transformer_with_no_sig() does not exist on NOMMU */
 #endif
+
 
 POP_SAVED_FUNCTION_VISIBILITY
 

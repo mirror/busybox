@@ -73,7 +73,7 @@
  */
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_Z_stream(int src_fd, int dst_fd)
+unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 {
 	IF_DESKTOP(long long total_written = 0;)
 	IF_DESKTOP(long long) int retval = -1;
@@ -102,6 +102,9 @@ unpack_Z_stream(int src_fd, int dst_fd)
 	int maxbits; /* = BITS; */
 	/* block compress mode -C compatible with 2.0 */
 	int block_mode; /* = BLOCK_MODE; */
+
+	if (check_signature16(aux, src_fd, COMPRESS_MAGIC))
+		return -1;
 
 	inbuf = xzalloc(IBUFSIZ + 64);
 	outbuf = xzalloc(OBUFSIZ + 2048);

@@ -1034,22 +1034,22 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 /* For unzip */
 
 IF_DESKTOP(long long) int FAST_FUNC
-inflate_unzip(inflate_unzip_result *res, off_t compr_size, int in, int out)
+inflate_unzip(transformer_aux_data_t *aux, int in, int out)
 {
 	IF_DESKTOP(long long) int n;
 	DECLARE_STATE;
 
 	ALLOC_STATE;
 
-	to_read = compr_size;
+	to_read = aux->bytes_in;
 //	bytebuffer_max = 0x8000;
 	bytebuffer_offset = 4;
 	bytebuffer = xmalloc(bytebuffer_max);
 	n = inflate_unzip_internal(PASS_STATE in, out);
 	free(bytebuffer);
 
-	res->crc = gunzip_crc;
-	res->bytes_out = gunzip_bytes_out;
+	aux->crc32 = gunzip_crc;
+	aux->bytes_out = gunzip_bytes_out;
 	DEALLOC_STATE;
 	return n;
 }
@@ -1107,7 +1107,7 @@ static uint32_t buffer_read_le_u32(STATE_PARAM_ONLY)
 	return res;
 }
 
-static int check_header_gzip(STATE_PARAM unpack_info_t *info)
+static int check_header_gzip(STATE_PARAM transformer_aux_data_t *aux)
 {
 	union {
 		unsigned char raw[8];
@@ -1169,8 +1169,8 @@ static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 		}
 	}
 
-	if (info)
-		info->mtime = SWAP_LE32(header.formatted.mtime);
+	if (aux)
+		aux->mtime = SWAP_LE32(header.formatted.mtime);
 
 	/* Read the header checksum */
 	if (header.formatted.flags & 0x02) {
@@ -1182,11 +1182,14 @@ static int check_header_gzip(STATE_PARAM unpack_info_t *info)
 }
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info)
+unpack_gz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 {
 	uint32_t v32;
 	IF_DESKTOP(long long) int total, n;
 	DECLARE_STATE;
+
+	if (check_signature16(aux, src_fd, GZIP_MAGIC))
+		return -1;
 
 	total = 0;
 
@@ -1197,7 +1200,7 @@ unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info)
 	gunzip_src_fd = src_fd;
 
  again:
-	if (!check_header_gzip(PASS_STATE info)) {
+	if (!check_header_gzip(PASS_STATE aux)) {
 		bb_error_msg("corrupted data");
 		total = -1;
 		goto ret;
@@ -1247,10 +1250,4 @@ unpack_gz_stream_with_info(int src_fd, int dst_fd, unpack_info_t *info)
 	free(bytebuffer);
 	DEALLOC_STATE;
 	return total;
-}
-
-IF_DESKTOP(long long) int FAST_FUNC
-unpack_gz_stream(int in, int out)
-{
-	return unpack_gz_stream_with_info(in, out, NULL);
 }

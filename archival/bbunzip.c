@@ -33,7 +33,7 @@ char* FAST_FUNC append_ext(char *filename, const char *expected_ext)
 }
 
 int FAST_FUNC bbunpack(char **argv,
-	IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(unpack_info_t *info),
+	IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_aux_data_t *aux),
 	char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
 	const char *expected_ext
 )
@@ -42,7 +42,7 @@ int FAST_FUNC bbunpack(char **argv,
 	IF_DESKTOP(long long) int status;
 	char *filename, *new_name;
 	smallint exitcode = 0;
-	unpack_info_t info;
+	transformer_aux_data_t aux;
 
 	do {
 		/* NB: new_name is *maybe* malloc'ed! */
@@ -98,9 +98,9 @@ int FAST_FUNC bbunpack(char **argv,
 					"use -f to force it");
 		}
 
-		/* memset(&info, 0, sizeof(info)); */
-		info.mtime = 0; /* so far it has one member only */
-		status = unpacker(&info);
+		init_transformer_aux_data(&aux);
+		aux.check_signature = 1;
+		status = unpacker(&aux);
 		if (status < 0)
 			exitcode = 1;
 
@@ -111,10 +111,10 @@ int FAST_FUNC bbunpack(char **argv,
 			char *del = new_name;
 			if (status >= 0) {
 				/* TODO: restore other things? */
-				if (info.mtime) {
+				if (aux.mtime != 0) {
 					struct timeval times[2];
 
-					times[1].tv_sec = times[0].tv_sec = info.mtime;
+					times[1].tv_sec = times[0].tv_sec = aux.mtime;
 					times[1].tv_usec = times[0].tv_usec = 0;
 					/* Note: we closed it first.
 					 * On some systems calling utimes
@@ -182,16 +182,9 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 
 #if ENABLE_UNCOMPRESS
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(transformer_aux_data_t *aux)
 {
-	IF_DESKTOP(long long) int status = -1;
-
-	if ((xread_char(STDIN_FILENO) != 0x1f) || (xread_char(STDIN_FILENO) != 0x9d)) {
-		bb_error_msg("invalid magic");
-	} else {
-		status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
-	}
-	return status;
+	return unpack_Z_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 }
 int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uncompress_main(int argc UNUSED_PARAM, char **argv)
@@ -279,29 +272,29 @@ char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UN
 	return filename;
 }
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(unpack_info_t *info)
+IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_aux_data_t *aux)
 {
 	IF_DESKTOP(long long) int status = -1;
+	uint16_t magic2;
 
-	/* do the decompression, and cleanup */
-	if (xread_char(STDIN_FILENO) == 0x1f) {
-		unsigned char magic2;
+//TODO: fold below into unpack_gz_stream? Then the whole level of indirection
+// unpack_FOO() -> unpack_FOO_stream can be collapsed in this module!
 
-		magic2 = xread_char(STDIN_FILENO);
-		if (ENABLE_FEATURE_SEAMLESS_Z && magic2 == 0x9d) {
-			status = unpack_Z_stream(STDIN_FILENO, STDOUT_FILENO);
-		} else if (magic2 == 0x8b) {
-			status = unpack_gz_stream_with_info(STDIN_FILENO, STDOUT_FILENO, info);
-		} else {
-			goto bad_magic;
-		}
-		if (status < 0) {
-			bb_error_msg("error inflating");
-		}
+	aux->check_signature = 0; /* we will check it here, not in unpack_*_stream */
+
+	if (full_read(STDIN_FILENO, &magic2, 2) != 2)
+		goto bad_magic;
+	if (ENABLE_FEATURE_SEAMLESS_Z && magic2 == COMPRESS_MAGIC) {
+		status = unpack_Z_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	} else if (magic2 == GZIP_MAGIC) {
+		status = unpack_gz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 	} else {
  bad_magic:
 		bb_error_msg("invalid magic");
 		/* status is still == -1 */
+	}
+	if (status < 0) {
+		bb_error_msg("error inflating");
 	}
 	return status;
 }
@@ -352,9 +345,9 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
 #if ENABLE_BUNZIP2
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(transformer_aux_data_t *aux)
 {
-	return unpack_bz2_stream_prime(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_bz2_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 }
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
@@ -420,9 +413,9 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_UNLZMA
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(transformer_aux_data_t *aux)
 {
-	return unpack_lzma_stream(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_lzma_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 }
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
@@ -445,18 +438,9 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_UNXZ
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(transformer_aux_data_t *aux)
 {
-	struct {
-		uint32_t v1;
-		uint16_t v2;
-	} magic;
-	xread(STDIN_FILENO, &magic, 6);
-	if (magic.v1 != XZ_MAGIC1a || magic.v2 != XZ_MAGIC2a) {
-		bb_error_msg("invalid magic");
-		return -1;
-	}
-	return unpack_xz_stream(STDIN_FILENO, STDOUT_FILENO);
+	return unpack_xz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
 }
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)

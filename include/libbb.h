@@ -721,17 +721,15 @@ extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAS
  || ENABLE_FEATURE_SEAMLESS_GZ \
  || ENABLE_FEATURE_SEAMLESS_Z)
 
+#if SEAMLESS_COMPRESSION
 /* Autodetects gzip/bzip2 formats. fd may be in the middle of the file! */
-#if ENABLE_FEATURE_SEAMLESS_LZMA \
- || ENABLE_FEATURE_SEAMLESS_BZ2 \
- || ENABLE_FEATURE_SEAMLESS_GZ \
- /* || ENABLE_FEATURE_SEAMLESS_Z */
-extern void setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/) FAST_FUNC;
-#else
-# define setup_unzip_on_fd(...) ((void)0)
-#endif
+extern int setup_unzip_on_fd(int fd, int fail_if_not_detected) FAST_FUNC;
 /* Autodetects .gz etc */
 extern int open_zipped(const char *fname) FAST_FUNC;
+#else
+# define setup_unzip_on_fd(...) (0)
+# define open_zipped(fname)     open((fname), O_RDONLY);
+#endif
 extern void *xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count) FAST_FUNC;

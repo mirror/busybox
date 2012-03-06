@@ -111,7 +111,7 @@ IF_DESKTOP(long long) int bz_write(bz_stream *strm, void* rbuf, ssize_t rlen, vo
 }
 
 static
-IF_DESKTOP(long long) int FAST_FUNC compressStream(unpack_info_t *info UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC compressStream(transformer_aux_data_t *aux UNUSED_PARAM)
 {
 	IF_DESKTOP(long long) int total;
 	ssize_t count;

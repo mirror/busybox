@@ -38,7 +38,7 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
 #include "unxz/xz_dec_stream.c"
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_xz_stream(int src_fd, int dst_fd)
+unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 {
 	struct xz_buf iobuf;
 	struct xz_dec *state;
@@ -49,12 +49,16 @@ unpack_xz_stream(int src_fd, int dst_fd)
 		global_crc32_table = crc32_filltable(NULL, /*endian:*/ 0);
 
 	memset(&iobuf, 0, sizeof(iobuf));
-	/* Preload XZ file signature */
-	membuf = (void*) strcpy(xmalloc(2 * BUFSIZ), HEADER_MAGIC);
+	membuf = xmalloc(2 * BUFSIZ);
 	iobuf.in = membuf;
-	iobuf.in_size = HEADER_MAGIC_SIZE;
 	iobuf.out = membuf + BUFSIZ;
 	iobuf.out_size = BUFSIZ;
+
+	if (!aux || aux->check_signature == 0) {
+		/* Preload XZ file signature */
+		strcpy((char*)membuf, HEADER_MAGIC);
+		iobuf.in_size = HEADER_MAGIC_SIZE;
+	} /* else: let xz code read & check it */
 
 	/* Limit memory usage to about 64 MiB. */
 	state = xz_dec_init(XZ_DYNALLOC, 64*1024*1024);

@@ -235,43 +235,18 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	     || memcmp(tar.magic, "\0\0\0\0", 5) != 0)
 	) {
 #if ENABLE_FEATURE_TAR_AUTODETECT
-		char FAST_FUNC (*get_header_ptr)(archive_handle_t *);
-		uint16_t magic2;
-
  autodetect:
-		magic2 = *(bb__aliased_uint16_t*)tar.name;
-		/* tar gz/bz autodetect: check for gz/bz2 magic.
-		 * If we see the magic, and it is the very first block,
-		 * we can switch to get_header_tar_gz/bz2/lzma().
-		 * Needs seekable fd. I wish recv(MSG_PEEK) works
-		 * on any fd... */
-# if ENABLE_FEATURE_SEAMLESS_GZ
-		if (magic2 == GZIP_MAGIC) {
-			get_header_ptr = get_header_tar_gz;
-		} else
-# endif
-# if ENABLE_FEATURE_SEAMLESS_BZ2
-		if (magic2 == BZIP2_MAGIC
-		 && tar.name[2] == 'h' && isdigit(tar.name[3])
-		) { /* bzip2 */
-			get_header_ptr = get_header_tar_bz2;
-		} else
-# endif
-# if ENABLE_FEATURE_SEAMLESS_XZ
-		//TODO: if (magic2 == XZ_MAGIC1)...
-		//else
-# endif
-			goto err;
 		/* Two different causes for lseek() != 0:
 		 * unseekable fd (would like to support that too, but...),
 		 * or not first block (false positive, it's not .gz/.bz2!) */
 		if (lseek(archive_handle->src_fd, -i, SEEK_CUR) != 0)
 			goto err;
-		while (get_header_ptr(archive_handle) == EXIT_SUCCESS)
-			continue;
-		return EXIT_FAILURE;
+		if (setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_detected:*/ 0) != 0)
  err:
-#endif /* FEATURE_TAR_AUTODETECT */
+			bb_error_msg_and_die("invalid tar magic");
+		archive_handle->offset = 0;
+		goto again_after_align;
+#endif
 		bb_error_msg_and_die("invalid tar magic");
 	}
 

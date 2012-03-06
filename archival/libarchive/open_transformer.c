@@ -6,24 +6,36 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
-#define ZIPPED (ENABLE_FEATURE_SEAMLESS_LZMA \
-	|| ENABLE_FEATURE_SEAMLESS_BZ2 \
-	|| ENABLE_FEATURE_SEAMLESS_GZ \
-	/* || ENABLE_FEATURE_SEAMLESS_Z */ \
-)
+void FAST_FUNC init_transformer_aux_data(transformer_aux_data_t *aux)
+{
+	memset(aux, 0, sizeof(*aux));
+}
 
-#if ZIPPED
-# include "bb_archive.h"
+int FAST_FUNC check_signature16(transformer_aux_data_t *aux, int src_fd, unsigned magic16)
+{
+	if (aux && aux->check_signature) {
+		uint16_t magic2;
+		if (full_read(src_fd, &magic2, 2) != 2 || magic2 != magic16) {
+			bb_error_msg("invalid magic");
+#if 0 /* possible future extension */
+			if (aux->check_signature > 1)
+				xfunc_die();
 #endif
+			return -1;
+		}
+	}
+	return 0;
+}
 
 /* transformer(), more than meets the eye */
-/*
- * On MMU machine, the transform_prog is removed by macro magic
- * in include/archive.h. On NOMMU, transformer is removed.
- */
+#if BB_MMU
 void FAST_FUNC open_transformer(int fd,
-	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(int src_fd, int dst_fd),
-	const char *transform_prog)
+	int check_signature,
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+)
+#else
+void FAST_FUNC open_transformer(int fd, const char *transform_prog)
+#endif
 {
 	struct fd_pair fd_pipe;
 	int pid;
@@ -35,13 +47,18 @@ void FAST_FUNC open_transformer(int fd,
 		close(fd_pipe.rd); /* we don't want to read from the parent */
 		// FIXME: error check?
 #if BB_MMU
-		transformer(fd, fd_pipe.wr);
-		if (ENABLE_FEATURE_CLEAN_UP) {
-			close(fd_pipe.wr); /* send EOF */
-			close(fd);
+		{
+			transformer_aux_data_t aux;
+			init_transformer_aux_data(&aux);
+			aux.check_signature = check_signature;
+			transformer(&aux, fd, fd_pipe.wr);
+			if (ENABLE_FEATURE_CLEAN_UP) {
+				close(fd_pipe.wr); /* send EOF */
+				close(fd);
+			}
+			/* must be _exit! bug was actually seen here */
+			_exit(EXIT_SUCCESS);
 		}
-		/* must be _exit! bug was actually seen here */
-		_exit(EXIT_SUCCESS);
 #else
 		{
 			char *argv[4];
@@ -64,26 +81,21 @@ void FAST_FUNC open_transformer(int fd,
 }
 
 
+#if SEAMLESS_COMPRESSION
+
 /* Used by e.g. rpm which gives us a fd without filename,
  * thus we can't guess the format from filename's extension.
  */
-#if ZIPPED
-void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
+int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_detected)
 {
-	const int fail_if_not_detected = 1;
 	union {
 		uint8_t b[4];
 		uint16_t b16[2];
 		uint32_t b32[1];
 	} magic;
 	int offset = -2;
-# if BB_MMU
-	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(int src_fd, int dst_fd);
-	enum { xformer_prog = 0 };
-# else
-	enum { xformer = 0 };
-	const char *xformer_prog;
-# endif
+	USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd);)
+	USE_FOR_NOMMU(const char *xformer_prog;)
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
@@ -91,21 +103,15 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 	if (ENABLE_FEATURE_SEAMLESS_GZ
 	 && magic.b16[0] == GZIP_MAGIC
 	) {
-# if BB_MMU
-		xformer = unpack_gz_stream;
-# else
-		xformer_prog = "gunzip";
-# endif
+		USE_FOR_MMU(xformer = unpack_gz_stream;)
+		USE_FOR_NOMMU(xformer_prog = "gunzip";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_BZ2
 	 && magic.b16[0] == BZIP2_MAGIC
 	) {
-# if BB_MMU
-		xformer = unpack_bz2_stream;
-# else
-		xformer_prog = "bunzip2";
-# endif
+		USE_FOR_MMU(xformer = unpack_bz2_stream;)
+		USE_FOR_NOMMU(xformer_prog = "bunzip2";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_XZ
@@ -114,13 +120,8 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 		offset = -6;
 		xread(fd, magic.b32, sizeof(magic.b32[0]));
 		if (magic.b32[0] == XZ_MAGIC2) {
-# if BB_MMU
-			xformer = unpack_xz_stream;
-			/* unpack_xz_stream wants fd at position 6, no need to seek */
-			//xlseek(fd, offset, SEEK_CUR);
-# else
-			xformer_prog = "unxz";
-# endif
+			USE_FOR_MMU(xformer = unpack_xz_stream;)
+			USE_FOR_NOMMU(xformer_prog = "unxz";)
 			goto found_magic;
 		}
 	}
@@ -132,24 +133,23 @@ void FAST_FUNC setup_unzip_on_fd(int fd /*, int fail_if_not_detected*/)
 			IF_FEATURE_SEAMLESS_XZ("/xz")
 			" magic");
 	xlseek(fd, offset, SEEK_CUR);
-	return;
+	return 1;
 
  found_magic:
-# if !BB_MMU
+# if BB_MMU
+	open_transformer_with_no_sig(fd, xformer);
+# else
 	/* NOMMU version of open_transformer execs
 	 * an external unzipper that wants
 	 * file position at the start of the file */
 	xlseek(fd, offset, SEEK_CUR);
+	open_transformer_with_sig(fd, xformer, xformer_prog);
 # endif
-	open_transformer(fd, xformer, xformer_prog);
+	return 0;
 }
-#endif /* ZIPPED */
 
 int FAST_FUNC open_zipped(const char *fname)
 {
-#if !ZIPPED
-	return open(fname, O_RDONLY);
-#else
 	char *sfx;
 	int fd;
 
@@ -162,19 +162,20 @@ int FAST_FUNC open_zipped(const char *fname)
 		sfx++;
 		if (ENABLE_FEATURE_SEAMLESS_LZMA && strcmp(sfx, "lzma") == 0)
 			/* .lzma has no header/signature, just trust it */
-			open_transformer(fd, unpack_lzma_stream, "unlzma");
+			open_transformer_with_sig(fd, unpack_lzma_stream, "unlzma");
 		else
 		if ((ENABLE_FEATURE_SEAMLESS_GZ && strcmp(sfx, "gz") == 0)
 		 || (ENABLE_FEATURE_SEAMLESS_BZ2 && strcmp(sfx, "bz2") == 0)
 		 || (ENABLE_FEATURE_SEAMLESS_XZ && strcmp(sfx, "xz") == 0)
 		) {
-			setup_unzip_on_fd(fd /*, fail_if_not_detected: 1*/);
+			setup_unzip_on_fd(fd, /*fail_if_not_detected:*/ 1);
 		}
 	}
 
 	return fd;
-#endif
 }
+
+#endif /* SEAMLESS_COMPRESSION */
 
 void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p)
 {

@@ -690,31 +690,6 @@ static llist_t *append_file_list_to_list(llist_t *list)
 # define append_file_list_to_list(x) 0
 #endif
 
-#if ENABLE_FEATURE_SEAMLESS_Z
-static char FAST_FUNC get_header_tar_Z(archive_handle_t *archive_handle)
-{
-	/* Can't lseek over pipes */
-	archive_handle->seek = seek_by_read;
-
-	/* do the decompression, and cleanup */
-	if (xread_char(archive_handle->src_fd) != 0x1f
-	 || xread_char(archive_handle->src_fd) != 0x9d
-	) {
-		bb_error_msg_and_die("invalid magic");
-	}
-
-	open_transformer(archive_handle->src_fd, unpack_Z_stream, "uncompress");
-	archive_handle->offset = 0;
-	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
-		continue;
-
-	/* Can only do one file at a time */
-	return EXIT_FAILURE;
-}
-#else
-# define get_header_tar_Z NULL
-#endif
-
 #ifdef CHECK_FOR_CHILD_EXITCODE
 /* Looks like it isn't needed - tar detects malformed (truncated)
  * archive if e.g. bunzip2 fails */
@@ -843,6 +818,8 @@ enum {
 	OPT_NUMERIC_OWNER   = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NUMERIC_OWNER  )) + 0, // numeric-owner
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
 	OPT_OVERWRITE       = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_OVERWRITE      )) + 0, // overwrite
+
+	OPT_ANY_COMPRESS = (OPT_BZIP2 | OPT_LZMA | OPT_GZIP | OPT_COMPRESS),
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -901,7 +878,6 @@ static const char tar_longopts[] ALIGN1 =
 int tar_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int tar_main(int argc UNUSED_PARAM, char **argv)
 {
-	char FAST_FUNC (*get_header_ptr)(archive_handle_t *) = get_header_tar;
 	archive_handle_t *tar_handle;
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
@@ -1017,18 +993,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		tar_handle->ah_flags |= ARCHIVE_O_TRUNC;
 	}
 
-	if (opt & OPT_GZIP)
-		get_header_ptr = get_header_tar_gz;
-
-	if (opt & OPT_BZIP2)
-		get_header_ptr = get_header_tar_bz2;
-
-	if (opt & OPT_LZMA)
-		get_header_ptr = get_header_tar_lzma;
-
-	if (opt & OPT_COMPRESS)
-		get_header_ptr = get_header_tar_Z;
-
 	if (opt & OPT_NOPRESERVE_TIME)
 		tar_handle->ah_flags &= ~ARCHIVE_RESTORE_DATE;
 
@@ -1081,7 +1045,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		} else {
 			if (ENABLE_FEATURE_TAR_AUTODETECT
 			 && flags == O_RDONLY
-			 && get_header_ptr == get_header_tar
+			 && !(opt & OPT_ANY_COMPRESS)
 			) {
 				tar_handle->src_fd = open_zipped(tar_filename);
 				if (tar_handle->src_fd < 0)
@@ -1115,7 +1079,30 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 				tar_handle->reject, zipMode);
 	}
 
-	while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
+	if (opt & OPT_ANY_COMPRESS) {
+		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd);)
+		USE_FOR_NOMMU(const char *xformer_prog;)
+
+		if (opt & OPT_COMPRESS)
+			USE_FOR_MMU(xformer = unpack_Z_stream;)
+			USE_FOR_NOMMU(xformer_prog = "uncompress";)
+		if (opt & OPT_GZIP)
+			USE_FOR_MMU(xformer = unpack_gz_stream;)
+			USE_FOR_NOMMU(xformer_prog = "gunzip";)
+		if (opt & OPT_BZIP2)
+			USE_FOR_MMU(xformer = unpack_bz2_stream;)
+			USE_FOR_NOMMU(xformer_prog = "bunzip2";)
+		if (opt & OPT_LZMA)
+			USE_FOR_MMU(xformer = unpack_lzma_stream;)
+			USE_FOR_NOMMU(xformer_prog = "unlzma";)
+
+		open_transformer_with_sig(tar_handle->src_fd, xformer, xformer_prog);
+		/* Can't lseek over pipes */
+		tar_handle->seek = seek_by_read;
+		/*tar_handle->offset = 0; - already is */
+	}
+
+	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
 		continue;
 
 	/* Check that every file that should have been extracted was */
@@ -1131,5 +1118,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP /* && tar_handle->src_fd != STDIN_FILENO */)
 		close(tar_handle->src_fd);
 
+#ifdef CHECK_FOR_CHILD_EXITCODE
+	return bb_got_signal;
+#else
 	return EXIT_SUCCESS;
+#endif
 }

@@ -249,15 +249,17 @@ static void unzip_extract(zip_header_t *zip_header, int dst_fd)
 			bb_copyfd_exact_size(zip_fd, dst_fd, size);
 	} else {
 		/* Method 8 - inflate */
-		inflate_unzip_result res;
-		if (inflate_unzip(&res, zip_header->formatted.cmpsize, zip_fd, dst_fd) < 0)
+		transformer_aux_data_t aux;
+		init_transformer_aux_data(&aux);
+		aux.bytes_in = zip_header->formatted.cmpsize;
+		if (inflate_unzip(&aux, zip_fd, dst_fd) < 0)
 			bb_error_msg_and_die("inflate error");
 		/* Validate decompression - crc */
-		if (zip_header->formatted.crc32 != (res.crc ^ 0xffffffffL)) {
+		if (zip_header->formatted.crc32 != (aux.crc32 ^ 0xffffffffL)) {
 			bb_error_msg_and_die("crc error");
 		}
 		/* Validate decompression - size */
-		if (zip_header->formatted.ucmpsize != res.bytes_out) {
+		if (zip_header->formatted.ucmpsize != aux.bytes_out) {
 			/* Don't die. Who knows, maybe len calculation
 			 * was botched somewhere. After all, crc matched! */
 			bb_error_msg("bad length");

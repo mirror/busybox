@@ -721,13 +721,16 @@ void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
 
 /* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_bz2_stream(int src_fd, int dst_fd)
+unpack_bz2_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 {
 	IF_DESKTOP(long long total_written = 0;)
 	bunzip_data *bd;
 	char *outbuf;
 	int i;
 	unsigned len;
+
+	if (check_signature16(aux, src_fd, BZIP2_MAGIC))
+		return -1;
 
 	outbuf = xmalloc(IOBUF_SIZE);
 	len = 0;
@@ -794,17 +797,6 @@ unpack_bz2_stream(int src_fd, int dst_fd)
 	return i ? i : IF_DESKTOP(total_written) + 0;
 }
 
-IF_DESKTOP(long long) int FAST_FUNC
-unpack_bz2_stream_prime(int src_fd, int dst_fd)
-{
-	uint16_t magic2;
-	xread(src_fd, &magic2, 2);
-	if (magic2 != BZIP2_MAGIC) {
-		bb_error_msg_and_die("invalid magic");
-	}
-	return unpack_bz2_stream(src_fd, dst_fd);
-}
-
 #ifdef TESTING
 
 static char *const bunzip_errors[] = {
@@ -819,7 +811,7 @@ int main(int argc, char **argv)
 	int i;
 	char c;
 
-	int i = unpack_bz2_stream_prime(0, 1);
+	int i = unpack_bz2_stream(0, 1);
 	if (i < 0)
 		fprintf(stderr, "%s\n", bunzip_errors[-i]);
 	else if (read(STDIN_FILENO, &c, 1))
