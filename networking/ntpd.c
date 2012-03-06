@@ -1476,8 +1476,8 @@ update_local_clock(peer_t *p)
 		memset(&tmx, 0, sizeof(tmx));
 		if (adjtimex(&tmx) < 0)
 			bb_perror_msg_and_die("adjtimex");
-		bb_error_msg("p adjtimex freq:%ld offset:%+ld constant:%ld status:0x%x",
-				tmx.freq, tmx.offset, tmx.constant, tmx.status);
+		bb_error_msg("p adjtimex freq:%ld offset:%+ld status:0x%x tc:%ld",
+				tmx.freq, tmx.offset, tmx.status, tmx.constant);
 	}
 
 	memset(&tmx, 0, sizeof(tmx));
@@ -1667,7 +1667,7 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	p->reachable_bits |= 1;
 	if ((MAX_VERBOSE && G.verbose) || (option_mask32 & OPT_w)) {
-		bb_error_msg("reply from %s: reach 0x%02x offset %+f delay %f status 0x%02x strat %d refid 0x%08x rootdelay %f",
+		bb_error_msg("reply from:%s reach:0x%02x offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f",
 			p->p_dotted,
 			p->reachable_bits,
 			datapoint->d_offset,
@@ -2100,7 +2100,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 				if (--timeout <= 0)
 					goto did_poll;
 			}
-			bb_error_msg("poll %us, sockets:%u, poll interval:%us", timeout, i, 1 << G.poll_exp);
+			bb_error_msg("poll:%us sockets:%u interval:%us", timeout, i, 1 << G.poll_exp);
 		}
 		nfds = poll(pfd, i, timeout * 1000);
  did_poll:
