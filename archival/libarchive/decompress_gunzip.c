@@ -1195,7 +1195,7 @@ unpack_gz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 	if (aux && aux->check_signature) {
 		uint16_t magic2;
 
-		if (full_read(STDIN_FILENO, &magic2, 2) != 2) {
+		if (full_read(src_fd, &magic2, 2) != 2) {
  bad_magic:
 			bb_error_msg("invalid magic");
 			return -1;
