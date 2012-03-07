@@ -417,8 +417,7 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt & OPT_root) {
-		xchdir(root);
-		xchroot(".");
+		xchroot(root);
 	}
 
 	if (opt & OPT_u) {

@@ -31,7 +31,6 @@ int chroot_main(int argc UNUSED_PARAM, char **argv)
 	if (!*argv)
 		bb_show_usage();
 	xchroot(*argv);
-	xchdir("/");
 
 	++argv;
 	if (!*argv) { /* no 2nd param (PROG), use shell */

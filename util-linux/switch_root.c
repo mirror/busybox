@@ -114,7 +114,7 @@ int switch_root_main(int argc UNUSED_PARAM, char **argv)
 	}
 	xchroot(".");
 	// The chdir is needed to recalculate "." and ".." links
-	xchdir("/");
+	/*xchdir("/"); - done in xchroot */
 
 	// If a new console specified, redirect stdin/stdout/stderr to it
 	if (console) {

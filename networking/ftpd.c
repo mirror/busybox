@@ -1179,8 +1179,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 	if (argv[optind]) {
-		xchdir(argv[optind]);
-		chroot(".");
+		xchroot(argv[optind]);
 	}
 
 	//umask(077); - admin can set umask before starting us

@@ -224,7 +224,7 @@ static int sysctl_handle_preload_file(const char *filename)
 	parser = config_open(filename);
 	/* Must do it _after_ config_open(): */
 	xchdir("/proc/sys");
-	/* xchroot(".") - if you are paranoid */
+	/* xchroot("/proc/sys") - if you are paranoid */
 
 //TODO: ';' is comment char too
 //TODO: comment may be only at line start. "var=1 #abc" - "1 #abc" is the value
@@ -260,7 +260,7 @@ int sysctl_main(int argc UNUSED_PARAM, char **argv)
 		return sysctl_handle_preload_file(*argv ? *argv : "/etc/sysctl.conf");
 	}
 	xchdir("/proc/sys");
-	/* xchroot(".") - if you are paranoid */
+	/* xchroot("/proc/sys") - if you are paranoid */
 	if (opt & (FLAG_TABLE_FORMAT | FLAG_SHOW_ALL)) {
 		return sysctl_act_recursive(".");
 	}
