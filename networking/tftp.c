@@ -789,8 +789,9 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
-	if (argv[0])
-		xchdir(argv[0]);
+	if (argv[0]) {
+		xchroot(argv[0]);
+	}
 
 	result = recv_from_to(STDIN_FILENO, block_buf, sizeof(block_buf),
 			0 /* flags */,
