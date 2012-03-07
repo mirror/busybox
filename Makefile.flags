@@ -104,7 +104,9 @@ else
 LDLIBS += m
 endif
 
-ifneq ($(CONFIG_SYSROOT),)
+# Note: both "" (string consisting of two quote chars) and empty string
+# are possible, and should be skipped below.
+ifneq ($(subst "",,$(CONFIG_SYSROOT)),)
 CFLAGS += --sysroot=$(CONFIG_SYSROOT)
 export SYSROOT=$(CONFIG_SYSROOT)
 endif
