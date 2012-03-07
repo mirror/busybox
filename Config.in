@@ -600,11 +600,38 @@ config CROSS_COMPILER_PREFIX
 
 	  Native builds leave this empty.
 
+config SYSROOT
+	string "Path to sysroot"
+	default ""
+	help
+	  If you want to build BusyBox with a cross compiler, then you
+	  might also need to specify where /usr/include and /usr/lib
+	  will be found.
+
+	  For example, BusyBox can be built against an installed
+	  Android NDK, platform version 9, for ARM ABI with
+
+	  CONFIG_SYSROOT=/opt/android-ndk/platforms/android-9/arch-arm
+
+	  Native builds leave this empty.
+
 config EXTRA_CFLAGS
 	string "Additional CFLAGS"
 	default ""
 	help
 	  Additional CFLAGS to pass to the compiler verbatim.
+
+config EXTRA_LDFLAGS
+	string "Additional LDFLAGS"
+	default ""
+	help
+	  Additional LDFLAGS to pass to the linker verbatim.
+
+config EXTRA_LDLIBS
+	string "Additional LDLIBS"
+	default ""
+	help
+	  Additional LDLIBS to pass to the linker with -l.
 
 endmenu
 

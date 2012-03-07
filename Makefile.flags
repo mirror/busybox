@@ -104,6 +104,11 @@ else
 LDLIBS += m
 endif
 
+ifneq ($(CONFIG_SYSROOT),)
+CFLAGS += --sysroot=$(CONFIG_SYSROOT)
+export SYSROOT=$(CONFIG_SYSROOT)
+endif
+
 ifeq ($(CONFIG_PAM),y)
 # libpam uses libpthread, so for static builds busybox must be linked to
 # libpthread. On some platforms that requires an explicit -lpthread, so
@@ -135,6 +140,16 @@ endif
 W_ELF2FLT = -elf2flt
 ifneq (,$(findstring $(W_ELF2FLT),$(LDFLAGS) $(CFLAGS_busybox)))
 SKIP_STRIP = y
+endif
+
+ifneq ($(CONFIG_EXTRA_LDFLAGS),)
+EXTRA_LDFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_LDFLAGS)))
+#"))
+endif
+
+ifneq ($(CONFIG_EXTRA_LDLIBS),)
+LDLIBS += $(strip $(subst ",,$(CONFIG_EXTRA_LDLIBS)))
+#"))
 endif
 
 # Busybox is a stack-fatty so make sure we increase default size
