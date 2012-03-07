@@ -36,13 +36,12 @@
    David MacKenzie <djm@gnu.ai.mit.edu>
 */
 
-//   19990508 Busy Boxed! Dave Cinege
+/* 19990508 Busy Boxed! Dave Cinege */
 
 //usage:#define printf_trivial_usage
-//usage:       "FORMAT [ARGUMENT]..."
+//usage:       "FORMAT [ARG]..."
 //usage:#define printf_full_usage "\n\n"
-//usage:       "Format and print ARGUMENT(s) according to FORMAT,\n"
-//usage:       "where FORMAT controls the output exactly as in C printf"
+//usage:       "Format and print ARG(s) according to FORMAT (a-la C printf)"
 //usage:
 //usage:#define printf_example_usage
 //usage:       "$ printf \"Val=%d\\n\" 5\n"
