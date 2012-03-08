@@ -212,8 +212,8 @@ typedef struct {
 } msg_t;
 
 typedef struct {
-	double d_recv_time;
 	double d_offset;
+	double d_recv_time;
 	double d_dispersion;
 } datapoint_t;
 
@@ -517,23 +517,34 @@ static void
 filter_datapoints(peer_t *p)
 {
 	int i, idx;
+	double sum, wavg;
+	datapoint_t *fdp;
+
+#if 0
+/* Simulations have shown that use of *averaged* offset for p->filter_offset
+ * is in fact worse than simply using last received one: with large poll intervals
+ * (>= 2048) averaging code uses offset values which are outdated by hours,
+ * and time/frequency correction goes totally wrong when fed essentially bogus offsets.
+ */
 	int got_newest;
-	double minoff, maxoff, wavg, sum, w;
+	double minoff, maxoff, w;
 	double x = x; /* for compiler */
 	double oldest_off = oldest_off;
 	double oldest_age = oldest_age;
 	double newest_off = newest_off;
 	double newest_age = newest_age;
 
-	minoff = maxoff = p->filter_datapoint[0].d_offset;
+	fdp = p->filter_datapoint;
+
+	minoff = maxoff = fdp[0].d_offset;
 	for (i = 1; i < NUM_DATAPOINTS; i++) {
-		if (minoff > p->filter_datapoint[i].d_offset)
-			minoff = p->filter_datapoint[i].d_offset;
-		if (maxoff < p->filter_datapoint[i].d_offset)
-			maxoff = p->filter_datapoint[i].d_offset;
+		if (minoff > fdp[i].d_offset)
+			minoff = fdp[i].d_offset;
+		if (maxoff < fdp[i].d_offset)
+			maxoff = fdp[i].d_offset;
 	}
 
-	idx = p->datapoint_idx; /* most recent datapoint */
+	idx = p->datapoint_idx; /* most recent datapoint's index */
 	/* Average offset:
 	 * Drop two outliers and take weighted average of the rest:
 	 * most_recent/2 + older1/4 + older2/8 ... + older5/32 + older6/32
@@ -555,24 +566,24 @@ filter_datapoints(peer_t *p)
 		VERB4 {
 			bb_error_msg("datapoint[%d]: off:%f disp:%f(%f) age:%f%s",
 				i,
-				p->filter_datapoint[idx].d_offset,
-				p->filter_datapoint[idx].d_dispersion, dispersion(&p->filter_datapoint[idx]),
-				G.cur_time - p->filter_datapoint[idx].d_recv_time,
-				(minoff == p->filter_datapoint[idx].d_offset || maxoff == p->filter_datapoint[idx].d_offset)
+				fdp[idx].d_offset,
+				fdp[idx].d_dispersion, dispersion(&fdp[idx]),
+				G.cur_time - fdp[idx].d_recv_time,
+				(minoff == fdp[idx].d_offset || maxoff == fdp[idx].d_offset)
 					? " (outlier by offset)" : ""
 			);
 		}
 
-		sum += dispersion(&p->filter_datapoint[idx]) / (2 << i);
+		sum += dispersion(&fdp[idx]) / (2 << i);
 
-		if (minoff == p->filter_datapoint[idx].d_offset) {
+		if (minoff == fdp[idx].d_offset) {
 			minoff -= 1; /* so that we don't match it ever again */
 		} else
-		if (maxoff == p->filter_datapoint[idx].d_offset) {
+		if (maxoff == fdp[idx].d_offset) {
 			maxoff += 1;
 		} else {
-			oldest_off = p->filter_datapoint[idx].d_offset;
-			oldest_age = G.cur_time - p->filter_datapoint[idx].d_recv_time;
+			oldest_off = fdp[idx].d_offset;
+			oldest_age = G.cur_time - fdp[idx].d_recv_time;
 			if (!got_newest) {
 				got_newest = 1;
 				newest_off = oldest_off;
@@ -605,6 +616,32 @@ filter_datapoints(peer_t *p)
 	}
 	p->filter_offset = wavg;
 
+#else
+
+	fdp = p->filter_datapoint;
+	idx = p->datapoint_idx; /* most recent datapoint's index */
+
+	/* filter_offset: simply use the most recent value */
+	p->filter_offset = fdp[idx].d_offset;
+
+	/*                     n-1
+	 *                     ---    dispersion(i)
+	 * filter_dispersion =  \     -------------
+	 *                      /       (i+1)
+	 *                     ---     2
+	 *                     i=0
+	 */
+	wavg = 0;
+	sum = 0;
+	for (i = 0; i < NUM_DATAPOINTS; i++) {
+		sum += dispersion(&fdp[idx]) / (2 << i);
+		wavg += fdp[idx].d_offset;
+		idx = (idx - 1) & (NUM_DATAPOINTS - 1);
+	}
+	wavg /= NUM_DATAPOINTS;
+	p->filter_dispersion = sum;
+#endif
+
 	/*                  +-----                 -----+ ^ 1/2
 	 *                  |       n-1                 |
 	 *                  |       ---                 |
@@ -618,13 +655,13 @@ filter_datapoints(peer_t *p)
 	 */
 	sum = 0;
 	for (i = 0; i < NUM_DATAPOINTS; i++) {
-		sum += SQUARE(wavg - p->filter_datapoint[i].d_offset);
+		sum += SQUARE(wavg - fdp[i].d_offset);
 	}
 	sum = SQRT(sum / NUM_DATAPOINTS);
 	p->filter_jitter = sum > G_precision_sec ? sum : G_precision_sec;
 
-	VERB3 bb_error_msg("filter offset:%+f(corr:%e) disp:%f jitter:%f",
-			p->filter_offset, x,
+	VERB3 bb_error_msg("filter offset:%+f disp:%f jitter:%f",
+			p->filter_offset,
 			p->filter_dispersion,
 			p->filter_jitter);
 }
@@ -1667,15 +1704,15 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	p->reachable_bits |= 1;
 	if ((MAX_VERBOSE && G.verbose) || (option_mask32 & OPT_w)) {
-		bb_error_msg("reply from:%s reach:0x%02x offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f",
+		bb_error_msg("reply from:%s offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f reach:0x%02x",
 			p->p_dotted,
-			p->reachable_bits,
 			datapoint->d_offset,
 			p->lastpkt_delay,
 			p->lastpkt_status,
 			p->lastpkt_stratum,
 			p->lastpkt_refid,
-			p->lastpkt_rootdelay
+			p->lastpkt_rootdelay,
+			p->reachable_bits
 			/* not shown: m_ppoll, m_precision_exp, m_rootdisp,
 			 * m_reftime, m_orgtime, m_rectime, m_xmttime
 			 */
