@@ -710,7 +710,8 @@ static number_t nexpr(enum token n)
 		if (n == EOI) {
 			/* special case: [ ! ], [ a -a ! ] are valid */
 			/* IOW, "! ARG" may miss ARG */
-			unnest_msg("<nexpr:1 (!EOI)\n");
+			args--;
+			unnest_msg("<nexpr:1 (!EOI), args:%s(%p)\n", args[0], &args[0]);
 			return 1;
 		}
 		res = !nexpr(n);
@@ -729,15 +730,15 @@ static number_t aexpr(enum token n)
 
 	nest_msg(">aexpr(%s)\n", TOKSTR[n]);
 	res = nexpr(n);
-	dbg_msg("aexpr: nexpr:%lld, next args:%s\n", res, args[1]);
+	dbg_msg("aexpr: nexpr:%lld, next args:%s(%p)\n", res, args[1], &args[1]);
 	if (check_operator(*++args) == BAND) {
-		dbg_msg("aexpr: arg is AND, next args:%s\n", args[1]);
+		dbg_msg("aexpr: arg is AND, next args:%s(%p)\n", args[1], &args[1]);
 		res = aexpr(check_operator(*++args)) && res;
 		unnest_msg("<aexpr:%lld\n", res);
 		return res;
 	}
 	args--;
-	unnest_msg("<aexpr:%lld, args:%s\n", res, args[0]);
+	unnest_msg("<aexpr:%lld, args:%s(%p)\n", res, args[0], &args[0]);
 	return res;
 }
 
@@ -748,15 +749,15 @@ static number_t oexpr(enum token n)
 
 	nest_msg(">oexpr(%s)\n", TOKSTR[n]);
 	res = aexpr(n);
-	dbg_msg("oexpr: aexpr:%lld, next args:%s\n", res, args[1]);
+	dbg_msg("oexpr: aexpr:%lld, next args:%s(%p)\n", res, args[1], &args[1]);
 	if (check_operator(*++args) == BOR) {
-		dbg_msg("oexpr: next arg is OR, next args:%s\n", args[1]);
+		dbg_msg("oexpr: next arg is OR, next args:%s(%p)\n", args[1], &args[1]);
 		res = oexpr(check_operator(*++args)) || res;
 		unnest_msg("<oexpr:%lld\n", res);
 		return res;
 	}
 	args--;
-	unnest_msg("<oexpr:%lld, args:%s\n", res, args[0]);
+	unnest_msg("<oexpr:%lld, args:%s(%p)\n", res, args[0], &args[0]);
 	return res;
 }
 
