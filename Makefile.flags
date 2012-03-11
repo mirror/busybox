@@ -105,7 +105,7 @@ export SYSROOT=$(CONFIG_SYSROOT)
 endif
 
 # Android has no separate crypt library
-CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' | $(CC) $(CFLAGS) $(1) -lcrypt -o /dev/null -xc - >/dev/null 2>&1 && echo "y")
+CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' | $(CC) $(CFLAGS) -lcrypt -o /dev/null -xc - >/dev/null 2>&1 && echo "y")
 ifeq ($(CRYPT_AVAILABLE),y)
 LDLIBS += m crypt
 else
