@@ -60,6 +60,10 @@
 //kbuild:lib-$(CONFIG_UBIUPDATEVOL) += ubi_tools.o
 
 #include "libbb.h"
+/* Some versions of kernel have broken headers, need this hack */
+#ifndef __packed
+# define __packed __attribute__((packed))
+#endif
 #include <mtd/ubi-user.h>
 
 #define OPTION_M  (1 << 0)
