@@ -115,6 +115,7 @@ struct globals {
 	unsigned wrote_out;          /* total stdout bytes */
 	unsigned wrote_net;          /* total net bytes */
 #endif
+	char *proggie0saved;
 	/* ouraddr is never NULL and goes through three states as we progress:
 	 1 - local address before bind (IP/port possibly zero)
 	 2 - local address after bind (port is nonzero)
@@ -127,7 +128,6 @@ struct globals {
 
 	jmp_buf jbuf;                /* timer crud */
 
-	/* will malloc up the following globals: */
 	fd_set ding1;                /* for select loop */
 	fd_set ding2;
 	char bigbuf_in[BIGSIZ];      /* data buffers */
@@ -159,17 +159,16 @@ struct globals {
 
 /* Must match getopt32 call! */
 enum {
-	OPT_h = (1 << 0),
-	OPT_n = (1 << 1),
-	OPT_p = (1 << 2),
-	OPT_s = (1 << 3),
-	OPT_u = (1 << 4),
-	OPT_v = (1 << 5),
-	OPT_w = (1 << 6),
-	OPT_l = (1 << 7) * ENABLE_NC_SERVER,
-	OPT_i = (1 << (7+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_o = (1 << (8+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_z = (1 << (9+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_n = (1 << 0),
+	OPT_p = (1 << 1),
+	OPT_s = (1 << 2),
+	OPT_u = (1 << 3),
+	OPT_v = (1 << 4),
+	OPT_w = (1 << 5),
+	OPT_l = (1 << 6) * ENABLE_NC_SERVER,
+	OPT_i = (1 << (6+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_o = (1 << (7+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_z = (1 << (8+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
 };
 
 #define o_nflag   (option_mask32 & OPT_n)
@@ -263,6 +262,8 @@ Debug("findline returning whole thing: %d", siz);
 static int doexec(char **proggie) NORETURN;
 static int doexec(char **proggie)
 {
+	if (G.proggie0saved)
+		proggie[0] = G.proggie0saved;
 	xmove_fd(netfd, 0);
 	dup2(0, 1);
 	/* dup2(0, 2); - do we *really* want this? NO!
@@ -726,7 +727,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *str_p, *str_s;
 	IF_NC_EXTRA(char *str_i, *str_o;)
-	char *themdotted = themdotted; /* gcc */
+	char *themdotted = themdotted; /* for compiler */
 	char **proggie;
 	int x;
 	unsigned o_lport = 0;
@@ -754,13 +755,27 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 			proggie++;
 			goto e_found;
 		}
+		/* -<other_opts>e PROG [ARGS] ? */
+		/* (aboriginal linux uses this form) */
+		if (proggie[0][0] == '-') {
+			char *optpos = *proggie + 1;
+			/* Skip all valid opts w/o params */
+			optpos = optpos + strspn(optpos, "nuv"IF_NC_SERVER("l")IF_NC_EXTRA("z"));
+			if (*optpos == 'e' && !optpos[1]) {
+				*optpos = '\0';
+				proggie++;
+				G.proggie0saved = *proggie;
+				*proggie = NULL; /* terminate argv for getopt32 */
+				goto e_found;
+			}
+		}
 	}
 	proggie = NULL;
  e_found:
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
 	opt_complementary = "?2:vv:w+"; /* max 2 params; -v is a counter; -w N */
-	getopt32(argv, "hnp:s:uvw:" IF_NC_SERVER("l")
+	getopt32(argv, "np:s:uvw:" IF_NC_SERVER("l")
 			IF_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &o_wait
 			IF_NC_EXTRA(, &str_i, &str_o), &o_verbose);
