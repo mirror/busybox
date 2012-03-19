@@ -16,37 +16,37 @@
 //usage:#define ftpget_trivial_usage
 //usage:       "[OPTIONS] HOST [LOCAL_FILE] REMOTE_FILE"
 //usage:#define ftpget_full_usage "\n\n"
-//usage:       "Retrieve a remote file via FTP\n"
+//usage:       "Download a file via FTP\n"
 //usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
-//usage:     "\n	-c,--continue	Continue previous transfer"
-//usage:     "\n	-v,--verbose	Verbose"
-//usage:     "\n	-u,--username	Username"
-//usage:     "\n	-p,--password	Password"
-//usage:     "\n	-P,--port	Port number"
+//usage:     "\n	-c,--continue		Continue previous transfer"
+//usage:     "\n	-v,--verbose		Verbose"
+//usage:     "\n	-u,--username USER	Username"
+//usage:     "\n	-p,--password PASS	Password"
+//usage:     "\n	-P,--port NUM		Port"
 //usage:	)
 //usage:	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS(
 //usage:     "\n	-c	Continue previous transfer"
 //usage:     "\n	-v	Verbose"
-//usage:     "\n	-u	Username"
-//usage:     "\n	-p	Password"
-//usage:     "\n	-P	Port number"
+//usage:     "\n	-u USER	Username"
+//usage:     "\n	-p PASS	Password"
+//usage:     "\n	-P NUM	Port"
 //usage:	)
 //usage:
 //usage:#define ftpput_trivial_usage
 //usage:       "[OPTIONS] HOST [REMOTE_FILE] LOCAL_FILE"
 //usage:#define ftpput_full_usage "\n\n"
-//usage:       "Store a local file on a remote machine via FTP\n"
+//usage:       "Upload a file to a FTP server\n"
 //usage:	IF_FEATURE_FTPGETPUT_LONG_OPTIONS(
-//usage:     "\n	-v,--verbose	Verbose"
-//usage:     "\n	-u,--username	Username"
-//usage:     "\n	-p,--password	Password"
-//usage:     "\n	-P,--port	Port number"
+//usage:     "\n	-v,--verbose		Verbose"
+//usage:     "\n	-u,--username USER	Username"
+//usage:     "\n	-p,--password PASS	Password"
+//usage:     "\n	-P,--port NUM		Port"
 //usage:	)
 //usage:	IF_NOT_FEATURE_FTPGETPUT_LONG_OPTIONS(
 //usage:     "\n	-v	Verbose"
-//usage:     "\n	-u	Username"
-//usage:     "\n	-p	Password"
-//usage:     "\n	-P	Port number"
+//usage:     "\n	-u USER	Username"
+//usage:     "\n	-p PASS	Password"
+//usage:     "\n	-P NUM	Port number"
 //usage:	)
 
 #include "libbb.h"
