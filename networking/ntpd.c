@@ -276,6 +276,9 @@ struct globals {
 	llist_t  *ntp_peers;
 #if ENABLE_FEATURE_NTPD_SERVER
 	int      listen_fd;
+# define G_listen_fd (G.listen_fd)
+#else
+# define G_listen_fd (-1)
 #endif
 	unsigned verbose;
 	unsigned peer_cnt;
@@ -1815,10 +1818,10 @@ recv_and_process_client_pkt(void /*int fd*/)
 	uint8_t          query_status;
 	l_fixedpt_t      query_xmttime;
 
-	to = get_sock_lsa(G.listen_fd);
+	to = get_sock_lsa(G_listen_fd);
 	from = xzalloc(to->len);
 
-	size = recv_from_to(G.listen_fd, &msg, sizeof(msg), MSG_DONTWAIT, from, &to->u.sa, to->len);
+	size = recv_from_to(G_listen_fd, &msg, sizeof(msg), MSG_DONTWAIT, from, &to->u.sa, to->len);
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
 		char *addr;
 		if (size < 0) {
@@ -1861,7 +1864,7 @@ recv_and_process_client_pkt(void /*int fd*/)
 
 	/* We reply from the local address packet was sent to,
 	 * this makes to/from look swapped here: */
-	do_sendto(G.listen_fd,
+	do_sendto(G_listen_fd,
 		/*from:*/ &to->u.sa, /*to:*/ from, /*addrlen:*/ to->len,
 		&msg, size);
 
@@ -2000,11 +2003,11 @@ static NOINLINE void ntp_init(char **argv)
 		logmode = LOGMODE_NONE;
 	}
 #if ENABLE_FEATURE_NTPD_SERVER
-	G.listen_fd = -1;
+	G_listen_fd = -1;
 	if (opts & OPT_l) {
-		G.listen_fd = create_and_bind_dgram_or_die(NULL, 123);
-		socket_want_pktinfo(G.listen_fd);
-		setsockopt(G.listen_fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
+		G_listen_fd = create_and_bind_dgram_or_die(NULL, 123);
+		socket_want_pktinfo(G_listen_fd);
+		setsockopt(G_listen_fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
 	}
 #endif
 	/* I hesitate to set -20 prio. -15 should be high enough for timekeeping */
@@ -2078,8 +2081,8 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 		i = 0;
 #if ENABLE_FEATURE_NTPD_SERVER
-		if (G.listen_fd != -1) {
-			pfd[0].fd = G.listen_fd;
+		if (G_listen_fd != -1) {
+			pfd[0].fd = G_listen_fd;
 			pfd[0].events = POLLIN;
 			i++;
 		}
@@ -2125,7 +2128,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 
 		/* Here we may block */
 		VERB2 {
-			if (i > (ENABLE_FEATURE_NTPD_SERVER && G.listen_fd != -1)) {
+			if (i > (ENABLE_FEATURE_NTPD_SERVER && G_listen_fd != -1)) {
 				/* We wait for at least one reply.
 				 * Poll for it, without wasting time for message.
 				 * Since replies often come under 1 second, this also
