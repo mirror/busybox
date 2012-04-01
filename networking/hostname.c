@@ -153,7 +153,7 @@ int hostname_main(int argc UNUSED_PARAM, char **argv)
 			if (hp->h_length == sizeof(struct in_addr)) {
 				struct in_addr **h_addr_list = (struct in_addr **)hp->h_addr_list;
 				while (*h_addr_list) {
-					printf("%s ", inet_ntoa(**h_addr_list));
+					printf(h_addr_list[1] ? "%s " : "%s", inet_ntoa(**h_addr_list));
 					h_addr_list++;
 				}
 				bb_putchar('\n');
