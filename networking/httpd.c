@@ -1594,7 +1594,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 	}
 	range_len = MAXINT(off_t);
 	if (range_start >= 0) {
-		if (!range_end) {
+		if (!range_end || range_end > file_size - 1) {
 			range_end = file_size - 1;
 		}
 		if (range_end < range_start
