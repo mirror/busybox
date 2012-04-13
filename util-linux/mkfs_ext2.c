@@ -48,13 +48,7 @@
 
 #include "libbb.h"
 #include <linux/fs.h>
-/*
- * Work around linux/ext2_fs.h breakage.
- * See https://bugzilla.kernel.org/show_bug.cgi?id=42986.
- */
-typedef mode_t bb__umode_t;
-#define umode_t bb__umode_t
-#include <linux/ext2_fs.h>
+#include "bb_linux_ext2_fs.h"
 
 #define ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
 #define ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
