@@ -48,7 +48,7 @@
 
 #include "libbb.h"
 #include <linux/fs.h>
-#include "bb_linux_ext2_fs.h"
+#include "bb_e2fs_defs.h"
 
 #define ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
 #define ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1

@@ -8,7 +8,7 @@
  */
 #include "libbb.h"
 #include <linux/fs.h>
-#include "bb_linux_ext2_fs.h"
+#include "bb_e2fs_defs.h"
 
 // storage helpers
 char BUG_wrong_field_size(void);
