@@ -48,6 +48,7 @@
 //usage:#define who_full_usage "\n\n"
 //usage:       "Show who is logged on\n"
 //usage:     "\n	-a	Show all"
+//usage:     "\n	-a	Print column headers"
 
 #include "libbb.h"
 
