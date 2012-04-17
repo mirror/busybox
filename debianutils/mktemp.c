@@ -41,6 +41,7 @@
 ////usage:   "\n	-q	Fail silently on errors" - we ignore this opt
 //usage:     "\n	-t	Prepend base directory name to TEMPLATE"
 //usage:     "\n	-p DIR	Use DIR as a base directory (implies -t)"
+//usage:     "\n	-u	Do not create anything; print a name"
 //usage:     "\n"
 //usage:     "\nBase directory is: -p DIR, else $TMPDIR, else /tmp"
 //usage:
@@ -63,6 +64,7 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 		OPT_q = 1 << 1,
 		OPT_t = 1 << 2,
 		OPT_p = 1 << 3,
+		OPT_u = 1 << 4,
 	};
 
 	path = getenv("TMPDIR");
@@ -71,7 +73,7 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 
 	/* -q is ignored */
 	opt_complementary = "?1"; /* 1 argument max */
-	opts = getopt32(argv, "dqtp:", &path);
+	opts = getopt32(argv, "dqtp:u", &path);
 
 	chp = argv[optind];
 	if (!chp) {
@@ -81,6 +83,22 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 		chp = xstrdup("tmp.XXXXXX");
 		opts |= OPT_t;
 	}
+
+	if (opts & OPT_u) {
+		/* Remove (up to) 6 X's */
+		unsigned len = strlen(chp);
+		int cnt = len > 6 ? 6 : len;
+		while (--cnt >= 0 && chp[--len] == 'X')
+			chp[len] = '\0';
+
+		chp = tempnam(opts & (OPT_t|OPT_p) ? path : "./", chp);
+		if (!chp)
+			return EXIT_FAILURE;
+		if (!(opts & (OPT_t|OPT_p)))
+			chp += 2;
+		goto ret;
+	}
+
 	if (opts & (OPT_t|OPT_p))
 		chp = concat_path_file(path, chp);
 
@@ -91,8 +109,7 @@ int mktemp_main(int argc UNUSED_PARAM, char **argv)
 		if (mkstemp(chp) < 0)
 			return EXIT_FAILURE;
 	}
-
+ ret:
 	puts(chp);
-
 	return EXIT_SUCCESS;
 }
