@@ -43,7 +43,7 @@ static time_t read_rtc(const char **pp_rtcname, struct timeval *sys_tv, int utc)
 		while (1) {
 			rtc_read_tm(&tm_time, fd);
 			gettimeofday(sys_tv, NULL);
-			if (before != tm_time.tm_sec)
+			if (before != (int)tm_time.tm_sec)
 				break;
 		}
 	}
