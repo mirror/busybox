@@ -47,8 +47,11 @@ the only commands busybox can find are the built-in ones.
 
 Note that the standalone shell requires CONFIG_BUSYBOX_EXEC_PATH
 to be set appropriately, depending on whether or not /proc/self/exe is
-available or not. If you do not have /proc, then point that config option
+available. If you do not have /proc, then point that config option
 to the location of your busybox binary, usually /bin/busybox.
+Another solution is to patch the kernel (see
+examples/linux-*_proc_self_exe.patch) to make exec("/proc/self/exe")
+always work.
 
 Configuring Busybox:
 ====================
