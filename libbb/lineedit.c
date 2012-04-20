@@ -2517,7 +2517,7 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 			switch (ic) {
 				//case KEYCODE_LEFT: - bash doesn't do this
 				case 'b':
-				   	ctrl_left();
+					ctrl_left();
 					break;
 				//case KEYCODE_RIGHT: - bash doesn't do this
 				case 'f':

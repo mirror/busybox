@@ -1337,7 +1337,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				"udp\0"
 				"lock\0"
 				"rdirplus\0"
-			  	"acl\0";
+				"acl\0";
 			int val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
@@ -1388,7 +1388,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 				nordirplus = !val;
 				break;
 			case 12: // acl
-			  	noacl = !val;
+				noacl = !val;
 				break;
 			default:
 				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
@@ -1404,7 +1404,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 		| (nocto ? NFS_MOUNT_NOCTO : 0)
 		| (noac ? NFS_MOUNT_NOAC : 0)
 		| (nordirplus ? NFS_MOUNT_NORDIRPLUS : 0)
-	  	| (noacl ? NFS_MOUNT_NOACL : 0);
+		| (noacl ? NFS_MOUNT_NOACL : 0);
 	if (nfs_mount_version >= 2)
 		data.flags |= (tcp ? NFS_MOUNT_TCP : 0);
 	if (nfs_mount_version >= 3)
