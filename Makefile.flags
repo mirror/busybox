@@ -105,7 +105,10 @@ export SYSROOT=$(CONFIG_SYSROOT)
 endif
 
 # Android has no separate crypt library
-CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' | $(CC) $(CFLAGS) -lcrypt -o /dev/null -xc - >/dev/null 2>&1 && echo "y")
+# gcc-4.2.1 fails if we try to feed C source on stdin:
+#  echo 'int main(void){return 0;}' | $(CC) $(CFLAGS) -lcrypt -o /dev/null -xc -
+# fall back to using a temp file:
+CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >crypttest.c; $(CC) $(CFLAGS) -lcrypt -o /dev/null crypttest.c >/dev/null 2>&1 && echo "y"; rm crypttest.c)
 ifeq ($(CRYPT_AVAILABLE),y)
 LDLIBS += m crypt
 else
