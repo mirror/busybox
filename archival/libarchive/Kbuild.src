@@ -54,6 +54,7 @@ lib-$(CONFIG_UNZIP)                     += decompress_gunzip.o
 lib-$(CONFIG_LZOP)                      += lzo1x_1.o lzo1x_1o.o lzo1x_d.o
 lib-$(CONFIG_LZOP_COMPR_HIGH)           += lzo1x_9x.o
 lib-$(CONFIG_MODINFO)                   += open_transformer.o
+lib-$(CONFIG_INSMOD)                    += open_transformer.o
 lib-$(CONFIG_FEATURE_SEAMLESS_Z)        += open_transformer.o decompress_uncompress.o
 lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_gunzip.o
 lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o
