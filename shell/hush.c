@@ -324,6 +324,8 @@ typedef void (*hush_sighandler_t)(int);
 # define ENABLE_FEATURE_EDITING 0
 # undef ENABLE_FEATURE_EDITING_FANCY_PROMPT
 # define ENABLE_FEATURE_EDITING_FANCY_PROMPT 0
+# undef ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
+# define ENABLE_FEATURE_EDITING_SAVE_ON_EXIT 0
 #endif
 
 /* Do we support ANY keywords? */

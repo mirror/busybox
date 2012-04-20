@@ -115,7 +115,11 @@ int FAST_FUNC d6_send_kernel_packet(
 		struct in6_addr *dst_ipv6, int dest_port
 );
 
+#if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 2
 void FAST_FUNC d6_dump_packet(struct d6_packet *packet);
+#else
+# define d6_dump_packet(packet) ((void)0)
+#endif
 
 
 POP_SAVED_FUNCTION_VISIBILITY

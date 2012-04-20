@@ -1676,7 +1676,7 @@ static int checkPermIP(void)
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 
-# if ENABLE_FEATURE_HTTPD_AUTH_MD5 && ENABLE_PAM
+# if ENABLE_PAM
 struct pam_userinfo {
 	const char *name;
 	const char *pw;
@@ -1842,7 +1842,9 @@ static int check_user_passwd(const char *path, char *user_and_passwd)
 
 			if (passwd[0] == '$' && isdigit(passwd[1])) {
 				char *encrypted;
+# if !ENABLE_PAM
  check_encrypted:
+# endif
 				/* encrypt pwd from peer and check match with local one */
 				encrypted = pw_encrypt(
 					/* pwd (from peer): */  colon_after_user + 1,

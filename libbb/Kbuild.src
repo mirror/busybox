@@ -170,6 +170,7 @@ lib-$(CONFIG_PING) += inet_cksum.o
 lib-$(CONFIG_TRACEROUTE) += inet_cksum.o
 lib-$(CONFIG_TRACEROUTE6) += inet_cksum.o
 lib-$(CONFIG_UDHCPC) += inet_cksum.o
+lib-$(CONFIG_UDHCPC6) += inet_cksum.o
 lib-$(CONFIG_UDHCPD) += inet_cksum.o
 
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't

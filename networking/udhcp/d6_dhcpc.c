@@ -19,7 +19,7 @@
 
 //applet:IF_UDHCPC6(APPLET(udhcpc6, BB_DIR_USR_BIN, BB_SUID_DROP))
 
-//kbuild:lib-$(CONFIG_UDHCPC6) += d6_dhcpc.o d6_packet.o d6_socket.o common.o
+//kbuild:lib-$(CONFIG_UDHCPC6) += d6_dhcpc.o d6_packet.o d6_socket.o common.o socket.o signalpipe.o
 
 
 #include <syslog.h>
