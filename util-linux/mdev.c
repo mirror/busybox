@@ -164,7 +164,10 @@ struct globals {
 	struct rule cur_rule;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.maj = -1;) \
+	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.mode = 0660;) \
+} while (0)
 
 
 /* Prevent infinite loops in /sys symlinks */
@@ -477,9 +480,8 @@ static void make_device(char *path, int delete)
 			}
 		}
 		/* else: it's final implicit "match-all" rule */
-#endif
-
  rule_matches:
+#endif
 		dbg("rule matched");
 
 		/* Build alias name */
