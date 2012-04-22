@@ -101,6 +101,7 @@ static const uint8_t len_of_option_as_string[] = {
 	[OPTION_STATIC_ROUTES   ] = sizeof("255.255.255.255/32 255.255.255.255 "),
 	[OPTION_6RD             ] = sizeof("32 128 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 255.255.255.255 "),
 	[OPTION_STRING          ] = 1,
+	[OPTION_STRING_HOST     ] = 1,
 #if ENABLE_FEATURE_UDHCP_RFC3397
 	[OPTION_DNS_STRING      ] = 1, /* unused */
 	/* Hmmm, this severely overestimates size if SIP_SERVERS option
