@@ -741,7 +741,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 * The match_count check is so not to break
 		 * echo "hi" | busybox sed 's/^/!/g'
 		 */
-		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
+		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count && *line) {
 			pipe_putc(*line++);
 			continue;
 		}

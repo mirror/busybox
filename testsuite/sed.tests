@@ -48,6 +48,7 @@ testing "sed accepts multiple -e" "sed -e 'i\' -e '1' -e 'a\' -e '3'" \
 
 # substitutions
 testing "sed -n" "sed -n -e s/foo/bar/ -e s/bar/baz/" "" "" "foo\n"
+testing "sed with empty match" "sed 's/z*//g'" "string\n" "" "string\n"
 testing "sed s//p" "sed -e s/foo/bar/p -e s/bar/baz/p" "bar\nbaz\nbaz\n" \
 	"" "foo\n"
 testing "sed -n s//p" "sed -ne s/abc/def/p" "def\n" "" "abc\n"
