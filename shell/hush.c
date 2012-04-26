@@ -106,10 +106,6 @@
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
 
-/* Not every libc has sighandler_t. Fix it */
-typedef void (*hush_sighandler_t)(int);
-#define sighandler_t hush_sighandler_t
-
 //config:config HUSH
 //config:	bool "hush"
 //config:	default y
