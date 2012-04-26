@@ -561,8 +561,14 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		fd = open("/dev/tty", O_RDWR | O_NONBLOCK);
 		if (fd >= 0) {
+			/* TIOCNOTTY sends SIGHUP to the foreground
+			 * process group - which may include us!
+			 * Make sure to not die on it:
+			 */
+			sighandler_t old = signal(SIGHUP, SIG_IGN);
 			ioctl(fd, TIOCNOTTY);
 			close(fd);
+			signal(SIGHUP, old);
 		}
 	}
 
