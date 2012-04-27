@@ -212,12 +212,9 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 		);
 		// delete possible "\nX\n" patterns
 		c = controlfile;
-		cflen = (unsigned)strlen(controlfile);
 		while ((c = strchr(c, '\n')) != NULL) {
 			if (c[1] && c[2] == '\n') {
-				/* can't use strcpy, results are undefined */
-				memmove(c, c+2, cflen - (c-controlfile) - 1);
-				cflen -= 2;
+				overlapping_strcpy(c, c+2);
 			} else {
 				c++;
 			}
@@ -228,6 +225,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 			bb_error_msg("sending control file");
 		/* "Acknowledgement processing must occur as usual
 		 * after the command is sent." */
+		cflen = (unsigned)strlen(controlfile);
 		fdprintf(fd, "\x2" "%u c%s\n", cflen, remote_filename);
 		get_response_or_say_and_die(fd, "sending control file");
 		/* "Once all of the contents have
