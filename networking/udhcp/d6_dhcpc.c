@@ -12,10 +12,11 @@
  */
 
 //config:config UDHCPC6
-//config:       bool "udhcp client for DHCPv6 (udhcpc6)"
-//config:       default n  # not yet ready
-//config:       help
-//config:         udhcpc6 is a DHCPv6 client
+//config:	bool "udhcp client for DHCPv6 (udhcpc6)"
+//config:	default n  # not yet ready
+//config:	depends on FEATURE_IPV6
+//config:	help
+//config:	  udhcpc6 is a DHCPv6 client
 
 //applet:IF_UDHCPC6(APPLET(udhcpc6, BB_DIR_USR_BIN, BB_SUID_DROP))
 
