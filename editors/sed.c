@@ -62,7 +62,8 @@
 //usage:#define sed_full_usage "\n\n"
 //usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
-//usage:     "\n	-i	Edit files in-place (else sends result to stdout)"
+//usage:     "\n	-i[SFX]	Edit files in-place (otherwise sends to stdout)"
+//usage:     "\n		Optionally backs files up, appending SFX"
 //usage:     "\n	-n	Suppress automatic printing of pattern space"
 //usage:     "\n	-r	Use extended regex syntax"
 //usage:     "\n"
@@ -1374,6 +1375,19 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opt;
 	llist_t *opt_e, *opt_f;
+	char *opt_i;
+
+#if ENABLE_LONG_OPTS
+	static const char sed_longopts[] ALIGN1 =
+		/* name             has_arg             short */
+		"in-place\0"        Optional_argument   "i"
+		"regexp-extended\0" No_argument         "r"
+		"quiet\0"           No_argument         "n"
+		"silent\0"          No_argument         "n"
+		"expression\0"      Required_argument   "e"
+		"file\0"            Required_argument   "f";
+#endif
+
 	int status = EXIT_SUCCESS;
 
 	INIT_G();
@@ -1382,17 +1396,21 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP) atexit(sed_free_and_close_stuff);
 
 	/* Lie to autoconf when it starts asking stupid questions. */
-	if (argv[1] && !strcmp(argv[1], "--version")) {
+	if (argv[1] && strcmp(argv[1], "--version") == 0) {
 		puts("This is not GNU sed version 4.0");
 		return 0;
 	}
 
 	/* do normal option parsing */
 	opt_e = opt_f = NULL;
+	opt_i = NULL;
 	opt_complementary = "e::f::" /* can occur multiple times */
 	                    "nn"; /* count -n */
+
+	IF_LONG_OPTS(applet_long_options = sed_longopts);
+
 	/* -i must be first, to match OPT_in_place definition */
-	opt = getopt32(argv, "irne:f:", &opt_e, &opt_f,
+	opt = getopt32(argv, "i::rne:f:", &opt_i, &opt_e, &opt_f,
 			    &G.be_quiet); /* counter for -n */
 	//argc -= optind;
 	argv += optind;
@@ -1474,8 +1492,13 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			fclose(G.nonstdout);
 			G.nonstdout = stdout;
 
-			/* unlink(argv[i]); */
-			xrename(G.outname, argv[i]);
+			if (opt_i) {
+				char *backupname = xasprintf("%s%s", argv[i], opt_i);
+				xrename(argv[i], backupname);
+				free(backupname);
+			}
+			/* else unlink(argv[i]); - rename below does this */
+			xrename(G.outname, argv[i]); //TODO: rollback backup on error?
 			free(G.outname);
 			G.outname = NULL;
 
