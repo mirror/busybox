@@ -48,6 +48,7 @@ static const char mkdir_longopts[] ALIGN1 =
 #if ENABLE_SELINUX
 	"context\0" Required_argument "Z"
 #endif
+	"verbose\0" No_argument       "v"
 	;
 #endif
 
@@ -66,7 +67,7 @@ int mkdir_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
 	applet_long_options = mkdir_longopts;
 #endif
-	opt = getopt32(argv, "m:p" IF_SELINUX("Z:"), &smode IF_SELINUX(,&scontext));
+	opt = getopt32(argv, "m:p" IF_SELINUX("Z:") "v", &smode IF_SELINUX(,&scontext));
 	if (opt & 1) {
 		mode_t mmode = 0777;
 		if (!bb_parse_mode(smode, &mmode)) {

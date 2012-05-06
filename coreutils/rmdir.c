@@ -30,8 +30,9 @@
 /* This is a NOFORK applet. Be very careful! */
 
 
-#define PARENTS 0x01
-#define IGNORE_NON_EMPTY 0x02
+#define PARENTS          (1 << 0)
+//efine VERBOSE          (1 << 1) //accepted but ignored
+#define IGNORE_NON_EMPTY (1 << 2)
 
 int rmdir_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rmdir_main(int argc UNUSED_PARAM, char **argv)
@@ -43,13 +44,14 @@ int rmdir_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_RMDIR_LONG_OPTIONS
 	static const char rmdir_longopts[] ALIGN1 =
 		"parents\0"                  No_argument "p"
+		"verbose\0"                  No_argument "v"
 		/* Debian etch: many packages fail to be purged or installed
 		 * because they desperately want this option: */
 		"ignore-fail-on-non-empty\0" No_argument "\xff"
 		;
 	applet_long_options = rmdir_longopts;
 #endif
-	flags = getopt32(argv, "p");
+	flags = getopt32(argv, "pv");
 	argv += optind;
 
 	if (!*argv) {
