@@ -33,7 +33,7 @@ int FAST_FUNC remove_file(const char *path, int flags)
 		int status = 0;
 
 		if (!(flags & FILEUTILS_RECUR)) {
-			bb_error_msg("%s: is a directory", path);
+			bb_error_msg("'%s' is a directory", path);
 			return -1;
 		}
 
