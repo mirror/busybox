@@ -471,7 +471,7 @@ static void make_device(char *device_name, char *path, int operation)
 	int major, minor, type, len;
 
 	if (G.verbose)
-		bb_error_msg("make_device: %s, %s, op:%d", device_name, path, operation);
+		bb_error_msg("device: %s, %s", device_name, path);
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
@@ -479,7 +479,7 @@ static void make_device(char *device_name, char *path, int operation)
 	 * We also depend on path having writeable space after it.
 	 */
 	major = -1;
-	if (operation != OP_remove) {
+	if (operation == OP_add) {
 		char *dev_maj_min = path + strlen(path);
 
 		strcpy(dev_maj_min, "/dev");
@@ -490,7 +490,10 @@ static void make_device(char *device_name, char *path, int operation)
 				return;
 			/* no "dev" file, but we can still run scripts
 			 * based on device name */
-		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) != 2) {
+		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) == 2) {
+			if (G.verbose)
+				bb_error_msg("maj,min: %u,%u", major, minor);
+		} else {
 			major = -1;
 		}
 	}
@@ -502,7 +505,8 @@ static void make_device(char *device_name, char *path, int operation)
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
 	 * But since 2.6.25 block devices are also in /sys/class/block.
-	 * We use strstr("/block/") to forestall future surprises. */
+	 * We use strstr("/block/") to forestall future surprises.
+	 */
 	type = S_IFCHR;
 	if (strstr(path, "/block/") || (G.subsystem && strncmp(G.subsystem, "block", 5) == 0))
 		type = S_IFBLK;
@@ -669,12 +673,12 @@ static void make_device(char *device_name, char *path, int operation)
 				bb_error_msg("mknod: %s (%d,%d) %o", node_name, major, minor, rule->mode | type);
 			if (mknod(node_name, rule->mode | type, makedev(major, minor)) && errno != EEXIST)
 				bb_perror_msg("can't create '%s'", node_name);
-			if (major == G.root_major && minor == G.root_minor)
-				symlink(node_name, "root");
 			if (ENABLE_FEATURE_MDEV_CONF) {
 				chmod(node_name, rule->mode);
 				chown(node_name, rule->ugid.uid, rule->ugid.gid);
 			}
+			if (major == G.root_major && minor == G.root_minor)
+				symlink(node_name, "root");
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				if (aliaslink == '>') {
 //TODO: on devtmpfs, device_name already exists and symlink() fails.
@@ -890,13 +894,13 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
 		action = getenv("ACTION");
+		op = index_in_strings(keywords, action);
 		env_devname = getenv("DEVNAME"); /* can be NULL */
 		env_devpath = getenv("DEVPATH");
 		G.subsystem = getenv("SUBSYSTEM");
 		if (!action || !env_devpath /*|| !G.subsystem*/)
 			bb_show_usage();
 		fw = getenv("FIRMWARE");
-		op = index_in_strings(keywords, action);
 		/* If it exists, does /dev/mdev.seq match $SEQNUM?
 		 * If it does not match, earlier mdev is running
 		 * in parallel, and we need to wait */
@@ -927,7 +931,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			if (logfd >= 0) {
 				xmove_fd(logfd, STDERR_FILENO);
 				G.verbose = 1;
-				bb_error_msg("pid: %u seq: %s action: %s", getpid(), seq, action);
+				bb_error_msg("seq: %s action: %s", seq, action);
 			}
 		}
 
