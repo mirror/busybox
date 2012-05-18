@@ -92,9 +92,9 @@
 //usage:       "\n"
 //usage:       "If /dev/mdev.seq file exists, mdev will wait for its value\n"
 //usage:       "to match $SEQNUM variable. This prevents plug/unplug races.\n"
-//usage:       "To activate this feature, create empty /dev/mdev.seq at boot."
+//usage:       "To activate this feature, create empty /dev/mdev.seq at boot.\n"
 //usage:       "\n"
-//usage:       "If /dev/mdev.log file exists, debug log will be appended to it.\n"
+//usage:       "If /dev/mdev.log file exists, debug log will be appended to it."
 
 #include "libbb.h"
 #include "xregex.h"
