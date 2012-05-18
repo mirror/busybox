@@ -833,7 +833,7 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_PATH(   PARM_path      ,)
 #if ENABLE_DESKTOP
 	/* -wholename is a synonym for -path */
-	/* We support it becuase Linux kernel's "make tags" uses it */
+	/* We support it because Linux kernel's "make tags" uses it */
 	IF_FEATURE_FIND_PATH(   PARM_wholename ,)
 #endif
 	IF_FEATURE_FIND_PATH(   PARM_ipath     ,)
