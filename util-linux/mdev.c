@@ -236,7 +236,6 @@ enum { OP_add, OP_remove };
 struct rule {
 	bool keep_matching;
 	bool regex_compiled;
-	bool regex_has_slash;
 	mode_t mode;
 	int maj, min0, min1;
 	struct bb_uidgid_t ugid;
@@ -340,7 +339,6 @@ static void parse_next_rule(void)
 			}
 			xregcomp(&G.cur_rule.match, val, REG_EXTENDED);
 			G.cur_rule.regex_compiled = 1;
-			G.cur_rule.regex_has_slash = (strchr(val, '/') != NULL);
 		}
 
 		/* 2nd field: uid:gid - device ownership */
@@ -467,11 +465,10 @@ static char *build_alias(char *alias, const char *device_name)
  */
 static void make_device(char *device_name, char *path, int operation)
 {
-	char *subsystem_slash_devname;
 	int major, minor, type, len;
 
 	if (G.verbose)
-		bb_error_msg("make_device: %s, %s, op:%d", device_name, path, operation);
+		bb_error_msg("device: %s, %s", device_name, path);
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
@@ -479,7 +476,7 @@ static void make_device(char *device_name, char *path, int operation)
 	 * We also depend on path having writeable space after it.
 	 */
 	major = -1;
-	if (operation != OP_remove) {
+	if (operation == OP_add) {
 		char *dev_maj_min = path + strlen(path);
 
 		strcpy(dev_maj_min, "/dev");
@@ -490,7 +487,10 @@ static void make_device(char *device_name, char *path, int operation)
 				return;
 			/* no "dev" file, but we can still run scripts
 			 * based on device name */
-		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) != 2) {
+		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) == 2) {
+			if (G.verbose)
+				bb_error_msg("maj,min: %u,%u", major, minor);
+		} else {
 			major = -1;
 		}
 	}
@@ -502,28 +502,11 @@ static void make_device(char *device_name, char *path, int operation)
 	/* http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
 	 * But since 2.6.25 block devices are also in /sys/class/block.
-	 * We use strstr("/block/") to forestall future surprises. */
+	 * We use strstr("/block/") to forestall future surprises.
+	 */
 	type = S_IFCHR;
 	if (strstr(path, "/block/") || (G.subsystem && strncmp(G.subsystem, "block", 5) == 0))
 		type = S_IFBLK;
-
-	/* Make path point to "subsystem/device_name" */
-	subsystem_slash_devname = NULL;
-	/* Check for coldplug invocations first */
-	if (strncmp(path, "/sys/block/", 11) == 0) /* legacy case */
-		path += sizeof("/sys/") - 1;
-	else if (strncmp(path, "/sys/class/", 11) == 0)
-		path += sizeof("/sys/class/") - 1;
-	else {
-		/* Example of a hotplug invocation:
-		 * SUBSYSTEM="block"
-		 * DEVPATH="/sys" + "/devices/virtual/mtd/mtd3/mtdblock3"
-		 * ("/sys" is added by mdev_main)
-		 * - path does not contain subsystem
-		 */
-		subsystem_slash_devname = concat_path_file(G.subsystem, device_name);
-		path = subsystem_slash_devname;
-	}
 
 #if ENABLE_FEATURE_MDEV_CONF
 	G.rule_idx = 0; /* restart from the beginning (think mdev -s) */
@@ -537,7 +520,7 @@ static void make_device(char *device_name, char *path, int operation)
 		char *node_name;
 		const struct rule *rule;
 
-		str_to_match = "";
+		str_to_match = device_name;
 
 		rule = next_rule();
 
@@ -555,12 +538,8 @@ static void make_device(char *device_name, char *path, int operation)
 			dbg("getenv('%s'):'%s'", rule->envvar, str_to_match);
 			if (!str_to_match)
 				continue;
-		} else {
-//TODO: $DEVNAME can have slashes too,
-// we should stop abusing '/' as a special syntax in our regex'es
-			/* regex to match [subsystem/]device_name */
-			str_to_match = (rule->regex_has_slash ? path : device_name);
 		}
+		/* else: str_to_match = device_name */
 
 		if (rule->regex_compiled) {
 			int regex_match = regexec(&rule->match, str_to_match, ARRAY_SIZE(off), off, 0);
@@ -669,12 +648,12 @@ static void make_device(char *device_name, char *path, int operation)
 				bb_error_msg("mknod: %s (%d,%d) %o", node_name, major, minor, rule->mode | type);
 			if (mknod(node_name, rule->mode | type, makedev(major, minor)) && errno != EEXIST)
 				bb_perror_msg("can't create '%s'", node_name);
-			if (major == G.root_major && minor == G.root_minor)
-				symlink(node_name, "root");
 			if (ENABLE_FEATURE_MDEV_CONF) {
 				chmod(node_name, rule->mode);
 				chown(node_name, rule->ugid.uid, rule->ugid.gid);
 			}
+			if (major == G.root_major && minor == G.root_minor)
+				symlink(node_name, "root");
 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
 				if (aliaslink == '>') {
 //TODO: on devtmpfs, device_name already exists and symlink() fails.
@@ -723,8 +702,6 @@ static void make_device(char *device_name, char *path, int operation)
 		if (!ENABLE_FEATURE_MDEV_CONF || !rule->keep_matching)
 			break;
 	} /* for (;;) */
-
-	free(subsystem_slash_devname);
 }
 
 /* File callback for /sys/ traversal */
@@ -890,13 +867,13 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
 		action = getenv("ACTION");
+		op = index_in_strings(keywords, action);
 		env_devname = getenv("DEVNAME"); /* can be NULL */
 		env_devpath = getenv("DEVPATH");
 		G.subsystem = getenv("SUBSYSTEM");
 		if (!action || !env_devpath /*|| !G.subsystem*/)
 			bb_show_usage();
 		fw = getenv("FIRMWARE");
-		op = index_in_strings(keywords, action);
 		/* If it exists, does /dev/mdev.seq match $SEQNUM?
 		 * If it does not match, earlier mdev is running
 		 * in parallel, and we need to wait */
@@ -927,7 +904,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			if (logfd >= 0) {
 				xmove_fd(logfd, STDERR_FILENO);
 				G.verbose = 1;
-				bb_error_msg("pid: %u seq: %s action: %s", getpid(), seq, action);
+				bb_error_msg("seq: %s action: %s", seq, action);
 			}
 		}
 
