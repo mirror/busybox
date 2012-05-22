@@ -333,6 +333,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c, mv.c, install.c depend on them. */
 	FILEUTILS_PRESERVE_SECURITY_CONTEXT = 1 << 9, /* -c */
 	FILEUTILS_SET_SECURITY_CONTEXT = 1 << 10,
 #endif
+	FILEUTILS_IGNORE_CHMOD_ERR = 1 << 11,
 };
 #define FILEUTILS_CP_OPTSTR "pdRfilsLH" IF_SELINUX("c")
 extern int remove_file(const char *path, int flags) FAST_FUNC;

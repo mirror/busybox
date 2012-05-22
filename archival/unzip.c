@@ -596,7 +596,7 @@ int unzip_main(int argc, char **argv)
 						printf("   creating: %s\n", dst_fn);
 					}
 					unzip_create_leading_dirs(dst_fn);
-					if (bb_make_directory(dst_fn, dir_mode, 0)) {
+					if (bb_make_directory(dst_fn, dir_mode, FILEUTILS_IGNORE_CHMOD_ERR)) {
 						xfunc_die();
 					}
 				} else {
