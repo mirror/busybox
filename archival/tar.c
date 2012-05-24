@@ -693,6 +693,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	"-[" IF_FEATURE_TAR_CREATE("c") "xt"
 //usage:	IF_FEATURE_SEAMLESS_Z("Z")
 //usage:	IF_FEATURE_SEAMLESS_GZ("z")
+//usage:	IF_FEATURE_SEAMLESS_XZ("J")
 //usage:	IF_FEATURE_SEAMLESS_BZ2("j")
 //usage:	IF_FEATURE_SEAMLESS_LZMA("a")
 //usage:	IF_FEATURE_TAR_CREATE("h")
@@ -718,6 +719,9 @@ static llist_t *append_file_list_to_list(llist_t *list)
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_GZ(
 //usage:     "\n	z	(De)compress using gzip"
+//usage:	)
+//usage:	IF_FEATURE_SEAMLESS_XZ(
+//usage:     "\n	J	(De)compress using xz"
 //usage:	)
 //usage:	IF_FEATURE_SEAMLESS_BZ2(
 //usage:     "\n	j	(De)compress using bzip2"
@@ -765,7 +769,8 @@ enum {
 	IF_FEATURE_TAR_FROM(     OPTBIT_INCLUDE_FROM,)
 	IF_FEATURE_TAR_FROM(     OPTBIT_EXCLUDE_FROM,)
 	IF_FEATURE_SEAMLESS_GZ(  OPTBIT_GZIP        ,)
-	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,) // 16th bit
+	IF_FEATURE_SEAMLESS_XZ(  OPTBIT_XZ          ,) // 16th bit
+	IF_FEATURE_SEAMLESS_Z(   OPTBIT_COMPRESS    ,)
 	IF_FEATURE_TAR_NOPRESERVE_TIME(OPTBIT_NOPRESERVE_TIME,)
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	OPTBIT_NORECURSION,
@@ -790,6 +795,7 @@ enum {
 	OPT_INCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_INCLUDE_FROM)) + 0, // T
 	OPT_EXCLUDE_FROM = IF_FEATURE_TAR_FROM(     (1 << OPTBIT_EXCLUDE_FROM)) + 0, // X
 	OPT_GZIP         = IF_FEATURE_SEAMLESS_GZ(  (1 << OPTBIT_GZIP        )) + 0, // z
+	OPT_XZ           = IF_FEATURE_SEAMLESS_XZ(  (1 << OPTBIT_XZ          )) + 0, // J
 	OPT_COMPRESS     = IF_FEATURE_SEAMLESS_Z(   (1 << OPTBIT_COMPRESS    )) + 0, // Z
 	OPT_NOPRESERVE_TIME = IF_FEATURE_TAR_NOPRESERVE_TIME((1 << OPTBIT_NOPRESERVE_TIME)) + 0, // m
 	OPT_NORECURSION     = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NORECURSION    )) + 0, // no-recursion
@@ -798,7 +804,7 @@ enum {
 	OPT_NOPRESERVE_PERM = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_NOPRESERVE_PERM)) + 0, // no-same-permissions
 	OPT_OVERWRITE       = IF_FEATURE_TAR_LONG_OPTIONS((1 << OPTBIT_OVERWRITE      )) + 0, // overwrite
 
-	OPT_ANY_COMPRESS = (OPT_BZIP2 | OPT_LZMA | OPT_GZIP | OPT_COMPRESS),
+	OPT_ANY_COMPRESS = (OPT_BZIP2 | OPT_LZMA | OPT_GZIP | OPT_XZ | OPT_COMPRESS),
 };
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 static const char tar_longopts[] ALIGN1 =
@@ -830,6 +836,9 @@ static const char tar_longopts[] ALIGN1 =
 # endif
 # if ENABLE_FEATURE_SEAMLESS_GZ
 	"gzip\0"                No_argument       "z"
+# endif
+# if ENABLE_FEATURE_SEAMLESS_XZ
+	"xz\0"                  No_argument       "J"
 # endif
 # if ENABLE_FEATURE_SEAMLESS_Z
 	"compress\0"            No_argument       "Z"
@@ -924,6 +933,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		IF_FEATURE_SEAMLESS_LZMA("a"   )
 		IF_FEATURE_TAR_FROM(     "T:X:")
 		IF_FEATURE_SEAMLESS_GZ(  "z"   )
+		IF_FEATURE_SEAMLESS_XZ(  "J"   )
 		IF_FEATURE_SEAMLESS_Z(   "Z"   )
 		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 		, &base_dir // -C dir
@@ -1076,6 +1086,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_LZMA)
 			USE_FOR_MMU(xformer = unpack_lzma_stream;)
 			USE_FOR_NOMMU(xformer_prog = "unlzma";)
+		if (opt & OPT_XZ)
+			USE_FOR_MMU(xformer = unpack_xz_stream;)
+			USE_FOR_NOMMU(xformer_prog = "unxz";)
 
 		open_transformer_with_sig(tar_handle->src_fd, xformer, xformer_prog);
 		/* Can't lseek over pipes */
