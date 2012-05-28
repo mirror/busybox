@@ -743,7 +743,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 */
 		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
 			pipe_putc(*line++);
-			continue;
+			goto next;
 		}
 
 		match_count++;
@@ -755,7 +755,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		) {
 			for (i = 0; i < G.regmatch[0].rm_eo; i++)
 				pipe_putc(*line++);
-			continue;
+			goto next;
 		}
 
 		/* print everything before the match */
@@ -773,7 +773,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		/* if we're not doing this globally, get out now */
 		if (sed_cmd->which_match != 0)
 			break;
-
+ next:
 		if (*line == '\0')
 			break;
 
