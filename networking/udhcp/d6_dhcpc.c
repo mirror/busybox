@@ -1066,8 +1066,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		retval = 0;
 		/* If we already timed out, fall through with retval = 0, else... */
 		if ((int)tv.tv_sec > 0) {
+			log1("Waiting on select %u seconds", (int)tv.tv_sec);
 			timestamp_before_wait = (unsigned)monotonic_sec();
-			log1("Waiting on select...");
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 			if (retval < 0) {
 				/* EINTR? A signal was caught, don't panic */
