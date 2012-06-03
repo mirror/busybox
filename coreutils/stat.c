@@ -99,9 +99,15 @@ static const char *file_type(const struct stat *st)
 	if (S_ISFIFO(st->st_mode)) return "fifo";
 	if (S_ISLNK(st->st_mode))  return "symbolic link";
 	if (S_ISSOCK(st->st_mode)) return "socket";
+#ifdef S_TYPEISMQ
 	if (S_TYPEISMQ(st))        return "message queue";
+#endif
+#ifdef S_TYPEISSEM
 	if (S_TYPEISSEM(st))       return "semaphore";
+#endif
+#ifdef S_TYPEISSHM
 	if (S_TYPEISSHM(st))       return "shared memory object";
+#endif
 #ifdef S_TYPEISTMO
 	if (S_TYPEISTMO(st))       return "typed memory object";
 #endif
