@@ -737,6 +737,8 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 
 	/* Now loop through, substituting for matches */
 	do {
+		int start = G.regmatch[0].rm_so;
+		int end = G.regmatch[0].rm_eo;
 		int i;
 
 		match_count++;
@@ -746,16 +748,16 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		if (sed_cmd->which_match
 		 && (sed_cmd->which_match != match_count)
 		) {
-			for (i = 0; i < G.regmatch[0].rm_eo; i++)
+			for (i = 0; i < end; i++)
 				pipe_putc(*line++);
 			/* Null match? Print one more char */
-			if (G.regmatch[0].rm_so == i && *line)
+			if (start == end && *line)
 				pipe_putc(*line++);
 			goto next;
 		}
 
 		/* Print everything before the match */
-		for (i = 0; i < G.regmatch[0].rm_so; i++)
+		for (i = 0; i < start; i++)
 			pipe_putc(line[i]);
 
 		/* Then print the substitution string,
@@ -765,25 +767,25 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 * second is "" before "d", third is "" after "d".
 		 * Second match is NOT replaced!
 		 */
-		if (prev_match_empty || i != 0) {
-			dbg("inserting replacement at %d in '%s'", i, line);
+		if (prev_match_empty || start != 0) {
+			dbg("inserting replacement at %d in '%s'", start, line);
 			do_subst_w_backrefs(line, sed_cmd->string);
 		} else {
-			dbg("NOT inserting replacement at %d in '%s'", i, line);
+			dbg("NOT inserting replacement at %d in '%s'", start, line);
 		}
 
 		/* If matched string is empty (f.e. "c*" pattern),
 		 * copy verbatim one char after it before attempting more matches
 		 */
-		prev_match_empty = (G.regmatch[0].rm_eo == i);
-		if (prev_match_empty && line[i]) {
-			pipe_putc(line[i]);
-			G.regmatch[0].rm_eo++;
+		prev_match_empty = (start == end);
+		if (prev_match_empty && line[end]) {
+			pipe_putc(line[end]);
+			end++;
 		}
 
 		/* Advance past the match */
-		dbg("line += %d", G.regmatch[0].rm_eo);
-		line += G.regmatch[0].rm_eo;
+		dbg("line += %d", end);
+		line += end;
 		/* Flag that something has changed */
 		altered = 1;
 
@@ -798,7 +800,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 			tried_at_eol = 1;
 		}
 
-//maybe (G.regmatch[0].rm_eo ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
+//maybe (end ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
 	} while (regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
 
 	/* Copy rest of string into output pipeline */
