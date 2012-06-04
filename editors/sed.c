@@ -673,7 +673,7 @@ static void do_subst_w_backrefs(char *line, char *replace)
 
 	/* go through the replacement string */
 	for (i = 0; replace[i]; i++) {
-		/* if we find a backreference (\1, \2, etc.) print the backref'ed * text */
+		/* if we find a backreference (\1, \2, etc.) print the backref'ed text */
 		if (replace[i] == '\\') {
 			unsigned backref = replace[++i] - '0';
 			if (backref <= 9) {
@@ -707,8 +707,10 @@ static void do_subst_w_backrefs(char *line, char *replace)
 static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 {
 	char *line = *line_p;
-	int altered = 0;
 	unsigned match_count = 0;
+	bool altered = 0;
+	bool prev_match_empty = 1;
+	bool tried_at_eol = 0;
 	regex_t *current_regex;
 
 	current_regex = sed_cmd->sub_match;
@@ -737,46 +739,64 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 	do {
 		int i;
 
-		/* Work around bug in glibc regexec, demonstrated by:
-		 * echo " a.b" | busybox sed 's [^ .]* x g'
-		 * The match_count check is so not to break
-		 * echo "hi" | busybox sed 's/^/!/g'
-		 */
-		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
-			pipe_putc(*line++);
-			goto next;
-		}
-
 		match_count++;
 
 		/* If we aren't interested in this match, output old line to
-		   end of match and continue */
+		 * end of match and continue */
 		if (sed_cmd->which_match
 		 && (sed_cmd->which_match != match_count)
 		) {
 			for (i = 0; i < G.regmatch[0].rm_eo; i++)
 				pipe_putc(*line++);
+			/* Null match? Print one more char */
+			if (G.regmatch[0].rm_so == i && *line)
+				pipe_putc(*line++);
 			goto next;
 		}
 
-		/* print everything before the match */
+		/* Print everything before the match */
 		for (i = 0; i < G.regmatch[0].rm_so; i++)
 			pipe_putc(line[i]);
 
-		/* then print the substitution string */
-		do_subst_w_backrefs(line, sed_cmd->string);
+		/* Then print the substitution string,
+		 * unless we just matched empty string after non-empty one.
+		 * Example: string "cccd", pattern "c*", repl "R":
+		 * result is "RdR", not "RRdR": first match "ccc",
+		 * second is "" before "d", third is "" after "d".
+		 * Second match is NOT replaced!
+		 */
+		if (prev_match_empty || i != 0) {
+			dbg("inserting replacement at %d in '%s'", i, line);
+			do_subst_w_backrefs(line, sed_cmd->string);
+		} else {
+			dbg("NOT inserting replacement at %d in '%s'", i, line);
+		}
 
-		/* advance past the match */
+		/* If matched string is empty (f.e. "c*" pattern),
+		 * copy verbatim one char after it before attempting more matches
+		 */
+		prev_match_empty = (G.regmatch[0].rm_eo == i);
+		if (prev_match_empty && line[i]) {
+			pipe_putc(line[i]);
+			G.regmatch[0].rm_eo++;
+		}
+
+		/* Advance past the match */
+		dbg("line += %d", G.regmatch[0].rm_eo);
 		line += G.regmatch[0].rm_eo;
-		/* flag that something has changed */
-		altered++;
+		/* Flag that something has changed */
+		altered = 1;
 
 		/* if we're not doing this globally, get out now */
 		if (sed_cmd->which_match != 0)
 			break;
  next:
-		if (*line == '\0')
-			break;
+		/* Exit if we are at EOL and already tried matching at it */
+		if (*line == '\0') {
+			if (tried_at_eol)
+				break;
+			tried_at_eol = 1;
+		}
 
 //maybe (G.regmatch[0].rm_eo ? REG_NOTBOL : 0) instead of unconditional REG_NOTBOL?
 	} while (regexec(current_regex, line, 10, G.regmatch, REG_NOTBOL) != REG_NOMATCH);
@@ -1127,7 +1147,7 @@ static void process_files(void)
 		case 's':
 			if (!do_subst_command(sed_cmd, &pattern_space))
 				break;
-			dbg("do_subst_command succeeeded:'%s'", pattern_space);
+			dbg("do_subst_command succeeded:'%s'", pattern_space);
 			substituted |= 1;
 
 			/* handle p option */
