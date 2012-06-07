@@ -767,7 +767,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 * second is "" before "d", third is "" after "d".
 		 * Second match is NOT replaced!
 		 */
-		if (prev_match_empty || start != 0) {
+		if (prev_match_empty || start != 0 || start != end) {
 			dbg("inserting replacement at %d in '%s'", start, line);
 			do_subst_w_backrefs(line, sed_cmd->string);
 		} else {
