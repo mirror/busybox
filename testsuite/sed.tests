@@ -302,9 +302,13 @@ testing "sed zero chars match/replace advances correctly 2" \
 	"sed 's [^ .]* x g'" \
 	"x x.x\n" "" " a.b\n"
 
-testing "sed zero chars match/replace logic must not falsely trigger here" \
+testing "sed zero chars match/replace logic must not falsely trigger here 1" \
 	"sed 's/a/A/g'" \
 	"_AAA1AA\n" "" "_aaa1aa\n"
+
+testing "sed zero chars match/replace logic must not falsely trigger here 2" \
+	"sed 's/ *$/_/g'" \
+	"qwerty_\n" "" "qwerty\n"
 
 # testing "description" "commands" "result" "infile" "stdin"
 

@@ -768,8 +768,11 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 * Second match is NOT replaced!
 		 */
 		if (prev_match_empty || start != 0 || start != end) {
+			//dbg("%d %d %d", prev_match_empty, start, end);
 			dbg("inserting replacement at %d in '%s'", start, line);
 			do_subst_w_backrefs(line, sed_cmd->string);
+			/* Flag that something has changed */
+			altered = 1;
 		} else {
 			dbg("NOT inserting replacement at %d in '%s'", start, line);
 		}
@@ -778,16 +781,18 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
 		 * copy verbatim one char after it before attempting more matches
 		 */
 		prev_match_empty = (start == end);
-		if (prev_match_empty && line[end]) {
-			pipe_putc(line[end]);
-			end++;
+		if (prev_match_empty) {
+			if (!line[end]) {
+				tried_at_eol = 1;
+			} else {
+				pipe_putc(line[end]);
+				end++;
+			}
 		}
 
 		/* Advance past the match */
 		dbg("line += %d", end);
 		line += end;
-		/* Flag that something has changed */
-		altered = 1;
 
 		/* if we're not doing this globally, get out now */
 		if (sed_cmd->which_match != 0)
