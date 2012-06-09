@@ -84,7 +84,7 @@ static unsigned long long getOctal(char *str, int len)
 		first >>= 1; /* now 7th bit = 6th bit */
 		v = first;   /* sign-extend 8 bits to 64 */
 		while (--len != 0)
-			v = (v << 8) + (unsigned char) *str++;
+			v = (v << 8) + (uint8_t) *++str;
 	}
 	return v;
 }
