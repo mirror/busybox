@@ -89,6 +89,10 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 	unsigned opts;
 	int fd;
 
+	queue = getenv("PRINTER");
+	if (!queue)
+		queue = "lp";
+
 	// parse options
 	// TODO: set opt_complementary: s,d,f are mutually exclusive
 	opts = getopt32(argv,
@@ -98,16 +102,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 	);
 	argv += optind;
 
-	// if queue is not specified -> use $PRINTER
-	if (!(opts & OPT_P))
-		queue = getenv("PRINTER");
-	// if queue is still not specified ->
-	if (!queue) {
-		// ... queue defaults to "lp"
-		// server defaults to "localhost"
-		queue = "lp";
-	// if queue is specified ->
-	} else {
+	{
 		// queue name is to the left of '@'
 		char *s = strchr(queue, '@');
 		if (s) {
@@ -186,6 +181,17 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 			dfd = xopen(*argv, O_RDONLY);
 		}
 
+		st.st_size = 0; /* paranoia: fstat may theoretically fail */
+		fstat(dfd, &st);
+
+		/* Apparently, some servers are buggy and won't accept 0-sized jobs.
+		 * Standard lpr works around it by refusing to send such jobs:
+		 */
+		if (st.st_size == 0) {
+			bb_error_msg("nothing to print");
+			continue;
+		}
+
 		/* "The name ... should start with ASCII "cfA",
 		 * followed by a three digit job number, followed
 		 * by the host name which has constructed the file."
@@ -210,7 +216,7 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 			, (opts & LPR_m) ? user : ""
 			, remote_filename
 		);
-		// delete possible "\nX\n" patterns
+		// delete possible "\nX\n" (that is, one-char) patterns
 		c = controlfile;
 		while ((c = strchr(c, '\n')) != NULL) {
 			if (c[1] && c[2] == '\n') {
@@ -239,8 +245,6 @@ int lpqr_main(int argc UNUSED_PARAM, char *argv[])
 		// send data file, with name "dfaXXX"
 		if (opts & LPR_V)
 			bb_error_msg("sending data file");
-		st.st_size = 0; /* paranoia: fstat may theoretically fail */
-		fstat(dfd, &st);
 		fdprintf(fd, "\x3" "%"OFF_FMT"u d%s\n", st.st_size, remote_filename);
 		get_response_or_say_and_die(fd, "sending data file");
 		if (bb_copyfd_size(dfd, fd, st.st_size) != st.st_size) {
