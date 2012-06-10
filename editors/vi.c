@@ -154,12 +154,12 @@
 //usage:#define vi_full_usage "\n\n"
 //usage:       "Edit FILE\n"
 //usage:	IF_FEATURE_VI_COLON(
-//usage:     "\n	-c	Initial command to run ($EXINIT also available)"
+//usage:     "\n	-c CMD	Initial command to run ($EXINIT also available)"
 //usage:	)
 //usage:	IF_FEATURE_VI_READONLY(
 //usage:     "\n	-R	Read-only"
 //usage:	)
-//usage:     "\n	-H	Short help regarding available features"
+//usage:     "\n	-H	List available features"
 
 #include "libbb.h"
 /* Should be after libbb.h: on some systems regex.h needs sys/types.h: */
@@ -558,7 +558,8 @@ int vi_main(int argc, char **argv)
 	}
 #endif
 
-	vi_setops = VI_AUTOINDENT | VI_SHOWMATCH | VI_IGNORECASE;
+	// autoindent is not default in vim 7.3
+	vi_setops = /*VI_AUTOINDENT |*/ VI_SHOWMATCH | VI_IGNORECASE;
 	//  1-  process $HOME/.exrc file (not inplemented yet)
 	//  2-  process EXINIT variable from environment
 	//  3-  process command line args
@@ -584,7 +585,7 @@ int vi_main(int argc, char **argv)
 #if ENABLE_FEATURE_VI_COLON
 		case 'c':		// cmd line vi command
 			if (*optarg)
-				initial_cmds[initial_cmds[0] != 0] = xstrndup(optarg, MAX_INPUT_LEN);
+				initial_cmds[initial_cmds[0] != NULL] = xstrndup(optarg, MAX_INPUT_LEN);
 			break;
 #endif
 		case 'H':
@@ -1191,7 +1192,7 @@ static void colon(char *buf)
 		char *argp;
 #endif
 		i = 0;			// offset into args
-		// only blank is regarded as args delmiter. What about tab '\t' ?
+		// only blank is regarded as args delimiter. What about tab '\t'?
 		if (!args[0] || strcasecmp(args, "all") == 0) {
 			// print out values of all options
 #if ENABLE_FEATURE_VI_SETOPTS
@@ -2176,7 +2177,7 @@ static void show_help(void)
 	"\n\tPattern searches with / and ?"
 #endif
 #if ENABLE_FEATURE_VI_DOT_CMD
-	"\n\tLast command repeat with \'.\'"
+	"\n\tLast command repeat with ."
 #endif
 #if ENABLE_FEATURE_VI_YANKMARK
 	"\n\tLine marking with 'x"
@@ -2187,7 +2188,7 @@ static void show_help(void)
 	//redundant: usage text says this too: "\n\tReadonly with -R command line arg"
 #endif
 #if ENABLE_FEATURE_VI_SET
-	"\n\tSome colon mode commands with \':\'"
+	"\n\tSome colon mode commands with :"
 #endif
 #if ENABLE_FEATURE_VI_SETOPTS
 	"\n\tSettable options with \":set\""
