@@ -67,7 +67,7 @@
 # include <linux/if_bridge.h>
 
 /* FIXME: These 4 funcs are not really clean and could be improved */
-static ALWAYS_INLINE void strtotimeval(struct timeval *tv,
+static ALWAYS_INLINE void bb_strtotimeval(struct timeval *tv,
 		const char *time_str)
 {
 	double secs;
@@ -104,7 +104,7 @@ static void jiffies_to_tv(struct timeval *tv, unsigned long jiffies)
 static unsigned long str_to_jiffies(const char *time_str)
 {
 	struct timeval tv;
-	strtotimeval(&tv, time_str);
+	bb_strtotimeval(&tv, time_str);
 	return tv_to_jiffies(&tv);
 }
 
