@@ -220,14 +220,14 @@ typedef struct {
 typedef struct {
 	len_and_sockaddr *p_lsa;
 	char             *p_dotted;
-	/* when to send new query (if p_fd == -1)
-	 * or when receive times out (if p_fd >= 0): */
 	int              p_fd;
 	int              datapoint_idx;
 	uint32_t         lastpkt_refid;
 	uint8_t          lastpkt_status;
 	uint8_t          lastpkt_stratum;
 	uint8_t          reachable_bits;
+        /* when to send new query (if p_fd == -1)
+         * or when receive times out (if p_fd >= 0): */
 	double           next_action_time;
 	double           p_xmttime;
 	double           lastpkt_recv_time;
@@ -895,6 +895,11 @@ step_time(double offset)
 
 	/* Correct various fields which contain time-relative values: */
 
+	/* Globals: */
+	G.cur_time += offset;
+	G.last_update_recv_time += offset;
+	G.last_script_run += offset;
+
 	/* p->lastpkt_recv_time, p->next_action_time and such: */
 	for (item = G.ntp_peers; item != NULL; item = item->link) {
 		peer_t *pp = (peer_t *) item->data;
@@ -902,11 +907,16 @@ step_time(double offset)
 		//bb_error_msg("offset:%+f pp->next_action_time:%f -> %f",
 		//	offset, pp->next_action_time, pp->next_action_time + offset);
 		pp->next_action_time += offset;
+		if (pp->p_fd >= 0) {
+			/* We wait for reply from this peer too.
+			 * But due to step we are doing, reply's data is no longer
+			 * useful (in fact, it'll be bogus). Stop waiting for it.
+			 */
+			close(pp->p_fd);
+			pp->p_fd = -1;
+			set_next(pp, RETRY_INTERVAL);
+		}
 	}
-	/* Globals: */
-	G.cur_time += offset;
-	G.last_update_recv_time += offset;
-	G.last_script_run += offset;
 }
 
 
@@ -1623,21 +1633,29 @@ recv_and_process_peer_pkt(peer_t *p)
 		) {
 //TODO: always do this?
 			interval = retry_interval();
-			goto set_next_and_close_sock;
+			goto set_next_and_ret;
 		}
 		xfunc_die();
 	}
 
 	if (size != NTP_MSGSIZE_NOAUTH && size != NTP_MSGSIZE) {
 		bb_error_msg("malformed packet received from %s", p->p_dotted);
-		goto bail;
+		return;
 	}
 
 	if (msg.m_orgtime.int_partl != p->p_xmt_msg.m_xmttime.int_partl
 	 || msg.m_orgtime.fractionl != p->p_xmt_msg.m_xmttime.fractionl
 	) {
-		goto bail;
+		/* Somebody else's packet */
+		return;
 	}
+
+	/* We do not expect any more packets from this peer for now.
+	 * Closing the socket informs kernel about it.
+	 * We open a new socket when we send a new query.
+	 */
+	close(p->p_fd);
+	p->p_fd = -1;
 
 	if ((msg.m_status & LI_ALARM) == LI_ALARM
 	 || msg.m_stratum == 0
@@ -1647,8 +1665,8 @@ recv_and_process_peer_pkt(peer_t *p)
 // "DENY", "RSTR" - peer does not like us at all
 // "RATE" - peer is overloaded, reduce polling freq
 		interval = poll_interval(0);
-		bb_error_msg("reply from %s: not synced, next query in %us", p->p_dotted, interval);
-		goto set_next_and_close_sock;
+		bb_error_msg("reply from %s: peer is unsynced, next query in %us", p->p_dotted, interval);
+		goto set_next_and_ret;
 	}
 
 //	/* Verify valid root distance */
@@ -1794,16 +1812,8 @@ recv_and_process_peer_pkt(peer_t *p)
 	/* Decide when to send new query for this peer */
 	interval = poll_interval(0);
 
- set_next_and_close_sock:
+ set_next_and_ret:
 	set_next(p, interval);
-	/* We do not expect any more packets from this peer for now.
-	 * Closing the socket informs kernel about it.
-	 * We open a new socket when we send a new query.
-	 */
-	close(p->p_fd);
-	p->p_fd = -1;
- bail:
-	return;
 }
 
 #if ENABLE_FEATURE_NTPD_SERVER
