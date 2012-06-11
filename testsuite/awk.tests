@@ -16,6 +16,13 @@ testing "awk -F case 5" "awk -F '[#]' '{ print NF }'" "4\n" "" "#abc##zz\n"
 testing "awk -F case 6" "awk -F '[#]' '{ print NF }'" "4\n" "" "z#abc##zz\n"
 testing "awk -F case 7" "awk -F '[#]' '{ print NF }'" "5\n" "" "z##abc##zz\n"
 
+# conditions and operators
+testing "awk if operator == "  "awk 'BEGIN{if(23==23) print \"foo\"}'" "foo\n" "" ""
+testing "awk if operator != "  "awk 'BEGIN{if(23!=23) print \"bar\"}'" ""      "" ""
+testing "awk if operator >= "  "awk 'BEGIN{if(23>=23) print \"foo\"}'" "foo\n" "" ""
+testing "awk if operator < "   "awk 'BEGIN{if(2 < 13) print \"foo\"}'" "foo\n" "" ""
+testing "awk if string == "    "awk 'BEGIN{if(\"a\"==\"ab\") print \"bar\"}'" "" "" ""
+
 # 4294967295 = 0xffffffff
 testing "awk bitwise op"  "awk '{ print or(4294967295,1) }'" "4.29497e+09\n" "" "\n"
 optional DESKTOP
