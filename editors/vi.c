@@ -136,14 +136,6 @@
 //config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
 //config:
 //config:	  This is not clean but helps a lot on serial lines and such.
-//config:
-//config:config FEATURE_VI_OPTIMIZE_CURSOR
-//config:	bool "Optimize cursor movement"
-//config:	default y
-//config:	depends on VI
-//config:	help
-//config:	  This will make the cursor movement faster, but requires more memory
-//config:	  and it makes the applet a tiny bit larger.
 
 //applet:IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -202,20 +194,29 @@ enum {
 	MAX_SCR_ROWS = CONFIG_FEATURE_VI_MAX_LEN,
 };
 
-/* vt102 typical ESC sequence */
-/* terminal standout start/normal ESC sequence */
-#define SOs "\033[7m"
-#define SOn "\033[0m"
-/* terminal bell sequence */
-#define bell "\007"
-/* Clear-end-of-line and Clear-end-of-screen ESC sequence */
-#define Ceol "\033[K"
-#define Ceos "\033[J"
-/* Cursor motion arbitrary destination ESC sequence */
-#define CMrc "\033[%u;%uH"
-/* Cursor motion up and down ESC sequence */
-#define CMup "\033[A"
-#define CMdown "\n"
+/* VT102 ESC sequences.
+ * See "Xterm Control Sequences"
+ * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+ */
+/* Inverse/Normal text */
+#define ESC_BOLD_TEXT "\033[7m"
+#define ESC_NORM_TEXT "\033[0m"
+/* Bell */
+#define ESC_BELL "\007"
+/* Clear-to-end-of-line */
+#define ESC_CLEAR2EOL "\033[K"
+/* Clear-to-end-of-screen.
+ * (We use default param here.
+ * Full sequence is "ESC [ <num> J",
+ * <num> is 0/1/2 = "erase below/above/all".)
+ */
+#define ESC_CLEAR2EOS "\033[J"
+/* Cursor to given coordinate (1,1: top left) */
+#define ESC_SET_CURSOR_POS "\033[%u;%uH"
+//UNUSED
+///* Cursor up and down */
+//#define ESC_CURSOR_UP "\033[A"
+//#define ESC_CURSOR_DOWN "\n"
 
 #if ENABLE_FEATURE_VI_DOT_CMD || ENABLE_FEATURE_VI_YANKMARK
 // cmds modifying text[]
@@ -303,9 +304,6 @@ struct globals {
 	int lmc_len;             // length of last_modifying_cmd
 	char *ioq, *ioq_start;   // pointer to string for get_one_char to "read"
 #endif
-#if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	int last_row;		 // where the cursor was last moved to
-#endif
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	int my_pid;
 #endif
@@ -389,7 +387,6 @@ struct globals {
 #define lmc_len                 (G.lmc_len            )
 #define ioq                     (G.ioq                )
 #define ioq_start               (G.ioq_start          )
-#define last_row                (G.last_row           )
 #define my_pid                  (G.my_pid             )
 #define last_search_pattern     (G.last_search_pattern)
 
@@ -470,10 +467,7 @@ static int file_size(const char *);   // what is the byte size of "fn"
 // file_insert might reallocate text[]!
 static int file_insert(const char *, char *, int);
 static int file_write(char *, char *, char *);
-#if !ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-#define place_cursor(a, b, optimize) place_cursor(a, b)
-#endif
-static void place_cursor(int, int, int);
+static void place_cursor(int, int);
 static void screen_erase(void);
 static void clear_to_eol(void);
 static void clear_to_eos(void);
@@ -600,10 +594,10 @@ int vi_main(int argc, char **argv)
 	// The argv array can be used by the ":next"  and ":rewind" commands
 	argv += optind;
 	argc -= optind;
-	save_argc = argc;
-	optind = 0;
 
 	//----- This is the main file handling loop --------------
+	save_argc = argc;
+	optind = 0;
 	while (1) {
 		edit_file(argv[optind]); /* param might be NULL */
 		if (++optind >= argc)
@@ -2593,107 +2587,56 @@ static int file_write(char *fn, char *first, char *last)
 //  23,0    ...     23,79   <- status line
 
 //----- Move the cursor to row x col (count from 0, not 1) -------
-static void place_cursor(int row, int col, int optimize)
+static void place_cursor(int row, int col)
 {
-	char cm1[sizeof(CMrc) + sizeof(int)*3 * 2];
-#if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	enum {
-		SZ_UP = sizeof(CMup),
-		SZ_DN = sizeof(CMdown),
-		SEQ_SIZE = SZ_UP > SZ_DN ? SZ_UP : SZ_DN,
-	};
-	char cm2[SEQ_SIZE * 5 + 32]; // bigger than worst case size
-#endif
-	char *cm;
+	char cm1[sizeof(ESC_SET_CURSOR_POS) + sizeof(int)*3 * 2];
 
 	if (row < 0) row = 0;
 	if (row >= rows) row = rows - 1;
 	if (col < 0) col = 0;
 	if (col >= columns) col = columns - 1;
 
-	//----- 1.  Try the standard terminal ESC sequence
-	sprintf(cm1, CMrc, row + 1, col + 1);
-	cm = cm1;
-
-#if ENABLE_FEATURE_VI_OPTIMIZE_CURSOR
-	if (optimize && col < 16) {
-		char *screenp;
-		int Rrow = last_row;
-		int diff = Rrow - row;
-
-		if (diff < -5 || diff > 5)
-			goto skip;
-
-		//----- find the minimum # of chars to move cursor -------------
-		//----- 2.  Try moving with discreet chars (Newline, [back]space, ...)
-		cm2[0] = '\0';
-
-		// move to the correct row
-		while (row < Rrow) {
-			// the cursor has to move up
-			strcat(cm2, CMup);
-			Rrow--;
-		}
-		while (row > Rrow) {
-			// the cursor has to move down
-			strcat(cm2, CMdown);
-			Rrow++;
-		}
-
-		// now move to the correct column
-		strcat(cm2, "\r");			// start at col 0
-		// just send out orignal source char to get to correct place
-		screenp = &screen[row * columns];	// start of screen line
-		strncat(cm2, screenp, col);
-
-		// pick the shortest cursor motion to send out
-		if (strlen(cm2) < strlen(cm)) {
-			cm = cm2;
-		}
- skip: ;
-	}
-	last_row = row;
-#endif /* FEATURE_VI_OPTIMIZE_CURSOR */
-	write1(cm);
+	sprintf(cm1, ESC_SET_CURSOR_POS, row + 1, col + 1);
+	write1(cm1);
 }
 
 //----- Erase from cursor to end of line -----------------------
 static void clear_to_eol(void)
 {
-	write1(Ceol);   // Erase from cursor to end of line
+	write1(ESC_CLEAR2EOL);
 }
 
 static void go_bottom_and_clear_to_eol(void)
 {
-	place_cursor(rows - 1, 0, FALSE); // go to bottom of screen
-	clear_to_eol(); // erase to end of line
+	place_cursor(rows - 1, 0);
+	clear_to_eol();
 }
 
 //----- Erase from cursor to end of screen -----------------------
 static void clear_to_eos(void)
 {
-	write1(Ceos);   // Erase from cursor to end of screen
+	write1(ESC_CLEAR2EOS);
 }
 
 //----- Start standout mode ------------------------------------
-static void standout_start(void) // send "start reverse video" sequence
+static void standout_start(void)
 {
-	write1(SOs);     // Start reverse video mode
+	write1(ESC_BOLD_TEXT);
 }
 
 //----- End standout mode --------------------------------------
-static void standout_end(void) // send "end reverse video" sequence
+static void standout_end(void)
 {
-	write1(SOn);     // End reverse video mode
+	write1(ESC_NORM_TEXT);
 }
 
 //----- Flash the screen  --------------------------------------
 static void flash(int h)
 {
-	standout_start();	// send "start reverse video" sequence
+	standout_start();
 	redraw(TRUE);
 	mysleep(h);
-	standout_end();		// send "end reverse video" sequence
+	standout_end();
 	redraw(TRUE);
 }
 
@@ -2704,7 +2647,7 @@ static void Indicate_Error(void)
 		return;			// generate a random command
 #endif
 	if (!err_method) {
-		write1(bell);   // send out a bell character
+		write1(ESC_BELL);
 	} else {
 		flash(10);
 	}
@@ -2750,7 +2693,7 @@ static void show_status_line(void)
 			}
 			have_status_msg = 0;
 		}
-		place_cursor(crow, ccol, FALSE);	// put cursor back in correct place
+		place_cursor(crow, ccol);  // put cursor back in correct place
 	}
 	fflush_all();
 }
@@ -2762,12 +2705,12 @@ static void status_line_bold(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	strcpy(status_buffer, SOs);	// Terminal standout mode on
-	vsprintf(status_buffer + sizeof(SOs)-1, format, args);
-	strcat(status_buffer, SOn);	// Terminal standout mode off
+	strcpy(status_buffer, ESC_BOLD_TEXT);
+	vsprintf(status_buffer + sizeof(ESC_BOLD_TEXT)-1, format, args);
+	strcat(status_buffer, ESC_NORM_TEXT);
 	va_end(args);
 
-	have_status_msg = 1 + sizeof(SOs) + sizeof(SOn) - 2;
+	have_status_msg = 1 + sizeof(ESC_BOLD_TEXT) + sizeof(ESC_NORM_TEXT) - 2;
 }
 
 // format status buffer
@@ -2799,8 +2742,8 @@ static void print_literal(char *buf, const char *s)
 		c = *s;
 		c_is_no_print = (c & 0x80) && !Isprint(c);
 		if (c_is_no_print) {
-			strcpy(d, SOn);
-			d += sizeof(SOn)-1;
+			strcpy(d, ESC_NORM_TEXT);
+			d += sizeof(ESC_NORM_TEXT)-1;
 			c = '.';
 		}
 		if (c < ' ' || c == 0x7f) {
@@ -2812,8 +2755,8 @@ static void print_literal(char *buf, const char *s)
 		*d++ = c;
 		*d = '\0';
 		if (c_is_no_print) {
-			strcpy(d, SOs);
-			d += sizeof(SOs)-1;
+			strcpy(d, ESC_BOLD_TEXT);
+			d += sizeof(ESC_BOLD_TEXT)-1;
 		}
 		if (*s == '\n') {
 			*d++ = '$';
@@ -2895,8 +2838,8 @@ static int format_edit_status(void)
 //----- Force refresh of all Lines -----------------------------
 static void redraw(int full_screen)
 {
-	place_cursor(0, 0, FALSE);	// put cursor in correct place
-	clear_to_eos();		// tell terminal to erase display
+	place_cursor(0, 0);
+	clear_to_eos();
 	screen_erase();		// erase the internal screen buffer
 	last_status_cksum = 0;	// force status update
 	refresh(full_screen);	// this will redraw the entire display
@@ -3036,22 +2979,13 @@ static void refresh(int full_screen)
 		if (changed) {
 			// copy changed part of buffer to virtual screen
 			memcpy(sp+cs, out_buf+cs, ce-cs+1);
-
-			// move cursor to column of first change
-			//if (offset != old_offset) {
-			//	// place_cursor is still too stupid
-			//	// to handle offsets correctly
-			//	place_cursor(li, cs, FALSE);
-			//} else {
-				place_cursor(li, cs, TRUE);
-			//}
-
+			place_cursor(li, cs);
 			// write line out to terminal
 			fwrite(&sp[cs], ce - cs + 1, 1, stdout);
 		}
 	}
 
-	place_cursor(crow, ccol, TRUE);
+	place_cursor(crow, ccol);
 
 	old_offset = offset;
 #undef old_offset
@@ -3221,9 +3155,9 @@ static void do_cmd(int c)
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
 	case 18:			// ctrl-R  force redraw
-		place_cursor(0, 0, FALSE);	// put cursor in correct place
-		clear_to_eos();	// tel terminal to erase display
-		mysleep(10);
+		place_cursor(0, 0);
+		clear_to_eos();
+		//mysleep(10); // why???
 		screen_erase();	// erase the internal screen buffer
 		last_status_cksum = 0;	// force status update
 		refresh(TRUE);	// this will redraw the entire display
@@ -4142,7 +4076,7 @@ static void crash_test()
 
 	if (msg[0]) {
 		printf("\n\n%d: \'%c\' %s\n\n\n%s[Hit return to continue]%s",
-			totalcmds, last_input_char, msg, SOs, SOn);
+			totalcmds, last_input_char, msg, ESC_BOLD_TEXT, ESC_NORM_TEXT);
 		fflush_all();
 		while (safe_read(STDIN_FILENO, d, 1) > 0) {
 			if (d[0] == '\n' || d[0] == '\r')
