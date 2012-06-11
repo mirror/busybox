@@ -598,11 +598,15 @@ int vi_main(int argc, char **argv)
 	//----- This is the main file handling loop --------------
 	save_argc = argc;
 	optind = 0;
+	// "Save cursor, use alternate screen buffer, clear screen"
+	write1("\033[?1049h");
 	while (1) {
 		edit_file(argv[optind]); /* param might be NULL */
 		if (++optind >= argc)
 			break;
 	}
+	// "Use normal screen buffer, restore cursor"
+	write1("\033[?1049l");
 	//-----------------------------------------------------------
 
 	return 0;
