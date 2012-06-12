@@ -1286,6 +1286,7 @@ int sd_listen_fds(void);
 #define SETUP_ENV_CHANGEENV (1 << 0)
 #define SETUP_ENV_CLEARENV  (1 << 1)
 #define SETUP_ENV_TO_TMP    (1 << 2)
+#define SETUP_ENV_NO_CHDIR  (1 << 4)
 extern void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
 extern int correct_password(const struct passwd *pw) FAST_FUNC;
 /* Returns a malloced string */

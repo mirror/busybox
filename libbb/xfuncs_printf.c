@@ -355,13 +355,13 @@ void FAST_FUNC xsetuid(uid_t uid)
 void FAST_FUNC xchdir(const char *path)
 {
 	if (chdir(path))
-		bb_perror_msg_and_die("chdir(%s)", path);
+		bb_perror_msg_and_die("can't change directory to '%s'", path);
 }
 
 void FAST_FUNC xchroot(const char *path)
 {
 	if (chroot(path))
-		bb_perror_msg_and_die("can't change root directory to %s", path);
+		bb_perror_msg_and_die("can't change root directory to '%s'", path);
 	xchdir("/");
 }
 
