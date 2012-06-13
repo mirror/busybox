@@ -13,8 +13,9 @@
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:       "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document FILE]\n"
 //usage:       "	[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n"
-//usage:       "	[--no-check-certificate] [-U|--user-agent AGENT]"
-//usage:			IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
+/* Since we ignore these opts, we don't show them in --help */
+/* //usage:    "	[--no-check-certificate] [--no-cache]" */
+//usage:       "	[-U|--user-agent AGENT]" IF_FEATURE_WGET_TIMEOUT(" [-T SEC]") " URL..."
 //usage:	)
 //usage:	IF_NOT_FEATURE_WGET_LONG_OPTIONS(
 //usage:       "[-csq] [-O FILE] [-Y on/off] [-P DIR] [-U AGENT]"
@@ -35,8 +36,11 @@
 
 #include "libbb.h"
 
-//#define log_io(...) bb_error_msg(__VA_ARGS__)
-#define log_io(...) ((void)0)
+#if 0
+# define log_io(...) bb_error_msg(__VA_ARGS__)
+#else
+# define log_io(...) ((void)0)
+#endif
 
 
 struct host_info {
@@ -316,8 +320,6 @@ static char *gethdr(FILE *fp)
 	char *s, *hdrval;
 	int c;
 
-	/* *istrunc = 0; */
-
 	/* retrieve header line */
 	c = fgets_and_trim(fp);
 
@@ -415,7 +417,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 
 	*dfpp = open_socket(lsa);
 
-	if (G.beg_range) {
+	if (G.beg_range != 0) {
 		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
 		if (ftpcmd(G.wget_buf, NULL, sfp) == 350)
 			G.content_len -= G.beg_range;
@@ -675,7 +677,7 @@ static void download_one_url(const char *url)
 		}
 #endif
 
-		if (G.beg_range)
+		if (G.beg_range != 0)
 			fprintf(sfp, "Range: bytes=%"OFF_FMT"u-\r\n", G.beg_range);
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
@@ -748,9 +750,11 @@ However, in real world it was observed that some web servers
 		case 302:
 		case 303:
 			break;
-		case 206:
-			if (G.beg_range)
+		case 206: /* Partial Content */
+			if (G.beg_range != 0)
+				/* "Range:..." worked. Good. */
 				break;
+			/* Partial Content even though we did not ask for it??? */
 			/* fall through */
 		default:
 			bb_error_msg_and_die("server returned error: %s", sanitize_string(G.wget_buf));
@@ -878,6 +882,8 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 		"post-data\0"        Required_argument "\xfd"
 		/* Ignored (we don't do ssl) */
 		"no-check-certificate\0" No_argument   "\xfc"
+		/* Ignored (we don't support caching) */
+		"no-cache\0"         No_argument       "\xfb"
 		;
 #endif
 
