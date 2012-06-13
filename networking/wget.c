@@ -350,6 +350,14 @@ static char *gethdr(FILE *fp)
 	return hdrval;
 }
 
+static void reset_beg_range_to_zero(void)
+{
+	//bb_error_msg("restart failed");
+	G.beg_range = 0;
+	xlseek(G.output_fd, 0, SEEK_SET);
+	ftruncate(G.output_fd, 0);
+}
+
 static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
 {
 	FILE *sfp;
@@ -421,6 +429,8 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 		sprintf(G.wget_buf, "REST %"OFF_FMT"u", G.beg_range);
 		if (ftpcmd(G.wget_buf, NULL, sfp) == 350)
 			G.content_len -= G.beg_range;
+		else
+			reset_beg_range_to_zero();
 	}
 
 	if (ftpcmd("RETR ", target->path, sfp) > 150)
@@ -744,6 +754,12 @@ However, in real world it was observed that some web servers
 (e.g. Boa/0.94.14rc21) simply use code 204 when file size is zero.
 */
 		case 204:
+			if (G.beg_range != 0) {
+				/* "Range:..." was not honored by the server.
+				 * Restart download from the beginning.
+				 */
+				reset_beg_range_to_zero();
+			}
 			break;
 		case 300:  /* redirection */
 		case 301:
