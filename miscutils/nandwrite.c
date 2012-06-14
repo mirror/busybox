@@ -129,7 +129,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 		xmove_fd(tmp_fd, IS_NANDDUMP ? STDOUT_FILENO : STDIN_FILENO);
 	}
 
-	fd = xopen(argv[0], O_RDWR);
+	fd = xopen(argv[0], IS_NANDWRITE ? O_RDWR : O_RDONLY);
 	xioctl(fd, MEMGETINFO, &meminfo);
 
 	mtdoffset = xstrtou(opt_s, 0);
