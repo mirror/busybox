@@ -20,11 +20,11 @@
  */
 
 //usage:#define unzip_trivial_usage
-//usage:       "[-opts[modifiers]] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
+//usage:       "[-lnopq] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
 //usage:#define unzip_full_usage "\n\n"
 //usage:       "Extract files from ZIP archives\n"
 //usage:     "\n	-l	List archive contents (with -q for short form)"
-//usage:     "\n	-n	Never overwrite files (default)"
+//usage:     "\n	-n	Never overwrite files (default: ask)"
 //usage:     "\n	-o	Overwrite"
 //usage:     "\n	-p	Send output to stdout"
 //usage:     "\n	-q	Quiet"
@@ -277,6 +277,7 @@ int unzip_main(int argc, char **argv)
 	IF_NOT_DESKTOP(const) smallint verbose = 0;
 	smallint listing = 0;
 	smallint overwrite = O_PROMPT;
+	smallint x_opt_seen;
 #if ENABLE_DESKTOP
 	uint32_t cdf_offset;
 #endif
@@ -290,7 +291,6 @@ int unzip_main(int argc, char **argv)
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
 	int i, opt;
-	int opt_range = 0;
 	char key_buf[80];
 	struct stat stat_buf;
 
@@ -335,81 +335,81 @@ int unzip_main(int argc, char **argv)
  *    204372                   1 file
  */
 
+	x_opt_seen = 0;
 	/* '-' makes getopt return 1 for non-options */
 	while ((opt = getopt(argc, argv, "-d:lnopqxv")) != -1) {
-		switch (opt_range) {
-		case 0: /* Options */
-			switch (opt) {
-			case 'l': /* List */
-				listing = 1;
-				break;
+		switch (opt) {
+		case 'd':  /* Extract to base directory */
+			base_dir = optarg;
+			break;
 
-			case 'n': /* Never overwrite existing files */
-				overwrite = O_NEVER;
-				break;
+		case 'l': /* List */
+			listing = 1;
+			break;
 
-			case 'o': /* Always overwrite existing files */
-				overwrite = O_ALWAYS;
-				break;
+		case 'n': /* Never overwrite existing files */
+			overwrite = O_NEVER;
+			break;
 
-			case 'p': /* Extract files to stdout and fall through to set verbosity */
-				dst_fd = STDOUT_FILENO;
+		case 'o': /* Always overwrite existing files */
+			overwrite = O_ALWAYS;
+			break;
 
-			case 'q': /* Be quiet */
-				quiet++;
-				break;
+		case 'p': /* Extract files to stdout and fall through to set verbosity */
+			dst_fd = STDOUT_FILENO;
 
-			case 'v': /* Verbose list */
-				IF_DESKTOP(verbose++;)
-				listing = 1;
-				break;
+		case 'q': /* Be quiet */
+			quiet++;
+			break;
 
-			case 1: /* The zip file */
+		case 'v': /* Verbose list */
+			IF_DESKTOP(verbose++;)
+			listing = 1;
+			break;
+
+		case 'x':
+			x_opt_seen = 1;
+			break;
+
+		case 1:
+			if (!src_fn) {
+				/* The zip file */
 				/* +5: space for ".zip" and NUL */
 				src_fn = xmalloc(strlen(optarg) + 5);
 				strcpy(src_fn, optarg);
-				opt_range++;
-				break;
-
-			default:
-				bb_show_usage();
+			} else if (!x_opt_seen) {
+				/* Include files */
+				llist_add_to(&zaccept, optarg);
+			} else {
+				/* Exclude files */
+				llist_add_to(&zreject, optarg);
 			}
 			break;
-
-		case 1: /* Include files */
-			if (opt == 1) {
-				llist_add_to(&zaccept, optarg);
-				break;
-			}
-			if (opt == 'd') {
-				base_dir = optarg;
-				opt_range += 2;
-				break;
-			}
-			if (opt == 'x') {
-				opt_range++;
-				break;
-			}
-			bb_show_usage();
-
-		case 2 : /* Exclude files */
-			if (opt == 1) {
-				llist_add_to(&zreject, optarg);
-				break;
-			}
-			if (opt == 'd') { /* Extract to base directory */
-				base_dir = optarg;
-				opt_range++;
-				break;
-			}
-			/* fall through */
 
 		default:
 			bb_show_usage();
 		}
 	}
 
-	if (src_fn == NULL) {
+#ifndef __GLIBC__
+	/*
+	 * This code is needed for non-GNU getopt
+	 * which doesn't understand "-" in option string.
+	 * The -x option won't work properly in this case:
+	 * "unzip a.zip q -x w e" will be interpreted as
+	 * "unzip a.zip q w e -x" = "unzip a.zip q w e"
+	 */
+	argv += optind;
+	if (argv[0]) {
+		/* +5: space for ".zip" and NUL */
+		src_fn = xmalloc(strlen(argv[0]) + 5);
+		strcpy(src_fn, argv[0]);
+		while (*++argv)
+			llist_add_to(&zaccept, *argv);
+	}
+#endif
+
+	if (!src_fn) {
 		bb_show_usage();
 	}
 
@@ -420,17 +420,20 @@ int unzip_main(int argc, char **argv)
 		if (overwrite == O_PROMPT)
 			overwrite = O_NEVER;
 	} else {
-		static const char extn[][5] = {"", ".zip", ".ZIP"};
-		int orig_src_fn_len = strlen(src_fn);
-		int src_fd = -1;
+		static const char extn[][5] = { ".zip", ".ZIP" };
+		char *ext = src_fn + strlen(src_fn);
+		int src_fd;
 
-		for (i = 0; (i < 3) && (src_fd == -1); i++) {
-			strcpy(src_fn + orig_src_fn_len, extn[i]);
+		i = 0;
+		for (;;) {
 			src_fd = open(src_fn, O_RDONLY);
-		}
-		if (src_fd == -1) {
-			src_fn[orig_src_fn_len] = '\0';
-			bb_error_msg_and_die("can't open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
+			if (src_fd >= 0)
+				break;
+			if (++i > 2) {
+				*ext = '\0';
+				bb_error_msg_and_die("can't open %s[.zip]", src_fn);
+			}
+			strcpy(ext, extn[i - 1]);
 		}
 		xmove_fd(src_fd, zip_fd);
 	}
