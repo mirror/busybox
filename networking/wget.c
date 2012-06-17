@@ -352,10 +352,11 @@ static char *gethdr(FILE *fp)
 
 static void reset_beg_range_to_zero(void)
 {
-	//bb_error_msg("restart failed");
+	bb_error_msg("restart failed");
 	G.beg_range = 0;
 	xlseek(G.output_fd, 0, SEEK_SET);
-	ftruncate(G.output_fd, 0);
+	/* Done at the end instead: */
+	/* ftruncate(G.output_fd, 0); */
 }
 
 static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_sockaddr *lsa)
@@ -552,6 +553,17 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 		if (G.content_len == 0)
 			break; /* all done! */
 		G.got_clen = 1;
+	}
+
+	/* If -c failed, we restart from the beginning,
+	 * but we do not truncate file then, we do it only now, at the end.
+	 * This lets user to ^C if his 99% complete 10 GB file download
+	 * failed to restart *without* losing the almost complete file.
+	 */
+	{
+		off_t pos = lseek(G.output_fd, 0, SEEK_CUR);
+		if (pos != (off_t)-1)
+			ftruncate(G.output_fd, pos);
 	}
 
 	/* Draw full bar and free its resources */
