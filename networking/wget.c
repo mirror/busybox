@@ -621,13 +621,11 @@ static void download_one_url(const char *url)
 		if (G.fname_out[0] == '/' || !G.fname_out[0])
 			G.fname_out = (char*)"index.html";
 		/* -P DIR is considered only if there was no -O FILE */
+		if (G.dir_prefix)
+			G.fname_out = fname_out_alloc = concat_path_file(G.dir_prefix, G.fname_out);
 		else {
-			if (G.dir_prefix)
-				G.fname_out = fname_out_alloc = concat_path_file(G.dir_prefix, G.fname_out);
-			else {
-				/* redirects may free target.path later, need to make a copy */
-				G.fname_out = fname_out_alloc = xstrdup(G.fname_out);
-			}
+			/* redirects may free target.path later, need to make a copy */
+			G.fname_out = fname_out_alloc = xstrdup(G.fname_out);
 		}
 	}
 #if ENABLE_FEATURE_WGET_STATUSBAR
