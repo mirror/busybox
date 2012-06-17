@@ -9,6 +9,8 @@
  */
 
 #define _XOPEN_SOURCE 700
+/* On Darwin, this may be needed to get SIGWINCH: */
+#define _DARWIN_C_SOURCE 1
 
 #include <sys/ioctl.h>
 #include <sys/wait.h>
