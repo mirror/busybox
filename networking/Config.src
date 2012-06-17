@@ -945,8 +945,8 @@ config WGET
 	bool "wget"
 	default y
 	help
-	  wget is a utility for non-interactive download of files from HTTP,
-	  HTTPS, and FTP servers.
+	  wget is a utility for non-interactive download of files from HTTP
+	  and FTP servers.
 
 config FEATURE_WGET_STATUSBAR
 	bool "Enable a nifty process meter (+2k)"
