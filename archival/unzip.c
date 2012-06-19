@@ -20,16 +20,16 @@
  */
 
 //usage:#define unzip_trivial_usage
-//usage:       "[-lnopq] FILE[.zip] [LIST] [-x XLIST] [-d DIR]"
+//usage:       "[-lnopq] FILE[.zip] [FILE]... [-x FILE...] [-d DIR]"
 //usage:#define unzip_full_usage "\n\n"
-//usage:       "Extract files from ZIP archives\n"
-//usage:     "\n	-l	List archive contents (with -q for short form)"
+//usage:       "Extract FILEs from ZIP archive\n"
+//usage:     "\n	-l	List contents (with -q for short form)"
 //usage:     "\n	-n	Never overwrite files (default: ask)"
 //usage:     "\n	-o	Overwrite"
-//usage:     "\n	-p	Send output to stdout"
+//usage:     "\n	-p	Print to stdout"
 //usage:     "\n	-q	Quiet"
-//usage:     "\n	-x XLST	Exclude these files"
-//usage:     "\n	-d DIR	Extract files into DIR"
+//usage:     "\n	-x FILE	Exclude FILEs"
+//usage:     "\n	-d DIR	Extract into DIR"
 
 #include "libbb.h"
 #include "bb_archive.h"

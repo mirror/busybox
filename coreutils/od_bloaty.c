@@ -25,7 +25,7 @@
 
 //usage:#if ENABLE_DESKTOP
 //usage:#define od_trivial_usage
-//usage:       "[-abcdfhilovxs] [-t TYPE] [-A RADIX] [-N SIZE] [-j SKIP] [-S MINSTR] [-w WIDTH] [FILE...]"
+//usage:       "[-abcdfhilovxs] [-t TYPE] [-A RADIX] [-N SIZE] [-j SKIP] [-S MINSTR] [-w WIDTH] [FILE]..."
 // We don't support:
 // ... [FILE] [[+]OFFSET[.][b]]
 // Support is buggy for:
