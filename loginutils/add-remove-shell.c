@@ -8,8 +8,8 @@
  * for details.
  */
 
-//applet:IF_ADD_SHELL(   APPLET_ODDNAME(add-shell   , add_remove_shell, BB_DIR_USR_BIN, BB_SUID_DROP, add_shell   ))
-//applet:IF_REMOVE_SHELL(APPLET_ODDNAME(remove-shell, add_remove_shell, BB_DIR_USR_BIN, BB_SUID_DROP, remove_shell))
+//applet:IF_ADD_SHELL(   APPLET_ODDNAME(add-shell   , add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, add_shell   ))
+//applet:IF_REMOVE_SHELL(APPLET_ODDNAME(remove-shell, add_remove_shell, BB_DIR_USR_SBIN, BB_SUID_DROP, remove_shell))
 
 //kbuild:lib-$(CONFIG_ADD_SHELL)    += add-remove-shell.o
 //kbuild:lib-$(CONFIG_REMOVE_SHELL) += add-remove-shell.o

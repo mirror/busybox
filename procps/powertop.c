@@ -9,7 +9,7 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//applet:IF_POWERTOP(APPLET(powertop, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_POWERTOP(APPLET(powertop, BB_DIR_USR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_POWERTOP) += powertop.o
 
