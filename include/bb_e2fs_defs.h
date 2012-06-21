@@ -406,25 +406,43 @@ struct ext2_super_block {
 	 * Performance hints.  Directory preallocation should only
 	 * happen if the EXT2_FEATURE_COMPAT_DIR_PREALLOC flag is on.
 	 */
-	uint8_t	s_prealloc_blocks;	/* Nr of blocks to try to preallocate*/
-	uint8_t	s_prealloc_dir_blocks;	/* Nr to preallocate for dirs */
+	uint8_t		s_prealloc_blocks;	/* Nr of blocks to try to preallocate*/
+	uint8_t		s_prealloc_dir_blocks;	/* Nr to preallocate for dirs */
 	uint16_t	s_reserved_gdt_blocks;	/* Per group table for online growth */
 	/*
 	 * Journaling support valid if EXT2_FEATURE_COMPAT_HAS_JOURNAL set.
 	 */
-	uint8_t		s_journal_uuid[16];	/* uuid of journal superblock */
-	uint32_t	s_journal_inum;		/* inode number of journal file */
+/*D0*/	uint8_t		s_journal_uuid[16];	/* uuid of journal superblock */
+/*E0*/	uint32_t	s_journal_inum;		/* inode number of journal file */
 	uint32_t	s_journal_dev;		/* device number of journal file */
 	uint32_t	s_last_orphan;		/* start of list of inodes to delete */
 	uint32_t	s_hash_seed[4];		/* HTREE hash seed */
 	uint8_t		s_def_hash_version;	/* Default hash version to use */
 	uint8_t		s_jnl_backup_type;	/* Default type of journal backup */
 	uint16_t	s_reserved_word_pad;
-	uint32_t	s_default_mount_opts;
+/*100*/	uint32_t	s_default_mount_opts;
 	uint32_t	s_first_meta_bg;	/* First metablock group */
+	/* ext3 additions */
 	uint32_t	s_mkfs_time;		/* When the filesystem was created */
 	uint32_t	s_jnl_blocks[17];	/* Backup of the journal inode */
-	uint32_t	s_reserved[172];	/* Padding to the end of the block */
+	/* 64bit support valid if EXT4_FEATURE_COMPAT_64BIT */
+/*150*/	uint32_t	s_blocks_count_hi;	/* Blocks count */
+	uint32_t	s_r_blocks_count_hi;	/* Reserved blocks count */
+	uint32_t	s_free_blocks_count_hi;	/* Free blocks count */
+	uint16_t	s_min_extra_isize;	/* All inodes have at least # bytes */
+	uint16_t	s_want_extra_isize; 	/* New inodes should reserve # bytes */
+	uint32_t	s_flags;		/* Miscellaneous flags */
+	uint16_t	s_raid_stride;		/* RAID stride */
+	uint16_t	s_mmp_interval;		/* # seconds to wait in MMP checking */
+	uint64_t	s_mmp_block;		/* Block for multi-mount protection */
+	uint32_t	s_raid_stripe_width;	/* blocks on all data disks (N*stride)*/
+	uint8_t		s_log_groups_per_flex;	/* FLEX_BG group size */
+	uint8_t		s_reserved_char_pad2;
+	uint16_t	s_reserved_pad;
+	uint32_t	s_reserved[162];	/* Padding to the end of the block */
+};
+struct BUG_ext2_super_block {
+        char bug[sizeof(struct ext2_super_block) == 1024 ? 1 : -1];
 };
 
 /*
