@@ -63,7 +63,7 @@
 //usage:       "	-e CMD	Add CMD to sed commands to be executed"
 //usage:     "\n	-f FILE	Add FILE contents to sed commands to be executed"
 //usage:     "\n	-i[SFX]	Edit files in-place (otherwise sends to stdout)"
-//usage:     "\n		Optionally backs files up, appending SFX"
+//usage:     "\n		Optionally back files up, appending SFX"
 //usage:     "\n	-n	Suppress automatic printing of pattern space"
 //usage:     "\n	-r	Use extended regex syntax"
 //usage:     "\n"
