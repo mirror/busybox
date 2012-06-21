@@ -450,9 +450,9 @@ static void append_mount_options(char **oldopts, const char *newopts)
 
 // Use the mount_options list to parse options into flags.
 // Also update list of unrecognized options if unrecognized != NULL
-static long parse_mount_options(char *options, char **unrecognized)
+static unsigned long parse_mount_options(char *options, char **unrecognized)
 {
-	long flags = MS_SILENT;
+	unsigned long flags = MS_SILENT;
 
 	// Loop through options
 	for (;;) {
@@ -466,7 +466,7 @@ static long parse_mount_options(char *options, char **unrecognized)
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
 			if (strcasecmp(option_str, options) == 0) {
-				long fl = mount_options[i];
+				unsigned long fl = mount_options[i];
 				if (fl < 0)
 					flags &= fl;
 				else
@@ -548,7 +548,7 @@ void delete_block_backed_filesystems(void);
 
 // Perform actual mount of specific filesystem at specific location.
 // NB: mp->xxx fields may be trashed on exit
-static int mount_it_now(struct mntent *mp, long vfsflags, char *filteropts)
+static int mount_it_now(struct mntent *mp, unsigned long vfsflags, char *filteropts)
 {
 	int rc = 0;
 
@@ -1080,7 +1080,7 @@ static void error_msg_rpc(const char *msg)
 }
 
 /* NB: mp->xxx fields may be trashed on exit */
-static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *filteropts)
 {
 	CLIENT *mclient;
 	char *hostname;
@@ -1711,7 +1711,7 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
  * For older kernels, you must build busybox with ENABLE_FEATURE_MOUNT_NFS.
  * (However, note that then you lose any chances that NFS over IPv6 would work).
  */
-static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+static int nfsmount(struct mntent *mp, unsigned long vfsflags, char *filteropts)
 {
 	len_and_sockaddr *lsa;
 	char *opts;
@@ -1753,7 +1753,7 @@ static int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
 static int singlemount(struct mntent *mp, int ignore_busy)
 {
 	int rc = -1;
-	long vfsflags;
+	unsigned long vfsflags;
 	char *loopFile = NULL, *filteropts = NULL;
 	llist_t *fl = NULL;
 	struct stat st;
@@ -1854,7 +1854,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = NULL; // will receive malloced loop dev name
-			if (set_loop(&mp->mnt_fsname, loopFile, 0, /*ro:*/ 0) < 0) {
+			if (set_loop(&mp->mnt_fsname, loopFile, 0, /*ro:*/ (vfsflags & MS_RDONLY)) < 0) {
 				if (errno == EPERM || errno == EACCES)
 					bb_error_msg(bb_msg_perm_denied_are_you_root);
 				else
@@ -1992,6 +1992,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	FILE *fstab;
 	int i, j;
 	int rc = EXIT_SUCCESS;
+	unsigned long cmdopt_flags;
 	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
 	IF_NOT_DESKTOP(const int nonroot = 0;)
@@ -2066,16 +2067,16 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	// Past this point, we are handling either "mount -a [opts]"
 	// or "mount [opts] single_param"
 
-	i = parse_mount_options(cmdopts, NULL); // FIXME: should be "long", not "int"
-	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
+	cmdopt_flags = parse_mount_options(cmdopts, NULL);
+	if (nonroot && (cmdopt_flags & ~MS_SILENT)) // Non-root users cannot specify flags
 		bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
 	if (ENABLE_FEATURE_MOUNT_FLAGS
-	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
+	 && (cmdopt_flags & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
 	) {
 		// verbose_mount(source, target, type, flags, data)
-		rc = verbose_mount("", argv[0], "", i, "");
+		rc = verbose_mount("", argv[0], "", cmdopt_flags, "");
 		if (rc)
 			bb_simple_perror_msg_and_die(argv[0]);
 		return rc;
@@ -2083,7 +2084,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 
 	// Open either fstab or mtab
 	fstabname = "/etc/fstab";
-	if (i & MS_REMOUNT) {
+	if (cmdopt_flags & MS_REMOUNT) {
 		// WARNING. I am not sure this matches util-linux's
 		// behavior. It's possible util-linux does not
 		// take -o opts from mtab (takes only mount source).
@@ -2182,7 +2183,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	// End of fstab/mtab is reached.
 	// Were we looking for something specific?
 	if (argv[0]) { // yes
-		long l;
+		unsigned long l;
 
 		// If we didn't find anything, complain
 		if (!mtcur->mnt_fsname)
