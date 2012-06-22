@@ -467,7 +467,7 @@ static unsigned long parse_mount_options(char *options, char **unrecognized)
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
 			if (strcasecmp(option_str, options) == 0) {
 				unsigned long fl = mount_options[i];
-				if (fl < 0)
+				if ((long)fl < 0)
 					flags &= fl;
 				else
 					flags |= fl;
