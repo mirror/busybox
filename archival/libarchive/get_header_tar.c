@@ -452,9 +452,11 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		if (cp)
 			*cp = '\0';
 		archive_handle->action_data(archive_handle);
-		if (archive_handle->accept || archive_handle->reject)
+		if (archive_handle->accept || archive_handle->reject
+		 || (archive_handle->ah_flags & ARCHIVE_REMEMBER_NAMES)
+		) {
 			llist_add_to(&archive_handle->passed, file_header->name);
-		else /* Caller isn't interested in list of unpacked files */
+		} else /* Caller isn't interested in list of unpacked files */
 			free(file_header->name);
 	} else {
 		data_skip(archive_handle);

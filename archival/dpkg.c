@@ -1665,20 +1665,25 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_data(archive_handle);
 	archive_handle->dpkg__sub_archive->accept = conffile_list;
+	/* Why ARCHIVE_REMEMBER_NAMES?
+	 * We want names collected in ->passed list even if conffile_list
+	 * is NULL (otherwise get_header_tar may optimize name saving out):
+	 */
+	archive_handle->dpkg__sub_archive->ah_flags |= ARCHIVE_REMEMBER_NAMES | ARCHIVE_UNLINK_OLD;
 	archive_handle->dpkg__sub_archive->filter = filter_rename_config;
 	archive_handle->dpkg__sub_archive->action_data = data_extract_all_prefix;
 	archive_handle->dpkg__sub_archive->dpkg__buffer = (char*)"/"; /* huh? */
-	archive_handle->dpkg__sub_archive->ah_flags |= ARCHIVE_UNLINK_OLD;
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */
 	list_filename = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, "list");
 	out_stream = xfopen_for_write(list_filename);
+	archive_handle->dpkg__sub_archive->passed = llist_rev(archive_handle->dpkg__sub_archive->passed);
 	while (archive_handle->dpkg__sub_archive->passed) {
+		char *filename = llist_pop(&archive_handle->dpkg__sub_archive->passed);
 		/* the leading . has been stripped by data_extract_all_prefix already */
-		fputs(archive_handle->dpkg__sub_archive->passed->data, out_stream);
-		fputc('\n', out_stream);
-		archive_handle->dpkg__sub_archive->passed = archive_handle->dpkg__sub_archive->passed->link;
+		fprintf(out_stream, "%s\n", filename);
+		free(filename);
 	}
 	fclose(out_stream);
 
