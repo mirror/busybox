@@ -218,6 +218,7 @@ static const int32_t mount_options[] = {
 		IF_DESKTOP(/* "user"  */ MOUNT_USERS,)
 		IF_DESKTOP(/* "users" */ MOUNT_USERS,)
 		/* "_netdev" */ 0,
+		IF_DESKTOP(/* "comment" */ 0,) /* systemd uses this in fstab */
 	)
 
 	IF_FEATURE_MOUNT_FLAGS(
@@ -275,6 +276,7 @@ static const char mount_option_str[] =
 		IF_DESKTOP("user\0")
 		IF_DESKTOP("users\0")
 		"_netdev\0"
+		IF_DESKTOP("comment\0") /* systemd uses this in fstab */
 	)
 	IF_FEATURE_MOUNT_FLAGS(
 		// vfs flags
@@ -465,7 +467,11 @@ static unsigned long parse_mount_options(char *options, char **unrecognized)
 // FIXME: use hasmntopt()
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
-			if (strcasecmp(option_str, options) == 0) {
+			/* We support "option=" match for "comment=" thingy */
+			unsigned opt_len = strlen(option_str);
+			if (strncasecmp(option_str, options, opt_len) == 0
+			 && (options[opt_len] == '\0' || options[opt_len] == '=')
+			) {
 				unsigned long fl = mount_options[i];
 				if ((long)fl < 0)
 					flags &= fl;
@@ -473,7 +479,7 @@ static unsigned long parse_mount_options(char *options, char **unrecognized)
 					flags |= fl;
 				goto found;
 			}
-			option_str += strlen(option_str) + 1;
+			option_str += opt_len + 1;
 		}
 		// We did not recognize this option.
 		// If "unrecognized" is not NULL, append option there.
