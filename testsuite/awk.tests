@@ -43,6 +43,11 @@ testing "awk long field sep" "awk -F-- '{ print NF, length(\$NF), \$NF }'" \
 	"" \
 	"a--\na--b--\na--b--c--\na--b--c--d--"
 
+testing "awk -F handles escapes" "awk -F'\\x21' '{print \$1}'" \
+	"a\n" \
+	"" \
+	"a!b\n"
+
 # '@(samp|code|file)\{' is an invalid extended regex (unmatched '{'),
 # but gawk 3.1.5 does not bail out on it.
 testing "awk gsub falls back to non-extended-regex" \
