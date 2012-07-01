@@ -271,7 +271,7 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 		}
 		p = token[1];
 		i = index_in_strings(
-			"geometry\0timings\0interlaced\0double\0vsync\0hsync\0csync\0extsync\0",
+			"geometry\0timings\0interlaced\0double\0vsync\0hsync\0csync\0extsync\0rgba\0",
 			token[0]);
 		switch (i) {
 		case 0:
@@ -342,6 +342,30 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 			ss(&base->sync, FB_SYNC_EXT, p, "false");
 //bb_info_msg("EXTSYNC[%s]", p);
 			break;
+		case 8: {
+			int red_offset, red_length;
+			int green_offset, green_length;
+			int blue_offset, blue_length;
+			int transp_offset, transp_length;
+
+			sscanf(p, "%d/%d,%d/%d,%d/%d,%d/%d",
+				&red_offset, &red_length,
+				&green_offset, &green_length,
+				&blue_offset, &blue_length,
+				&transp_offset, &transp_length);
+			base->red.offset = red_offset;
+			base->red.length = red_length;
+			base->red.msb_right = 0;
+			base->green.offset = green_offset;
+			base->green.length = green_length;
+			base->green.msb_right = 0;
+			base->blue.offset = blue_offset;
+			base->blue.length = blue_length;
+			base->blue.msb_right = 0;
+			base->transp.offset = transp_offset;
+			base->transp.length = transp_length;
+			base->transp.msb_right = 0;
+		}
 		}
 	}
 	return 0;
