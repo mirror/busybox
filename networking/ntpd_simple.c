@@ -7,6 +7,7 @@
  */
 #include "libbb.h"
 #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */
+#include <sys/resource.h> /* setpriority */
 #ifndef IPTOS_LOWDELAY
 # define IPTOS_LOWDELAY 0x10
 #endif
