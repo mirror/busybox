@@ -75,6 +75,7 @@ struct acpi_event {
 static const struct acpi_event f_evt_tab[] = {
 	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRF 00000080" },
 	{ "EV_KEY", 0x01, "KEY_POWER", 116, 1, "button/power PWRB 00000080" },
+	{ "EV_SW", 0x05, "SW_LID", 0x00, 1, "button/lid LID0 00000080" },
 };
 
 struct acpi_action {
