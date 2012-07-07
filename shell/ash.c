@@ -1900,6 +1900,10 @@ static const struct {
 	const char *var_text;
 	void (*var_func)(const char *) FAST_FUNC;
 } varinit_data[] = {
+	/*
+	 * Note: VEXPORT would not work correctly here for NOFORK applets:
+	 * some environment strings may be constant.
+	 */
 	{ VSTRFIXED|VTEXTFIXED       , defifsvar   , NULL            },
 #if ENABLE_ASH_MAIL
 	{ VSTRFIXED|VTEXTFIXED|VUNSET, "MAIL"      , changemail      },
