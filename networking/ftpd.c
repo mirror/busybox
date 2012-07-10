@@ -821,7 +821,7 @@ handle_size_or_mdtm(int need_size)
 		gmtime_r(&statbuf.st_mtime, &broken_out);
 		sprintf(buf, STR(FTP_STATFILE_OK)" %04u%02u%02u%02u%02u%02u\r\n",
 			broken_out.tm_year + 1900,
-			broken_out.tm_mon,
+			broken_out.tm_mon + 1,
 			broken_out.tm_mday,
 			broken_out.tm_hour,
 			broken_out.tm_min,
