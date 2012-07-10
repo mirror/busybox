@@ -927,6 +927,7 @@ handle_upload_common(int is_append, int is_unique)
 	 || fstat(local_file_fd, &statbuf) != 0
 	 || !S_ISREG(statbuf.st_mode)
 	) {
+		free(tempname);
 		WRITE_ERR(FTP_UPLOADFAIL);
 		if (local_file_fd >= 0)
 			goto close_local_and_bail;
