@@ -116,7 +116,7 @@ enum {
 struct globals {
 	/* u16 TFTP_ERROR; u16 reason; both network-endian, then error text: */
 	uint8_t error_pkt[4 + 32];
-	char *user_opt;
+	struct passwd *pw;
 	/* used in tftpd_main(), a bit big for stack: */
 	char block_buf[TFTP_BLKSIZE_DEFAULT];
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
@@ -130,13 +130,10 @@ struct globals {
 struct BUG_G_too_big {
 	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 };
-#define block_buf        (G.block_buf   )
-#define user_opt         (G.user_opt    )
-#define error_pkt        (G.error_pkt   )
 #define INIT_G() do { } while (0)
 
-#define error_pkt_reason (error_pkt[3])
-#define error_pkt_str    (error_pkt + 4)
+#define G_error_pkt_reason (G.error_pkt[3])
+#define G_error_pkt_str    ((char*)(G.error_pkt + 4))
 
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
 static void tftp_progress_update(void)
@@ -272,12 +269,11 @@ static int tftp_protocol(
 		xconnect(socket_fd, &peer_lsa->u.sa, peer_lsa->len);
 
 		/* Is there an error already? Send pkt and bail out */
-		if (error_pkt_reason || error_pkt_str[0])
+		if (G_error_pkt_reason || G_error_pkt_str[0])
 			goto send_err_pkt;
 
-		if (user_opt) {
-			struct passwd *pw = xgetpwnam(user_opt);
-			change_identity(pw); /* initgroups, setgid, setuid */
+		if (G.pw) {
+			change_identity(G.pw); /* initgroups, setgid, setuid */
 		}
 	}
 
@@ -329,8 +325,8 @@ static int tftp_protocol(
 		/* Open file (must be after changing user) */
 		local_fd = open(local_file, open_mode, 0666);
 		if (local_fd < 0) {
-			error_pkt_reason = ERR_NOFILE;
-			strcpy((char*)error_pkt_str, "can't open file");
+			G_error_pkt_reason = ERR_NOFILE;
+			strcpy(G_error_pkt_str, "can't open file");
 			goto send_err_pkt;
 		}
 /* gcc 4.3.1 would NOT optimize it out as it should! */
@@ -575,7 +571,7 @@ static int tftp_protocol(
 				if (res) {
 					blksize = tftp_blksize_check(res, blksize);
 					if (blksize < 0) {
-						error_pkt_reason = ERR_BAD_OPT;
+						G_error_pkt_reason = ERR_BAD_OPT;
 						goto send_err_pkt;
 					}
 					io_bufsize = blksize + 4;
@@ -614,8 +610,8 @@ static int tftp_protocol(
 			if (recv_blk == block_nr) {
 				int sz = full_write(local_fd, &rbuf[4], len - 4);
 				if (sz != len - 4) {
-					strcpy((char*)error_pkt_str, bb_msg_write_error);
-					error_pkt_reason = ERR_WRITE;
+					strcpy(G_error_pkt_str, bb_msg_write_error);
+					G_error_pkt_reason = ERR_WRITE;
 					goto send_err_pkt;
 				}
 				if (sz != blksize) {
@@ -664,12 +660,12 @@ static int tftp_protocol(
 	return finished == 0; /* returns 1 on failure */
 
  send_read_err_pkt:
-	strcpy((char*)error_pkt_str, bb_msg_read_error);
+	strcpy(G_error_pkt_str, bb_msg_read_error);
  send_err_pkt:
-	if (error_pkt_str[0])
-		bb_error_msg("%s", (char*)error_pkt_str);
-	error_pkt[1] = TFTP_ERROR;
-	xsendto(socket_fd, error_pkt, 4 + 1 + strlen((char*)error_pkt_str),
+	if (G_error_pkt_str[0])
+		bb_error_msg("%s", G_error_pkt_str);
+	G.error_pkt[1] = TFTP_ERROR;
+	xsendto(socket_fd, G.error_pkt, 4 + 1 + strlen(G_error_pkt_str),
 			&peer_lsa->u.sa, peer_lsa->len);
 	return EXIT_FAILURE;
 #undef remote_file
@@ -761,7 +757,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	len_and_sockaddr *our_lsa;
 	len_and_sockaddr *peer_lsa;
-	char *local_file, *mode;
+	char *local_file, *mode, *user_opt;
 	const char *error_msg;
 	int opt, result, opcode;
 	IF_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)
@@ -789,18 +785,22 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 		openlog(applet_name, LOG_PID, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
+	if (opt & TFTPD_OPT_u) {
+		/* Must be before xchroot */
+		G.pw = xgetpwnam(user_opt);
+	}
 	if (argv[0]) {
 		xchroot(argv[0]);
 	}
 
-	result = recv_from_to(STDIN_FILENO, block_buf, sizeof(block_buf),
+	result = recv_from_to(STDIN_FILENO, G.block_buf, sizeof(G.block_buf),
 			0 /* flags */,
 			&peer_lsa->u.sa, &our_lsa->u.sa, our_lsa->len);
 
 	error_msg = "malformed packet";
-	opcode = ntohs(*(uint16_t*)block_buf);
-	if (result < 4 || result >= sizeof(block_buf)
-	 || block_buf[result-1] != '\0'
+	opcode = ntohs(*(uint16_t*)G.block_buf);
+	if (result < 4 || result >= sizeof(G.block_buf)
+	 || G.block_buf[result-1] != '\0'
 	 || (IF_FEATURE_TFTP_PUT(opcode != TFTP_RRQ) /* not download */
 	     IF_GETPUT(&&)
 	     IF_FEATURE_TFTP_GET(opcode != TFTP_WRQ) /* not upload */
@@ -808,27 +808,27 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	) {
 		goto err;
 	}
-	local_file = block_buf + 2;
+	local_file = G.block_buf + 2;
 	if (local_file[0] == '.' || strstr(local_file, "/.")) {
 		error_msg = "dot in file name";
 		goto err;
 	}
 	mode = local_file + strlen(local_file) + 1;
 	/* RFC 1350 says mode string is case independent */
-	if (mode >= block_buf + result || strcasecmp(mode, "octet") != 0) {
+	if (mode >= G.block_buf + result || strcasecmp(mode, "octet") != 0) {
 		goto err;
 	}
 # if ENABLE_FEATURE_TFTP_BLOCKSIZE
 	{
 		char *res;
 		char *opt_str = mode + sizeof("octet");
-		int opt_len = block_buf + result - opt_str;
+		int opt_len = G.block_buf + result - opt_str;
 		if (opt_len > 0) {
 			res = tftp_get_option("blksize", opt_str, opt_len);
 			if (res) {
 				blksize = tftp_blksize_check(res, 65564);
 				if (blksize < 0) {
-					error_pkt_reason = ERR_BAD_OPT;
+					G_error_pkt_reason = ERR_BAD_OPT;
 					/* will just send error pkt */
 					goto do_proto;
 				}
@@ -846,7 +846,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	if (!ENABLE_FEATURE_TFTP_PUT || opcode == TFTP_WRQ) {
 		if (opt & TFTPD_OPT_r) {
 			/* This would mean "disk full" - not true */
-			/*error_pkt_reason = ERR_WRITE;*/
+			/*G_error_pkt_reason = ERR_WRITE;*/
 			error_msg = bb_msg_write_error;
 			goto err;
 		}
@@ -855,7 +855,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 		IF_GETPUT(option_mask32 |= TFTP_OPT_PUT;) /* will send file's data */
 	}
 
-	/* NB: if error_pkt_str or error_pkt_reason is set up,
+	/* NB: if G_error_pkt_str or G_error_pkt_reason is set up,
 	 * tftp_protocol() just sends one error pkt and returns */
 
  do_proto:
@@ -870,7 +870,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 
 	return result;
  err:
-	strcpy((char*)error_pkt_str, error_msg);
+	strcpy(G_error_pkt_str, error_msg);
 	goto do_proto;
 }
 
