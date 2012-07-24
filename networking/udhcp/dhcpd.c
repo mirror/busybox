@@ -377,6 +377,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	/* Setup the signal pipe */
 	udhcp_sp_setup();
 
+ continue_with_autotime:
 	timeout_end = monotonic_sec() + server_config.auto_time;
 	while (1) { /* loop until universe collapses */
 		fd_set rfds;
@@ -406,8 +407,7 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (retval == 0) {
 			write_leases();
-			timeout_end = monotonic_sec() + server_config.auto_time;
-			continue;
+			goto continue_with_autotime;
 		}
 		if (retval < 0 && errno != EINTR) {
 			log1("Error on select");
@@ -419,10 +419,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 			bb_info_msg("Received SIGUSR1");
 			write_leases();
 			/* why not just reset the timeout, eh */
-			timeout_end = monotonic_sec() + server_config.auto_time;
-			continue;
+			goto continue_with_autotime;
 		case SIGTERM:
 			bb_info_msg("Received SIGTERM");
+			write_leases();
 			goto ret0;
 		case 0: /* no signal: read a packet */
 			break;
