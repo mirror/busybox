@@ -1612,8 +1612,8 @@ unsigned get_cpu_count(void) FAST_FUNC;
 char *percent_decode_in_place(char *str, int strict) FAST_FUNC;
 
 
-extern const char bb_uuenc_tbl_base64[];
-extern const char bb_uuenc_tbl_std[];
+extern const char bb_uuenc_tbl_base64[] ALIGN1;
+extern const char bb_uuenc_tbl_std[] ALIGN1;
 void bb_uuencode(char *store, const void *s, int length, const char *tbl) FAST_FUNC;
 enum {
 	BASE64_FLAG_UU_STOP = 0x100,
@@ -1694,24 +1694,24 @@ extern const char *applet_name;
  * Therefore now we use #defines.
  */
 /* "BusyBox vN.N.N (timestamp or extra_version)" */
-extern const char bb_banner[];
-extern const char bb_msg_memory_exhausted[];
-extern const char bb_msg_invalid_date[];
+extern const char bb_banner[] ALIGN1;
+extern const char bb_msg_memory_exhausted[] ALIGN1;
+extern const char bb_msg_invalid_date[] ALIGN1;
 #define bb_msg_read_error "read error"
 #define bb_msg_write_error "write error"
-extern const char bb_msg_unknown[];
-extern const char bb_msg_can_not_create_raw_socket[];
-extern const char bb_msg_perm_denied_are_you_root[];
-extern const char bb_msg_you_must_be_root[];
-extern const char bb_msg_requires_arg[];
-extern const char bb_msg_invalid_arg[];
-extern const char bb_msg_standard_input[];
-extern const char bb_msg_standard_output[];
+extern const char bb_msg_unknown[] ALIGN1;
+extern const char bb_msg_can_not_create_raw_socket[] ALIGN1;
+extern const char bb_msg_perm_denied_are_you_root[] ALIGN1;
+extern const char bb_msg_you_must_be_root[] ALIGN1;
+extern const char bb_msg_requires_arg[] ALIGN1;
+extern const char bb_msg_invalid_arg[] ALIGN1;
+extern const char bb_msg_standard_input[] ALIGN1;
+extern const char bb_msg_standard_output[] ALIGN1;
 
 /* NB: (bb_hexdigits_upcase[i] | 0x20) -> lowercase hex digit */
-extern const char bb_hexdigits_upcase[];
+extern const char bb_hexdigits_upcase[] ALIGN1;
 
-extern const char bb_path_wtmp_file[];
+extern const char bb_path_wtmp_file[] ALIGN1;
 
 /* Busybox mount uses either /proc/mounts or /etc/mtab to
  * get the list of currently mounted filesystems */
@@ -1725,10 +1725,10 @@ extern const char bb_path_wtmp_file[];
 #define bb_path_motd_file "/etc/motd"
 
 #define bb_dev_null "/dev/null"
-extern const char bb_busybox_exec_path[];
+extern const char bb_busybox_exec_path[] ALIGN1;
 /* util-linux manpage says /sbin:/bin:/usr/sbin:/usr/bin,
  * but I want to save a few bytes here */
-extern const char bb_PATH_root_path[]; /* "PATH=/sbin:/usr/sbin:/bin:/usr/bin" */
+extern const char bb_PATH_root_path[] ALIGN1; /* "PATH=/sbin:/usr/sbin:/bin:/usr/bin" */
 #define bb_default_root_path (bb_PATH_root_path + sizeof("PATH"))
 #define bb_default_path      (bb_PATH_root_path + sizeof("PATH=/sbin:/usr/sbin"))
 
@@ -1758,7 +1758,7 @@ extern struct globals *const ptr_to_globals;
  * If you change LIBBB_DEFAULT_LOGIN_SHELL,
  * don't forget to change increment constant. */
 #define LIBBB_DEFAULT_LOGIN_SHELL  "-/bin/sh"
-extern const char bb_default_login_shell[];
+extern const char bb_default_login_shell[] ALIGN1;
 /* "/bin/sh" */
 #define DEFAULT_SHELL              (bb_default_login_shell+1)
 /* "sh" */
