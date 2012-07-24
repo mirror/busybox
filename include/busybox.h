@@ -13,10 +13,10 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 
 /* Defined in appletlib.c (by including generated applet_tables.h) */
 /* Keep in sync with applets/applet_tables.c! */
-extern const char applet_names[];
+extern const char applet_names[] ALIGN1;
 extern int (*const applet_main[])(int argc, char **argv);
 extern const uint16_t applet_nameofs[];
-extern const uint8_t applet_install_loc[];
+extern const uint8_t applet_install_loc[] ALIGN1;
 
 #if ENABLE_FEATURE_SUID || ENABLE_FEATURE_PREFER_APPLETS
 # define APPLET_NAME(i) (applet_names + (applet_nameofs[i] & 0x0fff))

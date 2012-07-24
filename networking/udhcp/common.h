@@ -187,8 +187,8 @@ struct option_set {
 };
 
 extern const struct dhcp_optflag dhcp_optflags[];
-extern const char dhcp_option_strings[];
-extern const uint8_t dhcp_option_lengths[];
+extern const char dhcp_option_strings[] ALIGN1;
+extern const uint8_t dhcp_option_lengths[] ALIGN1;
 
 unsigned FAST_FUNC udhcp_option_idx(const char *name);
 
