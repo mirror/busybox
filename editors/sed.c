@@ -53,7 +53,9 @@
  * Todo:
  * - Create a wrapper around regex to make libc's regex conform with sed
  *
- * Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
+ * Reference
+ * http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
+ * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/sed.html
  */
 
 //usage:#define sed_trivial_usage
@@ -492,8 +494,10 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 	}
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (idx <= IDX_c) { /* a,i,c */
-		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
-			bb_error_msg_and_die("only a beginning address can be specified for edit commands");
+		if (idx < IDX_c) { /* a,i */
+			if (sed_cmd->end_line || sed_cmd->end_match)
+				bb_error_msg_and_die("command '%c' uses only one address", sed_cmd->cmd);
+		}
 		for (;;) {
 			if (*cmdstr == '\n' || *cmdstr == '\\') {
 				cmdstr++;
@@ -510,8 +514,10 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 	}
 	/* handle file cmds: (r)ead */
 	else if (idx <= IDX_w) { /* r,w */
-		if (sed_cmd->end_line || sed_cmd->end_match)
-			bb_error_msg_and_die("command only uses one address");
+		if (idx < IDX_w) { /* r */
+			if (sed_cmd->end_line || sed_cmd->end_match)
+				bb_error_msg_and_die("command '%c' uses only one address", sed_cmd->cmd);
+		}
 		cmdstr += parse_file_cmd(/*sed_cmd,*/ cmdstr, &sed_cmd->string);
 		if (sed_cmd->cmd == 'w') {
 			sed_cmd->sw_file = xfopen_for_write(sed_cmd->string);
