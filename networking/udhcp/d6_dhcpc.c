@@ -965,8 +965,6 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 		SERVER_PORT = CLIENT_PORT - 1;
 	}
 #endif
-	if (opt & OPT_o)
-		client_config.no_default_options = 1;
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
 		unsigned n = bb_strtou(optstr, NULL, 0);
@@ -975,6 +973,16 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 			n = dhcp_optflags[n].code;
 		}
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+	}
+	if (!(opt & OPT_o)) {
+		/*
+		unsigned i, n;
+		for (i = 0; (n = dhcp_optflags[i].code) != 0; i++) {
+			if (dhcp_optflags[i].flags & OPTION_REQ) {
+				client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+			}
+		}
+		*/
 	}
 	while (list_x) {
 		char *optstr = llist_pop(&list_x);

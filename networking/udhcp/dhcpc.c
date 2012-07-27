@@ -589,7 +589,6 @@ static void init_packet(struct dhcp_packet *packet, char type)
 
 static void add_client_options(struct dhcp_packet *packet)
 {
-	uint8_t c;
 	int i, end, len;
 
 	udhcp_add_simple_option(packet, DHCP_MAX_SIZE, htons(IP_UDP_DHCP_SIZE));
@@ -599,13 +598,9 @@ static void add_client_options(struct dhcp_packet *packet)
 	 * No bounds checking because it goes towards the head of the packet. */
 	end = udhcp_end_option(packet->options);
 	len = 0;
-	for (i = 0; (c = dhcp_optflags[i].code) != 0; i++) {
-		if ((   (dhcp_optflags[i].flags & OPTION_REQ)
-		     && !client_config.no_default_options
-		    )
-		 || (client_config.opt_mask[c >> 3] & (1 << (c & 7)))
-		) {
-			packet->options[end + OPT_DATA + len] = c;
+	for (i = 1; i < DHCP_END; i++) {
+		if (client_config.opt_mask[i >> 3] & (1 << (i & 7))) {
+			packet->options[end + OPT_DATA + len] = i;
 			len++;
 		}
 	}
@@ -1257,8 +1252,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		SERVER_PORT = CLIENT_PORT - 1;
 	}
 #endif
-	if (opt & OPT_o)
-		client_config.no_default_options = 1;
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
 		unsigned n = bb_strtou(optstr, NULL, 0);
@@ -1267,6 +1260,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			n = dhcp_optflags[n].code;
 		}
 		client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+	}
+	if (!(opt & OPT_o)) {
+		unsigned i, n;
+		for (i = 0; (n = dhcp_optflags[i].code) != 0; i++) {
+			if (dhcp_optflags[i].flags & OPTION_REQ) {
+				client_config.opt_mask[n >> 3] |= 1 << (n & 7);
+			}
+		}
 	}
 	while (list_x) {
 		char *optstr = llist_pop(&list_x);
