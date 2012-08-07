@@ -2527,9 +2527,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 					/* Delete word forward */
 					int nc, sc = cursor;
 					ctrl_right();
-					nc = cursor;
-					input_backward(cursor - sc);
-					while (--nc >= cursor)
+					nc = cursor - sc;
+					input_backward(nc);
+					while (--nc >= 0)
 						input_delete(1);
 					break;
 				}
