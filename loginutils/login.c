@@ -37,7 +37,8 @@ static const struct pam_conv conv = {
 enum {
 	TIMEOUT = 60,
 	EMPTY_USERNAME_COUNT = 10,
-	USERNAME_SIZE = 32,
+	/* Some users found 32 chars limit to be too low: */
+	USERNAME_SIZE = 64,
 	TTYNAME_SIZE = 32,
 };
 
