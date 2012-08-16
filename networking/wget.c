@@ -448,6 +448,9 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 # endif
 	struct pollfd polldata;
 
+# if ENABLE_FEATURE_WGET_TIMEOUT
+	second_cnt = G.timeout_seconds;
+# endif
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
 #endif
@@ -483,12 +486,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 			}
 
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
-# if ENABLE_FEATURE_WGET_TIMEOUT
-			second_cnt = G.timeout_seconds;
-# endif
-			while (1) {
-				if (safe_poll(&polldata, 1, 1000) != 0)
-					break; /* error, EOF, or data is available */
+			if (safe_poll(&polldata, 1, 1000) == 0) {
 # if ENABLE_FEATURE_WGET_TIMEOUT
 				if (second_cnt != 0 && --second_cnt == 0) {
 					progress_meter(PROGRESS_END);
@@ -497,6 +495,13 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 # endif
 				/* Needed for "stalled" indicator */
 				progress_meter(PROGRESS_BUMP);
+				/*
+				 * We used to loop back to poll here,
+				 * but in chunked case, we can be here after
+				 * fgets and it could buffer some data in dfp...
+				 * which poll knows nothing about!
+				 * Therefore let's try fread'ing anyway.
+				 */
 			}
 
 			/* fread internally uses read loop, which in our case
@@ -527,7 +532,9 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 			}
 
 			xwrite(G.output_fd, G.wget_buf, n);
-
+#if ENABLE_FEATURE_WGET_TIMEOUT
+			second_cnt = G.timeout_seconds;
+#endif
 #if ENABLE_FEATURE_WGET_STATUSBAR
 			G.transferred += n;
 			progress_meter(PROGRESS_BUMP);
