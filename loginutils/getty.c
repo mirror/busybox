@@ -549,7 +549,15 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		pid = getpid();
 		if (getsid(0) != pid)
+		{
+			//for debugging:
+			//bb_perror_msg_and_die("setsid failed:"
+			//	" pid %d ppid %d"
+			//	" sid %d pgid %d",
+			//	pid, getppid(),
+			//	getsid(0), getpgid(0));
 			bb_perror_msg_and_die("setsid");
+		}
 		/* Looks like we are already a session leader.
 		 * In this case (setsid failed) we may still have ctty,
 		 * and it may be different from tty we need to control!
