@@ -31,25 +31,29 @@ void volume_id_set_unicode16(char *str, size_t len, const uint8_t *buf, enum end
 			c = (buf[i+1] << 8) | buf[i];
 		else
 			c = (buf[i] << 8) | buf[i+1];
-		if (c == 0) {
-			str[j] = '\0';
+		if (c == 0)
 			break;
-		} else if (c < 0x80) {
-			if (j+1 >= len)
-				break;
-			str[j++] = (uint8_t) c;
-		} else if (c < 0x800) {
+		if (j+1 >= len)
+			break;
+		if (c < 0x80) {
+			/* 0xxxxxxx */
+		} else {
+			uint8_t topbits = 0xc0;
 			if (j+2 >= len)
 				break;
-			str[j++] = (uint8_t) (0xc0 | (c >> 6));
-			str[j++] = (uint8_t) (0x80 | (c & 0x3f));
-		} else {
-			if (j+3 >= len)
-				break;
-			str[j++] = (uint8_t) (0xe0 | (c >> 12));
-			str[j++] = (uint8_t) (0x80 | ((c >> 6) & 0x3f));
-			str[j++] = (uint8_t) (0x80 | (c & 0x3f));
+			if (c < 0x800) {
+				/* 110yyyxx 10xxxxxx */
+			} else {
+				if (j+3 >= len)
+					break;
+				/* 1110yyyy 10yyyyxx 10xxxxxx */
+				str[j++] = (uint8_t) (0xe0 | (c >> 12));
+				topbits = 0x80;
+			}
+			str[j++] = (uint8_t) (topbits | ((c >> 6) & 0x3f));
+			c = 0x80 | (c & 0x3f);
 		}
+		str[j++] = (uint8_t) c;
 	}
 	str[j] = '\0';
 }
