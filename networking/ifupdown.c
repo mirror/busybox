@@ -1058,7 +1058,7 @@ static int iface_up(struct interface_defn_t *iface)
 
 static int iface_down(struct interface_defn_t *iface)
 {
-	if (!iface->method->down(iface,check)) return -1;
+	if (!iface->method->down(iface, check)) return -1;
 	set_environ(iface, "stop", "pre-down");
 	if (!execute_all(iface, "down")) return 0;
 	if (!iface->method->down(iface, doit)) return 0;
