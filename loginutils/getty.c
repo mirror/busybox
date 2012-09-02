@@ -548,8 +548,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		 * a session leader - which is quite possible for getty!
 		 */
 		pid = getpid();
-		if (getsid(0) != pid)
-		{
+		if (getsid(0) != pid) {
 			//for debugging:
 			//bb_perror_msg_and_die("setsid failed:"
 			//	" pid %d ppid %d"
