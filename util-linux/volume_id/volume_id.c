@@ -130,6 +130,9 @@ static const probe_fptr fs2[] = {
 #if ENABLE_FEATURE_VOLUMEID_UFS
 	volume_id_probe_ufs,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_NILFS
+	volume_id_probe_nilfs,
+#endif
 #if ENABLE_FEATURE_VOLUMEID_NTFS
 	volume_id_probe_ntfs,
 #endif

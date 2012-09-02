@@ -762,6 +762,13 @@ config FEATURE_VOLUMEID_XFS
 	help
 	  TODO
 
+config FEATURE_VOLUMEID_NILFS
+	bool "nilfs filesystem"
+	default y
+	depends on VOLUMEID
+	help
+	  TODO
+
 config FEATURE_VOLUMEID_NTFS
 	bool "ntfs filesystem"
 	default y
