@@ -444,13 +444,10 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 {
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 # if ENABLE_FEATURE_WGET_TIMEOUT
-	unsigned second_cnt;
+	unsigned second_cnt = G.timeout_seconds;
 # endif
 	struct pollfd polldata;
 
-# if ENABLE_FEATURE_WGET_TIMEOUT
-	second_cnt = G.timeout_seconds;
-# endif
 	polldata.fd = fileno(dfp);
 	polldata.events = POLLIN | POLLPRI;
 #endif
@@ -468,7 +465,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 		 * which messes up progress bar and/or timeout logic.
 		 * Because of nonblocking I/O, we need to dance
 		 * very carefully around EAGAIN. See explanation at
-		 * clearerr() call.
+		 * clearerr() calls.
 		 */
 		ndelay_on(polldata.fd);
 #endif
@@ -476,34 +473,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 			int n;
 			unsigned rdsz;
 
-			rdsz = sizeof(G.wget_buf);
-			if (G.got_clen) {
-				if (G.content_len < (off_t)sizeof(G.wget_buf)) {
-					if ((int)G.content_len <= 0)
-						break;
-					rdsz = (unsigned)G.content_len;
-				}
-			}
-
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
-			if (safe_poll(&polldata, 1, 1000) == 0) {
-# if ENABLE_FEATURE_WGET_TIMEOUT
-				if (second_cnt != 0 && --second_cnt == 0) {
-					progress_meter(PROGRESS_END);
-					bb_error_msg_and_die("download timed out");
-				}
-# endif
-				/* Needed for "stalled" indicator */
-				progress_meter(PROGRESS_BUMP);
-				/*
-				 * We used to loop back to poll here,
-				 * but in chunked case, we can be here after
-				 * fgets and it could buffer some data in dfp...
-				 * which poll knows nothing about!
-				 * Therefore let's try fread'ing anyway.
-				 */
-			}
-
 			/* fread internally uses read loop, which in our case
 			 * is usually exited when we get EAGAIN.
 			 * In this case, libc sets error marker on the stream.
@@ -513,38 +483,71 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 			 * into if (n <= 0) ...
 			 */
 			clearerr(dfp);
-			errno = 0;
 #endif
+			errno = 0;
+			rdsz = sizeof(G.wget_buf);
+			if (G.got_clen) {
+				if (G.content_len < (off_t)sizeof(G.wget_buf)) {
+					if ((int)G.content_len <= 0)
+						break;
+					rdsz = (unsigned)G.content_len;
+				}
+			}
 			n = fread(G.wget_buf, 1, rdsz, dfp);
-			/* man fread:
+
+			if (n > 0) {
+				xwrite(G.output_fd, G.wget_buf, n);
+#if ENABLE_FEATURE_WGET_STATUSBAR
+				G.transferred += n;
+#endif
+				if (G.got_clen) {
+					G.content_len -= n;
+					if (G.content_len == 0)
+						break;
+				}
+#if ENABLE_FEATURE_WGET_TIMEOUT
+				second_cnt = G.timeout_seconds;
+#endif
+				continue;
+			}
+
+			/* n <= 0.
+			 * man fread:
 			 * If error occurs, or EOF is reached, the return value
 			 * is a short item count (or zero).
 			 * fread does not distinguish between EOF and error.
 			 */
-			if (n <= 0) {
-#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
-				if (errno == EAGAIN) /* poll lied, there is no data? */
-					continue; /* yes */
-#endif
-				if (ferror(dfp))
+			if (errno != EAGAIN) {
+				if (ferror(dfp)) {
+					progress_meter(PROGRESS_END);
 					bb_perror_msg_and_die(bb_msg_read_error);
+				}
 				break; /* EOF, not error */
 			}
 
-			xwrite(G.output_fd, G.wget_buf, n);
-#if ENABLE_FEATURE_WGET_TIMEOUT
-			second_cnt = G.timeout_seconds;
-#endif
-#if ENABLE_FEATURE_WGET_STATUSBAR
-			G.transferred += n;
+#if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
+			/* It was EAGAIN. There is no data. Wait up to one second
+			 * then abort if timed out, or update the bar and try reading again.
+			 */
+			if (safe_poll(&polldata, 1, 1000) == 0) {
+# if ENABLE_FEATURE_WGET_TIMEOUT
+				if (second_cnt != 0 && --second_cnt == 0) {
+					progress_meter(PROGRESS_END);
+					bb_error_msg_and_die("download timed out");
+				}
+# endif
+				/* We used to loop back to poll here,
+				 * but there is no great harm in letting fread
+				 * to try reading anyway.
+				 */
+			}
+			/* Need to do it _every_ second for "stalled" indicator
+			 * to be shown properly.
+			 */
 			progress_meter(PROGRESS_BUMP);
 #endif
-			if (G.got_clen) {
-				G.content_len -= n;
-				if (G.content_len == 0)
-					break;
-			}
-		}
+		} /* while (reading data) */
+
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
 		clearerr(dfp);
 		ndelay_off(polldata.fd); /* else fgets can get very unhappy */
@@ -560,6 +563,13 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 		if (G.content_len == 0)
 			break; /* all done! */
 		G.got_clen = 1;
+		/*
+		 * Note that fgets may result in some data being buffered in dfp.
+		 * We loop back to fread, which will retrieve this data.
+		 * Also note that code has to be arranged so that fread
+		 * is done _before_ one-second poll wait - poll doesn't know
+		 * about stdio buffering and can result in spurious one second waits!
+		 */
 	}
 
 	/* If -c failed, we restart from the beginning,
