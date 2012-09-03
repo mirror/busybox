@@ -16,7 +16,7 @@
 
 /* Please conditionalize exotic protocols on CONFIG_something */
 
-static const uint16_t llproto_ids[] =
+static const uint16_t llproto_ids[] = {
 #define __PF(f,n) ETH_P_##f,
 __PF(LOOP,loop)
 __PF(PUP,pup)
@@ -79,7 +79,7 @@ __PF(ECONET,econet)
 
 0x8100,
 ETH_P_IP
-;
+};
 #undef __PF
 
 /* Keep declarations above and below in sync! */
