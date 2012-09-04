@@ -41,12 +41,6 @@ int FAST_FUNC correct_password(const struct passwd *pw)
 	char *unencrypted, *encrypted;
 	const char *correct;
 	int r;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	/* Using _r function to avoid pulling in static buffers */
-	struct spwd spw;
-	char buffer[256];
-#endif
-
 	/* fake salt. crypt() can choke otherwise. */
 	correct = "aa";
 	if (!pw) {
@@ -55,7 +49,10 @@ int FAST_FUNC correct_password(const struct passwd *pw)
 	}
 	correct = pw->pw_passwd;
 #if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
 	if ((correct[0] == 'x' || correct[0] == '*') && !correct[1]) {
+		struct spwd spw;
+		char buffer[256];
 		/* getspnam_r may return 0 yet set result to NULL.
 		 * At least glibc 2.4 does this. Be extra paranoid here. */
 		struct spwd *result = NULL;
