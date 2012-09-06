@@ -728,10 +728,27 @@ static int FAST_FUNC fileAction(const char *fileName,
 		int depth IF_NOT_FEATURE_FIND_MAXDEPTH(UNUSED_PARAM))
 {
 	int r;
+	int same_fs = 1;
+
+#if ENABLE_FEATURE_FIND_XDEV
+	if (S_ISDIR(statbuf->st_mode) && G.xdev_count) {
+		int i;
+		for (i = 0; i < G.xdev_count; i++) {
+			if (G.xdev_dev[i] == statbuf->st_dev)
+				goto found;
+		}
+		//bb_error_msg("'%s': not same fs", fileName);
+		same_fs = 0;
+ found: ;
+	}
+#endif
 
 #if ENABLE_FEATURE_FIND_MAXDEPTH
-	if (depth < G.minmaxdepth[0])
-		return TRUE; /* skip this, continue recursing */
+	if (depth < G.minmaxdepth[0]) {
+		if (same_fs)
+			return TRUE; /* skip this, continue recursing */
+		return SKIP; /* stop recursing */
+	}
 	if (depth > G.minmaxdepth[1])
 		return SKIP; /* stop recursing */
 #endif
@@ -747,21 +764,11 @@ static int FAST_FUNC fileAction(const char *fileName,
 			return SKIP;
 	}
 #endif
-#if ENABLE_FEATURE_FIND_XDEV
 	/* -xdev stops on mountpoints, but AFTER mountpoit itself
 	 * is processed as usual */
-	if (S_ISDIR(statbuf->st_mode)) {
-		if (G.xdev_count) {
-			int i;
-			for (i = 0; i < G.xdev_count; i++) {
-				if (G.xdev_dev[i] == statbuf->st_dev)
-					goto found;
-			}
-			return SKIP;
- found: ;
-		}
+	if (!same_fs) {
+		return SKIP;
 	}
-#endif
 
 	/* Cannot return 0: our caller, recursive_action(),
 	 * will perror() and skip dirs (if called on dir) */
