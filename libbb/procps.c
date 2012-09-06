@@ -425,7 +425,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			if (n < 11)
 				continue; /* bogus data, get next /proc/XXX */
 # if ENABLE_FEATURE_TOP_SMP_PROCESS
-			if (n < 11+15)
+			if (n == 11)
 				sp->last_seen_on_cpu = 0;
 # endif
 
