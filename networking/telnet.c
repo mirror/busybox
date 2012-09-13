@@ -186,22 +186,6 @@ static void con_escape(void)
 
 static void handle_net_output(int len)
 {
-	/* here we could do smart tricks how to handle 0xFF:s in output
-	 * stream like writing twice every sequence of FF:s (thus doing
-	 * many write()s. But I think interactive telnet application does
-	 * not need to be 100% 8-bit clean, so changing every 0xff:s to
-	 * 0x7f:s
-	 *
-	 * 2002-mar-21, Przemyslaw Czerpak (druzus@polbox.com)
-	 * I don't agree.
-	 * first - I cannot use programs like sz/rz
-	 * second - the 0x0D is sent as one character and if the next
-	 *	char is 0x0A then it's eaten by a server side.
-	 * third - why do you have to make 'many write()s'?
-	 *	I don't understand.
-	 * So I implemented it. It's really useful for me. I hope that
-	 * other people will find it interesting too.
-	 */
 	byte outbuf[2 * DATABUFSIZE];
 	byte *p = (byte*)G.buf;
 	int j = 0;
@@ -216,7 +200,11 @@ static void handle_net_output(int len)
 		if (c == IAC)
 			outbuf[j++] = c; /* IAC -> IAC IAC */
 		else if (c == '\r')
-			outbuf[j++] = '\0'; /* CR -> CR NUL */
+			/* See RFC 1123 3.3.1 Telnet End-of-Line Convention.
+			 * Using CR LF instead of other allowed possibilities
+			 * like CR NUL - easier to talk to HTTP/SMTP servers.
+			 */
+			outbuf[j++] = '\n'; /* CR -> CR LF */
 	}
 	if (j > 0)
 		full_write(netfd, outbuf, j);

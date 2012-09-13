@@ -125,6 +125,7 @@ remove_iacs(struct tsession *ts, int *pnum_totty)
 			/* We map \r\n ==> \r for pragmatic reasons.
 			 * Many client implementations send \r\n when
 			 * the user hits the CarriageReturn key.
+			 * See RFC 1123 3.3.1 Telnet End-of-Line Convention.
 			 */
 			if (c == '\r' && ptr < end && (*ptr == '\n' || *ptr == '\0'))
 				ptr++;
