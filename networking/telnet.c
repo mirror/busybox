@@ -386,20 +386,20 @@ static void put_iac_naws(byte c, int x, int y)
 }
 #endif
 
-static char const escapecharis[] ALIGN1 = "\r\nEscape character is ";
-
 static void setConMode(void)
 {
 	if (G.telflags & UF_ECHO) {
 		if (G.charmode == CHM_TRY) {
 			G.charmode = CHM_ON;
-			printf("\r\nEntering character mode%s'^]'.\r\n", escapecharis);
+			printf("\r\nEntering %s mode"
+				"\r\nEscape character is '^%c'.\r\n", "character", ']');
 			rawmode();
 		}
 	} else {
 		if (G.charmode != CHM_OFF) {
 			G.charmode = CHM_OFF;
-			printf("\r\nEntering line mode%s'^C'.\r\n", escapecharis);
+			printf("\r\nEntering %s mode"
+				"\r\nEscape character is '^%c'.\r\n", "line", 'C');
 			cookmode();
 		}
 	}
