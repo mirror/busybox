@@ -187,27 +187,34 @@ static void con_escape(void)
 static void handle_net_output(int len)
 {
 	byte outbuf[2 * DATABUFSIZE];
-	byte *p = (byte*)G.buf;
-	int j = 0;
+	byte *dst = outbuf;
+	byte *src = (byte*)G.buf;
+	byte *end = src + len;
 
-	for (; len > 0; len--, p++) {
-		byte c = *p;
+	while (src < end) {
+		byte c = *src++;
 		if (c == 0x1d) {
 			con_escape();
 			return;
 		}
-		outbuf[j++] = c;
+		*dst = c;
 		if (c == IAC)
-			outbuf[j++] = c; /* IAC -> IAC IAC */
-		else if (c == '\r')
-			/* See RFC 1123 3.3.1 Telnet End-of-Line Convention.
+			*++dst = c; /* IAC -> IAC IAC */
+		else
+		if (c == '\r' || c == '\n') {
+			/* Enter key sends '\r' in raw mode and '\n' in cooked one.
+			 *
+			 * See RFC 1123 3.3.1 Telnet End-of-Line Convention.
 			 * Using CR LF instead of other allowed possibilities
 			 * like CR NUL - easier to talk to HTTP/SMTP servers.
 			 */
-			outbuf[j++] = '\n'; /* CR -> CR LF */
+			*dst = '\r'; /* Enter -> CR LF */
+			*++dst = '\n';
+		}
+		dst++;
 	}
-	if (j > 0)
-		full_write(netfd, outbuf, j);
+	if (dst - outbuf != 0)
+		full_write(netfd, outbuf, dst - outbuf);
 }
 
 static void handle_net_input(int len)
