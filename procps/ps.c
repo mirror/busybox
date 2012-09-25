@@ -655,9 +655,9 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	time_t now = now;
 	long uptime;
 #endif
-	int opts = 0;
 	/* If we support any options, parse argv */
 #if ENABLE_SELINUX || ENABLE_FEATURE_SHOW_THREADS || ENABLE_FEATURE_PS_WIDE || ENABLE_FEATURE_PS_LONG
+	int opts = 0;
 # if ENABLE_FEATURE_PS_WIDE
 	/* -w is a bit complicated */
 	int w_count = 0;
@@ -711,10 +711,10 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  * We also show STIME (standard says that -f shows it, -l doesn't).
  */
 		puts("S   UID   PID  PPID   VSZ   RSS TTY   STIME TIME     CMD");
-#if ENABLE_FEATURE_PS_LONG
+# if ENABLE_FEATURE_PS_LONG
 		now = time(NULL);
 		uptime = get_uptime();
-#endif
+# endif
 	}
 	else {
 		puts("  PID USER       VSZ STAT COMMAND");
