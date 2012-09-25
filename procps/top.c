@@ -153,10 +153,13 @@ struct globals {
 #if ENABLE_FEATURE_TOP_SMP_CPU
 	smallint smp_cpu_info; /* one/many cpu info lines? */
 #endif
+	unsigned lines;  /* screen height */
 #if ENABLE_FEATURE_USE_TERMIOS
 	struct termios initial_settings;
-	unsigned lines;  /* screen height */
 	int scroll_ofs;
+#define G_scroll_ofs G.scroll_ofs
+#else
+#define G_scroll_ofs 0
 #endif
 #if !ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	cmp_funcp sort_function[1];
@@ -661,9 +664,9 @@ static NOINLINE void display_process_list(int lines_rem, int scr_width)
 
 	/* Ok, all preliminary data is ready, go through the list */
 	scr_width += 2; /* account for leading '\n' and trailing NUL */
-	if (lines_rem > ntop - G.scroll_ofs)
-		lines_rem = ntop - G.scroll_ofs;
-	s = top + G.scroll_ofs;
+	if (lines_rem > ntop - G_scroll_ofs)
+		lines_rem = ntop - G_scroll_ofs;
+	s = top + G_scroll_ofs;
 	while (--lines_rem >= 0) {
 		unsigned col;
 		CALC_STAT(pmem, (s->vsz*pmem_scale + pmem_half) >> pmem_shift);
@@ -851,7 +854,7 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 {
 #define HDR_STR "  PID   VSZ VSZRW   RSS (SHR) DIRTY (SHR) STACK"
 #define MIN_WIDTH sizeof(HDR_STR)
-	const topmem_status_t *s = topmem + G.scroll_ofs;
+	const topmem_status_t *s = topmem + G_scroll_ofs;
 
 	display_topmem_header(scr_width, &lines_rem);
 	strcpy(line_buf, HDR_STR " COMMAND");
@@ -859,8 +862,8 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, line_buf);
 	lines_rem--;
 
-	if (lines_rem > ntop - G.scroll_ofs)
-		lines_rem = ntop - G.scroll_ofs;
+	if (lines_rem > ntop - G_scroll_ofs)
+		lines_rem = ntop - G_scroll_ofs;
 	while (--lines_rem >= 0) {
 		/* PID VSZ VSZRW RSS (SHR) DIRTY (SHR) COMMAND */
 		ulltoa6_and_space(s->pid     , &line_buf[0*6]);
@@ -936,32 +939,32 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 			return EXIT_MASK;
 
 		if (c == KEYCODE_UP) {
-			G.scroll_ofs--;
+			G_scroll_ofs--;
 			goto normalize_ofs;
 		}
 		if (c == KEYCODE_DOWN) {
-			G.scroll_ofs++;
+			G_scroll_ofs++;
 			goto normalize_ofs;
 		}
 		if (c == KEYCODE_HOME) {
-			G.scroll_ofs = 0;
+			G_scroll_ofs = 0;
 			break;
 		}
 		if (c == KEYCODE_END) {
-			G.scroll_ofs = ntop - G.lines / 2;
+			G_scroll_ofs = ntop - G.lines / 2;
 			goto normalize_ofs;
 		}
 		if (c == KEYCODE_PAGEUP) {
-			G.scroll_ofs -= G.lines / 2;
+			G_scroll_ofs -= G.lines / 2;
 			goto normalize_ofs;
 		}
 		if (c == KEYCODE_PAGEDOWN) {
-			G.scroll_ofs += G.lines / 2;
+			G_scroll_ofs += G.lines / 2;
  normalize_ofs:
-			if (G.scroll_ofs >= ntop)
-				G.scroll_ofs = ntop - 1;
-			if (G.scroll_ofs < 0)
-				G.scroll_ofs = 0;
+			if (G_scroll_ofs >= ntop)
+				G_scroll_ofs = ntop - 1;
+			if (G_scroll_ofs < 0)
+				G_scroll_ofs = 0;
 			break;
 		}
 
