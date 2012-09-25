@@ -129,7 +129,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		"setageing\0" "setfd\0" "sethello\0" "setmaxage\0"
 		"setpathcost\0" "setportprio\0" "setbridgeprio\0"
 	)
-	IF_FEATURE_BRCTL_SHOW("showmacs\0" "show\0");
+	IF_FEATURE_BRCTL_SHOW("show\0");
 
 	enum { ARG_addbr = 0, ARG_delbr, ARG_addif, ARG_delif
 		IF_FEATURE_BRCTL_FANCY(,
@@ -137,7 +137,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 		   ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
 		   ARG_setpathcost, ARG_setportprio, ARG_setbridgeprio
 		)
-		IF_FEATURE_BRCTL_SHOW(, ARG_showmacs, ARG_show)
+		IF_FEATURE_BRCTL_SHOW(, ARG_show)
 	};
 
 	int fd;
