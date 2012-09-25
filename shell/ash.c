@@ -6338,7 +6338,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	IF_ASH_BASH_COMPAT(const char *repl = NULL;)
 	IF_ASH_BASH_COMPAT(int pos, len, orig_len;)
 	int saveherefd = herefd;
-	int amount, workloc, resetloc;
+	int amount, resetloc;
+	IF_ASH_BASH_COMPAT(int workloc;)
 	int zero;
 	char *(*scan)(char*, char*, char*, char*, int, int);
 
@@ -6451,9 +6452,9 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	rmescend--;
 	str = (char *)stackblock() + strloc;
 	preglob(str, varflags & VSQUOTE, 0);
-	workloc = expdest - (char *)stackblock();
 
 #if ENABLE_ASH_BASH_COMPAT
+	workloc = expdest - (char *)stackblock();
 	if (subtype == VSREPLACE || subtype == VSREPLACEALL) {
 		char *idx, *end;
 
@@ -9310,11 +9311,11 @@ evalcommand(union node *cmd, int flags)
 
 	/* Now locate the command. */
 	if (argc) {
-		const char *oldpath;
 		int cmd_flag = DO_ERR;
-
+#if ENABLE_ASH_CMDCMD
+		const char *oldpath = path + 5;
+#endif
 		path += 5;
-		oldpath = path;
 		for (;;) {
 			find_command(argv[0], &cmdentry, cmd_flag, path);
 			if (cmdentry.cmdtype == CMDUNKNOWN) {
