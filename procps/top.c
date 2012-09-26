@@ -717,7 +717,8 @@ static void clearmems(void)
 
 static void reset_term(void)
 {
-	tcsetattr_stdin_TCSANOW(&initial_settings);
+	if (!OPT_BATCH_MODE)
+		tcsetattr_stdin_TCSANOW(&initial_settings);
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		clearmems();
 # if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
@@ -729,7 +730,7 @@ static void reset_term(void)
 static void sig_catcher(int sig UNUSED_PARAM)
 {
 	reset_term();
-	_exit(EXIT_FAILURE);
+	kill_myself_with_sig(sig);
 }
 
 #endif /* FEATURE_USE_TERMIOS */
@@ -918,6 +919,12 @@ enum {
 static unsigned handle_input(unsigned scan_mask, unsigned interval)
 {
 	struct pollfd pfd[1];
+
+	if (option_mask32 & OPT_EOF) {
+		/* EOF on stdin ("top </dev/null") */
+		sleep(interval);
+		return scan_mask;
+	}
 
 	pfd[0].fd = 0;
 	pfd[0].events = POLLIN;
@@ -1154,10 +1161,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 	sort_function[0] = mem_sort;
 #endif
 
+	if (OPT_BATCH_MODE) {
+		option_mask32 |= OPT_EOF;
+	}
 #if ENABLE_FEATURE_USE_TERMIOS
-	tcgetattr(0, (void *) &initial_settings);
-	memcpy(&new_settings, &initial_settings, sizeof(new_settings));
-	if (!OPT_BATCH_MODE) {
+	else {
+		tcgetattr(0, (void *) &initial_settings);
+		memcpy(&new_settings, &initial_settings, sizeof(new_settings));
 		/* unbuffered input, turn off echo */
 		new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
 		tcsetattr_stdin_TCSANOW(&new_settings);
@@ -1269,11 +1279,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #if !ENABLE_FEATURE_USE_TERMIOS
 		sleep(interval);
 #else
-		if (option_mask32 & OPT_EOF)
-			/* EOF on stdin ("top </dev/null") */
-			sleep(interval);
-		else
-			scan_mask = handle_input(scan_mask, interval);
+		scan_mask = handle_input(scan_mask, interval);
 #endif /* FEATURE_USE_TERMIOS */
 	} /* end of "while (not Q)" */
 
