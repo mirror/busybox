@@ -727,7 +727,7 @@ static void reset_term(void)
 	}
 }
 
-static void sig_catcher(int sig UNUSED_PARAM)
+static void sig_catcher(int sig)
 {
 	reset_term();
 	kill_myself_with_sig(sig);
