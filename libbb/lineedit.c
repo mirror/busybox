@@ -2729,7 +2729,8 @@ int FAST_FUNC read_line_input(const char* prompt, char* command, int maxsize)
 {
 	fputs(prompt, stdout);
 	fflush_all();
-	fgets(command, maxsize, stdin);
+	if (!fgets(command, maxsize, stdin))
+		return -1;
 	return strlen(command);
 }
 
