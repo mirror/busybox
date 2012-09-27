@@ -442,7 +442,7 @@ static bool do_statfs(const char *filename, const char *format)
 		     : getfilecon(filename, &scontext)
 		    ) < 0
 		) {
-			bb_perror_msg(filename);
+			bb_simple_perror_msg(filename);
 			return 0;
 		}
 	}
@@ -555,7 +555,7 @@ static bool do_stat(const char *filename, const char *format)
 		     : getfilecon(filename, &scontext)
 		    ) < 0
 		) {
-			bb_perror_msg(filename);
+			bb_simple_perror_msg(filename);
 			return 0;
 		}
 	}

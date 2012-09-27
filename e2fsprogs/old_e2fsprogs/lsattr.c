@@ -93,7 +93,7 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 	path = concat_path_file(dir_name, de->d_name);
 
 	if (lstat(path, &st) == -1)
-		bb_perror_msg(path);
+		bb_simple_perror_msg(path);
 	else {
 		if (de->d_name[0] != '.' || (flags & OPT_ALL)) {
 			list_attributes(path);
