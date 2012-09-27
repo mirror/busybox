@@ -50,7 +50,6 @@ int flashcp_main(int argc UNUSED_PARAM, char **argv)
 	int fd_f, fd_d; /* input file and mtd device file descriptors */
 	int i;
 	uoff_t erase_count;
-	unsigned opts;
 	struct mtd_info_user mtd;
 	struct erase_info_user e;
 	struct stat statb;
@@ -59,7 +58,7 @@ int flashcp_main(int argc UNUSED_PARAM, char **argv)
 	RESERVE_CONFIG_UBUFFER(buf2, BUFSIZE);
 
 	opt_complementary = "=2"; /* exactly 2 non-option args: file, dev */
-	opts = getopt32(argv, "v");
+	/*opts =*/ getopt32(argv, "v");
 	argv += optind;
 //	filename = *argv++;
 //	devicename = *argv;
