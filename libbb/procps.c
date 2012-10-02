@@ -583,6 +583,8 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 		buf[sz] = '\0';
 		while (--sz >= 0 && buf[sz] == '\0')
 			continue;
+		/* Prevent basename("process foo/bar") = "bar" */
+		strchrnul(buf, ' ')[0] = '\0';
 		base = bb_basename(buf); /* before we replace argv0's NUL with space */
 		while (sz >= 0) {
 			if ((unsigned char)(buf[sz]) < ' ')
