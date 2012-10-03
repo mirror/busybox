@@ -1248,7 +1248,7 @@ extern void run_shell(const char *shell, int loginshell, const char *command, co
  * Note that getpwuid result might need xstrdup'ing
  * if there is a possibility of intervening getpwxxx() calls.
  */
-const char *get_shell_name(void);
+const char *get_shell_name(void) FAST_FUNC;
 
 #if ENABLE_SELINUX
 extern void renew_current_security_context(void) FAST_FUNC;
