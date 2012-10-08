@@ -9,9 +9,9 @@
  */
 
 //usage:#define adduser_trivial_usage
-//usage:       "[OPTIONS] USER"
+//usage:       "[OPTIONS] USER [GROUP]"
 //usage:#define adduser_full_usage "\n\n"
-//usage:       "Add a user\n"
+//usage:       "Create new user, or add USER to GROUP\n"
 //usage:     "\n	-h DIR		Home directory"
 //usage:     "\n	-g GECOS	GECOS field"
 //usage:     "\n	-s SHELL	Login shell"
@@ -80,7 +80,7 @@ static void passwd_study(struct passwd *p)
 	}
 }
 
-static void addgroup_wrapper(struct passwd *p, const char *group_name)
+static int addgroup_wrapper(struct passwd *p, const char *group_name)
 {
 	char *argv[6];
 
@@ -110,7 +110,7 @@ static void addgroup_wrapper(struct passwd *p, const char *group_name)
 		argv[5] = NULL;
 	}
 
-	spawn_and_wait(argv);
+	return spawn_and_wait(argv);
 }
 
 static void passwd_wrapper(const char *login_name) NORETURN;
@@ -162,9 +162,9 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	pw.pw_shell = (char *)get_shell_name();
 	pw.pw_dir = NULL;
 
-	/* exactly one non-option arg */
+	/* at most two non-option args */
 	/* disable interactive passwd for system accounts */
-	opt_complementary = "=1:SD:u+";
+	opt_complementary = "?2:SD:u+";
 	if (sizeof(pw.pw_uid) == sizeof(int)) {
 		opts = getopt32(argv, "h:g:s:G:DSHu:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &pw.pw_uid);
 	} else {
@@ -175,9 +175,16 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	argv += optind;
+	pw.pw_name = argv[0];
+
+	if (!opts && argv[1]) {
+		/* if called with two non-option arguments, adduser
+		 * will add an existing user to an existing group.
+		 */
+		return addgroup_wrapper(&pw, argv[1]);
+	}
 
 	/* fill in the passwd struct */
-	pw.pw_name = argv[0];
 	die_if_bad_username(pw.pw_name);
 	if (!pw.pw_dir) {
 		/* create string for $HOME if not specified already */
@@ -205,7 +212,6 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(p);
-
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* /etc/shadow fields:
 	 * 1. username
