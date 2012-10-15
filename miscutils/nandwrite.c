@@ -182,7 +182,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 			mtdoffset = next_good_eraseblock(fd, &meminfo, blockstart);
 			if (IS_NANDWRITE)
 				printf("Writing at 0x%08x\n", mtdoffset);
-			else if (mtdoffset > blockstart) {
+			else if (mtdoffset > blockstart && !(opts & OPT_b)) {
 				int bad_len = MIN(mtdoffset, limit) - blockstart;
 				dump_bad(&meminfo, bad_len, !(opts & OPT_o));
 			}
