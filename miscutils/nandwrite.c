@@ -162,7 +162,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 		tmp = next_good_eraseblock(fd, &meminfo, blockstart);
 		if (tmp != blockstart) {
 			/* bad block(s), advance mtdoffset */
-			if (IS_NANDDUMP & !(opts & OPT_b)) {
+			if (IS_NANDDUMP && !(opts & OPT_b)) {
 				int bad_len = MIN(tmp, end_addr) - mtdoffset;
 				dump_bad(&meminfo, bad_len, !(opts & OPT_o));
 			}
