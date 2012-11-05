@@ -49,7 +49,11 @@ get_label_uuid(int fd, char **label, char **uuid, const char **type)
 	if (volume_id_probe_all(vid, /*0,*/ size) != 0)
 		goto ret;
 
-	if (vid->label[0] != '\0' || vid->uuid[0] != '\0') {
+	if (vid->label[0] != '\0' || vid->uuid[0] != '\0'
+#if ENABLE_FEATURE_BLKID_TYPE
+	 || vid->type != NULL
+#endif
+	) {
 		*label = xstrndup(vid->label, sizeof(vid->label));
 		*uuid  = xstrndup(vid->uuid, sizeof(vid->uuid));
 #if ENABLE_FEATURE_BLKID_TYPE
