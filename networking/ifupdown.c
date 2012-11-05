@@ -259,7 +259,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 				opt_depth++;
 				command += 2;
 			} else {
-				addstr(&result, "[", 1);
+				addstr(&result, command, 1);
 				command++;
 			}
 			break;
@@ -271,7 +271,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 				}
 				command += 2;
 			} else {
-				addstr(&result, "]", 1);
+				addstr(&result, command, 1);
 				command++;
 			}
 			break;
