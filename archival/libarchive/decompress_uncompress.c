@@ -232,11 +232,12 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 
 					posbits -= n_bits;
 					p = &inbuf[posbits >> 3];
-
+/*
 					bb_error_msg
 						("insize:%d posbits:%d inbuf:%02X %02X %02X %02X %02X (%d)",
 						 insize, posbits, p[-1], p[0], p[1], p[2], p[3],
 						 (posbits & 07));
+*/
 					bb_error_msg("corrupted data");
 					goto err;
 				}
