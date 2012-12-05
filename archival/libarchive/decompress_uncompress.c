@@ -78,7 +78,6 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 	IF_DESKTOP(long long total_written = 0;)
 	IF_DESKTOP(long long) int retval = -1;
 	unsigned char *stackp;
-	long code;
 	int finchar;
 	long oldcode;
 	long incode;
@@ -143,8 +142,10 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 	/* As above, initialize the first 256 entries in the table. */
 	/*clear_tab_prefixof(); - done by xzalloc */
 
-	for (code = 255; code >= 0; --code) {
-		tab_suffixof(code) = (unsigned char) code;
+	{
+		int i;
+		for (i = 255; i >= 0; --i)
+			tab_suffixof(i) = (unsigned char) i;
 	}
 
 	do {
@@ -175,6 +176,8 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 				  (insize << 3) - (n_bits - 1));
 
 		while (inbits > posbits) {
+			long code;
+
 			if (free_ent > maxcode) {
 				posbits =
 					((posbits - 1) +
@@ -191,12 +194,11 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 			}
 			{
 				unsigned char *p = &inbuf[posbits >> 3];
-
-				code = ((((long) (p[0])) | ((long) (p[1]) << 8) |
-				         ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
+				code = ((p[0]
+					| ((long) (p[1]) << 8)
+					| ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
 			}
 			posbits += n_bits;
-
 
 			if (oldcode == -1) {
 				if (code >= 256)
@@ -244,7 +246,7 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 			}
 
 			/* Generate output characters in reverse order */
-			while ((long) code >= (long) 256) {
+			while (code >= 256) {
 				if (stackp <= &htabof(0))
 					bb_error_msg_and_die("corrupted data");
 				*--stackp = tab_suffixof(code);
@@ -285,11 +287,10 @@ unpack_Z_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 			}
 
 			/* Generate the new entry. */
-			code = free_ent;
-			if (code < maxmaxcode) {
-				tab_prefixof(code) = (unsigned short) oldcode;
-				tab_suffixof(code) = (unsigned char) finchar;
-				free_ent = code + 1;
+			if (free_ent < maxmaxcode) {
+				tab_prefixof(free_ent) = (unsigned short) oldcode;
+				tab_suffixof(free_ent) = (unsigned char) finchar;
+				free_ent++;
 			}
 
 			/* Remember previous code.  */
