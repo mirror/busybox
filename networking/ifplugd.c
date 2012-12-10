@@ -551,7 +551,7 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 	applet_name = xasprintf("ifplugd(%s)", G.iface);
 
 #if ENABLE_FEATURE_PIDFILE
-	pidfile_name = xasprintf(_PATH_VARRUN"ifplugd.%s.pid", G.iface);
+	pidfile_name = xasprintf(CONFIG_PID_FILE_PATH "/ifplugd.%s.pid", G.iface);
 	pid_from_pidfile = read_pid(pidfile_name);
 
 	if (opts & FLAG_KILL) {

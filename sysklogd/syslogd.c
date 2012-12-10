@@ -916,6 +916,7 @@ static void do_syslogd(void)
 
 	timestamp_and_log_internal("syslogd exiting");
 	puts("syslogd exiting");
+	remove_pidfile(CONFIG_PID_FILE_PATH "/syslogd.pid");
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
 	kill_myself_with_sig(bb_got_signal);
@@ -979,8 +980,10 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opts & OPT_nofork)) {
 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
 	}
+
 	//umask(0); - why??
-	write_pidfile("/var/run/syslogd.pid");
+	write_pidfile(CONFIG_PID_FILE_PATH "/syslogd.pid");
+
 	do_syslogd();
 	/* return EXIT_SUCCESS; */
 }

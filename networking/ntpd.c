@@ -2080,6 +2080,8 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 	 */
 	cnt = G.peer_cnt * (INITIAL_SAMPLES + 1);
 
+	write_pidfile(CONFIG_PID_FILE_PATH "/ntpd.pid");
+
 	while (!bb_got_signal) {
 		llist_t *item;
 		unsigned i, j;
@@ -2195,6 +2197,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 		}
 	} /* while (!bb_got_signal) */
 
+	remove_pidfile(CONFIG_PID_FILE_PATH "/ntpd.pid");
 	kill_myself_with_sig(bb_got_signal);
 }
 

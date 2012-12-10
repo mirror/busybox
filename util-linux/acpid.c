@@ -235,7 +235,7 @@ int acpid_main(int argc UNUSED_PARAM, char **argv)
 	const char *opt_action = "/etc/acpid.conf";
 	const char *opt_map = "/etc/acpi.map";
 #if ENABLE_FEATURE_PIDFILE
-	const char *opt_pidfile = "/var/run/acpid.pid";
+	const char *opt_pidfile = CONFIG_PID_FILE_PATH "/acpid.pid";
 #endif
 
 	INIT_G();

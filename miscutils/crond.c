@@ -885,7 +885,7 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
 	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
-	write_pidfile("/var/run/crond.pid");
+	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
 
 	/* Main loop */
 	t2 = time(NULL);
