@@ -89,6 +89,10 @@ struct globals {
 #define INIT_G() do { } while (0)
 
 
+/* FIXME? coreutils' du rounds sizes up:
+ * for example,  1025k file is shown as "2" by du -m.
+ * We round to nearest.
+ */
 static void print(unsigned long long size, const char *filename)
 {
 	/* TODO - May not want to defer error checking here. */
