@@ -546,7 +546,7 @@ int ifenslave_main(int argc UNUSED_PARAM, char **argv)
 #ifdef WHY_BOTHER
 	/* Neither -c[hange] nor -d[etach] -> it's "enslave" then;
 	 * and -f[orce] is not there too. Check that it's ethernet. */
-	if (!(opt & (OPT_d|OPT_c|OPT_f)) {
+	if (!(opt & (OPT_d|OPT_c|OPT_f))) {
 		/* The family '1' is ARPHRD_ETHER for ethernet. */
 		if (master.hwaddr.ifr_hwaddr.sa_family != 1) {
 			bb_error_msg_and_die(
