@@ -650,7 +650,7 @@ static void show_timerstats(void)
 	} else {
 		bb_putchar('\n');
 		bb_error_msg("no stats available; run as root or"
-				" enable the cpufreq_stats module");
+				" enable the timer_stats module");
 	}
 }
 
