@@ -43,6 +43,9 @@
 //usage:     "\n	-f FILE		Use FILE as config (default:/etc/syslog.conf)"
 //usage:	)
 /* //usage:  "\n	-m MIN		Minutes between MARK lines (default:20, 0=off)" */
+//usage:	IF_FEATURE_KMSG_SYSLOG(
+//usage:     "\n	-K		Log to kernel printk buffer (use dmesg to read it)"
+//usage:	)
 //usage:
 //usage:#define syslogd_example_usage
 //usage:       "$ syslogd -R masterlog:514\n"
@@ -140,6 +143,10 @@ IF_FEATURE_IPC_SYSLOG( \
 ) \
 IF_FEATURE_SYSLOGD_CFG( \
 	logRule_t *log_rules; \
+) \
+IF_FEATURE_KMSG_SYSLOG( \
+	int kmsgfd; \
+	int primask; \
 )
 
 struct init_globals {
@@ -212,6 +219,7 @@ enum {
 	IF_FEATURE_IPC_SYSLOG(    OPTBIT_circularlog,)	// -C
 	IF_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
 	IF_FEATURE_SYSLOGD_CFG(   OPTBIT_cfg        ,)	// -f
+	IF_FEATURE_KMSG_SYSLOG(   OPTBIT_kmsg       ,)	// -K
 
 	OPT_mark        = 1 << OPTBIT_mark    ,
 	OPT_nofork      = 1 << OPTBIT_nofork  ,
@@ -225,6 +233,8 @@ enum {
 	OPT_circularlog = IF_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
 	OPT_dup         = IF_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
 	OPT_cfg         = IF_FEATURE_SYSLOGD_CFG(   (1 << OPTBIT_cfg        )) + 0,
+	OPT_kmsg        = IF_FEATURE_KMSG_SYSLOG(   (1 << OPTBIT_kmsg       )) + 0,
+
 };
 #define OPTION_STR "m:nO:l:S" \
 	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
@@ -233,7 +243,8 @@ enum {
 	IF_FEATURE_REMOTE_LOG(    "L"  ) \
 	IF_FEATURE_IPC_SYSLOG(    "C::") \
 	IF_FEATURE_SYSLOGD_DUP(   "D"  ) \
-	IF_FEATURE_SYSLOGD_CFG(   "f:"  )
+	IF_FEATURE_SYSLOGD_CFG(   "f:" ) \
+	IF_FEATURE_KMSG_SYSLOG(   "K"  )
 #define OPTION_DECL *opt_m, *opt_l \
 	IF_FEATURE_ROTATE_LOGFILE(,*opt_s) \
 	IF_FEATURE_ROTATE_LOGFILE(,*opt_b) \
@@ -523,6 +534,44 @@ void ipcsyslog_init(void);
 void log_to_shmem(const char *msg);
 #endif /* FEATURE_IPC_SYSLOG */
 
+#if ENABLE_FEATURE_KMSG_SYSLOG
+static void kmsg_init(void)
+{
+	G.kmsgfd = xopen("/dev/kmsg", O_WRONLY);
+
+	/*
+	 * kernel < 3.5 expects single char printk KERN_* priority prefix,
+	 * from 3.5 onwards the full syslog facility/priority format is supported
+	 */
+	if (get_linux_version_code() < KERNEL_VERSION(3,5,0))
+		G.primask = LOG_PRIMASK;
+	else
+		G.primask = -1;
+}
+
+static void kmsg_cleanup(void)
+{
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(G.kmsgfd);
+}
+
+/* Write message to /dev/kmsg */
+static void log_to_kmsg(int pri, const char *msg)
+{
+	/*
+	 * kernel < 3.5 expects single char printk KERN_* priority prefix,
+	 * from 3.5 onwards the full syslog facility/priority format is supported
+	 */
+	pri &= G.primask;
+
+	write(G.kmsgfd, G.printbuf, sprintf(G.printbuf, "<%d>%s\n", pri, msg));
+}
+#else
+void kmsg_init(void);
+void kmsg_cleanup(void);
+void log_to_kmsg(int pri, const char *msg);
+#endif /* FEATURE_KMSG_SYSLOG */
+
 /* Print a message to the log file. */
 static void log_locally(time_t now, char *msg, logFile_t *log_file)
 {
@@ -656,6 +705,11 @@ static void timestamp_and_log(int pri, char *msg, int len)
 		msg += 16;
 	}
 	timestamp[15] = '\0';
+
+	if (ENABLE_FEATURE_KMSG_SYSLOG && (option_mask32 & OPT_kmsg)) {
+		log_to_kmsg(pri, msg);
+		return;
+	}
 
 	if (option_mask32 & OPT_small)
 		sprintf(G.printbuf, "%s %s\n", timestamp, msg);
@@ -831,6 +885,9 @@ static void do_syslogd(void)
 		ipcsyslog_init();
 	}
 
+	if (ENABLE_FEATURE_KMSG_SYSLOG && (option_mask32 & OPT_kmsg))
+		kmsg_init();
+
 	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
 
 	while (!bb_got_signal) {
@@ -919,6 +976,8 @@ static void do_syslogd(void)
 	remove_pidfile(CONFIG_PID_FILE_PATH "/syslogd.pid");
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
+	if (ENABLE_FEATURE_KMSG_SYSLOG && (option_mask32 & OPT_kmsg))
+		kmsg_cleanup();
 	kill_myself_with_sig(bb_got_signal);
 #undef recvbuf
 }

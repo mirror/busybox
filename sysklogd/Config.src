@@ -113,6 +113,19 @@ config FEATURE_LOGREAD_REDUCED_LOCKING
 	  from circular buffer, minimizing semaphore
 	  contention at some minor memory expense.
 
+config FEATURE_KMSG_SYSLOG
+	bool "Linux kernel printk buffer support"
+	default y
+	depends on SYSLOGD
+	select PLATFORM_LINUX
+	help
+	  When you enable this feature, the syslogd utility will
+	  write system log message to the Linux kernel's printk buffer.
+	  This can be used as a smaller alternative to the syslogd IPC
+	  support, as klogd and logread aren't needed.
+
+	  NOTICE: Syslog facilities in log entries needs kernel 3.5+.
+
 config KLOGD
 	bool "klogd"
 	default y
@@ -122,6 +135,9 @@ config KLOGD
 	  out to the 'syslogd' utility so they can be logged. If
 	  you wish to record the messages produced by the kernel,
 	  you should enable this option.
+
+comment "klogd should not be used together with syslog to kernel printk buffer"
+	depends on KLOGD && FEATURE_KMSG_SYSLOG
 
 config FEATURE_KLOGD_KLOGCTL
 	bool "Use the klogctl() interface"
