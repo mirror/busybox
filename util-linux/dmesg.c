@@ -59,16 +59,15 @@ int dmesg_main(int argc UNUSED_PARAM, char **argv)
 		int last = '\n';
 		int in = 0;
 
-		/* Skip <#> at the start of lines */
+		/* Skip <[0-9]+> at the start of lines */
 		while (1) {
 			if (last == '\n' && buf[in] == '<') {
-				in += 3;
-				if (in >= len)
-					break;
+				while (buf[in++] != '>' && in < len)
+					;
+			} else {
+				last = buf[in++];
+				putchar(last);
 			}
-			last = buf[in];
-			putchar(last);
-			in++;
 			if (in >= len)
 				break;
 		}
