@@ -240,11 +240,8 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 			priority = LOG_INFO;
 			if (*start == '<') {
 				start++;
-				if (*start) {
-					/* kernel never generates multi-digit prios */
-					priority = (*start - '0');
-					start++;
-				}
+				if (*start)
+					priority = strtoul(start, &start, 10);
 				if (*start == '>')
 					start++;
 			}
