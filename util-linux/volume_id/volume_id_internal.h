@@ -136,11 +136,15 @@ void FAST_FUNC free_volume_id(struct volume_id *id);
 #define cpu_to_be32(x) (x)
 #endif
 
+/* volume_id_set_uuid(id,buf,fmt) assumes size of uuid buf
+ * by shifting: 4 << fmt, except for fmt == UUID_DCE_STRING.
+ * The constants below should match sizes.
+ */
 enum uuid_format {
-	UUID_DCE_STRING,
-	UUID_DCE,
-	UUID_DOS,
-	UUID_NTFS,
+	UUID_DOS = 0,		/* 4 bytes */
+	UUID_NTFS = 1,		/* 8 bytes */
+	UUID_DCE = 2,		/* 16 bytes */
+	UUID_DCE_STRING = 3,	/* 36 bytes (VOLUME_ID_UUID_SIZE) */
 };
 
 enum endian {

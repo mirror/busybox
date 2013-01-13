@@ -135,23 +135,8 @@ void volume_id_set_label_unicode16(struct volume_id *id, const uint8_t *buf, enu
 void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_format format)
 {
 	unsigned i;
-	unsigned count = 0;
+	unsigned count = (format == UUID_DCE_STRING ? VOLUME_ID_UUID_SIZE : 4 << format);
 
-	switch (format) {
-	case UUID_DOS:
-		count = 4;
-		break;
-	case UUID_NTFS:
-		count = 8;
-		break;
-	case UUID_DCE:
-		count = 16;
-		break;
-	case UUID_DCE_STRING:
-		/* 36 is ok, id->uuid has one extra byte for NUL */
-		count = VOLUME_ID_UUID_SIZE;
-		break;
-	}
 //	memcpy(id->uuid_raw, buf, count);
 //	id->uuid_raw_len = count;
 
