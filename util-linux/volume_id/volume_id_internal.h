@@ -141,7 +141,6 @@ enum uuid_format {
 	UUID_DCE,
 	UUID_DOS,
 	UUID_NTFS,
-	UUID_HFS,
 };
 
 enum endian {

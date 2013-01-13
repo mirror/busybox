@@ -142,7 +142,6 @@ void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_form
 		count = 4;
 		break;
 	case UUID_NTFS:
-	case UUID_HFS:
 		count = 8;
 		break;
 	case UUID_DCE:
@@ -172,11 +171,6 @@ set:
 		sprintf(id->uuid, "%02X%02X%02X%02X%02X%02X%02X%02X",
 			buf[7], buf[6], buf[5], buf[4],
 			buf[3], buf[2], buf[1], buf[0]);
-		break;
-	case UUID_HFS:
-		sprintf(id->uuid, "%02X%02X%02X%02X%02X%02X%02X%02X",
-			buf[0], buf[1], buf[2], buf[3],
-			buf[4], buf[5], buf[6], buf[7]);
 		break;
 	case UUID_DCE:
 		sprintf(id->uuid,
