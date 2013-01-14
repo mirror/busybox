@@ -109,7 +109,7 @@ int FAST_FUNC volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t of
 				extended = off + poff;
 		} else {
 			dbg("found 0x%x data partition at 0x%llx, len 0x%llx",
-			    part[i].sys_ind, (unsigned long long) poff, (unsigned long long) plen);
+				part[i].sys_ind, (unsigned long long) poff, (unsigned long long) plen);
 
 //			if (is_raid(part[i].sys_ind))
 //				volume_id_set_usage_part(p, VOLUME_ID_RAID);

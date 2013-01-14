@@ -150,9 +150,9 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 			}
 
 		/* If this block device already set up right, re-use it.
-		   (Yes this is racy, but associating two loop devices with the same
-		   file isn't pretty either.  In general, mounting the same file twice
-		   without using losetup manually is problematic.)
+		 * (Yes this is racy, but associating two loop devices with the same
+		 * file isn't pretty either.  In general, mounting the same file twice
+		 * without using losetup manually is problematic.)
 		 */
 		} else
 		if (strcmp(file, (char *)loopinfo.lo_file_name) != 0

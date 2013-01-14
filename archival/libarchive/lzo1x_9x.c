@@ -644,7 +644,7 @@ static int len_of_coded_match(unsigned m_len, unsigned m_off, unsigned lit)
 
 
 static int min_gain(unsigned ahead, unsigned lit1,
-		    unsigned lit2, int l1, int l2, int l3)
+			unsigned lit2, int l1, int l2, int l3)
 {
 	int lazy_match_min_gain = 0;
 
@@ -673,7 +673,7 @@ static int min_gain(unsigned ahead, unsigned lit1,
 #if defined(SWD_BEST_OFF)
 
 static void better_match(const lzo_swd_p swd,
-			   unsigned *m_len, unsigned *m_off)
+			unsigned *m_len, unsigned *m_off)
 {
 	if (*m_len <= M2_MIN_LEN)
 		return;
@@ -914,8 +914,8 @@ int lzo1x_999_compress_level(const uint8_t *in, unsigned in_len,
 
 	compression_level -= 7;
 	return lzo1x_999_compress_internal(in, in_len, out, out_len, wrkmem,
-					   c[compression_level].good_length,
-					   c[compression_level].max_lazy,
-					   c[compression_level].max_chain,
-					   c[compression_level].use_best_off);
+					c[compression_level].good_length,
+					c[compression_level].max_lazy,
+					c[compression_level].max_chain,
+					c[compression_level].use_best_off);
 }

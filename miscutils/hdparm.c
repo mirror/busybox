@@ -1022,8 +1022,8 @@ static void identify(uint16_t *val)
 		}
 		if ((like_std > 3) && (val[CMDS_SUPP_1] & 0x0008)) {
 			/* We print out elsewhere whether the APM feature is enabled or
-			   not.  If it's not enabled, let's not repeat the info; just print
-			   nothing here. */
+			 * not.  If it's not enabled, let's not repeat the info; just print
+			 * nothing here. */
 			printf("\tAdvancedPM level: ");
 			if ((val[ADV_PWR] & 0xFF00) == 0x4000) {
 				uint8_t apm_level = val[ADV_PWR] & 0x00FF;

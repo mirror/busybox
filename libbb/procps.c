@@ -180,7 +180,7 @@ static char *skip_fields(char *str, int count)
 
 #if ENABLE_FEATURE_TOPMEM || ENABLE_PMAP
 int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
-		      void (*cb)(struct smaprec *, void *), void *data)
+		void (*cb)(struct smaprec *, void *), void *data)
 {
 	FILE *file;
 	struct smaprec currec;

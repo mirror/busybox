@@ -507,8 +507,8 @@ void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 	while (1) {
 		int r;
 		r = fscanf(fp, "%63s%lx%lx%X%d%d%d%lx%d%d%d\n",
-				   devname, &d, &g, &flgs, &ref, &use, &metric, &m,
-				   &mtu, &win, &ir);
+				devname, &d, &g, &flgs, &ref, &use, &metric, &m,
+				&mtu, &win, &ir);
 		if (r != 11) {
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;

@@ -372,7 +372,7 @@ int getopt_main(int argc, char **argv)
 	if (!argv[1]) {
 		if (compatible) {
 			/* For some reason, the original getopt gave no error
-			   when there were no arguments. */
+			 * when there were no arguments. */
 			printf(" --\n");
 			return 0;
 		}

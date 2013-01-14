@@ -253,24 +253,24 @@ static NOINLINE int cpio_o(void)
 		}
 
 		bytes += printf("070701"
-		                "%08X%08X%08X%08X%08X%08X%08X"
-		                "%08X%08X%08X%08X" /* GNU cpio uses uppercase hex */
+				"%08X%08X%08X%08X%08X%08X%08X"
+				"%08X%08X%08X%08X" /* GNU cpio uses uppercase hex */
 				/* strlen+1: */ "%08X"
 				/* chksum: */   "00000000" /* (only for "070702" files) */
 				/* name,NUL: */ "%s%c",
-		                (unsigned)(uint32_t) st.st_ino,
-		                (unsigned)(uint32_t) st.st_mode,
-		                (unsigned)(uint32_t) st.st_uid,
-		                (unsigned)(uint32_t) st.st_gid,
-		                (unsigned)(uint32_t) st.st_nlink,
-		                (unsigned)(uint32_t) st.st_mtime,
-		                (unsigned)(uint32_t) st.st_size,
-		                (unsigned)(uint32_t) major(st.st_dev),
-		                (unsigned)(uint32_t) minor(st.st_dev),
-		                (unsigned)(uint32_t) major(st.st_rdev),
-		                (unsigned)(uint32_t) minor(st.st_rdev),
-		                (unsigned)(strlen(name) + 1),
-		                name, '\0');
+				(unsigned)(uint32_t) st.st_ino,
+				(unsigned)(uint32_t) st.st_mode,
+				(unsigned)(uint32_t) st.st_uid,
+				(unsigned)(uint32_t) st.st_gid,
+				(unsigned)(uint32_t) st.st_nlink,
+				(unsigned)(uint32_t) st.st_mtime,
+				(unsigned)(uint32_t) st.st_size,
+				(unsigned)(uint32_t) major(st.st_dev),
+				(unsigned)(uint32_t) minor(st.st_dev),
+				(unsigned)(uint32_t) major(st.st_rdev),
+				(unsigned)(uint32_t) minor(st.st_rdev),
+				(unsigned)(strlen(name) + 1),
+				name, '\0');
 		bytes = cpio_pad4(bytes);
 
 		if (st.st_size) {

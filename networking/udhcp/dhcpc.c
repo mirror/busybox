@@ -1723,7 +1723,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 #endif
 				/* enter bound state */
 				timeout = lease_seconds / 2;
-			        temp_addr.s_addr = packet.yiaddr;
+				temp_addr.s_addr = packet.yiaddr;
 				bb_info_msg("Lease of %s obtained, lease time %u",
 					inet_ntoa(temp_addr), (unsigned)lease_seconds);
 				requested_ip = packet.yiaddr;

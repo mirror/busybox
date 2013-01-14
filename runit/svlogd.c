@@ -601,12 +601,12 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 
 			while (fchdir(ld->fddir) == -1)
 				pause2cannot("change directory, want remove old logfile",
-							 ld->name);
+							ld->name);
 			oldest[0] = 'A';
 			oldest[1] = oldest[27] = '\0';
 			while (!(d = opendir(".")))
 				pause2cannot("open directory, want remove old logfile",
-							 ld->name);
+							ld->name);
 			errno = 0;
 			while ((f = readdir(d)))
 				if ((f->d_name[0] == '@') && (strlen(f->d_name) == 27)) {

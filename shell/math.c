@@ -410,7 +410,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 				return "exponent less than 0";
 			c = 1;
 			while (--right_side_val >= 0)
-			    c *= rez;
+				c *= rez;
 			rez = c;
 		}
 		else if (right_side_val == 0)

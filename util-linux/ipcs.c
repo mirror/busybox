@@ -152,7 +152,7 @@ static NOINLINE void do_shm(void)
 		if ((shmctl(0, IPC_INFO, (struct shmid_ds *) (void *) &shminfo)) < 0)
 			return;
 		/* glibc 2.1.3 and all earlier libc's have ints as fields
-		   of struct shminfo; glibc 2.1.91 has unsigned long; ach */
+		 * of struct shminfo; glibc 2.1.91 has unsigned long; ach */
 		printf("max number of segments = %lu\n"
 				"max seg size (kbytes) = %lu\n"
 				"max total shared memory (pages) = %lu\n"

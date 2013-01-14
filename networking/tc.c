@@ -391,7 +391,7 @@ static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("root ");
 	else if (msg->tcm_parent) {
 		classid = print_tc_classid(filter_qdisc ?
-								   TC_H_MIN(msg->tcm_parent) : msg->tcm_parent);
+				TC_H_MIN(msg->tcm_parent) : msg->tcm_parent);
 		printf("parent %s ", classid);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			free(classid);
@@ -526,7 +526,8 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 				duparg(*argv, "handle");
 			/* reject LONG_MIN || LONG_MAX */
 			/* TODO: for fw
-			   if ((slash = strchr(handle, '/')) != NULL)
+			slash = strchr(handle, '/');
+			if (slash != NULL)
 				   *slash = '\0';
 			 */
 			msg.tcm_handle = get_u32(*argv, "handle");

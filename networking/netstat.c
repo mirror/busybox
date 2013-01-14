@@ -187,7 +187,7 @@ static void prg_cache_add(long inode, char *name)
 	for (pnp = prg_hash + hi; (pn = *pnp) != NULL; pnp = &pn->next) {
 		if (pn->inode == inode) {
 			/* Some warning should be appropriate here
-			   as we got multiple processes for one i-node */
+			 * as we got multiple processes for one i-node */
 			return;
 		}
 	}

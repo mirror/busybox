@@ -3564,7 +3564,8 @@ set_curjob(struct job *jp, unsigned mode)
 		break;
 	case CUR_RUNNING:
 		/* newly created job or backgrounded job,
-		   put after all stopped jobs. */
+		 * put after all stopped jobs.
+		 */
 		while (1) {
 			jp1 = *jpp;
 #if JOBS
@@ -11640,8 +11641,9 @@ parsebackq: {
 	INT_ON;
 	if (oldstyle) {
 		/* We must read until the closing backquote, giving special
-		   treatment to some slashes, and then push the string and
-		   reread it as input, interpreting it normally.  */
+		 * treatment to some slashes, and then push the string and
+		 * reread it as input, interpreting it normally.
+		 */
 		char *pout;
 		size_t psavelen;
 		char *pstr;

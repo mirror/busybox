@@ -172,7 +172,7 @@ static void update_status(struct svdir *s)
 		}
 		close(fd);
 		if (rename_or_warn("supervise/pid.new",
-		    s->islog ? "log/supervise/pid" : "log/supervise/pid"+4))
+				s->islog ? "log/supervise/pid" : "log/supervise/pid"+4))
 			return;
 		pidchanged = 0;
 	}

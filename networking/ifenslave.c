@@ -270,7 +270,7 @@ static int set_if_addr(char *master_ifname, char *slave_ifname)
 		if (res < 0) {
 			ifr.ifr_addr.sa_family = AF_INET;
 			memset(ifr.ifr_addr.sa_data, 0,
-			       sizeof(ifr.ifr_addr.sa_data));
+				sizeof(ifr.ifr_addr.sa_data));
 		}
 
 		res = set_ifrname_and_do_ioctl(ifra[i].s_ioctl, &ifr, slave_ifname);

@@ -591,37 +591,43 @@ static bool do_stat(const char *filename, const char *format)
 # else
 		if (option_mask32 & OPT_TERSE) {
 			format = (option_mask32 & OPT_SELINUX ?
-				  "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o %C\n":
-				  "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o\n");
+				"%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o %C\n"
+				:
+				"%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o\n"
+				);
 		} else {
 			if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode)) {
 				format = (option_mask32 & OPT_SELINUX ?
-					  "  File: %N\n"
-					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
-					  "Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
-					  " Device type: %t,%T\n"
-					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
-					  "   S_Context: %C\n"
-					  "Access: %x\n" "Modify: %y\n" "Change: %z\n":
-					  "  File: %N\n"
-					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
-					  "Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
-					  " Device type: %t,%T\n"
-					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
-					  "Access: %x\n" "Modify: %y\n" "Change: %z\n");
+					"  File: %N\n"
+					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
+					"Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
+					" Device type: %t,%T\n"
+					"Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
+					"   S_Context: %C\n"
+					"Access: %x\n" "Modify: %y\n" "Change: %z\n"
+					:
+					"  File: %N\n"
+					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
+					"Device: %Dh/%dd\tInode: %-10i  Links: %-5h"
+					" Device type: %t,%T\n"
+					"Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
+					"Access: %x\n" "Modify: %y\n" "Change: %z\n"
+					);
 			} else {
 				format = (option_mask32 & OPT_SELINUX ?
-					  "  File: %N\n"
-					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
-					  "Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
-					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
-					  "S_Context: %C\n"
-					  "Access: %x\n" "Modify: %y\n" "Change: %z\n":
-					  "  File: %N\n"
-					  "  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
-					  "Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
-					  "Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
-					  "Access: %x\n" "Modify: %y\n" "Change: %z\n");
+					"  File: %N\n"
+					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
+					"Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
+					"Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
+					"S_Context: %C\n"
+					"Access: %x\n" "Modify: %y\n" "Change: %z\n"
+					:
+					"  File: %N\n"
+					"  Size: %-10s\tBlocks: %-10b IO Block: %-6o %F\n"
+					"Device: %Dh/%dd\tInode: %-10i  Links: %h\n"
+					"Access: (%04a/%10.10A)  Uid: (%5u/%8U)   Gid: (%5g/%8G)\n"
+					"Access: %x\n" "Modify: %y\n" "Change: %z\n"
+					);
 			}
 		}
 # endif

@@ -60,7 +60,7 @@ int rmmod_main(int argc UNUSED_PARAM, char **argv)
 			filename2modname(bname, modname);
 		if (bb_delete_module(modname, flags))
 			bb_error_msg_and_die("can't unload '%s': %s",
-					     modname, moderror(errno));
+					modname, moderror(errno));
 	}
 
 	return EXIT_SUCCESS;

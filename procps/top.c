@@ -995,7 +995,7 @@ static unsigned handle_input(unsigned scan_mask, unsigned interval)
 		}
 # if ENABLE_FEATURE_SHOW_THREADS
 		if (c == 'h'
-		 IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
+		IF_FEATURE_TOPMEM(&& scan_mask != TOPMEM_MASK)
 		) {
 			scan_mask ^= PSSCAN_TASKS;
 			continue;

@@ -314,14 +314,16 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (rta_tb[IFA_BROADCAST]) {
 		printf("brd %s ",
 			rt_addr_n2a(ifa->ifa_family,
-				    RTA_DATA(rta_tb[IFA_BROADCAST]),
-				    abuf, sizeof(abuf)));
+					RTA_DATA(rta_tb[IFA_BROADCAST]),
+					abuf, sizeof(abuf))
+		);
 	}
 	if (rta_tb[IFA_ANYCAST]) {
 		printf("any %s ",
 			rt_addr_n2a(ifa->ifa_family,
-				    RTA_DATA(rta_tb[IFA_ANYCAST]),
-				    abuf, sizeof(abuf)));
+					RTA_DATA(rta_tb[IFA_ANYCAST]),
+					abuf, sizeof(abuf))
+		);
 	}
 	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope, b1));
 	if (ifa->ifa_flags & IFA_F_SECONDARY) {

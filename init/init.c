@@ -520,7 +520,7 @@ static pid_t run(const struct init_action *a)
 
 	/* Log the process name and args */
 	message(L_LOG, "starting pid %d, tty '%s': '%s'",
-			  getpid(), a->terminal, a->command);
+			getpid(), a->terminal, a->command);
 
 	/* Now run it.  The new program will take over this PID,
 	 * so nothing further in init.c should be run. */

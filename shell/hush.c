@@ -4219,7 +4219,7 @@ static struct pipe *parse_stream(char **pstring,
 			/* (this makes bare "&" cmd a no-op.
 			 * bash says: "syntax error near unexpected token '&'") */
 			if (pi->num_cmds == 0
-			    IF_HAS_KEYWORDS( && pi->res_word == RES_NONE)
+			IF_HAS_KEYWORDS(&& pi->res_word == RES_NONE)
 			) {
 				free_pipe_list(pi);
 				pi = NULL;
@@ -4372,7 +4372,7 @@ static struct pipe *parse_stream(char **pstring,
 			debug_printf_parse("dest.o_assignment='%s'\n", assignment_flag[dest.o_assignment]);
 			/* Do we sit outside of any if's, loops or case's? */
 			if (!HAS_KEYWORDS
-			 IF_HAS_KEYWORDS(|| (ctx.ctx_res_w == RES_NONE && ctx.old_flag == 0))
+			IF_HAS_KEYWORDS(|| (ctx.ctx_res_w == RES_NONE && ctx.old_flag == 0))
 			) {
 				o_free(&dest);
 #if !BB_MMU

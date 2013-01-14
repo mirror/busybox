@@ -181,10 +181,11 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 
 		sprintf(lineout, "%u", year);
 		center(lineout,
-			   (WEEK_LEN * 3 + HEAD_SEP * 2)
-			   + julian * (J_WEEK_LEN * 2 + HEAD_SEP
+				(WEEK_LEN * 3 + HEAD_SEP * 2)
+				+ julian * (J_WEEK_LEN * 2 + HEAD_SEP
 						   - (WEEK_LEN * 3 + HEAD_SEP * 2)),
-			   0);
+				0
+		);
 		puts("\n");		/* two \n's */
 		for (i = 0; i < 12; i++) {
 			day_array(i + 1, year, days[i]);

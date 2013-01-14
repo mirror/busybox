@@ -93,14 +93,14 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	}
 
 	printf(HEADER_FORMAT,
-		   ut->ut_user,
-		   ut->ut_line,
-		   show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
-		   show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
-		   ut->ut_host,
-		   login_time,
-		   logout_str,
-		   duration_str);
+		ut->ut_user,
+		ut->ut_line,
+		show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
+		show_wide ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN,
+		ut->ut_host,
+		login_time,
+		logout_str,
+		duration_str);
 }
 
 static int get_ut_type(struct utmp *ut)

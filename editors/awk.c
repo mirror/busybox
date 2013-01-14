@@ -155,7 +155,7 @@ typedef struct tsplitter_s {
 
 /* simple token classes */
 /* Order and hex values are very important!!!  See next_token() */
-#define	TC_SEQSTART	 1				/* ( */
+#define	TC_SEQSTART	1			/* ( */
 #define	TC_SEQTERM	(1 << 1)		/* ) */
 #define	TC_REGEXP	(1 << 2)		/* /.../ */
 #define	TC_OUTRDR	(1 << 3)		/* | > >> */

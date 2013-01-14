@@ -13,7 +13,7 @@
  * 10.11.91  -  updated, does checking, no repairs yet.
  *		Sent out to the mailing-list for testing.
  *
- * 14.11.91  -	Testing seems to have gone well. Added some
+ * 14.11.91  -  Testing seems to have gone well. Added some
  *		correction-code, and changed some functions.
  *
  * 15.11.91  -  More correction code. Hopefully it notices most
@@ -22,11 +22,10 @@
  * 16.11.91  -  More corrections (thanks to Mika Jalava). Most
  *		things seem to work now. Yeah, sure.
  *
- *
- * 19.04.92  -	Had to start over again from this old version, as a
+ * 19.04.92  -  Had to start over again from this old version, as a
  *		kernel bug ate my enhanced fsck in february.
  *
- * 28.02.93  -	added support for different directory entry sizes..
+ * 28.02.93  -  added support for different directory entry sizes..
  *
  * Sat Mar  6 18:59:42 1993, faith@cs.unc.edu: Output namelen with
  *                           superblock information
@@ -35,31 +34,31 @@
  *                           to that required by fsutil
  *
  * Mon Jan  3 11:06:52 1994 - Dr. Wettstein (greg%wind.uucp@plains.nodak.edu)
- *			      Added support for file system valid flag.  Also
- *			      added program_version variable and output of
- *			      program name and version number when program
- *			      is executed.
+ *                            Added support for file system valid flag.  Also
+ *                            added program_version variable and output of
+ *                            program name and version number when program
+ *                            is executed.
  *
- * 30.10.94 - added support for v2 filesystem
- *            (Andreas Schwab, schwab@issan.informatik.uni-dortmund.de)
+ * 30.10.94  - added support for v2 filesystem
+ *             (Andreas Schwab, schwab@issan.informatik.uni-dortmund.de)
  *
- * 10.12.94  -  added test to prevent checking of mounted fs adapted
- *              from Theodore Ts'o's (tytso@athena.mit.edu) e2fsck
- *              program.  (Daniel Quinlan, quinlan@yggdrasil.com)
+ * 10.12.94  - added test to prevent checking of mounted fs adapted
+ *             from Theodore Ts'o's (tytso@athena.mit.edu) e2fsck
+ *             program.  (Daniel Quinlan, quinlan@yggdrasil.com)
  *
  * 01.07.96  - Fixed the v2 fs stuff to use the right #defines and such
- *	       for modern libcs (janl@math.uio.no, Nicolai Langfeldt)
+ *             for modern libcs (janl@math.uio.no, Nicolai Langfeldt)
  *
  * 02.07.96  - Added C bit fiddling routines from rmk@ecs.soton.ac.uk
  *             (Russell King).  He made them for ARM.  It would seem
- *	       that the ARM is powerful enough to do this in C whereas
+ *             that the ARM is powerful enough to do this in C whereas
  *             i386 and m64k must use assembly to get it fast >:-)
- *	       This should make minix fsck system-independent.
- *	       (janl@math.uio.no, Nicolai Langfeldt)
+ *             This should make minix fsck system-independent.
+ *             (janl@math.uio.no, Nicolai Langfeldt)
  *
  * 04.11.96  - Added minor fixes from Andreas Schwab to avoid compiler
  *             warnings.  Added mc68k bitops from
- *	       Joerg Dorchain <dorchain@mpi-sb.mpg.de>.
+ *             Joerg Dorchain <dorchain@mpi-sb.mpg.de>.
  *
  * 06.11.96  - Added v2 code submitted by Joerg Dorchain, but written by
  *             Andreas Schwab.
@@ -1131,7 +1130,7 @@ static void check_counts(void)
 			continue;
 		}
 		printf("Zone %d: %sin use, counted=%d\n",
-			   i, zone_in_use(i) ? "" : "not ", zone_count[i]);
+			i, zone_in_use(i) ? "" : "not ", zone_count[i]);
 	}
 }
 
@@ -1183,7 +1182,7 @@ static void check_counts2(void)
 			continue;
 		}
 		printf("Zone %d: %sin use, counted=%d\n",
-			   i, zone_in_use(i) ? "" : "not ", zone_count[i]);
+			i, zone_in_use(i) ? "" : "not ", zone_count[i]);
 	}
 }
 #endif
@@ -1253,7 +1252,7 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 		printf("Forcing filesystem check on %s\n", device_name);
 	else if (OPT_repair)
 		printf("Filesystem on %s is dirty, needs checking\n",
-			   device_name);
+			device_name);
 
 	read_tables();
 
@@ -1280,23 +1279,23 @@ int fsck_minix_main(int argc UNUSED_PARAM, char **argv)
 			if (!inode_in_use(i))
 				free_cnt++;
 		printf("\n%6u inodes used (%u%%)\n", (INODES - free_cnt),
-			   100 * (INODES - free_cnt) / INODES);
+			100 * (INODES - free_cnt) / INODES);
 		for (i = FIRSTZONE, free_cnt = 0; i < ZONES; i++)
 			if (!zone_in_use(i))
 				free_cnt++;
 		printf("%6u zones used (%u%%)\n\n"
-			   "%6u regular files\n"
-			   "%6u directories\n"
-			   "%6u character device files\n"
-			   "%6u block device files\n"
-			   "%6u links\n"
-			   "%6u symbolic links\n"
-			   "------\n"
-			   "%6u files\n",
-			   (ZONES - free_cnt), 100 * (ZONES - free_cnt) / ZONES,
-			   regular, directory, chardev, blockdev,
-			   links - 2 * directory + 1, symlinks,
-			   total - 2 * directory + 1);
+			"%6u regular files\n"
+			"%6u directories\n"
+			"%6u character device files\n"
+			"%6u block device files\n"
+			"%6u links\n"
+			"%6u symbolic links\n"
+			"------\n"
+			"%6u files\n",
+			(ZONES - free_cnt), 100 * (ZONES - free_cnt) / ZONES,
+			regular, directory, chardev, blockdev,
+			links - 2 * directory + 1, symlinks,
+			total - 2 * directory + 1);
 	}
 	if (changed) {
 		write_tables();

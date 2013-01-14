@@ -300,8 +300,8 @@ struct group *getgrgid(gid_t gid)
  * to have been created as a reentrant version of the non-standard
  * functions getspuid.  Why getspuid was added, I do not know. */
 int getspuid_r(uid_t uid, struct spwd *__restrict resultbuf,
-		       char *__restrict buffer, size_t buflen,
-		       struct spwd **__restrict result)
+			char *__restrict buffer, size_t buflen,
+			struct spwd **__restrict result)
 {
 	int rv;
 	struct passwd *pp;
@@ -403,8 +403,8 @@ void endpwent(void)
 
 
 int getpwent_r(struct passwd *__restrict resultbuf,
-			   char *__restrict buffer, size_t buflen,
-			   struct passwd **__restrict result)
+			char *__restrict buffer, size_t buflen,
+			struct passwd **__restrict result)
 {
 	int rv;
 
@@ -451,8 +451,8 @@ void endgrent(void)
 }
 
 int getgrent_r(struct group *__restrict resultbuf,
-			   char *__restrict buffer, size_t buflen,
-			   struct group **__restrict result)
+			char *__restrict buffer, size_t buflen,
+			struct group **__restrict result)
 {
 	int rv;
 
@@ -501,7 +501,7 @@ void endspent(void)
 }
 
 int getspent_r(struct spwd *resultbuf, char *buffer,
-			   size_t buflen, struct spwd **result)
+			size_t buflen, struct spwd **result)
 {
 	int rv;
 

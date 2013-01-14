@@ -290,9 +290,10 @@
 #endif
 
 
-#define OPT_STRING "FIlnrdvxt:i:m:p:q:s:w:z:f:" \
-		    IF_FEATURE_TRACEROUTE_SOURCE_ROUTE("g:") \
-		    "4" IF_TRACEROUTE6("6")
+#define OPT_STRING \
+	"FIlnrdvxt:i:m:p:q:s:w:z:f:" \
+	IF_FEATURE_TRACEROUTE_SOURCE_ROUTE("g:") \
+	"4" IF_TRACEROUTE6("6")
 enum {
 	OPT_DONT_FRAGMNT = (1 << 0),    /* F */
 	OPT_USE_ICMP     = (1 << 1) * ENABLE_FEATURE_TRACEROUTE_USE_ICMP, /* I */

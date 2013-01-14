@@ -610,7 +610,7 @@ static int test_eaccess(char *path, int mode)
 			return 0;
 
 		/* Root can execute any file that has any one of the execute
-		   bits set. */
+		 * bits set. */
 		if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 			return 0;
 	}

@@ -843,7 +843,7 @@ static void diffdir(char *p[2], const char *s_start)
 		 * add_to_dirlist will remove it. */
 		list[i].len = strlen(p[i]);
 		recursive_action(p[i], ACTION_RECURSE | ACTION_FOLLOWLINKS,
-		                 add_to_dirlist, skip_dir, &list[i], 0);
+				add_to_dirlist, skip_dir, &list[i], 0);
 		/* Sort dl alphabetically.
 		 * GNU diff does this ignoring any number of trailing dots.
 		 * We don't, so for us dotted files almost always are

@@ -27,7 +27,7 @@
  * {1.34} - 19980630 - Arnaldo Carvalho de Melo <acme@conectiva.com.br>
  *                     - gettext instead of catgets for i18n
  *          10/1998  - Andi Kleen. Use interface list primitives.
- *	    20001008 - Bernd Eckenfels, Patch from RH for setting mtu
+ *          20001008 - Bernd Eckenfels, Patch from RH for setting mtu
  *			(default AF was wrong)
  */
 

@@ -1056,7 +1056,7 @@ static void do_display(const struct termios *mode, int all)
 		}
 #endif
 		wrapf("%s = %s;", nth_string(control_name, i),
-			  visible(mode->c_cc[control_info[i].offset]));
+				visible(mode->c_cc[control_info[i].offset]));
 	}
 #if VEOF == VMIN
 	if ((mode->c_lflag & ICANON) == 0)

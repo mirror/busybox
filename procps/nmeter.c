@@ -271,7 +271,7 @@ static int rdval_loadavg(const char* p, ullong *vec, ...)
 }
 
 // Parses /proc/diskstats
-//   1  2 3   4	 5        6(rd)  7      8     9     10(wr) 11     12 13     14
+//   1  2 3   4     5     6(rd)  7      8     9     10(wr) 11     12 13     14
 //   3  0 hda 51292 14441 841783 926052 25717 79650 843256 3029804 0 148459 3956933
 //   3  1 hda1 0 0 0 0 <- ignore if only 4 fields
 // Linux 3.0 (maybe earlier) started printing full stats for hda1 too.

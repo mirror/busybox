@@ -1021,12 +1021,12 @@ dump(off_t current_offset, off_t end_offset)
 		l_c_m = get_lcm();
 
 		/* Make bytes_to_write the smallest multiple of l_c_m that
-			 is at least as large as n_bytes_read.  */
+		   is at least as large as n_bytes_read.  */
 		bytes_to_write = l_c_m * ((n_bytes_read + l_c_m - 1) / l_c_m);
 
 		memset(block[idx] + n_bytes_read, 0, bytes_to_write - n_bytes_read);
 		write_block(current_offset, bytes_to_write,
-				   block[idx ^ 1], block[idx]);
+				block[idx ^ 1], block[idx]);
 		current_offset += n_bytes_read;
 	}
 

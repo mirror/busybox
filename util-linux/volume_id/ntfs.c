@@ -132,7 +132,7 @@ int FAST_FUNC volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/)
 	dbg("mft record size  %i", mft_record_size);
 
 	buf = volume_id_get_buffer(id, off + mft_off + (MFT_RECORD_VOLUME * mft_record_size),
-			 mft_record_size);
+			mft_record_size);
 	if (buf == NULL)
 		goto found;
 
@@ -165,7 +165,7 @@ int FAST_FUNC volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/)
 			break;
 
 		dbg("found attribute type 0x%x, len %i, at offset %i",
-		    attr_type, attr_len, attr_off);
+			attr_type, attr_len, attr_off);
 
 //		if (attr_type == MFT_RECORD_ATTR_VOLUME_INFO) {
 //			struct volume_info *info;

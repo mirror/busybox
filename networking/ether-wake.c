@@ -49,9 +49,9 @@
  *	Copyright 1999-2003 Donald Becker and Scyld Computing Corporation.
  *
  *	The author may be reached as becker@scyld, or C/O
- *	 Scyld Computing Corporation
- *	 914 Bay Ridge Road, Suite 220
- *	 Annapolis MD 21403
+ *	Scyld Computing Corporation
+ *	914 Bay Ridge Road, Suite 220
+ *	Annapolis MD 21403
  *
  *   Notes:
  *   On some systems dropping root capability allows the process to be
@@ -113,7 +113,7 @@ void bb_debug_dump_packet(unsigned char *outpack, int pktsize)
  *    Host name
  *    IP address string
  *    MAC address string
-*/
+ */
 static void get_dest_addr(const char *hostid, struct ether_addr *eaddr)
 {
 	struct ether_addr *eap;

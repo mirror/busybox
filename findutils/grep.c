@@ -638,7 +638,7 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opts & OPT_C) {
 		/* -C unsets prev -A and -B, but following -A or -B
-		   may override it */
+		 * may override it */
 		if (!(opts & OPT_A)) /* not overridden */
 			lines_after = Copt;
 		if (!(opts & OPT_B)) /* not overridden */

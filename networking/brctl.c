@@ -133,9 +133,9 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 
 	enum { ARG_addbr = 0, ARG_delbr, ARG_addif, ARG_delif
 		IF_FEATURE_BRCTL_FANCY(,
-		   ARG_stp,
-		   ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
-		   ARG_setpathcost, ARG_setportprio, ARG_setbridgeprio
+			ARG_stp,
+			ARG_setageing, ARG_setfd, ARG_sethello, ARG_setmaxage,
+			ARG_setpathcost, ARG_setportprio, ARG_setbridgeprio
 		)
 		IF_FEATURE_BRCTL_SHOW(, ARG_show)
 	};
@@ -285,7 +285,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 					bb_error_msg_and_die(bb_msg_invalid_arg, *argv, "port");
 				memset(ifidx, 0, sizeof ifidx);
 				arm_ioctl(args, BRCTL_GET_PORT_LIST, (unsigned long)ifidx,
-						  MAX_PORTS);
+						MAX_PORTS);
 				xioctl(fd, SIOCDEVPRIVATE, &ifr);
 				for (i = 0; i < MAX_PORTS; i++) {
 					if (ifidx[i] == port) {
