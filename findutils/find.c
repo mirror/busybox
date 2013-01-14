@@ -878,8 +878,8 @@ static action*** parse_params(char **argv)
 	IF_FEATURE_FIND_EXEC(   "-exec\0"   )
 	IF_FEATURE_FIND_PAREN(  "(\0"       )
 	/* All options/actions starting from here require argument */
-	                         "-name\0"
-	                         "-iname\0"
+	                        "-name\0"
+	                        "-iname\0"
 	IF_FEATURE_FIND_PATH(   "-path\0"   )
 #if ENABLE_DESKTOP
 	IF_FEATURE_FIND_PATH(   "-wholename\0")

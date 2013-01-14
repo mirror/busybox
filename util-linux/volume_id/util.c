@@ -129,7 +129,7 @@ void volume_id_set_label_string(struct volume_id *id, const uint8_t *buf, size_t
 
 void volume_id_set_label_unicode16(struct volume_id *id, const uint8_t *buf, enum endian endianess, size_t count)
 {
-	 volume_id_set_unicode16(id->label, sizeof(id->label), buf, endianess, count);
+	volume_id_set_unicode16(id->label, sizeof(id->label), buf, endianess, count);
 }
 
 void volume_id_set_uuid(struct volume_id *id, const uint8_t *buf, enum uuid_format format)

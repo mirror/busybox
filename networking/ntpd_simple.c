@@ -710,7 +710,7 @@ recv_and_process_client_pkt(void /*int fd*/)
 	msg.m_status = G.synced ? G.leap : LI_ALARM;
 	msg.m_status |= (query_status & VERSION_MASK);
 	msg.m_status |= ((query_status & MODE_MASK) == MODE_CLIENT) ?
-			 MODE_SERVER : MODE_SYM_PAS;
+			MODE_SERVER : MODE_SYM_PAS;
 	msg.m_stratum = G.stratum;
 	msg.m_ppoll = query_ppoll;
 	msg.m_precision_exp = G_precision_exp;

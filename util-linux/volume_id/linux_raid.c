@@ -69,9 +69,9 @@ int FAST_FUNC volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/,
 	volume_id_set_uuid(id, uuid, UUID_DCE);
 
 //	snprintf(id->type_version, sizeof(id->type_version)-1, "%u.%u.%u",
-//		 le32_to_cpu(mdp->major_version),
-//		 le32_to_cpu(mdp->minor_version),
-//		 le32_to_cpu(mdp->patch_version));
+//		le32_to_cpu(mdp->major_version),
+//		le32_to_cpu(mdp->minor_version),
+//		le32_to_cpu(mdp->patch_version));
 
 	dbg("found raid signature");
 //	volume_id_set_usage(id, VOLUME_ID_RAID);

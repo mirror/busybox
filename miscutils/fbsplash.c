@@ -150,7 +150,7 @@ static void fb_open(const char *strfb_device)
 
 	// map the device in memory
 	G.addr = mmap(NULL,
-		        G.scr_var.yres * G.scr_fix.line_length,
+			G.scr_var.yres * G.scr_fix.line_length,
 			PROT_WRITE, MAP_SHARED, fbfd, 0);
 	if (G.addr == MAP_FAILED)
 		bb_perror_msg_and_die("mmap");

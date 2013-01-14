@@ -205,7 +205,7 @@ static int sysctl_act_recursive(const char *path)
 				continue; /* d_name is "." or ".." */
 			/* if path was ".", drop "./" prefix: */
 			retval |= sysctl_act_recursive((next[0] == '.' && next[1] == '/') ?
-					    next + 2 : next);
+					next + 2 : next);
 			free(next);
 		}
 		closedir(dirp);

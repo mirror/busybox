@@ -3023,7 +3023,7 @@ int fdisk_main(int argc UNUSED_PARAM, char **argv)
 				printf("\nThe current boot file is: %s\n",
 					sgi_get_bootfile());
 				if (read_maybe_empty("Please enter the name of the "
-						   "new boot file: ") == '\n')
+						"new boot file: ") == '\n')
 					printf("Boot file unchanged\n");
 				else
 					sgi_set_bootfile(line_ptr);

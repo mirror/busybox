@@ -724,7 +724,7 @@ static void ping6(len_and_sockaddr *lsa)
 			ICMP6_FILTER_SETPASSALL(&filt);
 		}
 		if (setsockopt(pingsock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
-					   sizeof(filt)) < 0)
+					sizeof(filt)) < 0)
 			bb_error_msg_and_die("setsockopt(ICMP6_FILTER)");
 	}
 #endif /*ICMP6_FILTER*/

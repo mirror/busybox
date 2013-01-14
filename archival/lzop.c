@@ -350,7 +350,7 @@ static NOINLINE int lzo1x_optimize(uint8_t *in, unsigned in_len,
 //	  LZO_UNUSED(o_m3_a); LZO_UNUSED(o_m3_b);
 	*out_len = pd(op, out);
 	return (ip == ip_end ? LZO_E_OK :
-		   (ip < ip_end	 ? LZO_E_INPUT_NOT_CONSUMED : LZO_E_INPUT_OVERRUN));
+		(ip < ip_end ? LZO_E_INPUT_NOT_CONSUMED : LZO_E_INPUT_OVERRUN));
 }
 
 /**********************************************************************/

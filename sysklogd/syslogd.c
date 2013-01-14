@@ -253,7 +253,7 @@ enum {
 #define OPTION_PARAM &opt_m, &(G.logFile.path), &opt_l \
 	IF_FEATURE_ROTATE_LOGFILE(,&opt_s) \
 	IF_FEATURE_ROTATE_LOGFILE(,&opt_b) \
-	IF_FEATURE_REMOTE_LOG(	  ,&remoteAddrList) \
+	IF_FEATURE_REMOTE_LOG(    ,&remoteAddrList) \
 	IF_FEATURE_IPC_SYSLOG(    ,&opt_C) \
 	IF_FEATURE_SYSLOGD_CFG(   ,&opt_f)
 

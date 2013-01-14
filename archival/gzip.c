@@ -1179,7 +1179,7 @@ static void gen_codes(ct_data * tree, int max_code)
 	 * must be all ones.
 	 */
 	Assert(code + G2.bl_count[MAX_BITS] - 1 == (1 << MAX_BITS) - 1,
-		   "inconsistent bit counts");
+			"inconsistent bit counts");
 	Tracev((stderr, "\ngen_codes: max_code %d ", max_code));
 
 	for (n = 0; n <= max_code; n++) {
@@ -1527,9 +1527,9 @@ static int ct_tally(int dist, int lc)
 		}
 		out_length >>= 3;
 		Trace((stderr,
-			   "\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
-			   G2.last_lit, G2.last_dist, in_length, out_length,
-			   100L - out_length * 100L / in_length));
+				"\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
+				G2.last_lit, G2.last_dist, in_length, out_length,
+				100L - out_length * 100L / in_length));
 		if (G2.last_dist < G2.last_lit / 2 && out_length < in_length / 2)
 			return 1;
 	}
@@ -1621,9 +1621,9 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	static_lenb = (G2.static_len + 3 + 7) >> 3;
 
 	Trace((stderr,
-		   "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
-		   opt_lenb, G2.opt_len, static_lenb, G2.static_len, stored_len,
-		   G2.last_lit, G2.last_dist));
+			"\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
+			opt_lenb, G2.opt_len, static_lenb, G2.static_len, stored_len,
+			G2.last_lit, G2.last_dist));
 
 	if (static_lenb <= opt_lenb)
 		opt_lenb = static_lenb;
@@ -1661,7 +1661,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	} else {
 		send_bits((DYN_TREES << 1) + eof, 3);
 		send_all_trees(G2.l_desc.max_code + 1, G2.d_desc.max_code + 1,
-					   max_blindex + 1);
+					max_blindex + 1);
 		compress_block((ct_data *) G2.dyn_ltree, (ct_data *) G2.dyn_dtree);
 		G2.compressed_len += 3 + G2.opt_len;
 	}

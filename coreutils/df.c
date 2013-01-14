@@ -112,7 +112,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	/* From the manpage of df from coreutils-6.10:
 	   Disk space is shown in 1K blocks by default, unless the environment
 	   variable POSIXLY_CORRECT is set, in which case 512-byte blocks are used.
-	*/
+	 */
 	if (getenv("POSIXLY_CORRECT")) /* TODO - a new libbb function? */
 		df_disp_hr = 512;
 
@@ -221,7 +221,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			}
 #else
 			if (printf("\n%-20s" + 1, device) > 20 && !(opt & OPT_POSIX))
-				    printf("\n%-20s", "");
+				printf("\n%-20s", "");
 #endif
 
 #if ENABLE_FEATURE_HUMAN_READABLE

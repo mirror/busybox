@@ -260,7 +260,7 @@ enum {
 
 /* TODO: simple toggles may be stored as OPT_xxx bits instead */
 static const uint32_t opt_flags[] = {
-	STYLE_COLUMNAR,		     /* C */
+	STYLE_COLUMNAR,              /* C */
 	DISP_HIDDEN | DISP_DOT,      /* a */
 	DISP_NOLIST,                 /* d */
 	LIST_INO,                    /* i */
@@ -720,7 +720,7 @@ static struct dnode *my_stat(const char *fullname, const char *name, int force_f
 	if ((option_mask32 & OPT_L) || force_follow) {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled())  {
-			 getfilecon(fullname, &cur->sid);
+			getfilecon(fullname, &cur->sid);
 		}
 #endif
 		if (stat(fullname, &statbuf)) {

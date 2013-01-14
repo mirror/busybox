@@ -493,7 +493,7 @@ static NOINLINE int process_timer_stats(void)
  * Get information about CPU using CPUID opcode.
  */
 static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
-				  unsigned int *edx)
+				unsigned int *edx)
 {
 	/* EAX value specifies what information to return */
 	__asm__(

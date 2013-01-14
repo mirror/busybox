@@ -333,13 +333,13 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		 && (filesize <= 0x3fffffffffffffffffffffffLL)
 #endif
 		) {
-	                /* GNU tar uses "base-256 encoding" for very large numbers.
-	                 * Encoding is binary, with highest bit always set as a marker
-	                 * and sign in next-highest bit:
-	                 * 80 00 .. 00 - zero
-	                 * bf ff .. ff - largest positive number
-	                 * ff ff .. ff - minus 1
-	                 * c0 00 .. 00 - smallest negative number
+			/* GNU tar uses "base-256 encoding" for very large numbers.
+			 * Encoding is binary, with highest bit always set as a marker
+			 * and sign in next-highest bit:
+			 * 80 00 .. 00 - zero
+			 * bf ff .. ff - largest positive number
+			 * ff ff .. ff - minus 1
+			 * c0 00 .. 00 - smallest negative number
 			 */
 			char *p8 = header.size + sizeof(header.size);
 			do {

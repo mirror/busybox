@@ -223,7 +223,7 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 			}
 			if (count_failed && !(flags & FLAG_SILENT)) {
 				bb_error_msg("WARNING: %d of %d computed checksums did NOT match",
-							 count_failed, count_total);
+						count_failed, count_total);
 			}
 			fclose_if_not_stdin(pre_computed_stream);
 		} else {

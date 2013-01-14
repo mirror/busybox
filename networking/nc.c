@@ -120,7 +120,7 @@ int nc_main(int argc, char **argv)
 		/* getopt32 is _almost_ usable:
 		** it cannot handle "... -e PROG -prog-opt" */
 		while ((opt = getopt(argc, argv,
-		        "" IF_NC_SERVER("lp:") IF_NC_EXTRA("w:i:f:e:") )) > 0
+			"" IF_NC_SERVER("lp:") IF_NC_EXTRA("w:i:f:e:") )) > 0
 		) {
 			if (ENABLE_NC_SERVER && opt == 'l')
 				IF_NC_SERVER(do_listen++);

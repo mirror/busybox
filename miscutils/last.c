@@ -71,7 +71,7 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	file = xopen(bb_path_wtmp_file, O_RDONLY);
 
 	printf("%-10s %-14s %-18s %-12.12s %s\n",
-	       "USER", "TTY", "HOST", "LOGIN", "TIME");
+		"USER", "TTY", "HOST", "LOGIN", "TIME");
 	/* yikes. We reverse over the file and that is a not too elegant way */
 	pos = xlseek(file, 0, SEEK_END);
 	pos = lseek(file, pos - sizeof(ut), SEEK_SET);
@@ -131,7 +131,7 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		 * but some systems have it wrong */
 		t_tmp = (time_t)ut.ut_tv.tv_sec;
 		printf("%-10s %-14s %-18s %-12.12s\n",
-		       ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
+			ut.ut_user, ut.ut_line, ut.ut_host, ctime(&t_tmp) + 4);
  next:
 		pos -= sizeof(ut);
 		if (pos <= 0)

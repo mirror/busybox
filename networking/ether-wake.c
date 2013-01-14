@@ -238,9 +238,9 @@ int ether_wake_main(int argc UNUSED_PARAM, char **argv)
 		{
 			unsigned char *hwaddr = if_hwaddr.ifr_hwaddr.sa_data;
 			printf("The hardware address (SIOCGIFHWADDR) of %s is type %d  "
-				   "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x\n\n", ifname,
-				   if_hwaddr.ifr_hwaddr.sa_family, hwaddr[0], hwaddr[1],
-				   hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
+				"%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x\n\n", ifname,
+				if_hwaddr.ifr_hwaddr.sa_family, hwaddr[0], hwaddr[1],
+				hwaddr[2], hwaddr[3], hwaddr[4], hwaddr[5]);
 		}
 # endif
 	}

@@ -449,7 +449,7 @@ int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 					}
 #endif
 					memcpy( (((char *)&ifr) + a1op->ifr_offset),
-						   p, sizeof(struct sockaddr));
+						p, sizeof(struct sockaddr));
 				} else {
 					/* FIXME: error check?? */
 					unsigned long i = strtoul(*argv, NULL, 0);

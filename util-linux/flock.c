@@ -45,7 +45,7 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[1]) {
 		fd = open(argv[0], O_RDONLY|O_NOCTTY|O_CREAT, 0666);
 		if (fd < 0 && errno == EISDIR)
-		        fd = open(argv[0], O_RDONLY|O_NOCTTY);
+			fd = open(argv[0], O_RDONLY|O_NOCTTY);
 		if (fd < 0)
 			bb_perror_msg_and_die("can't open '%s'", argv[0]);
 		//TODO? close_on_exec_on(fd);

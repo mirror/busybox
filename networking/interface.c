@@ -950,8 +950,8 @@ static void ife_print6(struct interface *ptr)
 					  (struct sockaddr *) &sap.sin6_addr);
 			sap.sin6_family = AF_INET6;
 			printf("          inet6 addr: %s/%d",
-				   INET6_sprint((struct sockaddr *) &sap, 1),
-				   plen);
+				INET6_sprint((struct sockaddr *) &sap, 1),
+				plen);
 			printf(" Scope:");
 			switch (scope & IPV6_ADDR_SCOPE_MASK) {
 			case 0:
@@ -1019,7 +1019,7 @@ static void ife_print(struct interface *ptr)
 
 	if (ptr->has_ip) {
 		printf("          %s addr:%s ", ap->name,
-			   ap->sprint(&ptr->addr, 1));
+			ap->sprint(&ptr->addr, 1));
 		if (ptr->flags & IFF_POINTOPOINT) {
 			printf(" P-t-P:%s ", ap->sprint(&ptr->dstaddr, 1));
 		}
@@ -1102,17 +1102,17 @@ static void ife_print(struct interface *ptr)
 		printf("          ");
 
 		printf("RX packets:%llu errors:%lu dropped:%lu overruns:%lu frame:%lu\n",
-			   ptr->stats.rx_packets, ptr->stats.rx_errors,
-			   ptr->stats.rx_dropped, ptr->stats.rx_fifo_errors,
-			   ptr->stats.rx_frame_errors);
+			ptr->stats.rx_packets, ptr->stats.rx_errors,
+			ptr->stats.rx_dropped, ptr->stats.rx_fifo_errors,
+			ptr->stats.rx_frame_errors);
 		if (can_compress)
 			printf("             compressed:%lu\n",
-				   ptr->stats.rx_compressed);
+				ptr->stats.rx_compressed);
 		printf("          ");
 		printf("TX packets:%llu errors:%lu dropped:%lu overruns:%lu carrier:%lu\n",
-			   ptr->stats.tx_packets, ptr->stats.tx_errors,
-			   ptr->stats.tx_dropped, ptr->stats.tx_fifo_errors,
-			   ptr->stats.tx_carrier_errors);
+			ptr->stats.tx_packets, ptr->stats.tx_errors,
+			ptr->stats.tx_dropped, ptr->stats.tx_fifo_errors,
+			ptr->stats.tx_carrier_errors);
 		printf("          collisions:%lu ", ptr->stats.collisions);
 		if (can_compress)
 			printf("compressed:%lu ", ptr->stats.tx_compressed);
@@ -1129,13 +1129,12 @@ static void ife_print(struct interface *ptr)
 		printf("          ");
 		if (ptr->map.irq)
 			printf("Interrupt:%d ", ptr->map.irq);
-		if (ptr->map.base_addr >= 0x100)	/* Only print devices using it for
-											   I/O maps */
+		if (ptr->map.base_addr >= 0x100) /* Only print devices using it for I/O maps */
 			printf("Base address:0x%lx ",
-				   (unsigned long) ptr->map.base_addr);
+				(unsigned long) ptr->map.base_addr);
 		if (ptr->map.mem_start) {
 			printf("Memory:%lx-%lx ", ptr->map.mem_start,
-				   ptr->map.mem_end);
+				ptr->map.mem_end);
 		}
 		if (ptr->map.dma)
 			printf("DMA chan:%x ", ptr->map.dma);
@@ -1168,7 +1167,7 @@ static struct interface *lookup_interface(char *name)
 
 #ifdef UNUSED
 static int for_all_interfaces(int (*doit) (struct interface *, void *),
-							  void *cookie)
+							void *cookie)
 {
 	struct interface *ife;
 

@@ -478,7 +478,7 @@ static int wait_one(int flags)
 		instance_list = inst->next;
 	if (verbose > 1)
 		printf("Finished with %s (exit status %d)\n",
-		       inst->device, status);
+			inst->device, status);
 	num_running--;
 	free_instance(inst);
 
@@ -844,7 +844,7 @@ static int check_all(void)
 		if (verbose > 1)
 			printf("--waiting-- (pass %d)\n", passno);
 		status |= wait_many(pass_done ? FLAG_WAIT_ALL :
-				    FLAG_WAIT_ATLEAST_ONE);
+				FLAG_WAIT_ATLEAST_ONE);
 		if (pass_done) {
 			if (verbose > 1)
 				puts("----------------------------------");

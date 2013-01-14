@@ -31,7 +31,7 @@ typedef struct module_info {
 } module_info;
 
 static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARAM,
-				  void *data, int depth UNUSED_PARAM)
+				void *data, int depth UNUSED_PARAM)
 {
 	char modname[MODULE_NAME_LEN];
 	module_info **first = (module_info **) data;
@@ -95,7 +95,7 @@ static module_info *find_module(module_info *modules, const char *modname)
 }
 
 static void order_dep_list(module_info *modules, module_info *start,
-			   llist_t *add)
+			llist_t *add)
 {
 	module_info *m;
 	llist_t *n;
@@ -216,7 +216,7 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 		} while (*++argv);
 	} else {
 		recursive_action(".", ACTION_RECURSE,
-				 parse_module, NULL, &modules, 0);
+				parse_module, NULL, &modules, 0);
 	}
 
 	/* Generate dependency and alias files */

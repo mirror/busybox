@@ -796,9 +796,9 @@ static void parse_conf(const char *path, int flag)
 		/* the line is not recognized */
  config_error:
 		bb_error_msg("config error '%s' in '%s'", buf, filename);
-	 } /* while (fgets) */
+	} /* while (fgets) */
 
-	 fclose(f);
+	fclose(f);
 }
 
 #if ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
@@ -1708,7 +1708,7 @@ static int pam_talker(int num_msg,
 		case PAM_PROMPT_ECHO_OFF:
 			s = userinfo->pw;
 			break;
-	        case PAM_ERROR_MSG:
+		case PAM_ERROR_MSG:
         	case PAM_TEXT_INFO:
         		s = "";
 			break;

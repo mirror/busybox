@@ -214,7 +214,7 @@ static int arp_del(char **args)
 
 /* Get the hardware address to a specified interface name */
 static void arp_getdevhw(char *ifname, struct sockaddr *sa,
-						 const struct hwtype *hwt)
+						const struct hwtype *hwt)
 {
 	struct ifreq ifr;
 	const struct hwtype *xhw;
@@ -233,8 +233,8 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa,
 			xhw = get_hwntype(-1);
 		}
 		bb_error_msg("device '%s' has HW address %s '%s'",
-					 ifname, xhw->name,
-					 xhw->print((unsigned char *) &ifr.ifr_hwaddr.sa_data));
+					ifname, xhw->name,
+					xhw->print((unsigned char *) &ifr.ifr_hwaddr.sa_data));
 	}
 }
 
@@ -345,7 +345,7 @@ static int arp_set(char **args)
 /* Print the contents of an ARP request block. */
 static void
 arp_disp(const char *name, char *ip, int type, int arp_flags,
-		 char *hwa, char *mask, char *dev)
+		char *hwa, char *mask, char *dev)
 {
 	static const int arp_masks[] = {
 		ATF_PERM, ATF_PUBL,
@@ -428,7 +428,7 @@ static int arp_show(char *name)
 		/* All these strings can't overflow
 		 * because fgets above reads limited amount of data */
 		num = sscanf(line, "%s 0x%x 0x%x %s %s %s\n",
-					 ip, &type, &flags, hwa, mask, dev);
+					ip, &type, &flags, hwa, mask, dev);
 		if (num < 4)
 			break;
 
@@ -461,7 +461,7 @@ static int arp_show(char *name)
 	}
 	if (option_mask32 & ARP_OPT_v)
 		printf("Entries: %d\tSkipped: %d\tFound: %d\n",
-			   entries, entries - shown, shown);
+				entries, entries - shown, shown);
 
 	if (!shown) {
 		if (hw_set || host || device[0])
@@ -517,7 +517,7 @@ int arp_main(int argc UNUSED_PARAM, char **argv)
 
 	if (hw->alen <= 0) {
 		bb_error_msg_and_die("%s: %s without ARP support",
-							 hw->name, "hardware type");
+				hw->name, "hardware type");
 	}
 
 	/* Now see what we have to do here... */
