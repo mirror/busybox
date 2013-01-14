@@ -514,6 +514,12 @@ config SHA512SUM
 	help
 	  Compute and check SHA512 message digest
 
+config SHA3SUM
+	bool "sha3sum"
+	default y
+	help
+	  Compute and check SHA3 (512-bit) message digest
+
 config SLEEP
 	bool "sleep"
 	default y
@@ -766,13 +772,13 @@ config FEATURE_HUMAN_READABLE
 	help
 	  Allow df, du, and ls to have human readable output.
 
-comment "Common options for md5sum, sha1sum, sha256sum, sha512sum"
-	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM
+comment "Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum"
+	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
 
 config FEATURE_MD5_SHA1_SUM_CHECK
 	bool "Enable -c, -s and -w options"
 	default y
-	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM
+	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
 	help
 	  Enabling the -c options allows files to be checked
 	  against pre-calculated hash values.

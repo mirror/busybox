@@ -31,6 +31,11 @@ static ALWAYS_INLINE uint64_t rotr64(uint64_t x, unsigned n)
 	return (x >> n) | (x << (64 - n));
 }
 
+/* rotl64 only used for sha3 currently */
+static ALWAYS_INLINE uint64_t rotl64(uint64_t x, unsigned n)
+{
+	return (x << n) | (x >> (64 - n));
+}
 
 /* Feed data through a temporary buffer.
  * The internal buffer remembers previous data until it has 64
@@ -895,4 +900,193 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 			ctx->hash[i] = SWAP_BE64(ctx->hash[i]);
 	}
 	memcpy(resbuf, ctx->hash, sizeof(ctx->hash));
+}
+
+
+/*
+ * The Keccak sponge function, designed by Guido Bertoni, Joan Daemen,
+ * Michael Peeters and Gilles Van Assche. For more information, feedback or
+ * questions, please refer to our website: http://keccak.noekeon.org/
+ *
+ * Implementation by Ronny Van Keer,
+ * hereby denoted as "the implementer".
+ *
+ * To the extent possible under law, the implementer has waived all copyright
+ * and related or neighboring rights to the source code in this file.
+ * http://creativecommons.org/publicdomain/zero/1.0/
+ *
+ * Busybox modifications (C) Lauri Kasanen, under the GPLv2.
+ */
+
+enum {
+	cKeccakR_SizeInBytes = 576 / 8,
+	cKeccakNumberOfRounds = 24,
+};
+
+static const uint64_t KeccakF_RoundConstants[cKeccakNumberOfRounds] = {
+	0x0000000000000001ULL,
+	0x0000000000008082ULL,
+	0x800000000000808aULL,
+	0x8000000080008000ULL,
+	0x000000000000808bULL,
+	0x0000000080000001ULL,
+	0x8000000080008081ULL,
+	0x8000000000008009ULL,
+	0x000000000000008aULL,
+	0x0000000000000088ULL,
+	0x0000000080008009ULL,
+	0x000000008000000aULL,
+	0x000000008000808bULL,
+	0x800000000000008bULL,
+	0x8000000000008089ULL,
+	0x8000000000008003ULL,
+	0x8000000000008002ULL,
+	0x8000000000000080ULL,
+	0x000000000000800aULL,
+	0x800000008000000aULL,
+	0x8000000080008081ULL,
+	0x8000000000008080ULL,
+	0x0000000080000001ULL,
+	0x8000000080008008ULL
+};
+
+static const uint8_t KeccakF_RotationConstants[25] = {
+	1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62,
+	18, 39, 61, 20, 44
+};
+
+static const uint8_t KeccakF_PiLane[25] = {
+	10, 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20,
+	14, 22, 9, 6, 1
+};
+
+static const uint8_t KeccakF_Mod5[10] = {
+	0, 1, 2, 3, 4, 0, 1, 2, 3, 4
+};
+
+static void KeccakF(uint64_t *state)
+{
+	uint8_t x, y;
+	uint64_t temp;
+	uint64_t BC[5];
+	int round;
+
+	if (BB_BIG_ENDIAN) {
+		for (x = 0; x < 25; x++) {
+			state[x] = SWAP_LE64(state[x]);
+		}
+	}
+
+	for (round = 0; round < cKeccakNumberOfRounds; ++round) {
+		/* Theta */
+		for (x = 0; x < 5; ++x) {
+			BC[x] = state[x] ^ state[5 + x] ^ state[10 + x] ^
+				state[15 + x] ^ state[20 + x];
+		}
+		for (x = 0; x < 5; ++x) {
+			temp = BC[KeccakF_Mod5[x + 4]] ^
+				rotl64(BC[KeccakF_Mod5[x + 1]], 1);
+
+			for (y = 0; y <= 20; y += 5) {
+				state[y + x] ^= temp;
+			}
+		}
+
+		/* Rho Pi */
+		temp = state[1];
+		for (x = 0; x < 24; ++x) {
+			BC[0] = state[KeccakF_PiLane[x]];
+			state[KeccakF_PiLane[x]] =
+			    rotl64(temp, KeccakF_RotationConstants[x]);
+			temp = BC[0];
+		}
+
+		/* Chi */
+		for (y = 0; y < 25; y += 5) {
+			BC[0] = state[y + 0];
+			BC[1] = state[y + 1];
+			BC[2] = state[y + 2];
+			BC[3] = state[y + 3];
+			BC[4] = state[y + 4];
+			for (x = 0; x < 5; ++x) {
+				state[y + x] =
+				    BC[x] ^ ((~BC[KeccakF_Mod5[x + 1]]) &
+					     BC[KeccakF_Mod5[x + 2]]);
+			}
+		}
+
+		/* Iota */
+		state[0] ^= KeccakF_RoundConstants[round];
+	}
+
+	if (BB_BIG_ENDIAN) {
+		for (x = 0; x < 25; x++) {
+			state[x] = SWAP_LE64(state[x]);
+		}
+	}
+}
+
+void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
+{
+	memset(ctx, 0, sizeof(*ctx));
+}
+
+void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
+{
+	const uint8_t *data = buf;
+
+	/* If already data in queue, continue queuing first */
+	while (bytes != 0 && ctx->bytes_queued != 0) {
+		uint8_t *buffer = (uint8_t*)ctx->state;
+		buffer[ctx->bytes_queued] ^= *data++;
+		bytes--;
+		ctx->bytes_queued++;
+		if (ctx->bytes_queued == cKeccakR_SizeInBytes) {
+			KeccakF(ctx->state);
+			ctx->bytes_queued = 0;
+		}
+	}
+
+	/* Absorb complete blocks */
+	while (bytes >= cKeccakR_SizeInBytes) {
+		/* XOR data onto beginning of state[].
+		 * We try to be efficient - operate on word at a time, not byte.
+		 * Yet safe wrt unaligned access: can't just use "*(long*)data"...
+		 */
+		unsigned count = cKeccakR_SizeInBytes / sizeof(long);
+		long *buffer = (long*)ctx->state;
+		do {
+			long v;
+			move_from_unaligned_long(v, (long*)data);
+			*buffer++ ^= v;
+			data += sizeof(long);
+		} while (--count);
+
+		KeccakF(ctx->state);
+		bytes -= cKeccakR_SizeInBytes;
+	}
+
+	/* Queue remaining data bytes */
+	while (bytes != 0) {
+		uint8_t *buffer = (uint8_t*)ctx->state;
+		buffer[ctx->bytes_queued] ^= *data++;
+		ctx->bytes_queued++;
+		bytes--;
+	}
+}
+
+void FAST_FUNC sha3_end(sha3_ctx_t *ctx, uint8_t *hashval)
+{
+	/* Padding */
+	uint8_t *buffer = (uint8_t*)ctx->state;
+	/* 0 is the number of bits in last, incomplete byte
+	 * (that is, zero: we never have incomplete bytes):
+	 */
+	buffer[ctx->bytes_queued] ^= 1 << 0;
+	buffer[cKeccakR_SizeInBytes - 1] ^= 0x80;
+
+	KeccakF(ctx->state);
+
+	/* Output */
+	memcpy(hashval, ctx->state, 64);
 }

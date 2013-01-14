@@ -55,6 +55,16 @@
 //usage:     "\n	-s	Don't output anything, status code shows success"
 //usage:     "\n	-w	Warn about improperly formatted checksum lines"
 //usage:	)
+//usage:
+//usage:#define sha3sum_trivial_usage
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK("[-c[sw]] ")"[FILE]..."
+//usage:#define sha3sum_full_usage "\n\n"
+//usage:       "Print" IF_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA3-512 checksums"
+//usage:	IF_FEATURE_MD5_SHA1_SUM_CHECK( "\n"
+//usage:     "\n	-c	Check sums against list in FILEs"
+//usage:     "\n	-s	Don't output anything, status code shows success"
+//usage:     "\n	-w	Warn about improperly formatted checksum lines"
+//usage:	)
 
 #include "libbb.h"
 
@@ -65,6 +75,7 @@ enum {
 	HASH_MD5 = 's', /* "md5>s<um" */
 	HASH_SHA1 = '1',
 	HASH_SHA256 = '2',
+	HASH_SHA3 = '3',
 	HASH_SHA512 = '5',
 };
 
@@ -86,6 +97,7 @@ static uint8_t *hash_file(const char *filename)
 {
 	int src_fd, hash_len, count;
 	union _ctx_ {
+		sha3_ctx_t sha3;
 		sha512_ctx_t sha512;
 		sha256_ctx_t sha256;
 		sha1_ctx_t sha1;
@@ -123,6 +135,11 @@ static uint8_t *hash_file(const char *filename)
 		sha512_begin(&context.sha512);
 		update = (void*)sha512_hash;
 		final = (void*)sha512_end;
+		hash_len = 64;
+	} else if (ENABLE_SHA3SUM && hash_algo == HASH_SHA3) {
+		sha3_begin(&context.sha3);
+		update = (void*)sha3_hash;
+		final = (void*)sha3_end;
 		hash_len = 64;
 	} else {
 		xfunc_die(); /* can't reach this */

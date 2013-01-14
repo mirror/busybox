@@ -62,6 +62,7 @@ lib-$(CONFIG_SEQ)       += seq.o
 lib-$(CONFIG_SHA1SUM)   += md5_sha1_sum.o
 lib-$(CONFIG_SHA256SUM) += md5_sha1_sum.o
 lib-$(CONFIG_SHA512SUM) += md5_sha1_sum.o
+lib-$(CONFIG_SHA3SUM)   += md5_sha1_sum.o
 lib-$(CONFIG_SLEEP)     += sleep.o
 lib-$(CONFIG_SPLIT)     += split.o
 lib-$(CONFIG_SORT)      += sort.o
