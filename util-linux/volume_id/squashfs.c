@@ -6,16 +6,6 @@
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
 
-//config:config FEATURE_VOLUMEID_SQUASHFS
-//config:	bool "SquashFS filesystem"
-//config:	default y
-//config:	depends on VOLUMEID && FEATURE_BLKID_TYPE
-//config:	help
-//config:	  Squashfs is a compressed read-only filesystem for Linux. Squashfs is
-//config:	  intended for general read-only filesystem use and in constrained block
-//config:	  device/memory systems (e.g. embedded systems) where low overhead is
-//config:	  needed.
-
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_SQUASHFS) += squashfs.o
 
 #include "volume_id_internal.h"
