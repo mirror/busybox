@@ -227,6 +227,8 @@ int FAST_FUNC volume_id_probe_reiserfs(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_romfs(struct volume_id *id /*,uint64_t off*/);
 
+int FAST_FUNC volume_id_probe_squashfs(struct volume_id *id /*,uint64_t off*/);
+
 int FAST_FUNC volume_id_probe_sysv(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_udf(struct volume_id *id /*,uint64_t off*/);

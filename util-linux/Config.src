@@ -841,6 +841,16 @@ config FEATURE_VOLUMEID_ROMFS
 	help
 	  TODO
 
+config FEATURE_VOLUMEID_SQUASHFS
+	bool "SquashFS filesystem"
+	default y
+	depends on VOLUMEID && FEATURE_BLKID_TYPE
+	help
+	  Squashfs is a compressed read-only filesystem for Linux. Squashfs is
+	  intended for general read-only filesystem use and in constrained block
+	  device/memory systems (e.g. embedded systems) where low overhead is
+	  needed.
+
 config FEATURE_VOLUMEID_SYSV
 	bool "sysv filesystem"
 	default y
