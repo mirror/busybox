@@ -1822,10 +1822,24 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		hostname = mp->mnt_fsname + 2;
 		len = strcspn(hostname, "/\\");
-		if (len == 0 || hostname[len] == '\0')
+		if (len == 0                // 1st char is a [back]slash (IOW: empty hostname)
+		 || hostname[len] == '\0'   // no [back]slash after hostname
+		 || hostname[len+1] == '\0' // empty share name
+		) {
 			goto report_error;
+		}
 		c = hostname[len];
 		hostname[len] = '\0';
+
+		// "unc=\\hostname\share" option is mandatory
+		// after CIFS option parsing was rewritten in Linux 3.4.
+		// Must pass it to the kernel. Must use backslashes.
+		{
+			char *unc = xasprintf("unc=\\\\%s\\%s", hostname, hostname + len + 1);
+			parse_mount_options(unc, &filteropts);
+			if (ENABLE_FEATURE_CLEAN_UP) free(unc);
+		}
+
 		lsa = host2sockaddr(hostname, 0);
 		hostname[len] = c;
 		if (!lsa)
