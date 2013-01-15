@@ -1041,16 +1041,31 @@ static void KeccakF(uint64_t *state)
 
 		/* Chi */
 		for (y = 0; y <= 20; y += 5) {
-			uint64_t BC[5];
-			BC[0] = state[y + 0];
-			BC[1] = state[y + 1];
-			BC[2] = state[y + 2];
-			BC[3] = state[y + 3];
-			BC[4] = state[y + 4];
-			for (x = 0; x < 5; ++x) {
-				state[y + x] =
-				    BC[x] ^ ((~BC[KeccakF_Mod5[x + 1]]) &
-					     BC[KeccakF_Mod5[x + 2]]);
+			if (SHA3_SMALL) {
+				uint64_t BC[5];
+				BC[0] = state[y + 0];
+				BC[1] = state[y + 1];
+				BC[2] = state[y + 2];
+				BC[3] = state[y + 3];
+				BC[4] = state[y + 4];
+				for (x = 0; x < 5; ++x) {
+					state[y + x] =
+					    BC[x] ^ ((~BC[KeccakF_Mod5[x + 1]]) &
+						     BC[KeccakF_Mod5[x + 2]]);
+				}
+			} else {
+				/* 32-bit x86: +50 bytes code, 10% faster */
+				uint64_t BC0, BC1, BC2, BC3, BC4;
+				BC0 = state[y + 0];
+				BC1 = state[y + 1];
+				BC2 = state[y + 2];
+				state[y + 0] = BC0 ^ ((~BC1) & BC2);
+				BC3 = state[y + 3];
+				state[y + 1] = BC1 ^ ((~BC2) & BC3);
+				BC4 = state[y + 4];
+				state[y + 2] = BC2 ^ ((~BC3) & BC4);
+				state[y + 3] = BC3 ^ ((~BC4) & BC0);
+				state[y + 4] = BC4 ^ ((~BC0) & BC1);
 			}
 		}
 
