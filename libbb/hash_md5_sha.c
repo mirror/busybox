@@ -977,14 +977,12 @@ static const uint8_t KECCAK_PI_LANE[25] = {
 	14, 22, 9, 6, 1
 };
 
-static const uint8_t MOD5[10] = {
-	0, 1, 2, 3, 4, 0, 1, 2, 3, 4
-};
-
 #define ARCH_IS_64BIT (sizeof(long) >= sizeof(uint64_t))
 
 static void KeccakF(uint64_t *state)
 {
+	/*static const uint8_t MOD5[10] = { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 };*/
+
 	unsigned x, y;
 	unsigned round;
 
@@ -1009,18 +1007,11 @@ static void KeccakF(uint64_t *state)
 			 */
 			for (x = 0; x < 5; ++x) {
 				uint64_t temp = BC[x + 4] ^ rotl64(BC[x + 1], 1);
-				if (SHA3_SMALL && !ARCH_IS_64BIT) {
-	                    		for (y = 0; y <= 20; y += 5)
-						state[x + y] ^= temp;
-				} else {
-					/* On 64-bit, this is also smaller,
-					 * not only faster, than loop */
-					state[x] ^= temp;
-					state[x + 5] ^= temp;
-					state[x + 10] ^= temp;
-					state[x + 15] ^= temp;
-					state[x + 20] ^= temp;
-				}
+				state[x] ^= temp;
+				state[x + 5] ^= temp;
+				state[x + 10] ^= temp;
+				state[x + 15] ^= temp;
+				state[x + 20] ^= temp;
 			}
 		}
 
@@ -1057,33 +1048,17 @@ static void KeccakF(uint64_t *state)
 
 		/* Chi */
 		for (y = 0; y <= 20; y += 5) {
-			if (SHA3_SMALL && !ARCH_IS_64BIT) {
-				uint64_t BC[5];
-				BC[0] = state[y + 0];
-				BC[1] = state[y + 1];
-				BC[2] = state[y + 2];
-				BC[3] = state[y + 3];
-				BC[4] = state[y + 4];
-				for (x = 0; x < 5; ++x) {
-					state[y + x] =
-					    BC[x] ^ ((~BC[MOD5[x + 1]]) &
-						     BC[MOD5[x + 2]]);
-				}
-			} else {
-				/* 32-bit x86: +50 bytes code, 10% faster */
-				/* 64-bit x86: ~same code size, 30% faster */
-				uint64_t BC0, BC1, BC2, BC3, BC4;
-				BC0 = state[y + 0];
-				BC1 = state[y + 1];
-				BC2 = state[y + 2];
-				state[y + 0] = BC0 ^ ((~BC1) & BC2);
-				BC3 = state[y + 3];
-				state[y + 1] = BC1 ^ ((~BC2) & BC3);
-				BC4 = state[y + 4];
-				state[y + 2] = BC2 ^ ((~BC3) & BC4);
-				state[y + 3] = BC3 ^ ((~BC4) & BC0);
-				state[y + 4] = BC4 ^ ((~BC0) & BC1);
-			}
+			uint64_t BC0, BC1, BC2, BC3, BC4;
+			BC0 = state[y + 0];
+			BC1 = state[y + 1];
+			BC2 = state[y + 2];
+			state[y + 0] = BC0 ^ ((~BC1) & BC2);
+			BC3 = state[y + 3];
+			state[y + 1] = BC1 ^ ((~BC2) & BC3);
+			BC4 = state[y + 4];
+			state[y + 2] = BC2 ^ ((~BC3) & BC4);
+			state[y + 3] = BC3 ^ ((~BC4) & BC0);
+			state[y + 4] = BC4 ^ ((~BC0) & BC1);
 		}
 
 		/* Iota */
