@@ -977,8 +977,6 @@ static const uint8_t KECCAK_PI_LANE[25] = {
 	14, 22, 9, 6, 1
 };
 
-#define ARCH_IS_64BIT (sizeof(long) >= sizeof(uint64_t))
-
 static void KeccakF(uint64_t *state)
 {
 	/*static const uint8_t MOD5[10] = { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 };*/
@@ -1074,8 +1072,6 @@ static void KeccakF(uint64_t *state)
 	}
 }
 
-#undef ARCH_IS_64BIT
-
 void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
@@ -1084,16 +1080,17 @@ void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
 void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 {
 	const uint8_t *data = buf;
+	unsigned bytes_queued = ctx->bytes_queued;
 
 	/* If already data in queue, continue queuing first */
-	while (bytes != 0 && ctx->bytes_queued != 0) {
+	while (bytes != 0 && bytes_queued != 0) {
 		uint8_t *buffer = (uint8_t*)ctx->state;
-		buffer[ctx->bytes_queued] ^= *data++;
+		buffer[bytes_queued] ^= *data++;
 		bytes--;
-		ctx->bytes_queued++;
-		if (ctx->bytes_queued == KECCAK_IBLK_BYTES) {
+		bytes_queued++;
+		if (bytes_queued == KECCAK_IBLK_BYTES) {
 			KeccakF(ctx->state);
-			ctx->bytes_queued = 0;
+			bytes_queued = 0;
 		}
 	}
 
@@ -1113,16 +1110,19 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 		} while (--count);
 
 		KeccakF(ctx->state);
+
 		bytes -= KECCAK_IBLK_BYTES;
 	}
 
 	/* Queue remaining data bytes */
 	while (bytes != 0) {
 		uint8_t *buffer = (uint8_t*)ctx->state;
-		buffer[ctx->bytes_queued] ^= *data++;
-		ctx->bytes_queued++;
+		buffer[bytes_queued] ^= *data++;
+		bytes_queued++;
 		bytes--;
 	}
+
+	ctx->bytes_queued = bytes_queued;
 }
 
 void FAST_FUNC sha3_end(sha3_ctx_t *ctx, uint8_t *hashval)
