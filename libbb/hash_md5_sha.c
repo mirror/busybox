@@ -926,66 +926,67 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 # define SHA3_SMALL CONFIG_SHA3_SMALL
 #endif
 
-#define ARCH_IS_64BIT (sizeof(long) >= sizeof(uint64_t))
-
 enum {
-	cKeccakR_SizeInBytes = 576 / 8,
-	cKeccakNumberOfRounds = 24,
+	KECCAK_IBLK_BYTES = 576 / 8,
+	KECCAK_NROUNDS = 24,
 };
 
 /* Elements should be 64-bit, but top half is always zero or 0x80000000.
- * It is encoded as a separate word below.
- * Same is true for 31th bits.
+ * We encode 63rd bits in a separate word below.
+ * Same is true for 31th bits, which lets us use 16-bit table instead of 64-bit.
+ * The speed penalty is lost in the noise.
  */
-static const uint16_t KeccakF_RoundConstants[cKeccakNumberOfRounds] = {
-	0x0001UL,
-	0x8082UL,
-	0x808aUL,
-	0x8000UL,
-	0x808bUL,
-	0x0001UL,
-	0x8081UL,
-	0x8009UL,
-	0x008aUL,
-	0x0088UL,
-	0x8009UL,
-	0x000aUL,
-	0x808bUL,
-	0x008bUL,
-	0x8089UL,
-	0x8003UL,
-	0x8002UL,
-	0x0080UL,
-	0x800aUL,
-	0x000aUL,
-	0x8081UL,
-	0x8080UL,
-	0x0001UL,
-	0x8008UL
+static const uint16_t KECCAK_IOTA_CONST[KECCAK_NROUNDS] = {
+	0x0001U,
+	0x8082U,
+	0x808aU,
+	0x8000U,
+	0x808bU,
+	0x0001U,
+	0x8081U,
+	0x8009U,
+	0x008aU,
+	0x0088U,
+	0x8009U,
+	0x000aU,
+	0x808bU,
+	0x008bU,
+	0x8089U,
+	0x8003U,
+	0x8002U,
+	0x0080U,
+	0x800aU,
+	0x000aU,
+	0x8081U,
+	0x8080U,
+	0x0001U,
+	0x8008U,
 };
-/* 0th first - 0011 0011 0000 0111 1101 1101: */
-#define KeccakF_RoundConstantBit63 ((uint32_t)(0x3307dd00))
-/* 0th first - 0001 0110 0011 1000 0001 1011: */
-#define KeccakF_RoundConstantBit31 ((uint32_t)(0x16381b00))
+/* bit from CONST[0] is msb: 0011 0011 0000 0111 1101 1101 */
+#define KECCAK_IOTA_CONST_bit63 ((uint32_t)(0x3307dd00))
+/* bit from CONST[0] is msb: 0001 0110 0011 1000 0001 1011 */
+#define KECCAK_IOTA_CONST_bit31 ((uint32_t)(0x16381b00))
 
-static const uint8_t KeccakF_RotationConstants[25] = {
+static const uint8_t KECCAK_ROT_CONST[25] = {
 	1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62,
 	18, 39, 61, 20, 44
 };
 
-static const uint8_t KeccakF_PiLane[25] = {
+static const uint8_t KECCAK_PI_LANE[25] = {
 	10, 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20,
 	14, 22, 9, 6, 1
 };
 
-static const uint8_t KeccakF_Mod5[10] = {
+static const uint8_t MOD5[10] = {
 	0, 1, 2, 3, 4, 0, 1, 2, 3, 4
 };
 
+#define ARCH_IS_64BIT (sizeof(long) >= sizeof(uint64_t))
+
 static void KeccakF(uint64_t *state)
 {
-	uint8_t x, y;
-	int round;
+	unsigned x, y;
+	unsigned round;
 
 	if (BB_BIG_ENDIAN) {
 		for (x = 0; x < 25; x++) {
@@ -993,7 +994,7 @@ static void KeccakF(uint64_t *state)
 		}
 	}
 
-	for (round = 0; round < cKeccakNumberOfRounds; ++round) {
+	for (round = 0; round < KECCAK_NROUNDS; ++round) {
 		/* Theta */
 		{
 			uint64_t BC[10];
@@ -1003,7 +1004,7 @@ static void KeccakF(uint64_t *state)
 					^ state[x + 15]	^ state[x + 20];
 			}
 			/* Using 2x5 vector above eliminates the need to use
-			 * [Mod5[x+N]] index trick below to calculate (x+N) % 5,
+			 * BC[MOD5[x+N]] trick below to fetch BC[(x+N) % 5],
 			 * and the code is a bit _smaller_.
 			 */
 			for (x = 0; x < 5; ++x) {
@@ -1027,22 +1028,24 @@ static void KeccakF(uint64_t *state)
 		if (SHA3_SMALL) {
 			uint64_t t1 = state[1];
 			for (x = 0; x < 24; ++x) {
-				uint64_t t0 = state[KeccakF_PiLane[x]];
-				state[KeccakF_PiLane[x]] = rotl64(t1, KeccakF_RotationConstants[x]);
+				uint64_t t0 = state[KECCAK_PI_LANE[x]];
+				state[KECCAK_PI_LANE[x]] = rotl64(t1, KECCAK_ROT_CONST[x]);
 				t1 = t0;
 			}
 		} else {
 			/* Especially large benefit for 32-bit arch (75% faster):
 			 * 64-bit rotations by non-constant usually are SLOW on those.
 			 * We resort to unrolling here.
-			 * This optimizes out KeccakF_PiLane[] and KeccakF_RotationConstants[],
+			 * This optimizes out KECCAK_PI_LANE[] and KECCAK_ROT_CONST[],
 			 * but generates 300-500 more bytes of code.
 			 */
 			uint64_t t0;
 			uint64_t t1 = state[1];
 #define RhoPi_twice(x) \
-			t0 = state[KeccakF_PiLane[x  ]]; state[KeccakF_PiLane[x  ]] = rotl64(t1, KeccakF_RotationConstants[x  ]); \
-			t1 = state[KeccakF_PiLane[x+1]]; state[KeccakF_PiLane[x+1]] = rotl64(t0, KeccakF_RotationConstants[x+1]);
+	t0 = state[KECCAK_PI_LANE[x  ]]; \
+	state[KECCAK_PI_LANE[x  ]] = rotl64(t1, KECCAK_ROT_CONST[x  ]); \
+	t1 = state[KECCAK_PI_LANE[x+1]]; \
+	state[KECCAK_PI_LANE[x+1]] = rotl64(t0, KECCAK_ROT_CONST[x+1]);
 			RhoPi_twice(0); RhoPi_twice(2);
 			RhoPi_twice(4); RhoPi_twice(6);
 			RhoPi_twice(8); RhoPi_twice(10);
@@ -1063,8 +1066,8 @@ static void KeccakF(uint64_t *state)
 				BC[4] = state[y + 4];
 				for (x = 0; x < 5; ++x) {
 					state[y + x] =
-					    BC[x] ^ ((~BC[KeccakF_Mod5[x + 1]]) &
-						     BC[KeccakF_Mod5[x + 2]]);
+					    BC[x] ^ ((~BC[MOD5[x + 1]]) &
+						     BC[MOD5[x + 2]]);
 				}
 			} else {
 				/* 32-bit x86: +50 bytes code, 10% faster */
@@ -1083,9 +1086,9 @@ static void KeccakF(uint64_t *state)
 		}
 
 		/* Iota */
-		state[0] ^= KeccakF_RoundConstants[round]
-			| (uint32_t)((KeccakF_RoundConstantBit31 << round) & 0x80000000)
-			| (uint64_t)((KeccakF_RoundConstantBit63 << round) & 0x80000000) << 32;
+		state[0] ^= KECCAK_IOTA_CONST[round]
+			| (uint32_t)((KECCAK_IOTA_CONST_bit31 << round) & 0x80000000)
+			| (uint64_t)((KECCAK_IOTA_CONST_bit63 << round) & 0x80000000) << 32;
 	}
 
 	if (BB_BIG_ENDIAN) {
@@ -1094,6 +1097,8 @@ static void KeccakF(uint64_t *state)
 		}
 	}
 }
+
+#undef ARCH_IS_64BIT
 
 void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
 {
@@ -1110,19 +1115,19 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 		buffer[ctx->bytes_queued] ^= *data++;
 		bytes--;
 		ctx->bytes_queued++;
-		if (ctx->bytes_queued == cKeccakR_SizeInBytes) {
+		if (ctx->bytes_queued == KECCAK_IBLK_BYTES) {
 			KeccakF(ctx->state);
 			ctx->bytes_queued = 0;
 		}
 	}
 
 	/* Absorb complete blocks */
-	while (bytes >= cKeccakR_SizeInBytes) {
+	while (bytes >= KECCAK_IBLK_BYTES) {
 		/* XOR data onto beginning of state[].
 		 * We try to be efficient - operate on word at a time, not byte.
 		 * Yet safe wrt unaligned access: can't just use "*(long*)data"...
 		 */
-		unsigned count = cKeccakR_SizeInBytes / sizeof(long);
+		unsigned count = KECCAK_IBLK_BYTES / sizeof(long);
 		long *buffer = (long*)ctx->state;
 		do {
 			long v;
@@ -1132,7 +1137,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 		} while (--count);
 
 		KeccakF(ctx->state);
-		bytes -= cKeccakR_SizeInBytes;
+		bytes -= KECCAK_IBLK_BYTES;
 	}
 
 	/* Queue remaining data bytes */
@@ -1148,11 +1153,8 @@ void FAST_FUNC sha3_end(sha3_ctx_t *ctx, uint8_t *hashval)
 {
 	/* Padding */
 	uint8_t *buffer = (uint8_t*)ctx->state;
-	/* 0 is the number of bits in last, incomplete byte
-	 * (that is, zero: we never have incomplete bytes):
-	 */
-	buffer[ctx->bytes_queued] ^= 1 << 0;
-	buffer[cKeccakR_SizeInBytes - 1] ^= 0x80;
+	buffer[ctx->bytes_queued]     ^= 1;
+	buffer[KECCAK_IBLK_BYTES - 1] ^= 0x80;
 
 	KeccakF(ctx->state);
 
