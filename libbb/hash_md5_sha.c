@@ -933,32 +933,40 @@ enum {
 	cKeccakNumberOfRounds = 24,
 };
 
-static const uint64_t KeccakF_RoundConstants[cKeccakNumberOfRounds] = {
-	0x0000000000000001ULL,
-	0x0000000000008082ULL,
-	0x800000000000808aULL,
-	0x8000000080008000ULL,
-	0x000000000000808bULL,
-	0x0000000080000001ULL,
-	0x8000000080008081ULL,
-	0x8000000000008009ULL,
-	0x000000000000008aULL,
-	0x0000000000000088ULL,
-	0x0000000080008009ULL,
-	0x000000008000000aULL,
-	0x000000008000808bULL,
-	0x800000000000008bULL,
-	0x8000000000008089ULL,
-	0x8000000000008003ULL,
-	0x8000000000008002ULL,
-	0x8000000000000080ULL,
-	0x000000000000800aULL,
-	0x800000008000000aULL,
-	0x8000000080008081ULL,
-	0x8000000000008080ULL,
-	0x0000000080000001ULL,
-	0x8000000080008008ULL
+/* Elements should be 64-bit, but top half is always zero or 0x80000000.
+ * It is encoded as a separate word below.
+ * Same is true for 31th bits.
+ */
+static const uint16_t KeccakF_RoundConstants[cKeccakNumberOfRounds] = {
+	0x0001UL,
+	0x8082UL,
+	0x808aUL,
+	0x8000UL,
+	0x808bUL,
+	0x0001UL,
+	0x8081UL,
+	0x8009UL,
+	0x008aUL,
+	0x0088UL,
+	0x8009UL,
+	0x000aUL,
+	0x808bUL,
+	0x008bUL,
+	0x8089UL,
+	0x8003UL,
+	0x8002UL,
+	0x0080UL,
+	0x800aUL,
+	0x000aUL,
+	0x8081UL,
+	0x8080UL,
+	0x0001UL,
+	0x8008UL
 };
+/* 0th first - 0011 0011 0000 0111 1101 1101: */
+#define KeccakF_RoundConstantBit63 ((uint32_t)(0x3307dd00))
+/* 0th first - 0001 0110 0011 1000 0001 1011: */
+#define KeccakF_RoundConstantBit31 ((uint32_t)(0x16381b00))
 
 static const uint8_t KeccakF_RotationConstants[25] = {
 	1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 2, 14, 27, 41, 56, 8, 25, 43, 62,
@@ -1075,7 +1083,9 @@ static void KeccakF(uint64_t *state)
 		}
 
 		/* Iota */
-		state[0] ^= KeccakF_RoundConstants[round];
+		state[0] ^= KeccakF_RoundConstants[round]
+			| (uint32_t)((KeccakF_RoundConstantBit31 << round) & 0x80000000)
+			| (uint64_t)((KeccakF_RoundConstantBit63 << round) & 0x80000000) << 32;
 	}
 
 	if (BB_BIG_ENDIAN) {
