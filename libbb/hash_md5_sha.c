@@ -988,24 +988,29 @@ static void KeccakF(uint64_t *state)
 	for (round = 0; round < cKeccakNumberOfRounds; ++round) {
 		/* Theta */
 		{
-			uint64_t BC[5];
+			uint64_t BC[10];
 			for (x = 0; x < 5; ++x) {
-				BC[x] = state[x] ^ state[5 + x] ^ state[10 + x] ^
-					state[15 + x] ^ state[20 + x];
+				BC[x + 5] = BC[x] = state[x]
+					^ state[x + 5] ^ state[x + 10]
+					^ state[x + 15]	^ state[x + 20];
 			}
+			/* Using 2x5 vector above eliminates the need to use
+			 * [Mod5[x+N]] index trick below to calculate (x+N) % 5,
+			 * and the code is a bit _smaller_.
+			 */
 			for (x = 0; x < 5; ++x) {
-				uint64_t temp = BC[KeccakF_Mod5[x + 4]] ^
-					rotl64(BC[KeccakF_Mod5[x + 1]], 1);
+				uint64_t temp = BC[x + 4] ^ rotl64(BC[x + 1], 1);
 				if (SHA3_SMALL && !ARCH_IS_64BIT) {
 	                    		for (y = 0; y <= 20; y += 5)
-						state[y + x] ^= temp;
+						state[x + y] ^= temp;
 				} else {
-					/* on 64-bit arch, this is actually smaller too */
-					state[0 + x] ^= temp;
-					state[5 + x] ^= temp;
-					state[10 + x] ^= temp;
-					state[15 + x] ^= temp;
-					state[20 + x] ^= temp;
+					/* On 64-bit, this is also smaller,
+					 * not only faster, than loop */
+					state[x] ^= temp;
+					state[x + 5] ^= temp;
+					state[x + 10] ^= temp;
+					state[x + 15] ^= temp;
+					state[x + 20] ^= temp;
 				}
 			}
 		}
@@ -1019,7 +1024,7 @@ static void KeccakF(uint64_t *state)
 				t1 = t0;
 			}
 		} else {
-			/* Especially large benefit for 32-bit arch:
+			/* Especially large benefit for 32-bit arch (75% faster):
 			 * 64-bit rotations by non-constant usually are SLOW on those.
 			 * We resort to unrolling here.
 			 * This optimizes out KeccakF_PiLane[] and KeccakF_RotationConstants[],
