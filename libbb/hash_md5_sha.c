@@ -918,6 +918,16 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
  * Busybox modifications (C) Lauri Kasanen, under the GPLv2.
  */
 
+#if CONFIG_SHA3_SMALL < 0
+# define SHA3_SMALL 0
+#elif CONFIG_SHA3_SMALL > 1
+# define SHA3_SMALL 1
+#else
+# define SHA3_SMALL CONFIG_SHA3_SMALL
+#endif
+
+#define ARCH_IS_64BIT (sizeof(long) >= sizeof(uint64_t))
+
 enum {
 	cKeccakR_SizeInBytes = 576 / 8,
 	cKeccakNumberOfRounds = 24,
@@ -967,8 +977,6 @@ static const uint8_t KeccakF_Mod5[10] = {
 static void KeccakF(uint64_t *state)
 {
 	uint8_t x, y;
-	uint64_t temp;
-	uint64_t BC[5];
 	int round;
 
 	if (BB_BIG_ENDIAN) {
@@ -979,30 +987,61 @@ static void KeccakF(uint64_t *state)
 
 	for (round = 0; round < cKeccakNumberOfRounds; ++round) {
 		/* Theta */
-		for (x = 0; x < 5; ++x) {
-			BC[x] = state[x] ^ state[5 + x] ^ state[10 + x] ^
-				state[15 + x] ^ state[20 + x];
-		}
-		for (x = 0; x < 5; ++x) {
-			temp = BC[KeccakF_Mod5[x + 4]] ^
-				rotl64(BC[KeccakF_Mod5[x + 1]], 1);
-
-			for (y = 0; y <= 20; y += 5) {
-				state[y + x] ^= temp;
+		{
+			uint64_t BC[5];
+			for (x = 0; x < 5; ++x) {
+				BC[x] = state[x] ^ state[5 + x] ^ state[10 + x] ^
+					state[15 + x] ^ state[20 + x];
+			}
+			for (x = 0; x < 5; ++x) {
+				uint64_t temp = BC[KeccakF_Mod5[x + 4]] ^
+					rotl64(BC[KeccakF_Mod5[x + 1]], 1);
+				if (SHA3_SMALL && !ARCH_IS_64BIT) {
+	                    		for (y = 0; y <= 20; y += 5)
+						state[y + x] ^= temp;
+				} else {
+					/* on 64-bit arch, this is actually smaller too */
+					state[0 + x] ^= temp;
+					state[5 + x] ^= temp;
+					state[10 + x] ^= temp;
+					state[15 + x] ^= temp;
+					state[20 + x] ^= temp;
+				}
 			}
 		}
 
 		/* Rho Pi */
-		temp = state[1];
-		for (x = 0; x < 24; ++x) {
-			BC[0] = state[KeccakF_PiLane[x]];
-			state[KeccakF_PiLane[x]] =
-			    rotl64(temp, KeccakF_RotationConstants[x]);
-			temp = BC[0];
+		if (SHA3_SMALL) {
+			uint64_t t1 = state[1];
+			for (x = 0; x < 24; ++x) {
+				uint64_t t0 = state[KeccakF_PiLane[x]];
+				state[KeccakF_PiLane[x]] = rotl64(t1, KeccakF_RotationConstants[x]);
+				t1 = t0;
+			}
+		} else {
+			/* Especially large benefit for 32-bit arch:
+			 * 64-bit rotations by non-constant usually are SLOW on those.
+			 * We resort to unrolling here.
+			 * This optimizes out KeccakF_PiLane[] and KeccakF_RotationConstants[],
+			 * but generates 300-500 more bytes of code.
+			 */
+			uint64_t t0;
+			uint64_t t1 = state[1];
+#define RhoPi_twice(x) \
+			t0 = state[KeccakF_PiLane[x  ]]; state[KeccakF_PiLane[x  ]] = rotl64(t1, KeccakF_RotationConstants[x  ]); \
+			t1 = state[KeccakF_PiLane[x+1]]; state[KeccakF_PiLane[x+1]] = rotl64(t0, KeccakF_RotationConstants[x+1]);
+			RhoPi_twice(0); RhoPi_twice(2);
+			RhoPi_twice(4); RhoPi_twice(6);
+			RhoPi_twice(8); RhoPi_twice(10);
+			RhoPi_twice(12); RhoPi_twice(14);
+			RhoPi_twice(16); RhoPi_twice(18);
+			RhoPi_twice(20); RhoPi_twice(22);
+#undef RhoPi_twice
 		}
 
 		/* Chi */
-		for (y = 0; y < 25; y += 5) {
+		for (y = 0; y <= 20; y += 5) {
+			uint64_t BC[5];
 			BC[0] = state[y + 0];
 			BC[1] = state[y + 1];
 			BC[2] = state[y + 2];

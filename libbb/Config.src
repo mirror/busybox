@@ -28,6 +28,16 @@ config MD5_SMALL
 	  2                   3.0                5088
 	  3 (smallest)        5.1                4912
 
+config SHA3_SMALL
+	int "SHA3: Trade bytes for speed (0:fast, 1:slow)"
+	default 1
+	range 0 1
+	help
+	  Trade binary size versus speed for the sha3sum algorithm.
+	  SHA3_SMALL=0 compared to SHA3_SMALL=1 (approximate):
+	  64-bit x86: +270 bytes of code, 45% faster
+	  32-bit x86: +450 bytes of code, 75% faster
+
 config FEATURE_FAST_TOP
 	bool "Faster /proc scanning code (+100 bytes)"
 	default y
