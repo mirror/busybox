@@ -1038,7 +1038,7 @@ static void identify(uint16_t *val)
 				val[ACOUSTIC] & 0x00ff);
 		}
 	} else {
-		 /* ATAPI */
+		/* ATAPI */
 		if (eqpt != CDROM && (val[CAPAB_0] & SWRST_REQ))
 			printf("\tATA sw reset required\n");
 

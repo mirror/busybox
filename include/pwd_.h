@@ -63,7 +63,7 @@ extern struct passwd *fgetpwent(FILE *__stream);
 
 /* Write the given entry onto the given stream.  */
 extern int putpwent(const struct passwd *__restrict __p,
-		     FILE *__restrict __f);
+		FILE *__restrict __f);
 #endif
 
 /* Search for an entry with a matching user ID.  */
@@ -81,25 +81,25 @@ extern struct passwd *getpwnam(const char *__name);
    POSIX people would choose.  */
 
 extern int getpwent_r(struct passwd *__restrict __resultbuf,
-		       char *__restrict __buffer, size_t __buflen,
-		       struct passwd **__restrict __result);
+		char *__restrict __buffer, size_t __buflen,
+		struct passwd **__restrict __result);
 
 extern int getpwuid_r(uid_t __uid,
-		       struct passwd *__restrict __resultbuf,
-		       char *__restrict __buffer, size_t __buflen,
-		       struct passwd **__restrict __result);
+		struct passwd *__restrict __resultbuf,
+		char *__restrict __buffer, size_t __buflen,
+		struct passwd **__restrict __result);
 
 extern int getpwnam_r(const char *__restrict __name,
-		       struct passwd *__restrict __resultbuf,
-		       char *__restrict __buffer, size_t __buflen,
-		       struct passwd **__restrict __result);
+		struct passwd *__restrict __resultbuf,
+		char *__restrict __buffer, size_t __buflen,
+		struct passwd **__restrict __result);
 
 /* Read an entry from STREAM.  This function is not standardized and
    probably never will.  */
 extern int fgetpwent_r(FILE *__restrict __stream,
-			struct passwd *__restrict __resultbuf,
-			char *__restrict __buffer, size_t __buflen,
-			struct passwd **__restrict __result);
+		struct passwd *__restrict __resultbuf,
+		char *__restrict __buffer, size_t __buflen,
+		struct passwd **__restrict __result);
 
 POP_SAVED_FUNCTION_VISIBILITY
 

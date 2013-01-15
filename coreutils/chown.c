@@ -126,8 +126,8 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	/* This matches coreutils behavior (almost - see below) */
 	param.chown_func = chown;
 	if (OPT_NODEREF
-	    /* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
-	    IF_DESKTOP( || (opt & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
+	/* || (OPT_RECURSE && !OPT_TRAVERSE_TOP): */
+	IF_DESKTOP( || (opt & (BIT_RECURSE|BIT_TRAVERSE_TOP)) == BIT_RECURSE)
 	) {
 		param.chown_func = lchown;
 	}

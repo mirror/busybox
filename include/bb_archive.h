@@ -220,9 +220,9 @@ IF_DESKTOP(long long) int unpack_xz_stream(transformer_aux_data_t *aux, int src_
 
 char* append_ext(char *filename, const char *expected_ext) FAST_FUNC;
 int bbunpack(char **argv,
-	    IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_aux_data_t *aux),
-	    char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
-	    const char *expected_ext
+		IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_aux_data_t *aux),
+		char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
+		const char *expected_ext
 ) FAST_FUNC;
 
 void check_errors_in_children(int signo);

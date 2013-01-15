@@ -709,9 +709,9 @@ static void print_found(const char *line)
 	/* buf[] holds quarantined version of str */
 
 	/* Each part of the line that matches has the HIGHLIGHT
-	   and NORMAL escape sequences placed around it.
-	   NB: we regex against line, but insert text
-	   from quarantined copy (buf[]) */
+	 * and NORMAL escape sequences placed around it.
+	 * NB: we regex against line, but insert text
+	 * from quarantined copy (buf[]) */
 	str = buf;
 	growline = NULL;
 	eflags = 0;

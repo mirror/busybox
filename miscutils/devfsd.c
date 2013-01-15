@@ -803,8 +803,8 @@ static void action_execute(const struct devfsd_notify_struct *info,
 
 
 static void action_copy(const struct devfsd_notify_struct *info,
-			 const struct config_entry_struct *entry,
-			 const regmatch_t *regexpr, unsigned int numexpr)
+			const struct config_entry_struct *entry,
+			const regmatch_t *regexpr, unsigned int numexpr)
 /*  [SUMMARY] Copy permissions.
     <info> The devfs change.
     <entry> The config file entry.
@@ -1259,11 +1259,11 @@ static int make_dir_tree(const char *path)
 } /*  End Function make_dir_tree  */
 
 static int expand_expression(char *output, unsigned int outsize,
-			      const char *input,
-			      const char *(*get_variable_func)(const char *variable, void *info),
-			      void *info,
-			      const char *devname,
-			      const regmatch_t *ex, unsigned int numexp)
+			const char *input,
+			const char *(*get_variable_func)(const char *variable, void *info),
+			void *info,
+			const char *devname,
+			const regmatch_t *ex, unsigned int numexp)
 /*  [SUMMARY] Expand environment variables and regular subexpressions in string.
     <output> The output expanded expression is written here.
     <length> The size of the output buffer.
@@ -1288,8 +1288,8 @@ static int expand_expression(char *output, unsigned int outsize,
 }   /*  End Function expand_expression  */
 
 static void expand_regexp(char *output, size_t outsize, const char *input,
-			   const char *devname,
-			   const regmatch_t *ex, unsigned int numex)
+			const char *devname,
+			const regmatch_t *ex, unsigned int numex)
 /*  [SUMMARY] Expand all occurrences of the regular subexpressions \0 to \9.
     <output> The output expanded expression is written here.
     <outsize> The size of the output buffer.
@@ -1385,7 +1385,7 @@ static struct translate_struct translate_table[] =
 };
 
 const char *get_old_name(const char *devname, unsigned int namelen,
-			  char *buffer, unsigned int major, unsigned int minor)
+			char *buffer, unsigned int major, unsigned int minor)
 /*  [SUMMARY] Translate a kernel-supplied name into an old name.
     <devname> The device name provided by the kernel.
     <namelen> The length of the name.
@@ -1423,7 +1423,7 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 	};
 
 	for (trans = translate_table; trans->match != NULL; ++trans) {
-		 len = strlen(trans->match);
+		len = strlen(trans->match);
 
 		if (strncmp(devname, trans->match, len) == 0) {
 			if (trans->format == NULL)
@@ -1549,9 +1549,9 @@ static char *write_old_sd_name(char *buffer,
 /*EXPERIMENTAL_FUNCTION*/
 
 int st_expr_expand(char *output, unsigned int length, const char *input,
-		     const char *(*get_variable_func)(const char *variable,
-						  void *info),
-		     void *info)
+		const char *(*get_variable_func)(const char *variable,
+						void *info),
+		void *info)
 /*  [SUMMARY] Expand an expression using Borne Shell-like unquoted rules.
     <output> The output expanded expression is written here.
     <length> The size of the output buffer.
@@ -1643,7 +1643,7 @@ st_expr_expand_out:
 static const char *expand_variable(char *buffer, unsigned int length,
 				unsigned int *out_pos, const char *input,
 				const char *(*func)(const char *variable,
-							 void *info),
+							void *info),
 				void *info)
 /*  [SUMMARY] Expand a variable.
     <buffer> The buffer to write to.

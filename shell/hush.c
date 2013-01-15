@@ -8281,7 +8281,7 @@ static int FAST_FUNC builtin_exit(char **argv)
 	 * (if there are _stopped_ jobs, running ones don't count)
 	 * # exit
 	 * exit
-	 # EEE (then bash exits)
+	 * EEE (then bash exits)
 	 *
 	 * TODO: we can use G.exiting = -1 as indicator "last cmd was exit"
 	 */

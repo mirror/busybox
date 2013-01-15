@@ -1516,7 +1516,7 @@ struct smaprec {
 	procps_read_smaps(pid, total)
 #endif
 int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
-		      void (*cb)(struct smaprec *, void *), void *data);
+		void (*cb)(struct smaprec *, void *), void *data);
 
 typedef struct procps_status_t {
 	DIR *dir;

@@ -43,7 +43,7 @@ static const unsigned char days_in_month[] ALIGN1 = {
 };
 
 static const unsigned char sep1752[] ALIGN1 = {
-		 1,	2,	14,	15,	16,
+		1,	2,	14,	15,	16,
 	17,	18,	19,	20,	21,	22,	23,
 	24,	25,	26,	27,	28,	29,	30
 };
@@ -183,7 +183,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		center(lineout,
 				(WEEK_LEN * 3 + HEAD_SEP * 2)
 				+ julian * (J_WEEK_LEN * 2 + HEAD_SEP
-						   - (WEEK_LEN * 3 + HEAD_SEP * 2)),
+						- (WEEK_LEN * 3 + HEAD_SEP * 2)),
 				0
 		);
 		puts("\n");		/* two \n's */

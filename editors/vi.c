@@ -1929,11 +1929,11 @@ static int find_range(char **start, char **stop, char c)
 		dot_end();		// find NL
 		q = dot;
 	} else {
-	    // nothing -- this causes any other values of c to
-	    // represent the one-character range under the
-	    // cursor.  this is correct for ' ' and 'l', but
-	    // perhaps no others.
-	    //
+		// nothing -- this causes any other values of c to
+		// represent the one-character range under the
+		// cursor.  this is correct for ' ' and 'l', but
+		// perhaps no others.
+		//
 	}
 	if (q < p) {
 		t = q;

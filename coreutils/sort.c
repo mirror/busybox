@@ -219,7 +219,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 		y = get_key(*(char **)yarg, key, flags);
 #else
 	/* This curly bracket serves no purpose but to match the nesting
-	   level of the for () loop we're not using */
+	 * level of the for () loop we're not using */
 	{
 		x = *(char **)xarg;
 		y = *(char **)yarg;

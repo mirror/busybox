@@ -94,8 +94,8 @@ int sum_main(int argc UNUSED_PARAM, char **argv)
 		n = sum_file("-", type);
 	} else {
 		/* Need to print the name if either
-		   - more than one file given
-		   - doing sysv */
+		 * - more than one file given
+		 * - doing sysv */
 		type += (argv[1] || type == SUM_SYSV);
 		n = 1;
 		do {
