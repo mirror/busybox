@@ -1057,7 +1057,7 @@ static void KeccakF(uint64_t *state)
 
 		/* Chi */
 		for (y = 0; y <= 20; y += 5) {
-			if (SHA3_SMALL) {
+			if (SHA3_SMALL && !ARCH_IS_64BIT) {
 				uint64_t BC[5];
 				BC[0] = state[y + 0];
 				BC[1] = state[y + 1];
@@ -1071,6 +1071,7 @@ static void KeccakF(uint64_t *state)
 				}
 			} else {
 				/* 32-bit x86: +50 bytes code, 10% faster */
+				/* 64-bit x86: ~same code size, 30% faster */
 				uint64_t BC0, BC1, BC2, BC3, BC4;
 				BC0 = state[y + 0];
 				BC1 = state[y + 1];
