@@ -933,7 +933,7 @@ enum {
 /*
  * In the crypto literature this function is usually called Keccak-f().
  */
-static void sha3_process_block76(uint64_t *state)
+static void sha3_process_block72(uint64_t *state)
 {
 	enum { NROUNDS = 24 };
 
@@ -1091,7 +1091,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 		bytes--;
 		bytes_queued++;
 		if (bytes_queued == SHA3_IBLK_BYTES) {
-			sha3_process_block76(ctx->state);
+			sha3_process_block72(ctx->state);
 			bytes_queued = 0;
 		}
 	}
@@ -1111,7 +1111,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
 			data += sizeof(long);
 		} while (--count);
 
-		sha3_process_block76(ctx->state);
+		sha3_process_block72(ctx->state);
 
 		bytes -= SHA3_IBLK_BYTES;
 	}
@@ -1134,7 +1134,7 @@ void FAST_FUNC sha3_end(sha3_ctx_t *ctx, uint8_t *hashval)
 	buffer[ctx->bytes_queued]   ^= 1;
 	buffer[SHA3_IBLK_BYTES - 1] ^= 0x80;
 
-	sha3_process_block76(ctx->state);
+	sha3_process_block72(ctx->state);
 
 	/* Output */
 	memcpy(hashval, ctx->state, 64);
