@@ -36,6 +36,10 @@
 //usage:	IF_FEATURE_MTAB_SUPPORT(
 //usage:     "\n	-n		Don't update /etc/mtab"
 //usage:	)
+//usage:	IF_FEATURE_MOUNT_VERBOSE(
+//usage:     "\n	-v		Verbose"
+//usage:	)
+////usage:   "\n	-s		Sloppy (ignored)"
 //usage:     "\n	-r		Read-only mount"
 //usage:     "\n	-w		Read-write mount (default)"
 //usage:     "\n	-t FSTYPE[,...]	Filesystem type(s)"
@@ -224,7 +228,7 @@ static const int32_t mount_options[] = {
 		IF_DESKTOP(/* "user"  */ MOUNT_USERS,)
 		IF_DESKTOP(/* "users" */ MOUNT_USERS,)
 		/* "_netdev" */ 0,
-		IF_DESKTOP(/* "comment" */ 0,) /* systemd uses this in fstab */
+		IF_DESKTOP(/* "comment=" */ 0,) /* systemd uses this in fstab */
 	)
 
 	IF_FEATURE_MOUNT_FLAGS(
@@ -283,7 +287,7 @@ static const char mount_option_str[] =
 		IF_DESKTOP("user\0")
 		IF_DESKTOP("users\0")
 		"_netdev\0"
-		IF_DESKTOP("comment\0") /* systemd uses this in fstab */
+		IF_DESKTOP("comment=\0") /* systemd uses this in fstab */
 	)
 	IF_FEATURE_MOUNT_FLAGS(
 		// vfs flags
@@ -475,10 +479,13 @@ static unsigned long parse_mount_options(char *options, char **unrecognized)
 // FIXME: use hasmntopt()
 		// Find this option in mount_options
 		for (i = 0; i < ARRAY_SIZE(mount_options); i++) {
-			/* We support "option=" match for "comment=" thingy */
 			unsigned opt_len = strlen(option_str);
+
 			if (strncasecmp(option_str, options, opt_len) == 0
-			 && (options[opt_len] == '\0' || options[opt_len] == '=')
+			 && (options[opt_len] == '\0'
+			    /* or is it "comment=" thingy in fstab? */
+			    IF_FEATURE_MOUNT_FSTAB(IF_DESKTOP( || option_str[opt_len-1] == '=' ))
+			    )
 			) {
 				unsigned long fl = mount_options[i];
 				if (fl & BB_MS_INVERTED_VALUE)
@@ -1817,31 +1824,44 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	) {
 		int len;
 		char c;
+		char *hostname, *share;
+		char *dotted, *ip;
 		len_and_sockaddr *lsa;
-		char *hostname, *dotted, *ip;
+
+		// Parse mp->mnt_fsname of the form "//hostname/share[/dir1/dir2]"
 
 		hostname = mp->mnt_fsname + 2;
 		len = strcspn(hostname, "/\\");
-		if (len == 0                // 1st char is a [back]slash (IOW: empty hostname)
-		 || hostname[len] == '\0'   // no [back]slash after hostname
-		 || hostname[len+1] == '\0' // empty share name
+		share = hostname + len + 1;
+		if (len == 0          // 3rd char is a [back]slash (IOW: empty hostname)
+		 || share[-1] == '\0' // no [back]slash after hostname
+		 || share[0] == '\0'  // empty share name
 		) {
 			goto report_error;
 		}
-		c = hostname[len];
-		hostname[len] = '\0';
+		c = share[-1];
+		share[-1] = '\0';
+		len = strcspn(share, "/\\");
 
 		// "unc=\\hostname\share" option is mandatory
 		// after CIFS option parsing was rewritten in Linux 3.4.
-		// Must pass it to the kernel. Must use backslashes.
+		// Must use backslashes.
+		// If /dir1/dir2 is present, also add "prefixpath=dir1/dir2"
 		{
-			char *unc = xasprintf("unc=\\\\%s\\%s", hostname, hostname + len + 1);
-			parse_mount_options(unc, &filteropts);
-			if (ENABLE_FEATURE_CLEAN_UP) free(unc);
+			char *unc = xasprintf(
+				share[len] != '\0'  /* "/dir1/dir2" exists? */
+					? "unc=\\\\%s\\%.*s,prefixpath=%s"
+					: "unc=\\\\%s\\%.*s",
+				hostname,
+				len, share,
+				share + len + 1  /* "dir1/dir2" */
+			);
+ 			parse_mount_options(unc, &filteropts);
+ 			if (ENABLE_FEATURE_CLEAN_UP) free(unc);
 		}
 
 		lsa = host2sockaddr(hostname, 0);
-		hostname[len] = c;
+		share[-1] = c;
 		if (!lsa)
 			goto report_error;
 
@@ -1853,8 +1873,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		parse_mount_options(ip, &filteropts);
 		if (ENABLE_FEATURE_CLEAN_UP) free(ip);
 
-		// "-o mand" is required [why?]
-		vfsflags |= MS_MANDLOCK;
 		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
 
