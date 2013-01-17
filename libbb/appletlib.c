@@ -140,10 +140,9 @@ void FAST_FUNC bb_show_usage(void)
 }
 
 #if NUM_APPLETS > 8
-/* NB: any char pointer will work as well, not necessarily applet_names */
-static int applet_name_compare(const void *name, const void *v)
+static int applet_name_compare(const void *name, const void *idx)
 {
-	int i = (const char *)v - applet_names;
+	int i = (int)(ptrdiff_t)idx - 1;
 	return strcmp(name, APPLET_NAME(i));
 }
 #endif
@@ -152,10 +151,12 @@ int FAST_FUNC find_applet_by_name(const char *name)
 #if NUM_APPLETS > 8
 	/* Do a binary search to find the applet entry given the name. */
 	const char *p;
-	p = bsearch(name, applet_names, ARRAY_SIZE(applet_main), 1, applet_name_compare);
-	if (!p)
-		return -1;
-	return p - applet_names;
+	p = bsearch(name, (void*)(ptrdiff_t)1, ARRAY_SIZE(applet_main), 1, applet_name_compare);
+	/*
+	 * if (!p) return -1;
+	 * ^^^^^^^^^^^^^^^^^^ the code below will do this if p == NULL :)
+	 */
+	return (int)(ptrdiff_t)p - 1;
 #else
 	/* A version which does not pull in bsearch */
 	int i = 0;
@@ -747,8 +748,11 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 		/* Special case. POSIX says "test --help"
 		 * should be no different from e.g. "test --foo".  */
 //TODO: just compare applet_no with APPLET_NO_test
-		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0)
+		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0) {
+			/* If you want "foo --help" to return 0: */
+			/*xfunc_error_retval = 0;*/
 			bb_show_usage();
+		}
 	}
 	if (ENABLE_FEATURE_SUID)
 		check_suid(applet_no);
