@@ -332,7 +332,7 @@ config FEATURE_SUID
 	  root-level operations even when run by ordinary users
 	  (for example, mounting of user mounts in fstab needs this).
 
-	  Busybox will automatically drop priviledges for applets
+	  Busybox will automatically drop privileges for applets
 	  that don't need root access.
 
 	  If you are really paranoid and don't want to do this, build two
