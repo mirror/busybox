@@ -8677,8 +8677,17 @@ expredir(union node *n)
 #if ENABLE_ASH_BASH_COMPAT
  store_expfname:
 #endif
+#if 0
+// By the design of stack allocator, the loop of this kind:
+//	while true; do while true; do break; done </dev/null; done
+// will look like a memory leak: ash plans to free expfname's
+// of "/dev/null" as soon as it finishes running the loop
+// (in this case, never).
+// This "fix" is wrong:
 			if (redir->nfile.expfname)
 				stunalloc(redir->nfile.expfname);
+// It results in corrupted state of stacked allocations.
+#endif
 			redir->nfile.expfname = fn.list->text;
 			break;
 		case NFROMFD:
