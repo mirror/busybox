@@ -11,11 +11,11 @@
 //usage:
 //usage:#define dc_full_usage "\n\n"
 //usage:       "Tiny RPN calculator. Operations:\n"
-//usage:       "+, add, -, sub, *, mul, /, div, %, mod, "IF_FEATURE_DC_LIBM("**, exp, ")"and, or, not, eor,\n"
+//usage:       "+, add, -, sub, *, mul, /, div, %, mod, "IF_FEATURE_DC_LIBM("**, exp, ")"and, or, not, xor,\n"
 //usage:       "p - print top of the stack (without popping),\n"
 //usage:       "f - print entire stack,\n"
 //usage:       "o - pop the value and set output radix (must be 10, 16, 8 or 2).\n"
-//usage:       "Examples: 'dc 2 2 add p' -> 4, 'dc 8 8 * 2 2 + / p' -> 16"
+//usage:       "Examples: 'dc 2 2 add p' -> 4, 'dc 8 8 mul 2 2 + / p' -> 16"
 //usage:
 //usage:#define dc_example_usage
 //usage:       "$ dc 2 2 + p\n"
@@ -219,29 +219,29 @@ static const struct op operators[] = {
 	{"p", print_no_pop},
 	{"f", print_stack_no_pop},
 	{"o", set_output_base},
-	{ "", NULL }
 };
 
 static void stack_machine(const char *argument)
 {
-	char *endPointer;
+	char *end;
 	double d;
-	const struct op *o = operators;
+	const struct op *o;
 
-	d = strtod(argument, &endPointer);
-
-	if (endPointer != argument && *endPointer == '\0') {
+	d = strtod(argument, &end);
+	if (end != argument && *end == '\0') {
 		push(d);
 		return;
 	}
 
-	while (o->function) {
+	o = operators;
+	do {
 		if (strcmp(o->name, argument) == 0) {
 			o->function();
 			return;
 		}
 		o++;
-	}
+	} while (o != operators + ARRAY_SIZE(operators));
+
 	bb_error_msg_and_die("syntax error at '%s'", argument);
 }
 
