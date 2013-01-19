@@ -1641,7 +1641,7 @@ typedef struct sha3_ctx_t {
 	unsigned bytes_queued;
 } sha3_ctx_t;
 void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
-void md5_hash(md5_ctx_t *ctx, const void *data, size_t length) FAST_FUNC;
+void md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
 void md5_end(md5_ctx_t *ctx, void *resbuf) FAST_FUNC;
 void sha1_begin(sha1_ctx_t *ctx) FAST_FUNC;
 #define sha1_hash md5_hash
@@ -1654,7 +1654,7 @@ void sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
 void sha512_end(sha512_ctx_t *ctx, void *resbuf) FAST_FUNC;
 void sha3_begin(sha3_ctx_t *ctx) FAST_FUNC;
 void sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
-void sha3_end(sha3_ctx_t *ctx, uint8_t *resbuf) FAST_FUNC;
+void sha3_end(sha3_ctx_t *ctx, void *resbuf) FAST_FUNC;
 
 extern uint32_t *global_crc32_table;
 uint32_t *crc32_filltable(uint32_t *tbl256, int endian) FAST_FUNC;

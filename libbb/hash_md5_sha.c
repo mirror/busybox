@@ -56,7 +56,7 @@ static void FAST_FUNC common64_hash(md5_ctx_t *ctx, const void *buffer, size_t l
 		len -= remaining;
 		buffer = (const char *)buffer + remaining;
 		bufpos += remaining;
-		/* clever way to do "if (bufpos != 64) break; ... ; bufpos = 0;" */
+		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
 		bufpos -= 64;
 		if (bufpos != 0)
 			break;
@@ -839,7 +839,7 @@ void FAST_FUNC sha512_hash(sha512_ctx_t *ctx, const void *buffer, size_t len)
 		len -= remaining;
 		buffer = (const char *)buffer + remaining;
 		bufpos += remaining;
-		/* clever way to do "if (bufpos != 128) break; ... ; bufpos = 0;" */
+		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
 		bufpos -= 128;
 		if (bufpos != 0)
 			break;
@@ -1079,63 +1079,90 @@ void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
-void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buf, size_t bytes)
+void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 {
-	const uint8_t *data = buf;
-	unsigned bytes_queued = ctx->bytes_queued;
+#if SHA3_SMALL
+	const uint8_t *data = buffer;
+	unsigned bufpos = ctx->bytes_queued;
+
+	while (1) {
+		unsigned remaining = SHA3_IBLK_BYTES - bufpos;
+		if (remaining > len)
+			remaining = len;
+		len -= remaining;
+		/* XOR data into buffer */
+		while (remaining != 0) {
+			uint8_t *buf = (uint8_t*)ctx->state;
+			buf[bufpos] ^= *data++;
+			bufpos++;
+			remaining--;
+		}
+		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
+		bufpos -= SHA3_IBLK_BYTES;
+		if (bufpos != 0)
+			break;
+		/* Buffer is filled up, process it */
+		sha3_process_block72(ctx->state);
+		/*bufpos = 0; - already is */
+	}
+	ctx->bytes_queued = bufpos + SHA3_IBLK_BYTES;
+#else
+	/* +50 bytes code size, but a bit faster because of long-sized XORs */
+	const uint8_t *data = buffer;
+	unsigned bufpos = ctx->bytes_queued;
 
 	/* If already data in queue, continue queuing first */
-	while (bytes != 0 && bytes_queued != 0) {
-		uint8_t *buffer = (uint8_t*)ctx->state;
-		buffer[bytes_queued] ^= *data++;
-		bytes--;
-		bytes_queued++;
-		if (bytes_queued == SHA3_IBLK_BYTES) {
-			sha3_process_block72(ctx->state);
-			bytes_queued = 0;
+	while (len != 0 && bufpos != 0) {
+		uint8_t *buf = (uint8_t*)ctx->state;
+		buf[bufpos] ^= *data++;
+		len--;
+		bufpos++;
+		if (bufpos == SHA3_IBLK_BYTES) {
+			bufpos = 0;
+			goto do_block;
 		}
 	}
 
 	/* Absorb complete blocks */
-	while (bytes >= SHA3_IBLK_BYTES) {
+	while (len >= SHA3_IBLK_BYTES) {
 		/* XOR data onto beginning of state[].
-		 * We try to be efficient - operate on word at a time, not byte.
-		 * Yet safe wrt unaligned access: can't just use "*(long*)data"...
+		 * We try to be efficient - operate one word at a time, not byte.
+		 * Careful wrt unaligned access: can't just use "*(long*)data"!
 		 */
 		unsigned count = SHA3_IBLK_BYTES / sizeof(long);
-		long *buffer = (long*)ctx->state;
+		long *buf = (long*)ctx->state;
 		do {
 			long v;
 			move_from_unaligned_long(v, (long*)data);
-			*buffer++ ^= v;
+			*buf++ ^= v;
 			data += sizeof(long);
 		} while (--count);
-
+		len -= SHA3_IBLK_BYTES;
+ do_block:
 		sha3_process_block72(ctx->state);
-
-		bytes -= SHA3_IBLK_BYTES;
 	}
 
 	/* Queue remaining data bytes */
-	while (bytes != 0) {
-		uint8_t *buffer = (uint8_t*)ctx->state;
-		buffer[bytes_queued] ^= *data++;
-		bytes_queued++;
-		bytes--;
+	while (len != 0) {
+		uint8_t *buf = (uint8_t*)ctx->state;
+		buf[bufpos] ^= *data++;
+		bufpos++;
+		len--;
 	}
 
-	ctx->bytes_queued = bytes_queued;
+	ctx->bytes_queued = bufpos;
+#endif
 }
 
-void FAST_FUNC sha3_end(sha3_ctx_t *ctx, uint8_t *hashval)
+void FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 {
 	/* Padding */
-	uint8_t *buffer = (uint8_t*)ctx->state;
-	buffer[ctx->bytes_queued]   ^= 1;
-	buffer[SHA3_IBLK_BYTES - 1] ^= 0x80;
+	uint8_t *buf = (uint8_t*)ctx->state;
+	buf[ctx->bytes_queued]   ^= 1;
+	buf[SHA3_IBLK_BYTES - 1] ^= 0x80;
 
 	sha3_process_block72(ctx->state);
 
 	/* Output */
-	memcpy(hashval, ctx->state, 64);
+	memcpy(resbuf, ctx->state, 64);
 }
