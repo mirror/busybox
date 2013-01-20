@@ -115,6 +115,18 @@ testing "grep -v -f EMPTY_FILE" \
 	"" \
 	"test\n"
 
+testing "grep -Fw matches only words" \
+	"grep -Fw foo input" \
+	"" \
+	"foop\n" \
+	""
+
+testing "grep -Fw doesn't stop on 1st mismatch" \
+	"grep -Fw foo input" \
+	"foop foo\n" \
+	"foop foo\n" \
+	""
+
 # testing "test name" "commands" "expected result" "file input" "stdin"
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout

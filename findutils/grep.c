@@ -344,10 +344,34 @@ static int grep_file(FILE *file)
 		while (pattern_ptr) {
 			gl = (grep_list_data_t *)pattern_ptr->data;
 			if (FGREP_FLAG) {
-				found |= (((option_mask32 & OPT_i)
-					? strcasestr(line, gl->pattern)
-					: strstr(line, gl->pattern)
-					) != NULL);
+				char *match;
+				char *str = line;
+ opt_f_again:
+				match = ((option_mask32 & OPT_i)
+					? strcasestr(str, gl->pattern)
+					: strstr(str, gl->pattern)
+					);
+				if (match) {
+					if (option_mask32 & OPT_x) {
+						if (match != str)
+							goto opt_f_not_found;
+						if (str[strlen(gl->pattern)] != '\0')
+							goto opt_f_not_found;
+					} else
+					if (option_mask32 & OPT_w) {
+						char c = (match != str) ? match[-1] : ' ';
+						if (!isalnum(c) && c != '_') {
+							c = match[strlen(gl->pattern)];
+							if (!c || (!isalnum(c) && c != '_'))
+								goto opt_f_found;
+						}
+						str = match + 1;
+						goto opt_f_again;
+					}
+ opt_f_found:
+					found = 1;
+ opt_f_not_found: ;
+				}
 			} else {
 				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
 					gl->flg_mem_alocated_compiled |= COMPILED;
@@ -376,7 +400,8 @@ static int grep_file(FILE *file)
 					if (option_mask32 & OPT_x) {
 						found = (gl->matched_range.rm_so == 0
 						         && line[gl->matched_range.rm_eo] == '\0');
-					} else if (!(option_mask32 & OPT_w)) {
+					} else
+					if (!(option_mask32 & OPT_w)) {
 						found = 1;
 					} else {
 						char c = ' ';
@@ -387,6 +412,8 @@ static int grep_file(FILE *file)
 							if (!c || (!isalnum(c) && c != '_'))
 								found = 1;
 						}
+//BUG: "echo foop foo | grep -w foo" should match, but doesn't:
+//we bail out on first "mismatch" because it's not a word.
 					}
 				}
 			}
