@@ -435,7 +435,7 @@ static NOINLINE void INET6_setroute(int action, char **args)
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy_IFNAMSIZ(ifr.ifr_name, devname);
-		xioctl(skfd, SIOGIFINDEX, &ifr);
+		xioctl(skfd, SIOCGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
 	}
 
