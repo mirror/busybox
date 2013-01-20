@@ -429,7 +429,9 @@ static void parse_syslogdcfg(const char *file)
 	return;
 
  cfgerr:
-	bb_error_msg_and_die("error in '%s' at line %d", file, parser->lineno);
+	bb_error_msg_and_die("error in '%s' at line %d",
+			file ? file : "/etc/syslog.conf",
+			parser->lineno);
 }
 #endif
 
