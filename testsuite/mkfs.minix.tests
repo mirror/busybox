@@ -9,7 +9,7 @@
 # testing "test name" "options" "expected result" "file input" "stdin"
 
 # '\n' produces 10 on little endian, but not on big endian
-cr=`echo | od -i | sed 's/.* //g;2d'`
+cr=`echo | od -i | sed 's/ *$//g;s/.* //g;2d'`
 if [ x"$cr" = x"10" ]; then
 	hash=4f35f7afeba07d56055bed1f29ae20b7
 else
