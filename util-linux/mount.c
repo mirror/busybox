@@ -1856,8 +1856,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 				len, share,
 				share + len + 1  /* "dir1/dir2" */
 			);
- 			parse_mount_options(unc, &filteropts);
- 			if (ENABLE_FEATURE_CLEAN_UP) free(unc);
+			parse_mount_options(unc, &filteropts);
+			if (ENABLE_FEATURE_CLEAN_UP) free(unc);
 		}
 
 		lsa = host2sockaddr(hostname, 0);
