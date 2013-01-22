@@ -70,7 +70,7 @@
 enum { MAX_WIDTH = 2*1024 };
 
 #if ENABLE_FEATURE_PS_TIME || ENABLE_FEATURE_PS_LONG
-static long get_uptime(void)
+static unsigned long get_uptime(void)
 {
 #ifdef __linux__
 	struct sysinfo info;
@@ -78,12 +78,15 @@ static long get_uptime(void)
 		return 0;
 	return info.uptime;
 #elif 1
-	char buf[64];
-	long uptime;
+	unsigned long uptime;
+	char buf[sizeof(uptime)*3 + 2];
+	/* /proc/uptime is "UPTIME_SEC.NN IDLE_SEC.NN\n"
+	 * (where IDLE is cumulative over all CPUs)
+	 */
 	if (open_read_close("/proc/uptime", buf, sizeof(buf)) <= 0)
-		bb_perror_msg_and_die("can't read %s", "/proc/uptime");
+		bb_perror_msg_and_die("can't read '%s'", "/proc/uptime");
 	buf[sizeof(buf)-1] = '\0';
-	sscanf(buf, "%l", &uptime);
+	sscanf(buf, "%lu", &uptime);
 	return uptime;
 #else
 	struct timespec ts;
@@ -138,7 +141,10 @@ struct globals {
 	unsigned terminal_width;
 #if ENABLE_FEATURE_PS_TIME
 	unsigned kernel_HZ;
-	unsigned long long seconds_since_boot;
+	/* used to be long long, but 64 bits is enough
+	 * (long long may become 128 bits in the future):
+	 */
+	uint64_t seconds_since_boot;
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -149,14 +155,13 @@ struct globals {
 #define buffer             (G.buffer            )
 #define terminal_width     (G.terminal_width    )
 #define kernel_HZ          (G.kernel_HZ         )
-#define seconds_since_boot (G.seconds_since_boot)
 #define INIT_G() do { } while (0)
 
 #if ENABLE_FEATURE_PS_TIME
 /* for ELF executables, notes are pushed before environment and args */
-static ptrdiff_t find_elf_note(ptrdiff_t findme)
+static uintptr_t find_elf_note(uintptr_t findme)
 {
-	ptrdiff_t *ep = (ptrdiff_t *) environ;
+	uintptr_t *ep = (uintptr_t *) environ;
 
 	while (*ep++)
 		continue;
@@ -222,7 +227,6 @@ static inline unsigned get_HZ_by_waiting(void)
 
 static unsigned get_kernel_HZ(void)
 {
-
 	if (kernel_HZ)
 		return kernel_HZ;
 
@@ -231,7 +235,7 @@ static unsigned get_kernel_HZ(void)
 	if (kernel_HZ == (unsigned)-1)
 		kernel_HZ = get_HZ_by_waiting();
 
-	seconds_since_boot = get_uptime();
+	G.seconds_since_boot = get_uptime();
 
 	return kernel_HZ;
 }
@@ -350,7 +354,7 @@ static void func_etime(char *buf, int size, const procps_status_t *ps)
 
 	mm = ps->start_time / get_kernel_HZ();
 	/* must be after get_kernel_HZ()! */
-	mm = seconds_since_boot - mm;
+	mm = G.seconds_since_boot - mm;
 	ss = mm % 60;
 	mm /= 60;
 	snprintf(buf, size+1, "%3lu:%02u", mm, ss);
@@ -588,7 +592,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	// -o col1,col2,col3=header
 	//     Select which columns to display
 	/* We allow (and ignore) most of the above. FIXME.
-	 * -T is picked for threads (POSIX hasn't it standardized).
+	 * -T is picked for threads (POSIX hasn't standardized it).
 	 * procps v3.2.7 supports -T and shows tids as SPID column,
 	 * it also supports -L where it shows tids as LWP column.
 	 */
@@ -599,7 +603,9 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 			parse_o(llist_pop(&opt_o));
 		} while (opt_o);
 	} else {
-		/* Below: parse_o() needs char*, NOT const char*, can't give it default_o */
+		/* Below: parse_o() needs char*, NOT const char*,
+		 * can't pass it constant string. Need to make a copy first.
+		 */
 #if ENABLE_SELINUX
 		if (!(opt & OPT_Z) || !is_selinux_enabled()) {
 			/* no -Z or no SELinux: do not show LABEL */
@@ -653,7 +659,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	};
 #if ENABLE_FEATURE_PS_LONG
 	time_t now = now;
-	long uptime;
+	unsigned long uptime;
 #endif
 	/* If we support any options, parse argv */
 #if ENABLE_SELINUX || ENABLE_FEATURE_SHOW_THREADS || ENABLE_FEATURE_PS_WIDE || ENABLE_FEATURE_PS_LONG
