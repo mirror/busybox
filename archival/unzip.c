@@ -267,6 +267,14 @@ static void unzip_extract(zip_header_t *zip_header, int dst_fd)
 	}
 }
 
+static void my_fgets80(char *buf80)
+{
+	fflush_all();
+	if (!fgets(buf80, 80, stdin)) {
+		bb_perror_msg_and_die("can't read standard input");
+	}
+}
+
 int unzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unzip_main(int argc, char **argv)
 {
@@ -291,7 +299,7 @@ int unzip_main(int argc, char **argv)
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
 	int i, opt;
-	char key_buf[80];
+	char key_buf[80]; /* must match size used by my_fgets80 */
 	struct stat stat_buf;
 
 /* -q, -l and -v: UnZip 5.52 of 28 February 2005, by Info-ZIP:
@@ -624,10 +632,7 @@ int unzip_main(int argc, char **argv)
 							i = 'y';
 						} else {
 							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
-							fflush_all();
-							if (!fgets(key_buf, sizeof(key_buf), stdin)) {
-								bb_perror_msg_and_die("can't read standard input");
-							}
+							my_fgets80(key_buf);
 							i = key_buf[0];
 						}
 					} else { /* File is not regular file */
@@ -668,9 +673,7 @@ int unzip_main(int argc, char **argv)
 		case 'r':
 			/* Prompt for new name */
 			printf("new name: ");
-			if (!fgets(key_buf, sizeof(key_buf), stdin)) {
-				bb_perror_msg_and_die("can't read standard input");
-			}
+			my_fgets80(key_buf);
 			free(dst_fn);
 			dst_fn = xstrdup(key_buf);
 			chomp(dst_fn);
