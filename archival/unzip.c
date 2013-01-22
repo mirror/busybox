@@ -626,7 +626,7 @@ int unzip_main(int argc, char **argv)
 							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
 							fflush_all();
 							if (!fgets(key_buf, sizeof(key_buf), stdin)) {
-								bb_perror_msg_and_die("can't read input");
+								bb_perror_msg_and_die("can't read standard input");
 							}
 							i = key_buf[0];
 						}
@@ -669,7 +669,7 @@ int unzip_main(int argc, char **argv)
 			/* Prompt for new name */
 			printf("new name: ");
 			if (!fgets(key_buf, sizeof(key_buf), stdin)) {
-				bb_perror_msg_and_die("can't read input");
+				bb_perror_msg_and_die("can't read standard input");
 			}
 			free(dst_fn);
 			dst_fn = xstrdup(key_buf);

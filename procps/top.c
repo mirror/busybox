@@ -294,7 +294,7 @@ static void get_jiffy_counts(void)
 	 * they are used to calculate per process CPU% */
 	prev_jif = cur_jif;
 	if (read_cpu_jiffy(fp, &cur_jif) < 4)
-		bb_error_msg_and_die("can't read /proc/stat");
+		bb_error_msg_and_die("can't read '%s'", "/proc/stat");
 
 #if !ENABLE_FEATURE_TOP_SMP_CPU
 	fclose(fp);

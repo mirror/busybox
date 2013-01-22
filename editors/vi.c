@@ -1049,7 +1049,7 @@ static void colon(char *buf)
 #endif
 		// how many lines in text[]?
 		li = count_lines(text, end - 1);
-		status_line("\"%s\"%s"
+		status_line("'%s'%s"
 			IF_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", current_filename,
 			(file_size(fn) < 0 ? " [New file]" : ""),
@@ -1165,7 +1165,7 @@ static void colon(char *buf)
 			goto ret;	// nothing was inserted
 		// how many lines in text[]?
 		li = count_lines(q, q + ch - 1);
-		status_line("\"%s\""
+		status_line("'%s'"
 			IF_FEATURE_VI_READONLY("%s")
 			" %dL, %dC", fn,
 			IF_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
@@ -1298,7 +1298,7 @@ static void colon(char *buf)
 		}
 #if ENABLE_FEATURE_VI_READONLY
 		if (readonly_mode && !useforce) {
-			status_line_bold("\"%s\" File is read only", fn);
+			status_line_bold("'%s' is read only", fn);
 			goto ret;
 		}
 #endif
@@ -1321,9 +1321,9 @@ static void colon(char *buf)
 		}
 		if (l < 0) {
 			if (l == -1)
-				status_line_bold("\"%s\" %s", fn, strerror(errno));
+				status_line_bold("'%s' %s", fn, strerror(errno));
 		} else {
-			status_line("\"%s\" %dL, %dC", fn, li, l);
+			status_line("'%s' %dL, %dC", fn, li, l);
 			if (q == text && r == end - 1 && l == ch) {
 				file_modified = 0;
 				last_file_modified = -1;
@@ -1735,7 +1735,7 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 	q = (char *)re_compile_pattern(pat, strlen(pat), (struct re_pattern_buffer *)&preg);
 	if (q != 0) {
 		// The pattern was not compiled
-		status_line_bold("bad search pattern: \"%s\": %s", pat, q);
+		status_line_bold("bad search pattern: '%s': %s", pat, q);
 		i = 0;			// return p if pattern not compiled
 		goto cs1;
 	}
@@ -2503,12 +2503,12 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 
 	/* Validate file */
 	if (stat(fn, &statbuf) < 0) {
-		status_line_bold("\"%s\" %s", fn, strerror(errno));
+		status_line_bold("'%s' %s", fn, strerror(errno));
 		goto fi0;
 	}
 	if (!S_ISREG(statbuf.st_mode)) {
 		// This is not a regular file
-		status_line_bold("\"%s\" Not a regular file", fn);
+		status_line_bold("'%s' is not a regular file", fn);
 		goto fi0;
 	}
 	if (p < text || p > end) {
@@ -2519,19 +2519,19 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 	// read file to buffer
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
-		status_line_bold("\"%s\" %s", fn, strerror(errno));
+		status_line_bold("'%s' %s", fn, strerror(errno));
 		goto fi0;
 	}
-	size = statbuf.st_size;
+	size = (statbuf.st_size < INT_MAX ? (int)statbuf.st_size : INT_MAX);
 	p += text_hole_make(p, size);
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
-		status_line_bold("\"%s\" %s", fn, strerror(errno));
+		status_line_bold("'%s' %s", fn, strerror(errno));
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
 		p = text_hole_delete(p + cnt, p + (size - cnt) - 1);	// un-do buffer insert
-		status_line_bold("can't read all of file \"%s\"", fn);
+		status_line_bold("can't read '%s'", fn);
 	}
 	if (cnt >= size)
 		file_modified++;
@@ -3469,7 +3469,7 @@ static void do_cmd(int c)
 			} else {
 				file_modified = 0;
 				last_file_modified = -1;
-				status_line("\"%s\" %dL, %dC", current_filename, count_lines(text, end - 1), cnt);
+				status_line("'%s' %dL, %dC", current_filename, count_lines(text, end - 1), cnt);
 				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n'
 				 || p[0] == 'X' || p[1] == 'Q' || p[1] == 'N'
 				) {
@@ -3667,7 +3667,7 @@ static void do_cmd(int c)
 		}
 		if (file_modified) {
 			if (ENABLE_FEATURE_VI_READONLY && readonly_mode) {
-				status_line_bold("\"%s\" File is read only", current_filename);
+				status_line_bold("'%s' is read only", current_filename);
 				break;
 			}
 			cnt = file_write(current_filename, text, end - 1);
