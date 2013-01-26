@@ -141,10 +141,7 @@ struct globals {
 	unsigned terminal_width;
 #if ENABLE_FEATURE_PS_TIME
 	unsigned kernel_HZ;
-	/* used to be long long, but 64 bits is enough
-	 * (long long may become 128 bits in the future):
-	 */
-	uint64_t seconds_since_boot;
+	unsigned long seconds_since_boot;
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
