@@ -33,7 +33,7 @@ static void progress(int mode, uoff_t count, uoff_t total)
 	if (total)
 		percent = (unsigned) (percent / total);
 	printf("\r%s: %"OFF_FMT"u/%"OFF_FMT"u (%u%%) ",
-		(mode == -1) ? "Erasing block" : ((mode == 0) ? "Writing kb" : "Verifying kb"),
+		(mode < 0) ? "Erasing block" : ((mode == 0) ? "Writing kb" : "Verifying kb"),
 		count, total, (unsigned)percent);
 	fflush_all();
 }
