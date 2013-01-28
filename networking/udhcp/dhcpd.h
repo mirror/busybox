@@ -61,9 +61,11 @@ struct server_config_t {
 /* client_config sits in 2nd half of bb_common_bufsiz1 */
 
 #if ENABLE_FEATURE_UDHCP_PORT
-#define SERVER_PORT (server_config.port)
+#define SERVER_PORT  (server_config.port)
+#define SERVER_PORT6 (server_config.port)
 #else
-#define SERVER_PORT 67
+#define SERVER_PORT  67
+#define SERVER_PORT6 547
 #endif
 
 
