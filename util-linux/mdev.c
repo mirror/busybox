@@ -661,6 +661,8 @@ static void make_device(char *device_name, char *path, int operation)
 			if (mknod(node_name, rule->mode | type, makedev(major, minor)) && errno != EEXIST)
 				bb_perror_msg("can't create '%s'", node_name);
 			if (ENABLE_FEATURE_MDEV_CONF) {
+				if (G.verbose)
+					bb_error_msg("chmod: %o chown: %u:%u", rule->mode, rule->ugid.uid, rule->ugid.gid);
 				chmod(node_name, rule->mode);
 				chown(node_name, rule->ugid.uid, rule->ugid.gid);
 			}
@@ -923,7 +925,9 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 			if (logfd >= 0) {
 				xmove_fd(logfd, STDERR_FILENO);
 				G.verbose = 1;
-				bb_error_msg("seq: %s action: %s", seq, action);
+				if (seq)
+					applet_name = xasprintf("%s[%s]", applet_name, seq);
+				bb_error_msg("action: %s", action);
 			}
 		}
 
