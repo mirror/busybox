@@ -22,12 +22,12 @@
 //usage:#define arp_full_usage "\n\n"
 //usage:       "Manipulate ARP cache\n"
 //usage:       "\n	-a		Display (all) hosts"
-//usage:       "\n	-s		Set new ARP entry"
-//usage:       "\n	-d		Delete a specified entry"
+//usage:       "\n	-d		Delete ARP entry"
+//usage:       "\n	-s		Set new entry"
 //usage:       "\n	-v		Verbose"
 //usage:       "\n	-n		Don't resolve names"
 //usage:       "\n	-i IF		Network interface"
-//usage:       "\n	-D		Read <hwaddr> from given device"
+//usage:       "\n	-D		Read HWADDR from IFACE"
 //usage:       "\n	-A,-p AF	Protocol family"
 //usage:       "\n	-H HWTYPE	Hardware address type"
 
@@ -213,16 +213,15 @@ static int arp_del(char **args)
 }
 
 /* Get the hardware address to a specified interface name */
-static void arp_getdevhw(char *ifname, struct sockaddr *sa,
-						const struct hwtype *hwt)
+static void arp_getdevhw(char *ifname, struct sockaddr *sa)
 {
 	struct ifreq ifr;
 	const struct hwtype *xhw;
 
 	strcpy(ifr.ifr_name, ifname);
 	ioctl_or_perror_and_die(sockfd, SIOCGIFHWADDR, &ifr,
-					"cant get HW-Address for '%s'", ifname);
-	if (hwt && (ifr.ifr_hwaddr.sa_family != hw->type)) {
+					"can't get HW-Address for '%s'", ifname);
+	if (hw_set && (ifr.ifr_hwaddr.sa_family != hw->type)) {
 		bb_error_msg_and_die("protocol type mismatch");
 	}
 	memcpy(sa, &(ifr.ifr_hwaddr), sizeof(struct sockaddr));
@@ -233,8 +232,8 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa,
 			xhw = get_hwntype(-1);
 		}
 		bb_error_msg("device '%s' has HW address %s '%s'",
-					ifname, xhw->name,
-					xhw->print((unsigned char *) &ifr.ifr_hwaddr.sa_data));
+				ifname, xhw->name,
+				xhw->print((unsigned char *) &ifr.ifr_hwaddr.sa_data));
 	}
 }
 
@@ -261,7 +260,7 @@ static int arp_set(char **args)
 		bb_error_msg_and_die("need hardware address");
 	}
 	if (option_mask32 & ARP_OPT_D) {
-		arp_getdevhw(*args++, &req.arp_ha, hw_set ? hw : NULL);
+		arp_getdevhw(*args++, &req.arp_ha);
 	} else {
 		if (hw->input(*args++, &req.arp_ha) < 0) {
 			bb_error_msg_and_die("invalid hardware address");
