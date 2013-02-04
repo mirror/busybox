@@ -477,28 +477,33 @@ static int arp_show(char *name)
 int arp_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int arp_main(int argc UNUSED_PARAM, char **argv)
 {
-	const char *hw_type = "ether";
+	const char *hw_type;
 	const char *protocol;
 	unsigned opts;
 
 	INIT_G();
 
 	xmove_fd(xsocket(AF_INET, SOCK_DGRAM, 0), sockfd);
+
 	ap = get_aftype(DFLT_AF);
-	if (!ap)
-		bb_error_msg_and_die("%s: %s not supported", DFLT_AF, "address family");
+	/* Defaults are always supported */
+	//if (!ap)
+	//	bb_error_msg_and_die("%s: %s not supported", DFLT_AF, "address family");
+	hw = get_hwtype(DFLT_HW);
+	//if (!hw)
+	//	bb_error_msg_and_die("%s: %s not supported", DFLT_HW, "hardware type");
 
 	opts = getopt32(argv, "A:p:H:t:i:adnDsv", &protocol, &protocol,
 				 &hw_type, &hw_type, &device);
 	argv += optind;
 	if (opts & (ARP_OPT_A | ARP_OPT_p)) {
 		ap = get_aftype(protocol);
-		if (ap == NULL)
+		if (!ap)
 			bb_error_msg_and_die("%s: unknown %s", protocol, "address family");
 	}
-	if (opts & (ARP_OPT_A | ARP_OPT_p)) {
+	if (opts & (ARP_OPT_H | ARP_OPT_t)) {
 		hw = get_hwtype(hw_type);
-		if (hw == NULL)
+		if (!hw)
 			bb_error_msg_and_die("%s: unknown %s", hw_type, "hardware type");
 		hw_set = 1;
 	}
@@ -507,14 +512,6 @@ int arp_main(int argc UNUSED_PARAM, char **argv)
 	if (ap->af != AF_INET) {
 		bb_error_msg_and_die("%s: kernel only supports 'inet'", ap->name);
 	}
-
-	/* If no hw type specified get default */
-	if (!hw) {
-		hw = get_hwtype(DFLT_HW);
-		if (!hw)
-			bb_error_msg_and_die("%s: %s not supported", DFLT_HW, "hardware type");
-	}
-
 	if (hw->alen <= 0) {
 		bb_error_msg_and_die("%s: %s without ARP support",
 				hw->name, "hardware type");
@@ -528,6 +525,7 @@ int arp_main(int argc UNUSED_PARAM, char **argv)
 			return arp_set(argv);
 		return arp_del(argv);
 	}
+
 	//if (opts & ARP_OPT_a) - default
 	return arp_show(argv[0]);
 }
