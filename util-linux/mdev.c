@@ -815,6 +815,7 @@ static void load_firmware(const char *firmware, const char *sysfs_path)
 		full_write(loading_fd, "-1", 2);
 
  out:
+	xchdir("/dev");
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		close(firmware_fd);
 		close(loading_fd);
@@ -921,7 +922,7 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		{
-			int logfd = open("/dev/mdev.log", O_WRONLY | O_APPEND);
+			int logfd = open("mdev.log", O_WRONLY | O_APPEND);
 			if (logfd >= 0) {
 				xmove_fd(logfd, STDERR_FILENO);
 				G.verbose = 1;
