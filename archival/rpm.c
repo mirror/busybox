@@ -79,147 +79,13 @@ typedef struct {
 	uint32_t count; /* 4 byte count */
 } rpm_index;
 
-static void *map;
-static rpm_index **mytags;
-static int tagcount;
-
-static void extract_cpio(int fd, const char *source_rpm);
-static rpm_index **rpm_gettags(int fd, int *num_tags);
-static int bsearch_rpmtag(const void *key, const void *item);
-static char *rpm_getstr(int tag, int itemindex);
-static int rpm_getint(int tag, int itemindex);
-static int rpm_getcount(int tag);
-static void fileaction_dobackup(char *filename, int fileref);
-static void fileaction_setowngrp(char *filename, int fileref);
-static void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref));
-
-int rpm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
-int rpm_main(int argc, char **argv)
-{
-	int opt, func = 0;
-	const unsigned pagesize = getpagesize();
-
-	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
-		switch (opt) {
-		case 'i': /* First arg: Install mode, with q: Information */
-			if (!func) func = rpm_install;
-			else func |= rpm_query_info;
-			break;
-		case 'q': /* First arg: Query mode */
-			if (func) bb_show_usage();
-			func = rpm_query;
-			break;
-		case 'p': /* Query a package */
-			func |= rpm_query_package;
-			break;
-		case 'l': /* List files in a package */
-			func |= rpm_query_list;
-			break;
-		case 'd': /* List doc files in a package (implies list) */
-			func |= rpm_query_list;
-			func |= rpm_query_list_doc;
-			break;
-		case 'c': /* List config files in a package (implies list) */
-			func |= rpm_query_list;
-			func |= rpm_query_list_config;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
-	argv += optind;
-	//argc -= optind;
-	if (!argv[0]) {
-		bb_show_usage();
-	}
-
-	while (*argv) {
-		int rpm_fd;
-		unsigned offset;
-		const char *source_rpm;
-
-		rpm_fd = xopen(*argv++, O_RDONLY);
-		mytags = rpm_gettags(rpm_fd, &tagcount);
-		if (!mytags)
-			bb_error_msg_and_die("error reading rpm header");
-		offset = xlseek(rpm_fd, 0, SEEK_CUR);
-		/* Some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
-		map = mmap(0, (offset + pagesize) & (-(int)pagesize), PROT_READ, MAP_PRIVATE, rpm_fd, 0);
-
-		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
-
-		if (func & rpm_install) {
-			/* Backup any config files */
-			loop_through_files(TAG_BASENAMES, fileaction_dobackup);
-			/* Extact the archive */
-			extract_cpio(rpm_fd, source_rpm);
-			/* Set the correct file uid/gid's */
-			loop_through_files(TAG_BASENAMES, fileaction_setowngrp);
-		}
-		else if ((func & (rpm_query|rpm_query_package)) == (rpm_query|rpm_query_package)) {
-			if (!(func & (rpm_query_info|rpm_query_list))) {
-				/* If just a straight query, just give package name */
-				printf("%s-%s-%s\n", rpm_getstr(TAG_NAME, 0), rpm_getstr(TAG_VERSION, 0), rpm_getstr(TAG_RELEASE, 0));
-			}
-			if (func & rpm_query_info) {
-				/* Do the nice printout */
-				time_t bdate_time;
-				struct tm *bdate_ptm;
-				char bdatestring[50];
-				const char *p;
-
-				printf("%-12s: %s\n", "Name"        , rpm_getstr(TAG_NAME, 0));
-				/* TODO compat: add "Epoch" here */
-				printf("%-12s: %s\n", "Version"     , rpm_getstr(TAG_VERSION, 0));
-				printf("%-12s: %s\n", "Release"     , rpm_getstr(TAG_RELEASE, 0));
-				/* add "Architecture" */
-				printf("%-12s: %s\n", "Install Date", "(not installed)");
-				printf("%-12s: %s\n", "Group"       , rpm_getstr(TAG_GROUP, 0));
-				printf("%-12s: %d\n", "Size"        , rpm_getint(TAG_SIZE, 0));
-				printf("%-12s: %s\n", "License"     , rpm_getstr(TAG_LICENSE, 0));
-				/* add "Signature" */
-				printf("%-12s: %s\n", "Source RPM"  , source_rpm ? source_rpm : "(none)");
-				bdate_time = rpm_getint(TAG_BUILDTIME, 0);
-				bdate_ptm = localtime(&bdate_time);
-				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
-				printf("%-12s: %s\n", "Build Date"  , bdatestring);
-				printf("%-12s: %s\n", "Build Host"  , rpm_getstr(TAG_BUILDHOST, 0));
-				p = rpm_getstr(TAG_PREFIXS, 0);
-				printf("%-12s: %s\n", "Relocations" , p ? p : "(not relocatable)");
-				/* add "Packager" */
-				p = rpm_getstr(TAG_VENDOR, 0);
-				printf("%-12s: %s\n", "Vendor"      , p ? p : "(none)");
-				printf("%-12s: %s\n", "URL"         , rpm_getstr(TAG_URL, 0));
-				printf("%-12s: %s\n", "Summary"     , rpm_getstr(TAG_SUMMARY, 0));
-				printf("Description :\n%s\n", rpm_getstr(TAG_DESCRIPTION, 0));
-			}
-			if (func & rpm_query_list) {
-				int count, it, flags;
-				count = rpm_getcount(TAG_BASENAMES);
-				for (it = 0; it < count; it++) {
-					flags = rpm_getint(TAG_FILEFLAGS, it);
-					switch (func & (rpm_query_list_doc|rpm_query_list_config)) {
-					case rpm_query_list_doc:
-						if (!(flags & RPMFILE_DOC)) continue;
-						break;
-					case rpm_query_list_config:
-						if (!(flags & RPMFILE_CONFIG)) continue;
-						break;
-					case rpm_query_list_doc|rpm_query_list_config:
-						if (!(flags & (RPMFILE_CONFIG|RPMFILE_DOC))) continue;
-						break;
-					}
-					printf("%s%s\n",
-						rpm_getstr(TAG_DIRNAMES, rpm_getint(TAG_DIRINDEXES, it)),
-						rpm_getstr(TAG_BASENAMES, it));
-				}
-			}
-		}
-		free(mytags);
-		close(rpm_fd);
-	}
-	return 0;
-}
+struct globals {
+	void *map;
+	rpm_index **mytags;
+	int tagcount;
+} FIX_ALIASING;
+#define G (*(struct globals*)&bb_common_bufsiz1)
+#define INIT_G() do { } while (0)
 
 static void extract_cpio(int fd, const char *source_rpm)
 {
@@ -305,7 +171,7 @@ static int bsearch_rpmtag(const void *key, const void *item)
 static int rpm_getcount(int tag)
 {
 	rpm_index **found;
-	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found)
 		return 0;
 	return found[0]->count;
@@ -314,7 +180,7 @@ static int rpm_getcount(int tag)
 static char *rpm_getstr(int tag, int itemindex)
 {
 	rpm_index **found;
-	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found || itemindex >= found[0]->count)
 		return NULL;
 	if (found[0]->type == RPM_STRING_TYPE
@@ -322,7 +188,7 @@ static char *rpm_getstr(int tag, int itemindex)
 	 || found[0]->type == RPM_STRING_ARRAY_TYPE
 	) {
 		int n;
-		char *tmpstr = (char *) map + found[0]->offset;
+		char *tmpstr = (char *) G.map + found[0]->offset;
 		for (n = 0; n < itemindex; n++)
 			tmpstr = tmpstr + strlen(tmpstr) + 1;
 		return tmpstr;
@@ -337,11 +203,11 @@ static int rpm_getint(int tag, int itemindex)
 
 	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
 	 * it's ok to ignore it because tag won't be used as a pointer */
-	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, G.mytags, G.tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found || itemindex >= found[0]->count)
 		return -1;
 
-	tmpint = (char *) map + found[0]->offset;
+	tmpint = (char *) G.map + found[0]->offset;
 	if (found[0]->type == RPM_INT32_TYPE) {
 		tmpint += itemindex*4;
 		return ntohl(*(int32_t*)tmpint);
@@ -395,4 +261,133 @@ static void loop_through_files(int filetag, void (*fileaction)(char *filename, i
 		fileaction(filename, count++);
 		free(filename);
 	}
+}
+
+int rpm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+int rpm_main(int argc, char **argv)
+{
+	int opt, func = 0;
+	const unsigned pagesize = getpagesize();
+
+	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
+		switch (opt) {
+		case 'i': /* First arg: Install mode, with q: Information */
+			if (!func) func = rpm_install;
+			else func |= rpm_query_info;
+			break;
+		case 'q': /* First arg: Query mode */
+			if (func) bb_show_usage();
+			func = rpm_query;
+			break;
+		case 'p': /* Query a package */
+			func |= rpm_query_package;
+			break;
+		case 'l': /* List files in a package */
+			func |= rpm_query_list;
+			break;
+		case 'd': /* List doc files in a package (implies list) */
+			func |= rpm_query_list;
+			func |= rpm_query_list_doc;
+			break;
+		case 'c': /* List config files in a package (implies list) */
+			func |= rpm_query_list;
+			func |= rpm_query_list_config;
+			break;
+		default:
+			bb_show_usage();
+		}
+	}
+	argv += optind;
+	//argc -= optind;
+	if (!argv[0]) {
+		bb_show_usage();
+	}
+
+	while (*argv) {
+		int rpm_fd;
+		unsigned offset;
+		const char *source_rpm;
+
+		rpm_fd = xopen(*argv++, O_RDONLY);
+		G.mytags = rpm_gettags(rpm_fd, &G.tagcount);
+		if (!G.mytags)
+			bb_error_msg_and_die("error reading rpm header");
+		offset = xlseek(rpm_fd, 0, SEEK_CUR);
+		/* Some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
+		G.map = mmap(0, (offset + pagesize) & (-(int)pagesize), PROT_READ, MAP_PRIVATE, rpm_fd, 0);
+//FIXME: error check?
+
+		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
+
+		if (func & rpm_install) {
+			/* Backup any config files */
+			loop_through_files(TAG_BASENAMES, fileaction_dobackup);
+			/* Extact the archive */
+			extract_cpio(rpm_fd, source_rpm);
+			/* Set the correct file uid/gid's */
+			loop_through_files(TAG_BASENAMES, fileaction_setowngrp);
+		}
+		else if ((func & (rpm_query|rpm_query_package)) == (rpm_query|rpm_query_package)) {
+			if (!(func & (rpm_query_info|rpm_query_list))) {
+				/* If just a straight query, just give package name */
+				printf("%s-%s-%s\n", rpm_getstr(TAG_NAME, 0), rpm_getstr(TAG_VERSION, 0), rpm_getstr(TAG_RELEASE, 0));
+			}
+			if (func & rpm_query_info) {
+				/* Do the nice printout */
+				time_t bdate_time;
+				struct tm *bdate_ptm;
+				char bdatestring[50];
+				const char *p;
+
+				printf("%-12s: %s\n", "Name"        , rpm_getstr(TAG_NAME, 0));
+				/* TODO compat: add "Epoch" here */
+				printf("%-12s: %s\n", "Version"     , rpm_getstr(TAG_VERSION, 0));
+				printf("%-12s: %s\n", "Release"     , rpm_getstr(TAG_RELEASE, 0));
+				/* add "Architecture" */
+				printf("%-12s: %s\n", "Install Date", "(not installed)");
+				printf("%-12s: %s\n", "Group"       , rpm_getstr(TAG_GROUP, 0));
+				printf("%-12s: %d\n", "Size"        , rpm_getint(TAG_SIZE, 0));
+				printf("%-12s: %s\n", "License"     , rpm_getstr(TAG_LICENSE, 0));
+				/* add "Signature" */
+				printf("%-12s: %s\n", "Source RPM"  , source_rpm ? source_rpm : "(none)");
+				bdate_time = rpm_getint(TAG_BUILDTIME, 0);
+				bdate_ptm = localtime(&bdate_time);
+				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
+				printf("%-12s: %s\n", "Build Date"  , bdatestring);
+				printf("%-12s: %s\n", "Build Host"  , rpm_getstr(TAG_BUILDHOST, 0));
+				p = rpm_getstr(TAG_PREFIXS, 0);
+				printf("%-12s: %s\n", "Relocations" , p ? p : "(not relocatable)");
+				/* add "Packager" */
+				p = rpm_getstr(TAG_VENDOR, 0);
+				printf("%-12s: %s\n", "Vendor"      , p ? p : "(none)");
+				printf("%-12s: %s\n", "URL"         , rpm_getstr(TAG_URL, 0));
+				printf("%-12s: %s\n", "Summary"     , rpm_getstr(TAG_SUMMARY, 0));
+				printf("Description :\n%s\n", rpm_getstr(TAG_DESCRIPTION, 0));
+			}
+			if (func & rpm_query_list) {
+				int count, it, flags;
+				count = rpm_getcount(TAG_BASENAMES);
+				for (it = 0; it < count; it++) {
+					flags = rpm_getint(TAG_FILEFLAGS, it);
+					switch (func & (rpm_query_list_doc|rpm_query_list_config)) {
+					case rpm_query_list_doc:
+						if (!(flags & RPMFILE_DOC)) continue;
+						break;
+					case rpm_query_list_config:
+						if (!(flags & RPMFILE_CONFIG)) continue;
+						break;
+					case rpm_query_list_doc|rpm_query_list_config:
+						if (!(flags & (RPMFILE_CONFIG|RPMFILE_DOC))) continue;
+						break;
+					}
+					printf("%s%s\n",
+						rpm_getstr(TAG_DIRNAMES, rpm_getint(TAG_DIRINDEXES, it)),
+						rpm_getstr(TAG_BASENAMES, it));
+				}
+			}
+		}
+		free(G.mytags);
+		close(rpm_fd);
+	}
+	return 0;
 }
