@@ -305,16 +305,17 @@ int rpm_main(int argc, char **argv)
 
 	while (*argv) {
 		int rpm_fd;
-		unsigned offset;
+		unsigned mapsize;
 		const char *source_rpm;
 
 		rpm_fd = xopen(*argv++, O_RDONLY);
 		G.mytags = rpm_gettags(rpm_fd, &G.tagcount);
 		if (!G.mytags)
 			bb_error_msg_and_die("error reading rpm header");
-		offset = xlseek(rpm_fd, 0, SEEK_CUR);
+		mapsize = xlseek(rpm_fd, 0, SEEK_CUR);
+		mapsize = (mapsize + pagesize) & -(int)pagesize;
 		/* Some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
-		G.map = mmap(0, (offset + pagesize) & (-(int)pagesize), PROT_READ, MAP_PRIVATE, rpm_fd, 0);
+		G.map = mmap(0, mapsize, PROT_READ, MAP_PRIVATE, rpm_fd, 0);
 //FIXME: error check?
 
 		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
@@ -386,6 +387,7 @@ int rpm_main(int argc, char **argv)
 				}
 			}
 		}
+		munmap(G.map, mapsize);
 		free(G.mytags);
 		close(rpm_fd);
 	}
