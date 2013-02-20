@@ -14,10 +14,10 @@
 //usage:     "\nCommands:"
 //usage:     "\n	-i	Install package"
 //usage:     "\n	-qp	Query package"
-//usage:     "\n	-i	Show information"
-//usage:     "\n	-l	List contents"
-//usage:     "\n	-d	List documents"
-//usage:     "\n	-c	List config files"
+//usage:     "\n	-qpi	Show information"
+//usage:     "\n	-qpl	List contents"
+//usage:     "\n	-qpd	List documents"
+//usage:     "\n	-qpc	List config files"
 
 #include "libbb.h"
 #include "bb_archive.h"
@@ -96,8 +96,8 @@ static void loop_through_files(int filetag, void (*fileaction)(char *filename, i
 int rpm_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int rpm_main(int argc, char **argv)
 {
-	int opt = 0, func = 0, rpm_fd, offset;
-	const int pagesize = getpagesize();
+	int opt, func = 0;
+	const unsigned pagesize = getpagesize();
 
 	while ((opt = getopt(argc, argv, "iqpldc")) != -1) {
 		switch (opt) {
@@ -134,6 +134,8 @@ int rpm_main(int argc, char **argv)
 	}
 
 	while (*argv) {
+		int rpm_fd;
+		unsigned offset;
 		const char *source_rpm;
 
 		rpm_fd = xopen(*argv++, O_RDONLY);
@@ -141,8 +143,8 @@ int rpm_main(int argc, char **argv)
 		if (!mytags)
 			bb_error_msg_and_die("error reading rpm header");
 		offset = xlseek(rpm_fd, 0, SEEK_CUR);
-		/* Mimimum is one page */
-		map = mmap(0, offset > pagesize ? (offset + offset % pagesize) : pagesize, PROT_READ, MAP_PRIVATE, rpm_fd, 0);
+		/* Some NOMMU systems prefer MAP_PRIVATE over MAP_SHARED */
+		map = mmap(0, (offset + pagesize) & (-(int)pagesize), PROT_READ, MAP_PRIVATE, rpm_fd, 0);
 
 		source_rpm = rpm_getstr(TAG_SOURCERPM, 0);
 
@@ -166,21 +168,29 @@ int rpm_main(int argc, char **argv)
 				char bdatestring[50];
 				const char *p;
 
-				p = rpm_getstr(TAG_PREFIXS, 0);
-				if (!p) p = "(not relocateable)";
-				printf("Name        : %-29sRelocations: %s\n", rpm_getstr(TAG_NAME, 0), p);
-				p = rpm_getstr(TAG_VENDOR, 0);
-				if (!p) p = "(none)";
-				printf("Version     : %-34sVendor: %s\n", rpm_getstr(TAG_VERSION, 0), p);
+				printf("%-12s: %s\n", "Name"        , rpm_getstr(TAG_NAME, 0));
+				/* TODO compat: add "Epoch" here */
+				printf("%-12s: %s\n", "Version"     , rpm_getstr(TAG_VERSION, 0));
+				printf("%-12s: %s\n", "Release"     , rpm_getstr(TAG_RELEASE, 0));
+				/* add "Architecture" */
+				printf("%-12s: %s\n", "Install Date", "(not installed)");
+				printf("%-12s: %s\n", "Group"       , rpm_getstr(TAG_GROUP, 0));
+				printf("%-12s: %d\n", "Size"        , rpm_getint(TAG_SIZE, 0));
+				printf("%-12s: %s\n", "License"     , rpm_getstr(TAG_LICENSE, 0));
+				/* add "Signature" */
+				printf("%-12s: %s\n", "Source RPM"  , source_rpm ? source_rpm : "(none)");
 				bdate_time = rpm_getint(TAG_BUILDTIME, 0);
 				bdate_ptm = localtime(&bdate_time);
 				strftime(bdatestring, 50, "%a %d %b %Y %T %Z", bdate_ptm);
-				printf("Release     : %-30sBuild Date: %s\n", rpm_getstr(TAG_RELEASE, 0), bdatestring);
-				printf("Install date: %-30sBuild Host: %s\n", "(not installed)", rpm_getstr(TAG_BUILDHOST, 0));
-				printf("Group       : %-30sSource RPM: %s\n", rpm_getstr(TAG_GROUP, 0), source_rpm);
-				printf("Size        : %-33dLicense: %s\n", rpm_getint(TAG_SIZE, 0), rpm_getstr(TAG_LICENSE, 0));
-				printf("URL         : %s\n", rpm_getstr(TAG_URL, 0));
-				printf("Summary     : %s\n", rpm_getstr(TAG_SUMMARY, 0));
+				printf("%-12s: %s\n", "Build Date"  , bdatestring);
+				printf("%-12s: %s\n", "Build Host"  , rpm_getstr(TAG_BUILDHOST, 0));
+				p = rpm_getstr(TAG_PREFIXS, 0);
+				printf("%-12s: %s\n", "Relocations" , p ? p : "(not relocatable)");
+				/* add "Packager" */
+				p = rpm_getstr(TAG_VENDOR, 0);
+				printf("%-12s: %s\n", "Vendor"      , p ? p : "(none)");
+				printf("%-12s: %s\n", "URL"         , rpm_getstr(TAG_URL, 0));
+				printf("%-12s: %s\n", "Summary"     , rpm_getstr(TAG_SUMMARY, 0));
 				printf("Description :\n%s\n", rpm_getstr(TAG_DESCRIPTION, 0));
 			}
 			if (func & rpm_query_list) {
@@ -206,6 +216,7 @@ int rpm_main(int argc, char **argv)
 			}
 		}
 		free(mytags);
+		close(rpm_fd);
 	}
 	return 0;
 }
@@ -322,7 +333,7 @@ static char *rpm_getstr(int tag, int itemindex)
 static int rpm_getint(int tag, int itemindex)
 {
 	rpm_index **found;
-	int *tmpint; /* NB: using int8_t* would be easier to code */
+	char *tmpint;
 
 	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
 	 * it's ok to ignore it because tag won't be used as a pointer */
@@ -330,24 +341,17 @@ static int rpm_getint(int tag, int itemindex)
 	if (!found || itemindex >= found[0]->count)
 		return -1;
 
-	tmpint = (int *) ((char *) map + found[0]->offset);
-
+	tmpint = (char *) map + found[0]->offset;
 	if (found[0]->type == RPM_INT32_TYPE) {
-		tmpint = (int *) ((char *) tmpint + itemindex*4);
-		/*return ntohl(*tmpint);*/
-		/* int can be != int32_t */
+		tmpint += itemindex*4;
 		return ntohl(*(int32_t*)tmpint);
 	}
 	if (found[0]->type == RPM_INT16_TYPE) {
-		tmpint = (int *) ((char *) tmpint + itemindex*2);
-		/* ??? read int, and THEN ntohs() it?? */
-		/*return ntohs(*tmpint);*/
+		tmpint += itemindex*2;
 		return ntohs(*(int16_t*)tmpint);
 	}
 	if (found[0]->type == RPM_INT8_TYPE) {
-		tmpint = (int *) ((char *) tmpint + itemindex);
-		/* ??? why we don't read byte here??? */
-		/*return ntohs(*tmpint);*/
+		tmpint += itemindex;
 		return *(int8_t*)tmpint;
 	}
 	return -1;
