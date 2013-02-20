@@ -242,8 +242,8 @@ static void extract_cpio(int fd, const char *source_rpm)
 		/* compat: overwrite existing files.
 		 * try "rpm -i foo.src.rpm" few times in a row -
 		 * standard rpm will not complain.
-		 * (TODO? real rpm creates "file;1234" and then renames it) */
-		| ARCHIVE_UNLINK_OLD;
+		 */
+		| ARCHIVE_REPLACE_VIA_RENAME;
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 

@@ -122,6 +122,9 @@ typedef struct archive_handle_t {
 #define ARCHIVE_NUMERIC_OWNER       (1 << 7)
 #define ARCHIVE_O_TRUNC             (1 << 8)
 #define ARCHIVE_REMEMBER_NAMES      (1 << 9)
+#if ENABLE_RPM
+#define ARCHIVE_REPLACE_VIA_RENAME  (1 << 10)
+#endif
 
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
