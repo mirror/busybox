@@ -365,7 +365,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 				continue; // N.B. Bcc: vanishes from headers!
 			}
 		}
-		check_hdr = list && isspace(s[0]);
+		check_hdr = (list && isspace(s[0]));
 		if (strchr(s, ':') || check_hdr) {
 			// other headers go verbatim
 			// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
@@ -389,14 +389,27 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			// so stop "analyze headers" mode
  reenter:
 			// put recipients specified on cmdline
+			check_hdr = 1;
 			while (*argv) {
 				char *t = sane_address(*argv);
 				rcptto(t);
 				//if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
 				//	goto bail;
-				if (!has_to)
+				if (!has_to) {
+					const char *hdr;
+
+					if (check_hdr && argv[1])
+						hdr = "To: %s,";
+					else if (check_hdr)
+						hdr = "To: %s";
+					else if (argv[1])
+						hdr = "To: %s," + 3;
+					else
+						hdr = "To: %s" + 3;
 					llist_add_to_end(&list,
-							xasprintf("To: %s", t));
+							xasprintf(hdr, t));
+					check_hdr = 0;
+				}
 				argv++;
 			}
 			// enter "put message" mode
