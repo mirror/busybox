@@ -94,9 +94,22 @@ static char *sane_address(char *str)
 {
 	char *s = str;
 	char *p = s;
+	int leading_space = 1;
+	int trailing_space = 0;
+
 	while (*s) {
-		if (isalnum(*s) || '_' == *s || '-' == *s || '.' == *s || '@' == *s) {
+		if (isspace(*s)) {
+			trailing_space = !leading_space;
+		} else {
 			*p++ = *s;
+			if ((!isalnum(*s) && !strchr("_-.@", *s)) ||
+			    trailing_space) {
+				*p = '\0';
+				bb_error_msg("Bad address: %s", str);
+				*str = '\0';
+				return str;
+			}
+			leading_space = 0;
 		}
 		s++;
 	}
@@ -106,6 +119,8 @@ static char *sane_address(char *str)
 
 static void rcptto(const char *s)
 {
+	if (!*s)
+		return;
 	// N.B. we don't die if recipient is rejected, for the other recipients may be accepted
 	if (250 != smtp_checkp("RCPT TO:<%s>", s, -1))
 		bb_error_msg("Bad recipient: <%s>", s);
