@@ -181,6 +181,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	char *host = sane_address(safe_gethostname());
 	unsigned nheaders = 0;
 	int code;
+	enum {
+		HDR_OTHER = 0,
+		HDR_TOCC,
+		HDR_BCC,
+	} last_hdr = 0;
+	int check_hdr;
 
 	enum {
 	//--- standard options
@@ -345,20 +351,31 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		if (opts & OPT_t) {
 			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
 				rcptto_list(s+3);
+				last_hdr = HDR_TOCC;
 				goto addheader;
 			}
 			// Bcc: header adds blind copy (hidden) recipient
 			if (0 == strncasecmp("Bcc:", s, 4)) {
 				rcptto_list(s+4);
 				free(s);
+				last_hdr = HDR_BCC;
 				continue; // N.B. Bcc: vanishes from headers!
 			}
 		}
-		if (strchr(s, ':') || (list && isspace(s[0]))) {
+		check_hdr = list && isspace(s[0]);
+		if (strchr(s, ':') || check_hdr) {
 			// other headers go verbatim
 			// N.B. RFC2822 2.2.3 "Long Header Fields" allows for headers to occupy several lines.
 			// Continuation is denoted by prefixing additional lines with whitespace(s).
 			// Thanks (stefan.seyfried at googlemail.com) for pointing this out.
+			if (check_hdr && last_hdr != HDR_OTHER) {
+				rcptto_list(s+1);
+				if (last_hdr == HDR_BCC)
+					continue;
+					// N.B. Bcc: vanishes from headers!
+			} else {
+				last_hdr = HDR_OTHER;
+			}
  addheader:
 			// N.B. we allow MAX_HEADERS generic headers at most to prevent attacks
 			if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
