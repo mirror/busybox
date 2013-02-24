@@ -117,6 +117,24 @@ static char *sane_address(char *str)
 	return str;
 }
 
+// check for an address inside angle brackets, if not found fall back to normal
+static char *angle_address(char *str)
+{
+	char *s = str;
+	char *e = str + strlen(str);
+
+	while (e != str && (isspace(*e) || *e == '\0'))
+		e--;
+	if (*e != '>')
+		goto done;
+	*e = '\0';
+	e = strrchr(s, '<');
+	if (e != NULL)
+		s = e + 1;
+done:
+	return sane_address(s);
+}
+
 static void rcptto(const char *s)
 {
 	if (!*s)
@@ -300,13 +318,13 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		if (opts & OPT_t) {
 			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
 				char *r = xstrdup(s+3);
-				rcptto(sane_address(r));
+				rcptto(angle_address(r));
 				free(r);
 				goto addheader;
 			}
 			// Bcc: header adds blind copy (hidden) recipient
 			if (0 == strncasecmp("Bcc:", s, 4)) {
-				rcptto(sane_address(s+4));
+				rcptto(angle_address(s+4));
 				free(s);
 				continue; // N.B. Bcc: vanishes from headers!
 			}
