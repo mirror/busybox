@@ -299,7 +299,9 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		// To: or Cc: headers add recipients
 		if (opts & OPT_t) {
 			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
-				rcptto(sane_address(s+3));
+				char *r = xstrdup(s+3);
+				rcptto(sane_address(r));
+				free(r);
 				goto addheader;
 			}
 			// Bcc: header adds blind copy (hidden) recipient
