@@ -187,6 +187,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		HDR_BCC,
 	} last_hdr = 0;
 	int check_hdr;
+	int has_to = 0;
 
 	enum {
 	//--- standard options
@@ -348,8 +349,10 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 		// analyze headers
 		// To: or Cc: headers add recipients
+		check_hdr = 0 == strncasecmp("To:", s, 3);
+		has_to |= check_hdr;
 		if (opts & OPT_t) {
-			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
+			if (check_hdr || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
 				rcptto_list(s+3);
 				last_hdr = HDR_TOCC;
 				goto addheader;
@@ -391,7 +394,9 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 				rcptto(t);
 				//if (MAX_HEADERS && ++nheaders >= MAX_HEADERS)
 				//	goto bail;
-				llist_add_to_end(&list, xasprintf("To: %s", t));
+				if (!has_to)
+					llist_add_to_end(&list,
+							xasprintf("To: %s", t));
 				argv++;
 			}
 			// enter "put message" mode
