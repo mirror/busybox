@@ -144,6 +144,33 @@ static void rcptto(const char *s)
 		bb_error_msg("Bad recipient: <%s>", s);
 }
 
+// send to a list of comma separated addresses
+static void rcptto_list(const char *_str)
+{
+	char *str = xstrdup(_str);
+	int len = strlen(str);
+	int in_quote = 0;
+	char *s = str;
+	char prev = 0;
+	int pos;
+
+	for (pos = 0; pos < len; pos++) {
+		char ch = str[pos];
+
+		if (ch == '"' && prev != '\\') {
+			in_quote = !in_quote;
+		} else if (!in_quote && ch == ',') {
+			str[pos] = '\0';
+			rcptto(angle_address(s));
+			s = str + pos + 1;
+		}
+		prev = ch;
+	}
+	if (prev != ',')
+		rcptto(angle_address(s));
+	free(str);
+}
+
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendmail_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -317,14 +344,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		// To: or Cc: headers add recipients
 		if (opts & OPT_t) {
 			if (0 == strncasecmp("To:", s, 3) || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
-				char *r = xstrdup(s+3);
-				rcptto(angle_address(r));
-				free(r);
+				rcptto_list(s+3);
 				goto addheader;
 			}
 			// Bcc: header adds blind copy (hidden) recipient
 			if (0 == strncasecmp("Bcc:", s, 4)) {
-				rcptto(angle_address(s+4));
+				rcptto_list(s+4);
 				free(s);
 				continue; // N.B. Bcc: vanishes from headers!
 			}
