@@ -80,7 +80,7 @@
 //usage:	IF_FEATURE_MDEV_CONF(
 //usage:       "\n"
 //usage:       "It uses /etc/mdev.conf with lines\n"
-//usage:       "	[-]DEVNAME UID:GID PERM"
+//usage:       "	[-][ENV=regex;]...DEVNAME UID:GID PERM"
 //usage:			IF_FEATURE_MDEV_RENAME(" [>|=PATH]|[!]")
 //usage:			IF_FEATURE_MDEV_EXEC(" [@|$|*PROG]")
 //usage:       "\n"
@@ -233,6 +233,12 @@
 static const char keywords[] ALIGN1 = "add\0remove\0change\0";
 enum { OP_add, OP_remove };
 
+struct envmatch {
+	struct envmatch *next;
+	char *envname;
+	regex_t match;
+};
+
 struct rule {
 	bool keep_matching;
 	bool regex_compiled;
@@ -243,6 +249,7 @@ struct rule {
 	char *ren_mov;
 	IF_FEATURE_MDEV_EXEC(char *r_cmd;)
 	regex_t match;
+	struct envmatch *envmatch;
 };
 
 struct globals {
@@ -288,12 +295,46 @@ static void make_default_cur_rule(void)
 
 static void clean_up_cur_rule(void)
 {
+	struct envmatch *e;
+
 	free(G.cur_rule.envvar);
+	free(G.cur_rule.ren_mov);
 	if (G.cur_rule.regex_compiled)
 		regfree(&G.cur_rule.match);
-	free(G.cur_rule.ren_mov);
 	IF_FEATURE_MDEV_EXEC(free(G.cur_rule.r_cmd);)
+	e = G.cur_rule.envmatch;
+	while (e) {
+		free(e->envname);
+		regfree(&e->match);
+		e = e->next;
+	}
 	make_default_cur_rule();
+}
+
+static char *parse_envmatch_pfx(char *val)
+{
+	struct envmatch **nextp = &G.cur_rule.envmatch;
+
+	for (;;) {
+		struct envmatch *e;
+		char *semicolon;
+		char *eq = strchr(val, '=');
+		if (!eq /* || eq == val? */)
+			return val;
+		if (endofname(val) != eq)
+			return val;
+		semicolon = strchr(eq, ';');
+		if (!semicolon)
+			return val;
+		/* ENVVAR=regex;... */
+		*nextp = e = xzalloc(sizeof(*e));
+		nextp = &e->next;
+		e->envname = xstrndup(val, eq - val);
+		*semicolon = '\0';
+		xregcomp(&e->match, eq + 1, REG_EXTENDED);
+		*semicolon = ';';
+		val = semicolon + 1;
+	}
 }
 
 static void parse_next_rule(void)
@@ -314,6 +355,7 @@ static void parse_next_rule(void)
 		val = tokens[0];
 		G.cur_rule.keep_matching = ('-' == val[0]);
 		val += G.cur_rule.keep_matching; /* swallow leading dash */
+		val = parse_envmatch_pfx(val);
 		if (val[0] == '@') {
 			/* @major,minor[-minor2] */
 			/* (useful when name is ambiguous:
@@ -328,8 +370,10 @@ static void parse_next_rule(void)
 			if (sc == 2)
 				G.cur_rule.min1 = G.cur_rule.min0;
 		} else {
+			char *eq = strchr(val, '=');
 			if (val[0] == '$') {
-				char *eq = strchr(++val, '=');
+				/* $ENVVAR=regex ... */
+				val++;
 				if (!eq) {
 					bb_error_msg("bad $envvar=regex on line %d", G.parser->lineno);
 					goto next_rule;
@@ -421,6 +465,21 @@ static const struct rule *next_rule(void)
 	}
 
 	return rule;
+}
+
+static int env_matches(struct envmatch *e)
+{
+	while (e) {
+		int r;
+		char *val = getenv(e->envname);
+		if (!val)
+			return 0;
+		r = regexec(&e->match, val, /*size*/ 0, /*range[]*/ NULL, /*eflags*/ 0);
+		if (r != 0) /* no match */
+			return 0;
+		e = e->next;
+	}
+	return 1;
 }
 
 #else
@@ -537,6 +596,8 @@ static void make_device(char *device_name, char *path, int operation)
 		rule = next_rule();
 
 #if ENABLE_FEATURE_MDEV_CONF
+		if (!env_matches(rule->envmatch))
+			continue;
 		if (rule->maj >= 0) {  /* @maj,min rule */
 			if (major != rule->maj)
 				continue;
@@ -749,8 +810,10 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
 	if (1 == depth) {
 		free(G.subsystem);
 		G.subsystem = strrchr(fileName, '/');
-		if (G.subsystem)
+		if (G.subsystem) {
 			G.subsystem = xstrdup(G.subsystem + 1);
+			xsetenv("SUBSYSTEM", G.subsystem);
+		}
 	}
 
 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
@@ -843,8 +906,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 	xchdir("/dev");
 
 	if (argv[1] && strcmp(argv[1], "-s") == 0) {
-		/* Scan:
-		 * mdev -s
+		/*
+		 * Scan: mdev -s
 		 */
 		struct stat st;
 
@@ -855,6 +918,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		xstat("/", &st);
 		G.root_major = major(st.st_dev);
 		G.root_minor = minor(st.st_dev);
+
+		putenv((char*)"ACTION=add");
 
 		/* ACTION_FOLLOWLINKS is needed since in newer kernels
 		 * /sys/block/loop* (for example) are symlinks to dirs,
