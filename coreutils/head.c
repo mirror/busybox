@@ -11,6 +11,9 @@
 /* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
 
+//kbuild:lib-$(CONFIG_HEAD) += head.o
+//kbuild:lib-$(CONFIG_HEAD) += head_tail.o
+
 //usage:#define head_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define head_full_usage "\n\n"
@@ -31,6 +34,7 @@
 //usage:       "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #include "libbb.h"
+#include "head_tail.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -41,20 +45,12 @@ static const char head_opts[] ALIGN1 =
 #endif
 	;
 
-static const struct suffix_mult head_suffixes[] = {
-	{ "b", 512 },
-	{ "k", 1024 },
-	{ "m", 1024*1024 },
-	{ "", 0 }
-};
-
 #define header_fmt_str "\n==> %s <==\n"
 
 int head_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int head_main(int argc, char **argv)
 {
 	unsigned long count = 10;
-	unsigned long i;
 #if ENABLE_FEATURE_FANCY_HEAD
 	int count_bytes = 0;
 	int header_threshhold = 1;
@@ -63,7 +59,6 @@ int head_main(int argc, char **argv)
 	const char *fmt;
 	char *p;
 	int opt;
-	int c;
 	int retval = EXIT_SUCCESS;
 
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
@@ -97,7 +92,7 @@ int head_main(int argc, char **argv)
 #if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
  GET_COUNT:
 #endif
-			count = xatoul_sfx(p, head_suffixes);
+			count = xatoul_sfx(p, head_tail_suffixes);
 			break;
 		default:
 			bb_show_usage();
@@ -127,6 +122,8 @@ int head_main(int argc, char **argv)
 	do {
 		fp = fopen_or_warn_stdin(*argv);
 		if (fp) {
+			unsigned long i;
+
 			if (fp == stdin) {
 				*argv = (char *) bb_msg_standard_input;
 			}
@@ -134,17 +131,19 @@ int head_main(int argc, char **argv)
 				printf(fmt, *argv);
 			}
 			i = count;
-			while (i && ((c = getc(fp)) != EOF)) {
-				if (count_bytes || (c == '\n')) {
+			while (i) {
+				int c = getc(fp);
+				if (c == EOF)
+					break;
+				if (count_bytes || (c == '\n'))
 					--i;
-				}
 				putchar(c);
 			}
+			die_if_ferror_stdout();
 			if (fclose_if_not_stdin(fp)) {
 				bb_simple_perror_msg(*argv);
 				retval = EXIT_FAILURE;
 			}
-			die_if_ferror_stdout();
 		} else {
 			retval = EXIT_FAILURE;
 		}

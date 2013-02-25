@@ -24,6 +24,9 @@
  * 7) lseek attempted when count==0 even if arg was +0 (from top)
  */
 
+//kbuild:lib-$(CONFIG_TAIL) += tail.o
+//kbuild:lib-$(CONFIG_TAIL) += head_tail.o
+
 //usage:#define tail_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define tail_full_usage "\n\n"
@@ -34,14 +37,13 @@
 //usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
 //usage:	)
 //usage:     "\n	-n N[kbm]	Print last N lines"
+//usage:     "\n	-n +N[kbm]	Skip N lines and print the rest"
 //usage:	IF_FEATURE_FANCY_TAIL(
-//usage:     "\n	-c N[kbm]	Print last N bytes"
+//usage:     "\n	-c [+]N[kbm]	Print last N bytes"
 //usage:     "\n	-q		Never print headers"
 //usage:     "\n	-v		Always print headers"
 //usage:     "\n"
 //usage:     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)."
-//usage:     "\nIf N starts with a '+', output begins with the Nth item from the start"
-//usage:     "\nof each file, not from the end."
 //usage:	)
 //usage:
 //usage:#define tail_example_usage
@@ -49,13 +51,7 @@
 //usage:       "nameserver 10.0.0.1\n"
 
 #include "libbb.h"
-
-static const struct suffix_mult tail_suffixes[] = {
-	{ "b", 512 },
-	{ "k", 1024 },
-	{ "m", 1024*1024 },
-	{ "", 0 }
-};
+#include "head_tail.h"
 
 struct globals {
 	bool from_top;
@@ -102,7 +98,7 @@ static unsigned eat_num(const char *p)
 		p++;
 		G.from_top = 1;
 	}
-	return xatou_sfx(p, tail_suffixes);
+	return xatou_sfx(p, head_tail_suffixes);
 }
 
 int tail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
