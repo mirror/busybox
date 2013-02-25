@@ -386,6 +386,7 @@ char *bb_get_last_path_component_nostrip(const char *path) FAST_FUNC;
 const char *bb_basename(const char *name) FAST_FUNC;
 /* NB: can violate const-ness (similarly to strchr) */
 char *last_char_is(const char *s, int c) FAST_FUNC;
+const char* endofname(const char *name) FAST_FUNC;
 
 void ndelay_on(int fd) FAST_FUNC;
 void ndelay_off(int fd) FAST_FUNC;

@@ -385,6 +385,9 @@ static void trace_vprintf(const char *fmt, va_list va);
 /* ============ Utility functions */
 #define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
 
+#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
+#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
+
 static int isdigit_str9(const char *str)
 {
 	int maxlen = 9 + 1; /* max 9 digits: 999999999 */
@@ -2005,27 +2008,6 @@ getoptsreset(const char *value)
 {
 	shellparam.optind = number(value);
 	shellparam.optoff = -1;
-}
-#endif
-
-/* math.h has these, otherwise define our private copies */
-#if !ENABLE_SH_MATH_SUPPORT
-#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
-#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
-/*
- * Return the pointer to the first char which is not part of a legal variable name
- * (a letter or underscore followed by letters, underscores, and digits).
- */
-static const char*
-endofname(const char *name)
-{
-	if (!is_name(*name))
-		return name;
-	while (*++name) {
-		if (!is_in_name(*name))
-			break;
-	}
-	return name;
 }
 #endif
 

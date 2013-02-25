@@ -494,18 +494,6 @@ static const char op_tokens[] ALIGN1 = {
 };
 #define ptr_to_rparen (&op_tokens[sizeof(op_tokens)-7])
 
-const char* FAST_FUNC
-endofname(const char *name)
-{
-	if (!is_name(*name))
-		return name;
-	while (*++name) {
-		if (!is_in_name(*name))
-			break;
-	}
-	return name;
-}
-
 static arith_t FAST_FUNC
 evaluate_string(arith_state_t *math_state, const char *expr)
 {
