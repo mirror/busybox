@@ -37,7 +37,7 @@
 //usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
 //usage:	)
 //usage:     "\n	-n N[kbm]	Print last N lines"
-//usage:     "\n	-n +N[kbm]	Skip N lines and print the rest"
+//usage:     "\n	-n +N[kbm]	Start on Nth line and print the rest"
 //usage:	IF_FEATURE_FANCY_TAIL(
 //usage:     "\n	-c [+]N[kbm]	Print last N bytes"
 //usage:     "\n	-q		Never print headers"
