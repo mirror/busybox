@@ -77,10 +77,13 @@ struct xz_dec_bcj {
 
 #ifdef XZ_DEC_X86
 /*
- * This is macro used to test the most significant byte of a memory address
+ * This is used to test the most significant byte of a memory address
  * in an x86 instruction.
  */
-#define bcj_x86_test_msbyte(b) ((b) == 0x00 || (b) == 0xFF)
+static inline int bcj_x86_test_msbyte(uint8_t b)
+{
+	return b == 0x00 || b == 0xFF;
+}
 
 static noinline_for_stack size_t XZ_FUNC bcj_x86(
 		struct xz_dec_bcj *s, uint8_t *buf, size_t size)
