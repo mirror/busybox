@@ -19,6 +19,10 @@
 #	include <stdint.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* In Linux, this is used to make extern functions static when needed. */
 #ifndef XZ_EXTERN
 #	define XZ_EXTERN extern
@@ -268,4 +272,9 @@ XZ_EXTERN void XZ_FUNC xz_crc32_init(void);
 XZ_EXTERN uint32_t XZ_FUNC xz_crc32(
 		const uint8_t *buf, size_t size, uint32_t crc);
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
