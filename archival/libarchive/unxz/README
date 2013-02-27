@@ -7,7 +7,7 @@ XZ Embedded
 
     XZ Embedded was written for use in the Linux kernel, but the code can
     be easily used in other environments too, including regular userspace
-    applications.
+    applications. See userspace/xzminidec.c for an example program.
 
     This README contains information that is useful only when the copy
     of XZ Embedded isn't part of the Linux kernel tree. You should also
