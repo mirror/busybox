@@ -187,6 +187,7 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 	cmdedit_termw = 80; \
 	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
 	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \
+	IF_FEATURE_EDITING_VI(delptr = delbuf;) \
 } while (0)
 
 static void deinit_S(void)
