@@ -63,6 +63,12 @@
 //usage:       "	-e PROG	Run PROG after connect (must be last)"
 //usage:	IF_NC_SERVER(
 //usage:     "\n	-l	Listen mode, for inbound connects"
+//usage:     "\n	-lk	With -e, provides persistent server"
+/* -ll does the same as -lk, but its our extension, while -k is BSD'd,
+ * presumably more widely known. Therefore we advertise it, not -ll.
+ * I would like to drop -ll support, but our "small" nc supports it,
+ * and Rob uses it.
+ */
 //usage:	)
 //usage:     "\n	-p PORT	Local port"
 //usage:     "\n	-s ADDR	Local address"
@@ -166,18 +172,14 @@ enum {
 	OPT_v = (1 << 4),
 	OPT_w = (1 << 5),
 	OPT_l = (1 << 6) * ENABLE_NC_SERVER,
-	OPT_i = (1 << (6+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_o = (1 << (7+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
-	OPT_z = (1 << (8+ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_k = (1 << 7) * ENABLE_NC_SERVER,
+	OPT_i = (1 << (7+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_o = (1 << (8+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
+	OPT_z = (1 << (9+2*ENABLE_NC_SERVER)) * ENABLE_NC_EXTRA,
 };
 
 #define o_nflag   (option_mask32 & OPT_n)
 #define o_udpmode (option_mask32 & OPT_u)
-#if ENABLE_NC_SERVER
-#define o_listen  (option_mask32 & OPT_l)
-#else
-#define o_listen  0
-#endif
 #if ENABLE_NC_EXTRA
 #define o_ofile   (option_mask32 & OPT_o)
 #define o_zero    (option_mask32 & OPT_z)
@@ -298,7 +300,7 @@ static int connect_w_timeout(int fd)
  incoming and returns an open connection *from* someplace.  If we were
  given host/port args, any connections from elsewhere are rejected.  This
  in conjunction with local-address binding should limit things nicely... */
-static void dolisten(void)
+static void dolisten(int is_persistent, char **proggie)
 {
 	int rr;
 
@@ -371,6 +373,7 @@ create new one, and bind() it. TODO */
 			xconnect(netfd, &remend.u.sa, ouraddr->len);
 	} else {
 		/* TCP */
+ another:
 		arm(o_wait); /* wrap this in a timer, too; 0 = forever */
 		if (setjmp(jbuf) == 0) {
  again:
@@ -405,6 +408,19 @@ create new one, and bind() it. TODO */
 			unarm();
 		} else
 			bb_error_msg_and_die("timeout");
+
+		if (is_persistent && proggie) {
+			/* -l -k -e PROG */
+			signal(SIGCHLD, SIG_IGN); /* no zombies please */
+			if (xvfork() != 0) {
+				/* parent: go back and accept more connections */
+				close(rr);
+				goto another;
+			}
+			/* child */
+			signal(SIGCHLD, SIG_DFL);
+		}
+
 		xmove_fd(rr, netfd); /* dump the old socket, here's our new one */
 		/* find out what address the connection was *to* on our end, in case we're
 		 doing a listen-on-any on a multihomed machine.  This allows one to
@@ -454,6 +470,9 @@ create new one, and bind() it. TODO */
 		if (!o_nflag)
 			free(remhostname);
 	}
+
+	if (proggie)
+		doexec(proggie);
 }
 
 /* udptest:
@@ -730,6 +749,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	char *themdotted = themdotted; /* for compiler */
 	char **proggie;
 	int x;
+	unsigned cnt_l = 0;
 	unsigned o_lport = 0;
 
 	INIT_G();
@@ -760,7 +780,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 		if (proggie[0][0] == '-') {
 			char *optpos = *proggie + 1;
 			/* Skip all valid opts w/o params */
-			optpos = optpos + strspn(optpos, "nuv"IF_NC_SERVER("l")IF_NC_EXTRA("z"));
+			optpos = optpos + strspn(optpos, "nuv"IF_NC_SERVER("lk")IF_NC_EXTRA("z"));
 			if (*optpos == 'e' && !optpos[1]) {
 				*optpos = '\0';
 				proggie++;
@@ -774,17 +794,21 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
  e_found:
 
 	// -g -G -t -r deleted, unimplemented -a deleted too
-	opt_complementary = "?2:vv:w+"; /* max 2 params; -v is a counter; -w N */
-	getopt32(argv, "np:s:uvw:" IF_NC_SERVER("l")
+	opt_complementary = "?2:vv:ll:w+"; /* max 2 params; -v and -l are counters; -w N */
+	getopt32(argv, "np:s:uvw:" IF_NC_SERVER("lk")
 			IF_NC_EXTRA("i:o:z"),
 			&str_p, &str_s, &o_wait
-			IF_NC_EXTRA(, &str_i, &str_o), &o_verbose);
+			IF_NC_EXTRA(, &str_i, &str_o), &o_verbose IF_NC_SERVER(, &cnt_l));
 	argv += optind;
 #if ENABLE_NC_EXTRA
 	if (option_mask32 & OPT_i) /* line-interval time */
 		o_interval = xatou_range(str_i, 1, 0xffff);
 #endif
+#if ENABLE_NC_SERVER
 	//if (option_mask32 & OPT_l) /* listen mode */
+	if (option_mask32 & OPT_k) /* persistent server mode */
+		cnt_l = 2;
+#endif
 	//if (option_mask32 & OPT_n) /* numeric-only, no DNS lookups */
 	//if (option_mask32 & OPT_o) /* hexdump log */
 	if (option_mask32 & OPT_p) { /* local source port */
@@ -833,7 +857,7 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	if (o_udpmode)
 		socket_want_pktinfo(netfd);
 	if (!ENABLE_FEATURE_UNIX_LOCAL
-	 || o_listen
+	 || cnt_l != 0 /* listen */
 	 || ouraddr->u.sa.sa_family != AF_UNIX
 	) {
 		xbind(netfd, &ouraddr->u.sa, ouraddr->len);
@@ -862,11 +886,9 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 		xmove_fd(xopen(str_o, O_WRONLY|O_CREAT|O_TRUNC), ofd);
 #endif
 
-	if (o_listen) {
-		dolisten();
+	if (cnt_l != 0) {
+		dolisten((cnt_l - 1), proggie);
 		/* dolisten does its own connect reporting */
-		if (proggie) /* -e given? */
-			doexec(proggie);
 		x = readwrite(); /* it even works with UDP! */
 	} else {
 		/* Outbound connects.  Now we're more picky about args... */
