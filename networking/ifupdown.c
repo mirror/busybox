@@ -743,7 +743,7 @@ static const struct method_t *get_method(const struct address_family_t *af, char
 	return NULL;
 }
 
-static struct interfaces_file_t *read_interfaces(const char *filename)
+static struct interfaces_file_t *read_interfaces(const char *filename, struct interfaces_file_t *defn)
 {
 	/* Let's try to be compatible.
 	 *
@@ -758,19 +758,25 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	 * be ignored. Blank lines are ignored. Lines may be indented freely.
 	 * A "\" character at the very end of the line indicates the next line
 	 * should be treated as a continuation of the current one.
+	 *
+	 * Lines  beginning with "source" are used to include stanzas from
+	 * other files, so configuration can be split into many files.
+	 * The word "source" is followed by the path of file to be sourced.
 	 */
 #if ENABLE_FEATURE_IFUPDOWN_MAPPING
 	struct mapping_defn_t *currmap = NULL;
 #endif
 	struct interface_defn_t *currif = NULL;
-	struct interfaces_file_t *defn;
 	FILE *f;
 	char *buf;
 	char *first_word;
 	char *rest_of_line;
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
-	defn = xzalloc(sizeof(*defn));
+	if (!defn)
+		defn = xzalloc(sizeof(*defn));
+
+	debug_noise("reading %s file:\n", filename);
 	f = xfopen_for_read(filename);
 
 	while ((buf = xmalloc_fgetline(f)) != NULL) {
@@ -881,6 +887,8 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				debug_noise("\nauto %s\n", first_word);
 			}
 			currently_processing = NONE;
+		} else if (strcmp(first_word, "source") == 0) {
+			read_interfaces(next_word(&rest_of_line), defn);
 		} else {
 			switch (currently_processing) {
 			case IFACE:
@@ -934,6 +942,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 		bb_error_msg_and_die("%s: I/O error", filename);
 	}
 	fclose(f);
+	debug_noise("\ndone reading %s\n\n", filename);
 
 	return defn;
 }
@@ -1199,9 +1208,7 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 		if (!DO_ALL) bb_show_usage();
 	}
 
-	debug_noise("reading %s file:\n", interfaces);
-	defn = read_interfaces(interfaces);
-	debug_noise("\ndone reading %s\n\n", interfaces);
+	defn = read_interfaces(interfaces, NULL);
 
 	/* Create a list of interfaces to work on */
 	if (DO_ALL) {
