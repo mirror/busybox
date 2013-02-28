@@ -66,12 +66,17 @@ int FAST_FUNC bbunpack(char **argv,
 				if (open_to_or_warn(STDIN_FILENO, filename, O_RDONLY, 0))
 					goto err;
 			} else {
-				/* "clever zcat" */
+				/* "clever zcat" with FILE */
 				int fd = open_zipped(filename);
 				if (fd < 0)
 					goto err_name;
 				xmove_fd(fd, STDIN_FILENO);
 			}
+		} else
+		if (option_mask32 & SEAMLESS_MAGIC) {
+			/* "clever zcat" on stdin */
+			if (setup_unzip_on_fd(STDIN_FILENO, /*fail_if_not_detected*/ 0))
+				goto err;
 		}
 
 		/* Special cases: test, stdout */
@@ -115,15 +120,9 @@ int FAST_FUNC bbunpack(char **argv,
 			if (status < 0)
 				exitcode = 1;
 		} else {
-			/* "clever zcat" */
-			if (!filename) {
-				if (setup_unzip_on_fd(STDIN_FILENO, /*fail_if_not_detected*/ 0))
-					goto err;
-			}
-			if (bb_copyfd_eof(STDIN_FILENO, STDOUT_FILENO) < 0) {
+			if (bb_copyfd_eof(STDIN_FILENO, STDOUT_FILENO) < 0)
 				/* Disk full, tty closed, etc. No point in continuing */
 				xfunc_die();
-			}
 		}
 
 		if (!(option_mask32 & OPT_STDOUT))
