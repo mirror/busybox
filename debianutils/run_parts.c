@@ -27,10 +27,11 @@
  * -a ARG       argument. Pass ARG as an argument the program executed. It can
  *              be repeated to pass multiple arguments.
  * -u MASK      umask. Set the umask of the program executed to MASK.
+ * -e           exit as soon as a script returns with a non-zero exit code
  */
 
 //usage:#define run_parts_trivial_usage
-//usage:       "[-t"IF_FEATURE_RUN_PARTS_FANCY("l")"] [-a ARG]... [-u MASK] DIRECTORY"
+//usage:       "[-t"IF_FEATURE_RUN_PARTS_FANCY("l")"] [-a ARG]... [-u MASK] [-e] DIRECTORY"
 //usage:#define run_parts_full_usage "\n\n"
 //usage:       "Run a bunch of scripts in DIRECTORY\n"
 //usage:     "\n	-t	Dry run"
@@ -39,6 +40,7 @@
 //usage:	)
 //usage:     "\n	-a ARG	Pass ARG as argument to programs"
 //usage:     "\n	-u MASK	Set umask to MASK before running programs"
+//usage:     "\n	-e	Exit as soon as a script returns with a non-zero exit code"
 //usage:
 //usage:#define run_parts_example_usage
 //usage:       "$ run-parts -a start /etc/init.d\n"
@@ -74,7 +76,8 @@ enum {
 	OPT_a = (1 << 1),
 	OPT_u = (1 << 2),
 	OPT_t = (1 << 3),
-	OPT_l = (1 << 4) * ENABLE_FEATURE_RUN_PARTS_FANCY,
+	OPT_e = (1 << 4),
+	OPT_l = (1 << 5) * ENABLE_FEATURE_RUN_PARTS_FANCY,
 };
 
 #if ENABLE_FEATURE_RUN_PARTS_FANCY
@@ -127,6 +130,7 @@ static const char runparts_longopts[] ALIGN1 =
 	"arg\0"     Required_argument "a"
 	"umask\0"   Required_argument "u"
 	"test\0"    No_argument       "t"
+	"exit-on-error\0" No_argument "e"
 #if ENABLE_FEATURE_RUN_PARTS_FANCY
 	"list\0"    No_argument       "l"
 	"reverse\0" No_argument       "r"
@@ -150,7 +154,7 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	/* We require exactly one argument: the directory name */
 	opt_complementary = "=1:a::";
-	getopt32(argv, "ra:u:t"IF_FEATURE_RUN_PARTS_FANCY("l"), &arg_list, &umask_p);
+	getopt32(argv, "ra:u:te"IF_FEATURE_RUN_PARTS_FANCY("l"), &arg_list, &umask_p);
 
 	umask(xstrtou_range(umask_p, 8, 0, 07777));
 
@@ -193,6 +197,9 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 			bb_perror_msg("can't execute '%s'", name);
 		else /* ret > 0 */
 			bb_error_msg("%s exited with code %d", name, ret & 0xff);
+
+		if (option_mask32 & OPT_e)
+			xfunc_die();
 	}
 
 	return n;
