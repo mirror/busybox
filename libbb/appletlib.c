@@ -750,7 +750,7 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 //TODO: just compare applet_no with APPLET_NO_test
 		if (!ENABLE_TEST || strcmp(applet_name, "test") != 0) {
 			/* If you want "foo --help" to return 0: */
-			/*xfunc_error_retval = 0;*/
+			xfunc_error_retval = 0;
 			bb_show_usage();
 		}
 	}
