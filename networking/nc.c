@@ -40,7 +40,7 @@
 //config:	  This option makes nc closely follow original nc-1.10.
 //config:	  The code is about 2.5k bigger. It enables
 //config:	  -s ADDR, -n, -u, -v, -o FILE, -z options, but loses
-//config:	  busybox-specific extensions: -f FILE and -ll.
+//config:	  busybox-specific extensions: -f FILE.
 
 #if ENABLE_NC_110_COMPAT
 # include "nc_bloaty.c"
