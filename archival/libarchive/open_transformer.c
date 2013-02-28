@@ -34,6 +34,7 @@ void check_errors_in_children(int signo)
 	if (!signo) {
 		/* block waiting for any child */
 		if (wait(&status) < 0)
+//FIXME: check EINTR?
 			return; /* probably there are no children */
 		goto check_status;
 	}
@@ -41,14 +42,18 @@ void check_errors_in_children(int signo)
 	/* Wait for any child without blocking */
 	for (;;) {
 		if (wait_any_nohang(&status) < 0)
+//FIXME: check EINTR?
 			/* wait failed?! I'm confused... */
 			return;
  check_status:
-		if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+		/*if (WIFEXITED(status) && WEXITSTATUS(status) == 0)*/
+		/* On Linux, the above can be checked simply as: */
+		if (status == 0)
 			/* this child exited with 0 */
 			continue;
-		/* Cannot happen?
-		if (!WIFSIGNALED(status) && !WIFEXITED(status)) ???; */
+		/* Cannot happen:
+		if (!WIFSIGNALED(status) && !WIFEXITED(status)) ???;
+		 */
 		bb_got_signal = 1;
 	}
 }
