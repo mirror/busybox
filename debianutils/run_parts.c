@@ -25,16 +25,16 @@
 
 //usage:#define run_parts_trivial_usage
 //usage:       "[-a ARG]... [-u UMASK] "
-//usage:       IF_FEATURE_RUN_PARTS_LONG_OPTIONS("[--reverse] [--test] [-−exit−on−error] "IF_FEATURE_RUN_PARTS_FANCY("[--list] "))
+//usage:       IF_FEATURE_RUN_PARTS_LONG_OPTIONS("[--reverse] [--test] [--exit-on-error] "IF_FEATURE_RUN_PARTS_FANCY("[--list] "))
 //usage:       "DIRECTORY"
 //usage:#define run_parts_full_usage "\n\n"
 //usage:       "Run a bunch of scripts in DIRECTORY\n"
 //usage:     "\n	-a ARG		Pass ARG as argument to scripts"
 //usage:     "\n	-u UMASK	Set UMASK before running scripts"
 //usage:	IF_FEATURE_RUN_PARTS_LONG_OPTIONS(
-//usage:     "\n	-−reverse	Reverse execution order"
+//usage:     "\n	--reverse	Reverse execution order"
 //usage:     "\n	--test		Dry run"
-//usage:     "\n	-−exit−on−error	Exit if a script exits with non-zero"
+//usage:     "\n	--exit-on-error	Exit if a script exits with non-zero"
 //usage:	IF_FEATURE_RUN_PARTS_FANCY(
 //usage:     "\n	--list		Print names of matching files even if they are not executable"
 //usage:	)
