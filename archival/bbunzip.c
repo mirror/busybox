@@ -12,8 +12,9 @@ enum {
 	OPT_FORCE      = 1 << 1,
 	/* only some decompressors: */
 	OPT_VERBOSE    = 1 << 2,
-	OPT_DECOMPRESS = 1 << 3,
-	OPT_TEST       = 1 << 4,
+	OPT_QUIET      = 1 << 3,
+	OPT_DECOMPRESS = 1 << 4,
+	OPT_TEST       = 1 << 5,
 	SEAMLESS_MAGIC = (1 << 31) * SEAMLESS_COMPRESSION,
 };
 
@@ -313,7 +314,7 @@ IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_aux_data_t *aux)
 int gunzip_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int gunzip_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "cfvdtn");
+	getopt32(argv, "cfvdtqn");
 	argv += optind;
 
 	/* If called as zcat...
@@ -355,7 +356,7 @@ IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(transformer_aux_data_t *aux)
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
-	getopt32(argv, "cfvdt");
+	getopt32(argv, "cfvdtq");
 	argv += optind;
 	if (applet_name[2] == 'c') /* bzcat */
 		option_mask32 |= OPT_STDOUT;
@@ -423,7 +424,7 @@ IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(transformer_aux_data_t *aux)
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
-	IF_LZMA(int opts =) getopt32(argv, "cfvdt");
+	IF_LZMA(int opts =) getopt32(argv, "cfvdtq");
 # if ENABLE_LZMA
 	/* lzma without -d or -t? */
 	if (applet_name[2] == 'm' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
@@ -448,7 +449,7 @@ IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(transformer_aux_data_t *aux)
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)
 {
-	IF_XZ(int opts =) getopt32(argv, "cfvdt");
+	IF_XZ(int opts =) getopt32(argv, "cfvdtq");
 # if ENABLE_XZ
 	/* xz without -d or -t? */
 	if (applet_name[2] == '\0' && !(opts & (OPT_DECOMPRESS|OPT_TEST)))
