@@ -14,6 +14,7 @@ enum {
 	OPT_VERBOSE    = 1 << 2,
 	OPT_DECOMPRESS = 1 << 3,
 	OPT_TEST       = 1 << 4,
+	SEAMLESS_MAGIC = (1 << 31) * SEAMLESS_COMPRESSION,
 };
 
 static
@@ -39,7 +40,7 @@ int FAST_FUNC bbunpack(char **argv,
 )
 {
 	struct stat stat_buf;
-	IF_DESKTOP(long long) int status;
+	IF_DESKTOP(long long) int status = 0;
 	char *filename, *new_name;
 	smallint exitcode = 0;
 	transformer_aux_data_t aux;
@@ -54,14 +55,23 @@ int FAST_FUNC bbunpack(char **argv,
 
 		/* Open src */
 		if (filename) {
-			if (stat(filename, &stat_buf) != 0) {
-				bb_simple_perror_msg(filename);
+			if (!(option_mask32 & SEAMLESS_MAGIC)) {
+				if (stat(filename, &stat_buf) != 0) {
+ err_name:
+					bb_simple_perror_msg(filename);
  err:
-				exitcode = 1;
-				goto free_name;
+					exitcode = 1;
+					goto free_name;
+				}
+				if (open_to_or_warn(STDIN_FILENO, filename, O_RDONLY, 0))
+					goto err;
+			} else {
+				/* "clever zcat" */
+				int fd = open_zipped(filename);
+				if (fd < 0)
+					goto err_name;
+				xmove_fd(fd, STDIN_FILENO);
 			}
-			if (open_to_or_warn(STDIN_FILENO, filename, O_RDONLY, 0))
-				goto err;
 		}
 
 		/* Special cases: test, stdout */
@@ -98,11 +108,23 @@ int FAST_FUNC bbunpack(char **argv,
 					"use -f to force it");
 		}
 
-		init_transformer_aux_data(&aux);
-		aux.check_signature = 1;
-		status = unpacker(&aux);
-		if (status < 0)
-			exitcode = 1;
+		if (!(option_mask32 & SEAMLESS_MAGIC)) {
+			init_transformer_aux_data(&aux);
+			aux.check_signature = 1;
+			status = unpacker(&aux);
+			if (status < 0)
+				exitcode = 1;
+		} else {
+			/* "clever zcat" */
+			if (!filename) {
+				if (setup_unzip_on_fd(STDIN_FILENO, /*fail_if_not_detected*/ 0))
+					goto err;
+			}
+			if (bb_copyfd_eof(STDIN_FILENO, STDOUT_FILENO) < 0) {
+				/* Disk full, tty closed, etc. No point in continuing */
+				xfunc_die();
+			}
+		}
 
 		if (!(option_mask32 & OPT_STDOUT))
 			xclose(STDOUT_FILENO); /* with error check! */
@@ -294,9 +316,13 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cfvdtn");
 	argv += optind;
-	/* if called as zcat */
+
+	/* If called as zcat...
+	 * Normally, "zcat" is just "gunzip -c".
+	 * But if seamless magic is enabled, then we are much more clever.
+	 */
 	if (applet_name[1] == 'c')
-		option_mask32 |= OPT_STDOUT;
+		option_mask32 |= OPT_STDOUT | SEAMLESS_MAGIC;
 
 	return bbunpack(argv, unpack_gunzip, make_new_name_gunzip, /*unused:*/ NULL);
 }
