@@ -128,7 +128,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 
 	if (argv[0])
-		xregcomp(&re_buffer, argv[0], REG_EXTENDED | REG_NOSUB);
+		xregcomp(&re_buffer, argv[0], OPT_ANCHOR ? REG_EXTENDED : (REG_EXTENDED|REG_NOSUB);
 
 	matched_pid = 0;
 	cmd_last = NULL;
