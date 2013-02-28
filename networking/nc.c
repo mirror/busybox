@@ -24,7 +24,7 @@
 //config:	  Allow netcat to act as a server.
 //config:
 //config:config NC_EXTRA
-//config:	bool "Netcat extensions (-eiw and filename)"
+//config:	bool "Netcat extensions (-eiw and -f FILE)"
 //config:	default y
 //config:	depends on NC
 //config:	help
@@ -60,17 +60,18 @@
 //usage:#define nc_full_usage "\n\n"
 //usage:       "Open a pipe to IP:PORT" IF_NC_EXTRA(" or FILE")
 //usage:	NC_OPTIONS_STR
-//usage:	IF_NC_EXTRA(
-//usage:     "\n	-e PROG	Run PROG after connect"
 //usage:	IF_NC_SERVER(
 //usage:     "\n	-l	Listen mode, for inbound connects"
 //usage:	IF_NC_EXTRA(
-//usage:     "\n		(use -l twice with -e for persistent server)")
+//usage:     "\n		(use -ll with -e for persistent server)"
+//usage:	)
 //usage:     "\n	-p PORT	Local port"
 //usage:	)
-//usage:     "\n	-w SEC	Timeout for connect"
+//usage:	IF_NC_EXTRA(
+//usage:     "\n	-w SEC	Connect timeout"
 //usage:     "\n	-i SEC	Delay interval for lines sent"
 //usage:     "\n	-f FILE	Use file (ala /dev/ttyS0) instead of network"
+//usage:     "\n	-e PROG	Run PROG after connect"
 //usage:	)
 //usage:
 //usage:#define nc_notes_usage ""
@@ -147,7 +148,7 @@ int nc_main(int argc, char **argv)
 						*p++ = argv[optind++];
 					}
 				)
-				/* optind points to argv[arvc] (NULL) now.
+				/* optind points to argv[argc] (NULL) now.
 				** FIXME: we assume that getopt will not count options
 				** possibly present on "-e PROG ARGS" and will not
 				** include them into final value of optind
@@ -226,10 +227,9 @@ int nc_main(int argc, char **argv)
 		/* child, or main thread if only one -l */
 		xmove_fd(cfd, 0);
 		xdup2(0, 1);
-		xdup2(0, 2);
+		/*xdup2(0, 2); - original nc 1.10 does this, we don't */
 		IF_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
-		/* Don't print stuff or it will go over the wire... */
-		_exit(127);
+		bb_perror_msg_and_die("can't execute '%s'", execparam[0]);
 	}
 
 	/* Select loop copying stdin to cfd, and cfd to stdout */
