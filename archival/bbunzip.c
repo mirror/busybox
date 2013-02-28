@@ -68,7 +68,7 @@ int FAST_FUNC bbunpack(char **argv,
 		if (option_mask32 & (OPT_STDOUT|OPT_TEST)) {
 			if (option_mask32 & OPT_TEST)
 				if (open_to_or_warn(STDOUT_FILENO, bb_dev_null, O_WRONLY, 0))
-					goto err;
+					xfunc_die();
 			filename = NULL;
 		}
 
@@ -93,7 +93,7 @@ int FAST_FUNC bbunpack(char **argv,
 		}
 
 		/* Check that the input is sane */
-		if (isatty(STDIN_FILENO) && (option_mask32 & OPT_FORCE) == 0) {
+		if (!(option_mask32 & OPT_FORCE) && isatty(STDIN_FILENO)) {
 			bb_error_msg_and_die("compressed data not read from terminal, "
 					"use -f to force it");
 		}
@@ -241,7 +241,7 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar\n"
 //usage:
 //usage:#define zcat_trivial_usage
-//usage:       "FILE"
+//usage:       "[FILE]..."
 //usage:#define zcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
@@ -316,7 +316,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:#define bzcat_trivial_usage
-//usage:       "FILE"
+//usage:       "[FILE]..."
 //usage:#define bzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
@@ -365,7 +365,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:     "\n	-f	Force"
 //usage:
 //usage:#define lzcat_trivial_usage
-//usage:       "FILE"
+//usage:       "[FILE]..."
 //usage:#define lzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 //usage:
@@ -385,7 +385,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:     "\n	-f	Force"
 //usage:
 //usage:#define xzcat_trivial_usage
-//usage:       "FILE"
+//usage:       "[FILE]..."
 //usage:#define xzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
