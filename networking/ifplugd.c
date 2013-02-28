@@ -556,7 +556,8 @@ int ifplugd_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opts & FLAG_KILL) {
 		if (pid_from_pidfile > 0)
-			kill(pid_from_pidfile, SIGQUIT);
+			/* Upstream tool use SIGINT for -k */
+			kill(pid_from_pidfile, SIGINT);
 		return EXIT_SUCCESS;
 	}
 
