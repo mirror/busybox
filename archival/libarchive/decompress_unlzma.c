@@ -114,7 +114,7 @@ static speed_inline int rc_is_bit_1(rc_t *rc, uint16_t *p)
 }
 
 /* Called 4 times in unlzma loop */
-static speed_inline int rc_get_bit(rc_t *rc, uint16_t *p, int *symbol)
+static ALWAYS_INLINE int rc_get_bit(rc_t *rc, uint16_t *p, int *symbol)
 {
 	int ret = rc_is_bit_1(rc, p);
 	*symbol = *symbol * 2 + ret;
