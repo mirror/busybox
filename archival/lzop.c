@@ -436,25 +436,26 @@ struct globals {
 //#define LZOP_VERSION_STRING     "1.01"
 //#define LZOP_VERSION_DATE       "Apr 27th 2003"
 
-#define OPTION_STRING "cfvdt123456789CF"
+#define OPTION_STRING "cfvqdt123456789CF"
 
 enum {
 	OPT_STDOUT      = (1 << 0),
 	OPT_FORCE       = (1 << 1),
 	OPT_VERBOSE     = (1 << 2),
-	OPT_DECOMPRESS  = (1 << 3),
-	OPT_TEST        = (1 << 4),
-	OPT_1           = (1 << 5),
-	OPT_2           = (1 << 6),
-	OPT_3           = (1 << 7),
-	OPT_4           = (1 << 8),
-	OPT_5           = (1 << 9),
-	OPT_6           = (1 << 10),
-	OPT_789         = (7 << 11),
-	OPT_7           = (1 << 11),
-	OPT_8           = (1 << 12),
-	OPT_C           = (1 << 14),
-	OPT_F           = (1 << 15),
+	OPT_QUIET       = (1 << 3),
+	OPT_DECOMPRESS  = (1 << 4),
+	OPT_TEST        = (1 << 5),
+	OPT_1           = (1 << 6),
+	OPT_2           = (1 << 7),
+	OPT_3           = (1 << 8),
+	OPT_4           = (1 << 9),
+	OPT_5           = (1 << 10),
+	OPT_6           = (1 << 11),
+	OPT_789         = (7 << 12),
+	OPT_7           = (1 << 13),
+	OPT_8           = (1 << 14),
+	OPT_C           = (1 << 15),
+	OPT_F           = (1 << 16),
 };
 
 /**********************************************************************/
@@ -1093,7 +1094,7 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[4] == 'c')
 		option_mask32 |= (OPT_STDOUT | OPT_DECOMPRESS);
 	/* unlzop? */
-	if (applet_name[0] == 'u')
+	if (applet_name[4] == 'o')
 		option_mask32 |= OPT_DECOMPRESS;
 
 	global_crc32_table = crc32_filltable(NULL, 0);
