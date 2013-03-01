@@ -45,16 +45,16 @@ typedef struct {
 #define RC_MODEL_TOTAL_BITS 11
 
 
-/* Called twice: once at startup (LZMA_FAST only) and once in rc_normalize() */
-static size_inline void rc_read(rc_t *rc)
+/* Called once in rc_do_normalize() */
+static void rc_read(rc_t *rc)
 {
 	int buffer_size = safe_read(rc->fd, RC_BUFFER, RC_BUFFER_SIZE);
 //TODO: return -1 instead
 //This will make unlzma delete broken unpacked file on unpack errors
 	if (buffer_size <= 0)
 		bb_error_msg_and_die("unexpected EOF");
-	rc->ptr = RC_BUFFER;
 	rc->buffer_end = RC_BUFFER + buffer_size;
+	rc->ptr = RC_BUFFER;
 }
 
 /* Called twice, but one callsite is in speed_inline'd rc_is_bit_1() */
@@ -78,15 +78,9 @@ static ALWAYS_INLINE rc_t* rc_init(int fd) /*, int buffer_size) */
 	/* rc->ptr = rc->buffer_end; */
 
 	for (i = 0; i < 5; i++) {
-#if ENABLE_FEATURE_LZMA_FAST
-		if (rc->ptr >= rc->buffer_end)
-			rc_read(rc);
-		rc->code = (rc->code << 8) | *rc->ptr++;
-#else
 		rc_do_normalize(rc);
-#endif
 	}
-	rc->range = 0xFFFFFFFF;
+	rc->range = 0xffffffff;
 	return rc;
 }
 
