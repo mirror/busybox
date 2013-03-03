@@ -7,6 +7,7 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
+/* Note: must be kept in sync with archival/lzop.c */
 enum {
 	OPT_STDOUT     = 1 << 0,
 	OPT_FORCE      = 1 << 1,

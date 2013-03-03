@@ -438,6 +438,7 @@ struct globals {
 
 #define OPTION_STRING "cfvqdt123456789CF"
 
+/* Note: must be kept in sync with archival/bbunzip.c */
 enum {
 	OPT_STDOUT      = (1 << 0),
 	OPT_FORCE       = (1 << 1),
