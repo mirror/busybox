@@ -13191,19 +13191,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	setstackmark(&smark);
 	procargs(argv);
 
-#if ENABLE_FEATURE_EDITING_SAVEHISTORY
-	if (iflag) {
-		const char *hp = lookupvar("HISTFILE");
-		if (!hp) {
-			hp = lookupvar("HOME");
-			if (hp) {
-				char *defhp = concat_path_file(hp, ".ash_history");
-				setvar("HISTFILE", defhp, 0);
-				free(defhp);
-			}
-		}
-	}
-#endif
 	if (argv[0] && argv[0][0] == '-')
 		isloginsh = 1;
 	if (isloginsh) {
@@ -13243,6 +13230,15 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #if MAX_HISTORY > 0 && ENABLE_FEATURE_EDITING_SAVEHISTORY
 		if (iflag) {
 			const char *hp = lookupvar("HISTFILE");
+			if (!hp) {
+				hp = lookupvar("HOME");
+				if(hp) {
+					hp = concat_path_file(hp, ".ash_history");
+					setvar("HISTFILE", hp, 0);
+					free((char*)hp);
+					hp = lookupvar("HISTFILE");
+				}
+			}
 			if (hp)
 				line_input_state->hist_file = hp;
 # if ENABLE_FEATURE_SH_HISTFILESIZE
