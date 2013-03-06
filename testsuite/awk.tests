@@ -25,6 +25,25 @@ testing "awk if string == "    "awk 'BEGIN{if(\"a\"==\"ab\") print \"bar\"}'" ""
 
 # 4294967295 = 0xffffffff
 testing "awk bitwise op"  "awk '{ print or(4294967295,1) }'" "4.29497e+09\n" "" "\n"
+
+# we were testing for a non-empty body when deciding if a function was
+# defined or not. The testcase below caused:
+# awk: cmd. line:8: Call to undefined function
+prg='
+function empty_fun(count) {
+  # empty
+}
+END {
+  i=1
+  print "L" i "\n"
+  empty_fun(i + i + ++i)
+  print "L" i "\n"
+}'
+testing "awk handles empty function f(arg){}" \
+	"awk '$prg'" \
+	"L1\n\nL2\n\n" \
+	"" ""
+
 optional DESKTOP
 testing "awk hex const 1" "awk '{ print or(0xffffffff,1) }'" "4.29497e+09\n" "" "\n"
 testing "awk hex const 2" "awk '{ print or(0x80000000,1) }'" "2.14748e+09\n" "" "\n"

@@ -2661,7 +2661,8 @@ static var *evaluate(node *op, var *res)
 			var *vbeg, *v;
 			const char *sv_progname;
 
-			if (!op->r.f->body.first)
+			/* The body might be empty, still has to eval the args */
+			if (!op->r.n->info)
 				syntax_error(EMSG_UNDEF_FUNC);
 
 			vbeg = v = nvalloc(op->r.f->nargs + 1);
