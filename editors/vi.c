@@ -2530,7 +2530,7 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
-		p = text_hole_delete(p + cnt, p + (size - cnt) - 1);	// un-do buffer insert
+		p = text_hole_delete(p + cnt, p + size - 1);	// un-do buffer insert
 		status_line_bold("can't read '%s'", fn);
 	}
 	if (cnt >= size)
