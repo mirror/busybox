@@ -805,6 +805,7 @@ common_traceroute_main(int op, char **argv)
 	char *waittime_str;
 	char *pausemsecs_str;
 	char *first_ttl_str;
+	char *dest_str;
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	llist_t *source_route_list = NULL;
 	int lsrr = 0;
@@ -1059,8 +1060,12 @@ common_traceroute_main(int op, char **argv)
 	xsetgid(getgid());
 	xsetuid(getuid());
 
-	printf("traceroute to %s (%s)", argv[0],
-			xmalloc_sockaddr2dotted_noport(&dest_lsa->u.sa));
+	dest_str = xmalloc_sockaddr2dotted_noport(&dest_lsa->u.sa);
+	printf("traceroute to %s (%s)", argv[0], dest_str);
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(dest_str);
+	}
+
 	if (op & OPT_SOURCE)
 		printf(" from %s", source);
 	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
@@ -1214,6 +1219,12 @@ common_traceroute_main(int op, char **argv)
 		) {
 			break;
 		}
+	}
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(to);
+		free(lastaddr);
+		free(from_lsa);
 	}
 
 	return 0;
