@@ -64,10 +64,8 @@
 /* This is a NOEXEC applet. Be very careful! */
 
 #if !ENABLE_USE_BB_PWD_GRP
-#if defined(__UCLIBC_MAJOR__) && (__UCLIBC_MAJOR__ == 0)
-#if (__UCLIBC_MINOR__ < 9) || (__UCLIBC_MINOR__ == 9 &&  __UCLIBC_SUBLEVEL__ < 30)
+#if defined(__UCLIBC__) && UCLIBC_VERSION < KERNEL_VERSION(0, 9, 30)
 #error "Sorry, you need at least uClibc version 0.9.30 for id applet to build"
-#endif
 #endif
 #endif
 
