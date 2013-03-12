@@ -37,7 +37,7 @@ case "$1" in
 		echo "Recreating $RESOLV_CONF"
 		# If the file is a symlink somewhere (like /etc/resolv.conf
 		# pointing to /run/resolv.conf), make sure things work.
-		realconf=$(realpath "$RESOLV_CONF" 2>/dev/null || echo "$RESOLV_CONF")
+		realconf=$(readlink -f "$RESOLV_CONF" 2>/dev/null || echo "$RESOLV_CONF")
 		tmpfile="$realconf-$$"
 		> "$tmpfile"
 		[ -n "$domain" ] && echo "search $domain" >> "$tmpfile"
