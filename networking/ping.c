@@ -89,7 +89,9 @@
 //usage:       "[OPTIONS] HOST"
 //usage:# define ping_full_usage "\n\n"
 //usage:       "Send ICMP ECHO_REQUEST packets to network hosts\n"
+//usage:	IF_PING6(
 //usage:     "\n	-4,-6		Force IP or IPv6 name resolution"
+//usage:	)
 //usage:     "\n	-c CNT		Send only CNT pings"
 //usage:     "\n	-s SIZE		Send SIZE data bytes in packets (default:56)"
 //usage:     "\n	-t TTL		Set TTL"
@@ -299,7 +301,7 @@ static int common_ping_main(sa_family_t af, char **argv)
 
 /* Full(er) version */
 
-#define OPT_STRING ("qvc:s:t:w:W:I:4" IF_PING6("6"))
+#define OPT_STRING ("qvc:s:t:w:W:I:n4" IF_PING6("6"))
 enum {
 	OPT_QUIET = 1 << 0,
 	OPT_VERBOSE = 1 << 1,
@@ -309,8 +311,9 @@ enum {
 	OPT_w = 1 << 5,
 	OPT_W = 1 << 6,
 	OPT_I = 1 << 7,
-	OPT_IPV4 = 1 << 8,
-	OPT_IPV6 = (1 << 9) * ENABLE_PING6,
+	/*OPT_n = 1 << 8, - ignored */
+	OPT_IPV4 = 1 << 9,
+	OPT_IPV6 = (1 << 10) * ENABLE_PING6,
 };
 
 
@@ -349,9 +352,6 @@ struct globals {
 #define source_lsa   (G.source_lsa  )
 #define str_I        (G.str_I       )
 #define datalen      (G.datalen     )
-#define ntransmitted (G.ntransmitted)
-#define nreceived    (G.nreceived   )
-#define nrepeats     (G.nrepeats    )
 #define pingcount    (G.pingcount   )
 #define opt_ttl      (G.opt_ttl     )
 #define myid         (G.myid        )
@@ -387,33 +387,40 @@ void BUG_ping_globals_too_big(void);
 static void print_stats_and_exit(int junk) NORETURN;
 static void print_stats_and_exit(int junk UNUSED_PARAM)
 {
+	unsigned long ul;
+	unsigned long nrecv;
+
 	signal(SIGINT, SIG_IGN);
 
-	printf("\n--- %s ping statistics ---\n", hostname);
-	printf("%lu packets transmitted, ", ntransmitted);
-	printf("%lu packets received, ", nreceived);
-	if (nrepeats)
-		printf("%lu duplicates, ", nrepeats);
-	if (ntransmitted)
-		ntransmitted = (ntransmitted - nreceived) * 100 / ntransmitted;
-	printf("%lu%% packet loss\n", ntransmitted);
+	nrecv = G.nreceived;
+	printf("\n--- %s ping statistics ---\n"
+		"%lu packets transmitted, "
+		"%lu packets received, ",
+		hostname, G.ntransmitted, nrecv
+	);
+	if (G.nrepeats)
+		printf("%lu duplicates, ", G.nrepeats);
+	ul = G.ntransmitted;
+	if (ul != 0)
+		ul = (ul - nrecv) * 100 / ul;
+	printf("%lu%% packet loss\n", ul);
 	if (tmin != UINT_MAX) {
-		unsigned tavg = tsum / (nreceived + nrepeats);
+		unsigned tavg = tsum / (nrecv + G.nrepeats);
 		printf("round-trip min/avg/max = %u.%03u/%u.%03u/%u.%03u ms\n",
 			tmin / 1000, tmin % 1000,
 			tavg / 1000, tavg % 1000,
 			tmax / 1000, tmax % 1000);
 	}
 	/* if condition is true, exit with 1 -- 'failure' */
-	exit(nreceived == 0 || (deadline && nreceived < pingcount));
+	exit(nrecv == 0 || (deadline && nrecv < pingcount));
 }
 
 static void sendping_tail(void (*sp)(int), int size_pkt)
 {
 	int sz;
 
-	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
-	ntransmitted++;
+	CLR((uint16_t)G.ntransmitted % MAX_DUP_CHK);
+	G.ntransmitted++;
 
 	size_pkt += datalen;
 
@@ -423,7 +430,7 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 	if (sz != size_pkt)
 		bb_error_msg_and_die(bb_msg_write_error);
 
-	if (pingcount == 0 || deadline || ntransmitted < pingcount) {
+	if (pingcount == 0 || deadline || G.ntransmitted < pingcount) {
 		/* Didn't send all pings yet - schedule next in 1s */
 		signal(SIGALRM, sp);
 		if (deadline) {
@@ -439,7 +446,7 @@ static void sendping_tail(void (*sp)(int), int size_pkt)
 		 * otherwise ping waits for two RTTs. */
 		unsigned expire = timeout;
 
-		if (nreceived) {
+		if (G.nreceived) {
 			/* approx. 2*tmax, in seconds (2 RTT) */
 			expire = tmax / (512*1024);
 			if (expire == 0)
@@ -458,7 +465,7 @@ static void sendping4(int junk UNUSED_PARAM)
 	pkt->icmp_type = ICMP_ECHO;
 	/*pkt->icmp_code = 0;*/
 	pkt->icmp_cksum = 0; /* cksum is calculated with this field set to 0 */
-	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
+	pkt->icmp_seq = htons(G.ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
 
 	/* If datalen < 4, we store timestamp _past_ the packet,
@@ -481,7 +488,7 @@ static void sendping6(int junk UNUSED_PARAM)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	/*pkt->icmp6_code = 0;*/
 	/*pkt->icmp6_cksum = 0;*/
-	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
+	pkt->icmp6_seq = htons(G.ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
 
 	/*if (datalen >= 4)*/
@@ -548,7 +555,7 @@ static void unpack_tail(int sz, uint32_t *tp,
 	const char *dupmsg = " (DUP!)";
 	unsigned triptime = triptime; /* for gcc */
 
-	++nreceived;
+	++G.nreceived;
 
 	if (tp) {
 		/* (int32_t) cast is for hypothetical 64-bit unsigned */
@@ -562,8 +569,8 @@ static void unpack_tail(int sz, uint32_t *tp,
 	}
 
 	if (TST(recv_seq % MAX_DUP_CHK)) {
-		++nrepeats;
-		--nreceived;
+		++G.nrepeats;
+		--G.nreceived;
 	} else {
 		SET(recv_seq % MAX_DUP_CHK);
 		dupmsg += 7;
@@ -692,7 +699,7 @@ static void ping4(len_and_sockaddr *lsa)
 			continue;
 		}
 		unpack4(G.rcv_packet, c, &from);
-		if (pingcount && nreceived >= pingcount)
+		if (pingcount && G.nreceived >= pingcount)
 			break;
 	}
 }
@@ -784,7 +791,7 @@ static void ping6(len_and_sockaddr *lsa)
 			}
 		}
 		unpack6(G.rcv_packet, c, &from, hoplimit);
-		if (pingcount && nreceived >= pingcount)
+		if (pingcount && G.nreceived >= pingcount)
 			break;
 	}
 }
