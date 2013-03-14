@@ -22,7 +22,7 @@
  */
 
 //usage:#define udhcpd_trivial_usage
-//usage:       "[-fS]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]"
+//usage:       "[-fS] [-I ADDR]" IF_FEATURE_UDHCP_PORT(" [-P N]") " [CONFFILE]"
 //usage:#define udhcpd_full_usage "\n\n"
 //usage:       "DHCP server\n"
 //usage:     "\n	-f	Run in foreground"
