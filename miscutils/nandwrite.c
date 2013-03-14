@@ -23,7 +23,7 @@
 //config:	  Dump the content of raw NAND chip
 
 //applet:IF_NANDWRITE(APPLET(nandwrite, BB_DIR_USR_SBIN, BB_SUID_DROP))
-//applet:IF_NANDWRITE(APPLET_ODDNAME(nanddump, nandwrite, BB_DIR_USR_SBIN, BB_SUID_DROP, nanddump))
+//applet:IF_NANDDUMP(APPLET_ODDNAME(nanddump, nandwrite, BB_DIR_USR_SBIN, BB_SUID_DROP, nanddump))
 
 //kbuild:lib-$(CONFIG_NANDWRITE) += nandwrite.o
 //kbuild:lib-$(CONFIG_NANDDUMP) += nandwrite.o
@@ -31,14 +31,14 @@
 //usage:#define nandwrite_trivial_usage
 //usage:	"[-p] [-s ADDR] MTD_DEVICE [FILE]"
 //usage:#define nandwrite_full_usage "\n\n"
-//usage:	"Write to the specified MTD device\n"
+//usage:	"Write to MTD_DEVICE\n"
 //usage:     "\n	-p	Pad to page size"
 //usage:     "\n	-s ADDR	Start address"
 
 //usage:#define nanddump_trivial_usage
-//usage:	"[-o] [-b] [-s ADDR] [-f FILE] MTD_DEVICE"
+//usage:	"[-o] [-b] [-s ADDR] [-l LEN] [-f FILE] MTD_DEVICE"
 //usage:#define nanddump_full_usage "\n\n"
-//usage:	"Dump the specified MTD device\n"
+//usage:	"Dump MTD_DEVICE\n"
 //usage:     "\n	-o	Dump oob data"
 //usage:     "\n	-b	Omit bad block from the dump"
 //usage:     "\n	-s ADDR	Start address"
