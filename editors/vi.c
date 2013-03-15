@@ -478,6 +478,7 @@ static void flash(int);		// flash the terminal screen
 static void show_status_line(void);	// put a message on the bottom line
 static void status_line(const char *, ...);     // print to status buf
 static void status_line_bold(const char *, ...);
+static void status_line_bold_errno(const char *fn);
 static void not_implemented(const char *); // display "Not implemented" message
 static int format_edit_status(void);	// format file status on status line
 static void redraw(int);	// force a full screen refresh
@@ -1321,7 +1322,7 @@ static void colon(char *buf)
 		}
 		if (l < 0) {
 			if (l == -1)
-				status_line_bold("'%s' %s", fn, strerror(errno));
+				status_line_bold_errno(fn);
 		} else {
 			status_line("'%s' %dL, %dC", fn, li, l);
 			if (q == text && r == end - 1 && l == ch) {
@@ -2503,7 +2504,7 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 
 	/* Validate file */
 	if (stat(fn, &statbuf) < 0) {
-		status_line_bold("'%s' %s", fn, strerror(errno));
+		status_line_bold_errno(fn);
 		goto fi0;
 	}
 	if (!S_ISREG(statbuf.st_mode)) {
@@ -2519,14 +2520,14 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 	// read file to buffer
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
-		status_line_bold("'%s' %s", fn, strerror(errno));
+		status_line_bold_errno(fn);
 		goto fi0;
 	}
 	size = (statbuf.st_size < INT_MAX ? (int)statbuf.st_size : INT_MAX);
 	p += text_hole_make(p, size);
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
-		status_line_bold("'%s' %s", fn, strerror(errno));
+		status_line_bold_errno(fn);
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
@@ -2715,6 +2716,11 @@ static void status_line_bold(const char *format, ...)
 	va_end(args);
 
 	have_status_msg = 1 + sizeof(ESC_BOLD_TEXT) + sizeof(ESC_NORM_TEXT) - 2;
+}
+
+static void status_line_bold_errno(const char *fn)
+{
+	status_line_bold("'%s' %s", fn, strerror(errno));
 }
 
 // format status buffer
