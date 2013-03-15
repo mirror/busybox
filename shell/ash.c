@@ -13194,11 +13194,18 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0] && argv[0][0] == '-')
 		isloginsh = 1;
 	if (isloginsh) {
+		const char *hp;
+
 		state = 1;
 		read_profile("/etc/profile");
  state1:
 		state = 2;
-		read_profile(".profile");
+		hp = lookupvar("HOME");
+		if (hp) {
+			hp = concat_path_file(hp, ".profile");
+			read_profile(hp);
+			free((char*)hp);
+		}
 	}
  state2:
 	state = 3;
@@ -13232,7 +13239,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 			const char *hp = lookupvar("HISTFILE");
 			if (!hp) {
 				hp = lookupvar("HOME");
-				if(hp) {
+				if (hp) {
 					hp = concat_path_file(hp, ".ash_history");
 					setvar("HISTFILE", hp, 0);
 					free((char*)hp);
