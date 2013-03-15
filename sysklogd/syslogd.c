@@ -29,7 +29,7 @@
 //usage:     "\n	-b N		N rotated logs to keep (default:1, max=99, 0=purge)"
 //usage:	)
 //usage:	IF_FEATURE_REMOTE_LOG(
-//usage:     "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)"
+//usage:     "\n	-R HOST[:PORT]	Log to HOST:PORT (default PORT:514)"
 //usage:     "\n	-L		Log locally and via network (default is network only if -R)"
 //usage:	)
 //usage:	IF_FEATURE_SYSLOGD_DUP(
