@@ -8880,6 +8880,9 @@ static int FAST_FUNC builtin_source(char **argv)
 	free(arg_path);
 	if (!input) {
 		/* bb_perror_msg("%s", *argv); - done by fopen_or_warn */
+		/* POSIX: non-interactive shell should abort here,
+		 * not merely fail. So far no one complained :)
+		 */
 		return EXIT_FAILURE;
 	}
 	close_on_exec_on(fileno(input));
@@ -8889,12 +8892,14 @@ static int FAST_FUNC builtin_source(char **argv)
 	/* "we are inside sourced file, ok to use return" */
 	G.flag_return_in_progress = -1;
 #endif
-	save_and_replace_G_args(&sv, argv);
+	if (argv[1])
+		save_and_replace_G_args(&sv, argv);
 
 	parse_and_run_file(input);
 	fclose(input);
 
-	restore_G_args(&sv, argv);
+	if (argv[1])
+		restore_G_args(&sv, argv);
 #if ENABLE_HUSH_FUNCTIONS
 	G.flag_return_in_progress = sv_flg;
 #endif
