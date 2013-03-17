@@ -646,9 +646,8 @@ static void make_device(char *device_name, char *path, int operation)
 		}
 		/* else: it's final implicit "match-all" rule */
  rule_matches:
-#endif
 		dbg2("rule matched, line %d", G.parser ? G.parser->lineno : -1);
-
+#endif
 		/* Build alias name */
 		alias = NULL;
 		if (ENABLE_FEATURE_MDEV_RENAME && rule->ren_mov) {
