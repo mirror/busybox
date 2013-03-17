@@ -12258,6 +12258,9 @@ dotcmd(int argc, char **argv)
 	/* "false; . empty_file; echo $?" should print 0, not 1: */
 	exitstatus = 0;
 
+	/* This aborts if file isn't found, which is POSIXly correct.
+	 * bash returns exitcode 1 instead.
+	 */
 	fullname = find_dot_file(argv[1]);
 
 	argv += 2;
@@ -12269,6 +12272,9 @@ dotcmd(int argc, char **argv)
 		shellparam.p = argv;
 	};
 
+	/* This aborts if file can't be opened, which is POSIXly correct.
+	 * bash returns exitcode 1 instead.
+	 */
 	setinputfile(fullname, INPUT_PUSH_FILE);
 	commandname = fullname;
 	cmdloop(0);
