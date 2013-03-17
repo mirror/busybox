@@ -229,7 +229,7 @@ int nc_main(int argc, char **argv)
 		xdup2(0, 1);
 		/*xdup2(0, 2); - original nc 1.10 does this, we don't */
 		IF_NC_EXTRA(BB_EXECVP(execparam[0], execparam);)
-		bb_perror_msg_and_die("can't execute '%s'", execparam[0]);
+		IF_NC_EXTRA(bb_perror_msg_and_die("can't execute '%s'", execparam[0]);)
 	}
 
 	/* Select loop copying stdin to cfd, and cfd to stdout */
