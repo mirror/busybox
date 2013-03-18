@@ -92,47 +92,37 @@ static int smtp_check(const char *fmt, int code)
 // strip argument of bad chars
 static char *sane_address(char *str)
 {
-	char *s = str;
-	char *p = s;
-	int leading_space = 1;
-	int trailing_space = 0;
+	char *s;
 
+	trim(str);
+	s = str;
 	while (*s) {
-		if (isspace(*s)) {
-			trailing_space = !leading_space;
-		} else {
-			*p++ = *s;
-			if ((!isalnum(*s) && !strchr("_-.@", *s)) ||
-			    trailing_space) {
-				*p = '\0';
-				bb_error_msg("Bad address: %s", str);
-				*str = '\0';
-				return str;
-			}
-			leading_space = 0;
+		if (!isalnum(*s) && !strchr("_-.@", *s)) {
+			bb_error_msg("bad address '%s'", str);
+			/* returning "": */
+			str[0] = '\0';
+			return str;
 		}
 		s++;
 	}
-	*p = '\0';
 	return str;
 }
 
 // check for an address inside angle brackets, if not found fall back to normal
 static char *angle_address(char *str)
 {
-	char *s = str;
-	char *e = str + strlen(str);
+	char *s, *e;
 
-	while (e != str && (isspace(*e) || *e == '\0'))
-		e--;
-	if (*e != '>')
-		goto done;
-	*e = '\0';
-	e = strrchr(s, '<');
-	if (e != NULL)
-		s = e + 1;
-done:
-	return sane_address(s);
+	trim(str);
+	e = last_char_is(str, '>');
+	if (e) {
+		s = strrchr(str, '<');
+		if (s) {
+			*e = '\0';
+			str = s + 1;
+		}
+	}
+	return sane_address(str);
 }
 
 static void rcptto(const char *s)
@@ -145,29 +135,27 @@ static void rcptto(const char *s)
 }
 
 // send to a list of comma separated addresses
-static void rcptto_list(const char *_str)
+static void rcptto_list(const char *list)
 {
-	char *str = xstrdup(_str);
-	int len = strlen(str);
-	int in_quote = 0;
+	char *str = xstrdup(list);
 	char *s = str;
 	char prev = 0;
-	int pos;
+	int in_quote = 0;
 
-	for (pos = 0; pos < len; pos++) {
-		char ch = str[pos];
+	while (*s) {
+		char ch = *s++;
 
 		if (ch == '"' && prev != '\\') {
 			in_quote = !in_quote;
 		} else if (!in_quote && ch == ',') {
-			str[pos] = '\0';
-			rcptto(angle_address(s));
-			s = str + pos + 1;
+			s[-1] = '\0';
+			rcptto(angle_address(str));
+			str = s;
 		}
 		prev = ch;
 	}
 	if (prev != ',')
-		rcptto(angle_address(s));
+		rcptto(angle_address(str));
 	free(str);
 }
 
@@ -349,7 +337,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 		// analyze headers
 		// To: or Cc: headers add recipients
-		check_hdr = 0 == strncasecmp("To:", s, 3);
+		check_hdr = (0 == strncasecmp("To:", s, 3));
 		has_to |= check_hdr;
 		if (opts & OPT_t) {
 			if (check_hdr || 0 == strncasecmp("Bcc:" + 1, s, 3)) {
