@@ -223,7 +223,7 @@ struct serial_struct {
 //usage:	"	-v	Verbose\n"
 //usage:	"\n"
 //usage:	"Parameters: (* = takes an argument, ^ = can be turned off by preceding ^)\n"
-//usage:	"	*port, *irq, *divisor, *uart, *baund_base, *close_delay, *closing_wait,\n"
+//usage:	"	*port, *irq, *divisor, *uart, *baud_base, *close_delay, *closing_wait,\n"
 //usage:	"	^fourport, ^auto_irq, ^skip_test, ^sak, ^session_lockout, ^pgrp_lockout,\n"
 //usage:	"	^callout_nohup, ^split_termios, ^hup_notify, ^low_latency, autoconfig,\n"
 //usage:	"	spd_normal, spd_hi, spd_vhi, spd_shi, spd_warp, spd_cust\n"
@@ -311,7 +311,7 @@ static const char commands[] =
 	"irq\0"
 	"divisor\0"
 	"uart\0"
-	"baund_base\0"
+	"baud_base\0"
 	"close_delay\0"
 	"closing_wait\0"
 
