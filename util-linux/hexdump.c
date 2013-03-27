@@ -116,7 +116,7 @@ int hexdump_main(int argc, char **argv)
 			dumper->dump_length = xatoi_positive(optarg);
 		} /* else */
 		if (ch == 's') { /* compat: -s accepts hex numbers too */
-			dumper->dump_skip = xstrtoul_range_sfx(
+			dumper->dump_skip = xstrtoull_range_sfx(
 				optarg,
 				/*base:*/ 0,
 				/*lo:*/ 0, /*hi:*/ OFF_T_MAX,
