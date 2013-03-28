@@ -1789,7 +1789,44 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		if (c == '\\') {
 			const char *cp = prmt_ptr;
 			int l;
-
+/*
+ * Supported via bb_process_escape_sequence:
+ * \a	ASCII bell character (07)
+ * \e	ASCII escape character (033)
+ * \n	newline
+ * \r	carriage return
+ * \\	backslash
+ * \nnn	char with octal code nnn
+ * Supported:
+ * \$	if the effective UID is 0, a #, otherwise a $
+ * \!	history number of this command
+ *	(buggy?)
+ * \w	current working directory, with $HOME abbreviated with a tilde
+ *	Note: we do not support $PROMPT_DIRTRIM=n feature
+ * \h	hostname up to the first '.'
+ * \H	hostname
+ * \u	username
+ * \[	begin a sequence of non-printing characters
+ * \]	end a sequence of non-printing characters
+ * Not supported:
+ * \#	command number of this command
+ * \j	number of jobs currently managed by the shell
+ * \l	basename of the shell's terminal device name
+ * \s	name of the shell, the basename of $0 (the portion following the final slash)
+ * \V	release of bash, version + patch level (e.g., 2.00.0)
+ * \W	basename of the current working directory, with $HOME abbreviated with a tilde
+ * \d	date in "Weekday Month Date" format (e.g., "Tue May 26")
+ * \D{format}
+ *	format is passed to strftime(3).
+ *	An empty format results in a locale-specific time representation.
+ *	The braces are required.
+ * \T	current time in 12-hour HH:MM:SS format
+ * \@	current time in 12-hour am/pm format
+ * \A	current time in 24-hour HH:MM format
+ * Mishandled by bb_process_escape_sequence:
+ * \t	current time in 24-hour HH:MM:SS format
+ * \v	version of bash (e.g., 2.00)
+ */
 			c = bb_process_escape_sequence(&prmt_ptr);
 			if (prmt_ptr == cp) {
 				if (*cp == '\0')
@@ -1802,9 +1839,11 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 					pbuf = user_buf ? user_buf : (char*)"";
 					break;
 # endif
+				case 'H':
 				case 'h':
 					pbuf = free_me = safe_gethostname();
-					*strchrnul(pbuf, '.') = '\0';
+					if (c == 'h')
+						strchrnul(pbuf, '.')[0] = '\0';
 					break;
 				case '$':
 					c = (geteuid() == 0 ? '#' : '$');
@@ -1832,9 +1871,10 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				case '!':
 					pbuf = free_me = xasprintf("%d", num_ok_lines);
 					break;
-				case 'e': case 'E':     /* \e \E = \033 */
-					c = '\033';
-					break;
+// bb_process_escape_sequence does this now:
+//				case 'e': case 'E':     /* \e \E = \033 */
+//					c = '\033';
+//					break;
 				case 'x': case 'X': {
 					char buf2[4];
 					for (l = 0; l < 3;) {
