@@ -133,9 +133,6 @@ struct lineedit_statics {
 	CHAR_T *command_ps;
 
 	const char *cmdedit_prompt;
-#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	int num_ok_lines; /* = 1; */
-#endif
 
 #if ENABLE_USERNAME_OR_HOMEDIR
 	char *user_buf;
@@ -172,7 +169,6 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 #define command_len      (S.command_len     )
 #define command_ps       (S.command_ps      )
 #define cmdedit_prompt   (S.cmdedit_prompt  )
-#define num_ok_lines     (S.num_ok_lines    )
 #define user_buf         (S.user_buf        )
 #define home_pwd_buf     (S.home_pwd_buf    )
 #define matches          (S.matches         )
@@ -185,7 +181,6 @@ extern struct lineedit_statics *const lineedit_ptr_to_statics;
 	(*(struct lineedit_statics**)&lineedit_ptr_to_statics) = xzalloc(sizeof(S)); \
 	barrier(); \
 	cmdedit_termw = 80; \
-	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines = 1;) \
 	IF_USERNAME_OR_HOMEDIR(home_pwd_buf = (char*)null_str;) \
 	IF_FEATURE_EDITING_VI(delptr = delbuf;) \
 } while (0)
@@ -1532,7 +1527,6 @@ static void remember_in_history(char *str)
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY && !ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
 	save_history(str);
 # endif
-	IF_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
 }
 
 #else /* MAX_HISTORY == 0 */
@@ -1768,16 +1762,15 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 	size_t cur_prmt_len = 0;
 	char flg_not_length = '[';
 	char *prmt_mem_ptr = xzalloc(1);
-	char *cwd_buf = xrealloc_getcwd_or_warn(NULL);
+# if ENABLE_USERNAME_OR_HOMEDIR
+	char *cwd_buf = NULL;
+# endif
+	char timebuf[sizeof("HH:MM:SS")];
 	char cbuf[2];
 	char c;
 	char *pbuf;
 
 	cmdedit_prmt_len = 0;
-
-	if (!cwd_buf) {
-		cwd_buf = (char *)bb_msg_unknown;
-	}
 
 	cbuf[1] = '\0'; /* never changes */
 
@@ -1787,7 +1780,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		pbuf = cbuf;
 		c = *prmt_ptr++;
 		if (c == '\\') {
-			const char *cp = prmt_ptr;
+			const char *cp;
 			int l;
 /*
  * Supported via bb_process_escape_sequence:
@@ -1799,35 +1792,38 @@ static void parse_and_put_prompt(const char *prmt_ptr)
  * \nnn	char with octal code nnn
  * Supported:
  * \$	if the effective UID is 0, a #, otherwise a $
- * \!	history number of this command
- *	(buggy?)
  * \w	current working directory, with $HOME abbreviated with a tilde
  *	Note: we do not support $PROMPT_DIRTRIM=n feature
+ * \W	basename of the current working directory, with $HOME abbreviated with a tilde
  * \h	hostname up to the first '.'
  * \H	hostname
  * \u	username
  * \[	begin a sequence of non-printing characters
  * \]	end a sequence of non-printing characters
+ * \T	current time in 12-hour HH:MM:SS format
+ * \@	current time in 12-hour am/pm format
+ * \A	current time in 24-hour HH:MM format
+ * \t	current time in 24-hour HH:MM:SS format
+ *	(all of the above work as \A)
  * Not supported:
+ * \!	history number of this command
  * \#	command number of this command
  * \j	number of jobs currently managed by the shell
  * \l	basename of the shell's terminal device name
  * \s	name of the shell, the basename of $0 (the portion following the final slash)
  * \V	release of bash, version + patch level (e.g., 2.00.0)
- * \W	basename of the current working directory, with $HOME abbreviated with a tilde
  * \d	date in "Weekday Month Date" format (e.g., "Tue May 26")
  * \D{format}
  *	format is passed to strftime(3).
  *	An empty format results in a locale-specific time representation.
  *	The braces are required.
- * \T	current time in 12-hour HH:MM:SS format
- * \@	current time in 12-hour am/pm format
- * \A	current time in 24-hour HH:MM format
  * Mishandled by bb_process_escape_sequence:
- * \t	current time in 24-hour HH:MM:SS format
  * \v	version of bash (e.g., 2.00)
  */
-			c = bb_process_escape_sequence(&prmt_ptr);
+			cp = prmt_ptr;
+			c = *cp;
+			if (c != 't') /* don't treat \t as tab */
+				c = bb_process_escape_sequence(&prmt_ptr);
 			if (prmt_ptr == cp) {
 				if (*cp == '\0')
 					break;
@@ -1848,29 +1844,41 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				case '$':
 					c = (geteuid() == 0 ? '#' : '$');
 					break;
-# if ENABLE_USERNAME_OR_HOMEDIR
-				case 'w':
-					/* /home/user[/something] -> ~[/something] */
-					pbuf = cwd_buf;
-					l = strlen(home_pwd_buf);
-					if (l != 0
-					 && strncmp(home_pwd_buf, cwd_buf, l) == 0
-					 && (cwd_buf[l]=='/' || cwd_buf[l]=='\0')
-					 && strlen(cwd_buf + l) < PATH_MAX
-					) {
-						pbuf = free_me = xasprintf("~%s", cwd_buf + l);
-					}
+				case 'T': /* 12-hour HH:MM:SS format */
+				case '@': /* 12-hour am/pm format */
+				case 'A': /* 24-hour HH:MM format */
+				case 't': /* 24-hour HH:MM:SS format */
+					/* We show all of them as 24-hour HH:MM */
+					strftime_HHMMSS(timebuf, sizeof(timebuf), NULL)[-3] = '\0';
+					pbuf = timebuf;
 					break;
-# endif
-				case 'W':
+# if ENABLE_USERNAME_OR_HOMEDIR
+				case 'w': /* current dir */
+				case 'W': /* basename of cur dir */
+					if (!cwd_buf) {
+						cwd_buf = xrealloc_getcwd_or_warn(NULL);
+						if (!cwd_buf)
+							cwd_buf = (char *)bb_msg_unknown;
+						else {
+							/* /home/user[/something] -> ~[/something] */
+							l = strlen(home_pwd_buf);
+							if (l != 0
+							 && strncmp(home_pwd_buf, cwd_buf, l) == 0
+							 && (cwd_buf[l] == '/' || cwd_buf[l] == '\0')
+							) {
+								cwd_buf[0] = '~';
+								overlapping_strcpy(cwd_buf + 1, cwd_buf + l);
+							}
+						}
+					}
 					pbuf = cwd_buf;
+					if (c == 'w')
+						break;
 					cp = strrchr(pbuf, '/');
 					if (cp != NULL && cp != pbuf)
-						pbuf += (cp-pbuf) + 1;
+						pbuf = (char*)cp + 1;
 					break;
-				case '!':
-					pbuf = free_me = xasprintf("%d", num_ok_lines);
-					break;
+# endif
 // bb_process_escape_sequence does this now:
 //				case 'e': case 'E':     /* \e \E = \033 */
 //					c = '\033';
@@ -1912,8 +1920,10 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		free(free_me);
 	} /* while */
 
+# if ENABLE_USERNAME_OR_HOMEDIR
 	if (cwd_buf != (char *)bb_msg_unknown)
 		free(cwd_buf);
+# endif
 	cmdedit_prompt = prmt_mem_ptr;
 	put_prompt();
 }
