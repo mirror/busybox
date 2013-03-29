@@ -887,11 +887,11 @@ step_time(double offset)
 
 	VERB2 {
 		tval = tvc.tv_sec;
-		strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&tval));
+		strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &tval);
 		bb_error_msg("current time is %s.%06u", buf, (unsigned)tvc.tv_usec);
 	}
 	tval = tvn.tv_sec;
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&tval));
+	strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &tval);
 	bb_error_msg("setting time to %s.%06u (offset %+fs)", buf, (unsigned)tvn.tv_usec, offset);
 
 	/* Correct various fields which contain time-relative values: */

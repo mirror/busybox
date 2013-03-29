@@ -523,7 +523,8 @@ struct BUG_too_small {
 
 void parse_datestr(const char *date_str, struct tm *ptm) FAST_FUNC;
 time_t validate_tm_time(const char *date_str, struct tm *ptm) FAST_FUNC;
-
+char *strftime_HHMMSS(char *buf, unsigned len, time_t *tp) FAST_FUNC;
+char *strftime_YYYYMMDDHHMMSS(char *buf, unsigned len, time_t *tp) FAST_FUNC;
 
 int xsocket(int domain, int type, int protocol) FAST_FUNC;
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen) FAST_FUNC;

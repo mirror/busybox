@@ -187,6 +187,27 @@ time_t FAST_FUNC validate_tm_time(const char *date_str, struct tm *ptm)
 	return t;
 }
 
+static char* strftime_fmt(char *buf, unsigned len, time_t *tp, const char *fmt)
+{
+	time_t t;
+	if (!tp) {
+		tp = &t;
+		time(tp);
+	}
+	/* Returns pointer to NUL */
+	return buf + strftime(buf, len, fmt, localtime(tp));
+}
+
+char* FAST_FUNC strftime_HHMMSS(char *buf, unsigned len, time_t *tp)
+{
+	return strftime_fmt(buf, len, tp, "%H:%M:%S");
+}
+
+char* FAST_FUNC strftime_YYYYMMDDHHMMSS(char *buf, unsigned len, time_t *tp)
+{
+	return strftime_fmt(buf, len, tp, "%Y-%m-%d %H:%M:%S");
+}
+
 #if ENABLE_MONOTONIC_SYSCALL
 
 #include <sys/syscall.h>

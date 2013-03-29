@@ -127,7 +127,7 @@ static const char *human_time(time_t t)
 	/*static char buf[sizeof("YYYY-MM-DD HH:MM:SS.000000000")] ALIGN1;*/
 #define buf bb_common_bufsiz1
 
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.000000000", localtime(&t));
+	strcpy(strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &t), ".000000000");
 	return buf;
 #undef buf
 }

@@ -378,7 +378,7 @@ step_time_once(double offset)
 		bb_perror_msg_and_die("settimeofday");
 
 	tval = tv.tv_sec;
-	strftime(buf, sizeof(buf), "%a %b %e %H:%M:%S %Z %Y", localtime(&tval));
+	strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &tval);
 
 	bb_error_msg("setting clock to %s (offset %fs)", buf, offset);
 
