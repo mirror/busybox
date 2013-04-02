@@ -13,12 +13,17 @@ echo "Env:"
 env | sort
 
 while sleep 1; test $cnt != 0; do
-	echo "Trying to rereat partition table on $DEVNAME ($cnt)"
+	echo "Trying to reread partition table on $DEVNAME ($cnt)"
 	: $((cnt--))
+	# If device node doesn't exist, it means the device was removed.
+	# Stop trying.
 	test -e "$DEVNAME" || { echo "$DEVNAME doesn't exist, aborting"; exit 1; }
 	#echo "$DEVNAME exists"
-	blockdev --rereadpt "$DEVNAME" && break
+	if blockdev --rereadpt "$DEVNAME"; then
+		echo "blockdev --rereadpt succeeded"
+		exit 0
+	fi
 	echo "blockdev --rereadpt failed, exit code: $?"
 done
-echo "blockdev --rereadpt succeeded"
+echo "Timed out"
 ) &
