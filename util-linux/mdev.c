@@ -1060,15 +1060,15 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
 		 * ACTION can be "add", "remove", "change"
 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
 		 */
-		action = getenv("ACTION");
-		op = index_in_strings(keywords, action);
 		env_devname = getenv("DEVNAME"); /* can be NULL */
-		env_devpath = getenv("DEVPATH");
 		G.subsystem = getenv("SUBSYSTEM");
+		action = getenv("ACTION");
+		env_devpath = getenv("DEVPATH");
 		if (!action || !env_devpath /*|| !G.subsystem*/)
 			bb_show_usage();
 		fw = getenv("FIRMWARE");
 		seq = getenv("SEQNUM");
+		op = index_in_strings(keywords, action);
 
 		my_pid = getpid();
 		open_mdev_log(seq, my_pid);
