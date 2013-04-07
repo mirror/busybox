@@ -1254,7 +1254,7 @@ line_input_t* FAST_FUNC new_line_input_t(int flags)
 
 #if MAX_HISTORY > 0
 
-unsigned size_from_HISTFILESIZE(const char *hp)
+unsigned FAST_FUNC size_from_HISTFILESIZE(const char *hp)
 {
 	int size = MAX_HISTORY;
 	if (hp) {
@@ -1307,6 +1307,17 @@ static int get_next_history(void)
 	}
 	beep();
 	return 0;
+}
+
+/* Lists command history. Used by shell 'history' builtins */
+void FAST_FUNC show_history(const line_input_t *st)
+{
+	int i;
+
+	if (!st)
+		return;
+	for (i = 0; i < st->cnt_history; i++)
+		printf("%4d %s\n", i, st->history[i]);
 }
 
 # if ENABLE_FEATURE_EDITING_SAVEHISTORY
@@ -2749,8 +2760,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
 	free(command_ps);
 #endif
 
-	if (command_len > 0)
+	if (command_len > 0) {
 		remember_in_history(command);
+	}
 
 	if (break_out > 0) {
 		command[command_len++] = '\n';

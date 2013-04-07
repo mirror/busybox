@@ -9033,6 +9033,9 @@ static int getoptscmd(int, char **) FAST_FUNC;
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 static int helpcmd(int, char **) FAST_FUNC;
 #endif
+#if MAX_HISTORY
+static int historycmd(int, char **) FAST_FUNC;
+#endif
 #if ENABLE_SH_MATH_SUPPORT
 static int letcmd(int, char **) FAST_FUNC;
 #endif
@@ -9105,6 +9108,9 @@ static const struct builtincmd builtintab[] = {
 	{ BUILTIN_NOSPEC        "hash"    , hashcmd    },
 #if !ENABLE_FEATURE_SH_EXTRA_QUIET
 	{ BUILTIN_NOSPEC        "help"    , helpcmd    },
+#endif
+#if MAX_HISTORY
+	{ BUILTIN_NOSPEC        "history" , historycmd },
 #endif
 #if JOBS
 	{ BUILTIN_REGULAR       "jobs"    , jobscmd    },
@@ -12620,6 +12626,15 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_SH_EXTRA_QUIET */
+
+#if MAX_HISTORY
+static int FAST_FUNC
+historycmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+{
+	show_history(line_input_state);
+	return EXIT_SUCCESS;
+}
+#endif
 
 /*
  * The export and readonly commands.

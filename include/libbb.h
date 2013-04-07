@@ -1436,7 +1436,7 @@ void read_key_ungets(char *buffer, const char *str, unsigned len) FAST_FUNC;
 /* It's NOT just ENABLEd or disabled. It's a number: */
 # if defined CONFIG_FEATURE_EDITING_HISTORY && CONFIG_FEATURE_EDITING_HISTORY > 0
 #  define MAX_HISTORY (CONFIG_FEATURE_EDITING_HISTORY + 0)
-unsigned size_from_HISTFILESIZE(const char *hp);
+unsigned size_from_HISTFILESIZE(const char *hp) FAST_FUNC;
 # else
 #  define MAX_HISTORY 0
 # endif
@@ -1478,6 +1478,7 @@ line_input_t *new_line_input_t(int flags) FAST_FUNC;
  * >0 length of input string, including terminating '\n'
  */
 int read_line_input(line_input_t *st, const char *prompt, char *command, int maxsize, int timeout) FAST_FUNC;
+void show_history(const line_input_t *st) FAST_FUNC;
 # if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
 void save_history(line_input_t *st);
 # endif

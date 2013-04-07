@@ -850,6 +850,9 @@ static int builtin_jobs(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_HELP
 static int builtin_help(char **argv) FAST_FUNC;
 #endif
+#if MAX_HISTORY
+static int builtin_history(char **argv) FAST_FUNC;
+#endif
 #if ENABLE_HUSH_LOCAL
 static int builtin_local(char **argv) FAST_FUNC;
 #endif
@@ -918,6 +921,9 @@ static const struct built_in_command bltins1[] = {
 #endif
 #if ENABLE_HUSH_HELP
 	BLTIN("help"     , builtin_help    , NULL),
+#endif
+#if MAX_HISTORY
+	BLTIN("history"  , builtin_history , "Show command history"),
 #endif
 #if ENABLE_HUSH_JOB
 	BLTIN("jobs"     , builtin_jobs    , "List jobs"),
@@ -8623,6 +8629,14 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 			printf("%-10s%s\n", x->b_cmd, x->b_descr);
 	}
 	bb_putchar('\n');
+	return EXIT_SUCCESS;
+}
+#endif
+
+#if MAX_HISTORY
+static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
+{
+	show_history(G.line_input_state);
 	return EXIT_SUCCESS;
 }
 #endif
