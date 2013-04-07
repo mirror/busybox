@@ -7354,7 +7354,7 @@ static int run_list(struct pipe *pi)
 				 * and we should not execute CMD */
 				debug_printf_exec("skipped cmd because of || or &&\n");
 				last_followup = pi->followup;
-				continue;
+				goto dont_check_jobs_but_continue;
 			}
 		}
 		last_followup = pi->followup;
@@ -7493,8 +7493,10 @@ static int run_list(struct pipe *pi)
 							G.flag_break_continue = 0;
 						/* else: e.g. "continue 2" should *break* once, *then* continue */
 					} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
-					if (G.depth_break_continue != 0 || fbc == BC_BREAK)
-						goto check_jobs_and_break;
+					if (G.depth_break_continue != 0 || fbc == BC_BREAK) {
+						checkjobs(NULL);
+						break;
+					}
 					/* "continue": simulate end of loop */
 					rword = RES_DONE;
 					continue;
@@ -7502,7 +7504,6 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_FUNCTIONS
 				if (G.flag_return_in_progress == 1) {
-					/* same as "goto check_jobs_and_break" */
 					checkjobs(NULL);
 					break;
 				}
@@ -7544,6 +7545,9 @@ static int run_list(struct pipe *pi)
 		if (rword == RES_IF || rword == RES_ELIF)
 			cond_code = rcode;
 #endif
+ check_jobs_and_continue:
+		checkjobs(NULL);
+ dont_check_jobs_but_continue: ;
 #if ENABLE_HUSH_LOOPS
 		/* Beware of "while false; true; do ..."! */
 		if (pi->next
@@ -7555,22 +7559,17 @@ static int run_list(struct pipe *pi)
 					/* "while false; do...done" - exitcode 0 */
 					G.last_exitcode = rcode = EXIT_SUCCESS;
 					debug_printf_exec(": while expr is false: breaking (exitcode:EXIT_SUCCESS)\n");
-					goto check_jobs_and_break;
+					break;
 				}
 			}
 			if (rword == RES_UNTIL) {
 				if (!rcode) {
 					debug_printf_exec(": until expr is true: breaking\n");
- check_jobs_and_break:
-					checkjobs(NULL);
 					break;
 				}
 			}
 		}
 #endif
-
- check_jobs_and_continue:
-		checkjobs(NULL);
 	} /* for (pi) */
 
 #if ENABLE_HUSH_JOB
