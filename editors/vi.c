@@ -1707,65 +1707,53 @@ static char *new_screen(int ro, int co)
 // search for pattern starting at p
 static char *char_search(char *p, const char *pat, int dir, int range)
 {
-	char *q;
 	struct re_pattern_buffer preg;
+	const char *err;
+	char *q;
 	int i;
 	int size;
 
 	re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
-	preg.translate = 0;
-	preg.fastmap = 0;
-	preg.buffer = 0;
-	preg.allocated = 0;
+	if (ignorecase)
+		re_syntax_options = RE_SYNTAX_POSIX_EXTENDED | RE_ICASE;
+
+	memset(&preg, 0, sizeof(preg));
+	err = re_compile_pattern(pat, strlen(pat), &preg);
+	if (err != NULL) {
+		status_line_bold("bad search pattern '%s': %s", pat, err);
+		return p;
+	}
 
 	// assume a LIMITED forward search
-	q = next_line(p);
-	q = end_line(q);
 	q = end - 1;
-	if (dir == BACK) {
-		q = prev_line(p);
+	if (dir == BACK)
 		q = text;
-	}
-	// count the number of chars to search over, forward or backward
-	size = q - p;
-	if (size < 0)
-		size = p - q;
 	// RANGE could be negative if we are searching backwards
 	range = q - p;
-
-	q = (char *)re_compile_pattern(pat, strlen(pat), (struct re_pattern_buffer *)&preg);
-	if (q != 0) {
-		// The pattern was not compiled
-		status_line_bold("bad search pattern: '%s': %s", pat, q);
-		i = 0;			// return p if pattern not compiled
-		goto cs1;
-	}
-
 	q = p;
+	size = range;
 	if (range < 0) {
+		size = -size;
 		q = p - size;
 		if (q < text)
 			q = text;
 	}
 	// search for the compiled pattern, preg, in p[]
-	// range < 0-  search backward
-	// range > 0-  search forward
+	// range < 0: search backward
+	// range > 0: search forward
 	// 0 < start < size
-	// re_search() < 0  not found or error
-	// re_search() > 0  index of found pattern
-	//            struct pattern    char     int    int    int     struct reg
-	// re_search (*pattern_buffer,  *string, size,  start, range,  *regs)
-	i = re_search(&preg, q, size, 0, range, 0);
-	if (i == -1) {
-		p = 0;
-		i = 0;			// return NULL if pattern not found
-	}
- cs1:
-	if (dir == FORWARD) {
+	// re_search() < 0: not found or error
+	// re_search() >= 0: index of found pattern
+	//           struct pattern   char     int   int    int    struct reg
+	// re_search(*pattern_buffer, *string, size, start, range, *regs)
+	i = re_search(&preg, q, size, /*start:*/ 0, range, /*struct re_registers*:*/ NULL);
+	regfree(&preg);
+	if (i < 0)
+		return NULL;
+	if (dir == FORWARD)
 		p = p + i;
-	} else {
+	else
 		p = p - i;
-	}
 	return p;
 }
 
@@ -1790,7 +1778,7 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 
 	len = strlen(pat);
 	if (dir == FORWARD) {
-		stop = end - 1;	// assume range is p - end-1
+		stop = end - 1;	// assume range is p..end-1
 		if (range == LIMITED)
 			stop = next_line(p);	// range is to next line
 		for (start = p; start < stop; start++) {
@@ -1799,7 +1787,7 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 			}
 		}
 	} else if (dir == BACK) {
-		stop = text;	// assume range is text - p
+		stop = text;	// assume range is text..p
 		if (range == LIMITED)
 			stop = prev_line(p);	// range is to prev line
 		for (start = p - len; start >= stop; start--) {
