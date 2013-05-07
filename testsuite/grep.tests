@@ -82,6 +82,20 @@ testing "grep -F handles -i" "grep -F -i foo input ; echo \$?" \
 testing "grep can read regexps from stdin" "grep -f - input ; echo \$?" \
 	"two\nthree\n0\n" "tw\ntwo\nthree\n" "tw.\nthr\n"
 
+# -x (whole line match)
+testing "grep -x (full match)" "grep -x foo input ; echo \$?" \
+	"foo\n0\n" "foo\n" ""
+testing "grep -x (partial match 1)" "grep -x foo input ; echo \$?" \
+	"1\n" "foo bar\n" ""
+testing "grep -x (partial match 2)" "grep -x foo input ; echo \$?" \
+	"1\n" "bar foo\n" ""
+testing "grep -x -F (full match)" "grep -x -F foo input ; echo \$?" \
+	"foo\n0\n" "foo\n" ""
+testing "grep -x -F (partial match 1)" "grep -x -F foo input ; echo \$?" \
+	"1\n" "foo bar\n" ""
+testing "grep -x -F (partial match 2)" "grep -x -F foo input ; echo \$?" \
+	"1\n" "bar foo\n" ""
+
 optional FEATURE_GREP_EGREP_ALIAS
 testing "grep -E supports extended regexps" "grep -E fo+" "foo\n" "" \
 	"b\ar\nfoo\nbaz"

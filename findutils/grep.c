@@ -716,7 +716,7 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_F;
 
 #if !ENABLE_EXTRA_COMPAT
-	if (!(option_mask32 & (OPT_o | OPT_w)))
+	if (!(option_mask32 & (OPT_o | OPT_w | OPT_x)))
 		reflags = REG_NOSUB;
 #endif
 
