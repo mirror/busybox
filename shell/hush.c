@@ -850,7 +850,7 @@ static int builtin_jobs(char **argv) FAST_FUNC;
 #if ENABLE_HUSH_HELP
 static int builtin_help(char **argv) FAST_FUNC;
 #endif
-#if MAX_HISTORY
+#if MAX_HISTORY && ENABLE_FEATURE_EDITING
 static int builtin_history(char **argv) FAST_FUNC;
 #endif
 #if ENABLE_HUSH_LOCAL
@@ -922,7 +922,7 @@ static const struct built_in_command bltins1[] = {
 #if ENABLE_HUSH_HELP
 	BLTIN("help"     , builtin_help    , NULL),
 #endif
-#if MAX_HISTORY
+#if MAX_HISTORY && ENABLE_FEATURE_EDITING
 	BLTIN("history"  , builtin_history , "Show command history"),
 #endif
 #if ENABLE_HUSH_JOB
@@ -8633,7 +8633,7 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 }
 #endif
 
-#if MAX_HISTORY
+#if MAX_HISTORY && ENABLE_FEATURE_EDITING
 static int FAST_FUNC builtin_history(char **argv UNUSED_PARAM)
 {
 	show_history(G.line_input_state);
