@@ -295,8 +295,8 @@ struct globals {
 /* Prevent infinite loops in /sys symlinks */
 #define MAX_SYSFS_DEPTH 3
 
-/* We use additional 64+ bytes in make_device() */
-#define SCRATCH_SIZE 80
+/* We use additional bytes in make_device() */
+#define SCRATCH_SIZE 128
 
 #if ENABLE_FEATURE_MDEV_CONF
 
@@ -541,7 +541,7 @@ static char *build_alias(char *alias, const char *device_name)
 
 /* mknod in /dev based on a path like "/sys/block/hda/hda1"
  * NB1: path parameter needs to have SCRATCH_SIZE scratch bytes
- * after NUL, but we promise to not mangle (IOW: to restore if needed)
+ * after NUL, but we promise to not mangle (IOW: to restore NUL if needed)
  * path string.
  * NB2: "mdev -s" may call us many times, do not leak memory/fds!
  *
@@ -551,6 +551,7 @@ static char *build_alias(char *alias, const char *device_name)
 static void make_device(char *device_name, char *path, int operation)
 {
 	int major, minor, type, len;
+	char *path_end = path + strlen(path);
 
 	/* Try to read major/minor string.  Note that the kernel puts \n after
 	 * the data, so we don't need to worry about null terminating the string
@@ -559,17 +560,15 @@ static void make_device(char *device_name, char *path, int operation)
 	 */
 	major = -1;
 	if (operation == OP_add) {
-		char *dev_maj_min = path + strlen(path);
-
-		strcpy(dev_maj_min, "/dev");
-		len = open_read_close(path, dev_maj_min + 1, 64);
-		*dev_maj_min = '\0';
+		strcpy(path_end, "/dev");
+		len = open_read_close(path, path_end + 1, SCRATCH_SIZE - 1);
+		*path_end = '\0';
 		if (len < 1) {
 			if (!ENABLE_FEATURE_MDEV_EXEC)
 				return;
 			/* no "dev" file, but we can still run scripts
 			 * based on device name */
-		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) == 2) {
+		} else if (sscanf(path_end + 1, "%u:%u", &major, &minor) == 2) {
 			dbg1("dev %u,%u", major, minor);
 		} else {
 			major = -1;
@@ -577,9 +576,33 @@ static void make_device(char *device_name, char *path, int operation)
 	}
 	/* else: for delete, -1 still deletes the node, but < -1 suppresses that */
 
-	/* Determine device name, type, major and minor */
-	if (!device_name)
-		device_name = (char*) bb_basename(path);
+	/* Determine device name */
+	if (!device_name) {
+		/*
+		 * There was no $DEVNAME envvar (for example, mdev -s never has).
+		 * But it is very useful: it contains the *path*, not only basename,
+		 * Thankfully, uevent file has it.
+		 * Example of .../sound/card0/controlC0/uevent file on Linux-3.7.7:
+		 * MAJOR=116
+		 * MINOR=7
+		 * DEVNAME=snd/controlC0
+		 */
+		strcpy(path_end, "/uevent");
+		len = open_read_close(path, path_end + 1, SCRATCH_SIZE - 1);
+		if (len < 0)
+			len = 0;
+		*path_end = '\0';
+		path_end[1 + len] = '\0';
+		device_name = strstr(path_end + 1, "\nDEVNAME=");
+		if (device_name) {
+			device_name += sizeof("\nDEVNAME=")-1;
+			strchrnul(device_name, '\n')[0] = '\0';
+		} else {
+			/* Fall back to just basename */
+			device_name = (char*) bb_basename(path);
+		}
+	}
+	/* Determine device type */
 	/*
 	 * http://kernel.org/doc/pending/hotplug.txt says that only
 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
