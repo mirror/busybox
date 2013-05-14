@@ -231,12 +231,13 @@
 //kbuild:lib-$(CONFIG_FIND) += find.o
 
 //usage:#define find_trivial_usage
-//usage:       "[PATH]... [OPTIONS] [ACTIONS]"
+//usage:       "[-HL] [PATH]... [OPTIONS] [ACTIONS]"
 //usage:#define find_full_usage "\n\n"
 //usage:       "Search for files and perform actions on them.\n"
 //usage:       "First failed action stops processing of current file.\n"
 //usage:       "Defaults: PATH is current directory, action is '-print'\n"
-//usage:     "\n	-follow		Follow symlinks"
+//usage:     "\n	-L,-follow	Follow symlinks"
+//usage:     "\n	-H		...on command line only"
 //usage:	IF_FEATURE_FIND_XDEV(
 //usage:     "\n	-xdev		Don't descend directories on other filesystems"
 //usage:	)
@@ -1254,7 +1255,15 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	argv++;
+	/* "+": stop on first non-option */
+	i = getopt32(argv, "+HLP");
+	if (i & (1<<0))
+		G.recurse_flags |= ACTION_FOLLOWLINKS_L0 | ACTION_DANGLING_OK;
+	if (i & (1<<1))
+		G.recurse_flags |= ACTION_FOLLOWLINKS | ACTION_DANGLING_OK;
+	/* -P is default and is ignored */
+	argv += optind;
+
 	for (firstopt = 0; argv[firstopt]; firstopt++) {
 		if (argv[firstopt][0] == '-')
 			break;
