@@ -56,6 +56,9 @@ lib-$(CONFIG_UNZIP)                     += open_transformer.o decompress_gunzip.
 lib-$(CONFIG_RPM2CPIO)                  += open_transformer.o decompress_gunzip.o get_header_cpio.o
 lib-$(CONFIG_RPM)                       += open_transformer.o decompress_gunzip.o get_header_cpio.o
 
+lib-$(CONFIG_GZIP)                      += open_transformer.o
+lib-$(CONFIG_BZIP2)                     += open_transformer.o
+lib-$(CONFIG_LZOP)                      += open_transformer.o
 lib-$(CONFIG_MAN)                       += open_transformer.o
 lib-$(CONFIG_SETFONT)                   += open_transformer.o
 lib-$(CONFIG_FEATURE_2_4_MODULES)       += open_transformer.o
