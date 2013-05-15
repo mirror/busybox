@@ -127,6 +127,12 @@ testing "grep -Fw doesn't stop on 1st mismatch" \
 	"foop foo\n" \
 	""
 
+testing "grep -w doesn't stop on 1st mismatch" \
+	"grep -w foo input" \
+	"foop foo\n" \
+	"foop foo\n" \
+	""
+
 # testing "test name" "commands" "expected result" "file input" "stdin"
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout

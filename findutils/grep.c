@@ -373,6 +373,8 @@ static int grep_file(FILE *file)
  opt_f_not_found: ;
 				}
 			} else {
+				char *match_at;
+
 				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
 					gl->flg_mem_alocated_compiled |= COMPILED;
 #if !ENABLE_EXTRA_COMPAT
@@ -388,32 +390,36 @@ static int grep_file(FILE *file)
 				gl->matched_range.rm_so = 0;
 				gl->matched_range.rm_eo = 0;
 #endif
+				match_at = line;
+ opt_w_again:
 				if (
 #if !ENABLE_EXTRA_COMPAT
-					regexec(&gl->compiled_regex, line, 1, &gl->matched_range, 0) == 0
+					regexec(&gl->compiled_regex, match_at, 1, &gl->matched_range, 0) == 0
 #else
-					re_search(&gl->compiled_regex, line, line_len,
+					re_search(&gl->compiled_regex, match_at, line_len,
 							/*start:*/ 0, /*range:*/ line_len,
 							&gl->matched_range) >= 0
 #endif
 				) {
 					if (option_mask32 & OPT_x) {
 						found = (gl->matched_range.rm_so == 0
-						         && line[gl->matched_range.rm_eo] == '\0');
+						         && match_at[gl->matched_range.rm_eo] == '\0');
 					} else
 					if (!(option_mask32 & OPT_w)) {
 						found = 1;
 					} else {
 						char c = ' ';
 						if (gl->matched_range.rm_so)
-							c = line[gl->matched_range.rm_so - 1];
+							c = match_at[gl->matched_range.rm_so - 1];
 						if (!isalnum(c) && c != '_') {
-							c = line[gl->matched_range.rm_eo];
-							if (!c || (!isalnum(c) && c != '_'))
+							c = match_at[gl->matched_range.rm_eo];
+							if (!c || (!isalnum(c) && c != '_')) {
 								found = 1;
+							} else {
+								match_at += gl->matched_range.rm_eo;
+								goto opt_w_again;
+							}
 						}
-//BUG: "echo foop foo | grep -w foo" should match, but doesn't:
-//we bail out on first "mismatch" because it's not a word.
 					}
 				}
 			}
