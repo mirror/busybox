@@ -1533,7 +1533,12 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 			perror_on_device_and_die("%s");
 
 		if (memcmp(&mode, &new_mode, sizeof(mode)) != 0) {
-#if CIBAUD
+/*
+ * I think the below chunk is not necessary on Linux.
+ * If you are deleting it, also delete STTY_speed_was_set bit -
+ * it is only ever checked here.
+ */
+#if 0 /* was "if CIBAUD" */
 			/* SunOS 4.1.3 (at least) has the problem that after this sequence,
 			   tcgetattr (&m1); tcsetattr (&m1); tcgetattr (&m2);
 			   sometimes (m1 != m2).  The only difference is in the four bits
