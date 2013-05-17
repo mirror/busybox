@@ -424,7 +424,7 @@ static NOINLINE void attach_option(
 				existing->data[OPT_DATA + old_len] = ' ';
 				old_len++;
 			}
-			memcpy(existing->data + OPT_DATA + old_len, buffer, length);
+			memcpy(existing->data + OPT_DATA + old_len, (allocated ? allocated : buffer), length);
 			existing->data[OPT_LEN] = old_len + length;
 		} /* else, ignore the data, we could put this in a second option in the future */
 	} /* else, ignore the new data */
