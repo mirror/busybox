@@ -371,20 +371,23 @@ static NOINLINE void attach_option(
 		char *buffer,
 		int length)
 {
-	struct option_set *existing, *new, **curr;
-	char *allocated = NULL;
+	struct option_set *existing;
+	char *allocated;
+
+	allocated = allocate_tempopt_if_needed(optflag, buffer, &length);
+#if ENABLE_FEATURE_UDHCP_RFC3397
+	if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
+		/* reuse buffer and length for RFC1035-formatted string */
+		allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
+	}
+#endif
 
 	existing = udhcp_find_option(*opt_list, optflag->code);
 	if (!existing) {
-		log2("Attaching option %02x to list", optflag->code);
-		allocated = allocate_tempopt_if_needed(optflag, buffer, &length);
-#if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
-			/* reuse buffer and length for RFC1035-formatted string */
-			allocated = buffer = (char *)dname_enc(NULL, 0, buffer, &length);
-		}
-#endif
+		struct option_set *new, **curr;
+
 		/* make a new option */
+		log2("Attaching option %02x to list", optflag->code);
 		new = xmalloc(sizeof(*new));
 		new->data = xmalloc(length + OPT_DATA);
 		new->data[OPT_CODE] = optflag->code;
@@ -405,14 +408,7 @@ static NOINLINE void attach_option(
 
 		/* add it to an existing option */
 		log2("Attaching option %02x to existing member of list", optflag->code);
-		allocated = allocate_tempopt_if_needed(optflag, buffer, &length);
 		old_len = existing->data[OPT_LEN];
-#if ENABLE_FEATURE_UDHCP_RFC3397
-		if ((optflag->flags & OPTION_TYPE_MASK) == OPTION_DNS_STRING) {
-			/* reuse buffer and length for RFC1035-formatted string */
-			allocated = buffer = (char *)dname_enc(existing->data + OPT_DATA, old_len, buffer, &length);
-		}
-#endif
 		if (old_len + length < 255) {
 			/* actually 255 is ok too, but adding a space can overlow it */
 
