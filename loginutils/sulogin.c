@@ -83,8 +83,8 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		cp = bb_ask(STDIN_FILENO, timeout,
 				"Give root password for system maintenance\n"
 				"(or type Control-D for normal startup):");
-
-		if (!cp || !*cp) {
+		if (!cp) {
+			/* ^D, ^C, timeout, or read error */
 			bb_info_msg("Normal startup");
 			return 0;
 		}
