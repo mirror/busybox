@@ -838,6 +838,8 @@ static void run_script(const char *action, double offset)
 	char *argv[3];
 	char *env1, *env2, *env3, *env4;
 
+	G.last_script_run = G.cur_time;
+
 	if (!G.script_name)
 		return;
 
@@ -874,8 +876,6 @@ static void run_script(const char *action, double offset)
 	free(env2);
 	free(env3);
 	free(env4);
-
-	G.last_script_run = G.cur_time;
 }
 
 static NOINLINE void
