@@ -805,6 +805,14 @@ send_query_to_peer(peer_t *p)
 	p->p_xmt_msg.m_xmttime.fractionl = random();
 	p->p_xmttime = gettime1900d();
 
+	/* Was doing it only if sendto worked, but
+	 * loss of sync detection needs reachable_bits updated
+	 * even if sending fails *locally*:
+	 * "network is unreachable" because cable was pulled?
+	 * We still need to declare "unsync" if this condition persists.
+	 */
+	p->reachable_bits <<= 1;
+
 	if (do_sendto(p->p_fd, /*from:*/ NULL, /*to:*/ &p->p_lsa->u.sa, /*addrlen:*/ p->p_lsa->len,
 			&p->p_xmt_msg, NTP_MSGSIZE_NOAUTH) == -1
 	) {
@@ -814,7 +822,6 @@ send_query_to_peer(peer_t *p)
 		return;
 	}
 
-	p->reachable_bits <<= 1;
 	set_next(p, RESPONSE_INTERVAL);
 }
 
@@ -2171,12 +2178,14 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
  did_poll:
 		gettime1900d(); /* sets G.cur_time */
 		if (nfds <= 0) {
-			if (G.script_name && G.cur_time - G.last_script_run > 11*60) {
+			if (!bb_got_signal /* poll wasn't interrupted by a signal */
+			 && G.cur_time - G.last_script_run > 11*60
+			) {
 				/* Useful for updating battery-backed RTC and such */
 				run_script("periodic", G.last_update_offset);
 				gettime1900d(); /* sets G.cur_time */
 			}
-			continue;
+			goto check_unsync;
 		}
 
 		/* Process any received packets */
@@ -2208,6 +2217,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
+ check_unsync:
 		if (G.ntp_peers && G.stratum != MAXSTRAT) {
 			for (item = G.ntp_peers; item != NULL; item = item->link) {
 				peer_t *p = (peer_t *) item->data;
