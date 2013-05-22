@@ -95,6 +95,7 @@
 #define RETRY_INTERVAL  5       /* on error, retry in N secs */
 #define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
 #define INITIAL_SAMPLES 4       /* how many samples do we want for init */
+#define BAD_DELAY_GROWTH 4	/* drop packet if its delay grew by more than this */
 
 /* Clock discipline parameters and constants */
 
@@ -1616,6 +1617,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	ssize_t     size;
 	msg_t       msg;
 	double      T1, T2, T3, T4;
+	double      dv;
 	unsigned    interval;
 	datapoint_t *datapoint;
 	peer_t      *q;
@@ -1665,9 +1667,8 @@ recv_and_process_peer_pkt(peer_t *p)
 // TODO: stratum 0 responses may have commands in 32-bit m_refid field:
 // "DENY", "RSTR" - peer does not like us at all
 // "RATE" - peer is overloaded, reduce polling freq
-		interval = poll_interval(0);
-		bb_error_msg("reply from %s: peer is unsynced, next query in %us", p->p_dotted, interval);
-		goto set_next_and_ret;
+		bb_error_msg("reply from %s: peer is unsynced", p->p_dotted);
+		goto pick_normal_interval;
 	}
 
 //	/* Verify valid root distance */
@@ -1700,21 +1701,31 @@ recv_and_process_peer_pkt(peer_t *p)
 	T4 = G.cur_time;
 
 	p->lastpkt_recv_time = T4;
-
 	VERB5 bb_error_msg("%s->lastpkt_recv_time=%f", p->p_dotted, p->lastpkt_recv_time);
-	p->datapoint_idx = p->reachable_bits ? (p->datapoint_idx + 1) % NUM_DATAPOINTS : 0;
-	datapoint = &p->filter_datapoint[p->datapoint_idx];
-	datapoint->d_recv_time = T4;
-	datapoint->d_offset    = ((T2 - T1) + (T3 - T4)) / 2;
+
 	/* The delay calculation is a special case. In cases where the
 	 * server and client clocks are running at different rates and
 	 * with very fast networks, the delay can appear negative. In
 	 * order to avoid violating the Principle of Least Astonishment,
 	 * the delay is clamped not less than the system precision.
 	 */
+	dv = p->lastpkt_delay;
 	p->lastpkt_delay = (T4 - T1) - (T3 - T2);
 	if (p->lastpkt_delay < G_precision_sec)
 		p->lastpkt_delay = G_precision_sec;
+	/*
+	 * If this packet's delay is much bigger than the last one,
+	 * it's better to just ignore it than use its much less precise value.
+	 */
+	if (p->reachable_bits && p->lastpkt_delay > dv * BAD_DELAY_GROWTH) {
+		bb_error_msg("reply from %s: delay %f is too high, ignoring", p->p_dotted, p->lastpkt_delay);
+		goto pick_normal_interval;
+	}
+
+	p->datapoint_idx = p->reachable_bits ? (p->datapoint_idx + 1) % NUM_DATAPOINTS : 0;
+	datapoint = &p->filter_datapoint[p->datapoint_idx];
+	datapoint->d_recv_time = T4;
+	datapoint->d_offset    = ((T2 - T1) + (T3 - T4)) / 2;
 	datapoint->d_dispersion = LOG2D(msg.m_precision_exp) + G_precision_sec;
 	if (!p->reachable_bits) {
 		/* 1st datapoint ever - replicate offset in every element */
@@ -1811,6 +1822,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	}
 
 	/* Decide when to send new query for this peer */
+ pick_normal_interval:
 	interval = poll_interval(0);
 
  set_next_and_ret:
@@ -2194,6 +2206,20 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 				recv_and_process_peer_pkt(idx2peer[j]);
 				gettime1900d(); /* sets G.cur_time */
 			}
+		}
+
+		if (G.ntp_peers && G.stratum != MAXSTRAT) {
+			for (item = G.ntp_peers; item != NULL; item = item->link) {
+				peer_t *p = (peer_t *) item->data;
+				if (p->reachable_bits)
+					goto have_reachable_peer;
+			}
+			/* No peer responded for last 8 packets, panic */
+			G.polladj_count = 0;
+			G.poll_exp = MINPOLL;
+			G.stratum = MAXSTRAT;
+			run_script("unsync", G.last_update_offset);
+ have_reachable_peer: ;
 		}
 	} /* while (!bb_got_signal) */
 
