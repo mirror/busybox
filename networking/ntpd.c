@@ -805,7 +805,7 @@ send_query_to_peer(peer_t *p)
 	p->p_xmt_msg.m_xmttime.fractionl = random();
 	p->p_xmttime = gettime1900d();
 
-	/* Was doing it only if sendto worked, but
+	/* Were doing it only if sendto worked, but
 	 * loss of sync detection needs reachable_bits updated
 	 * even if sending fails *locally*:
 	 * "network is unreachable" because cable was pulled?
@@ -818,6 +818,11 @@ send_query_to_peer(peer_t *p)
 	) {
 		close(p->p_fd);
 		p->p_fd = -1;
+		/*
+		 * We know that we sent nothing.
+		 * We can retry *soon* without fearing
+		 * that we are flooding the peer.
+		 */
 		set_next(p, RETRY_INTERVAL);
 		return;
 	}
@@ -827,7 +832,7 @@ send_query_to_peer(peer_t *p)
 
 
 /* Note that there is no provision to prevent several run_scripts
- * to be done in quick succession. In fact, it happens rather often
+ * to be started in quick succession. In fact, it happens rather often
  * if initial syncronization results in a step.
  * You will see "step" and then "stratum" script runs, sometimes
  * as close as only 0.002 seconds apart.
@@ -2228,7 +2233,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 			G.polladj_count = 0;
 			G.poll_exp = MINPOLL;
 			G.stratum = MAXSTRAT;
-			run_script("unsync", G.last_update_offset);
+			run_script("unsync", 0.0);
  have_reachable_peer: ;
 		}
 	} /* while (!bb_got_signal) */
