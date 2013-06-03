@@ -95,10 +95,11 @@
 //usage:     "\n	-d UBI_NUM	UBI device number"
 //usage:
 //usage:#define ubimkvol_trivial_usage
-//usage:       "UBI_DEVICE -N NAME -s SIZE"
+//usage:       "UBI_DEVICE -N NAME [-s SIZE | -m]"
 //usage:#define ubimkvol_full_usage "\n\n"
 //usage:       "Create UBI volume\n"
 //usage:     "\n	-a ALIGNMENT	Volume alignment (default 1)"
+//usage:     "\n	-m		Set volume size to maximum available"
 //usage:     "\n	-n VOLID	Volume ID, if not specified, it"
 //usage:     "\n			will be assigned automatically"
 //usage:     "\n	-N NAME		Volume name"
@@ -141,11 +142,19 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	int alignment = 1;
 	char *type = NULL;
 
-	opt_complementary = "-1:m+:d+:n+:s+:a+";
-	opts = getopt32(argv, "m:d:n:N:s:a:t::",
-			&mtd_num, &dev_num, &vol_id,
-			&vol_name, &size_bytes, &alignment, &type
-	);
+	if (do_mkvol) {
+		opt_complementary = "-1:d+:n+:s+:a+";
+		opts = getopt32(argv, "md:n:N:s:a:t::",
+				&dev_num, &vol_id,
+				&vol_name, &size_bytes, &alignment, &type
+			);
+	} else {
+		opt_complementary = "-1:m+:d+:n+:s+:a+";
+		opts = getopt32(argv, "m:d:n:N:s:a:t::",
+				&mtd_num, &dev_num, &vol_id,
+				&vol_name, &size_bytes, &alignment, &type
+		);
+	}
 	ubi_ctrl = argv[optind];
 
 	fd = xopen(ubi_ctrl, O_RDWR);
@@ -173,6 +182,36 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	if (do_mkvol) {
 		struct ubi_mkvol_req req;
 		int vol_name_len;
+		if (opts & OPTION_M) {
+			unsigned leb_avail;
+			unsigned leb_size;
+			unsigned num;
+			char path[sizeof("/sys/class/ubi/ubi%d/avail_eraseblocks") + sizeof(int)*3];
+			char *p;
+			char buf[20];
+
+			if (strncmp(ubi_ctrl, "/dev/ubi", 8) != 0)
+				bb_error_msg_and_die("%s device node not in correct format", "UBI");
+			num = xstrtou(ubi_ctrl+8, 10);
+			p = path + sprintf(path, "/sys/class/ubi/ubi%d/", num);
+
+			strcpy(p, "avail_eraseblocks");
+			if ((num = open_read_close(path, buf, sizeof(buf))) <= 1)
+				bb_error_msg_and_die("%s could not get LEB available", "UBI");
+			buf[num-1] = '\0'; // trim trailing newline
+			leb_avail = xstrtou(buf, 10);
+
+			strcpy(p, "eraseblock_size");
+			if ((num = open_read_close(path, buf, sizeof(buf))) <= 0)
+				bb_error_msg_and_die("%s could not get LEB size", "UBI");
+			buf[num-1] = '\0'; // trim trailing newline
+			leb_size = xstrtou(buf, 10);
+
+			size_bytes = leb_avail * leb_size;
+
+			if (size_bytes <= 0)
+				bb_error_msg_and_die("%s invalid maximum size calculated", "UBI");
+		} else
 		if (!(opts & OPTION_s))
 			bb_error_msg_and_die("%s size not specified", "UBI");
 		if (!(opts & OPTION_N))
