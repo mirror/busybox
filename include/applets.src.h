@@ -52,6 +52,12 @@ s     - suid type:
 # define APPLET_NOEXEC(name,main,l,s,name2)  LINK l name
 # define APPLET_NOFORK(name,main,l,s,name2)  LINK l name
 
+#elif defined(MAKE_SUID)
+# define APPLET(name,l,s)                    SUID s l name
+# define APPLET_ODDNAME(name,main,l,s,name2) SUID s l name
+# define APPLET_NOEXEC(name,main,l,s,name2)  SUID s l name
+# define APPLET_NOFORK(name,main,l,s,name2)  SUID s l name
+
 #else
   static struct bb_applet applets[] = { /*    name, main, location, need_suid */
 # define APPLET(name,l,s)                    { #name, #name, l, s },
@@ -415,7 +421,8 @@ IF_YES(APPLET_NOFORK(yes, yes, BB_DIR_USR_BIN, BB_SUID_DROP, yes))
 IF_GUNZIP(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
 IF_ZCIP(APPLET(zcip, BB_DIR_SBIN, BB_SUID_DROP))
 
-#if !defined(PROTOTYPES) && !defined(NAME_MAIN_CNAME) && !defined(MAKE_USAGE)
+#if !defined(PROTOTYPES) && !defined(NAME_MAIN_CNAME) && !defined(MAKE_USAGE) \
+	&& !defined(MAKE_LINKS) && !defined(MAKE_SUID)
 };
 #endif
 

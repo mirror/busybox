@@ -3,7 +3,12 @@
 # ==========================================================================
 
 busybox.links: $(srctree)/applets/busybox.mkll $(objtree)/include/autoconf.h include/applets.h
-	$(Q)-$(SHELL) $^ >$@
+	$(Q)-$(SHELL) $^ > $@
+
+busybox.cfg.suid: $(srctree)/applets/busybox.mksuid $(objtree)/include/autoconf.h include/applets.h
+	$(Q)-SUID="yes" $(SHELL) $^ > $@
+busybox.cfg.nosuid: $(srctree)/applets/busybox.mksuid $(objtree)/include/autoconf.h include/applets.h
+	$(Q)-SUID="DROP" $(SHELL) $^ > $@
 
 .PHONY: install
 ifeq ($(CONFIG_INSTALL_APPLET_SYMLINKS),y)
