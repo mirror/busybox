@@ -84,7 +84,7 @@ static void FAST_FUNC common64_end(md5_ctx_t *ctx, int swap_needed)
 			if (swap_needed)
 				t = bb_bswap_64(t);
 			/* wbuffer is suitably aligned for this */
-			*(uint64_t *) (&ctx->wbuffer[64 - 8]) = t;
+			memcpy(&ctx->wbuffer[64 - 8], &t, sizeof(t));
 		}
 		ctx->process_block(ctx);
 		if (remaining >= 8)
@@ -883,10 +883,10 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 			uint64_t t;
 			t = ctx->total64[0] << 3;
 			t = SWAP_BE64(t);
-			*(uint64_t *) (&ctx->wbuffer[128 - 8]) = t;
+			memcpy(&ctx->wbuffer[128 - 8], &t, sizeof(t));
 			t = (ctx->total64[1] << 3) | (ctx->total64[0] >> 61);
 			t = SWAP_BE64(t);
-			*(uint64_t *) (&ctx->wbuffer[128 - 16]) = t;
+			memcpy(&ctx->wbuffer[128 - 16], &t, sizeof(t));
 		}
 		sha512_process_block128(ctx);
 		if (remaining >= 16)
