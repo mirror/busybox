@@ -34,8 +34,15 @@
 
 struct child;
 
+#ifdef ENABLE_FEATURE_SHOW_THREADS
+/* For threads, we add {...} around the comm, so we need two extra bytes */
+# define COMM_DISP_LEN (COMM_LEN + 2)
+#else
+# define COMM_DISP_LEN COMM_LEN
+#endif
+
 typedef struct proc {
-	char comm[COMM_LEN + 1];
+	char comm[COMM_DISP_LEN + 1];
 //	char flags; - unused, delete?
 	pid_t pid;
 	uid_t uid;
@@ -341,8 +348,8 @@ static void dump_by_user(PROC *current, uid_t uid)
 #if ENABLE_FEATURE_SHOW_THREADS
 static void handle_thread(const char *comm, pid_t pid, pid_t ppid, uid_t uid)
 {
-	char threadname[COMM_LEN + 2];
-	sprintf(threadname, "{%.*s}", COMM_LEN - 2, comm);
+	char threadname[COMM_DISP_LEN + 1];
+	sprintf(threadname, "{%.*s}", (int)sizeof(threadname) - 1, comm);
 	add_proc(threadname, pid, ppid, uid/*, 1*/);
 }
 #endif
