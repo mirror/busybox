@@ -208,6 +208,7 @@ typedef int      bb__aliased_int      FIX_ALIASING;
 typedef long     bb__aliased_long     FIX_ALIASING;
 typedef uint16_t bb__aliased_uint16_t FIX_ALIASING;
 typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
+typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 
 /* NB: unaligned parameter should be a pointer, aligned one -
  * a lvalue. This makes it more likely to not swap them by mistake
