@@ -10,12 +10,12 @@
 //usage:#define losetup_trivial_usage
 //usage:       "[-r] [-o OFS] {-f|LOOPDEV} FILE - associate loop devices\n"
 //usage:       "	losetup -d LOOPDEV - disassociate\n"
-//usage:       "	losetup -a - show status of  all\n"
-//usage:       "	losetup -f - show next available"
+//usage:       "	losetup -a - show status\n"
+//usage:       "	losetup -f - show next free loop device"
 //usage:#define losetup_full_usage "\n\n"
 //usage:       "	-o OFS	Start OFS bytes into FILE"
 //usage:     "\n	-r	Read-only"
-//usage:     "\n	-f	Show/find first free loop device"
+//usage:     "\n	-f	Show/use next free loop device"
 //usage:
 //usage:#define losetup_notes_usage
 //usage:       "One argument (losetup /dev/loop1) will display the current association\n"
@@ -26,6 +26,10 @@
 //usage:       "losetup -f will show the first loop free loop device\n\n"
 
 #include "libbb.h"
+
+/* 1048575 is a max possible minor number in Linux circa 2010 */
+/* for now use something less extreme */
+#define MAX_LOOP_NUM 1023
 
 int losetup_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int losetup_main(int argc UNUSED_PARAM, char **argv)
@@ -59,7 +63,7 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	/* -d LOOPDEV */
-	if (opt == OPT_d) {
+	if (opt == OPT_d && argv[0]) {
 		if (del_loop(argv[0]))
 			bb_simple_perror_msg_and_die(argv[0]);
 		return EXIT_SUCCESS;
@@ -68,15 +72,14 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 	/* -a */
 	if (opt == OPT_a) {
 		int n;
-		for (n = 0; n < 10; n++) {
+		for (n = 0; n < MAX_LOOP_NUM; n++) {
 			char *s;
 
 			sprintf(dev, LOOP_FORMAT, n);
 			s = query_loop(dev);
 			if (s) {
 				printf("%s: %s\n", dev, s);
-				if (ENABLE_FEATURE_CLEAN_UP)
-					free(s);
+				free(s);
 			}
 		}
 		return EXIT_SUCCESS;
@@ -88,11 +91,13 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 		int n = 0;
 
 		do {
-			sprintf(dev, LOOP_FORMAT, n);
+			if (n > MAX_LOOP_NUM)
+				bb_error_msg_and_die("no free loop devices");
+			sprintf(dev, LOOP_FORMAT, n++);
 			s = query_loop(dev);
-			if (s && ENABLE_FEATURE_CLEAN_UP)
-				free(s);
+			free(s);
 		} while (s);
+		/* now: dev is next free "/dev/loopN" */
 		if ((opt == OPT_f) && !argv[0]) {
 			puts(dev);
 			return EXIT_SUCCESS;
@@ -104,18 +109,18 @@ int losetup_main(int argc UNUSED_PARAM, char **argv)
 		unsigned long long offset = 0;
 		char *d = dev;
 
-		if (opt == OPT_o)
+		if (opt & OPT_o)
 			offset = xatoull(opt_o);
-		if (opt != OPT_f)
-			d = *(argv++);
+		if (!(opt & OPT_f))
+			d = *argv++;
 
 		if (argv[0]) {
-			if (set_loop(&d, argv[0], offset, (opt / OPT_r)) < 0)
+			if (set_loop(&d, argv[0], offset, (opt & OPT_r)) < 0)
 				bb_simple_perror_msg_and_die(argv[0]);
 			return EXIT_SUCCESS;
 		}
 	}
 
-	bb_show_usage();
-	return EXIT_FAILURE;
+	bb_show_usage(); /* does not return */
+	/*return EXIT_FAILURE;*/
 }
