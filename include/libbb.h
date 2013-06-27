@@ -1109,9 +1109,6 @@ void bb_displayroutes(int noresolve, int netstatfmt) FAST_FUNC;
 
 
 /* Networking */
-int create_icmp_socket(void) FAST_FUNC;
-int create_icmp6_socket(void) FAST_FUNC;
-/* interface.c */
 /* This structure defines protocol families and their handlers. */
 struct aftype {
 	const char *name;
