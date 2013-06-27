@@ -349,7 +349,7 @@ static void dump_by_user(PROC *current, uid_t uid)
 static void handle_thread(const char *comm, pid_t pid, pid_t ppid, uid_t uid)
 {
 	char threadname[COMM_DISP_LEN + 1];
-	sprintf(threadname, "{%.*s}", (int)sizeof(threadname) - 1, comm);
+	sprintf(threadname, "{%.*s}", (int)sizeof(threadname) - 3, comm);
 	add_proc(threadname, pid, ppid, uid/*, 1*/);
 }
 #endif
