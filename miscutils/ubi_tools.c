@@ -142,7 +142,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & OPTION_s)
 		size_bytes = xatoull(size_bytes_str);
 	argv += optind;
-	ubi_ctrl = *argv;
+	ubi_ctrl = *argv++;
 
 	fd = xopen(ubi_ctrl, O_RDWR);
 	//xfstat(fd, &st, ubi_ctrl);
