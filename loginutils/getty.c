@@ -695,6 +695,6 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 	/* We use PATH because we trust that root doesn't set "bad" PATH,
 	 * and getty is not suid-root applet */
 	/* With -n, logname == NULL, and login will ask for username instead */
-	BB_EXECLP(G.login, G.login, "--", logname, NULL);
+	BB_EXECLP(G.login, G.login, "--", logname, (char *)0);
 	bb_error_msg_and_die("can't execute '%s'", G.login);
 }

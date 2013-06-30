@@ -567,7 +567,7 @@ static void NOINLINE vfork_compressor(int tar_fd, int gzip)
 		xmove_fd(gzipDataPipe.rd, 0);
 		xmove_fd(tar_fd, 1);
 		/* exec gzip/bzip2 program/applet */
-		BB_EXECLP(zip_exec, zip_exec, "-f", NULL);
+		BB_EXECLP(zip_exec, zip_exec, "-f", (char *)0);
 		vfork_exec_errno = errno;
 		_exit(EXIT_FAILURE);
 	}
