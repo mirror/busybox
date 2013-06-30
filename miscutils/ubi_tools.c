@@ -92,6 +92,13 @@ static unsigned get_num_from_file(const char *path, unsigned max, const char *er
 int ubi_tools_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 {
+	static const struct suffix_mult size_suffixes[] = {
+		{ "KiB", 1024 },
+		{ "MiB", 1024*1024 },
+		{ "GiB", 1024*1024*1024 },
+		{ "", 0 }
+	};
+
 	unsigned opts;
 	char *ubi_ctrl;
 	int fd;
@@ -140,7 +147,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 #define OPTION_t  (1 << 6)
 
 	if (opts & OPTION_s)
-		size_bytes = xatoull(size_bytes_str);
+		size_bytes = xatoull_sfx(size_bytes_str, size_suffixes);
 	argv += optind;
 	ubi_ctrl = *argv++;
 
