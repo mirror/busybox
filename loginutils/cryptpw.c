@@ -92,6 +92,7 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 {
 	char salt[MAX_PW_SALT_LEN];
 	char *salt_ptr;
+	char *password;
 	const char *opt_m, *opt_S;
 	int fd;
 
@@ -123,15 +124,19 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(fd, STDIN_FILENO);
 
-	puts(pw_encrypt(
-		argv[0] ? argv[0] : (
-			/* Only mkpasswd, and only from tty, prompts.
-			 * Otherwise it is a plain read. */
-			(isatty(STDIN_FILENO) && applet_name[0] == 'm')
+	password = argv[0];
+	if (!password) {
+		/* Only mkpasswd, and only from tty, prompts.
+		 * Otherwise it is a plain read. */
+		password = (isatty(STDIN_FILENO) && applet_name[0] == 'm')
 			? bb_ask_stdin("Password: ")
 			: xmalloc_fgetline(stdin)
-		),
-		salt, 1));
+		;
+		/* may still be NULL on EOF/error */
+	}
+
+	if (password)
+		puts(pw_encrypt(password, salt, 1));
 
 	return EXIT_SUCCESS;
 }
