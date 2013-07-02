@@ -2044,7 +2044,9 @@ static void get_user_input(struct in_str *i)
 		 * _during_ shell execution, not only if it was set when
 		 * shell was started. Therefore, re-check LANG every time:
 		 */
-		reinit_unicode(get_local_var_value("LANG"));
+		const char *s = get_local_var_value("LC_ALL");
+		if (!s) s = get_local_var_value("LANG");
+		reinit_unicode(s);
 
 		G.flag_SIGINT = 0;
 		/* buglet: SIGINT will not make new prompt to appear _at once_,

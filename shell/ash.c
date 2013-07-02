@@ -9657,7 +9657,11 @@ preadfd(void)
 		 * _during_ shell execution, not only if it was set when
 		 * shell was started. Therefore, re-check LANG every time:
 		 */
-		reinit_unicode(lookupvar("LANG"));
+		{
+			const char *s = lookupvar("LC_ALL");
+			if (!s) s = lookupvar("LANG");
+			reinit_unicode(s);
+		}
 		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ, timeout);
 		if (nr == 0) {
 			/* Ctrl+C pressed */
