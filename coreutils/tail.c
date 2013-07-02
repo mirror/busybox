@@ -66,17 +66,21 @@ static void tail_xprint_header(const char *fmt, const char *filename)
 		bb_perror_nomsg_and_die();
 }
 
-static ssize_t tail_read(int fd, char *buf, size_t count)
+static ssize_t tail_read(int fd, char *buf, size_t count, int follow)
 {
 	ssize_t r;
-	off_t current;
-	struct stat sbuf;
 
-	/* /proc files report zero st_size, don't lseek them. */
-	if (fstat(fd, &sbuf) == 0 && sbuf.st_size > 0) {
-		current = lseek(fd, 0, SEEK_CUR);
-		if (sbuf.st_size < current)
-			xlseek(fd, 0, SEEK_SET);
+	if (follow) {
+		/* tail -f keeps following files even if they are truncated */
+		off_t current;
+		struct stat sbuf;
+
+		/* /proc files report zero st_size, don't lseek them */
+		if (fstat(fd, &sbuf) == 0 && sbuf.st_size > 0) {
+			current = lseek(fd, 0, SEEK_CUR);
+			if (sbuf.st_size < current)
+				xlseek(fd, 0, SEEK_SET);
+		}
 	}
 
 	r = full_read(fd, buf, count);
@@ -251,7 +255,7 @@ int tail_main(int argc, char **argv)
 		 * Used only by +N code ("start from Nth", 1-based): */
 		seen = 1;
 		newlines_seen = 0;
-		while ((nread = tail_read(fd, buf, tailbufsize - taillen)) > 0) {
+		while ((nread = tail_read(fd, buf, tailbufsize - taillen, /*follow:*/ 0)) > 0) {
 			if (G.from_top) {
 				int nwrite = nread;
 				if (seen < count) {
@@ -363,7 +367,7 @@ int tail_main(int argc, char **argv)
 			if (nfiles > header_threshhold) {
 				fmt = header_fmt_str;
 			}
-			while ((nread = tail_read(fd, tailbuf, BUFSIZ)) > 0) {
+			while ((nread = tail_read(fd, tailbuf, BUFSIZ, /*follow:*/ 1)) > 0) {
 				if (fmt) {
 					tail_xprint_header(fmt, filename);
 					fmt = NULL;
