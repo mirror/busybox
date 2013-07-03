@@ -151,7 +151,7 @@ static uint8_t *hash_file(const char *filename)
 			update(&context, in_buf, count);
 		}
 		hash_value = NULL;
-		if (count < 0) {
+		if (count < 0)
 			bb_perror_msg("can't read '%s'", filename);
 		else /* count == 0 */ {
 			final(&context, in_buf);
