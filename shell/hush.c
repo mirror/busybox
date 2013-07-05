@@ -2045,6 +2045,7 @@ static void get_user_input(struct in_str *i)
 		 * shell was started. Therefore, re-check LANG every time:
 		 */
 		const char *s = get_local_var_value("LC_ALL");
+		if (!s) s = get_local_var_value("LC_CTYPE");
 		if (!s) s = get_local_var_value("LANG");
 		reinit_unicode(s);
 

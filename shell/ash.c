@@ -9659,6 +9659,7 @@ preadfd(void)
 		 */
 		{
 			const char *s = lookupvar("LC_ALL");
+			if (!s) s = lookupvar("LC_CTYPE");
 			if (!s) s = lookupvar("LANG");
 			reinit_unicode(s);
 		}

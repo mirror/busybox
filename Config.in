@@ -161,12 +161,13 @@ config UNICODE_USING_LOCALE
 	  Internal implementation is smaller.
 
 config FEATURE_CHECK_UNICODE_IN_ENV
-	bool "Check $LANG environment variable"
+	bool "Check $LC_ALL, $LC_CTYPE and $LANG environment variables"
 	default n
 	depends on UNICODE_SUPPORT && !UNICODE_USING_LOCALE
 	help
 	  With this option on, Unicode support is activated
-	  only if LANG variable has the value of the form "xxxx.utf8"
+	  only if locale-related variables have the value of the form
+	  "xxxx.utf8"
 
 	  Otherwise, Unicode support will be always enabled and active.
 
