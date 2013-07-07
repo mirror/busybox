@@ -28,8 +28,19 @@ void FAST_FUNC reinit_unicode(const char *LANG)
 	static const char unicode_0x394[] = { 0xce, 0x94, 0 };
 	size_t width;
 
+	/* We pass "" instead of "C" because some libc's have
+	 * non-ASCII default locale for setlocale("") call
+	 * (this allows users of such libc to have Unicoded
+	 * system without having to mess with env).
+	 *
+	 * We set LC_CTYPE because (a) we may be called with $LC_CTYPE
+	 * value in LANG, not with $LC_ALL, (b) internationalized
+	 * LC_NUMERIC and LC_TIME are more PITA than benefit
+	 * (for one, some utilities have hard time with comma
+	 * used as a fractional separator).
+	 */
 //TODO: avoid repeated calls by caching last string?
-	setlocale(LC_ALL, (LANG && LANG[0]) ? LANG : "C");
+	setlocale(LC_CTYPE, LANG ? LANG : "");
 
 	/* In unicode, this is a one character string */
 // can use unicode_strlen(string) too, but otherwise unicode_strlen() is unused
@@ -42,8 +53,6 @@ void FAST_FUNC init_unicode(void)
 	/* Some people set only $LC_CTYPE, not $LC_ALL, because they want
 	 * only Unicode to be activated on their system, not the whole
 	 * shebang of wrong decimal points, strange date formats and so on.
-	 *
-	 * TODO? Maybe we should use LC_CTYPE instead of LC_ALL in setlocale()?
 	 */
 	if (unicode_status == UNICODE_UNKNOWN) {
 		char *s = getenv("LC_ALL");
