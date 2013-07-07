@@ -649,6 +649,12 @@ static void add_cmd(const char *cmdstr)
 		sed_cmd->cmd = *cmdstr++;
 		cmdstr = parse_cmd_args(sed_cmd, cmdstr);
 
+		/* cmdstr now points past args.
+		 * GNU sed requires a separator, if there are more commands,
+		 * else it complains "char N: extra characters after command".
+		 * Example: "sed 'p;d'". We also allow "sed 'pd'".
+		 */
+
 		/* Add the command to the command array */
 		*G.sed_cmd_tail = sed_cmd;
 		G.sed_cmd_tail = &sed_cmd->next;
