@@ -1377,7 +1377,7 @@ static void process_files(void)
 /* It is possible to have a command line argument with embedded
  * newlines.  This counts as multiple command lines.
  * However, newline can be escaped: 's/e/z\<newline>z/'
- * We check for this.
+ * add_cmd() handles this.
  */
 
 static void add_cmd_block(char *cmdstr)
@@ -1387,22 +1387,8 @@ static void add_cmd_block(char *cmdstr)
 	cmdstr = sv = xstrdup(cmdstr);
 	do {
 		eol = strchr(cmdstr, '\n');
- next:
-		if (eol) {
-			/* Count preceding slashes */
-			int slashes = 0;
-			char *sl = eol;
-
-			while (sl != cmdstr && *--sl == '\\')
-				slashes++;
-			/* Odd number of preceding slashes - newline is escaped */
-			if (slashes & 1) {
-				overlapping_strcpy(eol - 1, eol);
-				eol = strchr(eol, '\n');
-				goto next;
-			}
+		if (eol)
 			*eol = '\0';
-		}
 		add_cmd(cmdstr);
 		cmdstr = eol + 1;
 	} while (eol);
