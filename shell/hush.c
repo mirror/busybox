@@ -1389,7 +1389,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * are set to '' (ignore) are NOT reset to defaults. We do the same.
  *
  * Problem: the above approach makes it unwieldy to catch signals while
- * we are in read builtin, of while we read commands from stdin:
+ * we are in read builtin, or while we read commands from stdin:
  * masked signals are not visible!
  *
  * New implementation
