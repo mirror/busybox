@@ -132,11 +132,6 @@ stty / catv
   stty's visible() function and catv's guts are identical. Merge them into
   an appropriate libbb function.
 ---
-struct suffix_mult
-  Several duplicate users of: grep -r "1024\*1024" * -B2 -A1
-  Merge to a single size_suffixes[] in libbb.
-  Users: head tail od_bloaty hexdump and (partially as it wouldn't hurt) svlogd
----
 tail
   ./busybox tail -f foo.c~ TODO
   should not print fmt=header_fmt for subsequent date >> TODO; i.e. only

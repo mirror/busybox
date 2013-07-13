@@ -832,6 +832,9 @@ struct suffix_mult {
 	char suffix[4];
 	unsigned mult;
 };
+extern const struct suffix_mult bkm_suffixes[];
+#define km_suffixes (bkm_suffixes + 1)
+
 #include "xatonum.h"
 /* Specialized: */
 

@@ -25,7 +25,6 @@
  */
 
 //kbuild:lib-$(CONFIG_TAIL) += tail.o
-//kbuild:lib-$(CONFIG_TAIL) += head_tail.o
 
 //usage:#define tail_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
@@ -51,7 +50,6 @@
 //usage:       "nameserver 10.0.0.1\n"
 
 #include "libbb.h"
-#include "head_tail.h"
 
 struct globals {
 	bool from_top;
@@ -89,7 +87,7 @@ static unsigned eat_num(const char *p)
 		p++;
 		G.from_top = 1;
 	}
-	return xatou_sfx(p, head_tail_suffixes);
+	return xatou_sfx(p, bkm_suffixes);
 }
 
 int tail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

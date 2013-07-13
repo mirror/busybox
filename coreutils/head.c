@@ -12,7 +12,6 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
 
 //kbuild:lib-$(CONFIG_HEAD) += head.o
-//kbuild:lib-$(CONFIG_HEAD) += head_tail.o
 
 //usage:#define head_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
@@ -35,7 +34,6 @@
 //usage:       "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #include "libbb.h"
-#include "head_tail.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -140,7 +138,7 @@ eat_num(bool *negative_N, const char *p)
 		p++;
 	}
 #endif
-	return xatoul_sfx(p, head_tail_suffixes);
+	return xatoul_sfx(p, bkm_suffixes);
 }
 
 static const char head_opts[] ALIGN1 =

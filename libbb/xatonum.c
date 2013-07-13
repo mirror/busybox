@@ -68,3 +68,10 @@ uint16_t FAST_FUNC xatou16(const char *numstr)
 {
 	return xatou_range(numstr, 0, 0xffff);
 }
+
+const struct suffix_mult bkm_suffixes[] = {
+	{ "b", 512 },
+	{ "k", 1024 },
+	{ "m", 1024*1024 },
+	{ "", 0 }
+};

@@ -66,13 +66,6 @@ static const char add_first[] ALIGN1 = "\"%07.7_Ax\n\"";
 
 static const char hexdump_opts[] ALIGN1 = "bcdoxCe:f:n:s:v" IF_FEATURE_HEXDUMP_REVERSE("R");
 
-static const struct suffix_mult suffixes[] = {
-	{ "b", 512 },
-	{ "k", 1024 },
-	{ "m", 1024*1024 },
-	{ "", 0 }
-};
-
 int hexdump_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int hexdump_main(int argc, char **argv)
 {
@@ -120,7 +113,7 @@ int hexdump_main(int argc, char **argv)
 				optarg,
 				/*base:*/ 0,
 				/*lo:*/ 0, /*hi:*/ OFF_T_MAX,
-				suffixes
+				bkm_suffixes
 			);
 		} /* else */
 		if (ch == 'v') {

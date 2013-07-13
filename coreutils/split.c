@@ -23,17 +23,15 @@
 
 #include "libbb.h"
 
-static const struct suffix_mult split_suffices[] = {
 #if ENABLE_FEATURE_SPLIT_FANCY
+static const struct suffix_mult split_suffixes[] = {
 	{ "b", 512 },
-#endif
 	{ "k", 1024 },
 	{ "m", 1024*1024 },
-#if ENABLE_FEATURE_SPLIT_FANCY
 	{ "g", 1024*1024*1024 },
-#endif
 	{ "", 0 }
 };
+#endif
 
 /* Increment the suffix part of the filename.
  * Returns NULL if we are out of filenames.
@@ -86,7 +84,10 @@ int split_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & SPLIT_OPT_l)
 		cnt = XATOOFF(count_p);
 	if (opt & SPLIT_OPT_b) // FIXME: also needs XATOOFF
-		cnt = xatoull_sfx(count_p, split_suffices);
+		cnt = xatoull_sfx(count_p,
+				IF_FEATURE_SPLIT_FANCY(split_suffixes)
+				IF_NOT_FEATURE_SPLIT_FANCY(km_suffixes)
+		);
 	sfx = "x";
 
 	argv += optind;

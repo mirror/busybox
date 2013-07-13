@@ -1166,12 +1166,6 @@ parse_old_offset(const char *s, off_t *offset)
 int od_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int od_main(int argc UNUSED_PARAM, char **argv)
 {
-	static const struct suffix_mult bkm[] = {
-		{ "b", 512 },
-		{ "k", 1024 },
-		{ "m", 1024*1024 },
-		{ "", 0 }
-	};
 #if ENABLE_LONG_OPTS
 	static const char od_longopts[] ALIGN1 =
 		"skip-bytes\0"        Required_argument "j"
@@ -1230,7 +1224,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 		address_pad_len_char = doxn_address_pad_len_char[pos];
 	}
 	if (opt & OPT_N) {
-		max_bytes_to_format = xstrtooff_sfx(str_N, 0, bkm);
+		max_bytes_to_format = xstrtooff_sfx(str_N, 0, bkm_suffixes);
 	}
 	if (opt & OPT_a) decode_format_string("a");
 	if (opt & OPT_b) decode_format_string("oC");
@@ -1239,7 +1233,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_f) decode_format_string("fF");
 	if (opt & OPT_h) decode_format_string("x2");
 	if (opt & OPT_i) decode_format_string("d2");
-	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm);
+	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm_suffixes);
 	if (opt & OPT_l) decode_format_string("d4");
 	if (opt & OPT_o) decode_format_string("o2");
 	while (lst_t) {
@@ -1248,7 +1242,7 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_x) decode_format_string("x2");
 	if (opt & OPT_s) decode_format_string("d2");
 	if (opt & OPT_S) {
-		string_min = xstrtou_sfx(str_S, 0, bkm);
+		string_min = xstrtou_sfx(str_S, 0, bkm_suffixes);
 	}
 
 	// Bloat:
