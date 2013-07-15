@@ -215,7 +215,7 @@ static int iprule_modify(int cmd, char **argv)
 	while (*argv) {
 		key = index_in_substrings(keywords, *argv) + 1;
 		if (key == 0) /* no match found in keywords array, bail out. */
-			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+			invarg(*argv, applet_name);
 		if (key == ARG_from) {
 			inet_prefix dst;
 			NEXT_ARG();
@@ -308,9 +308,9 @@ int FAST_FUNC do_iprule(char **argv)
 	static const char ip_rule_commands[] ALIGN1 =
 		"add\0""delete\0""list\0""show\0";
 	if (*argv) {
-		smalluint cmd = index_in_substrings(ip_rule_commands, *argv);
-		if (cmd > 3)
-			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+		int cmd = index_in_substrings(ip_rule_commands, *argv);
+		if (cmd < 0)
+			invarg(*argv, applet_name);
 		argv++;
 		if (cmd < 2)
 			return iprule_modify((cmd == 0) ? RTM_NEWRULE : RTM_DELRULE, argv);

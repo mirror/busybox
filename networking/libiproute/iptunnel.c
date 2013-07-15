@@ -561,9 +561,9 @@ int FAST_FUNC do_iptunnel(char **argv)
 	enum { ARG_add = 0, ARG_change, ARG_del, ARG_show, ARG_list, ARG_lst };
 
 	if (*argv) {
-		smalluint key = index_in_substrings(keywords, *argv);
-		if (key > 5)
-			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+		int key = index_in_substrings(keywords, *argv);
+		if (key < 0)
+			invarg(*argv, applet_name);
 		argv++;
 		if (key == ARG_add)
 			return do_add(SIOCADDTUNNEL, argv);
