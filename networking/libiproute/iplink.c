@@ -1,6 +1,7 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+ * 			Patrick McHardy <kaber@trash.net>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
@@ -8,6 +9,20 @@
 #include <net/if_packet.h>
 #include <netpacket/packet.h>
 #include <netinet/if_ether.h>
+
+#include <linux/if_vlan.h>
+#undef  ETH_P_8021AD
+#define ETH_P_8021AD            0x88A8
+#undef  VLAN_FLAG_REORDER_HDR
+#define VLAN_FLAG_REORDER_HDR   0x1
+#undef  VLAN_FLAG_GVRP
+#define VLAN_FLAG_GVRP          0x2
+#undef  VLAN_FLAG_LOOSE_BINDING
+#define VLAN_FLAG_LOOSE_BINDING 0x4
+#undef  VLAN_FLAG_MVRP
+#define VLAN_FLAG_MVRP          0x8
+#undef  IFLA_VLAN_PROTOCOL
+#define IFLA_VLAN_PROTOCOL      5
 
 #include "ip_common.h"  /* #include "libbb.h" is inside */
 #include "rt_names.h"
@@ -277,12 +292,103 @@ static int ipaddr_list_link(char **argv)
 	return ipaddr_list_or_flush(argv, 0);
 }
 
+static void vlan_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
+{
+	static const char keywords[] ALIGN1 =
+		"id\0"
+		"protocol\0"
+		"reorder_hdr\0"
+		"gvrp\0"
+		"mvrp\0"
+		"loose_binding\0"
+	;
+	static const char protocols[] ALIGN1 =
+		"802.1q\0"
+		"802.1ad\0"
+	;
+	static const char str_on_off[] ALIGN1 =
+		"on\0"
+		"off\0"
+	;
+	enum {
+		ARG_id = 0,
+		ARG_reorder_hdr,
+		ARG_gvrp,
+		ARG_mvrp,
+		ARG_loose_binding,
+		ARG_protocol,
+	};
+	enum {
+		PROTO_8021Q = 0,
+		PROTO_8021AD,
+	};
+	enum {
+		PARM_on = 0,
+		PARM_off
+	};
+	int arg;
+	uint16_t id, proto;
+	struct ifla_vlan_flags flags = {};
+
+	while (*argv) {
+		arg = index_in_substrings(keywords, *argv);
+		if (arg < 0)
+			invarg(*argv, "type vlan");
+
+		NEXT_ARG();
+		if (arg == ARG_id) {
+			id = get_u16(*argv, "id");
+			addattr_l(n, size, IFLA_VLAN_ID, &id, sizeof(id));
+		} else if (arg == ARG_protocol) {
+			arg = index_in_substrings(protocols, *argv);
+			if (arg == PROTO_8021Q)
+				proto = ETH_P_8021Q;
+			else if (arg == PROTO_8021AD)
+				proto = ETH_P_8021AD;
+			else
+				bb_error_msg_and_die("unknown VLAN encapsulation protocol '%s'",
+								     *argv);
+			addattr_l(n, size, IFLA_VLAN_PROTOCOL, &proto, sizeof(proto));
+		} else {
+			int param = index_in_strings(str_on_off, *argv);
+			if (param < 0)
+				die_must_be_on_off(nth_string(keywords, arg));
+
+			if (arg == ARG_reorder_hdr) {
+				flags.mask |= VLAN_FLAG_REORDER_HDR;
+				flags.flags &= ~VLAN_FLAG_REORDER_HDR;
+				if (param == PARM_on)
+					flags.flags |= VLAN_FLAG_REORDER_HDR;
+			} else if (arg == ARG_gvrp) {
+				flags.mask |= VLAN_FLAG_GVRP;
+				flags.flags &= ~VLAN_FLAG_GVRP;
+				if (param == PARM_on)
+					flags.flags |= VLAN_FLAG_GVRP;
+			} else if (arg == ARG_mvrp) {
+				flags.mask |= VLAN_FLAG_MVRP;
+				flags.flags &= ~VLAN_FLAG_MVRP;
+				if (param == PARM_on)
+					flags.flags |= VLAN_FLAG_MVRP;
+			} else { /*if (arg == ARG_loose_binding) */
+				flags.mask |= VLAN_FLAG_LOOSE_BINDING;
+				flags.flags &= ~VLAN_FLAG_LOOSE_BINDING;
+				if (param == PARM_on)
+					flags.flags |= VLAN_FLAG_LOOSE_BINDING;
+			}
+		}
+		argv++;
+	}
+
+	if (flags.mask)
+		addattr_l(n, size, IFLA_VLAN_FLAGS, &flags, sizeof(flags));
+}
+
 #ifndef NLMSG_TAIL
 #define NLMSG_TAIL(nmsg) \
 	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 #endif
 /* Return value becomes exitcode. It's okay to not return at all */
-static int do_change(char **argv, const unsigned rtm)
+static int do_add_or_delete(char **argv, const unsigned rtm)
 {
 	static const char keywords[] ALIGN1 =
 		"link\0""name\0""type\0""dev\0";
@@ -312,15 +418,17 @@ static int do_change(char **argv, const unsigned rtm)
 
 	while (*argv) {
 		arg = index_in_substrings(keywords, *argv);
+		if (arg == ARG_type) {
+			NEXT_ARG();
+			type_str = *argv++;
+			break;
+		}
 		if (arg == ARG_link) {
 			NEXT_ARG();
 			link_str = *argv;
 		} else if (arg == ARG_name) {
 			NEXT_ARG();
 			name_str = *argv;
-		} else if (arg == ARG_type) {
-			NEXT_ARG();
-			type_str = *argv;
 		} else {
 			if (arg == ARG_dev) {
 				if (dev_str)
@@ -339,6 +447,17 @@ static int do_change(char **argv, const unsigned rtm)
 		addattr_l(&req.n, sizeof(req), IFLA_LINKINFO, NULL, 0);
 		addattr_l(&req.n, sizeof(req), IFLA_INFO_KIND, type_str,
 				strlen(type_str));
+
+		if (*argv) {
+			struct rtattr *data = NLMSG_TAIL(&req.n);
+			addattr_l(&req.n, sizeof(req), IFLA_INFO_DATA, NULL, 0);
+
+			if (strcmp(type_str, "vlan") == 0)
+				vlan_parse_opt(argv, &req.n, sizeof(req));
+
+			data->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)data;
+		}
+
 		linkinfo->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)linkinfo;
 	}
 	if (rtm != RTM_NEWLINK) {
@@ -370,13 +489,13 @@ int FAST_FUNC do_iplink(char **argv)
 	static const char keywords[] ALIGN1 =
 		"add\0""delete\0""set\0""show\0""lst\0""list\0";
 	if (*argv) {
-		smalluint key = index_in_substrings(keywords, *argv);
-		if (key > 5) /* invalid argument */
-			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+		int key = index_in_substrings(keywords, *argv);
+		if (key < 0) /* invalid argument */
+			invarg(*argv, applet_name);
 		argv++;
 		if (key <= 1) /* add/delete */
-			return do_change(argv, key ? RTM_DELLINK : RTM_NEWLINK);
-		else if (key == 2) /* set */
+			return do_add_or_delete(argv, key ? RTM_DELLINK : RTM_NEWLINK);
+		if (key == 2) /* set */
 			return do_set(argv);
 	}
 	/* show, lst, list */
