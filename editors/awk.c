@@ -190,7 +190,7 @@ typedef struct tsplitter_s {
 
 /* combined token classes */
 #define	TC_BINOP   (TC_BINOPX | TC_COMMA | TC_PIPE | TC_IN)
-#define	TC_UNARYOP (TC_UOPPRE | TC_UOPPOST)
+//#define	TC_UNARYOP (TC_UOPPRE | TC_UOPPOST)
 #define	TC_OPERAND (TC_VARIABLE | TC_ARRAY | TC_FUNCTION \
                    | TC_BUILTIN | TC_GETLINE | TC_SEQSTART | TC_STRING | TC_NUMBER)
 
@@ -2015,8 +2015,8 @@ static int fmt_num(char *b, int size, const char *format, double n, int int_as_i
 	char c;
 	const char *s = format;
 
-	if (int_as_int && n == (int)n) {
-		r = snprintf(b, size, "%d", (int)n);
+	if (int_as_int && n == (long long)n) {
+		r = snprintf(b, size, "%lld", (long long)n);
 	} else {
 		do { c = *s; } while (c && *++s);
 		if (strchr("diouxX", c)) {
@@ -2733,7 +2733,7 @@ static var *evaluate(node *op, var *res)
 
 			switch (opn) {
 			case F_in:
-				R_d = (int)L_d;
+				R_d = (long long)L_d;
 				break;
 
 			case F_rn:
@@ -2931,7 +2931,7 @@ static var *evaluate(node *op, var *res)
 			case '%':
 				if (R_d == 0)
 					syntax_error(EMSG_DIV_BY_ZERO);
-				L_d -= (int)(L_d / R_d) * R_d;
+				L_d -= (long long)(L_d / R_d) * R_d;
 				break;
 			}
 			debug_printf_eval("BINARY/REPLACE result:%f\n", L_d);
