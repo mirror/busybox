@@ -163,7 +163,14 @@ enum { zip_fd = 3 };
 
 #if ENABLE_DESKTOP
 
-#define PEEK_FROM_END 16384
+/* Seen in the wild:
+ * Self-extracting PRO2K3XP_32.exe contains 19078464 byte zip archive,
+ * where CDE was nearly 48 kbytes before EOF.
+ * (Surprisingly, it also apparently has *another* CDE structure
+ * closer to the end, with bogus cdf_offset).
+ * To make extraction work, bumped PEEK_FROM_END from 16k to 64k.
+ */
+#define PEEK_FROM_END (64*1024)
 
 /* NB: does not preserve file position! */
 static uint32_t find_cdf_offset(void)
