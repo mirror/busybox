@@ -330,7 +330,7 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
 		temp = copy_parsing_escapes(pos, next);
 		*regex = xzalloc(sizeof(regex_t));
-		xregcomp(*regex, temp, G.regex_type|REG_NEWLINE);
+		xregcomp(*regex, temp, G.regex_type);
 		free(temp);
 		/* Move position to next character after last delimiter */
 		pos += (next+1);

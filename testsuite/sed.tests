@@ -310,6 +310,27 @@ testing "sed zero chars match/replace logic must not falsely trigger here 2" \
 	"sed 's/ *$/_/g'" \
 	"qwerty_\n" "" "qwerty\n"
 
+testing "sed /\$_in_regex/ should not match newlines, only end-of-line" \
+	"sed ': testcont; /\\\\$/{ =; N; b testcont }'" \
+	"\
+this is a regular line
+2
+line with \\
+continuation
+more regular lines
+5
+line with \\
+continuation
+" \
+	"" "\
+this is a regular line
+line with \\
+continuation
+more regular lines
+line with \\
+continuation
+"
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT
