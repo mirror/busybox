@@ -1,0 +1,65 @@
+	Some less-widely known details of TCP connections.
+
+	Properly closing the connection.
+
+After this code sequence:
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    connect(sock, &remote, sizeof(remote));
+    write(sock, buffer, 1000000);
+
+a large block of data is only buffered by kernel, it can't be sent all at once.
+What will happen if we close the socket?
+
+"A host MAY implement a 'half-duplex' TCP close sequence, so that
+ an application that has called close() cannot continue to read
+ data from the connection. If such a host issues a close() call
+ while received data is still pending in TCP, or if new data is
+ received after close() is called, its TCP SHOULD send a RST
+ to show that data was lost."
+
+IOW: if we just close(sock) now, kernel can reset the TCP connection,
+discarding some not-yet sent data.
+
+What can be done about it?
+
+Solution #1: block until sending is done:
+
+    /* When enabled, a close(2) or shutdown(2) will not return until
+     * all queued messages for the socket have been successfully sent
+     * or the linger timeout has been reached.
+     */
+    struct linger {
+	int l_onoff;    /* linger active */
+    	int l_linger;   /* how many seconds to linger for */
+    } linger;
+    linger.l_onoff = 1;
+    linger.l_linger = SOME_NUM;
+    setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger));
+    close(sock);
+
+Solution #2: tell kernel that you are done sending.
+This makes kernel send FIN, not RST:
+
+    shutdown(sock, SHUT_WR);
+    close(sock);
+
+
+	Defeating Nagle.
+
+Method #1: manually control whether partial sends are allowed:
+
+This prevents partially filled packets being sent:
+
+    int state = 1;
+    setsockopt(fd, IPPROTO_TCP, TCP_CORK, &state, sizeof(state));
+
+and this forces last, partially filled packet (if any) to be sent:
+
+    int state = 0;
+    setsockopt(fd, IPPROTO_TCP, TCP_CORK, &state, sizeof(state));
+
+Method #2: make any write to immediately send data, even if it's partial:
+
+    int state = 1;
+    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &state, sizeof(state));
