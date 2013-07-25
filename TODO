@@ -229,8 +229,6 @@ Minor stuff:
   See grep -r strtod
   Alot of duplication that wants cleanup.
 ---
-  in_ether duplicated in network/{interface,ifconfig}.c
----
   unify progress_meter. wget, flash_eraseall, pipe_progress, fbsplash, setfiles.
 ---
   support start-stop-daemon -d <chdir-path>

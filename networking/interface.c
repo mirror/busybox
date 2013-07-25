@@ -722,67 +722,14 @@ static char* FAST_FUNC ether_print(unsigned char *ptr)
 	return buff;
 }
 
-static int FAST_FUNC ether_input(const char *bufp, struct sockaddr *sap);
-
 static const struct hwtype ether_hwtype = {
 	.name  = "ether",
 	.title = "Ethernet",
 	.type  = ARPHRD_ETHER,
 	.alen  = ETH_ALEN,
 	.print = ether_print,
-	.input = ether_input
+	.input = in_ether
 };
-
-static unsigned hexchar2int(char c)
-{
-	if (isdigit(c))
-		return c - '0';
-	c &= ~0x20; /* a -> A */
-	if ((unsigned)(c - 'A') <= 5)
-		return c - ('A' - 10);
-	return ~0U;
-}
-
-/* Input an Ethernet address and convert to binary. */
-static int FAST_FUNC ether_input(const char *bufp, struct sockaddr *sap)
-{
-	unsigned char *ptr;
-	char c;
-	int i;
-	unsigned val;
-
-	sap->sa_family = ether_hwtype.type;
-	ptr = (unsigned char*) sap->sa_data;
-
-	i = 0;
-	while ((*bufp != '\0') && (i < ETH_ALEN)) {
-		val = hexchar2int(*bufp++) * 0x10;
-		if (val > 0xff) {
-			errno = EINVAL;
-			return -1;
-		}
-		c = *bufp;
-		if (c == ':' || c == 0)
-			val >>= 4;
-		else {
-			val |= hexchar2int(c);
-			if (val > 0xff) {
-				errno = EINVAL;
-				return -1;
-			}
-		}
-		if (c != 0)
-			bufp++;
-		*ptr++ = (unsigned char) val;
-		i++;
-
-		/* We might get a semicolon here - not required. */
-		if (*bufp == ':') {
-			bufp++;
-		}
-	}
-	return 0;
-}
 
 static const struct hwtype ppp_hwtype = {
 	.name =		"ppp",

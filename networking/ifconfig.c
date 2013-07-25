@@ -265,49 +265,6 @@ static const struct options OptArray[] = {
 	{ NULL,          0,             ARG_HOSTNAME,    (IFF_UP | IFF_RUNNING) }
 };
 
-#if ENABLE_FEATURE_IFCONFIG_HW
-/* Input an Ethernet address and convert to binary. */
-static int in_ether(const char *bufp, struct sockaddr *sap)
-{
-	char *ptr;
-	int i, j;
-	unsigned char val;
-	unsigned char c;
-
-	sap->sa_family = ARPHRD_ETHER;
-	ptr = (char *) sap->sa_data;
-
-	i = 0;
-	do {
-		j = val = 0;
-
-		/* We might get a semicolon here - not required. */
-		if (i && (*bufp == ':')) {
-			bufp++;
-		}
-
-		do {
-			c = *bufp;
-			if (((unsigned char)(c - '0')) <= 9) {
-				c -= '0';
-			} else if ((unsigned char)((c|0x20) - 'a') <= 5) {
-				c = (unsigned char)((c|0x20) - 'a') + 10;
-			} else if (j && (c == ':' || c == 0)) {
-				break;
-			} else {
-				return -1;
-			}
-			++bufp;
-			val <<= 4;
-			val += c;
-		} while (++j < 2);
-		*ptr++ = val;
-	} while (++i < ETH_ALEN);
-
-	return *bufp; /* Error if we don't end at end of string. */
-}
-#endif
-
 int ifconfig_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ifconfig_main(int argc UNUSED_PARAM, char **argv)
 {
