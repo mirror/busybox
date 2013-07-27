@@ -39,10 +39,27 @@ Solution #1: block until sending is done:
     close(sock);
 
 Solution #2: tell kernel that you are done sending.
-This makes kernel send FIN, not RST:
+This makes kernel send FIN after all data is written:
 
     shutdown(sock, SHUT_WR);
     close(sock);
+
+However, experiments on Linux 3.9.4 show that kernel can return from
+shutdown() and from close() before all data is sent,
+and if peer sends any data to us after this, kernel stll responds with
+RST before all our data is sent.
+
+In practice the protocol in use often does not allow peer to send
+such data to us, in which case this solution is acceptable.
+
+If you know that peer is going to close its end after it sees our FIN
+(as EOF), it might be a good idea to perform a read after shutdown().
+When read finishes with 0-sized result, we conclude that peer received all
+the data, saw EOF, and closed its end.
+
+However, this incurs small performance penalty (we run for a longer time)
+and requires safeguards (nonblocking reads, timeouts etc) against
+malicious peers which don't close the connection.
 
 
 	Defeating Nagle.
