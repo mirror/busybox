@@ -48,6 +48,12 @@
  * - TCP connects from wrong ip/ports (if peer ip:port is specified
  *   on the command line, but accept() says that it came from different addr)
  *   are closed, but we don't exit - we continue to listen/accept.
+ * Since bbox 1.22:
+ * - nc exits when _both_ stdin and network are closed.
+ *   This makes these two commands:
+ *    echo "Yes" | nc 127.0.0.1 1234
+ *    echo "no" | nc -lp 1234
+ *   exchange their data _and exit_ instead of being stuck.
  */
 
 /* done in nc.c: #include "libbb.h" */
@@ -134,8 +140,6 @@ struct globals {
 
 	jmp_buf jbuf;                /* timer crud */
 
-	fd_set ding1;                /* for select loop */
-	fd_set ding2;
 	char bigbuf_in[BIGSIZ];      /* data buffers */
 	char bigbuf_net[BIGSIZ];
 };
@@ -147,8 +151,6 @@ struct globals {
 #define themaddr   (G.themaddr  )
 #define remend     (G.remend    )
 #define jbuf       (G.jbuf      )
-#define ding1      (G.ding1     )
-#define ding2      (G.ding2     )
 #define bigbuf_in  (G.bigbuf_in )
 #define bigbuf_net (G.bigbuf_net)
 #define o_verbose  (G.o_verbose )
@@ -592,10 +594,17 @@ static int readwrite(void)
 	unsigned netretry;              /* net-read retry counter */
 	unsigned wretry;                /* net-write sanity counter */
 	unsigned wfirst;                /* one-shot flag to skip first net read */
+	unsigned fds_open;
 
 	/* if you don't have all this FD_* macro hair in sys/types.h, you'll have to
 	 either find it or do your own bit-bashing: *ding1 |= (1 << fd), etc... */
-	FD_SET(netfd, &ding1);                /* global: the net is open */
+	fd_set ding1;                   /* for select loop */
+	fd_set ding2;
+	FD_ZERO(&ding1);
+	FD_SET(netfd, &ding1);
+	FD_SET(STDIN_FILENO, &ding1);
+	fds_open = 2;
+
 	netretry = 2;
 	wfirst = 0;
 	rzleft = rnleft = 0;
@@ -604,7 +613,8 @@ static int readwrite(void)
 
 	errno = 0;                        /* clear from sleep, close, whatever */
 	/* and now the big ol' select shoveling loop ... */
-	while (FD_ISSET(netfd, &ding1)) {        /* i.e. till the *net* closes! */
+	/* nc 1.10 has "while (FD_ISSET(netfd)" here */
+	while (fds_open) {
 		wretry = 8200;                        /* more than we'll ever hafta write */
 		if (wfirst) {                        /* any saved stdin buffer? */
 			wfirst = 0;                        /* clear flag for the duration */
@@ -629,13 +639,14 @@ static int readwrite(void)
 	/* if we have a timeout AND stdin is closed AND we haven't heard anything
 	 from the net during that time, assume it's dead and close it too. */
 		if (rr == 0) {
-			if (!FD_ISSET(STDIN_FILENO, &ding1))
+			if (!FD_ISSET(STDIN_FILENO, &ding1)) {
 				netretry--;                        /* we actually try a coupla times. */
-			if (!netretry) {
-				if (o_verbose > 1)                /* normally we don't care */
-					fprintf(stderr, "net timeout\n");
-				close(netfd);
-				return 0;                        /* not an error! */
+				if (!netretry) {
+					if (o_verbose > 1)         /* normally we don't care */
+						fprintf(stderr, "net timeout\n");
+					close(netfd);
+					return 0;                  /* not an error! */
+				}
 			}
 		} /* select timeout */
 	/* xxx: should we check the exception fds too?  The read fds seem to give
@@ -649,7 +660,8 @@ static int readwrite(void)
 					/* nc 1.10 doesn't do this */
 					bb_perror_msg("net read");
 				}
-				FD_CLR(netfd, &ding1);                /* net closed, we'll finish up... */
+				FD_CLR(netfd, &ding1);                /* net closed */
+				fds_open--;
 				rzleft = 0;                        /* can't write anymore: broken pipe */
 			} else {
 				rnleft = rr;
@@ -671,9 +683,10 @@ Debug("got %d from the net, errno %d", rr, errno);
 			if (rr <= 0) {                        /* at end, or fukt, or ... */
 				FD_CLR(STDIN_FILENO, &ding1);                /* disable and close stdin */
 				close(STDIN_FILENO);
-// Does it make sense to shutdown(net_fd, SHUT_WR)
-// to let other side know that we won't write anything anymore?
-// (and what about keeping compat if we do that?)
+				/* Let peer know we have no more data */
+				/* nc 1.10 doesn't do this: */
+				shutdown(netfd, SHUT_WR);
+				fds_open--;
 			} else {
 				rzleft = rr;
 				zp = bigbuf_in;
@@ -725,7 +738,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 			errno = 0;                        /* clear from sleep */
 			continue;                        /* ...with hairy select loop... */
 		}
-		if ((rzleft) || (rnleft)) {                /* shovel that shit till they ain't */
+		if (rzleft || rnleft) {                  /* shovel that shit till they ain't */
 			wretry--;                        /* none left, and get another load */
 			goto shovel;
 		}
@@ -876,9 +889,8 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	FD_SET(STDIN_FILENO, &ding1);                        /* stdin *is* initially open */
 	if (proggie) {
-		close(0); /* won't need stdin */
+		close(STDIN_FILENO); /* won't need stdin */
 		option_mask32 &= ~OPT_o; /* -o with -e is meaningless! */
 	}
 #if ENABLE_NC_EXTRA
