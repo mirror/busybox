@@ -11,6 +11,10 @@
 #include <netinet/if_ether.h>
 
 #include <linux/if_vlan.h>
+#include "ip_common.h"  /* #include "libbb.h" is inside */
+#include "rt_names.h"
+#include "utils.h"
+
 #undef  ETH_P_8021AD
 #define ETH_P_8021AD            0x88A8
 #undef  VLAN_FLAG_REORDER_HDR
@@ -23,10 +27,6 @@
 #define VLAN_FLAG_MVRP          0x8
 #undef  IFLA_VLAN_PROTOCOL
 #define IFLA_VLAN_PROTOCOL      5
-
-#include "ip_common.h"  /* #include "libbb.h" is inside */
-#include "rt_names.h"
-#include "utils.h"
 
 #ifndef IFLA_LINKINFO
 # define IFLA_LINKINFO 18
