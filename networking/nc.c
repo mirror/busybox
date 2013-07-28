@@ -261,7 +261,7 @@ int nc_main(int argc, char **argv)
 					if (nread < 1) {
 						/* Close outgoing half-connection so they get EOF,
 						 * but leave incoming alone so we can see response */
-						shutdown(cfd, 1);
+						shutdown(cfd, SHUT_WR);
 						FD_CLR(STDIN_FILENO, &readfds);
 					}
 					ofd = cfd;
