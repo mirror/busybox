@@ -592,8 +592,6 @@ static int readwrite(void)
 	unsigned rzleft;
 	unsigned rnleft;
 	unsigned netretry;              /* net-read retry counter */
-	unsigned wretry;                /* net-write sanity counter */
-	unsigned wfirst;                /* one-shot flag to skip first net read */
 	unsigned fds_open;
 
 	/* if you don't have all this FD_* macro hair in sys/types.h, you'll have to
@@ -606,20 +604,16 @@ static int readwrite(void)
 	fds_open = 2;
 
 	netretry = 2;
-	wfirst = 0;
 	rzleft = rnleft = 0;
 	if (o_interval)
 		sleep(o_interval);                /* pause *before* sending stuff, too */
 
-	errno = 0;                        /* clear from sleep, close, whatever */
 	/* and now the big ol' select shoveling loop ... */
 	/* nc 1.10 has "while (FD_ISSET(netfd)" here */
 	while (fds_open) {
-		wretry = 8200;                        /* more than we'll ever hafta write */
-		if (wfirst) {                        /* any saved stdin buffer? */
-			wfirst = 0;                        /* clear flag for the duration */
-			goto shovel;                        /* and go handle it first */
-		}
+		unsigned wretry = 8200;               /* net-write sanity counter */
+
+		errno = 0;                            /* clear from sleep, close, whatever */
 		ding2 = ding1;                        /* FD_COPY ain't portable... */
 	/* some systems, notably linux, crap into their select timers on return, so
 	 we create a expendable copy and give *that* to select.  */
@@ -644,7 +638,7 @@ static int readwrite(void)
 				if (!netretry) {
 					if (o_verbose > 1)         /* normally we don't care */
 						fprintf(stderr, "net timeout\n");
-					close(netfd);
+					/*close(netfd); - redundant, exit will do it */
 					return 0;                  /* not an error! */
 				}
 			}
@@ -681,8 +675,8 @@ Debug("got %d from the net, errno %d", rr, errno);
 	/* Considered making reads here smaller for UDP mode, but 8192-byte
 	 mobygrams are kinda fun and exercise the reassembler. */
 			if (rr <= 0) {                        /* at end, or fukt, or ... */
-				FD_CLR(STDIN_FILENO, &ding1);                /* disable and close stdin */
-				close(STDIN_FILENO);
+				FD_CLR(STDIN_FILENO, &ding1); /* disable stdin */
+				/*close(STDIN_FILENO); - not really necessary */
 				/* Let peer know we have no more data */
 				/* nc 1.10 doesn't do this: */
 				shutdown(netfd, SHUT_WR);
@@ -697,23 +691,13 @@ Debug("got %d from the net, errno %d", rr, errno);
 	 Geez, why does this look an awful lot like the big loop in "rsh"? ...
 	 not sure if the order of this matters, but write net -> stdout first. */
 
-	/* sanity check.  Works because they're both unsigned... */
-		if ((rzleft > 8200) || (rnleft > 8200)) {
-			holler_error("bogus buffers: %u, %u", rzleft, rnleft);
-			rzleft = rnleft = 0;
-		}
-	/* net write retries sometimes happen on UDP connections */
-		if (!wretry) {                        /* is something hung? */
-			holler_error("too many output retries");
-			return 1;
-		}
 		if (rnleft) {
 			rr = write(STDOUT_FILENO, np, rnleft);
 			if (rr > 0) {
 				if (o_ofile) /* log the stdout */
 					oprint('<', (unsigned char *)np, rr);
 				np += rr;                        /* fix up ptrs and whatnot */
-				rnleft -= rr;                        /* will get sanity-checked above */
+				rnleft -= rr;
 				wrote_out += rr;                /* global count */
 			}
 Debug("wrote %d to stdout, errno %d", rr, errno);
@@ -735,11 +719,15 @@ Debug("wrote %d to net, errno %d", rr, errno);
 		} /* rzleft */
 		if (o_interval) {                        /* cycle between slow lines, or ... */
 			sleep(o_interval);
-			errno = 0;                        /* clear from sleep */
 			continue;                        /* ...with hairy select loop... */
 		}
 		if (rzleft || rnleft) {                  /* shovel that shit till they ain't */
 			wretry--;                        /* none left, and get another load */
+	/* net write retries sometimes happen on UDP connections */
+			if (!wretry) {                   /* is something hung? */
+				holler_error("too many output retries");
+				return 1;
+			}
 			goto shovel;
 		}
 	} /* while ding1:netfd is open */
