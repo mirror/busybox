@@ -613,7 +613,6 @@ static int readwrite(void)
 	while (fds_open) {
 		unsigned wretry = 8200;               /* net-write sanity counter */
 
-		errno = 0;                            /* clear from sleep, close, whatever */
 		ding2 = ding1;                        /* FD_COPY ain't portable... */
 	/* some systems, notably linux, crap into their select timers on return, so
 	 we create a expendable copy and give *that* to select.  */
@@ -696,9 +695,9 @@ Debug("got %d from the net, errno %d", rr, errno);
 			if (rr > 0) {
 				if (o_ofile) /* log the stdout */
 					oprint('<', (unsigned char *)np, rr);
-				np += rr;                        /* fix up ptrs and whatnot */
+				np += rr;
 				rnleft -= rr;
-				wrote_out += rr;                /* global count */
+				wrote_out += rr; /* global count */
 			}
 Debug("wrote %d to stdout, errno %d", rr, errno);
 		} /* rnleft */
@@ -713,7 +712,7 @@ Debug("wrote %d to stdout, errno %d", rr, errno);
 					oprint('>', (unsigned char *)zp, rr);
 				zp += rr;
 				rzleft -= rr;
-				wrote_net += rr;                /* global count */
+				wrote_net += rr; /* global count */
 			}
 Debug("wrote %d to net, errno %d", rr, errno);
 		} /* rzleft */
@@ -730,7 +729,7 @@ Debug("wrote %d to net, errno %d", rr, errno);
 			}
 			goto shovel;
 		}
-	} /* while ding1:netfd is open */
+	} /* while (fds_open) */
 
 	/* XXX: maybe want a more graceful shutdown() here, or screw around with
 	 linger times??  I suspect that I don't need to since I'm always doing
