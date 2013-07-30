@@ -680,7 +680,10 @@ enum { PRINTABLE_META = 0x100 };
 void fputc_printable(int ch, FILE *file) FAST_FUNC;
 /* Return a string that is the printable representation of character ch.
  * Buffer must hold at least four characters. */
-enum { VISIBLE_SHOW_TABS = 1, VISIBLE_ENDLINE = 2 };
+enum {
+	VISIBLE_ENDLINE   = 1 << 0,
+	VISIBLE_SHOW_TABS = 1 << 1,
+};
 void visible(unsigned ch, char *buf, int flags) FAST_FUNC;
 
 /* dmalloc will redefine these to it's own implementation. It is safe

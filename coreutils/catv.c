@@ -26,19 +26,22 @@ int catv_main(int argc UNUSED_PARAM, char **argv)
 	int retval = EXIT_SUCCESS;
 	int fd;
 	unsigned opts;
-	int flags = 0;
-
-	opts = getopt32(argv, "etv");
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)
+        typedef char BUG_const_mismatch[
+		CATV_OPT_e == VISIBLE_ENDLINE && CATV_OPT_t == VISIBLE_SHOW_TABS
+		? 1 : -1
+	];
+
+	opts = getopt32(argv, "etv");
 	argv += optind;
-	if (opts & (CATV_OPT_e | CATV_OPT_t))
-		opts &= ~CATV_OPT_v;
+#if 0 /* These consts match, we can just pass "opts" to visible() */
 	if (opts & CATV_OPT_e)
 		flags |= VISIBLE_ENDLINE;
 	if (opts & CATV_OPT_t)
 		flags |= VISIBLE_SHOW_TABS;
+#endif
 
 	/* Read from stdin if there's nothing else to do. */
 	if (!argv[0])
@@ -64,7 +67,7 @@ int catv_main(int argc UNUSED_PARAM, char **argv)
 					putchar(c);
 				} else {
 					char buf[sizeof("M-^c")];
-					visible(c, buf, flags);
+					visible(c, buf, opts);
 					fputs(buf, stdout);
 				}
 			}
