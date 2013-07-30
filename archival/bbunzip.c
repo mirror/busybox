@@ -132,7 +132,10 @@ int FAST_FUNC bbunpack(char **argv,
 
 		if (filename) {
 			char *del = new_name;
+
 			if (status >= 0) {
+				unsigned new_name_len;
+
 				/* TODO: restore other things? */
 				if (aux.mtime != 0) {
 					struct timeval times[2];
@@ -146,22 +149,29 @@ int FAST_FUNC bbunpack(char **argv,
 					utimes(new_name, times); /* ignoring errors */
 				}
 
-				/* Delete _compressed_ file */
+				if (ENABLE_DESKTOP)
+					new_name_len = strlen(new_name);
+				/* Restore source filename (unless tgz -> tar case) */
+				if (new_name == filename) {
+					new_name_len = strlen(filename);
+					filename[new_name_len] = '.';
+				}
+				/* Extreme bloat for gunzip compat */
+				/* Some users do want this info... */
+				if (ENABLE_DESKTOP && (option_mask32 & OPT_VERBOSE)) {
+					unsigned percent = status
+						? ((uoff_t)stat_buf.st_size * 100u / (unsigned long long)status)
+						: 0;
+					fprintf(stderr, "%s: %u%% - replaced with %.*s\n",
+						filename,
+						100u - percent,
+						new_name_len, new_name
+					);
+				}
+				/* Delete _source_ file */
 				del = filename;
-				/* restore extension (unless tgz -> tar case) */
-				if (new_name == filename)
-					filename[strlen(filename)] = '.';
 			}
 			xunlink(del);
-
-#if 0 /* Currently buggy - wrong name: "a.gz: 261% - replaced with a.gz" */
-			/* Extreme bloat for gunzip compat */
-			if (ENABLE_DESKTOP && (option_mask32 & OPT_VERBOSE) && status >= 0) {
-				fprintf(stderr, "%s: %u%% - replaced with %s\n",
-					filename, (unsigned)(stat_buf.st_size*100 / (status+1)), new_name);
-			}
-#endif
-
  free_name:
 			if (new_name != filename)
 				free(new_name);
