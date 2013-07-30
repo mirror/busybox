@@ -985,8 +985,8 @@ static action*** parse_params(char **argv)
  */
 		/* Options */
 		if (parm == OPT_FOLLOW) {
-                        dbg("follow enabled: %d", __LINE__);
-                        G.recurse_flags |= ACTION_FOLLOWLINKS | ACTION_DANGLING_OK;
+			dbg("follow enabled: %d", __LINE__);
+			G.recurse_flags |= ACTION_FOLLOWLINKS | ACTION_DANGLING_OK;
 		}
 #if ENABLE_FEATURE_FIND_XDEV
 		else if (parm == OPT_XDEV) {

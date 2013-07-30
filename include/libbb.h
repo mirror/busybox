@@ -483,9 +483,9 @@ int xmkstemp(char *template) FAST_FUNC;
 off_t fdlength(int fd) FAST_FUNC;
 
 uoff_t FAST_FUNC get_volume_size_in_bytes(int fd,
-                const char *override,
-                unsigned override_units,
-                int extend);
+		const char *override,
+		unsigned override_units,
+		int extend);
 
 void xpipe(int filedes[2]) FAST_FUNC;
 /* In this form code with pipes is much more readable */

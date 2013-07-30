@@ -171,7 +171,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
-        SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
 
 

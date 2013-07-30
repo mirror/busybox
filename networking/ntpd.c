@@ -228,8 +228,8 @@ typedef struct {
 	uint8_t          lastpkt_status;
 	uint8_t          lastpkt_stratum;
 	uint8_t          reachable_bits;
-        /* when to send new query (if p_fd == -1)
-         * or when receive times out (if p_fd >= 0): */
+	/* when to send new query (if p_fd == -1)
+	 * or when receive times out (if p_fd >= 0): */
 	double           next_action_time;
 	double           p_xmttime;
 	double           lastpkt_recv_time;

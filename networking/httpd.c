@@ -1709,8 +1709,8 @@ static int pam_talker(int num_msg,
 			s = userinfo->pw;
 			break;
 		case PAM_ERROR_MSG:
-        	case PAM_TEXT_INFO:
-        		s = "";
+		case PAM_TEXT_INFO:
+			s = "";
 			break;
 		default:
 			free(response);

@@ -62,14 +62,14 @@ struct globals {
 	const char *curfile;      /* Name of current file being transferred */
 	bb_progress_t pmt;
 #endif
-        char *dir_prefix;
+	char *dir_prefix;
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
-        char *post_data;
-        char *extra_headers;
+	char *post_data;
+	char *extra_headers;
 #endif
-        char *fname_out;        /* where to direct output (-O) */
-        const char *proxy_flag; /* Use proxies if env vars are set */
-        const char *user_agent; /* "User-Agent" header field */
+	char *fname_out;        /* where to direct output (-O) */
+	const char *proxy_flag; /* Use proxies if env vars are set */
+	const char *user_agent; /* "User-Agent" header field */
 #if ENABLE_FEATURE_WGET_TIMEOUT
 	unsigned timeout_seconds;
 #endif
@@ -86,7 +86,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
-        SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
+	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_WGET_TIMEOUT(G.timeout_seconds = 900;) \
 } while (0)
 

@@ -442,7 +442,7 @@ struct ext2_super_block {
 	uint32_t	s_reserved[162];	/* Padding to the end of the block */
 };
 struct BUG_ext2_super_block {
-        char bug[sizeof(struct ext2_super_block) == 1024 ? 1 : -1];
+	char bug[sizeof(struct ext2_super_block) == 1024 ? 1 : -1];
 };
 
 /*

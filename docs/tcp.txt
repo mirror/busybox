@@ -31,7 +31,7 @@ Solution #1: block until sending is done:
      */
     struct linger {
 	int l_onoff;    /* linger active */
-    	int l_linger;   /* how many seconds to linger for */
+	int l_linger;   /* how many seconds to linger for */
     } linger;
     linger.l_onoff = 1;
     linger.l_linger = SOME_NUM;

@@ -65,7 +65,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 struct BUG_G_too_big {
-        char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
+	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
 };
 #define filter_ifindex (G.filter_ifindex)
 #define filter_qdisc (G.filter_qdisc)

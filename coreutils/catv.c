@@ -29,7 +29,7 @@ int catv_main(int argc UNUSED_PARAM, char **argv)
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)
-        typedef char BUG_const_mismatch[
+	typedef char BUG_const_mismatch[
 		CATV_OPT_e == VISIBLE_ENDLINE && CATV_OPT_t == VISIBLE_SHOW_TABS
 		? 1 : -1
 	];
