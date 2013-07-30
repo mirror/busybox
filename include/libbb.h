@@ -678,6 +678,10 @@ const char* FAST_FUNC printable_string(uni_stat_t *stats, const char *str);
  * else it is printed as-is (except for ch = 0x9b) */
 enum { PRINTABLE_META = 0x100 };
 void fputc_printable(int ch, FILE *file) FAST_FUNC;
+/* Return a string that is the printable representation of character ch.
+ * Buffer must hold at least four characters. */
+enum { VISIBLE_SHOW_TABS = 1, VISIBLE_ENDLINE = 2 };
+void visible(unsigned ch, char *buf, int flags) FAST_FUNC;
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */

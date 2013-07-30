@@ -781,36 +781,6 @@ struct globals {
 	G.max_col = 80; \
 } while (0)
 
-
-/* Return a string that is the printable representation of character CH */
-/* Adapted from 'cat' by Torbjorn Granlund */
-static const char *visible(unsigned ch)
-{
-	char *bpout = G.buf;
-
-	if (ch == _POSIX_VDISABLE)
-		return "<undef>";
-
-	if (ch >= 128) {
-		ch -= 128;
-		*bpout++ = 'M';
-		*bpout++ = '-';
-	}
-
-	if (ch < 32) {
-		*bpout++ = '^';
-		*bpout++ = ch + 64;
-	} else if (ch < 127) {
-		*bpout++ = ch;
-	} else {
-		*bpout++ = '^';
-		*bpout++ = '?';
-	}
-
-	*bpout = '\0';
-	return G.buf;
-}
-
 static void set_speed_or_die(enum speed_setting type, const char *arg,
 					struct termios *mode)
 {
@@ -1038,6 +1008,7 @@ static void do_display(const struct termios *mode, int all)
 #endif
 
 	for (i = 0; i != CIDX_min; ++i) {
+		char ch;
 		/* If swtch is the same as susp, don't print both */
 #if VSWTCH == VSUSP
 		if (i == CIDX_swtch)
@@ -1051,8 +1022,12 @@ static void do_display(const struct termios *mode, int all)
 			continue;
 		}
 #endif
-		wrapf("%s = %s;", nth_string(control_name, i),
-				visible(mode->c_cc[control_info[i].offset]));
+		ch = mode->c_cc[control_info[i].offset];
+		if (ch == _POSIX_VDISABLE)
+			strcpy(G.buf, "<undef>");
+		else
+			visible(ch, G.buf, 0);
+		wrapf("%s = %s;", nth_string(control_name, i), G.buf);
 	}
 #if VEOF == VMIN
 	if ((mode->c_lflag & ICANON) == 0)

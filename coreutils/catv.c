@@ -25,14 +25,20 @@ int catv_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 	int fd;
-	unsigned flags;
+	unsigned opts;
+	int flags = 0;
 
-	flags = getopt32(argv, "etv");
+	opts = getopt32(argv, "etv");
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)
-	flags ^= CATV_OPT_v;
 	argv += optind;
+	if (opts & (CATV_OPT_e | CATV_OPT_t))
+		opts &= ~CATV_OPT_v;
+	if (opts & CATV_OPT_e)
+		flags |= VISIBLE_ENDLINE;
+	if (opts & CATV_OPT_t)
+		flags |= VISIBLE_SHOW_TABS;
 
 	/* Read from stdin if there's nothing else to do. */
 	if (!argv[0])
@@ -50,29 +56,17 @@ int catv_main(int argc UNUSED_PARAM, char **argv)
 			res = read(fd, read_buf, COMMON_BUFSIZE);
 			if (res < 0)
 				retval = EXIT_FAILURE;
-			if (res < 1)
+			if (res <= 0)
 				break;
 			for (i = 0; i < res; i++) {
 				unsigned char c = read_buf[i];
-
-				if (c > 126 && (flags & CATV_OPT_v)) {
-					if (c == 127) {
-						printf("^?");
-						continue;
-					}
-					printf("M-");
-					c -= 128;
+				if (opts & CATV_OPT_v) {
+					putchar(c);
+				} else {
+					char buf[sizeof("M-^c")];
+					visible(c, buf, flags);
+					fputs(buf, stdout);
 				}
-				if (c < 32) {
-					if (c == 10) {
-						if (flags & CATV_OPT_e)
-							bb_putchar('$');
-					} else if (flags & (c==9 ? CATV_OPT_t : CATV_OPT_v)) {
-						printf("^%c", c+'@');
-						continue;
-					}
-				}
-				bb_putchar(c);
 			}
 		}
 		if (ENABLE_FEATURE_CLEAN_UP && fd)
