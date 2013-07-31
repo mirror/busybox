@@ -44,6 +44,34 @@ testing "awk handles empty function f(arg){}" \
 	"L1\n\nL2\n\n" \
 	"" ""
 
+prg='
+function outer_fun() {
+  return 1
+}
+END {
+  i=1
+  print "L" i "\n"
+  i += outer_fun()
+  print "L" i "\n"
+}'
+testing "awk properly handles function from other scope" \
+	"awk '$prg'" \
+	"L1\n\nL2\n\n" \
+	"" ""
+
+prg='
+END {
+  i=1
+  print "L" i "\n"
+  i + trigger_error_fun()
+  print "L" i "\n"
+}'
+testing "awk properly handles undefined function" \
+	"awk '$prg' 2>&1" \
+	"L1\n\nawk: cmd. line:5: Call to undefined function\n" \
+	"" ""
+
+
 optional DESKTOP
 testing "awk hex const 1" "awk '{ print or(0xffffffff,1) }'" "4294967295\n" "" "\n"
 testing "awk hex const 2" "awk '{ print or(0x80000000,1) }'" "2147483649\n" "" "\n"

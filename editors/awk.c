@@ -2662,7 +2662,7 @@ static var *evaluate(node *op, var *res)
 			const char *sv_progname;
 
 			/* The body might be empty, still has to eval the args */
-			if (!op->r.n->info)
+			if (!op->r.n->info && !op->r.f->body.first)
 				syntax_error(EMSG_UNDEF_FUNC);
 
 			vbeg = v = nvalloc(op->r.f->nargs + 1);
