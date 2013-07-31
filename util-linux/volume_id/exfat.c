@@ -20,6 +20,17 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_EXFAT) += exfat.o
 
+//config:
+//config:config FEATURE_VOLUMEID_EXFAT
+//config:	bool "exFAT filesystem"
+//config:	default y
+//config:	depends on VOLUMEID
+//config:	help
+//config:	  exFAT (extended FAT) is a proprietary file system designed especially
+//config:	  for flash drives. It has many features from NTFS, but with less
+//config:	  overhead. exFAT is used on most SDXC cards for consumer electronics.
+//config:
+
 #include "volume_id_internal.h"
 
 #define EXFAT_SB_OFFSET		0

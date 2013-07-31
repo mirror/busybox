@@ -21,6 +21,15 @@
 
 //kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_NILFS) += nilfs.o
 
+//config:
+//config:config FEATURE_VOLUMEID_NILFS
+//config:	bool "nilfs filesystem"
+//config:	default y
+//config:	depends on VOLUMEID
+//config:	help
+//config:	  TODO
+//config:
+
 #include "volume_id_internal.h"
 
 #define NILFS_UUID_SIZE 16

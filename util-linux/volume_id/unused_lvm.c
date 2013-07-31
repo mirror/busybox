@@ -20,6 +20,15 @@
 
 //kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_LVM) += lvm.o
 
+//config:
+//config:### config FEATURE_VOLUMEID_LVM
+//config:###	bool "lvm"
+//config:###	default y
+//config:###	depends on VOLUMEID
+//config:###	help
+//config:###	  TODO
+//config:
+
 #include "volume_id_internal.h"
 
 struct lvm1_super_block {
