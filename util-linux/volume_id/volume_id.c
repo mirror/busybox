@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:lib-$(CONFIG_VOLUMEID) += volume_id.o util.o
+
 #include "volume_id_internal.h"
 
 

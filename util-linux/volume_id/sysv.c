@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_SYSV) += sysv.o
+
 #include "volume_id_internal.h"
 
 #define SYSV_NICINOD			100

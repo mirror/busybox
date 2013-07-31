@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_PROMISERAID) += promise_raid.o
+
 #include "volume_id_internal.h"
 
 struct promise_meta {

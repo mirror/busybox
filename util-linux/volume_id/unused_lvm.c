@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:### lib-$(CONFIG_FEATURE_VOLUMEID_LVM) += lvm.o
+
 #include "volume_id_internal.h"
 
 struct lvm1_super_block {

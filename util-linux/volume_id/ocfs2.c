@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_OCFS2) += ocfs2.o
+
 #include "volume_id_internal.h"
 
 /* All these values are taken from ocfs2-tools's ocfs2_fs.h */

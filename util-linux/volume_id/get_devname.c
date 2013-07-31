@@ -7,6 +7,11 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+
+//kbuild:lib-$(CONFIG_BLKID) += get_devname.o
+//kbuild:lib-$(CONFIG_FINDFS) += get_devname.o
+//kbuild:lib-$(CONFIG_FEATURE_MOUNT_LABEL) += get_devname.o
+
 #include <sys/mount.h> /* BLKGETSIZE64 */
 #if !defined(BLKGETSIZE64)
 # define BLKGETSIZE64 _IOR(0x12,114,size_t)

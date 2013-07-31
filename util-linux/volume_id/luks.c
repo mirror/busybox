@@ -18,6 +18,8 @@
  *	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+//kbuild:lib-$(CONFIG_FEATURE_VOLUMEID_LUKS) += luks.o
+
 #include "volume_id_internal.h"
 
 #define LUKS_MAGIC_L             6
