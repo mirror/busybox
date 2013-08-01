@@ -195,6 +195,8 @@ int FAST_FUNC volume_id_probe_luks(struct volume_id *id /*,uint64_t off*/);
 
 //int FAST_FUNC volume_id_probe_msdos_part_table(struct volume_id *id /*,uint64_t off*/);
 
+int FAST_FUNC volume_id_probe_f2fs(struct volume_id *id /*,uint64_t off*/);
+
 int FAST_FUNC volume_id_probe_nilfs(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/);
