@@ -451,20 +451,24 @@ static smallint detect_link(void)
 static NOINLINE int check_existence_through_netlink(void)
 {
 	int iface_len;
-	char replybuf[1024];
+	/* Buffer was 1K, but on linux-3.9.9 it was reported to be too small.
+	 * netlink.h: "limit to 8K to avoid MSG_TRUNC when PAGE_SIZE is very large".
+	 * Note: on error returns (-1) we exit, no need to free replybuf.
+	 */
+	enum { BUF_SIZE = 8 * 1024 };
+	char *replybuf = xmalloc(BUF_SIZE);
 
 	iface_len = strlen(G.iface);
 	while (1) {
 		struct nlmsghdr *mhdr;
 		ssize_t bytes;
 
-		bytes = recv(netlink_fd, &replybuf, sizeof(replybuf), MSG_DONTWAIT);
+		bytes = recv(netlink_fd, replybuf, BUF_SIZE, MSG_DONTWAIT);
 		if (bytes < 0) {
 			if (errno == EAGAIN)
-				return G.iface_exists;
+				goto ret;
 			if (errno == EINTR)
 				continue;
-
 			bb_perror_msg("netlink: recv");
 			return -1;
 		}
@@ -507,6 +511,8 @@ static NOINLINE int check_existence_through_netlink(void)
 		}
 	}
 
+ ret:
+	free(replybuf);
 	return G.iface_exists;
 }
 
