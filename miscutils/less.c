@@ -1608,6 +1608,9 @@ static void sigwinch_handler(int sig UNUSED_PARAM)
 int less_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int less_main(int argc, char **argv)
 {
+	char *tty_name;
+	int tty_fd;
+
 	INIT_G();
 
 	/* TODO: -x: do not interpret backspace, -xx: tab also */
@@ -1637,10 +1640,28 @@ int less_main(int argc, char **argv)
 	if (option_mask32 & FLAG_TILDE)
 		empty_line_marker = "";
 
-	kbd_fd = open(CURRENT_TTY, O_RDONLY);
-	if (kbd_fd < 0)
-		return bb_cat(argv);
-	ndelay_on(kbd_fd);
+	/* Some versions of less can survive w/o controlling tty,
+	 * try to do the same. This also allows to specify an alternative
+	 * tty via "less 1<>TTY".
+	 * We don't try to use STDOUT_FILENO directly,
+	 * since we want to set this fd to non-blocking mode,
+	 * and not bother with restoring it on exit.
+	 */
+	tty_name = xmalloc_ttyname(STDOUT_FILENO);
+	if (tty_name) {
+		tty_fd = open(tty_name, O_RDONLY);
+		free(tty_name);
+		if (tty_fd < 0)
+			goto try_ctty;
+	} else {
+		/* Try controlling tty */
+ try_ctty:
+		tty_fd = open(CURRENT_TTY, O_RDONLY);
+		if (tty_fd < 0)
+			return bb_cat(argv);
+	}
+	ndelay_on(tty_fd);
+	kbd_fd = tty_fd; /* save in a global */
 
 	tcgetattr(kbd_fd, &term_orig);
 	term_less = term_orig;
