@@ -122,7 +122,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 				+ 2 * sizeof(int)*3 + /*just in case:*/ 16];
 #define path_sys_class_ubi_ubi (path + sizeof("/sys/class/ubi/ubi")-1)
 
-	strcpy(path_sys_class_ubi_ubi, "/sys/class/ubi/ubi");
+	strcpy(path, "/sys/class/ubi/ubi");
 	memset(&req_structs, 0, sizeof(req_structs));
 
 	if (do_mkvol) {
