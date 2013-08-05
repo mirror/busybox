@@ -1143,8 +1143,8 @@ static void client_background(void)
 //usage:     "\n	-p,--pidfile FILE	Create pidfile"
 //usage:     "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B,--broadcast		Request broadcast replies"
-//usage:     "\n	-t,--retries N		Send up to N discover packets"
-//usage:     "\n	-T,--timeout N		Pause between packets (default 3 seconds)"
+//usage:     "\n	-t,--retries N		Send up to N discover packets (default 3)"
+//usage:     "\n	-T,--timeout N		Pause between packets, sec (default 3)"
 //usage:     "\n	-A,--tryagain N		Wait N seconds after failure (default 20)"
 //usage:     "\n	-f,--foreground		Run in foreground"
 //usage:	USE_FOR_MMU(
@@ -1180,8 +1180,8 @@ static void client_background(void)
 //usage:     "\n	-p FILE		Create pidfile"
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B		Request broadcast replies"
-//usage:     "\n	-t N		Send up to N discover packets"
-//usage:     "\n	-T N		Pause between packets (default 3 seconds)"
+//usage:     "\n	-t N		Send up to N discover packets (default 3)"
+//usage:     "\n	-T N		Pause between packets, sec (default 3)"
 //usage:     "\n	-A N		Wait N seconds (default 20) after failure"
 //usage:     "\n	-f		Run in foreground"
 //usage:	USE_FOR_MMU(
