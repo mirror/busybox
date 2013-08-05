@@ -58,6 +58,9 @@
 #define SYSLOG_NAMES_CONST
 #include <syslog.h>
 */
+#ifndef _PATH_LOG
+#define _PATH_LOG	"/dev/log"
+#endif
 
 #include <sys/un.h>
 #include <sys/uio.h>
@@ -824,8 +827,8 @@ static NOINLINE int create_socket(void)
 
 	/* Unlink old /dev/log or object it points to. */
 	/* (if it exists, bind will fail) */
-	strcpy(sunx.sun_path, "/dev/log");
-	dev_log_name = xmalloc_follow_symlinks("/dev/log");
+	strcpy(sunx.sun_path, _PATH_LOG);
+	dev_log_name = xmalloc_follow_symlinks(_PATH_LOG);
 	if (dev_log_name) {
 		safe_strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
 		free(dev_log_name);
@@ -834,7 +837,7 @@ static NOINLINE int create_socket(void)
 
 	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
 	xbind(sock_fd, (struct sockaddr *) &sunx, sizeof(sunx));
-	chmod("/dev/log", 0666);
+	chmod(_PATH_LOG, 0666);
 
 	return sock_fd;
 }
@@ -905,7 +908,7 @@ static void do_syslogd(void)
 		sz = read(sock_fd, recvbuf, MAX_READ - 1);
 		if (sz < 0) {
 			if (!bb_got_signal)
-				bb_perror_msg("read from /dev/log");
+				bb_perror_msg("read from %s", _PATH_LOG);
 			break;
 		}
 
