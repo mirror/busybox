@@ -541,13 +541,11 @@ int FAST_FUNC bb_xioctl(int fd, unsigned request, void *argp)
 
 char* FAST_FUNC xmalloc_ttyname(int fd)
 {
-	char *buf = xzalloc(128);
-	int r = ttyname_r(fd, buf, 127);
-	if (r) {
-		free(buf);
-		buf = NULL;
-	}
-	return buf;
+	char buf[128];
+	int r = ttyname_r(fd, buf, sizeof(buf) - 1);
+	if (r)
+		return NULL;
+	return xstrdup(buf);
 }
 
 void FAST_FUNC generate_uuid(uint8_t *buf)
