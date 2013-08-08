@@ -1135,8 +1135,9 @@ static void client_background(void)
 //usage:# define IF_UDHCP_VERBOSE(...)
 //usage:#endif
 //usage:#define udhcpc_trivial_usage
-//usage:       "[-fbnq"IF_UDHCP_VERBOSE("v")"oCRB] [-i IFACE] [-r IP] [-s PROG] [-p PIDFILE]\n"
-//usage:       "	[-V VENDOR] [-x OPT:VAL]... [-O OPT]..." IF_FEATURE_UDHCP_PORT(" [-P N]")
+//usage:       "[-fbq"IF_UDHCP_VERBOSE("v")IF_FEATURE_UDHCPC_ARPING("a")"oCRB] [-t N] [-T SEC] [-A SEC/-n]\n"
+//usage:       "	[-i IFACE]"IF_FEATURE_UDHCP_PORT(" [-P PORT]")" [-r IP] [-s PROG] [-p PIDFILE]\n"
+//usage:       "	[-V VENDOR] [-x OPT:VAL]... [-O OPT]..."
 //usage:#define udhcpc_full_usage "\n"
 //usage:	IF_LONG_OPTS(
 //usage:     "\n	-i,--interface IFACE	Interface to use (default eth0)"
@@ -1144,18 +1145,18 @@ static void client_background(void)
 //usage:     "\n	-s,--script PROG	Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B,--broadcast		Request broadcast replies"
 //usage:     "\n	-t,--retries N		Send up to N discover packets (default 3)"
-//usage:     "\n	-T,--timeout N		Pause between packets, sec (default 3)"
-//usage:     "\n	-A,--tryagain N		Wait N seconds after failure (default 20)"
+//usage:     "\n	-T,--timeout SEC	Pause between packets (default 3)"
+//usage:     "\n	-A,--tryagain SEC	Wait after failure (default 20)"
+//usage:     "\n	-n,--now		Exit if lease is not obtained"
+//usage:     "\n	-q,--quit		Exit after obtaining lease"
+//usage:     "\n	-R,--release		Release IP on exit"
 //usage:     "\n	-f,--foreground		Run in foreground"
 //usage:	USE_FOR_MMU(
 //usage:     "\n	-b,--background		Background if lease is not obtained"
 //usage:	)
-//usage:     "\n	-n,--now		Exit if lease is not obtained"
-//usage:     "\n	-q,--quit		Exit after obtaining lease"
-//usage:     "\n	-R,--release		Release IP on exit"
 //usage:     "\n	-S,--syslog		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P,--client-port N	Use port N (default 68)"
+//usage:     "\n	-P,--client-port PORT	Use PORT (default 68)"
 //usage:	)
 //usage:	IF_FEATURE_UDHCPC_ARPING(
 //usage:     "\n	-a,--arping		Use arping to validate offered address"
@@ -1181,18 +1182,18 @@ static void client_background(void)
 //usage:     "\n	-s PROG		Run PROG at DHCP events (default "CONFIG_UDHCPC_DEFAULT_SCRIPT")"
 //usage:     "\n	-B		Request broadcast replies"
 //usage:     "\n	-t N		Send up to N discover packets (default 3)"
-//usage:     "\n	-T N		Pause between packets, sec (default 3)"
-//usage:     "\n	-A N		Wait N seconds (default 20) after failure"
+//usage:     "\n	-T SEC		Pause between packets (default 3)"
+//usage:     "\n	-A SEC		Wait after failure (default 20)"
+//usage:     "\n	-n		Exit if lease is not obtained"
+//usage:     "\n	-q		Exit after obtaining lease"
+//usage:     "\n	-R		Release IP on exit"
 //usage:     "\n	-f		Run in foreground"
 //usage:	USE_FOR_MMU(
 //usage:     "\n	-b		Background if lease is not obtained"
 //usage:	)
-//usage:     "\n	-n		Exit if lease is not obtained"
-//usage:     "\n	-q		Exit after obtaining lease"
-//usage:     "\n	-R		Release IP on exit"
 //usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCP_PORT(
-//usage:     "\n	-P N		Use port N (default 68)"
+//usage:     "\n	-P PORT		Use PORT (default 68)"
 //usage:	)
 //usage:	IF_FEATURE_UDHCPC_ARPING(
 //usage:     "\n	-a		Use arping to validate offered address"
