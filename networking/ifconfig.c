@@ -56,7 +56,7 @@
 #endif
 
 #if ENABLE_FEATURE_IFCONFIG_SLIP
-# include <net/if_slip.h>
+# include <linux/if_slip.h>
 #endif
 
 /* I don't know if this is needed for busybox or not.  Anyone? */
