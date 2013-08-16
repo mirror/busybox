@@ -140,7 +140,6 @@
  * not fully functional init by switching it on! */
 #define DEBUG_INIT 0
 
-#define COMMAND_SIZE      256
 #define CONSOLE_NAME_SIZE 32
 
 /* Default sysinit script. */
@@ -195,7 +194,7 @@ struct init_action {
 	pid_t pid;
 	uint8_t action_type;
 	char terminal[CONSOLE_NAME_SIZE];
-	char command[COMMAND_SIZE];
+	char command[1];
 };
 
 static struct init_action *init_action_list = NULL;
@@ -398,7 +397,7 @@ static void reset_sighandlers_and_unblock_sigs(void)
 }
 
 /* Wrapper around exec:
- * Takes string (max COMMAND_SIZE chars).
+ * Takes string.
  * If chars like '>' detected, execs '[-]/bin/sh -c "exec ......."'.
  * Otherwise splits words on whitespace, deals with leading dash,
  * and uses plain exec().
@@ -406,10 +405,15 @@ static void reset_sighandlers_and_unblock_sigs(void)
  */
 static void init_exec(const char *command)
 {
-	char *cmd[COMMAND_SIZE / 2];
-	char buf[COMMAND_SIZE + 6];  /* COMMAND_SIZE+strlen("exec ")+1 */
-	int dash = (command[0] == '-' /* maybe? && command[1] == '/' */);
+	/* +8 allows to write VLA sizes below more efficiently: */
+	unsigned command_size = strlen(command) + 8;
+	/* strlen(command) + strlen("exec ")+1: */
+	char buf[command_size];
+	/* strlen(command) / 2 + 4: */
+	char *cmd[command_size / 2];
+	int dash;
 
+	dash = (command[0] == '-' /* maybe? && command[1] == '/' */);
 	command += dash;
 
 	/* See if any special /bin/sh requiring characters are present */
@@ -626,13 +630,13 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 		nextp = &a->next;
 	}
 
-	a = xzalloc(sizeof(*a));
+	a = xzalloc(sizeof(*a) + strlen(command));
 
 	/* Append to the end of the list */
  append:
 	*nextp = a;
 	a->action_type = action_type;
-	safe_strncpy(a->command, command, sizeof(a->command));
+	strcpy(a->command, command);
 	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
 	dbg_message(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
 		a->command, a->action_type, a->terminal);
