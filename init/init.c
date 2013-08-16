@@ -638,7 +638,7 @@ static void new_init_action(uint8_t action_type, const char *command, const char
 	a->action_type = action_type;
 	strcpy(a->command, command);
 	safe_strncpy(a->terminal, cons, sizeof(a->terminal));
-	dbg_message(L_LOG | L_CONSOLE, "command='%s' action=%d tty='%s'\n",
+	dbg_message(L_LOG | L_CONSOLE, "command='%s' action=%x tty='%s'\n",
 		a->command, a->action_type, a->terminal);
 }
 
@@ -934,10 +934,17 @@ static void reload_inittab(void)
 
 	/* Remove stale entries and SYSINIT entries.
 	 * We never rerun SYSINIT entries anyway,
-	 * removing them too saves a few bytes */
+	 * removing them too saves a few bytes
+	 */
 	nextp = &init_action_list;
 	while ((a = *nextp) != NULL) {
-		if ((a->action_type & ~SYSINIT) == 0) {
+		/*
+		 * Why pid == 0 check?
+		 * Process can be removed from inittab and added *later*.
+		 * If we delete its entry but process still runs,
+		 * duplicate is spawned when the entry is re-added.
+		 */
+		if ((a->action_type & ~SYSINIT) == 0 && a->pid == 0) {
 			*nextp = a->next;
 			free(a);
 		} else {
