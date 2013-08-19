@@ -382,7 +382,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (flags & FLAG_SWAB) {
 			/* If n is odd, last byte is not swapped:
-			 *  echo -n "qwe" | dd conv=swab bs=1
+			 *  echo -n "qwe" | dd conv=swab
 			 * prints "wqe".
 			 * The code does not handle correctly odd-sized reads
 			 * in the *middle* of the input. FIXME.
