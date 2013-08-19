@@ -201,7 +201,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	};
 	int exitcode = EXIT_FAILURE;
 	size_t ibs = 512, obs = 512;
-	ssize_t n, w;
+	int i;
 	char *ibuf, *obuf;
 	/* And these are all zeroed at once! */
 	struct {
@@ -223,10 +223,10 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 	//fflush_all(); - is this needed because of NOEXEC?
 
-	for (n = 1; argv[n]; n++) {
+	for (i = 1; argv[i]; i++) {
 		int what;
 		char *val;
-		char *arg = argv[n];
+		char *arg = argv[i];
 
 #if ENABLE_DESKTOP
 		/* "dd --". NB: coreutils 6.9 will complain if they see
@@ -300,7 +300,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			outfile = val;
 			/*continue;*/
 		}
-	} /* end of "for (argv[n])" */
+	} /* end of "for (argv[i])" */
 
 //XXX:FIXME for huge ibs or obs, malloc'ing them isn't the brightest idea ever
 	ibuf = obuf = xmalloc(ibs);
@@ -347,7 +347,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	if (skip) {
 		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
 			while (skip-- > 0) {
-				n = safe_read(ifd, ibuf, ibs);
+				ssize_t n = safe_read(ifd, ibuf, ibs);
 				if (n < 0)
 					goto die_infile;
 				if (n == 0)
@@ -361,6 +361,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	while (!(flags & FLAG_COUNT) || (G.in_full + G.in_part != count)) {
+		ssize_t n;
+
 		n = safe_read(ifd, ibuf, ibs);
 		if (n == 0)
 			break;
@@ -411,7 +413,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		w = full_write_or_warn(obuf, oc, outfile);
+		ssize_t w = full_write_or_warn(obuf, oc, outfile);
 		if (w < 0) goto out_status;
 		if (w > 0) G.out_part++;
 	}
