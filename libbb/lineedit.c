@@ -1763,7 +1763,7 @@ static void ask_terminal(void)
 static void parse_and_put_prompt(const char *prmt_ptr)
 {
 	cmdedit_prompt = prmt_ptr;
-	cmdedit_prmt_len = strlen(prmt_ptr);
+	cmdedit_prmt_len = unicode_strlen(prmt_ptr);
 	put_prompt();
 }
 #else
@@ -1781,7 +1781,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 	char c;
 	char *pbuf;
 
-	cmdedit_prmt_len = 0;
+	/*cmdedit_prmt_len = 0; - already is */
 
 	cbuf[1] = '\0'; /* never changes */
 
@@ -1915,7 +1915,8 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 				}
 				case '[': case ']':
 					if (c == flg_not_length) {
-						flg_not_length = (flg_not_length == '[' ? ']' : '[');
+						/* Toggle '['/']' hex 5b/5d */
+						flg_not_length ^= 6;
 						continue;
 					}
 					break;
@@ -1925,8 +1926,13 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 		cbuf[0] = c;
 		cur_prmt_len = strlen(pbuf);
 		prmt_len += cur_prmt_len;
-		if (flg_not_length != ']')
+		if (flg_not_length != ']') {
+#if 0 /*ENABLE_UNICODE_SUPPORT - won't work, pbuf is one BYTE string here. FIXME */
+			cmdedit_prmt_len += unicode_strlen(pbuf);
+#else
 			cmdedit_prmt_len += cur_prmt_len;
+#endif
+		}
 		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_len+1), pbuf);
 		free(free_me);
 	} /* while */
@@ -1996,7 +2002,15 @@ static int lineedit_read_key(char *read_key_buffer, int timeout)
 			S.sent_ESC_br6n = 0;
 			if (cursor == 0) { /* otherwise it may be bogus */
 				int col = ((ic >> 32) & 0x7fff) - 1;
-				if (col > cmdedit_prmt_len) {
+				/*
+				 * Is col > cmdedit_prmt_len?
+				 * If yes (terminal says cursor is farther to the right
+				 * of where we think it should be),
+				 * the prompt wasn't printed starting at col 1,
+				 * there was additional text before it.
+				 */
+				if ((int)(col - cmdedit_prmt_len) > 0) {
+					/* Fix our understanding of current x position */
 					cmdedit_x += (col - cmdedit_prmt_len);
 					while (cmdedit_x >= cmdedit_termw) {
 						cmdedit_x -= cmdedit_termw;
@@ -2087,6 +2101,7 @@ static int32_t reverse_i_search(void)
 	char read_key_buffer[KEYCODE_BUFFER_SIZE];
 	const char *matched_history_line;
 	const char *saved_prompt;
+	unsigned saved_prmt_len;
 	int32_t ic;
 
 	matched_history_line = NULL;
@@ -2095,6 +2110,7 @@ static int32_t reverse_i_search(void)
 
 	/* Save and replace the prompt */
 	saved_prompt = cmdedit_prompt;
+	saved_prmt_len = cmdedit_prmt_len;
 	goto set_prompt;
 
 	while (1) {
@@ -2170,7 +2186,7 @@ static int32_t reverse_i_search(void)
 					free((char*)cmdedit_prompt);
  set_prompt:
 					cmdedit_prompt = xasprintf("(reverse-i-search)'%s': ", match_buf);
-					cmdedit_prmt_len = strlen(cmdedit_prompt);
+					cmdedit_prmt_len = unicode_strlen(cmdedit_prompt);
 					goto do_redraw;
 				}
 			}
@@ -2192,7 +2208,7 @@ static int32_t reverse_i_search(void)
 
 	free((char*)cmdedit_prompt);
 	cmdedit_prompt = saved_prompt;
-	cmdedit_prmt_len = strlen(cmdedit_prompt);
+	cmdedit_prmt_len = saved_prmt_len;
 	redraw(cmdedit_y, command_len - cursor);
 
 	return ic;
