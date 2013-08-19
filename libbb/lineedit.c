@@ -38,6 +38,14 @@
  * and the \] escape to signal the end of such a sequence. Example:
  *
  * PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
+ *
+ * Unicode in PS1 is not fully supported: prompt length calulation is wrong,
+ * resulting in line wrap problems with long (multi-line) input.
+ *
+ * Multi-line PS1 (e.g. PS1="\n[\w]\n$ ") has problems with history
+ * browsing: up/down arrows result in scrolling.
+ * It stems from simplistic "cmdedit_y = cmdedit_prmt_len / cmdedit_termw"
+ * calculation of how many lines the prompt takes.
  */
 #include "libbb.h"
 #include "unicode.h"
@@ -1759,34 +1767,36 @@ static void ask_terminal(void)
 #define ask_terminal() ((void)0)
 #endif
 
+/* Called just once at read_line_input() init time */
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void parse_and_put_prompt(const char *prmt_ptr)
 {
+	const char *p;
 	cmdedit_prompt = prmt_ptr;
-	cmdedit_prmt_len = unicode_strlen(prmt_ptr);
+	p = strrchr(prmt_ptr, '\n');
+	cmdedit_prmt_len = unicode_strlen(p ? p+1 : prmt_ptr);
 	put_prompt();
 }
 #else
 static void parse_and_put_prompt(const char *prmt_ptr)
 {
-	int prmt_len = 0;
-	size_t cur_prmt_len = 0;
-	char flg_not_length = '[';
+	int prmt_size = 0;
 	char *prmt_mem_ptr = xzalloc(1);
 # if ENABLE_USERNAME_OR_HOMEDIR
 	char *cwd_buf = NULL;
 # endif
-	char timebuf[sizeof("HH:MM:SS")];
+	char flg_not_length = '[';
 	char cbuf[2];
-	char c;
-	char *pbuf;
 
 	/*cmdedit_prmt_len = 0; - already is */
 
 	cbuf[1] = '\0'; /* never changes */
 
 	while (*prmt_ptr) {
+		char timebuf[sizeof("HH:MM:SS")];
 		char *free_me = NULL;
+		char *pbuf;
+		char c;
 
 		pbuf = cbuf;
 		c = *prmt_ptr++;
@@ -1924,16 +1934,22 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 			} /* if */
 		} /* if */
 		cbuf[0] = c;
-		cur_prmt_len = strlen(pbuf);
-		prmt_len += cur_prmt_len;
-		if (flg_not_length != ']') {
-#if 0 /*ENABLE_UNICODE_SUPPORT - won't work, pbuf is one BYTE string here. FIXME */
-			cmdedit_prmt_len += unicode_strlen(pbuf);
+		{
+			int n = strlen(pbuf);
+			prmt_size += n;
+			if (c == '\n')
+				cmdedit_prmt_len = 0;
+			else if (flg_not_length != ']') {
+#if 0 /*ENABLE_UNICODE_SUPPORT*/
+/* Won't work, pbuf is one BYTE string here instead of an one Unicode char string. */
+/* FIXME */
+				cmdedit_prmt_len += unicode_strlen(pbuf);
 #else
-			cmdedit_prmt_len += cur_prmt_len;
+				cmdedit_prmt_len += n;
 #endif
+			}
 		}
-		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_len+1), pbuf);
+		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_size+1), pbuf);
 		free(free_me);
 	} /* while */
 
