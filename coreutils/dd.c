@@ -363,13 +363,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (skip) {
 		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
-			while (skip-- > 0) {
+			do {
 				ssize_t n = safe_read(ifd, ibuf, ibs);
 				if (n < 0)
 					goto die_infile;
 				if (n == 0)
 					break;
-			}
+			} while (--skip != 0);
 		}
 	}
 	if (seek) {
