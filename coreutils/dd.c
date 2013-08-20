@@ -395,7 +395,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			n = 0;
 		}
 		if (flags & FLAG_SWAB) {
-			uint16_t *p16, *end;
+			uint16_t *p16;
+			ssize_t n2;
 
 			/* Our code allows only last read to be odd-sized */
 			if (prev_read_size & 1)
@@ -408,8 +409,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			 * prints "wqe".
 			 */
 			p16 = (void*) ibuf;
-			end = (void*) (ibuf + (n & ~(ssize_t)1));
-			while (p16 < end) {
+			n2 = (n >> 1);
+			while (--n2 >= 0) {
 				*p16 = bswap_16(*p16);
 				p16++;
 			}
