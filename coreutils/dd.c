@@ -403,12 +403,9 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 						(unsigned long)prev_read_size);
 			prev_read_size = n;
 
-			/*
-			 * If n is odd, last byte is not swapped:
+			/* If n is odd, last byte is not swapped:
 			 *  echo -n "qwe" | dd conv=swab
 			 * prints "wqe".
-			 * The code does not handle correctly odd-sized reads
-			 * in the *middle* of the input. FIXME.
 			 */
 			p16 = (void*) ibuf;
 			end = (void*) (ibuf + (n & ~(ssize_t)1));
