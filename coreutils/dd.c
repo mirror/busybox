@@ -151,13 +151,13 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	enum {
 		/* Must be in the same order as OP_conv_XXX! */
 		/* (see "flags |= (1 << what)" below) */
-		FLAG_NOTRUNC = 1 << 0,
-		FLAG_SYNC    = 1 << 1,
-		FLAG_NOERROR = 1 << 2,
-		FLAG_FSYNC   = 1 << 3,
-		FLAG_SWAB    = 1 << 4,
+		FLAG_NOTRUNC = (1 << 0) * ENABLE_FEATURE_DD_IBS_OBS,
+		FLAG_SYNC    = (1 << 1) * ENABLE_FEATURE_DD_IBS_OBS,
+		FLAG_NOERROR = (1 << 2) * ENABLE_FEATURE_DD_IBS_OBS,
+		FLAG_FSYNC   = (1 << 3) * ENABLE_FEATURE_DD_IBS_OBS,
+		FLAG_SWAB    = (1 << 4) * ENABLE_FEATURE_DD_IBS_OBS,
 		/* end of conv flags */
-		FLAG_TWOBUFS = 1 << 5,
+		FLAG_TWOBUFS = (1 << 5) * ENABLE_FEATURE_DD_IBS_OBS,
 		FLAG_COUNT   = 1 << 6,
 	};
 	static const char keywords[] ALIGN1 =
@@ -202,7 +202,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	//swab          swap every pair of input bytes: will abort on non-even reads
 #endif
 	};
-	int exitcode = EXIT_FAILURE;
+	smallint exitcode = EXIT_FAILURE;
 	size_t ibs = 512, obs = 512;
 	int i;
 	char *ibuf, *obuf;
@@ -210,12 +210,14 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	struct {
 		int flags;
 		size_t oc;
+		ssize_t prev_read_size; /* for detecting swab failure */
 		off_t count;
 		off_t seek, skip;
 		const char *infile, *outfile;
 	} Z;
 #define flags   (Z.flags  )
 #define oc      (Z.oc     )
+#define prev_read_size (Z.prev_read_size)
 #define count   (Z.count  )
 #define seek    (Z.seek   )
 #define skip    (Z.skip   )
@@ -381,14 +383,23 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			n = 0;
 		}
 		if (flags & FLAG_SWAB) {
-			/* If n is odd, last byte is not swapped:
+			uint16_t *p16, *end;
+
+			/* Our code allows only last read to be odd-sized */
+			if (prev_read_size & 1)
+				bb_error_msg_and_die("can't swab %lu byte buffer",
+						(unsigned long)prev_read_size);
+			prev_read_size = n;
+
+			/*
+			 * If n is odd, last byte is not swapped:
 			 *  echo -n "qwe" | dd conv=swab
 			 * prints "wqe".
 			 * The code does not handle correctly odd-sized reads
 			 * in the *middle* of the input. FIXME.
 			 */
-			uint16_t *p16 = (void*) ibuf;
-			uint16_t *end = (void*) (ibuf + (n & ~(ssize_t)1));
+			p16 = (void*) ibuf;
+			end = (void*) (ibuf + (n & ~(ssize_t)1));
 			while (p16 < end) {
 				*p16 = bswap_16(*p16);
 				p16++;
