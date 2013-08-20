@@ -440,8 +440,10 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 					oc = 0;
 				}
 			}
-		} else if (write_and_stats(ibuf, n, obs, outfile))
-			goto out_status;
+		} else {
+			if (write_and_stats(ibuf, n, obs, outfile))
+				goto out_status;
+		}
 
 		if (flags & FLAG_FSYNC) {
 			if (fsync(ofd) < 0)
@@ -450,9 +452,8 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		ssize_t w = full_write_or_warn(obuf, oc, outfile);
-		if (w < 0) goto out_status;
-		if (w > 0) G.out_part++;
+		if (write_and_stats(obuf, oc, obs, outfile))
+			goto out_status;
 	}
 	if (close(ifd) < 0) {
  die_infile:
