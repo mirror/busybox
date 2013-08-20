@@ -1774,7 +1774,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 	const char *p;
 	cmdedit_prompt = prmt_ptr;
 	p = strrchr(prmt_ptr, '\n');
-	cmdedit_prmt_len = unicode_strlen(p ? p+1 : prmt_ptr);
+	cmdedit_prmt_len = unicode_strwidth(p ? p+1 : prmt_ptr);
 	put_prompt();
 }
 #else
@@ -1943,7 +1943,7 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 #if 0 /*ENABLE_UNICODE_SUPPORT*/
 /* Won't work, pbuf is one BYTE string here instead of an one Unicode char string. */
 /* FIXME */
-				cmdedit_prmt_len += unicode_strlen(pbuf);
+				cmdedit_prmt_len += unicode_strwidth(pbuf);
 #else
 				cmdedit_prmt_len += n;
 #endif
@@ -2202,7 +2202,7 @@ static int32_t reverse_i_search(void)
 					free((char*)cmdedit_prompt);
  set_prompt:
 					cmdedit_prompt = xasprintf("(reverse-i-search)'%s': ", match_buf);
-					cmdedit_prmt_len = unicode_strlen(cmdedit_prompt);
+					cmdedit_prmt_len = unicode_strwidth(cmdedit_prompt);
 					goto do_redraw;
 				}
 			}
