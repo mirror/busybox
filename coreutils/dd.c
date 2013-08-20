@@ -203,10 +203,17 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	};
 	smallint exitcode = EXIT_FAILURE;
-	size_t ibs = 512, obs = 512;
 	int i;
-	char *ibuf, *obuf;
-	/* And these are all zeroed at once! */
+	size_t ibs = 512;
+	char *ibuf;
+#if ENABLE_FEATURE_DD_IBS_OBS
+	size_t obs = 512;
+	char *obuf;
+#else
+# define obs  ibs
+# define obuf ibuf
+#endif
+	/* These are all zeroed at once! */
 	struct {
 		int flags;
 		size_t oc;
@@ -260,6 +267,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		}
 		if (what == OP_conv) {
 			while (1) {
+				int n;
 				/* find ',', replace them with NUL so we can use val for
 				 * index_in_strings() without copying.
 				 * We rely on val being non-null, else strchr would fault.
@@ -267,20 +275,21 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 				arg = strchr(val, ',');
 				if (arg)
 					*arg = '\0';
-				what = index_in_strings(conv_words, val);
-				if (what < 0)
+				n = index_in_strings(conv_words, val);
+				if (n < 0)
 					bb_error_msg_and_die(bb_msg_invalid_arg, val, "conv");
-				flags |= (1 << what);
+				flags |= (1 << n);
 				if (!arg) /* no ',' left, so this was the last specifier */
 					break;
 				/* *arg = ','; - to preserve ps listing? */
 				val = arg + 1; /* skip this keyword and ',' */
 			}
-			continue; /* we trashed 'what', can't fall through */
+			/*continue;*/
 		}
 #endif
 		if (what == OP_bs) {
-			ibs = obs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, dd_suffixes);
+			ibs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, dd_suffixes);
+			obs = ibs;
 			/*continue;*/
 		}
 		/* These can be large: */
@@ -308,11 +317,14 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	} /* end of "for (argv[i])" */
 
 //XXX:FIXME for huge ibs or obs, malloc'ing them isn't the brightest idea ever
-	ibuf = obuf = xmalloc(ibs);
+	ibuf = xmalloc(ibs);
+	obuf = ibuf;
+#if ENABLE_FEATURE_DD_IBS_OBS
 	if (ibs != obs) {
 		flags |= FLAG_TWOBUFS;
 		obuf = xmalloc(obs);
 	}
+#endif
 
 #if ENABLE_FEATURE_DD_SIGNAL_HANDLING
 	signal_SA_RESTART_empty_mask(SIGUSR1, dd_output_status);
@@ -321,12 +333,12 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	G.begin_time_us = monotonic_us();
 #endif
 
-	if (infile != NULL)
+	if (infile) {
 		xmove_fd(xopen(infile, O_RDONLY), ifd);
-	else {
+	} else {
 		infile = bb_msg_standard_input;
 	}
-	if (outfile != NULL) {
+	if (outfile) {
 		int oflag = O_WRONLY | O_CREAT;
 
 		if (!seek && !(flags & FLAG_NOTRUNC))
