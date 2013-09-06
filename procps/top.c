@@ -847,7 +847,7 @@ static void display_topmem_header(int scr_width, int *lines_rem_p)
 static void ulltoa6_and_space(unsigned long long ul, char buf[6])
 {
 	/* see http://en.wikipedia.org/wiki/Tera */
-	smart_ulltoa5(ul, buf, " mgtpezy")[0] = '\0';
+	smart_ulltoa5(ul, buf, " mgtpezy")[0] = ' ';
 }
 
 static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
