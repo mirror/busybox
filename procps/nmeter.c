@@ -333,8 +333,7 @@ static void scale(ullong ul)
 	char buf[5];
 
 	/* see http://en.wikipedia.org/wiki/Tera */
-	smart_ulltoa4(ul, buf, " kmgtpezy");
-	buf[4] = '\0';
+	smart_ulltoa4(ul, buf, " kmgtpezy")[0] = '\0';
 	put(buf);
 }
 

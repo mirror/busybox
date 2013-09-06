@@ -627,7 +627,6 @@ static void show_timerstats(void)
 		int i, n = 0;
 		char strbuf6[6];
 
-		strbuf6[5] = '\0';
 		puts("\nTop causes for wakeups:");
 		for (i = 0; i < G.lines_cnt; i++) {
 			if ((G.lines[i].count > 0 /*|| G.lines[i].disk_count > 0*/)
@@ -639,7 +638,7 @@ static void show_timerstats(void)
 				/*char c = ' ';
 				if (G.lines[i].disk_count)
 					c = 'D';*/
-				smart_ulltoa5(G.lines[i].count, strbuf6, " KMGTPEZY");
+				smart_ulltoa5(G.lines[i].count, strbuf6, " KMGTPEZY")[0] = '\0';
 				printf(/*" %5.1f%% (%s)%c  %s\n"*/
 					" %5.1f%% (%s)   %s\n",
 					G.lines[i].count * 100.0 / G.lines_cumulative_count,

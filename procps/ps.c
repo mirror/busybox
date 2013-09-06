@@ -299,8 +299,7 @@ static void put_lu(char *buf, int size, unsigned long u)
 	char buf4[5];
 
 	/* see http://en.wikipedia.org/wiki/Tera */
-	smart_ulltoa4(u, buf4, " mgtpezy");
-	buf4[4] = '\0';
+	smart_ulltoa4(u, buf4, " mgtpezy")[0] = '\0';
 	sprintf(buf, "%.*s", size, buf4);
 }
 
@@ -740,8 +739,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 		{
 			char buf6[6];
-			smart_ulltoa5(p->vsz, buf6, " mgtpezy");
-			buf6[5] = '\0';
+			smart_ulltoa5(p->vsz, buf6, " mgtpezy")[0] = '\0';
 #if ENABLE_FEATURE_PS_LONG
 			if (opts & OPT_l) {
 				char bufr[6], stime_str[6];
@@ -752,8 +750,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 				time_t start = now - elapsed;
 				struct tm *tm = localtime(&start);
 
-				smart_ulltoa5(p->rss, bufr, " mgtpezy");
-				bufr[5] = '\0';
+				smart_ulltoa5(p->rss, bufr, " mgtpezy")[0] = '\0';
 
 				if (p->tty_major == 136)
 					/* It should be pts/N, not ptsN, but N > 9

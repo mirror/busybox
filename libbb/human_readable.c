@@ -94,7 +94,7 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long val,
 
 /* Convert unsigned long long value into compact 5-char representation.
  * String is not terminated (buf[5] is untouched) */
-void FAST_FUNC smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale)
+char* FAST_FUNC smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale)
 {
 	const char *fmt;
 	char c;
@@ -145,12 +145,13 @@ void FAST_FUNC smart_ulltoa5(unsigned long long ul, char buf[5], const char *sca
 		buf[3] = "0123456789"[v];
 		buf[4] = scale[idx]; /* typically scale = " kmgt..." */
 	}
+	return buf + 5;
 }
 
 /* Convert unsigned long long value into compact 4-char
  * representation. Examples: "1234", "1.2k", " 27M", "123T"
  * String is not terminated (buf[4] is untouched) */
-void FAST_FUNC smart_ulltoa4(unsigned long long ul, char buf[4], const char *scale)
+char* FAST_FUNC smart_ulltoa4(unsigned long long ul, char buf[4], const char *scale)
 {
 	const char *fmt;
 	char c;
@@ -194,4 +195,5 @@ void FAST_FUNC smart_ulltoa4(unsigned long long ul, char buf[4], const char *sca
 		buf[2] = "0123456789"[v];
 		buf[3] = scale[idx]; /* typically scale = " kmgt..." */
 	}
+	return buf + 4;
 }

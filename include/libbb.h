@@ -815,8 +815,8 @@ char *itoa(int n) FAST_FUNC;
 char *utoa_to_buf(unsigned n, char *buf, unsigned buflen) FAST_FUNC;
 char *itoa_to_buf(int n, char *buf, unsigned buflen) FAST_FUNC;
 /* Intelligent formatters of bignums */
-void smart_ulltoa4(unsigned long long ul, char buf[4], const char *scale) FAST_FUNC;
-void smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
+char *smart_ulltoa4(unsigned long long ul, char buf[4], const char *scale) FAST_FUNC;
+char *smart_ulltoa5(unsigned long long ul, char buf[5], const char *scale) FAST_FUNC;
 /* If block_size == 0, display size without fractional part,
  * else display (size * block_size) with one decimal digit.
  * If display_unit == 0, show value no bigger than 1024 with suffix (K,M,G...),
