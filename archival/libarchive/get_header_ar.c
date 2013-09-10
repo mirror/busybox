@@ -59,6 +59,11 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	if (ar.formatted.magic[0] != '`' || ar.formatted.magic[1] != '\n')
 		bb_error_msg_and_die("invalid ar header");
 
+	/*
+	 * Note that the fields MUST be read in reverse order as
+	 * read_num() clobbers the next byte after the field!
+	 * Order is: name, date, uid, gid, mode, size, magic.
+	 */
 	typed->size = size = read_num(ar.formatted.size, 10,
 				      sizeof(ar.formatted.size));
 
@@ -91,8 +96,6 @@ char FAST_FUNC get_header_ar(archive_handle_t *archive_handle)
 	/* Only size is always present, the rest may be missing in
 	 * long filename pseudo file. Thus we decode the rest
 	 * after dealing with long filename pseudo file.
-	 * Note that the fields MUST be read in reverse order as
-	 * read_num() clobbers the next byte after the field!
 	 */
 	typed->mode = read_num(ar.formatted.mode, 8, sizeof(ar.formatted.mode));
 	typed->gid = read_num(ar.formatted.gid, 10, sizeof(ar.formatted.gid));
