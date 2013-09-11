@@ -1105,16 +1105,21 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 	/* NB: breaking out of this loop jumps to log_and_exit() */
 	out_cnt = 0;
 	while (1) {
-		memset(pfd, 0, sizeof(pfd));
+		/* Note: even pfd[0].events == 0 won't prevent
+		 * revents == POLLHUP|POLLERR reports from closed stdin.
+		 * This works: */
+		pfd[0].fd = -1;
 
 		pfd[FROM_CGI].fd = fromCgi_rd;
 		pfd[FROM_CGI].events = POLLIN;
 
-		if (toCgi_wr) {
-			pfd[TO_CGI].fd = toCgi_wr;
-			if (hdr_cnt > 0) {
-				pfd[TO_CGI].events = POLLOUT;
-			} else if (post_len > 0) {
+		pfd[TO_CGI].fd = toCgi_wr;
+		pfd[TO_CGI].events = POLLOUT;
+
+		if (toCgi_wr && hdr_cnt <= 0) {
+			if (post_len > 0) {
+				/* Expect more POST data from network */
+				pfd[0].fd = 0;
 				pfd[0].events = POLLIN;
 			} else {
 				/* post_len <= 0 && hdr_cnt <= 0:
@@ -1127,7 +1132,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 		}
 
 		/* Now wait on the set of sockets */
-		count = safe_poll(pfd, toCgi_wr ? TO_CGI+1 : FROM_CGI+1, -1);
+		count = safe_poll(pfd, hdr_cnt > 0 ? TO_CGI+1 : FROM_CGI+1, -1);
 		if (count <= 0) {
 #if 0
 			if (safe_waitpid(pid, &status, WNOHANG) <= 0) {
@@ -1144,7 +1149,7 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 		}
 
 		if (pfd[TO_CGI].revents) {
-			/* hdr_cnt > 0 here due to the way pfd[TO_CGI].events set */
+			/* hdr_cnt > 0 here due to the way poll() called */
 			/* Have data from peer and can write to CGI */
 			count = safe_write(toCgi_wr, hdr_ptr, hdr_cnt);
 			/* Doesn't happen, we dont use nonblocking IO here
