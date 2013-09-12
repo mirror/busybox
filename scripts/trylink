@@ -117,7 +117,7 @@ LDLIBS=`echo "$LDLIBS" | xargs -n1 | sort | uniq | xargs`
 # First link with all libs. If it fails, bail out
 echo "Trying libraries: $LDLIBS"
 # "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
-l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+l_list=`echo " $LDLIBS " | sed -e 's: \([^- ][^ ]*\): -l\1:g'`
 test "x$l_list" != "x" && l_list="$START_GROUP $l_list $END_GROUP"
 try $CC $CFLAGS $LDFLAGS \
 	-o $EXE \
@@ -141,7 +141,7 @@ while test "$LDLIBS"; do
     for one in $LDLIBS; do
 	without_one=`echo " $LDLIBS " | sed "s/ $one / /g" | xargs`
 	# "lib1 lib2 lib3" -> "-llib1 -llib2 -llib3"
-	l_list=`echo "$without_one" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+	l_list=`echo " $without_one " | sed -e 's: \([^- ][^ ]*\): -l\1:g'`
 	test x"$l_list" != x"" && l_list="$START_GROUP $l_list $END_GROUP"
 	$debug && echo "Trying -l options: '$l_list'"
 	try $CC $CFLAGS $LDFLAGS \
@@ -172,7 +172,7 @@ done
 
 # Make the binary with final, minimal list of libs
 echo "Final link with: ${LDLIBS:-<none>}"
-l_list=`echo "$LDLIBS" | sed -e 's/ / -l/g' -e 's/^/-l/' -e 's/^-l$//'`
+l_list=`echo " $LDLIBS " | sed -e 's: \([^- ][^ ]*\): -l\1:g'`
 test "x$l_list" != "x" && l_list="$START_GROUP $l_list $END_GROUP"
 # --verbose gives us gobs of info to stdout (e.g. linker script used)
 if ! test -f busybox_ldscript; then
