@@ -1104,23 +1104,31 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 
 	/* NB: breaking out of this loop jumps to log_and_exit() */
 	out_cnt = 0;
+	pfd[FROM_CGI].fd = fromCgi_rd;
+	pfd[FROM_CGI].events = POLLIN;
+	pfd[TO_CGI].fd = toCgi_wr;
 	while (1) {
 		/* Note: even pfd[0].events == 0 won't prevent
 		 * revents == POLLHUP|POLLERR reports from closed stdin.
-		 * This works: */
+		 * Setting fd to -1 works: */
 		pfd[0].fd = -1;
+		pfd[0].events = POLLIN;
+		pfd[0].revents = 0; /* probably not needed, paranoia */
 
-		pfd[FROM_CGI].fd = fromCgi_rd;
-		pfd[FROM_CGI].events = POLLIN;
+		/* We always poll this fd, thus kernel always sets revents: */
+		/*pfd[FROM_CGI].events = POLLIN; - moved out of loop */
+		/*pfd[FROM_CGI].revents = 0; - not needed */
 
-		pfd[TO_CGI].fd = toCgi_wr;
+		/* gcc-4.8.0 still doesnt fill two shorts with one insn :( */
+		/* http://gcc.gnu.org/bugzilla/show_bug.cgi?id=47059 */
+		/* hopefully one day it will... */
 		pfd[TO_CGI].events = POLLOUT;
+		pfd[TO_CGI].revents = 0; /* needed! */
 
 		if (toCgi_wr && hdr_cnt <= 0) {
 			if (post_len > 0) {
 				/* Expect more POST data from network */
 				pfd[0].fd = 0;
-				pfd[0].events = POLLIN;
 			} else {
 				/* post_len <= 0 && hdr_cnt <= 0:
 				 * no more POST data to CGI,
