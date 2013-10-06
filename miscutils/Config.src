@@ -591,13 +591,6 @@ config VOLNAME
 	help
 	  Prints a CD-ROM volume name.
 
-config WALL
-	bool "wall"
-	default y
-	depends on FEATURE_UTMP
-	help
-	  Write a message to all users that are logged in.
-
 config WATCHDOG
 	bool "watchdog"
 	default y

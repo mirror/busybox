@@ -407,8 +407,6 @@ IF_VCONFIG(APPLET(vconfig, BB_DIR_SBIN, BB_SUID_DROP))
 /* Needs to be run by root or be suid root - needs to change uid and gid: */
 IF_VLOCK(APPLET(vlock, BB_DIR_USR_BIN, BB_SUID_REQUIRE))
 IF_VOLNAME(APPLET(volname, BB_DIR_USR_BIN, BB_SUID_DROP))
-/* Needs to be run by root or be suid root - needs to write to /dev/TTY: */
-IF_WALL(APPLET(wall, BB_DIR_USR_BIN, BB_SUID_REQUIRE))
 IF_WATCH(APPLET(watch, BB_DIR_BIN, BB_SUID_DROP))
 IF_WATCHDOG(APPLET(watchdog, BB_DIR_SBIN, BB_SUID_DROP))
 IF_WC(APPLET(wc, BB_DIR_USR_BIN, BB_SUID_DROP))
