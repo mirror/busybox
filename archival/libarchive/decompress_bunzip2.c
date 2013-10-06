@@ -42,6 +42,12 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
+#if 0
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
 /* Constants for Huffman coding */
 #define MAX_GROUPS          6
 #define GROUP_SIZE          50      /* 64 would have been more efficient */
@@ -52,13 +58,13 @@
 
 /* Status return values */
 #define RETVAL_OK                       0
-#define RETVAL_LAST_BLOCK               (-1)
-#define RETVAL_NOT_BZIP_DATA            (-2)
-#define RETVAL_UNEXPECTED_INPUT_EOF     (-3)
-#define RETVAL_SHORT_WRITE              (-4)
-#define RETVAL_DATA_ERROR               (-5)
-#define RETVAL_OUT_OF_MEMORY            (-6)
-#define RETVAL_OBSOLETE_INPUT           (-7)
+#define RETVAL_LAST_BLOCK               (dbg("%d", __LINE__), -1)
+#define RETVAL_NOT_BZIP_DATA            (dbg("%d", __LINE__), -2)
+#define RETVAL_UNEXPECTED_INPUT_EOF     (dbg("%d", __LINE__), -3)
+#define RETVAL_SHORT_WRITE              (dbg("%d", __LINE__), -4)
+#define RETVAL_DATA_ERROR               (dbg("%d", __LINE__), -5)
+#define RETVAL_OUT_OF_MEMORY            (dbg("%d", __LINE__), -6)
+#define RETVAL_OBSOLETE_INPUT           (dbg("%d", __LINE__), -7)
 
 /* Other housekeeping constants */
 #define IOBUF_SIZE          4096
@@ -440,7 +446,11 @@ static int get_next_block(bunzip_data *bd)
 		   literal used is the one at the head of the mtfSymbol array.) */
 		if (runPos != 0) {
 			uint8_t tmp_byte;
-			if (dbufCount + runCnt >= dbufSize) return RETVAL_DATA_ERROR;
+			if (dbufCount + runCnt > dbufSize) {
+				dbg("dbufCount:%d+runCnt:%d %d > dbufSize:%d RETVAL_DATA_ERROR",
+						dbufCount, runCnt, dbufCount + runCnt, dbufSize);
+				return RETVAL_DATA_ERROR;
+			}
 			tmp_byte = symToByte[mtfSymbol[0]];
 			byteCount[tmp_byte] += runCnt;
 			while (--runCnt >= 0) dbuf[dbufCount++] = (uint32_t)tmp_byte;
