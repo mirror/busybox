@@ -140,15 +140,6 @@ int FAST_FUNC xopen(const char *pathname, int flags)
 	return xopen3(pathname, flags, 0666);
 }
 
-/* Die if we can't open an existing file readonly with O_NONBLOCK
- * and return the fd.
- * Note that for ioctl O_RDONLY is sufficient.
- */
-int FAST_FUNC xopen_nonblocking(const char *pathname)
-{
-	return xopen(pathname, O_RDONLY | O_NONBLOCK);
-}
-
 // Warn if we can't open a file and return a fd.
 int FAST_FUNC open3_or_warn(const char *pathname, int flags, int mode)
 {
@@ -165,6 +156,32 @@ int FAST_FUNC open3_or_warn(const char *pathname, int flags, int mode)
 int FAST_FUNC open_or_warn(const char *pathname, int flags)
 {
 	return open3_or_warn(pathname, flags, 0666);
+}
+
+/* Die if we can't open an existing file readonly with O_NONBLOCK
+ * and return the fd.
+ * Note that for ioctl O_RDONLY is sufficient.
+ */
+int FAST_FUNC xopen_nonblocking(const char *pathname)
+{
+	return xopen(pathname, O_RDONLY | O_NONBLOCK);
+}
+
+int FAST_FUNC xopen_as_uid_gid(const char *pathname, int flags, uid_t u, gid_t g)
+{
+	int fd;
+	uid_t old_euid = geteuid();
+	gid_t old_egid = getegid();
+
+	xsetegid(g);
+	xseteuid(u);
+
+	fd = xopen(pathname, flags);
+
+	xseteuid(old_euid);
+	xsetegid(old_egid);
+
+	return fd;
 }
 
 void FAST_FUNC xunlink(const char *pathname)
@@ -349,6 +366,16 @@ void FAST_FUNC xsetgid(gid_t gid)
 void FAST_FUNC xsetuid(uid_t uid)
 {
 	if (setuid(uid)) bb_perror_msg_and_die("setuid");
+}
+
+void FAST_FUNC xsetegid(gid_t egid)
+{
+	if (setegid(egid)) bb_perror_msg_and_die("setegid");
+}
+
+void FAST_FUNC xseteuid(uid_t euid)
+{
+	if (seteuid(euid)) bb_perror_msg_and_die("seteuid");
 }
 
 // Die if we can't chdir to a new path.
