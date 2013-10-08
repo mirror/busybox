@@ -41,11 +41,7 @@ int wall_main(int argc UNUSED_PARAM, char **argv)
 		/* The applet is setuid.
 		 * Access to the file must be under user's uid/gid.
 		 */
-		setfsuid(getuid());
-		setfsgid(getgid());
-		fd = xopen(argv[1], O_RDONLY);
-		setfsuid(geteuid());
-		setfsgid(getegid());
+		fd = xopen_as_uid_gid(argv[1], O_RDONLY, getuid(), getgid());
 	}
 	msg = xmalloc_read(fd, NULL);
 	if (ENABLE_FEATURE_CLEAN_UP && argv[1])
