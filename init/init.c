@@ -9,11 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
-//applet:IF_INIT(APPLET(init, BB_DIR_SBIN, BB_SUID_DROP))
-//applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, BB_DIR_ROOT, BB_SUID_DROP, linuxrc))
-
-//kbuild:lib-$(CONFIG_INIT) += init.o
-
 //config:config INIT
 //config:	bool "init"
 //config:	default y
@@ -107,6 +102,11 @@
 //config:
 //config:	  Note that on Linux, init attempts to detect serial terminal and
 //config:	  sets TERM to "vt102" if one is found.
+
+//applet:IF_INIT(APPLET(init, BB_DIR_SBIN, BB_SUID_DROP))
+//applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, BB_DIR_ROOT, BB_SUID_DROP, linuxrc))
+
+//kbuild:lib-$(CONFIG_INIT) += init.o
 
 #define DEBUG_SEGV_HANDLER 0
 
@@ -1230,7 +1230,14 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define init_trivial_usage
 //usage:       ""
 //usage:#define init_full_usage "\n\n"
-//usage:       "Init is the parent of all processes"
+//usage:       "Init is the first process started during boot. It never exits."
+//usage:	IF_FEATURE_USE_INITTAB(
+//usage:   "\n""It (re)spawns children according to /etc/inittab."
+//usage:	)
+//usage:	IF_NOT_FEATURE_USE_INITTAB(
+//usage:   "\n""This version of init doesn't use /etc/inittab,"
+//usage:   "\n""has fixed set of processed to run."
+//usage:	)
 //usage:
 //usage:#define init_notes_usage
 //usage:	"This version of init is designed to be run only by the kernel.\n"
