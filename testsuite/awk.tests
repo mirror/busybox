@@ -274,6 +274,11 @@ testing "awk large integer" \
 	"2147483647 2147483647 0 2147483648 2147483648 0\n" \
 	"" ""
 
+testing "awk length(array)" \
+	"awk 'BEGIN{ A[1]=2; A["qwe"]="asd"; print length(A)}'" \
+	"2\n" \
+	"" ""
+
 # testing "description" "command" "result" "infile" "stdin"
 
 exit $FAILCOUNT

@@ -2784,8 +2784,16 @@ static var *evaluate(node *op, var *res)
 				break;
 
 			case F_le:
-				if (!op1)
+				debug_printf_eval("length: L.s:'%s'\n", L.s);
+				if (!op1) {
 					L.s = getvar_s(intvar[F0]);
+					debug_printf_eval("length: L.s='%s'\n", L.s);
+				}
+				else if (L.v->type & VF_ARRAY) {
+					R_d = L.v->x.array->nel;
+					debug_printf_eval("length: array_len:%d\n", L.v->x.array->nel);
+					break;
+				}
 				R_d = strlen(L.s);
 				break;
 
