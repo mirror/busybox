@@ -970,16 +970,18 @@ config FEATURE_WGET_LONG_OPTIONS
 	  Support long options for the wget applet.
 
 config FEATURE_WGET_TIMEOUT
-	bool "Enable read timeout option -T SEC"
+	bool "Enable timeout option -T SEC"
 	default y
 	depends on WGET
 	help
-	  Supports network read timeout for wget, so that wget will give
-	  up and timeout when reading network data, through the -T command
-	  line option.  Currently only network data read timeout is
-	  supported (i.e., timeout is not applied to the DNS nor TCP
-	  connection initialization).  When FEATURE_WGET_LONG_OPTIONS is
-	  also enabled, the --timeout option will work in addition to -T.
+	  Supports network read and connect timeouts for wget,
+	  so that wget will give up and timeout, through the -T
+	  command line option.
+
+	  Currently only connect and network data read timeout are
+	  supported (i.e., timeout is not applied to the DNS query). When
+	  FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
+	  will work in addition to -T.
 
 config ZCIP
 	bool "zcip"
