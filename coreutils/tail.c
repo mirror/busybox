@@ -105,6 +105,7 @@ int tail_main(int argc, char **argv)
 
 	int *fds;
 	const char *fmt;
+	int prev_fd;
 
 	INIT_G();
 
@@ -309,6 +310,7 @@ int tail_main(int argc, char **argv)
 			xwrite(STDOUT_FILENO, tailbuf, taillen);
 		}
 	} while (++i < nfiles);
+	prev_fd = fds[i-1];
 
 	tailbuf = xrealloc(tailbuf, BUFSIZ);
 
@@ -365,9 +367,10 @@ int tail_main(int argc, char **argv)
 				nread = tail_read(fd, tailbuf, BUFSIZ);
 				if (nread <= 0)
 					break;
-				if (fmt) {
+				if (fmt && (fd != prev_fd)) {
 					tail_xprint_header(fmt, filename);
 					fmt = NULL;
+					prev_fd = fd;
 				}
 				xwrite(STDOUT_FILENO, tailbuf, nread);
 			}
