@@ -169,7 +169,6 @@ Exit Codes
 //usage:       "pause, cont, hup, alarm, interrupt, quit, 1, 2, term, kill: send\n"
 //usage:       "STOP, CONT, HUP, ALRM, INT, QUIT, USR1, USR2, TERM, KILL signal to service"
 
-#include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"
 #include "runit_lib.h"

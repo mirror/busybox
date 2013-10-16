@@ -142,7 +142,6 @@ log message, you can use a pattern like this instead
 //usage:   "\n""+,-PATTERN - (de)select line for logging"
 //usage:   "\n""E,ePATTERN - (de)select line for stderr"
 
-#include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"
 #include "runit_lib.h"

@@ -32,12 +32,12 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
-/* There are two incompatible basename's, let not use them! */
+/* There are two incompatible basename's, let's not use them! */
 /* See the dirname/basename man page for details */
 #include <libgen.h> /* dirname,basename */
 #undef basename
 #define basename dont_use_basename
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>

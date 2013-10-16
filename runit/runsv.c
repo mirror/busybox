@@ -33,7 +33,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //usage:#define runsv_full_usage "\n\n"
 //usage:       "Start and monitor a service and optionally an appendant log service"
 
-#include <sys/poll.h>
 #include <sys/file.h>
 #include "libbb.h"
 #include "runit_lib.h"
