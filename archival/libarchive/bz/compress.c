@@ -501,14 +501,14 @@ void sendMTFValues(EState* s)
 		for (i = 0; i < 16; i++) {
 			if (sizeof(long) <= 4) {
 				inUse16 = inUse16*2 +
-					((*(uint32_t*)&(s->inUse[i * 16 + 0])
-					| *(uint32_t*)&(s->inUse[i * 16 + 4])
-					| *(uint32_t*)&(s->inUse[i * 16 + 8])
-					| *(uint32_t*)&(s->inUse[i * 16 + 12])) != 0);
+					((*(bb__aliased_uint32_t*)&(s->inUse[i * 16 + 0])
+					| *(bb__aliased_uint32_t*)&(s->inUse[i * 16 + 4])
+					| *(bb__aliased_uint32_t*)&(s->inUse[i * 16 + 8])
+					| *(bb__aliased_uint32_t*)&(s->inUse[i * 16 + 12])) != 0);
 			} else { /* Our CPU can do better */
 				inUse16 = inUse16*2 +
-					((*(uint64_t*)&(s->inUse[i * 16 + 0])
-					| *(uint64_t*)&(s->inUse[i * 16 + 8])) != 0);
+					((*(bb__aliased_uint64_t*)&(s->inUse[i * 16 + 0])
+					| *(bb__aliased_uint64_t*)&(s->inUse[i * 16 + 8])) != 0);
 			}
 		}
 

@@ -59,7 +59,7 @@
 struct globals {
 	char **names;
 	int    cur;
-	char  *cmd[1];
+	char  *cmd[2 /* using 1 provokes compiler warning */];
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define names (G.names)

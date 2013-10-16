@@ -516,7 +516,7 @@ static void sendping6(int junk UNUSED_PARAM)
 	pkt->icmp6_id = myid;
 
 	/*if (datalen >= 4)*/
-		*(uint32_t*)(&pkt->icmp6_data8[4]) = monotonic_us();
+		*(bb__aliased_uint32_t*)(&pkt->icmp6_data8[4]) = monotonic_us();
 
 	//TODO? pkt->icmp_cksum = inet_cksum(...);
 
