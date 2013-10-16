@@ -89,6 +89,9 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 } while (0)
+#define FINI_G() do { \
+	FREE_PTR_TO_GLOBALS(); \
+} while (0)
 
 
 /* Must match option string! */
@@ -1012,6 +1015,11 @@ int wget_main(int argc UNUSED_PARAM, char **argv)
 
 	if (G.output_fd >= 0)
 		xclose(G.output_fd);
+
+#if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_WGET_LONG_OPTIONS
+	free(G.extra_headers);
+#endif
+	FINI_G();
 
 	return EXIT_SUCCESS;
 }

@@ -1773,6 +1773,11 @@ extern struct globals *const ptr_to_globals;
 	(*(struct globals**)&ptr_to_globals) = (void*)(x); \
 	barrier(); \
 } while (0)
+#define FREE_PTR_TO_GLOBALS() do { \
+	if (ENABLE_FEATURE_CLEAN_UP) { \
+		free(ptr_to_globals); \
+	} \
+} while (0)
 
 /* You can change LIBBB_DEFAULT_LOGIN_SHELL, but don't use it,
  * use bb_default_login_shell and following defines.
