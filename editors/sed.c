@@ -1435,15 +1435,21 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	IF_LONG_OPTS(applet_long_options = sed_longopts);
 
 	/* -i must be first, to match OPT_in_place definition */
-	opt = getopt32(argv, "i::rne:f:", &opt_i, &opt_e, &opt_f,
+	/* -E is a synonym of -r:
+	 * GNU sed 4.2.1 mentions it in neither --help
+	 * nor manpage, but does recognize it.
+	 */
+	opt = getopt32(argv, "i::rEne:f:", &opt_i, &opt_e, &opt_f,
 			    &G.be_quiet); /* counter for -n */
 	//argc -= optind;
 	argv += optind;
 	if (opt & OPT_in_place) { // -i
 		atexit(cleanup_outname);
 	}
-	if (opt & 0x2) G.regex_type |= REG_EXTENDED; // -r
-	//if (opt & 0x4) G.be_quiet++; // -n
+	if (opt & (2|4))
+		G.regex_type |= REG_EXTENDED; // -r or -E
+	//if (opt & 8)
+	//	G.be_quiet++; // -n (implemented with a counter instead)
 	while (opt_e) { // -e
 		add_cmd_block(llist_pop(&opt_e));
 	}
@@ -1458,7 +1464,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 		fclose(cmdfile);
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[0] */
-	if (!(opt & 0x18)) {
+	if (!(opt & 0x30)) {
 		if (!*argv)
 			bb_show_usage();
 		add_cmd_block(*argv++);
