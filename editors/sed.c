@@ -848,7 +848,7 @@ static sed_cmd_t *branch_to(char *label)
 
 static void append(char *s)
 {
-	llist_add_to_end(&G.append_head, xstrdup(s));
+	llist_add_to_end(&G.append_head, s);
 }
 
 static void flush_append(void)
@@ -1181,7 +1181,7 @@ static void process_files(void)
 
 		/* Append line to linked list to be printed later */
 		case 'a':
-			append(sed_cmd->string);
+			append(xstrdup(sed_cmd->string));
 			break;
 
 		/* Insert text before this line */
@@ -1203,11 +1203,10 @@ static void process_files(void)
 			rfile = fopen_for_read(sed_cmd->string);
 			if (rfile) {
 				char *line;
-
 				while ((line = xmalloc_fgetline(rfile))
 						!= NULL)
 					append(line);
-				xprint_and_close_file(rfile);
+				fclose(rfile);
 			}
 
 			break;
