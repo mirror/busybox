@@ -154,11 +154,9 @@ testing "sed selective matches insert newline" \
 testing "sed selective matches noinsert newline" \
 	"sed -ne 's/woo/bang/p' input -" "a bang\nb bang" "a woo\nb woo" \
 	"c no\nd no"
-test x"$SKIP_KNOWN_BUGS" = x"" && {
 testing "sed clusternewline" \
 	"sed -e '/one/a 111' -e '/two/i 222' -e p input -" \
 	"one\none\n111\n222\ntwo\ntwo" "one" "two"
-}
 testing "sed subst+write" \
 	"sed -e 's/i/z/' -e 'woutputw' input -; $ECHO -n X; cat outputw" \
 	"thzngy\nagaznXthzngy\nagazn" "thingy" "again"

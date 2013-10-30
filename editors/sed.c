@@ -851,37 +851,79 @@ static void append(char *s)
 	llist_add_to_end(&G.append_head, s);
 }
 
-static void flush_append(void)
-{
-	char *data;
-
-	/* Output appended lines. */
-	while ((data = (char *)llist_pop(&G.append_head))) {
-		fprintf(G.nonstdout, "%s\n", data);
-		free(data);
-	}
-}
-
-static void add_input_file(FILE *file)
-{
-	G.input_file_list = xrealloc_vector(G.input_file_list, 2, G.input_file_count);
-	G.input_file_list[G.input_file_count++] = file;
-}
-
-/* Get next line of input from G.input_file_list, flushing append buffer and
- * noting if we ran out of files without a newline on the last line we read.
+/* Output line of text. */
+/* Note:
+ * The tricks with NO_EOL_CHAR and last_puts_char are there to emulate gnu sed.
+ * Without them, we had this:
+ * echo -n thingy >z1
+ * echo -n again >z2
+ * >znull
+ * sed "s/i/z/" z1 z2 znull | hexdump -vC
+ * output:
+ * gnu sed 4.1.5:
+ * 00000000  74 68 7a 6e 67 79 0a 61  67 61 7a 6e              |thzngy.agazn|
+ * bbox:
+ * 00000000  74 68 7a 6e 67 79 61 67  61 7a 6e                 |thzngyagazn|
  */
 enum {
 	NO_EOL_CHAR = 1,
 	LAST_IS_NUL = 2,
 };
-static char *get_next_line(char *gets_char)
+static void puts_maybe_newline(char *s, FILE *file, char *last_puts_char, char last_gets_char)
+{
+	char lpc = *last_puts_char;
+
+	/* Need to insert a '\n' between two files because first file's
+	 * last line wasn't terminated? */
+	if (lpc != '\n' && lpc != '\0') {
+		fputc('\n', file);
+		lpc = '\n';
+	}
+	fputs(s, file);
+
+	/* 'x' - just something which is not '\n', '\0' or NO_EOL_CHAR */
+	if (s[0])
+		lpc = 'x';
+
+	/* had trailing '\0' and it was last char of file? */
+	if (last_gets_char == LAST_IS_NUL) {
+		fputc('\0', file);
+		lpc = 'x'; /* */
+	} else
+	/* had trailing '\n' or '\0'? */
+	if (last_gets_char != NO_EOL_CHAR) {
+		fputc(last_gets_char, file);
+		lpc = last_gets_char;
+	}
+
+	if (ferror(file)) {
+		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
+		bb_error_msg_and_die(bb_msg_write_error);
+	}
+	*last_puts_char = lpc;
+}
+
+static void flush_append(char *last_puts_char, char last_gets_char)
+{
+	char *data;
+
+	/* Output appended lines. */
+	while ((data = (char *)llist_pop(&G.append_head))) {
+		puts_maybe_newline(data, G.nonstdout, last_puts_char, last_gets_char);
+		free(data);
+	}
+}
+
+/* Get next line of input from G.input_file_list, flushing append buffer and
+ * noting if we ran out of files without a newline on the last line we read.
+ */
+static char *get_next_line(char *gets_char, char *last_puts_char, char last_gets_char)
 {
 	char *temp = NULL;
 	int len;
 	char gc;
 
-	flush_append();
+	flush_append(last_puts_char, last_gets_char);
 
 	/* will be returned if last line in the file
 	 * doesn't end with either '\n' or '\0' */
@@ -925,54 +967,6 @@ static char *get_next_line(char *gets_char)
 	return temp;
 }
 
-/* Output line of text. */
-/* Note:
- * The tricks with NO_EOL_CHAR and last_puts_char are there to emulate gnu sed.
- * Without them, we had this:
- * echo -n thingy >z1
- * echo -n again >z2
- * >znull
- * sed "s/i/z/" z1 z2 znull | hexdump -vC
- * output:
- * gnu sed 4.1.5:
- * 00000000  74 68 7a 6e 67 79 0a 61  67 61 7a 6e              |thzngy.agazn|
- * bbox:
- * 00000000  74 68 7a 6e 67 79 61 67  61 7a 6e                 |thzngyagazn|
- */
-static void puts_maybe_newline(char *s, FILE *file, char *last_puts_char, char last_gets_char)
-{
-	char lpc = *last_puts_char;
-
-	/* Need to insert a '\n' between two files because first file's
-	 * last line wasn't terminated? */
-	if (lpc != '\n' && lpc != '\0') {
-		fputc('\n', file);
-		lpc = '\n';
-	}
-	fputs(s, file);
-
-	/* 'x' - just something which is not '\n', '\0' or NO_EOL_CHAR */
-	if (s[0])
-		lpc = 'x';
-
-	/* had trailing '\0' and it was last char of file? */
-	if (last_gets_char == LAST_IS_NUL) {
-		fputc('\0', file);
-		lpc = 'x'; /* */
-	} else
-	/* had trailing '\n' or '\0'? */
-	if (last_gets_char != NO_EOL_CHAR) {
-		fputc(last_gets_char, file);
-		lpc = last_gets_char;
-	}
-
-	if (ferror(file)) {
-		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
-		bb_error_msg_and_die(bb_msg_write_error);
-	}
-	*last_puts_char = lpc;
-}
-
 #define sed_puts(s, n) (puts_maybe_newline(s, G.nonstdout, &last_puts_char, n))
 
 static int beg_match(sed_cmd_t *sed_cmd, const char *pattern_space)
@@ -995,7 +989,7 @@ static void process_files(void)
 	int substituted;
 
 	/* Prime the pump */
-	next_line = get_next_line(&next_gets_char);
+	next_line = get_next_line(&next_gets_char, &last_puts_char, '\n' /*last_gets_char*/);
 
 	/* Go through every line in each file */
  again:
@@ -1009,7 +1003,7 @@ static void process_files(void)
 
 	/* Read one line in advance so we can act on the last line,
 	 * the '$' address */
-	next_line = get_next_line(&next_gets_char);
+	next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
 	linenum++;
 
 	/* For every line, go through all the commands */
@@ -1227,7 +1221,7 @@ static void process_files(void)
 				free(pattern_space);
 				pattern_space = next_line;
 				last_gets_char = next_gets_char;
-				next_line = get_next_line(&next_gets_char);
+				next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
 				substituted = 0;
 				linenum++;
 				break;
@@ -1263,7 +1257,7 @@ static void process_files(void)
 			pattern_space[len] = '\n';
 			strcpy(pattern_space + len+1, next_line);
 			last_gets_char = next_gets_char;
-			next_line = get_next_line(&next_gets_char);
+			next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
 			linenum++;
 			break;
 		}
@@ -1367,7 +1361,7 @@ static void process_files(void)
 
 	/* Delete and such jump here. */
  discard_line:
-	flush_append();
+	flush_append(&last_puts_char, last_gets_char);
 	free(pattern_space);
 
 	goto again;
@@ -1392,6 +1386,12 @@ static void add_cmd_block(char *cmdstr)
 		cmdstr = eol + 1;
 	} while (eol);
 	free(sv);
+}
+
+static void add_input_file(FILE *file)
+{
+	G.input_file_list = xrealloc_vector(G.input_file_list, 2, G.input_file_count);
+	G.input_file_list[G.input_file_count++] = file;
 }
 
 int sed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
