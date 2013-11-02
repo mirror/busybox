@@ -60,6 +60,12 @@
 # endif
 #endif
 
+#if !ENABLE_TAR && !ENABLE_WERROR
+# warning Note: bootchartd requires tar command, but you did not select it.
+#elif !ENABLE_FEATURE_SEAMLESS_GZ && !ENABLE_WERROR
+# warning Note: bootchartd requires tar -z support, but you did not select it.
+#endif
+
 #define BC_VERSION_STR "0.8"
 
 /* For debugging, set to 0:
