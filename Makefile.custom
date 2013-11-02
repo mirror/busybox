@@ -74,6 +74,10 @@ release: distclean
 		-print \
 		-exec rm -r -f {} \; ; \
 	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type f \
+		-name .gitignore \
+		-print \
+		-exec rm -f {} \; ; \
+	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type f \
 		-name .\#* \
 		-print \
 		-exec rm -f {} \; ; \
