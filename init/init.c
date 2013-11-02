@@ -222,8 +222,8 @@ static void message(int where, const char *fmt, ...)
 	msg[0] = '\r';
 	va_start(arguments, fmt);
 	l = 1 + vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments);
-	if (l > sizeof(msg) - 1)
-		l = sizeof(msg) - 1;
+	if (l > sizeof(msg) - 2)
+		l = sizeof(msg) - 2;
 	va_end(arguments);
 
 #if ENABLE_FEATURE_INIT_SYSLOG
