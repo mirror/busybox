@@ -667,6 +667,15 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
 		client_config.ifindex);
 }
 
+static int bcast_or_ucast(struct dhcp_packet *packet, uint32_t ciaddr, uint32_t server)
+{
+	if (server)
+		return udhcp_send_kernel_packet(packet,
+			ciaddr, CLIENT_PORT,
+			server, SERVER_PORT);
+	return raw_bcast_from_client_config_ifindex(packet);
+}
+
 /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
 /* NOINLINE: limit stack usage in caller */
 static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
@@ -773,11 +782,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
 	add_client_options(&packet);
 
 	bb_info_msg("Sending renew...");
-	if (server)
-		return udhcp_send_kernel_packet(&packet,
-			ciaddr, CLIENT_PORT,
-			server, SERVER_PORT);
-	return raw_bcast_from_client_config_ifindex(&packet);
+	return bcast_or_ucast(&packet, ciaddr, server);
 }
 
 #if ENABLE_FEATURE_UDHCPC_ARPING
@@ -826,7 +831,11 @@ static int send_release(uint32_t server, uint32_t ciaddr)
 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
 
 	bb_info_msg("Sending release...");
-	return udhcp_send_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+	/* Note: normally we unicast here since "server" is not zero.
+	 * However, there _are_ people who run "address-less" DHCP servers,
+	 * and reportedly ISC dhcp client and Windows allow that.
+	 */
+	return bcast_or_ucast(&packet, ciaddr, server);
 }
 
 /* Returns -1 on errors that are fatal for the socket, -2 for those that aren't */
@@ -1648,14 +1657,19 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
  * might work too.
  * "Next server" and router are definitely wrong ones to use, though...
  */
+/* We used to ignore pcakets without DHCP_SERVER_ID.
+ * I've got user reports from people who run "address-less" servers.
+ * They either supply DHCP_SERVER_ID of 0.0.0.0 or don't supply it at all.
+ * They say ISC DHCP client supports this case.
+ */
+				server_addr = 0;
 				temp = udhcp_get_option(&packet, DHCP_SERVER_ID);
 				if (!temp) {
-					bb_error_msg("no server ID, ignoring packet");
-					continue;
-					/* still selecting - this server looks bad */
+					bb_error_msg("no server ID, using 0.0.0.0");
+				} else {
+					/* it IS unaligned sometimes, don't "optimize" */
+					move_from_unaligned32(server_addr, temp);
 				}
-				/* it IS unaligned sometimes, don't "optimize" */
-				move_from_unaligned32(server_addr, temp);
 				/*xid = packet.xid; - already is */
 				requested_ip = packet.yiaddr;
 
