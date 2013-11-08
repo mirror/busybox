@@ -13012,7 +13012,10 @@ init(void)
 		}
 
 		setvar2("PPID", utoa(getppid()));
-
+#if ENABLE_ASH_BASH_COMPAT
+		p = lookupvar("SHLVL");
+		setvar2("SHLVL", utoa(p ? atoi(p) + 1 : 1));
+#endif
 		p = lookupvar("PWD");
 		if (p) {
 			if (*p != '/' || stat(p, &st1) || stat(".", &st2)
