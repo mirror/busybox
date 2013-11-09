@@ -103,6 +103,7 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 
 		if (opts & OPT_v)
 			printf("%s: %llu bytes were trimmed\n", bd, range.len);
+		return EXIT_SUCCESS;
 	}
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
