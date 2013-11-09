@@ -60,9 +60,7 @@ int fstrim_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int fstrim_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct fstrim_range range;
-	char *arg_o;
-	char *arg_l;
-	char *arg_m;
+	char *arg_o, *arg_l, *arg_m, *bd;
 	unsigned opts;
 	int fd;
 
@@ -96,16 +94,15 @@ int fstrim_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & OPT_m)
 		range.minlen = xatoull_sfx(arg_m, fstrim_sfx);
 
-	if (find_block_device(argv[optind])) {
-		fd = xopen_nonblocking(argv[optind]);
+	bd = find_block_device(*(argv += optind));
+	if (bd) {
+		fd = xopen_nonblocking(bd);
 		xioctl(fd, FITRIM, &range);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			close(fd);
 
 		if (opts & OPT_v)
-			printf("%s: %llu bytes were trimmed\n", argv[optind], range.len);
+			printf("%s: %llu bytes were trimmed\n", bd, range.len);
 	}
-
 	return EXIT_SUCCESS;
 }
-
