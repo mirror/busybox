@@ -246,13 +246,6 @@ config FSCK_MINIX
 	  check for and attempt to repair any corruption that occurs to a minix
 	  filesystem.
 
-config FSTRIM
-	bool "fstrim"
-	default y
-	select PLATFORM_LINUX
-	help
-	  Discard unused blocks on a mounted filesystem.
-
 config MKFS_EXT2
 	bool "mkfs_ext2"
 	default y
