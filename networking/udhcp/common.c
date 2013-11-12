@@ -62,6 +62,7 @@ const struct dhcp_optflag dhcp_optflags[] = {
 	{ OPTION_U16                              , 0x84 }, /* DHCP_VLAN_ID       */
 	{ OPTION_U8                               , 0x85 }, /* DHCP_VLAN_PRIORITY */
 #endif
+	{ OPTION_STRING                           , 0xd1 }, /* DHCP_PXE_CONF_FILE */
 	{ OPTION_6RD                              , 0xd4 }, /* DHCP_6RD           */
 	{ OPTION_STATIC_ROUTES | OPTION_LIST      , 0xf9 }, /* DHCP_MS_STATIC_ROUTES */
 	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
@@ -128,6 +129,7 @@ const char dhcp_option_strings[] ALIGN1 =
 	"vlanid" "\0"      /* DHCP_VLAN_ID        */
 	"vlanpriority" "\0"/* DHCP_VLAN_PRIORITY  */
 #endif
+	"pxeconffile" "\0" /* DHCP_PXE_CONF_FILE  */
 	"ip6rd" "\0"       /* DHCP_6RD            */
 	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
 	"wpad" "\0"        /* DHCP_WPAD           */
