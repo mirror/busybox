@@ -96,8 +96,9 @@ static int do_em_all(void)
 			 || hasmntopt(m, MNTOPT_NOAUTO) == NULL
 			) {
 #if ENABLE_FEATURE_SWAPON_PRI
+				char *p;
 				g_flags = 0; /* each swap space might have different flags */
-				char *p = hasmntopt(m,"pri");
+				p = hasmntopt(m, "pri");
 				if (p) {
 					/* Max allowed 32767 (==SWAP_FLAG_PRIO_MASK) */
 					unsigned int swap_prio = MIN(bb_strtou(p + 4 , NULL, 10), SWAP_FLAG_PRIO_MASK);
