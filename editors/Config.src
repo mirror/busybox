@@ -7,21 +7,6 @@ menu "Editors"
 
 INSERT
 
-config AWK
-	bool "awk"
-	default y
-	help
-	  Awk is used as a pattern scanning and processing language. This is
-	  the BusyBox implementation of that programming language.
-
-config FEATURE_AWK_LIBM
-	bool "Enable math functions (requires libm)"
-	default y
-	depends on AWK
-	help
-	  Enable math functions of the Awk programming language.
-	  NOTE: This will require libm to be present for linking.
-
 config CMP
 	bool "cmp"
 	default y

@@ -7,12 +7,45 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//config:config AWK
+//config:	bool "awk"
+//config:	default y
+//config:	help
+//config:	  Awk is used as a pattern scanning and processing language. This is
+//config:	  the BusyBox implementation of that programming language.
+//config:
+//config:config FEATURE_AWK_LIBM
+//config:	bool "Enable math functions (requires libm)"
+//config:	default y
+//config:	depends on AWK
+//config:	help
+//config:	  Enable math functions of the Awk programming language.
+//config:	  NOTE: This will require libm to be present for linking.
+//config:
+//config:config FEATURE_AWK_GNU_EXTENSIONS
+//config:	bool "Enable a few GNU extensions"
+//config:	default y
+//config:	depends on AWK
+//config:	help
+//config:	  Enable a few features from gawk:
+//config:	  * command line option -e AWK_PROGRAM
+//config:	  * simultaneous use of -f and -e on the command line.
+//config:	    This enables the use of awk library files.
+//config:	    Ex: awk -f mylib.awk -e '{print myfunction($1);}' ...
+
+//applet:IF_AWK(APPLET_NOEXEC(awk, awk, BB_DIR_USR_BIN, BB_SUID_DROP, awk))
+
+//kbuild:lib-$(CONFIG_AWK) += awk.o
+
 //usage:#define awk_trivial_usage
 //usage:       "[OPTIONS] [AWK_PROGRAM] [FILE]..."
 //usage:#define awk_full_usage "\n\n"
 //usage:       "	-v VAR=VAL	Set variable"
 //usage:     "\n	-F SEP		Use SEP as field separator"
 //usage:     "\n	-f FILE		Read program from FILE"
+//usage:	IF_FEATURE_AWK_GNU_EXTENSIONS(
+//usage:     "\n	-e AWK_PROGRAM"
+//usage:	)
 
 #include "libbb.h"
 #include "xregex.h"
@@ -38,6 +71,25 @@
 #endif
 
 
+#define OPTSTR_AWK \
+	"F:v:f:" \
+	IF_FEATURE_AWK_GNU_EXTENSIONS("e:") \
+	"W:"
+#define OPTCOMPLSTR_AWK \
+	"v::f::" \
+	IF_FEATURE_AWK_GNU_EXTENSIONS("e::")
+enum {
+	OPTBIT_F,	/* define field separator */
+	OPTBIT_v,	/* define variable */
+	OPTBIT_f,	/* pull in awk program from file */
+	IF_FEATURE_AWK_GNU_EXTENSIONS(OPTBIT_e,) /* -e AWK_PROGRAM */
+	OPTBIT_W,	/* -W ignored */
+	OPT_F = 1 << OPTBIT_F,
+	OPT_v = 1 << OPTBIT_v,
+	OPT_f = 1 << OPTBIT_f,
+	OPT_e = IF_FEATURE_AWK_GNU_EXTENSIONS((1 << OPTBIT_e)) + 0,
+	OPT_W = 1 << OPTBIT_W
+};
 
 #define	MAXVARFMT       240
 #define	MINNVBLOCK      64
@@ -3087,6 +3139,9 @@ int awk_main(int argc, char **argv)
 	char *opt_F;
 	llist_t *list_v = NULL;
 	llist_t *list_f = NULL;
+#if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
+	llist_t *list_e = NULL;
+#endif
 	int i, j;
 	var *v;
 	var tv;
@@ -3145,11 +3200,11 @@ int awk_main(int argc, char **argv)
 			*s1 = '=';
 		}
 	}
-	opt_complementary = "v::f::"; /* -v and -f can occur multiple times */
-	opt = getopt32(argv, "F:v:f:W:", &opt_F, &list_v, &list_f, NULL);
+	opt_complementary = OPTCOMPLSTR_AWK;
+	opt = getopt32(argv, OPTSTR_AWK, &opt_F, &list_v, &list_f, IF_FEATURE_AWK_GNU_EXTENSIONS(&list_e,) NULL);
 	argv += optind;
 	argc -= optind;
-	if (opt & 0x1) { /* -F */
+	if (opt & OPT_F) { /* -F */
 		unescape_string_in_place(opt_F);
 		setvar_s(intvar[FS], opt_F);
 	}
@@ -3157,31 +3212,35 @@ int awk_main(int argc, char **argv)
 		if (!is_assignment(llist_pop(&list_v)))
 			bb_show_usage();
 	}
-	if (list_f) { /* -f */
-		do {
-			char *s = NULL;
-			FILE *from_file;
+	while (list_f) { /* -f */
+		char *s = NULL;
+		FILE *from_file;
 
-			g_progname = llist_pop(&list_f);
-			from_file = xfopen_stdin(g_progname);
-			/* one byte is reserved for some trick in next_token */
-			for (i = j = 1; j > 0; i += j) {
-				s = xrealloc(s, i + 4096);
-				j = fread(s + i, 1, 4094, from_file);
-			}
-			s[i] = '\0';
-			fclose(from_file);
-			parse_program(s + 1);
-			free(s);
-		} while (list_f);
-		argc++;
-	} else { // no -f: take program from 1st parameter
-		if (!argc)
-			bb_show_usage();
-		g_progname = "cmd. line";
-		parse_program(*argv++);
+		g_progname = llist_pop(&list_f);
+		from_file = xfopen_stdin(g_progname);
+		/* one byte is reserved for some trick in next_token */
+		for (i = j = 1; j > 0; i += j) {
+			s = xrealloc(s, i + 4096);
+			j = fread(s + i, 1, 4094, from_file);
+		}
+		s[i] = '\0';
+		fclose(from_file);
+		parse_program(s + 1);
+		free(s);
 	}
-	if (opt & 0x8) // -W
+	g_progname = "cmd. line";
+#if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
+	while (list_e) { /* -e */
+		parse_program(llist_pop(&list_e));
+	}
+#endif
+	if (!(opt & (OPT_f | OPT_e))) {
+		if (!*argv)
+			bb_show_usage();
+		parse_program(*argv++);
+		argc++;
+	}
+	if (opt & OPT_W) // -W
 		bb_error_msg("warning: option -W is ignored");
 
 	/* fill in ARGV array */
