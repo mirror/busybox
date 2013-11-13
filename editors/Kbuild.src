@@ -7,7 +7,3 @@
 lib-y:=
 
 INSERT
-lib-$(CONFIG_CMP)       += cmp.o
-lib-$(CONFIG_DIFF)      += diff.o
-lib-$(CONFIG_ED)        += ed.o
-lib-$(CONFIG_SED)       += sed.o

@@ -58,6 +58,17 @@
  * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/sed.html
  */
 
+//config:config SED
+//config:	bool "sed"
+//config:	default y
+//config:	help
+//config:	  sed is used to perform text transformations on a file
+//config:	  or input from a pipeline.
+
+//kbuild:lib-$(CONFIG_SED) += sed.o
+
+//applet:IF_SED(APPLET(sed, BB_DIR_BIN, BB_SUID_DROP))
+
 //usage:#define sed_trivial_usage
 //usage:       "[-inrE] [-f FILE]... [-e CMD]... [FILE]...\n"
 //usage:       "or: sed [-inrE] CMD [FILE]..."
