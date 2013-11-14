@@ -42,6 +42,8 @@
  * This doesn't feel right, and IIRC GNU tar doesn't do that.
  */
 
+//kbuild:lib-$(CONFIG_TAR) += tar.o
+
 #include <fnmatch.h>
 #include "libbb.h"
 #include "bb_archive.h"

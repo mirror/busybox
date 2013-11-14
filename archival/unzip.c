@@ -9,15 +9,15 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* For reference see
  * http://www.pkware.com/company/standards/appnote/
  * http://www.info-zip.org/pub/infozip/doc/appnote-iz-latest.zip
- */
-
-/* TODO
+ *
+ * TODO
  * Zip64 + other methods
  */
+
+//kbuild:lib-$(CONFIG_UNZIP) += unzip.o
 
 //usage:#define unzip_trivial_usage
 //usage:       "[-lnopq] FILE[.zip] [FILE]... [-x FILE...] [-d DIR]"

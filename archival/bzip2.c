@@ -7,6 +7,8 @@
  * about bzip2 library code.
  */
 
+//kbuild:lib-$(CONFIG_BZIP2) += bzip2.o
+
 //usage:#define bzip2_trivial_usage
 //usage:       "[OPTIONS] [FILE]..."
 //usage:#define bzip2_full_usage "\n\n"

@@ -5,6 +5,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//kbuild:lib-$(CONFIG_DPKG_DEB) += dpkg_deb.o
+
 //usage:#define dpkg_deb_trivial_usage
 //usage:       "[-cefxX] FILE [argument"
 //usage:#define dpkg_deb_full_usage "\n\n"

@@ -7,6 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//kbuild:lib-$(CONFIG_RPM) += rpm.o
+
 //usage:#define rpm_trivial_usage
 //usage:       "-i PACKAGE.rpm; rpm -qp[ildc] PACKAGE.rpm"
 //usage:#define rpm_full_usage "\n\n"

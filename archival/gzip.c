@@ -39,6 +39,8 @@ gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
 
+//kbuild:lib-$(CONFIG_GZIP) += gzip.o
+
 //usage:#define gzip_trivial_usage
 //usage:       "[-cfd] [FILE]..."
 //usage:#define gzip_full_usage "\n\n"

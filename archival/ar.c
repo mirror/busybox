@@ -17,6 +17,8 @@
  * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
 
+//kbuild:lib-$(CONFIG_AR) += ar.o
+
 //usage:#define ar_trivial_usage
 //usage:       "[-o] [-v] [-p] [-t] [-x] ARCHIVE FILES"
 //usage:#define ar_full_usage "\n\n"

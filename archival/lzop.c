@@ -25,6 +25,8 @@
    "Minimalized" for busybox by Alain Knaff
 */
 
+//kbuild:lib-$(CONFIG_LZOP) += lzop.o
+
 //usage:#define lzop_trivial_usage
 //usage:       "[-cfvd123456789CF] [FILE]..."
 //usage:#define lzop_full_usage "\n\n"

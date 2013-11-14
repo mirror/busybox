@@ -14,6 +14,8 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
+//kbuild:lib-$(CONFIG_CPIO) += cpio.o
+
 //usage:#define cpio_trivial_usage
 //usage:       "[-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]")
 //usage:       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")

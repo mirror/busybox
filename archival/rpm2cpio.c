@@ -7,6 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//kbuild:lib-$(CONFIG_RPM2CPIO) += rpm2cpio.o
+
 //usage:#define rpm2cpio_trivial_usage
 //usage:       "package.rpm"
 //usage:#define rpm2cpio_full_usage "\n\n"

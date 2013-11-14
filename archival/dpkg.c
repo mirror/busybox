@@ -28,6 +28,8 @@
  *
  */
 
+//kbuild:lib-$(CONFIG_DPKG) += dpkg.o
+
 //usage:#define dpkg_trivial_usage
 //usage:       "[-ilCPru] [-F OPT] PACKAGE"
 //usage:#define dpkg_full_usage "\n\n"
