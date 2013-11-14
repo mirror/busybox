@@ -7,6 +7,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//config:config RPM
+//config:	bool "rpm"
+//config:	default y
+//config:	help
+//config:	  Mini RPM applet - queries and extracts RPM packages.
+
 //applet:IF_RPM(APPLET(rpm, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_RPM) += rpm.o
 

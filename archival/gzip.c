@@ -15,7 +15,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
 /* big objects in bss:
  * 00000020 b bl_count
  * 00000074 b base_length
@@ -31,13 +30,38 @@
  * 00000480 b static_ltree
  * 000008f4 b dyn_ltree
  */
-
 /* TODO: full support for -v for DESKTOP
  * "/usr/bin/gzip -v a bogus aa" should say:
 a:       85.1% -- replaced with a.gz
 gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
+
+//config:config GZIP
+//config:	bool "gzip"
+//config:	default y
+//config:	help
+//config:	  gzip is used to compress files.
+//config:	  It's probably the most widely used UNIX compression program.
+//config:
+//config:config FEATURE_GZIP_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on GZIP && LONG_OPTS
+//config:	help
+//config:	  Enable use of long options, increases size by about 106 Bytes
+//config:
+//config:config GZIP_FAST
+//config:	int "Trade memory for gzip speed (0:small,slow - 2:fast,big)"
+//config:	default 0
+//config:	range 0 2
+//config:	depends on GZIP
+//config:	help
+//config:	  Enable big memory options for gzip.
+//config:	  0: small buffers, small hash-tables
+//config:	  1: larger buffers, larger hash-tables
+//config:	  2: larger buffers, largest hash-tables
+//config:	  Larger models may give slightly better compression
 
 //applet:IF_GZIP(APPLET(gzip, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_GZIP) += gzip.o

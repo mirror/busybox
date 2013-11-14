@@ -5,6 +5,28 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//config:config DPKG_DEB
+//config:	bool "dpkg_deb"
+//config:	default n
+//config:	select FEATURE_SEAMLESS_GZ
+//config:	help
+//config:	  dpkg-deb unpacks and provides information about Debian archives.
+//config:
+//config:	  This implementation of dpkg-deb cannot pack archives.
+//config:
+//config:	  Unless you have a specific application which requires dpkg-deb,
+//config:	  say N here.
+//config:
+//config:config FEATURE_DPKG_DEB_EXTRACT_ONLY
+//config:	bool "Extract only (-x)"
+//config:	default n
+//config:	depends on DPKG_DEB
+//config:	help
+//config:	  This reduces dpkg-deb to the equivalent of
+//config:	  "ar -p <deb> data.tar.gz | tar -zx". However it saves space as none
+//config:	  of the extra dpkg-deb, ar or tar options are needed, they are linked
+//config:	  to internally.
+
 //applet:IF_DPKG_DEB(APPLET_ODDNAME(dpkg-deb, dpkg_deb, BB_DIR_USR_BIN, BB_SUID_DROP, dpkg_deb))
 //kbuild:lib-$(CONFIG_DPKG_DEB) += dpkg_deb.o
 

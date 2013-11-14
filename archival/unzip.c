@@ -17,6 +17,16 @@
  * Zip64 + other methods
  */
 
+//config:config UNZIP
+//config:	bool "unzip"
+//config:	default y
+//config:	help
+//config:	  unzip will list or extract files from a ZIP archive,
+//config:	  commonly found on DOS/WIN systems. The default behavior
+//config:	  (with no options) is to extract the archive into the
+//config:	  current directory. Use the `-d' option to extract to a
+//config:	  directory of your choice.
+
 //applet:IF_UNZIP(APPLET(unzip, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNZIP) += unzip.o
 

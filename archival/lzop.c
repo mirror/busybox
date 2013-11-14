@@ -25,6 +25,21 @@
    "Minimalized" for busybox by Alain Knaff
 */
 
+//config:config LZOP
+//config:	bool "lzop"
+//config:	default y
+//config:	help
+//config:	  Lzop compression/decompresion.
+//config:
+//config:config LZOP_COMPR_HIGH
+//config:	bool "lzop compression levels 7,8,9 (not very useful)"
+//config:	default n
+//config:	depends on LZOP
+//config:	help
+//config:	  High levels (7,8,9) of lzop compression. These levels
+//config:	  are actually slower than gzip at equivalent compression ratios
+//config:	  and take up 3.2K of code.
+
 //applet:IF_LZOP(APPLET(lzop, BB_DIR_BIN, BB_SUID_DROP))
 //applet:IF_LZOP(APPLET_ODDNAME(lzopcat, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, lzopcat))
 //applet:IF_LZOP(APPLET_ODDNAME(unlzop, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, unlzop))

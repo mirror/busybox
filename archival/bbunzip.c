@@ -215,6 +215,13 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Overwrite"
 
+//config:config UNCOMPRESS
+//config:	bool "uncompress"
+//config:	default n
+//config:	help
+//config:	  uncompress is used to decompress archives created by compress.
+//config:	  Not much used anymore, replaced by gzip/gunzip.
+
 //applet:IF_UNCOMPRESS(APPLET(uncompress, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNCOMPRESS) += bbunzip.o
 #if ENABLE_UNCOMPRESS
@@ -277,6 +284,14 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //usage:       "[FILE]..."
 //usage:#define zcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
+
+//config:config GUNZIP
+//config:	bool "gunzip"
+//config:	default y
+//config:	help
+//config:	  gunzip is used to decompress archives created by gzip.
+//config:	  You can use the `-t' option to test the integrity of
+//config:	  an archive, without decompressing it.
 
 //applet:IF_GUNZIP(APPLET(gunzip, BB_DIR_BIN, BB_SUID_DROP))
 //applet:IF_GUNZIP(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
@@ -361,6 +376,19 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define bzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
+//config:config BUNZIP2
+//config:	bool "bunzip2"
+//config:	default y
+//config:	help
+//config:	  bunzip2 is a compression utility using the Burrows-Wheeler block
+//config:	  sorting text compression algorithm, and Huffman coding. Compression
+//config:	  is generally considerably better than that achieved by more
+//config:	  conventional LZ77/LZ78-based compressors, and approaches the
+//config:	  performance of the PPM family of statistical compressors.
+//config:
+//config:	  Unless you have a specific application which requires bunzip2, you
+//config:	  should probably say N here.
+
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
 //kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
@@ -432,6 +460,34 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define xzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
+//config:config UNLZMA
+//config:	bool "unlzma"
+//config:	default y
+//config:	help
+//config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
+//config:	  compression algorithm, and range coding. Compression
+//config:	  is generally considerably better than that achieved by the bzip2
+//config:	  compressors.
+//config:
+//config:	  The BusyBox unlzma applet is limited to decompression only.
+//config:	  On an x86 system, this applet adds about 4K.
+//config:
+//config:config FEATURE_LZMA_FAST
+//config:	bool "Optimize unlzma for speed"
+//config:	default n
+//config:	depends on UNLZMA
+//config:	help
+//config:	  This option reduces decompression time by about 25% at the cost of
+//config:	  a 1K bigger binary.
+//config:
+//config:config LZMA
+//config:	bool "Provide lzma alias which supports only unpacking"
+//config:	default y
+//config:	depends on UNLZMA
+//config:	help
+//config:	  Enable this option if you want commands like "lzma -d" to work.
+//config:	  IOW: you'll get lzma applet, but it will always require -d option.
+
 //applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_UNLZMA(APPLET_ODDNAME(lzcat, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzcat))
 //applet:IF_LZMA(APPLET_ODDNAME(lzma, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzma))
@@ -460,6 +516,20 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 }
 #endif
 
+
+//config:config UNXZ
+//config:	bool "unxz"
+//config:	default y
+//config:	help
+//config:	  unxz is a unlzma successor.
+//config:
+//config:config XZ
+//config:	bool "Provide xz alias which supports only unpacking"
+//config:	default y
+//config:	depends on UNXZ
+//config:	help
+//config:	  Enable this option if you want commands like "xz -d" to work.
+//config:	  IOW: you'll get xz applet, but it will always require -d option.
 
 //applet:IF_UNXZ(APPLET(unxz, BB_DIR_USR_BIN, BB_SUID_DROP))
 //applet:IF_UNXZ(APPLET_ODDNAME(xzcat, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xzcat))
