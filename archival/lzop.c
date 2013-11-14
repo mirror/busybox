@@ -25,6 +25,7 @@
    "Minimalized" for busybox by Alain Knaff
 */
 
+//applet:IF_UNZIP(APPLET(unzip, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_LZOP) += lzop.o
 
 //usage:#define lzop_trivial_usage

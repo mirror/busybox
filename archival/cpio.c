@@ -9,11 +9,11 @@
  * Limitations:
  * Doesn't check CRC's
  * Only supports new ASCII and CRC formats
- *
  */
 #include "libbb.h"
 #include "bb_archive.h"
 
+//applet:IF_CPIO(APPLET(cpio, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_CPIO) += cpio.o
 
 //usage:#define cpio_trivial_usage

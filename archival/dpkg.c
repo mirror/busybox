@@ -25,9 +25,9 @@
  *
  * bugs that need to be fixed
  *  - (unknown, please let me know when you find any)
- *
  */
 
+//applet:IF_DPKG(APPLET(dpkg, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_DPKG) += dpkg.o
 
 //usage:#define dpkg_trivial_usage

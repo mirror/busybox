@@ -39,6 +39,7 @@ gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
 
+//applet:IF_GZIP(APPLET(gzip, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_GZIP) += gzip.o
 
 //usage:#define gzip_trivial_usage

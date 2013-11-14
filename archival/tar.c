@@ -42,6 +42,7 @@
  * This doesn't feel right, and IIRC GNU tar doesn't do that.
  */
 
+//applet:IF_TAR(APPLET(tar, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_TAR) += tar.o
 
 #include <fnmatch.h>

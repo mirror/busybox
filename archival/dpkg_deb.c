@@ -5,6 +5,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_DPKG_DEB(APPLET_ODDNAME(dpkg-deb, dpkg_deb, BB_DIR_USR_BIN, BB_SUID_DROP, dpkg_deb))
 //kbuild:lib-$(CONFIG_DPKG_DEB) += dpkg_deb.o
 
 //usage:#define dpkg_deb_trivial_usage

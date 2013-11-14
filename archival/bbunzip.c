@@ -215,6 +215,7 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Overwrite"
 
+//applet:IF_UNCOMPRESS(APPLET(uncompress, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNCOMPRESS) += bbunzip.o
 #if ENABLE_UNCOMPRESS
 static
@@ -256,9 +257,6 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
  * Portions of the lzw code are derived from the public domain 'compress'
  * written by Spencer Thomas, Joe Orost, James Woods, Jim McKie, Steve Davies,
  * Ken Turkowski, Dave Mack and Peter Jannesen.
- *
- * See the license_msg below and the file COPYING for the software license.
- * See the file algorithm.doc for the compression algorithms and file formats.
  */
 //usage:#define gunzip_trivial_usage
 //usage:       "[-cft] [FILE]..."
@@ -280,6 +278,8 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define zcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
+//applet:IF_GUNZIP(APPLET(gunzip, BB_DIR_BIN, BB_SUID_DROP))
+//applet:IF_GUNZIP(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
 //kbuild:lib-$(CONFIG_GZIP) += bbunzip.o
 //kbuild:lib-$(CONFIG_GUNZIP) += bbunzip.o
 #if ENABLE_GUNZIP
@@ -432,6 +432,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //usage:#define xzcat_full_usage "\n\n"
 //usage:       "Decompress to stdout"
 
+//applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNLZMA) += bbunzip.o
 #if ENABLE_UNLZMA
 static
@@ -458,6 +459,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 
+//applet:IF_UNXZ(APPLET(unxz, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNXZ) += bbunzip.o
 #if ENABLE_UNXZ
 static

@@ -17,6 +17,7 @@
  * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
 
+//applet:IF_AR(APPLET(ar, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_AR) += ar.o
 
 //usage:#define ar_trivial_usage

@@ -7,6 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//applet:IF_RPM2CPIO(APPLET(rpm2cpio, BB_DIR_USR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_RPM2CPIO) += rpm2cpio.o
 
 //usage:#define rpm2cpio_trivial_usage
