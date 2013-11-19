@@ -70,7 +70,7 @@ int FAST_FUNC ask_and_check_password_extended(const struct passwd *pw,
  fake_it:
 	unencrypted = bb_ask(STDIN_FILENO, timeout, prompt);
 	if (!unencrypted) {
-		/* EOF (such as ^D) or error (such as ^C) */
+		/* EOF (such as ^D) or error (such as ^C) or timeout */
 		return -1;
 	}
 	encrypted = pw_encrypt(unencrypted, correct, 1);
