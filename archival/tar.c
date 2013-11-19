@@ -1196,8 +1196,14 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		/*tar_handle->offset = 0; - already is */
 	}
 
+	/* Zero processed headers (== empty file) is not a valid tarball.
+	 * We (ab)use bb_got_signal as exitcode here,
+	 * because check_errors_in_children() uses _it_ as error indicator.
+	 */
+	bb_got_signal = EXIT_FAILURE;
+
 	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
-		continue;
+		bb_got_signal = EXIT_SUCCESS; /* saw at least one header, good */
 
 	/* Check that every file that should have been extracted was */
 	while (tar_handle->accept) {
@@ -1213,8 +1219,9 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 		close(tar_handle->src_fd);
 
 	if (SEAMLESS_COMPRESSION || OPT_COMPRESS) {
+		/* Set bb_got_signal to 1 if a child died with !0 exitcode */
 		check_errors_in_children(0);
-		return bb_got_signal;
 	}
-	return EXIT_SUCCESS;
+
+	return bb_got_signal;
 }

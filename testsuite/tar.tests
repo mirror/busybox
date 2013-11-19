@@ -15,6 +15,15 @@ mkdir tar.tempdir && cd tar.tempdir || exit 1
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
+testing "Empty file is not a tarball" '\
+tar xvf - 2>&1; echo $?
+' "\
+tar: short read
+1
+" \
+"" ""
+SKIP=
+
 optional FEATURE_SEAMLESS_GZ
 testing "Empty file is not a tarball.tar.gz" '\
 tar xvzf - 2>&1; echo $?
@@ -22,6 +31,22 @@ tar xvzf - 2>&1; echo $?
 tar: invalid magic
 tar: short read
 1
+" \
+"" ""
+SKIP=
+
+testing "Two zeroed blocks is a ('truncated') empty tarball" '\
+dd if=/dev/zero bs=512 count=2 2>/dev/null | strace -o /tmp/zzz -tt -s99 tar xvf - 2>&1; echo $?
+' "\
+0
+" \
+"" ""
+SKIP=
+
+testing "Twenty zeroed blocks is an empty tarball" '\
+dd if=/dev/zero bs=512 count=20 2>/dev/null | tar xvf - 2>&1; echo $?
+' "\
+0
 " \
 "" ""
 SKIP=
