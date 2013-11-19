@@ -79,16 +79,17 @@ void FAST_FUNC open_transformer(int fd, const char *transform_prog)
 		// FIXME: error check?
 #if BB_MMU
 		{
+			IF_DESKTOP(long long) int r;
 			transformer_aux_data_t aux;
 			init_transformer_aux_data(&aux);
 			aux.check_signature = check_signature;
-			transformer(&aux, fd, fd_pipe.wr);
+			r = transformer(&aux, fd, fd_pipe.wr);
 			if (ENABLE_FEATURE_CLEAN_UP) {
 				close(fd_pipe.wr); /* send EOF */
 				close(fd);
 			}
 			/* must be _exit! bug was actually seen here */
-			_exit(EXIT_SUCCESS);
+			_exit(/*error if:*/ r < 0);
 		}
 #else
 		{

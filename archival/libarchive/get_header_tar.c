@@ -198,13 +198,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	 * the message and we don't check whether we indeed
 	 * saw zero block directly before this. */
 	if (i == 0) {
-		xfunc_error_retval = 0;
- short_read:
-		bb_error_msg_and_die("short read");
+		bb_error_msg("short read");
+		/* this merely signals end of archive, not exit(1): */
+		return EXIT_FAILURE;
 	}
 	if (i != 512) {
 		IF_FEATURE_TAR_AUTODETECT(goto autodetect;)
-		goto short_read;
+		bb_error_msg_and_die("short read");
 	}
 
 #else
@@ -221,10 +221,10 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 			 */
 			while (full_read(archive_handle->src_fd, &tar, 512) == 512)
 				continue;
-			return EXIT_FAILURE;
+			return EXIT_FAILURE; /* "end of archive" */
 		}
 		archive_handle->tar__end = 1;
-		return EXIT_SUCCESS;
+		return EXIT_SUCCESS; /* "decoded one header" */
 	}
 	archive_handle->tar__end = 0;
 
@@ -471,5 +471,5 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	free(file_header->tar__uname);
 	free(file_header->tar__gname);
 #endif
-	return EXIT_SUCCESS;
+	return EXIT_SUCCESS; /* "decoded one header" */
 }
