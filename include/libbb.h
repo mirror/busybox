@@ -1301,7 +1301,8 @@ int sd_listen_fds(void);
 #define SETUP_ENV_TO_TMP    (1 << 2)
 #define SETUP_ENV_NO_CHDIR  (1 << 4)
 extern void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
-extern int correct_password(const struct passwd *pw) FAST_FUNC;
+extern int ask_and_check_password_extended(const struct passwd *pw, int timeout, const char *prompt) FAST_FUNC;
+extern int ask_and_check_password(const struct passwd *pw) FAST_FUNC;
 /* Returns a malloced string */
 #if !ENABLE_USE_BB_CRYPT
 #define pw_encrypt(clear, salt, cleanup) pw_encrypt(clear, salt)

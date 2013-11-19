@@ -104,7 +104,7 @@ int vlock_main(int argc UNUSED_PARAM, char **argv)
 				/* "s" if -a, else "": */ "s" + !option_mask32,
 				pw->pw_name
 		);
-		if (correct_password(pw)) {
+		if (ask_and_check_password(pw) > 0) {
 			break;
 		}
 		bb_do_delay(LOGIN_FAIL_DELAY);

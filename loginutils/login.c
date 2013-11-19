@@ -420,7 +420,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		 * Note that reads (in no-echo mode) trash tty attributes.
 		 * If we get interrupted by SIGALRM, we need to restore attrs.
 		 */
-		if (correct_password(pw))
+		if (ask_and_check_password(pw) > 0)
 			break;
 #endif /* ENABLE_PAM */
  auth_failed:

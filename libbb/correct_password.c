@@ -31,12 +31,15 @@
 #include "libbb.h"
 
 /* Ask the user for a password.
+ * Return 1 without asking if PW has an empty password.
+ * Return -1 on EOF, error while reading input, or timeout.
  * Return 1 if the user gives the correct password for entry PW,
- * 0 if not.  Return 1 without asking if PW has an empty password.
+ * 0 if not.
  *
- * NULL pw means "just fake it for login with bad username" */
-
-int FAST_FUNC correct_password(const struct passwd *pw)
+ * NULL pw means "just fake it for login with bad username"
+ */
+int FAST_FUNC ask_and_check_password_extended(const struct passwd *pw,
+		int timeout, const char *prompt)
 {
 	char *unencrypted, *encrypted;
 	const char *correct;
@@ -65,13 +68,19 @@ int FAST_FUNC correct_password(const struct passwd *pw)
 		return 1;
 
  fake_it:
-	unencrypted = bb_ask_stdin("Password: ");
+	unencrypted = bb_ask(STDIN_FILENO, timeout, prompt);
 	if (!unencrypted) {
-		return 0;
+		/* EOF (such as ^D) or error (such as ^C) */
+		return -1;
 	}
 	encrypted = pw_encrypt(unencrypted, correct, 1);
 	r = (strcmp(encrypted, correct) == 0);
 	free(encrypted);
 	memset(unencrypted, 0, strlen(unencrypted));
 	return r;
+}
+
+int FAST_FUNC ask_and_check_password(const struct passwd *pw)
+{
+	return ask_and_check_password_extended(pw, 0, "Password: ");
 }
