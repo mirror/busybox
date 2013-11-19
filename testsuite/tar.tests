@@ -15,6 +15,18 @@ mkdir tar.tempdir && cd tar.tempdir || exit 1
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
+# Empty file is not a valid .tar.gz:
+optional FEATURE_SEAMLESS_GZ
+testing "tar hardlinks and repeated files" '\
+tar xvzf - 2>&1; echo $?
+' "\
+tar: invalid magic
+tar: short read
+1
+" \
+"" ""
+SKIP=
+
 optional FEATURE_TAR_CREATE FEATURE_LS_SORTFILES
 testing "tar hardlinks and repeated files" '\
 rm -rf input_* test.tar 2>/dev/null
