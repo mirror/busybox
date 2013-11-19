@@ -1128,7 +1128,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	strncpy(argv[0], "init", strlen(argv[0]));
 	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
 	while (*++argv)
-		memset(*argv, 0, strlen(*argv));
+		nuke_str(*argv);
 
 	/* Set up signal handlers */
 	if (!DEBUG_INIT) {

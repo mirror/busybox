@@ -17,11 +17,6 @@
 #include <syslog.h>
 #include <sys/resource.h> /* setrlimit */
 
-static void nuke_str(char *str)
-{
-	if (str) memset(str, 0, strlen(str));
-}
-
 static char* new_password(const struct passwd *pw, uid_t myuid, const char *algo)
 {
 	char salt[MAX_PW_SALT_LEN];
