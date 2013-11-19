@@ -15,9 +15,8 @@ mkdir tar.tempdir && cd tar.tempdir || exit 1
 
 # testing "test name" "script" "expected result" "file input" "stdin"
 
-# Empty file is not a valid .tar.gz:
 optional FEATURE_SEAMLESS_GZ
-testing "tar hardlinks and repeated files" '\
+testing "Empty file is not a tarball.tar.gz" '\
 tar xvzf - 2>&1; echo $?
 ' "\
 tar: invalid magic
