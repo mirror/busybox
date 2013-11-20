@@ -503,18 +503,6 @@ config READAHEAD
 	  As readahead(2) blocks until each file has been read, it is best to
 	  run this applet as a background job.
 
-config RFKILL
-	bool "rfkill"
-	default n  # doesn't build on Ubuntu 9.04
-	select PLATFORM_LINUX
-	help
-	  Enable/disable wireless devices.
-
-	  rfkill list : list all wireless devices
-	  rfkill list bluetooth : list all bluetooth devices
-	  rfkill list 1 : list device corresponding to the given index
-	  rfkill block|unblock wlan : block/unblock all wlan(wifi) devices
-
 config RUNLEVEL
 	bool "runlevel"
 	default y

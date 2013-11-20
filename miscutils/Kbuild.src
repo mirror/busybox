@@ -36,7 +36,6 @@ lib-$(CONFIG_MOUNTPOINT)  += mountpoint.o
 lib-$(CONFIG_MT)          += mt.o
 lib-$(CONFIG_RAIDAUTORUN) += raidautorun.o
 lib-$(CONFIG_READAHEAD)   += readahead.o
-lib-$(CONFIG_RFKILL)      += rfkill.o
 lib-$(CONFIG_RUNLEVEL)    += runlevel.o
 lib-$(CONFIG_RX)          += rx.o
 lib-$(CONFIG_SETSID)      += setsid.o
