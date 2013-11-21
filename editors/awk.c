@@ -3204,15 +3204,17 @@ int awk_main(int argc, char **argv)
 	opt = getopt32(argv, OPTSTR_AWK, &opt_F, &list_v, &list_f, IF_FEATURE_AWK_GNU_EXTENSIONS(&list_e,) NULL);
 	argv += optind;
 	argc -= optind;
-	if (opt & OPT_F) { /* -F */
+	if (opt & OPT_W)
+		bb_error_msg("warning: option -W is ignored");
+	if (opt & OPT_F) {
 		unescape_string_in_place(opt_F);
 		setvar_s(intvar[FS], opt_F);
 	}
-	while (list_v) { /* -v */
+	while (list_v) {
 		if (!is_assignment(llist_pop(&list_v)))
 			bb_show_usage();
 	}
-	while (list_f) { /* -f */
+	while (list_f) {
 		char *s = NULL;
 		FILE *from_file;
 
@@ -3230,7 +3232,7 @@ int awk_main(int argc, char **argv)
 	}
 	g_progname = "cmd. line";
 #if ENABLE_FEATURE_AWK_GNU_EXTENSIONS
-	while (list_e) { /* -e */
+	while (list_e) {
 		parse_program(llist_pop(&list_e));
 	}
 #endif
@@ -3238,13 +3240,11 @@ int awk_main(int argc, char **argv)
 		if (!*argv)
 			bb_show_usage();
 		parse_program(*argv++);
-		argc++;
+		argc--;
 	}
-	if (opt & OPT_W) // -W
-		bb_error_msg("warning: option -W is ignored");
 
 	/* fill in ARGV array */
-	setvar_i(intvar[ARGC], argc);
+	setvar_i(intvar[ARGC], argc + 1);
 	setari_u(intvar[ARGV], 0, "awk");
 	i = 0;
 	while (*argv)

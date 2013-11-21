@@ -275,9 +275,21 @@ testing "awk large integer" \
 	"" ""
 
 testing "awk length(array)" \
-	"awk 'BEGIN{ A[1]=2; A["qwe"]="asd"; print length(A)}'" \
+	"awk 'BEGIN{ A[1]=2; A[\"qwe\"]=\"asd\"; print length(A)}'" \
 	"2\n" \
 	"" ""
+
+testing "awk -f and ARGC" \
+	"awk -f - input" \
+	"re\n2\n" \
+	"do re mi\n" \
+	'{print $2; print ARGC;}' \
+
+testing "awk -e and ARGC" \
+	"awk -e '{print \$2; print ARGC;}' input" \
+	"re\n2\n" \
+	"do re mi\n" \
+	"" \
 
 # testing "description" "command" "result" "infile" "stdin"
 
