@@ -10,20 +10,20 @@ test "$SED" || SED=sed
 test "$DD" || DD=dd
 
 # Some people were bitten by their system lacking a (proper) od
-od -v -t x1 </dev/null >/dev/null
+od -v -b </dev/null >/dev/null
 if test $? != 0; then
-	echo 'od tool is not installed or cannot accept "-v -t x1" options'
+	echo 'od tool is not installed or cannot accept "-v -b" options'
 	exit 1
 fi
 
 exec >"$target.$$"
 
 echo '#define UNPACKED_USAGE "" \'
-"$loc/usage" | od -v -t x1 \
+"$loc/usage" | od -v -b \
 | $SED -e 's/^[^ ]*//' \
 	-e 's/ //g' \
 	-e '/^$/d' \
-	-e 's/\(..\)/\\x\1/g' \
+	-e 's/\(...\)/\\\1/g' \
 	-e 's/^/"/' \
 	-e 's/$/" \\/'
 echo ''
@@ -39,11 +39,11 @@ echo '#define PACKED_USAGE \'
 ##	-e '/^$/d' \
 ##	-e 's/\(..\)\(..\)/0x\2,0x\1,/g'
 ##	-e 's/$/ \\/'
-"$loc/usage" | bzip2 -1 | $DD bs=2 skip=1 2>/dev/null | od -v -t x1 \
+"$loc/usage" | bzip2 -1 | $DD bs=2 skip=1 2>/dev/null | od -v -b \
 | $SED -e 's/^[^ ]*//' \
 	-e 's/ //g' \
 	-e '/^$/d' \
-	-e 's/\(..\)/0x\1,/g' \
+	-e 's/\(...\)/0\1,/g' \
 	-e 's/$/ \\/'
 echo ''
 
