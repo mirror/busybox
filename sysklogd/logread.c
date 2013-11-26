@@ -49,6 +49,7 @@ struct globals {
 	memcpy(SMrup, init_sem, sizeof(init_sem)); \
 } while (0)
 
+#if 0
 static void error_exit(const char *str) NORETURN;
 static void error_exit(const char *str)
 {
@@ -56,6 +57,10 @@ static void error_exit(const char *str)
 	shmdt(shbuf);
 	bb_perror_msg_and_die(str);
 }
+#else
+/* On Linux, shmdt is not mandatory on exit */
+# define error_exit(str) bb_perror_msg_and_die(str)
+#endif
 
 /*
  * sem_up - up()'s a semaphore.
@@ -68,7 +73,7 @@ static void sem_up(int semid)
 
 static void interrupted(int sig)
 {
-	shmdt(shbuf);
+	/* shmdt(shbuf); - on Linux, shmdt is not mandatory on exit */
 	kill_myself_with_sig(sig);
 }
 
@@ -84,12 +89,12 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 
 	log_shmid = shmget(KEY_ID, 0, 0);
 	if (log_shmid == -1)
-		bb_perror_msg_and_die("can't find syslogd buffer");
+		bb_perror_msg_and_die("can't %s syslogd buffer", "find");
 
 	/* Attach shared memory to our char* */
 	shbuf = shmat(log_shmid, NULL, SHM_RDONLY);
 	if (shbuf == NULL)
-		bb_perror_msg_and_die("can't access syslogd buffer");
+		bb_perror_msg_and_die("can't %s syslogd buffer", "access");
 
 	log_semid = semget(KEY_ID, 0, 0);
 	if (log_semid == -1)
@@ -185,7 +190,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 		fflush_all();
 	} while (follow);
 
-	shmdt(shbuf);
+	/* shmdt(shbuf); - on Linux, shmdt is not mandatory on exit */
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
