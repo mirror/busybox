@@ -1083,21 +1083,23 @@ static int get_uid_gid(int flag, const char *string)
 {
 	struct passwd *pw_ent;
 	struct group *grp_ent;
-	static const char *msg;
+	const char *msg;
 
-	if (ENABLE_DEVFSD_VERBOSE)
-		msg = "user";
-
-	if (isdigit(string[0]) ||((string[0] == '-') && isdigit(string[1])))
+	if (isdigit(string[0]) || ((string[0] == '-') && isdigit(string[1])))
 		return atoi(string);
 
 	if (flag == UID && (pw_ent = getpwnam(string)) != NULL)
 		return pw_ent->pw_uid;
 
-	if (flag == GID && (grp_ent = getgrnam(string)) != NULL)
-		return grp_ent->gr_gid;
-	else if (ENABLE_DEVFSD_VERBOSE)
-		msg = "group";
+	if (ENABLE_DEVFSD_VERBOSE)
+		msg = "user";
+
+	if (flag == GID) {
+		if ((grp_ent = getgrnam(string)) != NULL)
+			return grp_ent->gr_gid;
+		if (ENABLE_DEVFSD_VERBOSE)
+			msg = "group";
+	}
 
 	if (ENABLE_DEVFSD_VERBOSE)
 		msg_logger(LOG_ERR, "unknown %s: %s, defaulting to %cid=0",  msg, string, msg[0]);
