@@ -789,7 +789,7 @@ static void run_shutdown_and_kill_processes(void)
  * and only one will be remembered and acted upon.
  */
 
-/* The SIGUSR[12]/SIGTERM handler */
+/* The SIGPWR/SIGUSR[12]/SIGTERM handler */
 static void halt_reboot_pwoff(int sig) NORETURN;
 static void halt_reboot_pwoff(int sig)
 {
@@ -1103,8 +1103,8 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 		/* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
 		 * then parse_inittab() simply adds in some default
-		 * actions(i.e., INIT_SCRIPT and a pair
-		 * of "askfirst" shells */
+		 * actions (i.e., INIT_SCRIPT and a pair
+		 * of "askfirst" shells) */
 		parse_inittab();
 	}
 
@@ -1135,6 +1135,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		struct sigaction sa;
 
 		bb_signals(0
+			+ (1 << SIGPWR)  /* halt */
 			+ (1 << SIGUSR1) /* halt */
 			+ (1 << SIGTERM) /* reboot */
 			+ (1 << SIGUSR2) /* poweroff */
