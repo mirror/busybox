@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 {
 	int i;
 	int ofs;
-	unsigned MAX_APPLET_NAME_LEN = 1;
+//	unsigned MAX_APPLET_NAME_LEN = 1;
 
 	qsort(applets, NUM_APPLETS, sizeof(applets[0]), cmp_name);
 
@@ -89,8 +89,8 @@ int main(int argc, char **argv)
 	printf("const char applet_names[] ALIGN1 = \"\"\n");
 	for (i = 0; i < NUM_APPLETS; i++) {
 		printf("\"%s\" \"\\0\"\n", applets[i].name);
-		if (MAX_APPLET_NAME_LEN < strlen(applets[i].name))
-			MAX_APPLET_NAME_LEN = strlen(applets[i].name);
+//		if (MAX_APPLET_NAME_LEN < strlen(applets[i].name))
+//			MAX_APPLET_NAME_LEN = strlen(applets[i].name);
 	}
 	printf(";\n\n");
 
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
 	printf("};\n");
 #endif
 	//printf("#endif /* SKIP_definitions */\n");
-	printf("\n");
-	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
+//	printf("\n");
+//	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
 
 	if (argv[2]) {
 		char line_old[80];
