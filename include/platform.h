@@ -434,7 +434,7 @@ typedef unsigned smalluint;
 # undef HAVE_UNLOCKED_LINE_OPS
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 # undef HAVE_STRCHRNUL
 #endif
 
