@@ -182,6 +182,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 		}
 		free(copy);
 #endif
+		fflush_all();
 	} while (follow);
 
 	shmdt(shbuf);
