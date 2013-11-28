@@ -1310,7 +1310,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * backgrounds (i.e. stops) or kills all members of currently running
  * pipe.
  *
- * Wait builtin in interruptible by signals for which user trap is set
+ * Wait builtin is interruptible by signals for which user trap is set
  * or by SIGINT in interactive shell.
  *
  * Trap handlers will execute even within trap handlers. (right?)
@@ -1398,7 +1398,7 @@ static void restore_G_args(save_arg_t *sv, char **argv)
  * for them - a bit like emulating kernel pending signal mask in userspace.
  * We are interested in: signals which need to have special handling
  * as described above, and all signals which have traps set.
- * Signals are rocorded in pending_set.
+ * Signals are recorded in pending_set.
  * After each pipe execution, we extract any pending signals
  * and act on them.
  *
