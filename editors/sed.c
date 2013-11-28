@@ -23,9 +23,6 @@
  * resulting sed_cmd_t structures are appended to a linked list
  * (G.sed_cmd_head/G.sed_cmd_tail).
  *
- * add_input_file() adds a char* to the list of input files.  We need to
- * know all input sources ahead of time to find the last line for the $ match.
- *
  * process_files() does actual sedding, reading data lines from each input FILE*
  * (which could be stdin) and applying the sed command list (sed_cmd_head) to
  * each of the resulting lines.
@@ -141,8 +138,8 @@ struct globals {
 	smallint exitcode;
 
 	/* list of input files */
-	int input_file_count, current_input_file;
-	const char **input_file_list;
+	int current_input_file, last_input_file;
+	char **input_file_list;
 	FILE *current_fp;
 
 	regmatch_t regmatch[10];
@@ -942,7 +939,7 @@ static char *get_next_line(char *gets_char, char *last_puts_char, char last_gets
 	/* will be returned if last line in the file
 	 * doesn't end with either '\n' or '\0' */
 	gc = NO_EOL_CHAR;
-	for (; G.input_file_list[G.current_input_file]; G.current_input_file++) {
+	for (; G.current_input_file <= G.last_input_file; G.current_input_file++) {
 		FILE *fp = G.current_fp;
 		if (!fp) {
 			const char *path = G.input_file_list[G.current_input_file];
@@ -1414,12 +1411,6 @@ static void add_cmd_block(char *cmdstr)
 	free(sv);
 }
 
-static void add_input_file(const char *file)
-{
-	G.input_file_list = xrealloc_vector(G.input_file_list, 2, G.input_file_count);
-	G.input_file_list[G.input_file_count++] = file;
-}
-
 int sed_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sed_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1501,36 +1492,38 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	/* argv[0..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
-	if (argv[0] == NULL) {
+	G.input_file_list = argv;
+	if (!argv[0]) {
 		if (opt & OPT_in_place)
 			bb_error_msg_and_die(bb_msg_requires_arg, "-i");
-		add_input_file(bb_msg_standard_input);
+		argv[0] = (char*)bb_msg_standard_input;
+		/* G.last_input_file = 0; - already is */
 	} else {
-		int i;
+		goto start;
 
-		for (i = 0; argv[i]; i++) {
+		for (; *argv; argv++) {
 			struct stat statbuf;
 			int nonstdoutfd;
 			sed_cmd_t *sed_cmd;
 
-			if (LONE_DASH(argv[i]) && !(opt & OPT_in_place)) {
-				add_input_file(bb_msg_standard_input);
-				process_files();
-				continue;
-			}
-			add_input_file(argv[i]);
+			G.last_input_file++;
+ start:
 			if (!(opt & OPT_in_place)) {
+				if (LONE_DASH(*argv)) {
+					*argv = (char*)bb_msg_standard_input;
+					process_files();
+				}
 				continue;
 			}
 
 			/* -i: process each FILE separately: */
 
-			G.outname = xasprintf("%sXXXXXX", argv[i]);
+			G.outname = xasprintf("%sXXXXXX", *argv);
 			nonstdoutfd = xmkstemp(G.outname);
 			G.nonstdout = xfdopen_for_write(nonstdoutfd);
 
 			/* Set permissions/owner of output file */
-			stat(argv[i], &statbuf);
+			stat(*argv, &statbuf);
 			/* chmod'ing AFTER chown would preserve suid/sgid bits,
 			 * but GNU sed 4.2.1 does not preserve them either */
 			fchmod(nonstdoutfd, statbuf.st_mode);
@@ -1541,12 +1534,12 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			G.nonstdout = stdout;
 
 			if (opt_i) {
-				char *backupname = xasprintf("%s%s", argv[i], opt_i);
-				xrename(argv[i], backupname);
+				char *backupname = xasprintf("%s%s", *argv, opt_i);
+				xrename(*argv, backupname);
 				free(backupname);
 			}
-			/* else unlink(argv[i]); - rename below does this */
-			xrename(G.outname, argv[i]); //TODO: rollback backup on error?
+			/* else unlink(*argv); - rename below does this */
+			xrename(G.outname, *argv); //TODO: rollback backup on error?
 			free(G.outname);
 			G.outname = NULL;
 
