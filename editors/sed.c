@@ -23,7 +23,7 @@
  * resulting sed_cmd_t structures are appended to a linked list
  * (G.sed_cmd_head/G.sed_cmd_tail).
  *
- * add_input_file() adds a FILE* to the list of input files.  We need to
+ * add_input_file() adds a char* to the list of input files.  We need to
  * know all input sources ahead of time to find the last line for the $ match.
  *
  * process_files() does actual sedding, reading data lines from each input FILE*
@@ -135,12 +135,15 @@ static const char semicolon_whitespace[] ALIGN1 = "; \n\r\t\v";
 struct globals {
 	/* options */
 	int be_quiet, regex_type;
+
 	FILE *nonstdout;
 	char *outname, *hold_space;
+	smallint exitcode;
 
-	/* List of input files */
+	/* list of input files */
 	int input_file_count, current_input_file;
-	FILE **input_file_list;
+	const char **input_file_list;
+	FILE *current_fp;
 
 	regmatch_t regmatch[10];
 	regex_t *previous_regex_ptr;
@@ -148,7 +151,7 @@ struct globals {
 	/* linked list of sed commands */
 	sed_cmd_t *sed_cmd_head, **sed_cmd_tail;
 
-	/* Linked list of append lines */
+	/* linked list of append lines */
 	llist_t *append_head;
 
 	char *add_cmd_line;
@@ -200,8 +203,8 @@ static void sed_free_and_close_stuff(void)
 
 	free(G.hold_space);
 
-	while (G.current_input_file < G.input_file_count)
-		fclose(G.input_file_list[G.current_input_file++]);
+	if (G.current_fp)
+		fclose(G.current_fp);
 }
 #else
 void sed_free_and_close_stuff(void);
@@ -939,8 +942,20 @@ static char *get_next_line(char *gets_char, char *last_puts_char, char last_gets
 	/* will be returned if last line in the file
 	 * doesn't end with either '\n' or '\0' */
 	gc = NO_EOL_CHAR;
-	while (G.current_input_file < G.input_file_count) {
-		FILE *fp = G.input_file_list[G.current_input_file];
+	for (; G.input_file_list[G.current_input_file]; G.current_input_file++) {
+		FILE *fp = G.current_fp;
+		if (!fp) {
+			const char *path = G.input_file_list[G.current_input_file];
+			fp = stdin;
+			if (path != bb_msg_standard_input) {
+				fp = fopen_or_warn(path, "r");
+				if (!fp) {
+					G.exitcode = EXIT_FAILURE;
+					continue;
+				}
+			}
+			G.current_fp = fp;
+		}
 		/* Read line up to a newline or NUL byte, inclusive,
 		 * return malloc'ed char[]. length of the chunk read
 		 * is stored in len. NULL if EOF/error */
@@ -971,8 +986,8 @@ static char *get_next_line(char *gets_char, char *last_puts_char, char last_gets
 		 * (note: *no* newline after "b bang"!) */
 		}
 		/* Close this file and advance to next one */
-		fclose(fp);
-		G.current_input_file++;
+		fclose_if_not_stdin(fp);
+		G.current_fp = NULL;
 	}
 	*gets_char = gc;
 	return temp;
@@ -1399,7 +1414,7 @@ static void add_cmd_block(char *cmdstr)
 	free(sv);
 }
 
-static void add_input_file(FILE *file)
+static void add_input_file(const char *file)
 {
 	G.input_file_list = xrealloc_vector(G.input_file_list, 2, G.input_file_count);
 	G.input_file_list[G.input_file_count++] = file;
@@ -1422,8 +1437,6 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 		"expression\0"      Required_argument   "e"
 		"file\0"            Required_argument   "f";
 #endif
-
-	int status = EXIT_SUCCESS;
 
 	INIT_G();
 
@@ -1491,27 +1504,21 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	if (argv[0] == NULL) {
 		if (opt & OPT_in_place)
 			bb_error_msg_and_die(bb_msg_requires_arg, "-i");
-		add_input_file(stdin);
+		add_input_file(bb_msg_standard_input);
 	} else {
 		int i;
 
 		for (i = 0; argv[i]; i++) {
 			struct stat statbuf;
 			int nonstdoutfd;
-			FILE *file;
 			sed_cmd_t *sed_cmd;
 
 			if (LONE_DASH(argv[i]) && !(opt & OPT_in_place)) {
-				add_input_file(stdin);
+				add_input_file(bb_msg_standard_input);
 				process_files();
 				continue;
 			}
-			file = fopen_or_warn(argv[i], "r");
-			if (!file) {
-				status = EXIT_FAILURE;
-				continue;
-			}
-			add_input_file(file);
+			add_input_file(argv[i]);
 			if (!(opt & OPT_in_place)) {
 				continue;
 			}
@@ -1523,7 +1530,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			G.nonstdout = xfdopen_for_write(nonstdoutfd);
 
 			/* Set permissions/owner of output file */
-			fstat(fileno(file), &statbuf);
+			stat(argv[i], &statbuf);
 			/* chmod'ing AFTER chown would preserve suid/sgid bits,
 			 * but GNU sed 4.2.1 does not preserve them either */
 			fchmod(nonstdoutfd, statbuf.st_mode);
@@ -1549,12 +1556,13 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 		/* Here, to handle "sed 'cmds' nonexistent_file" case we did:
-		 * if (G.current_input_file >= G.input_file_count)
-		 *	return status;
+		 * if (G.current_input_file[G.current_input_file] == NULL)
+		 *	return G.exitcode;
 		 * but it's not needed since process_files() works correctly
 		 * in this case too. */
 	}
+
 	process_files();
 
-	return status;
+	return G.exitcode;
 }
