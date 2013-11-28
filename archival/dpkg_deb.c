@@ -31,7 +31,7 @@
 //kbuild:lib-$(CONFIG_DPKG_DEB) += dpkg_deb.o
 
 //usage:#define dpkg_deb_trivial_usage
-//usage:       "[-cefxX] FILE [argument"
+//usage:       "[-cefxX] FILE [argument]"
 //usage:#define dpkg_deb_full_usage "\n\n"
 //usage:       "Perform actions on Debian packages (.debs)\n"
 //usage:     "\n	-c	List contents of filesystem tree"
