@@ -168,9 +168,22 @@ create_icmp_socket(void)
 #endif
 		sock = socket(AF_INET, SOCK_RAW, 1); /* 1 == ICMP */
 	if (sock < 0) {
-		if (errno == EPERM)
-			bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+		if (errno != EPERM)
+			bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+#if defined(__linux__) || defined(__APPLE__)
+		/* We don't have root privileges.  Try SOCK_DGRAM instead.
+		 * Linux needs net.ipv4.ping_group_range for this to work.
+		 * MacOSX allows ICMP_ECHO, ICMP_TSTAMP or ICMP_MASKREQ
+		 */
+#if ENABLE_PING6
+		if (lsa->u.sa.sa_family == AF_INET6)
+			sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_ICMPV6);
+		else
+#endif
+			sock = socket(AF_INET, SOCK_DGRAM, 1); /* 1 == ICMP */
+		if (sock < 0)
+#endif
+		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
 	xmove_fd(sock, pingsock);
