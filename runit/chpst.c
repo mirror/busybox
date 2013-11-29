@@ -236,7 +236,6 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct bb_uidgid_t ugid;
 	char *set_user = set_user; /* for compiler */
-	char *env_user = env_user;
 	char *env_dir = env_dir;
 	char *root;
 	char *nicestr;
@@ -264,7 +263,7 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 			IF_CHPST("/:n:vP012"),
 			&limita, &limitc, &limitd, &limitf, &limitl,
 			&limitm, &limito, &limitp, &limitr, &limits, &limitt,
-			&set_user, &env_user, &env_dir
+			&set_user, &set_user, &env_dir
 			IF_CHPST(, &root, &nicestr));
 		argv += optind;
 		if (opt & OPT_m) { // -m means -asld
@@ -292,7 +291,7 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 
 	// envuidgid?
 	if (ENABLE_ENVUIDGID && applet_name[0] == 'e' && applet_name[3] == 'u') {
-		env_user = *argv++;
+		set_user = *argv++;
 		opt |= OPT_U;
 	}
 
