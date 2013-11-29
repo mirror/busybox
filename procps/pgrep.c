@@ -65,9 +65,9 @@ static void act(unsigned pid, char *cmd, int signo)
 {
 	if (pgrep) {
 		if (option_mask32 & (1 << OPTBIT_L)) /* OPT_LIST */
-			printf("%d %s\n", pid, cmd);
+			printf("%u %s\n", pid, cmd);
 		else
-			printf("%d\n", pid);
+			printf("%u\n", pid);
 	} else
 		kill(pid, signo);
 }

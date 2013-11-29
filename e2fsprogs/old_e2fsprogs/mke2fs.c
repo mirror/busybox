@@ -239,7 +239,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	errcode_t	retval;
 	char		buf[1024];
 
-	sprintf(buf, "badblocks -b %d %s%s%s %d", fs->blocksize,
+	sprintf(buf, "badblocks -b %u %s%s%s %d", fs->blocksize,
 		quiet ? "" : "-s ", (cflag > 1) ? "-w " : "",
 		fs->device_name, fs->super->s_blocks_count);
 	mke2fs_verbose("Running command: %s\n", buf);

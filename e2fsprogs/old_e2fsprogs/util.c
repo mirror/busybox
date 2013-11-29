@@ -239,7 +239,7 @@ void make_journal_blocks(ext2_filsys fs, int journal_size, int journal_flags, in
 		return;
 	}
 	if (!quiet)
-		printf("Creating journal (%ld blocks): ", journal_blocks);
+		printf("Creating journal (%lu blocks): ", journal_blocks);
 	fflush(stdout);
 	retval = ext2fs_add_journal_inode(fs, journal_blocks,
 						  journal_flags);

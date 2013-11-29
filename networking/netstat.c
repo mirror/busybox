@@ -125,10 +125,10 @@ typedef enum {
  */
 #define ADDR_WIDE                51  /* INET6_ADDRSTRLEN + 5 for the port number */
 #if ENABLE_FEATURE_NETSTAT_WIDE
-# define FMT_NET_CONN_DATA       "%s   %6ld %6ld %-*s %-*s %-12s"
+# define FMT_NET_CONN_DATA       "%s   %6lu %6lu %-*s %-*s %-12s"
 # define FMT_NET_CONN_HEADER     "\nProto Recv-Q Send-Q %-*s %-*s State       %s\n"
 #else
-# define FMT_NET_CONN_DATA       "%s   %6ld %6ld %-23s %-23s %-12s"
+# define FMT_NET_CONN_DATA       "%s   %6lu %6lu %-23s %-23s %-12s"
 # define FMT_NET_CONN_HEADER     "\nProto Recv-Q Send-Q %-23s %-23s State       %s\n"
 #endif
 
@@ -403,7 +403,7 @@ static int scan_inet_proc_line(struct inet_params *param, char *line)
 			"%*d: %32[0-9A-Fa-f]:%X "
 			"%32[0-9A-Fa-f]:%X %X "
 			"%lX:%lX %*X:%*X "
-			"%*X %d %*d %ld ",
+			"%*X %d %*d %lu ",
 			local_addr, &param->local_port,
 			rem_addr, &param->rem_port, &param->state,
 			&param->txq, &param->rxq,
@@ -611,7 +611,7 @@ static int FAST_FUNC unix_do_one(char *line)
 		strcat(ss_flags, "N ");
 	strcat(ss_flags, "]");
 
-	printf("%-5s %-6ld %-11s %-10s %-13s %6lu ",
+	printf("%-5s %-6lu %-11s %-10s %-13s %6lu ",
 		ss_proto, refcnt, ss_flags, ss_type, ss_state, inode
 		);
 

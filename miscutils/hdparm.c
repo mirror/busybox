@@ -465,14 +465,14 @@ static void on_off(int value)
 static void print_flag_on_off(int get_arg, const char *s, unsigned long arg)
 {
 	if (get_arg) {
-		printf(" setting %s to %ld", s, arg);
+		printf(" setting %s to %lu", s, arg);
 		on_off(arg);
 	}
 }
 
 static void print_value_on_off(const char *str, unsigned long argp)
 {
-	printf(" %s\t= %2ld", str, argp);
+	printf(" %s\t= %2lu", str, argp);
 	on_off(argp != 0);
 }
 
@@ -1509,7 +1509,7 @@ static void bus_state_value(unsigned value)
 	else if (value == BUSSTATE_TRISTATE)
 		printf(" (tristate)\n");
 	else
-		printf(" (unknown: %d)\n", value);
+		printf(" (unknown: %u)\n", value);
 }
 #endif
 
@@ -1589,7 +1589,7 @@ static void interpret_xfermode(unsigned xfermode)
 static void print_flag(int flag, const char *s, unsigned long value)
 {
 	if (flag)
-		printf(" setting %s to %ld\n", s, value);
+		printf(" setting %s to %lu\n", s, value);
 }
 
 static void process_dev(char *devname)

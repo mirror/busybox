@@ -686,7 +686,7 @@ static void get_inode_common(unsigned nr, uint16_t i_mode)
 	total++;
 	if (!inode_count[nr]) {
 		if (!inode_in_use(nr)) {
-			printf("Inode %d is marked as 'unused', but it is used "
+			printf("Inode %u is marked as 'unused', but it is used "
 					"for file '%s'\n", nr, current_name);
 			if (OPT_repair) {
 				if (ask("Mark as 'in use'", 1))

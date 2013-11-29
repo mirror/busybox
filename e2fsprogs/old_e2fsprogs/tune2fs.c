@@ -607,7 +607,7 @@ int tune2fs_main(int argc, char **argv)
 	if (e_flag) {
 		sb->s_errors = errors;
 		ext2fs_mark_super_dirty(fs);
-		printf("Setting error behavior to %d\n", errors);
+		printf("Setting error behavior to %u\n", errors);
 	}
 	if (g_flag) {
 		sb->s_def_resgid = resgid;

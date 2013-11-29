@@ -166,10 +166,10 @@ static NOINLINE void do_shm(void)
 	case STATUS:
 		printf("------ Shared Memory %s --------\n", "Status");
 		printf("segments allocated %d\n"
-				"pages allocated %ld\n"
-				"pages resident  %ld\n"
-				"pages swapped   %ld\n"
-				"Swap performance: %ld attempts\t%ld successes\n",
+				"pages allocated %lu\n"
+				"pages resident  %lu\n"
+				"pages swapped   %lu\n"
+				"Swap performance: %lu attempts\t%lu successes\n",
 				shm_info.used_ids,
 				shm_info.shm_tot,
 				shm_info.shm_rss,
@@ -569,7 +569,7 @@ static void print_sem(int semid)
 		if (val < 0 || ncnt < 0 || zcnt < 0 || pid < 0) {
 			bb_perror_msg_and_die("semctl");
 		}
-		printf("%-10d %-10d %-10d %-10d %-10d\n", i, val, ncnt, zcnt, pid);
+		printf("%-10u %-10d %-10d %-10d %-10d\n", i, val, ncnt, zcnt, pid);
 	}
 	bb_putchar('\n');
 }

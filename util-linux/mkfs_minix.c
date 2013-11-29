@@ -505,7 +505,7 @@ static void get_list_blocks(char *filename)
 
 	listfile = xfopen_for_read(filename);
 	while (!feof(listfile)) {
-		fscanf(listfile, "%ld\n", &blockno);
+		fscanf(listfile, "%lu\n", &blockno);
 		mark_zone(blockno);
 		G.badblocks++;
 	}

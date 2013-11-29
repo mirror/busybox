@@ -72,7 +72,7 @@ int fdformat_main(int argc UNUSED_PARAM, char **argv)
 	/* original message was: "Could not determine current format type" */
 	xioctl(fd, FDGETPRM, &param);
 
-	printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB\n",
+	printf("%s-sided, %u tracks, %u sec/track. Total capacity %d kB\n",
 		(param.head == 2) ? "Double" : "Single",
 		param.track, param.sect, param.size >> 1);
 

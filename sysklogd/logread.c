@@ -126,7 +126,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 		shbuf_data = shbuf->data; /* pointer! */
 
 		if (DEBUG)
-			printf("cur:%d tail:%i size:%i\n",
+			printf("cur:%u tail:%u size:%u\n",
 					cur, shbuf_tail, shbuf_size);
 
 		if (!follow) {

@@ -165,7 +165,7 @@ int cal_main(int argc UNUSED_PARAM, char **argv)
 		char lineout[30];
 
 		day_array(month, year, dp);
-		len = sprintf(lineout, "%s %d", month_names[month - 1], year);
+		len = sprintf(lineout, "%s %u", month_names[month - 1], year);
 		printf("%*s%s\n%s\n",
 				((7*julian + WEEK_LEN) - len) / 2, "",
 				lineout, day_headings);
