@@ -249,7 +249,7 @@ void generateMTFValues(EState* s)
 static NOINLINE
 void sendMTFValues(EState* s)
 {
-	int32_t v, t, i, j, gs, ge, totc, bt, bc, iter;
+	int32_t v, t, i, j, gs, ge, bt, bc, iter;
 	int32_t nSelectors, alphaSize, minLen, maxLen, selCtr;
 	int32_t nGroups;
 
@@ -345,7 +345,6 @@ void sendMTFValues(EState* s)
 		}
 #endif
 		nSelectors = 0;
-		totc = 0;
 		gs = 0;
 		while (1) {
 			/*--- Set group start & end marks. --*/
@@ -411,7 +410,6 @@ void sendMTFValues(EState* s)
 					bt = t;
 				}
 			}
-			totc += bc;
 			fave[bt]++;
 			s->selector[nSelectors] = bt;
 			nSelectors++;

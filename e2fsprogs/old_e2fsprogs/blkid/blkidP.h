@@ -179,8 +179,4 @@ extern int blkid_set_tag(blkid_dev dev, const char *name,
 extern blkid_dev blkid_new_dev(void);
 extern void blkid_free_dev(blkid_dev dev);
 
-#ifdef __cplusplus
-}
-#endif
-
 #endif

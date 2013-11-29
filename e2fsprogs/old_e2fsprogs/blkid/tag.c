@@ -356,7 +356,7 @@ void usage(char *prog)
 	fprintf(stderr, "Usage: %s [-f blkid_file] [-m debug_mask] device "
 		"[type value]\n",
 		prog);
-	fprintf(stderr, "\tList all tags for a device and exit\n", prog);
+	fprintf(stderr, "\tList all tags for a device and exit\n");
 	exit(1);
 }
 
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 		case 'm':
 			blkid_debug_mask = strtoul (optarg, &tmp, 0);
 			if (*tmp) {
-				fprintf(stderr, "Invalid debug mask: %d\n",
+				fprintf(stderr, "Invalid debug mask: %s\n",
 					optarg);
 				exit(1);
 			}
@@ -407,7 +407,7 @@ int main(int argc, char **argv)
 
 	dev = blkid_get_dev(cache, devname, flags);
 	if (!dev) {
-		fprintf(stderr, "%s: cannot find device in blkid cache\n");
+		fprintf(stderr, "%s: cannot find device in blkid cache\n", devname);
 		exit(1);
 	}
 	if (search_type) {

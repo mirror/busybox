@@ -153,7 +153,7 @@ extern int optind;
 void usage(char *prog)
 {
 	fprintf(stderr, "Usage: %s [-f blkid_file] [-m debug_mask]\n", prog);
-	fprintf(stderr, "\tList all devices and exit\n", prog);
+	fprintf(stderr, "\tList all devices and exit\n");
 	exit(1);
 }
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 		case 'm':
 			blkid_debug_mask = strtoul (optarg, &tmp, 0);
 			if (*tmp) {
-				fprintf(stderr, "Invalid debug mask: %d\n",
+				fprintf(stderr, "Invalid debug mask: %s\n",
 					optarg);
 				exit(1);
 			}

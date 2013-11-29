@@ -466,7 +466,6 @@ static int find_match(lzo1x_999_t *c, lzo_swd_p s,
 	}
 
 	s->m_len = 1;
-	s->m_len = 1;
 #ifdef SWD_BEST_OFF
 	if (s->use_best_off)
 		memset(s->best_pos, 0, sizeof(s->best_pos));

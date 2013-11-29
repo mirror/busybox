@@ -791,7 +791,9 @@ static int
 common_traceroute_main(int op, char **argv)
 {
 	int minpacket;
+#ifdef IP_TOS
 	int tos = 0;
+#endif
 	int max_ttl = 30;
 	int nprobes = 3;
 	int first_ttl = 1;
@@ -838,8 +840,10 @@ common_traceroute_main(int op, char **argv)
 	if (op & OPT_IP_CHKSUM)
 		bb_error_msg("warning: ip checksums disabled");
 #endif
+#ifdef IP_TOS
 	if (op & OPT_TOS)
 		tos = xatou_range(tos_str, 0, 255);
+#endif
 	if (op & OPT_MAX_TTL)
 		max_ttl = xatou_range(max_ttl_str, 1, 255);
 	if (op & OPT_PORT)

@@ -117,7 +117,7 @@ void parse_journal_opts(char **journal_device, int *journal_flags,
 		}
 		if (strcmp(token, "device") == 0) {
 			*journal_device = blkid_get_devname(NULL, arg, NULL);
-			if (!journal_device) {
+			if (!*journal_device) {
 				journal_usage++;
 				continue;
 			}

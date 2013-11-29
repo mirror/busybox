@@ -176,7 +176,7 @@ int FAST_FUNC volume_id_probe_msdos_part_table(struct volume_id *id, uint64_t of
 				if (id->partition_count < 4)
 					id->partition_count = 4;
 
-				p = &id->partitions[id->partition_count];
+//				p = &id->partitions[id->partition_count];
 
 //				if (is_raid(part[i].sys_ind))
 //					volume_id_set_usage_part(p, VOLUME_ID_RAID);

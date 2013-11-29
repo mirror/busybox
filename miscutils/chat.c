@@ -296,7 +296,7 @@ int chat_main(int argc UNUSED_PARAM, char **argv)
 						full_write(record_fd, buf+buf_len, 1);
 					}
 					// dump device input if ECHO ON
-					if (echo > 0) {
+					if (echo) {
 //						if (buf[buf_len] < ' ') {
 //							full_write(STDERR_FILENO, "^", 1);
 //							buf[buf_len] += '@';

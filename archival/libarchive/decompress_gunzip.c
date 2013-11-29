@@ -336,7 +336,7 @@ static int huft_build(const unsigned *b, const unsigned n,
 	}
 
 	/* Find minimum and maximum length, bound *m by those */
-	for (j = 1; (c[j] == 0) && (j <= BMAX); j++)
+	for (j = 1; (j <= BMAX) && (c[j] == 0); j++)
 		continue;
 	k = j; /* minimum code length */
 	for (i = BMAX; (c[i] == 0) && i; i--)

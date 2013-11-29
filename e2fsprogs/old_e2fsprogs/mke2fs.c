@@ -385,7 +385,7 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 			     struct progress_struct *progress,
 			     blk_t *ret_blk, int *ret_count)
 {
-	int		j, count, next_update, next_update_incr;
+	int		j, count, next_update;
 	static char	*buf;
 	errcode_t	retval;
 
@@ -403,9 +403,7 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 	}
 	/* OK, do the write loop */
 	next_update = 0;
-	next_update_incr = num / 100;
-	if (next_update_incr < 1)
-		next_update_incr = 1;
+
 	for (j=0; j < num; j += STRIDE_LENGTH, blk += STRIDE_LENGTH) {
 		count = num - j;
 		if (count > STRIDE_LENGTH)

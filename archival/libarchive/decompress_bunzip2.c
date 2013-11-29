@@ -818,7 +818,6 @@ static char *const bunzip_errors[] = {
 /* Dumb little test thing, decompress stdin to stdout */
 int main(int argc, char **argv)
 {
-	int i;
 	char c;
 
 	int i = unpack_bz2_stream(0, 1);

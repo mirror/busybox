@@ -418,9 +418,6 @@ static int print_class(const struct sockaddr_nl *who UNUSED_PARAM,
 static int print_filter(const struct sockaddr_nl *who UNUSED_PARAM,
 						struct nlmsghdr *hdr, void *arg UNUSED_PARAM)
 {
-	struct tcmsg *msg = NLMSG_DATA(hdr);
-	int len = hdr->nlmsg_len;
-	struct rtattr * tb[TCA_MAX+1];
 	return 0;
 }
 

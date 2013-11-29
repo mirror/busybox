@@ -1239,7 +1239,6 @@ static void PRS(int argc, char **argv)
 						progress_fd = 0;
 					else {
 						goto next_arg;
-						i++;
 					}
 				}
 				break;
