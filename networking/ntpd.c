@@ -334,7 +334,7 @@ struct globals {
 
 #define STATE_NSET      0       /* initial state, "nothing is set" */
 //#define STATE_FSET    1       /* frequency set from file */
-#define STATE_SPIK      2       /* spike detected */
+//#define STATE_SPIK    2       /* spike detected */
 //#define STATE_FREQ    3       /* initial frequency */
 #define STATE_SYNC      4       /* clock synchronized (normal operation) */
 	uint8_t  discipline_state;      // doc calls it c.state
@@ -1350,11 +1350,15 @@ update_local_clock(peer_t *p)
 	 * offset exceeds the step threshold and when it does not.
 	 */
 	if (abs_offset > STEP_THRESHOLD) {
+#if 0
 		double remains;
 
-// TODO: this "spike state" seems to be useless, peer selection already drops
-// occassional "bad" datapoints. If we are here, there were _many_ large offsets -
-// looks like _our_ clock is off.
+// This "spike state" seems to be useless, peer selection already drops
+// occassional "bad" datapoints. If we are here, there were _many_
+// large offsets. When a few first large offsets are seen,
+// we end up in "no valid datapoints, no peer selected" state.
+// Only when enough of them are seen (which means it's not a fluke),
+// we end up here. Looks like _our_ clock is off.
 		switch (G.discipline_state) {
 		case STATE_SYNC:
 			/* The first outlyer: ignore it, switch to SPIK state */
@@ -1377,6 +1381,7 @@ update_local_clock(peer_t *p)
 			}
 			/* fall through: we need to step */
 		} /* switch */
+#endif
 
 		/* Step the time and clamp down the poll interval.
 		 *
