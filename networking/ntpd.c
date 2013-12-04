@@ -1347,10 +1347,12 @@ update_local_clock(peer_t *p)
 	 * offset exceeds the step threshold and when it does not.
 	 */
 	if (abs_offset > STEP_THRESHOLD) {
+		double remains;
+
 		switch (G.discipline_state) {
 		case STATE_SYNC:
 			/* The first outlyer: ignore it, switch to SPIK state */
-			VERB3 bb_error_msg("offset:%+f - spike detected", offset);
+			VERB2 bb_error_msg("offset:%+f - spike", offset);
 			G.discipline_state = STATE_SPIK;
 			return -1; /* "decrease poll interval" */
 
@@ -1358,9 +1360,10 @@ update_local_clock(peer_t *p)
 			/* Ignore succeeding outlyers until either an inlyer
 			 * is found or the stepout threshold is exceeded.
 			 */
-			if (since_last_update < WATCH_THRESHOLD) {
-				VERB3 bb_error_msg("spike detected, datapoint ignored, %f sec remains",
-						WATCH_THRESHOLD - since_last_update);
+			remains = WATCH_THRESHOLD - since_last_update;
+			if (remains > 0) {
+				VERB2 bb_error_msg("spike, datapoint ignored, %f sec remains",
+						remains);
 				return -1; /* "decrease poll interval" */
 			}
 			/* fall through: we need to step */
