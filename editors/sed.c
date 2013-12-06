@@ -381,7 +381,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 
 	/*
 	 * A substitution command should look something like this:
-	 *    s/match/replace/ #gIpw
+	 *    s/match/replace/ #giIpw
 	 *    ||     |        |||
 	 *    mandatory       optional
 	 */
@@ -429,6 +429,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 			break;
 		}
 		/* Ignore case (gnu exension) */
+		case 'i':
 		case 'I':
 			cflags |= REG_ICASE;
 			break;
