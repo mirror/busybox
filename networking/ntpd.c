@@ -90,12 +90,24 @@
  * was hibernated, someone set totally wrong date, etc),
  * then the time is stepped, all datapoints are discarded,
  * and we go back to steady state.
+ *
+ * Made some changes to speed up re-syncing after our clock goes bad
+ * (tested with suspending my laptop):
+ * - if largish offset (>= STEP_THRESHOLD * 8 == 1 sec) is seen
+ *   from a peer, schedule next query for this peer soon
+ *   without drastically lowering poll interval for everybody.
+ *   This makes us collect enough data for step much faster:
+ *   e.g. at poll = 10 (1024 secs), step was done within 5 minutes
+ *   after first reply which indicated that our clock is 14 seconds off.
+ * - on step, do not discard d_dispersion data of the existing datapoints,
+ *   do not clear reachable_bits. This prevents discarding first ~8
+ *   datapoints after the step.
  */
 
-#define RETRY_INTERVAL  5       /* on error, retry in N secs */
+#define RETRY_INTERVAL     5    /* on error, retry in N secs */
 #define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
-#define INITIAL_SAMPLES 4       /* how many samples do we want for init */
-#define BAD_DELAY_GROWTH 4	/* drop packet if its delay grew by more than this */
+#define INITIAL_SAMPLES    4    /* how many samples do we want for init */
+#define BAD_DELAY_GROWTH   4    /* drop packet if its delay grew by more than this */
 
 /* Clock discipline parameters and constants */
 
@@ -109,6 +121,10 @@
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
 #define BURSTPOLL       0       /* initial poll */
 #define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
+/* If we got largish offset from a peer, cap next query interval
+ * for this peer by this many seconds:
+ */
+#define BIGOFF_INTERVAL (1 << 6)
 /* If offset > discipline_jitter * POLLADJ_GATE, and poll interval is >= 2^BIGPOLL,
  * then it is decreased _at once_. (If < 2^BIGPOLL, it will be decreased _eventually_).
  */
@@ -1658,10 +1674,12 @@ recv_and_process_peer_pkt(peer_t *p)
 	ssize_t     size;
 	msg_t       msg;
 	double      T1, T2, T3, T4;
-	double      dv;
+	double      dv, offset;
 	unsigned    interval;
 	datapoint_t *datapoint;
 	peer_t      *q;
+
+	offset = 0;
 
 	/* We can recvfrom here and check from.IP, but some multihomed
 	 * ntp servers reply from their *other IP*.
@@ -1766,13 +1784,13 @@ recv_and_process_peer_pkt(peer_t *p)
 	p->datapoint_idx = p->reachable_bits ? (p->datapoint_idx + 1) % NUM_DATAPOINTS : 0;
 	datapoint = &p->filter_datapoint[p->datapoint_idx];
 	datapoint->d_recv_time = T4;
-	datapoint->d_offset    = ((T2 - T1) + (T3 - T4)) / 2;
+	datapoint->d_offset    = offset = ((T2 - T1) + (T3 - T4)) / 2;
 	datapoint->d_dispersion = LOG2D(msg.m_precision_exp) + G_precision_sec;
 	if (!p->reachable_bits) {
 		/* 1st datapoint ever - replicate offset in every element */
 		int i;
 		for (i = 0; i < NUM_DATAPOINTS; i++) {
-			p->filter_datapoint[i].d_offset = datapoint->d_offset;
+			p->filter_datapoint[i].d_offset = offset;
 		}
 	}
 
@@ -1780,7 +1798,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	if ((MAX_VERBOSE && G.verbose) || (option_mask32 & OPT_w)) {
 		bb_error_msg("reply from %s: offset:%+f delay:%f status:0x%02x strat:%d refid:0x%08x rootdelay:%f reach:0x%02x",
 			p->p_dotted,
-			datapoint->d_offset,
+			offset,
 			p->lastpkt_delay,
 			p->lastpkt_status,
 			p->lastpkt_stratum,
@@ -1865,6 +1883,20 @@ recv_and_process_peer_pkt(peer_t *p)
 	/* Decide when to send new query for this peer */
  pick_normal_interval:
 	interval = poll_interval(0);
+	if (fabs(offset) >= STEP_THRESHOLD * 8 && interval > BIGOFF_INTERVAL) {
+		/* If we are synced, offsets are less than STEP_THRESHOLD,
+		 * or at the very least not much larger than it.
+		 * Now we see a largish one.
+		 * Either this peer is feeling bad, or packet got corrupted,
+		 * or _our_ clock is wrong now and _all_ peers will show similar
+		 * largish offsets too.
+		 * I observed this with laptop suspend stopping clock.
+		 * In any case, it makes sense to make next request soonish:
+		 * cases 1 and 2: get a better datapoint,
+		 * case 3: allows to resync faster.
+		 */
+		interval = BIGOFF_INTERVAL;
+	}
 
  set_next_and_ret:
 	set_next(p, interval);
