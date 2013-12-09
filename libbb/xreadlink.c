@@ -8,6 +8,12 @@
 
 #include "libbb.h"
 
+/* some systems (eg Hurd) does not have MAXSYMLINKS definition,
+ * set it to some reasonable value if it isn't defined */
+#ifndef MAXSYMLINKS
+# define MAXSYMLINKS 20
+#endif
+
 /*
  * NOTE: This function returns a malloced char* that you will have to free
  * yourself.
