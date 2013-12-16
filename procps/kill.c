@@ -158,7 +158,8 @@ int kill_main(int argc, char **argv)
 	if (killall5) {
 		pid_t sid;
 		procps_status_t* p = NULL;
-		int ret = 0;
+		/* compat: exitcode 2 is "no one was signaled" */
+		int ret = 2;
 
 		/* Find out our session id */
 		sid = getsid(pid);
@@ -170,6 +171,7 @@ int kill_main(int argc, char **argv)
 			int i;
 
 			if (p->sid == (unsigned)sid
+			 || p->sid == 0 /* compat: kernel thread, don't signal it */
 			 || p->pid == (unsigned)pid
 			 || p->pid == 1
 			) {
@@ -200,6 +202,7 @@ int kill_main(int argc, char **argv)
 					goto dont_kill;
 			}
 			kill(p->pid, signo);
+			ret = 0;
  dont_kill: ;
 		}
  resume:
