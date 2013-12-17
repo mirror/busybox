@@ -274,14 +274,21 @@ static void parse_url(const char *src_url, struct host_info *h)
 	free(h->allocated);
 	h->allocated = url = xstrdup(src_url);
 
-	if (strncmp(url, "http://", 7) == 0) {
-		h->port = bb_lookup_port("http", "tcp", 80);
-		h->host = url + 7;
-		h->is_ftp = 0;
-	} else if (strncmp(url, "ftp://", 6) == 0) {
+	if (strncmp(url, "ftp://", 6) == 0) {
 		h->port = bb_lookup_port("ftp", "tcp", 21);
 		h->host = url + 6;
 		h->is_ftp = 1;
+	} else
+	if (strncmp(url, "http://", 7) == 0) {
+		h->host = url + 7;
+ http:
+		h->port = bb_lookup_port("http", "tcp", 80);
+		h->is_ftp = 0;
+	} else
+	if (!strstr(url, "//")) {
+		// GNU wget is user-friendly and falls back to http://
+		h->host = url;
+		goto http;
 	} else
 		bb_error_msg_and_die("not an http or ftp url: %s", sanitize_string(url));
 
