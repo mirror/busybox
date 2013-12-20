@@ -162,9 +162,9 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	pw.pw_shell = (char *)get_shell_name();
 	pw.pw_dir = NULL;
 
-	/* at most two non-option args */
+	/* at least one and at most two non-option args */
 	/* disable interactive passwd for system accounts */
-	opt_complementary = "?2:SD:u+";
+	opt_complementary = "-1:?2:SD:u+";
 	if (sizeof(pw.pw_uid) == sizeof(int)) {
 		opts = getopt32(argv, "h:g:s:G:DSHu:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &pw.pw_uid);
 	} else {
