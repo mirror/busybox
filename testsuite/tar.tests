@@ -38,7 +38,7 @@ tar: short read
 SKIP=
 
 testing "Two zeroed blocks is a ('truncated') empty tarball" '\
-dd if=/dev/zero bs=512 count=2 2>/dev/null | strace -o /tmp/zzz -tt -s99 tar xvf - 2>&1; echo $?
+dd if=/dev/zero bs=512 count=2 2>/dev/null | tar xvf - 2>&1; echo $?
 ' "\
 0
 " \
