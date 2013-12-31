@@ -30,15 +30,6 @@
 
 #include "libbb.h"
 
-void FAST_FUNC nuke_str(char *str)
-{
-        if (str) {
-		while (*str)
-			*str++ = 0;
-		/* or: memset(str, 0, strlen(str)); - not as small as above */
-	}
-}
-
 /* Ask the user for a password.
  * Return 1 without asking if PW has an empty password.
  * Return -1 on EOF, error while reading input, or timeout.

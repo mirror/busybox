@@ -65,6 +65,7 @@ if test x"$LIBC" = x"uclibc"; then
 	| grep -v CONFIG_BUILD_LIBBUSYBOX \
 	| grep -v CONFIG_PIE \
 	\
+	| grep -v CONFIG_FEATURE_TOUCH_NODEREF \
 	| grep -v CONFIG_FEATURE_2_4_MODULES \
 	>.config.new
 	mv .config.new .config
@@ -72,6 +73,7 @@ if test x"$LIBC" = x"uclibc"; then
 	echo '# CONFIG_BUILD_LIBBUSYBOX is not set' >>.config
 	echo '# CONFIG_PIE is not set' >>.config
 	echo '# CONFIG_FEATURE_2_4_MODULES is not set' >>.config
+	echo '# CONFIG_FEATURE_TOUCH_NODEREF is not set' >>.config
 fi
 
 # If STATIC, remove some things.

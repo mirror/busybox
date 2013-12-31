@@ -25,10 +25,12 @@ tar: short read
 SKIP=
 
 optional FEATURE_SEAMLESS_GZ
+# In NOMMU case, "invalid magic" message comes from gunzip child process.
+# Otherwise, it comes from tar.
+# Need to fix output up to avoid false positive.
 testing "Empty file is not a tarball.tar.gz" '\
-tar xvzf - 2>&1; echo $?
+{ tar xvzf - 2>&1; echo $?; } | grep -Fv "invalid magic"
 ' "\
-tar: invalid magic
 tar: short read
 1
 " \

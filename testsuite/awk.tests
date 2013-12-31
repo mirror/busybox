@@ -269,10 +269,12 @@ testing "awk FS assignment" "awk '{FS=\":\"; print \$1}'" \
 	"" \
 	"a:b c:d\ne:f g:h"
 
+optional FEATURE_AWK_LIBM
 testing "awk large integer" \
 	"awk 'BEGIN{n=(2^31)-1; print n, int(n), n%1, ++n, int(n), n%1}'" \
 	"2147483647 2147483647 0 2147483648 2147483648 0\n" \
 	"" ""
+SKIP=
 
 testing "awk length(array)" \
 	"awk 'BEGIN{ A[1]=2; A[\"qwe\"]=\"asd\"; print length(A)}'" \
@@ -285,11 +287,13 @@ testing "awk -f and ARGC" \
 	"do re mi\n" \
 	'{print $2; print ARGC;}' \
 
+optional FEATURE_AWK_GNU_EXTENSIONS
 testing "awk -e and ARGC" \
 	"awk -e '{print \$2; print ARGC;}' input" \
 	"re\n2\n" \
 	"do re mi\n" \
-	"" \
+	""
+SKIP=
 
 # testing "description" "command" "result" "infile" "stdin"
 
