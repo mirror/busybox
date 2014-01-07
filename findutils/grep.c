@@ -373,6 +373,9 @@ static int grep_file(FILE *file)
  opt_f_not_found: ;
 				}
 			} else {
+#if ENABLE_EXTRA_COMPAT
+				unsigned start_pos;
+#endif
 				char *match_at;
 
 				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
@@ -389,15 +392,18 @@ static int grep_file(FILE *file)
 #if !ENABLE_EXTRA_COMPAT
 				gl->matched_range.rm_so = 0;
 				gl->matched_range.rm_eo = 0;
+#else
+				start_pos = 0;
 #endif
 				match_at = line;
  opt_w_again:
+//bb_error_msg("'%s' start_pos:%d line_len:%d", match_at, start_pos, line_len);
 				if (
 #if !ENABLE_EXTRA_COMPAT
 					regexec(&gl->compiled_regex, match_at, 1, &gl->matched_range, 0) == 0
 #else
 					re_search(&gl->compiled_regex, match_at, line_len,
-							/*start:*/ 0, /*range:*/ line_len,
+							start_pos, /*range:*/ line_len,
 							&gl->matched_range) >= 0
 #endif
 				) {
@@ -416,8 +422,24 @@ static int grep_file(FILE *file)
 							if (!c || (!isalnum(c) && c != '_')) {
 								found = 1;
 							} else {
-								match_at += gl->matched_range.rm_eo;
-								goto opt_w_again;
+			/*
+			 * Why check gl->matched_range.rm_eo?
+			 * Zero-length match makes -w skip the line:
+			 * "echo foo | grep ^" prints "foo",
+			 * "echo foo | grep -w ^" prints nothing.
+			 * Without such check, we can loop forever.
+			 */
+#if !ENABLE_EXTRA_COMPAT
+								if (gl->matched_range.rm_eo != 0) {
+									match_at += gl->matched_range.rm_eo;
+									goto opt_w_again;
+								}
+#else
+								if (gl->matched_range.rm_eo > start_pos) {
+									start_pos = gl->matched_range.rm_eo;
+									goto opt_w_again;
+								}
+#endif
 							}
 						}
 					}

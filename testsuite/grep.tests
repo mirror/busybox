@@ -147,6 +147,18 @@ testing "grep -w doesn't stop on 1st mismatch" \
 	"foop foo\n" \
 	""
 
+testing "grep -w ^str doesn't match str not at the beginning" \
+	"grep -w ^str input" \
+	"" \
+	"strstr\n" \
+	""
+
+testing "grep -w ^ doesn't hang" \
+	"grep -w ^ input" \
+	"" \
+	"anything\n" \
+	""
+
 # testing "test name" "commands" "expected result" "file input" "stdin"
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout
