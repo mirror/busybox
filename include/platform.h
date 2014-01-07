@@ -385,10 +385,6 @@ typedef unsigned smalluint;
 # undef HAVE_STRVERSCMP
 #endif
 
-#if defined(__dietlibc__)
-# undef HAVE_STRCHRNUL
-#endif
-
 #if defined(__WATCOMC__)
 # undef HAVE_DPRINTF
 # undef HAVE_GETLINE
@@ -434,8 +430,19 @@ typedef unsigned smalluint;
 # undef HAVE_UNLOCKED_LINE_OPS
 #endif
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__dietlibc__)
 # undef HAVE_STRCHRNUL
+#endif
+
+#if defined(__APPLE__)
+# undef HAVE_STRCHRNUL
+#endif
+
+#if defined(__FreeBSD__)
+# include <sys/param.h>
+# if __FreeBSD_version < 1000029
+#  undef HAVE_STRCHRNUL
+# endif
 #endif
 
 #if defined(__NetBSD__)
