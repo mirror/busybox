@@ -415,7 +415,7 @@ typedef unsigned smalluint;
 /* These BSD-derived OSes share many similarities */
 #if (defined __digital__ && defined __unix__) \
  || defined __APPLE__ \
- || defined __FreeBSD__ || defined __OpenBSD__ || defined __NetBSD__
+ || defined __OpenBSD__ || defined __NetBSD__
 # undef HAVE_CLEARENV
 # undef HAVE_FDATASYNC
 # undef HAVE_GETLINE
@@ -439,9 +439,18 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__FreeBSD__)
-# include <sys/param.h>
+# undef HAVE_CLEARENV
+# undef HAVE_FDATASYNC
+# undef HAVE_MNTENT_H
+# undef HAVE_PTSNAME_R
+# undef HAVE_SYS_STATFS_H
+# undef HAVE_SIGHANDLER_T
+# undef HAVE_STRVERSCMP
+# undef HAVE_XTABS
+# undef HAVE_UNLOCKED_LINE_OPS
+# include <osreldate.h>
 # if __FreeBSD_version < 1000029
-#  undef HAVE_STRCHRNUL
+#  undef HAVE_STRCHRNUL /* FreeBSD added strchrnul() between 1000028 and 1000029 */
 # endif
 #endif
 
