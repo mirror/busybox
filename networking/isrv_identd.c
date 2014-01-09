@@ -51,19 +51,18 @@ static int do_rd(int fd, void **paramp)
 {
 	identd_buf_t *buf = *paramp;
 	char *cur, *p;
-	int retval = 0; /* session is ok (so far) */
 	int sz;
 
 	cur = buf->buf + buf->pos;
 
 	if (buf->fd_flag & O_NONBLOCK)
 		fcntl(fd, F_SETFL, buf->fd_flag);
-	sz = safe_read(fd, cur, sizeof(buf->buf) - buf->pos);
+	sz = safe_read(fd, cur, sizeof(buf->buf) - 1 - buf->pos);
 
 	if (sz < 0) {
 		if (errno != EAGAIN)
-			goto term; /* terminate this session if !EAGAIN */
-		goto ok;
+			goto term;
+		return 0; /* "session is ok" */
 	}
 
 	buf->pos += sz;
@@ -71,19 +70,19 @@ static int do_rd(int fd, void **paramp)
 	p = strpbrk(cur, "\r\n");
 	if (p)
 		*p = '\0';
-	if (!p && sz && buf->pos <= (int)sizeof(buf->buf))
-		goto ok;
+	if (!p && sz && buf->pos < (int)sizeof(buf->buf))
+		return 0;  /* "session is ok" */
+
 	/* Terminate session. If we are in server mode, then
 	 * fd is still in nonblocking mode - we never block here */
-	if (fd == 0) fd++; /* inetd mode? then write to fd 1 */
+	if (fd == 0)
+		fd++; /* inetd mode? then write to fd 1 */
 	fdprintf(fd, "%s : USERID : UNIX : %s\r\n", buf->buf, bogouser);
- term:
-	free(buf);
-	retval = 1; /* terminate */
- ok:
 	if (buf->fd_flag & O_NONBLOCK)
 		fcntl(fd, F_SETFL, buf->fd_flag & ~O_NONBLOCK);
-	return retval;
+ term:
+	free(buf);
+	return 1; /* "terminate" */
 }
 
 static int do_timeout(void **paramp UNUSED_PARAM)
@@ -120,7 +119,7 @@ int fakeidentd_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "fiwb:", &bind_address);
 	strcpy(bogouser, "nobody");
 	if (argv[optind])
-		strncpy(bogouser, argv[optind], sizeof(bogouser));
+		strncpy(bogouser, argv[optind], sizeof(bogouser) - 1);
 
 	/* Daemonize if no -f and no -i and no -w */
 	if (!(opt & OPT_fiw))
