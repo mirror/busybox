@@ -16,10 +16,10 @@
 //usage:       "Change the owner and/or group of each FILE to OWNER and/or GROUP\n"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-h	Affect symlinks instead of symlink targets"
+//usage:	IF_DESKTOP(
 //usage:     "\n	-L	Traverse all symlinks to directories"
 //usage:     "\n	-H	Traverse symlinks on command line only"
 //usage:     "\n	-P	Don't traverse symlinks (default)"
-//usage:	IF_DESKTOP(
 //usage:     "\n	-c	List changed files"
 //usage:     "\n	-v	List all files"
 //usage:     "\n	-f	Hide errors"
