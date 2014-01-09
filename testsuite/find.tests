@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Copyright 2014 by Denys Vlasenko <vda.linux@googlemail.com>
+# Licensed under GPLv2, see file LICENSE in this source tree.
+
+. ./testing.sh
+
+# testing "description" "command" "result" "infile" "stdin"
+
+mkdir -p find.tempdir
+touch find.tempdir/testfile
+
+testing "find -type f" \
+	"cd find.tempdir && find -type f 2>&1" \
+	"./testfile\n" \
+	"" ""
+
+# testing "description" "command" "result" "infile" "stdin"
+
+rm -rf find.tempdir
+
+exit $FAILCOUNT
