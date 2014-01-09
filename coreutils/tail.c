@@ -32,15 +32,14 @@
 //usage:       "Print last 10 lines of each FILE (or stdin) to stdout.\n"
 //usage:       "With more than one FILE, precede each with a filename header.\n"
 //usage:     "\n	-f		Print data as file grows"
-//usage:	IF_FEATURE_FANCY_TAIL(
-//usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
-//usage:	)
+//usage:     "\n	-c [+]N[kbm]	Print last N bytes"
 //usage:     "\n	-n N[kbm]	Print last N lines"
 //usage:     "\n	-n +N[kbm]	Start on Nth line and print the rest"
 //usage:	IF_FEATURE_FANCY_TAIL(
-//usage:     "\n	-c [+]N[kbm]	Print last N bytes"
 //usage:     "\n	-q		Never print headers"
+//usage:     "\n	-s SECONDS	Wait SECONDS between reads with -f"
 //usage:     "\n	-v		Always print headers"
+//usage:     "\n	-F		Same as -f, but keep retrying"
 //usage:     "\n"
 //usage:     "\nN may be suffixed by k (x1024), b (x512), or m (x1024^2)."
 //usage:	)

@@ -633,12 +633,13 @@ config FEATURE_FANCY_TAIL
 	default y
 	depends on TAIL
 	help
-	  The options (-q, -s, and -v) are provided by GNU tail, but
+	  The options (-q, -s, -v and -F) are provided by GNU tail, but
 	  are not specific in the SUSv3 standard.
 
 	    -q      Never output headers giving file names
 	    -s SEC  Wait SEC seconds between reads with -f
 	    -v      Always output headers giving file names
+	    -F      Same as -f, but keep retrying
 
 config TEE
 	bool "tee"
