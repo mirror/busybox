@@ -33,13 +33,12 @@ int isrv_register_peer(isrv_state_t *state, void *param);
  *
  * If listen_fd is active, accept new connection ("peer"),
  * call new_peer() on it, and if it returns 0,
- * and add it to fds to select on.
+ * add it to fds to select on.
  * Now, select will wait for <timeout>, not <linger_timeout>
- * (as long as we we have more than zero clients).
+ * (as long as we have more than zero peers).
  *
  * If a peer's fd is active, we call do_rd() on it if read
- * mask bit was set,
- * and then do_wr() if write mask bit was also set.
+ * bit was set, and then do_wr() if write bit was also set.
  * If either returns !0, peer is removed.
  * Reaching this place also resets timeout counter for this peer.
  *
