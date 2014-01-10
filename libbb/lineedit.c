@@ -1255,7 +1255,9 @@ line_input_t* FAST_FUNC new_line_input_t(int flags)
 {
 	line_input_t *n = xzalloc(sizeof(*n));
 	n->flags = flags;
+#if MAX_HISTORY > 0
 	n->max_history = MAX_HISTORY;
+#endif
 	return n;
 }
 
