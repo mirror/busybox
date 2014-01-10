@@ -115,7 +115,9 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		 */
 		p += len;
 		sz -= len;
-		if ((int)sz < 0
+		if (
+		/** (int)sz < 0 - not good enough for huge malicious VALUE of 2^32-1 */
+		    (int)(sz|len) < 0 /* this works */
 		 || len == 0
 		 || errno != EINVAL
 		 || *end != ' '
