@@ -26,6 +26,10 @@
 #if CONFIG_LAST_SYSTEM_ID < CONFIG_FIRST_SYSTEM_ID
 #error Bad LAST_SYSTEM_ID or FIRST_SYSTEM_ID in .config
 #endif
+#if CONFIG_LAST_ID < CONFIG_LAST_SYSTEM_ID
+#error Bad LAST_ID or LAST_SYSTEM_ID in .config
+#endif
+
 
 /* #define OPT_HOME           (1 << 0) */ /* unused */
 /* #define OPT_GECOS          (1 << 1) */ /* unused */
@@ -36,12 +40,11 @@
 #define OPT_DONT_MAKE_HOME (1 << 6)
 #define OPT_UID            (1 << 7)
 
-/* We assume UID_T_MAX == INT_MAX */
 /* remix */
 /* recoded such that the uid may be passed in *p */
 static void passwd_study(struct passwd *p)
 {
-	int max = UINT_MAX;
+	int max = CONFIG_LAST_ID;
 
 	if (getpwnam(p->pw_name)) {
 		bb_error_msg_and_die("%s '%s' in use", "user", p->pw_name);
@@ -54,7 +57,6 @@ static void passwd_study(struct passwd *p)
 			max = CONFIG_LAST_SYSTEM_ID;
 		} else {
 			p->pw_uid = CONFIG_LAST_SYSTEM_ID + 1;
-			max = 64999;
 		}
 	}
 	/* check for a free uid (and maybe gid) */
@@ -147,6 +149,7 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 	const char *usegroup = NULL;
 	char *p;
 	unsigned opts;
+	char *uid;
 
 #if ENABLE_FEATURE_ADDUSER_LONG_OPTIONS
 	applet_long_options = adduser_longopts;
@@ -164,16 +167,11 @@ int adduser_main(int argc UNUSED_PARAM, char **argv)
 
 	/* at least one and at most two non-option args */
 	/* disable interactive passwd for system accounts */
-	opt_complementary = "-1:?2:SD:u+";
-	if (sizeof(pw.pw_uid) == sizeof(int)) {
-		opts = getopt32(argv, "h:g:s:G:DSHu:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &pw.pw_uid);
-	} else {
-		unsigned uid;
-		opts = getopt32(argv, "h:g:s:G:DSHu:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &uid);
-		if (opts & OPT_UID) {
-			pw.pw_uid = uid;
-		}
-	}
+	opt_complementary = "-1:?2:SD";
+	opts = getopt32(argv, "h:g:s:G:DSHu:", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup, &uid);
+	if (opts & OPT_UID)
+		pw.pw_uid = xatou_range(uid, 0, CONFIG_LAST_ID);
+
 	argv += optind;
 	pw.pw_name = argv[0];
 

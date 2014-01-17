@@ -118,10 +118,17 @@ config FEATURE_CHECK_NAMES
 	  For compatibility with Samba machine accounts "$" is also supported
 	  at the end of the user or group name.
 
+config LAST_ID
+	int "Last valid uid or gid for adduser and addgroup"
+	depends on ADDUSER || ADDGROUP
+	default 60000
+	help
+	  Last valid uid or gid for adduser and addgroup
+
 config FIRST_SYSTEM_ID
 	int "First valid system uid or gid for adduser and addgroup"
 	depends on ADDUSER || ADDGROUP
-	range 0 64900
+	range 0 LAST_ID
 	default 100
 	help
 	  First valid system uid or gid for adduser and addgroup
@@ -129,7 +136,7 @@ config FIRST_SYSTEM_ID
 config LAST_SYSTEM_ID
 	int "Last valid system uid or gid for adduser and addgroup"
 	depends on ADDUSER || ADDGROUP
-	range 0 64900
+	range FIRST_SYSTEM_ID LAST_ID
 	default 999
 	help
 	  Last valid system uid or gid for adduser and addgroup
