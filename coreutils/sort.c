@@ -225,7 +225,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 		y = *(char **)yarg;
 #endif
 		/* Perform actual comparison */
-		switch (flags & 7) {
+		switch (flags & (FLAG_n | FLAG_M | FLAG_g)) {
 		default:
 			bb_error_msg_and_die("unknown sort type");
 			break;
