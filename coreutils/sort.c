@@ -302,10 +302,14 @@ static int compare_keys(const void *xarg, const void *yarg)
 	} /* for */
 
 	/* Perform fallback sort if necessary */
-	if (!retval && !(option_mask32 & FLAG_s))
+	if (!retval && !(option_mask32 & FLAG_s)) {
 		retval = strcmp(*(char **)xarg, *(char **)yarg);
+		flags = option_mask32;
+	}
 
-	if (flags & FLAG_r) return -retval;
+	if (flags & FLAG_r)
+		return -retval;
+
 	return retval;
 }
 
