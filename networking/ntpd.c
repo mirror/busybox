@@ -51,9 +51,6 @@
 #ifndef IPTOS_LOWDELAY
 # define IPTOS_LOWDELAY 0x10
 #endif
-#ifndef IP_PKTINFO
-# error "Sorry, your kernel has to support IP_PKTINFO"
-#endif
 
 
 /* Verbosity control (max level of -dddd options accepted).

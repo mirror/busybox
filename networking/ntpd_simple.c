@@ -11,9 +11,6 @@
 #ifndef IPTOS_LOWDELAY
 # define IPTOS_LOWDELAY 0x10
 #endif
-#ifndef IP_PKTINFO
-# error "Sorry, your kernel has to support IP_PKTINFO"
-#endif
 
 
 /* Sync to peers every N secs */
