@@ -98,16 +98,18 @@
 //config:	  Enables "-N" command.
 
 //usage:#define less_trivial_usage
-//usage:       "[-E" IF_FEATURE_LESS_FLAGS("Mm") "Nh~I?] [FILE]..."
+//usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm") "Nh~] [FILE]..."
 //usage:#define less_full_usage "\n\n"
 //usage:       "View FILE (or stdin) one screenful at a time\n"
 //usage:     "\n	-E	Quit once the end of a file is reached"
+//usage:	IF_FEATURE_LESS_REGEXP(
+//usage:     "\n	-I	Ignore case in all searches"
+//usage:	)
 //usage:	IF_FEATURE_LESS_FLAGS(
 //usage:     "\n	-M,-m	Display status line with line numbers"
 //usage:     "\n		and percentage through the file"
 //usage:	)
 //usage:     "\n	-N	Prefix line number to each line"
-//usage:     "\n	-I	Ignore case in all searches"
 //usage:     "\n	-~	Suppress ~s displayed past EOF"
 
 #include <sched.h>  /* sched_yield() */
@@ -1613,10 +1615,13 @@ int less_main(int argc, char **argv)
 
 	INIT_G();
 
-	/* TODO: -x: do not interpret backspace, -xx: tab also */
-	/* -xxx: newline also */
-	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
-	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_DASHCMD("S"));
+	/* TODO: -x: do not interpret backspace, -xx: tab also
+	 * -xxx: newline also
+	 * -w N: assume width N (-xxx -w 32: hex viewer of sorts)
+	 * -s: condense many empty lines to one
+	 *     (used by some setups for manpage display)
+	 */
+	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_DASHCMD("S") /*ignored:*/"s");
 	argc -= optind;
 	argv += optind;
 	num_files = argc;
