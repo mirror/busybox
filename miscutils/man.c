@@ -150,7 +150,7 @@ int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
-	const char *pager;
+	const char *pager = ENABLE_LESS ? "less" : "more";
 	char **man_path_list;
 	char *sec_list;
 	char *cur_path, *cur_sect;
@@ -171,12 +171,6 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		man_path_list[0] = (char*)"/usr/man";
 	else
 		count_mp++;
-	pager = getenv("MANPAGER");
-	if (!pager) {
-		pager = getenv("PAGER");
-		if (!pager)
-			pager = "more";
-	}
 
 	/* Parse man.conf[ig] or man_db.conf */
 	/* man version 1.6f uses man.config */
@@ -190,6 +184,11 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	while (config_read(parser, token, 2, 0, "# \t", PARSE_NORMAL)) {
 		if (!token[1])
 			continue;
+		if (strcmp("DEFINE", token[0]) == 0) {
+			if (strncmp("pager", token[1], 5) == 0) {
+				pager = xstrdup(skip_whitespace(token[1]) + 5);
+			}
+		} else
 		if (strcmp("MANDATORY_MANPATH"+10, token[0]) == 0 /* "MANPATH"? */
 		 || strcmp("MANDATORY_MANPATH", token[0]) == 0
 		) {
@@ -229,6 +228,15 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	config_close(parser);
+
+	{
+		/* environment overrides setting from man.config */
+		char *env_pager = getenv("MANPAGER");
+		if (!env_pager)
+			env_pager = getenv("PAGER");
+		if (env_pager)
+			pager = env_pager;
+	}
 
 	not_found = 0;
 	do { /* for each argv[] */
