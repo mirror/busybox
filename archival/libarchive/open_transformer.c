@@ -200,7 +200,16 @@ int FAST_FUNC open_zipped(const char *fname)
 	 || (ENABLE_FEATURE_SEAMLESS_BZ2)
 	 || (ENABLE_FEATURE_SEAMLESS_XZ)
 	) {
-		setup_unzip_on_fd(fd, /*fail_if_not_detected:*/ 1);
+		/*
+		 * Do we want to fail_if_not_detected?
+		 * In most cases, no: think "insmod non_compressed_module".
+		 * A case which would like to fail is "zcat uncompressed_file":
+		 * otherwise, it happily outputs uncompressed_file as-is,
+		 * which is, strictly speaking, not what is expected.
+		 * If this ever becomes a problem, we can add
+		 * fail_if_not_detected bool argument to open_zipped().
+		 */
+		setup_unzip_on_fd(fd, /*fail_if_not_detected:*/ 0);
 	}
 
 	return fd;
