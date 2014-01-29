@@ -1135,7 +1135,9 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		struct sigaction sa;
 
 		bb_signals(0
+#ifdef SIGPWR
 			+ (1 << SIGPWR)  /* halt */
+#endif
 			+ (1 << SIGUSR1) /* halt */
 			+ (1 << SIGTERM) /* reboot */
 			+ (1 << SIGUSR2) /* poweroff */
