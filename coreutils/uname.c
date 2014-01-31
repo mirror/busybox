@@ -49,16 +49,18 @@
  */
 
 //usage:#define uname_trivial_usage
-//usage:       "[-amnrspv]"
+//usage:       "[-amnrspvio]"
 //usage:#define uname_full_usage "\n\n"
 //usage:       "Print system information\n"
 //usage:     "\n	-a	Print all"
 //usage:     "\n	-m	The machine (hardware) type"
 //usage:     "\n	-n	Hostname"
-//usage:     "\n	-r	OS release"
-//usage:     "\n	-s	OS name (default)"
+//usage:     "\n	-r	Kernel release"
+//usage:     "\n	-s	Kernel name (default)"
 //usage:     "\n	-p	Processor type"
-//usage:     "\n	-v	OS version"
+//usage:     "\n	-v	Kernel version"
+//usage:     "\n	-i	The hardware platform"
+//usage:     "\n	-o	OS name"
 //usage:
 //usage:#define uname_example_usage
 //usage:       "$ uname -a\n"
