@@ -1137,7 +1137,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			 && flags == O_RDONLY
 			 && !(opt & OPT_ANY_COMPRESS)
 			) {
-				tar_handle->src_fd = open_zipped(tar_filename);
+				tar_handle->src_fd = open_zipped(tar_filename, /*fail_if_not_compressed:*/ 0);
 				if (tar_handle->src_fd < 0)
 					bb_perror_msg_and_die("can't open '%s'", tar_filename);
 			} else {

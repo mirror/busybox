@@ -243,7 +243,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		 * or not first block (false positive, it's not .gz/.bz2!) */
 		if (lseek(archive_handle->src_fd, -i, SEEK_CUR) != 0)
 			goto err;
-		if (setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_detected:*/ 0) != 0)
+		if (setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 0) != 0)
  err:
 			bb_error_msg_and_die("invalid tar magic");
 		archive_handle->offset = 0;

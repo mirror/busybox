@@ -353,7 +353,7 @@ static void fb_drawimage(void)
 	if (LONE_DASH(G.image_filename)) {
 		theme_file = stdin;
 	} else {
-		int fd = open_zipped(G.image_filename);
+		int fd = open_zipped(G.image_filename, /*fail_if_not_compressed:*/ 0);
 		if (fd < 0)
 			bb_simple_perror_msg_and_die(G.image_filename);
 		theme_file = xfdopen_for_read(fd);

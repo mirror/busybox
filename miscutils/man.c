@@ -102,7 +102,7 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 
  ordinary_manpage:
 	close(STDIN_FILENO);
-	open_zipped(man_filename); /* guaranteed to use fd 0 (STDIN_FILENO) */
+	open_zipped(man_filename, /*fail_if_not_compressed:*/ 0); /* guaranteed to use fd 0 (STDIN_FILENO) */
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
 	cmd = xasprintf(

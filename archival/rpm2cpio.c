@@ -80,7 +80,7 @@ int rpm2cpio_main(int argc UNUSED_PARAM, char **argv)
 	//	signal(SIGCHLD, check_errors_in_children);
 
 	/* This works, but doesn't report uncompress errors (they happen in child) */
-	setup_unzip_on_fd(rpm_fd, /*fail_if_not_detected:*/ 1);
+	setup_unzip_on_fd(rpm_fd, /*fail_if_not_compressed:*/ 1);
 	if (bb_copyfd_eof(rpm_fd, STDOUT_FILENO) < 0)
 		bb_error_msg_and_die("error unpacking");
 

@@ -118,7 +118,7 @@ void FAST_FUNC open_transformer(int fd, const char *transform_prog)
 /* Used by e.g. rpm which gives us a fd without filename,
  * thus we can't guess the format from filename's extension.
  */
-int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_detected)
+int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 {
 	union {
 		uint8_t b[4];
@@ -159,7 +159,7 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_detected)
 	}
 
 	/* No known magic seen */
-	if (fail_if_not_detected)
+	if (fail_if_not_compressed)
 		bb_error_msg_and_die("no gzip"
 			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 			IF_FEATURE_SEAMLESS_XZ("/xz")
@@ -180,7 +180,7 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_detected)
 	return 0;
 }
 
-int FAST_FUNC open_zipped(const char *fname)
+int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
 {
 	int fd;
 
@@ -200,16 +200,7 @@ int FAST_FUNC open_zipped(const char *fname)
 	 || (ENABLE_FEATURE_SEAMLESS_BZ2)
 	 || (ENABLE_FEATURE_SEAMLESS_XZ)
 	) {
-		/*
-		 * Do we want to fail_if_not_detected?
-		 * In most cases, no: think "insmod non_compressed_module".
-		 * A case which would like to fail is "zcat uncompressed_file":
-		 * otherwise, it happily outputs uncompressed_file as-is,
-		 * which is, strictly speaking, not what is expected.
-		 * If this ever becomes a problem, we can add
-		 * fail_if_not_detected bool argument to open_zipped().
-		 */
-		setup_unzip_on_fd(fd, /*fail_if_not_detected:*/ 0);
+		setup_unzip_on_fd(fd, fail_if_not_compressed);
 	}
 
 	return fd;
@@ -222,7 +213,7 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 	int fd;
 	char *image;
 
-	fd = open_zipped(fname);
+	fd = open_zipped(fname, /*fail_if_not_compressed:*/ 0);
 	if (fd < 0)
 		return NULL;
 

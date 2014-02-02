@@ -122,7 +122,7 @@ static void extract_cpio(int fd, const char *source_rpm)
 	archive_handle->src_fd = fd;
 	/*archive_handle->offset = 0; - init_handle() did it */
 
-	setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_detected:*/ 1);
+	setup_unzip_on_fd(archive_handle->src_fd, /*fail_if_not_compressed:*/ 1);
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS)
 		continue;
 }

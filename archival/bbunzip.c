@@ -72,7 +72,8 @@ int FAST_FUNC bbunpack(char **argv,
 					goto err;
 			} else {
 				/* "clever zcat" with FILE */
-				int fd = open_zipped(filename);
+				/* fail_if_not_compressed because zcat refuses uncompressed input */
+				int fd = open_zipped(filename, /*fail_if_not_compressed:*/ 1);
 				if (fd < 0)
 					goto err_name;
 				xmove_fd(fd, STDIN_FILENO);
@@ -80,7 +81,7 @@ int FAST_FUNC bbunpack(char **argv,
 		} else
 		if (option_mask32 & SEAMLESS_MAGIC) {
 			/* "clever zcat" on stdin */
-			if (setup_unzip_on_fd(STDIN_FILENO, /*fail_if_not_detected*/ 0))
+			if (setup_unzip_on_fd(STDIN_FILENO, /*fail_if_not_compressed*/ 1))
 				goto err;
 		}
 
