@@ -20,20 +20,22 @@
 
 #include "libbb.h"
 
+#define CATV_OPT_e (1<<0)
+#define CATV_OPT_t (1<<1)
+#define CATV_OPT_v (1<<2)
+struct BUG_const_mismatch {
+	char BUG_const_mismatch[
+		CATV_OPT_e == VISIBLE_ENDLINE && CATV_OPT_t == VISIBLE_SHOW_TABS
+		? 1 : -1
+	];
+};
+
 int catv_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int catv_main(int argc UNUSED_PARAM, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 	int fd;
 	unsigned opts;
-#define CATV_OPT_e (1<<0)
-#define CATV_OPT_t (1<<1)
-#define CATV_OPT_v (1<<2)
-	typedef char BUG_const_mismatch[
-		CATV_OPT_e == VISIBLE_ENDLINE && CATV_OPT_t == VISIBLE_SHOW_TABS
-		? 1 : -1
-	];
-
 	opts = getopt32(argv, "etv");
 	argv += optind;
 #if 0 /* These consts match, we can just pass "opts" to visible() */
