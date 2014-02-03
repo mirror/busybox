@@ -685,6 +685,18 @@ static const struct address_family_t addr_inet = {
 
 #endif  /* FEATURE_IFUPDOWN_IPV4 */
 
+static int FAST_FUNC link_up_down(struct interface_defn_t *ifd UNUSED_PARAM, execfn *exec UNUSED_PARAM)
+{
+	return 1;
+}
+
+static const struct method_t link_methods[] = {
+	{ "none", link_up_down, link_up_down }
+};
+
+static const struct address_family_t addr_link = {
+	"link", ARRAY_SIZE(link_methods), link_methods
+};
 
 /* Returns pointer to the next word, or NULL.
  * In 1st case, advances *buf to the word after this one.
@@ -831,6 +843,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 #if ENABLE_FEATURE_IFUPDOWN_IPV6
 				&addr_inet6,
 #endif
+				&addr_link,
 				NULL
 			};
 			char *iface_name;
