@@ -46,7 +46,7 @@
 struct host_info {
 	char *allocated;
 	const char *path;
-	const char *user;
+	char       *user;
 	char       *host;
 	int         port;
 	smallint    is_ftp;
@@ -322,9 +322,6 @@ static void parse_url(const char *src_url, struct host_info *h)
 		h->path = sp;
 	}
 
-	// We used to set h->user to NULL here, but this interferes
-	// with handling of code 302 ("object was moved")
-
 	sp = strrchr(h->host, '@');
 	if (sp != NULL) {
 		// URL-decode "user:password" string before base64-encoding:
@@ -333,11 +330,13 @@ static void parse_url(const char *src_url, struct host_info *h)
 		// which decodes to "test:my pass".
 		// Standard wget and curl do this too.
 		*sp = '\0';
-		h->user = percent_decode_in_place(h->host, /*strict:*/ 0);
+		free(h->user);
+		h->user = xstrdup(percent_decode_in_place(h->host, /*strict:*/ 0));
 		h->host = sp + 1;
 	}
-
-	sp = h->host;
+	/* else: h->user remains NULL, or as set by original request
+	 * before redirect (if we are here after a redirect).
+	 */
 }
 
 static char *gethdr(FILE *fp)
@@ -880,6 +879,7 @@ However, in real world it was observed that some web servers
 				} else {
 					parse_url(str, &target);
 					if (!use_proxy) {
+						/* server.user remains untouched */
 						free(server.allocated);
 						server.allocated = NULL;
 						server.host = target.host;
@@ -929,6 +929,8 @@ However, in real world it was observed that some web servers
 
 	free(server.allocated);
 	free(target.allocated);
+	free(server.user);
+	free(target.user);
 	free(fname_out_alloc);
 	free(redirected_path);
 }
