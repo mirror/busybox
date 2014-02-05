@@ -15,7 +15,8 @@
 //usage:       "Read email from stdin and send it\n"
 //usage:     "\nStandard options:"
 //usage:     "\n	-t		Read additional recipients from message body"
-//usage:     "\n	-f SENDER	Sender (required)"
+//usage:     "\n	-f SENDER	For use in MAIL FROM:<sender>. Can be empty string"
+//usage:     "\n			Default: -auUSER, or username of current UID"
 //usage:     "\n	-o OPTIONS	Various options. -oi implied, others are ignored"
 //usage:     "\n	-i		-oi synonym. implied and ignored"
 //usage:     "\n"
@@ -39,6 +40,52 @@
 //usage:	IF_MAKEMIME(
 //usage:     "\nUse makemime to create emails with attachments"
 //usage:	)
+
+/* Currently we don't sanitize or escape user-supplied SENDER and RECIPIENT_EMAILs.
+ * We may need to do so. For one, '.' in usernames seems to require escaping!
+ *
+ * From http://cr.yp.to/smtp/address.html:
+ *
+ * SMTP offers three ways to encode a character inside an address:
+ *
+ * "safe": the character, if it is not <>()[].,;:@, backslash,
+ *  double-quote, space, or an ASCII control character;
+ * "quoted": the character, if it is not \012, \015, backslash,
+ *   or double-quote; or
+ * "slashed": backslash followed by the character.
+ *
+ * An encoded box part is either (1) a sequence of one or more slashed
+ * or safe characters or (2) a double quote, a sequence of zero or more
+ * slashed or quoted characters, and a double quote. It represents
+ * the concatenation of the characters encoded inside it.
+ *
+ * For example, the encoded box parts
+ *	angels
+ *	\a\n\g\e\l\s
+ *	"\a\n\g\e\l\s"
+ *	"angels"
+ *	"ang\els"
+ * all represent the 6-byte string "angels", and the encoded box parts
+ *	a\,comma
+ *	\a\,\c\o\m\m\a
+ *	"a,comma"
+ * all represent the 7-byte string "a,comma".
+ *
+ * An encoded address contains
+ *	the byte <;
+ *	optionally, a route followed by a colon;
+ *	an encoded box part, the byte @, and a domain; and
+ *	the byte >.
+ *
+ * It represents an Internet mail address, given by concatenating
+ * the string represented by the encoded box part, the byte @,
+ * and the domain. For example, the encoded addresses
+ *     <God@heaven.af.mil>
+ *     <\God@heaven.af.mil>
+ *     <"God"@heaven.af.mil>
+ *     <@gateway.af.mil,@uucp.local:"\G\o\d"@heaven.af.mil>
+ * all represent the Internet mail address "God@heaven.af.mil".
+ */
 
 #include "libbb.h"
 #include "mail.h"
@@ -163,7 +210,7 @@ int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendmail_main(int argc UNUSED_PARAM, char **argv)
 {
 	char *opt_connect = opt_connect;
-	char *opt_from;
+	char *opt_from = NULL;
 	char *s;
 	llist_t *list = NULL;
 	char *host = sane_address(safe_gethostname());
@@ -199,8 +246,8 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	G.fp0 = xfdopen_for_read(3);
 
 	// parse options
-	// -v is a counter, -f is required. -H and -S are mutually exclusive, -a is a list
-	opt_complementary = "vv:f:w+:H--S:S--H:a::";
+	// -v is a counter, -H and -S are mutually exclusive, -a is a list
+	opt_complementary = "vv:w+:H--S:S--H:a::";
 	// N.B. since -H and -S are mutually exclusive they do not interfere in opt_connect
 	// -a is for ssmtp (http://downloads.openwrt.org/people/nico/man/man8/ssmtp.8.html) compatibility,
 	// it is still under development.
@@ -304,13 +351,11 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	//	Since reading from console may defeat usability, the solution is either to read from a predefined
 	//	file descriptor (e.g. 4), or again from a secured file.
 
-	// got no sender address? -> use system username as a resort
-	// N.B. we marked -f as required option!
-	//if (!G.user) {
-	//	// N.B. IMHO getenv("USER") can be way easily spoofed!
-	//	G.user = xuid2uname(getuid());
-	//	opt_from = xasprintf("%s@%s", G.user, domain);
-	//}
+	// got no sender address? use auth name, then UID username as a last resort
+	if (!opt_from) {
+		opt_from = G.user ? G.user : xuid2uname(getuid());
+	}
+
 	smtp_checkp("MAIL FROM:<%s>", opt_from, 250);
 
 	// process message
