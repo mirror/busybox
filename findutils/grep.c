@@ -375,6 +375,8 @@ static int grep_file(FILE *file)
 			} else {
 #if ENABLE_EXTRA_COMPAT
 				unsigned start_pos;
+#else
+				int match_flg;
 #endif
 				char *match_at;
 
@@ -392,6 +394,7 @@ static int grep_file(FILE *file)
 #if !ENABLE_EXTRA_COMPAT
 				gl->matched_range.rm_so = 0;
 				gl->matched_range.rm_eo = 0;
+				match_flg = 0;
 #else
 				start_pos = 0;
 #endif
@@ -400,7 +403,7 @@ static int grep_file(FILE *file)
 //bb_error_msg("'%s' start_pos:%d line_len:%d", match_at, start_pos, line_len);
 				if (
 #if !ENABLE_EXTRA_COMPAT
-					regexec(&gl->compiled_regex, match_at, 1, &gl->matched_range, 0) == 0
+					regexec(&gl->compiled_regex, match_at, 1, &gl->matched_range, match_flg) == 0
 #else
 					re_search(&gl->compiled_regex, match_at, line_len,
 							start_pos, /*range:*/ line_len,
@@ -415,7 +418,7 @@ static int grep_file(FILE *file)
 						found = 1;
 					} else {
 						char c = ' ';
-						if (gl->matched_range.rm_so)
+						if (match_at > line || gl->matched_range.rm_so != 0)
 							c = match_at[gl->matched_range.rm_so - 1];
 						if (!isalnum(c) && c != '_') {
 							c = match_at[gl->matched_range.rm_eo];
@@ -432,6 +435,7 @@ static int grep_file(FILE *file)
 #if !ENABLE_EXTRA_COMPAT
 								if (gl->matched_range.rm_eo != 0) {
 									match_at += gl->matched_range.rm_eo;
+									match_flg |= REG_NOTBOL;
 									goto opt_w_again;
 								}
 #else

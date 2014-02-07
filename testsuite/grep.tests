@@ -159,6 +159,12 @@ testing "grep -w ^ doesn't hang" \
 	"anything\n" \
 	""
 
+testing "grep -w word doesn't match wordword" \
+	"grep -w word input" \
+	"" \
+	"wordword\n" \
+	""
+
 # testing "test name" "commands" "expected result" "file input" "stdin"
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout
