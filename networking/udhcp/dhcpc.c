@@ -979,6 +979,10 @@ static int udhcp_raw_socket(int ifindex)
 	log1("Opening raw socket on ifindex %d", ifindex); //log2?
 
 	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
+	/* ^^^^^
+	 * SOCK_DGRAM: remove link-layer headers on input (SOCK_RAW keeps them)
+	 * ETH_P_IP: want to receive only packets with IPv4 eth type
+	 */
 	log1("Got raw socket fd"); //log2?
 
 	sock.sll_family = AF_PACKET;
@@ -1005,8 +1009,6 @@ static int udhcp_raw_socket(int ifindex)
 		 *
 		 * Copyright: 2006, 2007 Stefan Rompf <sux@loplof.de>.
 		 * License: GPL v2.
-		 *
-		 * TODO: make conditional?
 		 */
 		static const struct sock_filter filter_instr[] = {
 			/* load 9th byte (protocol) */
