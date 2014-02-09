@@ -326,7 +326,6 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	// we should start with modern EHLO
 	if (250 != smtp_checkp("EHLO %s", host, -1))
 		smtp_checkp("HELO %s", host, 250);
-	free(host);
 
 	// perform authentication
 	if (opts & OPT_a) {
@@ -353,8 +352,11 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// got no sender address? use auth name, then UID username as a last resort
 	if (!opt_from) {
-		opt_from = G.user ? G.user : xuid2uname(getuid());
+		opt_from = xasprintf("%s@%s",
+		                     G.user ? G.user : xuid2uname(getuid()),
+		                     xgethostbyname(host)->h_name);
 	}
+	free(host);
 
 	smtp_checkp("MAIL FROM:<%s>", opt_from, 250);
 
