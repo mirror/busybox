@@ -1660,13 +1660,14 @@ retry_interval(void)
 static unsigned
 poll_interval(int exponent)
 {
-	unsigned interval, r;
+	unsigned interval, r, mask;
 	exponent = G.poll_exp + exponent;
 	if (exponent < 0)
 		exponent = 0;
 	interval = 1 << exponent;
+	mask = ((interval-1) >> 4) | 1;
 	r = random();
-	interval += ((r & (interval-1)) >> 4) + ((r >> 8) & 1); /* + 1/16 of interval, max */
+	interval += r & mask; /* ~ random(0..1) * interval/16 */
 	VERB4 bb_error_msg("chose poll interval:%u (poll_exp:%d exp:%d)", interval, G.poll_exp, exponent);
 	return interval;
 }
