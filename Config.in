@@ -257,6 +257,13 @@ config UNICODE_PRESERVE_BROKEN
 	  at shell prompt will list file named 0xff (single char name
 	  with char value 255), not file named '?'.
 
+config PAM
+	bool "Support for PAM (Pluggable Authentication Modules)"
+	default n
+	help
+	  Use PAM in some busybox applets (currently login and httpd) instead
+	  of direct access to password database.
+
 config LONG_OPTS
 	bool "Support for --long-options"
 	default y

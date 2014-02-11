@@ -223,13 +223,6 @@ config LOGIN_SESSION_AS_CHILD
 	  almost always would want this to be set to Y, else PAM session
 	  will not be cleaned up.
 
-config PAM
-	bool "Support for PAM (Pluggable Authentication Modules)"
-	default n
-	depends on LOGIN
-	help
-	  Use PAM in login(1) instead of direct access to password database.
-
 config LOGIN_SCRIPTS
 	bool "Support for login scripts"
 	depends on LOGIN
