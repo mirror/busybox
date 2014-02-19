@@ -1025,9 +1025,10 @@ static int udhcp_raw_socket(int ifindex)
 			BPF_STMT(BPF_LD|BPF_H|BPF_IND, 2),
 			/* jump to L3 if udp dport is CLIENT_PORT, else to L4 */
 			BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, 68, 0, 1),
-			/* L3: accept packet */
-			BPF_STMT(BPF_RET|BPF_K, 0xffffffff),
-			/* L4: discard packet */
+			/* L3: accept packet ("accept 0x7fffffff bytes") */
+			/* Accepting 0xffffffff works too but kernel 2.6.19 is buggy */
+			BPF_STMT(BPF_RET|BPF_K, 0x7fffffff),
+			/* L4: discard packet ("accept zero bytes") */
 			BPF_STMT(BPF_RET|BPF_K, 0),
 		};
 		static const struct sock_fprog filter_prog = {
