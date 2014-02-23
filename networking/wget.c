@@ -527,11 +527,50 @@ static int spawn_https_helper(const char *host, unsigned port)
 		/* notreached */
 	}
 
-	/* parent process */
+	/* Parent */
 	free(allocated);
 	close(sp[1]);
 	return sp[0];
 }
+
+/* See networking/ssl_helper/README */
+#define SSL_HELPER 0
+
+#if SSL_HELPER
+static void spawn_https_helper1(int network_fd)
+{
+	int sp[2];
+	int pid;
+
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sp) != 0)
+		/* Kernel can have AF_UNIX support disabled */
+		bb_perror_msg_and_die("socketpair");
+
+	pid = BB_MMU ? xfork() : xvfork();
+	if (pid == 0) {
+		/* Child */
+		char *argv[3];
+
+		close(sp[0]);
+		xmove_fd(sp[1], 0);
+		xdup2(0, 1);
+		xmove_fd(network_fd, 3);
+		/*
+		 * A simple ssl/tls helper
+		 */
+		argv[0] = (char*)"ssl_helper";
+		argv[1] = (char*)"-d3";
+		argv[2] = NULL;
+		BB_EXECVP(argv[0], argv);
+		bb_perror_msg_and_die("can't execute '%s'", argv[0]);
+		/* notreached */
+	}
+
+	/* Parent */
+	close(sp[1]);
+	xmove_fd(sp[0], network_fd);
+}
+#endif
 
 static void NOINLINE retrieve_file_data(FILE *dfp)
 {
@@ -775,13 +814,19 @@ static void download_one_url(const char *url)
 
 		/* Open socket to http(s) server */
 		if (target.protocol == P_HTTPS) {
+/* openssl-based helper
+ * Inconvenient API since we can't give it an open fd,
+ */
 			int fd = spawn_https_helper(server.host, server.port);
 			sfp = fdopen(fd, "r+");
 			if (!sfp)
 				bb_perror_msg_and_die(bb_msg_memory_exhausted);
 		} else
 			sfp = open_socket(lsa);
-
+#if SSL_HELPER
+		if (target.protocol == P_HTTPS)
+			spawn_https_helper1(fileno(sfp));
+#endif
 		/* Send HTTP request */
 		if (use_proxy) {
 			fprintf(sfp, "GET %s://%s/%s HTTP/1.1\r\n",
