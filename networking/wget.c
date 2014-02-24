@@ -815,7 +815,7 @@ static void download_one_url(const char *url)
 		/* Open socket to http(s) server */
 		if (target.protocol == P_HTTPS) {
 /* openssl-based helper
- * Inconvenient API since we can't give it an open fd,
+ * Inconvenient API since we can't give it an open fd
  */
 			int fd = spawn_https_helper(server.host, server.port);
 			sfp = fdopen(fd, "r+");
