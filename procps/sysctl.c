@@ -129,6 +129,9 @@ static int sysctl_act_on_setting(char *setting)
 
 	if (fd < 0) {
 		switch (errno) {
+		case EACCES:
+			/* Happens for write-only settings, e.g. net.ipv6.route.flush */
+			goto end;
 		case ENOENT:
 			if (option_mask32 & FLAG_SHOW_KEY_ERRORS)
 				bb_error_msg("error: '%s' is an unknown key", outname);
