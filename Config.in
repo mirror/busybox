@@ -423,10 +423,7 @@ config SELINUX
 	  the option of compiling in SELinux applets.
 
 	  If you do not have a complete SELinux userland installed, this stuff
-	  will not compile. Go visit
-		http://www.nsa.gov/selinux/index.html
-	  to download the necessary stuff to allow busybox to compile with
-	  this option enabled. Specifially, libselinux 1.28 or better is
+	  will not compile.  Specifially, libselinux 1.28 or better is
 	  directly required by busybox. If the installation is located in a
 	  non-standard directory, provide it by invoking make as follows:
 		CFLAGS=-I<libselinux-include-path> \
