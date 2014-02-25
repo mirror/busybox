@@ -72,13 +72,18 @@ void FAST_FUNC add_to_ino_dev_hashtable(const struct stat *statbuf, const char *
 void FAST_FUNC reset_ino_dev_hashtable(void)
 {
 	int i;
-	ino_dev_hashtable_bucket_t *bucket;
+	ino_dev_hashtable_bucket_t *bucket, *next;
 
-	for (i = 0; ino_dev_hashtable && i < HASH_SIZE; i++) {
-		while (ino_dev_hashtable[i] != NULL) {
-			bucket = ino_dev_hashtable[i]->next;
-			free(ino_dev_hashtable[i]);
-			ino_dev_hashtable[i] = bucket;
+	if (!ino_dev_hashtable)
+		return;
+
+	for (i = 0; i < HASH_SIZE; i++) {
+		bucket = ino_dev_hashtable[i];
+
+		while (bucket != NULL) {
+			next = bucket->next;
+			free(bucket);
+			bucket = next;
 		}
 	}
 	free(ino_dev_hashtable);
