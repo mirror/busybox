@@ -420,12 +420,10 @@ static char* subst(const char *src, unsigned count, const char* filename)
 	size_t flen = strlen(filename);
 	/* we replace each '{}' with filename: growth by strlen-2 */
 	buf = dst = xmalloc(strlen(src) + count*(flen-2) + 1);
-	while ((end = strstr(src, "{}"))) {
-		memcpy(dst, src, end - src);
-		dst += end - src;
+	while ((end = strstr(src, "{}")) != NULL) {
+		dst = mempcpy(dst, src, end - src);
+		dst = mempcpy(dst, filename, flen);
 		src = end + 2;
-		memcpy(dst, filename, flen);
-		dst += flen;
 	}
 	strcpy(dst, src);
 	return buf;
