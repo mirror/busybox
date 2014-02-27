@@ -1032,7 +1032,7 @@ static void scan_and_display_dirs_recur(struct dnode **dn, int first)
 		}
 		subdnp = scan_one_dir((*dn)->fullname, &nfiles);
 #if ENABLE_DESKTOP
-		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG)
+		if ((G.all_fmt & STYLE_MASK) == STYLE_LONG || (G.all_fmt & LIST_BLOCKS))
 			printf("total %"OFF_FMT"u\n", calculate_blocks(subdnp));
 #endif
 		if (nfiles > 0) {
