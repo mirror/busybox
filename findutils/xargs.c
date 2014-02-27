@@ -373,7 +373,7 @@ static char* FAST_FUNC process_stdin_with_replace(int n_max_chars, int n_max_arg
 				char *arg = G.argv[i];
 				int count = count_strstr(arg, G.repl_str);
 				if (count != 0)
-					arg = xmalloc_substitute_string(arg, count, G.repl_str, s);
+					arg = xmalloc_substitute_string(arg, count, G.repl_str, buf);
 				store_param(arg);
 				dbg_msg("args[]:'%s'", arg);
 				i++;
