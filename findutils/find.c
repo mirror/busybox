@@ -402,34 +402,6 @@ struct globals {
 	G.recurse_flags = ACTION_RECURSE; \
 } while (0)
 
-#if ENABLE_FEATURE_FIND_EXEC
-static unsigned count_subst(const char *str)
-{
-	unsigned count = 0;
-	while ((str = strstr(str, "{}")) != NULL) {
-		count++;
-		str++;
-	}
-	return count;
-}
-
-
-static char* subst(const char *src, unsigned count, const char* filename)
-{
-	char *buf, *dst, *end;
-	size_t flen = strlen(filename);
-	/* we replace each '{}' with filename: growth by strlen-2 */
-	buf = dst = xmalloc(strlen(src) + count*(flen-2) + 1);
-	while ((end = strstr(src, "{}")) != NULL) {
-		dst = mempcpy(dst, src, end - src);
-		dst = mempcpy(dst, filename, flen);
-		src = end + 2;
-	}
-	strcpy(dst, src);
-	return buf;
-}
-#endif
-
 /* Return values of ACTFs ('action functions') are a bit mask:
  * bit 1=1: prune (use SKIP constant for setting it)
  * bit 0=1: matched successfully (TRUE)
@@ -613,7 +585,7 @@ ACTF(exec)
 	char *argv[ap->exec_argc + 1];
 #endif
 	for (i = 0; i < ap->exec_argc; i++)
-		argv[i] = subst(ap->exec_argv[i], ap->subst_count[i], fileName);
+		argv[i] = xmalloc_substitute_string(ap->exec_argv[i], ap->subst_count[i], "{}", fileName);
 	argv[i] = NULL; /* terminate the list */
 
 	rc = spawn_and_wait(argv);
@@ -1091,7 +1063,7 @@ static action*** parse_params(char **argv)
 			ap->subst_count = xmalloc(ap->exec_argc * sizeof(int));
 			i = ap->exec_argc;
 			while (i--)
-				ap->subst_count[i] = count_subst(ap->exec_argv[i]);
+				ap->subst_count[i] = count_strstr(ap->exec_argv[i], "{}");
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PAREN

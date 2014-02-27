@@ -650,6 +650,8 @@ char *xstrndup(const char *s, int n) FAST_FUNC RETURNS_MALLOC;
 void overlapping_strcpy(char *dst, const char *src) FAST_FUNC;
 char *safe_strncpy(char *dst, const char *src, size_t size) FAST_FUNC;
 char *strncpy_IFNAMSIZ(char *dst, const char *src) FAST_FUNC;
+unsigned count_strstr(const char *str, const char *sub) FAST_FUNC;
+char *xmalloc_substitute_string(const char *src, int count, const char *sub, const char *repl) FAST_FUNC;
 /* Guaranteed to NOT be a macro (smallest code). Saves nearly 2k on uclibc.
  * But potentially slow, don't use in one-billion-times loops */
 int bb_putchar(int ch) FAST_FUNC;
