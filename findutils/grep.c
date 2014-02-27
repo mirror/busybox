@@ -418,13 +418,15 @@ static int grep_file(FILE *file)
 						found = 1;
 					} else {
 						char c = ' ';
-						if (match_at > line || gl->matched_range.rm_so != 0)
+						if (match_at > line || gl->matched_range.rm_so != 0) {
 							c = match_at[gl->matched_range.rm_so - 1];
+						}
 						if (!isalnum(c) && c != '_') {
 							c = match_at[gl->matched_range.rm_eo];
-							if (!c || (!isalnum(c) && c != '_')) {
-								found = 1;
-							} else {
+						}
+						if (!isalnum(c) && c != '_') {
+							found = 1;
+						} else {
 			/*
 			 * Why check gl->matched_range.rm_eo?
 			 * Zero-length match makes -w skip the line:
@@ -433,18 +435,17 @@ static int grep_file(FILE *file)
 			 * Without such check, we can loop forever.
 			 */
 #if !ENABLE_EXTRA_COMPAT
-								if (gl->matched_range.rm_eo != 0) {
-									match_at += gl->matched_range.rm_eo;
-									match_flg |= REG_NOTBOL;
-									goto opt_w_again;
-								}
-#else
-								if (gl->matched_range.rm_eo > start_pos) {
-									start_pos = gl->matched_range.rm_eo;
-									goto opt_w_again;
-								}
-#endif
+							if (gl->matched_range.rm_eo != 0) {
+								match_at += gl->matched_range.rm_eo;
+								match_flg |= REG_NOTBOL;
+								goto opt_w_again;
 							}
+#else
+							if (gl->matched_range.rm_eo > start_pos) {
+								start_pos = gl->matched_range.rm_eo;
+								goto opt_w_again;
+							}
+#endif
 						}
 					}
 				}
