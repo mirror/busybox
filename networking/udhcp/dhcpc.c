@@ -1232,7 +1232,7 @@ static void client_background(void)
 int udhcpc_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 {
-	uint8_t *temp, *message;
+	uint8_t *message;
 	const char *str_V, *str_h, *str_F, *str_r;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	void *clientid_mac_ptr;
@@ -1640,6 +1640,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		case INIT_SELECTING:
 			/* Must be a DHCPOFFER */
 			if (*message == DHCPOFFER) {
+				uint8_t *temp;
+
 /* What exactly is server's IP? There are several values.
  * Example DHCP offer captured with tchdump:
  *
@@ -1689,6 +1691,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 			if (*message == DHCPACK) {
 				uint32_t lease_seconds;
 				struct in_addr temp_addr;
+				uint8_t *temp;
 
 				temp = udhcp_get_option(&packet, DHCP_LEASE_TIME);
 				if (!temp) {
@@ -1766,6 +1769,26 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				continue; /* back to main loop */
 			}
 			if (*message == DHCPNAK) {
+				/* If network has more than one DHCP server,
+				 * "wrong" server can reply first, with a NAK.
+				 * Do not interpret it as a NAK from "our" server.
+				 */
+				if (server_addr != 0) {
+					uint32_t svid;
+					uint8_t *temp;
+
+					temp = udhcp_get_option(&packet, DHCP_SERVER_ID);
+					if (!temp) {
+ non_matching_svid:
+						log1("%s with wrong server ID, ignoring packet",
+							"Received DHCP NAK"
+						);
+						continue;
+					}
+					move_from_unaligned32(svid, temp);
+					if (svid != server_addr)
+						goto non_matching_svid;
+				}
 				/* return to init state */
 				bb_info_msg("Received DHCP NAK");
 				udhcp_run_script(&packet, "nak");
