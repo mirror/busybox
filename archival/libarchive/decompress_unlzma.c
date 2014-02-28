@@ -237,6 +237,9 @@ unpack_lzma_stream(transformer_aux_data_t *aux UNUSED_PARAM, int src_fd, int dst
 	pos_state_mask = (1 << pb) - 1;
 	literal_pos_mask = (1 << lp) - 1;
 
+	/* Example values from linux-3.3.4.tar.lzma:
+	 * dict_size: 64M, dst_size: 2^64-1
+	 */
 	header.dict_size = SWAP_LE32(header.dict_size);
 	header.dst_size = SWAP_LE64(header.dst_size);
 
@@ -443,6 +446,9 @@ unpack_lzma_stream(transformer_aux_data_t *aux UNUSED_PARAM, int src_fd, int dst
 				}
 				len--;
 			} while (len != 0 && buffer_pos < header.dst_size);
+			/* FIXME: ...........^^^^^
+			 * shouldn't it be "global_pos + buffer_pos < header.dst_size"?
+			 */
 		}
 	}
 
