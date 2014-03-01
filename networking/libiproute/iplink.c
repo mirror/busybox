@@ -46,6 +46,12 @@ struct ifla_vlan_flags {
 /* taken from linux/sockios.h */
 #define SIOCSIFNAME  0x8923  /* set interface name */
 
+#if 0
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#else
+# define dbg(...) ((void)0)
+#endif
+
 /* Exits on error */
 static int get_ctl_fd(void)
 {
@@ -401,12 +407,13 @@ static void vlan_parse_opt(char **argv, struct nlmsghdr *n, unsigned int size)
 static int do_add_or_delete(char **argv, const unsigned rtm)
 {
 	static const char keywords[] ALIGN1 =
-		"link\0""name\0""type\0""dev\0";
+		"link\0""name\0""type\0""dev\0""address\0";
 	enum {
 		ARG_link,
 		ARG_name,
 		ARG_type,
 		ARG_dev,
+		ARG_address,
 	};
 	struct rtnl_handle rth;
 	struct {
@@ -415,7 +422,11 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 		char             buf[1024];
 	} req;
 	smalluint arg;
-	char *name_str = NULL, *link_str = NULL, *type_str = NULL, *dev_str = NULL;
+	char *name_str = NULL;
+	char *link_str = NULL;
+	char *type_str = NULL;
+	char *dev_str = NULL;
+	char *address_str = NULL;
 
 	memset(&req, 0, sizeof(req));
 
@@ -431,14 +442,21 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 		if (arg == ARG_type) {
 			NEXT_ARG();
 			type_str = *argv++;
+			dbg("type_str:'%s'", type_str);
 			break;
 		}
 		if (arg == ARG_link) {
 			NEXT_ARG();
 			link_str = *argv;
+			dbg("link_str:'%s'", link_str);
 		} else if (arg == ARG_name) {
 			NEXT_ARG();
 			name_str = *argv;
+			dbg("name_str:'%s'", name_str);
+		} else if (arg == ARG_address) {
+			NEXT_ARG();
+			address_str = *argv;
+			dbg("address_str:'%s'", name_str);
 		} else {
 			if (arg == ARG_dev) {
 				if (dev_str)
@@ -446,6 +464,7 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 				NEXT_ARG();
 			}
 			dev_str = *argv;
+			dbg("dev_str:'%s'", dev_str);
 		}
 		argv++;
 	}
@@ -481,6 +500,14 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 			int idx = xll_name_to_index(link_str);
 			addattr_l(&req.n, sizeof(req), IFLA_LINK, &idx, 4);
 		}
+		if (address_str) {
+			unsigned char abuf[32];
+			int len = ll_addr_a2n(abuf, sizeof(abuf), address_str);
+			dbg("address len:%d", len);
+			if (len < 0)
+				return -1;
+			addattr_l(&req.n, sizeof(req), IFLA_ADDRESS, abuf, len);
+		}
 	}
 	if (name_str) {
 		const size_t name_len = strlen(name_str) + 1;
@@ -492,6 +519,165 @@ static int do_add_or_delete(char **argv, const unsigned rtm)
 		return 2;
 	return 0;
 }
+
+/* Other keywords recognized by iproute2-3.12.0: */
+#if 0
+		} else if (matches(*argv, "broadcast") == 0 ||
+				strcmp(*argv, "brd") == 0) {
+			NEXT_ARG();
+			len = ll_addr_a2n(abuf, sizeof(abuf), *argv);
+			if (len < 0)
+				return -1;
+			addattr_l(&req->n, sizeof(*req), IFLA_BROADCAST, abuf, len);
+		} else if (matches(*argv, "txqueuelen") == 0 ||
+				strcmp(*argv, "qlen") == 0 ||
+				matches(*argv, "txqlen") == 0) {
+			NEXT_ARG();
+			if (qlen != -1)
+				duparg("txqueuelen", *argv);
+			if (get_integer(&qlen,  *argv, 0))
+				invarg("Invalid \"txqueuelen\" value\n", *argv);
+			addattr_l(&req->n, sizeof(*req), IFLA_TXQLEN, &qlen, 4);
+		} else if (strcmp(*argv, "mtu") == 0) {
+			NEXT_ARG();
+			if (mtu != -1)
+				duparg("mtu", *argv);
+			if (get_integer(&mtu, *argv, 0))
+				invarg("Invalid \"mtu\" value\n", *argv);
+			addattr_l(&req->n, sizeof(*req), IFLA_MTU, &mtu, 4);
+                } else if (strcmp(*argv, "netns") == 0) {
+                        NEXT_ARG();
+                        if (netns != -1)
+                                duparg("netns", *argv);
+			if ((netns = get_netns_fd(*argv)) >= 0)
+				addattr_l(&req->n, sizeof(*req), IFLA_NET_NS_FD, &netns, 4);
+			else if (get_integer(&netns, *argv, 0) == 0)
+				addattr_l(&req->n, sizeof(*req), IFLA_NET_NS_PID, &netns, 4);
+			else
+                                invarg("Invalid \"netns\" value\n", *argv);
+		} else if (strcmp(*argv, "multicast") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_MULTICAST;
+			if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags |= IFF_MULTICAST;
+			} else if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags &= ~IFF_MULTICAST;
+			} else
+				return on_off("multicast", *argv);
+		} else if (strcmp(*argv, "allmulticast") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_ALLMULTI;
+			if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags |= IFF_ALLMULTI;
+			} else if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags &= ~IFF_ALLMULTI;
+			} else
+				return on_off("allmulticast", *argv);
+		} else if (strcmp(*argv, "promisc") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_PROMISC;
+			if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags |= IFF_PROMISC;
+			} else if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags &= ~IFF_PROMISC;
+			} else
+				return on_off("promisc", *argv);
+		} else if (strcmp(*argv, "trailers") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_NOTRAILERS;
+			if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags |= IFF_NOTRAILERS;
+			} else if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags &= ~IFF_NOTRAILERS;
+			} else
+				return on_off("trailers", *argv);
+		} else if (strcmp(*argv, "arp") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_NOARP;
+			if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags &= ~IFF_NOARP;
+			} else if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags |= IFF_NOARP;
+			} else
+				return on_off("noarp", *argv);
+		} else if (strcmp(*argv, "vf") == 0) {
+			struct rtattr *vflist;
+			NEXT_ARG();
+			if (get_integer(&vf,  *argv, 0)) {
+				invarg("Invalid \"vf\" value\n", *argv);
+			}
+			vflist = addattr_nest(&req->n, sizeof(*req),
+					      IFLA_VFINFO_LIST);
+			len = iplink_parse_vf(vf, &argc, &argv, req);
+			if (len < 0)
+				return -1;
+			addattr_nest_end(&req->n, vflist);
+		} else if (matches(*argv, "master") == 0) {
+			int ifindex;
+			NEXT_ARG();
+			ifindex = ll_name_to_index(*argv);
+			if (!ifindex)
+				invarg("Device does not exist\n", *argv);
+			addattr_l(&req->n, sizeof(*req), IFLA_MASTER,
+				  &ifindex, 4);
+		} else if (matches(*argv, "nomaster") == 0) {
+			int ifindex = 0;
+			addattr_l(&req->n, sizeof(*req), IFLA_MASTER,
+				  &ifindex, 4);
+		} else if (matches(*argv, "dynamic") == 0) {
+			NEXT_ARG();
+			req->i.ifi_change |= IFF_DYNAMIC;
+			if (strcmp(*argv, "on") == 0) {
+				req->i.ifi_flags |= IFF_DYNAMIC;
+			} else if (strcmp(*argv, "off") == 0) {
+				req->i.ifi_flags &= ~IFF_DYNAMIC;
+			} else
+				return on_off("dynamic", *argv);
+		} else if (matches(*argv, "alias") == 0) {
+			NEXT_ARG();
+			addattr_l(&req->n, sizeof(*req), IFLA_IFALIAS,
+				  *argv, strlen(*argv));
+			argc--; argv++;
+			break;
+		} else if (strcmp(*argv, "group") == 0) {
+			NEXT_ARG();
+			if (*group != -1)
+				duparg("group", *argv);
+			if (rtnl_group_a2n(group, *argv))
+				invarg("Invalid \"group\" value\n", *argv);
+		} else if (strcmp(*argv, "mode") == 0) {
+			int mode;
+			NEXT_ARG();
+			mode = get_link_mode(*argv);
+			if (mode < 0)
+				invarg("Invalid link mode\n", *argv);
+			addattr8(&req->n, sizeof(*req), IFLA_LINKMODE, mode);
+		} else if (strcmp(*argv, "state") == 0) {
+			int state;
+			NEXT_ARG();
+			state = get_operstate(*argv);
+			if (state < 0)
+				invarg("Invalid operstate\n", *argv);
+
+			addattr8(&req->n, sizeof(*req), IFLA_OPERSTATE, state);
+		} else if (matches(*argv, "numtxqueues") == 0) {
+			NEXT_ARG();
+			if (numtxqueues != -1)
+				duparg("numtxqueues", *argv);
+			if (get_integer(&numtxqueues, *argv, 0))
+				invarg("Invalid \"numtxqueues\" value\n", *argv);
+			addattr_l(&req->n, sizeof(*req), IFLA_NUM_TX_QUEUES,
+				  &numtxqueues, 4);
+		} else if (matches(*argv, "numrxqueues") == 0) {
+			NEXT_ARG();
+			if (numrxqueues != -1)
+				duparg("numrxqueues", *argv);
+			if (get_integer(&numrxqueues, *argv, 0))
+				invarg("Invalid \"numrxqueues\" value\n", *argv);
+			addattr_l(&req->n, sizeof(*req), IFLA_NUM_RX_QUEUES,
+				  &numrxqueues, 4);
+		}
+#endif
 
 /* Return value becomes exitcode. It's okay to not return at all */
 int FAST_FUNC do_iplink(char **argv)
