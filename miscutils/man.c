@@ -106,7 +106,8 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 	/* "2>&1" is added so that nroff errors are shown in pager too.
 	 * Otherwise it may show just empty screen */
 	cmd = xasprintf(
-		man ? "gtbl | nroff -Tlatin1 -mandoc 2>&1 | %s"
+		/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */
+		man ? "gtbl | nroff -Tascii -mandoc 2>&1 | %s"
 		    : "%s",
 		pager);
 	system(cmd);
