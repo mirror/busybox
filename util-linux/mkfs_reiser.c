@@ -224,8 +224,8 @@ int mkfs_reiser_main(int argc UNUSED_PARAM, char **argv)
 	jp = &sb->sb_journal;
 	STORE_LE(jp->jp_journal_1st_block, REISERFS_DISK_OFFSET_IN_BYTES / blocksize + 1/*sb*/ + 1/*bmp#0*/);
 	timestamp = time(NULL);
-	srandom(timestamp);
-	STORE_LE(jp->jp_journal_magic, random());
+	srand(timestamp);
+	STORE_LE(jp->jp_journal_magic, rand());
 	STORE_LE(jp->jp_journal_size, journal_blocks);
 	STORE_LE(jp->jp_journal_trans_max, JOURNAL_TRANS_MAX);
 	STORE_LE(jp->jp_journal_max_batch, JOURNAL_MAX_BATCH);

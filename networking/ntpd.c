@@ -827,8 +827,8 @@ send_query_to_peer(peer_t *p)
 	 *
 	 * Save the real transmit timestamp locally.
 	 */
-	p->p_xmt_msg.m_xmttime.int_partl = random();
-	p->p_xmt_msg.m_xmttime.fractionl = random();
+	p->p_xmt_msg.m_xmttime.int_partl = rand();
+	p->p_xmt_msg.m_xmttime.fractionl = rand();
 	p->p_xmttime = gettime1900d();
 
 	/* Were doing it only if sendto worked, but
@@ -1652,7 +1652,7 @@ retry_interval(void)
 	/* Local problem, want to retry soon */
 	unsigned interval, r;
 	interval = RETRY_INTERVAL;
-	r = random();
+	r = rand();
 	interval += r % (unsigned)(RETRY_INTERVAL / 4);
 	VERB4 bb_error_msg("chose retry interval:%u", interval);
 	return interval;
@@ -1666,7 +1666,7 @@ poll_interval(int exponent)
 		exponent = 0;
 	interval = 1 << exponent;
 	mask = ((interval-1) >> 4) | 1;
-	r = random();
+	r = rand();
 	interval += r & mask; /* ~ random(0..1) * interval/16 */
 	VERB4 bb_error_msg("chose poll interval:%u (poll_exp:%d exp:%d)", interval, G.poll_exp, exponent);
 	return interval;
@@ -2067,7 +2067,7 @@ static NOINLINE void ntp_init(char **argv)
 	unsigned opts;
 	llist_t *peers;
 
-	srandom(getpid());
+	srand(getpid());
 
 	if (getuid())
 		bb_error_msg_and_die(bb_msg_you_must_be_root);
