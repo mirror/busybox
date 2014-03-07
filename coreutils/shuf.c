@@ -126,7 +126,8 @@ int shuf_main(int argc, char **argv)
 		fclose_if_not_stdin(fp);
 	}
 
-	shuffle_lines(lines, numlines);
+	if (numlines != 0)
+		shuffle_lines(lines, numlines);
 
 	if (opts & OPT_o)
 		xmove_fd(xopen(opt_o_str, O_WRONLY|O_CREAT|O_TRUNC), STDOUT_FILENO);
