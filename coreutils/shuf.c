@@ -79,7 +79,6 @@ int shuf_main(int argc, char **argv)
 	/* Prepare lines for shuffling - either: */
 	if (opts & OPT_e) {
 		/* make lines from command-line arguments */
-
 		numlines = argc;
 		lines = argv;
 	} else
@@ -103,7 +102,7 @@ int shuf_main(int argc, char **argv)
 		numlines = (hi+1) - lo;
 		lines = xmalloc(numlines * sizeof(lines[0]));
 		for (i = 0; i < numlines; i++) {
-			lines[i] = xstrdup(utoa(lo));
+			lines[i] = (char*)(uintptr_t)lo;
 			lo++;
 		}
 	} else {
@@ -144,7 +143,10 @@ int shuf_main(int argc, char **argv)
 		eol = '\0';
 
 	for (i = 0; i < numlines; i++) {
-		printf("%s%c", lines[i], eol);
+		if (opts & OPT_i)
+			printf("%u%c", (unsigned)(uintptr_t)lines[i], eol);
+		else
+			printf("%s%c", lines[i], eol);
 	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
