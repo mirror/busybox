@@ -24,12 +24,12 @@
 # include <unistd.h>
 # include <stdio.h>
 # include <time.h>
-# define RAND_BASH_MASK 0xffffffff /* off */
 # define FAST_FUNC /* nothing */
 # define PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN /* nothing */
 # define POP_SAVED_FUNCTION_VISIBILITY /* nothing */
 # define monotonic_us() time(NULL)
 # include "random.h"
+# define RAND_BASH_MASK 0xffffffff /* off */
 #endif
 
 uint32_t FAST_FUNC
@@ -139,7 +139,7 @@ static random_t rnd;
 int main(int argc, char **argv)
 {
 	int i;
-	int buf[4096];
+	uint32_t buf[4096];
 
 	for (;;) {
 		for (i = 0; i < sizeof(buf) / sizeof(buf[0]); i++) {
