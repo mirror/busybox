@@ -944,6 +944,7 @@ static const struct built_in_command bltins1[] = {
 	BLTIN("source"   , builtin_source  , "Run commands in a file"),
 #endif
 	BLTIN("trap"     , builtin_trap    , "Trap signals"),
+	BLTIN("true"     , builtin_true    , NULL),
 	BLTIN("type"     , builtin_type    , "Show command type"),
 	BLTIN("ulimit"   , shell_builtin_ulimit  , "Control resource limits"),
 	BLTIN("umask"    , builtin_umask   , "Set file creation mask"),
