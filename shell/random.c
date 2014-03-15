@@ -80,7 +80,6 @@ next_random(random_t *rnd)
 	rnd->galois_LFSR = t;
 
 	/* http://en.wikipedia.org/wiki/Xorshift
-	 * Period 2^64-1 = 3 * 715827883 * 2147483647
 	 * Moderately good statistical properties:
 	 * fails the following "dieharder -g 200 -a" tests:
 	 *       diehard_operm5|   0
@@ -102,11 +101,19 @@ next_random(random_t *rnd)
 	 *         dab_filltree|  32
 	 *         dab_monobit2|  12
 	 */
+ again:
 	t = rnd->xs64_x ^ (rnd->xs64_x << a);
 	rnd->xs64_x = rnd->xs64_y;
 	rnd->xs64_y = rnd->xs64_y ^ (rnd->xs64_y >> c) ^ t ^ (t >> b);
+	/*
+	 * Period 2^64-1 = 2^32+1 * 2^32-1 has a common divisor with Galois LFSR.
+	 * By skipping two possible states (0x1 and 0x2) we reduce period to
+	 * 2^64-3 = 13 * 3889 * 364870227143809 which has no common divisors:
+	 */
+	if (rnd->xs64_y == 0 && rnd->xs64_x <= 2)
+		goto again;
 
-	/* Combined LCG + Galois LFSR have 2^32 * 2^32-1 period.
+	/* Combined LCG + Galois LFSR rng has 2^32 * 2^32-1 period.
 	 * Strength:
 	 * individually, both are extremely weak cryptographycally;
 	 * when combined, they fail the following "dieharder -g 200 -a" tests:
@@ -118,9 +125,8 @@ next_random(random_t *rnd)
 	 *         dab_monobit2|  12
 	 *
 	 * Combining them with xorshift-64 increases period to
-	 * 2^32 * 2^32-1 * 2^64-1 / 3
-	 * (2^32-1 and 2^64-1 have one common divisor 3, hence "/ 3" part),
-	 * which is about 2^128 / 3, or in base 10 ~1.13*10^38.
+	 * 2^32 * 2^32-1 * 2^64-3
+	 * which is about 2^128, or in base 10 ~3.40*10^38.
 	 * Strength of the combination:
 	 * passes all "dieharder -g 200 -a" tests.
 	 *
