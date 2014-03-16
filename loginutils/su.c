@@ -101,6 +101,7 @@ int su_main(int argc UNUSED_PARAM, char **argv)
 		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'-', tty, old_user, opt_username);
+		bb_do_delay(LOGIN_FAIL_DELAY);
 		bb_error_msg_and_die("incorrect password");
 	}
 
