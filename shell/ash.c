@@ -8960,6 +8960,9 @@ mklocal(char *name)
 			vp->flags |= VSTRFIXED|VTEXTFIXED;
 			if (eq)
 				setvareq(name, 0);
+			else
+				/* "local VAR" unsets VAR: */
+				setvar(name, NULL, 0);
 		}
 	}
 	lvp->vp = vp;
