@@ -77,7 +77,14 @@ int script_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opt & OPT_q)) {
 		printf("Script started, file is %s\n", fname);
 	}
+
 	shell = get_shell_name();
+
+	/* Some people run "script ... 0>&-".
+	 * Our code assumes that STDIN_FILENO != pty.
+	 * Ensure STDIN_FILENO is not closed:
+	 */
+	bb_sanitize_stdio();
 
 	pty = xgetpty(pty_line);
 
