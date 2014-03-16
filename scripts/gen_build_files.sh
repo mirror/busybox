@@ -71,7 +71,7 @@ sed -n -e 's@^//usage:\([ '"$TAB"'].*\)$@\1 \\@p' \
 
 # (Re)generate */Kbuild and */Config.in
 # We skip .dotdirs - makes git/svn/etc users happier
-{ cd -- "$srctree" && find . -type d -not '(' -name '.?*' -prune ')'; } \
+{ cd -- "$srctree" && find . -type d ! '(' -name '.?*' -prune ')'; } \
 | while read -r d; do
 	d="${d#./}"
 
