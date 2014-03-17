@@ -6,7 +6,7 @@ This document details the steps you must take to add a new applet to BusyBox.
 Credits:
 Matt Kraai - initial writeup
 Mark Whitley - the remix
-Thomas Lundquist - Trying to keep it updated.
+Thomas Lundquist - trying to keep it updated
 
 When doing this you should consider using the latest git HEAD.
 This is a good thing if you plan to getting it committed into mainline.
@@ -23,7 +23,7 @@ as the first include file in your applet.
 
 For a new applet mu, here is the code that would go in mu.c:
 
-(busybox.h already includes most usual header files. You do not need
+(libbb.h already includes most usual header files. You do not need
 #include <stdio.h> etc...)
 
 
@@ -43,7 +43,7 @@ For a new applet mu, here is the code that would go in mu.c:
 
 //config:config MU
 //config:	bool "MU"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  Returns an indeterminate value.
 
@@ -51,12 +51,11 @@ For a new applet mu, here is the code that would go in mu.c:
 //applet:IF_MU(APPLET(mu, BB_DIR_USR_BIN, BB_SUID_DROP))
 
 //usage:#define mu_trivial_usage
-//usage:	"-[abcde] FILES"
+//usage:	"[-abcde] FILE..."
 //usage:#define mu_full_usage
-//usage:	"Returns an indeterminate value.\n\n"
-//usage:	"Options:\n"
-//usage:	"\t-a\t\tfirst function\n"
-//usage:	"\t-b\t\tsecond function\n"
+//usage:	"Returns an indeterminate value\n"
+//usage:     "\n	-a	First function"
+//usage:     "\n	-b	Second function"
 
 int mu_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int mu_main(int argc, char **argv)
@@ -150,13 +149,13 @@ Find the appropriate directory for your new applet.
 
 Add the kbuild snippet to the .c file:
 
-//kbuild:lib-$(CONFIG_MU)               += mu.o
+//kbuild:lib-$(CONFIG_MU) += mu.o
 
 Add the config snippet to the .c file:
 
 //config:config MU
 //config:	bool "MU"
-//config:	default n
+//config:	default y
 //config:	help
 //config:	  Returns an indeterminate value.
 
@@ -168,18 +167,16 @@ Next, add usage information for your applet to the .c file.
 This should look like the following:
 
 //usage:#define mu_trivial_usage
-//usage:	"-[abcde] FILES"
+//usage:	"[-abcde] FILE..."
 //usage:#define mu_full_usage
-//usage:	"Returns an indeterminate value.\n\n"
-//usage:	"Options:\n"
-//usage:	"\t-a\t\tfirst function\n"
-//usage:	"\t-b\t\tsecond function\n"
+//usage:	"Returns an indeterminate value\n"
+//usage:     "\n	-a	First function"
+//usage:     "\n	-b	Second function"
 //usage:	...
 
 If your program supports flags, the flags should be mentioned on the first
-line (-[abcde]) and a detailed description of each flag should go in the
-mu_full_usage section, one flag per line. (Numerous examples of this
-currently exist in usage.src.h.)
+line ([-abcde]) and a detailed description of each flag should go in the
+mu_full_usage section, one flag per line.
 
 
 Header Files
