@@ -599,6 +599,15 @@ config SWAPONOFF
 	  space. If you are not using any swap space, you can leave this
 	  option disabled.
 
+config FEATURE_SWAPON_DISCARD
+	bool "Support discard option -d"
+	default y
+	depends on SWAPONOFF
+	help
+	  Enable support for discarding swap area blocks at swapon and/or as
+	  the kernel frees them. This option enables both the -d option on
+	  'swapon' and the 'discard' option for swap entries in /etc/fstab.
+
 config FEATURE_SWAPON_PRI
 	bool "Support priority option -p"
 	default y

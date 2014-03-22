@@ -8,10 +8,14 @@
  */
 
 //usage:#define swapon_trivial_usage
-//usage:       "[-a]" IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
+//usage:       "[-a]" IF_FEATURE_SWAPON_DISCARD(" [-d[POL]]") IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
 //usage:#define swapon_full_usage "\n\n"
 //usage:       "Start swapping on DEVICE\n"
 //usage:     "\n	-a	Start swapping on all swap devices"
+//usage:	IF_FEATURE_SWAPON_DISCARD(
+//usage:     "\n	-d[POL]	Discard blocks at swapon (POL=once),"
+//usage:     "\n		as freed (POL=pages), or both (POL omitted)"
+//usage:	)
 //usage:	IF_FEATURE_SWAPON_PRI(
 //usage:     "\n	-p PRI	Set swap device priority"
 //usage:	)
@@ -38,7 +42,22 @@
 # define MNTTYPE_SWAP "swap"
 #endif
 
-#if ENABLE_FEATURE_SWAPON_PRI
+#if ENABLE_FEATURE_SWAPON_DISCARD
+#ifndef SWAP_FLAG_DISCARD
+#define SWAP_FLAG_DISCARD 0x10000
+#endif
+#ifndef SWAP_FLAG_DISCARD_ONCE
+#define SWAP_FLAG_DISCARD_ONCE 0x20000
+#endif
+#ifndef SWAP_FLAG_DISCARD_PAGES
+#define SWAP_FLAG_DISCARD_PAGES 0x40000
+#endif
+#define SWAP_FLAG_DISCARD_MASK \
+	(SWAP_FLAG_DISCARD | SWAP_FLAG_DISCARD_ONCE | SWAP_FLAG_DISCARD_PAGES)
+#endif
+
+
+#if ENABLE_FEATURE_SWAPON_DISCARD || ENABLE_FEATURE_SWAPON_PRI
 struct globals {
 	int flags;
 } FIX_ALIASING;
@@ -98,9 +117,23 @@ static int do_em_all(void)
 			if (applet_name[5] != 'n'
 			 || hasmntopt(m, MNTOPT_NOAUTO) == NULL
 			) {
-#if ENABLE_FEATURE_SWAPON_PRI
+#if ENABLE_FEATURE_SWAPON_DISCARD || ENABLE_FEATURE_SWAPON_PRI
 				char *p;
 				g_flags = cl_flags; /* each swap space might have different flags */
+#if ENABLE_FEATURE_SWAPON_DISCARD
+				p = hasmntopt(m, "discard");
+				if (p) {
+					if (p[7] == '=') {
+						if (strncmp(p + 8, "once", 4) == 0 && (p[12] == ',' || p[12] == '\0'))
+							g_flags = (g_flags & ~SWAP_FLAG_DISCARD_MASK) | SWAP_FLAG_DISCARD | SWAP_FLAG_DISCARD_ONCE;
+						else if (strncmp(p + 8, "pages", 5) == 0 && (p[13] == ',' || p[13] == '\0'))
+							g_flags = (g_flags & ~SWAP_FLAG_DISCARD_MASK) | SWAP_FLAG_DISCARD | SWAP_FLAG_DISCARD_PAGES;
+					}
+					else if (p[7] == ',' || p[7] == '\0')
+						g_flags = (g_flags & ~SWAP_FLAG_DISCARD_MASK) | SWAP_FLAG_DISCARD;
+				}
+#endif
+#if ENABLE_FEATURE_SWAPON_PRI
 				p = hasmntopt(m, "pri");
 				if (p) {
 					/* Max allowed 32767 (== SWAP_FLAG_PRIO_MASK) */
@@ -111,6 +144,7 @@ static int do_em_all(void)
 							MIN(prio, SWAP_FLAG_PRIO_MASK);
 					}
 				}
+#endif
 #endif
 				err += swap_enable_disable(m->mnt_fsname);
 			}
@@ -127,24 +161,57 @@ int swap_on_off_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 {
 	int ret;
+#if ENABLE_FEATURE_SWAPON_DISCARD
+	char *discard = NULL;
+#endif
 #if ENABLE_FEATURE_SWAPON_PRI
 	unsigned prio;
 #endif
 
 	INIT_G();
 
-#if !ENABLE_FEATURE_SWAPON_PRI
+#if !ENABLE_FEATURE_SWAPON_DISCARD && !ENABLE_FEATURE_SWAPON_PRI
 	ret = getopt32(argv, "a");
 #else
+#if ENABLE_FEATURE_SWAPON_PRI
 	if (applet_name[5] == 'n')
 		opt_complementary = "p+";
-	ret = getopt32(argv, (applet_name[5] == 'n') ? "ap:" : "a", &prio);
+#endif
+	ret = getopt32(argv, (applet_name[5] == 'n') ?
+#if ENABLE_FEATURE_SWAPON_DISCARD
+		"d::"
+#endif
+#if ENABLE_FEATURE_SWAPON_PRI
+		"p:"
+#endif
+		"a" : "a"
+#if ENABLE_FEATURE_SWAPON_DISCARD
+		, &discard
+#endif
+#if ENABLE_FEATURE_SWAPON_PRI
+		, &prio
+#endif
+		);
+#endif
 
-	if (ret & 2) { // -p
-		g_flags = SWAP_FLAG_PREFER |
-			MIN(prio, SWAP_FLAG_PRIO_MASK);
-		ret &= 1;
+#if ENABLE_FEATURE_SWAPON_DISCARD
+	if (ret & 1) { // -d
+		if (!discard)
+			g_flags |= SWAP_FLAG_DISCARD;
+		else if (strcmp(discard, "once") == 0)
+			g_flags |= SWAP_FLAG_DISCARD | SWAP_FLAG_DISCARD_ONCE;
+		else if (strcmp(discard, "pages") == 0)
+			g_flags |= SWAP_FLAG_DISCARD | SWAP_FLAG_DISCARD_PAGES;
+		else
+			bb_show_usage();
 	}
+	ret >>= 1;
+#endif
+#if ENABLE_FEATURE_SWAPON_PRI
+	if (ret & 1) // -p
+		g_flags |= SWAP_FLAG_PREFER |
+			MIN(prio, SWAP_FLAG_PRIO_MASK);
+	ret >>= 1;
 #endif
 
 	if (ret /* & 1: not needed */) // -a
