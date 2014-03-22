@@ -82,6 +82,9 @@ static int do_em_all(void)
 	struct mntent *m;
 	FILE *f;
 	int err;
+#ifdef G
+	int cl_flags = g_flags;
+#endif
 
 	f = setmntent("/etc/fstab", "r");
 	if (f == NULL)
@@ -97,14 +100,14 @@ static int do_em_all(void)
 			) {
 #if ENABLE_FEATURE_SWAPON_PRI
 				char *p;
-				g_flags = 0; /* each swap space might have different flags */
+				g_flags = cl_flags; /* each swap space might have different flags */
 				p = hasmntopt(m, "pri");
 				if (p) {
 					/* Max allowed 32767 (== SWAP_FLAG_PRIO_MASK) */
 					unsigned prio = bb_strtou(p + 4, NULL, 10);
 					/* We want to allow "NNNN,foo", thus errno == EINVAL is allowed too */
 					if (errno != ERANGE) {
-						g_flags = SWAP_FLAG_PREFER |
+						g_flags = (g_flags & ~SWAP_FLAG_PRIO_MASK) | SWAP_FLAG_PREFER |
 							MIN(prio, SWAP_FLAG_PRIO_MASK);
 					}
 				}
