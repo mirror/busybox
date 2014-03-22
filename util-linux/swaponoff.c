@@ -100,12 +100,12 @@ static int do_em_all(void)
 				g_flags = 0; /* each swap space might have different flags */
 				p = hasmntopt(m, "pri");
 				if (p) {
-					/* Max allowed 32767 (==SWAP_FLAG_PRIO_MASK) */
-					unsigned int swap_prio = MIN(bb_strtou(p + 4 , NULL, 10), SWAP_FLAG_PRIO_MASK);
+					/* Max allowed 32767 (== SWAP_FLAG_PRIO_MASK) */
+					unsigned prio = bb_strtou(p + 4, NULL, 10);
 					/* We want to allow "NNNN,foo", thus errno == EINVAL is allowed too */
 					if (errno != ERANGE) {
 						g_flags = SWAP_FLAG_PREFER |
-							(swap_prio << SWAP_FLAG_PRIO_SHIFT);
+							MIN(prio, SWAP_FLAG_PRIO_MASK);
 					}
 				}
 #endif
@@ -124,6 +124,9 @@ int swap_on_off_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 {
 	int ret;
+#if ENABLE_FEATURE_SWAPON_PRI
+	unsigned prio;
+#endif
 
 	INIT_G();
 
@@ -132,11 +135,11 @@ int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 #else
 	if (applet_name[5] == 'n')
 		opt_complementary = "p+";
-	ret = getopt32(argv, (applet_name[5] == 'n') ? "ap:" : "a", &g_flags);
+	ret = getopt32(argv, (applet_name[5] == 'n') ? "ap:" : "a", &prio);
 
 	if (ret & 2) { // -p
 		g_flags = SWAP_FLAG_PREFER |
-			((g_flags & SWAP_FLAG_PRIO_MASK) << SWAP_FLAG_PRIO_SHIFT);
+			MIN(prio, SWAP_FLAG_PRIO_MASK);
 		ret &= 1;
 	}
 #endif
