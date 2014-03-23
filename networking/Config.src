@@ -664,6 +664,14 @@ config FEATURE_NTPD_SERVER
 	  Make ntpd usable as a NTP server. If you disable this option
 	  ntpd will be usable only as a NTP client.
 
+config FEATURE_NTPD_CONF
+	bool "Make ntpd understand /etc/ntp.conf"
+	default y
+	depends on NTPD
+	help
+	  Make ntpd look in /etc/ntp.conf for peers. Only "server address"
+	  is supported.
+
 config PSCAN
 	bool "pscan"
 	default y

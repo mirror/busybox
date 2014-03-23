@@ -42,6 +42,13 @@
 //usage:	)
 //usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
 //usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
+//usage:	IF_FEATURE_NTPD_CONF(
+//usage:     "\n		If -p is not given, read /etc/ntp.conf"
+//usage:	)
+
+// -l and -p options are not compatible with "standard" ntpd:
+// it has them as "-l logfile" and "-p pidfile".
+// -S and -w are not compat either, "standard" ntpd has no such opts.
 
 #include "libbb.h"
 #include <math.h>
@@ -730,7 +737,7 @@ reset_peer_stats(peer_t *p, double offset)
 }
 
 static void
-add_peers(char *s)
+add_peers(const char *s)
 {
 	peer_t *p;
 
@@ -2087,14 +2094,34 @@ static NOINLINE void ntp_init(char **argv)
 			"d" /* compat */
 			"46aAbgL", /* compat, ignored */
 			&peers, &G.script_name, &G.verbose);
-	if (!(opts & (OPT_p|OPT_l)))
-		bb_show_usage();
+
 //	if (opts & OPT_x) /* disable stepping, only slew is allowed */
 //		G.time_was_stepped = 1;
 	if (peers) {
 		while (peers)
 			add_peers(llist_pop(&peers));
-	} else {
+	}
+#if ENABLE_FEATURE_NTPD_CONF
+	else {
+		parser_t *parser;
+		char *token[3];
+
+		parser = config_open("/etc/ntp.conf");
+		while (config_read(parser, token, 3, 1, "# \t", PARSE_NORMAL)) {
+			if (strcmp(token[0], "server") == 0 && token[1]) {
+				add_peers(token[1]);
+				continue;
+			}
+			bb_error_msg("skipping %s:%u: unimplemented command '%s'",
+				"/etc/ntp.conf", parser->lineno, token[0]
+			);
+		}
+		config_close(parser);
+	}
+#endif
+	if (G.peer_cnt == 0) {
+		if (!(opts & OPT_l))
+			bb_show_usage();
 		/* -l but no peers: "stratum 1 server" mode */
 		G.stratum = 1;
 	}
