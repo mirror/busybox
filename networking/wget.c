@@ -640,7 +640,7 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 #if ENABLE_FEATURE_WGET_TIMEOUT
 				second_cnt = G.timeout_seconds;
 #endif
-				continue;
+				goto bump;
 			}
 
 			/* n <= 0.
@@ -673,11 +673,12 @@ static void NOINLINE retrieve_file_data(FILE *dfp)
 				 * to try reading anyway.
 				 */
 			}
+#endif
+ bump:
 			/* Need to do it _every_ second for "stalled" indicator
 			 * to be shown properly.
 			 */
 			progress_meter(PROGRESS_BUMP);
-#endif
 		} /* while (reading data) */
 
 #if ENABLE_FEATURE_WGET_STATUSBAR || ENABLE_FEATURE_WGET_TIMEOUT
