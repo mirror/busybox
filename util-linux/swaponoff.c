@@ -116,9 +116,8 @@ static int swap_enable_disable(char *device)
 		}
 	}
 
-	if (err) {
-		if (!quiet)
-			bb_simple_perror_msg(device);
+	if (err && !quiet) {
+		bb_simple_perror_msg(device);
 		return 1;
 	}
 	return 0;
