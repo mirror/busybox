@@ -2209,7 +2209,8 @@ static void showmatching(char *p)
 // Undo functions and hooks added by Jody Bruchon (jody@jodybruchon.com)
 static void undo_push(char *src, unsigned int length, unsigned char u_type)	// Add to the undo stack
 {
-	struct undo_object *undo_temp;
+	struct undo_object *undo_entry;
+
 	// "u_type" values
 	// UNDO_INS: insertion, undo will remove from buffer
 	// UNDO_DEL: deleted text, undo will restore to buffer
@@ -2237,7 +2238,7 @@ static void undo_push(char *src, unsigned int length, unsigned char u_type)	// A
 		case UNDO_DEL:
 			undo_queue_spos = src;
 			undo_q++;
-			undo_queue[(CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q)] = *src;
+			undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q] = *src;
 			// If queue is full, dump it into an object
 			if (undo_q == CONFIG_FEATURE_VI_UNDO_QUEUE_MAX)
 				undo_queue_commit();
@@ -2275,80 +2276,80 @@ static void undo_push(char *src, unsigned int length, unsigned char u_type)	// A
 #endif
 
 	// Allocate a new undo object and use it as the stack tail
-	undo_temp = undo_stack_tail;
-	undo_stack_tail = xmalloc(sizeof(struct undo_object));
+	undo_entry = xzalloc(sizeof(*undo_entry));
+	undo_entry->prev = undo_stack_tail;
+	undo_stack_tail = undo_entry;
 #if ENABLE_FEATURE_VI_UNDO_QUEUE
 	if ((u_type & UNDO_USE_SPOS) != 0) {
-		undo_stack_tail->start = undo_queue_spos - text;	// use start position from queue
+		undo_entry->start = undo_queue_spos - text;	// use start position from queue
 	} else {
-		undo_stack_tail->start = src - text;	// use offset from start of text buffer
+		undo_entry->start = src - text;	// use offset from start of text buffer
 	}
 	u_type = (u_type & ~UNDO_USE_SPOS);
 #else
-	undo_stack_tail->start = src - text;
-#endif /* ENABLE_FEATURE_VI_UNDO_QUEUE */
+	undo_entry->start = src - text;
+#endif
 	// For UNDO_DEL objects, copy the deleted text somewhere
-	switch (u_type) {
-		case UNDO_DEL:
-		case UNDO_DEL_CHAIN:
-			if ((src + length) == end)
-				length--;
-			// If this deletion empties text[], strip the newline. When the buffer becomes
-			// zero-length, a newline is added back, which requires this to compensate.
-			undo_stack_tail->undo_text = xmalloc(length);
-			memcpy(undo_stack_tail->undo_text, src, length);
-			break;
+	undo_entry->u_type = u_type;
+	if (u_type == UNDO_DEL || u_type == UNDO_DEL_CHAIN) {
+		if ((src + length) == end)
+			length--;
+		// If this deletion empties text[], strip the newline. When the buffer becomes
+		// zero-length, a newline is added back, which requires this to compensate.
+		undo_entry->undo_text = xmalloc(length);
+		memcpy(undo_entry->undo_text, src, length);
 	}
-	undo_stack_tail->prev = undo_temp;
-	undo_stack_tail->length = length;
-	undo_stack_tail->u_type = u_type;
+	undo_entry->length = length;
 	file_modified++;
 }
 
 static void undo_pop(void)	// Undo the last operation
 {
-	int repeat = 0;
+	int repeat;
 	char *u_start, *u_end;
-	struct undo_object *undo_temp;
+	struct undo_object *undo_entry;
 
 	// Commit pending undo queue before popping (should be unnecessary)
 	undo_queue_commit();
 
+	undo_entry = undo_stack_tail;
 	// Check for an empty undo stack
-	if (undo_stack_tail == NULL) {
+	if (!undo_entry) {
 		status_line("Already at oldest change");
 		return;
 	}
 
-	switch (undo_stack_tail->u_type) {
+	switch (undo_entry->u_type) {
 	case UNDO_DEL:
 	case UNDO_DEL_CHAIN:
 		// make hole and put in text that was deleted; deallocate text
-		u_start = text + undo_stack_tail->start;
-		text_hole_make(u_start, undo_stack_tail->length);
-		memcpy(u_start, undo_stack_tail->undo_text, undo_stack_tail->length);
-		free(undo_stack_tail->undo_text);
+		u_start = text + undo_entry->start;
+		text_hole_make(u_start, undo_entry->length);
+		memcpy(u_start, undo_entry->undo_text, undo_entry->length);
+		free(undo_entry->undo_text);
 		status_line("Undo [%d] %s %d chars at position %d",
 			file_modified, "restored",
-			undo_stack_tail->length, undo_stack_tail->start);
+			undo_entry->length, undo_entry->start
+		);
 		break;
 	case UNDO_INS:
 	case UNDO_INS_CHAIN:
 		// delete what was inserted
-		u_start = undo_stack_tail->start + text;
-		u_end = u_start - 1 + undo_stack_tail->length;
+		u_start = undo_entry->start + text;
+		u_end = u_start - 1 + undo_entry->length;
 		text_hole_delete(u_start, u_end, NO_UNDO);
 		status_line("Undo [%d] %s %d chars at position %d",
 			file_modified, "deleted",
-			undo_stack_tail->length, undo_stack_tail->start);
+			undo_entry->length, undo_entry->start
+		);
 		break;
 	}
-	// For chained operations, continue popping all the way down the chain.
+	repeat = 0;
+	switch (undo_entry->u_type) {
 	// If this is the end of a chain, lower modification count and refresh display
-	switch (undo_stack_tail->u_type) {
 	case UNDO_DEL:
 	case UNDO_INS:
-		dot = (text + undo_stack_tail->start);
+		dot = (text + undo_entry->start);
 		refresh(FALSE);
 		break;
 	case UNDO_DEL_CHAIN:
@@ -2357,11 +2358,11 @@ static void undo_pop(void)	// Undo the last operation
 		break;
 	}
 	// Deallocate the undo object we just processed
-	undo_temp = undo_stack_tail->prev;
-	free(undo_stack_tail);
-	undo_stack_tail = undo_temp;
+	undo_stack_tail = undo_entry->prev;
+	free(undo_entry);
 	file_modified--;
-	if (repeat == 1) {
+	// For chained operations, continue popping all the way down the chain.
+	if (repeat) {
 		undo_pop();	// Follow the undo chain if one exists
 	}
 }
@@ -2372,7 +2373,7 @@ static void undo_queue_commit(void)	// Flush any queued objects to the undo stac
 	// Pushes the queue object onto the undo stack
 	if (undo_q > 0) {
 		// Deleted character undo events grow from the end
-		undo_push((undo_queue + CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q),
+		undo_push(undo_queue + CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q,
 			undo_q,
 			(undo_queue_state | UNDO_USE_SPOS)
 		);
