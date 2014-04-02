@@ -17,7 +17,6 @@
  *      it would be easier to change the mark when add/delete lines
  *	More intelligence in refresh()
  *	":r !cmd"  and  "!cmd"  to filter text through an external command
- *	A true "undo" facility
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
@@ -136,6 +135,36 @@
 //config:	  cursor position using "ESC [ 6 n" escape sequence, then read stdin.
 //config:
 //config:	  This is not clean but helps a lot on serial lines and such.
+//config:config FEATURE_VI_UNDO
+//config:	bool "Support undo command 'u'"
+//config:	default y
+//config:	depends on VI
+//config:	help
+//config:	  Support the 'u' command to undo insertion, deletion, and replacement
+//config:	  of text.
+//config:config FEATURE_VI_UNDO_QUEUE
+//config:	bool "Enable undo operation queuing"
+//config:	default y
+//config:	depends on FEATURE_VI_UNDO
+//config:	help
+//config:	  The vi undo functions can use an intermediate queue to greatly lower
+//config:	  malloc() calls and overhead. When the maximum size of this queue is
+//config:	  reached, the contents of the queue are committed to the undo stack.
+//config:	  This increases the size of the undo code and allows some undo
+//config:	  operations (especially un-typing/backspacing) to be far more useful.
+//config:config FEATURE_VI_UNDO_QUEUE_MAX
+//config:	int "Maximum undo character queue size"
+//config:	default 256
+//config:	range 32 65536
+//config:	depends on FEATURE_VI_UNDO_QUEUE
+//config:	help
+//config:	  This option sets the number of bytes used at runtime for the queue.
+//config:	  Smaller values will create more undo objects and reduce the amount
+//config:	  of typed or backspaced characters that are grouped into one undo
+//config:	  operation; larger values increase the potential size of each undo
+//config:	  and will generally malloc() larger objects and less frequently.
+//config:	  Unless you want more (or less) frequent "undo points" while typing,
+//config:	  you should probably leave this unchanged.
 
 //applet:IF_VI(APPLET(vi, BB_DIR_BIN, BB_SUID_DROP))
 
@@ -347,6 +376,42 @@ struct globals {
 	char get_input_line__buf[MAX_INPUT_LEN]; /* former static */
 
 	char scr_out_buf[MAX_SCR_COLS + MAX_TABSTOP * 2];
+#if ENABLE_FEATURE_VI_UNDO
+// undo_push() operations
+#define UNDO_INS 0
+#define UNDO_DEL 1
+#define UNDO_INS_CHAIN 2
+#define UNDO_DEL_CHAIN 3
+// UNDO_*_QUEUED must be equal to UNDO_xxx ORed with UNDO_QUEUED_FLAG
+#define UNDO_QUEUED_FLAG 4
+#define UNDO_INS_QUEUED 4
+#define UNDO_DEL_QUEUED 5
+#define UNDO_USE_SPOS 32
+#define UNDO_EMPTY 64
+// Pass-through flags for functions that can be undone
+#define NO_UNDO 0
+#define ALLOW_UNDO 1
+#define ALLOW_UNDO_CHAIN 2
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+#define ALLOW_UNDO_QUEUED 3
+	char undo_queue_state;
+	int undo_q;
+	char *undo_queue_spos;	// Start position of queued operation
+	char undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX];
+#else
+// If undo queuing disabled, don't invoke the missing queue logic
+#define ALLOW_UNDO_QUEUED 1
+#endif /* ENABLE_FEATURE_VI_UNDO_QUEUE */
+
+	struct undo_object {
+		struct undo_object *prev;	// Linking back avoids list traversal (LIFO)
+		int u_type;		// 0=deleted, 1=inserted, 2=swapped
+		int start;		// Offset where the data should be restored/deleted
+		int length;		// total data size
+		char *undo_text;	// ptr to text that will be inserted
+	} *undo_stack_tail;
+#endif /* ENABLE_FEATURE_VI_UNDO */
+
 };
 #define G (*ptr_to_globals)
 #define text           (G.text          )
@@ -408,6 +473,16 @@ struct globals {
 #define last_modifying_cmd  (G.last_modifying_cmd )
 #define get_input_line__buf (G.get_input_line__buf)
 
+#if ENABLE_FEATURE_VI_UNDO
+#define undo_stack_tail  (G.undo_stack_tail )
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+#define undo_queue_state (G.undo_queue_state)
+#define undo_q           (G.undo_q          )
+#define undo_queue       (G.undo_queue      )
+#define undo_queue_spos  (G.undo_queue_spos )
+# endif
+#endif
+
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	last_file_modified = -1; \
@@ -437,10 +512,12 @@ static void dot_next(void);	// move dot to next line B-o-l
 static void dot_prev(void);	// move dot to prev line B-o-l
 static void dot_scroll(int, int);	// move the screen up or down
 static void dot_skip_over_ws(void);	// move dot pat WS
-static void dot_delete(void);	// delete the char at 'dot'
 static char *bound_dot(char *);	// make sure  text[0] <= P < "end"
 static char *new_screen(int, int);	// malloc virtual screen memory
-static char *char_insert(char *, char);	// insert the char c at 'p'
+#if !ENABLE_FEATURE_VI_UNDO
+#define char_insert(a,b,c) char_insert(a,b)
+#endif
+static char *char_insert(char *, char, int);	// insert the char c at 'p'
 // might reallocate text[]! use p += stupid_insert(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
 static uintptr_t stupid_insert(char *, char);	// stupidly insert the char c at 'p'
@@ -448,11 +525,17 @@ static int find_range(char **, char **, char);	// return pointers for an object
 static int st_test(char *, int, int, char *);	// helper for skip_thing()
 static char *skip_thing(char *, int, int, int);	// skip some object
 static char *find_pair(char *, char);	// find matching pair ()  []  {}
-static char *text_hole_delete(char *, char *);	// at "p", delete a 'size' byte hole
+#if !ENABLE_FEATURE_VI_UNDO
+#define text_hole_delete(a,b,c) text_hole_delete(a,b)
+#endif
+static char *text_hole_delete(char *, char *, int);	// at "p", delete a 'size' byte hole
 // might reallocate text[]! use p += text_hole_make(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
 static uintptr_t text_hole_make(char *, int);	// at "p", make a 'size' byte hole
-static char *yank_delete(char *, char *, int, int);	// yank text[] into register then delete
+#if !ENABLE_FEATURE_VI_UNDO
+#define yank_delete(a,b,c,d,e) yank_delete(a,b,c,d)
+#endif
+static char *yank_delete(char *, char *, int, int, int);	// yank text[] into register then delete
 static void show_help(void);	// display some help info
 static void rawmode(void);	// set "raw" mode on tty
 static void cookmode(void);	// return to "cooked" mode on tty
@@ -514,19 +597,33 @@ static void showmatching(char *);	// show the matching pair ()  []  {}
 #if ENABLE_FEATURE_VI_YANKMARK || (ENABLE_FEATURE_VI_COLON && ENABLE_FEATURE_VI_SEARCH) || ENABLE_FEATURE_VI_CRASHME
 // might reallocate text[]! use p += string_insert(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
-static uintptr_t string_insert(char *, const char *);	// insert the string at 'p'
+# if !ENABLE_FEATURE_VI_UNDO
+#define string_insert(a,b,c) string_insert(a,b)
+# endif
+static uintptr_t string_insert(char *, const char *, int);	// insert the string at 'p'
 #endif
 #if ENABLE_FEATURE_VI_YANKMARK
 static char *text_yank(char *, char *, int);	// save copy of "p" into a register
 static char what_reg(void);		// what is letter of current YDreg
 static void check_context(char);	// remember context for '' command
 #endif
+#if ENABLE_FEATURE_VI_UNDO
+static void undo_push(char *, unsigned int, unsigned char);	// Push an operation on the undo stack
+static void undo_pop(void);	// Undo the last operation
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+static void undo_queue_commit(void);	// Flush any queued objects to the undo stack
+# else
+# define undo_queue_commit() ((void)0)
+# endif
+#else
+#define undo_queue_commit() ((void)0)
+#endif
+
 #if ENABLE_FEATURE_VI_CRASHME
 static void crash_dummy();
 static void crash_test();
 static int crashme = 0;
 #endif
-
 
 static void write1(const char *out)
 {
@@ -539,6 +636,14 @@ int vi_main(int argc, char **argv)
 	int c;
 
 	INIT_G();
+
+#if ENABLE_FEATURE_VI_UNDO
+	/* undo_stack_tail = NULL; - already is */
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+	undo_queue_state = UNDO_EMPTY;
+	/* undo_q = 0; - already is  */
+#endif
+#endif
 
 #if ENABLE_FEATURE_VI_USE_SIGNALS || ENABLE_FEATURE_VI_CRASHME
 	my_pid = getpid();
@@ -631,7 +736,7 @@ static int init_text_buffer(char *fn)
 	}
 	if (size < 0) {
 		// file dont exist. Start empty buf with dummy line
-		char_insert(text, '\n');
+		char_insert(text, '\n', NO_UNDO);
 		rc = 0;
 	} else {
 		rc = file_insert(fn, text, 1);
@@ -756,7 +861,7 @@ static void edit_file(char *fn)
 				crash_dummy();	// generate a random command
 			} else {
 				crashme = 0;
-				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n"); // insert the string
+				string_insert(text, "\n\n#####  Ran out of text to work on.  #####\n\n", NO_UNDO); // insert the string
 				dot = text;
 				refresh(FALSE);
 			}
@@ -1015,7 +1120,7 @@ static void colon(char *buf)
 			q = begin_line(dot);	// assume .,. for the range
 			r = end_line(dot);
 		}
-		dot = yank_delete(q, r, 1, YANKDEL);	// save, then delete lines
+		dot = yank_delete(q, r, 1, YANKDEL, ALLOW_UNDO);	// save, then delete lines
 		dot_skip_over_ws();
 	} else if (strncmp(cmd, "edit", i) == 0) {	// Edit a file
 		// don't edit, if the current file has been modified
@@ -1175,7 +1280,7 @@ static void colon(char *buf)
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
 				dot += ch;
-			/*file_modified++; - done by file_insert */
+			// file_modified++;
 		}
 	} else if (strncmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (file_modified && !useforce) {
@@ -1235,6 +1340,9 @@ static void colon(char *buf)
 		char *F, *R, *flags;
 		size_t len_F, len_R;
 		int gflag;		// global replace flag
+#if ENABLE_FEATURE_VI_UNDO
+		int dont_chain_first_item = ALLOW_UNDO;
+#endif
 
 		// F points to the "find" pattern
 		// R points to the "replace" pattern
@@ -1269,9 +1377,13 @@ static void colon(char *buf)
 			if (found) {
 				uintptr_t bias;
 				// we found the "find" pattern - delete it
-				text_hole_delete(found, found + len_F - 1);
-				// inset the "replace" patern
-				bias = string_insert(found, R);	// insert the string
+				// For undo support, the first item should not be chained
+				text_hole_delete(found, found + len_F - 1, dont_chain_first_item);
+#if ENABLE_FEATURE_VI_UNDO
+				dont_chain_first_item = ALLOW_UNDO_CHAIN;
+#endif
+				// insert the "replace" patern
+				bias = string_insert(found, R, ALLOW_UNDO_CHAIN);
 				found += bias;
 				ls += bias;
 				/*q += bias; - recalculated anyway */
@@ -1572,23 +1684,27 @@ static char *find_line(int li)	// find begining of line #li
 //----- Dot Movement Routines ----------------------------------
 static void dot_left(void)
 {
+	undo_queue_commit();
 	if (dot > text && dot[-1] != '\n')
 		dot--;
 }
 
 static void dot_right(void)
 {
+	undo_queue_commit();
 	if (dot < end - 1 && *dot != '\n')
 		dot++;
 }
 
 static void dot_begin(void)
 {
+	undo_queue_commit();
 	dot = begin_line(dot);	// return pointer to first char cur line
 }
 
 static void dot_end(void)
 {
+	undo_queue_commit();
 	dot = end_line(dot);	// return pointer to last char cur line
 }
 
@@ -1614,11 +1730,13 @@ static char *move_to_col(char *p, int l)
 
 static void dot_next(void)
 {
+	undo_queue_commit();
 	dot = next_line(dot);
 }
 
 static void dot_prev(void)
 {
+	undo_queue_commit();
 	dot = prev_line(dot);
 }
 
@@ -1626,6 +1744,7 @@ static void dot_scroll(int cnt, int dir)
 {
 	char *q;
 
+	undo_queue_commit();
 	for (; cnt > 0; cnt--) {
 		if (dir < 0) {
 			// scroll Backwards
@@ -1651,11 +1770,6 @@ static void dot_skip_over_ws(void)
 	// skip WS
 	while (isspace(*dot) && *dot != '\n' && dot < end - 1)
 		dot++;
-}
-
-static void dot_delete(void)	// delete the char at 'dot'
-{
-	text_hole_delete(dot, dot);
 }
 
 static char *bound_dot(char *p) // make sure  text[0] <= P < "end"
@@ -1804,17 +1918,34 @@ static char *char_search(char *p, const char *pat, int dir, int range)
 
 #endif /* FEATURE_VI_SEARCH */
 
-static char *char_insert(char *p, char c) // insert the char c at 'p'
+static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 {
 	if (c == 22) {		// Is this an ctrl-V?
 		p += stupid_insert(p, '^');	// use ^ to indicate literal next
 		refresh(FALSE);	// show the ^
 		c = get_one_char();
 		*p = c;
-		p++;
+#if ENABLE_FEATURE_VI_UNDO
+		switch (undo) {
+			case ALLOW_UNDO:
+				undo_push(p, 1, UNDO_INS);
+				break;
+			case ALLOW_UNDO_CHAIN:
+				undo_push(p, 1, UNDO_INS_CHAIN);
+				break;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+			case ALLOW_UNDO_QUEUED:
+				undo_push(p, 1, UNDO_INS_QUEUED);
+				break;
+# endif
+		}
+#else
 		file_modified++;
+#endif /* ENABLE_FEATURE_VI_UNDO */
+		p++;
 	} else if (c == 27) {	// Is this an ESC?
 		cmd_mode = 0;
+		undo_queue_commit();
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
 		last_status_cksum = 0;	// force status update
@@ -1825,7 +1956,7 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 		//     123456789
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
-			p = text_hole_delete(p, p);	// shrink buffer 1 char
+			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);	// shrink buffer 1 char
 		}
 	} else {
 #if ENABLE_FEATURE_VI_SETOPTS
@@ -1838,6 +1969,27 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 #if ENABLE_FEATURE_VI_SETOPTS
 		sp = p;			// remember addr of insert
 #endif
+#if ENABLE_FEATURE_VI_UNDO
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+		if (c == '\n')
+			undo_queue_commit();
+# endif
+		switch (undo) {
+			case ALLOW_UNDO:
+				undo_push(p, 1, UNDO_INS);
+				break;
+			case ALLOW_UNDO_CHAIN:
+				undo_push(p, 1, UNDO_INS_CHAIN);
+				break;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+			case ALLOW_UNDO_QUEUED:
+				undo_push(p, 1, UNDO_INS_QUEUED);
+				break;
+# endif
+		}
+#else
+		file_modified++;
+#endif /* ENABLE_FEATURE_VI_UNDO */
 		p += 1 + stupid_insert(p, c);	// insert the char
 #if ENABLE_FEATURE_VI_SETOPTS
 		if (showmatch && strchr(")]}", *sp) != NULL) {
@@ -1853,6 +2005,9 @@ static char *char_insert(char *p, char c) // insert the char c at 'p'
 				bias = text_hole_make(p, len);
 				p += bias;
 				q += bias;
+#if ENABLE_FEATURE_VI_UNDO
+				undo_push(p, len, UNDO_INS);
+#endif
 				memcpy(p, q, len);
 				p += len;
 			}
@@ -1870,7 +2025,6 @@ static uintptr_t stupid_insert(char *p, char c) // stupidly insert the char c at
 	bias = text_hole_make(p, 1);
 	p += bias;
 	*p = c;
-	//file_modified++; - done by text_hole_make()
 	return bias;
 }
 
@@ -2051,6 +2205,185 @@ static void showmatching(char *p)
 }
 #endif /* FEATURE_VI_SETOPTS */
 
+#if ENABLE_FEATURE_VI_UNDO
+// Undo functions and hooks added by Jody Bruchon (jody@jodybruchon.com)
+static void undo_push(char *src, unsigned int length, unsigned char u_type)	// Add to the undo stack
+{
+	struct undo_object *undo_temp;
+	// "u_type" values
+	// UNDO_INS: insertion, undo will remove from buffer
+	// UNDO_DEL: deleted text, undo will restore to buffer
+	// UNDO_{INS,DEL}_CHAIN: Same as above but also calls undo_pop() when complete
+	// The CHAIN operations are for handling multiple operations that the user
+	// performs with a single action, i.e. REPLACE mode or find-and-replace commands
+	// UNDO_{INS,DEL}_QUEUED: If queuing feature is enabled, allow use of the queue
+	// for the INS/DEL operation. The raw values should be equal to the values of
+	// UNDO_{INS,DEL} ORed with UNDO_QUEUED_FLAG
+
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+	// This undo queuing functionality groups multiple character typing or backspaces
+	// into a single large undo object. This greatly reduces calls to malloc() for
+	// single-character operations while typing and has the side benefit of letting
+	// an undo operation remove chunks of text rather than a single character.
+	switch (u_type) {
+	case UNDO_EMPTY:	// Just in case this ever happens...
+		return;
+	case UNDO_DEL_QUEUED:
+		if (length != 1)
+			return;	// Only queue single characters
+		switch (undo_queue_state) {
+		case UNDO_EMPTY:
+			undo_queue_state = UNDO_DEL;
+		case UNDO_DEL:
+			undo_queue_spos = src;
+			undo_q++;
+			undo_queue[(CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q)] = *src;
+			// If queue is full, dump it into an object
+			if (undo_q == CONFIG_FEATURE_VI_UNDO_QUEUE_MAX)
+				undo_queue_commit();
+			return;
+		case UNDO_INS:
+			// Switch from storing inserted text to deleted text
+			undo_queue_commit();
+			undo_push(src, length, UNDO_DEL_QUEUED);
+			return;
+		}
+		break;
+	case UNDO_INS_QUEUED:
+		if (length != 1)
+			return;
+		switch (undo_queue_state) {
+		case UNDO_EMPTY:
+			undo_queue_state = UNDO_INS;
+			undo_queue_spos = src;
+		case UNDO_INS:
+			undo_q++;	// Don't need to save any data for insertions
+			if (undo_q == CONFIG_FEATURE_VI_UNDO_QUEUE_MAX)
+				undo_queue_commit();
+			return;
+		case UNDO_DEL:
+			// Switch from storing deleted text to inserted text
+			undo_queue_commit();
+			undo_push(src, length, UNDO_INS_QUEUED);
+			return;
+		}
+		break;
+	}
+#else
+	// If undo queuing is disabled, ignore the queuing flag entirely
+	u_type = u_type & ~UNDO_QUEUED_FLAG;
+#endif
+
+	// Allocate a new undo object and use it as the stack tail
+	undo_temp = undo_stack_tail;
+	undo_stack_tail = xmalloc(sizeof(struct undo_object));
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+	if ((u_type & UNDO_USE_SPOS) != 0) {
+		undo_stack_tail->start = undo_queue_spos - text;	// use start position from queue
+	} else {
+		undo_stack_tail->start = src - text;	// use offset from start of text buffer
+	}
+	u_type = (u_type & ~UNDO_USE_SPOS);
+#else
+	undo_stack_tail->start = src - text;
+#endif /* ENABLE_FEATURE_VI_UNDO_QUEUE */
+	// For UNDO_DEL objects, copy the deleted text somewhere
+	switch (u_type) {
+		case UNDO_DEL:
+		case UNDO_DEL_CHAIN:
+			if ((src + length) == end)
+				length--;
+			// If this deletion empties text[], strip the newline. When the buffer becomes
+			// zero-length, a newline is added back, which requires this to compensate.
+			undo_stack_tail->undo_text = xmalloc(length);
+			memcpy(undo_stack_tail->undo_text, src, length);
+			break;
+	}
+	undo_stack_tail->prev = undo_temp;
+	undo_stack_tail->length = length;
+	undo_stack_tail->u_type = u_type;
+	file_modified++;
+}
+
+static void undo_pop(void)	// Undo the last operation
+{
+	int repeat = 0;
+	char *u_start, *u_end;
+	struct undo_object *undo_temp;
+
+	// Commit pending undo queue before popping (should be unnecessary)
+	undo_queue_commit();
+
+	// Check for an empty undo stack
+	if (undo_stack_tail == NULL) {
+		status_line("Already at oldest change");
+		return;
+	}
+
+	switch (undo_stack_tail->u_type) {
+	case UNDO_DEL:
+	case UNDO_DEL_CHAIN:
+		// make hole and put in text that was deleted; deallocate text
+		u_start = text + undo_stack_tail->start;
+		text_hole_make(u_start, undo_stack_tail->length);
+		memcpy(u_start, undo_stack_tail->undo_text, undo_stack_tail->length);
+		free(undo_stack_tail->undo_text);
+		status_line("Undo [%d] %s %d chars at position %d",
+			file_modified, "restored",
+			undo_stack_tail->length, undo_stack_tail->start);
+		break;
+	case UNDO_INS:
+	case UNDO_INS_CHAIN:
+		// delete what was inserted
+		u_start = undo_stack_tail->start + text;
+		u_end = u_start - 1 + undo_stack_tail->length;
+		text_hole_delete(u_start, u_end, NO_UNDO);
+		status_line("Undo [%d] %s %d chars at position %d",
+			file_modified, "deleted",
+			undo_stack_tail->length, undo_stack_tail->start);
+		break;
+	}
+	// For chained operations, continue popping all the way down the chain.
+	// If this is the end of a chain, lower modification count and refresh display
+	switch (undo_stack_tail->u_type) {
+	case UNDO_DEL:
+	case UNDO_INS:
+		dot = (text + undo_stack_tail->start);
+		refresh(FALSE);
+		break;
+	case UNDO_DEL_CHAIN:
+	case UNDO_INS_CHAIN:
+		repeat = 1;
+		break;
+	}
+	// Deallocate the undo object we just processed
+	undo_temp = undo_stack_tail->prev;
+	free(undo_stack_tail);
+	undo_stack_tail = undo_temp;
+	file_modified--;
+	if (repeat == 1) {
+		undo_pop();	// Follow the undo chain if one exists
+	}
+}
+
+#if ENABLE_FEATURE_VI_UNDO_QUEUE
+static void undo_queue_commit(void)	// Flush any queued objects to the undo stack
+{
+	// Pushes the queue object onto the undo stack
+	if (undo_q > 0) {
+		// Deleted character undo events grow from the end
+		undo_push((undo_queue + CONFIG_FEATURE_VI_UNDO_QUEUE_MAX - undo_q),
+			undo_q,
+			(undo_queue_state | UNDO_USE_SPOS)
+		);
+		undo_queue_state = UNDO_EMPTY;
+		undo_q = 0;
+	}
+}
+#endif
+
+#endif /* ENABLE_FEATURE_VI_UNDO */
+
 // open a hole in text[]
 // might reallocate text[]! use p += text_hole_make(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
@@ -2082,12 +2415,12 @@ static uintptr_t text_hole_make(char *p, int size)	// at "p", make a 'size' byte
 	}
 	memmove(p + size, p, end - size - p);
 	memset(p, ' ', size);	// clear new hole
-	file_modified++;
 	return bias;
 }
 
 //  close a hole in text[]
-static char *text_hole_delete(char *p, char *q) // delete "p" through "q", inclusive
+//  "undo" value indicates if this operation should be undo-able
+static char *text_hole_delete(char *p, char *q, int undo) // delete "p" through "q", inclusive
 {
 	char *src, *dest;
 	int cnt, hole_size;
@@ -2102,10 +2435,29 @@ static char *text_hole_delete(char *p, char *q) // delete "p" through "q", inclu
 	}
 	hole_size = q - p + 1;
 	cnt = end - src;
+#if ENABLE_FEATURE_VI_UNDO
+	switch (undo) {
+		case NO_UNDO:
+			break;
+		case ALLOW_UNDO:
+			undo_push(p, hole_size, UNDO_DEL);
+			break;
+		case ALLOW_UNDO_CHAIN:
+			undo_push(p, hole_size, UNDO_DEL_CHAIN);
+			break;
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
+		case ALLOW_UNDO_QUEUED:
+			undo_push(p, hole_size, UNDO_DEL_QUEUED);
+			break;
+# endif
+	}
+	file_modified--;
+#endif
 	if (src < text || src > end)
 		goto thd0;
 	if (dest < text || dest >= end)
 		goto thd0;
+	file_modified++;
 	if (src >= end)
 		goto thd_atend;	// just delete the end of the buffer
 	memmove(dest, src, cnt);
@@ -2115,7 +2467,6 @@ static char *text_hole_delete(char *p, char *q) // delete "p" through "q", inclu
 		dest = end - 1;	// make sure dest in below end-1
 	if (end <= text)
 		dest = end = text;	// keep pointers valid
-	file_modified++;
  thd0:
 	return dest;
 }
@@ -2123,7 +2474,7 @@ static char *text_hole_delete(char *p, char *q) // delete "p" through "q", inclu
 // copy text into register, then delete text.
 // if dist <= 0, do not include, or go past, a NewLine
 //
-static char *yank_delete(char *start, char *stop, int dist, int yf)
+static char *yank_delete(char *start, char *stop, int dist, int yf, int undo)
 {
 	char *p;
 
@@ -2152,7 +2503,7 @@ static char *yank_delete(char *start, char *stop, int dist, int yf)
 	text_yank(start, stop, YDreg);
 #endif
 	if (yf == YANKDEL) {
-		p = text_hole_delete(start, stop);
+		p = text_hole_delete(start, stop, undo);
 	}					// delete lines
 	return p;
 }
@@ -2218,12 +2569,22 @@ static void end_cmd_q(void)
  || ENABLE_FEATURE_VI_CRASHME
 // might reallocate text[]! use p += string_insert(p, ...),
 // and be careful to not use pointers into potentially freed text[]!
-static uintptr_t string_insert(char *p, const char *s) // insert the string at 'p'
+static uintptr_t string_insert(char *p, const char *s, int undo) // insert the string at 'p'
 {
 	uintptr_t bias;
 	int i;
 
 	i = strlen(s);
+#if ENABLE_FEATURE_VI_UNDO
+	switch (undo) {
+		case ALLOW_UNDO:
+			undo_push(p, i, UNDO_INS);
+			break;
+		case ALLOW_UNDO_CHAIN:
+			undo_push(p, i, UNDO_INS_CHAIN);
+			break;
+	}
+#endif
 	bias = text_hole_make(p, i);
 	p += bias;
 	memcpy(p, s, i);
@@ -2516,14 +2877,14 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
 		status_line_bold_errno(fn);
-		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
+		p = text_hole_delete(p, p + size - 1, NO_UNDO);	// un-do buffer insert
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
-		p = text_hole_delete(p + cnt, p + size - 1);	// un-do buffer insert
+		p = text_hole_delete(p + cnt, p + size - 1, NO_UNDO);	// un-do buffer insert
 		status_line_bold("can't read '%s'", fn);
 	}
-	if (cnt >= size)
-		file_modified++;
+//	if (cnt >= size)
+//		file_modified++;
 	close(fd);
  fi0:
 #if ENABLE_FEATURE_VI_READONLY
@@ -3048,11 +3409,12 @@ static void do_cmd(int c)
 		if (*dot == '\n') {
 			// don't Replace past E-o-l
 			cmd_mode = 1;	// convert to insert
+			undo_queue_commit();
 		} else {
 			if (1 <= c || Isprint(c)) {
 				if (c != 27)
-					dot = yank_delete(dot, dot, 0, YANKDEL);	// delete char
-				dot = char_insert(dot, c);	// insert new char
+					dot = yank_delete(dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete char
+				dot = char_insert(dot, c, ALLOW_UNDO_CHAIN);	// insert new char
 			}
 			goto dc1;
 		}
@@ -3062,7 +3424,7 @@ static void do_cmd(int c)
 		if (c == KEYCODE_INSERT) goto dc5;
 		// insert the char c at "dot"
 		if (1 <= c || Isprint(c)) {
-			dot = char_insert(dot, c);
+			dot = char_insert(dot, c, ALLOW_UNDO_QUEUED);
 		}
 		goto dc1;
 	}
@@ -3108,7 +3470,6 @@ static void do_cmd(int c)
 		//case ']':	// ]-
 		//case '_':	// _-
 		//case '`':	// `-
-		//case 'u':	// u- FIXME- there is no undo
 		//case 'v':	// v-
 	default:			// unrecognized command
 		buf[0] = c;
@@ -3177,6 +3538,7 @@ static void do_cmd(int c)
 		if (cmd_mode == 0)
 			indicate_error(c);
 		cmd_mode = 0;	// stop insrting
+		undo_queue_commit();
 		end_cmd_q();
 		last_status_cksum = 0;	// force status update
 		break;
@@ -3251,15 +3613,20 @@ static void do_cmd(int c)
 			if (c == 'p')
 				dot_right();	// move to right, can move to NL
 		}
-		string_insert(dot, p);	// insert the string
+		string_insert(dot, p, ALLOW_UNDO);	// insert the string
 		end_cmd_q();	// stop adding to q
 		break;
+#if ENABLE_FEATURE_VI_UNDO
+	case 'u':	// u- undo last operation
+		undo_pop();
+		break;
+#endif
 	case 'U':			// U- Undo; replace current line with original version
 		if (reg[Ureg] != NULL) {
 			p = begin_line(dot);
 			q = end_line(dot);
-			p = text_hole_delete(p, q);	// delete cur line
-			p += string_insert(p, reg[Ureg]);	// insert orig line
+			p = text_hole_delete(p, q, ALLOW_UNDO);	// delete cur line
+			p += string_insert(p, reg[Ureg], ALLOW_UNDO_CHAIN);	// insert orig line
 			dot = p;
 			dot_skip_over_ws();
 		}
@@ -3485,7 +3852,7 @@ static void do_cmd(int c)
 		cnt = count_lines(text, dot);	// remember what line we are on
 		c1 = get_one_char();	// get the type of thing to delete
 		find_range(&p, &q, c1);
-		yank_delete(p, q, 1, YANKONLY);	// save copy before change
+		yank_delete(p, q, 1, YANKONLY, NO_UNDO);	// save copy before change
 		p = begin_line(p);
 		q = end_line(q);
 		i = count_lines(p, q);	// # of lines we are shifting
@@ -3494,16 +3861,16 @@ static void do_cmd(int c)
 				// shift left- remove tab or 8 spaces
 				if (*p == '\t') {
 					// shrink buffer 1 char
-					text_hole_delete(p, p);
+					text_hole_delete(p, p, NO_UNDO);
 				} else if (*p == ' ') {
 					// we should be calculating columns, not just SPACE
 					for (j = 0; *p == ' ' && j < tabstop; j++) {
-						text_hole_delete(p, p);
+						text_hole_delete(p, p, NO_UNDO);
 					}
 				}
 			} else if (c == '>') {
 				// shift right -- add tab or 8 spaces
-				char_insert(p, '\t');
+				char_insert(p, '\t', ALLOW_UNDO);
 			}
 		}
 		dot = find_line(cnt);	// what line were we on
@@ -3538,7 +3905,7 @@ static void do_cmd(int c)
 		save_dot = dot;
 		dot = dollar_line(dot);	// move to before NL
 		// copy text into a register and delete
-		dot = yank_delete(save_dot, dot, 0, YANKDEL);	// delete to e-o-l
+		dot = yank_delete(save_dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete to e-o-l
 		if (c == 'C')
 			goto dc_i;	// start inserting
 #if ENABLE_FEATURE_VI_DOT_CMD
@@ -3583,15 +3950,22 @@ static void do_cmd(int c)
 	case KEYCODE_INSERT:	// Cursor Key Insert
  dc_i:
 		cmd_mode = 1;	// start inserting
+		undo_queue_commit();	// commit queue when cmd_mode changes
 		break;
 	case 'J':			// J- join current and next lines together
 		do {
 			dot_end();		// move to NL
 			if (dot < end - 1) {	// make sure not last char in text[]
+#if ENABLE_FEATURE_VI_UNDO
+				undo_push(dot, 1, UNDO_DEL);
 				*dot++ = ' ';	// replace NL with space
+				undo_push((dot - 1), 1, UNDO_INS_CHAIN);
+#else
+				*dot++ = ' ';
 				file_modified++;
+#endif
 				while (isblank(*dot)) {	// delete leading WS
-					dot_delete();
+					text_hole_delete(dot, dot, ALLOW_UNDO_CHAIN);
 				}
 			}
 		} while (--cmdcnt > 0);
@@ -3620,10 +3994,10 @@ static void do_cmd(int c)
 			dot_prev();
 	case 'o':			// o- open a empty line below; Yes, I know it is in the middle of the "if (..."
 			dot_end();
-			dot = char_insert(dot, '\n');
+			dot = char_insert(dot, '\n', ALLOW_UNDO);
 		} else {
 			dot_begin();	// 0
-			dot = char_insert(dot, '\n');	// i\n ESC
+			dot = char_insert(dot, '\n', ALLOW_UNDO);	// i\n ESC
 			dot_prev();	// -
 		}
 		goto dc_i;
@@ -3631,6 +4005,7 @@ static void do_cmd(int c)
 	case 'R':			// R- continuous Replace char
  dc5:
 		cmd_mode = 2;
+		undo_queue_commit();
 		break;
 	case KEYCODE_DELETE:
 		c = 'x';
@@ -3645,7 +4020,7 @@ static void do_cmd(int c)
 			if (dot[dir] != '\n') {
 				if (c == 'X')
 					dot--;	// delete prev char
-				dot = yank_delete(dot, dot, 0, YANKDEL);	// delete char
+				dot = yank_delete(dot, dot, 0, YANKDEL, ALLOW_UNDO);	// delete char
 			}
 		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
@@ -3716,6 +4091,7 @@ static void do_cmd(int c)
 			c1 = get_one_char();	// get the type of thing to delete
 		// determine range, and whether it spans lines
 		ml = find_range(&p, &q, c1);
+		place_cursor(0, 0);
 		if (c1 == 27) {	// ESC- user changed mind and wants out
 			c = c1 = 27;	// Escape- do nothing
 		} else if (strchr("wW", c1)) {
@@ -3727,13 +4103,13 @@ static void do_cmd(int c)
 					q--;
 				}
 			}
-			dot = yank_delete(p, q, ml, yf);	// delete word
+			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
 		} else if (strchr("^0bBeEft%$ lh\b\177", c1)) {
 			// partial line copy text into a register and delete
-			dot = yank_delete(p, q, ml, yf);	// delete word
+			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete word
 		} else if (strchr("cdykjHL+-{}\r\n", c1)) {
 			// whole line copy text into a register and delete
-			dot = yank_delete(p, q, ml, yf);	// delete lines
+			dot = yank_delete(p, q, ml, yf, ALLOW_UNDO);	// delete lines
 			whole = 1;
 		} else {
 			// could not recognize object
@@ -3743,7 +4119,7 @@ static void do_cmd(int c)
 		}
 		if (ml && whole) {
 			if (c == 'c') {
-				dot = char_insert(dot, '\n');
+				dot = char_insert(dot, '\n', ALLOW_UNDO_CHAIN);
 				// on the last line of file don't move to prev line
 				if (whole && dot != (end-1)) {
 					dot_prev();
@@ -3789,8 +4165,14 @@ static void do_cmd(int c)
 	case 'r':			// r- replace the current char with user input
 		c1 = get_one_char();	// get the replacement char
 		if (*dot != '\n') {
+#if ENABLE_FEATURE_VI_UNDO
+			undo_push(dot, 1, UNDO_DEL);
+			*dot = c1;
+			undo_push(dot, 1, UNDO_INS_CHAIN);
+#else
 			*dot = c1;
 			file_modified++;
+#endif
 		}
 		end_cmd_q();	// stop adding to q
 		break;
@@ -3830,6 +4212,17 @@ static void do_cmd(int c)
 		break;
 	case '~':			// ~- flip the case of letters   a-z -> A-Z
 		do {
+#if ENABLE_FEATURE_VI_UNDO
+			if (islower(*dot)) {
+				undo_push(dot, 1, UNDO_DEL);
+				*dot = toupper(*dot);
+				undo_push(dot, 1, UNDO_INS_CHAIN);
+			} else if (isupper(*dot)) {
+				undo_push(dot, 1, UNDO_DEL);
+				*dot = tolower(*dot);
+				undo_push(dot, 1, UNDO_INS_CHAIN);
+			}
+#else
 			if (islower(*dot)) {
 				*dot = toupper(*dot);
 				file_modified++;
@@ -3837,6 +4230,7 @@ static void do_cmd(int c)
 				*dot = tolower(*dot);
 				file_modified++;
 			}
+#endif
 			dot_right();
 		} while (--cmdcnt > 0);
 		end_cmd_q();	// stop adding to q
@@ -3866,7 +4260,7 @@ static void do_cmd(int c)
  dc1:
 	// if text[] just became empty, add back an empty line
 	if (end == text) {
-		char_insert(text, '\n');	// start empty buf with dummy line
+		char_insert(text, '\n', NO_UNDO);	// start empty buf with dummy line
 		dot = text;
 	}
 	// it is OK for dot to exactly equal to end, otherwise check dot validity
