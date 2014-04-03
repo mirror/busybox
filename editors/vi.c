@@ -306,8 +306,8 @@ struct globals {
 	smallint editing;        // >0 while we are editing a file
 	                         // [code audit says "can be 0, 1 or 2 only"]
 	smallint cmd_mode;       // 0=command  1=insert 2=replace
-	int file_modified;       // buffer contents changed (counter, not flag!)
-	int last_file_modified;  // = -1;
+	int modified_count;      // buffer contents changed if !0
+	int last_modified_count; // = -1;
 	int save_argc;           // how many file names on cmd line
 	int cmdcnt;              // repetition count
 	unsigned rows, columns;	 // the terminal screen is this size
@@ -378,37 +378,37 @@ struct globals {
 	char scr_out_buf[MAX_SCR_COLS + MAX_TABSTOP * 2];
 #if ENABLE_FEATURE_VI_UNDO
 // undo_push() operations
-#define UNDO_INS 0
-#define UNDO_DEL 1
-#define UNDO_INS_CHAIN 2
-#define UNDO_DEL_CHAIN 3
+#define UNDO_INS         0
+#define UNDO_DEL         1
+#define UNDO_INS_CHAIN   2
+#define UNDO_DEL_CHAIN   3
 // UNDO_*_QUEUED must be equal to UNDO_xxx ORed with UNDO_QUEUED_FLAG
 #define UNDO_QUEUED_FLAG 4
-#define UNDO_INS_QUEUED 4
-#define UNDO_DEL_QUEUED 5
-#define UNDO_USE_SPOS 32
-#define UNDO_EMPTY 64
+#define UNDO_INS_QUEUED  4
+#define UNDO_DEL_QUEUED  5
+#define UNDO_USE_SPOS   32
+#define UNDO_EMPTY      64
 // Pass-through flags for functions that can be undone
-#define NO_UNDO 0
-#define ALLOW_UNDO 1
+#define NO_UNDO          0
+#define ALLOW_UNDO       1
 #define ALLOW_UNDO_CHAIN 2
-#if ENABLE_FEATURE_VI_UNDO_QUEUE
+# if ENABLE_FEATURE_VI_UNDO_QUEUE
 #define ALLOW_UNDO_QUEUED 3
 	char undo_queue_state;
 	int undo_q;
 	char *undo_queue_spos;	// Start position of queued operation
 	char undo_queue[CONFIG_FEATURE_VI_UNDO_QUEUE_MAX];
-#else
+# else
 // If undo queuing disabled, don't invoke the missing queue logic
 #define ALLOW_UNDO_QUEUED 1
-#endif /* ENABLE_FEATURE_VI_UNDO_QUEUE */
+# endif
 
 	struct undo_object {
 		struct undo_object *prev;	// Linking back avoids list traversal (LIFO)
-		int u_type;		// 0=deleted, 1=inserted, 2=swapped
 		int start;		// Offset where the data should be restored/deleted
 		int length;		// total data size
-		char *undo_text;	// ptr to text that will be inserted
+		uint8_t u_type;		// 0=deleted, 1=inserted, 2=swapped
+		char undo_text[1];	// text that was deleted (if deletion)
 	} *undo_stack_tail;
 #endif /* ENABLE_FEATURE_VI_UNDO */
 
@@ -423,8 +423,8 @@ struct globals {
 #define vi_setops               (G.vi_setops          )
 #define editing                 (G.editing            )
 #define cmd_mode                (G.cmd_mode           )
-#define file_modified           (G.file_modified      )
-#define last_file_modified      (G.last_file_modified )
+#define modified_count          (G.modified_count     )
+#define last_modified_count     (G.last_modified_count)
 #define save_argc               (G.save_argc          )
 #define cmdcnt                  (G.cmdcnt             )
 #define rows                    (G.rows               )
@@ -485,7 +485,7 @@ struct globals {
 
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
-	last_file_modified = -1; \
+	last_modified_count = -1; \
 	/* "" but has space for 2 chars: */ \
 	IF_FEATURE_VI_SEARCH(last_search_pattern = xzalloc(2);) \
 } while (0)
@@ -608,6 +608,7 @@ static char what_reg(void);		// what is letter of current YDreg
 static void check_context(char);	// remember context for '' command
 #endif
 #if ENABLE_FEATURE_VI_UNDO
+static void flush_undo_data(void);
 static void undo_push(char *, unsigned int, unsigned char);	// Push an operation on the undo stack
 static void undo_pop(void);	// Undo the last operation
 # if ENABLE_FEATURE_VI_UNDO_QUEUE
@@ -616,6 +617,7 @@ static void undo_queue_commit(void);	// Flush any queued objects to the undo sta
 # define undo_queue_commit() ((void)0)
 # endif
 #else
+#define flush_undo_data()   ((void)0)
 #define undo_queue_commit() ((void)0)
 #endif
 
@@ -725,6 +727,8 @@ static int init_text_buffer(char *fn)
 	int rc;
 	int size = file_size(fn);	// file size. -1 means does not exist.
 
+	flush_undo_data();
+
 	/* allocate/reallocate text buffer */
 	free(text);
 	text_size = size + 10240;
@@ -735,14 +739,14 @@ static int init_text_buffer(char *fn)
 		current_filename = xstrdup(fn);
 	}
 	if (size < 0) {
-		// file dont exist. Start empty buf with dummy line
+		// file doesnt exist. Start empty buf with dummy line
 		char_insert(text, '\n', NO_UNDO);
 		rc = 0;
 	} else {
 		rc = file_insert(fn, text, 1);
 	}
-	file_modified = 0;
-	last_file_modified = -1;
+	modified_count = 0;
+	last_modified_count = -1;
 #if ENABLE_FEATURE_VI_YANKMARK
 	/* init the marks. */
 	memset(mark, 0, sizeof(mark));
@@ -1124,7 +1128,7 @@ static void colon(char *buf)
 		dot_skip_over_ws();
 	} else if (strncmp(cmd, "edit", i) == 0) {	// Edit a file
 		// don't edit, if the current file has been modified
-		if (file_modified && !useforce) {
+		if (modified_count && !useforce) {
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
 			goto ret;
 		}
@@ -1227,7 +1231,7 @@ static void colon(char *buf)
 			goto ret;
 		}
 		// don't exit if the file been modified
-		if (file_modified) {
+		if (modified_count) {
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
 			goto ret;
 		}
@@ -1280,10 +1284,10 @@ static void colon(char *buf)
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
 				dot += ch;
-			// file_modified++;
+			// modified_count++;
 		}
 	} else if (strncmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
-		if (file_modified && !useforce) {
+		if (modified_count && !useforce) {
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
 		} else {
 			// reset the filenames to edit
@@ -1438,8 +1442,8 @@ static void colon(char *buf)
 		} else {
 			status_line("'%s' %dL, %dC", fn, li, l);
 			if (q == text && r == end - 1 && l == ch) {
-				file_modified = 0;
-				last_file_modified = -1;
+				modified_count = 0;
+				last_modified_count = -1;
 			}
 			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n'
 			    || cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N'
@@ -1940,7 +1944,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 # endif
 		}
 #else
-		file_modified++;
+		modified_count++;
 #endif /* ENABLE_FEATURE_VI_UNDO */
 		p++;
 	} else if (c == 27) {	// Is this an ESC?
@@ -1988,7 +1992,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 # endif
 		}
 #else
-		file_modified++;
+		modified_count++;
 #endif /* ENABLE_FEATURE_VI_UNDO */
 		p += 1 + stupid_insert(p, c);	// insert the char
 #if ENABLE_FEATURE_VI_SETOPTS
@@ -2206,8 +2210,19 @@ static void showmatching(char *p)
 #endif /* FEATURE_VI_SETOPTS */
 
 #if ENABLE_FEATURE_VI_UNDO
+static void flush_undo_data(void)
+{
+	struct undo_object *undo_entry;
+
+	while (undo_stack_tail) {
+		undo_entry = undo_stack_tail;
+		undo_stack_tail = undo_entry->prev;
+		free(undo_entry);
+	}
+}
+
 // Undo functions and hooks added by Jody Bruchon (jody@jodybruchon.com)
-static void undo_push(char *src, unsigned int length, unsigned char u_type)	// Add to the undo stack
+static void undo_push(char *src, unsigned int length, uint8_t u_type)	// Add to the undo stack
 {
 	struct undo_object *undo_entry;
 
@@ -2275,10 +2290,19 @@ static void undo_push(char *src, unsigned int length, unsigned char u_type)	// A
 	u_type = u_type & ~UNDO_QUEUED_FLAG;
 #endif
 
-	// Allocate a new undo object and use it as the stack tail
-	undo_entry = xzalloc(sizeof(*undo_entry));
-	undo_entry->prev = undo_stack_tail;
-	undo_stack_tail = undo_entry;
+	// Allocate a new undo object
+	if (u_type == UNDO_DEL || u_type == UNDO_DEL_CHAIN) {
+		// For UNDO_DEL objects, save deleted text
+		if ((src + length) == end)
+			length--;
+		// If this deletion empties text[], strip the newline. When the buffer becomes
+		// zero-length, a newline is added back, which requires this to compensate.
+		undo_entry = xzalloc(offsetof(struct undo_object, undo_text) + length);
+		memcpy(undo_entry->undo_text, src, length);
+	} else {
+		undo_entry = xzalloc(sizeof(*undo_entry));
+	}
+	undo_entry->length = length;
 #if ENABLE_FEATURE_VI_UNDO_QUEUE
 	if ((u_type & UNDO_USE_SPOS) != 0) {
 		undo_entry->start = undo_queue_spos - text;	// use start position from queue
@@ -2289,18 +2313,12 @@ static void undo_push(char *src, unsigned int length, unsigned char u_type)	// A
 #else
 	undo_entry->start = src - text;
 #endif
-	// For UNDO_DEL objects, copy the deleted text somewhere
 	undo_entry->u_type = u_type;
-	if (u_type == UNDO_DEL || u_type == UNDO_DEL_CHAIN) {
-		if ((src + length) == end)
-			length--;
-		// If this deletion empties text[], strip the newline. When the buffer becomes
-		// zero-length, a newline is added back, which requires this to compensate.
-		undo_entry->undo_text = xmalloc(length);
-		memcpy(undo_entry->undo_text, src, length);
-	}
-	undo_entry->length = length;
-	file_modified++;
+
+	// Push it on undo stack
+	undo_entry->prev = undo_stack_tail;
+	undo_stack_tail = undo_entry;
+	modified_count++;
 }
 
 static void undo_pop(void)	// Undo the last operation
@@ -2326,9 +2344,8 @@ static void undo_pop(void)	// Undo the last operation
 		u_start = text + undo_entry->start;
 		text_hole_make(u_start, undo_entry->length);
 		memcpy(u_start, undo_entry->undo_text, undo_entry->length);
-		free(undo_entry->undo_text);
 		status_line("Undo [%d] %s %d chars at position %d",
-			file_modified, "restored",
+			modified_count, "restored",
 			undo_entry->length, undo_entry->start
 		);
 		break;
@@ -2339,7 +2356,7 @@ static void undo_pop(void)	// Undo the last operation
 		u_end = u_start - 1 + undo_entry->length;
 		text_hole_delete(u_start, u_end, NO_UNDO);
 		status_line("Undo [%d] %s %d chars at position %d",
-			file_modified, "deleted",
+			modified_count, "deleted",
 			undo_entry->length, undo_entry->start
 		);
 		break;
@@ -2360,7 +2377,7 @@ static void undo_pop(void)	// Undo the last operation
 	// Deallocate the undo object we just processed
 	undo_stack_tail = undo_entry->prev;
 	free(undo_entry);
-	file_modified--;
+	modified_count--;
 	// For chained operations, continue popping all the way down the chain.
 	if (repeat) {
 		undo_pop();	// Follow the undo chain if one exists
@@ -2452,13 +2469,13 @@ static char *text_hole_delete(char *p, char *q, int undo) // delete "p" through 
 			break;
 # endif
 	}
-	file_modified--;
+	modified_count--;
 #endif
 	if (src < text || src > end)
 		goto thd0;
 	if (dest < text || dest >= end)
 		goto thd0;
-	file_modified++;
+	modified_count++;
 	if (src >= end)
 		goto thd_atend;	// just delete the end of the buffer
 	memmove(dest, src, cnt);
@@ -2885,7 +2902,7 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 		status_line_bold("can't read '%s'", fn);
 	}
 //	if (cnt >= size)
-//		file_modified++;
+//		modified_count++;
 	close(fd);
  fi0:
 #if ENABLE_FEATURE_VI_READONLY
@@ -2922,7 +2939,7 @@ static int file_write(char *fn, char *first, char *last)
 	ftruncate(fd, charcnt);
 	if (charcnt == cnt) {
 		// good write
-		//file_modified = FALSE;
+		//modified_count = FALSE;
 	} else {
 		charcnt = 0;
 	}
@@ -3144,7 +3161,7 @@ static int format_edit_status(void)
 
 	int cur, percent, ret, trunc_at;
 
-	// file_modified is now a counter rather than a flag.  this
+	// modified_count is now a counter rather than a flag.  this
 	// helps reduce the amount of line counting we need to do.
 	// (this will cause a mis-reporting of modified status
 	// once every MAXINT editing operations.)
@@ -3154,11 +3171,12 @@ static int format_edit_status(void)
 	// we're on, then we shouldn't have to do this count_lines()
 	cur = count_lines(text, dot);
 
-	// reduce counting -- the total lines can't have
-	// changed if we haven't done any edits.
-	if (file_modified != last_file_modified) {
+	// count_lines() is expensive.
+	// Call it only if something was changed since last time
+	// we were here:
+	if (modified_count != last_modified_count) {
 		tot = cur + count_lines(dot, end - 1) - 1;
-		last_file_modified = file_modified;
+		last_modified_count = modified_count;
 	}
 
 	//    current line         percent
@@ -3185,7 +3203,7 @@ static int format_edit_status(void)
 #if ENABLE_FEATURE_VI_READONLY
 		(readonly_mode ? " [Readonly]" : ""),
 #endif
-		(file_modified ? " [Modified]" : ""),
+		(modified_count ? " [Modified]" : ""),
 		cur, tot, percent);
 
 	if (ret >= 0 && ret < trunc_at)
@@ -3814,7 +3832,7 @@ static void do_cmd(int c)
 		if (strncmp(p, "quit", cnt) == 0
 		 || strncmp(p, "q!", cnt) == 0   // delete lines
 		) {
-			if (file_modified && p[1] != '!') {
+			if (modified_count && p[1] != '!') {
 				status_line_bold("No write since last change (:%s! overrides)", p);
 			} else {
 				editing = 0;
@@ -3829,8 +3847,8 @@ static void do_cmd(int c)
 				if (cnt == -1)
 					status_line_bold("Write error: %s", strerror(errno));
 			} else {
-				file_modified = 0;
-				last_file_modified = -1;
+				modified_count = 0;
+				last_modified_count = -1;
 				status_line("'%s' %dL, %dC", current_filename, count_lines(text, end - 1), cnt);
 				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n'
 				 || p[0] == 'X' || p[1] == 'Q' || p[1] == 'N'
@@ -3963,7 +3981,7 @@ static void do_cmd(int c)
 				undo_push((dot - 1), 1, UNDO_INS_CHAIN);
 #else
 				*dot++ = ' ';
-				file_modified++;
+				modified_count++;
 #endif
 				while (isblank(*dot)) {	// delete leading WS
 					text_hole_delete(dot, dot, ALLOW_UNDO_CHAIN);
@@ -4035,7 +4053,7 @@ static void do_cmd(int c)
 			indicate_error(c);
 			break;
 		}
-		if (file_modified) {
+		if (modified_count) {
 			if (ENABLE_FEATURE_VI_READONLY && readonly_mode) {
 				status_line_bold("'%s' is read only", current_filename);
 				break;
@@ -4172,7 +4190,7 @@ static void do_cmd(int c)
 			undo_push(dot, 1, UNDO_INS_CHAIN);
 #else
 			*dot = c1;
-			file_modified++;
+			modified_count++;
 #endif
 		}
 		end_cmd_q();	// stop adding to q
@@ -4226,10 +4244,10 @@ static void do_cmd(int c)
 #else
 			if (islower(*dot)) {
 				*dot = toupper(*dot);
-				file_modified++;
+				modified_count++;
 			} else if (isupper(*dot)) {
 				*dot = tolower(*dot);
-				file_modified++;
+				modified_count++;
 			}
 #endif
 			dot_right();
