@@ -491,7 +491,6 @@ struct globals {
 } while (0)
 
 
-static int init_text_buffer(char *); // init from file or create new
 static void edit_file(char *);	// edit one file
 static void do_cmd(int);	// execute a command
 static int next_tabstop(int);
@@ -543,7 +542,6 @@ static void cookmode(void);	// return to "cooked" mode on tty
 static int mysleep(int);
 static int readit(void);	// read (maybe cursor) key from stdin
 static int get_one_char(void);	// read 1 char from stdin
-static int file_size(const char *);   // what is the byte size of "fn"
 #if !ENABLE_FEATURE_VI_READONLY
 #define file_insert(fn, p, update_ro_status) file_insert(fn, p)
 #endif
@@ -578,8 +576,8 @@ static char *char_search(char *, const char *, int, int);	// search for pattern 
 #if ENABLE_FEATURE_VI_COLON
 static char *get_one_address(char *, int *);	// get colon addr, if present
 static char *get_address(char *, int *, int *);	// get two colon addrs, if present
-static void colon(char *);	// execute the "colon" mode cmds
 #endif
+static void colon(char *);	// execute the "colon" mode cmds
 #if ENABLE_FEATURE_VI_USE_SIGNALS
 static void winch_sig(int);	// catch window size changes
 static void suspend_sig(int);	// catch ctrl-Z
@@ -725,32 +723,29 @@ int vi_main(int argc, char **argv)
 static int init_text_buffer(char *fn)
 {
 	int rc;
-	int size = file_size(fn);	// file size. -1 means does not exist.
 
 	flush_undo_data();
+	modified_count = 0;
+	last_modified_count = -1;
+#if ENABLE_FEATURE_VI_YANKMARK
+	/* init the marks */
+	memset(mark, 0, sizeof(mark));
+#endif
 
 	/* allocate/reallocate text buffer */
 	free(text);
-	text_size = size + 10240;
+	text_size = 10240;
 	screenbegin = dot = end = text = xzalloc(text_size);
 
 	if (fn != current_filename) {
 		free(current_filename);
 		current_filename = xstrdup(fn);
 	}
-	if (size < 0) {
+	rc = file_insert(fn, text, 1);
+	if (rc < 0) {
 		// file doesnt exist. Start empty buf with dummy line
 		char_insert(text, '\n', NO_UNDO);
-		rc = 0;
-	} else {
-		rc = file_insert(fn, text, 1);
 	}
-	modified_count = 0;
-	last_modified_count = -1;
-#if ENABLE_FEATURE_VI_YANKMARK
-	/* init the marks. */
-	memset(mark, 0, sizeof(mark));
-#endif
 	return rc;
 }
 
@@ -1018,13 +1013,71 @@ static void setops(const char *args, const char *opname, int flg_no,
 }
 #endif
 
+#endif /* FEATURE_VI_COLON */
+
 // buf must be no longer than MAX_INPUT_LEN!
 static void colon(char *buf)
 {
+#if !ENABLE_FEATURE_VI_COLON
+	/* Simple ":cmd" handler with minimal set of commands */
+	char *p = buf;
+	int cnt;
+
+	if (*p == ':')
+		p++;
+	cnt = strlen(p);
+	if (cnt == 0)
+		return;
+	if (strncmp(p, "quit", cnt) == 0
+	 || strncmp(p, "q!", cnt) == 0
+	) {
+		if (modified_count && p[1] != '!') {
+			status_line_bold("No write since last change (:%s! overrides)", p);
+		} else {
+			editing = 0;
+		}
+		return;
+	}
+	if (strncmp(p, "write", cnt) == 0
+	 || strncmp(p, "wq", cnt) == 0
+	 || strncmp(p, "wn", cnt) == 0
+	 || (p[0] == 'x' && !p[1])
+	) {
+		cnt = file_write(current_filename, text, end - 1);
+		if (cnt < 0) {
+			if (cnt == -1)
+				status_line_bold("Write error: %s", strerror(errno));
+		} else {
+			modified_count = 0;
+			last_modified_count = -1;
+			status_line("'%s' %dL, %dC",
+				current_filename,
+				count_lines(text, end - 1), cnt
+			);
+			if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n'
+			 || p[0] == 'X' || p[1] == 'Q' || p[1] == 'N'
+			) {
+				editing = 0;
+			}
+		}
+		return;
+	}
+	if (strncmp(p, "file", cnt) == 0) {
+		last_status_cksum = 0;	// force status update
+		return;
+	}
+	if (sscanf(p, "%d", &cnt) > 0) {
+		dot = find_line(cnt);
+		dot_skip_over_ws();
+		return;
+	}
+	not_implemented(p);
+#else
+
 	char c, *orig_buf, *buf1, *q, *r;
 	char *fn, cmd[MAX_INPUT_LEN], args[MAX_INPUT_LEN];
-	int i, l, li, ch, b, e;
-	int useforce, forced = FALSE;
+	int i, l, li, b, e;
+	int useforce;
 
 	// :3154	// if (-e line 3154) goto it  else stay put
 	// :4,33w! foo	// write a portion of buffer to file "foo"
@@ -1046,7 +1099,7 @@ static void colon(char *buf)
 	if (*buf == ':')
 		buf++;			// move past the ':'
 
-	li = ch = i = 0;
+	li = i = 0;
 	b = e = -1;
 	q = text;			// assume 1,$ for the range
 	r = end - 1;
@@ -1127,6 +1180,8 @@ static void colon(char *buf)
 		dot = yank_delete(q, r, 1, YANKDEL, ALLOW_UNDO);	// save, then delete lines
 		dot_skip_over_ws();
 	} else if (strncmp(cmd, "edit", i) == 0) {	// Edit a file
+		int size;
+
 		// don't edit, if the current file has been modified
 		if (modified_count && !useforce) {
 			status_line_bold("No write since last change (:%s! overrides)", cmd);
@@ -1144,8 +1199,7 @@ static void colon(char *buf)
 			goto ret;
 		}
 
-		if (init_text_buffer(fn) < 0)
-			goto ret;
+		size = init_text_buffer(fn);
 
 #if ENABLE_FEATURE_VI_YANKMARK
 		if (Ureg >= 0 && Ureg < 28) {
@@ -1161,12 +1215,14 @@ static void colon(char *buf)
 		li = count_lines(text, end - 1);
 		status_line("'%s'%s"
 			IF_FEATURE_VI_READONLY("%s")
-			" %dL, %dC", current_filename,
-			(file_size(fn) < 0 ? " [New file]" : ""),
+			" %dL, %dC",
+			current_filename,
+			(size < 0 ? " [New file]" : ""),
 			IF_FEATURE_VI_READONLY(
 				((readonly_mode) ? " [Readonly]" : ""),
 			)
-			li, ch);
+			li, (int)(end - text)
+		);
 	} else if (strncmp(cmd, "file", i) == 0) {	// what File is this
 		if (b != -1 || e != -1) {
 			status_line_bold("No address allowed on this command");
@@ -1255,6 +1311,8 @@ static void colon(char *buf)
 		}
 		editing = 0;
 	} else if (strncmp(cmd, "read", i) == 0) {	// read file into text[]
+		int size;
+
 		fn = args;
 		if (!fn[0]) {
 			status_line_bold("No filename given");
@@ -1268,23 +1326,24 @@ static void colon(char *buf)
 			q = next_line(q);
 		{ // dance around potentially-reallocated text[]
 			uintptr_t ofs = q - text;
-			ch = file_insert(fn, q, 0);
+			size = file_insert(fn, q, /*update_ro:*/ 0);
 			q = text + ofs;
 		}
-		if (ch < 0)
+		if (size < 0)
 			goto ret;	// nothing was inserted
 		// how many lines in text[]?
-		li = count_lines(q, q + ch - 1);
+		li = count_lines(q, q + size - 1);
 		status_line("'%s'"
 			IF_FEATURE_VI_READONLY("%s")
-			" %dL, %dC", fn,
+			" %dL, %dC",
+			fn,
 			IF_FEATURE_VI_READONLY((readonly_mode ? " [Readonly]" : ""),)
-			li, ch);
-		if (ch > 0) {
+			li, size
+		);
+		if (size > 0) {
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
-				dot += ch;
-			// modified_count++;
+				dot += size;
 		}
 	} else if (strncmp(cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (modified_count && !useforce) {
@@ -1409,6 +1468,9 @@ static void colon(char *buf)
 	        || strncmp(cmd, "wn", i) == 0
 	        || (cmd[0] == 'x' && !cmd[1])
 	) {
+		int size;
+		//int forced = FALSE;
+
 		// is there a file name to write to?
 		if (args[0]) {
 			fn = args;
@@ -1421,34 +1483,33 @@ static void colon(char *buf)
 #endif
 		// how many lines in text[]?
 		li = count_lines(q, r);
-		ch = r - q + 1;
-		// see if file exists- if not, its just a new file request
-		if (useforce) {
+		size = r - q + 1;
+		//if (useforce) {
 			// if "fn" is not write-able, chmod u+w
 			// sprintf(syscmd, "chmod u+w %s", fn);
 			// system(syscmd);
-			forced = TRUE;
-		}
+			// forced = TRUE;
+		//}
 		l = file_write(fn, q, r);
-		if (useforce && forced) {
+		//if (useforce && forced) {
 			// chmod u-w
 			// sprintf(syscmd, "chmod u-w %s", fn);
 			// system(syscmd);
-			forced = FALSE;
-		}
+			// forced = FALSE;
+		//}
 		if (l < 0) {
 			if (l == -1)
 				status_line_bold_errno(fn);
 		} else {
 			status_line("'%s' %dL, %dC", fn, li, l);
-			if (q == text && r == end - 1 && l == ch) {
+			if (q == text && r == end - 1 && l == size) {
 				modified_count = 0;
 				last_modified_count = -1;
 			}
 			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n'
 			    || cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N'
 			    )
-			 && l == ch
+			 && l == size
 			) {
 				editing = 0;
 			}
@@ -1475,9 +1536,8 @@ static void colon(char *buf)
  colon_s_fail:
 	status_line(":s expression missing delimiters");
 #endif
-}
-
 #endif /* FEATURE_VI_COLON */
+}
 
 static void Hit_Return(void)
 {
@@ -2851,17 +2911,6 @@ static char *get_input_line(const char *prompt)
 #undef buf
 }
 
-static int file_size(const char *fn) // what is the byte size of "fn"
-{
-	struct stat st_buf;
-	int cnt;
-
-	cnt = -1;
-	if (fn && stat(fn, &st_buf) == 0)	// see if file exists
-		cnt = (int) st_buf.st_size;
-	return cnt;
-}
-
 // might reallocate text[]!
 static int file_insert(const char *fn, char *p, int update_ro_status)
 {
@@ -2869,42 +2918,40 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 	int fd, size;
 	struct stat statbuf;
 
-	/* Validate file */
-	if (stat(fn, &statbuf) < 0) {
-		status_line_bold_errno(fn);
-		goto fi0;
-	}
-	if (!S_ISREG(statbuf.st_mode)) {
-		// This is not a regular file
-		status_line_bold("'%s' is not a regular file", fn);
-		goto fi0;
-	}
 	if (p < text || p > end) {
 		status_line_bold("Trying to insert file outside of memory");
-		goto fi0;
+		return cnt;
 	}
 
-	// read file to buffer
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
 		status_line_bold_errno(fn);
-		goto fi0;
+		return cnt;
+	}
+
+	/* Validate file */
+	if (fstat(fd, &statbuf) < 0) {
+		status_line_bold_errno(fn);
+		goto fi;
+	}
+	if (!S_ISREG(statbuf.st_mode)) {
+		status_line_bold("'%s' is not a regular file", fn);
+		goto fi;
 	}
 	size = (statbuf.st_size < INT_MAX ? (int)statbuf.st_size : INT_MAX);
 	p += text_hole_make(p, size);
-	cnt = safe_read(fd, p, size);
+	cnt = full_read(fd, p, size);
 	if (cnt < 0) {
 		status_line_bold_errno(fn);
 		p = text_hole_delete(p, p + size - 1, NO_UNDO);	// un-do buffer insert
 	} else if (cnt < size) {
-		// There was a partial read, shrink unused space text[]
-		p = text_hole_delete(p + cnt, p + size - 1, NO_UNDO);	// un-do buffer insert
+		// There was a partial read, shrink unused space
+		p = text_hole_delete(p + cnt, p + size - 1, NO_UNDO);
 		status_line_bold("can't read '%s'", fn);
 	}
-//	if (cnt >= size)
-//		modified_count++;
+ fi:
 	close(fd);
- fi0:
+
 #if ENABLE_FEATURE_VI_READONLY
 	if (update_ro_status
 	 && ((access(fn, W_OK) < 0) ||
@@ -3821,50 +3868,7 @@ static void do_cmd(int c)
 		break;
 	case ':':			// :- the colon mode commands
 		p = get_input_line(":");	// get input line- use "status line"
-#if ENABLE_FEATURE_VI_COLON
 		colon(p);		// execute the command
-#else
-		if (*p == ':')
-			p++;				// move past the ':'
-		cnt = strlen(p);
-		if (cnt <= 0)
-			break;
-		if (strncmp(p, "quit", cnt) == 0
-		 || strncmp(p, "q!", cnt) == 0   // delete lines
-		) {
-			if (modified_count && p[1] != '!') {
-				status_line_bold("No write since last change (:%s! overrides)", p);
-			} else {
-				editing = 0;
-			}
-		} else if (strncmp(p, "write", cnt) == 0
-		        || strncmp(p, "wq", cnt) == 0
-		        || strncmp(p, "wn", cnt) == 0
-		        || (p[0] == 'x' && !p[1])
-		) {
-			cnt = file_write(current_filename, text, end - 1);
-			if (cnt < 0) {
-				if (cnt == -1)
-					status_line_bold("Write error: %s", strerror(errno));
-			} else {
-				modified_count = 0;
-				last_modified_count = -1;
-				status_line("'%s' %dL, %dC", current_filename, count_lines(text, end - 1), cnt);
-				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n'
-				 || p[0] == 'X' || p[1] == 'Q' || p[1] == 'N'
-				) {
-					editing = 0;
-				}
-			}
-		} else if (strncmp(p, "file", cnt) == 0) {
-			last_status_cksum = 0;	// force status update
-		} else if (sscanf(p, "%d", &j) > 0) {
-			dot = find_line(j);		// go to line # j
-			dot_skip_over_ws();
-		} else {		// unrecognized cmd
-			not_implemented(p);
-		}
-#endif /* !FEATURE_VI_COLON */
 		break;
 	case '<':			// <- Left  shift something
 	case '>':			// >- Right shift something
