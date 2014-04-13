@@ -373,6 +373,7 @@ typedef unsigned smalluint;
 #define HAVE_STRSIGNAL 1
 #define HAVE_STRVERSCMP 1
 #define HAVE_VASPRINTF 1
+#define HAVE_USLEEP 1
 #define HAVE_UNLOCKED_STDIO 1
 #define HAVE_UNLOCKED_LINE_OPS 1
 #define HAVE_GETLINE 1
@@ -381,8 +382,15 @@ typedef unsigned smalluint;
 #define HAVE_NET_ETHERNET_H 1
 #define HAVE_SYS_STATFS_H 1
 
-#if defined(__UCLIBC__) && UCLIBC_VERSION < KERNEL_VERSION(0, 9, 32)
-# undef HAVE_STRVERSCMP
+#if defined(__UCLIBC__)
+# if UCLIBC_VERSION < KERNEL_VERSION(0, 9, 32)
+#  undef HAVE_STRVERSCMP
+# endif
+# if UCLIBC_VERSION >= KERNEL_VERSION(0, 9, 30)
+#  ifndef __UCLIBC_SUSV3_LEGACY__
+#   undef HAVE_USLEEP
+#  endif
+# endif
 #endif
 
 #if defined(__WATCOMC__)
@@ -517,6 +525,10 @@ extern char *strsep(char **stringp, const char *delim) FAST_FUNC;
 #ifndef HAVE_STRSIGNAL
 /* Not exactly the same: instead of "Stopped" it shows "STOP" etc */
 # define strsignal(sig) get_signame(sig)
+#endif
+
+#ifndef HAVE_USLEEP
+extern int usleep(unsigned) FAST_FUNC;
 #endif
 
 #ifndef HAVE_VASPRINTF
