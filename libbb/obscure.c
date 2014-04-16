@@ -76,7 +76,7 @@ static int string_checker(const char *p1, const char *p2)
 	ret |= string_checker_helper(p, p2);
 
 	/* clean up */
-	memset(p, 0, size);
+	nuke_str(p);
 	free(p);
 
 	return ret;
