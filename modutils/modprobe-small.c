@@ -212,6 +212,7 @@ static void parse_module(module_info *info, const char *pathname)
 	reset_stringbuf();
 	pos = 0;
 	while (1) {
+		unsigned start = stringbuf_idx;
 		ptr = find_keyword(module_image + pos, len - pos, "alias=");
 		if (!ptr) {
 			ptr = find_keyword(module_image + pos, len - pos, "__ksymtab_");
@@ -228,6 +229,31 @@ static void parse_module(module_info *info, const char *pathname)
 		}
 		append(ptr);
 		appendc(' ');
+		/*
+		 * Don't add redundant aliases, such as:
+		 * libcrc32c.ko symbol:crc32c symbol:crc32c
+		 */
+		if (start) { /* "if we aren't the first alias" */
+			char *found, *last;
+			stringbuf[stringbuf_idx] = '\0';
+			last = stringbuf + start;
+			/*
+			 * String at last-1 is " symbol:crc32c "
+			 * (with both leading and trailing spaces).
+			 */
+			if (strncmp(stringbuf, last, stringbuf_idx - start) == 0)
+				/* First alias matches us */
+				found = stringbuf;
+			else
+				/* Does any other alias match? */
+				found = strstr(stringbuf, last-1);
+			if (found < last-1) {
+				/* There is absolutely the same string before us */
+				dbg2_error_msg("redundant:'%s'", last);
+				stringbuf_idx = start;
+				goto skip;
+			}
+		}
  skip:
 		pos = (ptr - module_image);
 	}
