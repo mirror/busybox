@@ -268,7 +268,7 @@ fi
 
 if test "$CONFIG_FEATURE_INDIVIDUAL" = y; then
     echo "Linking individual applets against libbusybox (see $sharedlib_dir/*)"
-    gcc -DNAME_MAIN_CNAME -E -include include/autoconf.h include/applets.h \
+    gcc -DNAME_MAIN -E -include include/autoconf.h include/applets.h \
     | grep -v "^#" \
     | grep -v "^$" \
     > applet_lst.tmp

@@ -9,10 +9,10 @@
  */
 
 //applet:IF_MODPROBE_SMALL(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
-//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, modprobe))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(depmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, depmod))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(insmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, insmod))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(lsmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, lsmod))
+//applet:IF_MODPROBE_SMALL(APPLET_ODDNAME(rmmod, modprobe, BB_DIR_SBIN, BB_SUID_DROP, rmmod))
 
 #include "libbb.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
@@ -583,7 +583,7 @@ static void process_module(char *name, const char *cmdline_options)
 // for the given alias. For example,
 // "pci:v00008086d00007010sv00000000sd00000000bc01sc01i80" matches
 // ata_piix because it has an alias "pci:v00008086d00007010sv*sd*bc*sc*i*"
-// and ata_generic, it has an alias "alias=pci:v*d*sv*sd*bc01sc01i*"
+// and ata_generic, it has an alias "pci:v*d*sv*sd*bc01sc01i*"
 // Standard modprobe would load them both.
 // In this code, find_alias() returns only the first matching module.
 
@@ -703,10 +703,6 @@ The following options are useful for people managing distributions:
 
 //usage:#if ENABLE_MODPROBE_SMALL
 
-//// Note: currently, help system shows modprobe --help text for all aliased cmds
-//// (see APPLET_ODDNAME macro definition).
-//// All other help texts defined below are not used. FIXME?
-
 //usage:#define depmod_trivial_usage NOUSAGE_STR
 //usage:#define depmod_full_usage ""
 
@@ -720,7 +716,7 @@ The following options are useful for people managing distributions:
 //usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
 //usage:	"[SYMBOL=VALUE]..."
 //usage:#define insmod_full_usage "\n\n"
-//usage:       "Load the specified kernel modules into the kernel"
+//usage:       "Load kernel module"
 //usage:	IF_FEATURE_2_4_MODULES( "\n"
 //usage:     "\n	-f	Force module to load into the wrong kernel version"
 //usage:     "\n	-k	Make module autoclean-able"
@@ -745,7 +741,7 @@ The following options are useful for people managing distributions:
 //usage:       "$ rmmod tulip\n"
 
 //usage:#define modprobe_trivial_usage
-//usage:	"[-qfwrsv] MODULE [symbol=value]..."
+//usage:	"[-qfwrsv] MODULE [SYMBOL=VALUE]..."
 //usage:#define modprobe_full_usage "\n\n"
 //usage:       "	-r	Remove MODULE (stacks) or do autoclean"
 //usage:     "\n	-q	Quiet"

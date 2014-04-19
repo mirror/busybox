@@ -21,7 +21,7 @@
 //usage:	IF_NOT_FEATURE_2_4_MODULES("FILE ")
 //usage:	"[SYMBOL=VALUE]..."
 //usage:#define insmod_full_usage "\n\n"
-//usage:       "Load the specified kernel modules into the kernel"
+//usage:       "Load kernel module"
 //usage:	IF_FEATURE_2_4_MODULES( "\n"
 //usage:     "\n	-f	Force module to load into the wrong kernel version"
 //usage:     "\n	-k	Make module autoclean-able"

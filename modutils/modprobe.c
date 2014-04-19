@@ -87,7 +87,7 @@
 //usage:
 //usage:#define modprobe_trivial_usage
 //usage:	"[-alrqvsD" IF_FEATURE_MODPROBE_BLACKLIST("b") "]"
-//usage:	" MODULE [symbol=value]..."
+//usage:	" MODULE [SYMBOL=VALUE]..."
 //usage:#define modprobe_full_usage "\n\n"
 //usage:       "	-a	Load multiple MODULEs"
 //usage:     "\n	-l	List (MODULE is a pattern)"
