@@ -1784,7 +1784,7 @@ recv_and_process_peer_pkt(peer_t *p)
 	prev_delay = p->p_raw_delay;
 	p->p_raw_delay = delay;
 	if (p->reachable_bits && delay > prev_delay * BAD_DELAY_GROWTH) {
-		bb_error_msg("reply from %s: delay %f is too high, ignoring", p->p_dotted, p->lastpkt_delay);
+		bb_error_msg("reply from %s: delay %f is too high, ignoring", p->p_dotted, delay);
 		goto pick_normal_interval;
 	}
 
