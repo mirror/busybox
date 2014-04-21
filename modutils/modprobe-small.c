@@ -22,6 +22,9 @@
 extern int init_module(void *module, unsigned long len, const char *options);
 extern int delete_module(const char *module, unsigned flags);
 extern int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
+/* linux/include/linux/module.h has limit of 64 chars on module names */
+#undef MODULE_NAME_LEN
+#define MODULE_NAME_LEN 64
 
 
 #if 1
@@ -141,6 +144,19 @@ static void replace(char *s, char what, char with)
 			*s = with;
 		++s;
 	}
+}
+
+static char *filename2modname(const char *filename, char *modname)
+{
+	int i;
+	char *from;
+
+	from = bb_get_last_path_component_nostrip(filename);
+	for (i = 0; i < (MODULE_NAME_LEN-1) && from[i] != '\0' && from[i] != '.'; i++)
+		modname[i] = (from[i] == '-') ? '_' : from[i];
+	modname[i] = '\0';
+
+	return modname;
 }
 
 /* Take "word word", return malloced "word",NUL,"word",NUL,NUL */
@@ -277,14 +293,13 @@ static void parse_module(module_info *info, const char *pathname)
 
 static int pathname_matches_modname(const char *pathname, const char *modname)
 {
+	int r;
+	char name[MODULE_NAME_LEN];
 	const char *fname = bb_get_last_path_component_nostrip(pathname);
 	const char *suffix = strrstr(fname, ".ko");
-//TODO: can do without malloc?
-	char *name = xstrndup(fname, suffix - fname);
-	int r;
+	safe_strncpy(name, fname, suffix - fname);
 	replace(name, '-', '_');
 	r = (strcmp(name, modname) == 0);
-	free(name);
 	return r;
 }
 
@@ -447,11 +462,12 @@ static void write_out_dep_bb(int fd)
 	}
 }
 
-static module_info* find_alias(const char *alias)
+static module_info** find_alias(const char *alias)
 {
 	int i;
 	int dep_bb_fd;
-	module_info *result;
+	int infoidx;
+	module_info **infovec;
 	dbg1_error_msg("find_alias('%s')", alias);
 
  try_again:
@@ -464,7 +480,9 @@ static module_info* find_alias(const char *alias)
 			if (!modinfo[i].aliases) {
 				parse_module(&modinfo[i], modinfo[i].pathname);
 			}
-			return &modinfo[i];
+			infovec = xzalloc(2 * sizeof(infovec[0]));
+			infovec[0] = &modinfo[i];
+			return infovec;
 		}
 		i++;
 	}
@@ -477,15 +495,12 @@ static module_info* find_alias(const char *alias)
 
 	/* Scan all module bodies, extract modinfo (it contains aliases) */
 	i = 0;
-	result = NULL;
+	infoidx = 0;
+	infovec = NULL;
 	while (modinfo[i].pathname) {
 		char *desc, *s;
 		if (!modinfo[i].aliases) {
 			parse_module(&modinfo[i], modinfo[i].pathname);
-		}
-		if (result) {
-			i++;
-			continue;
 		}
 		/* "alias1 symbol:sym1 alias2 symbol:sym2" */
 		desc = str_2_list(modinfo[i].aliases);
@@ -498,13 +513,12 @@ static module_info* find_alias(const char *alias)
 			if (fnmatch(s, alias, 0) == 0) {
 				dbg1_error_msg("found alias '%s' in module '%s'",
 						alias, modinfo[i].pathname);
-				result = &modinfo[i];
+				infovec = xrealloc_vector(infovec, 1, infoidx);
+				infovec[infoidx++] = &modinfo[i];
 				break;
 			}
 		}
 		free(desc);
-		if (result && dep_bb_fd < 0)
-			return result;
 		i++;
 	}
 
@@ -513,8 +527,8 @@ static module_info* find_alias(const char *alias)
 		write_out_dep_bb(dep_bb_fd);
 	}
 
-	dbg1_error_msg("find_alias '%s' returns %p", alias, result);
-	return result;
+	dbg1_error_msg("find_alias '%s' returns %d results", alias, infoidx);
+	return infovec;
 }
 
 #if ENABLE_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED
@@ -550,14 +564,23 @@ static int already_loaded(const char *name)
 static void process_module(char *name, const char *cmdline_options)
 {
 	char *s, *deps, *options;
+	module_info **infovec;
 	module_info *info;
+	int infoidx;
 	int is_rmmod = (option_mask32 & OPT_r) != 0;
+
 	dbg1_error_msg("process_module('%s','%s')", name, cmdline_options);
 
 	replace(name, '-', '_');
 
 	dbg1_error_msg("already_loaded:%d is_rmmod:%d", already_loaded(name), is_rmmod);
-	if (already_loaded(name) != is_rmmod) {
+	/*
+	 * We used to have "is_rmmod != already_loaded(name)" check here, but
+	 *  modprobe -r pci:v00008086d00007010sv00000000sd00000000bc01sc01i80
+	 * won't unload modules (there are more than one)
+	 * which have this alias.
+	 */
+	if (!is_rmmod && already_loaded(name)) {
 		dbg1_error_msg("nothing to do for '%s'", name);
 		return;
 	}
@@ -586,39 +609,51 @@ static void process_module(char *name, const char *cmdline_options)
 	if (!module_count) {
 		/* Scan module directory. This is done only once.
 		 * It will attempt module load, and will exit(EXIT_SUCCESS)
-		 * on success. */
+		 * on success.
+		 */
 		module_found_idx = -1;
 		recursive_action(".",
 			ACTION_RECURSE, /* flags */
 			fileAction, /* file action */
 			NULL, /* dir action */
 			name, /* user data */
-			0); /* depth */
+			0 /* depth */
+		);
 		dbg1_error_msg("dirscan complete");
 		/* Module was not found, or load failed, or is_rmmod */
 		if (module_found_idx >= 0) { /* module was found */
-			info = &modinfo[module_found_idx];
+			infovec = xzalloc(2 * sizeof(infovec[0]));
+			infovec[0] = &modinfo[module_found_idx];
 		} else { /* search for alias, not a plain module name */
-			info = find_alias(name);
+			infovec = find_alias(name);
 		}
 	} else {
-		info = find_alias(name);
+		infovec = find_alias(name);
 	}
 
-// Problem here: there can be more than one module
-// for the given alias. For example,
-// "pci:v00008086d00007010sv00000000sd00000000bc01sc01i80" matches
-// ata_piix because it has an alias "pci:v00008086d00007010sv*sd*bc*sc*i*"
-// and ata_generic, it has an alias "pci:v*d*sv*sd*bc01sc01i*"
-// Standard modprobe would load them both.
-// In this code, find_alias() returns only the first matching module.
+	/* There can be more than one module for the given alias. For example,
+	 * "pci:v00008086d00007010sv00000000sd00000000bc01sc01i80" matches
+	 * ata_piix because it has alias "pci:v00008086d00007010sv*sd*bc*sc*i*"
+	 * and ata_generic, it has alias "pci:v*d*sv*sd*bc01sc01i*"
+	 * Standard modprobe loads them both. We achieve it by returning
+	 * a *list* of modinfo pointers from find_alias().
+	 */
 
-	/* rmmod? unload it by name */
+	/* rmmod or modprobe -r? unload module(s) */
 	if (is_rmmod) {
-		if (delete_module(name, O_NONBLOCK | O_EXCL) != 0) {
-			if (!(option_mask32 & OPT_q))
-				bb_perror_msg("remove '%s'", name);
-			goto ret;
+		infoidx = 0;
+		while ((info = infovec[infoidx++]) != NULL) {
+			int r;
+			char modname[MODULE_NAME_LEN];
+
+			filename2modname(info->pathname, modname);
+			r = delete_module(modname, O_NONBLOCK | O_EXCL);
+			dbg1_error_msg("delete_module('%s', O_NONBLOCK | O_EXCL):%d", modname, r);
+			if (r != 0) {
+				if (!(option_mask32 & OPT_q))
+					bb_perror_msg("remove '%s'", modname);
+				goto ret;
+			}
 		}
 
 		if (applet_name[0] == 'r') {
@@ -634,7 +669,7 @@ static void process_module(char *name, const char *cmdline_options)
 		 */
 	}
 
-	if (!info) {
+	if (!infovec) {
 		/* both dirscan and find_alias found nothing */
 		if (!is_rmmod && applet_name[0] != 'd') /* it wasn't rmmod or depmod */
 			bb_error_msg("module '%s' not found", name);
@@ -642,36 +677,41 @@ static void process_module(char *name, const char *cmdline_options)
 		goto ret;
 	}
 
-	/* Iterate thru dependencies, trying to (un)load them */
-	deps = str_2_list(info->deps);
-	for (s = deps; *s; s += strlen(s) + 1) {
-		//if (strcmp(name, s) != 0) // N.B. do loops exist?
-		dbg1_error_msg("recurse on dep '%s'", s);
-		process_module(s, NULL);
-		dbg1_error_msg("recurse on dep '%s' done", s);
-	}
-	free(deps);
+	infoidx = 0;
+	while ((info = infovec[infoidx++]) != NULL) {
+		/* Iterate thru dependencies, trying to (un)load them */
+		deps = str_2_list(info->deps);
+		for (s = deps; *s; s += strlen(s) + 1) {
+			//if (strcmp(name, s) != 0) // N.B. do loops exist?
+			dbg1_error_msg("recurse on dep '%s'", s);
+			process_module(s, NULL);
+			dbg1_error_msg("recurse on dep '%s' done", s);
+		}
+		free(deps);
 
-	/* modprobe -> load it */
-	if (!is_rmmod) {
-		if (!options || strstr(options, "blacklist") == NULL) {
-			errno = 0;
-			if (load_module(info->pathname, options) != 0) {
-				if (EEXIST != errno) {
-					bb_error_msg("'%s': %s",
-						info->pathname,
-						moderror(errno));
-				} else {
-					dbg1_error_msg("'%s': %s",
-						info->pathname,
-						moderror(errno));
-				}
-			}
-		} else {
+		if (is_rmmod)
+			continue;
+
+		/* We are modprobe: load it */
+		if (options && strstr(options, "blacklist")) {
 			dbg1_error_msg("'%s': blacklisted", info->pathname);
+			continue;
+		}
+		errno = 0;
+		if (load_module(info->pathname, options) != 0) {
+			if (EEXIST != errno) {
+				bb_error_msg("'%s': %s",
+					info->pathname,
+					moderror(errno));
+			} else {
+				dbg1_error_msg("'%s': %s",
+					info->pathname,
+					moderror(errno));
+			}
 		}
 	}
  ret:
+	free(infovec);
 	free(options);
 //TODO: return load attempt result from process_module.
 //If dep didn't load ok, continuing makes little sense.
