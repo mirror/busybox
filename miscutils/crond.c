@@ -125,12 +125,6 @@ enum {
 	OPT_c = (1 << 5),
 	OPT_d = (1 << 6) * ENABLE_FEATURE_CROND_D,
 };
-#if ENABLE_FEATURE_CROND_D
-# define DebugOpt (option_mask32 & OPT_d)
-#else
-# define DebugOpt 0
-#endif
-
 
 struct globals {
 	unsigned log_level; /* = 8; */
@@ -149,40 +143,49 @@ struct globals {
 	G.crontab_dir_name = CRONTABS; \
 } while (0)
 
+/* Log levels:
+ * 0 is the most verbose, default 8.
+ * For some reason, in fact only 5, 7 and 8 are used.
+ */
+static void crondlog(unsigned level, const char *msg, va_list va)
+{
+	if (level >= G.log_level) {
+		/*
+		 * We are called only for info meesages.
+		 * Warnings/errors use plain bb_[p]error_msg's, which
+		 * need not touch syslog_level
+		 * (they are ok with LOG_ERR default).
+		 */
+		syslog_level = LOG_INFO;
+		bb_verror_msg(msg, va, /* strerr: */ NULL);
+		syslog_level = LOG_ERR;
+	}
+}
 
-/* 0 is the most verbose, default 8 */
-#define LVL5  "\x05"
-#define LVL7  "\x07"
-#define LVL8  "\x08"
-#define WARN9 "\x49"
-#define DIE9  "\xc9"
-/* level >= 20 is "error" */
-#define ERR20 "\x14"
-
-static void crondlog(const char *ctl, ...) __attribute__ ((format (printf, 1, 2)));
-static void crondlog(const char *ctl, ...)
+static void log5(const char *msg, ...)
 {
 	va_list va;
-	unsigned level = (ctl[0] & 0x1f);
-
-	va_start(va, ctl);
-	if (level >= G.log_level) {
-		if (G.log_filename) {
-			/* If log to file, reopen log file at every write: */
-			int logfd = open_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND);
-			if (logfd >= 0)
-				xmove_fd(logfd, STDERR_FILENO);
-		}
-		/* When we log to syslog, level > 8 is logged at LOG_ERR
-		 * syslog level, level <= 8 is logged at LOG_INFO.
-		 */
-		syslog_level = (level > 8) ? LOG_ERR : LOG_INFO;
-		bb_verror_msg(ctl + 1, va, /* strerr: */ NULL);
-	}
+	va_start(va, msg);
+	crondlog(4, msg, va);
 	va_end(va);
-	if (ctl[0] & 0x80)
-		exit(20);
 }
+
+static void log7(const char *msg, ...)
+{
+	va_list va;
+	va_start(va, msg);
+	crondlog(7, msg, va);
+	va_end(va);
+}
+
+static void log8(const char *msg, ...)
+{
+	va_list va;
+	va_start(va, msg);
+	crondlog(8, msg, va);
+	va_end(va);
+}
+
 
 static const char DowAry[] ALIGN1 =
 	"sun""mon""tue""wed""thu""fri""sat"
@@ -293,12 +296,12 @@ static void ParseField(char *user, char *ary, int modvalue, int off,
 
 	if (*ptr) {
  err:
-		crondlog(WARN9 "user %s: parse error at %s", user, base);
+		bb_error_msg("user %s: parse error at %s", user, base);
 		return;
 	}
 
-	if (DebugOpt && (G.log_level <= 5)) { /* like LVL5 */
-		/* can't use crondlog, it inserts '\n' */
+	/* can't use log5 (it inserts newlines), open-coding it */
+	if (G.log_level <= 5 && logmode != LOGMODE_SYSLOG) {
 		int i;
 		for (i = 0; i < modvalue; ++i)
 			fprintf(stderr, "%d", (unsigned char)ary[i]);
@@ -398,7 +401,7 @@ static void load_crontab(const char *fileName)
 	delete_cronfile(fileName);
 
 	if (!getpwnam(fileName)) {
-		crondlog(LVL7 "ignoring file '%s' (no such user)", fileName);
+		log7("ignoring file '%s' (no such user)", fileName);
 		return;
 	}
 
@@ -420,7 +423,7 @@ static void load_crontab(const char *fileName)
 			CronLine *line;
 
 			if (!--maxLines) {
-				crondlog(WARN9 "user %s: too many lines", fileName);
+				bb_error_msg("user %s: too many lines", fileName);
 				break;
 			}
 
@@ -428,8 +431,7 @@ static void load_crontab(const char *fileName)
 			if (!n)
 				break;
 
-			if (DebugOpt)
-				crondlog(LVL5 "user:%s entry:%s", fileName, parser->data);
+			log5("user:%s entry:%s", fileName, parser->data);
 
 			/* check if line is setting MAILTO= */
 			if (0 == strncmp(tokens[0], "MAILTO=", 7)) {
@@ -472,9 +474,7 @@ static void load_crontab(const char *fileName)
 #endif
 			/* copy command */
 			line->cl_cmd = xstrdup(tokens[5]);
-			if (DebugOpt) {
-				crondlog(LVL5 " command:%s", tokens[5]);
-			}
+			log5(" command:%s", tokens[5]);
 			pline = &line->cl_next;
 //bb_error_msg("M[%s]F[%s][%s][%s][%s][%s][%s]", mailTo, tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5]);
 		}
@@ -519,17 +519,16 @@ static void rescan_crontab_dir(void)
 	/* Remove cron update file */
 	unlink(CRONUPDATE);
 	/* Re-chdir, in case directory was renamed & deleted */
-	if (chdir(G.crontab_dir_name) < 0) {
-		crondlog(DIE9 "chdir(%s)", G.crontab_dir_name);
-	}
+	xchdir(G.crontab_dir_name);
 
 	/* Scan directory and add associated users */
 	{
 		DIR *dir = opendir(".");
 		struct dirent *den;
 
+		/* xopendir exists, but "can't open '.'" is not informative */
 		if (!dir)
-			crondlog(DIE9 "chdir(%s)", "."); /* exits */
+			bb_error_msg_and_die("can't open '%s'", G.crontab_dir_name);
 		while ((den = readdir(dir)) != NULL) {
 			if (strchr(den->d_name, '.') != NULL) {
 				continue;
@@ -576,10 +575,8 @@ static void change_user(struct passwd *pas)
 	/* careful: we're after vfork! */
 	change_identity(pas); /* - initgroups, setgid, setuid */
 	if (chdir(pas->pw_dir) < 0) {
-		crondlog(WARN9 "chdir(%s)", pas->pw_dir);
-		if (chdir(CRON_DIR) < 0) {
-			crondlog(DIE9 "chdir(%s)", CRON_DIR); /* exits */
-		}
+		bb_error_msg("can't change directory to '%s'", pas->pw_dir);
+		xchdir(CRON_DIR);
 	}
 }
 
@@ -591,25 +588,25 @@ fork_job(const char *user, int mailFd,
 		const char *prog,
 		const char *shell_cmd /* if NULL, we run sendmail */
 ) {
+	smallint sv_logmode;
 	struct passwd *pas;
 	pid_t pid;
 
 	/* prepare things before vfork */
 	pas = getpwnam(user);
 	if (!pas) {
-		crondlog(WARN9 "can't get uid for %s", user);
+		bb_error_msg("can't get uid for %s", user);
 		goto err;
 	}
 	set_env_vars(pas);
 
+	sv_logmode = logmode;
 	pid = vfork();
 	if (pid == 0) {
 		/* CHILD */
 		/* initgroups, setgid, setuid, and chdir to home or CRON_DIR */
 		change_user(pas);
-		if (DebugOpt) {
-			crondlog(LVL5 "child running %s", prog);
-		}
+		log5("child running %s", prog);
 		if (mailFd >= 0) {
 			xmove_fd(mailFd, shell_cmd ? 1 : 0);
 			dup2(1, 2);
@@ -617,15 +614,17 @@ fork_job(const char *user, int mailFd,
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
 		execlp(prog, prog, (shell_cmd ? "-c" : SENDMAIL_ARGS), shell_cmd, (char *) NULL);
-		crondlog(ERR20 "can't execute '%s' for user %s", prog, user);
-		if (shell_cmd) {
-			fdprintf(1, "Exec failed: %s -c %s\n", prog, shell_cmd);
-		}
-		_exit(EXIT_SUCCESS);
+		/*
+		 * I want this error message on stderr too,
+		 * even if other messages go only to syslog:
+		 */
+		logmode |= LOGMODE_STDIO;
+		bb_error_msg_and_die("can't execute '%s' for user %s", prog, user);
 	}
+	logmode = sv_logmode;
 
 	if (pid < 0) {
-		crondlog(ERR20 "can't vfork");
+		bb_perror_msg("vfork");
  err:
 		pid = 0;
 	} /* else: PARENT, FORK SUCCESS */
@@ -658,7 +657,7 @@ static void start_one_job(const char *user, CronLine *line)
 				line->cl_cmd);
 			line->cl_empty_mail_size = lseek(mailFd, 0, SEEK_CUR);
 		} else {
-			crondlog(ERR20 "can't create mail file %s for user %s, "
+			bb_error_msg("can't create mail file %s for user %s, "
 					"discarding output", mailFile, user);
 		}
 	}
@@ -731,7 +730,7 @@ static void start_one_job(const char *user, CronLine *line)
 
 	pas = getpwnam(user);
 	if (!pas) {
-		crondlog(WARN9 "can't get uid for %s", user);
+		bb_error_msg("can't get uid for %s", user);
 		goto err;
 	}
 
@@ -744,18 +743,14 @@ static void start_one_job(const char *user, CronLine *line)
 		/* CHILD */
 		/* initgroups, setgid, setuid, and chdir to home or CRON_DIR */
 		change_user(pas);
-		if (DebugOpt) {
-			crondlog(LVL5 "child running %s", DEFAULT_SHELL);
-		}
+		log5("child running %s", DEFAULT_SHELL);
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
 		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_cmd, (char *) NULL);
-		crondlog(ERR20 "can't execute '%s' for user %s", DEFAULT_SHELL, user);
-		_exit(EXIT_SUCCESS);
+		bb_error_msg_and_die("can't execute '%s' for user %s", DEFAULT_SHELL, user);
 	}
 	if (pid < 0) {
-		/* FORK FAILED */
-		crondlog(ERR20 "can't vfork");
+		bb_perror_msg("vfork");
  err:
 		pid = 0;
 	}
@@ -787,24 +782,20 @@ static void flag_starting_jobs(time_t t1, time_t t2)
 
 		ptm = localtime(&t);
 		for (file = G.cron_files; file; file = file->cf_next) {
-			if (DebugOpt)
-				crondlog(LVL5 "file %s:", file->cf_username);
+			log5("file %s:", file->cf_username);
 			if (file->cf_deleted)
 				continue;
 			for (line = file->cf_lines; line; line = line->cl_next) {
-				if (DebugOpt)
-					crondlog(LVL5 " line %s", line->cl_cmd);
+				log5(" line %s", line->cl_cmd);
 				if (line->cl_Mins[ptm->tm_min]
 				 && line->cl_Hrs[ptm->tm_hour]
 				 && (line->cl_Days[ptm->tm_mday] || line->cl_Dow[ptm->tm_wday])
 				 && line->cl_Mons[ptm->tm_mon]
 				) {
-					if (DebugOpt) {
-						crondlog(LVL5 " job: %d %s",
+					log5(" job: %d %s",
 							(int)line->cl_pid, line->cl_cmd);
-					}
 					if (line->cl_pid > 0) {
-						crondlog(LVL8 "user %s: process already running: %s",
+						log8("user %s: process already running: %s",
 							file->cf_username, line->cl_cmd);
 					} else if (line->cl_pid == 0) {
 						line->cl_pid = -1;
@@ -833,7 +824,7 @@ static void start_jobs(void)
 
 			start_one_job(file->cf_username, line);
 			pid = line->cl_pid;
-			crondlog(LVL8 "USER %s pid %3d cmd %s",
+			log8("USER %s pid %3d cmd %s",
 				file->cf_username, (int)pid, line->cl_cmd);
 			if (pid < 0) {
 				file->cf_wants_starting = 1;
@@ -885,6 +876,15 @@ static int check_completions(void)
 	return num_still_running;
 }
 
+static void reopen_logfile_to_stderr(void)
+{
+	if (G.log_filename) {
+		int logfd = open_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND);
+		if (logfd >= 0)
+			xmove_fd(logfd, STDERR_FILENO);
+	}
+}
+
 int crond_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int crond_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -916,10 +916,12 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		logmode = LOGMODE_SYSLOG;
 	}
 
+	reopen_logfile_to_stderr();
+
 	xchdir(G.crontab_dir_name);
 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
-	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", G.log_level);
+	log8("crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
 	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
 
@@ -932,13 +934,13 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		time_t t1;
 		long dt;
 
-		t1 = t2;
-
 		/* Synchronize to 1 minute, minimum 1 second */
-		sleep(sleep_time - (time(NULL) % sleep_time) + 1);
-
+		t1 = t2;
+		sleep(sleep_time - (time(NULL) % sleep_time));
 		t2 = time(NULL);
 		dt = (long)t2 - (long)t1;
+
+		reopen_logfile_to_stderr();
 
 		/*
 		 * The file 'cron.update' is checked to determine new cron
@@ -967,10 +969,9 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 			rescan_crontab_dir();
 		}
 		process_cron_update_file();
-		if (DebugOpt)
-			crondlog(LVL5 "wakeup dt=%ld", dt);
+		log5("wakeup dt=%ld", dt);
 		if (dt < -60 * 60 || dt > 60 * 60) {
-			crondlog(WARN9 "time disparity of %ld minutes detected", dt / 60);
+			bb_error_msg("time disparity of %ld minutes detected", dt / 60);
 			/* and we do not run any jobs in this case */
 		} else if (dt > 0) {
 			/* Usual case: time advances forward, as expected */
