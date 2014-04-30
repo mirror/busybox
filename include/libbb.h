@@ -1074,6 +1074,7 @@ enum {
 	LOGMODE_BOTH = LOGMODE_SYSLOG + LOGMODE_STDIO,
 };
 extern const char *msg_eol;
+extern smallint syslog_level;
 extern smallint logmode;
 extern int die_sleep;
 extern uint8_t xfunc_error_retval;

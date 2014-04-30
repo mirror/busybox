@@ -163,28 +163,21 @@ static void crondlog(const char *ctl, ...) __attribute__ ((format (printf, 1, 2)
 static void crondlog(const char *ctl, ...)
 {
 	va_list va;
-	int level = (ctl[0] & 0x1f);
+	unsigned level = (ctl[0] & 0x1f);
 
 	va_start(va, ctl);
-	if (level >= (int)G.log_level) {
-		/* Debug mode: all to (non-redirected) stderr, */
-		/* Syslog mode: all to syslog (logmode = LOGMODE_SYSLOG), */
-		if (!DebugOpt && G.log_filename) {
-			/* Otherwise (log to file): we reopen log file at every write: */
+	if (level >= G.log_level) {
+		if (G.log_filename) {
+			/* If log to file, reopen log file at every write: */
 			int logfd = open_or_warn(G.log_filename, O_WRONLY | O_CREAT | O_APPEND);
 			if (logfd >= 0)
 				xmove_fd(logfd, STDERR_FILENO);
 		}
 		/* When we log to syslog, level > 8 is logged at LOG_ERR
-		 * syslog level, level <= 8 is logged at LOG_INFO. */
-		if (level > 8) {
-			bb_verror_msg(ctl + 1, va, /* strerr: */ NULL);
-		} else {
-			char *msg = NULL;
-			vasprintf(&msg, ctl + 1, va);
-			bb_info_msg("%s: %s", applet_name, msg);
-			free(msg);
-		}
+		 * syslog level, level <= 8 is logged at LOG_INFO.
+		 */
+		syslog_level = (level > 8) ? LOG_ERR : LOG_INFO;
+		bb_verror_msg(ctl + 1, va, /* strerr: */ NULL);
 	}
 	va_end(va);
 	if (ctl[0] & 0x80)
