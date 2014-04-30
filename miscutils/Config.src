@@ -133,40 +133,6 @@ config CHRT
 	  manipulate real-time attributes of a process.
 	  This requires sched_{g,s}etparam support in your libc.
 
-config CROND
-	bool "crond"
-	default y
-	select FEATURE_SYSLOG
-	help
-	  Crond is a background daemon that parses individual crontab
-	  files and executes commands on behalf of the users in question.
-	  This is a port of dcron from slackware. It uses files of the
-	  format /var/spool/cron/crontabs/<username> files, for example:
-	      $ cat /var/spool/cron/crontabs/root
-	      # Run daily cron jobs at 4:40 every day:
-	      40 4 * * * /etc/cron/daily > /dev/null 2>&1
-
-config FEATURE_CROND_D
-	bool "Support option -d to redirect output to stderr"
-	depends on CROND
-	default y
-	help
-	  -d sets loglevel to 0 (most verbose) and directs all output to stderr.
-
-config FEATURE_CROND_CALL_SENDMAIL
-	bool "Report command output via email (using sendmail)"
-	default y
-	depends on CROND
-	help
-	  Command output will be sent to corresponding user via email.
-
-config FEATURE_CROND_DIR
-	string "crond spool directory"
-	default "/var/spool/cron"
-	depends on CROND || CRONTAB
-	help
-	  Location of crond spool.
-
 config CRONTAB
 	bool "crontab"
 	default y

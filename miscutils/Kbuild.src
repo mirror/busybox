@@ -12,7 +12,6 @@ lib-$(CONFIG_BBCONFIG)    += bbconfig.o
 lib-$(CONFIG_BEEP)        += beep.o
 lib-$(CONFIG_CHAT)        += chat.o
 lib-$(CONFIG_CHRT)        += chrt.o
-lib-$(CONFIG_CROND)       += crond.o
 lib-$(CONFIG_CRONTAB)     += crontab.o
 lib-$(CONFIG_DC)          += dc.o
 lib-$(CONFIG_DEVFSD)      += devfsd.o
