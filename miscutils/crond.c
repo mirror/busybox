@@ -104,6 +104,7 @@ typedef struct CronLine {
 	int cl_empty_mail_size;         /* size of mail header only, 0 if no mailfile */
 	char *cl_mailto;                /* whom to mail results, may be NULL */
 #endif
+	char *cl_shell;
 	/* ordered by size, not in natural order. makes code smaller: */
 	char cl_Dow[7];                 /* 0-6, beginning sunday */
 	char cl_Mons[12];               /* 0-11 */
@@ -135,6 +136,8 @@ struct globals {
 #if SETENV_LEAKS
 	char *env_var_user;
 	char *env_var_home;
+	char *env_var_shell;
+	char *env_var_logname;
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
@@ -397,6 +400,7 @@ static void load_crontab(const char *fileName)
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 	char *mailTo = NULL;
 #endif
+	char *shell = NULL;
 
 	delete_cronfile(fileName);
 
@@ -441,7 +445,12 @@ static void load_crontab(const char *fileName)
 #endif /* otherwise just ignore such lines */
 				continue;
 			}
-//TODO: handle SHELL=, HOME= too? "man crontab" says:
+			if (0 == strncmp(tokens[0], "SHELL=", 6)) {
+				free(shell);
+				shell = xstrdup(&tokens[0][6]);
+				continue;
+			}
+//TODO: handle HOME= too? "man crontab" says:
 //name = value
 //
 //where the spaces around the equal-sign (=) are optional, and any subsequent
@@ -453,6 +462,7 @@ static void load_crontab(const char *fileName)
 //SHELL is set to /bin/sh, and LOGNAME and HOME are set from the /etc/passwd
 //line of the crontab's owner. HOME and SHELL may be overridden by settings
 //in the crontab; LOGNAME may not.
+
 			/* check if a minimum of tokens is specified */
 			if (n < 6)
 				continue;
@@ -472,9 +482,9 @@ static void load_crontab(const char *fileName)
 			/* copy mailto (can be NULL) */
 			line->cl_mailto = xstrdup(mailTo);
 #endif
+			line->cl_shell = xstrdup(shell);
 			/* copy command */
 			line->cl_cmd = xstrdup(tokens[5]);
-			log5(" command:%s", tokens[5]);
 			pline = &line->cl_next;
 //bb_error_msg("M[%s]F[%s][%s][%s][%s][%s][%s]", mailTo, tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5]);
 		}
@@ -484,6 +494,10 @@ static void load_crontab(const char *fileName)
 		G.cron_files = file;
 	}
 	config_close(parser);
+#if ENABLE_FEATURE_CROND_CALL_SENDMAIL
+	free(mailTo);
+#endif
+	free(shell);
 }
 
 static void process_cron_update_file(void)
@@ -555,19 +569,22 @@ static void safe_setenv(char **pvar_val, const char *var, const char *val)
 }
 #endif
 
-static void set_env_vars(struct passwd *pas)
+static void set_env_vars(struct passwd *pas, const char *shell)
 {
+	/* POSIX requires crond to set up at least HOME, LOGNAME, PATH, SHELL.
+	 * We assume crond inherited suitable PATH.
+	 */
 #if SETENV_LEAKS
+	safe_setenv(&G.env_var_logname, "LOGNAME", pas->pw_name);
 	safe_setenv(&G.env_var_user, "USER", pas->pw_name);
 	safe_setenv(&G.env_var_home, "HOME", pas->pw_dir);
-	/* if we want to set user's shell instead: */
-	/*safe_setenv(G.env_var_shell, "SHELL", pas->pw_shell);*/
+	safe_setenv(&G.env_var_shell, "SHELL", shell);
 #else
+	xsetenv("LOGNAME", pas->pw_name);
 	xsetenv("USER", pas->pw_name);
 	xsetenv("HOME", pas->pw_dir);
+	xsetenv("SHELL", shell);
 #endif
-	/* currently, we use constant one: */
-	/*setenv("SHELL", DEFAULT_SHELL, 1); - done earlier */
 }
 
 static void change_user(struct passwd *pas)
@@ -584,12 +601,11 @@ static void change_user(struct passwd *pas)
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 
 static pid_t
-fork_job(const char *user, int mailFd,
-		const char *prog,
-		const char *shell_cmd /* if NULL, we run sendmail */
-) {
-	smallint sv_logmode;
+fork_job(const char *user, int mailFd, CronLine *line, bool run_sendmail)
+{
 	struct passwd *pas;
+	const char *shell, *prog;
+	smallint sv_logmode;
 	pid_t pid;
 
 	/* prepare things before vfork */
@@ -598,7 +614,11 @@ fork_job(const char *user, int mailFd,
 		bb_error_msg("can't get uid for %s", user);
 		goto err;
 	}
-	set_env_vars(pas);
+
+	shell = line->cl_shell ? line->cl_shell : DEFAULT_SHELL;
+	prog = run_sendmail ? SENDMAIL : shell;
+
+	set_env_vars(pas, shell);
 
 	sv_logmode = logmode;
 	pid = vfork();
@@ -608,12 +628,15 @@ fork_job(const char *user, int mailFd,
 		change_user(pas);
 		log5("child running %s", prog);
 		if (mailFd >= 0) {
-			xmove_fd(mailFd, shell_cmd ? 1 : 0);
+			xmove_fd(mailFd, run_sendmail ? 0 : 1);
 			dup2(1, 2);
 		}
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
-		execlp(prog, prog, (shell_cmd ? "-c" : SENDMAIL_ARGS), shell_cmd, (char *) NULL);
+		if (!run_sendmail)
+			execlp(prog, prog, "-c", line->cl_cmd, (char *) NULL);
+		else
+			execlp(prog, prog, SENDMAIL_ARGS, (char *) NULL);
 		/*
 		 * I want this error message on stderr too,
 		 * even if other messages go only to syslog:
@@ -662,7 +685,7 @@ static void start_one_job(const char *user, CronLine *line)
 		}
 	}
 
-	line->cl_pid = fork_job(user, mailFd, DEFAULT_SHELL, line->cl_cmd);
+	line->cl_pid = fork_job(user, mailFd, line, /*sendmail?*/ 0);
 	if (mailFd >= 0) {
 		if (line->cl_pid <= 0) {
 			unlink(mailFile);
@@ -718,13 +741,14 @@ static void process_finished_job(const char *user, CronLine *line)
 	}
 	line->cl_empty_mail_size = 0;
 	/* if (line->cl_mailto) - always true if cl_empty_mail_size was nonzero */
-		line->cl_pid = fork_job(user, mailFd, SENDMAIL, NULL);
+		line->cl_pid = fork_job(user, mailFd, line, /*sendmail?*/ 1);
 }
 
 #else /* !ENABLE_FEATURE_CROND_CALL_SENDMAIL */
 
 static void start_one_job(const char *user, CronLine *line)
 {
+	const char *shell;
 	struct passwd *pas;
 	pid_t pid;
 
@@ -735,7 +759,8 @@ static void start_one_job(const char *user, CronLine *line)
 	}
 
 	/* Prepare things before vfork */
-	set_env_vars(pas);
+	shell = line->cl_shell ? line->cl_shell : DEFAULT_SHELL;
+	set_env_vars(pas, shell);
 
 	/* Fork as the user in question and run program */
 	pid = vfork();
@@ -743,11 +768,11 @@ static void start_one_job(const char *user, CronLine *line)
 		/* CHILD */
 		/* initgroups, setgid, setuid, and chdir to home or CRON_DIR */
 		change_user(pas);
-		log5("child running %s", DEFAULT_SHELL);
+		log5("child running %s", shell);
 		/* crond 3.0pl1-100 puts tasks in separate process groups */
 		bb_setpgrp();
-		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_cmd, (char *) NULL);
-		bb_error_msg_and_die("can't execute '%s' for user %s", DEFAULT_SHELL, user);
+		execl(shell, shell, "-c", line->cl_cmd, (char *) NULL);
+		bb_error_msg_and_die("can't execute '%s' for user %s", shell, user);
 	}
 	if (pid < 0) {
 		bb_perror_msg("vfork");
@@ -916,11 +941,10 @@ int crond_main(int argc UNUSED_PARAM, char **argv)
 		logmode = LOGMODE_SYSLOG;
 	}
 
-	reopen_logfile_to_stderr();
-
-	xchdir(G.crontab_dir_name);
 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
-	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
+
+	reopen_logfile_to_stderr();
+	xchdir(G.crontab_dir_name);
 	log8("crond (busybox "BB_VER") started, log level %d", G.log_level);
 	rescan_crontab_dir();
 	write_pidfile(CONFIG_PID_FILE_PATH "/crond.pid");
