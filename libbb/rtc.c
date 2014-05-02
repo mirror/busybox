@@ -76,11 +76,11 @@ int FAST_FUNC rtc_xopen(const char **default_rtc, int flags)
 		rtc = open_loop_on_busy(*default_rtc, flags);
 		if (rtc >= 0)
 			return rtc;
-		name += strlen(name) + 1;
 		if (!name[0])
 			return xopen(*default_rtc, flags);
  try_name:
 		*default_rtc = name;
+		name += strlen(name) + 1;
 	}
 }
 
