@@ -13,7 +13,7 @@
  * return 1 if found;
  * return 0 otherwise;
  */
-int FAST_FUNC execable_file(const char *name)
+int FAST_FUNC file_is_executable(const char *name)
 {
 	struct stat s;
 	return (!access(name, X_OK) && !stat(name, &s) && S_ISREG(s.st_mode));
@@ -23,12 +23,12 @@ int FAST_FUNC execable_file(const char *name)
  * return allocated string containing full path if found;
  *  PATHp points to the component after the one where it was found
  *  (or NULL),
- *  you may call find_execable again with this PATHp to continue
+ *  you may call find_executable again with this PATHp to continue
  *  (if it's not NULL).
  * return NULL otherwise; (PATHp is undefined)
  * in all cases (*PATHp) contents will be trashed (s/:/NUL/).
  */
-char* FAST_FUNC find_execable(const char *filename, char **PATHp)
+char* FAST_FUNC find_executable(const char *filename, char **PATHp)
 {
 	/* About empty components in $PATH:
 	 * http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap08.html
@@ -49,7 +49,7 @@ char* FAST_FUNC find_execable(const char *filename, char **PATHp)
 			p[0] ? p : ".", /* handle "::" case */
 			filename
 		);
-		if (execable_file(p)) {
+		if (file_is_executable(p)) {
 			*PATHp = n;
 			return p;
 		}
@@ -63,11 +63,11 @@ char* FAST_FUNC find_execable(const char *filename, char **PATHp)
  * return 1 if found;
  * return 0 otherwise;
  */
-int FAST_FUNC exists_execable(const char *filename)
+int FAST_FUNC executable_exists(const char *filename)
 {
 	char *path = xstrdup(getenv("PATH"));
 	char *tmp = path;
-	char *ret = find_execable(filename, &tmp);
+	char *ret = find_executable(filename, &tmp);
 	free(path);
 	free(ret);
 	return ret != NULL;

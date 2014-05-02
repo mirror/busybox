@@ -555,7 +555,7 @@ static int FAST_FUNC dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 		return 0;
 #  endif
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
-		if (exists_execable(ext_dhcp_clients[i].name))
+		if (executable_exists(ext_dhcp_clients[i].name))
 			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
 	}
 	bb_error_msg("no dhcp clients found");
@@ -592,7 +592,7 @@ static int FAST_FUNC dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	unsigned i;
 
 	for (i = 0; i < ARRAY_SIZE(ext_dhcp_clients); i++) {
-		if (exists_execable(ext_dhcp_clients[i].name)) {
+		if (executable_exists(ext_dhcp_clients[i].name)) {
 			result = execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
 			if (result)
 				break;

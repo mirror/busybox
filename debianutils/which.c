@@ -46,7 +46,7 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_DESKTOP
 /* Much bloat just to support -a */
 		if (strchr(*argv, '/')) {
-			if (execable_file(*argv)) {
+			if (file_is_executable(*argv)) {
 				puts(*argv);
 				continue;
 			}
@@ -55,7 +55,7 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 			char *path2 = xstrdup(path);
 			char *tmp = path2;
 
-			p = find_execable(*argv, &tmp);
+			p = find_executable(*argv, &tmp);
 			if (!p)
 				status = EXIT_FAILURE;
 			else {
@@ -65,7 +65,7 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 				if (opt) {
 					/* -a: show matches in all PATH components */
 					if (tmp) {
-						p = find_execable(*argv, &tmp);
+						p = find_executable(*argv, &tmp);
 						if (p)
 							goto print;
 					}
@@ -76,14 +76,14 @@ int which_main(int argc UNUSED_PARAM, char **argv)
 #else
 /* Just ignoring -a */
 		if (strchr(*argv, '/')) {
-			if (execable_file(*argv)) {
+			if (file_is_executable(*argv)) {
 				puts(*argv);
 				continue;
 			}
 		} else {
 			char *path2 = xstrdup(path);
 			char *tmp = path2;
-			p = find_execable(*argv, &tmp);
+			p = find_executable(*argv, &tmp);
 			free(path2);
 			if (p) {
 				puts(p);

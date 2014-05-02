@@ -912,9 +912,9 @@ void FAST_FUNC update_utmp(pid_t pid, int new_type, const char *tty_name, const 
 #endif
 
 
-int execable_file(const char *name) FAST_FUNC;
-char *find_execable(const char *filename, char **PATHp) FAST_FUNC;
-int exists_execable(const char *filename) FAST_FUNC;
+int file_is_executable(const char *name) FAST_FUNC;
+char *find_executable(const char *filename, char **PATHp) FAST_FUNC;
+int executable_exists(const char *filename) FAST_FUNC;
 
 /* BB_EXECxx always execs (it's not doing NOFORK/NOEXEC stuff),
  * but it may exec busybox and call applet instead of searching PATH.
