@@ -456,7 +456,7 @@ static void read_lines(void)
 				readeof = eof_error;
 				if (eof_error <= 0)
 					goto reached_eof;
-				had_progress = 1;
+				IF_FEATURE_LESS_REGEXP(had_progress = 1;)
 			}
 			c = readbuf[readpos];
 			/* backspace? [needed for manpages] */

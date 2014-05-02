@@ -11,7 +11,9 @@
 # include <syslog.h>
 #endif
 
+#if ENABLE_FEATURE_SYSLOG
 smallint syslog_level = LOG_ERR;
+#endif
 smallint logmode = LOGMODE_STDIO;
 const char *msg_eol = "\n";
 
