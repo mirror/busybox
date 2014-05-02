@@ -30,6 +30,14 @@ int FAST_FUNC execable_file(const char *name)
  */
 char* FAST_FUNC find_execable(const char *filename, char **PATHp)
 {
+	/* About empty components in $PATH:
+	 * http://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap08.html
+	 * 8.3 Other Environment Variables - PATH
+	 * A zero-length prefix is a legacy feature that indicates the current
+	 * working directory. It appears as two adjacent colons ( "::" ), as an
+	 * initial colon preceding the rest of the list, or as a trailing colon
+	 * following the rest of the list.
+	 */
 	char *p, *n;
 
 	p = *PATHp;
@@ -37,14 +45,15 @@ char* FAST_FUNC find_execable(const char *filename, char **PATHp)
 		n = strchr(p, ':');
 		if (n)
 			*n++ = '\0';
-		if (*p != '\0') { /* it's not a PATH="foo::bar" situation */
-			p = concat_path_file(p, filename);
-			if (execable_file(p)) {
-				*PATHp = n;
-				return p;
-			}
-			free(p);
+		p = concat_path_file(
+			p[0] ? p : ".", /* handle "::" case */
+			filename
+		);
+		if (execable_file(p)) {
+			*PATHp = n;
+			return p;
 		}
+		free(p);
 		p = n;
 	} /* on loop exit p == NULL */
 	return p;
@@ -60,11 +69,8 @@ int FAST_FUNC exists_execable(const char *filename)
 	char *tmp = path;
 	char *ret = find_execable(filename, &tmp);
 	free(path);
-	if (ret) {
-		free(ret);
-		return 1;
-	}
-	return 0;
+	free(ret);
+	return ret != NULL;
 }
 
 #if ENABLE_FEATURE_PREFER_APPLETS
