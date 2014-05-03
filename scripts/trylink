@@ -300,6 +300,8 @@ int main(int argc, char **argv)
 	}
 	rm -- "$sharedlib_dir/applet.c" $EXE.out
 	$STRIP -s --remove-section=.note --remove-section=.comment $EXE
+	# Let user see that we do something - list the names of created binaries:
+	echo "$EXE"
 
     done <applet_lst.tmp
 fi
