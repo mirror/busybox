@@ -556,6 +556,16 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 			//	pid, getppid(),
 			//	getsid(0), getpgid(0));
 			bb_perror_msg_and_die("setsid");
+			/*
+			 * When we can end up here?
+			 * Example: setsid() fails when run alone in interactive shell:
+			 *  # getty 115200 /dev/tty2
+			 * because shell's child (getty) is put in a new process group.
+			 * But doesn't fail if shell is not interactive
+			 * (and therefore doesn't create process groups for pipes),
+			 * or if getty is not the first process in the process group:
+			 *  # true | getty 115200 /dev/tty2
+			 */
 		}
 		/* Looks like we are already a session leader.
 		 * In this case (setsid failed) we may still have ctty,
