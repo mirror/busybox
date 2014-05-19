@@ -28,6 +28,9 @@
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 static const char install_longopts[] ALIGN1 =
+	IF_FEATURE_VERBOSE(
+	"verbose\0"             No_argument       "v"
+	)
 	"directory\0"           No_argument       "d"
 	"preserve-timestamps\0" No_argument       "p"
 	"strip\0"               No_argument       "s"
@@ -89,6 +92,7 @@ int install_main(int argc, char **argv)
 	const char *gid_str;
 	const char *uid_str;
 	const char *mode_str;
+	int mkdir_flags = FILEUTILS_RECUR;
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
 	int opts;
 	int min_args = 1;
@@ -120,7 +124,6 @@ int install_main(int argc, char **argv)
 #endif
 	opt_complementary = "s--d:d--s" IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z"));
 	/* -c exists for backwards compatibility, it's needed */
-	/* -v is ignored ("print name of each created directory") */
 	/* -b is ignored ("make a backup of each existing destination file") */
 	opts = getopt32(argv, "cvb" "Ddpsg:m:o:" IF_SELINUX("Z:"),
 			&gid_str, &mode_str, &uid_str IF_SELINUX(, &scontext));
@@ -140,6 +143,11 @@ int install_main(int argc, char **argv)
 		}
 	}
 #endif
+
+	if ((opts & OPT_v) && FILEUTILS_VERBOSE) {
+		mkdir_flags |= FILEUTILS_VERBOSE;
+		copy_flags |= FILEUTILS_VERBOSE;
+	}
 
 	/* preserve access and modification time, this is GNU behaviour,
 	 * BSD only preserves modification time */
@@ -171,14 +179,14 @@ int install_main(int argc, char **argv)
 			/* GNU coreutils 6.9 does not set uid:gid
 			 * on intermediate created directories
 			 * (only on last one) */
-			if (bb_make_directory(dest, 0755, FILEUTILS_RECUR)) {
+			if (bb_make_directory(dest, 0755, mkdir_flags)) {
 				ret = EXIT_FAILURE;
 				goto next;
 			}
 		} else {
 			if (opts & OPT_MKDIR_LEADING) {
 				char *ddir = xstrdup(dest);
-				bb_make_directory(dirname(ddir), 0755, FILEUTILS_RECUR);
+				bb_make_directory(dirname(ddir), 0755, mkdir_flags);
 				/* errors are not checked. copy_file
 				 * will fail if dir is not created. */
 				free(ddir);

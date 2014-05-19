@@ -389,5 +389,9 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("can't preserve %s of '%s'", "permissions", dest);
 	}
 
+	if (flags & FILEUTILS_VERBOSE) {
+		printf("'%s' -> '%s'\n", source, dest);
+	}
+
 	return retval;
 }

@@ -79,7 +79,6 @@ int cp_main(int argc, char **argv)
 		"parents\0"        No_argument "\xff"
 		;
 #endif
-	// -v (--verbose) is ignored
 	flags = getopt32(argv, FILEUTILS_CP_OPTSTR "arPv");
 	/* Options of cp from GNU coreutils 6.10:
 	 * -a, --archive

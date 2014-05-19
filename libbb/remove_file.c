@@ -78,6 +78,10 @@ int FAST_FUNC remove_file(const char *path, int flags)
 			return -1;
 		}
 
+		if (flags & FILEUTILS_VERBOSE) {
+			printf("removed directory: '%s'\n", path);
+		}
+
 		return status;
 	}
 
@@ -96,6 +100,10 @@ int FAST_FUNC remove_file(const char *path, int flags)
 	if (unlink(path) < 0) {
 		bb_perror_msg("can't remove '%s'", path);
 		return -1;
+	}
+
+	if (flags & FILEUTILS_VERBOSE) {
+		printf("removed '%s'\n", path);
 	}
 
 	return 0;

@@ -739,6 +739,16 @@ config YES
 	  yes is used to repeatedly output a specific string, or
 	  the default string `y'.
 
+comment "Common options"
+
+config FEATURE_VERBOSE
+	bool "Support verbose options (usually -v) for various applets"
+	default y
+	help
+	  Enable cp -v, rm -v and similar messages.
+	  Also enables long option (--verbose) if it exists.
+	  Without this option, -v is accepted but ignored.
+
 comment "Common options for cp and mv"
 	depends on CP || MV
 
