@@ -663,7 +663,13 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
 			close(log_file->fd);
 			goto reopen;
 		}
+
+		/* We don't get here unless G.logFileRotate == 0;
+		 * in which case don't bother unlinking and reopening,
+		 * just truncate and reset size to match:
+		 */
 		ftruncate(log_file->fd, 0);
+		log_file->size = 0;
 	}
 	log_file->size +=
 #endif
