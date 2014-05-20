@@ -670,6 +670,10 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
 		 */
 		ftruncate(log_file->fd, 0);
 		log_file->size = 0;
+#ifdef SYSLOGD_WRLOCK
+		fl.l_type = F_UNLCK;
+		fcntl(log_file->fd, F_SETLKW, &fl);
+#endif
 	}
 	log_file->size +=
 #endif
