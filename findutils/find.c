@@ -137,6 +137,16 @@
 //config:	  Support the 'find -exec' option for executing commands based upon
 //config:	  the files matched.
 //config:
+//config:config FEATURE_FIND_EXEC_PLUS
+//config:	bool "Enable -exec ... {} +"
+//config:	default y
+//config:	depends on FEATURE_FIND_EXEC
+//config:	help
+//config:	  Support the 'find -exec ... {} +' option for executing commands
+//config:	  for all matched files at once.
+//config:	  Without this option, -exec + is a synonym for -exec ;
+//config:	  (IOW: it works correctly, but without expected speedup)
+//config:
 //config:config FEATURE_FIND_USER
 //config:	bool "Enable -user: username/uid matching"
 //config:	default y
@@ -319,6 +329,9 @@
 //usage:     "\n	-exec CMD ARG ;	Run CMD with all instances of {} replaced by"
 //usage:     "\n			file name. Fails if CMD exits with nonzero"
 //usage:	)
+//usage:	IF_FEATURE_FIND_EXEC_PLUS(
+//usage:     "\n	-exec CMD ARG + Run CMD with {} replaced by list of file names"
+//usage:	)
 //usage:	IF_FEATURE_FIND_DELETE(
 //usage:     "\n	-delete		Delete current file/directory. Turns on -depth option"
 //usage:	)
@@ -337,8 +350,12 @@
 # define FNM_CASEFOLD 0
 #endif
 
-#define dbg(...) ((void)0)
-/* #define dbg(...) bb_error_msg(__VA_ARGS__) */
+#if 1
+# define dbg(...) ((void)0)
+#else
+# define dbg(...) bb_error_msg(__VA_ARGS__)
+#endif
+
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -375,7 +392,20 @@ IF_FEATURE_FIND_CONTEXT(ACTS(context, security_context_t context;))
 IF_FEATURE_FIND_PAREN(  ACTS(paren, action ***subexpr;))
 IF_FEATURE_FIND_PRUNE(  ACTS(prune))
 IF_FEATURE_FIND_DELETE( ACTS(delete))
-IF_FEATURE_FIND_EXEC(   ACTS(exec,  char **exec_argv; unsigned *subst_count; int exec_argc;))
+IF_FEATURE_FIND_EXEC(   ACTS(exec,
+				char **exec_argv; /* -exec ARGS */
+				unsigned *subst_count;
+				int exec_argc; /* count of ARGS */
+				IF_FEATURE_FIND_EXEC_PLUS(
+					/*
+					 * filelist is NULL if "exec ;"
+					 * non-NULL if "exec +"
+					 */
+					char **filelist;
+					int filelist_idx;
+					int file_len;
+				)
+				))
 IF_FEATURE_FIND_GROUP(  ACTS(group, gid_t gid;))
 IF_FEATURE_FIND_LINKS(  ACTS(links, char links_char; int links_count;))
 
@@ -451,7 +481,6 @@ static int exec_actions(action ***appp, const char *fileName, const struct stat 
 	dbg("returning:0x%x", rc ^ TRUE);
 	return rc ^ TRUE; /* restore TRUE bit */
 }
-
 
 #if !FNM_CASEFOLD
 static char *strcpy_upcase(char *dst, const char *src)
@@ -576,17 +605,56 @@ ACTF(inum)
 }
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
-ACTF(exec)
+static int do_exec(action_exec *ap, const char *fileName)
 {
 	int i, rc;
-#if ENABLE_USE_PORTABLE_CODE
-	char **argv = alloca(sizeof(char*) * (ap->exec_argc + 1));
-#else /* gcc 4.3.1 generates smaller code: */
-	char *argv[ap->exec_argc + 1];
-#endif
-	for (i = 0; i < ap->exec_argc; i++)
-		argv[i] = xmalloc_substitute_string(ap->exec_argv[i], ap->subst_count[i], "{}", fileName);
-	argv[i] = NULL; /* terminate the list */
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+	int size = ap->exec_argc + ap->filelist_idx + 1;
+# else
+	int size = ap->exec_argc + 1;
+# endif
+# if ENABLE_USE_PORTABLE_CODE
+	char **argv = alloca(sizeof(char*) * size);
+# else /* gcc 4.3.1 generates smaller code: */
+	char *argv[size];
+# endif
+	char **pp = argv;
+
+	for (i = 0; i < ap->exec_argc; i++) {
+		const char *arg = ap->exec_argv[i];
+
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+		if (ap->filelist) {
+			/* Handling "-exec +"
+			 * Only one exec_argv[i] has substitution in it.
+			 * Expand that one exec_argv[i] into file list.
+			 */
+			if (ap->subst_count[i] == 0) {
+				*pp++ = xstrdup(arg);
+			} else {
+				int j = 0;
+				while (ap->filelist[j]) {
+					*pp++ = xmalloc_substitute_string(arg, 1, "{}", ap->filelist[j]);
+					free(ap->filelist[j]);
+					j++;
+				}
+			}
+		} else
+# endif
+		{
+			/* Handling "-exec ;" */
+			*pp++ = xmalloc_substitute_string(arg, ap->subst_count[i], "{}", fileName);
+		}
+	}
+	*pp = NULL; /* terminate the list */
+
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+	if (ap->filelist) {
+		ap->filelist[0] = NULL;
+		ap->filelist_idx = 0;
+		ap->file_len = 0;
+	}
+# endif
 
 	rc = spawn_and_wait(argv);
 	if (rc < 0)
@@ -597,6 +665,48 @@ ACTF(exec)
 		free(argv[i++]);
 	return rc == 0; /* return 1 if exitcode 0 */
 }
+ACTF(exec)
+{
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+	if (ap->filelist) {
+		int rc = 0;
+
+		/* If we have lots of files already, exec the command */
+		if (ap->file_len >= 32*1024)
+			rc = do_exec(ap, NULL);
+
+		ap->file_len += strlen(fileName) + sizeof(char*) + 1;
+		ap->filelist = xrealloc_vector(ap->filelist, 8, ap->filelist_idx);
+		ap->filelist[ap->filelist_idx++] = xstrdup(fileName);
+		return rc == 0; /* return 1 if exitcode 0 */
+	}
+# endif
+	return do_exec(ap, fileName);
+}
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+static int flush_exec_plus(void)
+{
+	action *ap;
+	action **app;
+	action ***appp = G.actions;
+	while ((app = *appp++) != NULL) {
+		while ((ap = *app++) != NULL) {
+			if (ap->f == (action_fp)func_exec) {
+				action_exec *ae = (void*)ap;
+				if (ae->filelist_idx != 0) {
+					int rc = do_exec(ae, NULL);
+#  if ENABLE_FEATURE_FIND_NOT
+					if (ap->invert) rc = !rc;
+#  endif
+					if (rc)
+						return rc;
+				}
+			}
+		}
+	}
+	return 0;
+}
+# endif
 #endif
 #if ENABLE_FEATURE_FIND_USER
 ACTF(user)
@@ -1037,6 +1147,7 @@ static action*** parse_params(char **argv)
 		else if (parm == PARM_exec) {
 			int i;
 			action_exec *ap;
+			IF_FEATURE_FIND_EXEC_PLUS(int all_subst = 0;)
 			dbg("%d", __LINE__);
 			G.need_print = 0;
 			ap = ALLOC_ACTION(exec);
@@ -1049,10 +1160,13 @@ static action*** parse_params(char **argv)
 				// executes "echo Foo >FILENAME<",
 				// find -exec echo Foo ">{}<" "+"
 				// executes "echo Foo FILENAME1 FILENAME2 FILENAME3...".
-				// TODO (so far we treat "+" just like ";")
 				if ((argv[0][0] == ';' || argv[0][0] == '+')
 				 && argv[0][1] == '\0'
 				) {
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+					if (argv[0][0] == '+')
+						ap->filelist = xzalloc(sizeof(ap->filelist[0]));
+# endif
 					break;
 				}
 				argv++;
@@ -1062,8 +1176,17 @@ static action*** parse_params(char **argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap->subst_count = xmalloc(ap->exec_argc * sizeof(int));
 			i = ap->exec_argc;
-			while (i--)
+			while (i--) {
 				ap->subst_count[i] = count_strstr(ap->exec_argv[i], "{}");
+				IF_FEATURE_FIND_EXEC_PLUS(all_subst += ap->subst_count[i];)
+			}
+# if ENABLE_FEATURE_FIND_EXEC_PLUS
+			/*
+			 * coreutils expects {} to appear only once in "-exec +"
+			 */
+			if (all_subst != 1 && ap->filelist)
+				bb_error_msg_and_die("only one '{}' allowed for -exec +");
+# endif
 		}
 #endif
 #if ENABLE_FEATURE_FIND_PAREN
@@ -1335,8 +1458,11 @@ int find_main(int argc UNUSED_PARAM, char **argv)
 				0)              /* depth */
 		) {
 			status = EXIT_FAILURE;
+			goto out;
 		}
 	}
 
+	IF_FEATURE_FIND_EXEC_PLUS(status = flush_exec_plus();)
+out:
 	return status;
 }
