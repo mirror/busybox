@@ -15,6 +15,32 @@ testing "find -type f" \
 	"./testfile\n" \
 	"" ""
 
+optional FEATURE_FIND_EXEC
+testing "find -exec exitcode 1" \
+	"cd find.tempdir && find testfile -exec true {} \; 2>&1; echo \$?" \
+	"0\n" \
+	"" ""
+SKIP=
+optional FEATURE_FIND_EXEC_PLUS
+testing "find -exec exitcode 2" \
+	"cd find.tempdir && find testfile -exec true {} + 2>&1; echo \$?" \
+	"0\n" \
+	"" ""
+SKIP=
+# Surprisingly, "-exec false ;" results in exitcode 0! "-exec false +" is different!!!
+optional FEATURE_FIND_EXEC
+testing "find -exec exitcode 3" \
+	"cd find.tempdir && find testfile -exec false {} \; 2>&1; echo \$?" \
+	"0\n" \
+	"" ""
+SKIP=
+optional FEATURE_FIND_EXEC_PLUS
+testing "find -exec exitcode 4" \
+	"cd find.tempdir && find testfile -exec false {} + 2>&1; echo \$?" \
+	"1\n" \
+	"" ""
+SKIP=
+
 # testing "description" "command" "result" "infile" "stdin"
 
 rm -rf find.tempdir

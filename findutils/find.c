@@ -634,6 +634,7 @@ static int do_exec(action_exec *ap, const char *fileName)
 			} else {
 				int j = 0;
 				while (ap->filelist[j]) {
+					/* 2nd arg here should be ap->subst_count[i], but it is always 1: */
 					*pp++ = xmalloc_substitute_string(arg, 1, "{}", ap->filelist[j]);
 					free(ap->filelist[j]);
 					j++;
@@ -669,16 +670,16 @@ ACTF(exec)
 {
 # if ENABLE_FEATURE_FIND_EXEC_PLUS
 	if (ap->filelist) {
-		int rc = 0;
+		int rc;
 
-		/* If we have lots of files already, exec the command */
-		if (ap->file_len >= 32*1024)
-			rc = do_exec(ap, NULL);
-
-		ap->file_len += strlen(fileName) + sizeof(char*) + 1;
 		ap->filelist = xrealloc_vector(ap->filelist, 8, ap->filelist_idx);
 		ap->filelist[ap->filelist_idx++] = xstrdup(fileName);
-		return rc == 0; /* return 1 if exitcode 0 */
+		ap->file_len += strlen(fileName) + sizeof(char*) + 1;
+		/* If we have lots of files already, exec the command */
+		rc = 1;
+		if (ap->file_len >= 32*1024)
+			rc = do_exec(ap, NULL);
+		return rc;
 	}
 # endif
 	return do_exec(ap, fileName);
@@ -698,8 +699,8 @@ static int flush_exec_plus(void)
 #  if ENABLE_FEATURE_FIND_NOT
 					if (ap->invert) rc = !rc;
 #  endif
-					if (rc)
-						return rc;
+					if (rc == 0)
+						return 1;
 				}
 			}
 		}
