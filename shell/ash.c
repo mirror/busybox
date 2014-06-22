@@ -12759,7 +12759,7 @@ timescmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	const unsigned char *p;
 	struct tms buf;
 
-	clk_tck = sysconf(_SC_CLK_TCK);
+	clk_tck = bb_clk_tck();
 	times(&buf);
 
 	p = timescmd_str;

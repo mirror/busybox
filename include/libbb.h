@@ -738,6 +738,7 @@ unsigned bb_arg_max(void) FAST_FUNC;
 #else
 # define bb_arg_max() ((unsigned)(32 * 1024))
 #endif
+unsigned bb_clk_tck(void) FAST_FUNC;
 
 #define SEAMLESS_COMPRESSION (0 \
  || ENABLE_FEATURE_SEAMLESS_XZ \

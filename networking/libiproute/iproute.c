@@ -73,7 +73,7 @@ static unsigned get_hz(void)
 		fclose(fp);
 	}
 	if (!hz_internal)
-		hz_internal = sysconf(_SC_CLK_TCK);
+		hz_internal = bb_clk_tck();
 	return hz_internal;
 }
 
