@@ -675,6 +675,14 @@ config DEBUG_PESSIMIZE
 	  in a much bigger executable that more closely matches the source
 	  code.
 
+config UNIT_TEST
+	bool "Build unit tests"
+	default n
+	help
+	  Say Y here if you want to build unit tests (both the framework and
+	  test cases) as a Busybox applet. This results in bigger code, so you
+	  probably don't want this option in production builds.
+
 config WERROR
 	bool "Abort compilation on any warning"
 	default n

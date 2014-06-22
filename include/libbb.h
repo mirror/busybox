@@ -1941,6 +1941,141 @@ static ALWAYS_INLINE unsigned char bb_ascii_tolower(unsigned char a)
 #define isprint_asciionly(a) ((unsigned)((a) - 0x20) <= 0x7e - 0x20)
 
 
+/* Simple unit-testing framework */
+
+typedef void (*bbunit_testfunc)(void);
+
+struct bbunit_listelem {
+	struct bbunit_listelem* next;
+	const char* name;
+	bbunit_testfunc testfunc;
+};
+
+void bbunit_registertest(struct bbunit_listelem* test);
+void bbunit_settestfailed(void);
+
+#define BBUNIT_DEFINE_TEST(NAME) \
+	static void bbunit_##NAME##_test(void); \
+	static struct bbunit_listelem bbunit_##NAME##_elem = { \
+		.name = #NAME, \
+		.testfunc = bbunit_##NAME##_test, \
+	}; \
+	static void INIT_LAST bbunit_##NAME##_register(void) \
+	{ \
+		bbunit_registertest(&bbunit_##NAME##_elem); \
+	} \
+	static void bbunit_##NAME##_test(void)
+
+/*
+ * Both 'goto bbunit_end' and 'break' are here only to get rid
+ * of compiler warnings.
+ */
+#define BBUNIT_ENDTEST \
+	do { \
+		goto bbunit_end; \
+	bbunit_end: \
+		break; \
+	} while (0)
+
+#define BBUNIT_PRINTASSERTFAIL \
+	do { \
+		bb_error_msg( \
+			"[ERROR] Assertion failed in file %s, line %d", \
+			__FILE__, __LINE__); \
+	} while (0)
+
+#define BBUNIT_ASSERTION_FAILED \
+	do { \
+		bbunit_settestfailed(); \
+		goto bbunit_end; \
+	} while (0)
+
+/*
+ * Assertions.
+ * For now we only offer assertions which cause tests to fail
+ * immediately. In the future 'expects' might be added too -
+ * similar to those offered by the gtest framework.
+ */
+#define BBUNIT_ASSERT_EQ(EXPECTED, ACTUAL) \
+	do { \
+		if ((EXPECTED) != (ACTUAL)) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] '%s' isn't equal to '%s'", \
+						#EXPECTED, #ACTUAL); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_NOTEQ(EXPECTED, ACTUAL) \
+	do { \
+		if ((EXPECTED) == (ACTUAL)) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] '%s' is equal to '%s'", \
+						#EXPECTED, #ACTUAL); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_NOTNULL(PTR) \
+	do { \
+		if ((PTR) == NULL) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] '%s' is NULL!", #PTR); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_NULL(PTR) \
+	do { \
+		if ((PTR) != NULL) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] '%s' is not NULL!", #PTR); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_FALSE(STATEMENT) \
+	do { \
+		if ((STATEMENT)) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] Statement '%s' evaluated to true!", \
+								#STATEMENT); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_TRUE(STATEMENT) \
+	do { \
+		if (!(STATEMENT)) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] Statement '%s' evaluated to false!", \
+					#STATEMENT); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_STREQ(STR1, STR2) \
+	do { \
+		if (strcmp(STR1, STR2) != 0) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] Strings '%s' and '%s' " \
+					"are not the same", STR1, STR2); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+#define BBUNIT_ASSERT_STRNOTEQ(STR1, STR2) \
+	do { \
+		if (strcmp(STR1, STR2) == 0) { \
+			BBUNIT_PRINTASSERTFAIL; \
+			bb_error_msg("[ERROR] Strings '%s' and '%s' " \
+					"are the same, but were " \
+					"expected to differ", STR1, STR2); \
+			BBUNIT_ASSERTION_FAILED; \
+		} \
+	} while (0)
+
+
 POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

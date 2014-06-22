@@ -55,7 +55,11 @@ endif
 # (cp -pPR is POSIX-compliant (cp -dpR or cp -a would not be))
 .PHONY: check
 .PHONY: test
+ifeq ($(CONFIG_UNIT_TEST),y)
+UNIT_CMD = ./busybox unit
+endif
 check test: busybox busybox.links
+	$(UNIT_CMD)
 	test -d $(objtree)/testsuite || cp -pPR $(srctree)/testsuite $(objtree)
 	bindir=$(objtree) srcdir=$(srctree)/testsuite \
 	$(SHELL) -c "cd $(objtree)/testsuite && $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:0=),-v)"
