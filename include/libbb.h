@@ -731,6 +731,14 @@ extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST
 /* Never returns NULL */
 extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 
+#if defined ARG_MAX
+# define bb_arg_max() ((unsigned)ARG_MAX)
+#elif defined _SC_ARG_MAX
+unsigned bb_arg_max(void) FAST_FUNC;
+#else
+# define bb_arg_max() ((unsigned)(32 * 1024))
+#endif
+
 #define SEAMLESS_COMPRESSION (0 \
  || ENABLE_FEATURE_SEAMLESS_XZ \
  || ENABLE_FEATURE_SEAMLESS_LZMA \

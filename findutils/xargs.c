@@ -523,12 +523,7 @@ int xargs_main(int argc, char **argv)
 		argc++;
 	}
 
-	/* -s NUM default. fileutils-4.4.2 uses 128k, but I heasitate
-	 * to use such a big value - first need to change code to use
-	 * growable buffer instead of fixed one.
-	 */
-	n_max_chars = 32 * 1024;
-	/* Make smaller if system does not allow our default value.
+	/*
 	 * The Open Group Base Specifications Issue 6:
 	 * "The xargs utility shall limit the command line length such that
 	 * when the command line is invoked, the combined argument
@@ -536,16 +531,15 @@ int xargs_main(int argc, char **argv)
 	 * in the System Interfaces volume of IEEE Std 1003.1-2001)
 	 * shall not exceed {ARG_MAX}-2048 bytes".
 	 */
-	{
-		long arg_max = 0;
-#if defined _SC_ARG_MAX
-		arg_max = sysconf(_SC_ARG_MAX) - 2048;
-#elif defined ARG_MAX
-		arg_max = ARG_MAX - 2048;
-#endif
-		if (arg_max > 0 && n_max_chars > arg_max)
-			n_max_chars = arg_max;
-	}
+	n_max_chars = bb_arg_max();
+	if (n_max_chars > 32 * 1024)
+		n_max_chars = 32 * 1024;
+	/*
+	 * POSIX suggests substracting 2048 bytes from sysconf(_SC_ARG_MAX)
+	 * so that the process may safely modify its environment.
+	 */
+	n_max_chars -= 2048;
+
 	if (opt & OPT_UPTO_SIZE) {
 		n_max_chars = xatou_range(max_chars, 1, INT_MAX);
 	}

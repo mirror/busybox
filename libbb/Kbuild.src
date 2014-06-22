@@ -92,6 +92,7 @@ lib-y += skip_whitespace.o
 lib-y += speed_table.o
 lib-y += str_tolower.o
 lib-y += strrstr.o
+lib-y += sysconf.o
 lib-y += time.o
 lib-y += trim.o
 lib-y += u_signal_names.o

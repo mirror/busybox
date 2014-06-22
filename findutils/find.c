@@ -419,6 +419,7 @@ struct globals {
 	smallint need_print;
 	smallint xdev_on;
 	recurse_flags_t recurse_flags;
+	IF_FEATURE_FIND_EXEC_PLUS(unsigned max_argv_len;)
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -428,6 +429,7 @@ struct globals {
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
 	IF_FEATURE_FIND_MAXDEPTH(G.minmaxdepth[1] = INT_MAX;) \
+	IF_FEATURE_FIND_EXEC_PLUS(G.max_argv_len = bb_arg_max() - 2048;) \
 	G.need_print = 1; \
 	G.recurse_flags = ACTION_RECURSE; \
 } while (0)
@@ -677,7 +679,7 @@ ACTF(exec)
 		ap->file_len += strlen(fileName) + sizeof(char*) + 1;
 		/* If we have lots of files already, exec the command */
 		rc = 1;
-		if (ap->file_len >= 32*1024)
+		if (ap->file_len >= G.max_argv_len)
 			rc = do_exec(ap, NULL);
 		return rc;
 	}
