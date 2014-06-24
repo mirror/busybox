@@ -64,8 +64,8 @@ static void dump_bad(struct mtd_info_user *meminfo, unsigned len, int oob)
 	unsigned char buf[meminfo->writesize];
 	unsigned count;
 
-	/* round len to the next page */
-	len = (len | ~(meminfo->writesize - 1)) + 1;
+	/* round len to the next page only if len is not already on a page */
+	len = ((len - 1) | (meminfo->writesize - 1)) + 1;
 
 	memset(buf, 0xff, sizeof(buf));
 	for (count = 0; count < len; count += meminfo->writesize) {
