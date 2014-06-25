@@ -1085,6 +1085,8 @@ enum {
 	const_PASV = mk_const4('P', 'A', 'S', 'V'),
 	const_PORT = mk_const4('P', 'O', 'R', 'T'),
 	const_PWD  = mk_const3('P', 'W', 'D'),
+	/* Same as PWD. Reportedly used by windows ftp client */
+	const_XPWD = mk_const4('X', 'P', 'W', 'D'),
 	const_QUIT = mk_const4('Q', 'U', 'I', 'T'),
 	const_REST = mk_const4('R', 'E', 'S', 'T'),
 	const_RETR = mk_const4('R', 'E', 'T', 'R'),
@@ -1292,7 +1294,7 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 			WRITE_OK(FTP_ALLOOK);
 		else if (cmdval == const_SYST)
 			cmdio_write_raw(STR(FTP_SYSTOK)" UNIX Type: L8\r\n");
-		else if (cmdval == const_PWD)
+		else if (cmdval == const_PWD || cmdval == const_XPWD)
 			handle_pwd();
 		else if (cmdval == const_CWD)
 			handle_cwd();
