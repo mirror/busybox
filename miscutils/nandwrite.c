@@ -36,20 +36,16 @@
 //usage:     "\n	-s ADDR	Start address"
 
 //usage:#define nanddump_trivial_usage
-//usage:	"[-o] [-b|--bb=padbad|skipbad] [-s ADDR] [-l LEN] [-f FILE] MTD_DEVICE"
+//usage:	"[-o] [--bb=padbad|skipbad] [-s ADDR] [-l LEN] [-f FILE] MTD_DEVICE"
 //usage:#define nanddump_full_usage "\n\n"
 //usage:	"Dump MTD_DEVICE\n"
 //usage:     "\n	-o	Dump oob data"
-//usage:     "\n	-b	Omit bad block from the dump"
 //usage:     "\n	-s ADDR	Start address"
 //usage:     "\n	-l LEN	Length"
 //usage:     "\n	-f FILE	Dump to file ('-' for stdout)"
 //usage:     "\n	--bb=METHOD:"
 //usage:     "\n		skipbad: skip bad blocks"
 //usage:     "\n		padbad: substitute bad blocks by 0xff (default)"
-//usage:     "\n	The difference between omit and skip bad block is that in the omit"
-//usage:     "\n	case, the length of the bad block is counted as part of the total"
-//usage:     "\n	dump length, and in the skip case, it's not."
 
 #include "libbb.h"
 #include <mtd/mtd-user.h>
@@ -60,14 +56,12 @@
 #define OPT_p  (1 << 0) /* nandwrite only */
 #define OPT_o  (1 << 0) /* nanddump only */
 #define OPT_s  (1 << 1)
-#define OPT_b  (1 << 2)
-#define OPT_f  (1 << 3)
-#define OPT_l  (1 << 4)
-#define OPT_bb (1 << 5) /* must be the last one in the list */
+#define OPT_f  (1 << 2)
+#define OPT_l  (1 << 3)
+#define OPT_bb (1 << 4) /* must be the last one in the list */
 
 #define BB_PADBAD (1 << 0)
 #define BB_SKIPBAD (1 << 1)
-#define BB_OMITBAD (1 << 2)
 
 /* helper for writing out 0xff for bad blocks pad */
 static void dump_bad(struct mtd_info_user *meminfo, unsigned len, int oob)
@@ -128,7 +122,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	if (IS_NANDDUMP) {
 		opt_complementary = "=1";
 		applet_long_options = nanddump_longopts;
-		opts = getopt32(argv, "os:bf:l:", &opt_s, &opt_f, &opt_l, &opt_bb);
+		opts = getopt32(argv, "os:f:l:", &opt_s, &opt_f, &opt_l, &opt_bb);
 	} else { /* nandwrite */
 		opt_complementary = "-1:?2";
 		opts = getopt32(argv, "ps:", &opt_s);
@@ -153,19 +147,13 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 		if (length < meminfo.size - mtdoffset)
 			end_addr = mtdoffset + length;
 	}
-	if (IS_NANDDUMP) {
-	       if ((opts & OPT_b) && (opts & OPT_bb))
-		       bb_show_usage();
-	       if (opts & OPT_b)
-		       bb_method = BB_OMITBAD;
-	       if (opts & OPT_bb) {
-		       if (!strcmp("skipbad", opt_bb))
-			       bb_method = BB_SKIPBAD;
-		       else if (!strcmp("padbad", opt_bb))
-			       bb_method = BB_PADBAD;
-		       else
-			       bb_show_usage();
-	       }
+	if (IS_NANDDUMP && (opts & OPT_bb)) {
+		if (strcmp("skipbad", opt_bb) == 0)
+			bb_method = BB_SKIPBAD;
+		else if (strcmp("padbad", opt_bb) == 0)
+			bb_method = BB_PADBAD;
+		else
+			bb_show_usage();
 	}
 
 	/* Pull it into a CPU register (hopefully) - smaller code that way */
@@ -200,7 +188,6 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 				if (bb_method == BB_SKIPBAD) {
 					end_addr += (tmp - blockstart);
 				}
-				/* omitbad: do nothing */
 			}
 			mtdoffset = tmp;
 		}
@@ -231,7 +218,6 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 						end_addr = ~0;
 					limit = MIN(meminfo.size, end_addr);
 				}
-				/* omitbad: do nothing */
 			}
 			if (mtdoffset >= limit)
 				break;
