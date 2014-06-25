@@ -107,7 +107,7 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	/* Buffer for OOB data */
 	unsigned char *oobbuf;
 	unsigned opts;
-	unsigned bb_method = BB_PADBAD;
+	unsigned bb_method = BB_SKIPBAD;
 	int fd;
 	ssize_t cnt;
 	unsigned mtdoffset, meminfo_writesize, blockstart, limit;
