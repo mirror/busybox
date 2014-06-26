@@ -1960,7 +1960,7 @@ void bbunit_settestfailed(void);
 		.name = #NAME, \
 		.testfunc = bbunit_##NAME##_test, \
 	}; \
-	static void INIT_LAST bbunit_##NAME##_register(void) \
+	static void INIT_FUNC bbunit_##NAME##_register(void) \
 	{ \
 		bbunit_registertest(&bbunit_##NAME##_elem); \
 	} \

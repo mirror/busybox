@@ -76,8 +76,8 @@
 # define UNUSED_PARAM_RESULT
 #endif
 
-/* used by unit test machinery to run registration functions */
-#define INIT_LAST __attribute__ ((constructor(2000)))
+/* used by unit test machinery to run registration functions before calling main() */
+#define INIT_FUNC __attribute__ ((constructor))
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
  * forces a symbol global.  */
