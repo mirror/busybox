@@ -709,6 +709,7 @@ handle_dir_common(int opts)
 	 * which can be problematic in chroot */
 	ls_fd = popen_ls((opts & LONG_LISTING) ? "-l" : "-1");
 	ls_fp = xfdopen_for_read(ls_fd);
+/* FIXME: filenames with embedded newlines are mishandled */
 
 	if (opts & USE_CTRL_CONN) {
 		/* STAT <filename> */
@@ -729,16 +730,20 @@ handle_dir_common(int opts)
 		int remote_fd = get_remote_transfer_fd(" Directory listing");
 		if (remote_fd >= 0) {
 			while (1) {
-				line = xmalloc_fgetline(ls_fp);
+				unsigned len;
+
+				line = xmalloc_fgets(ls_fp);
 				if (!line)
 					break;
 				/* I've seen clients complaining when they
 				 * are fed with ls output with bare '\n'.
-				 * Pity... that would be much simpler.
+				 * Replace trailing "\n\0" with "\r\n".
 				 */
-/* TODO: need to s/LF/NUL/g here */
-				xwrite_str(remote_fd, line);
-				xwrite(remote_fd, "\r\n", 2);
+				len = strlen(line);
+				if (len != 0) /* paranoia check */
+					line[len - 1] = '\r';
+				line[len] = '\n';
+				xwrite(remote_fd, line, len + 1);
 				free(line);
 			}
 		}
