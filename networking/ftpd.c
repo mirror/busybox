@@ -620,16 +620,12 @@ popen_ls(const char *opt)
 	const char *argv[5];
 	struct fd_pair outfd;
 	pid_t pid;
-
+#if !BB_MMU
+	int cur_fd = xopen(".", O_RDONLY | O_DIRECTORY);
+#endif
 	argv[0] = "ftpd";
 	argv[1] = opt; /* "-l" or "-1" */
-#if BB_MMU
 	argv[2] = "--";
-#else
-	/* NOMMU ftpd ls helper chdirs to argv[2],
-	 * preventing peer from seeing real root. */
-	argv[2] = xrealloc_getcwd_or_warn(NULL);
-#endif
 	argv[3] = G.ftp_arg;
 	argv[4] = NULL;
 
@@ -651,16 +647,6 @@ popen_ls(const char *opt)
 	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) {
 		/* child */
-#if !BB_MMU
-		/* On NOMMU, we want to execute a child - copy of ourself.
-		 * In chroot we usually can't do it. Thus we chdir
-		 * out of the chroot back to original root,
-		 * and (see later below) execute bb_busybox_exec_path
-		 * relative to current directory */
-		if (fchdir(G.root_fd) != 0)
-			_exit(127);
-		/*close(G.root_fd); - close_on_exec_on() took care of this */
-#endif
 		/* NB: close _first_, then move fd! */
 		close(outfd.rd);
 		xmove_fd(outfd.wr, STDOUT_FILENO);
@@ -674,19 +660,25 @@ popen_ls(const char *opt)
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
 		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
 #else
-		/* + 1: we must use relative path here if in chroot.
-		 * For example, execv("/proc/self/exe") will fail, since
-		 * it looks for "/proc/self/exe" _relative to chroot!_ */
-		execv(bb_busybox_exec_path + 1, (char**) argv);
+		/* On NOMMU, we want to execute a child - copy of ourself
+		 * in order to unblock parent after vfork.
+		 * In chroot we usually can't re-exec. Thus we escape
+		 * out of the chroot back to original root.
+		 */
+		if (G.root_fd >= 0) {
+			if (fchdir(G.root_fd) != 0 || chroot(".") != 0)
+				_exit(127);
+			/*close(G.root_fd); - close_on_exec_on() took care of this */
+		}
+		/* Child expects directory to list on fd #3 */
+		xmove_fd(cur_fd, 3);
+		execv(bb_busybox_exec_path, (char**) argv);
 		_exit(127);
 #endif
 	}
 
 	/* parent */
 	close(outfd.wr);
-#if !BB_MMU
-	free((char*)argv[2]);
-#endif
 	return outfd.rd;
 }
 
@@ -705,8 +697,6 @@ handle_dir_common(int opts)
 	if (!(opts & USE_CTRL_CONN) && !port_or_pasv_was_seen())
 		return; /* port_or_pasv_was_seen emitted error response */
 
-	/* -n prevents user/groupname display,
-	 * which can be problematic in chroot */
 	ls_fd = popen_ls((opts & LONG_LISTING) ? "-l" : "-1");
 	ls_fp = xfdopen_for_read(ls_fd);
 /* FIXME: filenames with embedded newlines are mishandled */
@@ -1139,11 +1129,10 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	opts = getopt32(argv, "l1vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
-/* TODO: pass -n? It prevents user/group resolution, which may not work in chroot anyway */
 /* TODO: pass -A? It shows dot files */
 /* TODO: pass --group-directories-first? would be nice, but ls doesn't do that yet */
-		xchdir(argv[2]);
-		argv[2] = (char*)"--";
+		if (fchdir(3) != 0)
+			_exit(127);
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
 		return ls_main(argc, argv);
 	}
@@ -1185,9 +1174,9 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
 	close_on_exec_on(G.root_fd);
 #endif
-
-	if (argv[optind]) {
-		xchroot(argv[optind]);
+	argv += optind;
+	if (argv[0]) {
+		xchroot(argv[0]);
 	}
 
 	//umask(077); - admin can set umask before starting us
