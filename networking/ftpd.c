@@ -1173,11 +1173,14 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		applet_name = xasprintf("%s[%u]", applet_name, (int)getpid());
 
 #if !BB_MMU
-	G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
-	close_on_exec_on(G.root_fd);
+	G.root_fd = -1;
 #endif
 	argv += optind;
 	if (argv[0]) {
+#if !BB_MMU
+		G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
+		close_on_exec_on(G.root_fd);
+#endif
 		xchroot(argv[0]);
 	}
 
