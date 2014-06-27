@@ -620,9 +620,7 @@ popen_ls(const char *opt)
 	const char *argv[5];
 	struct fd_pair outfd;
 	pid_t pid;
-#if !BB_MMU
-	int cur_fd = xopen(".", O_RDONLY | O_DIRECTORY);
-#endif
+
 	argv[0] = "ftpd";
 	argv[1] = opt; /* "-l" or "-1" */
 	argv[2] = "--";
@@ -646,6 +644,9 @@ popen_ls(const char *opt)
 	/*fflush_all(); - so far we dont use stdio on output */
 	pid = BB_MMU ? xfork() : xvfork();
 	if (pid == 0) {
+#if !BB_MMU
+		int cur_fd;
+#endif
 		/* child */
 		/* NB: close _first_, then move fd! */
 		close(outfd.rd);
@@ -660,6 +661,7 @@ popen_ls(const char *opt)
 		/* memset(&G, 0, sizeof(G)); - ls_main does it */
 		exit(ls_main(ARRAY_SIZE(argv) - 1, (char**) argv));
 #else
+		cur_fd = xopen(".", O_RDONLY | O_DIRECTORY);
 		/* On NOMMU, we want to execute a child - copy of ourself
 		 * in order to unblock parent after vfork.
 		 * In chroot we usually can't re-exec. Thus we escape
