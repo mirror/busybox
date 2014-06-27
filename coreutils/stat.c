@@ -655,7 +655,7 @@ static bool do_stat(const char *filename, const char *format)
 		);
 # if ENABLE_SELINUX
 		if (option_mask32 & OPT_SELINUX)
-			printf(" %lc\n", *scontext);
+			printf(" %s\n", scontext);
 		else
 			bb_putchar('\n');
 # endif
@@ -700,7 +700,8 @@ static bool do_stat(const char *filename, const char *format)
 		       (unsigned long) statbuf.st_gid,
 		       (gw_ent != NULL) ? gw_ent->gr_name : "UNKNOWN");
 # if ENABLE_SELINUX
-		printf("   S_Context: %lc\n", *scontext);
+		if (option_mask32 & OPT_SELINUX)
+			printf("   S_Context: %s\n", scontext);
 # endif
 		printf("Access: %s\n", human_time(statbuf.st_atime));
 		printf("Modify: %s\n", human_time(statbuf.st_mtime));
