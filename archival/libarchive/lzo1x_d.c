@@ -92,6 +92,7 @@ int lzo1x_decompress_safe(const uint8_t* in, unsigned in_len,
 				ip++;
 				NEED_IP(1);
 			}
+			TEST_IV(t);
 			t += 15 + *ip++;
 		}
 		/* copy literals */
@@ -224,6 +225,7 @@ int lzo1x_decompress_safe(const uint8_t* in, unsigned in_len,
 						ip++;
 						NEED_IP(1);
 					}
+					TEST_IV(t);
 					t += 31 + *ip++;
 				}
 #if defined(COPY_DICT)
@@ -265,6 +267,7 @@ int lzo1x_decompress_safe(const uint8_t* in, unsigned in_len,
 						ip++;
 						NEED_IP(1);
 					}
+					TEST_IV(t);
 					t += 7 + *ip++;
 				}
 #if defined(COPY_DICT)
