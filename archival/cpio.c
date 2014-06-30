@@ -65,6 +65,7 @@
 //usage:	IF_FEATURE_CPIO_P(
 //usage:     "\n	-p DIR	Copy files to DIR"
 //usage:	)
+//usage:     "\nOptions:"
 //usage:     "\n	-d	Make leading directories"
 //usage:     "\n	-m	Preserve mtime"
 //usage:     "\n	-v	Verbose"
