@@ -569,7 +569,7 @@ static void log_to_kmsg(int pri, const char *msg)
 	 */
 	pri &= G.primask;
 
-	write(G.kmsgfd, G.printbuf, sprintf(G.printbuf, "<%d>%s\n", pri, msg));
+	full_write(G.kmsgfd, G.printbuf, sprintf(G.printbuf, "<%d>%s\n", pri, msg));
 }
 #else
 static void kmsg_init(void) {}
@@ -678,9 +678,14 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
 		close(log_file->fd);
 		goto reopen;
 	}
-	log_file->size +=
+/* TODO: what to do on write errors ("disk full")? */
+	len = full_write(log_file->fd, msg, len);
+	if (len > 0)
+		log_file->size += len;
+#else
+	full_write(log_file->fd, msg, len);
 #endif
-			full_write(log_file->fd, msg, len);
+
 #ifdef SYSLOGD_WRLOCK
 	fl.l_type = F_UNLCK;
 	fcntl(log_file->fd, F_SETLKW, &fl);
