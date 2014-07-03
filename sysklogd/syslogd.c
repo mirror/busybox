@@ -110,6 +110,7 @@ typedef struct {
 typedef struct logFile_t {
 	const char *path;
 	int fd;
+	time_t last_log_time;
 #if ENABLE_FEATURE_ROTATE_LOGFILE
 	unsigned size;
 	uint8_t isRegular;
@@ -165,7 +166,6 @@ struct globals {
 #if ENABLE_FEATURE_IPC_SYSLOG
 	struct shbuf_ds *shbuf;
 #endif
-	time_t last_log_time;
 	/* localhost's name. We print only first 64 chars */
 	char *hostname;
 
@@ -588,15 +588,16 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
 	/* fd can't be 0 (we connect fd 0 to /dev/log socket) */
 	/* fd is 1 if "-O -" is in use */
 	if (log_file->fd > 1) {
-		/* Reopen log file every second. This allows admin
-		 * to delete the file and not worry about restarting us.
+		/* Reopen log files every second. This allows admin
+		 * to delete the files and not worry about restarting us.
 		 * This costs almost nothing since it happens
-		 * _at most_ once a second.
+		 * _at most_ once a second for each file, and happens
+		 * only when each file is actually written.
 		 */
 		if (!now)
 			now = time(NULL);
-		if (G.last_log_time != now) {
-			G.last_log_time = now;
+		if (log_file->last_log_time != now) {
+			log_file->last_log_time = now;
 			close(log_file->fd);
 			goto reopen;
 		}
