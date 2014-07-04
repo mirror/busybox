@@ -34,8 +34,8 @@
 #include "libbb.h"
 /* linux/msdos_fs.h says: */
 #ifndef FAT_IOCTL_GET_ATTRIBUTES
-# define FAT_IOCTL_GET_ATTRIBUTES        _IOR('r', 0x10, __u32)
-# define FAT_IOCTL_SET_ATTRIBUTES        _IOW('r', 0x11, __u32)
+# define FAT_IOCTL_GET_ATTRIBUTES        _IOR('r', 0x10, uint32_t)
+# define FAT_IOCTL_SET_ATTRIBUTES        _IOW('r', 0x11, uint32_t)
 #endif
 
 /* Currently supports only the FAT flags, not the NTFS ones.
