@@ -10,9 +10,9 @@
  */
 
 //usage:#define setlogcons_trivial_usage
-//usage:       "N"
+//usage:       "[N]"
 //usage:#define setlogcons_full_usage "\n\n"
-//usage:       "Redirect the kernel output to console N (0 for current)"
+//usage:       "Redirect the kernel output to console N. Default:0 (current console)"
 
 #include "libbb.h"
 
