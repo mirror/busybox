@@ -29,7 +29,7 @@
  */
 
 //usage:#define ntpd_trivial_usage
-//usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l")"] [-S PROG] [-p PEER]..."
+//usage:	"[-dnqNw"IF_FEATURE_NTPD_SERVER("l -I IFACE")"] [-S PROG] [-p PEER]..."
 //usage:#define ntpd_full_usage "\n\n"
 //usage:       "NTP client/server\n"
 //usage:     "\n	-d	Verbose"
@@ -39,6 +39,7 @@
 //usage:     "\n	-w	Do not set time (only query peers), implies -n"
 //usage:	IF_FEATURE_NTPD_SERVER(
 //usage:     "\n	-l	Run as server on port 123"
+//usage:     "\n	-I IFACE Bind server to IFACE, implies -l"
 //usage:	)
 //usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
 //usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
@@ -283,6 +284,7 @@ enum {
 	OPT_p = (1 << 5),
 	OPT_S = (1 << 6),
 	OPT_l = (1 << 7) * ENABLE_FEATURE_NTPD_SERVER,
+	OPT_I = (1 << 8) * ENABLE_FEATURE_NTPD_SERVER,
 	/* We hijack some bits for other purposes */
 	OPT_qq = (1 << 31),
 };
@@ -301,6 +303,7 @@ struct globals {
 	llist_t  *ntp_peers;
 #if ENABLE_FEATURE_NTPD_SERVER
 	int      listen_fd;
+	char     *if_name;
 # define G_listen_fd (G.listen_fd)
 #else
 # define G_listen_fd (-1)
@@ -2092,13 +2095,19 @@ static NOINLINE void ntp_init(char **argv)
 
 	/* Parse options */
 	peers = NULL;
-	opt_complementary = "dd:p::wn"; /* d: counter; p: list; -w implies -n */
+	opt_complementary = "dd:p::wn"         /* -d: counter; -p: list; -w implies -n */
+		IF_FEATURE_NTPD_SERVER(":Il"); /* -I implies -l */
 	opts = getopt32(argv,
 			"nqNx" /* compat */
 			"wp:S:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
+			IF_FEATURE_NTPD_SERVER("I:") /* compat */
 			"d" /* compat */
 			"46aAbgL", /* compat, ignored */
-			&peers, &G.script_name, &G.verbose);
+			&peers,&G.script_name,
+#if ENABLE_FEATURE_NTPD_SERVER
+			&G.if_name,
+#endif
+			&G.verbose);
 
 //	if (opts & OPT_x) /* disable stepping, only slew is allowed */
 //		G.time_was_stepped = 1;
@@ -2130,18 +2139,22 @@ static NOINLINE void ntp_init(char **argv)
 		/* -l but no peers: "stratum 1 server" mode */
 		G.stratum = 1;
 	}
-	if (!(opts & OPT_n)) {
-		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO, argv);
-		logmode = LOGMODE_NONE;
-	}
 #if ENABLE_FEATURE_NTPD_SERVER
 	G_listen_fd = -1;
 	if (opts & OPT_l) {
 		G_listen_fd = create_and_bind_dgram_or_die(NULL, 123);
+		if (opts & OPT_I) {
+			if (setsockopt_bindtodevice(G_listen_fd, G.if_name))
+				xfunc_die();
+		}
 		socket_want_pktinfo(G_listen_fd);
 		setsockopt(G_listen_fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
 	}
 #endif
+	if (!(opts & OPT_n)) {
+		bb_daemonize_or_rexec(DAEMON_DEVNULL_STDIO, argv);
+		logmode = LOGMODE_NONE;
+	}
 	/* I hesitate to set -20 prio. -15 should be high enough for timekeeping */
 	if (opts & OPT_N)
 		setpriority(PRIO_PROCESS, 0, -15);
