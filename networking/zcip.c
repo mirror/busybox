@@ -366,11 +366,11 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 					nprobes++;
 					VDBG("probe/%u %s@%s\n",
 							nprobes, argv_intf, inet_ntoa(ip));
+					timeout_ms = PROBE_MIN * 1000;
+					timeout_ms += random_delay_ms(PROBE_MAX - PROBE_MIN);
 					arp(/* ARPOP_REQUEST, */
 							/* &eth_addr, */ null_ip,
 							&null_addr, ip);
-					timeout_ms = PROBE_MIN * 1000;
-					timeout_ms += random_delay_ms(PROBE_MAX - PROBE_MIN);
 				}
 				else {
 					// Switch to announce state.
@@ -378,10 +378,10 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 					nclaims = 0;
 					VDBG("announce/%u %s@%s\n",
 							nclaims, argv_intf, inet_ntoa(ip));
+					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 					arp(/* ARPOP_REQUEST, */
 							/* &eth_addr, */ ip,
 							&eth_addr, ip);
-					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				}
 				break;
 			case RATE_LIMIT_PROBE:
@@ -391,10 +391,10 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 				nclaims = 0;
 				VDBG("announce/%u %s@%s\n",
 						nclaims, argv_intf, inet_ntoa(ip));
+				timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				arp(/* ARPOP_REQUEST, */
 						/* &eth_addr, */ ip,
 						&eth_addr, ip);
-				timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				break;
 			case ANNOUNCE:
 				// timeouts in the ANNOUNCE state mean no conflicting ARP packets
@@ -403,10 +403,10 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 					nclaims++;
 					VDBG("announce/%u %s@%s\n",
 							nclaims, argv_intf, inet_ntoa(ip));
+					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 					arp(/* ARPOP_REQUEST, */
 							/* &eth_addr, */ ip,
 							&eth_addr, ip);
-					timeout_ms = ANNOUNCE_INTERVAL * 1000;
 				}
 				else {
 					// Switch to monitor state.
@@ -495,22 +495,28 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 			}
 #endif
 			if (p.arp.arp_op != htons(ARPOP_REQUEST)
-			 && p.arp.arp_op != htons(ARPOP_REPLY))
+			 && p.arp.arp_op != htons(ARPOP_REPLY)
+			) {
 				continue;
+			}
 
 			source_ip_conflict = 0;
 			target_ip_conflict = 0;
 
-			if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr)) == 0
-			 && memcmp(&p.arp.arp_sha, &eth_addr, ETH_ALEN) != 0
-			) {
-				source_ip_conflict = 1;
-			}
-			if (p.arp.arp_op == htons(ARPOP_REQUEST)
-			 && memcmp(p.arp.arp_tpa, &ip.s_addr, sizeof(struct in_addr)) == 0
-			 && memcmp(&p.arp.arp_tha, &eth_addr, ETH_ALEN) != 0
-			) {
-				target_ip_conflict = 1;
+			if (memcmp(&p.arp.arp_sha, &eth_addr, ETH_ALEN) != 0) {
+				if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr))) {
+					/* A probe or reply with source_ip == chosen ip */
+					source_ip_conflict = 1;
+				}
+				if (p.arp.arp_op == htons(ARPOP_REQUEST)
+				 && memcmp(p.arp.arp_spa, &null_ip, sizeof(struct in_addr)) == 0
+				 && memcmp(p.arp.arp_tpa, &ip.s_addr, sizeof(struct in_addr)) == 0
+				) {
+					/* A probe with source_ip == 0.0.0.0, target_ip == chosen ip:
+					 * another host trying to claim this ip!
+					 */
+					target_ip_conflict = 1;
+				}
 			}
 
 			VDBG("state = %d, source ip conflict = %d, target ip conflict = %d\n",
