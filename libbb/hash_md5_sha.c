@@ -926,9 +926,80 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 # define SHA3_SMALL CONFIG_SHA3_SMALL
 #endif
 
+#define OPTIMIZE_SHA3_FOR_32 0
+/*
+ * SHA3 can be optimized for 32-bit CPUs with bit-slicing:
+ * every 64-bit word of state[] can be split into two 32-bit words
+ * by even/odd bits. In this form, all rotations of sha3 round
+ * are 32-bit - and there are lots of them.
+ * However, it requires either splitting/combining state words
+ * before/after sha3 round (code does this now)
+ * or shuffling bits before xor'ing them into state and in sha3_end.
+ * Without shuffling, bit-slicing results in -130 bytes of code
+ * and marginal speedup (but of course it gives wrong result).
+ * With shuffling it works, but +260 code bytes, and slower.
+ * Disabled for now:
+ */
+#if 0 /* LONG_MAX == 0x7fffffff */
+# undef OPTIMIZE_SHA3_FOR_32
+# define OPTIMIZE_SHA3_FOR_32 1
+#endif
+
 enum {
 	SHA3_IBLK_BYTES = 72, /* 576 bits / 8 */
 };
+
+#if OPTIMIZE_SHA3_FOR_32
+/* This splits every 64-bit word into a pair of 32-bit words,
+ * even bits go into first word, odd bits go to second one.
+ * The conversion is done in-place.
+ */
+static void split_halves(uint64_t *state)
+{
+	/* Credit: Henry S. Warren, Hacker's Delight, Addison-Wesley, 2002 */
+	uint32_t *s32 = (uint32_t*)state;
+	uint32_t t, x0, x1;
+	int i;
+	for (i = 24; i >= 0; --i) {
+		x0 = s32[0];
+		t = (x0 ^ (x0 >> 1)) & 0x22222222; x0 = x0 ^ t ^ (t << 1);
+		t = (x0 ^ (x0 >> 2)) & 0x0C0C0C0C; x0 = x0 ^ t ^ (t << 2);
+		t = (x0 ^ (x0 >> 4)) & 0x00F000F0; x0 = x0 ^ t ^ (t << 4);
+		t = (x0 ^ (x0 >> 8)) & 0x0000FF00; x0 = x0 ^ t ^ (t << 8);
+		x1 = s32[1];
+		t = (x1 ^ (x1 >> 1)) & 0x22222222; x1 = x1 ^ t ^ (t << 1);
+		t = (x1 ^ (x1 >> 2)) & 0x0C0C0C0C; x1 = x1 ^ t ^ (t << 2);
+		t = (x1 ^ (x1 >> 4)) & 0x00F000F0; x1 = x1 ^ t ^ (t << 4);
+		t = (x1 ^ (x1 >> 8)) & 0x0000FF00; x1 = x1 ^ t ^ (t << 8);
+		*s32++ = (x0 & 0x0000FFFF) | (x1 << 16);
+		*s32++ = (x0 >> 16) | (x1 & 0xFFFF0000);
+	}
+}
+/* The reverse operation */
+static void combine_halves(uint64_t *state)
+{
+	uint32_t *s32 = (uint32_t*)state;
+	uint32_t t, x0, x1;
+	int i;
+	for (i = 24; i >= 0; --i) {
+		x0 = s32[0];
+		x1 = s32[1];
+		t = (x0 & 0x0000FFFF) | (x1 << 16);
+		x1 = (x0 >> 16) | (x1 & 0xFFFF0000);
+		x0 = t;
+		t = (x0 ^ (x0 >> 8)) & 0x0000FF00; x0 = x0 ^ t ^ (t << 8);
+		t = (x0 ^ (x0 >> 4)) & 0x00F000F0; x0 = x0 ^ t ^ (t << 4);
+		t = (x0 ^ (x0 >> 2)) & 0x0C0C0C0C; x0 = x0 ^ t ^ (t << 2);
+		t = (x0 ^ (x0 >> 1)) & 0x22222222; x0 = x0 ^ t ^ (t << 1);
+		*s32++ = x0;
+		t = (x1 ^ (x1 >> 8)) & 0x0000FF00; x1 = x1 ^ t ^ (t << 8);
+		t = (x1 ^ (x1 >> 4)) & 0x00F000F0; x1 = x1 ^ t ^ (t << 4);
+		t = (x1 ^ (x1 >> 2)) & 0x0C0C0C0C; x1 = x1 ^ t ^ (t << 2);
+		t = (x1 ^ (x1 >> 1)) & 0x22222222; x1 = x1 ^ t ^ (t << 1);
+		*s32++ = x1;
+	}
+}
+#endif
 
 /*
  * In the crypto literature this function is usually called Keccak-f().
@@ -937,6 +1008,164 @@ static void sha3_process_block72(uint64_t *state)
 {
 	enum { NROUNDS = 24 };
 
+#if OPTIMIZE_SHA3_FOR_32
+	/*
+	static const uint32_t IOTA_CONST_0[NROUNDS] = {
+		0x00000001UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000001UL,
+		0x00000000UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000001UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000000UL,
+		0x00000001UL,
+		0x00000000UL,
+		0x00000001UL,
+		0x00000000UL,
+	};
+	** bits are in lsb: 0101 0000 1111 0100 1111 0001
+	*/
+	uint32_t IOTA_CONST_0bits = (uint32_t)(0x0050f4f1);
+	static const uint32_t IOTA_CONST_1[NROUNDS] = {
+		0x00000000UL,
+		0x00000089UL,
+		0x8000008bUL,
+		0x80008080UL,
+		0x0000008bUL,
+		0x00008000UL,
+		0x80008088UL,
+		0x80000082UL,
+		0x0000000bUL,
+		0x0000000aUL,
+		0x00008082UL,
+		0x00008003UL,
+		0x0000808bUL,
+		0x8000000bUL,
+		0x8000008aUL,
+		0x80000081UL,
+		0x80000081UL,
+		0x80000008UL,
+		0x00000083UL,
+		0x80008003UL,
+		0x80008088UL,
+		0x80000088UL,
+		0x00008000UL,
+		0x80008082UL,
+	};
+
+	uint32_t *const s32 = (uint32_t*)state;
+	unsigned round;
+
+	split_halves(state);
+
+	for (round = 0; round < NROUNDS; round++) {
+		unsigned x;
+
+		/* Theta */
+		{
+			uint32_t BC[20];
+			for (x = 0; x < 10; ++x) {
+				BC[x+10] = BC[x] = s32[x]^s32[x+10]^s32[x+20]^s32[x+30]^s32[x+40];
+			}
+			for (x = 0; x < 10; x += 2) {
+				uint32_t ta, tb;
+				ta = BC[x+8] ^ rotl32(BC[x+3], 1);
+				tb = BC[x+9] ^ BC[x+2];
+				s32[x+0] ^= ta;
+				s32[x+1] ^= tb;
+				s32[x+10] ^= ta;
+				s32[x+11] ^= tb;
+				s32[x+20] ^= ta;
+				s32[x+21] ^= tb;
+				s32[x+30] ^= ta;
+				s32[x+31] ^= tb;
+				s32[x+40] ^= ta;
+				s32[x+41] ^= tb;
+			}
+		}
+		/* RhoPi */
+		{
+			uint32_t t0a,t0b, t1a,t1b;
+			t1a = s32[1*2+0];
+			t1b = s32[1*2+1];
+
+#define RhoPi(PI_LANE, ROT_CONST) \
+	t0a = s32[PI_LANE*2+0];\
+	t0b = s32[PI_LANE*2+1];\
+	if (ROT_CONST & 1) {\
+		s32[PI_LANE*2+0] = rotl32(t1b, ROT_CONST/2+1);\
+		s32[PI_LANE*2+1] = ROT_CONST == 1 ? t1a : rotl32(t1a, ROT_CONST/2+0);\
+	} else {\
+		s32[PI_LANE*2+0] = rotl32(t1a, ROT_CONST/2);\
+		s32[PI_LANE*2+1] = rotl32(t1b, ROT_CONST/2);\
+	}\
+	t1a = t0a; t1b = t0b;
+
+			RhoPi(10, 1)
+			RhoPi( 7, 3)
+			RhoPi(11, 6)
+			RhoPi(17,10)
+			RhoPi(18,15)
+			RhoPi( 3,21)
+			RhoPi( 5,28)
+			RhoPi(16,36)
+			RhoPi( 8,45)
+			RhoPi(21,55)
+			RhoPi(24, 2)
+			RhoPi( 4,14)
+			RhoPi(15,27)
+			RhoPi(23,41)
+			RhoPi(19,56)
+			RhoPi(13, 8)
+			RhoPi(12,25)
+			RhoPi( 2,43)
+			RhoPi(20,62)
+			RhoPi(14,18)
+			RhoPi(22,39)
+			RhoPi( 9,61)
+			RhoPi( 6,20)
+			RhoPi( 1,44)
+#undef RhoPi
+		}
+		/* Chi */
+		for (x = 0; x <= 20; x += 5) {
+			/*
+			 * Can write this in terms of uint32 too,
+			 * but why? compiler does it automatically.
+			 */
+			uint64_t BC0, BC1, BC2, BC3, BC4;
+			BC0 = state[x + 0];
+			BC1 = state[x + 1];
+			BC2 = state[x + 2];
+			state[x + 0] = BC0 ^ ((~BC1) & BC2);
+			BC3 = state[x + 3];
+			state[x + 1] = BC1 ^ ((~BC2) & BC3);
+			BC4 = state[x + 4];
+			state[x + 2] = BC2 ^ ((~BC3) & BC4);
+			state[x + 3] = BC3 ^ ((~BC4) & BC0);
+			state[x + 4] = BC4 ^ ((~BC0) & BC1);
+		}
+		/* Iota */
+		s32[0] ^= IOTA_CONST_0bits & 1;
+		IOTA_CONST_0bits >>= 1;
+		s32[1] ^= IOTA_CONST_1[round];
+	}
+
+	combine_halves(state);
+#else
 	/* Elements should be 64-bit, but top half is always zero or 0x80000000.
 	 * We encode 63rd bits in a separate word below.
 	 * Same is true for 31th bits, which lets us use 16-bit table instead of 64-bit.
@@ -983,7 +1212,7 @@ static void sha3_process_block72(uint64_t *state)
 	};
 	/*static const uint8_t MOD5[10] = { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, };*/
 
-	unsigned x, y;
+	unsigned x;
 	unsigned round;
 
 	if (BB_BIG_ENDIAN) {
@@ -1045,22 +1274,20 @@ static void sha3_process_block72(uint64_t *state)
 			RhoPi_twice(20); RhoPi_twice(22);
 #undef RhoPi_twice
 		}
-
 		/* Chi */
-		for (y = 0; y <= 20; y += 5) {
+		for (x = 0; x <= 20; x += 5) {
 			uint64_t BC0, BC1, BC2, BC3, BC4;
-			BC0 = state[y + 0];
-			BC1 = state[y + 1];
-			BC2 = state[y + 2];
-			state[y + 0] = BC0 ^ ((~BC1) & BC2);
-			BC3 = state[y + 3];
-			state[y + 1] = BC1 ^ ((~BC2) & BC3);
-			BC4 = state[y + 4];
-			state[y + 2] = BC2 ^ ((~BC3) & BC4);
-			state[y + 3] = BC3 ^ ((~BC4) & BC0);
-			state[y + 4] = BC4 ^ ((~BC0) & BC1);
+			BC0 = state[x + 0];
+			BC1 = state[x + 1];
+			BC2 = state[x + 2];
+			state[x + 0] = BC0 ^ ((~BC1) & BC2);
+			BC3 = state[x + 3];
+			state[x + 1] = BC1 ^ ((~BC2) & BC3);
+			BC4 = state[x + 4];
+			state[x + 2] = BC2 ^ ((~BC3) & BC4);
+			state[x + 3] = BC3 ^ ((~BC4) & BC0);
+			state[x + 4] = BC4 ^ ((~BC0) & BC1);
 		}
-
 		/* Iota */
 		state[0] ^= IOTA_CONST[round]
 			| (uint32_t)((IOTA_CONST_bit31 << round) & 0x80000000)
@@ -1072,6 +1299,7 @@ static void sha3_process_block72(uint64_t *state)
 			state[x] = SWAP_LE64(state[x]);
 		}
 	}
+#endif
 }
 
 void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
