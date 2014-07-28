@@ -298,6 +298,19 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_PRIORITY]) {
 		printf(" metric %d ", *(uint32_t*)RTA_DATA(tb[RTA_PRIORITY]));
 	}
+	if (r->rtm_flags & RTNH_F_DEAD) {
+		printf("dead ");
+	}
+	if (r->rtm_flags & RTNH_F_ONLINK) {
+		printf("onlink ");
+	}
+	if (r->rtm_flags & RTNH_F_PERVASIVE) {
+		printf("pervasive ");
+	}
+	if (r->rtm_flags & RTM_F_NOTIFY) {
+		printf("notify ");
+	}
+
 	if (r->rtm_family == AF_INET6) {
 		struct rta_cacheinfo *ci = NULL;
 		if (tb[RTA_CACHEINFO]) {
@@ -330,7 +343,7 @@ static int iproute_modify(int cmd, unsigned flags, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"src\0""via\0""mtu\0""lock\0""protocol\0"IF_FEATURE_IP_RULE("table\0")
-		"dev\0""oif\0""to\0""metric\0";
+		"dev\0""oif\0""to\0""metric\0""onlink\0";
 	enum {
 		ARG_src,
 		ARG_via,
@@ -341,6 +354,7 @@ IF_FEATURE_IP_RULE(ARG_table,)
 		ARG_oif,
 		ARG_to,
 		ARG_metric,
+		ARG_onlink,
 	};
 	enum {
 		gw_ok = 1 << 0,
@@ -431,6 +445,8 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			NEXT_ARG();
 			metric = get_u32(*argv, "metric");
 			addattr32(&req.n, sizeof(req), RTA_PRIORITY, metric);
+		} else if (arg == ARG_onlink) {
+			req.r.rtm_flags |= RTNH_F_ONLINK;
 		} else {
 			int type;
 			inet_prefix dst;
