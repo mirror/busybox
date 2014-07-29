@@ -536,7 +536,7 @@ static void parse_meminfo(unsigned long meminfo[MI_MAX])
 	FILE *f;
 	int i;
 
-	memset(meminfo, 0, sizeof(meminfo));
+	memset(meminfo, 0, sizeof(meminfo[0]) * MI_MAX);
 	f = xfopen_for_read("meminfo");
 	while (fgets(buf, sizeof(buf), f) != NULL) {
 		char *c = strchr(buf, ':');
@@ -549,7 +549,6 @@ static void parse_meminfo(unsigned long meminfo[MI_MAX])
 	}
 	fclose(f);
 }
-
 
 static unsigned long display_header(int scr_width, int *lines_rem_p)
 {
