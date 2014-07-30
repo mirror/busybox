@@ -1141,22 +1141,30 @@ static void sha3_process_block72(uint64_t *state)
 #undef RhoPi
 		}
 		/* Chi */
-		for (x = 0; x <= 20; x += 5) {
-			/*
-			 * Can write this in terms of uint32 too,
-			 * but why? compiler does it automatically.
-			 */
-			uint64_t BC0, BC1, BC2, BC3, BC4;
-			BC0 = state[x + 0];
-			BC1 = state[x + 1];
-			BC2 = state[x + 2];
-			state[x + 0] = BC0 ^ ((~BC1) & BC2);
-			BC3 = state[x + 3];
-			state[x + 1] = BC1 ^ ((~BC2) & BC3);
-			BC4 = state[x + 4];
-			state[x + 2] = BC2 ^ ((~BC3) & BC4);
-			state[x + 3] = BC3 ^ ((~BC4) & BC0);
-			state[x + 4] = BC4 ^ ((~BC0) & BC1);
+		for (x = 0; x <= 40;) {
+			uint32_t BC0, BC1, BC2, BC3, BC4;
+			BC0 = s32[x + 0*2];
+			BC1 = s32[x + 1*2];
+			BC2 = s32[x + 2*2];
+			s32[x + 0*2] = BC0 ^ ((~BC1) & BC2);
+			BC3 = s32[x + 3*2];
+			s32[x + 1*2] = BC1 ^ ((~BC2) & BC3);
+			BC4 = s32[x + 4*2];
+			s32[x + 2*2] = BC2 ^ ((~BC3) & BC4);
+			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
+			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
+			x++;
+			BC0 = s32[x + 0*2];
+			BC1 = s32[x + 1*2];
+			BC2 = s32[x + 2*2];
+			s32[x + 0*2] = BC0 ^ ((~BC1) & BC2);
+			BC3 = s32[x + 3*2];
+			s32[x + 1*2] = BC1 ^ ((~BC2) & BC3);
+			BC4 = s32[x + 4*2];
+			s32[x + 2*2] = BC2 ^ ((~BC3) & BC4);
+			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
+			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
+			x += 9;
 		}
 		/* Iota */
 		s32[0] ^= IOTA_CONST_0bits & 1;
@@ -1275,6 +1283,7 @@ static void sha3_process_block72(uint64_t *state)
 #undef RhoPi_twice
 		}
 		/* Chi */
+#if LONG_MAX > 0x7fffffff
 		for (x = 0; x <= 20; x += 5) {
 			uint64_t BC0, BC1, BC2, BC3, BC4;
 			BC0 = state[x + 0];
@@ -1288,6 +1297,47 @@ static void sha3_process_block72(uint64_t *state)
 			state[x + 3] = BC3 ^ ((~BC4) & BC0);
 			state[x + 4] = BC4 ^ ((~BC0) & BC1);
 		}
+#else
+		/* Reduced register pressure version
+		 * for register-starved 32-bit arches
+		 * (i386: -95 bytes, and it is _faster_)
+		 */
+		for (x = 0; x <= 40;) {
+			uint32_t BC0, BC1, BC2, BC3, BC4;
+			uint32_t *const s32 = (uint32_t*)state;
+# if SHA3_SMALL
+ do_half:
+#endif
+			BC0 = s32[x + 0*2];
+			BC1 = s32[x + 1*2];
+			BC2 = s32[x + 2*2];
+			s32[x + 0*2] = BC0 ^ ((~BC1) & BC2);
+			BC3 = s32[x + 3*2];
+			s32[x + 1*2] = BC1 ^ ((~BC2) & BC3);
+			BC4 = s32[x + 4*2];
+			s32[x + 2*2] = BC2 ^ ((~BC3) & BC4);
+			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
+			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
+			x++;
+# if SHA3_SMALL
+			if (x & 1)
+				goto do_half;
+			x += 8;
+# else
+			BC0 = s32[x + 0*2];
+			BC1 = s32[x + 1*2];
+			BC2 = s32[x + 2*2];
+			s32[x + 0*2] = BC0 ^ ((~BC1) & BC2);
+			BC3 = s32[x + 3*2];
+			s32[x + 1*2] = BC1 ^ ((~BC2) & BC3);
+			BC4 = s32[x + 4*2];
+			s32[x + 2*2] = BC2 ^ ((~BC3) & BC4);
+			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
+			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
+			x += 9;
+# endif
+		}
+#endif
 		/* Iota */
 		state[0] ^= IOTA_CONST[round]
 			| (uint32_t)((IOTA_CONST_bit31 << round) & 0x80000000)
