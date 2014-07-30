@@ -1174,12 +1174,13 @@ static void sha3_process_block72(uint64_t *state)
 
 	combine_halves(state);
 #else
-	/* Elements should be 64-bit, but top half is always zero or 0x80000000.
-	 * We encode 63rd bits in a separate word below.
-	 * Same is true for 31th bits, which lets us use 16-bit table instead of 64-bit.
-	 * The speed penalty is lost in the noise.
-	 */
+	/* Native 64-bit algorithm */
 	static const uint16_t IOTA_CONST[NROUNDS] = {
+		/* Elements should be 64-bit, but top half is always zero
+		 * or 0x80000000. We encode 63rd bits in a separate word below.
+		 * Same is true for 31th bits, which lets us use 16-bit table
+		 * instead of 64-bit. The speed penalty is lost in the noise.
+		 */
 		0x0001,
 		0x8082,
 		0x808a,
@@ -1283,7 +1284,7 @@ static void sha3_process_block72(uint64_t *state)
 #undef RhoPi_twice
 		}
 		/* Chi */
-#if LONG_MAX > 0x7fffffff
+# if LONG_MAX > 0x7fffffff
 		for (x = 0; x <= 20; x += 5) {
 			uint64_t BC0, BC1, BC2, BC3, BC4;
 			BC0 = state[x + 0];
@@ -1297,7 +1298,7 @@ static void sha3_process_block72(uint64_t *state)
 			state[x + 3] = BC3 ^ ((~BC4) & BC0);
 			state[x + 4] = BC4 ^ ((~BC0) & BC1);
 		}
-#else
+# else
 		/* Reduced register pressure version
 		 * for register-starved 32-bit arches
 		 * (i386: -95 bytes, and it is _faster_)
@@ -1305,9 +1306,9 @@ static void sha3_process_block72(uint64_t *state)
 		for (x = 0; x <= 40;) {
 			uint32_t BC0, BC1, BC2, BC3, BC4;
 			uint32_t *const s32 = (uint32_t*)state;
-# if SHA3_SMALL
+#  if SHA3_SMALL
  do_half:
-#endif
+#  endif
 			BC0 = s32[x + 0*2];
 			BC1 = s32[x + 1*2];
 			BC2 = s32[x + 2*2];
@@ -1319,11 +1320,11 @@ static void sha3_process_block72(uint64_t *state)
 			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
 			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
 			x++;
-# if SHA3_SMALL
+#  if SHA3_SMALL
 			if (x & 1)
 				goto do_half;
 			x += 8;
-# else
+#  else
 			BC0 = s32[x + 0*2];
 			BC1 = s32[x + 1*2];
 			BC2 = s32[x + 2*2];
@@ -1335,9 +1336,9 @@ static void sha3_process_block72(uint64_t *state)
 			s32[x + 3*2] = BC3 ^ ((~BC4) & BC0);
 			s32[x + 4*2] = BC4 ^ ((~BC0) & BC1);
 			x += 9;
-# endif
+#  endif
 		}
-#endif
+# endif /* long is 32-bit */
 		/* Iota */
 		state[0] ^= IOTA_CONST[round]
 			| (uint32_t)((IOTA_CONST_bit31 << round) & 0x80000000)
