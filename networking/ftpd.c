@@ -1172,18 +1172,6 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	if (logmode)
 		applet_name = xasprintf("%s[%u]", applet_name, (int)getpid());
 
-#if !BB_MMU
-	G.root_fd = -1;
-#endif
-	argv += optind;
-	if (argv[0]) {
-#if !BB_MMU
-		G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
-		close_on_exec_on(G.root_fd);
-#endif
-		xchroot(argv[0]);
-	}
-
 	//umask(077); - admin can set umask before starting us
 
 	/* Signals. We'll always take -EPIPE rather than a rude signal, thanks */
@@ -1199,23 +1187,22 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	WRITE_OK(FTP_GREET);
 	signal(SIGALRM, timeout_handler);
 
-#ifdef IF_WE_WANT_TO_REQUIRE_LOGIN
+#if ENABLE_FEATURE_FTP_AUTHENTICATION
 	{
-		smallint user_was_specified = 0;
+		struct passwd *pw = NULL;
+
 		while (1) {
 			uint32_t cmdval = cmdio_get_cmd_and_arg();
 
 			if (cmdval == const_USER) {
-				if (G.ftp_arg == NULL || strcasecmp(G.ftp_arg, "anonymous") != 0)
-					cmdio_write_raw(STR(FTP_LOGINERR)" Server is anonymous only\r\n");
-				else {
-					user_was_specified = 1;
-					cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify the password\r\n");
-				}
+				pw = getpwnam(G.ftp_arg);
+				cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify password\r\n");
 			} else if (cmdval == const_PASS) {
-				if (user_was_specified)
-					break;
-				cmdio_write_raw(STR(FTP_NEEDUSER)" Login with USER\r\n");
+				if (check_password(pw, G.ftp_arg) > 0) {
+					break;	/* login success */
+				}
+				cmdio_write_raw(STR(FTP_LOGINERR)" Login failed\r\n");
+				pw = NULL;
 			} else if (cmdval == const_QUIT) {
 				WRITE_OK(FTP_GOODBYE);
 				return 0;
@@ -1223,9 +1210,23 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 				cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
 			}
 		}
+		change_identity(pw);
 	}
 	WRITE_OK(FTP_LOGINOK);
 #endif
+
+	/* Do this after auth, else /etc/passwd is not accessible */
+#if !BB_MMU
+	G.root_fd = -1;
+#endif
+	argv += optind;
+	if (argv[0]) {
+#if !BB_MMU
+		G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
+		close_on_exec_on(G.root_fd);
+#endif
+		xchroot(argv[0]);
+	}
 
 	/* RFC-959 Section 5.1
 	 * The following commands and options MUST be supported by every

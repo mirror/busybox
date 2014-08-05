@@ -150,6 +150,7 @@ lib-$(CONFIG_VLOCK) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_SU) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_LOGIN) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) += pw_encrypt.o
+lib-$(CONFIG_FEATURE_FTP_AUTHENTICATION) += pw_encrypt.o
 
 lib-$(CONFIG_DF) += find_mount_point.o
 lib-$(CONFIG_MKFS_MINIX) += find_mount_point.o

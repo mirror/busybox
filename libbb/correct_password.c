@@ -30,6 +30,63 @@
 
 #include "libbb.h"
 
+#define SHADOW_BUFSIZE 256
+
+/* Retrieve encrypted password string for pw.
+ * If pw == NULL, return a string which fails password check against any
+ * password.
+ */
+#if !ENABLE_FEATURE_SHADOWPASSWDS
+#define get_passwd(pw, buffer) get_passwd(pw)
+#endif
+static const char *get_passwd(const struct passwd *pw, char buffer[SHADOW_BUFSIZE])
+{
+	const char *pass;
+
+	if (!pw)
+		return "aa"; /* "aa" will never match */
+
+	pass = pw->pw_passwd;
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	/* Using _r function to avoid pulling in static buffers */
+	if ((pass[0] == 'x' || pass[0] == '*') && !pass[1]) {
+		struct spwd spw;
+		int r;
+		/* getspnam_r may return 0 yet set result to NULL.
+		 * At least glibc 2.4 does this. Be extra paranoid here. */
+		struct spwd *result = NULL;
+		r = getspnam_r(pw->pw_name, &spw, buffer, SHADOW_BUFSIZE, &result);
+		pass = (r || !result) ? "aa" : result->sp_pwdp;
+	}
+#endif
+	return pass;
+}
+
+/*
+ * Return 1 if PW has an empty password.
+ * Return 1 if the user gives the correct password for entry PW,
+ * 0 if not.
+ * NULL pw means "just fake it for login with bad username"
+ */
+int FAST_FUNC check_password(const struct passwd *pw, const char *plaintext)
+{
+	IF_FEATURE_SHADOWPASSWDS(char buffer[SHADOW_BUFSIZE];)
+	char *encrypted;
+	const char *pw_pass;
+	int r;
+
+	pw_pass = get_passwd(pw, buffer);
+	if (!pw_pass[0]) { /* empty password field? */
+		return 1;
+	}
+
+	encrypted = pw_encrypt(plaintext, /*salt:*/ pw_pass, 1);
+	r = (strcmp(encrypted, pw_pass) == 0);
+	free(encrypted);
+	return r;
+}
+
+
 /* Ask the user for a password.
  * Return 1 without asking if PW has an empty password.
  * Return -1 on EOF, error while reading input, or timeout.
@@ -41,42 +98,23 @@
 int FAST_FUNC ask_and_check_password_extended(const struct passwd *pw,
 		int timeout, const char *prompt)
 {
-	char *unencrypted, *encrypted;
-	const char *correct;
+	IF_FEATURE_SHADOWPASSWDS(char buffer[SHADOW_BUFSIZE];)
+	char *plaintext;
+	const char *pw_pass;
 	int r;
-	/* fake salt. crypt() can choke otherwise. */
-	correct = "aa";
-	if (!pw) {
-		/* "aa" will never match */
-		goto fake_it;
-	}
-	correct = pw->pw_passwd;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	/* Using _r function to avoid pulling in static buffers */
-	if ((correct[0] == 'x' || correct[0] == '*') && !correct[1]) {
-		struct spwd spw;
-		char buffer[256];
-		/* getspnam_r may return 0 yet set result to NULL.
-		 * At least glibc 2.4 does this. Be extra paranoid here. */
-		struct spwd *result = NULL;
-		r = getspnam_r(pw->pw_name, &spw, buffer, sizeof(buffer), &result);
-		correct = (r || !result) ? "aa" : result->sp_pwdp;
-	}
-#endif
 
-	if (!correct[0]) /* empty password field? */
+	pw_pass = get_passwd(pw, buffer);
+	if (!pw_pass[0]) /* empty password field? */
 		return 1;
 
- fake_it:
-	unencrypted = bb_ask(STDIN_FILENO, timeout, prompt);
-	if (!unencrypted) {
+	plaintext = bb_ask(STDIN_FILENO, timeout, prompt);
+	if (!plaintext) {
 		/* EOF (such as ^D) or error (such as ^C) or timeout */
 		return -1;
 	}
-	encrypted = pw_encrypt(unencrypted, correct, 1);
-	r = (strcmp(encrypted, correct) == 0);
-	free(encrypted);
-	nuke_str(unencrypted);
+
+	r = check_password(pw, plaintext);
+	nuke_str(plaintext);
 	return r;
 }
 

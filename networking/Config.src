@@ -134,6 +134,13 @@ config FEATURE_FTPD_ACCEPT_BROKEN_LIST
 	  it increases the code size by ~40 bytes.
 	  Most other ftp servers seem to behave similar to this.
 
+config FEATURE_FTP_AUTHENTICATION
+	bool "Enable authentication"
+	default y
+	depends on FTPD
+	help
+	  Enable basic system login as seen in telnet etc.
+
 config FTPGET
 	bool "ftpget"
 	default y
