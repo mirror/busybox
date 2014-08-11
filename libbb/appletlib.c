@@ -184,8 +184,7 @@ void lbb_prepare(const char *applet
 #endif
 	applet_name = applet;
 
-	/* Set locale for everybody except 'init' */
-	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
+	if (ENABLE_LOCALE_SUPPORT)
 		setlocale(LC_ALL, "");
 
 #if ENABLE_FEATURE_INDIVIDUAL
