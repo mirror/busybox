@@ -1985,10 +1985,14 @@ static void reinit_unicode_for_hush(void)
 	 * _during_ shell execution, not only if it was set when
 	 * shell was started. Therefore, re-check LANG every time:
 	 */
-	const char *s = get_local_var_value("LC_ALL");
-	if (!s) s = get_local_var_value("LC_CTYPE");
-	if (!s) s = get_local_var_value("LANG");
-	reinit_unicode(s);
+	if (ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
+	 || ENABLE_UNICODE_USING_LOCALE
+        ) {
+		const char *s = get_local_var_value("LC_ALL");
+		if (!s) s = get_local_var_value("LC_CTYPE");
+		if (!s) s = get_local_var_value("LANG");
+		reinit_unicode(s);
+	}
 }
 
 

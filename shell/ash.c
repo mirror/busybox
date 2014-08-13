@@ -9661,7 +9661,9 @@ preadfd(void)
 		 * _during_ shell execution, not only if it was set when
 		 * shell was started. Therefore, re-check LANG every time:
 		 */
-		{
+		if (ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
+		 || ENABLE_UNICODE_USING_LOCALE
+		) {
 			const char *s = lookupvar("LC_ALL");
 			if (!s) s = lookupvar("LC_CTYPE");
 			if (!s) s = lookupvar("LANG");
