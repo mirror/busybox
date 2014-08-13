@@ -2121,6 +2121,22 @@ lookupvar(const char *name)
 	return NULL;
 }
 
+static void reinit_unicode_for_ash(void)
+{
+	/* Unicode support should be activated even if LANG is set
+	 * _during_ shell execution, not only if it was set when
+	 * shell was started. Therefore, re-check LANG every time:
+	 */
+	if (ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
+	 || ENABLE_UNICODE_USING_LOCALE
+	) {
+		const char *s = lookupvar("LC_ALL");
+		if (!s) s = lookupvar("LC_CTYPE");
+		if (!s) s = lookupvar("LANG");
+		reinit_unicode(s);
+	}
+}
+
 /*
  * Search the environment of a builtin command.
  */
@@ -6798,7 +6814,15 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		varunset(p, var, 0, 0);
 
 	if (subtype == VSLENGTH) {
-		cvtnum(varlen > 0 ? varlen : 0);
+		ssize_t n = varlen;
+		if (n > 0) {
+			reinit_unicode_for_ash();
+			if (unicode_status == UNICODE_ON) {
+				const char *val = lookupvar(var);
+				n = unicode_strlen(val);
+			}
+		}
+		cvtnum(n > 0 ? n : 0);
 		goto record;
 	}
 
@@ -9657,18 +9681,7 @@ preadfd(void)
 # if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
 # endif
-		/* Unicode support should be activated even if LANG is set
-		 * _during_ shell execution, not only if it was set when
-		 * shell was started. Therefore, re-check LANG every time:
-		 */
-		if (ENABLE_FEATURE_CHECK_UNICODE_IN_ENV
-		 || ENABLE_UNICODE_USING_LOCALE
-		) {
-			const char *s = lookupvar("LC_ALL");
-			if (!s) s = lookupvar("LC_CTYPE");
-			if (!s) s = lookupvar("LANG");
-			reinit_unicode(s);
-		}
+		reinit_unicode_for_ash();
 		nr = read_line_input(line_input_state, cmdedit_prompt, buf, IBUFSIZ, timeout);
 		if (nr == 0) {
 			/* Ctrl+C pressed */
