@@ -11,9 +11,9 @@
  */
 
 //usage:#define addgroup_trivial_usage
-//usage:       "[-g GID] " IF_FEATURE_ADDUSER_TO_GROUP("[USER] ") "GROUP"
+//usage:       "[-g GID] [-S] " IF_FEATURE_ADDUSER_TO_GROUP("[USER] ") "GROUP"
 //usage:#define addgroup_full_usage "\n\n"
-//usage:       "Add a group " IF_FEATURE_ADDUSER_TO_GROUP("or add a user to a group") "\n"
+//usage:       "Add a group" IF_FEATURE_ADDUSER_TO_GROUP(" or add a user to a group") "\n"
 //usage:     "\n	-g GID	Group id"
 //usage:     "\n	-S	Create a system group"
 
