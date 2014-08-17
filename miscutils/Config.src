@@ -499,22 +499,6 @@ config STRINGS
 	  strings prints the printable character sequences for each file
 	  specified.
 
-config TASKSET
-	bool "taskset"
-	default n  # doesn't build on some non-x86 targets (m68k)
-	help
-	  Retrieve or set a processes's CPU affinity.
-	  This requires sched_{g,s}etaffinity support in your libc.
-
-config FEATURE_TASKSET_FANCY
-	bool "Fancy output"
-	default y
-	depends on TASKSET
-	help
-	  Add code for fancy output. This merely silences a compiler-warning
-	  and adds about 135 Bytes. May be needed for machines with alot
-	  of CPUs.
-
 config TIME
 	bool "time"
 	default y
