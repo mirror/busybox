@@ -176,7 +176,7 @@ int taskset_main(int argc UNUSED_PARAM, char **argv)
 		/* Cheap way to get "long enough" buffer */
 		bin = xstrdup(aff);
 
-		if (aff[0] != '0' && (aff[1]|0x20) != 'x') {
+		if (aff[0] != '0' || (aff[1]|0x20) != 'x') {
 /* TODO: decimal/octal masks are still limited to 2^64 */
 			unsigned long long m = xstrtoull_range(aff, 0, 1, ULLONG_MAX);
 			bin += strlen(bin);
