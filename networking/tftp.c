@@ -117,8 +117,9 @@ struct globals {
 	/* u16 TFTP_ERROR; u16 reason; both network-endian, then error text: */
 	uint8_t error_pkt[4 + 32];
 	struct passwd *pw;
-	/* used in tftpd_main(), a bit big for stack: */
-	char block_buf[TFTP_BLKSIZE_DEFAULT];
+	/* Used in tftpd_main() for initial packet */
+	/* Some HP PA-RISC firmware always sends fixed 516-byte requests */
+	char block_buf[516];
 	char block_buf_tail[1];
 #if ENABLE_FEATURE_TFTP_PROGRESS_BAR
 	off_t pos;
@@ -811,7 +812,7 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 	) {
 		goto err;
 	}
-	/* Some HP PA-RISC firmware always sends fixed 512-byte requests,
+	/* Some HP PA-RISC firmware always sends fixed 516-byte requests,
 	 * with trailing garbage.
 	 * Support that by not requiring NUL to be the last byte (see above).
 	 * To make strXYZ() ops safe, force NUL termination:
