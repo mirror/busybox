@@ -558,8 +558,8 @@ ACTF(type)
 #if ENABLE_FEATURE_FIND_PERM
 ACTF(perm)
 {
-	/* -perm +mode: at least one of perm_mask bits are set */
-	if (ap->perm_char == '+')
+	/* -perm [+/]mode: at least one of perm_mask bits are set */
+	if (ap->perm_char == '+' || ap->perm_char == '/')
 		return (statbuf->st_mode & ap->perm_mask) != 0;
 	/* -perm -mode: all of perm_mask are set */
 	if (ap->perm_char == '-')
@@ -1252,14 +1252,14 @@ static action*** parse_params(char **argv)
 /* -perm BITS   File's mode bits are exactly BITS (octal or symbolic).
  *              Symbolic modes use mode 0 as a point of departure.
  * -perm -BITS  All of the BITS are set in file's mode.
- * -perm +BITS  At least one of the BITS is set in file's mode.
+ * -perm [+/]BITS  At least one of the BITS is set in file's mode.
  */
 		else if (parm == PARM_perm) {
 			action_perm *ap;
 			dbg("%d", __LINE__);
 			ap = ALLOC_ACTION(perm);
 			ap->perm_char = arg1[0];
-			arg1 = plus_minus_num(arg1);
+			arg1 = (arg1[0] == '/' ? arg1+1 : plus_minus_num(arg1));
 			/*ap->perm_mask = 0; - ALLOC_ACTION did it */
 			if (!bb_parse_mode(arg1, &ap->perm_mask))
 				bb_error_msg_and_die("invalid mode '%s'", arg1);
