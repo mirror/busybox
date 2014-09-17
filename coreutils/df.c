@@ -25,6 +25,7 @@
 //usage:#define df_trivial_usage
 //usage:	"[-Pk"
 //usage:	IF_FEATURE_HUMAN_READABLE("mh")
+//usage:	"T"
 //usage:	IF_FEATURE_DF_FANCY("ai] [-B SIZE")
 //usage:	"] [FILESYSTEM]..."
 //usage:#define df_full_usage "\n\n"
@@ -35,6 +36,7 @@
 //usage:     "\n	-m	1M-byte blocks"
 //usage:     "\n	-h	Human readable (e.g. 1K 243M 2G)"
 //usage:	)
+//usage:     "\n	-T	Print filesystem type"
 //usage:	IF_FEATURE_DF_FANCY(
 //usage:     "\n	-a	Show all filesystems"
 //usage:     "\n	-i	Inodes"
@@ -88,6 +90,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 		OPT_BSIZE = (1 << 4) * ENABLE_FEATURE_DF_FANCY,
 		OPT_HUMAN = (1 << (2 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
 		OPT_MEGA  = (1 << (3 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
+		OPT_FSTYPE  = (1 << (4 + 3*ENABLE_FEATURE_DF_FANCY)),
 	};
 	const char *disp_units_hdr = NULL;
 	char *chp;
@@ -102,6 +105,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	opt = getopt32(argv, "kP"
 			IF_FEATURE_DF_FANCY("aiB:")
 			IF_FEATURE_HUMAN_READABLE("hm")
+			"T"
 			IF_FEATURE_DF_FANCY(, &chp));
 	if (opt & OPT_MEGA)
 		df_disp_hr = 1024*1024;
@@ -134,8 +138,11 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 		disp_units_hdr = xasprintf("%lu-blocks", df_disp_hr);
 #endif
 	}
-	printf("Filesystem           %-15sUsed Available %s Mounted on\n",
-			disp_units_hdr, (opt & OPT_POSIX) ? "Capacity" : "Use%");
+
+	printf("Filesystem           %s%-15sUsed Available %s Mounted on\n",
+			(opt & OPT_FSTYPE) ? "Type       " : "",
+			disp_units_hdr,
+			(opt & OPT_POSIX) ? "Capacity" : "Use%");
 
 	mount_table = NULL;
 	argv += optind;
@@ -148,6 +155,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	while (1) {
 		const char *device;
 		const char *mount_point;
+		const char *fs_type;
 
 		if (mount_table) {
 			mount_entry = getmntent(mount_table);
@@ -170,6 +178,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 
 		device = mount_entry->mnt_fsname;
 		mount_point = mount_entry->mnt_dir;
+		fs_type = mount_entry->mnt_type;
 
 		if (statfs(mount_point, &s) != 0) {
 			bb_simple_perror_msg(mount_point);
@@ -218,10 +227,22 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 					printf("%s%*s", uni_dev, 20 - (int)uni_stat.unicode_width, "");
 				}
 				free(uni_dev);
+				if (opt & OPT_FSTYPE) {
+					char *uni_type = unicode_conv_to_printable(&uni_stat, fs_type);
+					if (uni_stat.unicode_width > 10 && !(opt & OPT_POSIX))
+						printf(" %s\n%31s", uni_type, "");
+					else
+						printf(" %s%*s", uni_type, 10 - (int)uni_stat.unicode_width, "");
+					free(uni_type);
+				}
 			}
 #else
 			if (printf("\n%-20s" + 1, device) > 20 && !(opt & OPT_POSIX))
 				printf("\n%-20s", "");
+			if (opt & OPT_FSTYPE) {
+				if (printf(" %-10s", fs_type) > 11 && !(opt & OPT_POSIX))
+					printf("\n%-30s", "");
+			}
 #endif
 
 #if ENABLE_FEATURE_HUMAN_READABLE
