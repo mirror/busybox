@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #undef ARRAY_SIZE
 #define ARRAY_SIZE(x) ((unsigned)(sizeof(x) / sizeof((x)[0])))
@@ -47,6 +48,16 @@ static int cmp_name(const void *a, const void *b)
 	const struct bb_applet *aa = a;
 	const struct bb_applet *bb = b;
 	return strcmp(aa->name, bb->name);
+}
+
+static int str_isalnum_(const char *s)
+{
+	while (*s) {
+		if (!isalnum(*s) && *s != '_')
+			return 0;
+		s++;
+	}
+	return 1;
 }
 
 int main(int argc, char **argv)
@@ -93,6 +104,12 @@ int main(int argc, char **argv)
 //			MAX_APPLET_NAME_LEN = strlen(applets[i].name);
 	}
 	printf(";\n\n");
+
+	for (i = 0; i < NUM_APPLETS; i++) {
+		if (str_isalnum_(applets[i].name))
+			printf("#define APPLET_NO_%s %d\n", applets[i].name, i);
+	}
+	printf("\n");
 
 	printf("#ifndef SKIP_applet_main\n");
 	printf("int (*const applet_main[])(int argc, char **argv) = {\n");
