@@ -1472,12 +1472,6 @@ update_local_clock(peer_t *p)
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
 
-		if (G.poll_exp < MINPOLL && G.initial_poll_complete) {
-			VERB4 bb_error_msg("small offset:%+f, disabling burst mode", offset);
-			G.polladj_count = 0;
-			G.poll_exp = MINPOLL;
-		}
-
 		/* Compute the clock jitter as the RMS of exponentially
 		 * weighted offset differences. Used by the poll adjust code.
 		 */
@@ -2242,6 +2236,9 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 				if (p->p_fd == -1) {
 					/* Time to send new req */
 					if (--cnt == 0) {
+						VERB4 bb_error_msg("disabling burst mode");
+						G.polladj_count = 0;
+						G.poll_exp = MINPOLL;
 						G.initial_poll_complete = 1;
 					}
 					send_query_to_peer(p);
