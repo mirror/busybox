@@ -1679,6 +1679,41 @@ poll_interval(int exponent)
 	return interval;
 }
 static NOINLINE void
+adjust_poll(int count)
+{
+	G.polladj_count += count;
+	if (G.polladj_count > POLLADJ_LIMIT) {
+		G.polladj_count = 0;
+		if (G.poll_exp < MAXPOLL) {
+			G.poll_exp++;
+			VERB4 bb_error_msg("polladj: discipline_jitter:%f ++poll_exp=%d",
+					G.discipline_jitter, G.poll_exp);
+		}
+	} else if (G.polladj_count < -POLLADJ_LIMIT || (count < 0 && G.poll_exp >= BIGPOLL)) {
+		G.polladj_count = 0;
+		if (G.poll_exp > MINPOLL) {
+			llist_t *item;
+
+			G.poll_exp--;
+			/* Correct p->next_action_time in each peer
+			 * which waits for sending, so that they send earlier.
+			 * Old pp->next_action_time are on the order
+			 * of t + (1 << old_poll_exp) + small_random,
+			 * we simply need to subtract ~half of that.
+			 */
+			for (item = G.ntp_peers; item != NULL; item = item->link) {
+				peer_t *pp = (peer_t *) item->data;
+				if (pp->p_fd < 0)
+					pp->next_action_time -= (1 << G.poll_exp);
+			}
+			VERB4 bb_error_msg("polladj: discipline_jitter:%f --poll_exp=%d",
+					G.discipline_jitter, G.poll_exp);
+		}
+	} else {
+		VERB4 bb_error_msg("polladj: count:%d", G.polladj_count);
+	}
+}
+static NOINLINE void
 recv_and_process_peer_pkt(peer_t *p)
 {
 	int         rc;
@@ -1837,7 +1872,8 @@ recv_and_process_peer_pkt(peer_t *p)
 			 */
 			if (fabs(q->filter_offset) >= POLLDOWN_OFFSET) {
 				VERB4 bb_error_msg("offset:%+f > POLLDOWN_OFFSET", q->filter_offset);
-				goto poll_down;
+				adjust_poll(-POLLADJ_LIMIT * 3);
+				rc = 0;
 			}
 		}
 	}
@@ -1853,43 +1889,9 @@ recv_and_process_peer_pkt(peer_t *p)
 		if (rc > 0 && G.offset_to_jitter_ratio <= POLLADJ_GATE) {
 			/* was += G.poll_exp but it is a bit
 			 * too optimistic for my taste at high poll_exp's */
-			G.polladj_count += MINPOLL;
-			if (G.polladj_count > POLLADJ_LIMIT) {
-				G.polladj_count = 0;
-				if (G.poll_exp < MAXPOLL) {
-					G.poll_exp++;
-					VERB4 bb_error_msg("polladj: discipline_jitter:%f ++poll_exp=%d",
-							G.discipline_jitter, G.poll_exp);
-				}
-			} else {
-				VERB4 bb_error_msg("polladj: incr:%d", G.polladj_count);
-			}
+			adjust_poll(MINPOLL);
 		} else {
-			G.polladj_count -= G.poll_exp * 2;
-			if (G.polladj_count < -POLLADJ_LIMIT || G.poll_exp >= BIGPOLL) {
- poll_down:
-				G.polladj_count = 0;
-				if (G.poll_exp > MINPOLL) {
-					llist_t *item;
-
-					G.poll_exp--;
-					/* Correct p->next_action_time in each peer
-					 * which waits for sending, so that they send earlier.
-					 * Old pp->next_action_time are on the order
-					 * of t + (1 << old_poll_exp) + small_random,
-					 * we simply need to subtract ~half of that.
-					 */
-					for (item = G.ntp_peers; item != NULL; item = item->link) {
-						peer_t *pp = (peer_t *) item->data;
-						if (pp->p_fd < 0)
-							pp->next_action_time -= (1 << G.poll_exp);
-					}
-					VERB4 bb_error_msg("polladj: discipline_jitter:%f --poll_exp=%d",
-							G.discipline_jitter, G.poll_exp);
-				}
-			} else {
-				VERB4 bb_error_msg("polladj: decr:%d", G.polladj_count);
-			}
+			adjust_poll(-G.poll_exp * 2);
 		}
 	}
 
