@@ -85,12 +85,12 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 	enum {
 		OPT_KILO  = (1 << 0),
 		OPT_POSIX = (1 << 1),
-		OPT_ALL   = (1 << 2) * ENABLE_FEATURE_DF_FANCY,
-		OPT_INODE = (1 << 3) * ENABLE_FEATURE_DF_FANCY,
-		OPT_BSIZE = (1 << 4) * ENABLE_FEATURE_DF_FANCY,
-		OPT_HUMAN = (1 << (2 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
-		OPT_MEGA  = (1 << (3 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
-		OPT_FSTYPE  = (1 << (4 + 3*ENABLE_FEATURE_DF_FANCY)),
+		OPT_FSTYPE  = (1 << 2),
+		OPT_ALL   = (1 << 3) * ENABLE_FEATURE_DF_FANCY,
+		OPT_INODE = (1 << 4) * ENABLE_FEATURE_DF_FANCY,
+		OPT_BSIZE = (1 << 5) * ENABLE_FEATURE_DF_FANCY,
+		OPT_HUMAN = (1 << (3 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
+		OPT_MEGA  = (1 << (4 + 3*ENABLE_FEATURE_DF_FANCY)) * ENABLE_FEATURE_HUMAN_READABLE,
 	};
 	const char *disp_units_hdr = NULL;
 	char *chp;
@@ -102,10 +102,9 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 #elif ENABLE_FEATURE_HUMAN_READABLE
 	opt_complementary = "k-m:m-k";
 #endif
-	opt = getopt32(argv, "kP"
+	opt = getopt32(argv, "kPT"
 			IF_FEATURE_DF_FANCY("aiB:")
 			IF_FEATURE_HUMAN_READABLE("hm")
-			"T"
 			IF_FEATURE_DF_FANCY(, &chp));
 	if (opt & OPT_MEGA)
 		df_disp_hr = 1024*1024;
