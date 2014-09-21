@@ -491,6 +491,11 @@ static void read_lines(void)
 			*p++ = c;
 			*p = '\0';
 		} /* end of "read chars until we have a line" loop */
+#if 0
+//BUG: also triggers on this:
+// { printf "\nfoo\n"; sleep 1; printf "\nbar\n"; } | less
+// (resulting in lost empty line between "foo" and "bar" lines)
+// the "terminated" logic needs fixing (or explaining)
 		/* Corner case: linewrap with only "" wrapping to next line */
 		/* Looks ugly on screen, so we do not store this empty line */
 		if (!last_terminated && !current_line[0]) {
@@ -498,6 +503,7 @@ static void read_lines(void)
 			max_lineno++;
 			continue;
 		}
+#endif
  reached_eof:
 		last_terminated = terminated;
 		flines = xrealloc_vector(flines, 8, max_fline);
