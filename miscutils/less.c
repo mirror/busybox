@@ -428,14 +428,13 @@ static void read_lines(void)
 		w -= 8;
 
 	p = current_line = ((char*)xmalloc(w + 4)) + 4;
-	max_fline += last_terminated;
 	if (!last_terminated) {
 		const char *cp = flines[max_fline];
-		strcpy(p, cp);
-		p += strlen(current_line);
-		free(MEMPTR(flines[max_fline]));
+		p = stpcpy(p, cp);
+		free(MEMPTR(cp));
 		/* last_line_pos is still valid from previous read_lines() */
 	} else {
+		max_fline++;
 		last_line_pos = 0;
 	}
 
