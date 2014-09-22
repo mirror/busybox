@@ -414,10 +414,10 @@ static void read_lines(void)
 	char *current_line, *p;
 	int w = width;
 	char last_terminated = terminated;
+	time_t last_time = 0;
+	int retry_EAGAIN = 2;
 #if ENABLE_FEATURE_LESS_REGEXP
 	unsigned old_max_fline = max_fline;
-	time_t last_time = 0;
-	int had_progress = 2;
 #endif
 
 	/* (careful: max_fline can be -1) */
@@ -426,8 +426,6 @@ static void read_lines(void)
 
 	if (option_mask32 & FLAG_N)
 		w -= 8;
-
- IF_FEATURE_LESS_REGEXP(again0:)
 
 	p = current_line = ((char*)xmalloc(w + 4)) + 4;
 	max_fline += last_terminated;
@@ -448,15 +446,29 @@ static void read_lines(void)
 			char c;
 			/* if no unprocessed chars left, eat more */
 			if (readpos >= readeof) {
-				errno = 0;
-				ndelay_on(0);
-				eof_error = safe_read(STDIN_FILENO, readbuf, sizeof(readbuf));
-				ndelay_off(0);
+				int flags = ndelay_on(0);
+
+				while (1) {
+					time_t t;
+
+					errno = 0;
+					eof_error = safe_read(STDIN_FILENO, readbuf, sizeof(readbuf));
+					if (errno != EAGAIN)
+						break;
+					t = time(NULL);
+					if (t != last_time) {
+						last_time = t;
+						if (--retry_EAGAIN < 0)
+							break;
+					}
+					sched_yield();
+				}
+				fcntl(0, F_SETFL, flags); /* ndelay_off(0) */
 				readpos = 0;
 				readeof = eof_error;
 				if (eof_error <= 0)
 					goto reached_eof;
-				IF_FEATURE_LESS_REGEXP(had_progress = 1;)
+				retry_EAGAIN = 1;
 			}
 			c = readbuf[readpos];
 			/* backspace? [needed for manpages] */
@@ -534,24 +546,7 @@ static void read_lines(void)
 #endif
 		}
 		if (eof_error <= 0) {
-#if !ENABLE_FEATURE_LESS_REGEXP
 			break;
-#else
-			if (wanted_match < num_matches) {
-				break;
-			} /* else: goto_match() called us */
-			if (errno == EAGAIN) {
-				time_t t = time(NULL);
-				if (t != last_time) {
-					last_time = t;
-					if (--had_progress < 0)
-						break;
-				}
-				sched_yield();
-				goto again0;
-			}
-			break;
-#endif
 		}
 		max_fline++;
 		current_line = ((char*)xmalloc(w + 4)) + 4;

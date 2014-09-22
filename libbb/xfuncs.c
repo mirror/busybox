@@ -25,20 +25,22 @@
 #include "libbb.h"
 
 /* Turn on nonblocking I/O on a fd */
-void FAST_FUNC ndelay_on(int fd)
+int FAST_FUNC ndelay_on(int fd)
 {
 	int flags = fcntl(fd, F_GETFL);
 	if (flags & O_NONBLOCK)
-		return;
+		return flags;
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	return flags;
 }
 
-void FAST_FUNC ndelay_off(int fd)
+int FAST_FUNC ndelay_off(int fd)
 {
 	int flags = fcntl(fd, F_GETFL);
 	if (!(flags & O_NONBLOCK))
-		return;
+		return flags;
 	fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+	return flags;
 }
 
 void FAST_FUNC close_on_exec_on(int fd)
