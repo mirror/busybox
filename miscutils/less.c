@@ -802,11 +802,18 @@ static void buffer_print(void)
 	unsigned i;
 
 	move_cursor(0, 0);
-	for (i = 0; i <= max_displayed_line; i++)
+	for (i = 0; i <= max_displayed_line; i++) {
 		if (pattern_valid)
 			print_found(buffer[i]);
 		else
 			print_ascii(buffer[i]);
+	}
+	if ((option_mask32 & FLAG_E)
+	 && eof_error <= 0
+	 && (max_fline - cur_fline) <= max_displayed_line
+	) {
+		less_exit(EXIT_SUCCESS);
+	}
 	status_print();
 }
 
