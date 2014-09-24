@@ -8,7 +8,7 @@
 
 /* -v, -b, -c are ignored */
 //usage:#define install_trivial_usage
-//usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [-d DIR] [SOURCE]... DEST"
+//usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [-t DIR] [SOURCE]... DEST"
 //usage:#define install_full_usage "\n\n"
 //usage:       "Copy files and set attributes\n"
 //usage:     "\n	-c	Just copy (default)"
