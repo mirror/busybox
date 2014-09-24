@@ -8,7 +8,7 @@
 
 /* -v, -b, -c are ignored */
 //usage:#define install_trivial_usage
-//usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [SOURCE]... DEST"
+//usage:	"[-cdDsp] [-o USER] [-g GRP] [-m MODE] [-d DIR] [SOURCE]... DEST"
 //usage:#define install_full_usage "\n\n"
 //usage:       "Copy files and set attributes\n"
 //usage:     "\n	-c	Just copy (default)"
@@ -19,6 +19,7 @@
 //usage:     "\n	-o USER	Set ownership"
 //usage:     "\n	-g GRP	Set group ownership"
 //usage:     "\n	-m MODE	Set permissions"
+//usage:     "\n	-t DIR	Install to DIR"
 //usage:	IF_SELINUX(
 //usage:     "\n	-Z	Set security context"
 //usage:	)
@@ -37,6 +38,7 @@ static const char install_longopts[] ALIGN1 =
 	"group\0"               Required_argument "g"
 	"mode\0"                Required_argument "m"
 	"owner\0"               Required_argument "o"
+	"target-directory\0"	Required_argument "t"
 /* autofs build insists of using -b --suffix=.orig */
 /* TODO? (short option for --suffix is -S) */
 #if ENABLE_SELINUX
@@ -95,9 +97,8 @@ int install_main(int argc, char **argv)
 	int mkdir_flags = FILEUTILS_RECUR;
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
 	int opts;
-	int min_args = 1;
 	int ret = EXIT_SUCCESS;
-	int isdir = 0;
+	int isdir;
 #if ENABLE_SELINUX
 	security_context_t scontext;
 	bool use_default_selinux_context = 1;
@@ -113,20 +114,22 @@ int install_main(int argc, char **argv)
 		OPT_GROUP         = 1 << 7,
 		OPT_MODE          = 1 << 8,
 		OPT_OWNER         = 1 << 9,
+		OPT_TARGET        = 1 << 10,
 #if ENABLE_SELINUX
-		OPT_SET_SECURITY_CONTEXT = 1 << 10,
-		OPT_PRESERVE_SECURITY_CONTEXT = 1 << 11,
+		OPT_SET_SECURITY_CONTEXT = 1 << 11,
+		OPT_PRESERVE_SECURITY_CONTEXT = 1 << 12,
 #endif
 	};
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 	applet_long_options = install_longopts;
 #endif
-	opt_complementary = "s--d:d--s" IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z"));
+	opt_complementary = "t--d:d--t:s--d:d--s" IF_FEATURE_INSTALL_LONG_OPTIONS(IF_SELINUX(":Z--\xff:\xff--Z"));
 	/* -c exists for backwards compatibility, it's needed */
 	/* -b is ignored ("make a backup of each existing destination file") */
-	opts = getopt32(argv, "cvb" "Ddpsg:m:o:" IF_SELINUX("Z:"),
-			&gid_str, &mode_str, &uid_str IF_SELINUX(, &scontext));
+	opts = getopt32(argv, "cvb" "Ddpsg:m:o:t:" IF_SELINUX("Z:"),
+			&gid_str, &mode_str, &uid_str, &last
+			IF_SELINUX(, &scontext));
 	argc -= optind;
 	argv += optind;
 
@@ -160,20 +163,23 @@ int install_main(int argc, char **argv)
 	uid = (opts & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
 	gid = (opts & OPT_GROUP) ? get_ug_id(gid_str, xgroup2gid) : getgid();
 
-	last = argv[argc - 1];
-	if (!(opts & OPT_DIRECTORY)) {
-		argv[argc - 1] = NULL;
-		min_args++;
-
+	/* If -t DIR is in use, then isdir=true, last="DIR" */
+	isdir = (opts & OPT_TARGET);
+	if (!(opts & (OPT_TARGET|OPT_DIRECTORY))) {
+		/* Neither -t DIR nor -d is in use */
+		argc--;
+		last = argv[argc];
+		argv[argc] = NULL;
 		/* coreutils install resolves link in this case, don't use lstat */
 		isdir = stat(last, &statbuf) < 0 ? 0 : S_ISDIR(statbuf.st_mode);
 	}
 
-	if (argc < min_args)
+	if (argc < 1)
 		bb_show_usage();
 
 	while ((arg = *argv++) != NULL) {
-		char *dest = last;
+		char *dest;
+
 		if (opts & OPT_DIRECTORY) {
 			dest = arg;
 			/* GNU coreutils 6.9 does not set uid:gid
@@ -184,6 +190,7 @@ int install_main(int argc, char **argv)
 				goto next;
 			}
 		} else {
+			dest = last;
 			if (opts & OPT_MKDIR_LEADING) {
 				char *ddir = xstrdup(dest);
 				bb_make_directory(dirname(ddir), 0755, mkdir_flags);
