@@ -125,19 +125,6 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	strcpy(path, "/sys/class/ubi/ubi");
 	memset(&req_structs, 0, sizeof(req_structs));
 
-	if (do_mkvol) {
-		opt_complementary = "-1:d+:n+:a+";
-		opts = getopt32(argv, "md:n:N:s:a:t:",
-				&dev_num, &vol_id,
-				&vol_name, &size_bytes_str, &alignment, &type
-			);
-	} else {
-		opt_complementary = "-1:m+:d+:n+:a+";
-		opts = getopt32(argv, "m:d:n:N:s:a:t:",
-				&mtd_num, &dev_num, &vol_id,
-				&vol_name, &size_bytes_str, &alignment, &type
-		);
-	}
 #define OPTION_m  (1 << 0)
 #define OPTION_d  (1 << 1)
 #define OPTION_n  (1 << 2)
@@ -145,6 +132,24 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 #define OPTION_s  (1 << 4)
 #define OPTION_a  (1 << 5)
 #define OPTION_t  (1 << 6)
+	if (do_mkvol) {
+		opt_complementary = "-1:d+:n+:a+";
+		opts = getopt32(argv, "md:n:N:s:a:t:",
+				&dev_num, &vol_id,
+				&vol_name, &size_bytes_str, &alignment, &type
+			);
+	} else
+	if (do_update) {
+		opt_complementary = "-1";
+		opts = getopt32(argv, "s:at", &size_bytes_str);
+		opts *= OPTION_s;
+	} else {
+		opt_complementary = "-1:m+:d+:n+:a+";
+		opts = getopt32(argv, "m:d:n:N:s:a:t:",
+				&mtd_num, &dev_num, &vol_id,
+				&vol_name, &size_bytes_str, &alignment, &type
+		);
+	}
 
 	if (opts & OPTION_s)
 		size_bytes = xatoull_sfx(size_bytes_str, size_suffixes);
@@ -302,9 +307,9 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 			if (!(opts & OPTION_s)) {
 				if (!*argv)
 					bb_show_usage();
-				xstat(*argv, &st);
-				size_bytes = st.st_size;
 				xmove_fd(xopen(*argv, O_RDONLY), STDIN_FILENO);
+				xfstat(STDIN_FILENO, &st, *argv);
+				size_bytes = st.st_size;
 			}
 
 			bytes64 = size_bytes;
