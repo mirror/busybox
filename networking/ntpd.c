@@ -109,35 +109,43 @@
  *   datapoints after the step.
  */
 
-#define RETRY_INTERVAL     5    /* on error, retry in N secs */
-#define RESPONSE_INTERVAL 15    /* wait for reply up to N secs */
 #define INITIAL_SAMPLES    4    /* how many samples do we want for init */
 #define BAD_DELAY_GROWTH   4    /* drop packet if its delay grew by more than this */
 
-/* Clock discipline parameters and constants */
+#define RETRY_INTERVAL    32    /* on send/recv error, retry in N secs (need to be power of 2) */
+#define NOREPLY_INTERVAL 512    /* sent, but got no reply: cap next query by this many seconds */
+#define RESPONSE_INTERVAL 16    /* wait for reply up to N secs */
 
 /* Step threshold (sec). std ntpd uses 0.128.
- * Using exact power of 2 (1/8) results in smaller code */
+ * Using exact power of 2 (1/8) results in smaller code
+ */
 #define STEP_THRESHOLD  0.125
-#define WATCH_THRESHOLD 128     /* stepout threshold (sec). std ntpd uses 900 (11 mins (!)) */
+/* Stepout threshold (sec). std ntpd uses 900 (11 mins (!)) */
+#define WATCH_THRESHOLD 128
 /* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
 //UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
+
+/*
+ * If we got |offset| > BIGOFF from a peer, cap next query interval
+ * for this peer by this many seconds:
+ */
+#define BIGOFF          (STEP_THRESHOLD * 8)
+#define BIGOFF_INTERVAL (1 << 7) /* 128 s */
 
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
 #define BURSTPOLL       0       /* initial poll */
 #define MINPOLL         5       /* minimum poll interval. std ntpd uses 6 (6: 64 sec) */
-/* If we got largish offset from a peer, cap next query interval
- * for this peer by this many seconds:
- */
-#define BIGOFF_INTERVAL (1 << 6)
-/* If offset > discipline_jitter * POLLADJ_GATE, and poll interval is >= 2^BIGPOLL,
+/*
+ * If offset > discipline_jitter * POLLADJ_GATE, and poll interval is >= 2^BIGPOLL,
  * then it is decreased _at once_. (If < 2^BIGPOLL, it will be decreased _eventually_).
  */
 #define BIGPOLL         10      /* 2^10 sec ~= 17 min */
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
-/* Actively lower poll when we see such big offsets.
+/*
+ * Actively lower poll when we see such big offsets.
  * With STEP_THRESHOLD = 0.125, it means we try to sync more aggressively
- * if offset increases over ~0.04 sec */
+ * if offset increases over ~0.04 sec
+ */
 #define POLLDOWN_OFFSET (STEP_THRESHOLD / 3)
 #define MINDISP         0.01    /* minimum dispersion (sec) */
 #define MAXDISP         16      /* maximum dispersion (sec) */
@@ -972,6 +980,16 @@ step_time(double offset)
 	}
 }
 
+static void clamp_pollexp_and_set_MAXSTRAT(void)
+{
+	if (G.poll_exp < MINPOLL)
+		G.poll_exp = MINPOLL;
+	if (G.poll_exp >= BIGPOLL)
+		G.poll_exp = BIGPOLL - 1;
+	G.polladj_count = 0;
+	G.stratum = MAXSTRAT;
+}
+
 
 /*
  * Selection and clustering, and their helpers
@@ -1453,9 +1471,7 @@ update_local_clock(peer_t *p)
 			exit(0);
 		}
 
-		G.polladj_count = 0;
-		G.poll_exp = MINPOLL;
-		G.stratum = MAXSTRAT;
+		clamp_pollexp_and_set_MAXSTRAT();
 
 		run_script("step", offset);
 
@@ -1654,28 +1670,16 @@ update_local_clock(peer_t *p)
  * (helpers first)
  */
 static unsigned
-retry_interval(void)
-{
-	/* Local problem, want to retry soon */
-	unsigned interval, r;
-	interval = RETRY_INTERVAL;
-	r = rand();
-	interval += r % (unsigned)(RETRY_INTERVAL / 4);
-	VERB4 bb_error_msg("chose retry interval:%u", interval);
-	return interval;
-}
-static unsigned
-poll_interval(int exponent)
+poll_interval(int upper_bound)
 {
 	unsigned interval, r, mask;
-	exponent = G.poll_exp + exponent;
-	if (exponent < 0)
-		exponent = 0;
-	interval = 1 << exponent;
+	interval = 1 << G.poll_exp;
+	if (interval > upper_bound)
+		interval = upper_bound;
 	mask = ((interval-1) >> 4) | 1;
 	r = rand();
 	interval += r & mask; /* ~ random(0..1) * interval/16 */
-	VERB4 bb_error_msg("chose poll interval:%u (poll_exp:%d exp:%d)", interval, G.poll_exp, exponent);
+	VERB4 bb_error_msg("chose poll interval:%u (poll_exp:%d)", interval, G.poll_exp);
 	return interval;
 }
 static NOINLINE void
@@ -1741,7 +1745,7 @@ recv_and_process_peer_pkt(peer_t *p)
 		 || errno == EAGAIN
 		) {
 //TODO: always do this?
-			interval = retry_interval();
+			interval = poll_interval(RETRY_INTERVAL);
 			goto set_next_and_ret;
 		}
 		xfunc_die();
@@ -1897,8 +1901,8 @@ recv_and_process_peer_pkt(peer_t *p)
 
 	/* Decide when to send new query for this peer */
  pick_normal_interval:
-	interval = poll_interval(0);
-	if (fabs(offset) >= STEP_THRESHOLD * 8 && interval > BIGOFF_INTERVAL) {
+	interval = poll_interval(INT_MAX);
+	if (fabs(offset) >= BIGOFF && interval > BIGOFF_INTERVAL) {
 		/* If we are synced, offsets are less than STEP_THRESHOLD,
 		 * or at the very least not much larger than it.
 		 * Now we see a largish one.
@@ -2248,7 +2252,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 					/* Timed out waiting for reply */
 					close(p->p_fd);
 					p->p_fd = -1;
-					timeout = poll_interval(-2); /* -2: try a bit sooner */
+					timeout = poll_interval(NOREPLY_INTERVAL);
 					bb_error_msg("timed out waiting for %s, reach 0x%02x, next query in %us",
 							p->p_dotted, p->reachable_bits, timeout);
 					set_next(p, timeout);
@@ -2339,9 +2343,7 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 					goto have_reachable_peer;
 			}
 			/* No peer responded for last 8 packets, panic */
-			G.polladj_count = 0;
-			G.poll_exp = MINPOLL;
-			G.stratum = MAXSTRAT;
+			clamp_pollexp_and_set_MAXSTRAT();
 			run_script("unsync", 0.0);
  have_reachable_peer: ;
 		}
