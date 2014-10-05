@@ -1488,12 +1488,19 @@ update_local_clock(peer_t *p)
 
 	} else { /* abs_offset <= STEP_THRESHOLD */
 
+		/* The ratio is calculated before jitter is updated to make
+		 * poll adjust code more sensitive to large offsets.
+		 */
+		G.offset_to_jitter_ratio = abs_offset / G.discipline_jitter;
+
 		/* Compute the clock jitter as the RMS of exponentially
 		 * weighted offset differences. Used by the poll adjust code.
 		 */
 		etemp = SQUARE(G.discipline_jitter);
 		dtemp = SQUARE(offset - G.last_update_offset);
 		G.discipline_jitter = SQRT(etemp + (dtemp - etemp) / AVG);
+		if (G.discipline_jitter < G_precision_sec)
+			G.discipline_jitter = G_precision_sec;
 
 		switch (G.discipline_state) {
 		case STATE_NSET:
@@ -1569,10 +1576,6 @@ update_local_clock(peer_t *p)
 			run_script("stratum", offset);
 		}
 	}
-
-	if (G.discipline_jitter < G_precision_sec)
-		G.discipline_jitter = G_precision_sec;
-	G.offset_to_jitter_ratio = abs_offset / G.discipline_jitter;
 
 	G.reftime = G.cur_time;
 	G.ntp_status = p->lastpkt_status;
@@ -2111,6 +2114,7 @@ static NOINLINE void ntp_init(char **argv)
 		bb_error_msg_and_die(bb_msg_you_must_be_root);
 
 	/* Set some globals */
+	G.discipline_jitter = G_precision_sec;
 	G.stratum = MAXSTRAT;
 	if (BURSTPOLL != 0)
 		G.poll_exp = BURSTPOLL; /* speeds up initial sync */
