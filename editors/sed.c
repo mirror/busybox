@@ -1522,12 +1522,16 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 
 			/* -i: process each FILE separately: */
 
+			if (stat(*argv, &statbuf) != 0) {
+				bb_simple_perror_msg(*argv);
+				G.exitcode = EXIT_FAILURE;
+				G.current_input_file++;
+				continue;
+			}
 			G.outname = xasprintf("%sXXXXXX", *argv);
 			nonstdoutfd = xmkstemp(G.outname);
 			G.nonstdout = xfdopen_for_write(nonstdoutfd);
-
 			/* Set permissions/owner of output file */
-			stat(*argv, &statbuf);
 			/* chmod'ing AFTER chown would preserve suid/sgid bits,
 			 * but GNU sed 4.2.1 does not preserve them either */
 			fchmod(nonstdoutfd, statbuf.st_mode);
