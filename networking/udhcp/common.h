@@ -311,7 +311,8 @@ int arpping(uint32_t test_nip,
 		const uint8_t *safe_mac,
 		uint32_t from_ip,
 		uint8_t *from_mac,
-		const char *interface) FAST_FUNC;
+		const char *interface,
+		unsigned timeo) FAST_FUNC;
 
 /* note: ip is a pointer to an IPv6 in network order, possibly misaliged */
 int sprint_nip6(char *dest, /*const char *pre,*/ const uint8_t *ip) FAST_FUNC;

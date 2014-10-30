@@ -54,7 +54,7 @@ static const char udhcpc_longopts[] ALIGN1 =
 	"foreground\0"     No_argument       "f"
 	"background\0"     No_argument       "b"
 	"broadcast\0"      No_argument       "B"
-	IF_FEATURE_UDHCPC_ARPING("arping\0"	No_argument       "a")
+	IF_FEATURE_UDHCPC_ARPING("arping\0"	Optional_argument "a")
 	IF_FEATURE_UDHCP_PORT("client-port\0"	Required_argument "P")
 	;
 #endif
@@ -1150,7 +1150,7 @@ static void client_background(void)
 //usage:# define IF_UDHCP_VERBOSE(...)
 //usage:#endif
 //usage:#define udhcpc_trivial_usage
-//usage:       "[-fbq"IF_UDHCP_VERBOSE("v")IF_FEATURE_UDHCPC_ARPING("a")"RB] [-t N] [-T SEC] [-A SEC/-n]\n"
+//usage:       "[-fbq"IF_UDHCP_VERBOSE("v")"RB]"IF_FEATURE_UDHCPC_ARPING(" [-a[MSEC]]")" [-t N] [-T SEC] [-A SEC/-n]\n"
 //usage:       "	[-i IFACE]"IF_FEATURE_UDHCP_PORT(" [-P PORT]")" [-s PROG] [-p PIDFILE]\n"
 //usage:       "	[-oC] [-r IP] [-V VENDOR] [-F NAME] [-x OPT:VAL]... [-O OPT]..."
 //usage:#define udhcpc_full_usage "\n"
@@ -1174,7 +1174,7 @@ static void client_background(void)
 //usage:	)
 //usage:     "\n	-S,--syslog		Log to syslog too"
 //usage:	IF_FEATURE_UDHCPC_ARPING(
-//usage:     "\n	-a,--arping		Use arping to validate offered address"
+//usage:     "\n	-a[MSEC],--arping[=MSEC] Validate offered address with ARP ping"
 //usage:	)
 //usage:     "\n	-r,--request IP		Request this IP address"
 //usage:     "\n	-o,--no-default-options	Don't request any options (unless -O is given)"
@@ -1211,7 +1211,7 @@ static void client_background(void)
 //usage:	)
 //usage:     "\n	-S		Log to syslog too"
 //usage:	IF_FEATURE_UDHCPC_ARPING(
-//usage:     "\n	-a		Use arping to validate offered address"
+//usage:     "\n	-a[MSEC]	Validate offered address with ARP ping"
 //usage:	)
 //usage:     "\n	-r IP		Request this IP address"
 //usage:     "\n	-o		Don't request any options (unless -O is given)"
@@ -1238,6 +1238,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 {
 	uint8_t *message;
 	const char *str_V, *str_h, *str_F, *str_r;
+	IF_FEATURE_UDHCPC_ARPING(const char *str_a = "2000";)
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 	void *clientid_mac_ptr;
 	llist_t *list_O = NULL;
@@ -1252,6 +1253,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	int timeout; /* must be signed */
 	unsigned already_waited_sec;
 	unsigned opt;
+	IF_FEATURE_UDHCPC_ARPING(unsigned arpping_ms;)
 	int max_fd;
 	int retval;
 	fd_set rfds;
@@ -1269,7 +1271,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 	IF_LONG_OPTS(applet_long_options = udhcpc_longopts;)
 	opt = getopt32(argv, "CV:H:h:F:i:np:qRr:s:T:t:SA:O:ox:fB"
 		USE_FOR_MMU("b")
-		IF_FEATURE_UDHCPC_ARPING("a")
+		IF_FEATURE_UDHCPC_ARPING("a::")
 		IF_FEATURE_UDHCP_PORT("P:")
 		"v"
 		, &str_V, &str_h, &str_h, &str_F
@@ -1278,6 +1280,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		, &discover_timeout, &discover_retries, &tryagain_timeout /* T,t,A */
 		, &list_O
 		, &list_x
+		IF_FEATURE_UDHCPC_ARPING(, &str_a)
 		IF_FEATURE_UDHCP_PORT(, &str_P)
 		IF_UDHCP_VERBOSE(, &dhcp_verbose)
 	);
@@ -1309,6 +1312,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 		SERVER_PORT = CLIENT_PORT - 1;
 	}
 #endif
+	IF_FEATURE_UDHCPC_ARPING(arpping_ms = xatou(str_a);)
 	while (list_O) {
 		char *optstr = llist_pop(&list_O);
 		unsigned n = bb_strtou(optstr, NULL, 0);
@@ -1726,7 +1730,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 							NULL,
 							(uint32_t) 0,
 							client_config.client_mac,
-							client_config.interface)
+							client_config.interface,
+							arpping_ms)
 					) {
 						bb_info_msg("Offered address is in use "
 							"(got ARP reply), declining");
