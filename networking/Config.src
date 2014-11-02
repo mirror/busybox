@@ -750,8 +750,7 @@ config TELNETD
 
 	  Note that for busybox telnetd to work you need several things:
 	  First of all, your kernel needs:
-		  UNIX98_PTYS=y
-		  DEVPTS_FS=y
+		  CONFIG_UNIX98_PTYS=y
 
 	  Next, you need a /dev/pts directory on your root filesystem:
 
