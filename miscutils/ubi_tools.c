@@ -105,6 +105,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	int mtd_num;
 	int dev_num = UBI_DEV_NUM_AUTO;
 	int vol_id = UBI_VOL_NUM_AUTO;
+	int vid_hdr_offset = 0;
 	char *vol_name;
 	unsigned long long size_bytes = size_bytes; /* for compiler */
 	char *size_bytes_str;
@@ -133,10 +134,11 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 #define OPTION_a  (1 << 5)
 #define OPTION_t  (1 << 6)
 	if (do_mkvol) {
-		opt_complementary = "-1:d+:n+:a+";
-		opts = getopt32(argv, "md:n:N:s:a:t:",
+		opt_complementary = "-1:d+:n+:a+:O+";
+		opts = getopt32(argv, "md:n:N:s:a:t:O:",
 				&dev_num, &vol_id,
-				&vol_name, &size_bytes_str, &alignment, &type
+				&vol_name, &size_bytes_str, &alignment, &type,
+				&vid_hdr_offset
 			);
 	} else
 	if (do_update) {
@@ -162,17 +164,19 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	//	bb_error_msg_and_die("%s: not a char device", ubi_ctrl);
 
 //usage:#define ubiattach_trivial_usage
-//usage:       "-m MTD_NUM [-d UBI_NUM] UBI_CTRL_DEV"
+//usage:       "-m MTD_NUM [-d UBI_NUM] [-O VID_HDR_OFF] UBI_CTRL_DEV"
 //usage:#define ubiattach_full_usage "\n\n"
 //usage:       "Attach MTD device to UBI\n"
 //usage:     "\n	-m MTD_NUM	MTD device number to attach"
 //usage:     "\n	-d UBI_NUM	UBI device number to assign"
+//usage:     "\n	-O VID_HDR_OFF	VID header offset"
 	if (do_attach) {
 		if (!(opts & OPTION_m))
 			bb_error_msg_and_die("%s device not specified", "MTD");
 
 		attach_req.mtd_num = mtd_num;
 		attach_req.ubi_num = dev_num;
+		attach_req.vid_hdr_offset = vid_hdr_offset;
 
 		xioctl(fd, UBI_IOCATT, &attach_req);
 	} else
