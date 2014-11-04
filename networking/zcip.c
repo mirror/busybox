@@ -33,6 +33,9 @@
 //usage:     "\n	-l x.x.0.0	Use this range instead of 169.254"
 //usage:     "\n	-v		Verbose"
 //usage:     "\n"
+//usage:     "\n$LOGGING=none		Suppress logging"
+//usage:     "\n$LOGGING=syslog 	Log to syslog"
+//usage:     "\n"
 //usage:     "\nWith no -q, runs continuously monitoring for ARP conflicts,"
 //usage:     "\nexits only on I/O errors (link down etc)"
 
@@ -249,6 +252,8 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 		openlog(applet_name, 0, LOG_DAEMON);
 		logmode |= LOGMODE_SYSLOG;
 	}
+	bb_logenv_override();
+
 	{ // -l n.n.n.n
 		struct in_addr net;
 		if (inet_aton(l_opt, &net) == 0

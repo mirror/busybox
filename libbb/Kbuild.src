@@ -187,3 +187,6 @@ lib-$(CONFIG_PGREP) += xregcomp.o
 lib-$(CONFIG_PKILL) += xregcomp.o
 lib-$(CONFIG_DEVFSD) += xregcomp.o
 lib-$(CONFIG_FEATURE_FIND_REGEX) += xregcomp.o
+
+# Add the experimental logging functionality, only used by zcip
+lib-$(CONFIG_ZCIP) += logenv.o
