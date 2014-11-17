@@ -6411,7 +6411,15 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 				len = number(loc);
 			}
 		}
-		if (pos >= orig_len) {
+		if (pos < 0) {
+			/* ${VAR:$((-n)):l} starts n chars from the end */
+			pos = orig_len + pos;
+		}
+		if ((unsigned)pos >= orig_len) {
+			/* apart from obvious ${VAR:999999:l},
+			 * covers ${VAR:$((-9999999)):l} - result is ""
+			 * (bash-compat)
+			 */
 			pos = 0;
 			len = 0;
 		}
