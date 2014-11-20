@@ -423,7 +423,7 @@ arith_apply(arith_state_t *math_state, operator op, var_or_num_t *numstack, var_
 			 * MAX_NEGATIVE_INT / -1 = MAX_POSITIVE_INT+1
 			 * and thus is not representable.
 			 * Some CPUs segfault trying such op.
-			 * Others overfolw MAX_POSITIVE_INT+1 to
+			 * Others overflow MAX_POSITIVE_INT+1 to
 			 * MAX_NEGATIVE_INT (0x7fff+1 = 0x8000).
 			 * Make sure to at least not SEGV here:
 			 */
