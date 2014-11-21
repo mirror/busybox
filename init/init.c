@@ -822,7 +822,7 @@ static void halt_reboot_pwoff(int sig)
 
 /* Handler for QUIT - exec "restart" action,
  * else (no such action defined) do nothing */
-static void restart_handler(int sig UNUSED_PARAM)
+static void exec_restart_action(void)
 {
 	struct init_action *a;
 
@@ -975,6 +975,20 @@ static int check_delayed_sigs(void)
 #endif
 		if (sig == SIGINT)
 			run_actions(CTRLALTDEL);
+		if (sig == SIGQUIT) {
+			exec_restart_action();
+			/* returns only if no restart action defined */
+		}
+		if ((1 << sig) & (0
+#ifdef SIGPWR
+		    + (1 << SIGPWR)
+#endif
+		    + (1 << SIGUSR1)
+		    + (1 << SIGUSR2)
+		    + (1 << SIGTERM)
+		)) {
+			halt_reboot_pwoff(sig);
+		}
 	}
 }
 
@@ -1070,7 +1084,7 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 #if 0
 /* It's 2013, does anyone really still depend on this? */
-/* If you do, consider adding swapon to sysinot actions then! */
+/* If you do, consider adding swapon to sysinit actions then! */
 /* struct sysinfo is linux-specific */
 # ifdef __linux__
 	/* Make sure there is enough memory to do something useful. */
@@ -1134,16 +1148,6 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	if (!DEBUG_INIT) {
 		struct sigaction sa;
 
-		bb_signals(0
-#ifdef SIGPWR
-			+ (1 << SIGPWR)  /* halt */
-#endif
-			+ (1 << SIGUSR1) /* halt */
-			+ (1 << SIGTERM) /* reboot */
-			+ (1 << SIGUSR2) /* poweroff */
-			, halt_reboot_pwoff);
-		signal(SIGQUIT, restart_handler); /* re-exec another init */
-
 		/* Stop handler must allow only SIGCONT inside itself */
 		memset(&sa, 0, sizeof(sa));
 		sigfillset(&sa.sa_mask);
@@ -1158,17 +1162,23 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 		 */
 		sigaction_set(SIGSTOP, &sa); /* pause */
 
-		/* SIGINT (Ctrl-Alt-Del) must interrupt wait(),
+		/* These signals must interrupt wait(),
 		 * setting handler without SA_RESTART flag.
 		 */
-		bb_signals_recursive_norestart((1 << SIGINT), record_signo);
+		bb_signals_recursive_norestart(0
+			+ (1 << SIGINT)  /* Ctrl-Alt-Del */
+			+ (1 << SIGQUIT) /* re-exec another init */
+#ifdef SIGPWR
+			+ (1 << SIGPWR)  /* halt */
+#endif
+			+ (1 << SIGUSR1) /* halt */
+			+ (1 << SIGTERM) /* reboot */
+			+ (1 << SIGUSR2) /* poweroff */
+#if ENABLE_FEATURE_USE_INITTAB
+			+ (1 << SIGHUP)  /* reread /etc/inittab */
+#endif
+			, record_signo);
 	}
-
-	/* Set up "reread /etc/inittab" handler.
-	 * Handler is set up without SA_RESTART, it will interrupt syscalls.
-	 */
-	if (!DEBUG_INIT && ENABLE_FEATURE_USE_INITTAB)
-		bb_signals_recursive_norestart((1 << SIGHUP), record_signo);
 
 	/* Now run everything that needs to be run */
 	/* First run the sysinit command */
