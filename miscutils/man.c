@@ -147,15 +147,49 @@ static int show_manpage(const char *pager, char *man_filename, int man, int leve
 	return run_pipe(pager, man_filename, man, level);
 }
 
+static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
+{
+	if (path) while (*path) {
+		char *next_path;
+		char **path_element;
+
+		next_path = strchr(path, ':');
+		if (next_path) {
+			*next_path = '\0';
+			if (next_path++ == path) /* "::"? */
+				goto next;
+		}
+		/* Do we already have path? */
+		path_element = man_path_list;
+		if (path_element) while (*path_element) {
+			if (strcmp(*path_element, path) == 0)
+				goto skip;
+			path_element++;
+		}
+		man_path_list = xrealloc_vector(man_path_list, 4, *count_mp);
+		man_path_list[*count_mp] = xstrdup(path);
+		(*count_mp)++;
+		/* man_path_list is NULL terminated */
+		/* man_path_list[*count_mp] = NULL; - xrealloc_vector did it */
+ skip:
+		if (!next_path)
+			break;
+ next:
+		path = next_path;
+	}
+	return man_path_list;
+}
+
 int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
 	const char *pager = ENABLE_LESS ? "less" : "more";
-	char **man_path_list;
 	char *sec_list;
 	char *cur_path, *cur_sect;
-	int count_mp, cur_mp;
+	char **man_path_list;
+	int count_mp;
+	int cur_mp;
 	int opt, not_found;
 	char *token[2];
 
@@ -164,14 +198,20 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	argv += optind;
 
 	sec_list = xstrdup("0p:1:1p:2:3:3p:4:5:6:7:8:9");
-	/* Last valid man_path_list[] is [0x10] */
+
 	count_mp = 0;
-	man_path_list = xzalloc(0x11 * sizeof(man_path_list[0]));
-	man_path_list[0] = getenv("MANPATH");
-	if (!man_path_list[0]) /* default, may be overridden by /etc/man.conf */
+	man_path_list = add_MANPATH(NULL, &count_mp,
+			getenv("MANDATORY_MANPATH"+10) /* "MANPATH" */
+	);
+	if (!man_path_list) {
+		/* default, may be overridden by /etc/man.conf */
+		man_path_list = xzalloc(2 * sizeof(man_path_list[0]));
 		man_path_list[0] = (char*)"/usr/man";
-	else
-		count_mp++;
+		/* count_mp stays 0.
+		 * Thus, man.conf will overwrite man_path_list[0]
+		 * if a path is defined there.
+		 */
+	}
 
 	/* Parse man.conf[ig] or man_db.conf */
 	/* man version 1.6f uses man.config */
@@ -193,35 +233,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (strcmp("MANDATORY_MANPATH"+10, token[0]) == 0 /* "MANPATH"? */
 		 || strcmp("MANDATORY_MANPATH", token[0]) == 0
 		) {
-			char *path = token[1];
-			while (*path) {
-				char *next_path;
-				char **path_element;
-
-				next_path = strchr(path, ':');
-				if (next_path) {
-					*next_path = '\0';
-					if (next_path++ == path) /* "::"? */
-						goto next;
-				}
-				/* Do we already have path? */
-				path_element = man_path_list;
-				while (*path_element) {
-					if (strcmp(*path_element, path) == 0)
-						goto skip;
-					path_element++;
-				}
-				man_path_list = xrealloc_vector(man_path_list, 4, count_mp);
-				man_path_list[count_mp] = xstrdup(path);
-				count_mp++;
-				/* man_path_list is NULL terminated */
-				/*man_path_list[count_mp] = NULL; - xrealloc_vector did it */
- skip:
-				if (!next_path)
-					break;
- next:
-				path = next_path;
-			}
+			man_path_list = add_MANPATH(man_path_list, &count_mp, token[1]);
 		}
 		if (strcmp("MANSECT", token[0]) == 0) {
 			free(sec_list);
