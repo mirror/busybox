@@ -41,3 +41,4 @@ core
 #
 /busybox.links
 /runtest-tempdir-links
+/testsuite/echo-ne
