@@ -77,7 +77,7 @@ int unit_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #if WANT_TIMING
 	gettimeofday(&end, NULL);
 	timeval_diff(&time_spent, &end, &begin);
-	bb_error_msg("Elapsed time %u.%06u seconds"
+	bb_error_msg("Elapsed time %u.%06u seconds",
 			(int)time_spent.tv_sec,
 			(int)time_spent.tv_usec);
 #endif
