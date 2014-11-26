@@ -731,11 +731,14 @@ extern void *xmalloc_open_read_close(const char *filename, size_t *maxsz_p) FAST
 /* Never returns NULL */
 extern void *xmalloc_xopen_read_close(const char *filename, size_t *maxsz_p) FAST_FUNC RETURNS_MALLOC;
 
-#if defined ARG_MAX
+#if defined(ARG_MAX) && (ARG_MAX >= 60*1024 || !defined(_SC_ARG_MAX))
+/* Use _constant_ maximum if: defined && (big enough || no variable one exists) */
 # define bb_arg_max() ((unsigned)ARG_MAX)
-#elif defined _SC_ARG_MAX
+#elif defined(_SC_ARG_MAX)
+/* Else use variable one (a bit more expensive) */
 unsigned bb_arg_max(void) FAST_FUNC;
 #else
+/* If all else fails */
 # define bb_arg_max() ((unsigned)(32 * 1024))
 #endif
 unsigned bb_clk_tck(void) FAST_FUNC;

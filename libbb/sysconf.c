@@ -8,7 +8,7 @@
  */
 #include "libbb.h"
 
-#if !defined(ARG_MAX) && defined(_SC_ARG_MAX)
+#if !defined(bb_arg_max)
 unsigned FAST_FUNC bb_arg_max(void)
 {
 	return sysconf(_SC_ARG_MAX);
