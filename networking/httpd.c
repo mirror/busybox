@@ -133,7 +133,7 @@
 # include <security/pam_appl.h>
 # include <security/pam_misc.h>
 #endif
-#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+#if ENABLE_FEATURE_USE_SENDFILE
 # include <sys/sendfile.h>
 #endif
 /* amount of buffering in a pipe */
@@ -1624,7 +1624,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 #endif
 	if (what & SEND_HEADERS)
 		send_headers(HTTP_OK);
-#if ENABLE_FEATURE_HTTPD_USE_SENDFILE
+#if ENABLE_FEATURE_USE_SENDFILE
 	{
 		off_t offset = range_start;
 		while (1) {
@@ -1654,7 +1654,7 @@ static NOINLINE void send_file_and_exit(const char *url, int what)
 			break;
 	}
 	if (count < 0) {
- IF_FEATURE_HTTPD_USE_SENDFILE(fin:)
+ IF_FEATURE_USE_SENDFILE(fin:)
 		if (verbose > 1)
 			bb_perror_msg("error");
 	}
