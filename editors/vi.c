@@ -1318,8 +1318,12 @@ static void colon(char *buf)
 			q = begin_line(dot);	// assume "dot"
 		}
 		// read after current line- unless user said ":0r foo"
-		if (b != 0)
+		if (b != 0) {
 			q = next_line(q);
+			// read after last line
+			if (q == end-1)
+				++q;
+		}
 		{ // dance around potentially-reallocated text[]
 			uintptr_t ofs = q - text;
 			size = file_insert(fn, q, 0);
