@@ -155,9 +155,9 @@ static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
 
 		next_path = strchr(path, ':');
 		if (next_path) {
-			*next_path = '\0';
-			if (next_path++ == path) /* "::"? */
+			if (next_path == path) /* "::"? */
 				goto next;
+			*next_path = '\0';
 		}
 		/* Do we already have path? */
 		path_element = man_path_list;
@@ -174,8 +174,10 @@ static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
  skip:
 		if (!next_path)
 			break;
+		/* "path" may be a result of getenv(), be nice and don't mangle it */
+		*next_path = ':';
  next:
-		path = next_path;
+		path = next_path + 1;
 	}
 	return man_path_list;
 }
