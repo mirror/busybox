@@ -2042,7 +2042,7 @@ static void zip(ulg time_stamp)
 
 /* ======================================================================== */
 static
-IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_aux_data_t *aux UNUSED_PARAM)
+IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED_PARAM)
 {
 	struct stat s;
 

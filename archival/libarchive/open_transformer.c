@@ -6,19 +6,19 @@
 #include "libbb.h"
 #include "bb_archive.h"
 
-void FAST_FUNC init_transformer_aux_data(transformer_aux_data_t *aux)
+void FAST_FUNC init_transformer_state(transformer_state_t *xstate)
 {
-	memset(aux, 0, sizeof(*aux));
+	memset(xstate, 0, sizeof(*xstate));
 }
 
-int FAST_FUNC check_signature16(transformer_aux_data_t *aux, int src_fd, unsigned magic16)
+int FAST_FUNC check_signature16(transformer_state_t *xstate, int src_fd, unsigned magic16)
 {
-	if (aux && aux->check_signature) {
+	if (xstate && xstate->check_signature) {
 		uint16_t magic2;
 		if (full_read(src_fd, &magic2, 2) != 2 || magic2 != magic16) {
 			bb_error_msg("invalid magic");
 #if 0 /* possible future extension */
-			if (aux->check_signature > 1)
+			if (xstate->check_signature > 1)
 				xfunc_die();
 #endif
 			return -1;
@@ -62,7 +62,7 @@ void check_errors_in_children(int signo)
 #if BB_MMU
 void FAST_FUNC open_transformer(int fd,
 	int check_signature,
-	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate, int src_fd, int dst_fd)
 )
 #else
 void FAST_FUNC open_transformer(int fd, const char *transform_prog)
@@ -80,10 +80,10 @@ void FAST_FUNC open_transformer(int fd, const char *transform_prog)
 #if BB_MMU
 		{
 			IF_DESKTOP(long long) int r;
-			transformer_aux_data_t aux;
-			init_transformer_aux_data(&aux);
-			aux.check_signature = check_signature;
-			r = transformer(&aux, fd, fd_pipe.wr);
+			transformer_state_t xstate;
+			init_transformer_state(&xstate);
+			xstate.check_signature = check_signature;
+			r = transformer(&xstate, fd, fd_pipe.wr);
 			if (ENABLE_FEATURE_CLEAN_UP) {
 				close(fd_pipe.wr); /* send EOF */
 				close(fd);
@@ -126,7 +126,7 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 		uint32_t b32[1];
 	} magic;
 	int offset = -2;
-	USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd);)
+	USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate, int src_fd, int dst_fd);)
 	USE_FOR_NOMMU(const char *xformer_prog;)
 
 	/* .gz and .bz2 both have 2-byte signature, and their

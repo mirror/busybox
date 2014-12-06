@@ -39,7 +39,7 @@ char* FAST_FUNC append_ext(char *filename, const char *expected_ext)
 }
 
 int FAST_FUNC bbunpack(char **argv,
-	IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_aux_data_t *aux),
+	IF_DESKTOP(long long) int FAST_FUNC (*unpacker)(transformer_state_t *xstate),
 	char* FAST_FUNC (*make_new_name)(char *filename, const char *expected_ext),
 	const char *expected_ext
 )
@@ -48,7 +48,7 @@ int FAST_FUNC bbunpack(char **argv,
 	IF_DESKTOP(long long) int status = 0;
 	char *filename, *new_name;
 	smallint exitcode = 0;
-	transformer_aux_data_t aux;
+	transformer_state_t xstate;
 
 	do {
 		/* NB: new_name is *maybe* malloc'ed! */
@@ -120,9 +120,9 @@ int FAST_FUNC bbunpack(char **argv,
 		}
 
 		if (!(option_mask32 & SEAMLESS_MAGIC)) {
-			init_transformer_aux_data(&aux);
-			aux.check_signature = 1;
-			status = unpacker(&aux);
+			init_transformer_state(&xstate);
+			xstate.check_signature = 1;
+			status = unpacker(&xstate);
 			if (status < 0)
 				exitcode = 1;
 		} else {
@@ -141,10 +141,10 @@ int FAST_FUNC bbunpack(char **argv,
 				unsigned new_name_len;
 
 				/* TODO: restore other things? */
-				if (aux.mtime != 0) {
+				if (xstate.mtime != 0) {
 					struct timeval times[2];
 
-					times[1].tv_sec = times[0].tv_sec = aux.mtime;
+					times[1].tv_sec = times[0].tv_sec = xstate.mtime;
 					times[1].tv_usec = times[0].tv_usec = 0;
 					/* Note: we closed it first.
 					 * On some systems calling utimes
@@ -227,9 +227,9 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //kbuild:lib-$(CONFIG_UNCOMPRESS) += bbunzip.o
 #if ENABLE_UNCOMPRESS
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(transformer_aux_data_t *aux)
+IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(transformer_state_t *xstate)
 {
-	return unpack_Z_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	return unpack_Z_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
 }
 int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uncompress_main(int argc UNUSED_PARAM, char **argv)
@@ -325,9 +325,9 @@ char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UN
 	return filename;
 }
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_aux_data_t *aux)
+IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_state_t *xstate)
 {
-	return unpack_gz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	return unpack_gz_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
 }
 /*
  * Linux kernel build uses gzip -d -n. We accept and ignore it.
@@ -396,9 +396,9 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //kbuild:lib-$(CONFIG_BUNZIP2) += bbunzip.o
 #if ENABLE_BUNZIP2
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(transformer_aux_data_t *aux)
+IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(transformer_state_t *xstate)
 {
-	return unpack_bz2_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	return unpack_bz2_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
 }
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
@@ -495,9 +495,9 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //kbuild:lib-$(CONFIG_UNLZMA) += bbunzip.o
 #if ENABLE_UNLZMA
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(transformer_aux_data_t *aux)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(transformer_state_t *xstate)
 {
-	return unpack_lzma_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	return unpack_lzma_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
 }
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
@@ -538,9 +538,9 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //kbuild:lib-$(CONFIG_UNXZ) += bbunzip.o
 #if ENABLE_UNXZ
 static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(transformer_aux_data_t *aux)
+IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(transformer_state_t *xstate)
 {
-	return unpack_xz_stream(aux, STDIN_FILENO, STDOUT_FILENO);
+	return unpack_xz_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
 }
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)

@@ -1171,7 +1171,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt & OPT_ANY_COMPRESS) {
-		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_aux_data_t *aux, int src_fd, int dst_fd);)
+		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate, int src_fd, int dst_fd);)
 		USE_FOR_NOMMU(const char *xformer_prog;)
 
 		if (opt & OPT_COMPRESS)

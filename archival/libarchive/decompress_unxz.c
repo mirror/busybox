@@ -38,7 +38,7 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
 #include "unxz/xz_dec_stream.c"
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+unpack_xz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 {
 	enum xz_ret xz_result;
 	struct xz_buf iobuf;
@@ -55,7 +55,7 @@ unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
 	iobuf.out = membuf + BUFSIZ;
 	iobuf.out_size = BUFSIZ;
 
-	if (!aux || aux->check_signature == 0) {
+	if (!xstate || xstate->check_signature == 0) {
 		/* Preload XZ file signature */
 		strcpy((char*)membuf, HEADER_MAGIC);
 		iobuf.in_size = HEADER_MAGIC_SIZE;
