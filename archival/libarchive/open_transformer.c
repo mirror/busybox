@@ -43,8 +43,9 @@ ssize_t FAST_FUNC transformer_write(transformer_state_t *xstate, const void *buf
 			nwrote = -1;
 			goto ret;
 		}
-		xstate->mem_output_buf = xrealloc(xstate->mem_output_buf, size);
+		xstate->mem_output_buf = xrealloc(xstate->mem_output_buf, size + 1);
 		memcpy(xstate->mem_output_buf + pos, buf, bufsize);
+		xstate->mem_output_buf[size] = '\0';
 		nwrote = bufsize;
 	} else {
 		nwrote = full_write(xstate->dst_fd, buf, bufsize);
