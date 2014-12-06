@@ -971,7 +971,7 @@ static int inflate_get_next_window(STATE_PARAM_ONLY)
 
 /* Called from unpack_gz_stream() and inflate_unzip() */
 static IF_DESKTOP(long long) int
-inflate_unzip_internal(STATE_PARAM int in, int out)
+inflate_unzip_internal(STATE_PARAM transformer_state_t *xstate)
 {
 	IF_DESKTOP(long long) int n = 0;
 	ssize_t nwrote;
@@ -980,7 +980,7 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 	gunzip_window = xmalloc(GUNZIP_WSIZE);
 	gunzip_outbuf_count = 0;
 	gunzip_bytes_out = 0;
-	gunzip_src_fd = in;
+	gunzip_src_fd = xstate->src_fd;
 
 	/* (re) initialize state */
 	method = -1;
@@ -1002,9 +1002,8 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 
 	while (1) {
 		int r = inflate_get_next_window(PASS_STATE_ONLY);
-		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
-		if (nwrote != (ssize_t)gunzip_outbuf_count) {
-			bb_perror_msg("write");
+		nwrote = transformer_write(xstate, gunzip_window, gunzip_outbuf_count);
+		if (nwrote == (ssize_t)-1) {
 			n = -1;
 			goto ret;
 		}
@@ -1034,7 +1033,7 @@ inflate_unzip_internal(STATE_PARAM int in, int out)
 /* For unzip */
 
 IF_DESKTOP(long long) int FAST_FUNC
-inflate_unzip(transformer_state_t *xstate, int in, int out)
+inflate_unzip(transformer_state_t *xstate)
 {
 	IF_DESKTOP(long long) int n;
 	DECLARE_STATE;
@@ -1045,7 +1044,7 @@ inflate_unzip(transformer_state_t *xstate, int in, int out)
 //	bytebuffer_max = 0x8000;
 	bytebuffer_offset = 4;
 	bytebuffer = xmalloc(bytebuffer_max);
-	n = inflate_unzip_internal(PASS_STATE in, out);
+	n = inflate_unzip_internal(PASS_STATE xstate);
 	free(bytebuffer);
 
 	xstate->crc32 = gunzip_crc;
@@ -1169,8 +1168,7 @@ static int check_header_gzip(STATE_PARAM transformer_state_t *xstate)
 		}
 	}
 
-	if (xstate)
-		xstate->mtime = SWAP_LE32(header.formatted.mtime);
+	xstate->mtime = SWAP_LE32(header.formatted.mtime);
 
 	/* Read the header checksum */
 	if (header.formatted.flags & 0x02) {
@@ -1182,27 +1180,27 @@ static int check_header_gzip(STATE_PARAM transformer_state_t *xstate)
 }
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_gz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
+unpack_gz_stream(transformer_state_t *xstate)
 {
 	uint32_t v32;
 	IF_DESKTOP(long long) int total, n;
 	DECLARE_STATE;
 
 #if !ENABLE_FEATURE_SEAMLESS_Z
-	if (check_signature16(xstate, src_fd, GZIP_MAGIC))
+	if (check_signature16(xstate, GZIP_MAGIC))
 		return -1;
 #else
-	if (xstate && xstate->check_signature) {
+	if (xstate->check_signature) {
 		uint16_t magic2;
 
-		if (full_read(src_fd, &magic2, 2) != 2) {
+		if (full_read(xstate->src_fd, &magic2, 2) != 2) {
  bad_magic:
 			bb_error_msg("invalid magic");
 			return -1;
 		}
 		if (magic2 == COMPRESS_MAGIC) {
 			xstate->check_signature = 0;
-			return unpack_Z_stream(xstate, src_fd, dst_fd);
+			return unpack_Z_stream(xstate);
 		}
 		if (magic2 != GZIP_MAGIC)
 			goto bad_magic;
@@ -1215,7 +1213,7 @@ unpack_gz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 	to_read = -1;
 //	bytebuffer_max = 0x8000;
 	bytebuffer = xmalloc(bytebuffer_max);
-	gunzip_src_fd = src_fd;
+	gunzip_src_fd = xstate->src_fd;
 
  again:
 	if (!check_header_gzip(PASS_STATE xstate)) {
@@ -1224,7 +1222,7 @@ unpack_gz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 		goto ret;
 	}
 
-	n = inflate_unzip_internal(PASS_STATE src_fd, dst_fd);
+	n = inflate_unzip_internal(PASS_STATE xstate);
 	if (n < 0) {
 		total = -1;
 		goto ret;

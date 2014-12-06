@@ -122,6 +122,8 @@ int FAST_FUNC bbunpack(char **argv,
 		if (!(option_mask32 & SEAMLESS_MAGIC)) {
 			init_transformer_state(&xstate);
 			xstate.check_signature = 1;
+			/*xstate.src_fd = STDIN_FILENO; - already is */
+			xstate.dst_fd = STDOUT_FILENO;
 			status = unpacker(&xstate);
 			if (status < 0)
 				exitcode = 1;
@@ -226,18 +228,13 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 //applet:IF_UNCOMPRESS(APPLET(uncompress, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_UNCOMPRESS) += bbunzip.o
 #if ENABLE_UNCOMPRESS
-static
-IF_DESKTOP(long long) int FAST_FUNC unpack_uncompress(transformer_state_t *xstate)
-{
-	return unpack_Z_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
-}
 int uncompress_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uncompress_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cf");
 	argv += optind;
 
-	return bbunpack(argv, unpack_uncompress, make_new_name_generic, "Z");
+	return bbunpack(argv, unpack_Z_stream, make_new_name_generic, "Z");
 }
 #endif
 
@@ -324,11 +321,6 @@ char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UN
 	}
 	return filename;
 }
-static
-IF_DESKTOP(long long) int FAST_FUNC unpack_gunzip(transformer_state_t *xstate)
-{
-	return unpack_gz_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
-}
 /*
  * Linux kernel build uses gzip -d -n. We accept and ignore it.
  * Man page says:
@@ -355,7 +347,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[1] == 'c')
 		option_mask32 |= OPT_STDOUT | SEAMLESS_MAGIC;
 
-	return bbunpack(argv, unpack_gunzip, make_new_name_gunzip, /*unused:*/ NULL);
+	return bbunpack(argv, unpack_gz_stream, make_new_name_gunzip, /*unused:*/ NULL);
 }
 #endif
 
@@ -395,11 +387,6 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
 //kbuild:lib-$(CONFIG_BUNZIP2) += bbunzip.o
 #if ENABLE_BUNZIP2
-static
-IF_DESKTOP(long long) int FAST_FUNC unpack_bunzip2(transformer_state_t *xstate)
-{
-	return unpack_bz2_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
-}
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -408,7 +395,7 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[2] == 'c') /* bzcat */
 		option_mask32 |= OPT_STDOUT;
 
-	return bbunpack(argv, unpack_bunzip2, make_new_name_generic, "bz2");
+	return bbunpack(argv, unpack_bz2_stream, make_new_name_generic, "bz2");
 }
 #endif
 
@@ -494,11 +481,6 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //applet:IF_LZMA(APPLET_ODDNAME(lzma, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzma))
 //kbuild:lib-$(CONFIG_UNLZMA) += bbunzip.o
 #if ENABLE_UNLZMA
-static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unlzma(transformer_state_t *xstate)
-{
-	return unpack_lzma_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
-}
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -513,7 +495,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
-	return bbunpack(argv, unpack_unlzma, make_new_name_generic, "lzma");
+	return bbunpack(argv, unpack_lzma_stream, make_new_name_generic, "lzma");
 }
 #endif
 
@@ -537,11 +519,6 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //applet:IF_XZ(APPLET_ODDNAME(xz, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xz))
 //kbuild:lib-$(CONFIG_UNXZ) += bbunzip.o
 #if ENABLE_UNXZ
-static
-IF_DESKTOP(long long) int FAST_FUNC unpack_unxz(transformer_state_t *xstate)
-{
-	return unpack_xz_stream(xstate, STDIN_FILENO, STDOUT_FILENO);
-}
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -556,6 +533,6 @@ int unxz_main(int argc UNUSED_PARAM, char **argv)
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
-	return bbunpack(argv, unpack_unxz, make_new_name_generic, "xz");
+	return bbunpack(argv, unpack_xz_stream, make_new_name_generic, "xz");
 }
 #endif

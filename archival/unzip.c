@@ -283,7 +283,9 @@ static void unzip_extract(zip_header_t *zip_header, int dst_fd)
 		transformer_state_t xstate;
 		init_transformer_state(&xstate);
 		xstate.bytes_in = zip_header->formatted.cmpsize;
-		if (inflate_unzip(&xstate, zip_fd, dst_fd) < 0)
+		xstate.src_fd = zip_fd;
+		xstate.dst_fd = dst_fd;
+		if (inflate_unzip(&xstate) < 0)
 			bb_error_msg_and_die("inflate error");
 		/* Validate decompression - crc */
 		if (zip_header->formatted.crc32 != (xstate.crc32 ^ 0xffffffffL)) {

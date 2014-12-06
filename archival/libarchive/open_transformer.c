@@ -11,11 +11,11 @@ void FAST_FUNC init_transformer_state(transformer_state_t *xstate)
 	memset(xstate, 0, sizeof(*xstate));
 }
 
-int FAST_FUNC check_signature16(transformer_state_t *xstate, int src_fd, unsigned magic16)
+int FAST_FUNC check_signature16(transformer_state_t *xstate, unsigned magic16)
 {
-	if (xstate && xstate->check_signature) {
+	if (xstate->check_signature) {
 		uint16_t magic2;
-		if (full_read(src_fd, &magic2, 2) != 2 || magic2 != magic16) {
+		if (full_read(xstate->src_fd, &magic2, 2) != 2 || magic2 != magic16) {
 			bb_error_msg("invalid magic");
 #if 0 /* possible future extension */
 			if (xstate->check_signature > 1)
@@ -25,6 +25,46 @@ int FAST_FUNC check_signature16(transformer_state_t *xstate, int src_fd, unsigne
 		}
 	}
 	return 0;
+}
+
+ssize_t FAST_FUNC transformer_write(transformer_state_t *xstate, const void *buf, size_t bufsize)
+{
+	ssize_t nwrote;
+
+	if (xstate->mem_output_size_max != 0) {
+		size_t pos = xstate->mem_output_size;
+		size_t size;
+
+		size = (xstate->mem_output_size += bufsize);
+		if (size > xstate->mem_output_size_max) {
+			free(xstate->mem_output_buf);
+			xstate->mem_output_buf = NULL;
+			bb_perror_msg("buffer %u too small", (unsigned)xstate->mem_output_size_max);
+			nwrote = -1;
+			goto ret;
+		}
+		xstate->mem_output_buf = xrealloc(xstate->mem_output_buf, size);
+		memcpy(xstate->mem_output_buf + pos, buf, bufsize);
+		nwrote = bufsize;
+	} else {
+		nwrote = full_write(xstate->dst_fd, buf, bufsize);
+		if (nwrote != (ssize_t)bufsize) {
+			bb_perror_msg("write");
+			nwrote = -1;
+			goto ret;
+		}
+	}
+ ret:
+	return nwrote;
+}
+
+ssize_t FAST_FUNC xtransformer_write(transformer_state_t *xstate, const void *buf, size_t bufsize)
+{
+	ssize_t nwrote = transformer_write(xstate, buf, bufsize);
+	if (nwrote != (ssize_t)bufsize) {
+		xfunc_die();
+	}
+	return nwrote;
 }
 
 void check_errors_in_children(int signo)
@@ -60,12 +100,12 @@ void check_errors_in_children(int signo)
 
 /* transformer(), more than meets the eye */
 #if BB_MMU
-void FAST_FUNC open_transformer(int fd,
+void FAST_FUNC fork_transformer(int fd,
 	int check_signature,
-	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate, int src_fd, int dst_fd)
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate)
 )
 #else
-void FAST_FUNC open_transformer(int fd, const char *transform_prog)
+void FAST_FUNC fork_transformer(int fd, const char *transform_prog)
 #endif
 {
 	struct fd_pair fd_pipe;
@@ -83,7 +123,9 @@ void FAST_FUNC open_transformer(int fd, const char *transform_prog)
 			transformer_state_t xstate;
 			init_transformer_state(&xstate);
 			xstate.check_signature = check_signature;
-			r = transformer(&xstate, fd, fd_pipe.wr);
+			xstate.src_fd = fd;
+			xstate.dst_fd = fd_pipe.wr;
+			r = transformer(&xstate);
 			if (ENABLE_FEATURE_CLEAN_UP) {
 				close(fd_pipe.wr); /* send EOF */
 				close(fd);
@@ -118,16 +160,19 @@ void FAST_FUNC open_transformer(int fd, const char *transform_prog)
 /* Used by e.g. rpm which gives us a fd without filename,
  * thus we can't guess the format from filename's extension.
  */
-int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
+static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_compressed)
 {
 	union {
 		uint8_t b[4];
 		uint16_t b16[2];
 		uint32_t b32[1];
 	} magic;
-	int offset = -2;
-	USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate, int src_fd, int dst_fd);)
-	USE_FOR_NOMMU(const char *xformer_prog;)
+	int offset;
+	transformer_state_t *xstate;
+
+	offset = -2;
+	xstate = xzalloc(sizeof(*xstate));
+	xstate->src_fd = fd;
 
 	/* .gz and .bz2 both have 2-byte signature, and their
 	 * unpack_XXX_stream wants this header skipped. */
@@ -135,15 +180,15 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 	if (ENABLE_FEATURE_SEAMLESS_GZ
 	 && magic.b16[0] == GZIP_MAGIC
 	) {
-		USE_FOR_MMU(xformer = unpack_gz_stream;)
-		USE_FOR_NOMMU(xformer_prog = "gunzip";)
+		xstate->xformer = unpack_gz_stream;
+		USE_FOR_NOMMU(xstate->xformer_prog = "gunzip";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_BZ2
 	 && magic.b16[0] == BZIP2_MAGIC
 	) {
-		USE_FOR_MMU(xformer = unpack_bz2_stream;)
-		USE_FOR_NOMMU(xformer_prog = "bunzip2";)
+		xstate->xformer = unpack_bz2_stream;
+		USE_FOR_NOMMU(xstate->xformer_prog = "bunzip2";)
 		goto found_magic;
 	}
 	if (ENABLE_FEATURE_SEAMLESS_XZ
@@ -152,8 +197,8 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 		offset = -6;
 		xread(fd, magic.b32, sizeof(magic.b32[0]));
 		if (magic.b32[0] == XZ_MAGIC2) {
-			USE_FOR_MMU(xformer = unpack_xz_stream;)
-			USE_FOR_NOMMU(xformer_prog = "unxz";)
+			xstate->xformer = unpack_xz_stream;
+			USE_FOR_NOMMU(xstate->xformer_prog = "unxz";)
 			goto found_magic;
 		}
 	}
@@ -164,52 +209,130 @@ int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
 			IF_FEATURE_SEAMLESS_BZ2("/bzip2")
 			IF_FEATURE_SEAMLESS_XZ("/xz")
 			" magic");
-	xlseek(fd, offset, SEEK_CUR);
-	return 1;
 
- found_magic:
-# if BB_MMU
-	open_transformer_with_no_sig(fd, xformer);
-# else
-	/* NOMMU version of open_transformer execs
+	/* Some callers expect this function to "consume" fd
+	 * even if data is not compressed. In this case,
+	 * we return a state with trivial transformer.
+	 */
+//	USE_FOR_MMU(xstate->xformer = copy_stream;)
+//	USE_FOR_NOMMU(xstate->xformer_prog = "cat";)
+	/* fall through to seeking bck over bytes we read earlier */
+
+ USE_FOR_NOMMU(found_magic:)
+	/* NOMMU version of fork_transformer execs
 	 * an external unzipper that wants
-	 * file position at the start of the file */
+	 * file position at the start of the file.
+	 */
 	xlseek(fd, offset, SEEK_CUR);
-	open_transformer_with_sig(fd, xformer, xformer_prog);
+
+ USE_FOR_MMU(found_magic:)
+	/* In MMU case, if magic was found, seeking back is not necessary */
+
+	return xstate;
+}
+
+/* Used by e.g. rpm which gives us a fd without filename,
+ * thus we can't guess the format from filename's extension.
+ */
+int FAST_FUNC setup_unzip_on_fd(int fd, int fail_if_not_compressed)
+{
+	transformer_state_t *xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
+
+	if (!xstate || !xstate->xformer) {
+		free(xstate);
+		return 1;
+	}
+
+# if BB_MMU
+	fork_transformer_with_no_sig(xstate->src_fd, xstate->xformer);
+# else
+	fork_transformer_with_sig(xstate->src_fd, xstate->xformer, xstate->xformer_prog);
 # endif
+	free(xstate);
 	return 0;
 }
 
-int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
+static transformer_state_t *open_transformer(const char *fname, int fail_if_not_compressed)
 {
+	transformer_state_t *xstate;
 	int fd;
 
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
-		return fd;
+		return NULL;
 
 	if (ENABLE_FEATURE_SEAMLESS_LZMA) {
 		/* .lzma has no header/signature, can only detect it by extension */
 		char *sfx = strrchr(fname, '.');
 		if (sfx && strcmp(sfx+1, "lzma") == 0) {
-			open_transformer_with_sig(fd, unpack_lzma_stream, "unlzma");
-			return fd;
+			xstate = xzalloc(sizeof(*xstate));
+			xstate->src_fd = fd;
+			xstate->xformer = unpack_lzma_stream;
+			USE_FOR_NOMMU(xstate->xformer_prog = "unlzma";)
+			return xstate;
 		}
 	}
-	if ((ENABLE_FEATURE_SEAMLESS_GZ)
-	 || (ENABLE_FEATURE_SEAMLESS_BZ2)
-	 || (ENABLE_FEATURE_SEAMLESS_XZ)
-	) {
-		setup_unzip_on_fd(fd, fail_if_not_compressed);
-	}
 
+	xstate = setup_transformer_on_fd(fd, fail_if_not_compressed);
+
+	return xstate;
+}
+
+int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
+{
+	int fd;
+	transformer_state_t *xstate;
+
+	xstate = open_transformer(fname, fail_if_not_compressed);
+	if (!xstate)
+		return -1;
+
+	fd = xstate->src_fd;
+	if (xstate->xformer) {
+# if BB_MMU
+		fork_transformer_with_no_sig(xstate->src_fd, xstate->xformer);
+# else
+		fork_transformer_with_sig(xstate->src_fd, xstate->xformer, xstate->xformer_prog);
+# endif
+	}
+	/* else: the file is not compressed */
+
+	free(xstate);
 	return fd;
 }
 
-#endif /* SEAMLESS_COMPRESSION */
-
 void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_p)
 {
+# if 1
+	transformer_state_t *xstate;
+	char *image;
+
+	xstate = open_transformer(fname, /*fail_if_not_compressed:*/ 0);
+	if (!xstate) /* file open error */
+		return NULL;
+
+	image = NULL;
+	if (xstate->xformer) {
+		/* In-memory decompression */
+		xstate->mem_output_size_max = maxsz_p ? *maxsz_p : (size_t)(INT_MAX - 4095);
+		xstate->xformer(xstate);
+		if (xstate->mem_output_buf) {
+			image = xstate->mem_output_buf;
+			if (maxsz_p)
+				*maxsz_p = xstate->mem_output_size;
+		}
+	} else {
+		/* File is not compressed */
+		image = xmalloc_read(xstate->src_fd, maxsz_p);
+	}
+
+	if (!image)
+		bb_perror_msg("read error from '%s'", fname);
+	close(xstate->src_fd);
+	free(xstate);
+	return image;
+# else
+	/* This version forks a subprocess - much more expensive */
 	int fd;
 	char *image;
 
@@ -221,6 +344,8 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 	if (!image)
 		bb_perror_msg("read error from '%s'", fname);
 	close(fd);
-
 	return image;
+# endif
 }
+
+#endif /* SEAMLESS_COMPRESSION */

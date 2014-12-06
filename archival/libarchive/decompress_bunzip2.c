@@ -731,7 +731,7 @@ void FAST_FUNC dealloc_bunzip(bunzip_data *bd)
 
 /* Decompress src_fd to dst_fd.  Stops at end of bzip data, not end of file. */
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_bz2_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
+unpack_bz2_stream(transformer_state_t *xstate)
 {
 	IF_DESKTOP(long long total_written = 0;)
 	bunzip_data *bd;
@@ -739,14 +739,14 @@ unpack_bz2_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 	int i;
 	unsigned len;
 
-	if (check_signature16(xstate, src_fd, BZIP2_MAGIC))
+	if (check_signature16(xstate, BZIP2_MAGIC))
 		return -1;
 
 	outbuf = xmalloc(IOBUF_SIZE);
 	len = 0;
 	while (1) { /* "Process one BZ... stream" loop */
 
-		i = start_bunzip(&bd, src_fd, outbuf + 2, len);
+		i = start_bunzip(&bd, xstate->src_fd, outbuf + 2, len);
 
 		if (i == 0) {
 			while (1) { /* "Produce some output bytes" loop */
@@ -756,8 +756,7 @@ unpack_bz2_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 				i = IOBUF_SIZE - i; /* number of bytes produced */
 				if (i == 0) /* EOF? */
 					break;
-				if (i != full_write(dst_fd, outbuf, i)) {
-					bb_error_msg("short write");
+				if (i != transformer_write(xstate, outbuf, i)) {
 					i = RETVAL_SHORT_WRITE;
 					goto release_mem;
 				}
@@ -790,7 +789,7 @@ unpack_bz2_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 		len = bd->inbufCount - bd->inbufPos;
 		memcpy(outbuf, &bd->inbuf[bd->inbufPos], len);
 		if (len < 2) {
-			if (safe_read(src_fd, outbuf + len, 2 - len) != 2 - len)
+			if (safe_read(xstate->src_fd, outbuf + len, 2 - len) != 2 - len)
 				break;
 			len = 2;
 		}

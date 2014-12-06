@@ -1171,7 +1171,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (opt & OPT_ANY_COMPRESS) {
-		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate, int src_fd, int dst_fd);)
+		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate);)
 		USE_FOR_NOMMU(const char *xformer_prog;)
 
 		if (opt & OPT_COMPRESS)
@@ -1190,7 +1190,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			USE_FOR_MMU(xformer = unpack_xz_stream;)
 			USE_FOR_NOMMU(xformer_prog = "unxz";)
 
-		open_transformer_with_sig(tar_handle->src_fd, xformer, xformer_prog);
+		fork_transformer_with_sig(tar_handle->src_fd, xformer, xformer_prog);
 		/* Can't lseek over pipes */
 		tar_handle->seek = seek_by_read;
 		/*tar_handle->offset = 0; - already is */

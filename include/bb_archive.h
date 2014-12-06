@@ -205,6 +205,18 @@ void dealloc_bunzip(bunzip_data *bd) FAST_FUNC;
 /* Meaning and direction (input/output) of the fields are transformer-specific */
 typedef struct transformer_state_t {
 	smallint check_signature; /* most often referenced member */
+
+	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(struct transformer_state_t *xstate);
+	USE_FOR_NOMMU(const char *xformer_prog;)
+
+	/* Source */
+	int      src_fd;
+	/* Output */
+	int      dst_fd;
+	size_t   mem_output_size_max; /* if non-zero, decompress to RAM instead of fd */
+	size_t   mem_output_size;
+	char     *mem_output_buf;
+
 	off_t    bytes_out;
 	off_t    bytes_in;  /* used in unzip code only: needs to know packed size */
 	uint32_t crc32;
@@ -212,14 +224,16 @@ typedef struct transformer_state_t {
 } transformer_state_t;
 
 void init_transformer_state(transformer_state_t *xstate) FAST_FUNC;
-int FAST_FUNC check_signature16(transformer_state_t *xstate, int src_fd, unsigned magic16) FAST_FUNC;
+ssize_t transformer_write(transformer_state_t *xstate, const void *buf, size_t bufsize) FAST_FUNC;
+ssize_t xtransformer_write(transformer_state_t *xstate, const void *buf, size_t bufsize) FAST_FUNC;
+int check_signature16(transformer_state_t *xstate, unsigned magic16) FAST_FUNC;
 
-IF_DESKTOP(long long) int inflate_unzip(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_Z_stream(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_gz_stream(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_bz2_stream(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_lzma_stream(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
-IF_DESKTOP(long long) int unpack_xz_stream(transformer_state_t *xstate, int src_fd, int dst_fd) FAST_FUNC;
+IF_DESKTOP(long long) int inflate_unzip(transformer_state_t *xstate) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_Z_stream(transformer_state_t *xstate) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_gz_stream(transformer_state_t *xstate) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_bz2_stream(transformer_state_t *xstate) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_lzma_stream(transformer_state_t *xstate) FAST_FUNC;
+IF_DESKTOP(long long) int unpack_xz_stream(transformer_state_t *xstate) FAST_FUNC;
 
 char* append_ext(char *filename, const char *expected_ext) FAST_FUNC;
 int bbunpack(char **argv,
@@ -230,16 +244,16 @@ int bbunpack(char **argv,
 
 void check_errors_in_children(int signo);
 #if BB_MMU
-void open_transformer(int fd,
+void fork_transformer(int fd,
 	int check_signature,
-	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate, int src_fd, int dst_fd)
+	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate)
 ) FAST_FUNC;
-#define open_transformer_with_sig(fd, transformer, transform_prog) open_transformer((fd), 1, (transformer))
-#define open_transformer_with_no_sig(fd, transformer)              open_transformer((fd), 0, (transformer))
+#define fork_transformer_with_sig(fd, transformer, transform_prog) fork_transformer((fd), 1, (transformer))
+#define fork_transformer_with_no_sig(fd, transformer)              fork_transformer((fd), 0, (transformer))
 #else
-void open_transformer(int fd, const char *transform_prog) FAST_FUNC;
-#define open_transformer_with_sig(fd, transformer, transform_prog) open_transformer((fd), (transform_prog))
-/* open_transformer_with_no_sig() does not exist on NOMMU */
+void fork_transformer(int fd, const char *transform_prog) FAST_FUNC;
+#define fork_transformer_with_sig(fd, transformer, transform_prog) fork_transformer((fd), (transform_prog))
+/* fork_transformer_with_no_sig() does not exist on NOMMU */
 #endif
 
 

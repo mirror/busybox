@@ -38,7 +38,7 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
 #include "unxz/xz_dec_stream.c"
 
 IF_DESKTOP(long long) int FAST_FUNC
-unpack_xz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
+unpack_xz_stream(transformer_state_t *xstate)
 {
 	enum xz_ret xz_result;
 	struct xz_buf iobuf;
@@ -67,7 +67,7 @@ unpack_xz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 	xz_result = X_OK;
 	while (1) {
 		if (iobuf.in_pos == iobuf.in_size) {
-			int rd = safe_read(src_fd, membuf, BUFSIZ);
+			int rd = safe_read(xstate->src_fd, membuf, BUFSIZ);
 			if (rd < 0) {
 				bb_error_msg(bb_msg_read_error);
 				total = -1;
@@ -104,7 +104,7 @@ unpack_xz_stream(transformer_state_t *xstate, int src_fd, int dst_fd)
 //		bb_error_msg("<in pos:%d size:%d out pos:%d size:%d r:%d",
 //				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size, xz_result);
 		if (iobuf.out_pos) {
-			xwrite(dst_fd, iobuf.out, iobuf.out_pos);
+			xtransformer_write(xstate, iobuf.out, iobuf.out_pos);
 			IF_DESKTOP(total += iobuf.out_pos;)
 			iobuf.out_pos = 0;
 		}
