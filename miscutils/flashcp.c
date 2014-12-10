@@ -21,7 +21,7 @@
 
 #define OPT_v (1 << 0)
 
-#define BUFSIZE (8 * 1024)
+#define BUFSIZE (4 * 1024)
 
 static void progress(int mode, uoff_t count, uoff_t total)
 {
