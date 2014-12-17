@@ -116,12 +116,13 @@ int nandwrite_main(int argc UNUSED_PARAM, char **argv)
 	struct mtd_oob_buf oob;
 	unsigned char *filebuf;
 	const char *opt_s = "0", *opt_f = "-", *opt_l, *opt_bb;
-	static const char nanddump_longopts[] ALIGN1 =
-		"bb\0" Required_argument "\xff"; /* no short equivalent */
 
 	if (IS_NANDDUMP) {
 		opt_complementary = "=1";
-		applet_long_options = nanddump_longopts;
+#if ENABLE_LONG_OPTS
+		applet_long_options =
+			"bb\0" Required_argument "\xff"; /* no short equivalent */
+#endif
 		opts = getopt32(argv, "os:f:l:", &opt_s, &opt_f, &opt_l, &opt_bb);
 	} else { /* nandwrite */
 		opt_complementary = "-1:?2";
