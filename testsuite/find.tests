@@ -10,11 +10,12 @@
 mkdir -p find.tempdir
 touch find.tempdir/testfile
 
+optional FEATURE_FIND_TYPE
 testing "find -type f" \
 	"cd find.tempdir && find -type f 2>&1" \
 	"./testfile\n" \
 	"" ""
-
+SKIP=
 optional FEATURE_FIND_EXEC
 testing "find -exec exitcode 1" \
 	"cd find.tempdir && find testfile -exec true {} \; 2>&1; echo \$?" \

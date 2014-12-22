@@ -745,11 +745,9 @@ static NOINLINE int writeTarFile(int tar_fd, int verboseFlag,
 #endif
 	return errorFlag;
 }
-#else
-int writeTarFile(int tar_fd, int verboseFlag,
-	int recurseFlags, const llist_t *include,
-	const llist_t *exclude, const char *gzip);
-#endif /* FEATURE_TAR_CREATE */
+#else /* !FEATURE_TAR_CREATE */
+# define writeTarFile(...) 0
+#endif
 
 #if ENABLE_FEATURE_TAR_FROM
 static llist_t *append_file_list_to_list(llist_t *list)
