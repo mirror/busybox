@@ -1752,7 +1752,6 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				}
 #endif
 				/* enter bound state */
-				timeout = lease_seconds / 2;
 				temp_addr.s_addr = packet.yiaddr;
 				bb_info_msg("Lease of %s obtained, lease time %u",
 					inet_ntoa(temp_addr), (unsigned)lease_seconds);
@@ -1761,6 +1760,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
 				start = monotonic_sec();
 				udhcp_run_script(&packet, state == REQUESTING ? "bound" : "renew");
 				already_waited_sec = (unsigned)monotonic_sec() - start;
+				timeout = lease_seconds / 2;
+				if ((unsigned)timeout < already_waited_sec) {
+					/* Something went wrong. Back to discover state */
+					timeout = already_waited_sec = 0;
+				}
 
 				state = BOUND;
 				change_listen_mode(LISTEN_NONE);
