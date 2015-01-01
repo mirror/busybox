@@ -149,9 +149,13 @@ static void replace(char *s, char what, char with)
 static char *filename2modname(const char *filename, char *modname)
 {
 	int i;
-	char *from;
+	const char *from;
 
-	from = bb_get_last_path_component_nostrip(filename);
+	// Disabled since otherwise "modprobe dir/name" would work
+	// as if it is "modprobe name". It is unclear why
+	// 'basenamization' was here in the first place.
+	//from = bb_get_last_path_component_nostrip(filename);
+	from = filename;
 	for (i = 0; i < (MODULE_NAME_LEN-1) && from[i] != '\0' && from[i] != '.'; i++)
 		modname[i] = (from[i] == '-') ? '_' : from[i];
 	modname[i] = '\0';
