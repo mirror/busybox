@@ -36,31 +36,30 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 #define getgrouplist bb_internal_getgrouplist
 #define initgroups   bb_internal_initgroups
 
-
 /* All function names below should be remapped by #defines above
  * in order to not collide with libc names. */
 
 /* Close the group-file stream.  */
-extern void endgrent(void);
+void FAST_FUNC endgrent(void);
 
 /* Search for an entry with a matching group ID.  */
-extern struct group *getgrgid(gid_t __gid);
+struct group* FAST_FUNC getgrgid(gid_t __gid);
 
 /* Search for an entry with a matching group name.  */
-extern struct group *getgrnam(const char *__name);
+struct group* FAST_FUNC getgrnam(const char *__name);
 
 /* Reentrant versions of some of the functions above. */
 
 /* Store at most *NGROUPS members of the group set for USER into
    *GROUPS.  Also include GROUP.  The actual number of groups found is
    returned in *NGROUPS.  Return -1 if the if *NGROUPS is too small.  */
-extern int getgrouplist(const char *__user, gid_t __group,
+int FAST_FUNC getgrouplist(const char *__user, gid_t __group,
 		gid_t *__groups, int *__ngroups);
 
 /* Initialize the group set for the current user
    by reading the group database and using all groups
    of which USER is a member.  Also include GROUP.  */
-extern int initgroups(const char *__user, gid_t __group);
+int FAST_FUNC initgroups(const char *__user, gid_t __group);
 
 POP_SAVED_FUNCTION_VISIBILITY
 

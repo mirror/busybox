@@ -288,7 +288,7 @@ static void *convert_to_struct(const char *def,	const unsigned char *off,
 
 /****** getXXnam/id_r */
 
-static int getXXnam_r(const char *name, uintptr_t db_and_field_pos, char *buffer, size_t buflen,
+static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos, char *buffer, size_t buflen,
 		void *result)
 {
 	void *struct_buf = *(void**)result;
@@ -316,18 +316,18 @@ static int getXXnam_r(const char *name, uintptr_t db_and_field_pos, char *buffer
 	return errno;
 }
 
-int getpwnam_r(const char *name, struct passwd *struct_buf, char *buffer, size_t buflen,
+int FAST_FUNC getpwnam_r(const char *name, struct passwd *struct_buf, char *buffer, size_t buflen,
 				struct passwd **result)
 {
 	/* Why the "store buffer address in result" trick?
 	 * This way, getXXnam_r has the same ABI signature as getpwnam_r,
-	 * hopefully compiler can optimize tall call better in this case.
+	 * hopefully compiler can optimize tail call better in this case.
 	 */
 	*result = struct_buf;
 	return getXXnam_r(name, (0 << 2) + 0, buffer, buflen, result);
 }
 #if ENABLE_USE_BB_SHADOW
-int getspnam_r(const char *name, struct spwd *struct_buf, char *buffer, size_t buflen,
+int FAST_FUNC getspnam_r(const char *name, struct spwd *struct_buf, char *buffer, size_t buflen,
 			   struct spwd **result)
 {
 	*result = struct_buf;
@@ -337,7 +337,7 @@ int getspnam_r(const char *name, struct spwd *struct_buf, char *buffer, size_t b
 
 /****** getXXent_r */
 
-static int getXXent_r(void *struct_buf, char *buffer, size_t buflen,
+static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 		void *result,
 		unsigned db_idx)
 {
@@ -374,14 +374,14 @@ static int getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 	return errno;
 }
 
-int getpwent_r(struct passwd *struct_buf, char *buffer, size_t buflen, struct passwd **result)
+int FAST_FUNC getpwent_r(struct passwd *struct_buf, char *buffer, size_t buflen, struct passwd **result)
 {
 	return getXXent_r(struct_buf, buffer, buflen, result, 0);
 }
 
 /****** getXXnam/id */
 
-static void *getXXnam(const char *name, unsigned db_and_field_pos)
+static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 {
 	char *buf;
 	void *result;
@@ -409,39 +409,39 @@ static void *getXXnam(const char *name, unsigned db_and_field_pos)
 	return result;
 }
 
-struct passwd *getpwnam(const char *name)
+struct passwd* FAST_FUNC getpwnam(const char *name)
 {
 	return getXXnam(name, (0 << 2) + 0);
 }
-struct group *getgrnam(const char *name)
+struct group* FAST_FUNC getgrnam(const char *name)
 {
 	return getXXnam(name, (1 << 2) + 0);
 }
-struct passwd *getpwuid(uid_t id)
+struct passwd* FAST_FUNC getpwuid(uid_t id)
 {
 	return getXXnam(utoa(id), (0 << 2) + 2);
 }
-struct group *getgrgid(gid_t id)
+struct group* FAST_FUNC getgrgid(gid_t id)
 {
 	return getXXnam(utoa(id), (1 << 2) + 2);
 }
 
 /****** end/setXXend */
 
-void endpwent(void)
+void FAST_FUNC endpwent(void)
 {
 	if (has_S && S.db[0].fp) {
 		fclose(S.db[0].fp);
 		S.db[0].fp = NULL;
 	}
 }
-void setpwent(void)
+void FAST_FUNC setpwent(void)
 {
 	if (has_S && S.db[0].fp) {
 		rewind(S.db[0].fp);
 	}
 }
-void endgrent(void)
+void FAST_FUNC endgrent(void)
 {
 	if (has_S && S.db[1].fp) {
 		fclose(S.db[1].fp);
@@ -491,7 +491,7 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 	return group_list;
 }
 
-int initgroups(const char *user, gid_t gid)
+int FAST_FUNC initgroups(const char *user, gid_t gid)
 {
 	int ngroups;
 	gid_t *group_list = getgrouplist_internal(&ngroups, user, gid);
@@ -501,7 +501,7 @@ int initgroups(const char *user, gid_t gid)
 	return ngroups;
 }
 
-int getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups)
+int FAST_FUNC getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups)
 {
 	int ngroups_old = *ngroups;
 	gid_t *group_list = getgrouplist_internal(ngroups, user, gid);

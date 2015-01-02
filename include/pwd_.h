@@ -43,21 +43,21 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
  * in order to not collide with libc names. */
 
 /* Rewind the password-file stream.  */
-extern void setpwent(void);
+void FAST_FUNC setpwent(void);
 
 /* Close the password-file stream.  */
-extern void endpwent(void);
+void FAST_FUNC endpwent(void);
 
 #ifdef UNUSED_SINCE_WE_AVOID_STATIC_BUFS
 /* Read an entry from the password-file stream, opening it if necessary.  */
-extern struct passwd *getpwent(void);
+struct passwd* FAST_FUNC getpwent(void);
 #endif
 
 /* Search for an entry with a matching user ID.  */
-extern struct passwd *getpwuid(uid_t __uid);
+struct passwd* FAST_FUNC getpwuid(uid_t __uid);
 
 /* Search for an entry with a matching username.  */
-extern struct passwd *getpwnam(const char *__name);
+struct passwd* FAST_FUNC getpwnam(const char *__name);
 
 /* Reentrant versions of some of the functions above.
 
@@ -67,11 +67,11 @@ extern struct passwd *getpwnam(const char *__name);
    other reentrant functions so the chances are good this is what the
    POSIX people would choose.  */
 
-extern int getpwent_r(struct passwd *__restrict __resultbuf,
+int FAST_FUNC getpwent_r(struct passwd *__restrict __resultbuf,
 		char *__restrict __buffer, size_t __buflen,
 		struct passwd **__restrict __result);
 
-extern int getpwnam_r(const char *__restrict __name,
+int FAST_FUNC getpwnam_r(const char *__restrict __name,
 		struct passwd *__restrict __resultbuf,
 		char *__restrict __buffer, size_t __buflen,
 		struct passwd **__restrict __result);
