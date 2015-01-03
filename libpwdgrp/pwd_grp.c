@@ -34,24 +34,21 @@
 
 struct const_passdb {
 	const char *filename;
-	const char def[9];
-	const uint8_t off[9];
+	const char def[7 + 2*ENABLE_USE_BB_SHADOW];
+	const uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
 	uint8_t numfields;
+	uint8_t size_of;
 };
 struct passdb {
 	const char *filename;
-	const char def[9];
-	const uint8_t off[9];
+	const char def[7 + 2*ENABLE_USE_BB_SHADOW];
+	const uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
 	uint8_t numfields;
+	uint8_t size_of;
 	FILE *fp;
 	char *malloced;
-	char struct_result[
-		/* Should be max(sizeof passwd,group,spwd), but this will do: */
-		IF_NOT_USE_BB_SHADOW(sizeof(struct passwd))
-		IF_USE_BB_SHADOW(sizeof(struct spwd))
-	];
 };
-/* Note: for shadow db, def[9] will not contain terminating NUL,
+/* Note: for shadow db, def[] will not contain terminating NUL,
  * but convert_to_struct() logic detects def[] end by "less than SP?",
  * not by "is it NUL?" condition; and off[0] happens to be zero
  * for every db anyway, so there _is_ in fact a terminating NUL there.
@@ -76,7 +73,7 @@ static const struct const_passdb const_pw_db = {
 		offsetof(struct passwd, pw_dir),        /* 5 S */
 		offsetof(struct passwd, pw_shell)       /* 6 S */
 	},
-	sizeof(PW_DEF)-1
+	sizeof(PW_DEF)-1, sizeof(struct passwd)
 };
 static const struct const_passdb const_gr_db = {
 	_PATH_GROUP, GR_DEF,
@@ -86,7 +83,7 @@ static const struct const_passdb const_gr_db = {
 		offsetof(struct group, gr_gid),         /* 2 I */
 		offsetof(struct group, gr_mem)          /* 3 m (char **) */
 	},
-	sizeof(GR_DEF)-1
+	sizeof(GR_DEF)-1, sizeof(struct group)
 };
 #if ENABLE_USE_BB_SHADOW
 static const struct const_passdb const_sp_db = {
@@ -102,19 +99,20 @@ static const struct const_passdb const_sp_db = {
 		offsetof(struct spwd, sp_expire),       /* 7 l */
 		offsetof(struct spwd, sp_flag)          /* 8 r Reserved */
 	},
-	sizeof(SP_DEF)-1
+	sizeof(SP_DEF)-1, sizeof(struct spwd)
 };
 #endif
 
 /* We avoid having big global data. */
 struct statics {
-	/* It's ok to use same buffer (db[0].struct_result) for getpwuid and getpwnam.
+	/* It's ok to use same buffer (db[0].malloced) for getpwuid and getpwnam.
 	 * Manpage says:
 	 * "The return value may point to a static area, and may be overwritten
 	 * by subsequent calls to getpwent(), getpwnam(), or getpwuid()."
 	 */
 	struct passdb db[2 + ENABLE_USE_BB_SHADOW];
 	char *tokenize_end;
+	unsigned string_size;
 };
 
 static struct statics *ptr_to_statics;
@@ -205,21 +203,21 @@ static char *parse_common(FILE *fp, const char *filename,
 			bb_error_msg("bad record at %s:%u", filename, count);
 			goto free_and_next;
 		}
+		S.string_size = S.tokenize_end - buf;
 
-/* Ugly hack: group db requires aqdditional buffer space
+/* Ugly hack: group db requires additional buffer space
  * for members[] array. If there is only one group, we need space
  * for 3 pointers: alignment padding, group name, NULL.
  * +1 for every additional group.
  */
 		if (n_fields == sizeof(GR_DEF)-1) { /* if we read group file */
-			int resize = 3;
+			int cnt = 3;
 			char *p = buf;
 			while (*p)
 				if (*p++ == ',')
-					resize++;
-			resize *= sizeof(char**);
-			resize += S.tokenize_end - buf;
-			buf = xrealloc(buf, resize);
+					cnt++;
+			S.string_size += cnt * sizeof(char*);
+			buf = xrealloc(buf, S.string_size);
 		}
 
 		if (!key) {
@@ -258,8 +256,8 @@ static void *convert_to_struct(struct passdb *db,
 	const char *def = db->def;
 	const uint8_t *off = db->off;
 
-/* TODO? for consistency, zero out all fields */
-/*	memset(result, 0, size_of_result);*/
+	/* For consistency, zero out all fields */
+	memset(result, 0, db->size_of);
 
 	for (;;) {
 		void *member = (char*)result + (*off++);
@@ -305,7 +303,7 @@ static void *convert_to_struct(struct passdb *db,
 		/* def "r" does nothing */
 
 		def++;
-		if ((unsigned char)*def < (unsigned char)' ')
+		if ((unsigned char)*def <= (unsigned char)' ')
 			break;
 		buffer += strlen(buffer) + 1;
 	}
@@ -328,7 +326,9 @@ static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
 	db = &S.db[db_and_field_pos >> 2];
 
 	*(void**)result = NULL;
-	buf = parse_file(db->filename, db->numfields, name, db_and_field_pos & 3);
+	buf = parse_file(db->filename, db->numfields, name, 0 /*db_and_field_pos & 3*/);
+	/* "db_and_field_pos & 3" is commented out since so far we don't implement
+	 * getXXXid_r() functions which would use that to pass 2 here */
 	if (buf) {
 		size_t size = S.tokenize_end - buf;
 		if (size > buflen) {
@@ -433,8 +433,14 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 	buf = parse_common(db->fp, db->filename, db->numfields, name, db_and_field_pos & 3);
 	if (buf) {
 		free(db->malloced);
-		db->malloced = buf;
-		result = convert_to_struct(db, buf, db->struct_result);
+		/* We enlarge buf and move string data up, freeing space
+		 * for struct passwd/group/spwd at the beginning. This way,
+		 * entire result of getXXnam is in a single malloced block.
+		 * This enables easy creation of xmalloc_getpwnam() API.
+		 */
+		db->malloced = buf = xrealloc(buf, db->size_of + S.string_size);
+		memmove(buf + db->size_of, buf, S.string_size);
+		result = convert_to_struct(db, buf + db->size_of, buf);
 	}
 	return result;
 }
