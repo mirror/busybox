@@ -32,6 +32,27 @@
 
 #include "libbb.h"
 
+struct const_passdb {
+	const char *filename;
+	const char def[10];
+	const uint8_t off[9];
+	uint8_t numfields;
+};
+struct passdb {
+	const char *filename;
+	const char def[10];
+	const uint8_t off[9];
+	uint8_t numfields;
+	FILE *fp;
+	char *malloced;
+	char struct_result[0
+				| sizeof(struct passwd)
+				| sizeof(struct group)
+	IF_USE_BB_SHADOW(       | sizeof(struct spwd)  )
+	/* bitwise OR above is poor man's max(a,b,c) */
+	];
+};
+
 /* S = string not empty, s = string maybe empty,
  * I = uid,gid, l = long maybe empty, m = members,
  * r = reserved
@@ -40,61 +61,50 @@
 #define GR_DEF "SsIm"
 #define SP_DEF "Ssllllllr"
 
-static const uint8_t pw_off[] ALIGN1 = {
-	offsetof(struct passwd, pw_name),       /* 0 S */
-	offsetof(struct passwd, pw_passwd),     /* 1 s */
-	offsetof(struct passwd, pw_uid),        /* 2 I */
-	offsetof(struct passwd, pw_gid),        /* 3 I */
-	offsetof(struct passwd, pw_gecos),      /* 4 s */
-	offsetof(struct passwd, pw_dir),        /* 5 S */
-	offsetof(struct passwd, pw_shell)       /* 6 S */
+static const struct const_passdb const_pw_db = {
+	_PATH_PASSWD, PW_DEF,
+	{
+		offsetof(struct passwd, pw_name),       /* 0 S */
+		offsetof(struct passwd, pw_passwd),     /* 1 s */
+		offsetof(struct passwd, pw_uid),        /* 2 I */
+		offsetof(struct passwd, pw_gid),        /* 3 I */
+		offsetof(struct passwd, pw_gecos),      /* 4 s */
+		offsetof(struct passwd, pw_dir),        /* 5 S */
+		offsetof(struct passwd, pw_shell)       /* 6 S */
+	},
+	sizeof(PW_DEF)-1
 };
-static const uint8_t gr_off[] ALIGN1 = {
-	offsetof(struct group, gr_name),        /* 0 S */
-	offsetof(struct group, gr_passwd),      /* 1 s */
-	offsetof(struct group, gr_gid),         /* 2 I */
-	offsetof(struct group, gr_mem)          /* 3 m (char **) */
+static const struct const_passdb const_gr_db = {
+	_PATH_GROUP, GR_DEF,
+	{
+		offsetof(struct group, gr_name),        /* 0 S */
+		offsetof(struct group, gr_passwd),      /* 1 s */
+		offsetof(struct group, gr_gid),         /* 2 I */
+		offsetof(struct group, gr_mem)          /* 3 m (char **) */
+	},
+	sizeof(GR_DEF)-1
 };
 #if ENABLE_USE_BB_SHADOW
-static const uint8_t sp_off[] ALIGN1 = {
-	offsetof(struct spwd, sp_namp),         /* 0 S Login name */
-	offsetof(struct spwd, sp_pwdp),         /* 1 s Encrypted password */
-	offsetof(struct spwd, sp_lstchg),       /* 2 l */
-	offsetof(struct spwd, sp_min),          /* 3 l */
-	offsetof(struct spwd, sp_max),          /* 4 l */
-	offsetof(struct spwd, sp_warn),         /* 5 l */
-	offsetof(struct spwd, sp_inact),        /* 6 l */
-	offsetof(struct spwd, sp_expire),       /* 7 l */
-	offsetof(struct spwd, sp_flag)          /* 8 r Reserved */
+static const struct const_passdb const_sp_db = {
+	_PATH_SHADOW, SP_DEF,
+	{
+		offsetof(struct spwd, sp_namp),         /* 0 S Login name */
+		offsetof(struct spwd, sp_pwdp),         /* 1 s Encrypted password */
+		offsetof(struct spwd, sp_lstchg),       /* 2 l */
+		offsetof(struct spwd, sp_min),          /* 3 l */
+		offsetof(struct spwd, sp_max),          /* 4 l */
+		offsetof(struct spwd, sp_warn),         /* 5 l */
+		offsetof(struct spwd, sp_inact),        /* 6 l */
+		offsetof(struct spwd, sp_expire),       /* 7 l */
+		offsetof(struct spwd, sp_flag)          /* 8 r Reserved */
+	},
+	sizeof(SP_DEF)-1
 };
-#endif
-
-struct const_passdb {
-	const char *filename;
-	const uint8_t *off;
-	const char def[10];
-	uint8_t numfields;
-	uint8_t size_of;
-};
-struct passdb {
-	const char *filename;
-	const uint8_t *off;
-	const char def[10];
-	uint8_t numfields;
-	uint8_t size_of;
-	FILE *fp;
-	void *malloced;
-};
-
-static const struct const_passdb const_pw_db = { _PATH_PASSWD, pw_off, PW_DEF, sizeof(PW_DEF)-1, sizeof(struct passwd) };
-static const struct const_passdb const_gr_db = { _PATH_GROUP , gr_off, GR_DEF, sizeof(GR_DEF)-1, sizeof(struct group) };
-#if ENABLE_USE_BB_SHADOW
-static const struct const_passdb const_sp_db = { _PATH_SHADOW, sp_off, SP_DEF, sizeof(SP_DEF)-1, sizeof(struct spwd) };
 #endif
 
 /* We avoid having big global data. */
 struct statics {
-	/* It's ok to use same buffer (db[0].malloced) for getpwuid and getpwnam.
+	/* It's ok to use same buffer (db[0].struct_result) for getpwuid and getpwnam.
 	 * Manpage says:
 	 * "The return value may point to a static area, and may be overwritten
 	 * by subsequent calls to getpwent(), getpwnam(), or getpwuid()."
@@ -223,9 +233,15 @@ static char *parse_file(const char *filename,
 }
 
 /* Convert passwd/group/shadow file record in buffer to a struct */
-static void *convert_to_struct(const char *def,	const unsigned char *off,
+static void *convert_to_struct(struct passdb *db,
 		char *buffer, void *result)
 {
+	const char *def = db->def;
+	const uint8_t *off = db->off;
+
+/* TODO? for consistency, zero out all fields */
+/*	memset(result, 0, size_of_result);*/
+
 	for (;;) {
 		void *member = (char*)result + (*off++);
 
@@ -282,7 +298,8 @@ static void *convert_to_struct(const char *def,	const unsigned char *off,
 
 /****** getXXnam/id_r */
 
-static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos, char *buffer, size_t buflen,
+static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
+		char *buffer, size_t buflen,
 		void *result)
 {
 	void *struct_buf = *(void**)result;
@@ -299,7 +316,7 @@ static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos, ch
 			errno = ERANGE;
 		} else {
 			memcpy(buffer, buf, size);
-			*(void**)result = convert_to_struct(db->def, db->off, buffer, struct_buf);
+			*(void**)result = convert_to_struct(db, buffer, struct_buf);
 		}
 		free(buf);
 	}
@@ -310,8 +327,9 @@ static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos, ch
 	return errno;
 }
 
-int FAST_FUNC getpwnam_r(const char *name, struct passwd *struct_buf, char *buffer, size_t buflen,
-				struct passwd **result)
+int FAST_FUNC getpwnam_r(const char *name, struct passwd *struct_buf,
+		char *buffer, size_t buflen,
+		struct passwd **result)
 {
 	/* Why the "store buffer address in result" trick?
 	 * This way, getXXnam_r has the same ABI signature as getpwnam_r,
@@ -357,7 +375,7 @@ static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 			errno = ERANGE;
 		} else {
 			memcpy(buffer, buf, size);
-			*(void**)result = convert_to_struct(db->def, db->off, buffer, struct_buf);
+			*(void**)result = convert_to_struct(db, buffer, struct_buf);
 		}
 		free(buf);
 	}
@@ -393,12 +411,11 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 		close_on_exec_on(fileno(db->fp));
 	}
 
-	free(db->malloced);
-	db->malloced = NULL;
 	buf = parse_common(db->fp, db->filename, db->numfields, name, db_and_field_pos & 3);
 	if (buf) {
-		db->malloced = xzalloc(db->size_of);
-		result = convert_to_struct(db->def, db->off, buf, db->malloced);
+		free(db->malloced);
+		db->malloced = buf;
+		result = convert_to_struct(db, buf, db->struct_result);
 	}
 	return result;
 }
@@ -465,7 +482,7 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 		while ((buf = parse_common(fp, _PATH_GROUP, sizeof(GR_DEF)-1, NULL, 0)) != NULL) {
 			char **m;
 			struct group group;
-			if (!convert_to_struct(GR_DEF, gr_off, buf, &group))
+			if (!convert_to_struct(&S.db[1], buf, &group))
 				goto next;
 			if (group.gr_gid == gid)
 				goto next;
