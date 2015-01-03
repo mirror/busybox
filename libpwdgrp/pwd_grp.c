@@ -223,7 +223,7 @@ static char *parse_common(FILE *fp, const char *filename,
  * for 3 pointers: alignment padding, group name, NULL.
  * +1 for every additional group.
  */
-	if (n_fields == sizeof(GR_DEF)-1) { /* if we read group file... */
+	if (buf && n_fields == sizeof(GR_DEF)-1) { /* if we read group file... */
 		int cnt = 3;
 		char *p = buf;
 		while (p < S.tokenize_end)
