@@ -297,7 +297,10 @@ static void *convert_to_struct(struct passdb *db,
 
 			((struct group *)result)->gr_mem = members;
 			while (--i >= 0) {
-				*members++ = buffer;
+				if (buffer[0]) {
+					*members++ = buffer;
+					// bb_error_msg("member[]='%s'", buffer);
+				}
 				buffer += strlen(buffer) + 1;
 			}
 			*members = NULL;
