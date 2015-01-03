@@ -45,11 +45,10 @@ struct passdb {
 	uint8_t numfields;
 	FILE *fp;
 	char *malloced;
-	char struct_result[0
-				| sizeof(struct passwd)
-				| sizeof(struct group)
-	IF_USE_BB_SHADOW(       | sizeof(struct spwd)  )
-	/* bitwise OR above is poor man's max(a,b,c) */
+	char struct_result[
+		/* Should be max(sizeof passwd,group,spwd), but this will do: */
+		IF_NOT_USE_BB_SHADOW(sizeof(struct passwd))
+		IF_USE_BB_SHADOW(sizeof(struct spwd))
 	];
 };
 
