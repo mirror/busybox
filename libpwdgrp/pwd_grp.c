@@ -203,22 +203,6 @@ static char *parse_common(FILE *fp, const char *filename,
 			bb_error_msg("bad record at %s:%u", filename, count);
 			goto free_and_next;
 		}
-		S.string_size = S.tokenize_end - buf;
-
-/* Ugly hack: group db requires additional buffer space
- * for members[] array. If there is only one group, we need space
- * for 3 pointers: alignment padding, group name, NULL.
- * +1 for every additional group.
- */
-		if (n_fields == sizeof(GR_DEF)-1) { /* if we read group file */
-			int cnt = 3;
-			char *p = buf;
-			while (*p)
-				if (*p++ == ',')
-					cnt++;
-			S.string_size += cnt * sizeof(char*);
-			buf = xrealloc(buf, S.string_size);
-		}
 
 		if (!key) {
 			/* no key specified: sequential read, return a record */
@@ -230,6 +214,24 @@ static char *parse_common(FILE *fp, const char *filename,
 		}
  free_and_next:
 		free(buf);
+	}
+
+	S.string_size = S.tokenize_end - buf;
+/*
+ * Ugly hack: group db requires additional buffer space
+ * for members[] array. If there is only one group, we need space
+ * for 3 pointers: alignment padding, group name, NULL.
+ * +1 for every additional group.
+ */
+	if (n_fields == sizeof(GR_DEF)-1) { /* if we read group file... */
+		int cnt = 3;
+		char *p = buf;
+		while (p < S.tokenize_end)
+			if (*p++ == ',')
+				cnt++;
+		S.string_size += cnt * sizeof(char*);
+//bb_error_msg("+%d words = %u key:%s buf:'%s'", cnt, S.string_size, key, buf);
+		buf = xrealloc(buf, S.string_size);
 	}
 
 	return buf;
