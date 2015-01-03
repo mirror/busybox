@@ -34,13 +34,13 @@
 
 struct const_passdb {
 	const char *filename;
-	const char def[10];
+	const char def[9];
 	const uint8_t off[9];
 	uint8_t numfields;
 };
 struct passdb {
 	const char *filename;
-	const char def[10];
+	const char def[9];
 	const uint8_t off[9];
 	uint8_t numfields;
 	FILE *fp;
@@ -51,6 +51,11 @@ struct passdb {
 		IF_USE_BB_SHADOW(sizeof(struct spwd))
 	];
 };
+/* Note: for shadow db, def[9] will not contain terminating NUL,
+ * but convert_to_struct() logic detects def[] end by "less than SP?",
+ * not by "is it NUL?" condition; and off[0] happens to be zero
+ * for every db anyway, so there _is_ in fact a terminating NUL there.
+ */
 
 /* S = string not empty, s = string maybe empty,
  * I = uid,gid, l = long maybe empty, m = members,
@@ -122,7 +127,7 @@ static void free_static(void)
     	free(S.db[0].malloced);
 	free(S.db[1].malloced);
 # if ENABLE_USE_BB_SHADOW
-	S.db[2].malloced);
+	free(S.db[2].malloced);
 # endif
 	free(ptr_to_statics);
 }
@@ -286,8 +291,8 @@ static void *convert_to_struct(struct passdb *db,
 			 * at the end of malloced buffer!
 			 */
 			members = (char **)
-				( ((intptr_t)S.tokenize_end + sizeof(char**))
-				& -(intptr_t)sizeof(char**)
+				( ((intptr_t)S.tokenize_end + sizeof(members[0]))
+				& -(intptr_t)sizeof(members[0])
 				);
 
 			((struct group *)result)->gr_mem = members;
@@ -300,7 +305,7 @@ static void *convert_to_struct(struct passdb *db,
 		/* def "r" does nothing */
 
 		def++;
-		if (*def == '\0')
+		if ((unsigned char)*def < (unsigned char)' ')
 			break;
 		buffer += strlen(buffer) + 1;
 	}
