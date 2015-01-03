@@ -117,6 +117,18 @@ static struct statics *ptr_to_statics;
 #define S     (*ptr_to_statics)
 #define has_S (ptr_to_statics)
 
+#if ENABLE_FEATURE_CLEAN_UP
+static void free_static(void)
+{
+    	free(S.db[0].malloced);
+	free(S.db[1].malloced);
+# if ENABLE_USE_BB_SHADOW
+	S.db[2].malloced);
+# endif
+	free(ptr_to_statics);
+}
+#endif
+
 static struct statics *get_S(void)
 {
 	if (!ptr_to_statics) {
@@ -125,6 +137,9 @@ static struct statics *get_S(void)
 		memcpy(&S.db[1], &const_gr_db, sizeof(const_gr_db));
 #if ENABLE_USE_BB_SHADOW
 		memcpy(&S.db[2], &const_sp_db, sizeof(const_sp_db));
+#endif
+#if ENABLE_FEATURE_CLEAN_UP
+		atexit(free_static);
 #endif
 	}
 	return ptr_to_statics;
