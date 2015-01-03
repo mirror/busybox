@@ -1,5 +1,5 @@
 /* vi: set sw=4 ts=4: */
-/* Copyright (C) 2014   Tito Ragusa <farmatito@tiscali.it>
+/* Copyright (C) 2014 Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
@@ -9,38 +9,33 @@
  * Rewrite of some parts. Main differences are:
  *
  * 1) the buffer for getpwuid, getgrgid, getpwnam, getgrnam is dynamically
- *    allocated and reused by later calls. if ERANGE error pops up it is
- *    reallocated to the size of the longest line found so far in the
- *    passwd/group files and reused for later calls.
+ *    allocated and reused by later calls.
  *    If ENABLE_FEATURE_CLEAN_UP is set the buffers are freed at program
  *    exit using the atexit function to make valgrind happy.
  * 2) the passwd/group files:
  *      a) must contain the expected number of fields (as per count of field
  *         delimeters ":") or we will complain with a error message.
- *      b) leading or trailing whitespace in fields is allowed and handled.
+ *      b) leading or trailing whitespace in fields is stripped.
  *      c) some fields are not allowed to be empty (e.g. username, uid/gid,
  *         homedir, shell) and in this case NULL is returned and errno is
  *         set to EINVAL. This behaviour could be easily changed by
  *         modifying PW_DEF, GR_DEF, SP_DEF strings (uppercase
  *         makes a field mandatory).
  *      d) the string representing uid/gid must be convertible by strtoXX
- *         functions or NULL is returned and errno is set to EINVAL.
- *      e) leading or trailing whitespaces in member names and empty members
- *         are allowed and handled.
- * 3) the internal function for getgrouplist uses a dynamically allocated
- *    buffer and retries with a bigger one in case it is too small;
- * 4) the _r functions use the user supplied buffers that are never reallocated
- *    but use mostly the same common code as the other functions.
- * 5) at the moment only the functions really used by busybox code are
+ *         functions, or errno is set to EINVAL.
+ *      e) leading or trailing whitespace in group member names are stripped.
+ * 3) the internal function for getgrouplist uses dynamically allocated buffer.
+ * 4) at the moment only the functions really used by busybox code are
  *    implemented, if you need a particular missing function it should be
  *    easy to write it by using the internal common code.
  */
 
 #include "libbb.h"
 
-/* S = string not empty, s = string maybe empty,  */
-/* I = uid,gid, l = long maybe empty, m = members,*/
-/* r = reserved */
+/* S = string not empty, s = string maybe empty,
+ * I = uid,gid, l = long maybe empty, m = members,
+ * r = reserved
+ */
 #define PW_DEF "SsIIsSS"
 #define GR_DEF "SsIm"
 #define SP_DEF "Ssllllllr"
@@ -99,7 +94,8 @@ static const struct const_passdb const_sp_db = { _PATH_SHADOW, sp_off, SP_DEF, s
 
 /* We avoid having big global data. */
 struct statics {
-	/* It's ok to use one buffer for getpwuid and getpwnam. Manpage says:
+	/* It's ok to use same buffer (db[0].malloced) for getpwuid and getpwnam.
+	 * Manpage says:
 	 * "The return value may point to a static area, and may be overwritten
 	 * by subsequent calls to getpwent(), getpwnam(), or getpwuid()."
 	 */
@@ -124,14 +120,12 @@ static struct statics *get_S(void)
 	return ptr_to_statics;
 }
 
-/**********************************************************************/
-/* Internal functions                                                 */
-/**********************************************************************/
+/* Internal functions */
 
 /* Divide the passwd/group/shadow record in fields
  * by substituting the given delimeter
  * e.g. ':' or ',' with '\0'.
- * Returns the  number of fields found.
+ * Returns the number of fields found.
  * Strips leading and trailing whitespace in fields.
  */
 static int tokenize(char *buffer, int ch)
@@ -328,7 +322,7 @@ int FAST_FUNC getpwnam_r(const char *name, struct passwd *struct_buf, char *buff
 }
 #if ENABLE_USE_BB_SHADOW
 int FAST_FUNC getspnam_r(const char *name, struct spwd *struct_buf, char *buffer, size_t buflen,
-			   struct spwd **result)
+		struct spwd **result)
 {
 	*result = struct_buf;
 	return getXXnam_r(name, (2 << 2) + 0, buffer, buflen, result);
@@ -461,7 +455,7 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 	get_S();
 
 	/* We alloc space for 8 gids at a time. */
-	group_list = xmalloc(8 * sizeof(group_list[0]));
+	group_list = xzalloc(8 * sizeof(group_list[0]));
 	group_list[0] = gid;
 	ngroups = 1;
 
