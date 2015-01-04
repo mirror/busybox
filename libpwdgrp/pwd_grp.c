@@ -316,27 +316,19 @@ static void *convert_to_struct(struct passdb *db,
 	return result;
 }
 
-/****** getXXnam/id_r */
-
-static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
+static int massage_data_for_r_func(struct passdb *db,
 		char *buffer, size_t buflen,
-		void *result)
+		void **result,
+		char *buf)
 {
-	void *struct_buf = *(void**)result;
-	char *buf;
-	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
-
-	*(void**)result = NULL;
-	buf = parse_file(db, name, 0 /*db_and_field_pos & 3*/);
-	/* "db_and_field_pos & 3" is commented out since so far we don't implement
-	 * getXXXid_r() functions which would use that to pass 2 here */
+	void *result_buf = *result;
+	*result = NULL;
 	if (buf) {
-		size_t size = S.tokenize_end - buf;
-		if (size > buflen) {
+		if (S.string_size > buflen) {
 			errno = ERANGE;
 		} else {
-			memcpy(buffer, buf, size);
-			*(void**)result = convert_to_struct(db, buffer, struct_buf);
+			memcpy(buffer, buf, S.string_size);
+			*result = convert_to_struct(db, buffer, result_buf);
 		}
 		free(buf);
 	}
@@ -345,6 +337,22 @@ static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
 	 * NB: not finding the record is also a "success" here:
 	 */
 	return errno;
+}
+
+/****** getXXnam/id_r */
+
+static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
+		char *buffer, size_t buflen,
+		void *result)
+{
+	char *buf;
+	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
+
+	buf = parse_file(db, name, 0 /*db_and_field_pos & 3*/);
+	/* "db_and_field_pos & 3" is commented out since so far we don't implement
+	 * getXXXid_r() functions which would use that to pass 2 here */
+
+	return massage_data_for_r_func(db, buffer, buflen, result, buf);
 }
 
 int FAST_FUNC getpwnam_r(const char *name, struct passwd *struct_buf,
@@ -369,14 +377,11 @@ int FAST_FUNC getspnam_r(const char *name, struct spwd *struct_buf, char *buffer
 
 /****** getXXent_r */
 
-static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
-		void *result,
-		unsigned db_idx)
+static int FAST_FUNC getXXent_r(uintptr_t db_idx, char *buffer, size_t buflen,
+		void *result)
 {
 	char *buf;
 	struct passdb *db = &get_S()->db[db_idx];
-
-	*(void**)result = NULL;
 
 	if (!db->fp) {
 		db->fp = fopen_for_read(db->filename);
@@ -387,26 +392,14 @@ static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 	}
 
 	buf = parse_common(db->fp, db, /*no search key:*/ NULL, 0);
-	if (buf) {
-		size_t size = S.tokenize_end - buf;
-		if (size > buflen) {
-			errno = ERANGE;
-		} else {
-			memcpy(buffer, buf, size);
-			*(void**)result = convert_to_struct(db, buffer, struct_buf);
-		}
-		free(buf);
-	}
-	/* "The reentrant functions return zero on success.
-	 * In case of error, an error number is returned."
-	 * NB: not finding the record is also a "success" here:
-	 */
-	return errno;
+	return massage_data_for_r_func(db, buffer, buflen, result, buf);
 }
 
-int FAST_FUNC getpwent_r(struct passwd *struct_buf, char *buffer, size_t buflen, struct passwd **result)
+int FAST_FUNC getpwent_r(struct passwd *struct_buf, char *buffer, size_t buflen,
+		struct passwd **result)
 {
-	return getXXent_r(struct_buf, buffer, buflen, result, 0);
+	*result = struct_buf;
+	return getXXent_r(0, buffer, buflen, result);
 }
 
 /****** getXXnam/id */
