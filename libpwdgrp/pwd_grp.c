@@ -186,8 +186,7 @@ static int tokenize(char *buffer, int ch)
 /* Returns !NULL on success and matching line broken up in fields by '\0' in buf.
  * We require the expected number of fields to be found.
  */
-static char *parse_common(FILE *fp, const char *filename,
-		int n_fields,
+static char *parse_common(FILE *fp, struct passdb *db,
 		const char *key, int field_pos)
 {
 	int count = 0;
@@ -198,9 +197,9 @@ static char *parse_common(FILE *fp, const char *filename,
 		/* Skip empty lines, comment lines */
 		if (buf[0] == '\0' || buf[0] == '#')
 			goto free_and_next;
-		if (tokenize(buf, ':') != n_fields) {
+		if (tokenize(buf, ':') != db->numfields) {
 			/* number of fields is wrong */
-			bb_error_msg("bad record at %s:%u", filename, count);
+			bb_error_msg("bad record at %s:%u", db->filename, count);
 			goto free_and_next;
 		}
 
@@ -223,7 +222,7 @@ static char *parse_common(FILE *fp, const char *filename,
  * for 3 pointers: alignment padding, group name, NULL.
  * +1 for every additional group.
  */
-	if (buf && n_fields == sizeof(GR_DEF)-1) { /* if we read group file... */
+	if (buf && db->numfields == sizeof(GR_DEF)-1) { /* if we read group file... */
 		int cnt = 3;
 		char *p = buf;
 		while (p < S.tokenize_end)
@@ -237,15 +236,14 @@ static char *parse_common(FILE *fp, const char *filename,
 	return buf;
 }
 
-static char *parse_file(const char *filename,
-		int n_fields,
+static char *parse_file(struct passdb *db,
 		const char *key, int field_pos)
 {
 	char *buf = NULL;
-	FILE *fp = fopen_for_read(filename);
+	FILE *fp = fopen_for_read(db->filename);
 
 	if (fp) {
-		buf = parse_common(fp, filename, n_fields, key, field_pos);
+		buf = parse_common(fp, db, key, field_pos);
 		fclose(fp);
 	}
 	return buf;
@@ -326,12 +324,10 @@ static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
 {
 	void *struct_buf = *(void**)result;
 	char *buf;
-	struct passdb *db;
-	get_S();
-	db = &S.db[db_and_field_pos >> 2];
+	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
 
 	*(void**)result = NULL;
-	buf = parse_file(db->filename, db->numfields, name, 0 /*db_and_field_pos & 3*/);
+	buf = parse_file(db, name, 0 /*db_and_field_pos & 3*/);
 	/* "db_and_field_pos & 3" is commented out since so far we don't implement
 	 * getXXXid_r() functions which would use that to pass 2 here */
 	if (buf) {
@@ -378,9 +374,7 @@ static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 		unsigned db_idx)
 {
 	char *buf;
-	struct passdb *db;
-	get_S();
-	db = &S.db[db_idx];
+	struct passdb *db = &get_S()->db[db_idx];
 
 	*(void**)result = NULL;
 
@@ -392,7 +386,7 @@ static int FAST_FUNC getXXent_r(void *struct_buf, char *buffer, size_t buflen,
 		close_on_exec_on(fileno(db->fp));
 	}
 
-	buf = parse_common(db->fp, db->filename, db->numfields, /*no search key:*/ NULL, 0);
+	buf = parse_common(db->fp, db, /*no search key:*/ NULL, 0);
 	if (buf) {
 		size_t size = S.tokenize_end - buf;
 		if (size > buflen) {
@@ -421,9 +415,7 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 {
 	char *buf;
 	void *result;
-	struct passdb *db;
-	get_S();
-	db = &S.db[db_and_field_pos >> 2];
+	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
 
 	result = NULL;
 
@@ -435,7 +427,7 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 		close_on_exec_on(fileno(db->fp));
 	}
 
-	buf = parse_common(db->fp, db->filename, db->numfields, name, db_and_field_pos & 3);
+	buf = parse_common(db->fp, db, name, db_and_field_pos & 3);
 	if (buf) {
 		free(db->malloced);
 		/* We enlarge buf and move string data up, freeing space
@@ -499,8 +491,6 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 	gid_t *group_list;
 	int ngroups;
 
-	get_S();
-
 	/* We alloc space for 8 gids at a time. */
 	group_list = xzalloc(8 * sizeof(group_list[0]));
 	group_list[0] = gid;
@@ -508,11 +498,12 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 
 	fp = fopen_for_read(_PATH_GROUP);
 	if (fp) {
+		struct passdb *db = &get_S()->db[1];
 		char *buf;
-		while ((buf = parse_common(fp, _PATH_GROUP, sizeof(GR_DEF)-1, NULL, 0)) != NULL) {
+		while ((buf = parse_common(fp, db, NULL, 0)) != NULL) {
 			char **m;
 			struct group group;
-			if (!convert_to_struct(&S.db[1], buf, &group))
+			if (!convert_to_struct(db, buf, &group))
 				goto next;
 			if (group.gr_gid == gid)
 				goto next;
