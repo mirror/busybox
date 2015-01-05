@@ -522,9 +522,7 @@ static void get_irqs_from_stat(struct stats_irq *irq)
 	FILE *fp;
 	char buf[1024];
 
-	fp = fopen_for_read(PROCFS_STAT);
-	if (!fp)
-		return;
+	fp = xfopen_for_read(PROCFS_STAT);
 
 	while (fgets(buf, sizeof(buf), fp)) {
 		//bb_error_msg("/proc/stat:'%s'", buf);
@@ -644,9 +642,7 @@ static void get_uptime(data_t *uptime)
 	char buf[sizeof(long)*3 * 2 + 4]; /* enough for long.long */
 	unsigned long uptime_sec, decimal;
 
-	fp = fopen_for_read(PROCFS_UPTIME);
-	if (!fp)
-		return;
+	fp = xfopen_for_read(PROCFS_UPTIME);
 	if (fgets(buf, sizeof(buf), fp)) {
 		if (sscanf(buf, "%lu.%lu", &uptime_sec, &decimal) == 2) {
 			*uptime = (data_t)uptime_sec * G.hz + decimal * G.hz / 100;
