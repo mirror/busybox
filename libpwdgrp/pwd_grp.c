@@ -9,13 +9,13 @@
  * Rewrite of some parts. Main differences are:
  *
  * 1) the buffer for getpwuid, getgrgid, getpwnam, getgrnam is dynamically
- *    allocated and reused by later calls.
+ *    allocated.
  *    If ENABLE_FEATURE_CLEAN_UP is set the buffers are freed at program
  *    exit using the atexit function to make valgrind happy.
  * 2) the passwd/group files:
  *      a) must contain the expected number of fields (as per count of field
  *         delimeters ":") or we will complain with a error message.
- *      b) leading or trailing whitespace in fields is stripped.
+ *      b) leading and trailing whitespace in fields is stripped.
  *      c) some fields are not allowed to be empty (e.g. username, uid/gid,
  *         homedir, shell) and in this case NULL is returned and errno is
  *         set to EINVAL. This behaviour could be easily changed by
@@ -23,7 +23,7 @@
  *         makes a field mandatory).
  *      d) the string representing uid/gid must be convertible by strtoXX
  *         functions, or errno is set to EINVAL.
- *      e) leading or trailing whitespace in group member names are stripped.
+ *      e) leading and trailing whitespace in group member names is stripped.
  * 3) the internal function for getgrouplist uses dynamically allocated buffer.
  * 4) at the moment only the functions really used by busybox code are
  *    implemented, if you need a particular missing function it should be
@@ -34,15 +34,15 @@
 
 struct const_passdb {
 	const char *filename;
-	const char def[7 + 2*ENABLE_USE_BB_SHADOW];
-	const uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
+	char def[7 + 2*ENABLE_USE_BB_SHADOW];
+	uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
 	uint8_t numfields;
 	uint8_t size_of;
 };
 struct passdb {
 	const char *filename;
-	const char def[7 + 2*ENABLE_USE_BB_SHADOW];
-	const uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
+	char def[7 + 2*ENABLE_USE_BB_SHADOW];
+	uint8_t off[7 + 2*ENABLE_USE_BB_SHADOW];
 	uint8_t numfields;
 	uint8_t size_of;
 	FILE *fp;
@@ -105,7 +105,7 @@ static const struct const_passdb const_sp_db = {
 
 /* We avoid having big global data. */
 struct statics {
-	/* It's ok to use same buffer (db[0].malloced) for getpwuid and getpwnam.
+	/* We use same buffer (db[0].malloced) for getpwuid and getpwnam.
 	 * Manpage says:
 	 * "The return value may point to a static area, and may be overwritten
 	 * by subsequent calls to getpwent(), getpwnam(), or getpwuid()."
@@ -203,7 +203,7 @@ static char *parse_common(FILE *fp, struct passdb *db,
 			goto free_and_next;
 		}
 
-		if (!key) {
+		if (field_pos == -1) {
 			/* no key specified: sequential read, return a record */
 			break;
 		}
@@ -292,7 +292,6 @@ static void *convert_to_struct(struct passdb *db,
 				( ((intptr_t)S.tokenize_end + sizeof(members[0]))
 				& -(intptr_t)sizeof(members[0])
 				);
-
 			((struct group *)result)->gr_mem = members;
 			while (--i >= 0) {
 				if (buffer[0]) {
@@ -391,7 +390,9 @@ static int FAST_FUNC getXXent_r(uintptr_t db_idx, char *buffer, size_t buflen,
 		close_on_exec_on(fileno(db->fp));
 	}
 
-	buf = parse_common(db->fp, db, /*no search key:*/ NULL, 0);
+	buf = parse_common(db->fp, db, /*no search key:*/ NULL, -1);
+	if (!buf && !errno)
+		errno = ENOENT;
 	return massage_data_for_r_func(db, buffer, buflen, result, buf);
 }
 
@@ -493,7 +494,7 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 	if (fp) {
 		struct passdb *db = &get_S()->db[1];
 		char *buf;
-		while ((buf = parse_common(fp, db, NULL, 0)) != NULL) {
+		while ((buf = parse_common(fp, db, NULL, -1)) != NULL) {
 			char **m;
 			struct group group;
 			if (!convert_to_struct(db, buf, &group))
@@ -505,7 +506,7 @@ static gid_t* FAST_FUNC getgrouplist_internal(int *ngroups_ptr,
 					continue;
 				group_list = xrealloc_vector(group_list, /*8=2^3:*/ 3, ngroups);
 				group_list[ngroups++] = group.gr_gid;
-				break;
+				goto next;
 			}
  next:
 			free(buf);
