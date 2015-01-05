@@ -8,7 +8,7 @@
  */
 
 //usage:#define swapon_trivial_usage
-//usage:       "[-a]" IF_FEATURE_SWAPON_DISCARD(" [-d[POL]]") IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
+//usage:       "[-a] [-e]" IF_FEATURE_SWAPON_DISCARD(" [-d[POL]]") IF_FEATURE_SWAPON_PRI(" [-p PRI]") " [DEVICE]"
 //usage:#define swapon_full_usage "\n\n"
 //usage:       "Start swapping on DEVICE\n"
 //usage:     "\n	-a	Start swapping on all swap devices"
@@ -16,15 +16,17 @@
 //usage:     "\n	-d[POL]	Discard blocks at swapon (POL=once),"
 //usage:     "\n		as freed (POL=pages), or both (POL omitted)"
 //usage:	)
+//usage:     "\n	-e	Silently skip devices that do not exist"
 //usage:	IF_FEATURE_SWAPON_PRI(
 //usage:     "\n	-p PRI	Set swap device priority"
 //usage:	)
 //usage:
 //usage:#define swapoff_trivial_usage
-//usage:       "[-a] [DEVICE]"
+//usage:       "[-a] [-e] [DEVICE]"
 //usage:#define swapoff_full_usage "\n\n"
 //usage:       "Stop swapping on DEVICE\n"
 //usage:     "\n	-a	Stop swapping on all swap devices"
+//usage:     "\n	-e	Silently skip devices that do not exist"
 
 #include "libbb.h"
 #include <mntent.h>
@@ -77,15 +79,18 @@ struct globals {
 /* Command line options */
 enum {
 	OPTBIT_a,                              /* -a all      */
+	OPTBIT_e,                              /* -e ifexists */
 	IF_FEATURE_SWAPON_DISCARD( OPTBIT_d ,) /* -d discard  */
 	IF_FEATURE_SWAPON_PRI    ( OPTBIT_p ,) /* -p priority */
 	OPT_a = 1 << OPTBIT_a,
+	OPT_e = 1 << OPTBIT_e,
 	OPT_d = IF_FEATURE_SWAPON_DISCARD((1 << OPTBIT_d)) + 0,
 	OPT_p = IF_FEATURE_SWAPON_PRI    ((1 << OPTBIT_p)) + 0,
 };
 
 #define OPT_ALL      (option_mask32 & OPT_a)
 #define OPT_DISCARD  (option_mask32 & OPT_d)
+#define OPT_IFEXISTS (option_mask32 & OPT_e)
 #define OPT_PRIO     (option_mask32 & OPT_p)
 
 static int swap_enable_disable(char *device)
@@ -95,6 +100,8 @@ static int swap_enable_disable(char *device)
 	struct stat st;
 
 	resolve_mount_spec(&device);
+	if (!OPT_IFEXISTS)
+		xstat(device, &st);
 
 	if (do_swapoff) {
 		err = swapoff(device);
@@ -112,7 +119,8 @@ static int swap_enable_disable(char *device)
 			}
 			err = swapon(device, g_flags);
 			/* Don't complain on swapon -a if device is already in use */
-			quiet = (OPT_ALL && errno == EBUSY);
+			/* Don't complain if file does not exist with -e option */
+			quiet = (OPT_ALL && errno == EBUSY) || (OPT_IFEXISTS && errno == ENOENT);
 		}
 	}
 
@@ -229,7 +237,7 @@ static int do_all_in_proc_swaps(void)
 	return err;
 }
 
-#define OPTSTR_SWAPON "a" \
+#define OPTSTR_SWAPON "ae" \
 	IF_FEATURE_SWAPON_DISCARD("d::") \
 	IF_FEATURE_SWAPON_PRI("p:")
 
@@ -242,7 +250,7 @@ int swap_on_off_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	getopt32(argv, do_swapoff ? "a" : OPTSTR_SWAPON
+	getopt32(argv, do_swapoff ? "ae" : OPTSTR_SWAPON
 			IF_FEATURE_SWAPON_DISCARD(, &discard)
 			IF_FEATURE_SWAPON_PRI(, &prio)
 	);
