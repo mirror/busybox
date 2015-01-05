@@ -130,3 +130,17 @@ void FAST_FUNC update_utmp(pid_t pid, int new_type, const char *tty_name, const 
 	updwtmp(bb_path_wtmp_file, &utent);
 #endif
 }
+
+/* man utmp:
+ * When init(8) finds that a process has exited, it locates its utmp entry
+ * by ut_pid, sets ut_type to DEAD_PROCESS, and clears ut_user, ut_host
+ * and ut_time with null bytes.
+ * [same applies to other processes which maintain utmp entries, like telnetd]
+ *
+ * We do not bother actually clearing fields:
+ * it might be interesting to know who was logged in and from where
+ */
+void FAST_FUNC update_utmp_DEAD_PROCESS(pid_t pid)
+{
+	update_utmp(pid, DEAD_PROCESS, NULL, NULL, NULL);
+}

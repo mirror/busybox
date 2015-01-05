@@ -454,7 +454,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 		else {
 			if (safe_waitpid(child_pid, NULL, 0) == -1)
 				bb_perror_msg("waitpid");
-			update_utmp(child_pid, DEAD_PROCESS, NULL, NULL, NULL);
+			update_utmp_DEAD_PROCESS(child_pid);
 		}
 		IF_PAM(login_pam_end(pamh);)
 		return 0;
