@@ -189,17 +189,15 @@ static int tokenize(char *buffer, int ch)
 static char *parse_common(FILE *fp, struct passdb *db,
 		const char *key, int field_pos)
 {
-	int count = 0;
 	char *buf;
 
 	while ((buf = xmalloc_fgetline(fp)) != NULL) {
-		count++;
 		/* Skip empty lines, comment lines */
 		if (buf[0] == '\0' || buf[0] == '#')
 			goto free_and_next;
 		if (tokenize(buf, ':') != db->numfields) {
 			/* number of fields is wrong */
-			bb_error_msg("bad record at %s:%u", db->filename, count);
+			bb_error_msg("%s: bad record", db->filename);
 			goto free_and_next;
 		}
 
