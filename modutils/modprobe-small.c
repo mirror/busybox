@@ -635,6 +635,14 @@ static void process_module(char *name, const char *cmdline_options)
 		infovec = find_alias(name);
 	}
 
+	if (!infovec) {
+		/* both dirscan and find_alias found nothing */
+		if (!is_rmmod && applet_name[0] != 'd') /* it wasn't rmmod or depmod */
+			bb_error_msg("module '%s' not found", name);
+//TODO: _and_die()? or should we continue (un)loading modules listed on cmdline?
+		goto ret;
+	}
+
 	/* There can be more than one module for the given alias. For example,
 	 * "pci:v00008086d00007010sv00000000sd00000000bc01sc01i80" matches
 	 * ata_piix because it has alias "pci:v00008086d00007010sv*sd*bc*sc*i*"
@@ -650,7 +658,8 @@ static void process_module(char *name, const char *cmdline_options)
 			int r;
 			char modname[MODULE_NAME_LEN];
 
-			filename2modname(info->pathname, modname);
+			filename2modname(
+				bb_get_last_path_component_nostrip(info->pathname), modname);
 			r = delete_module(modname, O_NONBLOCK | O_EXCL);
 			dbg1_error_msg("delete_module('%s', O_NONBLOCK | O_EXCL):%d", modname, r);
 			if (r != 0) {
@@ -671,14 +680,6 @@ static void process_module(char *name, const char *cmdline_options)
 		 * If the modules it depends on are also unused, modprobe
 		 * will try to remove them, too."
 		 */
-	}
-
-	if (!infovec) {
-		/* both dirscan and find_alias found nothing */
-		if (!is_rmmod && applet_name[0] != 'd') /* it wasn't rmmod or depmod */
-			bb_error_msg("module '%s' not found", name);
-//TODO: _and_die()? or should we continue (un)loading modules listed on cmdline?
-		goto ret;
 	}
 
 	infoidx = 0;
