@@ -44,6 +44,17 @@ testing "diff of stdin, twice" \
 	"" \
 	"stdin"
 
+testing "diff of empty file against stdin" \
+	"diff -u - input | $TRIM_TAB" \
+"\
+--- -
++++ input
+@@ -1 +0,0 @@
+-a
+" \
+	"" \
+	"a\n"
+
 testing "diff of empty file against nonempty one" \
 	"diff -u - input | $TRIM_TAB" \
 "\

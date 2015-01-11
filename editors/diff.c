@@ -740,9 +740,10 @@ static int diffreg(char *file[2])
 			unlink(name);
 			if (bb_copyfd_eof(fd, fd_tmp) < 0)
 				xfunc_die();
-			if (fd) /* Prevents closing of stdin */
+			if (fd != STDIN_FILENO)
 				close(fd);
 			fd = fd_tmp;
+			xlseek(fd, 0, SEEK_SET);
 		}
 		fp[i] = fdopen(fd, "r");
 	}
