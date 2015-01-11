@@ -163,6 +163,15 @@ static char *filename2modname(const char *filename, char *modname)
 	return modname;
 }
 
+static int pathname_matches_modname(const char *pathname, const char *modname)
+{
+	int r;
+	char name[MODULE_NAME_LEN];
+	filename2modname(bb_get_last_path_component_nostrip(pathname), name);
+	r = (strcmp(name, modname) == 0);
+	return r;
+}
+
 /* Take "word word", return malloced "word",NUL,"word",NUL,NUL */
 static char* str_2_list(const char *str)
 {
@@ -293,18 +302,6 @@ static void parse_module(module_info *info, const char *pathname)
 	info->deps = copy_stringbuf();
 
 	free(module_image);
-}
-
-static int pathname_matches_modname(const char *pathname, const char *modname)
-{
-	int r;
-	char name[MODULE_NAME_LEN];
-	const char *fname = bb_get_last_path_component_nostrip(pathname);
-	const char *suffix = strrstr(fname, ".ko");
-	safe_strncpy(name, fname, suffix - fname + 1);
-	replace(name, '-', '_');
-	r = (strcmp(name, modname) == 0);
-	return r;
 }
 
 static FAST_FUNC int fileAction(const char *pathname,
