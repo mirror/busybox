@@ -15,8 +15,11 @@
 #include <sys/utsname.h>
 #include <fnmatch.h>
 
-//#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
+#if 1
 #define DBG(...) ((void)0)
+#else
+#define DBG(fmt, ...) bb_error_msg("%s: " fmt, __func__, ## __VA_ARGS__)
+#endif
 
 /* Note that unlike older versions of modules.dep/depmod (busybox and m-i-t),
  * we expect the full dependency list to be specified in modules.dep.
@@ -204,7 +207,7 @@ static struct module_entry *helper_get_module(const char *module, int create)
 	unsigned i;
 	unsigned hash;
 
-	filename2modname(module, modname);
+	filename2modname(bb_get_last_path_component_nostrip(module), modname);
 
 	hash = 0;
 	for (i = 0; modname[i]; i++)
@@ -546,7 +549,6 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 
 	if (opt & OPT_LIST_ONLY) {
 		int i;
-		char name[MODULE_NAME_LEN];
 		char *colon, *tokens[2];
 		parser_t *p = config_open2(CONFIG_DEFAULT_DEPMOD_FILE, xfopen_for_read);
 
@@ -558,10 +560,14 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			if (!colon)
 				continue;
 			*colon = '\0';
-			filename2modname(tokens[0], name);
 			if (!argv[0])
 				puts(tokens[0]);
 			else {
+				char name[MODULE_NAME_LEN];
+				filename2modname(
+					bb_get_last_path_component_nostrip(tokens[0]),
+					name
+				);
 				for (i = 0; argv[i]; i++) {
 					if (fnmatch(argv[i], name, 0) == 0) {
 						puts(tokens[0]);
