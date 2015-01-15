@@ -207,7 +207,7 @@ static struct module_entry *helper_get_module(const char *module, int create)
 	unsigned i;
 	unsigned hash;
 
-	filename2modname(bb_get_last_path_component_nostrip(module), modname);
+	filename2modname(module, modname);
 
 	hash = 0;
 	for (i = 0; modname[i]; i++)
@@ -232,9 +232,14 @@ static ALWAYS_INLINE struct module_entry *get_or_add_modentry(const char *module
 {
 	return helper_get_module(module, 1);
 }
-static ALWAYS_INLINE struct module_entry *get_modentry(const char *module)
+/* So far this function always gets a module pathname, never an alias name.
+ * The crucial difference is that pathname needs dirname stripping,
+ * while alias name must NOT do it!
+ * Testcase where dirname stripping is likely to go wrong: "modprobe devname:snd/timer"
+ */
+static ALWAYS_INLINE struct module_entry *get_modentry(const char *pathname)
 {
-	return helper_get_module(module, 0);
+	return helper_get_module(bb_get_last_path_component_nostrip(pathname), 0);
 }
 
 static void add_probe(const char *name)
@@ -502,7 +507,7 @@ static void load_modules_dep(void)
 		colon = last_char_is(tokens[0], ':');
 		if (colon == NULL)
 			continue;
-		*colon = 0;
+		*colon = '\0';
 
 		m = get_modentry(tokens[0]);
 		if (m == NULL)
