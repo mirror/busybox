@@ -425,7 +425,7 @@ static int do_modprobe(struct module_entry *m)
 
 		rc = 0;
 		fn = llist_pop(&m->deps); /* we leak it */
-		m2 = get_or_add_modentry(fn);
+		m2 = get_or_add_modentry(bb_get_last_path_component_nostrip(fn));
 
 		if (option_mask32 & OPT_REMOVE) {
 			/* modprobe -r */
