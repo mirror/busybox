@@ -10,8 +10,9 @@
 //usage:#define loadkmap_trivial_usage
 //usage:       "< keymap"
 //usage:#define loadkmap_full_usage "\n\n"
-//usage:       "Load a binary keyboard translation table from stdin\n"
-/* //usage:     "\n	-C TTY	Affect TTY instead of /dev/tty" */
+//usage:       "Load a binary keyboard translation table from stdin"
+////usage:       "\n"
+////usage:       "\n	-C TTY	Affect TTY instead of /dev/tty"
 //usage:
 //usage:#define loadkmap_example_usage
 //usage:       "$ loadkmap < /etc/i18n/lang-keymap\n"

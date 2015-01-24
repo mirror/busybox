@@ -674,7 +674,7 @@ static void show_timerstats(void)
 //usage:#define powertop_trivial_usage
 //usage:       ""
 //usage:#define powertop_full_usage "\n\n"
-//usage:       "Analyze power consumption on Intel-based laptops\n"
+//usage:       "Analyze power consumption on Intel-based laptops"
 
 int powertop_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)

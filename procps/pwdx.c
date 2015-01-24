@@ -21,7 +21,7 @@
 //usage:#define pwdx_trivial_usage
 //usage:       "PID..."
 //usage:#define pwdx_full_usage "\n\n"
-//usage:       "Show current directory for PIDs\n"
+//usage:       "Show current directory for PIDs"
 
 #include "libbb.h"
 
