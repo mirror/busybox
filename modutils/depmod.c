@@ -33,7 +33,6 @@ typedef struct module_info {
 static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARAM,
 				void *data, int depth UNUSED_PARAM)
 {
-	char modname[MODULE_NAME_LEN];
 	module_info **first = (module_info **) data;
 	char *image, *ptr;
 	module_info *info;
@@ -51,11 +50,10 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 
 	info->dnext = info->dprev = info;
 	info->name = xstrdup(fname + 2); /* skip "./" */
-	info->modname = xstrdup(
-		filename2modname(
+	info->modname = filename2modname(
 			bb_get_last_path_component_nostrip(fname),
-			modname
-	));
+			NULL
+	);
 	for (ptr = image; ptr < image + len - 10; ptr++) {
 		if (strncmp(ptr, "depends=", 8) == 0) {
 			char *u;
@@ -250,11 +248,12 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 		const char *fname = bb_basename(m->name);
 		filename2modname(fname, modname);
 		while (m->aliases) {
-			/* Last word can well be m->modname instead,
-			 * but depmod from module-init-tools 3.4
-			 * uses module basename, i.e., no s/-/_/g.
-			 * (pathname and .ko.* are still stripped)
-			 * Mimicking that... */
+			/*
+			 * Last word used to be a basename
+			 * (filename with path and .ko.* stripped)
+			 * at the time of module-init-tools 3.4.
+			 * kmod v.12 uses module name, i.e., s/-/_/g.
+			 */
 			printf("alias %s %s\n",
 				(char*)llist_pop(&m->aliases),
 				modname);
