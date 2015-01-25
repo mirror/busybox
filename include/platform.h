@@ -370,6 +370,7 @@ typedef unsigned smalluint;
 #define HAVE_SETBIT 1
 #define HAVE_SIGHANDLER_T 1
 #define HAVE_STPCPY 1
+#define HAVE_MEMPCPY 1
 #define HAVE_STRCASESTR 1
 #define HAVE_STRCHRNUL 1
 #define HAVE_STRSEP 1
@@ -450,6 +451,7 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__FreeBSD__)
+//# undef HAVE_MEMPCPY - not yet confirmed
 # undef HAVE_CLEARENV
 # undef HAVE_FDATASYNC
 # undef HAVE_MNTENT_H
@@ -511,6 +513,13 @@ typedef void (*sighandler_t)(int);
 
 #ifndef HAVE_STPCPY
 extern char *stpcpy(char *p, const char *to_add) FAST_FUNC;
+#endif
+
+#ifndef HAVE_MEMPCPY
+static ALWAYS_INLINE void *mempcpy(void *dest, const void *src, size_t len)
+{
+	return memcpy(dest, src, len) + len;
+}
 #endif
 
 #ifndef HAVE_STRCASESTR
