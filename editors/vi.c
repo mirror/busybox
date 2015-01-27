@@ -542,9 +542,6 @@ static void cookmode(void);	// return to "cooked" mode on tty
 static int mysleep(int);
 static int readit(void);	// read (maybe cursor) key from stdin
 static int get_one_char(void);	// read 1 char from stdin
-#if !ENABLE_FEATURE_VI_READONLY
-#define file_insert(fn, p, update_ro_status) file_insert(fn, p)
-#endif
 // file_insert might reallocate text[]!
 static int file_insert(const char *, char *, int);
 static int file_write(char *, char *, char *);
@@ -1325,7 +1322,7 @@ static void colon(char *buf)
 			q = next_line(q);
 		{ // dance around potentially-reallocated text[]
 			uintptr_t ofs = q - text;
-			size = file_insert(fn, q, /*update_ro:*/ 0);
+			size = file_insert(fn, q, 0);
 			q = text + ofs;
 		}
 		if (size < 0)
@@ -2905,7 +2902,7 @@ static char *get_input_line(const char *prompt)
 }
 
 // might reallocate text[]!
-static int file_insert(const char *fn, char *p, int update_ro_status)
+static int file_insert(const char *fn, char *p, int initial)
 {
 	int cnt = -1;
 	int fd, size;
@@ -2918,7 +2915,8 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
-		status_line_bold_errno(fn);
+		if (!initial)
+			status_line_bold_errno(fn);
 		return cnt;
 	}
 
@@ -2946,7 +2944,7 @@ static int file_insert(const char *fn, char *p, int update_ro_status)
 	close(fd);
 
 #if ENABLE_FEATURE_VI_READONLY
-	if (update_ro_status
+	if (initial
 	 && ((access(fn, W_OK) < 0) ||
 		/* root will always have access()
 		 * so we check fileperms too */

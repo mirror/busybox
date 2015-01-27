@@ -1174,8 +1174,13 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 
 	//umask(077); - admin can set umask before starting us
 
-	/* Signals. We'll always take -EPIPE rather than a rude signal, thanks */
-	signal(SIGPIPE, SIG_IGN);
+	/* Signals */
+	bb_signals(0
+		/* We'll always take EPIPE rather than a rude signal, thanks */
+		+ (1 << SIGPIPE)
+		/* LIST command spawns chilren. Prevent zombies */
+		+ (1 << SIGCHLD)
+		, SIG_IGN);
 
 	/* Set up options on the command socket (do we need these all? why?) */
 	setsockopt(STDIN_FILENO, IPPROTO_TCP, TCP_NODELAY, &const_int_1, sizeof(const_int_1));
