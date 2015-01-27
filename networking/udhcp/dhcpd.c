@@ -413,7 +413,8 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
 		if (server_config.auto_time) {
-			tv.tv_sec = timeout_end - monotonic_sec();
+			/* cast to signed is essential if tv_sec is wider than int */
+			tv.tv_sec = (int)(timeout_end - monotonic_sec());
 			tv.tv_usec = 0;
 		}
 		retval = 0;
