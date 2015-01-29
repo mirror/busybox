@@ -376,8 +376,6 @@ struct globals {
 	 */
 #define G_precision_sec  0.002
 	uint8_t  stratum;
-	/* Bool. After set to 1, never goes back to 0: */
-	smallint initial_poll_complete;
 
 #define STATE_NSET      0       /* initial state, "nothing is set" */
 //#define STATE_FSET    1       /* frequency set from file */
@@ -1084,7 +1082,7 @@ select_and_cluster(void)
 
 	num_points = 0;
 	item = G.ntp_peers;
-	if (G.initial_poll_complete) while (item != NULL) {
+	while (item != NULL) {
 		double rd, offset;
 
 		p = (peer_t *) item->data;
@@ -1649,7 +1647,7 @@ update_local_clock(peer_t *p)
 	if (G.ntp_status & LI_MINUSSEC)
 		tmx.status |= STA_DEL;
 
-	tmx.constant = G.poll_exp - 4;
+	tmx.constant = (int)G.poll_exp - 4 > 0 ? (int)G.poll_exp - 4 : 0;
 	/* EXPERIMENTAL.
 	 * The below if statement should be unnecessary, but...
 	 * It looks like Linux kernel's PLL is far too gentle in changing
@@ -2285,7 +2283,6 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 						VERB4 bb_error_msg("disabling burst mode");
 						G.polladj_count = 0;
 						G.poll_exp = MINPOLL;
-						G.initial_poll_complete = 1;
 					}
 					send_query_to_peer(p);
 				} else {
