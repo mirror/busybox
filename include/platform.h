@@ -516,6 +516,7 @@ extern char *stpcpy(char *p, const char *to_add) FAST_FUNC;
 #endif
 
 #ifndef HAVE_MEMPCPY
+#include <string.h>
 static ALWAYS_INLINE void *mempcpy(void *dest, const void *src, size_t len)
 {
 	return memcpy(dest, src, len) + len;
