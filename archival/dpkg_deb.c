@@ -70,6 +70,8 @@ int dpkg_deb_main(int argc, char **argv)
 	ar_archive->dpkg__sub_archive = tar_archive;
 	ar_archive->filter = filter_accept_list_reassign;
 
+	llist_add_to(&ar_archive->accept, (char*)"data.tar");
+	llist_add_to(&control_tar_llist, (char*)"control.tar");
 #if ENABLE_FEATURE_SEAMLESS_GZ
 	llist_add_to(&ar_archive->accept, (char*)"data.tar.gz");
 	llist_add_to(&control_tar_llist, (char*)"control.tar.gz");
@@ -81,6 +83,10 @@ int dpkg_deb_main(int argc, char **argv)
 #if ENABLE_FEATURE_SEAMLESS_LZMA
 	llist_add_to(&ar_archive->accept, (char*)"data.tar.lzma");
 	llist_add_to(&control_tar_llist, (char*)"control.tar.lzma");
+#endif
+#if ENABLE_FEATURE_SEAMLESS_XZ
+	llist_add_to(&ar_archive->accept, (char*)"data.tar.xz");
+	llist_add_to(&control_tar_llist, (char*)"control.tar.xz");
 #endif
 
 	opt_complementary = "c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";

@@ -1472,11 +1472,15 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 	tar_handle->src_fd = ar_handle->src_fd;
 
 	/* We don't care about data.tar.* or debian-binary, just control.tar.* */
+	llist_add_to(&(ar_handle->accept), (char*)"control.tar");
 #if ENABLE_FEATURE_SEAMLESS_GZ
 	llist_add_to(&(ar_handle->accept), (char*)"control.tar.gz");
 #endif
 #if ENABLE_FEATURE_SEAMLESS_BZ2
 	llist_add_to(&(ar_handle->accept), (char*)"control.tar.bz2");
+#endif
+#if ENABLE_FEATURE_SEAMLESS_XZ
+	llist_add_to(&(ar_handle->accept), (char*)"control.tar.xz");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1492,11 +1496,18 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 	tar_handle->src_fd = ar_handle->src_fd;
 
 	/* We don't care about control.tar.* or debian-binary, just data.tar.* */
+	llist_add_to(&(ar_handle->accept), (char*)"data.tar");
 #if ENABLE_FEATURE_SEAMLESS_GZ
 	llist_add_to(&(ar_handle->accept), (char*)"data.tar.gz");
 #endif
 #if ENABLE_FEATURE_SEAMLESS_BZ2
 	llist_add_to(&(ar_handle->accept), (char*)"data.tar.bz2");
+#endif
+#if ENABLE_FEATURE_SEAMLESS_LZMA
+	llist_add_to(&(ar_handle->accept), (char*)"data.tar.lzma");
+#endif
+#if ENABLE_FEATURE_SEAMLESS_XZ
+	llist_add_to(&(ar_handle->accept), (char*)"data.tar.xz");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
