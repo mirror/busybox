@@ -2007,7 +2007,7 @@ static void ct_init(void)
  * IN assertions: the input and output buffers are cleared.
  */
 
-static void zip(ulg time_stamp)
+static void zip(void)
 {
 	ush deflate_flags = 0;  /* pkzip -es, -en or -ex equivalent */
 
@@ -2018,7 +2018,7 @@ static void zip(ulg time_stamp)
 	/* compression method: 8 (DEFLATED) */
 	/* general flags: 0 */
 	put_32bit(0x00088b1f);
-	put_32bit(time_stamp);
+	put_32bit(0);		/* Unix timestamp */
 
 	/* Write deflated file to zip file */
 	G1.crc = ~0;
@@ -2044,8 +2044,6 @@ static void zip(ulg time_stamp)
 static
 IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED_PARAM)
 {
-	struct stat s;
-
 	/* Clear input and output buffers */
 	G1.outcnt = 0;
 #ifdef DEBUG
@@ -2077,9 +2075,23 @@ IF_DESKTOP(long long) int FAST_FUNC pack_gzip(transformer_state_t *xstate UNUSED
 	G2.bl_desc.max_length  = MAX_BL_BITS;
 	//G2.bl_desc.max_code    = 0;
 
+#if 0
+	/* Saving of timestamp is disabled. Why?
+	 * - it is not Y2038-safe.
+	 * - some people want deterministic results
+	 *   (normally they'd use -n, but our -n is a nop).
+	 * - it's bloat.
+	 * Per RFC 1952, gzfile.time=0 is "no timestamp".
+	 * If users will demand this to be reinstated,
+	 * implement -n "don't save timestamp".
+	 */
+	struct stat s;
 	s.st_ctime = 0;
 	fstat(STDIN_FILENO, &s);
 	zip(s.st_ctime);
+#else
+	zip();
+#endif
 	return 0;
 }
 
