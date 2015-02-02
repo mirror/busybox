@@ -451,7 +451,8 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(__FreeBSD__)
-//# undef HAVE_MEMPCPY - not yet confirmed
+/* users say mempcpy is not present in FreeBSD 9.x */
+# undef HAVE_MEMPCPY
 # undef HAVE_CLEARENV
 # undef HAVE_FDATASYNC
 # undef HAVE_MNTENT_H
@@ -517,6 +518,10 @@ extern char *stpcpy(char *p, const char *to_add) FAST_FUNC;
 
 #ifndef HAVE_MEMPCPY
 #include <string.h>
+/* In case we are wrong about !HAVE_MEMPCPY, and toolchain _does_ have
+ * mempcpy(), avoid colliding with it:
+ */
+#define mempcpy bb__mempcpy
 static ALWAYS_INLINE void *mempcpy(void *dest, const void *src, size_t len)
 {
 	return memcpy(dest, src, len) + len;
