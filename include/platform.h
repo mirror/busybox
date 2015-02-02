@@ -217,6 +217,7 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
  * a lvalue. This makes it more likely to not swap them by mistake
  */
 #if defined(i386) || defined(__x86_64__) || defined(__powerpc__)
+# define BB_UNALIGNED_MEMACCESS_OK 1
 # define move_from_unaligned_int(v, intp)  ((v) = *(bb__aliased_int*)(intp))
 # define move_from_unaligned_long(v, longp) ((v) = *(bb__aliased_long*)(longp))
 # define move_from_unaligned16(v, u16p) ((v) = *(bb__aliased_uint16_t*)(u16p))
@@ -225,6 +226,7 @@ typedef uint64_t bb__aliased_uint64_t FIX_ALIASING;
 # define move_to_unaligned32(u32p, v)   (*(bb__aliased_uint32_t*)(u32p) = (v))
 /* #elif ... - add your favorite arch today! */
 #else
+# define BB_UNALIGNED_MEMACCESS_OK 0
 /* performs reasonably well (gcc usually inlines memcpy here) */
 # define move_from_unaligned_int(v, intp) (memcpy(&(v), (intp), sizeof(int)))
 # define move_from_unaligned_long(v, longp) (memcpy(&(v), (longp), sizeof(long)))

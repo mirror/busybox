@@ -417,19 +417,46 @@ static void flush_outbuf(void)
 #define put_8bit(c) \
 do { \
 	G1.outbuf[G1.outcnt++] = (c); \
-	if (G1.outcnt == OUTBUFSIZ) flush_outbuf(); \
+	if (G1.outcnt == OUTBUFSIZ) \
+		flush_outbuf(); \
 } while (0)
 
 /* Output a 16 bit value, lsb first */
 static void put_16bit(ush w)
 {
-	if (G1.outcnt < OUTBUFSIZ - 2) {
-		G1.outbuf[G1.outcnt++] = w;
-		G1.outbuf[G1.outcnt++] = w >> 8;
-	} else {
-		put_8bit(w);
-		put_8bit(w >> 8);
+	/* GCC 4.2.1 won't optimize out redundant loads of G1.outcnt
+	 * (probably because of fear of aliasing with G1.outbuf[]
+	 * stores), do it explicitly:
+	 */
+	unsigned outcnt = G1.outcnt;
+	uch *dst = &G1.outbuf[outcnt];
+
+#if BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN
+	if (outcnt < OUTBUFSIZ-2) {
+		/* Common case */
+		ush *dst16 = (void*) dst;
+		*dst16 = w; /* unalinged LSB 16-bit store */
+		G1.outcnt = outcnt + 2;
+		return;
 	}
+	*dst = (uch)w;
+	w >>= 8;
+#else
+	*dst++ = (uch)w;
+	w >>= 8;
+	if (outcnt < OUTBUFSIZ-2) {
+		/* Common case */
+		*dst = w;
+		G1.outcnt = outcnt + 2;
+		return;
+	}
+#endif
+
+	/* Slowpath: we will need to do flush_outbuf() */
+	G1.outcnt++;
+	if (G1.outcnt == OUTBUFSIZ)
+		flush_outbuf();
+	put_8bit(w);
 }
 
 static void put_32bit(ulg n)
