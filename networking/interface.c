@@ -91,9 +91,9 @@ static const char* FAST_FUNC INET_sprint(struct sockaddr *sap, int numeric)
 {
 	static char *buff; /* defaults to NULL */
 
-	free(buff);
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";
+	free(buff);
 	buff = INET_rresolve((struct sockaddr_in *) sap, numeric, 0xffffff00);
 	return buff;
 }
@@ -173,9 +173,9 @@ static const char* FAST_FUNC INET6_sprint(struct sockaddr *sap, int numeric)
 {
 	static char *buff;
 
-	free(buff);
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return "[NONE SET]";
+	free(buff);
 	buff = INET6_rresolve((struct sockaddr_in6 *) sap, numeric);
 	return buff;
 }
