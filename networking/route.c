@@ -494,6 +494,7 @@ void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], *sdest, *sgw;
 	unsigned long d, g, m;
+	int r;
 	int flgs, ref, use, metric, mtu, win, ir;
 	struct sockaddr_in s_addr;
 	struct in_addr mask;
@@ -504,20 +505,24 @@ void FAST_FUNC bb_displayroutes(int noresolve, int netstatfmt)
 		"Destination     Gateway         Genmask         Flags %s Iface\n",
 			netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
 
-	if (fscanf(fp, "%*[^\n]\n") < 0) { /* Skip the first line. */
-		goto ERROR;                /* Empty or missing line, or read error. */
+	/* Skip the first line. */
+	r = fscanf(fp, "%*[^\n]\n");
+	if (r < 0) {
+		/* Empty line, read error, or EOF. Yes, if routing table
+		 * is completely empty, /proc/net/route has no header.
+		 */
+		goto ERROR;
 	}
 	while (1) {
-		int r;
 		r = fscanf(fp, "%63s%lx%lx%X%d%d%d%lx%d%d%d\n",
 				devname, &d, &g, &flgs, &ref, &use, &metric, &m,
 				&mtu, &win, &ir);
 		if (r != 11) {
+ ERROR:
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;
 			}
- ERROR:
-			bb_error_msg_and_die("fscanf");
+			bb_perror_msg_and_die(bb_msg_read_error);
 		}
 
 		if (!(flgs & RTF_UP)) { /* Skip interfaces that are down. */
@@ -583,7 +588,7 @@ static void INET6_displayroutes(void)
 				break;
 			}
  ERROR:
-			bb_error_msg_and_die("fscanf");
+			bb_perror_msg_and_die(bb_msg_read_error);
 		}
 
 		/* Do the addr6x shift-and-insert changes to ':'-delimit addresses.
