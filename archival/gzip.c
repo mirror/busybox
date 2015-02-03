@@ -442,19 +442,19 @@ static void put_16bit(ush w)
 	*dst = (uch)w;
 	w >>= 8;
 #else
-	*dst++ = (uch)w;
+	*dst = (uch)w;
 	w >>= 8;
 	if (outcnt < OUTBUFSIZ-2) {
 		/* Common case */
-		*dst = w;
+		dst[1] = w;
 		G1.outcnt = outcnt + 2;
 		return;
 	}
 #endif
 
 	/* Slowpath: we will need to do flush_outbuf() */
-	G1.outcnt++;
-	if (G1.outcnt == OUTBUFSIZ)
+	G1.outcnt = ++outcnt;
+	if (outcnt == OUTBUFSIZ)
 		flush_outbuf();
 	put_8bit(w);
 }
