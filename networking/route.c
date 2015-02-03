@@ -55,6 +55,7 @@
 #define RTF_WINDOW      0x0080	/* per route window clamping    */
 #define RTF_IRTT        0x0100	/* Initial round trip time      */
 #define RTF_REJECT      0x0200	/* Reject route                 */
+#define RTF_NONEXTHOP   0x00200000 /* route with no nexthop	*/
 #endif
 
 #if defined(SIOCADDRTOLD) || defined(RTF_IRTT)	/* route */
@@ -128,7 +129,7 @@ static const char tbl_ipvx[] ALIGN1 =
 	"\013\043reinstate"			/* Since last, we can save a byte. */
 ;
 
-static const int flags_ipvx[] = { /* MUST match tbl_ipvx[] values above. */
+static const uint16_t flags_ipvx[] = { /* MUST match tbl_ipvx[] values above. */
 #ifdef RTF_REJECT
 	RTF_REJECT,
 #endif
@@ -449,7 +450,11 @@ static NOINLINE void INET6_setroute(int action, char **args)
 }
 #endif
 
-static const unsigned flagvals[] = { /* Must agree with flagchars[]. */
+static const
+IF_NOT_FEATURE_IPV6(uint16_t)
+IF_FEATURE_IPV6(unsigned)
+flagvals[] = { /* Must agree with flagchars[]. */
+	RTF_UP,
 	RTF_GATEWAY,
 	RTF_HOST,
 	RTF_REINSTATE,
@@ -458,26 +463,24 @@ static const unsigned flagvals[] = { /* Must agree with flagchars[]. */
 #if ENABLE_FEATURE_IPV6
 	RTF_DEFAULT,
 	RTF_ADDRCONF,
-	RTF_CACHE
+	RTF_CACHE,
+	RTF_REJECT,
+	RTF_NONEXTHOP, /* this one doesn't fit into 16 bits */
 #endif
 };
-
-#define IPV4_MASK (RTF_GATEWAY|RTF_HOST|RTF_REINSTATE|RTF_DYNAMIC|RTF_MODIFIED)
-#define IPV6_MASK (RTF_GATEWAY|RTF_HOST|RTF_DEFAULT|RTF_ADDRCONF|RTF_CACHE)
-
 /* Must agree with flagvals[]. */
 static const char flagchars[] ALIGN1 =
-	"GHRDM"
+	"UGHRDM"
 #if ENABLE_FEATURE_IPV6
-	"DAC"
+	"DAC!n"
 #endif
 ;
+#define IPV4_MASK (RTF_UP|RTF_GATEWAY|RTF_HOST|RTF_REINSTATE|RTF_DYNAMIC|RTF_MODIFIED)
+#define IPV6_MASK (RTF_UP|RTF_GATEWAY|RTF_HOST|RTF_DEFAULT|RTF_ADDRCONF|RTF_CACHE|RTF_REJECT|RTF_NONEXTHOP)
 
 static void set_flags(char *flagstr, int flags)
 {
 	int i;
-
-	*flagstr++ = 'U';
 
 	for (i = 0; (*flagstr = flagchars[i]) != 0; i++) {
 		if (flags & flagvals[i]) {
@@ -574,7 +577,7 @@ static void INET6_displayroutes(void)
 		int r;
 		r = fscanf(fp, "%32s%x%*s%x%32s%x%x%x%x%s\n",
 				addr6x+14, &prefix_len, &slen, addr6x+40+7,
-				&metric, &use, &refcnt, &iflags, iface);
+				&metric, &refcnt, &use, &iflags, iface);
 		if (r != 9) {
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;
@@ -604,10 +607,6 @@ static void INET6_displayroutes(void)
 					addr6x[i++] = ':';
 				}
 			} while (i < 40+28+7);
-		}
-
-		if (!(iflags & RTF_UP)) { /* Skip interfaces that are down. */
-			continue;
 		}
 
 		set_flags(flags, (iflags & IPV6_MASK));
