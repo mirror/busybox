@@ -32,7 +32,7 @@
 //usage:       "	-o OFFSET	Offset in bytes to discard from"
 //usage:     "\n	-l LEN		Bytes to discard"
 //usage:     "\n	-m MIN		Minimum extent length"
-//usage:     "\n	-v,		Print number of discarded bytes"
+//usage:     "\n	-v		Print number of discarded bytes"
 //usage:	)
 
 #include "libbb.h"
