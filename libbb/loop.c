@@ -154,16 +154,7 @@ int FAST_FUNC set_loop(char **device, const char *file, unsigned long long offse
 				else
 					ioctl(dfd, LOOP_CLR_FD, 0);
 			}
-
-		/* If this block device already set up right, re-use it.
-		 * (Yes this is racy, but associating two loop devices with the same
-		 * file isn't pretty either.  In general, mounting the same file twice
-		 * without using losetup manually is problematic.)
-		 */
-		} else
-		if (strcmp(file, (char *)loopinfo.lo_file_name) != 0
-		 || offset != loopinfo.lo_offset
-		) {
+		} else {
 			rc = -1;
 		}
 		close(dfd);
