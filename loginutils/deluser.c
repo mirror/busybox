@@ -11,9 +11,10 @@
  */
 
 //usage:#define deluser_trivial_usage
-//usage:       "USER"
+//usage:       IF_LONG_OPTS("[--remove-home] ") "USER"
 //usage:#define deluser_full_usage "\n\n"
 //usage:       "Delete USER from the system"
+//	--remove-home is self-explanatory enough to put it in --help
 
 //usage:#define delgroup_trivial_usage
 //usage:	IF_FEATURE_DEL_USER_FROM_GROUP("[USER] ")"GROUP"
@@ -37,6 +38,19 @@ int deluser_main(int argc, char **argv)
 	/* Are we deluser or delgroup? */
 	int do_deluser = (ENABLE_DELUSER && (!ENABLE_DELGROUP || applet_name[3] == 'u'));
 
+#if !ENABLE_LONG_OPTS
+	const int opt_delhome = 0;
+#else
+	int opt_delhome = 0;
+	if (do_deluser) {
+		applet_long_options =
+			"remove-home\0" No_argument "\xff";
+		opt_delhome = getopt32(argv, "");
+		argv += opt_delhome;
+		argc -= opt_delhome;
+	}
+#endif
+
 	if (geteuid() != 0)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 
@@ -55,10 +69,14 @@ int deluser_main(int argc, char **argv)
 	case 2:
 		if (do_deluser) {
 			/* "deluser USER" */
-			xgetpwnam(name); /* bail out if USER is wrong */
+			struct passwd *pw;
+
+			pw = xgetpwnam(name); /* bail out if USER is wrong */
 			pfile = bb_path_passwd_file;
 			if (ENABLE_FEATURE_SHADOWPASSWDS)
 				sfile = bb_path_shadow_file;
+			if (opt_delhome)
+				remove_file(pw->pw_dir, FILEUTILS_RECUR);
 		} else {
 			struct group *gr;
  do_delgroup:
