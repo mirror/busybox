@@ -91,12 +91,11 @@ int deluser_main(int argc, char **argv)
 			if (!member) {
 				/* "delgroup GROUP" */
 				struct passwd *pw;
-				struct passwd pwent;
 				/* Check if the group is in use */
-#define passwd_buf bb_common_bufsiz1
-				while (!getpwent_r(&pwent, passwd_buf, sizeof(passwd_buf), &pw)) {
-					if (pwent.pw_gid == gr->gr_gid)
-						bb_error_msg_and_die("'%s' still has '%s' as their primary group!", pwent.pw_name, name);
+				while ((pw = getpwent()) != NULL) {
+					if (pw->pw_gid == gr->gr_gid)
+						bb_error_msg_and_die("'%s' still has '%s' as their primary group!",
+							pw->pw_name, name);
 				}
 				//endpwent();
 			}

@@ -672,23 +672,20 @@ static char *username_path_completion(char *ud)
  */
 static NOINLINE unsigned complete_username(const char *ud)
 {
-	/* Using _r function to avoid pulling in static buffers */
-	char line_buff[256];
-	struct passwd pwd;
-	struct passwd *result;
+	struct passwd *pw;
 	unsigned userlen;
 
 	ud++; /* skip ~ */
 	userlen = strlen(ud);
 
 	setpwent();
-	while (!getpwent_r(&pwd, line_buff, sizeof(line_buff), &result)) {
+	while ((pw = getpwent()) != NULL) {
 		/* Null usernames should result in all users as possible completions. */
-		if (/*!userlen || */ strncmp(ud, pwd.pw_name, userlen) == 0) {
-			add_match(xasprintf("~%s/", pwd.pw_name));
+		if (/*!userlen || */ strncmp(ud, pw->pw_name, userlen) == 0) {
+			add_match(xasprintf("~%s/", pw->pw_name));
 		}
 	}
-	endpwent();
+	endpwent(); /* don't keep password file open */
 
 	return 1 + userlen;
 }

@@ -336,6 +336,22 @@ static int massage_data_for_r_func(struct passdb *db,
 	return errno;
 }
 
+static void* massage_data_for_non_r_func(struct passdb *db, char *buf)
+{
+	if (!buf)
+		return NULL;
+
+	free(db->malloced);
+	/* We enlarge buf and move string data up, freeing space
+	 * for struct passwd/group/spwd at the beginning. This way,
+	 * entire result of getXXnam is in a single malloced block.
+	 * This enables easy creation of xmalloc_getpwnam() API.
+	 */
+	db->malloced = buf = xrealloc(buf, db->size_of + S.string_size);
+	memmove(buf + db->size_of, buf, S.string_size);
+	return convert_to_struct(db, buf + db->size_of, buf);
+}
+
 /****** getXXnam/id_r */
 
 static int FAST_FUNC getXXnam_r(const char *name, uintptr_t db_and_field_pos,
@@ -372,6 +388,7 @@ int FAST_FUNC getspnam_r(const char *name, struct spwd *struct_buf, char *buffer
 }
 #endif
 
+#ifdef UNUSED
 /****** getXXent_r */
 
 static int FAST_FUNC getXXent_r(uintptr_t db_idx, char *buffer, size_t buflen,
@@ -400,16 +417,38 @@ int FAST_FUNC getpwent_r(struct passwd *struct_buf, char *buffer, size_t buflen,
 	*result = struct_buf;
 	return getXXent_r(0, buffer, buflen, result);
 }
+#endif
+
+/****** getXXent */
+
+static void* FAST_FUNC getXXent(uintptr_t db_idx)
+{
+	char *buf;
+	struct passdb *db = &get_S()->db[db_idx];
+
+	if (!db->fp) {
+		db->fp = fopen_for_read(db->filename);
+		if (!db->fp) {
+			return NULL;
+		}
+		close_on_exec_on(fileno(db->fp));
+	}
+
+	buf = parse_common(db->fp, db, /*no search key:*/ NULL, -1);
+	return massage_data_for_non_r_func(db, buf);
+}
+
+struct passwd* FAST_FUNC getpwent(void)
+{
+	return getXXent(0);
+}
 
 /****** getXXnam/id */
 
 static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 {
 	char *buf;
-	void *result;
 	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
-
-	result = NULL;
 
 	if (!db->fp) {
 		db->fp = fopen_for_read(db->filename);
@@ -420,18 +459,7 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 	}
 
 	buf = parse_common(db->fp, db, name, db_and_field_pos & 3);
-	if (buf) {
-		free(db->malloced);
-		/* We enlarge buf and move string data up, freeing space
-		 * for struct passwd/group/spwd at the beginning. This way,
-		 * entire result of getXXnam is in a single malloced block.
-		 * This enables easy creation of xmalloc_getpwnam() API.
-		 */
-		db->malloced = buf = xrealloc(buf, db->size_of + S.string_size);
-		memmove(buf + db->size_of, buf, S.string_size);
-		result = convert_to_struct(db, buf + db->size_of, buf);
-	}
-	return result;
+	return massage_data_for_non_r_func(db, buf);
 }
 
 struct passwd* FAST_FUNC getpwnam(const char *name)
