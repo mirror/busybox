@@ -17,36 +17,6 @@
 typedef uint32_t aliased_uint32_t FIX_ALIASING;
 typedef off_t    aliased_off_t    FIX_ALIASING;
 
-
-const char* FAST_FUNC strip_unsafe_prefix(const char *str)
-{
-	const char *cp = str;
-	while (1) {
-		char *cp2;
-		if (*cp == '/') {
-			cp++;
-			continue;
-		}
-		if (strncmp(cp, "/../"+1, 3) == 0) {
-			cp += 3;
-			continue;
-		}
-		cp2 = strstr(cp, "/../");
-		if (!cp2)
-			break;
-		cp = cp2 + 4;
-	}
-	if (cp != str) {
-		static smallint warned = 0;
-		if (!warned) {
-			warned = 1;
-			bb_error_msg("removing leading '%.*s' from member names",
-				(int)(cp - str), str);
-		}
-	}
-	return cp;
-}
-
 /* NB: _DESTROYS_ str[len] character! */
 static unsigned long long getOctal(char *str, int len)
 {
