@@ -536,17 +536,49 @@ static module_info** find_alias(const char *alias)
 // TODO: open only once, invent config_rewind()
 static int already_loaded(const char *name)
 {
-	int ret = 0;
-	char *s;
-	parser_t *parser = config_open2("/proc/modules", xfopen_for_read);
-	while (config_read(parser, &s, 1, 1, "# \t", PARSE_NORMAL & ~PARSE_GREEDY)) {
-		if (strcmp(s, name) == 0) {
-			ret = 1;
-			break;
+	int ret, namelen;
+	char *line;
+	FILE *fp;
+
+	ret = 5 * 2;
+ again:
+	fp = fopen_for_read("/proc/modules");
+	if (!fp)
+		return 0;
+	namelen = strlen(name);
+	while ((line = xmalloc_fgetline(fp)) != NULL) {
+		char *live;
+
+		// Examples from kernel 3.14.6:
+		//pcspkr 12718 0 - Live 0xffffffffa017e000
+		//snd_timer 28690 2 snd_seq,snd_pcm, Live 0xffffffffa025e000
+		//i915 801405 2 - Live 0xffffffffa0096000
+		if (strncmp(line, name, namelen) != 0 || line[namelen] != ' ') {
+			free(line);
+			continue;
 		}
+		live = strstr(line, " Live");
+		free(line);
+		if (!live) {
+			/* State can be Unloading, Loading, or Live.
+			 * modprobe must not return prematurely if we see "Loading":
+			 * it can cause further programs to assume load completed,
+			 * but it did not (yet)!
+			 * Wait up to 5*20 ms for it to resolve.
+			 */
+			ret -= 2;
+			if (ret == 0)
+				break;  /* huh? report as "not loaded" */
+			fclose(fp);
+			usleep(20*1000);
+			goto again;
+		}
+		ret = 1;
+		break;
 	}
-	config_close(parser);
-	return ret;
+	fclose(fp);
+
+	return ret | 1;
 }
 #else
 #define already_loaded(name) 0
