@@ -578,7 +578,7 @@ static int already_loaded(const char *name)
 	}
 	fclose(fp);
 
-	return ret | 1;
+	return ret & 1;
 }
 #else
 #define already_loaded(name) 0
