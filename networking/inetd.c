@@ -1654,7 +1654,7 @@ static void FAST_FUNC daytime_stream(int s, servtab_t *sep UNUSED_PARAM)
 {
 	time_t t;
 
-	t = time(NULL);
+	time(&t);
 	fdprintf(s, "%.24s\r\n", ctime(&t));
 }
 static void FAST_FUNC daytime_dg(int s, servtab_t *sep)

@@ -42,7 +42,7 @@ enum {
 static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 {
 	unsigned days, hours, mins;
-	char duration[32];
+	char duration[sizeof("(%u+02:02)") + sizeof(int)*3];
 	char login_time[17];
 	char logout_time[8];
 	const char *logout_str;
@@ -53,7 +53,8 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 	 * but some systems have it wrong */
 	tmp = ut->ut_tv.tv_sec;
 	safe_strncpy(login_time, ctime(&tmp), 17);
-	snprintf(logout_time, 8, "- %s", ctime(&dur_secs) + 11);
+	tmp = dur_secs;
+	snprintf(logout_time, 8, "- %s", ctime(&tmp) + 11);
 
 	dur_secs = MAX(dur_secs - (time_t)ut->ut_tv.tv_sec, (time_t)0);
 	/* unsigned int is easier to divide than time_t (which may be signed long) */
