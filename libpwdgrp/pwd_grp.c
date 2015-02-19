@@ -450,15 +450,7 @@ static void* FAST_FUNC getXXnam(const char *name, unsigned db_and_field_pos)
 	char *buf;
 	struct passdb *db = &get_S()->db[db_and_field_pos >> 2];
 
-	if (!db->fp) {
-		db->fp = fopen_for_read(db->filename);
-		if (!db->fp) {
-			return NULL;
-		}
-		close_on_exec_on(fileno(db->fp));
-	}
-
-	buf = parse_common(db->fp, db, name, db_and_field_pos & 3);
+	buf = parse_file(db, name, db_and_field_pos & 3);
 	return massage_data_for_non_r_func(db, buf);
 }
 
