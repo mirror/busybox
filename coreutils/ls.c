@@ -566,7 +566,7 @@ static NOINLINE unsigned display_single(const struct dnode *dn)
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	if (G.all_fmt & (LIST_FULLTIME|LIST_DATE_TIME)) {
 		char *filetime;
-		time_t *ttime = &dn->dn_mtime;
+		const time_t *ttime = &dn->dn_mtime;
 		if (G.all_fmt & TIME_ACCESS)
 			ttime = &dn->dn_atime;
 		if (G.all_fmt & TIME_CHANGE)
