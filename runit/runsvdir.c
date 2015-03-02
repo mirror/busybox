@@ -222,6 +222,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	unsigned stampcheck;
 	int i;
 	int need_rescan;
+	bool i_am_init;
 	char *opt_s_argv[3];
 
 	INIT_G();
@@ -232,18 +233,21 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, "Ps:", &opt_s_argv[0]);
 	argv += optind;
 
+	i_am_init = (getpid() == 1);
 	bb_signals(0
 		| (1 << SIGTERM)
 		| (1 << SIGHUP)
 		/* For busybox's init, SIGTERM == reboot,
-		 * SIGUSR1 == halt
-		 * SIGUSR2 == poweroff
-		 * so we need to intercept SIGUSRn too.
+		 * SIGUSR1 == halt,
+		 * SIGUSR2 == poweroff,
+		 * Ctlr-ALt-Del sends SIGINT to init,
+		 * so we need to intercept SIGUSRn and SIGINT too.
 		 * Note that we do not implement actual reboot
 		 * (killall(TERM) + umount, etc), we just pause
 		 * respawing and avoid exiting (-> making kernel oops).
-		 * The user is responsible for the rest. */
-		| (getpid() == 1 ? ((1 << SIGUSR1) | (1 << SIGUSR2)) : 0)
+		 * The user is responsible for the rest.
+		 */
+		| (i_am_init ? ((1 << SIGUSR1) | (1 << SIGUSR2) | (1 << SIGINT)) : 0)
 		, record_signo);
 	svdir = *argv++;
 
@@ -394,7 +398,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		}
 		/* SIGHUP or SIGTERM (or SIGUSRn if we are init) */
 		/* Exit unless we are init */
-		if (getpid() != 1)
+		if (!i_am_init)
 			return (SIGHUP == sig) ? 111 : EXIT_SUCCESS;
 
 		/* init continues to monitor services forever */
