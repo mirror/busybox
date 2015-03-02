@@ -345,14 +345,12 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 #endif
 		{
 			unsigned deadline = (need_rescan ? 1 : 5);
-			sig_block(SIGCHLD);
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 			if (rplog)
 				poll(pfd, 1, deadline*1000);
 			else
 #endif
 				sleep(deadline);
-			sig_unblock(SIGCHLD);
 		}
 
 #if ENABLE_FEATURE_RUNSVDIR_LOG
