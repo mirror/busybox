@@ -50,14 +50,14 @@
 //usage:     "\n	-q	Quit after clock is set"
 //usage:     "\n	-N	Run at high priority"
 //usage:     "\n	-w	Do not set time (only query peers), implies -n"
-//usage:	IF_FEATURE_NTPD_SERVER(
-//usage:     "\n	-l	Run as server on port 123"
-//usage:     "\n	-I IFACE Bind server to IFACE, implies -l"
-//usage:	)
 //usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
 //usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
 //usage:	IF_FEATURE_NTPD_CONF(
 //usage:     "\n		If -p is not given, read /etc/ntp.conf"
+//usage:	)
+//usage:	IF_FEATURE_NTPD_SERVER(
+//usage:     "\n	-l	Also run as server on port 123"
+//usage:     "\n	-I IFACE Bind server to IFACE, implies -l"
 //usage:	)
 
 // -l and -p options are not compatible with "standard" ntpd:
