@@ -59,7 +59,6 @@ struct globals {
 	int svnum;
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 	char *rplog;
-	int rploglen;
 	struct fd_pair logpipe;
 	struct pollfd pfd[1];
 	unsigned stamplog;
@@ -70,7 +69,6 @@ struct globals {
 #define svdir       (G.svdir       )
 #define svnum       (G.svnum       )
 #define rplog       (G.rplog       )
-#define rploglen    (G.rploglen    )
 #define logpipe     (G.logpipe     )
 #define pfd         (G.pfd         )
 #define stamplog    (G.stamplog    )
@@ -219,15 +217,11 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	struct stat s;
 	dev_t last_dev = last_dev; /* for gcc */
 	ino_t last_ino = last_ino; /* for gcc */
-	time_t last_mtime = 0;
-	int wstat;
+	time_t last_mtime;
 	int curdir;
-	pid_t pid;
-	unsigned deadline;
-	unsigned now;
 	unsigned stampcheck;
 	int i;
-	int need_rescan = 1;
+	int need_rescan;
 	char *opt_s_argv[3];
 
 	INIT_G();
@@ -257,8 +251,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	/* setup log */
 	if (*argv) {
 		rplog = *argv;
-		rploglen = strlen(rplog);
-		if (rploglen < 7) {
+		if (strlen(rplog) < 7) {
 			warnx("log must have at least seven characters");
 		} else if (piped_pair(logpipe)) {
 			warnx("can't create pipe for log");
@@ -287,11 +280,16 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 	close_on_exec_on(curdir);
 
 	stampcheck = monotonic_sec();
+	need_rescan = 1;
+	last_mtime = 0;
 
 	for (;;) {
+		unsigned now;
+		unsigned sig;
+
 		/* collect children */
 		for (;;) {
-			pid = wait_any_nohang(&wstat);
+			pid_t pid = wait_any_nohang(NULL);
 			if (pid <= 0)
 				break;
 			for (i = 0; i < svnum; i++) {
@@ -345,15 +343,17 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		}
 		pfd[0].revents = 0;
 #endif
-		deadline = (need_rescan ? 1 : 5);
-		sig_block(SIGCHLD);
+		{
+			unsigned deadline = (need_rescan ? 1 : 5);
+			sig_block(SIGCHLD);
 #if ENABLE_FEATURE_RUNSVDIR_LOG
-		if (rplog)
-			poll(pfd, 1, deadline*1000);
-		else
+			if (rplog)
+				poll(pfd, 1, deadline*1000);
+			else
 #endif
-			sleep(deadline);
-		sig_unblock(SIGCHLD);
+				sleep(deadline);
+			sig_unblock(SIGCHLD);
+		}
 
 #if ENABLE_FEATURE_RUNSVDIR_LOG
 		if (pfd[0].revents & POLLIN) {
@@ -361,21 +361,25 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			while (read(logpipe.rd, &ch, 1) > 0) {
 				if (ch < ' ')
 					ch = ' ';
-				for (i = 6; i < rploglen; i++)
+				for (i = 6; rplog[i] != '\0'; i++)
 					rplog[i-1] = rplog[i];
-				rplog[rploglen-1] = ch;
+				rplog[i-1] = ch;
 			}
 		}
 #endif
-		if (!bb_got_signal)
+		sig = bb_got_signal;
+		if (!sig)
 			continue;
+		bb_got_signal = 0;
 
 		/* -s SCRIPT: useful if we are init.
 		 * In this case typically script never returns,
 		 * it halts/powers off/reboots the system. */
 		if (opt_s_argv[0]) {
+			pid_t pid;
+
 			/* Single parameter: signal# */
-			opt_s_argv[1] = utoa(bb_got_signal);
+			opt_s_argv[1] = utoa(sig);
 			pid = spawn(opt_s_argv);
 			if (pid > 0) {
 				/* Remembering to wait for _any_ children,
@@ -385,7 +389,7 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 			}
 		}
 
-		if (bb_got_signal == SIGHUP) {
+		if (sig == SIGHUP) {
 			for (i = 0; i < svnum; i++)
 				if (sv[i].pid)
 					kill(sv[i].pid, SIGTERM);
@@ -393,9 +397,8 @@ int runsvdir_main(int argc UNUSED_PARAM, char **argv)
 		/* SIGHUP or SIGTERM (or SIGUSRn if we are init) */
 		/* Exit unless we are init */
 		if (getpid() != 1)
-			return (SIGHUP == bb_got_signal) ? 111 : EXIT_SUCCESS;
+			return (SIGHUP == sig) ? 111 : EXIT_SUCCESS;
 
 		/* init continues to monitor services forever */
-		bb_got_signal = 0;
 	} /* for (;;) */
 }
