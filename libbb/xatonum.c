@@ -75,3 +75,22 @@ const struct suffix_mult bkm_suffixes[] = {
 	{ "m", 1024*1024 },
 	{ "", 0 }
 };
+
+const struct suffix_mult cwbkMG_suffixes[] = {
+	{ "c", 1 },
+	{ "w", 2 },
+	{ "b", 512 },
+	{ "kB", 1000 },
+	{ "kD", 1000 },
+	{ "k", 1024 },
+	{ "K", 1024 },  /* compat with coreutils dd (it also accepts KB and KD, TODO?) */
+	{ "MB", 1000000 },
+	{ "MD", 1000000 },
+	{ "M", 1024*1024 },
+	{ "GB", 1000000000 },
+	{ "GD", 1000000000 },
+	{ "G", 1024*1024*1024 },
+	/* "D" suffix for decimal is not in coreutils manpage, looks like it's deprecated */
+	/* coreutils also understands TPEZY suffixes for tera- and so on, with B suffix for decimal */
+	{ "", 0 }
+};

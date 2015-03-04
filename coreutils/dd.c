@@ -99,25 +99,6 @@ enum {
 	ofd = STDOUT_FILENO,
 };
 
-static const struct suffix_mult dd_suffixes[] = {
-	{ "c", 1 },
-	{ "w", 2 },
-	{ "b", 512 },
-	{ "kB", 1000 },
-	{ "kD", 1000 },
-	{ "k", 1024 },
-	{ "K", 1024 },  /* compat with coreutils dd (it also accepts KB and KD, TODO?) */
-	{ "MB", 1000000 },
-	{ "MD", 1000000 },
-	{ "M", 1024*1024 },
-	{ "GB", 1000000000 },
-	{ "GD", 1000000000 },
-	{ "G", 1024*1024*1024 },
-	/* "D" suffix for decimal is not in coreutils manpage, looks like it's deprecated */
-	/* coreutils also understands TPEZY suffixes for tera- and so on, with B suffix for decimal */
-	{ "", 0 }
-};
-
 struct globals {
 	off_t out_full, out_part, in_full, in_part;
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
@@ -326,11 +307,11 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_DD_IBS_OBS
 		if (what == OP_ibs) {
 			/* Must fit into positive ssize_t */
-			ibs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, dd_suffixes);
+			ibs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, cwbkMG_suffixes);
 			/*continue;*/
 		}
 		if (what == OP_obs) {
-			obs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, dd_suffixes);
+			obs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, cwbkMG_suffixes);
 			/*continue;*/
 		}
 		if (what == OP_conv) {
@@ -356,22 +337,22 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		}
 #endif
 		if (what == OP_bs) {
-			ibs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, dd_suffixes);
+			ibs = xatoul_range_sfx(val, 1, ((size_t)-1L)/2, cwbkMG_suffixes);
 			obs = ibs;
 			/*continue;*/
 		}
 		/* These can be large: */
 		if (what == OP_count) {
 			G.flags |= FLAG_COUNT;
-			count = XATOU_SFX(val, dd_suffixes);
+			count = XATOU_SFX(val, cwbkMG_suffixes);
 			/*continue;*/
 		}
 		if (what == OP_seek) {
-			seek = XATOU_SFX(val, dd_suffixes);
+			seek = XATOU_SFX(val, cwbkMG_suffixes);
 			/*continue;*/
 		}
 		if (what == OP_skip) {
-			skip = XATOU_SFX(val, dd_suffixes);
+			skip = XATOU_SFX(val, cwbkMG_suffixes);
 			/*continue;*/
 		}
 		if (what == OP_if) {
