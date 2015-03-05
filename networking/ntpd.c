@@ -53,7 +53,8 @@
 //usage:     "\n	-S PROG	Run PROG after stepping time, stratum change, and every 11 mins"
 //usage:     "\n	-p PEER	Obtain time from PEER (may be repeated)"
 //usage:	IF_FEATURE_NTPD_CONF(
-//usage:     "\n		If -p is not given, read /etc/ntp.conf"
+//usage:     "\n		If -p is not given, 'server HOST' lines"
+//usage:     "\n		from /etc/ntp.conf are used"
 //usage:	)
 //usage:	IF_FEATURE_NTPD_SERVER(
 //usage:     "\n	-l	Also run as server on port 123"
