@@ -17,8 +17,103 @@
 // mount_it_now() does the actual mount.
 //
 
+//config:config MOUNT
+//config:	bool "mount"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  All files and filesystems in Unix are arranged into one big directory
+//config:	  tree. The 'mount' utility is used to graft a filesystem onto a
+//config:	  particular part of the tree. A filesystem can either live on a block
+//config:	  device, or it can be accessible over the network, as is the case with
+//config:	  NFS filesystems. Most people using BusyBox will also want to enable
+//config:	  the 'mount' utility.
+//config:
+//config:config FEATURE_MOUNT_FAKE
+//config:	bool "Support option -f"
+//config:	default y
+//config:	depends on MOUNT
+//config:	help
+//config:	  Enable support for faking a file system mount.
+//config:
+//config:config FEATURE_MOUNT_VERBOSE
+//config:	bool "Support option -v"
+//config:	default y
+//config:	depends on MOUNT
+//config:	help
+//config:	  Enable multi-level -v[vv...] verbose messages. Useful if you
+//config:	  debug mount problems and want to see what is exactly passed
+//config:	  to the kernel.
+//config:
+//config:config FEATURE_MOUNT_HELPERS
+//config:	bool "Support mount helpers"
+//config:	default n
+//config:	depends on MOUNT
+//config:	help
+//config:	  Enable mounting of virtual file systems via external helpers.
+//config:	  E.g. "mount obexfs#-b00.11.22.33.44.55 /mnt" will in effect call
+//config:	  "obexfs -b00.11.22.33.44.55 /mnt"
+//config:	  Also "mount -t sometype [-o opts] fs /mnt" will try
+//config:	  "sometype [-o opts] fs /mnt" if simple mount syscall fails.
+//config:	  The idea is to use such virtual filesystems in /etc/fstab.
+//config:
+//config:config FEATURE_MOUNT_LABEL
+//config:	bool "Support specifying devices by label or UUID"
+//config:	default y
+//config:	depends on MOUNT
+//config:	select VOLUMEID
+//config:	help
+//config:	  This allows for specifying a device by label or uuid, rather than by
+//config:	  name. This feature utilizes the same functionality as blkid/findfs.
+//config:	  This also enables label or uuid support for swapon.
+//config:
+//config:config FEATURE_MOUNT_NFS
+//config:	bool "Support mounting NFS file systems on Linux < 2.6.23"
+//config:	default n
+//config:	depends on MOUNT
+//config:	select FEATURE_HAVE_RPC
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  Enable mounting of NFS file systems on Linux kernels prior
+//config:	  to version 2.6.23. Note that in this case mounting of NFS
+//config:	  over IPv6 will not be possible.
+//config:
+//config:	  Note that this option links in RPC support from libc,
+//config:	  which is rather large (~10 kbytes on uclibc).
+//config:
+//config:config FEATURE_MOUNT_CIFS
+//config:	bool "Support mounting CIFS/SMB file systems"
+//config:	default y
+//config:	depends on MOUNT
+//config:	help
+//config:	  Enable support for samba mounts.
+//config:
+//config:config FEATURE_MOUNT_FLAGS
+//config:	depends on MOUNT
+//config:	bool "Support lots of -o flags in mount"
+//config:	default y
+//config:	help
+//config:	  Without this, mount only supports ro/rw/remount. With this, it
+//config:	  supports nosuid, suid, dev, nodev, exec, noexec, sync, async, atime,
+//config:	  noatime, diratime, nodiratime, loud, bind, move, shared, slave,
+//config:	  private, unbindable, rshared, rslave, rprivate, and runbindable.
+//config:
+//config:config FEATURE_MOUNT_FSTAB
+//config:	depends on MOUNT
+//config:	bool "Support /etc/fstab and -a"
+//config:	default y
+//config:	help
+//config:	  Support mount all and looking for files in /etc/fstab.
+//config:
+//config:config FEATURE_MOUNT_OTHERTAB
+//config:	depends on FEATURE_MOUNT_FSTAB
+//config:	bool "Support -T <alt_fstab>"
+//config:	default y
+//config:	help
+//config:	  Support mount -T (specifying an alternate fstab)
+
 //usage:#define mount_trivial_usage
-//usage:       "[OPTIONS] [-o OPTS] DEVICE NODE"
+//usage:       "[OPTIONS] [-o OPT] DEVICE NODE"
 //usage:#define mount_full_usage "\n\n"
 //usage:       "Mount a filesystem. Filesystem autodetection requires /proc.\n"
 //usage:     "\n	-a		Mount all filesystems in fstab"
@@ -41,8 +136,11 @@
 //usage:	)
 ////usage:   "\n	-s		Sloppy (ignored)"
 //usage:     "\n	-r		Read-only mount"
-//usage:     "\n	-w		Read-write mount (default)"
+////usage:     "\n	-w		Read-write mount (default)"
 //usage:     "\n	-t FSTYPE[,...]	Filesystem type(s)"
+//usage:	IF_FEATURE_MOUNT_OTHERTAB(
+//usage:     "\n	-T FILE		Read FILE instead of /etc/fstab"
+//usage:	)
 //usage:     "\n	-O OPT		Mount only filesystems with option OPT (-a only)"
 //usage:     "\n-o OPT:"
 //usage:	IF_FEATURE_MOUNT_LOOP(
@@ -64,7 +162,7 @@
 //usage:     "\n	move		Relocate an existing mount point"
 //usage:	)
 //usage:     "\n	remount		Remount a mounted filesystem, changing flags"
-//usage:     "\n	ro/rw		Same as -r/-w"
+//usage:     "\n	ro		Same as -r"
 //usage:     "\n"
 //usage:     "\nThere are filesystem-specific -o flags."
 //usage:
@@ -167,7 +265,7 @@ enum {
 };
 
 
-#define OPTION_STR "o:t:rwanfvsiO:"
+#define OPTION_STR "o:t:rwanfvsiO:" IF_FEATURE_MOUNT_OTHERTAB("T:")
 enum {
 	OPT_o = (1 << 0),
 	OPT_t = (1 << 1),
@@ -180,6 +278,7 @@ enum {
 	OPT_s = (1 << 8),
 	OPT_i = (1 << 9),
 	OPT_O = (1 << 10),
+	OPT_T = (1 << 11),
 };
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
@@ -2034,7 +2133,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	char *O_optmatch = NULL;
 	char *storage_path;
 	llist_t *lst_o = NULL;
-	const char *fstabname;
+	const char *fstabname = "/etc/fstab";
 	FILE *fstab;
 	int i, j;
 	int rc = EXIT_SUCCESS;
@@ -2061,6 +2160,7 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 	// Max 2 params; -o is a list, -v is a counter
 	opt_complementary = "?2o::" IF_FEATURE_MOUNT_VERBOSE("vv");
 	opt = getopt32(argv, OPTION_STR, &lst_o, &fstype, &O_optmatch
+			IF_FEATURE_MOUNT_OTHERTAB(, &fstabname)
 			IF_FEATURE_MOUNT_VERBOSE(, &verbose));
 	while (lst_o) append_mount_options(&cmdopts, llist_pop(&lst_o)); // -o
 	if (opt & OPT_r) append_mount_options(&cmdopts, "ro"); // -r
@@ -2128,8 +2228,10 @@ int mount_main(int argc UNUSED_PARAM, char **argv)
 		return rc;
 	}
 
+	// A malicious user could overmount /usr without this.
+	if (ENABLE_FEATURE_MOUNT_OTHERTAB && nonroot)
+		fstabname = "/etc/fstab";
 	// Open either fstab or mtab
-	fstabname = "/etc/fstab";
 	if (cmdopt_flags & MS_REMOUNT) {
 		// WARNING. I am not sure this matches util-linux's
 		// behavior. It's possible util-linux does not
