@@ -2017,8 +2017,7 @@ static char *char_insert(char *p, char c, int undo) // insert the char c at 'p'
 			p--;
 		}
 	} else if (c == erase_char || c == 8 || c == 127) { // Is this a BS
-		//     123456789
-		if ((p[-1] != '\n') && (dot>text)) {
+		if (p > text) {
 			p--;
 			p = text_hole_delete(p, p, ALLOW_UNDO_QUEUED);	// shrink buffer 1 char
 		}
@@ -4026,8 +4025,9 @@ static void do_cmd(int c)
 		undo_queue_commit();
 		break;
 	case KEYCODE_DELETE:
-		c = 'x';
-		// fall through
+		if (dot < end - 1)
+			dot = yank_delete(dot, dot, 1, YANKDEL, ALLOW_UNDO);
+		break;
 	case 'X':			// X- delete char before dot
 	case 'x':			// x- delete the current char
 	case 's':			// s- substitute the current char
