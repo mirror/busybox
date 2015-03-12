@@ -387,11 +387,11 @@ print_named_ascii(size_t n_bytes, const char *block,
 		" sp"
 	};
 	// buf[N] pos:  01234 56789
-	char buf[12] = "   x\0 0xx\0";
-	// actually "   x\0 xxx\0", but want to share string with print_ascii.
+	char buf[12] = "   x\0 xxx\0";
 	// [12] because we take three 32bit stack slots anyway, and
 	// gcc is too dumb to initialize with constant stores,
 	// it copies initializer from rodata. Oh well.
+	// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65410
 
 	while (n_bytes--) {
 		unsigned masked_c = *(unsigned char *) block++;
@@ -419,7 +419,7 @@ print_ascii(size_t n_bytes, const char *block,
 		const char *unused_fmt_string UNUSED_PARAM)
 {
 	// buf[N] pos:  01234 56789
-	char buf[12] = "   x\0 0xx\0";
+	char buf[12] = "   x\0 xxx\0";
 
 	while (n_bytes--) {
 		const char *s;
@@ -455,11 +455,9 @@ print_ascii(size_t n_bytes, const char *block,
 		case '\v':
 			s = "  \\v";
 			break;
-		case '\x7f':
-			s = " 177";
-			break;
-		default: /* c is never larger than 040 */
-			buf[7] = (c >> 3) + '0';
+		default:
+			buf[6] = (c >> 6 & 3) + '0';
+			buf[7] = (c >> 3 & 7) + '0';
 			buf[8] = (c & 7) + '0';
 			s = buf + 5;
 		}
