@@ -161,19 +161,19 @@ static void nameif_parse_selector(ethtable_t *ch, char *selector)
 		if (*next)
 			*next++ = '\0';
 		/* Check for selectors, mac= is assumed */
-		if (strncmp(selector, "bus=", 4) == 0) {
+		if (is_prefixed_with(selector, "bus=")) {
 			ch->bus_info = xstrdup(selector + 4);
 			found_selector++;
-		} else if (strncmp(selector, "driver=", 7) == 0) {
+		} else if (is_prefixed_with(selector, "driver=")) {
 			ch->driver = xstrdup(selector + 7);
 			found_selector++;
-		} else if (strncmp(selector, "phyaddr=", 8) == 0) {
+		} else if (is_prefixed_with(selector, "phyaddr=")) {
 			ch->phy_address = xatoi_positive(selector + 8);
 			found_selector++;
 		} else {
 #endif
 			lmac = xmalloc(ETH_ALEN);
-			ch->mac = ether_aton_r(selector + (strncmp(selector, "mac=", 4) != 0 ? 0 : 4), lmac);
+			ch->mac = ether_aton_r(selector + (is_prefixed_with(selector, "mac=") ? 4 : 0), lmac);
 			if (ch->mac == NULL)
 				bb_error_msg_and_die("can't parse %s", selector);
 #if  ENABLE_FEATURE_NAMEIF_EXTENDED

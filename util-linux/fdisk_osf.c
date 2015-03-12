@@ -854,7 +854,7 @@ xbsd_initlabel(struct partition *p)
 
 	d->d_magic = BSD_DISKMAGIC;
 
-	if (strncmp(disk_device, "/dev/sd", 7) == 0)
+	if (is_prefixed_with(disk_device, "/dev/sd"))
 		d->d_type = BSD_DTYPE_SCSI;
 	else
 		d->d_type = BSD_DTYPE_ST506;

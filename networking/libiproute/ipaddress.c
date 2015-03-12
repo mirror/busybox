@@ -701,7 +701,7 @@ static int ipaddr_modify(int cmd, char **argv)
 		/* There was no "dev IFACE", but we need that */
 		bb_error_msg_and_die("need \"dev IFACE\"");
 	}
-	if (l && strncmp(d, l, strlen(d)) != 0) {
+	if (l && !is_prefixed_with(l, d)) {
 		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s)", d, l);
 	}
 

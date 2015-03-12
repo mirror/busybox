@@ -84,7 +84,6 @@ int FAST_FUNC update_passwd(const char *filename,
 	char *fnamesfx;
 	char *sfx_char;
 	char *name_colon;
-	unsigned user_len;
 	int old_fd;
 	int new_fd;
 	int i;
@@ -108,7 +107,6 @@ int FAST_FUNC update_passwd(const char *filename,
 	fnamesfx = xasprintf("%s+", filename);
 	sfx_char = &fnamesfx[strlen(fnamesfx)-1];
 	name_colon = xasprintf("%s:", name ? name : "");
-	user_len = strlen(name_colon);
 
 	if (shadow)
 		old_fp = fopen(filename, "r+");
@@ -179,7 +177,7 @@ int FAST_FUNC update_passwd(const char *filename,
 			while (list) {
 				list++;
  next_list_element:
-				if (strncmp(list, member, member_len) == 0) {
+				if (is_prefixed_with(list, member)) {
 					char c;
 					changed_lines++;
 					c = list[member_len];
@@ -201,13 +199,14 @@ int FAST_FUNC update_passwd(const char *filename,
 			goto next;
 		}
 
-		if (strncmp(name_colon, line, user_len) != 0) {
+		cp = is_prefixed_with(line, name_colon);
+		if (!cp) {
 			fprintf(new_fp, "%s\n", line);
 			goto next;
 		}
 
 		/* We have a match with "name:"... */
-		cp = line + user_len; /* move past name: */
+		/* cp points past "name:" */
 
 #if ENABLE_FEATURE_ADDUSER_TO_GROUP || ENABLE_FEATURE_DEL_USER_FROM_GROUP
 		if (member) {

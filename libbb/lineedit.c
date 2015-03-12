@@ -681,7 +681,7 @@ static NOINLINE unsigned complete_username(const char *ud)
 	setpwent();
 	while ((pw = getpwent()) != NULL) {
 		/* Null usernames should result in all users as possible completions. */
-		if (/*!userlen || */ strncmp(ud, pw->pw_name, userlen) == 0) {
+		if (/* !ud[0] || */ is_prefixed_with(pw->pw_name, ud)) {
 			add_match(xasprintf("~%s/", pw->pw_name));
 		}
 	}
@@ -792,7 +792,7 @@ static NOINLINE unsigned complete_cmd_dir_file(const char *command, int type)
 			if (!pfind[0] && DOT_OR_DOTDOT(name_found))
 				continue;
 			/* match? */
-			if (strncmp(name_found, pfind, pf_len) != 0)
+			if (!is_prefixed_with(name_found, pfind))
 				continue; /* no */
 
 			found = concat_path_file(paths[i], name_found);
@@ -1879,15 +1879,16 @@ static void parse_and_put_prompt(const char *prmt_ptr)
 						cwd_buf = xrealloc_getcwd_or_warn(NULL);
 						if (!cwd_buf)
 							cwd_buf = (char *)bb_msg_unknown;
-						else {
+						else if (home_pwd_buf[0]) {
+							char *after_home_user;
+
 							/* /home/user[/something] -> ~[/something] */
-							l = strlen(home_pwd_buf);
-							if (l != 0
-							 && strncmp(home_pwd_buf, cwd_buf, l) == 0
-							 && (cwd_buf[l] == '/' || cwd_buf[l] == '\0')
+							after_home_user = is_prefixed_with(cwd_buf, home_pwd_buf);
+							if (after_home_user
+							 && (*after_home_user == '/' || *after_home_user == '\0')
 							) {
 								cwd_buf[0] = '~';
-								overlapping_strcpy(cwd_buf + 1, cwd_buf + l);
+								overlapping_strcpy(cwd_buf + 1, after_home_user);
 							}
 						}
 					}

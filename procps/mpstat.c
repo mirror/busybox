@@ -526,7 +526,7 @@ static void get_irqs_from_stat(struct stats_irq *irq)
 
 	while (fgets(buf, sizeof(buf), fp)) {
 		//bb_error_msg("/proc/stat:'%s'", buf);
-		if (strncmp(buf, "intr ", 5) == 0) {
+		if (is_prefixed_with(buf, "intr ")) {
 			/* Read total number of IRQs since system boot */
 			sscanf(buf + 5, "%"FMT_DATA"u", &irq->irq_nr);
 		}

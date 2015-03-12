@@ -116,21 +116,21 @@ static char* copy_stringbuf(void)
 
 static char* find_keyword(char *ptr, size_t len, const char *word)
 {
-	int wlen;
-
 	if (!ptr) /* happens if xmalloc_open_zipped_read_close cannot read it */
 		return NULL;
 
-	wlen = strlen(word);
-	len -= wlen - 1;
+	len -= strlen(word) - 1;
 	while ((ssize_t)len > 0) {
 		char *old = ptr;
+		char *after_word;
+
 		/* search for the first char in word */
-		ptr = memchr(ptr, *word, len);
+		ptr = memchr(ptr, word[0], len);
 		if (ptr == NULL) /* no occurance left, done */
 			break;
-		if (strncmp(ptr, word, wlen) == 0)
-			return ptr + wlen; /* found, return ptr past it */
+		after_word = is_prefixed_with(ptr, word);
+		if (after_word)
+			return after_word; /* found, return ptr past it */
 		++ptr;
 		len -= (ptr - old);
 	}
@@ -536,7 +536,7 @@ static module_info** find_alias(const char *alias)
 // TODO: open only once, invent config_rewind()
 static int already_loaded(const char *name)
 {
-	int ret, namelen;
+	int ret;
 	char *line;
 	FILE *fp;
 
@@ -545,15 +545,16 @@ static int already_loaded(const char *name)
 	fp = fopen_for_read("/proc/modules");
 	if (!fp)
 		return 0;
-	namelen = strlen(name);
 	while ((line = xmalloc_fgetline(fp)) != NULL) {
 		char *live;
+		char *after_name;
 
 		// Examples from kernel 3.14.6:
 		//pcspkr 12718 0 - Live 0xffffffffa017e000
 		//snd_timer 28690 2 snd_seq,snd_pcm, Live 0xffffffffa025e000
 		//i915 801405 2 - Live 0xffffffffa0096000
-		if (strncmp(line, name, namelen) != 0 || line[namelen] != ' ') {
+		after_name = is_prefixed_with(line, name);
+		if (!after_name || *after_name != ' ') {
 			free(line);
 			continue;
 		}

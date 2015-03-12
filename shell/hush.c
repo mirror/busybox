@@ -5884,7 +5884,7 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
 		s = skip_whitespace(s);
-		if (strncmp(s, "trap", 4) == 0
+		if (is_prefixed_with(s, "trap")
 		 && skip_whitespace(s + 4)[0] == '\0'
 		) {
 			static const char *const argv[] = { NULL, NULL };

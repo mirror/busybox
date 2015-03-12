@@ -289,7 +289,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 					/* "hwaddress <class> <address>":
 					 * unlike ifconfig, ip doesnt want <class>
 					 * (usually "ether" keyword). Skip it. */
-					if (strncmp(command, "hwaddress", 9) == 0) {
+					if (is_prefixed_with(command, "hwaddress")) {
 						varvalue = skip_whitespace(skip_non_whitespace(varvalue));
 					}
 # endif
@@ -298,7 +298,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 # if ENABLE_FEATURE_IFUPDOWN_IP
 					/* Sigh...  Add a special case for 'ip' to convert from
 					 * dotted quad to bit count style netmasks.  */
-					if (strncmp(command, "bnmask", 6) == 0) {
+					if (is_prefixed_with(command, "bnmask")) {
 						unsigned res;
 						varvalue = get_var("netmask", 7, ifd);
 						if (varvalue) {
@@ -1159,12 +1159,12 @@ static char *run_mapping(char *physical, struct mapping_defn_t *map)
 
 static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
-	unsigned iface_len = strlen(iface);
 	llist_t *search = state_list;
 
 	while (search) {
-		if ((strncmp(search->data, iface, iface_len) == 0)
-		 && (search->data[iface_len] == '=')
+		char *after_iface = is_prefixed_with(search->data, iface);
+		if (after_iface
+		 && *after_iface == '='
 		) {
 			return search;
 		}

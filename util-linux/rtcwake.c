@@ -66,7 +66,7 @@ static NOINLINE bool may_wakeup(const char *rtcname)
 		return false;
 
 	/* wakeup events could be disabled or not supported */
-	return strncmp(buf, "enabled\n", 8) == 0;
+	return is_prefixed_with(buf, "enabled\n") != NULL;
 }
 
 static NOINLINE void setup_alarm(int fd, time_t *wakeup, time_t rtc_time)

@@ -2781,14 +2781,14 @@ is_ide_cdrom_or_tape(const char *device)
 	   the process hangs on the attempt to read a music CD.
 	   So try to be careful. This only works since 2.1.73. */
 
-	if (strncmp("/dev/hd", device, 7))
+	if (!is_prefixed_with(device, "/dev/hd"))
 		return 0;
 
 	snprintf(buf, sizeof(buf), "/proc/ide/%s/media", device+5);
 	procf = fopen_for_read(buf);
 	if (procf != NULL && fgets(buf, sizeof(buf), procf))
-		is_ide = (!strncmp(buf, "cdrom", 5) ||
-			  !strncmp(buf, "tape", 4));
+		is_ide = (is_prefixed_with(buf, "cdrom") ||
+			  is_prefixed_with(buf, "tape"));
 	else
 		/* Now when this proc file does not exist, skip the
 		   device when it is read-only. */

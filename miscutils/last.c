@@ -87,11 +87,11 @@ int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			if (++n > 0)
 				ut.ut_type = n != 3 ? n : SHUTDOWN_TIME;
 #else
-			if (strncmp(ut.ut_user, "shutdown", 8) == 0)
+			if (is_prefixed_with(ut.ut_user, "shutdown"))
 				ut.ut_type = SHUTDOWN_TIME;
-			else if (strncmp(ut.ut_user, "reboot", 6) == 0)
+			else if (is_prefixed_with(ut.ut_user, "reboot"))
 				ut.ut_type = BOOT_TIME;
-			else if (strncmp(ut.ut_user, "runlevel", 8) == 0)
+			else if (is_prefixed_with(ut.ut_user, "runlevel"))
 				ut.ut_type = RUN_LVL;
 #endif
 		} else {

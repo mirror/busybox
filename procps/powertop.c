@@ -458,9 +458,9 @@ static NOINLINE int process_timer_stats(void)
 			//	func = "Load balancing tick";
 			//}
 
-			if (strncmp(func, "tick_nohz_", 10) == 0)
+			if (is_prefixed_with(func, "tick_nohz_"))
 				continue;
-			if (strncmp(func, "tick_setup_sched_timer", 20) == 0)
+			if (is_prefixed_with(func, "tick_setup_sched_timer"))
 				continue;
 			//if (strcmp(process, "powertop") == 0)
 			//	continue;

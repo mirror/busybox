@@ -244,9 +244,9 @@ static void stack_machine(const char *argument)
 
 	o = operators;
 	do {
-		const size_t name_len = strlen(o->name);
-		if (strncmp(o->name, argument, name_len) == 0) {
-			argument += name_len;
+		char *after_name = is_prefixed_with(argument, o->name);
+		if (after_name) {
+			argument = after_name;
 			o->function();
 			goto next;
 		}

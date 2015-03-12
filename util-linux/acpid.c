@@ -151,7 +151,7 @@ static const char *find_action(struct input_event *ev, const char *buf)
 		}
 
 		if (buf) {
-			if (strncmp(buf, evt_tab[i].desc, strlen(buf)) == 0) {
+			if (is_prefixed_with(evt_tab[i].desc, buf)) {
 				action = evt_tab[i].desc;
 				break;
 			}

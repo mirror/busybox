@@ -516,7 +516,7 @@ int fbsplash_main(int argc UNUSED_PARAM, char **argv)
 	// handle a case when we have many buffered lines
 	// already in the pipe
 	while ((num_buf = xmalloc_fgetline(fp)) != NULL) {
-		if (strncmp(num_buf, "exit", 4) == 0) {
+		if (is_prefixed_with(num_buf, "exit")) {
 			DEBUG_MESSAGE("exit");
 			break;
 		}

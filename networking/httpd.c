@@ -697,7 +697,7 @@ static void parse_conf(const char *path, int flag)
 				goto config_error;
 			}
 			*host_port++ = '\0';
-			if (strncmp(host_port, "http://", 7) == 0)
+			if (is_prefixed_with(host_port, "http://"))
 				host_port += 7;
 			if (*host_port == '\0') {
 				goto config_error;
@@ -1894,7 +1894,7 @@ static Htaccess_Proxy *find_proxy_entry(const char *url)
 {
 	Htaccess_Proxy *p;
 	for (p = proxy; p; p = p->next) {
-		if (strncmp(url, p->url_from, strlen(p->url_from)) == 0)
+		if (is_prefixed_with(url, p->url_from))
 			return p;
 	}
 	return NULL;
@@ -2183,7 +2183,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 			if (STRNCASECMP(iobuf, "Range:") == 0) {
 				/* We know only bytes=NNN-[MMM] */
 				char *s = skip_whitespace(iobuf + sizeof("Range:")-1);
-				if (strncmp(s, "bytes=", 6) == 0) {
+				if (is_prefixed_with(s, "bytes=") == 0) {
 					s += sizeof("bytes=")-1;
 					range_start = BB_STRTOOFF(s, &s, 10);
 					if (s[0] != '-' || range_start < 0) {
@@ -2269,7 +2269,7 @@ static void handle_incoming_and_exit(const len_and_sockaddr *fromAddr)
 	tptr = urlcopy + 1;      /* skip first '/' */
 
 #if ENABLE_FEATURE_HTTPD_CGI
-	if (strncmp(tptr, "cgi-bin/", 8) == 0) {
+	if (is_prefixed_with(tptr, "cgi-bin/")) {
 		if (tptr[8] == '\0') {
 			/* protect listing "cgi-bin/" */
 			send_headers_and_exit(HTTP_FORBIDDEN);

@@ -727,7 +727,7 @@ static NOINLINE servtab_t *parse_one_line(void)
 			goto parse_err;
 #endif
 		}
-		if (strncmp(arg, "rpc/", 4) == 0) {
+		if (is_prefixed_with(arg, "rpc/")) {
 #if ENABLE_FEATURE_INETD_RPC
 			unsigned n;
 			arg += 4;

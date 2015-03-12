@@ -302,9 +302,9 @@ int resolve_mount_spec(char **fsname)
 {
 	char *tmp = *fsname;
 
-	if (strncmp(*fsname, "UUID=", 5) == 0)
+	if (is_prefixed_with(*fsname, "UUID="))
 		tmp = get_devname_from_uuid(*fsname + 5);
-	else if (strncmp(*fsname, "LABEL=", 6) == 0)
+	else if (is_prefixed_with(*fsname, "LABEL=") == 0)
 		tmp = get_devname_from_label(*fsname + 6);
 
 	if (tmp == *fsname)

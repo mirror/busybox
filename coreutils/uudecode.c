@@ -110,10 +110,10 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 		FILE *dst_stream;
 		int mode;
 
-		if (strncmp(line, "begin-base64 ", 13) == 0) {
+		if (is_prefixed_with(line, "begin-base64 ")) {
 			line_ptr = line + 13;
 			decode_fn_ptr = read_base64;
-		} else if (strncmp(line, "begin ", 6) == 0) {
+		} else if (is_prefixed_with(line, "begin ")) {
 			line_ptr = line + 6;
 			decode_fn_ptr = read_stduu;
 		} else {

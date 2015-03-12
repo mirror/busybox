@@ -105,7 +105,7 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		value = end + 1;
 
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-		if (!global && strncmp(value, "path=", sizeof("path=") - 1) == 0) {
+		if (!global && is_prefixed_with(value, "path=")) {
 			value += sizeof("path=") - 1;
 			free(archive_handle->tar__longname);
 			archive_handle->tar__longname = xstrdup(value);
@@ -118,7 +118,7 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		 * This is what Red Hat's patched version of tar uses.
 		 */
 # define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
-		if (strncmp(value, SELINUX_CONTEXT_KEYWORD"=", sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1) == 0) {
+		if (is_prefixed_with(value, SELINUX_CONTEXT_KEYWORD"=")) {
 			value += sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1;
 			free(archive_handle->tar__sctx[global]);
 			archive_handle->tar__sctx[global] = xstrdup(value);
@@ -202,7 +202,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 	/* Check header has valid magic, "ustar" is for the proper tar,
 	 * five NULs are for the old tar format  */
-	if (strncmp(tar.magic, "ustar", 5) != 0
+	if (!is_prefixed_with(tar.magic, "ustar")
 	 && (!ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 	     || memcmp(tar.magic, "\0\0\0\0", 5) != 0)
 	) {

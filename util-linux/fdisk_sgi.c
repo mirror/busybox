@@ -440,7 +440,7 @@ sgi_write_table(void)
 		(unsigned int*)sgilabel, sizeof(*sgilabel)) == 0);
 
 	write_sector(0, sgilabel);
-	if (!strncmp((char*)sgilabel->directory[0].vol_file_name, "sgilabel", 8)) {
+	if (is_prefixed_with((char*)sgilabel->directory[0].vol_file_name, "sgilabel")) {
 		/*
 		 * keep this habit of first writing the "sgilabel".
 		 * I never tested whether it works without (AN 981002).

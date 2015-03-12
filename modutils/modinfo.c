@@ -62,7 +62,7 @@ static void modinfo(const char *path, const char *version,
 		"firmware",
 	};
 	size_t len;
-	int j, length;
+	int j;
 	char *ptr, *the_module;
 	const char *field = env->field;
 	int tags = env->tags;
@@ -94,16 +94,18 @@ static void modinfo(const char *path, const char *version,
 		pattern = field;
 		if ((1<<j) & OPT_TAGS)
 			pattern = shortcuts[j];
-		length = strlen(pattern);
 		ptr = the_module;
 		while (1) {
+			char *after_pattern;
+
 			ptr = memchr(ptr, *pattern, len - (ptr - (char*)the_module));
 			if (ptr == NULL) /* no occurance left, done */
 				break;
-			if (strncmp(ptr, pattern, length) == 0 && ptr[length] == '=') {
+			after_pattern = is_prefixed_with(ptr, pattern);
+			if (after_pattern && *after_pattern == '=') {
 				/* field prefixes are 0x80 or 0x00 */
-				if ((ptr[-1] & 0x7F) == '\0') {
-					ptr += length + 1;
+				if ((ptr[-1] & 0x7F) == 0x00) {
+					ptr = after_pattern + 1;
 					display(ptr, pattern, (1<<j) != tags);
 					ptr += strlen(ptr);
 				}

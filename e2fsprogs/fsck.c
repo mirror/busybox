@@ -199,7 +199,7 @@ static char *base_device(const char *device)
 	}
 
 	/* Handle DAC 960 devices */
-	if (strncmp(cp, "rd/", 3) == 0) {
+	if (is_prefixed_with(cp, "rd/")) {
 		cp += 3;
 		if (cp[0] != 'c' || !isdigit(cp[1])
 		 || cp[2] != 'd' || !isdigit(cp[3]))
@@ -224,9 +224,9 @@ static char *base_device(const char *device)
 #if ENABLE_FEATURE_DEVFS
 	/* Now let's handle devfs (ugh) names */
 	len = 0;
-	if (strncmp(cp, "ide/", 4) == 0)
+	if (is_prefixed_with(cp, "ide/"))
 		len = 4;
-	if (strncmp(cp, "scsi/", 5) == 0)
+	if (is_prefixed_with(cp, "scsi/"))
 		len = 5;
 	if (len) {
 		cp += len;
@@ -237,38 +237,38 @@ static char *base_device(const char *device)
 		 * some number of digits at each level, abort.
 		 */
 		for (hier = devfs_hier; *hier; hier++) {
-			len = strlen(*hier);
-			if (strncmp(cp, *hier, len) != 0)
+			cp = is_prefixed_with(cp, *hier);
+			if (!cp)
 				goto errout;
-			cp += len;
-			while (*cp != '/' && *cp != 0) {
+			while (*cp != '/' && *cp != '\0') {
 				if (!isdigit(*cp))
 					goto errout;
 				cp++;
 			}
+//FIXME: what if *cp = '\0' now? cp++ moves past it!!!
 			cp++;
 		}
-		cp[-1] = 0;
+		cp[-1] = '\0';
 		return str;
 	}
 
 	/* Now handle devfs /dev/disc or /dev/disk names */
-	disk = 0;
-	if (strncmp(cp, "discs/", 6) == 0)
+	disk = NULL;
+	if (is_prefixed_with(cp, "discs/"))
 		disk = "disc";
-	else if (strncmp(cp, "disks/", 6) == 0)
+	else if (is_prefixed_with(cp, "disks/"))
 		disk = "disk";
 	if (disk) {
 		cp += 6;
-		if (strncmp(cp, disk, 4) != 0)
+		cp = is_prefixed_with(cp, disk);
+		if (!cp)
 			goto errout;
-		cp += 4;
-		while (*cp != '/' && *cp != 0) {
+		while (*cp != '/' && *cp != '\0') {
 			if (!isdigit(*cp))
 				goto errout;
 			cp++;
 		}
-		*cp = 0;
+		*cp = '\0';
 		return str;
 	}
 #endif
@@ -593,8 +593,8 @@ static void fsck_device(struct fs_info *fs /*, int interactive */)
 					type, "from fstab");
 	} else if (fstype
 	 && (fstype[0] != 'n' || fstype[1] != 'o') /* != "no" */
-	 && strncmp(fstype, "opts=", 5) != 0
-	 && strncmp(fstype, "loop", 4) != 0
+	 && !is_prefixed_with(fstype, "opts=")
+	 && !is_prefixed_with(fstype, "loop")
 	 && !strchr(fstype, ',')
 	) {
 		type = fstype;
@@ -627,8 +627,8 @@ static int device_already_active(char *device)
 #ifdef BASE_MD
 	/* Don't check a soft raid disk with any other disk */
 	if (instance_list
-	 && (!strncmp(instance_list->device, BASE_MD, sizeof(BASE_MD)-1)
-	     || !strncmp(device, BASE_MD, sizeof(BASE_MD)-1))
+	 && (is_prefixed_with(instance_list->device, BASE_MD)
+	     || is_prefixed_with(device, BASE_MD))
 	) {
 		return 1;
 	}
@@ -895,7 +895,7 @@ static void compile_fs_type(char *fs_type)
 		if (strcmp(s, "loop") == 0)
 			/* loop is really short-hand for opts=loop */
 			goto loop_special_case;
-		if (strncmp(s, "opts=", 5) == 0) {
+		if (is_prefixed_with(s, "opts=")) {
 			s += 5;
  loop_special_case:
 			fs_type_flag[num] = negate ? FS_TYPE_FLAG_NEGOPT : FS_TYPE_FLAG_OPT;

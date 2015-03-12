@@ -1198,7 +1198,7 @@ static void NORETURN list_i2c_busses_and_exit(void)
 				if (subde->d_name[0] == '.')
 					continue;
 
-				if (strncmp(subde->d_name, "i2c-", 4) == 0) {
+				if (is_prefixed_with(subde->d_name, "i2c-")) {
 					snprintf(path, NAME_MAX,
 						 "%s/%s/device/%s/name",
 						 i2cdev_path, de->d_name,
@@ -1229,7 +1229,7 @@ found:
 			if (rv != 1)
 				continue;
 
-			if (strncmp(name, "ISA", 3) == 0)
+			if (is_prefixed_with(name, "ISA"))
 				adt = ADT_ISA;
 			else
 				adt = i2cdetect_get_funcs(bus);

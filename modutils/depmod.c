@@ -55,7 +55,7 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 			NULL
 	);
 	for (ptr = image; ptr < image + len - 10; ptr++) {
-		if (strncmp(ptr, "depends=", 8) == 0) {
+		if (is_prefixed_with(ptr, "depends=")) {
 			char *u;
 
 			ptr += 8;
@@ -64,15 +64,15 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 					*u = '_';
 			ptr += string_to_llist(ptr, &info->dependencies, ",");
 		} else if (ENABLE_FEATURE_MODUTILS_ALIAS
-		 && strncmp(ptr, "alias=", 6) == 0
+		 && is_prefixed_with(ptr, "alias=")
 		) {
 			llist_add_to(&info->aliases, xstrdup(ptr + 6));
 			ptr += strlen(ptr);
 		} else if (ENABLE_FEATURE_MODUTILS_SYMBOLS
-		 && strncmp(ptr, "__ksymtab_", 10) == 0
+		 && is_prefixed_with(ptr, "__ksymtab_")
 		) {
 			ptr += 10;
-			if (strncmp(ptr, "gpl", 3) == 0
+			if (is_prefixed_with(ptr, "gpl")
 			 || strcmp(ptr, "strings") == 0
 			) {
 				continue;

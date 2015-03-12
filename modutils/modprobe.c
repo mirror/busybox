@@ -260,7 +260,7 @@ static void add_probe(const char *name)
 	llist_add_to_end(&G.probes, m);
 	G.num_unresolved_deps++;
 	if (ENABLE_FEATURE_MODUTILS_SYMBOLS
-	 && strncmp(m->modname, "symbol:", 7) == 0
+	 && is_prefixed_with(m->modname, "symbol:")
 	) {
 		G.need_symbols = 1;
 	}
@@ -353,22 +353,18 @@ static char *parse_and_add_kcmdline_module_options(char *options, const char *mo
 	char *kcmdline_buf;
 	char *kcmdline;
 	char *kptr;
-	int len;
 
 	kcmdline_buf = xmalloc_open_read_close("/proc/cmdline", NULL);
 	if (!kcmdline_buf)
 		return options;
 
 	kcmdline = kcmdline_buf;
-	len = strlen(modulename);
 	while ((kptr = strsep(&kcmdline, "\n\t ")) != NULL) {
-		if (strncmp(modulename, kptr, len) != 0)
-			continue;
-		kptr += len;
-		if (*kptr != '.')
+		char *after_modulename = is_prefixed_with(kptr, modulename);
+		if (!after_modulename || *after_modulename != '.')
 			continue;
 		/* It is "modulename.xxxx" */
-		kptr++;
+		kptr = after_modulename + 1;
 		if (strchr(kptr, '=') != NULL) {
 			/* It is "modulename.opt=[val]" */
 			options = gather_options_str(options, kptr);

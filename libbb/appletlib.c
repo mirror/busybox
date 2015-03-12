@@ -193,7 +193,7 @@ void lbb_prepare(const char *applet
 	if (argv[1]
 	 && !argv[2]
 	 && strcmp(argv[1], "--help") == 0
-	 && strncmp(applet, "busybox", 7) != 0
+	 && !is_prefixed_with(applet, "busybox")
 	) {
 		/* Special case. POSIX says "test --help"
 		 * should be no different from e.g. "test --foo".  */
@@ -673,7 +673,7 @@ static int busybox_main(char **argv)
 		return 0;
 	}
 
-	if (strncmp(argv[1], "--list", 6) == 0) {
+	if (is_prefixed_with(argv[1], "--list")) {
 		unsigned i = 0;
 		const char *a = applet_names;
 		dup2(1, 2);
@@ -778,7 +778,7 @@ void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 	int applet = find_applet_by_name(name);
 	if (applet >= 0)
 		run_applet_no_and_exit(applet, argv);
-	if (strncmp(name, "busybox", 7) == 0)
+	if (is_prefixed_with(name, "busybox"))
 		exit(busybox_main(argv));
 }
 
@@ -817,7 +817,7 @@ int main(int argc UNUSED_PARAM, char **argv)
 
 #if defined(SINGLE_APPLET_MAIN)
 	/* Only one applet is selected in .config */
-	if (argv[1] && strncmp(argv[0], "busybox", 7) == 0) {
+	if (argv[1] && is_prefixed_with(argv[0], "busybox")) {
 		/* "busybox <applet> <params>" should still work as expected */
 		argv++;
 	}

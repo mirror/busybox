@@ -641,7 +641,7 @@ static llist_t *get_block_backed_filesystems(void)
 		if (!f) continue;
 
 		while ((buf = xmalloc_fgetline(f)) != NULL) {
-			if (strncmp(buf, "nodev", 5) == 0 && isspace(buf[5]))
+			if (is_prefixed_with(buf, "nodev") && isspace(buf[5]))
 				goto next;
 			fs = skip_whitespace(buf);
 			if (*fs == '#' || *fs == '*' || !*fs)
@@ -1364,9 +1364,9 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
 						strcspn(opteq, " \t\n\r,"));
 				continue;
 			case 18: // "proto"
-				if (!strncmp(opteq, "tcp", 3))
+				if (is_prefixed_with(opteq, "tcp"))
 					tcp = 1;
-				else if (!strncmp(opteq, "udp", 3))
+				else if (is_prefixed_with(opteq, "udp"))
 					tcp = 0;
 				else
 					bb_error_msg("warning: unrecognized proto= option");
@@ -1459,7 +1459,7 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
 				"rdirplus\0"
 				"acl\0";
 			int val = 1;
-			if (!strncmp(opt, "no", 2)) {
+			if (is_prefixed_with(opt, "no")) {
 				val = 0;
 				opt += 2;
 			}
@@ -1979,7 +1979,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	}
 
 	// Might this be an NFS filesystem?
-	if ((!mp->mnt_type || strncmp(mp->mnt_type, "nfs", 3) == 0)
+	if ((!mp->mnt_type || is_prefixed_with(mp->mnt_type, "nfs"))
 	 && strchr(mp->mnt_fsname, ':') != NULL
 	) {
 		if (!mp->mnt_type)

@@ -1405,7 +1405,6 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 	int indexx;
 	const char *pty1;
 	const char *pty2;
-	size_t len;
 	/* 1 to 5  "scsi/" , 6 to 9 "ide/host", 10 sbp/, 11 vcc/, 12 pty/ */
 	static const char *const fmt[] = {
 		NULL ,
@@ -1425,12 +1424,11 @@ const char *get_old_name(const char *devname, unsigned int namelen,
 	};
 
 	for (trans = translate_table; trans->match != NULL; ++trans) {
-		len = strlen(trans->match);
-
-		if (strncmp(devname, trans->match, len) == 0) {
+		char *after_match = is_prefixed_with(devname, trans->match);
+		if (after_match) {
 			if (trans->format == NULL)
-				return devname + len;
-			sprintf(buffer, trans->format, devname + len);
+				return after_match;
+			sprintf(buffer, trans->format, after_match);
 			return buffer;
 		}
 	}

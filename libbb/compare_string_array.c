@@ -5,6 +5,24 @@
 
 #include "libbb.h"
 
+char* FAST_FUNC is_prefixed_with(const char *string, const char *key)
+{
+#if 0	/* Two passes over key - probably slower */
+	int len = strlen(key);
+	if (strncmp(string, key, len) == 0)
+		return string + len;
+	return NULL;
+#else	/* Open-coded */
+	while (*key != '\0') {
+		if (*key != *string)
+			return NULL;
+		key++;
+		string++;
+	}
+	return (char*)string;
+#endif
+}
+
 /* returns the array index of the string */
 /* (index of first match is returned, or -1) */
 int FAST_FUNC index_in_str_array(const char *const string_array[], const char *key)
@@ -39,10 +57,9 @@ int FAST_FUNC index_in_strings(const char *strings, const char *key)
 int FAST_FUNC index_in_substr_array(const char *const string_array[], const char *key)
 {
 	int i;
-	int len = strlen(key);
-	if (len) {
+	if (key[0]) {
 		for (i = 0; string_array[i] != 0; i++) {
-			if (strncmp(string_array[i], key, len) == 0) {
+			if (is_prefixed_with(string_array[i], key)) {
 				return i;
 			}
 		}

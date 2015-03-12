@@ -15,7 +15,7 @@ const char* FAST_FUNC strip_unsafe_prefix(const char *str)
 			cp++;
 			continue;
 		}
-		if (strncmp(cp, "/../"+1, 3) == 0) {
+		if (is_prefixed_with(cp, "/../"+1)) {
 			cp += 3;
 			continue;
 		}

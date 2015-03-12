@@ -438,14 +438,14 @@ static void load_crontab(const char *fileName)
 			log5("user:%s entry:%s", fileName, parser->data);
 
 			/* check if line is setting MAILTO= */
-			if (0 == strncmp(tokens[0], "MAILTO=", 7)) {
+			if (is_prefixed_with(tokens[0], "MAILTO=")) {
 #if ENABLE_FEATURE_CROND_CALL_SENDMAIL
 				free(mailTo);
 				mailTo = (tokens[0][7]) ? xstrdup(&tokens[0][7]) : NULL;
 #endif /* otherwise just ignore such lines */
 				continue;
 			}
-			if (0 == strncmp(tokens[0], "SHELL=", 6)) {
+			if (is_prefixed_with(tokens[0], "SHELL=")) {
 				free(shell);
 				shell = xstrdup(&tokens[0][6]);
 				continue;

@@ -37,7 +37,7 @@ char FAST_FUNC get_header_cpio(archive_handle_t *archive_handle)
 	}
 	archive_handle->offset += 110;
 
-	if (strncmp(&cpio_header[0], "07070", 5) != 0
+	if (!is_prefixed_with(&cpio_header[0], "07070")
 	 || (cpio_header[5] != '1' && cpio_header[5] != '2')
 	) {
 		bb_error_msg_and_die("unsupported cpio format, use newc or crc");

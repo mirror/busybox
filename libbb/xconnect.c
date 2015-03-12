@@ -171,7 +171,7 @@ IF_NOT_FEATURE_IPV6(sa_family_t af = AF_INET;)
 	const char *cp;
 	struct addrinfo hint;
 
-	if (ENABLE_FEATURE_UNIX_LOCAL && strncmp(host, "local:", 6) == 0) {
+	if (ENABLE_FEATURE_UNIX_LOCAL && is_prefixed_with(host, "local:")) {
 		struct sockaddr_un *sun;
 
 		r = xzalloc(LSA_LEN_SIZE + sizeof(struct sockaddr_un));

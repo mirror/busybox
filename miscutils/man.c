@@ -66,7 +66,7 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 			goto ordinary_manpage;
 
 		line = xmalloc_open_zipped_read_close(man_filename, NULL);
-		if (!line || strncmp(line, ".so ", 4) != 0) {
+		if (!line || !is_prefixed_with(line, ".so ")) {
 			free(line);
 			goto ordinary_manpage;
 		}
@@ -228,7 +228,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!token[1])
 			continue;
 		if (strcmp("DEFINE", token[0]) == 0) {
-			if (strncmp("pager", token[1], 5) == 0) {
+			if (is_prefixed_with("pager", token[1])) {
 				pager = xstrdup(skip_whitespace(token[1]) + 5);
 			}
 		} else

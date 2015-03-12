@@ -414,7 +414,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 		}
 
 		// Open a new file?
-		if (!strncmp("--- ", patchline, 4) || !strncmp("+++ ", patchline, 4)) {
+		if (is_prefixed_with(patchline, "--- ") || is_prefixed_with(patchline, "+++ ")) {
 			char *s, **name = reverse ? &newname : &oldname;
 			int i;
 
@@ -446,7 +446,7 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 
 		// Start a new hunk?  Usually @@ -oldline,oldlen +newline,newlen @@
 		// but a missing ,value means the value is 1.
-		} else if (state == 1 && !strncmp("@@ -", patchline, 4)) {
+		} else if (state == 1 && is_prefixed_with(patchline, "@@ -")) {
 			int i;
 			char *s = patchline+4;
 
