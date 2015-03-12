@@ -204,7 +204,7 @@ int lpd_main(int argc UNUSED_PARAM, char *argv[])
 			goto err_exit;
 		}
 		// get filename
-		*strchrnul(s, '\n') = '\0';
+		chomp(s);
 		fname = strchr(s, ' ');
 		if (!fname) {
 // bad_fname:

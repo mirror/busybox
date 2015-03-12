@@ -622,7 +622,7 @@ static int FAST_FUNC unix_do_one(char *line)
 
 	/* TODO: currently we stop at first NUL byte. Is it a problem? */
 	line += path_ofs;
-	*strchrnul(line, '\n') = '\0';
+	chomp(line);
 	while (*line)
 		fputc_printable(*line++, stdout);
 	bb_putchar('\n');
