@@ -114,16 +114,22 @@ int deluser_main(int argc, char **argv)
 			}
 		} while (ENABLE_FEATURE_SHADOWPASSWDS && pfile);
 
-		if (ENABLE_DELGROUP && do_deluser > 0) {
-			/* "deluser USER" also should try to delete
-			 * same-named group. IOW: do "delgroup USER"
-			 */
+		if (do_deluser > 0) {
+			/* Delete user from all groups */
+			if (update_passwd(bb_path_group_file, NULL, NULL, name) == -1)
+				return EXIT_FAILURE;
+
+			if (ENABLE_DELGROUP) {
+				/* "deluser USER" also should try to delete
+				 * same-named group. IOW: do "delgroup USER"
+				 */
 // On debian deluser is a perl script that calls userdel.
 // From man userdel:
 //  If USERGROUPS_ENAB is defined to yes in /etc/login.defs, userdel will
 //  delete the group with the same name as the user.
-			do_deluser = -1;
-			goto do_delgroup;
+				do_deluser = -1;
+				goto do_delgroup;
+			}
 		}
 		return EXIT_SUCCESS;
 	}

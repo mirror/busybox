@@ -62,6 +62,8 @@ static void check_selinux_update_passwd(const char *username)
     only if CONFIG_PASSWD=y and applet_name[0] == 'p' like in passwd
     or if CONFIG_CHPASSWD=y and applet_name[0] == 'c' like in chpasswd
 
+ 8) delete a user from all groups: update_passwd(FILE, NULL, NULL, MEMBER)
+
  This function does not validate the arguments fed to it
  so the calling program should take care of that.
 
@@ -99,12 +101,13 @@ int FAST_FUNC update_passwd(const char *filename,
 	if (filename == NULL)
 		return ret;
 
-	check_selinux_update_passwd(name);
+	if (name)
+		check_selinux_update_passwd(name);
 
 	/* New passwd file, "/etc/passwd+" for now */
 	fnamesfx = xasprintf("%s+", filename);
 	sfx_char = &fnamesfx[strlen(fnamesfx)-1];
-	name_colon = xasprintf("%s:", name);
+	name_colon = xasprintf("%s:", name ? name : "");
 	user_len = strlen(name_colon);
 
 	if (shadow)
@@ -167,6 +170,37 @@ int FAST_FUNC update_passwd(const char *filename,
 		line = xmalloc_fgetline(old_fp);
 		if (!line) /* EOF/error */
 			break;
+
+		if (!name && member) {
+			/* Delete member from all groups */
+			/* line is "GROUP:PASSWD:[member1[,member2]...]" */
+			unsigned member_len = strlen(member);
+			char *list = strrchr(line, ':');
+			while (list) {
+				list++;
+ next_list_element:
+				if (strncmp(list, member, member_len) == 0) {
+					char c;
+					changed_lines++;
+					c = list[member_len];
+					if (c == '\0') {
+						if (list[-1] == ',')
+							list--;
+						*list = '\0';
+						break;
+					}
+					if (c == ',') {
+						overlapping_strcpy(list, list + member_len + 1);
+						goto next_list_element;
+					}
+					changed_lines--;
+				}
+				list = strchr(list, ',');
+			}
+			fprintf(new_fp, "%s\n", line);
+			goto next;
+		}
+
 		if (strncmp(name_colon, line, user_len) != 0) {
 			fprintf(new_fp, "%s\n", line);
 			goto next;
