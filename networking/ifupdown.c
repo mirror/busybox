@@ -1239,6 +1239,7 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 		char *pch;
 		bool okay = 0;
 		int cmds_ret;
+		bool curr_failure = 0;
 
 		iface = xstrdup(target_list->data);
 		target_list = target_list->link;
@@ -1306,9 +1307,9 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 				if (cmds_ret == -1) {
 					bb_error_msg("don't seem to have all the variables for %s/%s",
 							liface, currif->address_family->name);
-					any_failures = 1;
+					any_failures = curr_failure = 1;
 				} else if (cmds_ret == 0) {
-					any_failures = 1;
+					any_failures = curr_failure = 1;
 				}
 
 				currif->iface = oldiface;
@@ -1329,7 +1330,7 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 			llist_t *state_list = read_iface_state();
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
-			if (cmds == iface_up && !any_failures) {
+			if (cmds == iface_up && !curr_failure) {
 				char *newiface = xasprintf("%s=%s", iface, liface);
 				if (!iface_state) {
 					llist_add_to_end(&state_list, newiface);
