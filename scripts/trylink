@@ -46,7 +46,7 @@ try() {
 }
 
 check_cc() {
-    local tempname="/tmp/temp.$$.$RANDOM"
+    local tempname="$(mktemp)"
     # Can use "-o /dev/null", but older gcc tend to *unlink it* on failure! :(
     # "-xc": C language. "/dev/null" is an empty source file.
     if $CC $1 -shared -xc /dev/null -o "$tempname".o >/dev/null 2>&1; then
@@ -54,11 +54,11 @@ check_cc() {
     else
 	echo "$2";
     fi
-    rm "$tempname".o 2>/dev/null
+    rm -f "$tempname" "$tempname".o
 }
 
 check_libc_is_glibc() {
-    local tempname="/tmp/temp.$$.$RANDOM"
+    local tempname="$(mktemp)"
     echo "\
 	#include <stdlib.h>
 	/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
@@ -71,7 +71,7 @@ check_libc_is_glibc() {
     else
 	echo "$1";
     fi
-    rm "$tempname".c "$tempname".o 2>/dev/null
+    rm -f "$tempname" "$tempname".[co]
 }
 
 EXE="$1"
