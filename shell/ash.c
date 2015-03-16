@@ -5791,7 +5791,6 @@ exptilde(char *startp, char *p, int flags)
 	struct passwd *pw;
 	const char *home;
 	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
-	int startloc;
 
 	name = p + 1;
 
@@ -5823,9 +5822,7 @@ exptilde(char *startp, char *p, int flags)
 	if (!home || !*home)
 		goto lose;
 	*p = c;
-	startloc = expdest - (char *)stackblock();
 	strtodest(home, SQSYNTAX, quotes);
-	recordregion(startloc, expdest - (char *)stackblock(), 0);
 	return p;
  lose:
 	*p = c;
