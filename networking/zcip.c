@@ -521,7 +521,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 			target_ip_conflict = 0;
 
 			if (memcmp(&p.arp.arp_sha, &eth_addr, ETH_ALEN) != 0) {
-				if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr))) {
+				if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr)) == 0) {
 					/* A probe or reply with source_ip == chosen ip */
 					source_ip_conflict = 1;
 				}
