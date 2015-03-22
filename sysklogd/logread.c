@@ -10,10 +10,11 @@
  */
 
 //usage:#define logread_trivial_usage
-//usage:       "[-f]"
+//usage:       "[-fF]"
 //usage:#define logread_full_usage "\n\n"
 //usage:       "Show messages in syslogd's circular buffer\n"
 //usage:     "\n	-f	Output data as log grows"
+//usage:     "\n	-F	Same as -f, but dump buffer first"
 
 #include "libbb.h"
 #include <sys/ipc.h>
@@ -83,7 +84,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 	unsigned cur;
 	int log_semid; /* ipc semaphore id */
 	int log_shmid; /* ipc shared memory id */
-	smallint follow = getopt32(argv, "f");
+	int follow = getopt32(argv, "fF");
 
 	INIT_G();
 
@@ -106,7 +107,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 	/* Max possible value for tail is shbuf->size - 1 */
 	cur = shbuf->tail;
 
-	/* Loop for logread -f, one pass if there was no -f */
+	/* Loop for -f or -F, one pass otherwise */
 	do {
 		unsigned shbuf_size;
 		unsigned shbuf_tail;
@@ -129,7 +130,12 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 			printf("cur:%u tail:%u size:%u\n",
 					cur, shbuf_tail, shbuf_size);
 
-		if (!follow) {
+		if (!(follow & 1)) { /* not -f */
+			/* if -F, "convert" it to -f, so that we dont
+			 * dump the entire buffer on each iteration
+			 */
+			follow >>= 1;
+
 			/* advance to oldest complete message */
 			/* find NUL */
 			cur += strlen(shbuf_data + cur);
@@ -142,7 +148,7 @@ int logread_main(int argc UNUSED_PARAM, char **argv)
 			cur++;
 			if (cur >= shbuf_size) /* last byte in buffer? */
 				cur = 0;
-		} else { /* logread -f */
+		} else { /* -f */
 			if (cur == shbuf_tail) {
 				sem_up(log_semid);
 				fflush_all();
