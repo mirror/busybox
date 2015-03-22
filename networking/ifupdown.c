@@ -1305,7 +1305,7 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
 				cmds_ret = cmds(currif);
 				if (cmds_ret == -1) {
-					bb_error_msg("don't seem to have all the variables for %s/%s",
+					bb_error_msg("don't have all variables for %s/%s",
 							liface, currif->address_family->name);
 					any_failures = curr_failure = 1;
 				} else if (cmds_ret == 0) {
