@@ -83,7 +83,9 @@ const struct suffix_mult cwbkMG_suffixes[] = {
 	{ "kB", 1000 },
 	{ "kD", 1000 },
 	{ "k", 1024 },
-	{ "K", 1024 },  /* compat with coreutils dd (it also accepts KB and KD, TODO?) */
+	{ "KB", 1000 }, /* compat with coreutils dd */
+	{ "KD", 1000 }, /* compat with coreutils dd */
+	{ "K", 1024 },  /* compat with coreutils dd */
 	{ "MB", 1000000 },
 	{ "MD", 1000000 },
 	{ "M", 1024*1024 },

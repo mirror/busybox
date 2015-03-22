@@ -863,6 +863,7 @@ struct suffix_mult {
 extern const struct suffix_mult bkm_suffixes[];
 #define km_suffixes (bkm_suffixes + 1)
 extern const struct suffix_mult cwbkMG_suffixes[];
+#define kMG_suffixes (cwbkMG_suffixes + 3)
 
 #include "xatonum.h"
 /* Specialized: */
