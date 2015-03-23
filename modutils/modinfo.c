@@ -154,7 +154,7 @@ int modinfo_main(int argc UNUSED_PARAM, char **argv)
 		if (colon == NULL)
 			continue;
 		*colon = '\0';
-		filename2modname(tokens[0], name);
+		filename2modname(bb_basename(tokens[0]), name);
 		for (i = 0; argv[i]; i++) {
 			if (fnmatch(argv[i], name, 0) == 0) {
 				modinfo(tokens[0], uts.release, &env);
