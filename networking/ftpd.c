@@ -1116,6 +1116,9 @@ int ftpd_main(int argc, char **argv)
 int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
+#if ENABLE_FEATURE_FTP_AUTHENTICATION
+	struct passwd *pw = NULL;
+#endif
 	unsigned abs_timeout;
 	unsigned verbose_S;
 	smallint opts;
@@ -1193,29 +1196,23 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGALRM, timeout_handler);
 
 #if ENABLE_FEATURE_FTP_AUTHENTICATION
-	{
-		struct passwd *pw = NULL;
-
-		while (1) {
-			uint32_t cmdval = cmdio_get_cmd_and_arg();
-
+	while (1) {
+		uint32_t cmdval = cmdio_get_cmd_and_arg();
 			if (cmdval == const_USER) {
-				pw = getpwnam(G.ftp_arg);
-				cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify password\r\n");
-			} else if (cmdval == const_PASS) {
-				if (check_password(pw, G.ftp_arg) > 0) {
-					break;	/* login success */
-				}
-				cmdio_write_raw(STR(FTP_LOGINERR)" Login failed\r\n");
-				pw = NULL;
-			} else if (cmdval == const_QUIT) {
-				WRITE_OK(FTP_GOODBYE);
-				return 0;
-			} else {
-				cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
+			pw = getpwnam(G.ftp_arg);
+			cmdio_write_raw(STR(FTP_GIVEPWORD)" Please specify password\r\n");
+		} else if (cmdval == const_PASS) {
+			if (check_password(pw, G.ftp_arg) > 0) {
+				break;	/* login success */
 			}
+			cmdio_write_raw(STR(FTP_LOGINERR)" Login failed\r\n");
+			pw = NULL;
+		} else if (cmdval == const_QUIT) {
+			WRITE_OK(FTP_GOODBYE);
+			return 0;
+		} else {
+			cmdio_write_raw(STR(FTP_LOGINERR)" Login with USER and PASS\r\n");
 		}
-		change_identity(pw);
 	}
 	WRITE_OK(FTP_LOGINOK);
 #endif
@@ -1232,6 +1229,10 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 		xchroot(argv[0]);
 	}
+
+#if ENABLE_FEATURE_FTP_AUTHENTICATION
+	change_identity(pw);
+#endif
 
 	/* RFC-959 Section 5.1
 	 * The following commands and options MUST be supported by every
