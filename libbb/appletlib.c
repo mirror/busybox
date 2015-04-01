@@ -631,7 +631,7 @@ static int busybox_main(char **argv)
 		full_write2_str(bb_banner); /* reuse const string */
 		full_write2_str(" multi-call binary.\n"); /* reuse */
 		full_write2_str(
-			"BusyBox is copyrighted by many authors between 1998-2012.\n"
+			"BusyBox is copyrighted by many authors between 1998-2015.\n"
 			"Licensed under GPLv2. See source distribution for detailed\n"
 			"copyright notices.\n"
 			"\n"
