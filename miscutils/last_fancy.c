@@ -22,6 +22,10 @@
 #define HEADER_LINE_WIDE  "USER", "TTY", \
 	INET6_ADDRSTRLEN, INET6_ADDRSTRLEN, "HOST", "LOGIN", "  TIME", ""
 
+#if !defined __UT_LINESIZE && defined UT_LINESIZE
+# define __UT_LINESIZE UT_LINESIZE
+#endif
+
 enum {
 	NORMAL,
 	LOGGED,
@@ -39,7 +43,7 @@ enum {
 
 #define show_wide (option_mask32 & LAST_OPT_W)
 
-static void show_entry(struct utmp *ut, int state, time_t dur_secs)
+static void show_entry(struct utmpx *ut, int state, time_t dur_secs)
 {
 	unsigned days, hours, mins;
 	char duration[sizeof("(%u+02:02)") + sizeof(int)*3];
@@ -104,7 +108,7 @@ static void show_entry(struct utmp *ut, int state, time_t dur_secs)
 		duration_str);
 }
 
-static int get_ut_type(struct utmp *ut)
+static int get_ut_type(struct utmpx *ut)
 {
 	if (ut->ut_line[0] == '~') {
 		if (strcmp(ut->ut_user, "shutdown") == 0) {
@@ -142,7 +146,7 @@ static int get_ut_type(struct utmp *ut)
 	return ut->ut_type;
 }
 
-static int is_runlevel_shutdown(struct utmp *ut)
+static int is_runlevel_shutdown(struct utmpx *ut)
 {
 	if (((ut->ut_pid & 255) == '0') || ((ut->ut_pid & 255) == '6')) {
 		return 1;
@@ -154,7 +158,7 @@ static int is_runlevel_shutdown(struct utmp *ut)
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int last_main(int argc UNUSED_PARAM, char **argv)
 {
-	struct utmp ut;
+	struct utmpx ut;
 	const char *filename = _PATH_WTMP;
 	llist_t *zlist;
 	off_t pos;
@@ -242,9 +246,9 @@ int last_main(int argc UNUSED_PARAM, char **argv)
 			{
 				llist_t *el, *next;
 				for (el = zlist; el; el = next) {
-					struct utmp *up = (struct utmp *)el->data;
+					struct utmpx *up = (struct utmpx *)el->data;
 					next = el->link;
-					if (strncmp(up->ut_line, ut.ut_line, UT_LINESIZE) == 0) {
+					if (strncmp(up->ut_line, ut.ut_line, __UT_LINESIZE) == 0) {
 						if (show) {
 							show_entry(&ut, NORMAL, up->ut_tv.tv_sec);
 							show = 0;

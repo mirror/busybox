@@ -84,7 +84,7 @@
 # include <selinux/av_permissions.h>
 #endif
 #if ENABLE_FEATURE_UTMP
-# include <utmp.h>
+# include <utmpx.h>
 #endif
 #if ENABLE_LOCALE_SUPPORT
 # include <locale.h>

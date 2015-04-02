@@ -32,21 +32,21 @@
 
 #if defined UT_LINESIZE \
 	&& ((UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256))
-#error struct utmp member char[] size(s) have changed!
+#error struct utmpx member char[] size(s) have changed!
 #elif defined __UT_LINESIZE \
 	&& ((__UT_LINESIZE != 32) || (__UT_NAMESIZE != 64) || (__UT_HOSTSIZE != 256))
-#error struct utmp member char[] size(s) have changed!
+#error struct utmpx member char[] size(s) have changed!
 #endif
 
 #if EMPTY != 0 || RUN_LVL != 1 || BOOT_TIME != 2 || NEW_TIME != 3 || \
 	OLD_TIME != 4
-#error Values for the ut_type field of struct utmp changed
+#error Values for the ut_type field of struct utmpx changed
 #endif
 
 int last_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int last_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	struct utmp ut;
+	struct utmpx ut;
 	int n, file = STDIN_FILENO;
 	time_t t_tmp;
 	off_t pos;
