@@ -163,7 +163,7 @@ SKIP_STRIP = y
 endif
 
 ifneq ($(CONFIG_EXTRA_LDFLAGS),)
-EXTRA_LDFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_LDFLAGS)))
+LDFLAGS += $(strip $(subst ",,$(CONFIG_EXTRA_LDFLAGS)))
 #"))
 endif
 
