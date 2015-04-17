@@ -333,6 +333,38 @@ testing "sed s///NUM test" \
 	"sed -e 's/a/b/2; s/a/c/g'" \
 	"cb\n" "" "aa\n"
 
+testing "sed /regex/,N{...} addresses work" \
+	"sed /^2/,2{d}" \
+	"1\n3\n4\n5\n" \
+	"" \
+	"1\n2\n3\n4\n5\n"
+
+testing "sed /regex/,+N{...} addresses work" \
+	"sed /^2/,+2{d}" \
+	"1\n5\n" \
+	"" \
+	"1\n2\n3\n4\n5\n"
+
+testing "sed /regex/,+N{...} -i works" \
+	"cat - >input2; sed /^4/,+2{d} -i input input2; echo \$?; cat input input2; rm input2" \
+	"0\n""1\n2\n3\n7\n8\n""1\n2\n7\n8\n" \
+	"1\n2\n3\n4\n5\n6\n7\n8\n" \
+	"1\n2\n4\n5\n6\n7\n8\n" \
+
+# GNU sed 4.2.1 would also accept "/^4/,+{d}" with the same meaning, we don't
+testing "sed /regex/,+0{...} -i works" \
+	"cat - >input2; sed /^4/,+0{d} -i input input2; echo \$?; cat input input2; rm input2" \
+	"0\n""1\n2\n3\n5\n6\n7\n8\n""1\n2\n5\n6\n7\n8\n" \
+	"1\n2\n3\n4\n5\n6\n7\n8\n" \
+	"1\n2\n4\n5\n6\n7\n8\n" \
+
+# GNU sed 4.2.1 would also accept "/^4/,+d" with the same meaning, we don't
+testing "sed /regex/,+0<cmd> -i works" \
+	"cat - >input2; sed /^4/,+0d -i input input2; echo \$?; cat input input2; rm input2" \
+	"0\n""1\n2\n3\n5\n6\n7\n8\n""1\n2\n5\n6\n7\n8\n" \
+	"1\n2\n3\n4\n5\n6\n7\n8\n" \
+	"1\n2\n4\n5\n6\n7\n8\n" \
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT

@@ -53,6 +53,7 @@
  * Reference
  * http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
  * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/sed.html
+ * http://sed.sourceforge.net/sedfaq3.html
  */
 
 //config:config SED
@@ -109,7 +110,8 @@ typedef struct sed_cmd_s {
 	regex_t *sub_match;     /* For 's/sub_match/string/' */
 	int beg_line;           /* 'sed 1p'   0 == apply commands to all lines */
 	int beg_line_orig;      /* copy of the above, needed for -i */
-	int end_line;           /* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
+	int end_line;           /* 'sed 1,3p' 0 == one line only. -1 = last line ($). -2-N = +N */
+	int end_line_orig;
 
 	FILE *sw_file;          /* File (sw) command writes to, -1 for none. */
 	char *string;           /* Data string for (saicytb) commands. */
@@ -640,10 +642,29 @@ static void add_cmd(const char *cmdstr)
 			int idx;
 
 			cmdstr++;
-			idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
-			if (!idx)
+			if (*cmdstr == '+' && isdigit(cmdstr[1])) {
+				/* http://sed.sourceforge.net/sedfaq3.html#s3.3
+				 * Under GNU sed 3.02+, ssed, and sed15+, <address2>
+				 * may also be a notation of the form +num,
+				 * indicating the next num lines after <address1> is
+				 * matched.
+				 * GNU sed 4.2.1 accepts even "+" (meaning "+0").
+				 * We don't (we check for isdigit, see above), think
+				 * about the "+-3" case.
+				 */
+				char *end;
+				/* code is smaller compared to using &cmdstr here: */
+				idx = strtol(cmdstr+1, &end, 10);
+				sed_cmd->end_line = -2 - idx;
+				cmdstr = end;
+			} else {
+				idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
+				cmdstr += idx;
+				idx--; /* if 0, trigger error check below */
+			}
+			if (idx < 0)
 				bb_error_msg_and_die("no address after comma");
-			cmdstr += idx;
+			sed_cmd->end_line_orig = sed_cmd->end_line;
 		}
 
 		/* skip whitespace before the command */
@@ -1089,10 +1110,19 @@ static void process_files(void)
 		/* Is this line the end of the current match? */
 
 		if (matched) {
+			if (sed_cmd->end_line <= -2) {
+				/* address2 is +N, i.e. N lines from beg_line */
+				sed_cmd->end_line = linenum + (-sed_cmd->end_line - 2);
+			}
 			/* once matched, "n,xxx" range is dead, disabling it */
 			if (sed_cmd->beg_line > 0) {
 				sed_cmd->beg_line = -2;
 			}
+			dbg("end1:%d", sed_cmd->end_line ? sed_cmd->end_line == -1
+						? !next_line : (sed_cmd->end_line <= linenum)
+					: !sed_cmd->end_match);
+			dbg("end2:%d", sed_cmd->end_match && old_matched
+					&& !regexec(sed_cmd->end_match,pattern_space, 0, NULL, 0));
 			sed_cmd->in_match = !(
 				/* has the ending line come, or is this a single address command? */
 				(sed_cmd->end_line
@@ -1551,9 +1581,10 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 			free(G.outname);
 			G.outname = NULL;
 
-			/* Re-enable disabled range matches */
+			/* Fix disabled range matches and mangled ",+N" ranges */
 			for (sed_cmd = G.sed_cmd_head; sed_cmd; sed_cmd = sed_cmd->next) {
 				sed_cmd->beg_line = sed_cmd->beg_line_orig;
+				sed_cmd->end_line = sed_cmd->end_line_orig;
 			}
 		}
 		/* Here, to handle "sed 'cmds' nonexistent_file" case we did:
