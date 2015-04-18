@@ -2030,7 +2030,7 @@ varcmp(const char *p, const char *q)
 	int c, d;
 
 	while ((c = *p) == (d = *q)) {
-		if (!c || c == '=')
+		if (c == '\0' || c == '=')
 			goto out;
 		p++;
 		q++;
@@ -2247,7 +2247,7 @@ setvar(const char *name, const char *val, int flags)
 }
 
 static void FAST_FUNC
-setvar2(const char *name, const char *val)
+setvar0(const char *name, const char *val)
 {
 	setvar(name, val, 0);
 }
@@ -2310,7 +2310,7 @@ unsetvar(const char *s)
 			free(vp);
 			INT_ON;
 		} else {
-			setvar2(s, 0);
+			setvar0(s, NULL);
 			vp->flags &= ~VEXPORT;
 		}
  ok:
@@ -5505,7 +5505,7 @@ ash_arith(const char *s)
 	arith_t result;
 
 	math_state.lookupvar = lookupvar;
-	math_state.setvar    = setvar2;
+	math_state.setvar    = setvar0;
 	//math_state.endofname = endofname;
 
 	INT_OFF;
@@ -6360,7 +6360,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 	switch (subtype) {
 	case VSASSIGN:
-		setvar2(varname, startp);
+		setvar0(varname, startp);
 		amount = startp - expdest;
 		STADJUST(amount, expdest);
 		return startp;
@@ -8591,7 +8591,7 @@ evalfor(union node *n, int flags)
 	loopnest++;
 	flags &= EV_TESTED;
 	for (sp = arglist.list; sp; sp = sp->next) {
-		setvar2(n->nfor.var, sp->text);
+		setvar0(n->nfor.var, sp->text);
 		evaltree(n->nfor.body, flags);
 		if (evalskip) {
 			if (evalskip == SKIPCONT && --skipcount <= 0) {
@@ -8970,21 +8970,37 @@ mklocal(char *name)
 	struct localvar *lvp;
 	struct var **vpp;
 	struct var *vp;
+	char *eq = strchr(name, '=');
 
 	INT_OFF;
-	lvp = ckzalloc(sizeof(struct localvar));
+	/* Cater for duplicate "local". Examples:
+	 * x=0; f() { local x=1; echo $x; local x; echo $x; }; f; echo $x
+	 * x=0; f() { local x=1; echo $x; local x=2; echo $x; }; f; echo $x
+	 */
+	lvp = localvars;
+	while (lvp) {
+		if (varcmp(lvp->vp->var_text, name) == 0) {
+			if (eq)
+				setvareq(name, 0);
+			/* else:
+			 * it's a duplicate "local VAR" declaration, do nothing
+			 */
+			return;
+		}
+		lvp = lvp->next;
+	}
+
+	lvp = ckzalloc(sizeof(*lvp));
 	if (LONE_DASH(name)) {
 		char *p;
 		p = ckmalloc(sizeof(optlist));
 		lvp->text = memcpy(p, optlist, sizeof(optlist));
 		vp = NULL;
 	} else {
-		char *eq;
-
 		vpp = hashvar(name);
 		vp = *findvar(vpp, name);
-		eq = strchr(name, '=');
 		if (vp == NULL) {
+			/* variable did not exist yet */
 			if (eq)
 				setvareq(name, VSTRFIXED);
 			else
@@ -8994,12 +9010,15 @@ mklocal(char *name)
 		} else {
 			lvp->text = vp->var_text;
 			lvp->flags = vp->flags;
+			/* make sure neither "struct var" nor string gets freed
+			 * during (un)setting:
+			 */
 			vp->flags |= VSTRFIXED|VTEXTFIXED;
 			if (eq)
 				setvareq(name, 0);
 			else
 				/* "local VAR" unsets VAR: */
-				setvar(name, NULL, 0);
+				setvar0(name, NULL);
 		}
 	}
 	lvp->vp = vp;
@@ -9491,7 +9510,7 @@ evalcommand(union node *cmd, int flags)
 		 * '_' in 'vi' command mode during line editing...
 		 * However I implemented that within libedit itself.
 		 */
-		setvar2("_", lastarg);
+		setvar0("_", lastarg);
 	}
 	popstackmark(&smark);
 }
@@ -12885,7 +12904,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	 * to jump out of it.
 	 */
 	INT_OFF;
-	r = shell_builtin_read(setvar2,
+	r = shell_builtin_read(setvar0,
 		argptr,
 		bltinlookup("IFS"), /* can be NULL */
 		read_flags,
@@ -13046,14 +13065,14 @@ init(void)
 			}
 		}
 
-		setvar2("PPID", utoa(getppid()));
+		setvar0("PPID", utoa(getppid()));
 #if ENABLE_ASH_BASH_COMPAT
 		p = lookupvar("SHLVL");
 		setvar("SHLVL", utoa((p ? atoi(p) : 0) + 1), VEXPORT);
 		if (!lookupvar("HOSTNAME")) {
 			struct utsname uts;
 			uname(&uts);
-			setvar2("HOSTNAME", uts.nodename);
+			setvar0("HOSTNAME", uts.nodename);
 		}
 #endif
 		p = lookupvar("PWD");
@@ -13309,7 +13328,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 				hp = lookupvar("HOME");
 				if (hp) {
 					hp = concat_path_file(hp, ".ash_history");
-					setvar2("HISTFILE", hp);
+					setvar0("HISTFILE", hp);
 					free((char*)hp);
 					hp = lookupvar("HISTFILE");
 				}
