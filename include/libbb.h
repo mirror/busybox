@@ -713,7 +713,7 @@ void* xrealloc_vector_helper(void *vector, unsigned sizeof_and_shift, int idx) F
 
 
 extern ssize_t safe_read(int fd, void *buf, size_t count) FAST_FUNC;
-extern ssize_t nonblock_immune_read(int fd, void *buf, size_t count, int loop_on_EINTR) FAST_FUNC;
+extern ssize_t nonblock_immune_read(int fd, void *buf, size_t count) FAST_FUNC;
 // NB: will return short read on error, not -1,
 // if some data was read before error occurred
 extern ssize_t full_read(int fd, void *buf, size_t count) FAST_FUNC;

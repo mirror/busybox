@@ -5923,7 +5923,7 @@ expbackq(union node *cmd, int quoted, int quotes)
  read:
 		if (in.fd < 0)
 			break;
-		i = nonblock_immune_read(in.fd, buf, sizeof(buf), /*loop_on_EINTR:*/ 1);
+		i = nonblock_immune_read(in.fd, buf, sizeof(buf));
 		TRACE(("expbackq: read returns %d\n", i));
 		if (i <= 0)
 			break;
@@ -9696,7 +9696,7 @@ preadfd(void)
 #if ENABLE_FEATURE_EDITING
  retry:
 	if (!iflag || g_parsefile->pf_fd != STDIN_FILENO)
-		nr = nonblock_immune_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1, /*loop_on_EINTR:*/ 1);
+		nr = nonblock_immune_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 	else {
 		int timeout = -1;
 # if ENABLE_ASH_IDLE_TIMEOUT
@@ -9738,7 +9738,7 @@ preadfd(void)
 		}
 	}
 #else
-	nr = nonblock_immune_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1, /*loop_on_EINTR:*/ 1);
+	nr = nonblock_immune_read(g_parsefile->pf_fd, buf, IBUFSIZ - 1);
 #endif
 
 #if 0 /* disabled: nonblock_immune_read() handles this problem */
