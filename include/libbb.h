@@ -84,7 +84,30 @@
 # include <selinux/av_permissions.h>
 #endif
 #if ENABLE_FEATURE_UTMP
-# include <utmpx.h>
+# if defined __UCLIBC__ && ( \
+    (UCLIBC_VERSION >= KERNEL_VERSION(0, 9, 32) \
+     && UCLIBC_VERSION < KERNEL_VERSION(0, 9, 34) \
+     && defined __UCLIBC_HAS_UTMPX__ \
+    ) || ( \
+	 UCLIBC_VERSION >= KERNEL_VERSION(0, 9, 34) \
+	) \
+  )
+#  include <utmpx.h>
+# elif defined __UCLIBC__
+#  include <utmp.h>
+#  define utmpx utmp
+#  define setutxent setutent
+#  define endutxent endutent
+#  define getutxent getutent
+#  define getutxid getutid
+#  define getutxline getutline
+#  define pututxline pututline
+#  define utmpxname utmpname
+#  define updwtmpx updwtmp
+#  define _PATH_UTMPX _PATH_UTMP
+# else
+#  include <utmpx.h>
+# endif
 #endif
 #if ENABLE_LOCALE_SUPPORT
 # include <locale.h>
