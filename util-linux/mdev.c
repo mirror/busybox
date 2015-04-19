@@ -283,7 +283,7 @@ struct globals {
 	unsigned rule_idx;
 #endif
 	struct rule cur_rule;
-	char timestr[sizeof("60.123456")];
+	char timestr[sizeof("HH:MM:SS.123456")];
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
@@ -923,7 +923,11 @@ static char *curtime(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	sprintf(G.timestr, "%u.%06u", (unsigned)tv.tv_sec % 60, (unsigned)tv.tv_usec);
+	sprintf(
+		strftime_HHMMSS(G.timestr, sizeof(G.timestr), &tv.tv_sec),
+		".%06u",
+		(unsigned)tv.tv_usec
+	);
 	return G.timestr;
 }
 
@@ -984,7 +988,7 @@ wait_for_seqfile(const char *seq)
 			break;
 		}
 		if (do_once) {
-			dbg2("%s waiting for '%s'", curtime(), seqbuf);
+			dbg2("%s mdev.seq='%s', need '%s'", curtime(), seqbuf, seq);
 			do_once = 0;
 		}
 		if (sigtimedwait(&set_CHLD, NULL, &ts) >= 0) {
@@ -992,7 +996,7 @@ wait_for_seqfile(const char *seq)
 			continue; /* don't decrement timeout! */
 		}
 		if (--timeout == 0) {
-			dbg1("%s waiting for '%s'", "timed out", seqbuf);
+			dbg1("%s mdev.seq='%s'", "timed out", seqbuf);
 			break;
 		}
 	}
