@@ -748,23 +748,25 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 	xfunc_error_retval = EXIT_FAILURE;
 	applet_name = APPLET_NAME(applet_no);
 
-#if defined APPLET_NO_test
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
 	 * Thus for "test", we skip --help check.
+	 * "true" and "false" are also special.
 	 */
-	if (applet_no != APPLET_NO_test)
+	if (1
+#if defined APPLET_NO_test
+	 && applet_no != APPLET_NO_test
 #endif
-	{
-		if (argc == 2 && strcmp(argv[1], "--help") == 0) {
+#if defined APPLET_NO_true
+	 && applet_no != APPLET_NO_true
+#endif
 #if defined APPLET_NO_false
-			/* Someone insisted that "false --help" must exit 1. Sigh */
-			if (applet_no != APPLET_NO_false)
+	 && applet_no != APPLET_NO_false
 #endif
-			{
-				/* Make "foo --help" exit with 0: */
-				xfunc_error_retval = 0;
-			}
+	) {
+		if (argc == 2 && strcmp(argv[1], "--help") == 0) {
+			/* Make "foo --help" exit with 0: */
+			xfunc_error_retval = 0;
 			bb_show_usage();
 		}
 	}
