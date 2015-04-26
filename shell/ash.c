@@ -8979,7 +8979,7 @@ mklocal(char *name)
 	 */
 	lvp = localvars;
 	while (lvp) {
-		if (varcmp(lvp->vp->var_text, name) == 0) {
+		if (lvp->vp && varcmp(lvp->vp->var_text, name) == 0) {
 			if (eq)
 				setvareq(name, 0);
 			/* else:
