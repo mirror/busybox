@@ -62,14 +62,27 @@ aa:      85.1% -- replaced with aa.gz
 //config:	  1: larger buffers, larger hash-tables
 //config:	  2: larger buffers, largest hash-tables
 //config:	  Larger models may give slightly better compression
+//config:
+//config:config FEATURE_GZIP_LEVELS
+//config:	bool "Enable compression levels"
+//config:	default n
+//config:	depends on GZIP
+//config:	help
+//config:	  Enable support for compression levels 4-9. The default level
+//config:	  is 6. If levels 1-3 are specified, 4 is used.
+//config:	  If this option is not selected, -N options are ignored and -9
+//config:	  is used.
 
 //applet:IF_GZIP(APPLET(gzip, BB_DIR_BIN, BB_SUID_DROP))
 //kbuild:lib-$(CONFIG_GZIP) += gzip.o
 
 //usage:#define gzip_trivial_usage
-//usage:       "[-cfd] [FILE]..."
+//usage:       "[-cfd" IF_FEATURE_GZIP_LEVELS("123456789") "] [FILE]..."
 //usage:#define gzip_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin)\n"
+//usage:	IF_FEATURE_GZIP_LEVELS(
+//usage:     "\n	-1..9	Compression level"
+//usage:	)
 //usage:     "\n	-d	Decompress"
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
@@ -252,6 +265,8 @@ enum {
  * input file length plus MIN_LOOKAHEAD.
  */
 
+#ifndef ENABLE_FEATURE_GZIP_LEVELS
+
 	max_chain_length = 4096,
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
@@ -283,10 +298,22 @@ enum {
  * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
  * meaning.
  */
+#endif /* ENABLE_FEATURE_GZIP_LEVELS */
 };
 
 
 struct globals {
+
+#ifdef ENABLE_FEATURE_GZIP_LEVELS
+	unsigned max_chain_length;
+	unsigned max_lazy_match;
+	unsigned good_match;
+	unsigned nice_match;
+#define max_chain_length (G1.max_chain_length)
+#define max_lazy_match   (G1.max_lazy_match)
+#define good_match	 (G1.good_match)
+#define nice_match	 (G1.nice_match)
+#endif
 
 	lng block_start;
 
@@ -2161,24 +2188,48 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
 	unsigned opt;
+#ifdef ENABLE_FEATURE_GZIP_LEVELS
+	static const struct {
+		uint8_t good;
+		uint8_t chain_shift;
+		uint8_t lazy2;
+		uint8_t nice2;
+	} gzip_level_config[6] = {
+		{4,   4,   4/2,  16/2}, /* Level 4 */
+		{8,   5,  16/2,  32/2}, /* Level 5 */
+		{8,   7,  16/2, 128/2}, /* Level 6 */
+		{8,   8,  32/2, 128/2}, /* Level 7 */
+		{32, 10, 128/2, 258/2}, /* Level 8 */
+		{32, 12, 258/2, 258/2}, /* Level 9 */
+	};
+#endif
+
+	SET_PTR_TO_GLOBALS((char *)xzalloc(sizeof(struct globals)+sizeof(struct globals2))
+			+ sizeof(struct globals));
 
 #if ENABLE_FEATURE_GZIP_LONG_OPTIONS
 	applet_long_options = gzip_longopts;
 #endif
 	/* Must match bbunzip's constants OPT_STDOUT, OPT_FORCE! */
-	opt = getopt32(argv, "cfv" IF_GUNZIP("dt") "q123456789n");
+	opt = getopt32(argv, "cfv" IF_GUNZIP("dt") "qn123456789");
 #if ENABLE_GUNZIP /* gunzip_main may not be visible... */
 	if (opt & 0x18) // -d and/or -t
 		return gunzip_main(argc, argv);
 #endif
-	option_mask32 &= 0x7; /* ignore -q, -0..9 */
-	//if (opt & 0x1) // -c
-	//if (opt & 0x2) // -f
-	//if (opt & 0x4) // -v
-	argv += optind;
-
-	SET_PTR_TO_GLOBALS((char *)xzalloc(sizeof(struct globals)+sizeof(struct globals2))
-			+ sizeof(struct globals));
+#ifdef ENABLE_FEATURE_GZIP_LEVELS
+	opt >>= ENABLE_GUNZIP ? 7 : 5; /* drop cfv[dt]qn bits */
+	if (opt == 0)
+		opt = 1 << 6; /* default: 6 */
+	/* Map 1..3 to 4 */
+	if (opt & 0x7)
+		opt |= 1 << 4;
+	opt = ffs(opt >> 3);
+	max_chain_length = 1 << gzip_level_config[opt].chain_shift;
+	good_match	 = gzip_level_config[opt].good;
+	max_lazy_match	 = gzip_level_config[opt].lazy2 * 2;
+	nice_match	 = gzip_level_config[opt].nice2 * 2;
+#endif
+	option_mask32 &= 0x7; /* retain only -cfv */
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, G1.l_buf, INBUFSIZ);
@@ -2190,5 +2241,6 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	/* Initialize the CRC32 table */
 	global_crc32_table = crc32_filltable(NULL, 0);
 
+	argv += optind;
 	return bbunpack(argv, pack_gzip, append_ext, "gz");
 }
