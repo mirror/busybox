@@ -185,6 +185,13 @@ static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_comp
 		USE_FOR_NOMMU(xstate->xformer_prog = "gunzip";)
 		goto found_magic;
 	}
+	if (ENABLE_FEATURE_SEAMLESS_Z
+	 && magic.b16[0] == COMPRESS_MAGIC
+	) {
+		xstate->xformer = unpack_Z_stream;
+		USE_FOR_NOMMU(xstate->xformer_prog = "uncompress";)
+		goto found_magic;
+	}
 	if (ENABLE_FEATURE_SEAMLESS_BZ2
 	 && magic.b16[0] == BZIP2_MAGIC
 	) {
