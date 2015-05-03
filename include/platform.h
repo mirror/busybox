@@ -480,10 +480,16 @@ typedef unsigned smalluint;
 #endif
 
 #if defined(ANDROID) || defined(__ANDROID__)
-# undef HAVE_DPRINTF
-# undef HAVE_TTYNAME_R
-# undef HAVE_GETLINE
-# undef HAVE_STPCPY
+# if __ANDROID_API__ < 8
+#  undef HAVE_DPRINTF
+# else
+#  define dprintf fdprintf
+# endif
+# if __ANDROID_API__ < 21
+#  undef HAVE_TTYNAME_R
+#  undef HAVE_GETLINE
+#  undef HAVE_STPCPY
+# endif
 # undef HAVE_MEMPCPY
 # undef HAVE_STRCHRNUL
 # undef HAVE_STRVERSCMP
