@@ -3676,11 +3676,6 @@ static void do_cmd(int c)
 		string_insert(dot, p, ALLOW_UNDO);	// insert the string
 		end_cmd_q();	// stop adding to q
 		break;
-#if ENABLE_FEATURE_VI_UNDO
-	case 'u':	// u- undo last operation
-		undo_pop();
-		break;
-#endif
 	case 'U':			// U- Undo; replace current line with original version
 		if (reg[Ureg] != NULL) {
 			p = begin_line(dot);
@@ -3692,6 +3687,11 @@ static void do_cmd(int c)
 		}
 		break;
 #endif /* FEATURE_VI_YANKMARK */
+#if ENABLE_FEATURE_VI_UNDO
+	case 'u':	// u- undo last operation
+		undo_pop();
+		break;
+#endif
 	case '$':			// $- goto end of line
 	case KEYCODE_END:		// Cursor Key End
 		for (;;) {
