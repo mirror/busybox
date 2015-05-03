@@ -484,6 +484,7 @@ typedef unsigned smalluint;
 # undef HAVE_TTYNAME_R
 # undef HAVE_GETLINE
 # undef HAVE_STPCPY
+# undef HAVE_MEMPCPY
 # undef HAVE_STRCHRNUL
 # undef HAVE_STRVERSCMP
 # undef HAVE_UNLOCKED_LINE_OPS
