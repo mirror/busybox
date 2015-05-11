@@ -379,8 +379,12 @@ static int i2c_dev_open(int i2cbus)
 	sprintf(filename, "/dev/i2c-%d", i2cbus);
 	fd = open(filename, O_RDWR);
 	if (fd < 0) {
-		filename[8] = '/'; /* change to "/dev/i2c/%d" */
-		fd = xopen(filename, O_RDWR);
+		if (errno == ENOENT) {
+			filename[8] = '/'; /* change to "/dev/i2c/%d" */
+			fd = xopen(filename, O_RDWR);
+		} else {
+			bb_perror_msg_and_die("can't open '%s'", filename);
+		}
 	}
 
 	return fd;
