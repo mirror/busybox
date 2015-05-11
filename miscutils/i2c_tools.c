@@ -1284,12 +1284,15 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 
 	opt_complementary = "q--r:r--q:" /* mutually exclusive */
-    			"-1:?3"; /* from 1 to 3 args */
+			"?3"; /* up to 3 args */
 	opts = getopt32(argv, optstr);
 	argv += optind;
 
 	if (opts & opt_l)
 		list_i2c_busses_and_exit();
+
+	if (!argv[0])
+		bb_show_usage();
 
 	bus_num = i2c_bus_lookup(argv[0]);
 	fd = i2c_dev_open(bus_num);
