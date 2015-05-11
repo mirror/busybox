@@ -350,7 +350,14 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	case '6':
 		file_header->mode |= S_IFIFO;
 		goto size0;
+	case 'g':	/* pax global header */
+	case 'x': {	/* pax extended header */
+		if ((uoff_t)file_header->size > 0xfffff) /* paranoia */
+			goto skip_ext_hdr;
+		process_pax_hdr(archive_handle, file_header->size, (tar.typeflag == 'g'));
+		goto again_after_align;
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+/* See http://www.gnu.org/software/tar/manual/html_node/Extensions.html */
 	case 'L':
 		/* free: paranoia: tar with several consecutive longnames */
 		free(p_longname);
@@ -370,18 +377,17 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 		archive_handle->offset += file_header->size;
 		/* return get_header_tar(archive_handle); */
 		goto again;
-	case 'D':	/* GNU dump dir */
-	case 'M':	/* Continuation of multi volume archive */
-	case 'N':	/* Old GNU for names > 100 characters */
-	case 'S':	/* Sparse file */
-	case 'V':	/* Volume header */
+/*
+ *	case 'S':	// Sparse file
+ * Was seen in the wild. Not supported (yet?).
+ * See https://www.gnu.org/software/tar/manual/html_section/tar_92.html
+ * for the format. (An "Old GNU Format" was seen, not PAX formats).
+ */
+//	case 'D':	/* GNU dump dir */
+//	case 'M':	/* Continuation of multi volume archive */
+//	case 'N':	/* Old GNU for names > 100 characters */
+//	case 'V':	/* Volume header */
 #endif
-	case 'g':	/* pax global header */
-	case 'x': {	/* pax extended header */
-		if ((uoff_t)file_header->size > 0xfffff) /* paranoia */
-			goto skip_ext_hdr;
-		process_pax_hdr(archive_handle, file_header->size, (tar.typeflag == 'g'));
-		goto again_after_align;
 	}
  skip_ext_hdr:
 	{
