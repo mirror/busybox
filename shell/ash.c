@@ -8962,7 +8962,8 @@ parse_command_args(char **argv, const char **path)
  * Make a variable a local variable.  When a variable is made local, it's
  * value and flags are saved in a localvar structure.  The saved values
  * will be restored when the shell function returns.  We handle the name
- * "-" as a special case.
+ * "-" as a special case: it makes changes to "set +-options" local
+ * (options will be restored on return from the function).
  */
 static void
 mklocal(char *name)
