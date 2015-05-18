@@ -598,8 +598,6 @@ out2str(const char *p)
 #define CTLVAR       ((unsigned char)'\202')    /* variable defn */
 #define CTLENDVAR    ((unsigned char)'\203')
 #define CTLBACKQ     ((unsigned char)'\204')
-#define CTLQUOTE 01             /* ored with CTLBACKQ code if in quotes */
-/*      CTLBACKQ | CTLQUOTE == '\205' */
 #define CTLARI       ((unsigned char)'\206')    /* arithmetic expression */
 #define CTLENDARI    ((unsigned char)'\207')
 #define CTLQUOTEMARK ((unsigned char)'\210')
@@ -608,7 +606,6 @@ out2str(const char *p)
 /* variable substitution byte (follows CTLVAR) */
 #define VSTYPE  0x0f            /* type of variable substitution */
 #define VSNUL   0x10            /* colon--treat the empty string as unset */
-#define VSQUOTE 0x80            /* inside double quotes--suppress splitting */
 
 /* values of VSTYPE field */
 #define VSNORMAL        0x1     /* normal variable:  $var or ${var} */
@@ -628,8 +625,9 @@ out2str(const char *p)
 #endif
 
 static const char dolatstr[] ALIGN1 = {
-	CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0'
+	CTLQUOTEMARK, CTLVAR, VSNORMAL, '@', '=', CTLQUOTEMARK, '\0'
 };
+#define DOLATSTRLEN 6
 
 #define NCMD      0
 #define NPIPE     1
@@ -865,9 +863,7 @@ trace_puts_quoted(char *s)
 		case '\\': c = '\\'; goto backslash;
 		case CTLESC: c = 'e'; goto backslash;
 		case CTLVAR: c = 'v'; goto backslash;
-		case CTLVAR+CTLQUOTE: c = 'V'; goto backslash;
 		case CTLBACKQ: c = 'q'; goto backslash;
-		case CTLBACKQ+CTLQUOTE: c = 'Q'; goto backslash;
  backslash:
 			putc('\\', tracefile);
 			putc(c, tracefile);
@@ -1030,7 +1026,6 @@ sharg(union node *arg, FILE *fp)
 			putc('}', fp);
 			break;
 		case CTLBACKQ:
-		case CTLBACKQ|CTLQUOTE:
 			putc('$', fp);
 			putc('(', fp);
 			shtree(bqlist->n, -1, NULL, fp);
@@ -4413,11 +4408,7 @@ cmdputs(const char *s)
 				str = "${#";
 			else
 				str = "${";
-			if (!(subtype & VSQUOTE) == !(quoted & 1))
-				goto dostr;
-			quoted ^= 1;
-			c = '"';
-			break;
+			goto dostr;
 		case CTLENDVAR:
 			str = "\"}" + !(quoted & 1);
 			quoted >>= 1;
@@ -4425,9 +4416,6 @@ cmdputs(const char *s)
 			goto dostr;
 		case CTLBACKQ:
 			str = "$(...)";
-			goto dostr;
-		case CTLBACKQ+CTLQUOTE:
-			str = "\"$(...)\"";
 			goto dostr;
 #if ENABLE_SH_MATH_SUPPORT
 		case CTLARI:
@@ -5526,7 +5514,7 @@ ash_arith(const char *s)
 #define EXP_VARTILDE    0x4     /* expand tildes in an assignment */
 #define EXP_REDIR       0x8     /* file glob for a redirection (1 match only) */
 #define EXP_CASE        0x10    /* keeps quotes around for CASE pattern */
-#define EXP_RECORD      0x20    /* need to record arguments for ifs breakup */
+#define EXP_QPAT        0x20    /* pattern in quoted parameter expansion */
 #define EXP_VARTILDE2   0x40    /* expand tildes after colons only */
 #define EXP_WORD        0x80    /* expand word in parameter expansion */
 #define EXP_QUOTED      0x100   /* expand word in double quotes */
@@ -5535,12 +5523,11 @@ ash_arith(const char *s)
  */
 #define RMESCAPE_ALLOC  0x1     /* Allocate a new string */
 #define RMESCAPE_GLOB   0x2     /* Add backslashes for glob */
-#define RMESCAPE_QUOTED 0x4     /* Remove CTLESC unless in quotes */
 #define RMESCAPE_GROW   0x8     /* Grow strings instead of stalloc */
 #define RMESCAPE_HEAP   0x10    /* Malloc strings instead of stalloc */
 
 /* Add CTLESC when necessary. */
-#define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_REDIR)
+#define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_QPAT | EXP_REDIR)
 /* Do not skip NUL characters. */
 #define QUOTES_KEEPNUL EXP_TILDE
 
@@ -5641,13 +5628,11 @@ rmescapes(char *str, int flag)
 		}
 	}
 
-	inquotes = (flag & RMESCAPE_QUOTED) ^ RMESCAPE_QUOTED;
+	inquotes = 0;
 	globbing = flag & RMESCAPE_GLOB;
 	protect_against_glob = globbing;
 	while (*p) {
 		if ((unsigned char)*p == CTLQUOTEMARK) {
-// TODO: if no RMESCAPE_QUOTED in flags, inquotes never becomes 0
-// (alternates between RMESCAPE_QUOTED and ~RMESCAPE_QUOTED). Is it ok?
 // Note: both inquotes and protect_against_glob only affect whether
 // CTLESC,<ch> gets converted to <ch> or to \<ch>
 			inquotes = ~inquotes;
@@ -5655,16 +5640,15 @@ rmescapes(char *str, int flag)
 			protect_against_glob = globbing;
 			continue;
 		}
-		if (*p == '\\') {
+		if ((unsigned char)*p == CTLESC) {
+			p++;
+			if (protect_against_glob) {
+				*q++ = '\\';
+			}
+		} else if (*p == '\\' && !inquotes) {
 			/* naked back slash */
 			protect_against_glob = 0;
 			goto copy;
-		}
-		if ((unsigned char)*p == CTLESC) {
-			p++;
-			if (protect_against_glob && inquotes && *p != '/') {
-				*q++ = '\\';
-			}
 		}
 		protect_against_glob = globbing;
  copy:
@@ -5685,13 +5669,9 @@ rmescapes(char *str, int flag)
  * Returns an stalloced string.
  */
 static char *
-preglob(const char *pattern, int quoted, int flag)
+preglob(const char *pattern, int flag)
 {
-	flag |= RMESCAPE_GLOB;
-	if (quoted) {
-		flag |= RMESCAPE_QUOTED;
-	}
-	return rmescapes((char *)pattern, flag);
+	return rmescapes((char *)pattern, flag | RMESCAPE_GLOB);
 }
 
 /*
@@ -5712,7 +5692,9 @@ memtodest(const char *p, size_t len, int syntax, int quotes)
 		if (c) {
 			int n = SIT(c, syntax);
 			if ((quotes & QUOTES_ESC) &&
-					(n == CCTL || n == CBACK))
+					((n == CCTL) ||
+					(((quotes & EXP_FULL) || syntax != BASESYNTAX) &&
+					n == CBACK)))
 				USTPUTC(CTLESC, q);
 		} else if (!(quotes & QUOTES_KEEPNUL))
 			continue;
@@ -5905,7 +5887,7 @@ evalbackcmd(union node *n, struct backcmd *result)
  * Expand stuff in backwards quotes.
  */
 static void
-expbackq(union node *cmd, int quoted, int quotes)
+expbackq(union node *cmd, int flag)
 {
 	struct backcmd in;
 	int i;
@@ -5913,7 +5895,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 	char *p;
 	char *dest;
 	int startloc;
-	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
+	int syntax = flag & EXP_QUOTED ? DQSYNTAX : BASESYNTAX;
 	struct stackmark smark;
 
 	INT_OFF;
@@ -5929,7 +5911,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 	if (i == 0)
 		goto read;
 	for (;;) {
-		memtodest(p, i, syntax, quotes);
+		memtodest(p, i, syntax, flag & QUOTES_ESC);
  read:
 		if (in.fd < 0)
 			break;
@@ -5953,7 +5935,7 @@ expbackq(union node *cmd, int quoted, int quotes)
 		STUNPUTC(dest);
 	expdest = dest;
 
-	if (quoted == 0)
+	if (!(flag & EXP_QUOTED))
 		recordregion(startloc, dest - (char *)stackblock(), 0);
 	TRACE(("evalbackq: size:%d:'%.*s'\n",
 		(int)((dest - (char *)stackblock()) - startloc),
@@ -5967,11 +5949,10 @@ expbackq(union node *cmd, int quoted, int quotes)
  * evaluate, place result in (backed up) result, adjust string position.
  */
 static void
-expari(int quotes)
+expari(int flag)
 {
 	char *p, *start;
 	int begoff;
-	int flag;
 	int len;
 
 	/* ifsfree(); */
@@ -6009,16 +5990,14 @@ expari(int quotes)
 
 	removerecordregions(begoff);
 
-	flag = p[1];
-
 	expdest = p;
 
-	if (quotes)
-		rmescapes(p + 2, 0);
+	if (flag & QUOTES_ESC)
+		rmescapes(p + 1, 0);
 
-	len = cvtnum(ash_arith(p + 2));
+	len = cvtnum(ash_arith(p + 1));
 
-	if (flag != '"')
+	if (!(flag & EXP_QUOTED))
 		recordregion(begoff, begoff + len, 0);
 }
 #endif
@@ -6046,14 +6025,12 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		CTLESC,
 		CTLVAR,
 		CTLBACKQ,
-		CTLBACKQ | CTLQUOTE,
 #if ENABLE_SH_MATH_SUPPORT
 		CTLENDARI,
 #endif
 		'\0'
 	};
 	const char *reject = spclchars;
-	int quotes = flags & QUOTES_ESC;
 	int breakall = (flags & (EXP_WORD | EXP_QUOTED)) == EXP_WORD;
 	int inquotes;
 	size_t length;
@@ -6128,19 +6105,14 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		case CTLENDVAR: /* ??? */
 			goto breakloop;
 		case CTLQUOTEMARK:
+			inquotes ^= EXP_QUOTED;
 			/* "$@" syntax adherence hack */
-			if (!inquotes
-			 && memcmp(p, dolatstr, 4) == 0
-			 && (  p[4] == (char)CTLQUOTEMARK
-			    || (p[4] == (char)CTLENDVAR && p[5] == (char)CTLQUOTEMARK)
-			    )
-			) {
-				p = evalvar(p + 1, flags, /* var_str_list: */ NULL) + 1;
+			if (inquotes && !memcmp(p, dolatstr + 1, DOLATSTRLEN - 1)) {
+				p = evalvar(p + 1, flags | inquotes, /* var_str_list: */ NULL) + 1;
 				goto start;
 			}
-			inquotes = !inquotes;
  addquote:
-			if (quotes) {
+			if (flags & QUOTES_ESC) {
 				p--;
 				length++;
 				startloc++;
@@ -6149,22 +6121,30 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		case CTLESC:
 			startloc++;
 			length++;
+
+			/*
+			 * Quoted parameter expansion pattern: remove quote
+			 * unless inside inner quotes or we have a literal
+			 * backslash.
+			 */
+			if (((flags | inquotes) & (EXP_QPAT | EXP_QUOTED)) ==
+			    EXP_QPAT && *p != '\\')
+				break;
+
 			goto addquote;
 		case CTLVAR:
 			TRACE(("argstr: evalvar('%s')\n", p));
-			p = evalvar(p, flags, var_str_list);
+			p = evalvar(p, flags | inquotes, var_str_list);
 			TRACE(("argstr: evalvar:'%s'\n", (char *)stackblock()));
 			goto start;
 		case CTLBACKQ:
-			c = '\0';
-		case CTLBACKQ|CTLQUOTE:
-			expbackq(argbackq->n, c, quotes);
+			expbackq(argbackq->n, flags | inquotes);
 			argbackq = argbackq->next;
 			goto start;
 #if ENABLE_SH_MATH_SUPPORT
 		case CTLENDARI:
 			p--;
-			expari(quotes);
+			expari(flags | inquotes);
 			goto start;
 #endif
 		}
@@ -6296,13 +6276,13 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 
 #if ENABLE_ASH_BASH_COMPAT
 static char *
-parse_sub_pattern(char *arg, int varflags)
+parse_sub_pattern(char *arg, int quoted)
 {
 	char *idx, *repl = NULL;
 	unsigned char c;
 
 	//char *org_arg = arg;
-	//bb_error_msg("arg:'%s' varflags:%x", arg, varflags);
+	//bb_error_msg("arg:'%s' quoted:%x", arg, quoted);
 	idx = arg;
 	while (1) {
 		c = *arg;
@@ -6318,7 +6298,7 @@ parse_sub_pattern(char *arg, int varflags)
 		*idx++ = c;
 		arg++;
 		/*
-		 * Example: v='ab\c'; echo ${v/\\b/_\\_\z_}
+		 * Example: v='a\bc'; echo ${v/\\b/_\\_\z_}
 		 * The result is a_\_z_c (not a\_\_z_c)!
 		 *
 		 * Enable debug prints in this function and you'll see:
@@ -6328,7 +6308,7 @@ parse_sub_pattern(char *arg, int varflags)
 		 * IOW: search pattern and replace string treat backslashes
 		 * differently! That is the reason why we check repl below:
 		 */
-		if (c == '\\' && *arg == '\\' && repl && !(varflags & VSQUOTE))
+		if (c == '\\' && *arg == '\\' && repl && !quoted)
 			arg++; /* skip both '\', not just first one */
 	}
 	*idx = c; /* NUL */
@@ -6340,9 +6320,10 @@ parse_sub_pattern(char *arg, int varflags)
 
 static const char *
 subevalvar(char *p, char *varname, int strloc, int subtype,
-		int startloc, int varflags, int quotes, struct strlist *var_str_list)
+		int startloc, int varflags, int flag, struct strlist *var_str_list)
 {
 	struct nodelist *saveargbackq = argbackq;
+	int quotes = flag & QUOTES_ESC;
 	char *startp;
 	char *loc;
 	char *rmesc, *rmescend;
@@ -6360,7 +6341,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 	herefd = -1;
 	argstr(p, EXP_TILDE | (subtype != VSASSIGN && subtype != VSQUESTION ?
-			EXP_CASE : 0), var_str_list);
+			(flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE) : 0),
+			var_str_list);
 	STPUTC('\0', expdest);
 	herefd = saveherefd;
 	argbackq = saveargbackq;
@@ -6471,7 +6453,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	}
 	rmescend--;
 	str = (char *)stackblock() + strloc;
-	preglob(str, varflags & VSQUOTE, 0);
+	preglob(str, 0);
 
 #if ENABLE_ASH_BASH_COMPAT
 	workloc = expdest - (char *)stackblock();
@@ -6479,7 +6461,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		char *idx, *end;
 
 		if (!repl) {
-			repl = parse_sub_pattern(str, varflags);
+			repl = parse_sub_pattern(str, flag & EXP_QUOTED);
 			//bb_error_msg("repl:'%s'", repl);
 			if (!repl)
 				repl = nullstr;
@@ -6618,7 +6600,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	int i;
 	ssize_t len = 0;
 	int sep;
-	int quoted = varflags & VSQUOTE;
+	int quoted = flags & EXP_QUOTED;
 	int subtype = varflags & VSTYPE;
 	int discard = subtype == VSPLUS || subtype == VSLENGTH;
 	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
@@ -6758,7 +6740,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 {
 	char varflags;
 	char subtype;
-	char quoted;
+	int quoted;
 	char easy;
 	char *var;
 	int patloc;
@@ -6767,7 +6749,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 
 	varflags = (unsigned char) *p++;
 	subtype = varflags & VSTYPE;
-	quoted = varflags & VSQUOTE;
+	quoted = flags & EXP_QUOTED;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
 	startloc = expdest - (char *)stackblock();
@@ -6788,7 +6770,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		if (varlen < 0) {
 			argstr(
 				p,
-				flags | EXP_TILDE | EXP_WORD | (quoted ? EXP_QUOTED : 0),
+				flags | EXP_TILDE | EXP_WORD,
 				var_str_list
 			);
 			goto end;
@@ -6802,7 +6784,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		if (varlen < 0) {
 			if (subevalvar(p, var, /* strloc: */ 0,
 					subtype, startloc, varflags,
-					/* quotes: */ 0,
+					/* quotes: */ flags & ~QUOTES_ESC,
 					var_str_list)
 			) {
 				varflags &= ~VSNUL;
@@ -6859,10 +6841,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		STPUTC('\0', expdest);
 		patloc = expdest - (char *)stackblock();
 		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
-				startloc, varflags,
-				/* quotes: */ flags & QUOTES_ESC,
-				var_str_list)
-		) {
+				startloc, varflags, flags, var_str_list)) {
 			int amount = expdest - (
 				(char *)stackblock() + patloc - 1
 			);
@@ -6881,7 +6860,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 			unsigned char c = *p++;
 			if (c == CTLESC)
 				p++;
-			else if (c == CTLBACKQ || c == (CTLBACKQ|CTLQUOTE)) {
+			else if (c == CTLBACKQ) {
 				if (varlen >= 0)
 					argbackq = argbackq->next;
 			} else if (c == CTLVAR) {
@@ -7217,7 +7196,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 		savelastp = exparg.lastp;
 
 		INT_OFF;
-		p = preglob(str->text, 0, RMESCAPE_ALLOC | RMESCAPE_HEAP);
+		p = preglob(str->text, RMESCAPE_ALLOC | RMESCAPE_HEAP);
 		{
 			int i = strlen(str->text);
 			expdir = ckmalloc(i < 2048 ? 2048 : i); /* XXX */
@@ -7307,7 +7286,7 @@ static void
 expandhere(union node *arg, int fd)
 {
 	herefd = fd;
-	expandarg(arg, (struct arglist *)NULL, 0);
+	expandarg(arg, (struct arglist *)NULL, EXP_QUOTED);
 	full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
 
@@ -7317,7 +7296,7 @@ expandhere(union node *arg, int fd)
 static int
 patmatch(char *pattern, const char *string)
 {
-	return pmatch(preglob(pattern, 0, 0), string);
+	return pmatch(preglob(pattern, 0), string);
 }
 
 /*
@@ -8570,7 +8549,7 @@ evalfor(union node *n, int flags)
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	for (argp = n->nfor.args; argp; argp = argp->narg.next) {
-		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE | EXP_RECORD);
+		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
 		/* XXX */
 		if (evalskip)
 			goto out;
@@ -11260,11 +11239,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				 && c != '$'
 				 && (c != '"' || eofmark != NULL)
 				) {
-					USTPUTC(CTLESC, out);
 					USTPUTC('\\', out);
 				}
-				if (SIT(c, SQSYNTAX) == CCTL)
-					USTPUTC(CTLESC, out);
+				USTPUTC(CTLESC, out);
 				USTPUTC(c, out);
 				quotef = 1;
 			}
@@ -11637,8 +11614,6 @@ parsesub: {
  do_pungetc:
 			pungetc();
 		}
-		if (dblquote || arinest)
-			flags |= VSQUOTE;
 		((unsigned char *)stackblock())[typeloc] = subtype | flags;
 		if (subtype != VSNORMAL) {
 			varnest++;
@@ -11792,10 +11767,7 @@ parsebackq: {
 	}
 	parsebackquote = savepbq;
 	exception_handler = savehandler;
-	if (arinest || dblquote)
-		USTPUTC(CTLBACKQ | CTLQUOTE, out);
-	else
-		USTPUTC(CTLBACKQ, out);
+	USTPUTC(CTLBACKQ, out);
 	if (oldstyle)
 		goto parsebackq_oldreturn;
 	goto parsebackq_newreturn;
@@ -11811,10 +11783,6 @@ parsearith: {
 		syntax = ARISYNTAX;
 	}
 	USTPUTC(CTLARI, out);
-	if (dblquote)
-		USTPUTC('"', out);
-	else
-		USTPUTC(' ', out);
 	goto parsearith_return;
 }
 #endif
@@ -12129,7 +12097,7 @@ expandstr(const char *ps)
 	n.narg.text = wordtext;
 	n.narg.backquote = backquotelist;
 
-	expandarg(&n, NULL, 0);
+	expandarg(&n, NULL, EXP_QUOTED);
 	return stackblock();
 }
 #endif
