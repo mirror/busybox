@@ -5539,6 +5539,11 @@ ash_arith(const char *s)
 #define RMESCAPE_GROW   0x8     /* Grow strings instead of stalloc */
 #define RMESCAPE_HEAP   0x10    /* Malloc strings instead of stalloc */
 
+/* Add CTLESC when necessary. */
+#define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_REDIR)
+/* Do not skip NUL characters. */
+#define QUOTES_KEEPNUL EXP_TILDE
+
 /*
  * Structure specifying which parts of the string should be searched
  * for IFS characters.
@@ -5695,29 +5700,34 @@ preglob(const char *pattern, int quoted, int flag)
 static void
 memtodest(const char *p, size_t len, int syntax, int quotes)
 {
-	char *q = expdest;
+	char *q;
 
-	q = makestrspace(quotes ? len * 2 : len, q);
+	if (!len)
+		return;
 
-	while (len--) {
+	q = makestrspace((quotes & QUOTES_ESC) ? len * 2 : len, expdest);
+
+	do {
 		unsigned char c = *p++;
-		if (c == '\0')
-			continue;
-		if (quotes) {
+		if (c) {
 			int n = SIT(c, syntax);
-			if (n == CCTL || n == CBACK)
+			if ((quotes & QUOTES_ESC) &&
+					(n == CCTL || n == CBACK))
 				USTPUTC(CTLESC, q);
-		}
+		} else if (!(quotes & QUOTES_KEEPNUL))
+			continue;
 		USTPUTC(c, q);
-	}
+	} while (--len);
 
 	expdest = q;
 }
 
-static void
+static size_t
 strtodest(const char *p, int syntax, int quotes)
 {
-	memtodest(p, strlen(p), syntax, quotes);
+	size_t len = strlen(p);
+	memtodest(p, len, syntax, quotes);
+	return len;
 }
 
 /*
@@ -5790,7 +5800,7 @@ exptilde(char *startp, char *p, int flags)
 	char *name;
 	struct passwd *pw;
 	const char *home;
-	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
+	int quotes = flags & QUOTES_ESC;
 
 	name = p + 1;
 
@@ -6043,7 +6053,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		'\0'
 	};
 	const char *reject = spclchars;
-	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR); /* do CTLESC */
+	int quotes = flags & QUOTES_ESC;
 	int breakall = flags & EXP_WORD;
 	int inquotes;
 	size_t length;
@@ -6608,12 +6618,15 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	const char *p;
 	int num;
 	int i;
-	int sepq = 0;
 	ssize_t len = 0;
-	int subtype = varflags & VSTYPE;
-	int quotes = flags & (EXP_FULL | EXP_CASE | EXP_REDIR);
+	int sep;
 	int quoted = varflags & VSQUOTE;
+	int subtype = varflags & VSTYPE;
+	int discard = subtype == VSPLUS || subtype == VSLENGTH;
+	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
 	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
+
+	sep = quoted ? ((flags & EXP_FULL) << CHAR_BIT) : 0;
 
 	switch (*name) {
 	case '$':
@@ -6649,7 +6662,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 		break;
 	case '@': {
 		char **ap;
-		int sep;
+		char sepc;
 
 		if (quoted && (flags & EXP_FULL)) {
 			/* note: this is not meant as PEOF value */
@@ -6659,39 +6672,20 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 		/* fall through */
 	case '*':
 		sep = ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
-		i = SIT(sep, syntax);
-		if (quotes && (i == CCTL || i == CBACK))
-			sepq = 1;
  param:
 		ap = shellparam.p;
+		sepc = sep;
 		if (!ap)
 			return -1;
 		while ((p = *ap++) != NULL) {
-			size_t partlen;
-
-			partlen = strlen(p);
-			len += partlen;
-
-			if (!(subtype == VSPLUS || subtype == VSLENGTH))
-				memtodest(p, partlen, syntax, quotes);
+			len += strtodest(p, syntax, quotes);
 
 			if (*ap && sep) {
-				char *q;
-
 				len++;
-				if (subtype == VSPLUS || subtype == VSLENGTH) {
-					continue;
-				}
-				q = expdest;
-				if (sepq)
-					STPUTC(CTLESC, q);
-				/* note: may put NUL despite sep != 0
-				 * (see sep = 1 << CHAR_BIT above) */
-				STPUTC(sep, q);
-				expdest = q;
+				memtodest(&sepc, 1, syntax, quotes);
 			}
 		}
-		return len;
+		break;
 	} /* case '@' and '*' */
 	case '0':
 	case '1':
@@ -6740,9 +6734,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 		if (!p)
 			return -1;
 
-		len = strlen(p);
-		if (!(subtype == VSPLUS || subtype == VSLENGTH))
-			memtodest(p, len, syntax, quotes);
+		len = strtodest(p, syntax, quotes);
 #if ENABLE_UNICODE_SUPPORT
 		if (subtype == VSLENGTH && len > 0) {
 			reinit_unicode_for_ash();
@@ -6751,10 +6743,10 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 			}
 		}
 #endif
-		return len;
+		break;
 	}
 
-	if (subtype == VSPLUS || subtype == VSLENGTH)
+	if (discard)
 		STADJUST(-len, expdest);
 	return len;
 }
@@ -6870,7 +6862,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		patloc = expdest - (char *)stackblock();
 		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
 				startloc, varflags,
-				/* quotes: */ flags & (EXP_FULL | EXP_CASE | EXP_REDIR),
+				/* quotes: */ flags & QUOTES_ESC,
 				var_str_list)
 		) {
 			int amount = expdest - (
