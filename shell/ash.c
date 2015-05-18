@@ -11282,9 +11282,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			goto quotemark;
 		case CENDQUOTE:
 			IF_ASH_BASH_COMPAT(bash_dollar_squote = 0;)
-			if (eofmark != NULL && arinest == 0
-			 && varnest == 0
-			) {
+			if (eofmark != NULL && varnest == 0) {
 				USTPUTC(c, out);
 			} else {
 				if (dqvarnest == 0) {
@@ -11320,7 +11318,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				if (pgetc() == ')') {
 					if (--arinest == 0) {
 						syntax = prevsyntax;
-						dblquote = (syntax == DQSYNTAX);
 						c = CTLENDARI;
 					}
 				} else {
@@ -11645,7 +11642,7 @@ parsesub: {
 		((unsigned char *)stackblock())[typeloc] = subtype | flags;
 		if (subtype != VSNORMAL) {
 			varnest++;
-			if (dblquote || arinest) {
+			if (dblquote) {
 				dqvarnest++;
 			}
 		}
