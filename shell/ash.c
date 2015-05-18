@@ -5525,6 +5525,7 @@ ash_arith(const char *s)
 #define RMESCAPE_GLOB   0x2     /* Add backslashes for glob */
 #define RMESCAPE_GROW   0x8     /* Grow strings instead of stalloc */
 #define RMESCAPE_HEAP   0x10    /* Malloc strings instead of stalloc */
+#define RMESCAPE_SLASH  0x20    /* Stop globbing after slash */
 
 /* Add CTLESC when necessary. */
 #define QUOTES_ESC     (EXP_FULL | EXP_CASE | EXP_QPAT | EXP_REDIR)
@@ -5594,14 +5595,16 @@ esclen(const char *start, const char *p)
 static char *
 rmescapes(char *str, int flag)
 {
-	static const char qchars[] ALIGN1 = { CTLESC, CTLQUOTEMARK, '\0' };
+	static const char qchars[] ALIGN1 = {
+		IF_ASH_BASH_COMPAT('/',) CTLESC, CTLQUOTEMARK, '\0' };
 
 	char *p, *q, *r;
 	unsigned inquotes;
 	unsigned protect_against_glob;
 	unsigned globbing;
+	IF_ASH_BASH_COMPAT(unsigned slash = flag & RMESCAPE_SLASH;)
 
-	p = strpbrk(str, qchars);
+	p = strpbrk(str, qchars IF_ASH_BASH_COMPAT(+ !slash));
 	if (!p)
 		return str;
 
@@ -5650,6 +5653,13 @@ rmescapes(char *str, int flag)
 			protect_against_glob = 0;
 			goto copy;
 		}
+#if ENABLE_ASH_BASH_COMPAT
+		else if (*p == '/' && slash) {
+			/* stop handling globbing and mark location of slash */
+			globbing = slash = 0;
+			*p = CTLESC;
+		}
+#endif
 		protect_against_glob = globbing;
  copy:
 		*q++ = *p++;
@@ -6274,50 +6284,6 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
 	ash_msg_and_raise_error("%.*s: %s%s", (int)(end - var - 1), var, msg, tail);
 }
 
-#if ENABLE_ASH_BASH_COMPAT
-static char *
-parse_sub_pattern(char *arg, int quoted)
-{
-	char *idx, *repl = NULL;
-	unsigned char c;
-
-	//char *org_arg = arg;
-	//bb_error_msg("arg:'%s' quoted:%x", arg, quoted);
-	idx = arg;
-	while (1) {
-		c = *arg;
-		if (!c)
-			break;
-		if (c == '/') {
-			/* Only the first '/' seen is our separator */
-			if (!repl) {
-				repl = idx + 1;
-				c = '\0';
-			}
-		}
-		*idx++ = c;
-		arg++;
-		/*
-		 * Example: v='a\bc'; echo ${v/\\b/_\\_\z_}
-		 * The result is a_\_z_c (not a\_\_z_c)!
-		 *
-		 * Enable debug prints in this function and you'll see:
-		 * ash: arg:'\\b/_\\_z_' varflags:d
-		 * ash: pattern:'\\b' repl:'_\_z_'
-		 * That is, \\b is interpreted as \\b, but \\_ as \_!
-		 * IOW: search pattern and replace string treat backslashes
-		 * differently! That is the reason why we check repl below:
-		 */
-		if (c == '\\' && *arg == '\\' && repl && !quoted)
-			arg++; /* skip both '\', not just first one */
-	}
-	*idx = c; /* NUL */
-	//bb_error_msg("pattern:'%s' repl:'%s'", org_arg, repl);
-
-	return repl;
-}
-#endif /* ENABLE_ASH_BASH_COMPAT */
-
 static const char *
 subevalvar(char *p, char *varname, int strloc, int subtype,
 		int startloc, int varflags, int flag, struct strlist *var_str_list)
@@ -6328,7 +6294,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	char *loc;
 	char *rmesc, *rmescend;
 	char *str;
-	IF_ASH_BASH_COMPAT(const char *repl = NULL;)
+	IF_ASH_BASH_COMPAT(char *repl = NULL;)
 	IF_ASH_BASH_COMPAT(int pos, len, orig_len;)
 	int saveherefd = herefd;
 	int amount, resetloc;
@@ -6453,7 +6419,17 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	}
 	rmescend--;
 	str = (char *)stackblock() + strloc;
-	preglob(str, 0);
+	/*
+	 * Example: v='a\bc'; echo ${v/\\b/_\\_\z_}
+	 * The result is a_\_z_c (not a\_\_z_c)!
+	 *
+	 * The search pattern and replace string treat backslashes differently!
+	 * RMESCAPE_SLASH causes preglob to work differently on the pattern
+	 * and string.  It's only used on the first call.
+	 */
+	preglob(str, IF_ASH_BASH_COMPAT(
+		(subtype == VSREPLACE || subtype == VSREPLACEALL) && !repl ?
+			RMESCAPE_SLASH :) 0);
 
 #if ENABLE_ASH_BASH_COMPAT
 	workloc = expdest - (char *)stackblock();
@@ -6461,11 +6437,12 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 		char *idx, *end;
 
 		if (!repl) {
-			repl = parse_sub_pattern(str, flag & EXP_QUOTED);
-			//bb_error_msg("repl:'%s'", repl);
-			if (!repl)
+			if ((repl=strchr(str, CTLESC)))
+				*repl++ = '\0';
+			else
 				repl = nullstr;
 		}
+		//bb_error_msg("str:'%s' repl:'%s'", str, repl);
 
 		/* If there's no pattern to match, return the expansion unmolested */
 		if (str[0] == '\0')
