@@ -5529,7 +5529,7 @@ ash_arith(const char *s)
 #define EXP_RECORD      0x20    /* need to record arguments for ifs breakup */
 #define EXP_VARTILDE2   0x40    /* expand tildes after colons only */
 #define EXP_WORD        0x80    /* expand word in parameter expansion */
-#define EXP_QWORD       0x100   /* expand word in quoted parameter expansion */
+#define EXP_QUOTED      0x100   /* expand word in double quotes */
 /*
  * rmescape() flags
  */
@@ -6054,7 +6054,7 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 	};
 	const char *reject = spclchars;
 	int quotes = flags & QUOTES_ESC;
-	int breakall = flags & EXP_WORD;
+	int breakall = (flags & (EXP_WORD | EXP_QUOTED)) == EXP_WORD;
 	int inquotes;
 	size_t length;
 	int startloc;
@@ -6072,8 +6072,6 @@ argstr(char *p, int flags, struct strlist *var_str_list)
 		flags &= ~EXP_TILDE;
  tilde:
 		q = p;
-		if ((unsigned char)*q == CTLESC && (flags & EXP_QWORD))
-			q++;
 		if (*q == '~')
 			p = exptilde(p, q, flags);
 	}
@@ -6790,7 +6788,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		if (varlen < 0) {
 			argstr(
 				p,
-				flags | (quoted ? EXP_TILDE|EXP_QWORD : EXP_TILDE|EXP_WORD),
+				flags | EXP_TILDE | EXP_WORD | (quoted ? EXP_QUOTED : 0),
 				var_str_list
 			);
 			goto end;
