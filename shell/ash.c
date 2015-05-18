@@ -11316,9 +11316,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				parenlevel--;
 			} else {
 				if (pgetc() == ')') {
+					c = CTLENDARI;
 					if (--arinest == 0) {
 						syntax = prevsyntax;
-						c = CTLENDARI;
 					}
 				} else {
 					/*
@@ -11809,18 +11809,12 @@ parsearith: {
 	if (++arinest == 1) {
 		prevsyntax = syntax;
 		syntax = ARISYNTAX;
-		USTPUTC(CTLARI, out);
-		if (dblquote)
-			USTPUTC('"', out);
-		else
-			USTPUTC(' ', out);
-	} else {
-		/*
-		 * we collapse embedded arithmetic expansion to
-		 * parenthesis, which should be equivalent
-		 */
-		USTPUTC('(', out);
 	}
+	USTPUTC(CTLARI, out);
+	if (dblquote)
+		USTPUTC('"', out);
+	else
+		USTPUTC(' ', out);
 	goto parsearith_return;
 }
 #endif
