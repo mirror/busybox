@@ -598,7 +598,7 @@ static int default_scope(inet_prefix *lcl)
 }
 
 /* Return value becomes exitcode. It's okay to not return at all */
-static int ipaddr_modify(int cmd, char **argv)
+static int ipaddr_modify(int cmd, int flags, char **argv)
 {
 	static const char option[] ALIGN1 =
 		"peer\0""remote\0""broadcast\0""brd\0"
@@ -622,7 +622,7 @@ static int ipaddr_modify(int cmd, char **argv)
 	memset(&req, 0, sizeof(req));
 
 	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
-	req.n.nlmsg_flags = NLM_F_REQUEST;
+	req.n.nlmsg_flags = NLM_F_REQUEST | flags;
 	req.n.nlmsg_type = cmd;
 	req.ifa.ifa_family = preferred_family;
 
@@ -749,16 +749,20 @@ static int ipaddr_modify(int cmd, char **argv)
 int FAST_FUNC do_ipaddr(char **argv)
 {
 	static const char commands[] ALIGN1 =
-		"add\0""delete\0""list\0""show\0""lst\0""flush\0";
+		/* 0    1         2      3          4         5       6       7      8 */
+		"add\0""change\0""chg\0""replace\0""delete\0""list\0""show\0""lst\0""flush\0";
 	int cmd = 2;
 	if (*argv) {
 		cmd = index_in_substrings(commands, *argv);
 		if (cmd < 0)
 			invarg(*argv, applet_name);
 		argv++;
-		if (cmd <= 1)
-			return ipaddr_modify((cmd == 0) ? RTM_NEWADDR : RTM_DELADDR, argv);
+		if (cmd <= 4)
+			return ipaddr_modify(cmd == 4 ? RTM_DELADDR : RTM_NEWADDR,
+						cmd == 0 ? NLM_F_CREATE|NLM_F_EXCL :
+						cmd == 1 || cmd == 2 ? NLM_F_REPLACE :
+						cmd == 3 ? NLM_F_CREATE|NLM_F_REPLACE :
+						0, argv);
 	}
-	/* 2 == list, 3 == show, 4 == lst */
-	return ipaddr_list_or_flush(argv, cmd == 5);
+	return ipaddr_list_or_flush(argv, cmd == 8);
 }

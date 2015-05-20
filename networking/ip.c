@@ -33,7 +33,7 @@
 //usage:       "{ {add|del} IFADDR dev STRING | {show|flush}\n"
 //usage:       "		[dev STRING] [to PREFIX] }"
 //usage:#define ipaddr_full_usage "\n\n"
-//usage:       "ipaddr {add|delete} IFADDR dev STRING\n"
+//usage:       "ipaddr {add|change|replace|delete} IFADDR dev STRING\n"
 //usage:       "ipaddr {show|flush} [dev STRING] [scope SCOPE-ID]\n"
 //usage:       "	[to PREFIX] [label PATTERN]\n"
 //usage:       "	IFADDR := PREFIX | ADDR peer PREFIX\n"
