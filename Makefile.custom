@@ -28,6 +28,10 @@ ifeq ($(CONFIG_INSTALL_SH_APPLET_SCRIPT_WRAPPER),y)
 INSTALL_OPTS:= --scriptwrapper
 endif
 endif
+ifeq ($(CONFIG_FEATURE_INDIVIDUAL),y)
+INSTALL_OPTS:= --binaries
+LIBBUSYBOX_SONAME:= 0_lib/libbusybox.so.$(BB_VER)
+endif
 install: $(srctree)/applets/install.sh busybox busybox.links
 	$(Q)DO_INSTALL_LIBS="$(strip $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS))" \
 		$(SHELL) $< $(CONFIG_PREFIX) $(INSTALL_OPTS)
