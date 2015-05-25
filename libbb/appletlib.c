@@ -130,7 +130,7 @@ void FAST_FUNC bb_show_usage(void)
 			full_write2_str(applet_name);
 			full_write2_str(" ");
 			full_write2_str(p);
-			full_write2_str("\n\n");
+			full_write2_str("\n");
 		}
 		if (ENABLE_FEATURE_CLEAN_UP)
 			dealloc_usage_messages((char*)usage_string);
