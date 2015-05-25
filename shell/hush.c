@@ -442,7 +442,7 @@ enum {
 	MAYBE_ASSIGNMENT      = 0,
 	DEFINITELY_ASSIGNMENT = 1,
 	NOT_ASSIGNMENT        = 2,
-	/* Not an assigment, but next word may be: "if v=xyz cmd;" */
+	/* Not an assignment, but next word may be: "if v=xyz cmd;" */
 	WORD_IS_KEYWORD       = 3,
 };
 /* Used for initialization: o_string foo = NULL_O_STRING; */

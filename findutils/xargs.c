@@ -151,7 +151,7 @@ static void store_param(char *s)
  * is seen, store the address of a new parameter to args[].
  * If reading discovers that last chars do not form the complete
  * parameter, the pointer to the first such "tail character" is returned.
- * (buf has extra byte at the end to accomodate terminating NUL
+ * (buf has extra byte at the end to accommodate terminating NUL
  * of "tail characters" string).
  * Otherwise, the returned pointer points to NUL byte.
  * On entry, buf[] may contain some "seed chars" which are to become

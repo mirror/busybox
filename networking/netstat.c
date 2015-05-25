@@ -119,7 +119,7 @@ typedef enum {
 #define ADDR_NORMAL_WIDTH        23
 /* When there are IPv6 connections the IPv6 addresses will be
  * truncated to none-recognition. The '-W' option makes the
- * address columns wide enough to accomodate for longest possible
+ * address columns wide enough to accommodate for longest possible
  * IPv6 addresses, i.e. addresses of the form
  * xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:ddd.ddd.ddd.ddd
  */

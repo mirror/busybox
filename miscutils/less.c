@@ -1848,7 +1848,7 @@ key and/or command line switch compatibility is a good idea:
         Most options may be changed either on the command line,
         or from within less by using the - or -- command.
         Options may be given in one of two forms: either a single
-        character preceded by a -, or a name preceeded by --.
+        character preceded by a -, or a name preceded by --.
   -?  ........  --help
                   Display help (from command line).
   -a  ........  --search-skip-screen

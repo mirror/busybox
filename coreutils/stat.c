@@ -374,7 +374,7 @@ static void print_it(const char *masterformat,
 {
 	/* Create a working copy of the format string */
 	char *format = xstrdup(masterformat);
-	/* Add 2 to accomodate our conversion of the stat '%s' format string
+	/* Add 2 to accommodate our conversion of the stat '%s' format string
 	 * to the printf '%llu' one.  */
 	char *dest = xmalloc(strlen(format) + 2 + 1);
 	char *b;

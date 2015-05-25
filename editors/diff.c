@@ -363,7 +363,7 @@ static void stone(const int *a, int n, const int *b, int *J, int pref)
 }
 
 struct line {
-	/* 'serial' is not used in the begining, so we reuse it
+	/* 'serial' is not used in the beginning, so we reuse it
 	 * to store line offsets, thus reducing memory pressure
 	 */
 	union {

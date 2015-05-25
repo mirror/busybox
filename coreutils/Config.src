@@ -11,7 +11,7 @@ config CAL
 	bool "cal"
 	default y
 	help
-	  cal is used to display a monthly calender.
+	  cal is used to display a monthly calendar.
 
 config CATV
 	bool "catv"

@@ -264,7 +264,7 @@ void singfunc(char * filename, char * line)
 	vec[idx++] = KERNELDOC;
 	vec[idx++] = DOCBOOK;
 
-	/* Split line up in individual parameters preceeded by FUNCTION */
+	/* Split line up in individual parameters preceded by FUNCTION */
 	for (i=0; line[i]; i++) {
 		if (isspace(line[i])) {
 			line[i] = '\0';
