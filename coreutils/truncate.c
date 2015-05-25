@@ -64,12 +64,22 @@ int truncate_main(int argc UNUSED_PARAM, char **argv)
 
 	argv += optind;
 	while (*argv) {
-		int fd = xopen(*argv, flags);
-		if (ftruncate(fd, size) == -1) {
-			bb_perror_msg("%s: ftruncate", *argv);
-			ret = EXIT_FAILURE;
+		int fd = open(*argv, flags);
+		if (fd < 0) {
+			if (errno != ENOENT || !(opts & OPT_NOCREATE)) {
+				bb_perror_msg("%s: open", *argv);
+				ret = EXIT_FAILURE;
+			}
+			/* else: ENOENT && OPT_NOCREATE:
+			 * do not report error, exitcode is also 0.
+			 */
+		} else {
+			if (ftruncate(fd, size) == -1) {
+				bb_perror_msg("%s: truncate", *argv);
+				ret = EXIT_FAILURE;
+			}
+			xclose(fd);
 		}
-		xclose(fd);
 		++argv;
 	}
 
