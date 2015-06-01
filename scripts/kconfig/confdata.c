@@ -124,8 +124,7 @@ int conf_read_simple(const char *name)
 		case S_INT:
 		case S_HEX:
 		case S_STRING:
-			if (sym->user.val)
-				free(sym->user.val);
+			free(sym->user.val);
 		default:
 			sym->user.val = NULL;
 			sym->user.tri = no;

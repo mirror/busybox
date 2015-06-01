@@ -44,8 +44,7 @@ void blkid_free_dev(blkid_dev dev)
 					   bit_tags);
 		blkid_free_tag(tag);
 	}
-	if (dev->bid_name)
-		free(dev->bid_name);
+	free(dev->bid_name);
 	free(dev);
 }
 
