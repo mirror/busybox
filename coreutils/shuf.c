@@ -94,7 +94,7 @@ int shuf_main(int argc, char **argv)
 		*dash = '\0';
 		lo = xatou(opt_i_str);
 		hi = xatou(dash + 1);
-	 	*dash = '-';
+		*dash = '-';
 		if (hi < lo) {
 			bb_error_msg_and_die("bad range '%s'", opt_i_str);
 		}
