@@ -1336,7 +1336,9 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	} else
 	if (mode == DETECT_MODE_READ && !(funcs & I2C_FUNC_SMBUS_READ_BYTE)) {
 		no_support("SMBus Receive Byte command");
-	} else {
+	}
+
+	if (mode == DETECT_MODE_AUTO) {
 		if (!(funcs & I2C_FUNC_SMBUS_QUICK))
 			will_skip("SMBus Quick Write");
 		if (!(funcs & I2C_FUNC_SMBUS_READ_BYTE))
