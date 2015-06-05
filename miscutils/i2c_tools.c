@@ -1282,7 +1282,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	const char *const optstr = "yaqrFl";
 
 	int fd, bus_num, i, j, mode = DETECT_MODE_AUTO, status;
-	unsigned first = 0x00, last = 0x77, opts;
+	unsigned first = 0x03, last = 0x77, opts;
 	unsigned long funcs;
 
 	opt_complementary = "q--r:r--q:" /* mutually exclusive */
@@ -1316,8 +1316,10 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	else if (opts & opt_q)
 		mode = DETECT_MODE_QUICK;
 
-	if (opts & opt_a)
+	if (opts & opt_a) {
+		first = 0x00;
 		last = 0x7f;
+	}
 
 	/* Read address range. */
 	if (argv[1]) {
