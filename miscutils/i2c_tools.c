@@ -355,6 +355,13 @@ static void i2c_set_pec(int fd, int pec)
 				itoptr(pec ? 1 : 0),
 				"can't set PEC");
 }
+
+static void i2c_set_slave_addr(int fd, int addr, int force)
+{
+	ioctl_or_perror_and_die(fd, force ? I2C_SLAVE_FORCE : I2C_SLAVE,
+				itoptr(addr),
+				"can't set address to 0x%02x", addr);
+}
 #endif /* ENABLE_I2CGET || ENABLE_I2CSET || ENABLE_I2CDUMP */
 
 #if ENABLE_I2CGET || ENABLE_I2CSET
@@ -388,13 +395,6 @@ static int i2c_dev_open(int i2cbus)
 	}
 
 	return fd;
-}
-
-static void i2c_set_slave_addr(int fd, int addr, int force)
-{
-	ioctl_or_perror_and_die(fd, force ? I2C_SLAVE_FORCE : I2C_SLAVE,
-				itoptr(addr),
-				"can't set address to 0x%02x", addr);
 }
 
 /* Size reducing helpers for xxx_check_funcs(). */
@@ -1281,11 +1281,9 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 			      opt_F = (1 << 4), opt_l = (1 << 5);
 	const char *const optstr = "yaqrFl";
 
-	int fd, bus_num, i, j, mode = DETECT_MODE_AUTO;
-	int status;
-	unsigned first = 0x00, last = 0x77;
+	int fd, bus_num, i, j, mode = DETECT_MODE_AUTO, status;
+	unsigned first = 0x00, last = 0x77, opts;
 	unsigned long funcs;
-	unsigned opts;
 
 	opt_complementary = "q--r:r--q:" /* mutually exclusive */
 			"?3"; /* up to 3 args */
@@ -1370,7 +1368,16 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 				continue;
 			}
 
-			i2c_set_slave_addr(fd, i + j, 0);
+			status = ioctl(fd, I2C_SLAVE, itoptr(i + j));
+			if (status < 0) {
+				if (errno == EBUSY) {
+					printf("UU ");
+					continue;
+				}
+
+				bb_perror_msg_and_die(
+					"can't set address to 0x%02x", i + j);
+			}
 
 			switch (mode) {
 			case DETECT_MODE_READ:
