@@ -1226,12 +1226,11 @@ static void NORETURN list_i2c_busses_and_exit(void)
 						 i2cdev_path, de->d_name,
 						 subde->d_name);
 					fp = fopen(path, "r");
-					goto found;
+					break;
 				}
 			}
 		}
 
-found:
 		if (fp != NULL) {
 			/*
 			 * Get the rest of the info and display a line
