@@ -816,6 +816,163 @@ int i2cset_main(int argc, char **argv)
 #endif /* ENABLE_I2CSET */
 
 #if ENABLE_I2CDUMP
+static int read_block_data(int buf_fd, int mode, int *block)
+{
+	uint8_t cblock[I2C_SMBUS_BLOCK_MAX + I2C_MAX_REGS];
+	int res, blen = 0, tmp, i;
+
+	if (mode == I2C_SMBUS_BLOCK_DATA || mode == I2C_SMBUS_I2C_BLOCK_DATA) {
+		res = i2c_smbus_read_block_data(buf_fd, 0, cblock);
+		blen = res;
+	} else {
+		for (res = 0; res < I2C_MAX_REGS; res += tmp) {
+			tmp = i2c_smbus_read_i2c_block_data(
+					buf_fd, res, I2C_SMBUS_BLOCK_MAX,
+					cblock + res);
+			if (tmp < 0) {
+				bb_error_msg_and_die("block read failed");
+			}
+		}
+
+		if (res >= I2C_MAX_REGS)
+			res = I2C_MAX_REGS;
+
+		for (i = 0; i < res; i++)
+			block[i] = cblock[i];
+
+		if (mode != I2C_SMBUS_BLOCK_DATA)
+			for (i = res; i < I2C_MAX_REGS; i++)
+				block[i] = -1;
+	}
+
+	return blen;
+}
+
+/* Dump all but word data. */
+static void dump_data(int bus_fd, int mode, unsigned first,
+		      unsigned last, int *block, int blen)
+{
+	int i, j, res;
+
+	printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
+	       "    0123456789abcdef\n");
+
+	for (i = 0; i < I2C_MAX_REGS; i += 0x10) {
+		if (mode == I2C_SMBUS_BLOCK_DATA && i >= blen)
+			break;
+		if (i/16 < first/16)
+			continue;
+		if (i/16 > last/16)
+			break;
+
+		printf("%02x: ", i);
+		for (j = 0; j < 16; j++) {
+			fflush_all();
+			/* Skip unwanted registers */
+			if (i+j < first || i+j > last) {
+				printf("   ");
+				if (mode == I2C_SMBUS_WORD_DATA) {
+					printf("   ");
+					j++;
+				}
+				continue;
+			}
+
+			switch (mode) {
+			case I2C_SMBUS_BYTE_DATA:
+				res = i2c_smbus_read_byte_data(bus_fd, i+j);
+				block[i+j] = res;
+				break;
+			case I2C_SMBUS_WORD_DATA:
+				res = i2c_smbus_read_word_data(bus_fd, i+j);
+				if (res < 0) {
+					block[i+j] = res;
+					block[i+j+1] = res;
+				} else {
+					block[i+j] = res & 0xff;
+					block[i+j+1] = res >> 8;
+				}
+				break;
+			case I2C_SMBUS_BYTE:
+				res = i2c_smbus_read_byte(bus_fd);
+				block[i+j] = res;
+				break;
+			default:
+				res = block[i+j];
+			}
+
+			if (mode == I2C_SMBUS_BLOCK_DATA &&
+			    i+j >= blen) {
+				printf("   ");
+			} else if (res < 0) {
+				printf("XX ");
+				if (mode == I2C_SMBUS_WORD_DATA)
+					printf("XX ");
+			} else {
+				printf("%02x ", block[i+j]);
+				if (mode == I2C_SMBUS_WORD_DATA)
+					printf("%02x ", block[i+j+1]);
+			}
+
+			if (mode == I2C_SMBUS_WORD_DATA)
+				j++;
+		}
+		printf("   ");
+
+		for (j = 0; j < 16; j++) {
+			if (mode == I2C_SMBUS_BLOCK_DATA && i+j >= blen)
+				break;
+			/* Skip unwanted registers */
+			if (i+j < first || i+j > last) {
+				printf(" ");
+				continue;
+			}
+
+			res = block[i+j];
+			if (res < 0) {
+				printf("X");
+			} else if (res == 0x00 || res == 0xff) {
+				printf(".");
+			} else if (res < 32 || res >= 127) {
+				printf("?");
+			} else {
+				printf("%c", res);
+			}
+		}
+		printf("\n");
+	}
+}
+
+static void dump_word_data(int bus_fd, unsigned first, unsigned last)
+{
+	int i, j, rv;
+
+	/* Word data. */
+	printf("     0,8  1,9  2,a  3,b  4,c  5,d  6,e  7,f\n");
+	for (i = 0; i < 256; i += 8) {
+		if (i/8 < first/8)
+			continue;
+		if (i/8 > last/8)
+			break;
+
+		printf("%02x: ", i);
+		for (j = 0; j < 8; j++) {
+			/* Skip unwanted registers. */
+			if (i+j < first || i+j > last) {
+				printf("     ");
+				continue;
+			}
+
+			rv = i2c_smbus_read_word_data(bus_fd, i+j);
+			if (rv < 0)
+				printf("XXXX ");
+			else
+				printf("%04x ", rv & 0xffff);
+		}
+		printf("\n");
+	}
+}
+
 //usage:#define i2cdump_trivial_usage
 //usage:       "[-f] [-r FIRST-LAST] [-y] BUS ADDR [MODE]"
 //usage:#define i2cdump_full_usage "\n\n"
@@ -842,12 +999,10 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 	const char *const optstr = "fyr:";
 
 	int bus_num, bus_addr, mode = I2C_SMBUS_BYTE_DATA, even = 0, pec = 0;
-	unsigned first = 0x00, last = 0xff;
-	int fd, i, j, res, blen = 0, tmp;
-	unsigned char cblock[I2C_SMBUS_BLOCK_MAX + I2C_MAX_REGS];
-	unsigned char block[I2C_SMBUS_BLOCK_MAX];
+	unsigned first = 0x00, last = 0xff, opts;
+	int *block = (int *)bb_common_bufsiz1;
 	char *opt_r_str, *dash;
-	unsigned opts;
+	int fd, res, blen;
 
         opt_complementary = "-2:?3"; /* from 2 to 3 args */
 	opts = getopt32(argv, optstr, &opt_r_str);
@@ -858,7 +1013,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 
 	if (argv[2]) {
 		switch (argv[2][0]) {
-		case 'b': /* Already set */			break;
+		case 'b': /* Already set. */			break;
 		case 'c': mode = I2C_SMBUS_BYTE;		break;
 		case 'w': mode = I2C_SMBUS_WORD_DATA;		break;
 		case 'W':
@@ -887,7 +1042,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 			bb_error_msg_and_die("invalid range");
 		last = xstrtou_range(++dash, 0, first, 0xff);
 
-		/* Range is not available for every mode */
+		/* Range is not available for every mode. */
 		switch (mode) {
 		case I2C_SMBUS_BYTE:
 		case I2C_SMBUS_BYTE_DATA:
@@ -912,156 +1067,19 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opts & opt_y))
 		confirm_action(bus_addr, mode, -1 /* data_addr */, pec);
 
-	/* All but word data */
+	/* All but word data. */
 	if (mode != I2C_SMBUS_WORD_DATA || even) {
-		/*
-		 * FIXME This section has been ported from upstream i2cdump.
-		 * It has been reworked a bit but is still pretty spaghetti
-		 * and needs splitting into several functions.
-		 */
-		if (mode == I2C_SMBUS_BLOCK_DATA ||
-		    mode == I2C_SMBUS_I2C_BLOCK_DATA) {
-			res = i2c_smbus_read_block_data(fd, 0, cblock);
-			blen = res;
-		} else {
-			for (res = 0; res < I2C_MAX_REGS; res += tmp) {
-				tmp = i2c_smbus_read_i2c_block_data(
-					fd, res, I2C_SMBUS_BLOCK_MAX,
-					cblock + res);
-				if (tmp < 0) {
-					bb_error_msg_and_die(
-						"block read failed");
-				}
-			}
-			if (res >= I2C_MAX_REGS)
-				res = I2C_MAX_REGS;
-			for (i = 0; i < res; i++)
-				block[i] = cblock[i];
-			if (mode != I2C_SMBUS_BLOCK_DATA)
-				for (i = res; i < I2C_MAX_REGS; i++)
-					cblock[i] = -1;
-		}
+		blen = read_block_data(fd, mode, block);
 
 		if (mode == I2C_SMBUS_BYTE) {
 			res = i2c_smbus_write_byte(fd, first);
 			if (res < 0)
-				bb_perror_msg_and_die(
-					"write start address failed");
+				bb_perror_msg_and_die("write start address");
 		}
 
-		printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
-		       "    0123456789abcdef\n");
-
-		for (i = 0; i < I2C_MAX_REGS; i += 0x10) {
-			if (mode == I2C_SMBUS_BLOCK_DATA && i >= blen)
-				break;
-			if (i/16 < first/16)
-				continue;
-			if (i/16 > last/16)
-				break;
-
-			printf("%02x: ", i);
-			for (j = 0; j < 16; j++) {
-				fflush_all();
-				/* Skip unwanted registers */
-				if (i+j < first || i+j > last) {
-					printf("   ");
-					if (mode == I2C_SMBUS_WORD_DATA) {
-						printf("   ");
-						j++;
-					}
-					continue;
-				}
-
-				switch (mode) {
-				case I2C_SMBUS_BYTE_DATA:
-					res = i2c_smbus_read_byte_data(fd, i+j);
-					block[i+j] = res;
-					break;
-				case I2C_SMBUS_WORD_DATA:
-					res = i2c_smbus_read_word_data(fd, i+j);
-					if (res < 0) {
-						block[i+j] = res;
-						block[i+j+1] = res;
-					} else {
-						block[i+j] = res & 0xff;
-						block[i+j+1] = res >> 8;
-					}
-					break;
-				case I2C_SMBUS_BYTE:
-					res = i2c_smbus_read_byte(fd);
-					block[i+j] = res;
-					break;
-				default:
-					res = block[i+j];
-				}
-
-				if (mode == I2C_SMBUS_BLOCK_DATA &&
-				    i+j >= blen) {
-					printf("   ");
-				} else if (res < 0) {
-					printf("XX ");
-					if (mode == I2C_SMBUS_WORD_DATA)
-						printf("XX ");
-				} else {
-					printf("%02x ", block[i+j]);
-					if (mode == I2C_SMBUS_WORD_DATA)
-						printf("%02x ", block[i+j+1]);
-				}
-
-				if (mode == I2C_SMBUS_WORD_DATA)
-					j++;
-			}
-			printf("   ");
-
-			for (j = 0; j < 16; j++) {
-				if (mode == I2C_SMBUS_BLOCK_DATA && i+j >= blen)
-					break;
-				/* Skip unwanted registers */
-				if (i+j < first || i+j > last) {
-					printf(" ");
-					continue;
-				}
-
-				res = block[i+j];
-				if (res < 0) {
-//FIXME: impossible, block[] is uchar[]
-					printf("X");
-				} else if (res == 0x00 || res == 0xff) {
-					printf(".");
-				} else if (res < 32 || res >= 127) {
-					printf("?");
-				} else {
-					printf("%c", res);
-				}
-			}
-			printf("\n");
-		}
+		dump_data(fd, mode, first, last, block, blen);
 	} else {
-		/* Word data. */
-		printf("     0,8  1,9  2,a  3,b  4,c  5,d  6,e  7,f\n");
-		for (i = 0; i < 256; i += 8) {
-			if (i/8 < first/8)
-				continue;
-			if (i/8 > last/8)
-				break;
-
-			printf("%02x: ", i);
-			for (j = 0; j < 8; j++) {
-				/* Skip unwanted registers. */
-				if (i+j < first || i+j > last) {
-					printf("     ");
-					continue;
-				}
-
-				res = i2c_smbus_read_word_data(fd, i+j);
-				if (res < 0)
-					printf("XXXX ");
-				else
-					printf("%04x ", res & 0xffff);
-			}
-			printf("\n");
-		}
+		dump_word_data(fd, first, last);
 	}
 
 	return 0;
