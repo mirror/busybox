@@ -1372,7 +1372,6 @@ static void build_tree(tree_desc * desc)
 		/* and insert the new node in the heap */
 		G2.heap[SMALLEST] = node++;
 		pqdownheap(tree, SMALLEST);
-
 	} while (G2.heap_len >= 2);
 
 	G2.heap[--G2.heap_max] = G2.heap[SMALLEST];
@@ -1720,7 +1719,6 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
 		G2.compressed_len = stored_len << 3;
-
 	} else if (stored_len + 4 <= opt_lenb && buf != NULL) {
 		/* 4: two words for the lengths */
 		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
@@ -1734,7 +1732,6 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 		G2.compressed_len += (stored_len + 4) << 3;
 
 		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
-
 	} else if (static_lenb == opt_lenb) {
 		send_bits((STATIC_TREES << 1) + eof, 3);
 		compress_block((ct_data *) G2.static_ltree, (ct_data *) G2.static_dtree);

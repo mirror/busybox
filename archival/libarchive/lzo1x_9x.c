@@ -71,7 +71,6 @@ typedef struct {
 	uint8_t *out;
 
 	unsigned r1_lit;
-
 } lzo1x_999_t;
 
 #define getbyte(c)  ((c).ip < (c).in_end ? *((c).ip)++ : (-1))

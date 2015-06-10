@@ -9447,7 +9447,6 @@ evalcommand(union node *cmd, int flags)
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
 			goto raise;
 		break;
-
 	} /* switch */
 
  out:
@@ -11763,7 +11762,6 @@ parsearith: {
 	goto parsearith_return;
 }
 #endif
-
 } /* end of readtoken */
 
 /*

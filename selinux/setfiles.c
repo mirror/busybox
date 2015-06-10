@@ -251,7 +251,6 @@ static int match(const char *name, struct stat *sb, char **con)
 			name = path;
 			if (excludeCtr > 0 && exclude(name))
 				goto err;
-
 		} else {
 			char *p;
 			p = realpath(name, path);

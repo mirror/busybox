@@ -411,7 +411,6 @@ struct globals {
 		char undo_text[1];	// text that was deleted (if deletion)
 	} *undo_stack_tail;
 #endif /* ENABLE_FEATURE_VI_UNDO */
-
 };
 #define G (*ptr_to_globals)
 #define text           (G.text          )

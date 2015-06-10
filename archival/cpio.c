@@ -257,7 +257,6 @@ static NOINLINE int cpio_o(void)
 				free(line);
 				continue;
 			}
-
 		} else { /* line == NULL: EOF */
  next_link:
 			if (links) {

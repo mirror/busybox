@@ -604,7 +604,6 @@ int unzip_main(int argc, char **argv)
 		 || (zaccept && !find_list_entry(zaccept, dst_fn))
 		) { /* Skip entry */
 			i = 'n';
-
 		} else {
 			if (listing) {
 				/* List entry */
@@ -666,7 +665,6 @@ int unzip_main(int argc, char **argv)
 					}
 				}
 				i = 'n';
-
 			} else {
 				/* Extract file */
  check_file:

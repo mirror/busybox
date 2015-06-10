@@ -385,7 +385,6 @@ void sendMTFValues(EState* s)
 				cost[0] = cost01 & 0xffff; cost[1] = cost01 >> 16;
 				cost[2] = cost23 & 0xffff; cost[3] = cost23 >> 16;
 				cost[4] = cost45 & 0xffff; cost[5] = cost45 >> 16;
-
 			} else
 #endif
 			{

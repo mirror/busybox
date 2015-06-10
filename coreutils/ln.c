@@ -134,7 +134,6 @@ int ln_main(int argc, char **argv)
 		}
 
 		free(src_name);
-
 	} while ((++argv)[1]);
 
 	return status;

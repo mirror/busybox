@@ -732,7 +732,6 @@ static int readLines(const char *file, int num)
 		cc = safe_read(fd, bufPtr, bufSize - bufUsed);
 		bufUsed += cc;
 		bufPtr = bufBase;
-
 	} while (cc > 0);
 
 	if (cc < 0) {

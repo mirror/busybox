@@ -1497,7 +1497,6 @@ update_local_clock(peer_t *p)
 #endif
 		abs_offset = offset = 0;
 		set_new_values(STATE_SYNC, offset, recv_time);
-
 	} else { /* abs_offset <= STEP_THRESHOLD */
 
 		/* The ratio is calculated before jitter is updated to make

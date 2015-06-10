@@ -995,10 +995,8 @@ XZ_EXTERN NOINLINE enum xz_ret XZ_FUNC xz_dec_lzma2_run(
 					s->lzma2.need_props = false;
 					s->lzma2.next_sequence
 							= SEQ_PROPERTIES;
-
 				} else if (s->lzma2.need_props) {
 					return XZ_DATA_ERROR;
-
 				} else {
 					s->lzma2.next_sequence
 							= SEQ_LZMA_PREPARE;
@@ -1080,7 +1078,6 @@ XZ_EXTERN NOINLINE enum xz_ret XZ_FUNC xz_dec_lzma2_run(
 
 				rc_reset(&s->rc);
 				s->lzma2.sequence = SEQ_CONTROL;
-
 			} else if (b->out_pos == b->out_size
 					|| (b->in_pos == b->in_size
 						&& s->temp.size

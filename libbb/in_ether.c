@@ -51,7 +51,6 @@ int FAST_FUNC in_ether(const char *bufp, struct sockaddr *sap)
 		} while (j);
 
 		*ptr++ = val;
-
 	} while (--i);
 
 	/* Error if we aren't at end of string */

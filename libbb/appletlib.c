@@ -457,7 +457,6 @@ static void parse_config_file(void)
 			errmsg = "keyword outside section";
 			goto pe_label;
 		}
-
 	} /* while (1) */
 
  pe_label:

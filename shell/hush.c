@@ -5390,7 +5390,6 @@ static NOINLINE int expand_vars_to_list(o_string *output, int n, char *arg)
 						!!(output->o_expflags & EXP_FLAG_ESC_GLOB_CHARS));
 			}
 			break;
-
 		} /* switch (char after <SPECIAL_VAR_SYMBOL>) */
 
 		if (val && val[0]) {

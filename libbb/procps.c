@@ -614,7 +614,6 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 			buf[comm_len - 1] = ' ';
 			buf[col - 1] = '\0';
 		}
-
 	} else {
 		snprintf(buf, col, "[%s]", comm);
 	}

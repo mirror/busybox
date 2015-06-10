@@ -297,7 +297,6 @@ unpack_Z_stream(transformer_state_t *xstate)
 			/* Remember previous code.  */
 			oldcode = incode;
 		}
-
 	} while (rsize > 0);
 
 	if (outpos > 0) {

@@ -1060,12 +1060,10 @@ static uint32_t next_token(uint32_t expected)
 
 	if (t_rollback) {
 		t_rollback = FALSE;
-
 	} else if (concat_inserted) {
 		concat_inserted = FALSE;
 		t_tclass = save_tclass;
 		t_info = save_info;
-
 	} else {
 		p = g_pos;
  readnext:
@@ -1081,7 +1079,6 @@ static uint32_t next_token(uint32_t expected)
 		if (*p == '\0') {
 			tc = TC_EOF;
 			debug_printf_parse("%s: token found: TC_EOF\n", __func__);
-
 		} else if (*p == '\"') {
 			/* it's a string */
 			t_string = s = ++p;
@@ -1097,7 +1094,6 @@ static uint32_t next_token(uint32_t expected)
 			*s = '\0';
 			tc = TC_STRING;
 			debug_printf_parse("%s: token found:'%s' TC_STRING\n", __func__, t_string);
-
 		} else if ((expected & TC_REGEXP) && *p == '/') {
 			/* it's regexp */
 			t_string = s = ++p;
@@ -1130,7 +1126,6 @@ static uint32_t next_token(uint32_t expected)
 				syntax_error(EMSG_UNEXP_TOKEN);
 			tc = TC_NUMBER;
 			debug_printf_parse("%s: token found:%f TC_NUMBER\n", __func__, t_double);
-
 		} else {
 			/* search for something known */
 			tl = tokenlist;
@@ -1580,12 +1575,10 @@ static void parse_program(char *p)
 			debug_printf_parse("%s: TC_BEGIN\n", __func__);
 			seq = &beginseq;
 			chain_group();
-
 		} else if (tclass & TC_END) {
 			debug_printf_parse("%s: TC_END\n", __func__);
 			seq = &endseq;
 			chain_group();
-
 		} else if (tclass & TC_FUNCDECL) {
 			debug_printf_parse("%s: TC_FUNCDECL\n", __func__);
 			next_token(TC_FUNCTION);
@@ -1603,7 +1596,6 @@ static void parse_program(char *p)
 			seq = &f->body;
 			chain_group();
 			clear_array(ahash);
-
 		} else if (tclass & TC_OPSEQ) {
 			debug_printf_parse("%s: TC_OPSEQ\n", __func__);
 			rollback_token();
@@ -1618,7 +1610,6 @@ static void parse_program(char *p)
 				chain_node(OC_PRINT);
 			}
 			cn->r.n = mainseq.last;
-
 		} else /* if (tclass & TC_GRPSTART) */ {
 			debug_printf_parse("%s: TC_GRPSTART(?)\n", __func__);
 			rollback_token();
@@ -1879,13 +1870,10 @@ static void handle_special(var *v)
 		split_f0();
 
 		mk_splitter(getvar_s(v), &fsplitter);
-
 	} else if (v == intvar[RS]) {
 		mk_splitter(getvar_s(v), &rsplitter);
-
 	} else if (v == intvar[IGNORECASE]) {
 		icase = istrue(v);
-
 	} else {				/* $n */
 		n = getvar_i(intvar[NF]);
 		setvar_i(intvar[NF], n > v-Fields ? n : v-Fields+1);

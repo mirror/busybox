@@ -170,7 +170,6 @@ int crontab_main(int argc UNUSED_PARAM, char **argv)
 			unlink(tmp_fname);
 		/*free(tmp_fname);*/
 		/*free(new_fname);*/
-
 	} /* switch */
 
 	/* Bump notification file.  Handle window where crond picks file up
