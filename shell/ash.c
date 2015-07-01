@@ -11132,19 +11132,6 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 
 	IF_ASH_BASH_COMPAT(smallint bash_dollar_squote = 0;)
 
-#if __GNUC__
-	/* Avoid longjmp clobbering */
-	(void) &out;
-	(void) &quotef;
-	(void) &dblquote;
-	(void) &varnest;
-	(void) &arinest;
-	(void) &parenlevel;
-	(void) &dqvarnest;
-	(void) &oldstyle;
-	(void) &prevsyntax;
-	(void) &syntax;
-#endif
 	startlinno = g_parsefile->linno;
 	bqlist = NULL;
 	quotef = 0;
@@ -11609,30 +11596,16 @@ parsesub: {
 parsebackq: {
 	struct nodelist **nlpp;
 	union node *n;
-	char *volatile str;
-	struct jmploc jmploc;
-	struct jmploc *volatile savehandler;
+	char *str;
 	size_t savelen;
 	smallint saveprompt = 0;
 
-#ifdef __GNUC__
-	(void) &saveprompt;
-#endif
-	if (setjmp(jmploc.loc)) {
-		free(str);
-		exception_handler = savehandler;
-		longjmp(exception_handler->loc, 1);
-	}
-	INT_OFF;
 	str = NULL;
 	savelen = out - (char *)stackblock();
 	if (savelen > 0) {
-		str = ckmalloc(savelen);
+		str = alloca(savelen);
 		memcpy(str, stackblock(), savelen);
 	}
-	savehandler = exception_handler;
-	exception_handler = &jmploc;
-	INT_ON;
 	if (oldstyle) {
 		/* We must read until the closing backquote, giving special
 		 * treatment to some slashes, and then push the string and
@@ -11731,12 +11704,7 @@ parsebackq: {
 	if (str) {
 		memcpy(out, str, savelen);
 		STADJUST(savelen, out);
-		INT_OFF;
-		free(str);
-		str = NULL;
-		INT_ON;
 	}
-	exception_handler = savehandler;
 	USTPUTC(CTLBACKQ, out);
 	if (oldstyle)
 		goto parsebackq_oldreturn;
