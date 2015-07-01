@@ -10473,7 +10473,6 @@ struct heredoc {
 };
 
 static smallint tokpushback;           /* last token pushed back */
-static smallint parsebackquote;        /* nonzero if we are inside backquotes */
 static smallint quoteflag;             /* set if (part of) last token was quoted */
 static token_id_t lasttoken;           /* last token read (integer id Txxx) */
 static struct heredoc *heredoclist;    /* list of here documents to read */
@@ -11313,7 +11312,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	if (syntax == ARISYNTAX)
 		raise_error_syntax("missing '))'");
 #endif
-	if (syntax != BASESYNTAX && !parsebackquote && eofmark == NULL)
+	if (syntax != BASESYNTAX && eofmark == NULL)
 		raise_error_syntax("unterminated quoted string");
 	if (varnest != 0) {
 		startlinno = g_parsefile->linno;
@@ -11609,7 +11608,6 @@ parsesub: {
  */
 parsebackq: {
 	struct nodelist **nlpp;
-	smallint savepbq;
 	union node *n;
 	char *volatile str;
 	struct jmploc jmploc;
@@ -11620,10 +11618,8 @@ parsebackq: {
 #ifdef __GNUC__
 	(void) &saveprompt;
 #endif
-	savepbq = parsebackquote;
 	if (setjmp(jmploc.loc)) {
 		free(str);
-		parsebackquote = 0;
 		exception_handler = savehandler;
 		longjmp(exception_handler->loc, 1);
 	}
@@ -11707,7 +11703,6 @@ parsebackq: {
 		nlpp = &(*nlpp)->next;
 	*nlpp = stzalloc(sizeof(**nlpp));
 	/* (*nlpp)->next = NULL; - stzalloc did it */
-	parsebackquote = oldstyle;
 
 	if (oldstyle) {
 		saveprompt = doprompt;
@@ -11741,7 +11736,6 @@ parsebackq: {
 		str = NULL;
 		INT_ON;
 	}
-	parsebackquote = savepbq;
 	exception_handler = savehandler;
 	USTPUTC(CTLBACKQ, out);
 	if (oldstyle)
