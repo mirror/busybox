@@ -757,12 +757,16 @@ int FAST_FUNC do_ipaddr(char **argv)
 		if (cmd < 0)
 			invarg(*argv, applet_name);
 		argv++;
-		if (cmd <= 4)
-			return ipaddr_modify(cmd == 4 ? RTM_DELADDR : RTM_NEWADDR,
-						cmd == 0 ? NLM_F_CREATE|NLM_F_EXCL :
-						cmd == 1 || cmd == 2 ? NLM_F_REPLACE :
-						cmd == 3 ? NLM_F_CREATE|NLM_F_REPLACE :
-						0, argv);
+		if (cmd <= 4) {
+			return ipaddr_modify(
+				/*cmd:*/ cmd == 4 ? RTM_DELADDR : RTM_NEWADDR,
+				/*flags:*/
+					cmd == 0 ? NLM_F_CREATE|NLM_F_EXCL : /* add */
+					cmd == 1 || cmd == 2 ? NLM_F_REPLACE : /* change */
+					cmd == 3 ? NLM_F_CREATE|NLM_F_REPLACE : /* replace */
+					0 /* delete */
+			, argv);
+		}
 	}
 	return ipaddr_list_or_flush(argv, cmd == 8);
 }
