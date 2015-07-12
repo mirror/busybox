@@ -630,6 +630,14 @@ config UNAME
 	help
 	  uname is used to print system information.
 
+config UNAME_OSNAME
+	string "Operating system name"
+	default "GNU/Linux"
+	depends on UNAME
+	help
+	  Sets the operating system name reported by uname -o.  The
+	  default is "GNU/Linux".
+
 config UNEXPAND
 	bool "unexpand"
 	default y
