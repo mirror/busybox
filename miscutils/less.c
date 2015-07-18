@@ -677,27 +677,21 @@ static const char ctrlconv[] ALIGN1 =
 	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x40\x4b\x4c\x4d\x4e\x4f"
 	"\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f";
 
-static void lineno_str(char *nbuf9, const char *line)
+static void print_lineno(const char *line)
 {
-	nbuf9[0] = '\0';
-	if (option_mask32 & FLAG_N) {
-		const char *fmt;
-		unsigned n;
+	const char *fmt = "        ";
+	unsigned n = n; /* for compiler */
 
-		if (line == empty_line_marker) {
-			memset(nbuf9, ' ', 8);
-			nbuf9[8] = '\0';
-			return;
-		}
+	if (line != empty_line_marker) {
 		/* Width of 7 preserves tab spacing in the text */
 		fmt = "%7u ";
 		n = LINENO(line) + 1;
-		if (n > 9999999) {
+		if (n > 9999999 && MAXLINES > 9999999) {
 			n %= 10000000;
 			fmt = "%07u ";
 		}
-		sprintf(nbuf9, fmt, n);
 	}
+	printf(fmt, n);
 }
 
 
@@ -710,7 +704,6 @@ static void print_found(const char *line)
 	regmatch_t match_structs;
 
 	char buf[width];
-	char nbuf9[9];
 	const char *str = line;
 	char *p = buf;
 	size_t n;
@@ -760,12 +753,7 @@ static void print_found(const char *line)
 			match_status = 1;
 	}
 
-	lineno_str(nbuf9, line);
-	if (!growline) {
-		printf(CLEAR_2_EOL"%s%s\n", nbuf9, str);
-		return;
-	}
-	printf(CLEAR_2_EOL"%s%s%s\n", nbuf9, growline, str);
+	printf("%s%s\n", growline ? growline : "", str);
 	free(growline);
 }
 #else
@@ -775,12 +763,8 @@ void print_found(const char *line);
 static void print_ascii(const char *str)
 {
 	char buf[width];
-	char nbuf9[9];
 	char *p;
 	size_t n;
-
-	lineno_str(nbuf9, str);
-	printf(CLEAR_2_EOL"%s", nbuf9);
 
 	while (*str) {
 		n = strcspn(str, controls);
@@ -815,6 +799,9 @@ static void buffer_print(void)
 
 	move_cursor(0, 0);
 	for (i = 0; i <= max_displayed_line; i++) {
+		printf(CLEAR_2_EOL);
+		if (option_mask32 & FLAG_N)
+			print_lineno(buffer[i]);
 		if (pattern_valid)
 			print_found(buffer[i]);
 		else
