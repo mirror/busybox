@@ -331,8 +331,10 @@ static void re_wrap(void)
 		*d = *s;
 		if (*d != '\0') {
 			new_line_pos++;
-			if (*d == '\t') /* tab */
+			if (*d == '\t') { /* tab */
 				new_line_pos += 7;
+				new_line_pos &= (~7);
+			}
 			s++;
 			d++;
 			if (new_line_pos >= w) {
