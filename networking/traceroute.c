@@ -387,15 +387,6 @@ struct globals {
 #define outudp  ((struct udphdr *)(outip + 1))
 
 
-/* libbb candidate? tftp uses this idiom too */
-static len_and_sockaddr* dup_sockaddr(const len_and_sockaddr *lsa)
-{
-	len_and_sockaddr *new_lsa = xzalloc(LSA_LEN_SIZE + lsa->len);
-	memcpy(new_lsa, lsa, LSA_LEN_SIZE + lsa->len);
-	return new_lsa;
-}
-
-
 static int
 wait_for_reply(len_and_sockaddr *from_lsa, struct sockaddr *to, unsigned *timestamp_us, int *left_ms)
 {
@@ -1074,7 +1065,7 @@ common_traceroute_main(int op, char **argv)
 		printf(" from %s", source);
 	printf(", %d hops max, %d byte packets\n", max_ttl, packlen);
 
-	from_lsa = dup_sockaddr(dest_lsa);
+	from_lsa = xmemdup(dest_lsa, LSA_LEN_SIZE + dest_lsa->len);
 	lastaddr = xzalloc(dest_lsa->len);
 	to = xzalloc(dest_lsa->len);
 	seq = 0;

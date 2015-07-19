@@ -471,7 +471,7 @@ static const struct rule *next_rule(void)
 	if (G.parser) {
 		parse_next_rule();
 		if (G.rule_vec) { /* mdev -s */
-			rule = memcpy(xmalloc(sizeof(G.cur_rule)), &G.cur_rule, sizeof(G.cur_rule));
+			rule = xmemdup(&G.cur_rule, sizeof(G.cur_rule));
 			G.rule_vec = xrealloc_vector(G.rule_vec, 4, G.rule_idx);
 			G.rule_vec[G.rule_idx++] = rule;
 			dbg3("> G.rule_vec[G.rule_idx:%d]=%p", G.rule_idx, G.rule_vec[G.rule_idx]);

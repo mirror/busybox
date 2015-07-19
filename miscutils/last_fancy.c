@@ -233,7 +233,7 @@ int last_main(int argc UNUSED_PARAM, char **argv)
 				break;
 			}
 			/* add_entry */
-			llist_add_to(&zlist, memcpy(xmalloc(sizeof(ut)), &ut, sizeof(ut)));
+			llist_add_to(&zlist, xmemdup(&ut, sizeof(ut)));
 			break;
 		case USER_PROCESS: {
 			int show;
@@ -275,7 +275,7 @@ int last_main(int argc UNUSED_PARAM, char **argv)
 				show_entry(&ut, state, boot_time);
 			}
 			/* add_entry */
-			llist_add_to(&zlist, memcpy(xmalloc(sizeof(ut)), &ut, sizeof(ut)));
+			llist_add_to(&zlist, xmemdup(&ut, sizeof(ut)));
 			break;
 		}
 		}

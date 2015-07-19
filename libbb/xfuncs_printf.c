@@ -112,6 +112,11 @@ char* FAST_FUNC xstrndup(const char *s, int n)
 	return memcpy(t, s, n);
 }
 
+void* FAST_FUNC xmemdup(const void *s, int n)
+{
+	return memcpy(xmalloc(n), s, n);
+}
+
 // Die if we can't open a file and return a FILE* to it.
 // Notice we haven't got xfread(), This is for use with fscanf() and friends.
 FILE* FAST_FUNC xfopen(const char *path, const char *mode)

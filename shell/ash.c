@@ -4751,7 +4751,7 @@ forkchild(struct job *jp, union node *n, int mode)
 		 * Our solution: ONLY bare $(trap) or `trap` is special.
 		 */
 		/* Save trap handler strings for trap builtin to print */
-		trap_ptr = memcpy(xmalloc(sizeof(trap)), trap, sizeof(trap));
+		trap_ptr = xmemdup(trap, sizeof(trap));
 		/* Fall through into clearing traps */
 	}
 	clear_traps();

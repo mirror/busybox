@@ -118,7 +118,7 @@ static void *d6_copy_option(uint8_t *option, uint8_t *option_end, unsigned code)
 	uint8_t *opt = d6_find_option(option, option_end, code);
 	if (!opt)
 		return opt;
-	return memcpy(xmalloc(opt[3] + 4), opt, opt[3] + 4);
+	return xmemdup(opt, opt[3] + 4);
 }
 
 static void *d6_store_blob(void *dst, const void *src, unsigned len)
