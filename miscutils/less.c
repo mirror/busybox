@@ -48,6 +48,14 @@
 //config:	help
 //config:	  The -M/-m flag enables a more sophisticated status line.
 //config:
+//config:config FEATURE_LESS_TRUNCATE
+//config:	bool "Enable -S"
+//config:	default y
+//config:	depends on LESS
+//config:	help
+//config:	  The -S flag causes long lines to be truncated rather than
+//config:	  wrapped.
+//config:
 //config:config FEATURE_LESS_MARKS
 //config:	bool "Enable marks"
 //config:	default y
@@ -98,7 +106,8 @@
 //config:	  Enables "-N" command.
 
 //usage:#define less_trivial_usage
-//usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm") "Nh~] [FILE]..."
+//usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm")
+//usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") "h~] [FILE]..."
 //usage:#define less_full_usage "\n\n"
 //usage:       "View FILE (or stdin) one screenful at a time\n"
 //usage:     "\n	-E	Quit once the end of a file is reached"
@@ -110,6 +119,9 @@
 //usage:     "\n		and percentage through the file"
 //usage:	)
 //usage:     "\n	-N	Prefix line number to each line"
+//usage:	IF_FEATURE_LESS_TRUNCATE(
+//usage:     "\n	-S	Truncate long lines"
+//usage:	)
 //usage:     "\n	-~	Suppress ~s displayed past EOF"
 
 #include <sched.h>  /* sched_yield() */
@@ -144,7 +156,7 @@ enum {
 	FLAG_N = 1 << 3,
 	FLAG_TILDE = 1 << 4,
 	FLAG_I = 1 << 5,
-	FLAG_S = (1 << 6) * ENABLE_FEATURE_LESS_DASHCMD,
+	FLAG_S = (1 << 6) * ENABLE_FEATURE_LESS_TRUNCATE,
 /* hijack command line options variable for internal state vars */
 	LESS_STATE_MATCH_BACKWARDS = 1 << 15,
 };
@@ -820,7 +832,7 @@ static void buffer_print(void)
 static void buffer_fill_and_print(void)
 {
 	unsigned i;
-#if ENABLE_FEATURE_LESS_DASHCMD
+#if ENABLE_FEATURE_LESS_TRUNCATE
 	int fpos = cur_fline;
 
 	if (option_mask32 & FLAG_S) {
@@ -1330,10 +1342,12 @@ static void flag_change(void)
 	case '~':
 		option_mask32 ^= FLAG_TILDE;
 		break;
+#if ENABLE_FEATURE_LESS_TRUNCATE
 	case 'S':
 		option_mask32 ^= FLAG_S;
 		buffer_fill_and_print();
 		break;
+#endif
 #if ENABLE_FEATURE_LESS_LINENUMS
 	case 'N':
 		option_mask32 ^= FLAG_N;
@@ -1638,7 +1652,7 @@ int less_main(int argc, char **argv)
 	 * -s: condense many empty lines to one
 	 *     (used by some setups for manpage display)
 	 */
-	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_DASHCMD("S") /*ignored:*/"s");
+	getopt32(argv, "EMmN~I" IF_FEATURE_LESS_TRUNCATE("S") /*ignored:*/"s");
 	argc -= optind;
 	argv += optind;
 	num_files = argc;
