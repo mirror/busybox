@@ -571,12 +571,6 @@ config SUM
 	help
 	  checksum and count the blocks in a file
 
-config SYNC
-	bool "sync"
-	default y
-	help
-	  sync is used to flush filesystem buffers.
-
 config TAC
 	bool "tac"
 	default y

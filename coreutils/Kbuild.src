@@ -68,7 +68,6 @@ lib-$(CONFIG_SORT)      += sort.o
 lib-$(CONFIG_STAT)      += stat.o
 lib-$(CONFIG_STTY)      += stty.o
 lib-$(CONFIG_SUM)       += sum.o
-lib-$(CONFIG_SYNC)      += sync.o
 lib-$(CONFIG_TAC)       += tac.o
 lib-$(CONFIG_TEE)       += tee.o
 lib-$(CONFIG_TRUE)      += true.o
