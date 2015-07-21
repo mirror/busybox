@@ -1314,7 +1314,7 @@ static void number_process(int first_digit)
 	i = 1;
 	while (i < sizeof(num_input)-1) {
 		keypress = less_getch(i + 1);
-		if ((unsigned)keypress > 255 || !isdigit(num_input[i]))
+		if ((unsigned)keypress > 255 || !isdigit(keypress))
 			break;
 		num_input[i] = keypress;
 		bb_putchar(keypress);
