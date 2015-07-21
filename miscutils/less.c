@@ -165,6 +165,11 @@ enum {
 enum { pattern_valid = 0 };
 #endif
 
+enum {
+	READING_FILE = -1,
+	READING_STDIN = -2
+};
+
 struct globals {
 	int cur_fline; /* signed */
 	int kbd_fd;  /* fd to get input from */
@@ -188,6 +193,9 @@ struct globals {
 	unsigned current_file;
 	char *filename;
 	char **files;
+#if ENABLE_FEATURE_LESS_FLAGS
+	int num_lines; /* input source if < 0, line count if >= 0 */
+#endif
 #if ENABLE_FEATURE_LESS_MARKS
 	unsigned num_marks;
 	unsigned mark_lines[15][2];
@@ -229,6 +237,7 @@ struct globals {
 #define current_file        (G.current_file      )
 #define filename            (G.filename          )
 #define files               (G.files             )
+#define num_lines           (G.num_lines         )
 #define num_marks           (G.num_marks         )
 #define mark_lines          (G.mark_lines        )
 #if ENABLE_FEATURE_LESS_REGEXP
@@ -574,6 +583,10 @@ static void read_lines(void)
 			print_statusline(bb_msg_read_error);
 		}
 	}
+#if ENABLE_FEATURE_LESS_FLAGS
+	else if (eof_error == 0)
+		num_lines = max_lineno;
+#endif
 
 	fill_match_lines(old_max_fline);
 #if ENABLE_FEATURE_LESS_REGEXP
@@ -584,18 +597,23 @@ static void read_lines(void)
 }
 
 #if ENABLE_FEATURE_LESS_FLAGS
-/* Interestingly, writing calc_percent as a function saves around 32 bytes
- * on my build. */
-static int calc_percent(void)
+static int safe_lineno(int fline)
 {
-	unsigned p = (100 * (cur_fline+max_displayed_line+1) + max_fline/2) / (max_fline+1);
-	return p <= 100 ? p : 100;
+	if (fline >= max_fline)
+		fline = max_fline - 1;
+
+	/* also catches empty file (max_fline == 0) */
+	if (fline < 0)
+		return 0;
+
+	return LINENO(flines[fline]) + 1;
 }
 
 /* Print a status line if -M was specified */
 static void m_status_print(void)
 {
-	int percentage;
+	int first, last;
+	unsigned percent;
 
 	if (less_gets_pos >= 0) /* don't touch statusline while input is done! */
 		return;
@@ -604,17 +622,51 @@ static void m_status_print(void)
 	printf(HIGHLIGHT"%s", filename);
 	if (num_files > 1)
 		printf(" (file %i of %i)", current_file, num_files);
-	printf(" lines %i-%i/%i ",
-			cur_fline + 1, cur_fline + max_displayed_line + 1,
-			max_fline + 1);
-	if (cur_fline >= (int)(max_fline - max_displayed_line)) {
-		printf("(END)"NORMAL);
-		if (num_files > 1 && current_file != num_files)
-			printf(HIGHLIGHT" - next: %s"NORMAL, files[current_file]);
-		return;
+
+	first = safe_lineno(cur_fline);
+	last = (option_mask32 & FLAG_S)
+			? MIN(first + max_displayed_line, max_lineno)
+			: safe_lineno(cur_fline + max_displayed_line);
+	printf(" lines %i-%i", first, last);
+
+	if (num_lines == READING_FILE) {
+		int count, fd;
+		ssize_t len, i;
+		char buf[4096];
+		struct stat stbuf;
+
+		/* count number of lines in file */
+		count = 0;
+		fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			goto skip;
+		if (fstat(fd, &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
+			goto do_close;
+		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
+			for (i = 0; i < len; ++i) {
+				if (buf[i] == '\n' && ++count == MAXLINES)
+					goto done;
+			}
+		}
+ done:
+		num_lines = count;
+ do_close:
+		close(fd);
+ skip: ;
 	}
-	percentage = calc_percent();
-	printf("%i%%"NORMAL, percentage);
+
+	if (num_lines >= 0)
+		printf("/%i", num_lines);
+
+	if (cur_fline >= (int)(max_fline - max_displayed_line)) {
+		printf(" (END)");
+		if (num_files > 1 && current_file != num_files)
+			printf(" - next: %s", files[current_file]);
+	} else if (num_lines > 0) {
+		percent = (100 * last + num_lines/2) / num_lines;
+		printf(" %i%%", percent <= 100 ? percent : 100);
+	}
+	printf(NORMAL);
 }
 #endif
 
@@ -915,6 +967,9 @@ static void reinitialize(void)
 	max_fline = -1;
 	cur_fline = 0;
 	max_lineno = 0;
+#if ENABLE_FEATURE_LESS_FLAGS
+	num_lines = filename ? READING_FILE : READING_STDIN;
+#endif
 	open_file_and_read_lines();
 #if ENABLE_FEATURE_LESS_ASK_TERMINAL
 	if (G.winsize_err)
