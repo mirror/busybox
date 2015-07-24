@@ -711,23 +711,6 @@ static void status_print(void)
 	print_hilite(p);
 }
 
-static void cap_cur_fline(int nlines)
-{
-	int diff;
-	if (cur_fline < 0)
-		cur_fline = 0;
-	if (cur_fline + max_displayed_line > max_fline + TILDES) {
-		cur_fline -= nlines;
-		if (cur_fline < 0)
-			cur_fline = 0;
-		diff = max_fline - (cur_fline + max_displayed_line) + TILDES;
-		/* As the number of lines requested was too large, we just move
-		 * to the end of the file */
-		if (diff > 0)
-			cur_fline += diff;
-	}
-}
-
 static const char controls[] ALIGN1 =
 	/* NUL: never encountered; TAB: not converted */
 	/**/"\x01\x02\x03\x04\x05\x06\x07\x08"  "\x0a\x0b\x0c\x0d\x0e\x0f"
@@ -913,35 +896,96 @@ static void buffer_fill_and_print(void)
 	buffer_print();
 }
 
+/* move cur_fline to a given line number, reading lines if necessary */
+static void goto_lineno(int target)
+{
+	if (target <= 0 ) {
+		cur_fline = 0;
+	}
+	else if (target > LINENO(flines[cur_fline])) {
+ retry:
+		while (LINENO(flines[cur_fline]) != target && cur_fline < max_fline)
+			++cur_fline;
+		/* target not reached but more input is available */
+		if (LINENO(flines[cur_fline]) != target && eof_error > 0) {
+			read_lines();
+			goto retry;
+		}
+	}
+	else {
+		/* search backwards through already-read lines */
+		while (LINENO(flines[cur_fline]) != target && cur_fline > 0)
+			--cur_fline;
+	}
+}
+
+static void cap_cur_fline(void)
+{
+	if ((option_mask32 & FLAG_S)) {
+		if (cur_fline > max_fline)
+			cur_fline = max_fline;
+		if (LINENO(flines[cur_fline]) + max_displayed_line > max_lineno + TILDES) {
+			goto_lineno(max_lineno - max_displayed_line + TILDES);
+			read_lines();
+		}
+	}
+	else {
+		if (cur_fline + max_displayed_line > max_fline + TILDES)
+			cur_fline = max_fline - max_displayed_line + TILDES;
+		if (cur_fline < 0)
+			cur_fline = 0;
+	}
+}
+
 /* Move the buffer up and down in the file in order to scroll */
 static void buffer_down(int nlines)
 {
-	cur_fline += nlines;
+	if ((option_mask32 & FLAG_S))
+		goto_lineno(LINENO(flines[cur_fline]) + nlines);
+	else
+		cur_fline += nlines;
 	read_lines();
-	cap_cur_fline(nlines);
+	cap_cur_fline();
 	buffer_fill_and_print();
 }
 
 static void buffer_up(int nlines)
 {
-	cur_fline -= nlines;
-	if (cur_fline < 0) cur_fline = 0;
+	if ((option_mask32 & FLAG_S)) {
+		goto_lineno(LINENO(flines[cur_fline]) - nlines);
+	}
+	else {
+		cur_fline -= nlines;
+		if (cur_fline < 0)
+			cur_fline = 0;
+	}
 	read_lines();
+	buffer_fill_and_print();
+}
+
+/* display a given line where the argument can be either an index into
+ * the flines array or a line number */
+static void buffer_to_line(int linenum, int is_lineno)
+{
+	if (linenum <= 0)
+		cur_fline = 0;
+	else if (is_lineno)
+		goto_lineno(linenum);
+	else
+		cur_fline = linenum;
+	read_lines();
+	cap_cur_fline();
 	buffer_fill_and_print();
 }
 
 static void buffer_line(int linenum)
 {
-	if (linenum < 0)
-		linenum = 0;
-	cur_fline = linenum;
-	read_lines();
-	if (linenum + max_displayed_line > max_fline)
-		linenum = max_fline - max_displayed_line + TILDES;
-	if (linenum < 0)
-		linenum = 0;
-	cur_fline = linenum;
-	buffer_fill_and_print();
+	buffer_to_line(linenum, FALSE);
+}
+
+static void buffer_lineno(int lineno)
+{
+	buffer_to_line(lineno, TRUE);
 }
 
 static void open_file_and_read_lines(void)
@@ -1348,15 +1392,16 @@ static void number_process(int first_digit)
 		buffer_up(num);
 		break;
 	case 'g': case '<': case 'G': case '>':
-		cur_fline = num + max_displayed_line;
-		read_lines();
-		buffer_line(num - 1);
+		buffer_lineno(num - 1);
 		break;
 	case 'p': case '%':
-		num = num * (max_fline / 100); /* + max_fline / 2; */
-		cur_fline = num + max_displayed_line;
-		read_lines();
-		buffer_line(num);
+#if ENABLE_FEATURE_LESS_FLAGS
+		update_num_lines();
+		num = num * (num_lines > 0 ? num_lines : max_lineno) / 100;
+#else
+		num = num * max_lineno / 100;
+#endif
+		buffer_lineno(num);
 		break;
 #if ENABLE_FEATURE_LESS_REGEXP
 	case 'n':
