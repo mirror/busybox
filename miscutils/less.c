@@ -406,6 +406,14 @@ static void fill_match_lines(unsigned pos);
 #define fill_match_lines(pos) ((void)0)
 #endif
 
+static int at_end(void)
+{
+	return (option_mask32 & FLAG_S)
+		? !(cur_fline <= max_fline &&
+			max_lineno > LINENO(flines[cur_fline]) + max_displayed_line)
+		: !(max_fline > cur_fline + max_displayed_line);
+}
+
 /* Devilishly complex routine.
  *
  * Has to deal with EOF and EPIPE on input,
@@ -552,11 +560,7 @@ static void read_lines(void)
 			eof_error = 0; /* Pretend we saw EOF */
 			break;
 		}
-		if (!(option_mask32 & FLAG_S)
-		  ? (max_fline > cur_fline + max_displayed_line)
-		  : (max_fline >= cur_fline
-		     && max_lineno > LINENO(flines[cur_fline]) + max_displayed_line)
-		) {
+		if (!at_end()) {
 #if !ENABLE_FEATURE_LESS_REGEXP
 			break;
 #else
@@ -662,7 +666,7 @@ static void m_status_print(void)
 	if (num_lines >= 0)
 		printf("/%i", num_lines);
 
-	if (cur_fline >= (int)(max_fline - max_displayed_line)) {
+	if (at_end()) {
 		printf(" (END)");
 		if (num_files > 1 && current_file != num_files)
 			printf(" - next: %s", files[current_file]);
@@ -692,7 +696,7 @@ static void status_print(void)
 #endif
 
 	clear_line();
-	if (cur_fline && cur_fline < (int)(max_fline - max_displayed_line)) {
+	if (cur_fline && !at_end()) {
 		bb_putchar(':');
 		return;
 	}
@@ -1009,12 +1013,7 @@ static int64_t getch_nowait(void)
 	 */
 	rd = 1;
 	/* Are we interested in stdin? */
-//TODO: reuse code for determining this
-	if (!(option_mask32 & FLAG_S)
-	   ? !(max_fline > cur_fline + max_displayed_line)
-	   : !(max_fline >= cur_fline
-	       && max_lineno > LINENO(flines[cur_fline]) + max_displayed_line)
-	) {
+	if (at_end()) {
 		if (eof_error > 0) /* did NOT reach eof yet */
 			rd = 0; /* yes, we are interested in stdin */
 	}
