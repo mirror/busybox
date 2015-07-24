@@ -167,7 +167,8 @@ enum { pattern_valid = 0 };
 
 enum {
 	READING_FILE = -1,
-	READING_STDIN = -2
+	READING_STDIN = -2,
+	READING_NONREG = -3
 };
 
 struct globals {
@@ -615,15 +616,16 @@ static void update_num_lines(void)
 	int count, fd;
 	ssize_t len, i;
 	char buf[4096];
-	struct stat stbuf;
 
+	/* only do this for regular files */
 	if (num_lines == READING_FILE) {
 		count = 0;
 		fd = open(filename, O_RDONLY);
-		if (fd < 0)
-			goto skip;
-		if (fstat(fd, &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
-			goto do_close;
+		if (fd < 0) {
+			/* somebody stole my file! */
+			num_lines = READING_NONREG;
+			return;
+		}
 		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
 			for (i = 0; i < len; ++i) {
 				if (buf[i] == '\n' && ++count == MAXLINES)
@@ -632,9 +634,7 @@ static void update_num_lines(void)
 		}
  done:
 		num_lines = count;
- do_close:
 		close(fd);
- skip: ;
 	}
 }
 
@@ -943,6 +943,13 @@ static void buffer_line(int linenum)
 static void open_file_and_read_lines(void)
 {
 	if (filename) {
+#if ENABLE_FEATURE_LESS_FLAGS
+		struct stat stbuf;
+
+		xstat(filename, &stbuf);
+		if (!S_ISREG(stbuf.st_mode))
+			num_lines = READING_NONREG;
+#endif
 		xmove_fd(xopen(filename, O_RDONLY), STDIN_FILENO);
 	} else {
 		/* "less" with no arguments in argv[] */
