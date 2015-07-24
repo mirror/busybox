@@ -512,16 +512,6 @@ static void read_lines(void)
 				*--p = '\0';
 				continue;
 			}
-			{
-				size_t new_last_line_pos = last_line_pos + 1;
-				if (c == '\t') {
-					new_last_line_pos += 7;
-					new_last_line_pos &= (~7);
-				}
-				if ((int)new_last_line_pos >= w)
-					break;
-				last_line_pos = new_last_line_pos;
-			}
 			/* ok, we will eat this char */
 			readpos++;
 			if (c == '\n') {
@@ -533,6 +523,16 @@ static void read_lines(void)
 			if (c == '\0') c = '\n';
 			*p++ = c;
 			*p = '\0';
+			{
+				size_t new_last_line_pos = last_line_pos + 1;
+				if (c == '\t') {
+					new_last_line_pos += 7;
+					new_last_line_pos &= (~7);
+				}
+				if ((int)new_last_line_pos >= w)
+					break;
+				last_line_pos = new_last_line_pos;
+			}
 		} /* end of "read chars until we have a line" loop */
 #if 0
 //BUG: also triggers on this:
