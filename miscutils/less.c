@@ -609,6 +609,35 @@ static int safe_lineno(int fline)
 	return LINENO(flines[fline]) + 1;
 }
 
+/* count number of lines in file */
+static void update_num_lines(void)
+{
+	int count, fd;
+	ssize_t len, i;
+	char buf[4096];
+	struct stat stbuf;
+
+	if (num_lines == READING_FILE) {
+		count = 0;
+		fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			goto skip;
+		if (fstat(fd, &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
+			goto do_close;
+		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
+			for (i = 0; i < len; ++i) {
+				if (buf[i] == '\n' && ++count == MAXLINES)
+					goto done;
+			}
+		}
+ done:
+		num_lines = count;
+ do_close:
+		close(fd);
+ skip: ;
+	}
+}
+
 /* Print a status line if -M was specified */
 static void m_status_print(void)
 {
@@ -629,32 +658,7 @@ static void m_status_print(void)
 			: safe_lineno(cur_fline + max_displayed_line);
 	printf(" lines %i-%i", first, last);
 
-	if (num_lines == READING_FILE) {
-		int count, fd;
-		ssize_t len, i;
-		char buf[4096];
-		struct stat stbuf;
-
-		/* count number of lines in file */
-		count = 0;
-		fd = open(filename, O_RDONLY);
-		if (fd < 0)
-			goto skip;
-		if (fstat(fd, &stbuf) != 0 || !S_ISREG(stbuf.st_mode))
-			goto do_close;
-		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
-			for (i = 0; i < len; ++i) {
-				if (buf[i] == '\n' && ++count == MAXLINES)
-					goto done;
-			}
-		}
- done:
-		num_lines = count;
- do_close:
-		close(fd);
- skip: ;
-	}
-
+	update_num_lines();
 	if (num_lines >= 0)
 		printf("/%i", num_lines);
 
