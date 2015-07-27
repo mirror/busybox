@@ -349,10 +349,10 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 			int transp_offset, transp_length;
 
 			sscanf(p, "%d/%d,%d/%d,%d/%d,%d/%d",
-				&red_offset, &red_length,
-				&green_offset, &green_length,
-				&blue_offset, &blue_length,
-				&transp_offset, &transp_length);
+				&red_length, &red_offset,
+				&green_length, &green_offset,
+				&blue_length, &blue_offset,
+				&transp_length, &transp_offset);
 			base->red.offset = red_offset;
 			base->red.length = red_length;
 			base->red.msb_right = 0;
