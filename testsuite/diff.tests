@@ -98,6 +98,18 @@ testing "diff -B does not ignore changes whose lines are not all blank" \
 	"a\n" \
 	"\nb\n\n"
 
+testing "diff -B ignores blank single line change" \
+	'diff -qB - input; echo $?' \
+	"0\n" \
+	"\n1\n" \
+	"1\n"
+
+testing "diff -B does not ignore non-blank single line change" \
+	'diff -qB - input; echo $?' \
+	"Files - and input differ\n1\n" \
+	"0\n" \
+	"1\n"
+
 testing "diff always takes context from old file" \
 	"diff -ub - input | $TRIM_TAB" \
 "\
