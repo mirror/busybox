@@ -658,8 +658,8 @@ static bool diff(FILE* fp[2], char *file[2])
 				}
 
 				for (j = 0; j < 2; j++)
-					for (k = v[j].a; k < v[j].b; k++)
-						nonempty |= (ix[j][k+1] - ix[j][k] != 1);
+					for (k = v[j].a; k <= v[j].b; k++)
+						nonempty |= (ix[j][k] - ix[j][k - 1] != 1);
 
 				vec = xrealloc_vector(vec, 6, ++idx);
 				memcpy(vec[idx], v, sizeof(v));
