@@ -615,11 +615,12 @@ static int safe_lineno(int fline)
 static void update_num_lines(void)
 {
 	int count, fd;
+	struct stat stbuf;
 	ssize_t len, i;
 	char buf[4096];
 
 	/* only do this for regular files */
-	if (num_lines != NOT_REGULAR_FILE) {
+	if (num_lines == REOPEN_AND_COUNT || num_lines == REOPEN_STDIN) {
 		count = 0;
 		fd = open("/proc/self/fd/0", O_RDONLY);
 		if (fd < 0 && num_lines == REOPEN_AND_COUNT) {
@@ -631,17 +632,10 @@ static void update_num_lines(void)
 			num_lines = NOT_REGULAR_FILE;
 			return;
 		}
-#if ENABLE_FEATURE_LESS_FLAGS
-		{
-			struct stat stbuf;
-			if (fstat(fd, &stbuf) != 0
-			 || !S_ISREG(stbuf.st_mode)
-			) {
-				num_lines = NOT_REGULAR_FILE;
-				goto do_close;
-			}
+		if (fstat(fd, &stbuf) != 0 || !S_ISREG(stbuf.st_mode)) {
+			num_lines = NOT_REGULAR_FILE;
+			goto do_close;
 		}
-#endif
 		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
 			for (i = 0; i < len; ++i) {
 				if (buf[i] == '\n' && ++count == MAXLINES)
