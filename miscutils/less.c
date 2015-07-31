@@ -165,12 +165,6 @@ enum {
 enum { pattern_valid = 0 };
 #endif
 
-enum {
-	READING_FILE = -1,
-	READING_STDIN = -2,
-	READING_NONREG = -3
-};
-
 struct globals {
 	int cur_fline; /* signed */
 	int kbd_fd;  /* fd to get input from */
@@ -195,7 +189,10 @@ struct globals {
 	char *filename;
 	char **files;
 #if ENABLE_FEATURE_LESS_FLAGS
-	int num_lines; /* input source if < 0, line count if >= 0 */
+	int num_lines; /* a flag if < 0, line count if >= 0 */
+# define REOPEN_AND_COUNT (-1)
+# define REOPEN_STDIN     (-2)
+# define NOT_REGULAR_FILE (-3)
 #endif
 #if ENABLE_FEATURE_LESS_MARKS
 	unsigned num_marks;
@@ -622,14 +619,29 @@ static void update_num_lines(void)
 	char buf[4096];
 
 	/* only do this for regular files */
-	if (num_lines == READING_FILE) {
+	if (num_lines != NOT_REGULAR_FILE) {
 		count = 0;
-		fd = open(filename, O_RDONLY);
+		fd = open("/proc/self/fd/0", O_RDONLY);
+		if (fd < 0 && num_lines == REOPEN_AND_COUNT) {
+			/* "filename" is valid only if REOPEN_AND_COUNT */
+			fd = open(filename, O_RDONLY);
+		}
 		if (fd < 0) {
 			/* somebody stole my file! */
-			num_lines = READING_NONREG;
+			num_lines = NOT_REGULAR_FILE;
 			return;
 		}
+#if ENABLE_FEATURE_LESS_FLAGS
+		{
+			struct stat stbuf;
+			if (fstat(fd, &stbuf) != 0
+			 || !S_ISREG(stbuf.st_mode)
+			) {
+				num_lines = NOT_REGULAR_FILE;
+				goto do_close;
+			}
+		}
+#endif
 		while ((len = safe_read(fd, buf, sizeof(buf))) > 0) {
 			for (i = 0; i < len; ++i) {
 				if (buf[i] == '\n' && ++count == MAXLINES)
@@ -638,6 +650,7 @@ static void update_num_lines(void)
 		}
  done:
 		num_lines = count;
+ do_close:
 		close(fd);
 	}
 }
@@ -991,18 +1004,17 @@ static void buffer_lineno(int lineno)
 static void open_file_and_read_lines(void)
 {
 	if (filename) {
-#if ENABLE_FEATURE_LESS_FLAGS
-		struct stat stbuf;
-
-		xstat(filename, &stbuf);
-		if (!S_ISREG(stbuf.st_mode))
-			num_lines = READING_NONREG;
-#endif
 		xmove_fd(xopen(filename, O_RDONLY), STDIN_FILENO);
+#if ENABLE_FEATURE_LESS_FLAGS
+		num_lines = REOPEN_AND_COUNT;
+#endif
 	} else {
 		/* "less" with no arguments in argv[] */
 		/* For status line only */
 		filename = xstrdup(bb_msg_standard_input);
+#if ENABLE_FEATURE_LESS_FLAGS
+		num_lines = REOPEN_STDIN;
+#endif
 	}
 	readpos = 0;
 	readeof = 0;
@@ -1026,9 +1038,6 @@ static void reinitialize(void)
 	max_fline = -1;
 	cur_fline = 0;
 	max_lineno = 0;
-#if ENABLE_FEATURE_LESS_FLAGS
-	num_lines = filename ? READING_FILE : READING_STDIN;
-#endif
 	open_file_and_read_lines();
 #if ENABLE_FEATURE_LESS_ASK_TERMINAL
 	if (G.winsize_err)
