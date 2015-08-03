@@ -10959,10 +10959,8 @@ parse_command(void)
 		/*n2->narg.next = NULL; - stzalloc did it */
 		n2->narg.text = wordtext;
 		n2->narg.backquote = backquotelist;
-		do {
-			checkkwd = CHKKWD | CHKALIAS;
-		} while (readtoken() == TNL);
-		if (lasttoken != TIN)
+		checkkwd = CHKNL | CHKKWD | CHKALIAS;
+		if (readtoken() != TIN)
 			raise_error_unexpected_syntax(TIN);
 		cpp = &n1->ncase.cases;
  next_case:
