@@ -7812,14 +7812,15 @@ findkwd(const char *s)
  * Locate and print what a word is...
  */
 static int
-describe_command(char *command, int describe_command_verbose)
+describe_command(char *command, const char *path, int describe_command_verbose)
 {
 	struct cmdentry entry;
 	struct tblentry *cmdp;
 #if ENABLE_ASH_ALIAS
 	const struct alias *ap;
 #endif
-	const char *path = pathval();
+
+	path = path ? path : pathval();
 
 	if (describe_command_verbose) {
 		out1str(command);
@@ -7919,7 +7920,7 @@ typecmd(int argc UNUSED_PARAM, char **argv)
 		verbose = 0;
 	}
 	while (argv[i]) {
-		err |= describe_command(argv[i++], verbose);
+		err |= describe_command(argv[i++], NULL, verbose);
 	}
 	return err;
 }
@@ -7933,6 +7934,7 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		VERIFY_BRIEF = 1,
 		VERIFY_VERBOSE = 2,
 	} verify = 0;
+	const char *path = NULL;
 
 	while ((c = nextopt("pvV")) != '\0')
 		if (c == 'V')
@@ -7943,9 +7945,11 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		else if (c != 'p')
 			abort();
 #endif
+		else
+			path = bb_default_path;
 	/* Mimic bash: just "command -v" doesn't complain, it's a nop */
 	if (verify && (*argptr != NULL)) {
-		return describe_command(*argptr, verify - VERIFY_BRIEF);
+		return describe_command(*argptr, path, verify - VERIFY_BRIEF);
 	}
 
 	return 0;
