@@ -456,7 +456,7 @@ static void read_lines(void)
 	if (option_mask32 & FLAG_N)
 		w -= 8;
 
-	p = current_line = ((char*)xmalloc(w + 4)) + 4;
+	p = current_line = ((char*)xmalloc(w + 5)) + 4;
 	if (!last_terminated) {
 		const char *cp = flines[max_fline];
 		p = stpcpy(p, cp);
@@ -509,6 +509,16 @@ static void read_lines(void)
 				*--p = '\0';
 				continue;
 			}
+			{
+				size_t new_last_line_pos = last_line_pos + 1;
+				if (c == '\t') {
+					new_last_line_pos += 7;
+					new_last_line_pos &= (~7);
+				}
+				if ((int)new_last_line_pos > w)
+					break;
+				last_line_pos = new_last_line_pos;
+			}
 			/* ok, we will eat this char */
 			readpos++;
 			if (c == '\n') {
@@ -520,16 +530,6 @@ static void read_lines(void)
 			if (c == '\0') c = '\n';
 			*p++ = c;
 			*p = '\0';
-			{
-				size_t new_last_line_pos = last_line_pos + 1;
-				if (c == '\t') {
-					new_last_line_pos += 7;
-					new_last_line_pos &= (~7);
-				}
-				if ((int)new_last_line_pos >= w)
-					break;
-				last_line_pos = new_last_line_pos;
-			}
 		} /* end of "read chars until we have a line" loop */
 #if 0
 //BUG: also triggers on this:
@@ -573,7 +573,7 @@ static void read_lines(void)
 			break;
 		}
 		max_fline++;
-		current_line = ((char*)xmalloc(w + 4)) + 4;
+		current_line = ((char*)xmalloc(w + 5)) + 4;
 		p = current_line;
 		last_line_pos = 0;
 	} /* end of "read lines until we reach cur_fline" loop */
@@ -755,7 +755,7 @@ static void print_found(const char *line)
 	char *growline;
 	regmatch_t match_structs;
 
-	char buf[width];
+	char buf[width+1];
 	const char *str = line;
 	char *p = buf;
 	size_t n;
@@ -814,7 +814,7 @@ void print_found(const char *line);
 
 static void print_ascii(const char *str)
 {
-	char buf[width];
+	char buf[width+1];
 	char *p;
 	size_t n;
 
