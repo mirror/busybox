@@ -56,9 +56,6 @@ struct arp_packet {
 } PACKED;
 
 enum {
-	/* 169.254.0.0 */
-	LINKLOCAL_ADDR = 0xa9fe0000,
-
 	/* 0-1 seconds before sending 1st probe */
 	PROBE_WAIT = 1,
 	/* 1-2 seconds between probes */
@@ -70,7 +67,7 @@ enum {
 	/* if probe/announce sees a conflict, multiply RANDOM(NUM_CONFLICT) by... */
 	CONFLICT_MULTIPLIER = 2,
 	/* if we monitor and see a conflict, how long is defend state? */
-	DEFEND_INTERVAL = 10
+	DEFEND_INTERVAL = 10,
 };
 
 /* States during the configuration process. */
@@ -196,7 +193,7 @@ static int run(char *argv[3], const char *param, uint32_t nip)
  */
 static ALWAYS_INLINE unsigned random_delay_ms(unsigned secs)
 {
-	return rand() % (secs * 1000);
+	return (unsigned)rand() % (secs * 1000);
 }
 
 /**
@@ -328,9 +325,9 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 	//  - start with some address we want to try
 	//  - short random delay
 	//  - arp probes to see if another host uses it
-	//    00:04:e2:64:23:c2 > ff:ff:ff:ff:ff:ff: arp who-has 169.254.194.171 tell 0.0.0.0
+	//    00:04:e2:64:23:c2 > ff:ff:ff:ff:ff:ff arp who-has 169.254.194.171 tell 0.0.0.0
 	//  - arp announcements that we're claiming it
-	//    00:04:e2:64:23:c2 > ff:ff:ff:ff:ff:ff: arp who-has 169.254.194.171 (00:04:e2:64:23:c2) tell 169.254.194.171
+	//    00:04:e2:64:23:c2 > ff:ff:ff:ff:ff:ff arp who-has 169.254.194.171 (00:04:e2:64:23:c2) tell 169.254.194.171
 	//  - use it
 	//  - defend it, within limits
 	// exit if:
@@ -412,7 +409,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 				// NOTE: all other exit paths should deconfig...
 				if (QUIT)
 					return EXIT_SUCCESS;
-				// fall through: switch_to_MONITOR
+				// fall through: switch to MONITOR
 			default:
 			// case DEFEND:
 			// case MONITOR: (shouldn't happen, MONITOR timeout is infinite)
@@ -520,7 +517,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 		}
 		// Note: if we only have a target IP conflict here (ip_conflict & 2),
 		// IOW: if we just saw this sort of ARP packet:
-		//  aa:bb:cc:dd:ee:ff > xx:xx:xx:xx:xx:xx: arp who-has <chosen_nip> tell 0.0.0.0
+		//  aa:bb:cc:dd:ee:ff > xx:xx:xx:xx:xx:xx arp who-has <chosen_nip> tell 0.0.0.0
 		// we expect _kernel_ to respond to that, because <chosen_nip>
 		// is (expected to be) configured on this iface.
 	} // while (1)
