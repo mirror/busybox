@@ -1983,7 +1983,6 @@ static ALWAYS_INLINE unsigned char bb_ascii_tolower(unsigned char a)
 typedef void (*bbunit_testfunc)(void);
 
 struct bbunit_listelem {
-	struct bbunit_listelem* next;
 	const char* name;
 	bbunit_testfunc testfunc;
 };

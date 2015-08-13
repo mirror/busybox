@@ -71,7 +71,6 @@ int unit_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			tests_failed++;
 		}
 		tests_run++;
-		el = el->next;
 	}
 
 #if WANT_TIMING
