@@ -121,20 +121,20 @@ endif
 # fall back to using a temp file:
 CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >crypttest.c; $(CC) $(CFLAGS) -lcrypt -o /dev/null crypttest.c >/dev/null 2>&1 && echo "y"; rm crypttest.c)
 ifeq ($(CRYPT_AVAILABLE),y)
-LDLIBS += m crypt
+LDLIBS += m crypt pthread
 else
 LDLIBS += m
 endif
 
 ifeq ($(CONFIG_PAM),y)
-# libpam uses libpthread, so for static builds busybox must be linked to
-# libpthread. On some platforms that requires an explicit -lpthread, so
-# it should be in LDLIBS. For non-static builds, scripts/trylink will
-# take care of removing -lpthread if possible. (Not bothering to check
-# CONFIG_STATIC because even in a non-static build it could be that the
-# only libpam available is libpam.a, so -lpthread could still be
-# needed.)
-LDLIBS += pam pam_misc pthread
+# libpam uses libpthread, libdl and libaudit, so for static builds busybox
+# must be linked to libpthread, libdl and libaudit. On some platforms that
+# requires an explicit -lpthread, -ldl and -laudit, so it should be in
+# LDLIBS. For non-static builds, scripts/trylink will take care of removing
+# these flags if possible. (Not bothering to check CONFIG_STATIC because
+# even in a non-static build it could be that the only libpam available is
+# libpam.a, so -lpthread & Co. could still be needed.)
+LDLIBS += pam pam_misc pthread dl audit
 endif
 
 ifeq ($(CONFIG_SELINUX),y)
