@@ -13,11 +13,11 @@
 //usage:     "\n	-f		Quit on first ARP reply"
 //usage:     "\n	-q		Quiet"
 //usage:     "\n	-b		Keep broadcasting, don't go unicast"
-//usage:     "\n	-D		Duplicated address detection mode"
+//usage:     "\n	-D		Exit with 1 if DST_IP replies"
 //usage:     "\n	-U		Unsolicited ARP mode, update your neighbors"
 //usage:     "\n	-A		ARP answer mode, update your neighbors"
 //usage:     "\n	-c N		Stop after sending N ARP requests"
-//usage:     "\n	-w TIMEOUT	Time to wait for ARP reply, seconds"
+//usage:     "\n	-w TIMEOUT	Seconds to wait for ARP reply"
 //usage:     "\n	-I IFACE	Interface to use (default eth0)"
 //usage:     "\n	-s SRC_IP	Sender IP address"
 //usage:     "\n	DST_IP		Target IP address"
@@ -162,7 +162,7 @@ static void catcher(void)
 	alarm(1);
 }
 
-static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
+static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 {
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
@@ -181,33 +181,33 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (FROM->sll_pkttype != PACKET_HOST
 	 && FROM->sll_pkttype != PACKET_BROADCAST
 	 && FROM->sll_pkttype != PACKET_MULTICAST)
-		return false;
+		return;
 
 	/* Only these types are recognized */
 	if (ah->ar_op != htons(ARPOP_REQUEST) && ah->ar_op != htons(ARPOP_REPLY))
-		return false;
+		return;
 
 	/* ARPHRD check and this darned FDDI hack here :-( */
 	if (ah->ar_hrd != htons(FROM->sll_hatype)
 	 && (FROM->sll_hatype != ARPHRD_FDDI || ah->ar_hrd != htons(ARPHRD_ETHER)))
-		return false;
+		return;
 
 	/* Protocol must be IP. */
 	if (ah->ar_pro != htons(ETH_P_IP)
 	 || (ah->ar_pln != 4)
 	 || (ah->ar_hln != me.sll_halen)
 	 || (len < (int)(sizeof(*ah) + 2 * (4 + ah->ar_hln))))
-		return false;
+		return;
 
 	move_from_unaligned32(src_ip.s_addr, p + ah->ar_hln);
 	move_from_unaligned32(dst_ip.s_addr, p + ah->ar_hln + 4 + ah->ar_hln);
 
 	if (dst.s_addr != src_ip.s_addr)
-		return false;
+		return;
 	if (!(option_mask32 & DAD)) {
 		if ((src.s_addr != dst_ip.s_addr)
-			|| (memcmp(p + ah->ar_hln + 4, &me.sll_addr, ah->ar_hln)))
-			return false;
+		 || (memcmp(p + ah->ar_hln + 4, &me.sll_addr, ah->ar_hln)))
+			return;
 	} else {
 		/* DAD packet was:
 		   src_ip = 0 (or some src)
@@ -224,7 +224,7 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		 */
 		if ((memcmp(p, &me.sll_addr, me.sll_halen) == 0)
 		 || (src.s_addr && src.s_addr != dst_ip.s_addr))
-			return false;
+			return;
 	}
 	if (!(option_mask32 & QUIET)) {
 		int s_printed = 0;
@@ -264,7 +264,6 @@ static bool recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		memcpy(he.sll_addr, p, me.sll_halen);
 		option_mask32 |= UNICASTING;
 	}
-	return true;
 }
 
 int arping_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
