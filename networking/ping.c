@@ -756,7 +756,7 @@ static void ping6(len_and_sockaddr *lsa)
 		}
 		if (setsockopt(pingsock, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
 					sizeof(filt)) < 0)
-			bb_error_msg_and_die("setsockopt(ICMP6_FILTER)");
+			bb_error_msg_and_die("setsockopt(%s)", "ICMP6_FILTER");
 	}
 #endif /*ICMP6_FILTER*/
 

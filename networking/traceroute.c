@@ -475,7 +475,7 @@ send_probe(int seq, int ttl)
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
 		res = setsockopt(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, &ttl, sizeof(ttl));
 		if (res < 0)
-			bb_perror_msg_and_die("setsockopt UNICAST_HOPS %d", ttl);
+			bb_perror_msg_and_die("setsockopt(%s) %d", "UNICAST_HOPS", ttl);
 		out = outip;
 		len = packlen;
 	} else
@@ -484,7 +484,7 @@ send_probe(int seq, int ttl)
 #if defined IP_TTL
 		res = setsockopt(sndsock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 		if (res < 0)
-			bb_perror_msg_and_die("setsockopt ttl %d", ttl);
+			bb_perror_msg_and_die("setsockopt(%s) %d", "TTL", ttl);
 #endif
 		out = outicmp;
 		len = packlen - sizeof(*outip);
@@ -929,7 +929,7 @@ common_traceroute_main(int op, char **argv)
 	if (af == AF_INET6) {
 		static const int two = 2;
 		if (setsockopt(rcvsock, SOL_RAW, IPV6_CHECKSUM, &two, sizeof(two)) < 0)
-			bb_perror_msg_and_die("setsockopt RAW_CHECKSUM");
+			bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
 		xmove_fd(xsocket(af, SOCK_DGRAM, 0), sndsock);
 	} else
 #endif
@@ -972,7 +972,7 @@ common_traceroute_main(int op, char **argv)
 #endif
 #ifdef IP_TOS
 	if ((op & OPT_TOS) && setsockopt(sndsock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) < 0) {
-		bb_perror_msg_and_die("setsockopt tos %d", tos);
+		bb_perror_msg_and_die("setsockopt(%s) %d", "TOS", tos);
 	}
 #endif
 #ifdef IP_DONTFRAG

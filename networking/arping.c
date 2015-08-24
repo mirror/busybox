@@ -358,7 +358,7 @@ int arping_main(int argc UNUSED_PARAM, char **argv)
 			saddr.sin_addr = dst;
 
 			if (setsockopt(probe_fd, SOL_SOCKET, SO_DONTROUTE, &const_int_1, sizeof(const_int_1)) == -1)
-				bb_perror_msg("setsockopt(SO_DONTROUTE)");
+				bb_perror_msg("setsockopt(%s)", "SO_DONTROUTE");
 			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 			getsockname(probe_fd, (struct sockaddr *) &saddr, &alen);
 			//never happens:
