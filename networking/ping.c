@@ -247,7 +247,7 @@ static void ping6(len_and_sockaddr *lsa)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, &sockopt, sizeof(sockopt));
+	setsockopt_int(pingsock, SOL_RAW, IPV6_CHECKSUM, sockopt);
 
 	xsendto(pingsock, G.packet, DEFDATALEN + sizeof(struct icmp6_hdr), &lsa->u.sa, lsa->len);
 
@@ -700,12 +700,12 @@ static void ping4(len_and_sockaddr *lsa)
 	/* set recv buf (needed if we can get lots of responses: flood ping,
 	 * broadcast ping etc) */
 	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
-	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
+	setsockopt_SOL_SOCKET_int(pingsock, SO_RCVBUF, sockopt);
 
 	if (opt_ttl != 0) {
-		setsockopt(pingsock, IPPROTO_IP, IP_TTL, &opt_ttl, sizeof(opt_ttl));
+		setsockopt_int(pingsock, IPPROTO_IP, IP_TTL, opt_ttl);
 		/* above doesnt affect packets sent to bcast IP, so... */
-		setsockopt(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, &opt_ttl, sizeof(opt_ttl));
+		setsockopt_int(pingsock, IPPROTO_IP, IP_MULTICAST_TTL, opt_ttl);
 	}
 
 	signal(SIGINT, print_stats_and_exit);
@@ -766,15 +766,15 @@ static void ping6(len_and_sockaddr *lsa)
 	/* set recv buf (needed if we can get lots of responses: flood ping,
 	 * broadcast ping etc) */
 	sockopt = (datalen * 2) + 7 * 1024; /* giving it a bit of extra room */
-	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
+	setsockopt_SOL_SOCKET_int(pingsock, SO_RCVBUF, sockopt);
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	if (offsetof(struct icmp6_hdr, icmp6_cksum) != 2)
+	if (sockopt != 2)
 		BUG_bad_offsetof_icmp6_cksum();
-	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, &sockopt, sizeof(sockopt));
+	setsockopt_int(pingsock, SOL_RAW, IPV6_CHECKSUM, sockopt);
 
 	/* request ttl info to be returned in ancillary data */
-	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, &const_int_1, sizeof(const_int_1));
+	setsockopt_1(pingsock, SOL_IPV6, IPV6_HOPLIMIT);
 
 	if (if_index)
 		pingaddr.sin6.sin6_scope_id = if_index;

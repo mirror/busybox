@@ -83,7 +83,7 @@ int nbdclient_main(int argc, char **argv)
 
 		// Find and connect to server
 		sock = create_and_connect_stream_or_die(host, xatou16(port));
-		setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &const_int_1, sizeof(const_int_1));
+		setsockopt_1(sock, IPPROTO_TCP, TCP_NODELAY);
 
 		// Log on to the server
 		xread(sock, &nbd_header, 8+8+8+4 + 124);

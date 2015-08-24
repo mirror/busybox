@@ -2352,7 +2352,7 @@ static void mini_httpd(int server_socket)
 			continue;
 
 		/* set the KEEPALIVE option to cull dead connections */
-		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+		setsockopt_keepalive(n);
 
 		if (fork() == 0) {
 			/* child */
@@ -2395,7 +2395,7 @@ static void mini_httpd_nommu(int server_socket, int argc, char **argv)
 			continue;
 
 		/* set the KEEPALIVE option to cull dead connections */
-		setsockopt(n, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+		setsockopt_keepalive(n);
 
 		if (vfork() == 0) {
 			/* child */

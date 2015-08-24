@@ -623,7 +623,7 @@ int telnet_main(int argc UNUSED_PARAM, char **argv)
 
 	xmove_fd(create_and_connect_stream_or_die(host, port), netfd);
 
-	setsockopt(netfd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+	setsockopt_keepalive(netfd);
 
 	signal(SIGINT, record_signo);
 

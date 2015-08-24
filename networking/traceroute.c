@@ -473,8 +473,8 @@ send_probe(int seq, int ttl)
 
 #if ENABLE_TRACEROUTE6
 	if (dest_lsa->u.sa.sa_family == AF_INET6) {
-		res = setsockopt(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, &ttl, sizeof(ttl));
-		if (res < 0)
+		res = setsockopt_int(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, ttl);
+		if (res != 0)
 			bb_perror_msg_and_die("setsockopt(%s) %d", "UNICAST_HOPS", ttl);
 		out = outip;
 		len = packlen;
@@ -482,8 +482,8 @@ send_probe(int seq, int ttl)
 #endif
 	{
 #if defined IP_TTL
-		res = setsockopt(sndsock, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
-		if (res < 0)
+		res = setsockopt_int(sndsock, IPPROTO_IP, IP_TTL, ttl);
+		if (res != 0)
 			bb_perror_msg_and_die("setsockopt(%s) %d", "TTL", ttl);
 #endif
 		out = outicmp;
@@ -902,13 +902,10 @@ common_traceroute_main(int op, char **argv)
 	if (af == AF_INET6) {
 		xmove_fd(xsocket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6), rcvsock);
 # ifdef IPV6_RECVPKTINFO
-		setsockopt(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO,
-				&const_int_1, sizeof(const_int_1));
-		setsockopt(rcvsock, SOL_IPV6, IPV6_2292PKTINFO,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_RECVPKTINFO);
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_2292PKTINFO);
 # else
-		setsockopt(rcvsock, SOL_IPV6, IPV6_PKTINFO,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_1(rcvsock, SOL_IPV6, IPV6_PKTINFO);
 # endif
 	} else
 #endif
@@ -918,17 +915,14 @@ common_traceroute_main(int op, char **argv)
 
 #if TRACEROUTE_SO_DEBUG
 	if (op & OPT_DEBUG)
-		setsockopt(rcvsock, SOL_SOCKET, SO_DEBUG,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_SOL_SOCKET_1(rcvsock, SO_DEBUG);
 #endif
 	if (op & OPT_BYPASS_ROUTE)
-		setsockopt(rcvsock, SOL_SOCKET, SO_DONTROUTE,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_SOL_SOCKET_1(rcvsock, SO_DONTROUTE);
 
 #if ENABLE_TRACEROUTE6
 	if (af == AF_INET6) {
-		static const int two = 2;
-		if (setsockopt(rcvsock, SOL_RAW, IPV6_CHECKSUM, &two, sizeof(two)) < 0)
+		if (setsockopt_int(rcvsock, SOL_RAW, IPV6_CHECKSUM, 2) != 0)
 			bb_perror_msg_and_die("setsockopt(%s)", "IPV6_CHECKSUM");
 		xmove_fd(xsocket(af, SOCK_DGRAM, 0), sndsock);
 	} else
@@ -966,28 +960,25 @@ common_traceroute_main(int op, char **argv)
 	}
 
 #ifdef SO_SNDBUF
-	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, &packlen, sizeof(packlen)) < 0) {
-		bb_perror_msg_and_die("SO_SNDBUF");
+	if (setsockopt_SOL_SOCKET_int(sndsock, SO_SNDBUF, packlen) != 0) {
+		bb_perror_msg_and_die("setsockopt(%s)", "SO_SNDBUF");
 	}
 #endif
 #ifdef IP_TOS
-	if ((op & OPT_TOS) && setsockopt(sndsock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) < 0) {
+	if ((op & OPT_TOS) && setsockopt_int(sndsock, IPPROTO_IP, IP_TOS, tos) != 0) {
 		bb_perror_msg_and_die("setsockopt(%s) %d", "TOS", tos);
 	}
 #endif
 #ifdef IP_DONTFRAG
 	if (op & OPT_DONT_FRAGMNT)
-		setsockopt(sndsock, IPPROTO_IP, IP_DONTFRAG,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_1(sndsock, IPPROTO_IP, IP_DONTFRAG);
 #endif
 #if TRACEROUTE_SO_DEBUG
 	if (op & OPT_DEBUG)
-		setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_SOL_SOCKET_1(sndsock, SO_DEBUG);
 #endif
 	if (op & OPT_BYPASS_ROUTE)
-		setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
-				&const_int_1, sizeof(const_int_1));
+		setsockopt_SOL_SOCKET_1(sndsock, SO_DONTROUTE);
 
 	outip = xzalloc(packlen);
 

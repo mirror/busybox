@@ -377,7 +377,7 @@ ftpdataio_get_pasv_fd(void)
 		return remote_fd;
 	}
 
-	setsockopt(remote_fd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+	setsockopt_keepalive(remote_fd);
 	return remote_fd;
 }
 
@@ -1186,11 +1186,11 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 		, SIG_IGN);
 
 	/* Set up options on the command socket (do we need these all? why?) */
-	setsockopt(STDIN_FILENO, IPPROTO_TCP, TCP_NODELAY, &const_int_1, sizeof(const_int_1));
-	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+	setsockopt_1(STDIN_FILENO, IPPROTO_TCP, TCP_NODELAY);
+	setsockopt_keepalive(STDIN_FILENO);
 	/* Telnet protocol over command link may send "urgent" data,
 	 * we prefer it to be received in the "normal" data stream: */
-	setsockopt(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE, &const_int_1, sizeof(const_int_1));
+	setsockopt_1(STDIN_FILENO, SOL_SOCKET, SO_OOBINLINE);
 
 	WRITE_OK(FTP_GREET);
 	signal(SIGALRM, timeout_handler);

@@ -16,10 +16,10 @@ void FAST_FUNC
 socket_want_pktinfo(int fd UNUSED_PARAM)
 {
 #ifdef IP_PKTINFO
-	setsockopt(fd, IPPROTO_IP, IP_PKTINFO, &const_int_1, sizeof(int));
+	setsockopt_1(fd, IPPROTO_IP, IP_PKTINFO);
 #endif
 #if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
-	setsockopt(fd, IPPROTO_IPV6, IPV6_PKTINFO, &const_int_1, sizeof(int));
+	setsockopt_1(fd, IPPROTO_IPV6, IPV6_PKTINFO);
 #endif
 }
 

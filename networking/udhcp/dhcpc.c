@@ -1043,9 +1043,7 @@ static int udhcp_raw_socket(int ifindex)
 	}
 #endif
 
-	if (setsockopt(fd, SOL_PACKET, PACKET_AUXDATA,
-			&const_int_1, sizeof(int)) < 0
-	) {
+	if (setsockopt_1(fd, SOL_PACKET, PACKET_AUXDATA) != 0) {
 		if (errno != ENOPROTOOPT)
 			log1("Can't set PACKET_AUXDATA on raw socket");
 	}

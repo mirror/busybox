@@ -265,7 +265,7 @@ make_new_session(
 	close_on_exec_on(fd);
 
 	/* SO_KEEPALIVE by popular demand */
-	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
+	setsockopt_keepalive(sock);
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	ts->sockfd_read = sock;
 	ndelay_on(sock);

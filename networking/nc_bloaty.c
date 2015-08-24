@@ -863,8 +863,8 @@ int nc_main(int argc UNUSED_PARAM, char **argv)
 		xbind(netfd, &ouraddr->u.sa, ouraddr->len);
 	}
 #if 0
-	setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, &o_rcvbuf, sizeof o_rcvbuf);
-	setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, &o_sndbuf, sizeof o_sndbuf);
+	setsockopt_SOL_SOCKET_int(netfd, SO_RCVBUF, o_rcvbuf);
+	setsockopt_SOL_SOCKET_int(netfd, SO_SNDBUF, o_sndbuf);
 #endif
 
 #ifdef BLOAT

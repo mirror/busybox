@@ -37,7 +37,7 @@ enum {
 #ifndef SO_RCVBUFFORCE
 #define SO_RCVBUFFORCE 33
 #endif
-static const int RCVBUF = 2 * 1024 * 1024;
+enum { RCVBUF = 2 * 1024 * 1024 };
 
 int uevent_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int uevent_main(int argc UNUSED_PARAM, char **argv)
@@ -63,8 +63,8 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 	// 	find /sys -name uevent -exec sh -c 'echo add >"{}"' ';'
 	//
 	// SO_RCVBUFFORCE (root only) can go above net.core.rmem_max sysctl
-	setsockopt(fd, SOL_SOCKET, SO_RCVBUF,      &RCVBUF, sizeof(RCVBUF));
-	setsockopt(fd, SOL_SOCKET, SO_RCVBUFFORCE, &RCVBUF, sizeof(RCVBUF));
+	setsockopt_SOL_SOCKET_int(fd, SO_RCVBUF,      RCVBUF);
+	setsockopt_SOL_SOCKET_int(fd, SO_RCVBUFFORCE, RCVBUF);
 	if (0) {
 		int z;
 		socklen_t zl = sizeof(z);

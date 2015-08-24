@@ -405,8 +405,6 @@ struct globals {
 };
 #define G (*ptr_to_globals)
 
-static const int const_IPTOS_LOWDELAY = IPTOS_LOWDELAY;
-
 
 #define VERB1 if (MAX_VERBOSE && G.verbose)
 #define VERB2 if (MAX_VERBOSE >= 2 && G.verbose >= 2)
@@ -837,7 +835,7 @@ send_query_to_peer(peer_t *p)
 #if ENABLE_FEATURE_IPV6
 		if (family == AF_INET)
 #endif
-			setsockopt(fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
+			setsockopt_int(fd, IPPROTO_IP, IP_TOS, IPTOS_LOWDELAY);
 		free(local_lsa);
 	}
 
@@ -2186,7 +2184,7 @@ static NOINLINE void ntp_init(char **argv)
 				xfunc_die();
 		}
 		socket_want_pktinfo(G_listen_fd);
-		setsockopt(G_listen_fd, IPPROTO_IP, IP_TOS, &const_IPTOS_LOWDELAY, sizeof(const_IPTOS_LOWDELAY));
+		setsockopt_int(G_listen_fd, IPPROTO_IP, IP_TOS, IPTOS_LOWDELAY);
 	}
 #endif
 	if (!(opts & OPT_n)) {
