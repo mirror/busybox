@@ -489,7 +489,8 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	motd();
+	if (access(".hushlogin", F_OK) != 0)
+		motd();
 
 	if (pw->pw_uid == 0)
 		syslog(LOG_INFO, "root login%s", fromhost);
