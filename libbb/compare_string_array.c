@@ -28,6 +28,25 @@ char* FAST_FUNC is_prefixed_with(const char *string, const char *key)
 #endif
 }
 
+/*
+ * Return NULL if string is not suffixed with key. Return pointer to the
+ * beginning of prefix key in string. If key is an empty string return pointer
+ * to the end of string.
+ */
+char* FAST_FUNC is_suffixed_with(const char *string, const char *key)
+{
+	size_t key_len = strlen(key);
+	ssize_t len_diff = strlen(string) - key_len;
+
+	if (len_diff >= 0) {
+		if (strcmp(string + len_diff, key) == 0) {
+			return (char*)key;
+		}
+	}
+
+	return NULL;
+}
+
 /* returns the array index of the string */
 /* (index of first match is returned, or -1) */
 int FAST_FUNC index_in_str_array(const char *const string_array[], const char *key)
@@ -129,6 +148,20 @@ BBUNIT_DEFINE_TEST(is_prefixed_with)
 	BBUNIT_ASSERT_NULL(is_prefixed_with("foo", "bar foo"));
 	BBUNIT_ASSERT_NULL(is_prefixed_with("foo foo", "bar"));
 	BBUNIT_ASSERT_NULL(is_prefixed_with("", "foo"));
+
+	BBUNIT_ENDTEST;
+}
+
+BBUNIT_DEFINE_TEST(is_suffixed_with)
+{
+	BBUNIT_ASSERT_STREQ("bar", is_suffixed_with("foo bar", "bar"));
+	BBUNIT_ASSERT_STREQ("foo", is_suffixed_with("foo", "foo"));
+	BBUNIT_ASSERT_STREQ("", is_suffixed_with("foo", ""));
+	BBUNIT_ASSERT_STREQ("", is_suffixed_with("", ""));
+
+	BBUNIT_ASSERT_NULL(is_suffixed_with("foo", "bar foo"));
+	BBUNIT_ASSERT_NULL(is_suffixed_with("foo foo", "bar"));
+	BBUNIT_ASSERT_NULL(is_suffixed_with("", "foo"));
 
 	BBUNIT_ENDTEST;
 }
