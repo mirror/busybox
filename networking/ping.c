@@ -769,7 +769,7 @@ static void ping6(len_and_sockaddr *lsa)
 	setsockopt_SOL_SOCKET_int(pingsock, SO_RCVBUF, sockopt);
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	if (sockopt != 2)
+	if (offsetof(struct icmp6_hdr, icmp6_cksum) != 2)
 		BUG_bad_offsetof_icmp6_cksum();
 	setsockopt_int(pingsock, SOL_RAW, IPV6_CHECKSUM, sockopt);
 
