@@ -5,6 +5,11 @@
 
 #include "libbb.h"
 
+/*
+ * Return NULL if string is not prefixed with key. Return pointer to the
+ * first character in string after the prefix key. If key is an empty string,
+ * return pointer to the beginning of string.
+ */
 char* FAST_FUNC is_prefixed_with(const char *string, const char *key)
 {
 #if 0	/* Two passes over key - probably slower */
