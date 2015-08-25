@@ -39,8 +39,9 @@ char* FAST_FUNC is_suffixed_with(const char *string, const char *key)
 	ssize_t len_diff = strlen(string) - key_len;
 
 	if (len_diff >= 0) {
-		if (strcmp(string + len_diff, key) == 0) {
-			return (char*)key;
+		string += len_diff;
+		if (strcmp(string, key) == 0) {
+			return (char*)string;
 		}
 	}
 
