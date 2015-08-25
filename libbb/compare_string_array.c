@@ -110,3 +110,22 @@ smallint FAST_FUNC yesno(const char *str)
 	return ret / 3;
 }
 #endif
+
+#if ENABLE_UNIT_TEST
+
+BBUNIT_DEFINE_TEST(is_prefixed_with)
+{
+	BBUNIT_ASSERT_STREQ(" bar", is_prefixed_with("foo bar", "foo"));
+	BBUNIT_ASSERT_STREQ("bar", is_prefixed_with("foo bar", "foo "));
+	BBUNIT_ASSERT_STREQ("", is_prefixed_with("foo", "foo"));
+	BBUNIT_ASSERT_STREQ("foo", is_prefixed_with("foo", ""));
+	BBUNIT_ASSERT_STREQ("", is_prefixed_with("", ""));
+
+	BBUNIT_ASSERT_NULL(is_prefixed_with("foo", "bar foo"));
+	BBUNIT_ASSERT_NULL(is_prefixed_with("foo foo", "bar"));
+	BBUNIT_ASSERT_NULL(is_prefixed_with("", "foo"));
+
+	BBUNIT_ENDTEST;
+}
+
+#endif /* ENABLE_UNIT_TEST */
