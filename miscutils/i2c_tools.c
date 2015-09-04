@@ -61,112 +61,14 @@
 
 #include "libbb.h"
 
-/*
- * /dev/i2c-X ioctl commands. The ioctl's parameter is always an unsigned long,
- * except for:
- *    - I2C_FUNCS, takes pointer to an unsigned long
- *    - I2C_RDWR, takes pointer to struct i2c_rdwr_ioctl_data
- *    - I2C_SMBUS, takes pointer to struct i2c_smbus_ioctl_data
- */
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
 
-/*
- * NOTE: Slave address is 7 or 10 bits, but 10-bit addresses
- * are not supported due to code brokenness.
- */
-
-/* Use this slave address. */
-#define I2C_SLAVE	0x0703
-/* Use this slave address, even if it is already in use by a driver. */
-#define I2C_SLAVE_FORCE	0x0706
-/* 0 for 7 bit addrs, != 0 for 10 bit. */
-#define I2C_TENBIT	0x0704
-/* Get the adapter functionality mask. */
-#define I2C_FUNCS	0x0705
-/* Combined R/W transfer (one STOP only). */
-#define I2C_RDWR	0x0707
-/* != 0 to use PEC with SMBus. */
-#define I2C_PEC		0x0708
-/* SMBus transfer. */
-#define I2C_SMBUS	0x0720
-
-/* Structure used in the I2C_SMBUS ioctl call. */
-struct i2c_smbus_ioctl_data {
-	uint8_t read_write;
-	uint8_t command;
-	uint32_t size;
-	union i2c_smbus_data *data;
-};
-
-/* Structure used in the I2C_RDWR ioctl call. */
-struct i2c_rdwr_ioctl_data {
-	struct i2c_msg *msgs;	/* Pointers to i2c_msgs. */
-	uint32_t nmsgs;		/* Number of i2c_msgs. */
-};
-
-/* As specified in SMBus standard. */
-#define I2C_SMBUS_BLOCK_MAX		32
-/* Not specified but we use same structure. */
-#define I2C_SMBUS_I2C_BLOCK_MAX		32
-
-/* Data for SMBus Messages. */
-union i2c_smbus_data {
-	uint8_t byte;
-	uint16_t word;
-	/* block[0] is used for length and one more for PEC */
-	uint8_t block[I2C_SMBUS_BLOCK_MAX + 2];
-};
-
-#define I2C_RDRW_IOCTL_MAX_MSGS		42
 #define I2C_MAX_REGS			256
-
-/* Smbus_access read or write markers. */
-#define I2C_SMBUS_READ			1
-#define I2C_SMBUS_WRITE			0
-
-/* SMBus transaction types (size parameter in the below functions). */
-#define I2C_SMBUS_QUICK			0
-#define I2C_SMBUS_BYTE			1
-#define I2C_SMBUS_BYTE_DATA		2
-#define I2C_SMBUS_WORD_DATA		3
-#define I2C_SMBUS_PROC_CALL		4
-#define I2C_SMBUS_BLOCK_DATA		5
-#define I2C_SMBUS_I2C_BLOCK_BROKEN	6
-#define I2C_SMBUS_BLOCK_PROC_CALL	7
-#define I2C_SMBUS_I2C_BLOCK_DATA	8
 
 #define DETECT_MODE_AUTO		0
 #define DETECT_MODE_QUICK		1
 #define DETECT_MODE_READ		2
-
-/* Defines to determine what functionality is present. */
-#define I2C_FUNC_I2C				0x00000001
-#define I2C_FUNC_10BIT_ADDR			0x00000002
-#define I2C_FUNC_PROTOCOL_MANGLING		0x00000004
-#define I2C_FUNC_SMBUS_PEC			0x00000008
-#define I2C_FUNC_SMBUS_BLOCK_PROC_CALL		0x00008000
-#define I2C_FUNC_SMBUS_QUICK			0x00010000
-#define I2C_FUNC_SMBUS_READ_BYTE		0x00020000
-#define I2C_FUNC_SMBUS_WRITE_BYTE		0x00040000
-#define I2C_FUNC_SMBUS_READ_BYTE_DATA		0x00080000
-#define I2C_FUNC_SMBUS_WRITE_BYTE_DATA		0x00100000
-#define I2C_FUNC_SMBUS_READ_WORD_DATA		0x00200000
-#define I2C_FUNC_SMBUS_WRITE_WORD_DATA		0x00400000
-#define I2C_FUNC_SMBUS_PROC_CALL		0x00800000
-#define I2C_FUNC_SMBUS_READ_BLOCK_DATA		0x01000000
-#define I2C_FUNC_SMBUS_WRITE_BLOCK_DATA 	0x02000000
-#define I2C_FUNC_SMBUS_READ_I2C_BLOCK		0x04000000
-#define I2C_FUNC_SMBUS_WRITE_I2C_BLOCK		0x08000000
-
-#define I2C_FUNC_SMBUS_BYTE		(I2C_FUNC_SMBUS_READ_BYTE | \
-					 I2C_FUNC_SMBUS_WRITE_BYTE)
-#define I2C_FUNC_SMBUS_BYTE_DATA	(I2C_FUNC_SMBUS_READ_BYTE_DATA | \
-					 I2C_FUNC_SMBUS_WRITE_BYTE_DATA)
-#define I2C_FUNC_SMBUS_WORD_DATA	(I2C_FUNC_SMBUS_READ_WORD_DATA | \
-					 I2C_FUNC_SMBUS_WRITE_WORD_DATA)
-#define I2C_FUNC_SMBUS_BLOCK_DATA	(I2C_FUNC_SMBUS_READ_BLOCK_DATA | \
-					 I2C_FUNC_SMBUS_WRITE_BLOCK_DATA)
-#define I2C_FUNC_SMBUS_I2C_BLOCK	(I2C_FUNC_SMBUS_READ_I2C_BLOCK | \
-					 I2C_FUNC_SMBUS_WRITE_I2C_BLOCK)
 
 /*
  * This is needed for ioctl_or_perror_and_die() since it only accepts pointers.
