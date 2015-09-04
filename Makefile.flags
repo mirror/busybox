@@ -121,9 +121,14 @@ endif
 # fall back to using a temp file:
 CRYPT_AVAILABLE := $(shell echo 'int main(void){return 0;}' >crypttest.c; $(CC) $(CFLAGS) -lcrypt -o /dev/null crypttest.c >/dev/null 2>&1 && echo "y"; rm crypttest.c)
 ifeq ($(CRYPT_AVAILABLE),y)
-LDLIBS += m crypt pthread
+LDLIBS += m crypt
 else
 LDLIBS += m
+endif
+
+PTHREAD_AVAILABLE := $(shell echo 'int main(void){return 0;}' >pthreadtest.c; $(CC) $(CFLAGS) -lpthread -o /dev/null pthreadtest.c >/dev/null 2>&1 && echo "y"; rm pthreadtest.c)
+ifeq ($(PTHREAD_AVAILABLE),y)
+LDLIBS += pthread
 endif
 
 ifeq ($(CONFIG_PAM),y)
