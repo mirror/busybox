@@ -3161,11 +3161,29 @@ static int reserved_word(o_string *word, struct parse_context *ctx)
 		old->command->group = ctx->list_head;
 		old->command->cmd_type = CMD_NORMAL;
 # if !BB_MMU
-		o_addstr(&old->as_string, ctx->as_string.data);
-		o_free_unsafe(&ctx->as_string);
-		old->command->group_as_string = xstrdup(old->as_string.data);
-		debug_printf_parse("pop, remembering as:'%s'\n",
-				old->command->group_as_string);
+		/* At this point, the compound command's string is in
+		 * ctx->as_string... except for the leading keyword!
+		 * Consider this example: "echo a | if true; then echo a; fi"
+		 * ctx->as_string will contain "true; then echo a; fi",
+		 * with "if " remaining in old->as_string!
+		 */
+		{
+			char *str;
+			int len = old->as_string.length;
+			/* Concatenate halves */
+			o_addstr(&old->as_string, ctx->as_string.data);
+			o_free_unsafe(&ctx->as_string);
+			/* Find where leading keyword starts in first half */
+			str = old->as_string.data + len;
+			if (str > old->as_string.data)
+				str--; /* skip whitespace after keyword */
+			while (str > old->as_string.data && isalpha(str[-1]))
+				str--;
+			/* Ugh, we're done with this horrid hack */
+			old->command->group_as_string = xstrdup(str);
+			debug_printf_parse("pop, remembering as:'%s'\n",
+					old->command->group_as_string);
+		}
 # endif
 		*ctx = *old;   /* physical copy */
 		free(old);
@@ -4248,7 +4266,7 @@ static struct pipe *parse_stream(char **pstring,
 				pi = NULL;
 			}
 #if !BB_MMU
-			debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
+			debug_printf_parse("as_string1 '%s'\n", ctx.as_string.data);
 			if (pstring)
 				*pstring = ctx.as_string.data;
 			else
@@ -4399,7 +4417,7 @@ static struct pipe *parse_stream(char **pstring,
 			) {
 				o_free(&dest);
 #if !BB_MMU
-				debug_printf_parse("as_string '%s'\n", ctx.as_string.data);
+				debug_printf_parse("as_string2 '%s'\n", ctx.as_string.data);
 				if (pstring)
 					*pstring = ctx.as_string.data;
 				else
@@ -4639,9 +4657,6 @@ static struct pipe *parse_stream(char **pstring,
 				 * with redirect_opt_num(), but bash doesn't do it.
 				 * "echo foo 2| cat" yields "foo 2". */
 				done_command(&ctx);
-#if !BB_MMU
-				o_reset_to_empty_unquoted(&ctx.as_string);
-#endif
 			}
 			goto new_cmd;
 		case '(':
