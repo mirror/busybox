@@ -348,6 +348,38 @@ static const char *humanly_readable_name(struct module_entry *m)
 	return m->probed_name ? m->probed_name : m->modname;
 }
 
+/* Like strsep(&stringp, "\n\t ") but quoted text goes to single token
+ * even if it contains whitespace.
+ */
+static char *strsep_quotes(char **stringp)
+{
+	char *s, *start = *stringp;
+
+	if (!start)
+		return NULL;
+
+	for (s = start; ; s++) {
+		switch (*s) {
+		case '"':
+			s = strchrnul(s + 1, '"'); /* find trailing quote */
+			if (*s != '\0')
+				s++; /* skip trailing quote */
+			/* fall through */
+		case '\0':
+		case '\n':
+		case '\t':
+		case ' ':
+			if (*s != '\0') {
+				*s = '\0';
+				*stringp = s + 1;
+			} else {
+				*stringp = NULL;
+			}
+			return start;
+		}
+	}
+}
+
 static char *parse_and_add_kcmdline_module_options(char *options, const char *modulename)
 {
 	char *kcmdline_buf;
@@ -359,7 +391,7 @@ static char *parse_and_add_kcmdline_module_options(char *options, const char *mo
 		return options;
 
 	kcmdline = kcmdline_buf;
-	while ((kptr = strsep(&kcmdline, "\n\t ")) != NULL) {
+	while ((kptr = strsep_quotes(&kcmdline)) != NULL) {
 		char *after_modulename = is_prefixed_with(kptr, modulename);
 		if (!after_modulename || *after_modulename != '.')
 			continue;
