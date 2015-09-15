@@ -159,6 +159,7 @@ BBUNIT_DEFINE_TEST(is_suffixed_with)
 	BBUNIT_ASSERT_STREQ("foo", is_suffixed_with("foo", "foo"));
 	BBUNIT_ASSERT_STREQ("", is_suffixed_with("foo", ""));
 	BBUNIT_ASSERT_STREQ("", is_suffixed_with("", ""));
+	BBUNIT_ASSERT_STREQ("foo", is_suffixed_with("barfoofoo", "foo"));
 
 	BBUNIT_ASSERT_NULL(is_suffixed_with("foo", "bar foo"));
 	BBUNIT_ASSERT_NULL(is_suffixed_with("foo foo", "bar"));
