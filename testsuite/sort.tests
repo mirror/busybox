@@ -98,6 +98,14 @@ testing "sort with non-default leading delim 3" "sort -n -k3 -t/ input" "\
 //b/1
 " ""
 
+testing "sort with non-default leading delim 4" "sort -t: -k1,1 input" "\
+a:b
+a/a:a
+" "\
+a/a:a
+a:b
+" ""
+
 testing "sort -u should consider field only when discarding" "sort -u -k2 input" "\
 a c
 " "\
