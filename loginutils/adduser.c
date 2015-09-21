@@ -20,7 +20,7 @@
 //usage:     "\n	-D		Don't assign a password"
 //usage:     "\n	-H		Don't create home directory"
 //usage:     "\n	-u UID		User id"
-//usage:     "\n	-k		SKEL directory (/etc/skel)"
+//usage:     "\n	-k SKEL		Skeleton directory (/etc/skel)"
 
 #include "libbb.h"
 
