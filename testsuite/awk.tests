@@ -281,6 +281,11 @@ testing "awk length(array)" \
 	"2\n" \
 	"" ""
 
+testing "awk length()" \
+	"awk '{print length; print length(); print length(\"qwe\"); print length(99+9)}'" \
+	"3\n3\n3\n3\n" \
+	"" "qwe"
+
 testing "awk -f and ARGC" \
 	"awk -f - input" \
 	"re\n2\n" \
