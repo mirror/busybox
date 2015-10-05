@@ -29,9 +29,19 @@ static void FAST_FUNC read_stduu(FILE *src_stream, FILE *dst_stream, int flags U
 {
 	char *line;
 
-	while ((line = xmalloc_fgetline(src_stream)) != NULL) {
+	for (;;) {
 		int encoded_len, str_len;
 		char *line_ptr, *dst;
+		size_t line_len;
+
+		line_len = 64 * 1024;
+		line = xmalloc_fgets_str_len(src_stream, "\n", &line_len);
+		if (!line)
+			break;
+		/* Handle both Unix and MSDOS text, and stray trailing spaces */
+		str_len = line_len;
+		while (--str_len >= 0 && isspace(line[str_len]))
+			line[str_len] = '\0';
 
 		if (strcmp(line, "end") == 0) {
 			return; /* the only non-error exit */
@@ -128,6 +138,7 @@ int uudecode_main(int argc UNUSED_PARAM, char **argv)
 			if (!outname)
 				break;
 			outname++;
+			trim(outname); /* remove trailing space (and '\r' for DOS text) */
 			if (!outname[0])
 				break;
 		}
