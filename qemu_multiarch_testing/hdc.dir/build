@@ -15,20 +15,25 @@ test -x "bin/busybox-$HOST" && {
 (
 	#set -e -x
 	cd busybox
+
 	make defconfig
 	# Want static build
 	sed 's/^.*CONFIG_STATIC.*$/CONFIG_STATIC=y/' -i .config
-	# Drats, newer Aboriginal Linux has no bzip2
 	bzip2 </dev/null >/dev/null || {
+		# Drats, newer Aboriginal Linux has no bzip2
 		sed 's/^.*CONFIG_FEATURE_COMPRESS_USAGE.*$/# CONFIG_FEATURE_COMPRESS_USAGE is not set/' -i .config
+	}
+	test x"`uname -m`" = x"mips" && {
+		# Without this, I get MIPS-I binary instead of MIPS32.
+		# No idea what's the difference, but my router wants MIPS32.
+		sed 's/^.*CONFIG_EXTRA_CFLAGS.*$/CONFIG_EXTRA_CFLAGS="-mips32"/' -i .config
 	}
 	# These won't build because of toolchain/libc breakage:
 	sed 's/^.*CONFIG_FEATURE_SYNC_FANCY.*$/# CONFIG_FEATURE_SYNC_FANCY is not set/' -i .config # no syncfs()
 	sed 's/^.*CONFIG_FEATURE_WTMP.*$/# CONFIG_FEATURE_WTMP is not set/' -i .config
 	sed 's/^.*CONFIG_FEATURE_UTMP.*$/# CONFIG_FEATURE_UTMP is not set/' -i .config
 	sed 's/^.*CONFIG_FEATURE_INETD_RPC.*$/# CONFIG_FEATURE_INETD_RPC is not set/' -i .config
-	sed 's/^.*CONFIG_BRCTL.*$/# CONFIG_BRCTL is not set/' -i .config
-	sed 's/^.*CONFIG_IFPLUGD.*$/# CONFIG_IFPLUGD is not set/' -i .config
+
 	make #V=1 || sh
 	size busybox
 	./busybox || echo "Exit code: $?"
