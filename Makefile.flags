@@ -126,9 +126,11 @@ else
 LDLIBS += m
 endif
 
+ifeq ($(CONFIG_LINK_WITH_PTHREAD),y)
 PTHREAD_AVAILABLE := $(shell echo 'int main(void){return 0;}' >pthreadtest.c; $(CC) $(CFLAGS) -lpthread -o /dev/null pthreadtest.c >/dev/null 2>&1 && echo "y"; rm pthreadtest.c)
 ifeq ($(PTHREAD_AVAILABLE),y)
 LDLIBS += pthread
+endif
 endif
 
 ifeq ($(CONFIG_PAM),y)

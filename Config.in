@@ -514,6 +514,14 @@ config PIE
 
 	  Most people will leave this set to 'N'.
 
+config LINK_WITH_PTHREAD
+	bool "Link with pthread library"
+	default n
+	help
+	  On some systems, some libraries (such as crypt) also require pthread.
+
+	  Select this only if your build otherwise fails.
+
 config NOMMU
 	bool "Force NOMMU build"
 	default n

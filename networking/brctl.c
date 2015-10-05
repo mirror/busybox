@@ -64,7 +64,57 @@
 #define BRCTL_USE_INTERNAL 1
 
 #if ENABLE_FEATURE_BRCTL_FANCY
-# include <linux/if_bridge.h>
+/* #include <linux/if_bridge.h>
+ * breaks on musl: we already included netinet/in.h in libbb.h,
+ * if we include <linux/if_bridge.h> here, we get this:
+ * In file included from /usr/include/linux/if_bridge.h:18,
+ *                  from networking/brctl.c:67:
+ * /usr/include/linux/in6.h:32: error: redefinition of 'struct in6_addr'
+ * /usr/include/linux/in6.h:49: error: redefinition of 'struct sockaddr_in6'
+ * /usr/include/linux/in6.h:59: error: redefinition of 'struct ipv6_mreq'
+ */
+/* From <linux/if_bridge.h> */
+#define BRCTL_GET_VERSION 0
+#define BRCTL_GET_BRIDGES 1
+#define BRCTL_ADD_BRIDGE 2
+#define BRCTL_DEL_BRIDGE 3
+#define BRCTL_ADD_IF 4
+#define BRCTL_DEL_IF 5
+#define BRCTL_GET_BRIDGE_INFO 6
+#define BRCTL_GET_PORT_LIST 7
+#define BRCTL_SET_BRIDGE_FORWARD_DELAY 8
+#define BRCTL_SET_BRIDGE_HELLO_TIME 9
+#define BRCTL_SET_BRIDGE_MAX_AGE 10
+#define BRCTL_SET_AGEING_TIME 11
+#define BRCTL_SET_GC_INTERVAL 12
+#define BRCTL_GET_PORT_INFO 13
+#define BRCTL_SET_BRIDGE_STP_STATE 14
+#define BRCTL_SET_BRIDGE_PRIORITY 15
+#define BRCTL_SET_PORT_PRIORITY 16
+#define BRCTL_SET_PATH_COST 17
+#define BRCTL_GET_FDB_ENTRIES 18
+struct __bridge_info {
+	uint64_t designated_root;
+	uint64_t bridge_id;
+	uint32_t root_path_cost;
+	uint32_t max_age;
+	uint32_t hello_time;
+	uint32_t forward_delay;
+	uint32_t bridge_max_age;
+	uint32_t bridge_hello_time;
+	uint32_t bridge_forward_delay;
+	uint8_t  topology_change;
+	uint8_t  topology_change_detected;
+	uint8_t  root_port;
+	uint8_t  stp_enabled;
+	uint32_t ageing_time;
+	uint32_t gc_interval;
+	uint32_t hello_timer_value;
+	uint32_t tcn_timer_value;
+	uint32_t topology_change_timer_value;
+	uint32_t gc_timer_value;
+};
+/* end <linux/if_bridge.h> */
 
 /* FIXME: These 4 funcs are not really clean and could be improved */
 static ALWAYS_INLINE void bb_strtotimeval(struct timeval *tv,

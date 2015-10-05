@@ -38,7 +38,17 @@
 #include <linux/mii.h>
 #include <linux/ethtool.h>
 #ifdef HAVE_NET_ETHERNET_H
-# include <net/ethernet.h>
+/* musl breakage:
+ * In file included from /usr/include/net/ethernet.h:10,
+ *                  from networking/ifplugd.c:41:
+ * /usr/include/netinet/if_ether.h:96: error: redefinition of 'struct ethhdr'
+ *
+ * Build succeeds without it on musl. Commented it out.
+ * If on your system you need it, consider removing <linux/ethtool.h>
+ * and copy-pasting its definitions here (<linux/ethtool.h> is what pulls in
+ * conflicting definition of struct ethhdr on musl).
+ */
+/* # include <net/ethernet.h> */
 #endif
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
