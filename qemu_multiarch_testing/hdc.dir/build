@@ -35,7 +35,7 @@ test -x "bin/busybox-$HOST" && {
 	if uuencode TEST </dev/null >/dev/null && bzip2 </dev/null >/dev/null; then
 		bzip2 <busybox | uuencode busybox.bz2
 	else
-		od -tx1 <busybox
+		od -v -tx1 <busybox
 	fi
 	#test "x$FTP_PORT" = x ||
 	#	ftpput -P "$FTP_PORT" "$FTP_SERVER" strace
