@@ -947,48 +947,6 @@ config VCONFIG
 	help
 	  Creates, removes, and configures VLAN interfaces
 
-config WGET
-	bool "wget"
-	default y
-	help
-	  wget is a utility for non-interactive download of files from HTTP
-	  and FTP servers.
-
-config FEATURE_WGET_STATUSBAR
-	bool "Enable a nifty process meter (+2k)"
-	default y
-	depends on WGET
-	help
-	  Enable the transfer progress bar for wget transfers.
-
-config FEATURE_WGET_AUTHENTICATION
-	bool "Enable HTTP authentication"
-	default y
-	depends on WGET
-	help
-	  Support authenticated HTTP transfers.
-
-config FEATURE_WGET_LONG_OPTIONS
-	bool "Enable long options"
-	default y
-	depends on WGET && LONG_OPTS
-	help
-	  Support long options for the wget applet.
-
-config FEATURE_WGET_TIMEOUT
-	bool "Enable timeout option -T SEC"
-	default y
-	depends on WGET
-	help
-	  Supports network read and connect timeouts for wget,
-	  so that wget will give up and timeout, through the -T
-	  command line option.
-
-	  Currently only connect and network data read timeout are
-	  supported (i.e., timeout is not applied to the DNS query). When
-	  FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
-	  will work in addition to -T.
-
 config ZCIP
 	bool "zcip"
 	default y

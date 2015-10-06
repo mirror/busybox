@@ -9,6 +9,89 @@
  * Kuhn's copyrights are licensed GPLv2-or-later.  File as a whole remains GPLv2.
  */
 
+//config:config WGET
+//config:	bool "wget"
+//config:	default y
+//config:	help
+//config:	  wget is a utility for non-interactive download of files from HTTP
+//config:	  and FTP servers.
+//config:
+//config:config FEATURE_WGET_STATUSBAR
+//config:	bool "Enable a nifty process meter (+2k)"
+//config:	default y
+//config:	depends on WGET
+//config:	help
+//config:	  Enable the transfer progress bar for wget transfers.
+//config:
+//config:config FEATURE_WGET_AUTHENTICATION
+//config:	bool "Enable HTTP authentication"
+//config:	default y
+//config:	depends on WGET
+//config:	help
+//config:	  Support authenticated HTTP transfers.
+//config:
+//config:config FEATURE_WGET_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on WGET && LONG_OPTS
+//config:	help
+//config:	  Support long options for the wget applet.
+//config:
+//config:config FEATURE_WGET_TIMEOUT
+//config:	bool "Enable timeout option -T SEC"
+//config:	default y
+//config:	depends on WGET
+//config:	help
+//config:	  Supports network read and connect timeouts for wget,
+//config:	  so that wget will give up and timeout, through the -T
+//config:	  command line option.
+//config:
+//config:	  Currently only connect and network data read timeout are
+//config:	  supported (i.e., timeout is not applied to the DNS query). When
+//config:	  FEATURE_WGET_LONG_OPTIONS is also enabled, the --timeout option
+//config:	  will work in addition to -T.
+//config:
+//config:choice
+//config:	prompt "Choose how to handle https:// URLs"
+//config:	depends on WGET
+//config:	default FEATURE_WGET_OPENSSL
+//config:	help
+//config:	  Choose how wget establishes SSL connection for https:// URLs.
+//config:
+//config:	  Busybox itself contains no SSL code. wget will spawn
+//config:	  a helper program to talk over HTTPS.
+//config:
+//config:	  OpenSSL has a simple SSL client for debug purposes.
+//config:	  If you select "openssl" helper, wget will effectively call
+//config:	  "openssl s_client -quiet -connect IP:443 2>/dev/null"
+//config:	  and pipe its data through it.
+//config:	  Note inconvenient API: host resolution is done twice,
+//config:	  and there is no guarantee openssl's idea of IPv6 address
+//config:	  format is the same as ours.
+//config:	  Another problem is that s_client prints debug information
+//config:	  to stderr, and it needs to be suppressed. This means
+//config:	  all error messages get suppressed too.
+//config:	  openssl is also a big binary, often dynamically linked
+//config:	  against ~15 libraries.
+//config:
+//config:	  ssl_helper is a tool which can be built statically
+//config:	  from busybox sources against a small embedded SSL library.
+//config:	  Please see networking/ssl_helper/README.
+//config:	  It does not require double host resolution and emits
+//config:	  error messages to stderr.
+//config:
+//config:config FEATURE_WGET_OPENSSL
+//config:	bool "openssl"
+//config:
+//config:config FEATURE_WGET_SSL_HELPER
+//config:	bool "ssl_helper"
+//config:
+//config:endchoice
+
+//applet:IF_WGET(APPLET(wget, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_WGET) += wget.o
+
 //usage:#define wget_trivial_usage
 //usage:	IF_FEATURE_WGET_LONG_OPTIONS(
 //usage:       "[-c|--continue] [-s|--spider] [-q|--quiet] [-O|--output-document FILE]\n"
@@ -520,6 +603,7 @@ static FILE* prepare_ftp_session(FILE **dfpp, struct host_info *target, len_and_
 	return sfp;
 }
 
+#if ENABLE_FEATURE_WGET_OPENSSL
 static int spawn_https_helper(const char *host, unsigned port)
 {
 	char *allocated = NULL;
@@ -569,12 +653,11 @@ static int spawn_https_helper(const char *host, unsigned port)
 	close(sp[1]);
 	return sp[0];
 }
+#endif
 
-/* See networking/ssl_helper/README */
-#define SSL_HELPER 0
-
-#if SSL_HELPER
-static void spawn_https_helper1(int network_fd)
+/* See networking/ssl_helper/README how to build one */
+#if ENABLE_FEATURE_WGET_SSL_HELPER
+static void spawn_https_helper(int network_fd)
 {
 	int sp[2];
 	int pid;
@@ -851,19 +934,21 @@ static void download_one_url(const char *url)
 		int status;
 
 		/* Open socket to http(s) server */
+#if ENABLE_FEATURE_WGET_OPENSSL
 		if (target.protocol == P_HTTPS) {
-/* openssl-based helper
- * Inconvenient API since we can't give it an open fd
- */
+			/* openssl-based helper
+			 * Inconvenient API since we can't give it an open fd
+			 */
 			int fd = spawn_https_helper(server.host, server.port);
 			sfp = fdopen(fd, "r+");
 			if (!sfp)
 				bb_perror_msg_and_die(bb_msg_memory_exhausted);
 		} else
+#endif
 			sfp = open_socket(lsa);
-#if SSL_HELPER
+#if ENABLE_FEATURE_WGET_SSL_HELPER
 		if (target.protocol == P_HTTPS)
-			spawn_https_helper1(fileno(sfp));
+			spawn_https_helper(fileno(sfp));
 #endif
 		/* Send HTTP request */
 		if (use_proxy) {
