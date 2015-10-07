@@ -58,6 +58,10 @@
 #define __user
 #include <linux/wireless.h>
 
+#ifndef ETH_ALEN
+# define ETH_ALEN  6
+#endif
+
 /*
 From initial port to busybox, removed most of the redundancy by
 converting implementation of a polymorphic interface to the strict
