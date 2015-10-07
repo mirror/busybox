@@ -537,11 +537,12 @@ flush_stdout_stderr(void)
 	INT_ON;
 }
 
+/* Was called outcslow(c,FILE*), but c was always '\n' */
 static void
-outcslow(int c, FILE *dest)
+newline_and_flush(FILE *dest)
 {
 	INT_OFF;
-	putc(c, dest);
+	putc('\n', dest);
 	fflush(dest);
 	INT_ON;
 }
@@ -1202,7 +1203,7 @@ ash_vmsg(const char *msg, va_list ap)
 			fprintf(stderr, "line %d: ", startlinno);
 	}
 	vfprintf(stderr, msg, ap);
-	outcslow('\n', stderr);
+	newline_and_flush(stderr);
 }
 
 /*
@@ -3336,6 +3337,7 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #define SHOW_ONLY_PGID  0x01    /* show only pgid (jobs -p) */
 #define SHOW_PIDS       0x02    /* show individual pids, not just one line per job */
 #define SHOW_CHANGED    0x04    /* only jobs whose state has changed */
+#define SHOW_STDERR     0x08    /* print to stderr (else stdout) */
 
 /*
  * A job structure contains information about a job.  A job is either a
@@ -3850,7 +3852,7 @@ showpipe(struct job *jp /*, FILE *out*/)
 	psend = jp->ps + jp->nprocs;
 	for (ps = jp->ps + 1; ps < psend; ps++)
 		printf(" | %s", ps->ps_cmd);
-	outcslow('\n', stdout);
+	newline_and_flush(stdout);
 	flush_stdout_stderr();
 }
 
@@ -3910,7 +3912,7 @@ fg_bgcmd(int argc UNUSED_PARAM, char **argv)
 #endif
 
 static int
-sprint_status(char *s, int status, int sigonly)
+sprint_status48(char *s, int status, int sigonly)
 {
 	int col;
 	int st;
@@ -3935,14 +3937,12 @@ sprint_status(char *s, int status, int sigonly)
 //TODO: use bbox's get_signame? strsignal adds ~600 bytes to text+rodata
 		col = fmtstr(s, 32, strsignal(st));
 		if (WCOREDUMP(status)) {
-			col += fmtstr(s + col, 16, " (core dumped)");
+			strcpy(s + col, " (core dumped)");
+			col += sizeof(" (core dumped)")-1;
 		}
 	} else if (!sigonly) {
 		st = WEXITSTATUS(status);
-		if (st)
-			col = fmtstr(s, 16, "Done(%d)", st);
-		else
-			col = fmtstr(s, 16, "Done");
+		col = fmtstr(s, 16, (st ? "Done(%d)" : "Done"), st);
 	}
  out:
 	return col;
@@ -4031,7 +4031,7 @@ dowait(int wait_flags, struct job *job)
 		char s[48 + 1];
 		int len;
 
-		len = sprint_status(s, status, 1);
+		len = sprint_status48(s, status, 1);
 		if (len) {
 			s[len] = '\n';
 			s[len + 1] = '\0';
@@ -4052,13 +4052,14 @@ blocking_wait_with_raise_on_sig(void)
 
 #if JOBS
 static void
-showjob(FILE *out, struct job *jp, int mode)
+showjob(struct job *jp, int mode)
 {
 	struct procstat *ps;
 	struct procstat *psend;
 	int col;
 	int indent_col;
-	char s[80];
+	char s[16 + 16 + 48];
+	FILE *out = (mode & SHOW_STDERR ? stderr : stdout);
 
 	ps = jp->ps;
 
@@ -4088,7 +4089,7 @@ showjob(FILE *out, struct job *jp, int mode)
 		int status = psend[-1].ps_status;
 		if (jp->state == JOBSTOPPED)
 			status = jp->stopstatus;
-		col += sprint_status(s + col, status, 0);
+		col += sprint_status48(s + col, status, 0);
 	}
 	/* By now, "[JOBID]*  [maybe PID] STATUS" is printed */
 
@@ -4115,7 +4116,7 @@ showjob(FILE *out, struct job *jp, int mode)
 				ps->ps_cmd
 		);
 	} while (++ps != psend);
-	outcslow('\n', out);
+	newline_and_flush(out);
 
 	jp->changed = 0;
 
@@ -4130,7 +4131,7 @@ showjob(FILE *out, struct job *jp, int mode)
  * statuses have changed since the last call to showjobs.
  */
 static void
-showjobs(FILE *out, int mode)
+showjobs(int mode)
 {
 	struct job *jp;
 
@@ -4142,7 +4143,7 @@ showjobs(FILE *out, int mode)
 
 	for (jp = curjob; jp; jp = jp->prev_job) {
 		if (!(mode & SHOW_CHANGED) || jp->changed) {
-			showjob(out, jp, mode);
+			showjob(jp, mode);
 		}
 	}
 }
@@ -4163,10 +4164,10 @@ jobscmd(int argc UNUSED_PARAM, char **argv)
 	argv = argptr;
 	if (*argv) {
 		do
-			showjob(stdout, getjob(*argv, 0), mode);
+			showjob(getjob(*argv, 0), mode);
 		while (*++argv);
 	} else {
-		showjobs(stdout, mode);
+		showjobs(mode);
 	}
 
 	return 0;
@@ -5572,8 +5573,8 @@ cvtnum(arith_t num)
 {
 	int len;
 
-	expdest = makestrspace(32, expdest);
-	len = fmtstr(expdest, 32, ARITH_FMT, num);
+	expdest = makestrspace(sizeof(arith_t)*3 + 2, expdest);
+	len = fmtstr(expdest, sizeof(arith_t)*3 + 2, ARITH_FMT, num);
 	STADJUST(len, expdest);
 	return len;
 }
@@ -10352,8 +10353,10 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	char c = '?';
 	int done = 0;
 	int err = 0;
-	char s[12];
+	char sbuf[2];
 	char **optnext;
+
+	sbuf[1] = '\0';
 
 	if (*param_optind < 1)
 		return 1;
@@ -10381,9 +10384,9 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	for (q = optstr; *q != c;) {
 		if (*q == '\0') {
 			if (optstr[0] == ':') {
-				s[0] = c;
-				s[1] = '\0';
-				err |= setvarsafe("OPTARG", s, 0);
+				sbuf[0] = c;
+				/*sbuf[1] = '\0'; - already is */
+				err |= setvarsafe("OPTARG", sbuf, 0);
 			} else {
 				fprintf(stderr, "Illegal option -%c\n", c);
 				unsetvar("OPTARG");
@@ -10398,9 +10401,9 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	if (*++q == ':') {
 		if (*p == '\0' && (p = *optnext) == NULL) {
 			if (optstr[0] == ':') {
-				s[0] = c;
-				s[1] = '\0';
-				err |= setvarsafe("OPTARG", s, 0);
+				sbuf[0] = c;
+				/*sbuf[1] = '\0'; - already is */
+				err |= setvarsafe("OPTARG", sbuf, 0);
 				c = ':';
 			} else {
 				fprintf(stderr, "No arg for -%c option\n", c);
@@ -10419,11 +10422,10 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
  out:
 	*optoff = p ? p - *(optnext - 1) : -1;
 	*param_optind = optnext - optfirst + 1;
-	fmtstr(s, sizeof(s), "%d", *param_optind);
-	err |= setvarsafe("OPTIND", s, VNOFUNC);
-	s[0] = c;
-	s[1] = '\0';
-	err |= setvarsafe(optvar, s, 0);
+	err |= setvarsafe("OPTIND", itoa(*param_optind), VNOFUNC);
+	sbuf[0] = c;
+	/*sbuf[1] = '\0'; - already is */
+	err |= setvarsafe(optvar, sbuf, 0);
 	if (err) {
 		*param_optind = 1;
 		*optoff = -1;
@@ -12119,7 +12121,7 @@ cmdloop(int top)
 		setstackmark(&smark);
 #if JOBS
 		if (doing_jobctl)
-			showjobs(stderr, SHOW_CHANGED);
+			showjobs(SHOW_CHANGED|SHOW_STDERR);
 #endif
 		inter = 0;
 		if (iflag && top) {
@@ -13143,7 +13145,7 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 			exitshell();
 		}
 		if (e == EXINT) {
-			outcslow('\n', stderr);
+			newline_and_flush(stderr);
 		}
 
 		popstackmark(&smark);
