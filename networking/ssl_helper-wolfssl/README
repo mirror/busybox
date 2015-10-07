@@ -1,3 +1,8 @@
+A small SSL helper for busybox wget.
+
+Precompiled static binary may be found in
+http://busybox.net/downloads/binaries/
+
 Build instructions:
 
 * Unpack wolfssl-3.6.8.zip
