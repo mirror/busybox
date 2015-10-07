@@ -137,7 +137,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 #if MD5_SMALL > 0
 	/* Before we start, one word to the strange constants.
 	   They are defined in RFC 1321 as
-	   T[i] = (int)(4294967296.0 * fabs(sin(i))), i=1..64
+	   T[i] = (int)(2^32 * fabs(sin(i))), i=1..64
 	 */
 	static const uint32_t C_array[] = {
 		/* round 1 */
@@ -213,7 +213,7 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 		case 2:
 			temp += FH(B, C, D);
 			break;
-		case 3:
+		default: /* case 3 */
 			temp += FI(B, C, D);
 		}
 		temp += words[(int) (*pp++)] + *pc++;
@@ -277,10 +277,6 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 
 #else  /* MD5_SMALL == 0 or 1 */
 
-	uint32_t A_save = A;
-	uint32_t B_save = B;
-	uint32_t C_save = C;
-	uint32_t D_save = D;
 # if MD5_SMALL == 1
 	const uint32_t *pc;
 	const char *pp;
@@ -425,10 +421,10 @@ static void FAST_FUNC md5_process_block64(md5_ctx_t *ctx)
 # undef OP
 # endif
 	/* Add checksum to the starting values */
-	ctx->hash[0] = A_save + A;
-	ctx->hash[1] = B_save + B;
-	ctx->hash[2] = C_save + C;
-	ctx->hash[3] = D_save + D;
+	ctx->hash[0] += A;
+	ctx->hash[1] += B;
+	ctx->hash[2] += C;
+	ctx->hash[3] += D;
 #endif
 }
 #undef FF
