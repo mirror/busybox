@@ -12854,7 +12854,7 @@ umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 			*p = '\0';
 			puts(buf);
 		} else {
-			out1fmt("%.4o\n", mask);
+			out1fmt("%04o\n", mask);
 		}
 	} else {
 		char *modestr = *argptr;
