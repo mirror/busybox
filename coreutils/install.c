@@ -159,7 +159,7 @@ int install_main(int argc, char **argv)
 	}
 	mode = 0755; /* GNU coreutils 6.10 compat */
 	if (opts & OPT_MODE)
-		bb_parse_mode(mode_str, &mode);
+		mode = bb_parse_mode(mode_str, mode);
 	uid = (opts & OPT_OWNER) ? get_ug_id(uid_str, xuname2uid) : getuid();
 	gid = (opts & OPT_GROUP) ? get_ug_id(gid_str, xgroup2gid) : getgid();
 

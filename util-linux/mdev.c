@@ -406,7 +406,7 @@ static void parse_next_rule(void)
 		}
 
 		/* 3rd field: mode - device permissions */
-		bb_parse_mode(tokens[2], &G.cur_rule.mode);
+		G.cur_rule.mode = bb_parse_mode(tokens[2], G.cur_rule.mode);
 
 		/* 4th field (opt): ">|=alias" or "!" to not create the node */
 		val = tokens[3];

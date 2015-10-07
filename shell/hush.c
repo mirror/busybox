@@ -8965,6 +8965,7 @@ static int FAST_FUNC builtin_umask(char **argv)
 	int rc;
 	mode_t mask;
 
+	rc = 1;
 	mask = umask(0);
 	argv = skip_dash_dash(argv);
 	if (argv[0]) {
@@ -8974,19 +8975,19 @@ static int FAST_FUNC builtin_umask(char **argv)
 		/* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
 		if (!isdigit(argv[0][0]))
 			mask ^= 0777;
-		rc = bb_parse_mode(argv[0], &mask);
+		mask = bb_parse_mode(argv[0], mask);
 		if (!isdigit(argv[0][0]))
 			mask ^= 0777;
-		if (rc == 0 || (unsigned)mask > 0777) {
+		if ((unsigned)mask > 0777) {
 			mask = old_mask;
 			/* bash messages:
 			 * bash: umask: 'q': invalid symbolic mode operator
 			 * bash: umask: 999: octal number out of range
 			 */
 			bb_error_msg("%s: invalid mode '%s'", "umask", argv[0]);
+			rc = 0;
 		}
 	} else {
-		rc = 1;
 		/* Mimic bash */
 		printf("%04o\n", (unsigned) mask);
 		/* fall through and restore mask which we set to 0 */

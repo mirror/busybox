@@ -12862,7 +12862,8 @@ umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
                 /* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
 		if (!isdigit(modestr[0]))
 			mask ^= 0777;
-		if (!bb_parse_mode(modestr, &mask) || (unsigned)mask > 0777) {
+		mask = bb_parse_mode(modestr, mask);
+		if ((unsigned)mask > 0777) {
 			ash_msg_and_raise_error("illegal mode: %s", modestr);
 		}
 		if (!isdigit(modestr[0]))

@@ -71,8 +71,8 @@ int mkdir_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	opt = getopt32(argv, "m:pv" IF_SELINUX("Z:"), &smode IF_SELINUX(,&scontext));
 	if (opt & 1) {
-		mode_t mmode = 0777;
-		if (!bb_parse_mode(smode, &mmode)) {
+		mode_t mmode = bb_parse_mode(smode, 0777);
+		if (mmode == (mode_t)-1) {
 			bb_error_msg_and_die("invalid mode '%s'", smode);
 		}
 		mode = mmode;
