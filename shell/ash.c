@@ -12816,16 +12816,9 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 static int FAST_FUNC
 umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
-	static const char permuser[3] ALIGN1 = "ugo";
-	static const char permmode[3] ALIGN1 = "rwx";
-	static const short permmask[] ALIGN2 = {
-		S_IRUSR, S_IWUSR, S_IXUSR,
-		S_IRGRP, S_IWGRP, S_IXGRP,
-		S_IROTH, S_IWOTH, S_IXOTH
-	};
+	static const char permuser[3] ALIGN1 = "ogu";
 
 	mode_t mask;
-	int i;
 	int symbolic_mode = 0;
 
 	while (nextopt("S") != '\0') {
@@ -12839,22 +12832,26 @@ umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	if (*argptr == NULL) {
 		if (symbolic_mode) {
-			char buf[18];
+			char buf[sizeof("u=rwx,g=rwx,o=rwx")];
 			char *p = buf;
+			int i;
 
-			for (i = 0; i < 3; i++) {
-				int j;
+			i = 2;
+			for (;;) {
+				unsigned bits;
 
 				*p++ = permuser[i];
 				*p++ = '=';
-				for (j = 0; j < 3; j++) {
-					if ((mask & permmask[3 * i + j]) == 0) {
-						*p++ = permmode[j];
-					}
-				}
+				/* mask is 0..0uuugggooo. i=2 selects uuu bits */
+				bits = (mask >> (i*3));
+				if (!(bits & 4)) *p++ = 'r';
+				if (!(bits & 2)) *p++ = 'w';
+				if (!(bits & 1)) *p++ = 'x';
+				if (--i < 0)
+					break;
 				*p++ = ',';
 			}
-			*--p = '\0';
+			*p = '\0';
 			puts(buf);
 		} else {
 			out1fmt("%.4o\n", mask);
