@@ -12814,7 +12814,7 @@ readcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 }
 
 static int FAST_FUNC
-umaskcmd(int argc UNUSED_PARAM, char **argv)
+umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
 	static const char permuser[3] ALIGN1 = "ugo";
 	static const char permmode[3] ALIGN1 = "rwx";
@@ -12824,9 +12824,6 @@ umaskcmd(int argc UNUSED_PARAM, char **argv)
 		S_IROTH, S_IWOTH, S_IXOTH
 	};
 
-	/* TODO: use bb_parse_mode() instead */
-
-	char *ap;
 	mode_t mask;
 	int i;
 	int symbolic_mode = 0;
@@ -12840,8 +12837,7 @@ umaskcmd(int argc UNUSED_PARAM, char **argv)
 	umask(mask);
 	INT_ON;
 
-	ap = *argptr;
-	if (ap == NULL) {
+	if (*argptr == NULL) {
 		if (symbolic_mode) {
 			char buf[18];
 			char *p = buf;
@@ -12858,27 +12854,23 @@ umaskcmd(int argc UNUSED_PARAM, char **argv)
 				}
 				*p++ = ',';
 			}
-			*--p = 0;
+			*--p = '\0';
 			puts(buf);
 		} else {
 			out1fmt("%.4o\n", mask);
 		}
 	} else {
-		if (isdigit((unsigned char) *ap)) {
-			mask = 0;
-			do {
-				if (*ap >= '8' || *ap < '0')
-					ash_msg_and_raise_error(msg_illnum, argv[1]);
-				mask = (mask << 3) + (*ap - '0');
-			} while (*++ap != '\0');
-			umask(mask);
-		} else {
-			mask = ~mask & 0777;
-			if (!bb_parse_mode(ap, &mask)) {
-				ash_msg_and_raise_error("illegal mode: %s", ap);
-			}
-			umask(~mask & 0777);
+		char *modestr = *argptr;
+                /* numeric umasks are taken as-is */
+                /* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
+		if (!isdigit(modestr[0]))
+			mask ^= 0777;
+		if (!bb_parse_mode(modestr, &mask) || (unsigned)mask > 0777) {
+			ash_msg_and_raise_error("illegal mode: %s", modestr);
 		}
+		if (!isdigit(modestr[0]))
+			mask ^= 0777;
+		umask(mask);
 	}
 	return 0;
 }

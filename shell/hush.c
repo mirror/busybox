@@ -8970,10 +8970,14 @@ static int FAST_FUNC builtin_umask(char **argv)
 	if (argv[0]) {
 		mode_t old_mask = mask;
 
-		mask ^= 0777;
+		/* numeric umasks are taken as-is */
+		/* symbolic umasks are inverted: "umask a=rx" calls umask(222) */
+		if (!isdigit(argv[0][0]))
+			mask ^= 0777;
 		rc = bb_parse_mode(argv[0], &mask);
-		mask ^= 0777;
-		if (rc == 0) {
+		if (!isdigit(argv[0][0]))
+			mask ^= 0777;
+		if (rc == 0 || (unsigned)mask > 0777) {
 			mask = old_mask;
 			/* bash messages:
 			 * bash: umask: 'q': invalid symbolic mode operator
