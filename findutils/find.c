@@ -768,7 +768,10 @@ ACTF(delete)
 {
 	int rc;
 	if (S_ISDIR(statbuf->st_mode)) {
-		rc = rmdir(fileName);
+		/* "find . -delete" skips rmdir(".") */
+		rc = 0;
+		if (NOT_LONE_CHAR(fileName, '.'))
+			rc = rmdir(fileName);
 	} else {
 		rc = unlink(fileName);
 	}
