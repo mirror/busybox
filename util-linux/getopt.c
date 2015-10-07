@@ -378,7 +378,7 @@ int getopt_main(int argc, char **argv)
 		if (compatible) {
 			/* For some reason, the original getopt gave no error
 			 * when there were no arguments. */
-			printf(" --\n");
+			puts(" --");
 			return 0;
 		}
 		bb_error_msg_and_die("missing optstring argument");

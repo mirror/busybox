@@ -93,7 +93,7 @@ int fdformat_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	xioctl(fd, FDFMTEND, NULL);
-	printf("done\n");
+	puts("Done");
 
 	/* VERIFY */
 	if (verify) {
@@ -126,7 +126,7 @@ int fdformat_main(int argc UNUSED_PARAM, char **argv)
 
 		if (ENABLE_FEATURE_CLEAN_UP) free(data);
 
-		printf("done\n");
+		puts("Done");
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);

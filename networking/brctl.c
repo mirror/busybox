@@ -217,7 +217,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 			arm_ioctl(args, BRCTL_GET_BRIDGES,
 						(unsigned long) bridx, MAX_PORTS);
 			num = xioctl(fd, SIOCGIFBR, args);
-			printf("bridge name\tbridge id\t\tSTP enabled\tinterfaces\n");
+			puts("bridge name\tbridge id\t\tSTP enabled\tinterfaces");
 			for (i = 0; i < num; i++) {
 				char ifname[IFNAMSIZ];
 				int j, tabs;
@@ -236,7 +236,7 @@ int brctl_main(int argc UNUSED_PARAM, char **argv)
 				/* print bridge id */
 				x = (unsigned char *) &bi.bridge_id;
 				for (j = 0; j < 8; j++) {
-					printf("%.2x", x[j]);
+					printf("%02x", x[j]);
 					if (j == 1)
 						bb_putchar('.');
 				}

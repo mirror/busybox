@@ -375,7 +375,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 			// N.B. we need to escape the leading dot regardless of
 			// whether it is single or not character on the line
 			if ('.' == s[0] /*&& '\0' == s[1] */)
-				printf(".");
+				bb_putchar('.');
 			// dump read line
 			send_r_n(s);
 			free(s);

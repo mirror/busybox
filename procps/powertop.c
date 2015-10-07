@@ -704,7 +704,7 @@ int powertop_main(int UNUSED_PARAM argc, char UNUSED_PARAM **argv)
 	/* Get number of CPUs */
 	G.total_cpus = get_cpu_count();
 
-	printf("Collecting data for "DEFAULT_SLEEP_STR" seconds\n");
+	puts("Collecting data for "DEFAULT_SLEEP_STR" seconds");
 
 #if ENABLE_FEATURE_USE_TERMIOS
 	tcgetattr(0, (void *)&G.init_settings);

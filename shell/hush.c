@@ -6794,7 +6794,7 @@ static int checkjobs(struct pipe *fg_pipe)
 						int sig = WTERMSIG(status);
 						if (i == fg_pipe->num_cmds-1)
 							/* TODO: use strsignal() instead for bash compat? but that's bloat... */
-							printf("%s\n", sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
+							puts(sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
 						/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
 						/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
 						 * Maybe we need to use sig | 128? */

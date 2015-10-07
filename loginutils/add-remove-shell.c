@@ -100,7 +100,7 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 				cpp++;
 			}
 			/* copy shell name from old to new file */
-			printf("%s\n", line);
+			puts(line);
  next_line:
 			free(line);
 		}
@@ -112,7 +112,7 @@ int add_remove_shell_main(int argc UNUSED_PARAM, char **argv)
 		char **cpp = argv;
 		while (*cpp) {
 			if (*cpp != dont_add)
-				printf("%s\n", *cpp);
+				puts(*cpp);
 			cpp++;
 		}
 	}

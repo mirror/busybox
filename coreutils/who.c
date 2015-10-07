@@ -81,7 +81,7 @@ int who_main(int argc UNUSED_PARAM, char **argv)
 	opt_complementary = "=0";
 	opt = getopt32(argv, do_users ? "" : "aH");
 	if (opt & 2) // -H
-		printf("USER\t\tTTY\t\tIDLE\tTIME\t\t HOST\n");
+		puts("USER\t\tTTY\t\tIDLE\tTIME\t\t HOST");
 
 	setutxent();
 	while ((ut = getutxent()) != NULL) {

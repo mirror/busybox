@@ -106,7 +106,7 @@ gpt_list_table(int xtra UNUSED_PARAM)
 		(unsigned long long)SWAP_LE64(gpt_hdr->first_usable_lba),
 		(unsigned long long)SWAP_LE64(gpt_hdr->last_usable_lba));
 
-	printf("Number  Start (sector)    End (sector)  Size       Code  Name\n");
+	puts("Number  Start (sector)    End (sector)  Size       Code  Name");
 	for (i = 0; i < n_parts; i++) {
 		gpt_partition *p = gpt_part(i);
 		if (p->lba_start) {
@@ -119,7 +119,7 @@ gpt_list_table(int xtra UNUSED_PARAM)
 				numstr6,
 				0x0700 /* FIXME */);
 			gpt_print_wide(p->name, 18);
-			printf("\n");
+			bb_putchar('\n');
 		}
 	}
 }

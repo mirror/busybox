@@ -56,6 +56,9 @@ CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 
 # Defeat .eh_frame bloat (gcc 4.6.3 x86-32 defconfig: 20% smaller busybox binary):
 CFLAGS += $(call cc-option,-fno-unwind-tables,)
 CFLAGS += $(call cc-option,-fno-asynchronous-unwind-tables,)
+# No automatic printf->puts,putchar conversions
+# (try disabling this and comparing assembly, it's instructive)
+CFLAGS += $(call cc-option,-fno-builtin-printf,)
 
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..

@@ -142,7 +142,7 @@ static void print_timestamp(void)
 	/* %x: date representation for the current locale */
 	/* %X: time representation for the current locale */
 	strftime(buf, sizeof(buf), "%x %X", &G.tmtime);
-	printf("%s\n", buf);
+	puts(buf);
 }
 
 static cputime_t get_smp_uptime(void)

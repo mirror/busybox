@@ -206,7 +206,7 @@ static void doCommands(void)
 				if (fileName)
 					printf("\"%s\"\n", fileName);
 				else
-					printf("No file name\n");
+					puts("No file name");
 				break;
 			}
 			free(fileName);

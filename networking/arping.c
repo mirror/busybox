@@ -249,7 +249,7 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 			unsigned diff = MONOTONIC_US() - last;
 			printf(" %u.%03ums\n", diff / 1000, diff % 1000);
 		} else {
-			printf(" UNSOLICITED?\n");
+			puts(" UNSOLICITED?");
 		}
 		fflush_all();
 	}

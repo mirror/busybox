@@ -701,7 +701,7 @@ int i2cset_main(int argc, char **argv)
 	}
 
 	if (status < 0) {
-		printf("Warning - readback failed\n");
+		puts("Warning - readback failed");
 	} else
 	if (status != val) {
 		printf("Warning - data mismatch - wrote "
@@ -756,8 +756,8 @@ static void dump_data(int bus_fd, int mode, unsigned first,
 {
 	int i, j, res;
 
-	printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
-	       "    0123456789abcdef\n");
+	puts("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f"
+	     "    0123456789abcdef");
 
 	for (i = 0; i < I2CDUMP_NUM_REGS; i += 0x10) {
 		if (mode == I2C_SMBUS_BLOCK_DATA && i >= blen)
@@ -826,22 +826,22 @@ static void dump_data(int bus_fd, int mode, unsigned first,
 				break;
 			/* Skip unwanted registers */
 			if (i+j < first || i+j > last) {
-				printf(" ");
+				bb_putchar(' ');
 				continue;
 			}
 
 			res = block[i+j];
 			if (res < 0) {
-				printf("X");
+				bb_putchar('X');
 			} else if (res == 0x00 || res == 0xff) {
-				printf(".");
+				bb_putchar('.');
 			} else if (res < 32 || res >= 127) {
-				printf("?");
+				bb_putchar('?');
 			} else {
-				printf("%c", res);
+				bb_putchar(res);
 			}
 		}
-		printf("\n");
+		bb_putchar('\n');
 	}
 }
 
@@ -850,7 +850,7 @@ static void dump_word_data(int bus_fd, unsigned first, unsigned last)
 	int i, j, rv;
 
 	/* Word data. */
-	printf("     0,8  1,9  2,a  3,b  4,c  5,d  6,e  7,f\n");
+	puts("     0,8  1,9  2,a  3,b  4,c  5,d  6,e  7,f");
 	for (i = 0; i < 256; i += 8) {
 		if (i/8 < first/8)
 			continue;
@@ -871,7 +871,7 @@ static void dump_word_data(int bus_fd, unsigned first, unsigned last)
 			else
 				printf("%04x ", rv & 0xffff);
 		}
-		printf("\n");
+		bb_putchar('\n');
 	}
 }
 
@@ -1267,7 +1267,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	if (!(opts & opt_y))
 		confirm_action(-1, -1, -1, 0);
 
-	printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\n");
+	puts("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
 	for (i = 0; i < 128; i += 16) {
 		printf("%02x: ", i);
 		for(j = 0; j < 16; j++) {
@@ -1325,7 +1325,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 			else
 				printf("%02x ", i+j);
 		}
-		printf("\n");
+		bb_putchar('\n');
 	}
 
 	return 0;

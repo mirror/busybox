@@ -9681,7 +9681,7 @@ preadfd(void)
 			}
 # if ENABLE_ASH_IDLE_TIMEOUT
 			else if (errno == EAGAIN && timeout > 0) {
-				printf("\007timed out waiting for input: auto-logout\n");
+				puts("\007timed out waiting for input: auto-logout");
 				exitshell();
 			}
 # endif
