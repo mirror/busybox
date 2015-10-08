@@ -88,21 +88,20 @@ static void rtnl_rtprot_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_protos", rtnl_rtprot_tab->tab);
 }
 
-const char* FAST_FUNC rtnl_rtprot_n2a(int id, char *buf)
+#if 0 /* UNUSED */
+const char* FAST_FUNC rtnl_rtprot_n2a(int id)
 {
 	if (id < 0 || id >= 256) {
-		sprintf(buf, "%d", id);
-		return buf;
+		return itoa(id);
 	}
 
 	rtnl_rtprot_initialize();
 
 	if (rtnl_rtprot_tab->tab[id])
 		return rtnl_rtprot_tab->tab[id];
-	/* buf is SPRINT_BSIZE big */
-	sprintf(buf, "%d", id);
-	return buf;
+	return itoa(id);
 }
+#endif
 
 int FAST_FUNC rtnl_rtprot_a2n(uint32_t *id, char *arg)
 {
@@ -126,20 +125,17 @@ static void rtnl_rtscope_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_scopes", rtnl_rtscope_tab->tab);
 }
 
-const char* FAST_FUNC rtnl_rtscope_n2a(int id, char *buf)
+const char* FAST_FUNC rtnl_rtscope_n2a(int id)
 {
 	if (id < 0 || id >= 256) {
-		sprintf(buf, "%d", id);
-		return buf;
+		return itoa(id);
 	}
 
 	rtnl_rtscope_initialize();
 
 	if (rtnl_rtscope_tab->tab[id])
 		return rtnl_rtscope_tab->tab[id];
-	/* buf is SPRINT_BSIZE big */
-	sprintf(buf, "%d", id);
-	return buf;
+	return itoa(id);
 }
 
 int FAST_FUNC rtnl_rtscope_a2n(uint32_t *id, char *arg)
@@ -166,20 +162,17 @@ int FAST_FUNC rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 }
 
 #if ENABLE_FEATURE_IP_RULE
-const char* FAST_FUNC rtnl_rtrealm_n2a(int id, char *buf)
+const char* FAST_FUNC rtnl_rtrealm_n2a(int id)
 {
 	if (id < 0 || id >= 256) {
-		sprintf(buf, "%d", id);
-		return buf;
+		return itoa(id);
 	}
 
 	rtnl_rtrealm_initialize();
 
 	if (rtnl_rtrealm_tab->tab[id])
 		return rtnl_rtrealm_tab->tab[id];
-	/* buf is SPRINT_BSIZE big */
-	sprintf(buf, "%d", id);
-	return buf;
+	return itoa(id);
 }
 #endif
 
@@ -194,20 +187,17 @@ static void rtnl_rtdsfield_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_dsfield", rtnl_rtdsfield_tab->tab);
 }
 
-const char* FAST_FUNC rtnl_dsfield_n2a(int id, char *buf)
+const char* FAST_FUNC rtnl_dsfield_n2a(int id)
 {
 	if (id < 0 || id >= 256) {
-		sprintf(buf, "%d", id);
-		return buf;
+		return itoa(id);
 	}
 
 	rtnl_rtdsfield_initialize();
 
 	if (rtnl_rtdsfield_tab->tab[id])
 		return rtnl_rtdsfield_tab->tab[id];
-	/* buf is SPRINT_BSIZE big */
-	sprintf(buf, "0x%02x", id);
-	return buf;
+	return itoa(id);
 }
 
 int FAST_FUNC rtnl_dsfield_a2n(uint32_t *id, char *arg)
@@ -231,20 +221,17 @@ static void rtnl_rttable_initialize(void)
 	rtnl_tab_initialize("/etc/iproute2/rt_tables", rtnl_rttable_tab->tab);
 }
 
-const char* FAST_FUNC rtnl_rttable_n2a(int id, char *buf)
+const char* FAST_FUNC rtnl_rttable_n2a(int id)
 {
 	if (id < 0 || id >= 256) {
-		sprintf(buf, "%d", id);
-		return buf;
+		return itoa(id);
 	}
 
 	rtnl_rttable_initialize();
 
 	if (rtnl_rttable_tab->tab[id])
 		return rtnl_rttable_tab->tab[id];
-	/* buf is SPRINT_BSIZE big */
-	sprintf(buf, "%d", id);
-	return buf;
+	return itoa(id);
 }
 
 int FAST_FUNC rtnl_rttable_a2n(uint32_t *id, char *arg)

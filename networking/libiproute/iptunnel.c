@@ -432,13 +432,12 @@ static void print_tunnel(struct ip_tunnel_parm *p)
 	else
 		printf(" ttl inherit ");
 	if (p->iph.tos) {
-		SPRINT_BUF(b1);
 		printf(" tos");
 		if (p->iph.tos & 1)
 			printf(" inherit");
 		if (p->iph.tos & ~1)
 			printf("%c%s ", p->iph.tos & 1 ? '/' : ' ',
-				rtnl_dsfield_n2a(p->iph.tos & ~1, b1));
+				rtnl_dsfield_n2a(p->iph.tos & ~1));
 	}
 	if (!(p->iph.frag_off & htons(IP_DF)))
 		printf(" nopmtudisc");

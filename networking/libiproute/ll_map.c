@@ -99,7 +99,6 @@ const char FAST_FUNC *ll_idx_n2a(int idx, char *buf)
 	return buf;
 }
 
-
 const char FAST_FUNC *ll_index_to_name(int idx)
 {
 	static char nbuf[16];

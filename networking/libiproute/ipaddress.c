@@ -137,12 +137,11 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 	{
 		unsigned m_flag = 0;
 		if (tb[IFLA_LINK]) {
-			SPRINT_BUF(b1);
 			int iflink = *(int*)RTA_DATA(tb[IFLA_LINK]);
 			if (iflink == 0)
 				printf("@NONE: ");
 			else {
-				printf("@%s: ", ll_idx_n2a(iflink, b1));
+				printf("@%s: ", ll_index_to_name(iflink));
 				m_flag = ll_index_to_flags(iflink);
 				m_flag = !(m_flag & IFF_UP);
 			}
@@ -158,8 +157,7 @@ static NOINLINE int print_linkinfo(const struct nlmsghdr *n)
 		printf("qdisc %s ", (char*)RTA_DATA(tb[IFLA_QDISC]));
 #ifdef IFLA_MASTER
 	if (tb[IFLA_MASTER]) {
-		SPRINT_BUF(b1);
-		printf("master %s ", ll_idx_n2a(*(int*)RTA_DATA(tb[IFLA_MASTER]), b1));
+		printf("master %s ", ll_index_to_name(*(int*)RTA_DATA(tb[IFLA_MASTER])));
 	}
 #endif
 /* IFLA_OPERSTATE was added to kernel with the same commit as IFF_DORMANT */
@@ -218,7 +216,6 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 	int len = n->nlmsg_len;
 	struct rtattr * rta_tb[IFA_MAX+1];
 	char abuf[256];
-	SPRINT_BUF(b1);
 
 	if (n->nlmsg_type != RTM_NEWADDR && n->nlmsg_type != RTM_DELADDR)
 		return 0;
@@ -250,7 +247,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 		if (rta_tb[IFA_LABEL])
 			label = RTA_DATA(rta_tb[IFA_LABEL]);
 		else
-			label = ll_idx_n2a(ifa->ifa_index, b1);
+			label = ll_index_to_name(ifa->ifa_index);
 		if (fnmatch(G_filter.label, label, 0) != 0)
 			return 0;
 	}
@@ -325,7 +322,7 @@ static int FAST_FUNC print_addrinfo(const struct sockaddr_nl *who UNUSED_PARAM,
 					abuf, sizeof(abuf))
 		);
 	}
-	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope, b1));
+	printf("scope %s ", rtnl_rtscope_n2a(ifa->ifa_scope));
 	if (ifa->ifa_flags & IFA_F_SECONDARY) {
 		ifa->ifa_flags &= ~IFA_F_SECONDARY;
 		printf("secondary ");
@@ -556,12 +553,11 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 							continue;
 					}
 					if (G_filter.label) {
-						SPRINT_BUF(b1);
 						const char *label;
 						if (tb[IFA_LABEL])
 							label = RTA_DATA(tb[IFA_LABEL]);
 						else
-							label = ll_idx_n2a(ifa->ifa_index, b1);
+							label = ll_index_to_name(ifa->ifa_index);
 						if (fnmatch(G_filter.label, label, 0) != 0)
 							continue;
 					}
