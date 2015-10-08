@@ -358,7 +358,7 @@ static void check_read_funcs(int fd, int mode, int data_addr, int pec)
 		break;
 #endif /* ENABLE_I2CDUMP */
 	default:
-		bb_error_msg_and_die("Programmer goofed!");
+		bb_error_msg_and_die("internal error");
 	}
 	check_funcs_test_end(funcs, pec, err);
 }
@@ -1022,33 +1022,33 @@ static const struct i2c_func i2c_funcs_tab[] = {
 	{ .value = I2C_FUNC_I2C,
 	  .name = "I2C" },
 	{ .value = I2C_FUNC_SMBUS_QUICK,
-	  .name = "SMBus Quick Command" },
+	  .name = "SMBus quick command" },
 	{ .value = I2C_FUNC_SMBUS_WRITE_BYTE,
-	  .name = "SMBus Send Byte" },
+	  .name = "SMBus send byte" },
 	{ .value = I2C_FUNC_SMBUS_READ_BYTE,
-	  .name = "SMBus Receive Byte" },
+	  .name = "SMBus receive byte" },
 	{ .value = I2C_FUNC_SMBUS_WRITE_BYTE_DATA,
-	  .name = "SMBus Write Byte" },
+	  .name = "SMBus write byte" },
 	{ .value = I2C_FUNC_SMBUS_READ_BYTE_DATA,
-	  .name = "SMBus Read Byte" },
+	  .name = "SMBus read byte" },
 	{ .value = I2C_FUNC_SMBUS_WRITE_WORD_DATA,
-	  .name = "SMBus Write Word" },
+	  .name = "SMBus write word" },
 	{ .value = I2C_FUNC_SMBUS_READ_WORD_DATA,
-	  .name = "SMBus Read Word" },
+	  .name = "SMBus read word" },
 	{ .value = I2C_FUNC_SMBUS_PROC_CALL,
-	  .name = "SMBus Process Call" },
+	  .name = "SMBus process call" },
 	{ .value = I2C_FUNC_SMBUS_WRITE_BLOCK_DATA,
-	  .name = "SMBus Block Write" },
+	  .name = "SMBus block write" },
 	{ .value = I2C_FUNC_SMBUS_READ_BLOCK_DATA,
-	  .name = "SMBus Block Read" },
+	  .name = "SMBus block read" },
 	{ .value = I2C_FUNC_SMBUS_BLOCK_PROC_CALL,
-	  .name = "SMBus Block Process Call" },
+	  .name = "SMBus block process call" },
 	{ .value = I2C_FUNC_SMBUS_PEC,
 	  .name = "SMBus PEC" },
 	{ .value = I2C_FUNC_SMBUS_WRITE_I2C_BLOCK,
-	  .name = "I2C Block Write" },
+	  .name = "I2C block write" },
 	{ .value = I2C_FUNC_SMBUS_READ_I2C_BLOCK,
-	  .name = "I2C Block Read" },
+	  .name = "I2C block read" },
 	{ .value = 0, .name = NULL }
 };
 
@@ -1251,17 +1251,17 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 		no_support("detection commands");
 	} else
 	if (mode == I2CDETECT_MODE_QUICK && !(funcs & I2C_FUNC_SMBUS_QUICK)) {
-		no_support("SMBus Quick Write command");
+		no_support("SMBus quick write");
 	} else
 	if (mode == I2CDETECT_MODE_READ && !(funcs & I2C_FUNC_SMBUS_READ_BYTE)) {
-		no_support("SMBus Receive Byte command");
+		no_support("SMBus receive byte");
 	}
 
 	if (mode == I2CDETECT_MODE_AUTO) {
 		if (!(funcs & I2C_FUNC_SMBUS_QUICK))
-			will_skip("SMBus Quick Write");
+			will_skip("SMBus quick write");
 		if (!(funcs & I2C_FUNC_SMBUS_READ_BYTE))
-			will_skip("SMBus Receive Byte");
+			will_skip("SMBus receive byte");
 	}
 
 	if (!(opts & opt_y))

@@ -576,11 +576,11 @@ static void setup_tables(void)
 	for (i = MINIX_ROOT_INO; i <= SB_INODES; i++)
 		unmark_inode(i);
 	G.inode_buffer = xzalloc(INODE_BUFFER_SIZE);
-	printf("%ld inodes\n", (long)SB_INODES);
-	printf("%ld blocks\n", (long)SB_ZONES);
-	printf("Firstdatazone=%ld (%ld)\n", (long)SB_FIRSTZONE, (long)norm_firstzone);
-	printf("Zonesize=%d\n", BLOCK_SIZE << SB_ZONE_SIZE);
-	printf("Maxsize=%ld\n", (long)SB_MAXSIZE);
+	printf("%lu inodes\n", (unsigned long)SB_INODES);
+	printf("%lu blocks\n", (unsigned long)SB_ZONES);
+	printf("Firstdatazone=%lu (%lu)\n", (unsigned long)SB_FIRSTZONE, (unsigned long)norm_firstzone);
+	printf("Zonesize=%u\n", BLOCK_SIZE << SB_ZONE_SIZE);
+	printf("Maxsize=%lu\n", (unsigned long)SB_MAXSIZE);
 }
 
 int mkfs_minix_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;

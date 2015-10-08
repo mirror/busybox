@@ -122,7 +122,7 @@ static int xargs_exec(void)
 		return 124;
 	}
 	if (status >= 0x180) {
-		bb_error_msg("%s: terminated by signal %d",
+		bb_error_msg("'%s' terminated by signal %d",
 			G.args[0], status - 0x180);
 		return 125;
 	}

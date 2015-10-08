@@ -114,7 +114,7 @@ struct globals {
 
 static void fatal2_cannot(const char *m1, const char *m2)
 {
-	bb_perror_msg_and_die("%s: fatal: cannot %s%s", dir, m1, m2);
+	bb_perror_msg_and_die("%s: fatal: can't %s%s", dir, m1, m2);
 	/* was exiting 111 */
 }
 static void fatal_cannot(const char *m)
@@ -124,7 +124,7 @@ static void fatal_cannot(const char *m)
 }
 static void fatal2x_cannot(const char *m1, const char *m2)
 {
-	bb_error_msg_and_die("%s: fatal: cannot %s%s", dir, m1, m2);
+	bb_error_msg_and_die("%s: fatal: can't %s%s", dir, m1, m2);
 	/* was exiting 111 */
 }
 static void warn_cannot(const char *m)

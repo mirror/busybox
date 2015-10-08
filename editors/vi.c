@@ -2910,10 +2910,10 @@ static int file_insert(const char *fn, char *p, int initial)
 	int fd, size;
 	struct stat statbuf;
 
-	if (p < text || p > end) {
-		status_line_bold("Trying to insert file outside of memory");
-		return cnt;
-	}
+	if (p < text)
+		p = text;
+	if (p > end)
+		p = end;
 
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {

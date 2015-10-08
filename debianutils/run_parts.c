@@ -189,7 +189,7 @@ int run_parts_main(int argc UNUSED_PARAM, char **argv)
 		if (ret < 0)
 			bb_perror_msg("can't execute '%s'", name);
 		else /* ret > 0 */
-			bb_error_msg("%s exited with code %d", name, ret & 0xff);
+			bb_error_msg("%s: exit status %u", name, ret & 0xff);
 
 		if (option_mask32 & OPT_e)
 			xfunc_die();

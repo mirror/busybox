@@ -1151,13 +1151,13 @@ static int check_deps(deb_file_t **deb_file, int deb_start /*, int dep_max_count
 				if (result && number_of_alternatives == 0) {
 					if (root_of_alternatives)
 						bb_error_msg_and_die(
-							"package %s %sdepends on %s, "
-							"which cannot be satisfied",
+							"package %s %sdepends on %s, which %s",
 							name_hashtable[package_node->name],
 							package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
-							name_hashtable[root_of_alternatives->name]);
+							name_hashtable[root_of_alternatives->name],
+							"cannot be satisfied");
 					bb_error_msg_and_die(
-						"package %s %sdepends on %s, which %s\n",
+						"package %s %sdepends on %s, which %s",
 						name_hashtable[package_node->name],
 						package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
 						name_hashtable[package_edge->name],

@@ -577,8 +577,8 @@ int ifenslave_main(int argc UNUSED_PARAM, char **argv)
 				/* Can't work with this slave, */
 				/* remember the error and skip it */
 				bb_perror_msg(
-					"skipping %s: can't get flags",
-					slave_ifname);
+					"skipping %s: can't get %s",
+					slave_ifname, "flags");
 				res = rv;
 				continue;
 			}
@@ -595,8 +595,8 @@ int ifenslave_main(int argc UNUSED_PARAM, char **argv)
 				/* Can't work with this slave, */
 				/* remember the error and skip it */
 				bb_perror_msg(
-					"skipping %s: can't get settings",
-					slave_ifname);
+					"skipping %s: can't get %s",
+					slave_ifname, "settings");
 				res = rv;
 				continue;
 			}

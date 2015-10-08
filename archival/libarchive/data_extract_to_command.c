@@ -118,7 +118,7 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 			bb_error_msg_and_die("'%s' returned status %d",
 				archive_handle->tar__to_command, WEXITSTATUS(status));
 		if (WIFSIGNALED(status))
-			bb_error_msg_and_die("'%s' terminated on signal %d",
+			bb_error_msg_and_die("'%s' terminated by signal %d",
 				archive_handle->tar__to_command, WTERMSIG(status));
 
 		if (!BB_MMU) {
