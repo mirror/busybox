@@ -13,7 +13,14 @@
 typedef struct rtnl_tab_t {
 	const char *cached_str;
 	unsigned cached_result;
-	const char *tab[256];
+	/* upstream version switched to a hash table and removed
+	 * id < 256 limit. For now bbox bumps this array size from 256
+	 * to 1024. If you plan to change this to a hash table,
+	 * consider merging several hash tables we have (for example,
+	 * awk has resizable one!
+	 */
+#define RT_TABLE_MAX 1023
+	const char *tab[RT_TABLE_MAX+1];
 } rtnl_tab_t;
 
 static void rtnl_tab_initialize(const char *file, const char **tab)
@@ -23,7 +30,7 @@ static void rtnl_tab_initialize(const char *file, const char **tab)
 
 	while (config_read(parser, token, 2, 2, "# \t", PARSE_NORMAL)) {
 		unsigned id = bb_strtou(token[0], NULL, 0);
-		if (id > 256) {
+		if (id > RT_TABLE_MAX) {
 			bb_error_msg("database %s is corrupted at line %d",
 				file, parser->lineno);
 			break;
@@ -42,7 +49,7 @@ static int rtnl_a2n(rtnl_tab_t *tab, uint32_t *id, const char *arg, int base)
 		return 0;
 	}
 
-	for (i = 0; i < 256; i++) {
+	for (i = 0; i <= RT_TABLE_MAX; i++) {
 		if (tab->tab[i]
 		 && strcmp(tab->tab[i], arg) == 0
 		) {
@@ -54,7 +61,7 @@ static int rtnl_a2n(rtnl_tab_t *tab, uint32_t *id, const char *arg, int base)
 	}
 
 	i = bb_strtou(arg, NULL, base);
-	if (i > 255)
+	if (i > RT_TABLE_MAX)
 		return -1;
 	*id = i;
 	return 0;
@@ -91,7 +98,7 @@ static void rtnl_rtprot_initialize(void)
 #if 0 /* UNUSED */
 const char* FAST_FUNC rtnl_rtprot_n2a(int id)
 {
-	if (id < 0 || id >= 256) {
+	if (id < 0 || id > RT_TABLE_MAX) {
 		return itoa(id);
 	}
 
@@ -127,7 +134,7 @@ static void rtnl_rtscope_initialize(void)
 
 const char* FAST_FUNC rtnl_rtscope_n2a(int id)
 {
-	if (id < 0 || id >= 256) {
+	if (id < 0 || id > RT_TABLE_MAX) {
 		return itoa(id);
 	}
 
@@ -164,7 +171,7 @@ int FAST_FUNC rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 #if ENABLE_FEATURE_IP_RULE
 const char* FAST_FUNC rtnl_rtrealm_n2a(int id)
 {
-	if (id < 0 || id >= 256) {
+	if (id < 0 || id > RT_TABLE_MAX) {
 		return itoa(id);
 	}
 
@@ -189,7 +196,7 @@ static void rtnl_rtdsfield_initialize(void)
 
 const char* FAST_FUNC rtnl_dsfield_n2a(int id)
 {
-	if (id < 0 || id >= 256) {
+	if (id < 0 || id > RT_TABLE_MAX) {
 		return itoa(id);
 	}
 
@@ -212,7 +219,9 @@ static rtnl_tab_t *rtnl_rttable_tab;
 
 static void rtnl_rttable_initialize(void)
 {
-	if (rtnl_rtdsfield_tab) return;
+	if (rtnl_rttable_tab)
+		return;
+
 	rtnl_rttable_tab = xzalloc(sizeof(*rtnl_rttable_tab));
 	rtnl_rttable_tab->tab[0] = "unspec";
 	rtnl_rttable_tab->tab[255] = "local";
@@ -223,7 +232,7 @@ static void rtnl_rttable_initialize(void)
 
 const char* FAST_FUNC rtnl_rttable_n2a(int id)
 {
-	if (id < 0 || id >= 256) {
+	if (id < 0 || id > RT_TABLE_MAX) {
 		return itoa(id);
 	}
 
