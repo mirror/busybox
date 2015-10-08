@@ -10,6 +10,8 @@
 #include "libbb.h"
 #include "rt_names.h"
 
+#define CONFDIR          CONFIG_FEATURE_IP_ROUTE_DIR
+
 typedef struct rtnl_tab_t {
 	const char *cached_str;
 	unsigned cached_result;
@@ -92,7 +94,7 @@ static void rtnl_rtprot_initialize(void)
 		return;
 	rtnl_rtprot_tab = xzalloc(sizeof(*rtnl_rtprot_tab));
 	memcpy(rtnl_rtprot_tab->tab, init_tab, sizeof(init_tab));
-	rtnl_tab_initialize("/etc/iproute2/rt_protos", rtnl_rtprot_tab->tab);
+	rtnl_tab_initialize(CONFDIR "/rt_protos", rtnl_rtprot_tab->tab);
 }
 
 #if 0 /* UNUSED */
@@ -129,7 +131,7 @@ static void rtnl_rtscope_initialize(void)
 	rtnl_rtscope_tab->tab[254] = "host";
 	rtnl_rtscope_tab->tab[253] = "link";
 	rtnl_rtscope_tab->tab[200] = "site";
-	rtnl_tab_initialize("/etc/iproute2/rt_scopes", rtnl_rtscope_tab->tab);
+	rtnl_tab_initialize(CONFDIR "/rt_scopes", rtnl_rtscope_tab->tab);
 }
 
 const char* FAST_FUNC rtnl_rtscope_n2a(int id)
@@ -159,7 +161,7 @@ static void rtnl_rtrealm_initialize(void)
 	if (rtnl_rtrealm_tab) return;
 	rtnl_rtrealm_tab = xzalloc(sizeof(*rtnl_rtrealm_tab));
 	rtnl_rtrealm_tab->tab[0] = "unknown";
-	rtnl_tab_initialize("/etc/iproute2/rt_realms", rtnl_rtrealm_tab->tab);
+	rtnl_tab_initialize(CONFDIR "/rt_realms", rtnl_rtrealm_tab->tab);
 }
 
 int FAST_FUNC rtnl_rtrealm_a2n(uint32_t *id, char *arg)
@@ -191,7 +193,7 @@ static void rtnl_rtdsfield_initialize(void)
 	if (rtnl_rtdsfield_tab) return;
 	rtnl_rtdsfield_tab = xzalloc(sizeof(*rtnl_rtdsfield_tab));
 	rtnl_rtdsfield_tab->tab[0] = "0";
-	rtnl_tab_initialize("/etc/iproute2/rt_dsfield", rtnl_rtdsfield_tab->tab);
+	rtnl_tab_initialize(CONFDIR "/rt_dsfield", rtnl_rtdsfield_tab->tab);
 }
 
 const char* FAST_FUNC rtnl_dsfield_n2a(int id)
@@ -227,7 +229,7 @@ static void rtnl_rttable_initialize(void)
 	rtnl_rttable_tab->tab[255] = "local";
 	rtnl_rttable_tab->tab[254] = "main";
 	rtnl_rttable_tab->tab[253] = "default";
-	rtnl_tab_initialize("/etc/iproute2/rt_tables", rtnl_rttable_tab->tab);
+	rtnl_tab_initialize(CONFDIR "/rt_tables", rtnl_rttable_tab->tab);
 }
 
 const char* FAST_FUNC rtnl_rttable_n2a(int id)

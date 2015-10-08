@@ -533,6 +533,13 @@ config FEATURE_IP_ROUTE
 	help
 	  Add support for routing table management to "ip".
 
+config FEATURE_IP_ROUTE_DIR
+	string "ip route configuration directory"
+	default "/etc/iproute2"
+	depends on FEATURE_IP_ROUTE
+	help
+	  Location of the "ip" applet routing configuration.
+
 config FEATURE_IP_TUNNEL
 	bool "ip tunnel"
 	default y
