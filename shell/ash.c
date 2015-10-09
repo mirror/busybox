@@ -10073,8 +10073,9 @@ chkmail(void)
 		new_hash += (unsigned)statb.st_mtime;
 	}
 	if (!mail_var_path_changed && mailtime_hash != new_hash) {
+		if (mailtime_hash != 0)
+			out2str("you have mail\n");
 		mailtime_hash = new_hash;
-		out2str("you have mail\n");
 	}
 	mail_var_path_changed = 0;
 	popstackmark(&smark);
