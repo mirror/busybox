@@ -3919,19 +3919,15 @@ sprint_status48(char *s, int status, int sigonly)
 
 	col = 0;
 	if (!WIFEXITED(status)) {
-#if JOBS
-		if (WIFSTOPPED(status))
+		if (JOBS && WIFSTOPPED(status))
 			st = WSTOPSIG(status);
 		else
-#endif
 			st = WTERMSIG(status);
 		if (sigonly) {
 			if (st == SIGINT || st == SIGPIPE)
 				goto out;
-#if JOBS
-			if (WIFSTOPPED(status))
+			if (JOBS && WIFSTOPPED(status))
 				goto out;
-#endif
 		}
 		st &= 0x7f;
 //TODO: use bbox's get_signame? strsignal adds ~600 bytes to text+rodata
@@ -3955,7 +3951,6 @@ dowait(int wait_flags, struct job *job)
 	int status;
 	struct job *jp;
 	struct job *thisjob;
-	int state;
 
 	TRACE(("dowait(0x%x) called\n", wait_flags));
 
@@ -3973,11 +3968,12 @@ dowait(int wait_flags, struct job *job)
 	INT_OFF;
 	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
+		int jobstate;
 		struct procstat *ps;
 		struct procstat *psend;
 		if (jp->state == JOBDONE)
 			continue;
-		state = JOBDONE;
+		jobstate = JOBDONE;
 		ps = jp->ps;
 		psend = ps + jp->nprocs;
 		do {
@@ -3989,41 +3985,41 @@ dowait(int wait_flags, struct job *job)
 				thisjob = jp;
 			}
 			if (ps->ps_status == -1)
-				state = JOBRUNNING;
+				jobstate = JOBRUNNING;
 #if JOBS
-			if (state == JOBRUNNING)
+			if (jobstate == JOBRUNNING)
 				continue;
 			if (WIFSTOPPED(ps->ps_status)) {
 				jp->stopstatus = ps->ps_status;
-				state = JOBSTOPPED;
+				jobstate = JOBSTOPPED;
 			}
 #endif
 		} while (++ps < psend);
-		if (thisjob)
-			goto gotjob;
-	}
+		if (!thisjob)
+			continue;
+
+		/* Found the job where one of its processes changed its state.
+		 * Is there at least one live and running process in this job? */
+		if (jobstate != JOBRUNNING) {
+			/* No. All live processes in the job are stopped
+			 * (JOBSTOPPED) or there are no live processes (JOBDONE)
+			 */
+			thisjob->changed = 1;
+			if (thisjob->state != jobstate) {
+				TRACE(("Job %d: changing state from %d to %d\n",
+					jobno(thisjob), thisjob->state, jobstate));
+				thisjob->state = jobstate;
 #if JOBS
-	if (!WIFSTOPPED(status))
+				if (jobstate == JOBSTOPPED)
+					set_curjob(thisjob, CUR_STOPPED);
 #endif
-		jobless--;
-	goto out;
-
- gotjob:
-	if (state != JOBRUNNING) {
-		thisjob->changed = 1;
-
-		if (thisjob->state != state) {
-			TRACE(("Job %d: changing state from %d to %d\n",
-				jobno(thisjob), thisjob->state, state));
-			thisjob->state = state;
-#if JOBS
-			if (state == JOBSTOPPED) {
-				set_curjob(thisjob, CUR_STOPPED);
 			}
-#endif
 		}
+		goto out;
 	}
-
+	/* The process wasn't found in job list */
+	if (JOBS && !WIFSTOPPED(status))
+		jobless--;
  out:
 	INT_ON;
 
