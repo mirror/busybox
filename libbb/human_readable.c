@@ -37,8 +37,6 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long val,
 		'\0', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'
 	};
 
-	static char *str;
-
 	unsigned frac; /* 0..9 - the fractional digit */
 	const char *u;
 	const char *fmt;
@@ -81,12 +79,7 @@ const char* FAST_FUNC make_human_readable_str(unsigned long long val,
 #endif
 	}
 
-	if (!str) {
-		/* sufficient for any width of val */
-		str = xmalloc(sizeof(val)*3 + 2 + 3);
-	}
-	sprintf(str, fmt, val, frac, *u);
-	return str;
+	return auto_string(xasprintf(fmt, val, frac, *u));
 }
 
 

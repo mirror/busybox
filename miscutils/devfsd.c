@@ -1142,19 +1142,19 @@ static void signal_handler(int sig)
 
 static const char *get_variable(const char *variable, void *info)
 {
-	static char sbuf[sizeof(int)*3 + 2]; /* sign and NUL */
 	static char *hostname;
 
 	struct get_variable_info *gv_info = info;
 	const char *field_names[] = {
-			"hostname", "mntpt", "devpath", "devname",
-			"uid", "gid", "mode", hostname, mount_point,
-			gv_info->devpath, gv_info->devname, NULL
+			"hostname", "mntpt", "devpath", "devname", "uid", "gid", "mode",
+			NULL, mount_point, gv_info->devpath, gv_info->devname, NULL
 	};
 	int i;
 
 	if (!hostname)
 		hostname = safe_gethostname();
+	field_names[7] = hostname;
+
 	/* index_in_str_array returns i>=0  */
 	i = index_in_str_array(field_names, variable);
 
@@ -1164,12 +1164,11 @@ static const char *get_variable(const char *variable, void *info)
 		return field_names[i + 7];
 
 	if (i == 4)
-		sprintf(sbuf, "%u", gv_info->info->uid);
-	else if (i == 5)
-		sprintf(sbuf, "%u", gv_info->info->gid);
-	else if (i == 6)
-		sprintf(sbuf, "%o", gv_info->info->mode);
-	return sbuf;
+		return auto_string(xasprintf("%u", gv_info->info->uid));
+	if (i == 5)
+		return auto_string(xasprintf("%u", gv_info->info->gid));
+	/* i == 6 */
+	return auto_string(xasprintf("%o", gv_info->info->mode));
 }   /*  End Function get_variable  */
 
 static void service(struct stat statbuf, char *path)
