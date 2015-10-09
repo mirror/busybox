@@ -86,7 +86,8 @@ int FAST_FUNC ll_remember_index(const struct sockaddr_nl *who UNUSED_PARAM,
 	return 0;
 }
 
-const char FAST_FUNC *ll_idx_n2a(int idx, char *buf)
+static
+const char FAST_FUNC *ll_idx_n2a(int idx/*, char *buf*/)
 {
 	struct idxmap *im;
 
@@ -95,15 +96,15 @@ const char FAST_FUNC *ll_idx_n2a(int idx, char *buf)
 	im = find_by_index(idx);
 	if (im)
 		return im->name;
-	snprintf(buf, 16, "if%d", idx);
-	return buf;
+	//snprintf(buf, 16, "if%d", idx);
+	//return buf;
+	return auto_string(xasprintf("if%d", idx));
 }
 
 const char FAST_FUNC *ll_index_to_name(int idx)
 {
-	static char nbuf[16];
-
-	return ll_idx_n2a(idx, nbuf);
+	//static char nbuf[16];
+	return ll_idx_n2a(idx/*, nbuf*/);
 }
 
 #ifdef UNUSED

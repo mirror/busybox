@@ -692,6 +692,7 @@ int bb_putchar(int ch) FAST_FUNC;
 /* Note: does not use stdio, writes to fd 2 directly */
 int bb_putchar_stderr(char ch) FAST_FUNC;
 char *xasprintf(const char *format, ...) __attribute__ ((format(printf, 1, 2))) FAST_FUNC RETURNS_MALLOC;
+char *auto_string(char *str) FAST_FUNC;
 // gcc-4.1.1 still isn't good enough at optimizing it
 // (+200 bytes compared to macro)
 //static ALWAYS_INLINE
