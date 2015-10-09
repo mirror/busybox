@@ -10029,10 +10029,8 @@ setinputstring(char *string)
 
 #if ENABLE_ASH_MAIL
 
-#define MAXMBOXES 10
-
-/* times of mailboxes */
-static time_t mailtime[MAXMBOXES];
+/* Hash of mtimes of mailboxes */
+static unsigned mailtime_hash;
 /* Set if MAIL or MAILPATH is changed. */
 static smallint mail_var_path_changed;
 
@@ -10048,13 +10046,14 @@ chkmail(void)
 	const char *mpath;
 	char *p;
 	char *q;
-	time_t *mtp;
+	unsigned new_hash;
 	struct stackmark smark;
 	struct stat statb;
 
 	setstackmark(&smark);
 	mpath = mpathset() ? mpathval() : mailval();
-	for (mtp = mailtime; mtp < mailtime + MAXMBOXES; mtp++) {
+	new_hash = 0;
+	for (;;) {
 		p = path_advance(&mpath, nullstr);
 		if (p == NULL)
 			break;
@@ -10068,16 +10067,14 @@ chkmail(void)
 #endif
 		q[-1] = '\0';                   /* delete trailing '/' */
 		if (stat(p, &statb) < 0) {
-			*mtp = 0;
 			continue;
 		}
-		if (!mail_var_path_changed && statb.st_mtime != *mtp) {
-			fprintf(
-				stderr, "%s\n",
-				pathopt ? pathopt : "you have mail"
-			);
-		}
-		*mtp = statb.st_mtime;
+		/* Very simplistic "hash": just a sum of all mtimes */
+		new_hash += (unsigned)statb.st_mtime;
+	}
+	if (!mail_var_path_changed && mailtime_hash != new_hash) {
+		mailtime_hash = new_hash;
+		out2str("you have mail\n");
 	}
 	mail_var_path_changed = 0;
 	popstackmark(&smark);
