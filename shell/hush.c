@@ -1479,10 +1479,11 @@ static sighandler_t install_sighandler(int sig, sighandler_t handler)
 
 #if ENABLE_HUSH_JOB
 
+static void xfunc_has_died(void);
 /* After [v]fork, in child: do not restore tty pgrp on xfunc death */
-# define disable_restore_tty_pgrp_on_exit() (die_sleep = 0)
+# define disable_restore_tty_pgrp_on_exit() (die_func = NULL)
 /* After [v]fork, in parent: restore tty pgrp on xfunc death */
-# define enable_restore_tty_pgrp_on_exit()  (die_sleep = -1)
+# define enable_restore_tty_pgrp_on_exit()  (die_func = xfunc_has_died)
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
@@ -1585,6 +1586,15 @@ static void hush_exit(int exitcode)
 #else
 	exit(exitcode);
 #endif
+}
+
+static void xfunc_has_died(void) NORETURN;
+static void xfunc_has_died(void)
+{
+	/* xfunc has failed! die die die */
+	/* no EXIT traps, this is an escape hatch! */
+	G.exiting = 1;
+	hush_exit(xfunc_error_retval);
 }
 
 
@@ -7866,12 +7876,7 @@ int hush_main(int argc, char **argv)
 	/* Initialize some more globals to non-zero values */
 	cmdedit_update_prompt();
 
-	if (setjmp(die_jmp)) {
-		/* xfunc has failed! die die die */
-		/* no EXIT traps, this is an escape hatch! */
-		G.exiting = 1;
-		hush_exit(xfunc_error_retval);
-	}
+	die_func = xfunc_has_died;
 
 	/* Shell is non-interactive at first. We need to call
 	 * install_special_sighandlers() if we are going to execute "sh <script>",
@@ -8129,9 +8134,7 @@ int hush_main(int argc, char **argv)
 			/* Grab control of the terminal */
 			tcsetpgrp(G_interactive_fd, getpid());
 		}
-		/* -1 is special - makes xfuncs longjmp, not exit
-		 * (we reset die_sleep = 0 whereever we [v]fork) */
-		enable_restore_tty_pgrp_on_exit(); /* sets die_sleep = -1 */
+		enable_restore_tty_pgrp_on_exit();
 
 # if ENABLE_HUSH_SAVEHISTORY && MAX_HISTORY > 0
 		{

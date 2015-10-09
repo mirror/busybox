@@ -520,6 +520,11 @@ static void alarm_handler(int sig UNUSED_PARAM)
 	_exit(EXIT_SUCCESS);
 }
 
+static void sleep10(void)
+{
+	sleep(10);
+}
+
 int getty_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int getty_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -599,7 +604,7 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
 		close(n--);
 
 	/* Logging. We want special flavor of error_msg_and_die */
-	die_sleep = 10;
+	die_func = sleep10;
 	msg_eol = "\r\n";
 	/* most likely will internally use fd #3 in CLOEXEC mode: */
 	openlog(applet_name, LOG_PID, LOG_AUTH);

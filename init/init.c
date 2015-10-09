@@ -1015,6 +1015,11 @@ void handle_sigsegv(int sig, siginfo_t *info, void *ucontext)
 }
 #endif
 
+static void sleep_much(void)
+{
+        sleep(30 * 24*60*60);
+}
+
 int init_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int init_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1051,12 +1056,12 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 
 	/* If, say, xmalloc would ever die, we don't want to oops kernel
 	 * by exiting.
-	 * NB: we set die_sleep *after* PID 1 check and bb_show_usage.
+	 * NB: we set die_func *after* PID 1 check and bb_show_usage.
 	 * Otherwise, for example, "init u" ("please rexec yourself"
 	 * command for sysvinit) will show help text (which isn't too bad),
 	 * *and sleep forever* (which is bad!)
 	 */
-	die_sleep = 30 * 24*60*60;
+	die_func = sleep_much;
 
 	/* Figure out where the default console should be */
 	console_init();
