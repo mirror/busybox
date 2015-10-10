@@ -12826,27 +12826,25 @@ umaskcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 	if (*argptr == NULL) {
 		if (symbolic_mode) {
-			char buf[sizeof("u=rwx,g=rwx,o=rwx")];
+			char buf[sizeof(",u=rwx,g=rwx,o=rwx")];
 			char *p = buf;
 			int i;
 
 			i = 2;
 			for (;;) {
-				unsigned bits;
-
+				*p++ = ',';
 				*p++ = permuser[i];
 				*p++ = '=';
 				/* mask is 0..0uuugggooo. i=2 selects uuu bits */
-				bits = (mask >> (i*3));
-				if (!(bits & 4)) *p++ = 'r';
-				if (!(bits & 2)) *p++ = 'w';
-				if (!(bits & 1)) *p++ = 'x';
+				if (!(mask & 0400)) *p++ = 'r';
+				if (!(mask & 0200)) *p++ = 'w';
+				if (!(mask & 0100)) *p++ = 'x';
+				mask <<= 3;
 				if (--i < 0)
 					break;
-				*p++ = ',';
 			}
 			*p = '\0';
-			puts(buf);
+			puts(buf + 1);
 		} else {
 			out1fmt("%04o\n", mask);
 		}
