@@ -9120,12 +9120,9 @@ static int FAST_FUNC builtin_wait(char **argv)
 			return EXIT_FAILURE;
 		}
 		if (waitpid(pid, &status, 0) == pid) {
+			ret = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
-			else if (WIFEXITED(status))
-				ret = WEXITSTATUS(status);
-			else /* wtf? */
-				ret = EXIT_FAILURE;
 		} else {
 			bb_perror_msg("wait %s", *argv);
 			ret = 127;
