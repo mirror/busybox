@@ -34,7 +34,8 @@
 	&& ((UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256))
 #error struct utmpx member char[] size(s) have changed!
 #elif defined __UT_LINESIZE \
-	&& ((__UT_LINESIZE != 32) || (__UT_NAMESIZE != 64) || (__UT_HOSTSIZE != 256))
+	&& ((__UT_LINESIZE != 32) || (__UT_NAMESIZE != 32) || (__UT_HOSTSIZE != 256))
+/* __UT_NAMESIZE was checked with 64 above, but glibc-2.11 definitely uses 32! */
 #error struct utmpx member char[] size(s) have changed!
 #endif
 
