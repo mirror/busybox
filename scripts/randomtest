@@ -65,14 +65,16 @@ if test x"$LIBC" = x"uclibc"; then
 	| grep -v CONFIG_BUILD_LIBBUSYBOX \
 	| grep -v CONFIG_PIE \
 	\
-	| grep -v CONFIG_FEATURE_TOUCH_NODEREF \
 	| grep -v CONFIG_FEATURE_2_4_MODULES \
+	| grep -v CONFIG_FEATURE_SYNC_FANCY \
+	| grep -v CONFIG_FEATURE_TOUCH_NODEREF \
 	>.config.new
 	mv .config.new .config
 	echo 'CONFIG_STATIC=y' >>.config
 	echo '# CONFIG_BUILD_LIBBUSYBOX is not set' >>.config
 	echo '# CONFIG_PIE is not set' >>.config
 	echo '# CONFIG_FEATURE_2_4_MODULES is not set' >>.config
+	echo '# CONFIG_FEATURE_SYNC_FANCY is not set' >>.config
 	echo '# CONFIG_FEATURE_TOUCH_NODEREF is not set' >>.config
 fi
 

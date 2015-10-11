@@ -28,7 +28,10 @@ hello_bz2() {
     $ECHO -ne "\x17\x72\x45\x38\x50\x90\x5b\xb8\xe8\xa3"
 }
 
-for ext in gz bz2 Z
+for ext in \
+    `test x"$CONFIG_GUNZIP=y = x"y" && echo gz` \
+    `test x"$CONFIG_BUNZIP2=y = x"y" && echo bz2` \
+    `test x"$CONFIG_UNCOMPRESS" = x"y" && echo Z`
 do
     prep() {
 	rm -f t1.$ext t2.$ext t_actual
@@ -49,11 +52,12 @@ do
     mkdir testdir 2>/dev/null
     (
     cd testdir || { echo "cannot cd testdir!"; exit 1; }
-
     expected="HELLO\nok\n"
-    prep; check "zcat: dont delete $ext src" "${bb}zcat t2.$ext; test -f t2.$ext && echo ok"
-
+    prep
+    check "zcat: dont delete $ext src" "${bb}zcat t2.$ext; test -f t2.$ext && echo ok"
+    exit $FAILCOUNT
     )
+    FAILCOUNT=$?
     rm -rf testdir
 done
 
@@ -89,6 +93,7 @@ testing "bzcat can handle compressed zero-length bzip2 files" \
 ## compress algorithm
 
 # "input" file is compressed (.Z) file with "a\n" data
+test x"$CONFIG_UNCOMPRESS" = x"y" && \
 testing "zcat can print many files" \
 "$ECHO -ne '$hexdump' | zcat input input; echo \$?" \
 "\
@@ -100,7 +105,8 @@ a
 " ""
 
 # "input" file is compressed (.Z) zero byte file
-testing "zcat can handle compressed zero-length compressed (.Z) files" \
+test x"$CONFIG_UNCOMPRESS" = x"y" && \
+testing "zcat can handle compressed zero-length (.Z) files" \
 "$ECHO -ne '$hexdump' | zcat input input; echo \$?" \
 "0\n" \
 "\x1f\x9d\x90\x00" ""
