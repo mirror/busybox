@@ -29,8 +29,8 @@ hello_bz2() {
 }
 
 for ext in \
-    `test x"$CONFIG_GUNZIP=y = x"y" && echo gz` \
-    `test x"$CONFIG_BUNZIP2=y = x"y" && echo bz2` \
+    `test x"$CONFIG_GUNZIP"     = x"y" && echo gz` \
+    `test x"$CONFIG_BUNZIP2"    = x"y" && echo bz2` \
     `test x"$CONFIG_UNCOMPRESS" = x"y" && echo Z`
 do
     prep() {
