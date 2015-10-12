@@ -129,22 +129,19 @@ else
 LDLIBS += m
 endif
 
-ifeq ($(CONFIG_LINK_WITH_PTHREAD),y)
-PTHREAD_AVAILABLE := $(shell echo 'int main(void){return 0;}' >pthreadtest.c; $(CC) $(CFLAGS) -lpthread -o /dev/null pthreadtest.c >/dev/null 2>&1 && echo "y"; rm pthreadtest.c)
-ifeq ($(PTHREAD_AVAILABLE),y)
-LDLIBS += pthread
-endif
-endif
+# libpam may use libpthread, libdl and/or libaudit.
+# On some platforms that requires an explicit -lpthread, -ldl, -laudit.
+# However, on *other platforms* it fails when some of those flags
+# given needlessly. On some systems, crypt needs pthread.
+#
+# I even had a system where a runtime test for pthread
+# (similar to CRYPT_AVAILABLE test above) was not reliable.
+#
+# Do not propagate this mess by adding libraries to CONFIG_PAM/CRYPT_AVAILABLE blocks.
+# Add libraries you need to CONFIG_EXTRA_LDLIBS instead.
 
 ifeq ($(CONFIG_PAM),y)
-# libpam uses libpthread, libdl and libaudit, so for static builds busybox
-# must be linked to libpthread, libdl and libaudit. On some platforms that
-# requires an explicit -lpthread, -ldl and -laudit, so it should be in
-# LDLIBS. For non-static builds, scripts/trylink will take care of removing
-# these flags if possible. (Not bothering to check CONFIG_STATIC because
-# even in a non-static build it could be that the only libpam available is
-# libpam.a, so -lpthread & Co. could still be needed.)
-LDLIBS += pam pam_misc pthread dl audit
+LDLIBS += pam pam_misc
 endif
 
 ifeq ($(CONFIG_SELINUX),y)
