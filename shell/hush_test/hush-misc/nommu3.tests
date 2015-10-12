@@ -7,7 +7,7 @@ func()
 
 pipe_to_func()
 {
-	# We had a NOMMU bug which caused "echo Ok |" part ot be lost
+	# We had a NOMMU bug which caused "echo Ok |" part to be lost
 	echo Ok | func
 }
 
