@@ -387,7 +387,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 					send_arp_request(0, &null_ethaddr, chosen_nip);
 					continue;
 				}
-  				// Switch to announce state
+				// Switch to announce state
 				nsent = 0;
 				state = ANNOUNCE;
 				goto send_announce;

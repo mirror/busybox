@@ -121,7 +121,7 @@ static struct statics *ptr_to_statics;
 #if ENABLE_FEATURE_CLEAN_UP
 static void free_static(void)
 {
-    	free(S.db[0].malloced);
+	free(S.db[0].malloced);
 	free(S.db[1].malloced);
 # if ENABLE_USE_BB_SHADOW
 	free(S.db[2].malloced);
