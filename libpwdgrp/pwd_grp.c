@@ -58,7 +58,7 @@ struct passdb {
  * I = uid,gid, l = long maybe empty, m = members,
  * r = reserved
  */
-#define PW_DEF "SsIIsSS"
+#define PW_DEF "SsIIsss"
 #define GR_DEF "SsIm"
 #define SP_DEF "Ssllllllr"
 
