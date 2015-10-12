@@ -147,7 +147,9 @@ struct host_info {
 };
 static const char P_FTP[] = "ftp";
 static const char P_HTTP[] = "http";
+#if ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER
 static const char P_HTTPS[] = "https";
+#endif
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 /* User-specified headers prevent using our corresponding built-in headers.  */
@@ -410,10 +412,12 @@ static void parse_url(const char *src_url, struct host_info *h)
 		if (strcmp(url, P_FTP) == 0) {
 			h->port = bb_lookup_port(P_FTP, "tcp", 21);
 		} else
+#if ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER
 		if (strcmp(url, P_HTTPS) == 0) {
 			h->port = bb_lookup_port(P_HTTPS, "tcp", 443);
 			h->protocol = P_HTTPS;
 		} else
+#endif
 		if (strcmp(url, P_HTTP) == 0) {
  http:
 			h->port = bb_lookup_port(P_HTTP, "tcp", 80);
