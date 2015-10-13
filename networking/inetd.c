@@ -329,9 +329,6 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { LINE_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line) };
-struct BUG_G_too_big {
-	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
-};
 #define rlim_ofile_cur  (G.rlim_ofile_cur )
 #define rlim_ofile      (G.rlim_ofile     )
 #define serv_list       (G.serv_list      )
@@ -352,6 +349,7 @@ struct BUG_G_too_big {
 #define allsock         (G.allsock        )
 #define line            (G.line           )
 #define INIT_G() do { \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	rlim_ofile_cur = OPEN_MAX; \
 	global_queuelen = 128; \
 	config_filename = "/etc/inetd.conf"; \

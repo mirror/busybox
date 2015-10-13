@@ -368,9 +368,6 @@ struct globals {
 #endif
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-struct BUG_G_too_big {
-	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
-};
 #define get_identity       (G.get_identity           )
 #define get_geom           (G.get_geom               )
 #define do_flush           (G.do_flush               )
@@ -433,7 +430,9 @@ struct BUG_G_too_big {
 #define hwif_data          (G.hwif_data              )
 #define hwif_ctrl          (G.hwif_ctrl              )
 #define hwif_irq           (G.hwif_irq               )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
+} while (0)
 
 
 /* Busybox messages and functions */

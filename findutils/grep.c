@@ -203,9 +203,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
-	struct G_sizecheck { \
-		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
-	}; \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)
 #define max_matches       (G.max_matches         )
 #if !ENABLE_EXTRA_COMPAT

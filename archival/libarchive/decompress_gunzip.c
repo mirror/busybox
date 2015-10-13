@@ -1118,9 +1118,8 @@ static int check_header_gzip(STATE_PARAM transformer_state_t *xstate)
 			uint8_t os_flags_UNUSED;
 		} PACKED formatted;
 	} header;
-	struct BUG_header {
-		char BUG_header[sizeof(header) == 8 ? 1 : -1];
-	};
+
+	BUILD_BUG_ON(sizeof(header) != 8);
 
 	/*
 	 * Rewind bytebuffer. We use the beginning because the header has 8

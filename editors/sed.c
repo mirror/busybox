@@ -162,10 +162,8 @@ struct globals {
 	} pipeline;
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
-struct BUG_G_too_big {
-	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
-};
 #define INIT_G() do { \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	G.sed_cmd_tail = &G.sed_cmd_head; \
 } while (0)
 
@@ -501,9 +499,11 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 		IDX_rbrace,
 		IDX_nul
 	};
-	struct chk { char chk[sizeof(cmd_letters)-1 == IDX_nul ? 1 : -1]; };
+	unsigned idx;
 
-	unsigned idx = strchrnul(cmd_letters, sed_cmd->cmd) - cmd_letters;
+	BUILD_BUG_ON(sizeof(cmd_letters)-1 != IDX_nul);
+
+	idx = strchrnul(cmd_letters, sed_cmd->cmd) - cmd_letters;
 
 	/* handle (s)ubstitution command */
 	if (idx == IDX_s) {

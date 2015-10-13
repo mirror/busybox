@@ -75,11 +75,9 @@ static char *from_cpuset(cpu_set_t *mask)
 #define TASKSET_PRINTF_MASK "%llx"
 static unsigned long long from_cpuset(cpu_set_t *mask)
 {
-	struct BUG_CPU_SETSIZE_is_too_small {
-		char BUG_CPU_SETSIZE_is_too_small[
-			CPU_SETSIZE < sizeof(int) ? -1 : 1];
-	};
 	char *p = (void*)mask;
+
+	BUILD_BUG_ON(CPU_SETSIZE < sizeof(int));
 
 	/* Take the least significant bits. Careful!
 	 * Consider both CPU_SETSIZE=4 and CPU_SETSIZE=1024 cases

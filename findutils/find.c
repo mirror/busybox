@@ -423,9 +423,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 #define INIT_G() do { \
-	struct G_sizecheck { \
-		char G_sizecheck[sizeof(G) > COMMON_BUFSIZE ? -1 : 1]; \
-	}; \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
 	IF_FEATURE_FIND_MAXDEPTH(G.minmaxdepth[1] = INT_MAX;) \
