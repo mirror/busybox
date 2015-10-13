@@ -1223,11 +1223,26 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	argv += optind;
 	if (argv[0]) {
+		const char *basedir = argv[0];
 #if !BB_MMU
 		G.root_fd = xopen("/", O_RDONLY | O_DIRECTORY);
 		close_on_exec_on(G.root_fd);
 #endif
-		xchroot(argv[0]);
+		if (chroot(basedir) == 0)
+			basedir = "/";
+#if !BB_MMU
+		else {
+			close(G.root_fd);
+			G.root_fd = -1;
+		}
+#endif
+		/*
+		 * If chroot failed, assume that we aren't root,
+		 * and at least chdir to the specified DIR
+		 * (older versions were dying with error message).
+		 * If chroot worked, move current dir to new "/":
+		 */
+		xchdir(basedir);
 	}
 
 #if ENABLE_FEATURE_FTP_AUTHENTICATION
