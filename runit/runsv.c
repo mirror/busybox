@@ -49,16 +49,11 @@ static void gettimeofday_ns(struct timespec *ts)
 #else
 static void gettimeofday_ns(struct timespec *ts)
 {
-	if (sizeof(struct timeval) == sizeof(struct timespec)
-	 && sizeof(((struct timeval*)ts)->tv_usec) == sizeof(ts->tv_nsec)
-	) {
-		/* Cheat */
-		gettimeofday((void*)ts, NULL);
-		ts->tv_nsec *= 1000;
-	} else {
-		extern void BUG_need_to_implement_gettimeofday_ns(void);
-		BUG_need_to_implement_gettimeofday_ns();
-	}
+	BUILD_BUG_ON(sizeof(struct timeval) != sizeof(struct timespec));
+	BUILD_BUG_ON(sizeof(((struct timeval*)ts)->tv_usec) != sizeof(ts->tv_nsec));
+	/* Cheat */
+	gettimeofday((void*)ts, NULL);
+	ts->tv_nsec *= 1000;
 }
 #endif
 

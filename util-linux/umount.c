@@ -82,11 +82,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 
 	// MNT_FORCE and MNT_DETACH (from linux/fs.h) must match
 	// OPT_FORCE and OPT_LAZY.
-	{
-		typedef char bug[
-			(OPT_FORCE != MNT_FORCE || OPT_LAZY != MNT_DETACH) ? -1 : 1
-		];
-	}
+	BUILD_BUG_ON(OPT_FORCE != MNT_FORCE || OPT_LAZY != MNT_DETACH);
 	doForce = opt & (OPT_FORCE|OPT_LAZY);
 
 	/* Get a list of mount points from mtab.  We read them all in now mostly

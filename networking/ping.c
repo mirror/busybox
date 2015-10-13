@@ -396,10 +396,8 @@ struct globals {
 #define dotted       (G.dotted      )
 #define pingaddr     (G.pingaddr    )
 #define rcvd_tbl     (G.rcvd_tbl    )
-void BUG_ping_globals_too_big(void);
 #define INIT_G() do { \
-	if (sizeof(G) > COMMON_BUFSIZE) \
-		BUG_ping_globals_too_big(); \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	datalen = DEFDATALEN; \
 	timeout = MAXWAIT; \
 	tmin = UINT_MAX; \
@@ -732,7 +730,6 @@ static void ping4(len_and_sockaddr *lsa)
 	}
 }
 #if ENABLE_PING6
-extern int BUG_bad_offsetof_icmp6_cksum(void);
 static void ping6(len_and_sockaddr *lsa)
 {
 	int sockopt;
@@ -769,8 +766,7 @@ static void ping6(len_and_sockaddr *lsa)
 	setsockopt_SOL_SOCKET_int(pingsock, SO_RCVBUF, sockopt);
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	if (offsetof(struct icmp6_hdr, icmp6_cksum) != 2)
-		BUG_bad_offsetof_icmp6_cksum();
+	BUILD_BUG_ON(offsetof(struct icmp6_hdr, icmp6_cksum) != 2);
 	setsockopt_int(pingsock, SOL_RAW, IPV6_CHECKSUM, sockopt);
 
 	/* request ttl info to be returned in ancillary data */

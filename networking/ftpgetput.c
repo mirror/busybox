@@ -62,9 +62,6 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)&bb_common_bufsiz1)
 enum { BUFSZ = COMMON_BUFSIZE - offsetof(struct globals, buf) };
-struct BUG_G_too_big {
-	char BUG_G_too_big[sizeof(G) <= COMMON_BUFSIZE ? 1 : -1];
-};
 #define user           (G.user          )
 #define password       (G.password      )
 #define lsa            (G.lsa           )
@@ -72,7 +69,9 @@ struct BUG_G_too_big {
 #define verbose_flag   (G.verbose_flag  )
 #define do_continue    (G.do_continue   )
 #define buf            (G.buf           )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { \
+	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
+} while (0)
 
 
 static void ftp_die(const char *msg) NORETURN;

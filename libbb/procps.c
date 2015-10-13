@@ -283,7 +283,6 @@ int FAST_FUNC procps_read_smaps(pid_t pid, struct smaprec *total,
 }
 #endif
 
-void BUG_comm_size(void);
 procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 {
 	if (!sp)
@@ -385,8 +384,7 @@ procps_status_t* FAST_FUNC procps_scan(procps_status_t* sp, int flags)
 			/*if (!cp || cp[1] != ' ')
 				continue;*/
 			cp[0] = '\0';
-			if (sizeof(sp->comm) < 16)
-				BUG_comm_size();
+			BUILD_BUG_ON(sizeof(sp->comm) < 16);
 			comm1 = strchr(buf, '(');
 			/*if (comm1)*/
 				safe_strncpy(sp->comm, comm1 + 1, sizeof(sp->comm));
