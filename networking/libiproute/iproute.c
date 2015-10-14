@@ -61,7 +61,6 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	struct rtmsg *r = NLMSG_DATA(n);
 	int len = n->nlmsg_len;
 	struct rtattr *tb[RTA_MAX+1];
-	char abuf[256];
 	inet_prefix dst;
 	inet_prefix src;
 	int host_len = -1;
@@ -218,17 +217,15 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 
 	if (tb[RTA_DST]) {
 		if (r->rtm_dst_len != host_len) {
-			printf("%s/%u ", rt_addr_n2a(r->rtm_family,
-						RTA_DATA(tb[RTA_DST]),
-						abuf, sizeof(abuf)),
-					r->rtm_dst_len
-					);
+			printf("%s/%u ",
+				rt_addr_n2a(r->rtm_family, RTA_DATA(tb[RTA_DST])),
+				r->rtm_dst_len
+			);
 		} else {
 			printf("%s ", format_host(r->rtm_family,
 						RTA_PAYLOAD(tb[RTA_DST]),
-						RTA_DATA(tb[RTA_DST]),
-						abuf, sizeof(abuf))
-					);
+						RTA_DATA(tb[RTA_DST]))
+			);
 		}
 	} else if (r->rtm_dst_len) {
 		printf("0/%d ", r->rtm_dst_len);
@@ -237,17 +234,15 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	}
 	if (tb[RTA_SRC]) {
 		if (r->rtm_src_len != host_len) {
-			printf("from %s/%u ", rt_addr_n2a(r->rtm_family,
-						RTA_DATA(tb[RTA_SRC]),
-						abuf, sizeof(abuf)),
-					r->rtm_src_len
-					);
+			printf("from %s/%u ",
+				rt_addr_n2a(r->rtm_family, RTA_DATA(tb[RTA_SRC])),
+				r->rtm_src_len
+			);
 		} else {
 			printf("from %s ", format_host(r->rtm_family,
 						RTA_PAYLOAD(tb[RTA_SRC]),
-						RTA_DATA(tb[RTA_SRC]),
-						abuf, sizeof(abuf))
-					);
+						RTA_DATA(tb[RTA_SRC]))
+			);
 		}
 	} else if (r->rtm_src_len) {
 		printf("from 0/%u ", r->rtm_src_len);
@@ -255,8 +250,8 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_GATEWAY] && G_filter.rvia.bitlen != host_len) {
 		printf("via %s ", format_host(r->rtm_family,
 					RTA_PAYLOAD(tb[RTA_GATEWAY]),
-					RTA_DATA(tb[RTA_GATEWAY]),
-					abuf, sizeof(abuf)));
+					RTA_DATA(tb[RTA_GATEWAY]))
+		);
 	}
 	if (tb[RTA_OIF]) {
 		printf("dev %s ", ll_index_to_name(*(int*)RTA_DATA(tb[RTA_OIF])));
@@ -269,8 +264,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		   and symbolic name will not be useful.
 		 */
 		printf(" src %s ", rt_addr_n2a(r->rtm_family,
-					RTA_DATA(tb[RTA_PREFSRC]),
-					abuf, sizeof(abuf)));
+					RTA_DATA(tb[RTA_PREFSRC])));
 	}
 	if (tb[RTA_PRIORITY]) {
 		printf(" metric %d ", *(uint32_t*)RTA_DATA(tb[RTA_PRIORITY]));

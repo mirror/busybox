@@ -44,7 +44,6 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	int len = n->nlmsg_len;
 	int host_len = -1;
 	struct rtattr * tb[RTA_MAX+1];
-	char abuf[256];
 
 	if (n->nlmsg_type != RTM_NEWRULE)
 		return 0;
@@ -71,16 +70,14 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	printf("from ");
 	if (tb[RTA_SRC]) {
 		if (r->rtm_src_len != host_len) {
-			printf("%s/%u", rt_addr_n2a(r->rtm_family,
-							RTA_DATA(tb[RTA_SRC]),
-							abuf, sizeof(abuf)),
+			printf("%s/%u",
+				rt_addr_n2a(r->rtm_family, RTA_DATA(tb[RTA_SRC])),
 				r->rtm_src_len
 			);
 		} else {
 			fputs(format_host(r->rtm_family,
 						RTA_PAYLOAD(tb[RTA_SRC]),
-						RTA_DATA(tb[RTA_SRC]),
-						abuf, sizeof(abuf)),
+						RTA_DATA(tb[RTA_SRC])),
 				stdout
 			);
 		}
@@ -94,15 +91,13 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 	if (tb[RTA_DST]) {
 		if (r->rtm_dst_len != host_len) {
 			printf("to %s/%u ", rt_addr_n2a(r->rtm_family,
-							 RTA_DATA(tb[RTA_DST]),
-							 abuf, sizeof(abuf)),
+							 RTA_DATA(tb[RTA_DST])),
 				r->rtm_dst_len
 				);
 		} else {
 			printf("to %s ", format_host(r->rtm_family,
 						       RTA_PAYLOAD(tb[RTA_DST]),
-						       RTA_DATA(tb[RTA_DST]),
-						       abuf, sizeof(abuf)));
+						       RTA_DATA(tb[RTA_DST])));
 		}
 	} else if (r->rtm_dst_len) {
 		printf("to 0/%d ", r->rtm_dst_len);
@@ -139,8 +134,8 @@ static int FAST_FUNC print_rule(const struct sockaddr_nl *who UNUSED_PARAM,
 			printf("map-to %s ",
 				format_host(r->rtm_family,
 					    RTA_PAYLOAD(tb[RTA_GATEWAY]),
-					    RTA_DATA(tb[RTA_GATEWAY]),
-					    abuf, sizeof(abuf)));
+					    RTA_DATA(tb[RTA_GATEWAY]))
+			);
 		} else
 			printf("masquerade");
 	} else if (r->rtm_type != RTN_UNICAST)

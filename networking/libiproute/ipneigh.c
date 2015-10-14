@@ -91,7 +91,6 @@ static int FAST_FUNC print_neigh(const struct sockaddr_nl *who UNUSED_PARAM,
 	struct ndmsg *r = NLMSG_DATA(n);
 	int len = n->nlmsg_len;
 	struct rtattr *tb[NDA_MAX+1];
-	char abuf[256];
 
 	if (n->nlmsg_type != RTM_NEWNEIGH && n->nlmsg_type != RTM_DELNEIGH) {
 		bb_error_msg_and_die("not RTM_NEWNEIGH: %08x %08x %08x",
@@ -155,8 +154,8 @@ static int FAST_FUNC print_neigh(const struct sockaddr_nl *who UNUSED_PARAM,
 		printf("%s ",
 		       format_host(r->ndm_family,
 				   RTA_PAYLOAD(tb[NDA_DST]),
-				   RTA_DATA(tb[NDA_DST]),
-				   abuf, sizeof(abuf)));
+				   RTA_DATA(tb[NDA_DST]))
+		);
 	}
 	if (!G_filter.index && r->ndm_ifindex)
 		printf("dev %s ", ll_index_to_name(r->ndm_ifindex));

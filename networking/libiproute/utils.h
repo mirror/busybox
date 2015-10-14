@@ -66,12 +66,12 @@ extern unsigned get_unsigned(char *arg, const char *errmsg);
 extern uint32_t get_u32(char *arg, const char *errmsg);
 extern uint16_t get_u16(char *arg, const char *errmsg);
 
-extern const char *rt_addr_n2a(int af, void *addr, char *buf, int buflen);
+extern const char *rt_addr_n2a(int af, void *addr);
 #ifdef RESOLVE_HOSTNAMES
-extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
+extern const char *format_host(int af, int len, void *addr);
 #else
-#define format_host(af, len, addr, buf, buflen) \
-	rt_addr_n2a(af, addr, buf, buflen)
+#define format_host(af, len, addr) \
+	rt_addr_n2a(af, addr)
 #endif
 
 void invarg_1_to_2(const char *, const char *) NORETURN;

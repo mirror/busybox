@@ -404,22 +404,18 @@ static int do_del(char **argv)
 
 static void print_tunnel(struct ip_tunnel_parm *p)
 {
-	char s1[256];
-	char s2[256];
-	char s3[64];
-	char s4[64];
-
-	format_host(AF_INET, 4, &p->iph.daddr, s1, sizeof(s1));
-	format_host(AF_INET, 4, &p->iph.saddr, s2, sizeof(s2));
-	inet_ntop(AF_INET, &p->i_key, s3, sizeof(s3));
-	inet_ntop(AF_INET, &p->o_key, s4, sizeof(s4));
+	char s3[INET_ADDRSTRLEN];
+	char s4[INET_ADDRSTRLEN];
 
 	printf("%s: %s/ip  remote %s  local %s ",
-	       p->name,
-	       p->iph.protocol == IPPROTO_IPIP ? "ip" :
-	       (p->iph.protocol == IPPROTO_GRE ? "gre" :
-		(p->iph.protocol == IPPROTO_IPV6 ? "ipv6" : "unknown")),
-	       p->iph.daddr ? s1 : "any", p->iph.saddr ? s2 : "any");
+		p->name,
+		p->iph.protocol == IPPROTO_IPIP ? "ip" :
+			p->iph.protocol == IPPROTO_GRE ? "gre" :
+			p->iph.protocol == IPPROTO_IPV6 ? "ipv6" :
+			"unknown",
+		p->iph.daddr ? format_host(AF_INET, 4, &p->iph.daddr) : "any",
+		p->iph.saddr ? format_host(AF_INET, 4, &p->iph.saddr) : "any"
+	);
 	if (p->link) {
 		char *n = do_ioctl_get_ifname(p->link);
 		if (n) {
@@ -442,9 +438,11 @@ static void print_tunnel(struct ip_tunnel_parm *p)
 	if (!(p->iph.frag_off & htons(IP_DF)))
 		printf(" nopmtudisc");
 
+	inet_ntop(AF_INET, &p->i_key, s3, sizeof(s3));
+	inet_ntop(AF_INET, &p->o_key, s4, sizeof(s4));
 	if ((p->i_flags & GRE_KEY) && (p->o_flags & GRE_KEY) && p->o_key == p->i_key)
 		printf(" key %s", s3);
-	else if ((p->i_flags | p->o_flags) & GRE_KEY) {
+	else {
 		if (p->i_flags & GRE_KEY)
 			printf(" ikey %s ", s3);
 		if (p->o_flags & GRE_KEY)

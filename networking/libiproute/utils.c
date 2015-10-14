@@ -276,20 +276,21 @@ int inet_addr_match(const inet_prefix *a, const inet_prefix *b, int bits)
 	return 0;
 }
 
-const char *rt_addr_n2a(int af,
-		void *addr, char *buf, int buflen)
+const char *rt_addr_n2a(int af, void *addr)
 {
 	switch (af) {
 	case AF_INET:
 	case AF_INET6:
-		return inet_ntop(af, addr, buf, buflen);
+		return inet_ntop(af, addr,
+			auto_string(xzalloc(INET6_ADDRSTRLEN)), INET6_ADDRSTRLEN
+		);
 	default:
 		return "???";
 	}
 }
 
 #ifdef RESOLVE_HOSTNAMES
-const char *format_host(int af, int len, void *addr, char *buf, int buflen)
+const char *format_host(int af, int len, void *addr)
 {
 	if (resolve_hosts) {
 		struct hostent *h_ent;
@@ -308,11 +309,10 @@ const char *format_host(int af, int len, void *addr, char *buf, int buflen)
 		if (len > 0) {
 			h_ent = gethostbyaddr(addr, len, af);
 			if (h_ent != NULL) {
-				safe_strncpy(buf, h_ent->h_name, buflen);
-				return buf;
+				return auto_string(xstrdup(h_ent->h_name));
 			}
 		}
 	}
-	return rt_addr_n2a(af, addr, buf, buflen);
+	return rt_addr_n2a(af, addr);
 }
 #endif
