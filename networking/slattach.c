@@ -27,7 +27,7 @@
 //usage:     "\n	-F	Disable RTS/CTS flow control"
 
 #include "libbb.h"
-#include "libiproute/utils.h" /* invarg() */
+#include "libiproute/utils.h" /* invarg_1_to_2() */
 
 struct globals {
 	int handle;
@@ -175,7 +175,7 @@ int slattach_main(int argc UNUSED_PARAM, char **argv)
 	encap = index_in_strings(proto_names, proto);
 
 	if (encap < 0)
-		invarg(proto, "protocol");
+		invarg_1_to_2(proto, "protocol");
 	if (encap > 3)
 		encap = 8;
 
@@ -183,7 +183,7 @@ int slattach_main(int argc UNUSED_PARAM, char **argv)
 	if (opt & OPT_s_baud) {
 		baud_code = tty_value_to_baud(xatoi(baud_str));
 		if (baud_code < 0)
-			invarg(baud_str, "baud rate");
+			invarg_1_to_2(baud_str, "baud rate");
 	}
 
 	/* Trap signals in order to restore tty states upon exit */

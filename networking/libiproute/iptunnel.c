@@ -294,7 +294,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			if (key != ARG_inherit) {
 				uval = get_unsigned(*argv, "TTL");
 				if (uval > 255)
-					invarg(*argv, "TTL must be <=255");
+					invarg_1_to_2(*argv, "TTL");
 				p->iph.ttl = uval;
 			}
 		} else if (key == ARG_tos ||
@@ -305,7 +305,7 @@ static void parse_args(char **argv, int cmd, struct ip_tunnel_parm *p)
 			key = index_in_strings(keywords, *argv);
 			if (key != ARG_inherit) {
 				if (rtnl_dsfield_a2n(&uval, *argv))
-					invarg(*argv, "TOS");
+					invarg_1_to_2(*argv, "TOS");
 				p->iph.tos = uval;
 			} else
 				p->iph.tos = 1;
@@ -562,7 +562,7 @@ int FAST_FUNC do_iptunnel(char **argv)
 	if (*argv) {
 		int key = index_in_substrings(keywords, *argv);
 		if (key < 0)
-			invarg(*argv, applet_name);
+			invarg_1_to_2(*argv, applet_name);
 		argv++;
 		if (key == ARG_add)
 			return do_add(SIOCADDTUNNEL, argv);

@@ -1786,7 +1786,7 @@ extern const char bb_msg_can_not_create_raw_socket[] ALIGN1;
 extern const char bb_msg_perm_denied_are_you_root[] ALIGN1;
 extern const char bb_msg_you_must_be_root[] ALIGN1;
 extern const char bb_msg_requires_arg[] ALIGN1;
-extern const char bb_msg_invalid_arg[] ALIGN1;
+extern const char bb_msg_invalid_arg_to[] ALIGN1;
 extern const char bb_msg_standard_input[] ALIGN1;
 extern const char bb_msg_standard_output[] ALIGN1;
 

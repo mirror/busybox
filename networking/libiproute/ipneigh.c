@@ -75,7 +75,7 @@ static unsigned nud_state_a2n(char *arg)
 
 	id = index_in_substrings(keywords, arg);
 	if (id < 0)
-		bb_error_msg_and_die(bb_msg_invalid_arg, arg, "nud state");
+		bb_error_msg_and_die(bb_msg_invalid_arg_to, arg, "nud state");
 	return nuds[id];
 }
 
@@ -281,9 +281,9 @@ static int FAST_FUNC ipneigh_list_or_flush(char **argv, int flush)
 	ll_init_map(&rth);
 
 	if (filter_dev)  {
-		if ((G_filter.index = xll_name_to_index(filter_dev)) == 0) {
-			bb_error_msg_and_die(bb_msg_invalid_arg,
-					     filter_dev, "Cannot find device");
+		G_filter.index = xll_name_to_index(filter_dev);
+		if (G_filter.index == 0) {
+			bb_error_msg_and_die("can't find device '%s'", filter_dev);
 		}
 	}
 
@@ -349,6 +349,6 @@ int FAST_FUNC do_ipneigh(char **argv)
 		case 1: /* flush */
 			return ipneigh_list_or_flush(argv + 1, 1);
 	}
-	invarg(*argv, applet_name);
+	invarg_1_to_2(*argv, applet_name);
 	return 1;
 }

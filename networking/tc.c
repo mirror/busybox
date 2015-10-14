@@ -459,14 +459,14 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 
 	obj = index_in_substrings(objects, *argv++);
 
-	if (obj < OBJ_qdisc)
+	if (obj < 0)
 		bb_show_usage();
 	if (!*argv)
 		cmd = CMD_show; /* list is the default */
 	else {
 		cmd = index_in_substrings(commands, *argv);
 		if (cmd < 0)
-			bb_error_msg_and_die(bb_msg_invalid_arg, *argv, applet_name);
+			invarg_1_to_2(*argv, argv[-1]);
 		argv++;
 	}
 	memset(&msg, 0, sizeof(msg));
@@ -489,7 +489,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			NEXT_ARG();
 			/* We don't care about duparg2("qdisc handle",*argv) for now */
 			if (get_qdisc_handle(&filter_qdisc, *argv))
-				invarg(*argv, "qdisc");
+				invarg_1_to_2(*argv, "qdisc");
 		} else
 		if (obj != OBJ_qdisc
 		 && (arg == ARG_root
@@ -499,7 +499,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 		) {
 			/* nothing */
 		} else {
-			invarg(*argv, "command");
+			invarg_1_to_2(*argv, "command");
 		}
 		NEXT_ARG();
 		if (arg == ARG_root) {
@@ -513,7 +513,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			if (msg.tcm_parent)
 				duparg(*argv, "parent");
 			if (get_tc_classid(&handle, *argv))
-				invarg(*argv, "parent");
+				invarg_1_to_2(*argv, "parent");
 			msg.tcm_parent = handle;
 			if (obj == OBJ_filter)
 				filter_parent = handle;
@@ -538,7 +538,7 @@ int tc_main(int argc UNUSED_PARAM, char **argv)
 			if (filter_proto)
 				duparg(*argv, "protocol");
 			if (ll_proto_a2n(&tmp, *argv))
-				invarg(*argv, "protocol");
+				invarg_1_to_2(*argv, "protocol");
 			filter_proto = tmp;
 		}
 	}

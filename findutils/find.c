@@ -882,7 +882,7 @@ static int find_type(const char *type)
 		mask = S_IFSOCK;
 
 	if (mask == 0 || type[1] != '\0')
-		bb_error_msg_and_die(bb_msg_invalid_arg, type, "-type");
+		bb_error_msg_and_die(bb_msg_invalid_arg_to, type, "-type");
 
 	return mask;
 }

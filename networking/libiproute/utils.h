@@ -74,7 +74,7 @@ extern const char *format_host(int af, int len, void *addr, char *buf, int bufle
 	rt_addr_n2a(af, addr, buf, buflen)
 #endif
 
-void invarg(const char *, const char *) NORETURN;
+void invarg_1_to_2(const char *, const char *) NORETURN;
 void duparg(const char *, const char *) NORETURN;
 void duparg2(const char *, const char *) NORETURN;
 int inet_addr_match(const inet_prefix *a, const inet_prefix *b, int bits);

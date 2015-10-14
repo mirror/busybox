@@ -29,7 +29,7 @@ const char bb_msg_can_not_create_raw_socket[] ALIGN1 = "can't create raw socket"
 const char bb_msg_perm_denied_are_you_root[] ALIGN1 = "permission denied (are you root?)";
 const char bb_msg_you_must_be_root[] ALIGN1 = "you must be root";
 const char bb_msg_requires_arg[] ALIGN1 = "%s requires an argument";
-const char bb_msg_invalid_arg[] ALIGN1 = "invalid argument '%s' to '%s'";
+const char bb_msg_invalid_arg_to[] ALIGN1 = "invalid argument '%s' to '%s'";
 const char bb_msg_standard_input[] ALIGN1 = "standard input";
 const char bb_msg_standard_output[] ALIGN1 = "standard output";
 

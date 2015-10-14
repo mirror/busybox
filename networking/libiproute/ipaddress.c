@@ -455,7 +455,7 @@ int FAST_FUNC ipaddr_list_or_flush(char **argv, int flush)
 			G_filter.scopemask = -1;
 			if (rtnl_rtscope_a2n(&scope, *argv)) {
 				if (strcmp(*argv, "all") != 0) {
-					invarg(*argv, "scope");
+					invarg_1_to_2(*argv, "scope");
 				}
 				scope = RT_SCOPE_NOWHERE;
 				G_filter.scopemask = 0;
@@ -669,7 +669,7 @@ static int ipaddr_modify(int cmd, int flags, char **argv)
 		} else if (arg == 5) { /* scope */
 			uint32_t scope = 0;
 			if (rtnl_rtscope_a2n(&scope, *argv)) {
-				invarg(*argv, "scope");
+				invarg_1_to_2(*argv, "scope");
 			}
 			req.ifa.ifa_scope = scope;
 			scoped = 1;
@@ -751,7 +751,7 @@ int FAST_FUNC do_ipaddr(char **argv)
 	if (*argv) {
 		cmd = index_in_substrings(commands, *argv);
 		if (cmd < 0)
-			invarg(*argv, applet_name);
+			invarg_1_to_2(*argv, applet_name);
 		argv++;
 		if (cmd <= 4) {
 			return ipaddr_modify(

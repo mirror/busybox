@@ -326,7 +326,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 					*arg = '\0';
 				n = index_in_strings(conv_words, val);
 				if (n < 0)
-					bb_error_msg_and_die(bb_msg_invalid_arg, val, "conv");
+					bb_error_msg_and_die(bb_msg_invalid_arg_to, val, "conv");
 				G.flags |= (1 << n);
 				if (!arg) /* no ',' left, so this was the last specifier */
 					break;
@@ -368,7 +368,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			int n;
 			n = index_in_strings(status_words, val);
 			if (n < 0)
-				bb_error_msg_and_die(bb_msg_invalid_arg, val, "status");
+				bb_error_msg_and_die(bb_msg_invalid_arg_to, val, "status");
 			G.flags |= FLAG_STATUS << n;
 			/*continue;*/
 		}

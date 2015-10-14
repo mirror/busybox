@@ -403,7 +403,7 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			uint32_t prot;
 			NEXT_ARG();
 			if (rtnl_rtprot_a2n(&prot, *argv))
-				invarg(*argv, "protocol");
+				invarg_1_to_2(*argv, "protocol");
 			req.r.rtm_protocol = prot;
 			ok |= proto_ok;
 #if ENABLE_FEATURE_IP_RULE
@@ -411,7 +411,7 @@ IF_FEATURE_IP_RULE(ARG_table,)
 			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
-				invarg(*argv, "table");
+				invarg_1_to_2(*argv, "table");
 			req.r.rtm_table = tid;
 #endif
 		} else if (arg == ARG_dev || arg == ARG_oif) {
@@ -597,7 +597,7 @@ static int iproute_list_or_flush(char **argv, int flush)
 			//G_filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
 				if (index_in_strings(keywords, *argv) != KW_all)
-					invarg(*argv, "protocol");
+					invarg_1_to_2(*argv, "protocol");
 				prot = 0;
 				//G_filter.protocolmask = 0;
 			}
@@ -622,10 +622,10 @@ static int iproute_list_or_flush(char **argv, int flush)
 #if ENABLE_FEATURE_IP_RULE
 				uint32_t tid;
 				if (rtnl_rttable_a2n(&tid, *argv))
-					invarg(*argv, "table");
+					invarg_1_to_2(*argv, "table");
 				G_filter.tb = tid;
 #else
-				invarg(*argv, "table");
+				invarg_1_to_2(*argv, "table");
 #endif
 			}
 		} else if (arg == KW_cache) {
@@ -932,7 +932,7 @@ int FAST_FUNC do_iproute(char **argv)
 		case 11: /* flush */
 			return iproute_list_or_flush(argv+1, 1);
 		default:
-			invarg(*argv, applet_name);
+			invarg_1_to_2(*argv, applet_name);
 	}
 
 	return iproute_modify(cmd, flags, argv+1);

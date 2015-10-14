@@ -47,7 +47,7 @@ unsigned get_unsigned(char *arg, const char *errmsg)
 			return res;
 		}
 	}
-	invarg(arg, errmsg); /* does not return */
+	invarg_1_to_2(arg, errmsg); /* does not return */
 }
 
 uint32_t get_u32(char *arg, const char *errmsg)
@@ -62,7 +62,7 @@ uint32_t get_u32(char *arg, const char *errmsg)
 			return res;
 		}
 	}
-	invarg(arg, errmsg); /* does not return */
+	invarg_1_to_2(arg, errmsg); /* does not return */
 }
 
 uint16_t get_u16(char *arg, const char *errmsg)
@@ -77,7 +77,7 @@ uint16_t get_u16(char *arg, const char *errmsg)
 			return res;
 		}
 	}
-	invarg(arg, errmsg); /* does not return */
+	invarg_1_to_2(arg, errmsg); /* does not return */
 }
 
 int get_addr_1(inet_prefix *addr, char *name, int family)
@@ -230,12 +230,12 @@ uint32_t get_addr32(char *name)
 
 void incomplete_command(void)
 {
-	bb_error_msg_and_die("command line is not complete, try option \"help\"");
+	bb_error_msg_and_die("command line is not complete, try \"help\"");
 }
 
-void invarg(const char *arg, const char *opt)
+void invarg_1_to_2(const char *arg, const char *opt)
 {
-	bb_error_msg_and_die(bb_msg_invalid_arg, arg, opt);
+	bb_error_msg_and_die(bb_msg_invalid_arg_to, arg, opt);
 }
 
 void duparg(const char *key, const char *arg)
