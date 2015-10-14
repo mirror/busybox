@@ -13,6 +13,28 @@
 #include "utils.h"
 #include "inet_common.h"
 
+unsigned get_hz(void)
+{
+	static unsigned hz_internal;
+	FILE *fp;
+
+	if (hz_internal)
+		return hz_internal;
+
+	fp = fopen_for_read("/proc/net/psched");
+	if (fp) {
+		unsigned nom, denom;
+
+		if (fscanf(fp, "%*08x%*08x%08x%08x", &nom, &denom) == 2)
+			if (nom == 1000000)
+				hz_internal = denom;
+		fclose(fp);
+	}
+	if (!hz_internal)
+		hz_internal = bb_clk_tck();
+	return hz_internal;
+}
+
 unsigned get_unsigned(char *arg, const char *errmsg)
 {
 	unsigned long res;

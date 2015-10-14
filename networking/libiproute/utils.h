@@ -85,6 +85,8 @@ int dnet_pton(int af, const char *src, void *addr);
 const char *ipx_ntop(int af, const void *addr, char *str, size_t len);
 int ipx_pton(int af, const char *src, void *addr);
 
+unsigned get_hz(void);
+
 POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

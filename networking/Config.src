@@ -554,6 +554,13 @@ config FEATURE_IP_RULE
 	help
 	  Add support for rule commands to "ip".
 
+config FEATURE_IP_NEIGH
+	bool "ip neighbor"
+	default y
+	depends on IP
+	help
+	  Add support for neighbor commands to "ip".
+
 config FEATURE_IP_SHORT_FORMS
 	bool "Support short forms of ip commands"
 	default y
@@ -565,6 +572,7 @@ config FEATURE_IP_SHORT_FORMS
 	  ip route  -> iproute
 	  ip tunnel -> iptunnel
 	  ip rule   -> iprule
+	  ip neigh  -> ipneigh
 
 	  Say N unless you desparately need the short form of the ip
 	  object commands.
@@ -603,6 +611,11 @@ config IPRULE
 	bool
 	default y
 	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_RULE
+
+config IPNEIGH
+	bool
+	default y
+	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_NEIGH
 
 config IPCALC
 	bool "ipcalc"

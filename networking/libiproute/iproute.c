@@ -55,28 +55,6 @@ static int flush_update(void)
 	return 0;
 }
 
-static unsigned get_hz(void)
-{
-	static unsigned hz_internal;
-	FILE *fp;
-
-	if (hz_internal)
-		return hz_internal;
-
-	fp = fopen_for_read("/proc/net/psched");
-	if (fp) {
-		unsigned nom, denom;
-
-		if (fscanf(fp, "%*08x%*08x%08x%08x", &nom, &denom) == 2)
-			if (nom == 1000000)
-				hz_internal = denom;
-		fclose(fp);
-	}
-	if (!hz_internal)
-		hz_internal = bb_clk_tck();
-	return hz_internal;
-}
-
 static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 		struct nlmsghdr *n, void *arg UNUSED_PARAM)
 {
@@ -217,7 +195,7 @@ static int FAST_FUNC print_route(const struct sockaddr_nl *who UNUSED_PARAM,
 
 		if (NLMSG_ALIGN(G_filter.flushp) + n->nlmsg_len > G_filter.flushe) {
 			if (flush_update())
-				bb_error_msg_and_die("flush");
+				xfunc_die();
 		}
 		fn = (void*)(G_filter.flushb + NLMSG_ALIGN(G_filter.flushp));
 		memcpy(fn, n, n->nlmsg_len);
@@ -954,7 +932,7 @@ int FAST_FUNC do_iproute(char **argv)
 		case 11: /* flush */
 			return iproute_list_or_flush(argv+1, 1);
 		default:
-			bb_error_msg_and_die("unknown command %s", *argv);
+			invarg(*argv, applet_name);
 	}
 
 	return iproute_modify(cmd, flags, argv+1);
