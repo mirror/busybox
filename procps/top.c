@@ -829,10 +829,17 @@ static NOINLINE void display_topmem_process_list(int lines_rem, int scr_width)
 #define HDR_STR "  PID   VSZ VSZRW   RSS (SHR) DIRTY (SHR) STACK"
 #define MIN_WIDTH sizeof(HDR_STR)
 	const topmem_status_t *s = topmem + G_scroll_ofs;
+	char *cp, ch;
 
 	display_topmem_header(scr_width, &lines_rem);
+
 	strcpy(line_buf, HDR_STR " COMMAND");
-	line_buf[11 + sort_field * 6] = "^_"[inverted];
+	/* Mark the ^FIELD^ we sort by */
+	cp = &line_buf[5 + sort_field * 6];
+	ch = "^_"[inverted];
+	cp[6] = ch;
+	do *cp++ = ch; while (*cp == ' ');
+
 	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width, line_buf);
 	lines_rem--;
 
@@ -1172,10 +1179,8 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		ntop = 0;
 		while ((p = procps_scan(p, scan_mask)) != NULL) {
 			int n;
-#if ENABLE_FEATURE_TOPMEM
-			if (scan_mask != TOPMEM_MASK)
-#endif
-			{
+
+			IF_FEATURE_TOPMEM(if (scan_mask != TOPMEM_MASK)) {
 				n = ntop;
 				top = xrealloc_vector(top, 6, ntop++);
 				top[n].pid = p->pid;
@@ -1215,7 +1220,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 			break;
 		}
 
-		if (scan_mask != TOPMEM_MASK) {
+		IF_FEATURE_TOPMEM(if (scan_mask != TOPMEM_MASK)) {
 #if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			if (!prev_hist_count) {
 				do_stats();
@@ -1229,17 +1234,13 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #else
 			qsort(top, ntop, sizeof(top_status_t), (void*)(sort_function[0]));
 #endif
+			display_process_list(G.lines, col);
 		}
 #if ENABLE_FEATURE_TOPMEM
 		else { /* TOPMEM */
 			qsort(topmem, ntop, sizeof(topmem_status_t), (void*)topmem_sort);
-		}
-#endif
-		if (scan_mask != TOPMEM_MASK)
-			display_process_list(G.lines, col);
-#if ENABLE_FEATURE_TOPMEM
-		else
 			display_topmem_process_list(G.lines, col);
+		}
 #endif
 		clearmems();
 		if (iterations >= 0 && !--iterations)
@@ -1248,7 +1249,7 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 		sleep(interval);
 #else
 		scan_mask = handle_input(scan_mask, interval);
-#endif /* FEATURE_USE_TERMIOS */
+#endif
 	} /* end of "while (not Q)" */
 
 	bb_putchar('\n');
