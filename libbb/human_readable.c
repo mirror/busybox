@@ -14,16 +14,11 @@
  *      representations (say, powers of 1024) and manipulating coefficients.
  *      The base ten "bytes" output could be handled similarly.
  *
- *   2) This routine always outputs a decimal point and a tenths digit when
- *      display_unit != 0.  Hence, it isn't uncommon for the returned string
+ *   2) This routine outputs a decimal point and a tenths digit when
+ *      display_unit == 0.  Hence, it isn't uncommon for the returned string
  *      to have a length of 5 or 6.
  *
- *      It might be nice to add a flag to indicate no decimal digits in
- *      that case.  This could be either an additional parameter, or a
- *      special value of display_unit.  Such a flag would also be nice for du.
- *
- *      Some code to omit the decimal point and tenths digit is sketched out
- *      and "#if 0"'d below.
+ *      If block_size is also 0, no decimal digits are printed.
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
