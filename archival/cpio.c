@@ -46,7 +46,7 @@
 //kbuild:lib-$(CONFIG_CPIO) += cpio.o
 
 //usage:#define cpio_trivial_usage
-//usage:       "[-dmvu] [-F FILE]" IF_FEATURE_CPIO_O(" [-H newc]")
+//usage:       "[-dmvu] [-F FILE] [-R USER[:GRP]]" IF_FEATURE_CPIO_O(" [-H newc]")
 //usage:       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")
 //usage:       " [EXTR_FILE]..."
 //usage:#define cpio_full_usage "\n\n"
@@ -71,6 +71,7 @@
 //usage:     "\n	-v	Verbose"
 //usage:     "\n	-u	Overwrite"
 //usage:     "\n	-F FILE	Input (-t,-i,-p) or output (-o) file"
+//usage:     "\n	-R USER[:GRP]	Set owner of created files"
 //usage:	IF_FEATURE_CPIO_O(
 //usage:     "\n	-H newc	Archive format"
 //usage:	)
@@ -130,7 +131,7 @@
   -I FILE                    File to use instead of standard input
   -L, --dereference          Dereference symbolic links (copy the files
                              that they point to instead of copying the links)
-  -R, --owner=[USER][:.][GROUP] Set owner of created files
+  -R, --owner=[USER][:.][GRP] Set owner of created files
 
  Options valid in --extract and --pass-through modes:
   -d, --make-directories     Create leading directories where needed
@@ -150,7 +151,8 @@ enum {
 	OPT_PRESERVE_MTIME     = (1 << 6),
 	OPT_DEREF              = (1 << 7),
 	OPT_FILE               = (1 << 8),
-	OPTBIT_FILE = 8,
+	OPT_OWNER              = (1 << 9),
+	OPTBIT_OWNER = 9,
 	IF_FEATURE_CPIO_O(OPTBIT_CREATE     ,)
 	IF_FEATURE_CPIO_O(OPTBIT_FORMAT     ,)
 	IF_FEATURE_CPIO_P(OPTBIT_PASSTHROUGH,)
@@ -163,7 +165,17 @@ enum {
 	OPT_2STDOUT            = IF_LONG_OPTS(     (1 << OPTBIT_2STDOUT    )) + 0,
 };
 
-#define OPTION_STR "it0uvdmLF:"
+#define OPTION_STR "it0uvdmLF:R:"
+
+struct globals {
+	struct bb_uidgid_t owner_ugid;
+} FIX_ALIASING;
+#define G (*(struct globals*)&bb_common_bufsiz1)
+void BUG_cpio_globals_too_big(void);
+#define INIT_G() do { \
+	G.owner_ugid.uid = -1L; \
+	G.owner_ugid.gid = -1L; \
+} while (0)
 
 #if ENABLE_FEATURE_CPIO_O
 static off_t cpio_pad4(off_t size)
@@ -181,7 +193,6 @@ static off_t cpio_pad4(off_t size)
  * It's ok to exit instead of return. */
 static NOINLINE int cpio_o(void)
 {
-	static const char trailer[] ALIGN1 = "TRAILER!!!";
 	struct name_s {
 		struct name_s *next;
 		char name[1];
@@ -222,6 +233,11 @@ static NOINLINE int cpio_o(void)
  abort_cpio_o:
 				bb_simple_perror_msg_and_die(name);
 			}
+
+			if (G.owner_ugid.uid != (uid_t)-1L)
+				st.st_uid = G.owner_ugid.uid;
+			if (G.owner_ugid.gid != (gid_t)-1L)
+				st.st_gid = G.owner_ugid.gid;
 
 			if (!(S_ISLNK(st.st_mode) || S_ISREG(st.st_mode)))
 				st.st_size = 0; /* paranoia */
@@ -275,7 +291,7 @@ static NOINLINE int cpio_o(void)
 			} else {
 				/* If no (more) hardlinks to output,
 				 * output "trailer" entry */
-				name = trailer;
+				name = cpio_TRAILER;
 				/* st.st_size == 0 is a must, but for uniformity
 				 * in the output, we zero out everything */
 				memset(&st, 0, sizeof(st));
@@ -323,7 +339,7 @@ static NOINLINE int cpio_o(void)
 		}
 
 		if (!line) {
-			if (name != trailer)
+			if (name != cpio_TRAILER)
 				goto next_link;
 			/* TODO: GNU cpio pads trailer to 512 bytes, do we want that? */
 			return EXIT_SUCCESS;
@@ -339,6 +355,7 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 {
 	archive_handle_t *archive_handle;
 	char *cpio_filename;
+	char *cpio_owner;
 	IF_FEATURE_CPIO_O(const char *cpio_fmt = "";)
 	unsigned opt;
 
@@ -353,12 +370,14 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 		"pass-through\0" No_argument       "p"
 #endif
 #endif
+		"owner\0"        Required_argument "R"
 		"verbose\0"      No_argument       "v"
 		"quiet\0"        No_argument       "\xff"
 		"to-stdout\0"    No_argument       "\xfe"
 		;
 #endif
 
+	INIT_G();
 	archive_handle = init_handle();
 	/* archive_handle->src_fd = STDIN_FILENO; - done by init_handle */
 	archive_handle->ah_flags = ARCHIVE_EXTRACT_NEWER;
@@ -369,14 +388,21 @@ int cpio_main(int argc UNUSED_PARAM, char **argv)
 	/* -L makes sense only with -o or -p */
 
 #if !ENABLE_FEATURE_CPIO_O
-	opt = getopt32(argv, OPTION_STR, &cpio_filename);
+	opt = getopt32(argv, OPTION_STR, &cpio_filename, &cpio_owner);
+#else
+	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"),
+		       &cpio_filename, &cpio_owner, &cpio_fmt);
+#endif
 	argv += optind;
+	if (opt & OPT_OWNER) { /* -R */
+		parse_chown_usergroup_or_die(&G.owner_ugid, cpio_owner);
+		archive_handle->cpio__owner = G.owner_ugid;
+	}
+#if !ENABLE_FEATURE_CPIO_O
 	if (opt & OPT_FILE) { /* -F */
 		xmove_fd(xopen(cpio_filename, O_RDONLY), STDIN_FILENO);
 	}
 #else
-	opt = getopt32(argv, OPTION_STR "oH:" IF_FEATURE_CPIO_P("p"), &cpio_filename, &cpio_fmt);
-	argv += optind;
 	if ((opt & (OPT_FILE|OPT_CREATE)) == OPT_FILE) { /* -F without -o */
 		xmove_fd(xopen(cpio_filename, O_RDONLY), STDIN_FILENO);
 	}
