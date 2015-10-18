@@ -5,6 +5,16 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config WHICH
+//config:	bool "which"
+//config:	default y
+//config:	help
+//config:	  which is used to find programs in your PATH and
+//config:	  print out their pathnames.
+
+//applet:IF_WHICH(APPLET(which, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_WHICH) += which.o
 
 //usage:#define which_trivial_usage
 //usage:       "[COMMAND]..."

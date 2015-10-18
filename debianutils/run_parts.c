@@ -22,6 +22,40 @@
  * report mode. As the original run-parts support only long options, I've
  * broken compatibility because the BusyBox policy doesn't allow them.
  */
+//config:config RUN_PARTS
+//config:	bool "run-parts"
+//config:	default y
+//config:	help
+//config:	  run-parts is a utility designed to run all the scripts in a directory.
+//config:
+//config:	  It is useful to set up a directory like cron.daily, where you need to
+//config:	  execute all the scripts in that directory.
+//config:
+//config:	  In this implementation of run-parts some features (such as report
+//config:	  mode) are not implemented.
+//config:
+//config:	  Unless you know that run-parts is used in some of your scripts
+//config:	  you can safely say N here.
+//config:
+//config:config FEATURE_RUN_PARTS_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on RUN_PARTS && LONG_OPTS
+//config:	help
+//config:	  Support long options for the run-parts applet.
+//config:
+//config:config FEATURE_RUN_PARTS_FANCY
+//config:	bool "Support additional arguments"
+//config:	default y
+//config:	depends on RUN_PARTS
+//config:	help
+//config:	  Support additional options:
+//config:	  -l --list print the names of the all matching files (not
+//config:	            limited to executables), but don't actually run them.
+
+//applet:IF_RUN_PARTS(APPLET_ODDNAME(run-parts, run_parts, BB_DIR_BIN, BB_SUID_DROP, run_parts))
+
+//kbuild:lib-$(CONFIG_RUN_PARTS) += run_parts.o
 
 //usage:#define run_parts_trivial_usage
 //usage:       "[-a ARG]... [-u UMASK] "

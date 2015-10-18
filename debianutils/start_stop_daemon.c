@@ -56,6 +56,34 @@ Misc options:
         -q,--quiet              Quiet
         -v,--verbose            Verbose
 */
+//config:config START_STOP_DAEMON
+//config:	bool "start-stop-daemon"
+//config:	default y
+//config:	help
+//config:	  start-stop-daemon is used to control the creation and
+//config:	  termination of system-level processes, usually the ones
+//config:	  started during the startup of the system.
+//config:
+//config:config FEATURE_START_STOP_DAEMON_FANCY
+//config:	bool "Support additional arguments"
+//config:	default y
+//config:	depends on START_STOP_DAEMON
+//config:	help
+//config:	  Support additional arguments.
+//config:	  -o|--oknodo ignored since we exit with 0 anyway
+//config:	  -v|--verbose
+//config:	  -N|--nicelevel N
+//config:
+//config:config FEATURE_START_STOP_DAEMON_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on START_STOP_DAEMON && LONG_OPTS
+//config:	help
+//config:	  Support long options for the start-stop-daemon applet.
+
+//applet:IF_START_STOP_DAEMON(APPLET_ODDNAME(start-stop-daemon, start_stop_daemon, BB_DIR_SBIN, BB_SUID_DROP, start_stop_daemon))
+
+//kbuild:lib-$(CONFIG_START_STOP_DAEMON) += start_stop_daemon.o
 
 //usage:#define start_stop_daemon_trivial_usage
 //usage:       "[OPTIONS] [-S|-K] ... [-- ARGS...]"
