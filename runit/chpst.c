@@ -26,7 +26,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
-/* Dependencies on runit_lib.c removed */
+
+//config:config CHPST
+//config:	bool "chpst"
+//config:	default y
+//config:	help
+//config:	  chpst changes the process state according to the given options, and
+//config:	  execs specified program.
+//config:
+//config:config SETUIDGID
+//config:	bool "setuidgid"
+//config:	default y
+//config:	help
+//config:	  Sets soft resource limits as specified by options
+//config:
+//config:config ENVUIDGID
+//config:	bool "envuidgid"
+//config:	default y
+//config:	help
+//config:	  Sets $UID to account's uid and $GID to account's gid
+//config:
+//config:config ENVDIR
+//config:	bool "envdir"
+//config:	default y
+//config:	help
+//config:	  Sets various environment variables as specified by files
+//config:	  in the given directory
+//config:
+//config:config SOFTLIMIT
+//config:	bool "softlimit"
+//config:	default y
+//config:	help
+//config:	  Sets soft resource limits as specified by options
+
+//applet:IF_CHPST(APPLET(chpst, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_ENVDIR(APPLET_ODDNAME(envdir, chpst, BB_DIR_USR_BIN, BB_SUID_DROP, envdir))
+//applet:IF_ENVUIDGID(APPLET_ODDNAME(envuidgid, chpst, BB_DIR_USR_BIN, BB_SUID_DROP, envuidgid))
+//applet:IF_SETUIDGID(APPLET_ODDNAME(setuidgid, chpst, BB_DIR_USR_BIN, BB_SUID_DROP, setuidgid))
+//applet:IF_SOFTLIMIT(APPLET_ODDNAME(softlimit, chpst, BB_DIR_USR_BIN, BB_SUID_DROP, softlimit))
+
+//kbuild:lib-$(CONFIG_CHPST) += chpst.o
+//kbuild:lib-$(CONFIG_ENVDIR) += chpst.o
+//kbuild:lib-$(CONFIG_ENVUIDGID) += chpst.o
+//kbuild:lib-$(CONFIG_SETUIDGID) += chpst.o
+//kbuild:lib-$(CONFIG_SOFTLIMIT) += chpst.o
 
 //usage:#define chpst_trivial_usage
 //usage:       "[-vP012] [-u USER[:GRP]] [-U USER[:GRP]] [-e DIR]\n"

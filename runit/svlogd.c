@@ -26,7 +26,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
-/* TODO: depends on runit_lib.c - review and reduce/eliminate */
 
 /*
 Config files
@@ -124,6 +123,18 @@ log message, you can use a pattern like this instead
 
 -*: *: pid *
 */
+
+//config:config SVLOGD
+//config:	bool "svlogd"
+//config:	default y
+//config:	help
+//config:	  svlogd continuously reads log data from its standard input, optionally
+//config:	  filters log messages, and writes the data to one or more automatically
+//config:	  rotated logs.
+
+//applet:IF_SVLOGD(APPLET(svlogd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SVLOGD) += svlogd.o
 
 //usage:#define svlogd_trivial_usage
 //usage:       "[-ttv] [-r C] [-R CHARS] [-l MATCHLEN] [-b BUFLEN] DIR..."

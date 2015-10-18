@@ -26,7 +26,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
-/* TODO: depends on runit_lib.c - review and reduce/eliminate */
+
+//config:config RUNSVDIR
+//config:	bool "runsvdir"
+//config:	default y
+//config:	help
+//config:	  runsvdir starts a runsv process for each subdirectory, or symlink to
+//config:	  a directory, in the services directory dir, up to a limit of 1000
+//config:	  subdirectories, and restarts a runsv process if it terminates.
+//config:
+//config:config FEATURE_RUNSVDIR_LOG
+//config:	bool "Enable scrolling argument log"
+//config:	depends on RUNSVDIR
+//config:	default n
+//config:	help
+//config:	  Enable feature where second parameter of runsvdir holds last error
+//config:	  message (viewable via top/ps). Otherwise (feature is off
+//config:	  or no parameter), error messages go to stderr only.
+
+//applet:IF_RUNSVDIR(APPLET(runsvdir, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RUNSVDIR) += runsvdir.o
 
 //usage:#define runsvdir_trivial_usage
 //usage:       "[-P] [-s SCRIPT] DIR"

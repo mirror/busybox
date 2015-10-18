@@ -26,7 +26,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* Busyboxed by Denys Vlasenko <vda.linux@googlemail.com> */
-/* TODO: depends on runit_lib.c - review and reduce/eliminate */
+
+//config:config RUNSV
+//config:	bool "runsv"
+//config:	default y
+//config:	help
+//config:	  runsv starts and monitors a service and optionally an appendant log
+//config:	  service.
+
+//applet:IF_RUNSV(APPLET(runsv, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RUNSV) += runsv.o
 
 //usage:#define runsv_trivial_usage
 //usage:       "DIR"
