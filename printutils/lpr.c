@@ -11,6 +11,23 @@
  *
  * See RFC 1179 for protocol description.
  */
+//config:config LPR
+//config:	bool "lpr"
+//config:	default y
+//config:	help
+//config:	  lpr sends files (or standard input) to a print spooling daemon.
+//config:
+//config:config LPQ
+//config:	bool "lpq"
+//config:	default y
+//config:	help
+//config:	  lpq is a print spool queue examination and manipulation program.
+
+//applet:IF_LPQ(APPLET_ODDNAME(lpq, lpqr, BB_DIR_USR_BIN, BB_SUID_DROP, lpq))
+//applet:IF_LPR(APPLET_ODDNAME(lpr, lpqr, BB_DIR_USR_BIN, BB_SUID_DROP, lpr))
+
+//kbuild:lib-$(CONFIG_LPR) += lpr.o
+//kbuild:lib-$(CONFIG_LPQ) += lpr.o
 
 //usage:#define lpr_trivial_usage
 //usage:       "-P queue[@host[:port]] -U USERNAME -J TITLE -Vmh [FILE]..."
