@@ -9,14 +9,16 @@
  * This file can be redistributed under the terms of the GNU General
  * Public License
  */
+//config:config LSATTR
+//config:	bool "lsattr"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  lsattr lists the file attributes on a second extended file system.
 
-/*
- * History:
- * 93/10/30	- Creation
- * 93/11/13	- Replace stat() calls by lstat() to avoid loops
- * 94/02/27	- Integrated in Ted's distribution
- * 98/12/29	- Display version info only when -V specified (G M Sipe)
- */
+//applet:IF_LSATTR(APPLET(lsattr, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LSATTR) += lsattr.o e2fs_lib.o
 
 //usage:#define lsattr_trivial_usage
 //usage:       "[-Radlv] [FILE]..."

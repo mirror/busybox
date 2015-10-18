@@ -33,6 +33,17 @@
  * spawns actual fsck.something for each filesystem to check.
  * It doesn't guess filesystem types from on-disk format.
  */
+//config:config FSCK
+//config:	bool "fsck"
+//config:	default y
+//config:	help
+//config:	  fsck is used to check and optionally repair one or more filesystems.
+//config:	  In actuality, fsck is simply a front-end for the various file system
+//config:	  checkers (fsck.fstype) available under Linux.
+
+//applet:IF_FSCK(APPLET(fsck, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FSCK) += fsck.o
 
 //usage:#define fsck_trivial_usage
 //usage:       "[-ANPRTV] [-C FD] [-t FSTYPE] [FS_OPTS] [BLOCKDEV]..."

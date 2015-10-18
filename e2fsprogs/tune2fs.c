@@ -6,6 +6,33 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config TUNE2FS
+//config:	bool "tune2fs"
+//config:	default n  # off: it is too limited compared to upstream version
+//config:	help
+//config:	  tune2fs allows the system administrator to adjust various tunable
+//config:	  filesystem parameters on Linux ext2/ext3 filesystems.
+
+//applet:IF_TUNE2FS(APPLET(tune2fs, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TUNE2FS) += tune2fs.o
+
+//usage:#define tune2fs_trivial_usage
+//usage:       "[-c MAX_MOUNT_COUNT] "
+////usage:     "[-e errors-behavior] [-g group] "
+//usage:       "[-i DAYS] "
+////usage:     "[-j] [-J journal-options] [-l] [-s sparse-flag] "
+////usage:     "[-m reserved-blocks-percent] [-o [^]mount-options[,...]] "
+////usage:     "[-r reserved-blocks-count] [-u user] "
+//usage:       "[-C MOUNT_COUNT] "
+//usage:       "[-L LABEL] "
+////usage:     "[-M last-mounted-dir] [-O [^]feature[,...]] "
+////usage:     "[-T last-check-time] [-U UUID] "
+//usage:       "BLOCKDEV"
+//usage:
+//usage:#define tune2fs_full_usage "\n\n"
+//usage:       "Adjust filesystem options on ext[23] filesystems"
+
 #include "libbb.h"
 #include <linux/fs.h>
 #include "bb_e2fs_defs.h"
@@ -26,22 +53,6 @@ do { \
 
 #define FETCH_LE32(field) \
 	(sizeof(field) == 4 ? SWAP_LE32(field) : BUG_wrong_field_size())
-
-//usage:#define tune2fs_trivial_usage
-//usage:       "[-c MAX_MOUNT_COUNT] "
-////usage:     "[-e errors-behavior] [-g group] "
-//usage:       "[-i DAYS] "
-////usage:     "[-j] [-J journal-options] [-l] [-s sparse-flag] "
-////usage:     "[-m reserved-blocks-percent] [-o [^]mount-options[,...]] "
-////usage:     "[-r reserved-blocks-count] [-u user] "
-//usage:       "[-C MOUNT_COUNT] "
-//usage:       "[-L LABEL] "
-////usage:     "[-M last-mounted-dir] [-O [^]feature[,...]] "
-////usage:     "[-T last-check-time] [-U UUID] "
-//usage:       "BLOCKDEV"
-//usage:
-//usage:#define tune2fs_full_usage "\n\n"
-//usage:       "Adjust filesystem options on ext[23] filesystems"
 
 enum {
 	OPT_L = 1 << 0, // label

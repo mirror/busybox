@@ -7,9 +7,3 @@
 lib-y:=
 
 INSERT
-
-lib-$(CONFIG_CHATTR) += chattr.o e2fs_lib.o
-lib-$(CONFIG_LSATTR) += lsattr.o e2fs_lib.o
-
-lib-$(CONFIG_FSCK)    += fsck.o
-lib-$(CONFIG_TUNE2FS) += tune2fs.o

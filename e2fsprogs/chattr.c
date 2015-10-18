@@ -9,15 +9,15 @@
  * This file can be redistributed under the terms of the GNU General
  * Public License
  */
+//config:config CHATTR
+//config:	bool "chattr"
+//config:	default y
+//config:	help
+//config:	  chattr changes the file attributes on a second extended file system.
 
-/*
- * History:
- * 93/10/30	- Creation
- * 93/11/13	- Replace stat() calls by lstat() to avoid loops
- * 94/02/27	- Integrated in Ted's distribution
- * 98/12/29	- Ignore symlinks when working recursively (G M Sipe)
- * 98/12/29	- Display version info only when -V specified (G M Sipe)
- */
+//applet:IF_CHATTR(APPLET(chattr, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHATTR) += chattr.o e2fs_lib.o
 
 //usage:#define chattr_trivial_usage
 //usage:       "[-R] [-+=AacDdijsStTu] [-v VERSION] [FILE]..."
