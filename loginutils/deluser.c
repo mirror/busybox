@@ -7,8 +7,32 @@
  * Copyright (C) 2007 by Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
- *
  */
+//config:config DELUSER
+//config:	bool "deluser"
+//config:	default y
+//config:	help
+//config:	  Utility for deleting a user account.
+//config:
+//config:config DELGROUP
+//config:	bool "delgroup"
+//config:	default y
+//config:	help
+//config:	  Utility for deleting a group account.
+//config:
+//config:config FEATURE_DEL_USER_FROM_GROUP
+//config:	bool "Support for removing users from groups"
+//config:	default y
+//config:	depends on DELGROUP
+//config:	help
+//config:	  If called with two non-option arguments, deluser
+//config:	  or delgroup will remove an user from a specified group.
+
+//applet:IF_DELUSER(APPLET(deluser, BB_DIR_USR_SBIN, BB_SUID_DROP))
+//applet:IF_DELGROUP(APPLET_ODDNAME(delgroup, deluser, BB_DIR_USR_SBIN, BB_SUID_DROP, delgroup))
+
+//kbuild:lib-$(CONFIG_DELUSER) += deluser.o
+//kbuild:lib-$(CONFIG_DELGROUP) += deluser.o
 
 //usage:#define deluser_trivial_usage
 //usage:       IF_LONG_OPTS("[--remove-home] ") "USER"

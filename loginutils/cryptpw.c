@@ -9,6 +9,18 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config CRYPTPW
+//config:	bool "cryptpw"
+//config:	default y
+//config:	help
+//config:	  Encrypts the given password with the crypt(3) libc function
+//config:	  using the given salt. Debian has this utility under mkpasswd
+//config:	  name. Busybox provides mkpasswd as an alias for cryptpw.
+
+//applet:IF_CRYPTPW(APPLET(cryptpw, BB_DIR_USR_BIN, BB_SUID_DROP))
+//applet:IF_CRYPTPW(APPLET_ODDNAME(mkpasswd, cryptpw, BB_DIR_USR_BIN, BB_SUID_DROP, mkpasswd))
+
+//kbuild:lib-$(CONFIG_CRYPTPW) += cryptpw.o
 
 //usage:#define cryptpw_trivial_usage
 //usage:       "[OPTIONS] [PASSWORD] [SALT]"

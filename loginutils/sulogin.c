@@ -4,6 +4,18 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SULOGIN
+//config:	bool "sulogin"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  sulogin is invoked when the system goes into single user
+//config:	  mode (this is done through an entry in inittab).
+
+//applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
+//applet:IF_SULOGIN(APPLET(sulogin, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SULOGIN) += sulogin.o
 
 //usage:#define sulogin_trivial_usage
 //usage:       "[-t N] [TTY]"

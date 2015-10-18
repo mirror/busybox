@@ -2,6 +2,56 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config LOGIN
+//config:	bool "login"
+//config:	default y
+//config:	select FEATURE_SYSLOG
+//config:	help
+//config:	  login is used when signing onto a system.
+//config:
+//config:	  Note that Busybox binary must be setuid root for this applet to
+//config:	  work properly.
+//config:
+//config:config LOGIN_SESSION_AS_CHILD
+//config:	bool "Run logged in session in a child process"
+//config:	default y if PAM
+//config:	depends on LOGIN
+//config:	help
+//config:	  Run the logged in session in a child process.  This allows
+//config:	  login to clean up things such as utmp entries or PAM sessions
+//config:	  when the login session is complete.  If you use PAM, you
+//config:	  almost always would want this to be set to Y, else PAM session
+//config:	  will not be cleaned up.
+//config:
+//config:config LOGIN_SCRIPTS
+//config:	bool "Support for login scripts"
+//config:	depends on LOGIN
+//config:	default y
+//config:	help
+//config:	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
+//config:	  just prior to switching from root to logged-in user.
+//config:
+//config:config FEATURE_NOLOGIN
+//config:	bool "Support for /etc/nologin"
+//config:	default y
+//config:	depends on LOGIN
+//config:	help
+//config:	  The file /etc/nologin is used by (some versions of) login(1).
+//config:	  If it exists, non-root logins are prohibited.
+//config:
+//config:config FEATURE_SECURETTY
+//config:	bool "Support for /etc/securetty"
+//config:	default y
+//config:	depends on LOGIN
+//config:	help
+//config:	  The file /etc/securetty is used by (some versions of) login(1).
+//config:	  The file contains the device names of tty lines (one per line,
+//config:	  without leading /dev/) on which root is allowed to login.
+
+//applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
+//applet:IF_LOGIN(APPLET(login, BB_DIR_BIN, BB_SUID_REQUIRE))
+
+//kbuild:lib-$(CONFIG_LOGIN) += login.o
 
 //usage:#define login_trivial_usage
 //usage:       "[-p] [-h HOST] [[-f] USER]"

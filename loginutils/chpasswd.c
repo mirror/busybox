@@ -5,7 +5,23 @@
  * Written for SLIND (from passwd.c) by Alexander Shishkin <virtuoso@slind.org>
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-#include "libbb.h"
+//config:config CHPASSWD
+//config:	bool "chpasswd"
+//config:	default y
+//config:	help
+//config:	  Reads a file of user name and password pairs from standard input
+//config:	  and uses this information to update a group of existing users.
+//config:
+//config:config FEATURE_DEFAULT_PASSWD_ALGO
+//config:	string "Default password encryption method (passwd -a, cryptpw -m parameter)"
+//config:	default "des"
+//config:	depends on PASSWD || CRYPTPW
+//config:	help
+//config:	  Possible choices are "d[es]", "m[d5]", "s[ha256]" or "sha512".
+
+//applet:IF_CHPASSWD(APPLET(chpasswd, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHPASSWD) += chpasswd.o
 
 //usage:#define chpasswd_trivial_usage
 //usage:	IF_LONG_OPTS("[--md5|--encrypted]") IF_NOT_LONG_OPTS("[-m|-e]")
@@ -21,6 +37,8 @@
 //usage:	)
 
 //TODO: implement -c ALGO
+
+#include "libbb.h"
 
 #if ENABLE_LONG_OPTS
 static const char chpasswd_longopts[] ALIGN1 =

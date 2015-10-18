@@ -7,6 +7,57 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config ADDUSER
+//config:	bool "adduser"
+//config:	default y
+//config:	help
+//config:	  Utility for creating a new user account.
+//config:
+//config:config FEATURE_ADDUSER_LONG_OPTIONS
+//config:	bool "Enable long options"
+//config:	default y
+//config:	depends on ADDUSER && LONG_OPTS
+//config:	help
+//config:	  Support long options for the adduser applet.
+//config:
+//config:config FEATURE_CHECK_NAMES
+//config:	bool "Enable sanity check on user/group names in adduser and addgroup"
+//config:	default n
+//config:	depends on ADDUSER || ADDGROUP
+//config:	help
+//config:	  Enable sanity check on user and group names in adduser and addgroup.
+//config:	  To avoid problems, the user or group name should consist only of
+//config:	  letters, digits, underscores, periods, at signs and dashes,
+//config:	  and not start with a dash (as defined by IEEE Std 1003.1-2001).
+//config:	  For compatibility with Samba machine accounts "$" is also supported
+//config:	  at the end of the user or group name.
+//config:
+//config:config LAST_ID
+//config:	int "Last valid uid or gid for adduser and addgroup"
+//config:	depends on ADDUSER || ADDGROUP
+//config:	default 60000
+//config:	help
+//config:	  Last valid uid or gid for adduser and addgroup
+//config:
+//config:config FIRST_SYSTEM_ID
+//config:	int "First valid system uid or gid for adduser and addgroup"
+//config:	depends on ADDUSER || ADDGROUP
+//config:	range 0 LAST_ID
+//config:	default 100
+//config:	help
+//config:	  First valid system uid or gid for adduser and addgroup
+//config:
+//config:config LAST_SYSTEM_ID
+//config:	int "Last valid system uid or gid for adduser and addgroup"
+//config:	depends on ADDUSER || ADDGROUP
+//config:	range FIRST_SYSTEM_ID LAST_ID
+//config:	default 999
+//config:	help
+//config:	  Last valid system uid or gid for adduser and addgroup
+
+//applet:IF_ADDUSER(APPLET(adduser, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_ADDUSER) += adduser.o
 
 //usage:#define adduser_trivial_usage
 //usage:       "[OPTIONS] USER [GROUP]"
