@@ -23,12 +23,12 @@
 //usage:#define lsattr_trivial_usage
 //usage:       "[-Radlv] [FILE]..."
 //usage:#define lsattr_full_usage "\n\n"
-//usage:       "List file attributes on an ext2 fs\n"
+//usage:       "List ext2 file attributes\n"
 //usage:     "\n	-R	Recurse"
 //usage:     "\n	-a	Don't hide entries starting with ."
 //usage:     "\n	-d	List directory entries instead of contents"
 //usage:     "\n	-l	List long flag names"
-//usage:     "\n	-v	List the file's version/generation number"
+//usage:     "\n	-v	List version/generation number"
 
 #include "libbb.h"
 #include "e2fs_lib.h"
