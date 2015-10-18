@@ -12,6 +12,107 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config SYSLOGD
+//config:	bool "syslogd"
+//config:	default y
+//config:	help
+//config:	  The syslogd utility is used to record logs of all the
+//config:	  significant events that occur on a system. Every
+//config:	  message that is logged records the date and time of the
+//config:	  event, and will generally also record the name of the
+//config:	  application that generated the message. When used in
+//config:	  conjunction with klogd, messages from the Linux kernel
+//config:	  can also be recorded. This is terribly useful,
+//config:	  especially for finding what happened when something goes
+//config:	  wrong. And something almost always will go wrong if
+//config:	  you wait long enough....
+//config:
+//config:config FEATURE_ROTATE_LOGFILE
+//config:	bool "Rotate message files"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  This enables syslogd to rotate the message files
+//config:	  on his own. No need to use an external rotatescript.
+//config:
+//config:config FEATURE_REMOTE_LOG
+//config:	bool "Remote Log support"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  When you enable this feature, the syslogd utility can
+//config:	  be used to send system log messages to another system
+//config:	  connected via a network. This allows the remote
+//config:	  machine to log all the system messages, which can be
+//config:	  terribly useful for reducing the number of serial
+//config:	  cables you use. It can also be a very good security
+//config:	  measure to prevent system logs from being tampered with
+//config:	  by an intruder.
+//config:
+//config:config FEATURE_SYSLOGD_DUP
+//config:	bool "Support -D (drop dups) option"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  Option -D instructs syslogd to drop consecutive messages
+//config:	  which are totally the same.
+//config:
+//config:config FEATURE_SYSLOGD_CFG
+//config:	bool "Support syslog.conf"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  Supports restricted syslogd config. See docs/syslog.conf.txt
+//config:
+//config:config FEATURE_SYSLOGD_READ_BUFFER_SIZE
+//config:	int "Read buffer size in bytes"
+//config:	default 256
+//config:	range 256 20000
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  This option sets the size of the syslog read buffer.
+//config:	  Actual memory usage increases around five times the
+//config:	  change done here.
+//config:
+//config:config FEATURE_IPC_SYSLOG
+//config:	bool "Circular Buffer support"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	help
+//config:	  When you enable this feature, the syslogd utility will
+//config:	  use a circular buffer to record system log messages.
+//config:	  When the buffer is filled it will continue to overwrite
+//config:	  the oldest messages. This can be very useful for
+//config:	  systems with little or no permanent storage, since
+//config:	  otherwise system logs can eventually fill up your
+//config:	  entire filesystem, which may cause your system to
+//config:	  break badly.
+//config:
+//config:config FEATURE_IPC_SYSLOG_BUFFER_SIZE
+//config:	int "Circular buffer size in Kbytes (minimum 4KB)"
+//config:	default 16
+//config:	range 4 2147483647
+//config:	depends on FEATURE_IPC_SYSLOG
+//config:	help
+//config:	  This option sets the size of the circular buffer
+//config:	  used to record system log messages.
+//config:
+//config:config FEATURE_KMSG_SYSLOG
+//config:	bool "Linux kernel printk buffer support"
+//config:	default y
+//config:	depends on SYSLOGD
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  When you enable this feature, the syslogd utility will
+//config:	  write system log message to the Linux kernel's printk buffer.
+//config:	  This can be used as a smaller alternative to the syslogd IPC
+//config:	  support, as klogd and logread aren't needed.
+//config:
+//config:	  NOTICE: Syslog facilities in log entries needs kernel 3.5+.
+
+//applet:IF_SYSLOGD(APPLET(syslogd, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_SYSLOGD) += syslogd_and_logger.o
 
 //usage:#define syslogd_trivial_usage
 //usage:       "[OPTIONS]"

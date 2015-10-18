@@ -16,6 +16,39 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config KLOGD
+//config:	bool "klogd"
+//config:	default y
+//config:	help
+//config:	  klogd is a utility which intercepts and logs all
+//config:	  messages from the Linux kernel and sends the messages
+//config:	  out to the 'syslogd' utility so they can be logged. If
+//config:	  you wish to record the messages produced by the kernel,
+//config:	  you should enable this option.
+//config:
+//config:comment "klogd should not be used together with syslog to kernel printk buffer"
+//config:	depends on KLOGD && FEATURE_KMSG_SYSLOG
+//config:
+//config:config FEATURE_KLOGD_KLOGCTL
+//config:	bool "Use the klogctl() interface"
+//config:	default y
+//config:	depends on KLOGD
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The klogd applet supports two interfaces for reading
+//config:	  kernel messages. Linux provides the klogctl() interface
+//config:	  which allows reading messages from the kernel ring buffer
+//config:	  independently from the file system.
+//config:
+//config:	  If you answer 'N' here, klogd will use the more portable
+//config:	  approach of reading them from /proc or a device node.
+//config:	  However, this method requires the file to be available.
+//config:
+//config:	  If in doubt, say 'Y'.
+
+//applet:IF_KLOGD(APPLET(klogd, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_KLOGD) += klogd.o
 
 //usage:#define klogd_trivial_usage
 //usage:       "[-c N] [-n]"
