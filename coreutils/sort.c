@@ -159,7 +159,6 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 		}
 		if (!j) start = end;
 	}
-//bb_error_msg("start:%d,end:%d", start, end);
 	/* Strip leading whitespace if necessary */
 //XXX: skip_whitespace()
 	if (flags & FLAG_b)
