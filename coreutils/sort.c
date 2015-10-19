@@ -160,17 +160,18 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 		if (!j) start = end;
 	}
 	/* Strip leading whitespace if necessary */
-//XXX: skip_whitespace()
 	if (flags & FLAG_b)
+		/* not using skip_whitespace() for speed */
 		while (isspace(str[start])) start++;
 	/* Strip trailing whitespace if necessary */
 	if (flags & FLAG_bb)
 		while (end > start && isspace(str[end-1])) end--;
-	/* Handle offsets on start and end */
+	/* -kSTART,N.ENDCHAR: honor ENDCHAR (1-based) */
 	if (key->range[3]) {
-		end += key->range[3] - 1;
+		end = key->range[3];
 		if (end > len) end = len;
 	}
+	/* -kN.STARTCHAR[,...]: honor STARTCHAR (1-based) */
 	if (key->range[1]) {
 		start += key->range[1] - 1;
 		if (start > len) start = len;

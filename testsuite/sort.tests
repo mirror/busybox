@@ -106,6 +106,14 @@ a/a:a
 a:b
 " ""
 
+testing "sort with ENDCHAR" "sort -t. -k1,1.1 -k2 input" "\
+ab.1
+aa.2
+" "\
+aa.2
+ab.1
+" ""
+
 testing "glibc build sort" "sort -t. -k 1,1 -k 2n,2n -k 3 input" "\
 GLIBC_2.1
 GLIBC_2.1.1
