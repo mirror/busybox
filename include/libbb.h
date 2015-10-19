@@ -920,14 +920,13 @@ long xuname2uid(const char *name) FAST_FUNC;
 long xgroup2gid(const char *name) FAST_FUNC;
 /* wrapper: allows string to contain numeric uid or gid */
 unsigned long get_ug_id(const char *s, long FAST_FUNC (*xname2id)(const char *)) FAST_FUNC;
-/* from chpst. Does not die, returns 0 on failure */
 struct bb_uidgid_t {
 	uid_t uid;
 	gid_t gid;
 };
-/* always sets uid and gid */
-int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok) FAST_FUNC;
-/* always sets uid and gid, allows numeric; exits on failure */
+/* always sets uid and gid; returns 0 on failure */
+int get_uidgid(struct bb_uidgid_t*, const char*) FAST_FUNC;
+/* always sets uid and gid; exits on failure */
 void xget_uidgid(struct bb_uidgid_t*, const char*) FAST_FUNC;
 /* chown-like handling of "user[:[group]" */
 void parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_group) FAST_FUNC;

@@ -437,7 +437,7 @@ static void parse_config_file(void)
 						goto pe_label;
 					}
 					*e = ':'; /* get_uidgid needs USER:GROUP syntax */
-					if (get_uidgid(&sct->m_ugid, s, /*allow_numeric:*/ 1) == 0) {
+					if (get_uidgid(&sct->m_ugid, s) == 0) {
 						errmsg = "unknown user/group";
 						goto pe_label;
 					}
