@@ -291,7 +291,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 			else if (!yy)
 				retval = 1;
 			else
-				retval = (dx == thyme.tm_mon) ? 0 : dx - thyme.tm_mon;
+				retval = dx - thyme.tm_mon;
 			break;
 		}
 		/* Full floating point version of -n */
@@ -317,8 +317,8 @@ static int compare_keys(const void *xarg, const void *yarg)
 
 	/* Perform fallback sort if necessary */
 	if (!retval && !(option_mask32 & FLAG_s)) {
-		retval = strcmp(*(char **)xarg, *(char **)yarg);
 		flags = option_mask32;
+		retval = strcmp(*(char **)xarg, *(char **)yarg);
 	}
 
 	if (flags & FLAG_r)
@@ -346,7 +346,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	char *line, **lines;
 	char *str_ignored, *str_o, *str_t;
 	llist_t *lst_k = NULL;
-	int i, flag;
+	int i;
 	int linecount;
 	unsigned opts;
 
@@ -369,7 +369,7 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	/* note: below this point we use option_mask32, not opts,
 	 * since that reduces register pressure and makes code smaller */
 
-	/* parse sort key */
+	/* Parse sort key */
 	while (lst_k) {
 		enum {
 			FLAG_allowed_for_k =
@@ -396,17 +396,18 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 				key->range[2*i+1] = str2u(&str_k);
 			}
 			while (*str_k) {
-				const char *temp2;
+				int flag;
+				const char *idx;
 
 				if (*str_k == ',' && !i++) {
 					str_k++;
 					break;
 				} /* no else needed: fall through to syntax error
 					because comma isn't in OPT_STR */
-				temp2 = strchr(OPT_STR, *str_k);
-				if (!temp2)
+				idx = strchr(OPT_STR, *str_k);
+				if (!idx)
 					bb_error_msg_and_die("unknown key option");
-				flag = 1 << (temp2 - OPT_STR);
+				flag = 1 << (idx - OPT_STR);
 				if (flag & ~FLAG_allowed_for_k)
 					bb_error_msg_and_die("unknown sort type");
 				/* b after ',' means strip _trailing_ space */
@@ -440,10 +441,10 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	} while (*++argv);
 
 #if ENABLE_FEATURE_SORT_BIG
-	/* if no key, perform alphabetic sort */
+	/* If no key, perform alphabetic sort */
 	if (!key_list)
 		add_key()->range[0] = 1;
-	/* handle -c */
+	/* Handle -c */
 	if (option_mask32 & FLAG_c) {
 		int j = (option_mask32 & FLAG_u) ? -1 : 0;
 		for (i = 1; i < linecount; i++) {
@@ -457,20 +458,21 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	/* Perform the actual sort */
 	qsort(lines, linecount, sizeof(lines[0]), compare_keys);
-	/* handle -u */
+
+	/* Handle -u */
 	if (option_mask32 & FLAG_u) {
-		flag = 0;
+		int j = 0;
 		/* coreutils 6.3 drop lines for which only key is the same */
 		/* -- disabling last-resort compare... */
 		option_mask32 |= FLAG_s;
 		for (i = 1; i < linecount; i++) {
-			if (compare_keys(&lines[flag], &lines[i]) == 0)
+			if (compare_keys(&lines[j], &lines[i]) == 0)
 				free(lines[i]);
 			else
-				lines[++flag] = lines[i];
+				lines[++j] = lines[i];
 		}
 		if (linecount)
-			linecount = flag+1;
+			linecount = j+1;
 	}
 
 	/* Print it */
@@ -479,9 +481,11 @@ int sort_main(int argc UNUSED_PARAM, char **argv)
 	if (option_mask32 & FLAG_o)
 		xmove_fd(xopen(str_o, O_WRONLY|O_CREAT|O_TRUNC), STDOUT_FILENO);
 #endif
-	flag = (option_mask32 & FLAG_z) ? '\0' : '\n';
-	for (i = 0; i < linecount; i++)
-		printf("%s%c", lines[i], flag);
+	{
+		int ch = (option_mask32 & FLAG_z) ? '\0' : '\n';
+		for (i = 0; i < linecount; i++)
+			printf("%s%c", lines[i], ch);
+	}
 
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
