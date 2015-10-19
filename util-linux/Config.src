@@ -489,16 +489,6 @@ config SCRIPTREPLAY
 	  This program replays a typescript, using timing information
 	  given by script -t.
 
-config SETARCH
-	bool "setarch"
-	default y
-	select PLATFORM_LINUX
-	help
-	  The linux32 utility is used to create a 32bit environment for the
-	  specified program (usually a shell). It only makes sense to have
-	  this util on a system that supports both 64bit and 32bit userland
-	  (like amd64/x86, ppc64/ppc, sparc64/sparc, etc...).
-
 config SWAPONOFF
 	bool "swaponoff"
 	default y
