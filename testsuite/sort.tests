@@ -106,6 +106,42 @@ a/a:a
 a:b
 " ""
 
+testing "glibc build sort" "sort -t. -k 1,1 -k 2n,2n -k 3 input" "\
+GLIBC_2.1
+GLIBC_2.1.1
+GLIBC_2.2
+GLIBC_2.2.1
+GLIBC_2.10
+GLIBC_2.20
+GLIBC_2.21
+" "\
+GLIBC_2.21
+GLIBC_2.1.1
+GLIBC_2.2.1
+GLIBC_2.2
+GLIBC_2.20
+GLIBC_2.10
+GLIBC_2.1
+" ""
+
+testing "glibc build sort unique" "sort -u -t. -k 1,1 -k 2n,2n -k 3 input" "\
+GLIBC_2.1
+GLIBC_2.1.1
+GLIBC_2.2
+GLIBC_2.2.1
+GLIBC_2.10
+GLIBC_2.20
+GLIBC_2.21
+" "\
+GLIBC_2.10
+GLIBC_2.2.1
+GLIBC_2.1.1
+GLIBC_2.20
+GLIBC_2.2
+GLIBC_2.1
+GLIBC_2.21
+" ""
+
 testing "sort -u should consider field only when discarding" "sort -u -k2 input" "\
 a c
 " "\

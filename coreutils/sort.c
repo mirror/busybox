@@ -106,7 +106,9 @@ static struct sort_key {
 
 static char *get_key(char *str, struct sort_key *key, int flags)
 {
-	int start = 0, end = 0, len, j;
+	int start = start; /* for compiler */
+	int end;
+	int len, j;
 	unsigned i;
 
 	/* Special case whole string, so we don't have to make a copy */
@@ -123,12 +125,15 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 			end = len;
 		/* Loop through fields */
 		else {
+			unsigned char ch = 0;
+
 			end = 0;
 			for (i = 1; i < key->range[2*j] + j; i++) {
 				if (key_separator) {
 					/* Skip body of key and separator */
-					while (str[end]) {
-						if (str[end++] == key_separator)
+					while ((ch = str[end]) != '\0') {
+							end++;
+						if (ch == key_separator)
 							break;
 					}
 				} else {
@@ -136,7 +141,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 					while (isspace(str[end]))
 						end++;
 					/* Skip body of key */
-					while (str[end]) {
+					while (str[end] != '\0') {
 						if (isspace(str[end]))
 							break;
 						end++;
@@ -144,11 +149,17 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 				}
 			}
 			/* Remove last delim: "abc:def:" => "abc:def" */
-			if (key_separator && j && end != 0)
+			if (j && ch) {
+				//if (str[end-1] != key_separator)
+				//  bb_error_msg(_and_die("BUG! "
+				//  "str[start:%d,end:%d]:'%.*s'",
+				//  start, end, (int)(end-start), &str[start]);
 				end--;
+			}
 		}
 		if (!j) start = end;
 	}
+//bb_error_msg("start:%d,end:%d", start, end);
 	/* Strip leading whitespace if necessary */
 //XXX: skip_whitespace()
 	if (flags & FLAG_b)
