@@ -539,15 +539,15 @@ int start_stop_daemon_main(int argc UNUSED_PARAM, char **argv)
 		write_pidfile(pidfile);
 	}
 	if (opt & OPT_c) {
-		struct bb_uidgid_t ugid = { -1, -1 };
+		struct bb_uidgid_t ugid;
 		parse_chown_usergroup_or_die(&ugid, chuid);
-		if (ugid.uid != (uid_t) -1) {
+		if (ugid.uid != (uid_t) -1L) {
 			struct passwd *pw = xgetpwuid(ugid.uid);
-			if (ugid.gid != (gid_t) -1)
+			if (ugid.gid != (gid_t) -1L)
 				pw->pw_gid = ugid.gid;
 			/* initgroups, setgid, setuid: */
 			change_identity(pw);
-		} else if (ugid.gid != (gid_t) -1) {
+		} else if (ugid.gid != (gid_t) -1L) {
 			xsetgid(ugid.gid);
 			setgroups(1, &ugid.gid);
 		}

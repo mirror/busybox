@@ -90,6 +90,8 @@ void FAST_FUNC parse_chown_usergroup_or_die(struct bb_uidgid_t *u, char *user_gr
 {
 	char *group;
 
+	u->uid = u->gid = (gid_t)-1L;
+
 	/* Check if there is a group name */
 	group = strchr(user_group, '.'); /* deprecated? */
 	if (!group)

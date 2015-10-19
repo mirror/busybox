@@ -112,10 +112,6 @@ int chown_main(int argc UNUSED_PARAM, char **argv)
 	int opt, flags;
 	struct param_t param;
 
-	/* Just -1 might not work: uid_t may be unsigned long */
-	param.ugid.uid = -1L;
-	param.ugid.gid = -1L;
-
 #if ENABLE_FEATURE_CHOWN_LONG_OPTIONS
 	applet_long_options = chown_longopts;
 #endif
