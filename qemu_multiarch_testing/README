@@ -11,6 +11,11 @@ hdc.img, from hdc.dir/* data. This requires root for loop mount.
 one or more system-image-ARCH directories into this directory
 (the one which contains this README).
 
+* Install qemu-system-ARCH. The arch names may differ from
+system-image-ARCH: for example, all ARM flavors (armv4l...armv6l)
+are served by the same qemu - qemu-system-arm. On my machine,
+I needed to install qemu-system-{arm,mips,x86,ppc,sparc,m68k,sh4}.
+
 * Run: ./parallel-build-hdc-img.sh system-image-DIR1 system-image-DIR2...
 (background it if you don't want to see "Waiting to finish" thing).
 This runs build in several qemu virtual machines in parallel.
