@@ -47,18 +47,22 @@ try() {
 
 check_cc() {
     local tempname="$(mktemp)"
+    local r
+    echo "int main(int argc,char**argv){return argv?argc:0;}" >"$tempname".c
     # Can use "-o /dev/null", but older gcc tend to *unlink it* on failure! :(
-    # "-xc": C language. "/dev/null" is an empty source file.
-    if $CC $CPPFLAGS $CFLAGS $1 -shared -xc /dev/null -o "$tempname".o >/dev/null 2>&1; then
-	echo "$1";
-    else
-	echo "$2";
-    fi
-    rm -f "$tempname" "$tempname".o
+    # Was using "-xc /dev/null", but we need a valid C program.
+    # "eval" is needed because CFLAGS can contain
+    # '... -D"BB_VER=KBUILD_STR(1.N.M)" ...'
+    # and we need shell to process quotes!
+    eval $CC $CPPFLAGS $CFLAGS $1 "$tempname".c -o "$tempname" >/dev/null 2>&1
+    r=$?
+    rm -f "$tempname" "$tempname".c "$tempname".o
+    return $r
 }
 
 check_libc_is_glibc() {
     local tempname="$(mktemp)"
+    local r
     echo "\
 	#include <stdlib.h>
 	/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
@@ -66,12 +70,10 @@ check_libc_is_glibc() {
 	syntax error here
 	#endif
 	" >"$tempname".c
-    if $CC $CPPFLAGS $CFLAGS "$tempname".c -c -o "$tempname".o >/dev/null 2>&1; then
-	echo "$2";
-    else
-	echo "$1";
-    fi
-    rm -f "$tempname" "$tempname".[co]
+    $CC $CPPFLAGS $CFLAGS "$tempname".c -c -o "$tempname".o >/dev/null 2>&1
+    r=$?
+    rm -f "$tempname" "$tempname".c "$tempname".o
+    return $r
 }
 
 EXE="$1"
@@ -83,32 +85,41 @@ A_FILES="$6"
 LDLIBS="$7"
 
 # The --sort-section option is not supported by older versions of ld
-SORT_SECTION=`check_cc "-Wl,--sort-section,alignment" ""`
+SORT_SECTION="-Wl,--sort-section,alignment"
+if ! check_cc "-Wl,--sort-section,alignment"; then
+    echo "Your linker does not support --sort-section,alignment"
+    SORT_SECTION=""
+fi
 
 START_GROUP="-Wl,--start-group"
 END_GROUP="-Wl,--end-group"
 INFO_OPTS="-Wl,--warn-common -Wl,-Map,$EXE.map -Wl,--verbose"
 
 # gold may not support --sort-common (yet)
-SORT_COMMON=`check_cc "-Wl,--sort-common" ""`
+SORT_COMMON="-Wl,--sort-common"
+if ! check_cc "-Wl,--sort-common"; then
+    echo "Your linker does not support --sort-common"
+    SORT_COMMON=""
+fi
 
 # Static linking against glibc produces buggy executables
 # (glibc does not cope well with ld --gc-sections).
 # See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
 # Note that glibc is unsuitable for static linking anyway.
 # We are removing -Wl,--gc-sections from link command line.
-GC_SECTIONS=`(
-. ./.config
-if test x"$CONFIG_STATIC" = x"y"; then
-    check_libc_is_glibc "" "-Wl,--gc-sections"
-else
-    echo "-Wl,--gc-sections"
+GC_SECTIONS="-Wl,--gc-sections"
+if (. ./.config && test x"$CONFIG_STATIC" = x"y") then
+    if check_libc_is_glibc; then
+	echo "Static linking against glibc, can't use --gc-sections"
+	GC_SECTIONS=""
+    fi
 fi
-)`
-
 # The --gc-sections option is not supported by older versions of ld
 if test -n "$GC_SECTIONS"; then
-    GC_SECTIONS=`check_cc "$GC_SECTIONS" ""`
+    if ! check_cc "$GC_SECTIONS"; then
+	echo "Your linker does not support $GC_SECTIONS"
+	GC_SECTIONS=""
+    fi
 fi
 
 # Sanitize lib list (dups, extra spaces etc)
