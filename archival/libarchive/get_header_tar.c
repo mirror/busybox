@@ -418,6 +418,7 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 
 	/* Everything up to and including last ".." component is stripped */
 	overlapping_strcpy(file_header->name, strip_unsafe_prefix(file_header->name));
+//TODO: do the same for file_header->link_target?
 
 	/* Strip trailing '/' in directories */
 	/* Must be done after mode is set as '/' is used to check if it's a directory */

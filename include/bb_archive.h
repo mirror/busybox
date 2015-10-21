@@ -77,6 +77,9 @@ typedef struct archive_handle_t {
 	off_t offset;
 
 	/* Archiver specific. Can make it a union if it ever gets big */
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+	unsigned tar__strip_components;
+#endif
 #define PAX_NEXT_FILE 0
 #define PAX_GLOBAL    1
 #if ENABLE_TAR || ENABLE_DPKG || ENABLE_DPKG_DEB

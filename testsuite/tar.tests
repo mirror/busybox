@@ -53,6 +53,15 @@ dd if=/dev/zero bs=512 count=20 2>/dev/null | tar xvf - 2>&1; echo $?
 "" ""
 SKIP=
 
+# "tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input":
+# GNU tar 1.26 records as hardlinks:
+#  input_hard2 -> input_hard1
+#  input_hard1 -> input_hard1 (!!!)
+#  input_dir/file -> input_dir/file
+#  input -> input
+# As of 1.24.0, we don't record last two: for them, nlink==1
+# and we check for "hardlink"ness only files with nlink!=1
+# We also don't use "hrw-r--r--" notation for hardlinks in "tar tv" listing.
 optional FEATURE_TAR_CREATE FEATURE_LS_SORTFILES
 testing "tar hardlinks and repeated files" '\
 rm -rf input_* test.tar 2>/dev/null
@@ -64,6 +73,7 @@ chmod -R 644 *
 chmod    755 input_dir
 tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input
 tar tvf test.tar | sed "s/.*[0-9] input/input/"
+rm -rf input_dir
 tar xf test.tar 2>&1
 echo Ok: $?
 ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"

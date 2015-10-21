@@ -8,9 +8,17 @@
 
 void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 {
+
 	file_header_t *file_header = archive_handle->file_header;
 	int dst_fd;
 	int res;
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+	char *dst_name;
+	char *dst_link;
+#else
+# define dst_name (file_header->name)
+# define dst_link (file_header->link_target)
+#endif
 
 #if ENABLE_FEATURE_TAR_SELINUX
 	char *sctx = archive_handle->tar__sctx[PAX_NEXT_FILE];
@@ -23,11 +31,47 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 #endif
 
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+	dst_name = file_header->name;
+	dst_link = file_header->link_target;
+	if (archive_handle->tar__strip_components) {
+		unsigned n = archive_handle->tar__strip_components;
+		do {
+			dst_name = strchr(dst_name, '/');
+			if (!dst_name || dst_name[1] == '\0') {
+				data_skip(archive_handle);
+				return;
+			}
+			dst_name++;
+			/*
+			 * Link target is shortened only for hardlinks:
+			 * softlinks restored unchanged.
+			 */
+			if (S_ISREG(file_header->mode)
+			 && file_header->size == 0
+			 && dst_link
+			) {
+// GNU tar 1.26 does not check that we reached end of link name:
+// if "dir/hardlink" is hardlinked to "file",
+// tar xvf a.tar --strip-components=1 says:
+//  tar: hardlink: Cannot hard link to '': No such file or directory
+// and continues processing. We silently skip such entries.
+				dst_link = strchr(dst_link, '/');
+				if (!dst_link || dst_link[1] == '\0') {
+					data_skip(archive_handle);
+					return;
+				}
+				dst_link++;
+			}
+		} while (--n != 0);
+	}
+#endif
+
 	if (archive_handle->ah_flags & ARCHIVE_CREATE_LEADING_DIRS) {
-		char *slash = strrchr(file_header->name, '/');
+		char *slash = strrchr(dst_name, '/');
 		if (slash) {
 			*slash = '\0';
-			bb_make_directory(file_header->name, -1, FILEUTILS_RECUR);
+			bb_make_directory(dst_name, -1, FILEUTILS_RECUR);
 			*slash = '/';
 		}
 	}
@@ -38,8 +82,8 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			/* Is it hardlink?
 			 * We encode hard links as regular files of size 0 with a symlink */
 			if (S_ISREG(file_header->mode)
-			 && file_header->link_target
 			 && file_header->size == 0
+			 && dst_link
 			) {
 				/* Ugly special case:
 				 * tar cf t.tar hardlink1 hardlink2 hardlink1
@@ -48,22 +92,22 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				 * hardlink2 -> hardlink1
 				 * hardlink1 -> hardlink1 <== !!!
 				 */
-				if (strcmp(file_header->link_target, file_header->name) == 0)
+				if (strcmp(dst_link, dst_name) == 0)
 					goto ret;
 			}
 			/* Proceed with deleting */
-			if (unlink(file_header->name) == -1
+			if (unlink(dst_name) == -1
 			 && errno != ENOENT
 			) {
 				bb_perror_msg_and_die("can't remove old file %s",
-						file_header->name);
+						dst_name);
 			}
 		}
 	}
 	else if (archive_handle->ah_flags & ARCHIVE_EXTRACT_NEWER) {
 		/* Remove the existing entry if its older than the extracted entry */
 		struct stat existing_sb;
-		if (lstat(file_header->name, &existing_sb) == -1) {
+		if (lstat(dst_name, &existing_sb) == -1) {
 			if (errno != ENOENT) {
 				bb_perror_msg_and_die("can't stat old file");
 			}
@@ -73,30 +117,30 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			 && !S_ISDIR(file_header->mode)
 			) {
 				bb_error_msg("%s not created: newer or "
-					"same age file exists", file_header->name);
+					"same age file exists", dst_name);
 			}
 			data_skip(archive_handle);
 			goto ret;
 		}
-		else if ((unlink(file_header->name) == -1) && (errno != EISDIR)) {
+		else if ((unlink(dst_name) == -1) && (errno != EISDIR)) {
 			bb_perror_msg_and_die("can't remove old file %s",
-					file_header->name);
+					dst_name);
 		}
 	}
 
 	/* Handle hard links separately
 	 * We encode hard links as regular files of size 0 with a symlink */
 	if (S_ISREG(file_header->mode)
-	 && file_header->link_target
 	 && file_header->size == 0
+	 && dst_link
 	) {
-		/* hard link */
-		res = link(file_header->link_target, file_header->name);
-		if ((res == -1) && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
+		/* Hard link */
+		res = link(dst_link, dst_name);
+		if (res != 0 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 			bb_perror_msg("can't create %slink "
 					"from %s to %s", "hard",
-					file_header->name,
-					file_header->link_target);
+					dst_name,
+					dst_link);
 		}
 		/* Hardlinks have no separate mode/ownership, skip chown/chmod */
 		goto ret;
@@ -106,17 +150,17 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	switch (file_header->mode & S_IFMT) {
 	case S_IFREG: {
 		/* Regular file */
-		char *dst_name;
+		char *dst_nameN;
 		int flags = O_WRONLY | O_CREAT | O_EXCL;
 		if (archive_handle->ah_flags & ARCHIVE_O_TRUNC)
 			flags = O_WRONLY | O_CREAT | O_TRUNC;
-		dst_name = file_header->name;
+		dst_nameN = dst_name;
 #ifdef ARCHIVE_REPLACE_VIA_RENAME
 		if (archive_handle->ah_flags & ARCHIVE_REPLACE_VIA_RENAME)
 			/* rpm-style temp file name */
-			dst_name = xasprintf("%s;%x", dst_name, (int)getpid());
+			dst_nameN = xasprintf("%s;%x", dst_name, (int)getpid());
 #endif
-		dst_fd = xopen3(dst_name,
+		dst_fd = xopen3(dst_nameN,
 			flags,
 			file_header->mode
 			);
@@ -124,32 +168,32 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		close(dst_fd);
 #ifdef ARCHIVE_REPLACE_VIA_RENAME
 		if (archive_handle->ah_flags & ARCHIVE_REPLACE_VIA_RENAME) {
-			xrename(dst_name, file_header->name);
-			free(dst_name);
+			xrename(dst_nameN, dst_name);
+			free(dst_nameN);
 		}
 #endif
 		break;
 	}
 	case S_IFDIR:
-		res = mkdir(file_header->name, file_header->mode);
+		res = mkdir(dst_name, file_header->mode);
 		if ((res == -1)
 		 && (errno != EISDIR) /* btw, Linux doesn't return this */
 		 && (errno != EEXIST)
 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 		) {
-			bb_perror_msg("can't make dir %s", file_header->name);
+			bb_perror_msg("can't make dir %s", dst_name);
 		}
 		break;
 	case S_IFLNK:
 		/* Symlink */
 //TODO: what if file_header->link_target == NULL (say, corrupted tarball?)
-		res = symlink(file_header->link_target, file_header->name);
-		if ((res == -1)
+		res = symlink(file_header->link_target, dst_name);
+		if (res != 0
 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 		) {
 			bb_perror_msg("can't create %slink "
 				"from %s to %s", "sym",
-				file_header->name,
+				dst_name,
 				file_header->link_target);
 		}
 		break;
@@ -157,11 +201,11 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	case S_IFBLK:
 	case S_IFCHR:
 	case S_IFIFO:
-		res = mknod(file_header->name, file_header->mode, file_header->device);
+		res = mknod(dst_name, file_header->mode, file_header->device);
 		if ((res == -1)
 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
 		) {
-			bb_perror_msg("can't create node %s", file_header->name);
+			bb_perror_msg("can't create node %s", dst_name);
 		}
 		break;
 	default:
@@ -186,20 +230,20 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			}
 #endif
 			/* GNU tar 1.15.1 uses chown, not lchown */
-			chown(file_header->name, uid, gid);
+			chown(dst_name, uid, gid);
 		}
 		/* uclibc has no lchmod, glibc is even stranger -
 		 * it has lchmod which seems to do nothing!
 		 * so we use chmod... */
 		if (!(archive_handle->ah_flags & ARCHIVE_DONT_RESTORE_PERM)) {
-			chmod(file_header->name, file_header->mode);
+			chmod(dst_name, file_header->mode);
 		}
 		if (archive_handle->ah_flags & ARCHIVE_RESTORE_DATE) {
 			struct timeval t[2];
 
 			t[1].tv_sec = t[0].tv_sec = file_header->mtime;
 			t[1].tv_usec = t[0].tv_usec = 0;
-			utimes(file_header->name, t);
+			utimes(dst_name, t);
 		}
 	}
 
