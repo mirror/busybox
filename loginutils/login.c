@@ -58,7 +58,7 @@
 //usage:#define login_full_usage "\n\n"
 //usage:       "Begin a new session on the system\n"
 //usage:     "\n	-f	Don't authenticate (user already authenticated)"
-//usage:     "\n	-h	Name of the remote host"
+//usage:     "\n	-h HOST	Host user came from (for network logins)"
 //usage:     "\n	-p	Preserve environment"
 
 #include "libbb.h"
