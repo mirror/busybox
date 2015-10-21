@@ -136,7 +136,6 @@ unsigned FAST_FUNC ll_index_to_flags(int idx)
 int FAST_FUNC xll_name_to_index(const char *name)
 {
 	int ret = 0;
-	int sock_fd;
 
 /* caching is not warranted - no users which repeatedly call it */
 #ifdef UNUSED
@@ -164,30 +163,8 @@ int FAST_FUNC xll_name_to_index(const char *name)
 			}
 		}
 	}
-	/* We have not found the interface in our cache, but the kernel
-	 * may still know about it. One reason is that we may be using
-	 * module on-demand loading, which means that the kernel will
-	 * load the module and make the interface exist only when
-	 * we explicitely request it (check for dev_load() in net/core/dev.c).
-	 * I can think of other similar scenario, but they are less common...
-	 * Jean II */
 #endif
-
-	sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock_fd >= 0) {
-		struct ifreq ifr;
-		int tmp;
-
-		strncpy_IFNAMSIZ(ifr.ifr_name, name);
-		ifr.ifr_ifindex = -1;
-		tmp = ioctl(sock_fd, SIOCGIFINDEX, &ifr);
-		close(sock_fd);
-		if (tmp >= 0)
-			/* In theory, we should redump the interface list
-			 * to update our cache, this is left as an exercise
-			 * to the reader... Jean II */
-			ret = ifr.ifr_ifindex;
-	}
+	ret = if_nametoindex(name);
 /* out:*/
 	if (ret <= 0)
 		bb_error_msg_and_die("can't find device '%s'", name);
