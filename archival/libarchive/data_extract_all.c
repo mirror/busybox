@@ -8,7 +8,6 @@
 
 void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 {
-
 	file_header_t *file_header = archive_handle->file_header;
 	int dst_fd;
 	int res;
@@ -44,7 +43,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			dst_name = strchr(dst_name, '/');
 			if (!dst_name || dst_name[1] == '\0') {
 				data_skip(archive_handle);
-				return;
+				goto ret;
 			}
 			dst_name++;
 			/*
@@ -60,7 +59,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				hard_link = strchr(hard_link, '/');
 				if (!hard_link || hard_link[1] == '\0') {
 					data_skip(archive_handle);
-					return;
+					goto ret;
 				}
 				hard_link++;
 			}
