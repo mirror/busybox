@@ -992,6 +992,15 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	applet_long_options = tar_longopts;
 #endif
 #if ENABLE_DESKTOP
+	/* Lie to buildroot when it starts asking stupid questions. */
+	if (argv[1] && strcmp(argv[1], "--version") == 0) {
+		// Output of 'tar --version' examples:
+		// tar (GNU tar) 1.15.1
+		// tar (GNU tar) 1.25
+		// bsdtar 2.8.3 - libarchive 2.8.3
+		puts("tar (busybox) " BB_VER);
+		return 0;
+	}
 	if (argv[1] && argv[1][0] != '-') {
 		/* Compat:
 		 * 1st argument without dash handles options with parameters
