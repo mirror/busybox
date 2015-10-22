@@ -1399,6 +1399,7 @@ extern void print_login_prompt(void) FAST_FUNC;
 char *xmalloc_ttyname(int fd) FAST_FUNC RETURNS_MALLOC;
 /* NB: typically you want to pass fd 0, not 1. Think 'applet | grep something' */
 int get_terminal_width_height(int fd, unsigned *width, unsigned *height) FAST_FUNC;
+int get_terminal_width(int fd) FAST_FUNC;
 
 int tcsetattr_stdin_TCSANOW(const struct termios *tp) FAST_FUNC;
 

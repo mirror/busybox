@@ -45,13 +45,6 @@ enum {
 	STALLTIME = 5
 };
 
-static unsigned int get_tty2_width(void)
-{
-	unsigned width;
-	get_terminal_width_height(2, &width, NULL);
-	return width;
-}
-
 void FAST_FUNC bb_progress_init(bb_progress_t *p, const char *curfile)
 {
 #if ENABLE_UNICODE_SUPPORT
@@ -148,7 +141,7 @@ void FAST_FUNC bb_progress_update(bb_progress_t *p,
 		unsigned ratio = 100 * beg_and_transferred / totalsize;
 		fprintf(stderr, "%4u%%", ratio);
 
-		barlength = get_tty2_width() - 49;
+		barlength = get_terminal_width(2) - 49;
 		if (barlength > 0) {
 			/* god bless gcc for variable arrays :) */
 			char buf[barlength + 1];

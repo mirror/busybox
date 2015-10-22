@@ -622,7 +622,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv)
 	 * and such large widths */
 	terminal_width = MAX_WIDTH;
 	if (isatty(1)) {
-		get_terminal_width_height(0, &terminal_width, NULL);
+		terminal_width = get_terminal_width(0);
 		if (--terminal_width > MAX_WIDTH)
 			terminal_width = MAX_WIDTH;
 	}
@@ -672,7 +672,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (w_count) {
 		terminal_width = (w_count == 1) ? 132 : MAX_WIDTH;
 	} else {
-		get_terminal_width_height(0, &terminal_width, NULL);
+		terminal_width = get_terminal_width(0);
 		/* Go one less... */
 		if (--terminal_width > MAX_WIDTH)
 			terminal_width = MAX_WIDTH;

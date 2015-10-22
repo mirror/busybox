@@ -381,7 +381,7 @@ int pstree_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	get_terminal_width_height(0, &G.output_width, NULL);
+	G.output_width = get_terminal_width(0);
 
 	opt_complementary = "?1";
 	getopt32(argv, "p");

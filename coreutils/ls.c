@@ -1105,7 +1105,7 @@ int ls_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* obtain the terminal width */
-	get_terminal_width_height(STDIN_FILENO, &G_terminal_width, NULL);
+	G_terminal_width = get_terminal_width(STDIN_FILENO);
 	/* go one less... */
 	G_terminal_width--;
 #endif

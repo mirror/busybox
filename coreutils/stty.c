@@ -1403,7 +1403,7 @@ int stty_main(int argc UNUSED_PARAM, char **argv)
 		perror_on_device_and_die("%s");
 
 	if (stty_state & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
-		get_terminal_width_height(STDOUT_FILENO, &G.max_col, NULL);
+		G.max_col = get_terminal_width(STDOUT_FILENO);
 		output_func(&mode, display_all);
 		return EXIT_SUCCESS;
 	}

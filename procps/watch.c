@@ -72,7 +72,7 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 
 			// STDERR_FILENO is procps3 compat:
 			// "watch ls 2>/dev/null" does not detect tty size
-			get_terminal_width_height(STDERR_FILENO, &new_width, NULL);
+			new_width = get_terminal_width(STDERR_FILENO);
 			if (new_width != width) {
 				width = new_width;
 				free(header);
