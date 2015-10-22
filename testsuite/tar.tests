@@ -256,6 +256,49 @@ Ok
 "" ""
 SKIP=
 
+# attack.tar.bz2 has symlink pointing to a system file
+# followed by a regular file with the same name
+# containing "root::0:0::/root:/bin/sh":
+#  lrwxrwxrwx root/root passwd -> /tmp/passwd
+#  -rw-r--r-- root/root passwd
+# naive tar implementation may end up creating the symlink
+# and then writing into it.
+# The correct implementation unlinks target before
+# creating the second file.
+# We test that /tmp/passwd remains empty:
+optional UUDECODE FEATURE_SEAMLESS_BZ2
+testing "tar does not extract into symlinks" "\
+>>/tmp/passwd && uudecode -o input && tar xf input 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
+" "\
+0
+" \
+"" "\
+begin-base64 644 attack.tar.bz2
+QlpoOTFBWSZTWRVn/bIAAKt7hMqwAEBAAP2QAhB0Y96AAACACCAAlISgpqe0
+po0DIaDynqAkpDRP1ANAhiYNSPR8VchKhAz0AK59+DA6FcMKBggOARIJdVHL
+DGllrjs20ATUgR1HmccBX3EhoMnpMJaNyggmxgLDMz54lBnBTJO/1L1lbMS4
+l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
+====
+"
+SKIP=
+# And same with -k
+optional UUDECODE FEATURE_SEAMLESS_BZ2
+testing "tar -k does not extract into symlinks" "\
+>>/tmp/passwd && uudecode -o input && tar xf input -k 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
+" "\
+tar: can't open 'passwd': File exists
+0
+" \
+"" "\
+begin-base64 644 attack.tar.bz2
+QlpoOTFBWSZTWRVn/bIAAKt7hMqwAEBAAP2QAhB0Y96AAACACCAAlISgpqe0
+po0DIaDynqAkpDRP1ANAhiYNSPR8VchKhAz0AK59+DA6FcMKBggOARIJdVHL
+DGllrjs20ATUgR1HmccBX3EhoMnpMJaNyggmxgLDMz54lBnBTJO/1L1lbMS4
+l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
+====
+"
+SKIP=
+
 
 cd .. && rm -rf tar.tempdir || exit 1
 
