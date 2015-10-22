@@ -12,12 +12,11 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	file_header_t *file_header = archive_handle->file_header;
 	int dst_fd;
 	int res;
+	char *hard_link;
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	char *dst_name;
-	char *dst_link;
 #else
 # define dst_name (file_header->name)
-# define dst_link (file_header->link_target)
 #endif
 
 #if ENABLE_FEATURE_TAR_SELINUX
@@ -31,9 +30,14 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	}
 #endif
 
+	/* Hard links are encoded as regular files of size 0
+	 * with a nonempty link field */
+	hard_link = NULL;
+	if (S_ISREG(file_header->mode) && file_header->size == 0)
+		hard_link = file_header->link_target;
+
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS
 	dst_name = file_header->name;
-	dst_link = file_header->link_target;
 	if (archive_handle->tar__strip_components) {
 		unsigned n = archive_handle->tar__strip_components;
 		do {
@@ -47,21 +51,18 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 			 * Link target is shortened only for hardlinks:
 			 * softlinks restored unchanged.
 			 */
-			if (S_ISREG(file_header->mode)
-			 && file_header->size == 0
-			 && dst_link
-			) {
+			if (hard_link) {
 // GNU tar 1.26 does not check that we reached end of link name:
 // if "dir/hardlink" is hardlinked to "file",
 // tar xvf a.tar --strip-components=1 says:
 //  tar: hardlink: Cannot hard link to '': No such file or directory
 // and continues processing. We silently skip such entries.
-				dst_link = strchr(dst_link, '/');
-				if (!dst_link || dst_link[1] == '\0') {
+				hard_link = strchr(hard_link, '/');
+				if (!hard_link || hard_link[1] == '\0') {
 					data_skip(archive_handle);
 					return;
 				}
-				dst_link++;
+				hard_link++;
 			}
 		} while (--n != 0);
 	}
@@ -79,12 +80,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 	if (archive_handle->ah_flags & ARCHIVE_UNLINK_OLD) {
 		/* Remove the entry if it exists */
 		if (!S_ISDIR(file_header->mode)) {
-			/* Is it hardlink?
-			 * We encode hard links as regular files of size 0 with a symlink */
-			if (S_ISREG(file_header->mode)
-			 && file_header->size == 0
-			 && dst_link
-			) {
+			if (hard_link) {
 				/* Ugly special case:
 				 * tar cf t.tar hardlink1 hardlink2 hardlink1
 				 * results in this tarball structure:
@@ -92,7 +88,7 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 				 * hardlink2 -> hardlink1
 				 * hardlink1 -> hardlink1 <== !!!
 				 */
-				if (strcmp(dst_link, dst_name) == 0)
+				if (strcmp(hard_link, dst_name) == 0)
 					goto ret;
 			}
 			/* Proceed with deleting */
@@ -128,19 +124,14 @@ void FAST_FUNC data_extract_all(archive_handle_t *archive_handle)
 		}
 	}
 
-	/* Handle hard links separately
-	 * We encode hard links as regular files of size 0 with a symlink */
-	if (S_ISREG(file_header->mode)
-	 && file_header->size == 0
-	 && dst_link
-	) {
-		/* Hard link */
-		res = link(dst_link, dst_name);
+	/* Handle hard links separately */
+	if (hard_link) {
+		res = link(hard_link, dst_name);
 		if (res != 0 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)) {
 			bb_perror_msg("can't create %slink "
 					"from %s to %s", "hard",
 					dst_name,
-					dst_link);
+					hard_link);
 		}
 		/* Hardlinks have no separate mode/ownership, skip chown/chmod */
 		goto ret;
