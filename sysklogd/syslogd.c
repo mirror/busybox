@@ -936,11 +936,6 @@ static NOINLINE int create_socket(void)
 	int sock_fd;
 	char *dev_log_name;
 
-#if ENABLE_FEATURE_SYSTEMD
-	if (sd_listen_fds() == 1)
-		return SD_LISTEN_FDS_START;
-#endif
-
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
 

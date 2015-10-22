@@ -89,7 +89,6 @@ CONFIG_PREFIX="./_install"
 #
 # Busybox Library Tuning
 #
-# CONFIG_FEATURE_SYSTEMD is not set
 # CONFIG_FEATURE_RTMINMAX is not set
 CONFIG_PASSWORD_MINLEN=6
 CONFIG_MD5_SMALL=1
