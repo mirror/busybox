@@ -2556,7 +2556,7 @@ updatepwd(const char *dir)
 			new = stack_putstr(p, new);
 			USTPUTC('/', new);
 		}
-		p = strtok(0, "/");
+		p = strtok(NULL, "/");
 	}
 	if (new > lim)
 		STUNPUTC(new);
