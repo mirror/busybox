@@ -36,10 +36,10 @@ service accordingly. In effect, it allows you to unplug/plug-to-different-networ
 and have your IP properly re-negotiated at once.
 
 var_service/dhcp_if_pinger -
-Uses var_service/dhcp_if's data (/var/service/dhcp_if/dhcp_if.out file)
-to determine router IP. Pings it. If ping fails, restarts /var/service/dhcp_if
-service. Basically, an example of watchdog service for networks
-which are not reliable and need babysitting.
+Uses var_service/dhcp_if's data to determine router IP. Pings it.
+If ping fails, restarts /var/service/dhcp_if service.
+Basically, an example of watchdog service for networks which are not reliable
+and need babysitting.
 
 var_service/fw -
 A *one-shot* service which reconfigures network based on current known state
