@@ -190,6 +190,11 @@ int FAST_FUNC bb_delete_module(const char *module, unsigned int flags)
 	return errno;
 }
 
+/* Note: not suitable for delete_module() errnos.
+ * For them, probably only EWOULDBLOCK needs explaining:
+ * "Other modules depend on us". So far we don't do such
+ * translation and don't use moderror() for removal errors.
+ */
 const char* FAST_FUNC moderror(int err)
 {
 	switch (err) {
