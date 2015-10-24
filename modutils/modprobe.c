@@ -461,7 +461,7 @@ static int do_modprobe(struct module_entry *m)
 				rc = bb_delete_module(m2->modname, O_EXCL);
 				if (rc) {
 					if (first) {
-						bb_perror_msg("can't unload module %s",
+						bb_perror_msg("can't unload module '%s'",
 							humanly_readable_name(m2));
 						break;
 					}
