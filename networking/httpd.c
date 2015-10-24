@@ -967,19 +967,30 @@ static void send_headers(int responseNum)
 	}
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
-		len += sprintf(iobuf + len, "Location: %s/%s%s\r\n",
+		/* Responding to "GET /dir" with
+		 * "HTTP/1.0 302 Found" "Location: /dir/"
+		 * - IOW, asking them to repeat with a slash.
+		 * Here, overflow IS possible, can't use sprintf:
+		 * mkdir test
+		 * python -c 'print("get /test?" + ("x" * 8192))' | busybox httpd -i -h .
+		 */
+		len += snprintf(iobuf + len, IOBUF_SIZE-3 - len,
+				"Location: %s/%s%s\r\n",
 				found_moved_temporarily,
 				(g_query ? "?" : ""),
 				(g_query ? g_query : ""));
+		if (len > IOBUF_SIZE-3)
+			len = IOBUF_SIZE-3;
 	}
 
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
 	if (error_page && access(error_page, R_OK) == 0) {
-		strcat(iobuf, "\r\n");
-		len += 2;
-
-		if (DEBUG)
+		iobuf[len++] = '\r';
+		iobuf[len++] = '\n';
+		if (DEBUG) {
+			iobuf[len] = '\0';
 			fprintf(stderr, "headers: '%s'\n", iobuf);
+		}
 		full_write(STDOUT_FILENO, iobuf, len);
 		if (DEBUG)
 			fprintf(stderr, "writing error page: '%s'\n", error_page);
@@ -1021,8 +1032,10 @@ static void send_headers(int responseNum)
 				responseNum, responseString,
 				responseNum, responseString, infoString);
 	}
-	if (DEBUG)
+	if (DEBUG) {
+		iobuf[len] = '\0';
 		fprintf(stderr, "headers: '%s'\n", iobuf);
+	}
 	if (full_write(STDOUT_FILENO, iobuf, len) != len) {
 		if (verbose > 1)
 			bb_perror_msg("error");
