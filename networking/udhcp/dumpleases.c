@@ -57,10 +57,12 @@ int dumpleases_main(int argc UNUSED_PARAM, char **argv)
 
 	fd = xopen(file, O_RDONLY);
 
-	printf("Mac Address       IP Address      Host Name           Expires %s\n",
-		(opt & OPT_a) ? "at" : "in");
-	/*     "00:00:00:00:00:00 255.255.255.255 ABCDEFGHIJKLMNOPQRS Wed Jun 30 21:49:08 1993" */
 	/*     "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 */
+	/*     "00:00:00:00:00:00 255.255.255.255 ABCDEFGHIJKLMNOPQRS Wed Jun 30 21:49:08 1993" */
+	printf("Mac %-14s"       "IP %-13s"      "Host %-15s"        "Expires %s\n",
+		"Address", "Address", "Name",
+		(opt & OPT_a) ? "at" : "in"
+	);
 
 	xread(fd, &written_at, sizeof(written_at));
 	written_at = SWAP_BE64(written_at);
