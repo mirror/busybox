@@ -361,8 +361,10 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 			// make the kernel filter out all packets except
 			// ones we'd care about.
 		}
-		// Set deadline_us to the point in time when we timeout
-		deadline_us = MONOTONIC_US() + timeout_ms * 1000;
+		if (timeout_ms >= 0) {
+			// Set deadline_us to the point in time when we timeout
+			deadline_us = MONOTONIC_US() + timeout_ms * 1000;
+		}
 
 		VDBG("...wait %d %s nsent=%u\n",
 				timeout_ms, argv_intf, nsent);
