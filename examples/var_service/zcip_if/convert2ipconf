@@ -4,6 +4,8 @@
 #interface=eth1
 #ip=169.254.x.y
 
+# into:
+
 #let cfg=cfg+1
 #if[$cfg]=...; ip[$cfg]=...; ipmask[$cfg]=.../...; gw[$cfg]=...; net[$cfg]=... dns[$cfg]=...
 
