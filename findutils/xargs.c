@@ -577,6 +577,9 @@ int xargs_main(int argc, char **argv)
 		G.argv = argv;
 		argc = 0;
 		read_args = process_stdin_with_replace;
+		/* Make -I imply -r. GNU findutils seems to do the same: */
+		/* (otherwise "echo -n | xargs -I% echo %" would SEGV) */
+		opt |= OPT_NO_EMPTY;
 	} else
 #endif
 	{
