@@ -65,10 +65,15 @@ struct dyn_lease* FAST_FUNC add_lease(
 			if (hostname_len > sizeof(oldest->hostname))
 				hostname_len = sizeof(oldest->hostname);
 			p = safe_strncpy(oldest->hostname, hostname, hostname_len);
-			/* sanitization (s/non-ASCII/^/g) */
+			/*
+			 * Sanitization (s/bad_char/./g).
+			 * The intent is not to allow only "DNS-valid" hostnames,
+			 * but merely make dumpleases output safe for shells to use.
+			 * We accept "0-9A-Za-z._-", all other chars turn to dots.
+			 */
 			while (*p) {
-				if (*p < ' ' || *p > 126)
-					*p = '^';
+				if (!isalnum(*p) && *p != '-' && *p != '_')
+					*p = '.';
 				p++;
 			}
 		}
