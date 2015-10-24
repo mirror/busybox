@@ -588,12 +588,14 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 				buf[sz] = ' ';
 			sz--;
 		}
+		if (base[0] == '-') /* "-sh" (login shell)? */
+			base++;
 
 		/* If comm differs from argv0, prepend "{comm} ".
 		 * It allows to see thread names set by prctl(PR_SET_NAME).
 		 */
-		if (base[0] == '-') /* "-sh" (login shell)? */
-			base++;
+		if (!comm)
+			return;
 		comm_len = strlen(comm);
 		/* Why compare up to comm_len, not COMM_LEN-1?
 		 * Well, some processes rewrite argv, and use _spaces_ there
@@ -612,7 +614,7 @@ void FAST_FUNC read_cmdline(char *buf, int col, unsigned pid, const char *comm)
 			buf[col - 1] = '\0';
 		}
 	} else {
-		snprintf(buf, col, "[%s]", comm);
+		snprintf(buf, col, "[%s]", comm ? comm : "?");
 	}
 }
 
