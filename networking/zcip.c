@@ -345,7 +345,7 @@ int zcip_main(int argc UNUSED_PARAM, char **argv)
 	state = PROBE;
 	while (1) {
 		struct pollfd fds[1];
-		unsigned deadline_us;
+		unsigned deadline_us = deadline_us;
 		struct arp_packet p;
 		int ip_conflict;
 		int n;
