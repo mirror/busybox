@@ -33,7 +33,8 @@ if test x"$1" != x"config"; then
 fi
 
 # "config": we've got the address
-#env # debug
+# Record information for e.g. dhcp_$IF_pinger service
+env >"env.out"
 
 ./convert2ipconf "$file_ipconf"
 # Reconfigure routing and firewall if needed

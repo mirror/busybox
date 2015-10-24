@@ -21,9 +21,9 @@ if test -f "$0.log"; then
 	mv "$0.log.new" "$0.log"
 fi
 
-test -f "/var/service/dhcp_$if/dhcp_$if.out" || exec env - sleep "$ping_time"
+test -f "/var/service/dhcp_$if/env.out" || exec env - sleep "$ping_time"
 
-. "/var/service/dhcp_$if/dhcp_$if.out"
+. "/var/service/dhcp_$if/env.out"
 test x"$router" != x"" || exec env - sleep "$ping_time"
 
 #msg "Pinging $router"
