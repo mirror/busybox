@@ -31,7 +31,7 @@ config FEATURE_SEAMLESS_GZ
 
 config FEATURE_SEAMLESS_Z
 	bool "tar, rpm, modprobe etc understand .Z data"
-	default n
+	default n  # it is ancient
 	help
 	  Make tar, rpm, modprobe etc understand .Z data.
 
