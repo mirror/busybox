@@ -308,23 +308,13 @@ config LAST
 	help
 	  'last' displays a list of the last users that logged into the system.
 
-choice
-	prompt "Choose last implementation"
-	depends on LAST
-	default FEATURE_LAST_FANCY
-
-config FEATURE_LAST_SMALL
-	bool "small"
-	help
-	  This is a small version of last with just the basic set of
-	  features.
-
 config FEATURE_LAST_FANCY
-	bool "huge"
+	bool "Turn on output of extra information"
+	default y
+	depends on LAST
 	help
 	  'last' displays detailed information about the last users that
 	  logged into the system (mimics sysvinit last). +900 bytes.
-endchoice
 
 config HDPARM
 	bool "hdparm"

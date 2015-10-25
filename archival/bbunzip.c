@@ -220,7 +220,7 @@ char* FAST_FUNC make_new_name_generic(char *filename, const char *expected_ext)
 
 //config:config UNCOMPRESS
 //config:	bool "uncompress"
-//config:	default n
+//config:	default n  # ancient
 //config:	help
 //config:	  uncompress is used to decompress archives created by compress.
 //config:	  Not much used anymore, replaced by gzip/gunzip.

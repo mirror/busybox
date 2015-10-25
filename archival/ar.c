@@ -22,23 +22,13 @@
 //config:	default n  # needs to be improved to be able to replace binutils ar
 //config:	help
 //config:	  ar is an archival utility program used to create, modify, and
-//config:	  extract contents from archives. An archive is a single file holding
-//config:	  a collection of other files in a structure that makes it possible to
-//config:	  retrieve the original individual files (called archive members).
-//config:	  The original files' contents, mode (permissions), timestamp, owner,
-//config:	  and group are preserved in the archive, and can be restored on
-//config:	  extraction.
+//config:	  extract contents from archives. In practice, it is used exclusively
+//config:	  for object module archives used by compilers.
 //config:
-//config:	  The stored filename is limited to 15 characters. (for more information
-//config:	  see long filename support).
-//config:	  ar has 60 bytes of overheads for every stored file.
-//config:
-//config:	  This implementation of ar can extract archives, it cannot create or
-//config:	  modify them.
 //config:	  On an x86 system, the ar applet adds about 1K.
 //config:
 //config:	  Unless you have a specific application which requires ar, you should
-//config:	  probably say N here.
+//config:	  probably say N here: most compilers come with their own ar utility.
 //config:
 //config:config FEATURE_AR_LONG_FILENAMES
 //config:	bool "Support for long filenames (not needed for debs)"
