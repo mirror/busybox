@@ -335,6 +335,7 @@ static const char gunzip_longopts[] ALIGN1 =
 	"to-stdout\0"           No_argument       "c"
 	"force\0"               No_argument       "f"
 	"test\0"                No_argument       "t"
+	"no-name\0"             No_argument       "n"
 	;
 #endif
 

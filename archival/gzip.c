@@ -2160,6 +2160,7 @@ static const char gzip_longopts[] ALIGN1 =
 	"quiet\0"               No_argument       "q"
 	"fast\0"                No_argument       "1"
 	"best\0"                No_argument       "9"
+	"no-name\0"             No_argument       "n"
 	;
 #endif
 
