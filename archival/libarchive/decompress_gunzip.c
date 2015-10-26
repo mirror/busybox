@@ -305,11 +305,12 @@ static int huft_build(const unsigned *b, const unsigned n,
 	unsigned i;             /* counter, current code */
 	unsigned j;             /* counter */
 	int k;                  /* number of bits in current code */
-	unsigned *p;            /* pointer into c[], b[], or v[] */
+	const unsigned *p;      /* pointer into c[], b[], or v[] */
 	huft_t *q;              /* points to current table */
 	huft_t r;               /* table entry for structure assignment */
 	huft_t *u[BMAX];        /* table stack */
 	unsigned v[N_MAX];      /* values in order of bit length */
+	unsigned v_end;
 	int ws[BMAX + 1];       /* bits decoded stack */
 	int w;                  /* bits decoded */
 	unsigned x[BMAX + 1];   /* bit offsets, then code stack */
@@ -324,7 +325,7 @@ static int huft_build(const unsigned *b, const unsigned n,
 
 	/* Generate counts for each bit length */
 	memset(c, 0, sizeof(c));
-	p = (unsigned *) b; /* cast allows us to reuse p for pointing to b */
+	p = b;
 	i = n;
 	do {
 		c[*p]++; /* assume all entries <= BMAX */
@@ -365,12 +366,14 @@ static int huft_build(const unsigned *b, const unsigned n,
 	}
 
 	/* Make a table of values in order of bit lengths */
-	p = (unsigned *) b;
+	p = b;
 	i = 0;
+	v_end = 0;
 	do {
 		j = *p++;
 		if (j != 0) {
 			v[x[j]++] = i;
+			v_end = x[j];
 		}
 	} while (++i < n);
 
@@ -432,7 +435,7 @@ static int huft_build(const unsigned *b, const unsigned n,
 
 			/* set up table entry in r */
 			r.b = (unsigned char) (k - w);
-			if (p >= v + n) {
+			if (p >= v + v_end) { // Was "if (p >= v + n)" but v[] can be shorter!
 				r.e = 99; /* out of values--invalid code */
 			} else if (*p < s) {
 				r.e = (unsigned char) (*p < 256 ? 16 : 15);	/* 256 is EOB code */
