@@ -394,8 +394,8 @@ static int FAST_FUNC static_up6(struct interface_defn_t *ifd, execfn *exec)
 # if ENABLE_FEATURE_IFUPDOWN_IP
 	result = execute("ip addr add %address%/%netmask% dev %iface%[[ label %label%]]", ifd, exec);
 	result += execute("ip link set[[ mtu %mtu%]][[ addr %hwaddress%]] %iface% up", ifd, exec);
-	/* Was: "[[ ip ....%gateway% ]]". Removed extra spaces w/o checking */
-	result += execute("[[ip route add ::/0 via %gateway%]][[ metric %metric%]]", ifd, exec);
+	/* Reportedly, IPv6 needs "dev %iface%", but IPv4 does not: */
+	result += execute("[[ip route add ::/0 via %gateway% dev %iface%]][[ metric %metric%]]", ifd, exec);
 # else
 	result = execute("ifconfig %iface%[[ media %media%]][[ hw %hwaddress%]][[ mtu %mtu%]] up", ifd, exec);
 	result += execute("ifconfig %iface% add %address%/%netmask%", ifd, exec);
@@ -421,7 +421,8 @@ static int FAST_FUNC v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 			"%endpoint%[[ local %local%]][[ ttl %ttl%]]", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec);
-	result += execute("[[ip route add ::/0 via %gateway%]]", ifd, exec);
+	/* Reportedly, IPv6 needs "dev %iface%", but IPv4 does not: */
+	result += execute("[[ip route add ::/0 via %gateway% dev %iface%]]", ifd, exec);
 	return ((result == 4) ? 4 : 0);
 }
 
