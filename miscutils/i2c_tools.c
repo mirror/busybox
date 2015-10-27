@@ -1270,7 +1270,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 	puts("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
 	for (i = 0; i < 128; i += 16) {
 		printf("%02x: ", i);
-		for(j = 0; j < 16; j++) {
+		for (j = 0; j < 16; j++) {
 			fflush_all();
 
 			cmd = mode;
