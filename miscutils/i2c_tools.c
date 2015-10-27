@@ -971,7 +971,8 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 
 	/* All but word data. */
 	if (mode != I2C_SMBUS_WORD_DATA || even) {
-		blen = read_block_data(fd, mode, block);
+		if (mode == I2C_SMBUS_BLOCK_DATA || mode == I2C_SMBUS_I2C_BLOCK_DATA)
+			blen = read_block_data(fd, mode, block);
 
 		if (mode == I2C_SMBUS_BYTE) {
 			res = i2c_smbus_write_byte(fd, first);
