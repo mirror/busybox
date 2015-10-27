@@ -732,8 +732,10 @@ static int read_block_data(int buf_fd, int mode, int *block)
 			tmp = i2c_smbus_read_i2c_block_data(
 					buf_fd, res, I2C_SMBUS_BLOCK_MAX,
 					cblock + res);
-			if (tmp <= 0)
+			if (tmp <= 0) {
+				blen = tmp;
 				goto fail;
+			}
 		}
 
 		if (res >= I2CDUMP_NUM_REGS)
@@ -750,7 +752,7 @@ static int read_block_data(int buf_fd, int mode, int *block)
 	return blen;
 
  fail:
-	bb_error_msg_and_die("block read failed");
+	bb_error_msg_and_die("block read failed: %d", blen);
 }
 
 /* Dump all but word data. */
