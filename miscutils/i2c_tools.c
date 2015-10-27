@@ -1200,7 +1200,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 			      opt_F = (1 << 4), opt_l = (1 << 5);
 	const char *const optstr = "yaqrFl";
 
-	int fd, bus_num, i, j, mode = I2CDETECT_MODE_AUTO, status;
+	int fd, bus_num, i, j, mode = I2CDETECT_MODE_AUTO, status, cmd;
 	unsigned first = 0x03, last = 0x77, opts;
 	unsigned long funcs;
 
@@ -1273,19 +1273,20 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 		for(j = 0; j < 16; j++) {
 			fflush_all();
 
+			cmd = mode;
 			if (mode == I2CDETECT_MODE_AUTO) {
 				if ((i+j >= 0x30 && i+j <= 0x37) ||
 				    (i+j >= 0x50 && i+j <= 0x5F))
-					mode = I2CDETECT_MODE_READ;
+					cmd = I2CDETECT_MODE_READ;
 				else
-					mode = I2CDETECT_MODE_QUICK;
+					cmd = I2CDETECT_MODE_QUICK;
 			}
 
 			/* Skip unwanted addresses. */
 			if (i+j < first
 			 || i+j > last
-			 || (mode == I2CDETECT_MODE_READ && !(funcs & I2C_FUNC_SMBUS_READ_BYTE))
-			 || (mode == I2CDETECT_MODE_QUICK && !(funcs & I2C_FUNC_SMBUS_QUICK)))
+			 || (cmd == I2CDETECT_MODE_READ && !(funcs & I2C_FUNC_SMBUS_READ_BYTE))
+			 || (cmd == I2CDETECT_MODE_QUICK && !(funcs & I2C_FUNC_SMBUS_QUICK)))
 			{
 				printf("   ");
 				continue;
@@ -1302,7 +1303,7 @@ int i2cdetect_main(int argc UNUSED_PARAM, char **argv)
 					"can't set address to 0x%02x", i + j);
 			}
 
-			switch (mode) {
+			switch (cmd) {
 			case I2CDETECT_MODE_READ:
 				/*
 				 * This is known to lock SMBus on various
