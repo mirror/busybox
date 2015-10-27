@@ -723,7 +723,7 @@ static int read_block_data(int buf_fd, int mode, int *block)
 	uint8_t cblock[I2C_SMBUS_BLOCK_MAX + I2CDUMP_NUM_REGS];
 	int res, blen = 0, tmp, i;
 
-	if (mode == I2C_SMBUS_BLOCK_DATA || mode == I2C_SMBUS_I2C_BLOCK_DATA) {
+	if (mode == I2C_SMBUS_BLOCK_DATA) {
 		res = i2c_smbus_read_block_data(buf_fd, 0, cblock);
 		blen = res;
 	} else {
