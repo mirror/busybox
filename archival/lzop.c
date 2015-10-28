@@ -640,7 +640,7 @@ static int lzo_get_method(header_t *h)
 /**********************************************************************/
 // compress a file
 /**********************************************************************/
-static NOINLINE smallint lzo_compress(const header_t *h)
+static NOINLINE int lzo_compress(const header_t *h)
 {
 	unsigned block_size = LZO_BLOCK_SIZE;
 	int r = 0; /* LZO_E_OK */
@@ -650,7 +650,6 @@ static NOINLINE smallint lzo_compress(const header_t *h)
 	uint32_t d_adler32 = ADLER32_INIT_VALUE;
 	uint32_t d_crc32 = CRC32_INIT_VALUE;
 	int l;
-	smallint ok = 1;
 	uint8_t *wrk_mem = NULL;
 
 	if (h->method == M_LZO1X_1)
@@ -732,7 +731,7 @@ static NOINLINE smallint lzo_compress(const header_t *h)
 	free(wrk_mem);
 	free(b1);
 	free(b2);
-	return ok;
+	return 1;
 }
 
 static FAST_FUNC void lzo_check(
@@ -753,7 +752,7 @@ static FAST_FUNC void lzo_check(
 /**********************************************************************/
 // decompress a file
 /**********************************************************************/
-static NOINLINE smallint lzo_decompress(const header_t *h)
+static NOINLINE int lzo_decompress(const header_t *h)
 {
 	unsigned block_size = LZO_BLOCK_SIZE;
 	int r;
@@ -761,7 +760,6 @@ static NOINLINE smallint lzo_decompress(const header_t *h)
 	uint32_t c_adler32 = ADLER32_INIT_VALUE;
 	uint32_t d_adler32 = ADLER32_INIT_VALUE;
 	uint32_t c_crc32 = CRC32_INIT_VALUE, d_crc32 = CRC32_INIT_VALUE;
-	smallint ok = 1;
 	uint8_t *b1;
 	uint32_t mcs_block_size = MAX_COMPRESSED_SIZE(block_size);
 	uint8_t *b2 = NULL;
@@ -865,7 +863,7 @@ static NOINLINE smallint lzo_decompress(const header_t *h)
 	}
 
 	free(b2);
-	return ok;
+	return 1;
 }
 
 /**********************************************************************/
@@ -1050,7 +1048,7 @@ static void lzo_set_method(header_t *h)
 	h->level = level;
 }
 
-static smallint do_lzo_compress(void)
+static int do_lzo_compress(void)
 {
 	header_t header;
 
@@ -1078,7 +1076,7 @@ static smallint do_lzo_compress(void)
 /**********************************************************************/
 // decompress
 /**********************************************************************/
-static smallint do_lzo_decompress(void)
+static int do_lzo_decompress(void)
 {
 	header_t header;
 
