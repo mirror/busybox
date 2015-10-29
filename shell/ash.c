@@ -10518,7 +10518,7 @@ static union node *andor(void);
 static union node *pipeline(void);
 static union node *parse_command(void);
 static void parseheredoc(void);
-static char nexttoken_ends_list(void);
+static char peektoken(void);
 static int readtoken(void);
 
 static union node *
@@ -10528,7 +10528,7 @@ list(int nlflag)
 	int tok;
 
 	checkkwd = CHKNL | CHKKWD | CHKALIAS;
-	if (nlflag == 2 && nexttoken_ends_list())
+	if (nlflag == 2 && peektoken())
 		return NULL;
 	n1 = NULL;
 	for (;;) {
@@ -10570,15 +10570,8 @@ list(int nlflag)
 				tokpushback = 1;
 			}
 			checkkwd = CHKNL | CHKKWD | CHKALIAS;
-			if (nexttoken_ends_list()) {
-				/* Testcase: "<<EOF; then <W".
-				 * It used to segfault w/o this check:
-				 */
-				if (heredoclist) {
-					raise_error_unexpected_syntax(-1);
-				}
+			if (peektoken())
 				return n1;
-			}
 			break;
 		case TEOF:
 			if (heredoclist)
@@ -11958,7 +11951,7 @@ readtoken(void)
 }
 
 static char
-nexttoken_ends_list(void)
+peektoken(void)
 {
 	int t;
 
