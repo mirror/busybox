@@ -11893,6 +11893,7 @@ static int
 readtoken(void)
 {
 	int t;
+	int kwd = checkkwd;
 #if DEBUG
 	smallint alreadyseen = tokpushback;
 #endif
@@ -11906,7 +11907,7 @@ readtoken(void)
 	/*
 	 * eat newlines
 	 */
-	if (checkkwd & CHKNL) {
+	if (kwd & CHKNL) {
 		while (t == TNL) {
 			parseheredoc();
 			t = xxreadtoken();
@@ -11920,7 +11921,7 @@ readtoken(void)
 	/*
 	 * check for keywords
 	 */
-	if (checkkwd & CHKKWD) {
+	if (kwd & CHKKWD) {
 		const char *const *pp;
 
 		pp = findkwd(wordtext);
