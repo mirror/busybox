@@ -10524,7 +10524,7 @@ static union node *andor(void);
 static union node *pipeline(void);
 static union node *parse_command(void);
 static void parseheredoc(void);
-static char peektoken(void);
+static int peektoken(void);
 static int readtoken(void);
 
 static union node *
@@ -10533,11 +10533,27 @@ list(int nlflag)
 	union node *n1, *n2, *n3;
 	int tok;
 
-	checkkwd = CHKNL | CHKKWD | CHKALIAS;
-	if (nlflag == 2 && peektoken())
-		return NULL;
 	n1 = NULL;
 	for (;;) {
+		switch (peektoken()) {
+		case TNL:
+			if (!(nlflag & 1))
+				break;
+			parseheredoc();
+			return n1;
+
+		case TEOF:
+			if (!n1 && (nlflag & 1))
+				n1 = NODE_EOF;
+			parseheredoc();
+			return n1;
+		}
+
+		checkkwd = CHKNL | CHKKWD | CHKALIAS;
+		if (nlflag == 2 && tokname_array[peektoken()][0])
+			return n1;
+		nlflag |= 2;
+
 		n2 = andor();
 		tok = readtoken();
 		if (tok == TBACKGND) {
@@ -10563,30 +10579,15 @@ list(int nlflag)
 			n1 = n3;
 		}
 		switch (tok) {
+		case TNL:
+		case TEOF:
+			tokpushback = 1;
+			/* fall through */
 		case TBACKGND:
 		case TSEMI:
-			tok = readtoken();
-			/* fall through */
-		case TNL:
-			if (tok == TNL) {
-				parseheredoc();
-				if (nlflag == 1)
-					return n1;
-			} else {
-				tokpushback = 1;
-			}
-			checkkwd = CHKNL | CHKKWD | CHKALIAS;
-			if (peektoken())
-				return n1;
 			break;
-		case TEOF:
-			if (heredoclist)
-				parseheredoc();
-			else
-				pungetc();              /* push back EOF on input */
-			return n1;
 		default:
-			if (nlflag == 1)
+			if ((nlflag & 1))
 				raise_error_unexpected_syntax(-1);
 			tokpushback = 1;
 			return n1;
@@ -11954,14 +11955,14 @@ readtoken(void)
 	return t;
 }
 
-static char
+static int
 peektoken(void)
 {
 	int t;
 
 	t = readtoken();
 	tokpushback = 1;
-	return tokname_array[t][0];
+	return t;
 }
 
 /*
@@ -11971,18 +11972,12 @@ peektoken(void)
 static union node *
 parsecmd(int interact)
 {
-	int t;
-
 	tokpushback = 0;
+	checkkwd = 0;
+	heredoclist = 0;
 	doprompt = interact;
 	setprompt_if(doprompt, doprompt);
 	needprompt = 0;
-	t = readtoken();
-	if (t == TEOF)
-		return NODE_EOF;
-	if (t == TNL)
-		return NULL;
-	tokpushback = 1;
 	return list(1);
 }
 
