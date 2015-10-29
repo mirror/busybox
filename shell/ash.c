@@ -8987,6 +8987,9 @@ localcmd(int argc UNUSED_PARAM, char **argv)
 {
 	char *name;
 
+	if (!funcnest)
+		ash_msg_and_raise_error("not in a function");
+
 	argv = argptr;
 	while ((name = *argv++) != NULL) {
 		mklocal(name);
