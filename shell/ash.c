@@ -8878,14 +8878,15 @@ parse_command_args(char **argv, const char **path)
 	for (;;) {
 		cp = *++argv;
 		if (!cp)
-			return 0;
+			return NULL;
 		if (*cp++ != '-')
 			break;
 		c = *cp++;
 		if (!c)
 			break;
 		if (c == '-' && !*cp) {
-			argv++;
+			if (!*++argv)
+				return NULL;
 			break;
 		}
 		do {
@@ -8895,7 +8896,7 @@ parse_command_args(char **argv, const char **path)
 				break;
 			default:
 				/* run 'typecmd' for other options */
-				return 0;
+				return NULL;
 			}
 			c = *cp++;
 		} while (c);
