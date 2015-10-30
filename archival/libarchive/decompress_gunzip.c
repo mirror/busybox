@@ -309,8 +309,7 @@ static int huft_build(const unsigned *b, const unsigned n,
 	huft_t *q;              /* points to current table */
 	huft_t r;               /* table entry for structure assignment */
 	huft_t *u[BMAX];        /* table stack */
-	unsigned v[N_MAX];      /* values in order of bit length */
-	unsigned v_end;
+	unsigned v[N_MAX + 1];  /* values in order of bit length. last v[] is never used */
 	int ws[BMAX + 1];       /* bits decoded stack */
 	int w;                  /* bits decoded */
 	unsigned x[BMAX + 1];   /* bit offsets, then code stack */
@@ -365,15 +364,17 @@ static int huft_build(const unsigned *b, const unsigned n,
 		*xp++ = j;
 	}
 
-	/* Make a table of values in order of bit lengths */
+	/* Make a table of values in order of bit lengths.
+	 * To detect bad input, unused v[i]'s are set to invalid value UINT_MAX.
+	 * In particular, last v[i] is never filled and must not be accessed.
+	 */
+	memset(v, 0xff, sizeof(v));
 	p = b;
 	i = 0;
-	v_end = 0;
 	do {
 		j = *p++;
 		if (j != 0) {
 			v[x[j]++] = i;
-			v_end = x[j];
 		}
 	} while (++i < n);
 
@@ -435,7 +436,9 @@ static int huft_build(const unsigned *b, const unsigned n,
 
 			/* set up table entry in r */
 			r.b = (unsigned char) (k - w);
-			if (p >= v + v_end) { // Was "if (p >= v + n)" but v[] can be shorter!
+			if (/*p >= v + n || -- redundant, caught by the second check: */
+			    *p == UINT_MAX /* do we access uninited v[i]? (see memset(v))*/
+			) {
 				r.e = 99; /* out of values--invalid code */
 			} else if (*p < s) {
 				r.e = (unsigned char) (*p < 256 ? 16 : 15);	/* 256 is EOB code */
@@ -520,8 +523,9 @@ static NOINLINE int inflate_codes(STATE_PARAM_ONLY)
 		e = t->e;
 		if (e > 16)
 			do {
-				if (e == 99)
-					abort_unzip(PASS_STATE_ONLY);;
+				if (e == 99) {
+					abort_unzip(PASS_STATE_ONLY);
+				}
 				bb >>= t->b;
 				k -= t->b;
 				e -= 16;
@@ -557,8 +561,9 @@ static NOINLINE int inflate_codes(STATE_PARAM_ONLY)
 			e = t->e;
 			if (e > 16)
 				do {
-					if (e == 99)
+					if (e == 99) {
 						abort_unzip(PASS_STATE_ONLY);
+					}
 					bb >>= t->b;
 					k -= t->b;
 					e -= 16;
@@ -824,8 +829,9 @@ static int inflate_block(STATE_PARAM smallint *e)
 
 		b_dynamic >>= 4;
 		k_dynamic -= 4;
-		if (nl > 286 || nd > 30)
+		if (nl > 286 || nd > 30) {
 			abort_unzip(PASS_STATE_ONLY);	/* bad lengths */
+		}
 
 		/* read in bit-length-code lengths */
 		for (j = 0; j < nb; j++) {
@@ -906,12 +912,14 @@ static int inflate_block(STATE_PARAM smallint *e)
 		bl = lbits;
 
 		i = huft_build(ll, nl, 257, cplens, cplext, &inflate_codes_tl, &bl);
-		if (i != 0)
+		if (i != 0) {
 			abort_unzip(PASS_STATE_ONLY);
+		}
 		bd = dbits;
 		i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &inflate_codes_td, &bd);
-		if (i != 0)
+		if (i != 0) {
 			abort_unzip(PASS_STATE_ONLY);
+		}
 
 		/* set up data for inflate_codes() */
 		inflate_codes_setup(PASS_STATE bl, bd);
@@ -999,6 +1007,7 @@ inflate_unzip_internal(STATE_PARAM transformer_state_t *xstate)
 	error_msg = "corrupted data";
 	if (setjmp(error_jmp)) {
 		/* Error from deep inside zip machinery */
+		bb_error_msg(error_msg);
 		n = -1;
 		goto ret;
 	}
