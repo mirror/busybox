@@ -543,22 +543,6 @@ config FEATURE_SPLIT_FANCY
 	  Supports additional suffixes 'b' for 512 bytes,
 	  'g' for 1GiB for the -b option.
 
-config STAT
-	bool "stat"
-	default y
-	select PLATFORM_LINUX # statfs()
-	help
-	  display file or filesystem status.
-
-config FEATURE_STAT_FORMAT
-	bool "Enable custom formats (-c)"
-	default y
-	depends on STAT
-	help
-	  Without this, stat will not support the '-c format' option where
-	  users can pass a custom format string for output. This adds about
-	  7k to a nonstatic build on amd64.
-
 config STTY
 	bool "stty"
 	default y
