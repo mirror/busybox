@@ -9432,7 +9432,7 @@ evalcommand(union node *cmd, int flags)
 		if (evalbltin(cmdentry.u.cmd, argc, argv)) {
 			int exit_status;
 			int i = exception_type;
-			if (i == EXEXIT)
+			if (i == EXEXIT || i == EXEXEC)
 				goto raise;
 			exit_status = 2;
 			if (i == EXINT)
