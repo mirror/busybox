@@ -114,7 +114,7 @@ config FEATURE_EDITING_SAVE_ON_EXIT
 config FEATURE_REVERSE_SEARCH
 	bool "Reverse history search"
 	default y
-	depends on FEATURE_EDITING_SAVEHISTORY
+	depends on FEATURE_EDITING
 	help
 	  Enable readline-like Ctrl-R combination for reverse history search.
 	  Increases code by about 0.5k.
