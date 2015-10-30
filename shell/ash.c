@@ -5409,7 +5409,7 @@ popredir(int drop, int restore)
 	struct redirtab *rp;
 	int i;
 
-	if (--g_nullredirs >= 0)
+	if (--g_nullredirs >= 0 || redirlist == NULL)
 		return;
 	INT_OFF;
 	rp = redirlist;
