@@ -909,7 +909,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 	unsigned first = 0x00, last = 0xff, opts;
 	int *block = (int *)bb_common_bufsiz1;
 	char *opt_r_str, *dash;
-	int fd, res, blen;
+	int fd, res;
 
         opt_complementary = "-2:?3"; /* from 2 to 3 args */
 	opts = getopt32(argv, optstr, &opt_r_str);
@@ -976,6 +976,8 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 
 	/* All but word data. */
 	if (mode != I2C_SMBUS_WORD_DATA || even) {
+		int blen = 0;
+
 		if (mode == I2C_SMBUS_BLOCK_DATA || mode == I2C_SMBUS_I2C_BLOCK_DATA)
 			blen = read_block_data(fd, mode, block);
 
