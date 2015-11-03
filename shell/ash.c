@@ -7726,36 +7726,40 @@ changepath(const char *new)
 	clearcmdentry(firstchange);
 	builtinloc = idx_bltin;
 }
-
-#define TEOF 0
-#define TNL 1
-#define TREDIR 2
-#define TWORD 3
-#define TSEMI 4
-#define TBACKGND 5
-#define TAND 6
-#define TOR 7
-#define TPIPE 8
-#define TLP 9
-#define TRP 10
-#define TENDCASE 11
-#define TENDBQUOTE 12
-#define TNOT 13
-#define TCASE 14
-#define TDO 15
-#define TDONE 16
-#define TELIF 17
-#define TELSE 18
-#define TESAC 19
-#define TFI 20
-#define TFOR 21
-#define TIF 22
-#define TIN 23
-#define TTHEN 24
-#define TUNTIL 25
-#define TWHILE 26
-#define TBEGIN 27
-#define TEND 28
+enum {
+	TEOF,
+	TNL,
+	TREDIR,
+	TWORD,
+	TSEMI,
+	TBACKGND,
+	TAND,
+	TOR,
+	TPIPE,
+	TLP,
+	TRP,
+	TENDCASE,
+	TENDBQUOTE,
+	TNOT,
+	TCASE,
+	TDO,
+	TDONE,
+	TELIF,
+	TELSE,
+	TESAC,
+	TFI,
+	TFOR,
+#if ENABLE_ASH_BASH_COMPAT
+	TFUNCTION,
+#endif
+	TIF,
+	TIN,
+	TTHEN,
+	TUNTIL,
+	TWHILE,
+	TBEGIN,
+	TEND
+};
 typedef smallint token_id_t;
 
 /* first char is indicating which tokens mark the end of a list */
@@ -7784,6 +7788,9 @@ static const char *const tokname_array[] = {
 	"\1esac",
 	"\1fi",
 	"\0for",
+#if ENABLE_ASH_BASH_COMPAT
+	"\0function",
+#endif
 	"\0if",
 	"\0in",
 	"\1then",
@@ -10762,6 +10769,7 @@ simplecmd(void)
 	int savecheckkwd;
 #if ENABLE_ASH_BASH_COMPAT
 	smallint double_brackets_flag = 0;
+	smallint function_flag = 0;
 #endif
 
 	args = NULL;
@@ -10778,6 +10786,11 @@ simplecmd(void)
 		t = readtoken();
 		switch (t) {
 #if ENABLE_ASH_BASH_COMPAT
+		case TFUNCTION:
+			if (peektoken() != TWORD)
+				raise_error_unexpected_syntax(TWORD);
+			function_flag = 1;
+			break;
 		case TAND: /* "&&" */
 		case TOR: /* "||" */
 			if (!double_brackets_flag) {
@@ -10806,6 +10819,29 @@ simplecmd(void)
 				app = &n->narg.next;
 				savecheckkwd = 0;
 			}
+#if ENABLE_ASH_BASH_COMPAT
+			if (function_flag) {
+				checkkwd = CHKNL | CHKKWD;
+				switch (peektoken()) {
+				case TBEGIN:
+				case TIF:
+				case TCASE:
+				case TUNTIL:
+				case TWHILE:
+				case TFOR:
+					goto do_func;
+				case TLP:
+					function_flag = 0;
+					break;
+				case TWORD:
+					if (strcmp("[[", wordtext) == 0)
+						goto do_func;
+					/* fall through */
+				default:
+					raise_error_unexpected_syntax(-1);
+				}
+			}
+#endif
 			break;
 		case TREDIR:
 			*rpp = n = redirnode;
@@ -10813,6 +10849,7 @@ simplecmd(void)
 			parsefname();   /* read name of redirection file */
 			break;
 		case TLP:
+ IF_ASH_BASH_COMPAT(do_func:)
 			if (args && app == &args->narg.next
 			 && !vars && !redir
 			) {
@@ -10820,7 +10857,7 @@ simplecmd(void)
 				const char *name;
 
 				/* We have a function */
-				if (readtoken() != TRP)
+				if (IF_ASH_BASH_COMPAT(!function_flag &&) readtoken() != TRP)
 					raise_error_unexpected_syntax(TRP);
 				name = n->narg.text;
 				if (!goodname(name)
@@ -10833,6 +10870,7 @@ simplecmd(void)
 				n->narg.next = parse_command();
 				return n;
 			}
+			IF_ASH_BASH_COMPAT(function_flag = 0;)
 			/* fall through */
 		default:
 			tokpushback = 1;
@@ -11013,6 +11051,7 @@ parse_command(void)
 		n1 = list(0);
 		t = TEND;
 		break;
+	IF_ASH_BASH_COMPAT(case TFUNCTION:)
 	case TWORD:
 	case TREDIR:
 		tokpushback = 1;
