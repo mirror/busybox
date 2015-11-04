@@ -258,5 +258,3 @@ vdprintf() -> similar sized functionality
 
 * more support for advanced linux 2.6.x features, see: iotop
   most likely there is more
-
-* even more support for statistics: mpstat, iostat, powertop....
