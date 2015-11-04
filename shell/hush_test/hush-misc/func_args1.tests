@@ -1,5 +1,3 @@
-# UNFIXED BUG
-
 f() { echo "'f $1 $2 $3' called"; }
 
 set -- a b c
