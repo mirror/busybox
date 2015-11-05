@@ -21,21 +21,13 @@
  *   for each depends, look through our list of full paths and emit if found
  */
 
-typedef struct module_info {
-	struct module_info *next;
-	char *name, *modname;
-	llist_t *dependencies;
-	llist_t *aliases;
-	llist_t *symbols;
-	struct module_info *dnext, *dprev;
-} module_info;
-
 static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARAM,
 				void *data, int depth UNUSED_PARAM)
 {
-	module_info **first = (module_info **) data;
+	module_db *modules = data;
 	char *image, *ptr;
-	module_info *info;
+	module_entry *e;
+
 	/* Arbitrary. Was sb->st_size, but that breaks .gz etc */
 	size_t len = (64*1024*1024 - 4096);
 
@@ -43,17 +35,10 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 		return TRUE;
 
 	image = xmalloc_open_zipped_read_close(fname, &len);
-	info = xzalloc(sizeof(*info));
 
-	info->next = *first;
-	*first = info;
+	e = moddb_get_or_create(modules, bb_get_last_path_component_nostrip(fname));
+	e->name = xstrdup(fname + 2); /* skip "./" */
 
-	info->dnext = info->dprev = info;
-	info->name = xstrdup(fname + 2); /* skip "./" */
-	info->modname = filename2modname(
-			bb_get_last_path_component_nostrip(fname),
-			NULL
-	);
 	for (ptr = image; ptr < image + len - 10; ptr++) {
 		if (is_prefixed_with(ptr, "depends=")) {
 			char *u;
@@ -62,11 +47,11 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 			for (u = ptr; *u; u++)
 				if (*u == '-')
 					*u = '_';
-			ptr += string_to_llist(ptr, &info->dependencies, ",");
+			ptr += string_to_llist(ptr, &e->deps, ",");
 		} else if (ENABLE_FEATURE_MODUTILS_ALIAS
 		 && is_prefixed_with(ptr, "alias=")
 		) {
-			llist_add_to(&info->aliases, xstrdup(ptr + 6));
+			llist_add_to(&e->aliases, xstrdup(ptr + 6));
 			ptr += strlen(ptr);
 		} else if (ENABLE_FEATURE_MODUTILS_SYMBOLS
 		 && is_prefixed_with(ptr, "__ksymtab_")
@@ -77,7 +62,7 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 			) {
 				continue;
 			}
-			llist_add_to(&info->symbols, xstrdup(ptr));
+			llist_add_to(&e->symbols, xstrdup(ptr));
 			ptr += strlen(ptr);
 		}
 	}
@@ -86,24 +71,13 @@ static int FAST_FUNC parse_module(const char *fname, struct stat *sb UNUSED_PARA
 	return TRUE;
 }
 
-static module_info *find_module(module_info *modules, const char *modname)
+static void order_dep_list(module_db *modules, module_entry *start, llist_t *add)
 {
-	module_info *m;
-
-	for (m = modules; m != NULL; m = m->next)
-		if (strcmp(m->modname, modname) == 0)
-			return m;
-	return NULL;
-}
-
-static void order_dep_list(module_info *modules, module_info *start,
-			llist_t *add)
-{
-	module_info *m;
+	module_entry *m;
 	llist_t *n;
 
 	for (n = add; n != NULL; n = n->link) {
-		m = find_module(modules, n->data);
+		m = moddb_get(modules, n->data);
 		if (m == NULL)
 			continue;
 
@@ -118,7 +92,7 @@ static void order_dep_list(module_info *modules, module_info *start,
 		start->dprev = m;
 
 		/* recurse */
-		order_dep_list(modules, start, m->dependencies);
+		order_dep_list(modules, start, m->deps);
 	}
 }
 
@@ -184,10 +158,12 @@ enum {
 int depmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int depmod_main(int argc UNUSED_PARAM, char **argv)
 {
-	module_info *modules, *m, *dep;
+	module_db modules;
+	module_entry *m, *dep;
 	const char *moddir_base = "/";
 	char *moddir, *version;
 	struct utsname uts;
+	unsigned i;
 	int tmp;
 
 	getopt32(argv, "aAb:eF:nruqC:", &moddir_base, NULL, NULL);
@@ -211,7 +187,7 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 		free(moddir);
 
 	/* Scan modules */
-	modules = NULL;
+	memset(&modules, 0, sizeof(modules));
 	if (*argv) {
 		do {
 			parse_module(*argv, /*sb (unused):*/ NULL, &modules, 0);
@@ -224,10 +200,11 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 	/* Generate dependency and alias files */
 	if (!(option_mask32 & OPT_n))
 		xfreopen_write(CONFIG_DEFAULT_DEPMOD_FILE, stdout);
-	for (m = modules; m != NULL; m = m->next) {
+
+	moddb_foreach_module(&modules, m, i) {
 		printf("%s:", m->name);
 
-		order_dep_list(modules, m, m->dependencies);
+		order_dep_list(&modules, m, m->deps);
 		while (m->dnext != m) {
 			dep = m->dnext;
 			printf(" %s", dep->name);
@@ -243,10 +220,7 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_MODUTILS_ALIAS
 	if (!(option_mask32 & OPT_n))
 		xfreopen_write("modules.alias", stdout);
-	for (m = modules; m != NULL; m = m->next) {
-		char modname[MODULE_NAME_LEN];
-		const char *fname = bb_basename(m->name);
-		filename2modname(fname, modname);
+	moddb_foreach_module(&modules, m, i) {
 		while (m->aliases) {
 			/*
 			 * Last word used to be a basename
@@ -256,34 +230,24 @@ int depmod_main(int argc UNUSED_PARAM, char **argv)
 			 */
 			printf("alias %s %s\n",
 				(char*)llist_pop(&m->aliases),
-				modname);
+				m->modname);
 		}
 	}
 #endif
 #if ENABLE_FEATURE_MODUTILS_SYMBOLS
 	if (!(option_mask32 & OPT_n))
 		xfreopen_write("modules.symbols", stdout);
-	for (m = modules; m != NULL; m = m->next) {
-		char modname[MODULE_NAME_LEN];
-		const char *fname = bb_basename(m->name);
-		filename2modname(fname, modname);
+	moddb_foreach_module(&modules, m, i) {
 		while (m->symbols) {
 			printf("alias symbol:%s %s\n",
 				(char*)llist_pop(&m->symbols),
-				modname);
+				m->modname);
 		}
 	}
 #endif
 
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		while (modules) {
-			module_info *old = modules;
-			modules = modules->next;
-			free(old->name);
-			free(old->modname);
-			free(old);
-		}
-	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		moddb_free(&modules);
 
 	return EXIT_SUCCESS;
 }

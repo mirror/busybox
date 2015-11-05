@@ -16,6 +16,57 @@ extern int delete_module(const char *module, unsigned int flags);
 # define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #endif
 
+static module_entry *helper_get_module(module_db *db, const char *module, int create)
+{
+	char modname[MODULE_NAME_LEN];
+	struct module_entry *e;
+	unsigned i, hash;
+
+	filename2modname(module, modname);
+
+	hash = 0;
+	for (i = 0; modname[i]; i++)
+		hash = ((hash << 5) + hash) + modname[i];
+	hash %= MODULE_HASH_SIZE;
+
+	for (e = db->buckets[hash]; e; e = e->next)
+		if (strcmp(e->modname, modname) == 0)
+			return e;
+	if (!create)
+		return NULL;
+
+	e = xzalloc(sizeof(*e));
+	e->modname = xstrdup(modname);
+	e->next = db->buckets[hash];
+	db->buckets[hash] = e;
+	e->dnext = e->dprev = e;
+
+	return e;
+}
+module_entry* FAST_FUNC moddb_get(module_db *db, const char *module)
+{
+	return helper_get_module(db, module, 0);
+}
+module_entry* FAST_FUNC moddb_get_or_create(module_db *db, const char *module)
+{
+	return helper_get_module(db, module, 1);
+}
+
+void FAST_FUNC moddb_free(module_db *db)
+{
+	module_entry *e, *n;
+	unsigned i;
+
+	for (i = 0; i < MODULE_HASH_SIZE; i++) {
+		for (e = db->buckets[i]; e; e = n) {
+			n = e->next;
+			free(e->name);
+			free(e->modname);
+			free(e);
+		}
+	}
+}
+
 void FAST_FUNC replace(char *s, char what, char with)
 {
 	while (*s) {

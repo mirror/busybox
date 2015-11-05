@@ -150,19 +150,6 @@ static const char modprobe_longopts[] ALIGN1 =
 #define MODULE_FLAG_FOUND_IN_MODDEP     0x0004
 #define MODULE_FLAG_BLACKLISTED         0x0008
 
-struct module_entry { /* I'll call it ME. */
-	unsigned flags;
-	char *modname; /* stripped of /path/, .ext and s/-/_/g */
-	const char *probed_name; /* verbatim as seen on cmdline */
-	char *options; /* options from config files */
-	llist_t *realnames; /* strings. if this module is an alias, */
-	/* real module name is one of these. */
-//Can there really be more than one? Example from real kernel?
-	llist_t *deps; /* strings. modules we depend on */
-};
-
-#define DB_HASH_SIZE 256
-
 struct globals {
 	llist_t *probes; /* MEs of module(s) requested on cmdline */
 	char *cmdline_mopts; /* module options from cmdline */
@@ -170,7 +157,7 @@ struct globals {
 	/* bool. "Did we have 'symbol:FOO' requested on cmdline?" */
 	smallint need_symbols;
 	struct utsname uts;
-	llist_t *db[DB_HASH_SIZE]; /* MEs of all modules ever seen (caching for speed) */
+	module_db db;
 } FIX_ALIASING;
 #define G (*ptr_to_globals)
 #define INIT_G() do { \
@@ -195,51 +182,9 @@ static char *gather_options_str(char *opts, const char *append)
 	return opts;
 }
 
-/* These three functions called many times, optimizing for speed.
- * Users reported minute-long delays when they runn iptables repeatedly
- * (iptables use modprobe to install needed kernel modules).
- */
-static struct module_entry *helper_get_module(const char *module, int create)
+static struct module_entry *get_or_add_modentry(const char *module)
 {
-	char modname[MODULE_NAME_LEN];
-	struct module_entry *e;
-	llist_t *l;
-	unsigned i;
-	unsigned hash;
-
-	filename2modname(module, modname);
-
-	hash = 0;
-	for (i = 0; modname[i]; i++)
-		hash = ((hash << 5) + hash) + modname[i];
-	hash %= DB_HASH_SIZE;
-
-	for (l = G.db[hash]; l; l = l->link) {
-		e = (struct module_entry *) l->data;
-		if (strcmp(e->modname, modname) == 0)
-			return e;
-	}
-	if (!create)
-		return NULL;
-
-	e = xzalloc(sizeof(*e));
-	e->modname = xstrdup(modname);
-	llist_add_to(&G.db[hash], e);
-
-	return e;
-}
-static ALWAYS_INLINE struct module_entry *get_or_add_modentry(const char *module)
-{
-	return helper_get_module(module, 1);
-}
-/* So far this function always gets a module pathname, never an alias name.
- * The crucial difference is that pathname needs dirname stripping,
- * while alias name must NOT do it!
- * Testcase where dirname stripping is likely to go wrong: "modprobe devname:snd/timer"
- */
-static ALWAYS_INLINE struct module_entry *get_modentry(const char *pathname)
-{
-	return helper_get_module(bb_get_last_path_component_nostrip(pathname), 0);
+	return moddb_get_or_create(&G.db, module);
 }
 
 static void add_probe(const char *name)
@@ -536,7 +481,7 @@ static void load_modules_dep(void)
 			continue;
 		*colon = '\0';
 
-		m = get_modentry(tokens[0]);
+		m = moddb_get(&G.db, bb_get_last_path_component_nostrip(tokens[0]));
 		if (m == NULL)
 			continue;
 
@@ -696,6 +641,9 @@ int modprobe_main(int argc UNUSED_PARAM, char **argv)
 			free(realname);
 		} while (me->realnames != NULL);
 	}
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		moddb_free(&G.db);
 
 	return (rc != 0);
 }
