@@ -39,7 +39,7 @@ static module_entry *helper_get_module(module_db *db, const char *module, int cr
 	e->modname = xstrdup(modname);
 	e->next = db->buckets[hash];
 	db->buckets[hash] = e;
-	e->dnext = e->dprev = e;
+	IF_DEPMOD(e->dnext = e->dprev = e;)
 
 	return e;
 }
