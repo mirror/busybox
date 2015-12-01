@@ -54,7 +54,7 @@ check_cc() {
     # "eval" may be needed if CFLAGS can contain
     # '... -D"BB_VER=KBUILD_STR(1.N.M)" ...'
     # and we need shell to process quotes!
-    $CC $CFLAGS $1 "$tempname".c -o "$tempname" >/dev/null 2>&1
+    $CC $CFLAGS $LDFLAGS $1 "$tempname".c -o "$tempname" >/dev/null 2>&1
     r=$?
     rm -f "$tempname" "$tempname".c "$tempname".o
     return $r
