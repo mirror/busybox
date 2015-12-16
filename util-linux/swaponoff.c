@@ -22,11 +22,10 @@
 //usage:	)
 //usage:
 //usage:#define swapoff_trivial_usage
-//usage:       "[-a] [-e] [DEVICE]"
+//usage:       "[-a] [DEVICE]"
 //usage:#define swapoff_full_usage "\n\n"
 //usage:       "Stop swapping on DEVICE\n"
 //usage:     "\n	-a	Stop swapping on all swap devices"
-//usage:     "\n	-e	Silently skip devices that do not exist"
 
 #include "libbb.h"
 #include <mntent.h>
@@ -93,15 +92,12 @@ enum {
 #define OPT_IFEXISTS (option_mask32 & OPT_e)
 #define OPT_PRIO     (option_mask32 & OPT_p)
 
-static int swap_enable_disable(char *device)
+static int swap_enable_disable(const char *device)
 {
 	int err = 0;
 	int quiet = 0;
-	struct stat st;
 
 	resolve_mount_spec(&device);
-	if (!OPT_IFEXISTS)
-		xstat(device, &st);
 
 	if (do_swapoff) {
 		err = swapoff(device);
@@ -109,6 +105,7 @@ static int swap_enable_disable(char *device)
 		quiet = (OPT_ALL && (errno == EINVAL || errno == ENOENT));
 	} else {
 		/* swapon */
+		struct stat st;
 		err = stat(device, &st);
 		if (!err) {
 			if (ENABLE_DESKTOP && S_ISREG(st.st_mode)) {
@@ -119,9 +116,11 @@ static int swap_enable_disable(char *device)
 			}
 			err = swapon(device, g_flags);
 			/* Don't complain on swapon -a if device is already in use */
-			/* Don't complain if file does not exist with -e option */
-			quiet = (OPT_ALL && errno == EBUSY) || (OPT_IFEXISTS && errno == ENOENT);
+			quiet = (OPT_ALL && errno == EBUSY);
 		}
+		/* Don't complain if file does not exist with -e option */
+		if (err && OPT_IFEXISTS && errno == ENOENT)
+			err = 0;
 	}
 
 	if (err && !quiet) {
