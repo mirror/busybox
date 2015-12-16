@@ -169,6 +169,8 @@ int FAST_FUNC volume_id_probe_linux_raid(struct volume_id *id /*,uint64_t off*/,
 
 /* FS */
 
+int FAST_FUNC volume_id_probe_bcache(struct volume_id *id /*,uint64_t off*/);
+
 int FAST_FUNC volume_id_probe_btrfs(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_cramfs(struct volume_id *id /*,uint64_t off*/);

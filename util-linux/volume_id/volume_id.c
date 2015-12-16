@@ -107,6 +107,9 @@ static const probe_fptr fs1[] = {
 #if ENABLE_FEATURE_VOLUMEID_XFS
 	volume_id_probe_xfs,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_BCACHE
+	volume_id_probe_bcache,
+#endif
 };
 
 /* fill buffer with maximum */
