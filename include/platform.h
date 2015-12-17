@@ -489,7 +489,6 @@ typedef unsigned smalluint;
 # else
    /* ANDROID >= 21 has standard dprintf */
 # endif
-# endif
 # if __ANDROID_API__ < 21
 #  undef HAVE_TTYNAME_R
 #  undef HAVE_GETLINE
