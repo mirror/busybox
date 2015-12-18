@@ -92,7 +92,7 @@ enum {
 #define OPT_IFEXISTS (option_mask32 & OPT_e)
 #define OPT_PRIO     (option_mask32 & OPT_p)
 
-static int swap_enable_disable(const char *device)
+static int swap_enable_disable(char *device)
 {
 	int err = 0;
 	int quiet = 0;
