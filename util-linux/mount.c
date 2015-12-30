@@ -259,9 +259,11 @@ static struct mntent *getmntent_r(FILE* stream, struct mntent* result,
 
 // Not real flags, but we want to be able to check for this.
 enum {
-	MOUNT_USERS  = (1 << 28) * ENABLE_DESKTOP,
+	MOUNT_USERS  = (1 << 27) * ENABLE_DESKTOP,
+	MOUNT_NOFAIL = (1 << 28) * ENABLE_DESKTOP,
 	MOUNT_NOAUTO = (1 << 29),
 	MOUNT_SWAP   = (1 << 30),
+	MOUNT_FAKEFLAGS = MOUNT_USERS | MOUNT_NOFAIL | MOUNT_NOAUTO | MOUNT_SWAP
 };
 
 
@@ -326,6 +328,7 @@ static const int32_t mount_options[] = {
 		/* "swap"   */ MOUNT_SWAP,
 		IF_DESKTOP(/* "user"  */ MOUNT_USERS,)
 		IF_DESKTOP(/* "users" */ MOUNT_USERS,)
+		IF_DESKTOP(/* "nofail" */ MOUNT_NOFAIL,)
 		/* "_netdev" */ 0,
 		IF_DESKTOP(/* "comment=" */ 0,) /* systemd uses this in fstab */
 	)
@@ -385,6 +388,7 @@ static const char mount_option_str[] =
 		"swap\0"
 		IF_DESKTOP("user\0")
 		IF_DESKTOP("users\0")
+		IF_DESKTOP("nofail\0")
 		"_netdev\0"
 		IF_DESKTOP("comment=\0") /* systemd uses this in fstab */
 	)
@@ -671,6 +675,8 @@ void delete_block_backed_filesystems(void);
 static int mount_it_now(struct mntent *mp, unsigned long vfsflags, char *filteropts)
 {
 	int rc = 0;
+
+	vfsflags &= ~(unsigned long)MOUNT_FAKEFLAGS;
 
 	if (FAKE_IT) {
 		if (verbose >= 2)
@@ -2060,6 +2066,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		free(filteropts);
 
 	if (errno == EBUSY && ignore_busy)
+		return 0;
+	if (errno == ENOENT && (vfsflags & MOUNT_NOFAIL))
 		return 0;
 	if (rc != 0)
 		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
