@@ -1481,6 +1481,11 @@ extern void selinux_or_die(void) FAST_FUNC;
 #define SETUP_ENV_NO_CHDIR  (1 << 4)
 void setup_environment(const char *shell, int flags, const struct passwd *pw) FAST_FUNC;
 void nuke_str(char *str) FAST_FUNC;
+#if ENABLE_FEATURE_SECURETTY && !ENABLE_PAM
+int check_securetty(const char *short_tty) FAST_FUNC;
+#else
+static ALWAYS_INLINE int check_securetty(const char *short_tty UNUSED_PARAM) { return 1; }
+#endif
 int check_password(const struct passwd *pw, const char *plaintext) FAST_FUNC;
 int ask_and_check_password_extended(const struct passwd *pw, int timeout, const char *prompt) FAST_FUNC;
 int ask_and_check_password(const struct passwd *pw) FAST_FUNC;

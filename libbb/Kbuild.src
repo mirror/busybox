@@ -83,6 +83,7 @@ lib-y += safe_gethostname.o
 lib-y += safe_poll.o
 lib-y += safe_strncpy.o
 lib-y += safe_write.o
+lib-y += securetty.o
 lib-y += setup_environment.o
 lib-y += signals.o
 lib-y += simplify_path.o
