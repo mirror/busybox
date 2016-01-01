@@ -8429,7 +8429,7 @@ evaltree(union node *n, int flags)
 			n->nbinary.ch1,
 			(flags | ((is_or >> 1) - 1)) & EV_TESTED
 		);
-		if (!exitstatus == is_or)
+		if ((!exitstatus) == is_or)
 			break;
 		if (!evalskip) {
 			n = n->nbinary.ch2;
