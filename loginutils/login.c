@@ -78,6 +78,49 @@
  * Apparently they like to confuse people. */
 # include <security/pam_appl.h>
 # include <security/pam_misc.h>
+
+# if 0
+/* This supposedly can be used to avoid double password prompt,
+ * if used instead of standard misc_conv():
+ *
+ * "When we want to authenticate first with local method and then with tacacs for example,
+ *  the password is asked for local method and if not good is asked a second time for tacacs.
+ *  So if we want to authenticate a user with tacacs, and the user exists localy, the password is
+ *  asked two times before authentication is accepted."
+ *
+ * However, code looks shaky. For example, why misc_conv() return value is ignored?
+ * Are msg[i] and resp[i] indexes handled correctly?
+ */
+static char *passwd = NULL;
+static int my_conv(int num_msg, const struct pam_message **msg,
+		struct pam_response **resp, void *data)
+{
+	int i;
+	for (i = 0; i < num_msg; i++) {
+		switch (msg[i]->msg_style) {
+		case PAM_PROMPT_ECHO_OFF:
+			if (passwd == NULL) {
+				misc_conv(num_msg, msg, resp, data);
+				passwd = xstrdup(resp[i]->resp);
+				return PAM_SUCCESS;
+			}
+
+			resp[0] = xzalloc(sizeof(struct pam_response));
+			resp[0]->resp = passwd;
+			passwd = NULL;
+			resp[0]->resp_retcode = PAM_SUCCESS;
+			resp[1] = NULL;
+			return PAM_SUCCESS;
+
+		default:
+			break;
+		}
+	}
+
+	return PAM_SUCCESS;
+}
+# endif
+
 static const struct pam_conv conv = {
 	misc_conv,
 	NULL
