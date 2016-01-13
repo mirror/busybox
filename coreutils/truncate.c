@@ -40,7 +40,7 @@ int truncate_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int truncate_main(int argc UNUSED_PARAM, char **argv)
 {
 	unsigned opts;
-	int flags = O_RDWR;
+	int flags = O_WRONLY | O_NONBLOCK;
 	int ret = EXIT_SUCCESS;
 	char *size_str;
 	off_t size;
