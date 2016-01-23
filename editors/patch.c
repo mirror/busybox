@@ -372,10 +372,6 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 			xmove_fd(xopen_stdin(argv[1]), STDIN_FILENO);
 		}
 	}
-	if (argv[0]) {
-		oldname = xstrdup(argv[0]);
-		newname = xstrdup(argv[0]);
-	}
 
 	// Loop through the lines in the patch
 	for(;;) {
@@ -486,10 +482,10 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 				// or if new hunk is empty (zero context) after patching
 				if (!strcmp(name, "/dev/null") || !(reverse ? oldsum : newsum)) {
 					name = reverse ? newname : oldname;
-					empty++;
+					empty = 1;
 				}
 
-				// handle -p path truncation.
+				// Handle -p path truncation.
 				for (i = 0, s = name; *s;) {
 					if ((option_mask32 & FLAG_PATHLEN) && TT.prefix == i)
 						break;
@@ -500,6 +496,9 @@ int patch_main(int argc UNUSED_PARAM, char **argv)
 					i++;
 					name = s;
 				}
+				// If "patch FILE_TO_PATCH", completely ignore name from patch
+				if (argv[0])
+					name = argv[0];
 
 				if (empty) {
 					// File is empty after the patches have been applied
