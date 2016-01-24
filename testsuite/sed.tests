@@ -365,6 +365,12 @@ testing "sed /regex/,+0<cmd> -i works" \
 	"1\n2\n3\n4\n5\n6\n7\n8\n" \
 	"1\n2\n4\n5\n6\n7\n8\n" \
 
+testing "sed 's///w FILE'" \
+	"sed 's/qwe/ZZZ/wz'; cat z; rm z" \
+	"123\nZZZ\nasd\n""ZZZ\n" \
+	"" \
+	"123\nqwe\nasd\n"
+
 # testing "description" "commands" "result" "infile" "stdin"
 
 exit $FAILCOUNT
