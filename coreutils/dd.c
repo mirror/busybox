@@ -55,7 +55,7 @@
 
 //usage:#define dd_trivial_usage
 //usage:       "[if=FILE] [of=FILE] " IF_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n"
-//usage:       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync]")
+//usage:       "	[seek=N]" IF_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync|fsync] [iflag=skip_bytes]")
 //usage:#define dd_full_usage "\n\n"
 //usage:       "Copy a file with converting and formatting\n"
 //usage:     "\n	if=FILE		Read from FILE instead of stdin"
@@ -76,6 +76,7 @@
 //usage:     "\n	conv=sync	Pad blocks with zeros"
 //usage:     "\n	conv=fsync	Physically write data out before finishing"
 //usage:     "\n	conv=swab	Swap every pair of bytes"
+//usage:     "\n	iflag=skip_bytes	skip=N is in bytes"
 //usage:	)
 //usage:	IF_FEATURE_DD_STATUS(
 //usage:     "\n	status=noxfer	Suppress rate output"
@@ -122,11 +123,15 @@ enum {
 	FLAG_FSYNC   = (1 << 3) * ENABLE_FEATURE_DD_IBS_OBS,
 	FLAG_SWAB    = (1 << 4) * ENABLE_FEATURE_DD_IBS_OBS,
 	/* end of conv flags */
-	FLAG_TWOBUFS = (1 << 5) * ENABLE_FEATURE_DD_IBS_OBS,
-	FLAG_COUNT   = 1 << 6,
-	FLAG_STATUS  = 1 << 7,
-	FLAG_STATUS_NONE = 1 << 7,
-	FLAG_STATUS_NOXFER = 1 << 8,
+	/* start of input flags */
+	FLAG_IFLAG_SHIFT = 5,
+	FLAG_SKIP_BYTES = (1 << 5) * ENABLE_FEATURE_DD_IBS_OBS,
+	/* end of input flags */
+	FLAG_TWOBUFS = (1 << 6) * ENABLE_FEATURE_DD_IBS_OBS,
+	FLAG_COUNT   = 1 << 7,
+	FLAG_STATUS  = 1 << 8,
+	FLAG_STATUS_NONE = 1 << 9,
+	FLAG_STATUS_NOXFER = 1 << 10,
 };
 
 static void dd_output_status(int UNUSED_PARAM cur_signal)
@@ -203,18 +208,47 @@ static bool write_and_stats(const void *buf, size_t len, size_t obs,
 # define XATOU_SFX xatoul_sfx
 #endif
 
+#if ENABLE_FEATURE_DD_IBS_OBS
+static int parse_comma_flags(char *val, const char *words, const char *error_in)
+{
+	int flags = 0;
+	while (1) {
+		int n;
+		char *arg;
+		/* find ',', replace them with NUL so we can use val for
+		 * index_in_strings() without copying.
+		 * We rely on val being non-null, else strchr would fault.
+		 */
+		arg = strchr(val, ',');
+		if (arg)
+			*arg = '\0';
+		n = index_in_strings(words, val);
+		if (n < 0)
+			bb_error_msg_and_die(bb_msg_invalid_arg_to, val, error_in);
+		flags |= (1 << n);
+		if (!arg) /* no ',' left, so this was the last specifier */
+			break;
+		*arg = ','; /* to preserve ps listing */
+		val = arg + 1; /* skip this keyword and ',' */
+	}
+	return flags;
+}
+#endif
+
 int dd_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int dd_main(int argc UNUSED_PARAM, char **argv)
 {
 	static const char keywords[] ALIGN1 =
 		"bs\0""count\0""seek\0""skip\0""if\0""of\0"IF_FEATURE_DD_STATUS("status\0")
 #if ENABLE_FEATURE_DD_IBS_OBS
-		"ibs\0""obs\0""conv\0"
+		"ibs\0""obs\0""conv\0""iflag\0"
 #endif
 		;
 #if ENABLE_FEATURE_DD_IBS_OBS
 	static const char conv_words[] ALIGN1 =
 		"notrunc\0""sync\0""noerror\0""fsync\0""swab\0";
+	static const char iflag_words[] ALIGN1 =
+		"skip_bytes\0";
 #endif
 #if ENABLE_FEATURE_DD_STATUS
 	static const char status_words[] ALIGN1 =
@@ -232,6 +266,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		OP_ibs,
 		OP_obs,
 		OP_conv,
+		OP_iflag,
 		/* Must be in the same order as FLAG_XXX! */
 		OP_conv_notrunc = 0,
 		OP_conv_sync,
@@ -251,6 +286,7 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 	//ibm           from ASCII to alternate EBCDIC
 	/* Partially implemented: */
 	//swab          swap every pair of input bytes: will abort on non-even reads
+		OP_iflag_skip_bytes,
 #endif
 	};
 	smallint exitcode = EXIT_FAILURE;
@@ -315,24 +351,11 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 			/*continue;*/
 		}
 		if (what == OP_conv) {
-			while (1) {
-				int n;
-				/* find ',', replace them with NUL so we can use val for
-				 * index_in_strings() without copying.
-				 * We rely on val being non-null, else strchr would fault.
-				 */
-				arg = strchr(val, ',');
-				if (arg)
-					*arg = '\0';
-				n = index_in_strings(conv_words, val);
-				if (n < 0)
-					bb_error_msg_and_die(bb_msg_invalid_arg_to, val, "conv");
-				G.flags |= (1 << n);
-				if (!arg) /* no ',' left, so this was the last specifier */
-					break;
-				/* *arg = ','; - to preserve ps listing? */
-				val = arg + 1; /* skip this keyword and ',' */
-			}
+			G.flags |= parse_comma_flags(val, conv_words, "conv");
+			/*continue;*/
+		}
+		if (what == OP_iflag) {
+			G.flags |= parse_comma_flags(val, iflag_words, "iflag") << FLAG_IFLAG_SHIFT;
 			/*continue;*/
 		}
 #endif
@@ -421,9 +444,10 @@ int dd_main(int argc UNUSED_PARAM, char **argv)
 		outfile = bb_msg_standard_output;
 	}
 	if (skip) {
-		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
+		size_t blocksz = (G.flags & FLAG_SKIP_BYTES) ? 1 : ibs;
+		if (lseek(ifd, skip * blocksz, SEEK_CUR) < 0) {
 			do {
-				ssize_t n = safe_read(ifd, ibuf, ibs);
+				ssize_t n = safe_read(ifd, ibuf, blocksz);
 				if (n < 0)
 					goto die_infile;
 				if (n == 0)
