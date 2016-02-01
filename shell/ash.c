@@ -37,7 +37,6 @@
 
 #define JOBS ENABLE_ASH_JOB_CONTROL
 
-#include <paths.h>
 #include <setjmp.h>
 #include <fnmatch.h>
 #include <sys/times.h>

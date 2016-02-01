@@ -98,7 +98,6 @@ static void klogd_close(void)
 
 #else
 
-# include <paths.h>
 # ifndef _PATH_KLOG
 #  ifdef __GNU__
 #   define _PATH_KLOG "/dev/klog"

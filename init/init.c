@@ -112,7 +112,6 @@
 
 #include "libbb.h"
 #include <syslog.h>
-#include <paths.h>
 #include <sys/resource.h>
 #ifdef __linux__
 # include <linux/vt.h>

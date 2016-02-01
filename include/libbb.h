@@ -20,6 +20,7 @@
 #include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <paths.h>
 #if defined __UCLIBC__ /* TODO: and glibc? */
 /* use inlined versions of these: */
 # define sigfillset(s)    __sigfillset(s)
@@ -106,7 +107,11 @@
 #  define updwtmpx updwtmp
 #  define _PATH_UTMPX _PATH_UTMP
 # else
+#  include <utmp.h>
 #  include <utmpx.h>
+#  if defined _PATH_UTMP && !defined _PATH_UTMPX
+#   define _PATH_UTMPX _PATH_UTMP
+#  endif
 # endif
 #endif
 #if ENABLE_LOCALE_SUPPORT
