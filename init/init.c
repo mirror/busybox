@@ -102,6 +102,21 @@
 //config:
 //config:	  Note that on Linux, init attempts to detect serial terminal and
 //config:	  sets TERM to "vt102" if one is found.
+//config:
+//config:config FEATURE_INIT_MODIFY_CMDLINE
+//config:	bool "Modify the command-line to \"init\""
+//config:	default y
+//config:	depends on INIT
+//config:	help
+//config:	  When launched as PID 1 and after parsing its arguments, init
+//config:	  wipes all the arguments but argv[0] and rewrites argv[0] to
+//config:	  contain only "init", so that its command-line appears solely as
+//config:	  "init" in tools such as ps.
+//config:	  If this option is set to Y, init will keep its original behavior,
+//config:	  otherwise, all the arguments including argv[0] will be preserved,
+//config:	  be they parsed or ignored by init.
+//config:	  The original command-line used to launch init can then be
+//config:	  retrieved in /proc/1/cmdline on Linux, for example.
 
 //applet:IF_INIT(APPLET(init, BB_DIR_SBIN, BB_SUID_DROP))
 //applet:IF_FEATURE_INITRD(APPLET_ODDNAME(linuxrc, init, BB_DIR_ROOT, BB_SUID_DROP, linuxrc))
@@ -1138,11 +1153,13 @@ int init_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-	/* Make the command line just say "init"  - thats all, nothing else */
-	strncpy(argv[0], "init", strlen(argv[0]));
-	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
-	while (*++argv)
-		nuke_str(*argv);
+	if (ENABLE_FEATURE_INIT_MODIFY_CMDLINE) {
+		/* Make the command line just say "init"  - that's all, nothing else */
+		strncpy(argv[0], "init", strlen(argv[0]));
+		/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
+		while (*++argv)
+			nuke_str(*argv);
+	}
 
 	/* Set up signal handlers */
 	if (!DEBUG_INIT) {
