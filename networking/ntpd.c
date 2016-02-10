@@ -112,7 +112,7 @@
  *
  * Made some changes to speed up re-syncing after our clock goes bad
  * (tested with suspending my laptop):
- * - if largish offset (>= STEP_THRESHOLD * 8 == 1 sec) is seen
+ * - if largish offset (>= STEP_THRESHOLD == 1 sec) is seen
  *   from a peer, schedule next query for this peer soon
  *   without drastically lowering poll interval for everybody.
  *   This makes us collect enough data for step much faster:
@@ -131,11 +131,14 @@
 #define RESPONSE_INTERVAL 16    /* wait for reply up to N secs */
 
 /* Step threshold (sec). std ntpd uses 0.128.
+ */
+#define STEP_THRESHOLD     1
+/* Slew threshold (sec): adjtimex() won't accept offsets larger than this.
  * Using exact power of 2 (1/8) results in smaller code
  */
-#define STEP_THRESHOLD  0.125
+#define SLEW_THRESHOLD 0.125
 /* Stepout threshold (sec). std ntpd uses 900 (11 mins (!)) */
-#define WATCH_THRESHOLD 128
+#define WATCH_THRESHOLD  128
 /* NB: set WATCH_THRESHOLD to ~60 when debugging to save time) */
 //UNUSED: #define PANIC_THRESHOLD 1000    /* panic threshold (sec) */
 
@@ -143,7 +146,7 @@
  * If we got |offset| > BIGOFF from a peer, cap next query interval
  * for this peer by this many seconds:
  */
-#define BIGOFF          (STEP_THRESHOLD * 8)
+#define BIGOFF          STEP_THRESHOLD
 #define BIGOFF_INTERVAL (1 << 7) /* 128 s */
 
 #define FREQ_TOLERANCE  0.000015 /* frequency tolerance (15 PPM) */
@@ -157,10 +160,10 @@
 #define MAXPOLL         12      /* maximum poll interval (12: 1.1h, 17: 36.4h). std ntpd uses 17 */
 /*
  * Actively lower poll when we see such big offsets.
- * With STEP_THRESHOLD = 0.125, it means we try to sync more aggressively
+ * With SLEW_THRESHOLD = 0.125, it means we try to sync more aggressively
  * if offset increases over ~0.04 sec
  */
-//#define POLLDOWN_OFFSET (STEP_THRESHOLD / 3)
+//#define POLLDOWN_OFFSET (SLEW_THRESHOLD / 3)
 #define MINDISP         0.01    /* minimum dispersion (sec) */
 #define MAXDISP         16      /* maximum dispersion (sec) */
 #define MAXSTRAT        16      /* maximum stratum (infinity metric) */
@@ -720,7 +723,7 @@ static void
 reset_peer_stats(peer_t *p, double offset)
 {
 	int i;
-	bool small_ofs = fabs(offset) < 16 * STEP_THRESHOLD;
+	bool small_ofs = fabs(offset) < STEP_THRESHOLD;
 
 	/* Used to set p->filter_datapoint[i].d_dispersion = MAXDISP
 	 * and clear reachable bits, but this proved to be too agressive:
@@ -771,7 +774,7 @@ add_peers(const char *s)
 	p->p_fd = -1;
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
-	reset_peer_stats(p, 16 * STEP_THRESHOLD);
+	reset_peer_stats(p, STEP_THRESHOLD);
 
 	llist_add_to(&G.ntp_peers, p);
 	G.peer_cnt++;
@@ -1638,14 +1641,7 @@ update_local_clock(peer_t *p)
 	tmx.freq = G.discipline_freq_drift * 65536e6;
 #endif
 	tmx.modes = ADJ_OFFSET | ADJ_STATUS | ADJ_TIMECONST;// | ADJ_MAXERROR | ADJ_ESTERROR;
-	tmx.offset = (offset * 1000000); /* usec */
-	tmx.status = STA_PLL;
-	if (G.ntp_status & LI_PLUSSEC)
-		tmx.status |= STA_INS;
-	if (G.ntp_status & LI_MINUSSEC)
-		tmx.status |= STA_DEL;
-
-	tmx.constant = (int)G.poll_exp - 4 > 0 ? (int)G.poll_exp - 4 : 0;
+	tmx.constant = (int)G.poll_exp - 4;
 	/* EXPERIMENTAL.
 	 * The below if statement should be unnecessary, but...
 	 * It looks like Linux kernel's PLL is far too gentle in changing
@@ -1656,8 +1652,27 @@ update_local_clock(peer_t *p)
 	 * To be on a safe side, let's do it only if offset is significantly
 	 * larger than jitter.
 	 */
-	if (tmx.constant > 0 && G.offset_to_jitter_ratio >= TIMECONST_HACK_GATE)
+	if (G.offset_to_jitter_ratio >= TIMECONST_HACK_GATE)
 		tmx.constant--;
+	tmx.offset = (long)(offset * 1000000); /* usec */
+	if (SLEW_THRESHOLD < STEP_THRESHOLD) {
+		if (tmx.offset > (long)(SLEW_THRESHOLD * 1000000)) {
+			tmx.offset = (long)(SLEW_THRESHOLD * 1000000);
+			tmx.constant--;
+		}
+		if (tmx.offset < -(long)(SLEW_THRESHOLD * 1000000)) {
+			tmx.offset = -(long)(SLEW_THRESHOLD * 1000000);
+			tmx.constant--;
+		}
+	}
+	if (tmx.constant < 0)
+		tmx.constant = 0;
+
+	tmx.status = STA_PLL;
+	if (G.ntp_status & LI_PLUSSEC)
+		tmx.status |= STA_INS;
+	if (G.ntp_status & LI_MINUSSEC)
+		tmx.status |= STA_DEL;
 
 	//tmx.esterror = (uint32_t)(clock_jitter * 1e6);
 	//tmx.maxerror = (uint32_t)((sys_rootdelay / 2 + sys_rootdisp) * 1e6);
@@ -1931,6 +1946,9 @@ recv_and_process_peer_pkt(peer_t *p)
  increase_interval:
 			adjust_poll(MINPOLL);
 		} else {
+			VERB3 if (rc > 0)
+				bb_error_msg("want smaller poll interval: offset/jitter ratio > %u",
+					POLLADJ_GATE);
 			adjust_poll(-G.poll_exp * 2);
 		}
 	}
@@ -1939,7 +1957,7 @@ recv_and_process_peer_pkt(peer_t *p)
  pick_normal_interval:
 	interval = poll_interval(INT_MAX);
 	if (fabs(offset) >= BIGOFF && interval > BIGOFF_INTERVAL) {
-		/* If we are synced, offsets are less than STEP_THRESHOLD,
+		/* If we are synced, offsets are less than SLEW_THRESHOLD,
 		 * or at the very least not much larger than it.
 		 * Now we see a largish one.
 		 * Either this peer is feeling bad, or packet got corrupted,
