@@ -220,8 +220,16 @@ static int FAST_FUNC config_file_action(const char *filename,
 	parser_t *p;
 	struct module_entry *m;
 	int rc = TRUE;
+	const char *base, *ext;
 
-	if (bb_basename(filename)[0] == '.')
+	/* Skip files that begin with a ".". */
+	base = bb_basename(filename);
+	if (base[0] == '.')
+		goto error;
+
+	/* Skip files that do not end with a ".conf". */
+	ext = strrchr(base, '.');
+	if (ext == NULL || strcmp(ext + 1, "conf"))
 		goto error;
 
 	p = config_open2(filename, fopen_for_read);
