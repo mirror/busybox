@@ -688,6 +688,16 @@ config DEBUG_PESSIMIZE
 	  in a much bigger executable that more closely matches the source
 	  code.
 
+config DEBUG_SANITIZE
+	bool "Enable runtime sanitizers (ASAN/LSAN/USAN/etc...)"
+	default n
+	help
+	  Say Y here if you want to enable runtime sanitizers. These help
+	  catch bad memory accesses (e.g. buffer overflows), but will make
+	  the executable larger and slow down runtime a bit.
+
+	  If you aren't developing/testing busybox, say N here.
+
 config UNIT_TEST
 	bool "Build unit tests"
 	default n

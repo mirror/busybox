@@ -75,6 +75,11 @@ else
 CFLAGS += $(call cc-option,-Os,$(call cc-option,-O2,))
 endif
 endif
+ifeq ($(CONFIG_DEBUG_SANITIZE),y)
+CFLAGS += $(call cc-option,-fsanitize=address,)
+CFLAGS += $(call cc-option,-fsanitize=leak,)
+CFLAGS += $(call cc-option,-fsanitize=undefined,)
+endif
 
 # If arch/$(ARCH)/Makefile did not override it (with, say, -fPIC)...
 ARCH_FPIC ?= -fpic
