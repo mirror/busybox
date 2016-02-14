@@ -75,27 +75,26 @@ static char *from_cpuset(cpu_set_t *mask)
 #define TASKSET_PRINTF_MASK "%llx"
 static unsigned long long from_cpuset(cpu_set_t *mask)
 {
-	char *p = (void*)mask;
+	BUILD_BUG_ON(CPU_SETSIZE < 8*sizeof(int));
 
-	BUILD_BUG_ON(CPU_SETSIZE < sizeof(int));
-
-	/* Take the least significant bits. Careful!
-	 * Consider both CPU_SETSIZE=4 and CPU_SETSIZE=1024 cases
+	/* Take the least significant bits. Assume cpu_set_t is
+	 * implemented as an array of unsigned long or unsigned
+	 * int.
 	 */
-#if BB_BIG_ENDIAN
-	/* For big endian, it means LAST bits */
-	if (CPU_SETSIZE < sizeof(long))
-		p += CPU_SETSIZE - sizeof(int);
-	else if (CPU_SETSIZE < sizeof(long long))
-		p += CPU_SETSIZE - sizeof(long);
-	else
-		p += CPU_SETSIZE - sizeof(long long);
-#endif
-	if (CPU_SETSIZE < sizeof(long))
-		return *(unsigned*)p;
-	if (CPU_SETSIZE < sizeof(long long))
-		return *(unsigned long*)p;
-	return *(unsigned long long*)p;
+	if (CPU_SETSIZE < 8*sizeof(long))
+		return *(unsigned*)mask;
+	if (CPU_SETSIZE < 8*sizeof(long long))
+		return *(unsigned long*)mask;
+# if BB_BIG_ENDIAN
+	if (sizeof(long long) > sizeof(long)) {
+		/* We can put two long in the long long, but they have to
+		 * be swapped: the least significant word comes first in the
+		 * array */
+		unsigned long *p = (void*)mask;
+		return p[0] + ((unsigned long long)p[1] << (8*sizeof(long)));
+	}
+# endif
+	return *(unsigned long long*)mask;
 }
 #endif
 
