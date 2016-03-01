@@ -195,7 +195,11 @@ void FAST_FUNC read_leases(const char *file)
 			uint32_t static_nip;
 
 			if (expires <= 0)
-				continue;
+				/* We keep expired leases: add_lease() will add
+				 * a lease with 0 seconds remaining.
+				 * Fewer IP address changes this way for mass reboot scenario.
+				 */
+				expires = 0;
 
 			/* Check if there is a different static lease for this IP or MAC */
 			static_nip = get_static_nip_by_mac(server_config.static_leases, lease.lease_mac);

@@ -17,7 +17,9 @@ static struct dyn_lease *oldest_expired_lease(void)
 	/* Unexpired leases have g_leases[i].expires >= current time
 	 * and therefore can't ever match */
 	for (i = 0; i < server_config.max_leases; i++) {
-		if (g_leases[i].expires < oldest_time) {
+		if (g_leases[i].expires == 0 /* empty entry */
+		 || g_leases[i].expires < oldest_time
+		) {
 			oldest_time = g_leases[i].expires;
 			oldest_lease = &g_leases[i];
 		}
