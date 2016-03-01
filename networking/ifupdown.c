@@ -875,7 +875,19 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 			currif->method = get_method(currif->address_family, method_name);
 			if (!currif->method)
 				bb_error_msg_and_die("unknown method \"%s\"", method_name);
-
+#if 0
+// Allegedly, Debian allows a duplicate definition:
+// iface eth0 inet static
+//     address 192.168.0.15
+//     netmask 255.255.0.0
+//     gateway 192.168.0.1
+//
+// iface eth0 inet static
+//     address 10.0.0.1
+//     netmask 255.255.255.0
+//
+// This adds *two* addresses to eth0 (probably requires use of "ip", not "ifconfig"
+//
 			for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
 				struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
 				if ((strcmp(tmp->iface, currif->iface) == 0)
@@ -884,6 +896,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 					bb_error_msg_and_die("duplicate interface \"%s\"", tmp->iface);
 				}
 			}
+#endif
 			llist_add_to_end(&(defn->ifaces), (char*)currif);
 
 			debug_noise("iface %s %s %s\n", currif->iface, address_family_name, method_name);
