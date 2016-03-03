@@ -850,7 +850,6 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 			char *iface_name;
 			char *address_family_name;
 			char *method_name;
-			llist_t *iface_list;
 
 			currif = xzalloc(sizeof(*currif));
 			iface_name = next_word(&rest_of_line);
@@ -888,6 +887,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename, struct in
 //
 // This adds *two* addresses to eth0 (probably requires use of "ip", not "ifconfig"
 //
+			llist_t *iface_list;
 			for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
 				struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
 				if ((strcmp(tmp->iface, currif->iface) == 0)
