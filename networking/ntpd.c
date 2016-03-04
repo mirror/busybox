@@ -267,6 +267,7 @@ typedef struct {
 
 typedef struct {
 	len_and_sockaddr *p_lsa;
+	char             *p_hostname;
 	char             *p_dotted;
 	int              p_fd;
 	int              datapoint_idx;
@@ -781,11 +782,14 @@ add_peers(const char *s)
 		peer_t *pp = (peer_t *) item->data;
 		if (strcmp(p->p_dotted, pp->p_dotted) == 0) {
 			bb_error_msg("duplicate peer %s (%s)", s, p->p_dotted);
+			free(p->p_lsa);
+			free(p->p_dotted);
 			free(p);
 			return;
 		}
 	}
 
+	p->p_hostname = xstrdup(s);
 	p->p_fd = -1;
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
@@ -2332,6 +2336,21 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 					timeout = poll_interval(NOREPLY_INTERVAL);
 					bb_error_msg("timed out waiting for %s, reach 0x%02x, next query in %us",
 							p->p_dotted, p->reachable_bits, timeout);
+
+					/* What if don't see it because it changed its IP? */
+					if (p->reachable_bits == 0) {
+						len_and_sockaddr *lsa = host2sockaddr(p->p_hostname, 123);
+						if (lsa) {
+							char *dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
+							//if (strcmp(dotted, p->p_dotted) != 0)
+							//	bb_error_msg("peer IP changed");
+							free(p->p_lsa);
+							free(p->p_dotted);
+							p->p_lsa = lsa;
+							p->p_dotted = dotted;
+						}
+					}
+
 					set_next(p, timeout);
 				}
 			}
