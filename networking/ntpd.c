@@ -727,7 +727,7 @@ reset_peer_stats(peer_t *p, double offset)
 
 	/* Used to set p->filter_datapoint[i].d_dispersion = MAXDISP
 	 * and clear reachable bits, but this proved to be too agressive:
-	 * after step (tested with suspinding laptop for ~30 secs),
+	 * after step (tested with suspending laptop for ~30 secs),
 	 * this caused all previous data to be considered invalid,
 	 * making us needing to collect full ~8 datapoins per peer
 	 * after step in order to start trusting them.
@@ -766,11 +766,26 @@ reset_peer_stats(peer_t *p, double offset)
 static void
 add_peers(const char *s)
 {
+	llist_t *item;
 	peer_t *p;
 
 	p = xzalloc(sizeof(*p));
 	p->p_lsa = xhost2sockaddr(s, 123);
 	p->p_dotted = xmalloc_sockaddr2dotted_noport(&p->p_lsa->u.sa);
+
+	/* Names like N.<country2chars>.pool.ntp.org are randomly resolved
+	 * to a pool of machines. Sometimes different N's resolve to the same IP.
+	 * It is not useful to have two peers with same IP. We skip duplicates.
+	 */
+	for (item = G.ntp_peers; item != NULL; item = item->link) {
+		peer_t *pp = (peer_t *) item->data;
+		if (strcmp(p->p_dotted, pp->p_dotted) == 0) {
+			bb_error_msg("duplicate peer %s (%s)", s, p->p_dotted);
+			free(p);
+			return;
+		}
+	}
+
 	p->p_fd = -1;
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
