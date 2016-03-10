@@ -7,6 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 #ifdef DNS_COMPR_TESTING
+# define _GNU_SOURCE
 # define FAST_FUNC /* nothing */
 # define xmalloc malloc
 # include <stdlib.h>
