@@ -142,14 +142,18 @@
 # include <netinet/in.h>
 #else
 # include <arpa/inet.h>
-# if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
-/* We #define socklen_t *after* includes, otherwise we get
- * typedef redefinition errors from system headers
- * (in case "is it defined already" detection above failed)
- */
-#  define socklen_t bb_socklen_t
-   typedef unsigned socklen_t;
-# endif
+//This breaks on bionic:
+//# if !defined(__socklen_t_defined) && !defined(_SOCKLEN_T_DECLARED)
+///* We #define socklen_t *after* includes, otherwise we get
+// * typedef redefinition errors from system headers
+// * (in case "is it defined already" detection above failed)
+// */
+//#  define socklen_t bb_socklen_t
+//   typedef unsigned socklen_t;
+//# endif
+//if this is still needed, add a fix along the lines of
+//  ifdef SPECIFIC_BROKEN_LIBC_CHECK / typedef socklen_t / endif
+//in platform.h instead!
 #endif
 #ifndef HAVE_CLEARENV
 # define clearenv() do { if (environ) environ[0] = NULL; } while (0)
