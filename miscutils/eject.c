@@ -73,7 +73,7 @@ static void eject_scsi(const char *dev)
 	ioctl(dev_fd, BLKRRPART);
 }
 #else
-# define eject_scsi() ((void)0)
+# define eject_scsi(dev) ((void)0)
 #endif
 
 /* various defines swiped from linux/cdrom.h */
