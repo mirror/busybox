@@ -342,14 +342,6 @@ static s_stat* init_literal(void)
 	return (s_stat*)s;
 }
 
-static s_stat* init_delay(const char *param)
-{
-	delta = strtoul(param, NULL, 0) * 1000; /* param can be "" */
-	deltanz = delta > 0 ? delta : 1;
-	need_seconds = (1000000%deltanz) != 0;
-	return NULL;
-}
-
 static s_stat* init_cr(const char *param UNUSED_PARAM)
 {
 	G.final_char = '\r';
@@ -817,8 +809,7 @@ static void FAST_FUNC collect_info(s_stat *s)
 
 typedef s_stat* init_func(const char *param);
 
-// Deprecated %NNNd is to be removed, -d MSEC supersedes it
-static const char options[] ALIGN1 = "ncmsfixptbdr";
+static const char options[] ALIGN1 = "ncmsfixptbr";
 static init_func *const init_functions[] = {
 	init_if,
 	init_cpu,
@@ -830,7 +821,6 @@ static init_func *const init_functions[] = {
 	init_fork,
 	init_time,
 	init_blk,
-	init_delay,
 	init_cr
 };
 
@@ -853,8 +843,11 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 		is26 = (strstr(buf, " 2.4.") == NULL);
 	}
 
-	if (getopt32(argv, "d:", &opt_d))
-		init_delay(opt_d);
+	if (getopt32(argv, "d:", &opt_d)) {
+		delta = xatou(opt_d) * 1000;
+		deltanz = delta > 0 ? delta : 1;
+		need_seconds = (1000000 % deltanz) != 0;
+	}
 	argv += optind;
 
 	if (!argv[0])
