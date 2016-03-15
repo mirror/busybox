@@ -21,7 +21,7 @@
 //usage:#define nmeter_full_usage "\n\n"
 //usage:       "Monitor system in real time"
 //usage:     "\n"
-//usage:     "\n -d MSEC	Milliseconds between updates (default:1000)"
+//usage:     "\n -d MSEC	Milliseconds between updates, default:1000, none:-1"
 //usage:     "\n"
 //usage:     "\nFormat specifiers:"
 //usage:     "\n %Nc or %[cN]	CPU. N - bar size (default:10)"
@@ -86,7 +86,7 @@ struct globals {
 	char final_char;
 	char *cur_outbuf;
 	int delta;
-	int deltanz;
+	unsigned deltanz;
 	struct timeval tv;
 #define first_proc_file proc_stat
 	proc_file proc_stat;	// Must match the order of proc_name's!
@@ -101,8 +101,6 @@ struct globals {
 #define is26               (G.is26              )
 #define need_seconds       (G.need_seconds      )
 #define cur_outbuf         (G.cur_outbuf        )
-#define delta              (G.delta             )
-#define deltanz            (G.deltanz           )
 #define tv                 (G.tv                )
 #define proc_stat          (G.proc_stat         )
 #define proc_loadavg       (G.proc_loadavg      )
@@ -114,7 +112,7 @@ struct globals {
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	cur_outbuf = outbuf; \
 	G.final_char = '\n'; \
-	deltanz = delta = 1000000; \
+	G.deltanz = G.delta = 1000000; \
 } while (0)
 
 // We depend on this being a char[], not char* - we take sizeof() of it
@@ -844,9 +842,9 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (getopt32(argv, "d:", &opt_d)) {
-		delta = xatou(opt_d) * 1000;
-		deltanz = delta > 0 ? delta : 1;
-		need_seconds = (1000000 % deltanz) != 0;
+		G.delta = xatoi(opt_d) * 1000;
+		G.deltanz = G.delta > 0 ? G.delta : 1;
+		need_seconds = (1000000 % G.deltanz) != 0;
 	}
 	argv += optind;
 
@@ -902,8 +900,8 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 				last->next = s;
 			last = s;
 		} else {
-			// %NNNNd or %r option. remove it from string
-			strcpy(prev + strlen(prev), cur);
+			// %r option. remove it from string
+			overlapping_strcpy(prev + strlen(prev), cur);
 			cur = prev;
 		}
 	}
@@ -921,9 +919,9 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	// Generate first samples but do not print them, they're bogus
 	collect_info(first);
 	reset_outbuf();
-	if (delta >= 0) {
+	if (G.delta >= 0) {
 		gettimeofday(&tv, NULL);
-		usleep(delta > 1000000 ? 1000000 : delta - tv.tv_usec%deltanz);
+		usleep(G.delta > 1000000 ? 1000000 : G.delta - tv.tv_usec % G.deltanz);
 	}
 
 	while (1) {
@@ -937,18 +935,18 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 		// time resolution ;)
 		// TODO: detect and avoid useless updates
 		// (like: nothing happens except time)
-		if (delta >= 0) {
+		if (G.delta >= 0) {
 			int rem;
 			// can be commented out, will sacrifice sleep time precision a bit
 			gettimeofday(&tv, NULL);
 			if (need_seconds)
-				rem = delta - ((ullong)tv.tv_sec*1000000 + tv.tv_usec) % deltanz;
+				rem = G.delta - ((ullong)tv.tv_sec*1000000 + tv.tv_usec) % G.deltanz;
 			else
-				rem = delta - tv.tv_usec%deltanz;
+				rem = G.delta - (unsigned)tv.tv_usec % G.deltanz;
 			// Sometimes kernel wakes us up just a tiny bit earlier than asked
 			// Do not go to very short sleep in this case
-			if (rem < delta/128) {
-				rem += delta;
+			if (rem < (unsigned)G.delta / 128) {
+				rem += G.delta;
 			}
 			usleep(rem);
 		}
