@@ -142,11 +142,11 @@ static void print_outbuf(void)
 
 static void put(const char *s)
 {
-	int sz = strlen(s);
-	if (sz > outbuf + sizeof(outbuf) - cur_outbuf)
-		sz = outbuf + sizeof(outbuf) - cur_outbuf;
-	memcpy(cur_outbuf, s, sz);
-	cur_outbuf += sz;
+	char *p = cur_outbuf;
+	int sz = outbuf + sizeof(outbuf) - p;
+	while (*s && --sz >= 0)
+		*p++ = *s++;
+	cur_outbuf = p;
 }
 
 static void put_c(char c)
