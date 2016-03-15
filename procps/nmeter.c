@@ -208,67 +208,50 @@ static ullong read_after_slash(const char *p)
 	return strtoull(p+1, NULL, 10);
 }
 
-enum conv_type { conv_decimal, conv_slash };
+enum conv_type {
+	conv_decimal = 0,
+	conv_slash = 1
+};
 
 // Reads decimal values from line. Values start after key, for example:
 // "cpu  649369 0 341297 4336769..." - key is "cpu" here.
-// Values are stored in vec[]. arg_ptr has list of positions
-// we are interested in: for example: 1,2,5 - we want 1st, 2nd and 5th value.
-static int vrdval(const char* p, const char* key,
-	enum conv_type conv, ullong *vec, va_list arg_ptr)
+// Values are stored in vec[].
+// posbits is a bit lit of positions we are interested in.
+// for example: 00100110 - we want 1st, 2nd and 5th value.
+// posbits.bit0 encodes conversion type.
+static int rdval(const char* p, const char* key, ullong *vec, long posbits)
 {
-	int indexline;
-	int indexnext;
+	unsigned curpos;
 
 	p = strstr(p, key);
 	if (!p) return 1;
 
 	p += strlen(key);
-	indexline = 1;
-	indexnext = va_arg(arg_ptr, int);
+	curpos = 1 << 1;
 	while (1) {
 		while (*p == ' ' || *p == '\t') p++;
 		if (*p == '\n' || *p == '\0') break;
 
-		if (indexline == indexnext) { // read this value
-			*vec++ = conv==conv_decimal ?
+		if (curpos & posbits) { // read this value
+			*vec++ = (posbits & 1) == conv_decimal ?
 				strtoull(p, NULL, 10) :
 				read_after_slash(p);
-			indexnext = va_arg(arg_ptr, int);
-			if (!indexnext)
+			posbits -= curpos;
+			if (posbits <= 1)
 				return 0;
 		}
-		while (*p > ' ') p++; // skip over value
-		indexline++;
+		while (*p > ' ') // skip over the value
+			p++;
+		curpos <<= 1;
 	}
 	return 0;
 }
 
-// Parses files with lines like "cpu0 21727 0 15718 1813856 9461 10485 0 0":
-// rdval(file_contents, "string_to_find", result_vector, value#, value#...)
-// value# start with 1
-static int rdval(const char* p, const char* key, ullong *vec, ...)
-{
-	va_list arg_ptr;
-	int result;
-
-	va_start(arg_ptr, vec);
-	result = vrdval(p, key, conv_decimal, vec, arg_ptr);
-	va_end(arg_ptr);
-
-	return result;
-}
-
 // Parses files with lines like "... ... ... 3/148 ...."
-static int rdval_loadavg(const char* p, ullong *vec, ...)
+static int rdval_loadavg(const char* p, ullong *vec, long posbits)
 {
-	va_list arg_ptr;
 	int result;
-
-	va_start(arg_ptr, vec);
-	result = vrdval(p, "", conv_slash, vec, arg_ptr);
-	va_end(arg_ptr);
-
+	result = rdval(p, "", vec, posbits | conv_slash);
 	return result;
 }
 
@@ -397,7 +380,15 @@ static void FAST_FUNC collect_cpu(cpu_stat *s)
 	char *bar = s->bar;
 	int i;
 
-	if (rdval(get_file(&proc_stat), "cpu ", data, 1, 2, 3, 4, 5, 6, 7, 0)) {
+	if (rdval(get_file(&proc_stat), "cpu ", data, 0
+	    | (1 << 1)
+	    | (1 << 2)
+	    | (1 << 3)
+	    | (1 << 4)
+	    | (1 << 5)
+	    | (1 << 6)
+	    | (1 << 7))
+	) {
 		put_question_marks(bar_sz);
 		return;
 	}
@@ -466,7 +457,7 @@ static void FAST_FUNC collect_int(int_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "intr", data, s->no, 0)) {
+	if (rdval(get_file(&proc_stat), "intr", data, 1 << s->no)) {
 		put_question_marks(4);
 		return;
 	}
@@ -500,7 +491,7 @@ static void FAST_FUNC collect_ctx(ctx_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "ctxt", data, 1, 0)) {
+	if (rdval(get_file(&proc_stat), "ctxt", data, 1 << 1)) {
 		put_question_marks(4);
 		return;
 	}
@@ -532,7 +523,10 @@ static void FAST_FUNC collect_blk(blk_stat *s)
 	if (is26) {
 		i = rdval_diskstats(get_file(&proc_diskstats), data);
 	} else {
-		i = rdval(get_file(&proc_stat), s->lookfor, data, 1, 2, 0);
+		i = rdval(get_file(&proc_stat), s->lookfor, data, 0
+				| (1 << 1)
+				| (1 << 2)
+		);
 		// Linux 2.4 reports bio in Kbytes, convert to sectors:
 		data[0] *= 2;
 		data[1] *= 2;
@@ -570,7 +564,7 @@ static void FAST_FUNC collect_thread_nr(fork_stat *s UNUSED_PARAM)
 {
 	ullong data[1];
 
-	if (rdval_loadavg(get_file(&proc_loadavg), data, 4, 0)) {
+	if (rdval_loadavg(get_file(&proc_loadavg), data, 1 << 4)) {
 		put_question_marks(4);
 		return;
 	}
@@ -582,7 +576,7 @@ static void FAST_FUNC collect_fork(fork_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "processes", data, 1, 0)) {
+	if (rdval(get_file(&proc_stat), "processes", data, 1 << 1)) {
 		put_question_marks(4);
 		return;
 	}
@@ -616,7 +610,12 @@ static void FAST_FUNC collect_if(if_stat *s)
 	ullong data[4];
 	int i;
 
-	if (rdval(get_file(&proc_net_dev), s->device_colon, data, 1, 3, 9, 11, 0)) {
+	if (rdval(get_file(&proc_net_dev), s->device_colon, data, 0
+	    | (1 << 1)
+	    | (1 << 3)
+	    | (1 << 9)
+	    | (1 << 11))
+	) {
 		put_question_marks(10);
 		return;
 	}
@@ -694,7 +693,7 @@ static void FAST_FUNC collect_mem(mem_stat *s)
 	ullong m_cached = 0;
 	ullong m_slab = 0;
 
-	if (rdval(get_file(&proc_meminfo), "MemTotal:", &m_total, 1, 0)) {
+	if (rdval(get_file(&proc_meminfo), "MemTotal:", &m_total, 1 << 1)) {
 		put_question_marks(4);
 		return;
 	}
@@ -703,10 +702,10 @@ static void FAST_FUNC collect_mem(mem_stat *s)
 		return;
 	}
 
-	if (rdval(proc_meminfo.file, "MemFree:", &m_free  , 1, 0)
-	 || rdval(proc_meminfo.file, "Buffers:", &m_bufs  , 1, 0)
-	 || rdval(proc_meminfo.file, "Cached:",  &m_cached, 1, 0)
-	 || rdval(proc_meminfo.file, "Slab:",    &m_slab  , 1, 0)
+	if (rdval(proc_meminfo.file, "MemFree:", &m_free  , 1 << 1)
+	 || rdval(proc_meminfo.file, "Buffers:", &m_bufs  , 1 << 1)
+	 || rdval(proc_meminfo.file, "Cached:",  &m_cached, 1 << 1)
+	 || rdval(proc_meminfo.file, "Slab:",    &m_slab  , 1 << 1)
 	) {
 		put_question_marks(4);
 		return;
@@ -737,8 +736,8 @@ static void FAST_FUNC collect_swp(swp_stat *s UNUSED_PARAM)
 {
 	ullong s_total[1];
 	ullong s_free[1];
-	if (rdval(get_file(&proc_meminfo), "SwapTotal:", s_total, 1, 0)
-	 || rdval(proc_meminfo.file,       "SwapFree:" , s_free,  1, 0)
+	if (rdval(get_file(&proc_meminfo), "SwapTotal:", s_total, 1 << 1)
+	 || rdval(proc_meminfo.file,       "SwapFree:" , s_free,  1 << 1)
 	) {
 		put_question_marks(4);
 		return;
@@ -761,7 +760,10 @@ static void FAST_FUNC collect_fd(fd_stat *s UNUSED_PARAM)
 {
 	ullong data[2];
 
-	if (rdval(get_file(&proc_sys_fs_filenr), "", data, 1, 2, 0)) {
+	if (rdval(get_file(&proc_sys_fs_filenr), "", data, 0
+	    | (1 << 1)
+	    | (1 << 2))
+	) {
 		put_question_marks(4);
 		return;
 	}
