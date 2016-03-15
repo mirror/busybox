@@ -235,6 +235,8 @@ static int vrdval(const char* p, const char* key,
 				strtoull(p, NULL, 10) :
 				read_after_slash(p);
 			indexnext = va_arg(arg_ptr, int);
+			if (!indexnext)
+				return 0;
 		}
 		while (*p > ' ') p++; // skip over value
 		indexline++;
@@ -395,7 +397,7 @@ static void FAST_FUNC collect_cpu(cpu_stat *s)
 	char *bar = s->bar;
 	int i;
 
-	if (rdval(get_file(&proc_stat), "cpu ", data, 1, 2, 3, 4, 5, 6, 7)) {
+	if (rdval(get_file(&proc_stat), "cpu ", data, 1, 2, 3, 4, 5, 6, 7, 0)) {
 		put_question_marks(bar_sz);
 		return;
 	}
@@ -464,7 +466,7 @@ static void FAST_FUNC collect_int(int_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "intr", data, s->no)) {
+	if (rdval(get_file(&proc_stat), "intr", data, s->no, 0)) {
 		put_question_marks(4);
 		return;
 	}
@@ -498,7 +500,7 @@ static void FAST_FUNC collect_ctx(ctx_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "ctxt", data, 1)) {
+	if (rdval(get_file(&proc_stat), "ctxt", data, 1, 0)) {
 		put_question_marks(4);
 		return;
 	}
@@ -530,7 +532,7 @@ static void FAST_FUNC collect_blk(blk_stat *s)
 	if (is26) {
 		i = rdval_diskstats(get_file(&proc_diskstats), data);
 	} else {
-		i = rdval(get_file(&proc_stat), s->lookfor, data, 1, 2);
+		i = rdval(get_file(&proc_stat), s->lookfor, data, 1, 2, 0);
 		// Linux 2.4 reports bio in Kbytes, convert to sectors:
 		data[0] *= 2;
 		data[1] *= 2;
@@ -568,7 +570,7 @@ static void FAST_FUNC collect_thread_nr(fork_stat *s UNUSED_PARAM)
 {
 	ullong data[1];
 
-	if (rdval_loadavg(get_file(&proc_loadavg), data, 4)) {
+	if (rdval_loadavg(get_file(&proc_loadavg), data, 4, 0)) {
 		put_question_marks(4);
 		return;
 	}
@@ -580,7 +582,7 @@ static void FAST_FUNC collect_fork(fork_stat *s)
 	ullong data[1];
 	ullong old;
 
-	if (rdval(get_file(&proc_stat), "processes", data, 1)) {
+	if (rdval(get_file(&proc_stat), "processes", data, 1, 0)) {
 		put_question_marks(4);
 		return;
 	}
@@ -614,7 +616,7 @@ static void FAST_FUNC collect_if(if_stat *s)
 	ullong data[4];
 	int i;
 
-	if (rdval(get_file(&proc_net_dev), s->device_colon, data, 1, 3, 9, 11)) {
+	if (rdval(get_file(&proc_net_dev), s->device_colon, data, 1, 3, 9, 11, 0)) {
 		put_question_marks(10);
 		return;
 	}
@@ -692,7 +694,7 @@ static void FAST_FUNC collect_mem(mem_stat *s)
 	ullong m_cached = 0;
 	ullong m_slab = 0;
 
-	if (rdval(get_file(&proc_meminfo), "MemTotal:", &m_total, 1)) {
+	if (rdval(get_file(&proc_meminfo), "MemTotal:", &m_total, 1, 0)) {
 		put_question_marks(4);
 		return;
 	}
@@ -701,10 +703,10 @@ static void FAST_FUNC collect_mem(mem_stat *s)
 		return;
 	}
 
-	if (rdval(proc_meminfo.file, "MemFree:", &m_free  , 1)
-	 || rdval(proc_meminfo.file, "Buffers:", &m_bufs  , 1)
-	 || rdval(proc_meminfo.file, "Cached:",  &m_cached, 1)
-	 || rdval(proc_meminfo.file, "Slab:",    &m_slab  , 1)
+	if (rdval(proc_meminfo.file, "MemFree:", &m_free  , 1, 0)
+	 || rdval(proc_meminfo.file, "Buffers:", &m_bufs  , 1, 0)
+	 || rdval(proc_meminfo.file, "Cached:",  &m_cached, 1, 0)
+	 || rdval(proc_meminfo.file, "Slab:",    &m_slab  , 1, 0)
 	) {
 		put_question_marks(4);
 		return;
@@ -735,8 +737,8 @@ static void FAST_FUNC collect_swp(swp_stat *s UNUSED_PARAM)
 {
 	ullong s_total[1];
 	ullong s_free[1];
-	if (rdval(get_file(&proc_meminfo), "SwapTotal:", s_total, 1)
-	 || rdval(proc_meminfo.file,       "SwapFree:" , s_free,  1)
+	if (rdval(get_file(&proc_meminfo), "SwapTotal:", s_total, 1, 0)
+	 || rdval(proc_meminfo.file,       "SwapFree:" , s_free,  1, 0)
 	) {
 		put_question_marks(4);
 		return;
@@ -759,7 +761,7 @@ static void FAST_FUNC collect_fd(fd_stat *s UNUSED_PARAM)
 {
 	ullong data[2];
 
-	if (rdval(get_file(&proc_sys_fs_filenr), "", data, 1, 2)) {
+	if (rdval(get_file(&proc_sys_fs_filenr), "", data, 1, 2, 0)) {
 		put_question_marks(4);
 		return;
 	}
