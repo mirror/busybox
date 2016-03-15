@@ -83,8 +83,8 @@ struct globals {
 	smallint is26;
 	// 1 if sample delay is not an integer fraction of a second
 	smallint need_seconds;
+	char final_char;
 	char *cur_outbuf;
-	const char *final_str;
 	int delta;
 	int deltanz;
 	struct timeval tv;
@@ -101,7 +101,6 @@ struct globals {
 #define is26               (G.is26              )
 #define need_seconds       (G.need_seconds      )
 #define cur_outbuf         (G.cur_outbuf        )
-#define final_str          (G.final_str         )
 #define delta              (G.delta             )
 #define deltanz            (G.deltanz           )
 #define tv                 (G.tv                )
@@ -114,7 +113,7 @@ struct globals {
 #define INIT_G() do { \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	cur_outbuf = outbuf; \
-	final_str = "\n"; \
+	G.final_char = '\n'; \
 	deltanz = delta = 1000000; \
 } while (0)
 
@@ -322,7 +321,6 @@ static void scale(ullong ul)
 	put(buf);
 }
 
-
 #define S_STAT(a) \
 typedef struct a { \
 	struct s_stat *next; \
@@ -354,10 +352,9 @@ static s_stat* init_delay(const char *param)
 
 static s_stat* init_cr(const char *param UNUSED_PARAM)
 {
-	final_str = "\r";
-	return (s_stat*)0;
+	G.final_char = '\r';
+	return NULL;
 }
-
 
 //     user nice system idle  iowait irq  softirq (last 3 only in 2.6)
 //cpu  649369 0 341297 4336769 11640 7122 1183
@@ -366,9 +363,8 @@ enum { CPU_FIELDCNT = 7 };
 S_STAT(cpu_stat)
 	ullong old[CPU_FIELDCNT];
 	int bar_sz;
-	char *bar;
+	char bar[1];
 S_STAT_END(cpu_stat)
-
 
 static void FAST_FUNC collect_cpu(cpu_stat *s)
 {
@@ -431,21 +427,19 @@ static void FAST_FUNC collect_cpu(cpu_stat *s)
 	put(s->bar);
 }
 
-
 static s_stat* init_cpu(const char *param)
 {
 	int sz;
-	cpu_stat *s = xzalloc(sizeof(*s));
-	s->collect = collect_cpu;
+	cpu_stat *s;
 	sz = strtoul(param, NULL, 0); /* param can be "" */
 	if (sz < 10) sz = 10;
 	if (sz > 1000) sz = 1000;
-	s->bar = xzalloc(sz+1);
+	s = xzalloc(sizeof(*s) + sz);
 	/*s->bar[sz] = '\0'; - xzalloc did it */
 	s->bar_sz = sz;
+	s->collect = collect_cpu;
 	return (s_stat*)s;
 }
-
 
 S_STAT(int_stat)
 	ullong old;
@@ -481,7 +475,6 @@ static s_stat* init_int(const char *param)
 	return (s_stat*)s;
 }
 
-
 S_STAT(ctx_stat)
 	ullong old;
 S_STAT_END(ctx_stat)
@@ -508,7 +501,6 @@ static s_stat* init_ctx(const char *param UNUSED_PARAM)
 	s->collect = collect_ctx;
 	return (s_stat*)s;
 }
-
 
 S_STAT(blk_stat)
 	const char* lookfor;
@@ -555,7 +547,6 @@ static s_stat* init_blk(const char *param UNUSED_PARAM)
 	return (s_stat*)s;
 }
 
-
 S_STAT(fork_stat)
 	ullong old;
 S_STAT_END(fork_stat)
@@ -597,7 +588,6 @@ static s_stat* init_fork(const char *param)
 	}
 	return (s_stat*)s;
 }
-
 
 S_STAT(if_stat)
 	ullong old[4];
@@ -644,7 +634,6 @@ static s_stat* init_if(const char *device)
 	s->device_colon = xasprintf("%s:", device);
 	return (s_stat*)s;
 }
-
 
 S_STAT(mem_stat)
 	char opt;
@@ -728,7 +717,6 @@ static s_stat* init_mem(const char *param)
 	return (s_stat*)s;
 }
 
-
 S_STAT(swp_stat)
 S_STAT_END(swp_stat)
 
@@ -751,7 +739,6 @@ static s_stat* init_swp(const char *param UNUSED_PARAM)
 	s->collect = collect_swp;
 	return (s_stat*)s;
 }
-
 
 S_STAT(fd_stat)
 S_STAT_END(fd_stat)
@@ -778,17 +765,16 @@ static s_stat* init_fd(const char *param UNUSED_PARAM)
 	return (s_stat*)s;
 }
 
-
 S_STAT(time_stat)
-	int prec;
-	int scale;
+	unsigned prec;
+	unsigned scale;
 S_STAT_END(time_stat)
 
 static void FAST_FUNC collect_time(time_stat *s)
 {
 	char buf[sizeof("12:34:56.123456")];
 	struct tm* tm;
-	int us = tv.tv_usec + s->scale/2;
+	unsigned us = tv.tv_usec + s->scale/2;
 	time_t t = tv.tv_sec;
 
 	if (us >= 1000000) {
@@ -828,7 +814,6 @@ static void FAST_FUNC collect_info(s_stat *s)
 		s = s->next;
 	}
 }
-
 
 typedef s_stat* init_func(const char *param);
 
@@ -951,7 +936,7 @@ int nmeter_main(int argc UNUSED_PARAM, char **argv)
 	while (1) {
 		gettimeofday(&tv, NULL);
 		collect_info(first);
-		put(final_str);
+		put_c(G.final_char);
 		print_outbuf();
 
 		// Negative delta -> no usleep at all
