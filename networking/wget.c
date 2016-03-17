@@ -203,7 +203,7 @@ struct globals {
 	const char *user_agent; /* "User-Agent" header field */
 #if ENABLE_FEATURE_WGET_TIMEOUT
 	unsigned timeout_seconds;
-	bool connecting;
+	bool die_if_timed_out;
 #endif
 	int output_fd;
 	int o_flags;
@@ -333,9 +333,20 @@ static char* sanitize_string(char *s)
 static void alarm_handler(int sig UNUSED_PARAM)
 {
 	/* This is theoretically unsafe (uses stdio and malloc in signal handler) */
-	if (G.connecting)
+	if (G.die_if_timed_out)
 		bb_error_msg_and_die("download timed out");
 }
+static void set_alarm(void)
+{
+	if (G.timeout_seconds) {
+		alarm(G.timeout_seconds);
+		G.die_if_timed_out = 1;
+	}
+}
+# define clear_alarm() ((void)(G.die_if_timed_out = 0))
+#else
+# define set_alarm()   ((void)0)
+# define clear_alarm() ((void)0)
 #endif
 
 static FILE *open_socket(len_and_sockaddr *lsa)
@@ -343,9 +354,9 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 	int fd;
 	FILE *fp;
 
-	IF_FEATURE_WGET_TIMEOUT(alarm(G.timeout_seconds); G.connecting = 1;)
+	set_alarm();
 	fd = xconnect_stream(lsa);
-	IF_FEATURE_WGET_TIMEOUT(G.connecting = 0;)
+	clear_alarm();
 
 	/* glibc 2.4 seems to try seeking on it - ??! */
 	/* hopefully it understands what ESPIPE means... */
@@ -357,14 +368,15 @@ static FILE *open_socket(len_and_sockaddr *lsa)
 }
 
 /* Returns '\n' if it was seen, else '\0'. Trims at first '\r' or '\n' */
-/* FIXME: does not respect FEATURE_WGET_TIMEOUT and -T N: */
 static char fgets_and_trim(FILE *fp)
 {
 	char c;
 	char *buf_ptr;
 
+	set_alarm();
 	if (fgets(G.wget_buf, sizeof(G.wget_buf) - 1, fp) == NULL)
 		bb_perror_msg_and_die("error getting response");
+	clear_alarm();
 
 	buf_ptr = strchrnul(G.wget_buf, '\n');
 	c = *buf_ptr;
