@@ -681,11 +681,15 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 	FILE *file;
 	int matched;
 	llist_t *fopt = NULL;
+#if ENABLE_FEATURE_GREP_CONTEXT
+	int Copt, opts;
+#endif
+
+	/* For grep, exitcode of 1 is "not found". Other errors are 2: */
+	xfunc_error_retval = 2;
 
 	/* do normal option parsing */
 #if ENABLE_FEATURE_GREP_CONTEXT
-	int Copt, opts;
-
 	/* -H unsets -h; -C unsets -A,-B; -e,-f are lists;
 	 * -m,-A,-B,-C have numeric param */
 	opt_complementary = "H-h:C-AB:e::f::m+:A+:B+:C+";
