@@ -885,6 +885,7 @@ static void ife_print6(struct interface *ptr)
 			inet_pton(AF_INET6, addr6,
 					  (struct sockaddr *) &sap.sin6_addr);
 			sap.sin6_family = AF_INET6;
+			sap.sin6_scope_id = scope;
 			printf("          inet6 addr: %s/%d",
 				INET6_sprint((struct sockaddr *) &sap, 1),
 				plen);
