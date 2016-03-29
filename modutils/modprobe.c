@@ -214,7 +214,7 @@ static void add_probe(const char *name)
 static int FAST_FUNC config_file_action(const char *filename,
 					struct stat *statbuf UNUSED_PARAM,
 					void *userdata UNUSED_PARAM,
-					int depth UNUSED_PARAM)
+					int depth)
 {
 	char *tokens[3];
 	parser_t *p;
@@ -222,15 +222,20 @@ static int FAST_FUNC config_file_action(const char *filename,
 	int rc = TRUE;
 	const char *base, *ext;
 
-	/* Skip files that begin with a ".". */
+	/* Skip files that begin with a "." */
 	base = bb_basename(filename);
 	if (base[0] == '.')
 		goto error;
 
-	/* Skip files that do not end with a ".conf". */
-	ext = strrchr(base, '.');
-	if (ext == NULL || strcmp(ext + 1, "conf"))
-		goto error;
+	/* In dir recursion, skip files that do not end with a ".conf"
+	 * depth==0: read_config("modules.{symbols,alias}") must work,
+	 * "include FILE_NOT_ENDING_IN_CONF" must work too.
+	 */
+	if (depth != 0) {
+		ext = strrchr(base, '.');
+		if (ext == NULL || strcmp(ext + 1, "conf"))
+			goto error;
+	}
 
 	p = config_open2(filename, fopen_for_read);
 	if (p == NULL) {
@@ -275,7 +280,7 @@ static int FAST_FUNC config_file_action(const char *filename,
 			m = get_or_add_modentry(tokens[1]);
 			m->options = gather_options_str(m->options, tokens[2]);
 		} else if (strcmp(tokens[0], "include") == 0) {
-			/* include <filename> */
+			/* include <filename>/<dirname> (yes, directories also must work) */
 			read_config(tokens[1]);
 		} else if (ENABLE_FEATURE_MODPROBE_BLACKLIST
 		 && strcmp(tokens[0], "blacklist") == 0
@@ -292,7 +297,8 @@ static int FAST_FUNC config_file_action(const char *filename,
 static int read_config(const char *path)
 {
 	return recursive_action(path, ACTION_RECURSE | ACTION_QUIET,
-				config_file_action, NULL, NULL, 1);
+				config_file_action, NULL, NULL,
+				/*depth:*/ 0);
 }
 
 static const char *humanly_readable_name(struct module_entry *m)
