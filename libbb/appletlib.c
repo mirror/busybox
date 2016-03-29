@@ -139,36 +139,56 @@ void FAST_FUNC bb_show_usage(void)
 	xfunc_die();
 }
 
-#if NUM_APPLETS > 8
-static int applet_name_compare(const void *name, const void *idx)
-{
-	int i = (int)(ptrdiff_t)idx - 1;
-	return strcmp(name, APPLET_NAME(i));
-}
-#endif
 int FAST_FUNC find_applet_by_name(const char *name)
 {
-#if NUM_APPLETS > 8
-	/* Do a binary search to find the applet entry given the name. */
+	unsigned i, max;
+	int j;
 	const char *p;
-	p = bsearch(name, (void*)(ptrdiff_t)1, ARRAY_SIZE(applet_main), 1, applet_name_compare);
-	/*
-	 * if (!p) return -1;
-	 * ^^^^^^^^^^^^^^^^^^ the code below will do this if p == NULL :)
-	 */
-	return (int)(ptrdiff_t)p - 1;
+
+	p = applet_names;
+	i = 0;
+#if KNOWN_APPNAME_OFFSETS <= 0
+	max = NUM_APPLETS;
 #else
-	/* A version which does not pull in bsearch */
-	int i = 0;
-	const char *p = applet_names;
-	while (i < NUM_APPLETS) {
-		if (strcmp(name, p) == 0)
-			return i;
-		p += strlen(p) + 1;
+	max = NUM_APPLETS * KNOWN_APPNAME_OFFSETS;
+	for (j = ARRAY_SIZE(applet_nameofs)-1; j >= 0; j--) {
+		const char *pp = applet_names + applet_nameofs[j];
+		if (strcmp(name, pp) >= 0) {
+			//bb_error_msg("name:'%s' >= pp:'%s'", name, pp);
+			p = pp;
+			i = max - NUM_APPLETS;
+			break;
+		}
+		max -= NUM_APPLETS;
+	}
+	max /= (unsigned)KNOWN_APPNAME_OFFSETS;
+	i /= (unsigned)KNOWN_APPNAME_OFFSETS;
+	//bb_error_msg("name:'%s' starting from:'%s' i:%u max:%u", name, p, i, max);
+#endif
+
+	/* Open-coding without strcmp/strlen calls for speed */
+	while (i < max) {
+		char ch;
+		j = 0;
+		/* Do we see "name\0" in applet_names[p] position? */
+		while ((ch = *p) == name[j]) {
+			if (ch == '\0') {
+				//bb_error_msg("found:'%s' i:%u", name, i);
+				return i; /* yes */
+			}
+			p++;
+			j++;
+		}
+		/* No.
+		 * p => 1st non-matching char in applet_names[],
+		 * skip to and including NUL.
+		 */
+		while (ch != '\0')
+			ch = *++p;
+		p++;
 		i++;
 	}
 	return -1;
-#endif
 }
 
 
@@ -583,6 +603,7 @@ static void install_links(const char *busybox, int use_symbolic_links,
 	 * busybox.h::bb_install_loc_t, or else... */
 	int (*lf)(const char *, const char *);
 	char *fpc;
+        const char *appname = applet_names;
 	unsigned i;
 	int rc;
 
@@ -593,7 +614,7 @@ static void install_links(const char *busybox, int use_symbolic_links,
 	for (i = 0; i < ARRAY_SIZE(applet_main); i++) {
 		fpc = concat_path_file(
 				custom_install_dir ? custom_install_dir : install_dir[APPLET_INSTALL_LOC(i)],
-				APPLET_NAME(i));
+				appname);
 		// debug: bb_error_msg("%slinking %s to busybox",
 		//		use_symbolic_links ? "sym" : "", fpc);
 		rc = lf(busybox, fpc);
@@ -601,6 +622,8 @@ static void install_links(const char *busybox, int use_symbolic_links,
 			bb_simple_perror_msg(fpc);
 		}
 		free(fpc);
+		while (*appname++ != '\0')
+			continue;
 	}
 }
 # else
@@ -754,7 +777,7 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 
 	/* Reinit some shared global data */
 	xfunc_error_retval = EXIT_FAILURE;
-	applet_name = APPLET_NAME(applet_no);
+	applet_name = bb_get_last_path_component_nostrip(argv[0]);
 
 	/* Special case. POSIX says "test --help"
 	 * should be no different from e.g. "test --foo".
@@ -785,11 +808,14 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 
 void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 {
-	int applet = find_applet_by_name(name);
-	if (applet >= 0)
-		run_applet_no_and_exit(applet, argv);
+	int applet;
+
 	if (is_prefixed_with(name, "busybox"))
 		exit(busybox_main(argv));
+	/* find_applet_by_name() search is more expensive, so goes second */
+	applet = find_applet_by_name(name);
+	if (applet >= 0)
+		run_applet_no_and_exit(applet, argv);
 }
 
 #endif /* !defined(SINGLE_APPLET_MAIN) */

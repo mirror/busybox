@@ -116,8 +116,6 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 
 	save_nofork_data(&old);
 
-	applet_name = APPLET_NAME(applet_no);
-
 	xfunc_error_retval = EXIT_FAILURE;
 
 	/* In case getopt() or getopt32() was already called:
@@ -157,6 +155,7 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 		 * need argv untouched because they free argv[i]! */
 		char *tmp_argv[argc+1];
 		memcpy(tmp_argv, argv, (argc+1) * sizeof(tmp_argv[0]));
+		applet_name = tmp_argv[0];
 		/* Finally we can call NOFORK applet's main() */
 		rc = applet_main[applet_no](argc, tmp_argv);
 	} else {

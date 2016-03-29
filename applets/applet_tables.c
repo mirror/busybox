@@ -41,8 +41,6 @@ struct bb_applet {
 
 enum { NUM_APPLETS = ARRAY_SIZE(applets) };
 
-static int offset[NUM_APPLETS];
-
 static int cmp_name(const void *a, const void *b)
 {
 	const struct bb_applet *aa = a;
@@ -60,22 +58,37 @@ static int str_isalnum_(const char *s)
 	return 1;
 }
 
+// Before linear search, narrow it down by looking at N "equidistant" names:
+// KNOWN_APPNAME_OFFSETS  cycles  code_size
+//                     0    9057
+//                     2    4604        +32
+//                     4    2407        +75
+//                     8    1342        +98
+//                    16     908       +130
+//                    32     884       +194
+// With 8, applet_nameofs[] table has 7 elements.
+#define KNOWN_APPNAME_OFFSETS 8
+
 int main(int argc, char **argv)
 {
-	int i;
-	int ofs;
+	int i, j;
+	int ofs, offset[KNOWN_APPNAME_OFFSETS], index[KNOWN_APPNAME_OFFSETS];
 //	unsigned MAX_APPLET_NAME_LEN = 1;
 
 	qsort(applets, NUM_APPLETS, sizeof(applets[0]), cmp_name);
 
+	for (i = 0; i < KNOWN_APPNAME_OFFSETS; i++)
+		index[i] = i * NUM_APPLETS / KNOWN_APPNAME_OFFSETS;
+
 	ofs = 0;
 	for (i = 0; i < NUM_APPLETS; i++) {
-		offset[i] = ofs;
+		for (j = 0; j < KNOWN_APPNAME_OFFSETS; j++)
+			if (i == index[j])
+				offset[j] = ofs;
 		ofs += strlen(applets[i].name) + 1;
 	}
-	/* We reuse 4 high-order bits of offset array for other purposes,
-	 * so if they are indeed needed, refuse to proceed */
-	if (ofs > 0xfff)
+	/* If the list of names is too long refuse to proceed */
+	if (ofs > 0xffff)
 		return 1;
 	if (!argv[1])
 		return 1;
@@ -94,7 +107,17 @@ int main(int argc, char **argv)
 		printf("#define SINGLE_APPLET_STR \"%s\"\n", applets[0].name);
 		printf("#define SINGLE_APPLET_MAIN %s_main\n", applets[0].main);
 	}
-	printf("\n");
+
+	if (KNOWN_APPNAME_OFFSETS > 0 && NUM_APPLETS > 2*KNOWN_APPNAME_OFFSETS) {
+		printf("#define KNOWN_APPNAME_OFFSETS %u\n\n", KNOWN_APPNAME_OFFSETS);
+		printf("const uint16_t applet_nameofs[] ALIGN2 = {\n");
+		for (i = 1; i < KNOWN_APPNAME_OFFSETS; i++)
+			printf("%d,\n", offset[i]);
+		printf("};\n\n");
+	}
+	else {
+		printf("#define KNOWN_APPNAME_OFFSETS 0\n\n");
+	}
 
 	//printf("#ifndef SKIP_definitions\n");
 	printf("const char applet_names[] ALIGN1 = \"\"\n");
@@ -119,20 +142,39 @@ int main(int argc, char **argv)
 	printf("};\n");
 	printf("#endif\n\n");
 
-	printf("const uint16_t applet_nameofs[] ALIGN2 = {\n");
-	for (i = 0; i < NUM_APPLETS; i++) {
-		printf("0x%04x,\n",
-			offset[i]
 #if ENABLE_FEATURE_PREFER_APPLETS
-			+ (applets[i].nofork << 12)
-			+ (applets[i].noexec << 13)
-#endif
-#if ENABLE_FEATURE_SUID
-			+ (applets[i].need_suid << 14) /* 2 bits */
-#endif
-		);
+	printf("const uint8_t applet_flags[] ALIGN1 = {\n");
+	i = 0;
+	while (i < NUM_APPLETS) {
+		int v = applets[i].nofork + (applets[i].noexec << 1);
+		if (++i < NUM_APPLETS)
+			v |= (applets[i].nofork + (applets[i].noexec << 1)) << 2;
+		if (++i < NUM_APPLETS)
+			v |= (applets[i].nofork + (applets[i].noexec << 1)) << 4;
+		if (++i < NUM_APPLETS)
+			v |= (applets[i].nofork + (applets[i].noexec << 1)) << 6;
+		printf("0x%02x,\n", v);
+		i++;
 	}
 	printf("};\n\n");
+#endif
+
+#if ENABLE_FEATURE_SUID
+	printf("const uint8_t applet_suid[] ALIGN1 = {\n");
+	i = 0;
+	while (i < NUM_APPLETS) {
+		int v = applets[i].need_suid; /* 2 bits */
+		if (++i < NUM_APPLETS)
+			v |= applets[i].need_suid << 2;
+		if (++i < NUM_APPLETS)
+			v |= applets[i].need_suid << 4;
+		if (++i < NUM_APPLETS)
+			v |= applets[i].need_suid << 6;
+		printf("0x%02x,\n", v);
+		i++;
+	}
+	printf("};\n\n");
+#endif
 
 #if ENABLE_FEATURE_INSTALLER
 	printf("const uint8_t applet_install_loc[] ALIGN1 = {\n");
