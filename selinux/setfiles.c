@@ -17,6 +17,7 @@
 //usage:	)
 //usage:     "\n	-d	Show which specification matched each file"
 //usage:     "\n	-l	Log changes in file labels to syslog"
+//TODO: log to syslog is not yet implemented, it goes to stdout only now
 //usage:     "\n	-n	Don't change any file labels"
 //usage:     "\n	-q	Suppress warnings"
 //usage:     "\n	-r DIR	Use an alternate root path"
@@ -383,16 +384,16 @@ static int restore(const char *file)
 		 * the user has changed but the role and type are the
 		 * same.  For "-vv", emit everything. */
 		if (verbose > 1 || !user_only_changed) {
-			bb_info_msg("%s: reset %s context %s->%s",
+			printf("%s: reset %s context %s->%s\n",
 				applet_name, my_file, context ? context : "", newcon);
 		}
 	}
 
 	if (FLAG_l_take_log && !user_only_changed) {
 		if (context)
-			bb_info_msg("relabeling %s from %s to %s", my_file, context, newcon);
+			printf("relabeling %s from %s to %s\n", my_file, context, newcon);
 		else
-			bb_info_msg("labeling %s to %s", my_file, newcon);
+			printf("labeling %s to %s\n", my_file, newcon);
 	}
 
 	if (outfile && !user_only_changed)
