@@ -257,7 +257,7 @@ uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 			continue; /* complain and return NULL */
 
 		if (optionptr[OPT_CODE] == code) {
-			log_option("Option found", optionptr);
+			log_option("option found", optionptr);
 			return optionptr + OPT_DATA;
 		}
 
@@ -303,7 +303,7 @@ void FAST_FUNC udhcp_add_binary_option(struct dhcp_packet *packet, uint8_t *addo
 				addopt[OPT_CODE]);
 		return;
 	}
-	log_option("Adding option", addopt);
+	log_option("adding option", addopt);
 	memcpy(optionptr + end, addopt, len);
 	optionptr[end + len] = DHCP_END;
 }
