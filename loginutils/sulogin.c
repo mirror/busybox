@@ -32,6 +32,14 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	struct passwd *pwd;
 	const char *shell;
 
+	/* Note: sulogin is not a suid app. It is meant to be run by init
+	 * for single user / emergency mode. init starts it as root.
+	 * Normal users (potentially malisious ones) can only run it under
+	 * their UID, therefore no paranoia here is warranted:
+	 * $LD_LIBRARY_PATH in env, TTY = /dev/sda
+	 * are no more dangerous here than in e.g. cp applet.
+	 */
+
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
 
@@ -47,18 +55,9 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		dup(0);
 	}
 
-	/* Malicious use like "sulogin /dev/sda"? */
-	if (!isatty(0) || !isatty(1) || !isatty(2)) {
-		logmode = LOGMODE_SYSLOG;
-		bb_error_msg_and_die("not a tty");
-	}
-
-	/* Clear dangerous stuff, set PATH */
-	sanitize_env_if_suid();
-
 	pwd = getpwuid(0);
 	if (!pwd) {
-		goto auth_error;
+		bb_error_msg_and_die("no password entry for root");
 	}
 
 	while (1) {
@@ -92,7 +91,4 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 
 	/* Exec login shell with no additional parameters. Never returns. */
 	run_shell(shell, 1, NULL, NULL);
-
- auth_error:
-	bb_error_msg_and_die("no password entry for root");
 }
