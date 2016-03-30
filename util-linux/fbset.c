@@ -248,12 +248,12 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 		if (!p)
 			continue;
 		s = p + strlen(mode);
-		//bb_info_msg("CHECK[%s][%s][%d]", mode, p-1, *s);
+		//bb_error_msg("CHECK[%s][%s][%d]", mode, p-1, *s);
 		/* exact match? */
 		if (((!*s || isspace(*s)) && '"' != s[-1]) /* end-of-token */
 		 || ('"' == *s && '"' == p[-1]) /* ends with " but starts with " too! */
 		) {
-			//bb_info_msg("FOUND[%s][%s][%s][%d]", token[1], p, mode, isspace(*s));
+			//bb_error_msg("FOUND[%s][%s][%s][%d]", token[1], p, mode, isspace(*s));
 			break;
 		}
 	}
@@ -264,9 +264,9 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 	while (config_read(parser, token, 2, 1, "# \t", PARSE_NORMAL)) {
 		int i;
 
-//bb_info_msg("???[%s][%s]", token[0], token[1]);
+//bb_error_msg("???[%s][%s]", token[0], token[1]);
 		if (strcmp(token[0], "endmode") == 0) {
-//bb_info_msg("OK[%s]", mode);
+//bb_error_msg("OK[%s]", mode);
 			return 1;
 		}
 		p = token[1];
@@ -294,7 +294,7 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 				base->yres_virtual = base_yres_virtual;
 				base->bits_per_pixel = base_bits_per_pixel;
 			}
-//bb_info_msg("GEO[%s]", p);
+//bb_error_msg("GEO[%s]", p);
 			break;
 		case 1:
 			if (sizeof(int) == sizeof(base->xres)) {
@@ -321,13 +321,13 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 				base->hsync_len = base_hsync_len;
 				base->vsync_len = base_vsync_len;
 			}
-//bb_info_msg("TIM[%s]", p);
+//bb_error_msg("TIM[%s]", p);
 			break;
 		case 2:
 		case 3: {
 			static const uint32_t syncs[] = {FB_VMODE_INTERLACED, FB_VMODE_DOUBLE};
 			ss(&base->vmode, syncs[i-2], p, "false");
-//bb_info_msg("VMODE[%s]", p);
+//bb_error_msg("VMODE[%s]", p);
 			break;
 		}
 		case 4:
@@ -335,12 +335,12 @@ static int read_mode_db(struct fb_var_screeninfo *base, const char *fn,
 		case 6: {
 			static const uint32_t syncs[] = {FB_SYNC_VERT_HIGH_ACT, FB_SYNC_HOR_HIGH_ACT, FB_SYNC_COMP_HIGH_ACT};
 			ss(&base->sync, syncs[i-4], p, "low");
-//bb_info_msg("SYNC[%s]", p);
+//bb_error_msg("SYNC[%s]", p);
 			break;
 		}
 		case 7:
 			ss(&base->sync, FB_SYNC_EXT, p, "false");
-//bb_info_msg("EXTSYNC[%s]", p);
+//bb_error_msg("EXTSYNC[%s]", p);
 			break;
 		case 8: {
 			int red_offset, red_length;

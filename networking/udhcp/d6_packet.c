@@ -22,7 +22,7 @@ void FAST_FUNC d6_dump_packet(struct d6_packet *packet)
 		, packet->d6_xid32
 	);
 	//*bin2hex(buf, (void *) packet->chaddr, sizeof(packet->chaddr)) = '\0';
-	//bb_info_msg(" chaddr %s", buf);
+	//bb_error_msg(" chaddr %s", buf);
 }
 #endif
 

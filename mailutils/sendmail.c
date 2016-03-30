@@ -270,7 +270,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		//	G.method = xstrdup(a+1);
 	}
 	// N.B. list == NULL here
-	//bb_info_msg("OPT[%x] AU[%s], AP[%s], AM[%s], ARGV[%s]", opts, au, ap, am, *argv);
+	//bb_error_msg("OPT[%x] AU[%s], AP[%s], AM[%s], ARGV[%s]", opts, au, ap, am, *argv);
 
 	// connect to server
 
