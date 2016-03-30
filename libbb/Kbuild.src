@@ -46,7 +46,6 @@ lib-y += get_volsize.o
 lib-y += herror_msg.o
 lib-y += human_readable.o
 lib-y += inet_common.o
-lib-y += info_msg.o
 lib-y += inode_hash.o
 lib-y += isdirectory.o
 lib-y += kernel_version.o

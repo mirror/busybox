@@ -226,7 +226,7 @@ void FAST_FUNC read_leases(const char *file)
 #endif
 		}
 	}
-	log1("Read %d leases", i);
+	log1("read %d leases", i);
  ret:
 	close(fd);
 }

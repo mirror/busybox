@@ -133,7 +133,7 @@ static int nobody_responds_to_arp(uint32_t nip, const uint8_t *safe_mac, unsigne
 		return r;
 
 	temp.s_addr = nip;
-	bb_info_msg("%s belongs to someone, reserving it for %u seconds",
+	bb_error_msg("%s belongs to someone, reserving it for %u seconds",
 		inet_ntoa(temp), (unsigned)server_config.conflict_time);
 	add_lease(NULL, nip, server_config.conflict_time, NULL, 0);
 	return 0;
