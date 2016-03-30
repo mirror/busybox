@@ -12,7 +12,6 @@
 //config:	  sulogin is invoked when the system goes into single user
 //config:	  mode (this is done through an entry in inittab).
 
-//applet:/* Needs to be run by root or be suid root - needs to change uid and gid: */
 //applet:IF_SULOGIN(APPLET(sulogin, BB_DIR_SBIN, BB_SUID_DROP))
 
 //kbuild:lib-$(CONFIG_SULOGIN) += sulogin.o
