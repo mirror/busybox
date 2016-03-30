@@ -135,7 +135,7 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 	if (!(flags & 4)) { /* no -f */
 //TODO: I tend to think that signalling linuxrc is wrong
 // pity original author didn't comment on it...
-		if (ENABLE_FEATURE_INITRD) {
+		if (ENABLE_LINUXRC) {
 			/* talk to linuxrc */
 			/* bbox init/linuxrc assumed */
 			pid_t *pidlist = find_pid_by_name("linuxrc");
