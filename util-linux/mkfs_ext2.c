@@ -151,7 +151,7 @@ static uint32_t has_super(uint32_t x)
 
 static void PUT(uint64_t off, void *buf, uint32_t size)
 {
-//	bb_info_msg("PUT[%llu]:[%u]", off, size);
+	//bb_error_msg("PUT[%llu]:[%u]", off, size);
 	xlseek(fd, off, SEEK_SET);
 	xwrite(fd, buf, size);
 }

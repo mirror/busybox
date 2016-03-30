@@ -105,7 +105,7 @@ int chpasswd_main(int argc UNUSED_PARAM, char **argv)
 		if (rc < 0)
 			bb_error_msg_and_die("an error occurred updating password for %s", name);
 		if (rc)
-			bb_info_msg("Password for '%s' changed", name);
+			bb_error_msg("password for '%s' changed", name);
 		logmode = LOGMODE_STDIO;
 		free(name);
 		free(free_me);

@@ -834,10 +834,10 @@ static NOINLINE servtab_t *parse_one_line(void)
 			goto parse_err;
 	}
 
-//	bb_info_msg(
-//		"ENTRY[%s][%s][%s][%d][%d][%d][%d][%d][%s][%s][%s]",
-//		sep->se_local_hostname, sep->se_service, sep->se_proto, sep->se_wait, sep->se_proto_no,
-//		sep->se_max, sep->se_count, sep->se_time, sep->se_user, sep->se_group, sep->se_program);
+	//bb_error_msg(
+	//	"ENTRY[%s][%s][%s][%d][%d][%d][%d][%d][%s][%s][%s]",
+	//	sep->se_local_hostname, sep->se_service, sep->se_proto, sep->se_wait, sep->se_proto_no,
+	//	sep->se_max, sep->se_count, sep->se_time, sep->se_user, sep->se_group, sep->se_program);
 
 	/* check if the hostname specifier is a comma separated list
 	 * of hostnames. we'll make new entries for each address. */

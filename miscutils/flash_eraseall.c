@@ -147,7 +147,7 @@ int flash_eraseall_main(int argc UNUSED_PARAM, char **argv)
 			ret = ioctl(fd, MEMGETBADBLOCK, &offset);
 			if (ret > 0) {
 				if (!(flags & OPTION_Q))
-					bb_info_msg("\nSkipping bad block at 0x%08x", erase.start);
+					printf("\nSkipping bad block at 0x%08x\n", erase.start);
 				continue;
 			}
 			if (ret < 0) {

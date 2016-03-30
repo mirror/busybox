@@ -230,7 +230,7 @@ int passwd_main(int argc UNUSED_PARAM, char **argv)
 	/* LOGMODE_BOTH */
 	if (rc < 0)
 		bb_error_msg_and_die("can't update password file %s", filename);
-	bb_info_msg("Password for %s changed by %s", name, myname);
+	bb_error_msg("password for %s changed by %s", name, myname);
 
 	/*if (ENABLE_FEATURE_CLEAN_UP) free(newp); - can't, it may be non-malloced */
  skip:

@@ -497,7 +497,7 @@ send_probe(int seq, int ttl)
 
 	res = xsendto(sndsock, out, len, &dest_lsa->u.sa, dest_lsa->len);
 	if (res != len)
-		bb_info_msg("sent %d octets, ret=%d", len, res);
+		bb_error_msg("sent %d octets, ret=%d", len, res);
 }
 
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
