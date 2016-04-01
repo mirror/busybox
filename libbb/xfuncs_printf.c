@@ -390,6 +390,12 @@ void FAST_FUNC xchdir(const char *path)
 		bb_perror_msg_and_die("can't change directory to '%s'", path);
 }
 
+void FAST_FUNC xfchdir(int fd)
+{
+	if (fchdir(fd))
+		bb_perror_msg_and_die("fchdir");
+}
+
 void FAST_FUNC xchroot(const char *path)
 {
 	if (chroot(path))

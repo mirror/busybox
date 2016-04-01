@@ -500,6 +500,7 @@ void xsetuid(uid_t uid) FAST_FUNC;
 void xsetegid(gid_t egid) FAST_FUNC;
 void xseteuid(uid_t euid) FAST_FUNC;
 void xchdir(const char *path) FAST_FUNC;
+void xfchdir(int fd) FAST_FUNC;
 void xchroot(const char *path) FAST_FUNC;
 void xsetenv(const char *key, const char *value) FAST_FUNC;
 void bb_unsetenv(const char *key) FAST_FUNC;
@@ -1021,6 +1022,7 @@ pid_t wait_any_nohang(int *wstat) FAST_FUNC;
  *      if (rc > 0) bb_error_msg("exit code: %d", rc & 0xff);
  */
 int wait4pid(pid_t pid) FAST_FUNC;
+int wait_for_exitstatus(pid_t pid) FAST_FUNC;
 /* Same as wait4pid(spawn(argv)), but with NOFORK/NOEXEC if configured: */
 int spawn_and_wait(char **argv) FAST_FUNC;
 /* Does NOT check that applet is NOFORK, just blindly runs it */

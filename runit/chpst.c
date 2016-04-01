@@ -255,8 +255,7 @@ static NOINLINE void edir(const char *directory_name)
 		xsetenv(d->d_name, buf);
 	}
 	closedir(dir);
-	if (fchdir(wdir) == -1)
-		bb_perror_msg_and_die("fchdir");
+	xfchdir(wdir);
 	close(wdir);
 }
 

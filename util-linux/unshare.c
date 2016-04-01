@@ -57,17 +57,6 @@ static void mount_or_die(const char *source, const char *target,
 	}
 }
 
-// TODO: move to libbb
-static int wait_for_exitstatus(pid_t pid)
-{
-	int exit_status, n;
-
-	n = safe_waitpid(pid, &exit_status, 0);
-	if (n < 0)
-		bb_perror_msg_and_die("waitpid");
-	return exit_status;
-}
-
 /*
  * Longest possible path to a procfs file used in unshare. Must be able to
  * contain the '/proc/' string, the '/ns/user' string which is the longest

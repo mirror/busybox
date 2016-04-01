@@ -112,8 +112,7 @@ void FAST_FUNC data_extract_to_command(archive_handle_t *archive_handle)
 		bb_copyfd_exact_size(archive_handle->src_fd, p[1], -file_header->size);
 		close(p[1]);
 
-		if (safe_waitpid(pid, &status, 0) == -1)
-			bb_perror_msg_and_die("waitpid");
+		status = wait_for_exitstatus(pid);
 		if (WIFEXITED(status) && WEXITSTATUS(status))
 			bb_error_msg_and_die("'%s' returned status %d",
 				archive_handle->tar__to_command, WEXITSTATUS(status));
