@@ -19,18 +19,18 @@
 //usage:#define sort_full_usage "\n\n"
 //usage:       "Sort lines of text\n"
 //usage:	IF_FEATURE_SORT_BIG(
-//usage:     "\n	-b	Ignore leading blanks"
+//usage:     "\n	-o FILE	Output to FILE"
 //usage:     "\n	-c	Check whether input is sorted"
-//usage:     "\n	-d	Dictionary order (blank or alphanumeric only)"
+//usage:     "\n	-b	Ignore leading blanks"
 //usage:     "\n	-f	Ignore case"
-//usage:     "\n	-g	General numerical sort"
 //usage:     "\n	-i	Ignore unprintable characters"
+//usage:     "\n	-d	Dictionary order (blank or alphanumeric only)"
+//usage:     "\n	-g	General numerical sort"
 //usage:     "\n	-M	Sort month"
 //usage:	)
 //-h, --human-numeric-sort: compare human readable numbers (e.g., 2K 1G)
 //usage:     "\n	-n	Sort numbers"
 //usage:	IF_FEATURE_SORT_BIG(
-//usage:     "\n	-o	Output to file"
 //usage:     "\n	-t CHAR	Field separator"
 //usage:     "\n	-k N[,M] Sort by Nth field"
 //usage:	)
