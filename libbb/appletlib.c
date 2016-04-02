@@ -184,7 +184,7 @@ int FAST_FUNC find_applet_by_name(const char *name)
 	//bb_error_msg("name:'%s' starting from:'%s' i:%u max:%u", name, p, i, max);
 #endif
 
-	/* Open-coded linear seatch without strcmp/strlen calls for speed */
+	/* Open-coded linear search without strcmp/strlen calls for speed */
 
 #if 0 /*BB_UNALIGNED_MEMACCESS_OK && BB_LITTLE_ENDIAN*/
 	/* skip "[\0" name, it's surely not it */
