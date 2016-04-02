@@ -281,7 +281,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 
 	if (fdp.wr >= 0) {
 		close(fdp.wr); /* Release child */
-		/*close(fdp.rd);*/
+		close(fdp.rd); /* should close fd, to not confuse exec'ed PROG */
 	}
 
 	if (need_mount) {
@@ -307,14 +307,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 	 * that'll become PID 1 in this new namespace.
 	 */
 	if (opts & OPT_fork) {
-		pid_t pid = xfork();
-		if (pid > 0) {
-			/* Parent */
-			int exit_status = wait_for_exitstatus(pid);
-			if (WIFSIGNALED(exit_status))
-				kill_myself_with_sig(WTERMSIG(exit_status));
-			return WEXITSTATUS(exit_status);
-		}
+		xvfork_parent_waits_and_exits();
 		/* Child continues */
 	}
 
@@ -354,11 +347,5 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
 		mount_or_die("proc", proc_mnt_target, "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV);
 	}
 
-	if (argv[0]) {
-		BB_EXECVP_or_die(argv);
-	}
-	/* unshare from util-linux 2.27.1, despite not documenting it,
-	 * runs a login shell (argv0="-sh") if no PROG is given
-	 */
-	run_shell(getenv("SHELL"), /*login:*/ 1, NULL, NULL);
+	exec_prog_or_SHELL(argv);
 }

@@ -230,7 +230,7 @@ int nsenter_main(int argc UNUSED_PARAM, char **argv)
 				ns->ns_nsfile8 + 3 /* skip over "ns/" */
 			);
 		}
-		/*close(ns_ctx->fd);*/
+		close(ns_ctx->fd); /* should close fds, to not confuse exec'ed PROG */
 		/*ns_ctx->fd = -1;*/
 	}
 
@@ -244,13 +244,13 @@ int nsenter_main(int argc UNUSED_PARAM, char **argv)
 		}
 		xfchdir(root_fd);
 		xchroot(".");
-		/*close(root_fd);*/
+		close(root_fd);
 		/*root_fd = -1;*/
 	}
 
 	if (wd_fd >= 0) {
 		xfchdir(wd_fd);
-		/*close(wd_fd);*/
+		close(wd_fd);
 		/*wd_fd = -1;*/
 	}
 
@@ -259,14 +259,7 @@ int nsenter_main(int argc UNUSED_PARAM, char **argv)
 	 * explicitly requested by the user not to.
 	 */
 	if (!(opts & OPT_nofork) && (opts & OPT_pid)) {
-		pid_t pid = xvfork();
-		if (pid > 0) {
-			/* Parent */
-			int exit_status = wait_for_exitstatus(pid);
-			if (WIFSIGNALED(exit_status))
-				kill_myself_with_sig(WTERMSIG(exit_status));
-			return WEXITSTATUS(exit_status);
-		}
+		xvfork_parent_waits_and_exits();
 		/* Child continues */
 	}
 
@@ -278,9 +271,5 @@ int nsenter_main(int argc UNUSED_PARAM, char **argv)
 	if (opts & OPT_setuid)
 		xsetuid(uid);
 
-	if (*argv) {
-		BB_EXECVP_or_die(argv);
-	}
-
-	run_shell(getenv("SHELL"), /*login:*/ 1, NULL, NULL);
+	exec_prog_or_SHELL(argv);
 }

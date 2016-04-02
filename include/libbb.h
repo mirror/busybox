@@ -992,9 +992,10 @@ int BB_EXECVP(const char *file, char *const argv[]) FAST_FUNC;
 #define BB_EXECVP(prog,cmd)     execvp(prog,cmd)
 #define BB_EXECLP(prog,cmd,...) execlp(prog,cmd,__VA_ARGS__)
 #endif
-int BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
+void BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
+void exec_prog_or_SHELL(char **argv) NORETURN FAST_FUNC;
 
-/* xvfork() can't be a _function_, return after vfork mangles stack
+/* xvfork() can't be a _function_, return after vfork in child mangles stack
  * in the parent. It must be a macro. */
 #define xvfork() \
 ({ \
@@ -1006,6 +1007,7 @@ int BB_EXECVP_or_die(char **argv) NORETURN FAST_FUNC;
 #if BB_MMU
 pid_t xfork(void) FAST_FUNC;
 #endif
+void xvfork_parent_waits_and_exits(void) FAST_FUNC;
 
 /* NOMMU friendy fork+exec: */
 pid_t spawn(char **argv) FAST_FUNC;
