@@ -58,41 +58,32 @@ static int str_isalnum_(const char *s)
 	return 1;
 }
 
-// Before linear search, narrow it down by looking at N "equidistant" names:
-// KNOWN_APPNAME_OFFSETS  cycles  code_size
-//                     0    9057
-//                     2    4604        +32
-//                     4    2407        +75
-//                     8    1342        +98
-//                    16     908       +130
-//                    32     884       +194
-// With 8, applet_nameofs[] table has 7 elements.
-#define KNOWN_APPNAME_OFFSETS 8
-
 int main(int argc, char **argv)
 {
 	int i, j;
-	int ofs, offset[KNOWN_APPNAME_OFFSETS], index[KNOWN_APPNAME_OFFSETS];
-//	unsigned MAX_APPLET_NAME_LEN = 1;
+
+	// In find_applet_by_name(), before linear search, narrow it down
+	// by looking at N "equidistant" names. With ~350 applets:
+	// KNOWN_APPNAME_OFFSETS  cycles
+	//                     0    9057
+	//                     2    4604 + ~100 bytes of code
+	//                     4    2407 + 4 bytes
+	//                     8    1342 + 8 bytes
+	//                    16     908 + 16 bytes
+	//                    32     884 + 32 bytes
+	// With 8, int16_t applet_nameofs[] table has 7 elements.
+	int KNOWN_APPNAME_OFFSETS = 8;
+	// With 128 applets we do two linear searches, with 1..7 strcmp's in the first one
+	// and 1..16 strcmp's in the second. With 256 apps, second search does 1..32 strcmp's.
+	if (NUM_APPLETS < 128)
+		KNOWN_APPNAME_OFFSETS = 4;
+	if (NUM_APPLETS < 32)
+		KNOWN_APPNAME_OFFSETS = 0;
 
 	qsort(applets, NUM_APPLETS, sizeof(applets[0]), cmp_name);
 
-	for (i = 0; i < KNOWN_APPNAME_OFFSETS; i++)
-		index[i] = i * NUM_APPLETS / KNOWN_APPNAME_OFFSETS;
-
-	ofs = 0;
-	for (i = 0; i < NUM_APPLETS; i++) {
-		for (j = 0; j < KNOWN_APPNAME_OFFSETS; j++)
-			if (i == index[j])
-				offset[j] = ofs;
-		ofs += strlen(applets[i].name) + 1;
-	}
-	/* If the list of names is too long refuse to proceed */
-	if (ofs > 0xffff)
-		return 1;
 	if (!argv[1])
 		return 1;
-
 	i = open(argv[1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
 	if (i < 0)
 		return 1;
@@ -108,15 +99,25 @@ int main(int argc, char **argv)
 		printf("#define SINGLE_APPLET_MAIN %s_main\n", applets[0].main);
 	}
 
-	if (KNOWN_APPNAME_OFFSETS > 0 && NUM_APPLETS > 2*KNOWN_APPNAME_OFFSETS) {
-		printf("#define KNOWN_APPNAME_OFFSETS %u\n\n", KNOWN_APPNAME_OFFSETS);
+	printf("#define KNOWN_APPNAME_OFFSETS %u\n\n", KNOWN_APPNAME_OFFSETS);
+	if (KNOWN_APPNAME_OFFSETS > 0) {
+		int ofs, offset[KNOWN_APPNAME_OFFSETS], index[KNOWN_APPNAME_OFFSETS];
+		for (i = 0; i < KNOWN_APPNAME_OFFSETS; i++)
+			index[i] = i * NUM_APPLETS / KNOWN_APPNAME_OFFSETS;
+		ofs = 0;
+		for (i = 0; i < NUM_APPLETS; i++) {
+			for (j = 0; j < KNOWN_APPNAME_OFFSETS; j++)
+				if (i == index[j])
+					offset[j] = ofs;
+			ofs += strlen(applets[i].name) + 1;
+		}
+		/* If the list of names is too long refuse to proceed */
+		if (ofs > 0xffff)
+			return 1;
 		printf("const uint16_t applet_nameofs[] ALIGN2 = {\n");
 		for (i = 1; i < KNOWN_APPNAME_OFFSETS; i++)
 			printf("%d,\n", offset[i]);
 		printf("};\n\n");
-	}
-	else {
-		printf("#define KNOWN_APPNAME_OFFSETS 0\n\n");
 	}
 
 	//printf("#ifndef SKIP_definitions\n");
