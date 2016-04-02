@@ -57,11 +57,6 @@ static void mount_or_die(const char *source, const char *target,
 	}
 }
 
-/*
- * Longest possible path to a procfs file used in unshare. Must be able to
- * contain the '/proc/' string, the '/ns/user' string which is the longest
- * namespace name and a 32-bit integer representing the process ID.
- */
 #define PATH_PROC_SETGROUPS	"/proc/self/setgroups"
 #define PATH_PROC_UIDMAP	"/proc/self/uid_map"
 #define PATH_PROC_GIDMAP	"/proc/self/gid_map"
