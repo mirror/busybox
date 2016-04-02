@@ -40,7 +40,36 @@
 //usage:     "\n	--setgroups allow|deny	Control the setgroups syscall in user namespaces"
 
 #include <sched.h>
+#ifndef CLONE_NEWUTS
+# define CLONE_NEWUTS  0x04000000
+#endif
+#ifndef CLONE_NEWIPC
+# define CLONE_NEWIPC  0x08000000
+#endif
+#ifndef CLONE_NEWUSER
+# define CLONE_NEWUSER 0x10000000
+#endif
+#ifndef CLONE_NEWPID
+# define CLONE_NEWPID  0x20000000
+#endif
+#ifndef CLONE_NEWNET
+# define CLONE_NEWNET  0x40000000
+#endif
+
 #include <sys/mount.h>
+#ifndef MS_REC
+# define MS_REC     (1 << 14)
+#endif
+#ifndef MS_PRIVATE
+# define MS_PRIVATE (1 << 18)
+#endif
+#ifndef MS_SLAVE
+# define MS_SLAVE   (1 << 19)
+#endif
+#ifndef MS_SHARED
+# define MS_SHARED  (1 << 20)
+#endif
+
 #include "libbb.h"
 
 static void mount_or_die(const char *source, const char *target,
