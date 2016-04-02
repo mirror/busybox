@@ -14,7 +14,7 @@
 
 //usage:#define sort_trivial_usage
 //usage:       "[-nru"
-//usage:	IF_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR")
+//usage:	IF_FEATURE_SORT_BIG("gMcszbdfiokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR")
 //usage:       "] [FILE]..."
 //usage:#define sort_full_usage "\n\n"
 //usage:       "Sort lines of text\n"
@@ -41,7 +41,10 @@
 //usage:     "\n	-u	Suppress duplicate lines"
 //usage:	IF_FEATURE_SORT_BIG(
 //usage:     "\n	-z	Lines are terminated by NUL, not newline"
-//usage:     "\n	-mST	Ignored for GNU compatibility")
+////usage:     "\n	-m	Ignored for GNU compatibility"
+////usage:     "\n	-S BUFSZ Ignored for GNU compatibility"
+////usage:     "\n	-T TMPDIR Ignored for GNU compatibility"
+//usage:	)
 //usage:
 //usage:#define sort_example_usage
 //usage:       "$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n"
