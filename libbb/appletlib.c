@@ -141,7 +141,8 @@ void FAST_FUNC bb_show_usage(void)
 
 int FAST_FUNC find_applet_by_name(const char *name)
 {
-	unsigned i, j, max;
+	unsigned i, max;
+	int j;
 	const char *p;
 
 /* The commented-out word-at-a-time code is ~40% faster, but +160 bytes.
