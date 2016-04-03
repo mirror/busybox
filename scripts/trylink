@@ -140,6 +140,8 @@ try $CC $CFLAGS $LDFLAGS \
 || {
     echo "Failed: $l_list"
     cat $EXE.out
+    echo 'Note: if build needs additional libraries, put them in CONFIG_EXTRA_LDLIBS.'
+    echo 'Example: CONFIG_EXTRA_LDLIBS="pthread dl tirpc audit pam"'
     exit 1
 }
 
