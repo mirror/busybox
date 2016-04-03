@@ -902,6 +902,19 @@ int lbb_main(char **argv)
 int main(int argc UNUSED_PARAM, char **argv)
 #endif
 {
+#if 0
+	/* TODO: find a use for a block of memory between end of .bss
+	 * and end of page. For example, I'm getting "_end:0x812e698 2408 bytes"
+	 * - more than 2k of wasted memory (in this particular build)
+	 * *per each running process*!
+	 * (If your linker does not generate "_end" name, weak attribute
+	 * makes &_end == NULL, end_len == 0 here.)
+	 */
+	extern char _end[] __attribute__((weak));
+	unsigned end_len = (-(int)_end) & 0xfff;
+	printf("_end:%p %u bytes\n", &_end, end_len);
+#endif
+
 	/* Tweak malloc for reduced memory consumption */
 #ifdef M_TRIM_THRESHOLD
 	/* M_TRIM_THRESHOLD is the maximum amount of freed top-most memory
