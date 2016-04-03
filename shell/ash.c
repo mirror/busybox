@@ -11500,7 +11500,7 @@ parsesub: {
 	 || (c != '(' && c != '{' && !is_name(c) && !is_special(c))
 	) {
 #if ENABLE_ASH_BASH_COMPAT
-		if (c == '\'')
+		if (syntax != DQSYNTAX && c == '\'')
 			bash_dollar_squote = 1;
 		else
 #endif
