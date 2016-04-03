@@ -195,7 +195,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	} else
 
 //usage:#define ubimkvol_trivial_usage
-//usage:       "UBI_DEVICE -N NAME [-s SIZE | -m]"
+//usage:       "-N NAME [-s SIZE | -m] UBI_DEVICE"
 //usage:#define ubimkvol_full_usage "\n\n"
 //usage:       "Create UBI volume\n"
 //usage:     "\n	-a ALIGNMENT	Volume alignment (default 1)"
@@ -212,9 +212,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 			unsigned num;
 			char *p;
 
-			if (sscanf(ubi_ctrl, "/dev/ubi%u", &num) != 1)
-				bb_error_msg_and_die("wrong format of UBI device name");
-
+			num = ubi_devnum_from_devname(ubi_ctrl);
 			p = path_sys_class_ubi_ubi + sprintf(path_sys_class_ubi_ubi, "%u/", num);
 
 			strcpy(p, "avail_eraseblocks");
@@ -248,20 +246,31 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	} else
 
 //usage:#define ubirmvol_trivial_usage
-//usage:       "UBI_DEVICE -n VOLID"
+//usage:       "-n VOLID / -N VOLNAME UBI_DEVICE"
 //usage:#define ubirmvol_full_usage "\n\n"
 //usage:       "Remove UBI volume\n"
 //usage:     "\n	-n VOLID	Volume ID"
+//usage:     "\n	-N VOLNAME	Volume name"
 	if (do_rmvol) {
-		if (!(opts & OPTION_n))
+		if (!(opts & (OPTION_n|OPTION_N)))
 			bb_error_msg_and_die("volume id not specified");
 
-		/* FIXME? kernel expects int32_t* here: */
-		xioctl(fd, UBI_IOCRMVOL, &vol_id);
+		if (opts & OPTION_N) {
+			unsigned num = ubi_devnum_from_devname(ubi_ctrl);
+			vol_id = get_volid_by_name(num, vol_name);
+		}
+
+		if (sizeof(vol_id) != 4) {
+			/* kernel expects int32_t* in this ioctl */
+			int32_t t = vol_id;
+			xioctl(fd, UBI_IOCRMVOL, &t);
+		} else {
+			xioctl(fd, UBI_IOCRMVOL, &vol_id);
+		}
 	} else
 
 //usage:#define ubirsvol_trivial_usage
-//usage:       "UBI_DEVICE -n VOLID -s SIZE"
+//usage:       "-n VOLID -s SIZE UBI_DEVICE"
 //usage:#define ubirsvol_full_usage "\n\n"
 //usage:       "Resize UBI volume\n"
 //usage:     "\n	-n VOLID	Volume ID"
@@ -279,7 +288,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 	} else
 
 //usage:#define ubiupdatevol_trivial_usage
-//usage:       "UBI_DEVICE [-t | [-s SIZE] IMG_FILE]"
+//usage:       "[-t | [-s SIZE] IMG_FILE] UBI_DEVICE"
 //usage:#define ubiupdatevol_full_usage "\n\n"
 //usage:       "Update UBI volume\n"
 //usage:     "\n	-t	Truncate to zero size"

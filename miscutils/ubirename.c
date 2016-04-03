@@ -30,11 +30,9 @@
 #endif
 
 // from ubi-media.h
-#define UBI_VOL_NAME_MAX 127
+#define UBI_MAX_VOLUME_NAME 127
 #define UBI_MAX_VOLUMES  128
 // end ubi-media.h
-
-#define UBI_MAX_VOLUME_NAME  UBI_VOL_NAME_MAX
 
 // from ubi-user.h
 /* ioctl commands of UBI character devices */
@@ -64,7 +62,7 @@ int ubirename_main(int argc, char **argv)
 	struct ubi_rnvol_req *rnvol;
 	const char *ubi_devname;
 	unsigned ubi_devnum;
-	unsigned i, n;
+	unsigned n;
 
 	/* argc can be 4, 6, 8, ... */
 	if ((argc & 1) || (argc >>= 1) < 2)
@@ -76,27 +74,12 @@ int ubirename_main(int argc, char **argv)
 		bb_error_msg_and_die("too many renames requested");
 
 	ubi_devname = argv[1];
-	if (sscanf(ubi_devname, "/dev/ubi%u", &ubi_devnum) != 1)
-		bb_error_msg_and_die("not a ubi device: '%s'", ubi_devname);
+	ubi_devnum = ubi_devnum_from_devname(ubi_devname);
 
 	n = 0;
 	argv += 2;
 	while (argv[0]) {
-		for (i = 0; i < UBI_MAX_VOLUMES; i++) {
-			char buf[UBI_VOL_NAME_MAX + 1];
-			char fname[sizeof("/sys/class/ubi/ubi%u_%u/name") + 2 * sizeof(int)*3];
-
-			sprintf(fname, "/sys/class/ubi/ubi%u_%u/name", ubi_devnum, i);
-			if (open_read_close(fname, buf, sizeof(buf)) <= 0)
-				continue;
-
-			strchrnul(buf, '\n')[0] = '\0';
-			if (strcmp(buf, argv[0]) == 0)
-				goto found;
-		}
-		bb_error_msg_and_die("no volume '%s' found", argv[0]);
- found:
-		rnvol->ents[n].vol_id = i;
+		rnvol->ents[n].vol_id = get_volid_by_name(ubi_devnum, argv[0]);
 		rnvol->ents[n].name_len = strlen(argv[1]);
 		if (rnvol->ents[n].name_len >= sizeof(rnvol->ents[n].name))
 			bb_error_msg_and_die("new name '%s' is too long", argv[1]);
