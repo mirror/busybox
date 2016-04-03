@@ -1771,7 +1771,7 @@ void bb_progress_update(bb_progress_t *p,
 			uoff_t totalsize) FAST_FUNC;
 
 unsigned ubi_devnum_from_devname(const char *str) FAST_FUNC;
-int get_volid_by_name(unsigned ubi_devnum, const char *vol_name) FAST_FUNC;
+int ubi_get_volid_by_name(unsigned ubi_devnum, const char *vol_name) FAST_FUNC;
 
 
 extern const char *applet_name;

@@ -257,7 +257,7 @@ int ubi_tools_main(int argc UNUSED_PARAM, char **argv)
 
 		if (opts & OPTION_N) {
 			unsigned num = ubi_devnum_from_devname(ubi_ctrl);
-			vol_id = get_volid_by_name(num, vol_name);
+			vol_id = ubi_get_volid_by_name(num, vol_name);
 		}
 
 		if (sizeof(vol_id) != 4) {

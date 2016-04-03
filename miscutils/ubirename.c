@@ -31,7 +31,7 @@
 
 // from ubi-media.h
 #define UBI_MAX_VOLUME_NAME 127
-#define UBI_MAX_VOLUMES  128
+#define UBI_MAX_VOLUMES     128
 // end ubi-media.h
 
 // from ubi-user.h
@@ -79,7 +79,7 @@ int ubirename_main(int argc, char **argv)
 	n = 0;
 	argv += 2;
 	while (argv[0]) {
-		rnvol->ents[n].vol_id = get_volid_by_name(ubi_devnum, argv[0]);
+		rnvol->ents[n].vol_id = ubi_get_volid_by_name(ubi_devnum, argv[0]);
 		rnvol->ents[n].name_len = strlen(argv[1]);
 		if (rnvol->ents[n].name_len >= sizeof(rnvol->ents[n].name))
 			bb_error_msg_and_die("new name '%s' is too long", argv[1]);
