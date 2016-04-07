@@ -1507,12 +1507,12 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	while (opt_f) { // -f
 		char *line;
 		FILE *cmdfile;
-		cmdfile = xfopen_for_read(llist_pop(&opt_f));
+		cmdfile = xfopen_stdin(llist_pop(&opt_f));
 		while ((line = xmalloc_fgetline(cmdfile)) != NULL) {
 			add_cmd(line);
 			free(line);
 		}
-		fclose(cmdfile);
+		fclose_if_not_stdin(cmdfile);
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[0] */
 	if (!(opt & 0x30)) {
