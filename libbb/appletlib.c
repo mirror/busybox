@@ -791,7 +791,8 @@ static int busybox_main(char **argv)
 			full_write2_str(a);
 			full_write2_str("\n");
 			i++;
-			a += strlen(a) + 1;
+			while (*a++ != '\0')
+				continue;
 		}
 		return 0;
 	}
