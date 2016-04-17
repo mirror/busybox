@@ -263,15 +263,18 @@ static uint32_t read_next_cdf(uint32_t cdf_offset, cdf_header_t *cdf_ptr)
 		xlseek(zip_fd, cdf_offset + 4, SEEK_SET);
 		xread(zip_fd, cdf_ptr->raw, CDF_HEADER_LEN);
 		FIX_ENDIANNESS_CDF(*cdf_ptr);
-		dbg("file_name_length:%u", (unsigned)cdf_ptr->formatted.file_name_length);
-		dbg("extra_field_length:%u", (unsigned)cdf_ptr->formatted.extra_field_length);
-		dbg("file_comment_length:%u", (unsigned)cdf_ptr->formatted.file_comment_length);
+		dbg("  file_name_length:%u extra_field_length:%u file_comment_length:%u",
+			(unsigned)cdf_ptr->formatted.file_name_length,
+			(unsigned)cdf_ptr->formatted.extra_field_length,
+			(unsigned)cdf_ptr->formatted.file_comment_length
+		);
 		cdf_offset += 4 + CDF_HEADER_LEN
 			+ cdf_ptr->formatted.file_name_length
 			+ cdf_ptr->formatted.extra_field_length
 			+ cdf_ptr->formatted.file_comment_length;
 	}
 
+	dbg("Returning file position to 0x%"OFF_FMT"x", org);
 	xlseek(zip_fd, org, SEEK_SET);
 	return cdf_offset;
 };
@@ -614,6 +617,11 @@ int unzip_main(int argc, char **argv)
 			bb_error_msg_and_die("can't find file table");
 		}
 #endif
+		dbg("File cmpsize:0x%x extra_len:0x%x ucmpsize:0x%x",
+			(unsigned)zip_header.formatted.cmpsize,
+			(unsigned)zip_header.formatted.extra_len,
+			(unsigned)zip_header.formatted.ucmpsize
+		);
 
 		/* Read filename */
 		free(dst_fn);
@@ -646,16 +654,31 @@ int unzip_main(int argc, char **argv)
 						(dostime & 0x0000f800) >> 11,
 						(dostime & 0x000007e0) >> 5,
 						dst_fn);
-					total_usize += zip_header.formatted.ucmpsize;
 				} else {
 					unsigned long percents = zip_header.formatted.ucmpsize - zip_header.formatted.cmpsize;
+					if ((int32_t)percents < 0)
+						percents = 0; /* happens if ucmpsize < cmpsize */
 					percents = percents * 100;
 					if (zip_header.formatted.ucmpsize)
 						percents /= zip_header.formatted.ucmpsize;
 					//      " Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
 					//      "--------  ------  ------- -----   ----   ----   ------    ----"
-					printf(      "%8u  Defl:N"    "%9u%4u%%  %02u-%02u-%02u %02u:%02u  %08x  %s\n",
+					printf(      "%8u  %s"        "%9u%4u%%  %02u-%02u-%02u %02u:%02u  %08x  %s\n",
 						(unsigned)zip_header.formatted.ucmpsize,
+						zip_header.formatted.method == 0 ? "Stored" : "Defl:N", /* Defl is method 8 */
+/* TODO: show other methods?
+ *  1 - Shrunk
+ *  2 - Reduced with compression factor 1
+ *  3 - Reduced with compression factor 2
+ *  4 - Reduced with compression factor 3
+ *  5 - Reduced with compression factor 4
+ *  6 - Imploded
+ *  7 - Reserved for Tokenizing compression algorithm
+ *  9 - Deflate64
+ * 10 - PKWARE Data Compression Library Imploding
+ * 11 - Reserved by PKWARE
+ * 12 - BZIP2
+ */
 						(unsigned)zip_header.formatted.cmpsize,
 						(unsigned)percents,
 						(dostime & 0x01e00000) >> 21,
@@ -665,9 +688,9 @@ int unzip_main(int argc, char **argv)
 						(dostime & 0x000007e0) >> 5,
 						zip_header.formatted.crc32,
 						dst_fn);
-					total_usize += zip_header.formatted.ucmpsize;
 					total_size += zip_header.formatted.cmpsize;
 				}
+				total_usize += zip_header.formatted.ucmpsize;
 				i = 'n';
 			} else if (dst_fd == STDOUT_FILENO) {
 				/* Extracting to STDOUT */
