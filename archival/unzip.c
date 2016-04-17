@@ -514,11 +514,11 @@ int unzip_main(int argc, char **argv)
 			printf("Archive:  %s\n", src_fn);
 		if (listing) {
 			puts(verbose ?
-				" Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
-				"--------  ------  ------- -----   ----   ----   ------    ----"
+				" Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
+				"--------  ------  ------- ---- ---------- ----- --------  ----"
 				:
-				"  Length     Date   Time    Name\n"
-				" --------    ----   ----    ----"
+				"  Length      Date    Time    Name\n"
+				"---------  ---------- -----   ----"
 				);
 		}
 	}
@@ -643,16 +643,20 @@ int unzip_main(int argc, char **argv)
 			if (listing) {
 				/* List entry */
 				unsigned dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
-				if (!verbose) {
-					//      "  Length     Date   Time    Name\n"
-					//      " --------    ----   ----    ----"
-					printf(       "%9u  %02u-%02u-%02u %02u:%02u   %s\n",
-						(unsigned)zip_header.formatted.ucmpsize,
+				char dtbuf[sizeof("mm-dd-yyyy hh:mm")];
+				sprintf(dtbuf, "%02u-%02u-%04u %02u:%02u",
 						(dostime & 0x01e00000) >> 21,
 						(dostime & 0x001f0000) >> 16,
-						(((dostime & 0xfe000000) >> 25) + 1980) % 100,
+						((dostime & 0xfe000000) >> 25) + 1980,
 						(dostime & 0x0000f800) >> 11,
-						(dostime & 0x000007e0) >> 5,
+						(dostime & 0x000007e0) >> 5
+				);
+				if (!verbose) {
+					//      "  Length      Date    Time    Name\n"
+					//      "---------  ---------- -----   ----"
+					printf(       "%9u  " "%s   "         "%s\n",
+						(unsigned)zip_header.formatted.ucmpsize,
+						dtbuf,
 						dst_fn);
 				} else {
 					unsigned long percents = zip_header.formatted.ucmpsize - zip_header.formatted.cmpsize;
@@ -661,9 +665,9 @@ int unzip_main(int argc, char **argv)
 					percents = percents * 100;
 					if (zip_header.formatted.ucmpsize)
 						percents /= zip_header.formatted.ucmpsize;
-					//      " Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
-					//      "--------  ------  ------- -----   ----   ----   ------    ----"
-					printf(      "%8u  %s"        "%9u%4u%%  %02u-%02u-%02u %02u:%02u  %08x  %s\n",
+					//      " Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
+					//      "--------  ------  ------- ---- ---------- ----- --------  ----"
+					printf(      "%8u  %s"        "%9u%4u%% " "%s "         "%08x  "  "%s\n",
 						(unsigned)zip_header.formatted.ucmpsize,
 						zip_header.formatted.method == 0 ? "Stored" : "Defl:N", /* Defl is method 8 */
 /* TODO: show other methods?
@@ -681,11 +685,7 @@ int unzip_main(int argc, char **argv)
  */
 						(unsigned)zip_header.formatted.cmpsize,
 						(unsigned)percents,
-						(dostime & 0x01e00000) >> 21,
-						(dostime & 0x001f0000) >> 16,
-						(((dostime & 0xfe000000) >> 25) + 1980) % 100,
-						(dostime & 0x0000f800) >> 11,
-						(dostime & 0x000007e0) >> 5,
+						dtbuf,
 						zip_header.formatted.crc32,
 						dst_fn);
 					total_size += zip_header.formatted.cmpsize;
@@ -793,21 +793,25 @@ int unzip_main(int argc, char **argv)
 
 	if (listing && quiet <= 1) {
 		if (!verbose) {
-			//      "  Length     Date   Time    Name\n"
-			//      " --------    ----   ----    ----"
-			printf( " --------                   -------\n"
-				"%9lu"   "                   %u files\n",
-				total_usize, total_entries);
+			//	"  Length      Date    Time    Name\n"
+			//	"---------  ---------- -----   ----"
+			printf( " --------%21s"               "-------\n"
+				     "%9lu%21s"               "%u files\n",
+				"",
+				total_usize, "", total_entries);
 		} else {
 			unsigned long percents = total_usize - total_size;
+			if ((long)percents < 0)
+				percents = 0; /* happens if usize < size */
 			percents = percents * 100;
 			if (total_usize)
 				percents /= total_usize;
-			//      " Length   Method    Size  Ratio   Date   Time   CRC-32    Name\n"
-			//      "--------  ------  ------- -----   ----   ----   ------    ----"
-			printf( "--------          -------  ---                            -------\n"
-				"%8lu"              "%17lu%4u%%                            %u files\n",
-				total_usize, total_size, (unsigned)percents,
+			//	" Length   Method    Size  Cmpr    Date    Time   CRC-32   Name\n"
+			//	"--------  ------  ------- ---- ---------- ----- --------  ----"
+			printf( "--------          ------- ----%28s"                      "----\n"
+				"%8lu"              "%17lu%4u%%%28s"                      "%u files\n",
+				"",
+				total_usize, total_size, (unsigned)percents, "",
 				total_entries);
 		}
 	}
