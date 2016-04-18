@@ -642,14 +642,14 @@ int unzip_main(int argc, char **argv)
 		} else {
 			if (listing) {
 				/* List entry */
-				unsigned dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
 				char dtbuf[sizeof("mm-dd-yyyy hh:mm")];
 				sprintf(dtbuf, "%02u-%02u-%04u %02u:%02u",
-						(dostime & 0x01e00000) >> 21,
-						(dostime & 0x001f0000) >> 16,
-						((dostime & 0xfe000000) >> 25) + 1980,
-						(dostime & 0x0000f800) >> 11,
-						(dostime & 0x000007e0) >> 5
+					(zip_header.formatted.moddate >> 5) & 0xf,  // mm: 0x01e0
+					(zip_header.formatted.moddate)      & 0x1f, // dd: 0x001f
+					(zip_header.formatted.moddate >> 9) + 1980, // yy: 0xfe00
+					(zip_header.formatted.modtime >> 11),       // hh: 0xf800
+					(zip_header.formatted.modtime >> 5) & 0x3f  // mm: 0x07e0
+					// seconds/2 are not shown, encoded in ----------- 0x001f
 				);
 				if (!verbose) {
 					//      "  Length      Date    Time    Name\n"
