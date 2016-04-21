@@ -87,7 +87,8 @@ if test $REM -lt 1024; then
 		echo "Rerun make to build a binary which doesn't use it!"
 		exit 1
 	fi
-        exit 0
+	echo "COMMON_BUFSIZE = 1024 bytes, the buffer will be malloced"
+	exit 0
 fi
 
 # _end[] has REM bytes for bb_common_bufsiz1[]
@@ -102,7 +103,7 @@ echo "#define setup_common_bufsiz() ((void)0)"
 } | regenerate "$common_bufsiz_h"
 echo $REM >"$common_bufsiz_h.BUFSIZE"
 
-# Check that code did not grow too much and thus _end[] did not shink:
+# Check that code did not grow too much and thus _end[] did not shrink:
 if test $OLD -gt $REM; then
 	echo "Warning! Space in _end[] has decreased from $OLD to $REM bytes!"
 	echo "Rerun make!"

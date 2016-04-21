@@ -55,14 +55,14 @@ char bb_common_bufsiz1[COMMON_BUFSIZE] ALIGNED(sizeof(long long));
 
 # ifndef setup_common_bufsiz
 /*
- * It is not a "((void)0)" macro. It means we have to provide this function.
+ * It is not defined as a dummy macro.
+ * It means we have to provide this function.
  */
 char* bb_common_bufsiz1;
-char* setup_common_bufsiz(void)
+void setup_common_bufsiz(void)
 {
 	if (!bb_common_bufsiz1)
 		bb_common_bufsiz1 = xzalloc(COMMON_BUFSIZE);
-	return bb_common_bufsiz1;
 }
 # else
 #  ifndef bb_common_bufsiz1
