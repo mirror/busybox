@@ -749,6 +749,7 @@ static int diffreg(char *file[2])
 		fp[i] = fdopen(fd, "r");
 	}
 
+	setup_common_bufsiz();
 	while (1) {
 		const size_t sz = COMMON_BUFSIZE / 2;
 		char *const buf0 = bb_common_bufsiz1;

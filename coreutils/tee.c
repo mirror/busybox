@@ -37,8 +37,8 @@ int tee_main(int argc, char **argv)
 //TODO: make unconditional
 #if ENABLE_FEATURE_TEE_USE_BLOCK_IO
 	ssize_t c;
-# define        buf bb_common_bufsiz1
-# define sizeof_buf COMMON_BUFSIZE
+# define buf bb_common_bufsiz1
+	setup_common_bufsiz();
 #else
 	int c;
 #endif
@@ -81,7 +81,7 @@ int tee_main(int argc, char **argv)
 	/* names[0] will be filled later */
 
 #if ENABLE_FEATURE_TEE_USE_BLOCK_IO
-	while ((c = safe_read(STDIN_FILENO, buf, sizeof_buf)) > 0) {
+	while ((c = safe_read(STDIN_FILENO, buf, COMMON_BUFSIZE)) > 0) {
 		fp = files;
 		do
 			fwrite(buf, 1, c, *fp);

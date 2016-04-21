@@ -31,11 +31,13 @@ enum { SUM_BSD, PRINT_NAME, SUM_SYSV };
 /* Return 1 if successful.  */
 static unsigned sum_file(const char *file, unsigned type)
 {
-#define buf bb_common_bufsiz1
 	unsigned long long total_bytes = 0;
 	int fd, r;
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
 	unsigned s = 0;
+
+#define buf bb_common_bufsiz1
+	setup_common_bufsiz();
 
 	fd = open_or_warn_stdin(file);
 	if (fd == -1)

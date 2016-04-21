@@ -373,12 +373,13 @@ static void fb_drawimage(void)
 	 * - A raster of Width * Height pixels in triplets of rgb
 	 *   in pure binary by 1 or 2 bytes. (we support only 1 byte)
 	 */
-#define        concat_buf bb_common_bufsiz1
-#define sizeof_concat_buf COMMON_BUFSIZE
+#define concat_buf bb_common_bufsiz1
+	setup_common_bufsiz();
+
 	read_ptr = concat_buf;
 	while (1) {
 		int w, h, max_color_val;
-		int rem = concat_buf + sizeof_concat_buf - read_ptr;
+		int rem = concat_buf + COMMON_BUFSIZE - read_ptr;
 		if (rem < 2
 		 || fgets(read_ptr, rem, theme_file) == NULL
 		) {

@@ -109,15 +109,14 @@ struct globals {
 #define proc_meminfo       (G.proc_meminfo      )
 #define proc_diskstats     (G.proc_diskstats    )
 #define proc_sys_fs_filenr (G.proc_sys_fs_filenr)
+#define outbuf bb_common_bufsiz1
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	cur_outbuf = outbuf; \
 	G.final_char = '\n'; \
 	G.deltanz = G.delta = 1000000; \
 } while (0)
-
-#define        outbuf bb_common_bufsiz1
-#define sizeof_outbuf COMMON_BUFSIZE
 
 static inline void reset_outbuf(void)
 {
@@ -141,7 +140,7 @@ static void print_outbuf(void)
 static void put(const char *s)
 {
 	char *p = cur_outbuf;
-	int sz = outbuf + sizeof_outbuf - p;
+	int sz = outbuf + COMMON_BUFSIZE - p;
 	while (*s && --sz >= 0)
 		*p++ = *s++;
 	cur_outbuf = p;
@@ -149,7 +148,7 @@ static void put(const char *s)
 
 static void put_c(char c)
 {
-	if (cur_outbuf < outbuf + sizeof_outbuf)
+	if (cur_outbuf < outbuf + COMMON_BUFSIZE)
 		*cur_outbuf++ = c;
 }
 

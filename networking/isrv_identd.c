@@ -29,8 +29,7 @@ typedef struct identd_buf_t {
 	char buf[64 - sizeof(int)];
 } identd_buf_t;
 
-#define        bogouser bb_common_bufsiz1
-#define sizeof_bogouser COMMON_BUFSIZE
+#define bogouser bb_common_bufsiz1
 
 static int new_peer(isrv_state_t *state, int fd)
 {
@@ -117,10 +116,12 @@ int fakeidentd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 	int fd;
 
+	setup_common_bufsiz();
+
 	opt = getopt32(argv, "fiwb:", &bind_address);
 	strcpy(bogouser, "nobody");
 	if (argv[optind])
-		strncpy(bogouser, argv[optind], sizeof_bogouser - 1);
+		strncpy(bogouser, argv[optind], COMMON_BUFSIZE - 1);
 
 	/* Daemonize if no -f and no -i and no -w */
 	if (!(opt & OPT_fiw))

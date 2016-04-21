@@ -146,10 +146,9 @@ static void klogd_close(void)
 
 #endif
 
-#define        log_buffer bb_common_bufsiz1
-#define sizeof_log_buffer COMMON_BUFSIZE
+#define log_buffer bb_common_bufsiz1
 enum {
-	KLOGD_LOGBUF_SIZE = sizeof_log_buffer,
+	KLOGD_LOGBUF_SIZE = COMMON_BUFSIZE,
 	OPT_LEVEL      = (1 << 0),
 	OPT_FOREGROUND = (1 << 1),
 };
@@ -174,6 +173,8 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
 	char *opt_c;
 	int opt;
 	int used;
+
+	setup_common_bufsiz();
 
 	opt = getopt32(argv, "c:n", &opt_c);
 	if (opt & OPT_LEVEL) {

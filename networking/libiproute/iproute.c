@@ -45,6 +45,7 @@ struct filter_t {
 typedef struct filter_t filter_t;
 
 #define G_filter (*(filter_t*)bb_common_bufsiz1)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 static int flush_update(void)
 {
@@ -902,6 +903,8 @@ int FAST_FUNC do_iproute(char **argv)
 	int command_num;
 	unsigned flags = 0;
 	int cmd = RTM_NEWROUTE;
+
+	INIT_G();
 
 	if (!*argv)
 		return iproute_list_or_flush(argv, 0);

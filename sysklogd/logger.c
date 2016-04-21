@@ -99,6 +99,8 @@ int logger_main(int argc UNUSED_PARAM, char **argv)
 	int opt;
 	int i = 0;
 
+	setup_common_bufsiz();
+
 	/* Fill out the name string early (may be overwritten later) */
 	str_t = uid2uname_utoa(geteuid());
 

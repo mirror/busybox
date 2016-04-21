@@ -370,6 +370,7 @@ enum {
 # define content_gzip     0
 #endif
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	IF_FEATURE_HTTPD_BASIC_AUTH(g_realm = "Web Server Authentication";) \
 	IF_FEATURE_HTTPD_RANGES(range_start = -1;) \

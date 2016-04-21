@@ -234,15 +234,15 @@ struct globals {
 #define blocked_sigset (G.blocked_sigset)
 #define fl_flag_0      (G.fl_flag_0     )
 #define dirn           (G.dirn          )
+#define line bb_common_bufsiz1
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G))); \
 	linemax = 1000; \
 	/*buflen = 1024;*/ \
 	linecomplete = 1; \
 	replace = ""; \
 } while (0)
-
-#define line bb_common_bufsiz1
 
 
 #define FATAL "fatal: "

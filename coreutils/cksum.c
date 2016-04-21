@@ -33,6 +33,7 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 	argv++;
 #endif
 
+	setup_common_bufsiz();
 	do {
 		int fd = open_or_warn_stdin(*argv ? *argv : bb_msg_standard_input);
 
@@ -43,9 +44,8 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 		crc = 0;
 		length = 0;
 
-#define        read_buf bb_common_bufsiz1
-#define sizeof_read_buf COMMON_BUFSIZE
-		while ((bytes_read = safe_read(fd, read_buf, sizeof_read_buf)) > 0) {
+#define read_buf bb_common_bufsiz1
+		while ((bytes_read = safe_read(fd, read_buf, COMMON_BUFSIZE)) > 0) {
 			length += bytes_read;
 			crc = crc32_block_endian1(crc, read_buf, bytes_read, crc32_table);
 		}

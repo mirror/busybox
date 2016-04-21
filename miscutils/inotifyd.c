@@ -162,10 +162,10 @@ int inotifyd_main(int argc, char **argv)
 
 		// read out all pending events
 		// (NB: len must be int, not ssize_t or long!)
+#define eventbuf bb_common_bufsiz1
+		setup_common_bufsiz();
 		xioctl(pfd.fd, FIONREAD, &len);
-#define        eventbuf bb_common_bufsiz1
-#define sizeof_eventbuf COMMON_BUFSIZE
-		ie = buf = (len <= sizeof_eventbuf) ? eventbuf : xmalloc(len);
+		ie = buf = (len <= COMMON_BUFSIZE) ? eventbuf : xmalloc(len);
 		len = full_read(pfd.fd, buf, len);
 		// process events. N.B. events may vary in length
 		while (len > 0) {
