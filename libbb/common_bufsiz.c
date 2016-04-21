@@ -58,11 +58,11 @@ char bb_common_bufsiz1[COMMON_BUFSIZE] ALIGNED(sizeof(long long));
  * It is not defined as a dummy macro.
  * It means we have to provide this function.
  */
-char* bb_common_bufsiz1;
+char *const bb_common_bufsiz1 __attribute__ ((section (".data")));
 void setup_common_bufsiz(void)
 {
 	if (!bb_common_bufsiz1)
-		bb_common_bufsiz1 = xzalloc(COMMON_BUFSIZE);
+		*(char**)&bb_common_bufsiz1 = xzalloc(COMMON_BUFSIZE);
 }
 # else
 #  ifndef bb_common_bufsiz1

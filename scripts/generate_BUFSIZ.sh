@@ -77,7 +77,7 @@ if test $REM -lt 1024; then
 	# users will need to malloc it.
 	{
 	echo "enum { COMMON_BUFSIZE = 1024 };"
-	echo "extern char *bb_common_bufsiz1;"
+	echo "extern char *const bb_common_bufsiz1;"
 	echo "void setup_common_bufsiz(void);"
 	} | regenerate "$common_bufsiz_h"
 	# Check that we aren't left with a buggy binary:
