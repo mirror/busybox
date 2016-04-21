@@ -611,7 +611,7 @@ quiet_cmd_busybox__ ?= LINK    $@
       "$(core-y)" \
       "$(libs-y)" \
       "$(LDLIBS)" \
-      && $(srctree)/scripts/generate_BUFSIZ.sh include/common_bufsiz.h
+      && $(srctree)/scripts/generate_BUFSIZ.sh --post include/common_bufsiz.h
 
 # Generate System.map
 quiet_cmd_sysmap = SYSMAP
