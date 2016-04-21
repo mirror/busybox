@@ -25,11 +25,12 @@
 //usage:   "\n""	# uevent mdev & mdev -s"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <linux/netlink.h>
 
 #define BUFFER_SIZE 16*1024
 
-#define env ((char **)&bb_common_bufsiz1)
+#define env ((char **)bb_common_bufsiz1)
 enum {
 	MAX_ENV = COMMON_BUFSIZE / sizeof(env[0]) - 1,
 };

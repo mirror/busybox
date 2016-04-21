@@ -47,6 +47,7 @@
 //config:	  and /etc/bootchartd.conf files.
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 /* After libbb.h, since it needs sys/types.h on some systems */
 #include <sys/utsname.h>
 
@@ -115,7 +116,7 @@
 struct globals {
 	char jiffy_line[COMMON_BUFSIZE];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 static void dump_file(FILE *fp, const char *filename)

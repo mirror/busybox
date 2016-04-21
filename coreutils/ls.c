@@ -93,6 +93,7 @@
 //usage:	)
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "unicode.h"
 
 
@@ -365,7 +366,7 @@ struct globals {
 	time_t current_time_t;
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \

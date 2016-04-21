@@ -40,6 +40,7 @@
 //usage:     "\nexits only on I/O errors (link down etc)"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <netinet/ether.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -90,7 +91,7 @@ struct globals {
 	struct ether_addr our_ethaddr;
 	uint32_t localnet_ip;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 

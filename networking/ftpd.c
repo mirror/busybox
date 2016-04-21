@@ -29,6 +29,7 @@
 //usage:     "\n	DIR	Change root to this directory"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <syslog.h>
 #include <netinet/tcp.h>
 
@@ -123,7 +124,7 @@ struct globals {
 	char msg_ok [(sizeof("NNN " MSG_OK ) + 3) & 0xfffc];
 	char msg_err[(sizeof("NNN " MSG_ERR) + 3) & 0xfffc];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	/* Moved to main */ \
 	/*strcpy(G.msg_ok  + 4, MSG_OK );*/ \

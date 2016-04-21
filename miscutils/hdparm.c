@@ -63,6 +63,7 @@
 //usage:     "\n	-z	Reread partition table"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 /* must be _after_ libbb.h: */
 #include <linux/hdreg.h>
 #include <sys/mount.h>
@@ -367,7 +368,7 @@ struct globals {
 	unsigned char flushcache[4] = { WIN_FLUSHCACHE, 0, 0, 0 };
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define get_identity       (G.get_identity           )
 #define get_geom           (G.get_geom               )
 #define do_flush           (G.do_flush               )

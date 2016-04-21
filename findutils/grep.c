@@ -58,6 +58,7 @@
 //config:	  Print the specified number of context lines (-C).
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "xregex.h"
 
 
@@ -201,7 +202,7 @@ struct globals {
 	llist_t *pattern_head;   /* growable list of patterns to match */
 	const char *cur_file;    /* the current file we are reading */
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)

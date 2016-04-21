@@ -77,7 +77,7 @@ struct globals {
 	int nerr;
 	struct edir excludeArray[MAX_EXCLUDES];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 void BUG_setfiles_globals_too_big(void);
 #define INIT_G() do { \
 	if (sizeof(G) > COMMON_BUFSIZE) \

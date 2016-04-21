@@ -33,7 +33,7 @@ struct xid_item {
 	struct xid_item *next;
 } FIX_ALIASING;
 
-#define dhcprelay_xid_list (*(struct xid_item*)&bb_common_bufsiz1)
+#define dhcprelay_xid_list (*(struct xid_item*)bb_common_bufsiz1)
 
 static struct xid_item *xid_add(uint32_t xid, struct sockaddr_in *ip, int client)
 {

@@ -18,6 +18,7 @@
 //usage:     "\n	-SIGNAL	Signal to send (default: KILL)"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #define MAX_LINE 255
 
@@ -43,7 +44,7 @@ struct globals {
 	smallint kill_failed;
 	int killsig;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	G.mypid = getpid(); \
 	G.killsig = SIGKILL; \

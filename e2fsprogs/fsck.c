@@ -60,6 +60,7 @@
 //usage:     "\n	-t TYPE	List of filesystem types to check"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 /* "progress indicator" code is somewhat buggy and ext[23] specific.
  * We should be filesystem agnostic. IOW: there should be a well-defined
@@ -169,7 +170,7 @@ struct globals {
 	struct fs_info *filesys_last;
 	struct fsck_instance *instance_list;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)

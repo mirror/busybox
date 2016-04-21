@@ -342,6 +342,7 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_FEATURE_FIND_REGEX
 # include "xregex.h"
 #endif
@@ -421,7 +422,7 @@ struct globals {
 	recurse_flags_t recurse_flags;
 	IF_FEATURE_FIND_EXEC_PLUS(unsigned max_argv_len;)
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	/* we have to zero it out because of NOEXEC */ \

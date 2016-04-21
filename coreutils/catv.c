@@ -19,6 +19,7 @@
 //usage:     "\n	-v	Don't use ^x or M-x escapes"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)

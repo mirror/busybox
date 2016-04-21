@@ -62,6 +62,7 @@
 //usage:       " 2990 andersen andersen R ps\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #ifdef __linux__
 # include <sys/sysinfo.h>
 #endif
@@ -144,7 +145,7 @@ struct globals {
 	unsigned long seconds_since_boot;
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define out                (G.out               )
 #define out_cnt            (G.out_cnt           )
 #define print_header       (G.print_header      )

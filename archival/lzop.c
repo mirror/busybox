@@ -71,6 +71,7 @@
 //usage:     "\n	-F	Don't store or verify checksum"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "bb_archive.h"
 #include "liblzo_interface.h"
 
@@ -443,7 +444,7 @@ struct globals {
 	chksum_t chksum_in;
 	chksum_t chksum_out;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 //#define G (*ptr_to_globals)
 //#define INIT_G() do {

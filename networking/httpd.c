@@ -125,6 +125,7 @@
 //usage:     "\n	-d STRING	URL decode STRING"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_PAM
 /* PAM may include <locale.h>. We may need to undefine bbox's stub define: */
 # undef setlocale
@@ -307,7 +308,8 @@ struct globals {
 	Htaccess *script_i;     /* config script interpreters */
 #endif
 	char *iobuf;            /* [IOBUF_SIZE] */
-#define hdr_buf bb_common_bufsiz1
+#define        hdr_buf bb_common_bufsiz1
+#define sizeof_hdr_buf COMMON_BUFSIZE
 	char *hdr_ptr;
 	int hdr_cnt;
 #if ENABLE_FEATURE_HTTPD_ERROR_PAGES
@@ -1066,7 +1068,7 @@ static int get_line(void)
 	alarm(HEADER_READ_TIMEOUT);
 	while (1) {
 		if (hdr_cnt <= 0) {
-			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof(hdr_buf));
+			hdr_cnt = safe_read(STDIN_FILENO, hdr_buf, sizeof_hdr_buf);
 			if (hdr_cnt <= 0)
 				break;
 			hdr_ptr = hdr_buf;
@@ -1191,9 +1193,9 @@ static NOINLINE void cgi_io_loop_and_exit(int fromCgi_rd, int toCgi_wr, int post
 			/* We expect data, prev data portion is eaten by CGI
 			 * and there *is* data to read from the peer
 			 * (POSTDATA) */
-			//count = post_len > (int)sizeof(hdr_buf) ? (int)sizeof(hdr_buf) : post_len;
+			//count = post_len > (int)sizeof_hdr_buf ? (int)sizeof_hdr_buf : post_len;
 			//count = safe_read(STDIN_FILENO, hdr_buf, count);
-			count = safe_read(STDIN_FILENO, hdr_buf, sizeof(hdr_buf));
+			count = safe_read(STDIN_FILENO, hdr_buf, sizeof_hdr_buf);
 			if (count > 0) {
 				hdr_cnt = count;
 				hdr_ptr = hdr_buf;

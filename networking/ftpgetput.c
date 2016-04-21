@@ -50,6 +50,7 @@
 //usage:	)
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 struct globals {
 	const char *user;
@@ -60,7 +61,7 @@ struct globals {
 	int do_continue;
 	char buf[4]; /* actually [BUFSZ] */
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 enum { BUFSZ = COMMON_BUFSIZE - offsetof(struct globals, buf) };
 #define user           (G.user          )
 #define password       (G.password      )

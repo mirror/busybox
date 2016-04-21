@@ -66,6 +66,7 @@
 //kbuild:lib-$(CONFIG_XARGS) += xargs.o
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -100,7 +101,7 @@ struct globals {
 	const char *eof_str;
 	int idx;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	G.eof_str = NULL; /* need to clear by hand because we are NOEXEC applet */ \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.repl_str = "{}";) \

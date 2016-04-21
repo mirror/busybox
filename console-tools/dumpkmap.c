@@ -18,6 +18,7 @@
 //usage:       "$ dumpkmap > keymap\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 /* From <linux/kd.h> */
 struct kbentry {

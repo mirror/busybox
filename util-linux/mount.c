@@ -223,6 +223,7 @@
 #define BB_MS_INVERTED_VALUE (1u << 31)
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_FEATURE_MOUNT_LABEL
 # include "volume_id.h"
 #else
@@ -447,7 +448,7 @@ struct globals {
 	char getmntent_buf[1];
 } FIX_ALIASING;
 enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_buf) };
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define nfs_mount_version (G.nfs_mount_version)
 #if ENABLE_FEATURE_MOUNT_VERBOSE
 #define verbose           (G.verbose          )

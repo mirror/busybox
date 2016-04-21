@@ -13,6 +13,7 @@
 //usage:       "Calculate the CRC32 checksums of FILES"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 /* This is a NOEXEC applet. Be very careful! */
 
@@ -42,8 +43,9 @@ int cksum_main(int argc UNUSED_PARAM, char **argv)
 		crc = 0;
 		length = 0;
 
-#define read_buf bb_common_bufsiz1
-		while ((bytes_read = safe_read(fd, read_buf, sizeof(read_buf))) > 0) {
+#define        read_buf bb_common_bufsiz1
+#define sizeof_read_buf COMMON_BUFSIZE
+		while ((bytes_read = safe_read(fd, read_buf, sizeof_read_buf)) > 0) {
 			length += bytes_read;
 			crc = crc32_block_endian1(crc, read_buf, bytes_read, crc32_table);
 		}

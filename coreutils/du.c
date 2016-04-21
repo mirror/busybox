@@ -58,6 +58,7 @@
 //usage:       "2417    .\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 enum {
 	OPT_a_files_too    = (1 << 0),
@@ -85,7 +86,7 @@ struct globals {
 	int du_depth;
 	dev_t dir_dev;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 

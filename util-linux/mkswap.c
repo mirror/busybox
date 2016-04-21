@@ -13,6 +13,7 @@
 //usage:     "\n	-L LBL	Label"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #if ENABLE_SELINUX
 static void mkswap_selinux_setcontext(int fd, const char *path)

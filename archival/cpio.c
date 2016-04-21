@@ -11,6 +11,7 @@
  * Only supports new ASCII and CRC formats
  */
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "bb_archive.h"
 
 //config:config CPIO
@@ -170,7 +171,7 @@ enum {
 struct globals {
 	struct bb_uidgid_t owner_ugid;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 void BUG_cpio_globals_too_big(void);
 #define INIT_G() do { \
 	G.owner_ugid.uid = -1L; \

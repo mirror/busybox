@@ -23,6 +23,7 @@
 //usage:       "$ dmesg | more\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 /* Support for FEATURE_USE_TERMIOS */
 

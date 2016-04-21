@@ -23,6 +23,7 @@
 //usage:#define ed_full_usage ""
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 typedef struct LINE {
 	struct LINE *next;
@@ -32,11 +33,12 @@ typedef struct LINE {
 } LINE;
 
 
-#define searchString bb_common_bufsiz1
+#define        searchString bb_common_bufsiz1
+#define sizeof_searchString COMMON_BUFSIZE
 
 enum {
-	USERSIZE = sizeof(searchString) > 1024 ? 1024
-	         : sizeof(searchString) - 1, /* max line length typed in by user */
+	USERSIZE = sizeof_searchString > 1024 ? 1024
+	         : sizeof_searchString - 1, /* max line length typed in by user */
 	INITBUF_SIZE = 1024, /* initial buffer size */
 };
 

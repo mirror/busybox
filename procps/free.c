@@ -22,6 +22,7 @@
 //usage:       "Total:       386144       257128       129016\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #ifdef __linux__
 # include <sys/sysinfo.h>
 #endif
@@ -35,7 +36,7 @@ struct globals {
 # define G_unit_steps 10
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 

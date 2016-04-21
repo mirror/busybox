@@ -28,6 +28,7 @@
 #include <net/if.h>
 #include <netinet/ip_icmp.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #ifdef __BIONIC__
 /* should be in netinet/ip_icmp.h */
@@ -186,7 +187,7 @@ struct globals {
 	char *hostname;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 static void noresp(int ign UNUSED_PARAM)
@@ -378,7 +379,7 @@ struct globals {
 	} pingaddr;
 	unsigned char rcvd_tbl[MAX_DUP_CHK / 8];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define if_index     (G.if_index    )
 #define source_lsa   (G.source_lsa  )
 #define str_I        (G.str_I       )

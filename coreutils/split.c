@@ -22,6 +22,7 @@
 //usage:       "$ cat TODO | split -a 2 -l 2 TODO_\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #if ENABLE_FEATURE_SPLIT_FANCY
 static const struct suffix_mult split_suffixes[] = {

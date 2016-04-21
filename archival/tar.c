@@ -146,6 +146,7 @@
 
 #include <fnmatch.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "bb_archive.h"
 /* FIXME: Stop using this non-standard feature */
 #ifndef FNM_LEADING_DIR

@@ -53,6 +53,7 @@
 //  totalswap=134209536, freeswap=134209536, procs=157})
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 typedef unsigned long long ullong;
 
@@ -115,8 +116,8 @@ struct globals {
 	G.deltanz = G.delta = 1000000; \
 } while (0)
 
-// We depend on this being a char[], not char* - we take sizeof() of it
-#define outbuf bb_common_bufsiz1
+#define        outbuf bb_common_bufsiz1
+#define sizeof_outbuf COMMON_BUFSIZE
 
 static inline void reset_outbuf(void)
 {
@@ -140,7 +141,7 @@ static void print_outbuf(void)
 static void put(const char *s)
 {
 	char *p = cur_outbuf;
-	int sz = outbuf + sizeof(outbuf) - p;
+	int sz = outbuf + sizeof_outbuf - p;
 	while (*s && --sz >= 0)
 		*p++ = *s++;
 	cur_outbuf = p;
@@ -148,7 +149,7 @@ static void put(const char *s)
 
 static void put_c(char c)
 {
-	if (cur_outbuf < outbuf + sizeof(outbuf))
+	if (cur_outbuf < outbuf + sizeof_outbuf)
 		*cur_outbuf++ = c;
 }
 

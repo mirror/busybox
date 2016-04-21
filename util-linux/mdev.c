@@ -97,6 +97,7 @@
 //usage:       "If /dev/mdev.log file exists, debug log will be appended to it."
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "xregex.h"
 
 /* "mdev -s" scans /sys/class/xxx, looking for directories which have dev
@@ -285,7 +286,7 @@ struct globals {
 	struct rule cur_rule;
 	char timestr[sizeof("HH:MM:SS.123456")];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.maj = -1;) \
 	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.mode = 0660;) \

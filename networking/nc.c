@@ -8,6 +8,7 @@
  */
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 //config:config NC
 //config:	bool "nc"
@@ -252,7 +253,7 @@ int nc_main(int argc, char **argv)
 		fd = STDIN_FILENO;
 		while (1) {
 			if (FD_ISSET(fd, &testfds)) {
-				nread = safe_read(fd, iobuf, sizeof(iobuf));
+				nread = safe_read(fd, iobuf, COMMON_BUFSIZE);
 				if (fd == cfd) {
 					if (nread < 1)
 						exit(EXIT_SUCCESS);

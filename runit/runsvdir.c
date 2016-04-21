@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/file.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "runit_lib.h"
 
 #define MAXSERVICES 1000
@@ -84,7 +85,7 @@ struct globals {
 	unsigned stamplog;
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define sv          (G.sv          )
 #define svdir       (G.svdir       )
 #define svnum       (G.svnum       )

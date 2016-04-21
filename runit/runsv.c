@@ -45,6 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/file.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "runit_lib.h"
 
 #if ENABLE_MONOTONIC_SYSCALL
@@ -105,7 +106,7 @@ struct globals {
 	char *dir;
 	struct svdir svd[2];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define haslog       (G.haslog      )
 #define sigterm      (G.sigterm     )
 #define pidchanged   (G.pidchanged  )

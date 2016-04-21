@@ -89,13 +89,14 @@
 //usage:       "+ shutdown -h +4m"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 struct globals {
 	char **names;
 	int    cur;
 	char  *cmd[2 /* using 1 provokes compiler warning */];
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define names (G.names)
 #define cur   (G.cur  )
 #define cmd   (G.cmd  )

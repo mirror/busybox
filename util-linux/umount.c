@@ -34,6 +34,7 @@
 # define MNT_DETACH 0x00000002
 #endif
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #if defined(__dietlibc__)
 // TODO: This does not belong here.
@@ -102,7 +103,7 @@ int umount_main(int argc UNUSED_PARAM, char **argv)
 		if (opt & OPT_ALL)
 			bb_error_msg_and_die("can't open '%s'", bb_path_mtab_file);
 	} else {
-		while (getmntent_r(fp, &me, bb_common_bufsiz1, sizeof(bb_common_bufsiz1))) {
+		while (getmntent_r(fp, &me, bb_common_bufsiz1, COMMON_BUFSIZE)) {
 			/* Match fstype if passed */
 			if (!match_fstype(&me, fstype))
 				continue;

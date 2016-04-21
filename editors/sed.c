@@ -86,6 +86,7 @@
 //usage:       "bar\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include "xregex.h"
 
 #if 0
@@ -161,7 +162,7 @@ struct globals {
 		int len;    /* Space allocated */
 	} pipeline;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	G.sed_cmd_tail = &G.sed_cmd_head; \

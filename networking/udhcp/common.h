@@ -9,6 +9,7 @@
 #define UDHCP_COMMON_H 1
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 

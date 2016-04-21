@@ -138,6 +138,7 @@
 //usage:       "Wed Apr 12 18:52:41 MDT 2000\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_FEATURE_DATE_NANO
 # include <sys/syscall.h>
 #endif
@@ -367,7 +368,8 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 	}
 #endif
 
-#define date_buf bb_common_bufsiz1
+#define        date_buf bb_common_bufsiz1
+#define sizeof_date_buf COMMON_BUFSIZE
 	if (*fmt_dt2str == '\0') {
 		/* With no format string, just print a blank line */
 		date_buf[0] = '\0';
@@ -377,7 +379,7 @@ int date_main(int argc UNUSED_PARAM, char **argv)
 			fmt_dt2str = (char*)"%Y.%m.%d-%H:%M:%S";
 		}
 		/* Generate output string */
-		strftime(date_buf, sizeof(date_buf), fmt_dt2str, &tm_time);
+		strftime(date_buf, sizeof_date_buf, fmt_dt2str, &tm_time);
 	}
 	puts(date_buf);
 

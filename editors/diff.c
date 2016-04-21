@@ -125,6 +125,7 @@
 //usage:     "\n	-w	Ignore all whitespace"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #if 0
 # define dbg_error_msg(...) bb_error_msg(__VA_ARGS__)

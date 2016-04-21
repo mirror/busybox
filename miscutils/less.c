@@ -127,6 +127,7 @@
 #include <sched.h>  /* sched_yield() */
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #if ENABLE_FEATURE_LESS_REGEXP
 #include "xregex.h"
 #endif
@@ -439,7 +440,8 @@ static int at_end(void)
  */
 static void read_lines(void)
 {
-#define readbuf bb_common_bufsiz1
+#define        readbuf bb_common_bufsiz1
+#define sizeof_readbuf COMMON_BUFSIZE
 	char *current_line, *p;
 	int w = width;
 	char last_terminated = terminated;
@@ -480,7 +482,7 @@ static void read_lines(void)
 					time_t t;
 
 					errno = 0;
-					eof_error = safe_read(STDIN_FILENO, readbuf, sizeof(readbuf));
+					eof_error = safe_read(STDIN_FILENO, readbuf, sizeof_readbuf);
 					if (errno != EAGAIN)
 						break;
 					t = time(NULL);

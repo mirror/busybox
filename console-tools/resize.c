@@ -14,10 +14,11 @@
 //usage:       "Resize the screen"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #define ESC "\033"
 
-#define old_termios_p ((struct termios*)&bb_common_bufsiz1)
+#define old_termios_p ((struct termios*)bb_common_bufsiz1)
 
 static void
 onintr(int sig UNUSED_PARAM)

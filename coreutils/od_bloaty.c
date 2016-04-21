@@ -20,6 +20,7 @@
 
 
 /* #include "libbb.h" - done in od.c */
+#include "common_bufsiz.h"
 #define assert(a) ((void)0)
 
 
@@ -214,7 +215,7 @@ struct globals {
 #if !ENABLE_LONG_OPTS
 enum { G_pseudo_offset = 0 };
 #endif
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	G.bytes_per_block = 32; \

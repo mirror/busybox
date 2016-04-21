@@ -103,6 +103,7 @@
 //usage:	)
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 enum {
 	OPT_TERSE       = (1 << 0),
@@ -157,9 +158,10 @@ static const char *human_time(time_t t)
 	/* coreutils 6.3 compat: */
 
 	/*static char buf[sizeof("YYYY-MM-DD HH:MM:SS.000000000")] ALIGN1;*/
-#define buf bb_common_bufsiz1
+#define        buf bb_common_bufsiz1
+#define sizeof_buf COMMON_BUFSIZE
 
-	strcpy(strftime_YYYYMMDDHHMMSS(buf, sizeof(buf), &t), ".000000000");
+	strcpy(strftime_YYYYMMDDHHMMSS(buf, sizeof_buf, &t), ".000000000");
 	return buf;
 #undef buf
 }

@@ -51,6 +51,7 @@
 //usage:     "\n	-l	Log to syslog (inetd mode requires this)"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <syslog.h>
 
 #if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
@@ -128,7 +129,7 @@ struct globals {
 	bb_progress_t pmt;
 #endif
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)
@@ -757,7 +758,8 @@ int tftpd_main(int argc UNUSED_PARAM, char **argv)
 {
 	len_and_sockaddr *our_lsa;
 	len_and_sockaddr *peer_lsa;
-	char *local_file, *mode, *user_opt;
+	char *mode, *user_opt;
+	char *local_file = local_file;
 	const char *error_msg;
 	int opt, result, opcode;
 	IF_FEATURE_TFTP_BLOCKSIZE(int blksize = TFTP_BLKSIZE_DEFAULT;)

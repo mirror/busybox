@@ -39,6 +39,7 @@
 #include <arpa/telnet.h>
 #include <netinet/in.h>
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 #ifdef __BIONIC__
 /* should be in arpa/telnet.h */
@@ -108,7 +109,7 @@ struct globals {
 	struct termios termios_def;
 	struct termios termios_raw;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)

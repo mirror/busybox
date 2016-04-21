@@ -49,12 +49,13 @@
 //usage:       "nameserver 10.0.0.1\n"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 struct globals {
 	bool from_top;
 	bool exitcode;
 } FIX_ALIASING;
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { } while (0)
 
 static void tail_xprint_header(const char *fmt, const char *filename)

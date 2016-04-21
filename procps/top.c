@@ -105,6 +105,7 @@
 //config:	  Enable 's' in top (gives lots of memory info).
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 
 typedef struct top_status_t {
@@ -183,7 +184,7 @@ struct globals {
 	char line_buf[80];
 }; //FIX_ALIASING; - large code growth
 enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
-#define G (*(struct globals*)&bb_common_bufsiz1)
+#define G (*(struct globals*)bb_common_bufsiz1)
 #define top              (G.top               )
 #define ntop             (G.ntop              )
 #define sort_field       (G.sort_field        )

@@ -58,6 +58,7 @@
 //usage:     "\n	-n	Run in foreground"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 #include <syslog.h>
 
 
@@ -145,9 +146,10 @@ static void klogd_close(void)
 
 #endif
 
-#define log_buffer bb_common_bufsiz1
+#define        log_buffer bb_common_bufsiz1
+#define sizeof_log_buffer COMMON_BUFSIZE
 enum {
-	KLOGD_LOGBUF_SIZE = sizeof(log_buffer),
+	KLOGD_LOGBUF_SIZE = sizeof_log_buffer,
 	OPT_LEVEL      = (1 << 0),
 	OPT_FOREGROUND = (1 << 1),
 };
