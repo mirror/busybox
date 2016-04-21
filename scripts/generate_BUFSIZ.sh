@@ -105,14 +105,14 @@ if $postcompile; then
 	COMMON_BUFSIZE=$(( (-END) & PAGE_MASK ))
 	echo "COMMON_BUFSIZE = $COMMON_BUFSIZE bytes"
 
-	if test x"$method" = x"1k"; then
+	if test x"$method" != x"malloc"; then
 		if test $COMMON_BUFSIZE -lt 1024; then
 			# _end[] has no enough space for bb_common_bufsiz1[]
 			rm -- "$common_bufsiz_h.1k.OK" 2>/dev/null
 			{ md5sum <.config | cut -d' ' -f1; stat -c "%Y" .config; } >"$common_bufsiz_h.1k.FAIL"
 			echo "Warning! Space in _end[] is too small ($COMMON_BUFSIZE bytes)!"
 			echo "Rerun make to build a binary which doesn't use it!"
-			rm busybox_unstripped
+			rm busybox_unstripped busybox
 			exitcmd="exit 1"
 		else
 			rm -- "$common_bufsiz_h.1k.FAIL" 2>/dev/null
