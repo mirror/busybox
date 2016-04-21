@@ -53,6 +53,7 @@ enum { STACK_SIZE = (COMMON_BUFSIZE - offsetof(struct globals, stack)) / sizeof(
 #define base      (G.base      )
 #define stack     (G.stack     )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	base = 10; \
 } while (0)
 

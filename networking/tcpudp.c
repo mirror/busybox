@@ -101,6 +101,7 @@ struct globals {
 #define env_cur      (G.env_cur     )
 #define env_var      (G.env_var     )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	cmax = 30; \
 	env_cur = &env_var[0]; \
 } while (0)

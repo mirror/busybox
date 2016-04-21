@@ -77,6 +77,7 @@ struct globals {
 #define brd_recv   (G.brd_recv  )
 #define req_recv   (G.req_recv  )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	count = -1; \
 } while (0)
 

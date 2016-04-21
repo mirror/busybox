@@ -368,6 +368,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	/* we have to zero it out because of NOEXEC */ \
 	memset(&G, 0, sizeof(G)); \
 	IF_FEATURE_AUTOWIDTH(G_terminal_width = TERMINAL_WIDTH;) \

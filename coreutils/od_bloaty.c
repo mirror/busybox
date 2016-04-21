@@ -217,6 +217,7 @@ enum { G_pseudo_offset = 0 };
 #endif
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	G.bytes_per_block = 32; \
 } while (0)

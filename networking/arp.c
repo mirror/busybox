@@ -76,6 +76,7 @@ struct globals {
 #define device     (G.device    )
 #define hw_set     (G.hw_set    )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	device = ""; \
 } while (0)
 

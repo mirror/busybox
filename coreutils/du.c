@@ -87,7 +87,7 @@ struct globals {
 	dev_t dir_dev;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 
 static void print(unsigned long long size, const char *filename)

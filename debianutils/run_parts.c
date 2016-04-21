@@ -100,7 +100,7 @@ struct globals {
 #define names (G.names)
 #define cur   (G.cur  )
 #define cmd   (G.cmd  )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 enum { NUM_CMD = (COMMON_BUFSIZE - sizeof(G)) / sizeof(cmd[0]) - 1 };
 

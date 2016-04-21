@@ -200,6 +200,7 @@ struct globals {
 #define user_id           (G.user_id             )
 #define signal_nr         (G.signal_nr           )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	user_id = -1; \
 	signal_nr = 15; \
 } while (0)

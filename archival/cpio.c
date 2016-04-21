@@ -174,6 +174,7 @@ struct globals {
 #define G (*(struct globals*)bb_common_bufsiz1)
 void BUG_cpio_globals_too_big(void);
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	G.owner_ugid.uid = -1L; \
 	G.owner_ugid.gid = -1L; \
 } while (0)

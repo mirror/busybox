@@ -56,7 +56,7 @@ struct globals {
 	bool exitcode;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 static void tail_xprint_header(const char *fmt, const char *filename)
 {

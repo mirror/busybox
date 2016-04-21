@@ -71,6 +71,7 @@ struct globals {
 #define filter_prio (G.filter_prio)
 #define filter_proto (G.filter_proto)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)
 

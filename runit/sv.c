@@ -207,7 +207,7 @@ struct globals {
 #define tstart       (G.tstart      )
 #define tnow         (G.tnow        )
 #define svstatus     (G.svstatus    )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 
 #define str_equal(s,t) (!strcmp((s), (t)))

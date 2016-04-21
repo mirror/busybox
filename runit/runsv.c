@@ -115,6 +115,7 @@ struct globals {
 #define dir          (G.dir         )
 #define svd          (G.svd         )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	pidchanged = 1; \
 } while (0)
 

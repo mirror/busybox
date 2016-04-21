@@ -117,7 +117,7 @@ struct globals {
 	char jiffy_line[COMMON_BUFSIZE];
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 static void dump_file(FILE *fp, const char *filename)
 {

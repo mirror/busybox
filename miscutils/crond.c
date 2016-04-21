@@ -143,6 +143,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	G.log_level = 8; \
 	G.crontab_dir_name = CRONTABS; \
 } while (0)

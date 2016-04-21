@@ -432,6 +432,7 @@ struct globals {
 #define hwif_ctrl          (G.hwif_ctrl              )
 #define hwif_irq           (G.hwif_irq               )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)
 

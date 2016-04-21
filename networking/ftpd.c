@@ -126,6 +126,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	/* Moved to main */ \
 	/*strcpy(G.msg_ok  + 4, MSG_OK );*/ \
 	/*strcpy(G.msg_err + 4, MSG_ERR);*/ \

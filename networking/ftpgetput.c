@@ -71,6 +71,7 @@ enum { BUFSZ = COMMON_BUFSIZE - offsetof(struct globals, buf) };
 #define do_continue    (G.do_continue   )
 #define buf            (G.buf           )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 } while (0)
 

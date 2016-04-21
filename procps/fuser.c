@@ -46,6 +46,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	G.mypid = getpid(); \
 	G.killsig = SIGKILL; \
 } while (0)

@@ -101,7 +101,7 @@ struct globals {
 	char **args;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 /* forward declarations */
 static VALUE *eval(void);

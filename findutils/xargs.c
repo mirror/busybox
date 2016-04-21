@@ -103,6 +103,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	G.eof_str = NULL; /* need to clear by hand because we are NOEXEC applet */ \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.repl_str = "{}";) \
 	IF_FEATURE_XARGS_SUPPORT_REPL_STR(G.eol_ch = '\n';) \

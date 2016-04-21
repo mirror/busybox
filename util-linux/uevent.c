@@ -31,6 +31,7 @@
 #define BUFFER_SIZE 16*1024
 
 #define env ((char **)bb_common_bufsiz1)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 enum {
 	MAX_ENV = COMMON_BUFSIZE / sizeof(env[0]) - 1,
 };
@@ -45,6 +46,8 @@ int uevent_main(int argc UNUSED_PARAM, char **argv)
 {
 	struct sockaddr_nl sa;
 	int fd;
+
+	INIT_G();
 
 	argv++;
 

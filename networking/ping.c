@@ -188,7 +188,7 @@ struct globals {
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 static void noresp(int ign UNUSED_PARAM)
 {
@@ -398,6 +398,7 @@ struct globals {
 #define pingaddr     (G.pingaddr    )
 #define rcvd_tbl     (G.rcvd_tbl    )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	datalen = DEFDATALEN; \
 	timeout = MAXWAIT; \

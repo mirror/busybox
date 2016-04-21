@@ -350,6 +350,7 @@ enum { LINE_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line) };
 #define allsock         (G.allsock        )
 #define line            (G.line           )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	rlim_ofile_cur = OPEN_MAX; \
 	global_queuelen = 128; \

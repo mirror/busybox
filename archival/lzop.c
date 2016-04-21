@@ -445,7 +445,7 @@ struct globals {
 	chksum_t chksum_out;
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 //#define G (*ptr_to_globals)
 //#define INIT_G() do {
 //	SET_PTR_TO_GLOBALS(xzalloc(sizeof(G)));

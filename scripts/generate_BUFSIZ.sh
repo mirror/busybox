@@ -111,4 +111,6 @@ fi
 
 if test $OLD != $REM; then
 	echo "Space in _end[] is $REM bytes. Rerun make to use larger COMMON_BUFSIZE."
+else
+	echo "COMMON_BUFSIZE = $REM bytes"
 fi

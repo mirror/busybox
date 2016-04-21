@@ -153,7 +153,7 @@ struct globals {
 #define buffer             (G.buffer            )
 #define terminal_width     (G.terminal_width    )
 #define kernel_HZ          (G.kernel_HZ         )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 #if ENABLE_FEATURE_PS_TIME
 /* for ELF executables, notes are pushed before environment and args */

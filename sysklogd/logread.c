@@ -73,6 +73,7 @@ struct globals {
 #define SMrdn (G.SMrdn)
 #define shbuf (G.shbuf)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	memcpy(SMrup, init_sem, sizeof(init_sem)); \
 } while (0)
 

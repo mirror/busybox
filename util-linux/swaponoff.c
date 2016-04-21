@@ -72,7 +72,7 @@ struct globals {
 #define save_g_flags()    ((void)0)
 #define restore_g_flags() ((void)0)
 #endif
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 #define do_swapoff   (applet_name[5] == 'f')
 

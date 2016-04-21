@@ -202,6 +202,7 @@ enum { LINE_BUF_SIZE = COMMON_BUFSIZE - offsetof(struct globals, line_buf) };
 #define total_pcpu       (G.total_pcpu        )
 #define line_buf         (G.line_buf          )
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	BUILD_BUG_ON(sizeof(G) > COMMON_BUFSIZE); \
 	BUILD_BUG_ON(LINE_BUF_SIZE <= 80); \
 } while (0)

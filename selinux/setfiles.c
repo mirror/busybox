@@ -80,6 +80,7 @@ struct globals {
 #define G (*(struct globals*)bb_common_bufsiz1)
 void BUG_setfiles_globals_too_big(void);
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	if (sizeof(G) > COMMON_BUFSIZE) \
 		BUG_setfiles_globals_too_big(); \
 	/* memset(&G, 0, sizeof(G)); - already is */ \

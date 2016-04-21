@@ -76,6 +76,7 @@ struct swap_header_v1 {
 
 #define NWORDS 129
 #define hdr ((struct swap_header_v1*)bb_common_bufsiz1)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 struct BUG_sizes {
 	char swap_header_v1_wrong[sizeof(*hdr)  != (NWORDS * 4) ? -1 : 1];
@@ -92,6 +93,8 @@ int mkswap_main(int argc UNUSED_PARAM, char **argv)
 	unsigned pagesize;
 	off_t len;
 	const char *label = "";
+
+	INIT_G();
 
 	opt_complementary = "-1"; /* at least one param */
 	/* TODO: -p PAGESZ, -U UUID */

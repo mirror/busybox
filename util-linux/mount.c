@@ -457,7 +457,7 @@ enum { GETMNTENT_BUFSIZE = COMMON_BUFSIZE - offsetof(struct globals, getmntent_b
 #endif
 #define fslist            (G.fslist           )
 #define getmntent_buf     (G.getmntent_buf    )
-#define INIT_G() do { } while (0)
+#define INIT_G() do { setup_common_bufsiz(); } while (0)
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
 /*

@@ -288,6 +288,7 @@ struct globals {
 } FIX_ALIASING;
 #define G (*(struct globals*)bb_common_bufsiz1)
 #define INIT_G() do { \
+	setup_common_bufsiz(); \
 	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.maj = -1;) \
 	IF_NOT_FEATURE_MDEV_CONF(G.cur_rule.mode = 0660;) \
 } while (0)
