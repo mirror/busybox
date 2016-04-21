@@ -310,10 +310,10 @@ int udhcpd_main(int argc UNUSED_PARAM, char **argv)
 	unsigned arpping_ms;
 	IF_FEATURE_UDHCP_PORT(char *str_P;)
 
-#if ENABLE_FEATURE_UDHCP_PORT
-	SERVER_PORT = 67;
-	CLIENT_PORT = 68;
-#endif
+	setup_common_bufsiz();
+
+	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
+	IF_FEATURE_UDHCP_PORT(CLIENT_PORT = 68;)
 
 #if defined CONFIG_UDHCP_DEBUG && CONFIG_UDHCP_DEBUG >= 1
 	opt_complementary = "vv";

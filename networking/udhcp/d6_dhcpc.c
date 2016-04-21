@@ -930,6 +930,8 @@ int udhcpc6_main(int argc UNUSED_PARAM, char **argv)
 	int retval;
 	fd_set rfds;
 
+	setup_common_bufsiz();
+
 	/* Default options */
 	IF_FEATURE_UDHCP_PORT(SERVER_PORT6 = 547;)
 	IF_FEATURE_UDHCP_PORT(CLIENT_PORT6 = 546;)
