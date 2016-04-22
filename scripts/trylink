@@ -209,6 +209,16 @@ else
     #  *(.bss SORT_BY_ALIGNMENT(.bss.*) .gnu.linkonce.b.*)
     # This will eliminate most of the padding (~3kb).
     # Hmm, "ld --sort-section alignment" should do it too.
+    #
+    # There is a ld hack which is meant to decrease disk usage
+    # at the cost of more RAM usage (??!!) in standard ld script:
+    #  /* Adjust the address for the data segment.  We want to adjust up to
+    #     the same address within the page on the next page up.  */
+    #  . = ALIGN (0x1000) - ((0x1000 - .) & (0x1000 - 1)); . = DATA_SEGMENT_ALIGN (0x1000, 0x1000);
+    # Replace it with:
+    #  . = ALIGN (0x1000); . = DATA_SEGMENT_ALIGN (0x1000, 0x1000);
+    # to unconditionally align .data to the next page boundary,
+    # instead of "next page, plus current offset in this page"
     try $CC $CFLAGS $LDFLAGS \
 	    -o $EXE \
 	    $SORT_COMMON \
