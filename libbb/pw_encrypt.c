@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-/* static const uint8_t ascii64[] =
+/* static const uint8_t ascii64[] ALIGN1 =
  * "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
  */
 

@@ -257,7 +257,7 @@ enum print_mode
 #define CTL_CLOSE               (1 << 3)
 #define CTL_NODIE               (1 << 4)
 
-static const char serial_types[] =
+static const char serial_types[] ALIGN1 =
 	"unknown\0"		/* 0 */
 	"8250\0"		/* 1 */
 	"16450\0"		/* 2 */
@@ -288,7 +288,7 @@ static const char serial_types[] =
 # define MAX_SERIAL_TYPE	13
 #endif
 
-static const char commands[] =
+static const char commands[] ALIGN1 =
 	"spd_normal\0"
 	"spd_hi\0"
 	"spd_vhi\0"
@@ -404,8 +404,8 @@ static const uint16_t setbits[CMD_FLAG_LAST + 1] =
 	ASYNC_LOW_LATENCY
 };
 
-static const char STR_INFINITE[] = "infinite";
-static const char STR_NONE[] = "none";
+#define STR_INFINITE "infinite"
+#define STR_NONE     "none"
 
 static const char *uart_type(int type)
 {

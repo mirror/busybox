@@ -137,7 +137,7 @@ static const struct namespace_descr ns_list[] = {
  * we are forced to use "fake" letters for them.
  * '+': stop at first non-option.
  */
-static const char opt_str[] = "+muinpU""fr""\xfd::""\xfe:""\xff:";
+static const char opt_str[] ALIGN1 = "+muinpU""fr""\xfd::""\xfe:""\xff:";
 static const char unshare_longopts[] ALIGN1 =
 	"mount\0"		Optional_argument	"\xf0"
 	"uts\0"			Optional_argument	"\xf1"

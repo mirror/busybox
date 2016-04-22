@@ -42,7 +42,7 @@
  * Extra space at the end is a hack to print space separator in file listing.
  * Let's hope no one ever passes space as an option char :)
  */
-static const char bit_to_char[] = "rhsvda67 ";
+static const char bit_to_char[] ALIGN1 = "rhsvda67 ";
 
 static inline unsigned long get_flag(char c)
 {

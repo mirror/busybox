@@ -40,7 +40,7 @@
 #if ENABLE_FEATURE_EJECT_SCSI
 static void eject_scsi(const char *dev)
 {
-	static const char sg_commands[3][6] = {
+	static const char sg_commands[3][6] ALIGN1 = {
 		{ ALLOW_MEDIUM_REMOVAL, 0, 0, 0, 0, 0 },
 		{ START_STOP, 0, 0, 0, 1, 0 },
 		{ START_STOP, 0, 0, 0, 2, 0 }

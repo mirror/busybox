@@ -251,7 +251,7 @@ enum {
 // cmds modifying text[]
 // vda: removed "aAiIs" as they switch us into insert mode
 // and remembering input for replay after them makes no sense
-static const char modifying_cmds[] = "cCdDJoOpPrRxX<>~";
+static const char modifying_cmds[] ALIGN1 = "cCdDJoOpPrRxX<>~";
 #endif
 
 enum {

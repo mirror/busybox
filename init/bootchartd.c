@@ -194,7 +194,7 @@ static char *make_tempdir(void)
 		 * Since we unmount it at once, we can mount it anywhere.
 		 * Try a few locations which are likely ti exist.
 		 */
-		static const char dirs[] = "/mnt\0""/tmp\0""/boot\0""/proc\0";
+		static const char dirs[] ALIGN1 = "/mnt\0""/tmp\0""/boot\0""/proc\0";
 		const char *try_dir = dirs;
 		while (mount("none", try_dir, "tmpfs", MS_SILENT, "size=16m") != 0) {
 			try_dir += strlen(try_dir) + 1;

@@ -40,7 +40,7 @@
 #define LUKS_SALTSIZE           32
 #define LUKS_NUMKEYS             8
 
-static const uint8_t LUKS_MAGIC[] = { 'L','U','K','S', 0xba, 0xbe };
+static const uint8_t LUKS_MAGIC[] ALIGN1 = { 'L','U','K','S', 0xba, 0xbe };
 
 struct luks_phdr {
 	uint8_t		magic[LUKS_MAGIC_L];

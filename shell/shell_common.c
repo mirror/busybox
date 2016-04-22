@@ -328,7 +328,7 @@ enum {
 };
 
 /* "-": treat args as parameters of option with ASCII code 1 */
-static const char ulimit_opt_string[] = "-HSa"
+static const char ulimit_opt_string[] ALIGN1 = "-HSa"
 #ifdef RLIMIT_FSIZE
 			"f::"
 #endif

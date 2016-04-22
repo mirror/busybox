@@ -62,7 +62,7 @@ static unsigned nud_state_a2n(char *arg)
 		"stale\0"     "incomplete\0"  "delay\0"  "probe\0"
 		"failed\0"
 		;
-	static uint8_t nuds[] = {
+	static uint8_t nuds[] ALIGN1 = {
 		NUD_PERMANENT,NUD_REACHABLE, NUD_NOARP,NUD_NONE,
 		NUD_STALE,    NUD_INCOMPLETE,NUD_DELAY,NUD_PROBE,
 		NUD_FAILED

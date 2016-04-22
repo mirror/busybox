@@ -896,7 +896,7 @@ static NOINLINE int lzo_decompress(const header_t *h)
  *                  chksum_out
  * The rest is identical.
 */
-static const unsigned char lzop_magic[9] = {
+static const unsigned char lzop_magic[9] ALIGN1 = {
 	0x89, 0x4c, 0x5a, 0x4f, 0x00, 0x0d, 0x0a, 0x1a, 0x0a
 };
 

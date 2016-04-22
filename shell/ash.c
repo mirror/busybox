@@ -2750,7 +2750,7 @@ pwdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #else
 # define SIT_ITEM(a,b,c,d) (a | (b << 4) | (c << 8))
 #endif
-static const uint16_t S_I_T[] = {
+static const uint16_t S_I_T[] ALIGN2 = {
 #if ENABLE_ASH_ALIAS
 	SIT_ITEM(CSPCL   , CIGN     , CIGN , CIGN   ),    /* 0, PEOA */
 #endif
@@ -2852,7 +2852,7 @@ SIT(int c, int syntax)
 
 #else   /* !USE_SIT_FUNCTION */
 
-static const uint8_t syntax_index_table[] = {
+static const uint8_t syntax_index_table[] ALIGN1 = {
 	/* BASESYNTAX_DQSYNTAX_SQSYNTAX_ARISYNTAX */
 	/*   0      */ CWORD_CWORD_CWORD_CWORD,
 	/*   1      */ CWORD_CWORD_CWORD_CWORD,
@@ -7977,7 +7977,7 @@ static char *funcstring;        /* block to allocate strings from */
 #define EV_TESTED  02           /* exit status is checked; ignore -e flag */
 #define EV_BACKCMD 04           /* command executing within back quotes */
 
-static const uint8_t nodesize[N_NUMBER] = {
+static const uint8_t nodesize[N_NUMBER] ALIGN1 = {
 	[NCMD     ] = SHELL_ALIGN(sizeof(struct ncmd)),
 	[NPIPE    ] = SHELL_ALIGN(sizeof(struct npipe)),
 	[NREDIR   ] = SHELL_ALIGN(sizeof(struct nredir)),

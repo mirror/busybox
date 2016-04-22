@@ -473,7 +473,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
  */
 static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 {
-	static const char cmd_letters[] = "saicrw:btTydDgGhHlnNpPqx={}";
+	static const char cmd_letters[] ALIGN1 = "saicrw:btTydDgGhHlnNpPqx={}";
 	enum {
 		IDX_s = 0,
 		IDX_a,

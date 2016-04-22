@@ -146,10 +146,10 @@ struct host_info {
 	char       *host;
 	int         port;
 };
-static const char P_FTP[] = "ftp";
-static const char P_HTTP[] = "http";
+static const char P_FTP[] ALIGN1 = "ftp";
+static const char P_HTTP[] ALIGN1 = "http";
 #if ENABLE_FEATURE_WGET_OPENSSL || ENABLE_FEATURE_WGET_SSL_HELPER
-static const char P_HTTPS[] = "https";
+static const char P_HTTPS[] ALIGN1 = "https";
 #endif
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS

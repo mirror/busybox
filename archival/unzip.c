@@ -487,7 +487,7 @@ int unzip_main(int argc, char **argv)
 		if (overwrite == O_PROMPT)
 			overwrite = O_NEVER;
 	} else {
-		static const char extn[][5] = { ".zip", ".ZIP" };
+		static const char extn[][5] ALIGN1 = { ".zip", ".ZIP" };
 		char *ext = src_fn + strlen(src_fn);
 		int src_fd;
 
