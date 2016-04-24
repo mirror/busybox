@@ -57,7 +57,6 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	/* If it is "flock FILE -c PROG", then -c isn't caught by getopt32:
 	 * we use "+" in order to support "flock -opt FILE PROG -with-opts",
 	 * we need to remove -c by hand.
-	 * TODO: in upstream, -c 'PROG ARGS' means "run sh -c 'PROG ARGS'"
 	 */
 	if (argv[0]
 	 && argv[0][0] == '-'
@@ -66,6 +65,9 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	    )
 	) {
 		argv++;
+		if (argv[1])
+			bb_error_msg_and_die("-c takes only one argument");
+		opt |= OPT_c;
 	}
 
 	if (OPT_s == LOCK_SH && OPT_x == LOCK_EX && OPT_n == LOCK_NB && OPT_u == LOCK_UN) {
@@ -90,8 +92,21 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 		bb_perror_nomsg_and_die();
 	}
 
-	if (argv[0])
+	if (argv[0]) {
+		if (!(opt & OPT_c)) {
+			int rc = spawn_and_wait(argv);
+			if (rc < 0)
+				bb_simple_perror_msg(argv[0]);
+			return rc;
+		}
+		/* -c 'PROG ARGS' means "run sh -c 'PROG ARGS'" */
+		argv -= 2;
+		argv[0] = (char*)get_shell_name();
+		argv[1] = (char*)"-c";
+		/* argv[2] = "PROG ARGS"; */
+		/* argv[3] = NULL; */
 		return spawn_and_wait(argv);
+	}
 
 	return EXIT_SUCCESS;
 }
