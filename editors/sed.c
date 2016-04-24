@@ -218,23 +218,33 @@ static void cleanup_outname(void)
 
 /* strcpy, replacing "\from" with 'to'. If to is NUL, replacing "\any" with 'any' */
 
-static void parse_escapes(char *dest, const char *string, int len, char from, char to)
+static unsigned parse_escapes(char *dest, const char *string, int len, char from, char to)
 {
+	char *d = dest;
 	int i = 0;
+
+	if (len == -1)
+		len = strlen(string);
 
 	while (i < len) {
 		if (string[i] == '\\') {
 			if (!to || string[i+1] == from) {
-				*dest++ = to ? to : string[i+1];
+				if ((*d = to ? to : string[i+1]) == '\0')
+					return d - dest;
 				i += 2;
+				d++;
 				continue;
 			}
-			*dest++ = string[i++];
+			i++; /* skip backslash in string[] */
+			*d++ = '\\';
+			/* fall through: copy next char verbatim */
 		}
-		/* TODO: is it safe wrt a string with trailing '\\' ? */
-		*dest++ = string[i++];
+		if ((*d = string[i++]) == '\0')
+			return d - dest;
+		d++;
 	}
-	*dest = '\0';
+	*d = '\0';
+	return d - dest;
 }
 
 static char *copy_parsing_escapes(const char *string, int len)
@@ -245,9 +255,8 @@ static char *copy_parsing_escapes(const char *string, int len)
 	/* sed recognizes \n */
 	/* GNU sed also recognizes \t and \r */
 	for (s = "\nn\tt\rr"; *s; s += 2) {
-		parse_escapes(dest, string, len, s[1], s[0]);
+		len = parse_escapes(dest, string, len, s[1], s[0]);
 		string = dest;
-		len = strlen(dest);
 	}
 	return dest;
 }
@@ -516,6 +525,8 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 	}
 	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (idx <= IDX_c) { /* a,i,c */
+		unsigned len;
+
 		if (idx < IDX_c) { /* a,i */
 			if (sed_cmd->end_line || sed_cmd->end_match)
 				bb_error_msg_and_die("command '%c' uses only one address", sed_cmd->cmd);
@@ -529,10 +540,11 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 				break;
 			cmdstr++;
 		}
-		sed_cmd->string = xstrdup(cmdstr);
+		len = strlen(cmdstr);
+		sed_cmd->string = copy_parsing_escapes(cmdstr, len);
+		cmdstr += len;
 		/* "\anychar" -> "anychar" */
-		parse_escapes(sed_cmd->string, sed_cmd->string, strlen(cmdstr), '\0', '\0');
-		cmdstr += strlen(cmdstr);
+		parse_escapes(sed_cmd->string, sed_cmd->string, -1, '\0', '\0');
 	}
 	/* handle file cmds: (r)ead */
 	else if (idx <= IDX_w) { /* r,w */
@@ -564,8 +576,8 @@ static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 
 		cmdstr += parse_regex_delim(cmdstr, &match, &replace)+1;
 		/* \n already parsed, but \delimiter needs unescaping. */
-		parse_escapes(match, match, strlen(match), i, i);
-		parse_escapes(replace, replace, strlen(replace), i, i);
+		parse_escapes(match,   match,   -1, i, i);
+		parse_escapes(replace, replace, -1, i, i);
 
 		sed_cmd->string = xzalloc((strlen(match) + 1) * 2);
 		for (i = 0; match[i] && replace[i]; i++) {
