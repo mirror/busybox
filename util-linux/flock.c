@@ -93,19 +93,19 @@ int flock_main(int argc UNUSED_PARAM, char **argv)
 	}
 
 	if (argv[0]) {
-		if (!(opt & OPT_c)) {
-			int rc = spawn_and_wait(argv);
-			if (rc < 0)
-				bb_simple_perror_msg(argv[0]);
-			return rc;
+		int rc;
+		if (opt & OPT_c) {
+			/* -c 'PROG ARGS' means "run sh -c 'PROG ARGS'" */
+			argv -= 2;
+			argv[0] = (char*)get_shell_name();
+			argv[1] = (char*)"-c";
+			/* argv[2] = "PROG ARGS"; */
+			/* argv[3] = NULL; */
 		}
-		/* -c 'PROG ARGS' means "run sh -c 'PROG ARGS'" */
-		argv -= 2;
-		argv[0] = (char*)get_shell_name();
-		argv[1] = (char*)"-c";
-		/* argv[2] = "PROG ARGS"; */
-		/* argv[3] = NULL; */
-		return spawn_and_wait(argv);
+		rc = spawn_and_wait(argv);
+		if (rc < 0)
+			bb_simple_perror_msg(argv[0]);
+		return rc;
 	}
 
 	return EXIT_SUCCESS;
