@@ -6,6 +6,7 @@
 . ./.config || exit 1
 
 debug=false
+#debug=true
 
 postcompile=false
 test x"$1" = x"--post" && { postcompile=true; shift; }
@@ -62,6 +63,11 @@ generate_malloc_and_exit() {
 	$exitcmd
 }
 
+round_down_COMMON_BUFSIZE() {
+	COMMON_BUFSIZE=$(( ($1-32) & 0xfffffe0 ))
+	COMMON_BUFSIZE=$(( COMMON_BUFSIZE < 1024 ? 1024 : COMMON_BUFSIZE ))
+}
+
 # User does not want any funky stuff?
 test x"$CONFIG_FEATURE_USE_BSS_TAIL" = x"y" || generate_std_and_exit
 
@@ -102,22 +108,43 @@ if $postcompile; then
 
 	# How much space between _end[] and next page?
 	PAGE_MASK=$((PAGE_SIZE-1))
-	COMMON_BUFSIZE=$(( (-END) & PAGE_MASK ))
-	echo "COMMON_BUFSIZE = $COMMON_BUFSIZE bytes"
+	TAIL_SIZE=$(( (-END) & PAGE_MASK ))
+	$debug && echo "TAIL_SIZE:$TAIL_SIZE bytes"
 
-	if test x"$method" != x"malloc"; then
-		if test $COMMON_BUFSIZE -lt 1024; then
+	if test x"$method" = x"1k" || test x"$method" = x"big"; then
+		if test $TAIL_SIZE -lt 1024; then
 			# _end[] has no enough space for bb_common_bufsiz1[]
+			echo "Warning! Space in _end[] is too small ($TAIL_SIZE bytes)!"
+			echo "Rerun make to build a binary which doesn't use it!"
 			rm -- "$common_bufsiz_h.1k.OK" 2>/dev/null
 			{ md5sum <.config | cut -d' ' -f1; stat -c "%Y" .config; } >"$common_bufsiz_h.1k.FAIL"
-			echo "Warning! Space in _end[] is too small ($COMMON_BUFSIZE bytes)!"
-			echo "Rerun make to build a binary which doesn't use it!"
-			rm busybox_unstripped busybox
+			rm busybox_unstripped busybox 2>/dev/null
+# Note: here we can do either a "malloc" or "std" build.
+# "malloc" gives a bit bigger code:
+#     text  bss filename
+#   804355 5385 busybox.std
+#   804618 4361 busybox.malloc
+# but may have a smaller .bss (not guaranteed!). Use "pmap -x" to verify.
 			exitcmd="exit 1"
+			generate_malloc_and_exit
 		else
+			PREV_SIZE=1024
+			test x"$method" = x"big" && PREV_SIZE=`cat -- "$common_bufsiz_h.1k.OK"`
+			round_down_COMMON_BUFSIZE $PREV_SIZE
+			PREV_BUFSIZE=$COMMON_BUFSIZE
+
 			rm -- "$common_bufsiz_h.1k.FAIL" 2>/dev/null
-			echo $COMMON_BUFSIZE >"$common_bufsiz_h.1k.OK"
-			test $COMMON_BUFSIZE -gt $((1024+32)) && echo "Rerun make to use larger COMMON_BUFSIZE"
+			echo $TAIL_SIZE >"$common_bufsiz_h.1k.OK"
+			round_down_COMMON_BUFSIZE $TAIL_SIZE
+			# emit message only if COMMON_BUFSIZE is indeed larger
+			test $COMMON_BUFSIZE -gt $PREV_BUFSIZE \
+				&& echo "Rerun make to use larger COMMON_BUFSIZE ($COMMON_BUFSIZE)"
+#TODO: test $PREV_BUFSIZE -lt $TAIL_SIZE && PANIC!!!
+#Code size with COMMON_BUFSIZE > 1024 may be bigger than code with COMMON_BUFSIZE = 1024!
+#(currently we just hope "-32 and round down to 32" saves us)
+
+			test $COMMON_BUFSIZE = 1024 && generate_1k_and_exit
+			generate_big_and_exit $COMMON_BUFSIZE "big"
 		fi
 	fi
 fi
@@ -127,13 +154,12 @@ fi
 if test -f "$common_bufsiz_h.1k.OK"; then
 	# Previous build succeeded fitting 1k into _end[].
 	# Try bigger COMMON_BUFSIZE if possible.
-	COMMON_BUFSIZE=`cat -- "$common_bufsiz_h.1k.OK"`
-	# Round down a bit
-	COMMON_BUFSIZE=$(( (COMMON_BUFSIZE-32) & 0xfffffe0 ))
-	COMMON_BUFSIZE=$(( COMMON_BUFSIZE < 1024 ? 1024 : COMMON_BUFSIZE ))
+	TAIL_SIZE=`cat -- "$common_bufsiz_h.1k.OK"`
+	round_down_COMMON_BUFSIZE $TAIL_SIZE
 	test $COMMON_BUFSIZE = 1024 && generate_1k_and_exit
 	generate_big_and_exit $COMMON_BUFSIZE "big"
 fi
+
 if test -f "$common_bufsiz_h.1k.FAIL"; then
 	# Previous build FAILED to fit 1k into _end[].
 	# Was it with same .config?
@@ -142,6 +168,7 @@ if test -f "$common_bufsiz_h.1k.FAIL"; then
 	# If yes, then build a "malloced" version
 	if test x"$oldcfg" = x"$curcfg"; then
 		echo "Will not try 1k build, it failed before. Touch .config to override"
+# Note: here we can do either a "malloc" or "std" build.
 		generate_malloc_and_exit
 	fi
 	# else: try 1k version
@@ -149,5 +176,6 @@ if test -f "$common_bufsiz_h.1k.FAIL"; then
 	rm -- "$common_bufsiz_h.1k.FAIL"
 	generate_1k_and_exit
 fi
+
 # There was no 1k build yet. Try it.
 generate_1k_and_exit
