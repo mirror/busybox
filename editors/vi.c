@@ -3586,12 +3586,7 @@ static void do_cmd(int c)
 		break;
 	case 12:			// ctrl-L  force redraw whole screen
 	case 18:			// ctrl-R  force redraw
-		place_cursor(0, 0);
-		clear_to_eos();
-		//mysleep(10); // why???
-		screen_erase();	// erase the internal screen buffer
-		last_status_cksum = 0;	// force status update
-		refresh(TRUE);	// this will redraw the entire display
+		redraw(TRUE);	// this will redraw the entire display
 		break;
 	case 13:			// Carriage Return ^M
 	case '+':			// +- goto next line
