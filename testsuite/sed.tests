@@ -135,10 +135,12 @@ testing "sed empty file plus cat" "sed -e 's/nohit//' input -" "one\ntwo" \
 	"" "one\ntwo"
 testing "sed cat plus empty file" "sed -e 's/nohit//' input -" "one\ntwo" \
 	"one\ntwo" ""
-test x"$SKIP_KNOWN_BUGS" = x"" && {
 testing "sed append autoinserts newline" "sed -e '/woot/a woo' -" \
 	"woot\nwoo\n" "" "woot"
-}
+testing "sed append autoinserts newline 2" "sed -e '/oot/a woo' - input" \
+	"woot\nwoo\nboot\nwoo\n" "boot" "woot"
+testing "sed append autoinserts newline 3" "sed -e '/oot/a woo' -i input && cat input" \
+	"boot\nwoo\n" "boot" ""
 testing "sed insert doesn't autoinsert newline" "sed -e '/woot/i woo' -" \
 	"woo\nwoot" "" "woot"
 testing "sed print autoinsert newlines" "sed -e 'p' -" "one\none" "" "one"

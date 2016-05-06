@@ -956,13 +956,22 @@ static void puts_maybe_newline(char *s, FILE *file, char *last_puts_char, char l
 	*last_puts_char = lpc;
 }
 
-static void flush_append(char *last_puts_char, char last_gets_char)
+static void flush_append(char *last_puts_char)
 {
 	char *data;
 
 	/* Output appended lines. */
-	while ((data = (char *)llist_pop(&G.append_head))) {
-		puts_maybe_newline(data, G.nonstdout, last_puts_char, last_gets_char);
+	while ((data = (char *)llist_pop(&G.append_head)) != NULL) {
+		/* Append command does not respect "nonterminated-ness"
+		 * of last line. Try this:
+		 * $ echo -n "woot" | sed -e '/woot/a woo' -
+		 * woot
+		 * woo
+		 * (both lines are terminated with \n)
+		 * Therefore we do not propagate "last_gets_char" here,
+		 * pass '\n' instead:
+		 */
+		puts_maybe_newline(data, G.nonstdout, last_puts_char, '\n');
 		free(data);
 	}
 }
@@ -970,13 +979,13 @@ static void flush_append(char *last_puts_char, char last_gets_char)
 /* Get next line of input from G.input_file_list, flushing append buffer and
  * noting if we ran out of files without a newline on the last line we read.
  */
-static char *get_next_line(char *gets_char, char *last_puts_char, char last_gets_char)
+static char *get_next_line(char *gets_char, char *last_puts_char)
 {
 	char *temp = NULL;
 	int len;
 	char gc;
 
-	flush_append(last_puts_char, last_gets_char);
+	flush_append(last_puts_char);
 
 	/* will be returned if last line in the file
 	 * doesn't end with either '\n' or '\0' */
@@ -1054,7 +1063,7 @@ static void process_files(void)
 	int substituted;
 
 	/* Prime the pump */
-	next_line = get_next_line(&next_gets_char, &last_puts_char, '\n' /*last_gets_char*/);
+	next_line = get_next_line(&next_gets_char, &last_puts_char);
 
 	/* Go through every line in each file */
  again:
@@ -1068,7 +1077,7 @@ static void process_files(void)
 
 	/* Read one line in advance so we can act on the last line,
 	 * the '$' address */
-	next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
+	next_line = get_next_line(&next_gets_char, &last_puts_char);
 	linenum++;
 
 	/* For every line, go through all the commands */
@@ -1295,7 +1304,7 @@ static void process_files(void)
 				free(pattern_space);
 				pattern_space = next_line;
 				last_gets_char = next_gets_char;
-				next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
+				next_line = get_next_line(&next_gets_char, &last_puts_char);
 				substituted = 0;
 				linenum++;
 				break;
@@ -1331,7 +1340,7 @@ static void process_files(void)
 			pattern_space[len] = '\n';
 			strcpy(pattern_space + len+1, next_line);
 			last_gets_char = next_gets_char;
-			next_line = get_next_line(&next_gets_char, &last_puts_char, last_gets_char);
+			next_line = get_next_line(&next_gets_char, &last_puts_char);
 			linenum++;
 			break;
 		}
@@ -1435,7 +1444,7 @@ static void process_files(void)
 
 	/* Delete and such jump here. */
  discard_line:
-	flush_append(&last_puts_char, last_gets_char);
+	flush_append(&last_puts_char /*,last_gets_char*/);
 	free(pattern_space);
 
 	goto again;
