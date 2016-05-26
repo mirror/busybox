@@ -231,20 +231,23 @@ static void recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 	if (!(option_mask32 & QUIET)) {
 		int s_printed = 0;
 
-		printf("%scast re%s from %s [%s]",
+		printf("%scast re%s from %s [%02x:%02x:%02x:%02x:%02x:%02x]",
 			FROM->sll_pkttype == PACKET_HOST ? "Uni" : "Broad",
 			ah->ar_op == htons(ARPOP_REPLY) ? "ply" : "quest",
 			inet_ntoa(src_ip),
-			ether_ntoa((struct ether_addr *) p));
+			p[0], p[1], p[2], p[3], p[4], p[5]
+		);
 		if (dst_ip.s_addr != src.s_addr) {
 			printf("for %s ", inet_ntoa(dst_ip));
 			s_printed = 1;
 		}
 		if (memcmp(p + ah->ar_hln + 4, me.sll_addr, ah->ar_hln)) {
+			unsigned char *pp = p + ah->ar_hln + 4;
 			if (!s_printed)
 				printf("for ");
-			printf("[%s]",
-				ether_ntoa((struct ether_addr *) p + ah->ar_hln + 4));
+			printf("[%02x:%02x:%02x:%02x:%02x:%02x]",
+				pp[0], pp[1], pp[2], pp[3], pp[4], pp[5]
+			);
 		}
 
 		if (last) {
