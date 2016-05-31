@@ -116,9 +116,21 @@ config FEATURE_COMPRESS_USAGE
 	  and have very little memory, this might not be a win. Otherwise,
 	  you probably want this.
 
+config BUSYBOX
+	bool "Include busybox applet"
+	default y
+	help
+	  The busybox applet provides general help regarding busybox and
+	  allows the included applets to be listed.  It's also required
+	  if applet links are to be installed at runtime.
+
+	  If you can live without these features disabling this will save
+	  some space.
+
 config FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
 	default y
+	depends on BUSYBOX
 	help
 	  Enable 'busybox --install [-s]' support. This will allow you to use
 	  busybox at runtime to create hard links or symlinks for all the

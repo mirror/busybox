@@ -701,7 +701,7 @@ static void install_links(const char *busybox, int use_symbolic_links,
 			continue;
 	}
 }
-# else
+# elif ENABLE_BUSYBOX
 static void install_links(const char *busybox UNUSED_PARAM,
 		int use_symbolic_links UNUSED_PARAM,
 		char *custom_install_dir UNUSED_PARAM)
@@ -709,6 +709,7 @@ static void install_links(const char *busybox UNUSED_PARAM,
 }
 # endif
 
+# if ENABLE_BUSYBOX
 /* If we were called as "busybox..." */
 static int busybox_main(char **argv)
 {
@@ -784,10 +785,10 @@ static int busybox_main(char **argv)
 		const char *a = applet_names;
 		dup2(1, 2);
 		while (*a) {
-# if ENABLE_FEATURE_INSTALLER
+#  if ENABLE_FEATURE_INSTALLER
 			if (argv[1][6]) /* --list-full? */
 				full_write2_str(install_dir[APPLET_INSTALL_LOC(i)] + 1);
-# endif
+#  endif
 			full_write2_str(a);
 			full_write2_str("\n");
 			i++;
@@ -843,6 +844,7 @@ static int busybox_main(char **argv)
 	/* POSIX: "If a command is not found, the exit status shall be 127" */
 	exit(127);
 }
+# endif
 
 void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 {
@@ -886,8 +888,10 @@ void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 {
 	int applet;
 
+# if ENABLE_BUSYBOX
 	if (is_prefixed_with(name, "busybox"))
 		exit(busybox_main(argv));
+# endif
 	/* find_applet_by_name() search is more expensive, so goes second */
 	applet = find_applet_by_name(name);
 	if (applet >= 0)
