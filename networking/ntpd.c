@@ -267,7 +267,6 @@ typedef struct {
 
 typedef struct {
 	len_and_sockaddr *p_lsa;
-	char             *p_hostname;
 	char             *p_dotted;
 	int              p_fd;
 	int              datapoint_idx;
@@ -293,6 +292,7 @@ typedef struct {
 	datapoint_t      filter_datapoint[NUM_DATAPOINTS];
 	/* last sent packet: */
 	msg_t            p_xmt_msg;
+	char             p_hostname[1];
 } peer_t;
 
 
@@ -765,14 +765,38 @@ reset_peer_stats(peer_t *p, double offset)
 }
 
 static void
+resolve_peer_hostname(peer_t *p, int loop_on_fail)
+{
+	len_and_sockaddr *lsa;
+
+ again:
+	lsa = host2sockaddr(p->p_hostname, 123);
+	if (!lsa) {
+		/* error message already emitted by host2sockaddr() */
+		if (!loop_on_fail)
+			return;
+//FIXME: do this to avoid infinite looping on typo in a hostname?
+//well... in which case, what is a good value for loop_on_fail?
+		//if (--loop_on_fail == 0)
+		//	xfunc_die();
+		sleep(5);
+		goto again;
+	}
+	free(p->p_lsa);
+	free(p->p_dotted);
+	p->p_lsa = lsa;
+	p->p_dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
+}
+
+static void
 add_peers(const char *s)
 {
 	llist_t *item;
 	peer_t *p;
 
-	p = xzalloc(sizeof(*p));
-	p->p_lsa = xhost2sockaddr(s, 123);
-	p->p_dotted = xmalloc_sockaddr2dotted_noport(&p->p_lsa->u.sa);
+	p = xzalloc(sizeof(*p) + strlen(s));
+	strcpy(p->p_hostname, s);
+	resolve_peer_hostname(p, /*loop_on_fail=*/ 1);
 
 	/* Names like N.<country2chars>.pool.ntp.org are randomly resolved
 	 * to a pool of machines. Sometimes different N's resolve to the same IP.
@@ -789,7 +813,6 @@ add_peers(const char *s)
 		}
 	}
 
-	p->p_hostname = xstrdup(s);
 	p->p_fd = -1;
 	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
 	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
@@ -2338,18 +2361,8 @@ int ntpd_main(int argc UNUSED_PARAM, char **argv)
 							p->p_dotted, p->reachable_bits, timeout);
 
 					/* What if don't see it because it changed its IP? */
-					if (p->reachable_bits == 0) {
-						len_and_sockaddr *lsa = host2sockaddr(p->p_hostname, 123);
-						if (lsa) {
-							char *dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
-							//if (strcmp(dotted, p->p_dotted) != 0)
-							//	bb_error_msg("peer IP changed");
-							free(p->p_lsa);
-							free(p->p_dotted);
-							p->p_lsa = lsa;
-							p->p_dotted = dotted;
-						}
-					}
+					if (p->reachable_bits == 0)
+						resolve_peer_hostname(p, /*loop_on_fail=*/ 0);
 
 					set_next(p, timeout);
 				}
