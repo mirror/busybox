@@ -52,6 +52,7 @@
 
 #include "usage_compressed.h"
 
+static void run_applet_and_exit(const char *name, char **argv) NORETURN;
 
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
@@ -837,12 +838,6 @@ static int busybox_main(char **argv)
 	 * "#!/bin/busybox"-style wrappers */
 	applet_name = bb_get_last_path_component_nostrip(argv[0]);
 	run_applet_and_exit(applet_name, argv);
-
-	/*bb_error_msg_and_die("applet not found"); - sucks in printf */
-	full_write2_str(applet_name);
-	full_write2_str(": applet not found\n");
-	/* POSIX: "If a command is not found, the exit status shall be 127" */
-	exit(127);
 }
 # endif
 
@@ -884,7 +879,7 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 	exit(applet_main[applet_no](argc, argv));
 }
 
-void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
+static NORETURN void run_applet_and_exit(const char *name, char **argv)
 {
 	int applet;
 
@@ -896,6 +891,12 @@ void FAST_FUNC run_applet_and_exit(const char *name, char **argv)
 	applet = find_applet_by_name(name);
 	if (applet >= 0)
 		run_applet_no_and_exit(applet, argv);
+
+	/*bb_error_msg_and_die("applet not found"); - links in printf */
+	full_write2_str(applet_name);
+	full_write2_str(": applet not found\n");
+	/* POSIX: "If a command is not found, the exit status shall be 127" */
+	exit(127);
 }
 
 #endif /* !defined(SINGLE_APPLET_MAIN) */
@@ -968,11 +969,5 @@ int main(int argc UNUSED_PARAM, char **argv)
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
 
 	run_applet_and_exit(applet_name, argv);
-
-	/*bb_error_msg_and_die("applet not found"); - sucks in printf */
-	full_write2_str(applet_name);
-	full_write2_str(": applet not found\n");
-	/* POSIX: "If a command is not found, the exit status shall be 127" */
-	exit(127);
 #endif
 }

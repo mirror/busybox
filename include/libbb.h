@@ -1239,8 +1239,6 @@ const struct hwtype *get_hwntype(int type) FAST_FUNC;
 
 #ifndef BUILD_INDIVIDUAL
 extern int find_applet_by_name(const char *name) FAST_FUNC;
-/* Returns only if applet is not found. */
-extern void run_applet_and_exit(const char *name, char **argv) FAST_FUNC;
 extern void run_applet_no_and_exit(int a, char **argv) NORETURN FAST_FUNC;
 #endif
 
