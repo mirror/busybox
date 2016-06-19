@@ -77,13 +77,15 @@ aa:      85.1% -- replaced with aa.gz
 //kbuild:lib-$(CONFIG_GZIP) += gzip.o
 
 //usage:#define gzip_trivial_usage
-//usage:       "[-cfd" IF_FEATURE_GZIP_LEVELS("123456789") "] [FILE]..."
+//usage:       "[-cf" IF_GUNZIP("d") IF_FEATURE_GZIP_LEVELS("123456789") "] [FILE]..."
 //usage:#define gzip_full_usage "\n\n"
 //usage:       "Compress FILEs (or stdin)\n"
 //usage:	IF_FEATURE_GZIP_LEVELS(
 //usage:     "\n	-1..9	Compression level"
 //usage:	)
+//usage:	IF_GUNZIP(
 //usage:     "\n	-d	Decompress"
+//usage:	)
 //usage:     "\n	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:

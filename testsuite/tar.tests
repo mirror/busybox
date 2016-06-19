@@ -24,7 +24,7 @@ tar: short read
 "" ""
 SKIP=
 
-optional FEATURE_SEAMLESS_GZ
+optional FEATURE_SEAMLESS_GZ GUNZIP
 # In NOMMU case, "invalid magic" message comes from gunzip child process.
 # Otherwise, it comes from tar.
 # Need to fix output up to avoid false positive.
