@@ -145,6 +145,7 @@ lib-$(CONFIG_FTPD) += correct_password.o
 lib-$(CONFIG_PASSWD) += pw_encrypt.o update_passwd.o obscure.o
 lib-$(CONFIG_CHPASSWD) += pw_encrypt.o update_passwd.o
 lib-$(CONFIG_CRYPTPW) += pw_encrypt.o
+lib-$(CONFIG_MKPASSWD) += pw_encrypt.o
 lib-$(CONFIG_SULOGIN) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_VLOCK) += pw_encrypt.o correct_password.o
 lib-$(CONFIG_SU) += pw_encrypt.o correct_password.o

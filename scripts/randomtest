@@ -115,6 +115,8 @@ fi
 
 # Build!
 nice -n 10 make $MAKEOPTS 2>&1 | tee make.log
+grep 'Rerun make' make.log \
+&& nice -n 10 make $MAKEOPTS 2>&1 | tee -a make.log
 
 # Return exitcode 1 if busybox executable does not exist
 test -x busybox

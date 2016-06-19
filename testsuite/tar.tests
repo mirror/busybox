@@ -266,7 +266,7 @@ SKIP=
 # The correct implementation unlinks target before
 # creating the second file.
 # We test that /tmp/passwd remains empty:
-optional UUDECODE FEATURE_SEAMLESS_BZ2
+optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
 testing "tar does not extract into symlinks" "\
 >>/tmp/passwd && uudecode -o input && tar xf input 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
 " "\
@@ -282,7 +282,7 @@ l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
 "
 SKIP=
 # And same with -k
-optional UUDECODE FEATURE_SEAMLESS_BZ2
+optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
 testing "tar -k does not extract into symlinks" "\
 >>/tmp/passwd && uudecode -o input && tar xf input -k 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
 " "\
