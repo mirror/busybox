@@ -686,6 +686,7 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_GREP_CONTEXT
 	int Copt, opts;
 #endif
+	INIT_G();
 
 	/* For grep, exitcode of 1 is "not found". Other errors are 2: */
 	xfunc_error_retval = 2;
