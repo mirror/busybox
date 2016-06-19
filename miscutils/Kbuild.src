@@ -25,8 +25,13 @@ lib-$(CONFIG_FLASH_UNLOCK)   += flash_lock_unlock.o
 lib-$(CONFIG_IONICE)      += ionice.o
 lib-$(CONFIG_HDPARM)      += hdparm.o
 lib-$(CONFIG_INOTIFYD)    += inotifyd.o
-lib-$(CONFIG_FEATURE_LAST_SMALL)+= last.o
-lib-$(CONFIG_FEATURE_LAST_FANCY)+= last_fancy.o
+
+ifeq ($(CONFIG_FEATURE_LAST_FANCY),y)
+lib-$(CONFIG_FEATURE_LAST_FANCY) += last_fancy.o
+else
+lib-$(CONFIG_LAST)        += last.o
+endif
+
 lib-$(CONFIG_LESS)        += less.o
 lib-$(CONFIG_MAKEDEVS)    += makedevs.o
 lib-$(CONFIG_MAN)         += man.o

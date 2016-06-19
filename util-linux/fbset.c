@@ -164,6 +164,7 @@ static const struct cmdoptions_t {
 	const unsigned char code;
 } g_cmdoptions[] = {
 	/*"12345678" + NUL */
+//TODO: convert to index_in_strings()
 	{ "fb"      , 1, CMD_FB       },
 	{ "db"      , 1, CMD_DB       },
 	{ "a"       , 0, CMD_ALL      },
@@ -416,7 +417,7 @@ int fbset_main(int argc, char **argv)
 	unsigned options = 0;
 
 	const char *fbdev = DEFAULTFBDEV;
-	const char *modefile = DEFAULTFBMODE;
+	IF_FEATURE_FBSET_READMODE(const char *modefile = DEFAULTFBMODE;)
 	char *thisarg;
 	char *mode = mode; /* for compiler */
 
@@ -444,7 +445,7 @@ int fbset_main(int argc, char **argv)
 				fbdev = argv[1];
 				break;
 			case CMD_DB:
-				modefile = argv[1];
+				IF_FEATURE_FBSET_READMODE(modefile = argv[1];)
 				break;
 			case CMD_ALL:
 				options |= OPT_ALL;

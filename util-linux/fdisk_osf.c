@@ -366,10 +366,11 @@ bsd_select(void)
 			}
 				printf("Reading disklabel of %s at sector %u\n",
 					partname(disk_device, t+1, 0), ss + BSD_LABELSECTOR);
-			if (xbsd_readlabel(xbsd_part) == 0)
+			if (xbsd_readlabel(xbsd_part) == 0) {
 				if (xbsd_create_disklabel() == 0)
 					return;
 				break;
+			}
 		}
 	}
 

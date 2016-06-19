@@ -60,13 +60,21 @@ static unsigned long long getOctal(char *str, int len)
 }
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
 
+#define TAR_EXTD (ENABLE_FEATURE_TAR_GNU_EXTENSIONS || ENABLE_FEATURE_TAR_SELINUX)
+#if !TAR_EXTD
+#define process_pax_hdr(archive_handle, sz, global) \
+	process_pax_hdr(archive_handle, sz)
+#endif
 /* "global" is 0 or 1 */
 static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int global)
 {
+#if !TAR_EXTD
+	unsigned blk_sz = (sz + 511) & (~511);
+	seek_by_read(archive_handle->src_fd, blk_sz);
+#else
+	unsigned blk_sz = (sz + 511) & (~511);
 	char *buf, *p;
-	unsigned blk_sz;
 
-	blk_sz = (sz + 511) & (~511);
 	p = buf = xmalloc(blk_sz + 1);
 	xread(archive_handle->src_fd, buf, blk_sz);
 	archive_handle->offset += blk_sz;
@@ -104,30 +112,31 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		p[-1] = '\0';
 		value = end + 1;
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+# if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 		if (!global && is_prefixed_with(value, "path=")) {
 			value += sizeof("path=") - 1;
 			free(archive_handle->tar__longname);
 			archive_handle->tar__longname = xstrdup(value);
 			continue;
 		}
-#endif
+# endif
 
-#if ENABLE_FEATURE_TAR_SELINUX
+# if ENABLE_FEATURE_TAR_SELINUX
 		/* Scan for SELinux contexts, via "RHT.security.selinux" keyword.
 		 * This is what Red Hat's patched version of tar uses.
 		 */
-# define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
+#  define SELINUX_CONTEXT_KEYWORD "RHT.security.selinux"
 		if (is_prefixed_with(value, SELINUX_CONTEXT_KEYWORD"=")) {
 			value += sizeof(SELINUX_CONTEXT_KEYWORD"=") - 1;
 			free(archive_handle->tar__sctx[global]);
 			archive_handle->tar__sctx[global] = xstrdup(value);
 			continue;
 		}
-#endif
+# endif
 	}
 
 	free(buf);
+#endif
 }
 
 char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)

@@ -1199,9 +1199,10 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	//	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
 	//	signal(SIGCHLD, check_errors_in_children);
 
+#if ENABLE_FEATURE_TAR_CREATE
 	/* Create an archive */
 	if (opt & OPT_CREATE) {
-#if SEAMLESS_COMPRESSION
+# if SEAMLESS_COMPRESSION
 		const char *zipMode = NULL;
 		if (opt & OPT_COMPRESS)
 			zipMode = "compress";
@@ -1213,7 +1214,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 			zipMode = "lzma";
 		if (opt & OPT_XZ)
 			zipMode = "xz";
-#endif
+# endif
 		/* NB: writeTarFile() closes tar_handle->src_fd */
 		return writeTarFile(tar_handle->src_fd, verboseFlag,
 				(opt & OPT_DEREFERENCE ? ACTION_FOLLOWLINKS : 0)
@@ -1221,6 +1222,7 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 				tar_handle->accept,
 				tar_handle->reject, zipMode);
 	}
+#endif
 
 	if (opt & OPT_ANY_COMPRESS) {
 		USE_FOR_MMU(IF_DESKTOP(long long) int FAST_FUNC (*xformer)(transformer_state_t *xstate);)

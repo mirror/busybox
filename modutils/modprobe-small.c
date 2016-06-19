@@ -21,7 +21,6 @@
 
 extern int init_module(void *module, unsigned long len, const char *options);
 extern int delete_module(const char *module, unsigned flags);
-extern int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
 /* linux/include/linux/module.h has limit of 64 chars on module names */
 #undef MODULE_NAME_LEN
 #define MODULE_NAME_LEN 64
