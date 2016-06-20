@@ -220,7 +220,6 @@ static transformer_state_t *setup_transformer_on_fd(int fd, int fail_if_not_comp
 	 */
 //	USE_FOR_MMU(xstate->xformer = copy_stream;)
 //	USE_FOR_NOMMU(xstate->xformer_prog = "cat";)
-	/* fall through to seeking bck over bytes we read earlier */
 
  found_magic:
 	return xstate;
@@ -289,16 +288,22 @@ int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
 		return -1;
 
 	fd = xstate->src_fd;
-	if (xstate->xformer) {
 # if BB_MMU
-		fork_transformer_with_no_sig(xstate->src_fd, xstate->xformer);
-# else
+	if (xstate->xformer) {
+		fork_transformer_with_no_sig(fd, xstate->xformer);
+	} else {
+		/* the file is not compressed */
 		xlseek(fd, - xstate->signature_skipped, SEEK_CUR);
 		xstate->signature_skipped = 0;
-		fork_transformer_with_sig(xstate->src_fd, xstate->xformer, xstate->xformer_prog);
-# endif
 	}
-	/* else: the file is not compressed */
+# else
+	/* NOMMU can't avoid the seek :( */
+	xlseek(fd, - xstate->signature_skipped, SEEK_CUR);
+	xstate->signature_skipped = 0;
+	if (xstate->xformer) {
+		fork_transformer_with_sig(fd, xstate->xformer, xstate->xformer_prog);
+	} /* esle: the file is not compressed */
+# endif
 
 	free(xstate);
 	return fd;
