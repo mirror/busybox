@@ -302,7 +302,7 @@ int FAST_FUNC open_zipped(const char *fname, int fail_if_not_compressed)
 	xstate->signature_skipped = 0;
 	if (xstate->xformer) {
 		fork_transformer_with_sig(fd, xstate->xformer, xstate->xformer_prog);
-	} /* esle: the file is not compressed */
+	} /* else: the file is not compressed */
 # endif
 
 	free(xstate);
