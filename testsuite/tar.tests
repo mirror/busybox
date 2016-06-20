@@ -204,7 +204,7 @@ SKIP=
 
 # Had a bug where on extract autodetect first "switched off" -z
 # and then failed to recognize .tgz extension
-optional FEATURE_TAR_CREATE FEATURE_SEAMLESS_GZ
+optional FEATURE_TAR_CREATE FEATURE_SEAMLESS_GZ GUNZIP
 testing "tar extract tgz" "\
 dd count=1 bs=1M if=/dev/zero of=F0 2>/dev/null
 tar -czf F0.tgz F0

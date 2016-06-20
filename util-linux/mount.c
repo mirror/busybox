@@ -2058,7 +2058,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		del_loop(mp->mnt_fsname);
 		if (ENABLE_FEATURE_CLEAN_UP) {
 			free(loopFile);
-			free(mp->mnt_fsname);
+			/* No, "rc != 0" needs it: free(mp->mnt_fsname); */
 		}
 	}
 
