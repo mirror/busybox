@@ -121,7 +121,7 @@ int FAST_FUNC bbunpack(char **argv,
 
 		if (!(option_mask32 & SEAMLESS_MAGIC)) {
 			init_transformer_state(&xstate);
-			xstate.check_signature = 1;
+			xstate.signature_skipped = 0;
 			/*xstate.src_fd = STDIN_FILENO; - already is */
 			xstate.dst_fd = STDOUT_FILENO;
 			status = unpacker(&xstate);

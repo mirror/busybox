@@ -211,7 +211,7 @@ void dealloc_bunzip(bunzip_data *bd) FAST_FUNC;
 
 /* Meaning and direction (input/output) of the fields are transformer-specific */
 typedef struct transformer_state_t {
-	smallint check_signature; /* most often referenced member */
+	smallint signature_skipped; /* most often referenced member */
 
 	IF_DESKTOP(long long) int FAST_FUNC (*xformer)(struct transformer_state_t *xstate);
 	USE_FOR_NOMMU(const char *xformer_prog;)
@@ -252,11 +252,11 @@ int bbunpack(char **argv,
 void check_errors_in_children(int signo);
 #if BB_MMU
 void fork_transformer(int fd,
-	int check_signature,
+	int signature_skipped,
 	IF_DESKTOP(long long) int FAST_FUNC (*transformer)(transformer_state_t *xstate)
 ) FAST_FUNC;
-#define fork_transformer_with_sig(fd, transformer, transform_prog) fork_transformer((fd), 1, (transformer))
-#define fork_transformer_with_no_sig(fd, transformer)              fork_transformer((fd), 0, (transformer))
+#define fork_transformer_with_sig(fd, transformer, transform_prog) fork_transformer((fd), 0, (transformer))
+#define fork_transformer_with_no_sig(fd, transformer)              fork_transformer((fd), 1, (transformer))
 #else
 void fork_transformer(int fd, const char *transform_prog) FAST_FUNC;
 #define fork_transformer_with_sig(fd, transformer, transform_prog) fork_transformer((fd), (transform_prog))

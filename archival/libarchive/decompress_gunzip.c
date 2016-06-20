@@ -1201,7 +1201,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 	if (check_signature16(xstate, GZIP_MAGIC))
 		return -1;
 #else
-	if (xstate->check_signature) {
+	if (!xstate->signature_skipped) {
 		uint16_t magic2;
 
 		if (full_read(xstate->src_fd, &magic2, 2) != 2) {
@@ -1210,7 +1210,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 			return -1;
 		}
 		if (magic2 == COMPRESS_MAGIC) {
-			xstate->check_signature = 0;
+			xstate->signature_skipped = 2;
 			return unpack_Z_stream(xstate);
 		}
 		if (magic2 != GZIP_MAGIC)
