@@ -331,6 +331,9 @@ void* FAST_FUNC xmalloc_open_zipped_read_close(const char *fname, size_t *maxsz_
 		}
 	} else {
 		/* File is not compressed */
+//FIXME: avoid seek
+		xlseek(xstate->src_fd, - xstate->signature_skipped, SEEK_CUR);
+		xstate->signature_skipped = 0;
 		image = xmalloc_read(xstate->src_fd, maxsz_p);
 	}
 
