@@ -908,7 +908,7 @@ int i2cdump_main(int argc UNUSED_PARAM, char **argv)
 
 	int bus_num, bus_addr, mode = I2C_SMBUS_BYTE_DATA, even = 0, pec = 0;
 	unsigned first = 0x00, last = 0xff, opts;
-	int *block = (int *)bb_common_bufsiz1;
+	int block[I2CDUMP_NUM_REGS];
 	char *opt_r_str, *dash;
 	int fd, res;
 
