@@ -188,7 +188,7 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 			if (opt & OPT_INODE) {
 				s.f_blocks = s.f_files;
 				s.f_bavail = s.f_bfree = s.f_ffree;
-				s.f_bsize = 1;
+				s.f_frsize = 1;
 
 				if (df_disp_hr)
 					df_disp_hr = 1;
@@ -246,26 +246,26 @@ int df_main(int argc UNUSED_PARAM, char **argv)
 
 #if ENABLE_FEATURE_HUMAN_READABLE
 			printf(" %9s ",
-				/* f_blocks x f_bsize / df_disp_hr, show one fractional,
+				/* f_blocks x f_frsize / df_disp_hr, show one fractional,
 				 * use suffixes if df_disp_hr == 0 */
-				make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
+				make_human_readable_str(s.f_blocks, s.f_frsize, df_disp_hr));
 
 			printf(" %9s " + 1,
-				/* EXPR x f_bsize / df_disp_hr, show one fractional,
+				/* EXPR x f_frsize / df_disp_hr, show one fractional,
 				 * use suffixes if df_disp_hr == 0 */
 				make_human_readable_str((s.f_blocks - s.f_bfree),
-						s.f_bsize, df_disp_hr));
+						s.f_frsize, df_disp_hr));
 
 			printf("%9s %3u%% %s\n",
-				/* f_bavail x f_bsize / df_disp_hr, show one fractional,
+				/* f_bavail x f_frsize / df_disp_hr, show one fractional,
 				 * use suffixes if df_disp_hr == 0 */
-				make_human_readable_str(s.f_bavail, s.f_bsize, df_disp_hr),
+				make_human_readable_str(s.f_bavail, s.f_frsize, df_disp_hr),
 				blocks_percent_used, mount_point);
 #else
 			printf(" %9lu %9lu %9lu %3u%% %s\n",
-				kscale(s.f_blocks, s.f_bsize),
-				kscale(s.f_blocks - s.f_bfree, s.f_bsize),
-				kscale(s.f_bavail, s.f_bsize),
+				kscale(s.f_blocks, s.f_frsize),
+				kscale(s.f_blocks - s.f_bfree, s.f_frsize),
+				kscale(s.f_bavail, s.f_frsize),
 				blocks_percent_used, mount_point);
 #endif
 		}
