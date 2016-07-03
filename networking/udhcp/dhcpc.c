@@ -1118,7 +1118,11 @@ static void perform_release(uint32_t server_addr, uint32_t requested_ip)
 	struct in_addr temp_addr;
 
 	/* send release packet */
-	if (state == BOUND || state == RENEWING || state == REBINDING) {
+	if (state == BOUND
+	 || state == RENEWING
+	 || state == REBINDING
+	 || state == RENEW_REQUESTED
+	) {
 		temp_addr.s_addr = server_addr;
 		strcpy(buffer, inet_ntoa(temp_addr));
 		temp_addr.s_addr = requested_ip;
