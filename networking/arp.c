@@ -178,7 +178,7 @@ static int arp_del(char **args)
 	if (flags == 0)
 		flags = 3;
 
-	strncpy(req.arp_dev, device, sizeof(req.arp_dev));
+	strncpy_IFNAMSIZ(req.arp_dev, device);
 
 	err = -1;
 
@@ -219,7 +219,7 @@ static void arp_getdevhw(char *ifname, struct sockaddr *sa)
 	struct ifreq ifr;
 	const struct hwtype *xhw;
 
-	strcpy(ifr.ifr_name, ifname);
+	strncpy_IFNAMSIZ(ifr.ifr_name, ifname);
 	ioctl_or_perror_and_die(sockfd, SIOCGIFHWADDR, &ifr,
 					"can't get HW-Address for '%s'", ifname);
 	if (hw_set && (ifr.ifr_hwaddr.sa_family != hw->type)) {
@@ -332,7 +332,7 @@ static int arp_set(char **args)
 	/* Fill in the remainder of the request. */
 	req.arp_flags = flags;
 
-	strncpy(req.arp_dev, device, sizeof(req.arp_dev));
+	strncpy_IFNAMSIZ(req.arp_dev, device);
 
 	/* Call the kernel. */
 	if (option_mask32 & ARP_OPT_v)
