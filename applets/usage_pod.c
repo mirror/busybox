@@ -90,6 +90,8 @@ int main(void)
 				printf("%s\n\n", usage_array[i].aname);
 		}
 	}
+	printf("=back\n\n");
+
 	return 0;
 }
 

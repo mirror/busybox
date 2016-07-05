@@ -1,5 +1,3 @@
-=back
-
 =head1 LIBC NSS
 
 GNU Libc (glibc) uses the Name Service Switch (NSS) to configure the behavior

@@ -841,6 +841,7 @@ static int busybox_main(char **argv)
 }
 # endif
 
+# if NUM_APPLETS > 0
 void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 {
 	int argc = 1;
@@ -858,15 +859,15 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 	 * "true" and "false" are also special.
 	 */
 	if (1
-#if defined APPLET_NO_test
+#  if defined APPLET_NO_test
 	 && applet_no != APPLET_NO_test
-#endif
-#if defined APPLET_NO_true
+#  endif
+#  if defined APPLET_NO_true
 	 && applet_no != APPLET_NO_true
-#endif
-#if defined APPLET_NO_false
+#  endif
+#  if defined APPLET_NO_false
 	 && applet_no != APPLET_NO_false
-#endif
+#  endif
 	) {
 		if (argc == 2 && strcmp(argv[1], "--help") == 0) {
 			/* Make "foo --help" exit with 0: */
@@ -878,19 +879,22 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 		check_suid(applet_no);
 	exit(applet_main[applet_no](argc, argv));
 }
+# endif /* NUM_APPLETS > 0 */
 
 static NORETURN void run_applet_and_exit(const char *name, char **argv)
 {
-	int applet;
-
 # if ENABLE_BUSYBOX
 	if (is_prefixed_with(name, "busybox"))
 		exit(busybox_main(argv));
 # endif
+# if NUM_APPLETS > 0
 	/* find_applet_by_name() search is more expensive, so goes second */
-	applet = find_applet_by_name(name);
-	if (applet >= 0)
-		run_applet_no_and_exit(applet, argv);
+	{
+		int applet = find_applet_by_name(name);
+		if (applet >= 0)
+			run_applet_no_and_exit(applet, argv);
+	}
+# endif
 
 	/*bb_error_msg_and_die("applet not found"); - links in printf */
 	full_write2_str(applet_name);
@@ -957,10 +961,10 @@ int main(int argc UNUSED_PARAM, char **argv)
 #else
 	lbb_prepare("busybox" IF_FEATURE_INDIVIDUAL(, argv));
 
-#if !ENABLE_BUSYBOX
+# if !ENABLE_BUSYBOX
 	if (argv[1] && is_prefixed_with(bb_basename(argv[0]), "busybox"))
 		argv++;
-#endif
+# endif
 	applet_name = argv[0];
 	if (applet_name[0] == '-')
 		applet_name++;
