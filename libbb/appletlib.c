@@ -52,8 +52,6 @@
 
 #include "usage_compressed.h"
 
-static void run_applet_and_exit(const char *name, char **argv) NORETURN;
-
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] ALIGN1 = UNPACKED_USAGE;
 #else
@@ -711,6 +709,8 @@ static void install_links(const char *busybox UNUSED_PARAM,
 # endif
 
 # if ENABLE_BUSYBOX
+static void run_applet_and_exit(const char *name, char **argv) NORETURN;
+
 /* If we were called as "busybox..." */
 static int busybox_main(char **argv)
 {
