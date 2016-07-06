@@ -265,9 +265,9 @@ int reformime_main(int argc UNUSED_PARAM, char **argv)
 
 	// parse options
 	// N.B. only -x and -X are supported so far
-	opt_complementary = "x--X:X--x" IF_FEATURE_REFORMIME_COMPAT(":m::");
+	opt_complementary = "x--X:X--x";
 	opts = getopt32(argv,
-		"x:X" IF_FEATURE_REFORMIME_COMPAT("deis:r:c:m:h:o:O:"),
+		"x:X" IF_FEATURE_REFORMIME_COMPAT("deis:r:c:m:*h:o:O:"),
 		&opt_prefix
 		IF_FEATURE_REFORMIME_COMPAT(, NULL, NULL, &G.opt_charset, NULL, NULL, NULL, NULL)
 	);

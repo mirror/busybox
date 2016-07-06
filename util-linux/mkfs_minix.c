@@ -604,8 +604,7 @@ int mkfs_minix_main(int argc UNUSED_PARAM, char **argv)
 		bb_error_msg_and_die("bad inode size");
 #endif
 
-	opt_complementary = "n+"; /* -n N */
-	opt = getopt32(argv, "ci:l:n:v", &str_i, &listfile, &G.namelen);
+	opt = getopt32(argv, "ci:l:n:+v", &str_i, &listfile, &G.namelen);
 	argv += optind;
 	//if (opt & 1) -c
 	if (opt & 2) G.req_nr_inodes = xatoul(str_i); // -i

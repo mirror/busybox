@@ -388,8 +388,8 @@ int conspy_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 	strcpy(G.vcsa_name, DEV_VCSA);
 
-	opt_complementary = "x+:y+"; // numeric params
-	opts = getopt32(argv, "vcQsndfFx:y:", &G.x, &G.y);
+	// numeric params
+	opts = getopt32(argv, "vcQsndfFx:+y:+", &G.x, &G.y);
 	argv += optind;
 	ttynum = 0;
 	if (argv[0]) {

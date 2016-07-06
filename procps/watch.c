@@ -51,9 +51,9 @@ int watch_main(int argc UNUSED_PARAM, char **argv)
 	xopen("/dev/null", O_RDONLY);
 #endif
 
-	opt_complementary = "-1:n+"; // at least one param; -n NUM
+	opt_complementary = "-1"; // at least one param; -n NUM
 	// "+": stop at first non-option (procps 3.x only)
-	opt = getopt32(argv, "+dtn:", &period);
+	opt = getopt32(argv, "+dtn:+", &period);
 	argv += optind;
 
 	// watch from both procps 2.x and 3.x does concatenation. Example:

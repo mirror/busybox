@@ -111,8 +111,8 @@ int cryptpw_main(int argc UNUSED_PARAM, char **argv)
 	opt_m = CONFIG_FEATURE_DEFAULT_PASSWD_ALGO;
 	opt_S = NULL;
 	/* at most two non-option arguments; -P NUM */
-	opt_complementary = "?2:P+";
-	getopt32(argv, "sP:S:m:a:", &fd, &opt_S, &opt_m, &opt_m);
+	opt_complementary = "?2";
+	getopt32(argv, "sP:+S:m:a:", &fd, &opt_S, &opt_m, &opt_m);
 	argv += optind;
 
 	/* have no idea how to handle -s... */

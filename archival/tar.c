@@ -980,7 +980,6 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
 		"tt:vv:" // count -t,-v
-		IF_FEATURE_TAR_FROM("X::T::") // cumulative lists
 #if ENABLE_FEATURE_TAR_LONG_OPTIONS && ENABLE_FEATURE_TAR_FROM
 		"\xff::" // --exclude=PATTERN is a list
 #endif
@@ -1032,13 +1031,13 @@ int tar_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	opt = getopt32(argv,
 		"txC:f:Oopvk"
-		IF_FEATURE_TAR_CREATE(   "ch"  )
-		IF_FEATURE_SEAMLESS_BZ2( "j"   )
-		IF_FEATURE_SEAMLESS_LZMA("a"   )
-		IF_FEATURE_TAR_FROM(     "T:X:")
-		IF_FEATURE_SEAMLESS_GZ(  "z"   )
-		IF_FEATURE_SEAMLESS_XZ(  "J"   )
-		IF_FEATURE_SEAMLESS_Z(   "Z"   )
+		IF_FEATURE_TAR_CREATE(   "ch"    )
+		IF_FEATURE_SEAMLESS_BZ2( "j"     )
+		IF_FEATURE_SEAMLESS_LZMA("a"     )
+		IF_FEATURE_TAR_FROM(     "T:*X:*")
+		IF_FEATURE_SEAMLESS_GZ(  "z"     )
+		IF_FEATURE_SEAMLESS_XZ(  "J"     )
+		IF_FEATURE_SEAMLESS_Z(   "Z"     )
 		IF_FEATURE_TAR_NOPRESERVE_TIME("m")
 		IF_FEATURE_TAR_LONG_OPTIONS("\xf9:") // --strip-components
 		, &base_dir // -C dir

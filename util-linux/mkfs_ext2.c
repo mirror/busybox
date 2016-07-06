@@ -244,8 +244,7 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
 
 	// using global "option_mask32" instead of local "opts":
 	// we are register starved here
-	opt_complementary = "-1:b+:i+:I+:m+";
-	/*opts =*/ getopt32(argv, "cl:b:f:i:I:J:G:N:m:o:g:L:M:O:r:E:T:U:jnqvFS",
+	/*opts =*/ getopt32(argv, "cl:b:+f:i:+I:+J:G:N:m:+o:g:L:M:O:r:E:T:U:jnqvFS",
 		/*lbfi:*/ NULL, &bs, NULL, &bpi,
 		/*IJGN:*/ &user_inodesize, NULL, NULL, NULL,
 		/*mogL:*/ &reserved_percent, NULL, NULL, &label,

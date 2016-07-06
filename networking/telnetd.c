@@ -496,12 +496,12 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* -w NUM, and implies -F. -w and -i don't mix */
-	IF_FEATURE_TELNETD_INETD_WAIT(opt_complementary = "wF:w+:i--w:w--i";)
+	IF_FEATURE_TELNETD_INETD_WAIT(opt_complementary = "wF:i--w:w--i";)
 	/* Even if !STANDALONE, we accept (and ignore) -i, thus people
 	 * don't need to guess whether it's ok to pass -i to us */
 	opt = getopt32(argv, "f:l:Ki"
 			IF_FEATURE_TELNETD_STANDALONE("p:b:F")
-			IF_FEATURE_TELNETD_INETD_WAIT("Sw:"),
+			IF_FEATURE_TELNETD_INETD_WAIT("Sw:+"),
 			&G.issuefile, &G.loginpath
 			IF_FEATURE_TELNETD_STANDALONE(, &opt_portnbr, &opt_bindaddr)
 			IF_FEATURE_TELNETD_INETD_WAIT(, &sec_linger)

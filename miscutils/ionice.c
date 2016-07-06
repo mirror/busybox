@@ -60,9 +60,8 @@ int ionice_main(int argc UNUSED_PARAM, char **argv)
 	};
 
 	/* Numeric params */
-	opt_complementary = "n+:c+:p+";
 	/* '+': stop at first non-option */
-	opt = getopt32(argv, "+n:c:p:", &pri, &ioclass, &pid);
+	opt = getopt32(argv, "+n:+c:+p:+", &pri, &ioclass, &pid);
 	argv += optind;
 
 	if (opt & OPT_c) {

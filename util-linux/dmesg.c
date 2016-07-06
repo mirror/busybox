@@ -34,8 +34,7 @@ int dmesg_main(int argc UNUSED_PARAM, char **argv)
 		OPT_r = 1 << 3
 	};
 
-	opt_complementary = "s+:n+"; /* numeric */
-	opts = getopt32(argv, "cs:n:r", &len, &level);
+	opts = getopt32(argv, "cs:+n:+r", &len, &level);
 	if (opts & OPT_n) {
 		if (klogctl(8, NULL, (long) level))
 			bb_perror_msg_and_die("klogctl");

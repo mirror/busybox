@@ -99,8 +99,7 @@ int readprofile_main(int argc UNUSED_PARAM, char **argv)
 	proFile = defaultpro;
 	mapFile = defaultmap;
 
-	opt_complementary = "M+"; /* -M N */
-	opt = getopt32(argv, "M:m:p:nabsirv", &multiplier, &mapFile, &proFile);
+	opt = getopt32(argv, "M:+m:p:nabsirv", &multiplier, &mapFile, &proFile);
 
 	if (opt & (OPT_M|OPT_r)) { /* mult or reset, or both */
 		int fd, to_write;

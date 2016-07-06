@@ -982,11 +982,11 @@ int diff_main(int argc UNUSED_PARAM, char **argv)
 	INIT_G();
 
 	/* exactly 2 params; collect multiple -L <label>; -U N */
-	opt_complementary = "=2:L::U+";
+	opt_complementary = "=2";
 #if ENABLE_FEATURE_DIFF_LONG_OPTIONS
 	applet_long_options = diff_longopts;
 #endif
-	getopt32(argv, "abdiL:NqrsS:tTU:wupBE",
+	getopt32(argv, "abdiL:*NqrsS:tTU:+wupBE",
 			&L_arg, &s_start, &opt_U_context);
 	argv += optind;
 	while (L_arg)

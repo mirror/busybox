@@ -106,8 +106,7 @@ int pgrep_main(int argc UNUSED_PARAM, char **argv)
 	/* Parse remaining options */
 	ppid2match = -1;
 	sid2match = -1;
-	opt_complementary = "s+:P+"; /* numeric opts */
-	opt = getopt32(argv, "vlfxons:P:", &sid2match, &ppid2match);
+	opt = getopt32(argv, "vlfxons:+P:+", &sid2match, &ppid2match);
 	argv += optind;
 
 	if (pkill && OPT_LIST) { /* -l: print the whole signal list */

@@ -300,8 +300,8 @@ int chpst_main(int argc UNUSED_PARAM, char **argv)
 		// FIXME: can we live with int-sized limits?
 		// can we live with 40000 days?
 		// if yes -> getopt converts strings to numbers for us
-		opt_complementary = "-1:a+:c+:d+:f+:l+:m+:o+:p+:r+:s+:t+";
-		opt = getopt32(argv, "+a:c:d:f:l:m:o:p:r:s:t:u:U:e:"
+		opt_complementary = "-1";
+		opt = getopt32(argv, "+a:+c:+d:+f:+l:+m:+o:+p:+r:+s:+t:+u:U:e:"
 			IF_CHPST("/:n:vP012"),
 			&limita, &limitc, &limitd, &limitf, &limitl,
 			&limitm, &limito, &limitp, &limitr, &limits, &limitt,

@@ -232,9 +232,9 @@ int tcpudpsvd_main(int argc UNUSED_PARAM, char **argv)
 	tcp = (applet_name[0] == 't');
 
 	/* 3+ args, -i at most once, -p implies -h, -v is counter, -b N, -c N */
-	opt_complementary = "-3:i--i:ph:vv:b+:c+";
+	opt_complementary = "-3:i--i:ph:vv";
 #ifdef SSLSVD
-	opts = getopt32(argv, "+c:C:i:x:u:l:Eb:hpt:vU:/:Z:K:",
+	opts = getopt32(argv, "+c:+C:i:x:u:l:Eb:+hpt:vU:/:Z:K:",
 		&cmax, &str_C, &instructs, &instructs, &user, &preset_local_hostname,
 		&backlog, &str_t, &ssluser, &root, &cert, &key, &verbose
 	);

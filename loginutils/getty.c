@@ -131,7 +131,7 @@ struct globals {
 //usage:     "\n"
 //usage:     "\nBAUD_RATE of 0 leaves it unchanged"
 
-static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:wn";
+static const char opt_string[] ALIGN1 = "I:LH:f:hil:mt:+wn";
 #define F_INITSTRING    (1 << 0)   /* -I */
 #define F_LOCAL         (1 << 1)   /* -L */
 #define F_FAKEHOST      (1 << 2)   /* -H */
@@ -179,7 +179,7 @@ static void parse_args(char **argv)
 	char *ts;
 	int flags;
 
-	opt_complementary = "-2:t+"; /* at least 2 args; -t N */
+	opt_complementary = "-2"; /* at least 2 args; -t N */
 	flags = getopt32(argv, opt_string,
 		&G.initstring, &G.fakehost, &G.issue,
 		&G.login, &G.timeout

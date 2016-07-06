@@ -1503,8 +1503,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	/* do normal option parsing */
 	opt_e = opt_f = NULL;
 	opt_i = NULL;
-	opt_complementary = "e::f::" /* can occur multiple times */
-	                    "nn"; /* count -n */
+	opt_complementary = "nn"; /* count -n */
 
 	IF_LONG_OPTS(applet_long_options = sed_longopts);
 
@@ -1513,7 +1512,7 @@ int sed_main(int argc UNUSED_PARAM, char **argv)
 	 * GNU sed 4.2.1 mentions it in neither --help
 	 * nor manpage, but does recognize it.
 	 */
-	opt = getopt32(argv, "i::rEne:f:", &opt_i, &opt_e, &opt_f,
+	opt = getopt32(argv, "i::rEne:*f:*", &opt_i, &opt_e, &opt_f,
 			    &G.be_quiet); /* counter for -n */
 	//argc -= optind;
 	argv += optind;

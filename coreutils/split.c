@@ -81,8 +81,8 @@ int split_main(int argc UNUSED_PARAM, char **argv)
 
 	setup_common_bufsiz();
 
-	opt_complementary = "?2:a+"; /* max 2 args; -a N */
-	opt = getopt32(argv, "l:b:a:", &count_p, &count_p, &suffix_len);
+	opt_complementary = "?2"; /* max 2 args; -a N */
+	opt = getopt32(argv, "l:b:a:+", &count_p, &count_p, &suffix_len);
 
 	if (opt & SPLIT_OPT_l)
 		cnt = XATOOFF(count_p);

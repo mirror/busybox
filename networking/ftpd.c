@@ -1130,11 +1130,11 @@ int ftpd_main(int argc UNUSED_PARAM, char **argv)
 	abs_timeout = 1 * 60 * 60;
 	verbose_S = 0;
 	G.timeout = 2 * 60;
-	opt_complementary = "t+:T+:vv:SS";
+	opt_complementary = "vv:SS";
 #if BB_MMU
-	opts = getopt32(argv,    "vS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
+	opts = getopt32(argv,    "vS" IF_FEATURE_FTP_WRITE("w") "t:+T:+", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 #else
-	opts = getopt32(argv, "l1AvS" IF_FEATURE_FTP_WRITE("w") "t:T:", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
+	opts = getopt32(argv, "l1AvS" IF_FEATURE_FTP_WRITE("w") "t:+T:+", &G.timeout, &abs_timeout, &G.verbose, &verbose_S);
 	if (opts & (OPT_l|OPT_1)) {
 		/* Our secret backdoor to ls */
 /* TODO: pass --group-directories-first? would be nice, but ls doesn't do that yet */

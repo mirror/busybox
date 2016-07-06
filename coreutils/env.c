@@ -54,11 +54,10 @@ int env_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opts;
 	llist_t *unset_env = NULL;
 
-	opt_complementary = "u::";
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
 	applet_long_options = env_longopts;
 #endif
-	opts = getopt32(argv, "+iu:", &unset_env);
+	opts = getopt32(argv, "+iu:+", &unset_env);
 	argv += optind;
 	if (argv[0] && LONE_DASH(argv[0])) {
 		opts |= 1;

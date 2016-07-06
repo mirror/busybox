@@ -62,7 +62,7 @@ enum {
 };
 
 #define OD_GETOPT32() getopt32(argv, \
-	"A:N:abcdfhij:lot:vxsS:w::", \
+	"A:N:abcdfhij:lot:*vxsS:w:+:", \
 	/* -w with optional param */ \
 	/* -S was -s and also had optional parameter */ \
 	/* but in coreutils 6.3 it was renamed and now has */ \
@@ -1212,7 +1212,6 @@ int od_main(int argc UNUSED_PARAM, char **argv)
 	address_pad_len_char = '7';
 
 	/* Parse command line */
-	opt_complementary = "w+:t::"; /* -w N, -t is a list */
 #if ENABLE_LONG_OPTS
 	applet_long_options = od_longopts;
 #endif

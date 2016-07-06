@@ -51,13 +51,12 @@ int pidof_main(int argc UNUSED_PARAM, char **argv)
 	unsigned opt;
 #if ENABLE_FEATURE_PIDOF_OMIT
 	llist_t *omits = NULL; /* list of pids to omit */
-	opt_complementary = "o::";
 #endif
 
 	/* do unconditional option parsing */
 	opt = getopt32(argv, ""
 			IF_FEATURE_PIDOF_SINGLE ("s")
-			IF_FEATURE_PIDOF_OMIT("o:", &omits));
+			IF_FEATURE_PIDOF_OMIT("o:*", &omits));
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	/* fill omit list.  */

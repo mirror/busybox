@@ -2919,8 +2919,7 @@ int fdisk_main(int argc UNUSED_PARAM, char **argv)
 
 	close_dev_fd(); /* needed: fd 3 must not stay closed */
 
-	opt_complementary = "b+:C+:H+:S+"; /* numeric params */
-	opt = getopt32(argv, "b:C:H:lS:u" IF_FEATURE_FDISK_BLKSIZE("s"),
+	opt = getopt32(argv, "b:+C:+H:+lS:+u" IF_FEATURE_FDISK_BLKSIZE("s"),
 				&sector_size, &user_cylinders, &user_heads, &user_sectors);
 	argv += optind;
 	if (opt & OPT_b) {

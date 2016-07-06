@@ -1153,8 +1153,8 @@ int inetd_main(int argc UNUSED_PARAM, char **argv)
 	if (real_uid != 0) /* run by non-root user */
 		config_filename = NULL;
 
-	opt_complementary = "R+:q+"; /* -q N, -R N */
-	opt = getopt32(argv, "R:feq:", &max_concurrency, &global_queuelen);
+	/* -q N, -R N */
+	opt = getopt32(argv, "R:+feq:+", &max_concurrency, &global_queuelen);
 	argv += optind;
 	//argc -= optind;
 	if (argv[0])

@@ -113,12 +113,11 @@ int halt_main(int argc UNUSED_PARAM, char **argv)
 		continue;
 
 	/* Parse and handle arguments */
-	opt_complementary = "d+"; /* -d N */
 	/* We support -w even if !ENABLE_FEATURE_WTMP,
 	 * in order to not break scripts.
 	 * -i (shut down network interfaces) is ignored.
 	 */
-	flags = getopt32(argv, "d:nfwi", &delay);
+	flags = getopt32(argv, "d:+nfwi", &delay);
 
 	sleep(delay);
 

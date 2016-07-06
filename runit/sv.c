@@ -474,8 +474,8 @@ int sv_main(int argc UNUSED_PARAM, char **argv)
 	x = getenv("SVWAIT");
 	if (x) waitsec = xatou(x);
 
-	opt_complementary = "w+:vv"; /* -w N, -v is a counter */
-	getopt32(argv, "w:v", &waitsec, &verbose);
+	opt_complementary = "vv"; /* -w N, -v is a counter */
+	getopt32(argv, "w:+v", &waitsec, &verbose);
 	argv += optind;
 	action = *argv++;
 	if (!action || !*argv) bb_show_usage();

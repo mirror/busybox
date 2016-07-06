@@ -2197,11 +2197,11 @@ static NOINLINE void ntp_init(char **argv)
 
 	/* Parse options */
 	peers = NULL;
-	opt_complementary = "dd:p::wn"         /* -d: counter; -p: list; -w implies -n */
+	opt_complementary = "dd:wn"  /* -d: counter; -p: list; -w implies -n */
 		IF_FEATURE_NTPD_SERVER(":Il"); /* -I implies -l */
 	opts = getopt32(argv,
 			"nqNx" /* compat */
-			"wp:S:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
+			"wp:*S:"IF_FEATURE_NTPD_SERVER("l") /* NOT compat */
 			IF_FEATURE_NTPD_SERVER("I:") /* compat */
 			"d" /* compat */
 			"46aAbgL", /* compat, ignored */

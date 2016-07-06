@@ -342,7 +342,7 @@ enum {
 #define OPTION_STR "m:nO:l:S" \
 	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
 	IF_FEATURE_ROTATE_LOGFILE("b:" ) \
-	IF_FEATURE_REMOTE_LOG(    "R:" ) \
+	IF_FEATURE_REMOTE_LOG(    "R:*") \
 	IF_FEATURE_REMOTE_LOG(    "L"  ) \
 	IF_FEATURE_IPC_SYSLOG(    "C::") \
 	IF_FEATURE_SYSLOGD_DUP(   "D"  ) \
@@ -1108,8 +1108,8 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	/* No non-option params, -R can occur multiple times */
-	opt_complementary = "=0" IF_FEATURE_REMOTE_LOG(":R::");
+	/* No non-option params */
+	opt_complementary = "=0";
 	opts = getopt32(argv, OPTION_STR, OPTION_PARAM);
 #if ENABLE_FEATURE_REMOTE_LOG
 	while (remoteAddrList) {

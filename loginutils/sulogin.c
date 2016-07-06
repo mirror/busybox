@@ -43,8 +43,7 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
 
-	opt_complementary = "t+"; /* -t N */
-	getopt32(argv, "t:", &timeout);
+	getopt32(argv, "t:+", &timeout);
 	argv += optind;
 
 	if (argv[0]) {

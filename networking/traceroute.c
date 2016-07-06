@@ -294,7 +294,7 @@
 
 #define OPT_STRING \
 	"FIlnrdvxt:i:m:p:q:s:w:z:f:" \
-	IF_FEATURE_TRACEROUTE_SOURCE_ROUTE("g:") \
+	IF_FEATURE_TRACEROUTE_SOURCE_ROUTE("g:*") \
 	"4" IF_TRACEROUTE6("6")
 enum {
 	OPT_DONT_FRAGMNT = (1 << 0),    /* F */
@@ -819,7 +819,7 @@ common_traceroute_main(int op, char **argv)
 	INIT_G();
 
 	/* minimum 1 arg */
-	opt_complementary = "-1:x-x" IF_FEATURE_TRACEROUTE_SOURCE_ROUTE(":g::");
+	opt_complementary = "-1:x-x";
 	op |= getopt32(argv, OPT_STRING
 		, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str
 		, &source, &waittime_str, &pausemsecs_str, &first_ttl_str

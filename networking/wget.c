@@ -1268,9 +1268,8 @@ IF_DESKTOP(	"no-parent\0"        No_argument       "\xf0")
 	applet_long_options = wget_longopts;
 #endif
 	opt_complementary = "-1" /* at least one URL */
-		IF_FEATURE_WGET_TIMEOUT(":T+") /* -T NUM */
 		IF_FEATURE_WGET_LONG_OPTIONS(":\xff::"); /* --header is a list */
-	getopt32(argv, "csqO:P:Y:U:T:"
+	getopt32(argv, "csqO:P:Y:U:T:+"
 		/*ignored:*/ "t:"
 		/*ignored:*/ "n::"
 		/* wget has exactly four -n<letter> opts, all of which we can ignore:
