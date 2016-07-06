@@ -21,12 +21,17 @@
 //kbuild:lib-$(CONFIG_WHOIS) += whois.o
 
 //usage:#define whois_trivial_usage
-//usage:       "[-h SERVER] [-p PORT] NAME..."
+//usage:       "[-i] [-h SERVER] [-p PORT] NAME..."
 //usage:#define whois_full_usage "\n\n"
 //usage:       "Query WHOIS info about NAME\n"
+//usage:     "\n	-i	Show redirect results too"
 //usage:     "\n	-h,-p	Server to query"
 
 #include "libbb.h"
+
+enum {
+	OPT_i = (1 << 0),
+};
 
 static char *query(const char *host, int port, const char *domain)
 {
@@ -53,6 +58,7 @@ static char *query(const char *host, int port, const char *domain)
 		buf = xrealloc(buf, bufpos + len + 1);
 		memcpy(buf + bufpos, linebuf, len);
 		bufpos += len;
+		buf[bufpos] = '\0';
 
 		if (!redir || !success) {
 			trim(linebuf);
@@ -73,7 +79,7 @@ static char *query(const char *host, int port, const char *domain)
 	fclose(fp); /* closes fd too */
 	if (!success && !pfx[0]) {
 		/*
-		 * Looking at jwhois.conf, some whois servers use
+		 * Looking at /etc/jwhois.conf, some whois servers use
 		 * "domain = DOMAIN", "DOMAIN ID <DOMAIN>"
 		 * and "domain=DOMAIN_WITHOUT_LAST_COMPONENT"
 		 * formats, but those are rare.
@@ -91,11 +97,9 @@ static char *query(const char *host, int port, const char *domain)
 		free(redir);
 		redir = NULL;
 	}
-	if (!redir) {
+	if (!redir || (option_mask32 & OPT_i)) {
 		/* Output saved text */
-		printf("[%s]\n", host);
-		buf[bufpos] = '\0';
-		fputs(buf, stdout);
+		printf("[%s]\n%s", host, buf ? buf : "");
 	}
 	free(buf);
 	return redir;
@@ -164,7 +168,7 @@ int whois_main(int argc UNUSED_PARAM, char **argv)
 	const char *host = "whois.iana.org";
 
 	opt_complementary = "-1:p+";
-	getopt32(argv, "h:p:", &host, &port);
+	getopt32(argv, "ih:p:", &host, &port);
 	argv += optind;
 
 	do {
