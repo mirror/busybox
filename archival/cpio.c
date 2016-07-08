@@ -23,7 +23,7 @@
 //config:	  cpio has 110 bytes of overheads for every stored file.
 //config:
 //config:	  This implementation of cpio can extract cpio archives created in the
-//config:	  "newc" or "crc" format, it cannot create or modify them.
+//config:	  "newc" or "crc" format.
 //config:
 //config:	  Unless you have a specific application which requires cpio, you
 //config:	  should probably say N here.
@@ -51,10 +51,10 @@
 //usage:       " [-ti"IF_FEATURE_CPIO_O("o")"]" IF_FEATURE_CPIO_P(" [-p DIR]")
 //usage:       " [EXTR_FILE]..."
 //usage:#define cpio_full_usage "\n\n"
-//usage:       "Extract or list files from a cpio archive"
+//usage:       "Extract (-i) or list (-t) files from a cpio archive"
 //usage:	IF_FEATURE_CPIO_O(", or"
-//usage:     "\ncreate an archive" IF_FEATURE_CPIO_P(" (-o) or copy files (-p)")
-//usage:		" using file list on stdin"
+//usage:     "\ntake file list from stdin and create an archive (-o)"
+//usage:                IF_FEATURE_CPIO_P(" or copy files (-p)")
 //usage:	)
 //usage:     "\n"
 //usage:     "\nMain operation mode:"
