@@ -66,6 +66,10 @@
 //usage:     "\n	-w	Warn about improperly formatted checksum lines"
 //usage:	)
 
+//FIXME: GNU coreutils 8.25 has no -s option, it has only these two long opts:
+// --quiet   don't print OK for each successfully verified file
+// --status  don't output anything, status code shows success
+
 #include "libbb.h"
 
 /* This is a NOEXEC applet. Be very careful! */
@@ -174,6 +178,8 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 	unsigned flags;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK) {
+		/* -s and -w require -c */
+		opt_complementary = "s?c:w?c";
 		/* -b "binary", -t "text" are ignored (shaNNNsum compat) */
 		flags = getopt32(argv, "scwbt");
 		argv += optind;
@@ -184,15 +190,6 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 	}
 	if (!*argv)
 		*--argv = (char*)"-";
-
-	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {
-		if (flags & FLAG_SILENT) {
-			bb_error_msg_and_die("-%c is meaningful only with -c", 's');
-		}
-		if (flags & FLAG_WARN) {
-			bb_error_msg_and_die("-%c is meaningful only with -c", 'w');
-		}
-	}
 
 	do {
 		if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && (flags & FLAG_CHECK)) {
@@ -243,6 +240,14 @@ int md5_sha1_sum_main(int argc UNUSED_PARAM, char **argv)
 			if (count_failed && !(flags & FLAG_SILENT)) {
 				bb_error_msg("WARNING: %d of %d computed checksums did NOT match",
 						count_failed, count_total);
+			}
+			if (count_total == 0) {
+				return_value = EXIT_FAILURE;
+				/*
+				 * md5sum from GNU coreutils 8.25 says:
+				 * md5sum: <FILE>: no properly formatted MD5 checksum lines found
+				 */
+				bb_error_msg("%s: no checksum lines found", *argv);
 			}
 			fclose_if_not_stdin(pre_computed_stream);
 		} else {

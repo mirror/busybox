@@ -23,6 +23,8 @@ test -f "$bindir/.config" && . "$bindir/.config"
 test x"$CONFIG_FEATURE_FANCY_HEAD" != x"y" \
 && { echo "SKIPPED: $sum"; exit 0; }
 
+FAILCOUNT=0
+
 text="The quick brown fox jumps over the lazy dog"
 text=`yes "$text" | head -c 9999`
 
@@ -33,11 +35,21 @@ while test $n -le 999; do
 	n=$(($n+1))
 done | "$sum"
 )`
-
-if test x"$result" = x"$expected  -"; then
+if test x"$result" != x"$expected  -"; then
+	echo "FAIL: $sum (r:$result exp:$expected)"
+	: $((FAILCOUNT++))
+else
 	echo "PASS: $sum"
-	exit 0
 fi
 
-echo "FAIL: $sum (r:$result exp:$expected)"
-exit 1
+# GNU compat: -c EMPTY must fail (exitcode 1)!
+>EMPTY
+if "$sum" -c EMPTY 2>/dev/null; then
+	echo "FAIL: $sum -c EMPTY"
+	: $((FAILCOUNT++))
+else
+	echo "PASS: $sum -c EMPTY"
+fi
+rm EMPTY
+
+exit $FAILCOUNT
