@@ -11,7 +11,7 @@
 
 //usage:#define sendmail_trivial_usage
 //usage:       "[-tv] [-f SENDER] [-amLOGIN 4<user_pass.txt | -auUSER -apPASS]"
-//usage:     "\n		[-w SECS] [RECIPIENT_EMAIL]..."
+//usage:     "\n		[-w SECS] [-H 'PROG ARGS' | -S HOST] [RECIPIENT_EMAIL]..."
 //usage:#define sendmail_full_usage "\n\n"
 //usage:       "Read email from stdin and send it\n"
 //usage:     "\nStandard options:"
