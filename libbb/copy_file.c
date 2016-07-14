@@ -375,7 +375,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 		}
 		/* _Not_ jumping to preserve_mode_ugid_time:
 		 * symlinks don't have those */
-		return 0;
+		goto verb_and_exit;
 	}
 	if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode)
 	 || S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode)
@@ -410,6 +410,7 @@ int FAST_FUNC copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("can't preserve %s of '%s'", "permissions", dest);
 	}
 
+ verb_and_exit:
 	if (flags & FILEUTILS_VERBOSE) {
 		printf("'%s' -> '%s'\n", source, dest);
 	}
