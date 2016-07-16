@@ -323,7 +323,7 @@ struct globals_misc {
 #define S_DFL      1            /* default signal handling (SIG_DFL) */
 #define S_CATCH    2            /* signal is caught */
 #define S_IGN      3            /* signal is ignored (SIG_IGN) */
-#define S_HARD_IGN 4            /* signal is ignored permenantly */
+#define S_HARD_IGN 4            /* signal is ignored permanently */
 
 	/* indicates specified signal received */
 	uint8_t gotsig[NSIG - 1]; /* offset by 1: "signal" 0 is meaningless */
@@ -9024,7 +9024,20 @@ execcmd(int argc UNUSED_PARAM, char **argv)
 		iflag = 0;              /* exit on error */
 		mflag = 0;
 		optschanged();
+		/* We should set up signals for "exec CMD"
+		 * the same way as for "CMD" without "exec".
+		 * But optschanged->setinteractive->setsignal
+		 * still thought we are a root shell. Therefore, for example,
+		 * SIGQUIT is still set to IGN. Fix it:
+		 */
+		shlvl++;
+		setsignal(SIGQUIT);
+		/*setsignal(SIGTERM); - unnecessary because of iflag=0 */
+		/*setsignal(SIGTSTP); - unnecessary because of mflag=0 */
+		/*setsignal(SIGTTOU); - unnecessary because of mflag=0 */
+
 		shellexec(argv + 1, pathval(), 0);
+		/* NOTREACHED */
 	}
 	return 0;
 }
