@@ -15,7 +15,7 @@
 //config:	help
 //config:	  sync is used to flush filesystem buffers.
 //config:config FEATURE_SYNC_FANCY
-//config:	bool "Enable -d and -f flags (requres syncfs(2) in libc)"
+//config:	bool "Enable -d and -f flags (requires syncfs(2) in libc)"
 //config:	default y
 //config:	depends on SYNC
 //config:	help

@@ -295,7 +295,7 @@ static NOINLINE void INET_setroute(int action, char **args)
 #endif
 
 		/* Device is special in that it can be the last arg specified
-		 * and doesn't requre the dev/device keyword in that case. */
+		 * and doesn't require the dev/device keyword in that case. */
 		if (!rt->rt_dev && ((k == KW_IPVx_DEVICE) || (!k && !*++args))) {
 			/* Don't use args_m1 here since args may have changed! */
 			rt->rt_dev = args[-1];
@@ -416,7 +416,7 @@ static NOINLINE void INET6_setroute(int action, char **args)
 		}
 
 		/* Device is special in that it can be the last arg specified
-		 * and doesn't requre the dev/device keyword in that case. */
+		 * and doesn't require the dev/device keyword in that case. */
 		if (!devname && ((k == KW_IPVx_DEVICE) || (!k && !*++args))) {
 			/* Don't use args_m1 here since args may have changed! */
 			devname = args[-1];
