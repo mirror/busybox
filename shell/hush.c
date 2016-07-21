@@ -9153,9 +9153,11 @@ static int FAST_FUNC builtin_break(char **argv)
 	unsigned depth;
 	if (G.depth_of_loop == 0) {
 		bb_error_msg("%s: only meaningful in a loop", argv[0]);
+		/* if we came from builtin_continue(), need to undo "= 1" */
+		G.flag_break_continue = 0;
 		return EXIT_SUCCESS; /* bash compat */
 	}
-	G.flag_break_continue++; /* BC_BREAK = 1 */
+	G.flag_break_continue++; /* BC_BREAK = 1, or BC_CONTINUE = 2 */
 
 	G.depth_break_continue = depth = parse_numeric_argv1(argv, 1, 1);
 	if (depth == UINT_MAX)
