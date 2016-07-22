@@ -143,7 +143,9 @@ int main(int argc, char **argv)
 	printf("};\n");
 	printf("#endif\n\n");
 
-#if ENABLE_FEATURE_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS \
+ || ENABLE_FEATURE_SH_STANDALONE \
+ || ENABLE_FEATURE_SH_NOFORK
 	printf("const uint8_t applet_flags[] ALIGN1 = {\n");
 	i = 0;
 	while (i < NUM_APPLETS) {

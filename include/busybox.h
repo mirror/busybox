@@ -19,7 +19,9 @@ extern const uint8_t applet_flags[] ALIGN1;
 extern const uint8_t applet_suid[] ALIGN1;
 extern const uint8_t applet_install_loc[] ALIGN1;
 
-#if ENABLE_FEATURE_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS \
+ || ENABLE_FEATURE_SH_STANDALONE \
+ || ENABLE_FEATURE_SH_NOFORK
 # define APPLET_IS_NOFORK(i) (applet_flags[(i)/4] & (1 << (2 * ((i)%4))))
 # define APPLET_IS_NOEXEC(i) (applet_flags[(i)/4] & (1 << ((2 * ((i)%4))+1)))
 #else

@@ -68,7 +68,8 @@ pid_t FAST_FUNC xspawn(char **argv)
 	return pid;
 }
 
-#if ENABLE_FEATURE_PREFER_APPLETS
+#if ENABLE_FEATURE_PREFER_APPLETS \
+ || ENABLE_FEATURE_SH_NOFORK
 static jmp_buf die_jmp;
 static void jump(void)
 {
@@ -174,7 +175,7 @@ int FAST_FUNC run_nofork_applet(int applet_no, char **argv)
 
 	return rc & 0xff; /* don't confuse people with "exitcodes" >255 */
 }
-#endif /* FEATURE_PREFER_APPLETS */
+#endif /* FEATURE_PREFER_APPLETS || FEATURE_SH_NOFORK */
 
 int FAST_FUNC spawn_and_wait(char **argv)
 {
