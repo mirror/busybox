@@ -6323,6 +6323,8 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 
 #if ENABLE_ASH_BASH_COMPAT
 	case VSSUBSTR:
+//TODO: support more general format ${v:EXPR:EXPR},
+// where EXPR follows $(()) rules
 		loc = str = stackblock() + strloc;
 		/* Read POS in ${var:POS:LEN} */
 		pos = atoi(loc); /* number(loc) errors out on "1:4" */
@@ -11577,15 +11579,18 @@ parsesub: {
 		STPUTC('=', out);
 		flags = 0;
 		if (subtype == 0) {
+			static const char types[] ALIGN1 = "}-+?=";
 			/* ${VAR...} but not $VAR or ${#VAR} */
 			/* c == first char after VAR */
 			switch (c) {
 			case ':':
 				c = pgetc();
 #if ENABLE_ASH_BASH_COMPAT
-				if (c == ':' || c == '$' || isdigit(c)) {
-//TODO: support more general format ${v:EXPR:EXPR},
-// where EXPR follows $(()) rules
+				/* This check is only needed to not misinterpret
+				 * ${VAR:-WORD}, ${VAR:+WORD}, ${VAR:=WORD}, ${VAR:?WORD}
+				 * constructs.
+				 */
+				if (!strchr(types, c)) {
 					subtype = VSSUBSTR;
 					pungetc();
 					break; /* "goto do_pungetc" is bigger (!) */
@@ -11594,7 +11599,6 @@ parsesub: {
 				flags = VSNUL;
 				/*FALLTHROUGH*/
 			default: {
-				static const char types[] ALIGN1 = "}-+?=";
 				const char *p = strchr(types, c);
 				if (p == NULL)
 					goto badsub;
