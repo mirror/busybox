@@ -1,17 +1,19 @@
 #!/bin/bash
 # (using bashism: arrays)
 
-service="${PWD##*/}"
-rundir="/var/run/service/$service"
-
-user=root
-extif=if
-ext_open_tcp="21 22 80" # space-separated
+user="root"
+reset_all_netdevs=true
+preferred_default_route_iface="if"
+extif="if"
+ext_open_tcp="22 80 88" # space-separated
 
 # Make ourself one-shot
 sv o .
 # Debug
 #date '+%Y-%m-%d %H:%M:%S' >>"$0.log"
+
+service=`basename $PWD`
+rundir="/var/run/service/$service"
 
 ### filter This is the default table (if no -t option is passed).  It contains
 ###        the  built-in chains INPUT (for packets coming into the box itself),
@@ -70,7 +72,6 @@ ln -s "$rundir" rundir
 # Timestamping
 date '+%Y-%m-%d %H:%M:%S'
 
-
 echo; echo "* Reading IP config"
 cfg=-1
 #             static cfg    dhcp,zeroconf etc
@@ -86,11 +87,19 @@ echo; echo "* Configuring hardware"
 #doit ethtool -K if rx off tx off sg off tso off
 
 echo; echo "* Resetting address and routing info"
-doit ip a f dev lo
-i=0; while test "${if[$i]}"; do
-	doit ip a f dev "${if[$i]}"
-	doit ip r f dev "${if[$i]}" root 0/0
-let i++; done
+if $reset_all_netdevs; then
+	devs=`sed -n 's/ //g;s/:.*$//p' </proc/net/dev`
+	for if in $devs; do
+		doit ip a f dev "$if"
+		doit ip r f dev "$if" root 0/0
+	done
+else
+	doit ip a f dev lo
+	i=0; while test "${if[$i]}"; do
+		doit ip a f dev "${if[$i]}"
+		doit ip r f dev "${if[$i]}" root 0/0
+	let i++; done
+fi
 
 echo; echo "* Configuring addresses"
 doit ip a a dev lo 127.0.0.1/8 scope host
@@ -103,7 +112,22 @@ i=0; while test "${if[$i]}"; do
 let i++; done
 
 echo; echo "* Configuring routes"
+# If several ifaces are configured via DHCP, they often both have 0/0 route.
+# They have no way of knowing that this route is offered on more than one iface.
+# Often, it's desirable to prefer one iface: say, wired eth over wireless.
+# if preferred_default_route_iface is not set, 0/0 route will be assigned randomly.
+if test "$preferred_default_route_iface"; then
+	i=0; while test "${if[$i]}"; do
+		if test "${if[$i]}" = "$preferred_default_route_iface" \
+		&& test "${net[$i]}" = "0/0" \
+		&& test "${gw[$i]}"; then
+			echo "+ default route through ${if[$i]}, ${gw[$i]}:"
+			doit ip r a "${net[$i]}" via "${gw[$i]}"
+		fi
+	let i++; done
+fi
 i=0; while test "${if[$i]}"; do
+	#echo $i:"${if[$i]}"
 	if test "${net[$i]}" && test "${gw[$i]}"; then
 		doit ip r a "${net[$i]}" via "${gw[$i]}"
 	fi
