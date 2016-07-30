@@ -89,9 +89,9 @@ echo; echo "* Configuring hardware"
 echo; echo "* Resetting address and routing info"
 if $reset_all_netdevs; then
 	devs=`sed -n 's/ //g;s/:.*$//p' </proc/net/dev`
-	for if in $devs; do
-		doit ip a f dev "$if"
-		doit ip r f dev "$if" root 0/0
+	for iface in $devs; do
+		doit ip a f dev "$iface"
+		doit ip r f dev "$iface" root 0/0
 	done
 else
 	doit ip a f dev lo
