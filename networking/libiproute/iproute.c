@@ -362,10 +362,9 @@ IF_FEATURE_IP_RULE(ARG_table,)
 		req.r.rtm_scope = RT_SCOPE_NOWHERE;
 
 	if (cmd != RTM_DELROUTE) {
+		req.r.rtm_scope = RT_SCOPE_UNIVERSE;
 		if (RTPROT_BOOT != 0)
 			req.r.rtm_protocol = RTPROT_BOOT;
-		if (RT_SCOPE_UNIVERSE != 0)
-			req.r.rtm_scope = RT_SCOPE_UNIVERSE;
 		if (RTN_UNICAST != 0)
 			req.r.rtm_type = RTN_UNICAST;
 	}
