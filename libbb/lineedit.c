@@ -81,7 +81,9 @@
 # define CHAR_T wchar_t
 static bool BB_isspace(CHAR_T c) { return ((unsigned)c < 256 && isspace(c)); }
 # if ENABLE_FEATURE_EDITING_VI
-static bool BB_isalnum(CHAR_T c) { return ((unsigned)c < 256 && isalnum(c)); }
+static bool BB_isalnum_or_underscore(CHAR_T c) {
+	return ((unsigned)c < 256 && isalnum(c)) || c == '_';
+}
 # endif
 static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # undef isspace
@@ -96,7 +98,11 @@ static bool BB_ispunct(CHAR_T c) { return ((unsigned)c < 256 && ispunct(c)); }
 # define BB_NUL '\0'
 # define CHAR_T char
 # define BB_isspace(c) isspace(c)
-# define BB_isalnum(c) isalnum(c)
+# if ENABLE_FEATURE_EDITING_VI
+static bool BB_isalnum_or_underscore(CHAR_T c) {
+	return ((unsigned)c < 256 && isalnum(c)) || c == '_';
+}
+# endif
 # define BB_ispunct(c) ispunct(c)
 #endif
 #if ENABLE_UNICODE_PRESERVE_BROKEN
@@ -1586,9 +1592,9 @@ vi_word_motion(int eat)
 {
 	CHAR_T *command = command_ps;
 
-	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
+	if (BB_isalnum_or_underscore(command[cursor])) {
 		while (cursor < command_len
-		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_')
+		 && (BB_isalnum_or_underscore(command[cursor+1]))
 		) {
 			input_forward();
 		}
@@ -1630,9 +1636,9 @@ vi_end_motion(void)
 		input_forward();
 	if (cursor >= command_len-1)
 		return;
-	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
+	if (BB_isalnum_or_underscore(command[cursor])) {
 		while (cursor < command_len-1
-		 && (BB_isalnum(command[cursor+1]) || command[cursor+1] == '_')
+		 && (BB_isalnum_or_underscore(command[cursor+1]))
 		) {
 			input_forward();
 		}
@@ -1665,9 +1671,9 @@ vi_back_motion(void)
 		input_backward(1);
 	if (cursor <= 0)
 		return;
-	if (BB_isalnum(command[cursor]) || command[cursor] == '_') {
+	if (BB_isalnum_or_underscore(command[cursor])) {
 		while (cursor > 0
-		 && (BB_isalnum(command[cursor-1]) || command[cursor-1] == '_')
+		 && (BB_isalnum_or_underscore(command[cursor-1]))
 		) {
 			input_backward(1);
 		}
