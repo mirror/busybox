@@ -197,9 +197,11 @@ static int iprule_modify(int cmd, char **argv)
 	req.n.nlmsg_flags = NLM_F_REQUEST;
 	req.r.rtm_family = preferred_family;
 	req.r.rtm_protocol = RTPROT_BOOT;
-	req.r.rtm_scope = RT_SCOPE_UNIVERSE;
-	req.r.rtm_table = 0;
-	req.r.rtm_type = RTN_UNSPEC;
+	if (RT_SCOPE_UNIVERSE != 0)
+		req.r.rtm_scope = RT_SCOPE_UNIVERSE;
+	/*req.r.rtm_table = 0; - already is */
+	if (RTN_UNSPEC != 0)
+		req.r.rtm_type = RTN_UNSPEC;
 
 	if (cmd == RTM_NEWRULE) {
 		req.n.nlmsg_flags |= NLM_F_CREATE|NLM_F_EXCL;

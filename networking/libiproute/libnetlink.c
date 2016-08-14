@@ -68,30 +68,32 @@ int FAST_FUNC rtnl_send(struct rtnl_handle *rth, char *buf, int len)
 
 int FAST_FUNC rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
 {
-	struct nlmsghdr nlh;
-	struct sockaddr_nl nladdr;
-	struct iovec iov[2] = { { &nlh, sizeof(nlh) }, { req, len } };
-	/* Use designated initializers, struct layout is non-portable */
-	struct msghdr msg = {
-		.msg_name = (void*)&nladdr,
-		.msg_namelen = sizeof(nladdr),
-		.msg_iov = iov,
-		.msg_iovlen = 2,
-		.msg_control = NULL,
-		.msg_controllen = 0,
-		.msg_flags = 0
-	};
+	struct {
+		struct nlmsghdr nlh;
+		struct msghdr msg;
+		struct sockaddr_nl nladdr;
+	} s;
+	struct iovec iov[2] = { { &s.nlh, sizeof(s.nlh) }, { req, len } };
 
-	memset(&nladdr, 0, sizeof(nladdr));
-	nladdr.nl_family = AF_NETLINK;
+	memset(&s, 0, sizeof(s));
 
-	nlh.nlmsg_len = NLMSG_LENGTH(len);
-	nlh.nlmsg_type = type;
-	nlh.nlmsg_flags = NLM_F_ROOT|NLM_F_MATCH|NLM_F_REQUEST;
-	nlh.nlmsg_pid = 0;
-	nlh.nlmsg_seq = rth->dump = ++rth->seq;
+	s.msg.msg_name = (void*)&s.nladdr;
+	s.msg.msg_namelen = sizeof(s.nladdr);
+	s.msg.msg_iov = iov;
+	s.msg.msg_iovlen = 2;
+	/*s.msg.msg_control = NULL; - already is */
+	/*s.msg.msg_controllen = 0; - already is */
+	/*s.msg.msg_flags = 0; - already is */
 
-	return sendmsg(rth->fd, &msg, 0);
+	s.nladdr.nl_family = AF_NETLINK;
+
+	s.nlh.nlmsg_len = NLMSG_LENGTH(len);
+	s.nlh.nlmsg_type = type;
+	s.nlh.nlmsg_flags = NLM_F_ROOT|NLM_F_MATCH|NLM_F_REQUEST;
+	/*s.nlh.nlmsg_pid = 0; - already is */
+	s.nlh.nlmsg_seq = rth->dump = ++rth->seq;
+
+	return sendmsg(rth->fd, &s.msg, 0);
 }
 
 static int rtnl_dump_filter(struct rtnl_handle *rth,
