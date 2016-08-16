@@ -1589,18 +1589,23 @@ static char opp_bracket(char bracket)
 
 static void match_right_bracket(char bracket)
 {
-	unsigned i;
+	unsigned i = cur_fline;
 
-	if (cur_fline >= max_fline
-	 || strchr(flines[cur_fline], bracket) == NULL
+	if (i >= max_fline
+	 || strchr(flines[i], bracket) == NULL
 	) {
 		print_statusline("No bracket in top line");
 		return;
 	}
+
 	bracket = opp_bracket(bracket);
-	for (i = cur_fline + 1; i < max_fline; i++) {
+	for (; i < max_fline; i++) {
 		if (strchr(flines[i], bracket) != NULL) {
-			buffer_line(i);
+			/*
+			 * Line with matched right bracket becomes
+			 * last visible line
+			 */
+			buffer_line(i - max_displayed_line);
 			return;
 		}
 	}
@@ -1609,18 +1614,22 @@ static void match_right_bracket(char bracket)
 
 static void match_left_bracket(char bracket)
 {
-	int i;
+	int i = cur_fline + max_displayed_line;
 
-	if (cur_fline + max_displayed_line >= max_fline
-	 || strchr(flines[cur_fline + max_displayed_line], bracket) == NULL
+	if (i >= max_fline
+	 || strchr(flines[i], bracket) == NULL
 	) {
 		print_statusline("No bracket in bottom line");
 		return;
 	}
 
 	bracket = opp_bracket(bracket);
-	for (i = cur_fline + max_displayed_line; i >= 0; i--) {
+	for (; i >= 0; i--) {
 		if (strchr(flines[i], bracket) != NULL) {
+			/*
+			 * Line with matched left bracket becomes
+			 * first visible line
+			 */
 			buffer_line(i);
 			return;
 		}
