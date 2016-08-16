@@ -1591,7 +1591,9 @@ static void match_right_bracket(char bracket)
 {
 	unsigned i;
 
-	if (strchr(flines[cur_fline], bracket) == NULL) {
+	if (cur_fline >= max_fline
+	 || strchr(flines[cur_fline], bracket) == NULL
+	) {
 		print_statusline("No bracket in top line");
 		return;
 	}
@@ -1609,7 +1611,9 @@ static void match_left_bracket(char bracket)
 {
 	int i;
 
-	if (strchr(flines[cur_fline + max_displayed_line], bracket) == NULL) {
+	if (cur_fline + max_displayed_line >= max_fline
+	 || strchr(flines[cur_fline + max_displayed_line], bracket) == NULL
+	) {
 		print_statusline("No bracket in bottom line");
 		return;
 	}
