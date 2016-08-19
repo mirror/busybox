@@ -728,12 +728,6 @@ static void reset_term(void)
 {
 	if (!OPT_BATCH_MODE)
 		tcsetattr_stdin_TCSANOW(&initial_settings);
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		clearmems();
-# if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-		free(prev_hist);
-# endif
-	}
 }
 
 static void sig_catcher(int sig)
@@ -1258,5 +1252,11 @@ int top_main(int argc UNUSED_PARAM, char **argv)
 #if ENABLE_FEATURE_USE_TERMIOS
 	reset_term();
 #endif
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		clearmems();
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+		free(prev_hist);
+#endif
+	}
 	return EXIT_SUCCESS;
 }
