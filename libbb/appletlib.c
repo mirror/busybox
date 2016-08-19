@@ -877,7 +877,9 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 	}
 	if (ENABLE_FEATURE_SUID)
 		check_suid(applet_no);
-	exit(applet_main[applet_no](argc, argv));
+	xfunc_error_retval = applet_main[applet_no](argc, argv);
+	/* Note: applet_main() may also not return (die on a xfunc or such) */
+	xfunc_die();
 }
 # endif /* NUM_APPLETS > 0 */
 

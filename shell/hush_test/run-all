@@ -64,11 +64,12 @@ do_test()
 	echo -n "$1/$x:"
 	(
 		"$THIS_SH" "./$x" >"$name.xx" 2>&1
+		r=$?
 		# filter C library differences
 		sed -i \
 			-e "/: invalid option /s:'::g" \
 			"$name.xx"
-		test $? -eq 77 && rm -f "../$1-$x.fail" && exit 77
+		test $r -eq 77 && rm -f "../$1-$x.fail" && exit 77
 		diff -u "$name.xx" "$name.right" >"../$1-$x.fail" && rm -f "$name.xx" "../$1-$x.fail"
 	)
 	case $? in

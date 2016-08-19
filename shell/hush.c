@@ -1580,11 +1580,11 @@ static void hush_exit(int exitcode)
 	}
 #endif
 
-#if ENABLE_HUSH_JOB
 	fflush_all();
+#if ENABLE_HUSH_JOB
 	sigexit(- (exitcode & 0xff));
 #else
-	exit(exitcode);
+	_exit(exitcode);
 #endif
 }
 
@@ -6466,7 +6466,23 @@ static void dump_cmd_in_x_mode(char **argv)
  * Never returns.
  * Don't exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
- * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
+ * in particular stdin handling. Not sure why? -- because of vfork! (vda)
+ * Also, it was observed that on exit(), fgetc'ed buffered data
+ * gets "unwound" by some libcs, via lseek(fd, -NUM, SEEK_CUR).
+ * With the net effect that even after fork(), not vfork(),
+ * exit() in NOEXECed applet in "sh SCRIPT":
+ *	noexec_applet_here
+ *	echo END_OF_SCRIPT
+ * lseeks fd in input FILE object from EOF to "e" in "echo END_OF_SCRIPT".
+ * This makes "echo END_OF_SCRIPT" executed twice. exexit() is the fix.
+ */
+#if ENABLE_FEATURE_SH_STANDALONE
+static void exexit(void)
+{
+	fflush_all();
+	_exit(xfunc_error_retval);
+}
+#endif
 static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded) NORETURN;
@@ -6547,6 +6563,7 @@ static NOINLINE void pseudo_exec_argv(nommu_save_t *nommu_save,
 # if BB_MMU /* see above why on NOMMU it is not allowed */
 			if (APPLET_IS_NOEXEC(a)) {
 				debug_printf_exec("running applet '%s'\n", argv[0]);
+				die_func = exexit;
 				run_applet_no_and_exit(a, argv);
 			}
 # endif
