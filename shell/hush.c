@@ -6099,10 +6099,12 @@ static int setup_redirects(struct command *prog, int squirrel[])
 
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
-			/* rd_fd<<HERE case */
-			if (squirrel && redir->rd_fd < 3
+			/* "rd_fd<<HERE" case */
+			if (redir->rd_fd <= 2
+			 && squirrel
 			 && squirrel[redir->rd_fd] < 0
 			) {
+				/* Save old fds 0..2 if redirect uses them */
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
@@ -6114,7 +6116,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 		}
 
 		if (redir->rd_dup == REDIRFD_TO_FILE) {
-			/* rd_fd<*>file case (<*> is <,>,>>,<>) */
+			/* "rd_fd<*>file" case (<*> is <,>,>>,<>) */
 			char *p;
 			if (redir->rd_filename == NULL) {
 				/* Something went wrong in the parse.
@@ -6127,20 +6129,33 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			openfd = open_or_warn(p, mode);
 			free(p);
 			if (openfd < 0) {
-			/* this could get lost if stderr has been redirected, but
-			 * bash and ash both lose it as well (though zsh doesn't!) */
-//what the above comment tries to say?
+				/* Error message from open_or_warn can be lost
+				 * if stderr has been redirected, but bash
+				 * and ash both lose it as well
+				 * (though zsh doesn't!)
+				 */
 				return 1;
 			}
 		} else {
-			/* rd_fd<*>rd_dup or rd_fd<*>- cases */
+			/* "rd_fd<*>rd_dup" or "rd_fd<*>-" cases */
 			openfd = redir->rd_dup;
 		}
 
 		if (openfd != redir->rd_fd) {
-			if (squirrel && redir->rd_fd < 3
+			if (redir->rd_fd <= 2
+			 && squirrel
 			 && squirrel[redir->rd_fd] < 0
 			) {
+				/* Save old fds 0..2 if redirect uses them */
+//FIXME: script fd's also need this! "sh SCRIPT" and SCRIPT has "echo FOO 3>&-":
+// open("SCRIPT", O_RDONLY)          = 3
+// fcntl(3, F_SETFD, FD_CLOEXEC)     = 0
+// read(3, "echo FOO 3>&-\n....", 4096) = N
+// close(3)                          = 0
+// write(1, "FOO\n", 4)              = 4
+// ...
+// read(3, 0x205f8e0, 4096)          = -1 EBADF <== BUG
+//
 				squirrel[redir->rd_fd] = dup(redir->rd_fd);
 			}
 			if (openfd == REDIRFD_CLOSE) {
@@ -6159,7 +6174,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 static void restore_redirects(int squirrel[])
 {
 	int i, fd;
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i <= 2; i++) {
 		fd = squirrel[i];
 		if (fd != -1) {
 			/* We simply die on error */
@@ -7144,6 +7159,7 @@ static NOINLINE int run_pipe(struct pipe *pi)
 				if (x->b_function == builtin_exec && argv_expanded[1] == NULL) {
 					debug_printf("exec with redirects only\n");
 					rcode = setup_redirects(command, NULL);
+					/* rcode=1 can be if redir file can't be opened */
 					goto clean_up_and_ret1;
 				}
 			}
@@ -7270,9 +7286,20 @@ static NOINLINE int run_pipe(struct pipe *pi)
 			if (pipefds.rd > 1)
 				close(pipefds.rd);
 			/* Like bash, explicit redirects override pipes,
-			 * and the pipe fd is available for dup'ing. */
-			if (setup_redirects(command, NULL))
+			 * and the pipe fd (fd#1) is available for dup'ing:
+			 * "cmd1 2>&1 | cmd2": fd#1 is duped to fd#2, thus stderr
+			 * of cmd1 goes into pipe.
+			 */
+			if (setup_redirects(command, NULL)) {
+				/* Happens when redir file can't be opened:
+				 * $ hush -c 'echo FOO >&2 | echo BAR 3>/qwe/rty; echo BAZ'
+				 * FOO
+				 * hush: can't open '/qwe/rty': No such file or directory
+				 * BAZ
+				 * (echo BAR is not executed, it hits _exit(1) below)
+				 */
 				_exit(1);
+			}
 
 			/* Stores to nommu_save list of env vars putenv'ed
 			 * (NOMMU, on MMU we don't need that) */
