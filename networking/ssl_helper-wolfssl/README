@@ -11,6 +11,13 @@ Build instructions:
 * Drop this directory into wolfssl-3.6.8/ssl_helper
 * Run ssl_helper.sh to compile and link the helper
 
+* Unpack wolfssl-3.9.8.tar.gz from https://github.com/wolfSSL/wolfssl/releases
+* Create configure:
+  ./autogen.sh
+* Build it: see 00cfg-wolfssl-3.9.8 shell script
+* Drop this directory into wolfssl-x.y.z/ssl_helper
+* Run ssl_helper.sh to compile and link the helper
+
 Usage: "ssl_helper -d FILE_DESCRIPTOR" where FILE_DESCRIPTOR is open to the peer.
 
 In bash, you can do it this way:

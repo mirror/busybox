@@ -1091,6 +1091,12 @@ static void download_one_url(const char *url)
 		}
 
 		fflush(sfp);
+		/* If we use SSL helper, keeping our end of the socket open for writing
+		 * makes our end (i.e. the same fd!) readable (EAGAIN instead of EOF)
+		 * even after child closes its copy of the fd.
+		 * This helps:
+		 */
+		shutdown(fileno(sfp), SHUT_WR);
 
 		/*
 		 * Retrieve HTTP response line and check for "200" status code.
