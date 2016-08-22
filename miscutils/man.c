@@ -228,8 +228,8 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!token[1])
 			continue;
 		if (strcmp("DEFINE", token[0]) == 0) {
-			if (is_prefixed_with("pager", token[1])) {
-				pager = xstrdup(skip_whitespace(token[1]) + 5);
+			if (is_prefixed_with(token[1], "pager")) {
+				pager = xstrdup(skip_whitespace(token[1] + 5));
 			}
 		} else
 		if (strcmp("MANDATORY_MANPATH"+10, token[0]) == 0 /* "MANPATH"? */
