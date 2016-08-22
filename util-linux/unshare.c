@@ -103,7 +103,7 @@ enum {
 	OPT_mount	= 1 << 0,
 	OPT_uts		= 1 << 1,
 	OPT_ipc		= 1 << 2,
-	OPT_network	= 1 << 3,
+	OPT_net		= 1 << 3,
 	OPT_pid		= 1 << 4,
 	OPT_user	= 1 << 5, /* OPT_user, NS_USR_POS, and ns_list[] index must match! */
 	OPT_fork	= 1 << 6,
@@ -142,7 +142,7 @@ static const char unshare_longopts[] ALIGN1 =
 	"mount\0"		Optional_argument	"\xf0"
 	"uts\0"			Optional_argument	"\xf1"
 	"ipc\0"			Optional_argument	"\xf2"
-	"network\0"		Optional_argument	"\xf3"
+	"net\0"			Optional_argument	"\xf3"
 	"pid\0"			Optional_argument	"\xf4"
 	"user\0"		Optional_argument	"\xf5"
 	"fork\0"		No_argument		"f"
