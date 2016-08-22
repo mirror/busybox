@@ -297,6 +297,11 @@ static void console_init(void)
 	s = getenv("CONSOLE");
 	if (!s)
 		s = getenv("console");
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+	/* BSD people say their kernels do not open fd 0,1,2; they need this: */
+	if (!s)
+		s = (char*)"/dev/console";
+#endif
 	if (s) {
 		int fd = open(s, O_RDWR | O_NONBLOCK | O_NOCTTY);
 		if (fd >= 0) {
