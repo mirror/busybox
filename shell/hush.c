@@ -103,6 +103,9 @@
 #else
 # define CLEAR_RANDOM_T(rnd) ((void)0)
 #endif
+#ifndef F_DUPFD_CLOEXEC
+# define F_DUPFD_CLOEXEC F_DUPFD
+#endif
 #ifndef PIPE_BUF
 # define PIPE_BUF 4096  /* amount of buffering in a pipe */
 #endif
@@ -711,10 +714,10 @@ enum {
 };
 
 
-/* Can be extended to handle a FIXME in setup_redirects about not saving script fds */
 struct FILE_list {
 	struct FILE_list *next;
 	FILE *fp;
+	int fd;
 };
 
 
@@ -809,9 +812,7 @@ struct globals {
 	unsigned handled_SIGCHLD;
 	smallint we_have_children;
 #endif
-#if ENABLE_FEATURE_SH_STANDALONE
 	struct FILE_list *FILE_list;
-#endif
 	/* Which signals have non-DFL handler (even with no traps set)?
 	 * Set at the start to:
 	 * (SIGQUIT + maybe SPECIAL_INTERACTIVE_SIGS + maybe SPECIAL_JOBSTOP_SIGS)
@@ -1262,34 +1263,33 @@ static void free_strings(char **strings)
 }
 
 
+static int xdup_and_close(int fd, int F_DUPFD_maybe_CLOEXEC)
+{
+	/* We avoid taking stdio fds. Mimicking ash: use fds above 9 */
+	int newfd = fcntl(fd, F_DUPFD_maybe_CLOEXEC, 10);
+	if (newfd < 0) {
+		/* fd was not open? */
+		if (errno == EBADF)
+			return fd;
+		xfunc_die();
+	}
+	close(fd);
+	return newfd;
+}
+
+
 /* Manipulating the list of open FILEs */
 static FILE *remember_FILE(FILE *fp)
 {
 	if (fp) {
-#if ENABLE_FEATURE_SH_STANDALONE
 		struct FILE_list *n = xmalloc(sizeof(*n));
-		n->fp = fp;
 		n->next = G.FILE_list;
 		G.FILE_list = n;
-#endif
-		close_on_exec_on(fileno(fp));
+		n->fp = fp;
+		n->fd = fileno(fp);
+		close_on_exec_on(n->fd);
 	}
 	return fp;
-}
-#if ENABLE_FEATURE_SH_STANDALONE
-static void close_all_FILE_list(void)
-{
-	struct FILE_list *fl = G.FILE_list;
-	while (fl) {
-		/* fclose would also free FILE object.
-		 * It is disastrous if we share memory with a vforked parent.
-		 * I'm not sure we never come here after vfork.
-		 * Therefore just close fd, nothing more.
-		 */
-		/*fclose(fl->fp); - unsafe */
-		close(fileno(fl->fp));
-		fl = fl->next;
-	}
 }
 static void fclose_and_forget(FILE *fp)
 {
@@ -1305,8 +1305,46 @@ static void fclose_and_forget(FILE *fp)
 	}
 	fclose(fp);
 }
-#else
-# define fclose_and_forget(fp) fclose(fp);
+static int save_FILEs_on_redirect(int fd)
+{
+	struct FILE_list *fl = G.FILE_list;
+	while (fl) {
+		if (fd == fl->fd) {
+			/* We use it only on script files, they are all CLOEXEC */
+			fl->fd = xdup_and_close(fd, F_DUPFD_CLOEXEC);
+			return 1;
+		}
+		fl = fl->next;
+	}
+	return 0;
+}
+static void restore_redirected_FILEs(void)
+{
+	struct FILE_list *fl = G.FILE_list;
+	while (fl) {
+		int should_be = fileno(fl->fp);
+		if (fl->fd != should_be) {
+			xmove_fd(fl->fd, should_be);
+			fl->fd = should_be;
+		}
+		fl = fl->next;
+	}
+}
+#if ENABLE_FEATURE_SH_STANDALONE
+static void close_all_FILE_list(void)
+{
+	struct FILE_list *fl = G.FILE_list;
+	while (fl) {
+		/* fclose would also free FILE object.
+		 * It is disastrous if we share memory with a vforked parent.
+		 * I'm not sure we never come here after vfork.
+		 * Therefore just close fd, nothing more.
+		 */
+		/*fclose(fl->fp); - unsafe */
+		close(fl->fd);
+		fl = fl->next;
+	}
+}
 #endif
 
 
@@ -6147,6 +6185,74 @@ static void setup_heredoc(struct redir_struct *redir)
 	wait(NULL); /* wait till child has died */
 }
 
+/* fd: redirect wants this fd to be used (e.g. 3>file).
+ * Move all conflicting internally used fds,
+ * and remember them so that we can restore them later.
+ */
+static int save_fds_on_redirect(int fd, int squirrel[3])
+{
+	if (squirrel) {
+		/* Handle redirects of fds 0,1,2 */
+
+		/* If we collide with an already moved stdio fd... */
+		if (fd == squirrel[0]) {
+			squirrel[0] = xdup_and_close(squirrel[0], F_DUPFD);
+			return 1;
+		}
+		if (fd == squirrel[1]) {
+			squirrel[1] = xdup_and_close(squirrel[1], F_DUPFD);
+			return 1;
+		}
+		if (fd == squirrel[2]) {
+			squirrel[2] = xdup_and_close(squirrel[2], F_DUPFD);
+			return 1;
+		}
+		/* If we are about to redirect stdio fd, and did not yet move it... */
+		if (fd <= 2 && squirrel[fd] < 0) {
+			/* We avoid taking stdio fds */
+			squirrel[fd] = fcntl(fd, F_DUPFD, 10);
+			if (squirrel[fd] < 0 && errno != EBADF)
+				xfunc_die();
+			return 0; /* "we did not close fd" */
+		}
+	}
+
+#if ENABLE_HUSH_INTERACTIVE
+	if (fd != 0 && fd == G.interactive_fd) {
+		G.interactive_fd = xdup_and_close(G.interactive_fd, F_DUPFD_CLOEXEC);
+		return 1;
+	}
+#endif
+
+	/* Are we called from setup_redirects(squirrel==NULL)? Two cases:
+	 * (1) Redirect in a forked child. No need to save FILEs' fds,
+	 * we aren't going to use them anymore, ok to trash.
+	 * (2) "exec 3>FILE". Bummer. We can save FILEs' fds,
+	 * but how are we doing to use them?
+	 * "fileno(fd) = new_fd" can't be done.
+	 */
+	if (!squirrel)
+		return 0;
+
+	return save_FILEs_on_redirect(fd);
+}
+
+static void restore_redirects(int squirrel[3])
+{
+	int i, fd;
+	for (i = 0; i <= 2; i++) {
+		fd = squirrel[i];
+		if (fd != -1) {
+			/* We simply die on error */
+			xmove_fd(fd, i);
+		}
+	}
+
+	/* Moved G.interactive_fd stays on new fd, not doing anything for it */
+
+	restore_redirected_FILEs();
+}
+
 /* squirrel != NULL means we squirrel away copies of stdin, stdout,
  * and stderr if they are redirected. */
 static int setup_redirects(struct command *prog, int squirrel[])
@@ -6157,13 +6263,7 @@ static int setup_redirects(struct command *prog, int squirrel[])
 	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->rd_type == REDIRECT_HEREDOC2) {
 			/* "rd_fd<<HERE" case */
-			if (redir->rd_fd <= 2
-			 && squirrel
-			 && squirrel[redir->rd_fd] < 0
-			) {
-				/* Save old fds 0..2 if redirect uses them */
-				squirrel[redir->rd_fd] = dup(redir->rd_fd);
-			}
+			save_fds_on_redirect(redir->rd_fd, squirrel);
 			/* for REDIRECT_HEREDOC2, rd_filename holds _contents_
 			 * of the heredoc */
 			debug_printf_parse("set heredoc '%s'\n",
@@ -6199,45 +6299,24 @@ static int setup_redirects(struct command *prog, int squirrel[])
 		}
 
 		if (openfd != redir->rd_fd) {
-			if (redir->rd_fd <= 2
-			 && squirrel
-			 && squirrel[redir->rd_fd] < 0
-			) {
-				/* Save old fds 0..2 if redirect uses them */
-//FIXME: script fd's also need this! "sh SCRIPT" and SCRIPT has "echo FOO 3>&-":
-// open("SCRIPT", O_RDONLY)          = 3
-// fcntl(3, F_SETFD, FD_CLOEXEC)     = 0
-// read(3, "echo FOO 3>&-\n....", 4096) = N
-// close(3)                          = 0
-// write(1, "FOO\n", 4)              = 4
-// ...
-// read(3, 0x205f8e0, 4096)          = -1 EBADF <== BUG
-//
-				squirrel[redir->rd_fd] = dup(redir->rd_fd);
-			}
+			int closed = save_fds_on_redirect(redir->rd_fd, squirrel);
 			if (openfd == REDIRFD_CLOSE) {
-				/* "n>-" means "close me" */
-				close(redir->rd_fd);
+				/* "rd_fd >&-" means "close me" */
+				if (!closed) {
+					/* ^^^ optimization: saving may already
+					 * have closed it. If not... */
+					close(redir->rd_fd);
+				}
 			} else {
 				xdup2(openfd, redir->rd_fd);
 				if (redir->rd_dup == REDIRFD_TO_FILE)
+					/* "rd_fd > FILE" */
 					close(openfd);
+				/* else: "rd_fd > rd_dup" */
 			}
 		}
 	}
 	return 0;
-}
-
-static void restore_redirects(int squirrel[])
-{
-	int i, fd;
-	for (i = 0; i <= 2; i++) {
-		fd = squirrel[i];
-		if (fd != -1) {
-			/* We simply die on error */
-			xmove_fd(fd, i);
-		}
-	}
 }
 
 static char *find_in_path(const char *arg)
