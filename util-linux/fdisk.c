@@ -1897,22 +1897,23 @@ static void
 list_disk_geometry(void)
 {
 	ullong bytes = ((ullong)total_number_of_sectors << 9);
-	long megabytes = bytes / 1000000;
+	ullong xbytes = bytes / (1024*1024);
+	char x = 'M';
 
-	if (megabytes < 10000)
-		printf("\nDisk %s: %lu MB, %llu bytes\n",
-			disk_device, megabytes, bytes);
-	else
-		printf("\nDisk %s: %lu.%lu GB, %llu bytes\n",
-			disk_device, megabytes/1000, (megabytes/100)%10, bytes);
-	printf("%u heads, %u sectors/track, %u cylinders",
-		   g_heads, g_sectors, g_cylinders);
-	if (units_per_sector == 1)
-		printf(", total %"SECT_FMT"u sectors",
-			total_number_of_sectors / (sector_size/512));
-	printf("\nUnits = %s of %u * %u = %u bytes\n\n",
+	if (xbytes >= 10000) {
+		xbytes += 512; /* fdisk util-linux 2.28 does this */
+		xbytes /= 1024;
+		x = 'G';
+	}
+	printf("Disk %s: %llu %cB, %llu bytes, %"SECT_FMT"u sectors\n"
+		"%u cylinders, %u heads, %u sectors/track\n"
+		"Units: %s of %u * %u = %u bytes\n\n",
+		disk_device, xbytes, x,
+		bytes, total_number_of_sectors,
+		g_cylinders, g_heads, g_sectors,
 		str_units(PLURAL),
-		units_per_sector, sector_size, units_per_sector * sector_size);
+		units_per_sector, sector_size, units_per_sector * sector_size
+	);
 }
 
 /*
@@ -2277,6 +2278,7 @@ verify(void)
 {
 	int i, j;
 	sector_t total = 1;
+	sector_t chs_size;
 	sector_t first[g_partitions], last[g_partitions];
 	struct partition *p;
 
@@ -2338,11 +2340,14 @@ verify(void)
 		}
 	}
 
-	if (total > g_heads * g_sectors * g_cylinders)
-		printf("Total allocated sectors %u greater than the maximum "
-			"%u\n", total, g_heads * g_sectors * g_cylinders);
+	chs_size = (sector_t)g_heads * g_sectors * g_cylinders;
+	if (total > chs_size)
+		printf("Total allocated sectors %u"
+			" greater than CHS size %"SECT_FMT"u\n",
+			total, chs_size
+		);
 	else {
-		total = g_heads * g_sectors * g_cylinders - total;
+		total = chs_size - total;
 		if (total != 0)
 			printf("%"SECT_FMT"u unallocated sectors\n", total);
 	}
