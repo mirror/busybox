@@ -363,7 +363,6 @@ struct globals {
 
 	jmp_buf listingbuf;
 	char line_buffer[80];
-	char partname_buffer[80];
 	/* Raw disk label. For DOS-type partition tables the MBR,
 	 * with descriptions of the primary partitions. */
 	char MBRbuffer[MAX_SECTOR_SIZE];
@@ -399,7 +398,6 @@ struct globals {
 #define total_number_of_sectors (G.total_number_of_sectors)
 #define listingbuf      (G.listingbuf     )
 #define line_buffer     (G.line_buffer    )
-#define partname_buffer (G.partname_buffer)
 #define MBRbuffer       (G.MBRbuffer      )
 #define ptes            (G.ptes           )
 #define INIT_G() do { \
@@ -468,52 +466,11 @@ static sector_t bb_BLKGETSIZE_sectors(int fd)
 
 #define cylinder(s, c)  ((c) | (((s) & 0xc0) << 2))
 
-#define hsc2sector(h,s,c) \
-	(sector(s) - 1 + sectors * ((h) + heads * cylinder(s,c)))
-
 static void
 close_dev_fd(void)
 {
 	/* Not really closing, but making sure it is open, and to harmless place */
 	xmove_fd(xopen(bb_dev_null, O_RDONLY), dev_fd);
-}
-
-/*
- * Return partition name - uses static storage
- */
-static const char *
-partname(const char *dev, int pno, int lth)
-{
-	const char *p;
-	int w, wp;
-	int bufsiz;
-	char *bufp;
-
-	bufp = partname_buffer;
-	bufsiz = sizeof(partname_buffer);
-
-	w = strlen(dev);
-	p = "";
-
-	if (isdigit(dev[w-1]))
-		p = "p";
-
-	/* devfs kludge - note: fdisk partition names are not supposed
-	   to equal kernel names, so there is no reason to do this */
-	if (strcmp(dev + w - 4, "disc") == 0) {
-		w -= 4;
-		p = "part";
-	}
-
-	wp = strlen(p);
-
-	if (lth) {
-		snprintf(bufp, bufsiz, "%*.*s%s%-2u",
-			lth-wp-2, w, dev, p, pno);
-	} else {
-		snprintf(bufp, bufsiz, "%.*s%s%-2u", w, dev, p, pno);
-	}
-	return bufp;
 }
 
 static ALWAYS_INLINE struct partition *
@@ -1898,14 +1855,14 @@ check_consistency(const struct partition *p, int partition)
 		return;         /* do not check extended partitions */
 
 /* physical beginning c, h, s */
-	pbc = (p->cyl & 0xff) | ((p->sector << 2) & 0x300);
+	pbc = cylinder(p->sector, p->cyl);
 	pbh = p->head;
-	pbs = p->sector & 0x3f;
+	pbs = sector(p->sector);
 
 /* physical ending c, h, s */
-	pec = (p->end_cyl & 0xff) | ((p->end_sector << 2) & 0x300);
+	pec = cylinder(p->end_sector, p->end_cyl);
 	peh = p->end_head;
-	pes = p->end_sector & 0x3f;
+	pes = sector(p->end_sector);
 
 /* compute logical beginning (c, h, s) */
 	linear2chs(get_start_sect(p), &lbc, &lbh, &lbs);
@@ -1916,17 +1873,17 @@ check_consistency(const struct partition *p, int partition)
 /* Same physical / logical beginning? */
 	if (g_cylinders <= 1024 && (pbc != lbc || pbh != lbh || pbs != lbs)) {
 		printf("Partition %u has different physical/logical "
-			"beginnings (non-Linux?):\n", partition + 1);
-		printf("     phys=(%u, %u, %u) ", pbc, pbh, pbs);
-		printf("logical=(%u, %u, %u)\n", lbc, lbh, lbs);
+			"start (non-Linux?):\n", partition + 1);
+		printf("     phys=(%u,%u,%u) ", pbc, pbh, pbs);
+		printf("logical=(%u,%u,%u)\n", lbc, lbh, lbs);
 	}
 
 /* Same physical / logical ending? */
 	if (g_cylinders <= 1024 && (pec != lec || peh != leh || pes != les)) {
 		printf("Partition %u has different physical/logical "
-			"endings:\n", partition + 1);
-		printf("     phys=(%u, %u, %u) ", pec, peh, pes);
-		printf("logical=(%u, %u, %u)\n", lec, leh, les);
+			"end:\n", partition + 1);
+		printf("     phys=(%u,%u,%u) ", pec, peh, pes);
+		printf("logical=(%u,%u,%u)\n", lec, leh, les);
 	}
 
 /* Ending on cylinder boundary? */
@@ -2099,10 +2056,53 @@ fix_partition_table_order(void)
 }
 #endif
 
+/* Return partition name */
+static const char *
+partname(const char *dev, int pno, int lth)
+{
+	const char *p;
+	int w, wp;
+	int bufsiz;
+	char *bufp;
+
+	bufp = auto_string(xzalloc(80));
+	bufsiz = 80;
+
+	w = strlen(dev);
+	p = "";
+
+	if (isdigit(dev[w-1]))
+		p = "p";
+
+	/* devfs kludge - note: fdisk partition names are not supposed
+	   to equal kernel names, so there is no reason to do this */
+	if (strcmp(dev + w - 4, "disc") == 0) {
+		w -= 4;
+		p = "part";
+	}
+
+	wp = strlen(p);
+
+	if (lth) {
+		snprintf(bufp, bufsiz, "%*.*s%s%-2u",
+			lth-wp-2, w, dev, p, pno);
+	} else {
+		snprintf(bufp, bufsiz, "%.*s%s%-2u", w, dev, p, pno);
+	}
+	return bufp;
+}
+
+static const char *
+chs_string11(unsigned cyl, unsigned head, unsigned sect)
+{
+	char *buf = auto_string(xzalloc(sizeof(int)*3 * 3));
+	sprintf(buf, "%u,%u,%u", cylinder(sect,cyl), head, sector(sect));
+	return buf;
+}
+
 static void
 list_table(int xtra)
 {
-	const struct partition *p;
 	int i, w;
 
 	if (LABEL_IS_SUN) {
@@ -2126,50 +2126,62 @@ list_table(int xtra)
 	}
 
 	/* Heuristic: we list partition 3 of /dev/foo as /dev/foo3,
-	   but if the device name ends in a digit, say /dev/foo1,
-	   then the partition is called /dev/foo1p3. */
+	 * but if the device name ends in a digit, say /dev/foo1,
+	 * then the partition is called /dev/foo1p3.
+	 */
 	w = strlen(disk_device);
 	if (w && isdigit(disk_device[w-1]))
 		w++;
-	if (w < 5)
-		w = 5;
+	if (w < 7)
+		w = 7;
 
-	//            1 12345678901 12345678901 12345678901  12
-	printf("%*s Boot      Start         End      Blocks  Id System\n",
-		   w+1, "Device");
+	printf("%-*s Boot StartCHS    EndCHS        StartLBA     EndLBA    Sectors  Size Id Type\n",
+		   w-1, "Device");
 
 	for (i = 0; i < g_partitions; i++) {
+		const struct partition *p;
 		const struct pte *pe = &ptes[i];
-		sector_t psects;
-		sector_t pblocks;
-		unsigned podd;
+		char boot4[4];
+		char numstr6[6];
+		sector_t start_sect;
+		sector_t end_sect;
+		sector_t nr_sects;
 
 		p = pe->part_table;
 		if (!p || is_cleared_partition(p))
 			continue;
 
-		psects = get_nr_sects(p);
-		pblocks = psects;
-		podd = 0;
-
-		if (sector_size < 1024) {
-			pblocks /= (1024 / sector_size);
-			podd = psects % (1024 / sector_size);
+		sprintf(boot4, "%02x", p->boot_ind);
+		if ((p->boot_ind & 0x7f) == 0) {
+			/* 0x80 shown as '*', 0x00 is ' ' */
+			boot4[0] = p->boot_ind ? '*' : ' ';
+			boot4[1] = ' ';
 		}
-		if (sector_size > 1024)
-			pblocks *= (sector_size / 1024);
 
-		printf("%s  %c %11"SECT_FMT"u %11"SECT_FMT"u %11"SECT_FMT"u%c %2x %s\n",
+		start_sect = get_partition_start_from_dev_start(pe);
+		end_sect = start_sect;
+		nr_sects = get_nr_sects(p);
+		if (nr_sects != 0)
+			end_sect += nr_sects - 1;
+
+		smart_ulltoa5((ullong)nr_sects * sector_size,
+			numstr6, " KMGTPEZY")[0] = '\0';
+
+#define SFMT SECT_FMT
+		//      Boot StartCHS    EndCHS        StartLBA     EndLBA    Sectors  Size Id Type
+		printf("%s%s %-11s"/**/" %-11s"/**/" %10"SFMT"u %10"SFMT"u %10"SFMT"u %s %2x %s\n",
 			partname(disk_device, i+1, w+2),
-			!p->boot_ind ? ' ' : p->boot_ind == ACTIVE_FLAG /* boot flag */
-				? '*' : '?',
-			cround(get_partition_start_from_dev_start(pe)),           /* start */
-			cround(get_partition_start_from_dev_start(pe) + psects    /* end */
-				- (psects ? 1 : 0)),
-			pblocks, podd ? '+' : ' ', /* odd flag on end */
-			p->sys_ind,                                     /* type id */
-			partition_type(p->sys_ind));                    /* type name */
-
+			boot4,
+			chs_string11(p->cyl, p->head, p->sector),
+			chs_string11(p->end_cyl, p->end_head, p->end_sector),
+			start_sect,
+			end_sect,
+			nr_sects,
+			numstr6,
+			p->sys_ind,
+			partition_type(p->sys_ind)
+		);
+#undef SFMT
 		check_consistency(p, i);
 	}
 
@@ -2198,13 +2210,17 @@ x_list_table(int extend)
 		p = (extend ? pe->ext_pointer : pe->part_table);
 		if (p != NULL) {
 			printf("%2u %02x%4u%4u%5u%4u%4u%5u%11"SECT_FMT"u%11"SECT_FMT"u %02x\n",
-				i + 1, p->boot_ind, p->head,
+				i + 1, p->boot_ind,
+				p->head,
 				sector(p->sector),
-				cylinder(p->sector, p->cyl), p->end_head,
+				cylinder(p->sector, p->cyl),
+				p->end_head,
 				sector(p->end_sector),
 				cylinder(p->end_sector, p->end_cyl),
-				get_start_sect(p), get_nr_sects(p),
-				p->sys_ind);
+				get_start_sect(p),
+				get_nr_sects(p),
+				p->sys_ind
+			);
 			if (p->sys_ind)
 				check_consistency(p, i);
 		}
