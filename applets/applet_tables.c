@@ -192,27 +192,28 @@ int main(int argc, char **argv)
 	printf("};\n");
 #endif
 	//printf("#endif /* SKIP_definitions */\n");
+
 //	printf("\n");
 //	printf("#define MAX_APPLET_NAME_LEN %u\n", MAX_APPLET_NAME_LEN);
 
 	if (argv[2]) {
-		char line_old[80];
-		char line_new[80];
 		FILE *fp;
+		char line_new[80];
+//		char line_old[80];
 
-		line_old[0] = 0;
-		fp = fopen(argv[2], "r");
-		if (fp) {
-			fgets(line_old, sizeof(line_old), fp);
-			fclose(fp);
-		}
 		sprintf(line_new, "#define NUM_APPLETS %u\n", NUM_APPLETS);
-		if (strcmp(line_old, line_new) != 0) {
+//		line_old[0] = 0;
+//		fp = fopen(argv[2], "r");
+//		if (fp) {
+//			fgets(line_old, sizeof(line_old), fp);
+//			fclose(fp);
+//		}
+//		if (strcmp(line_old, line_new) != 0) {
 			fp = fopen(argv[2], "w");
 			if (!fp)
 				return 1;
 			fputs(line_new, fp);
-		}
+//		}
 	}
 
 	return 0;
