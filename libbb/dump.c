@@ -157,7 +157,7 @@ static NOINLINE void rewrite(priv_dumper_t *dumper, FS *fs)
 			/*
 			 * figure out the byte count for each conversion;
 			 * rewrite the format as necessary, set up blank-
-			 * pbb_dump_adding for end of data.
+			 * padding for end of data.
 			 */
 			if (*p1 == 'c') {
 				pr->flags = F_CHAR;
@@ -466,14 +466,14 @@ static void bpad(PR *pr)
 }
 
 static const char conv_str[] ALIGN1 =
-	"\0\\0\0"
-	"\007\\a\0"  /* \a */
-	"\b\\b\0"
-	"\f\\b\0"
-	"\n\\n\0"
-	"\r\\r\0"
-	"\t\\t\0"
-	"\v\\v\0"
+	"\0"  "\\""0""\0"
+	"\007""\\""a""\0"  /* \a */
+	"\b"  "\\""b""\0"
+	"\f"  "\\""f""\0"
+	"\n"  "\\""n""\0"
+	"\r"  "\\""r""\0"
+	"\t"  "\\""t""\0"
+	"\v"  "\\""v""\0"
 	;
 
 
@@ -485,7 +485,7 @@ static void conv_c(PR *pr, unsigned char *p)
 	do {
 		if (*p == *str) {
 			++str;
-			goto strpr;
+			goto strpr; /* map e.g. '\n' to "\\n" */
 		}
 		str += 4;
 	} while (*str);
@@ -702,8 +702,6 @@ int FAST_FUNC bb_dump_dump(dumper_t *pub_dumper, char **argv)
 void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 {
 	const char *p;
-	char *p1;
-	char *p2;
 	FS *tfs;
 	FU *tfu, **nextfupp;
 	const char *savep;
@@ -779,29 +777,42 @@ void FAST_FUNC bb_dump_add(dumper_t* pub_dumper, const char *fmt)
 			}
 		}
 		tfu->fmt = xstrndup(savep, p - savep);
-/*      escape(tfu->fmt); */
-
-		p1 = tfu->fmt;
 
 		/* alphabetic escape sequences have to be done in place */
+		strcpy_and_process_escape_sequences(tfu->fmt, tfu->fmt);
+		/* unknown mappings are not changed: "\z" -> '\\' 'z' */
+		/* trailing backslash, if any, is preserved */
+#if 0
+		char *p1;
+		char *p2;
+		p1 = tfu->fmt;
 		for (p2 = p1;; ++p1, ++p2) {
-			if (*p1 == '\0') {
-				*p2 = *p1;
+			*p2 = *p1;
+			if (*p1 == '\0')
 				break;
-			}
+
 			if (*p1 == '\\') {
-				const char *cs = conv_str + 4;
-				++p1;
+				const char *cs;
+
+				p1++;
 				*p2 = *p1;
+				if (*p1 == '\0') {
+					/* "...\" trailing backslash. Eaten. */
+					break;
+				}
+				cs = conv_str + 4; /* skip NUL element */
 				do {
+					/* map e.g. "\n" -> '\n' */
 					if (*p1 == cs[2]) {
 						*p2 = cs[0];
 						break;
 					}
 					cs += 4;
 				} while (*cs);
+				/* unknown mappings remove bkslash: "\z" -> 'z' */
 			}
 		}
+#endif
 
 		p++;
 	}
