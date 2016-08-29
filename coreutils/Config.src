@@ -328,12 +328,6 @@ config FEATURE_LS_COLOR_IS_DEFAULT
 	  configurable, and the output may not be legible on
 	  many output screens.
 
-config MD5SUM
-	bool "md5sum"
-	default y
-	help
-	  md5sum is used to print or check MD5 checksums.
-
 config MKDIR
 	bool "mkdir"
 	default y
@@ -457,30 +451,6 @@ config SEQ
 	default y
 	help
 	  print a sequence of numbers
-
-config SHA1SUM
-	bool "sha1sum"
-	default y
-	help
-	  Compute and check SHA1 message digest
-
-config SHA256SUM
-	bool "sha256sum"
-	default y
-	help
-	  Compute and check SHA256 message digest
-
-config SHA512SUM
-	bool "sha512sum"
-	default y
-	help
-	  Compute and check SHA512 message digest
-
-config SHA3SUM
-	bool "sha3sum"
-	default y
-	help
-	  Compute and check SHA3 (512-bit) message digest
 
 config SLEEP
 	bool "sleep"
@@ -730,18 +700,5 @@ config FEATURE_HUMAN_READABLE
 	depends on DF || DU || LS
 	help
 	  Allow df, du, and ls to have human readable output.
-
-comment "Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum"
-	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
-
-config FEATURE_MD5_SHA1_SUM_CHECK
-	bool "Enable -c, -s and -w options"
-	default y
-	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
-	help
-	  Enabling the -c options allows files to be checked
-	  against pre-calculated hash values.
-
-	  -s and -w are useful options when verifying checksums.
 
 endmenu

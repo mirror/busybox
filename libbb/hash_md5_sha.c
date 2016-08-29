@@ -941,10 +941,6 @@ void FAST_FUNC sha512_end(sha512_ctx_t *ctx, void *resbuf)
 # define OPTIMIZE_SHA3_FOR_32 1
 #endif
 
-enum {
-	SHA3_IBLK_BYTES = 72, /* 576 bits / 8 */
-};
-
 #if OPTIMIZE_SHA3_FOR_32
 /* This splits every 64-bit word into a pair of 32-bit words,
  * even bits go into first word, odd bits go to second one.
@@ -1352,6 +1348,8 @@ static void sha3_process_block72(uint64_t *state)
 void FAST_FUNC sha3_begin(sha3_ctx_t *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
+	/* SHA3-512, user can override */
+	ctx->input_block_bytes = (1600 - 512*2) / 8; /* 72 bytes */
 }
 
 void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
@@ -1361,7 +1359,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 	unsigned bufpos = ctx->bytes_queued;
 
 	while (1) {
-		unsigned remaining = SHA3_IBLK_BYTES - bufpos;
+		unsigned remaining = ctx->input_block_bytes - bufpos;
 		if (remaining > len)
 			remaining = len;
 		len -= remaining;
@@ -1373,38 +1371,41 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 			remaining--;
 		}
 		/* Clever way to do "if (bufpos != N) break; ... ; bufpos = 0;" */
-		bufpos -= SHA3_IBLK_BYTES;
+		bufpos -= ctx->input_block_bytes;
 		if (bufpos != 0)
 			break;
 		/* Buffer is filled up, process it */
 		sha3_process_block72(ctx->state);
 		/*bufpos = 0; - already is */
 	}
-	ctx->bytes_queued = bufpos + SHA3_IBLK_BYTES;
+	ctx->bytes_queued = bufpos + ctx->input_block_bytes;
 #else
 	/* +50 bytes code size, but a bit faster because of long-sized XORs */
 	const uint8_t *data = buffer;
 	unsigned bufpos = ctx->bytes_queued;
+	unsigned iblk_bytes = ctx->input_block_bytes;
 
 	/* If already data in queue, continue queuing first */
-	while (len != 0 && bufpos != 0) {
-		uint8_t *buf = (uint8_t*)ctx->state;
-		buf[bufpos] ^= *data++;
-		len--;
-		bufpos++;
-		if (bufpos == SHA3_IBLK_BYTES) {
-			bufpos = 0;
-			goto do_block;
+	if (bufpos != 0) {
+		while (len != 0) {
+			uint8_t *buf = (uint8_t*)ctx->state;
+			buf[bufpos] ^= *data++;
+			len--;
+			bufpos++;
+			if (bufpos == iblk_bytes) {
+				bufpos = 0;
+				goto do_block;
+			}
 		}
 	}
 
 	/* Absorb complete blocks */
-	while (len >= SHA3_IBLK_BYTES) {
+	while (len >= iblk_bytes) {
 		/* XOR data onto beginning of state[].
 		 * We try to be efficient - operate one word at a time, not byte.
 		 * Careful wrt unaligned access: can't just use "*(long*)data"!
 		 */
-		unsigned count = SHA3_IBLK_BYTES / sizeof(long);
+		unsigned count = iblk_bytes / sizeof(long);
 		long *buf = (long*)ctx->state;
 		do {
 			long v;
@@ -1412,7 +1413,7 @@ void FAST_FUNC sha3_hash(sha3_ctx_t *ctx, const void *buffer, size_t len)
 			*buf++ ^= v;
 			data += sizeof(long);
 		} while (--count);
-		len -= SHA3_IBLK_BYTES;
+		len -= iblk_bytes;
  do_block:
 		sha3_process_block72(ctx->state);
 	}
@@ -1433,8 +1434,22 @@ void FAST_FUNC sha3_end(sha3_ctx_t *ctx, void *resbuf)
 {
 	/* Padding */
 	uint8_t *buf = (uint8_t*)ctx->state;
-	buf[ctx->bytes_queued]   ^= 1;
-	buf[SHA3_IBLK_BYTES - 1] ^= 0x80;
+	/*
+	 * Keccak block padding is: add 1 bit after last bit of input,
+	 * then add zero bits until the end of block, and add the last 1 bit
+	 * (the last bit in the block) - the "10*1" pattern.
+	 * SHA3 standard appends additional two bits, 01,  before that padding:
+	 *
+	 * SHA3-224(M) = KECCAK[448](M||01, 224)
+	 * SHA3-256(M) = KECCAK[512](M||01, 256)
+	 * SHA3-384(M) = KECCAK[768](M||01, 384)
+	 * SHA3-512(M) = KECCAK[1024](M||01, 512)
+	 * (M is the input, || is bit concatenation)
+	 *
+	 * The 6 below contains 01 "SHA3" bits and the first 1 "Keccak" bit:
+	 */
+	buf[ctx->bytes_queued]          ^= 6; /* bit pattern 00000110 */
+	buf[ctx->input_block_bytes - 1] ^= 0x80;
 
 	sha3_process_block72(ctx->state);
 

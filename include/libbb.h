@@ -1737,6 +1737,7 @@ typedef struct sha512_ctx_t {
 typedef struct sha3_ctx_t {
 	uint64_t state[25];
 	unsigned bytes_queued;
+	unsigned input_block_bytes;
 } sha3_ctx_t;
 void md5_begin(md5_ctx_t *ctx) FAST_FUNC;
 void md5_hash(md5_ctx_t *ctx, const void *buffer, size_t len) FAST_FUNC;
