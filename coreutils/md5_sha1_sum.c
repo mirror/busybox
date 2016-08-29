@@ -33,7 +33,7 @@
 //config:	bool "sha3sum"
 //config:	default y
 //config:	help
-//config:	  Compute and check SHA3 (512-bit) message digest
+//config:	  Compute and check SHA3 message digest
 //config:
 //config:comment "Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum"
 //config:	depends on MD5SUM || SHA1SUM || SHA256SUM || SHA512SUM || SHA3SUM
