@@ -168,6 +168,9 @@ static const probe_fptr fs2[] = {
 #if ENABLE_FEATURE_VOLUMEID_OCFS2
 	volume_id_probe_ocfs2,
 #endif
+#if ENABLE_FEATURE_VOLUMEID_UBIFS
+	volume_id_probe_ubifs,
+#endif
 };
 
 int FAST_FUNC volume_id_probe_all(struct volume_id *id, /*uint64_t off,*/ uint64_t size)

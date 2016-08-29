@@ -221,4 +221,6 @@ int FAST_FUNC volume_id_probe_udf(struct volume_id *id /*,uint64_t off*/);
 
 int FAST_FUNC volume_id_probe_xfs(struct volume_id *id /*,uint64_t off*/);
 
+int FAST_FUNC volume_id_probe_ubifs(struct volume_id *id /*,uint64_t off*/);
+
 POP_SAVED_FUNCTION_VISIBILITY
