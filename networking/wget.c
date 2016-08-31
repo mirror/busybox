@@ -1116,7 +1116,21 @@ static void download_one_url(const char *url)
 			while (gethdr(sfp) != NULL)
 				/* eat all remaining headers */;
 			goto read_response;
+
+		/* Success responses */
 		case 200:
+			/* fall through */
+		case 201: /* 201 Created */
+/* "The request has been fulfilled and resulted in a new resource being created" */
+			/* Standard wget is reported to treak this as success */
+			/* fall through */
+		case 202: /* 202 Accepted */
+/* "The request has been accepted for processing, but the processing has not been completed" */
+			/* Treat as success: fall through */
+		case 203: /* 203 Non-Authoritative Information */
+/* "Use of this response code is not required and is only appropriate when the response would otherwise be 200 (OK)" */
+			/* fall through */
+		case 204: /* 204 No Content */
 /*
 Response 204 doesn't say "null file", it says "metadata
 has changed but data didn't":
@@ -1141,7 +1155,6 @@ is always terminated by the first empty line after the header fields."
 However, in real world it was observed that some web servers
 (e.g. Boa/0.94.14rc21) simply use code 204 when file size is zero.
 */
-		case 204:
 			if (G.beg_range != 0) {
 				/* "Range:..." was not honored by the server.
 				 * Restart download from the beginning.
@@ -1149,11 +1162,14 @@ However, in real world it was observed that some web servers
 				reset_beg_range_to_zero();
 			}
 			break;
+		/* 205 Reset Content ?? what to do on this ?? 	*/
+
 		case 300:  /* redirection */
 		case 301:
 		case 302:
 		case 303:
 			break;
+
 		case 206: /* Partial Content */
 			if (G.beg_range != 0)
 				/* "Range:..." worked. Good. */
