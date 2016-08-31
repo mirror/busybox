@@ -73,13 +73,9 @@ testing "sed t (test/branch clears test bit)" "sed -e 's/a/b/;:loop;t loop'" \
 testing "sed T (!test/branch)" "sed -e 's/a/1/;T notone;p;: notone;p'" \
 	"1\n1\n1\nb\nb\nc\nc\n" "" "a\nb\nc\n"
 
-test x"$SKIP_KNOWN_BUGS" = x"" && {
-# Normal sed end-of-script doesn't print "c" because n flushed the pattern
-# space.  If n hits EOF, pattern space is empty when script ends.
-# Query: how does this interact with no newline at EOF?
 testing "sed n (flushes pattern space, terminates early)" "sed -e 'n;p'" \
 	"a\nb\nb\nc\n" "" "a\nb\nc\n"
-}
+
 # non-GNU sed: N does _not_ flush pattern space, therefore c is eaten @ script end
 # GNU sed: N flushes pattern space, therefore c is printed too @ script end
 testing "sed N (flushes pattern space (GNU behavior))" "sed -e 'N;p'" \
