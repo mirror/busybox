@@ -13004,10 +13004,10 @@ init(void)
 #endif
 		p = lookupvar("PWD");
 		if (p) {
-			if (*p != '/' || stat(p, &st1) || stat(".", &st2)
+			if (p[0] != '/' || stat(p, &st1) || stat(".", &st2)
 			 || st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino
 			) {
-				p = '\0';
+				p = NULL;
 			}
 		}
 		setpwd(p, 0);

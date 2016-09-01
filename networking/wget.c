@@ -1122,7 +1122,7 @@ static void download_one_url(const char *url)
 			/* fall through */
 		case 201: /* 201 Created */
 /* "The request has been fulfilled and resulted in a new resource being created" */
-			/* Standard wget is reported to treak this as success */
+			/* Standard wget is reported to treat this as success */
 			/* fall through */
 		case 202: /* 202 Accepted */
 /* "The request has been accepted for processing, but the processing has not been completed" */

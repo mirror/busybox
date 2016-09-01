@@ -181,9 +181,9 @@ static NOINLINE int do_rescan(void)
 			continue;
 		/* Do we have this service listed already? */
 		for (i = 0; i < svnum; i++) {
-			if ((sv[i].ino == s.st_ino)
+			if (sv[i].ino == s.st_ino
 #if CHECK_DEVNO_TOO
-			 && (sv[i].dev == s.st_dev)
+			 && sv[i].dev == s.st_dev
 #endif
 			) {
 				if (sv[i].pid == 0) /* restart if it has died */
