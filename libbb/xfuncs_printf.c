@@ -235,8 +235,16 @@ void FAST_FUNC xwrite(int fd, const void *buf, size_t count)
 {
 	if (count) {
 		ssize_t size = full_write(fd, buf, count);
-		if ((size_t)size != count)
-			bb_error_msg_and_die("short write");
+		if ((size_t)size != count) {
+			/*
+			 * Two cases: write error immediately;
+			 * or some writes succeeded, then we hit an error.
+			 * In either case, errno is set.
+			 */
+			bb_perror_msg_and_die(
+				size >= 0 ? "short write" : "write error"
+			);
+		}
 	}
 }
 void FAST_FUNC xwrite_str(int fd, const char *str)
