@@ -27,6 +27,7 @@
 //usage:     "\n	-H 'PROG ARGS'	Run connection helper. Examples:"
 //usage:     "\n		openssl s_client -quiet -tls1 -starttls smtp -connect smtp.gmail.com:25"
 //usage:     "\n		openssl s_client -quiet -tls1 -connect smtp.gmail.com:465"
+//usage:     "\n			$SMTP_ANTISPAM_DELAY: seconds to wait after helper connect"
 //usage:     "\n	-S HOST[:PORT]	Server (default $SMTPHOST or 127.0.0.1)"
 //usage:     "\n	-amLOGIN	Log in using AUTH LOGIN (-amCRAM-MD5 not supported)"
 //usage:     "\n	-auUSER		Username for AUTH"
@@ -207,7 +208,7 @@ static void rcptto_list(const char *list)
 int sendmail_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int sendmail_main(int argc UNUSED_PARAM, char **argv)
 {
-	char *opt_connect = opt_connect;
+	char *opt_connect;
 	char *opt_from = NULL;
 	char *s;
 	llist_t *list = NULL;
@@ -238,6 +239,11 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// init global variables
 	INIT_G();
+
+	// default HOST[:PORT] is $SMTPHOST, or localhost
+	opt_connect = getenv("SMTPHOST");
+	if (!opt_connect)
+		opt_connect = (char *)"127.0.0.1";
 
 	// save initial stdin since body is piped!
 	xdup2(STDIN_FILENO, 3);
@@ -274,6 +280,7 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 
 	// connection helper ordered? ->
 	if (opts & OPT_H) {
+		const char *delay;
 		const char *args[] = { "sh", "-c", opt_connect, NULL };
 		// plug it in
 		launch_helper(args);
@@ -292,7 +299,12 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 		// before 220 reached it. The code below is unsafe in this regard:
 		// in non-STARTTLSed case, we potentially send NOOP before 220
 		// is sent by server.
-		// Ideas? (--delay SECS opt? --assume-starttls-helper opt?)
+		//
+		// If $SMTP_ANTISPAM_DELAY is set, we pause before sending NOOP.
+		//
+		delay = getenv("SMTP_ANTISPAM_DELAY");
+		if (delay)
+			sleep(atoi(delay));
 		code = smtp_check("NOOP", -1);
 		if (code == 220)
 			// we got 220 - this is not STARTTLSed connection,
@@ -304,14 +316,6 @@ int sendmail_main(int argc UNUSED_PARAM, char **argv)
 	} else {
 		// vanilla connection
 		int fd;
-		// host[:port] not explicitly specified? -> use $SMTPHOST
-		// no $SMTPHOST? -> use localhost
-		if (!(opts & OPT_S)) {
-			opt_connect = getenv("SMTPHOST");
-			if (!opt_connect)
-				opt_connect = (char *)"127.0.0.1";
-		}
-		// do connect
 		fd = create_and_connect_stream_or_die(opt_connect, 25);
 		// and make ourselves a simple IO filter
 		xmove_fd(fd, STDIN_FILENO);
