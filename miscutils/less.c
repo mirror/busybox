@@ -1797,9 +1797,10 @@ int less_main(int argc, char **argv)
 	/* Some versions of less can survive w/o controlling tty,
 	 * try to do the same. This also allows to specify an alternative
 	 * tty via "less 1<>TTY".
-	 * We don't try to use STDOUT_FILENO directly,
+	 *
+	 * We prefer not to use STDOUT_FILENO directly,
 	 * since we want to set this fd to non-blocking mode,
-	 * and not bother with restoring it on exit.
+	 * and not interfere with other processes which share stdout with us.
 	 */
 	tty_name = xmalloc_ttyname(STDOUT_FILENO);
 	if (tty_name) {
@@ -1811,8 +1812,15 @@ int less_main(int argc, char **argv)
 		/* Try controlling tty */
  try_ctty:
 		tty_fd = open(CURRENT_TTY, O_RDONLY);
-		if (tty_fd < 0)
-			return bb_cat(argv);
+		if (tty_fd < 0) {
+			/*
+			 * If all else fails, less 481 uses stdout. Mimic that.
+			 * Testcase where usually both ttyname(STDOUT_FILENO)
+			 * and open(CURRENT_TTY) fail:
+			 * su -s /bin/sh -c 'busybox less FILE' - nobody
+			 */
+			tty_fd = STDOUT_FILENO;
+		}
 	}
 	ndelay_on(tty_fd);
 	kbd_fd = tty_fd; /* save in a global */
