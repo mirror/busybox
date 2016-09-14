@@ -784,7 +784,7 @@ static NOINLINE unsigned logdir_open(struct logdir *ld, const char *fn)
 			case '!':
 				if (s[1]) {
 					free(ld->processor);
-					ld->processor = wstrdup(s);
+					ld->processor = wstrdup(&s[1]);
 				}
 				break;
 			}
