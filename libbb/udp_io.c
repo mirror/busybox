@@ -70,7 +70,13 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 	msg.msg_flags = flags;
 
 	cmsgptr = CMSG_FIRSTHDR(&msg);
-	if (to->sa_family == AF_INET && from->sa_family == AF_INET) {
+	/*
+	 * Users report that to->sa_family can be AF_INET6 too,
+	 * if "to" was acquired by recv_from_to(). IOW: recv_from_to()
+	 * was seen showing IPv6 "from" even when the destination
+	 * of received packet (our local address) was IPv4.
+	 */
+	if (/* to->sa_family == AF_INET && */ from->sa_family == AF_INET) {
 		struct in_pktinfo *pktptr;
 		cmsgptr->cmsg_level = IPPROTO_IP;
 		cmsgptr->cmsg_type = IP_PKTINFO;
@@ -86,7 +92,7 @@ send_to_from(int fd, void *buf, size_t len, int flags,
 		pktptr->ipi_spec_dst = ((struct sockaddr_in*)from)->sin_addr;
 	}
 # if ENABLE_FEATURE_IPV6 && defined(IPV6_PKTINFO)
-	else if (to->sa_family == AF_INET6 && from->sa_family == AF_INET6) {
+	else if (/* to->sa_family == AF_INET6 && */ from->sa_family == AF_INET6) {
 		struct in6_pktinfo *pktptr;
 		cmsgptr->cmsg_level = IPPROTO_IPV6;
 		cmsgptr->cmsg_type = IPV6_PKTINFO;
