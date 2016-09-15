@@ -3933,7 +3933,9 @@ static void do_cmd(int c)
 		c1 = get_one_char();
 		if (c1 != 'g') {
 			buf[0] = 'g';
-			buf[1] = c1; // TODO: if Unicode?
+			// c1 < 0 if the key was special. Try "g<up-arrow>"
+			// TODO: if Unicode?
+			buf[1] = (c1 >= 0 ? c1 : '*');
 			buf[2] = '\0';
 			not_implemented(buf);
 			break;
