@@ -13,6 +13,9 @@ extern int delete_module(const char *module, unsigned int flags);
 #else
 # include <sys/syscall.h>
 # define init_module(mod, len, opts) syscall(__NR_init_module, mod, len, opts)
+# if defined(__NR_finit_module)
+#  define finit_module(fd, uargs, flags) syscall(__NR_finit_module, fd, uargs, flags)
+# endif
 # define delete_module(mod, flags) syscall(__NR_delete_module, mod, flags)
 #endif
 
@@ -211,6 +214,24 @@ int FAST_FUNC bb_init_module(const char *filename, const char *options)
 	if (get_linux_version_code() < KERNEL_VERSION(2,6,0))
 		return bb_init_module_24(filename, options);
 #endif
+
+	/*
+	 * First we try finit_module if available.  Some kernels are configured
+	 * to only allow loading of modules off of secure storage (like a read-
+	 * only rootfs) which needs the finit_module call.  If it fails, we fall
+	 * back to normal module loading to support compressed modules.
+	 */
+# ifdef __NR_finit_module
+	{
+		int fd = open(filename, O_RDONLY | O_CLOEXEC);
+		if (fd >= 0) {
+			rc = finit_module(fd, options, 0) != 0;
+			close(fd);
+			if (rc == 0)
+				return rc;
+		}
+	}
+# endif
 
 	image_size = INT_MAX - 4095;
 	mmaped = 0;
