@@ -340,14 +340,14 @@ int FAST_FUNC addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 	int len = RTA_LENGTH(4);
 	struct rtattr *rta;
 
-	if ((int)(NLMSG_ALIGN(n->nlmsg_len) + len) > maxlen) {
+	if ((int)(NLMSG_ALIGN(n->nlmsg_len + len)) > maxlen) {
 		return -1;
 	}
 	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
 	rta->rta_type = type;
 	rta->rta_len = len;
 	move_to_unaligned32(RTA_DATA(rta), data);
-	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + len;
+	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len + len);
 	return 0;
 }
 
@@ -356,14 +356,14 @@ int FAST_FUNC addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, in
 	int len = RTA_LENGTH(alen);
 	struct rtattr *rta;
 
-	if ((int)(NLMSG_ALIGN(n->nlmsg_len) + len) > maxlen) {
+	if ((int)(NLMSG_ALIGN(n->nlmsg_len + len)) > maxlen) {
 		return -1;
 	}
 	rta = (struct rtattr*)(((char*)n) + NLMSG_ALIGN(n->nlmsg_len));
 	rta->rta_type = type;
 	rta->rta_len = len;
 	memcpy(RTA_DATA(rta), data, alen);
-	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + len;
+	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len + len);
 	return 0;
 }
 
@@ -372,14 +372,14 @@ int FAST_FUNC rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t d
 	int len = RTA_LENGTH(4);
 	struct rtattr *subrta;
 
-	if (RTA_ALIGN(rta->rta_len) + len > maxlen) {
+	if (RTA_ALIGN(rta->rta_len + len) > maxlen) {
 		return -1;
 	}
 	subrta = (struct rtattr*)(((char*)rta) + RTA_ALIGN(rta->rta_len));
 	subrta->rta_type = type;
 	subrta->rta_len = len;
 	move_to_unaligned32(RTA_DATA(subrta), data);
-	rta->rta_len = NLMSG_ALIGN(rta->rta_len) + len;
+	rta->rta_len = NLMSG_ALIGN(rta->rta_len + len);
 	return 0;
 }
 
@@ -388,14 +388,14 @@ int FAST_FUNC rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data
 	struct rtattr *subrta;
 	int len = RTA_LENGTH(alen);
 
-	if (RTA_ALIGN(rta->rta_len) + len > maxlen) {
+	if (RTA_ALIGN(rta->rta_len + len) > maxlen) {
 		return -1;
 	}
 	subrta = (struct rtattr*)(((char*)rta) + RTA_ALIGN(rta->rta_len));
 	subrta->rta_type = type;
 	subrta->rta_len = len;
 	memcpy(RTA_DATA(subrta), data, alen);
-	rta->rta_len = NLMSG_ALIGN(rta->rta_len) + len;
+	rta->rta_len = NLMSG_ALIGN(rta->rta_len + len);
 	return 0;
 }
 
