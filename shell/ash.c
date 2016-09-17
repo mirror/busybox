@@ -11663,7 +11663,7 @@ parsebackq: {
 		 * FIXME: this can allocate very large block on stack and SEGV.
 		 * Example:
 		 * echo "..<100kbytes>..`true` $(true) `true` ..."
-		 * alocates 100kb for every command subst. With about
+		 * allocates 100kb for every command subst. With about
 		 * a hundred command substitutions stack overflows.
 		 * With larger prepended string, SEGV happens sooner.
 		 */

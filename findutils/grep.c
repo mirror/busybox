@@ -247,7 +247,7 @@ typedef struct grep_list_data_t {
 #endif
 #define ALLOCATED 1
 #define COMPILED 2
-	int flg_mem_alocated_compiled;
+	int flg_mem_allocated_compiled;
 } grep_list_data_t;
 
 #if !ENABLE_EXTRA_COMPAT
@@ -380,8 +380,8 @@ static int grep_file(FILE *file)
 #endif
 				char *match_at;
 
-				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
-					gl->flg_mem_alocated_compiled |= COMPILED;
+				if (!(gl->flg_mem_allocated_compiled & COMPILED)) {
+					gl->flg_mem_allocated_compiled |= COMPILED;
 #if !ENABLE_EXTRA_COMPAT
 					xregcomp(&gl->compiled_regex, gl->pattern, reflags);
 #else
@@ -619,9 +619,9 @@ static char *add_grep_list_data(char *pattern)
 	grep_list_data_t *gl = xzalloc(sizeof(*gl));
 	gl->pattern = pattern;
 #if ENABLE_FEATURE_CLEAN_UP
-	gl->flg_mem_alocated_compiled = flg_used_mem;
+	gl->flg_mem_allocated_compiled = flg_used_mem;
 #else
-	/*gl->flg_mem_alocated_compiled = 0;*/
+	/*gl->flg_mem_allocated_compiled = 0;*/
 #endif
 	return (char *)gl;
 }
@@ -837,9 +837,9 @@ int grep_main(int argc UNUSED_PARAM, char **argv)
 			grep_list_data_t *gl = (grep_list_data_t *)pattern_head_ptr->data;
 
 			pattern_head = pattern_head->link;
-			if (gl->flg_mem_alocated_compiled & ALLOCATED)
+			if (gl->flg_mem_allocated_compiled & ALLOCATED)
 				free(gl->pattern);
-			if (gl->flg_mem_alocated_compiled & COMPILED)
+			if (gl->flg_mem_allocated_compiled & COMPILED)
 				regfree(&gl->compiled_regex);
 			free(gl);
 			free(pattern_head_ptr);

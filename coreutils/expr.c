@@ -114,7 +114,7 @@ static VALUE *int_value(arith_t i)
 	VALUE *v;
 
 	v = xzalloc(sizeof(VALUE));
-	if (INTEGER) /* otherwise xzaaloc did it already */
+	if (INTEGER) /* otherwise xzalloc did it already */
 		v->type = INTEGER;
 	v->u.i = i;
 	return v;
@@ -127,7 +127,7 @@ static VALUE *str_value(const char *s)
 	VALUE *v;
 
 	v = xzalloc(sizeof(VALUE));
-	if (STRING) /* otherwise xzaaloc did it already */
+	if (STRING) /* otherwise xzalloc did it already */
 		v->type = STRING;
 	v->u.s = xstrdup(s);
 	return v;
