@@ -11659,9 +11659,18 @@ parsebackq: {
 	str = NULL;
 	savelen = out - (char *)stackblock();
 	if (savelen > 0) {
+		/*
+		 * FIXME: this can allocate very large block on stack and SEGV.
+		 * Example:
+		 * echo "..<100kbytes>..`true` $(true) `true` ..."
+		 * alocates 100kb for every command subst. With about
+		 * a hundred command substitutions stack overflows.
+		 * With larger prepended string, SEGV happens sooner.
+		 */
 		str = alloca(savelen);
 		memcpy(str, stackblock(), savelen);
 	}
+
 	if (oldstyle) {
 		/* We must read until the closing backquote, giving special
 		 * treatment to some slashes, and then push the string and
