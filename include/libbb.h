@@ -203,8 +203,9 @@ int klogctl(int type, char *b, int len);
 # define fgets(s,n,stream) fgets_unlocked(s,n,stream)
 # undef  fputs
 # define fputs(s,stream) fputs_unlocked(s,stream)
-# undef  fflush
-# define fflush(stream) fflush_unlocked(stream)
+/* musl <= 1.1.15 does not support fflush_unlocked(NULL) */
+//# undef  fflush
+//# define fflush(stream) fflush_unlocked(stream)
 # undef  feof
 # define feof(stream)   feof_unlocked(stream)
 # undef  ferror
