@@ -3054,6 +3054,14 @@ static int done_command(struct parse_context *ctx)
 	struct pipe *pi = ctx->pipe;
 	struct command *command = ctx->command;
 
+#if 0	/* Instead we emit error message at run time */
+	if (ctx->pending_redirect) {
+		/* For example, "cmd >" (no filename to redirect to) */
+		die_if_script("syntax error: %s", "invalid redirect");
+		ctx->pending_redirect = NULL;
+	}
+#endif
+
 	if (command) {
 		if (IS_NULL_CMD(command)) {
 			debug_printf_parse("done_command: skipping null cmd, num_cmds=%d\n", pi->num_cmds);
@@ -3576,6 +3584,12 @@ static int parse_redirect(struct parse_context *ctx,
 		debug_printf_parse("duplicating redirect '%d>&%d'\n",
 				redir->rd_fd, redir->rd_dup);
 	} else {
+#if 0		/* Instead we emit error message at run time */
+		if (ctx->pending_redirect) {
+			/* For example, "cmd > <file" */
+			die_if_script("syntax error: %s", "invalid redirect");
+		}
+#endif
 		/* Set ctx->pending_redirect, so we know what to do at the
 		 * end of the next parsed word. */
 		ctx->pending_redirect = redir;
@@ -6276,9 +6290,12 @@ static int setup_redirects(struct command *prog, int squirrel[])
 			/* "rd_fd<*>file" case (<*> is <,>,>>,<>) */
 			char *p;
 			if (redir->rd_filename == NULL) {
-				/* Something went wrong in the parse.
-				 * Pretend it didn't happen */
-				bb_error_msg("bug in redirect parse");
+				/*
+				 * Examples:
+				 * "cmd >" (no filename)
+				 * "cmd > <file" (2nd redirect starts too early)
+				 */
+				die_if_script("syntax error: %s", "invalid redirect");
 				continue;
 			}
 			mode = redir_table[redir->rd_type].mode;
