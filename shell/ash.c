@@ -11229,6 +11229,9 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				c = decode_dollar_squote();
 				if (c & 0x100) {
 					USTPUTC('\\', out);
+					if (eofmark == NULL || dblquote)
+						/* Or else this SEGVs: $'\<0x82>' */
+						USTPUTC(CTLESC, out);
 					c = (unsigned char)c;
 				}
 			}
