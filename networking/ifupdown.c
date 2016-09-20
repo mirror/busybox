@@ -492,7 +492,7 @@ static int FAST_FUNC static_up(struct interface_defn_t *ifd, execfn *exec)
 	result = execute("ifconfig %iface%[[ hw %hwaddress%]][[ media %media%]][[ mtu %mtu%]] up",
 				ifd, exec);
 	result += execute("ifconfig %iface% %address% netmask %netmask%"
-				"[[ broadcast %broadcast%]][[ pointopoint %pointopoint%]] ",
+				"[[ broadcast %broadcast%]][[ pointopoint %pointopoint%]]",
 				ifd, exec);
 	result += execute("[[route add default gw %gateway%[[ metric %metric%]] %iface%]]", ifd, exec);
 	return ((result == 3) ? 3 : 0);
@@ -503,7 +503,10 @@ static int FAST_FUNC static_down(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 # if ENABLE_FEATURE_IFUPDOWN_IP
-	result = execute("ip addr flush dev %iface%", ifd, exec);
+	/* Optional "label LBL" is necessary if interface is an alias (eth0:0),
+	 * otherwise "ip addr flush dev eth0:0" flushes all addresses on eth0.
+	 */
+	result = execute("ip addr flush dev %iface%[[ label %label%]]", ifd, exec);
 	result += execute("ip link set %iface% down", ifd, exec);
 # else
 	/* result = execute("[[route del default gw %gateway% %iface%]]", ifd, exec); */
