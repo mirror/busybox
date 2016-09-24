@@ -45,6 +45,45 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 		if (c == '\\' || c == '%') {
 			c = fgetc(fp);
 			switch (c) {
+//From getty manpage (* - supported by us)
+//========================================
+//4 or 4{interface}
+//  Insert the IPv4 address of the network interface (example: \4{eth0}).
+//  If the interface argument is not specified, then select the first
+//  fully configured (UP, non-LOOPBACK, RUNNING) interface.
+//6 or 6{interface} -- The same as \4 but for IPv6.
+//b -- Insert the baudrate of the current line.
+//*d -- Insert the current date.
+//*t -- Insert the current time.
+//e or e{name}
+//  Translate the human-readable name to an escape sequence and insert it
+//  (for example: \e{red}Alert text.\e{reset}).  If the name argument
+//  is not specified, then insert \033. The currently supported names are:
+//  black, blink, blue, bold, brown, cyan, darkgray, gray, green, halfbright,
+//  lightblue, lightcyan, lightgray, lightgreen, lightmagenta, lightred,
+//  magenta, red, reset, reverse, and yellow. Unknown names are ignored.
+//*s
+//  Insert the system name (the name of the operating system - `uname -s`)
+//*S or S{VARIABLE}
+//  Insert the VARIABLE data from /etc/os-release.
+//  If the VARIABLE argument is not specified, use PRETTY_NAME.
+//  If PRETTY_NAME is not in /etc/os-release, \S is the same as \s.
+//*l -- Insert the name of the current tty line.
+//*m -- Insert the architecture identifier of the machine: `uname -m`.
+//*n -- Insert the nodename of the machine: `uname -n`.
+//*o -- Insert the NIS domainname of the machine.  Same as `hostname -d'.
+//*O -- Insert the DNS domainname of the machine.
+//*r -- Insert the release number of the OS: `uname -r`.
+//u -- Insert the number of current users logged in.
+//U -- Insert the string "1 user" or "N users" (current users logged in).
+//*v -- Insert the version of the OS, e.g. the build-date etc: `uname -v`.
+//We also implement:
+//*D -- same as \O "DNS domainname"
+//*h -- same as \n "nodename"
+
+			case 'S':
+				/* minimal implementation, not reading /etc/os-release */
+				/*FALLTHROUGH*/
 			case 's':
 				outbuf = uts.sysname;
 				break;
@@ -65,6 +104,7 @@ void FAST_FUNC print_login_issue(const char *issue_file, const char *tty)
 #if defined(__linux__)
 			case 'D':
 			case 'o':
+			case 'O':
 				outbuf = uts.domainname;
 				break;
 #endif
