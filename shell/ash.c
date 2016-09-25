@@ -5112,8 +5112,26 @@ openredirect(union node *redir)
 	char *fname;
 	int f;
 
-	fname = redir->nfile.expfname;
 	switch (redir->nfile.type) {
+/* Can't happen, our single caller does this itself */
+//	case NTOFD:
+//	case NFROMFD:
+//		return -1;
+	case NHERE:
+	case NXHERE:
+		return openhere(redir);
+	}
+
+	/* For N[X]HERE, reading redir->nfile.expfname would touch beyond
+	 * allocated space. Do it only when we know it is safe.
+	 */
+	fname = redir->nfile.expfname;
+
+	switch (redir->nfile.type) {
+	default:
+#if DEBUG
+		abort();
+#endif
 	case NFROM:
 		f = open(fname, O_RDONLY);
 		if (f < 0)
@@ -5145,20 +5163,6 @@ openredirect(union node *redir)
 		f = open(fname, O_WRONLY|O_CREAT|O_APPEND, 0666);
 		if (f < 0)
 			goto ecreate;
-		break;
-	default:
-#if DEBUG
-		abort();
-#endif
-		/* Fall through to eliminate warning. */
-/* Our single caller does this itself */
-//	case NTOFD:
-//	case NFROMFD:
-//		f = -1;
-//		break;
-	case NHERE:
-	case NXHERE:
-		f = openhere(redir);
 		break;
 	}
 
