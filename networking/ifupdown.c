@@ -21,7 +21,7 @@
 //usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 //usage:#define ifup_full_usage "\n\n"
 //usage:       "	-a	De/configure all interfaces automatically"
-//usage:     "\n	-i FILE	Use FILE for interface definitions"
+//usage:     "\n	-i FILE	Use FILE instead of /etc/network/interfaces"
 //usage:     "\n	-n	Print out what would happen, but don't do it"
 //usage:	IF_FEATURE_IFUPDOWN_MAPPING(
 //usage:     "\n		(note: doesn't disable mappings)"
@@ -1069,6 +1069,11 @@ static int execute_all(struct interface_defn_t *ifd, const char *opt)
 		}
 	}
 
+	/* Tested on Debian Squeeze: "standard" ifup runs this without
+	 * checking that directory exists. If it doesn't, run-parts
+	 * complains, and this message _is_ annoyingly visible.
+	 * Don't "fix" this (unless newer Debian does).
+	 */
 	buf = xasprintf("run-parts /etc/network/if-%s.d", opt);
 	/* heh, we don't bother free'ing it */
 	return doit(buf);
