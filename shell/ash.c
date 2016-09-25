@@ -5651,6 +5651,10 @@ rmescapes(char *str, int flag)
 		}
 		if ((unsigned char)*p == CTLESC) {
 			p++;
+#if DEBUG
+			if (*p == '\0')
+				ash_msg_and_raise_error("CTLESC at EOL (shouldn't happen)");
+#endif
 			if (protect_against_glob) {
 				*q++ = '\\';
 			}
@@ -11302,20 +11306,24 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			USTPUTC(c, out);
 			break;
 		case CCTL:
-			if (eofmark == NULL || dblquote)
-				USTPUTC(CTLESC, out);
 #if ENABLE_ASH_BASH_COMPAT
 			if (c == '\\' && bash_dollar_squote) {
 				c = decode_dollar_squote();
+				if (c == '\0') {
+					/* skip $'\000', $'\x00' (like bash) */
+					break;
+				}
 				if (c & 0x100) {
-					USTPUTC('\\', out);
-					if (eofmark == NULL || dblquote)
-						/* Or else this SEGVs: $'\<0x82>' */
-						USTPUTC(CTLESC, out);
+					/* Unknown escape. Encode as '\z' */
 					c = (unsigned char)c;
+					if (eofmark == NULL || dblquote)
+						USTPUTC(CTLESC, out);
+					USTPUTC('\\', out);
 				}
 			}
 #endif
+			if (eofmark == NULL || dblquote)
+				USTPUTC(CTLESC, out);
 			USTPUTC(c, out);
 			break;
 		case CBACK:     /* backslash */
