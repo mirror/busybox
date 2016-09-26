@@ -1975,13 +1975,13 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
 		if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
 		ip = xasprintf("ip=%s", dotted);
-// Note: IPv6 scoped addresses ("name%iface", see RFC 4007) should be
+		if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
+// Note: IPv6 scoped addresses ("host%iface", see RFC 4007) should be
 // handled by libc in getnameinfo() (inside xmalloc_sockaddr2dotted_noport()).
 // Currently, glibc does not support that (has no NI_NUMERICSCOPE),
 // musl apparently does. This results in "ip=numericIPv6%iface_name"
 // (instead of _numeric_ iface_id) with glibc.
-// This probalby should be fixed in glibc, not here.
-		if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
+// This probably should be fixed in glibc, not here.
 		parse_mount_options(ip, &filteropts);
 		if (ENABLE_FEATURE_CLEAN_UP) free(ip);
 
