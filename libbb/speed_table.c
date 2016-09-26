@@ -50,7 +50,7 @@ static const struct speed_map speeds[] = {
 	{EXTA,   19200},
 #endif
 /* 19200 = 0x4b00 */
-/* 38400 = 0x9600, this value would use bit#15 is not "/200" encoded: */
+/* 38400 = 0x9600, this value would use bit#15 if not "/200" encoded: */
 #ifdef B38400
 	{B38400, 38400/200 + 0x8000u},
 #elif defined(EXTB)
