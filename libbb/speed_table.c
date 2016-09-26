@@ -103,7 +103,22 @@ static const struct speed_map speeds[] = {
 	{B4000000, 4000000/200 + 0x8000u},
 #endif
 /* 4000000/200 = 0x4e20, bit#15 still does not interfere with the value */
+/* (can use /800 if higher speeds would appear, /1600 won't work for B500000) */
 };
+
+/*
+ * TODO: maybe we can just bite the bullet, ditch the table and use termios2
+ * Linux API (supports arbitrary baud rates, no Bxxxx mess needed)? Example:
+ *
+ * #include <asm/termios.h>
+ * #include <asm/ioctls.h>
+ * struct termios2 t;
+ * ioctl(fd, TCGETS2, &t);
+ * t.c_ospeed = t.c_ispeed = 543210;
+ * t.c_cflag &= ~CBAUD;
+ * t.c_cflag |= BOTHER;
+ * ioctl(fd, TCSETS2, &t);
+ */
 
 enum { NUM_SPEEDS = ARRAY_SIZE(speeds) };
 
@@ -114,7 +129,7 @@ unsigned FAST_FUNC tty_baud_to_value(speed_t speed)
 	do {
 		if (speed == speeds[i].speed) {
 			if (speeds[i].value & 0x8000u) {
-				return ((unsigned long) (speeds[i].value) & 0x7fffU) * 200;
+				return ((unsigned)(speeds[i].value) & 0x7fffU) * 200;
 			}
 			return speeds[i].value;
 		}
