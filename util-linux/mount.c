@@ -1931,7 +1931,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		int len;
 		char c;
 		char *hostname, *share;
-		char *dotted, *ip;
 		len_and_sockaddr *lsa;
 
 		// Parse mp->mnt_fsname of the form "//hostname/share[/dir1/dir2]"
@@ -1971,19 +1970,26 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		if (!lsa)
 			goto report_error;
 
-		// Insert "ip=..." option into options
-		dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
-		if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
-		ip = xasprintf("ip=%s", dotted);
-		if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
+		// If there is no "ip=..." option yet
+		if (!is_prefixed_with(filteropts, ",ip="+1)
+		 && !strstr(filteropts, ",ip=")
+		) {
+			char *dotted, *ip;
+			// Insert "ip=..." option into options
+			dotted = xmalloc_sockaddr2dotted_noport(&lsa->u.sa);
+			if (ENABLE_FEATURE_CLEAN_UP) free(lsa);
+			ip = xasprintf("ip=%s", dotted);
+			if (ENABLE_FEATURE_CLEAN_UP) free(dotted);
 // Note: IPv6 scoped addresses ("host%iface", see RFC 4007) should be
 // handled by libc in getnameinfo() (inside xmalloc_sockaddr2dotted_noport()).
 // Currently, glibc does not support that (has no NI_NUMERICSCOPE),
 // musl apparently does. This results in "ip=numericIPv6%iface_name"
 // (instead of _numeric_ iface_id) with glibc.
 // This probably should be fixed in glibc, not here.
-		parse_mount_options(ip, &filteropts);
-		if (ENABLE_FEATURE_CLEAN_UP) free(ip);
+// The workaround is to manually specify correct "ip=ADDR%n" option.
+			parse_mount_options(ip, &filteropts);
+			if (ENABLE_FEATURE_CLEAN_UP) free(ip);
+		}
 
 		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
