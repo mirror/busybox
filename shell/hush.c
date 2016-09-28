@@ -9156,6 +9156,8 @@ static int FAST_FUNC builtin_source(char **argv)
 	if (argv[1])
 		save_and_replace_G_args(&sv, argv);
 
+	/* "false; . ./empty_line; echo Zero:$?" should print 0 */
+	G.last_exitcode = 0;
 	parse_and_run_file(input);
 	fclose_and_forget(input);
 
