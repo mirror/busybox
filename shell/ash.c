@@ -8383,7 +8383,6 @@ dotrap(void)
 
 	TRACE(("dotrap entered\n"));
 	for (sig = 1, g = gotsig; sig < NSIG; sig++, g++) {
-		int want_exexit;
 		char *t;
 
 		if (*g == 0)
@@ -8398,11 +8397,11 @@ dotrap(void)
 		*g = 0;
 		if (!t)
 			continue;
-		want_exexit = evalstring(t, SKIPEVAL);
+		evalstring(t, SKIPEVAL);
 		exitstatus = savestatus;
-		if (want_exexit) {
-			TRACE(("dotrap returns %d\n", want_exexit));
-			return want_exexit;
+		if (evalskip) {
+			TRACE(("dotrap returns %d\n", evalskip));
+			return evalskip;
 		}
 	}
 
@@ -9287,23 +9286,19 @@ static const struct builtincmd builtintab[] = {
 
 /* Should match the above table! */
 #define COMMANDCMD (builtintab + \
-	2 + \
-	1 * ENABLE_ASH_BUILTIN_TEST + \
-	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
-	1 * ENABLE_ASH_ALIAS + \
-	1 * ENABLE_ASH_JOB_CONTROL + \
-	3)
-#define EXECCMD (builtintab + \
-	2 + \
-	1 * ENABLE_ASH_BUILTIN_TEST + \
-	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
-	1 * ENABLE_ASH_ALIAS + \
-	1 * ENABLE_ASH_JOB_CONTROL + \
-	3 + \
-	1 * ENABLE_ASH_CMDCMD + \
-	1 + \
-	ENABLE_ASH_BUILTIN_ECHO + \
-	1)
+	/* . : */	2 + \
+	/* [ */		1 * ENABLE_ASH_BUILTIN_TEST + \
+	/* [[ */	1 * ENABLE_ASH_BUILTIN_TEST * ENABLE_ASH_BASH_COMPAT + \
+	/* alias */	1 * ENABLE_ASH_ALIAS + \
+	/* bg */	1 * ENABLE_ASH_JOB_CONTROL + \
+	/* break cd cddir  */	3)
+#define EVALCMD (COMMANDCMD + \
+	/* command */	1 * ENABLE_ASH_CMDCMD + \
+	/* continue */	1 + \
+	/* echo */	1 * ENABLE_ASH_BUILTIN_ECHO + \
+	0)
+#define EXECCMD (EVALCMD + \
+	/* eval */	1)
 
 /*
  * Search the table of builtin commands.
@@ -12218,34 +12213,29 @@ evalstring(char *s, int mask)
 {
 	union node *n;
 	struct stackmark smark;
-	int skip;
-//	int status;
+	int status;
 
 	s = sstrdup(s);
 	setinputstring(s);
 	setstackmark(&smark);
 
-	skip = 0;
-//	status = 0;
+	status = 0;
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
 
 		i = evaltree(n, 0);
-//		if (n)
-//			status = i;
+		if (n)
+			status = i;
 		popstackmark(&smark);
-		skip = evalskip;
-		if (skip)
+		if (evalskip)
 			break;
 	}
 	popstackmark(&smark);
 	popfile();
 	stunalloc(s);
 
-	skip &= mask;
-	evalskip = skip;
-	return skip;
-//	return status;
+	evalskip &= mask;
+	return status;
 }
 
 /*
@@ -12272,9 +12262,9 @@ evalcmd(int argc UNUSED_PARAM, char **argv)
 			STPUTC('\0', concat);
 			p = grabstackstr(concat);
 		}
-		evalstring(p, ~SKIPEVAL);
+		return evalstring(p, ~SKIPEVAL);
 	}
-	return exitstatus;
+	return 0;
 }
 
 /*
