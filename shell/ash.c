@@ -5864,7 +5864,7 @@ struct backcmd {                /* result of evalbackcmd */
 /* These forward decls are needed to use "eval" code for backticks handling: */
 static uint8_t back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
-static void evaltree(union node *, int);
+static int evaltree(union node *, int);
 
 static void FAST_FUNC
 evalbackcmd(union node *n, struct backcmd *result)
@@ -8412,13 +8412,13 @@ dotrap(void)
 }
 
 /* forward declarations - evaluation is fairly recursive business... */
-static void evalloop(union node *, int);
-static void evalfor(union node *, int);
-static void evalcase(union node *, int);
-static void evalsubshell(union node *, int);
+static int evalloop(union node *, int);
+static int evalfor(union node *, int);
+static int evalcase(union node *, int);
+static int evalsubshell(union node *, int);
 static void expredir(union node *);
-static void evalpipe(union node *, int);
-static void evalcommand(union node *, int);
+static int evalpipe(union node *, int);
+static int evalcommand(union node *, int);
 static int evalbltin(const struct builtincmd *, int, char **);
 static void prehash(union node *);
 
@@ -8426,14 +8426,14 @@ static void prehash(union node *);
  * Evaluate a parse tree.  The value is left in the global variable
  * exitstatus.
  */
-static void
+static int
 evaltree(union node *n, int flags)
 {
 	struct jmploc *volatile savehandler = exception_handler;
 	struct jmploc jmploc;
 	int checkexit = 0;
-	void (*evalfn)(union node *, int);
-	int status;
+	int (*evalfn)(union node *, int);
+	int status = 0;
 	int int_level;
 
 	SAVE_INT(int_level);
@@ -8470,15 +8470,13 @@ evaltree(union node *n, int flags)
 		break;
 #endif
 	case NNOT:
-		evaltree(n->nnot.com, EV_TESTED);
-		status = !exitstatus;
+		status = !evaltree(n->nnot.com, EV_TESTED);
 		goto setstatus;
 	case NREDIR:
 		expredir(n->nredir.redirect);
 		status = redirectsafe(n->nredir.redirect, REDIR_PUSH);
 		if (!status) {
-			evaltree(n->nredir.n, flags & EV_TESTED);
-			status = exitstatus;
+			status = evaltree(n->nredir.n, flags & EV_TESTED);
 		}
 		popredir(/*drop:*/ 0, /*restore:*/ 0 /* not sure */);
 		goto setstatus;
@@ -8518,27 +8516,24 @@ evaltree(union node *n, int flags)
 #error NOR + 1 != NSEMI
 #endif
 		unsigned is_or = n->type - NAND;
-		evaltree(
+		status = evaltree(
 			n->nbinary.ch1,
 			(flags | ((is_or >> 1) - 1)) & EV_TESTED
 		);
-		if ((!exitstatus) == is_or)
+		if (!status == is_or || evalskip)
 			break;
-		if (!evalskip) {
-			n = n->nbinary.ch2;
+		n = n->nbinary.ch2;
  evaln:
-			evalfn = evaltree;
+		evalfn = evaltree;
  calleval:
-			evalfn(n, flags);
-			break;
-		}
-		break;
+		status = evalfn(n, flags);
+		goto setstatus;
 	}
 	case NIF:
-		evaltree(n->nif.test, EV_TESTED);
+		status = evaltree(n->nif.test, EV_TESTED);
 		if (evalskip)
 			break;
-		if (exitstatus == 0) {
+		if (!status) {
 			n = n->nif.ifpart;
 			goto evaln;
 		}
@@ -8546,11 +8541,14 @@ evaltree(union node *n, int flags)
 			n = n->nif.elsepart;
 			goto evaln;
 		}
-		goto success;
+		status = 0;
+		goto setstatus;
 	case NDEFUN:
 		defun(n->narg.text, n->narg.next);
- success:
-		status = 0;
+		/* Not necessary. To test it:
+		 * "false; f() { qwerty; }; echo $?" should print 0.
+		 */
+		/* status = 0; */
  setstatus:
 		exitstatus = status;
 		break;
@@ -8565,7 +8563,7 @@ evaltree(union node *n, int flags)
 	 */
 	if (pending_sig && dotrap())
 		goto exexit;
-	if (checkexit & exitstatus)
+	if (checkexit & status)
 		evalskip |= SKIPEVAL;
 
 	if (flags & EV_EXIT) {
@@ -8575,14 +8573,16 @@ evaltree(union node *n, int flags)
 
 	RESTORE_INT(int_level);
 	TRACE(("leaving evaltree (no interrupts)\n"));
+
+	return exitstatus;
 }
 
 #if !defined(__alpha__) || (defined(__GNUC__) && __GNUC__ >= 3)
 static
 #endif
-void evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
+int evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
 
-static void
+static int
 evalloop(union node *n, int flags)
 {
 	int status;
@@ -8593,7 +8593,7 @@ evalloop(union node *n, int flags)
 	for (;;) {
 		int i;
 
-		evaltree(n->nbinary.ch1, EV_TESTED);
+		i = evaltree(n->nbinary.ch1, EV_TESTED);
 		if (evalskip) {
  skipping:
 			if (evalskip == SKIPCONT && --skipcount <= 0) {
@@ -8604,27 +8604,28 @@ evalloop(union node *n, int flags)
 				evalskip = 0;
 			break;
 		}
-		i = exitstatus;
 		if (n->type != NWHILE)
 			i = !i;
 		if (i != 0)
 			break;
-		evaltree(n->nbinary.ch2, flags);
-		status = exitstatus;
+		status = evaltree(n->nbinary.ch2, flags);
 		if (evalskip)
 			goto skipping;
 	}
-	loopnest--;
 	exitstatus = status;
+	loopnest--;
+
+	return status;
 }
 
-static void
+static int
 evalfor(union node *n, int flags)
 {
 	struct arglist arglist;
 	union node *argp;
 	struct strlist *sp;
 	struct stackmark smark;
+	int status = 0;
 
 	setstackmark(&smark);
 	arglist.list = NULL;
@@ -8637,12 +8638,11 @@ evalfor(union node *n, int flags)
 	}
 	*arglist.lastp = NULL;
 
-	exitstatus = 0;
 	loopnest++;
 	flags &= EV_TESTED;
 	for (sp = arglist.list; sp; sp = sp->next) {
 		setvar0(n->nfor.var, sp->text);
-		evaltree(n->nfor.body, flags);
+		status = evaltree(n->nfor.body, flags);
 		if (evalskip) {
 			if (evalskip == SKIPCONT && --skipcount <= 0) {
 				evalskip = 0;
@@ -8656,26 +8656,32 @@ evalfor(union node *n, int flags)
 	loopnest--;
  out:
 	popstackmark(&smark);
+
+	return status;
 }
 
-static void
+static int
 evalcase(union node *n, int flags)
 {
 	union node *cp;
 	union node *patp;
 	struct arglist arglist;
 	struct stackmark smark;
+	int status = 0;
 
 	setstackmark(&smark);
 	arglist.list = NULL;
 	arglist.lastp = &arglist.list;
 	expandarg(n->ncase.expr, &arglist, EXP_TILDE);
-	exitstatus = 0;
 	for (cp = n->ncase.cases; cp && evalskip == 0; cp = cp->nclist.next) {
 		for (patp = cp->nclist.pattern; patp; patp = patp->narg.next) {
 			if (casematch(patp, arglist.list->text)) {
-				if (evalskip == 0) {
-					evaltree(cp->nclist.body, flags);
+				/* Ensure body is non-empty as otherwise
+				 * EV_EXIT may prevent us from setting the
+				 * exit status.
+				 */
+				if (evalskip == 0 && cp->nclist.body) {
+					status = evaltree(cp->nclist.body, flags);
 				}
 				goto out;
 			}
@@ -8683,12 +8689,14 @@ evalcase(union node *n, int flags)
 	}
  out:
 	popstackmark(&smark);
+
+	return status;
 }
 
 /*
  * Kick off a subshell to evaluate a tree.
  */
-static void
+static int
 evalsubshell(union node *n, int flags)
 {
 	struct job *jp;
@@ -8714,8 +8722,8 @@ evalsubshell(union node *n, int flags)
 	status = 0;
 	if (!backgnd)
 		status = waitforjob(jp);
-	exitstatus = status;
 	INT_ON;
+	return status;
 }
 
 /*
@@ -8788,7 +8796,7 @@ expredir(union node *n)
  * of the shell, which make the last process in a pipeline the parent
  * of all the rest.)
  */
-static void
+static int
 evalpipe(union node *n, int flags)
 {
 	struct job *jp;
@@ -8796,6 +8804,7 @@ evalpipe(union node *n, int flags)
 	int pipelen;
 	int prevfd;
 	int pip[2];
+	int status = 0;
 
 	TRACE(("evalpipe(0x%lx) called\n", (long)n));
 	pipelen = 0;
@@ -8838,10 +8847,12 @@ evalpipe(union node *n, int flags)
 			close(pip[1]);
 	}
 	if (n->npipe.pipe_backgnd == 0) {
-		exitstatus = waitforjob(jp);
-		TRACE(("evalpipe:  job done exit status %d\n", exitstatus));
+		status = waitforjob(jp);
+		TRACE(("evalpipe:  job done exit status %d\n", status));
 	}
 	INT_ON;
+
+	return status;
 }
 
 /*
@@ -9328,7 +9339,7 @@ bltincmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	 * as POSIX mandates */
 	return back_exitstatus;
 }
-static void
+static int
 evalcommand(union node *cmd, int flags)
 {
 	static const struct builtincmd null_bltin = {
@@ -9511,9 +9522,9 @@ evalcommand(union node *cmd, int flags)
 			jp = makejob(/*cmd,*/ 1);
 			if (forkshell(jp, cmd, FORK_FG) != 0) {
 				/* parent */
-				exitstatus = waitforjob(jp);
+				status = waitforjob(jp);
 				INT_ON;
-				TRACE(("forked child exited with %d\n", exitstatus));
+				TRACE(("forked child exited with %d\n", status));
 				break;
 			}
 			/* child */
@@ -9559,7 +9570,7 @@ evalcommand(union node *cmd, int flags)
 			}
 			FORCE_INT_ON;
 		}
-		break;
+		goto readstatus;
 
 	case CMDFUNCTION:
 		listsetvar(varlist.list, 0);
@@ -9567,6 +9578,8 @@ evalcommand(union node *cmd, int flags)
 		dowait(DOWAIT_NONBLOCK, NULL);
 		if (evalfun(cmdentry.u.func, argc, argv, flags))
 			goto raise;
+ readstatus:
+		status = exitstatus;
 		break;
 	} /* switch */
 
@@ -9580,6 +9593,8 @@ evalcommand(union node *cmd, int flags)
 		setvar0("_", lastarg);
 	}
 	popstackmark(&smark);
+
+	return status;
 }
 
 static int
@@ -12205,13 +12220,18 @@ evalstring(char *s, int mask)
 	union node *n;
 	struct stackmark smark;
 	int skip;
+//	int status;
 
 	setinputstring(s);
 	setstackmark(&smark);
 
 	skip = 0;
 	while ((n = parsecmd(0)) != NODE_EOF) {
-		evaltree(n, 0);
+		int i;
+
+		i = evaltree(n, 0);
+//		if (n)
+//			status = i;
 		popstackmark(&smark);
 		skip = evalskip;
 		if (skip)
@@ -12222,6 +12242,7 @@ evalstring(char *s, int mask)
 	skip &= mask;
 	evalskip = skip;
 	return skip;
+//	return status;
 }
 
 /*
@@ -12264,6 +12285,7 @@ cmdloop(int top)
 	union node *n;
 	struct stackmark smark;
 	int inter;
+	int status = 0;
 	int numeof = 0;
 
 	TRACE(("cmdloop(%d) called\n", top));
@@ -12295,10 +12317,14 @@ cmdloop(int top)
 			}
 			numeof++;
 		} else if (nflag == 0) {
+			int i;
+
 			/* job_warning can only be 2,1,0. Here 2->1, 1/0->0 */
 			job_warning >>= 1;
 			numeof = 0;
-			evaltree(n, 0);
+			i = evaltree(n, 0);
+			if (n)
+				status = i;
 		}
 		popstackmark(&smark);
 		skip = evalskip;
@@ -12308,7 +12334,7 @@ cmdloop(int top)
 			return skip & SKIPEVAL;
 		}
 	}
-	return 0;
+	return status;
 }
 
 /*
