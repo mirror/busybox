@@ -5679,7 +5679,7 @@ static char* expand_strvec_to_string(char **argv)
 			n++;
 		}
 	}
-	overlapping_strcpy((char*)list, list[0]);
+	overlapping_strcpy((char*)list, list[0] ? list[0] : "");
 	debug_printf_expand("strvec_to_string='%s'\n", (char*)list);
 	return (char*)list;
 }
