@@ -3654,7 +3654,7 @@ getjob(const char *name, int getctl)
 
 	if (is_number(p)) {
 		num = atoi(p);
-		if (num <= njobs) {
+		if (num > 0 && num <= njobs) {
 			jp = jobtab + num - 1;
 			if (jp->used)
 				goto gotit;
