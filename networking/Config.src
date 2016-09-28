@@ -912,17 +912,9 @@ config FEATURE_TRACEROUTE_VERBOSE
 	  Add some verbosity to traceroute. This includes among other things
 	  hostnames and ICMP response types.
 
-config FEATURE_TRACEROUTE_SOURCE_ROUTE
-	bool "Enable loose source route"
-	default n
-	depends on TRACEROUTE
-	help
-	  Add option to specify a loose source route gateway
-	  (8 maximum).
-
 config FEATURE_TRACEROUTE_USE_ICMP
-	bool "Use ICMP instead of UDP"
-	default n
+	bool "Enable -I option (use ICMP instead of UDP)"
+	default y
 	depends on TRACEROUTE
 	help
 	  Add option -I to use ICMP ECHO instead of UDP datagrams.
