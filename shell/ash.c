@@ -8065,7 +8065,6 @@ static char *funcstring;        /* block to allocate strings from */
 /* flags in argument to evaltree */
 #define EV_EXIT    01           /* exit after evaluating tree */
 #define EV_TESTED  02           /* exit status is checked; ignore -e flag */
-#define EV_BACKCMD 04           /* command executing within back quotes */
 
 static const uint8_t nodesize[N_NUMBER] ALIGN1 = {
 	[NCMD     ] = SHELL_ALIGN(sizeof(struct ncmd)),
