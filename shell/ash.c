@@ -1459,7 +1459,7 @@ stunalloc(void *p)
  * Like strdup but works with the ash stack.
  */
 static char *
-ststrdup(const char *p)
+sstrdup(const char *p)
 {
 	size_t len = strlen(p) + 1;
 	return memcpy(stalloc(len), p, len);
@@ -2514,7 +2514,7 @@ updatepwd(const char *dir)
 	char *cdcomppath;
 	const char *lim;
 
-	cdcomppath = ststrdup(dir);
+	cdcomppath = sstrdup(dir);
 	STARTSTACKSTR(new);
 	if (*dir != '/') {
 		if (curdir == nullstr)
@@ -6993,7 +6993,7 @@ addfname(const char *name)
 	struct strlist *sp;
 
 	sp = stzalloc(sizeof(*sp));
-	sp->text = ststrdup(name);
+	sp->text = sstrdup(name);
 	*exparg.lastp = sp;
 	exparg.lastp = &sp->next;
 }
@@ -12221,10 +12221,12 @@ evalstring(char *s, int mask)
 	int skip;
 //	int status;
 
+	s = sstrdup(s);
 	setinputstring(s);
 	setstackmark(&smark);
 
 	skip = 0;
+//	status = 0;
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
 
@@ -12236,7 +12238,9 @@ evalstring(char *s, int mask)
 		if (skip)
 			break;
 	}
+	popstackmark(&smark);
 	popfile();
+	stunalloc(s);
 
 	skip &= mask;
 	evalskip = skip;
