@@ -2373,7 +2373,7 @@ static ALWAYS_INLINE void o_free_unsafe(o_string *o)
 static void o_grow_by(o_string *o, int len)
 {
 	if (o->length + len > o->maxlen) {
-		o->maxlen += (2*len > B_CHUNK ? 2*len : B_CHUNK);
+		o->maxlen += (2 * len) | (B_CHUNK-1);
 		o->data = xrealloc(o->data, 1 + o->maxlen);
 	}
 }
@@ -2381,10 +2381,16 @@ static void o_grow_by(o_string *o, int len)
 static void o_addchr(o_string *o, int ch)
 {
 	debug_printf("o_addchr: '%c' o->length=%d o=%p\n", ch, o->length, o);
+	if (o->length < o->maxlen) {
+		/* likely. avoid o_grow_by() call */
+ add:
+		o->data[o->length] = ch;
+		o->length++;
+		o->data[o->length] = '\0';
+		return;
+	}
 	o_grow_by(o, 1);
-	o->data[o->length] = ch;
-	o->length++;
-	o->data[o->length] = '\0';
+	goto add;
 }
 
 #if 0
@@ -3909,6 +3915,22 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* command remains "open", available for possible redirects */
 }
 
+static int i_getch_and_eat_bkslash_nl(struct in_str *input)
+{
+	for (;;) {
+		int ch, ch2;
+
+		ch = i_getch(input);
+		if (ch != '\\')
+			return ch;
+		ch2 = i_peek(input);
+		if (ch2 != '\n')
+			return ch;
+		/* backslash+newline, skip it */
+		i_getch(input);
+	}
+}
+
 static int i_peek_and_eat_bkslash_nl(struct in_str *input)
 {
 	for (;;) {
@@ -4149,8 +4171,7 @@ static int parse_dollar(o_string *as_string,
 		ch = i_getch(input); /* eat '{' */
 		nommu_addchr(as_string, ch);
 
-		i_peek_and_eat_bkslash_nl(input);
-		ch = i_getch(input); /* first char after '{' */
+		ch = i_getch_and_eat_bkslash_nl(input); /* first char after '{' */
 		/* It should be ${?}, or ${#var},
 		 * or even ${?+subst} - operator acting on a special variable,
 		 * or the beginning of variable name.
