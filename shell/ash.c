@@ -9774,11 +9774,6 @@ popstring(void)
 	INT_ON;
 }
 
-//FIXME: BASH_COMPAT with "...&" does TWO pungetc():
-//it peeks whether it is &>, and then pushes back both chars.
-//This function needs to save last *next_to_pgetc to buf[0]
-//to make two pungetc() reliable. Currently,
-// pgetc (out of buf: does preadfd), pgetc, pungetc, pungetc won't work...
 static int
 preadfd(void)
 {
@@ -10035,6 +10030,25 @@ static void
 pungetc(void)
 {
 	g_parsefile->unget++;
+}
+
+/* This one eats backslash+newline */
+static int
+pgetc_eatbnl(void)
+{
+	int c;
+
+	while ((c = pgetc()) == '\\') {
+		if (pgetc() != '\n') {
+			pungetc();
+			break;
+		}
+
+		g_parsefile->linno++;
+		setprompt_if(doprompt, 2);
+	}
+
+	return c;
 }
 
 /*
@@ -11625,7 +11639,7 @@ parsesub: {
 	int typeloc;
 	int flags;
 
-	c = pgetc();
+	c = pgetc_eatbnl();
 	if (c > 255 /* PEOA or PEOF */
 	 || (c != '(' && c != '{' && !is_name(c) && !is_special(c))
 	) {
@@ -11638,7 +11652,7 @@ parsesub: {
 		pungetc();
 	} else if (c == '(') {
 		/* $(command) or $((arith)) */
-		if (pgetc() == '(') {
+		if (pgetc_eatbnl() == '(') {
 #if ENABLE_SH_MATH_SUPPORT
 			PARSEARITH();
 #else
@@ -11655,9 +11669,9 @@ parsesub: {
 		USTPUTC(VSNORMAL, out);
 		subtype = VSNORMAL;
 		if (c == '{') {
-			c = pgetc();
+			c = pgetc_eatbnl();
 			if (c == '#') {
-				c = pgetc();
+				c = pgetc_eatbnl();
 				if (c == '}')
 					c = '#'; /* ${#} - same as $# */
 				else
@@ -11670,18 +11684,18 @@ parsesub: {
 			/* $[{[#]]NAME[}] */
 			do {
 				STPUTC(c, out);
-				c = pgetc();
+				c = pgetc_eatbnl();
 			} while (c <= 255 /* not PEOA or PEOF */ && is_in_name(c));
 		} else if (isdigit(c)) {
 			/* $[{[#]]NUM[}] */
 			do {
 				STPUTC(c, out);
-				c = pgetc();
+				c = pgetc_eatbnl();
 			} while (isdigit(c));
 		} else if (is_special(c)) {
 			/* $[{[#]]<specialchar>[}] */
 			USTPUTC(c, out);
-			c = pgetc();
+			c = pgetc_eatbnl();
 		} else {
  badsub:
 			raise_error_syntax("bad substitution");
@@ -11699,7 +11713,7 @@ parsesub: {
 			/* c == first char after VAR */
 			switch (c) {
 			case ':':
-				c = pgetc();
+				c = pgetc_eatbnl();
 #if ENABLE_ASH_BASH_COMPAT
 				/* This check is only needed to not misinterpret
 				 * ${VAR:-WORD}, ${VAR:+WORD}, ${VAR:=WORD}, ${VAR:?WORD}
@@ -11724,7 +11738,7 @@ parsesub: {
 			case '#': {
 				int cc = c;
 				subtype = (c == '#' ? VSTRIMLEFT : VSTRIMRIGHT);
-				c = pgetc();
+				c = pgetc_eatbnl();
 				if (c != cc)
 					goto do_pungetc;
 				subtype++;
@@ -11736,7 +11750,7 @@ parsesub: {
 //TODO: encode pattern and repl separately.
 // Currently ${v/$var_with_slash/repl} is horribly broken
 				subtype = VSREPLACE;
-				c = pgetc();
+				c = pgetc_eatbnl();
 				if (c != '/')
 					goto do_pungetc;
 				subtype++; /* VSREPLACEALL */
