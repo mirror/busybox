@@ -1168,6 +1168,12 @@ struct strpush {
 	struct alias *ap;       /* if push was associated with an alias */
 #endif
 	char *string;           /* remember the string since it may change */
+
+	/* Remember last two characters for pungetc. */
+	int lastc[2];
+
+	/* Number of outstanding calls to pungetc. */
+	int unget;
 };
 
 struct parsefile {
@@ -1180,6 +1186,12 @@ struct parsefile {
 	char *buf;              /* input buffer */
 	struct strpush *strpush; /* for pushing strings at this level */
 	struct strpush basestrpush; /* so pushing one is fast */
+
+	/* Remember last two characters for pungetc. */
+	int lastc[2];
+
+	/* Number of outstanding calls to pungetc. */
+	int unget;
 };
 
 static struct parsefile basepf;        /* top level input file */
@@ -9715,6 +9727,8 @@ pushstring(char *s, struct alias *ap)
 	g_parsefile->strpush = sp;
 	sp->prev_string = g_parsefile->next_to_pgetc;
 	sp->prev_left_in_line = g_parsefile->left_in_line;
+	sp->unget = g_parsefile->unget;
+	memcpy(sp->lastc, g_parsefile->lastc, sizeof(sp->lastc));
 #if ENABLE_ASH_ALIAS
 	sp->ap = ap;
 	if (ap) {
@@ -9724,6 +9738,7 @@ pushstring(char *s, struct alias *ap)
 #endif
 	g_parsefile->next_to_pgetc = s;
 	g_parsefile->left_in_line = len;
+	g_parsefile->unget = 0;
 	INT_ON;
 }
 
@@ -9751,6 +9766,8 @@ popstring(void)
 #endif
 	g_parsefile->next_to_pgetc = sp->prev_string;
 	g_parsefile->left_in_line = sp->prev_left_in_line;
+	g_parsefile->unget = sp->unget;
+	memcpy(g_parsefile->lastc, sp->lastc, sizeof(sp->lastc));
 	g_parsefile->strpush = sp->prev;
 	if (sp != &(g_parsefile->basestrpush))
 		free(sp);
@@ -9846,13 +9863,14 @@ preadfd(void)
  */
 //#define pgetc_debug(...) bb_error_msg(__VA_ARGS__)
 #define pgetc_debug(...) ((void)0)
+static int pgetc(void);
 static int
 preadbuffer(void)
 {
 	char *q;
 	int more;
 
-	while (g_parsefile->strpush) {
+	if (g_parsefile->strpush) {
 #if ENABLE_ASH_ALIAS
 		if (g_parsefile->left_in_line == -1
 		 && g_parsefile->strpush->ap
@@ -9864,13 +9882,7 @@ preadbuffer(void)
 		}
 #endif
 		popstring();
-		/* try "pgetc" now: */
-		pgetc_debug("preadbuffer internal pgetc at %d:%p'%s'",
-				g_parsefile->left_in_line,
-				g_parsefile->next_to_pgetc,
-				g_parsefile->next_to_pgetc);
-		if (--g_parsefile->left_in_line >= 0)
-			return (unsigned char)(*g_parsefile->next_to_pgetc++);
+		return pgetc();
 	}
 	/* on both branches above g_parsefile->left_in_line < 0.
 	 * "pgetc" needs refilling.
@@ -9949,27 +9961,28 @@ preadbuffer(void)
 	return (unsigned char)*g_parsefile->next_to_pgetc++;
 }
 
-#define pgetc_as_macro() \
-	(--g_parsefile->left_in_line >= 0 \
-	? (unsigned char)*g_parsefile->next_to_pgetc++ \
-	: preadbuffer() \
-	)
-
 static int
 pgetc(void)
 {
-	pgetc_debug("pgetc_fast at %d:%p'%s'",
+	int c;
+
+	pgetc_debug("pgetc at %d:%p'%s'",
 			g_parsefile->left_in_line,
 			g_parsefile->next_to_pgetc,
 			g_parsefile->next_to_pgetc);
-	return pgetc_as_macro();
-}
+	if (g_parsefile->unget)
+		return g_parsefile->lastc[--g_parsefile->unget];
 
-#if ENABLE_ASH_OPTIMIZE_FOR_SIZE
-# define pgetc_fast() pgetc()
-#else
-# define pgetc_fast() pgetc_as_macro()
-#endif
+	if (--g_parsefile->left_in_line >= 0)
+		c = (signed char)*g_parsefile->next_to_pgetc++;
+	else
+		c = preadbuffer();
+
+	g_parsefile->lastc[1] = g_parsefile->lastc[0];
+	g_parsefile->lastc[0] = c;
+
+	return c;
+}
 
 #if ENABLE_ASH_ALIAS
 static int
@@ -9977,11 +9990,11 @@ pgetc_without_PEOA(void)
 {
 	int c;
 	do {
-		pgetc_debug("pgetc_fast at %d:%p'%s'",
+		pgetc_debug("pgetc at %d:%p'%s'",
 				g_parsefile->left_in_line,
 				g_parsefile->next_to_pgetc,
 				g_parsefile->next_to_pgetc);
-		c = pgetc_fast();
+		c = pgetc();
 	} while (c == PEOA);
 	return c;
 }
@@ -10015,18 +10028,13 @@ pfgets(char *line, int len)
 }
 
 /*
- * Undo the last call to pgetc.  Only one character may be pushed back.
+ * Undo a call to pgetc.  Only two characters may be pushed back.
  * PEOF may be pushed back.
  */
 static void
 pungetc(void)
 {
-	g_parsefile->left_in_line++;
-	g_parsefile->next_to_pgetc--;
-	pgetc_debug("pushed back to %d:%p'%s'",
-			g_parsefile->left_in_line,
-			g_parsefile->next_to_pgetc,
-			g_parsefile->next_to_pgetc);
+	g_parsefile->unget++;
 }
 
 /*
@@ -10043,6 +10051,7 @@ pushfile(void)
 	pf->pf_fd = -1;
 	/*pf->strpush = NULL; - ckzalloc did it */
 	/*pf->basestrpush.prev = NULL;*/
+	/*pf->unget = 0;*/
 	g_parsefile = pf;
 }
 
@@ -11451,7 +11460,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			IF_ASH_ALIAS(if (c != PEOA))
 				USTPUTC(c, out);
 		}
-		c = pgetc_fast();
+		c = pgetc();
 	} /* for (;;) */
  endword:
 
@@ -11945,7 +11954,7 @@ xxreadtoken(void)
 	setprompt_if(needprompt, 2);
 	startlinno = g_parsefile->linno;
 	for (;;) {                      /* until token or start of word found */
-		c = pgetc_fast();
+		c = pgetc();
 		if (c == ' ' || c == '\t' IF_ASH_ALIAS( || c == PEOA))
 			continue;
 
@@ -12008,7 +12017,7 @@ xxreadtoken(void)
 	setprompt_if(needprompt, 2);
 	startlinno = g_parsefile->linno;
 	for (;;) {      /* until token or start of word found */
-		c = pgetc_fast();
+		c = pgetc();
 		switch (c) {
 		case ' ': case '\t':
 		IF_ASH_ALIAS(case PEOA:)
