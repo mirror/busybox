@@ -470,11 +470,9 @@ typedef struct in_str {
 	FILE *file;
 	int (*get) (struct in_str *) FAST_FUNC;
 	int (*peek) (struct in_str *) FAST_FUNC;
-	int (*peek2) (struct in_str *) FAST_FUNC;
 } in_str;
 #define i_getch(input) ((input)->get(input))
 #define i_peek(input)  ((input)->peek(input))
-#define i_peek2(input) ((input)->peek2(input))
 
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
@@ -2129,6 +2127,14 @@ static void reinit_unicode_for_hush(void)
  */
 
 #if ENABLE_HUSH_INTERACTIVE
+/* To test correct lineedit/interactive behavior, type from command line:
+ *	echo $P\
+ *	\
+ *	AT\
+ *	H\
+ *	\
+ * It excercises a lot of corner cases.
+ */
 static void cmdedit_update_prompt(void)
 {
 	if (ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
@@ -2159,7 +2165,7 @@ static const char *setup_prompt_string(int promptmode)
 			prompt_str = G.PS2;
 	} else
 		prompt_str = (promptmode == 0) ? G.PS1 : G.PS2;
-	debug_printf("result '%s'\n", prompt_str);
+	debug_printf("prompt_str '%s'\n", prompt_str);
 	return prompt_str;
 }
 static int get_user_input(struct in_str *i)
@@ -2169,8 +2175,6 @@ static int get_user_input(struct in_str *i)
 
 	prompt_str = setup_prompt_string(i->promptmode);
 # if ENABLE_FEATURE_EDITING
-	/* Enable command line editing only while a command line
-	 * is actually being read */
 	do {
 		reinit_unicode_for_hush();
 		G.flag_SIGINT = 0;
@@ -2183,13 +2187,13 @@ static int get_user_input(struct in_str *i)
 		/* catch *SIGINT* etc (^C is handled by read_line_input) */
 		check_and_run_traps();
 	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
-	i->p = G.user_input_buf;
 	if (r < 0) {
 		/* EOF/error detected */
-		G.user_input_buf[0] = '\0';
-		i->peek_buf[1] = i->peek_buf[0] = r = EOF;
+		i->p = NULL;
+		i->peek_buf[0] = r = EOF;
 		return r;
 	}
+	i->p = G.user_input_buf;
 	return (unsigned char)*i->p++;
 # else
 	do {
@@ -2209,18 +2213,45 @@ static int get_user_input(struct in_str *i)
 	return r;
 # endif
 }
-#endif  /* INTERACTIVE */
-
 /* This is the magic location that prints prompts
  * and gets data back from the user */
+static int fgetc_interactive(struct in_str *i)
+{
+	int ch;
+	/* If it's interactive stdin, get new line. */
+	if (G_interactive_fd && i->file == stdin) {
+		/* Returns first char (or EOF), the rest is in i->p[] */
+		ch = get_user_input(i);
+		i->promptmode = 1; /* PS2 */
+	} else {
+		/* Not stdin: script file, sourced file, etc */
+		do ch = fgetc(i->file); while (ch == '\0');
+	}
+	return ch;
+}
+#else
+static inline int fgetc_interactive(struct in_str *i)
+{
+	int ch;
+	do ch = fgetc(i->file); while (ch == '\0');
+	return ch;
+}
+#endif  /* INTERACTIVE */
+
 static int FAST_FUNC file_get(struct in_str *i)
 {
 	int ch;
 
-	/* If there is data waiting, eat it up */
+#if ENABLE_FEATURE_EDITING
+	/* This can be stdin, check line editing char[] buffer */
+	if (i->p && *i->p != '\0') {
+		ch = (unsigned char)*i->p++;
+		goto out;
+	}
+#endif
 	/* peek_buf[] is an int array, not char. Can contain EOF. */
 	ch = i->peek_buf[0];
-	if (ch != '\0') {
+	if (ch != 0) {
 		int ch2 = i->peek_buf[1];
 		i->peek_buf[0] = ch2;
 		if (ch2 == 0) /* very likely, avoid redundant write */
@@ -2229,86 +2260,46 @@ static int FAST_FUNC file_get(struct in_str *i)
 		goto out;
 	}
 
-#if ENABLE_HUSH_INTERACTIVE
-	/* This can be stdin, check line editing char[] buffer */
-	if (i->p && *i->p != '\0') {
-		ch = (unsigned char)*i->p++;
-		goto out;
-	}
-	/* It's empty.
-	 * If it's interactive stdin, get new line.
-	 */
-	if (G_interactive_fd && i->file == stdin) {
-		/* Returns first char (or EOF), the rest are in i->p[] */
-		ch = get_user_input(i);
-		i->promptmode = 1; /* PS2 */
-		goto out;
-	}
-	/* Not stdin: script file */
-#endif
-	do ch = fgetc(i->file); while (ch == '\0');
+	ch = fgetc_interactive(i);
  out:
 	debug_printf("file_get: got '%c' %d\n", ch, ch);
 	i->last_char = ch;
 	return ch;
 }
 
-/* All callers guarantee this routine will never
- * be used right after a newline, so prompting is not needed.
- */
 static int FAST_FUNC file_peek(struct in_str *i)
 {
 	int ch;
 
-	/* peek_buf[] is an int array, not char. Can contain EOF. */
-	ch = i->peek_buf[0];
-	if (ch != '\0')
-		return ch;
-
-#if ENABLE_HUSH_INTERACTIVE
+#if ENABLE_FEATURE_EDITING && ENABLE_HUSH_INTERACTIVE
 	/* This can be stdin, check line editing char[] buffer */
 	if (i->p && *i->p != '\0')
 		return (unsigned char)*i->p;
 #endif
-
-	do ch = fgetc(i->file); while (ch == '\0');
-	i->peek_buf[0] = ch;
-	i->peek_buf[1] = 0;
-	debug_printf("file_peek: got '%c' %d\n", ch, ch);
-	return ch;
-}
-
-/* Only ever called if i_peek() was called, and did not return EOF */
-static int FAST_FUNC file_peek2(struct in_str *i)
-{
-	int ch;
-
 	/* peek_buf[] is an int array, not char. Can contain EOF. */
 	ch = i->peek_buf[0];
-	if (ch != 0) {
-		/* peek_buf[] is not empty. Is there 2nd char? */
-		ch = i->peek_buf[1];
-		if (ch == 0) {
-			/* We did not read it yet, get it now */
-			do ch = fgetc(i->file); while (ch == '\0');
-			i->peek_buf[1] = ch;
-		}
-		goto out;
-	}
+	if (ch != 0)
+		return ch;
 
-#if ENABLE_HUSH_INTERACTIVE
-	/* This can be stdin, check line editing char[] buffer */
-	if (i->p && i->p[0] != '\0')
-		ch = i->p[1];
+	/* Need to get a new char */
+	ch = fgetc_interactive(i);
+	debug_printf("file_peek: got '%c' %d\n", ch, ch);
+
+	/* Save it by either rolling back line editing buffer, or in i->peek_buf[0] */
+#if ENABLE_FEATURE_EDITING && ENABLE_HUSH_INTERACTIVE
+	if (i->p) {
+		i->p -= 1;
+		return ch;
+	}
 #endif
- out:
-	debug_printf("file_peek2: got '%c' %d\n", ch, ch);
+	i->peek_buf[0] = ch;
+	/*i->peek_buf[1] = 0; - already is */
 	return ch;
 }
 
 static int FAST_FUNC static_get(struct in_str *i)
 {
-	int ch = *i->p;
+	int ch = (unsigned char)*i->p;
 	if (ch != '\0') {
 		i->p++;
 		i->last_char = ch;
@@ -2320,13 +2311,39 @@ static int FAST_FUNC static_get(struct in_str *i)
 static int FAST_FUNC static_peek(struct in_str *i)
 {
 	/* Doesn't report EOF on NUL. None of the callers care. */
-	return *i->p;
+	return (unsigned char)*i->p;
 }
 
-/* Only ever called if i_peek() was called, and did not return EOF */
-static int FAST_FUNC static_peek2(struct in_str *i)
+/* Only ever called if i_peek() was called, and did not return EOF.
+ * IOW: we know the previous peek saw an ordinary char, not EOF, not NUL,
+ * not end-of-line. Therefore we never need to read a new editing line here.
+ */
+static int i_peek2(struct in_str *i)
 {
-	return i->p[1];
+	int ch;
+
+	/* There are two cases when i->p[] buffer exists.
+	 * (1) it's a string in_str.
+	 * (2) It's a file, and we have s saved line editing buffer.
+	 * In both cases, we know that i->p[0] exists and not NUL, and
+	 * the peek2 result is in i->p[1].
+	 */
+	if (i->p)
+		return (unsigned char)i->p[1];
+
+	/* Now we know it is a file-based in_str. */
+
+	/* peek_buf[] is an int array, not char. Can contain EOF. */
+	/* Is there 2nd char? */
+	ch = i->peek_buf[1];
+	if (ch == 0) {
+		/* We did not read it yet, get it now */
+		do ch = fgetc(i->file); while (ch == '\0');
+		i->peek_buf[1] = ch;
+	}
+
+	debug_printf("file_peek2: got '%c' %d\n", ch, ch);
+	return ch;
 }
 
 static void setup_file_in_str(struct in_str *i, FILE *f)
@@ -2334,7 +2351,6 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 	memset(i, 0, sizeof(*i));
 	i->get = file_get;
 	i->peek = file_peek;
-	i->peek2 = file_peek2;
 	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->file = f;
 	/* i->p = NULL; */
@@ -2345,7 +2361,6 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 	memset(i, 0, sizeof(*i));
 	i->get = static_get;
 	i->peek = static_peek;
-	i->peek2 = static_peek2;
 	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->p = s;
 }
