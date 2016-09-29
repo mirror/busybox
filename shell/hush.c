@@ -2387,6 +2387,15 @@ static void o_addchr(o_string *o, int ch)
 	o->data[o->length] = '\0';
 }
 
+#if 0
+/* Valid only if we know o_string is not empty */
+static void o_delchr(o_string *o)
+{
+	o->length--;
+	o->data[o->length] = '\0';
+}
+#endif
+
 static void o_addblock(o_string *o, const char *str, int len)
 {
 	o_grow_by(o, len);
@@ -3900,6 +3909,23 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 	/* command remains "open", available for possible redirects */
 }
 
+static int i_peek_and_eat_bkslash_nl(struct in_str *input)
+{
+	for (;;) {
+		int ch, ch2;
+
+		ch = i_peek(input);
+		if (ch != '\\')
+			return ch;
+		ch2 = i_peek2(input);
+		if (ch2 != '\n')
+			return ch;
+		/* backslash+newline, skip it */
+		i_getch(input);
+		i_getch(input);
+	}
+}
+
 #if ENABLE_HUSH_TICK || ENABLE_SH_MATH_SUPPORT || ENABLE_HUSH_DOLLAR_OPS
 /* Subroutines for copying $(...) and `...` things */
 static int add_till_backquote(o_string *dest, struct in_str *input, int in_dquote);
@@ -4017,7 +4043,7 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 			if (!dbl)
 				break;
 			/* we look for closing )) of $((EXPR)) */
-			if (i_peek(input) == end_ch) {
+			if (i_peek_and_eat_bkslash_nl(input) == end_ch) {
 				i_getch(input); /* eat second ')' */
 				break;
 			}
@@ -4055,6 +4081,13 @@ static int add_till_closing_bracket(o_string *dest, struct in_str *input, unsign
 				syntax_error_unterm_ch(')');
 				return 0;
 			}
+#if 0
+			if (ch == '\n') {
+				/* "backslash+newline", ignore both */
+				o_delchr(dest); /* undo insertion of '\' */
+				continue;
+			}
+#endif
 			o_addchr(dest, ch);
 			continue;
 		}
@@ -4073,7 +4106,7 @@ static int parse_dollar(o_string *as_string,
 		o_string *dest,
 		struct in_str *input, unsigned char quote_mask)
 {
-	int ch = i_peek(input);  /* first character after the $ */
+	int ch = i_peek_and_eat_bkslash_nl(input);  /* first character after the $ */
 
 	debug_printf_parse("parse_dollar entered: ch='%c'\n", ch);
 	if (isalpha(ch)) {
@@ -4085,18 +4118,8 @@ static int parse_dollar(o_string *as_string,
 			debug_printf_parse(": '%c'\n", ch);
 			o_addchr(dest, ch | quote_mask);
 			quote_mask = 0;
- next_ch:
-			ch = i_peek(input);
+			ch = i_peek_and_eat_bkslash_nl(input);
 			if (!isalnum(ch) && ch != '_') {
-				if (ch == '\\') {
-					/* If backslash+newline, skip it */
-					int ch2 = i_peek2(input);
-					if (ch2 == '\n') {
-						i_getch(input);
-						i_getch(input);
-						goto next_ch;
-					}
-				}
 				/* End of variable name reached */
 				break;
 			}
@@ -4126,6 +4149,7 @@ static int parse_dollar(o_string *as_string,
 		ch = i_getch(input); /* eat '{' */
 		nommu_addchr(as_string, ch);
 
+		i_peek_and_eat_bkslash_nl(input);
 		ch = i_getch(input); /* first char after '{' */
 		/* It should be ${?}, or ${#var},
 		 * or even ${?+subst} - operator acting on a special variable,
@@ -4232,7 +4256,7 @@ static int parse_dollar(o_string *as_string,
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
 # if ENABLE_SH_MATH_SUPPORT
-		if (i_peek(input) == '(') {
+		if (i_peek_and_eat_bkslash_nl(input) == '(') {
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
 			o_addchr(dest, SPECIAL_VAR_SYMBOL);
@@ -4269,7 +4293,7 @@ static int parse_dollar(o_string *as_string,
 	case '_':
 		ch = i_getch(input);
 		nommu_addchr(as_string, ch);
-		ch = i_peek(input);
+		ch = i_peek_and_eat_bkslash_nl(input);
 		if (isalnum(ch)) { /* it's $_name or $_123 */
 			ch = '_';
 			goto make_var;
