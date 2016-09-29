@@ -1,0 +1,15 @@
+ad="Ok"
+a="Ba"
+
+# "Ok"
+echo $a\
+d
+
+# This variable contains backslash+newline!
+e='echo $a\
+d'
+
+# "Ba d"
+eval $e
+# "Ok"
+eval "$e"
