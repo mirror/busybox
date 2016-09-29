@@ -462,19 +462,19 @@ static const char *const assignment_flag[] = {
 
 typedef struct in_str {
 	const char *p;
-	/* eof_flag=1: last char in ->p is really an EOF */
-	char eof_flag; /* meaningless if ->p == NULL */
-	char peek_buf[2];
 #if ENABLE_HUSH_INTERACTIVE
 	smallint promptmode; /* 0: PS1, 1: PS2 */
 #endif
+	int peek_buf[2];
 	int last_char;
 	FILE *file;
 	int (*get) (struct in_str *) FAST_FUNC;
 	int (*peek) (struct in_str *) FAST_FUNC;
+	int (*peek2) (struct in_str *) FAST_FUNC;
 } in_str;
 #define i_getch(input) ((input)->get(input))
-#define i_peek(input) ((input)->peek(input))
+#define i_peek(input)  ((input)->peek(input))
+#define i_peek2(input) ((input)->peek2(input))
 
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
@@ -2122,28 +2122,11 @@ static void reinit_unicode_for_hush(void)
 	}
 }
 
-
 /*
- * in_str support
+ * in_str support (strings, and "strings" read from files).
  */
-static int FAST_FUNC static_get(struct in_str *i)
-{
-	int ch = *i->p;
-	if (ch != '\0') {
-		i->p++;
-		i->last_char = ch;
-		return ch;
-	}
-	return EOF;
-}
-
-static int FAST_FUNC static_peek(struct in_str *i)
-{
-	return *i->p;
-}
 
 #if ENABLE_HUSH_INTERACTIVE
-
 static void cmdedit_update_prompt(void)
 {
 	if (ENABLE_FEATURE_EDITING_FANCY_PROMPT) {
@@ -2157,7 +2140,6 @@ static void cmdedit_update_prompt(void)
 	if (G.PS2 == NULL)
 		G.PS2 = "> ";
 }
-
 static const char *setup_prompt_string(int promptmode)
 {
 	const char *prompt_str;
@@ -2178,8 +2160,7 @@ static const char *setup_prompt_string(int promptmode)
 	debug_printf("result '%s'\n", prompt_str);
 	return prompt_str;
 }
-
-static void get_user_input(struct in_str *i)
+static int get_user_input(struct in_str *i)
 {
 	int r;
 	const char *prompt_str;
@@ -2197,11 +2178,14 @@ static void get_user_input(struct in_str *i)
 		/* catch *SIGINT* etc (^C is handled by read_line_input) */
 		check_and_run_traps();
 	} while (r == 0 || G.flag_SIGINT); /* repeat if ^C or SIGINT */
-	i->eof_flag = (r < 0);
-	if (i->eof_flag) { /* EOF/error detected */
-		G.user_input_buf[0] = EOF; /* yes, it will be truncated, it's ok */
-		G.user_input_buf[1] = '\0';
+	i->p = G.user_input_buf;
+	if (r < 0) {
+		/* EOF/error detected */
+		G.user_input_buf[0] = '\0';
+		i->peek_buf[1] = i->peek_buf[0] = r = EOF;
+		return r;
 	}
+	return (unsigned char)*i->p++;
 # else
 	do {
 		G.flag_SIGINT = 0;
@@ -2215,14 +2199,11 @@ static void get_user_input(struct in_str *i)
 			fputs(prompt_str, stdout);
 		}
 		fflush_all();
-		G.user_input_buf[0] = r = fgetc(i->file);
-		/*G.user_input_buf[1] = '\0'; - already is and never changed */
-	} while (G.flag_SIGINT);
-	i->eof_flag = (r == EOF);
+		r = fgetc(i->file);
+	} while (G.flag_SIGINT || r == '\0');
+	return r;
 # endif
-	i->p = G.user_input_buf;
 }
-
 #endif  /* INTERACTIVE */
 
 /* This is the magic location that prints prompts
@@ -2232,28 +2213,36 @@ static int FAST_FUNC file_get(struct in_str *i)
 	int ch;
 
 	/* If there is data waiting, eat it up */
-	if (i->p && *i->p) {
-#if ENABLE_HUSH_INTERACTIVE
- take_cached:
-#endif
-		ch = *i->p++;
-		if (i->eof_flag && !*i->p)
-			ch = EOF;
-		/* note: ch is never NUL */
-	} else {
-		/* need to double check i->file because we might be doing something
-		 * more complicated by now, like sourcing or substituting. */
-#if ENABLE_HUSH_INTERACTIVE
-		if (G_interactive_fd && i->file == stdin) {
-			do {
-				get_user_input(i);
-			} while (!*i->p); /* need non-empty line */
-			i->promptmode = 1; /* PS2 */
-			goto take_cached;
-		}
-#endif
-		do ch = fgetc(i->file); while (ch == '\0');
+	/* peek_buf[] is an int array, not char. Can contain EOF. */
+	ch = i->peek_buf[0];
+	if (ch != '\0') {
+		int ch2 = i->peek_buf[1];
+		i->peek_buf[0] = ch2;
+		if (ch2 == 0) /* very likely, avoid redundant write */
+			goto out;
+		i->peek_buf[1] = 0;
+		goto out;
 	}
+
+#if ENABLE_HUSH_INTERACTIVE
+	/* This can be stdin, check line editing char[] buffer */
+	if (i->p && *i->p != '\0') {
+		ch = (unsigned char)*i->p++;
+		goto out;
+	}
+	/* It's empty.
+	 * If it's interactive stdin, get new line.
+	 */
+	if (G_interactive_fd && i->file == stdin) {
+		/* Returns first char (or EOF), the rest are in i->p[] */
+		ch = get_user_input(i);
+		i->promptmode = 1; /* PS2 */
+		goto out;
+	}
+	/* Not stdin: script file */
+#endif
+	do ch = fgetc(i->file); while (ch == '\0');
+ out:
 	debug_printf("file_get: got '%c' %d\n", ch, ch);
 	i->last_char = ch;
 	return ch;
@@ -2265,26 +2254,82 @@ static int FAST_FUNC file_get(struct in_str *i)
 static int FAST_FUNC file_peek(struct in_str *i)
 {
 	int ch;
-	if (i->p && *i->p) {
-		if (i->eof_flag && !i->p[1])
-			return EOF;
-		return *i->p;
-		/* note: ch is never NUL */
-	}
+
+	/* peek_buf[] is an int array, not char. Can contain EOF. */
+	ch = i->peek_buf[0];
+	if (ch != '\0')
+		return ch;
+
+#if ENABLE_HUSH_INTERACTIVE
+	/* This can be stdin, check line editing char[] buffer */
+	if (i->p && *i->p != '\0')
+		return (unsigned char)*i->p;
+#endif
+
 	do ch = fgetc(i->file); while (ch == '\0');
-	i->eof_flag = (ch == EOF);
 	i->peek_buf[0] = ch;
-	i->peek_buf[1] = '\0';
-	i->p = i->peek_buf;
+	i->peek_buf[1] = 0;
 	debug_printf("file_peek: got '%c' %d\n", ch, ch);
 	return ch;
+}
+
+/* Only ever called if i_peek() was called, and did not return EOF */
+static int FAST_FUNC file_peek2(struct in_str *i)
+{
+	int ch;
+
+	/* peek_buf[] is an int array, not char. Can contain EOF. */
+	ch = i->peek_buf[0];
+	if (ch != 0) {
+		/* peek_buf[] is not empty. Is there 2nd char? */
+		ch = i->peek_buf[1];
+		if (ch == 0) {
+			/* We did not read it yet, get it now */
+			do ch = fgetc(i->file); while (ch == '\0');
+			i->peek_buf[1] = ch;
+		}
+		goto out;
+	}
+
+#if ENABLE_HUSH_INTERACTIVE
+	/* This can be stdin, check line editing char[] buffer */
+	if (i->p && i->p[0] != '\0')
+		ch = i->p[1];
+#endif
+ out:
+	debug_printf("file_peek2: got '%c' %d\n", ch, ch);
+	return ch;
+}
+
+static int FAST_FUNC static_get(struct in_str *i)
+{
+	int ch = *i->p;
+	if (ch != '\0') {
+		i->p++;
+		i->last_char = ch;
+		return ch;
+	}
+	return EOF;
+}
+
+static int FAST_FUNC static_peek(struct in_str *i)
+{
+	/* Doesn't report EOF on NUL. None of the callers care. */
+	return *i->p;
+}
+
+/* Only ever called if i_peek() was called, and did not return EOF */
+static int FAST_FUNC static_peek2(struct in_str *i)
+{
+	return i->p[1];
 }
 
 static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	memset(i, 0, sizeof(*i));
-	i->peek = file_peek;
 	i->get = file_get;
+	i->peek = file_peek;
+	i->peek2 = file_peek2;
 	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->file = f;
 	/* i->p = NULL; */
@@ -2293,11 +2338,11 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 static void setup_string_in_str(struct in_str *i, const char *s)
 {
 	memset(i, 0, sizeof(*i));
-	i->peek = static_peek;
 	i->get = static_get;
+	i->peek = static_peek;
+	i->peek2 = static_peek2;
 	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->p = s;
-	/* i->eof_flag = 0; */
 }
 
 
@@ -4040,9 +4085,21 @@ static int parse_dollar(o_string *as_string,
 			debug_printf_parse(": '%c'\n", ch);
 			o_addchr(dest, ch | quote_mask);
 			quote_mask = 0;
+ next_ch:
 			ch = i_peek(input);
-			if (!isalnum(ch) && ch != '_')
+			if (!isalnum(ch) && ch != '_') {
+				if (ch == '\\') {
+					/* If backslash+newline, skip it */
+					int ch2 = i_peek2(input);
+					if (ch2 == '\n') {
+						i_getch(input);
+						i_getch(input);
+						goto next_ch;
+					}
+				}
+				/* End of variable name reached */
 				break;
+			}
 			ch = i_getch(input);
 			nommu_addchr(as_string, ch);
 		}
