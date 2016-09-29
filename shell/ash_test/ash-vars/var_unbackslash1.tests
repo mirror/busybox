@@ -13,3 +13,23 @@ d'
 eval $e
 # "Ok"
 eval "$e"
+
+echo $\
+(echo Ok\
+)
+echo "$\
+(echo Ok\
+)"
+
+echo Forty two:$\
+(\
+(\
+42\
+)\
+)
+echo "Forty two:$\
+(\
+(\
+42\
+)\
+)"

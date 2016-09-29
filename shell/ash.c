@@ -11437,7 +11437,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			if (parenlevel > 0) {
 				parenlevel--;
 			} else {
-				if (pgetc() == ')') {
+				if (pgetc_eatbnl() == ')') {
 					c = CTLENDARI;
 					if (--arinest == 0) {
 						syntax = prevsyntax;
@@ -11464,6 +11464,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			if (varnest == 0) {
 #if ENABLE_ASH_BASH_COMPAT
 				if (c == '&') {
+//Can't call pgetc_eatbnl() here, this requires three-deep pungetc()
 					if (pgetc() == '>')
 						c = 0x100 + '>'; /* flag &> */
 					pungetc();
