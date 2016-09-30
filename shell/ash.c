@@ -11274,7 +11274,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 	/* NB: syntax parameter fits into smallint */
 	/* c parameter is an unsigned char or PEOF or PEOA */
 	char *out;
-	int len;
+	size_t len;
 	char line[EOFMARKLEN + 1];
 	struct nodelist *bqlist;
 	smallint quotef;
