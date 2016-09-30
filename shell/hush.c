@@ -2324,7 +2324,7 @@ static int i_peek2(struct in_str *i)
 
 	/* There are two cases when i->p[] buffer exists.
 	 * (1) it's a string in_str.
-	 * (2) It's a file, and we have s saved line editing buffer.
+	 * (2) It's a file, and we have a saved line editing buffer.
 	 * In both cases, we know that i->p[0] exists and not NUL, and
 	 * the peek2 result is in i->p[1].
 	 */
