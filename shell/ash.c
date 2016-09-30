@@ -8348,7 +8348,6 @@ defun(char *name, union node *func)
 #define SKIPBREAK      (1 << 0)
 #define SKIPCONT       (1 << 1)
 #define SKIPFUNC       (1 << 2)
-#define SKIPFILE       (1 << 3)
 #define SKIPEVAL       (1 << 4)
 static smallint evalskip;       /* set to SKIPxxx if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
@@ -9148,7 +9147,7 @@ returncmd(int argc UNUSED_PARAM, char **argv)
 	 * If called outside a function, do what ksh does;
 	 * skip the rest of the file.
 	 */
-	evalskip = funcnest ? SKIPFUNC : SKIPFILE;
+	evalskip = SKIPFUNC;
 	return argv[1] ? number(argv[1]) : exitstatus;
 }
 
@@ -12330,7 +12329,7 @@ cmdloop(int top)
 		skip = evalskip;
 
 		if (skip) {
-			evalskip = 0;
+			evalskip &= ~SKIPFUNC;
 			return skip & SKIPEVAL;
 		}
 	}
