@@ -1538,13 +1538,11 @@ growstackblock(void)
 		newlen += 128;
 
 	if (g_stacknxt == g_stackp->space && g_stackp != &stackbase) {
-		struct stack_block *oldstackp;
 		struct stack_block *sp;
 		struct stack_block *prevstackp;
 		size_t grosslen;
 
 		INT_OFF;
-		oldstackp = g_stackp;
 		sp = g_stackp;
 		prevstackp = sp->prev;
 		grosslen = newlen + sizeof(struct stack_block) - MINSIZE;
@@ -1602,7 +1600,7 @@ static char *
 makestrspace(size_t newlen, char *p)
 {
 	size_t len = p - g_stacknxt;
-	size_t size = stackblocksize();
+	size_t size;
 
 	for (;;) {
 		size_t nleft;
