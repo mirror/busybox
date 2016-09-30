@@ -24,6 +24,8 @@ PUSH_AND_SET_FUNCTION_VISIBILITY_TO_HIDDEN
 extern const char defifsvar[] ALIGN1; /* "IFS= \t\n" */
 #define defifs (defifsvar + 4)
 
+extern const char defoptindvar[] ALIGN1; /* "OPTIND=1" */
+
 int FAST_FUNC is_well_formed_var_name(const char *s, char terminator);
 
 /* Builtins */

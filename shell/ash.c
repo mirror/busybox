@@ -1919,7 +1919,7 @@ static const struct {
 	{ VSTRFIXED|VTEXTFIXED       , "PS2=> "    , NULL            },
 	{ VSTRFIXED|VTEXTFIXED       , "PS4=+ "    , NULL            },
 #if ENABLE_ASH_GETOPTS
-	{ VSTRFIXED|VTEXTFIXED       , "OPTIND=1"  , getoptsreset    },
+	{ VSTRFIXED|VTEXTFIXED       , defoptindvar, getoptsreset    },
 #endif
 #if ENABLE_ASH_RANDOM_SUPPORT
 	{ VSTRFIXED|VTEXTFIXED|VUNSET|VDYNAMIC, "RANDOM", change_random },
@@ -13123,6 +13123,8 @@ init(void)
 				setvareq(*envp, VEXPORT|VTEXTFIXED);
 			}
 		}
+
+		setvareq((char*)defoptindvar, VTEXTFIXED);
 
 		setvar0("PPID", utoa(getppid()));
 #if ENABLE_ASH_BASH_COMPAT
