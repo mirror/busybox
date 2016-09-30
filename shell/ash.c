@@ -13119,7 +13119,8 @@ init(void)
 
 		initvar();
 		for (envp = environ; envp && *envp; envp++) {
-			if (strchr(*envp, '=')) {
+			p = endofname(*envp);
+			if (p != *envp && *p == '=') {
 				setvareq(*envp, VEXPORT|VTEXTFIXED);
 			}
 		}
