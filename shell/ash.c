@@ -8944,12 +8944,12 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 
 	saveparam = shellparam;
 	savelocalvars = localvars;
+	savehandler = exception_handler;
 	e = setjmp(jmploc.loc);
 	if (e) {
 		goto funcdone;
 	}
 	INT_OFF;
-	savehandler = exception_handler;
 	exception_handler = &jmploc;
 	localvars = NULL;
 	shellparam.malloced = 0;
@@ -9595,10 +9595,10 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	int i;
 
 	savecmdname = commandname;
+	savehandler = exception_handler;
 	i = setjmp(jmploc.loc);
 	if (i)
 		goto cmddone;
-	savehandler = exception_handler;
 	exception_handler = &jmploc;
 	commandname = argv[0];
 	argptr = argv + 1;
