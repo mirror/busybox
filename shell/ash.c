@@ -1371,13 +1371,11 @@ struct stackmark {
 	struct stack_block *stackp;
 	char *stacknxt;
 	size_t stacknleft;
-	struct stackmark *marknext;
 };
 
 
 struct globals_memstack {
 	struct stack_block *g_stackp; // = &stackbase;
-	struct stackmark *markp;
 	char *g_stacknxt; // = stackbase.space;
 	char *sstrend; // = stackbase.space + MINSIZE;
 	size_t g_stacknleft; // = MINSIZE;
@@ -1387,7 +1385,6 @@ struct globals_memstack {
 extern struct globals_memstack *const ash_ptr_to_globals_memstack;
 #define G_memstack (*ash_ptr_to_globals_memstack)
 #define g_stackp     (G_memstack.g_stackp    )
-#define markp        (G_memstack.markp       )
 #define g_stacknxt   (G_memstack.g_stacknxt  )
 #define sstrend      (G_memstack.sstrend     )
 #define g_stacknleft (G_memstack.g_stacknleft)
@@ -1478,13 +1475,26 @@ sstrdup(const char *p)
 }
 
 static void
-setstackmark(struct stackmark *mark)
+grabstackblock(size_t len)
+{
+	len = SHELL_ALIGN(len);
+	g_stacknxt += len;
+	g_stacknleft -= len;
+}
+
+static void
+pushstackmark(struct stackmark *mark, size_t len)
 {
 	mark->stackp = g_stackp;
 	mark->stacknxt = g_stacknxt;
 	mark->stacknleft = g_stacknleft;
-	mark->marknext = markp;
-	markp = mark;
+	grabstackblock(len);
+}
+
+static void
+setstackmark(struct stackmark *mark)
+{
+	pushstackmark(mark, g_stacknxt == g_stackp->space && g_stackp != &stackbase);
 }
 
 static void
@@ -1496,7 +1506,6 @@ popstackmark(struct stackmark *mark)
 		return;
 
 	INT_OFF;
-	markp = mark->marknext;
 	while (g_stackp != mark->stackp) {
 		sp = g_stackp;
 		g_stackp = sp->prev;
@@ -1530,7 +1539,6 @@ growstackblock(void)
 
 	if (g_stacknxt == g_stackp->space && g_stackp != &stackbase) {
 		struct stack_block *oldstackp;
-		struct stackmark *xmark;
 		struct stack_block *sp;
 		struct stack_block *prevstackp;
 		size_t grosslen;
@@ -1546,18 +1554,6 @@ growstackblock(void)
 		g_stacknxt = sp->space;
 		g_stacknleft = newlen;
 		sstrend = sp->space + newlen;
-
-		/*
-		 * Stack marks pointing to the start of the old block
-		 * must be relocated to point to the new block
-		 */
-		xmark = markp;
-		while (xmark != NULL && xmark->stackp == oldstackp) {
-			xmark->stackp = g_stackp;
-			xmark->stacknxt = g_stacknxt;
-			xmark->stacknleft = g_stacknleft;
-			xmark = xmark->marknext;
-		}
 		INT_ON;
 	} else {
 		char *oldspace = g_stacknxt;
@@ -1568,14 +1564,6 @@ growstackblock(void)
 		g_stacknxt = memcpy(p, oldspace, oldlen);
 		g_stacknleft += newlen;
 	}
-}
-
-static void
-grabstackblock(size_t len)
-{
-	len = SHELL_ALIGN(len);
-	g_stacknxt += len;
-	g_stacknleft -= len;
 }
 
 /*
@@ -2482,8 +2470,7 @@ setprompt_if(smallint do_set, int whichprompt)
 		prompt = nullstr;
 	}
 #if ENABLE_ASH_EXPAND_PRMT
-	setstackmark(&smark);
-	stalloc(stackblocksize());
+	pushstackmark(&smark, stackblocksize());
 #endif
 	putprompt(expandstr(prompt));
 #if ENABLE_ASH_EXPAND_PRMT
@@ -5938,10 +5925,8 @@ expbackq(union node *cmd, int flag)
 	struct stackmark smark;
 
 	INT_OFF;
-	setstackmark(&smark);
-	dest = expdest;
-	startloc = dest - (char *)stackblock();
-	grabstackstr(dest);
+	startloc = expdest - (char *)stackblock();
+	pushstackmark(&smark, startloc);
 	evalbackcmd(cmd, &in);
 	popstackmark(&smark);
 
