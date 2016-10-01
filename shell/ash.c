@@ -6606,21 +6606,18 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
  * ash -c 'echo ${#1#}'  name:'1=#'
  */
 static NOINLINE ssize_t
-varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int *nulonly)
+varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int *quotedp)
 {
 	const char *p;
 	int num;
 	int i;
 	ssize_t len = 0;
 	int sep;
-	int quoted = flags & EXP_QUOTED;
+	int quoted = *quotedp;
 	int subtype = varflags & VSTYPE;
 	int discard = subtype == VSPLUS || subtype == VSLENGTH;
 	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
 	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
-
-	sep = *nulonly ? (flags & EXP_FULL) << CHAR_BIT : 0;
-	*nulonly = 0;
 
 	switch (*name) {
 	case '$':
@@ -6658,6 +6655,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 		char **ap;
 		char sepc;
 
+		sep = 0;
 		if (quoted && (flags & EXP_FULL)) {
 			/* note: this is not meant as PEOF value */
 			sep = 1 << CHAR_BIT;
@@ -6665,11 +6663,14 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 		}
 		/* fall through */
 	case '*':
-		sep |= ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
+		sep = ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
+		if (!quoted) {
  param:
-		ap = shellparam.p;
+			sep |= (flags & EXP_FULL) << CHAR_BIT;
+		}
 		sepc = sep;
-		*nulonly = !sepc;
+		*quotedp = !sepc;
+		ap = shellparam.p;
 		if (!ap)
 			return -1;
 		while ((p = *ap++) != NULL) {
@@ -6759,7 +6760,6 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 	char subtype;
 	int quoted;
 	char easy;
-	int nulonly;
 	char *var;
 	int patloc;
 	int startloc;
@@ -6770,12 +6770,11 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 	quoted = flag & EXP_QUOTED;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
-	nulonly = easy;
 	startloc = expdest - (char *)stackblock();
 	p = strchr(p, '=') + 1; //TODO: use var_end(p)?
 
  again:
-	varlen = varvalue(var, varflags, flag, var_str_list, &nulonly);
+	varlen = varvalue(var, varflags, flag, var_str_list, &quoted);
 	if (varflags & VSNUL)
 		varlen--;
 
@@ -6824,7 +6823,7 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
  record:
 		if (!easy)
 			goto end;
-		recordregion(startloc, expdest - (char *)stackblock(), nulonly);
+		recordregion(startloc, expdest - (char *)stackblock(), quoted);
 		goto end;
 	}
 
