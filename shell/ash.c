@@ -8420,43 +8420,46 @@ static int evalstring(char *s, int flags);
  * Perhaps we should avoid entering new trap handlers
  * while we are executing a trap handler. [is it a TODO?]
  */
-static int
+static void
 dotrap(void)
 {
 	uint8_t *g;
 	int sig;
-	uint8_t savestatus;
+	uint8_t last_status;
 
-	savestatus = exitstatus;
+	if (!pending_sig)
+		return;
+
+	last_status = exitstatus;
 	pending_sig = 0;
 	xbarrier();
 
 	TRACE(("dotrap entered\n"));
 	for (sig = 1, g = gotsig; sig < NSIG; sig++, g++) {
-		char *t;
+		char *p;
 
-		if (*g == 0)
+		if (!*g)
 			continue;
-		t = trap[sig];
+
+		if (evalskip) {
+			pending_sig = sig;
+			break;
+		}
+
+		p = trap[sig];
 		/* non-trapped SIGINT is handled separately by raise_interrupt,
 		 * don't upset it by resetting gotsig[SIGINT-1] */
-		if (sig == SIGINT && !t)
+		if (sig == SIGINT && !p)
 			continue;
 
-		TRACE(("sig %d is active, will run handler '%s'\n", sig, t));
+		TRACE(("sig %d is active, will run handler '%s'\n", sig, p));
 		*g = 0;
-		if (!t)
+		if (!p)
 			continue;
-		evalstring(t, 0);
-		exitstatus = savestatus;
-		if (evalskip) {
-			TRACE(("dotrap returns %d\n", evalskip));
-			return evalskip;
-		}
+		evalstring(p, 0);
 	}
-
-	TRACE(("dotrap returns 0\n"));
-	return 0;
+	exitstatus = last_status;
+	TRACE(("dotrap returns\n"));
 }
 
 /* forward declarations - evaluation is fairly recursive business... */
@@ -8491,6 +8494,8 @@ evaltree(union node *n, int flags)
 		goto out1;
 	}
 	TRACE(("evaltree(%p: %d, %d) called\n", n, n->type, flags));
+
+	dotrap();
 
 	exception_handler = &jmploc;
 	{
@@ -8609,12 +8614,12 @@ evaltree(union node *n, int flags)
 	/* Order of checks below is important:
 	 * signal handlers trigger before exit caused by "set -e".
 	 */
-	if ((pending_sig && dotrap())
-	 || (checkexit & status)
-	 || (flags & EV_EXIT)
-	) {
+	dotrap();
+
+	if (checkexit & status)
 		raise_exception(EXEXIT);
-	}
+	if (flags & EV_EXIT)
+		raise_exception(EXEXIT);
 
 	RESTORE_INT(int_level);
 	TRACE(("leaving evaltree (no interrupts)\n"));
