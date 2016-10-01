@@ -8407,7 +8407,6 @@ defun(char *name, union node *func)
 #define SKIPBREAK      (1 << 0)
 #define SKIPCONT       (1 << 1)
 #define SKIPFUNC       (1 << 2)
-#define SKIPEVAL       (1 << 4)
 static smallint evalskip;       /* set to SKIPxxx if we are skipping commands */
 static int skipcount;           /* number of levels to skip */
 static int funcnest;            /* depth of function calls */
@@ -8612,13 +8611,10 @@ evaltree(union node *n, int flags)
 	/* Order of checks below is important:
 	 * signal handlers trigger before exit caused by "set -e".
 	 */
-	if (pending_sig && dotrap())
-		goto exexit;
-	if (checkexit & status)
-		evalskip |= SKIPEVAL;
-
-	if (flags & EV_EXIT) {
- exexit:
+	if ((pending_sig && dotrap())
+	 || (checkexit & status)
+	 || (flags & EV_EXIT)
+	) {
 		raise_exception(EXEXIT);
 	}
 
@@ -12360,7 +12356,7 @@ cmdloop(int top)
 
 		if (skip) {
 			evalskip &= ~SKIPFUNC;
-			return skip & SKIPEVAL;
+			break;
 		}
 	}
 	return status;
@@ -13263,14 +13259,10 @@ procargs(char **argv)
 static void
 read_profile(const char *name)
 {
-	int skip;
-
 	if (setinputfile(name, INPUT_PUSH_FILE | INPUT_NOFILE_OK) < 0)
 		return;
-	skip = cmdloop(0);
+	cmdloop(0);
 	popfile();
-	if (skip)
-		exitshell();
 }
 
 /*
