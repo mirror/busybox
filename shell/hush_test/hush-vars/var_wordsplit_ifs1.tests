@@ -1,0 +1,21 @@
+set -- abc "d e"
+
+echo 'Testing: !IFS $*'
+unset IFS; for a in $*; do echo ".$a."; done
+echo 'Testing: !IFS $@'
+unset IFS; for a in $@; do echo ".$a."; done
+echo 'Testing: !IFS "$*"'
+unset IFS; for a in "$*"; do echo ".$a."; done
+echo 'Testing: !IFS "$@"'
+unset IFS; for a in "$@"; do echo ".$a."; done
+
+echo 'Testing: IFS="" $*'
+IFS=""; for a in $*; do echo ".$a."; done
+echo 'Testing: IFS="" $@'
+IFS=""; for a in $@; do echo ".$a."; done
+echo 'Testing: IFS="" "$*"'
+IFS=""; for a in "$*"; do echo ".$a."; done
+echo 'Testing: IFS="" "$@"'
+IFS=""; for a in "$@"; do echo ".$a."; done
+
+echo Finished

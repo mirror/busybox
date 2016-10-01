@@ -6606,7 +6606,7 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
  * ash -c 'echo ${#1#}'  name:'1=#'
  */
 static NOINLINE ssize_t
-varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
+varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int *nulonly)
 {
 	const char *p;
 	int num;
@@ -6619,7 +6619,8 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
 	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
 
-	sep = quoted ? ((flags & EXP_FULL) << CHAR_BIT) : 0;
+	sep = *nulonly ? (flags & EXP_FULL) << CHAR_BIT : 0;
+	*nulonly = 0;
 
 	switch (*name) {
 	case '$':
@@ -6664,10 +6665,11 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list)
 		}
 		/* fall through */
 	case '*':
-		sep = ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
+		sep |= ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
  param:
 		ap = shellparam.p;
 		sepc = sep;
+		*nulonly = !sepc;
 		if (!ap)
 			return -1;
 		while ((p = *ap++) != NULL) {
@@ -6757,6 +6759,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 	char subtype;
 	int quoted;
 	char easy;
+	int nulonly;
 	char *var;
 	int patloc;
 	int startloc;
@@ -6767,11 +6770,12 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 	quoted = flags & EXP_QUOTED;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
+	nulonly = easy;
 	startloc = expdest - (char *)stackblock();
 	p = strchr(p, '=') + 1; //TODO: use var_end(p)?
 
  again:
-	varlen = varvalue(var, varflags, flags, var_str_list);
+	varlen = varvalue(var, varflags, flags, var_str_list, &nulonly);
 	if (varflags & VSNUL)
 		varlen--;
 
@@ -6865,7 +6869,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		/* Remove any recorded regions beyond start of variable */
 		removerecordregions(startloc);
  record:
-		recordregion(startloc, expdest - (char *)stackblock(), quoted);
+		recordregion(startloc, expdest - (char *)stackblock(), nulonly);
 	}
 
  end:

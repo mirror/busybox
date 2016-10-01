@@ -1,0 +1,25 @@
+Testing: !IFS $*
+.abc.
+.d.
+.e.
+Testing: !IFS $@
+.abc.
+.d.
+.e.
+Testing: !IFS "$*"
+.abc d e.
+Testing: !IFS "$@"
+.abc.
+.d e.
+Testing: IFS="" $*
+.abc.
+.d e.
+Testing: IFS="" $@
+.abc.
+.d e.
+Testing: IFS="" "$*"
+.abcd e.
+Testing: IFS="" "$@"
+.abc.
+.d e.
+Finished
