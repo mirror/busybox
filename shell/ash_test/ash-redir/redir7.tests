@@ -4,9 +4,9 @@
 # was out of sync for redirect filenames.
 
 >unicode.sh
-echo -e 'echo Ok >uni\x81code' >>unicode.sh
-echo -e 'cat uni\x81code' >>unicode.sh
-echo -e 'cat uni?code' >>unicode.sh
+printf 'echo Ok >uni\x81code\n' >>unicode.sh
+printf 'cat uni\x81code\n' >>unicode.sh
+printf 'cat uni?code\n' >>unicode.sh
 . ./unicode.sh
 rm uni*code*
 echo Done

@@ -6,10 +6,10 @@
 # Subcase when redirect filename is specified in a variable.
 
 >unicode.sh
-echo -e 'v=uni\x81code' >>unicode.sh
-echo -e 'echo Ok >"$v"' >>unicode.sh
-echo -e 'cat uni\x81code' >>unicode.sh
-echo -e 'cat uni?code' >>unicode.sh
+printf 'v=uni\x81code\n' >>unicode.sh
+printf 'echo Ok >"$v"\n' >>unicode.sh
+printf 'cat uni\x81code\n' >>unicode.sh
+printf 'cat uni?code\n' >>unicode.sh
 . ./unicode.sh
 rm uni*code*
 echo Done
