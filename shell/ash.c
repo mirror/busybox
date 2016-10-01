@@ -277,8 +277,10 @@ struct jmploc {
 };
 
 struct globals_misc {
-	/* pid of main shell */
-	int rootpid;
+	uint8_t exitstatus;     /* exit status of last command */
+	uint8_t back_exitstatus;/* exit status of backquoted command */
+	smallint job_warning;   /* user was warned about stopped jobs (can be 2, 1 or 0). */
+	int rootpid;            /* pid of main shell */
 	/* shell level: 0 for the main shell, 1 for its children, and so on */
 	int shlvl;
 #define rootshell (!shlvl)
@@ -355,10 +357,12 @@ struct globals_misc {
 	random_t random_gen;
 #endif
 	pid_t backgndpid;        /* pid of last background process */
-	smallint job_warning;    /* user was warned about stopped jobs (can be 2, 1 or 0). */
 };
 extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define G_misc (*ash_ptr_to_globals_misc)
+#define exitstatus        (G_misc.exitstatus )
+#define back_exitstatus   (G_misc.back_exitstatus )
+#define job_warning       (G_misc.job_warning)
 #define rootpid     (G_misc.rootpid    )
 #define shlvl       (G_misc.shlvl      )
 #define minusc      (G_misc.minusc     )
@@ -380,7 +384,6 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define trap_ptr    (G_misc.trap_ptr   )
 #define random_gen  (G_misc.random_gen )
 #define backgndpid  (G_misc.backgndpid )
-#define job_warning (G_misc.job_warning)
 #define INIT_G_misc() do { \
 	(*(struct globals_misc**)&ash_ptr_to_globals_misc) = xzalloc(sizeof(G_misc)); \
 	barrier(); \
@@ -498,6 +501,8 @@ raise_interrupt(void)
 		}
 		ex_type = EXINT;
 	}
+	/* bash: ^C even on empty command line sets $? */
+	exitstatus = SIGINT + 128;
 	raise_exception(ex_type);
 	/* NOTREACHED */
 }
@@ -1217,7 +1222,6 @@ static struct parsefile *g_parsefile = &basepf;  /* current input file */
 static int startlinno;                 /* line # where last token started */
 static char *commandname;              /* currently executing command */
 static struct strlist *cmdenviron;     /* environment for builtin command */
-static uint8_t exitstatus;             /* exit status of last command */
 
 
 /* ============ Message printing */
@@ -5877,7 +5881,6 @@ struct backcmd {                /* result of evalbackcmd */
 };
 
 /* These forward decls are needed to use "eval" code for backticks handling: */
-static uint8_t back_exitstatus; /* exit status of backquoted command */
 #define EV_EXIT 01              /* exit after evaluating tree */
 static int evaltree(union node *, int);
 
