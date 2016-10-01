@@ -777,6 +777,9 @@ struct globals {
 	 * 1: return is invoked, skip all till end of func
 	 */
 	smallint flag_return_in_progress;
+# define G_flag_return_in_progress (G.flag_return_in_progress)
+#else
+# define G_flag_return_in_progress 0
 #endif
 	smallint exiting; /* used to prevent EXIT trap recursion */
 	/* These four support $?, $#, and $1 */
@@ -1736,6 +1739,7 @@ static int check_and_run_traps(void)
 		break;
  got_sig:
 		if (G.traps && G.traps[sig]) {
+			debug_printf_exec("%s: sig:%d handler:'%s'\n", __func__, sig, G.traps[sig]);
 			if (G.traps[sig][0]) {
 				/* We have user-defined handler */
 				smalluint save_rcode;
@@ -1753,6 +1757,7 @@ static int check_and_run_traps(void)
 		/* not a trap: special action */
 		switch (sig) {
 		case SIGINT:
+			debug_printf_exec("%s: sig:%d default SIGINT handler\n", __func__, sig);
 			/* Builtin was ^C'ed, make it look prettier: */
 			bb_putchar('\n');
 			G.flag_SIGINT = 1;
@@ -1761,6 +1766,7 @@ static int check_and_run_traps(void)
 #if ENABLE_HUSH_JOB
 		case SIGHUP: {
 			struct pipe *job;
+			debug_printf_exec("%s: sig:%d default SIGHUP handler\n", __func__, sig);
 			/* bash is observed to signal whole process groups,
 			 * not individual processes */
 			for (job = G.job_list; job; job = job->next) {
@@ -1775,6 +1781,7 @@ static int check_and_run_traps(void)
 #endif
 #if ENABLE_HUSH_FAST
 		case SIGCHLD:
+			debug_printf_exec("%s: sig:%d default SIGCHLD handler\n", __func__, sig);
 			G.count_SIGCHLD++;
 //bb_error_msg("[%d] check_and_run_traps: G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 			/* Note:
@@ -1784,6 +1791,7 @@ static int check_and_run_traps(void)
 			break;
 #endif
 		default: /* ignored: */
+			debug_printf_exec("%s: sig:%d default handling is to ignore\n", __func__, sig);
 			/* SIGTERM, SIGQUIT, SIGTTIN, SIGTTOU, SIGTSTP */
 			/* Note:
 			 * We dont do 'last_sig = sig' here -> NOT returning this sig.
@@ -6078,10 +6086,8 @@ static void parse_and_run_stream(struct in_str *inp, int end_trigger)
 		debug_printf_exec("parse_and_run_stream: run_and_free_list\n");
 		run_and_free_list(pipe_list);
 		empty = 0;
-#if ENABLE_HUSH_FUNCTIONS
-		if (G.flag_return_in_progress == 1)
+		if (G_flag_return_in_progress == 1)
 			break;
-#endif
 	}
 }
 
@@ -6641,8 +6647,8 @@ static int run_function(const struct function *funcp, char **argv)
 	save_and_replace_G_args(&sv, argv);
 
 	/* "we are in function, ok to use return" */
-	sv_flg = G.flag_return_in_progress;
-	G.flag_return_in_progress = -1;
+	sv_flg = G_flag_return_in_progress;
+	G_flag_return_in_progress = -1;
 # if ENABLE_HUSH_LOCAL
 	G.func_nest_level++;
 # endif
@@ -6683,7 +6689,7 @@ static int run_function(const struct function *funcp, char **argv)
 		G.func_nest_level--;
 	}
 # endif
-	G.flag_return_in_progress = sv_flg;
+	G_flag_return_in_progress = sv_flg;
 
 	restore_G_args(&sv, argv);
 
@@ -7707,6 +7713,8 @@ static int run_list(struct pipe *pi)
 	for (; pi; pi = IF_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
 		if (G.flag_SIGINT)
 			break;
+		if (G_flag_return_in_progress == 1)
+			break;
 
 		IF_HAS_KEYWORDS(rword = pi->res_word;)
 		debug_printf_exec(": rword=%d cond_code=%d last_rword=%d\n",
@@ -7877,12 +7885,10 @@ static int run_list(struct pipe *pi)
 					continue;
 				}
 #endif
-#if ENABLE_HUSH_FUNCTIONS
-				if (G.flag_return_in_progress == 1) {
+				if (G_flag_return_in_progress == 1) {
 					checkjobs(NULL);
 					break;
 				}
-#endif
 			} else if (pi->followup == PIPE_BG) {
 				/* What does bash do with attempts to background builtins? */
 				/* even bash 3.2 doesn't do that well with nested bg:
@@ -9271,9 +9277,9 @@ static int FAST_FUNC builtin_source(char **argv)
 	}
 
 #if ENABLE_HUSH_FUNCTIONS
-	sv_flg = G.flag_return_in_progress;
+	sv_flg = G_flag_return_in_progress;
 	/* "we are inside sourced file, ok to use return" */
-	G.flag_return_in_progress = -1;
+	G_flag_return_in_progress = -1;
 #endif
 	if (argv[1])
 		save_and_replace_G_args(&sv, argv);
@@ -9286,7 +9292,7 @@ static int FAST_FUNC builtin_source(char **argv)
 	if (argv[1])
 		restore_G_args(&sv, argv);
 #if ENABLE_HUSH_FUNCTIONS
-	G.flag_return_in_progress = sv_flg;
+	G_flag_return_in_progress = sv_flg;
 #endif
 
 	return G.last_exitcode;
@@ -9509,12 +9515,12 @@ static int FAST_FUNC builtin_return(char **argv)
 {
 	int rc;
 
-	if (G.flag_return_in_progress != -1) {
+	if (G_flag_return_in_progress != -1) {
 		bb_error_msg("%s: not in a function or sourced script", argv[0]);
 		return EXIT_FAILURE; /* bash compat */
 	}
 
-	G.flag_return_in_progress = 1;
+	G_flag_return_in_progress = 1;
 
 	/* bash:
 	 * out of range: wraps around at 256, does not error out
