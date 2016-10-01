@@ -6753,7 +6753,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
  * input string.
  */
 static char *
-evalvar(char *p, int flags, struct strlist *var_str_list)
+evalvar(char *p, int flag, struct strlist *var_str_list)
 {
 	char varflags;
 	char subtype;
@@ -6767,7 +6767,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 
 	varflags = (unsigned char) *p++;
 	subtype = varflags & VSTYPE;
-	quoted = flags & EXP_QUOTED;
+	quoted = flag & EXP_QUOTED;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
 	nulonly = easy;
@@ -6775,7 +6775,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 	p = strchr(p, '=') + 1; //TODO: use var_end(p)?
 
  again:
-	varlen = varvalue(var, varflags, flags, var_str_list, &nulonly);
+	varlen = varvalue(var, varflags, flag, var_str_list, &nulonly);
 	if (varflags & VSNUL)
 		varlen--;
 
@@ -6789,36 +6789,27 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		if (varlen < 0) {
 			argstr(
 				p,
-				flags | EXP_TILDE | EXP_WORD,
+				flag | EXP_TILDE | EXP_WORD,
 				var_str_list
 			);
 			goto end;
 		}
-		if (easy)
-			goto record;
-		goto end;
+		goto record;
 	}
 
 	if (subtype == VSASSIGN || subtype == VSQUESTION) {
-		if (varlen < 0) {
-			if (subevalvar(p, var, /* strloc: */ 0,
-					subtype, startloc, varflags,
-					/* quotes: */ flags & ~QUOTES_ESC,
-					var_str_list)
-			) {
-				varflags &= ~VSNUL;
-				/*
-				 * Remove any recorded regions beyond
-				 * start of variable
-				 */
-				removerecordregions(startloc);
-				goto again;
-			}
-			goto end;
-		}
-		if (easy)
+		if (varlen >= 0)
 			goto record;
-		goto end;
+
+		subevalvar(p, var, 0, subtype, startloc, varflags,
+			   flag & ~QUOTES_ESC, var_str_list);
+		varflags &= ~VSNUL;
+		/*
+		 * Remove any recorded regions beyond
+		 * start of variable
+		 */
+		removerecordregions(startloc);
+		goto again;
 	}
 
 	if (varlen < 0 && uflag)
@@ -6830,8 +6821,10 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 	}
 
 	if (subtype == VSNORMAL) {
-		if (easy)
-			goto record;
+ record:
+		if (!easy)
+			goto end;
+		recordregion(startloc, expdest - (char *)stackblock(), nulonly);
 		goto end;
 	}
 
@@ -6860,7 +6853,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		STPUTC('\0', expdest);
 		patloc = expdest - (char *)stackblock();
 		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
-				startloc, varflags, flags, var_str_list)) {
+				startloc, varflags, flag, var_str_list)) {
 			int amount = expdest - (
 				(char *)stackblock() + patloc - 1
 			);
@@ -6868,8 +6861,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
 		}
 		/* Remove any recorded regions beyond start of variable */
 		removerecordregions(startloc);
- record:
-		recordregion(startloc, expdest - (char *)stackblock(), nulonly);
+		goto record;
 	}
 
  end:
