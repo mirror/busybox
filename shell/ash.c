@@ -8414,7 +8414,7 @@ static int funcnest;            /* depth of function calls */
 static int loopnest;            /* current loop nesting level */
 
 /* Forward decl way out to parsing code - dotrap needs it */
-static int evalstring(char *s, int mask);
+static int evalstring(char *s, int flags);
 
 /* Called to execute a trap.
  * Single callsite - at the end of evaltree().
@@ -8450,7 +8450,7 @@ dotrap(void)
 		*g = 0;
 		if (!t)
 			continue;
-		evalstring(t, SKIPEVAL);
+		evalstring(t, 0);
 		exitstatus = savestatus;
 		if (evalskip) {
 			TRACE(("dotrap returns %d\n", evalskip));
@@ -8470,7 +8470,7 @@ static int evalsubshell(union node *, int);
 static void expredir(union node *);
 static int evalpipe(union node *, int);
 static int evalcommand(union node *, int);
-static int evalbltin(const struct builtincmd *, int, char **);
+static int evalbltin(const struct builtincmd *, int, char **, int);
 static void prehash(union node *);
 
 /*
@@ -9177,7 +9177,7 @@ returncmd(int argc UNUSED_PARAM, char **argv)
 /* Forward declarations for builtintab[] */
 static int breakcmd(int, char **) FAST_FUNC;
 static int dotcmd(int, char **) FAST_FUNC;
-static int evalcmd(int, char **) FAST_FUNC;
+static int evalcmd(int, char **, int) FAST_FUNC;
 static int exitcmd(int, char **) FAST_FUNC;
 static int exportcmd(int, char **) FAST_FUNC;
 #if ENABLE_ASH_GETOPTS
@@ -9247,7 +9247,7 @@ static const struct builtincmd builtintab[] = {
 #if ENABLE_ASH_BUILTIN_ECHO
 	{ BUILTIN_REGULAR       "echo"    , echocmd    },
 #endif
-	{ BUILTIN_SPEC_REG      "eval"    , evalcmd    },
+	{ BUILTIN_SPEC_REG      "eval"    , NULL       }, /*evalcmd() has a differing prototype*/
 	{ BUILTIN_SPEC_REG      "exec"    , execcmd    },
 	{ BUILTIN_SPEC_REG      "exit"    , exitcmd    },
 	{ BUILTIN_SPEC_REG_ASSG "export"  , exportcmd  },
@@ -9567,7 +9567,7 @@ evalcommand(union node *cmd, int flags)
 		 * to reap the zombie and make kill detect that it's gone: */
 		dowait(DOWAIT_NONBLOCK, NULL);
 
-		if (evalbltin(cmdentry.u.cmd, argc, argv)) {
+		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
 			int exit_status;
 			int i = exception_type;
 			if (i == EXEXIT || i == EXEXEC)
@@ -9612,11 +9612,12 @@ evalcommand(union node *cmd, int flags)
 }
 
 static int
-evalbltin(const struct builtincmd *cmd, int argc, char **argv)
+evalbltin(const struct builtincmd *cmd, int argc, char **argv, int flags)
 {
 	char *volatile savecmdname;
 	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
+	int status;
 	int i;
 
 	savecmdname = commandname;
@@ -9628,10 +9629,14 @@ evalbltin(const struct builtincmd *cmd, int argc, char **argv)
 	commandname = argv[0];
 	argptr = argv + 1;
 	optptr = NULL;                  /* initialize nextopt */
-	exitstatus = (*cmd->builtin)(argc, argv);
+	if (cmd == EVALCMD)
+		status = evalcmd(argc, argv, flags);
+	else
+		status = (*cmd->builtin)(argc, argv);
 	flush_stdout_stderr();
+	status |= ferror(stdout);
+	exitstatus = status;
  cmddone:
-	exitstatus |= ferror(stdout);
 	clearerr(stdout);
 	commandname = savecmdname;
 	exception_handler = savehandler;
@@ -12241,7 +12246,7 @@ expandstr(const char *ps)
  * Execute a command or commands contained in a string.
  */
 static int
-evalstring(char *s, int mask)
+evalstring(char *s, int flags)
 {
 	union node *n;
 	struct stackmark smark;
@@ -12255,7 +12260,7 @@ evalstring(char *s, int mask)
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
 
-		i = evaltree(n, 0);
+		i = evaltree(n, flags);
 		if (n)
 			status = i;
 		popstackmark(&smark);
@@ -12266,7 +12271,6 @@ evalstring(char *s, int mask)
 	popfile();
 	stunalloc(s);
 
-	evalskip &= mask;
 	return status;
 }
 
@@ -12274,7 +12278,7 @@ evalstring(char *s, int mask)
  * The eval command.
  */
 static int FAST_FUNC
-evalcmd(int argc UNUSED_PARAM, char **argv)
+evalcmd(int argc UNUSED_PARAM, char **argv, int flags)
 {
 	char *p;
 	char *concat;
@@ -12294,7 +12298,7 @@ evalcmd(int argc UNUSED_PARAM, char **argv)
 			STPUTC('\0', concat);
 			p = grabstackstr(concat);
 		}
-		return evalstring(p, ~SKIPEVAL);
+		return evalstring(p, flags & EV_TESTED);
 	}
 	return 0;
 }
@@ -13112,6 +13116,7 @@ exitshell(void)
 	p = trap[0];
 	if (p) {
 		trap[0] = NULL;
+		evalskip = 0;
 		evalstring(p, 0);
 		free(p);
 	}
