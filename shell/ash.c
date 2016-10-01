@@ -39,13 +39,22 @@
 
 #include <setjmp.h>
 #include <fnmatch.h>
-#include <glob.h>
 #include <sys/times.h>
 #include <sys/utsname.h> /* for setting $HOSTNAME */
 
 #include "busybox.h" /* for applet_names */
-#include "unicode.h"
 
+#if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
+/* Bionic at least up to version 24 has no glob() */
+# undef  ENABLE_ASH_INTERNAL_GLOB
+# define ENABLE_ASH_INTERNAL_GLOB 0
+#endif
+
+#if !ENABLE_ASH_INTERNAL_GLOB
+# include <glob.h>
+#endif
+
+#include "unicode.h"
 #include "shell_common.h"
 #if ENABLE_SH_MATH_SUPPORT
 # include "math.h"
@@ -86,6 +95,42 @@
 //config:	  busybox. This shell is actually a derivative of the Debian 'dash'
 //config:	  shell (by Herbert Xu), which was created by porting the 'ash' shell
 //config:	  (written by Kenneth Almquist) from NetBSD.
+//config:
+//config:config ASH_OPTIMIZE_FOR_SIZE
+//config:	bool "Optimize for size instead of speed"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Compile ash for reduced size at the price of speed.
+//config:
+//config:config ASH_INTERNAL_GLOB
+//config:	bool "Use internal glob() implementation"
+//config:	default n
+//config:	depends on ASH
+//config:	help
+//config:	  Do not use glob() function from libc, use internal implementation.
+//config:	  Use this if you are getting "glob.h: No such file or directory"
+//config:	  or similar build errors.
+//config:
+//config:config ASH_RANDOM_SUPPORT
+//config:	bool "Pseudorandom generator and $RANDOM variable"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
+//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
+//config:	  You can reset the generator by using a specified start value.
+//config:	  After "unset RANDOM" the generator will switch off and this
+//config:	  variable will no longer have special treatment.
+//config:
+//config:config ASH_EXPAND_PRMT
+//config:	bool "Expand prompt string"
+//config:	default y
+//config:	depends on ASH
+//config:	help
+//config:	  "PS#" may contain volatile content, such as backquote commands.
+//config:	  This option recreates the prompt string from the environment
+//config:	  variable each time it is displayed.
 //config:
 //config:config ASH_BASH_COMPAT
 //config:	bool "bash-compatible extensions"
@@ -165,33 +210,6 @@
 //config:	depends on ASH
 //config:	help
 //config:	  Enable "check for new mail" function in the ash shell.
-//config:
-//config:config ASH_OPTIMIZE_FOR_SIZE
-//config:	bool "Optimize for size instead of speed"
-//config:	default y
-//config:	depends on ASH
-//config:	help
-//config:	  Compile ash for reduced size at the price of speed.
-//config:
-//config:config ASH_RANDOM_SUPPORT
-//config:	bool "Pseudorandom generator and $RANDOM variable"
-//config:	default y
-//config:	depends on ASH
-//config:	help
-//config:	  Enable pseudorandom generator and dynamic variable "$RANDOM".
-//config:	  Each read of "$RANDOM" will generate a new pseudorandom value.
-//config:	  You can reset the generator by using a specified start value.
-//config:	  After "unset RANDOM" the generator will switch off and this
-//config:	  variable will no longer have special treatment.
-//config:
-//config:config ASH_EXPAND_PRMT
-//config:	bool "Expand prompt string"
-//config:	default y
-//config:	depends on ASH
-//config:	help
-//config:	  "PS#" may contain volatile content, such as backquote commands.
-//config:	  This option recreates the prompt string from the environment
-//config:	  variable each time it is displayed.
 //config:
 
 //applet:IF_ASH(APPLET(ash, BB_DIR_BIN, BB_SUID_DROP))
@@ -6994,7 +7012,7 @@ addfname(const char *name)
 }
 
 /* If we want to use glob() from libc... */
-#if 1
+#if !ENABLE_ASH_INTERNAL_GLOB
 
 /* Add the result of glob() to the list */
 static void
@@ -7055,7 +7073,7 @@ nometa:
 }
 
 #else
-/* Homegrown globbing code. (dash also has both, uses homegrown one.) */
+/* ENABLE_ASH_INTERNAL_GLOB: Homegrown globbing code. (dash also has both, uses homegrown one.) */
 
 /*
  * Do metacharacter (i.e. *, ?, [...]) expansion.
@@ -7286,7 +7304,7 @@ expandmeta(struct strlist *str /*, int flag*/)
 		str = str->next;
 	}
 }
-#endif /* our globbing code */
+#endif /* ENABLE_ASH_INTERNAL_GLOB */
 
 /*
  * Perform variable substitution and command substitution on an argument,
