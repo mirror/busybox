@@ -47,7 +47,7 @@
 #if defined(__ANDROID_API__) && __ANDROID_API__ <= 24
 /* Bionic at least up to version 24 has no glob() */
 # undef  ENABLE_ASH_INTERNAL_GLOB
-# define ENABLE_ASH_INTERNAL_GLOB 0
+# define ENABLE_ASH_INTERNAL_GLOB 1
 #endif
 
 #if !ENABLE_ASH_INTERNAL_GLOB
