@@ -8019,9 +8019,45 @@ typecmd(int argc UNUSED_PARAM, char **argv)
 }
 
 #if ENABLE_ASH_CMDCMD
+/* Is it "command [-p] PROG ARGS" bltin, no other opts? Return ptr to "PROG" if yes */
+static char **
+parse_command_args(char **argv, const char **path)
+{
+	char *cp, c;
+
+	for (;;) {
+		cp = *++argv;
+		if (!cp)
+			return NULL;
+		if (*cp++ != '-')
+			break;
+		c = *cp++;
+		if (!c)
+			break;
+		if (c == '-' && !*cp) {
+			if (!*++argv)
+				return NULL;
+			break;
+		}
+		do {
+			switch (c) {
+			case 'p':
+				*path = bb_default_path;
+				break;
+			default:
+				/* run 'typecmd' for other options */
+				return NULL;
+			}
+			c = *cp++;
+		} while (c);
+	}
+	return argv;
+}
+
 static int FAST_FUNC
 commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 {
+	char *cmd;
 	int c;
 	enum {
 		VERIFY_BRIEF = 1,
@@ -8029,21 +8065,26 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	} verify = 0;
 	const char *path = NULL;
 
+	/* "command [-p] PROG ARGS" (that is, without -V or -v)
+	 * never reaches this function.
+	 */
+
 	while ((c = nextopt("pvV")) != '\0')
 		if (c == 'V')
 			verify |= VERIFY_VERBOSE;
 		else if (c == 'v')
-			verify |= VERIFY_BRIEF;
+			/*verify |= VERIFY_BRIEF*/;
 #if DEBUG
 		else if (c != 'p')
 			abort();
 #endif
 		else
 			path = bb_default_path;
+
 	/* Mimic bash: just "command -v" doesn't complain, it's a nop */
-	if (verify && (*argptr != NULL)) {
-		return describe_command(*argptr, path, verify - VERIFY_BRIEF);
-	}
+	cmd = *argptr;
+	if (/*verify && */ cmd)
+		return describe_command(cmd, path, verify /* - VERIFY_BRIEF*/);
 
 	return 0;
 }
@@ -8976,42 +9017,6 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	return e;
 }
 
-#if ENABLE_ASH_CMDCMD
-static char **
-parse_command_args(char **argv, const char **path)
-{
-	char *cp, c;
-
-	for (;;) {
-		cp = *++argv;
-		if (!cp)
-			return NULL;
-		if (*cp++ != '-')
-			break;
-		c = *cp++;
-		if (!c)
-			break;
-		if (c == '-' && !*cp) {
-			if (!*++argv)
-				return NULL;
-			break;
-		}
-		do {
-			switch (c) {
-			case 'p':
-				*path = bb_default_path;
-				break;
-			default:
-				/* run 'typecmd' for other options */
-				return NULL;
-			}
-			c = *cp++;
-		} while (c);
-	}
-	return argv;
-}
-#endif
-
 /*
  * Make a variable a local variable.  When a variable is made local, it's
  * value and flags are saved in a localvar structure.  The saved values
@@ -9463,6 +9468,9 @@ evalcommand(union node *cmd, int flags)
 				nargv = parse_command_args(argv, &path);
 				if (!nargv)
 					break;
+				/* It's "command [-p] PROG ARGS" (that is, no -Vv).
+				 * nargv => "PROG". path is updated if -p.
+				 */
 				argc -= nargv - argv;
 				argv = nargv;
 				cmd_flag |= DO_NOFUNC;
