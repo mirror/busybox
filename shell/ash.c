@@ -412,8 +412,6 @@ static void trace_vprintf(const char *fmt, va_list va);
 
 
 /* ============ Utility functions */
-#define xbarrier() do { __asm__ __volatile__ ("": : :"memory"); } while (0)
-
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 
@@ -446,7 +444,7 @@ static void exitshell(void) NORETURN;
  */
 #define INT_OFF do { \
 	suppress_int++; \
-	xbarrier(); \
+	barrier(); \
 } while (0)
 
 /*
@@ -516,7 +514,7 @@ raise_interrupt(void)
 static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
 int_on(void)
 {
-	xbarrier();
+	barrier();
 	if (--suppress_int == 0 && pending_int) {
 		raise_interrupt();
 	}
@@ -525,7 +523,7 @@ int_on(void)
 static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
 force_int_on(void)
 {
-	xbarrier();
+	barrier();
 	suppress_int = 0;
 	if (pending_int)
 		raise_interrupt();
@@ -535,7 +533,7 @@ force_int_on(void)
 #define SAVE_INT(v) ((v) = suppress_int)
 
 #define RESTORE_INT(v) do { \
-	xbarrier(); \
+	barrier(); \
 	suppress_int = (v); \
 	if (suppress_int == 0 && pending_int) \
 		raise_interrupt(); \
@@ -8432,7 +8430,7 @@ dotrap(void)
 
 	last_status = exitstatus;
 	pending_sig = 0;
-	xbarrier();
+	barrier();
 
 	TRACE(("dotrap entered\n"));
 	for (sig = 1, g = gotsig; sig < NSIG; sig++, g++) {
