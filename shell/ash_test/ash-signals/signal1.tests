@@ -19,7 +19,7 @@ while $sleeping; do
     if wait %%; then
         echo "sleep completed"
         sleeping=false
-    elif [ $? == 127 ]; then
+    elif [ $? = 127 ]; then
         echo "BUG: no processes to wait for?!"
         sleeping=false
     else
