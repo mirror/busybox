@@ -6735,13 +6735,17 @@ static void exec_builtin(char ***to_free,
 static void execvp_or_die(char **argv) NORETURN;
 static void execvp_or_die(char **argv)
 {
+	int e;
 	debug_printf_exec("execing '%s'\n", argv[0]);
 	/* Don't propagate SIG_IGN to the child */
 	if (SPECIAL_JOBSTOP_SIGS != 0)
 		switch_off_special_sigs(G.special_sig_mask & SPECIAL_JOBSTOP_SIGS);
 	execvp(argv[0], argv);
+	e = 2;
+	if (errno == EACCES) e = 126;
+	if (errno == ENOENT) e = 127;
 	bb_perror_msg("can't execute '%s'", argv[0]);
-	_exit(127); /* bash compat */
+	_exit(e);
 }
 
 #if ENABLE_HUSH_MODE_X
