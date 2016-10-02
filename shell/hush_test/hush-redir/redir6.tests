@@ -1,5 +1,3 @@
-echo "Testing multiple redirections to same fd"
-# bug was making us lose fd #1 after this:
-echo Hello >/dev/null 1>&2
-echo Done1
-echo Done2 >&2
+# we had a bug where this would hang
+(head -n 1 <redir6.right)
+echo OK
