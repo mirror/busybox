@@ -7908,7 +7908,7 @@ enum {
 	/* 21 */ | (0u << TFOR)
 #if ENABLE_ASH_BASH_COMPAT
 	/* 22 */ | (0u << TFUNCTION)
-#endif  
+#endif
 	/* 23 */ | (0u << TIF)
 	/* 24 */ | (0u << TIN)
 	/* 25 */ | (1u << TTHEN)

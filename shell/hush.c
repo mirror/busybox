@@ -8738,7 +8738,7 @@ static void helper_export_local(char **argv, int exp, int lvl)
 			 && var && var->func_nest_level == lvl
 			) {
 				/* "local x=abc; ...; local x" - ignore second local decl */
-				continue; 
+				continue;
 			}
 #endif
 			/* Exporting non-existing variable.
