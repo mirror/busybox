@@ -6615,7 +6615,10 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 	int subtype = varflags & VSTYPE;
 	int discard = subtype == VSPLUS || subtype == VSLENGTH;
 	int quotes = (discard ? 0 : (flags & QUOTES_ESC)) | QUOTES_KEEPNUL;
-	int syntax = quoted ? DQSYNTAX : BASESYNTAX;
+	int syntax;
+
+	sep = (flags & EXP_FULL) << CHAR_BIT;
+	syntax = quoted ? DQSYNTAX : BASESYNTAX;
 
 	switch (*name) {
 	case '$':
@@ -6649,23 +6652,18 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 			raise_error_syntax("bad substitution");
 #endif
 		break;
-	case '@': {
+	case '@':
+		if (quoted && sep)
+			goto param;
+		/* fall through */
+	case '*': {
 		char **ap;
 		char sepc;
 
-		sep = 0;
-		if (quoted && (flags & EXP_FULL)) {
-			/* note: this is not meant as PEOF value */
-			sep = 1 << CHAR_BIT;
-			goto param;
-		}
-		/* fall through */
-	case '*':
-		sep = ifsset() ? (unsigned char)(ifsval()[0]) : ' ';
-		if (!quoted) {
+		if (quoted)
+			sep = 0;
+		sep |= ifsset() ? ifsval()[0] : ' ';
  param:
-			sep |= (flags & EXP_FULL) << CHAR_BIT;
-		}
 		sepc = sep;
 		*quotedp = !sepc;
 		ap = shellparam.p;
@@ -6680,7 +6678,7 @@ varvalue(char *name, int varflags, int flags, struct strlist *var_str_list, int 
 			}
 		}
 		break;
-	} /* case '@' and '*' */
+	} /* case '*' */
 	case '0':
 	case '1':
 	case '2':
