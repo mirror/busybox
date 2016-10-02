@@ -7038,27 +7038,42 @@ expandmeta(struct strlist *str /*, int flag*/)
 			goto nometa;
 		INT_OFF;
 		p = preglob(str->text, RMESCAPE_ALLOC | RMESCAPE_HEAP);
-		/*
-		 * GLOB_NOMAGIC (GNU): if no *?[ chars in pattern, return it even if no match
-		 * TODO?: GLOB_NOCHECK: if no match, return unchanged pattern (sans \* escapes?)
-		 */
-		i = glob(p, GLOB_NOMAGIC, NULL, &pglob);
+// GLOB_NOMAGIC (GNU): if no *?[ chars in pattern, return it even if no match
+// GLOB_NOCHECK: if no match, return unchanged pattern (sans \* escapes?)
+//
+// glibc 2.24.90 glob(GLOB_NOMAGIC) does not remove backslashes used for escaping:
+// if you pass it "file\?", it returns "file\?", not "file?", if no match.
+// Which means you need to unescape the string, right? Not so fast:
+// if there _is_ a file named "file\?" (with backslash), it is returned
+// as "file\?" too (whichever pattern you used to find it, say, "file*").
+// You DONT KNOW by looking at the result whether you need to unescape it.
+//
+// Worse, globbing of "file\?" in a directory with two files, "file?" and "file\?",
+// returns "file\?" - which is WRONG: "file\?" pattern matches "file?" file.
+// Without GLOB_NOMAGIC, this works correctly ("file?" is returned as a match).
+// With GLOB_NOMAGIC | GLOB_NOCHECK, this also works correctly.
+//		i = glob(p, GLOB_NOMAGIC | GLOB_NOCHECK, NULL, &pglob);
+//		i = glob(p, GLOB_NOMAGIC, NULL, &pglob);
+		i = glob(p, 0, NULL, &pglob);
+		//bb_error_msg("glob('%s'):%d '%s'...", p, i, pglob.gl_pathv ? pglob.gl_pathv[0] : "-");
 		if (p != str->text)
 			free(p);
 		switch (i) {
 		case 0:
+#if 0 // glibc 2.24.90 bug? Patterns like "*/file", when match, don't set GLOB_MAGCHAR
 			/* GLOB_MAGCHAR is set if *?[ chars were seen (GNU) */
 			if (!(pglob.gl_flags & GLOB_MAGCHAR))
 				goto nometa2;
+#endif
 			addglob(&pglob);
 			globfree(&pglob);
 			INT_ON;
 			break;
 		case GLOB_NOMATCH:
-nometa2:
+ //nometa2:
 			globfree(&pglob);
 			INT_ON;
-nometa:
+ nometa:
 			*exparg.lastp = str;
 			rmescapes(str->text, 0);
 			exparg.lastp = &str->next;
