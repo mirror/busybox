@@ -1,2 +1,4 @@
-echo -e 'test\\\nbest' | (read reply; echo "$reply")
-echo -e 'test\\\nbest' | (read -r reply; echo "$reply")
+echo 'test\
+best' | (read reply; echo "$reply")
+echo 'test\
+best' | (read -r reply; echo "$reply")
