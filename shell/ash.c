@@ -10030,6 +10030,19 @@ preadbuffer(void)
 	return (unsigned char)*g_parsefile->next_to_pgetc++;
 }
 
+static void
+nlprompt(void)
+{
+	g_parsefile->linno++;
+	setprompt_if(doprompt, 2);
+}
+static void
+nlnoprompt(void)
+{
+	g_parsefile->linno++;
+	needprompt = doprompt;
+}
+
 static int
 pgetc(void)
 {
@@ -10118,8 +10131,7 @@ pgetc_eatbnl(void)
 			break;
 		}
 
-		g_parsefile->linno++;
-		setprompt_if(doprompt, 2);
+		nlprompt();
 	}
 
 	return c;
@@ -11409,8 +11421,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 			if (syntax == BASESYNTAX)
 				goto endword;   /* exit outer loop */
 			USTPUTC(c, out);
-			g_parsefile->linno++;
-			setprompt_if(doprompt, 2);
+			nlprompt();
 			c = pgetc();
 			goto loop;              /* continue outer loop */
 		case CWORD:
@@ -11444,7 +11455,7 @@ readtoken1(int c, int syntax, char *eofmark, int striptabs)
 				USTPUTC('\\', out);
 				pungetc();
 			} else if (c == '\n') {
-				setprompt_if(doprompt, 2);
+				nlprompt();
 			} else {
 #if ENABLE_ASH_EXPAND_PRMT
 				if (c == '$' && pssyntax) {
@@ -11615,8 +11626,7 @@ checkend: {
 					continue;
 				if (*p == '\n' && *q == '\0') {
 					c = PEOF;
-					g_parsefile->linno++;
-					needprompt = doprompt;
+					nlnoprompt();
 				} else {
 					pushstring(line, NULL);
 				}
@@ -11898,8 +11908,7 @@ parsebackq: {
 			case '\\':
 				pc = pgetc();
 				if (pc == '\n') {
-					g_parsefile->linno++;
-					setprompt_if(doprompt, 2);
+					nlprompt();
 					/*
 					 * If eating a newline, avoid putting
 					 * the newline into the new character
@@ -11924,8 +11933,7 @@ parsebackq: {
 				raise_error_syntax("EOF in backquote substitution");
 
 			case '\n':
-				g_parsefile->linno++;
-				needprompt = doprompt;
+				nlnoprompt();
 				break;
 
 			default:
@@ -12057,16 +12065,14 @@ xxreadtoken(void)
 				pungetc();
 				break; /* return readtoken1(...) */
 			}
-			startlinno = ++g_parsefile->linno;
-			setprompt_if(doprompt, 2);
+			nlprompt();
 		} else {
 			const char *p;
 
 			p = xxreadtoken_chars + sizeof(xxreadtoken_chars) - 1;
 			if (c != PEOF) {
 				if (c == '\n') {
-					g_parsefile->linno++;
-					needprompt = doprompt;
+					nlnoprompt();
 				}
 
 				p = strchr(xxreadtoken_chars, c);
@@ -12119,15 +12125,13 @@ xxreadtoken(void)
 			continue;
 		case '\\':
 			if (pgetc() == '\n') {
-				startlinno = ++g_parsefile->linno;
-				setprompt_if(doprompt, 2);
+				nlprompt();
 				continue;
 			}
 			pungetc();
 			goto breakloop;
 		case '\n':
-			g_parsefile->linno++;
-			needprompt = doprompt;
+			nlnoprompt();
 			RETURN(TNL);
 		case PEOF:
 			RETURN(TEOF);
