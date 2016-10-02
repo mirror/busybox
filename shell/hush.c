@@ -9005,7 +9005,6 @@ static int FAST_FUNC builtin_help(char **argv UNUSED_PARAM)
 		if (x->b_descr)
 			printf("%-10s%s\n", x->b_cmd, x->b_descr);
 	}
-	bb_putchar('\n');
 	return EXIT_SUCCESS;
 }
 #endif

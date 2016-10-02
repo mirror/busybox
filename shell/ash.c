@@ -12848,7 +12848,7 @@ helpcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		}
 	}
 # endif
-	out1fmt("\n\n");
+	newline_and_flush(stdout);
 	return EXIT_SUCCESS;
 }
 #endif
