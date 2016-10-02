@@ -12405,32 +12405,38 @@ find_dot_file(char *name)
 }
 
 static int FAST_FUNC
-dotcmd(int argc, char **argv)
+dotcmd(int argc_ UNUSED_PARAM, char **argv_ UNUSED_PARAM)
 {
+	/* "false; . empty_file; echo $?" should print 0, not 1: */
+	int status = 0;
 	char *fullname;
+	char **argv;
 	struct strlist *sp;
 	volatile struct shparam saveparam;
 
 	for (sp = cmdenviron; sp; sp = sp->next)
 		setvareq(ckstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
-	if (!argv[1]) {
+	nextopt(nullstr); /* handle possible "--" */
+	argv = argptr;
+
+	if (!argv[0]) {
 		/* bash says: "bash: .: filename argument required" */
 		return 2; /* bash compat */
 	}
 
-	/* "false; . empty_file; echo $?" should print 0, not 1: */
-	exitstatus = 0;
-
 	/* This aborts if file isn't found, which is POSIXly correct.
 	 * bash returns exitcode 1 instead.
 	 */
-	fullname = find_dot_file(argv[1]);
-	argv += 2;
-	argc -= 2;
-	if (argc) { /* argc > 0, argv[0] != NULL */
+	fullname = find_dot_file(argv[0]);
+	argv++;
+	if (argv[0]) { /* . FILE ARGS, ARGS exist */
+		int argc;
 		saveparam = shellparam;
 		shellparam.malloced = 0;
+		argc = 1;
+		while (argv[argc])
+			argc++;
 		shellparam.nparam = argc;
 		shellparam.p = argv;
 	};
@@ -12440,15 +12446,15 @@ dotcmd(int argc, char **argv)
 	 */
 	setinputfile(fullname, INPUT_PUSH_FILE);
 	commandname = fullname;
-	cmdloop(0);
+	status = cmdloop(0);
 	popfile();
 
-	if (argc) {
+	if (argv[0]) {
 		freeparam(&shellparam);
 		shellparam = saveparam;
 	};
 
-	return exitstatus;
+	return status;
 }
 
 static int FAST_FUNC
