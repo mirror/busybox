@@ -4,7 +4,7 @@ v='*brace1.t*'; echo $v
 # ...but not brace expanded:
 v='*{b,b}race1.t*'; echo $v
 
-# whereas direct brces are expanded:
+# whereas direct braces are expanded:
 echo *{b,b}race1.t*
 
 echo Done: $?
