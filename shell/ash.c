@@ -7881,49 +7881,86 @@ enum {
 };
 typedef smallint token_id_t;
 
-/* first char is indicating which tokens mark the end of a list */
+/* Nth bit indicates if token marks the end of a list */
+enum {
+	tokendlist = 0
+	/*  0 */ | (1u << TEOF)
+	/*  1 */ | (0u << TNL)
+	/*  2 */ | (0u << TREDIR)
+	/*  3 */ | (0u << TWORD)
+	/*  4 */ | (0u << TSEMI)
+	/*  5 */ | (0u << TBACKGND)
+	/*  6 */ | (0u << TAND)
+	/*  7 */ | (0u << TOR)
+	/*  8 */ | (0u << TPIPE)
+	/*  9 */ | (0u << TLP)
+	/* 10 */ | (1u << TRP)
+	/* 11 */ | (1u << TENDCASE)
+	/* 12 */ | (1u << TENDBQUOTE)
+	/* 13 */ | (0u << TNOT)
+	/* 14 */ | (0u << TCASE)
+	/* 15 */ | (1u << TDO)
+	/* 16 */ | (1u << TDONE)
+	/* 17 */ | (1u << TELIF)
+	/* 18 */ | (1u << TELSE)
+	/* 19 */ | (1u << TESAC)
+	/* 20 */ | (1u << TFI)
+	/* 21 */ | (0u << TFOR)
+#if ENABLE_ASH_BASH_COMPAT
+	/* 22 */ | (0u << TFUNCTION)
+#endif  
+	/* 23 */ | (0u << TIF)
+	/* 24 */ | (0u << TIN)
+	/* 25 */ | (1u << TTHEN)
+	/* 26 */ | (0u << TUNTIL)
+	/* 27 */ | (0u << TWHILE)
+	/* 28 */ | (0u << TBEGIN)
+	/* 29 */ | (1u << TEND)
+	, /* thus far 29 bits used */
+};
+
 static const char *const tokname_array[] = {
-	"\1end of file",
-	"\0newline",
-	"\0redirection",
-	"\0word",
-	"\0;",
-	"\0&",
-	"\0&&",
-	"\0||",
-	"\0|",
-	"\0(",
-	"\1)",
-	"\1;;",
-	"\1`",
+	"end of file",
+	"newline",
+	"redirection",
+	"word",
+	";",
+	"&",
+	"&&",
+	"||",
+	"|",
+	"(",
+	")",
+	";;",
+	"`",
 #define KWDOFFSET 13
 	/* the following are keywords */
-	"\0!",
-	"\0case",
-	"\1do",
-	"\1done",
-	"\1elif",
-	"\1else",
-	"\1esac",
-	"\1fi",
-	"\0for",
+	"!",
+	"case",
+	"do",
+	"done",
+	"elif",
+	"else",
+	"esac",
+	"fi",
+	"for",
 #if ENABLE_ASH_BASH_COMPAT
-	"\0function",
+	"function",
 #endif
-	"\0if",
-	"\0in",
-	"\1then",
-	"\0until",
-	"\0while",
-	"\0{",
-	"\1}",
+	"if",
+	"in",
+	"then",
+	"until",
+	"while",
+	"{",
+	"}",
 };
 
 /* Wrapper around strcmp for qsort/bsearch/... */
 static int
 pstrcmp(const void *a, const void *b)
 {
-	return strcmp((char*) a, (*(char**) b) + 1);
+	return strcmp((char*)a, *(char**)b);
 }
 
 static const char *const *
@@ -9339,6 +9376,11 @@ static const struct builtincmd builtintab[] = {
 /*
  * Search the table of builtin commands.
  */
+static int
+pstrcmp1(const void *a, const void *b)
+{
+	return strcmp((char*)a, *(char**)b + 1);
+}
 static struct builtincmd *
 find_builtin(const char *name)
 {
@@ -9346,7 +9388,7 @@ find_builtin(const char *name)
 
 	bp = bsearch(
 		name, builtintab, ARRAY_SIZE(builtintab), sizeof(builtintab[0]),
-		pstrcmp
+		pstrcmp1
 	);
 	return bp;
 }
@@ -10669,8 +10711,8 @@ static const char *
 tokname(char *buf, int tok)
 {
 	if (tok < TSEMI)
-		return tokname_array[tok] + 1;
-	sprintf(buf, "\"%s\"", tokname_array[tok] + 1);
+		return tokname_array[tok];
+	sprintf(buf, "\"%s\"", tokname_array[tok]);
 	return buf;
 }
 
@@ -10727,7 +10769,7 @@ list(int nlflag)
 		}
 
 		checkkwd = CHKNL | CHKKWD | CHKALIAS;
-		if (nlflag == 2 && tokname_array[peektoken()][0])
+		if (nlflag == 2 && ((1 << peektoken()) & tokendlist))
 			return n1;
 		nlflag |= 2;
 
@@ -11109,7 +11151,7 @@ parse_command(void)
 		n1->nbinary.ch1 = list(0);
 		got = readtoken();
 		if (got != TDO) {
-			TRACE(("expecting DO got '%s' %s\n", tokname_array[got] + 1,
+			TRACE(("expecting DO got '%s' %s\n", tokname_array[got],
 					got == TWORD ? wordtext : ""));
 			raise_error_unexpected_syntax(TDO);
 		}
@@ -12156,7 +12198,7 @@ readtoken(void)
 		pp = findkwd(wordtext);
 		if (pp) {
 			lasttoken = t = pp - tokname_array;
-			TRACE(("keyword '%s' recognized\n", tokname_array[t] + 1));
+			TRACE(("keyword '%s' recognized\n", tokname_array[t]));
 			goto out;
 		}
 	}
@@ -12177,9 +12219,9 @@ readtoken(void)
 	checkkwd = 0;
 #if DEBUG
 	if (!alreadyseen)
-		TRACE(("token '%s' %s\n", tokname_array[t] + 1, t == TWORD ? wordtext : ""));
+		TRACE(("token '%s' %s\n", tokname_array[t], t == TWORD ? wordtext : ""));
 	else
-		TRACE(("reread token '%s' %s\n", tokname_array[t] + 1, t == TWORD ? wordtext : ""));
+		TRACE(("reread token '%s' %s\n", tokname_array[t], t == TWORD ? wordtext : ""));
 #endif
 	return t;
 }
