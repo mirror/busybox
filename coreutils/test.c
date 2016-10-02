@@ -394,7 +394,7 @@ extern struct test_statics *const test_ptr_to_statics;
 	barrier(); \
 } while (0)
 #define DEINIT_S() do { \
-	free(S.group_array); \
+	free(group_array); \
 	free(test_ptr_to_statics); \
 } while (0)
 
