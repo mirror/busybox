@@ -1,2 +1,2 @@
-hush: can't exec 'a=b': No such file or directory
+hush: can't execute 'a=b': No such file or directory
 1
