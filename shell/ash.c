@@ -8590,7 +8590,7 @@ evaltree(union node *n, int flags)
 			n->nbinary.ch1,
 			(flags | ((is_or >> 1) - 1)) & EV_TESTED
 		);
-		if (!status == is_or || evalskip)
+		if ((!status) == is_or || evalskip)
 			break;
 		n = n->nbinary.ch2;
  evaln:
