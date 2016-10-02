@@ -8733,6 +8733,14 @@ static void helper_export_local(char **argv, int exp, int lvl)
 					continue;
 				}
 			}
+#if ENABLE_HUSH_LOCAL
+			if (exp == 0 /* local? */
+			 && var && var->func_nest_level == lvl
+			) {
+				/* "local x=abc; ...; local x" - ignore second local decl */
+				continue; 
+			}
+#endif
 			/* Exporting non-existing variable.
 			 * bash does not put it in environment,
 			 * but remembers that it is exported,
@@ -8806,6 +8814,212 @@ static int FAST_FUNC builtin_local(char **argv)
 	return EXIT_SUCCESS;
 }
 #endif
+
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
+static int FAST_FUNC builtin_unset(char **argv)
+{
+	int ret;
+	unsigned opts;
+
+	/* "!": do not abort on errors */
+	/* "+": stop at 1st non-option */
+	opts = getopt32(argv, "!+vf");
+	if (opts == (unsigned)-1)
+		return EXIT_FAILURE;
+	if (opts == 3) {
+		bb_error_msg("unset: -v and -f are exclusive");
+		return EXIT_FAILURE;
+	}
+	argv += optind;
+
+	ret = EXIT_SUCCESS;
+	while (*argv) {
+		if (!(opts & 2)) { /* not -f */
+			if (unset_local_var(*argv)) {
+				/* unset <nonexistent_var> doesn't fail.
+				 * Error is when one tries to unset RO var.
+				 * Message was printed by unset_local_var. */
+				ret = EXIT_FAILURE;
+			}
+		}
+#if ENABLE_HUSH_FUNCTIONS
+		else {
+			unset_func(*argv);
+		}
+#endif
+		argv++;
+	}
+	return ret;
+}
+
+/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
+ * built-in 'set' handler
+ * SUSv3 says:
+ * set [-abCefhmnuvx] [-o option] [argument...]
+ * set [+abCefhmnuvx] [+o option] [argument...]
+ * set -- [argument...]
+ * set -o
+ * set +o
+ * Implementations shall support the options in both their hyphen and
+ * plus-sign forms. These options can also be specified as options to sh.
+ * Examples:
+ * Write out all variables and their values: set
+ * Set $1, $2, and $3 and set "$#" to 3: set c a b
+ * Turn on the -x and -v options: set -xv
+ * Unset all positional parameters: set --
+ * Set $1 to the value of x, even if it begins with '-' or '+': set -- "$x"
+ * Set the positional parameters to the expansion of x, even if x expands
+ * with a leading '-' or '+': set -- $x
+ *
+ * So far, we only support "set -- [argument...]" and some of the short names.
+ */
+static int FAST_FUNC builtin_set(char **argv)
+{
+	int n;
+	char **pp, **g_argv;
+	char *arg = *++argv;
+
+	if (arg == NULL) {
+		struct variable *e;
+		for (e = G.top_var; e; e = e->next)
+			puts(e->varstr);
+		return EXIT_SUCCESS;
+	}
+
+	do {
+		if (strcmp(arg, "--") == 0) {
+			++argv;
+			goto set_argv;
+		}
+		if (arg[0] != '+' && arg[0] != '-')
+			break;
+		for (n = 1; arg[n]; ++n) {
+			if (set_mode((arg[0] == '-'), arg[n], argv[1]))
+				goto error;
+			if (arg[n] == 'o' && argv[1])
+				argv++;
+		}
+	} while ((arg = *++argv) != NULL);
+	/* Now argv[0] is 1st argument */
+
+	if (arg == NULL)
+		return EXIT_SUCCESS;
+ set_argv:
+
+	/* NB: G.global_argv[0] ($0) is never freed/changed */
+	g_argv = G.global_argv;
+	if (G.global_args_malloced) {
+		pp = g_argv;
+		while (*++pp)
+			free(*pp);
+		g_argv[1] = NULL;
+	} else {
+		G.global_args_malloced = 1;
+		pp = xzalloc(sizeof(pp[0]) * 2);
+		pp[0] = g_argv[0]; /* retain $0 */
+		g_argv = pp;
+	}
+	/* This realloc's G.global_argv */
+	G.global_argv = pp = add_strings_to_strings(g_argv, argv, /*dup:*/ 1);
+
+	n = 1;
+	while (*++pp)
+		n++;
+	G.global_argc = n;
+
+	return EXIT_SUCCESS;
+
+	/* Nothing known, so abort */
+ error:
+	bb_error_msg("set: %s: invalid option", arg);
+	return EXIT_FAILURE;
+}
+
+static int FAST_FUNC builtin_shift(char **argv)
+{
+	int n = 1;
+	argv = skip_dash_dash(argv);
+	if (argv[0]) {
+		n = atoi(argv[0]);
+	}
+	if (n >= 0 && n < G.global_argc) {
+		if (G.global_args_malloced) {
+			int m = 1;
+			while (m <= n)
+				free(G.global_argv[m++]);
+		}
+		G.global_argc -= n;
+		memmove(&G.global_argv[1], &G.global_argv[n+1],
+				G.global_argc * sizeof(G.global_argv[0]));
+		return EXIT_SUCCESS;
+	}
+	return EXIT_FAILURE;
+}
+
+/* Interruptibility of read builtin in bash
+ * (tested on bash-4.2.8 by sending signals (not by ^C)):
+ *
+ * Empty trap makes read ignore corresponding signal, for any signal.
+ *
+ * SIGINT:
+ * - terminates non-interactive shell;
+ * - interrupts read in interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to command prompt in interactive shell;
+ * - executes trap and returns to read in non-interactive shell;
+ * SIGTERM:
+ * - is ignored (does not interrupt) read in interactive shell;
+ * - terminates non-interactive shell;
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ * SIGHUP:
+ * - terminates shell (regardless of interactivity);
+ * if it has non-empty trap:
+ * - executes trap and returns to read;
+ */
+static int FAST_FUNC builtin_read(char **argv)
+{
+	const char *r;
+	char *opt_n = NULL;
+	char *opt_p = NULL;
+	char *opt_t = NULL;
+	char *opt_u = NULL;
+	const char *ifs;
+	int read_flags;
+
+	/* "!": do not abort on errors.
+	 * Option string must start with "sr" to match BUILTIN_READ_xxx
+	 */
+	read_flags = getopt32(argv, "!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u);
+	if (read_flags == (uint32_t)-1)
+		return EXIT_FAILURE;
+	argv += optind;
+	ifs = get_local_var_value("IFS"); /* can be NULL */
+
+ again:
+	r = shell_builtin_read(set_local_var_from_halves,
+		argv,
+		ifs,
+		read_flags,
+		opt_n,
+		opt_p,
+		opt_t,
+		opt_u
+	);
+
+	if ((uintptr_t)r == 1 && errno == EINTR) {
+		unsigned sig = check_and_run_traps();
+		if (sig && sig != SIGINT)
+			goto again;
+	}
+
+	if ((uintptr_t)r > 1) {
+		bb_error_msg("%s", r);
+		r = (char*)(uintptr_t)1;
+	}
+
+	return (uintptr_t)r;
+}
 
 static int FAST_FUNC builtin_trap(char **argv)
 {
@@ -9075,175 +9289,6 @@ static int FAST_FUNC builtin_pwd(char **argv UNUSED_PARAM)
 	return EXIT_SUCCESS;
 }
 
-/* Interruptibility of read builtin in bash
- * (tested on bash-4.2.8 by sending signals (not by ^C)):
- *
- * Empty trap makes read ignore corresponding signal, for any signal.
- *
- * SIGINT:
- * - terminates non-interactive shell;
- * - interrupts read in interactive shell;
- * if it has non-empty trap:
- * - executes trap and returns to command prompt in interactive shell;
- * - executes trap and returns to read in non-interactive shell;
- * SIGTERM:
- * - is ignored (does not interrupt) read in interactive shell;
- * - terminates non-interactive shell;
- * if it has non-empty trap:
- * - executes trap and returns to read;
- * SIGHUP:
- * - terminates shell (regardless of interactivity);
- * if it has non-empty trap:
- * - executes trap and returns to read;
- */
-static int FAST_FUNC builtin_read(char **argv)
-{
-	const char *r;
-	char *opt_n = NULL;
-	char *opt_p = NULL;
-	char *opt_t = NULL;
-	char *opt_u = NULL;
-	const char *ifs;
-	int read_flags;
-
-	/* "!": do not abort on errors.
-	 * Option string must start with "sr" to match BUILTIN_READ_xxx
-	 */
-	read_flags = getopt32(argv, "!srn:p:t:u:", &opt_n, &opt_p, &opt_t, &opt_u);
-	if (read_flags == (uint32_t)-1)
-		return EXIT_FAILURE;
-	argv += optind;
-	ifs = get_local_var_value("IFS"); /* can be NULL */
-
- again:
-	r = shell_builtin_read(set_local_var_from_halves,
-		argv,
-		ifs,
-		read_flags,
-		opt_n,
-		opt_p,
-		opt_t,
-		opt_u
-	);
-
-	if ((uintptr_t)r == 1 && errno == EINTR) {
-		unsigned sig = check_and_run_traps();
-		if (sig && sig != SIGINT)
-			goto again;
-	}
-
-	if ((uintptr_t)r > 1) {
-		bb_error_msg("%s", r);
-		r = (char*)(uintptr_t)1;
-	}
-
-	return (uintptr_t)r;
-}
-
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#set
- * built-in 'set' handler
- * SUSv3 says:
- * set [-abCefhmnuvx] [-o option] [argument...]
- * set [+abCefhmnuvx] [+o option] [argument...]
- * set -- [argument...]
- * set -o
- * set +o
- * Implementations shall support the options in both their hyphen and
- * plus-sign forms. These options can also be specified as options to sh.
- * Examples:
- * Write out all variables and their values: set
- * Set $1, $2, and $3 and set "$#" to 3: set c a b
- * Turn on the -x and -v options: set -xv
- * Unset all positional parameters: set --
- * Set $1 to the value of x, even if it begins with '-' or '+': set -- "$x"
- * Set the positional parameters to the expansion of x, even if x expands
- * with a leading '-' or '+': set -- $x
- *
- * So far, we only support "set -- [argument...]" and some of the short names.
- */
-static int FAST_FUNC builtin_set(char **argv)
-{
-	int n;
-	char **pp, **g_argv;
-	char *arg = *++argv;
-
-	if (arg == NULL) {
-		struct variable *e;
-		for (e = G.top_var; e; e = e->next)
-			puts(e->varstr);
-		return EXIT_SUCCESS;
-	}
-
-	do {
-		if (strcmp(arg, "--") == 0) {
-			++argv;
-			goto set_argv;
-		}
-		if (arg[0] != '+' && arg[0] != '-')
-			break;
-		for (n = 1; arg[n]; ++n) {
-			if (set_mode((arg[0] == '-'), arg[n], argv[1]))
-				goto error;
-			if (arg[n] == 'o' && argv[1])
-				argv++;
-		}
-	} while ((arg = *++argv) != NULL);
-	/* Now argv[0] is 1st argument */
-
-	if (arg == NULL)
-		return EXIT_SUCCESS;
- set_argv:
-
-	/* NB: G.global_argv[0] ($0) is never freed/changed */
-	g_argv = G.global_argv;
-	if (G.global_args_malloced) {
-		pp = g_argv;
-		while (*++pp)
-			free(*pp);
-		g_argv[1] = NULL;
-	} else {
-		G.global_args_malloced = 1;
-		pp = xzalloc(sizeof(pp[0]) * 2);
-		pp[0] = g_argv[0]; /* retain $0 */
-		g_argv = pp;
-	}
-	/* This realloc's G.global_argv */
-	G.global_argv = pp = add_strings_to_strings(g_argv, argv, /*dup:*/ 1);
-
-	n = 1;
-	while (*++pp)
-		n++;
-	G.global_argc = n;
-
-	return EXIT_SUCCESS;
-
-	/* Nothing known, so abort */
- error:
-	bb_error_msg("set: %s: invalid option", arg);
-	return EXIT_FAILURE;
-}
-
-static int FAST_FUNC builtin_shift(char **argv)
-{
-	int n = 1;
-	argv = skip_dash_dash(argv);
-	if (argv[0]) {
-		n = atoi(argv[0]);
-	}
-	if (n >= 0 && n < G.global_argc) {
-		if (G.global_args_malloced) {
-			int m = 1;
-			while (m <= n)
-				free(G.global_argv[m++]);
-		}
-		G.global_argc -= n;
-		memmove(&G.global_argv[1], &G.global_argv[n+1],
-				G.global_argc * sizeof(G.global_argv[0]));
-		return EXIT_SUCCESS;
-	}
-	return EXIT_FAILURE;
-}
-
 static int FAST_FUNC builtin_source(char **argv)
 {
 	char *arg_path, *filename;
@@ -9332,43 +9377,6 @@ static int FAST_FUNC builtin_umask(char **argv)
 	umask(mask);
 
 	return !rc; /* rc != 0 - success */
-}
-
-/* http://www.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#unset */
-static int FAST_FUNC builtin_unset(char **argv)
-{
-	int ret;
-	unsigned opts;
-
-	/* "!": do not abort on errors */
-	/* "+": stop at 1st non-option */
-	opts = getopt32(argv, "!+vf");
-	if (opts == (unsigned)-1)
-		return EXIT_FAILURE;
-	if (opts == 3) {
-		bb_error_msg("unset: -v and -f are exclusive");
-		return EXIT_FAILURE;
-	}
-	argv += optind;
-
-	ret = EXIT_SUCCESS;
-	while (*argv) {
-		if (!(opts & 2)) { /* not -f */
-			if (unset_local_var(*argv)) {
-				/* unset <nonexistent_var> doesn't fail.
-				 * Error is when one tries to unset RO var.
-				 * Message was printed by unset_local_var. */
-				ret = EXIT_FAILURE;
-			}
-		}
-#if ENABLE_HUSH_FUNCTIONS
-		else {
-			unset_func(*argv);
-		}
-#endif
-		argv++;
-	}
-	return ret;
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
