@@ -415,7 +415,8 @@ static void trace_vprintf(const char *fmt, va_list va);
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 
-static int isdigit_str9(const char *str)
+static int
+isdigit_str9(const char *str)
 {
 	int maxlen = 9 + 1; /* max 9 digits: 999999999 */
 	while (--maxlen && isdigit(*str))
@@ -423,7 +424,8 @@ static int isdigit_str9(const char *str)
 	return (*str == '\0');
 }
 
-static const char *var_end(const char *var)
+static const char *
+var_end(const char *var)
 {
 	while (*var)
 		if (*var++ == '=')
@@ -2142,7 +2144,8 @@ lookupvar(const char *name)
 	return NULL;
 }
 
-static void reinit_unicode_for_ash(void)
+static void
+reinit_unicode_for_ash(void)
 {
 	/* Unicode support should be activated even if LANG is set
 	 * _during_ shell execution, not only if it was set when
@@ -3171,7 +3174,8 @@ static struct alias **atab; // [ATABSIZE];
 
 
 static struct alias **
-__lookupalias(const char *name) {
+__lookupalias(const char *name)
+{
 	unsigned int hashval;
 	struct alias **app;
 	const char *p;
@@ -5234,7 +5238,8 @@ struct redirtab {
 };
 #define redirlist (G_var.redirlist)
 
-static int need_to_remember(struct redirtab *rp, int fd)
+static int
+need_to_remember(struct redirtab *rp, int fd)
 {
 	int i;
 
@@ -5251,7 +5256,8 @@ static int need_to_remember(struct redirtab *rp, int fd)
 }
 
 /* "hidden" fd is a fd used to read scripts, or a copy of such */
-static int is_hidden_fd(struct redirtab *rp, int fd)
+static int
+is_hidden_fd(struct redirtab *rp, int fd)
 {
 	int i;
 	struct parsefile *pf;
@@ -8628,7 +8634,8 @@ static
 #endif
 int evaltreenr(union node *, int) __attribute__ ((alias("evaltree"),__noreturn__));
 
-static int skiploop(void)
+static int
+skiploop(void)
 {
 	int skip = evalskip;
 
@@ -11233,7 +11240,8 @@ parse_command(void)
 }
 
 #if ENABLE_ASH_BASH_COMPAT
-static int decode_dollar_squote(void)
+static int
+decode_dollar_squote(void)
 {
 	static const char C_escapes[] ALIGN1 = "nrbtfav""x\\01234567";
 	int c, cnt;
