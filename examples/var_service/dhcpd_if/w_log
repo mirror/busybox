@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd log/logdir
+watch -n1 'w=`ttysize w`; h=`ttysize h`; tail -$((h-3)) current 2>&1 | cut -b0-$((w-2))'
