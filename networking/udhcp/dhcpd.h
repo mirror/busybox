@@ -117,12 +117,6 @@ void log_static_leases(struct static_lease **st_lease_pp) FAST_FUNC;
 # define log_static_leases(st_lease_pp) ((void)0)
 #endif
 
-
-void read_config(const char *file) FAST_FUNC;
-void write_leases(void) FAST_FUNC;
-void read_leases(const char *file) FAST_FUNC;
-
-
 POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

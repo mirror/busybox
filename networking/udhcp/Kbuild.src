@@ -13,7 +13,7 @@ lib-$(CONFIG_UDHCPC)     += common.o packet.o signalpipe.o socket.o
 lib-$(CONFIG_UDHCPD)     += common.o packet.o signalpipe.o socket.o
 
 lib-$(CONFIG_UDHCPC)     += dhcpc.o
-lib-$(CONFIG_UDHCPD)     += dhcpd.o arpping.o files.o leases.o static_leases.o
+lib-$(CONFIG_UDHCPD)     += dhcpd.o arpping.o leases.o static_leases.o
 lib-$(CONFIG_DUMPLEASES) += dumpleases.o
 lib-$(CONFIG_DHCPRELAY)  += dhcprelay.o
 
