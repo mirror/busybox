@@ -9284,6 +9284,15 @@ static int FAST_FUNC builtin_memleak(char **argv UNUSED_PARAM)
 	if (l < (unsigned long)p) l = (unsigned long)p;
 	free(p);
 
+
+# if 0  /* debug */
+	{
+		struct mallinfo mi = mallinfo();
+		printf("top alloc:0x%lx malloced:%d+%d=%d\n", l,
+			mi.arena, mi.hblkhd, mi.arena + mi.hblkhd);
+	}
+# endif
+
 	if (!G.memleak_value)
 		G.memleak_value = l;
 

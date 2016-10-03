@@ -942,6 +942,14 @@ int main(int argc UNUSED_PARAM, char **argv)
 	 */
 	mallopt(M_MMAP_THRESHOLD, 32 * 1024 - 256);
 #endif
+#if 0 /*def M_TOP_PAD*/
+	/* When the program break is increased, then M_TOP_PAD bytes are added
+	 * to the sbrk(2) request. When the heap is trimmed because of free(3),
+	 * this much free space is preserved at the top of the heap.
+	 * glibc default seems to be way too big: 128k, but need to verify.
+	 */
+	mallopt(M_TOP_PAD, 8 * 1024);
+#endif
 
 #if !BB_MMU
 	/* NOMMU re-exec trick sets high-order bit in first byte of name */
