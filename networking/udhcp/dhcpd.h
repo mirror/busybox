@@ -90,20 +90,6 @@ struct dyn_lease {
 	/* total size is a multiply of 4 */
 } PACKED;
 
-extern struct dyn_lease *g_leases;
-
-struct dyn_lease *add_lease(
-		const uint8_t *chaddr, uint32_t yiaddr,
-		leasetime_t leasetime,
-		const char *hostname, int hostname_len
-		) FAST_FUNC;
-int is_expired_lease(struct dyn_lease *lease) FAST_FUNC;
-struct dyn_lease *find_lease_by_mac(const uint8_t *mac) FAST_FUNC;
-struct dyn_lease *find_lease_by_nip(uint32_t nip) FAST_FUNC;
-uint32_t find_free_or_expired_nip(const uint8_t *safe_mac, unsigned arpping_ms) FAST_FUNC;
-
-int is_nip_reserved(struct static_lease *st_lease, uint32_t nip) FAST_FUNC;
-
 POP_SAVED_FUNCTION_VISIBILITY
 
 #endif

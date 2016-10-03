@@ -9,7 +9,6 @@
 #include <net/if_arp.h>
 
 #include "common.h"
-#include "dhcpd.h"
 
 struct arpMsg {
 	/* Ethernet header */
