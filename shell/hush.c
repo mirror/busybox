@@ -1891,6 +1891,7 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 {
 	struct variable **var_pp;
 	struct variable *cur;
+	char *free_me = NULL;
 	char *eq_sign;
 	int name_len;
 
@@ -1907,6 +1908,7 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 			var_pp = &cur->next;
 			continue;
 		}
+
 		/* We found an existing var with this name */
 		if (cur->flg_read_only) {
 #if !BB_MMU
@@ -1955,12 +1957,17 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 				strcpy(cur->varstr, str);
 				goto free_and_exp;
 			}
-		} else {
-			/* max_len == 0 signifies "malloced" var, which we can
-			 * (and has to) free */
-			free(cur->varstr);
+			/* Can't reuse */
+			cur->max_len = 0;
+			goto set_str_and_exp;
 		}
-		cur->max_len = 0;
+		/* max_len == 0 signifies "malloced" var, which we can
+		 * (and have to) free. But we can't free(cur->varstr) here:
+		 * if cur->flg_export is 1, it is in the environment.
+		 * We should either unsetenv+free, or wait until putenv,
+		 * then putenv(new)+free(old).
+		 */
+		free_me = cur->varstr;
 		goto set_str_and_exp;
 	}
 
@@ -1987,10 +1994,15 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 			cur->flg_export = 0;
 			/* unsetenv was already done */
 		} else {
+			int i;
 			debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
-			return putenv(cur->varstr);
+			i = putenv(cur->varstr);
+			/* only now we can free old exported malloced string */
+			free(free_me);
+			return i;
 		}
 	}
+	free(free_me);
 	return 0;
 }
 
