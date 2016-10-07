@@ -8248,7 +8248,7 @@ calcsize(int funcblocksize, union node *n)
 		funcblocksize = calcsize(funcblocksize, n->nif.test);
 		break;
 	case NFOR:
-		funcblocksize += strlen(n->nfor.var) + 1; /* was funcstringsize += ... */
+		funcblocksize += SHELL_ALIGN(strlen(n->nfor.var) + 1); /* was funcstringsize += ... */
 		funcblocksize = calcsize(funcblocksize, n->nfor.body);
 		funcblocksize = calcsize(funcblocksize, n->nfor.args);
 		break;
@@ -8264,7 +8264,7 @@ calcsize(int funcblocksize, union node *n)
 	case NDEFUN:
 	case NARG:
 		funcblocksize = sizenodelist(funcblocksize, n->narg.backquote);
-		funcblocksize += strlen(n->narg.text) + 1; /* was funcstringsize += ... */
+		funcblocksize += SHELL_ALIGN(strlen(n->narg.text) + 1); /* was funcstringsize += ... */
 		funcblocksize = calcsize(funcblocksize, n->narg.next);
 		break;
 	case NTO:
@@ -8298,7 +8298,7 @@ calcsize(int funcblocksize, union node *n)
 static char *
 nodeckstrdup(char *s)
 {
-	funcstring_end -= strlen(s) + 1;
+	funcstring_end -= SHELL_ALIGN(strlen(s) + 1);
 	return strcpy(funcstring_end, s);
 }
 
