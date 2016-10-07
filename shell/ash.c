@@ -474,7 +474,7 @@ raise_exception(int e)
 #endif
 
 /*
- * Called from trap.c when a SIGINT is received.  (If the user specifies
+ * Called when a SIGINT is received.  (If the user specifies
  * that SIGINT is to be trapped or ignored using the trap builtin, then
  * this routine is not called.)  Suppressint is nonzero when interrupts
  * are held using the INT_OFF macro.  (The test for iflag is just
@@ -3356,8 +3356,6 @@ unaliascmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 
 #endif /* ASH_ALIAS */
 
-
-/* ============ jobs.c */
 
 /* Mode argument to forkshell.  Don't change FORK_FG or FORK_BG. */
 #define FORK_FG    0
@@ -8161,8 +8159,6 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 
 
-/* ============ eval.c */
-
 static int funcblocksize;       /* size of structures in function */
 static int funcstringsize;      /* size of strings in node */
 static void *funcblock;         /* block to allocate function from */
@@ -12745,8 +12741,6 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 }
 
 
-/* ============ trap.c */
-
 /*
  * The trap builtin.
  */
@@ -13172,15 +13166,10 @@ exitshell(void)
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
 	save_history(line_input_state);
 #endif
-
 	status = exitstatus;
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
 	if (setjmp(loc.loc)) {
 		if (exception_type == EXEXIT)
-/* dash bug: it just does _exit(exitstatus) here
- * but we have to do setjobctl(0) first!
- * (bug is still not fixed in dash-0.5.3 - if you run dash
- * under Midnight Commander, on exit from dash MC is backgrounded) */
 			status = exitstatus;
 		goto out;
 	}
@@ -13190,10 +13179,13 @@ exitshell(void)
 		trap[0] = NULL;
 		evalskip = 0;
 		evalstring(p, 0);
-		free(p);
+		/*free(p); - we'll exit soon */
 	}
 	flush_stdout_stderr();
  out:
+	/* dash wraps setjobctl(0) in "if (setjmp(loc.loc) == 0) {...}".
+	 * our setjobctl(0) does not panic if tcsetpgrp fails inside it.
+	 */
 	setjobctl(0);
 	_exit(status);
 	/* NOTREACHED */
@@ -13202,18 +13194,15 @@ exitshell(void)
 static void
 init(void)
 {
-	/* from input.c: */
 	/* we will never free this */
 	basepf.next_to_pgetc = basepf.buf = ckmalloc(IBUFSIZ);
 
-	/* from trap.c: */
 	signal(SIGCHLD, SIG_DFL);
 	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
 	 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
 	 */
 	signal(SIGHUP, SIG_DFL);
 
-	/* from var.c: */
 	{
 		char **envp;
 		const char *p;
