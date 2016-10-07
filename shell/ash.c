@@ -8159,10 +8159,10 @@ commandcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 #endif
 
 
-static int funcblocksize;       /* size of structures in function */
-static int funcstringsize;      /* size of strings in node */
+/*static int funcblocksize;     // size of structures in function */
+/*static int funcstringsize;    // size of strings in node */
 static void *funcblock;         /* block to allocate function from */
-static char *funcstring;        /* block to allocate strings from */
+static char *funcstring_end;    /* end of block to allocate strings from */
 
 /* flags in argument to evaltree */
 #define EV_EXIT    01           /* exit after evaluating tree */
@@ -8200,71 +8200,72 @@ static const uint8_t nodesize[N_NUMBER] ALIGN1 = {
 	[NNOT     ] = SHELL_ALIGN(sizeof(struct nnot)),
 };
 
-static void calcsize(union node *n);
+static int calcsize(int funcblocksize, union node *n);
 
-static void
-sizenodelist(struct nodelist *lp)
+static int
+sizenodelist(int funcblocksize, struct nodelist *lp)
 {
 	while (lp) {
 		funcblocksize += SHELL_ALIGN(sizeof(struct nodelist));
-		calcsize(lp->n);
+		funcblocksize = calcsize(funcblocksize, lp->n);
 		lp = lp->next;
 	}
+	return funcblocksize;
 }
 
-static void
-calcsize(union node *n)
+static int
+calcsize(int funcblocksize, union node *n)
 {
 	if (n == NULL)
-		return;
+		return funcblocksize;
 	funcblocksize += nodesize[n->type];
 	switch (n->type) {
 	case NCMD:
-		calcsize(n->ncmd.redirect);
-		calcsize(n->ncmd.args);
-		calcsize(n->ncmd.assign);
+		funcblocksize = calcsize(funcblocksize, n->ncmd.redirect);
+		funcblocksize = calcsize(funcblocksize, n->ncmd.args);
+		funcblocksize = calcsize(funcblocksize, n->ncmd.assign);
 		break;
 	case NPIPE:
-		sizenodelist(n->npipe.cmdlist);
+		funcblocksize = sizenodelist(funcblocksize, n->npipe.cmdlist);
 		break;
 	case NREDIR:
 	case NBACKGND:
 	case NSUBSHELL:
-		calcsize(n->nredir.redirect);
-		calcsize(n->nredir.n);
+		funcblocksize = calcsize(funcblocksize, n->nredir.redirect);
+		funcblocksize = calcsize(funcblocksize, n->nredir.n);
 		break;
 	case NAND:
 	case NOR:
 	case NSEMI:
 	case NWHILE:
 	case NUNTIL:
-		calcsize(n->nbinary.ch2);
-		calcsize(n->nbinary.ch1);
+		funcblocksize = calcsize(funcblocksize, n->nbinary.ch2);
+		funcblocksize = calcsize(funcblocksize, n->nbinary.ch1);
 		break;
 	case NIF:
-		calcsize(n->nif.elsepart);
-		calcsize(n->nif.ifpart);
-		calcsize(n->nif.test);
+		funcblocksize = calcsize(funcblocksize, n->nif.elsepart);
+		funcblocksize = calcsize(funcblocksize, n->nif.ifpart);
+		funcblocksize = calcsize(funcblocksize, n->nif.test);
 		break;
 	case NFOR:
-		funcstringsize += strlen(n->nfor.var) + 1;
-		calcsize(n->nfor.body);
-		calcsize(n->nfor.args);
+		funcblocksize += strlen(n->nfor.var) + 1; /* was funcstringsize += ... */
+		funcblocksize = calcsize(funcblocksize, n->nfor.body);
+		funcblocksize = calcsize(funcblocksize, n->nfor.args);
 		break;
 	case NCASE:
-		calcsize(n->ncase.cases);
-		calcsize(n->ncase.expr);
+		funcblocksize = calcsize(funcblocksize, n->ncase.cases);
+		funcblocksize = calcsize(funcblocksize, n->ncase.expr);
 		break;
 	case NCLIST:
-		calcsize(n->nclist.body);
-		calcsize(n->nclist.pattern);
-		calcsize(n->nclist.next);
+		funcblocksize = calcsize(funcblocksize, n->nclist.body);
+		funcblocksize = calcsize(funcblocksize, n->nclist.pattern);
+		funcblocksize = calcsize(funcblocksize, n->nclist.next);
 		break;
 	case NDEFUN:
 	case NARG:
-		sizenodelist(n->narg.backquote);
-		funcstringsize += strlen(n->narg.text) + 1;
-		calcsize(n->narg.next);
+		funcblocksize = sizenodelist(funcblocksize, n->narg.backquote);
+		funcblocksize += strlen(n->narg.text) + 1; /* was funcstringsize += ... */
+		funcblocksize = calcsize(funcblocksize, n->narg.next);
 		break;
 	case NTO:
 #if ENABLE_ASH_BASH_COMPAT
@@ -8274,33 +8275,31 @@ calcsize(union node *n)
 	case NFROM:
 	case NFROMTO:
 	case NAPPEND:
-		calcsize(n->nfile.fname);
-		calcsize(n->nfile.next);
+		funcblocksize = calcsize(funcblocksize, n->nfile.fname);
+		funcblocksize = calcsize(funcblocksize, n->nfile.next);
 		break;
 	case NTOFD:
 	case NFROMFD:
-		calcsize(n->ndup.vname);
-		calcsize(n->ndup.next);
+		funcblocksize = calcsize(funcblocksize, n->ndup.vname);
+		funcblocksize = calcsize(funcblocksize, n->ndup.next);
 	break;
 	case NHERE:
 	case NXHERE:
-		calcsize(n->nhere.doc);
-		calcsize(n->nhere.next);
+		funcblocksize = calcsize(funcblocksize, n->nhere.doc);
+		funcblocksize = calcsize(funcblocksize, n->nhere.next);
 		break;
 	case NNOT:
-		calcsize(n->nnot.com);
+		funcblocksize = calcsize(funcblocksize, n->nnot.com);
 		break;
 	};
+	return funcblocksize;
 }
 
 static char *
 nodeckstrdup(char *s)
 {
-	char *rtn = funcstring;
-
-	strcpy(funcstring, s);
-	funcstring += strlen(s) + 1;
-	return rtn;
+	funcstring_end -= strlen(s) + 1;
+	return strcpy(funcstring_end, s);
 }
 
 static union node *copynode(union node *);
@@ -8424,15 +8423,13 @@ copyfunc(union node *n)
 	struct funcnode *f;
 	size_t blocksize;
 
-	funcblocksize = offsetof(struct funcnode, n);
-	funcstringsize = 0;
-	calcsize(n);
-	blocksize = funcblocksize;
-	f = ckmalloc(blocksize + funcstringsize);
+	/*funcstringsize = 0;*/
+	blocksize = offsetof(struct funcnode, n) + calcsize(0, n);
+	f = ckzalloc(blocksize /* + funcstringsize */);
 	funcblock = (char *) f + offsetof(struct funcnode, n);
-	funcstring = (char *) f + blocksize;
+	funcstring_end = (char *) f + blocksize;
 	copynode(n);
-	f->count = 0;
+	/* f->count = 0; - ckzalloc did it */
 	return f;
 }
 
