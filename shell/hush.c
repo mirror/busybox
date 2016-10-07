@@ -1477,19 +1477,50 @@ static sighandler_t install_sighandler(int sig, sighandler_t handler)
 	return old_sa.sa_handler;
 }
 
+static void hush_exit(int exitcode) NORETURN;
+static void fflush_and__exit(void) NORETURN;
+static void restore_ttypgrp_and__exit(void) NORETURN;
+
+static void restore_ttypgrp_and__exit(void)
+{
+	/* xfunc has failed! die die die */
+	/* no EXIT traps, this is an escape hatch! */
+	G.exiting = 1;
+	hush_exit(xfunc_error_retval);
+}
+
+/* Needed only on some libc:
+ * It was observed that on exit(), fgetc'ed buffered data
+ * gets "unwound" via lseek(fd, -NUM, SEEK_CUR).
+ * With the net effect that even after fork(), not vfork(),
+ * exit() in NOEXECed applet in "sh SCRIPT":
+ *	noexec_applet_here
+ *	echo END_OF_SCRIPT
+ * lseeks fd in input FILE object from EOF to "e" in "echo END_OF_SCRIPT".
+ * This makes "echo END_OF_SCRIPT" executed twice.
+ * Similar problems can be seen with die_if_script() -> xfunc_die()
+ * and in `cmd` handling.
+ * If set as die_func(), this makes xfunc_die() exit via _exit(), not exit():
+ */
+static void fflush_and__exit(void)
+{
+	fflush_all();
+	_exit(xfunc_error_retval);
+}
+
 #if ENABLE_HUSH_JOB
 
-static void xfunc_has_died(void);
 /* After [v]fork, in child: do not restore tty pgrp on xfunc death */
-# define disable_restore_tty_pgrp_on_exit() (die_func = NULL)
+# define disable_restore_tty_pgrp_on_exit() (die_func = fflush_and__exit)
 /* After [v]fork, in parent: restore tty pgrp on xfunc death */
-# define enable_restore_tty_pgrp_on_exit()  (die_func = xfunc_has_died)
+# define enable_restore_tty_pgrp_on_exit()  (die_func = restore_ttypgrp_and__exit)
 
 /* Restores tty foreground process group, and exits.
  * May be called as signal handler for fatal signal
  * (will resend signal to itself, producing correct exit state)
  * or called directly with -EXITCODE.
- * We also call it if xfunc is exiting. */
+ * We also call it if xfunc is exiting.
+ */
 static void sigexit(int sig) NORETURN;
 static void sigexit(int sig)
 {
@@ -1544,7 +1575,6 @@ static sighandler_t pick_sighandler(unsigned sig)
 }
 
 /* Restores tty foreground process group, and exits. */
-static void hush_exit(int exitcode) NORETURN;
 static void hush_exit(int exitcode)
 {
 #if ENABLE_FEATURE_EDITING_SAVE_ON_EXIT
@@ -1580,21 +1610,12 @@ static void hush_exit(int exitcode)
 	}
 #endif
 
-#if ENABLE_HUSH_JOB
 	fflush_all();
+#if ENABLE_HUSH_JOB
 	sigexit(- (exitcode & 0xff));
 #else
-	exit(exitcode);
+	_exit(exitcode);
 #endif
-}
-
-static void xfunc_has_died(void) NORETURN;
-static void xfunc_has_died(void)
-{
-	/* xfunc has failed! die die die */
-	/* no EXIT traps, this is an escape hatch! */
-	G.exiting = 1;
-	hush_exit(xfunc_error_retval);
 }
 
 
@@ -1766,6 +1787,7 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 {
 	struct variable **var_pp;
 	struct variable *cur;
+	char *free_me = NULL;
 	char *eq_sign;
 	int name_len;
 
@@ -1782,6 +1804,7 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 			var_pp = &cur->next;
 			continue;
 		}
+
 		/* We found an existing var with this name */
 		if (cur->flg_read_only) {
 #if !BB_MMU
@@ -1830,12 +1853,17 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 				strcpy(cur->varstr, str);
 				goto free_and_exp;
 			}
-		} else {
-			/* max_len == 0 signifies "malloced" var, which we can
-			 * (and has to) free */
-			free(cur->varstr);
+			/* Can't reuse */
+			cur->max_len = 0;
+			goto set_str_and_exp;
 		}
-		cur->max_len = 0;
+		/* max_len == 0 signifies "malloced" var, which we can
+		 * (and have to) free. But we can't free(cur->varstr) here:
+		 * if cur->flg_export is 1, it is in the environment.
+		 * We should either unsetenv+free, or wait until putenv,
+		 * then putenv(new)+free(old).
+		 */
+		free_me = cur->varstr;
 		goto set_str_and_exp;
 	}
 
@@ -1862,10 +1890,15 @@ static int set_local_var(char *str, int flg_export, int local_lvl, int flg_read_
 			cur->flg_export = 0;
 			/* unsetenv was already done */
 		} else {
+			int i;
 			debug_printf_env("%s: putenv '%s'\n", __func__, cur->varstr);
-			return putenv(cur->varstr);
+			i = putenv(cur->varstr);
+			/* only now we can free old exported malloced string */
+			free(free_me);
+			return i;
 		}
 	}
+	free(free_me);
 	return 0;
 }
 
@@ -5913,7 +5946,8 @@ static FILE *generate_stream_from_string(const char *s, pid_t *pid_p)
 		) {
 			static const char *const argv[] = { NULL, NULL };
 			builtin_trap((char**)argv);
-			exit(0); /* not _exit() - we need to fflush */
+			fflush_all(); /* important */
+			_exit(0);
 		}
 # if BB_MMU
 		reset_traps_to_defaults();
@@ -6466,7 +6500,8 @@ static void dump_cmd_in_x_mode(char **argv)
  * Never returns.
  * Don't exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
- * in particular stdin handling.  Not sure why? -- because of vfork! (vda) */
+ * in particular stdin handling. Not sure why? -- because of vfork! (vda)
+ */
 static void pseudo_exec_argv(nommu_save_t *nommu_save,
 		char **argv, int assignment_cnt,
 		char **argv_expanded) NORETURN;
@@ -7787,6 +7822,7 @@ int hush_main(int argc, char **argv)
 	INIT_G();
 	if (EXIT_SUCCESS != 0) /* if EXIT_SUCCESS == 0, it is already done */
 		G.last_exitcode = EXIT_SUCCESS;
+
 #if ENABLE_HUSH_FAST
 	G.count_SIGCHLD++; /* ensure it is != G.handled_SIGCHLD */
 #endif
@@ -7876,7 +7912,7 @@ int hush_main(int argc, char **argv)
 	/* Initialize some more globals to non-zero values */
 	cmdedit_update_prompt();
 
-	die_func = xfunc_has_died;
+	die_func = restore_ttypgrp_and__exit;
 
 	/* Shell is non-interactive at first. We need to call
 	 * install_special_sighandlers() if we are going to execute "sh <script>",

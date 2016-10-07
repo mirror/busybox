@@ -2220,10 +2220,7 @@ int gzip_main(int argc UNUSED_PARAM, char **argv)
 	opt >>= ENABLE_GUNZIP ? 7 : 5; /* drop cfv[dt]qn bits */
 	if (opt == 0)
 		opt = 1 << 6; /* default: 6 */
-	/* Map 1..3 to 4 */
-	if (opt & 0x7)
-		opt |= 1 << 4;
-	opt = ffs(opt >> 3);
+	opt = ffs(opt >> 4); /* Maps -1..-4 to [0], -5 to [1] ... -9 to [5] */
 	max_chain_length = 1 << gzip_level_config[opt].chain_shift;
 	good_match	 = gzip_level_config[opt].good;
 	max_lazy_match	 = gzip_level_config[opt].lazy2 * 2;
