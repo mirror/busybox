@@ -56,6 +56,7 @@
 #endif
 
 #define UDHCPC_CMD_OPTIONS CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS
+#define IFSTATE_FILE_PATH  CONFIG_IFUPDOWN_IFSTATE_PATH
 
 #define debug_noise(args...) /*fprintf(stderr, args)*/
 
@@ -1200,7 +1201,7 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 static llist_t *read_iface_state(void)
 {
 	llist_t *state_list = NULL;
-	FILE *state_fp = fopen_for_read(CONFIG_IFUPDOWN_IFSTATE_PATH);
+	FILE *state_fp = fopen_for_read(IFSTATE_FILE_PATH);
 
 	if (state_fp) {
 		char *start, *end_ptr;
@@ -1213,6 +1214,38 @@ static llist_t *read_iface_state(void)
 		fclose(state_fp);
 	}
 	return state_list;
+}
+
+/* read the previous state from the state file */
+static FILE *open_new_state_file(void)
+{
+	int fd, flags, cnt;
+
+	cnt = 0;
+	flags = (O_WRONLY | O_CREAT | O_EXCL);
+	for (;;) {
+		fd = open(IFSTATE_FILE_PATH".new", flags, 0666);
+		if (fd >= 0)
+			break;
+		if (errno != EEXIST
+		 || flags == (O_WRONLY | O_CREAT | O_TRUNC)
+		) {
+			bb_perror_msg_and_die("can't open '%s'",
+					IFSTATE_FILE_PATH".new");
+		}
+		/* Someone else created the .new file */
+		if (cnt > 30 * 1000) {
+			/* Waited for 30*30/2 = 450 milliseconds, still EEXIST.
+			 * Assuming a stale file, rewriting it.
+			 */
+			flags = (O_WRONLY | O_CREAT | O_TRUNC);
+			continue;
+		}
+		usleep(cnt);
+		cnt += 1000;
+	}
+
+	return xfdopen_for_write(fd);
 }
 
 
@@ -1348,7 +1381,7 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 			any_failures = 1;
 		} else if (!NO_ACT) {
 			/* update the state file */
-			FILE *state_fp;
+			FILE *new_state_fp = open_new_state_file();
 			llist_t *state;
 			llist_t *state_list = read_iface_state();
 			llist_t *iface_state = find_iface_state(state_list, iface);
@@ -1368,15 +1401,15 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 			}
 
 			/* Actually write the new state */
-			state_fp = xfopen_for_write(CONFIG_IFUPDOWN_IFSTATE_PATH);
 			state = state_list;
 			while (state) {
 				if (state->data) {
-					fprintf(state_fp, "%s\n", state->data);
+					fprintf(new_state_fp, "%s\n", state->data);
 				}
 				state = state->link;
 			}
-			fclose(state_fp);
+			fclose(new_state_fp);
+			xrename(IFSTATE_FILE_PATH".new", IFSTATE_FILE_PATH);
 			llist_free(state_list, free);
 		}
  next:
