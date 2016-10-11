@@ -73,7 +73,16 @@ int more_main(int argc UNUSED_PARAM, char **argv)
 
 	INIT_G();
 
-	argv++;
+	/* Parse options */
+	/* Accepted but ignored: */
+	/* -d	Display help instead of ringing bell is pressed */
+	/* -f	Count logical lines (IOW: long lines are not folded) */
+	/* -l	Do not pause after any line containing a ^L (form feed) */
+	/* -s	Squeeze blank lines into one */
+	/* -u	Suppress underlining */
+	getopt32(argv, "dflsu");
+	argv += optind;
+
 	/* Another popular pager, most, detects when stdout
 	 * is not a tty and turns into cat. This makes sense. */
 	if (!isatty(STDOUT_FILENO))
