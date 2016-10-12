@@ -125,48 +125,67 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		rc = safe_write(ts->ptyfd, buf, rc);
 		if (rc <= 0)
 			return rc;
-		if (rc < wr && (buf[rc] == '\n' || buf[rc] == '\0'))
+		if (rc < wr /* don't look past available data */
+		 && buf[rc-1] == '\r' /* need this: imagine that write was _short_ */
+		 && (buf[rc] == '\n' || buf[rc] == '\0')
+		) {
 			rc++;
-
+		}
 		goto update_and_return;
 	}
 
 	/* buf starts with IAC char. Process that sequence.
 	 * Example: we get this from our own (bbox) telnet client:
-	 * read(5, "\377\374\1""\377\373\37""\377\372\37\0\262\0@\377\360""\377\375\1""\377\375\3") = 21
+	 * read(5, "\377\374\1""\377\373\37""\377\372\37\0\262\0@\377\360""\377\375\1""\377\375\3"):
+	 * IAC WONT ECHO, IAC WILL NAWS, IAC SB NAWS <cols> <rows> IAC SE, IAC DO SGA
 	 */
 	if (wr <= 1) {
-		/* Only the beginning of the IAC is in the
-		 * buffer we were asked to process, we can't
-		 * process this char */
+/* BUG: only the single IAC byte is in the buffer, we just eat IAC */
 		rc = 1;
 		goto update_and_return;
 	}
 
-	if (buf[1] == IAC) { /* Literal IAC (emacs M-DEL) */
+	/* 2-byte commands (240..250 and 255):
+	 * IAC IAC (255) Literal 255. Supported.
+	 * IAC NOP (241) NOP. Supported.
+	 * IAC BRK (243) Break. Like serial line break. TODO via tcsendbreak()?
+	 * IAC AYT (246) Are you there. Send back evidence that AYT was seen. TODO (send NOP back)?
+	 *  Implemented only as part of NAWS:
+	 * IAC SB  (250) Subnegotiation of an option follows.
+	 * IAC SE  (240) End of subnegotiation.
+	 *  These don't look useful:
+	 * IAC DM  (242) Data mark. What is this?
+	 * IAC IP  (244) Suspend, interrupt or abort the process. (Ancient cousin of ^C).
+	 * IAC AO  (245) Abort output. "You can continue running, but do not send me the output".
+	 * IAC EC  (247) Erase character. The receiver should delete the last received char.
+	 * IAC EL  (248) Erase line. The receiver should delete everything up tp last newline.
+	 * IAC GA  (249) Go ahead. For half-duplex lines: "now you talk".
+	 */
+	if (buf[1] == IAC) { /* Literal 255 (emacs M-DEL) */
 		rc = safe_write(ts->ptyfd, buf, 1);
 		if (rc <= 0)
 			return rc;
 		rc = 2;
 		goto update_and_return;
 	}
-
-	if (buf[1] == NOP) { /* NOP. Ignore (putty keepalive, etc) */
+	if (buf[1] == NOP) { /* NOP (241). Ignore (putty keepalive, etc) */
 		rc = 2;
 		goto update_and_return;
 	}
 
 	if (wr <= 2) {
+/* BUG: only 2 bytes of the IAC is in the buffer, we just eat them */
 		rc = 2;
 		goto update_and_return;
 	}
 
 	/* TELOPT_NAWS support */
-	/* IAC, SB, TELOPT_NAWS, 4-byte, IAC, SE */
+	/* IAC SB, TELOPT_NAWS, 4-byte, IAC SE */
 	if (buf[1] == SB && buf[2] == TELOPT_NAWS) {
 		struct winsize ws;
 		if (wr <= 8) {
-			rc = wr; /* incomplete, can't process */
+/* BUG: incomplete, can't process */
+			rc = wr;
 			goto update_and_return;
 		}
 		memset(&ws, 0, sizeof(ws));
@@ -176,7 +195,8 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		rc = 9;
 		goto update_and_return;
 	}
-	/* Skip 3-byte IAC non-SB cmds */
+
+	/* Skip 3-byte cmds (assume they are WILL/WONT/DO/DONT 251..254 codes) */
 #if DEBUG
 	fprintf(stderr, "Ignoring IAC %s,%s\n",
 			TELCMD(buf[1]), TELOPT(buf[2]));
@@ -189,10 +209,10 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		ts->wridx1 = 0;
 	ts->size1 -= rc;
 	/*
-	 * Hack. We cannot process iacs which wrap around buffer's end.
+	 * Hack. We cannot process IACs which wrap around buffer's end.
 	 * Since properly fixing it requires writing bigger code,
 	 * we rely instead on this code making it virtually impossible
-	 * to have wrapped iac (people don't type at 2k/second).
+	 * to have wrapped IAC (people don't type at 2k/second).
 	 * It also allows for bigger reads in common case.
 	 */
 	if (ts->size1 == 0) { /* very typical */
@@ -229,6 +249,7 @@ static size_t safe_write_double_iac(int fd, const char *buf, size_t count)
 		if (*buf == (char)IAC) {
 			static const char IACIAC[] ALIGN1 = { IAC, IAC };
 			rc = safe_write(fd, IACIAC, 2);
+/* BUG: if partial write was only 1 byte long, we end up emitting just one IAC */
 			if (rc != 2)
 				break;
 			buf++;
