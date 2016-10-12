@@ -311,15 +311,16 @@ static void put_iac(int c)
 	G.iacbuf[G.iaclen++] = c;
 }
 
-static void put_iac2(byte wwdd, byte c)
+static void put_iac2_merged(unsigned wwdd_and_c)
 {
 	if (G.iaclen + 3 > IACBUFSIZE)
 		iac_flush();
 
 	put_iac(IAC);
-	put_iac(wwdd);
-	put_iac(c);
+	put_iac(wwdd_and_c >> 8);
+	put_iac(wwdd_and_c & 0xff);
 }
+#define put_iac2(wwdd,c) put_iac2_merged(((wwdd)<<8) + (c))
 
 #if ENABLE_FEATURE_TELNET_TTYPE
 static void put_iac_subopt(byte c, char *str)
