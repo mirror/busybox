@@ -91,107 +91,133 @@ struct globals {
 } while (0)
 
 
-/*
-   Remove all IAC's from buf1 (received IACs are ignored and must be removed
-   so as to not be interpreted by the terminal).  Make an uninterrupted
-   string of characters fit for the terminal.  Do this by packing
-   all characters meant for the terminal sequentially towards the end of buf.
-
-   Return a pointer to the beginning of the characters meant for the terminal
-   and make *num_totty the number of characters that should be sent to
-   the terminal.
-
-   Note - if an IAC (3 byte quantity) starts before (bf + len) but extends
-   past (bf + len) then that IAC will be left unprocessed and *processed
-   will be less than len.
-
-   CR-LF ->'s CR mapping is also done here, for convenience.
-
-   NB: may fail to remove iacs which wrap around buffer!
+/* Write some buf1 data to pty, processing IAC's.
+ * Update wridx1 and size1. Return < 0 on error.
+ * Buggy if IAC is present but incomplete: skips them.
  */
-static unsigned char *
-remove_iacs(struct tsession *ts, int *pnum_totty)
+static ssize_t
+safe_write_to_pty_decode_iac(struct tsession *ts)
 {
-	unsigned char *ptr0 = TS_BUF1(ts) + ts->wridx1;
-	unsigned char *ptr = ptr0;
-	unsigned char *totty = ptr;
-	unsigned char *end = ptr + MIN(BUFSIZE - ts->wridx1, ts->size1);
-	int num_totty;
+	unsigned wr;
+	ssize_t rc;
+	unsigned char *buf;
+	unsigned char *found;
 
-	while (ptr < end) {
-		if (*ptr != IAC) {
-			char c = *ptr;
-
-			*totty++ = c;
-			ptr++;
-			/* We map \r\n ==> \r for pragmatic reasons.
-			 * Many client implementations send \r\n when
-			 * the user hits the CarriageReturn key.
-			 * See RFC 1123 3.3.1 Telnet End-of-Line Convention.
-			 */
-			if (c == '\r' && ptr < end && (*ptr == '\n' || *ptr == '\0'))
-				ptr++;
-			continue;
-		}
-
-		if ((ptr+1) >= end)
-			break;
-		if (ptr[1] == NOP) { /* Ignore? (putty keepalive, etc.) */
-			ptr += 2;
-			continue;
-		}
-		if (ptr[1] == IAC) { /* Literal IAC? (emacs M-DEL) */
-			*totty++ = ptr[1];
-			ptr += 2;
-			continue;
-		}
-
-		/*
-		 * TELOPT_NAWS support!
+	buf = TS_BUF1(ts) + ts->wridx1;
+	wr = MIN(BUFSIZE - ts->wridx1, ts->size1);
+	found = memchr(buf, IAC, wr);
+	if (found != buf) {
+		/* There is a "prefix" of non-IAC chars.
+		 * Write only them, and return.
 		 */
-		if ((ptr+2) >= end) {
-			/* Only the beginning of the IAC is in the
-			buffer we were asked to process, we can't
-			process this char */
-			break;
-		}
-		/*
-		 * IAC -> SB -> TELOPT_NAWS -> 4-byte -> IAC -> SE
+		if (found)
+			wr = found - buf;
+
+		/* We map \r\n ==> \r for pragmatic reasons:
+		 * many client implementations send \r\n when
+		 * the user hits the CarriageReturn key.
+		 * See RFC 1123 3.3.1 Telnet End-of-Line Convention.
 		 */
-		if (ptr[1] == SB && ptr[2] == TELOPT_NAWS) {
-			struct winsize ws;
-			if ((ptr+8) >= end)
-				break;  /* incomplete, can't process */
-			ws.ws_col = (ptr[3] << 8) | ptr[4];
-			ws.ws_row = (ptr[5] << 8) | ptr[6];
-			ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
-			ptr += 9;
-			continue;
-		}
-		/* skip 3-byte IAC non-SB cmd */
-#if DEBUG
-		fprintf(stderr, "Ignoring IAC %s,%s\n",
-				TELCMD(ptr[1]), TELOPT(ptr[2]));
-#endif
-		ptr += 3;
+		rc = wr;
+		found = memchr(buf, '\r', wr);
+		if (found)
+			rc = found - buf + 1;
+		rc = safe_write(ts->ptyfd, buf, rc);
+		if (rc <= 0)
+			return rc;
+		if (rc < wr && (buf[rc] == '\n' || buf[rc] == '\0'))
+			rc++;
+
+		goto update_and_return;
 	}
 
-	num_totty = totty - ptr0;
-	*pnum_totty = num_totty;
-	/* The difference between ptr and totty is number of iacs
-	   we removed from the stream. Adjust buf1 accordingly */
-	if ((ptr - totty) == 0) /* 99.999% of cases */
-		return ptr0;
-	ts->wridx1 += ptr - totty;
-	ts->size1 -= ptr - totty;
-	/* Move chars meant for the terminal towards the end of the buffer */
-	return memmove(ptr - num_totty, ptr0, num_totty);
+	/* buf starts with IAC char. Process that sequence.
+	 * Example: we get this from our own (bbox) telnet client:
+	 * read(5, "\377\374\1""\377\373\37""\377\372\37\0\262\0@\377\360""\377\375\1""\377\375\3") = 21
+	 */
+	if (wr <= 1) {
+		/* Only the beginning of the IAC is in the
+		 * buffer we were asked to process, we can't
+		 * process this char */
+		rc = 1;
+		goto update_and_return;
+	}
+
+	if (buf[1] == IAC) { /* Literal IAC (emacs M-DEL) */
+		rc = safe_write(ts->ptyfd, buf, 1);
+		if (rc <= 0)
+			return rc;
+		rc = 2;
+		goto update_and_return;
+	}
+
+	if (buf[1] == NOP) { /* NOP. Ignore (putty keepalive, etc) */
+		rc = 2;
+		goto update_and_return;
+	}
+
+	if (wr <= 2) {
+		rc = 2;
+		goto update_and_return;
+	}
+
+	/* TELOPT_NAWS support */
+	/* IAC, SB, TELOPT_NAWS, 4-byte, IAC, SE */
+	if (buf[1] == SB && buf[2] == TELOPT_NAWS) {
+		struct winsize ws;
+		if (wr <= 8) {
+			rc = wr; /* incomplete, can't process */
+			goto update_and_return;
+		}
+		memset(&ws, 0, sizeof(ws));
+		ws.ws_col = (buf[3] << 8) | buf[4];
+		ws.ws_row = (buf[5] << 8) | buf[6];
+		ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
+		rc = 9;
+		goto update_and_return;
+	}
+	/* Skip 3-byte IAC non-SB cmds */
+#if DEBUG
+	fprintf(stderr, "Ignoring IAC %s,%s\n",
+			TELCMD(buf[1]), TELOPT(buf[2]));
+#endif
+	rc = 3;
+
+ update_and_return:
+	ts->wridx1 += rc;
+	if (ts->wridx1 >= BUFSIZE) /* actually == BUFSIZE */
+		ts->wridx1 = 0;
+	ts->size1 -= rc;
+	/*
+	 * Hack. We cannot process iacs which wrap around buffer's end.
+	 * Since properly fixing it requires writing bigger code,
+	 * we rely instead on this code making it virtually impossible
+	 * to have wrapped iac (people don't type at 2k/second).
+	 * It also allows for bigger reads in common case.
+	 */
+	if (ts->size1 == 0) { /* very typical */
+		//bb_error_msg("zero size1");
+		ts->rdidx1 = 0;
+		ts->wridx1 = 0;
+		return rc;
+	}
+	wr = ts->wridx1;
+	if (wr != 0 && wr < ts->rdidx1) {
+		/* Buffer is not wrapped yet.
+		 * We can easily move it to the beginning.
+		 */
+		//bb_error_msg("moved %d", wr);
+		memmove(TS_BUF1(ts), TS_BUF1(ts) + wr, ts->size1);
+		ts->rdidx1 -= wr;
+		ts->wridx1 = 0;
+	}
+	return rc;
 }
 
 /*
  * Converting single IAC into double on output
  */
-static size_t iac_safe_write(int fd, const char *buf, size_t count)
+static size_t safe_write_double_iac(int fd, const char *buf, size_t count)
 {
 	const char *IACptr;
 	size_t wr, rc, total;
@@ -298,7 +324,7 @@ make_new_session(
 			IAC, WILL, TELOPT_ECHO,
 			IAC, WILL, TELOPT_SGA
 		};
-		/* This confuses iac_safe_write(), it will try to duplicate
+		/* This confuses safe_write_double_iac(), it will try to duplicate
 		 * each IAC... */
 		//memcpy(TS_BUF2(ts), iacs_to_send, sizeof(iacs_to_send));
 		//ts->rdidx2 = sizeof(iacs_to_send);
@@ -649,51 +675,34 @@ int telnetd_main(int argc UNUSED_PARAM, char **argv)
 		struct tsession *next = ts->next; /* in case we free ts */
 
 		if (/*ts->size1 &&*/ FD_ISSET(ts->ptyfd, &wrfdset)) {
-			int num_totty;
-			unsigned char *ptr;
 			/* Write to pty from buffer 1 */
-			ptr = remove_iacs(ts, &num_totty);
-			count = safe_write(ts->ptyfd, ptr, num_totty);
+			count = safe_write_to_pty_decode_iac(ts);
 			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip1;
 				goto kill_session;
 			}
-			ts->size1 -= count;
-			ts->wridx1 += count;
-			if (ts->wridx1 >= BUFSIZE) /* actually == BUFSIZE */
-				ts->wridx1 = 0;
 		}
  skip1:
 		if (/*ts->size2 &&*/ FD_ISSET(ts->sockfd_write, &wrfdset)) {
 			/* Write to socket from buffer 2 */
 			count = MIN(BUFSIZE - ts->wridx2, ts->size2);
-			count = iac_safe_write(ts->sockfd_write, (void*)(TS_BUF2(ts) + ts->wridx2), count);
+			count = safe_write_double_iac(ts->sockfd_write, (void*)(TS_BUF2(ts) + ts->wridx2), count);
 			if (count < 0) {
 				if (errno == EAGAIN)
 					goto skip2;
 				goto kill_session;
 			}
-			ts->size2 -= count;
 			ts->wridx2 += count;
 			if (ts->wridx2 >= BUFSIZE) /* actually == BUFSIZE */
 				ts->wridx2 = 0;
+			ts->size2 -= count;
+			if (ts->size2 == 0) {
+				ts->rdidx2 = 0;
+				ts->wridx2 = 0;
+			}
 		}
  skip2:
-		/* Should not be needed, but... remove_iacs is actually buggy
-		 * (it cannot process iacs which wrap around buffer's end)!
-		 * Since properly fixing it requires writing bigger code,
-		 * we rely instead on this code making it virtually impossible
-		 * to have wrapped iac (people don't type at 2k/second).
-		 * It also allows for bigger reads in common case. */
-		if (ts->size1 == 0) {
-			ts->rdidx1 = 0;
-			ts->wridx1 = 0;
-		}
-		if (ts->size2 == 0) {
-			ts->rdidx2 = 0;
-			ts->wridx2 = 0;
-		}
 
 		if (/*ts->size1 < BUFSIZE &&*/ FD_ISSET(ts->sockfd_read, &rdfdset)) {
 			/* Read from socket to buffer 1 */
