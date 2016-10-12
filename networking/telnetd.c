@@ -60,6 +60,7 @@ struct tsession {
 	int sockfd_read;
 	int sockfd_write;
 	int ptyfd;
+	smallint buffered_IAC_for_pty;
 
 	/* two circular buffers */
 	/*char *buf1, *buf2;*/
@@ -91,7 +92,7 @@ struct globals {
 } while (0)
 
 
-/* Write some buf1 data to pty, processing IAC's.
+/* Write some buf1 data to pty, processing IACs.
  * Update wridx1 and size1. Return < 0 on error.
  * Buggy if IAC is present but incomplete: skips them.
  */
@@ -105,6 +106,21 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 
 	buf = TS_BUF1(ts) + ts->wridx1;
 	wr = MIN(BUFSIZE - ts->wridx1, ts->size1);
+	/* wr is at least 1 here */
+
+	if (ts->buffered_IAC_for_pty) {
+		/* Last time we stopped on a "dangling" IAC byte.
+		 * We removed it from the buffer back then.
+		 * Now pretend it's still there, and jump to IAC processing.
+		 */
+		ts->buffered_IAC_for_pty = 0;
+		wr++;
+		ts->size1++;
+		buf--; /* Yes, this can point before the buffer. It's ok */
+		ts->wridx1--;
+		goto handle_iac;
+	}
+
 	found = memchr(buf, IAC, wr);
 	if (found != buf) {
 		/* There is a "prefix" of non-IAC chars.
@@ -140,11 +156,17 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 	 * IAC WONT ECHO, IAC WILL NAWS, IAC SB NAWS <cols> <rows> IAC SE, IAC DO SGA
 	 */
 	if (wr <= 1) {
-/* BUG: only the single IAC byte is in the buffer, we just eat IAC */
+		/* Only the single IAC byte is in the buffer, eat it
+		 * and set a flag "process the rest of the sequence
+		 * next time we are here".
+		 */
+		//bb_error_msg("dangling IAC!");
+		ts->buffered_IAC_for_pty = 1;
 		rc = 1;
 		goto update_and_return;
 	}
 
+ handle_iac:
 	/* 2-byte commands (240..250 and 255):
 	 * IAC IAC (255) Literal 255. Supported.
 	 * IAC NOP (241) NOP. Supported.
@@ -162,7 +184,8 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 	 * IAC GA  (249) Go ahead. For half-duplex lines: "now you talk".
 	 */
 	if (buf[1] == IAC) { /* Literal 255 (emacs M-DEL) */
-		rc = safe_write(ts->ptyfd, buf, 1);
+		//bb_error_msg("255!");
+		rc = safe_write(ts->ptyfd, &buf[1], 1);
 		if (rc <= 0)
 			return rc;
 		rc = 2;
@@ -174,7 +197,10 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 	}
 
 	if (wr <= 2) {
-/* BUG: only 2 bytes of the IAC is in the buffer, we just eat them */
+/* BUG: only 2 bytes of the IAC is in the buffer, we just eat them.
+ * This is not a practical problem since >2 byte IACs are seen only
+ * in initial negotiation, when buffer is empty
+ */
 		rc = 2;
 		goto update_and_return;
 	}
