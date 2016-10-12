@@ -169,12 +169,10 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
  handle_iac:
 	/* 2-byte commands (240..250 and 255):
 	 * IAC IAC (255) Literal 255. Supported.
+	 * IAC SE  (240) End of subnegotiation. Treated as NOP.
 	 * IAC NOP (241) NOP. Supported.
 	 * IAC BRK (243) Break. Like serial line break. TODO via tcsendbreak()?
 	 * IAC AYT (246) Are you there. Send back evidence that AYT was seen. TODO (send NOP back)?
-	 *  Implemented only as part of NAWS:
-	 * IAC SB  (250) Subnegotiation of an option follows.
-	 * IAC SE  (240) End of subnegotiation.
 	 *  These don't look useful:
 	 * IAC DM  (242) Data mark. What is this?
 	 * IAC IP  (244) Suspend, interrupt or abort the process. (Ancient cousin of ^C).
@@ -182,8 +180,11 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 	 * IAC EC  (247) Erase character. The receiver should delete the last received char.
 	 * IAC EL  (248) Erase line. The receiver should delete everything up tp last newline.
 	 * IAC GA  (249) Go ahead. For half-duplex lines: "now you talk".
+	 *  Implemented only as part of NAWS:
+	 * IAC SB  (250) Subnegotiation of an option follows.
 	 */
-	if (buf[1] == IAC) { /* Literal 255 (emacs M-DEL) */
+	if (buf[1] == IAC) {
+		/* Literal 255 (emacs M-DEL) */
 		//bb_error_msg("255!");
 		rc = safe_write(ts->ptyfd, &buf[1], 1);
 		if (rc <= 0)
@@ -191,7 +192,9 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		rc = 2;
 		goto update_and_return;
 	}
-	if (buf[1] == NOP) { /* NOP (241). Ignore (putty keepalive, etc) */
+	if (buf[1] >= 240 && buf[1] <= 249) {
+		/* NOP (241). Ignore (putty keepalive, etc) */
+		/* All other 2-byte commands also treated as NOPs here */
 		rc = 2;
 		goto update_and_return;
 	}
@@ -205,24 +208,27 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		goto update_and_return;
 	}
 
-	/* TELOPT_NAWS support */
-	/* IAC SB, TELOPT_NAWS, 4-byte, IAC SE */
-	if (buf[1] == SB && buf[2] == TELOPT_NAWS) {
-		struct winsize ws;
-		if (wr <= 8) {
+	if (buf[1] == SB) {
+		if (buf[2] == TELOPT_NAWS) {
+			/* IAC SB, TELOPT_NAWS, 4-byte, IAC SE */
+			struct winsize ws;
+			if (wr <= 6) {
 /* BUG: incomplete, can't process */
-			rc = wr;
+				rc = wr;
+				goto update_and_return;
+			}
+			memset(&ws, 0, sizeof(ws)); /* pixel sizes are set to 0 */
+			ws.ws_col = (buf[3] << 8) | buf[4];
+			ws.ws_row = (buf[5] << 8) | buf[6];
+			ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
+			rc = 7;
+			/* trailing IAC SE will be eaten separately, as 2-byte NOP */
 			goto update_and_return;
 		}
-		memset(&ws, 0, sizeof(ws));
-		ws.ws_col = (buf[3] << 8) | buf[4];
-		ws.ws_row = (buf[5] << 8) | buf[6];
-		ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
-		rc = 9;
-		goto update_and_return;
+		/* else: other subnegs not supported yet */
 	}
 
-	/* Skip 3-byte cmds (assume they are WILL/WONT/DO/DONT 251..254 codes) */
+	/* Assume it is a 3-byte WILL/WONT/DO/DONT 251..254 command and skip it */
 #if DEBUG
 	fprintf(stderr, "Ignoring IAC %s,%s\n",
 			TELCMD(buf[1]), TELOPT(buf[2]));
