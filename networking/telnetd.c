@@ -154,6 +154,11 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 	 * Example: we get this from our own (bbox) telnet client:
 	 * read(5, "\377\374\1""\377\373\37""\377\372\37\0\262\0@\377\360""\377\375\1""\377\375\3"):
 	 * IAC WONT ECHO, IAC WILL NAWS, IAC SB NAWS <cols> <rows> IAC SE, IAC DO SGA
+	 * Another example (telnet-0.17 from old-netkit):
+	 * read(4, "\377\375\3""\377\373\30""\377\373\37""\377\373 ""\377\373!""\377\373\"""\377\373'"
+	 * "\377\375\5""\377\373#""\377\374\1""\377\372\37\0\257\0I\377\360""\377\375\1"):
+	 * IAC DO SGA, IAC WILL TTYPE, IAC WILL NAWS, IAC WILL TSPEED, IAC WILL LFLOW, IAC WILL LINEMODE, IAC WILL NEW_ENVIRON,
+	 * IAC DO STATUS, IAC WILL XDISPLOC, IAC WONT ECHO, IAC SB NAWS <cols> <rows> IAC SE, IAC DO ECHO
 	 */
 	if (wr <= 1) {
 		/* Only the single IAC byte is in the buffer, eat it
