@@ -192,8 +192,16 @@ safe_write_to_pty_decode_iac(struct tsession *ts)
 		/* Literal 255 (emacs M-DEL) */
 		//bb_error_msg("255!");
 		rc = safe_write(ts->ptyfd, &buf[1], 1);
+		/*
+		 * If we went through buffered_IAC_for_pty==1 path,
+		 * bailing out on error like below messes up the buffer.
+		 * EAGAIN is highly unlikely here, other errors will be
+		 * repeated on next write, let's just skip error check.
+		 */
+#if 0
 		if (rc <= 0)
 			return rc;
+#endif
 		rc = 2;
 		goto update_and_return;
 	}
