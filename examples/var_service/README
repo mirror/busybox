@@ -117,7 +117,7 @@ addresses on the interface would make kernel still try to use it.
     var_service/zcip_if
 
 Zeroconf IP service: assigns a 169.254.x.y/16 address to interface "if".
-This allows to talk to other divices on a network without DHCP server
+This allows to talk to other devices on a network without DHCP server
 (if they also assign 169.254 addresses to themselves).
 
     var_service/ifplugd_if
@@ -136,7 +136,7 @@ and need babysitting.
     var_service/supplicant_if
 
 Wireless supplicant (wifi association and encryption daemon) service for
-inteface "if".
+interface "if".
 
     var_service/fw
 
