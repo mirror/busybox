@@ -180,3 +180,57 @@ for non-trivial installations.
     var_service/ntpd
 
 Examples of typical network daemons.
+
+
+	Process tree
+
+Here is an example of the process tree from a live system with these services
+(and a few others). An interesting detail are ftpd and vpnc services, where
+you can see only logger process. These services are "downed" at the moment:
+their daemons are not launched.
+
+PID TIME COMMAND
+553 0:04 runsvdir -P /var/service
+561 0:00   runsv sshd
+576 0:00     svlogd -tt /var/log/service/sshd
+589 0:00     /usr/sbin/sshd -D -e -p22 -u0 -h /var/service/sshd/ssh_host_rsa_key
+562 0:00   runsv dhcp_eth0
+568 0:00     svlogd -tt /var/log/service/dhcp_eth0
+850 0:00     udhcpc -vv --foreground --interface=eth0
+                --pidfile=/var/service/dhcp_eth0/udhcpc.pid
+                --script=/var/service/dhcp_eth0/dhcp_handler -x hostname bbox
+563 0:00   runsv ntpd
+573 0:01     svlogd -tt /var/log/service/ntpd
+845 0:00     busybox ntpd -dddnNl -S ./ntp.script -p 10.x.x.x -p 10.x.x.x
+564 0:00   runsv ifplugd_wlan0
+598 0:00     svlogd -tt /var/log/service/ifplugd_wlan0
+614 0:05     ifplugd -apqns -t3 -u0 -d0 -i wlan0
+                -r /var/service/ifplugd_wlan0/ifplugd_handler
+565 0:08   runsv dhcp_wlan0_pinger
+911 0:00     sleep 67
+566 0:00   runsv unscd
+583 0:03     svlogd -tt /var/log/service/unscd
+599 0:02     nscd -dddd
+567 0:00   runsv dhcp_wlan0
+591 0:00     svlogd -tt /var/log/service/dhcp_wlan0
+802 0:00     udhcpc -vv -C -o -V  --foreground --interface=wlan0
+                --pidfile=/var/service/dhcp_wlan0/udhcpc.pid
+                --script=/var/service/dhcp_wlan0/dhcp_handler
+569 0:00   runsv fw
+570 0:00   runsv ifplugd_eth0
+597 0:00     svlogd -tt /var/log/service/ifplugd_eth0
+612 0:05     ifplugd -apqns -t3 -u8 -d8 -i eth0
+                -r /var/service/ifplugd_eth0/ifplugd_handler
+571 0:00   runsv zcip_eth0
+590 0:00     svlogd -tt /var/log/service/zcip_eth0
+607 0:01     zcip -fvv eth0 /var/service/zcip_eth0/zcip_handler
+572 0:00   runsv ftpd
+604 0:00     svlogd -tt /var/log/service/ftpd
+574 0:00   runsv vpnc
+603 0:00     svlogd -tt /var/log/service/vpnc
+575 0:00   runsv httpd
+602 0:00     svlogd -tt /var/log/service/httpd
+622 0:00     busybox httpd -p80 -vvv -f -h /home/httpd_root
+577 0:00   runsv supplicant_wlan0
+627 0:00     svlogd -tt /var/log/service/supplicant_wlan0
+638 0:03     wpa_supplicant -i wlan0 -c /var/service/supplicant_wlan0/wpa_supplicant.conf -d
