@@ -40,8 +40,8 @@ There are just two key programs in runit. Firstly, runsv supervises the
 process for an individual service. Service directories themselves sit
 inside a containing directory, and the runsvdir program supervises that
 directory, running one child runsv process for the service in each
-subdirectory. Out of the box on Debian, for example, an instance of
-runsvdir supervises services in subdirectories of /var/service/.
+subdirectory. A typical choice is to start an instance of runsvdir
+which supervises services in subdirectories of /var/service/.
 
 If /var/service/log/ exists, runsv will supervise two services,
 and will connect stdout of main service to the stdin of log service.
@@ -94,7 +94,7 @@ dhcp, zeroconf, ppp, openvpn and such. They need to be controlled,
 and in many cases you also want to babysit them.
 
 They present a case where different services need to control (start, stop,
-restart) eact other.
+restart) each other.
 
     var_service/dhcp_if
 
@@ -110,7 +110,9 @@ dynamic network link services (ppp/vpn/zcip).
 
 This is an example of service with has a "finish" script. If downed ("sv d"),
 "finish" is executed. For this service, it removes DHCP address from
-the interface.
+the interface. This is useful when ifplugd detects that the the link is dead
+(cable is no longer attached anywhere) and downs us - keeping DHCP configured
+addresses on the interface would make kernel still try to use it.
 
     var_service/zcip_if
 
@@ -138,6 +140,9 @@ inteface "if".
 
     var_service/fw
 
+"Firewall" script, although it is tasked with much more than setting up firewall.
+It is responsible for all aspects of network configuration.
+
 This is an example of *one-shot* service.
 
 It reconfigures network based on current known state of ALL interfaces.
@@ -147,7 +152,7 @@ Uses conf/*.ipconf (static config) and /var/run/service/fw/*.ipconf
 One-shot-ness of this service means that it shuts itself off after single run.
 IOW: it is not a constantly running daemon sort of thing.
 It starts, it configures the network, it shuts down, all done
-(unlike infamous NetworkManagers which sit in RAM forever, doing hell knows what).
+(unlike infamous NetworkManagers which sit in RAM forever).
 
 However, any dhcp/ppp/vpn or similar service can restart it anytime
 when it senses the change in network configuration.
@@ -158,9 +163,12 @@ This is achieved very simply by having
 	# Make ourself one-shot
 	sv o .
 at the very beginning of fw/run script, not at the end.
+
 Therefore, any "sv u /var/run/service/fw" command by any other
 script "undoes" o(ne-shot) command if fw still runs, thus
 runsv will rerun it; or start it in a normal way if fw is not running.
+
+This mechanism is the reason why fw is a service, not just a script.
 
 System administrators are expected to edit fw/run script, since
 network configuration needs are likely to be very complex and different
