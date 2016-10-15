@@ -1514,7 +1514,7 @@ static void chain_group(void)
 			next_token(TC_SEQSTART);
 			n2 = parse_expr(TC_SEMICOL | TC_SEQTERM);
 			if (t_tclass & TC_SEQTERM) {	/* for-in */
-				if ((n2->info & OPCLSMASK) != OC_IN)
+				if (!n2 || (n2->info & OPCLSMASK) != OC_IN)
 					syntax_error(EMSG_UNEXP_TOKEN);
 				n = chain_node(OC_WALKINIT | VV);
 				n->l.n = n2->l.n;

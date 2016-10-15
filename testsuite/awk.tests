@@ -316,6 +316,9 @@ testing "awk continue" \
 	"" \
 	'BEGIN { if (1) continue; else a = 1 }'
 
+testing "awk handles invalid for loop" \
+    "awk '{ for() }' 2>&1" "awk: cmd. line:1: Unexpected token\n" "" ""
+
 # testing "description" "command" "result" "infile" "stdin"
 
 exit $FAILCOUNT
