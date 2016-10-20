@@ -9576,7 +9576,7 @@ evalcommand(union node *cmd, int flags)
 		if (applet_no >= 0 && APPLET_IS_NOFORK(applet_no)) {
 			listsetvar(varlist.list, VEXPORT|VSTACK);
 			/* run <applet>_main() */
-			exitstatus = run_nofork_applet(applet_no, argv);
+			status = run_nofork_applet(applet_no, argv);
 			break;
 		}
 #endif
