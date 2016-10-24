@@ -5545,6 +5545,17 @@ ash_arith(const char *s)
 #define EXP_TILDE       0x2     /* do normal tilde expansion */
 #define EXP_VARTILDE    0x4     /* expand tildes in an assignment */
 #define EXP_REDIR       0x8     /* file glob for a redirection (1 match only) */
+/* ^^^^^^^^^^^^^^ this is meant to support constructs such as "cmd >file*.txt"
+ * POSIX says for this case:
+ *  Pathname expansion shall not be performed on the word by a
+ *  non-interactive shell; an interactive shell may perform it, but shall
+ *  do so only when the expansion would result in one word.
+ * Currently, our code complies to the above rule by never globbing
+ * redirection filenames.
+ * Bash performs globbing, unless it is non-interactive and in POSIX mode.
+ * (this means that on a typical Linux distro, bash almost always
+ * performs globbing, and thus diverges from what we do).
+ */
 #define EXP_CASE        0x10    /* keeps quotes around for CASE pattern */
 #define EXP_QPAT        0x20    /* pattern in quoted parameter expansion */
 #define EXP_VARTILDE2   0x40    /* expand tildes after colons only */
