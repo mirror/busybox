@@ -8,13 +8,16 @@
  */
 
 //usage:#define strings_trivial_usage
-//usage:       "[-afo] [-n LEN] [FILE]..."
+//usage:       "[-fo] [-t o/d/x] [-n LEN] [FILE]..."
 //usage:#define strings_full_usage "\n\n"
 //usage:       "Display printable strings in a binary file\n"
-//usage:     "\n	-a	Scan whole file (default)"
-//usage:     "\n	-f	Precede strings with filenames"
-//usage:     "\n	-n LEN	At least LEN characters form a string (default 4)"
-//usage:     "\n	-o	Precede strings with decimal offsets"
+//We usually don't bother user with "nop" options. They work, but are not shown:
+////usage:     "\n	-a		Scan whole file (default)"
+//unimplemented alternative is -d: Only strings from initialized, loaded data sections
+//usage:     "\n	-f		Precede strings with filenames"
+//usage:     "\n	-o		Precede strings with octal offsets"
+//usage:     "\n	-t o/d/x	Precede strings with offsets in base 8/10/16"
+//usage:     "\n	-n LEN		At least LEN characters form a string (default 4)"
 
 #include "libbb.h"
 
@@ -22,6 +25,7 @@
 #define PRINT_NAME    2
 #define PRINT_OFFSET  4
 #define SIZE          8
+#define PRINT_RADIX  16
 
 int strings_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int strings_main(int argc UNUSED_PARAM, char **argv)
@@ -33,8 +37,11 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 	char *string;
 	const char *fmt = "%s: ";
 	const char *n_arg = "4";
+	/* default for -o */
+	const char *radix = "o";
+	char *radix_fmt;
 
-	getopt32(argv, "afon:", &n_arg);
+	getopt32(argv, "afon:t:", &n_arg, &radix);
 	/* -a is our default behaviour */
 	/*argc -= optind;*/
 	argv += optind;
@@ -42,6 +49,11 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 	n = xatou_range(n_arg, 1, INT_MAX);
 	string = xzalloc(n + 1);
 	n--;
+
+	if ((radix[0] != 'd' && radix[0] != 'o' && radix[0] != 'x') || radix[1] != 0)
+		bb_show_usage();
+
+	radix_fmt = xasprintf("%%7"OFF_FMT"%s ", radix);
 
 	if (!*argv) {
 		fmt = "{%s}: ";
@@ -67,8 +79,8 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 						if (option_mask32 & PRINT_NAME) {
 							printf(fmt, *argv);
 						}
-						if (option_mask32 & PRINT_OFFSET) {
-							printf("%7"OFF_FMT"o ", offset - n);
+						if (option_mask32 & (PRINT_OFFSET | PRINT_RADIX)) {
+							printf(radix_fmt, offset - n);
 						}
 						fputs(string, stdout);
 					}
@@ -85,8 +97,10 @@ int strings_main(int argc UNUSED_PARAM, char **argv)
 		fclose_if_not_stdin(file);
 	} while (*++argv);
 
-	if (ENABLE_FEATURE_CLEAN_UP)
+	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(string);
+		free(radix_fmt);
+	}
 
 	fflush_stdout_and_exit(status);
 }
