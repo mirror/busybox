@@ -10234,6 +10234,7 @@ setinputfile(const char *fname, int flags)
 	if (fd < 0) {
 		if (flags & INPUT_NOFILE_OK)
 			goto out;
+		exitstatus = 127;
 		ash_msg_and_raise_error("can't open '%s'", fname);
 	}
 	if (fd < 10) {
@@ -13403,8 +13404,6 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		reset();
 
 		e = exception_type;
-		if (e == EXERROR)
-			exitstatus = 2;
 		s = state;
 		if (e == EXEXIT || s == 0 || iflag == 0 || shlvl) {
 			exitshell();

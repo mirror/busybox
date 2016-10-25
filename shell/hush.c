@@ -8409,7 +8409,9 @@ int hush_main(int argc, char **argv)
 		G.global_argc--;
 		G.global_argv++;
 		debug_printf("running script '%s'\n", G.global_argv[0]);
+		xfunc_error_retval = 127; /* for "hush /does/not/exist" case */
 		input = xfopen_for_read(G.global_argv[0]);
+		xfunc_error_retval = 1;
 		remember_FILE(input);
 		install_special_sighandlers();
 		parse_and_run_file(input);
