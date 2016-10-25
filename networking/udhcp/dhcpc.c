@@ -450,7 +450,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 			temp = udhcp_get_option(packet, i);
 			if (temp) {
 				if (i == DHCP_OPTION_OVERLOAD)
-					overload = *temp;
+					overload |= *temp;
 				else if (i == DHCP_SUBNET)
 					envc++; /* for $mask */
 				envc++;
@@ -476,7 +476,7 @@ static char **fill_envp(struct dhcp_packet *packet)
 	 * uint16_t secs;   // elapsed since client began acquisition/renewal
 	 * uint16_t flags;  // only one flag so far: bcast. Never set by server
 	 * uint32_t ciaddr; // client IP (usually == yiaddr. can it be different
-	 *                  // if during renew server wants to give us differn IP?)
+	 *                  // if during renew server wants to give us different IP?)
 	 * uint32_t gateway_nip; // relay agent IP address
 	 * uint8_t chaddr[16]; // link-layer client hardware address (MAC)
 	 * TODO: export gateway_nip as $giaddr?
