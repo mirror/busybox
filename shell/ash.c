@@ -12276,11 +12276,17 @@ static const char *
 expandstr(const char *ps)
 {
 	union node n;
+	int saveprompt;
 
 	/* XXX Fix (char *) cast. It _is_ a bug. ps is variable's value,
 	 * and token processing _can_ alter it (delete NULs etc). */
 	setinputstring((char *)ps);
+
+	saveprompt = doprompt;
+	doprompt = 0;
 	readtoken1(pgetc(), PSSYNTAX, nullstr, 0);
+	doprompt = saveprompt;
+
 	popfile();
 
 	n.narg.type = NARG;
