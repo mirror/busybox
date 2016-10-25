@@ -13187,12 +13187,12 @@ exitshell(void)
 		evalstring(p, 0);
 		/*free(p); - we'll exit soon */
 	}
-	flush_stdout_stderr();
  out:
 	/* dash wraps setjobctl(0) in "if (setjmp(loc.loc) == 0) {...}".
 	 * our setjobctl(0) does not panic if tcsetpgrp fails inside it.
 	 */
 	setjobctl(0);
+	flush_stdout_stderr();
 	_exit(status);
 	/* NOTREACHED */
 }
