@@ -6752,6 +6752,10 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 
 	varflags = (unsigned char) *p++;
 	subtype = varflags & VSTYPE;
+
+	if (!subtype)
+		raise_error_syntax("bad substitution");
+
 	quoted = flag & EXP_QUOTED;
 	var = p;
 	easy = (!quoted || (*var == '@' && shellparam.nparam));
@@ -11699,7 +11703,7 @@ parseredir: {
 parsesub: {
 	unsigned char subtype;
 	int typeloc;
-	int flags;
+	int flags = 0;
 
 	c = pgetc_eatbnl();
 	if (c > 255 /* PEOA or PEOF */
@@ -11759,15 +11763,13 @@ parsesub: {
 			USTPUTC(c, out);
 			c = pgetc_eatbnl();
 		} else {
- badsub:
-			raise_error_syntax("bad substitution");
+			goto badsub;
 		}
 		if (c != '}' && subtype == VSLENGTH) {
 			/* ${#VAR didn't end with } */
 			goto badsub;
 		}
 
-		STPUTC('=', out);
 		flags = 0;
 		if (subtype == 0) {
 			static const char types[] ALIGN1 = "}-+?=";
@@ -11784,7 +11786,7 @@ parsesub: {
 				if (!strchr(types, c)) {
 					subtype = VSSUBSTR;
 					pungetc();
-					break; /* "goto do_pungetc" is bigger (!) */
+					break; /* "goto badsub" is bigger (!) */
 				}
 #endif
 				flags = VSNUL;
@@ -11792,7 +11794,7 @@ parsesub: {
 			default: {
 				const char *p = strchr(types, c);
 				if (p == NULL)
-					goto badsub;
+					break;
 				subtype = p - types + VSNORMAL;
 				break;
 			}
@@ -11802,7 +11804,7 @@ parsesub: {
 				subtype = (c == '#' ? VSTRIMLEFT : VSTRIMRIGHT);
 				c = pgetc_eatbnl();
 				if (c != cc)
-					goto do_pungetc;
+					goto badsub;
 				subtype++;
 				break;
 			}
@@ -11814,13 +11816,13 @@ parsesub: {
 				subtype = VSREPLACE;
 				c = pgetc_eatbnl();
 				if (c != '/')
-					goto do_pungetc;
+					goto badsub;
 				subtype++; /* VSREPLACEALL */
 				break;
 #endif
 			}
 		} else {
- do_pungetc:
+ badsub:
 			pungetc();
 		}
 		((unsigned char *)stackblock())[typeloc] = subtype | flags;
@@ -11830,6 +11832,7 @@ parsesub: {
 				dqvarnest++;
 			}
 		}
+		STPUTC('=', out);
 	}
 	goto parsesub_return;
 }
