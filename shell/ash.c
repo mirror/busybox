@@ -302,7 +302,6 @@ struct globals_misc {
 #define EXINT 0         /* SIGINT received */
 #define EXERROR 1       /* a generic error */
 #define EXSHELLPROC 2   /* execute a shell procedure */
-#define EXEXEC 3        /* command execution failed */
 #define EXEXIT 4        /* exit the shell */
 #define EXSIG 5         /* trapped signal in wait(1) */
 
@@ -7618,7 +7617,7 @@ shellexec(char **argv, const char *path, int idx)
 	exitstatus = exerrno;
 	TRACE(("shellexec failed for %s, errno %d, suppress_int %d\n",
 		argv[0], e, suppress_int));
-	ash_msg_and_raise(EXEXEC, "%s: %s", argv[0], errmsg(e, "not found"));
+	ash_msg_and_raise(EXEXIT, "%s: %s", argv[0], errmsg(e, "not found"));
 	/* NOTREACHED */
 }
 
@@ -9635,7 +9634,7 @@ evalcommand(union node *cmd, int flags)
 		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
 			int exit_status;
 			int i = exception_type;
-			if (i == EXEXIT || i == EXEXEC)
+			if (i == EXEXIT)
 				goto raise;
 			exit_status = 2;
 			if (i == EXINT)
