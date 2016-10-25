@@ -4668,8 +4668,7 @@ commandtext(union node *n)
 	STARTSTACKSTR(cmdnextc);
 	cmdtxt(n);
 	name = stackblock();
-	TRACE(("commandtext: name %p, end %p\n\t\"%s\"\n",
-			name, cmdnextc, cmdnextc));
+	TRACE(("commandtext: name %p, end %p\n", name, cmdnextc));
 	return ckstrdup(name);
 }
 #endif /* JOBS */
