@@ -1951,7 +1951,6 @@ struct redirtab;
 struct globals_var {
 	struct shparam shellparam;      /* $@ current positional parameters */
 	struct redirtab *redirlist;
-	int g_nullredirs;
 	int preverrout_fd;   /* save fd2 before print debug if xflag is set. */
 	struct var *vartab[VTABSIZE];
 	struct var varinit[ARRAY_SIZE(varinit_data)];
@@ -1960,7 +1959,6 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 #define G_var (*ash_ptr_to_globals_var)
 #define shellparam    (G_var.shellparam   )
 //#define redirlist     (G_var.redirlist    )
-#define g_nullredirs  (G_var.g_nullredirs )
 #define preverrout_fd (G_var.preverrout_fd)
 #define vartab        (G_var.vartab       )
 #define varinit       (G_var.varinit      )
@@ -5216,7 +5214,6 @@ struct two_fd_t {
 };
 struct redirtab {
 	struct redirtab *next;
-	int nullredirs;
 	int pair_count;
 	struct two_fd_t two_fd[];
 };
@@ -5295,7 +5292,6 @@ redirect(union node *redir, int flags)
 	int newfd;
 	int copied_fd2 = -1;
 
-	g_nullredirs++;
 	if (!redir) {
 		return;
 	}
@@ -5317,8 +5313,6 @@ redirect(union node *redir, int flags)
 		sv->next = redirlist;
 		sv->pair_count = sv_pos;
 		redirlist = sv;
-		sv->nullredirs = g_nullredirs - 1;
-		g_nullredirs = 0;
 		while (sv_pos > 0) {
 			sv_pos--;
 			sv->two_fd[sv_pos].orig = sv->two_fd[sv_pos].copy = EMPTY;
@@ -5430,7 +5424,7 @@ popredir(int drop, int restore)
 	struct redirtab *rp;
 	int i;
 
-	if (--g_nullredirs >= 0 || redirlist == NULL)
+	if (redirlist == NULL)
 		return;
 	INT_OFF;
 	rp = redirlist;
@@ -5452,7 +5446,6 @@ popredir(int drop, int restore)
 		}
 	}
 	redirlist = rp->next;
-	g_nullredirs = rp->nullredirs;
 	free(rp);
 	INT_ON;
 }
@@ -5467,12 +5460,8 @@ popredir(int drop, int restore)
 static void
 clearredir(int drop)
 {
-	for (;;) {
-		g_nullredirs = 0;
-		if (!redirlist)
-			break;
+	while (redirlist)
 		popredir(drop, /*restore:*/ 0);
-	}
 }
 
 static int
@@ -8573,7 +8562,8 @@ evaltree(union node *n, int flags)
 		if (!status) {
 			status = evaltree(n->nredir.n, flags & EV_TESTED);
 		}
-		popredir(/*drop:*/ 0, /*restore:*/ 0 /* not sure */);
+		if (n->nredir.redirect)
+			popredir(/*drop:*/ 0, /*restore:*/ 0 /* not sure */);
 		goto setstatus;
 	case NCMD:
 		evalfn = evalcommand;
@@ -9645,7 +9635,8 @@ evalcommand(union node *cmd, int flags)
 	} /* switch */
 
  out:
-	popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
+	if (cmd->ncmd.redirect)
+		popredir(/*drop:*/ cmd_is_exec, /*restore:*/ cmd_is_exec);
 	if (lastarg) {
 		/* dsl: I think this is intended to be used to support
 		 * '_' in 'vi' command mode during line editing...
