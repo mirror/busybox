@@ -268,7 +268,8 @@ uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 		}
 
 		if (optionptr[OPT_CODE] == DHCP_OPTION_OVERLOAD) {
-			overload |= optionptr[OPT_DATA];
+			if (len >= 3)
+				overload |= optionptr[OPT_DATA];
 			/* fall through */
 		}
 		optionptr += len;
