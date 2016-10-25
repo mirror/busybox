@@ -1399,7 +1399,6 @@ struct globals_memstack {
 	char *g_stacknxt; // = stackbase.space;
 	char *sstrend; // = stackbase.space + MINSIZE;
 	size_t g_stacknleft; // = MINSIZE;
-	int    herefd; // = -1;
 	struct stack_block stackbase;
 };
 extern struct globals_memstack *const ash_ptr_to_globals_memstack;
@@ -1408,7 +1407,6 @@ extern struct globals_memstack *const ash_ptr_to_globals_memstack;
 #define g_stacknxt   (G_memstack.g_stacknxt  )
 #define sstrend      (G_memstack.sstrend     )
 #define g_stacknleft (G_memstack.g_stacknleft)
-#define herefd       (G_memstack.herefd      )
 #define stackbase    (G_memstack.stackbase   )
 #define INIT_G_memstack() do { \
 	(*(struct globals_memstack**)&ash_ptr_to_globals_memstack) = xzalloc(sizeof(G_memstack)); \
@@ -1417,7 +1415,6 @@ extern struct globals_memstack *const ash_ptr_to_globals_memstack;
 	g_stacknxt = stackbase.space; \
 	g_stacknleft = MINSIZE; \
 	sstrend = stackbase.space + MINSIZE; \
-	herefd = -1; \
 } while (0)
 
 
@@ -1605,10 +1602,6 @@ static void *
 growstackstr(void)
 {
 	size_t len = stackblocksize();
-	if (herefd >= 0 && len >= 1024) {
-		full_write(herefd, stackblock(), len);
-		return stackblock();
-	}
 	growstackblock();
 	return (char *)stackblock() + len;
 }
@@ -5893,33 +5886,28 @@ static int evaltree(union node *, int);
 static void FAST_FUNC
 evalbackcmd(union node *n, struct backcmd *result)
 {
-	int saveherefd;
+	int pip[2];
+	struct job *jp;
 
 	result->fd = -1;
 	result->buf = NULL;
 	result->nleft = 0;
 	result->jp = NULL;
-	if (n == NULL)
+	if (n == NULL) {
 		goto out;
+	}
 
-	saveherefd = herefd;
-	herefd = -1;
-
-	{
-		int pip[2];
-		struct job *jp;
-
-		if (pipe(pip) < 0)
-			ash_msg_and_raise_error("pipe call failed");
-		jp = makejob(/*n,*/ 1);
-		if (forkshell(jp, n, FORK_NOJOB) == 0) {
-			FORCE_INT_ON;
-			close(pip[0]);
-			if (pip[1] != 1) {
-				/*close(1);*/
-				copyfd(pip[1], 1 | COPYFD_EXACT);
-				close(pip[1]);
-			}
+	if (pipe(pip) < 0)
+		ash_msg_and_raise_error("pipe call failed");
+	jp = makejob(/*n,*/ 1);
+	if (forkshell(jp, n, FORK_NOJOB) == 0) {
+		FORCE_INT_ON;
+		close(pip[0]);
+		if (pip[1] != 1) {
+			/*close(1);*/
+			copyfd(pip[1], 1 | COPYFD_EXACT);
+			close(pip[1]);
+		}
 /* TODO: eflag clearing makes the following not abort:
  *  ash -c 'set -e; z=$(false;echo foo); echo $z'
  * which is what bash does (unless it is in POSIX mode).
@@ -5928,15 +5916,14 @@ evalbackcmd(union node *n, struct backcmd *result)
  *  [EVAL] Don't clear eflag in evalbackcmd
  * For now, preserve bash-like behavior, it seems to be somewhat more useful:
  */
-			eflag = 0;
-			evaltree(n, EV_EXIT); /* actually evaltreenr... */
-			/* NOTREACHED */
-		}
-		close(pip[1]);
-		result->fd = pip[0];
-		result->jp = jp;
+		eflag = 0;
+		evaltree(n, EV_EXIT); /* actually evaltreenr... */
+		/* NOTREACHED */
 	}
-	herefd = saveherefd;
+	close(pip[1]);
+	result->fd = pip[0];
+	result->jp = jp;
+
  out:
 	TRACE(("evalbackcmd done: fd=%d buf=0x%x nleft=%d jp=0x%x\n",
 		result->fd, result->buf, result->nleft, result->jp));
@@ -6343,7 +6330,6 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	char *str;
 	IF_ASH_BASH_COMPAT(char *repl = NULL;)
 	IF_ASH_BASH_COMPAT(int pos, len, orig_len;)
-	int saveherefd = herefd;
 	int amount, resetloc;
 	IF_ASH_BASH_COMPAT(int workloc;)
 	int zero;
@@ -6352,12 +6338,10 @@ subevalvar(char *p, char *varname, int strloc, int subtype,
 	//bb_error_msg("subevalvar(p:'%s',varname:'%s',strloc:%d,subtype:%d,startloc:%d,varflags:%x,quotes:%d)",
 	//		p, varname, strloc, subtype, startloc, varflags, quotes);
 
-	herefd = -1;
 	argstr(p, EXP_TILDE | (subtype != VSASSIGN && subtype != VSQUESTION ?
 			(flag & (EXP_QUOTED | EXP_QPAT) ? EXP_QPAT : EXP_CASE) : 0),
 			var_str_list);
 	STPUTC('\0', expdest);
-	herefd = saveherefd;
 	argbackq = saveargbackq;
 	startp = (char *)stackblock() + startloc;
 
@@ -7391,7 +7375,6 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 static void
 expandhere(union node *arg, int fd)
 {
-	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, EXP_QUOTED);
 	full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
