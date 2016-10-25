@@ -8610,11 +8610,9 @@ evaltree(union node *n, int flags)
 		evalfn = evalloop;
 		goto calleval;
 	case NSUBSHELL:
-		evalfn = evalsubshell;
-		goto checkexit;
 	case NBACKGND:
 		evalfn = evalsubshell;
-		goto calleval;
+		goto checkexit;
 	case NPIPE:
 		evalfn = evalpipe;
 		goto checkexit;
