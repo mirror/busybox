@@ -5924,6 +5924,14 @@ evalbackcmd(union node *n, struct backcmd *result)
 				copyfd(pip[1], 1 | COPYFD_EXACT);
 				close(pip[1]);
 			}
+/* TODO: eflag clearing makes the following not abort:
+ *  ash -c 'set -e; z=$(false;echo foo); echo $z'
+ * which is what bash does (unless it is in POSIX mode).
+ * dash deleted "eflag = 0" line in the commit
+ *  Date: Mon, 28 Jun 2010 17:11:58 +1000
+ *  [EVAL] Don't clear eflag in evalbackcmd
+ * For now, preserve bash-like behavior, it seems to be somewhat more useful:
+ */
 			eflag = 0;
 			evaltree(n, EV_EXIT); /* actually evaltreenr... */
 			/* NOTREACHED */
