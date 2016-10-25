@@ -8449,14 +8449,14 @@ copyfunc(union node *n)
  * Define a shell function.
  */
 static void
-defun(char *name, union node *func)
+defun(union node *func)
 {
 	struct cmdentry entry;
 
 	INT_OFF;
 	entry.cmdtype = CMDFUNCTION;
 	entry.u.func = copyfunc(func);
-	addcmdentry(name, &entry);
+	addcmdentry(func->narg.text, &entry);
 	INT_ON;
 }
 
@@ -8654,7 +8654,7 @@ evaltree(union node *n, int flags)
 		status = 0;
 		goto setstatus;
 	case NDEFUN:
-		defun(n->narg.text, n->narg.next);
+		defun(n);
 		/* Not necessary. To test it:
 		 * "false; f() { qwerty; }; echo $?" should print 0.
 		 */
@@ -9079,7 +9079,7 @@ evalfun(struct funcnode *func, int argc, char **argv, int flags)
 	shellparam.optind = 1;
 	shellparam.optoff = -1;
 #endif
-	evaltree(&func->n, flags & EV_TESTED);
+	evaltree(func->n.narg.next, flags & EV_TESTED);
  funcdone:
 	INT_OFF;
 	funcnest--;
