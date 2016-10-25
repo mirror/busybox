@@ -5190,9 +5190,7 @@ openredirect(union node *redir)
 }
 
 /*
- * Copy a file descriptor to be >= to.  Returns -1
- * if the source file descriptor is closed, EMPTY if there are no unused
- * file descriptors left.
+ * Copy a file descriptor to be >= to. Throws exception on error.
  */
 /* 0x800..00: bit to set in "to" to request dup2 instead of fcntl(F_DUPFD).
  * old code was doing close(to) prior to copyfd() to achieve the same */
@@ -5213,8 +5211,6 @@ copyfd(int from, int to)
 		newfd = fcntl(from, F_DUPFD, to);
 	}
 	if (newfd < 0) {
-		if (errno == EMFILE)
-			return EMPTY;
 		/* Happens when source fd is not open: try "echo >&99" */
 		ash_msg_and_raise_error("%d: %m", from);
 	}
@@ -10243,8 +10239,6 @@ setinputfile(const char *fname, int flags)
 	if (fd < 10) {
 		fd2 = copyfd(fd, 10);
 		close(fd);
-		if (fd2 < 0)
-			ash_msg_and_raise_error("out of file descriptors");
 		fd = fd2;
 	}
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
