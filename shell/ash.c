@@ -2019,7 +2019,7 @@ extern struct globals_var *const ash_ptr_to_globals_var;
 static void FAST_FUNC
 getoptsreset(const char *value)
 {
-	shellparam.optind = number(value);
+	shellparam.optind = number(value) ?: 1;
 	shellparam.optoff = -1;
 }
 #endif
@@ -10571,8 +10571,6 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 
 	sbuf[1] = '\0';
 
-	if (*param_optind < 1)
-		return 1;
 	optnext = optfirst + *param_optind - 1;
 
 	if (*param_optind <= 1 || *optoff < 0 || (int)strlen(optnext[-1]) < *optoff)
