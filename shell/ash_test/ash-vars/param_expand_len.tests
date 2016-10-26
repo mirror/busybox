@@ -15,3 +15,10 @@ unset e
 f=abc
 g=
 echo ${#e} ${#f} ${#g}
+
+set -- a
+# This must be interpreted as: $# ("1"), then remove trailing "1".
+# IOW: empty result.
+echo Nothing:${##1}
+echo Nothing:${#%1}
+echo One:${##x}
