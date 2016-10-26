@@ -11,8 +11,8 @@ a
 
 echo d:$?
 # It's debatable what is the correct value above.
-# Does 'return' in trap sees $? == 2 or $? == 3?
+# Does 'return' in trap see $? == 2 or $? == 3?
 # IOW: after (kill..), does shell first wait for its completion
 # and sets $?, then checks pending signals and runs a trap handler,
-# or does it first checks pending signals and runs handler?
+# or does it first check pending signals and runs handler?
 # hush does the former, and prints 3.
