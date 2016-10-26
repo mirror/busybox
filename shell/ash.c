@@ -2638,7 +2638,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!dest)
 		dest = nullstr;
 	if (*dest == '/')
-		goto step7;
+		goto step6;
 	if (*dest == '.') {
 		c = dest[1];
  dotdot:
@@ -2655,13 +2655,7 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 	if (!*dest)
 		dest = ".";
 	path = bltinlookup("CDPATH");
-	if (!path) {
- step6:
- step7:
-		p = dest;
-		goto docd;
-	}
-	do {
+	while (path) {
 		c = *path;
 		p = path_advance(&path, dest);
 		if (stat(p, &statb) >= 0 && S_ISDIR(statb.st_mode)) {
@@ -2670,9 +2664,15 @@ cdcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
  docd:
 			if (!docd(p, flags))
 				goto out;
-			break;
+			goto err;
 		}
-	} while (path);
+	}
+
+ step6:
+	p = dest;
+	goto docd;
+
+ err:
 	ash_msg_and_raise_error("can't cd to %s", dest);
 	/* NOTREACHED */
  out:
