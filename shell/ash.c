@@ -10554,7 +10554,7 @@ change_random(const char *value)
 
 #if ENABLE_ASH_GETOPTS
 static int
-getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *optoff)
+getopts(char *optstr, char *optvar, char **optfirst)
 {
 	char *p, *q;
 	char c = '?';
@@ -10565,12 +10565,15 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 
 	sbuf[1] = '\0';
 
-	optnext = optfirst + *param_optind - 1;
+	optnext = optfirst + shellparam.optind - 1;
 
-	if (*param_optind <= 1 || *optoff < 0 || (int)strlen(optnext[-1]) < *optoff)
+	if (shellparam.optind <= 1
+	 || shellparam.optoff < 0
+	 || (int)strlen(optnext[-1]) < shellparam.optoff
+	) {
 		p = NULL;
-	else
-		p = optnext[-1] + *optoff;
+	} else
+		p = optnext[-1] + shellparam.optoff;
 	if (p == NULL || *p == '\0') {
 		/* Current word is done, advance */
 		p = *optnext;
@@ -10625,15 +10628,15 @@ getopts(char *optstr, char *optvar, char **optfirst, int *param_optind, int *opt
 	} else
 		err |= setvarsafe("OPTARG", nullstr, 0);
  out:
-	*optoff = p ? p - *(optnext - 1) : -1;
-	*param_optind = optnext - optfirst + 1;
-	err |= setvarsafe("OPTIND", itoa(*param_optind), VNOFUNC);
+	shellparam.optoff = p ? p - *(optnext - 1) : -1;
+	shellparam.optind = optnext - optfirst + 1;
+	err |= setvarsafe("OPTIND", itoa(shellparam.optind), VNOFUNC);
 	sbuf[0] = c;
 	/*sbuf[1] = '\0'; - already is */
 	err |= setvarsafe(optvar, sbuf, 0);
 	if (err) {
-		*param_optind = 1;
-		*optoff = -1;
+		shellparam.optind = 1;
+		shellparam.optoff = -1;
 		flush_stdout_stderr();
 		raise_exception(EXERROR);
 	}
@@ -10667,8 +10670,7 @@ getoptscmd(int argc, char **argv)
 		}
 	}
 
-	return getopts(argv[1], argv[2], optbase, &shellparam.optind,
-			&shellparam.optoff);
+	return getopts(argv[1], argv[2], optbase);
 }
 #endif /* ASH_GETOPTS */
 
