@@ -11592,11 +11592,17 @@ checkend: {
 		if (c == *eofmark) {
 			if (pfgets(line, sizeof(line)) != NULL) {
 				char *p, *q;
+				int cc;
 
 				p = line;
-				for (q = eofmark + 1; *q && *p == *q; p++, q++)
-					continue;
-				if (*p == '\n' && *q == '\0') {
+				for (q = eofmark + 1;; p++, q++) {
+					cc = *p;
+					if (cc == '\n')
+						cc = 0;
+					if (!*q || cc != *q)
+						break;
+				}
+				if (cc == *q) {
 					c = PEOF;
 					nlnoprompt();
 				} else {
