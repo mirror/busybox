@@ -1491,12 +1491,10 @@ sstrdup(const char *p)
 	return memcpy(stalloc(len), p, len);
 }
 
-static void
+static inline void
 grabstackblock(size_t len)
 {
-	len = SHELL_ALIGN(len);
-	g_stacknxt += len;
-	g_stacknleft -= len;
+	stalloc(len);
 }
 
 static void
