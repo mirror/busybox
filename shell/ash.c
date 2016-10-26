@@ -11701,7 +11701,6 @@ parseredir: {
 parsesub: {
 	unsigned char subtype;
 	int typeloc;
-	int flags = 0;
 
 	c = pgetc_eatbnl();
 	if (c > 255 /* PEOA or PEOF */
@@ -11730,19 +11729,19 @@ parsesub: {
 		/* $VAR, $<specialchar>, ${...}, or PEOA/PEOF */
 		USTPUTC(CTLVAR, out);
 		typeloc = out - (char *)stackblock();
-		USTPUTC(VSNORMAL, out);
+		STADJUST(1, out);
 		subtype = VSNORMAL;
 		if (c == '{') {
 			c = pgetc_eatbnl();
 			subtype = 0;
 		}
  varname:
-		if (c <= 255 /* not PEOA or PEOF */ && is_name(c)) {
+		if (is_name(c)) {
 			/* $[{[#]]NAME[}] */
 			do {
 				STPUTC(c, out);
 				c = pgetc_eatbnl();
-			} while (c <= 255 /* not PEOA or PEOF */ && is_in_name(c));
+			} while (is_in_name(c));
 		} else if (isdigit(c)) {
 			/* $[{[#]]NUM[}] */
 			do {
@@ -11776,7 +11775,6 @@ parsesub: {
 			goto badsub;
 		}
 
-		flags = 0;
 		if (subtype == 0) {
 			static const char types[] ALIGN1 = "}-+?=";
 			/* ${VAR...} but not $VAR or ${#VAR} */
@@ -11795,13 +11793,13 @@ parsesub: {
 					break; /* "goto badsub" is bigger (!) */
 				}
 #endif
-				flags = VSNUL;
+				subtype = VSNUL;
 				/*FALLTHROUGH*/
 			default: {
 				const char *p = strchr(types, c);
 				if (p == NULL)
 					break;
-				subtype = p - types + VSNORMAL;
+				subtype |= p - types + VSNORMAL;
 				break;
 			}
 			case '%':
@@ -11831,12 +11829,11 @@ parsesub: {
  badsub:
 			pungetc();
 		}
-		((unsigned char *)stackblock())[typeloc] = subtype | flags;
+		((unsigned char *)stackblock())[typeloc] = subtype;
 		if (subtype != VSNORMAL) {
 			varnest++;
-			if (dblquote) {
+			if (dblquote)
 				dqvarnest++;
-			}
 		}
 		STPUTC('=', out);
 	}
