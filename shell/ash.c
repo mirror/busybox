@@ -3760,12 +3760,12 @@ setjobctl(int on)
 				if (--fd < 0)
 					goto out;
 		}
+		/* fd is a tty at this point */
 		fd = fcntl(fd, F_DUPFD, 10);
-		if (ofd >= 0)
+		if (ofd >= 0) /* if it is "/dev/tty", close. If 0/1/2, dont */
 			close(ofd);
 		if (fd < 0)
-			goto out;
-		/* fd is a tty at this point */
+			goto out; /* F_DUPFD failed */
 		close_on_exec_on(fd);
 		while (1) { /* while we are in the background */
 			pgrp = tcgetpgrp(fd);
@@ -5181,26 +5181,31 @@ openredirect(union node *redir)
 }
 
 /*
- * Copy a file descriptor to be >= to. Throws exception on error.
+ * Copy a file descriptor to be >= 10. Throws exception on error.
  */
-/* 0x800..00: bit to set in "to" to request dup2 instead of fcntl(F_DUPFD).
- * old code was doing close(to) prior to copyfd() to achieve the same */
-enum {
-	COPYFD_EXACT   = (int)~(INT_MAX),
-	COPYFD_RESTORE = (int)((unsigned)COPYFD_EXACT >> 1),
-};
 static int
-copyfd(int from, int to)
+savefd(int from)
+{
+	int newfd;
+	int err;
+
+	newfd = fcntl(from, F_DUPFD, 10);
+	err = newfd < 0 ? errno : 0;
+	if (err != EBADF) {
+		if (err)
+			ash_msg_and_raise_error("%d: %m", from);
+		close(from);
+		fcntl(newfd, F_SETFD, FD_CLOEXEC);
+	}
+
+	return newfd;
+}
+static int
+dup2_or_raise(int from, int to)
 {
 	int newfd;
 
-	if (to & COPYFD_EXACT) {
-		to &= ~COPYFD_EXACT;
-		/*if (from != to)*/
-			newfd = dup2(from, to);
-	} else {
-		newfd = fcntl(from, F_DUPFD, to);
-	}
+	newfd = (from != to) ? dup2(from, to) : to;
 	if (newfd < 0) {
 		/* Happens when source fd is not open: try "echo >&99" */
 		ash_msg_and_raise_error("%d: %m", from);
@@ -5218,6 +5223,9 @@ struct redirtab {
 	struct two_fd_t two_fd[];
 };
 #define redirlist (G_var.redirlist)
+enum {
+	COPYFD_RESTORE = (int)~(INT_MAX),
+};
 
 static int
 need_to_remember(struct redirtab *rp, int fd)
@@ -5391,10 +5399,10 @@ redirect(union node *redir, int flags)
 				if (fd != -1)
 					close(fd);
 			} else {
-				copyfd(redir->ndup.dupfd, fd | COPYFD_EXACT);
+				dup2_or_raise(redir->ndup.dupfd, fd);
 			}
 		} else if (fd != newfd) { /* move newfd to fd */
-			copyfd(newfd, fd | COPYFD_EXACT);
+			dup2_or_raise(newfd, fd);
 #if ENABLE_ASH_BASH_COMPAT
 			if (!(redir->nfile.type == NTO2 && fd == 2))
 #endif
@@ -5440,7 +5448,7 @@ popredir(int drop, int restore)
 			if (!drop || (restore && (copy & COPYFD_RESTORE))) {
 				copy &= ~COPYFD_RESTORE;
 				/*close(fd);*/
-				copyfd(copy, fd | COPYFD_EXACT);
+				dup2_or_raise(copy, fd);
 			}
 			close(copy & ~COPYFD_RESTORE);
 		}
@@ -5894,7 +5902,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 		close(pip[0]);
 		if (pip[1] != 1) {
 			/*close(1);*/
-			copyfd(pip[1], 1 | COPYFD_EXACT);
+			dup2_or_raise(pip[1], 1);
 			close(pip[1]);
 		}
 /* TODO: eflag clearing makes the following not abort:
@@ -10204,7 +10212,6 @@ static int
 setinputfile(const char *fname, int flags)
 {
 	int fd;
-	int fd2;
 
 	INT_OFF;
 	fd = open(fname, O_RDONLY);
@@ -10214,11 +10221,8 @@ setinputfile(const char *fname, int flags)
 		exitstatus = 127;
 		ash_msg_and_raise_error("can't open '%s'", fname);
 	}
-	if (fd < 10) {
-		fd2 = copyfd(fd, 10);
-		close(fd);
-		fd = fd2;
-	}
+	if (fd < 10)
+		fd = savefd(fd);
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
  out:
 	INT_ON;
