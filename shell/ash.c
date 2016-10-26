@@ -7467,13 +7467,7 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **
 #else
 	execve(cmd, argv, envp);
 #endif
-	if (cmd == (char*) bb_busybox_exec_path) {
-		/* We already visited ENOEXEC branch below, don't do it again */
-//TODO: try execve(initial_argv0_of_shell, argv, envp) before giving up?
-		free(argv);
-		return;
-	}
-	if (errno == ENOEXEC) {
+	if (cmd != (char*) bb_busybox_exec_path && errno == ENOEXEC) {
 		/* Run "cmd" as a shell script:
 		 * http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html
 		 * "If the execve() function fails with ENOEXEC, the shell
@@ -7490,19 +7484,13 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **
 		 * message and exit code 126. For one, this prevents attempts
 		 * to interpret foreign ELF binaries as shell scripts.
 		 */
-		char **ap;
-		char **new;
-
-		for (ap = argv; *ap; ap++)
-			continue;
-		new = ckmalloc((ap - argv + 2) * sizeof(new[0]));
-		new[0] = (char*) "ash";
-		new[1] = cmd;
-		ap = new + 2;
-		while ((*ap++ = *++argv) != NULL)
-			continue;
+		argv[0] = cmd;
 		cmd = (char*) bb_busybox_exec_path;
-		argv = new;
+		/* NB: this is only possible because all callers of shellexec()
+		 * ensure that the argv[-1] slot exists!
+		 */
+		argv--;
+		argv[0] = (char*) "ash";
 		goto repeat;
 	}
 }
@@ -7510,6 +7498,7 @@ tryexec(IF_FEATURE_SH_STANDALONE(int applet_no,) char *cmd, char **argv, char **
 /*
  * Exec a program.  Never returns.  If you change this routine, you may
  * have to change the find_command routine as well.
+ * argv[-1] must exist and be writable! See tryexec() for why.
  */
 static void shellexec(char **, const char *, int) NORETURN;
 static void
@@ -9415,7 +9404,9 @@ evalcommand(union node *cmd, int flags)
 			argc++;
 	}
 
-	argv = nargv = stalloc(sizeof(char *) * (argc + 1));
+	/* Reserve one extra spot at the front for shellexec. */
+	nargv = stalloc(sizeof(char *) * (argc + 2));
+	argv = ++nargv;
 	for (sp = arglist.list; sp; sp = sp->next) {
 		TRACE(("evalcommand arg: %s\n", sp->text));
 		*nargv++ = sp->text;
