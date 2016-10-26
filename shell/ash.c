@@ -2258,32 +2258,6 @@ setvar0(const char *name, const char *val)
 	setvar(name, val, 0);
 }
 
-#if ENABLE_ASH_GETOPTS
-/*
- * Safe version of setvar, returns 1 on success 0 on failure.
- */
-static int
-setvarsafe(const char *name, const char *val, int flags)
-{
-	int err;
-	volatile int saveint;
-	struct jmploc *volatile savehandler = exception_handler;
-	struct jmploc jmploc;
-
-	SAVE_INT(saveint);
-	if (setjmp(jmploc.loc))
-		err = 1;
-	else {
-		exception_handler = &jmploc;
-		setvar(name, val, flags);
-		err = 0;
-	}
-	exception_handler = savehandler;
-	RESTORE_INT(saveint);
-	return err;
-}
-#endif
-
 /*
  * Unset the specified variable.
  */
@@ -10559,21 +10533,20 @@ getopts(char *optstr, char *optvar, char **optfirst)
 	char *p, *q;
 	char c = '?';
 	int done = 0;
-	int err = 0;
 	char sbuf[2];
 	char **optnext;
+	int ind = shellparam.optind;
+	int off = shellparam.optoff;
 
 	sbuf[1] = '\0';
 
-	optnext = optfirst + shellparam.optind - 1;
+	shellparam.optind = -1;
+	optnext = optfirst + ind - 1;
 
-	if (shellparam.optind <= 1
-	 || shellparam.optoff < 0
-	 || (int)strlen(optnext[-1]) < shellparam.optoff
-	) {
+	if (ind <= 1 || off < 0 || (int)strlen(optnext[-1]) < off)
 		p = NULL;
-	} else
-		p = optnext[-1] + shellparam.optoff;
+	else
+		p = optnext[-1] + off;
 	if (p == NULL || *p == '\0') {
 		/* Current word is done, advance */
 		p = *optnext;
@@ -10594,7 +10567,7 @@ getopts(char *optstr, char *optvar, char **optfirst)
 			if (optstr[0] == ':') {
 				sbuf[0] = c;
 				/*sbuf[1] = '\0'; - already is */
-				err |= setvarsafe("OPTARG", sbuf, 0);
+				setvar0("OPTARG", sbuf);
 			} else {
 				fprintf(stderr, "Illegal option -%c\n", c);
 				unsetvar("OPTARG");
@@ -10611,7 +10584,7 @@ getopts(char *optstr, char *optvar, char **optfirst)
 			if (optstr[0] == ':') {
 				sbuf[0] = c;
 				/*sbuf[1] = '\0'; - already is */
-				err |= setvarsafe("OPTARG", sbuf, 0);
+				setvar0("OPTARG", sbuf);
 				c = ':';
 			} else {
 				fprintf(stderr, "No arg for -%c option\n", c);
@@ -10623,23 +10596,20 @@ getopts(char *optstr, char *optvar, char **optfirst)
 
 		if (p == *optnext)
 			optnext++;
-		err |= setvarsafe("OPTARG", p, 0);
+		setvar0("OPTARG", p);
 		p = NULL;
 	} else
-		err |= setvarsafe("OPTARG", nullstr, 0);
+		setvar0("OPTARG", nullstr);
  out:
-	shellparam.optoff = p ? p - *(optnext - 1) : -1;
-	shellparam.optind = optnext - optfirst + 1;
-	err |= setvarsafe("OPTIND", itoa(shellparam.optind), VNOFUNC);
+	ind = optnext - optfirst + 1;
+	setvar("OPTIND", itoa(ind), VNOFUNC);
 	sbuf[0] = c;
 	/*sbuf[1] = '\0'; - already is */
-	err |= setvarsafe(optvar, sbuf, 0);
-	if (err) {
-		shellparam.optind = 1;
-		shellparam.optoff = -1;
-		flush_stdout_stderr();
-		raise_exception(EXERROR);
-	}
+	setvar0(optvar, sbuf);
+
+	shellparam.optoff = p ? p - *(optnext - 1) : -1;
+	shellparam.optind = ind;
+
 	return done;
 }
 
@@ -10658,13 +10628,13 @@ getoptscmd(int argc, char **argv)
 		ash_msg_and_raise_error("usage: getopts optstring var [arg]");
 	if (argc == 3) {
 		optbase = shellparam.p;
-		if (shellparam.optind > shellparam.nparam + 1) {
+		if ((unsigned)shellparam.optind > shellparam.nparam + 1) {
 			shellparam.optind = 1;
 			shellparam.optoff = -1;
 		}
 	} else {
 		optbase = &argv[3];
-		if (shellparam.optind > argc - 2) {
+		if ((unsigned)shellparam.optind > argc - 2) {
 			shellparam.optind = 1;
 			shellparam.optoff = -1;
 		}
