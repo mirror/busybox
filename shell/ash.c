@@ -5462,16 +5462,6 @@ popredir(int drop, int restore)
  * Undo all redirections.  Called on error or interrupt.
  */
 
-/*
- * Discard all saved file descriptors.
- */
-static void
-clearredir(int drop)
-{
-	while (redirlist)
-		popredir(drop, /*restore:*/ 0);
-}
-
 static int
 redirectsafe(union node *redir, int flags)
 {
@@ -7559,7 +7549,6 @@ shellexec(char **argv, const char *path, int idx)
 	int exerrno;
 	int applet_no = -1; /* used only by FEATURE_SH_STANDALONE */
 
-	clearredir(/*drop:*/ 1);
 	envp = listvars(VEXPORT, VUNSET, /*end:*/ NULL);
 	if (strchr(argv[0], '/') != NULL
 #if ENABLE_FEATURE_SH_STANDALONE
@@ -10191,7 +10180,6 @@ closescript(void)
 static void
 setinputfd(int fd, int push)
 {
-	close_on_exec_on(fd);
 	if (push) {
 		pushfile();
 		g_parsefile->buf = NULL;
@@ -10223,6 +10211,8 @@ setinputfile(const char *fname, int flags)
 	}
 	if (fd < 10)
 		fd = savefd(fd);
+	else
+		close_on_exec_on(fd);
 	setinputfd(fd, flags & INPUT_PUSH_FILE);
  out:
 	INT_ON;
@@ -13339,7 +13329,8 @@ reset(void)
 	tokpushback = 0;
 	checkkwd = 0;
 	/* from redir.c: */
-	clearredir(/*drop:*/ 0);
+	while (redirlist)
+		popredir(/*drop:*/ 0, /*restore:*/ 0);
 }
 
 #if PROFILE
