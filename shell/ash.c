@@ -2590,7 +2590,7 @@ setpwd(const char *val, int setold)
 static void hashcd(void);
 
 /*
- * Actually do the chdir.  We also call hashcd to let the routines in exec.c
+ * Actually do the chdir.  We also call hashcd to let other routines
  * know that the current directory has changed.
  */
 static int
@@ -4679,6 +4679,7 @@ clear_traps(void)
 static void closescript(void);
 
 /* Called after fork(), in child */
+/* jp and n are NULL when called by openhere() for heredoc support */
 static NOINLINE void
 forkchild(struct job *jp, union node *n, int mode)
 {
@@ -4810,6 +4811,7 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
 	TRACE(("In parent shell: child = %d\n", pid));
 	if (!jp) {
+		/* jp is NULL when called by openhere() for heredoc support */
 		while (jobless && dowait(DOWAIT_NONBLOCK, NULL) > 0)
 			continue;
 		jobless++;
@@ -4843,6 +4845,7 @@ forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 	}
 }
 
+/* jp and n are NULL when called by openhere() for heredoc support */
 static int
 forkshell(struct job *jp, union node *n, int mode)
 {
@@ -4972,8 +4975,7 @@ stoppedjobs(void)
 }
 
 
-/* ============ redir.c
- *
+/*
  * Code for dealing with input/output redirection.
  */
 
@@ -5860,6 +5862,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 		ash_msg_and_raise_error("pipe call failed");
 	jp = makejob(/*n,*/ 1);
 	if (forkshell(jp, n, FORK_NOJOB) == 0) {
+		/* child */
 		FORCE_INT_ON;
 		close(pip[0]);
 		if (pip[1] != 1) {
@@ -5879,6 +5882,7 @@ evalbackcmd(union node *n, struct backcmd *result)
 		evaltree(n, EV_EXIT); /* actually evaltreenr... */
 		/* NOTREACHED */
 	}
+	/* parent */
 	close(pip[1]);
 	result->fd = pip[0];
 	result->jp = jp;
@@ -8764,6 +8768,7 @@ evalsubshell(union node *n, int flags)
 		evaltreenr(n->nredir.n, flags);
 		/* never returns */
 	}
+	/* parent */
 	status = 0;
 	if (!backgnd)
 		status = waitforjob(jp);
@@ -8869,6 +8874,7 @@ evalpipe(union node *n, int flags)
 			}
 		}
 		if (forkshell(jp, lp->n, n->npipe.pipe_backgnd) == 0) {
+			/* child */
 			INT_ON;
 			if (pip[1] >= 0) {
 				close(pip[0]);
@@ -8884,6 +8890,7 @@ evalpipe(union node *n, int flags)
 			evaltreenr(lp->n, flags);
 			/* never returns */
 		}
+		/* parent */
 		if (prevfd >= 0)
 			close(prevfd);
 		prevfd = pip[0];
@@ -9702,8 +9709,7 @@ breakcmd(int argc UNUSED_PARAM, char **argv)
 }
 
 
-/* ============ input.c
- *
+/*
  * This implements the input routines used by the parser.
  */
 
@@ -10198,8 +10204,7 @@ setinputstring(char *string)
 }
 
 
-/* ============ mail.c
- *
+/*
  * Routines to check for mail.
  */
 
