@@ -8405,6 +8405,7 @@ int hush_main(int argc, char **argv)
 		 * "bash <script>" (which is never interactive (unless -i?))
 		 * sources $BASH_ENV here (without scanning $PATH).
 		 * If called as sh, does the same but with $ENV.
+		 * Also NB, per POSIX, $ENV should undergo parameter expansion.
 		 */
 		G.global_argc--;
 		G.global_argv++;

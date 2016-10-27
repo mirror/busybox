@@ -13277,11 +13277,12 @@ procargs(char **argv)
 }
 
 /*
- * Read /etc/profile or .profile.
+ * Read /etc/profile, ~/.profile, $ENV.
  */
 static void
 read_profile(const char *name)
 {
+	name = expandstr(name);
 	if (setinputfile(name, INPUT_PUSH_FILE | INPUT_NOFILE_OK) < 0)
 		return;
 	cmdloop(0);
@@ -13325,7 +13326,6 @@ extern int etext();
 int ash_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ash_main(int argc UNUSED_PARAM, char **argv)
 {
-	const char *shinit;
 	volatile smallint state;
 	struct jmploc jmploc;
 	struct stackmark smark;
@@ -13394,11 +13394,8 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
  state1:
 		state = 2;
 		hp = lookupvar("HOME");
-		if (hp) {
-			hp = concat_path_file(hp, ".profile");
-			read_profile(hp);
-			free((char*)hp);
-		}
+		if (hp)
+			read_profile("$HOME/.profile");
 	}
  state2:
 	state = 3;
@@ -13408,11 +13405,11 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 #endif
 	 iflag
 	) {
-		shinit = lookupvar("ENV");
-		if (shinit != NULL && *shinit != '\0') {
+		const char *shinit = lookupvar("ENV");
+		if (shinit != NULL && *shinit != '\0')
 			read_profile(shinit);
-		}
 	}
+	popstackmark(&smark);
  state3:
 	state = 4;
 	if (minusc) {
