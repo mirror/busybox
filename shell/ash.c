@@ -13314,10 +13314,6 @@ reset(void)
 	g_parsefile->left_in_line = 0;      /* clear input buffer */
 	popallfiles();
 
-	/* from parser.c: */
-	tokpushback = 0;
-	checkkwd = 0;
-
 	/* from redir.c: */
 	while (redirlist)
 		popredir(/*drop:*/ 0, /*restore:*/ 0);
