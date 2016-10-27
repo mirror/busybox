@@ -3512,8 +3512,8 @@ setsignal(int signo)
 #define CUR_STOPPED 0
 
 /* mode flags for dowait */
-#define DOWAIT_NONBLOCK WNOHANG
-#define DOWAIT_BLOCK    0
+#define DOWAIT_NONBLOCK 0
+#define DOWAIT_BLOCK    1
 
 #if JOBS
 /* pgrp of shell on invocation */
@@ -3935,18 +3935,23 @@ sprint_status48(char *s, int status, int sigonly)
 }
 
 static int
-dowait(int wait_flags, struct job *job)
+dowait(int block, struct job *job)
 {
+	int wait_flags;
 	int pid;
 	int status;
 	struct job *jp;
 	struct job *thisjob;
 
-	TRACE(("dowait(0x%x) called\n", wait_flags));
+	TRACE(("dowait(0x%x) called\n", block));
 
 	/* Do a wait system call. If job control is compiled in, we accept
-	 * stopped processes. wait_flags may have WNOHANG, preventing blocking.
-	 * NB: _not_ safe_waitpid, we need to detect EINTR */
+	 * stopped processes.
+	 * NB: _not_ safe_waitpid, we need to detect EINTR.
+	 */
+	wait_flags = 0;
+	if (block == DOWAIT_NONBLOCK)
+		wait_flags = WNOHANG;
 	if (doing_jobctl)
 		wait_flags |= WUNTRACED;
 	pid = waitpid(-1, &status, wait_flags);
@@ -4028,7 +4033,7 @@ dowait(int wait_flags, struct job *job)
 }
 
 static int
-blocking_wait_with_raise_on_sig(void)
+blocking_dowait_with_raise_on_sig(void)
 {
 	pid_t pid = dowait(DOWAIT_BLOCK, NULL);
 	if (pid <= 0 && pending_sig)
@@ -4224,7 +4229,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 				jp->waited = 1;
 				jp = jp->prev_job;
 			}
-			blocking_wait_with_raise_on_sig();
+			blocking_dowait_with_raise_on_sig();
 	/* man bash:
 	 * "When bash is waiting for an asynchronous command via
 	 * the wait builtin, the reception of a signal for which a trap
@@ -4232,10 +4237,10 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
 	 *
-	 * blocking_wait_with_raise_on_sig raises signal handlers
+	 * blocking_dowait_with_raise_on_sig raises signal handlers
 	 * if it gets no pid (pid < 0). However,
 	 * if child sends us a signal *and immediately exits*,
-	 * blocking_wait_with_raise_on_sig gets pid > 0
+	 * blocking_dowait_with_raise_on_sig gets pid > 0
 	 * and does not handle pending_sig. Check this case: */
 			if (pending_sig)
 				raise_exception(EXSIG);
@@ -4259,7 +4264,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 		}
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING)
-			blocking_wait_with_raise_on_sig();
+			blocking_dowait_with_raise_on_sig();
 		job->waited = 1;
 		retval = getstatus(job);
  repeat: ;
