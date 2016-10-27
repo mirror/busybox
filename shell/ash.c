@@ -302,7 +302,6 @@ struct globals_misc {
 #define EXINT 0         /* SIGINT received */
 #define EXERROR 1       /* a generic error */
 #define EXEXIT 4        /* exit the shell */
-#define EXSIG 5         /* trapped signal in wait(1) */
 
 	smallint isloginsh;
 	char nullstr[1];        /* zero length string */
@@ -482,26 +481,20 @@ static void raise_interrupt(void) NORETURN;
 static void
 raise_interrupt(void)
 {
-	int ex_type;
-
 	pending_int = 0;
 	/* Signal is not automatically unmasked after it is raised,
 	 * do it ourself - unmask all signals */
 	sigprocmask_allsigs(SIG_UNBLOCK);
 	/* pending_sig = 0; - now done in signal_handler() */
 
-	ex_type = EXSIG;
-	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
-		if (!(rootshell && iflag)) {
-			/* Kill ourself with SIGINT */
-			signal(SIGINT, SIG_DFL);
-			raise(SIGINT);
-		}
-		ex_type = EXINT;
+	if (!(rootshell && iflag)) {
+		/* Kill ourself with SIGINT */
+		signal(SIGINT, SIG_DFL);
+		raise(SIGINT);
 	}
 	/* bash: ^C even on empty command line sets $? */
 	exitstatus = SIGINT + 128;
-	raise_exception(ex_type);
+	raise_exception(EXINT);
 	/* NOTREACHED */
 }
 #if DEBUG
@@ -4201,9 +4194,6 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	int retval;
 	struct job *jp;
 
-	if (pending_sig)
-		raise_exception(EXSIG);
-
 	nextopt(nullstr);
 	retval = 0;
 
@@ -4220,7 +4210,6 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 				jp->waited = 1;
 				jp = jp->prev_job;
 			}
-			dowait(DOWAIT_BLOCK, NULL);
 	/* man bash:
 	 * "When bash is waiting for an asynchronous command via
 	 * the wait builtin, the reception of a signal for which a trap
@@ -4228,8 +4217,13 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
 	 */
+			dowait(DOWAIT_BLOCK, NULL); ///DOWAIT_WAITCMD
+	/* if child sends us a signal *and immediately exits*,
+	 * dowait() returns pid > 0. Check this case,
+	 * not "if (dowait() < 0)"!
+	 */
 			if (pending_sig)
-				raise_exception(EXSIG);
+				goto sigout;
 		}
 	}
 
@@ -4250,9 +4244,9 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 		}
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING) {
-			pid_t pid = dowait(DOWAIT_BLOCK, NULL);
-			if (pid <= 0 && pending_sig)
-				raise_exception(EXSIG);
+			dowait(DOWAIT_BLOCK, NULL); ///DOWAIT_WAITCMD
+			if (pending_sig)
+				goto sigout;
 		}
 		job->waited = 1;
 		retval = getstatus(job);
@@ -4260,6 +4254,9 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	} while (*++argv);
 
  ret:
+	return retval;
+ sigout:
+	retval = 128 + pending_sig;
 	return retval;
 }
 
@@ -8475,40 +8472,17 @@ static void prehash(union node *);
 static int
 evaltree(union node *n, int flags)
 {
-	struct jmploc *volatile savehandler = exception_handler;
-	struct jmploc jmploc;
 	int checkexit = 0;
 	int (*evalfn)(union node *, int);
 	int status = 0;
-	int int_level;
-
-	SAVE_INT(int_level);
 
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
-		goto out1;
+		goto out;
 	}
 	TRACE(("evaltree(%p: %d, %d) called\n", n, n->type, flags));
 
 	dotrap();
-
-	exception_handler = &jmploc;
-	{
-		int err = setjmp(jmploc.loc);
-		if (err) {
-			/* if it was a signal, check for trap handlers */
-			if (exception_type == EXSIG) {
-				TRACE(("exception %d (EXSIG) in evaltree, err=%d\n",
-						exception_type, err));
-				goto out;
-			}
-			/* continue on the way out */
-			TRACE(("exception %d in evaltree, propagating err=%d\n",
-					exception_type, err));
-			exception_handler = savehandler;
-			longjmp(exception_handler->loc, err);
-		}
-	}
 
 	switch (n->type) {
 	default:
@@ -8600,11 +8574,7 @@ evaltree(union node *n, int flags)
 		exitstatus = status;
 		break;
 	}
-
  out:
-	exception_handler = savehandler;
-
- out1:
 	/* Order of checks below is important:
 	 * signal handlers trigger before exit caused by "set -e".
 	 */
@@ -8615,9 +8585,7 @@ evaltree(union node *n, int flags)
 	if (flags & EV_EXIT)
 		raise_exception(EXEXIT);
 
-	RESTORE_INT(int_level);
 	TRACE(("leaving evaltree (no interrupts)\n"));
-
 	return exitstatus;
 }
 
@@ -9574,21 +9542,12 @@ evalcommand(union node *cmd, int flags)
 		dowait(DOWAIT_NONBLOCK, NULL);
 
 		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
-			int exit_status;
-			int i = exception_type;
-			if (i == EXEXIT)
-				goto raise;
-			exit_status = 2;
-			if (i == EXINT)
-				exit_status = 128 + SIGINT;
-			if (i == EXSIG)
-				exit_status = 128 + pending_sig;
-			exitstatus = exit_status;
-			if (i == EXINT || spclbltin > 0) {
- raise:
-				longjmp(exception_handler->loc, 1);
+			if (exception_type == EXERROR && spclbltin <= 0) {
+				FORCE_INT_ON;
+				break;
 			}
-			FORCE_INT_ON;
+ raise:
+			longjmp(exception_handler->loc, 1);
 		}
 		goto readstatus;
 
