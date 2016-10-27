@@ -295,6 +295,7 @@ struct globals_misc {
 
 	volatile int suppress_int; /* counter */
 	volatile /*sig_atomic_t*/ smallint pending_int; /* 1 = got SIGINT */
+	volatile /*sig_atomic_t*/ smallint got_sigchld; /* 1 = got SIGCHLD */
 	/* last pending signal */
 	volatile /*sig_atomic_t*/ smallint pending_sig;
 	smallint exception_type; /* kind of exception (0..5) */
@@ -370,6 +371,7 @@ extern struct globals_misc *const ash_ptr_to_globals_misc;
 #define exception_type    (G_misc.exception_type   )
 #define suppress_int      (G_misc.suppress_int     )
 #define pending_int       (G_misc.pending_int      )
+#define got_sigchld       (G_misc.got_sigchld      )
 #define pending_sig       (G_misc.pending_sig      )
 #define isloginsh   (G_misc.isloginsh  )
 #define nullstr     (G_misc.nullstr    )
@@ -3388,7 +3390,14 @@ ignoresig(int signo)
 static void
 signal_handler(int signo)
 {
+	if (signo == SIGCHLD) {
+		got_sigchld = 1;
+		if (!trap[SIGCHLD])
+			return;
+	}
+
 	gotsig[signo - 1] = 1;
+	pending_sig = signo;
 
 	if (signo == SIGINT && !trap[SIGINT]) {
 		if (!suppress_int) {
@@ -3396,8 +3405,6 @@ signal_handler(int signo)
 			raise_interrupt(); /* does not return */
 		}
 		pending_int = 1;
-	} else {
-		pending_sig = signo;
 	}
 }
 
@@ -3455,6 +3462,9 @@ setsignal(int signo)
 //whereas we have to restore it to what shell got on entry
 //from the parent. See comment above
 
+	if (signo == SIGCHLD)
+		new_act = S_CATCH;
+
 	t = &sigmode[signo - 1];
 	cur_act = *t;
 	if (cur_act == 0) {
@@ -3507,6 +3517,7 @@ setsignal(int signo)
 /* mode flags for dowait */
 #define DOWAIT_NONBLOCK 0
 #define DOWAIT_BLOCK    1
+#define DOWAIT_BLOCK_OR_SIG 2
 
 #if JOBS
 /* pgrp of shell on invocation */
@@ -3928,32 +3939,76 @@ sprint_status48(char *s, int status, int sigonly)
 }
 
 static int
+wait_block_or_sig(int *status, int wait_flags)
+{
+	sigset_t mask;
+	int pid;
+
+	do {
+		/* Poll all children for changes in their state */
+		got_sigchld = 0;
+		pid = waitpid(-1, status, wait_flags | WNOHANG);
+		if (pid != 0)
+			break; /* Error (e.g. EINTR) or pid */
+
+		/* No child is ready. Sleep until interesting signal is received */
+		sigfillset(&mask);
+		sigprocmask(SIG_SETMASK, &mask, &mask);
+		while (!got_sigchld && !pending_sig)
+			sigsuspend(&mask);
+		sigprocmask(SIG_SETMASK, &mask, NULL);
+
+		/* If it was SIGCHLD, poll children again */
+	} while (got_sigchld);
+
+	return pid;
+}
+
+
+static int
 dowait(int block, struct job *job)
 {
 	int wait_flags;
 	int pid;
 	int status;
 	struct job *jp;
-	struct job *thisjob;
+	struct job *thisjob = NULL;
 
 	TRACE(("dowait(0x%x) called\n", block));
 
-	/* Do a wait system call. If job control is compiled in, we accept
-	 * stopped processes.
-	 * NB: _not_ safe_waitpid, we need to detect EINTR.
-	 */
 	wait_flags = 0;
 	if (block == DOWAIT_NONBLOCK)
 		wait_flags = WNOHANG;
+	/* If job control is compiled in, we accept stopped processes too. */
 	if (doing_jobctl)
 		wait_flags |= WUNTRACED;
-	pid = waitpid(-1, &status, wait_flags);
+
+	/* It's wrong to call waitpid() outside of INT_OFF region:
+	 * signal can arrive just after syscall return and handler can
+	 * longjmp away, losing stop/exit notification processing.
+	 * Thus, for "jobs" builtin, and for waiting for a fg job,
+	 * we call waitpid() (blocking or non-blocking) inside INT_OFF.
+	 *
+	 * However, for "wait" builtin it is wrong to simply call waitpid()
+	 * in INT_OFF region: "wait" needs to wait for any running job
+	 * to change state, but should exit on any trap too.
+	 * In INT_OFF region, a signal just before syscall entry can set
+	 * pending_sig valiables, but we can't check them, and we would
+	 * either enter a sleeping waitpid() (BUG), or need to busy-loop.
+	 * Because of this, we run inside INT_OFF, but use a special routine
+	 * which combines waitpid() and sigsuspend().
+	 */
+	INT_OFF;
+	if (block == DOWAIT_BLOCK_OR_SIG)
+		pid = wait_block_or_sig(&status, wait_flags);
+	else
+		/* NB: _not_ safe_waitpid, we need to detect EINTR. */
+		pid = waitpid(-1, &status, wait_flags);
 	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
 				pid, status, errno, strerror(errno)));
 	if (pid <= 0)
-		return pid;
+		goto out;
 
-	INT_OFF;
 	thisjob = NULL;
 	for (jp = curjob; jp; jp = jp->prev_job) {
 		int jobstate;
@@ -4217,7 +4272,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 	 * with an exit status greater than 128, immediately after which
 	 * the trap is executed."
 	 */
-			dowait(DOWAIT_BLOCK, NULL); ///DOWAIT_WAITCMD
+			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
 	/* if child sends us a signal *and immediately exits*,
 	 * dowait() returns pid > 0. Check this case,
 	 * not "if (dowait() < 0)"!
@@ -4244,7 +4299,7 @@ waitcmd(int argc UNUSED_PARAM, char **argv)
 		}
 		/* loop until process terminated or stopped */
 		while (job->state == JOBRUNNING) {
-			dowait(DOWAIT_BLOCK, NULL); ///DOWAIT_WAITCMD
+			dowait(DOWAIT_BLOCK_OR_SIG, NULL);
 			if (pending_sig)
 				goto sigout;
 		}
@@ -13113,7 +13168,9 @@ init(void)
 	/* we will never free this */
 	basepf.next_to_pgetc = basepf.buf = ckmalloc(IBUFSIZ);
 
-	signal(SIGCHLD, SIG_DFL);
+	sigmode[SIGCHLD - 1] = S_DFL;
+	setsignal(SIGCHLD);
+
 	/* bash re-enables SIGHUP which is SIG_IGNed on entry.
 	 * Try: "trap '' HUP; bash; echo RET" and type "kill -HUP $$"
 	 */
