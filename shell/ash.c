@@ -4660,19 +4660,19 @@ clear_traps(void)
 {
 	char **tp;
 
+	INT_OFF;
 	for (tp = trap; tp < &trap[NSIG]; tp++) {
 		if (*tp && **tp) {      /* trap not NULL or "" (SIG_IGN) */
-			INT_OFF;
 			if (trap_ptr == trap)
 				free(*tp);
 			/* else: it "belongs" to trap_ptr vector, don't free */
 			*tp = NULL;
 			if ((tp - trap) != 0)
 				setsignal(tp - trap);
-			INT_ON;
 		}
 	}
 	may_have_traps = 0;
+	INT_ON;
 }
 
 /* Lives far away from here, needed for forkchild */
@@ -12753,12 +12753,13 @@ trapcmd(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
 		if (action) {
 			if (LONE_DASH(action))
 				action = NULL;
-			else
+			else {
+				if (action[0]) /* not NULL and not "" and not "-" */
+					may_have_traps = 1;
 				action = ckstrdup(action);
+			}
 		}
 		free(trap[signo]);
-		if (action)
-			may_have_traps = 1;
 		trap[signo] = action;
 		if (signo != 0)
 			setsignal(signo);
