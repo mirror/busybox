@@ -5568,6 +5568,116 @@ cvtnum(arith_t num)
 	return len;
 }
 
+/*
+ * Break the argument string into pieces based upon IFS and add the
+ * strings to the argument list.  The regions of the string to be
+ * searched for IFS characters have been stored by recordregion.
+ */
+static void
+ifsbreakup(char *string, struct arglist *arglist)
+{
+	struct ifsregion *ifsp;
+	struct strlist *sp;
+	char *start;
+	char *p;
+	char *q;
+	const char *ifs, *realifs;
+	int ifsspc;
+	int nulonly;
+
+	start = string;
+	if (ifslastp != NULL) {
+		ifsspc = 0;
+		nulonly = 0;
+		realifs = ifsset() ? ifsval() : defifs;
+		ifsp = &ifsfirst;
+		do {
+			p = string + ifsp->begoff;
+			nulonly = ifsp->nulonly;
+			ifs = nulonly ? nullstr : realifs;
+			ifsspc = 0;
+			while (p < string + ifsp->endoff) {
+				q = p;
+				if ((unsigned char)*p == CTLESC)
+					p++;
+				if (!strchr(ifs, *p)) {
+					p++;
+					continue;
+				}
+				if (!nulonly)
+					ifsspc = (strchr(defifs, *p) != NULL);
+				/* Ignore IFS whitespace at start */
+				if (q == start && ifsspc) {
+					p++;
+					start = p;
+					continue;
+				}
+				*q = '\0';
+				sp = stzalloc(sizeof(*sp));
+				sp->text = start;
+				*arglist->lastp = sp;
+				arglist->lastp = &sp->next;
+				p++;
+				if (!nulonly) {
+					for (;;) {
+						if (p >= string + ifsp->endoff) {
+							break;
+						}
+						q = p;
+						if ((unsigned char)*p == CTLESC)
+							p++;
+						if (strchr(ifs, *p) == NULL) {
+							p = q;
+							break;
+						}
+						if (strchr(defifs, *p) == NULL) {
+							if (ifsspc) {
+								p++;
+								ifsspc = 0;
+							} else {
+								p = q;
+								break;
+							}
+						} else
+							p++;
+					}
+				}
+				start = p;
+			} /* while */
+			ifsp = ifsp->next;
+		} while (ifsp != NULL);
+		if (nulonly)
+			goto add;
+	}
+
+	if (!*start)
+		return;
+
+ add:
+	sp = stzalloc(sizeof(*sp));
+	sp->text = start;
+	*arglist->lastp = sp;
+	arglist->lastp = &sp->next;
+}
+
+static void
+ifsfree(void)
+{
+	struct ifsregion *p;
+
+	INT_OFF;
+	p = ifsfirst.next;
+	do {
+		struct ifsregion *ifsp;
+		ifsp = p->next;
+		free(p);
+		p = ifsp;
+	} while (p);
+	ifslastp = NULL;
+	ifsfirst.next = NULL;
+	INT_ON;
+}
+
 static size_t
 esclen(const char *start, const char *p)
 {
@@ -6846,116 +6956,6 @@ evalvar(char *p, int flag, struct strlist *var_str_list)
 		}
 	}
 	return p;
-}
-
-/*
- * Break the argument string into pieces based upon IFS and add the
- * strings to the argument list.  The regions of the string to be
- * searched for IFS characters have been stored by recordregion.
- */
-static void
-ifsbreakup(char *string, struct arglist *arglist)
-{
-	struct ifsregion *ifsp;
-	struct strlist *sp;
-	char *start;
-	char *p;
-	char *q;
-	const char *ifs, *realifs;
-	int ifsspc;
-	int nulonly;
-
-	start = string;
-	if (ifslastp != NULL) {
-		ifsspc = 0;
-		nulonly = 0;
-		realifs = ifsset() ? ifsval() : defifs;
-		ifsp = &ifsfirst;
-		do {
-			p = string + ifsp->begoff;
-			nulonly = ifsp->nulonly;
-			ifs = nulonly ? nullstr : realifs;
-			ifsspc = 0;
-			while (p < string + ifsp->endoff) {
-				q = p;
-				if ((unsigned char)*p == CTLESC)
-					p++;
-				if (!strchr(ifs, *p)) {
-					p++;
-					continue;
-				}
-				if (!nulonly)
-					ifsspc = (strchr(defifs, *p) != NULL);
-				/* Ignore IFS whitespace at start */
-				if (q == start && ifsspc) {
-					p++;
-					start = p;
-					continue;
-				}
-				*q = '\0';
-				sp = stzalloc(sizeof(*sp));
-				sp->text = start;
-				*arglist->lastp = sp;
-				arglist->lastp = &sp->next;
-				p++;
-				if (!nulonly) {
-					for (;;) {
-						if (p >= string + ifsp->endoff) {
-							break;
-						}
-						q = p;
-						if ((unsigned char)*p == CTLESC)
-							p++;
-						if (strchr(ifs, *p) == NULL) {
-							p = q;
-							break;
-						}
-						if (strchr(defifs, *p) == NULL) {
-							if (ifsspc) {
-								p++;
-								ifsspc = 0;
-							} else {
-								p = q;
-								break;
-							}
-						} else
-							p++;
-					}
-				}
-				start = p;
-			} /* while */
-			ifsp = ifsp->next;
-		} while (ifsp != NULL);
-		if (nulonly)
-			goto add;
-	}
-
-	if (!*start)
-		return;
-
- add:
-	sp = stzalloc(sizeof(*sp));
-	sp->text = start;
-	*arglist->lastp = sp;
-	arglist->lastp = &sp->next;
-}
-
-static void
-ifsfree(void)
-{
-	struct ifsregion *p;
-
-	INT_OFF;
-	p = ifsfirst.next;
-	do {
-		struct ifsregion *ifsp;
-		ifsp = p->next;
-		free(p);
-		p = ifsp;
-	} while (p);
-	ifslastp = NULL;
-	ifsfirst.next = NULL;
-	INT_ON;
 }
 
 /*
