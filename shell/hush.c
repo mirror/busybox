@@ -44,6 +44,8 @@
  *      special variables (done: PWD, PPID, RANDOM)
  *      tilde expansion
  *      aliases
+ *      kill %jobspec
+ *      wait %jobspec
  *      follow IFS rules more precisely, including update semantics
  *      builtins mandated by standards we don't support:
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
@@ -7041,16 +7043,134 @@ static void delete_finished_bg_job(struct pipe *pi)
 }
 #endif /* JOB */
 
-/* Check to see if any processes have exited -- if they
- * have, figure out why and see if a job has completed */
-static int checkjobs(struct pipe *fg_pipe)
+static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 {
-	int attributes;
-	int status;
 #if ENABLE_HUSH_JOB
 	struct pipe *pi;
 #endif
-	pid_t childpid;
+	int i, dead;
+
+	dead = WIFEXITED(status) || WIFSIGNALED(status);
+
+#if DEBUG_JOBS
+	if (WIFSTOPPED(status))
+		debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
+				childpid, WSTOPSIG(status), WEXITSTATUS(status));
+	if (WIFSIGNALED(status))
+		debug_printf_jobs("pid %d killed by sig %d (exitcode %d)\n",
+				childpid, WTERMSIG(status), WEXITSTATUS(status));
+	if (WIFEXITED(status))
+		debug_printf_jobs("pid %d exited, exitcode %d\n",
+				childpid, WEXITSTATUS(status));
+#endif
+	/* Were we asked to wait for a fg pipe? */
+	if (fg_pipe) {
+		i = fg_pipe->num_cmds;
+		while (--i >= 0) {
+			debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
+			if (fg_pipe->cmds[i].pid != childpid)
+				continue;
+			if (dead) {
+				int ex;
+				fg_pipe->cmds[i].pid = 0;
+				fg_pipe->alive_cmds--;
+				ex = WEXITSTATUS(status);
+				/* bash prints killer signal's name for *last*
+				 * process in pipe (prints just newline for SIGINT/SIGPIPE).
+				 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
+				 */
+				if (WIFSIGNALED(status)) {
+					int sig = WTERMSIG(status);
+					if (i == fg_pipe->num_cmds-1)
+						/* TODO: use strsignal() instead for bash compat? but that's bloat... */
+						puts(sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
+					/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
+					/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
+					 * Maybe we need to use sig | 128? */
+					ex = sig + 128;
+				}
+				fg_pipe->cmds[i].cmd_exitcode = ex;
+			} else {
+				fg_pipe->stopped_cmds++;
+			}
+			debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
+					fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
+			if (fg_pipe->alive_cmds == fg_pipe->stopped_cmds) {
+				/* All processes in fg pipe have exited or stopped */
+				int rcode = 0;
+				i = fg_pipe->num_cmds;
+				while (--i >= 0) {
+					rcode = fg_pipe->cmds[i].cmd_exitcode;
+					/* usually last process gives overall exitstatus,
+					 * but with "set -o pipefail", last *failed* process does */
+					if (G.o_opt[OPT_O_PIPEFAIL] == 0 || rcode != 0)
+						break;
+				}
+				IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
+/* Note: *non-interactive* bash does not continue if all processes in fg pipe
+ * are stopped. Testcase: "cat | cat" in a script (not on command line!)
+ * and "killall -STOP cat" */
+				if (G_interactive_fd) {
+#if ENABLE_HUSH_JOB
+					if (fg_pipe->alive_cmds != 0)
+						insert_bg_job(fg_pipe);
+#endif
+					return rcode;
+				}
+				if (fg_pipe->alive_cmds == 0)
+					return rcode;
+			}
+			/* There are still running processes in the fg_pipe */
+			return -1;
+		}
+		/* It wasnt in fg_pipe, look for process in bg pipes */
+	}
+
+#if ENABLE_HUSH_JOB
+	/* We were asked to wait for bg or orphaned children */
+	/* No need to remember exitcode in this case */
+	for (pi = G.job_list; pi; pi = pi->next) {
+		for (i = 0; i < pi->num_cmds; i++) {
+			if (pi->cmds[i].pid == childpid)
+				goto found_pi_and_prognum;
+		}
+	}
+	/* Happens when shell is used as init process (init=/bin/sh) */
+	debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
+	return -1; /* this wasn't a process from fg_pipe */
+
+ found_pi_and_prognum:
+	if (dead) {
+		/* child exited */
+		pi->cmds[i].pid = 0;
+		pi->cmds[i].cmd_exitcode = WEXITSTATUS(status);
+		if (WIFSIGNALED(status))
+			pi->cmds[i].cmd_exitcode = 128 + WTERMSIG(status);
+		pi->alive_cmds--;
+		if (!pi->alive_cmds) {
+			if (G_interactive_fd)
+				printf(JOB_STATUS_FORMAT, pi->jobid,
+						"Done", pi->cmdtext);
+			delete_finished_bg_job(pi);
+		}
+	} else {
+		/* child stopped */
+		pi->stopped_cmds++;
+	}
+#endif
+	return -1; /* this wasn't a process from fg_pipe */
+}
+
+/* Check to see if any processes have exited -- if they have,
+ * figure out why and see if a job has completed.
+ * Alternatively (fg_pipe == NULL, waitfor_pid != 0),
+ * wait for a specific pid to complete, return exitcode+1
+ * (this allows to distinguish zero as "no children exited" result).
+ */
+static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
+{
+	int attributes;
+	int status;
 	int rcode = 0;
 
 	debug_printf_jobs("checkjobs %p\n", fg_pipe);
@@ -7087,12 +7207,10 @@ static int checkjobs(struct pipe *fg_pipe)
  * 1   <========== bg pipe is not fully done, but exitcode is already known!
  * [hush 1.14.0: yes we do it right]
  */
- wait_more:
 	while (1) {
-		int i;
-		int dead;
-
+		pid_t childpid;
 #if ENABLE_HUSH_FAST
+		int i;
 		i = G.count_SIGCHLD;
 #endif
 		childpid = waitpid(-1, &status, attributes);
@@ -7106,112 +7224,24 @@ static int checkjobs(struct pipe *fg_pipe)
 //bb_error_msg("[%d] checkjobs: waitpid returned <= 0, G.count_SIGCHLD:%d G.handled_SIGCHLD:%d", getpid(), G.count_SIGCHLD, G.handled_SIGCHLD);
 			}
 #endif
+			/* ECHILD (no children), or 0 (no change in children status) */
+			rcode = childpid;
 			break;
 		}
-		dead = WIFEXITED(status) || WIFSIGNALED(status);
-
-#if DEBUG_JOBS
-		if (WIFSTOPPED(status))
-			debug_printf_jobs("pid %d stopped by sig %d (exitcode %d)\n",
-					childpid, WSTOPSIG(status), WEXITSTATUS(status));
-		if (WIFSIGNALED(status))
-			debug_printf_jobs("pid %d killed by sig %d (exitcode %d)\n",
-					childpid, WTERMSIG(status), WEXITSTATUS(status));
-		if (WIFEXITED(status))
-			debug_printf_jobs("pid %d exited, exitcode %d\n",
-					childpid, WEXITSTATUS(status));
-#endif
-		/* Were we asked to wait for fg pipe? */
-		if (fg_pipe) {
-			i = fg_pipe->num_cmds;
-			while (--i >= 0) {
-				debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
-				if (fg_pipe->cmds[i].pid != childpid)
-					continue;
-				if (dead) {
-					int ex;
-					fg_pipe->cmds[i].pid = 0;
-					fg_pipe->alive_cmds--;
-					ex = WEXITSTATUS(status);
-					/* bash prints killer signal's name for *last*
-					 * process in pipe (prints just newline for SIGINT/SIGPIPE).
-					 * Mimic this. Example: "sleep 5" + (^\ or kill -QUIT)
-					 */
-					if (WIFSIGNALED(status)) {
-						int sig = WTERMSIG(status);
-						if (i == fg_pipe->num_cmds-1)
-							/* TODO: use strsignal() instead for bash compat? but that's bloat... */
-							puts(sig == SIGINT || sig == SIGPIPE ? "" : get_signame(sig));
-						/* TODO: if (WCOREDUMP(status)) + " (core dumped)"; */
-						/* TODO: MIPS has 128 sigs (1..128), what if sig==128 here?
-						 * Maybe we need to use sig | 128? */
-						ex = sig + 128;
-					}
-					fg_pipe->cmds[i].cmd_exitcode = ex;
-				} else {
-					fg_pipe->stopped_cmds++;
-				}
-				debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
-						fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
-				if (fg_pipe->alive_cmds == fg_pipe->stopped_cmds) {
-					/* All processes in fg pipe have exited or stopped */
-					i = fg_pipe->num_cmds;
-					while (--i >= 0) {
-						rcode = fg_pipe->cmds[i].cmd_exitcode;
-						/* usually last process gives overall exitstatus,
-						 * but with "set -o pipefail", last *failed* process does */
-						if (G.o_opt[OPT_O_PIPEFAIL] == 0 || rcode != 0)
-							break;
-					}
-					IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
-/* Note: *non-interactive* bash does not continue if all processes in fg pipe
- * are stopped. Testcase: "cat | cat" in a script (not on command line!)
- * and "killall -STOP cat" */
-					if (G_interactive_fd) {
-#if ENABLE_HUSH_JOB
-						if (fg_pipe->alive_cmds != 0)
-							insert_bg_job(fg_pipe);
-#endif
-						return rcode;
-					}
-					if (fg_pipe->alive_cmds == 0)
-						return rcode;
-				}
-				/* There are still running processes in the fg pipe */
-				goto wait_more; /* do waitpid again */
-			}
-			/* it wasnt fg_pipe, look for process in bg pipes */
+		rcode = process_wait_result(fg_pipe, childpid, status);
+		if (rcode >= 0) {
+			/* fg_pipe exited or stopped */
+			break;
 		}
-
-#if ENABLE_HUSH_JOB
-		/* We asked to wait for bg or orphaned children */
-		/* No need to remember exitcode in this case */
-		for (pi = G.job_list; pi; pi = pi->next) {
-			for (i = 0; i < pi->num_cmds; i++) {
-				if (pi->cmds[i].pid == childpid)
-					goto found_pi_and_prognum;
-			}
+		if (childpid == waitfor_pid) {
+			rcode = WEXITSTATUS(status);
+			if (WIFSIGNALED(status))
+				rcode = 128 + WTERMSIG(status);
+			rcode++;
+			break; /* "wait PID" called us, give it exitcode+1 */
 		}
-		/* Happens when shell is used as init process (init=/bin/sh) */
-		debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
-		continue; /* do waitpid again */
-
- found_pi_and_prognum:
-		if (dead) {
-			/* child exited */
-			pi->cmds[i].pid = 0;
-			pi->alive_cmds--;
-			if (!pi->alive_cmds) {
-				if (G_interactive_fd)
-					printf(JOB_STATUS_FORMAT, pi->jobid,
-							"Done", pi->cmdtext);
-				delete_finished_bg_job(pi);
-			}
-		} else {
-			/* child stopped */
-			pi->stopped_cmds++;
-		}
-#endif
+		/* This wasn't one of our processes, or */
+		/* fg_pipe still has running processes, do waitpid again */
 	} /* while (waitpid succeeds)... */
 
 	return rcode;
@@ -7221,7 +7251,7 @@ static int checkjobs(struct pipe *fg_pipe)
 static int checkjobs_and_fg_shell(struct pipe *fg_pipe)
 {
 	pid_t p;
-	int rcode = checkjobs(fg_pipe);
+	int rcode = checkjobs(fg_pipe, 0 /*(no pid to wait for)*/);
 	if (G_saved_tty_pgrp) {
 		/* Job finished, move the shell to the foreground */
 		p = getpgrp(); /* our process group id */
@@ -7893,7 +7923,7 @@ static int run_list(struct pipe *pi)
 						/* else: e.g. "continue 2" should *break* once, *then* continue */
 					} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
 					if (G.depth_break_continue != 0 || fbc == BC_BREAK) {
-						checkjobs(NULL);
+						checkjobs(NULL, 0 /*(no pid to wait for)*/);
 						break;
 					}
 					/* "continue": simulate end of loop */
@@ -7902,7 +7932,7 @@ static int run_list(struct pipe *pi)
 				}
 #endif
 				if (G_flag_return_in_progress == 1) {
-					checkjobs(NULL);
+					checkjobs(NULL, 0 /*(no pid to wait for)*/);
 					break;
 				}
 			} else if (pi->followup == PIPE_BG) {
@@ -7929,7 +7959,7 @@ static int run_list(struct pipe *pi)
 				} else
 #endif
 				{ /* This one just waits for completion */
-					rcode = checkjobs(pi);
+					rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
 					debug_printf_exec(": checkjobs exitcode %d\n", rcode);
 					check_and_run_traps();
 				}
@@ -7943,7 +7973,7 @@ static int run_list(struct pipe *pi)
 			cond_code = rcode;
 #endif
  check_jobs_and_continue:
-		checkjobs(NULL);
+		checkjobs(NULL, 0 /*(no pid to wait for)*/);
  dont_check_jobs_but_continue: ;
 #if ENABLE_HUSH_LOOPS
 		/* Beware of "while false; true; do ..."! */
@@ -9408,9 +9438,68 @@ static int FAST_FUNC builtin_umask(char **argv)
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
+static int wait_for_child_or_signal(pid_t waitfor_pid)
+{
+	int ret = 0;
+	for (;;) {
+		int sig;
+		sigset_t oldset, allsigs;
+
+		/* waitpid is not interruptible by SA_RESTARTed
+		 * signals which we use. Thus, this ugly dance:
+		 */
+
+		/* Make sure possible SIGCHLD is stored in kernel's
+		 * pending signal mask before we call waitpid.
+		 * Or else we may race with SIGCHLD, lose it,
+		 * and get stuck in sigwaitinfo...
+		 */
+		sigfillset(&allsigs);
+		sigprocmask(SIG_SETMASK, &allsigs, &oldset);
+
+		if (!sigisemptyset(&G.pending_set)) {
+			/* Crap! we raced with some signal! */
+		//	sig = 0;
+			goto restore;
+		}
+
+		/*errno = 0; - checkjobs does this */
+		ret = checkjobs(NULL, waitfor_pid); /* waitpid(WNOHANG) inside */
+		/* if ECHILD, there are no children (ret is -1 or 0) */
+		/* if ret == 0, no children changed state */
+		/* if ret != 0, it's exitcode+1 of exited waitfor_pid child */
+		if (errno == ECHILD || ret--) {
+			if (ret < 0) /* if ECHILD, may need to fix */
+				ret = 0;
+			sigprocmask(SIG_SETMASK, &oldset, NULL);
+			break;
+		}
+
+		/* Wait for SIGCHLD or any other signal */
+		//sig = sigwaitinfo(&allsigs, NULL);
+		/* It is vitally important for sigsuspend that SIGCHLD has non-DFL handler! */
+		/* Note: sigsuspend invokes signal handler */
+		sigsuspend(&oldset);
+ restore:
+		sigprocmask(SIG_SETMASK, &oldset, NULL);
+
+		/* So, did we get a signal? */
+		//if (sig > 0)
+		//	raise(sig); /* run handler */
+		sig = check_and_run_traps();
+		if (sig /*&& sig != SIGCHLD - always true */) {
+			/* see note 2 */
+			ret = 128 + sig;
+			break;
+		}
+		/* SIGCHLD, or no signal, or ignored one, such as SIGQUIT. Repeat */
+	}
+	return ret;
+}
+
 static int FAST_FUNC builtin_wait(char **argv)
 {
-	int ret = EXIT_SUCCESS;
+	int ret;
 	int status;
 
 	argv = skip_dash_dash(argv);
@@ -9431,74 +9520,41 @@ static int FAST_FUNC builtin_wait(char **argv)
 		 * ^C <-- after ~4 sec from keyboard
 		 * $
 		 */
-		while (1) {
-			int sig;
-			sigset_t oldset, allsigs;
-
-			/* waitpid is not interruptible by SA_RESTARTed
-			 * signals which we use. Thus, this ugly dance:
-			 */
-
-			/* Make sure possible SIGCHLD is stored in kernel's
-			 * pending signal mask before we call waitpid.
-			 * Or else we may race with SIGCHLD, lose it,
-			 * and get stuck in sigwaitinfo...
-			 */
-			sigfillset(&allsigs);
-			sigprocmask(SIG_SETMASK, &allsigs, &oldset);
-
-			if (!sigisemptyset(&G.pending_set)) {
-				/* Crap! we raced with some signal! */
-			//	sig = 0;
-				goto restore;
-			}
-
-			checkjobs(NULL); /* waitpid(WNOHANG) inside */
-			if (errno == ECHILD) {
-				sigprocmask(SIG_SETMASK, &oldset, NULL);
-				break;
-			}
-
-			/* Wait for SIGCHLD or any other signal */
-			//sig = sigwaitinfo(&allsigs, NULL);
-			/* It is vitally important for sigsuspend that SIGCHLD has non-DFL handler! */
-			/* Note: sigsuspend invokes signal handler */
-			sigsuspend(&oldset);
- restore:
-			sigprocmask(SIG_SETMASK, &oldset, NULL);
-
-			/* So, did we get a signal? */
-			//if (sig > 0)
-			//	raise(sig); /* run handler */
-			sig = check_and_run_traps();
-			if (sig /*&& sig != SIGCHLD - always true */) {
-				/* see note 2 */
-				ret = 128 + sig;
-				break;
-			}
-			/* SIGCHLD, or no signal, or ignored one, such as SIGQUIT. Repeat */
-		}
-		return ret;
+		return wait_for_child_or_signal(0 /*(no pid to wait for)*/);
 	}
 
-	/* This is probably buggy wrt interruptible-ness */
-	while (*argv) {
+	/* TODO: support "wait %jobspec" */
+	do {
 		pid_t pid = bb_strtou(*argv, NULL, 10);
-		if (errno) {
+		if (errno || pid <= 0) {
 			/* mimic bash message */
 			bb_error_msg("wait: '%s': not a pid or valid job spec", *argv);
 			return EXIT_FAILURE;
 		}
-		if (waitpid(pid, &status, 0) == pid) {
+		/* Do we have such child? */
+		ret = waitpid(pid, &status, WNOHANG);
+		if (ret < 0) {
+			/* No */
+			if (errno == ECHILD) {
+				/* Example: "wait 1". mimic bash message */
+				bb_error_msg("wait: pid %d is not a child of this shell", (int)pid);
+			} else {
+				/* ??? */
+				bb_perror_msg("wait %s", *argv);
+			}
+			ret = 127;
+		} else if (ret == 0) {
+			/* Yes, and it still runs */
+			ret = wait_for_child_or_signal(pid);
+		} else {
+			/* Yes, and it just exited */
+			process_wait_result(NULL, pid, status);
 			ret = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
-		} else {
-			bb_perror_msg("wait %s", *argv);
-			ret = 127;
 		}
 		argv++;
-	}
+	} while (*argv);
 
 	return ret;
 }
