@@ -2180,6 +2180,7 @@ setvareq(char *s, int flags)
 			if (flags & VNOSAVE)
 				free(s);
 			n = vp->var_text;
+			exitstatus = 1;
 			ash_msg_and_raise_error("%.*s: is read only", strchrnul(n, '=') - n, n);
 		}
 
@@ -9599,7 +9600,7 @@ evalcommand(union node *cmd, int flags)
 		if (evalbltin(cmdentry.u.cmd, argc, argv, flags)) {
 			if (exception_type == EXERROR && spclbltin <= 0) {
 				FORCE_INT_ON;
-				break;
+				goto readstatus;
 			}
  raise:
 			longjmp(exception_handler->loc, 1);
@@ -12280,6 +12281,10 @@ expandstr(const char *ps)
 static int
 evalstring(char *s, int flags)
 {
+	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc jmploc;
+	int ex;
+
 	union node *n;
 	struct stackmark smark;
 	int status;
@@ -12289,6 +12294,19 @@ evalstring(char *s, int flags)
 	setstackmark(&smark);
 
 	status = 0;
+	/* On exception inside execution loop, we must popfile().
+	 * Try interactively:
+	 *	readonly a=a
+	 *	command eval "a=b"  # throws "is read only" error
+	 * "command BLTIN" is not supposed to abort (even in non-interactive use).
+	 * But if we skip popfile(), we hit EOF in eval's string, and exit.
+	 */
+	savehandler = exception_handler;
+	exception_handler = &jmploc;
+	ex = setjmp(jmploc.loc);
+	if (ex)
+		goto out;
+
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
 
@@ -12299,9 +12317,14 @@ evalstring(char *s, int flags)
 		if (evalskip)
 			break;
 	}
+ out:
 	popstackmark(&smark);
 	popfile();
 	stunalloc(s);
+
+	exception_handler = savehandler;
+	if (ex)
+                longjmp(exception_handler->loc, ex);
 
 	return status;
 }
