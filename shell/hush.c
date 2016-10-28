@@ -9529,13 +9529,22 @@ static int FAST_FUNC builtin_wait(char **argv)
 		if (errno || pid <= 0) {
 			/* mimic bash message */
 			bb_error_msg("wait: '%s': not a pid or valid job spec", *argv);
-			return EXIT_FAILURE;
+			ret = EXIT_FAILURE;
+			continue; /* bash checks all argv[] */
 		}
 		/* Do we have such child? */
 		ret = waitpid(pid, &status, WNOHANG);
 		if (ret < 0) {
 			/* No */
 			if (errno == ECHILD) {
+				if (G.last_bg_pid > 0 && pid == G.last_bg_pid) {
+					/* "wait $!" but last bg task has already exited. Try:
+					 * (sleep 1; exit 3) & sleep 2; echo $?; wait $!; echo $?
+					 * In bash it prints exitcode 0, then 3.
+					 */
+					ret = 0; /* FIXME */
+					continue;
+				}
 				/* Example: "wait 1". mimic bash message */
 				bb_error_msg("wait: pid %d is not a child of this shell", (int)pid);
 			} else {
@@ -9543,7 +9552,9 @@ static int FAST_FUNC builtin_wait(char **argv)
 				bb_perror_msg("wait %s", *argv);
 			}
 			ret = 127;
-		} else if (ret == 0) {
+			continue; /* bash checks all argv[] */
+		}
+		if (ret == 0) {
 			/* Yes, and it still runs */
 			ret = wait_for_child_or_signal(pid);
 		} else {
@@ -9553,8 +9564,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
 		}
-		argv++;
-	} while (*argv);
+	} while (*++argv);
 
 	return ret;
 }
