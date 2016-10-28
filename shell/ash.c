@@ -296,8 +296,7 @@ struct globals_misc {
 	volatile int suppress_int; /* counter */
 	volatile /*sig_atomic_t*/ smallint pending_int; /* 1 = got SIGINT */
 	volatile /*sig_atomic_t*/ smallint got_sigchld; /* 1 = got SIGCHLD */
-	/* last pending signal */
-	volatile /*sig_atomic_t*/ smallint pending_sig;
+	volatile /*sig_atomic_t*/ smallint pending_sig;	/* last pending signal */
 	smallint exception_type; /* kind of exception (0..5) */
 	/* exceptions */
 #define EXINT 0         /* SIGINT received */
@@ -3515,11 +3514,6 @@ setsignal(int signo)
 #define CUR_RUNNING 1
 #define CUR_STOPPED 0
 
-/* mode flags for dowait */
-#define DOWAIT_NONBLOCK 0
-#define DOWAIT_BLOCK    1
-#define DOWAIT_BLOCK_OR_SIG 2
-
 #if JOBS
 /* pgrp of shell on invocation */
 static int initialpgrp; //references:2
@@ -3940,24 +3934,30 @@ sprint_status48(char *s, int status, int sigonly)
 }
 
 static int
-wait_block_or_sig(int *status, int wait_flags)
+wait_block_or_sig(int *status)
 {
-	sigset_t mask;
 	int pid;
 
 	do {
 		/* Poll all children for changes in their state */
 		got_sigchld = 0;
-		pid = waitpid(-1, status, wait_flags | WNOHANG);
+		/* if job control is active, accept stopped processes too */
+		pid = waitpid(-1, status, doing_jobctl ? (WNOHANG|WUNTRACED) : WNOHANG);
 		if (pid != 0)
-			break; /* Error (e.g. EINTR) or pid */
+			break; /* Error (e.g. EINTR, ECHILD) or pid */
 
-		/* No child is ready. Sleep until interesting signal is received */
+		/* Children exist, but none are ready. Sleep until interesting signal */
+#if 0 /* dash does this */
+		sigset_t mask;
 		sigfillset(&mask);
 		sigprocmask(SIG_SETMASK, &mask, &mask);
 		while (!got_sigchld && !pending_sig)
 			sigsuspend(&mask);
 		sigprocmask(SIG_SETMASK, &mask, NULL);
+#else
+		while (!got_sigchld && !pending_sig)
+			pause();
+#endif
 
 		/* If it was SIGCHLD, poll children again */
 	} while (got_sigchld);
@@ -3965,24 +3965,19 @@ wait_block_or_sig(int *status, int wait_flags)
 	return pid;
 }
 
+#define DOWAIT_NONBLOCK 0
+#define DOWAIT_BLOCK    1
+#define DOWAIT_BLOCK_OR_SIG 2
 
 static int
 dowait(int block, struct job *job)
 {
-	int wait_flags;
 	int pid;
 	int status;
 	struct job *jp;
 	struct job *thisjob = NULL;
 
 	TRACE(("dowait(0x%x) called\n", block));
-
-	wait_flags = 0;
-	if (block == DOWAIT_NONBLOCK)
-		wait_flags = WNOHANG;
-	/* If job control is compiled in, we accept stopped processes too. */
-	if (doing_jobctl)
-		wait_flags |= WUNTRACED;
 
 	/* It's wrong to call waitpid() outside of INT_OFF region:
 	 * signal can arrive just after syscall return and handler can
@@ -3994,17 +3989,27 @@ dowait(int block, struct job *job)
 	 * in INT_OFF region: "wait" needs to wait for any running job
 	 * to change state, but should exit on any trap too.
 	 * In INT_OFF region, a signal just before syscall entry can set
-	 * pending_sig valiables, but we can't check them, and we would
+	 * pending_sig variables, but we can't check them, and we would
 	 * either enter a sleeping waitpid() (BUG), or need to busy-loop.
+	 *
 	 * Because of this, we run inside INT_OFF, but use a special routine
-	 * which combines waitpid() and sigsuspend().
+	 * which combines waitpid() and pause().
+	 * This is the reason why we need to have a handler for SIGCHLD:
+	 * SIG_DFL handler does not wake pause().
 	 */
 	INT_OFF;
-	if (block == DOWAIT_BLOCK_OR_SIG)
-		pid = wait_block_or_sig(&status, wait_flags);
-	else
-		/* NB: _not_ safe_waitpid, we need to detect EINTR. */
+	if (block == DOWAIT_BLOCK_OR_SIG) {
+		pid = wait_block_or_sig(&status);
+	} else {
+		int wait_flags = 0;
+		if (block == DOWAIT_NONBLOCK)
+			wait_flags = WNOHANG;
+		/* if job control is active, accept stopped processes too */
+		if (doing_jobctl)
+			wait_flags |= WUNTRACED;
+		/* NB: _not_ safe_waitpid, we need to detect EINTR */
 		pid = waitpid(-1, &status, wait_flags);
+	}
 	TRACE(("wait returns pid=%d, status=0x%x, errno=%d(%s)\n",
 				pid, status, errno, strerror(errno)));
 	if (pid <= 0)
