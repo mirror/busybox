@@ -11,6 +11,7 @@
 //usage:     "\n	-w	Show page locations"
 
 #include "libbb.h"
+#include "common_bufsiz.h"
 
 enum {
 	OPT_a = 1, /* all */
@@ -18,7 +19,6 @@ enum {
 };
 
 /* This is what I see on my desktop system being executed:
-
 (
 echo ".ll 12.4i"
 echo ".nr LL 12.4i"
@@ -28,11 +28,39 @@ echo ".\\\""
 echo ".pl \n(nlu+10"
 ) | gtbl | nroff -Tlatin1 -mandoc | less
 
+On another system I see this:
+
+... | tbl | nroff -mandoc -rLL=<NNN>n -rLT=<NNN>n -Tutf8 | less
+
+where <NNN> is screen width minus 5.
+Replacing "DEFINE nroff nroff -mandoc" in /etc/man_db.conf
+changes "nroff -mandoc" part; -rLL=<NNN>n, -rLT=<NNN>n and -Tutf8 parts are
+appended to the user-specified command.
+
+Redirecting to a pipe or file sets GROFF_NO_SGR=1 to prevent color escapes,
+and uses "col -b -p -x" instead of pager, this filters out backspace
+and underscore tricks.
 */
 
-static int show_manpage(const char *pager, char *man_filename, int man, int level);
+struct globals {
+	const char *col;
+	const char *tbl;
+	const char *nroff;
+	const char *pager;
+} FIX_ALIASING;
+#define G (*(struct globals*)bb_common_bufsiz1)
+#define INIT_G() do { \
+	setup_common_bufsiz(); \
+	G.col = "col"; \
+	G.tbl = "tbl"; \
+	/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */; \
+	G.nroff = "nroff -mandoc -Tascii"; \
+	G.pager = ENABLE_LESS ? "less" : "more"; \
+} while (0)
 
-static int run_pipe(const char *pager, char *man_filename, int man, int level)
+static int show_manpage(char *man_filename, int man, int level);
+
+static int run_pipe(char *man_filename, int man, int level)
 {
 	char *cmd;
 
@@ -95,7 +123,7 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
 		man_filename = xasprintf("%s/%s", man_filename, linkname);
 		free(line);
 		/* Note: we leak "new" man_filename string as well... */
-		if (show_manpage(pager, man_filename, man, level + 1))
+		if (show_manpage(man_filename, man, level + 1))
 			return 1;
 		/* else: show the link, it's better than nothing */
 	}
@@ -103,20 +131,29 @@ static int run_pipe(const char *pager, char *man_filename, int man, int level)
  ordinary_manpage:
 	close(STDIN_FILENO);
 	open_zipped(man_filename, /*fail_if_not_compressed:*/ 0); /* guaranteed to use fd 0 (STDIN_FILENO) */
-	/* "2>&1" is added so that nroff errors are shown in pager too.
-	 * Otherwise it may show just empty screen */
-	cmd = xasprintf(
-		/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */
-		man ? "gtbl | nroff -Tascii -mandoc 2>&1 | %s"
-		    : "%s",
-		pager);
+	if (man) {
+		/* "man man" formats to screen width.
+		 * "man man >file" formats to default 80 columns.
+		 * "man man | cat" formats to default 80 columns.
+		 */
+		int w = get_terminal_width(STDOUT_FILENO);
+		if (w > 10)
+			w -= 2;
+		/* "2>&1" is added so that nroff errors are shown in pager too.
+		 * Otherwise it may show just empty screen */
+		cmd = xasprintf("%s | %s -rLL=%un -rLT=%un 2>&1 | %s",
+				G.tbl, G.nroff, w, w,
+				G.pager);
+	} else {
+		cmd = xstrdup(G.pager);
+	}
 	system(cmd);
 	free(cmd);
 	return 1;
 }
 
 /* man_filename is of the form "/dir/dir/dir/name.s" */
-static int show_manpage(const char *pager, char *man_filename, int man, int level)
+static int show_manpage(char *man_filename, int man, int level)
 {
 #if SEAMLESS_COMPRESSION
 	/* We leak this allocation... */
@@ -125,26 +162,26 @@ static int show_manpage(const char *pager, char *man_filename, int man, int leve
 #endif
 
 #if ENABLE_FEATURE_SEAMLESS_LZMA
-	if (run_pipe(pager, filename_with_zext, man, level))
+	if (run_pipe(filename_with_zext, man, level))
 		return 1;
 #endif
 #if ENABLE_FEATURE_SEAMLESS_XZ
 	strcpy(ext, "xz");
-	if (run_pipe(pager, filename_with_zext, man, level))
+	if (run_pipe(filename_with_zext, man, level))
 		return 1;
 #endif
 #if ENABLE_FEATURE_SEAMLESS_BZ2
 	strcpy(ext, "bz2");
-	if (run_pipe(pager, filename_with_zext, man, level))
+	if (run_pipe(filename_with_zext, man, level))
 		return 1;
 #endif
 #if ENABLE_FEATURE_SEAMLESS_GZ
 	strcpy(ext, "gz");
-	if (run_pipe(pager, filename_with_zext, man, level))
+	if (run_pipe(filename_with_zext, man, level))
 		return 1;
 #endif
 
-	return run_pipe(pager, man_filename, man, level);
+	return run_pipe(man_filename, man, level);
 }
 
 static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
@@ -182,11 +219,20 @@ static char **add_MANPATH(char **man_path_list, int *count_mp, char *path)
 	return man_path_list;
 }
 
+static const char *if_redefined(const char *var, const char *key, const char *line)
+{
+	if (!is_prefixed_with(line, key))
+		return var;
+	line += strlen(key);
+	if (!isspace(line[0]))
+		return var;
+	return xstrdup(skip_whitespace(line));
+}
+
 int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int man_main(int argc UNUSED_PARAM, char **argv)
 {
 	parser_t *parser;
-	const char *pager = ENABLE_LESS ? "less" : "more";
 	char *sec_list;
 	char *cur_path, *cur_sect;
 	char **man_path_list;
@@ -194,6 +240,8 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 	int cur_mp;
 	int opt, not_found;
 	char *token[2];
+
+	INIT_G();
 
 	opt_complementary = "-1"; /* at least one argument */
 	opt = getopt32(argv, "+aw");
@@ -228,9 +276,10 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!token[1])
 			continue;
 		if (strcmp("DEFINE", token[0]) == 0) {
-			if (is_prefixed_with(token[1], "pager")) {
-				pager = xstrdup(skip_whitespace(token[1] + 5));
-			}
+			G.col   = if_redefined(G.tbl  , "col",   token[1]);
+			G.tbl   = if_redefined(G.tbl  , "tbl",   token[1]);
+			G.nroff = if_redefined(G.nroff, "nroff", token[1]);
+			G.pager = if_redefined(G.pager, "pager", token[1]);
 		} else
 		if (strcmp("MANDATORY_MANPATH"+10, token[0]) == 0 /* "MANPATH"? */
 		 || strcmp("MANDATORY_MANPATH", token[0]) == 0
@@ -250,7 +299,12 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		if (!env_pager)
 			env_pager = getenv("PAGER");
 		if (env_pager)
-			pager = env_pager;
+			G.pager = env_pager;
+	}
+
+	if (!isatty(STDOUT_FILENO)) {
+		putenv((char*)"GROFF_NO_SGR=1");
+		G.pager = xasprintf("%s -b -p -x", G.col);
 	}
 
 	not_found = 0;
@@ -259,7 +313,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 		cur_mp = 0;
 
 		if (strchr(*argv, '/')) {
-			found = show_manpage(pager, *argv, /*man:*/ 1, 0);
+			found = show_manpage(*argv, /*man:*/ 1, 0);
 			goto check_found;
 		}
 		while ((cur_path = man_path_list[cur_mp++]) != NULL) {
@@ -280,7 +334,7 @@ int man_main(int argc UNUSED_PARAM, char **argv)
 							sect_len, cur_sect,
 							*argv,
 							sect_len, cur_sect);
-					found_here = show_manpage(pager, man_filename, cat0man1, 0);
+					found_here = show_manpage(man_filename, cat0man1, 0);
 					found |= found_here;
 					cat0man1 += found_here + 1;
 					free(man_filename);
