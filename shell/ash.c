@@ -844,13 +844,8 @@ trace_vprintf(const char *fmt, va_list va)
 {
 	if (debug != 1)
 		return;
-	if (DEBUG_TIME)
-		fprintf(tracefile, "%u ", (int) time(NULL));
-	if (DEBUG_PID)
-		fprintf(tracefile, "[%u] ", (int) getpid());
-	if (DEBUG_SIG)
-		fprintf(tracefile, "pending s:%d i:%d(supp:%d) ", pending_sig, pending_int, suppress_int);
 	vfprintf(tracefile, fmt, va);
+	fprintf(tracefile, "\n");
 }
 
 static void
@@ -1243,11 +1238,10 @@ ash_vmsg_and_raise(int cond, const char *msg, va_list ap)
 {
 #if DEBUG
 	if (msg) {
-		TRACE(("ash_vmsg_and_raise(%d, \"", cond));
+		TRACE(("ash_vmsg_and_raise(%d):", cond));
 		TRACEV((msg, ap));
-		TRACE(("\") pid=%d\n", getpid()));
 	} else
-		TRACE(("ash_vmsg_and_raise(%d, NULL) pid=%d\n", cond, getpid()));
+		TRACE(("ash_vmsg_and_raise(%d):NULL\n", cond));
 	if (msg)
 #endif
 		ash_vmsg(msg, ap);
@@ -13422,16 +13416,15 @@ int ash_main(int argc UNUSED_PARAM, char **argv)
 		goto state4;
 	}
 	exception_handler = &jmploc;
-#if DEBUG
-	opentrace();
-	TRACE(("Shell args: "));
-	trace_puts_args(argv);
-#endif
 	rootpid = getpid();
 
 	init();
 	setstackmark(&smark);
 	procargs(argv);
+#if DEBUG
+	TRACE(("Shell args: "));
+	trace_puts_args(argv);
+#endif
 
 	if (argv[0] && argv[0][0] == '-')
 		isloginsh = 1;
