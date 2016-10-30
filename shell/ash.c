@@ -10125,6 +10125,9 @@ popfile(void)
 {
 	struct parsefile *pf = g_parsefile;
 
+	if (pf == &basepf)
+		return;
+
 	INT_OFF;
 	if (pf->pf_fd >= 0)
 		close(pf->pf_fd);
@@ -12286,7 +12289,7 @@ expandstr(const char *ps)
 static int
 evalstring(char *s, int flags)
 {
-	struct jmploc *volatile savehandler = exception_handler;
+	struct jmploc *volatile savehandler;
 	struct jmploc jmploc;
 	int ex;
 
@@ -12307,10 +12310,10 @@ evalstring(char *s, int flags)
 	 * But if we skip popfile(), we hit EOF in eval's string, and exit.
 	 */
 	savehandler = exception_handler;
-	exception_handler = &jmploc;
 	ex = setjmp(jmploc.loc);
 	if (ex)
 		goto out;
+	exception_handler = &jmploc;
 
 	while ((n = parsecmd(0)) != NODE_EOF) {
 		int i;
