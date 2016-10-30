@@ -7047,6 +7047,21 @@ expandmeta(struct strlist *str /*, int flag*/)
 
 		if (fflag)
 			goto nometa;
+
+		/* Avoid glob() (and thus, stat() et al) for words like "echo" */
+		p = str->text;
+		while (*p) {
+			if (*p == '*')
+				goto need_glob;
+			if (*p == '?')
+				goto need_glob;
+			if (*p == '[')
+				goto need_glob;
+			p++;
+		}
+		goto nometa;
+
+ need_glob:
 		INT_OFF;
 		p = preglob(str->text, RMESCAPE_ALLOC | RMESCAPE_HEAP);
 // GLOB_NOMAGIC (GNU): if no *?[ chars in pattern, return it even if no match
