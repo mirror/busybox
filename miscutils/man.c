@@ -30,6 +30,8 @@ echo ".\\\""
 echo ".pl \n(nlu+10"
 ) | gtbl | nroff -Tlatin1 -mandoc | less
 
+Some systems use -Tascii.
+
 On another system I see this:
 
 ... | tbl | nroff -mandoc -rLL=<NNN>n -rLT=<NNN>n -Tutf8 | less
@@ -55,8 +57,8 @@ struct globals {
 	setup_common_bufsiz(); \
 	G.col = "col"; \
 	G.tbl = "tbl"; \
-	/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */ \
-	G.nroff = "nroff -mandoc -Tascii"; \
+	/* Removed -Tlatin1. Assuming system nroff has suitable default */ \
+	G.nroff = "nroff -mandoc"; \
 	G.pager = ENABLE_LESS ? "less" : "more"; \
 } while (0)
 
