@@ -9,6 +9,8 @@
 //usage:       "Format and display manual page\n"
 //usage:     "\n	-a	Display all pages"
 //usage:     "\n	-w	Show page locations"
+//usage:     "\n"
+//usage:     "\n$COLUMNS overrides output width"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -53,7 +55,7 @@ struct globals {
 	setup_common_bufsiz(); \
 	G.col = "col"; \
 	G.tbl = "tbl"; \
-	/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */; \
+	/* replaced -Tlatin1 with -Tascii for non-UTF8 displays */ \
 	G.nroff = "nroff -mandoc -Tascii"; \
 	G.pager = ENABLE_LESS ? "less" : "more"; \
 } while (0)
@@ -132,15 +134,12 @@ static int run_pipe(char *man_filename, int man, int level)
 	close(STDIN_FILENO);
 	open_zipped(man_filename, /*fail_if_not_compressed:*/ 0); /* guaranteed to use fd 0 (STDIN_FILENO) */
 	if (man) {
-		/* "man man" formats to screen width.
-		 * "man man >file" formats to default 80 columns.
-		 * "man man | cat" formats to default 80 columns.
-		 */
-		int w = get_terminal_width(STDOUT_FILENO);
+		int w = get_terminal_width(-1);
 		if (w > 10)
 			w -= 2;
 		/* "2>&1" is added so that nroff errors are shown in pager too.
-		 * Otherwise it may show just empty screen */
+		 * Otherwise it may show just empty screen.
+		 */
 		cmd = xasprintf("%s | %s -rLL=%un -rLT=%un 2>&1 | %s",
 				G.tbl, G.nroff, w, w,
 				G.pager);

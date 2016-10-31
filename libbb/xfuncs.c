@@ -237,16 +237,27 @@ ssize_t FAST_FUNC full_write2_str(const char *str)
 
 static int wh_helper(int value, int def_val, const char *env_name, int *err)
 {
-	if (value == 0) {
-		char *s = getenv(env_name);
-		if (s) {
-			value = atoi(s);
-			/* If LINES/COLUMNS are set, pretend that there is
-			 * no error getting w/h, this prevents some ugly
-			 * cursor tricks by our callers */
-			*err = 0;
-		}
+	/* Envvars override even if "value" from ioctl is valid (>0).
+	 * Rationale: it's impossible to guess what user wants.
+	 * For example: "man CMD | ...": should "man" format output
+	 * to stdout's width? stdin's width? /dev/tty's width? 80 chars?
+	 * We _cant_ know it. If "..." saves text for e.g. email,
+	 * then it's probably 80 chars.
+	 * If "..." is, say, "grep -v DISCARD | $PAGER", then user
+	 * would prefer his tty's width to be used!
+	 *
+	 * Since we don't know, at least allow user to do this:
+	 * "COLUMNS=80 man CMD | ..."
+	 */
+	char *s = getenv(env_name);
+	if (s) {
+		value = atoi(s);
+		/* If LINES/COLUMNS are set, pretend that there is
+		 * no error getting w/h, this prevents some ugly
+		 * cursor tricks by our callers */
+		*err = 0;
 	}
+
 	if (value <= 1 || value >= 30000)
 		value = def_val;
 	return value;
@@ -258,6 +269,20 @@ int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *heigh
 {
 	struct winsize win;
 	int err;
+	int close_me = -1;
+
+	if (fd == -1) {
+		if (isatty(STDOUT_FILENO))
+			fd = STDOUT_FILENO;
+		else
+		if (isatty(STDERR_FILENO))
+			fd = STDERR_FILENO;
+		else
+		if (isatty(STDIN_FILENO))
+			fd = STDIN_FILENO;
+		else
+			close_me = fd = open("/dev/tty", O_RDONLY);
+	}
 
 	win.ws_row = 0;
 	win.ws_col = 0;
@@ -268,6 +293,10 @@ int FAST_FUNC get_terminal_width_height(int fd, unsigned *width, unsigned *heigh
 		*height = wh_helper(win.ws_row, 24, "LINES", &err);
 	if (width)
 		*width = wh_helper(win.ws_col, 80, "COLUMNS", &err);
+
+	if (close_me >= 0)
+		close(close_me);
+
 	return err;
 }
 int FAST_FUNC get_terminal_width(int fd)
