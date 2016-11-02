@@ -127,6 +127,30 @@ testing "cpio extracts in existing directory" \
 " "" ""
 SKIP=
 
+testing "cpio uses by default uid/gid" \
+"echo $0 | cpio -o -H newc | cpio -tv 2>&1 | tail -n +2 | awk ' { print \$2 } '; echo \$?" \
+"\
+$user/$group
+0
+" "" ""
+SKIP=
+
+testing "cpio -R with create" \
+"echo $0 | cpio -o -H newc -R 1234:5678 | cpio -tv 2>&1 | tail -n +2 | awk ' { print \$2 } '; echo \$?" \
+"\
+1234/5678
+0
+" "" ""
+SKIP=
+
+testing "cpio -R with extract" \
+"echo $0 | cpio -o -H newc | cpio -tv -R 8765:4321 2>&1 | tail -n +2 | awk ' { print \$2 } '; echo \$?" \
+"\
+8765/4321
+0
+" "" ""
+SKIP=
+
 # Clean up
 rm -rf cpio.testdir cpio.testdir2 2>/dev/null
 
