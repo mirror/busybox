@@ -319,8 +319,10 @@ int loadfont_main(int argc UNUSED_PARAM, char **argv)
 	 * We used to look at the length of the input file
 	 * with stat(); now that we accept compressed files,
 	 * just read the entire file.
+	 * Len was 32k, but latarcyrheb-sun32.psfu is 34377 bytes
+	 * (it has largish Unicode map).
 	 */
-	len = 32*1024; // can't be larger
+	len = 128*1024;
 	buffer = xmalloc_read(STDIN_FILENO, &len);
 	// xmalloc_open_zipped_read_close(filename, &len);
 	if (!buffer)
@@ -405,7 +407,7 @@ int setfont_main(int argc UNUSED_PARAM, char **argv)
 		}
 	}
 	// load font
-	len = 32*1024; // can't be larger
+	len = 128*1024;
 	buffer = xmalloc_open_zipped_read_close(*argv, &len);
 	if (!buffer)
 		bb_simple_perror_msg_and_die(*argv);
