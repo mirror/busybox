@@ -3933,6 +3933,8 @@ wait_block_or_sig(int *status)
 	int pid;
 
 	do {
+		sigset_t mask;
+
 		/* Poll all children for changes in their state */
 		got_sigchld = 0;
 		/* if job control is active, accept stopped processes too */
@@ -3941,14 +3943,13 @@ wait_block_or_sig(int *status)
 			break; /* Error (e.g. EINTR, ECHILD) or pid */
 
 		/* Children exist, but none are ready. Sleep until interesting signal */
-#if 0 /* dash does this */
-		sigset_t mask;
+#if 1
 		sigfillset(&mask);
 		sigprocmask(SIG_SETMASK, &mask, &mask);
 		while (!got_sigchld && !pending_sig)
 			sigsuspend(&mask);
 		sigprocmask(SIG_SETMASK, &mask, NULL);
-#else
+#else /* unsafe: a signal can set pending_sig after check, but before pause() */
 		while (!got_sigchld && !pending_sig)
 			pause();
 #endif
@@ -3987,9 +3988,9 @@ dowait(int block, struct job *job)
 	 * either enter a sleeping waitpid() (BUG), or need to busy-loop.
 	 *
 	 * Because of this, we run inside INT_OFF, but use a special routine
-	 * which combines waitpid() and pause().
+	 * which combines waitpid() and sigsuspend().
 	 * This is the reason why we need to have a handler for SIGCHLD:
-	 * SIG_DFL handler does not wake pause().
+	 * SIG_DFL handler does not wake sigsuspend().
 	 */
 	INT_OFF;
 	if (block == DOWAIT_BLOCK_OR_SIG) {
