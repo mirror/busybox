@@ -89,5 +89,5 @@ int sulogin_main(int argc UNUSED_PARAM, char **argv)
 		shell = pwd->pw_shell;
 
 	/* Exec login shell with no additional parameters. Never returns. */
-	run_shell(shell, 1, NULL, NULL);
+	run_shell(shell, 1, NULL);
 }

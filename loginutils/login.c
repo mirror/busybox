@@ -618,7 +618,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 	signal(SIGINT, SIG_DFL);
 
 	/* Exec login shell with no additional parameters */
-	run_shell(pw->pw_shell, 1, NULL, NULL);
+	run_shell(pw->pw_shell, 1, NULL);
 
 	/* return EXIT_FAILURE; - not reached */
 }

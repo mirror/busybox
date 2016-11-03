@@ -97,5 +97,5 @@ void FAST_FUNC exec_prog_or_SHELL(char **argv)
 	if (argv[0]) {
 		BB_EXECVP_or_die(argv);
 	}
-	run_shell(getenv("SHELL"), /*login:*/ 1, NULL, NULL);
+	run_shell(getenv("SHELL"), /*login:*/ 1, NULL);
 }
