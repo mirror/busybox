@@ -32,6 +32,7 @@
 #define DEBUG_TIME 0
 #define DEBUG_PID 1
 #define DEBUG_SIG 1
+#define DEBUG_INTONOFF 0
 
 #define PROFILE 0
 
@@ -442,10 +443,18 @@ static void exitshell(void) NORETURN;
  * much more efficient and portable.  (But hacking the kernel is so much
  * more fun than worrying about efficiency and portability. :-))
  */
-#define INT_OFF do { \
+#if DEBUG_INTONOFF
+# define INT_OFF do { \
+	TRACE(("%s:%d INT_OFF(%d)\n", __func__, __LINE__, suppress_int)); \
 	suppress_int++; \
 	barrier(); \
 } while (0)
+#else
+# define INT_OFF do { \
+	suppress_int++; \
+	barrier(); \
+} while (0)
+#endif
 
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
@@ -513,7 +522,14 @@ int_on(void)
 		raise_interrupt();
 	}
 }
-#define INT_ON int_on()
+#if DEBUG_INTONOFF
+# define INT_ON do { \
+	TRACE(("%s:%d INT_ON(%d)\n", __func__, __LINE__, suppress_int-1)); \
+	int_on(); \
+} while (0)
+#else
+# define INT_ON int_on()
+#endif
 static IF_ASH_OPTIMIZE_FOR_SIZE(inline) void
 force_int_on(void)
 {
@@ -9101,7 +9117,7 @@ mklocal(char *name)
 			/* else:
 			 * it's a duplicate "local VAR" declaration, do nothing
 			 */
-			return;
+			goto ret;
 		}
 		lvp = lvp->next;
 	}
@@ -9140,6 +9156,7 @@ mklocal(char *name)
 	lvp->vp = vp;
 	lvp->next = localvars;
 	localvars = lvp;
+ ret:
 	INT_ON;
 }
 
