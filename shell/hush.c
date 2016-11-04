@@ -7874,14 +7874,14 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
-			/* Case which does not match and execute anything still sets $? to 0 */
-			G.last_exitcode = rcode = EXIT_SUCCESS;
+			debug_printf_exec("CASE cond_code:%d\n", cond_code);
 			case_word = expand_strvec_to_string(pi->cmds->argv);
 			continue;
 		}
 		if (rword == RES_MATCH) {
 			char **argv;
 
+			debug_printf_exec("MATCH cond_code:%d\n", cond_code);
 			if (!case_word) /* "case ... matched_word) ... WORD)": we executed selected branch, stop */
 				break;
 			/* all prev words didn't match, does this one match? */
@@ -7892,8 +7892,8 @@ static int run_list(struct pipe *pi)
 				cond_code = (fnmatch(pattern, case_word, /*flags:*/ 0) != 0);
 				free(pattern);
 				if (cond_code == 0) { /* match! we will execute this branch */
-					free(case_word); /* make future "word)" stop */
-					case_word = NULL;
+					free(case_word);
+					case_word = NULL; /* make future "word)" stop */
 					break;
 				}
 				argv++;
@@ -7901,8 +7901,16 @@ static int run_list(struct pipe *pi)
 			continue;
 		}
 		if (rword == RES_CASE_BODY) { /* inside of a case branch */
+			debug_printf_exec("CASE_BODY cond_code:%d\n", cond_code);
 			if (cond_code != 0)
 				continue; /* not matched yet, skip this pipe */
+		}
+		if (rword == RES_ESAC) {
+			debug_printf_exec("ESAC cond_code:%d\n", cond_code);
+			if (case_word) {
+				/* "case" did not match anything: still set $? (to 0) */
+				G.last_exitcode = rcode = EXIT_SUCCESS;
+			}
 		}
 #endif
 		/* Just pressing <enter> in shell should check for jobs.
