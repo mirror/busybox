@@ -23,7 +23,7 @@ Getty should establish a new session and process group, and ensure
 that tty is a ctty.
 
 ??? Should getty ensure that other processes which might have opened
-fds to this tty be dusconnected? agetty has a -R option which makes
+fds to this tty be disconnected? agetty has a -R option which makes
 agetty call vhangup() after tty is opened. (Then agetty opens it again,
 since it probably vhangup'ed its own fd too).
 

@@ -54,6 +54,15 @@ char bb_common_bufsiz1[COMMON_BUFSIZE] ALIGNED(sizeof(long long));
 #else
 
 # ifndef setup_common_bufsiz
+/* For now, this is never used:
+ * scripts/generate_BUFSIZ.sh never generates "malloced" bufsiz1:
+ *	enum { COMMON_BUFSIZE = 1024 };
+ *	extern char *const bb_common_bufsiz1;
+ *	void setup_common_bufsiz(void);
+ * This has proved to be worse than the approach of defining
+ * larger bb_common_bufsiz1[] array.
+ */
+
 /*
  * It is not defined as a dummy macro.
  * It means we have to provide this function.
