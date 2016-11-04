@@ -3915,12 +3915,17 @@ static int parse_group(o_string *dest, struct parse_context *ctx,
 		command->cmd_type = CMD_SUBSHELL;
 	} else {
 		/* bash does not allow "{echo...", requires whitespace */
-		ch = i_getch(input);
-		if (ch != ' ' && ch != '\t' && ch != '\n') {
+		ch = i_peek(input);
+		if (ch != ' ' && ch != '\t' && ch != '\n'
+		 && ch != '('	/* but "{(..." is allowed (without whitespace) */
+		) {
 			syntax_error_unexpected_ch(ch);
 			return 1;
 		}
-		nommu_addchr(&ctx->as_string, ch);
+		if (ch != '(') {
+			ch = i_getch(input);
+			nommu_addchr(&ctx->as_string, ch);
+		}
 	}
 
 	{
@@ -4575,6 +4580,7 @@ static struct pipe *parse_stream(char **pstring,
 		 || dest.has_quoted_part     /* ""{... - non-special */
 		 || (next != ';'             /* }; - special */
 		    && next != ')'           /* }) - special */
+		    && next != '('           /* {( - special */
 		    && next != '&'           /* }& and }&& ... - special */
 		    && next != '|'           /* }|| ... - special */
 		    && !strchr(defifs, next) /* {word - non-special */
@@ -4657,17 +4663,31 @@ static struct pipe *parse_stream(char **pstring,
 		 * Pathological example: { ""}; } should exec "}" cmd
 		 */
 		if (ch == '}') {
-			if (!IS_NULL_CMD(ctx.command) /* cmd } */
-			 || dest.length != 0 /* word} */
+			if (dest.length != 0 /* word} */
 			 || dest.has_quoted_part    /* ""} */
 			) {
 				goto ordinary_char;
 			}
+			if (!IS_NULL_CMD(ctx.command)) { /* cmd } */
+				/* Generally, there should be semicolon: "cmd; }"
+				 * However, bash allows to omit it if "cmd" is
+				 * a group. Examples:
+				 * { { echo 1; } }
+				 * {(echo 1)}
+				 * { echo 0 >&2 | { echo 1; } }
+				 * { while false; do :; done }
+				 * { case a in b) ;; esac }
+				 */
+				if (ctx.command->group)
+					goto term_group;
+				goto ordinary_char;
+			}
 			if (!IS_NULL_PIPE(ctx.pipe)) /* cmd | } */
+				/* Can't be an end of {cmd}, skip the check */
 				goto skip_end_trigger;
 			/* else: } does terminate a group */
 		}
-
+ term_group:
 		if (end_trigger && end_trigger == ch
 		 && (ch != ';' || heredoc_cnt == 0)
 #if ENABLE_HUSH_CASE
