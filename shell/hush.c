@@ -7874,6 +7874,8 @@ static int run_list(struct pipe *pi)
 #endif
 #if ENABLE_HUSH_CASE
 		if (rword == RES_CASE) {
+			/* Case which does not match and execute anything still sets $? to 0 */
+			G.last_exitcode = rcode = EXIT_SUCCESS;
 			case_word = expand_strvec_to_string(pi->cmds->argv);
 			continue;
 		}
