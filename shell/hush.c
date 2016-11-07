@@ -9636,12 +9636,13 @@ static int FAST_FUNC builtin_wait(char **argv)
 					/* "wait $!" but last bg task has already exited. Try:
 					 * (sleep 1; exit 3) & sleep 2; echo $?; wait $!; echo $?
 					 * In bash it prints exitcode 0, then 3.
+					 * In dash, it is 127.
 					 */
-					ret = 0; /* FIXME */
-					continue;
+					/* ret = G.last_bg_pid_exitstatus - FIXME */
+				} else {
+					/* Example: "wait 1". mimic bash message */
+					bb_error_msg("wait: pid %d is not a child of this shell", (int)pid);
 				}
-				/* Example: "wait 1". mimic bash message */
-				bb_error_msg("wait: pid %d is not a child of this shell", (int)pid);
 			} else {
 				/* ??? */
 				bb_perror_msg("wait %s", *argv);
