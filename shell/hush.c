@@ -5009,8 +5009,8 @@ static struct pipe *parse_stream(char **pstring,
 		 * Run it from interactive shell, watch pmap `pidof hush`.
 		 * while if false; then false; fi; do break; fi
 		 * Samples to catch leaks at execution:
-		 * while if (true | {true;}); then echo ok; fi; do break; done
-		 * while if (true | {true;}); then echo ok; fi; do (if echo ok; break; then :; fi) | cat; break; done
+		 * while if (true | { true;}); then echo ok; fi; do break; done
+		 * while if (true | { true;}); then echo ok; fi; do (if echo ok; break; then :; fi) | cat; break; done
 		 */
 		pctx = &ctx;
 		do {
