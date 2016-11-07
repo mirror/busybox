@@ -9226,10 +9226,28 @@ static int FAST_FUNC builtin_type(char **argv)
 }
 
 #if ENABLE_HUSH_JOB
+static struct pipe *parse_jobspec(const char *str)
+{
+	struct pipe *pi;
+	int jobnum;
+
+	if (sscanf(str, "%%%d", &jobnum) != 1) {
+		bb_error_msg("bad argument '%s'", str);
+		return NULL;
+	}
+	for (pi = G.job_list; pi; pi = pi->next) {
+		if (pi->jobid == jobnum) {
+			return pi;
+		}
+	}
+	bb_error_msg("%d: no such job", jobnum);
+	return NULL;
+}
+
 /* built-in 'fg' and 'bg' handler */
 static int FAST_FUNC builtin_fg_bg(char **argv)
 {
-	int i, jobnum;
+	int i;
 	struct pipe *pi;
 
 	if (!G_interactive_fd)
@@ -9245,17 +9263,10 @@ static int FAST_FUNC builtin_fg_bg(char **argv)
 		bb_error_msg("%s: no current job", argv[0]);
 		return EXIT_FAILURE;
 	}
-	if (sscanf(argv[1], "%%%d", &jobnum) != 1) {
-		bb_error_msg("%s: bad argument '%s'", argv[0], argv[1]);
+
+	pi = parse_jobspec(argv[1]);
+	if (!pi)
 		return EXIT_FAILURE;
-	}
-	for (pi = G.job_list; pi; pi = pi->next) {
-		if (pi->jobid == jobnum) {
-			goto found;
-		}
-	}
-	bb_error_msg("%s: %d: no such job", argv[0], jobnum);
-	return EXIT_FAILURE;
  found:
 	/* TODO: bash prints a string representation
 	 * of job being foregrounded (like "sleep 1 | cat") */
