@@ -9586,7 +9586,6 @@ static int FAST_FUNC builtin_wait(char **argv)
 {
 	int ret;
 	int status;
-	struct pipe *wait_pipe = NULL;
 
 	argv = skip_dash_dash(argv);
 	if (argv[0] == NULL) {
@@ -9614,10 +9613,13 @@ static int FAST_FUNC builtin_wait(char **argv)
 		if (errno || pid <= 0) {
 #if ENABLE_HUSH_JOB
 			if (argv[0][0] == '%') {
+				struct pipe *wait_pipe;
 				wait_pipe = parse_jobspec(*argv);
 				if (wait_pipe) {
-					pid = - wait_pipe->pgrp;
-					goto do_wait;
+					ret = job_exited_or_stopped(wait_pipe);
+					if (ret < 0)
+						ret = wait_for_child_or_signal(wait_pipe, 0);
+					continue;
 				}
 			}
 #endif
@@ -9626,7 +9628,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 			ret = EXIT_FAILURE;
 			continue; /* bash checks all argv[] */
 		}
- IF_HUSH_JOB(do_wait:)
+
 		/* Do we have such child? */
 		ret = waitpid(pid, &status, WNOHANG);
 		if (ret < 0) {
@@ -9652,20 +9654,13 @@ static int FAST_FUNC builtin_wait(char **argv)
 		}
 		if (ret == 0) {
 			/* Yes, and it still runs */
-			ret = wait_for_child_or_signal(wait_pipe, wait_pipe ? 0 : pid);
+			ret = wait_for_child_or_signal(NULL, pid);
 		} else {
 			/* Yes, and it just exited */
-			process_wait_result(NULL, ret, status);
+			process_wait_result(NULL, pid, status);
 			ret = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
-#if ENABLE_HUSH_JOB
-			if (wait_pipe) {
-				ret = job_exited_or_stopped(wait_pipe);
-				if (ret < 0)
-					goto do_wait;
-			}
-#endif
 		}
 	} while (*++argv);
 
