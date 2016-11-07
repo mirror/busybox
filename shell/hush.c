@@ -4533,10 +4533,12 @@ static struct pipe *parse_stream(char **pstring,
 				syntax_error_unterm_str("here document");
 				goto parse_error;
 			}
-			/* end_trigger == '}' case errors out earlier,
-			 * checking only ')' */
 			if (end_trigger == ')') {
 				syntax_error_unterm_ch('(');
+				goto parse_error;
+			}
+			if (end_trigger == '}') {
+				syntax_error_unterm_ch('{');
 				goto parse_error;
 			}
 
