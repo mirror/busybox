@@ -45,7 +45,6 @@
  *      tilde expansion
  *      aliases
  *      kill %jobspec
- *      wait %jobspec
  *      follow IFS rules more precisely, including update semantics
  *      builtins mandated by standards we don't support:
  *          [un]alias, command, fc, getopts, newgrp, readonly, times
@@ -7065,6 +7064,27 @@ static void delete_finished_bg_job(struct pipe *pi)
 }
 #endif /* JOB */
 
+static int job_exited_or_stopped(struct pipe *pi)
+{
+	int rcode, i;
+
+	if (pi->alive_cmds != pi->stopped_cmds)
+		return -1;
+
+	/* All processes in fg pipe have exited or stopped */
+	rcode = 0;
+	i = pi->num_cmds;
+	while (--i >= 0) {
+		rcode = pi->cmds[i].cmd_exitcode;
+		/* usually last process gives overall exitstatus,
+		 * but with "set -o pipefail", last *failed* process does */
+		if (G.o_opt[OPT_O_PIPEFAIL] == 0 || rcode != 0)
+			break;
+	}
+	IF_HAS_KEYWORDS(if (pi->pi_inverted) rcode = !rcode;)
+	return rcode;
+}
+
 static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 {
 #if ENABLE_HUSH_JOB
@@ -7088,7 +7108,10 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 	/* Were we asked to wait for a fg pipe? */
 	if (fg_pipe) {
 		i = fg_pipe->num_cmds;
+
 		while (--i >= 0) {
+			int rcode;
+
 			debug_printf_jobs("check pid %d\n", fg_pipe->cmds[i].pid);
 			if (fg_pipe->cmds[i].pid != childpid)
 				continue;
@@ -7117,18 +7140,8 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 			}
 			debug_printf_jobs("fg_pipe: alive_cmds %d stopped_cmds %d\n",
 					fg_pipe->alive_cmds, fg_pipe->stopped_cmds);
-			if (fg_pipe->alive_cmds == fg_pipe->stopped_cmds) {
-				/* All processes in fg pipe have exited or stopped */
-				int rcode = 0;
-				i = fg_pipe->num_cmds;
-				while (--i >= 0) {
-					rcode = fg_pipe->cmds[i].cmd_exitcode;
-					/* usually last process gives overall exitstatus,
-					 * but with "set -o pipefail", last *failed* process does */
-					if (G.o_opt[OPT_O_PIPEFAIL] == 0 || rcode != 0)
-						break;
-				}
-				IF_HAS_KEYWORDS(if (fg_pipe->pi_inverted) rcode = !rcode;)
+			rcode = job_exited_or_stopped(fg_pipe);
+			if (rcode >= 0) {
 /* Note: *non-interactive* bash does not continue if all processes in fg pipe
  * are stopped. Testcase: "cat | cat" in a script (not on command line!)
  * and "killall -STOP cat" */
@@ -7185,9 +7198,18 @@ static int process_wait_result(struct pipe *fg_pipe, pid_t childpid, int status)
 
 /* Check to see if any processes have exited -- if they have,
  * figure out why and see if a job has completed.
- * Alternatively (fg_pipe == NULL, waitfor_pid != 0),
- * wait for a specific pid to complete, return exitcode+1
- * (this allows to distinguish zero as "no children exited" result).
+ *
+ * If non-NULL fg_pipe: wait for its completion or stop.
+ * Return its exitcode or zero if stopped.
+ *
+ * Alternatively (fg_pipe == NULL, waitfor_pid != 0):
+ * waitpid(WNOHANG), if waitfor_pid exits or stops, return exitcode+1,
+ * else return <0 if waitpid errors out (e.g. ECHILD: nothing to wait for)
+ * or 0 if no children changed status.
+ *
+ * Alternatively (fg_pipe == NULL, waitfor_pid == 0),
+ * return <0 if waitpid errors out (e.g. ECHILD: nothing to wait for)
+ * or 0 if no children changed status.
  */
 static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
 {
@@ -7256,9 +7278,13 @@ static int checkjobs(struct pipe *fg_pipe, pid_t waitfor_pid)
 			break;
 		}
 		if (childpid == waitfor_pid) {
+			debug_printf_exec("childpid==waitfor_pid:%d status:0x%08x\n", childpid, status);
 			rcode = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
 				rcode = 128 + WTERMSIG(status);
+			if (WIFSTOPPED(status))
+				/* bash: "cmd & wait $!" and cmd stops: $? = 128 + stopsig */
+				rcode = 128 + WSTOPSIG(status);
 			rcode++;
 			break; /* "wait PID" called us, give it exitcode+1 */
 		}
@@ -9329,6 +9355,7 @@ static int FAST_FUNC builtin_jobs(char **argv UNUSED_PARAM)
 	struct pipe *job;
 	const char *status_string;
 
+	checkjobs(NULL, 0 /*(no pid to wait for)*/);
 	for (job = G.job_list; job; job = job->next) {
 		if (job->alive_cmds == job->stopped_cmds)
 			status_string = "Stopped";
@@ -9481,12 +9508,15 @@ static int FAST_FUNC builtin_umask(char **argv)
 }
 
 /* http://www.opengroup.org/onlinepubs/9699919799/utilities/wait.html */
-static int wait_for_child_or_signal(pid_t waitfor_pid)
+#if !ENABLE_HUSH_JOB
+# define wait_for_child_or_signal(pipe,pid) wait_for_child_or_signal(pid)
+#endif
+static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid)
 {
 	int ret = 0;
 	for (;;) {
 		int sig;
-		sigset_t oldset, allsigs;
+		sigset_t oldset;
 
 		/* waitpid is not interruptible by SA_RESTARTed
 		 * signals which we use. Thus, this ugly dance:
@@ -9495,10 +9525,10 @@ static int wait_for_child_or_signal(pid_t waitfor_pid)
 		/* Make sure possible SIGCHLD is stored in kernel's
 		 * pending signal mask before we call waitpid.
 		 * Or else we may race with SIGCHLD, lose it,
-		 * and get stuck in sigwaitinfo...
+		 * and get stuck in sigsuspend...
 		 */
-		sigfillset(&allsigs);
-		sigprocmask(SIG_SETMASK, &allsigs, &oldset);
+		sigfillset(&oldset); /* block all signals, remember old set */
+		sigprocmask(SIG_SETMASK, &oldset, &oldset);
 
 		if (!sigisemptyset(&G.pending_set)) {
 			/* Crap! we raced with some signal! */
@@ -9507,19 +9537,31 @@ static int wait_for_child_or_signal(pid_t waitfor_pid)
 		}
 
 		/*errno = 0; - checkjobs does this */
+/* Can't pass waitfor_pipe into checkjobs(): it won't be interruptible */
 		ret = checkjobs(NULL, waitfor_pid); /* waitpid(WNOHANG) inside */
+		debug_printf_exec("checkjobs:%d\n", ret);
+#if ENABLE_HUSH_JOB
+		if (waitfor_pipe) {
+			int rcode = job_exited_or_stopped(waitfor_pipe);
+			debug_printf_exec("job_exited_or_stopped:%d\n", rcode);
+			if (rcode >= 0) {
+				ret = rcode;
+				sigprocmask(SIG_SETMASK, &oldset, NULL);
+				break;
+			}
+		}
+#endif
 		/* if ECHILD, there are no children (ret is -1 or 0) */
 		/* if ret == 0, no children changed state */
 		/* if ret != 0, it's exitcode+1 of exited waitfor_pid child */
-		if (errno == ECHILD || ret--) {
-			if (ret < 0) /* if ECHILD, may need to fix */
+		if (errno == ECHILD || ret) {
+			ret--;
+			if (ret < 0) /* if ECHILD, may need to fix "ret" */
 				ret = 0;
 			sigprocmask(SIG_SETMASK, &oldset, NULL);
 			break;
 		}
-
 		/* Wait for SIGCHLD or any other signal */
-		//sig = sigwaitinfo(&allsigs, NULL);
 		/* It is vitally important for sigsuspend that SIGCHLD has non-DFL handler! */
 		/* Note: sigsuspend invokes signal handler */
 		sigsuspend(&oldset);
@@ -9544,6 +9586,7 @@ static int FAST_FUNC builtin_wait(char **argv)
 {
 	int ret;
 	int status;
+	struct pipe *wait_pipe = NULL;
 
 	argv = skip_dash_dash(argv);
 	if (argv[0] == NULL) {
@@ -9563,18 +9606,27 @@ static int FAST_FUNC builtin_wait(char **argv)
 		 * ^C <-- after ~4 sec from keyboard
 		 * $
 		 */
-		return wait_for_child_or_signal(0 /*(no pid to wait for)*/);
+		return wait_for_child_or_signal(NULL, 0 /*(no job and no pid to wait for)*/);
 	}
 
-	/* TODO: support "wait %jobspec" */
 	do {
 		pid_t pid = bb_strtou(*argv, NULL, 10);
 		if (errno || pid <= 0) {
+#if ENABLE_HUSH_JOB
+			if (argv[0][0] == '%') {
+				wait_pipe = parse_jobspec(*argv);
+				if (wait_pipe) {
+					pid = - wait_pipe->pgrp;
+					goto do_wait;
+				}
+			}
+#endif
 			/* mimic bash message */
 			bb_error_msg("wait: '%s': not a pid or valid job spec", *argv);
 			ret = EXIT_FAILURE;
 			continue; /* bash checks all argv[] */
 		}
+ IF_HUSH_JOB(do_wait:)
 		/* Do we have such child? */
 		ret = waitpid(pid, &status, WNOHANG);
 		if (ret < 0) {
@@ -9599,13 +9651,20 @@ static int FAST_FUNC builtin_wait(char **argv)
 		}
 		if (ret == 0) {
 			/* Yes, and it still runs */
-			ret = wait_for_child_or_signal(pid);
+			ret = wait_for_child_or_signal(wait_pipe, wait_pipe ? 0 : pid);
 		} else {
 			/* Yes, and it just exited */
-			process_wait_result(NULL, pid, status);
+			process_wait_result(NULL, ret, status);
 			ret = WEXITSTATUS(status);
 			if (WIFSIGNALED(status))
 				ret = 128 + WTERMSIG(status);
+#if ENABLE_HUSH_JOB
+			if (wait_pipe) {
+				ret = job_exited_or_stopped(wait_pipe);
+				if (ret < 0)
+					goto do_wait;
+			}
+#endif
 		}
 	} while (*++argv);
 
