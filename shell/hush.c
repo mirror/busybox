@@ -8004,20 +8004,21 @@ static int run_list(struct pipe *pi)
 			G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
 			debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
 /* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
-			G.last_exitcode = rcode = EXIT_SUCCESS;
-			check_and_run_traps();
+			rcode = EXIT_SUCCESS;
+			goto check_traps;
 		} else {
 #if ENABLE_HUSH_JOB
 			if (G.run_list_level == 1 && G_interactive_fd) {
 				/* Waits for completion, then fg's main shell */
 				rcode = checkjobs_and_fg_shell(pi);
 				debug_printf_exec(": checkjobs_and_fg_shell exitcode %d\n", rcode);
-			} else
-#endif
-			{ /* This one just waits for completion */
-				rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
-				debug_printf_exec(": checkjobs exitcode %d\n", rcode);
+				goto check_traps;
 			}
+#endif
+			/* This one just waits for completion */
+			rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
+			debug_printf_exec(": checkjobs exitcode %d\n", rcode);
+ check_traps:
 			G.last_exitcode = rcode;
 			check_and_run_traps();
 		}
