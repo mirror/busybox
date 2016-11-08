@@ -588,10 +588,10 @@ struct pipe {
 	IF_HAS_KEYWORDS(smallint res_word;) /* needed for if, for, while, until... */
 };
 typedef enum pipe_style {
-	PIPE_SEQ = 1,
-	PIPE_AND = 2,
-	PIPE_OR  = 3,
-	PIPE_BG  = 4,
+	PIPE_SEQ = 0,
+	PIPE_AND = 1,
+	PIPE_OR  = 2,
+	PIPE_BG  = 3,
 } pipe_style;
 /* Is there anything in this pipe at all? */
 #define IS_NULL_PIPE(pi) \
@@ -3139,7 +3139,6 @@ static struct pipe *new_pipe(void)
 {
 	struct pipe *pi;
 	pi = xzalloc(sizeof(struct pipe));
-	/*pi->followup = 0; - deliberately invalid value */
 	/*pi->res_word = RES_NONE; - RES_NONE is 0 anyway */
 	return pi;
 }
