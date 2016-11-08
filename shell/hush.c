@@ -7803,6 +7803,8 @@ static int run_list(struct pipe *pi)
 
 	/* Go through list of pipes, (maybe) executing them. */
 	for (; pi; pi = IF_HUSH_LOOPS(rword == RES_DONE ? loop_top : ) pi->next) {
+		int r;
+
 		if (G.flag_SIGINT)
 			break;
 		if (G_flag_return_in_progress == 1)
@@ -7953,74 +7955,71 @@ static int run_list(struct pipe *pi)
 		 * after run_pipe to collect any background children,
 		 * even if list execution is to be stopped. */
 		debug_printf_exec(": run_pipe with %d members\n", pi->num_cmds);
-		{
-			int r;
 #if ENABLE_HUSH_LOOPS
-			G.flag_break_continue = 0;
+		G.flag_break_continue = 0;
 #endif
-			rcode = r = run_pipe(pi); /* NB: rcode is a smallint */
-			if (r != -1) {
-				/* We ran a builtin, function, or group.
-				 * rcode is already known
-				 * and we don't need to wait for anything. */
-				debug_printf_exec(": builtin/func exitcode %d\n", rcode);
-				G.last_exitcode = rcode;
-				check_and_run_traps();
+		rcode = r = run_pipe(pi); /* NB: rcode is a smalluint, r is int */
+		if (r != -1) {
+			/* We ran a builtin, function, or group.
+			 * rcode is already known
+			 * and we don't need to wait for anything. */
+			debug_printf_exec(": builtin/func exitcode %d\n", rcode);
+			G.last_exitcode = rcode;
+			check_and_run_traps();
 #if ENABLE_HUSH_LOOPS
-				/* Was it "break" or "continue"? */
-				if (G.flag_break_continue) {
-					smallint fbc = G.flag_break_continue;
-					/* We might fall into outer *loop*,
-					 * don't want to break it too */
-					if (loop_top) {
-						G.depth_break_continue--;
-						if (G.depth_break_continue == 0)
-							G.flag_break_continue = 0;
-						/* else: e.g. "continue 2" should *break* once, *then* continue */
-					} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
-					if (G.depth_break_continue != 0 || fbc == BC_BREAK) {
-						checkjobs(NULL, 0 /*(no pid to wait for)*/);
-						break;
-					}
-					/* "continue": simulate end of loop */
-					rword = RES_DONE;
-					continue;
-				}
-#endif
-				if (G_flag_return_in_progress == 1) {
+			/* Was it "break" or "continue"? */
+			if (G.flag_break_continue) {
+				smallint fbc = G.flag_break_continue;
+				/* We might fall into outer *loop*,
+				 * don't want to break it too */
+				if (loop_top) {
+					G.depth_break_continue--;
+					if (G.depth_break_continue == 0)
+						G.flag_break_continue = 0;
+					/* else: e.g. "continue 2" should *break* once, *then* continue */
+				} /* else: "while... do... { we are here (innermost list is not a loop!) };...done" */
+				if (G.depth_break_continue != 0 || fbc == BC_BREAK) {
 					checkjobs(NULL, 0 /*(no pid to wait for)*/);
 					break;
 				}
-			} else if (pi->followup == PIPE_BG) {
-				/* What does bash do with attempts to background builtins? */
-				/* even bash 3.2 doesn't do that well with nested bg:
-				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
-				 * I'm NOT treating inner &'s as jobs */
-#if ENABLE_HUSH_JOB
-				if (G.run_list_level == 1)
-					insert_bg_job(pi);
-#endif
-				/* Last command's pid goes to $! */
-				G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
-				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
-/* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
-				G.last_exitcode = rcode = EXIT_SUCCESS;
-				check_and_run_traps();
-			} else {
-#if ENABLE_HUSH_JOB
-				if (G.run_list_level == 1 && G_interactive_fd) {
-					/* Waits for completion, then fg's main shell */
-					rcode = checkjobs_and_fg_shell(pi);
-					debug_printf_exec(": checkjobs_and_fg_shell exitcode %d\n", rcode);
-				} else
-#endif
-				{ /* This one just waits for completion */
-					rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
-					debug_printf_exec(": checkjobs exitcode %d\n", rcode);
-				}
-				G.last_exitcode = rcode;
-				check_and_run_traps();
+				/* "continue": simulate end of loop */
+				rword = RES_DONE;
+				continue;
 			}
+#endif
+			if (G_flag_return_in_progress == 1) {
+				checkjobs(NULL, 0 /*(no pid to wait for)*/);
+				break;
+			}
+		} else if (pi->followup == PIPE_BG) {
+			/* What does bash do with attempts to background builtins? */
+			/* even bash 3.2 doesn't do that well with nested bg:
+			 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
+			 * I'm NOT treating inner &'s as jobs */
+#if ENABLE_HUSH_JOB
+			if (G.run_list_level == 1)
+				insert_bg_job(pi);
+#endif
+			/* Last command's pid goes to $! */
+			G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
+			debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
+/* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
+			G.last_exitcode = rcode = EXIT_SUCCESS;
+			check_and_run_traps();
+		} else {
+#if ENABLE_HUSH_JOB
+			if (G.run_list_level == 1 && G_interactive_fd) {
+				/* Waits for completion, then fg's main shell */
+				rcode = checkjobs_and_fg_shell(pi);
+				debug_printf_exec(": checkjobs_and_fg_shell exitcode %d\n", rcode);
+			} else
+#endif
+			{ /* This one just waits for completion */
+				rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
+				debug_printf_exec(": checkjobs exitcode %d\n", rcode);
+			}
+			G.last_exitcode = rcode;
+			check_and_run_traps();
 		}
 
 		/* Analyze how result affects subsequent commands */
