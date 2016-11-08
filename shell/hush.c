@@ -469,11 +469,7 @@ typedef struct in_str {
 	int peek_buf[2];
 	int last_char;
 	FILE *file;
-	int (*get) (struct in_str *) FAST_FUNC;
-	int (*peek) (struct in_str *) FAST_FUNC;
 } in_str;
-#define i_getch(input) ((input)->get(input))
-#define i_peek(input)  ((input)->peek(input))
 
 /* The descrip member of this structure is only used to make
  * debugging output pretty */
@@ -2259,9 +2255,22 @@ static inline int fgetc_interactive(struct in_str *i)
 }
 #endif  /* INTERACTIVE */
 
-static int FAST_FUNC file_get(struct in_str *i)
+static int i_getch(struct in_str *i)
 {
 	int ch;
+
+	if (!i->file) {
+		/* string-based in_str */
+		ch = (unsigned char)*i->p;
+		if (ch != '\0') {
+			i->p++;
+			i->last_char = ch;
+			return ch;
+		}
+		return EOF;
+	}
+
+	/* FILE-based in_str */
 
 #if ENABLE_FEATURE_EDITING
 	/* This can be stdin, check line editing char[] buffer */
@@ -2288,9 +2297,17 @@ static int FAST_FUNC file_get(struct in_str *i)
 	return ch;
 }
 
-static int FAST_FUNC file_peek(struct in_str *i)
+static int i_peek(struct in_str *i)
 {
 	int ch;
+
+	if (!i->file) {
+		/* string-based in_str */
+		/* Doesn't report EOF on NUL. None of the callers care. */
+		return (unsigned char)*i->p;
+	}
+
+	/* FILE-based in_str */
 
 #if ENABLE_FEATURE_EDITING && ENABLE_HUSH_INTERACTIVE
 	/* This can be stdin, check line editing char[] buffer */
@@ -2316,23 +2333,6 @@ static int FAST_FUNC file_peek(struct in_str *i)
 	i->peek_buf[0] = ch;
 	/*i->peek_buf[1] = 0; - already is */
 	return ch;
-}
-
-static int FAST_FUNC static_get(struct in_str *i)
-{
-	int ch = (unsigned char)*i->p;
-	if (ch != '\0') {
-		i->p++;
-		i->last_char = ch;
-		return ch;
-	}
-	return EOF;
-}
-
-static int FAST_FUNC static_peek(struct in_str *i)
-{
-	/* Doesn't report EOF on NUL. None of the callers care. */
-	return (unsigned char)*i->p;
 }
 
 /* Only ever called if i_peek() was called, and did not return EOF.
@@ -2370,8 +2370,6 @@ static int i_peek2(struct in_str *i)
 static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	memset(i, 0, sizeof(*i));
-	i->get = file_get;
-	i->peek = file_peek;
 	/* i->promptmode = 0; - PS1 (memset did it) */
 	i->file = f;
 	/* i->p = NULL; */
@@ -2380,9 +2378,8 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 static void setup_string_in_str(struct in_str *i, const char *s)
 {
 	memset(i, 0, sizeof(*i));
-	i->get = static_get;
-	i->peek = static_peek;
 	/* i->promptmode = 0; - PS1 (memset did it) */
+	/*i->file = NULL */;
 	i->p = s;
 }
 
