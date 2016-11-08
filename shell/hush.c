@@ -8146,11 +8146,11 @@ static void install_fatal_sighandlers(void)
 
 	/* We will restore tty pgrp on these signals */
 	mask = 0
-		+ (1 << SIGILL ) * HUSH_DEBUG
-		+ (1 << SIGFPE ) * HUSH_DEBUG
+		/*+ (1 << SIGILL ) * HUSH_DEBUG*/
+		/*+ (1 << SIGFPE ) * HUSH_DEBUG*/
 		+ (1 << SIGBUS ) * HUSH_DEBUG
 		+ (1 << SIGSEGV) * HUSH_DEBUG
-		+ (1 << SIGTRAP) * HUSH_DEBUG
+		/*+ (1 << SIGTRAP) * HUSH_DEBUG*/
 		+ (1 << SIGABRT)
 	/* bash 3.2 seems to handle these just like 'fatal' ones */
 		+ (1 << SIGPIPE)
@@ -9518,6 +9518,9 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		int sig;
 		sigset_t oldset;
 
+		if (!sigisemptyset(&G.pending_set))
+			goto check_sig;
+
 		/* waitpid is not interruptible by SA_RESTARTed
 		 * signals which we use. Thus, this ugly dance:
 		 */
@@ -9532,7 +9535,6 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 
 		if (!sigisemptyset(&G.pending_set)) {
 			/* Crap! we raced with some signal! */
-		//	sig = 0;
 			goto restore;
 		}
 
@@ -9567,13 +9569,10 @@ static int wait_for_child_or_signal(struct pipe *waitfor_pipe, pid_t waitfor_pid
 		sigsuspend(&oldset);
  restore:
 		sigprocmask(SIG_SETMASK, &oldset, NULL);
-
+ check_sig:
 		/* So, did we get a signal? */
-		//if (sig > 0)
-		//	raise(sig); /* run handler */
 		sig = check_and_run_traps();
 		if (sig /*&& sig != SIGCHLD - always true */) {
-			/* see note 2 */
 			ret = 128 + sig;
 			break;
 		}
