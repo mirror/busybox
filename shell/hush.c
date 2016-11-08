@@ -6983,12 +6983,12 @@ static const char *get_cmdtext(struct pipe *pi)
 	 * On subsequent bg argv is trashed, but we won't use it */
 	if (pi->cmdtext)
 		return pi->cmdtext;
+
 	argv = pi->cmds[0].argv;
-	if (!argv || !argv[0]) {
+	if (!argv) {
 		pi->cmdtext = xzalloc(1);
 		return pi->cmdtext;
 	}
-
 	len = 0;
 	do {
 		len += strlen(*argv) + 1;
@@ -6997,9 +6997,7 @@ static const char *get_cmdtext(struct pipe *pi)
 	pi->cmdtext = p;
 	argv = pi->cmds[0].argv;
 	do {
-		len = strlen(*argv);
-		memcpy(p, *argv, len);
-		p += len;
+		p = stpcpy(p, *argv);
 		*p++ = ' ';
 	} while (*++argv);
 	p[-1] = '\0';
@@ -7965,8 +7963,8 @@ static int run_list(struct pipe *pi)
 				/* We ran a builtin, function, or group.
 				 * rcode is already known
 				 * and we don't need to wait for anything. */
-				G.last_exitcode = rcode;
 				debug_printf_exec(": builtin/func exitcode %d\n", rcode);
+				G.last_exitcode = rcode;
 				check_and_run_traps();
 #if ENABLE_HUSH_LOOPS
 				/* Was it "break" or "continue"? */
@@ -7998,30 +7996,30 @@ static int run_list(struct pipe *pi)
 				/* even bash 3.2 doesn't do that well with nested bg:
 				 * try "{ { sleep 10; echo DEEP; } & echo HERE; } &".
 				 * I'm NOT treating inner &'s as jobs */
-				check_and_run_traps();
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1)
 					insert_bg_job(pi);
 #endif
 				/* Last command's pid goes to $! */
 				G.last_bg_pid = pi->cmds[pi->num_cmds - 1].pid;
-				G.last_exitcode = rcode = EXIT_SUCCESS;
 				debug_printf_exec(": cmd&: exitcode EXIT_SUCCESS\n");
+/* Check pi->pi_inverted? "! sleep 1 & echo $?": bash says 1. dash and ash says 0 */
+				G.last_exitcode = rcode = EXIT_SUCCESS;
+				check_and_run_traps();
 			} else {
 #if ENABLE_HUSH_JOB
 				if (G.run_list_level == 1 && G_interactive_fd) {
 					/* Waits for completion, then fg's main shell */
 					rcode = checkjobs_and_fg_shell(pi);
 					debug_printf_exec(": checkjobs_and_fg_shell exitcode %d\n", rcode);
-					check_and_run_traps();
 				} else
 #endif
 				{ /* This one just waits for completion */
 					rcode = checkjobs(pi, 0 /*(no pid to wait for)*/);
 					debug_printf_exec(": checkjobs exitcode %d\n", rcode);
-					check_and_run_traps();
 				}
 				G.last_exitcode = rcode;
+				check_and_run_traps();
 			}
 		}
 
