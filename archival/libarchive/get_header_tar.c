@@ -113,11 +113,19 @@ static void process_pax_hdr(archive_handle_t *archive_handle, unsigned sz, int g
 		value = end + 1;
 
 # if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-		if (!global && is_prefixed_with(value, "path=")) {
-			value += sizeof("path=") - 1;
-			free(archive_handle->tar__longname);
-			archive_handle->tar__longname = xstrdup(value);
-			continue;
+		if (!global) {
+			if (is_prefixed_with(value, "path=")) {
+				value += sizeof("path=") - 1;
+				free(archive_handle->tar__longname);
+				archive_handle->tar__longname = xstrdup(value);
+				continue;
+			}
+			if (is_prefixed_with(value, "linkpath=")) {
+				value += sizeof("linkpath=") - 1;
+				free(archive_handle->tar__linkname);
+				archive_handle->tar__linkname = xstrdup(value);
+				continue;
+			}
 		}
 # endif
 
@@ -179,7 +187,13 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	 * the message and we don't check whether we indeed
 	 * saw zero block directly before this. */
 	if (i == 0) {
-		bb_error_msg("short read");
+		/* GNU tar 1.29 will be silent if tar archive ends abruptly
+		 * (if there are no zero blocks at all, and last read returns zero,
+		 * not short read 0 < len < 512). Complain only if
+		 * the very first read fails. Grrr.
+		 */
+		if (archive_handle->offset == 0)
+			bb_error_msg("short read");
 		/* this merely signals end of archive, not exit(1): */
 		return EXIT_FAILURE;
 	}
@@ -195,7 +209,11 @@ char FAST_FUNC get_header_tar(archive_handle_t *archive_handle)
 	archive_handle->offset += i;
 
 	/* If there is no filename its an empty header */
-	if (tar.name[0] == 0 && tar.prefix[0] == 0) {
+	if (tar.name[0] == 0 && tar.prefix[0] == 0
+	/* Have seen a tar archive with pax 'x' header supplying UTF8 filename,
+	 * with actual file having all name fields NUL-filled. Check this: */
+	 && !p_longname
+	) {
 		if (archive_handle->tar__end) {
 			/* Second consecutive empty header - end of archive.
 			 * Read until the end to empty the pipe from gz or bz2
