@@ -160,12 +160,6 @@ config FEATURE_FTPGETPUT_LONG_OPTIONS
 	help
 	  Support long options for the ftpget/ftpput applet.
 
-config HOSTNAME
-	bool "hostname"
-	default y
-	help
-	  Show or set the system's host name.
-
 config HTTPD
 	bool "httpd"
 	default y

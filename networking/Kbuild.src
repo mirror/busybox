@@ -16,7 +16,6 @@ lib-$(CONFIG_FAKEIDENTD)   += isrv_identd.o isrv.o
 lib-$(CONFIG_FTPD)         += ftpd.o
 lib-$(CONFIG_FTPGET)       += ftpgetput.o
 lib-$(CONFIG_FTPPUT)       += ftpgetput.o
-lib-$(CONFIG_HOSTNAME)     += hostname.o
 lib-$(CONFIG_HTTPD)        += httpd.o
 lib-$(CONFIG_IFCONFIG)     += ifconfig.o interface.o
 lib-$(CONFIG_IFENSLAVE)    += ifenslave.o interface.o
