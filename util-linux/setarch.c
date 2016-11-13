@@ -15,12 +15,28 @@
 //config:	  specified program (usually a shell). It only makes sense to have
 //config:	  this util on a system that supports both 64bit and 32bit userland
 //config:	  (like amd64/x86, ppc64/ppc, sparc64/sparc, etc...).
+//config:
+//config:config LINUX32
+//config:	bool "linux32"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Alias to "setarch linux32".
+//config:
+//config:config LINUX64
+//config:	bool "linux64"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Alias to "setarch linux64".
 
 //applet:IF_SETARCH(APPLET(setarch, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_SETARCH(APPLET_ODDNAME(linux32, setarch, BB_DIR_BIN, BB_SUID_DROP, linux32))
-//applet:IF_SETARCH(APPLET_ODDNAME(linux64, setarch, BB_DIR_BIN, BB_SUID_DROP, linux64))
+//applet:IF_LINUX32(APPLET_ODDNAME(linux32, setarch, BB_DIR_BIN, BB_SUID_DROP, linux32))
+//applet:IF_LINUX64(APPLET_ODDNAME(linux64, setarch, BB_DIR_BIN, BB_SUID_DROP, linux64))
 
 //kbuild:lib-$(CONFIG_SETARCH) += setarch.o
+//kbuild:lib-$(CONFIG_LINUX32) += setarch.o
+//kbuild:lib-$(CONFIG_LINUX64) += setarch.o
 
 //usage:#define setarch_trivial_usage
 //usage:       "PERSONALITY [-R] PROG ARGS"
@@ -58,12 +74,15 @@ int setarch_main(int argc UNUSED_PARAM, char **argv)
 	if (ENABLE_SETARCH && applet_name[0] == 's'
 	 && argv[1] && is_prefixed_with(argv[1], "linux")
 	) {
-		applet_name = argv[1];
 		argv++;
+		applet_name = argv[0];
 	}
-	if (applet_name[5] == '6') /* linux64 */
+	if ((!ENABLE_SETARCH && !ENABLE_LINUX32) || applet_name[5] == '6')
+		/* linux64 */
 		pers = PER_LINUX;
-	else if (applet_name[5] == '3') /* linux32 */
+	else
+	if ((!ENABLE_SETARCH && !ENABLE_LINUX64) || applet_name[5] == '3')
+		/* linux32 */
 		pers = PER_LINUX32;
 	else
 		bb_show_usage();
