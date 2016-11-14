@@ -96,7 +96,7 @@ testing "grep -x -F (partial match 1)" "grep -x -F foo input ; echo \$?" \
 testing "grep -x -F (partial match 2)" "grep -x -F foo input ; echo \$?" \
 	"1\n" "bar foo\n" ""
 
-optional FEATURE_GREP_EGREP_ALIAS
+optional EGREP
 testing "grep -E supports extended regexps" "grep -E fo+" "foo\n" "" \
 	"b\ar\nfoo\nbaz"
 testing "grep is also egrep" "egrep foo" "foo\n" "" "foo\nbar\n"
