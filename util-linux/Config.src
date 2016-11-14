@@ -489,34 +489,6 @@ config SCRIPTREPLAY
 	  This program replays a typescript, using timing information
 	  given by script -t.
 
-config SWAPONOFF
-	bool "swaponoff"
-	default y
-	select PLATFORM_LINUX
-	help
-	  This option enables both the 'swapon' and the 'swapoff' utilities.
-	  Once you have created some swap space using 'mkswap', you also need
-	  to enable your swap space with the 'swapon' utility. The 'swapoff'
-	  utility is used, typically at system shutdown, to disable any swap
-	  space. If you are not using any swap space, you can leave this
-	  option disabled.
-
-config FEATURE_SWAPON_DISCARD
-	bool "Support discard option -d"
-	default y
-	depends on SWAPONOFF
-	help
-	  Enable support for discarding swap area blocks at swapon and/or as
-	  the kernel frees them. This option enables both the -d option on
-	  'swapon' and the 'discard' option for swap entries in /etc/fstab.
-
-config FEATURE_SWAPON_PRI
-	bool "Support priority option -p"
-	default y
-	depends on SWAPONOFF
-	help
-	  Enable support for setting swap device priority in swapon.
-
 config SWITCH_ROOT
 	bool "switch_root"
 	default y
