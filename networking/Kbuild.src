@@ -20,7 +20,6 @@ lib-$(CONFIG_HTTPD)        += httpd.o
 lib-$(CONFIG_IFCONFIG)     += ifconfig.o interface.o
 lib-$(CONFIG_IFENSLAVE)    += ifenslave.o interface.o
 lib-$(CONFIG_IFPLUGD)      += ifplugd.o
-lib-$(CONFIG_IFUPDOWN)     += ifupdown.o
 lib-$(CONFIG_INETD)        += inetd.o
 lib-$(CONFIG_IP)           += ip.o
 lib-$(CONFIG_IPCALC)       += ipcalc.o

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  ifupdown for busybox
+ *  ifup/ifdown for busybox
  *  Copyright (c) 2002 Glenn McGrath
  *  Copyright (c) 2003-2004 Erik Andersen <andersen@codepoet.org>
  *
@@ -17,10 +17,127 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
 
+//config:config IFUP
+//config:	bool "ifup"
+//config:	default y
+//config:	help
+//config:	  Activate the specified interfaces. This applet makes use
+//config:	  of either "ifconfig" and "route" or the "ip" command to actually
+//config:	  configure network interfaces. Therefore, you will probably also want
+//config:	  to enable either IFCONFIG and ROUTE, or enable
+//config:	  FEATURE_IFUPDOWN_IP and the various IP options. Of
+//config:	  course you could use non-busybox versions of these programs, so
+//config:	  against my better judgement (since this will surely result in plenty
+//config:	  of support questions on the mailing list), I do not force you to
+//config:	  enable these additional options. It is up to you to supply either
+//config:	  "ifconfig", "route" and "run-parts" or the "ip" command, either
+//config:	  via busybox or via standalone utilities.
+//config:
+//config:config IFDOWN
+//config:	bool "ifdown"
+//config:	default y
+//config:	help
+//config:	  Deactivate the specified interfaces.
+//config:
+//config:config IFUPDOWN_IFSTATE_PATH
+//config:	string "Absolute path to ifstate file"
+//config:	default "/var/run/ifstate"
+//config:	depends on IFUP || IFDOWN
+//config:	help
+//config:	  ifupdown keeps state information in a file called ifstate.
+//config:	  Typically it is located in /var/run/ifstate, however
+//config:	  some distributions tend to put it in other places
+//config:	  (debian, for example, uses /etc/network/run/ifstate).
+//config:	  This config option defines location of ifstate.
+//config:
+//config:config FEATURE_IFUPDOWN_IP
+//config:	bool "Use ip applet"
+//config:	default y
+//config:	depends on IFUP || IFDOWN
+//config:	help
+//config:	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
+//config:	  than the default of using the older 'ifconfig' and 'route' utilities.
+//config:
+//config:config FEATURE_IFUPDOWN_IP_BUILTIN
+//config:	bool "Use busybox ip applet"
+//config:	default y
+//config:	depends on FEATURE_IFUPDOWN_IP
+//config:	select PLATFORM_LINUX
+//config:	select IP
+//config:	select FEATURE_IP_ADDRESS
+//config:	select FEATURE_IP_LINK
+//config:	select FEATURE_IP_ROUTE
+//config:	help
+//config:	  Use the busybox iproute "ip" applet to implement "ifupdown".
+//config:
+//config:	  If left disabled, you must install the full-blown iproute2
+//config:	  utility or the  "ifup" and "ifdown" applets will not work.
+//config:
+//config:config FEATURE_IFUPDOWN_IFCONFIG_BUILTIN
+//config:	bool "Use busybox ifconfig and route applets"
+//config:	default n
+//config:	depends on (IFUP || IFDOWN) && !FEATURE_IFUPDOWN_IP
+//config:	select IFCONFIG
+//config:	select ROUTE
+//config:	help
+//config:	  Use the busybox iproute "ifconfig" and "route" applets to
+//config:	  implement the "ifup" and "ifdown" utilities.
+//config:
+//config:	  If left disabled, you must install the full-blown ifconfig
+//config:	  and route utilities, or the  "ifup" and "ifdown" applets will not
+//config:	  work.
+//config:
+//config:config FEATURE_IFUPDOWN_IPV4
+//config:	bool "Support for IPv4"
+//config:	default y
+//config:	depends on IFUP || IFDOWN
+//config:	help
+//config:	  If you want ifup/ifdown to talk IPv4, leave this on.
+//config:
+//config:config FEATURE_IFUPDOWN_IPV6
+//config:	bool "Support for IPv6"
+//config:	default y
+//config:	depends on (IFUP || IFDOWN) && FEATURE_IPV6
+//config:	help
+//config:	  If you need support for IPv6, turn this option on.
+//config:
+//UNUSED:
+////////:config FEATURE_IFUPDOWN_IPX
+////////:	bool "Support for IPX"
+////////:	default y
+////////:	depends on IFUP || IFDOWN
+////////:	help
+////////:	  If this option is selected you can use busybox to work with IPX
+////////:	  networks.
+//config:
+//config:config FEATURE_IFUPDOWN_MAPPING
+//config:	bool "Enable mapping support"
+//config:	default y
+//config:	depends on IFUP || IFDOWN
+//config:	help
+//config:	  This enables support for the "mapping" stanza, unless you have
+//config:	  a weird network setup you don't need it.
+//config:
+//config:config FEATURE_IFUPDOWN_EXTERNAL_DHCP
+//config:	bool "Support for external dhcp clients"
+//config:	default n
+//config:	depends on IFUP || IFDOWN
+//config:	help
+//config:	  This enables support for the external dhcp clients. Clients are
+//config:	  tried in the following order: dhcpcd, dhclient, pump and udhcpc.
+//config:	  Otherwise, if udhcpc applet is enabled, it is used.
+//config:	  Otherwise, ifup/ifdown will have no support for DHCP.
+
+//applet:IF_IFUP(APPLET_ODDNAME(ifup, ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifup))
+//applet:IF_IFDOWN(APPLET_ODDNAME(ifdown, ifupdown, BB_DIR_SBIN, BB_SUID_DROP, ifdown))
+
+//kbuild:lib-$(CONFIG_IFUP) += ifupdown.o
+//kbuild:lib-$(CONFIG_IFDOWN) += ifupdown.o
+
 //usage:#define ifup_trivial_usage
 //usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 //usage:#define ifup_full_usage "\n\n"
-//usage:       "	-a	De/configure all interfaces automatically"
+//usage:       "	-a	Configure all interfaces"
 //usage:     "\n	-i FILE	Use FILE instead of /etc/network/interfaces"
 //usage:     "\n	-n	Print out what would happen, but don't do it"
 //usage:	IF_FEATURE_IFUPDOWN_MAPPING(
@@ -28,12 +145,12 @@
 //usage:     "\n	-m	Don't run any mappings"
 //usage:	)
 //usage:     "\n	-v	Print out what would happen before doing it"
-//usage:     "\n	-f	Force de/configuration"
+//usage:     "\n	-f	Force configuration"
 //usage:
 //usage:#define ifdown_trivial_usage
 //usage:       "[-an"IF_FEATURE_IFUPDOWN_MAPPING("m")"vf] [-i FILE] IFACE..."
 //usage:#define ifdown_full_usage "\n\n"
-//usage:       "	-a	De/configure all interfaces automatically"
+//usage:       "	-a	Deconfigure all interfaces"
 //usage:     "\n	-i FILE	Use FILE for interface definitions"
 //usage:     "\n	-n	Print out what would happen, but don't do it"
 //usage:	IF_FEATURE_IFUPDOWN_MAPPING(
@@ -41,7 +158,7 @@
 //usage:     "\n	-m	Don't run any mappings"
 //usage:	)
 //usage:     "\n	-v	Print out what would happen before doing it"
-//usage:     "\n	-f	Force de/configuration"
+//usage:     "\n	-f	Force deconfiguration"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -1248,7 +1365,6 @@ static FILE *open_new_state_file(void)
 	return xfdopen_for_write(fd);
 }
 
-
 int ifupdown_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -1263,10 +1379,13 @@ int ifupdown_main(int argc UNUSED_PARAM, char **argv)
 	G.startup_PATH = getenv("PATH");
 	G.shell = xstrdup(get_shell_name());
 
-	cmds = iface_down;
-	if (applet_name[2] == 'u') {
+	if (ENABLE_IFUP
+	 && (!ENABLE_IFDOWN || applet_name[2] == 'u')
+	) {
 		/* ifup command */
 		cmds = iface_up;
+	} else {
+		cmds = iface_down;
 	}
 
 	getopt32(argv, OPTION_STR, &interfaces);
