@@ -7,6 +7,26 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MKE2FS
+//config:	bool "mke2fs"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Utility to create EXT2 filesystems.
+//config:
+//config:config MKFS_EXT2
+//config:	bool "mkfs.ext2"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Alias to "mke2fs".
+
+//applet:IF_MKE2FS(APPLET_ODDNAME(mke2fs, mkfs_ext2, BB_DIR_SBIN, BB_SUID_DROP, mkfs_ext2))
+//applet:IF_MKFS_EXT2(APPLET_ODDNAME(mkfs.ext2, mkfs_ext2, BB_DIR_SBIN, BB_SUID_DROP, mkfs_ext2))
+////////:IF_MKFS_EXT3(APPLET_ODDNAME(mkfs.ext3, mkfs_ext2, BB_DIR_SBIN, BB_SUID_DROP, mkfs_ext2))
+
+//kbuild:lib-$(CONFIG_MKE2FS) += mkfs_ext2.o
+//kbuild:lib-$(CONFIG_MKFS_EXT2) += mkfs_ext2.o
 
 //usage:#define mkfs_ext2_trivial_usage
 //usage:       "[-Fn] "
