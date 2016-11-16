@@ -7,6 +7,25 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MKDOSFS
+//config:	bool "mkdosfs"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Utility to create FAT32 filesystems.
+//config:
+//config:config MKFS_VFAT
+//config:	bool "mkfs.vfat"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Alias to "mkdosfs".
+
+//applet:IF_MKDOSFS(APPLET_ODDNAME(mkdosfs, mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))
+//applet:IF_MKFS_VFAT(APPLET_ODDNAME(mkfs.vfat, mkfs_vfat, BB_DIR_SBIN, BB_SUID_DROP, mkfs_vfat))
+
+//kbuild:lib-$(CONFIG_MKDOSFS) += mkfs_vfat.o
+//kbuild:lib-$(CONFIG_MKFS_VFAT) += mkfs_vfat.o
 
 //usage:#define mkfs_vfat_trivial_usage
 //usage:       "[-v] [-n LABEL] BLOCKDEV [KBYTES]"

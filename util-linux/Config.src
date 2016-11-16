@@ -272,13 +272,6 @@ config MKFS_REISER
 	  Utility to create ReiserFS filesystems.
 	  Note: this applet needs a lot of testing and polishing.
 
-config MKFS_VFAT
-	bool "mkfs_vfat"
-	default y
-	select PLATFORM_LINUX
-	help
-	  Utility to create FAT32 filesystems.
-
 config GETOPT
 	bool "getopt"
 	default y

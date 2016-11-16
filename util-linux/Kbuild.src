@@ -28,7 +28,6 @@ lib-$(CONFIG_LSPCI)             += lspci.o
 lib-$(CONFIG_LSUSB)             += lsusb.o
 lib-$(CONFIG_MKFS_MINIX)        += mkfs_minix.o
 lib-$(CONFIG_MKFS_REISER)       += mkfs_reiser.o
-lib-$(CONFIG_MKFS_VFAT)         += mkfs_vfat.o
 lib-$(CONFIG_MKSWAP)            += mkswap.o
 lib-$(CONFIG_MORE)              += more.o
 lib-$(CONFIG_MOUNT)             += mount.o
