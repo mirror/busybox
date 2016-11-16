@@ -30,7 +30,7 @@ config FEATURE_SEAMLESS_GZ
 	  Make tar, rpm, modprobe etc understand .gz data.
 
 config FEATURE_SEAMLESS_Z
-	bool "tar, rpm, modprobe etc understand .Z data"
+	bool "Make tar, rpm, modprobe etc understand .Z data"
 	default n  # it is ancient
 	help
 	  Make tar, rpm, modprobe etc understand .Z data.

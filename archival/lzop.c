@@ -31,19 +31,33 @@
 //config:	help
 //config:	  Lzop compression/decompresion.
 //config:
+//config:config UNLZOP
+//config:	bool "unlzop"
+//config:	default y
+//config:	help
+//config:	  Lzop decompresion.
+//config:
+//config:config LZOPCAT
+//config:	bool "lzopcat"
+//config:	default y
+//config:	help
+//config:	  Alias to "unlzop -c".
+//config:
 //config:config LZOP_COMPR_HIGH
 //config:	bool "lzop compression levels 7,8,9 (not very useful)"
 //config:	default n
-//config:	depends on LZOP
+//config:	depends on LZOP || UNLZOP || LZOPCAT
 //config:	help
 //config:	  High levels (7,8,9) of lzop compression. These levels
 //config:	  are actually slower than gzip at equivalent compression ratios
 //config:	  and take up 3.2K of code.
 
 //applet:IF_LZOP(APPLET(lzop, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_LZOP(APPLET_ODDNAME(lzopcat, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, lzopcat))
-//applet:IF_LZOP(APPLET_ODDNAME(unlzop, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, unlzop))
+//applet:IF_UNLZOP(APPLET_ODDNAME(unlzop, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, unlzop))
+//applet:IF_LZOPCAT(APPLET_ODDNAME(lzopcat, lzop, BB_DIR_USR_BIN, BB_SUID_DROP, lzopcat))
 //kbuild:lib-$(CONFIG_LZOP) += lzop.o
+//kbuild:lib-$(CONFIG_UNLZOP) += lzop.o
+//kbuild:lib-$(CONFIG_LZOPCAT) += lzop.o
 
 //usage:#define lzop_trivial_usage
 //usage:       "[-cfvd123456789CF] [FILE]..."
@@ -57,18 +71,18 @@
 //usage:     "\n	-C	Also write checksum of compressed block"
 //usage:
 //usage:#define lzopcat_trivial_usage
-//usage:       "[-vCF] [FILE]..."
+//usage:       "[-vF] [FILE]..."
 //usage:#define lzopcat_full_usage "\n\n"
 //usage:       "	-v	Verbose"
-//usage:     "\n	-F	Don't store or verify checksum"
+//usage:     "\n	-F	Don't verify checksum"
 //usage:
 //usage:#define unlzop_trivial_usage
-//usage:       "[-cfvCF] [FILE]..."
+//usage:       "[-cfvF] [FILE]..."
 //usage:#define unlzop_full_usage "\n\n"
 //usage:       "	-c	Write to stdout"
 //usage:     "\n	-f	Force"
 //usage:     "\n	-v	Verbose"
-//usage:     "\n	-F	Don't store or verify checksum"
+//usage:     "\n	-F	Don't verify checksum"
 
 #include "libbb.h"
 #include "common_bufsiz.h"
@@ -1111,10 +1125,10 @@ int lzop_main(int argc UNUSED_PARAM, char **argv)
 	getopt32(argv, OPTION_STRING);
 	argv += optind;
 	/* lzopcat? */
-	if (applet_name[4] == 'c')
+	if (ENABLE_LZOPCAT && applet_name[4] == 'c')
 		option_mask32 |= (OPT_STDOUT | OPT_DECOMPRESS);
 	/* unlzop? */
-	if (applet_name[4] == 'o')
+	if (ENABLE_UNLZOP && applet_name[4] == 'o')
 		option_mask32 |= OPT_DECOMPRESS;
 
 	global_crc32_table = crc32_filltable(NULL, 0);

@@ -291,18 +291,24 @@ int uncompress_main(int argc UNUSED_PARAM, char **argv)
 //config:	  You can use the `-t' option to test the integrity of
 //config:	  an archive, without decompressing it.
 //config:
+//config:config ZCAT
+//config:	bool "zcat"
+//config:	default y
+//config:	help
+//config:	  Alias to "gunzip -c".
+//config:
 //config:config FEATURE_GUNZIP_LONG_OPTIONS
 //config:	bool "Enable long options"
 //config:	default y
-//config:	depends on GUNZIP && LONG_OPTS
+//config:	depends on (GUNZIP || ZCAT) && LONG_OPTS
 //config:	help
 //config:	  Enable use of long options.
 
 //applet:IF_GUNZIP(APPLET(gunzip, BB_DIR_BIN, BB_SUID_DROP))
-//applet:IF_GUNZIP(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
-//kbuild:lib-$(CONFIG_GZIP) += bbunzip.o
+//applet:IF_ZCAT(APPLET_ODDNAME(zcat, gunzip, BB_DIR_BIN, BB_SUID_DROP, zcat))
 //kbuild:lib-$(CONFIG_GUNZIP) += bbunzip.o
-#if ENABLE_GUNZIP
+//kbuild:lib-$(CONFIG_ZCAT) += bbunzip.o
+#if ENABLE_GUNZIP || ENABLE_ZCAT
 static
 char* FAST_FUNC make_new_name_gunzip(char *filename, const char *expected_ext UNUSED_PARAM)
 {
@@ -365,7 +371,7 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 	 * Normally, "zcat" is just "gunzip -c".
 	 * But if seamless magic is enabled, then we are much more clever.
 	 */
-	if (applet_name[1] == 'c')
+	if (ENABLE_ZCAT && applet_name[1] == 'c')
 		option_mask32 |= OPT_STDOUT | SEAMLESS_MAGIC;
 
 	return bbunpack(argv, unpack_gz_stream, make_new_name_gunzip, /*unused:*/ NULL);
@@ -402,18 +408,24 @@ int gunzip_main(int argc UNUSED_PARAM, char **argv)
 //config:
 //config:	  Unless you have a specific application which requires bunzip2, you
 //config:	  should probably say N here.
+//config:
+//config:config BZCAT
+//config:	bool "bzcat"
+//config:	default y
+//config:	help
+//config:	  Alias to "bunzip2 -c".
 
 //applet:IF_BUNZIP2(APPLET(bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP))
-//applet:IF_BUNZIP2(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
-//kbuild:lib-$(CONFIG_BZIP2) += bbunzip.o
+//applet:IF_BZCAT(APPLET_ODDNAME(bzcat, bunzip2, BB_DIR_USR_BIN, BB_SUID_DROP, bzcat))
 //kbuild:lib-$(CONFIG_BUNZIP2) += bbunzip.o
-#if ENABLE_BUNZIP2
+//kbuild:lib-$(CONFIG_BZCAT) += bbunzip.o
+#if ENABLE_BUNZIP2 || ENABLE_BZCAT
 int bunzip2_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 {
 	getopt32(argv, "cfvqdt");
 	argv += optind;
-	if (applet_name[2] == 'c') /* bzcat */
+	if (ENABLE_BZCAT && applet_name[2] == 'c') /* bzcat */
 		option_mask32 |= OPT_STDOUT;
 
 	return bbunpack(argv, unpack_bz2_stream, make_new_name_generic, "bz2");
@@ -481,27 +493,40 @@ int bunzip2_main(int argc UNUSED_PARAM, char **argv)
 //config:	  The BusyBox unlzma applet is limited to decompression only.
 //config:	  On an x86 system, this applet adds about 4K.
 //config:
-//config:config FEATURE_LZMA_FAST
-//config:	bool "Optimize unlzma for speed"
-//config:	default n
-//config:	depends on UNLZMA
+//config:config LZCAT
+//config:	bool "lzcat"
+//config:	default y
 //config:	help
-//config:	  This option reduces decompression time by about 25% at the cost of
-//config:	  a 1K bigger binary.
+//config:	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
+//config:	  compression algorithm, and range coding. Compression
+//config:	  is generally considerably better than that achieved by the bzip2
+//config:	  compressors.
+//config:
+//config:	  The BusyBox unlzma applet is limited to decompression only.
+//config:	  On an x86 system, this applet adds about 4K.
 //config:
 //config:config LZMA
-//config:	bool "Provide lzma alias which supports only unpacking"
+//config:	bool "lzma -d"
 //config:	default y
-//config:	depends on UNLZMA
 //config:	help
 //config:	  Enable this option if you want commands like "lzma -d" to work.
 //config:	  IOW: you'll get lzma applet, but it will always require -d option.
+//config:
+//config:config FEATURE_LZMA_FAST
+//config:	bool "Optimize unlzma for speed"
+//config:	default n
+//config:	depends on UNLZMA || LZCAT || LZMA
+//config:	help
+//config:	  This option reduces decompression time by about 25% at the cost of
+//config:	  a 1K bigger binary.
 
 //applet:IF_UNLZMA(APPLET(unlzma, BB_DIR_USR_BIN, BB_SUID_DROP))
-//applet:IF_UNLZMA(APPLET_ODDNAME(lzcat, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzcat))
+//applet:IF_LZCAT(APPLET_ODDNAME(lzcat, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzcat))
 //applet:IF_LZMA(APPLET_ODDNAME(lzma, unlzma, BB_DIR_USR_BIN, BB_SUID_DROP, lzma))
 //kbuild:lib-$(CONFIG_UNLZMA) += bbunzip.o
-#if ENABLE_UNLZMA
+//kbuild:lib-$(CONFIG_LZCAT) += bbunzip.o
+//kbuild:lib-$(CONFIG_LZMA) += bbunzip.o
+#if ENABLE_UNLZMA || ENABLE_LZCAT || ENABLE_LZMA
 int unlzma_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unlzma_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -512,7 +537,7 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 # endif
 	/* lzcat? */
-	if (applet_name[2] == 'c')
+	if (ENABLE_LZCAT && applet_name[2] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
@@ -527,19 +552,26 @@ int unlzma_main(int argc UNUSED_PARAM, char **argv)
 //config:	help
 //config:	  unxz is a unlzma successor.
 //config:
-//config:config XZ
-//config:	bool "Provide xz alias which supports only unpacking"
+//config:config XZCAT
+//config:	bool "xzcat"
 //config:	default y
-//config:	depends on UNXZ
+//config:	help
+//config:	  Alias to "unxz -c".
+//config:
+//config:config XZ
+//config:	bool "xz -d"
+//config:	default y
 //config:	help
 //config:	  Enable this option if you want commands like "xz -d" to work.
 //config:	  IOW: you'll get xz applet, but it will always require -d option.
 
 //applet:IF_UNXZ(APPLET(unxz, BB_DIR_USR_BIN, BB_SUID_DROP))
-//applet:IF_UNXZ(APPLET_ODDNAME(xzcat, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xzcat))
+//applet:IF_XZCAT(APPLET_ODDNAME(xzcat, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xzcat))
 //applet:IF_XZ(APPLET_ODDNAME(xz, unxz, BB_DIR_USR_BIN, BB_SUID_DROP, xz))
 //kbuild:lib-$(CONFIG_UNXZ) += bbunzip.o
-#if ENABLE_UNXZ
+//kbuild:lib-$(CONFIG_XZCAT) += bbunzip.o
+//kbuild:lib-$(CONFIG_XZ) += bbunzip.o
+#if ENABLE_UNXZ || ENABLE_XZCAT || ENABLE_XZ
 int unxz_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
 int unxz_main(int argc UNUSED_PARAM, char **argv)
 {
@@ -550,7 +582,7 @@ int unxz_main(int argc UNUSED_PARAM, char **argv)
 		bb_show_usage();
 # endif
 	/* xzcat? */
-	if (applet_name[2] == 'c')
+	if (ENABLE_XZCAT && applet_name[2] == 'c')
 		option_mask32 |= OPT_STDOUT;
 
 	argv += optind;
