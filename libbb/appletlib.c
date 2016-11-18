@@ -883,20 +883,21 @@ void FAST_FUNC run_applet_no_and_exit(int applet_no, char **argv)
 }
 # endif /* NUM_APPLETS > 0 */
 
+# if ENABLE_BUSYBOX || NUM_APPLETS > 0
 static NORETURN void run_applet_and_exit(const char *name, char **argv)
 {
-# if ENABLE_BUSYBOX
+#  if ENABLE_BUSYBOX
 	if (is_prefixed_with(name, "busybox"))
 		exit(busybox_main(argv));
-# endif
-# if NUM_APPLETS > 0
+#  endif
+#  if NUM_APPLETS > 0
 	/* find_applet_by_name() search is more expensive, so goes second */
 	{
 		int applet = find_applet_by_name(name);
 		if (applet >= 0)
 			run_applet_no_and_exit(applet, argv);
 	}
-# endif
+#  endif
 
 	/*bb_error_msg_and_die("applet not found"); - links in printf */
 	full_write2_str(applet_name);
@@ -904,9 +905,9 @@ static NORETURN void run_applet_and_exit(const char *name, char **argv)
 	/* POSIX: "If a command is not found, the exit status shall be 127" */
 	exit(127);
 }
+# endif
 
 #endif /* !defined(SINGLE_APPLET_MAIN) */
-
 
 
 #if ENABLE_BUILD_LIBBUSYBOX
@@ -960,6 +961,7 @@ int main(int argc UNUSED_PARAM, char **argv)
 #endif
 
 #if defined(SINGLE_APPLET_MAIN)
+
 	/* Only one applet is selected in .config */
 	if (argv[1] && is_prefixed_with(argv[0], "busybox")) {
 		/* "busybox <applet> <params>" should still work as expected */
@@ -968,9 +970,16 @@ int main(int argc UNUSED_PARAM, char **argv)
 	/* applet_names in this case is just "applet\0\0" */
 	lbb_prepare(applet_names IF_FEATURE_INDIVIDUAL(, argv));
 	return SINGLE_APPLET_MAIN(argc, argv);
-#else
-	lbb_prepare("busybox" IF_FEATURE_INDIVIDUAL(, argv));
 
+#elif !ENABLE_BUSYBOX && NUM_APPLETS == 0
+
+	full_write2_str(bb_basename(argv[0]));
+	full_write2_str(": no applets enabled\n");
+	exit(127);
+
+#else
+
+	lbb_prepare("busybox" IF_FEATURE_INDIVIDUAL(, argv));
 # if !ENABLE_BUSYBOX
 	if (argv[1] && is_prefixed_with(bb_basename(argv[0]), "busybox"))
 		argv++;
@@ -979,9 +988,8 @@ int main(int argc UNUSED_PARAM, char **argv)
 	if (applet_name[0] == '-')
 		applet_name++;
 	applet_name = bb_basename(applet_name);
-
 	parse_config_file(); /* ...maybe, if FEATURE_SUID_CONFIG */
-
 	run_applet_and_exit(applet_name, argv);
+
 #endif
 }
