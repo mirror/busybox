@@ -290,6 +290,17 @@ static int apply_one_hunk(void)
 		// out of buffer.
 
 		for (;;) {
+			while (plist && *plist->data == "+-"[reverse]) {
+				if (!strcmp(check->data, plist->data+1) &&
+				    !backwarn) {
+					backwarn = TT.linenum;
+					if (option_mask32 & FLAG_IGNORE) {
+						dummy_revert = 1;
+						reverse ^= 1;
+					}
+				}
+				plist = plist->next;
+			}
 			if (!plist || strcmp(check->data, plist->data+1)) {
 				// Match failed.  Write out first line of buffered data and
 				// recheck remaining buffered data for a new match.

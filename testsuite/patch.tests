@@ -242,6 +242,51 @@ patch: can't open 'dir2///file': No such file or directory
  zxc
 "
 
+testing "patch internal buffering bug?" \
+	'patch -p1 2>&1; echo $?; cat input' \
+"\
+patching file input
+0
+foo
+
+
+
+
+
+
+1
+2
+3
+
+bar
+" \
+"\
+foo
+
+
+
+
+
+
+
+bar
+" \
+"\
+--- a/input.orig
++++ b/input
+@@ -5,5 +5,8 @@ foo
+ 
+ 
+ 
++1
++2
++3
+ 
+ bar
+-- 
+2.9.2
+" \
+
 rm input.orig 2>/dev/null
 
 exit $FAILCOUNT
