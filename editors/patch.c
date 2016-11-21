@@ -295,7 +295,7 @@ static int apply_one_hunk(void)
 				// recheck remaining buffered data for a new match.
 
 				if (PATCH_DEBUG)
-					fdprintf(2, "NOT: %s\n", plist->data);
+					fdprintf(2, "NOT: %s\n", plist ? plist->data : "EOF");
 
 				TT.state = 3;
 				check = buf;
