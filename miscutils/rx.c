@@ -21,6 +21,10 @@
 //config:	help
 //config:	  Receive files using the Xmodem protocol.
 
+//applet:IF_RX(APPLET(rx, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RX) += rx.o
+
 //usage:#define rx_trivial_usage
 //usage:       "FILE"
 //usage:#define rx_full_usage "\n\n"

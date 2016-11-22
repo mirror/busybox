@@ -27,6 +27,10 @@
 //config:	  Add the -s option to eject, this allows to eject SCSI-Devices and
 //config:	  usb-storage devices.
 
+//applet:IF_EJECT(APPLET(eject, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_EJECT) += eject.o
+
 //usage:#define eject_trivial_usage
 //usage:       "[-t] [-T] [DEVICE]"
 //usage:#define eject_full_usage "\n\n"

@@ -10,6 +10,10 @@
 //config:	  devmem is a small program that reads and writes from physical
 //config:	  memory using /dev/mem.
 
+//applet:IF_DEVMEM(APPLET(devmem, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DEVMEM) += devmem.o
+
 //usage:#define devmem_trivial_usage
 //usage:	"ADDRESS [WIDTH [VALUE]]"
 //usage:#define devmem_full_usage "\n\n"

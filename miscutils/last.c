@@ -21,6 +21,14 @@
 //config:	  'last' displays detailed information about the last users that
 //config:	  logged into the system (mimics sysvinit last). +900 bytes.
 
+//applet:IF_LAST(APPLET(last, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:ifeq ($(CONFIG_FEATURE_LAST_FANCY),y)
+//kbuild:lib-$(CONFIG_FEATURE_LAST_FANCY) += last_fancy.o
+//kbuild:else
+//kbuild:lib-$(CONFIG_LAST) += last.o
+//kbuild:endif
+
 //usage:#define last_trivial_usage
 //usage:       ""IF_FEATURE_LAST_FANCY("[-HW] [-f FILE]")
 //usage:#define last_full_usage "\n\n"

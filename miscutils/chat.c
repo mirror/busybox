@@ -74,6 +74,10 @@
 //config:	help
 //config:	  Support CLR_ABORT directive.
 
+//applet:IF_CHAT(APPLET(chat, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHAT) += chat.o
+
 //usage:#define chat_trivial_usage
 //usage:       "EXPECT [SEND [EXPECT [SEND...]]]"
 //usage:#define chat_full_usage "\n\n"

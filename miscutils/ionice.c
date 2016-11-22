@@ -14,6 +14,10 @@
 //config:	  Set/set program io scheduling class and priority
 //config:	  Requires kernel >= 2.6.13
 
+//applet:IF_IONICE(APPLET(ionice, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_IONICE) += ionice.o
+
 //usage:#define ionice_trivial_usage
 //usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"
 //usage:#define ionice_full_usage "\n\n"

@@ -16,6 +16,10 @@
 //config:	  The flash_eraseall binary from mtd-utils as of git head c4c6a59eb.
 //config:	  This utility is used to erase the whole MTD device.
 
+//applet:IF_FLASH_ERASEALL(APPLET(flash_eraseall, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FLASH_ERASEALL) += flash_eraseall.o
+
 //usage:#define flash_eraseall_trivial_usage
 //usage:       "[-jNq] MTD_DEVICE"
 //usage:#define flash_eraseall_full_usage "\n\n"

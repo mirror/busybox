@@ -16,6 +16,10 @@
 //config:	  When the command finishes, time writes a message to standard output
 //config:	  giving timing statistics about this program run.
 
+//applet:IF_TIME(APPLET(time, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TIME) += time.o
+
 //usage:#define time_trivial_usage
 //usage:       "[-v] PROG ARGS"
 //usage:#define time_full_usage "\n\n"

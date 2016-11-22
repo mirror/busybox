@@ -8,6 +8,10 @@
 //config:	help
 //config:	  Format and display manual pages.
 
+//applet:IF_MAN(APPLET(man, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MAN) += man.o
+
 //usage:#define man_trivial_usage
 //usage:       "[-aw] [MANPAGE]..."
 //usage:#define man_full_usage "\n\n"

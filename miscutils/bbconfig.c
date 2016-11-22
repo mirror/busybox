@@ -22,6 +22,10 @@
 //config:	  and have very little memory, this might not be a win. Otherwise,
 //config:	  you probably want this.
 
+//applet:IF_BBCONFIG(APPLET(bbconfig, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_BBCONFIG) += bbconfig.o
+
 //usage:#define bbconfig_trivial_usage
 //usage:       ""
 //usage:#define bbconfig_full_usage "\n\n"

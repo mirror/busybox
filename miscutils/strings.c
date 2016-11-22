@@ -13,6 +13,10 @@
 //config:	  strings prints the printable character sequences for each file
 //config:	  specified.
 
+//applet:IF_STRINGS(APPLET(strings, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_STRINGS) += strings.o
+
 //usage:#define strings_trivial_usage
 //usage:       "[-fo] [-t o/d/x] [-n LEN] [FILE]..."
 //usage:#define strings_full_usage "\n\n"

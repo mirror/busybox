@@ -12,6 +12,10 @@
 //config:	  manipulate real-time attributes of a process.
 //config:	  This requires sched_{g,s}etparam support in your libc.
 
+//applet:IF_CHRT(APPLET(chrt, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CHRT) += chrt.o
+
 //usage:#define chrt_trivial_usage
 //usage:       "[-prfom] [PRIO] [PID | PROG ARGS]"
 //usage:#define chrt_full_usage "\n\n"

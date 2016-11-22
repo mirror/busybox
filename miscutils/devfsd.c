@@ -110,6 +110,10 @@
 //config:	  /dev/loop0. If your /dev directory has normal names instead of
 //config:	  devfs names, you don't want this.
 
+//applet:IF_DEVFSD(APPLET(devfsd, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DEVFSD) += devfsd.o
+
 //usage:#define devfsd_trivial_usage
 //usage:       "mntpnt [-v]" IF_DEVFSD_FG_NP("[-fg][-np]")
 //usage:#define devfsd_full_usage "\n\n"

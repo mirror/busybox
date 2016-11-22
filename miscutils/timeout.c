@@ -34,6 +34,10 @@
 //config:	  Runs a program and watches it. If it does not terminate in
 //config:	  specified number of seconds, it is sent a signal.
 
+//applet:IF_TIMEOUT(APPLET(timeout, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_TIMEOUT) += timeout.o
+
 //usage:#define timeout_trivial_usage
 //usage:       "[-t SECS] [-s SIG] PROG ARGS"
 //usage:#define timeout_full_usage "\n\n"

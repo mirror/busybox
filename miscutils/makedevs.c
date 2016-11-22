@@ -38,6 +38,10 @@
 //config:
 //config:endchoice
 
+//applet:IF_MAKEDEVS(APPLET(makedevs, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MAKEDEVS) += makedevs.o
+
 //usage:#if ENABLE_FEATURE_MAKEDEVS_LEAF
 //usage:#define makedevs_trivial_usage
 //usage:       "NAME TYPE MAJOR MINOR FIRST LAST [s]"

@@ -18,6 +18,11 @@
 //config:	  Note that Busybox binary must be setuid root for this applet to
 //config:	  work properly.
 
+/* Needs to be run by root or be suid root - needs to change /var/spool/cron* files: */
+//applet:IF_CRONTAB(APPLET(crontab, BB_DIR_USR_BIN, BB_SUID_REQUIRE))
+
+//kbuild:lib-$(CONFIG_CRONTAB) += crontab.o
+
 //usage:#define crontab_trivial_usage
 //usage:       "[-c DIR] [-u USER] [-ler]|[FILE]"
 //usage:#define crontab_full_usage "\n\n"

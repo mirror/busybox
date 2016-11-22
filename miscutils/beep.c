@@ -30,6 +30,10 @@
 //config:	help
 //config:	  Length in ms for default beep.
 
+//applet:IF_BEEP(APPLET(beep, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_BEEP) += beep.o
+
 //usage:#define beep_trivial_usage
 //usage:       "-f FREQ -l LEN -d DELAY -r COUNT -n"
 //usage:#define beep_full_usage "\n\n"

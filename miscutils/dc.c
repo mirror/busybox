@@ -17,6 +17,10 @@
 //config:	  Enable power and exp functions.
 //config:	  NOTE: This will require libm to be present for linking.
 
+//applet:IF_DC(APPLET(dc, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_DC) += dc.o
+
 //usage:#define dc_trivial_usage
 //usage:       "EXPRESSION..."
 //usage:

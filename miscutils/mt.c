@@ -10,6 +10,10 @@
 //config:	  to advance or rewind a tape past a specified number of archive
 //config:	  files on the tape.
 
+//applet:IF_MT(APPLET(mt, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MT) += mt.o
+
 //usage:#define mt_trivial_usage
 //usage:       "[-f device] opcode value"
 //usage:#define mt_full_usage "\n\n"

@@ -42,6 +42,10 @@
 //config:	    "NN" (ASCII decimal number) - percentage to show on progress bar
 //config:	    "exit" - well you guessed it
 
+//applet:IF_FBSPLASH(APPLET(fbsplash, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_FBSPLASH) += fbsplash.o
+
 //usage:#define fbsplash_trivial_usage
 //usage:       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"
 //usage:#define fbsplash_full_usage "\n\n"

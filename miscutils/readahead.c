@@ -27,6 +27,10 @@
 //config:	  As readahead(2) blocks until each file has been read, it is best to
 //config:	  run this applet as a background job.
 
+//applet:IF_READAHEAD(APPLET(readahead, BB_DIR_USR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_READAHEAD) += readahead.o
+
 //usage:#define readahead_trivial_usage
 //usage:       "[FILE]..."
 //usage:#define readahead_full_usage "\n\n"

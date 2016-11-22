@@ -105,6 +105,10 @@
 //config:	help
 //config:	  Enables "-N" command.
 
+//applet:IF_LESS(APPLET(less, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_LESS) += less.o
+
 //usage:#define less_trivial_usage
 //usage:       "[-E" IF_FEATURE_LESS_REGEXP("I")IF_FEATURE_LESS_FLAGS("Mm")
 //usage:       "N" IF_FEATURE_LESS_TRUNCATE("S") "h~] [FILE]..."

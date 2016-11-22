@@ -33,6 +33,10 @@
 //config:	  Simple inotify daemon. Reports filesystem changes. Requires
 //config:	  kernel >= 2.6.13
 
+//applet:IF_INOTIFYD(APPLET(inotifyd, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_INOTIFYD) += inotifyd.o
+
 //usage:#define inotifyd_trivial_usage
 //usage:	"PROG FILE1[:MASK]..."
 //usage:#define inotifyd_full_usage "\n\n"

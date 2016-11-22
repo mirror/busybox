@@ -70,6 +70,10 @@
 //config:	help
 //config:	  Enables the 'hdparm -d' option to get/set using_dma flag.
 
+//applet:IF_HDPARM(APPLET(hdparm, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_HDPARM) += hdparm.o
+
 //usage:#define hdparm_trivial_usage
 //usage:       "[OPTIONS] [DEVICE]"
 //usage:#define hdparm_full_usage "\n\n"

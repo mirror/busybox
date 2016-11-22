@@ -13,6 +13,10 @@
 //config:	help
 //config:	  The poor man's minicom utility for chatting with serial port devices.
 
+//applet:IF_MICROCOM(APPLET(microcom, BB_DIR_USR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_MICROCOM) += microcom.o
+
 //usage:#define microcom_trivial_usage
 //usage:       "[-d DELAY] [-t TIMEOUT] [-s SPEED] [-X] TTY"
 //usage:#define microcom_full_usage "\n\n"

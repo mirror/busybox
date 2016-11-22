@@ -20,6 +20,10 @@
 //config:	  certain amount of time, the watchdog device assumes the system has
 //config:	  hung, and will cause the hardware to reboot.
 
+//applet:IF_WATCHDOG(APPLET(watchdog, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_WATCHDOG) += watchdog.o
+
 //usage:#define watchdog_trivial_usage
 //usage:       "[-t N[ms]] [-T N[ms]] [-F] DEV"
 //usage:#define watchdog_full_usage "\n\n"

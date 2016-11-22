@@ -21,6 +21,10 @@
 //config:	  This applet uses utmp but does not rely on busybox supporing
 //config:	  utmp on purpose. It is used by e.g. emdebian via /etc/init.d/rc.
 
+//applet:IF_RUNLEVEL(APPLET(runlevel, BB_DIR_SBIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_RUNLEVEL) += runlevel.o
+
 //usage:#define runlevel_trivial_usage
 //usage:       "[FILE]"
 //usage:#define runlevel_full_usage "\n\n"
