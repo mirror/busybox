@@ -7,6 +7,72 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config CHAT
+//config:	bool "chat"
+//config:	default y
+//config:	help
+//config:	  Simple chat utility.
+//config:
+//config:config FEATURE_CHAT_NOFAIL
+//config:	bool "Enable NOFAIL expect strings"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  When enabled expect strings which are started with a dash trigger
+//config:	  no-fail mode. That is when expectation is not met within timeout
+//config:	  the script is not terminated but sends next SEND string and waits
+//config:	  for next EXPECT string. This allows to compose far more flexible
+//config:	  scripts.
+//config:
+//config:config FEATURE_CHAT_TTY_HIFI
+//config:	bool "Force STDIN to be a TTY"
+//config:	depends on CHAT
+//config:	default n
+//config:	help
+//config:	  Original chat always treats STDIN as a TTY device and sets for it
+//config:	  so-called raw mode. This option turns on such behaviour.
+//config:
+//config:config FEATURE_CHAT_IMPLICIT_CR
+//config:	bool "Enable implicit Carriage Return"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  When enabled make chat to terminate all SEND strings with a "\r"
+//config:	  unless "\c" is met anywhere in the string.
+//config:
+//config:config FEATURE_CHAT_SWALLOW_OPTS
+//config:	bool "Swallow options"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  Busybox chat require no options. To make it not fail when used
+//config:	  in place of original chat (which has a bunch of options) turn
+//config:	  this on.
+//config:
+//config:config FEATURE_CHAT_SEND_ESCAPES
+//config:	bool "Support weird SEND escapes"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  Original chat uses some escape sequences in SEND arguments which
+//config:	  are not sent to device but rather performs special actions.
+//config:	  E.g. "\K" means to send a break sequence to device.
+//config:	  "\d" delays execution for a second, "\p" -- for a 1/100 of second.
+//config:	  Before turning this option on think twice: do you really need them?
+//config:
+//config:config FEATURE_CHAT_VAR_ABORT_LEN
+//config:	bool "Support variable-length ABORT conditions"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  Original chat uses fixed 50-bytes length ABORT conditions. Say N here.
+//config:
+//config:config FEATURE_CHAT_CLR_ABORT
+//config:	bool "Support revoking of ABORT conditions"
+//config:	depends on CHAT
+//config:	default y
+//config:	help
+//config:	  Support CLR_ABORT directive.
 
 //usage:#define chat_trivial_usage
 //usage:       "EXPECT [SEND [EXPECT [SEND...]]]"

@@ -20,6 +20,27 @@
  *   "NN" (ASCII decimal number) - percentage to show on progress bar.
  *   "exit" (or just close fifo) - well you guessed it.
  */
+//config:config FBSPLASH
+//config:	bool "fbsplash"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Shows splash image and progress bar on framebuffer device.
+//config:	  Can be used during boot phase of an embedded device. ~2kb.
+//config:	  Usage:
+//config:	  - use kernel option 'vga=xxx' or otherwise enable fb device.
+//config:	  - put somewhere fbsplash.cfg file and an image in .ppm format.
+//config:	  - $ setsid fbsplash [params] &
+//config:	    -c: hide cursor
+//config:	    -d /dev/fbN: framebuffer device (if not /dev/fb0)
+//config:	    -s path_to_image_file (can be "-" for stdin)
+//config:	    -i path_to_cfg_file (can be "-" for stdin)
+//config:	    -f path_to_fifo (can be "-" for stdin)
+//config:	  - if you want to run it only in presence of kernel parameter:
+//config:	    grep -q "fbsplash=on" </proc/cmdline && setsid fbsplash [params] &
+//config:	  - commands for fifo:
+//config:	    "NN" (ASCII decimal number) - percentage to show on progress bar
+//config:	    "exit" - well you guessed it
 
 //usage:#define fbsplash_trivial_usage
 //usage:       "-s IMGFILE [-c] [-d DEV] [-i INIFILE] [-f CMD]"

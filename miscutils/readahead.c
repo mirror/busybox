@@ -9,6 +9,23 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config READAHEAD
+//config:	bool "readahead"
+//config:	default y
+//config:	depends on LFS
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Preload the files listed on the command line into RAM cache so that
+//config:	  subsequent reads on these files will not block on disk I/O.
+//config:
+//config:	  This applet just calls the readahead(2) system call on each file.
+//config:	  It is mainly useful in system startup scripts to preload files
+//config:	  or executables before they are used. When used at the right time
+//config:	  (in particular when a CPU bound process is running) it can
+//config:	  significantly speed up system startup.
+//config:
+//config:	  As readahead(2) blocks until each file has been read, it is best to
+//config:	  run this applet as a background job.
 
 //usage:#define readahead_trivial_usage
 //usage:       "[FILE]..."

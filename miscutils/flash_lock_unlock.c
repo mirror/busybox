@@ -3,6 +3,19 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config FLASH_LOCK
+//config:	bool "flash_lock"
+//config:	default n  # doesn't build on Ubuntu 8.04
+//config:	help
+//config:	  The flash_lock binary from mtd-utils as of git head 5ec0c10d0. This
+//config:	  utility locks part or all of the flash device.
+//config:
+//config:config FLASH_UNLOCK
+//config:	bool "flash_unlock"
+//config:	default n  # doesn't build on Ubuntu 8.04
+//config:	help
+//config:	  The flash_unlock binary from mtd-utils as of git head 5ec0c10d0. This
+//config:	  utility unlocks part or all of the flash device.
 
 //usage:#define flash_lock_trivial_usage
 //usage:       "MTD_DEVICE OFFSET SECTORS"

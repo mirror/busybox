@@ -10,6 +10,13 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config ADJTIMEX
+//config:	bool "adjtimex"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Adjtimex reads and optionally sets adjustment parameters for
+//config:	  the Linux clock adjustment algorithm.
 
 //usage:#define adjtimex_trivial_usage
 //usage:       "[-q] [-o OFF] [-f FREQ] [-p TCONST] [-t TICK]"

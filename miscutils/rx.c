@@ -14,6 +14,12 @@
  *
  * This was originally written for blob and then adapted for busybox.
  */
+//config:config RX
+//config:	bool "rx"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Receive files using the Xmodem protocol.
 
 //usage:#define rx_trivial_usage
 //usage:       "FILE"

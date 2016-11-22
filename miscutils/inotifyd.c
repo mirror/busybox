@@ -26,6 +26,12 @@
  *
  * See below for mask names explanation.
  */
+//config:config INOTIFYD
+//config:	bool "inotifyd"
+//config:	default n  # doesn't build on Knoppix 5
+//config:	help
+//config:	  Simple inotify daemon. Reports filesystem changes. Requires
+//config:	  kernel >= 2.6.13
 
 //usage:#define inotifyd_trivial_usage
 //usage:	"PROG FILE1[:MASK]..."

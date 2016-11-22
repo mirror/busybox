@@ -13,6 +13,11 @@
  * 2004-11-12 Paul Fox
  * - busyboxed
  */
+//config:config SETSID
+//config:	bool "setsid"
+//config:	default y
+//config:	help
+//config:	  setsid runs a program in a new session
 
 //usage:#define setsid_trivial_usage
 //usage:       "[-c] PROG ARGS"

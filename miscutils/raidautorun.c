@@ -7,6 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  */
+//config:config RAIDAUTORUN
+//config:	bool "raidautorun"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  raidautorun tells the kernel md driver to
+//config:	  search and start RAID arrays.
 
 //usage:#define raidautorun_trivial_usage
 //usage:       "DEVICE"

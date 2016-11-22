@@ -27,6 +27,11 @@
  * mods from distributed source (eject-2.0.13) are by
  * Matthew Stoltenberg <d3matt@gmail.com>
  */
+//config:config VOLNAME
+//config:	bool "volname"
+//config:	default y
+//config:	help
+//config:	  Prints a CD-ROM volume name.
 
 //usage:#define volname_trivial_usage
 //usage:       "[DEVICE]"

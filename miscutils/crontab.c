@@ -9,6 +9,14 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CRONTAB
+//config:	bool "crontab"
+//config:	default y
+//config:	help
+//config:	  Crontab manipulates the crontab for a particular user. Only
+//config:	  the superuser may specify a different user and/or crontab directory.
+//config:	  Note that Busybox binary must be setuid root for this applet to
+//config:	  work properly.
 
 //usage:#define crontab_trivial_usage
 //usage:       "[-c DIR] [-u USER] [-ler]|[FILE]"

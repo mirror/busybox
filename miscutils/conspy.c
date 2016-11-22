@@ -9,11 +9,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-//applet:IF_CONSPY(APPLET(conspy, BB_DIR_BIN, BB_SUID_DROP))
-
-//kbuild:lib-$(CONFIG_CONSPY) += conspy.o
-
 //config:config CONSPY
 //config:	bool "conspy"
 //config:	default y
@@ -23,6 +18,10 @@
 //config:	  example:  conspy NUM      shared access to console num
 //config:	  or        conspy -nd NUM  screenshot of console num
 //config:	  or        conspy -cs NUM  poor man's GNU screen like
+
+//applet:IF_CONSPY(APPLET(conspy, BB_DIR_BIN, BB_SUID_DROP))
+
+//kbuild:lib-$(CONFIG_CONSPY) += conspy.o
 
 //usage:#define conspy_trivial_usage
 //usage:	"[-vcsndfFQ] [-x COL] [-y LINE] [CONSOLE_NO]"

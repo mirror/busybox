@@ -5,6 +5,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config CHRT
+//config:	bool "chrt"
+//config:	default y
+//config:	help
+//config:	  manipulate real-time attributes of a process.
+//config:	  This requires sched_{g,s}etparam support in your libc.
 
 //usage:#define chrt_trivial_usage
 //usage:       "[-prfom] [PRIO] [PID | PROG ARGS]"

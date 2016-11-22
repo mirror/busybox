@@ -8,6 +8,11 @@
  *
  * Based on sysvinit's mountpoint
  */
+//config:config MOUNTPOINT
+//config:	bool "mountpoint"
+//config:	default y
+//config:	help
+//config:	  mountpoint checks if the directory is a mountpoint.
 
 //usage:#define mountpoint_trivial_usage
 //usage:       "[-q] <[-dn] DIR | -x DEVICE>"

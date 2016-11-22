@@ -12,6 +12,20 @@
  * This is a simple hack of eject based on something Erik posted in #uclibc.
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
+//config:config EJECT
+//config:	bool "eject"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Used to eject cdroms. (defaults to /dev/cdrom)
+//config:
+//config:config FEATURE_EJECT_SCSI
+//config:	bool "SCSI support"
+//config:	default y
+//config:	depends on EJECT
+//config:	help
+//config:	  Add the -s option to eject, this allows to eject SCSI-Devices and
+//config:	  usb-storage devices.
 
 //usage:#define eject_trivial_usage
 //usage:       "[-t] [-T] [DEVICE]"

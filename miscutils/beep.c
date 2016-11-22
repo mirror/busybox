@@ -7,6 +7,28 @@
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  *
  */
+//config:config BEEP
+//config:	bool "beep"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  The beep applets beeps in a given freq/Hz.
+//config:
+//config:config FEATURE_BEEP_FREQ
+//config:	int "default frequency"
+//config:	range 0 2147483647
+//config:	default 4000
+//config:	depends on BEEP
+//config:	help
+//config:	  Frequency for default beep.
+//config:
+//config:config FEATURE_BEEP_LENGTH_MS
+//config:	int "default length"
+//config:	range 0 2147483647
+//config:	default 30
+//config:	depends on BEEP
+//config:	help
+//config:	  Length in ms for default beep.
 
 //usage:#define beep_trivial_usage
 //usage:       "-f FREQ -l LEN -d DELAY -r COUNT -n"

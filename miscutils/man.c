@@ -2,6 +2,11 @@
  * Copyright (C) 2008 Denys Vlasenko <vda.linux@googlemail.com>
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MAN
+//config:	bool "man"
+//config:	default y
+//config:	help
+//config:	  Format and display manual pages.
 
 //usage:#define man_trivial_usage
 //usage:       "[-aw] [MANPAGE]..."

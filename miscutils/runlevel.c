@@ -11,6 +11,15 @@
  *
  * initially busyboxified by Bernhard Reutner-Fischer
  */
+//config:config RUNLEVEL
+//config:	bool "runlevel"
+//config:	default y
+//config:	depends on FEATURE_UTMP
+//config:	help
+//config:	  find the current and previous system runlevel.
+//config:
+//config:	  This applet uses utmp but does not rely on busybox supporing
+//config:	  utmp on purpose. It is used by e.g. emdebian via /etc/init.d/rc.
 
 //usage:#define runlevel_trivial_usage
 //usage:       "[FILE]"

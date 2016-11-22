@@ -6,6 +6,12 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config STRINGS
+//config:	bool "strings"
+//config:	default y
+//config:	help
+//config:	  strings prints the printable character sequences for each file
+//config:	  specified.
 
 //usage:#define strings_trivial_usage
 //usage:       "[-fo] [-t o/d/x] [-n LEN] [FILE]..."

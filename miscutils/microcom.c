@@ -7,6 +7,11 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config MICROCOM
+//config:	bool "microcom"
+//config:	default y
+//config:	help
+//config:	  The poor man's minicom utility for chatting with serial port devices.
 
 //usage:#define microcom_trivial_usage
 //usage:       "[-d DELAY] [-t TIMEOUT] [-s SPEED] [-X] TTY"

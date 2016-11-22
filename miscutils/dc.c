@@ -2,10 +2,20 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
-
-#include "libbb.h"
-#include "common_bufsiz.h"
-#include <math.h>
+//config:config DC
+//config:	bool "dc"
+//config:	default y
+//config:	help
+//config:	  Dc is a reverse-polish desk calculator which supports unlimited
+//config:	  precision arithmetic.
+//config:
+//config:config FEATURE_DC_LIBM
+//config:	bool "Enable power and exp functions (requires libm)"
+//config:	default y
+//config:	depends on DC
+//config:	help
+//config:	  Enable power and exp functions.
+//config:	  NOTE: This will require libm to be present for linking.
 
 //usage:#define dc_trivial_usage
 //usage:       "EXPRESSION..."
@@ -29,6 +39,10 @@
 //usage:       "1\n"
 //usage:       "$ echo 72 9 div 8 mul p | dc\n"
 //usage:       "64\n"
+
+#include "libbb.h"
+#include "common_bufsiz.h"
+#include <math.h>
 
 #if 0
 typedef unsigned data_t;

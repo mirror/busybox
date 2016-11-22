@@ -6,6 +6,13 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config IONICE
+//config:	bool "ionice"
+//config:	default y
+//config:	select PLATFORM_LINUX
+//config:	help
+//config:	  Set/set program io scheduling class and priority
+//config:	  Requires kernel >= 2.6.13
 
 //usage:#define ionice_trivial_usage
 //usage:	"[-c 1-3] [-n 0-7] [-p PID] [PROG]"

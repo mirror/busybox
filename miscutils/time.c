@@ -8,6 +8,13 @@
    Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.
    Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
 */
+//config:config TIME
+//config:	bool "time"
+//config:	default y
+//config:	help
+//config:	  The time command runs the specified program with the given arguments.
+//config:	  When the command finishes, time writes a message to standard output
+//config:	  giving timing statistics about this program run.
 
 //usage:#define time_trivial_usage
 //usage:       "[-v] PROG ARGS"

@@ -6,6 +6,20 @@
  *
  * Licensed under GPLv2, see file LICENSE in this source tree.
  */
+//config:config LAST
+//config:	bool "last"
+//config:	default y
+//config:	depends on FEATURE_WTMP
+//config:	help
+//config:	  'last' displays a list of the last users that logged into the system.
+//config:
+//config:config FEATURE_LAST_FANCY
+//config:	bool "Turn on output of extra information"
+//config:	default y
+//config:	depends on LAST
+//config:	help
+//config:	  'last' displays detailed information about the last users that
+//config:	  logged into the system (mimics sysvinit last). +900 bytes.
 
 //usage:#define last_trivial_usage
 //usage:       ""IF_FEATURE_LAST_FANCY("[-HW] [-f FILE]")

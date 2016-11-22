@@ -2,6 +2,13 @@
 /*
  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
  */
+//config:config MT
+//config:	bool "mt"
+//config:	default y
+//config:	help
+//config:	  mt is used to control tape devices. You can use the mt utility
+//config:	  to advance or rewind a tape past a specified number of archive
+//config:	  files on the tape.
 
 //usage:#define mt_trivial_usage
 //usage:       "[-f device] opcode value"

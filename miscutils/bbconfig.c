@@ -1,6 +1,26 @@
 /* vi: set sw=4 ts=4: */
 /* This file was released into the public domain by Paul Fox.
  */
+//config:config BBCONFIG
+//config:	bool "bbconfig"
+//config:	default n
+//config:	help
+//config:	  The bbconfig applet will print the config file with which
+//config:	  busybox was built.
+//config:
+//config:config FEATURE_COMPRESS_BBCONFIG
+//config:	bool "Compress bbconfig data"
+//config:	default y
+//config:	depends on BBCONFIG
+//config:	help
+//config:	  Store bbconfig data in compressed form, uncompress them on-the-fly
+//config:	  before output.
+//config:
+//config:	  If you have a really tiny busybox with few applets enabled (and
+//config:	  bunzip2 isn't one of them), the overhead of the decompressor might
+//config:	  be noticeable. Also, if you run executables directly from ROM
+//config:	  and have very little memory, this might not be a win. Otherwise,
+//config:	  you probably want this.
 
 //usage:#define bbconfig_trivial_usage
 //usage:       ""
